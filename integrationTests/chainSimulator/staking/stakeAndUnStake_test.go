@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
-	"strings"
 	"testing"
 	"time"
 
@@ -1237,12 +1236,8 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedFundsBeforeUnbonding(
 	}
 
 	// Test Steps
-	// 1. Check the stake amount and number of nodes for the owner of the staked nodes with the vmquery "getTotalStaked", and the account current EGLD balance
-	// 2. Create from the owner of staked nodes a transaction to unstake 1 EGLD and send it to the network
-	// 3. Check the outcome of the TX & verify new stake state with vmquery
-	// 4. Create from the owner of staked nodes a transaction to stake 1 EGLD and send it to the network
-	// 5. Check the outcome of the TX & verify new stake state with vmquery
-	// 6. Wait for change of epoch and check the outcome
+	// 1. Create from the owner of staked nodes a transaction to withdraw the unstaked funds
+	// 2. Check the outcome of the TX & verify new stake state with vmquery ("getUnStakedTokensList")
 
 	t.Run("staking ph 4 is not active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
@@ -1274,103 +1269,100 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedFundsBeforeUnbonding(
 		testChainSimulatorDirectStakedWithdrayUnstakedFundsBeforeUnbonding(t, cs, 1)
 	})
 
-	// t.Run("staking ph 4 step 1 is active", func(t *testing.T) {
-	// 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-	// 		BypassTxSignatureCheck:   false,
-	// 		TempDir:                  t.TempDir(),
-	// 		PathToInitialConfig:      defaultPathToInitialConfig,
-	// 		NumOfShards:              3,
-	// 		GenesisTimestamp:         time.Now().Unix(),
-	// 		RoundDurationInMillis:    roundDurationInMillis,
-	// 		RoundsPerEpoch:           roundsPerEpoch,
-	// 		ApiInterface:             api.NewNoApiInterface(),
-	// 		MinNodesPerShard:         3,
-	// 		MetaChainMinNodes:        3,
-	// 		NumNodesWaitingListMeta:  3,
-	// 		NumNodesWaitingListShard: 3,
-	// 		AlterConfigsFunction: func(cfg *config.Configs) {
-	// 			cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
-	// 			cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
-	// 			cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
+	t.Run("staking ph 4 step 1 is active", func(t *testing.T) {
+		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+			BypassTxSignatureCheck:   false,
+			TempDir:                  t.TempDir(),
+			PathToInitialConfig:      defaultPathToInitialConfig,
+			NumOfShards:              3,
+			GenesisTimestamp:         time.Now().Unix(),
+			RoundDurationInMillis:    roundDurationInMillis,
+			RoundsPerEpoch:           roundsPerEpoch,
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         3,
+			MetaChainMinNodes:        3,
+			NumNodesWaitingListMeta:  3,
+			NumNodesWaitingListShard: 3,
+			AlterConfigsFunction: func(cfg *config.Configs) {
+				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
+				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
+				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 
-	// 			cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
-	// 		},
-	// 	})
-	// 	require.Nil(t, err)
-	// 	require.NotNil(t, cs)
+				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+			},
+		})
+		require.Nil(t, err)
+		require.NotNil(t, cs)
 
-	// 	defer cs.Close()
+		defer cs.Close()
 
-	// 	testChainSimulatorDirectStakedWithdrayUnstakedFundsBeforeUnbonding(t, cs, 2)
-	// })
+		testChainSimulatorDirectStakedWithdrayUnstakedFundsBeforeUnbonding(t, cs, 2)
+	})
 
-	// t.Run("staking ph 4 step 2 is active", func(t *testing.T) {
-	// 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-	// 		BypassTxSignatureCheck:   false,
-	// 		TempDir:                  t.TempDir(),
-	// 		PathToInitialConfig:      defaultPathToInitialConfig,
-	// 		NumOfShards:              3,
-	// 		GenesisTimestamp:         time.Now().Unix(),
-	// 		RoundDurationInMillis:    roundDurationInMillis,
-	// 		RoundsPerEpoch:           roundsPerEpoch,
-	// 		ApiInterface:             api.NewNoApiInterface(),
-	// 		MinNodesPerShard:         3,
-	// 		MetaChainMinNodes:        3,
-	// 		NumNodesWaitingListMeta:  3,
-	// 		NumNodesWaitingListShard: 3,
-	// 		AlterConfigsFunction: func(cfg *config.Configs) {
-	// 			cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
-	// 			cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
-	// 			cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
+	t.Run("staking ph 4 step 2 is active", func(t *testing.T) {
+		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+			BypassTxSignatureCheck:   false,
+			TempDir:                  t.TempDir(),
+			PathToInitialConfig:      defaultPathToInitialConfig,
+			NumOfShards:              3,
+			GenesisTimestamp:         time.Now().Unix(),
+			RoundDurationInMillis:    roundDurationInMillis,
+			RoundsPerEpoch:           roundsPerEpoch,
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         3,
+			MetaChainMinNodes:        3,
+			NumNodesWaitingListMeta:  3,
+			NumNodesWaitingListShard: 3,
+			AlterConfigsFunction: func(cfg *config.Configs) {
+				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
+				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
+				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 
-	// 			cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
-	// 		},
-	// 	})
-	// 	require.Nil(t, err)
-	// 	require.NotNil(t, cs)
+				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+			},
+		})
+		require.Nil(t, err)
+		require.NotNil(t, cs)
 
-	// 	defer cs.Close()
+		defer cs.Close()
 
-	// 	testChainSimulatorDirectStakedWithdrayUnstakedFundsBeforeUnbonding(t, cs, 3)
-	// })
+		testChainSimulatorDirectStakedWithdrayUnstakedFundsBeforeUnbonding(t, cs, 3)
+	})
 
-	// t.Run("staking ph 4 step 3 is active", func(t *testing.T) {
-	// 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-	// 		BypassTxSignatureCheck:   false,
-	// 		TempDir:                  t.TempDir(),
-	// 		PathToInitialConfig:      defaultPathToInitialConfig,
-	// 		NumOfShards:              3,
-	// 		GenesisTimestamp:         time.Now().Unix(),
-	// 		RoundDurationInMillis:    roundDurationInMillis,
-	// 		RoundsPerEpoch:           roundsPerEpoch,
-	// 		ApiInterface:             api.NewNoApiInterface(),
-	// 		MinNodesPerShard:         3,
-	// 		MetaChainMinNodes:        3,
-	// 		NumNodesWaitingListMeta:  3,
-	// 		NumNodesWaitingListShard: 3,
-	// 		AlterConfigsFunction: func(cfg *config.Configs) {
-	// 			cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
-	// 			cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
-	// 			cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
+	t.Run("staking ph 4 step 3 is active", func(t *testing.T) {
+		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+			BypassTxSignatureCheck:   false,
+			TempDir:                  t.TempDir(),
+			PathToInitialConfig:      defaultPathToInitialConfig,
+			NumOfShards:              3,
+			GenesisTimestamp:         time.Now().Unix(),
+			RoundDurationInMillis:    roundDurationInMillis,
+			RoundsPerEpoch:           roundsPerEpoch,
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         3,
+			MetaChainMinNodes:        3,
+			NumNodesWaitingListMeta:  3,
+			NumNodesWaitingListShard: 3,
+			AlterConfigsFunction: func(cfg *config.Configs) {
+				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
+				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
+				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 
-	// 			cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
-	// 		},
-	// 	})
-	// 	require.Nil(t, err)
-	// 	require.NotNil(t, cs)
+				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+			},
+		})
+		require.Nil(t, err)
+		require.NotNil(t, cs)
 
-	// 	defer cs.Close()
+		defer cs.Close()
 
-	// 	testChainSimulatorDirectStakedWithdrayUnstakedFundsBeforeUnbonding(t, cs, 4)
-	// })
+		testChainSimulatorDirectStakedWithdrayUnstakedFundsBeforeUnbonding(t, cs, 4)
+	})
 }
 
 func testChainSimulatorDirectStakedWithdrayUnstakedFundsBeforeUnbonding(t *testing.T, cs chainSimulatorIntegrationTests.ChainSimulator, targetEpoch int32) {
 	err := cs.GenerateBlocksUntilEpochIsReached(targetEpoch)
 	require.Nil(t, err)
-
-	validatorOwnerBytes := generateWalletAddressBytes()
-	validatorOwner2, _ := cs.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Encode(validatorOwnerBytes)
 
 	privateKey, blsKeys, err := chainSimulator.GenerateBlsPrivateKeys(1)
 	require.Nil(t, err)
@@ -1382,20 +1374,12 @@ func testChainSimulatorDirectStakedWithdrayUnstakedFundsBeforeUnbonding(t *testi
 	mintValue := big.NewInt(10000)
 	mintValue = mintValue.Mul(oneEGLD, mintValue)
 
-	addresses := []*dtos.AddressState{
-		{Address: validatorOwner2, Balance: mintValue.String()},
-	}
-	err = cs.SetStateMultiple(addresses)
-	require.Nil(t, err)
-
 	validatorOwner, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
 	require.Nil(t, err)
 
-	stakeValue := big.NewInt(0).Set(minimumStakeValue)
-	addedStakedValue := big.NewInt(0).Mul(oneEGLD, big.NewInt(100))
-	stakeValue.Add(stakeValue, addedStakedValue)
+	stakeValue := big.NewInt(0).Mul(oneEGLD, big.NewInt(2600))
 	txDataField := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], mockBLSSignature)
-	txStake := generateTransaction(validatorOwnerBytes, 0, vm.ValidatorSCAddress, stakeValue, txDataField, gasLimitForStakeOperation)
+	txStake := generateTransaction(validatorOwner.Bytes, 0, vm.ValidatorSCAddress, stakeValue, txDataField, gasLimitForStakeOperation)
 	stakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txStake, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, stakeTx)
@@ -1405,36 +1389,67 @@ func testChainSimulatorDirectStakedWithdrayUnstakedFundsBeforeUnbonding(t *testi
 
 	testBLSKeyStaked(t, cs, metachainNode, blsKeys[0], targetEpoch)
 
-	// Step 3: Create a new delegation contract
-	maxDelegationCap := big.NewInt(0).Mul(oneEGLD, big.NewInt(51000)) // 51000 EGLD cap
-	serviceFee := big.NewInt(100)                                     // 100 as service fee
-	txCreateDelegationContract := generateTransaction(validatorOwnerBytes, 1, vm.DelegationManagerSCAddress, stakeValue,
-		fmt.Sprintf("createNewDelegationContract@%s@%s", hex.EncodeToString(maxDelegationCap.Bytes()), hex.EncodeToString(serviceFee.Bytes())),
-		gasLimitForDelegationContractCreationOperation)
-	createDelegationContractTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txCreateDelegationContract, maxNumOfBlockToGenerateWhenExecutingTx)
+	shardIDValidatorOwner := cs.GetNodeHandler(0).GetShardCoordinator().ComputeId(validatorOwner.Bytes)
+	accountValidatorOwner, _, err := cs.GetNodeHandler(shardIDValidatorOwner).GetFacadeHandler().GetAccount(validatorOwner.Bech32, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
-	require.NotNil(t, createDelegationContractTx)
+	balanceBeforeUnbonding, _ := big.NewInt(0).SetString(accountValidatorOwner.Balance, 10)
 
-	// check delegation contract creation was successful
-	data := createDelegationContractTx.SmartContractResults[0].Data
-	parts := strings.Split(data, "@")
-	require.Equal(t, 3, len(parts))
+	log.Info("Step 1. Create from the owner of staked nodes a transaction to withdraw the unstaked funds")
 
-	require.Equal(t, hex.EncodeToString([]byte("ok")), parts[1])
-	delegationContractAddressHex, _ := hex.DecodeString(parts[2])
-	delegationContractAddress, _ := cs.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Encode(delegationContractAddressHex)
-
-	output, err := executeQuery(cs, core.MetachainShardId, vm.DelegationManagerSCAddress, "getAllContractAddresses", nil)
+	unStakeValue := big.NewInt(10)
+	unStakeValue = unStakeValue.Mul(oneEGLD, unStakeValue)
+	txDataField = fmt.Sprintf("unStakeTokens@%s", hex.EncodeToString(unStakeValue.Bytes()))
+	txUnStake := generateTransaction(validatorOwner.Bytes, 1, vm.ValidatorSCAddress, zeroValue, txDataField, gasLimitForStakeOperation)
+	unStakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnStake, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
-	returnAddress, err := cs.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Encode(output.ReturnData[0])
-	require.Nil(t, err)
-	require.Equal(t, delegationContractAddress, returnAddress)
-	delegationContractAddressBytes := output.ReturnData[0]
+	require.NotNil(t, unStakeTx)
 
-	// delegate funds
-	delegationValue := big.NewInt(0).Mul(oneEGLD, big.NewInt(150))
-	txDelegate1 := generateTransaction(validatorOwner.Bytes, 0, delegationContractAddressBytes, delegationValue, "delegate", gasLimitForDelegate)
-	delegate1Tx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txDelegate1, maxNumOfBlockToGenerateWhenExecutingTx)
+	err = cs.GenerateBlocks(2)
 	require.Nil(t, err)
-	require.NotNil(t, delegate1Tx)
+
+	// check bls key is still staked
+	testBLSKeyStaked(t, cs, metachainNode, blsKeys[0], targetEpoch)
+
+	txDataField = fmt.Sprintf("unBond@%s", blsKeys[0])
+	txUnBond := generateTransaction(validatorOwner.Bytes, 2, vm.ValidatorSCAddress, zeroValue, txDataField, gasLimitForUnBond)
+	unBondTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnBond, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, unBondTx)
+
+	err = cs.GenerateBlocks(2)
+	require.Nil(t, err)
+
+	log.Info("Step 2. Check the outcome of the TX & verify new stake state with vmquery (`getUnStakedTokensList`)")
+
+	scQuery := &process.SCQuery{
+		ScAddress:  vm.ValidatorSCAddress,
+		FuncName:   "getUnStakedTokensList",
+		CallerAddr: vm.ValidatorSCAddress,
+		CallValue:  big.NewInt(0),
+		Arguments:  [][]byte{validatorOwner.Bytes},
+	}
+	result, _, err := metachainNode.GetFacadeHandler().ExecuteSCQuery(scQuery)
+	require.Nil(t, err)
+	require.Equal(t, okReturnCode, result.ReturnCode)
+
+	expectedUnStaked := big.NewInt(10)
+	expectedUnStaked = expectedUnStaked.Mul(oneEGLD, expectedUnStaked)
+	require.Equal(t, expectedUnStaked.String(), big.NewInt(0).SetBytes(result.ReturnData[0]).String())
+
+	// the owner balance should decrease only with the txs fee
+	accountValidatorOwner, _, err = cs.GetNodeHandler(shardIDValidatorOwner).GetFacadeHandler().GetAccount(validatorOwner.Bech32, coreAPI.AccountQueryOptions{})
+	require.Nil(t, err)
+	balanceAfterUnbonding, _ := big.NewInt(0).SetString(accountValidatorOwner.Balance, 10)
+
+	txsFee, _ := big.NewInt(0).SetString(unBondTx.Fee, 10)
+	balanceAfterUnbondingWithFee := big.NewInt(0).Add(balanceAfterUnbonding, txsFee)
+
+	txsFee, _ = big.NewInt(0).SetString(unStakeTx.Fee, 10)
+	balanceAfterUnbondingWithFee.Add(balanceAfterUnbondingWithFee, txsFee)
+
+	txsFee, _ = big.NewInt(0).SetString(stakeTx.Fee, 10)
+	balanceAfterUnbondingWithFee.Add(balanceAfterUnbondingWithFee, txsFee)
+
+	require.Equal(t, 1, balanceAfterUnbondingWithFee.Cmp(balanceBeforeUnbonding))
+
 }
