@@ -192,7 +192,6 @@ func createMockArgument(
 		},
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
-		ChainRunType:            common.ChainRunTypeRegular,
 		ShardCoordinatorFactory: sharding.NewMultiShardCoordinatorFactory(),
 		TxPreprocessorCreator:   preprocess.NewTxPreProcessorCreator(),
 		RunTypeComponents:       runType,

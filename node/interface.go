@@ -88,5 +88,6 @@ type NodeHandler interface {
 	GetProcessComponents() mainFactory.ProcessComponentsHolder
 	GetStateComponents() mainFactory.StateComponentsHolder
 	GetStatusComponents() mainFactory.StatusComponentsHolder
+	GetRunTypeComponents() mainFactory.RunTypeComponentsHolder
 	Close() error
 }

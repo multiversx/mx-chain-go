@@ -42,7 +42,6 @@ func NewShardStorageHandler(args StorageHandlerArgs) (*shardStorageHandler, erro
 			ManagedPeersHolder:              args.ManagedPeersHolder,
 			AdditionalStorageServiceCreator: args.AdditionalStorageServiceCreator,
 			StateStatsHandler:               args.StateStatsHandler,
-			ChainRunType:                    args.ChainRunType,
 		},
 	)
 	if err != nil {

@@ -162,7 +162,6 @@ type ProcessComponentsFactoryArgs struct {
 	TxExecutionOrderHandler common.TxExecutionOrderHandler
 	RunTypeComponents       factory.RunTypeComponentsHolder
 
-	ChainRunType                          common.ChainRunType
 	ShardCoordinatorFactory               sharding.ShardCoordinatorFactory
 	GenesisBlockCreatorFactory            processGenesis.GenesisBlockCreatorFactory
 	GenesisMetaBlockChecker               GenesisMetaBlockChecker
@@ -209,7 +208,6 @@ type processComponentsFactory struct {
 	txExecutionOrderHandler common.TxExecutionOrderHandler
 	runTypeComponents       factory.RunTypeComponentsHolder
 
-	chainRunType                          common.ChainRunType
 	shardCoordinatorFactory               sharding.ShardCoordinatorFactory
 	genesisBlockCreatorFactory            processGenesis.GenesisBlockCreatorFactory
 	genesisMetaBlockChecker               GenesisMetaBlockChecker
@@ -267,7 +265,6 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		txPreprocessorCreator:                 args.TxPreProcessorCreator,
 		extraHeaderSigVerifierHolder:          args.ExtraHeaderSigVerifierHolder,
 		outGoingOperationsPool:                args.OutGoingOperationsPool,
-		chainRunType:                          args.ChainRunType,
 	}, nil
 }
 

@@ -731,6 +731,7 @@ func (snr *sovereignNodeRunner) createApiFacade(
 		StatusCoreComponents:           nodeHandler.GetStatusCoreComponents(),
 		GasScheduleNotifier:            gasScheduleNotifier,
 		Bootstrapper:                   nodeHandler.GetConsensusComponents().Bootstrapper(),
+		RunTypeComponents:              nodeHandler.GetRunTypeComponents(),
 		AllowVMQueriesChan:             allowVMQueriesChan,
 		StatusComponents:               nodeHandler.GetStatusComponents(),
 		DelegatedListFactoryHandler:    trieIteratorsFactory.NewSovereignDelegatedListProcessorFactory(),

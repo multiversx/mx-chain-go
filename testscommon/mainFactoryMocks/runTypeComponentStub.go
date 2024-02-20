@@ -4,6 +4,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
+	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
@@ -35,6 +36,8 @@ type RunTypeComponentsStub struct {
 	SCResultsPreProcessorFactory        preprocess.SmartContractResultPreProcessorCreator
 	SCProcessorFactory                  scrCommon.SCProcessorCreator
 	ConsensusModelType                  consensus.ConsensusModel
+	VmContainerMetaFactory              factoryVm.VmContainerCreator
+	VmContainerShardFactory             factoryVm.VmContainerCreator
 }
 
 // NewRunTypeComponentsStub -
@@ -56,6 +59,8 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		SCResultsPreProcessorFactory:        &testFactory.SmartContractResultPreProcessorFactoryMock{},
 		SCProcessorFactory:                  &testFactory.SCProcessorFactoryMock{},
 		ConsensusModelType:                  consensus.ConsensusModelV1,
+		VmContainerMetaFactory:              &testFactory.VMContainerMetaFactoryMock{},
+		VmContainerShardFactory:             &testFactory.VMContainerShardFactoryMock{},
 	}
 }
 
@@ -157,6 +162,16 @@ func (r *RunTypeComponentsStub) SCResultsPreProcessorCreator() preprocess.SmartC
 // ConsensusModel -
 func (r *RunTypeComponentsStub) ConsensusModel() consensus.ConsensusModel {
 	return r.ConsensusModelType
+}
+
+// VmContainerMetaFactoryCreator -
+func (r *RunTypeComponentsStub) VmContainerMetaFactoryCreator() factoryVm.VmContainerCreator {
+	return r.VmContainerMetaFactory
+}
+
+// VmContainerShardFactoryCreator -
+func (r *RunTypeComponentsStub) VmContainerShardFactoryCreator() factoryVm.VmContainerCreator {
+	return r.VmContainerShardFactory
 }
 
 // IsInterfaceNil -

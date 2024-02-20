@@ -234,7 +234,7 @@ func (pr *ProcessorRunner) createBootstrapComponents(tb testing.TB) {
 		CryptoComponents:                 pr.CryptoComponents,
 		NetworkComponents:                pr.NetworkComponents,
 		StatusCoreComponents:             pr.StatusCoreComponents,
-		RunTypeComponents:    pr.RunTypeComponents,
+		RunTypeComponents:                pr.RunTypeComponents,
 		NodesCoordinatorWithRaterFactory: nodesCoord.NewIndexHashedNodesCoordinatorWithRaterFactory(),
 		ShardCoordinatorFactory:          sharding.NewMultiShardCoordinatorFactory(),
 	}
@@ -465,7 +465,6 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 		StatusComponents:                      pr.StatusComponents,
 		StatusCoreComponents:                  pr.StatusCoreComponents,
 		TxExecutionOrderHandler:               txExecutionOrderHandler,
-		ChainRunType:                          common.ChainRunTypeRegular,
 		ShardCoordinatorFactory:               sharding.NewMultiShardCoordinatorFactory(),
 		GenesisBlockCreatorFactory:            process.NewGenesisBlockCreatorFactory(),
 		GenesisMetaBlockChecker:               factoryProcessing.NewGenesisMetaBlockChecker(),
@@ -474,7 +473,7 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 		ShardResolversContainerFactoryCreator: resolverscontainer.NewShardResolversContainerFactoryCreator(),
 		TxPreProcessorCreator:                 preprocess.NewTxPreProcessorCreator(),
 		ExtraHeaderSigVerifierHolder:          &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
-		RunTypeComponents:      pr.RunTypeComponents,
+		RunTypeComponents:                     pr.RunTypeComponents,
 	}
 
 	processFactory, err := factoryProcessing.NewProcessComponentsFactory(argsProcess)

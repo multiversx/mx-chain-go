@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
+	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/process"
 	processBlock "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
@@ -322,6 +323,30 @@ func (mrc *managedRunTypeComponents) ConsensusModel() consensus.ConsensusModel {
 	}
 
 	return mrc.runTypeComponents.consensusModel
+}
+
+// VmContainerMetaFactoryCreator returns the vm container meta factory creator
+func (mrc *managedRunTypeComponents) VmContainerMetaFactoryCreator() factoryVm.VmContainerCreator {
+	mrc.mutStateComponents.RLock()
+	defer mrc.mutStateComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.vmContainerMetaFactory
+}
+
+// VmContainerShardFactoryCreator returns the vm container shard factory creator
+func (mrc *managedRunTypeComponents) VmContainerShardFactoryCreator() factoryVm.VmContainerCreator {
+	mrc.mutStateComponents.RLock()
+	defer mrc.mutStateComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.vmContainerShardFactory
 }
 
 // IsInterfaceNil returns true if the interface is nil

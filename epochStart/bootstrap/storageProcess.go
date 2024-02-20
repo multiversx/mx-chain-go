@@ -37,7 +37,6 @@ type ArgsStorageEpochStartBootstrap struct {
 	ImportDbConfig                   config.ImportDbConfig
 	ChanGracefullyClose              chan endProcess.ArgEndProcess
 	TimeToWaitForRequestedData       time.Duration
-	ChainRunType                     common.ChainRunType
 	NodesCoordinatorWithRaterFactory nodesCoord.NodesCoordinatorWithRaterFactory
 	ShardCoordinatorFactory          sharding.ShardCoordinatorFactory
 	EpochStartBootstrapperCreator    EpochStartBootstrapperCreator

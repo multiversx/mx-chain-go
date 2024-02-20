@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
+	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
 	processBlock "github.com/multiversx/mx-chain-go/process/block"
@@ -42,6 +43,8 @@ type runTypeComponents struct {
 	scProcessorCreator                  scrCommon.SCProcessorCreator
 	scResultPreProcessorCreator         preprocess.SmartContractResultPreProcessorCreator
 	consensusModel                      consensus.ConsensusModel
+	vmContainerMetaFactory              factoryVm.VmContainerCreator
+	vmContainerShardFactory             factoryVm.VmContainerCreator
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
@@ -126,6 +129,16 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		return nil, fmt.Errorf("runTypeComponentsFactory - NewSCProcessProxyFactory failed: %w", err)
 	}
 
+	vmContainerMetaCreator, err := factoryVm.NewVmContainerMetaFactory(blockChainHookHandlerFactory)
+	if err != nil {
+		return nil, fmt.Errorf("runTypeComponentsFactory - NewVmContainerMetaFactory failed: %w", err)
+	}
+
+	vmContainerShardCreator, err := factoryVm.NewVmContainerShardFactory(blockChainHookHandlerFactory)
+	if err != nil {
+		return nil, fmt.Errorf("runTypeComponentsFactory - NewVmContainerShardFactory failed: %w", err)
+	}
+
 	return &runTypeComponents{
 		blockChainHookHandlerCreator:        blockChainHookHandlerFactory,
 		epochStartBootstrapperCreator:       epochStartBootstrapperFactory,
@@ -143,6 +156,8 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		scProcessorCreator:                  scProcessorCreator,
 		scResultPreProcessorCreator:         scResultsPreProcessorCreator,
 		consensusModel:                      consensus.ConsensusModelV1,
+		vmContainerMetaFactory:              vmContainerMetaCreator,
+		vmContainerShardFactory:             vmContainerShardCreator,
 	}, nil
 }
 

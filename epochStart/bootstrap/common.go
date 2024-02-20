@@ -34,7 +34,6 @@ type StorageHandlerArgs struct {
 	ManagedPeersHolder              common.ManagedPeersHolder
 	AdditionalStorageServiceCreator process.AdditionalStorageServiceCreator
 	StateStatsHandler               common.StateStatisticsHandler
-	ChainRunType                    common.ChainRunType
 }
 
 func checkArguments(args ArgsEpochStartBootstrap) error {

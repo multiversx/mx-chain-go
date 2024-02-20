@@ -266,10 +266,9 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		},
 		TrieSyncStatisticsProvider:       &testscommon.SizeSyncStatisticsHandlerStub{},
 		StateStatsHandler:                disabled.NewStateStatistics(),
-		ChainRunType:                     common.ChainRunTypeRegular,
 		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
 		ShardCoordinatorFactory:          sharding.NewMultiShardCoordinatorFactory(),
-		AdditionalStorageServiceCreator: additionalStorageServiceFactory,
+		AdditionalStorageServiceCreator:  additionalStorageServiceFactory,
 	}
 
 	epochStartBootstrap, err := bootstrap.NewEpochStartBootstrap(argsBootstrapHandler)
@@ -284,18 +283,18 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 
 	storageFactory, err := factory.NewStorageServiceFactory(
 		factory.StorageServiceFactoryArgs{
-			Config:                        generalConfig,
-			PrefsConfig:                   prefsConfig,
-			ShardCoordinator:              shardC,
-			PathManager:                   &testscommon.PathManagerStub{},
-			EpochStartNotifier:            notifier.NewEpochStartSubscriptionHandler(),
-			NodeTypeProvider:              &nodeTypeProviderMock.NodeTypeProviderStub{},
-			CurrentEpoch:                  0,
-			StorageType:                   factory.ProcessStorageService,
-			CreateTrieEpochRootHashStorer: false,
-			NodeProcessingMode:            common.Normal,
-			ManagedPeersHolder:            &testscommon.ManagedPeersHolderStub{},
-			StateStatsHandler:             disabled.NewStateStatistics(),
+			Config:                          generalConfig,
+			PrefsConfig:                     prefsConfig,
+			ShardCoordinator:                shardC,
+			PathManager:                     &testscommon.PathManagerStub{},
+			EpochStartNotifier:              notifier.NewEpochStartSubscriptionHandler(),
+			NodeTypeProvider:                &nodeTypeProviderMock.NodeTypeProviderStub{},
+			CurrentEpoch:                    0,
+			StorageType:                     factory.ProcessStorageService,
+			CreateTrieEpochRootHashStorer:   false,
+			NodeProcessingMode:              common.Normal,
+			ManagedPeersHolder:              &testscommon.ManagedPeersHolderStub{},
+			StateStatsHandler:               disabled.NewStateStatistics(),
 			AdditionalStorageServiceCreator: additionalStorageServiceFactory,
 		},
 	)

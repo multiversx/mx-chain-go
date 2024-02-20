@@ -934,7 +934,6 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		ScheduledTxsExecutionHandler:           &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:             &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxPreProcessorCreator:                  preprocess.NewTxPreProcessorCreator(),
-		ChainRunType:                           common.ChainRunTypeRegular,
 		TxExecutionOrderHandler:                &commonMock.TxExecutionOrderHandlerStub{},
 		SmartContractResultPreProcessorCreator: &processMockFactory.SmartContractResultPreProcessorFactoryStub{},
 	}
@@ -1125,7 +1124,6 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreP
 		ProcessedMiniBlocksTracker:             &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:                &commonMock.TxExecutionOrderHandlerStub{},
 		TxPreProcessorCreator:                  preprocess.NewTxPreProcessorCreator(),
-		ChainRunType:                           common.ChainRunTypeRegular,
 		SmartContractResultPreProcessorCreator: &processMockFactory.SmartContractResultPreProcessorFactoryStub{},
 	}
 	preFactory, _ := shard.NewPreProcessorsContainerFactory(args)
@@ -1239,7 +1237,6 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		ProcessedMiniBlocksTracker:             &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:                &commonMock.TxExecutionOrderHandlerStub{},
 		TxPreProcessorCreator:                  preprocess.NewTxPreProcessorCreator(),
-		ChainRunType:                           common.ChainRunTypeRegular,
 		SmartContractResultPreProcessorCreator: &processMockFactory.SmartContractResultPreProcessorFactoryStub{},
 	}
 	preFactory, _ := shard.NewPreProcessorsContainerFactory(args)
@@ -1782,7 +1779,6 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 		ProcessedMiniBlocksTracker:             &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:                &commonMock.TxExecutionOrderHandlerStub{},
 		TxPreProcessorCreator:                  preprocess.NewTxPreProcessorCreator(),
-		ChainRunType:                           common.ChainRunTypeRegular,
 		SmartContractResultPreProcessorCreator: &processMockFactory.SmartContractResultPreProcessorFactoryStub{},
 	}
 	preFactory, _ := shard.NewPreProcessorsContainerFactory(args)
@@ -1914,7 +1910,6 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		ProcessedMiniBlocksTracker:             &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:                &commonMock.TxExecutionOrderHandlerStub{},
 		TxPreProcessorCreator:                  preprocess.NewTxPreProcessorCreator(),
-		ChainRunType:                           common.ChainRunTypeRegular,
 		SmartContractResultPreProcessorCreator: &processMockFactory.SmartContractResultPreProcessorFactoryStub{},
 	}
 	preFactory, _ := shard.NewPreProcessorsContainerFactory(args)
@@ -2058,7 +2053,6 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		ProcessedMiniBlocksTracker:             &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:                &commonMock.TxExecutionOrderHandlerStub{},
 		TxPreProcessorCreator:                  preprocess.NewTxPreProcessorCreator(),
-		ChainRunType:                           common.ChainRunTypeRegular,
 		SmartContractResultPreProcessorCreator: &processMockFactory.SmartContractResultPreProcessorFactoryStub{},
 	}
 	preFactory, _ := shard.NewPreProcessorsContainerFactory(args)
@@ -2203,7 +2197,6 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		ProcessedMiniBlocksTracker:             &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:                &commonMock.TxExecutionOrderHandlerStub{},
 		TxPreProcessorCreator:                  preprocess.NewTxPreProcessorCreator(),
-		ChainRunType:                           common.ChainRunTypeRegular,
 		SmartContractResultPreProcessorCreator: &processMockFactory.SmartContractResultPreProcessorFactoryStub{},
 	}
 	preFactory, _ := shard.NewPreProcessorsContainerFactory(args)

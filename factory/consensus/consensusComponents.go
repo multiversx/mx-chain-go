@@ -55,7 +55,6 @@ type ConsensusComponentsFactoryArgs struct {
 	IsInImportMode        bool
 	ShouldDisableWatchdog bool
 	ConsensusModel        consensus.ConsensusModel
-	ChainRunType          common.ChainRunType
 	ExtraSignersHolder    bls.ExtraSignersHolder
 	SubRoundEndV2Creator  bls.SubRoundEndV2Creator
 }
