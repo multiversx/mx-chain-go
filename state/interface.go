@@ -278,3 +278,11 @@ type LastSnapshotMarker interface {
 	GetMarkerInfo(trieStorageManager common.StorageManager) ([]byte, error)
 	IsInterfaceNil() bool
 }
+
+// ESDTAsBalanceHandler manages the ESDT as balance handler
+type ESDTAsBalanceHandler interface {
+	GetBalance(accountDataHandler vmcommon.AccountDataHandler) *big.Int
+	AddToBalance(accountDataHandler vmcommon.AccountDataHandler, value *big.Int) error
+	SubFromBalance(accountDataHandler vmcommon.AccountDataHandler, value *big.Int) error
+	IsInterfaceNil() bool
+}
