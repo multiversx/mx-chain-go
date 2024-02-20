@@ -2,12 +2,12 @@ package vm_test
 
 import (
 	"fmt"
-	"github.com/multiversx/mx-chain-go/process"
 	"sync"
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/factory/vm"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory/shard"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"

@@ -3,7 +3,6 @@ package api
 import (
 	"errors"
 	"fmt"
-	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"path/filepath"
 	"sync"
 
@@ -18,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	"github.com/multiversx/mx-chain-go/facade"
 	"github.com/multiversx/mx-chain-go/factory"
+	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/node/external"
 	"github.com/multiversx/mx-chain-go/node/external/blockAPI"
 	"github.com/multiversx/mx-chain-go/node/external/logs"
