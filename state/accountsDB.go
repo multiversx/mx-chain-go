@@ -236,31 +236,31 @@ func (adb *AccountsDB) SaveAccount(account vmcommon.AccountHandler) error {
 		return fmt.Errorf("%w in accountsDB SaveAccount", ErrNilAccountHandler)
 	}
 
-	// this is a critical section, do not remove the mutex
-	adb.mutOp.Lock()
-	defer adb.mutOp.Unlock()
+	//// this is a critical section, do not remove the mutex
+	//adb.mutOp.Lock()
+	//defer adb.mutOp.Unlock()
 
-	oldAccount, err := adb.getAccount(account.AddressBytes(), adb.mainTrie)
-	if err != nil {
-		return err
-	}
+	//oldAccount, err := adb.getAccount(account.AddressBytes(), adb.mainTrie)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//var entry JournalEntry
+	//if check.IfNil(oldAccount) {
+	//	entry, err = NewJournalEntryAccountCreation(account.AddressBytes(), adb.accountsCache)
+	//	if err != nil {
+	//		return err
+	//	}
+	//	adb.journalize(entry)
+	//} else {
+	//	entry, err = NewJournalEntryAccount(oldAccount)
+	//	if err != nil {
+	//		return err
+	//	}
+	//	adb.journalize(entry)
+	//}
 
-	var entry JournalEntry
-	if check.IfNil(oldAccount) {
-		entry, err = NewJournalEntryAccountCreation(account.AddressBytes(), adb.accountsCache)
-		if err != nil {
-			return err
-		}
-		adb.journalize(entry)
-	} else {
-		entry, err = NewJournalEntryAccount(oldAccount)
-		if err != nil {
-			return err
-		}
-		adb.journalize(entry)
-	}
-
-	err = adb.saveCodeAndDataTrie(oldAccount, account)
+	err := adb.saveCodeAndDataTrie(account)
 	if err != nil {
 		return err
 	}
@@ -268,10 +268,8 @@ func (adb *AccountsDB) SaveAccount(account vmcommon.AccountHandler) error {
 	return adb.saveAccount(account)
 }
 
-func (adb *AccountsDB) saveCodeAndDataTrie(oldAcc, newAcc vmcommon.AccountHandler) error {
+func (adb *AccountsDB) saveCodeAndDataTrie(newAcc vmcommon.AccountHandler) error {
 	baseNewAcc, newAccOk := newAcc.(baseAccountHandler)
-	baseOldAccount, _ := oldAcc.(baseAccountHandler)
-
 	if !newAccOk {
 		return nil
 	}
@@ -281,13 +279,23 @@ func (adb *AccountsDB) saveCodeAndDataTrie(oldAcc, newAcc vmcommon.AccountHandle
 		return err
 	}
 
-	return adb.saveCode(baseNewAcc, baseOldAccount)
+	return adb.saveCode(baseNewAcc)
 }
 
-func (adb *AccountsDB) saveCode(newAcc, oldAcc baseAccountHandler) error {
+func (adb *AccountsDB) saveCode(newAcc baseAccountHandler) error {
 	// TODO when state splitting is implemented, check how the code should be copied in different shards
 
 	if !newAcc.HasNewCode() {
+		return nil
+	}
+
+	oldAccount, err := adb.getAccount(newAcc.AddressBytes(), adb.mainTrie)
+	if err != nil {
+		return err
+	}
+
+	oldAcc, ok := oldAccount.(baseAccountHandler)
+	if !ok {
 		return nil
 	}
 
@@ -617,7 +625,7 @@ func (adb *AccountsDB) LoadAccount(address []byte) (vmcommon.AccountHandler, err
 	}
 
 	baseAcc, ok := acnt.(baseAccountHandler)
-	if ok {
+	if ok && len(baseAcc.GetRootHash()) != 0 {
 		err = adb.loadDataTrieConcurrentSafe(baseAcc, mainTrie)
 		if err != nil {
 			return nil, err
@@ -684,7 +692,7 @@ func (adb *AccountsDB) GetExistingAccount(address []byte) (vmcommon.AccountHandl
 	}
 
 	baseAcc, ok := acnt.(baseAccountHandler)
-	if ok {
+	if ok && len(baseAcc.GetRootHash()) != 0 {
 		err = adb.loadDataTrieConcurrentSafe(baseAcc, mainTrie)
 		if err != nil {
 			return nil, err
