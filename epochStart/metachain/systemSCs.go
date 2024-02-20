@@ -79,6 +79,10 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 		common.SaveJailedAlwaysFlag,
 		common.StakingV4Step1Flag,
 		common.StakingV4Step2Flag,
+		common.StakingQueueFlag,
+		common.StakingV4StartedFlag,
+		common.DelegationSmartContractFlagInSpecificEpochOnly,
+		common.GovernanceFlagInSpecificEpochOnly,
 	})
 	if err != nil {
 		return nil, err
@@ -127,7 +131,7 @@ func (s *systemSCProcessor) processWithNewFlags(
 	validatorsInfoMap state.ShardValidatorsInfoMapHandler,
 	header data.HeaderHandler,
 ) error {
-	if s.enableEpochsHandler.IsFlagEnabled(common.GovernanceFlag) {
+	if s.enableEpochsHandler.IsFlagEnabled(common.GovernanceFlagInSpecificEpochOnly) {
 		err := s.updateToGovernanceV2()
 		if err != nil {
 			return err

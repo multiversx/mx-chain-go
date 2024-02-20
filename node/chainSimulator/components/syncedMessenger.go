@@ -27,9 +27,12 @@ var (
 	errTopicNotCreated     = errors.New("topic not created")
 	errTopicHasProcessor   = errors.New("there is already a message processor for provided topic and identifier")
 	errInvalidSignature    = errors.New("invalid signature")
+	errMessengerIsClosed   = errors.New("messenger is closed")
 )
 
 type syncedMessenger struct {
+	mutIsClosed  sync.RWMutex
+	isClosed     bool
 	mutOperation sync.RWMutex
 	topics       map[string]map[string]p2p.MessageProcessor
 	network      SyncedBroadcastNetworkHandler
@@ -66,6 +69,9 @@ func (messenger *syncedMessenger) HasCompatibleProtocolID(_ string) bool {
 }
 
 func (messenger *syncedMessenger) receive(fromConnectedPeer core.PeerID, message p2p.MessageP2P) {
+	if messenger.closed() {
+		return
+	}
 	if check.IfNil(message) {
 		return
 	}
@@ -90,6 +96,10 @@ func (messenger *syncedMessenger) ProcessReceivedMessage(_ p2p.MessageP2P, _ cor
 
 // CreateTopic will create a topic for receiving data
 func (messenger *syncedMessenger) CreateTopic(name string, _ bool) error {
+	if messenger.closed() {
+		return errMessengerIsClosed
+	}
+
 	messenger.mutOperation.Lock()
 	defer messenger.mutOperation.Unlock()
 
@@ -115,6 +125,9 @@ func (messenger *syncedMessenger) HasTopic(name string) bool {
 
 // RegisterMessageProcessor will try to register a message processor on the provided topic & identifier
 func (messenger *syncedMessenger) RegisterMessageProcessor(topic string, identifier string, handler p2p.MessageProcessor) error {
+	if messenger.closed() {
+		return errMessengerIsClosed
+	}
 	if check.IfNil(handler) {
 		return fmt.Errorf("programming error in syncedMessenger.RegisterMessageProcessor, "+
 			"%w for topic %s and identifier %s", errNilMessageProcessor, topic, identifier)
@@ -170,6 +183,9 @@ func (messenger *syncedMessenger) UnregisterMessageProcessor(topic string, ident
 
 // Broadcast will broadcast the provided buffer on the topic in a synchronous manner
 func (messenger *syncedMessenger) Broadcast(topic string, buff []byte) {
+	if messenger.closed() {
+		return
+	}
 	if !messenger.HasTopic(topic) {
 		return
 	}
@@ -194,6 +210,10 @@ func (messenger *syncedMessenger) BroadcastOnChannelUsingPrivateKey(_ string, to
 
 // SendToConnectedPeer will send the message to the peer
 func (messenger *syncedMessenger) SendToConnectedPeer(topic string, buff []byte, peerID core.PeerID) error {
+	if messenger.closed() {
+		return errMessengerIsClosed
+	}
+
 	if !messenger.HasTopic(topic) {
 		return nil
 	}
@@ -356,7 +376,18 @@ func (messenger *syncedMessenger) SetDebugger(_ p2p.Debugger) error {
 
 // Close does nothing and returns nil
 func (messenger *syncedMessenger) Close() error {
+	messenger.mutIsClosed.Lock()
+	messenger.isClosed = true
+	messenger.mutIsClosed.Unlock()
+
 	return nil
+}
+
+func (messenger *syncedMessenger) closed() bool {
+	messenger.mutIsClosed.RLock()
+	defer messenger.mutIsClosed.RUnlock()
+
+	return messenger.isClosed
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

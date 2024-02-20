@@ -137,8 +137,8 @@ func compareByNumQualified(owner1Nodes, owner2Nodes *common.AuctionListValidator
 		return owner1Qualified
 	}
 
-	owner1NumQualified := getNumQualified(owner1Nodes.AuctionList)
-	owner2NumQualified := getNumQualified(owner2Nodes.AuctionList)
+	owner1NumQualified := getNumQualified(owner1Nodes.Nodes)
+	owner2NumQualified := getNumQualified(owner2Nodes.Nodes)
 
 	return owner1NumQualified > owner2NumQualified
 }
@@ -170,7 +170,7 @@ func (vp *validatorsProvider) getAuctionListValidatorsAPIResponse(
 				TotalTopUp:     ownerData.TotalTopUp.String(),
 				TopUpPerNode:   ownerData.TopUpPerNode.String(),
 				QualifiedTopUp: ownerData.TopUpPerNode.String(),
-				AuctionList:    make([]*common.AuctionNode, 0, numAuctionNodes),
+				Nodes:          make([]*common.AuctionNode, 0, numAuctionNodes),
 			}
 			vp.fillAuctionQualifiedValidatorAPIData(selectedNodes, ownerData, auctionValidator)
 			auctionListValidators = append(auctionListValidators, auctionValidator)
@@ -187,7 +187,7 @@ func (vp *validatorsProvider) fillAuctionQualifiedValidatorAPIData(
 	ownerData *epochStart.OwnerData,
 	auctionValidatorAPI *common.AuctionListValidatorAPIResponse,
 ) {
-	auctionValidatorAPI.AuctionList = make([]*common.AuctionNode, 0, len(ownerData.AuctionList))
+	auctionValidatorAPI.Nodes = make([]*common.AuctionNode, 0, len(ownerData.AuctionList))
 	numOwnerQualifiedNodes := int64(0)
 	for _, nodeInAuction := range ownerData.AuctionList {
 		auctionNode := &common.AuctionNode{
@@ -199,7 +199,7 @@ func (vp *validatorsProvider) fillAuctionQualifiedValidatorAPIData(
 			numOwnerQualifiedNodes++
 		}
 
-		auctionValidatorAPI.AuctionList = append(auctionValidatorAPI.AuctionList, auctionNode)
+		auctionValidatorAPI.Nodes = append(auctionValidatorAPI.Nodes, auctionNode)
 	}
 
 	if numOwnerQualifiedNodes > 0 {

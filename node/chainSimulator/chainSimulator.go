@@ -179,7 +179,6 @@ func (s *simulator) GenerateBlocksUntilEpochIsReached(targetEpoch int32) error {
 
 	maxNumberOfRounds := 10000
 	for idx := 0; idx < maxNumberOfRounds; idx++ {
-		time.Sleep(time.Millisecond * 2)
 		s.incrementRoundOnAllValidators()
 		err := s.allNodesCreateBlocks()
 		if err != nil {
@@ -281,7 +280,7 @@ func (s *simulator) AddValidatorKeys(validatorsPrivateKeys [][]byte) error {
 
 // GenerateAndMintWalletAddress will generate an address in the provided shard and will mint that address with the provided value
 // if the target shard ID value does not correspond to a node handled by the chain simulator, the address will be generated in a random shard ID
-func (s *simulator) GenerateAndMintWalletAddress(targetShardID uint32, value *big.Int) (string, error) {
+func (s *simulator) GenerateAndMintWalletAddress(targetShardID uint32, value *big.Int) (dtos.WalletAddress, error) {
 	addressConverter := s.nodes[core.MetachainShardId].GetCoreComponents().AddressPubKeyConverter()
 	nodeHandler := s.GetNodeHandler(targetShardID)
 	var buff []byte
@@ -293,7 +292,7 @@ func (s *simulator) GenerateAndMintWalletAddress(targetShardID uint32, value *bi
 
 	address, err := addressConverter.Encode(buff)
 	if err != nil {
-		return "", err
+		return dtos.WalletAddress{}, err
 	}
 
 	err = s.SetStateMultiple([]*dtos.AddressState{
@@ -303,7 +302,10 @@ func (s *simulator) GenerateAndMintWalletAddress(targetShardID uint32, value *bi
 		},
 	})
 
-	return address, err
+	return dtos.WalletAddress{
+		Bech32: address,
+		Bytes:  buff,
+	}, err
 }
 
 func generateAddressInShard(shardCoordinator mxChainSharding.Coordinator, len int) []byte {
@@ -406,30 +408,14 @@ func (s *simulator) SetStateMultiple(stateSlice []*dtos.AddressState) error {
 
 // SendTxAndGenerateBlockTilTxIsExecuted will the provided transaction and generate block
 func (s *simulator) SendTxAndGenerateBlockTilTxIsExecuted(txToSend *transaction.Transaction, maxNumOfBlockToGenerateWhenExecutingTx int) (*transaction.ApiTransactionResult, error) {
-	shardID := s.GetNodeHandler(0).GetShardCoordinator().ComputeId(txToSend.SndAddr)
-	err := s.GetNodeHandler(shardID).GetFacadeHandler().ValidateTransaction(txToSend)
+	txHashHex, err := s.sendTx(txToSend)
 	if err != nil {
 		return nil, err
 	}
 
-	node := s.GetNodeHandler(shardID)
-	txHash, err := core.CalculateHash(node.GetCoreComponents().InternalMarshalizer(), node.GetCoreComponents().Hasher(), txToSend)
-	if err != nil {
-		return nil, err
-	}
+	time.Sleep(delaySendTxs)
 
-	txHashHex := hex.EncodeToString(txHash)
-
-	log.Info("############## send transaction ##############", "txHash", txHash)
-
-	_, err = node.GetFacadeHandler().SendBulkTransactions([]*transaction.Transaction{txToSend})
-	if err != nil {
-		return nil, err
-	}
-
-	time.Sleep(100 * time.Millisecond)
-
-	destinationShardID := node.GetShardCoordinator().ComputeId(txToSend.RcvAddr)
+	destinationShardID := s.GetNodeHandler(0).GetShardCoordinator().ComputeId(txToSend.RcvAddr)
 	for count := 0; count < maxNumOfBlockToGenerateWhenExecutingTx; count++ {
 		err = s.GenerateBlocks(1)
 		if err != nil {
@@ -438,7 +424,7 @@ func (s *simulator) SendTxAndGenerateBlockTilTxIsExecuted(txToSend *transaction.
 
 		tx, errGet := s.GetNodeHandler(destinationShardID).GetFacadeHandler().GetTransaction(txHashHex, true)
 		if errGet == nil && tx.Status != transaction.TxStatusPending {
-			log.Info("############## transaction was executed ##############", "txHash", txHash)
+			log.Info("############## transaction was executed ##############", "txHash", txHashHex)
 			return tx, nil
 		}
 	}
@@ -458,7 +444,7 @@ func (s *simulator) setStateSystemAccount(state *dtos.AddressState) error {
 }
 
 // Close will stop and close the simulator
-func (s *simulator) Close() error {
+func (s *simulator) Close() {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -470,11 +456,9 @@ func (s *simulator) Close() error {
 		}
 	}
 
-	if len(errorStrings) == 0 {
-		return nil
+	if len(errorStrings) != 0 {
+		log.Error("error closing chain simulator", "error", components.AggregateErrors(errorStrings, components.ErrClose))
 	}
-
-	return components.AggregateErrors(errorStrings, components.ErrClose)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -1,6 +1,7 @@
 package process
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -20,6 +21,10 @@ type blocksCreator struct {
 
 // NewBlocksCreator will create a new instance of blocksCreator
 func NewBlocksCreator(nodeHandler NodeHandler) (*blocksCreator, error) {
+	if check.IfNil(nodeHandler) {
+		return nil, ErrNilNodeHandler
+	}
+
 	return &blocksCreator{
 		nodeHandler: nodeHandler,
 	}, nil
@@ -38,8 +43,9 @@ func (creator *blocksCreator) IncrementRound() {
 func (creator *blocksCreator) CreateNewBlock() error {
 	bp := creator.nodeHandler.GetProcessComponents().BlockProcessor()
 
-	nonce, round, prevHash, prevRandSeed, epoch := creator.getPreviousHeaderData()
-	newHeader, err := bp.CreateNewHeader(round+1, nonce+1)
+	nonce, _, prevHash, prevRandSeed, epoch := creator.getPreviousHeaderData()
+	round := creator.nodeHandler.GetCoreComponents().RoundHandler().Index()
+	newHeader, err := bp.CreateNewHeader(uint64(round), nonce+1)
 	if err != nil {
 		return err
 	}
@@ -70,7 +76,7 @@ func (creator *blocksCreator) CreateNewBlock() error {
 		return err
 	}
 
-	headerCreationTime := creator.nodeHandler.GetProcessComponents().RoundHandler().TimeStamp()
+	headerCreationTime := creator.nodeHandler.GetCoreComponents().RoundHandler().TimeStamp()
 	err = newHeader.SetTimeStamp(uint64(headerCreationTime.Unix()))
 	if err != nil {
 		return err

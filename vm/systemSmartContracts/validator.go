@@ -648,7 +648,12 @@ func (v *validatorSC) registerBLSKeys(
 		return nil, nil, err
 	}
 
+	newlyAddedKeys := make([][]byte, 0)
 	for _, blsKey := range newKeys {
+		if v.isNumberOfNodesTooHigh(len(registrationData.BlsPubKeys) + 1) {
+			break
+		}
+
 		vmOutput, errExec := v.executeOnStakingSC([]byte("register@" +
 			hex.EncodeToString(blsKey) + "@" +
 			hex.EncodeToString(registrationData.RewardAddress) + "@" +
@@ -669,9 +674,10 @@ func (v *validatorSC) registerBLSKeys(
 		}
 
 		registrationData.BlsPubKeys = append(registrationData.BlsPubKeys, blsKey)
+		newlyAddedKeys = append(newlyAddedKeys, blsKey)
 	}
 
-	return blsKeys, newKeys, nil
+	return blsKeys, newlyAddedKeys, nil
 }
 
 func (v *validatorSC) updateStakeValue(registrationData *ValidatorDataV2, caller []byte) vmcommon.ReturnCode {
@@ -816,7 +822,7 @@ func (v *validatorSC) reStakeUnStakedNodes(args *vmcommon.ContractCallInput) vmc
 		return vmcommon.UserError
 	}
 
-	if v.isNumberOfNodesTooHigh(registrationData) {
+	if v.isNumberOfNodesTooHigh(len(registrationData.BlsPubKeys)) {
 		v.eei.AddReturnMessage("number of nodes is too high")
 		return vmcommon.UserError
 	}
@@ -931,12 +937,12 @@ func (v *validatorSC) isStakeTooHigh(registrationData *ValidatorDataV2) bool {
 	return registrationData.TotalStakeValue.Cmp(v.totalStakeLimit) > 0
 }
 
-func (v *validatorSC) isNumberOfNodesTooHigh(registrationData *ValidatorDataV2) bool {
+func (v *validatorSC) isNumberOfNodesTooHigh(numNodes int) bool {
 	if !v.enableEpochsHandler.IsFlagEnabled(common.StakeLimitsFlag) {
 		return false
 	}
 
-	return len(registrationData.BlsPubKeys) > v.computeNodeLimit()
+	return numNodes > v.computeNodeLimit()
 }
 
 func (v *validatorSC) computeNodeLimit() int {
@@ -1069,28 +1075,7 @@ func (v *validatorSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		}
 	}
 
-	if !v.isNumberOfNodesTooHigh(registrationData) {
-		v.activateStakingFor(
-			blsKeys,
-			registrationData,
-			validatorConfig.NodePrice,
-			registrationData.RewardAddress,
-			args.CallerAddr,
-		)
-	} else {
-		numRegisteredBlsKeys := int64(len(registrationData.BlsPubKeys))
-		nodeLimit := int64(v.computeNodeLimit())
-		entry := &vmcommon.LogEntry{
-			Identifier: []byte(args.Function),
-			Address:    args.RecipientAddr,
-			Topics: [][]byte{
-				[]byte(numberOfNodesTooHigh),
-				big.NewInt(numRegisteredBlsKeys).Bytes(),
-				big.NewInt(nodeLimit).Bytes(),
-			},
-		}
-		v.eei.AddLogEntry(entry)
-	}
+	v.activateNewBLSKeys(registrationData, blsKeys, newKeys, &validatorConfig, args)
 
 	err = v.saveRegistrationData(args.CallerAddr, registrationData)
 	if err != nil {
@@ -1101,14 +1086,62 @@ func (v *validatorSC) stake(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 	return vmcommon.Ok
 }
 
+func (v *validatorSC) activateNewBLSKeys(
+	registrationData *ValidatorDataV2,
+	blsKeys [][]byte,
+	newKeys [][]byte,
+	validatorConfig *ValidatorConfig,
+	args *vmcommon.ContractCallInput,
+) {
+	numRegisteredBlsKeys := len(registrationData.BlsPubKeys)
+	allNodesActivated := v.activateStakingFor(
+		blsKeys,
+		newKeys,
+		registrationData,
+		validatorConfig.NodePrice,
+		registrationData.RewardAddress,
+		args.CallerAddr,
+	)
+
+	if !allNodesActivated && len(blsKeys) > 0 {
+		nodeLimit := int64(v.computeNodeLimit())
+		entry := &vmcommon.LogEntry{
+			Identifier: []byte(args.Function),
+			Address:    args.RecipientAddr,
+			Topics: [][]byte{
+				[]byte(numberOfNodesTooHigh),
+				big.NewInt(int64(numRegisteredBlsKeys)).Bytes(),
+				big.NewInt(nodeLimit).Bytes(),
+			},
+		}
+		v.eei.AddLogEntry(entry)
+	}
+
+}
+
 func (v *validatorSC) activateStakingFor(
 	blsKeys [][]byte,
+	newKeys [][]byte,
 	registrationData *ValidatorDataV2,
 	fixedStakeValue *big.Int,
 	rewardAddress []byte,
 	ownerAddress []byte,
-) {
-	numRegistered := uint64(registrationData.NumRegistered)
+) bool {
+	numActivatedKey := uint64(registrationData.NumRegistered)
+
+	numAllBLSKeys := len(registrationData.BlsPubKeys)
+	if v.isNumberOfNodesTooHigh(numAllBLSKeys) {
+		return false
+	}
+
+	maxNumNodesToActivate := len(blsKeys)
+	if v.enableEpochsHandler.IsFlagEnabled(common.StakeLimitsFlag) {
+		maxNumNodesToActivate = v.computeNodeLimit() - numAllBLSKeys + len(newKeys)
+	}
+	nodesActivated := 0
+	if nodesActivated >= maxNumNodesToActivate && len(blsKeys) >= maxNumNodesToActivate {
+		return false
+	}
 
 	for i := uint64(0); i < uint64(len(blsKeys)); i++ {
 		currentBLSKey := blsKeys[i]
@@ -1127,12 +1160,19 @@ func (v *validatorSC) activateStakingFor(
 		}
 
 		if stakedData.UnStakedNonce == 0 {
-			numRegistered++
+			numActivatedKey++
+		}
+
+		nodesActivated++
+		if nodesActivated >= maxNumNodesToActivate {
+			break
 		}
 	}
 
-	registrationData.NumRegistered = uint32(numRegistered)
-	registrationData.LockedStake.Mul(fixedStakeValue, big.NewInt(0).SetUint64(numRegistered))
+	registrationData.NumRegistered = uint32(numActivatedKey)
+	registrationData.LockedStake.Mul(fixedStakeValue, big.NewInt(0).SetUint64(numActivatedKey))
+
+	return nodesActivated < maxNumNodesToActivate || len(blsKeys) <= maxNumNodesToActivate
 }
 
 func (v *validatorSC) stakeOneNode(
@@ -2076,7 +2116,7 @@ func (v *validatorSC) mergeValidatorData(args *vmcommon.ContractCallInput) vmcom
 	validatorConfig := v.getConfig(v.eei.BlockChainHook().CurrentEpoch())
 	finalValidatorData.LockedStake.Mul(validatorConfig.NodePrice, big.NewInt(int64(finalValidatorData.NumRegistered)))
 
-	if v.isNumberOfNodesTooHigh(finalValidatorData) {
+	if v.isNumberOfNodesTooHigh(len(finalValidatorData.BlsPubKeys)) {
 		v.eei.AddReturnMessage("number of nodes is too high")
 		return vmcommon.UserError
 	}

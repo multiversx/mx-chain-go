@@ -2,6 +2,7 @@ package components
 
 import (
 	"fmt"
+	"io"
 	"math/big"
 	"path/filepath"
 	"time"
@@ -52,7 +53,6 @@ type ArgsProcessComponentsHolder struct {
 }
 
 type processComponentsHolder struct {
-	closeHandler                     *closeHandler
 	receiptsRepository               factory.ReceiptsRepository
 	nodesCoordinator                 nodesCoordinator.NodesCoordinator
 	shardCoordinator                 sharding.Coordinator
@@ -94,6 +94,7 @@ type processComponentsHolder struct {
 	esdtDataStorageHandlerForAPI     vmcommon.ESDTNFTStorageHandler
 	accountsParser                   genesis.AccountsParser
 	sendSignatureTracker             process.SentSignaturesTracker
+	managedProcessComponentsCloser   io.Closer
 }
 
 // CreateProcessComponents will create the process components holder
@@ -221,7 +222,6 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (factory.ProcessC
 	}
 
 	instance := &processComponentsHolder{
-		closeHandler:                     NewCloseHandler(),
 		receiptsRepository:               managedProcessComponents.ReceiptsRepository(),
 		nodesCoordinator:                 managedProcessComponents.NodesCoordinator(),
 		shardCoordinator:                 managedProcessComponents.ShardCoordinator(),
@@ -263,9 +263,8 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (factory.ProcessC
 		esdtDataStorageHandlerForAPI:     managedProcessComponents.ESDTDataStorageHandlerForAPI(),
 		accountsParser:                   managedProcessComponents.AccountsParser(),
 		sendSignatureTracker:             managedProcessComponents.SentSignaturesTracker(),
+		managedProcessComponentsCloser:   managedProcessComponents,
 	}
-
-	instance.collectClosableComponents()
 
 	return instance, nil
 }
@@ -475,19 +474,9 @@ func (p *processComponentsHolder) ReceiptsRepository() factory.ReceiptsRepositor
 	return p.receiptsRepository
 }
 
-func (p *processComponentsHolder) collectClosableComponents() {
-	p.closeHandler.AddComponent(p.interceptorsContainer)
-	p.closeHandler.AddComponent(p.fullArchiveInterceptorsContainer)
-	p.closeHandler.AddComponent(p.resolversContainer)
-	p.closeHandler.AddComponent(p.epochStartTrigger)
-	p.closeHandler.AddComponent(p.blockProcessor)
-	p.closeHandler.AddComponent(p.validatorsProvider)
-	p.closeHandler.AddComponent(p.txsSenderHandler)
-}
-
 // Close will call the Close methods on all inner components
 func (p *processComponentsHolder) Close() error {
-	return p.closeHandler.Close()
+	return p.managedProcessComponentsCloser.Close()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -86,6 +86,19 @@ func remove(slice [][]byte, elem []byte) [][]byte {
 	return ret
 }
 
+func getIntersection(slice1, slice2 [][]byte) [][]byte {
+	ret := make([][]byte, 0)
+	for _, value := range slice2 {
+		if searchInSlice(slice1, value) {
+			copiedVal := make([]byte, len(value))
+			copy(copiedVal, value)
+			ret = append(ret, copiedVal)
+		}
+	}
+
+	return ret
+}
+
 func unStake(t *testing.T, owner []byte, accountsDB state.AccountsAdapter, marshaller marshal.Marshalizer, stake *big.Int) {
 	validatorSC := stakingcommon.LoadUserAccount(accountsDB, vm.ValidatorSCAddress)
 	ownerStoredData, _, err := validatorSC.RetrieveValue(owner)
@@ -1307,4 +1320,165 @@ func TestStakingV4_NewlyStakedNodesInStakingV4Step2ShouldBeSentToWaitingIfListIs
 		prevNodesConfig = currNodesConfig
 		epoch++
 	}
+}
+
+func TestStakingV4_LeavingNodesEdgeCases(t *testing.T) {
+	t.Parallel()
+
+	pubKeys := generateAddresses(0, 20)
+
+	owner1 := "owner1"
+	owner1Stats := &OwnerStats{
+		EligibleBlsKeys: map[uint32][][]byte{
+			core.MetachainShardId: pubKeys[:3],
+			0:                     pubKeys[3:6],
+			1:                     pubKeys[6:9],
+			2:                     pubKeys[9:12],
+		},
+		TotalStake: big.NewInt(12 * nodePrice),
+	}
+
+	cfg := &InitialNodesConfig{
+		MetaConsensusGroupSize:        3,
+		ShardConsensusGroupSize:       3,
+		MinNumberOfEligibleShardNodes: 3,
+		MinNumberOfEligibleMetaNodes:  3,
+		NumOfShards:                   3,
+		Owners: map[string]*OwnerStats{
+			owner1: owner1Stats,
+		},
+		MaxNodesChangeConfig: []config.MaxNodesChangeConfig{
+			{
+				EpochEnable:            0,
+				MaxNumNodes:            16,
+				NodesToShufflePerShard: 4,
+			},
+			{
+				EpochEnable:            1,
+				MaxNumNodes:            18,
+				NodesToShufflePerShard: 2,
+			},
+			{
+				EpochEnable:            stakingV4Step3EnableEpoch,
+				MaxNumNodes:            12,
+				NodesToShufflePerShard: 2,
+			},
+		},
+	}
+	node := NewTestMetaProcessorWithCustomNodes(cfg)
+	node.EpochStartTrigger.SetRoundsPerEpoch(5)
+
+	// 1. Check initial config is correct
+	currNodesConfig := node.NodesConfig
+	require.Len(t, getAllPubKeys(currNodesConfig.eligible), 12)
+	require.Len(t, getAllPubKeys(currNodesConfig.waiting), 0)
+	require.Len(t, currNodesConfig.eligible[core.MetachainShardId], 3)
+	require.Len(t, currNodesConfig.waiting[core.MetachainShardId], 0)
+	require.Len(t, currNodesConfig.eligible[0], 3)
+	require.Len(t, currNodesConfig.waiting[0], 0)
+	require.Len(t, currNodesConfig.eligible[1], 3)
+	require.Len(t, currNodesConfig.waiting[1], 0)
+	require.Len(t, currNodesConfig.eligible[2], 3)
+	require.Len(t, currNodesConfig.waiting[2], 0)
+	require.Empty(t, currNodesConfig.shuffledOut)
+	require.Empty(t, currNodesConfig.auction)
+
+	// NewOwner0 stakes 1 node with top up = 0 before staking v4; should be sent to new nodes, since there are enough slots
+	newOwner0 := "newOwner0"
+	newOwner0BlsKeys := [][]byte{generateAddress(101)}
+	node.ProcessStake(t, map[string]*NodesRegisterData{
+		newOwner0: {
+			BLSKeys:    newOwner0BlsKeys,
+			TotalStake: big.NewInt(nodePrice),
+		},
+	})
+	currNodesConfig = node.NodesConfig
+	requireSameSliceDifferentOrder(t, currNodesConfig.new, newOwner0BlsKeys)
+
+	// UnStake one of the initial nodes
+	node.ProcessUnStake(t, map[string][][]byte{
+		owner1: {owner1Stats.EligibleBlsKeys[core.MetachainShardId][0]},
+	})
+
+	// Fast-forward few epochs such that the whole staking v4 is activated.
+	// We should have same 12 initial nodes + 1 extra node (because of legacy code where all leaving nodes were
+	// considered to be eligible and the unStaked node was forced to remain eligible)
+	node.Process(t, 49)
+	currNodesConfig = node.NodesConfig
+	require.Len(t, getAllPubKeys(currNodesConfig.eligible), 12)
+	require.Len(t, getAllPubKeys(currNodesConfig.waiting), 1)
+
+	// Stake 10 extra nodes and check that they are sent to auction
+	newOwner1 := "newOwner1"
+	newOwner1BlsKeys := generateAddresses(303, 10)
+	node.ProcessStake(t, map[string]*NodesRegisterData{
+		newOwner1: {
+			BLSKeys:    newOwner1BlsKeys,
+			TotalStake: big.NewInt(nodePrice * 10),
+		},
+	})
+	currNodesConfig = node.NodesConfig
+	requireSameSliceDifferentOrder(t, currNodesConfig.auction, newOwner1BlsKeys)
+
+	// After 2 epochs, unStake all previously staked keys. Some of them have been already sent to eligible/waiting, but most
+	// of them are still in auction. UnStaked nodes' status from auction should be: leaving now, but their previous list was auction.
+	// We should not force his auction nodes as being eligible in the next epoch. We should only force his existing active
+	// nodes to remain in the system.
+	node.Process(t, 10)
+	currNodesConfig = node.NodesConfig
+	newOwner1AuctionNodes := getIntersection(currNodesConfig.auction, newOwner1BlsKeys)
+	newOwner1EligibleNodes := getIntersection(getAllPubKeys(currNodesConfig.eligible), newOwner1BlsKeys)
+	newOwner1WaitingNodes := getIntersection(getAllPubKeys(currNodesConfig.waiting), newOwner1BlsKeys)
+	newOwner1ActiveNodes := append(newOwner1EligibleNodes, newOwner1WaitingNodes...)
+	require.Equal(t, len(newOwner1AuctionNodes)+len(newOwner1ActiveNodes), len(newOwner1BlsKeys)) // sanity check
+
+	node.ClearStoredMbs()
+	node.ProcessUnStake(t, map[string][][]byte{
+		newOwner1: newOwner1BlsKeys,
+	})
+
+	node.Process(t, 5)
+	currNodesConfig = node.NodesConfig
+	require.Len(t, getAllPubKeys(currNodesConfig.eligible), 12)
+	requireMapContains(t, currNodesConfig.leaving, newOwner1AuctionNodes)
+	requireMapDoesNotContain(t, currNodesConfig.eligible, newOwner1AuctionNodes)
+	requireMapDoesNotContain(t, currNodesConfig.waiting, newOwner1AuctionNodes)
+
+	allCurrentActiveNodes := append(getAllPubKeys(currNodesConfig.eligible), getAllPubKeys(currNodesConfig.waiting)...)
+	owner1NodesThatAreStillForcedToRemain := getIntersection(allCurrentActiveNodes, newOwner1ActiveNodes)
+	require.NotZero(t, len(owner1NodesThatAreStillForcedToRemain))
+
+	// Fast-forward some epochs, no error should occur, and we should have our initial config of:
+	// - 12 eligible nodes
+	// - 1 waiting list
+	// - some forced nodes to remain from newOwner1
+	node.Process(t, 10)
+	currNodesConfig = node.NodesConfig
+	require.Len(t, getAllPubKeys(currNodesConfig.eligible), 12)
+	require.Len(t, getAllPubKeys(currNodesConfig.waiting), 1)
+	allCurrentActiveNodes = append(getAllPubKeys(currNodesConfig.eligible), getAllPubKeys(currNodesConfig.waiting)...)
+	owner1NodesThatAreStillForcedToRemain = getIntersection(allCurrentActiveNodes, newOwner1ActiveNodes)
+	require.NotZero(t, len(owner1NodesThatAreStillForcedToRemain))
+
+	// Stake 10 extra nodes such that the forced eligible nodes from previous newOwner1 can leave the system
+	// and are replaced by new nodes
+	newOwner2 := "newOwner2"
+	newOwner2BlsKeys := generateAddresses(403, 10)
+	node.ProcessStake(t, map[string]*NodesRegisterData{
+		newOwner2: {
+			BLSKeys:    newOwner2BlsKeys,
+			TotalStake: big.NewInt(nodePrice * 10),
+		},
+	})
+	currNodesConfig = node.NodesConfig
+	requireSliceContains(t, currNodesConfig.auction, newOwner2BlsKeys)
+
+	// Fast-forward multiple epochs and check that newOwner1's forced nodes from previous epochs left
+	node.Process(t, 20)
+	currNodesConfig = node.NodesConfig
+	allCurrentNodesInSystem := append(getAllPubKeys(currNodesConfig.eligible), getAllPubKeys(currNodesConfig.waiting)...)
+	allCurrentNodesInSystem = append(allCurrentNodesInSystem, getAllPubKeys(currNodesConfig.leaving)...)
+	allCurrentNodesInSystem = append(allCurrentNodesInSystem, currNodesConfig.auction...)
+	owner1LeftNodes := getIntersection(owner1NodesThatAreStillForcedToRemain, allCurrentNodesInSystem)
+	require.Zero(t, len(owner1LeftNodes))
 }

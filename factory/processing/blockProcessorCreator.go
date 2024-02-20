@@ -912,10 +912,14 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
+	maxNodesChangeConfigProviderAPI, err := notifier.NewNodesConfigProviderAPI(pcf.epochNotifier, pcf.epochConfig.EnableEpochs)
+	if err != nil {
+		return nil, err
+	}
 	argsAuctionListSelectorAPI := metachainEpochStart.AuctionListSelectorArgs{
 		ShardCoordinator:             pcf.bootstrapComponents.ShardCoordinator(),
 		StakingDataProvider:          stakingDataProviderAPI,
-		MaxNodesChangeConfigProvider: maxNodesChangeConfigProvider,
+		MaxNodesChangeConfigProvider: maxNodesChangeConfigProviderAPI,
 		SoftAuctionConfig:            pcf.systemSCConfig.SoftAuctionConfig,
 		Denomination:                 pcf.economicsConfig.GlobalSettings.Denomination,
 		AuctionListDisplayHandler:    factoryDisabled.NewDisabledAuctionListDisplayer(),

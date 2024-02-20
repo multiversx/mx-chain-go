@@ -40,7 +40,7 @@ type validatorStatisticsResponse struct {
 	Error  string                                    `json:"error"`
 }
 
-type auctionListReponse struct {
+type auctionListResponse struct {
 	Data struct {
 		Result []*common.AuctionListValidatorAPIResponse `json:"auctionList"`
 	} `json:"data"`
@@ -216,7 +216,7 @@ func TestAuctionList_ErrorWhenFacadeFails(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	response := auctionListReponse{}
+	response := auctionListResponse{}
 	loadResponse(resp.Body, &response)
 
 	assert.Equal(t, http.StatusBadRequest, resp.Code)
@@ -249,7 +249,7 @@ func TestAuctionList_ReturnsSuccessfully(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	response := auctionListReponse{}
+	response := auctionListResponse{}
 	loadResponse(resp.Body, &response)
 
 	assert.Equal(t, http.StatusOK, resp.Code)

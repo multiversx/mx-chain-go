@@ -2201,7 +2201,61 @@ func TestSystemSCProcessor_ProcessSystemSmartContractNilInputValues(t *testing.T
 		err := s.ProcessSystemSmartContract(validatorsInfoMap, nil)
 		require.Equal(t, process.ErrNilHeaderHandler, err)
 	})
+}
 
+func TestLegacySystemSCProcessor_addNewlyStakedNodesToValidatorTrie(t *testing.T) {
+	t.Parallel()
+
+	args, _ := createFullArgumentsForSystemSCProcessing(config.EnableEpochs{}, testscommon.CreateMemUnit())
+	sysProc, _ := NewSystemSCProcessor(args)
+
+	pubKey := []byte("pubKey")
+	existingValidator := &state.ValidatorInfo{
+		PublicKey: pubKey,
+		List:      "inactive",
+	}
+
+	nonce := uint64(4)
+	newList := common.AuctionList
+	newlyAddedValidator := &state.ValidatorInfo{
+		PublicKey:       pubKey,
+		List:            string(newList),
+		Index:           uint32(nonce),
+		TempRating:      sysProc.startRating,
+		Rating:          sysProc.startRating,
+		RewardAddress:   pubKey,
+		AccumulatedFees: big.NewInt(0),
+	}
+
+	// Check before stakingV4, we should have both validators
+	validatorsInfo := state.NewShardValidatorsInfoMap()
+	_ = validatorsInfo.Add(existingValidator)
+	args.EpochNotifier.CheckEpoch(&block.Header{Epoch: stakingV4Step1EnableEpoch - 1, Nonce: 1})
+	err := sysProc.addNewlyStakedNodesToValidatorTrie(
+		validatorsInfo,
+		[][]byte{pubKey, pubKey},
+		nonce,
+		newList,
+	)
+	require.Nil(t, err)
+	require.Equal(t, map[uint32][]state.ValidatorInfoHandler{
+		0: {existingValidator, newlyAddedValidator},
+	}, validatorsInfo.GetShardValidatorsInfoMap())
+
+	// Check after stakingV4, we should only have the new one
+	validatorsInfo = state.NewShardValidatorsInfoMap()
+	_ = validatorsInfo.Add(existingValidator)
+	args.EpochNotifier.CheckEpoch(&block.Header{Epoch: stakingV4Step1EnableEpoch, Nonce: 1})
+	err = sysProc.addNewlyStakedNodesToValidatorTrie(
+		validatorsInfo,
+		[][]byte{pubKey, pubKey},
+		nonce,
+		newList,
+	)
+	require.Nil(t, err)
+	require.Equal(t, map[uint32][]state.ValidatorInfoHandler{
+		0: {newlyAddedValidator},
+	}, validatorsInfo.GetShardValidatorsInfoMap())
 }
 
 func requireTopUpPerNodes(t *testing.T, s epochStart.StakingDataProvider, stakedPubKeys [][]byte, topUp *big.Int) {
