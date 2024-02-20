@@ -146,9 +146,7 @@ func (txv *txValidator) checkNonce(interceptedTx process.InterceptedTransactionH
 }
 
 func (txv *txValidator) isSenderInDifferentShard(interceptedTx process.InterceptedTransactionHandler) bool {
-	shardID := txv.shardCoordinator.SelfId()
-	txShardID := interceptedTx.SenderShardId()
-	return shardID != txShardID
+	return false
 }
 
 func (txv *txValidator) getSenderAccount(interceptedTx process.InterceptedTransactionHandler) (vmcommon.AccountHandler, error) {

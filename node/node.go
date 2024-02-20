@@ -703,6 +703,19 @@ func (n *Node) castAccountToUserAccount(ah vmcommon.AccountHandler) (state.UserA
 
 // SendBulkTransactions sends the provided transactions as a bulk, optimizing transfer between nodes
 func (n *Node) SendBulkTransactions(txs []*transaction.Transaction) (uint64, error) {
+	// TODO: Feed directly to multiDataInterceptor.
+	// interceptor, err := n.processComponents.InterceptorsContainer().Get("transactions_0_0")
+	// if err != nil {
+	// 	panic("node.SendBulkTransactions: can not get interceptor")
+	// }
+
+	// interceptorAsMultiDataInterceptor, ok := interceptor.(*interceptors.MultiDataInterceptor)
+	// if !ok {
+	// 	panic("node.SendBulkTransactions: unexpected type of interceptor")
+	// }
+
+	// interceptorAsMultiDataInterceptor.DoProcessListInterceptedData(txs)
+
 	return n.processComponents.TxsSenderHandler().SendBulkTransactions(txs)
 }
 

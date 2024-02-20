@@ -50,12 +50,6 @@ func (bdi *baseDataInterceptor) preProcessMesage(message p2p.MessageP2P, fromCon
 
 func (bdi *baseDataInterceptor) shouldSkipAntifloodChecks(fromConnectedPeer core.PeerID, message p2p.MessageP2P) bool {
 	return true
-
-	if bdi.isMessageFromSelfToSelf(fromConnectedPeer, message) {
-		return true
-	}
-
-	return bdi.preferredPeersHolder.Contains(fromConnectedPeer)
 }
 
 func (bdi *baseDataInterceptor) isMessageFromSelfToSelf(fromConnectedPeer core.PeerID, message p2p.MessageP2P) bool {

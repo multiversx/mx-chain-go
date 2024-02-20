@@ -1,9 +1,14 @@
 package interceptors
 
 import (
+	"fmt"
+	"os"
+	"runtime/pprof"
 	"sync"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/batch"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -12,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors/disabled"
+	"github.com/multiversx/mx-chain-go/process/interceptors/processor"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -33,11 +39,13 @@ type ArgMultiDataInterceptor struct {
 // MultiDataInterceptor is used for intercepting packed multi data
 type MultiDataInterceptor struct {
 	*baseDataInterceptor
-	marshalizer        marshal.Marshalizer
-	factory            process.InterceptedDataFactory
-	whiteListRequest   process.WhiteListHandler
-	mutChunksProcessor sync.RWMutex
-	chunksProcessor    process.InterceptedChunksProcessor
+	marshalizer                marshal.Marshalizer
+	factory                    process.InterceptedDataFactory
+	whiteListRequest           process.WhiteListHandler
+	mutChunksProcessor         sync.RWMutex
+	chunksProcessor            process.InterceptedChunksProcessor
+	cumulativeTimeMilliseconds atomic.Counter
+	cumulativeNumTransactions  atomic.Counter
 }
 
 // NewMultiDataInterceptor hooks a new interceptor for packed multi data
@@ -162,7 +170,7 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 		if !isWhiteListed && errOriginator != nil {
 			mdi.throttler.EndProcessing()
 			log.Trace("got message from peer on topic only for validators", "originator",
-				p2p.PeerIdToShortString(message.Peer()),
+				"placeholder",
 				"topic", mdi.topic,
 				"err", errOriginator)
 			return errOriginator
@@ -184,14 +192,72 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 		}
 	}
 
-	go func() {
+	// Note: for a given sender, it's faster to insert the data sequentially.
+	// (avoiding competing bulk insertions in pool)
+	// TODO: Parallelization would be done at the sender level.
+	// Maybe receive a specially crafted list (crafted off-chain):
+	// [0:1000] - sender A, [1001:2000] - sender B, etc.
+	// then launch a goroutine for each sender (slice).
+	mdi.DoProcessListInterceptedData(listInterceptedData, message)
+
+	return nil
+}
+
+func (mdi *MultiDataInterceptor) DoProcessListInterceptedData(listInterceptedData []process.InterceptedData, message p2p.MessageP2P) {
+	txInterceptorProcessor, ok := mdi.processor.(*processor.TxInterceptorProcessor)
+	if !ok {
+		log.Error("processor is not a TxInterceptorProcessor, do default thing", "type", fmt.Sprintf("%T", mdi.processor))
+
 		for _, interceptedData := range listInterceptedData {
 			mdi.processInterceptedData(interceptedData, message)
 		}
-		mdi.throttler.EndProcessing()
-	}()
 
-	return nil
+		mdi.throttler.EndProcessing()
+		return
+	}
+
+	// First, validate all data
+	for _, interceptedData := range listInterceptedData {
+		err := txInterceptorProcessor.Validate(interceptedData, message.Peer())
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	// Then, save all data (add to tx pool)
+	f, _ := os.Create(fmt.Sprintf("cpu-profile-mdi-%d.pprof", time.Now().Unix()))
+	pprof.StartCPUProfile(f)
+
+	sw := core.NewStopWatch()
+	sw.Start("default")
+
+	shardedTxPool := txInterceptorProcessor.GetShardedData()
+	cacherIdentifier := process.ShardCacherIdentifier(0, 0)
+
+	for _, interceptedData := range listInterceptedData {
+		interceptedTx, ok := interceptedData.(process.InterceptedTransactionHandler)
+		if !ok {
+			panic("intercepted data is not a InterceptedTransactionHandler")
+		}
+
+		shardedTxPool.AddData(
+			interceptedData.Hash(),
+			interceptedTx.Transaction(),
+			interceptedTx.Transaction().Size(),
+			cacherIdentifier,
+		)
+	}
+
+	mdi.throttler.EndProcessing()
+
+	sw.Stop("default")
+	measurement := sw.GetMeasurement("default")
+	mdi.cumulativeTimeMilliseconds.Add(measurement.Milliseconds())
+	mdi.cumulativeNumTransactions.Add(int64(len(listInterceptedData)))
+
+	pprof.StopCPUProfile()
+
+	log.Debug("process intercepted transactions done", "num txs", len(listInterceptedData), "time", measurement.Milliseconds(), "cumulative num txs", mdi.cumulativeNumTransactions, "cumulative time", mdi.cumulativeTimeMilliseconds.Get())
 }
 
 func (mdi *MultiDataInterceptor) interceptedData(dataBuff []byte, originator core.PeerID, fromConnectedPeer core.PeerID) (process.InterceptedData, error) {

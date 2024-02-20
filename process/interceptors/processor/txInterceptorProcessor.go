@@ -64,7 +64,7 @@ func (txip *TxInterceptorProcessor) Save(data process.InterceptedData, peerOrigi
 		return nil
 	}
 
-	txLog.Trace("received transaction", "pid", peerOriginator.Pretty(), "hash", data.Hash())
+	txLog.Trace("received transaction", "hash", data.Hash())
 	cacherIdentifier := process.ShardCacherIdentifier(interceptedTx.SenderShardId(), interceptedTx.ReceiverShardId())
 	txip.shardedPool.AddData(
 		data.Hash(),
@@ -74,6 +74,10 @@ func (txip *TxInterceptorProcessor) Save(data process.InterceptedData, peerOrigi
 	)
 
 	return nil
+}
+
+func (txip *TxInterceptorProcessor) GetShardedData() process.ShardedPool {
+	return txip.shardedPool
 }
 
 // RegisterHandler registers a callback function to be notified of incoming transactions
