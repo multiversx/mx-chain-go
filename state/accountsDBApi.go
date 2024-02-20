@@ -175,6 +175,9 @@ func (accountsDB *accountsDBApi) RecreateTrieFromEpoch(options common.RootHashHo
 	accountsDB.mutRecreatedTrieBlockInfo.Lock()
 	defer accountsDB.mutRecreatedTrieBlockInfo.Unlock()
 
+	if options == nil {
+		return ErrNilRootHashHolder
+	}
 	newBlockInfo := holders.NewBlockInfo([]byte{}, 0, options.GetRootHash())
 	if newBlockInfo.Equal(accountsDB.blockInfo) {
 		return nil

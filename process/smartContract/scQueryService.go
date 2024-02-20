@@ -33,6 +33,7 @@ var logQueryService = logger.GetOrCreate("process/smartcontract.queryService")
 
 // MaxGasLimitPerQuery - each unit is the equivalent of 1 nanosecond processing time
 const MaxGasLimitPerQuery = 300_000_000_000
+const epochDifferenceToConsiderHistory = 2
 
 // SCQueryService can execute Get functions over SC to fetch stored values
 type SCQueryService struct {
@@ -201,10 +202,7 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 			return nil, nil, err
 		}
 
-		accountsAdapter := service.blockChainHook.GetAccountsAdapter()
-
-		holder := holders.NewRootHashHolder(blockRootHash, core.OptionalUint32{Value: blockHeader.GetEpoch(), HasValue: true})
-		err = accountsAdapter.RecreateTrieFromEpoch(holder)
+		err = service.recreateTrie(blockRootHash, blockHeader)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -251,6 +249,27 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 	}
 	blockInfo := holders.NewBlockInfo(blockHash, blockNonce, blockRootHash)
 	return vmOutput, blockInfo, nil
+}
+
+func (service *SCQueryService) recreateTrie(blockRootHash []byte, blockHeader data.HeaderHandler) error {
+	accountsAdapter := service.blockChainHook.GetAccountsAdapter()
+	if blockHeader.GetEpoch()+epochDifferenceToConsiderHistory >= service.getCurrentEpoch() {
+		// recent history
+		return accountsAdapter.RecreateTrie(blockRootHash)
+	}
+
+	// old history, this will take a little longer
+	holder := holders.NewRootHashHolder(blockRootHash, core.OptionalUint32{Value: blockHeader.GetEpoch(), HasValue: true})
+	return accountsAdapter.RecreateTrieFromEpoch(holder)
+}
+
+func (service *SCQueryService) getCurrentEpoch() uint32 {
+	header := service.mainBlockChain.GetCurrentBlockHeader()
+	if check.IfNil(header) {
+		return 0
+	}
+
+	return header.GetEpoch()
 }
 
 // TODO: extract duplicated code with nodeBlocks.go
