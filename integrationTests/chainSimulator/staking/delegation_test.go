@@ -27,7 +27,6 @@ import (
 	chainSimulatorProcess "github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/vm"
-	"github.com/prometheus/common/log"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -407,17 +406,21 @@ func testChainSimulatorTopUpIsConsideredWhenUsersDelegateUndelegate(t *testing.T
 	serviceFee := big.NewInt(100)                                     // 100 as service fee
 
 	validatorOwnerAStatus, _, err := cs.GetNodeHandler(validatorOwnerAShardID).GetFacadeHandler().GetAccount(validatorOwnerA, coreAPI.AccountQueryOptions{})
+	require.Nil(t, err)
 	delegationContractAddressBytesA := createDelegationContract(t, cs, validatorOwnerABytes, validatorOwnerAStatus.Nonce, maxDelegationCap, serviceFee)
 	require.NotNil(t, delegationContractAddressBytesA)
 
 	validatorOwnerBStatus, _, err := cs.GetNodeHandler(validatorOwnerBShardID).GetFacadeHandler().GetAccount(validatorOwnerB, coreAPI.AccountQueryOptions{})
+	require.Nil(t, err)
 	delegationContractAddressBytesB := createDelegationContract(t, cs, validatorOwnerBBytes, validatorOwnerBStatus.Nonce, maxDelegationCap, serviceFee)
 	require.NotNil(t, delegationContractAddressBytesB)
 
 	// add nodes for each delegation contract
 	validatorOwnerAStatus, _, err = cs.GetNodeHandler(validatorOwnerAShardID).GetFacadeHandler().GetAccount(validatorOwnerA, coreAPI.AccountQueryOptions{})
+	require.Nil(t, err)
 	addedNodeBlsKeyA := addValidatorNodeAndVerify(t, cs, delegationContractAddressBytesA, validatorOwnerABytes, validatorOwnerAStatus.Nonce, metachainNode)
 	validatorOwnerBStatus, _, err = cs.GetNodeHandler(validatorOwnerBShardID).GetFacadeHandler().GetAccount(validatorOwnerB, coreAPI.AccountQueryOptions{})
+	require.Nil(t, err)
 	addedNodeBlsKeyB := addValidatorNodeAndVerify(t, cs, delegationContractAddressBytesB, validatorOwnerBBytes, validatorOwnerAStatus.Nonce, metachainNode)
 
 	// Delegate and verify for delegator1 and delegator2
@@ -428,15 +431,18 @@ func testChainSimulatorTopUpIsConsideredWhenUsersDelegateUndelegate(t *testing.T
 	expectedTotalStaked := big.NewInt(0).Set(stakeValue)
 
 	delegator1Status, _, err := cs.GetNodeHandler(delegator1BytesShardID).GetFacadeHandler().GetAccount(delegator1, coreAPI.AccountQueryOptions{})
+	require.Nil(t, err)
 	contractATopup := delegateAndVerify(t, cs, delegationContractAddressBytesA, delegator1Bytes, delegator1Status.Nonce, delegationA, expectedTopUp, expectedTotalStaked, metachainNode)
 
 	expectedTopUp = big.NewInt(0).Set(stakeValue)
 	expectedTotalStaked = big.NewInt(0).Set(stakeValue)
 	delegator2Status, _, err := cs.GetNodeHandler(delegator2BytesShardID).GetFacadeHandler().GetAccount(delegator2, coreAPI.AccountQueryOptions{})
+	require.Nil(t, err)
 	contractBTopup := delegateAndVerify(t, cs, delegationContractAddressBytesB, delegator2Bytes, delegator2Status.Nonce, delegationB, expectedTopUp, expectedTotalStaked, metachainNode)
 
 	// perform stake nodes after delegation
 	validatorOwnerAStatus, _, err = cs.GetNodeHandler(validatorOwnerAShardID).GetFacadeHandler().GetAccount(validatorOwnerA, coreAPI.AccountQueryOptions{})
+	require.Nil(t, err)
 	stakeNodesAndVerify(t, cs, delegationContractAddressBytesA, validatorOwnerABytes, validatorOwnerAStatus.Nonce, addedNodeBlsKeyA, contractATopup, metachainNode)
 	validatorOwnerBStatus, _, err = cs.GetNodeHandler(validatorOwnerBShardID).GetFacadeHandler().GetAccount(validatorOwnerB, coreAPI.AccountQueryOptions{})
 	stakeNodesAndVerify(t, cs, delegationContractAddressBytesB, validatorOwnerBBytes, validatorOwnerBStatus.Nonce, addedNodeBlsKeyB, contractBTopup, metachainNode)
