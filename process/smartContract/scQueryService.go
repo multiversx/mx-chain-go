@@ -195,8 +195,6 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 	}
 
 	if len(blockRootHash) > 0 {
-		logQueryService.Trace("preparing execution for block and root hash", "block", blockHeader.GetNonce(), "rootHash", blockRootHash)
-
 		err = service.apiBlockChain.SetCurrentBlockHeaderAndRootHash(blockHeader, blockRootHash)
 		if err != nil {
 			return nil, nil, err
@@ -252,6 +250,12 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 }
 
 func (service *SCQueryService) recreateTrie(blockRootHash []byte, blockHeader data.HeaderHandler) error {
+	if check.IfNil(blockHeader) {
+		return process.ErrNilBlockHeader
+	}
+
+	logQueryService.Trace("preparing execution for block and root hash", "block", blockHeader.GetNonce(), "rootHash", blockRootHash)
+
 	accountsAdapter := service.blockChainHook.GetAccountsAdapter()
 	if blockHeader.GetEpoch()+epochDifferenceToConsiderHistory >= service.getCurrentEpoch() {
 		// recent history

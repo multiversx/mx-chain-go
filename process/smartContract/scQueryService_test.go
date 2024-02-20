@@ -751,6 +751,25 @@ func TestSCQueryService_RecreateTrie(t *testing.T) {
 	t.Parallel()
 
 	testRootHash := []byte("test root hash")
+	t.Run("should not call RecreateTrie if block header is nil", func(t *testing.T) {
+		t.Parallel()
+
+		argsNewSCQuery := createMockArgumentsForSCQuery()
+		argsNewSCQuery.BlockChainHook = &testscommon.BlockChainHookStub{
+			GetAccountsAdapterCalled: func() state.AccountsAdapter {
+				return &stateMocks.AccountsStub{
+					RecreateTrieCalled: func(rootHash []byte) error {
+						require.Fail(t, "should not be called")
+						return nil
+					},
+				}
+			},
+		}
+
+		service, _ := NewSCQueryService(argsNewSCQuery)
+		err := service.recreateTrie(testRootHash, nil)
+		assert.ErrorIs(t, err, process.ErrNilBlockHeader)
+	})
 	t.Run("should call RecreateTrie for genesis block", func(t *testing.T) {
 		t.Parallel()
 
