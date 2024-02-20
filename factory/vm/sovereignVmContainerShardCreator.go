@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
@@ -13,23 +14,23 @@ type sovereignVmContainerShardFactory struct {
 }
 
 // NewSovereignVmContainerShardFactory creates a new sovereign vm container shard factory
-func NewSovereignVmContainerShardFactory(bhhc hooks.BlockChainHookHandlerCreator, vcm VmContainerCreator, vcs VmContainerCreator) (*sovereignVmContainerShardFactory, error) {
-	if bhhc == nil {
+func NewSovereignVmContainerShardFactory(bhhc hooks.BlockChainHookHandlerCreator, vmContainerMeta VmContainerCreator, vmContainerShard VmContainerCreator) (*sovereignVmContainerShardFactory, error) {
+	if check.IfNil(bhhc) {
 		return nil, process.ErrNilBlockChainHook
 	}
 
-	if vcm == nil {
+	if check.IfNil(vmContainerMeta) {
 		return nil, ErrNilVmContainerMetaCreator
 	}
 
-	if vcs == nil {
+	if check.IfNil(vmContainerShard) {
 		return nil, ErrNilVmContainerShardCreator
 	}
 
 	return &sovereignVmContainerShardFactory{
 		blockChainHookHandlerCreator: bhhc,
-		vmContainerMetaFactory:       vcm,
-		vmContainerShardFactory:      vcs,
+		vmContainerMetaFactory:       vmContainerMeta,
+		vmContainerShardFactory:      vmContainerShard,
 	}, nil
 }
 

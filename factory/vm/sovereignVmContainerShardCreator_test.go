@@ -27,7 +27,8 @@ func TestNewSovereignVmContainerShardCreatorFactory(t *testing.T) {
 	t.Run("nil blockChainHookHandlerCreator", func(t *testing.T) {
 		t.Parallel()
 
-		sovereignVmContainerShardFactory, err := vm.NewSovereignVmContainerShardFactory(nil, nil, nil)
+		runTypeComponents := componentsMock.GetRunTypeComponents()
+		sovereignVmContainerShardFactory, err := vm.NewSovereignVmContainerShardFactory(nil, runTypeComponents.VmContainerMetaFactoryCreator(), runTypeComponents.VmContainerShardFactoryCreator())
 		require.ErrorIs(t, err, process.ErrNilBlockChainHook)
 		require.True(t, sovereignVmContainerShardFactory.IsInterfaceNil())
 	})

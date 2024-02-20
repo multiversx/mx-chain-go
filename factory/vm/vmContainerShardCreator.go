@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory/shard"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
@@ -12,7 +13,7 @@ type vmContainerShardFactory struct {
 
 // NewVmContainerShardFactory creates a new vm container shard factory
 func NewVmContainerShardFactory(bhhc hooks.BlockChainHookHandlerCreator) (*vmContainerShardFactory, error) {
-	if bhhc == nil {
+	if check.IfNil(bhhc) {
 		return nil, process.ErrNilBlockChainHook
 	}
 
