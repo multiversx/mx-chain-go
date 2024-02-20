@@ -17,6 +17,7 @@ import (
 	mclMultiSig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/multisig"
 	"github.com/multiversx/mx-chain-crypto-go/signing/multisig"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/round"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart/metachain"
@@ -62,17 +63,18 @@ var testPubkeyConverter, _ = pubkeyConverter.NewHexPubkeyConverter(32)
 
 // ArgsTestConsensusNode represents the arguments for the test consensus node constructor(s)
 type ArgsTestConsensusNode struct {
-	ShardID       uint32
-	ConsensusSize int
-	RoundTime     uint64
-	ConsensusType string
-	NodeKeys      *TestNodeKeys
-	EligibleMap   map[uint32][]nodesCoordinator.Validator
-	WaitingMap    map[uint32][]nodesCoordinator.Validator
-	KeyGen        crypto.KeyGenerator
-	P2PKeyGen     crypto.KeyGenerator
-	MultiSigner   *cryptoMocks.MultisignerMock
-	StartTime     int64
+	ShardID        uint32
+	ConsensusSize  int
+	RoundTime      uint64
+	ConsensusType  string
+	NodeKeys       *TestNodeKeys
+	EligibleMap    map[uint32][]nodesCoordinator.Validator
+	WaitingMap     map[uint32][]nodesCoordinator.Validator
+	KeyGen         crypto.KeyGenerator
+	P2PKeyGen      crypto.KeyGenerator
+	MultiSigner    *cryptoMocks.MultisignerMock
+	StartTime      int64
+	ConsensusModel consensus.ConsensusModel
 }
 
 // TestConsensusNode represents a structure used in integration tests used for consensus tests
@@ -113,6 +115,7 @@ func CreateNodesWithTestConsensusNode(
 	roundTime uint64,
 	consensusType string,
 	numKeysOnEachNode int,
+	consensusModel consensus.ConsensusModel,
 ) map[uint32][]*TestConsensusNode {
 
 	nodes := make(map[uint32][]*TestConsensusNode, nodesPerShard)
@@ -132,17 +135,18 @@ func CreateNodesWithTestConsensusNode(
 			multiSignerMock := createCustomMultiSignerMock(multiSigner)
 
 			args := ArgsTestConsensusNode{
-				ShardID:       shardID,
-				ConsensusSize: consensusSize,
-				RoundTime:     roundTime,
-				ConsensusType: consensusType,
-				NodeKeys:      keysPair,
-				EligibleMap:   eligibleMap,
-				WaitingMap:    waitingMap,
-				KeyGen:        cp.KeyGen,
-				P2PKeyGen:     cp.P2PKeyGen,
-				MultiSigner:   multiSignerMock,
-				StartTime:     startTime,
+				ShardID:        shardID,
+				ConsensusSize:  consensusSize,
+				RoundTime:      roundTime,
+				ConsensusType:  consensusType,
+				NodeKeys:       keysPair,
+				EligibleMap:    eligibleMap,
+				WaitingMap:     waitingMap,
+				KeyGen:         cp.KeyGen,
+				P2PKeyGen:      cp.P2PKeyGen,
+				MultiSigner:    multiSignerMock,
+				StartTime:      startTime,
+				ConsensusModel: consensusModel,
 			}
 
 			tcn := NewTestConsensusNode(args)
@@ -233,6 +237,8 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	pubKey := tcn.NodeKeys.Sk.GeneratePublic()
 
 	tcn.initAccountsDB()
+
+	runTypeComponents := GetDefaultRunTypeComponents(args.ConsensusModel)
 
 	coreComponents := GetDefaultCoreComponents()
 	coreComponents.SyncTimerField = syncer
@@ -336,6 +342,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 
 	var err error
 	tcn.Node, err = node.NewNode(
+		node.WithRunTypeComponents(runTypeComponents),
 		node.WithCoreComponents(coreComponents),
 		node.WithStatusCoreComponents(statusCoreComponents),
 		node.WithCryptoComponents(cryptoComponents),

@@ -42,7 +42,7 @@ func createMockHeartbeatV2ComponentsFactoryArgs() heartbeatComp.ArgHeartbeatV2Co
 			ShCoordinator:   &testscommon.ShardsCoordinatorMock{},
 			BootstrapParams: &bootstrapMocks.BootstrapParamsHandlerMock{},
 		},
-		CoreComponents: &factory.CoreComponentsHolderStub{
+		CoreComponents: &factory.CoreComponentsHolderMock{
 			InternalMarshalizerCalled: func() marshal.Marshalizer {
 				return &marshallerMock.MarshalizerStub{}
 			},

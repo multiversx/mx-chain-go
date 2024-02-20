@@ -64,7 +64,7 @@ func (sc *scProcessor) addToDevRewardsV1(address []byte, gasUsed uint64, gasPric
 		devRwd = core.GetApproximatePercentageOfValue(consumedFee, sc.economicsFee.DeveloperPercentage())
 	}
 
-	userAcc, err := sc.getAccountFromAddress(address)
+	userAcc, err := sc.scProcessorHelper.GetAccountFromAddress(address)
 	if err != nil {
 		return err
 	}

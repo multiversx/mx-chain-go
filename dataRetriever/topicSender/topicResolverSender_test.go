@@ -156,12 +156,13 @@ func TestTopicResolverSender_SendShouldNotCheckAntifloodForPreferred(t *testing.
 func TestTopicResolverSender_SendShouldWork(t *testing.T) {
 	t.Parallel()
 
-	pID1 := core.PeerID("peer1")
-	buffToSend := []byte("buff")
 	t.Run("on main network", func(t *testing.T) {
 		t.Parallel()
 
+		pID1 := core.PeerID("peer1")
 		sentToPid1 := false
+		buffToSend := []byte("buff")
+
 		arg := createMockArgTopicResolverSender()
 		arg.MainMessenger = &p2pmocks.MessengerStub{
 			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
@@ -206,7 +207,10 @@ func TestTopicResolverSender_SendShouldWork(t *testing.T) {
 	t.Run("on full archive network", func(t *testing.T) {
 		t.Parallel()
 
+		pID1 := core.PeerID("peer1")
 		sentToPid1 := false
+		buffToSend := []byte("buff")
+
 		arg := createMockArgTopicResolverSender()
 		arg.FullArchiveMessenger = &p2pmocks.MessengerStub{
 			SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {

@@ -47,7 +47,7 @@ func (msc *managedStateComponents) Create() error {
 	return nil
 }
 
-// Close will close all underlying sub-components
+// Close will close all underlying subcomponents
 func (msc *managedStateComponents) Close() error {
 	msc.mutStateComponents.Lock()
 	defer msc.mutStateComponents.Unlock()

@@ -22,6 +22,7 @@ import (
 
 type coreComponentsHolder interface {
 	Hasher() hashing.Hasher
+	AddressPubKeyConverter() core.PubkeyConverter
 	InternalMarshalizer() marshal.Marshalizer
 	Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter
 	EpochNotifier() process.EpochNotifier
@@ -93,6 +94,8 @@ type ArgBaseProcessor struct {
 	ReceiptsRepository             receiptsRepository
 	BlockProcessingCutoffHandler   cutoff.BlockProcessingCutoffHandler
 	ManagedPeersHolder             common.ManagedPeersHolder
+	ValidatorStatisticsProcessor   process.ValidatorStatisticsProcessor
+	OutGoingOperationsPool         OutGoingOperationsPool
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create

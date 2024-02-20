@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	"github.com/multiversx/mx-chain-go/node"
+	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus/factoryMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
@@ -21,6 +22,7 @@ func TestCreateNode(t *testing.T) {
 
 		nodeHandler, err := node.CreateNode(
 			&config.Config{},
+			componentsMock.GetRunTypeComponents(),
 			&factory.StatusCoreComponentsStub{},
 			getDefaultBootstrapComponents(),
 			getDefaultCoreComponents(),
@@ -47,6 +49,7 @@ func TestCreateNode(t *testing.T) {
 
 		nodeHandler, err := node.CreateNode(
 			&config.Config{},
+			componentsMock.GetRunTypeComponents(),
 			&factory.StatusCoreComponentsStub{},
 			getDefaultBootstrapComponents(),
 			getDefaultCoreComponents(),

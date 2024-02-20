@@ -18,8 +18,8 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 )
 
-// CoreComponentsHolderStub -
-type CoreComponentsHolderStub struct {
+// CoreComponentsHolderMock -
+type CoreComponentsHolderMock struct {
 	InternalMarshalizerCalled           func() marshal.Marshalizer
 	SetInternalMarshalizerCalled        func(marshalizer marshal.Marshalizer) error
 	TxMarshalizerCalled                 func() marshal.Marshalizer
@@ -58,8 +58,8 @@ type CoreComponentsHolderStub struct {
 }
 
 // NewCoreComponentsHolderStubFromRealComponent -
-func NewCoreComponentsHolderStubFromRealComponent(coreComponents factory.CoreComponentsHolder) *CoreComponentsHolderStub {
-	return &CoreComponentsHolderStub{
+func NewCoreComponentsHolderStubFromRealComponent(coreComponents factory.CoreComponentsHolder) *CoreComponentsHolderMock {
+	return &CoreComponentsHolderMock{
 		InternalMarshalizerCalled:           coreComponents.InternalMarshalizer,
 		SetInternalMarshalizerCalled:        coreComponents.SetInternalMarshalizer,
 		TxMarshalizerCalled:                 coreComponents.TxMarshalizer,
@@ -99,7 +99,7 @@ func NewCoreComponentsHolderStubFromRealComponent(coreComponents factory.CoreCom
 }
 
 // InternalMarshalizer -
-func (stub *CoreComponentsHolderStub) InternalMarshalizer() marshal.Marshalizer {
+func (stub *CoreComponentsHolderMock) InternalMarshalizer() marshal.Marshalizer {
 	if stub.InternalMarshalizerCalled != nil {
 		return stub.InternalMarshalizerCalled()
 	}
@@ -107,7 +107,7 @@ func (stub *CoreComponentsHolderStub) InternalMarshalizer() marshal.Marshalizer 
 }
 
 // SetInternalMarshalizer -
-func (stub *CoreComponentsHolderStub) SetInternalMarshalizer(marshalizer marshal.Marshalizer) error {
+func (stub *CoreComponentsHolderMock) SetInternalMarshalizer(marshalizer marshal.Marshalizer) error {
 	if stub.SetInternalMarshalizerCalled != nil {
 		return stub.SetInternalMarshalizerCalled(marshalizer)
 	}
@@ -115,7 +115,7 @@ func (stub *CoreComponentsHolderStub) SetInternalMarshalizer(marshalizer marshal
 }
 
 // TxMarshalizer -
-func (stub *CoreComponentsHolderStub) TxMarshalizer() marshal.Marshalizer {
+func (stub *CoreComponentsHolderMock) TxMarshalizer() marshal.Marshalizer {
 	if stub.TxMarshalizerCalled != nil {
 		return stub.TxMarshalizerCalled()
 	}
@@ -123,7 +123,7 @@ func (stub *CoreComponentsHolderStub) TxMarshalizer() marshal.Marshalizer {
 }
 
 // VmMarshalizer -
-func (stub *CoreComponentsHolderStub) VmMarshalizer() marshal.Marshalizer {
+func (stub *CoreComponentsHolderMock) VmMarshalizer() marshal.Marshalizer {
 	if stub.VmMarshalizerCalled != nil {
 		return stub.VmMarshalizerCalled()
 	}
@@ -131,7 +131,7 @@ func (stub *CoreComponentsHolderStub) VmMarshalizer() marshal.Marshalizer {
 }
 
 // Hasher -
-func (stub *CoreComponentsHolderStub) Hasher() hashing.Hasher {
+func (stub *CoreComponentsHolderMock) Hasher() hashing.Hasher {
 	if stub.HasherCalled != nil {
 		return stub.HasherCalled()
 	}
@@ -139,7 +139,7 @@ func (stub *CoreComponentsHolderStub) Hasher() hashing.Hasher {
 }
 
 // TxSignHasher -
-func (stub *CoreComponentsHolderStub) TxSignHasher() hashing.Hasher {
+func (stub *CoreComponentsHolderMock) TxSignHasher() hashing.Hasher {
 	if stub.TxSignHasherCalled != nil {
 		return stub.TxSignHasherCalled()
 	}
@@ -147,7 +147,7 @@ func (stub *CoreComponentsHolderStub) TxSignHasher() hashing.Hasher {
 }
 
 // Uint64ByteSliceConverter -
-func (stub *CoreComponentsHolderStub) Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter {
+func (stub *CoreComponentsHolderMock) Uint64ByteSliceConverter() typeConverters.Uint64ByteSliceConverter {
 	if stub.Uint64ByteSliceConverterCalled != nil {
 		return stub.Uint64ByteSliceConverterCalled()
 	}
@@ -155,7 +155,7 @@ func (stub *CoreComponentsHolderStub) Uint64ByteSliceConverter() typeConverters.
 }
 
 // AddressPubKeyConverter -
-func (stub *CoreComponentsHolderStub) AddressPubKeyConverter() core.PubkeyConverter {
+func (stub *CoreComponentsHolderMock) AddressPubKeyConverter() core.PubkeyConverter {
 	if stub.AddressPubKeyConverterCalled != nil {
 		return stub.AddressPubKeyConverterCalled()
 	}
@@ -163,7 +163,7 @@ func (stub *CoreComponentsHolderStub) AddressPubKeyConverter() core.PubkeyConver
 }
 
 // ValidatorPubKeyConverter -
-func (stub *CoreComponentsHolderStub) ValidatorPubKeyConverter() core.PubkeyConverter {
+func (stub *CoreComponentsHolderMock) ValidatorPubKeyConverter() core.PubkeyConverter {
 	if stub.ValidatorPubKeyConverterCalled != nil {
 		return stub.ValidatorPubKeyConverterCalled()
 	}
@@ -171,7 +171,7 @@ func (stub *CoreComponentsHolderStub) ValidatorPubKeyConverter() core.PubkeyConv
 }
 
 // PathHandler -
-func (stub *CoreComponentsHolderStub) PathHandler() storage.PathManagerHandler {
+func (stub *CoreComponentsHolderMock) PathHandler() storage.PathManagerHandler {
 	if stub.PathHandlerCalled != nil {
 		return stub.PathHandlerCalled()
 	}
@@ -179,7 +179,7 @@ func (stub *CoreComponentsHolderStub) PathHandler() storage.PathManagerHandler {
 }
 
 // Watchdog -
-func (stub *CoreComponentsHolderStub) Watchdog() core.WatchdogTimer {
+func (stub *CoreComponentsHolderMock) Watchdog() core.WatchdogTimer {
 	if stub.WatchdogCalled != nil {
 		return stub.WatchdogCalled()
 	}
@@ -187,7 +187,7 @@ func (stub *CoreComponentsHolderStub) Watchdog() core.WatchdogTimer {
 }
 
 // AlarmScheduler -
-func (stub *CoreComponentsHolderStub) AlarmScheduler() core.TimersScheduler {
+func (stub *CoreComponentsHolderMock) AlarmScheduler() core.TimersScheduler {
 	if stub.AlarmSchedulerCalled != nil {
 		return stub.AlarmSchedulerCalled()
 	}
@@ -195,7 +195,7 @@ func (stub *CoreComponentsHolderStub) AlarmScheduler() core.TimersScheduler {
 }
 
 // SyncTimer -
-func (stub *CoreComponentsHolderStub) SyncTimer() ntp.SyncTimer {
+func (stub *CoreComponentsHolderMock) SyncTimer() ntp.SyncTimer {
 	if stub.SyncTimerCalled != nil {
 		return stub.SyncTimerCalled()
 	}
@@ -203,7 +203,7 @@ func (stub *CoreComponentsHolderStub) SyncTimer() ntp.SyncTimer {
 }
 
 // RoundHandler -
-func (stub *CoreComponentsHolderStub) RoundHandler() consensus.RoundHandler {
+func (stub *CoreComponentsHolderMock) RoundHandler() consensus.RoundHandler {
 	if stub.RoundHandlerCalled != nil {
 		return stub.RoundHandlerCalled()
 	}
@@ -211,7 +211,7 @@ func (stub *CoreComponentsHolderStub) RoundHandler() consensus.RoundHandler {
 }
 
 // EconomicsData -
-func (stub *CoreComponentsHolderStub) EconomicsData() process.EconomicsDataHandler {
+func (stub *CoreComponentsHolderMock) EconomicsData() process.EconomicsDataHandler {
 	if stub.EconomicsDataCalled != nil {
 		return stub.EconomicsDataCalled()
 	}
@@ -219,7 +219,7 @@ func (stub *CoreComponentsHolderStub) EconomicsData() process.EconomicsDataHandl
 }
 
 // APIEconomicsData -
-func (stub *CoreComponentsHolderStub) APIEconomicsData() process.EconomicsDataHandler {
+func (stub *CoreComponentsHolderMock) APIEconomicsData() process.EconomicsDataHandler {
 	if stub.APIEconomicsDataCalled != nil {
 		return stub.APIEconomicsDataCalled()
 	}
@@ -227,7 +227,7 @@ func (stub *CoreComponentsHolderStub) APIEconomicsData() process.EconomicsDataHa
 }
 
 // RatingsData -
-func (stub *CoreComponentsHolderStub) RatingsData() process.RatingsInfoHandler {
+func (stub *CoreComponentsHolderMock) RatingsData() process.RatingsInfoHandler {
 	if stub.RatingsDataCalled != nil {
 		return stub.RatingsDataCalled()
 	}
@@ -235,7 +235,7 @@ func (stub *CoreComponentsHolderStub) RatingsData() process.RatingsInfoHandler {
 }
 
 // Rater -
-func (stub *CoreComponentsHolderStub) Rater() sharding.PeerAccountListAndRatingHandler {
+func (stub *CoreComponentsHolderMock) Rater() sharding.PeerAccountListAndRatingHandler {
 	if stub.RaterCalled != nil {
 		return stub.RaterCalled()
 	}
@@ -243,7 +243,7 @@ func (stub *CoreComponentsHolderStub) Rater() sharding.PeerAccountListAndRatingH
 }
 
 // GenesisNodesSetup -
-func (stub *CoreComponentsHolderStub) GenesisNodesSetup() sharding.GenesisNodesSetupHandler {
+func (stub *CoreComponentsHolderMock) GenesisNodesSetup() sharding.GenesisNodesSetupHandler {
 	if stub.GenesisNodesSetupCalled != nil {
 		return stub.GenesisNodesSetupCalled()
 	}
@@ -251,7 +251,7 @@ func (stub *CoreComponentsHolderStub) GenesisNodesSetup() sharding.GenesisNodesS
 }
 
 // NodesShuffler -
-func (stub *CoreComponentsHolderStub) NodesShuffler() nodesCoordinator.NodesShuffler {
+func (stub *CoreComponentsHolderMock) NodesShuffler() nodesCoordinator.NodesShuffler {
 	if stub.NodesShufflerCalled != nil {
 		return stub.NodesShufflerCalled()
 	}
@@ -259,7 +259,7 @@ func (stub *CoreComponentsHolderStub) NodesShuffler() nodesCoordinator.NodesShuf
 }
 
 // EpochNotifier -
-func (stub *CoreComponentsHolderStub) EpochNotifier() process.EpochNotifier {
+func (stub *CoreComponentsHolderMock) EpochNotifier() process.EpochNotifier {
 	if stub.EpochNotifierCalled != nil {
 		return stub.EpochNotifierCalled()
 	}
@@ -267,7 +267,7 @@ func (stub *CoreComponentsHolderStub) EpochNotifier() process.EpochNotifier {
 }
 
 // EnableRoundsHandler -
-func (stub *CoreComponentsHolderStub) EnableRoundsHandler() process.EnableRoundsHandler {
+func (stub *CoreComponentsHolderMock) EnableRoundsHandler() process.EnableRoundsHandler {
 	if stub.EnableRoundsHandlerCalled != nil {
 		return stub.EnableRoundsHandlerCalled()
 	}
@@ -275,7 +275,7 @@ func (stub *CoreComponentsHolderStub) EnableRoundsHandler() process.EnableRounds
 }
 
 // EpochStartNotifierWithConfirm -
-func (stub *CoreComponentsHolderStub) EpochStartNotifierWithConfirm() factory.EpochStartNotifierWithConfirm {
+func (stub *CoreComponentsHolderMock) EpochStartNotifierWithConfirm() factory.EpochStartNotifierWithConfirm {
 	if stub.EpochStartNotifierWithConfirmCalled != nil {
 		return stub.EpochStartNotifierWithConfirmCalled()
 	}
@@ -283,7 +283,7 @@ func (stub *CoreComponentsHolderStub) EpochStartNotifierWithConfirm() factory.Ep
 }
 
 // ChanStopNodeProcess -
-func (stub *CoreComponentsHolderStub) ChanStopNodeProcess() chan endProcess.ArgEndProcess {
+func (stub *CoreComponentsHolderMock) ChanStopNodeProcess() chan endProcess.ArgEndProcess {
 	if stub.ChanStopNodeProcessCalled != nil {
 		return stub.ChanStopNodeProcessCalled()
 	}
@@ -291,7 +291,7 @@ func (stub *CoreComponentsHolderStub) ChanStopNodeProcess() chan endProcess.ArgE
 }
 
 // GenesisTime -
-func (stub *CoreComponentsHolderStub) GenesisTime() time.Time {
+func (stub *CoreComponentsHolderMock) GenesisTime() time.Time {
 	if stub.GenesisTimeCalled != nil {
 		return stub.GenesisTimeCalled()
 	}
@@ -299,7 +299,7 @@ func (stub *CoreComponentsHolderStub) GenesisTime() time.Time {
 }
 
 // ChainID -
-func (stub *CoreComponentsHolderStub) ChainID() string {
+func (stub *CoreComponentsHolderMock) ChainID() string {
 	if stub.ChainIDCalled != nil {
 		return stub.ChainIDCalled()
 	}
@@ -307,7 +307,7 @@ func (stub *CoreComponentsHolderStub) ChainID() string {
 }
 
 // MinTransactionVersion -
-func (stub *CoreComponentsHolderStub) MinTransactionVersion() uint32 {
+func (stub *CoreComponentsHolderMock) MinTransactionVersion() uint32 {
 	if stub.MinTransactionVersionCalled != nil {
 		return stub.MinTransactionVersionCalled()
 	}
@@ -315,7 +315,7 @@ func (stub *CoreComponentsHolderStub) MinTransactionVersion() uint32 {
 }
 
 // TxVersionChecker -
-func (stub *CoreComponentsHolderStub) TxVersionChecker() process.TxVersionCheckerHandler {
+func (stub *CoreComponentsHolderMock) TxVersionChecker() process.TxVersionCheckerHandler {
 	if stub.TxVersionCheckerCalled != nil {
 		return stub.TxVersionCheckerCalled()
 	}
@@ -323,7 +323,7 @@ func (stub *CoreComponentsHolderStub) TxVersionChecker() process.TxVersionChecke
 }
 
 // EncodedAddressLen -
-func (stub *CoreComponentsHolderStub) EncodedAddressLen() uint32 {
+func (stub *CoreComponentsHolderMock) EncodedAddressLen() uint32 {
 	if stub.EncodedAddressLenCalled != nil {
 		return stub.EncodedAddressLenCalled()
 	}
@@ -331,7 +331,7 @@ func (stub *CoreComponentsHolderStub) EncodedAddressLen() uint32 {
 }
 
 // NodeTypeProvider -
-func (stub *CoreComponentsHolderStub) NodeTypeProvider() core.NodeTypeProviderHandler {
+func (stub *CoreComponentsHolderMock) NodeTypeProvider() core.NodeTypeProviderHandler {
 	if stub.NodeTypeProviderCalled != nil {
 		return stub.NodeTypeProviderCalled()
 	}
@@ -339,7 +339,7 @@ func (stub *CoreComponentsHolderStub) NodeTypeProvider() core.NodeTypeProviderHa
 }
 
 // WasmVMChangeLocker -
-func (stub *CoreComponentsHolderStub) WasmVMChangeLocker() common.Locker {
+func (stub *CoreComponentsHolderMock) WasmVMChangeLocker() common.Locker {
 	if stub.WasmVMChangeLockerCalled != nil {
 		return stub.WasmVMChangeLockerCalled()
 	}
@@ -347,7 +347,7 @@ func (stub *CoreComponentsHolderStub) WasmVMChangeLocker() common.Locker {
 }
 
 // ProcessStatusHandler -
-func (stub *CoreComponentsHolderStub) ProcessStatusHandler() common.ProcessStatusHandler {
+func (stub *CoreComponentsHolderMock) ProcessStatusHandler() common.ProcessStatusHandler {
 	if stub.ProcessStatusHandlerCalled != nil {
 		return stub.ProcessStatusHandlerCalled()
 	}
@@ -355,7 +355,7 @@ func (stub *CoreComponentsHolderStub) ProcessStatusHandler() common.ProcessStatu
 }
 
 // HardforkTriggerPubKey -
-func (stub *CoreComponentsHolderStub) HardforkTriggerPubKey() []byte {
+func (stub *CoreComponentsHolderMock) HardforkTriggerPubKey() []byte {
 	if stub.HardforkTriggerPubKeyCalled != nil {
 		return stub.HardforkTriggerPubKeyCalled()
 	}
@@ -363,7 +363,7 @@ func (stub *CoreComponentsHolderStub) HardforkTriggerPubKey() []byte {
 }
 
 // EnableEpochsHandler -
-func (stub *CoreComponentsHolderStub) EnableEpochsHandler() common.EnableEpochsHandler {
+func (stub *CoreComponentsHolderMock) EnableEpochsHandler() common.EnableEpochsHandler {
 	if stub.EnableEpochsHandlerCalled != nil {
 		return stub.EnableEpochsHandlerCalled()
 	}
@@ -371,7 +371,7 @@ func (stub *CoreComponentsHolderStub) EnableEpochsHandler() common.EnableEpochsH
 }
 
 // RoundNotifier -
-func (stub *CoreComponentsHolderStub) RoundNotifier() process.RoundNotifier {
+func (stub *CoreComponentsHolderMock) RoundNotifier() process.RoundNotifier {
 	if stub.RoundNotifierCalled != nil {
 		return stub.RoundNotifierCalled()
 	}
@@ -379,6 +379,6 @@ func (stub *CoreComponentsHolderStub) RoundNotifier() process.RoundNotifier {
 }
 
 // IsInterfaceNil -
-func (stub *CoreComponentsHolderStub) IsInterfaceNil() bool {
+func (stub *CoreComponentsHolderMock) IsInterfaceNil() bool {
 	return stub == nil
 }

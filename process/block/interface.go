@@ -5,6 +5,7 @@ import (
 	sovereignCore "github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 type blockProcessor interface {
@@ -48,5 +49,17 @@ type OutGoingOperationsPool interface {
 	Delete(hash []byte)
 	GetUnconfirmedOperations() []*sovereignCore.BridgeOutGoingData
 	ConfirmOperation(hashOfHashes []byte, hash []byte) error
+	IsInterfaceNil() bool
+}
+
+// BlockProcessorCreator defines the block processor factory handler
+type BlockProcessorCreator interface {
+	CreateBlockProcessor(argumentsBaseProcessor ArgBaseProcessor) (process.DebuggerBlockProcessor, error)
+	IsInterfaceNil() bool
+}
+
+// HeaderValidatorCreator is an interface for creating header validators
+type HeaderValidatorCreator interface {
+	CreateHeaderValidator(args ArgsHeaderValidator) (process.HeaderConstructionValidator, error)
 	IsInterfaceNil() bool
 }
