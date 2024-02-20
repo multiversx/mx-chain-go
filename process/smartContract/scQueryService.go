@@ -254,15 +254,13 @@ func (service *SCQueryService) recreateTrie(blockRootHash []byte, blockHeader da
 		return process.ErrNilBlockHeader
 	}
 
-	logQueryService.Trace("preparing execution for block and root hash", "block", blockHeader.GetNonce(), "rootHash", blockRootHash)
-
 	accountsAdapter := service.blockChainHook.GetAccountsAdapter()
 	if blockHeader.GetEpoch()+epochDifferenceToConsiderHistory >= service.getCurrentEpoch() {
-		// recent history
+		logQueryService.Trace("calling RecreateTrie, for recent history", "block", blockHeader.GetNonce(), "rootHash", blockRootHash)
 		return accountsAdapter.RecreateTrie(blockRootHash)
 	}
 
-	// old history, this will take a little longer
+	logQueryService.Trace("calling RecreateTrieFromEpoch, for older history", "block", blockHeader.GetNonce(), "rootHash", blockRootHash)
 	holder := holders.NewRootHashHolder(blockRootHash, core.OptionalUint32{Value: blockHeader.GetEpoch(), HasValue: true})
 	return accountsAdapter.RecreateTrieFromEpoch(holder)
 }
