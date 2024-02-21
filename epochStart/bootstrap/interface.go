@@ -2,7 +2,6 @@ package bootstrap
 
 import (
 	"context"
-
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
@@ -58,5 +57,18 @@ type RequestHandler interface {
 type NodeTypeProviderHandler interface {
 	SetType(nodeType core.NodeType)
 	GetType() core.NodeType
+	IsInterfaceNil() bool
+}
+
+// EpochStartBootstrapperCreator defines the epoch start bootstrapper factory handler
+type EpochStartBootstrapperCreator interface {
+	CreateEpochStartBootstrapper(epochStartBootstrapArgs ArgsEpochStartBootstrap) (EpochStartBootstrapper, error)
+	IsInterfaceNil() bool
+}
+
+// EpochStartBootstrapper defines the epoch start bootstrap functionality
+type EpochStartBootstrapper interface {
+	Bootstrap() (Parameters, error)
+	Close() error
 	IsInterfaceNil() bool
 }

@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/provider"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -21,31 +22,31 @@ import (
 
 // DataComponentsFactoryArgs holds the arguments needed for creating a data components factory
 type DataComponentsFactoryArgs struct {
-	Config                        config.Config
-	PrefsConfig                   config.PreferencesConfig
-	ShardCoordinator              sharding.Coordinator
-	Core                          factory.CoreComponentsHolder
-	StatusCore                    factory.StatusCoreComponentsHolder
-	Crypto                        factory.CryptoComponentsHolder
-	FlagsConfigs                  config.ContextFlagsConfig
-	CurrentEpoch                  uint32
-	CreateTrieEpochRootHashStorer bool
-	NodeProcessingMode            common.NodeProcessingMode
-	ChainRunType                  common.ChainRunType
+	Config                          config.Config
+	PrefsConfig                     config.PreferencesConfig
+	ShardCoordinator                sharding.Coordinator
+	Core                            factory.CoreComponentsHolder
+	StatusCore                      factory.StatusCoreComponentsHolder
+	Crypto                          factory.CryptoComponentsHolder
+	FlagsConfigs                    config.ContextFlagsConfig
+	CurrentEpoch                    uint32
+	CreateTrieEpochRootHashStorer   bool
+	NodeProcessingMode              common.NodeProcessingMode
+	AdditionalStorageServiceCreator process.AdditionalStorageServiceCreator
 }
 
 type dataComponentsFactory struct {
-	config                        config.Config
-	prefsConfig                   config.PreferencesConfig
-	shardCoordinator              sharding.Coordinator
-	core                          factory.CoreComponentsHolder
-	statusCore                    factory.StatusCoreComponentsHolder
-	crypto                        factory.CryptoComponentsHolder
-	flagsConfig                   config.ContextFlagsConfig
-	currentEpoch                  uint32
-	createTrieEpochRootHashStorer bool
-	nodeProcessingMode            common.NodeProcessingMode
-	chainRunType                  common.ChainRunType
+	config                          config.Config
+	prefsConfig                     config.PreferencesConfig
+	shardCoordinator                sharding.Coordinator
+	core                            factory.CoreComponentsHolder
+	statusCore                      factory.StatusCoreComponentsHolder
+	crypto                          factory.CryptoComponentsHolder
+	flagsConfig                     config.ContextFlagsConfig
+	currentEpoch                    uint32
+	createTrieEpochRootHashStorer   bool
+	nodeProcessingMode              common.NodeProcessingMode
+	additionalStorageServiceCreator process.AdditionalStorageServiceCreator
 }
 
 // dataComponents struct holds the data components
@@ -72,19 +73,22 @@ func NewDataComponentsFactory(args DataComponentsFactoryArgs) (*dataComponentsFa
 	if check.IfNil(args.Crypto) {
 		return nil, errors.ErrNilCryptoComponents
 	}
+	if check.IfNil(args.AdditionalStorageServiceCreator) {
+		return nil, errors.ErrNilAdditionalStorageServiceCreator
+	}
 
 	return &dataComponentsFactory{
-		config:                        args.Config,
-		prefsConfig:                   args.PrefsConfig,
-		shardCoordinator:              args.ShardCoordinator,
-		core:                          args.Core,
-		statusCore:                    args.StatusCore,
-		currentEpoch:                  args.CurrentEpoch,
-		createTrieEpochRootHashStorer: args.CreateTrieEpochRootHashStorer,
-		flagsConfig:                   args.FlagsConfigs,
-		nodeProcessingMode:            args.NodeProcessingMode,
-		crypto:                        args.Crypto,
-		chainRunType:                  args.ChainRunType,
+		config:                          args.Config,
+		prefsConfig:                     args.PrefsConfig,
+		shardCoordinator:                args.ShardCoordinator,
+		core:                            args.Core,
+		statusCore:                      args.StatusCore,
+		currentEpoch:                    args.CurrentEpoch,
+		createTrieEpochRootHashStorer:   args.CreateTrieEpochRootHashStorer,
+		flagsConfig:                     args.FlagsConfigs,
+		nodeProcessingMode:              args.NodeProcessingMode,
+		crypto:                          args.Crypto,
+		additionalStorageServiceCreator: args.AdditionalStorageServiceCreator,
 	}, nil
 }
 
@@ -164,20 +168,20 @@ func (dcf *dataComponentsFactory) createBlockChainFromConfig() (data.ChainHandle
 func (dcf *dataComponentsFactory) createDataStoreFromConfig() (dataRetriever.StorageService, error) {
 	storageServiceFactory, err := storageFactory.NewStorageServiceFactory(
 		storageFactory.StorageServiceFactoryArgs{
-			Config:                        dcf.config,
-			PrefsConfig:                   dcf.prefsConfig,
-			ShardCoordinator:              dcf.shardCoordinator,
-			PathManager:                   dcf.core.PathHandler(),
-			EpochStartNotifier:            dcf.core.EpochStartNotifierWithConfirm(),
-			NodeTypeProvider:              dcf.core.NodeTypeProvider(),
-			CurrentEpoch:                  dcf.currentEpoch,
-			StorageType:                   storageFactory.ProcessStorageService,
-			CreateTrieEpochRootHashStorer: dcf.createTrieEpochRootHashStorer,
-			NodeProcessingMode:            dcf.nodeProcessingMode,
-			RepopulateTokensSupplies:      dcf.flagsConfig.RepopulateTokensSupplies,
-			ManagedPeersHolder:            dcf.crypto.ManagedPeersHolder(),
-			StateStatsHandler:             dcf.statusCore.StateStatsHandler(),
-			ChainRunType:                  dcf.chainRunType,
+			Config:                          dcf.config,
+			PrefsConfig:                     dcf.prefsConfig,
+			ShardCoordinator:                dcf.shardCoordinator,
+			PathManager:                     dcf.core.PathHandler(),
+			EpochStartNotifier:              dcf.core.EpochStartNotifierWithConfirm(),
+			NodeTypeProvider:                dcf.core.NodeTypeProvider(),
+			CurrentEpoch:                    dcf.currentEpoch,
+			StorageType:                     storageFactory.ProcessStorageService,
+			CreateTrieEpochRootHashStorer:   dcf.createTrieEpochRootHashStorer,
+			NodeProcessingMode:              dcf.nodeProcessingMode,
+			RepopulateTokensSupplies:        dcf.flagsConfig.RepopulateTokensSupplies,
+			ManagedPeersHolder:              dcf.crypto.ManagedPeersHolder(),
+			StateStatsHandler:               dcf.statusCore.StateStatsHandler(),
+			AdditionalStorageServiceCreator: dcf.additionalStorageServiceCreator,
 		})
 	if err != nil {
 		return nil, err

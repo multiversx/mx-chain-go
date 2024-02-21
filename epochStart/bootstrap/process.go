@@ -152,9 +152,9 @@ type epochStartBootstrap struct {
 	shuffledOut         bool
 	getDataToSyncMethod func(epochStartData data.EpochStartShardDataHandler, shardNotarizedHeader data.ShardHeaderHandler) (*dataToSync, error)
 
-	chainRunType                     common.ChainRunType
 	nodesCoordinatorWithRaterFactory nodesCoordinator.NodesCoordinatorWithRaterFactory
 	shardCoordinatorFactory          sharding.ShardCoordinatorFactory
+	additionalStorageServiceCreator  process.AdditionalStorageServiceCreator
 }
 
 type baseDataInStorage struct {
@@ -192,9 +192,9 @@ type ArgsEpochStartBootstrap struct {
 	TrieSyncStatisticsProvider       common.SizeSyncStatisticsHandler
 	NodeProcessingMode               common.NodeProcessingMode
 	StateStatsHandler                common.StateStatisticsHandler
-	ChainRunType                     common.ChainRunType
 	NodesCoordinatorWithRaterFactory nodesCoordinator.NodesCoordinatorWithRaterFactory
 	ShardCoordinatorFactory          sharding.ShardCoordinatorFactory
+	AdditionalStorageServiceCreator  process.AdditionalStorageServiceCreator
 }
 
 type dataToSync struct {
@@ -245,9 +245,9 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		nodeProcessingMode:               args.NodeProcessingMode,
 		nodeOperationMode:                common.NormalOperation,
 		stateStatsHandler:                args.StateStatsHandler,
-		chainRunType:                     args.ChainRunType,
 		nodesCoordinatorWithRaterFactory: args.NodesCoordinatorWithRaterFactory,
 		shardCoordinatorFactory:          args.ShardCoordinatorFactory,
+		additionalStorageServiceCreator:  args.AdditionalStorageServiceCreator,
 	}
 
 	if epochStartProvider.prefsConfig.FullArchive {
@@ -798,20 +798,23 @@ func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) ([]*block.MiniBl
 func (e *epochStartBootstrap) requestAndProcessForMeta(peerMiniBlocks []*block.MiniBlock) error {
 	var err error
 
-	storageHandlerComponent, err := NewMetaStorageHandler(
-		e.generalConfig,
-		e.prefsConfig,
-		e.shardCoordinator,
-		e.coreComponentsHolder.PathHandler(),
-		e.coreComponentsHolder.InternalMarshalizer(),
-		e.coreComponentsHolder.Hasher(),
-		e.epochStartMeta.GetEpoch(),
-		e.coreComponentsHolder.Uint64ByteSliceConverter(),
-		e.coreComponentsHolder.NodeTypeProvider(),
-		e.nodeProcessingMode,
-		e.cryptoComponentsHolder.ManagedPeersHolder(),
-		e.stateStatsHandler,
-	)
+	args := StorageHandlerArgs{
+		GeneralConfig:                   e.generalConfig,
+		PrefsConfig:                     e.prefsConfig,
+		ShardCoordinator:                e.shardCoordinator,
+		PathManagerHandler:              e.coreComponentsHolder.PathHandler(),
+		Marshalizer:                     e.coreComponentsHolder.InternalMarshalizer(),
+		Hasher:                          e.coreComponentsHolder.Hasher(),
+		CurrentEpoch:                    e.epochStartMeta.GetEpoch(),
+		Uint64Converter:                 e.coreComponentsHolder.Uint64ByteSliceConverter(),
+		NodeTypeProvider:                e.coreComponentsHolder.NodeTypeProvider(),
+		NodeProcessingMode:              e.nodeProcessingMode,
+		ManagedPeersHolder:              e.cryptoComponentsHolder.ManagedPeersHolder(),
+		AdditionalStorageServiceCreator: e.additionalStorageServiceCreator,
+		StateStatsHandler:               e.stateStatsHandler,
+	}
+
+	storageHandlerComponent, err := NewMetaStorageHandler(args)
 	if err != nil {
 		return err
 	}
@@ -968,21 +971,23 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 		e.syncedHeaders[hash] = hdr
 	}
 
-	storageHandlerComponent, err := NewShardStorageHandler(
-		e.generalConfig,
-		e.prefsConfig,
-		e.shardCoordinator,
-		e.coreComponentsHolder.PathHandler(),
-		e.coreComponentsHolder.InternalMarshalizer(),
-		e.coreComponentsHolder.Hasher(),
-		e.baseData.lastEpoch,
-		e.coreComponentsHolder.Uint64ByteSliceConverter(),
-		e.coreComponentsHolder.NodeTypeProvider(),
-		e.nodeProcessingMode,
-		e.cryptoComponentsHolder.ManagedPeersHolder(),
-		e.stateStatsHandler,
-		e.chainRunType,
-	)
+	args := StorageHandlerArgs{
+		GeneralConfig:                   e.generalConfig,
+		PrefsConfig:                     e.prefsConfig,
+		ShardCoordinator:                e.shardCoordinator,
+		PathManagerHandler:              e.coreComponentsHolder.PathHandler(),
+		Marshalizer:                     e.coreComponentsHolder.InternalMarshalizer(),
+		Hasher:                          e.coreComponentsHolder.Hasher(),
+		CurrentEpoch:                    e.baseData.lastEpoch,
+		Uint64Converter:                 e.coreComponentsHolder.Uint64ByteSliceConverter(),
+		NodeTypeProvider:                e.coreComponentsHolder.NodeTypeProvider(),
+		NodeProcessingMode:              e.nodeProcessingMode,
+		ManagedPeersHolder:              e.cryptoComponentsHolder.ManagedPeersHolder(),
+		AdditionalStorageServiceCreator: e.additionalStorageServiceCreator,
+		StateStatsHandler:               e.stateStatsHandler,
+	}
+
+	storageHandlerComponent, err := NewShardStorageHandler(args)
 	if err != nil {
 		return err
 	}
@@ -1158,20 +1163,20 @@ func (e *epochStartBootstrap) createStorageServiceForImportDB(
 
 	storageServiceCreator, err := storageFactory.NewStorageServiceFactory(
 		storageFactory.StorageServiceFactoryArgs{
-			Config:                        e.generalConfig,
-			PrefsConfig:                   e.prefsConfig,
-			ShardCoordinator:              shardCoordinator,
-			PathManager:                   pathManager,
-			EpochStartNotifier:            epochStartNotifier,
-			NodeTypeProvider:              e.coreComponentsHolder.NodeTypeProvider(),
-			CurrentEpoch:                  startEpoch,
-			StorageType:                   storageFactory.ImportDBStorageService,
-			CreateTrieEpochRootHashStorer: createTrieEpochRootHashStorer,
-			NodeProcessingMode:            e.nodeProcessingMode,
-			RepopulateTokensSupplies:      e.flagsConfig.RepopulateTokensSupplies,
-			ManagedPeersHolder:            e.cryptoComponentsHolder.ManagedPeersHolder(),
-			StateStatsHandler:             e.stateStatsHandler,
-			ChainRunType:                  e.chainRunType,
+			Config:                          e.generalConfig,
+			PrefsConfig:                     e.prefsConfig,
+			ShardCoordinator:                shardCoordinator,
+			PathManager:                     pathManager,
+			EpochStartNotifier:              epochStartNotifier,
+			NodeTypeProvider:                e.coreComponentsHolder.NodeTypeProvider(),
+			CurrentEpoch:                    startEpoch,
+			StorageType:                     storageFactory.ImportDBStorageService,
+			CreateTrieEpochRootHashStorer:   createTrieEpochRootHashStorer,
+			NodeProcessingMode:              e.nodeProcessingMode,
+			RepopulateTokensSupplies:        e.flagsConfig.RepopulateTokensSupplies,
+			ManagedPeersHolder:              e.cryptoComponentsHolder.ManagedPeersHolder(),
+			StateStatsHandler:               e.stateStatsHandler,
+			AdditionalStorageServiceCreator: e.additionalStorageServiceCreator,
 		})
 	if err != nil {
 		return nil, err

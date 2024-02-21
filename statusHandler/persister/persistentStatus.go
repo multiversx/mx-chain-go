@@ -16,8 +16,8 @@ import (
 
 var log = logger.GetOrCreate("statusHandler/persister")
 
-// PersistentStatusHandler is a status handler that will save metrics in storage
-type PersistentStatusHandler struct {
+// PersistentStatus is a status handler that will save metrics in storage
+type PersistentStatus struct {
 	mutStore                 sync.RWMutex
 	store                    storage.Storer
 	persistentMetrics        *sync.Map
@@ -25,11 +25,11 @@ type PersistentStatusHandler struct {
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 }
 
-// NewPersistentStatusHandler will return an instance of the persistent status handler
-func NewPersistentStatusHandler(
+// NewPersistentStatus will return an instance of the persistent status handler
+func NewPersistentStatus(
 	marshalizer marshal.Marshalizer,
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter,
-) (*PersistentStatusHandler, error) {
+) (*PersistentStatus, error) {
 	if check.IfNil(marshalizer) {
 		return nil, statusHandler.ErrNilMarshalizer
 	}
@@ -37,7 +37,7 @@ func NewPersistentStatusHandler(
 		return nil, statusHandler.ErrNilUint64Converter
 	}
 
-	psh := new(PersistentStatusHandler)
+	psh := new(PersistentStatus)
 	psh.store = storageunit.NewNilStorer()
 	psh.uint64ByteSliceConverter = uint64ByteSliceConverter
 	psh.marshalizer = marshalizer
@@ -47,7 +47,7 @@ func NewPersistentStatusHandler(
 	return psh, nil
 }
 
-func (psh *PersistentStatusHandler) initMap() {
+func (psh *PersistentStatus) initMap() {
 	initUint := uint64(0)
 	zeroString := "0"
 
@@ -70,7 +70,7 @@ func (psh *PersistentStatusHandler) initMap() {
 }
 
 // SetStorage will set storage for persistent status handler
-func (psh *PersistentStatusHandler) SetStorage(store storage.Storer) error {
+func (psh *PersistentStatus) SetStorage(store storage.Storer) error {
 	if check.IfNil(store) {
 		return statusHandler.ErrNilStorage
 	}
@@ -82,7 +82,7 @@ func (psh *PersistentStatusHandler) SetStorage(store storage.Storer) error {
 	return nil
 }
 
-func (psh *PersistentStatusHandler) saveMetricsInDb(nonce uint64) {
+func (psh *PersistentStatus) saveMetricsInDb(nonce uint64) {
 	metricsMap := make(map[string]interface{})
 	psh.persistentMetrics.Range(func(key, value interface{}) bool {
 		keyString, ok := key.(string)
@@ -113,7 +113,7 @@ func (psh *PersistentStatusHandler) saveMetricsInDb(nonce uint64) {
 }
 
 // SetInt64Value method - will update the value for a key
-func (psh *PersistentStatusHandler) SetInt64Value(key string, value int64) {
+func (psh *PersistentStatus) SetInt64Value(key string, value int64) {
 	if _, ok := psh.persistentMetrics.Load(key); !ok {
 		return
 	}
@@ -122,7 +122,7 @@ func (psh *PersistentStatusHandler) SetInt64Value(key string, value int64) {
 }
 
 // SetUInt64Value method - will update the value for a key
-func (psh *PersistentStatusHandler) SetUInt64Value(key string, value uint64) {
+func (psh *PersistentStatus) SetUInt64Value(key string, value uint64) {
 	valueFromMapI, ok := psh.persistentMetrics.Load(key)
 	if !ok {
 		return
@@ -149,7 +149,7 @@ func (psh *PersistentStatusHandler) SetUInt64Value(key string, value uint64) {
 }
 
 // SetStringValue method - will update the value of a key
-func (psh *PersistentStatusHandler) SetStringValue(key string, value string) {
+func (psh *PersistentStatus) SetStringValue(key string, value string) {
 	if _, ok := psh.persistentMetrics.Load(key); !ok {
 		return
 	}
@@ -158,12 +158,12 @@ func (psh *PersistentStatusHandler) SetStringValue(key string, value string) {
 }
 
 // Increment - will increment the value of a key
-func (psh *PersistentStatusHandler) Increment(key string) {
+func (psh *PersistentStatus) Increment(key string) {
 	psh.AddUint64(key, 1)
 }
 
 // AddUint64 - will increase the value of a key with a value
-func (psh *PersistentStatusHandler) AddUint64(key string, value uint64) {
+func (psh *PersistentStatus) AddUint64(key string, value uint64) {
 	keyValueI, ok := psh.persistentMetrics.Load(key)
 	if !ok {
 		return
@@ -179,7 +179,7 @@ func (psh *PersistentStatusHandler) AddUint64(key string, value uint64) {
 }
 
 // Decrement - will decrement the value of a key
-func (psh *PersistentStatusHandler) Decrement(key string) {
+func (psh *PersistentStatus) Decrement(key string) {
 	keyValueI, ok := psh.persistentMetrics.Load(key)
 	if !ok {
 		return
@@ -198,10 +198,10 @@ func (psh *PersistentStatusHandler) Decrement(key string) {
 }
 
 // Close method - won't do anything
-func (psh *PersistentStatusHandler) Close() {
+func (psh *PersistentStatus) Close() {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (psh *PersistentStatusHandler) IsInterfaceNil() bool {
+func (psh *PersistentStatus) IsInterfaceNil() bool {
 	return psh == nil
 }

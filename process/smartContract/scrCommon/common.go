@@ -38,6 +38,7 @@ type ArgsNewSmartContractProcessor struct {
 	VMOutputCacher      storage.Cacher
 	WasmVMChangeLocker  common.Locker
 	IsGenesisProcessing bool
+	EpochNotifier       vmcommon.EpochNotifier
 }
 
 // ScrProcessingData is a struct placeholder for scr data to be processed after validation checks
@@ -46,6 +47,26 @@ type ScrProcessingData struct {
 	Snapshot    int
 	Sender      state.UserAccountHandler
 	Destination state.UserAccountHandler
+}
+
+// GetHash returns the hash
+func (spd *ScrProcessingData) GetHash() []byte {
+	return spd.Hash
+}
+
+// GetSnapshot returns the snapshot
+func (spd *ScrProcessingData) GetSnapshot() int {
+	return spd.Snapshot
+}
+
+// GetSender returns the sender
+func (spd *ScrProcessingData) GetSender() state.UserAccountHandler {
+	return spd.Sender
+}
+
+// GetDestination returns the destination
+func (spd *ScrProcessingData) GetDestination() state.UserAccountHandler {
+	return spd.Destination
 }
 
 // FindVMByScAddress is exported for use in all version of scr processors

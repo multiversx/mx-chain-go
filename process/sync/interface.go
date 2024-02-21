@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
 )
 
@@ -28,4 +29,10 @@ type syncStarter interface {
 // forkDetector is the interface needed by base fork detector to deal with shards and meta nodes
 type forkDetector interface {
 	computeFinalCheckpoint()
+}
+
+// ForkDetectorCreator is the interface needed by base fork detector to create fork detector
+type ForkDetectorCreator interface {
+	CreateForkDetector(args ForkDetectorFactoryArgs) (process.ForkDetector, error)
+	IsInterfaceNil() bool
 }

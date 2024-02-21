@@ -54,6 +54,7 @@ import (
 	heartbeatComp "github.com/multiversx/mx-chain-go/factory/heartbeat"
 	networkComp "github.com/multiversx/mx-chain-go/factory/network"
 	processComp "github.com/multiversx/mx-chain-go/factory/processing"
+	"github.com/multiversx/mx-chain-go/factory/runType"
 	stateComp "github.com/multiversx/mx-chain-go/factory/state"
 	statusComp "github.com/multiversx/mx-chain-go/factory/status"
 	"github.com/multiversx/mx-chain-go/factory/statusCore"
@@ -299,6 +300,12 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 	log.Debug("creating healthService")
 	healthService := snr.createHealthService(flagsConfig)
 
+	log.Debug("creating runType components")
+	managedRunTypeComponents, err := snr.CreateManagedRunTypeComponents()
+	if err != nil {
+		return true, err
+	}
+
 	log.Debug("creating core components")
 	managedCoreComponents, err := snr.CreateManagedCoreComponents(
 		chanStopNodeProcess,
@@ -332,7 +339,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 	}
 
 	log.Debug("creating bootstrap components")
-	managedBootstrapComponents, err := snr.CreateManagedBootstrapComponents(managedStatusCoreComponents, managedCoreComponents, managedCryptoComponents, managedNetworkComponents)
+	managedBootstrapComponents, err := snr.CreateManagedBootstrapComponents(managedStatusCoreComponents, managedCoreComponents, managedCryptoComponents, managedNetworkComponents, managedRunTypeComponents)
 	if err != nil {
 		return true, err
 	}
@@ -340,7 +347,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 	snr.logInformation(managedCoreComponents, managedCryptoComponents, managedBootstrapComponents)
 
 	log.Debug("creating data components")
-	managedDataComponents, err := snr.CreateManagedDataComponents(managedStatusCoreComponents, managedCoreComponents, managedBootstrapComponents, managedCryptoComponents)
+	managedDataComponents, err := snr.CreateManagedDataComponents(managedStatusCoreComponents, managedCoreComponents, managedBootstrapComponents, managedCryptoComponents, managedRunTypeComponents)
 	if err != nil {
 		return true, err
 	}
@@ -443,6 +450,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 	)
 
 	managedProcessComponents, err := snr.CreateManagedProcessComponents(
+		managedRunTypeComponents,
 		managedCoreComponents,
 		managedCryptoComponents,
 		managedNetworkComponents,
@@ -513,6 +521,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		managedStatusCoreComponents,
 		outGoingOperationsPool,
 		outGoingBridgeOpHandler,
+		managedRunTypeComponents,
 	)
 	if err != nil {
 		return true, err
@@ -552,6 +561,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 	}
 	nodeHandler, err := node.CreateNode(
 		configs.GeneralConfig,
+		managedRunTypeComponents,
 		managedStatusCoreComponents,
 		managedBootstrapComponents,
 		managedCoreComponents,
@@ -722,9 +732,9 @@ func (snr *sovereignNodeRunner) createApiFacade(
 		StatusCoreComponents:           nodeHandler.GetStatusCoreComponents(),
 		GasScheduleNotifier:            gasScheduleNotifier,
 		Bootstrapper:                   nodeHandler.GetConsensusComponents().Bootstrapper(),
+		RunTypeComponents:              nodeHandler.GetRunTypeComponents(),
 		AllowVMQueriesChan:             allowVMQueriesChan,
 		StatusComponents:               nodeHandler.GetStatusComponents(),
-		ChainRunType:                   common.ChainRunTypeSovereign,
 		DelegatedListFactoryHandler:    trieIteratorsFactory.NewSovereignDelegatedListProcessorFactory(),
 		DirectStakedListFactoryHandler: trieIteratorsFactory.NewSovereignDirectStakedListProcessorFactory(),
 		TotalStakedValueFactoryHandler: trieIteratorsFactory.NewSovereignTotalStakedValueProcessorFactory(),
@@ -877,6 +887,7 @@ func (snr *sovereignNodeRunner) CreateManagedConsensusComponents(
 	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
 	outGoingOperationsPool block.OutGoingOperationsPool,
 	outGoingBridgeOpHandler bls.BridgeOperationsHandler,
+	runTypeComponents mainFactory.RunTypeComponentsHolder,
 ) (mainFactory.ConsensusComponentsHandler, error) {
 	scheduledProcessorArgs := spos.ScheduledProcessorWrapperArgs{
 		SyncTimer:                coreComponents.SyncTimer(),
@@ -913,8 +924,7 @@ func (snr *sovereignNodeRunner) CreateManagedConsensusComponents(
 		ScheduledProcessor:    scheduledProcessor,
 		IsInImportMode:        snr.configs.ImportDbConfig.IsImportDBMode,
 		ShouldDisableWatchdog: snr.configs.FlagsConfig.DisableConsensusWatchdog,
-		ConsensusModel:        consensus.ConsensusModelV2,
-		ChainRunType:          common.ChainRunTypeSovereign,
+		RunTypeComponents:     runTypeComponents,
 		ExtraSignersHolder:    extraSignersHolder,
 		SubRoundEndV2Creator:  sovSubRoundEndCreator,
 	}
@@ -1202,6 +1212,7 @@ func (snr *sovereignNodeRunner) logSessionInformation(
 
 // CreateManagedProcessComponents is the managed process components factory
 func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
+	runTypeComponents mainFactory.RunTypeComponentsHolder,
 	coreComponents mainFactory.CoreComponentsHolder,
 	cryptoComponents mainFactory.CryptoComponentsHolder,
 	networkComponents mainFactory.NetworkComponentsHolder,
@@ -1332,7 +1343,7 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 		HistoryRepo:                           historyRepository,
 		FlagsConfig:                           *configs.FlagsConfig,
 		TxExecutionOrderHandler:               ordering.NewOrderedCollection(),
-		ChainRunType:                          common.ChainRunTypeSovereign,
+		RunTypeComponents:                     runTypeComponents,
 		ShardCoordinatorFactory:               sharding.NewSovereignShardCoordinatorFactory(),
 		GenesisBlockCreatorFactory:            genesisProcess.NewSovereignGenesisBlockCreatorFactory(),
 		GenesisMetaBlockChecker:               processComp.NewSovereignGenesisMetaBlockChecker(),
@@ -1368,6 +1379,7 @@ func (snr *sovereignNodeRunner) CreateManagedDataComponents(
 	coreComponents mainFactory.CoreComponentsHolder,
 	bootstrapComponents mainFactory.BootstrapComponentsHolder,
 	crypto mainFactory.CryptoComponentsHolder,
+	runTypeComponents mainFactory.RunTypeComponentsHolder,
 ) (mainFactory.DataComponentsHandler, error) {
 	configs := snr.configs
 	storerEpoch := bootstrapComponents.EpochBootstrapParams().Epoch()
@@ -1378,17 +1390,17 @@ func (snr *sovereignNodeRunner) CreateManagedDataComponents(
 	}
 
 	dataArgs := dataComp.DataComponentsFactoryArgs{
-		Config:                        *configs.GeneralConfig,
-		PrefsConfig:                   configs.PreferencesConfig.Preferences,
-		ShardCoordinator:              bootstrapComponents.ShardCoordinator(),
-		Core:                          coreComponents,
-		StatusCore:                    statusCoreComponents,
-		Crypto:                        crypto,
-		CurrentEpoch:                  storerEpoch,
-		CreateTrieEpochRootHashStorer: configs.ImportDbConfig.ImportDbSaveTrieEpochRootHash,
-		FlagsConfigs:                  *configs.FlagsConfig,
-		NodeProcessingMode:            common.GetNodeProcessingMode(snr.configs.ImportDbConfig),
-		ChainRunType:                  common.ChainRunTypeSovereign,
+		Config:                          *configs.GeneralConfig,
+		PrefsConfig:                     configs.PreferencesConfig.Preferences,
+		ShardCoordinator:                bootstrapComponents.ShardCoordinator(),
+		Core:                            coreComponents,
+		StatusCore:                      statusCoreComponents,
+		Crypto:                          crypto,
+		CurrentEpoch:                    storerEpoch,
+		CreateTrieEpochRootHashStorer:   configs.ImportDbConfig.ImportDbSaveTrieEpochRootHash,
+		FlagsConfigs:                    *configs.FlagsConfig,
+		NodeProcessingMode:              common.GetNodeProcessingMode(snr.configs.ImportDbConfig),
+		AdditionalStorageServiceCreator: runTypeComponents.AdditionalStorageServiceCreator(),
 	}
 
 	dataComponentsFactory, err := dataComp.NewDataComponentsFactory(dataArgs)
@@ -1457,6 +1469,7 @@ func (snr *sovereignNodeRunner) CreateManagedBootstrapComponents(
 	coreComponents mainFactory.CoreComponentsHolder,
 	cryptoComponents mainFactory.CryptoComponentsHolder,
 	networkComponents mainFactory.NetworkComponentsHolder,
+	runTypeComponents mainFactory.RunTypeComponentsHolder,
 ) (mainFactory.BootstrapComponentsHandler, error) {
 
 	bootstrapComponentsFactoryArgs := bootstrapComp.BootstrapComponentsFactoryArgs{
@@ -1469,7 +1482,7 @@ func (snr *sovereignNodeRunner) CreateManagedBootstrapComponents(
 		CryptoComponents:                 cryptoComponents,
 		NetworkComponents:                networkComponents,
 		StatusCoreComponents:             statusCoreComponents,
-		ChainRunType:                     common.ChainRunTypeSovereign,
+		RunTypeComponents:                runTypeComponents,
 		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewSovereignIndexHashedNodesCoordinatorWithRaterFactory(),
 		ShardCoordinatorFactory:          sharding.NewSovereignShardCoordinatorFactory(),
 	}
@@ -1640,6 +1653,33 @@ func (snr *sovereignNodeRunner) CreateManagedCryptoComponents(
 	}
 
 	return managedCryptoComponents, nil
+}
+
+// CreateManagedRunTypeComponents creates the managed runType components
+func (snr *sovereignNodeRunner) CreateManagedRunTypeComponents() (mainFactory.RunTypeComponentsHandler, error) {
+	runTypeComponentsFactory, err := runType.NewRunTypeComponentsFactory()
+	if err != nil {
+		return nil, fmt.Errorf("NewRunTypeComponentsFactory failed: %w", err)
+	}
+
+	sovereignRunTypeComponentsFactory, err := runType.NewSovereignRunTypeComponentsFactory(
+		runTypeComponentsFactory,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("NewSovereignRunTypeComponentsFactory failed: %w", err)
+	}
+
+	managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(sovereignRunTypeComponentsFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	err = managedRunTypeComponents.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	return managedRunTypeComponents, nil
 }
 
 func closeAllComponents(

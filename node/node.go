@@ -95,6 +95,7 @@ type Node struct {
 	processComponents     mainFactory.ProcessComponentsHolder
 	stateComponents       mainFactory.StateComponentsHolder
 	statusComponents      mainFactory.StatusComponentsHolder
+	runTypeComponents     mainFactory.RunTypeComponentsHolder
 
 	closableComponents        []mainFactory.Closer
 	mutClosableComponents     syncGo.RWMutex
@@ -1251,6 +1252,11 @@ func (n *Node) GetStateComponents() mainFactory.StateComponentsHolder {
 // GetStatusComponents returns the status components
 func (n *Node) GetStatusComponents() mainFactory.StatusComponentsHolder {
 	return n.statusComponents
+}
+
+// GetRunTypeComponents returns the run type components
+func (n *Node) GetRunTypeComponents() mainFactory.RunTypeComponentsHolder {
+	return n.runTypeComponents
 }
 
 func (n *Node) createPidInfo(p core.PeerID) (core.QueryP2PPeerInfo, error) {
