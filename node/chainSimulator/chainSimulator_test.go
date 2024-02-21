@@ -66,13 +66,14 @@ func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
 		MetaChainMinNodes: 1,
 		InitialRound:      200000000,
 		InitialEpoch:      100,
+		InitialNonce:      100,
 	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
 
 	time.Sleep(time.Second)
 
-	err = chainSimulator.GenerateBlocks(30)
+	err = chainSimulator.GenerateBlocks(50)
 	require.Nil(t, err)
 
 	err = chainSimulator.Close()

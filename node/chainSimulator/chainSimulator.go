@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/sharding"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	processGenesis "github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
@@ -30,6 +31,7 @@ type ArgsChainSimulator struct {
 	GenesisTimestamp       int64
 	InitialRound           int64
 	InitialEpoch           uint32
+	InitialNonce           uint64
 	RoundDurationInMillis  uint64
 	RoundsPerEpoch         core.OptionalUint64
 	ApiInterface           components.APIConfigurator
@@ -58,6 +60,9 @@ func NewChainSimulator(args ArgsChainSimulator) (*simulator, error) {
 		chanStopNodeProcess:    make(chan endProcess.ArgEndProcess),
 		mutex:                  sync.RWMutex{},
 	}
+
+	processGenesis.SetGenesisNonce(args.InitialNonce)
+	processGenesis.SetGenesisRound(uint64(args.InitialRound))
 
 	err := instance.createChainHandlers(args)
 	if err != nil {
