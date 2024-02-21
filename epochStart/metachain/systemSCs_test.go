@@ -982,6 +982,7 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 func TestSystemSCProcessor_ProcessSystemSmartContractInitDelegationMgr(t *testing.T) {
 	t.Parallel()
 
+	expectedErr := errors.New("expected error")
 	t.Run("flag not active", func(t *testing.T) {
 		args := createMockArgsForSystemSCProcessor()
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
@@ -1016,7 +1017,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractInitDelegationMgr(t *testin
 
 		validatorsInfo := state.NewShardValidatorsInfoMap()
 		err := processor.ProcessSystemSmartContract(validatorsInfo, &block.Header{})
-		assert.Nil(t, err)
+		require.Nil(t, err)
 	})
 	t.Run("flag active", func(t *testing.T) {
 		args := createMockArgsForSystemSCProcessor()
@@ -1038,13 +1039,38 @@ func TestSystemSCProcessor_ProcessSystemSmartContractInitDelegationMgr(t *testin
 
 		validatorsInfo := state.NewShardValidatorsInfoMap()
 		err := processor.ProcessSystemSmartContract(validatorsInfo, &block.Header{})
-		assert.Nil(t, err)
-		assert.True(t, runSmartContractCreateCalled)
+		require.Nil(t, err)
+		require.True(t, runSmartContractCreateCalled)
+	})
+	t.Run("flag active but contract create call errors, should error", func(t *testing.T) {
+		args := createMockArgsForSystemSCProcessor()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.DelegationSmartContractFlagInSpecificEpochOnly
+			},
+		}
+		runSmartContractCreateCalled := false
+		args.SystemVM = &mock.VMExecutionHandlerStub{
+			RunSmartContractCreateCalled: func(input *vmcommon.ContractCreateInput) (*vmcommon.VMOutput, error) {
+				runSmartContractCreateCalled = true
+
+				return nil, expectedErr
+			},
+		}
+		processor, _ := NewSystemSCProcessor(args)
+		require.NotNil(t, processor)
+
+		validatorsInfo := state.NewShardValidatorsInfoMap()
+		err := processor.ProcessSystemSmartContract(validatorsInfo, &block.Header{})
+		require.ErrorIs(t, err, expectedErr)
+		require.True(t, runSmartContractCreateCalled)
 	})
 }
 
 func TestSystemSCProcessor_ProcessSystemSmartContractInitGovernance(t *testing.T) {
 	t.Parallel()
+
+	expectedErr := errors.New("expected error")
 	t.Run("flag not active", func(t *testing.T) {
 		args := createMockArgsForSystemSCProcessor()
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
@@ -1079,7 +1105,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractInitGovernance(t *testing.T
 
 		validatorsInfo := state.NewShardValidatorsInfoMap()
 		err := processor.ProcessSystemSmartContract(validatorsInfo, &block.Header{})
-		assert.Nil(t, err)
+		require.Nil(t, err)
 	})
 	t.Run("flag active", func(t *testing.T) {
 		args := createMockArgsForSystemSCProcessor()
@@ -1101,8 +1127,32 @@ func TestSystemSCProcessor_ProcessSystemSmartContractInitGovernance(t *testing.T
 
 		validatorsInfo := state.NewShardValidatorsInfoMap()
 		err := processor.ProcessSystemSmartContract(validatorsInfo, &block.Header{})
-		assert.Nil(t, err)
-		assert.True(t, runSmartContractCreateCalled)
+		require.Nil(t, err)
+		require.True(t, runSmartContractCreateCalled)
+	})
+	t.Run("flag active but contract call errors, should error", func(t *testing.T) {
+		args := createMockArgsForSystemSCProcessor()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.GovernanceFlagInSpecificEpochOnly
+			},
+		}
+		runSmartContractCreateCalled := false
+		args.SystemVM = &mock.VMExecutionHandlerStub{
+			RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+				runSmartContractCreateCalled = true
+
+				return nil, expectedErr
+			},
+		}
+		processor, _ := NewSystemSCProcessor(args)
+		require.NotNil(t, processor)
+
+		validatorsInfo := state.NewShardValidatorsInfoMap()
+		err := processor.ProcessSystemSmartContract(validatorsInfo, &block.Header{})
+		require.ErrorIs(t, err, expectedErr)
+		require.Contains(t, err.Error(), "governanceV2")
+		require.True(t, runSmartContractCreateCalled)
 	})
 }
 
