@@ -170,6 +170,7 @@ func TestBootstrapComponentsHolder_IsInterfaceNil(t *testing.T) {
 
 	comp, _ = CreateBootstrapComponents(createArgsBootstrapComponentsHolder())
 	require.False(t, comp.IsInterfaceNil())
+	require.Nil(t, comp.Close())
 }
 
 func TestBootstrapComponentsHolder_Getters(t *testing.T) {
@@ -188,4 +189,5 @@ func TestBootstrapComponentsHolder_Getters(t *testing.T) {
 	require.NotNil(t, comp.GuardedAccountHandler())
 	require.Nil(t, comp.CheckSubcomponents())
 	require.Empty(t, comp.String())
+	require.Nil(t, comp.Close())
 }

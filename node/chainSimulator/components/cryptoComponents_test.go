@@ -116,6 +116,7 @@ func TestCryptoComponentsHolder_IsInterfaceNil(t *testing.T) {
 
 	comp, _ = CreateCryptoComponents(createArgsCryptoComponentsHolder())
 	require.False(t, comp.IsInterfaceNil())
+	require.Nil(t, comp.Close())
 }
 
 func TestCryptoComponentsHolder_GettersSetters(t *testing.T) {
@@ -151,6 +152,7 @@ func TestCryptoComponentsHolder_GettersSetters(t *testing.T) {
 	require.NotNil(t, comp.KeysHandler())
 	require.Nil(t, comp.CheckSubcomponents())
 	require.Empty(t, comp.String())
+	require.Nil(t, comp.Close())
 }
 
 func TestCryptoComponentsHolder_Clone(t *testing.T) {
@@ -162,4 +164,5 @@ func TestCryptoComponentsHolder_Clone(t *testing.T) {
 	compClone := comp.Clone()
 	require.Equal(t, comp, compClone)
 	require.False(t, comp == compClone) // pointer testing
+	require.Nil(t, comp.Close())
 }

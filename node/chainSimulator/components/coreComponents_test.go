@@ -217,6 +217,7 @@ func TestCoreComponentsHolder_IsInterfaceNil(t *testing.T) {
 
 	comp, _ = CreateCoreComponents(createArgsCoreComponentsHolder())
 	require.False(t, comp.IsInterfaceNil())
+	require.Nil(t, comp.Close())
 }
 
 func TestCoreComponents_GettersSetters(t *testing.T) {
@@ -266,4 +267,5 @@ func TestCoreComponents_GettersSetters(t *testing.T) {
 	require.NotNil(t, comp.EnableEpochsHandler())
 	require.Nil(t, comp.CheckSubcomponents())
 	require.Empty(t, comp.String())
+	require.Nil(t, comp.Close())
 }
