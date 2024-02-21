@@ -888,6 +888,7 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		GenesisNodePrice:        genesisNodePrice,
 		GenesisString:           pcf.config.GeneralSettings.GenesisString,
 		TxExecutionOrderHandler: pcf.txExecutionOrderHandler,
+		GenesisEpoch:            pcf.config.EpochStartConfig.GenesisEpoch,
 	}
 
 	gbc, err := processGenesis.NewGenesisBlockCreator(arg)

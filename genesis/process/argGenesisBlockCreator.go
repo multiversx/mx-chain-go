@@ -45,6 +45,7 @@ type dataComponentsHandler interface {
 type ArgsGenesisBlockCreator struct {
 	GenesisTime             uint64
 	StartEpochNum           uint32
+	GenesisEpoch            uint32
 	Data                    dataComponentsHandler
 	Core                    coreComponentsHandler
 	Accounts                state.AccountsAdapter

@@ -29,6 +29,7 @@ type ArgsChainSimulator struct {
 	MetaChainMinNodes      uint32
 	GenesisTimestamp       int64
 	InitialRound           int64
+	InitialEpoch           uint32
 	RoundDurationInMillis  uint64
 	RoundsPerEpoch         core.OptionalUint64
 	ApiInterface           components.APIConfigurator
@@ -76,6 +77,7 @@ func (s *simulator) createChainHandlers(args ArgsChainSimulator) error {
 		MinNodesPerShard:      args.MinNodesPerShard,
 		MetaChainMinNodes:     args.MetaChainMinNodes,
 		RoundsPerEpoch:        args.RoundsPerEpoch,
+		InitialEpoch:          args.InitialEpoch,
 	})
 	if err != nil {
 		return err

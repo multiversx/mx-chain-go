@@ -57,11 +57,15 @@ func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
 		NumOfShards:            3,
 		GenesisTimestamp:       startTime,
 		RoundDurationInMillis:  roundDurationInMillis,
-		RoundsPerEpoch:         core.OptionalUint64{},
-		ApiInterface:           api.NewNoApiInterface(),
-		MinNodesPerShard:       1,
-		MetaChainMinNodes:      1,
-		InitialRound:           200000000,
+		RoundsPerEpoch: core.OptionalUint64{
+			HasValue: true,
+			Value:    20,
+		},
+		ApiInterface:      api.NewNoApiInterface(),
+		MinNodesPerShard:  1,
+		MetaChainMinNodes: 1,
+		InitialRound:      200000000,
+		InitialEpoch:      100,
 	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
