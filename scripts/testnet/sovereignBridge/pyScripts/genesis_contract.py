@@ -12,7 +12,7 @@ def copy_wasm_in_project(file_path: str, wasm_path: str):
         shutil.copy2(wasm_path, file_path)
         print(f"{wasm_path} copied successfully.")
     except FileNotFoundError:
-        print("File not found.")
+        print(f"File {wasm_path} not found.")
     except PermissionError:
         print("Permission denied.")
     except Exception as e:
@@ -39,7 +39,7 @@ def push_genesis_contract(file_path: str, genesis_contract):
         with open(file_path, 'a') as file:
             file.write('\n')
 
-        print(f"fee-market genesis contract pushed successfully")
+        print(f"genesis contract pushed successfully")
     except Exception as e:
         print(f"An error occurred: {e}")
 
