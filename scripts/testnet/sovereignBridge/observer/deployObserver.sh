@@ -31,7 +31,7 @@ prepareObserver() {
 deployObserver() {
     SHARD=$(getShardOfAddress)
 
-    docker run -d -p 8083:8080 -p 22111 $IMAGE_NAME --destination-shard-as-observer $SHARD
+    docker run -d -p 8083:8080 -p 22111:22111 $IMAGE_NAME --destination-shard-as-observer=$SHARD
 }
 
 stopObserver() {
