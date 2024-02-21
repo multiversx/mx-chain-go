@@ -4,13 +4,13 @@ import shutil
 import sys
 
 
-def copy_wasm_in_project(file_path: str, esdt_safe_path: str):
+def copy_wasm_in_project(file_path: str, wasm_path: str):
     try:
         if os.path.exists(file_path):
             os.remove(file_path)
 
-        shutil.copy2(esdt_safe_path, file_path)
-        print(f"esdt-safe wasm file copied successfully.")
+        shutil.copy2(wasm_path, file_path)
+        print(f"{wasm_path} copied successfully.")
     except FileNotFoundError:
         print("File not found.")
     except PermissionError:
@@ -19,19 +19,10 @@ def copy_wasm_in_project(file_path: str, esdt_safe_path: str):
         print(f"An error occurred: {e}")
 
 
-def push_genesis_contract(file_path: str, owner_address: str):
+def push_genesis_contract(file_path: str, genesis_contract):
     try:
         with open(file_path, 'r') as file:
             data = json.load(file)
-
-        genesis_contract = {
-            "owner": owner_address,
-            "filename": "./config/genesisContracts/esdt-safe.wasm",
-            "init-parameters": "",
-            "vm-type": "0500",
-            "type": "esdt",
-            "version": "0.0.*"
-        }
 
         found = False
         for item in data:
@@ -48,26 +39,52 @@ def push_genesis_contract(file_path: str, owner_address: str):
         with open(file_path, 'a') as file:
             file.write('\n')
 
-        print(f"esdt-safe genesis contract pushed successfully")
+        print(f"fee-market genesis contract pushed successfully")
     except Exception as e:
         print(f"An error occurred: {e}")
 
 
 def main():
     # input arguments
-    esdt_safe_path = sys.argv[1]
-    owner_address = sys.argv[2]
+    owner_address = sys.argv[1]
+    esdt_safe_path = sys.argv[2]
+    esdt_safe_init_params = sys.argv[3]
+    fee_market_path = sys.argv[4]
+    fee_market_init_params = sys.argv[5]
 
     current_path = os.getcwd()
     project = 'mx-chain-go'
     index = current_path.find(project)
     project_path = current_path[:index + len(project)]
-
-    wasm_path = project_path + "/cmd/node/config/genesisContracts/esdt-safe.wasm"
-    copy_wasm_in_project(wasm_path, esdt_safe_path)
-
     json_path = project_path + "/cmd/node/config/genesisSmartContracts.json"
-    push_genesis_contract(json_path, owner_address)
+
+    # esdt-safe ---------------------
+    esdt_safe_wasm_path = project_path + "/cmd/node/config/genesisContracts/esdt-safe.wasm"
+    copy_wasm_in_project(esdt_safe_wasm_path, esdt_safe_path)
+
+    esdt_safe_genesis_contract = {
+        "owner": owner_address,
+        "filename": "./config/genesisContracts/esdt-safe.wasm",
+        "init-parameters": esdt_safe_init_params,
+        "vm-type": "0500",
+        "type": "esdt",
+        "version": "0.0.*"
+    }
+    push_genesis_contract(json_path, esdt_safe_genesis_contract)
+
+    # fee-market -----------------
+    fee_market_wasm_path = project_path + "/cmd/node/config/genesisContracts/fee-market.wasm"
+    copy_wasm_in_project(fee_market_wasm_path, fee_market_path)
+
+    fee_market_genesis_contract = {
+        "owner": owner_address,
+        "filename": "./config/genesisContracts/fee-market.wasm",
+        "init-parameters": fee_market_init_params,
+        "vm-type": "0500",
+        "type": "fee",
+        "version": "0.0.*"
+    }
+    push_genesis_contract(json_path, fee_market_genesis_contract)
 
 
 if __name__ == "__main__":
