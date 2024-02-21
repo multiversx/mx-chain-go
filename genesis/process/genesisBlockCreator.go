@@ -195,12 +195,6 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 	if arg.TrieStorageManagers == nil {
 		return genesis.ErrNilTrieStorageManager
 	}
-	if arg.EpochConfig == nil {
-		return genesis.ErrNilEpochConfig
-	}
-	if arg.RoundConfig == nil {
-		return genesis.ErrNilRoundConfig
-	}
 	if check.IfNil(arg.HistoryRepository) {
 		return process.ErrNilHistoryRepository
 	}
@@ -225,7 +219,7 @@ func mustDoGenesisProcess(arg ArgsGenesisBlockCreator) bool {
 }
 
 func (gbc *genesisBlockCreator) createEmptyGenesisBlocks() (map[uint32]data.HeaderHandler, error) {
-	err := gbc.computeDNSAddresses(createGenesisConfig())
+	err := gbc.computeDNSAddresses(createGenesisConfig(gbc.arg.EpochConfig.EnableEpochs))
 	if err != nil {
 		return nil, err
 	}

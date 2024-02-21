@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math"
 	"math/big"
-	"strconv"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -45,8 +44,9 @@ import (
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 )
 
-var log = logger.GetOrCreate("genesis/process")
+const unreachableEpoch = ^uint32(0)
 
+var log = logger.GetOrCreate("genesis/process")
 var zero = big.NewInt(0)
 
 type deployedScMetrics struct {
@@ -54,112 +54,26 @@ type deployedScMetrics struct {
 	numOtherTypes int
 }
 
-func createGenesisConfig() config.EnableEpochs {
-	blsMultiSignerEnableEpoch := []config.MultiSignerConfig{
+func createGenesisConfig(providedEnableEpochs config.EnableEpochs) config.EnableEpochs {
+	clonedConfig := providedEnableEpochs
+	clonedConfig.BuiltInFunctionsEnableEpoch = 0
+	clonedConfig.PenalizedTooMuchGasEnableEpoch = unreachableEpoch
+	clonedConfig.MaxNodesChangeEnableEpoch = []config.MaxNodesChangeConfig{
 		{
-			EnableEpoch: 0,
-			Type:        "no-KOSK",
+			EpochEnable:            unreachableEpoch,
+			MaxNumNodes:            0,
+			NodesToShufflePerShard: 0,
 		},
 	}
+	clonedConfig.DoubleKeyProtectionEnableEpoch = 0
 
-	return config.EnableEpochs{
-		SCDeployEnableEpoch:                    unreachableEpoch,
-		BuiltInFunctionsEnableEpoch:            0,
-		RelayedTransactionsEnableEpoch:         unreachableEpoch,
-		PenalizedTooMuchGasEnableEpoch:         unreachableEpoch,
-		SwitchJailWaitingEnableEpoch:           unreachableEpoch,
-		SwitchHysteresisForMinNodesEnableEpoch: unreachableEpoch,
-		BelowSignedThresholdEnableEpoch:        unreachableEpoch,
-		TransactionSignedWithTxHashEnableEpoch: unreachableEpoch,
-		MetaProtectionEnableEpoch:              unreachableEpoch,
-		AheadOfTimeGasUsageEnableEpoch:         unreachableEpoch,
-		GasPriceModifierEnableEpoch:            unreachableEpoch,
-		RepairCallbackEnableEpoch:              unreachableEpoch,
-		MaxNodesChangeEnableEpoch: []config.MaxNodesChangeConfig{
-			{
-				EpochEnable:            unreachableEpoch,
-				MaxNumNodes:            0,
-				NodesToShufflePerShard: 0,
-			},
-		},
-		BlockGasAndFeesReCheckEnableEpoch:                 unreachableEpoch,
-		StakingV2EnableEpoch:                              unreachableEpoch,
-		StakeEnableEpoch:                                  unreachableEpoch, // no need to enable this, we have builtin exceptions in staking system SC
-		DoubleKeyProtectionEnableEpoch:                    0,
-		ESDTEnableEpoch:                                   unreachableEpoch,
-		GovernanceEnableEpoch:                             unreachableEpoch,
-		DelegationManagerEnableEpoch:                      unreachableEpoch,
-		DelegationSmartContractEnableEpoch:                unreachableEpoch,
-		CorrectLastUnjailedEnableEpoch:                    unreachableEpoch,
-		BalanceWaitingListsEnableEpoch:                    unreachableEpoch,
-		ReturnDataToLastTransferEnableEpoch:               unreachableEpoch,
-		SenderInOutTransferEnableEpoch:                    unreachableEpoch,
-		RelayedTransactionsV2EnableEpoch:                  unreachableEpoch,
-		UnbondTokensV2EnableEpoch:                         unreachableEpoch,
-		SaveJailedAlwaysEnableEpoch:                       unreachableEpoch,
-		ValidatorToDelegationEnableEpoch:                  unreachableEpoch,
-		ReDelegateBelowMinCheckEnableEpoch:                unreachableEpoch,
-		WaitingListFixEnableEpoch:                         unreachableEpoch,
-		IncrementSCRNonceInMultiTransferEnableEpoch:       unreachableEpoch,
-		ESDTMultiTransferEnableEpoch:                      unreachableEpoch,
-		GlobalMintBurnDisableEpoch:                        unreachableEpoch,
-		ESDTTransferRoleEnableEpoch:                       unreachableEpoch,
-		BuiltInFunctionOnMetaEnableEpoch:                  unreachableEpoch,
-		ComputeRewardCheckpointEnableEpoch:                unreachableEpoch,
-		SCRSizeInvariantCheckEnableEpoch:                  unreachableEpoch,
-		BackwardCompSaveKeyValueEnableEpoch:               unreachableEpoch,
-		ESDTNFTCreateOnMultiShardEnableEpoch:              unreachableEpoch,
-		MetaESDTSetEnableEpoch:                            unreachableEpoch,
-		AddTokensToDelegationEnableEpoch:                  unreachableEpoch,
-		MultiESDTTransferFixOnCallBackOnEnableEpoch:       unreachableEpoch,
-		OptimizeGasUsedInCrossMiniBlocksEnableEpoch:       unreachableEpoch,
-		CorrectFirstQueuedEpoch:                           unreachableEpoch,
-		CorrectJailedNotUnstakedEmptyQueueEpoch:           unreachableEpoch,
-		FixOOGReturnCodeEnableEpoch:                       unreachableEpoch,
-		RemoveNonUpdatedStorageEnableEpoch:                unreachableEpoch,
-		DeleteDelegatorAfterClaimRewardsEnableEpoch:       unreachableEpoch,
-		OptimizeNFTStoreEnableEpoch:                       unreachableEpoch,
-		CreateNFTThroughExecByCallerEnableEpoch:           unreachableEpoch,
-		StopDecreasingValidatorRatingWhenStuckEnableEpoch: unreachableEpoch,
-		FrontRunningProtectionEnableEpoch:                 unreachableEpoch,
-		IsPayableBySCEnableEpoch:                          unreachableEpoch,
-		CleanUpInformativeSCRsEnableEpoch:                 unreachableEpoch,
-		StorageAPICostOptimizationEnableEpoch:             unreachableEpoch,
-		TransformToMultiShardCreateEnableEpoch:            unreachableEpoch,
-		ESDTRegisterAndSetAllRolesEnableEpoch:             unreachableEpoch,
-		ScheduledMiniBlocksEnableEpoch:                    unreachableEpoch,
-		FailExecutionOnEveryAPIErrorEnableEpoch:           unreachableEpoch,
-		AddFailedRelayedTxToInvalidMBsDisableEpoch:        unreachableEpoch,
-		SCRSizeInvariantOnBuiltInResultEnableEpoch:        unreachableEpoch,
-		ManagedCryptoAPIsEnableEpoch:                      unreachableEpoch,
-		CheckCorrectTokenIDForTransferRoleEnableEpoch:     unreachableEpoch,
-		DisableExecByCallerEnableEpoch:                    unreachableEpoch,
-		RefactorContextEnableEpoch:                        unreachableEpoch,
-		CheckFunctionArgumentEnableEpoch:                  unreachableEpoch,
-		CheckExecuteOnReadOnlyEnableEpoch:                 unreachableEpoch,
-		MiniBlockPartialExecutionEnableEpoch:              unreachableEpoch,
-		ESDTMetadataContinuousCleanupEnableEpoch:          unreachableEpoch,
-		FixAsyncCallBackArgsListEnableEpoch:               unreachableEpoch,
-		FixOldTokenLiquidityEnableEpoch:                   unreachableEpoch,
-		SetSenderInEeiOutputTransferEnableEpoch:           unreachableEpoch,
-		RefactorPeersMiniBlocksEnableEpoch:                unreachableEpoch,
-		SCProcessorV2EnableEpoch:                          unreachableEpoch,
-		DoNotReturnOldBlockInBlockchainHookEnableEpoch:    unreachableEpoch,
-		MaxBlockchainHookCountersEnableEpoch:              unreachableEpoch,
-		BLSMultiSignerEnableEpoch:                         blsMultiSignerEnableEpoch,
-		SetGuardianEnableEpoch:                            unreachableEpoch,
-		ScToScLogEventEnableEpoch:                         unreachableEpoch,
-	}
+	return clonedConfig
 }
 
-func createGenesisRoundConfig() *config.RoundConfig {
-	return &config.RoundConfig{
-		RoundActivations: map[string]config.ActivationRoundByName{
-			"DisableAsyncCallV1": {
-				Round: strconv.FormatUint(unreachableRound, 10),
-			},
-		},
-	}
+func createGenesisRoundConfig(providedEnableRounds config.RoundConfig) config.RoundConfig {
+	clonedConfig := providedEnableRounds
+
+	return clonedConfig
 }
 
 // CreateShardGenesisBlock will create a shard genesis block
@@ -181,7 +95,11 @@ func CreateShardGenesisBlock(
 		DeployInitialScTxs: make([]data.TransactionHandler, 0),
 	}
 
-	processors, err := createProcessorsForShardGenesisBlock(arg, createGenesisConfig(), createGenesisRoundConfig())
+	processors, err := createProcessorsForShardGenesisBlock(
+		arg,
+		createGenesisConfig(arg.EpochConfig.EnableEpochs),
+		createGenesisRoundConfig(arg.RoundConfig),
+	)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -399,7 +317,7 @@ func setBalanceToTrie(arg ArgsGenesisBlockCreator, accnt genesis.InitialAccountH
 	return arg.Accounts.SaveAccount(account)
 }
 
-func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpochsConfig config.EnableEpochs, roundConfig *config.RoundConfig) (*genesisProcessors, error) {
+func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpochsConfig config.EnableEpochs, roundConfig config.RoundConfig) (*genesisProcessors, error) {
 	genesisWasmVMLocker := &sync.RWMutex{} // use a local instance as to not run in concurrent issues when doing bootstrap
 	epochNotifier := forking.NewGenericEpochNotifier()
 	enableEpochsHandler, err := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifier)
@@ -408,7 +326,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 	}
 
 	roundNotifier := forking.NewGenericRoundNotifier()
-	enableRoundsHandler, err := enablers.NewEnableRoundsHandler(*roundConfig, roundNotifier)
+	enableRoundsHandler, err := enablers.NewEnableRoundsHandler(roundConfig, roundNotifier)
 	if err != nil {
 		return nil, err
 	}

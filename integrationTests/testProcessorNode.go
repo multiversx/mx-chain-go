@@ -483,7 +483,7 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 	}
 
 	if args.RoundsConfig == nil {
-		defaultRoundsConfig := GetDefaultRoundsConfig()
+		defaultRoundsConfig := testscommon.GetDefaultRoundsConfig()
 		args.RoundsConfig = &defaultRoundsConfig
 	}
 	genericRoundNotifier := forking.NewGenericRoundNotifier()
@@ -3523,16 +3523,5 @@ func GetDefaultEnableEpochsConfig() *config.EnableEpochs {
 		MiniBlockPartialExecutionEnableEpoch:            UnreachableEpoch,
 		FailExecutionOnEveryAPIErrorEnableEpoch:         UnreachableEpoch,
 		DynamicGasCostForDataTrieStorageLoadEnableEpoch: UnreachableEpoch,
-	}
-}
-
-// GetDefaultRoundsConfig -
-func GetDefaultRoundsConfig() config.RoundConfig {
-	return config.RoundConfig{
-		RoundActivations: map[string]config.ActivationRoundByName{
-			"DisableAsyncCallV1": {
-				Round: "18446744073709551615",
-			},
-		},
 	}
 }

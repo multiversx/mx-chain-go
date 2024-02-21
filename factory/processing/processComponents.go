@@ -232,6 +232,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		statusCoreComponents:    args.StatusCoreComponents,
 		flagsConfig:             args.FlagsConfig,
 		txExecutionOrderHandler: args.TxExecutionOrderHandler,
+		roundConfig:             args.RoundConfig,
 	}, nil
 }
 
@@ -881,8 +882,8 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		HardForkConfig:          pcf.config.Hardfork,
 		TrieStorageManagers:     pcf.state.TrieStorageManagers(),
 		SystemSCConfig:          *pcf.systemSCConfig,
-		RoundConfig:             &pcf.roundConfig,
-		EpochConfig:             &pcf.epochConfig,
+		RoundConfig:             pcf.roundConfig,
+		EpochConfig:             pcf.epochConfig,
 		BlockSignKeyGen:         pcf.crypto.BlockSignKeyGen(),
 		HistoryRepository:       pcf.historyRepo,
 		GenesisNodePrice:        genesisNodePrice,
