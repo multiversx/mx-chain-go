@@ -49,7 +49,6 @@ func createSovereignGenesisBlockCreator(t *testing.T) (ArgsGenesisBlockCreator, 
 	arg.ShardCoordinator = sharding.NewSovereignShardCoordinator(core.SovereignChainShardId)
 	arg.DNSV2Addresses = []string{"00000000000000000500761b8c4a25d3979359223208b412285f635e71300102"}
 	arg.Config.SovereignConfig.GenesisConfig.NativeESDT = sovereignNativeToken
-	arg.ChainRunType = common.ChainRunTypeSovereign
 	gbc, _ := NewGenesisBlockCreator(arg)
 	sgbc, _ := NewSovereignGenesisBlockCreator(gbc)
 	return arg, sgbc

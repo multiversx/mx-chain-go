@@ -29,7 +29,6 @@ import (
 	"github.com/multiversx/mx-chain-go/common/ordering"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/config"
-	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -48,6 +47,7 @@ import (
 	heartbeatComp "github.com/multiversx/mx-chain-go/factory/heartbeat"
 	networkComp "github.com/multiversx/mx-chain-go/factory/network"
 	processComp "github.com/multiversx/mx-chain-go/factory/processing"
+	"github.com/multiversx/mx-chain-go/factory/runType"
 	stateComp "github.com/multiversx/mx-chain-go/factory/state"
 	statusComp "github.com/multiversx/mx-chain-go/factory/status"
 	"github.com/multiversx/mx-chain-go/factory/statusCore"
@@ -287,6 +287,12 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	log.Debug("creating healthService")
 	healthService := nr.createHealthService(flagsConfig)
 
+	log.Debug("creating runType components")
+	managedRunTypeComponents, err := nr.CreateManagedRunTypeComponents()
+	if err != nil {
+		return true, err
+	}
+
 	log.Debug("creating core components")
 	managedCoreComponents, err := nr.CreateManagedCoreComponents(
 		chanStopNodeProcess,
@@ -320,7 +326,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	}
 
 	log.Debug("creating bootstrap components")
-	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedStatusCoreComponents, managedCoreComponents, managedCryptoComponents, managedNetworkComponents)
+	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedStatusCoreComponents, managedCoreComponents, managedCryptoComponents, managedNetworkComponents, managedRunTypeComponents)
 	if err != nil {
 		return true, err
 	}
@@ -328,7 +334,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	nr.logInformation(managedCoreComponents, managedCryptoComponents, managedBootstrapComponents)
 
 	log.Debug("creating data components")
-	managedDataComponents, err := nr.CreateManagedDataComponents(managedStatusCoreComponents, managedCoreComponents, managedBootstrapComponents, managedCryptoComponents)
+	managedDataComponents, err := nr.CreateManagedDataComponents(managedStatusCoreComponents, managedCoreComponents, managedBootstrapComponents, managedCryptoComponents, managedRunTypeComponents)
 	if err != nil {
 		return true, err
 	}
@@ -428,6 +434,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedDataComponents,
 		managedStatusComponents,
 		managedStatusCoreComponents,
+		managedRunTypeComponents,
 		gasScheduleNotifier,
 		nodesCoordinatorInstance,
 	)
@@ -475,6 +482,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedStatusComponents,
 		managedProcessComponents,
 		managedStatusCoreComponents,
+		managedRunTypeComponents,
 	)
 	if err != nil {
 		return true, err
@@ -496,6 +504,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	log.Debug("creating node structure")
 	nodeHandler, err := CreateNode(
 		configs.GeneralConfig,
+		managedRunTypeComponents,
 		managedStatusCoreComponents,
 		managedBootstrapComponents,
 		managedCoreComponents,
@@ -728,10 +737,10 @@ func (nr *nodeRunner) createApiFacade(
 		StatusCoreComponents:           nodeHandler.GetStatusCoreComponents(),
 		GasScheduleNotifier:            gasScheduleNotifier,
 		Bootstrapper:                   nodeHandler.GetConsensusComponents().Bootstrapper(),
+		RunTypeComponents:              nodeHandler.GetRunTypeComponents(),
 		AllowVMQueriesChan:             allowVMQueriesChan,
 		StatusComponents:               nodeHandler.GetStatusComponents(),
 		ProcessingMode:                 common.GetNodeProcessingMode(nr.configs.ImportDbConfig),
-		ChainRunType:                   common.ChainRunTypeRegular,
 		DelegatedListFactoryHandler:    trieIteratorsFactory.NewDelegatedListProcessorFactory(),
 		DirectStakedListFactoryHandler: trieIteratorsFactory.NewDirectStakedListProcessorFactory(),
 		TotalStakedValueFactoryHandler: trieIteratorsFactory.NewTotalStakedListProcessorFactory(),
@@ -883,6 +892,7 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 	statusComponents mainFactory.StatusComponentsHolder,
 	processComponents mainFactory.ProcessComponentsHolder,
 	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
+	runTypeComponents mainFactory.RunTypeComponentsHolder,
 ) (mainFactory.ConsensusComponentsHandler, error) {
 	scheduledProcessorArgs := spos.ScheduledProcessorWrapperArgs{
 		SyncTimer:                coreComponents.SyncTimer(),
@@ -910,8 +920,7 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 		ScheduledProcessor:    scheduledProcessor,
 		IsInImportMode:        nr.configs.ImportDbConfig.IsImportDBMode,
 		ShouldDisableWatchdog: nr.configs.FlagsConfig.DisableConsensusWatchdog,
-		ConsensusModel:        consensus.ConsensusModelV1,
-		ChainRunType:          common.ChainRunTypeRegular,
+		RunTypeComponents:     runTypeComponents,
 		ExtraSignersHolder:    bls.NewEmptyExtraSignersHolder(),
 		SubRoundEndV2Creator:  bls.NewSubRoundEndV2Creator(),
 	}
@@ -1169,6 +1178,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 	dataComponents mainFactory.DataComponentsHolder,
 	statusComponents mainFactory.StatusComponentsHolder,
 	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
+	runTypeComponents mainFactory.RunTypeComponentsHolder,
 	gasScheduleNotifier core.GasScheduleNotifier,
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
 ) (mainFactory.ProcessComponentsHandler, error) {
@@ -1276,7 +1286,6 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		HistoryRepo:                           historyRepository,
 		FlagsConfig:                           *configs.FlagsConfig,
 		TxExecutionOrderHandler:               txExecutionOrderHandler,
-		ChainRunType:                          common.ChainRunTypeRegular,
 		ShardCoordinatorFactory:               sharding.NewMultiShardCoordinatorFactory(),
 		GenesisBlockCreatorFactory:            genesisProcess.NewGenesisBlockCreatorFactory(),
 		GenesisMetaBlockChecker:               processComp.NewGenesisMetaBlockChecker(),
@@ -1285,6 +1294,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		ShardResolversContainerFactoryCreator: resolverscontainer.NewShardResolversContainerFactoryCreator(),
 		TxPreProcessorCreator:                 preprocess.NewTxPreProcessorCreator(),
 		ExtraHeaderSigVerifierHolder:          headerCheck.NewExtraHeaderSigVerifierHolder(),
+		RunTypeComponents:                     runTypeComponents,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1310,6 +1320,7 @@ func (nr *nodeRunner) CreateManagedDataComponents(
 	coreComponents mainFactory.CoreComponentsHolder,
 	bootstrapComponents mainFactory.BootstrapComponentsHolder,
 	crypto mainFactory.CryptoComponentsHolder,
+	runTypeComponents mainFactory.RunTypeComponentsHolder,
 ) (mainFactory.DataComponentsHandler, error) {
 	configs := nr.configs
 	storerEpoch := bootstrapComponents.EpochBootstrapParams().Epoch()
@@ -1320,17 +1331,17 @@ func (nr *nodeRunner) CreateManagedDataComponents(
 	}
 
 	dataArgs := dataComp.DataComponentsFactoryArgs{
-		Config:                        *configs.GeneralConfig,
-		PrefsConfig:                   configs.PreferencesConfig.Preferences,
-		ShardCoordinator:              bootstrapComponents.ShardCoordinator(),
-		Core:                          coreComponents,
-		StatusCore:                    statusCoreComponents,
-		Crypto:                        crypto,
-		CurrentEpoch:                  storerEpoch,
-		CreateTrieEpochRootHashStorer: configs.ImportDbConfig.ImportDbSaveTrieEpochRootHash,
-		FlagsConfigs:                  *configs.FlagsConfig,
-		NodeProcessingMode:            common.GetNodeProcessingMode(nr.configs.ImportDbConfig),
-		ChainRunType:                  common.ChainRunTypeRegular,
+		Config:                          *configs.GeneralConfig,
+		PrefsConfig:                     configs.PreferencesConfig.Preferences,
+		ShardCoordinator:                bootstrapComponents.ShardCoordinator(),
+		Core:                            coreComponents,
+		StatusCore:                      statusCoreComponents,
+		Crypto:                          crypto,
+		CurrentEpoch:                    storerEpoch,
+		CreateTrieEpochRootHashStorer:   configs.ImportDbConfig.ImportDbSaveTrieEpochRootHash,
+		FlagsConfigs:                    *configs.FlagsConfig,
+		NodeProcessingMode:              common.GetNodeProcessingMode(nr.configs.ImportDbConfig),
+		AdditionalStorageServiceCreator: runTypeComponents.AdditionalStorageServiceCreator(),
 	}
 
 	dataComponentsFactory, err := dataComp.NewDataComponentsFactory(dataArgs)
@@ -1399,6 +1410,7 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 	coreComponents mainFactory.CoreComponentsHolder,
 	cryptoComponents mainFactory.CryptoComponentsHolder,
 	networkComponents mainFactory.NetworkComponentsHolder,
+	runTypeComponents mainFactory.RunTypeComponentsHolder,
 ) (mainFactory.BootstrapComponentsHandler, error) {
 
 	bootstrapComponentsFactoryArgs := bootstrapComp.BootstrapComponentsFactoryArgs{
@@ -1411,7 +1423,7 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 		CryptoComponents:                 cryptoComponents,
 		NetworkComponents:                networkComponents,
 		StatusCoreComponents:             statusCoreComponents,
-		ChainRunType:                     common.ChainRunTypeRegular,
+		RunTypeComponents:                runTypeComponents,
 		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
 		ShardCoordinatorFactory:          sharding.NewMultiShardCoordinatorFactory(),
 	}
@@ -1582,6 +1594,26 @@ func (nr *nodeRunner) CreateManagedCryptoComponents(
 	}
 
 	return managedCryptoComponents, nil
+}
+
+// CreateManagedRunTypeComponents creates the managed run type components
+func (nr *nodeRunner) CreateManagedRunTypeComponents() (mainFactory.RunTypeComponentsHandler, error) {
+	runTypeComponentsFactory, err := runType.NewRunTypeComponentsFactory()
+	if err != nil {
+		return nil, fmt.Errorf("newRunTypeComponentsFactory failed: %w", err)
+	}
+
+	managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(runTypeComponentsFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	err = managedRunTypeComponents.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	return managedRunTypeComponents, nil
 }
 
 func closeAllComponents(

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"fmt"
 	"math/big"
 	"strings"
 	"sync"
@@ -35,9 +34,7 @@ import (
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
-	vmFactory "github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
-	processMock "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -65,7 +62,6 @@ import (
 	testState "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	updateMocks "github.com/multiversx/mx-chain-go/update/mock"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -254,7 +250,6 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 			StateStatsHandlerField: disabledStatistics.NewStateStatistics(),
 		},
 		TxExecutionOrderHandler:               &txExecOrderStub.TxExecutionOrderHandlerStub{},
-		ChainRunType:                          common.ChainRunTypeRegular,
 		ShardCoordinatorFactory:               sharding.NewMultiShardCoordinatorFactory(),
 		GenesisBlockCreatorFactory:            genesisProcess.NewGenesisBlockCreatorFactory(),
 		GenesisMetaBlockChecker:               processComp.NewGenesisMetaBlockChecker(),
@@ -265,6 +260,7 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 		ExtraHeaderSigVerifierHolder:          &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
 		OutGoingOperationsPool:                &sovereign.OutGoingOperationsPoolMock{},
 		IncomingHeaderSubscriber:              &sovereign.IncomingHeaderSubscriberStub{},
+		RunTypeComponents:                     components.GetRunTypeComponents(),
 	}
 
 	args.State = components.GetStateComponents(args.CoreData)
@@ -668,6 +664,114 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		require.True(t, errors.Is(err, errorsMx.ErrNilExtraHeaderSigVerifierHolder))
 		require.Nil(t, pcf)
 	})
+	t.Run("nil RunTypeComponents should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockProcessComponentsFactoryArgs()
+		args.RunTypeComponents = nil
+		pcf, err := processComp.NewProcessComponentsFactory(args)
+		require.True(t, errors.Is(err, errorsMx.ErrNilRunTypeComponents))
+		require.Nil(t, pcf)
+	})
+	t.Run("nil BlockProcessorCreator should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockProcessComponentsFactoryArgs()
+		rtMock := getRunTypeComponentsMock()
+		rtMock.BlockProcessorFactory = nil
+		args.RunTypeComponents = rtMock
+		pcf, err := processComp.NewProcessComponentsFactory(args)
+		require.True(t, errors.Is(err, errorsMx.ErrNilBlockProcessorCreator))
+		require.Nil(t, pcf)
+	})
+	t.Run("nil RequestHandlerCreator should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockProcessComponentsFactoryArgs()
+		rtMock := getRunTypeComponentsMock()
+		rtMock.RequestHandlerFactory = nil
+		args.RunTypeComponents = rtMock
+		pcf, err := processComp.NewProcessComponentsFactory(args)
+		require.True(t, errors.Is(err, errorsMx.ErrNilRequestHandlerCreator))
+		require.Nil(t, pcf)
+	})
+	t.Run("nil ScheduledTxsExecutionCreator should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockProcessComponentsFactoryArgs()
+		rtMock := getRunTypeComponentsMock()
+		rtMock.ScheduledTxsExecutionFactory = nil
+		args.RunTypeComponents = rtMock
+		pcf, err := processComp.NewProcessComponentsFactory(args)
+		require.True(t, errors.Is(err, errorsMx.ErrNilScheduledTxsExecutionCreator))
+		require.Nil(t, pcf)
+	})
+	t.Run("nil BlockTrackerCreator should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockProcessComponentsFactoryArgs()
+		rtMock := getRunTypeComponentsMock()
+		rtMock.BlockTrackerFactory = nil
+		args.RunTypeComponents = rtMock
+		pcf, err := processComp.NewProcessComponentsFactory(args)
+		require.True(t, errors.Is(err, errorsMx.ErrNilBlockTrackerCreator))
+		require.Nil(t, pcf)
+	})
+	t.Run("nil TransactionCoordinatorCreator should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockProcessComponentsFactoryArgs()
+		rtMock := getRunTypeComponentsMock()
+		rtMock.TransactionCoordinatorFactory = nil
+		args.RunTypeComponents = rtMock
+		pcf, err := processComp.NewProcessComponentsFactory(args)
+		require.True(t, errors.Is(err, errorsMx.ErrNilTransactionCoordinatorCreator))
+		require.Nil(t, pcf)
+	})
+	t.Run("nil HeaderValidatorCreator should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockProcessComponentsFactoryArgs()
+		rtMock := getRunTypeComponentsMock()
+		rtMock.HeaderValidatorFactory = nil
+		args.RunTypeComponents = rtMock
+		pcf, err := processComp.NewProcessComponentsFactory(args)
+		require.True(t, errors.Is(err, errorsMx.ErrNilHeaderValidatorCreator))
+		require.Nil(t, pcf)
+	})
+	t.Run("nil ForkDetectorCreator should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockProcessComponentsFactoryArgs()
+		rtMock := getRunTypeComponentsMock()
+		rtMock.ForkDetectorFactory = nil
+		args.RunTypeComponents = rtMock
+		pcf, err := processComp.NewProcessComponentsFactory(args)
+		require.True(t, errors.Is(err, errorsMx.ErrNilForkDetectorCreator))
+		require.Nil(t, pcf)
+	})
+	t.Run("nil ValidatorStatisticsProcessorCreator should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockProcessComponentsFactoryArgs()
+		rtMock := getRunTypeComponentsMock()
+		rtMock.ValidatorStatisticsProcessorFactory = nil
+		args.RunTypeComponents = rtMock
+		pcf, err := processComp.NewProcessComponentsFactory(args)
+		require.True(t, errors.Is(err, errorsMx.ErrNilValidatorStatisticsProcessorCreator))
+		require.Nil(t, pcf)
+	})
+	t.Run("nil SCProcessorCreator should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockProcessComponentsFactoryArgs()
+		rtMock := getRunTypeComponentsMock()
+		rtMock.SCProcessorFactory = nil
+		args.RunTypeComponents = rtMock
+		pcf, err := processComp.NewProcessComponentsFactory(args)
+		require.True(t, errors.Is(err, errorsMx.ErrNilSCProcessorCreator))
+		require.Nil(t, pcf)
+	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -676,66 +780,28 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		require.NotNil(t, pcf)
 	})
 }
-func TestProcessComponentsFactory_AddSystemVMToContainerIfNeeded(t *testing.T) {
-	t.Parallel()
 
-	testContainerKey := "testContainer"
-
-	t.Run("sovereign should add systemVM", func(t *testing.T) {
-		t.Parallel()
-
-		shardCoordinator := sharding.NewSovereignShardCoordinator(core.SovereignChainShardId)
-		processArgs := components.GetProcessComponentsFactoryArgs(shardCoordinator)
-		processArgs.ChainRunType = common.ChainRunTypeSovereign
-		pcf, _ := processComp.NewProcessComponentsFactory(processArgs)
-		require.NotNil(t, pcf)
-
-		vms := make(map[string]vmcommon.VMExecutionHandler, 0)
-		vms[testContainerKey] = &processMock.VMExecutionHandlerStub{}
-		vmContainer := &processMock.VMContainerMock{
-			AddCalled: func(key []byte, val vmcommon.VMExecutionHandler) error {
-				vms[string(key)] = val
-				return nil
-			},
-		}
-
-		err := pcf.AddSystemVMToContainerIfNeeded(vmContainer, &testscommon.BuiltInFunctionFactoryMock{})
-
-		require.NoError(t, err)
-		require.NotNil(t, vmContainer)
-
-		require.Equal(t, 2, len(vms))
-		require.NotNil(t, vms[string(vmFactory.SystemVirtualMachine)])
-		require.NotNil(t, vms[testContainerKey])
-		require.Equal(t, "*process.systemVM", fmt.Sprintf("%T", vms[string(vmFactory.SystemVirtualMachine)]))
-	})
-	t.Run("shard should NOT add systemVM", func(t *testing.T) {
-		t.Parallel()
-
-		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-		processArgs := components.GetProcessComponentsFactoryArgs(shardCoordinator)
-		processArgs.ChainRunType = common.ChainRunTypeRegular
-		pcf, _ := processComp.NewProcessComponentsFactory(processArgs)
-		require.NotNil(t, pcf)
-
-		vms := make(map[string]vmcommon.VMExecutionHandler, 0)
-		vms[testContainerKey] = &processMock.VMExecutionHandlerStub{}
-		vmContainer := &processMock.VMContainerMock{
-			AddCalled: func(key []byte, val vmcommon.VMExecutionHandler) error {
-				vms[string(key)] = val
-				return nil
-			},
-		}
-
-		err := pcf.AddSystemVMToContainerIfNeeded(vmContainer, &testscommon.BuiltInFunctionFactoryMock{})
-
-		require.NoError(t, err)
-		require.NotNil(t, vmContainer)
-
-		require.Equal(t, 1, len(vms))
-		require.NotNil(t, vms[testContainerKey])
-		require.Nil(t, vms[string(vmFactory.SystemVirtualMachine)])
-	})
+func getRunTypeComponentsMock() *mainFactoryMocks.RunTypeComponentsStub {
+	rt := components.GetRunTypeComponents()
+	return &mainFactoryMocks.RunTypeComponentsStub{
+		BlockChainHookHandlerFactory:        rt.BlockChainHookHandlerCreator(),
+		BlockProcessorFactory:               rt.BlockProcessorCreator(),
+		BlockTrackerFactory:                 rt.BlockTrackerCreator(),
+		BootstrapperFromStorageFactory:      rt.BootstrapperFromStorageCreator(),
+		EpochStartBootstrapperFactory:       rt.EpochStartBootstrapperCreator(),
+		ForkDetectorFactory:                 rt.ForkDetectorCreator(),
+		HeaderValidatorFactory:              rt.HeaderValidatorCreator(),
+		RequestHandlerFactory:               rt.RequestHandlerCreator(),
+		ScheduledTxsExecutionFactory:        rt.ScheduledTxsExecutionCreator(),
+		TransactionCoordinatorFactory:       rt.TransactionCoordinatorCreator(),
+		ValidatorStatisticsProcessorFactory: rt.ValidatorStatisticsProcessorCreator(),
+		AdditionalStorageServiceFactory:     rt.AdditionalStorageServiceCreator(),
+		SCProcessorFactory:                  rt.SCProcessorCreator(),
+		BootstrapperFactory:                 rt.BootstrapperCreator(),
+		SCResultsPreProcessorFactory:        rt.SCResultsPreProcessorCreator(),
+		VmContainerMetaFactory:              rt.VmContainerMetaFactoryCreator(),
+		VmContainerShardFactory:             rt.VmContainerShardFactoryCreator(),
+	}
 }
 
 func TestProcessComponentsFactory_Create(t *testing.T) {
@@ -1203,11 +1269,10 @@ func TestProcessComponentsFactory_CreateShouldWork(t *testing.T) {
 
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 		processArgs := components.GetProcessComponentsFactoryArgs(shardCoordinator)
+		processArgs.RunTypeComponents = components.GetRunTypeComponents()
 		pcf, _ := processComp.NewProcessComponentsFactory(processArgs)
 
 		require.NotNil(t, pcf)
-
-		pcf.SetChainRunType(common.ChainRunTypeRegular)
 
 		pc, err := pcf.Create()
 
@@ -1220,11 +1285,10 @@ func TestProcessComponentsFactory_CreateShouldWork(t *testing.T) {
 
 		shardCoordinator := sharding.NewSovereignShardCoordinator(core.SovereignChainShardId)
 		processArgs := components.GetProcessComponentsFactoryArgs(shardCoordinator)
+		processArgs.RunTypeComponents = components.GetSovereignRunTypeComponents()
 		pcf, _ := processComp.NewProcessComponentsFactory(processArgs)
 
 		require.NotNil(t, pcf)
-
-		pcf.SetChainRunType(common.ChainRunTypeSovereign)
 
 		pc, err := pcf.Create()
 

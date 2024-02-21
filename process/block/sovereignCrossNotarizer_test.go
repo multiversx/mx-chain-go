@@ -6,8 +6,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/factory/mock"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
 
@@ -21,7 +21,7 @@ func TestSovereignShardCrossNotarizer_getLastCrossNotarizedHeaders(t *testing.T)
 	}
 	sovereignNotarzier := &sovereignShardCrossNotarizer{
 		&baseBlockNotarizer{
-			blockTracker: &mock.BlockTrackerStub{
+			blockTracker: &testscommon.BlockTrackerStub{
 				GetLastCrossNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
 					require.Equal(t, core.MainChainShardId, shardID)
 					return header, hash, nil

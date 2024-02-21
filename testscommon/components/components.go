@@ -11,7 +11,6 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	commonFactory "github.com/multiversx/mx-chain-go/common/factory"
 	"github.com/multiversx/mx-chain-go/config"
-	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -27,6 +26,7 @@ import (
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	networkComp "github.com/multiversx/mx-chain-go/factory/network"
 	processComp "github.com/multiversx/mx-chain-go/factory/processing"
+	"github.com/multiversx/mx-chain-go/factory/runType"
 	stateComp "github.com/multiversx/mx-chain-go/factory/state"
 	statusComp "github.com/multiversx/mx-chain-go/factory/status"
 	"github.com/multiversx/mx-chain-go/factory/statusCore"
@@ -185,8 +185,7 @@ func GetConsensusArgs(shardCoordinator sharding.Coordinator) consensusComp.Conse
 		StatusComponents:     statusComponents,
 		StatusCoreComponents: GetStatusCoreComponents(),
 		ScheduledProcessor:   scheduledProcessor,
-		ConsensusModel:       consensus.ConsensusModelV1,
-		ChainRunType:         common.ChainRunTypeRegular,
+		RunTypeComponents:    GetRunTypeComponents(),
 		ExtraSignersHolder:   &subRoundsHolder.ExtraSignersHolderMock{},
 		SubRoundEndV2Creator: bls.NewSubRoundEndV2Creator(),
 	}
@@ -224,19 +223,22 @@ func GetCryptoArgs(coreComponents factory.CoreComponentsHolder) cryptoComp.Crypt
 
 // GetDataArgs -
 func GetDataArgs(coreComponents factory.CoreComponentsHolder, shardCoordinator sharding.Coordinator) dataComp.DataComponentsFactoryArgs {
+	runTypeComponents := GetRunTypeComponents()
+
 	return dataComp.DataComponentsFactoryArgs{
 		Config: testscommon.GetGeneralConfig(),
 		PrefsConfig: config.PreferencesConfig{
 			FullArchive: false,
 		},
-		ShardCoordinator:              shardCoordinator,
-		Core:                          coreComponents,
-		StatusCore:                    GetStatusCoreComponents(),
-		Crypto:                        GetCryptoComponents(coreComponents),
-		CurrentEpoch:                  0,
-		CreateTrieEpochRootHashStorer: false,
-		NodeProcessingMode:            common.Normal,
-		FlagsConfigs:                  config.ContextFlagsConfig{},
+		ShardCoordinator:                shardCoordinator,
+		Core:                            coreComponents,
+		StatusCore:                      GetStatusCoreComponents(),
+		Crypto:                          GetCryptoComponents(coreComponents),
+		CurrentEpoch:                    0,
+		CreateTrieEpochRootHashStorer:   false,
+		NodeProcessingMode:              common.Normal,
+		FlagsConfigs:                    config.ContextFlagsConfig{},
+		AdditionalStorageServiceCreator: runTypeComponents.AdditionalStorageServiceCreator(),
 	}
 }
 
@@ -414,7 +416,7 @@ func GetBootStrapFactoryArgs() bootstrapComp.BootstrapComponentsFactoryArgs {
 		FlagsConfig: config.ContextFlagsConfig{
 			ForceStartFromNetwork: false,
 		},
-		ChainRunType:                     common.ChainRunTypeRegular,
+		RunTypeComponents:                GetRunTypeComponents(),
 		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
 		ShardCoordinatorFactory:          sharding.NewMultiShardCoordinatorFactory(),
 	}
@@ -584,7 +586,6 @@ func GetProcessArgs(
 			Version: "v1.0.0",
 		},
 		TxExecutionOrderHandler:               &commonMocks.TxExecutionOrderHandlerStub{},
-		ChainRunType:                          common.ChainRunTypeRegular,
 		ShardCoordinatorFactory:               sharding.NewMultiShardCoordinatorFactory(),
 		GenesisBlockCreatorFactory:            process.NewGenesisBlockCreatorFactory(),
 		GenesisMetaBlockChecker:               processComp.NewGenesisMetaBlockChecker(),
@@ -594,6 +595,7 @@ func GetProcessArgs(
 		TxPreProcessorCreator:                 preprocess.NewTxPreProcessorCreator(),
 		ExtraHeaderSigVerifierHolder:          &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
 		OutGoingOperationsPool:                &sovereign.OutGoingOperationsPoolMock{},
+		RunTypeComponents:                     GetRunTypeComponents(),
 	}
 }
 
@@ -822,6 +824,39 @@ func GetProcessComponents(
 		return nil
 	}
 	return managedProcessComponents
+}
+
+// GetRunTypeComponents -
+func GetRunTypeComponents() factory.RunTypeComponentsHolder {
+	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory()
+	managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(runTypeComponentsFactory)
+	if err != nil {
+		log.Error("getRunTypeComponents NewManagedRunTypeComponents", "error", err.Error())
+		return nil
+	}
+	err = managedRunTypeComponents.Create()
+	if err != nil {
+		log.Error("getRunTypeComponents Create", "error", err.Error())
+		return nil
+	}
+	return managedRunTypeComponents
+}
+
+// GetSovereignRunTypeComponents -
+func GetSovereignRunTypeComponents() factory.RunTypeComponentsHolder {
+	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory()
+	sovereignComponentsFactory, _ := runType.NewSovereignRunTypeComponentsFactory(runTypeComponentsFactory)
+	managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(sovereignComponentsFactory)
+	if err != nil {
+		log.Error("getRunTypeComponents NewManagedRunTypeComponents", "error", err.Error())
+		return nil
+	}
+	err = managedRunTypeComponents.Create()
+	if err != nil {
+		log.Error("getRunTypeComponents Create", "error", err.Error())
+		return nil
+	}
+	return managedRunTypeComponents
 }
 
 // DummyLoadSkPkFromPemFile -

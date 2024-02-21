@@ -55,7 +55,7 @@ func (mpc *managedProcessComponents) Create() error {
 	return nil
 }
 
-// Close will close all underlying sub-components
+// Close will close all underlying subcomponents
 func (mpc *managedProcessComponents) Close() error {
 	mpc.mutProcessComponents.Lock()
 	defer mpc.mutProcessComponents.Unlock()
