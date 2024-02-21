@@ -330,7 +330,7 @@ func (cmv *consensusMessageValidator) checkMessageWithBlockBodyValidity(cnsMsg *
 			logger.DisplayByteSlice(cnsMsg.PubKey))
 	}
 
-	if len(cnsMsg.Body) > core.MegabyteSize*100 {
+	if len(cnsMsg.Body) > core.MegabyteSize*1000 {
 		return fmt.Errorf("%w : received body from consensus topic has an invalid size: %d",
 			ErrInvalidBodySize,
 			len(cnsMsg.Body))
