@@ -49,8 +49,7 @@ const maxCap = "00"          // no cap
 const hexServiceFee = "0ea1" // 37.45%
 const walletAddressBytesLen = 32
 
-var initialDelegationValue = big.NewInt(0).Mul(oneEGLD, big.NewInt(1250)) // 1250 EGLD
-// var stakeValue = big.NewInt(0).Mul(oneEGLD, big.NewInt(1250)) // 1250 EGLD
+var initialDelegationValue = big.NewInt(0).Mul(oneEGLD, big.NewInt(1250))
 var zeroValue = big.NewInt(0)
 var oneEGLD = big.NewInt(1000000000000000000)
 var minimumStakeValue = big.NewInt(0).Mul(oneEGLD, big.NewInt(2500))

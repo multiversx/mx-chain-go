@@ -1,6 +1,6 @@
 package dtos
 
-// WalletKey holds the public and the private key of a wallet bey
+// WalletKey holds the public and the private key of a wallet
 type WalletKey struct {
 	Address       WalletAddress `json:"address"`
 	PrivateKeyHex string        `json:"privateKeyHex"`
