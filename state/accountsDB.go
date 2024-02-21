@@ -18,7 +18,6 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/common/holders"
-	"github.com/multiversx/mx-chain-go/state/accountsCache"
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
@@ -81,10 +80,9 @@ type AccountsDB struct {
 	obsoleteDataTrieHashes map[string][][]byte
 	snapshotsManger        SnapshotsManager
 
-	lastRootHash  []byte
-	dataTries     common.TriesHolder
-	entries       []JournalEntry
-	accountsCache AccountsCache
+	lastRootHash []byte
+	dataTries    common.TriesHolder
+	entries      []JournalEntry
 
 	mutOp                sync.RWMutex
 	loadCodeMeasurements *loadingMeasurements
@@ -104,7 +102,6 @@ type ArgsAccountsDB struct {
 	StoragePruningManager StoragePruningManager
 	AddressConverter      core.PubkeyConverter
 	SnapshotsManager      SnapshotsManager
-	// TODO add the cache
 }
 
 // NewAccountsDB creates a new account manager
@@ -133,7 +130,6 @@ func createAccountsDb(args ArgsAccountsDB) *AccountsDB {
 		},
 		addressConverter: args.AddressConverter,
 		snapshotsManger:  args.SnapshotsManager,
-		accountsCache:    accountsCache.NewAccountsCache(),
 	}
 }
 
@@ -220,7 +216,8 @@ func (adb *AccountsDB) ImportAccount(account vmcommon.AccountHandler) error {
 		return fmt.Errorf("%w in accountsDB ImportAccount", ErrNilAccountHandler)
 	}
 
-	return adb.saveAccount(account)
+	mainTrie := adb.getMainTrie()
+	return adb.saveAccountToTrie(account, mainTrie)
 }
 
 func (adb *AccountsDB) getMainTrie() common.Trie {
@@ -247,7 +244,7 @@ func (adb *AccountsDB) SaveAccount(account vmcommon.AccountHandler) error {
 
 	var entry JournalEntry
 	if check.IfNil(oldAccount) {
-		entry, err = NewJournalEntryAccountCreation(account.AddressBytes(), adb.accountsCache)
+		entry, err = NewJournalEntryAccountCreation(account.AddressBytes(), adb.mainTrie)
 		if err != nil {
 			return err
 		}
@@ -265,7 +262,7 @@ func (adb *AccountsDB) SaveAccount(account vmcommon.AccountHandler) error {
 		return err
 	}
 
-	return adb.saveAccount(account)
+	return adb.saveAccountToTrie(account, adb.mainTrie)
 }
 
 func (adb *AccountsDB) saveCodeAndDataTrie(oldAcc, newAcc vmcommon.AccountHandler) error {
@@ -483,8 +480,8 @@ func (adb *AccountsDB) saveDataTrie(accountHandler BaseAccountHandler) error {
 	return nil
 }
 
-func (adb *AccountsDB) saveAccount(accountHandler vmcommon.AccountHandler) error {
-	log.Trace("accountsDB.saveAccount",
+func (adb *AccountsDB) saveAccountToTrie(accountHandler vmcommon.AccountHandler, mainTrie common.Trie) error {
+	log.Trace("accountsDB.saveAccountToTrie",
 		"address", hex.EncodeToString(accountHandler.AddressBytes()),
 	)
 
@@ -494,8 +491,7 @@ func (adb *AccountsDB) saveAccount(accountHandler vmcommon.AccountHandler) error
 		return err
 	}
 
-	adb.accountsCache.SaveAccount(accountHandler.AddressBytes(), buff)
-	return nil
+	return mainTrie.Update(accountHandler.AddressBytes(), buff)
 }
 
 // RemoveAccount removes the account data from underlying trie.
@@ -628,7 +624,7 @@ func (adb *AccountsDB) LoadAccount(address []byte) (vmcommon.AccountHandler, err
 }
 
 func (adb *AccountsDB) getAccount(address []byte, mainTrie common.Trie) (vmcommon.AccountHandler, error) {
-	val, err := adb.getAccountBytes(address, mainTrie)
+	val, _, err := mainTrie.Get(address)
 	if err != nil {
 		return nil, err
 	}
@@ -647,21 +643,6 @@ func (adb *AccountsDB) getAccount(address []byte, mainTrie common.Trie) (vmcommo
 	}
 
 	return acnt, nil
-}
-
-func (adb *AccountsDB) getAccountBytes(address []byte, mainTrie common.Trie) ([]byte, error) {
-	accountBytes := adb.accountsCache.GetAccount(address)
-	if len(accountBytes) != 0 {
-		return accountBytes, nil
-	}
-
-	val, _, err := mainTrie.Get(address)
-	if err != nil {
-		return nil, err
-	}
-	adb.accountsCache.SaveAccount(address, val)
-
-	return val, nil
 }
 
 // GetExistingAccount returns an existing account if exists or nil if missing
@@ -764,7 +745,6 @@ func (adb *AccountsDB) RevertToSnapshot(snapshot int) error {
 
 	if snapshot == 0 {
 		log.Trace("revert snapshot to adb.lastRootHash", "hash", adb.lastRootHash)
-		adb.accountsCache.RevertLatestChanges()
 		return adb.recreateTrie(holders.NewRootHashHolder(adb.lastRootHash, core.OptionalUint32{}))
 	}
 
@@ -775,7 +755,7 @@ func (adb *AccountsDB) RevertToSnapshot(snapshot int) error {
 		}
 
 		if !check.IfNil(account) {
-			err = adb.saveAccount(account)
+			err = adb.saveAccountToTrie(account, adb.mainTrie)
 			if err != nil {
 				return err
 			}
@@ -854,12 +834,7 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 	oldRoot := adb.mainTrie.GetOldRoot()
 
 	// Step 2. commit main trie
-	err := adb.accountsCache.UpdateTrieWithLatestChanges(adb.mainTrie)
-	if err != nil {
-		return nil, err
-	}
-
-	err = adb.commitTrie(adb.mainTrie, oldHashes, newHashes)
+	err := adb.commitTrie(adb.mainTrie, oldHashes, newHashes)
 	if err != nil {
 		return nil, err
 	}
