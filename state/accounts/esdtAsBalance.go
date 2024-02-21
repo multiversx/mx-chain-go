@@ -2,6 +2,7 @@ package accounts
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/errors"
@@ -17,7 +18,17 @@ type esdtAsBalance struct {
 }
 
 // NewESDTAsBalance creates the esdtAsBalance component
-func NewESDTAsBalance(baseTokenID string) (*esdtAsBalance, error) {
+func NewESDTAsBalance(
+	baseTokenID string,
+	marshaller marshal.Marshalizer,
+) (*esdtAsBalance, error) {
+	if check.IfNil(marshaller) {
+		return nil, errors.ErrNilMarshalizer
+	}
+	if len(baseTokenID) == 0 {
+		return nil, errors.ErrEmptyBaseToken
+	}
+
 	e := &esdtAsBalance{keyPrefix: []byte(baseESDTKeyPrefix + baseTokenID)}
 
 	return e, nil
