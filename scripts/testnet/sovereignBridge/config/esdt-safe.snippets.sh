@@ -3,12 +3,15 @@ ESDT_SAFE_ADDRESS_SOVEREIGN=$(mxpy data load --partition=${CHAIN_ID} --key=addre
 
 deployEsdtSafeContract() {
     mxpy --verbose contract deploy \
-        --bytecode="${ROOT}/${ESDT_SAFE_WASM}" \
+        --bytecode="${ESDT_SAFE_WASM}" \
         --pem=${WALLET} \
         --proxy=${PROXY} \
         --chain=${CHAIN_ID} \
         --gas-limit=200000000 \
-        --arguments ${MIN_VALID_SIGNERS} ${INITIATOR_ADDRESS} ${SIGNERS} \
+        --arguments \
+            ${MIN_VALID_SIGNERS} \
+            ${INITIATOR_ADDRESS} \
+            ${SIGNERS} \
         --outfile="${SCRIPT_PATH}/deploy-esdt-safe.interaction.json" \
         --recall-nonce \
         --wait-result \
@@ -28,13 +31,21 @@ deployEsdtSafeContract() {
     SOVEREIGN_CONTRACT_ADDRESS=$(firstSovereignContractAddress)
     mxpy data store --partition=${CHAIN_ID} --key=address-esdt-safe-contract-sovereign --value=${SOVEREIGN_CONTRACT_ADDRESS}
     ESDT_SAFE_ADDRESS_SOVEREIGN=$(mxpy data load --partition=${CHAIN_ID} --key=address-esdt-safe-contract-sovereign)
-    echo -e "\nESDT Safe sovereign contract: ${SOVEREIGN_CONTRACT_ADDRESS}"
 }
 
 pauseEsdtSafeContract() {
-    CHECK_VARIABLES ESDT_SAFE_ADDRESS || return
+    pauseEsdtSafe ${ESDT_SAFE_ADDRESS}
+}
+pauseEsdtSafeContractSovereign() {
+    pauseEsdtSafe ${ESDT_SAFE_ADDRESS_SOVEREIGN}
+}
+pauseEsdtSafe() {
+    if [ $# -eq 0 ]; then
+        echo "No arguments provided"
+        return
+    fi
 
-    mxpy --verbose contract call ${ESDT_SAFE_ADDRESS} \
+    mxpy --verbose contract call $1\
         --pem=${WALLET} \
         --proxy=${PROXY} \
         --chain=${CHAIN_ID} \
@@ -46,9 +57,18 @@ pauseEsdtSafeContract() {
 }
 
 unpauseEsdtSafeContract() {
-    CHECK_VARIABLES ESDT_SAFE_ADDRESS || return
+    unpauseEsdtSafe ${ESDT_SAFE_ADDRESS}
+}
+unpauseEsdtSafeContractSovereign() {
+    unpauseEsdtSafe ${ESDT_SAFE_ADDRESS_SOVEREIGN}
+}
+unpauseEsdtSafe() {
+    if [ $# -eq 0 ]; then
+        echo "No arguments provided"
+        return
+    fi
 
-    mxpy --verbose contract call ${ESDT_SAFE_ADDRESS} \
+    mxpy --verbose contract call $1 \
         --pem=${WALLET} \
         --proxy=${PROXY} \
         --chain=${CHAIN_ID} \
@@ -60,15 +80,39 @@ unpauseEsdtSafeContract() {
 }
 
 setFeeMarketAddress() {
-    CHECK_VARIABLES ESDT_SAFE_ADDRESS || return
+    setFeeMarket ${ESDT_SAFE_ADDRESS} ${FEE_MARKET_ADDRESS}
+}
+setFeeMarketAddressSovereign() {
+    setFeeMarket ${ESDT_SAFE_ADDRESS_SOVEREIGN} ${FEE_MARKET_ADDRESS_SOVEREIGN}
+}
+setFeeMarket() {
+    if [ $# -eq 0 ]; then
+        echo "No arguments provided"
+        return
+    fi
+
+    mxpy --verbose contract call $1 \
+        --pem=${WALLET} \
+        --proxy=${PROXY} \
+        --chain=${CHAIN_ID} \
+        --gas-limit=10000000 \
+        --function="setFeeMarketAddress" \
+        --arguments $2 \
+        --recall-nonce \
+        --wait-result \
+        --send || return
+}
+
+changeEsdtSafeContractOwnerToMultisig() {
+    CHECK_VARIABLES ESDT_SAFE_ADDRESS MULTISIG_VERIFIER_ADDRESS || return
 
     mxpy --verbose contract call ${ESDT_SAFE_ADDRESS} \
         --pem=${WALLET} \
         --proxy=${PROXY} \
         --chain=${CHAIN_ID} \
         --gas-limit=10000000 \
-        --function="setFeeMarketAddress" \
-        --arguments ${FEE_MARKET_ADDRESS} \
+        --function="ChangeOwnerAddress" \
+        --arguments ${MULTISIG_VERIFIER_ADDRESS} \
         --recall-nonce \
         --wait-result \
         --send || return

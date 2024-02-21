@@ -1,15 +1,18 @@
 FEE_MARKET_ADDRESS=$(mxpy data load --partition=${CHAIN_ID} --key=address-fee-market-contract)
+FEE_MARKET_ADDRESS_SOVEREIGN=$(mxpy data load --partition=${CHAIN_ID} --key=address-fee-market-contract-sovereign)
 
 deployFeeMarketContract() {
     CHECK_VARIABLES ESDT_SAFE_ADDRESS || return
 
     mxpy --verbose contract deploy \
-        --bytecode="${ROOT}/${FEE_MARKET_WASM}" \
+        --bytecode="${FEE_MARKET_WASM}" \
         --pem=${WALLET} \
         --proxy=${PROXY} \
         --chain=${CHAIN_ID} \
         --gas-limit=200000000 \
-        --arguments ${ESDT_SAFE_ADDRESS} ${PRICE_AGGREGATOR_ADDRESS} \
+        --arguments \
+            ${ESDT_SAFE_ADDRESS} \
+            ${PRICE_AGGREGATOR_ADDRESS} \
         --outfile="${SCRIPT_PATH}/deploy-fee-market.interaction.json" \
         --recall-nonce \
         --wait-result \
@@ -25,12 +28,25 @@ deployFeeMarketContract() {
     mxpy data store --partition=${CHAIN_ID} --key=address-fee-market-contract --value=${ADDRESS}
     FEE_MARKET_ADDRESS=$(mxpy data load --partition=${CHAIN_ID} --key=address-fee-market-contract)
     echo -e "\nFee Market contract: ${ADDRESS}"
+
+    SOVEREIGN_CONTRACT_ADDRESS=$(secondSovereignContractAddress)
+    mxpy data store --partition=${CHAIN_ID} --key=address-fee-market-contract-sovereign --value=${SOVEREIGN_CONTRACT_ADDRESS}
+    FEE_MARKET_ADDRESS_SOVEREIGN=$(mxpy data load --partition=${CHAIN_ID} --key=address-fee-market-contract-sovereign)
 }
 
 enableFeeMarketContract() {
-    CHECK_VARIABLES FEE_MARKET_ADDRESS || return
+    enableFeeMarket ${FEE_MARKET_ADDRESS}
+}
+enableFeeMarketContractSovereign() {
+    enableFeeMarket ${FEE_MARKET_ADDRESS_SOVEREIGN}
+}
+enableFeeMarket() {
+    if [ $# -eq 0 ]; then
+        echo "No arguments provided"
+        return
+    fi
 
-    mxpy --verbose contract call ${FEE_MARKET_ADDRESS} \
+    mxpy --verbose contract call $1 \
         --pem=${WALLET} \
         --proxy=${PROXY} \
         --chain=${CHAIN_ID} \
@@ -42,9 +58,18 @@ enableFeeMarketContract() {
 }
 
 disableFeeMarketContract() {
-    CHECK_VARIABLES FEE_MARKET_ADDRESS || return
+    disableFeeMarket ${FEE_MARKET_ADDRESS}
+}
+disableFeeMarketContractSovereign() {
+    disableFeeMarket ${FEE_MARKET_ADDRESS_SOVEREIGN}
+}
+disableFeeMarket() {
+    if [ $# -eq 0 ]; then
+        echo "No arguments provided"
+        return
+    fi
 
-    mxpy --verbose contract call ${FEE_MARKET_ADDRESS} \
+    mxpy --verbose contract call $1 \
         --pem=${WALLET} \
         --proxy=${PROXY} \
         --chain=${CHAIN_ID} \

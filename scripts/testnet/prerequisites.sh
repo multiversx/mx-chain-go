@@ -73,12 +73,6 @@ if [ "$SOVEREIGN_DEPLOY" -eq 1 ]; then
     ./cert
 
     popd
-
-    pushd .
-    git clone https://github.com/multiversx/mx-sovereign-sc.git
-    cd mx-sovereign-sc
-    git checkout master
-    popd
 fi
 
 if [[ $USE_TXGEN -eq 1 ]]; then

@@ -33,16 +33,23 @@ depositTokenInSC() {
 
     AMOUNT_TO_TRANSFER=$(echo "scale=0; $DEPOSIT_TOKEN_AMOUNT_TO_TRANSFER*10^$DEPOSIT_TOKEN_NR_DECIMALS/1" | bc)
 
-    mxpy --verbose contract call ${ESDT_SAFE_ADDRESS} \
+    mxpy --verbose contract call ${WALLET_ADDRESS} \
         --pem=${WALLET} \
         --proxy=${PROXY} \
         --chain=${CHAIN_ID} \
-        --gas-limit=10000000 \
-        --function="ESDTTransfer" \
+        --gas-limit=20000000 \
+        --function="MultiESDTNFTTransfer" \
         --arguments \
+            ${ESDT_SAFE_ADDRESS}
+            2 \
             str:${DEPOSIT_TOKEN_IDENTIFIER} \
+            0 \
+            ${AMOUNT_TO_TRANSFER} \
+            str:${DEPOSIT_TOKEN_IDENTIFIER} \
+            0 \
             ${AMOUNT_TO_TRANSFER} \
             str:deposit \
+            ${WALLET_ADDRESS} \
         --recall-nonce \
         --wait-result \
         --send || return
