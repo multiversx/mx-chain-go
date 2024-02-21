@@ -10,7 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/sharding"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
-	processGenesis "github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
@@ -60,9 +59,6 @@ func NewChainSimulator(args ArgsChainSimulator) (*simulator, error) {
 		chanStopNodeProcess:    make(chan endProcess.ArgEndProcess),
 		mutex:                  sync.RWMutex{},
 	}
-
-	processGenesis.SetGenesisNonce(args.InitialNonce)
-	processGenesis.SetGenesisRound(uint64(args.InitialRound))
 
 	err := instance.createChainHandlers(args)
 	if err != nil {
@@ -140,6 +136,7 @@ func (s *simulator) createTestNode(
 		APIInterface:           args.ApiInterface,
 		BypassTxSignatureCheck: args.BypassTxSignatureCheck,
 		InitialRound:           args.InitialRound,
+		InitialNonce:           args.InitialNonce,
 		MinNodesPerShard:       args.MinNodesPerShard,
 		MinNodesMeta:           args.MetaChainMinNodes,
 	}

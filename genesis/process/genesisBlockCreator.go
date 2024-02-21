@@ -38,9 +38,6 @@ import (
 
 const accountStartNonce = uint64(0)
 
-var genesisNonce uint64
-var genesisRound uint64
-
 type genesisBlockCreator struct {
 	arg                 ArgsGenesisBlockCreator
 	initialIndexingData map[uint32]*genesis.IndexingData
@@ -85,17 +82,7 @@ func getGenesisBlocksRoundNonceEpoch(arg ArgsGenesisBlockCreator) (uint64, uint6
 	if arg.HardForkConfig.AfterHardFork {
 		return arg.HardForkConfig.StartRound, arg.HardForkConfig.StartNonce, arg.HardForkConfig.StartEpoch
 	}
-	return genesisRound, genesisNonce, arg.GenesisEpoch
-}
-
-// SetGenesisRound will set the genesis round
-func SetGenesisRound(round uint64) {
-	genesisRound = round
-}
-
-// SetGenesisNonce will set the genesis nonce
-func SetGenesisNonce(nonce uint64) {
-	genesisNonce = nonce
+	return arg.GenesisRound, arg.GenesisNonce, arg.GenesisEpoch
 }
 
 func (gbc *genesisBlockCreator) createHardForkImportHandler() error {
