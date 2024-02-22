@@ -6,7 +6,7 @@ import (
 )
 
 // CheckAccount -
-func (txv *txValidator) CheckAccount(
+func (txv *TxValidator) CheckAccount(
 	interceptedTx process.InterceptedTransactionHandler,
 	accountHandler vmcommon.AccountHandler,
 ) error {

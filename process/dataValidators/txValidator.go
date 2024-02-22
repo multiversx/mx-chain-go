@@ -12,12 +12,12 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
-var _ process.TxValidator = (*txValidator)(nil)
+var _ process.TxValidator = (*TxValidator)(nil)
 
 var log = logger.GetOrCreate("process/dataValidators")
 
-// txValidator represents a tx handler validator that doesn't check the validity of provided txHandler
-type txValidator struct {
+// TxValidator represents a tx handler validator that doesn't check the validity of provided txHandler
+type TxValidator struct {
 	accounts             state.AccountsAdapter
 	shardCoordinator     sharding.Coordinator
 	whiteListHandler     process.WhiteListHandler
@@ -34,7 +34,7 @@ func NewTxValidator(
 	pubKeyConverter core.PubkeyConverter,
 	txVersionChecker process.TxVersionCheckerHandler,
 	maxNonceDeltaAllowed int,
-) (*txValidator, error) {
+) (*TxValidator, error) {
 	if check.IfNil(accounts) {
 		return nil, process.ErrNilAccountsAdapter
 	}
@@ -51,7 +51,7 @@ func NewTxValidator(
 		return nil, process.ErrNilTransactionVersionChecker
 	}
 
-	return &txValidator{
+	return &TxValidator{
 		accounts:             accounts,
 		shardCoordinator:     shardCoordinator,
 		whiteListHandler:     whiteListHandler,
@@ -61,8 +61,12 @@ func NewTxValidator(
 	}, nil
 }
 
+func (txv *TxValidator) GetAccounts() state.AccountsAdapter {
+	return txv.accounts
+}
+
 // CheckTxValidity will filter transactions that needs to be added in pools
-func (txv *txValidator) CheckTxValidity(interceptedTx process.InterceptedTransactionHandler) error {
+func (txv *TxValidator) CheckTxValidity(interceptedTx process.InterceptedTransactionHandler) error {
 	interceptedData, ok := interceptedTx.(process.InterceptedData)
 	if ok {
 		if txv.whiteListHandler.IsWhiteListed(interceptedData) {
@@ -82,7 +86,7 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.InterceptedTransac
 	return txv.checkAccount(interceptedTx, accountHandler)
 }
 
-func (txv *txValidator) checkAccount(
+func (txv *TxValidator) checkAccount(
 	interceptedTx process.InterceptedTransactionHandler,
 	accountHandler vmcommon.AccountHandler,
 ) error {
@@ -99,7 +103,7 @@ func (txv *txValidator) checkAccount(
 	return txv.checkBalance(interceptedTx, account)
 }
 
-func (txv *txValidator) getSenderUserAccount(
+func (txv *TxValidator) getSenderUserAccount(
 	interceptedTx process.InterceptedTransactionHandler,
 	accountHandler vmcommon.AccountHandler,
 ) (state.UserAccountHandler, error) {
@@ -114,7 +118,7 @@ func (txv *txValidator) getSenderUserAccount(
 	return account, nil
 }
 
-func (txv *txValidator) checkBalance(interceptedTx process.InterceptedTransactionHandler, account state.UserAccountHandler) error {
+func (txv *TxValidator) checkBalance(interceptedTx process.InterceptedTransactionHandler, account state.UserAccountHandler) error {
 	accountBalance := account.GetBalance()
 	txFee := interceptedTx.Fee()
 	if accountBalance.Cmp(txFee) < 0 {
@@ -130,7 +134,7 @@ func (txv *txValidator) checkBalance(interceptedTx process.InterceptedTransactio
 	return nil
 }
 
-func (txv *txValidator) checkNonce(interceptedTx process.InterceptedTransactionHandler, accountHandler vmcommon.AccountHandler) error {
+func (txv *TxValidator) checkNonce(interceptedTx process.InterceptedTransactionHandler, accountHandler vmcommon.AccountHandler) error {
 	accountNonce := accountHandler.GetNonce()
 	txNonce := interceptedTx.Nonce()
 	lowerNonceInTx := txNonce < accountNonce
@@ -145,11 +149,11 @@ func (txv *txValidator) checkNonce(interceptedTx process.InterceptedTransactionH
 	return nil
 }
 
-func (txv *txValidator) isSenderInDifferentShard(interceptedTx process.InterceptedTransactionHandler) bool {
+func (txv *TxValidator) isSenderInDifferentShard(interceptedTx process.InterceptedTransactionHandler) bool {
 	return false
 }
 
-func (txv *txValidator) getSenderAccount(interceptedTx process.InterceptedTransactionHandler) (vmcommon.AccountHandler, error) {
+func (txv *TxValidator) getSenderAccount(interceptedTx process.InterceptedTransactionHandler) (vmcommon.AccountHandler, error) {
 	senderAddress := interceptedTx.SenderAddress()
 	accountHandler, err := txv.accounts.GetExistingAccount(senderAddress)
 	if err != nil {
@@ -174,7 +178,7 @@ func getTxData(interceptedTx process.InterceptedTransactionHandler) ([]byte, err
 }
 
 // CheckTxWhiteList will check if the cross shard transactions are whitelisted and could be added in pools
-func (txv *txValidator) CheckTxWhiteList(data process.InterceptedData) error {
+func (txv *TxValidator) CheckTxWhiteList(data process.InterceptedData) error {
 	interceptedTx, ok := data.(process.InterceptedTransactionHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
@@ -194,6 +198,6 @@ func (txv *txValidator) CheckTxWhiteList(data process.InterceptedData) error {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (txv *txValidator) IsInterfaceNil() bool {
+func (txv *TxValidator) IsInterfaceNil() bool {
 	return txv == nil
 }

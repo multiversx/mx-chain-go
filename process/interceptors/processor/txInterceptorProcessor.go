@@ -35,6 +35,10 @@ func NewTxInterceptorProcessor(argument *ArgTxInterceptorProcessor) (*TxIntercep
 	}, nil
 }
 
+func (txip *TxInterceptorProcessor) GetValidator() process.TxValidator {
+	return txip.txValidator
+}
+
 // Validate checks if the intercepted data can be processed
 func (txip *TxInterceptorProcessor) Validate(data process.InterceptedData, _ core.PeerID) error {
 	interceptedTx, ok := data.(process.InterceptedTransactionHandler)
