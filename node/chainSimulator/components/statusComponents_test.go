@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/process"
@@ -103,12 +104,12 @@ func TestStatusComponentsHolder_StartPolling(t *testing.T) {
 
 		providedHighestNonce := uint64(123)
 		providedStatusPollingIntervalSec := 1
-		wasSetUInt64ValueCalled := false
+		wasSetUInt64ValueCalled := atomic.Flag{}
 		appStatusHandler := &statusHandler.AppStatusHandlerStub{
 			SetUInt64ValueHandler: func(key string, value uint64) {
 				require.Equal(t, common.MetricProbableHighestNonce, key)
 				require.Equal(t, providedHighestNonce, value)
-				wasSetUInt64ValueCalled = true
+				wasSetUInt64ValueCalled.SetValue(true)
 			},
 		}
 		comp, err := CreateStatusComponents(0, appStatusHandler, providedStatusPollingIntervalSec)
@@ -126,7 +127,7 @@ func TestStatusComponentsHolder_StartPolling(t *testing.T) {
 		require.NoError(t, err)
 
 		time.Sleep(time.Duration(providedStatusPollingIntervalSec+1) * time.Second)
-		require.True(t, wasSetUInt64ValueCalled)
+		require.True(t, wasSetUInt64ValueCalled.IsSet())
 
 		require.Nil(t, comp.Close())
 	})
