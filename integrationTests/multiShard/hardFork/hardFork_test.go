@@ -407,8 +407,6 @@ func hardForkImport(
 		dataComponents.DataPool = node.DataPool
 		dataComponents.BlockChain = node.BlockChain
 
-		roundConfig := testscommon.GetDefaultRoundsConfig()
-
 		argsGenesis := process.ArgsGenesisBlockCreator{
 			GenesisTime:       0,
 			StartEpochNum:     100,
@@ -492,7 +490,8 @@ func hardForkImport(
 					DelegationSmartContractEnableEpoch: 0,
 				},
 			},
-			RoundConfig:             roundConfig,
+			RoundConfig:             testscommon.GetDefaultRoundsConfig(),
+			HeaderVersionConfigs:    testscommon.GetDefaultHeaderVersionConfig(),
 			HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 			TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 		}

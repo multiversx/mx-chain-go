@@ -665,8 +665,6 @@ func CreateFullGenesisBlocks(
 	dataComponents.DataPool = dataPool
 	dataComponents.BlockChain = blkc
 
-	roundsConfig := testscommon.GetDefaultRoundsConfig()
-
 	argsGenesis := genesisProcess.ArgsGenesisBlockCreator{
 		Core:              coreComponents,
 		Data:              dataComponents,
@@ -732,7 +730,8 @@ func CreateFullGenesisBlocks(
 		EpochConfig: config.EpochConfig{
 			EnableEpochs: enableEpochsConfig,
 		},
-		RoundConfig:             roundsConfig,
+		RoundConfig:             testscommon.GetDefaultRoundsConfig(),
+		HeaderVersionConfigs:    testscommon.GetDefaultHeaderVersionConfig(),
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 	}
@@ -839,6 +838,7 @@ func CreateGenesisMetaBlock(
 			EnableEpochs: enableEpochsConfig,
 		},
 		RoundConfig:             testscommon.GetDefaultRoundsConfig(),
+		HeaderVersionConfigs:    testscommon.GetDefaultHeaderVersionConfig(),
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 	}

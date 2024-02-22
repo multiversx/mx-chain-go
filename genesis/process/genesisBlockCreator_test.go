@@ -13,6 +13,8 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -172,15 +174,15 @@ func createMockArgument(
 				SCProcessorV2EnableEpoch:          unreachableEpoch,
 			},
 		},
-		RoundConfig: config.RoundConfig{
-			RoundActivations: map[string]config.ActivationRoundByName{
-				"DisableAsyncCallV1": {
-					Round: "18446744073709551615",
-				},
-			},
-		},
+		RoundConfig:             testscommon.GetDefaultRoundsConfig(),
+		HeaderVersionConfigs:    testscommon.GetDefaultHeaderVersionConfig(),
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
+		versionedHeaderFactory: &testscommon.VersionedHeaderFactoryStub{
+			CreateCalled: func(epoch uint32) data.HeaderHandler {
+				return &block.Header{}
+			},
+		},
 	}
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{

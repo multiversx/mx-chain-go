@@ -159,22 +159,10 @@ func CreateShardGenesisBlock(
 	)
 
 	round, nonce, epoch := getGenesisBlocksRoundNonceEpoch(arg)
-	header := &block.Header{
-		Epoch:           epoch,
-		Round:           round,
-		Nonce:           nonce,
-		ShardID:         arg.ShardCoordinator.SelfId(),
-		BlockBodyType:   block.StateBlock,
-		PubKeysBitmap:   []byte{1},
-		Signature:       rootHash,
-		RootHash:        rootHash,
-		PrevRandSeed:    rootHash,
-		RandSeed:        rootHash,
-		TimeStamp:       arg.GenesisTime,
-		AccumulatedFees: big.NewInt(0),
-		DeveloperFees:   big.NewInt(0),
-		ChainID:         []byte(arg.Core.ChainID()),
-		SoftwareVersion: []byte(""),
+	headerHandler := arg.versionedHeaderFactory.Create(epoch)
+	err = setInitialDataInHeader(headerHandler, arg, epoch, nonce, round, rootHash)
+	if err != nil {
+		return nil, nil, nil, err
 	}
 
 	err = processors.vmContainer.Close()
@@ -187,7 +175,46 @@ func CreateShardGenesisBlock(
 		return nil, nil, nil, err
 	}
 
-	return header, scAddresses, indexingData, nil
+	return headerHandler, scAddresses, indexingData, nil
+}
+
+func setInitialDataInHeader(
+	headerHandler data.HeaderHandler,
+	arg ArgsGenesisBlockCreator,
+	epoch uint32,
+	nonce uint64,
+	round uint64,
+	rootHash []byte,
+) error {
+	shardHeaderHandler, ok := headerHandler.(data.ShardHeaderHandler)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	setErrors := make([]error, 0)
+	setErrors = append(setErrors, shardHeaderHandler.SetEpoch(epoch))
+	setErrors = append(setErrors, shardHeaderHandler.SetNonce(nonce))
+	setErrors = append(setErrors, shardHeaderHandler.SetRound(round))
+	setErrors = append(setErrors, shardHeaderHandler.SetShardID(arg.ShardCoordinator.SelfId()))
+	setErrors = append(setErrors, shardHeaderHandler.SetBlockBodyTypeInt32(int32(block.StateBlock)))
+	setErrors = append(setErrors, shardHeaderHandler.SetPubKeysBitmap([]byte{1}))
+	setErrors = append(setErrors, shardHeaderHandler.SetSignature(rootHash))
+	setErrors = append(setErrors, shardHeaderHandler.SetRootHash(rootHash))
+	setErrors = append(setErrors, shardHeaderHandler.SetPrevRandSeed(rootHash))
+	setErrors = append(setErrors, shardHeaderHandler.SetRandSeed(rootHash))
+	setErrors = append(setErrors, shardHeaderHandler.SetTimeStamp(arg.GenesisTime))
+	setErrors = append(setErrors, shardHeaderHandler.SetAccumulatedFees(big.NewInt(0)))
+	setErrors = append(setErrors, shardHeaderHandler.SetDeveloperFees(big.NewInt(0)))
+	setErrors = append(setErrors, shardHeaderHandler.SetChainID([]byte(arg.Core.ChainID())))
+	setErrors = append(setErrors, shardHeaderHandler.SetSoftwareVersion([]byte("")))
+
+	for _, err := range setErrors {
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func createShardGenesisBlockAfterHardFork(

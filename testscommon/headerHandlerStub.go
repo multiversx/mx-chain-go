@@ -12,6 +12,7 @@ type HeaderHandlerStub struct {
 	EpochField                             uint32
 	RoundField                             uint64
 	TimestampField                         uint64
+	BlockBodyTypeInt32Field                int32
 	GetMiniBlockHeadersWithDstCalled       func(destId uint32) map[string]uint32
 	GetOrderedCrossMiniblocksWithDstCalled func(destId uint32) []*data.MiniBlockInfo
 	GetPubKeysBitmapCalled                 func() []byte
@@ -290,7 +291,7 @@ func (hhs *HeaderHandlerStub) GetMetaBlockHashes() [][]byte {
 
 // GetBlockBodyTypeInt32 -
 func (hhs *HeaderHandlerStub) GetBlockBodyTypeInt32() int32 {
-	panic("implement me")
+	return hhs.BlockBodyTypeInt32Field
 }
 
 // GetValidatorStatsRootHash -
@@ -418,4 +419,11 @@ func (hhs *HeaderHandlerStub) HasScheduledMiniBlocks() bool {
 		return hhs.HasScheduledMiniBlocksCalled()
 	}
 	return false
+}
+
+// SetBlockBodyTypeInt32 -
+func (hhs *HeaderHandlerStub) SetBlockBodyTypeInt32(blockBodyType int32) error {
+	hhs.BlockBodyTypeInt32Field = blockBodyType
+
+	return nil
 }
