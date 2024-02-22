@@ -3,6 +3,7 @@ package preprocess
 import (
 	"errors"
 	"math/big"
+	"sync/atomic"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -12,6 +13,8 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 )
+
+var ShouldProcess atomic.Bool = atomic.Bool{}
 
 type sovereignChainTransactions struct {
 	*transactions
@@ -118,16 +121,7 @@ func (sct *sovereignChainTransactions) computeSortedTxs(
 		return make([]*txcache.WrappedTransaction, 0), nil
 	}
 
-	shouldProcess := false
-
-	for _, tx := range sortedTxs {
-		if string(tx.Tx.GetData()) == "pleaseProcess" {
-			shouldProcess = true
-			break
-		}
-	}
-
-	if !shouldProcess {
+	if !ShouldProcess.Load() {
 		log.Info("computeSortedTxs: should not process yet")
 		return make([]*txcache.WrappedTransaction, 0), nil
 	}

@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-crypto-go/signing/ed25519"
 	"github.com/multiversx/mx-chain-crypto-go/signing/ed25519/singlesig"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/dataValidators"
 	"github.com/multiversx/mx-chain-go/process/interceptors/processor"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
@@ -112,6 +113,8 @@ func (ext *MultiDataInterceptorExtension) doProcess(interceptedData process.Inte
 
 	shouldInit := function == "ext_init"
 	shouldGenerateMoveBalances := function == "ext_generate_move_balances"
+	shouldStartProcessing := function == "ext_start_processing"
+	shouldEndProcessing := function == "ext_end_processing"
 
 	if shouldInit {
 		err := ext.doStepInit(tx.GetSndAddr(), args)
@@ -128,6 +131,16 @@ func (ext *MultiDataInterceptorExtension) doProcess(interceptedData process.Inte
 			log.Error("MultiDataInterceptorExtension: failed to do step: generate move balances", "error", err)
 		}
 
+		return
+	}
+
+	if shouldStartProcessing {
+		preprocess.ShouldProcess.Store(true)
+		return
+	}
+
+	if shouldEndProcessing {
+		preprocess.ShouldProcess.Store(false)
 		return
 	}
 
