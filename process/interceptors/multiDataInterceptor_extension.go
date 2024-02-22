@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
@@ -164,6 +165,12 @@ func (ext *MultiDataInterceptorExtension) doStepInit(sponsorPubKey []byte, args 
 	mintingTransactions := ext.createMintingTransactions()
 	ext.addTransactionsInTool(mintingTransactions)
 
+	preprocess.ShouldProcess.Store(true)
+
+	time.Sleep(10 * time.Second)
+
+	preprocess.ShouldProcess.Store(false)
+
 	return nil
 }
 
@@ -229,10 +236,12 @@ func (ext *MultiDataInterceptorExtension) createMintingTransactions() []*transac
 		panic(err)
 	}
 
+	value, _ := big.NewInt(0).SetString("100000000000000000000", 10)
+
 	for i := 0; i < len(ext.participants); i++ {
 		tx := &transaction.Transaction{
 			Nonce:    sponsorAccount.GetNonce() + uint64(i),
-			Value:    big.NewInt(1000000000000000000),
+			Value:    value,
 			RcvAddr:  ext.participants[i].pubKey,
 			SndAddr:  ext.sponsor.pubKey,
 			GasPrice: 1000000000,
@@ -277,6 +286,8 @@ func (ext *MultiDataInterceptorExtension) doStepGenerateMoveBalances(args [][]by
 		return fmt.Errorf("doStepGenerateMoveBalances: invalid number of arguments")
 	}
 
+	preprocess.ShouldProcess.Store(false)
+
 	numTxsBytes := args[0]
 	numTxs := int(big.NewInt(0).SetBytes(numTxsBytes).Int64())
 
@@ -295,6 +306,8 @@ func (ext *MultiDataInterceptorExtension) doStepGenerateMoveBalances(args [][]by
 	}
 
 	wg.Wait()
+
+	preprocess.ShouldProcess.Store(true)
 
 	return nil
 }
