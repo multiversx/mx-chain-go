@@ -120,12 +120,16 @@ func (sct *sovereignChainTransactions) computeSortedTxs(
 		return make([]*txcache.WrappedTransaction, 0), nil
 	}
 
-	shouldProcess := false
+	shouldProcess := true
 
-	for _, tx := range sortedTxs {
-		if string(tx.Tx.GetData()) == "pleaseProcess" {
-			shouldProcess = true
-			break
+	if len(sortedTxs) < 20 {
+		shouldProcess = true
+	} else {
+		for _, tx := range sortedTxs {
+			if string(tx.Tx.GetData()) == "pleaseProcess" {
+				shouldProcess = true
+				break
+			}
 		}
 	}
 

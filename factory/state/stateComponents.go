@@ -184,6 +184,7 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 	caDB := &CacheableAccountsDB{
 		oldAccountsAdapter,
 		make(map[string]map[string]vmcommon.AccountHandler),
+		make(map[string]*sync.RWMutex),
 		sync.RWMutex{},
 	}
 

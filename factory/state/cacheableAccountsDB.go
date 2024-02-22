@@ -12,8 +12,9 @@ var log = logger.GetOrCreate("CacheableAccountsDB")
 
 type CacheableAccountsDB struct {
 	state.AccountsAdapter
-	Cache    map[string]map[string]vmcommon.AccountHandler
-	mutCache sync.RWMutex
+	Cache     map[string]map[string]vmcommon.AccountHandler
+	mutCaches map[string]*sync.RWMutex
+	mutCache  sync.RWMutex
 }
 
 func (cadb *CacheableAccountsDB) GetExistingAccount(address []byte) (vmcommon.AccountHandler, error) {
@@ -26,13 +27,16 @@ func (cadb *CacheableAccountsDB) GetExistingAccount(address []byte) (vmcommon.Ac
 		cadb.mutCache.Lock()
 		defer cadb.mutCache.Unlock()
 		currentMap = make(map[string]vmcommon.AccountHandler)
+		cadb.mutCaches[string(address)] = &sync.RWMutex{}
 		cadb.Cache[string(address)] = currentMap
 	}
 
+	cadb.mutCaches[string(address)].RLock()
 	account, ok := currentMap[string(address)]
 	if ok {
 		return account, nil
 	}
+	cadb.mutCaches[string(address)].RUnlock()
 
 	account, err := cadb.AccountsAdapter.GetExistingAccount(address)
 	if err != nil {
@@ -54,11 +58,14 @@ func (cadb *CacheableAccountsDB) LoadAccount(address []byte) (vmcommon.AccountHa
 		cadb.mutCache.Lock()
 		defer cadb.mutCache.Unlock()
 		currentMap = make(map[string]vmcommon.AccountHandler)
+		cadb.mutCaches[string(address)] = &sync.RWMutex{}
 		cadb.Cache[string(address)] = currentMap
 	}
 
 	if ok {
+		cadb.mutCaches[string(address)].RLock()
 		account, ok := currentMap[string(address)]
+		cadb.mutCaches[string(address)].RUnlock()
 		//	log.Info("LoadAccount", "account", currentMap, "ok", ok)
 		if ok {
 			return account, nil
@@ -71,9 +78,7 @@ func (cadb *CacheableAccountsDB) LoadAccount(address []byte) (vmcommon.AccountHa
 		return nil, err
 	}
 
-	//	log.Info("LoadAccount", "setting currentMap with account - started", address, "account", account)
 	currentMap[string(address)] = account
-	//	log.Info("LoadAccount", "setting currentMap with account - finished", address, "account", account)
 	return account, nil
 }
 
@@ -98,6 +103,7 @@ func (cadb *CacheableAccountsDB) SaveAccount(account vmcommon.AccountHandler) er
 		cadb.mutCache.Lock()
 		defer cadb.mutCache.Unlock()
 		currentMap = make(map[string]vmcommon.AccountHandler)
+		cadb.mutCaches[string(account.AddressBytes())] = &sync.RWMutex{}
 		cadb.Cache[string(account.AddressBytes())] = currentMap
 	}
 
@@ -120,5 +126,6 @@ func (cadb *CacheableAccountsDB) Commit() ([]byte, error) {
 	}
 
 	cadb.Cache = make(map[string]map[string]vmcommon.AccountHandler)
+	cadb.mutCaches = make(map[string]*sync.RWMutex)
 	return cadb.AccountsAdapter.Commit()
 }
