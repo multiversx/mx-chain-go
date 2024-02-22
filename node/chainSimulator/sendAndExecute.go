@@ -32,8 +32,8 @@ func (s *simulator) sendTx(tx *transaction.Transaction) (string, error) {
 
 	for {
 		txs, _ := node.GetFacadeHandler().GetTransactionsPool("")
-		for _, tx := range txs.RegularTransactions {
-			if tx.TxFields["hash"] == txHashHex {
+		for _, sentTx := range txs.RegularTransactions {
+			if sentTx.TxFields["hash"] == txHashHex {
 				log.Info("############## send transaction ##############", "txHash", txHashHex)
 				return txHashHex, nil
 			}
@@ -42,6 +42,7 @@ func (s *simulator) sendTx(tx *transaction.Transaction) (string, error) {
 	}
 }
 
+// SendTxsAndGenerateBlockTilTxIsExecuted will send the transactions provided and generate the blocks until the transactions are finished
 func (s *simulator) SendTxsAndGenerateBlockTilTxIsExecuted(txsToSend []*transaction.Transaction, maxNumOfBlockToGenerateWhenExecutingTx int) ([]*transaction.ApiTransactionResult, error) {
 	hashTxIndex := make(map[string]int)
 	for idx, txToSend := range txsToSend {

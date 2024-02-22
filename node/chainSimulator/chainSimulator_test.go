@@ -2,7 +2,6 @@ package chainSimulator
 
 import (
 	"encoding/base64"
-	"fmt"
 	"math/big"
 	"testing"
 	"time"
@@ -109,22 +108,30 @@ func TestChainSimulator_GenerateBlocksAndEpochChangeShouldWork(t *testing.T) {
 	facade, err := NewChainSimulatorFacade(chainSimulator)
 	require.Nil(t, err)
 
-	genesisAddressWithStake := chainSimulator.initialWalletKeys.InitialWalletWithStake.Address
-	initialAccount, err := facade.GetExistingAccountFromBech32AddressString(genesisAddressWithStake)
-	require.Nil(t, err)
+	genesisBalances := make(map[string]*big.Int)
+	for _, stakeWallet := range chainSimulator.initialWalletKeys.StakeWallets {
+		initialAccount, errGet := facade.GetExistingAccountFromBech32AddressString(stakeWallet.Address.Bech32)
+		require.Nil(t, errGet)
+
+		genesisBalances[stakeWallet.Address.Bech32] = initialAccount.GetBalance()
+	}
 
 	time.Sleep(time.Second)
 
 	err = chainSimulator.GenerateBlocks(80)
 	require.Nil(t, err)
 
-	accountAfterRewards, err := facade.GetExistingAccountFromBech32AddressString(genesisAddressWithStake)
-	require.Nil(t, err)
+	numAccountsWithIncreasedBalances := 0
+	for _, stakeWallet := range chainSimulator.initialWalletKeys.StakeWallets {
+		account, errGet := facade.GetExistingAccountFromBech32AddressString(stakeWallet.Address.Bech32)
+		require.Nil(t, errGet)
 
-	assert.True(t, accountAfterRewards.GetBalance().Cmp(initialAccount.GetBalance()) > 0,
-		fmt.Sprintf("initial balance %s, balance after rewards %s", initialAccount.GetBalance().String(), accountAfterRewards.GetBalance().String()))
+		if account.GetBalance().Cmp(genesisBalances[stakeWallet.Address.Bech32]) > 0 {
+			numAccountsWithIncreasedBalances++
+		}
+	}
 
-	fmt.Println(chainSimulator.GetRestAPIInterfaces())
+	assert.True(t, numAccountsWithIncreasedBalances > 0)
 }
 
 func TestChainSimulator_SetState(t *testing.T) {
