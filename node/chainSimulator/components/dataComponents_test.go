@@ -1,7 +1,6 @@
 package components
 
 import (
-	"errors"
 	"testing"
 
 	retriever "github.com/multiversx/mx-chain-go/dataRetriever"
@@ -11,8 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/require"
 )
-
-var expectedErr = errors.New("expected error")
 
 func createArgsDataComponentsHolder() ArgsDataComponentsHolder {
 	return ArgsDataComponentsHolder{
