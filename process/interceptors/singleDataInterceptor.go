@@ -114,7 +114,7 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 	isWhiteListed := sdi.whiteListRequest.IsWhiteListed(interceptedData)
 	if !isWhiteListed && errOriginator != nil {
 		log.Trace("got message from peer on topic only for validators",
-			"originator", p2p.PeerIdToShortString(message.Peer()), "topic",
+			"originator", "placeholder", "topic",
 			sdi.topic, "err", errOriginator)
 		sdi.throttler.EndProcessing()
 		return errOriginator

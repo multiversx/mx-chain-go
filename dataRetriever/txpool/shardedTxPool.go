@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/counting"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -28,6 +29,7 @@ type shardedTxPool struct {
 	configPrototypeSourceMe      txcache.ConfigSourceMe
 	selfShardID                  uint32
 	txGasHandler                 txcache.TxGasHandler
+	singularCache                txCache
 }
 
 type txPoolShard struct {
@@ -79,6 +81,8 @@ func NewShardedTxPool(args ArgShardedTxPool) (*shardedTxPool, error) {
 		selfShardID:                  args.SelfShardID,
 		txGasHandler:                 args.TxGasHandler,
 	}
+
+	shardedTxPoolObject.singularCache = shardedTxPoolObject.getOrCreateShard("0_0").Cache
 
 	return shardedTxPoolObject, nil
 }
@@ -167,17 +171,18 @@ func (txPool *shardedTxPool) AddData(key []byte, value interface{}, sizeInBytes 
 		return
 	}
 
-	sourceShardID, destinationShardID, err := process.ParseShardCacherIdentifier(cacheID)
-	if err != nil {
-		log.Error("shardedTxPool.AddData()", "err", err)
-		return
-	}
+	// sourceShardID, destinationShardID, err := process.ParseShardCacherIdentifier(cacheID)
+	// if err != nil {
+	// 	log.Error("shardedTxPool.AddData()", "err", err)
+	// 	return
+	// }
 
 	wrapper := &txcache.WrappedTransaction{
 		Tx:              valueAsTransaction,
+		TxDirectPointer: valueAsTransaction.(*transaction.Transaction),
 		TxHash:          key,
-		SenderShardID:   sourceShardID,
-		ReceiverShardID: destinationShardID,
+		SenderShardID:   0,
+		ReceiverShardID: 0,
 		Size:            int64(sizeInBytes),
 	}
 
@@ -186,9 +191,7 @@ func (txPool *shardedTxPool) AddData(key []byte, value interface{}, sizeInBytes 
 
 // addTx adds the transaction to the cache
 func (txPool *shardedTxPool) addTx(tx *txcache.WrappedTransaction, cacheID string) {
-	shard := txPool.getOrCreateShard(cacheID)
-	cache := shard.Cache
-	_, added := cache.AddTx(tx)
+	_, added := txPool.singularCache.AddTx(tx)
 	if added {
 		txPool.onAdded(tx.TxHash, tx)
 	}
@@ -244,6 +247,9 @@ func (txPool *shardedTxPool) RemoveSetOfDataFromPool(keys [][]byte, cacheID stri
 
 // removeTxBulk removes a bunch of transactions from the pool
 func (txPool *shardedTxPool) removeTxBulk(txHashes [][]byte, cacheID string) {
+	sw := core.NewStopWatch()
+	sw.Start("default")
+
 	numRemoved := 0
 	for _, key := range txHashes {
 		if txPool.removeTx(key, cacheID) {
@@ -251,7 +257,10 @@ func (txPool *shardedTxPool) removeTxBulk(txHashes [][]byte, cacheID string) {
 		}
 	}
 
-	log.Trace("shardedTxPool.removeTxBulk()", "name", cacheID, "numToRemove", len(txHashes), "numRemoved", numRemoved)
+	sw.Stop("default")
+	measurement := sw.GetMeasurement("default")
+
+	log.Info("shardedTxPool.removeTxBulk()", "name", cacheID, "numToRemove", len(txHashes), "numRemoved", numRemoved, "duration", measurement.Milliseconds())
 }
 
 // RemoveDataFromAllShards removes the transaction from the pool (it searches in all shards)

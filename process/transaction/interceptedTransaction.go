@@ -2,7 +2,6 @@ package transaction
 
 import (
 	"bytes"
-	"encoding/hex"
 	"fmt"
 	"math/big"
 
@@ -12,10 +11,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-crypto-go"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ process.TxValidatorHandler = (*InterceptedTransaction)(nil)
@@ -483,13 +481,14 @@ func (inTx *InterceptedTransaction) Type() string {
 
 // String returns the transaction's most important fields as string
 func (inTx *InterceptedTransaction) String() string {
-	return fmt.Sprintf("sender=%s, nonce=%d, value=%s, recv=%s, data=%s",
-		logger.DisplayByteSlice(inTx.tx.SndAddr),
-		inTx.tx.Nonce,
-		inTx.tx.Value.String(),
-		logger.DisplayByteSlice(inTx.tx.RcvAddr),
-		hex.EncodeToString(inTx.tx.Data),
-	)
+	// return fmt.Sprintf("sender=%s, nonce=%d, value=%s, recv=%s, data=%s",
+	// 	logger.DisplayByteSlice(inTx.tx.SndAddr),
+	// 	inTx.tx.Nonce,
+	// 	inTx.tx.Value.String(),
+	// 	logger.DisplayByteSlice(inTx.tx.RcvAddr),
+	// 	hex.EncodeToString(inTx.tx.Data),
+	// )
+	return "tx"
 }
 
 // Identifiers returns the identifiers used in requests

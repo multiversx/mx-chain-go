@@ -1485,6 +1485,7 @@ func (txs *transactions) computeSortedTxs(
 	sortedTxs := sortedTransactionsProvider.GetSortedTransactions()
 
 	// TODO: this could be moved to SortedTransactionsProvider
+	// TODO: for benchmark, do not re-sort! "sortedTxs" is already sorted.
 	selectedTxs, remainingTxs := txs.preFilterTransactionsWithMoveBalancePriority(sortedTxs, gasBandwidth)
 	txs.sortTransactionsBySenderAndNonce(selectedTxs, randomness)
 
