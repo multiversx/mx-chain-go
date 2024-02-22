@@ -52,6 +52,7 @@ type simulator struct {
 	syncedBroadcastNetwork components.SyncedBroadcastNetworkHandler
 	handlers               []ChainHandler
 	initialWalletKeys      *dtos.InitialWalletKeys
+	initialStakedKeys      map[string]*dtos.BLSKey
 	validatorsPrivateKeys  []crypto.PrivateKey
 	nodes                  map[uint32]process.NodeHandler
 	numOfShards            uint32
@@ -69,6 +70,7 @@ func NewChainSimulator(args ArgsChainSimulator) (*simulator, error) {
 		numOfShards:            args.NumOfShards,
 		chanStopNodeProcess:    make(chan endProcess.ArgEndProcess),
 		mutex:                  sync.RWMutex{},
+		initialStakedKeys:      make(map[string]*dtos.BLSKey),
 	}
 
 	err := instance.createChainHandlers(args)
