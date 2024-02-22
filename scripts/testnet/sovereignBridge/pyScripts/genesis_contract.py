@@ -67,8 +67,7 @@ def main():
         "filename": "./config/genesisContracts/esdt-safe.wasm",
         "init-parameters": esdt_safe_init_params,
         "vm-type": "0500",
-        "type": "esdt",
-        "version": "0.0.*"
+        "type": "esdt"
     }
     push_genesis_contract(json_path, esdt_safe_genesis_contract)
 
@@ -81,8 +80,7 @@ def main():
         "filename": "./config/genesisContracts/fee-market.wasm",
         "init-parameters": fee_market_init_params,
         "vm-type": "0500",
-        "type": "fee",
-        "version": "0.0.*"
+        "type": "fee"
     }
     push_genesis_contract(json_path, fee_market_genesis_contract)
 
