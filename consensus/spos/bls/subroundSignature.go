@@ -299,7 +299,7 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 	}
 	isJobDoneByConsensusNode := !isSelfLeader && isSelfInConsensusGroup && selfJobDone && multiKeyJobDone
 
-	isSubroundFinished := !isSelfInConsensusGroup || isJobDoneByConsensusNode || isJobDoneByLeader
+	isSubroundFinished := isJobDoneByConsensusNode || isJobDoneByLeader
 
 	if isSubroundFinished {
 		if isSelfLeader {
