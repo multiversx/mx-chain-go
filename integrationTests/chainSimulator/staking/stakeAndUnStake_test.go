@@ -128,15 +128,14 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 	firstValidatorKey, err := cs.GetValidatorPrivateKeys()[0].GeneratePublic().ToByteArray()
 	require.Nil(t, err)
 
-	initialAddressWithValidators := cs.GetInitialWalletKeys().InitialWalletWithStake.Address
-	senderBytes, _ := cs.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Decode(initialAddressWithValidators)
-	shardID := cs.GetNodeHandler(0).GetShardCoordinator().ComputeId(senderBytes)
-	initialAccount, _, err := cs.GetNodeHandler(shardID).GetFacadeHandler().GetAccount(initialAddressWithValidators, coreAPI.AccountQueryOptions{})
+	initialAddressWithValidators := cs.GetInitialWalletKeys().StakeWallets[0].Address
+	shardID := cs.GetNodeHandler(0).GetShardCoordinator().ComputeId(initialAddressWithValidators.Bytes)
+	initialAccount, _, err := cs.GetNodeHandler(shardID).GetFacadeHandler().GetAccount(initialAddressWithValidators.Bech32, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
 	tx = &transaction.Transaction{
 		Nonce:     initialAccount.Nonce,
 		Value:     big.NewInt(0),
-		SndAddr:   senderBytes,
+		SndAddr:   initialAddressWithValidators.Bytes,
 		RcvAddr:   rcvAddrBytes,
 		Data:      []byte(fmt.Sprintf("unStake@%s", hex.EncodeToString(firstValidatorKey))),
 		GasLimit:  50_000_000,
