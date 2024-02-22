@@ -40,16 +40,16 @@ depositTokenInSC() {
         --gas-limit=20000000 \
         --function="MultiESDTNFTTransfer" \
         --arguments \
-            ${ESDT_SAFE_ADDRESS}
-            2 \
-            str:${DEPOSIT_TOKEN_IDENTIFIER} \
-            0 \
-            ${AMOUNT_TO_TRANSFER} \
-            str:${DEPOSIT_TOKEN_IDENTIFIER} \
-            0 \
-            ${AMOUNT_TO_TRANSFER} \
-            str:deposit \
-            ${WALLET_ADDRESS} \
+           ${ESDT_SAFE_ADDRESS} \
+           2 \
+           str:${DEPOSIT_TOKEN_IDENTIFIER} \
+           0 \
+           ${AMOUNT_TO_TRANSFER} \
+           str:${DEPOSIT_TOKEN_IDENTIFIER} \
+           0 \
+           ${AMOUNT_TO_TRANSFER} \
+           str:deposit \
+           ${WALLET_ADDRESS} \
         --recall-nonce \
         --wait-result \
         --send || return
