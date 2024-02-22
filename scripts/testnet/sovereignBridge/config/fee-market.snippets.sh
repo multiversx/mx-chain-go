@@ -1,5 +1,5 @@
 FEE_MARKET_ADDRESS=$(mxpy data load --partition=${CHAIN_ID} --key=address-fee-market-contract)
-FEE_MARKET_ADDRESS_SOVEREIGN=$(mxpy data load --partition=${CHAIN_ID} --key=address-fee-market-contract-sovereign)
+FEE_MARKET_ADDRESS_SOVEREIGN=$(mxpy data load --partition=sovereign --key=address-fee-market-contract)
 
 deployFeeMarketContract() {
     CHECK_VARIABLES ESDT_SAFE_ADDRESS || return
@@ -30,8 +30,8 @@ deployFeeMarketContract() {
     echo -e "\nFee Market contract: ${ADDRESS}"
 
     SOVEREIGN_CONTRACT_ADDRESS=$(secondSovereignContractAddress)
-    mxpy data store --partition=${CHAIN_ID} --key=address-fee-market-contract-sovereign --value=${SOVEREIGN_CONTRACT_ADDRESS}
-    FEE_MARKET_ADDRESS_SOVEREIGN=$(mxpy data load --partition=${CHAIN_ID} --key=address-fee-market-contract-sovereign)
+    mxpy data store --partition=sovereign --key=address-fee-market-contract --value=${SOVEREIGN_CONTRACT_ADDRESS}
+    FEE_MARKET_ADDRESS_SOVEREIGN=$(mxpy data load --partition=sovereign --key=address-fee-market-contract)
 }
 
 enableFeeMarketContract() {
