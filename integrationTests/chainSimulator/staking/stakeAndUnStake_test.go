@@ -600,20 +600,7 @@ func testChainSimulatorDirectStakedNodesStakingFunds(t *testing.T, cs chainSimul
 	require.Nil(t, err)
 
 	log.Info("Step 1. Check the stake amount for the owner of the staked nodes")
-	scQuery := &process.SCQuery{
-		ScAddress:  vm.ValidatorSCAddress,
-		FuncName:   "getTotalStaked",
-		CallerAddr: vm.ValidatorSCAddress,
-		CallValue:  big.NewInt(0),
-		Arguments:  [][]byte{validatorOwner.Bytes},
-	}
-	result, _, err := metachainNode.GetFacadeHandler().ExecuteSCQuery(scQuery)
-	require.Nil(t, err)
-	require.Equal(t, okReturnCode, result.ReturnCode)
-
-	expectedStaked := big.NewInt(5000)
-	expectedStaked = expectedStaked.Mul(oneEGLD, expectedStaked)
-	require.Equal(t, expectedStaked.String(), string(result.ReturnData[0]))
+	checkExpectedStakedValue(t, metachainNode, validatorOwner.Bytes, 5000)
 
 	log.Info("Step 2. Create from the owner of the staked nodes a tx to stake 1 EGLD")
 
@@ -628,20 +615,30 @@ func testChainSimulatorDirectStakedNodesStakingFunds(t *testing.T, cs chainSimul
 	require.Nil(t, err)
 
 	log.Info("Step 3. Check the stake amount for the owner of the staked nodes")
-	scQuery = &process.SCQuery{
+	checkExpectedStakedValue(t, metachainNode, validatorOwner.Bytes, 5001)
+}
+
+func checkExpectedStakedValue(t *testing.T, metachainNode chainSimulatorProcess.NodeHandler, blsKey []byte, expectedValue int64) {
+	totalStaked := getTotalStaked(t, metachainNode, blsKey)
+
+	expectedStaked := big.NewInt(expectedValue)
+	expectedStaked = expectedStaked.Mul(oneEGLD, expectedStaked)
+	require.Equal(t, expectedStaked.String(), string(totalStaked))
+}
+
+func getTotalStaked(t *testing.T, metachainNode chainSimulatorProcess.NodeHandler, blsKey []byte) []byte {
+	scQuery := &process.SCQuery{
 		ScAddress:  vm.ValidatorSCAddress,
 		FuncName:   "getTotalStaked",
 		CallerAddr: vm.ValidatorSCAddress,
 		CallValue:  big.NewInt(0),
-		Arguments:  [][]byte{validatorOwner.Bytes},
+		Arguments:  [][]byte{blsKey},
 	}
-	result, _, err = metachainNode.GetFacadeHandler().ExecuteSCQuery(scQuery)
+	result, _, err := metachainNode.GetFacadeHandler().ExecuteSCQuery(scQuery)
 	require.Nil(t, err)
 	require.Equal(t, okReturnCode, result.ReturnCode)
 
-	expectedStaked = big.NewInt(5001)
-	expectedStaked = expectedStaked.Mul(oneEGLD, expectedStaked)
-	require.Equal(t, expectedStaked.String(), string(result.ReturnData[0]))
+	return result.ReturnData[0]
 }
 
 // Test description:
@@ -661,7 +658,7 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation(t *testi
 
 	// Test Steps
 	//  1. Check the stake amount and number of nodes for the owner of the staked nodes with the vmquery "getTotalStaked", and the account current EGLD balance
-	//  2. Create from the owner of staked nodes a transaction to unstake 1 EGLD and send it to the network
+	//  2. Create from the owner of staked nodes a transaction to unstake 10 EGLD and send it to the network
 	//  3. Check the outcome of the TX & verify new stake state with vmquery "getTotalStaked" and "getUnStakedTokensList"
 	//  4. Wait for change of epoch and check the outcome
 
@@ -828,22 +825,9 @@ func testChainSimulatorDirectStakedUnstakeFundsWithDeactivation(t *testing.T, cs
 	testBLSKeyStaked(t, cs, metachainNode, blsKeys[1], targetEpoch)
 
 	log.Info("Step 1. Check the stake amount for the owner of the staked nodes")
-	scQuery := &process.SCQuery{
-		ScAddress:  vm.ValidatorSCAddress,
-		FuncName:   "getTotalStaked",
-		CallerAddr: vm.ValidatorSCAddress,
-		CallValue:  big.NewInt(0),
-		Arguments:  [][]byte{validatorOwner.Bytes},
-	}
-	result, _, err := metachainNode.GetFacadeHandler().ExecuteSCQuery(scQuery)
-	require.Nil(t, err)
-	require.Equal(t, okReturnCode, result.ReturnCode)
+	checkExpectedStakedValue(t, metachainNode, validatorOwner.Bytes, 5000)
 
-	expectedStaked := big.NewInt(5000)
-	expectedStaked = expectedStaked.Mul(oneEGLD, expectedStaked)
-	require.Equal(t, expectedStaked.String(), string(result.ReturnData[0]))
-
-	log.Info("Step 2. Create from the owner of staked nodes a transaction to unstake 1 EGLD and send it to the network")
+	log.Info("Step 2. Create from the owner of staked nodes a transaction to unstake 10 EGLD and send it to the network")
 
 	unStakeValue := big.NewInt(10)
 	unStakeValue = unStakeValue.Mul(oneEGLD, unStakeValue)
@@ -857,41 +841,34 @@ func testChainSimulatorDirectStakedUnstakeFundsWithDeactivation(t *testing.T, cs
 	require.Nil(t, err)
 
 	log.Info("Step 3. Check the outcome of the TX & verify new stake state with vmquery getTotalStaked and getUnStakedTokensList")
-	scQuery = &process.SCQuery{
-		ScAddress:  vm.ValidatorSCAddress,
-		FuncName:   "getTotalStaked",
-		CallerAddr: vm.ValidatorSCAddress,
-		CallValue:  big.NewInt(0),
-		Arguments:  [][]byte{validatorOwner.Bytes},
-	}
-	result, _, err = metachainNode.GetFacadeHandler().ExecuteSCQuery(scQuery)
-	require.Nil(t, err)
-	require.Equal(t, okReturnCode, result.ReturnCode)
+	checkExpectedStakedValue(t, metachainNode, validatorOwner.Bytes, 4990)
 
-	expectedStaked = big.NewInt(4990)
-	expectedStaked = expectedStaked.Mul(oneEGLD, expectedStaked)
-	require.Equal(t, expectedStaked.String(), string(result.ReturnData[0]))
-
-	scQuery = &process.SCQuery{
-		ScAddress:  vm.ValidatorSCAddress,
-		FuncName:   "getUnStakedTokensList",
-		CallerAddr: vm.ValidatorSCAddress,
-		CallValue:  big.NewInt(0),
-		Arguments:  [][]byte{validatorOwner.Bytes},
-	}
-	result, _, err = metachainNode.GetFacadeHandler().ExecuteSCQuery(scQuery)
-	require.Nil(t, err)
-	require.Equal(t, okReturnCode, result.ReturnCode)
+	unStakedTokensAmount := getUnStakedTokensList(t, metachainNode, validatorOwner.Bytes)
 
 	expectedUnStaked := big.NewInt(10)
 	expectedUnStaked = expectedUnStaked.Mul(oneEGLD, expectedUnStaked)
-	require.Equal(t, expectedUnStaked.String(), big.NewInt(0).SetBytes(result.ReturnData[0]).String())
+	require.Equal(t, expectedUnStaked.String(), big.NewInt(0).SetBytes(unStakedTokensAmount).String())
 
 	log.Info("Step 4. Wait for change of epoch and check the outcome")
 	err = cs.GenerateBlocksUntilEpochIsReached(targetEpoch + 1)
 	require.Nil(t, err)
 
 	checkOneOfTheNodesIsUnstaked(t, metachainNode, blsKeys[:2])
+}
+
+func getUnStakedTokensList(t *testing.T, metachainNode chainSimulatorProcess.NodeHandler, blsKey []byte) []byte {
+	scQuery := &process.SCQuery{
+		ScAddress:  vm.ValidatorSCAddress,
+		FuncName:   "getUnStakedTokensList",
+		CallerAddr: vm.ValidatorSCAddress,
+		CallValue:  big.NewInt(0),
+		Arguments:  [][]byte{blsKey},
+	}
+	result, _, err := metachainNode.GetFacadeHandler().ExecuteSCQuery(scQuery)
+	require.Nil(t, err)
+	require.Equal(t, okReturnCode, result.ReturnCode)
+
+	return result.ReturnData[0]
 }
 
 func checkOneOfTheNodesIsUnstaked(t *testing.T,
@@ -954,9 +931,9 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation_WithReac
 
 	// Test Steps
 	// 1. Check the stake amount and number of nodes for the owner of the staked nodes with the vmquery "getTotalStaked", and the account current EGLD balance
-	// 2. Create from the owner of staked nodes a transaction to unstake 1 EGLD and send it to the network
+	// 2. Create from the owner of staked nodes a transaction to unstake 10 EGLD and send it to the network
 	// 3. Check the outcome of the TX & verify new stake state with vmquery
-	// 4. Create from the owner of staked nodes a transaction to stake 1 EGLD and send it to the network
+	// 4. Create from the owner of staked nodes a transaction to stake 10 EGLD and send it to the network
 	// 5. Check the outcome of the TX & verify new stake state with vmquery
 	// 6. Wait for change of epoch and check the outcome
 
@@ -1123,22 +1100,9 @@ func testChainSimulatorDirectStakedUnstakeFundsWithDeactivationAndReactivation(t
 	testBLSKeyStaked(t, cs, metachainNode, blsKeys[1], targetEpoch)
 
 	log.Info("Step 1. Check the stake amount for the owner of the staked nodes")
-	scQuery := &process.SCQuery{
-		ScAddress:  vm.ValidatorSCAddress,
-		FuncName:   "getTotalStaked",
-		CallerAddr: vm.ValidatorSCAddress,
-		CallValue:  big.NewInt(0),
-		Arguments:  [][]byte{validatorOwner.Bytes},
-	}
-	result, _, err := metachainNode.GetFacadeHandler().ExecuteSCQuery(scQuery)
-	require.Nil(t, err)
-	require.Equal(t, okReturnCode, result.ReturnCode)
+	checkExpectedStakedValue(t, metachainNode, validatorOwner.Bytes, 5000)
 
-	expectedStaked := big.NewInt(5000)
-	expectedStaked = expectedStaked.Mul(oneEGLD, expectedStaked)
-	require.Equal(t, expectedStaked.String(), string(result.ReturnData[0]))
-
-	log.Info("Step 2. Create from the owner of staked nodes a transaction to unstake 1 EGLD and send it to the network")
+	log.Info("Step 2. Create from the owner of staked nodes a transaction to unstake 10 EGLD and send it to the network")
 
 	unStakeValue := big.NewInt(10)
 	unStakeValue = unStakeValue.Mul(oneEGLD, unStakeValue)
@@ -1152,37 +1116,15 @@ func testChainSimulatorDirectStakedUnstakeFundsWithDeactivationAndReactivation(t
 	require.Nil(t, err)
 
 	log.Info("Step 3. Check the outcome of the TX & verify new stake state with vmquery getTotalStaked and getUnStakedTokensList")
-	scQuery = &process.SCQuery{
-		ScAddress:  vm.ValidatorSCAddress,
-		FuncName:   "getTotalStaked",
-		CallerAddr: vm.ValidatorSCAddress,
-		CallValue:  big.NewInt(0),
-		Arguments:  [][]byte{validatorOwner.Bytes},
-	}
-	result, _, err = metachainNode.GetFacadeHandler().ExecuteSCQuery(scQuery)
-	require.Nil(t, err)
-	require.Equal(t, okReturnCode, result.ReturnCode)
+	checkExpectedStakedValue(t, metachainNode, validatorOwner.Bytes, 4990)
 
-	expectedStaked = big.NewInt(4990)
-	expectedStaked = expectedStaked.Mul(oneEGLD, expectedStaked)
-	require.Equal(t, expectedStaked.String(), string(result.ReturnData[0]))
-
-	scQuery = &process.SCQuery{
-		ScAddress:  vm.ValidatorSCAddress,
-		FuncName:   "getUnStakedTokensList",
-		CallerAddr: vm.ValidatorSCAddress,
-		CallValue:  big.NewInt(0),
-		Arguments:  [][]byte{validatorOwner.Bytes},
-	}
-	result, _, err = metachainNode.GetFacadeHandler().ExecuteSCQuery(scQuery)
-	require.Nil(t, err)
-	require.Equal(t, okReturnCode, result.ReturnCode)
+	unStakedTokensAmount := getUnStakedTokensList(t, metachainNode, validatorOwner.Bytes)
 
 	expectedUnStaked := big.NewInt(10)
 	expectedUnStaked = expectedUnStaked.Mul(oneEGLD, expectedUnStaked)
-	require.Equal(t, expectedUnStaked.String(), big.NewInt(0).SetBytes(result.ReturnData[0]).String())
+	require.Equal(t, expectedUnStaked.String(), big.NewInt(0).SetBytes(unStakedTokensAmount).String())
 
-	log.Info("Step 4. Create from the owner of staked nodes a transaction to stake 1 EGLD and send it to the network")
+	log.Info("Step 4. Create from the owner of staked nodes a transaction to stake 10 EGLD and send it to the network")
 
 	newStakeValue := big.NewInt(10)
 	newStakeValue = newStakeValue.Mul(oneEGLD, newStakeValue)
@@ -1196,20 +1138,7 @@ func testChainSimulatorDirectStakedUnstakeFundsWithDeactivationAndReactivation(t
 	require.Nil(t, err)
 
 	log.Info("5. Check the outcome of the TX & verify new stake state with vmquery")
-	scQuery = &process.SCQuery{
-		ScAddress:  vm.ValidatorSCAddress,
-		FuncName:   "getTotalStaked",
-		CallerAddr: vm.ValidatorSCAddress,
-		CallValue:  big.NewInt(0),
-		Arguments:  [][]byte{validatorOwner.Bytes},
-	}
-	result, _, err = metachainNode.GetFacadeHandler().ExecuteSCQuery(scQuery)
-	require.Nil(t, err)
-	require.Equal(t, okReturnCode, result.ReturnCode)
-
-	expectedStaked = big.NewInt(5000)
-	expectedStaked = expectedStaked.Mul(oneEGLD, expectedStaked)
-	require.Equal(t, expectedStaked.String(), string(result.ReturnData[0]))
+	checkExpectedStakedValue(t, metachainNode, validatorOwner.Bytes, 5000)
 
 	log.Info("Step 6. Wait for change of epoch and check the outcome")
 	err = cs.GenerateBlocksUntilEpochIsReached(targetEpoch + 1)
