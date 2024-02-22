@@ -140,8 +140,8 @@ type WorkerHandler interface {
 	DisplayStatistics()
 	// ReceivedHeader method is a wired method through which worker will receive headers from network
 	ReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte)
-	// ResetConsensusMessages resets at the start of each round all the previous consensus messages received
-	ResetConsensusMessages()
+	// ResetConsensusMessages resets at the start of each round all the previous consensus messages received and equivalent messages, keeping the provided proofs
+	ResetConsensusMessages(currentHash []byte, prevHash []byte)
 	// HasEquivalentMessage returns true if an equivalent message was received before
 	HasEquivalentMessage(headerHash []byte) bool
 	// GetEquivalentProof returns the equivalent proof for the provided hash

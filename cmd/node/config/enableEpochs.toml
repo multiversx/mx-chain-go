@@ -294,7 +294,7 @@
     CurrentRandomnessOnSortingEnableEpoch = 4
 
     # EquivalentMessagesEnableEpoch represents the epoch when the equivalent messages are enabled
-    EquivalentMessagesEnableEpoch = 3
+    EquivalentMessagesEnableEpoch = 4
 
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [

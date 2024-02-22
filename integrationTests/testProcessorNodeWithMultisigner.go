@@ -460,6 +460,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 			KeyGen:                  keyGen,
 			FallbackHeaderValidator: &testscommon.FallBackHeaderValidatorStub{},
 			EnableEpochsHandler:     enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+			HeadersPool:             &mock.HeadersCacherStub{},
 		}
 		headerSig, _ := headerCheck.NewHeaderSigVerifier(&args)
 
@@ -598,6 +599,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 				KeyGen:                  keyGenForBlocks,
 				FallbackHeaderValidator: &testscommon.FallBackHeaderValidatorStub{},
 				EnableEpochsHandler:     enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+				HeadersPool:             &mock.HeadersCacherStub{},
 			}
 
 			headerSig, _ := headerCheck.NewHeaderSigVerifier(&args)
