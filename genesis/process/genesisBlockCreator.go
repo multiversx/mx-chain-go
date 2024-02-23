@@ -83,7 +83,7 @@ func getGenesisBlocksRoundNonceEpoch(arg ArgsGenesisBlockCreator) (uint64, uint6
 	if arg.HardForkConfig.AfterHardFork {
 		return arg.HardForkConfig.StartRound, arg.HardForkConfig.StartNonce, arg.HardForkConfig.StartEpoch
 	}
-	return 0, 0, arg.GenesisEpoch
+	return arg.GenesisRound, arg.GenesisNonce, arg.GenesisEpoch
 }
 
 func (gbc *genesisBlockCreator) createHardForkImportHandler() error {

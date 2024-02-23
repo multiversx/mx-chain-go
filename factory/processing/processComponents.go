@@ -162,6 +162,9 @@ type ProcessComponentsFactoryArgs struct {
 	StatusComponents        factory.StatusComponentsHolder
 	StatusCoreComponents    factory.StatusCoreComponentsHolder
 	TxExecutionOrderHandler common.TxExecutionOrderHandler
+
+	GenesisNonce uint64
+	GenesisRound uint64
 }
 
 type processComponentsFactory struct {
@@ -196,6 +199,9 @@ type processComponentsFactory struct {
 	statusComponents        factory.StatusComponentsHolder
 	statusCoreComponents    factory.StatusCoreComponentsHolder
 	txExecutionOrderHandler common.TxExecutionOrderHandler
+
+	genesisNonce uint64
+	genesisRound uint64
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -232,6 +238,8 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		statusCoreComponents:    args.StatusCoreComponents,
 		flagsConfig:             args.FlagsConfig,
 		txExecutionOrderHandler: args.TxExecutionOrderHandler,
+		genesisNonce:            args.GenesisNonce,
+		genesisRound:            args.GenesisRound,
 		roundConfig:             args.RoundConfig,
 	}, nil
 }
@@ -891,6 +899,8 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		GenesisString:           pcf.config.GeneralSettings.GenesisString,
 		TxExecutionOrderHandler: pcf.txExecutionOrderHandler,
 		GenesisEpoch:            pcf.config.EpochStartConfig.GenesisEpoch,
+		GenesisNonce:            pcf.genesisNonce,
+		GenesisRound:            pcf.genesisRound,
 	}
 
 	gbc, err := processGenesis.NewGenesisBlockCreator(arg)

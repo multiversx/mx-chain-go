@@ -39,6 +39,7 @@ type ArgsTestOnlyProcessingNode struct {
 	SyncedBroadcastNetwork SyncedBroadcastNetworkHandler
 
 	InitialRound           int64
+	InitialNonce           uint64
 	GasScheduleFilename    string
 	NumShards              uint32
 	ShardIDStr             string
@@ -206,6 +207,8 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		ConfigurationPathsHolder: *args.Configs.ConfigurationPathsHolder,
 		NodesCoordinator:         instance.NodesCoordinator,
 		DataComponents:           instance.DataComponentsHolder,
+		GenesisNonce:             args.InitialNonce,
+		GenesisRound:             uint64(args.InitialRound),
 	})
 	if err != nil {
 		return nil, err

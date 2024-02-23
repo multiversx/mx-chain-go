@@ -30,6 +30,7 @@ type ArgsChainSimulator struct {
 	GenesisTimestamp       int64
 	InitialRound           int64
 	InitialEpoch           uint32
+	InitialNonce           uint64
 	RoundDurationInMillis  uint64
 	RoundsPerEpoch         core.OptionalUint64
 	ApiInterface           components.APIConfigurator
@@ -135,6 +136,7 @@ func (s *simulator) createTestNode(
 		APIInterface:           args.ApiInterface,
 		BypassTxSignatureCheck: args.BypassTxSignatureCheck,
 		InitialRound:           args.InitialRound,
+		InitialNonce:           args.InitialNonce,
 		MinNodesPerShard:       args.MinNodesPerShard,
 		MinNodesMeta:           args.MetaChainMinNodes,
 	}

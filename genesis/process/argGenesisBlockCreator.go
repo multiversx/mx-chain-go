@@ -44,6 +44,8 @@ type dataComponentsHandler interface {
 // ArgsGenesisBlockCreator holds the arguments which are needed to create a genesis block
 type ArgsGenesisBlockCreator struct {
 	GenesisTime             uint64
+	GenesisNonce            uint64
+	GenesisRound            uint64
 	StartEpochNum           uint32
 	GenesisEpoch            uint32
 	Data                    dataComponentsHandler
