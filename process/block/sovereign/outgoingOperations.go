@@ -149,8 +149,8 @@ func (op *outgoingOperations) isSubscribed(event data.EventHandler, txHash strin
 }
 
 func createSCRData(topics [][]byte) []byte {
-	ret := topics[0]
-	for idx := 1; idx < len(topics[1:]); idx += 1 {
+	ret := topics[1]
+	for idx := 2; idx < len(topics[2:]); idx += 1 {
 		transfer := []byte("@")
 		transfer = append(transfer, topics[idx]...)
 
