@@ -49,6 +49,9 @@ type ArgsProcessComponentsHolder struct {
 	Config                   config.Config
 	EconomicsConfig          config.EconomicsConfig
 	SystemSCConfig           config.SystemSmartContractsConfig
+
+	GenesisNonce uint64
+	GenesisRound uint64
 }
 
 type processComponentsHolder struct {
@@ -203,6 +206,8 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (factory.ProcessC
 		HistoryRepo:             historyRepository,
 		FlagsConfig:             args.FlagsConfig,
 		TxExecutionOrderHandler: txExecutionOrderHandler,
+		GenesisNonce:            args.GenesisNonce,
+		GenesisRound:            args.GenesisRound,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {
