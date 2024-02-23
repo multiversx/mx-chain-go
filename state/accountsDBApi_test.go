@@ -230,17 +230,16 @@ func TestAccountsDBApi_RecreateTrieFromEpoch(t *testing.T) {
 	t.Parallel()
 
 	t.Run("should error if the roothash holder is nil", func(t *testing.T) {
-		wasCalled := false
 		accountsApi, _ := state.NewAccountsDBApi(&mockState.AccountsStub{
 			RecreateTrieFromEpochCalled: func(options common.RootHashHolder) error {
-				wasCalled = true
-				return trie.ErrNilRootHashHolder
+				assert.Fail(t, "should have not called accountsApi.RecreateTrieFromEpochCalled")
+
+				return nil
 			},
 		}, createBlockInfoProviderStub(dummyRootHash))
 
 		err := accountsApi.RecreateTrieFromEpoch(nil)
 		assert.Equal(t, trie.ErrNilRootHashHolder, err)
-		assert.True(t, wasCalled)
 	})
 	t.Run("should work", func(t *testing.T) {
 		wasCalled := false
