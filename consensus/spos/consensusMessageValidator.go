@@ -290,14 +290,14 @@ func (cmv *consensusMessageValidator) checkMessageWithBlockBodyAndHeaderValidity
 			logger.DisplayByteSlice(cnsMsg.PubKey))
 	}
 
-	if len(cnsMsg.Body) > core.MegabyteSize {
+	if len(cnsMsg.Body) > core.MegabyteSize*1000 {
 		return fmt.Errorf("%w : received body from consensus topic has an invalid size: %d",
 			ErrInvalidBodySize,
 			len(cnsMsg.Body))
 	}
 
 	headerLen := len(cnsMsg.Header)
-	if headerLen == 0 || headerLen > core.MegabyteSize {
+	if headerLen == 0 || headerLen > core.MegabyteSize*1000 {
 		return fmt.Errorf("%w : received header from consensus topic has an invalid size: %d",
 			ErrInvalidHeaderSize,
 			len(cnsMsg.Header))
@@ -330,7 +330,7 @@ func (cmv *consensusMessageValidator) checkMessageWithBlockBodyValidity(cnsMsg *
 			logger.DisplayByteSlice(cnsMsg.PubKey))
 	}
 
-	if len(cnsMsg.Body) > core.MegabyteSize {
+	if len(cnsMsg.Body) > core.MegabyteSize*100 {
 		return fmt.Errorf("%w : received body from consensus topic has an invalid size: %d",
 			ErrInvalidBodySize,
 			len(cnsMsg.Body))

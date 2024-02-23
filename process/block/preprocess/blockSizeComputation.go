@@ -154,6 +154,7 @@ func (bsc *blockSizeComputation) isMaxBlockSizeReached(totalMiniBlocks uint32, t
 // IsMaxBlockSizeWithoutThrottleReached returns true if the provided number of new miniblocks and txs go over
 // the maximum allowed not throttled block size
 func (bsc *blockSizeComputation) IsMaxBlockSizeWithoutThrottleReached(numNewMiniBlocks int, numNewTxs int) bool {
+	return false
 	totalMiniBlocks := atomic.LoadUint32(&bsc.numMiniBlocks) + uint32(numNewMiniBlocks)
 	totalTxs := atomic.LoadUint32(&bsc.numTxs) + uint32(numNewTxs)
 
@@ -161,6 +162,7 @@ func (bsc *blockSizeComputation) IsMaxBlockSizeWithoutThrottleReached(numNewMini
 }
 
 func (bsc *blockSizeComputation) isMaxBlockSizeWithoutThrottleReached(totalMiniBlocks uint32, totalTxs uint32) bool {
+	return false
 	miniblocksSize := bsc.miniblockSize * totalMiniBlocks
 	txsSize := bsc.txSize * totalTxs
 

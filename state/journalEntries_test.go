@@ -113,7 +113,7 @@ func TestJournalEntryAccount_Revert(t *testing.T) {
 func TestNewJournalEntryAccountCreation_InvalidAddressShouldErr(t *testing.T) {
 	t.Parallel()
 
-	entry, err := state.NewJournalEntryAccountCreation([]byte{}, &trieMock.TrieStub{})
+	entry, err := state.NewJournalEntryAccountCreation([]byte{}, &stateMock.AccountsCacheStub{})
 	assert.True(t, check.IfNil(entry))
 	assert.Equal(t, state.ErrInvalidAddressLength, err)
 }
@@ -129,39 +129,21 @@ func TestNewJournalEntryAccountCreation_NilUpdaterShouldErr(t *testing.T) {
 func TestNewJournalEntryAccountCreation_OkParams(t *testing.T) {
 	t.Parallel()
 
-	entry, err := state.NewJournalEntryAccountCreation([]byte("address"), &trieMock.TrieStub{})
+	entry, err := state.NewJournalEntryAccountCreation([]byte("address"), &stateMock.AccountsCacheStub{})
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(entry))
 }
 
-func TestJournalEntryAccountCreation_RevertErr(t *testing.T) {
+func TestJournalEntryAccountCreation_RevertUpdatesTheCache(t *testing.T) {
 	t.Parallel()
 
-	updateErr := errors.New("update error")
+	saveCalled := false
 	address := []byte("address")
-	ts := &trieMock.TrieStub{
-		UpdateCalled: func(key, value []byte) error {
-			return updateErr
-		},
-	}
-	entry, _ := state.NewJournalEntryAccountCreation(address, ts)
-
-	acc, err := entry.Revert()
-	assert.Equal(t, updateErr, err)
-	assert.Nil(t, acc)
-}
-
-func TestJournalEntryAccountCreation_RevertUpdatesTheTrie(t *testing.T) {
-	t.Parallel()
-
-	updateCalled := false
-	address := []byte("address")
-	ts := &trieMock.TrieStub{
-		UpdateCalled: func(key, value []byte) error {
+	ts := &stateMock.AccountsCacheStub{
+		SaveAccountCalled: func(key, value []byte) {
 			assert.Equal(t, address, key)
 			assert.Nil(t, value)
-			updateCalled = true
-			return nil
+			saveCalled = true
 		},
 	}
 	entry, _ := state.NewJournalEntryAccountCreation(address, ts)
@@ -169,7 +151,7 @@ func TestJournalEntryAccountCreation_RevertUpdatesTheTrie(t *testing.T) {
 	acc, err := entry.Revert()
 	assert.Nil(t, err)
 	assert.Nil(t, acc)
-	assert.True(t, updateCalled)
+	assert.True(t, saveCalled)
 }
 
 func TestNewJournalEntryDataTrieUpdates_NilAccountShouldErr(t *testing.T) {

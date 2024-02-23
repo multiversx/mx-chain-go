@@ -118,10 +118,10 @@ func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
-	log.Trace("update trie",
-		"key", hex.EncodeToString(key),
-		"val", hex.EncodeToString(value),
-	)
+	//log.Trace("update trie",
+	//	"key", hex.EncodeToString(key),
+	//	"val", hex.EncodeToString(value),
+	//)
 
 	return tr.update(key, value, core.NotSpecified)
 }
@@ -131,11 +131,11 @@ func (tr *patriciaMerkleTrie) UpdateWithVersion(key []byte, value []byte, versio
 	tr.mutOperation.Lock()
 	defer tr.mutOperation.Unlock()
 
-	log.Trace("update trie with version",
-		"key", hex.EncodeToString(key),
-		"val", hex.EncodeToString(value),
-		"version", version,
-	)
+	//log.Trace("update trie with version",
+	//	"key", hex.EncodeToString(key),
+	//	"val", hex.EncodeToString(value),
+	//	"version", version,
+	//)
 
 	return tr.update(key, value, version)
 }
@@ -538,19 +538,19 @@ func (tr *patriciaMerkleTrie) GetAllHashes() ([][]byte, error) {
 }
 
 func logArrayWithTrace(message string, paramName string, hashes [][]byte) {
-	if log.GetLevel() == logger.LogTrace {
-		for _, hash := range hashes {
-			log.Trace(message, paramName, hash)
-		}
-	}
+	//if log.GetLevel() == logger.LogTrace {
+	//	for _, hash := range hashes {
+	//		log.Trace(message, paramName, hash)
+	//	}
+	//}
 }
 
 func logMapWithTrace(message string, paramName string, hashes common.ModifiedHashes) {
-	if log.GetLevel() == logger.LogTrace {
-		for key := range hashes {
-			log.Trace(message, paramName, []byte(key))
-		}
-	}
+	//if log.GetLevel() == logger.LogTrace {
+	//	for key := range hashes {
+	//		log.Trace(message, paramName, []byte(key))
+	//	}
+	//}
 }
 
 // GetProof computes a Merkle proof for the node that is present at the given key

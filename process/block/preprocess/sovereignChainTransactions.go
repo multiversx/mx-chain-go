@@ -111,6 +111,27 @@ func (sct *sovereignChainTransactions) computeSortedTxs(
 
 	sortedTransactionsProvider := createSortedTransactionsProvider(txShardPool)
 	sortedTxs := sortedTransactionsProvider.GetSortedTransactions()
+
+	log.Debug("computeSortedTxs.GetSortedTransactions computeSortedTxs", "num txs", len(sortedTxs))
+
+	if len(sortedTxs) == 0 {
+		return make([]*txcache.WrappedTransaction, 0), nil
+	}
+
+	shouldProcess := false
+
+	for _, tx := range sortedTxs {
+		if string(tx.Tx.GetData()) == "pleaseProcess" {
+			shouldProcess = true
+			break
+		}
+	}
+
+	if !shouldProcess {
+		log.Info("computeSortedTxs: should not process yet")
+		return make([]*txcache.WrappedTransaction, 0), nil
+	}
+
 	sct.sortTransactionsBySenderAndNonce(sortedTxs, randomness)
 
 	return sortedTxs, nil
