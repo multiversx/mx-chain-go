@@ -79,13 +79,13 @@ issueTokenSovereign() {
 
     HEX_TOKEN_IDENTIFIER=$(mxpy data parse --file="${SCRIPT_PATH}/issue-token.interaction.json"  --expression="data['transactionOnNetwork']['logs']['events'][2]['topics'][0]")
     TOKEN_IDENTIFIER=$(echo "$HEX_TOKEN_IDENTIFIER" | xxd -r -p)
-    update-config DEPOSIT_TOKEN_IDENTIFIER $TOKEN_IDENTIFIER
+    update-config DEPOSIT_TOKEN_IDENTIFIER_SOVEREIGN $TOKEN_IDENTIFIER
 }
 
 depositTokenInSCSovereign() {
     manualUpdateConfigFile #update config file
 
-    CHECK_VARIABLES DEPOSIT_TOKEN_IDENTIFIER DEPOSIT_TOKEN_NR_DECIMALS DEPOSIT_TOKEN_AMOUNT_TO_TRANSFER || return
+    CHECK_VARIABLES DEPOSIT_TOKEN_IDENTIFIER_SOVEREIGN DEPOSIT_TOKEN_NR_DECIMALS DEPOSIT_TOKEN_AMOUNT_TO_TRANSFER || return
 
     AMOUNT_TO_TRANSFER=$(echo "scale=0; $DEPOSIT_TOKEN_AMOUNT_TO_TRANSFER*10^$DEPOSIT_TOKEN_NR_DECIMALS/1" | bc)
 
@@ -98,10 +98,10 @@ depositTokenInSCSovereign() {
         --arguments \
            ${ESDT_SAFE_ADDRESS_SOVEREIGN} \
            2 \
-           str:${DEPOSIT_TOKEN_IDENTIFIER} \
+           str:${DEPOSIT_TOKEN_IDENTIFIER_SOVEREIGN} \
            0 \
            ${AMOUNT_TO_TRANSFER} \
-           str:${DEPOSIT_TOKEN_IDENTIFIER} \
+           str:${DEPOSIT_TOKEN_IDENTIFIER_SOVEREIGN} \
            0 \
            ${AMOUNT_TO_TRANSFER} \
            str:deposit \
