@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
@@ -39,6 +40,7 @@ var (
 	signingCryptoSuite = ed25519.NewEd25519()
 	contentMarshalizer = &marshal.GogoProtoMarshalizer{}
 	contentHasher      = blake2b.NewBlake2b()
+	mintingValue, _    = big.NewInt(0).SetString("50000000000000000000", 10)
 )
 
 type MultiDataInterceptorExtension struct {
@@ -115,6 +117,7 @@ func (ext *MultiDataInterceptorExtension) doProcess(interceptedData process.Inte
 	shouldGenerateMoveBalances := function == "ext_generate_move_balances"
 	shouldStartProcessing := function == "ext_start_processing"
 	shouldEndProcessing := function == "ext_end_processing"
+	shouldRunScenarioMoveBalances := function == "ext_run_scenario_move_balances"
 
 	if shouldInit {
 		err := ext.doStepInit(tx.GetSndAddr(), args)
@@ -144,6 +147,15 @@ func (ext *MultiDataInterceptorExtension) doProcess(interceptedData process.Inte
 		return
 	}
 
+	if shouldRunScenarioMoveBalances {
+		err := ext.runScenarioMoveBalances(tx.GetSndAddr(), args)
+		if err != nil {
+			log.Error("MultiDataInterceptorExtension: failed to run scenario: move balances", "error", err)
+		}
+
+		return
+	}
+
 	log.Error("MultiDataInterceptorExtension: unrecognized function", "function", function)
 }
 
@@ -154,6 +166,8 @@ func (ext *MultiDataInterceptorExtension) doStepInit(sponsorPubKey []byte, args 
 
 	log.Info("MultiDataInterceptorExtension.doStepInit", "sponsorPubKey", sponsorPubKey, "args", args)
 
+	preprocess.ShouldProcess.Store(false)
+
 	numParticipantsBytes := args[0]
 	numParticipants := int(big.NewInt(0).SetBytes(numParticipantsBytes).Int64())
 
@@ -163,6 +177,8 @@ func (ext *MultiDataInterceptorExtension) doStepInit(sponsorPubKey []byte, args 
 	ext.participants = createParticipants(numParticipants)
 	mintingTransactions := ext.createMintingTransactions()
 	ext.addTransactionsInTool(mintingTransactions)
+
+	preprocess.ShouldProcess.Store(true)
 
 	return nil
 }
@@ -182,7 +198,7 @@ func createParticipants(numParticipants int) []*participant {
 
 	keyGenerator := signing.NewKeyGenerator(signingCryptoSuite)
 
-	participants := []*participant{}
+	participants := make([]*participant, 0, numParticipants)
 
 	for i := 0; i < numParticipants; i++ {
 		seed := make([]byte, 32)
@@ -222,7 +238,7 @@ func createParticipants(numParticipants int) []*participant {
 func (ext *MultiDataInterceptorExtension) createMintingTransactions() []*transaction.Transaction {
 	log.Info("MultiDataInterceptorExtension.createMintingTransactions")
 
-	txs := []*transaction.Transaction{}
+	txs := make([]*transaction.Transaction, 0, len(ext.participants))
 
 	sponsorAccount, err := ext.accountsHandler.GetExistingAccount(ext.sponsor.pubKey)
 	if err != nil {
@@ -232,7 +248,7 @@ func (ext *MultiDataInterceptorExtension) createMintingTransactions() []*transac
 	for i := 0; i < len(ext.participants); i++ {
 		tx := &transaction.Transaction{
 			Nonce:    sponsorAccount.GetNonce() + uint64(i),
-			Value:    big.NewInt(1000000000000000000),
+			Value:    mintingValue,
 			RcvAddr:  ext.participants[i].pubKey,
 			SndAddr:  ext.sponsor.pubKey,
 			GasPrice: 1000000000,
@@ -282,6 +298,8 @@ func (ext *MultiDataInterceptorExtension) doStepGenerateMoveBalances(args [][]by
 
 	log.Info("MultiDataInterceptorExtension.doStepGenerateMoveBalances", "numTxs", numTxs)
 
+	preprocess.ShouldProcess.Store(false)
+
 	wg := sync.WaitGroup{}
 
 	for i := 0; i < len(ext.participants); i++ {
@@ -296,11 +314,13 @@ func (ext *MultiDataInterceptorExtension) doStepGenerateMoveBalances(args [][]by
 
 	wg.Wait()
 
+	preprocess.ShouldProcess.Store(true)
+
 	return nil
 }
 
 func (ext *MultiDataInterceptorExtension) createTransfersToSelf(participantIndex int, numTxs int) []*transaction.Transaction {
-	txs := []*transaction.Transaction{}
+	txs := make([]*transaction.Transaction, 0, numTxs)
 
 	participant := ext.participants[participantIndex]
 	nonce := uint64(0)
@@ -325,4 +345,29 @@ func (ext *MultiDataInterceptorExtension) createTransfersToSelf(participantIndex
 	}
 
 	return txs
+}
+
+func (ext *MultiDataInterceptorExtension) runScenarioMoveBalances(sponsorPubKey []byte, args [][]byte) error {
+	if len(args) != 2 {
+		return fmt.Errorf("MultiDataInterceptorExtension.runScenarioMoveBalances: invalid number of arguments")
+	}
+
+	log.Info("MultiDataInterceptorExtension.runScenarioMoveBalances")
+
+	numParticipantsBytes := args[0]
+	numTransactionsBytes := args[1]
+
+	err := ext.doStepInit(sponsorPubKey, [][]byte{numParticipantsBytes})
+	if err != nil {
+		return err
+	}
+
+	time.Sleep(15 * time.Second)
+
+	err = ext.doStepGenerateMoveBalances([][]byte{numTransactionsBytes})
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
