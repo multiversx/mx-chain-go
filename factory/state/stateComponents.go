@@ -183,8 +183,9 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 
 	caDB := &CacheableAccountsDB{
 		oldAccountsAdapter,
-		make(map[string]vmcommon.AccountHandler),
-		sync.Mutex{},
+		make(map[string]map[string]vmcommon.AccountHandler),
+		make(map[string]*sync.RWMutex),
+		sync.RWMutex{},
 	}
 
 	if err != nil {
@@ -334,75 +335,4 @@ func (pc *stateComponents) Close() error {
 		return fmt.Errorf("state components close failed: %s", errString)
 	}
 	return nil
-}
-
-type CacheableAccountsDB struct {
-	state.AccountsAdapter
-	Cache    map[string]vmcommon.AccountHandler
-	mutCache sync.Mutex
-}
-
-func (cadb *CacheableAccountsDB) GetExistingAccount(address []byte) (vmcommon.AccountHandler, error) {
-	cadb.mutCache.Lock()
-	defer cadb.mutCache.Unlock()
-	account, ok := cadb.Cache[string(address)]
-	if ok {
-		return account, nil
-	}
-
-	account, err := cadb.AccountsAdapter.GetExistingAccount(address)
-	if err != nil {
-		return nil, err
-	}
-
-	cadb.Cache[string(address)] = account
-	return account, nil
-}
-
-func (cadb *CacheableAccountsDB) LoadAccount(address []byte) (vmcommon.AccountHandler, error) {
-	cadb.mutCache.Lock()
-	defer cadb.mutCache.Unlock()
-	account, ok := cadb.Cache[string(address)]
-	if ok {
-		return account, nil
-	}
-
-	account, err := cadb.AccountsAdapter.LoadAccount(address)
-	if err != nil {
-		return nil, err
-	}
-
-	cadb.Cache[string(address)] = account
-	return account, nil
-}
-
-func (cadb *CacheableAccountsDB) SaveAccount(account vmcommon.AccountHandler) error {
-	cadb.mutCache.Lock()
-	defer cadb.mutCache.Unlock()
-	userAccount, ok := account.(state.BaseAccountHandler)
-	if ok {
-		hasCode := len(userAccount.GetCode()) > 0
-		if hasCode {
-			err := cadb.AccountsAdapter.SaveAccount(account)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	cadb.Cache[string(account.AddressBytes())] = account
-	return nil
-}
-
-func (cadb *CacheableAccountsDB) Commit() ([]byte, error) {
-	cadb.mutCache.Lock()
-	defer cadb.mutCache.Unlock()
-	for _, account := range cadb.Cache {
-		err := cadb.AccountsAdapter.SaveAccount(account)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	cadb.Cache = make(map[string]vmcommon.AccountHandler)
-	return cadb.AccountsAdapter.Commit()
 }

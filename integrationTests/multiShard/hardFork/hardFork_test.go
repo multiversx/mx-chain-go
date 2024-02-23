@@ -12,7 +12,6 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -25,6 +24,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
+	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -495,9 +495,8 @@ func hardForkImport(
 				},
 			},
 			HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
-			TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
-			RoundConfig:             &roundConfig,
-			ChainRunType:            common.ChainRunTypeRegular,
+			TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{}, RoundConfig: &roundConfig,
+			RunTypeComponents:       componentsMock.GetRunTypeComponents(),
 			ShardCoordinatorFactory: sharding.NewMultiShardCoordinatorFactory(),
 			TxPreprocessorCreator:   preprocess.NewTxPreProcessorCreator(),
 		}

@@ -82,7 +82,7 @@ const MaxHeaderRequestsAllowed = 20
 // NumTxPerSenderBatchForFillingMiniblock defines the number of transactions to be drawn
 // from the transactions pool, for a specific sender, in a single pass.
 // Drawing transactions for a miniblock happens in multiple passes, until "MaxItemsInBlock" are drawn.
-const NumTxPerSenderBatchForFillingMiniblock = 200000
+const NumTxPerSenderBatchForFillingMiniblock = 30000
 
 // NonceDifferenceWhenSynced defines the difference between probable highest nonce seen from network and node's last
 // committed block nonce, after which, node is considered himself not synced

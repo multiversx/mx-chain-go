@@ -23,6 +23,7 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -1368,5 +1369,37 @@ type ExtraHeaderSigVerifierHandler interface {
 	RemoveLeaderSignature(header data.HeaderHandler) error
 	RemoveAllSignatures(header data.HeaderHandler) error
 	Identifier() string
+	IsInterfaceNil() bool
+}
+
+// ProcessDebuggerSetter allows setting a debugger on the process component
+type ProcessDebuggerSetter interface {
+	SetProcessDebugger(debugger Debugger) error
+}
+
+// DebuggerBlockProcessor is the interface for block execution engine with debugger
+type DebuggerBlockProcessor interface {
+	BlockProcessor
+	ProcessDebuggerSetter
+}
+
+// AdditionalStorageServiceCreator defines the actions needed for a component that can create additional storage services
+type AdditionalStorageServiceCreator interface {
+	CreateAdditionalStorageUnits(func(store dataRetriever.StorageService, shardID string) error, dataRetriever.StorageService, string) error
+	IsInterfaceNil() bool
+}
+
+// ScrProcessingDataHandler is an interface for scr data to be processed after validation checks
+type ScrProcessingDataHandler interface {
+	GetHash() []byte
+	GetSnapshot() int
+	GetSender() state.UserAccountHandler
+	GetDestination() state.UserAccountHandler
+}
+
+// SCProcessorHelperHandler is an interface for smart contract processor helper
+type SCProcessorHelperHandler interface {
+	GetAccountFromAddress(address []byte) (state.UserAccountHandler, error)
+	CheckSCRBeforeProcessing(scr *smartContractResult.SmartContractResult) (ScrProcessingDataHandler, error)
 	IsInterfaceNil() bool
 }

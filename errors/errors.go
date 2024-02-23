@@ -121,6 +121,9 @@ var ErrNilStatusComponentsFactory = errors.New("nil status components factory")
 // ErrNilStatusCoreComponentsFactory signals that an operation has been attempted with nil status core components factory
 var ErrNilStatusCoreComponentsFactory = errors.New("nil status core components factory provided")
 
+// ErrNilRunTypeComponentsFactory signals that the provided runType components factory is nil
+var ErrNilRunTypeComponentsFactory = errors.New("nil runType components factory")
+
 // ErrNilBootstrapParamsHandler signals that the provided bootstrap parameters handler is nil
 var ErrNilBootstrapParamsHandler = errors.New("nil bootstrap parameters handler")
 
@@ -328,6 +331,9 @@ var ErrNilSoftwareVersion = errors.New("nil software version")
 // ErrNilStateComponents signals that a nil state components was provided
 var ErrNilStateComponents = errors.New("nil state components")
 
+// ErrNilRunTypeComponents signals that a nil runType components was provided
+var ErrNilRunTypeComponents = errors.New("nil runType components")
+
 // ErrNilStateComponentsHolder signals that a nil state components holder was provided
 var ErrNilStateComponentsHolder = errors.New("nil state components holder")
 
@@ -436,6 +442,9 @@ var ErrNetworkComponentsFactoryCreate = errors.New("networkComponentsFactory cre
 // ErrStateComponentsFactoryCreate signals that an error occured on stateComponentsFactory create
 var ErrStateComponentsFactoryCreate = errors.New("stateComponentsFactory create failed")
 
+// ErrRunTypeComponentsFactoryCreate signals that an error occured on runTypeComponentsFactory create
+var ErrRunTypeComponentsFactoryCreate = errors.New("runTypeComponentsFactory create failed")
+
 // ErrStatusComponentsFactoryCreate signals that an error occured on statusComponentsFactory create
 var ErrStatusComponentsFactoryCreate = errors.New("statusComponentsFactory create failed")
 
@@ -540,12 +549,6 @@ var ErrNilManagedPeersMonitor = errors.New("nil managed peers monitor")
 
 // ErrUnimplementedConsensusModel signals an unimplemented consensus model
 var ErrUnimplementedConsensusModel = errors.New("unimplemented consensus model")
-
-// ErrUnimplementedChainRunType signals an unimplemented chain run type
-var ErrUnimplementedChainRunType = errors.New("unimplemented chain run type")
-
-// ErrIncompatibleArgumentsProvided signals that incompatible arguments were provided
-var ErrIncompatibleArgumentsProvided = errors.New("incompatible arguments provided")
 
 // ErrNilPeersRatingHandler signals that a nil peers rating handler implementation has been provided
 var ErrNilPeersRatingHandler = errors.New("nil peers rating handler")
@@ -697,3 +700,72 @@ var ErrNilBridgeOpHandler = errors.New("nil bridge operation handler has been pr
 
 // ErrOutGoingOperationsNotFound signals that an outgoing operation could not be found
 var ErrOutGoingOperationsNotFound = errors.New("outgoing operation could not be found")
+
+// ErrInvalidTypeConversion signals that a type conversion has failed
+var ErrInvalidTypeConversion = errors.New("invalid type conversion")
+
+// ErrNilShardBootstrapFactory signals that a nil shard bootstrap factory has been provided
+var ErrNilShardBootstrapFactory = errors.New("nil shard bootstrap factory")
+
+// ErrNilShardStorageBootstrapperFactory signals that a nil shard storage bootstrapper factory has been provided
+var ErrNilShardStorageBootstrapperFactory = errors.New("nil shard storage bootstrapper factory")
+
+// ErrNilResolverRequestFactoryHandler signals that a nil resolver request factory handler has been provided
+var ErrNilResolverRequestFactoryHandler = errors.New("nil resolver request factory handler")
+
+// ErrNilBlockChainHookFactory signals that a nil blockchain hook factory has been provided
+var ErrNilBlockChainHookFactory = errors.New("nil blockchain hook factory")
+
+// ErrNilEpochStartBootstrapperFactory signals that a nil epoch start bootstrapper factory has been provided
+var ErrNilEpochStartBootstrapperFactory = errors.New("nil epoch start bootstrapper factory")
+
+// ErrNilBlockProcessorFactory signals that a nil block processor factory has been provided
+var ErrNilBlockProcessorFactory = errors.New("nil block processor factory")
+
+// ErrNilBlockChainHookHandlerCreator signals that a nil blockchain hook handler creator has been provided
+var ErrNilBlockChainHookHandlerCreator = errors.New("nil blockchain hook handler creator")
+
+// ErrNilEpochStartBootstrapperCreator signals that a nil epoch start bootstrapper creator has been provided
+var ErrNilEpochStartBootstrapperCreator = errors.New("nil epoch start bootstrapper creator")
+
+// ErrNilBootstrapperFromStorageCreator signals that a nil bootstrapper from storage creator has been provided
+var ErrNilBootstrapperFromStorageCreator = errors.New("nil bootstrapper from storage creator")
+
+// ErrNilBootstrapperCreator signals that a nil bootstrapper creator has been provided
+var ErrNilBootstrapperCreator = errors.New("nil bootstrapper creator")
+
+// ErrNilBlockProcessorCreator signals that a nil block processor creator has been provided
+var ErrNilBlockProcessorCreator = errors.New("nil block processor creator")
+
+// ErrNilForkDetectorCreator signals that a nil fork detector creator has been provided
+var ErrNilForkDetectorCreator = errors.New("nil fork detector creator")
+
+// ErrNilBlockTrackerCreator signals that a nil block tracker creator has been provided
+var ErrNilBlockTrackerCreator = errors.New("nil block tracker creator")
+
+// ErrNilRequestHandlerCreator signals that a nil request handler creator has been provided
+var ErrNilRequestHandlerCreator = errors.New("nil request handler creator")
+
+// ErrNilHeaderValidatorCreator signals that a nil header validator creator has been provided
+var ErrNilHeaderValidatorCreator = errors.New("nil header validator creator")
+
+// ErrNilScheduledTxsExecutionCreator signals that a nil scheduled txs execution creator has been provided
+var ErrNilScheduledTxsExecutionCreator = errors.New("nil scheduled txs execution creator")
+
+// ErrNilTransactionCoordinatorCreator signals that a nil transaction coordinator creator has been provided
+var ErrNilTransactionCoordinatorCreator = errors.New("nil transaction coordinator creator")
+
+// ErrNilValidatorStatisticsProcessorCreator signals that a nil validator statistics processor creator has been provided
+var ErrNilValidatorStatisticsProcessorCreator = errors.New("nil validator statistics processor creator")
+
+// ErrNilAdditionalStorageServiceCreator signals that a nil additional storage service creator has been provided
+var ErrNilAdditionalStorageServiceCreator = errors.New("nil additional storage service creator")
+
+// ErrNilSCProcessorCreator signals that a nil sc processor creator has been provided
+var ErrNilSCProcessorCreator = errors.New("nil sc processor creator")
+
+// ErrNilSCResultsPreProcessorCreator signals that a nil sc results pre processor creator has been provided
+var ErrNilSCResultsPreProcessorCreator = errors.New("nil sc results pre processor creator")
+
+// ErrNilFunction signals that a nil function has been provided
+var ErrNilFunction = errors.New("nil function")

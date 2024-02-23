@@ -2,6 +2,7 @@ package track
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 type blockNotarizerHandler interface {
@@ -45,5 +46,11 @@ type blockBalancerHandler interface {
 	SetNumPendingMiniBlocks(shardID uint32, numPendingMiniBlocks uint32)
 	GetLastShardProcessedMetaNonce(shardID uint32) uint64
 	SetLastShardProcessedMetaNonce(shardID uint32, nonce uint64)
+	IsInterfaceNil() bool
+}
+
+// BlockTrackerCreator is an interface for creating block trackers
+type BlockTrackerCreator interface {
+	CreateBlockTracker(argShardTracker ArgShardTracker) (process.BlockTracker, error)
 	IsInterfaceNil() bool
 }

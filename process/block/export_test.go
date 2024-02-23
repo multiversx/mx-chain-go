@@ -21,7 +21,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
-	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
@@ -131,7 +130,7 @@ func NewShardProcessorEmptyWith3shards(
 	statusComponents := &mock.StatusComponentsMock{
 		Outport: &outport.OutportStub{},
 	}
-	statusCoreComponents := &factory.StatusCoreComponentsStub{
+	statusCoreComponents := &mock.StatusCoreComponentsStub{
 		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
 	}
 

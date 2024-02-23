@@ -126,7 +126,7 @@ func (sccf *statusCoreComponentsFactory) createStatusHandler() (core.AppStatusHa
 	statusMetrics := statusHandler.NewStatusMetrics()
 	appStatusHandlers = append(appStatusHandlers, statusMetrics)
 
-	persistentHandler, err := persister.NewPersistentStatusHandler(sccf.coreComp.InternalMarshalizer(), sccf.coreComp.Uint64ByteSliceConverter())
+	persistentHandler, err := persister.NewPersistentStatus(sccf.coreComp.InternalMarshalizer(), sccf.coreComp.Uint64ByteSliceConverter())
 	if err != nil {
 		return nil, nil, nil, err
 	}

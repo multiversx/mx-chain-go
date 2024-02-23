@@ -245,6 +245,8 @@ func (ext *MultiDataInterceptorExtension) createMintingTransactions() []*transac
 		panic(err)
 	}
 
+	value, _ := big.NewInt(0).SetString("100000000000000000000", 10)
+
 	for i := 0; i < len(ext.participants); i++ {
 		tx := &transaction.Transaction{
 			Nonce:    sponsorAccount.GetNonce() + uint64(i),
@@ -292,6 +294,8 @@ func (ext *MultiDataInterceptorExtension) doStepGenerateMoveBalances(args [][]by
 	if len(args) != 1 {
 		return fmt.Errorf("doStepGenerateMoveBalances: invalid number of arguments")
 	}
+
+	preprocess.ShouldProcess.Store(false)
 
 	numTxsBytes := args[0]
 	numTxs := int(big.NewInt(0).SetBytes(numTxsBytes).Int64())
