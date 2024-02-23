@@ -2,20 +2,20 @@ package testscommon
 
 // StateStatisticsHandlerStub -
 type StateStatisticsHandlerStub struct {
-	ResetCalled                 func()
-	ResetSnapshotCalled         func()
-	IncrCacheCalled             func()
-	CacheCalled                 func() uint64
-	IncrSnapshotCacheCalled     func()
-	SnapshotCacheCalled         func() uint64
-	IncrPersisterCalled         func(epoch uint32)
-	PersisterCalled             func(epoch uint32) uint64
-	IncrSnapshotPersisterCalled func(epoch uint32)
-	SnapshotPersisterCalled     func(epoch uint32) uint64
-	IncrTrieCalled              func()
-	TrieCalled                  func() uint64
-	ProcessingStatsCalled       func() []string
-	SnapshotStatsCalled         func() []string
+	ResetCalled                      func()
+	ResetSnapshotCalled              func()
+	IncrementCacheCalled             func()
+	CacheCalled                      func() uint64
+	IncrementSnapshotCacheCalled     func()
+	SnapshotCacheCalled              func() uint64
+	IncrementPersisterCalled         func(epoch uint32)
+	PersisterCalled                  func(epoch uint32) uint64
+	IncrementSnapshotPersisterCalled func(epoch uint32)
+	SnapshotPersisterCalled          func(epoch uint32) uint64
+	IncrementTrieCalled              func()
+	TrieCalled                       func() uint64
+	ProcessingStatsCalled            func() []string
+	SnapshotStatsCalled              func() []string
 }
 
 // Reset -
@@ -32,11 +32,10 @@ func (stub *StateStatisticsHandlerStub) ResetSnapshot() {
 	}
 }
 
-// IncrCache -
-// TODO: replace Incr with Increment on all usages in this file + rename the interface and the other 2 implementations
-func (stub *StateStatisticsHandlerStub) IncrCache() {
-	if stub.IncrCacheCalled != nil {
-		stub.IncrCacheCalled()
+// IncrementCache -
+func (stub *StateStatisticsHandlerStub) IncrementCache() {
+	if stub.IncrementCacheCalled != nil {
+		stub.IncrementCacheCalled()
 	}
 }
 
@@ -49,10 +48,10 @@ func (stub *StateStatisticsHandlerStub) Cache() uint64 {
 	return 0
 }
 
-// IncrSnapshotCache -
-func (stub *StateStatisticsHandlerStub) IncrSnapshotCache() {
-	if stub.IncrSnapshotCacheCalled != nil {
-		stub.IncrSnapshotCacheCalled()
+// IncrementSnapshotCache -
+func (stub *StateStatisticsHandlerStub) IncrementSnapshotCache() {
+	if stub.IncrementSnapshotCacheCalled != nil {
+		stub.IncrementSnapshotCacheCalled()
 	}
 }
 
@@ -65,10 +64,10 @@ func (stub *StateStatisticsHandlerStub) SnapshotCache() uint64 {
 	return 0
 }
 
-// IncrPersister -
-func (stub *StateStatisticsHandlerStub) IncrPersister(epoch uint32) {
-	if stub.IncrPersisterCalled != nil {
-		stub.IncrPersisterCalled(epoch)
+// IncrementPersister -
+func (stub *StateStatisticsHandlerStub) IncrementPersister(epoch uint32) {
+	if stub.IncrementPersisterCalled != nil {
+		stub.IncrementPersisterCalled(epoch)
 	}
 }
 
@@ -81,10 +80,10 @@ func (stub *StateStatisticsHandlerStub) Persister(epoch uint32) uint64 {
 	return 0
 }
 
-// IncrSnapshotPersister -
-func (stub *StateStatisticsHandlerStub) IncrSnapshotPersister(epoch uint32) {
-	if stub.IncrSnapshotPersisterCalled != nil {
-		stub.IncrSnapshotPersisterCalled(epoch)
+// IncrementSnapshotPersister -
+func (stub *StateStatisticsHandlerStub) IncrementSnapshotPersister(epoch uint32) {
+	if stub.IncrementSnapshotPersisterCalled != nil {
+		stub.IncrementSnapshotPersisterCalled(epoch)
 	}
 }
 
@@ -97,10 +96,10 @@ func (stub *StateStatisticsHandlerStub) SnapshotPersister(epoch uint32) uint64 {
 	return 0
 }
 
-// IncrTrie -
-func (stub *StateStatisticsHandlerStub) IncrTrie() {
-	if stub.IncrTrieCalled != nil {
-		stub.IncrTrieCalled()
+// IncrementTrie -
+func (stub *StateStatisticsHandlerStub) IncrementTrie() {
+	if stub.IncrementTrieCalled != nil {
+		stub.IncrementTrieCalled()
 	}
 }
 

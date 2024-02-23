@@ -27,11 +27,11 @@ func TestStateStatistics_Processing(t *testing.T) {
 
 		assert.Equal(t, uint64(0), ss.Trie())
 
-		ss.IncrTrie()
-		ss.IncrTrie()
+		ss.IncrementTrie()
+		ss.IncrementTrie()
 		assert.Equal(t, uint64(2), ss.Trie())
 
-		ss.IncrTrie()
+		ss.IncrementTrie()
 		assert.Equal(t, uint64(3), ss.Trie())
 
 		ss.Reset()
@@ -47,11 +47,11 @@ func TestStateStatistics_Processing(t *testing.T) {
 
 		assert.Equal(t, uint64(0), ss.Persister(epoch))
 
-		ss.IncrPersister(epoch)
-		ss.IncrPersister(epoch)
+		ss.IncrementPersister(epoch)
+		ss.IncrementPersister(epoch)
 		assert.Equal(t, uint64(2), ss.Persister(epoch))
 
-		ss.IncrPersister(epoch)
+		ss.IncrementPersister(epoch)
 		assert.Equal(t, uint64(3), ss.Persister(epoch))
 
 		ss.Reset()
@@ -65,11 +65,11 @@ func TestStateStatistics_Processing(t *testing.T) {
 
 		assert.Equal(t, uint64(0), ss.Cache())
 
-		ss.IncrCache()
-		ss.IncrCache()
+		ss.IncrementCache()
+		ss.IncrementCache()
 		assert.Equal(t, uint64(2), ss.Cache())
 
-		ss.IncrCache()
+		ss.IncrementCache()
 		assert.Equal(t, uint64(3), ss.Cache())
 
 		ss.Reset()
@@ -89,11 +89,11 @@ func TestStateStatistics_Snapshot(t *testing.T) {
 
 		assert.Equal(t, uint64(0), ss.SnapshotPersister(epoch))
 
-		ss.IncrSnapshotPersister(epoch)
-		ss.IncrSnapshotPersister(epoch)
+		ss.IncrementSnapshotPersister(epoch)
+		ss.IncrementSnapshotPersister(epoch)
 		assert.Equal(t, uint64(2), ss.SnapshotPersister(epoch))
 
-		ss.IncrSnapshotPersister(epoch)
+		ss.IncrementSnapshotPersister(epoch)
 		assert.Equal(t, uint64(3), ss.SnapshotPersister(epoch))
 
 		ss.ResetSnapshot()
@@ -107,11 +107,11 @@ func TestStateStatistics_Snapshot(t *testing.T) {
 
 		assert.Equal(t, uint64(0), ss.Cache())
 
-		ss.IncrSnapshotCache()
-		ss.IncrSnapshotCache()
+		ss.IncrementSnapshotCache()
+		ss.IncrementSnapshotCache()
 		assert.Equal(t, uint64(2), ss.SnapshotCache())
 
-		ss.IncrSnapshotCache()
+		ss.IncrementSnapshotCache()
 		assert.Equal(t, uint64(3), ss.SnapshotCache())
 
 		ss.ResetSnapshot()
@@ -144,11 +144,11 @@ func TestStateStatistics_ConcurrenyOperations(t *testing.T) {
 			case 0:
 				ss.Reset()
 			case 1:
-				ss.IncrCache()
+				ss.IncrementCache()
 			case 2:
-				ss.IncrPersister(epoch)
+				ss.IncrementPersister(epoch)
 			case 3:
-				ss.IncrTrie()
+				ss.IncrementTrie()
 			case 7:
 				_ = ss.Cache()
 			case 8:
