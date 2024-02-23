@@ -34,12 +34,12 @@ deployEsdtSafeContract() {
 }
 
 pauseEsdtSafeContract() {
-    pauseEsdtSafe ${ESDT_SAFE_ADDRESS}
+    pauseEsdtSafeContractCall ${ESDT_SAFE_ADDRESS}
 }
 pauseEsdtSafeContractSovereign() {
-    pauseEsdtSafe ${ESDT_SAFE_ADDRESS_SOVEREIGN}
+    pauseEsdtSafeContractCall ${ESDT_SAFE_ADDRESS_SOVEREIGN}
 }
-pauseEsdtSafe() {
+pauseEsdtSafeContractCall() {
     if [ $# -eq 0 ]; then
         echo "No arguments provided"
         return
@@ -57,12 +57,12 @@ pauseEsdtSafe() {
 }
 
 unpauseEsdtSafeContract() {
-    unpauseEsdtSafe ${ESDT_SAFE_ADDRESS}
+    unpauseEsdtSafeContractCall ${ESDT_SAFE_ADDRESS}
 }
 unpauseEsdtSafeContractSovereign() {
-    unpauseEsdtSafe ${ESDT_SAFE_ADDRESS_SOVEREIGN}
+    unpauseEsdtSafeContractCall ${ESDT_SAFE_ADDRESS_SOVEREIGN}
 }
-unpauseEsdtSafe() {
+unpauseEsdtSafeContractCall() {
     if [ $# -eq 0 ]; then
         echo "No arguments provided"
         return
@@ -80,12 +80,12 @@ unpauseEsdtSafe() {
 }
 
 setFeeMarketAddress() {
-    setFeeMarket ${ESDT_SAFE_ADDRESS} ${FEE_MARKET_ADDRESS}
+    setFeeMarketAddressCall ${ESDT_SAFE_ADDRESS} ${FEE_MARKET_ADDRESS}
 }
 setFeeMarketAddressSovereign() {
-    setFeeMarket ${ESDT_SAFE_ADDRESS_SOVEREIGN} ${FEE_MARKET_ADDRESS_SOVEREIGN}
+    setFeeMarketAddressCall ${ESDT_SAFE_ADDRESS_SOVEREIGN} ${FEE_MARKET_ADDRESS_SOVEREIGN}
 }
-setFeeMarket() {
+setFeeMarketAddressCall() {
     if [ $# -eq 0 ]; then
         echo "No arguments provided"
         return

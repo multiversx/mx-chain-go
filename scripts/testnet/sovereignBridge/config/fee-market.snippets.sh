@@ -35,12 +35,12 @@ deployFeeMarketContract() {
 }
 
 enableFeeMarketContract() {
-    enableFeeMarket ${FEE_MARKET_ADDRESS}
+    enableFeeMarketContractCall ${FEE_MARKET_ADDRESS}
 }
 enableFeeMarketContractSovereign() {
-    enableFeeMarket ${FEE_MARKET_ADDRESS_SOVEREIGN}
+    enableFeeMarketContractCall ${FEE_MARKET_ADDRESS_SOVEREIGN}
 }
-enableFeeMarket() {
+enableFeeMarketContractCall() {
     if [ $# -eq 0 ]; then
         echo "No arguments provided"
         return
@@ -58,12 +58,12 @@ enableFeeMarket() {
 }
 
 disableFeeMarketContract() {
-    disableFeeMarket ${FEE_MARKET_ADDRESS}
+    disableFeeMarketContractCall ${FEE_MARKET_ADDRESS}
 }
 disableFeeMarketContractSovereign() {
-    disableFeeMarket ${FEE_MARKET_ADDRESS_SOVEREIGN}
+    disableFeeMarketContractCall ${FEE_MARKET_ADDRESS_SOVEREIGN}
 }
-disableFeeMarket() {
+disableFeeMarketContractCall() {
     if [ $# -eq 0 ]; then
         echo "No arguments provided"
         return

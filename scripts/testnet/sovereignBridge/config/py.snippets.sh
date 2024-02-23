@@ -22,14 +22,14 @@ displayContracts() {
 }
 
 setGenesisContract() {
-    setGenesis ${ESDT_SAFE_ADDRESS}
+    setGenesisContractOperation ${ESDT_SAFE_ADDRESS}
 }
 
 setGenesisContractSovereign() {
-    setGenesis ${ESDT_SAFE_ADDRESS_SOVEREIGN}
+    setGenesisContractOperation ${ESDT_SAFE_ADDRESS_SOVEREIGN}
 }
 
-setGenesis() {
+setGenesisContractOperation() {
     if [ $# -eq 0 ]; then
         echo "No arguments provided"
         return
