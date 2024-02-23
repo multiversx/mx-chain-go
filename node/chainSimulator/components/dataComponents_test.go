@@ -41,7 +41,7 @@ func TestCreateDataComponents(t *testing.T) {
 		require.Nil(t, comp.Create())
 		require.Nil(t, comp.Close())
 	})
-	t.Run("", func(t *testing.T) {
+	t.Run("NewMiniBlockProvider failure should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createArgsDataComponentsHolder()
@@ -54,7 +54,7 @@ func TestCreateDataComponents(t *testing.T) {
 		require.Error(t, err)
 		require.Nil(t, comp)
 	})
-	t.Run("", func(t *testing.T) {
+	t.Run("GetStorer failure should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createArgsDataComponentsHolder()
