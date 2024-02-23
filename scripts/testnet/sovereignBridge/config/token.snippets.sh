@@ -62,8 +62,8 @@ issueTokenSovereign() {
 
     mxpy --verbose contract call ${ESDT_SYSTEM_SC_ADDRESS} \
         --pem=${WALLET} \
-        --proxy="http://localhost:7950" \
-        --chain="local-testnet" \
+        --proxy=${PROXY_SOVEREIGN} \
+        --chain=${CHAIN_ID_SOVEREIGN} \
         --gas-limit=60000000 \
         --value=5000000000000000000 \
         --function="issue" \
@@ -76,6 +76,10 @@ issueTokenSovereign() {
         --recall-nonce \
         --wait-result \
         --send || return
+
+    HEX_TOKEN_IDENTIFIER=$(mxpy data parse --file="${SCRIPT_PATH}/issue-token.interaction.json"  --expression="data['transactionOnNetwork']['logs']['events'][2]['topics'][0]")
+    TOKEN_IDENTIFIER=$(echo "$HEX_TOKEN_IDENTIFIER" | xxd -r -p)
+    update-config DEPOSIT_TOKEN_IDENTIFIER $TOKEN_IDENTIFIER
 }
 
 depositTokenInSCSovereign() {
@@ -87,8 +91,8 @@ depositTokenInSCSovereign() {
 
     mxpy --verbose contract call ${WALLET_ADDRESS} \
         --pem=${WALLET} \
-        --proxy="http://localhost:7950" \
-        --chain="local-testnet" \
+        --proxy=${PROXY_SOVEREIGN} \
+        --chain=${CHAIN_ID_SOVEREIGN} \
         --gas-limit=20000000 \
         --function="MultiESDTNFTTransfer" \
         --arguments \

@@ -34,21 +34,25 @@ deployEsdtSafeContract() {
 }
 
 pauseEsdtSafeContract() {
-    pauseEsdtSafeContractCall ${ESDT_SAFE_ADDRESS}
+    pauseEsdtSafeContractCall ${ESDT_SAFE_ADDRESS} ${PROXY} ${CHAIN_ID}
 }
 pauseEsdtSafeContractSovereign() {
-    pauseEsdtSafeContractCall ${ESDT_SAFE_ADDRESS_SOVEREIGN}
+    pauseEsdtSafeContractCall ${ESDT_SAFE_ADDRESS_SOVEREIGN} ${PROXY_SOVEREIGN} ${CHAIN_ID_SOVEREIGN}
 }
 pauseEsdtSafeContractCall() {
-    if [ $# -eq 0 ]; then
-        echo "No arguments provided"
-        return
+    if [ $# -lt 3 ]; then
+        echo "Usage: $0 <arg1> <arg2> <arg3>"
+        exit 1
     fi
 
-    mxpy --verbose contract call $1\
+    ADDRESS=$1
+    URL=$2
+    CHAIN=$3
+
+    mxpy --verbose contract call ${ADDRESS} \
         --pem=${WALLET} \
-        --proxy=${PROXY} \
-        --chain=${CHAIN_ID} \
+        --proxy=${URL} \
+        --chain=${CHAIN} \
         --gas-limit=10000000 \
         --function="pause" \
         --recall-nonce \
@@ -57,21 +61,25 @@ pauseEsdtSafeContractCall() {
 }
 
 unpauseEsdtSafeContract() {
-    unpauseEsdtSafeContractCall ${ESDT_SAFE_ADDRESS}
+    unpauseEsdtSafeContractCall ${ESDT_SAFE_ADDRESS} ${PROXY} ${CHAIN_ID}
 }
 unpauseEsdtSafeContractSovereign() {
-    unpauseEsdtSafeContractCall ${ESDT_SAFE_ADDRESS_SOVEREIGN}
+    unpauseEsdtSafeContractCall ${ESDT_SAFE_ADDRESS_SOVEREIGN} ${PROXY_SOVEREIGN} ${CHAIN_ID_SOVEREIGN}
 }
 unpauseEsdtSafeContractCall() {
-    if [ $# -eq 0 ]; then
-        echo "No arguments provided"
-        return
+    if [ $# -lt 3 ]; then
+        echo "Usage: $0 <arg1> <arg2> <arg3>"
+        exit 1
     fi
 
-    mxpy --verbose contract call $1 \
+    ADDRESS=$1
+    URL=$2
+    CHAIN=$3
+
+    mxpy --verbose contract call ${ADDRESS} \
         --pem=${WALLET} \
-        --proxy=${PROXY} \
-        --chain=${CHAIN_ID} \
+        --proxy=${URL} \
+        --chain=${CHAIN} \
         --gas-limit=10000000 \
         --function="unpause" \
         --recall-nonce \
@@ -80,24 +88,29 @@ unpauseEsdtSafeContractCall() {
 }
 
 setFeeMarketAddress() {
-    setFeeMarketAddressCall ${ESDT_SAFE_ADDRESS} ${FEE_MARKET_ADDRESS}
+    setFeeMarketAddressCall ${ESDT_SAFE_ADDRESS} ${FEE_MARKET_ADDRESS} ${PROXY} ${CHAIN_ID}
 }
 setFeeMarketAddressSovereign() {
-    setFeeMarketAddressCall ${ESDT_SAFE_ADDRESS_SOVEREIGN} ${FEE_MARKET_ADDRESS_SOVEREIGN}
+    setFeeMarketAddressCall ${ESDT_SAFE_ADDRESS_SOVEREIGN} ${FEE_MARKET_ADDRESS_SOVEREIGN} ${PROXY_SOVEREIGN} ${CHAIN_ID_SOVEREIGN}
 }
 setFeeMarketAddressCall() {
-    if [ $# -eq 0 ]; then
-        echo "No arguments provided"
-        return
-    fi
+    if [ $# -lt 3 ]; then
+            echo "Usage: $0 <arg1> <arg2> <arg3>"
+            exit 1
+        fi
 
-    mxpy --verbose contract call $1 \
+        ESDT_SAFE_ADDRESS=$1
+        FEE_MARKET_ADDRESS=$2
+        URL=$3
+        CHAIN=$4
+
+    mxpy --verbose contract call $ESDT_SAFE_ADDRESS \
         --pem=${WALLET} \
-        --proxy=${PROXY} \
-        --chain=${CHAIN_ID} \
+        --proxy=${URL} \
+        --chain=${CHAIN} \
         --gas-limit=10000000 \
         --function="setFeeMarketAddress" \
-        --arguments $2 \
+        --arguments $FEE_MARKET_ADDRESS \
         --recall-nonce \
         --wait-result \
         --send || return

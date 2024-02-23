@@ -3,7 +3,7 @@ MULTISIG_VERIFIER_ADDRESS=$(mxpy data load --partition=${CHAIN_ID} --key=address
 deployMultisigVerifierContract() {
     manualUpdateConfigFile #update config file
 
-    CHECK_VARIABLES BLS_PUB_KEYS || return
+    BLS_PUB_KEYS=$(python3 $SCRIPT_PATH/pyScripts/read_bls_keys.py)
 
     mxpy --verbose contract deploy \
         --bytecode="${MULTISIG_VERIFIER_WASM}" \

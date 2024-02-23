@@ -67,7 +67,7 @@ if [ "$SOVEREIGN_DEPLOY" -eq 1 ]; then
 
     git clone https://github.com/multiversx/mx-chain-sovereign-bridge-go.git
     cd mx-chain-sovereign-bridge-go
-    git checkout master
+    git checkout main
     cd cert/cmd/cert
     go build
     ./cert

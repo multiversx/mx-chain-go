@@ -35,21 +35,25 @@ deployFeeMarketContract() {
 }
 
 enableFeeMarketContract() {
-    enableFeeMarketContractCall ${FEE_MARKET_ADDRESS}
+    enableFeeMarketContractCall ${FEE_MARKET_ADDRESS} ${PROXY} ${CHAIN_ID}
 }
 enableFeeMarketContractSovereign() {
-    enableFeeMarketContractCall ${FEE_MARKET_ADDRESS_SOVEREIGN}
+    enableFeeMarketContractCall ${FEE_MARKET_ADDRESS_SOVEREIGN} ${PROXY_SOVEREIGN} ${CHAIN_ID_SOVEREIGN}
 }
 enableFeeMarketContractCall() {
-    if [ $# -eq 0 ]; then
-        echo "No arguments provided"
-        return
+    if [ $# -lt 3 ]; then
+        echo "Usage: $0 <arg1> <arg2> <arg3>"
+        exit 1
     fi
 
-    mxpy --verbose contract call $1 \
+    ADDRESS=$1
+    URL=$2
+    CHAIN=$3
+
+    mxpy --verbose contract call $ADDRESS \
         --pem=${WALLET} \
-        --proxy=${PROXY} \
-        --chain=${CHAIN_ID} \
+        --proxy=${URL} \
+        --chain=${CHAIN} \
         --gas-limit=10000000 \
         --function="enableFee" \
         --recall-nonce \
@@ -58,21 +62,25 @@ enableFeeMarketContractCall() {
 }
 
 disableFeeMarketContract() {
-    disableFeeMarketContractCall ${FEE_MARKET_ADDRESS}
+    disableFeeMarketContractCall ${FEE_MARKET_ADDRESS} ${PROXY} ${CHAIN_ID}
 }
 disableFeeMarketContractSovereign() {
-    disableFeeMarketContractCall ${FEE_MARKET_ADDRESS_SOVEREIGN}
+    disableFeeMarketContractCall ${FEE_MARKET_ADDRESS_SOVEREIGN} ${PROXY_SOVEREIGN} ${CHAIN_ID_SOVEREIGN}
 }
 disableFeeMarketContractCall() {
-    if [ $# -eq 0 ]; then
-        echo "No arguments provided"
-        return
+    if [ $# -lt 3 ]; then
+        echo "Usage: $0 <arg1> <arg2> <arg3>"
+        exit 1
     fi
 
-    mxpy --verbose contract call $1 \
+    ADDRESS=$1
+    URL=$2
+    CHAIN=$3
+
+    mxpy --verbose contract call ${ADDRESS} \
         --pem=${WALLET} \
-        --proxy=${PROXY} \
-        --chain=${CHAIN_ID} \
+        --proxy=${URL} \
+        --chain=${CHAIN} \
         --gas-limit=10000000 \
         --function="disableFee" \
         --recall-nonce \
