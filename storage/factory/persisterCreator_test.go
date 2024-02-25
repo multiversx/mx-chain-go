@@ -38,6 +38,19 @@ func TestPersisterCreator_Create(t *testing.T) {
 		require.Equal(t, storage.ErrInvalidFilePath, err)
 	})
 
+	t.Run("use tmp as file path", func(t *testing.T) {
+		t.Parallel()
+
+		conf := createDefaultDBConfig()
+		conf.UseTmpAsFilePath = true
+
+		pc := factory.NewPersisterCreator(conf)
+
+		p, err := pc.Create("path1")
+		require.Nil(t, err)
+		require.NotNil(t, p)
+	})
+
 	t.Run("should create non sharded persister", func(t *testing.T) {
 		t.Parallel()
 
@@ -152,4 +165,23 @@ func TestPersisterCreator_CreateShardIDProvider(t *testing.T) {
 
 		assert.True(t, strings.Contains(fmt.Sprintf("%T", p), "*sharded.shardIDProvider"))
 	})
+}
+
+func TestGetTmpFilePath(t *testing.T) {
+	t.Parallel()
+
+	tmpBasePath := "/tmp/"
+
+	path, err := factory.GetTmpFilePath("aaaa/bbbb/cccc")
+	require.Nil(t, err)
+	require.True(t, strings.HasPrefix(path, tmpBasePath+"cccc"))
+
+	path, _ = factory.GetTmpFilePath("aaaa")
+	require.True(t, strings.HasPrefix(path, tmpBasePath+"aaaa"))
+
+	path, _ = factory.GetTmpFilePath("")
+	require.True(t, strings.HasPrefix(path, tmpBasePath+""))
+
+	path, _ = factory.GetTmpFilePath("/")
+	require.True(t, strings.HasPrefix(path, tmpBasePath+""))
 }

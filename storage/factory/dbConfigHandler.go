@@ -14,26 +14,17 @@ const (
 	defaultBatchDelaySeconds = 2
 	defaultMaxBatchSize      = 100
 	defaultMaxOpenFiles      = 10
+	defaultUseTmpAsFilePath  = false
 )
 
 type dbConfigHandler struct {
-	dbType              string
-	batchDelaySeconds   int
-	maxBatchSize        int
-	maxOpenFiles        int
-	shardIDProviderType string
-	numShards           int32
+	conf config.DBConfig
 }
 
 // NewDBConfigHandler will create a new db config handler instance
 func NewDBConfigHandler(config config.DBConfig) *dbConfigHandler {
 	return &dbConfigHandler{
-		dbType:              config.Type,
-		batchDelaySeconds:   config.BatchDelaySeconds,
-		maxBatchSize:        config.MaxBatchSize,
-		maxOpenFiles:        config.MaxOpenFiles,
-		shardIDProviderType: config.ShardIDProviderType,
-		numShards:           config.NumShards,
+		conf: config,
 	}
 }
 
@@ -53,23 +44,16 @@ func (dh *dbConfigHandler) GetDBConfig(path string) (*config.DBConfig, error) {
 			BatchDelaySeconds: defaultBatchDelaySeconds,
 			MaxBatchSize:      defaultMaxBatchSize,
 			MaxOpenFiles:      defaultMaxOpenFiles,
+			UseTmpAsFilePath:  defaultUseTmpAsFilePath,
 		}
 
 		log.Debug("GetDBConfig: loaded default db config")
 		return dbConfig, nil
 	}
 
-	dbConfig := &config.DBConfig{
-		Type:                dh.dbType,
-		BatchDelaySeconds:   dh.batchDelaySeconds,
-		MaxBatchSize:        dh.maxBatchSize,
-		MaxOpenFiles:        dh.maxOpenFiles,
-		ShardIDProviderType: dh.shardIDProviderType,
-		NumShards:           dh.numShards,
-	}
-
 	log.Debug("GetDBConfig: loaded db config from main config file")
-	return dbConfig, nil
+
+	return &dh.conf, nil
 }
 
 // SaveDBConfigToFilePath will save the provided db config to specified path
