@@ -2,7 +2,6 @@ package factory
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -182,15 +181,6 @@ func createTrieSyncDB(args ArgsDataPool) (storage.Persister, error) {
 	persisterFactory, err := factory.NewPersisterFactory(mainConfig.TrieSyncStorage.DB)
 	if err != nil {
 		return nil, err
-	}
-
-	if mainConfig.TrieSyncStorage.DB.UseTmpAsFilePath {
-		filePath, errTempDir := os.MkdirTemp("", "trieSyncStorage")
-		if errTempDir != nil {
-			return nil, errTempDir
-		}
-
-		path = filePath
 	}
 
 	db, err := persisterFactory.CreateWithRetries(path)
