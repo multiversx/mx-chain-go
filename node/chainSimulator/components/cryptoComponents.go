@@ -49,7 +49,7 @@ type cryptoComponentsHolder struct {
 }
 
 // CreateCryptoComponents will create a new instance of cryptoComponentsHolder
-func CreateCryptoComponents(args ArgsCryptoComponentsHolder) (factory.CryptoComponentsHandler, error) {
+func CreateCryptoComponents(args ArgsCryptoComponentsHolder) (*cryptoComponentsHolder, error) {
 	instance := &cryptoComponentsHolder{}
 
 	cryptoComponentsHandlerArgs := cryptoComp.CryptoComponentsFactoryArgs{
@@ -222,24 +222,25 @@ func (c *cryptoComponentsHolder) KeysHandler() consensus.KeysHandler {
 // Clone will clone the cryptoComponentsHolder
 func (c *cryptoComponentsHolder) Clone() interface{} {
 	return &cryptoComponentsHolder{
-		publicKey:               c.PublicKey(),
-		privateKey:              c.PrivateKey(),
-		p2pPublicKey:            c.P2pPublicKey(),
-		p2pPrivateKey:           c.P2pPrivateKey(),
-		p2pSingleSigner:         c.P2pSingleSigner(),
-		txSingleSigner:          c.TxSingleSigner(),
-		blockSigner:             c.BlockSigner(),
-		multiSignerContainer:    c.MultiSignerContainer(),
-		peerSignatureHandler:    c.PeerSignatureHandler(),
-		blockSignKeyGen:         c.BlockSignKeyGen(),
-		txSignKeyGen:            c.TxSignKeyGen(),
-		p2pKeyGen:               c.P2pKeyGen(),
-		messageSignVerifier:     c.MessageSignVerifier(),
-		consensusSigningHandler: c.ConsensusSigningHandler(),
-		managedPeersHolder:      c.ManagedPeersHolder(),
-		keysHandler:             c.KeysHandler(),
-		publicKeyBytes:          c.PublicKeyBytes(),
-		publicKeyString:         c.PublicKeyString(),
+		publicKey:                     c.PublicKey(),
+		privateKey:                    c.PrivateKey(),
+		p2pPublicKey:                  c.P2pPublicKey(),
+		p2pPrivateKey:                 c.P2pPrivateKey(),
+		p2pSingleSigner:               c.P2pSingleSigner(),
+		txSingleSigner:                c.TxSingleSigner(),
+		blockSigner:                   c.BlockSigner(),
+		multiSignerContainer:          c.MultiSignerContainer(),
+		peerSignatureHandler:          c.PeerSignatureHandler(),
+		blockSignKeyGen:               c.BlockSignKeyGen(),
+		txSignKeyGen:                  c.TxSignKeyGen(),
+		p2pKeyGen:                     c.P2pKeyGen(),
+		messageSignVerifier:           c.MessageSignVerifier(),
+		consensusSigningHandler:       c.ConsensusSigningHandler(),
+		managedPeersHolder:            c.ManagedPeersHolder(),
+		keysHandler:                   c.KeysHandler(),
+		publicKeyBytes:                c.PublicKeyBytes(),
+		publicKeyString:               c.PublicKeyString(),
+		managedCryptoComponentsCloser: c.managedCryptoComponentsCloser,
 	}
 }
 

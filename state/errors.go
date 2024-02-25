@@ -145,6 +145,9 @@ var ErrNilStateMetrics = errors.New("nil sstate metrics")
 // ErrNilChannelsProvider signals that a nil channels provider has been given
 var ErrNilChannelsProvider = errors.New("nil channels provider")
 
+// ErrNilRootHashHolder signals that a nil root hash holder was provided
+var ErrNilRootHashHolder = errors.New("nil root hash holder provided")
+
 // ErrNilStatsHandler signals that a nil stats handler provider has been given
 var ErrNilStatsHandler = errors.New("nil stats handler")
 
