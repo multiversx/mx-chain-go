@@ -566,10 +566,10 @@ func testChainSimulatorDirectStakedNodesStakingFunds(t *testing.T, cs chainSimul
 	require.Nil(t, err)
 
 	log.Info("Preconditions. Have an account with 2 staked nodes")
-	privateKey, blsKeys, err := chainSimulator.GenerateBlsPrivateKeys(2)
+	privateKeys, blsKeys, err := chainSimulator.GenerateBlsPrivateKeys(2)
 	require.Nil(t, err)
 
-	err = cs.AddValidatorKeys(privateKey)
+	err = cs.AddValidatorKeys(privateKeys)
 	require.Nil(t, err)
 	metachainNode := cs.GetNodeHandler(core.MetachainShardId)
 
@@ -787,10 +787,10 @@ func testChainSimulatorDirectStakedUnstakeFundsWithDeactivation(t *testing.T, cs
 	err := cs.GenerateBlocksUntilEpochIsReached(targetEpoch)
 	require.Nil(t, err)
 
-	privateKey, blsKeys, err := chainSimulator.GenerateBlsPrivateKeys(2)
+	privateKeys, blsKeys, err := chainSimulator.GenerateBlsPrivateKeys(2)
 	require.Nil(t, err)
 
-	err = cs.AddValidatorKeys(privateKey)
+	err = cs.AddValidatorKeys(privateKeys)
 	require.Nil(t, err)
 	metachainNode := cs.GetNodeHandler(core.MetachainShardId)
 
@@ -1062,10 +1062,10 @@ func testChainSimulatorDirectStakedUnstakeFundsWithDeactivationAndReactivation(t
 	err := cs.GenerateBlocksUntilEpochIsReached(targetEpoch)
 	require.Nil(t, err)
 
-	privateKey, blsKeys, err := chainSimulator.GenerateBlsPrivateKeys(2)
+	privateKeys, blsKeys, err := chainSimulator.GenerateBlsPrivateKeys(2)
 	require.Nil(t, err)
 
-	err = cs.AddValidatorKeys(privateKey)
+	err = cs.AddValidatorKeys(privateKeys)
 	require.Nil(t, err)
 	metachainNode := cs.GetNodeHandler(core.MetachainShardId)
 
