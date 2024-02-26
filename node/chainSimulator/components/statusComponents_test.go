@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-go/common"
+	mxErrors "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -97,7 +98,7 @@ func TestStatusComponentsHolder_StartPolling(t *testing.T) {
 		require.NoError(t, err)
 
 		err = comp.StartPolling()
-		require.Error(t, err)
+		require.Equal(t, mxErrors.ErrStatusPollingInit, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
