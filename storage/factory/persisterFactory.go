@@ -1,29 +1,49 @@
 package factory
 
 import (
-	"github.com/multiversx/mx-chain-core-go/core/check"
+	"time"
+
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/disabled"
 )
 
-// PersisterFactory is the factory which will handle creating new databases
-type PersisterFactory struct {
+// persisterFactory is the factory which will handle creating new databases
+type persisterFactory struct {
 	dbConfigHandler storage.DBConfigHandler
 }
 
-// NewPersisterFactory will return a new instance of a PersisterFactory
-func NewPersisterFactory(dbConfigHandler storage.DBConfigHandler) (*PersisterFactory, error) {
-	if check.IfNil(dbConfigHandler) {
-		return nil, storage.ErrNilDBConfigHandler
-	}
+// NewPersisterFactory will return a new instance of persister factory
+func NewPersisterFactory(config config.DBConfig) (*persisterFactory, error) {
+	dbConfigHandler := NewDBConfigHandler(config)
 
-	return &PersisterFactory{
+	return &persisterFactory{
 		dbConfigHandler: dbConfigHandler,
 	}, nil
 }
 
+// CreateWithRetries will return a new instance of a DB with a given path
+// It will try to create db multiple times
+func (pf *persisterFactory) CreateWithRetries(path string) (storage.Persister, error) {
+	var persister storage.Persister
+	var err error
+
+	for i := 0; i < storage.MaxRetriesToCreateDB; i++ {
+		persister, err = pf.Create(path)
+		if err == nil {
+			return persister, nil
+		}
+		log.Warn("Create Persister failed", "path", path, "error", err)
+
+		// TODO: extract this in a parameter and inject it
+		time.Sleep(storage.SleepTimeBetweenCreateDBRetries)
+	}
+
+	return nil, err
+}
+
 // Create will return a new instance of a DB with a given path
-func (pf *PersisterFactory) Create(path string) (storage.Persister, error) {
+func (pf *persisterFactory) Create(path string) (storage.Persister, error) {
 	if len(path) == 0 {
 		return nil, storage.ErrInvalidFilePath
 	}
@@ -49,11 +69,11 @@ func (pf *PersisterFactory) Create(path string) (storage.Persister, error) {
 }
 
 // CreateDisabled will return a new disabled persister
-func (pf *PersisterFactory) CreateDisabled() storage.Persister {
+func (pf *persisterFactory) CreateDisabled() storage.Persister {
 	return disabled.NewErrorDisabledPersister()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (pf *PersisterFactory) IsInterfaceNil() bool {
+func (pf *persisterFactory) IsInterfaceNil() bool {
 	return pf == nil
 }
