@@ -77,7 +77,7 @@ func doExampleWithTransferData() {
 				Name: "args",
 				Value: &abi.OptionValue{
 					Value: &abi.OutputListValue{
-						ItemCreator: func() any { return &abi.StringValue{} },
+						ItemCreator: func() any { return &abi.BytesValue{} },
 					},
 				},
 			},
@@ -90,7 +90,7 @@ func doExampleWithTransferData() {
 		},
 	}
 
-	err := serializer.Deserialize("00000000000000030001000000010000000361626300", []any{&transferData})
+	err := serializer.Deserialize("000000000000001a01000000076465706f7369740100000001000000200000000000000000050008b94c89df86fc204ed9d289f81a4b72fbe00a8fe7f6010000000001312d00", []any{&transferData})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -98,5 +98,7 @@ func doExampleWithTransferData() {
 	fmt.Println("Decoded:")
 	fmt.Println(transferData)
 	fmt.Println("Nonce", transferData.Fields[0].Value.(*abi.U64Value).Value)
-	fmt.Println("Args", transferData.Fields[2].Value.(*abi.OptionValue).Value.(*abi.OutputListValue).Items[0].(*abi.StringValue).Value)
+	fmt.Println("Function", transferData.Fields[1].Value.(*abi.OptionValue).Value.(*abi.StringValue).Value)
+	fmt.Println("Args", transferData.Fields[2].Value.(*abi.OptionValue).Value.(*abi.OutputListValue).Items[0].(*abi.BytesValue).Value)
+	fmt.Println("Gas Limit", transferData.Fields[3].Value.(*abi.OptionValue).Value.(*abi.U64Value).Value)
 }
