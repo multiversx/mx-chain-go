@@ -23,6 +23,13 @@ type trieStorage struct {
 	storage.Storer
 }
 
+// CreateMemUnitForTries returns a special type of storer used on tries instances
+func CreateMemUnitForTries() storage.Storer {
+	return &trieStorage{
+		Storer: CreateMemUnit(),
+	}
+}
+
 // SetEpochForPutOperation does nothing
 func (store *trieStorage) SetEpochForPutOperation(_ uint32) {
 }
@@ -72,11 +79,4 @@ func (store *trieStorage) RemoveFromCurrentEpoch(key []byte) error {
 // RemoveFromAllActiveEpochs removes directly the key
 func (store *trieStorage) RemoveFromAllActiveEpochs(key []byte) error {
 	return store.Remove(key)
-}
-
-// CreateMemUnitForTries returns a special type of storer used on tries instances
-func CreateMemUnitForTries() storage.Storer {
-	return &trieStorage{
-		Storer: CreateMemUnit(),
-	}
 }
