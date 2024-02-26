@@ -8,6 +8,11 @@ import (
 )
 
 func main() {
+	doBasicExample()
+	doExampleWithTransferData()
+}
+
+func doBasicExample() {
 	codec := abi.NewDefaultCodec()
 	serializer := abi.NewSerializer(codec)
 
@@ -50,4 +55,46 @@ func main() {
 	fmt.Println("Decoded:")
 	fmt.Println(outputStruct.Fields[0].Value.(*abi.U8Value).Value)
 	fmt.Println(outputStruct.Fields[1].Value.(*abi.U16Value).Value)
+}
+
+func doExampleWithTransferData() {
+	codec := abi.NewDefaultCodec()
+	serializer := abi.NewSerializer(codec)
+
+	transferData := abi.StructValue{
+		Fields: []abi.Field{
+			{
+				Name:  "tx_nonce",
+				Value: &abi.U64Value{},
+			},
+			{
+				Name: "function",
+				Value: &abi.OptionValue{
+					Value: &abi.StringValue{},
+				},
+			},
+			{
+				Name: "args",
+				Value: &abi.OptionValue{
+					Value: &abi.OutputListValue{
+						ItemCreator: func() any { return &abi.StringValue{} },
+					},
+				},
+			},
+			{
+				Name: "gas_limit",
+				Value: &abi.OptionValue{
+					Value: &abi.U64Value{},
+				},
+			},
+		},
+	}
+
+	err := serializer.Deserialize("0000000000000003000000", []any{&transferData})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("Decoded:")
+	fmt.Println(transferData)
 }
