@@ -55,6 +55,36 @@ depositTokenInSC() {
         --send || return
 }
 
+depositTokenInSCAdder() {
+    manualUpdateConfigFile #update config file
+
+    CHECK_VARIABLES DEPOSIT_TOKEN_IDENTIFIER DEPOSIT_TOKEN_NR_DECIMALS DEPOSIT_TOKEN_AMOUNT_TO_TRANSFER || return
+
+    AMOUNT_TO_TRANSFER=$(echo "scale=0; $DEPOSIT_TOKEN_AMOUNT_TO_TRANSFER*10^$DEPOSIT_TOKEN_NR_DECIMALS/1" | bc)
+
+    mxpy --verbose contract call ${WALLET_ADDRESS} \
+        --pem=${WALLET} \
+        --proxy=${PROXY} \
+        --chain=${CHAIN_ID} \
+        --gas-limit=30000000 \
+        --function="MultiESDTNFTTransfer" \
+        --arguments \
+           ${ESDT_SAFE_ADDRESS} \
+           2 \
+           str:${DEPOSIT_TOKEN_IDENTIFIER} \
+           0 \
+           ${AMOUNT_TO_TRANSFER} \
+           str:${DEPOSIT_TOKEN_IDENTIFIER} \
+           0 \
+           ${AMOUNT_TO_TRANSFER} \
+           str:deposit \
+           erd1qqqqqqqqqqqqqpgqp6k29tdnray9kzzetsv50fxgyzgkt5pqulmq0yp9c6 \
+           0x0000000000989680000000036164640000000100000003200000 \
+        --recall-nonce \
+        --wait-result \
+        --send || return
+}
+
 issueTokenSovereign() {
     manualUpdateConfigFile #update config file
 
