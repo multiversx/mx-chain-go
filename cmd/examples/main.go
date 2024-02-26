@@ -90,11 +90,13 @@ func doExampleWithTransferData() {
 		},
 	}
 
-	err := serializer.Deserialize("0000000000000003000000", []any{&transferData})
+	err := serializer.Deserialize("00000000000000030001000000010000000361626300", []any{&transferData})
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	fmt.Println("Decoded:")
 	fmt.Println(transferData)
+	fmt.Println("Nonce", transferData.Fields[0].Value.(*abi.U64Value).Value)
+	fmt.Println("Args", transferData.Fields[2].Value.(*abi.OptionValue).Value.(*abi.OutputListValue).Items[0].(*abi.StringValue).Value)
 }
