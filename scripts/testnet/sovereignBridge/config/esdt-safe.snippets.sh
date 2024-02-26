@@ -26,11 +26,12 @@ deployEsdtSafeContract() {
     ADDRESS=$(mxpy data parse --file="${SCRIPT_PATH}/deploy-esdt-safe.interaction.json"  --expression="data['contractAddress']")
     mxpy data store --partition=${CHAIN_ID} --key=address-esdt-safe-contract --value=${ADDRESS}
     ESDT_SAFE_ADDRESS=$(mxpy data load --partition=${CHAIN_ID} --key=address-esdt-safe-contract)
-    echo -e "\nESDT Safe contract: ${ADDRESS}"
+    echo -e "ESDT Safe contract: ${ADDRESS}"
 
     SOVEREIGN_CONTRACT_ADDRESS=$(firstSovereignContractAddress)
     mxpy data store --partition=sovereign --key=address-esdt-safe-contract --value=${SOVEREIGN_CONTRACT_ADDRESS}
     ESDT_SAFE_ADDRESS_SOVEREIGN=$(mxpy data load --partition=sovereign --key=address-esdt-safe-contract)
+    echo -e "ESDT Safe sovereign contract: ${SOVEREIGN_CONTRACT_ADDRESS}"
 }
 
 pauseEsdtSafeContract() {

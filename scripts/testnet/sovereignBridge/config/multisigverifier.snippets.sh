@@ -26,5 +26,5 @@ deployMultisigVerifierContract() {
     ADDRESS=$(mxpy data parse --file="${SCRIPT_PATH}/deploy-multisig-verifier.interaction.json"  --expression="data['contractAddress']")
     mxpy data store --partition=${CHAIN_ID} --key=address-multisig-verifier-contract --value=${ADDRESS}
     MULTISIG_VERIFIER_ADDRESS=$(mxpy data load --partition=${CHAIN_ID} --key=address-multisig-verifier-contract)
-    echo -e "\nMultisig Verifier contract: ${ADDRESS}"
+    echo -e "Multisig Verifier contract: ${ADDRESS}"
 }
