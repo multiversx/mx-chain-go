@@ -73,11 +73,12 @@ issueTokenSovereign() {
             ${TOKENS_TO_MINT} \
             ${NR_DECIMALS} \
             str:canAddSpecialRoles str:true \
+        --outfile="${SCRIPT_PATH}/issue-sovereign-token.interaction.json" \
         --recall-nonce \
         --wait-result \
         --send || return
 
-    HEX_TOKEN_IDENTIFIER=$(mxpy data parse --file="${SCRIPT_PATH}/issue-token.interaction.json"  --expression="data['transactionOnNetwork']['logs']['events'][2]['topics'][0]")
+    HEX_TOKEN_IDENTIFIER=$(mxpy data parse --file="${SCRIPT_PATH}/issue-sovereign-token.interaction.json"  --expression="data['transactionOnNetwork']['logs']['events'][2]['topics'][0]")
     TOKEN_IDENTIFIER=$(echo "$HEX_TOKEN_IDENTIFIER" | xxd -r -p)
     update-config DEPOSIT_TOKEN_IDENTIFIER_SOVEREIGN $TOKEN_IDENTIFIER
 }
@@ -109,4 +110,19 @@ depositTokenInSCSovereign() {
         --recall-nonce \
         --wait-result \
         --send || return
+}
+
+getFundsInAddressSovereign() {
+    mxpy tx new \
+        --pem="/home/ubuntu/MultiversX/testnet/node/config/walletKey.pem" \
+        --pem-index 0 \
+        --proxy=${PROXY_SOVEREIGN} \
+        --chain=${CHAIN_ID_SOVEREIGN} \
+        --receiver=${WALLET_ADDRESS} \
+        --value=200000000000000000000 \
+        --gas-limit=50000 \
+        --recall-nonce \
+        --send
+
+    sleep 6
 }
