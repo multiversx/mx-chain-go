@@ -137,17 +137,22 @@ func (tep *transactionsFeeProcessor) prepareTxWithResults(txHashHex string, txWi
 		}
 	}
 
-	tep.prepareTxWithResultsBasedOnLogs(txWithResults, hasRefund)
+	tep.prepareTxWithResultsBasedOnLogs(txHashHex, txWithResults, hasRefund)
 
 }
 
 func (tep *transactionsFeeProcessor) prepareTxWithResultsBasedOnLogs(
+	txHashHex string,
 	txWithResults *transactionWithResults,
 	hasRefund bool,
 ) {
 	tx := txWithResults.GetTxHandler()
-	res := tep.dataFieldParser.Parse(tx.GetData(), tx.GetSndAddr(), tx.GetRcvAddr(), tep.shardCoordinator.NumberOfShards())
+	if check.IfNil(tx) {
+		tep.log.Warn("tep.prepareTxWithResultsBasedOnLogs nil transaction handler", "txHash", txHashHex)
+		return
+	}
 
+	res := tep.dataFieldParser.Parse(tx.GetData(), tx.GetSndAddr(), tx.GetRcvAddr(), tep.shardCoordinator.NumberOfShards())
 	if check.IfNilReflect(txWithResults.log) || (res.Function == "" && res.Operation == datafield.OperationTransfer) {
 		return
 	}
