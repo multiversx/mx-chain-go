@@ -3,8 +3,6 @@ deployAll() {
 
     deployFeeMarketContract
 
-    deployMultisigVerifierContract
-
     setFeeMarketAddress
 
     disableFeeMarketContract
