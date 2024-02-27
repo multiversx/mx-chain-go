@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	minTopicsInTransferEvent  = 4
+	minTopicsInTransferEvent  = 5
 	numTransferTopics         = 3
 	numExecutedBridgeOpTopics = 2
 	minNumEventDataTokens     = 4
@@ -170,8 +170,9 @@ func getEventData(data []byte) (*eventData, error) {
 	gasLimit := uint64(0)
 	optionFunc := transferData.Fields[1].Value.(*abi.OptionValue).Value
 	if optionFunc != nil {
-		function := optionFunc.(*abi.StringValue).Value
-		args = append(args, []byte("@"+function)...)
+		function := optionFunc.(*abi.BytesValue).Value
+		args = append(args, []byte("@")...)
+		args = append(args, hex.EncodeToString(function)...)
 
 		optionArgs := transferData.Fields[2].Value.(*abi.OptionValue).Value
 		if optionArgs != nil {

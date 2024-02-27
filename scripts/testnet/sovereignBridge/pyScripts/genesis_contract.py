@@ -9,7 +9,7 @@ def copy_wasm_in_project(file_path: str, wasm_path: str):
         if os.path.exists(file_path):
             os.remove(file_path)
 
-        shutil.copy2(wasm_path, file_path)
+        shutil.copy2(os.path.expanduser(wasm_path), file_path)
         print(f"{wasm_path} copied successfully.")
     except FileNotFoundError:
         print(f"File {wasm_path} not found.")
