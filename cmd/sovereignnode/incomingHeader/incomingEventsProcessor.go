@@ -139,7 +139,7 @@ func getEventData(data []byte) (*eventData, error) {
 			{
 				Name: "function",
 				Value: &abi.OptionValue{
-					Value: &abi.StringValue{},
+					Value: &abi.BytesValue{},
 				},
 			},
 			{
