@@ -144,7 +144,7 @@ depositTokenInSCSovereign() {
 
 getFundsInAddressSovereign() {
     mxpy tx new \
-        --pem="/home/ubuntu/MultiversX/testnet/node/config/walletKey.pem" \
+        --pem="~/MultiversX/testnet/node/config/walletKey.pem" \
         --pem-index 0 \
         --proxy=${PROXY_SOVEREIGN} \
         --chain=${CHAIN_ID_SOVEREIGN} \

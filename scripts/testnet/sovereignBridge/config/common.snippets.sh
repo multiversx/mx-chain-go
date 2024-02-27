@@ -25,6 +25,8 @@ sovereignInit() {
 
     deployObserver
 
+    deployMultisigVerifierContract
+
     getFundsInAddressSovereign
 
     setFeeMarketAddressSovereign

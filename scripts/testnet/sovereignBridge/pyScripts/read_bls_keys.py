@@ -11,7 +11,7 @@ def read_and_concatenate_pubkeys(file_path):
 
 
 def main():
-    file_path = "/home/ubuntu/MultiversX/testnet/node/config/nodesSetup.json"
+    file_path = "~/MultiversX/testnet/node/config/nodesSetup.json"
     print(read_and_concatenate_pubkeys(file_path))
 
 
