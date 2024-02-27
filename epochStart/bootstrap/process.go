@@ -240,6 +240,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		nodeProcessingMode:              args.NodeProcessingMode,
 		nodeOperationMode:               common.NormalOperation,
 		stateStatsHandler:               args.StateStatsHandler,
+		startEpoch:                      args.GeneralConfig.EpochStartConfig.GenesisEpoch,
 		nodesCoordinatorRegistryFactory: args.NodesCoordinatorRegistryFactory,
 	}
 

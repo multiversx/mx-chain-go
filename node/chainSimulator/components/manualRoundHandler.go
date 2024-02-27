@@ -9,6 +9,7 @@ type manualRoundHandler struct {
 	index            int64
 	genesisTimeStamp int64
 	roundDuration    time.Duration
+	initialRound     int64
 }
 
 // NewManualRoundHandler returns a manual round handler instance
@@ -17,6 +18,7 @@ func NewManualRoundHandler(genesisTimeStamp int64, roundDuration time.Duration, 
 		genesisTimeStamp: genesisTimeStamp,
 		roundDuration:    roundDuration,
 		index:            initialRound,
+		initialRound:     initialRound,
 	}
 }
 
@@ -44,7 +46,7 @@ func (handler *manualRoundHandler) TimeStamp() time.Time {
 	rounds := atomic.LoadInt64(&handler.index)
 	timeFromGenesis := handler.roundDuration * time.Duration(rounds)
 	timestamp := time.Unix(handler.genesisTimeStamp, 0).Add(timeFromGenesis)
-
+	timestamp = time.Unix(timestamp.Unix()-int64(handler.roundDuration.Seconds())*handler.initialRound, 0)
 	return timestamp
 }
 
