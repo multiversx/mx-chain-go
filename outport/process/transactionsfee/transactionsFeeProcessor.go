@@ -148,7 +148,7 @@ func (tep *transactionsFeeProcessor) prepareTxWithResultsBasedOnLogs(
 	tx := txWithResults.GetTxHandler()
 	res := tep.dataFieldParser.Parse(tx.GetData(), tx.GetSndAddr(), tx.GetRcvAddr(), tep.shardCoordinator.NumberOfShards())
 
-	if check.IfNilReflect(txWithResults.log) || (res.Function == "" && res.Operation == "transfer") {
+	if check.IfNilReflect(txWithResults.log) || (res.Function == "" && res.Operation == datafield.OperationTransfer) {
 		return
 	}
 

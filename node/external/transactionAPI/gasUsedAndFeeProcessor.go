@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
 )
 
 type gasUsedAndFeeProcessor struct {
@@ -52,7 +53,7 @@ func (gfp *gasUsedAndFeeProcessor) prepareTxWithResultsBasedOnLogs(
 	tx *transaction.ApiTransactionResult,
 	hasRefund bool,
 ) {
-	if tx.Logs == nil || (tx.Function == "" && tx.Operation == "transfer") {
+	if tx.Logs == nil || (tx.Function == "" && tx.Operation == datafield.OperationTransfer) {
 		return
 	}
 
