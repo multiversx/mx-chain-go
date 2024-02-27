@@ -92,7 +92,7 @@ type ArgsCoreComponentsHolder struct {
 }
 
 // CreateCoreComponents will create a new instance of factory.CoreComponentsHolder
-func CreateCoreComponents(args ArgsCoreComponentsHolder) (factory.CoreComponentsHandler, error) {
+func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder, error) {
 	var err error
 	instance := &coreComponentsHolder{
 		closeHandler: NewCloseHandler(),
