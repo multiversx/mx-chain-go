@@ -82,7 +82,7 @@ func getGenesisBlocksRoundNonceEpoch(arg ArgsGenesisBlockCreator) (uint64, uint6
 	if arg.HardForkConfig.AfterHardFork {
 		return arg.HardForkConfig.StartRound, arg.HardForkConfig.StartNonce, arg.HardForkConfig.StartEpoch
 	}
-	return 0, 0, 0
+	return arg.GenesisRound, arg.GenesisNonce, arg.GenesisEpoch
 }
 
 func (gbc *genesisBlockCreator) createHardForkImportHandler() error {
@@ -130,9 +130,17 @@ func (gbc *genesisBlockCreator) createHardForkImportHandler() error {
 func createStorer(storageConfig config.StorageConfig, folder string) (storage.Storer, error) {
 	dbConfig := factory.GetDBFromConfig(storageConfig.DB)
 	dbConfig.FilePath = path.Join(folder, storageConfig.DB.FilePath)
+
+	dbConfigHandler := factory.NewDBConfigHandler(storageConfig.DB)
+	persisterFactory, err := factory.NewPersisterFactory(dbConfigHandler)
+	if err != nil {
+		return nil, err
+	}
+
 	store, err := storageunit.NewStorageUnitFromConf(
 		factory.GetCacherFromConfig(storageConfig.Cache),
 		dbConfig,
+		persisterFactory,
 	)
 	if err != nil {
 		return nil, err
@@ -204,7 +212,7 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 }
 
 func mustDoGenesisProcess(arg ArgsGenesisBlockCreator) bool {
-	genesisEpoch := uint32(0)
+	genesisEpoch := arg.GenesisEpoch
 	if arg.HardForkConfig.AfterHardFork {
 		genesisEpoch = arg.HardForkConfig.StartEpoch
 	}

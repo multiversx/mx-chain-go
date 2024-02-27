@@ -8,7 +8,7 @@
     NumRoundsWithoutBleed = 100
     MaximumPercentageToBleed = 0.5
     BleedPercentagePerRound = 0.00001
-    MaxNumberOfNodesForStake = 36
+    MaxNumberOfNodesForStake = 64
     UnJailValue = "2500000000000000000" #0.1% of genesis node price
     ActivateBLSPubKeyMessageVerification = false
 
@@ -27,7 +27,7 @@
     [GovernanceSystemSCConfig.Active]
         ProposalCost       = "1000000000000000000000" #1000 eGLD
         LostProposalFee    = "10000000000000000000"   #10 eGLD
-        MinQuorum          = 0.5  #fraction of value 0.5  - 50%
+        MinQuorum          = 0.2  #fraction of value 0.2  - 20%
         MinPassThreshold   = 0.5  #fraction of value 0.5  - 50%
         MinVetoThreshold   = 0.33 #fraction of value 0.33 - 33%
 

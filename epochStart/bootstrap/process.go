@@ -237,6 +237,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		nodeProcessingMode:         args.NodeProcessingMode,
 		nodeOperationMode:          common.NormalOperation,
 		stateStatsHandler:          args.StateStatsHandler,
+		startEpoch:                 args.GeneralConfig.EpochStartConfig.GenesisEpoch,
 	}
 
 	if epochStartProvider.prefsConfig.FullArchive {
@@ -1132,14 +1133,15 @@ func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
 	return nil
 }
 
-func (e *epochStartBootstrap) createStorageService(
+func (e *epochStartBootstrap) createStorageServiceForImportDB(
 	shardCoordinator sharding.Coordinator,
 	pathManager storage.PathManagerHandler,
 	epochStartNotifier epochStart.EpochStartNotifier,
-	startEpoch uint32,
 	createTrieEpochRootHashStorer bool,
 	targetShardId uint32,
 ) (dataRetriever.StorageService, error) {
+	startEpoch := uint32(0)
+
 	storageServiceCreator, err := storageFactory.NewStorageServiceFactory(
 		storageFactory.StorageServiceFactoryArgs{
 			Config:                        e.generalConfig,
@@ -1149,7 +1151,7 @@ func (e *epochStartBootstrap) createStorageService(
 			EpochStartNotifier:            epochStartNotifier,
 			NodeTypeProvider:              e.coreComponentsHolder.NodeTypeProvider(),
 			CurrentEpoch:                  startEpoch,
-			StorageType:                   storageFactory.BootstrapStorageService,
+			StorageType:                   storageFactory.ImportDBStorageService,
 			CreateTrieEpochRootHashStorer: createTrieEpochRootHashStorer,
 			NodeProcessingMode:            e.nodeProcessingMode,
 			RepopulateTokensSupplies:      e.flagsConfig.RepopulateTokensSupplies,
@@ -1219,22 +1221,23 @@ func (e *epochStartBootstrap) createResolversContainer() error {
 	//  this one should only be used before determining the correct shard where the node should reside
 	log.Debug("epochStartBootstrap.createRequestHandler", "shard", e.shardCoordinator.SelfId())
 	resolversContainerArgs := resolverscontainer.FactoryArgs{
-		ShardCoordinator:                e.shardCoordinator,
-		MainMessenger:                   e.mainMessenger,
-		FullArchiveMessenger:            e.fullArchiveMessenger,
-		Store:                           storageService,
-		Marshalizer:                     e.coreComponentsHolder.InternalMarshalizer(),
-		DataPools:                       e.dataPool,
-		Uint64ByteSliceConverter:        uint64ByteSlice.NewBigEndianConverter(),
-		NumConcurrentResolvingJobs:      10,
-		DataPacker:                      dataPacker,
-		TriesContainer:                  e.trieContainer,
-		SizeCheckDelta:                  0,
-		InputAntifloodHandler:           disabled.NewAntiFloodHandler(),
-		OutputAntifloodHandler:          disabled.NewAntiFloodHandler(),
-		MainPreferredPeersHolder:        disabled.NewPreferredPeersHolder(),
-		FullArchivePreferredPeersHolder: disabled.NewPreferredPeersHolder(),
-		PayloadValidator:                payloadValidator,
+		ShardCoordinator:                    e.shardCoordinator,
+		MainMessenger:                       e.mainMessenger,
+		FullArchiveMessenger:                e.fullArchiveMessenger,
+		Store:                               storageService,
+		Marshalizer:                         e.coreComponentsHolder.InternalMarshalizer(),
+		DataPools:                           e.dataPool,
+		Uint64ByteSliceConverter:            uint64ByteSlice.NewBigEndianConverter(),
+		NumConcurrentResolvingJobs:          10,
+		NumConcurrentResolvingTrieNodesJobs: 3,
+		DataPacker:                          dataPacker,
+		TriesContainer:                      e.trieContainer,
+		SizeCheckDelta:                      0,
+		InputAntifloodHandler:               disabled.NewAntiFloodHandler(),
+		OutputAntifloodHandler:              disabled.NewAntiFloodHandler(),
+		MainPreferredPeersHolder:            disabled.NewPreferredPeersHolder(),
+		FullArchivePreferredPeersHolder:     disabled.NewPreferredPeersHolder(),
+		PayloadValidator:                    payloadValidator,
 	}
 	resolverFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerArgs)
 	if err != nil {

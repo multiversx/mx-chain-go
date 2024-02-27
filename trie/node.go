@@ -152,7 +152,7 @@ func resolveIfCollapsed(n node, pos byte, db common.TrieStorageInteractor) error
 
 func handleStorageInteractorStats(db common.TrieStorageInteractor) {
 	if db != nil {
-		db.GetStateStatsHandler().IncrTrie()
+		db.GetStateStatsHandler().IncrementTrie()
 	}
 }
 
@@ -275,14 +275,18 @@ func shouldStopIfContextDoneBlockingIfBusy(ctx context.Context, idleProvider Idl
 	}
 }
 
-func treatCommitSnapshotError(err error, hash []byte, missingNodesChan chan []byte) {
-	if core.IsClosingError(err) {
-		log.Debug("context closing", "hash", hash)
-		return
+func treatCommitSnapshotError(err error, hash []byte, missingNodesChan chan []byte) (nodeIsMissing bool, error error) {
+	if err == nil {
+		return false, nil
+	}
+
+	if !core.IsGetNodeFromDBError(err) {
+		return false, err
 	}
 
 	log.Error("error during trie snapshot", "err", err.Error(), "hash", hash)
 	missingNodesChan <- hash
+	return true, nil
 }
 
 func shouldMigrateCurrentNode(

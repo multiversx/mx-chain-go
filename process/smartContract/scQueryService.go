@@ -22,14 +22,18 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 	"github.com/multiversx/mx-chain-go/sharding"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 )
 
 var _ process.SCQueryService = (*SCQueryService)(nil)
 
+var logQueryService = logger.GetOrCreate("process/smartcontract.queryService")
+
 // MaxGasLimitPerQuery - each unit is the equivalent of 1 nanosecond processing time
 const MaxGasLimitPerQuery = 300_000_000_000
+const epochDifferenceToConsiderHistory = 2
 
 // SCQueryService can execute Get functions over SC to fetch stored values
 type SCQueryService struct {
@@ -39,7 +43,6 @@ type SCQueryService struct {
 	blockChainHook           process.BlockChainHookWithAccountsAdapter
 	mainBlockChain           data.ChainHandler
 	apiBlockChain            data.ChainHandler
-	numQueries               int
 	gasForQuery              uint64
 	wasmVMChangeLocker       common.Locker
 	bootstrapper             process.Bootstrapper
@@ -179,8 +182,7 @@ func (service *SCQueryService) shouldAllowQueriesExecution() bool {
 }
 
 func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice uint64) (*vmcommon.VMOutput, common.BlockInfo, error) {
-	log.Trace("executeScCall", "function", query.FuncName, "numQueries", service.numQueries)
-	service.numQueries++
+	logQueryService.Trace("executeScCall", "address", query.ScAddress, "function", query.FuncName, "blockNonce", query.BlockNonce.Value, "blockHash", query.BlockHash)
 
 	shouldEarlyExitBecauseOfSyncState := query.ShouldBeSynced && service.bootstrapper.GetNodeState() == common.NsNotSynchronized
 	if shouldEarlyExitBecauseOfSyncState {
@@ -198,11 +200,11 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 			return nil, nil, err
 		}
 
-		accountsAdapter := service.blockChainHook.GetAccountsAdapter()
-		err = accountsAdapter.RecreateTrie(blockRootHash)
+		err = service.recreateTrie(blockRootHash, blockHeader)
 		if err != nil {
 			return nil, nil, err
 		}
+		service.blockChainHook.SetCurrentHeader(blockHeader)
 	}
 
 	shouldCheckRootHashChanges := query.SameScState
@@ -211,8 +213,6 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 	if shouldCheckRootHashChanges {
 		rootHashBeforeExecution = service.apiBlockChain.GetCurrentBlockRootHash()
 	}
-
-	service.blockChainHook.SetCurrentHeader(service.mainBlockChain.GetCurrentBlockHeader())
 
 	service.wasmVMChangeLocker.RLock()
 	vm, _, err := scrCommon.FindVMByScAddress(service.vmContainer, query.ScAddress)
@@ -227,15 +227,6 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 	service.wasmVMChangeLocker.RUnlock()
 	if err != nil {
 		return nil, nil, err
-	}
-
-	if service.hasRetriableExecutionError(vmOutput) {
-		log.Error("Retriable execution error detected. Will retry (once) executeScCall()", "returnCode", vmOutput.ReturnCode, "returnMessage", vmOutput.ReturnMessage)
-
-		vmOutput, err = vm.RunSmartContractCall(vmInput)
-		if err != nil {
-			return nil, nil, err
-		}
 	}
 
 	if query.SameScState {
@@ -258,9 +249,33 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 	return vmOutput, blockInfo, nil
 }
 
+func (service *SCQueryService) recreateTrie(blockRootHash []byte, blockHeader data.HeaderHandler) error {
+	if check.IfNil(blockHeader) {
+		return process.ErrNilBlockHeader
+	}
+
+	accountsAdapter := service.blockChainHook.GetAccountsAdapter()
+	if blockHeader.GetEpoch()+epochDifferenceToConsiderHistory >= service.getCurrentEpoch() {
+		logQueryService.Trace("calling RecreateTrie, for recent history", "block", blockHeader.GetNonce(), "rootHash", blockRootHash)
+		return accountsAdapter.RecreateTrie(blockRootHash)
+	}
+
+	logQueryService.Trace("calling RecreateTrieFromEpoch, for older history", "block", blockHeader.GetNonce(), "rootHash", blockRootHash)
+	holder := holders.NewRootHashHolder(blockRootHash, core.OptionalUint32{Value: blockHeader.GetEpoch(), HasValue: true})
+	return accountsAdapter.RecreateTrieFromEpoch(holder)
+}
+
+func (service *SCQueryService) getCurrentEpoch() uint32 {
+	header := service.mainBlockChain.GetCurrentBlockHeader()
+	if check.IfNil(header) {
+		return 0
+	}
+
+	return header.GetEpoch()
+}
+
 // TODO: extract duplicated code with nodeBlocks.go
 func (service *SCQueryService) extractBlockHeaderAndRootHash(query *process.SCQuery) (data.HeaderHandler, []byte, error) {
-
 	if len(query.BlockHash) > 0 {
 		currentHeader, err := service.getBlockHeaderByHash(query.BlockHash)
 		if err != nil {
@@ -415,10 +430,6 @@ func (service *SCQueryService) createVMCallInput(query *process.SCQuery, gasPric
 	}
 
 	return vmContractCallInput
-}
-
-func (service *SCQueryService) hasRetriableExecutionError(vmOutput *vmcommon.VMOutput) bool {
-	return vmOutput.ReturnMessage == "allocation error"
 }
 
 // ComputeScCallGasLimit will estimate how many gas a transaction will consume

@@ -1240,7 +1240,7 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 		tpn.EpochStartNotifier = notifier.NewEpochStartSubscriptionHandler()
 	}
 
-	coreComponents := GetDefaultCoreComponents()
+	coreComponents := GetDefaultCoreComponents(CreateEnableEpochsConfig())
 	coreComponents.InternalMarshalizerField = TestMarshalizer
 	coreComponents.TxMarshalizerField = TestTxSignMarshalizer
 	coreComponents.HasherField = TestHasher
@@ -1434,22 +1434,23 @@ func (tpn *TestProcessorNode) initResolvers() {
 	fullArchivePreferredPeersHolder, _ := p2pFactory.NewPeersHolder([]string{})
 
 	resolverContainerFactory := resolverscontainer.FactoryArgs{
-		ShardCoordinator:                tpn.ShardCoordinator,
-		MainMessenger:                   tpn.MainMessenger,
-		FullArchiveMessenger:            tpn.FullArchiveMessenger,
-		Store:                           tpn.Storage,
-		Marshalizer:                     TestMarshalizer,
-		DataPools:                       tpn.DataPool,
-		Uint64ByteSliceConverter:        TestUint64Converter,
-		DataPacker:                      dataPacker,
-		TriesContainer:                  tpn.TrieContainer,
-		SizeCheckDelta:                  100,
-		InputAntifloodHandler:           &mock.NilAntifloodHandler{},
-		OutputAntifloodHandler:          &mock.NilAntifloodHandler{},
-		NumConcurrentResolvingJobs:      10,
-		MainPreferredPeersHolder:        preferredPeersHolder,
-		FullArchivePreferredPeersHolder: fullArchivePreferredPeersHolder,
-		PayloadValidator:                payloadValidator,
+		ShardCoordinator:                    tpn.ShardCoordinator,
+		MainMessenger:                       tpn.MainMessenger,
+		FullArchiveMessenger:                tpn.FullArchiveMessenger,
+		Store:                               tpn.Storage,
+		Marshalizer:                         TestMarshalizer,
+		DataPools:                           tpn.DataPool,
+		Uint64ByteSliceConverter:            TestUint64Converter,
+		DataPacker:                          dataPacker,
+		TriesContainer:                      tpn.TrieContainer,
+		SizeCheckDelta:                      100,
+		InputAntifloodHandler:               &mock.NilAntifloodHandler{},
+		OutputAntifloodHandler:              &mock.NilAntifloodHandler{},
+		NumConcurrentResolvingJobs:          10,
+		NumConcurrentResolvingTrieNodesJobs: 3,
+		MainPreferredPeersHolder:            preferredPeersHolder,
+		FullArchivePreferredPeersHolder:     fullArchivePreferredPeersHolder,
+		PayloadValidator:                    payloadValidator,
 	}
 
 	var err error
@@ -2159,7 +2160,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 	accountsDb[state.UserAccountsState] = tpn.AccntState
 	accountsDb[state.PeerAccountsState] = tpn.PeerState
 
-	coreComponents := GetDefaultCoreComponents()
+	coreComponents := GetDefaultCoreComponents(CreateEnableEpochsConfig())
 	coreComponents.InternalMarshalizerField = TestMarshalizer
 	coreComponents.HasherField = TestHasher
 	coreComponents.Uint64ByteSliceConverterField = TestUint64Converter
@@ -2212,6 +2213,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		OutportDataProvider:          &outport.OutportDataProviderStub{},
 		BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
 		ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
+		SentSignaturesTracker:        &testscommon.SentSignatureTrackerStub{},
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {
@@ -2425,7 +2427,7 @@ func (tpn *TestProcessorNode) initNode() {
 		AppStatusHandlerField: tpn.AppStatusHandler,
 	}
 
-	coreComponents := GetDefaultCoreComponents()
+	coreComponents := GetDefaultCoreComponents(CreateEnableEpochsConfig())
 	coreComponents.InternalMarshalizerField = TestMarshalizer
 	coreComponents.VmMarshalizerField = TestVmMarshalizer
 	coreComponents.TxMarshalizerField = TestTxSignMarshalizer
@@ -3223,10 +3225,9 @@ func CreateEnableEpochsConfig() config.EnableEpochs {
 }
 
 // GetDefaultCoreComponents -
-func GetDefaultCoreComponents() *mock.CoreComponentsStub {
-	enableEpochsCfg := CreateEnableEpochsConfig()
+func GetDefaultCoreComponents(enableEpochsConfig config.EnableEpochs) *mock.CoreComponentsStub {
 	genericEpochNotifier := forking.NewGenericEpochNotifier()
-	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsCfg, genericEpochNotifier)
+	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, genericEpochNotifier)
 
 	return &mock.CoreComponentsStub{
 		InternalMarshalizerField:      TestMarshalizer,
@@ -3492,7 +3493,7 @@ func getDefaultNodesSetup(maxShards, numNodes uint32, address []byte, pksBytes m
 
 func getDefaultNodesCoordinator(maxShards uint32, pksBytes map[uint32][]byte) nodesCoordinator.NodesCoordinator {
 	return &shardingMocks.NodesCoordinatorStub{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []nodesCoordinator.Validator, err error) {
+		ComputeConsensusGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []nodesCoordinator.Validator, err error) {
 			v, _ := nodesCoordinator.NewValidator(pksBytes[shardId], 1, defaultChancesSelection)
 			return []nodesCoordinator.Validator{v}, nil
 		},

@@ -489,10 +489,11 @@ func TestP2pConfig(t *testing.T) {
         [Node.Transports.TCP]
             ListenAddress = "/ip4/0.0.0.0/tcp/%d"
             PreventPortReuse = true
-        [Node.ResourceLimiter]
-            Type = "default autoscale" #available options "default autoscale", "infinite", "default with manual scale".
-            ManualSystemMemoryInMB = 1 # not taken into account if the type is not "default with manual scale"
-            ManualMaximumFD = 2 # not taken into account if the type is not "default with manual scale"
+
+    [Node.ResourceLimiter]
+        Type = "default autoscale" #available options "default autoscale", "infinite", "default with manual scale".
+        ManualSystemMemoryInMB = 1 # not taken into account if the type is not "default with manual scale"
+        ManualMaximumFD = 2 # not taken into account if the type is not "default with manual scale"
 
 [KadDhtPeerDiscovery]
     Enabled = false
@@ -838,6 +839,12 @@ func TestEnableEpochConfig(t *testing.T) {
 
     # FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch represents the epoch when the fix for the remaining gas in the SaveKeyValue builtin function is enabled
     FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch = 91
+    
+    # MigrateDataTrieEnableEpoch represents the epoch when the data tries migration is enabled
+    MigrateDataTrieEnableEpoch = 92
+
+    # CurrentRandomnessOnSortingEnableEpoch represents the epoch when the current randomness on sorting is enabled
+    CurrentRandomnessOnSortingEnableEpoch = 93
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
@@ -950,6 +957,8 @@ func TestEnableEpochConfig(t *testing.T) {
 			NFTStopCreateEnableEpoch:                                 89,
 			ChangeOwnerAddressCrossShardThroughSCEnableEpoch:         90,
 			FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch: 91,
+			MigrateDataTrieEnableEpoch:                               92,
+			CurrentRandomnessOnSortingEnableEpoch:                    93,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,

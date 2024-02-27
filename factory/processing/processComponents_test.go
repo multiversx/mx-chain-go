@@ -216,6 +216,7 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 			PeerSignHandler:         &cryptoMocks.PeerSignatureHandlerStub{},
 			MsgSigVerifier:          &testscommon.MessageSignVerifierMock{},
 			ManagedPeersHolderField: &testscommon.ManagedPeersHolderStub{},
+			KeysHandlerField:        &testscommon.KeysHandlerStub{},
 		},
 		Network: &testsMocks.NetworkComponentsStub{
 			Messenger:                        &p2pmocks.MessengerStub{},
@@ -243,7 +244,7 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 		TxExecutionOrderHandler: &txExecOrderStub.TxExecutionOrderHandlerStub{},
 	}
 
-	args.State = components.GetStateComponents(args.CoreData)
+	args.State = components.GetStateComponents(args.CoreData, args.StatusCoreComponents)
 
 	return args
 }
