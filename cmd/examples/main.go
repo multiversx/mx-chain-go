@@ -9,7 +9,8 @@ import (
 
 func main() {
 	doBasicExample()
-	doExampleWithTransferData()
+	doExampleWithTransferDataDecoding()
+	doExampleWithTransferDataEncoding()
 }
 
 func doBasicExample() {
@@ -57,7 +58,7 @@ func doBasicExample() {
 	fmt.Println(outputStruct.Fields[1].Value.(*abi.U16Value).Value)
 }
 
-func doExampleWithTransferData() {
+func doExampleWithTransferDataDecoding() {
 	codec := abi.NewDefaultCodec()
 	serializer := abi.NewSerializer(codec)
 
@@ -101,4 +102,47 @@ func doExampleWithTransferData() {
 	fmt.Println("Function", transferData.Fields[1].Value.(*abi.OptionValue).Value.(*abi.StringValue).Value)
 	fmt.Println("Args", transferData.Fields[2].Value.(*abi.OptionValue).Value.(*abi.OutputListValue).Items[0].(*abi.BytesValue).Value)
 	fmt.Println("Gas Limit", transferData.Fields[3].Value.(*abi.OptionValue).Value.(*abi.U64Value).Value)
+}
+
+func doExampleWithTransferDataEncoding() {
+	codec := abi.NewDefaultCodec()
+	serializer := abi.NewSerializer(codec)
+
+	transferData := abi.StructValue{
+		Fields: []abi.Field{
+			{
+				Name:  "tx_nonce",
+				Value: abi.U64Value{},
+			},
+			{
+				Name: "function",
+				Value: abi.OptionValue{
+					Value: abi.StringValue{},
+				},
+			},
+			{
+				Name: "args",
+				Value: abi.OptionValue{
+					Value: abi.InputListValue{
+						Items: []any{
+							abi.BytesValue{Value: []byte("arg1")},
+						},
+					},
+				},
+			},
+			{
+				Name: "gas_limit",
+				Value: abi.OptionValue{
+					Value: abi.U64Value{},
+				},
+			},
+		},
+	}
+
+	encoded, err := serializer.Serialize([]any{transferData})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("Encoded:", encoded)
 }
