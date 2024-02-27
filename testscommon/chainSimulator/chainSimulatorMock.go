@@ -4,7 +4,17 @@ import "github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 
 // ChainSimulatorMock -
 type ChainSimulatorMock struct {
+	GenerateBlocksCalled func(numOfBlocks int) error
 	GetNodeHandlerCalled func(shardID uint32) process.NodeHandler
+}
+
+// GenerateBlocks -
+func (mock *ChainSimulatorMock) GenerateBlocks(numOfBlocks int) error {
+	if mock.GenerateBlocksCalled != nil {
+		return mock.GenerateBlocksCalled(numOfBlocks)
+	}
+
+	return nil
 }
 
 // GetNodeHandler -

@@ -1,6 +1,7 @@
 package components
 
 import (
+	"math/big"
 	"sync"
 	"testing"
 
@@ -109,6 +110,9 @@ func createArgsProcessComponentsHolder() ArgsProcessComponentsHolder {
 				MaxNumberOfNodesForStake:             10,
 				ActivateBLSPubKeyMessageVerification: false,
 				MinUnstakeTokensValue:                "1",
+				NodeLimitPercentage:                  0.1,
+				StakeLimitPercentage:                 1,
+				UnBondPeriodInEpochs:                 10,
 			},
 			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
 				MinCreationDeposit:  "100",
@@ -144,6 +148,9 @@ func createArgsProcessComponentsHolder() ArgsProcessComponentsHolder {
 			EconomicsHandler: &economicsmocks.EconomicsHandlerStub{
 				ProtocolSustainabilityAddressCalled: func() string {
 					return testingProtocolSustainabilityAddress
+				},
+				GenesisTotalSupplyCalled: func() *big.Int {
+					return big.NewInt(0).Mul(big.NewInt(1000000000000000000), big.NewInt(20000000))
 				},
 			},
 			Hash:                         blake2b.NewBlake2b(),
