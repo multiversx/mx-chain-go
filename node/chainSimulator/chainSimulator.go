@@ -41,6 +41,8 @@ type ArgsChainSimulator struct {
 	NumNodesWaitingListMeta  uint32
 	GenesisTimestamp         int64
 	InitialRound             int64
+	InitialEpoch           uint32
+	InitialNonce           uint64
 	RoundDurationInMillis    uint64
 	RoundsPerEpoch           core.OptionalUint64
 	ApiInterface             components.APIConfigurator
@@ -91,6 +93,7 @@ func (s *simulator) createChainHandlers(args ArgsChainSimulator) error {
 		MinNodesPerShard:         args.MinNodesPerShard,
 		MetaChainMinNodes:        args.MetaChainMinNodes,
 		RoundsPerEpoch:           args.RoundsPerEpoch,
+		InitialEpoch:             args.InitialEpoch,
 		AlterConfigsFunction:     args.AlterConfigsFunction,
 		NumNodesWaitingListShard: args.NumNodesWaitingListShard,
 		NumNodesWaitingListMeta:  args.NumNodesWaitingListMeta,
@@ -151,6 +154,7 @@ func (s *simulator) createTestNode(
 		APIInterface:           args.ApiInterface,
 		BypassTxSignatureCheck: args.BypassTxSignatureCheck,
 		InitialRound:           args.InitialRound,
+		InitialNonce:           args.InitialNonce,
 		MinNodesPerShard:       args.MinNodesPerShard,
 		MinNodesMeta:           args.MetaChainMinNodes,
 		RoundDurationInMillis:  args.RoundDurationInMillis,

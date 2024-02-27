@@ -33,7 +33,7 @@ type stateComponentsHolder struct {
 }
 
 // CreateStateComponents will create the state components holder
-func CreateStateComponents(args ArgsStateComponents) (factory.StateComponentsHandler, error) {
+func CreateStateComponents(args ArgsStateComponents) (*stateComponentsHolder, error) {
 	stateComponentsFactory, err := factoryState.NewStateComponentsFactory(factoryState.StateComponentsFactoryArgs{
 		Config:                   args.Config,
 		Core:                     args.CoreComponents,

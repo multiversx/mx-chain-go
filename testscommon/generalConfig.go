@@ -416,6 +416,9 @@ func GetGeneralConfig() config.Config {
 				"erd1najnxxweyw6plhg8efql330nttrj6l5cf87wqsuym85s9ha0hmdqnqgenp", //shard 2
 			},
 		},
+		ResourceStats: config.ResourceStatsConfig{
+			RefreshIntervalInSec: 1,
+		},
 	}
 }
 
