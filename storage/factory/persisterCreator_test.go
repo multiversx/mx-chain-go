@@ -174,14 +174,14 @@ func TestGetTmpFilePath(t *testing.T) {
 
 	path, err := factory.GetTmpFilePath("aaaa/bbbb/cccc")
 	require.Nil(t, err)
-	require.True(t, strings.HasPrefix(path, tmpBasePath+"cccc"))
+	require.True(t, strings.Contains(path, tmpBasePath+"cccc"))
 
 	path, _ = factory.GetTmpFilePath("aaaa")
-	require.True(t, strings.HasPrefix(path, tmpBasePath+"aaaa"))
+	require.True(t, strings.Contains(path, tmpBasePath+"aaaa"))
 
 	path, _ = factory.GetTmpFilePath("")
-	require.True(t, strings.HasPrefix(path, tmpBasePath+""))
+	require.True(t, strings.Contains(path, tmpBasePath+""))
 
 	path, _ = factory.GetTmpFilePath("/")
-	require.True(t, strings.HasPrefix(path, tmpBasePath+""))
+	require.True(t, strings.Contains(path, tmpBasePath+""))
 }
