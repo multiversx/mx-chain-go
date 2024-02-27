@@ -2,6 +2,7 @@ package factory_test
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 
@@ -170,7 +171,8 @@ func TestPersisterCreator_CreateShardIDProvider(t *testing.T) {
 func TestGetTmpFilePath(t *testing.T) {
 	t.Parallel()
 
-	tmpBasePath := "/tmp/"
+	tmpDir := os.TempDir()
+	tmpBasePath := tmpDir + "/"
 
 	path, err := factory.GetTmpFilePath("aaaa/bbbb/cccc")
 	require.Nil(t, err)
