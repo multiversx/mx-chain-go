@@ -445,16 +445,7 @@ func (node *testOnlyProcessingNode) SetStateForAddress(address []byte, addressSt
 		return err
 	}
 
-	// set nonce to zero
-	userAccount.IncreaseNonce(-userAccount.GetNonce())
-	// set nonce with the provided value
-	userAccount.IncreaseNonce(addressState.Nonce)
-
-	bigValue, ok := big.NewInt(0).SetString(addressState.Balance, 10)
-	if !ok {
-		return errors.New("cannot convert string balance to *big.Int")
-	}
-	err = userAccount.AddToBalance(bigValue)
+	err = setNonceAndBalanceForAccount(userAccount, addressState.Nonce, addressState.Balance)
 	if err != nil {
 		return err
 	}
@@ -473,7 +464,9 @@ func (node *testOnlyProcessingNode) SetStateForAddress(address []byte, addressSt
 	if err != nil {
 		return err
 	}
-	userAccount.SetRootHash(rootHash)
+	if len(rootHash) != 0 {
+		userAccount.SetRootHash(rootHash)
+	}
 
 	accountsAdapter := node.StateComponentsHolder.AccountsAdapter()
 	err = accountsAdapter.SaveAccount(userAccount)
@@ -485,40 +478,77 @@ func (node *testOnlyProcessingNode) SetStateForAddress(address []byte, addressSt
 	return err
 }
 
+func setNonceAndBalanceForAccount(userAccount state.UserAccountHandler, nonce *uint64, balance string) error {
+	if nonce != nil {
+		// set nonce to zero
+		userAccount.IncreaseNonce(-userAccount.GetNonce())
+		// set nonce with the provided value
+		userAccount.IncreaseNonce(*nonce)
+	}
+
+	if balance == "" {
+		return nil
+	}
+
+	providedBalance, ok := big.NewInt(0).SetString(balance, 10)
+	if !ok {
+		return errors.New("cannot convert string balance to *big.Int")
+	}
+
+	// set balance to zero
+	userBalance := userAccount.GetBalance()
+	err := userAccount.AddToBalance(userBalance.Neg(userBalance))
+	if err != nil {
+		return err
+	}
+	// set provided balance
+	return userAccount.AddToBalance(providedBalance)
+}
+
 func (node *testOnlyProcessingNode) setScDataIfNeeded(address []byte, userAccount state.UserAccountHandler, addressState *dtos.AddressState) error {
 	if !core.IsSmartContractAddress(address) {
 		return nil
 	}
 
-	decodedCode, err := hex.DecodeString(addressState.Code)
-	if err != nil {
-		return err
+	if addressState.Code != "" {
+		decodedCode, err := hex.DecodeString(addressState.Code)
+		if err != nil {
+			return err
+		}
+		userAccount.SetCode(decodedCode)
 	}
-	userAccount.SetCode(decodedCode)
 
-	codeHash, err := base64.StdEncoding.DecodeString(addressState.CodeHash)
-	if err != nil {
-		return err
+	if addressState.CodeHash != "" {
+		codeHash, errD := base64.StdEncoding.DecodeString(addressState.CodeHash)
+		if errD != nil {
+			return errD
+		}
+		userAccount.SetCodeHash(codeHash)
 	}
-	userAccount.SetCodeHash(codeHash)
 
-	decodedCodeMetadata, err := base64.StdEncoding.DecodeString(addressState.CodeMetadata)
-	if err != nil {
-		return err
+	if addressState.CodeMetadata != "" {
+		decodedCodeMetadata, errD := base64.StdEncoding.DecodeString(addressState.CodeMetadata)
+		if errD != nil {
+			return errD
+		}
+		userAccount.SetCodeMetadata(decodedCodeMetadata)
 	}
-	userAccount.SetCodeMetadata(decodedCodeMetadata)
 
-	ownerAddress, err := node.CoreComponentsHolder.AddressPubKeyConverter().Decode(addressState.Owner)
-	if err != nil {
-		return err
+	if addressState.Owner != "" {
+		ownerAddress, errD := node.CoreComponentsHolder.AddressPubKeyConverter().Decode(addressState.Owner)
+		if errD != nil {
+			return errD
+		}
+		userAccount.SetOwnerAddress(ownerAddress)
 	}
-	userAccount.SetOwnerAddress(ownerAddress)
 
-	developerRewards, ok := big.NewInt(0).SetString(addressState.DeveloperRewards, 10)
-	if !ok {
-		return errors.New("cannot convert string developer rewards to *big.Int")
+	if addressState.DeveloperRewards != "" {
+		developerRewards, ok := big.NewInt(0).SetString(addressState.DeveloperRewards, 10)
+		if !ok {
+			return errors.New("cannot convert string developer rewards to *big.Int")
+		}
+		userAccount.AddToDeveloperReward(developerRewards)
 	}
-	userAccount.AddToDeveloperReward(developerRewards)
 
 	return nil
 }
