@@ -32,8 +32,6 @@ deployMultisigVerifierContract() {
 upgradeMultisigVerifierContract() {
     manualUpdateConfigFile #update config file
 
-    local BLS_PUB_KEYS=$(python3 $SCRIPT_PATH/pyScripts/read_bls_keys.py)
-
     mxpy --verbose contract upgrade ${MULTISIG_VERIFIER_ADDRESS} \
         --bytecode=$(eval echo ${MULTISIG_VERIFIER_WASM}) \
         --pem=${WALLET} \
