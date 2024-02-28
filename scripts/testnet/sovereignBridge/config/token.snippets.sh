@@ -79,7 +79,9 @@ depositTokenInSCAdder() {
            ${AMOUNT_TO_TRANSFER} \
            str:deposit \
            erd1qqqqqqqqqqqqqpgqp6k29tdnray9kzzetsv50fxgyzgkt5pqulmq0yp9c6 \
-           0x0000000001312d00000000036164640000000100000004002d3101 \
+           0x0000000001312d00 \
+           0x616464 \
+           0x00000004002d3101 \
         --recall-nonce \
         --wait-result \
         --send || return

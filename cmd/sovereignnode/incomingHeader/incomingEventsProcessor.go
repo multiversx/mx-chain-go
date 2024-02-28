@@ -137,6 +137,12 @@ func getEventData(data []byte) (*eventData, error) {
 				Value: &abi.U64Value{},
 			},
 			{
+				Name: "gas_limit",
+				Value: &abi.OptionValue{
+					Value: &abi.U64Value{},
+				},
+			},
+			{
 				Name: "function",
 				Value: &abi.OptionValue{
 					Value: &abi.BytesValue{},
@@ -148,12 +154,6 @@ func getEventData(data []byte) (*eventData, error) {
 					Value: &abi.OutputListValue{
 						ItemCreator: func() any { return &abi.BytesValue{} },
 					},
-				},
-			},
-			{
-				Name: "gas_limit",
-				Value: &abi.OptionValue{
-					Value: &abi.U64Value{},
 				},
 			},
 		},
@@ -168,13 +168,13 @@ func getEventData(data []byte) (*eventData, error) {
 
 	args := make([]byte, 0)
 	gasLimit := uint64(0)
-	optionFunc := transferData.Fields[1].Value.(*abi.OptionValue).Value
+	optionFunc := transferData.Fields[2].Value.(*abi.OptionValue).Value
 	if optionFunc != nil {
 		function := optionFunc.(*abi.BytesValue).Value
 		args = append(args, []byte("@")...)
 		args = append(args, hex.EncodeToString(function)...)
 
-		optionArgs := transferData.Fields[2].Value.(*abi.OptionValue).Value
+		optionArgs := transferData.Fields[3].Value.(*abi.OptionValue).Value
 		if optionArgs != nil {
 			items := optionArgs.(*abi.OutputListValue).Items
 			if items != nil && len(items) > 0 {
@@ -186,7 +186,7 @@ func getEventData(data []byte) (*eventData, error) {
 			}
 		}
 
-		optionGas := transferData.Fields[3].Value.(*abi.OptionValue).Value
+		optionGas := transferData.Fields[1].Value.(*abi.OptionValue).Value
 		if optionGas != nil {
 			gasLimit = optionGas.(*abi.U64Value).Value
 		}

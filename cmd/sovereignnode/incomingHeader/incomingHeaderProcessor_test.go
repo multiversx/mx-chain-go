@@ -23,6 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	sovTests "github.com/multiversx/mx-chain-go/testscommon/sovereign"
+	"github.com/multiversx/mx-sdk-abi-incubator/golang/abi"
 	"github.com/stretchr/testify/require"
 )
 
@@ -42,12 +43,6 @@ func requireErrorIsInvalidNumTopics(t *testing.T, err error, idx int, numTopics 
 	require.True(t, strings.Contains(err.Error(), fmt.Sprintf("%d", numTopics)))
 }
 
-func requireErrorIsInvalidNumTokensOnLogData(t *testing.T, err error, receivedNumTokens int) {
-	require.True(t, strings.Contains(err.Error(), errInvalidNumTokensOnLogData.Error()))
-	require.True(t, strings.Contains(err.Error(), fmt.Sprintf("%d", minNumEventDataTokens)))
-	require.True(t, strings.Contains(err.Error(), fmt.Sprintf("%d", receivedNumTokens)))
-}
-
 func createIncomingHeadersWithIncrementalRound(numRounds uint64) []sovereign.IncomingHeaderHandler {
 	ret := make([]sovereign.IncomingHeaderHandler, numRounds+1)
 
@@ -60,7 +55,7 @@ func createIncomingHeadersWithIncrementalRound(numRounds uint64) []sovereign.Inc
 			},
 			IncomingEvents: []*transaction.Event{
 				{
-					Topics:     [][]byte{[]byte("addr"), []byte("tokenID1"), []byte("nonce1"), []byte("val1")},
+					Topics:     [][]byte{[]byte("endpoint"), []byte("addr"), []byte("tokenID1"), []byte("nonce1"), []byte("val1")},
 					Data:       createEventData(),
 					Identifier: []byte(topicIDDeposit),
 				},
@@ -72,7 +67,43 @@ func createIncomingHeadersWithIncrementalRound(numRounds uint64) []sovereign.Inc
 }
 
 func createEventData() []byte {
-	return []byte("0a@66756e6332@61726731@ff")
+	codec := abi.NewDefaultCodec()
+	serializer := abi.NewSerializer(codec)
+
+	transferData := abi.StructValue{
+		Fields: []abi.Field{
+			{
+				Name:  "tx_nonce",
+				Value: abi.U64Value{Value: 10},
+			},
+			{
+				Name: "gas_limit",
+				Value: abi.OptionValue{
+					Value: abi.U64Value{Value: 255},
+				},
+			},
+			{
+				Name: "function",
+				Value: abi.OptionValue{
+					Value: abi.BytesValue{Value: []byte("func1")},
+				},
+			},
+			{
+				Name: "args",
+				Value: abi.OptionValue{
+					Value: abi.InputListValue{
+						Items: []any{
+							abi.BytesValue{Value: []byte("arg1")},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	encoded, _ := serializer.Serialize([]any{transferData})
+	encodedBytes, _ := hex.DecodeString(encoded)
+	return encodedBytes
 }
 
 func TestNewIncomingHeaderHandler(t *testing.T) {
@@ -220,22 +251,22 @@ func TestIncomingHeaderHandler_AddHeaderErrorCases(t *testing.T) {
 		err := handler.AddHeader([]byte("hash"), incomingHeader)
 		requireErrorIsInvalidNumTopics(t, err, 0, 1)
 
-		incomingHeader.IncomingEvents[0] = &transaction.Event{Topics: [][]byte{[]byte("addr"), []byte("tokenID1")}, Identifier: []byte(topicIDDeposit)}
-		err = handler.AddHeader([]byte("hash"), incomingHeader)
-		requireErrorIsInvalidNumTopics(t, err, 0, 2)
-
-		incomingHeader.IncomingEvents[0] = &transaction.Event{Topics: [][]byte{[]byte("addr"), []byte("tokenID1"), []byte("nonce1")}, Identifier: []byte(topicIDDeposit)}
+		incomingHeader.IncomingEvents[0] = &transaction.Event{Topics: [][]byte{[]byte("deposit"), []byte("addr"), []byte("tokenID1")}, Identifier: []byte(topicIDDeposit)}
 		err = handler.AddHeader([]byte("hash"), incomingHeader)
 		requireErrorIsInvalidNumTopics(t, err, 0, 3)
 
-		incomingHeader.IncomingEvents[0] = &transaction.Event{Topics: [][]byte{[]byte("addr"), []byte("tokenID1"), []byte("nonce1"), []byte("val1"), []byte("tokenID2")}, Identifier: []byte(topicIDDeposit)}
+		incomingHeader.IncomingEvents[0] = &transaction.Event{Topics: [][]byte{[]byte("deposit"), []byte("addr"), []byte("tokenID1"), []byte("nonce1")}, Identifier: []byte(topicIDDeposit)}
 		err = handler.AddHeader([]byte("hash"), incomingHeader)
-		requireErrorIsInvalidNumTopics(t, err, 0, 5)
+		requireErrorIsInvalidNumTopics(t, err, 0, 4)
+
+		incomingHeader.IncomingEvents[0] = &transaction.Event{Topics: [][]byte{[]byte("deposit"), []byte("addr"), []byte("tokenID1"), []byte("nonce1"), []byte("val1"), []byte("tokenID2")}, Identifier: []byte(topicIDDeposit)}
+		err = handler.AddHeader([]byte("hash"), incomingHeader)
+		requireErrorIsInvalidNumTopics(t, err, 0, 6)
 
 		incomingHeader.IncomingEvents = []*transaction.Event{
 			{
 				Identifier: []byte(topicIDDeposit),
-				Topics:     [][]byte{[]byte("addr"), []byte("tokenID1"), []byte("nonce1"), []byte("val1")},
+				Topics:     [][]byte{[]byte("deposit"), []byte("addr"), []byte("tokenID1"), []byte("nonce1"), []byte("val1")},
 				Data:       createEventData(),
 			},
 			{
@@ -314,7 +345,7 @@ func TestIncomingHeaderHandler_AddHeaderErrorCases(t *testing.T) {
 			IncomingEvents: []*transaction.Event{
 				{
 					Identifier: []byte(topicIDDeposit),
-					Topics:     [][]byte{[]byte("addr"), []byte("tokenID1"), []byte("nonce1"), []byte("val1")},
+					Topics:     [][]byte{[]byte("deposit"), []byte("addr"), []byte("tokenID1"), []byte("nonce1"), []byte("val1")},
 					Data:       createEventData(),
 				},
 			},
@@ -338,23 +369,38 @@ func TestIncomingHeaderProcessor_getEventData(t *testing.T) {
 	input = []byte("0a")
 	ret, err = getEventData(input)
 	require.Nil(t, ret)
-	requireErrorIsInvalidNumTokensOnLogData(t, err, 1)
+	require.True(t, strings.Contains(err.Error(), "cannot decode"))
 
 	input = []byte("0a@ffaa@bb")
 	ret, err = getEventData(input)
 	require.Nil(t, ret)
-	requireErrorIsInvalidNumTokensOnLogData(t, err, 3)
+	require.True(t, strings.Contains(err.Error(), "cannot decode"))
 
-	nonce := big.NewInt(49)
-	gasLimit := big.NewInt(94)
-	input = append(nonce.Bytes(), []byte("@ffaa@bb@")...)
-	input = append(input, gasLimit.Bytes()...)
+	input, err = hex.DecodeString("000000000000000a000000")
 	ret, err = getEventData(input)
 	require.Nil(t, err)
 	require.Equal(t, &eventData{
-		nonce:                nonce.Uint64(),
-		functionCallWithArgs: []byte("@ffaa@bb"),
-		gasLimit:             gasLimit.Uint64(),
+		nonce:                uint64(10),
+		functionCallWithArgs: []byte(""),
+		gasLimit:             uint64(0),
+	}, ret)
+
+	input, err = hex.DecodeString("000000000000000a01000000000000005e010000000566756e633101000000010000000461726731")
+	ret, err = getEventData(input)
+	require.Nil(t, err)
+	require.Equal(t, &eventData{
+		nonce:                uint64(10),
+		functionCallWithArgs: []byte("@66756e6331@61726731"),
+		gasLimit:             uint64(94),
+	}, ret)
+
+	input, err = hex.DecodeString("0000000000000002010000000001312d000100000003616464010000000200000004002d310100000004002d3101")
+	ret, err = getEventData(input)
+	require.Nil(t, err)
+	require.Equal(t, &eventData{
+		nonce:                uint64(2),
+		functionCallWithArgs: []byte("@616464@002d3101@002d3101"),
+		gasLimit:             uint64(20000000),
 	}, ret)
 }
 
@@ -362,6 +408,11 @@ func TestIncomingHeaderHandler_AddHeader(t *testing.T) {
 	t.Parallel()
 
 	args := createArgs()
+
+	codec := abi.NewDefaultCodec()
+	serializer := abi.NewSerializer(codec)
+
+	endpoint := []byte("endpoint")
 
 	addr1 := []byte("addr1")
 	addr2 := []byte("addr2")
@@ -423,7 +474,8 @@ func TestIncomingHeaderHandler_AddHeader(t *testing.T) {
 		big.NewInt(0).Bytes(),
 		big.NewInt(50).Bytes(),
 	}
-	topic1 := append([][]byte{addr1}, transfer1...)
+	topic1 := append([][]byte{endpoint}, [][]byte{addr1}...)
+	topic1 = append(topic1, transfer1...)
 	topic1 = append(topic1, transfer2...)
 
 	transfer3 := [][]byte{
@@ -431,20 +483,79 @@ func TestIncomingHeaderHandler_AddHeader(t *testing.T) {
 		big.NewInt(1).Bytes(),
 		big.NewInt(150).Bytes(),
 	}
-	topic2 := append([][]byte{addr2}, transfer3...)
+	topic2 := append([][]byte{endpoint}, [][]byte{addr2}...)
+	topic2 = append(topic2, transfer3...)
 
-	eventData1 := big.NewInt(0).Bytes()
-	eventData1 = append(eventData1, []byte(
-		"@"+hex.EncodeToString([]byte("func1"))+
-			"@"+hex.EncodeToString([]byte("arg1"))+
-			"@"+hex.EncodeToString([]byte("arg2"))+"@")...)
-	eventData1 = append(eventData1, big.NewInt(int64(gasLimit1)).Bytes()...) // gas limit
+	eventDataStruct1 := abi.StructValue{
+		Fields: []abi.Field{
+			{
+				Name:  "tx_nonce",
+				Value: abi.U64Value{Value: 0},
+			},
+			{
+				Name: "gas_limit",
+				Value: abi.OptionValue{
+					Value: abi.U64Value{Value: gasLimit1},
+				},
+			},
+			{
+				Name: "function",
+				Value: abi.OptionValue{
+					Value: abi.BytesValue{Value: []byte("func1")},
+				},
+			},
+			{
+				Name: "args",
+				Value: abi.OptionValue{
+					Value: abi.InputListValue{
+						Items: []any{
+							abi.BytesValue{Value: []byte("arg1")},
+							abi.BytesValue{Value: []byte("arg2")},
+						},
+					},
+				},
+			},
+		},
+	}
+	encodedEventData1, err := serializer.Serialize([]any{eventDataStruct1})
+	require.Nil(t, err)
+	eventData1, err := hex.DecodeString(encodedEventData1)
+	require.Nil(t, err)
 
-	eventData2 := big.NewInt(1).Bytes()
-	eventData2 = append(eventData2, []byte(
-		"@"+hex.EncodeToString([]byte("func2"))+
-			"@"+hex.EncodeToString([]byte("arg1"))+"@")...)
-	eventData2 = append(eventData2, big.NewInt(int64(gasLimit2)).Bytes()...) // gas limit
+	eventDataStruct2 := abi.StructValue{
+		Fields: []abi.Field{
+			{
+				Name:  "tx_nonce",
+				Value: abi.U64Value{Value: 1},
+			},
+			{
+				Name: "gas_limit",
+				Value: abi.OptionValue{
+					Value: abi.U64Value{Value: gasLimit2},
+				},
+			},
+			{
+				Name: "function",
+				Value: abi.OptionValue{
+					Value: abi.BytesValue{Value: []byte("func1")},
+				},
+			},
+			{
+				Name: "args",
+				Value: abi.OptionValue{
+					Value: abi.InputListValue{
+						Items: []any{
+							abi.BytesValue{Value: []byte("arg1")},
+						},
+					},
+				},
+			},
+		},
+	}
+	encodedEventData2, err := serializer.Serialize([]any{eventDataStruct2})
+	require.Nil(t, err)
+	eventData2, err := hex.DecodeString(encodedEventData2)
+	require.Nil(t, err)
 
 	topic3 := [][]byte{
 		[]byte("hashOfHashes"),
