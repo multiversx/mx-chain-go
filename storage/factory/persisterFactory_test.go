@@ -2,10 +2,8 @@ package factory_test
 
 import (
 	"fmt"
-	"io/fs"
 	"os"
 	"path"
-	"path/filepath"
 	"strings"
 	"testing"
 
@@ -76,19 +74,6 @@ func TestPersisterFactory_Create(t *testing.T) {
 		_, err = os.Stat(dir + "/config.toml")
 		require.Nil(t, err)
 	})
-}
-
-func glob(root string) []string {
-	var files []string
-
-	filepath.WalkDir(root, func(s string, d fs.DirEntry, e error) error {
-		if filepath.Ext(s) == ".toml" {
-			files = append(files, s)
-		}
-		return nil
-	})
-
-	return files
 }
 
 func TestPersisterFactory_CreateWithRetries(t *testing.T) {
