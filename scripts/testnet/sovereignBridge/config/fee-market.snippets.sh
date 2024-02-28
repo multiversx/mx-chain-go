@@ -35,6 +35,30 @@ deployFeeMarketContract() {
     echo -e "Fee Market sovereign contract: ${SOVEREIGN_CONTRACT_ADDRESS}"
 }
 
+upgradeFeeMarketContract() {
+    CHECK_VARIABLES ESDT_SAFE_ADDRESS || return
+
+    mxpy --verbose contract upgrade ${FEE_MARKET_ADDRESS} \
+        --bytecode="${FEE_MARKET_WASM}" \
+        --pem=${WALLET} \
+        --proxy=${PROXY} \
+        --chain=${CHAIN_ID} \
+        --gas-limit=200000000 \
+        --arguments \
+            ${ESDT_SAFE_ADDRESS} \
+            ${PRICE_AGGREGATOR_ADDRESS} \
+        --outfile="${SCRIPT_PATH}/upgrade-fee-market.interaction.json" \
+        --recall-nonce \
+        --wait-result \
+        --send || return
+
+    TX_STATUS=$(mxpy data parse --file="${SCRIPT_PATH}/upgrade-fee-market.interaction.json"  --expression="data['transactionOnNetwork']['status']")
+    if [ "$TX_STATUS" != "success" ]; then
+        echo "Transaction was not successful"
+        return
+    fi
+}
+
 enableFeeMarketContract() {
     enableFeeMarketContractCall ${FEE_MARKET_ADDRESS} ${PROXY} ${CHAIN_ID}
 }

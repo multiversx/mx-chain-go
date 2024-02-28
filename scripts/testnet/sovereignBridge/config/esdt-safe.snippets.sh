@@ -34,6 +34,29 @@ deployEsdtSafeContract() {
     echo -e "ESDT Safe sovereign contract: ${SOVEREIGN_CONTRACT_ADDRESS}"
 }
 
+upgradeEsdtSafeContract() {
+    mxpy --verbose contract upgrade ${ESDT_SAFE_ADDRESS} \
+        --bytecode="${ESDT_SAFE_WASM}" \
+        --pem=${WALLET} \
+        --proxy=${PROXY} \
+        --chain=${CHAIN_ID} \
+        --gas-limit=200000000 \
+        --arguments \
+            ${MIN_VALID_SIGNERS} \
+            ${INITIATOR_ADDRESS} \
+            ${SIGNERS} \
+        --outfile="${SCRIPT_PATH}/upgrade-esdt-safe.interaction.json" \
+        --recall-nonce \
+        --wait-result \
+        --send || return
+
+    TX_STATUS=$(mxpy data parse --file="${SCRIPT_PATH}/upgrade-esdt-safe.interaction.json"  --expression="data['transactionOnNetwork']['status']")
+    if [ "$TX_STATUS" != "success" ]; then
+        echo "Transaction was not successful"
+        return
+    fi
+}
+
 pauseEsdtSafeContract() {
     pauseEsdtSafeContractCall ${ESDT_SAFE_ADDRESS} ${PROXY} ${CHAIN_ID}
 }

@@ -18,6 +18,12 @@ deployAll() {
     prepareObserver
 }
 
+upgradeContracts() {
+    upgradeEsdtSafeContract
+
+    upgradeFeeMarketContract
+}
+
 sovereignInit() {
     ../config.sh
 
