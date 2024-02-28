@@ -25,6 +25,7 @@ require (
 	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.65-0.20231228071026-eed2cb19c216
 	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.66-0.20231228071108-6b89bcebab14
 	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.92-0.20231228071246-c1b45eae5955
+	github.com/multiversx/mx-sdk-abi-incubator/golang v0.0.0-20240227150444-94cc69ed92fd
 	github.com/pelletier/go-toml v1.9.3
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.14.0

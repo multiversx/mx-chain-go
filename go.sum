@@ -410,6 +410,8 @@ github.com/multiversx/mx-chain-vm-v1_4-go v1.4.92-0.20231228071246-c1b45eae5955 
 github.com/multiversx/mx-chain-vm-v1_4-go v1.4.92-0.20231228071246-c1b45eae5955/go.mod h1:+DLltGV0h3/H9bJaz01JyeapKNki3Rh4o5VGpjd2ZNc=
 github.com/multiversx/mx-components-big-int v1.0.0 h1:Wkr8lSzK2nDqixOrrBa47VNuqdhV1m/aJhaP1EMaiS8=
 github.com/multiversx/mx-components-big-int v1.0.0/go.mod h1:maIEMgHlNE2u78JaDD0oLzri+ShgU4okHfzP3LWGdQM=
+github.com/multiversx/mx-sdk-abi-incubator/golang v0.0.0-20240227150444-94cc69ed92fd h1:qcAeeG+a74XtBAmykCOQu83seV4xiPycj2hLUZav6Kk=
+github.com/multiversx/mx-sdk-abi-incubator/golang v0.0.0-20240227150444-94cc69ed92fd/go.mod h1:BIWSnjXqwxBDY3FWjHFuN6PVDMqh6RuPcn8j4SjsHbk=
 github.com/multiversx/protobuf v1.3.2 h1:RaNkxvGTGbA0lMcnHAN24qE1G1i+Xs5yHA6MDvQ4mSM=
 github.com/multiversx/protobuf v1.3.2/go.mod h1:SlYgWuQ5SjCEi6WLHjHCa1yvBfUnHcTbrrZtXPKa29o=
 github.com/neelance/astrewrite v0.0.0-20160511093645-99348263ae86/go.mod h1:kHJEU3ofeGjhHklVoIGuVj85JJwZ6kWPaJwCIxgnFmo=
