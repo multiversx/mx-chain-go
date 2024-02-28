@@ -525,7 +525,7 @@ func (s *simulator) sendTx(tx *transaction.Transaction) (string, error) {
 	}
 
 	for {
-		recoveredTx, _ := node.GetFacadeHandler().GetTransaction(txHashHex, true)
+		recoveredTx, _ := node.GetFacadeHandler().GetTransaction(txHashHex, false)
 		if recoveredTx != nil {
 			log.Info("############## send transaction ##############", "txHash", txHashHex)
 			return txHashHex, nil
