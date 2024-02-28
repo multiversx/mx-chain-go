@@ -9,7 +9,6 @@ import (
 )
 
 const minNumShards = 2
-const pathSeparator = "/"
 
 // persisterCreator is the factory which will handle creating new persisters
 type persisterCreator struct {
