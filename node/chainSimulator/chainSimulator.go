@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/sharding"
+	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
@@ -27,7 +28,15 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
+const delaySendTxs = time.Millisecond
+
 var log = logger.GetOrCreate("chainSimulator")
+
+type transactionWithResult struct {
+	hexHash string
+	tx      *transaction.Transaction
+	result  *transaction.ApiTransactionResult
+}
 
 // ArgsChainSimulator holds the arguments needed to create a new instance of simulator
 type ArgsChainSimulator struct {
@@ -41,8 +50,8 @@ type ArgsChainSimulator struct {
 	NumNodesWaitingListMeta  uint32
 	GenesisTimestamp         int64
 	InitialRound             int64
-	InitialEpoch           uint32
-	InitialNonce           uint64
+	InitialEpoch             uint32
+	InitialNonce             uint64
 	RoundDurationInMillis    uint64
 	RoundsPerEpoch           core.OptionalUint64
 	ApiInterface             components.APIConfigurator
@@ -412,30 +421,119 @@ func (s *simulator) SetStateMultiple(stateSlice []*dtos.AddressState) error {
 	return nil
 }
 
-// SendTxAndGenerateBlockTilTxIsExecuted will the provided transaction and generate block
-func (s *simulator) SendTxAndGenerateBlockTilTxIsExecuted(txToSend *transaction.Transaction, maxNumOfBlockToGenerateWhenExecutingTx int) (*transaction.ApiTransactionResult, error) {
-	txHashHex, err := s.sendTx(txToSend)
+// SendTxAndGenerateBlockTilTxIsExecuted will send the provided transaction and generate block until the transaction is executed
+func (s *simulator) SendTxAndGenerateBlockTilTxIsExecuted(txToSend *transaction.Transaction, maxNumOfBlocksToGenerateWhenExecutingTx int) (*transaction.ApiTransactionResult, error) {
+	result, err := s.SendTxsAndGenerateBlocksTilAreExecuted([]*transaction.Transaction{txToSend}, maxNumOfBlocksToGenerateWhenExecutingTx)
 	if err != nil {
 		return nil, err
 	}
 
-	time.Sleep(delaySendTxs)
+	return result[0], nil
+}
 
-	destinationShardID := s.GetNodeHandler(0).GetShardCoordinator().ComputeId(txToSend.RcvAddr)
-	for count := 0; count < maxNumOfBlockToGenerateWhenExecutingTx; count++ {
-		err = s.GenerateBlocks(1)
+// SendTxsAndGenerateBlocksTilAreExecuted will send the provided transactions and generate block until all transactions are executed
+func (s *simulator) SendTxsAndGenerateBlocksTilAreExecuted(txsToSend []*transaction.Transaction, maxNumOfBlocksToGenerateWhenExecutingTx int) ([]*transaction.ApiTransactionResult, error) {
+	if len(txsToSend) == 0 {
+		return nil, errEmptySliceOfTxs
+	}
+	if maxNumOfBlocksToGenerateWhenExecutingTx == 0 {
+		return nil, errInvalidMaxNumOfBlocks
+	}
+
+	transactionStatus := make([]*transactionWithResult, 0, len(txsToSend))
+	for idx, tx := range txsToSend {
+		if tx == nil {
+			return nil, fmt.Errorf("%w on position %d", errNilTransaction, idx)
+		}
+
+		txHashHex, err := s.sendTx(tx)
 		if err != nil {
 			return nil, err
 		}
 
-		tx, errGet := s.GetNodeHandler(destinationShardID).GetFacadeHandler().GetTransaction(txHashHex, true)
-		if errGet == nil && tx.Status != transaction.TxStatusPending {
-			log.Info("############## transaction was executed ##############", "txHash", txHashHex)
-			return tx, nil
+		transactionStatus = append(transactionStatus, &transactionWithResult{
+			hexHash: txHashHex,
+			tx:      tx,
+		})
+	}
+
+	time.Sleep(delaySendTxs)
+
+	for count := 0; count < maxNumOfBlocksToGenerateWhenExecutingTx; count++ {
+		err := s.GenerateBlocks(1)
+		if err != nil {
+			return nil, err
+		}
+
+		txsAreExecuted := s.computeTransactionStatus(transactionStatus)
+		if txsAreExecuted {
+			return getApiTransactionsFromResult(transactionStatus), nil
 		}
 	}
 
-	return nil, errors.New("something went wrong transaction is still in pending")
+	return nil, errors.New("something went wrong. Transaction(s) is/are still in pending")
+}
+
+func (s *simulator) computeTransactionStatus(status []*transactionWithResult) bool {
+	allAreExecuted := true
+	for _, resultTx := range status {
+		if resultTx.result != nil {
+			continue
+		}
+
+		sentTx := resultTx.tx
+		destinationShardID := s.GetNodeHandler(0).GetShardCoordinator().ComputeId(sentTx.RcvAddr)
+		result, errGet := s.GetNodeHandler(destinationShardID).GetFacadeHandler().GetTransaction(resultTx.hexHash, true)
+		if errGet == nil && result.Status != transaction.TxStatusPending {
+			log.Info("############## transaction was executed ##############", "txHash", resultTx.hexHash)
+			resultTx.result = result
+			continue
+		}
+
+		allAreExecuted = false
+	}
+
+	return allAreExecuted
+}
+
+func getApiTransactionsFromResult(txWithResult []*transactionWithResult) []*transaction.ApiTransactionResult {
+	result := make([]*transaction.ApiTransactionResult, 0, len(txWithResult))
+	for _, tx := range txWithResult {
+		result = append(result, tx.result)
+	}
+
+	return result
+}
+
+func (s *simulator) sendTx(tx *transaction.Transaction) (string, error) {
+	shardID := s.GetNodeHandler(0).GetShardCoordinator().ComputeId(tx.SndAddr)
+	err := s.GetNodeHandler(shardID).GetFacadeHandler().ValidateTransaction(tx)
+	if err != nil {
+		return "", err
+	}
+
+	node := s.GetNodeHandler(shardID)
+	txHash, err := core.CalculateHash(node.GetCoreComponents().InternalMarshalizer(), node.GetCoreComponents().Hasher(), tx)
+	if err != nil {
+		return "", err
+	}
+
+	txHashHex := hex.EncodeToString(txHash)
+	_, err = node.GetFacadeHandler().SendBulkTransactions([]*transaction.Transaction{tx})
+	if err != nil {
+		return "", err
+	}
+
+	for {
+		txs, _ := node.GetFacadeHandler().GetTransactionsPool("")
+		for _, sentTx := range txs.RegularTransactions {
+			if sentTx.TxFields["hash"] == txHashHex {
+				log.Info("############## send transaction ##############", "txHash", txHashHex)
+				return txHashHex, nil
+			}
+		}
+		time.Sleep(delaySendTxs)
+	}
 }
 
 func (s *simulator) setStateSystemAccount(state *dtos.AddressState) error {
@@ -447,6 +545,14 @@ func (s *simulator) setStateSystemAccount(state *dtos.AddressState) error {
 	}
 
 	return nil
+}
+
+// GetAccount will fetch the account of the provided address
+func (s *simulator) GetAccount(address dtos.WalletAddress) (api.AccountResponse, error) {
+	destinationShardID := s.GetNodeHandler(0).GetShardCoordinator().ComputeId(address.Bytes)
+
+	account, _, err := s.GetNodeHandler(destinationShardID).GetFacadeHandler().GetAccount(address.Bech32, api.AccountQueryOptions{})
+	return account, err
 }
 
 // Close will stop and close the simulator
