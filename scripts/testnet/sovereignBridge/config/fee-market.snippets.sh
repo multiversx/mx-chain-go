@@ -44,9 +44,6 @@ upgradeFeeMarketContract() {
         --proxy=${PROXY} \
         --chain=${CHAIN_ID} \
         --gas-limit=200000000 \
-        --arguments \
-            ${ESDT_SAFE_ADDRESS} \
-            ${PRICE_AGGREGATOR_ADDRESS} \
         --outfile="${SCRIPT_PATH}/upgrade-fee-market.interaction.json" \
         --recall-nonce \
         --wait-result \

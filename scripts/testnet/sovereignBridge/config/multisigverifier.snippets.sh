@@ -40,7 +40,6 @@ upgradeMultisigVerifierContract() {
         --proxy=${PROXY} \
         --chain=${CHAIN_ID} \
         --gas-limit=200000000 \
-        --arguments ${BLS_PUB_KEYS} \
         --outfile="${SCRIPT_PATH}/upgrade-multisig-verifier.interaction.json" \
         --recall-nonce \
         --wait-result \
