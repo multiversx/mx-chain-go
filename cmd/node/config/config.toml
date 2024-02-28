@@ -621,6 +621,7 @@
    Type = "json"
 
 [EpochStartConfig]
+    GenesisEpoch = 0
     MinRoundsBetweenEpochs = 20
     RoundsPerEpoch         = 200
     # Min and Max ShuffledOutRestartThreshold represents the minimum and maximum duration of an epoch (in percentage) after a node which
