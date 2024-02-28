@@ -42,6 +42,7 @@ const canTransferNFTCreateRole = "canTransferNFTCreateRole"
 const upgradable = "canUpgrade"
 const canCreateMultiShard = "canCreateMultiShard"
 const upgradeProperties = "upgradeProperties"
+const eGLD = "EGLD"
 
 const conversionBase = 10
 const metaESDT = "MetaESDT"
@@ -688,6 +689,12 @@ func isTokenNameHumanReadable(tokenName []byte) bool {
 }
 
 func (e *esdt) createNewTokenIdentifier(caller []byte, ticker []byte) ([]byte, error) {
+	if e.enableEpochsHandler.IsFlagEnabled(common.EGLDInESDTMultiTransferEnableFlag) {
+		if bytes.Equal(ticker, []byte(eGLD)) {
+			return nil, vm.ErrCouldNotCreateNewTokenIdentifier
+		}
+	}
+
 	newRandomBase := append(caller, e.eei.BlockChainHook().CurrentRandomSeed()...)
 	newRandom := e.hasher.Compute(string(newRandomBase))
 	newRandomForTicker := newRandom[:tickerRandomSequenceLength]

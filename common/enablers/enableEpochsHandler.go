@@ -713,6 +713,12 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.CryptoAPIV2EnableEpoch,
 		},
+		common.EGLDInESDTMultiTransferEnableFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.EGLDInESDTMultiTransferEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.EGLDInESDTMultiTransferEnableEpoch,
+		},
 	}
 }
 

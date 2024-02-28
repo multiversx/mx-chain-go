@@ -296,6 +296,9 @@
     # CryptoAPIV2EnableEpoch represents the epoch when the new crypto apis are enabled on the vm
     CryptoAPIV2EnableEpoch = 4
 
+    # EGLDInESDTMultiTransferEnableEpoch represents the epoch when eGLD transfer is enabled in multitransfer
+    EGLDInESDTMultiTransferEnableEpoch = 4
+
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
         { EnableEpoch = 0, Type = "no-KOSK" },
