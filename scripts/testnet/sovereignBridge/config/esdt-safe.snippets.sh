@@ -17,18 +17,18 @@ deployEsdtSafeContract() {
         --wait-result \
         --send || return
 
-    TX_STATUS=$(mxpy data parse --file="${SCRIPT_PATH}/deploy-esdt-safe.interaction.json"  --expression="data['transactionOnNetwork']['status']")
+    local TX_STATUS=$(mxpy data parse --file="${SCRIPT_PATH}/deploy-esdt-safe.interaction.json"  --expression="data['transactionOnNetwork']['status']")
     if [ "$TX_STATUS" != "success" ]; then
         echo "Transaction was not successful"
         return
     fi
 
-    ADDRESS=$(mxpy data parse --file="${SCRIPT_PATH}/deploy-esdt-safe.interaction.json"  --expression="data['contractAddress']")
+    local ADDRESS=$(mxpy data parse --file="${SCRIPT_PATH}/deploy-esdt-safe.interaction.json"  --expression="data['contractAddress']")
     mxpy data store --partition=${CHAIN_ID} --key=address-esdt-safe-contract --value=${ADDRESS}
     ESDT_SAFE_ADDRESS=$(mxpy data load --partition=${CHAIN_ID} --key=address-esdt-safe-contract)
     echo -e "ESDT Safe contract: ${ADDRESS}"
 
-    SOVEREIGN_CONTRACT_ADDRESS=$(firstSovereignContractAddress)
+    local SOVEREIGN_CONTRACT_ADDRESS=$(firstSovereignContractAddress)
     mxpy data store --partition=sovereign --key=address-esdt-safe-contract --value=${SOVEREIGN_CONTRACT_ADDRESS}
     ESDT_SAFE_ADDRESS_SOVEREIGN=$(mxpy data load --partition=sovereign --key=address-esdt-safe-contract)
     echo -e "ESDT Safe sovereign contract: ${SOVEREIGN_CONTRACT_ADDRESS}"
@@ -46,7 +46,7 @@ upgradeEsdtSafeContract() {
         --wait-result \
         --send || return
 
-    TX_STATUS=$(mxpy data parse --file="${SCRIPT_PATH}/upgrade-esdt-safe.interaction.json"  --expression="data['transactionOnNetwork']['status']")
+    local TX_STATUS=$(mxpy data parse --file="${SCRIPT_PATH}/upgrade-esdt-safe.interaction.json"  --expression="data['transactionOnNetwork']['status']")
     if [ "$TX_STATUS" != "success" ]; then
         echo "Transaction was not successful"
         return
@@ -65,9 +65,9 @@ pauseEsdtSafeContractCall() {
         exit 1
     fi
 
-    ADDRESS=$1
-    URL=$2
-    CHAIN=$3
+    local ADDRESS=$1
+    local URL=$2
+    local CHAIN=$3
 
     mxpy --verbose contract call ${ADDRESS} \
         --pem=${WALLET} \
@@ -92,9 +92,9 @@ unpauseEsdtSafeContractCall() {
         exit 1
     fi
 
-    ADDRESS=$1
-    URL=$2
-    CHAIN=$3
+    local ADDRESS=$1
+    local URL=$2
+    local CHAIN=$3
 
     mxpy --verbose contract call ${ADDRESS} \
         --pem=${WALLET} \
@@ -119,18 +119,18 @@ setFeeMarketAddressCall() {
             exit 1
         fi
 
-        ESDT_SAFE_ADDRESS=$1
-        FEE_MARKET_ADDRESS=$2
-        URL=$3
-        CHAIN=$4
+    local ESDT_SAFE_CONTRACT_ADDRESS=$1
+    local FEE_MARKET_CONTRACT_ADDRESS=$2
+    local URL=$3
+    local CHAIN=$4
 
-    mxpy --verbose contract call $ESDT_SAFE_ADDRESS \
+    mxpy --verbose contract call ESDT_SAFE_CONTRACT_ADDRESS \
         --pem=${WALLET} \
         --proxy=${URL} \
         --chain=${CHAIN} \
         --gas-limit=10000000 \
         --function="setFeeMarketAddress" \
-        --arguments $FEE_MARKET_ADDRESS \
+        --arguments $FEE_MARKET_CONTRACT_ADDRESS \
         --recall-nonce \
         --wait-result \
         --send || return
