@@ -2,7 +2,6 @@ package factory_test
 
 import (
 	"fmt"
-	"os"
 	"strings"
 	"testing"
 
@@ -166,26 +165,4 @@ func TestPersisterCreator_CreateShardIDProvider(t *testing.T) {
 
 		assert.True(t, strings.Contains(fmt.Sprintf("%T", p), "*sharded.shardIDProvider"))
 	})
-}
-
-func TestGetTmpFilePath(t *testing.T) {
-	t.Parallel()
-
-	pathSeparator := "/"
-
-	tmpDir := os.TempDir()
-	tmpBasePath := tmpDir + pathSeparator
-
-	path, err := factory.GetTmpFilePath("aaaa/bbbb/cccc")
-	require.Nil(t, err)
-	require.True(t, strings.Contains(path, tmpBasePath+"cccc"))
-
-	path, _ = factory.GetTmpFilePath("aaaa")
-	require.True(t, strings.Contains(path, tmpBasePath+"aaaa"))
-
-	path, _ = factory.GetTmpFilePath("")
-	require.True(t, strings.Contains(path, tmpBasePath+""))
-
-	path, _ = factory.GetTmpFilePath("/")
-	require.True(t, strings.Contains(path, tmpBasePath+""))
 }

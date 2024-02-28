@@ -1,9 +1,6 @@
 package factory
 
 import (
-	"os"
-	"path"
-
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/database"
@@ -31,15 +28,6 @@ func (pc *persisterCreator) Create(path string) (storage.Persister, error) {
 		return nil, storage.ErrInvalidFilePath
 	}
 
-	if pc.conf.UseTmpAsFilePath {
-		filePath, err := getTmpFilePath(path)
-		if err != nil {
-			return nil, err
-		}
-
-		path = filePath
-	}
-
 	if pc.conf.NumShards < minNumShards {
 		return pc.CreateBasePersister(path)
 	}
@@ -49,11 +37,6 @@ func (pc *persisterCreator) Create(path string) (storage.Persister, error) {
 		return nil, err
 	}
 	return database.NewShardedPersister(path, pc, shardIDProvider)
-}
-
-func getTmpFilePath(p string) (string, error) {
-	_, file := path.Split(p)
-	return os.MkdirTemp("", file)
 }
 
 // CreateBasePersister will create base the persister for the provided path
