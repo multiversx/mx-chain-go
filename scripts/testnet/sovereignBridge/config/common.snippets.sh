@@ -22,6 +22,8 @@ upgradeContracts() {
     upgradeEsdtSafeContract
 
     upgradeFeeMarketContract
+
+    setGenesisContract
 }
 
 sovereignInit() {
