@@ -12,6 +12,7 @@ import (
 )
 
 const minNumShards = 2
+const pathSeparator = "/"
 
 // persisterCreator is the factory which will handle creating new persisters
 type persisterCreator struct {
@@ -31,7 +32,7 @@ func (pc *persisterCreator) Create(path string) (storage.Persister, error) {
 	}
 
 	if pc.conf.UseTmpAsFilePath {
-		filePath, err := getTmpFilePath(path)
+		filePath, err := getTmpFilePath(path, pathSeparator)
 		if err != nil {
 			return nil, err
 		}
@@ -50,8 +51,8 @@ func (pc *persisterCreator) Create(path string) (storage.Persister, error) {
 	return database.NewShardedPersister(path, pc, shardIDProvider)
 }
 
-func getTmpFilePath(path string) (string, error) {
-	pathItems := strings.Split(path, "/")
+func getTmpFilePath(path string, pathSeparator string) (string, error) {
+	pathItems := strings.Split(path, pathSeparator)
 
 	lastItem := pathItems[len(pathItems)-1]
 
