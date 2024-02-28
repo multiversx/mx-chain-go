@@ -465,7 +465,7 @@ func (s *simulator) SendTxsAndGenerateBlocksTilAreExecuted(txsToSend []*transact
 			return nil, err
 		}
 
-		txsAreExecuted := s.computeTransactionStatus(transactionStatus)
+		txsAreExecuted := s.computeTransactionsStatus(transactionStatus)
 		if txsAreExecuted {
 			return getApiTransactionsFromResult(transactionStatus), nil
 		}
@@ -474,7 +474,7 @@ func (s *simulator) SendTxsAndGenerateBlocksTilAreExecuted(txsToSend []*transact
 	return nil, errors.New("something went wrong. Transaction(s) is/are still in pending")
 }
 
-func (s *simulator) computeTransactionStatus(status []*transactionWithResult) bool {
+func (s *simulator) computeTransactionsStatus(status []*transactionWithResult) bool {
 	allAreExecuted := true
 	for _, resultTx := range status {
 		if resultTx.result != nil {
@@ -525,13 +525,12 @@ func (s *simulator) sendTx(tx *transaction.Transaction) (string, error) {
 	}
 
 	for {
-		txs, _ := node.GetFacadeHandler().GetTransactionsPool("")
-		for _, sentTx := range txs.RegularTransactions {
-			if sentTx.TxFields["hash"] == txHashHex {
-				log.Info("############## send transaction ##############", "txHash", txHashHex)
-				return txHashHex, nil
-			}
+		recoveredTx, _ := node.GetFacadeHandler().GetTransaction(txHashHex, true)
+		if recoveredTx != nil {
+			log.Info("############## send transaction ##############", "txHash", txHashHex)
+			return txHashHex, nil
 		}
+
 		time.Sleep(delaySendTxs)
 	}
 }

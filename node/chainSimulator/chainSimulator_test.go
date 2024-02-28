@@ -299,6 +299,7 @@ func TestChainSimulator_GetAccount(t *testing.T) {
 		Bech32: "erd1qtc600lryvytxuy4h7vn7xmsy5tw6vuw3tskr75cwnmv4mnyjgsq6e5zgj",
 	}
 	address.Bytes, err = chainSimulator.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Decode(address.Bech32)
+	assert.Nil(t, err)
 
 	account, err := chainSimulator.GetAccount(address)
 	assert.Nil(t, err)
