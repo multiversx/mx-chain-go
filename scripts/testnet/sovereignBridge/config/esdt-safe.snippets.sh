@@ -3,7 +3,7 @@ ESDT_SAFE_ADDRESS_SOVEREIGN=$(mxpy data load --partition=sovereign --key=address
 
 deployEsdtSafeContract() {
     mxpy --verbose contract deploy \
-        --bytecode="${ESDT_SAFE_WASM}" \
+        --bytecode=$(eval echo ${ESDT_SAFE_WASM}) \
         --pem=${WALLET} \
         --proxy=${PROXY} \
         --chain=${CHAIN_ID} \
@@ -36,7 +36,7 @@ deployEsdtSafeContract() {
 
 upgradeEsdtSafeContract() {
     mxpy --verbose contract upgrade ${ESDT_SAFE_ADDRESS} \
-        --bytecode="${ESDT_SAFE_WASM}" \
+        --bytecode=$(eval echo ${ESDT_SAFE_WASM}) \
         --pem=${WALLET} \
         --proxy=${PROXY} \
         --chain=${CHAIN_ID} \

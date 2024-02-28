@@ -5,7 +5,7 @@ deployFeeMarketContract() {
     CHECK_VARIABLES ESDT_SAFE_ADDRESS || return
 
     mxpy --verbose contract deploy \
-        --bytecode="${FEE_MARKET_WASM}" \
+        --bytecode=$(eval echo ${FEE_MARKET_WASM}) \
         --pem=${WALLET} \
         --proxy=${PROXY} \
         --chain=${CHAIN_ID} \
@@ -39,7 +39,7 @@ upgradeFeeMarketContract() {
     CHECK_VARIABLES ESDT_SAFE_ADDRESS || return
 
     mxpy --verbose contract upgrade ${FEE_MARKET_ADDRESS} \
-        --bytecode="${FEE_MARKET_WASM}" \
+        --bytecode=$(eval echo ${FEE_MARKET_WASM}) \
         --pem=${WALLET} \
         --proxy=${PROXY} \
         --chain=${CHAIN_ID} \

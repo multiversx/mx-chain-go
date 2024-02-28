@@ -6,7 +6,7 @@ deployMultisigVerifierContract() {
     BLS_PUB_KEYS=$(python3 $SCRIPT_PATH/pyScripts/read_bls_keys.py)
 
     mxpy --verbose contract deploy \
-        --bytecode="${MULTISIG_VERIFIER_WASM}" \
+        --bytecode=$(eval echo ${MULTISIG_VERIFIER_WASM}) \
         --pem=${WALLET} \
         --proxy=${PROXY} \
         --chain=${CHAIN_ID} \
@@ -35,7 +35,7 @@ upgradeMultisigVerifierContract() {
     BLS_PUB_KEYS=$(python3 $SCRIPT_PATH/pyScripts/read_bls_keys.py)
 
     mxpy --verbose contract upgrade ${MULTISIG_VERIFIER_ADDRESS} \
-        --bytecode="${MULTISIG_VERIFIER_WASM}" \
+        --bytecode=$(eval echo ${MULTISIG_VERIFIER_WASM}) \
         --pem=${WALLET} \
         --proxy=${PROXY} \
         --chain=${CHAIN_ID} \
