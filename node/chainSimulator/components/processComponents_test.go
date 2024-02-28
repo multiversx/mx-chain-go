@@ -70,6 +70,7 @@ func createArgsProcessComponentsHolder() ArgsProcessComponentsHolder {
 				},
 			},
 		},
+		RoundConfig:    testscommon.GetDefaultRoundsConfig(),
 		PrefsConfig:    config.Preferences{},
 		ImportDBConfig: config.ImportDbConfig{},
 		FlagsConfig: config.ContextFlagsConfig{
