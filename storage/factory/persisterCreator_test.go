@@ -171,34 +171,21 @@ func TestPersisterCreator_CreateShardIDProvider(t *testing.T) {
 func TestGetTmpFilePath(t *testing.T) {
 	t.Parallel()
 
-	t.Run("invalid path separator, should fail", func(t *testing.T) {
-		t.Parallel()
+	pathSeparator := "/"
 
-		invalidPathSeparator := ","
-		path, err := factory.GetTmpFilePath("aaaa/bbbb/cccc", invalidPathSeparator)
-		require.NotNil(t, err)
-		require.Equal(t, "", path)
-	})
+	tmpDir := os.TempDir()
+	tmpBasePath := tmpDir + pathSeparator
 
-	t.Run("should work", func(t *testing.T) {
-		t.Parallel()
+	path, err := factory.GetTmpFilePath("aaaa/bbbb/cccc")
+	require.Nil(t, err)
+	require.True(t, strings.Contains(path, tmpBasePath+"cccc"))
 
-		pathSeparator := "/"
+	path, _ = factory.GetTmpFilePath("aaaa")
+	require.True(t, strings.Contains(path, tmpBasePath+"aaaa"))
 
-		tmpDir := os.TempDir()
-		tmpBasePath := tmpDir + pathSeparator
+	path, _ = factory.GetTmpFilePath("")
+	require.True(t, strings.Contains(path, tmpBasePath+""))
 
-		path, err := factory.GetTmpFilePath("aaaa/bbbb/cccc", pathSeparator)
-		require.Nil(t, err)
-		require.True(t, strings.Contains(path, tmpBasePath+"cccc"))
-
-		path, _ = factory.GetTmpFilePath("aaaa", pathSeparator)
-		require.True(t, strings.Contains(path, tmpBasePath+"aaaa"))
-
-		path, _ = factory.GetTmpFilePath("", pathSeparator)
-		require.True(t, strings.Contains(path, tmpBasePath+""))
-
-		path, _ = factory.GetTmpFilePath("/", pathSeparator)
-		require.True(t, strings.Contains(path, tmpBasePath+""))
-	})
+	path, _ = factory.GetTmpFilePath("/")
+	require.True(t, strings.Contains(path, tmpBasePath+""))
 }

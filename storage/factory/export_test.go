@@ -31,6 +31,6 @@ func (pc *persisterCreator) CreateShardIDProvider() (storage.ShardIDProvider, er
 }
 
 // GetTmpFilePath -
-func GetTmpFilePath(path string, pathSeparator string) (string, error) {
-	return getTmpFilePath(path, pathSeparator)
+func GetTmpFilePath(path string) (string, error) {
+	return getTmpFilePath(path)
 }

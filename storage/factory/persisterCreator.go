@@ -2,7 +2,7 @@ package factory
 
 import (
 	"os"
-	"strings"
+	"path"
 
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -32,7 +32,7 @@ func (pc *persisterCreator) Create(path string) (storage.Persister, error) {
 	}
 
 	if pc.conf.UseTmpAsFilePath {
-		filePath, err := getTmpFilePath(path, pathSeparator)
+		filePath, err := getTmpFilePath(path)
 		if err != nil {
 			return nil, err
 		}
@@ -51,12 +51,9 @@ func (pc *persisterCreator) Create(path string) (storage.Persister, error) {
 	return database.NewShardedPersister(path, pc, shardIDProvider)
 }
 
-func getTmpFilePath(path string, pathSeparator string) (string, error) {
-	pathItems := strings.Split(path, pathSeparator)
-
-	lastItem := pathItems[len(pathItems)-1]
-
-	return os.MkdirTemp("", lastItem)
+func getTmpFilePath(p string) (string, error) {
+	_, file := path.Split(p)
+	return os.MkdirTemp("", file)
 }
 
 // CreateBasePersister will create base the persister for the provided path
