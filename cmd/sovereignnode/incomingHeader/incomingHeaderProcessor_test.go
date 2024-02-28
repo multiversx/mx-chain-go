@@ -537,7 +537,7 @@ func TestIncomingHeaderHandler_AddHeader(t *testing.T) {
 			{
 				Name: "function",
 				Value: abi.OptionValue{
-					Value: abi.BytesValue{Value: []byte("func1")},
+					Value: abi.BytesValue{Value: []byte("func2")},
 				},
 			},
 			{
