@@ -4253,8 +4253,7 @@ func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
 				return flag == common.GasPriceModifierFlag
 			},
 		},
-		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
-		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
+		TxVersionChecker: &testscommon.TxVersionCheckerStub{},
 	}
 }
 
