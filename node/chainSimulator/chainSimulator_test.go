@@ -327,7 +327,9 @@ func TestChainSimulator_GetAccount(t *testing.T) {
 }
 
 func TestSimulator_SendTransactions(t *testing.T) {
-	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)

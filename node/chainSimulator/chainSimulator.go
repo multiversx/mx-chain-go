@@ -474,9 +474,9 @@ func (s *simulator) SendTxsAndGenerateBlocksTilAreExecuted(txsToSend []*transact
 	return nil, errors.New("something went wrong. Transaction(s) is/are still in pending")
 }
 
-func (s *simulator) computeTransactionsStatus(status []*transactionWithResult) bool {
+func (s *simulator) computeTransactionsStatus(txsWithResult []*transactionWithResult) bool {
 	allAreExecuted := true
-	for _, resultTx := range status {
+	for _, resultTx := range txsWithResult {
 		if resultTx.result != nil {
 			continue
 		}
