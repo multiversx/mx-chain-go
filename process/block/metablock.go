@@ -18,6 +18,7 @@ import (
 	processOutport "github.com/multiversx/mx-chain-go/outport/process"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
+	"github.com/multiversx/mx-chain-go/process/block/helpers"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/state"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -135,6 +136,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		processStatusHandler:          arguments.CoreComponents.ProcessStatusHandler(),
 		blockProcessingCutoffHandler:  arguments.BlockProcessingCutoffHandler,
 		managedPeersHolder:            arguments.ManagedPeersHolder,
+		sentSignaturesTracker:         arguments.SentSignaturesTracker,
 	}
 
 	mp := metaProcessor{
@@ -928,7 +930,8 @@ func (mp *metaProcessor) createBlockBody(metaBlock data.HeaderHandler, haveTime 
 		"nonce", metaBlock.GetNonce(),
 	)
 
-	miniBlocks, err := mp.createMiniBlocks(haveTime, metaBlock.GetPrevRandSeed())
+	randomness := helpers.ComputeRandomnessForTxSorting(metaBlock, mp.enableEpochsHandler)
+	miniBlocks, err := mp.createMiniBlocks(haveTime, randomness)
 	if err != nil {
 		return nil, err
 	}
@@ -1235,6 +1238,11 @@ func (mp *metaProcessor) CommitBlock(
 		"hash", headerHash)
 	mp.setNonceOfFirstCommittedBlock(headerHandler.GetNonce())
 	mp.updateLastCommittedInDebugger(headerHandler.GetRound())
+
+	errNotCritical := mp.checkSentSignaturesAtCommitTime(headerHandler)
+	if errNotCritical != nil {
+		log.Debug("checkSentSignaturesBeforeCommitting", "error", errNotCritical.Error())
+	}
 
 	notarizedHeadersHashes, errNotCritical := mp.updateCrossShardInfo(header)
 	if errNotCritical != nil {
