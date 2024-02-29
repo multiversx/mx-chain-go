@@ -63,8 +63,6 @@ func (dh *dbConfigHandler) GetDBConfig(path string) (*config.DBConfig, error) {
 		return dbConfig, nil
 	}
 
-	return &dh.conf, nil
-
 	log.Debug("GetDBConfig: loaded db config from main config file",
 		"configuration", fmt.Sprintf("%+v", dh.conf),
 	)
