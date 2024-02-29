@@ -385,32 +385,6 @@ github.com/multiformats/go-varint v0.0.7 h1:sWSGR+f/eu5ABZA2ZpYKBILXTTs9JWpdEM/n
 github.com/multiformats/go-varint v0.0.7/go.mod h1:r8PUYw/fD/SjBCiKOoDlGF6QawOELpZAu9eioSos/OU=
 github.com/multiversx/concurrent-map v0.1.4 h1:hdnbM8VE4b0KYJaGY5yJS2aNIW9TFFsUYwbO0993uPI=
 github.com/multiversx/concurrent-map v0.1.4/go.mod h1:8cWFRJDOrWHOTNSqgYCUvwT7c7eFQ4U2vKMOp4A/9+o=
-<<<<<<< HEAD
-github.com/multiversx/mx-chain-communication-go v1.0.13-0.20231129114230-d280af707381 h1:M4JNeubA+zq7NaH2LP5YsWUVeKn9hNL+HgSw2kqwWUc=
-github.com/multiversx/mx-chain-communication-go v1.0.13-0.20231129114230-d280af707381/go.mod h1:n4E8BWIV0g3AcNGe1gf+vcjUC8A2QCJ4ARQSbiUDGrI=
-github.com/multiversx/mx-chain-core-go v1.2.19-0.20231214115026-a1e7279b14f1 h1:8rz1ZpRAsWVxSEBy7PJIUStQMKiHs3I4mvpRmHUpsbI=
-github.com/multiversx/mx-chain-core-go v1.2.19-0.20231214115026-a1e7279b14f1/go.mod h1:B5zU4MFyJezmEzCsAHE9YNULmGCm2zbPHvl9hazNxmE=
-github.com/multiversx/mx-chain-crypto-go v1.2.10-0.20231129101537-ef355850e34b h1:TIE6it719ZIW0E1bFgPAgE+U3zPSkPfAloFYEIeOL3U=
-github.com/multiversx/mx-chain-crypto-go v1.2.10-0.20231129101537-ef355850e34b/go.mod h1:Ap6p7QZFtwPlb++OvCG+85BfuZ+bLP/JtQp6EwjWJsI=
-github.com/multiversx/mx-chain-es-indexer-go v1.4.18-0.20231228064619-e3b0caf29058 h1:6XH7ua4vUqhbE4NMzs8K63b7A/9KMO4H8XZfYjyy778=
-github.com/multiversx/mx-chain-es-indexer-go v1.4.18-0.20231228064619-e3b0caf29058/go.mod h1:9BzrDTbIjruFXN6YcDOBsnOP0cUHhQobRUlmNOwkDME=
-github.com/multiversx/mx-chain-logger-go v1.0.14-0.20231215125130-a3bed6e76040 h1:rsEflKFn5StRh0ADxElUkI/9wZV0Lbig+b0671LmjTk=
-github.com/multiversx/mx-chain-logger-go v1.0.14-0.20231215125130-a3bed6e76040/go.mod h1:fH/fR/GEBsDjPkBoZDVJMoYo2HhlA7++DP6QfITJ1N8=
-github.com/multiversx/mx-chain-scenario-go v1.2.2-0.20231129113427-ad3056f45296 h1:jDGGEubkiTJfEFcbErUYCYM2Z6wKapgZyGaICScpynk=
-github.com/multiversx/mx-chain-scenario-go v1.2.2-0.20231129113427-ad3056f45296/go.mod h1:WocyahfHCC3oGILEVdRe7I4/+q/TLCORoTo1X4wGmF4=
-github.com/multiversx/mx-chain-storage-go v1.0.15-0.20240222125646-f6bcc32e44f5 h1:3S21hIYIG/J9dLgMSDh6eOikLO9zyHfLbxYG/aax4X4=
-github.com/multiversx/mx-chain-storage-go v1.0.15-0.20240222125646-f6bcc32e44f5/go.mod h1:ioCT2oHQ+TyHQYpgjxzlUdy7dCdv56+w5HnBg9z96eY=
-github.com/multiversx/mx-chain-vm-common-go v1.5.10-0.20231228070003-ae14e1e0adfa h1:xdDeUC4yOfiUwctkYioYMjjigBZoZo5RZq1e5WoCVRs=
-github.com/multiversx/mx-chain-vm-common-go v1.5.10-0.20231228070003-ae14e1e0adfa/go.mod h1:7jjGRykSfLeMs6iQdszlE0lGK2xp9/cctiVdeKbQLLM=
-github.com/multiversx/mx-chain-vm-go v1.5.23-0.20231228064104-964359cb8dd3 h1:qfzeTPI2oSgxnw52KiVWc2fHMem6FZIkX1Azwy64098=
-github.com/multiversx/mx-chain-vm-go v1.5.23-0.20231228064104-964359cb8dd3/go.mod h1:4kcpwq70UB3Clnc6Q0krGA8hgQ26JTQpmCP+4y5aiV0=
-github.com/multiversx/mx-chain-vm-v1_2-go v1.2.65-0.20231228071026-eed2cb19c216 h1:CDSn4hgiGwoOSSLmajgOvjdoRxfJSXjEu/CfXiqihwo=
-github.com/multiversx/mx-chain-vm-v1_2-go v1.2.65-0.20231228071026-eed2cb19c216/go.mod h1:h87SKR/p66XP0Er2Mx2KfjzS6mLmW6l3tDWyO1oNr94=
-github.com/multiversx/mx-chain-vm-v1_3-go v1.3.66-0.20231228071108-6b89bcebab14 h1:7r2zQiAfqGjN7U8j5obXIoRSh+vnoupBhxBgQGUA2ck=
-github.com/multiversx/mx-chain-vm-v1_3-go v1.3.66-0.20231228071108-6b89bcebab14/go.mod h1:MnpQOi/P4K744ZJl8pQksulsHazmN6YRzJ4amgtZ0OQ=
-github.com/multiversx/mx-chain-vm-v1_4-go v1.4.92-0.20231228071246-c1b45eae5955 h1:5b0+UeSbcyh+9z9x/6Nql3cYwaNWzTwj+KIfH4YaASs=
-github.com/multiversx/mx-chain-vm-v1_4-go v1.4.92-0.20231228071246-c1b45eae5955/go.mod h1:+DLltGV0h3/H9bJaz01JyeapKNki3Rh4o5VGpjd2ZNc=
-=======
 github.com/multiversx/mx-chain-communication-go v1.0.13-0.20240126150131-2ac5bc749b40 h1:bMFxkbb1EOQs0+JMM0G0/Kv9v4Jjjla5MSVhVk6scTA=
 github.com/multiversx/mx-chain-communication-go v1.0.13-0.20240126150131-2ac5bc749b40/go.mod h1:n4E8BWIV0g3AcNGe1gf+vcjUC8A2QCJ4ARQSbiUDGrI=
 github.com/multiversx/mx-chain-core-go v1.2.19-0.20240129082057-a76d0c995cf2 h1:pFh9bwOTRgW173aHqA8Bmax+jYzLnRyXqRvi5alF7V4=
@@ -423,8 +397,8 @@ github.com/multiversx/mx-chain-logger-go v1.0.14-0.20240129144507-d00e967c890c h
 github.com/multiversx/mx-chain-logger-go v1.0.14-0.20240129144507-d00e967c890c/go.mod h1:fH/fR/GEBsDjPkBoZDVJMoYo2HhlA7++DP6QfITJ1N8=
 github.com/multiversx/mx-chain-scenario-go v1.3.1-0.20240129145446-ca4fba98f6d1 h1:hkeHftnhRuJoT5FrfF97gEtb5aY351SWEjZPaTb6D+Y=
 github.com/multiversx/mx-chain-scenario-go v1.3.1-0.20240129145446-ca4fba98f6d1/go.mod h1:ndk45i9J9McuCJpTcgiaK4ocd0yhnBBCPrlFwO6GRcs=
-github.com/multiversx/mx-chain-storage-go v1.0.15-0.20240129144933-b1c0d642d7f8 h1:/EYv/HGX0OKbeNFt667J0yZRtuJiZH0lEK8YtobuH/c=
-github.com/multiversx/mx-chain-storage-go v1.0.15-0.20240129144933-b1c0d642d7f8/go.mod h1:zl1A6teNe39T8yhdZlkX3ckm5aLYrMIJJZ6Ord1E71M=
+github.com/multiversx/mx-chain-storage-go v1.0.15-0.20240222125646-f6bcc32e44f5 h1:3S21hIYIG/J9dLgMSDh6eOikLO9zyHfLbxYG/aax4X4=
+github.com/multiversx/mx-chain-storage-go v1.0.15-0.20240222125646-f6bcc32e44f5/go.mod h1:ioCT2oHQ+TyHQYpgjxzlUdy7dCdv56+w5HnBg9z96eY=
 github.com/multiversx/mx-chain-vm-common-go v1.5.12-0.20240129145149-4fe61574f566 h1:zImJa/r6B5L2OLWbKTn5io53U11PPGDla12H2OaJ9y0=
 github.com/multiversx/mx-chain-vm-common-go v1.5.12-0.20240129145149-4fe61574f566/go.mod h1:OUyhCFqZKqUk1uaPsenyPDwO1830SlHNDU7Q7b6CBVI=
 github.com/multiversx/mx-chain-vm-go v1.5.27-0.20240129150501-7c828af05c83 h1:G/d9aplnwP/9MrLE3gcANEpGfn5e8ZZufijPv2XVUfw=
@@ -435,7 +409,6 @@ github.com/multiversx/mx-chain-vm-v1_3-go v1.3.67-0.20240129150004-536a22d9c618 
 github.com/multiversx/mx-chain-vm-v1_3-go v1.3.67-0.20240129150004-536a22d9c618/go.mod h1:4uezxguZiX42kUaYMK/x46LLbgpYqn/iQXbcGM7zdM0=
 github.com/multiversx/mx-chain-vm-v1_4-go v1.4.95-0.20240129150215-43996b664ada h1:NZLV2QmNPW+QTefuAhC24sOuGbOsAQEXzfv2CWoRJKc=
 github.com/multiversx/mx-chain-vm-v1_4-go v1.4.95-0.20240129150215-43996b664ada/go.mod h1:tCjtWeBEZCfjEjlBcgLIRDGJbVmdV8dsmG6ydtiUtSo=
->>>>>>> rc/v1.7.next1
 github.com/multiversx/mx-components-big-int v1.0.0 h1:Wkr8lSzK2nDqixOrrBa47VNuqdhV1m/aJhaP1EMaiS8=
 github.com/multiversx/mx-components-big-int v1.0.0/go.mod h1:maIEMgHlNE2u78JaDD0oLzri+ShgU4okHfzP3LWGdQM=
 github.com/multiversx/protobuf v1.3.2 h1:RaNkxvGTGbA0lMcnHAN24qE1G1i+Xs5yHA6MDvQ4mSM=

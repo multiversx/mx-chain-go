@@ -14,33 +14,18 @@ require (
 	github.com/gorilla/websocket v1.5.0
 	github.com/klauspost/cpuid/v2 v2.2.5
 	github.com/mitchellh/mapstructure v1.5.0
-<<<<<<< HEAD
-	github.com/multiversx/mx-chain-communication-go v1.0.13-0.20231129114230-d280af707381
-	github.com/multiversx/mx-chain-core-go v1.2.19-0.20231214115026-a1e7279b14f1
-	github.com/multiversx/mx-chain-crypto-go v1.2.10-0.20231129101537-ef355850e34b
-	github.com/multiversx/mx-chain-es-indexer-go v1.4.18-0.20231228064619-e3b0caf29058
-	github.com/multiversx/mx-chain-logger-go v1.0.14-0.20231215125130-a3bed6e76040
-	github.com/multiversx/mx-chain-scenario-go v1.2.2-0.20231129113427-ad3056f45296
-	github.com/multiversx/mx-chain-storage-go v1.0.15-0.20240222125646-f6bcc32e44f5
-	github.com/multiversx/mx-chain-vm-common-go v1.5.10-0.20231228070003-ae14e1e0adfa
-	github.com/multiversx/mx-chain-vm-go v1.5.23-0.20231228064104-964359cb8dd3
-	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.65-0.20231228071026-eed2cb19c216
-	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.66-0.20231228071108-6b89bcebab14
-	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.92-0.20231228071246-c1b45eae5955
-=======
 	github.com/multiversx/mx-chain-communication-go v1.0.13-0.20240126150131-2ac5bc749b40
 	github.com/multiversx/mx-chain-core-go v1.2.19-0.20240129082057-a76d0c995cf2
 	github.com/multiversx/mx-chain-crypto-go v1.2.10-0.20231206065052-38843c1f1479
 	github.com/multiversx/mx-chain-es-indexer-go v1.4.19-0.20240129150813-a772c480d33a
 	github.com/multiversx/mx-chain-logger-go v1.0.14-0.20240129144507-d00e967c890c
 	github.com/multiversx/mx-chain-scenario-go v1.3.1-0.20240129145446-ca4fba98f6d1
-	github.com/multiversx/mx-chain-storage-go v1.0.15-0.20240129144933-b1c0d642d7f8
+	github.com/multiversx/mx-chain-storage-go v1.0.15-0.20240222125646-f6bcc32e44f5
 	github.com/multiversx/mx-chain-vm-common-go v1.5.12-0.20240129145149-4fe61574f566
 	github.com/multiversx/mx-chain-vm-go v1.5.27-0.20240129150501-7c828af05c83
 	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.66-0.20240129145751-f814f5525edb
 	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.67-0.20240129150004-536a22d9c618
 	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.95-0.20240129150215-43996b664ada
->>>>>>> rc/v1.7.next1
 	github.com/pelletier/go-toml v1.9.3
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.14.0

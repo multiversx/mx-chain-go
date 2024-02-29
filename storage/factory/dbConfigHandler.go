@@ -11,21 +11,16 @@ import (
 )
 
 const (
-<<<<<<< HEAD
 	dbConfigFileName         = "config.toml"
 	defaultType              = "LvlDBSerial"
 	defaultBatchDelaySeconds = 2
 	defaultMaxBatchSize      = 100
 	defaultMaxOpenFiles      = 10
 	defaultUseTmpAsFilePath  = false
-=======
-	dbConfigFileName = "config.toml"
-	defaultType      = "LvlDBSerial"
 )
 
 var (
 	errInvalidConfiguration = errors.New("invalid configuration")
->>>>>>> rc/v1.7.next1
 )
 
 type dbConfigHandler struct {
@@ -55,16 +50,10 @@ func (dh *dbConfigHandler) GetDBConfig(path string) (*config.DBConfig, error) {
 	if !empty {
 		dbConfig := &config.DBConfig{
 			Type:              defaultType,
-<<<<<<< HEAD
-			BatchDelaySeconds: defaultBatchDelaySeconds,
-			MaxBatchSize:      defaultMaxBatchSize,
-			MaxOpenFiles:      defaultMaxOpenFiles,
-			UseTmpAsFilePath:  defaultUseTmpAsFilePath,
-=======
-			BatchDelaySeconds: dh.batchDelaySeconds,
-			MaxBatchSize:      dh.maxBatchSize,
-			MaxOpenFiles:      dh.maxOpenFiles,
->>>>>>> rc/v1.7.next1
+			BatchDelaySeconds: dh.conf.BatchDelaySeconds,
+			MaxBatchSize:      dh.conf.MaxBatchSize,
+			MaxOpenFiles:      dh.conf.MaxOpenFiles,
+			UseTmpAsFilePath:  dh.conf.UseTmpAsFilePath,
 		}
 
 		log.Debug("GetDBConfig: loaded default db config",
@@ -74,26 +63,13 @@ func (dh *dbConfigHandler) GetDBConfig(path string) (*config.DBConfig, error) {
 		return dbConfig, nil
 	}
 
-<<<<<<< HEAD
-	log.Debug("GetDBConfig: loaded db config from main config file")
-
 	return &dh.conf, nil
-=======
-	dbConfig := &config.DBConfig{
-		Type:                dh.dbType,
-		BatchDelaySeconds:   dh.batchDelaySeconds,
-		MaxBatchSize:        dh.maxBatchSize,
-		MaxOpenFiles:        dh.maxOpenFiles,
-		ShardIDProviderType: dh.shardIDProviderType,
-		NumShards:           dh.numShards,
-	}
 
 	log.Debug("GetDBConfig: loaded db config from main config file",
-		"configuration", fmt.Sprintf("%+v", dbConfig),
+		"configuration", fmt.Sprintf("%+v", dh.conf),
 	)
 
-	return dbConfig, nil
->>>>>>> rc/v1.7.next1
+	return &dh.conf, nil
 }
 
 func readCorrectConfigurationFromToml(dbConfig *config.DBConfig, filePath string) error {
