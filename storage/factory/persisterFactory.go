@@ -1,6 +1,8 @@
 package factory
 
 import (
+	"os"
+	"path"
 	"time"
 
 	"github.com/multiversx/mx-chain-go/config"
@@ -53,6 +55,15 @@ func (pf *persisterFactory) Create(path string) (storage.Persister, error) {
 		return nil, err
 	}
 
+	if dbConfig.UseTmpAsFilePath {
+		filePath, err := getTmpFilePath(path)
+		if err != nil {
+			return nil, err
+		}
+
+		path = filePath
+	}
+
 	pc := newPersisterCreator(*dbConfig)
 
 	persister, err := pc.Create(path)
@@ -71,6 +82,11 @@ func (pf *persisterFactory) Create(path string) (storage.Persister, error) {
 // CreateDisabled will return a new disabled persister
 func (pf *persisterFactory) CreateDisabled() storage.Persister {
 	return disabled.NewErrorDisabledPersister()
+}
+
+func getTmpFilePath(p string) (string, error) {
+	_, file := path.Split(p)
+	return os.MkdirTemp("", file)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

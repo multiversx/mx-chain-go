@@ -29,3 +29,8 @@ func NewPersisterCreator(config config.DBConfig) *persisterCreator {
 func (pc *persisterCreator) CreateShardIDProvider() (storage.ShardIDProvider, error) {
 	return pc.createShardIDProvider()
 }
+
+// GetTmpFilePath -
+func GetTmpFilePath(path string) (string, error) {
+	return getTmpFilePath(path)
+}
