@@ -72,7 +72,7 @@ enableFeeMarketContractCall() {
     local URL=$2
     local CHAIN=$3
 
-    mxpy --verbose contract call $ADDRESS \
+    mxpy --verbose contract call ${ADDRESS} \
         --pem=${WALLET} \
         --proxy=${URL} \
         --chain=${CHAIN} \

@@ -114,8 +114,8 @@ setFeeMarketAddressSovereign() {
     setFeeMarketAddressCall ${ESDT_SAFE_ADDRESS_SOVEREIGN} ${FEE_MARKET_ADDRESS_SOVEREIGN} ${PROXY_SOVEREIGN} ${CHAIN_ID_SOVEREIGN}
 }
 setFeeMarketAddressCall() {
-    if [ $# -lt 3 ]; then
-            echo "Usage: $0 <arg1> <arg2> <arg3>"
+    if [ $# -lt 4 ]; then
+            echo "Usage: $0 <arg1> <arg2> <arg3> <arg4>"
             exit 1
         fi
 
@@ -124,13 +124,13 @@ setFeeMarketAddressCall() {
     local URL=$3
     local CHAIN=$4
 
-    mxpy --verbose contract call ESDT_SAFE_CONTRACT_ADDRESS \
+    mxpy --verbose contract call ${ESDT_SAFE_CONTRACT_ADDRESS} \
         --pem=${WALLET} \
         --proxy=${URL} \
         --chain=${CHAIN} \
         --gas-limit=10000000 \
         --function="setFeeMarketAddress" \
-        --arguments $FEE_MARKET_CONTRACT_ADDRESS \
+        --arguments ${FEE_MARKET_CONTRACT_ADDRESS} \
         --recall-nonce \
         --wait-result \
         --send || return
