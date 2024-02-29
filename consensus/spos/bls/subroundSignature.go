@@ -39,7 +39,7 @@ func NewSubroundSignature(
 		return nil, spos.ErrNilAppStatusHandler
 	}
 	if check.IfNil(sentSignatureTracker) {
-		return nil, spos.ErrNilSentSignatureTracker
+		return nil, ErrNilSentSignatureTracker
 	}
 
 	srSignature := subroundSignature{

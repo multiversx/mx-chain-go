@@ -88,12 +88,13 @@ type EvictionWaitingListConfig struct {
 
 // EpochStartConfig will hold the configuration of EpochStart settings
 type EpochStartConfig struct {
-	MinRoundsBetweenEpochs            int64
-	RoundsPerEpoch                    int64
-	MinShuffledOutRestartThreshold    float64
-	MaxShuffledOutRestartThreshold    float64
-	MinNumConnectedPeersToStart       int
-	MinNumOfPeersToConsiderBlockValid int
+	MinRoundsBetweenEpochs                      int64
+	RoundsPerEpoch                              int64
+	MinShuffledOutRestartThreshold              float64
+	MaxShuffledOutRestartThreshold              float64
+	MinNumConnectedPeersToStart                 int
+	MinNumOfPeersToConsiderBlockValid           int
+	ExtraDelayForRequestBlockInfoInMilliseconds int
 }
 
 // BlockSizeThrottleConfig will hold the configuration for adaptive block size throttle
@@ -193,15 +194,16 @@ type Config struct {
 	PublicKeyPIDSignature CacheConfig
 	PeerHonesty           CacheConfig
 
-	Antiflood           AntifloodConfig
-	WebServerAntiflood  WebServerAntifloodConfig
-	ResourceStats       ResourceStatsConfig
-	HeartbeatV2         HeartbeatV2Config
-	ValidatorStatistics ValidatorStatisticsConfig
-	GeneralSettings     GeneralSettingsConfig
-	Consensus           ConsensusConfig
-	StoragePruning      StoragePruningConfig
-	LogsAndEvents       LogsAndEventsConfig
+	Antiflood            AntifloodConfig
+	WebServerAntiflood   WebServerAntifloodConfig
+	ResourceStats        ResourceStatsConfig
+	HeartbeatV2          HeartbeatV2Config
+	ValidatorStatistics  ValidatorStatisticsConfig
+	GeneralSettings      GeneralSettingsConfig
+	Consensus            ConsensusConfig
+	StoragePruning       StoragePruningConfig
+	LogsAndEvents        LogsAndEventsConfig
+	HardwareRequirements HardwareRequirementsConfig
 
 	NTPConfig               NTPConfig
 	HeadersPoolConfig       HeadersPoolConfig
@@ -287,6 +289,11 @@ type GeneralSettingsConfig struct {
 	GenesisMaxNumberOfShards             uint32
 	SyncProcessTimeInMillis              uint32
 	SetGuardianEpochsDelay               uint32
+}
+
+// HardwareRequirementsConfig will hold the hardware requirements config
+type HardwareRequirementsConfig struct {
+	CPUFlags []string
 }
 
 // FacadeConfig will hold different configuration option that will be passed to the node facade
