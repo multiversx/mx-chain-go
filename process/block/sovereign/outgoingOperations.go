@@ -2,15 +2,16 @@ package sovereign
 
 import (
 	"bytes"
+	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/errors"
 	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/multiversx/mx-sdk-abi-incubator/golang/abi"
 )
-
-const bridgeOpPrefix = "bridgeOps"
 
 var log = logger.GetOrCreate("outgoing-operations")
 
@@ -91,12 +92,13 @@ func (op *outgoingOperations) CreateOutgoingTxsData(logs []*data.LogData) [][]by
 		return make([][]byte, 0)
 	}
 
-	txData := []byte(bridgeOpPrefix + "@" + fmt.Sprintf("%d", op.roundHandler.Index()))
+	txData := make([]byte, 0)
 	for _, ev := range outgoingEvents {
+		_, eventArgs, _ := getEventData(ev.GetData())
+
 		txData = append(txData, byte('@'))
 		txData = append(txData, createSCRData(ev.GetTopics())...)
-		txData = append(txData, byte('@'))
-		txData = append(txData, ev.GetData()...)
+		txData = append(txData, eventArgs...)
 	}
 
 	// TODO: Check gas limit here and split tx data in multiple batches if required
@@ -149,15 +151,90 @@ func (op *outgoingOperations) isSubscribed(event data.EventHandler, txHash strin
 }
 
 func createSCRData(topics [][]byte) []byte {
-	ret := topics[1]
-	for idx := 2; idx < len(topics); idx += 1 {
-		transfer := []byte("@")
-		transfer = append(transfer, topics[idx]...)
+	ret := make([]byte, 0)
+	ret = append(ret, hex.EncodeToString(topics[1])...)
 
-		ret = append(ret, transfer...)
+	for idx := 2; idx < len(topics); idx += 1 {
+		ret = append(ret, []byte("@")...)
+		ret = append(ret, hex.EncodeToString(topics[idx])...)
 	}
 
 	return ret
+}
+
+func getEventData(data []byte) (uint64, []byte, error) {
+	codec := abi.NewDefaultCodec()
+	serializer := abi.NewSerializer(codec)
+
+	transferData := abi.StructValue{
+		Fields: []abi.Field{
+			{
+				Name:  "tx_nonce",
+				Value: &abi.U64Value{},
+			},
+			{
+				Name: "gas_limit",
+				Value: &abi.OptionValue{
+					Value: &abi.U64Value{},
+				},
+			},
+			{
+				Name: "function",
+				Value: &abi.OptionValue{
+					Value: &abi.BytesValue{},
+				},
+			},
+			{
+				Name: "args",
+				Value: &abi.OptionValue{
+					Value: &abi.OutputListValue{
+						ItemCreator: func() any { return &abi.BytesValue{} },
+					},
+				},
+			},
+		},
+	}
+
+	err := serializer.Deserialize(hex.EncodeToString(data), []any{&transferData})
+	if err != nil {
+		return 0, nil, err
+	}
+
+	nonce := transferData.Fields[0].Value.(*abi.U64Value).Value
+	args := make([]byte, 0)
+
+	optionFunc := transferData.Fields[2].Value.(*abi.OptionValue).Value
+	if optionFunc != nil {
+		function := optionFunc.(*abi.BytesValue).Value
+		args = append(args, []byte("@")...)
+		args = append(args, hex.EncodeToString(function)...)
+
+		optionArgs := transferData.Fields[3].Value.(*abi.OptionValue).Value
+		if optionArgs != nil {
+			items := optionArgs.(*abi.OutputListValue).Items
+			if items != nil && len(items) > 0 {
+				for _, item := range items {
+					arg := item.(*abi.BytesValue).Value
+					args = append(args, []byte("@")...)
+					args = append(args, hex.EncodeToString(arg)...)
+				}
+			}
+		}
+
+		gasLimit := uint64(0)
+		optionGas := transferData.Fields[1].Value.(*abi.OptionValue).Value
+		if optionGas != nil {
+			gasLimit = optionGas.(*abi.U64Value).Value
+		}
+
+		buf := make([]byte, 8)
+		binary.BigEndian.PutUint64(buf, gasLimit)
+		gasHex := append([]byte("@"), hex.EncodeToString(buf)...)
+
+		args = append(gasHex, args...)
+	}
+
+	return nonce, args, nil
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil
