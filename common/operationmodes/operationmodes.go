@@ -5,6 +5,7 @@ import (
 	"strings"
 )
 
+// constants that define the operation mode of the node
 const (
 	OperationModeFullArchive          = "full-archive"
 	OperationModeDbLookupExtension    = "db-lookup-extension"
