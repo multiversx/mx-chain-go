@@ -789,6 +789,54 @@ func TestExecuteQuery_ShouldReceiveQueryCorrectly(t *testing.T) {
 	})
 }
 
+func TestSCQueryService_ShouldCallRecreateTrieWithoutEpoch(t *testing.T) {
+	t.Parallel()
+
+	currentEpoch := uint32(0)
+
+	argsNewSCQuery := createMockArgumentsForSCQuery()
+	argsNewSCQuery.MainBlockChain = &testscommon.ChainHandlerStub{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{
+				Epoch: currentEpoch,
+			}
+		},
+	}
+
+	service, err := NewSCQueryService(argsNewSCQuery)
+	assert.Nil(t, err)
+	assert.NotNil(t, service)
+
+	currentEpoch = 0
+
+	assert.False(t, service.shouldCallRecreateTrieWithoutEpoch(37))
+	assert.False(t, service.shouldCallRecreateTrieWithoutEpoch(5))
+
+	currentEpoch = 37
+
+	service.latestQueriedEpoch = core.OptionalUint32{HasValue: true, Value: 29}
+
+	assert.False(t, service.shouldCallRecreateTrieWithoutEpoch(37))
+	assert.False(t, service.shouldCallRecreateTrieWithoutEpoch(5))
+
+	service.latestQueriedEpoch = core.OptionalUint32{HasValue: true, Value: 37}
+
+	assert.True(t, service.shouldCallRecreateTrieWithoutEpoch(37))
+	assert.False(t, service.shouldCallRecreateTrieWithoutEpoch(5))
+
+	currentEpoch = 42
+
+	assert.True(t, service.shouldCallRecreateTrieWithoutEpoch(37))
+	assert.False(t, service.shouldCallRecreateTrieWithoutEpoch(5))
+	assert.False(t, service.shouldCallRecreateTrieWithoutEpoch(42))
+
+	service.latestQueriedEpoch = core.OptionalUint32{HasValue: true, Value: 42}
+
+	assert.False(t, service.shouldCallRecreateTrieWithoutEpoch(37))
+	assert.False(t, service.shouldCallRecreateTrieWithoutEpoch(5))
+	assert.True(t, service.shouldCallRecreateTrieWithoutEpoch(42))
+}
+
 func TestSCQueryService_RecreateTrie(t *testing.T) {
 	t.Parallel()
 
@@ -846,7 +894,7 @@ func TestSCQueryService_RecreateTrie(t *testing.T) {
 		}
 
 		service, _ := NewSCQueryService(argsNewSCQuery)
-		assert.Equal(t, core.OptionalUint32{HasValue: false}, service.latestQueriedEpoch)
+		service.latestQueriedEpoch = core.OptionalUint32{HasValue: true, Value: 37}
 
 		// For genesis block, RecreateTrieFromEpoch should be called
 		err := service.recreateTrie(testRootHash, &block.Header{})

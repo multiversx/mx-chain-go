@@ -257,8 +257,8 @@ func (service *SCQueryService) recreateTrie(blockRootHash []byte, blockHeader da
 
 	accountsAdapter := service.blockChainHook.GetAccountsAdapter()
 
-	if service.isLatestQueriedEpoch(blockHeader.GetEpoch()) {
-		logQueryService.Trace("calling RecreateTrie, for recent history", "block", blockHeader.GetNonce(), "rootHash", blockRootHash)
+	if service.shouldCallRecreateTrieWithoutEpoch(blockHeader.GetEpoch()) {
+		logQueryService.Trace("calling RecreateTrie", "block", blockHeader.GetNonce(), "rootHash", blockRootHash)
 
 		err := accountsAdapter.RecreateTrie(blockRootHash)
 		if err != nil {
@@ -269,7 +269,7 @@ func (service *SCQueryService) recreateTrie(blockRootHash []byte, blockHeader da
 		return nil
 	}
 
-	logQueryService.Trace("calling RecreateTrieFromEpoch, for older history", "block", blockHeader.GetNonce(), "rootHash", blockRootHash)
+	logQueryService.Trace("calling RecreateTrieFromEpoch", "block", blockHeader.GetNonce(), "rootHash", blockRootHash)
 	holder := holders.NewRootHashHolder(blockRootHash, core.OptionalUint32{Value: blockHeader.GetEpoch(), HasValue: true})
 
 	err := accountsAdapter.RecreateTrieFromEpoch(holder)
@@ -281,8 +281,16 @@ func (service *SCQueryService) recreateTrie(blockRootHash []byte, blockHeader da
 	return nil
 }
 
-func (service *SCQueryService) isLatestQueriedEpoch(epoch uint32) bool {
-	return service.latestQueriedEpoch.HasValue && service.latestQueriedEpoch.Value == epoch
+func (service *SCQueryService) shouldCallRecreateTrieWithoutEpoch(epochInQuestion uint32) bool {
+	if service.latestQueriedEpoch.HasValue && service.latestQueriedEpoch.Value == epochInQuestion {
+		return true
+	}
+
+	if !service.latestQueriedEpoch.HasValue && epochInQuestion == service.getCurrentEpoch() {
+		return true
+	}
+
+	return false
 }
 
 func (service *SCQueryService) rememberQueriedEpoch(epoch uint32) {
