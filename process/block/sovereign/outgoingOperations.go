@@ -2,9 +2,9 @@ package sovereign
 
 import (
 	"bytes"
-	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"strconv"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -227,14 +227,18 @@ func getEventData(data []byte) (uint64, []byte, error) {
 			gasLimit = optionGas.(*abi.U64Value).Value
 		}
 
-		buf := make([]byte, 8)
-		binary.BigEndian.PutUint64(buf, gasLimit)
-		gasHex := append([]byte("@"), hex.EncodeToString(buf)...)
-
+		gasHex := append([]byte("@"), valueToHexString(gasLimit)...)
 		args = append(gasHex, args...)
 	}
 
 	return nonce, args, nil
+}
+
+func valueToHexString(value uint64) string {
+	hexString := strconv.FormatUint(value, 16)
+	paddedHexString := fmt.Sprintf("%016s", hexString)
+
+	return paddedHexString
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil

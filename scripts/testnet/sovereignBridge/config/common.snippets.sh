@@ -23,7 +23,7 @@ upgradeContracts() {
 
     upgradeFeeMarketContract
 
-    upgradeMultisigVerifierContract
+#    upgradeMultisigVerifierContract
 
     setGenesisContract
 }
