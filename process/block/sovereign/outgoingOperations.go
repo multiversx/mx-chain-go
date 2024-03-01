@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"strconv"
+	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -24,6 +24,29 @@ type SubscribedEvent struct {
 type outgoingOperations struct {
 	subscribedEvents []SubscribedEvent
 	roundHandler     RoundHandler
+}
+
+type operationData struct {
+	address      []byte
+	tokens       []esdtTokenPayment
+	transferData transferData
+}
+
+type esdtTokenPayment struct {
+	tokenIdentifier []byte
+	nonce           uint64
+	amount          *big.Int
+}
+
+type transferData struct {
+	gasLimit uint64
+	function []byte
+	args     [][]byte
+}
+
+type eventData struct {
+	nonce uint64
+	*transferData
 }
 
 // TODO: We should create a common base functionality from this component. Similar behavior is also found in
@@ -92,18 +115,14 @@ func (op *outgoingOperations) CreateOutgoingTxsData(logs []*data.LogData) [][]by
 		return make([][]byte, 0)
 	}
 
-	txData := make([]byte, 0)
-	for _, ev := range outgoingEvents {
-		_, eventArgs, _ := getEventData(ev.GetData())
-
-		txData = append(txData, byte('@'))
-		txData = append(txData, createSCRData(ev.GetTopics())...)
-		txData = append(txData, eventArgs...)
+	txsData := make([]byte, 0)
+	for _, event := range outgoingEvents {
+		txsData = append(txsData, getOperationData(event)...)
 	}
 
 	// TODO: Check gas limit here and split tx data in multiple batches if required
 	// Task: MX-14720
-	return [][]byte{txData}
+	return [][]byte{txsData}
 }
 
 func (op *outgoingOperations) createOutgoingEvents(logs []*data.LogData) []data.EventHandler {
@@ -150,23 +169,54 @@ func (op *outgoingOperations) isSubscribed(event data.EventHandler, txHash strin
 	return false
 }
 
-func createSCRData(topics [][]byte) []byte {
-	ret := make([]byte, 0)
-	ret = append(ret, hex.EncodeToString(topics[1])...)
-
-	for idx := 2; idx < len(topics); idx += 1 {
-		ret = append(ret, []byte("@")...)
-		ret = append(ret, hex.EncodeToString(topics[idx])...)
+func getOperationData(event data.EventHandler) []byte {
+	opData := newOperationData(event.GetTopics())
+	evData, _ := getEventData(event.GetData())
+	opData.transferData = transferData{
+		gasLimit: evData.gasLimit,
+		function: evData.function,
+		args:     evData.args,
 	}
 
-	return ret
+	return serializeOperationData(opData)
 }
 
-func getEventData(data []byte) (uint64, []byte, error) {
+func newOperationData(topics [][]byte) *operationData {
+	receiver := topics[1]
+
+	var tokens []esdtTokenPayment
+	for i := 2; i < len(topics); i += 3 {
+		payment := esdtTokenPayment{
+			tokenIdentifier: topics[i],
+			nonce:           byteSliceToUint64(topics[i+1]),
+			amount:          byteSliceToBigInt(topics[i+2]),
+		}
+		tokens = append(tokens, payment)
+	}
+
+	return &operationData{
+		address: receiver,
+		tokens:  tokens,
+	}
+}
+
+func byteSliceToUint64(byteSlice []byte) uint64 {
+	var result uint64
+	for _, b := range byteSlice {
+		result = (result << 8) | uint64(b)
+	}
+	return result
+}
+
+func byteSliceToBigInt(byteSlice []byte) *big.Int {
+	return new(big.Int).SetBytes(byteSlice)
+}
+
+func getEventData(data []byte) (*eventData, error) {
 	codec := abi.NewDefaultCodec()
 	serializer := abi.NewSerializer(codec)
 
-	transferData := abi.StructValue{
+	eventDataStruct := abi.StructValue{
 		Fields: []abi.Field{
 			{
 				Name:  "tx_nonce",
@@ -195,50 +245,120 @@ func getEventData(data []byte) (uint64, []byte, error) {
 		},
 	}
 
-	err := serializer.Deserialize(hex.EncodeToString(data), []any{&transferData})
+	err := serializer.Deserialize(hex.EncodeToString(data), []any{&eventDataStruct})
 	if err != nil {
-		return 0, nil, err
+		return nil, err
 	}
 
-	nonce := transferData.Fields[0].Value.(*abi.U64Value).Value
-	args := make([]byte, 0)
+	nonce := eventDataStruct.Fields[0].Value.(*abi.U64Value).Value
 
-	optionFunc := transferData.Fields[2].Value.(*abi.OptionValue).Value
+	gasLimit := uint64(0)
+	optionGas := eventDataStruct.Fields[1].Value.(*abi.OptionValue).Value
+	if optionGas != nil {
+		gasLimit = optionGas.(*abi.U64Value).Value
+	}
+
+	function := make([]byte, 0)
+	optionFunc := eventDataStruct.Fields[2].Value.(*abi.OptionValue).Value
 	if optionFunc != nil {
-		function := optionFunc.(*abi.BytesValue).Value
-		args = append(args, []byte("@")...)
-		args = append(args, hex.EncodeToString(function)...)
+		function = optionFunc.(*abi.BytesValue).Value
+	}
 
-		optionArgs := transferData.Fields[3].Value.(*abi.OptionValue).Value
-		if optionArgs != nil {
-			items := optionArgs.(*abi.OutputListValue).Items
-			if items != nil && len(items) > 0 {
-				for _, item := range items {
-					arg := item.(*abi.BytesValue).Value
-					args = append(args, []byte("@")...)
-					args = append(args, hex.EncodeToString(arg)...)
-				}
+	args := make([][]byte, 0)
+	optionArgs := eventDataStruct.Fields[3].Value.(*abi.OptionValue).Value
+	if optionArgs != nil {
+		items := optionArgs.(*abi.OutputListValue).Items
+		if items != nil && len(items) > 0 {
+			for _, item := range items {
+				arg := item.(*abi.BytesValue).Value
+				args = append(args, arg)
 			}
 		}
-
-		gasLimit := uint64(0)
-		optionGas := transferData.Fields[1].Value.(*abi.OptionValue).Value
-		if optionGas != nil {
-			gasLimit = optionGas.(*abi.U64Value).Value
-		}
-
-		gasHex := append([]byte("@"), valueToHexString(gasLimit)...)
-		args = append(gasHex, args...)
 	}
 
-	return nonce, args, nil
+	return &eventData{
+		nonce: nonce,
+		transferData: &transferData{
+			gasLimit: gasLimit,
+			function: function,
+			args:     args,
+		},
+	}, nil
 }
 
-func valueToHexString(value uint64) string {
-	hexString := strconv.FormatUint(value, 16)
-	paddedHexString := fmt.Sprintf("%016s", hexString)
+func serializeOperationData(txData *operationData) []byte {
+	codec := abi.NewDefaultCodec()
+	serializer := abi.NewSerializer(codec)
 
-	return paddedHexString
+	var tokens []abi.StructValue
+	for _, token := range txData.tokens {
+		item := abi.StructValue{
+			Fields: []abi.Field{
+				{
+					Name:  "token_identifier",
+					Value: abi.BytesValue{Value: token.tokenIdentifier},
+				},
+				{
+					Name:  "nonce",
+					Value: abi.U64Value{Value: token.nonce},
+				},
+				{
+					Name:  "amount",
+					Value: abi.BigIntValue{Value: token.amount},
+				},
+			},
+		}
+		tokens = append(tokens, item)
+	}
+
+	var args []abi.BytesValue
+	for _, arg := range txData.transferData.args {
+		item := abi.BytesValue{Value: arg}
+		args = append(args, item)
+	}
+
+	txDataStruct :=
+		abi.StructValue{
+			Fields: []abi.Field{
+				{
+					Name:  "receiver",
+					Value: abi.BytesValue{Value: txData.address},
+				},
+				{
+					Name: "tokens",
+					Value: abi.InputListValue{
+						Items: []any{tokens},
+					},
+				},
+				{
+					Name: "transfer_data",
+					Value: abi.OptionValue{
+						Value: abi.StructValue{
+							Fields: []abi.Field{
+								{
+									Name:  "gas_limit",
+									Value: abi.U64Value{Value: txData.transferData.gasLimit},
+								},
+								{
+									Name:  "function",
+									Value: abi.BytesValue{Value: txData.transferData.function},
+								},
+								{
+									Name: "args",
+									Value: abi.InputListValue{
+										Items: []any{args},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+	encoded, _ := serializer.Serialize([]any{txDataStruct})
+	encodedBytes, _ := hex.DecodeString(encoded)
+	return encodedBytes
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil
