@@ -461,6 +461,7 @@ func createScQueryElement(
 		Marshaller:               args.coreComponents.InternalMarshalizer(),
 		Hasher:                   args.coreComponents.Hasher(),
 		Uint64ByteSliceConverter: args.coreComponents.Uint64ByteSliceConverter(),
+		IsInSnapshottingMode:     args.generalConfig.StateTriesConfig.SnapshotsEnabled,
 	}
 
 	return smartContract.NewSCQueryService(argsNewSCQueryService)

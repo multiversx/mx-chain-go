@@ -62,6 +62,7 @@ func createMockArgumentsForSCQuery() ArgsNewSCQueryService {
 		Marshaller:               &marshallerMock.MarshalizerStub{},
 		Hasher:                   &testscommon.HasherStub{},
 		Uint64ByteSliceConverter: &mock.Uint64ByteSliceConverterMock{},
+		IsInSnapshottingMode:     true,
 	}
 }
 
@@ -683,6 +684,118 @@ func TestExecuteQuery_ShouldReceiveQueryCorrectly(t *testing.T) {
 		assert.True(t, runWasCalled)
 		assert.True(t, recreateTrieFromEpochWasCalled)
 		assert.False(t, recreateTrieWasCalled)
+	})
+	t.Run("block nonce should work - when epoch is different from latest queried epoch - in snapshotless mode", func(t *testing.T) {
+		t.Parallel()
+
+		runWasCalled := false
+		epoch := uint32(37)
+
+		mockVM := &mock.VMExecutionHandlerStub{
+			RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (output *vmcommon.VMOutput, e error) {
+				runWasCalled = true
+				assert.Equal(t, int64(42), big.NewInt(0).SetBytes(input.Arguments[0]).Int64())
+				assert.Equal(t, int64(43), big.NewInt(0).SetBytes(input.Arguments[1]).Int64())
+				assert.Equal(t, scAddress, input.CallerAddr)
+				assert.Equal(t, funcName, input.Function)
+
+				return &vmcommon.VMOutput{
+					ReturnCode: vmcommon.Ok,
+				}, nil
+			},
+		}
+		argsNewSCQuery := createMockArgumentsForSCQuery()
+		argsNewSCQuery.MainBlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{
+					Epoch: epoch,
+				}
+			},
+		}
+		argsNewSCQuery.VmContainer = &mock.VMContainerMock{
+			GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
+				return mockVM, nil
+			},
+		}
+		argsNewSCQuery.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+			MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
+				return uint64(math.MaxUint64)
+			},
+		}
+		providedHash := []byte("provided hash")
+		providedRootHash := []byte("provided root hash")
+		providedNonce := uint64(123)
+		argsNewSCQuery.Marshaller = &marshallerMock.MarshalizerMock{}
+		counter := 0
+		argsNewSCQuery.StorageService = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return &storageStubs.StorerStub{
+					GetCalled: func(key []byte) ([]byte, error) {
+						return providedHash, nil
+					},
+					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+						counter++
+						if counter > 2 {
+							return nil, fmt.Errorf("no scheduled")
+						}
+						hdr := &block.Header{
+							RootHash: providedRootHash,
+						}
+						buff, _ := argsNewSCQuery.Marshaller.Marshal(hdr)
+						return buff, nil
+					},
+				}, nil
+			},
+		}
+		argsNewSCQuery.HistoryRepository = &dblookupext.HistoryRepositoryStub{
+			IsEnabledCalled: func() bool {
+				return true
+			},
+			GetEpochByHashCalled: func(hash []byte) (uint32, error) {
+				require.Equal(t, providedHash, hash)
+				return epoch, nil
+			},
+		}
+
+		recreateTrieWasCalled := false
+
+		providedAccountsAdapter := &stateMocks.AccountsStub{
+			RecreateTrieCalled: func(rootHash []byte) error {
+				recreateTrieWasCalled = true
+				return nil
+			},
+			RecreateTrieFromEpochCalled: func(options common.RootHashHolder) error {
+				assert.Fail(t, "should have not called RecreateTrieFromEpoch")
+				return nil
+			},
+		}
+		argsNewSCQuery.BlockChainHook = &testscommon.BlockChainHookStub{
+			GetAccountsAdapterCalled: func() state.AccountsAdapter {
+				return providedAccountsAdapter
+			},
+		}
+		argsNewSCQuery.IsInSnapshottingMode = false
+
+		target, _ := NewSCQueryService(argsNewSCQuery)
+		target.latestQueriedEpoch = core.OptionalUint32{HasValue: true, Value: 5}
+
+		dataArgs := make([][]byte, len(args))
+		for i, arg := range args {
+			dataArgs[i] = append(dataArgs[i], arg.Bytes()...)
+		}
+		query := process.SCQuery{
+			ScAddress: scAddress,
+			FuncName:  funcName,
+			Arguments: dataArgs,
+			BlockNonce: core.OptionalUint64{
+				Value:    providedNonce,
+				HasValue: true,
+			},
+		}
+
+		_, _, _ = target.ExecuteQuery(&query)
+		assert.True(t, runWasCalled)
+		assert.True(t, recreateTrieWasCalled)
 	})
 	t.Run("block nonce should work - when epoch is same as latest queried epoch", func(t *testing.T) {
 		t.Parallel()
