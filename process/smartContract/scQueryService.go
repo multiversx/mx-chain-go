@@ -266,6 +266,7 @@ func (service *SCQueryService) recreateTrie(blockRootHash []byte, blockHeader da
 		}
 
 		service.rememberQueriedEpoch(blockHeader.GetEpoch())
+		return nil
 	}
 
 	logQueryService.Trace("calling RecreateTrieFromEpoch, for older history", "block", blockHeader.GetNonce(), "rootHash", blockRootHash)
@@ -277,7 +278,7 @@ func (service *SCQueryService) recreateTrie(blockRootHash []byte, blockHeader da
 	}
 
 	service.rememberQueriedEpoch(blockHeader.GetEpoch())
-	return err
+	return nil
 }
 
 func (service *SCQueryService) isLatestQueriedEpoch(epoch uint32) bool {
