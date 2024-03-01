@@ -53,6 +53,7 @@ type SCQueryService struct {
 	hasher                   hashing.Hasher
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
 	latestQueriedEpoch       core.OptionalUint32
+	isInSnapshottingMode     bool
 }
 
 // ArgsNewSCQueryService defines the arguments needed for the sc query service
@@ -72,6 +73,7 @@ type ArgsNewSCQueryService struct {
 	Marshaller               marshal.Marshalizer
 	Hasher                   hashing.Hasher
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
+	IsInSnapshottingMode     bool
 }
 
 // NewSCQueryService returns a new instance of SCQueryService
@@ -104,6 +106,7 @@ func NewSCQueryService(
 		hasher:                   args.Hasher,
 		uint64ByteSliceConverter: args.Uint64ByteSliceConverter,
 		latestQueriedEpoch:       core.OptionalUint32{},
+		isInSnapshottingMode:     args.IsInSnapshottingMode,
 	}, nil
 }
 
@@ -282,6 +285,11 @@ func (service *SCQueryService) recreateTrie(blockRootHash []byte, blockHeader da
 }
 
 func (service *SCQueryService) isLatestQueriedEpoch(epoch uint32) bool {
+	if !service.isInSnapshottingMode {
+		// for snapshotless operation, we need to force this method to return true so the RecreateTrie will be called instead of RecreateTrieFromEpoch
+		return true
+	}
+
 	return service.latestQueriedEpoch.HasValue && service.latestQueriedEpoch.Value == epoch
 }
 
