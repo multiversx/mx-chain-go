@@ -286,12 +286,12 @@ func getEventData(data []byte) (*eventData, error) {
 	}, nil
 }
 
-func serializeOperationData(txData *operationData) []byte {
+func serializeOperationData(opData *operationData) []byte {
 	codec := abi.NewDefaultCodec()
 	serializer := abi.NewSerializer(codec)
 
 	var tokens []abi.StructValue
-	for _, token := range txData.tokens {
+	for _, token := range opData.tokens {
 		item := abi.StructValue{
 			Fields: []abi.Field{
 				{
@@ -312,17 +312,17 @@ func serializeOperationData(txData *operationData) []byte {
 	}
 
 	var args []abi.BytesValue
-	for _, arg := range txData.transferData.args {
+	for _, arg := range opData.transferData.args {
 		item := abi.BytesValue{Value: arg}
 		args = append(args, item)
 	}
 
-	txDataStruct :=
+	opDataStruct :=
 		abi.StructValue{
 			Fields: []abi.Field{
 				{
 					Name:  "receiver",
-					Value: abi.BytesValue{Value: txData.address},
+					Value: abi.BytesValue{Value: opData.address},
 				},
 				{
 					Name: "tokens",
@@ -337,11 +337,11 @@ func serializeOperationData(txData *operationData) []byte {
 							Fields: []abi.Field{
 								{
 									Name:  "gas_limit",
-									Value: abi.U64Value{Value: txData.transferData.gasLimit},
+									Value: abi.U64Value{Value: opData.transferData.gasLimit},
 								},
 								{
 									Name:  "function",
-									Value: abi.BytesValue{Value: txData.transferData.function},
+									Value: abi.BytesValue{Value: opData.transferData.function},
 								},
 								{
 									Name: "args",
@@ -356,9 +356,9 @@ func serializeOperationData(txData *operationData) []byte {
 			},
 		}
 
-	encoded, _ := serializer.Serialize([]any{txDataStruct})
-	encodedBytes, _ := hex.DecodeString(encoded)
-	return encodedBytes
+	encodedOp, _ := serializer.Serialize([]any{opDataStruct})
+	operationBytes, _ := hex.DecodeString(encodedOp)
+	return operationBytes
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil

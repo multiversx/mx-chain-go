@@ -2,13 +2,13 @@ package sovereign
 
 import (
 	"encoding/hex"
-	"testing"
-
 	"github.com/multiversx/mx-chain-core-go/data"
 	transactionData "github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-sdk-abi-incubator/golang/abi"
+	"testing"
+
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/multiversx/mx-sdk-abi-incubator/golang/abi"
 	"github.com/stretchr/testify/require"
 )
 
@@ -56,41 +56,18 @@ func TestOutgoingOperations_CreateOutgoingTxData(t *testing.T) {
 	addr1 := []byte("addr1")
 	addr2 := []byte("addr2")
 	addr3 := []byte("addr3")
+	addr4 := []byte("addr4")
 
 	identifier1 := []byte("deposit")
 	identifier2 := []byte("send")
 
-	events := []SubscribedEvent{
-		{
-			Identifier: identifier1,
-			Addresses: map[string]string{
-				string(addr1): string(addr1),
-				string(addr2): string(addr2),
-			},
-		},
-		{
-			Identifier: identifier2,
-			Addresses: map[string]string{
-				string(addr3): string(addr3),
-			},
-		},
-	}
-
-	roundHandler := &testscommon.RoundHandlerMock{
-		IndexCalled: func() int64 {
-			return 123
-		},
-	}
-
-	creator, _ := NewOutgoingOperationsFormatter(events, roundHandler)
 	topic1 := [][]byte{
 		[]byte("endpoint1"),
 		[]byte("rcv1"),
 		[]byte("token1"),
-		[]byte("nonce1"),
-		[]byte("value1"),
+		[]byte{0x00},
+		[]byte{0x64},
 	}
-	//data1 := []byte("functionToCall1@arg1@arg2@50000")
 	dataStruct1 := abi.StructValue{
 		Fields: []abi.Field{
 			{
@@ -131,13 +108,12 @@ func TestOutgoingOperations_CreateOutgoingTxData(t *testing.T) {
 		[]byte("endpoint2"),
 		[]byte("rcv2"),
 		[]byte("token2"),
-		[]byte("nonce2"),
-		[]byte("value2"),
+		[]byte{0x00},
+		[]byte{0x32},
 		[]byte("token3"),
-		[]byte("nonce3"),
-		[]byte("value3"),
+		[]byte{0x00},
+		[]byte{0x80},
 	}
-	//data2 := []byte("functionToCall2@arg2@40000")
 	dataStruct2 := abi.StructValue{
 		Fields: []abi.Field{
 			{
@@ -177,10 +153,9 @@ func TestOutgoingOperations_CreateOutgoingTxData(t *testing.T) {
 		[]byte("endpoint3"),
 		[]byte("rcv3"),
 		[]byte("token4"),
-		[]byte("nonce4"),
-		[]byte("value4"),
+		[]byte{0x00},
+		[]byte{0x01},
 	}
-	//data3 := []byte("functionToCall3@arg3@arg4@55000")
 	dataStruct3 := abi.StructValue{
 		Fields: []abi.Field{
 			{
@@ -217,6 +192,30 @@ func TestOutgoingOperations_CreateOutgoingTxData(t *testing.T) {
 	data3, err := hex.DecodeString(encodedData3)
 	require.Nil(t, err)
 
+	events := []SubscribedEvent{
+		{
+			Identifier: identifier1,
+			Addresses: map[string]string{
+				string(addr1): string(addr1),
+				string(addr2): string(addr2),
+			},
+		},
+		{
+			Identifier: identifier2,
+			Addresses: map[string]string{
+				string(addr3): string(addr3),
+			},
+		},
+	}
+
+	roundHandler := &testscommon.RoundHandlerMock{
+		IndexCalled: func() int64 {
+			return 123
+		},
+	}
+
+	creator, _ := NewOutgoingOperationsFormatter(events, roundHandler)
+
 	logs := []*data.LogData{
 		{
 			LogHandler: &transactionData.Log{
@@ -235,7 +234,7 @@ func TestOutgoingOperations_CreateOutgoingTxData(t *testing.T) {
 						Data:       data2,
 					},
 					{
-						Address:    []byte("addr4"),
+						Address:    addr4,
 						Identifier: identifier2,
 						Topics:     topic1,
 						Data:       data2,
@@ -253,27 +252,32 @@ func TestOutgoingOperations_CreateOutgoingTxData(t *testing.T) {
 	}
 
 	outgoingTxData := creator.CreateOutgoingTxsData(logs)
-	expectedTxData := []byte("bridgeOps@123")
-	expectedTxData = append(expectedTxData, []byte("@rcv1")...)
-	expectedTxData = append(expectedTxData, []byte("@token1")...)
-	expectedTxData = append(expectedTxData, []byte("@nonce1")...)
-	expectedTxData = append(expectedTxData, []byte("@value1")...)
-	expectedTxData = append(expectedTxData, []byte("@")...)
-	expectedTxData = append(expectedTxData, data1...)
-	expectedTxData = append(expectedTxData, []byte("@rcv2")...)
-	expectedTxData = append(expectedTxData, []byte("@token2")...)
-	expectedTxData = append(expectedTxData, []byte("@nonce2")...)
-	expectedTxData = append(expectedTxData, []byte("@value2")...)
-	expectedTxData = append(expectedTxData, []byte("@token3")...)
-	expectedTxData = append(expectedTxData, []byte("@nonce3")...)
-	expectedTxData = append(expectedTxData, []byte("@value3")...)
-	expectedTxData = append(expectedTxData, []byte("@")...)
-	expectedTxData = append(expectedTxData, data2...)
-	expectedTxData = append(expectedTxData, []byte("@rcv3")...)
-	expectedTxData = append(expectedTxData, []byte("@token4")...)
-	expectedTxData = append(expectedTxData, []byte("@nonce4")...)
-	expectedTxData = append(expectedTxData, []byte("@value4")...)
-	expectedTxData = append(expectedTxData, []byte("@")...)
-	expectedTxData = append(expectedTxData, data3...)
-	require.Equal(t, [][]byte{expectedTxData}, outgoingTxData)
+
+	operation1 := NewOperationData(topic1)
+	evData1, _ := GetEventData(data1)
+	operation1.transferData.gasLimit = evData1.gasLimit
+	operation1.transferData.function = evData1.function
+	operation1.transferData.args = evData1.args
+	serializedOp1 := SerializeOperationData(operation1)
+
+	operation2 := NewOperationData(topic2)
+	evData2, _ := GetEventData(data2)
+	operation2.transferData.gasLimit = evData2.gasLimit
+	operation2.transferData.function = evData2.function
+	operation2.transferData.args = evData2.args
+	serializedOp2 := SerializeOperationData(operation2)
+
+	operation3 := NewOperationData(topic3)
+	evData3, _ := GetEventData(data3)
+	operation3.transferData.gasLimit = evData3.gasLimit
+	operation3.transferData.function = evData3.function
+	operation3.transferData.args = evData3.args
+	serializedOp3 := SerializeOperationData(operation3)
+
+	txsData := make([]byte, 0)
+	txsData = append(txsData, serializedOp1...)
+	txsData = append(txsData, serializedOp2...)
+	txsData = append(txsData, serializedOp3...)
+
+	require.Equal(t, [][]byte{txsData}, outgoingTxData)
 }
