@@ -290,7 +290,7 @@ func (service *SCQueryService) shouldCallRecreateTrieWithoutEpoch(epochInQuestio
 		return true
 	}
 
-	return service.latestQueriedEpoch.HasValue && service.latestQueriedEpoch.Value == epoch
+	return service.latestQueriedEpoch.HasValue && service.latestQueriedEpoch.Value == epochInQuestion
 }
 
 func (service *SCQueryService) rememberQueriedEpoch(epoch uint32) {
