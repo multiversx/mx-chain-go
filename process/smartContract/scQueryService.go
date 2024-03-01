@@ -33,7 +33,6 @@ var logQueryService = logger.GetOrCreate("process/smartcontract.queryService")
 
 // MaxGasLimitPerQuery - each unit is the equivalent of 1 nanosecond processing time
 const MaxGasLimitPerQuery = 300_000_000_000
-const epochDifferenceToConsiderHistory = 2
 
 // SCQueryService can execute Get functions over SC to fetch stored values
 type SCQueryService struct {
@@ -53,6 +52,7 @@ type SCQueryService struct {
 	marshaller               marshal.Marshalizer
 	hasher                   hashing.Hasher
 	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
+	latestQueriedEpoch       core.OptionalUint32
 }
 
 // ArgsNewSCQueryService defines the arguments needed for the sc query service
@@ -103,6 +103,7 @@ func NewSCQueryService(
 		marshaller:               args.Marshaller,
 		hasher:                   args.Hasher,
 		uint64ByteSliceConverter: args.Uint64ByteSliceConverter,
+		latestQueriedEpoch:       core.OptionalUint32{},
 	}, nil
 }
 
@@ -255,14 +256,36 @@ func (service *SCQueryService) recreateTrie(blockRootHash []byte, blockHeader da
 	}
 
 	accountsAdapter := service.blockChainHook.GetAccountsAdapter()
-	if blockHeader.GetEpoch()+epochDifferenceToConsiderHistory >= service.getCurrentEpoch() {
+
+	if service.isLatestQueriedEpoch(blockHeader.GetEpoch()) {
 		logQueryService.Trace("calling RecreateTrie, for recent history", "block", blockHeader.GetNonce(), "rootHash", blockRootHash)
-		return accountsAdapter.RecreateTrie(blockRootHash)
+
+		err := accountsAdapter.RecreateTrie(blockRootHash)
+		if err != nil {
+			return err
+		}
+
+		service.rememberQueriedEpoch(blockHeader.GetEpoch())
 	}
 
 	logQueryService.Trace("calling RecreateTrieFromEpoch, for older history", "block", blockHeader.GetNonce(), "rootHash", blockRootHash)
 	holder := holders.NewRootHashHolder(blockRootHash, core.OptionalUint32{Value: blockHeader.GetEpoch(), HasValue: true})
-	return accountsAdapter.RecreateTrieFromEpoch(holder)
+
+	err := accountsAdapter.RecreateTrieFromEpoch(holder)
+	if err != nil {
+		return err
+	}
+
+	service.rememberQueriedEpoch(blockHeader.GetEpoch())
+	return err
+}
+
+func (service *SCQueryService) isLatestQueriedEpoch(epoch uint32) bool {
+	return service.latestQueriedEpoch.HasValue && service.latestQueriedEpoch.Value == epoch
+}
+
+func (service *SCQueryService) rememberQueriedEpoch(epoch uint32) {
+	service.latestQueriedEpoch = core.OptionalUint32{Value: epoch, HasValue: true}
 }
 
 func (service *SCQueryService) getCurrentEpoch() uint32 {
