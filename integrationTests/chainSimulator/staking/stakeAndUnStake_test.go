@@ -1727,7 +1727,7 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInBatches(t *testing.
 	}
 
 	// Test Steps
-	// 1. Create 3 transactions for unstaking: first one unstaking 1 egld each, second one unstaking 2 egld and third one unstaking 3 egld.
+	// 1. Create 3 transactions for unstaking: first one unstaking 11 egld each, second one unstaking 12 egld and third one unstaking 13 egld.
 	// 2. Send the transactions in consecutive epochs, one TX in each epoch.
 	// 3. Wait for the epoch when first tx unbonding period ends.
 	// 4. Create a transaction for withdraw and send it to the network
@@ -1901,7 +1901,7 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInBatches(t *testing.T, 
 	require.Nil(t, err)
 	balanceBeforeUnbonding, _ := big.NewInt(0).SetString(accountValidatorOwner.Balance, 10)
 
-	log.Info("Step 1. Create 3 transactions for unstaking: first one unstaking 1 egld each, second one unstaking 2 egld and third one unstaking 3 egld.")
+	log.Info("Step 1. Create 3 transactions for unstaking: first one unstaking 11 egld each, second one unstaking 12 egld and third one unstaking 13 egld.")
 	log.Info("Step 2. Send the transactions in consecutive epochs, one TX in each epoch.")
 
 	unStakeValue1 := big.NewInt(11)
@@ -2087,7 +2087,7 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInEpoch(t *testing.T)
 	}
 
 	// Test Steps
-	// 1. Create 3 transactions for unstaking: first one unstaking 1 egld each, second one unstaking 2 egld and third one unstaking 3 egld.
+	// 1. Create 3 transactions for unstaking: first one unstaking 11 egld each, second one unstaking 12 egld and third one unstaking 13 egld.
 	// 2. Send the transactions consecutively in the same epoch
 	// 3. Wait for the epoch when unbonding period ends.
 	// 4. Create a transaction for withdraw and send it to the network
@@ -2257,7 +2257,7 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInEpoch(t *testing.T, cs
 	require.Nil(t, err)
 	balanceBeforeUnbonding, _ := big.NewInt(0).SetString(accountValidatorOwner.Balance, 10)
 
-	log.Info("Step 1. Create 3 transactions for unstaking: first one unstaking 1 egld each, second one unstaking 2 egld and third one unstaking 3 egld.")
+	log.Info("Step 1. Create 3 transactions for unstaking: first one unstaking 11 egld each, second one unstaking 12 egld and third one unstaking 13 egld.")
 	log.Info("Step 2. Send the transactions in consecutively in same epoch.")
 
 	unStakeValue1 := big.NewInt(11)
