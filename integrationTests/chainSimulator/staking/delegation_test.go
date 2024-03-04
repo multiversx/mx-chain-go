@@ -380,7 +380,7 @@ func testBLSKeyIsInAuction(
 }
 
 // Test description:
-// Test that 2 diferent contracts with different topups that came from the normal stake will be considered in auction list computing in the correct order
+// Test that 2 different contracts with different topups that came from the normal stake will be considered in auction list computing in the correct order
 // 1. Add 2 new validator private keys in the multi key handler
 // 2. Set the initial state for 2 owners (mint 2 new wallets)
 // 3. Do 2 stake transactions and test that the new keys are on queue / auction list and have the correct topup - 100 and 200 EGLD, respectively
