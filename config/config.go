@@ -95,6 +95,7 @@ type EpochStartConfig struct {
 	MinNumConnectedPeersToStart                 int
 	MinNumOfPeersToConsiderBlockValid           int
 	ExtraDelayForRequestBlockInfoInMilliseconds int
+	GenesisEpoch                                uint32
 }
 
 // BlockSizeThrottleConfig will hold the configuration for adaptive block size throttle

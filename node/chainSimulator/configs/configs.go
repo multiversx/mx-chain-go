@@ -34,7 +34,6 @@ const (
 	// ChainID contains the chain id
 	ChainID = "chain"
 
-	shardIDWalletWithStake   = 0
 	allValidatorsPemFileName = "allValidatorsKeys.pem"
 )
 
@@ -47,9 +46,10 @@ type ArgsChainSimulatorConfigs struct {
 	TempDir                  string
 	MinNodesPerShard         uint32
 	MetaChainMinNodes        uint32
+	InitialEpoch             uint32
+	RoundsPerEpoch           core.OptionalUint64
 	NumNodesWaitingListShard uint32
 	NumNodesWaitingListMeta  uint32
-	RoundsPerEpoch           core.OptionalUint64
 	AlterConfigsFunction     func(cfg *config.Configs)
 }
 
@@ -85,7 +85,7 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 	// generate validators key and nodesSetup.json
 	privateKeys, publicKeys, err := generateValidatorsKeyAndUpdateFiles(
 		configs,
-		initialWallets.InitialWalletWithStake.Address,
+		initialWallets.StakeWallets,
 		args,
 	)
 	if err != nil {
@@ -114,6 +114,8 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 	configs.GeneralConfig.DbLookupExtensions.Enabled = true
 
 	configs.GeneralConfig.EpochStartConfig.ExtraDelayForRequestBlockInfoInMilliseconds = 1
+	configs.GeneralConfig.EpochStartConfig.GenesisEpoch = args.InitialEpoch
+	configs.EpochConfig.EnableEpochs.StakingV2EnableEpoch = args.InitialEpoch + 1
 
 	if args.RoundsPerEpoch.HasValue {
 		configs.GeneralConfig.EpochStartConfig.RoundsPerEpoch = int64(args.RoundsPerEpoch.Value)
@@ -179,29 +181,33 @@ func generateGenesisFile(args ArgsChainSimulatorConfigs, configs *config.Configs
 	}
 
 	initialWalletKeys := &dtos.InitialWalletKeys{
-		ShardWallets: make(map[uint32]*dtos.WalletKey),
+		BalanceWallets: make(map[uint32]*dtos.WalletKey),
+		StakeWallets:   make([]*dtos.WalletKey, 0),
 	}
-
-	initialAddressWithStake, err := generateWalletKeyForShard(shardIDWalletWithStake, args.NumOfShards, addressConverter)
-	if err != nil {
-		return nil, err
-	}
-
-	initialWalletKeys.InitialWalletWithStake = initialAddressWithStake
 
 	addresses := make([]data.InitialAccount, 0)
-	stakedValue := big.NewInt(0).Set(initialStakedEgldPerNode)
-	numOfNodes := (args.NumNodesWaitingListShard+args.MinNodesPerShard)*args.NumOfShards + args.NumNodesWaitingListMeta + args.MetaChainMinNodes
-	stakedValue = stakedValue.Mul(stakedValue, big.NewInt(int64(numOfNodes))) // 2500 EGLD * number of nodes
-	addresses = append(addresses, data.InitialAccount{
-		Address:      initialAddressWithStake.Address,
-		StakingValue: stakedValue,
-		Supply:       stakedValue,
-	})
+	numOfNodes := int((args.NumNodesWaitingListShard+args.MinNodesPerShard)*args.NumOfShards + args.NumNodesWaitingListMeta + args.MetaChainMinNodes)
+	for i := 0; i < numOfNodes; i++ {
+		wallet, errGenerate := generateWalletKey(addressConverter)
+		if errGenerate != nil {
+			return nil, errGenerate
+		}
+
+		stakedValue := big.NewInt(0).Set(initialStakedEgldPerNode)
+		addresses = append(addresses, data.InitialAccount{
+			Address:      wallet.Address.Bech32,
+			StakingValue: stakedValue,
+			Supply:       stakedValue,
+		})
+
+		initialWalletKeys.StakeWallets = append(initialWalletKeys.StakeWallets, wallet)
+	}
 
 	// generate an address for every shard
 	initialBalance := big.NewInt(0).Set(initialSupply)
-	initialBalance = initialBalance.Sub(initialBalance, stakedValue)
+	totalStakedValue := big.NewInt(int64(numOfNodes))
+	totalStakedValue = totalStakedValue.Mul(totalStakedValue, big.NewInt(0).Set(initialStakedEgldPerNode))
+	initialBalance = initialBalance.Sub(initialBalance, totalStakedValue)
 
 	walletBalance := big.NewInt(0).Set(initialBalance)
 	walletBalance.Div(walletBalance, big.NewInt(int64(args.NumOfShards)))
@@ -217,16 +223,16 @@ func generateGenesisFile(args ArgsChainSimulatorConfigs, configs *config.Configs
 		}
 
 		addresses = append(addresses, data.InitialAccount{
-			Address: walletKey.Address,
+			Address: walletKey.Address.Bech32,
 			Balance: big.NewInt(0).Set(walletBalance),
 			Supply:  big.NewInt(0).Set(walletBalance),
 		})
 
-		initialWalletKeys.ShardWallets[shardID] = walletKey
+		initialWalletKeys.BalanceWallets[shardID] = walletKey
 	}
 
-	addresses[1].Balance.Add(walletBalance, remainder)
-	addresses[1].Supply.Add(walletBalance, remainder)
+	addresses[len(addresses)-1].Balance.Add(walletBalance, remainder)
+	addresses[len(addresses)-1].Supply.Add(walletBalance, remainder)
 
 	addressesBytes, errM := json.Marshal(addresses)
 	if errM != nil {
@@ -243,7 +249,7 @@ func generateGenesisFile(args ArgsChainSimulatorConfigs, configs *config.Configs
 
 func generateValidatorsKeyAndUpdateFiles(
 	configs *config.Configs,
-	address string,
+	stakeWallets []*dtos.WalletKey,
 	args ArgsChainSimulatorConfigs,
 ) ([]crypto.PrivateKey, []crypto.PublicKey, error) {
 	blockSigningGenerator := signing.NewKeyGenerator(mcl.NewSuiteBLS12())
@@ -269,6 +275,7 @@ func generateValidatorsKeyAndUpdateFiles(
 	nodes.InitialNodes = make([]*sharding.InitialNode, 0)
 	privateKeys := make([]crypto.PrivateKey, 0)
 	publicKeys := make([]crypto.PublicKey, 0)
+	walletIndex := 0
 	// generate meta keys
 	for idx := uint32(0); idx < args.NumNodesWaitingListMeta+args.MetaChainMinNodes; idx++ {
 		sk, pk := blockSigningGenerator.GeneratePair()
@@ -282,8 +289,10 @@ func generateValidatorsKeyAndUpdateFiles(
 
 		nodes.InitialNodes = append(nodes.InitialNodes, &sharding.InitialNode{
 			PubKey:  hex.EncodeToString(pkBytes),
-			Address: address,
+			Address: stakeWallets[walletIndex].Address.Bech32,
 		})
+
+		walletIndex++
 	}
 
 	// generate shard keys
@@ -300,8 +309,9 @@ func generateValidatorsKeyAndUpdateFiles(
 
 			nodes.InitialNodes = append(nodes.InitialNodes, &sharding.InitialNode{
 				PubKey:  hex.EncodeToString(pkBytes),
-				Address: address,
+				Address: stakeWallets[walletIndex].Address.Bech32,
 			})
+			walletIndex++
 		}
 	}
 
@@ -394,35 +404,46 @@ func GetLatestGasScheduleFilename(directory string) (string, error) {
 }
 
 func generateWalletKeyForShard(shardID, numOfShards uint32, converter core.PubkeyConverter) (*dtos.WalletKey, error) {
-	walletSuite := ed25519.NewEd25519()
-	walletKeyGenerator := signing.NewKeyGenerator(walletSuite)
-
 	for {
-		sk, pk := walletKeyGenerator.GeneratePair()
-
-		pubKeyBytes, err := pk.ToByteArray()
+		walletKey, err := generateWalletKey(converter)
 		if err != nil {
 			return nil, err
 		}
 
-		addressShardID := shardingCore.ComputeShardID(pubKeyBytes, numOfShards)
+		addressShardID := shardingCore.ComputeShardID(walletKey.Address.Bytes, numOfShards)
 		if addressShardID != shardID {
 			continue
 		}
 
-		privateKeyBytes, err := sk.ToByteArray()
-		if err != nil {
-			return nil, err
-		}
-
-		address, err := converter.Encode(pubKeyBytes)
-		if err != nil {
-			return nil, err
-		}
-
-		return &dtos.WalletKey{
-			Address:       address,
-			PrivateKeyHex: hex.EncodeToString(privateKeyBytes),
-		}, nil
+		return walletKey, nil
 	}
+}
+
+func generateWalletKey(converter core.PubkeyConverter) (*dtos.WalletKey, error) {
+	walletSuite := ed25519.NewEd25519()
+	walletKeyGenerator := signing.NewKeyGenerator(walletSuite)
+
+	sk, pk := walletKeyGenerator.GeneratePair()
+	pubKeyBytes, err := pk.ToByteArray()
+	if err != nil {
+		return nil, err
+	}
+
+	privateKeyBytes, err := sk.ToByteArray()
+	if err != nil {
+		return nil, err
+	}
+
+	bech32Address, err := converter.Encode(pubKeyBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return &dtos.WalletKey{
+		Address: dtos.WalletAddress{
+			Bech32: bech32Address,
+			Bytes:  pubKeyBytes,
+		},
+		PrivateKeyHex: hex.EncodeToString(privateKeyBytes),
+	}, nil
 }
