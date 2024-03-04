@@ -1366,25 +1366,3 @@ func getBLSKeyOwner(t *testing.T, metachainNode chainSimulatorProcess.NodeHandle
 
 	return result.ReturnData[0]
 }
-
-func getBLSKeys(t *testing.T, metachainNode chainSimulatorProcess.NodeHandler, ownerKeyBytes []byte) [][]byte {
-	scQuery := &process.SCQuery{
-		ScAddress:  vm.ValidatorSCAddress,
-		FuncName:   "getBlsKeysStatus",
-		CallerAddr: vm.ValidatorSCAddress,
-		CallValue:  big.NewInt(0),
-		Arguments:  [][]byte{ownerKeyBytes},
-	}
-	result, _, err := metachainNode.GetFacadeHandler().ExecuteSCQuery(scQuery)
-	require.Nil(t, err)
-	require.Equal(t, okReturnCode, result.ReturnCode)
-
-	blsKeys := make([][]byte, 0)
-	for idx, data := range result.ReturnData {
-		if idx%2 == 0 {
-			blsKeys = append(blsKeys, data)
-		}
-	}
-
-	return blsKeys
-}
