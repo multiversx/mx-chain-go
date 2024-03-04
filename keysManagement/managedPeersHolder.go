@@ -19,6 +19,11 @@ import (
 
 var log = logger.GetOrCreate("keysManagement")
 
+const (
+	redundancyReasonForOneKey       = "multikey node stepped in with one key"
+	redundancyReasonForMultipleKeys = "multikey node stepped in with %d keys"
+)
+
 type managedPeersHolder struct {
 	mut                         sync.RWMutex
 	defaultPeerInfoCurrentIndex int
@@ -367,6 +372,26 @@ func (holder *managedPeersHolder) IsMultiKeyMode() bool {
 	defer holder.mut.RUnlock()
 
 	return len(holder.data) > 0
+}
+
+// GetRedundancyStepInReason returns the reason if the current node stepped in as a redundancy node
+// Returns empty string if the current node is the main multikey machine, the machine is not running in multikey mode
+// or the machine is acting as a backup but the main machine is acting accordingly
+func (holder *managedPeersHolder) GetRedundancyStepInReason() string {
+	if holder.isMainMachine {
+		return ""
+	}
+
+	numManagedKeys := len(holder.GetManagedKeysByCurrentNode())
+	if numManagedKeys == 0 {
+		return ""
+	}
+
+	if numManagedKeys == 1 {
+		return redundancyReasonForOneKey
+	}
+
+	return fmt.Sprintf(redundancyReasonForMultipleKeys, numManagedKeys)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

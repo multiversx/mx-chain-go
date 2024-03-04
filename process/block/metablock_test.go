@@ -150,6 +150,7 @@ func createMockMetaArguments(
 			OutportDataProvider:          &outport.OutportDataProviderStub{},
 			BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
 			ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
+			SentSignaturesTracker:        &testscommon.SentSignatureTrackerStub{},
 		},
 		SCToProtocol:                 &mock.SCToProtocolStub{},
 		PendingMiniBlocksHandler:     &mock.PendingMiniBlocksHandlerStub{},
@@ -991,6 +992,7 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	mdp := initDataPool([]byte("tx_hash"))
 	rootHash := []byte("rootHash")
 	hdr := createMetaBlockHeader()
+	hdr.PubKeysBitmap = []byte{0b11111111}
 	body := &block.Body{}
 	accounts := &stateMock.AccountsStub{
 		CommitCalled: func() (i []byte, e error) {
@@ -1042,6 +1044,12 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 		return &block.Header{}, []byte("hash"), nil
 	}
 	arguments.BlockTracker = blockTrackerMock
+	resetCountersForManagedBlockSignerCalled := false
+	arguments.SentSignaturesTracker = &testscommon.SentSignatureTrackerStub{
+		ResetCountersForManagedBlockSignerCalled: func(signerPk []byte) {
+			resetCountersForManagedBlockSignerCalled = true
+		},
+	}
 
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
@@ -1083,6 +1091,7 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 	assert.True(t, forkDetectorAddCalled)
 	assert.True(t, debuggerMethodWasCalled)
+	assert.True(t, resetCountersForManagedBlockSignerCalled)
 	// this should sleep as there is an async call to display current header and block in CommitBlock
 	time.Sleep(time.Second)
 }

@@ -17,14 +17,15 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
+	worldmock "github.com/multiversx/mx-chain-scenario-go/worldmock"
 	"github.com/multiversx/mx-chain-vm-go/executor"
 	contextmock "github.com/multiversx/mx-chain-vm-go/mock/context"
-	worldmock "github.com/multiversx/mx-chain-vm-go/mock/world"
 	"github.com/multiversx/mx-chain-vm-go/testcommon"
 	"github.com/multiversx/mx-chain-vm-go/vmhost"
 	"github.com/stretchr/testify/require"
 )
 
+// MockInitialBalance represents a mock balance
 var MockInitialBalance = big.NewInt(10_000_000)
 
 // WalletAddressPrefix is the prefix of any smart contract address used for testing.
@@ -191,6 +192,7 @@ func makeTestAddress(_ []byte, identifier string) []byte {
 	return append(leftBytes, rightBytes...)
 }
 
+// CreateHostAndInstanceBuilder creates a new host and instance builder
 func CreateHostAndInstanceBuilder(t *testing.T,
 	net *integrationTests.TestNetwork,
 	vmContainer process.VirtualMachinesContainer,

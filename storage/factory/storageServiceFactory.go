@@ -39,6 +39,9 @@ const (
 
 	// ProcessStorageService is used in normal processing
 	ProcessStorageService StorageServiceType = "process"
+
+	// ImportDBStorageService is used for the import-db storage service
+	ImportDBStorageService StorageServiceType = "import-db"
 )
 
 // StorageServiceFactory handles the creation of storage services for both meta and shards
@@ -248,7 +251,7 @@ func (psf *StorageServiceFactory) createAndAddBaseStorageUnits(
 	}
 	store.AddStorer(dataRetriever.BlockHeaderUnit, headerUnit)
 
-	userAccountsUnit, err := psf.createTriePruningStorer(psf.generalConfig.AccountsTrieStorage, customDatabaseRemover)
+	userAccountsUnit, err := psf.createTrieStorer(psf.generalConfig.AccountsTrieStorage, customDatabaseRemover)
 	if err != nil {
 		return fmt.Errorf("%w for AccountsTrieStorage", err)
 	}
@@ -382,7 +385,7 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 		return nil, err
 	}
 
-	peerAccountsUnit, err := psf.createTriePruningStorer(psf.generalConfig.PeerAccountsTrieStorage, customDatabaseRemover)
+	peerAccountsUnit, err := psf.createTrieStorer(psf.generalConfig.PeerAccountsTrieStorage, customDatabaseRemover)
 	if err != nil {
 		return nil, err
 	}
@@ -411,7 +414,7 @@ func (psf *StorageServiceFactory) CreateForMeta() (dataRetriever.StorageService,
 	return store, err
 }
 
-func (psf *StorageServiceFactory) createTriePruningStorer(
+func (psf *StorageServiceFactory) createTrieStorer(
 	storageConfig config.StorageConfig,
 	customDatabaseRemover storage.CustomDatabaseRemoverHandler,
 ) (storage.Storer, error) {
@@ -431,6 +434,10 @@ func (psf *StorageServiceFactory) createTrieUnit(
 	storageConfig config.StorageConfig,
 	pruningStorageArgs pruning.StorerArgs,
 ) (storage.Storer, error) {
+	if psf.storageType == ImportDBStorageService {
+		return storageDisabled.NewStorer(), nil
+	}
+
 	if !psf.snapshotsEnabled {
 		return psf.createTriePersister(storageConfig)
 	}

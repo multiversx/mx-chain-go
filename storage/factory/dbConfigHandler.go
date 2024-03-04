@@ -1,6 +1,8 @@
 package factory
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -17,6 +19,10 @@ const (
 	defaultUseTmpAsFilePath  = false
 )
 
+var (
+	errInvalidConfiguration = errors.New("invalid configuration")
+)
+
 type dbConfigHandler struct {
 	conf config.DBConfig
 }
@@ -31,9 +37,12 @@ func NewDBConfigHandler(config config.DBConfig) *dbConfigHandler {
 // GetDBConfig will get the db config based on path
 func (dh *dbConfigHandler) GetDBConfig(path string) (*config.DBConfig, error) {
 	dbConfigFromFile := &config.DBConfig{}
-	err := core.LoadTomlFile(dbConfigFromFile, getPersisterConfigFilePath(path))
+	err := readCorrectConfigurationFromToml(dbConfigFromFile, getPersisterConfigFilePath(path))
 	if err == nil {
-		log.Debug("GetDBConfig: loaded db config from toml config file", "path", dbConfigFromFile)
+		log.Debug("GetDBConfig: loaded db config from toml config file",
+			"config path", path,
+			"configuration", fmt.Sprintf("%+v", dbConfigFromFile),
+		)
 		return dbConfigFromFile, nil
 	}
 
@@ -41,19 +50,38 @@ func (dh *dbConfigHandler) GetDBConfig(path string) (*config.DBConfig, error) {
 	if !empty {
 		dbConfig := &config.DBConfig{
 			Type:              defaultType,
-			BatchDelaySeconds: defaultBatchDelaySeconds,
-			MaxBatchSize:      defaultMaxBatchSize,
-			MaxOpenFiles:      defaultMaxOpenFiles,
-			UseTmpAsFilePath:  defaultUseTmpAsFilePath,
+			BatchDelaySeconds: dh.conf.BatchDelaySeconds,
+			MaxBatchSize:      dh.conf.MaxBatchSize,
+			MaxOpenFiles:      dh.conf.MaxOpenFiles,
+			UseTmpAsFilePath:  dh.conf.UseTmpAsFilePath,
 		}
 
-		log.Debug("GetDBConfig: loaded default db config")
+		log.Debug("GetDBConfig: loaded default db config",
+			"configuration", fmt.Sprintf("%+v", dbConfig),
+		)
+
 		return dbConfig, nil
 	}
 
-	log.Debug("GetDBConfig: loaded db config from main config file")
+	log.Debug("GetDBConfig: loaded db config from main config file",
+		"configuration", fmt.Sprintf("%+v", dh.conf),
+	)
 
 	return &dh.conf, nil
+}
+
+func readCorrectConfigurationFromToml(dbConfig *config.DBConfig, filePath string) error {
+	err := core.LoadTomlFile(dbConfig, filePath)
+	if err != nil {
+		return err
+	}
+
+	isInvalidConfig := len(dbConfig.Type) == 0 || dbConfig.MaxBatchSize <= 0 || dbConfig.BatchDelaySeconds <= 0 || dbConfig.MaxOpenFiles <= 0
+	if isInvalidConfig {
+		return errInvalidConfiguration
+	}
+
+	return nil
 }
 
 // SaveDBConfigToFilePath will save the provided db config to specified path
@@ -68,13 +96,6 @@ func (dh *dbConfigHandler) SaveDBConfigToFilePath(path string, dbConfig *config.
 	}
 
 	configFilePath := getPersisterConfigFilePath(path)
-
-	loadedDBConfig := &config.DBConfig{}
-	err = core.LoadTomlFile(loadedDBConfig, configFilePath)
-	if err == nil {
-		// config file already exists, no need to save config
-		return nil
-	}
 
 	err = core.SaveTomlFile(dbConfig, configFilePath)
 	if err != nil {
