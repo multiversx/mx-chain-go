@@ -133,6 +133,7 @@ require (
 	github.com/multiformats/go-varint v0.0.7 // indirect
 	github.com/multiversx/concurrent-map v0.1.4 // indirect
 	github.com/multiversx/mx-components-big-int v1.0.0 // indirect
+	github.com/multiversx/mx-sdk-abi-incubator/golang v0.0.0-20240304094515-84e287ec7bcb // indirect
 	github.com/nsf/termbox-go v0.0.0-20190121233118-02980233997d // indirect
 	github.com/onsi/ginkgo/v2 v2.9.7 // indirect
 	github.com/opencontainers/runtime-spec v1.0.2 // indirect
