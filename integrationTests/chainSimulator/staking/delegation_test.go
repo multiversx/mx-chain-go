@@ -43,6 +43,7 @@ const txVersion = 1
 const mockTxSignature = "sig"
 const queuedStatus = "queued"
 const stakedStatus = "staked"
+const unStakedStatus = "unStaked"
 const auctionStatus = "auction"
 const okReturnCode = "ok"
 const maxCap = "00"          // no cap
@@ -1161,6 +1162,8 @@ func TestChainSimulator_MergeDelegation(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, cs)
 
+		defer cs.Close()
+
 		testChainSimulatorMergingDelegation(t, cs, 1)
 	})
 
@@ -1188,6 +1191,8 @@ func TestChainSimulator_MergeDelegation(t *testing.T) {
 		})
 		require.Nil(t, err)
 		require.NotNil(t, cs)
+
+		defer cs.Close()
 
 		testChainSimulatorMergingDelegation(t, cs, 2)
 	})
@@ -1217,6 +1222,8 @@ func TestChainSimulator_MergeDelegation(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, cs)
 
+		defer cs.Close()
+
 		testChainSimulatorMergingDelegation(t, cs, 3)
 	})
 
@@ -1244,6 +1251,8 @@ func TestChainSimulator_MergeDelegation(t *testing.T) {
 		})
 		require.Nil(t, err)
 		require.NotNil(t, cs)
+
+		defer cs.Close()
 
 		testChainSimulatorMergingDelegation(t, cs, 4)
 	})
