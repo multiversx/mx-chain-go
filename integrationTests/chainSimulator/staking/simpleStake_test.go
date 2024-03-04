@@ -104,7 +104,7 @@ func testChainSimulatorSimpleStake(t *testing.T, targetEpoch int32, nodesStatus 
 	tx3Value := big.NewInt(0).Mul(big.NewInt(2501), oneEGLD)
 	tx3 := generateTransaction(wallet2.Bytes, 0, vm.ValidatorSCAddress, tx3Value, dataFieldTx3, gasLimitForStakeOperation)
 
-	results, err := cs.SendTxsAndGenerateBlockTilTxIsExecuted([]*transaction.Transaction{tx1, tx2, tx3}, maxNumOfBlockToGenerateWhenExecutingTx)
+	results, err := cs.SendTxsAndGenerateBlocksTilAreExecuted([]*transaction.Transaction{tx1, tx2, tx3}, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.Equal(t, 3, len(results))
 	require.NotNil(t, results)
