@@ -11,6 +11,8 @@ github.com/multiversx/mx-sdk-abi-incubator/golang v0.0.0-20240226144007-49cf6a5a
 github.com/multiversx/mx-sdk-abi-incubator/golang v0.0.0-20240226144007-49cf6a5acf0d/go.mod h1:BIWSnjXqwxBDY3FWjHFuN6PVDMqh6RuPcn8j4SjsHbk=
 github.com/multiversx/mx-sdk-abi-incubator/golang v0.0.0-20240227150444-94cc69ed92fd h1:qcAeeG+a74XtBAmykCOQu83seV4xiPycj2hLUZav6Kk=
 github.com/multiversx/mx-sdk-abi-incubator/golang v0.0.0-20240227150444-94cc69ed92fd/go.mod h1:BIWSnjXqwxBDY3FWjHFuN6PVDMqh6RuPcn8j4SjsHbk=
+github.com/multiversx/mx-sdk-abi-incubator/golang v0.0.0-20240304123830-5b63f9782aea h1:fiJJGQmm0PaLnvSBQl5VIF4T9zOdvP0Ka2H7yjwZ9YE=
+github.com/multiversx/mx-sdk-abi-incubator/golang v0.0.0-20240304123830-5b63f9782aea/go.mod h1:BIWSnjXqwxBDY3FWjHFuN6PVDMqh6RuPcn8j4SjsHbk=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/stretchr/testify v1.8.4 h1:CcVxjf3Q8PM0mHUKJCdn+eZZtm5yQwehR5yeSVQQcUk=
 gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=

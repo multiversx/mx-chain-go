@@ -11,6 +11,7 @@ func main() {
 	doBasicExample()
 	doExampleWithTransferDataDecoding()
 	doExampleWithTransferDataEncoding()
+	doEsdtTokenData()
 }
 
 func doBasicExample() {
@@ -145,4 +146,57 @@ func doExampleWithTransferDataEncoding() {
 	}
 
 	fmt.Println("Encoded:", encoded)
+}
+
+func doEsdtTokenData() {
+	codec := abi.NewDefaultCodec()
+	serializer := abi.NewSerializer(codec)
+
+	tokenDataStruct := abi.StructValue{
+		Fields: []abi.Field{
+			{
+				Name:  "token_type",
+				Value: &abi.EnumValue{},
+			},
+			{
+				Name:  "amount",
+				Value: &abi.BigIntValue{},
+			},
+			{
+				Name:  "frozen",
+				Value: &abi.BoolValue{},
+			},
+			{
+				Name:  "hash",
+				Value: &abi.StringValue{},
+			},
+			{
+				Name:  "name",
+				Value: &abi.StringValue{},
+			},
+			{
+				Name:  "attributes",
+				Value: &abi.BytesValue{},
+			},
+			{
+				Name:  "creator",
+				Value: &abi.AddressValue{},
+			},
+			{
+				Name:  "royalties",
+				Value: &abi.BigIntValue{},
+			},
+			{
+				Name: "uris",
+				Value: &abi.OutputListValue{
+					ItemCreator: func() any { return &abi.BytesValue{} },
+				},
+			},
+		},
+	}
+
+	err := serializer.Deserialize("000000000906aaf7c8516d0c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000", []any{&tokenDataStruct})
+	if err != nil {
+		log.Fatal(err)
+	}
 }
