@@ -632,7 +632,8 @@ func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
 
 	isInHistoricalBalancesMode := operationmodes.SliceContainsElement(operationModes, operationmodes.OperationModeHistoricalBalances)
 	if isInHistoricalBalancesMode {
-		processHistoricalBalancesMode(log, configs)
+		// TODO move all operation modes settings in the common/operationmodes package and add tests
+		operationmodes.ProcessHistoricalBalancesMode(log, configs)
 	}
 
 	isInDbLookupExtensionMode := operationmodes.SliceContainsElement(operationModes, operationmodes.OperationModeDbLookupExtension)
@@ -646,28 +647,6 @@ func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
 	}
 
 	return nil
-}
-
-func processHistoricalBalancesMode(log logger.Logger, configs *config.Configs) {
-	configs.GeneralConfig.StoragePruning.Enabled = true
-	configs.GeneralConfig.StoragePruning.ValidatorCleanOldEpochsData = false
-	configs.GeneralConfig.StoragePruning.ObserverCleanOldEpochsData = false
-	configs.GeneralConfig.GeneralSettings.StartInEpochEnabled = false
-	configs.GeneralConfig.StoragePruning.AccountsTrieCleanOldEpochsData = false
-	configs.GeneralConfig.StateTriesConfig.AccountsStatePruningEnabled = false
-	configs.GeneralConfig.DbLookupExtensions.Enabled = true
-	configs.PreferencesConfig.Preferences.FullArchive = true
-
-	log.Warn("the node is in historical balances mode! Will auto-set some config values",
-		"StoragePruning.Enabled", configs.GeneralConfig.StoragePruning.Enabled,
-		"StoragePruning.ValidatorCleanOldEpochsData", configs.GeneralConfig.StoragePruning.ValidatorCleanOldEpochsData,
-		"StoragePruning.ObserverCleanOldEpochsData", configs.GeneralConfig.StoragePruning.ObserverCleanOldEpochsData,
-		"StoragePruning.AccountsTrieCleanOldEpochsData", configs.GeneralConfig.StoragePruning.AccountsTrieCleanOldEpochsData,
-		"GeneralSettings.StartInEpochEnabled", configs.GeneralConfig.GeneralSettings.StartInEpochEnabled,
-		"StateTriesConfig.AccountsStatePruningEnabled", configs.GeneralConfig.StateTriesConfig.AccountsStatePruningEnabled,
-		"DbLookupExtensions.Enabled", configs.GeneralConfig.DbLookupExtensions.Enabled,
-		"Preferences.FullArchive", configs.PreferencesConfig.Preferences.FullArchive,
-	)
 }
 
 func processDbLookupExtensionMode(log logger.Logger, configs *config.Configs) {
