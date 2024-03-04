@@ -362,13 +362,269 @@ func testBLSKeyIsInAuction(
 	require.Equal(t, actionListSize, len(auctionList))
 	if actionListSize != 0 {
 		require.Equal(t, 1, len(auctionList[0].Nodes))
-		require.Equal(t, topUpInAuctionList.String(), auctionList[0].TopUpPerNode)
+		nodeWasFound := false
+		for _, item := range auctionList {
+			for _, node := range item.Nodes {
+				if node.BlsKey == blsKey {
+					require.Equal(t, topUpInAuctionList.String(), item.TopUpPerNode)
+					nodeWasFound = true
+				}
+			}
+		}
+		require.True(t, nodeWasFound)
 	}
 
 	// in staking ph 4 we should find the key in the validators statics
 	validatorInfo, found := validatorStatistics[blsKey]
 	require.True(t, found)
 	require.Equal(t, auctionStatus, validatorInfo.ValidatorStatus)
+}
+
+// Test description:
+// Test that 2 different contracts with different topups that came from the normal stake will be considered in auction list computing in the correct order
+// 1. Add 2 new validator private keys in the multi key handler
+// 2. Set the initial state for 2 owners (mint 2 new wallets)
+// 3. Do 2 stake transactions and test that the new keys are on queue / auction list and have the correct topup - 100 and 200 EGLD, respectively
+// 4. Convert both validators into staking providers and test that the new keys are on queue / auction list and have the correct topup
+// 5. If the staking v4 is activated (regardless the steps), check that the auction list sorted the 2 BLS keys based on topup
+
+// Internal test scenario #11
+func TestChainSimulator_MakeNewContractFromValidatorDataWith2StakingContracts(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	roundDurationInMillis := uint64(6000)
+	roundsPerEpoch := core.OptionalUint64{
+		HasValue: true,
+		Value:    30,
+	}
+
+	t.Run("staking ph 4 is not active", func(t *testing.T) {
+		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+			BypassTxSignatureCheck:   false,
+			TempDir:                  t.TempDir(),
+			PathToInitialConfig:      defaultPathToInitialConfig,
+			NumOfShards:              3,
+			GenesisTimestamp:         time.Now().Unix(),
+			RoundDurationInMillis:    roundDurationInMillis,
+			RoundsPerEpoch:           roundsPerEpoch,
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         3,
+			MetaChainMinNodes:        3,
+			NumNodesWaitingListMeta:  3,
+			NumNodesWaitingListShard: 3,
+			AlterConfigsFunction: func(cfg *config.Configs) {
+				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 100
+				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 101
+				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 102
+
+				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 102
+			},
+		})
+		require.Nil(t, err)
+		require.NotNil(t, cs)
+
+		defer cs.Close()
+
+		testChainSimulatorMakeNewContractFromValidatorDataWith2StakingContracts(t, cs, 1)
+	})
+	t.Run("staking ph 4 step 1 is active", func(t *testing.T) {
+		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+			BypassTxSignatureCheck:   false,
+			TempDir:                  t.TempDir(),
+			PathToInitialConfig:      defaultPathToInitialConfig,
+			NumOfShards:              3,
+			GenesisTimestamp:         time.Now().Unix(),
+			RoundDurationInMillis:    roundDurationInMillis,
+			RoundsPerEpoch:           roundsPerEpoch,
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         3,
+			MetaChainMinNodes:        3,
+			NumNodesWaitingListMeta:  3,
+			NumNodesWaitingListShard: 3,
+			AlterConfigsFunction: func(cfg *config.Configs) {
+				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
+				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
+				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
+
+				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+			},
+		})
+		require.Nil(t, err)
+		require.NotNil(t, cs)
+
+		defer cs.Close()
+
+		testChainSimulatorMakeNewContractFromValidatorDataWith2StakingContracts(t, cs, 2)
+	})
+	t.Run("staking ph 4 step 2 is active", func(t *testing.T) {
+		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+			BypassTxSignatureCheck:   false,
+			TempDir:                  t.TempDir(),
+			PathToInitialConfig:      defaultPathToInitialConfig,
+			NumOfShards:              3,
+			GenesisTimestamp:         time.Now().Unix(),
+			RoundDurationInMillis:    roundDurationInMillis,
+			RoundsPerEpoch:           roundsPerEpoch,
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         3,
+			MetaChainMinNodes:        3,
+			NumNodesWaitingListMeta:  3,
+			NumNodesWaitingListShard: 3,
+			AlterConfigsFunction: func(cfg *config.Configs) {
+				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
+				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
+				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
+
+				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+			},
+		})
+		require.Nil(t, err)
+		require.NotNil(t, cs)
+
+		defer cs.Close()
+
+		testChainSimulatorMakeNewContractFromValidatorDataWith2StakingContracts(t, cs, 3)
+	})
+	t.Run("staking ph 4 step 3 is active", func(t *testing.T) {
+		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+			BypassTxSignatureCheck:   false,
+			TempDir:                  t.TempDir(),
+			PathToInitialConfig:      defaultPathToInitialConfig,
+			NumOfShards:              3,
+			GenesisTimestamp:         time.Now().Unix(),
+			RoundDurationInMillis:    roundDurationInMillis,
+			RoundsPerEpoch:           roundsPerEpoch,
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         3,
+			MetaChainMinNodes:        3,
+			NumNodesWaitingListMeta:  3,
+			NumNodesWaitingListShard: 3,
+			AlterConfigsFunction: func(cfg *config.Configs) {
+				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
+				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
+				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
+
+				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+			},
+		})
+		require.Nil(t, err)
+		require.NotNil(t, cs)
+
+		defer cs.Close()
+
+		testChainSimulatorMakeNewContractFromValidatorDataWith2StakingContracts(t, cs, 4)
+	})
+}
+
+func testChainSimulatorMakeNewContractFromValidatorDataWith2StakingContracts(t *testing.T, cs chainSimulatorIntegrationTests.ChainSimulator, targetEpoch int32) {
+	err := cs.GenerateBlocksUntilEpochIsReached(targetEpoch)
+	require.Nil(t, err)
+
+	log.Info("Step 1. Add 2 new validator private keys in the multi key handler")
+	privateKeys, blsKeys, err := chainSimulator.GenerateBlsPrivateKeys(2)
+	require.Nil(t, err)
+
+	err = cs.AddValidatorKeys(privateKeys)
+	require.Nil(t, err)
+	metachainNode := cs.GetNodeHandler(core.MetachainShardId)
+
+	log.Info("Step 2. Set the initial state for 2 owners")
+	mintValue := big.NewInt(3010)
+	mintValue = mintValue.Mul(oneEGLD, mintValue)
+
+	validatorOwnerA, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	require.Nil(t, err)
+
+	validatorOwnerB, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	require.Nil(t, err)
+
+	log.Info("working with the following addresses",
+		"validatorOwnerA", validatorOwnerA.Bech32, "validatorOwnerB", validatorOwnerB.Bech32)
+
+	log.Info("Step 3. Do 2 stake transactions and test that the new keys are on queue / auction list and have the correct topup")
+
+	topupA := big.NewInt(0).Mul(oneEGLD, big.NewInt(100))
+	stakeValueA := big.NewInt(0).Add(minimumStakeValue, topupA)
+	txStakeA := generateStakeTransaction(t, cs, validatorOwnerA, blsKeys[0], stakeValueA)
+
+	topupB := big.NewInt(0).Mul(oneEGLD, big.NewInt(200))
+	stakeValueB := big.NewInt(0).Add(minimumStakeValue, topupB)
+	txStakeB := generateStakeTransaction(t, cs, validatorOwnerB, blsKeys[1], stakeValueB)
+
+	stakeTxs, err := cs.SendTxsAndGenerateBlocksTilAreExecuted([]*transaction.Transaction{txStakeA, txStakeB}, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.Equal(t, 2, len(stakeTxs))
+
+	err = cs.GenerateBlocks(2) // allow the metachain to finalize the block that contains the staking of the node
+	assert.Nil(t, err)
+
+	testBLSKeyIsInQueueOrAuction(t, metachainNode, validatorOwnerA.Bytes, blsKeys[0], topupA, 2)
+	testBLSKeyIsInQueueOrAuction(t, metachainNode, validatorOwnerB.Bytes, blsKeys[1], topupB, 2)
+
+	log.Info("Step 4. Convert both validators into staking providers and test that the new keys are on queue / auction list and have the correct topup")
+
+	txConvertA := generateConvertToStakingProviderTransaction(t, cs, validatorOwnerA)
+	txConvertB := generateConvertToStakingProviderTransaction(t, cs, validatorOwnerB)
+
+	convertTxs, err := cs.SendTxsAndGenerateBlocksTilAreExecuted([]*transaction.Transaction{txConvertA, txConvertB}, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.Equal(t, 2, len(convertTxs))
+
+	err = cs.GenerateBlocks(2) // allow the metachain to finalize the block that contains the staking of the node
+	assert.Nil(t, err)
+
+	delegationAddressA := convertTxs[0].Logs.Events[0].Topics[1]
+	delegationAddressB := convertTxs[1].Logs.Events[0].Topics[1]
+
+	testBLSKeyIsInQueueOrAuction(t, metachainNode, delegationAddressA, blsKeys[0], topupA, 2)
+	testBLSKeyIsInQueueOrAuction(t, metachainNode, delegationAddressB, blsKeys[1], topupB, 2)
+
+	log.Info("Step 5. If the staking v4 is activated, check that the auction list sorted the 2 BLS keys based on topup")
+	step1ActivationEpoch := metachainNode.GetCoreComponents().EnableEpochsHandler().GetActivationEpoch(common.StakingV4Step1Flag)
+	if step1ActivationEpoch > metachainNode.GetCoreComponents().EnableEpochsHandler().GetCurrentEpoch() {
+		// we are in staking v3.5, the test ends here
+		return
+	}
+
+	auctionList, err := metachainNode.GetProcessComponents().ValidatorsProvider().GetAuctionList()
+	require.Nil(t, err)
+
+	firstAuctionPosition := auctionList[0]
+	secondAuctionPosition := auctionList[1]
+	// check the correct order of the nodes in the auction list based on topup
+	require.Equal(t, blsKeys[1], firstAuctionPosition.Nodes[0].BlsKey)
+	require.Equal(t, topupB.String(), firstAuctionPosition.TopUpPerNode)
+
+	require.Equal(t, blsKeys[0], secondAuctionPosition.Nodes[0].BlsKey)
+	require.Equal(t, topupA.String(), secondAuctionPosition.TopUpPerNode)
+}
+
+func generateStakeTransaction(
+	t *testing.T,
+	cs chainSimulatorIntegrationTests.ChainSimulator,
+	owner dtos.WalletAddress,
+	blsKeyHex string,
+	stakeValue *big.Int,
+) *transaction.Transaction {
+	account, err := cs.GetAccount(owner)
+	require.Nil(t, err)
+
+	txDataField := fmt.Sprintf("stake@01@%s@%s", blsKeyHex, mockBLSSignature)
+	return generateTransaction(owner.Bytes, account.Nonce, vm.ValidatorSCAddress, stakeValue, txDataField, gasLimitForStakeOperation)
+}
+
+func generateConvertToStakingProviderTransaction(
+	t *testing.T,
+	cs chainSimulatorIntegrationTests.ChainSimulator,
+	owner dtos.WalletAddress,
+) *transaction.Transaction {
+	account, err := cs.GetAccount(owner)
+	require.Nil(t, err)
+
+	txDataField := fmt.Sprintf("makeNewContractFromValidatorData@%s@%s", maxCap, hexServiceFee)
+	return generateTransaction(owner.Bytes, account.Nonce, vm.DelegationManagerSCAddress, zeroValue, txDataField, gasLimitForConvertOperation)
 }
 
 // Test description
