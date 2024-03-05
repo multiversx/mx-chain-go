@@ -21,6 +21,10 @@ displayContracts() {
     echo $"MULTISIG-VERIFIER: $MULTISIG_VERIFIER_ADDRESS"
 }
 
+updateAndStartBridgeService() {
+    python3 $SCRIPT_PATH/pyScripts/bridge_service.py $WALLET $PROXY $ESDT_SAFE_ADDRESS $MULTISIG_VERIFIER_ADDRESS
+}
+
 setGenesisContract() {
     if [ "$MIN_VALID_SIGNERS" = "0" ]; then
         SIGNERS=""

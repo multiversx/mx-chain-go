@@ -37,6 +37,8 @@ sovereignInit() {
 
     deployMultisigVerifierContract
 
+#    updateAndStartBridgeService
+
     getFundsInAddressSovereign
 
     setFeeMarketAddressSovereign
