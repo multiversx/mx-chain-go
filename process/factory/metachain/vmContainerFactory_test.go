@@ -320,10 +320,9 @@ func TestVmContainerFactory_Create(t *testing.T) {
 				MaxGasPriceSetGuardian: "100000",
 			},
 		},
-		EpochNotifier:               &epochNotifier.EpochNotifierStub{},
-		EnableEpochsHandler:         enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
-		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
+		EpochNotifier:       &epochNotifier.EpochNotifierStub{},
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
 
