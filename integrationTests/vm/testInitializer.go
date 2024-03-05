@@ -1074,7 +1074,7 @@ func CreatePreparedTxProcessorAndAccountsWithVMs(
 		senderAddressBytes,
 		senderBalance,
 		enableEpochsConfig,
-		integrationTests.GetDefaultRoundsConfig())
+		testscommon.GetDefaultRoundsConfig())
 }
 
 // CreatePreparedTxProcessorAndAccountsWithVMsWithRoundsConfig -
@@ -1172,13 +1172,13 @@ func CreatePreparedTxProcessorWithVMsAndCustomGasSchedule(
 		mock.NewMultiShardsCoordinatorMock(2),
 		integrationtests.CreateMemUnit(),
 		createMockGasScheduleNotifierWithCustomGasSchedule(updateGasSchedule),
-		integrationTests.GetDefaultRoundsConfig(),
+		testscommon.GetDefaultRoundsConfig(),
 	)
 }
 
 // CreatePreparedTxProcessorWithVMsWithShardCoordinator -
 func CreatePreparedTxProcessorWithVMsWithShardCoordinator(enableEpochsConfig config.EnableEpochs, shardCoordinator sharding.Coordinator) (*VMTestContext, error) {
-	return CreatePreparedTxProcessorWithVMsWithShardCoordinatorAndRoundConfig(enableEpochsConfig, integrationTests.GetDefaultRoundsConfig(), shardCoordinator)
+	return CreatePreparedTxProcessorWithVMsWithShardCoordinatorAndRoundConfig(enableEpochsConfig, testscommon.GetDefaultRoundsConfig(), shardCoordinator)
 }
 
 // CreatePreparedTxProcessorWithVMsWithShardCoordinatorAndRoundConfig -
@@ -1205,7 +1205,7 @@ func CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas(
 		shardCoordinator,
 		db,
 		gasScheduleNotifier,
-		integrationTests.GetDefaultRoundsConfig(),
+		testscommon.GetDefaultRoundsConfig(),
 		vmConfig,
 	)
 }
@@ -1318,7 +1318,7 @@ func CreateTxProcessorWasmVMWithGasSchedule(
 		senderBalance,
 		gasScheduleMap,
 		enableEpochsConfig,
-		integrationTests.GetDefaultRoundsConfig(),
+		testscommon.GetDefaultRoundsConfig(),
 	)
 }
 
@@ -1403,7 +1403,7 @@ func CreateTxProcessorWasmVMWithVMConfig(
 ) (*VMTestContext, error) {
 	return CreateTxProcessorArwenWithVMConfigAndRoundConfig(
 		enableEpochsConfig,
-		integrationTests.GetDefaultRoundsConfig(),
+		testscommon.GetDefaultRoundsConfig(),
 		vmConfig,
 		gasSchedule,
 	)
@@ -1493,7 +1493,7 @@ func CreatePreparedTxProcessorAndAccountsWithMockedVM(
 		senderAddressBytes,
 		senderBalance,
 		enableEpochs,
-		integrationTests.GetDefaultRoundsConfig(),
+		testscommon.GetDefaultRoundsConfig(),
 		wasmVMChangeLocker,
 	)
 }
@@ -1824,7 +1824,7 @@ func GetNodeIndex(nodeList []*integrationTests.TestProcessorNode, node *integrat
 
 // CreatePreparedTxProcessorWithVMsMultiShard -
 func CreatePreparedTxProcessorWithVMsMultiShard(selfShardID uint32, enableEpochsConfig config.EnableEpochs) (*VMTestContext, error) {
-	return CreatePreparedTxProcessorWithVMsMultiShardAndRoundConfig(selfShardID, enableEpochsConfig, integrationTests.GetDefaultRoundsConfig())
+	return CreatePreparedTxProcessorWithVMsMultiShardAndRoundConfig(selfShardID, enableEpochsConfig, testscommon.GetDefaultRoundsConfig())
 }
 
 // CreatePreparedTxProcessorWithVMsMultiShardAndRoundConfig -

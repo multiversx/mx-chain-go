@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
+	factoryBlock "github.com/multiversx/mx-chain-go/factory/block"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
 	"github.com/multiversx/mx-chain-go/genesis/process/intermediate"
@@ -195,12 +196,6 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 	if arg.TrieStorageManagers == nil {
 		return genesis.ErrNilTrieStorageManager
 	}
-	if arg.EpochConfig == nil {
-		return genesis.ErrNilEpochConfig
-	}
-	if arg.RoundConfig == nil {
-		return genesis.ErrNilRoundConfig
-	}
 	if check.IfNil(arg.HistoryRepository) {
 		return process.ErrNilHistoryRepository
 	}
@@ -225,7 +220,7 @@ func mustDoGenesisProcess(arg ArgsGenesisBlockCreator) bool {
 }
 
 func (gbc *genesisBlockCreator) createEmptyGenesisBlocks() (map[uint32]data.HeaderHandler, error) {
-	err := gbc.computeDNSAddresses(createGenesisConfig())
+	err := gbc.computeDNSAddresses(createGenesisConfig(gbc.arg.EpochConfig.EnableEpochs))
 	if err != nil {
 		return nil, err
 	}
@@ -486,12 +481,17 @@ func (gbc *genesisBlockCreator) getNewArgForShard(shardID uint32) (ArgsGenesisBl
 	var err error
 
 	isCurrentShard := shardID == gbc.arg.ShardCoordinator.SelfId()
+	newArgument := gbc.arg // copy the arguments
+	newArgument.versionedHeaderFactory, err = gbc.createVersionedHeaderFactory()
+	if err != nil {
+		return ArgsGenesisBlockCreator{}, fmt.Errorf("'%w' while generating a VersionedHeaderFactory instance for shard %d",
+			err, shardID)
+	}
+
 	if isCurrentShard {
-		newArgument := gbc.arg // copy the arguments
 		newArgument.Data = newArgument.Data.Clone().(dataComponentsHandler)
 		return newArgument, nil
 	}
-	newArgument := gbc.arg // copy the arguments
 
 	argsAccCreator := factoryState.ArgsAccountCreator{
 		Hasher:              newArgument.Core.Hasher(),
@@ -528,6 +528,25 @@ func (gbc *genesisBlockCreator) getNewArgForShard(shardID uint32) (ArgsGenesisBl
 	// create copy of components handlers we need to change temporarily
 	newArgument.Data = newArgument.Data.Clone().(dataComponentsHandler)
 	return newArgument, err
+}
+
+func (gbc *genesisBlockCreator) createVersionedHeaderFactory() (genesis.VersionedHeaderFactory, error) {
+	cacheConfig := factory.GetCacherFromConfig(gbc.arg.HeaderVersionConfigs.Cache)
+	cache, err := storageunit.NewCache(cacheConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	headerVersionHandler, err := factoryBlock.NewHeaderVersionHandler(
+		gbc.arg.HeaderVersionConfigs.VersionsByEpochs,
+		gbc.arg.HeaderVersionConfigs.DefaultVersion,
+		cache,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return factoryBlock.NewShardHeaderFactory(headerVersionHandler)
 }
 
 func (gbc *genesisBlockCreator) saveGenesisBlock(header data.HeaderHandler) error {

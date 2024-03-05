@@ -81,6 +81,7 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 	args := processComp.ProcessComponentsFactoryArgs{
 		Config:         testscommon.GetGeneralConfig(),
 		EpochConfig:    config.EpochConfig{},
+		RoundConfig:    testscommon.GetDefaultRoundsConfig(),
 		PrefConfigs:    config.Preferences{},
 		ImportDBConfig: config.ImportDbConfig{},
 		FlagsConfig: config.ContextFlagsConfig{
