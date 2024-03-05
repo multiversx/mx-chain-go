@@ -446,9 +446,8 @@ func TestAccountsDB_RemoveAccountShouldWork(t *testing.T) {
 			serializedAcc, err := marshaller.Marshal(stateMock.AccountWrapMock{})
 			return serializedAcc, 0, err
 		},
-		DeleteCalled: func(key []byte) error {
+		DeleteCalled: func(key []byte) {
 			wasCalled = true
-			return nil
 		},
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &storageManager.StorageManagerStub{}

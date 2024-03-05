@@ -241,10 +241,7 @@ func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]core.TrieData, e
 		}
 		oldValues[index] = oldVal
 
-		err = tdt.deleteOldEntryIfMigrated([]byte(key), dataEntry, oldVal)
-		if err != nil {
-			return nil, err
-		}
+		tdt.deleteOldEntryIfMigrated([]byte(key), dataEntry, oldVal)
 
 		newKey, err := tdt.modifyTrie([]byte(key), dataEntry, oldVal, dtr)
 		if err != nil {
@@ -340,23 +337,22 @@ func (tdt *trackableDataTrie) getValueNotSpecifiedVersion(key []byte, val []byte
 	return trimmedValue, nil
 }
 
-func (tdt *trackableDataTrie) deleteOldEntryIfMigrated(key []byte, newData dirtyData, oldEntry core.TrieData) error {
+func (tdt *trackableDataTrie) deleteOldEntryIfMigrated(key []byte, newData dirtyData, oldEntry core.TrieData) {
 	if !tdt.enableEpochsHandler.IsFlagEnabled(common.AutoBalanceDataTriesFlag) {
-		return nil
+		return
 	}
 
 	isMigration := oldEntry.Version == core.NotSpecified && newData.newVersion == core.AutoBalanceEnabled
 	if isMigration && len(newData.value) != 0 {
 		log.Trace("delete old entry if migrated", "key", key)
-		return tdt.tr.Delete(key)
+		tdt.tr.Delete(key)
 	}
-
-	return nil
 }
 
 func (tdt *trackableDataTrie) modifyTrie(key []byte, dataEntry dirtyData, oldVal core.TrieData, dtr state.DataTrie) ([]byte, error) {
 	if len(dataEntry.value) == 0 {
-		return nil, tdt.deleteFromTrie(oldVal, key, dtr)
+		tdt.deleteFromTrie(oldVal, key, dtr)
+		return nil, nil
 	}
 
 	version := dataEntry.newVersion
@@ -369,20 +365,18 @@ func (tdt *trackableDataTrie) modifyTrie(key []byte, dataEntry dirtyData, oldVal
 	return newKey, dtr.UpdateWithVersion(newKey, value, version)
 }
 
-func (tdt *trackableDataTrie) deleteFromTrie(oldVal core.TrieData, key []byte, dtr state.DataTrie) error {
+func (tdt *trackableDataTrie) deleteFromTrie(oldVal core.TrieData, key []byte, dtr state.DataTrie) {
 	if len(oldVal.Value) == 0 {
-		return nil
+		return
 	}
 
 	if oldVal.Version == core.AutoBalanceEnabled {
-		return dtr.Delete(tdt.hasher.Compute(string(key)))
+		dtr.Delete(tdt.hasher.Compute(string(key)))
 	}
 
 	if oldVal.Version == core.NotSpecified {
-		return dtr.Delete(key)
+		dtr.Delete(key)
 	}
-
-	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

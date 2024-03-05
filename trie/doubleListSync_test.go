@@ -60,6 +60,7 @@ func addDataToTrie(numKeysValues int, tr common.Trie) {
 
 		_ = tr.Update(keyVal, keyVal)
 	}
+	CommitBatchToTrie(tr)
 }
 
 func createRequesterResolver(completeTrie common.Trie, interceptedNodes storage.Cacher, exceptionHashes [][]byte) RequestHandler {

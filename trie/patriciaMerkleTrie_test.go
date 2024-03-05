@@ -73,6 +73,7 @@ func initTrieMultipleValues(nr int) (common.Trie, [][]byte) {
 func initTrie() common.Trie {
 	tr := emptyTrie()
 	addDefaultDataToTrie(tr)
+	trie.CommitBatchToTrie(tr)
 
 	return tr
 }
@@ -195,7 +196,7 @@ func TestPatriciaMerkleTree_Delete(t *testing.T) {
 	tr := initTrie()
 	var empty []byte
 
-	_ = tr.Delete([]byte("doe"))
+	tr.Delete([]byte("doe"))
 
 	v, _, _ := tr.Get([]byte("doe"))
 	assert.Equal(t, empty, v)
@@ -206,7 +207,8 @@ func TestPatriciaMerkleTree_DeleteEmptyTrie(t *testing.T) {
 
 	tr := emptyTrie()
 
-	err := tr.Delete([]byte("dog"))
+	tr.Delete([]byte("dog"))
+	err := tr.Commit()
 	assert.Nil(t, err)
 }
 
@@ -239,7 +241,7 @@ func TestPatriciaMerkleTree_Consistency(t *testing.T) {
 	_ = tr.Update([]byte("dodge"), []byte("viper"))
 	root2, _ := tr.RootHash()
 
-	_ = tr.Delete([]byte("dodge"))
+	tr.Delete([]byte("dodge"))
 	root3, _ := tr.RootHash()
 
 	assert.Equal(t, root1, root3)
@@ -274,7 +276,7 @@ func TestPatriciaMerkleTrie_UpdateAndGetConcurrently(t *testing.T) {
 	wg.Add(nrInserts)
 	for i := 0; i < nrInserts; i++ {
 		go func(index int) {
-			assert.Nil(t, tr.Delete([]byte(strconv.Itoa(index))))
+			tr.Delete([]byte(strconv.Itoa(index)))
 			wg.Done()
 		}(i)
 	}
@@ -365,8 +367,8 @@ func TestPatriciaMerkleTree_DeleteAfterCommit(t *testing.T) {
 	err := tr1.Commit()
 	assert.Nil(t, err)
 
-	_ = tr1.Delete([]byte("dogglesworth"))
-	_ = tr2.Delete([]byte("dogglesworth"))
+	tr1.Delete([]byte("dogglesworth"))
+	tr2.Delete([]byte("dogglesworth"))
 
 	root1, _ := tr1.RootHash()
 	root2, _ := tr2.RootHash()
@@ -382,7 +384,8 @@ func TestPatriciaMerkleTree_DeleteNotPresent(t *testing.T) {
 	err := tr.Commit()
 	assert.Nil(t, err)
 
-	err = tr.Delete([]byte("adog"))
+	tr.Delete([]byte("adog"))
+	err = tr.Commit()
 	assert.Nil(t, err)
 }
 
@@ -941,6 +944,7 @@ func TestPatriciaMerkleTrie_GetOldRoot(t *testing.T) {
 	expecterOldRoot, _ := tr.RootHash()
 
 	_ = tr.Update([]byte("eggod"), []byte("cat"))
+	trie.CommitBatchToTrie(tr)
 	assert.Equal(t, expecterOldRoot, tr.GetOldRoot())
 }
 
@@ -984,8 +988,7 @@ func TestPatriciaMerkleTrie_ConcurrentOperations(t *testing.T) {
 				err := tr.Update([]byte("doe"), []byte("alt"))
 				assert.Nil(t, err)
 			case 2:
-				err := tr.Delete([]byte("alt"))
-				assert.Nil(t, err)
+				tr.Delete([]byte("alt"))
 			case 3:
 				_, err := tr.RootHash()
 				assert.Nil(t, err)
@@ -1509,6 +1512,7 @@ func TestPatriciaMerkleTrie_IsMigrated(t *testing.T) {
 		tr, _ := trie.NewTrie(tsm, marshaller, hasher, enableEpochs, maxTrieInMem)
 
 		_ = tr.Update([]byte("dog"), []byte("reindeer"))
+		trie.CommitBatchToTrie(tr)
 		isMigrated, err := tr.IsMigratedToLatestVersion()
 		assert.False(t, isMigrated)
 		assert.Nil(t, err)
@@ -1591,7 +1595,7 @@ func BenchmarkPatriciaMerkleTree_Delete(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = tr.Delete(values[i%nrValuesInTrie])
+		tr.Delete(values[i%nrValuesInTrie])
 	}
 }
 
@@ -1611,7 +1615,7 @@ func BenchmarkPatriciaMerkleTree_DeleteCollapsedTrie(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = tr.Delete(values[i%nrValuesInTrie])
+		tr.Delete(values[i%nrValuesInTrie])
 	}
 }
 

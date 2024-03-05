@@ -35,10 +35,12 @@ func TestBaseIterator_HasNext(t *testing.T) {
 
 	tr := emptyTrie()
 	_ = tr.Update([]byte("dog"), []byte("dog"))
+	trie.CommitBatchToTrie(tr)
 	it, _ := trie.NewBaseIterator(tr)
 	assert.False(t, it.HasNext())
 
 	_ = tr.Update([]byte("doe"), []byte("doe"))
+	trie.CommitBatchToTrie(tr)
 	it, _ = trie.NewBaseIterator(tr)
 	assert.True(t, it.HasNext())
 }
@@ -78,6 +80,7 @@ func TestIterator_Search(t *testing.T) {
 	_ = tr.Update([]byte("dog"), []byte("puppy"))
 	_ = tr.Update([]byte("ddog"), []byte("cat"))
 	_ = tr.Update([]byte("ddoge"), []byte("foo"))
+	trie.CommitBatchToTrie(tr)
 
 	expectedHashes := []string{
 		"ecc2304769996585131ad6276c1422265813a2b79d60392130c4baa19a9b4e06",
