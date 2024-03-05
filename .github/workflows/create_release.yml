@@ -15,7 +15,7 @@ jobs:
   build:
     strategy:
       matrix:
-        runs-on: [ubuntu-latest] # TODO add macos-latest when builds are possible on macs
+        runs-on: [ubuntu-latest, macos-latest, macos-latest-xlarge]
     runs-on: ${{ matrix.runs-on }}
     name: Build
     steps:
@@ -77,10 +77,18 @@ jobs:
           if [[ "$GOOS" == darwin && "$GOARCH" == amd64 ]]; then
             cp -f ${WASMER_DIR}/libwasmer_darwin_amd64.dylib ${BUILD_DIR};
           fi
+          if [[ "$GOOS" == darwin && "$GOARCH" == arm64 ]]; then
+            cp -f ${WASMER_DIR}/libwasmer_darwin_arm64_shim.dylib ${BUILD_DIR};
+          fi
 
           cd ${BUILD_DIR}
           tar czvf "${GITHUB_WORKSPACE}/${ARCHIVE}" *
           stat ${GITHUB_WORKSPACE}/${ARCHIVE}
+
+      - name: Smoke test
+        run: |
+          cd ${BUILD_DIR}
+          ./node --version
 
       - name: Save artifacts
         uses: actions/upload-artifact@v3
