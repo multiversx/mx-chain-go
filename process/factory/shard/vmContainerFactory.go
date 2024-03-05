@@ -279,20 +279,6 @@ func (vmf *vmContainerFactory) getMatchingVersion(epoch uint32) config.WasmVMVer
 	return matchingVersion
 }
 
-func (vmf *vmContainerFactory) createInProcessWasmVMByVersion(version config.WasmVMVersionByEpoch) (vmcommon.VMExecutionHandler, error) {
-	logVMContainerFactory.Debug("createInProcessWasmVMByVersion", "version", version)
-	switch version.Version {
-	case "v1.2":
-		return vmf.createInProcessWasmVMV12()
-	case "v1.3":
-		return vmf.createInProcessWasmVMV13()
-	case "v1.4":
-		return vmf.createInProcessWasmVMV14()
-	default:
-		return vmf.createInProcessWasmVMV15()
-	}
-}
-
 func (vmf *vmContainerFactory) createInProcessWasmVMV12() (vmcommon.VMExecutionHandler, error) {
 	logVMContainerFactory.Info("VM 1.2 created")
 	hostParameters := &wasmvm12.VMHostParameters{
