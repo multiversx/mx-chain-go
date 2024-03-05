@@ -22,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
@@ -191,7 +192,7 @@ func testAsyncCallsOnInitFunctionOnUpgrade(
 		shardCoordinatorForShard1,
 		integrationtests.CreateMemUnit(),
 		gasScheduleNotifier,
-		integrationTests.GetDefaultRoundsConfig(),
+		testscommon.GetDefaultRoundsConfig(),
 		vm.CreateVMConfigWithVersion("v1.4"),
 	)
 	require.Nil(t, err)
@@ -200,7 +201,7 @@ func testAsyncCallsOnInitFunctionOnUpgrade(
 		shardCoordinatorForShardMeta,
 		integrationtests.CreateMemUnit(),
 		gasScheduleNotifier,
-		integrationTests.GetDefaultRoundsConfig(),
+		testscommon.GetDefaultRoundsConfig(),
 		vm.CreateVMConfigWithVersion("v1.4"),
 	)
 	require.Nil(t, err)
@@ -325,7 +326,7 @@ func testAsyncCallsOnInitFunctionOnDeploy(t *testing.T,
 		shardCoordinatorForShard1,
 		integrationtests.CreateMemUnit(),
 		gasScheduleNotifier,
-		integrationTests.GetDefaultRoundsConfig(),
+		testscommon.GetDefaultRoundsConfig(),
 		vm.CreateVMConfigWithVersion("v1.4"),
 	)
 	require.Nil(t, err)
@@ -334,7 +335,7 @@ func testAsyncCallsOnInitFunctionOnDeploy(t *testing.T,
 		shardCoordinatorForShardMeta,
 		integrationtests.CreateMemUnit(),
 		gasScheduleNotifier,
-		integrationTests.GetDefaultRoundsConfig(),
+		testscommon.GetDefaultRoundsConfig(),
 		vm.CreateVMConfigWithVersion("v1.4"),
 	)
 	require.Nil(t, err)

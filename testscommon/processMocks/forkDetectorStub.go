@@ -1,4 +1,4 @@
-package mock
+package processMocks
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data"

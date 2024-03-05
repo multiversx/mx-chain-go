@@ -43,6 +43,7 @@ type ArgsProcessComponentsHolder struct {
 	NodesCoordinator     nodesCoordinator.NodesCoordinator
 
 	EpochConfig              config.EpochConfig
+	RoundConfig              config.RoundConfig
 	ConfigurationPathsHolder config.ConfigurationPathsHolder
 	FlagsConfig              config.ContextFlagsConfig
 	ImportDBConfig           config.ImportDbConfig
@@ -184,6 +185,7 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 	processArgs := processComp.ProcessComponentsFactoryArgs{
 		Config:                  args.Config,
 		EpochConfig:             args.EpochConfig,
+		RoundConfig:             args.RoundConfig,
 		PrefConfigs:             args.PrefsConfig,
 		ImportDBConfig:          args.ImportDBConfig,
 		EconomicsConfig:         args.EconomicsConfig,

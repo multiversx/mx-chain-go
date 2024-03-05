@@ -115,3 +115,9 @@ type DeployProcessor interface {
 	Deploy(sc InitialSmartContractHandler) ([][]byte, error)
 	IsInterfaceNil() bool
 }
+
+// VersionedHeaderFactory creates versioned headers
+type VersionedHeaderFactory interface {
+	Create(epoch uint32) data.HeaderHandler
+	IsInterfaceNil() bool
+}
