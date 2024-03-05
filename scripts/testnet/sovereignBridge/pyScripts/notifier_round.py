@@ -54,7 +54,6 @@ def main():
     toml_path = project_path + "/cmd/sovereignnode/config/sovereignConfig.toml"
 
     current_round = get_current_round(proxy, shard)
-    print(current_round)
     if current_round == -1:
         return
 
