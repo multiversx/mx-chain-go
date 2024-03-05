@@ -142,6 +142,10 @@ func testChainSimulatorSimpleStake(t *testing.T, targetEpoch int32, nodesStatus 
 // 1. Stake 1 node and check that in stakingV4 step1 it is found in auction
 // 2. From stakingV4 step2 onwards, check that api returns 8 qualified + 1 unqualified nodes
 func TestChainSimulator_StakingV4Step2APICalls(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	stakingV4Step1Epoch := uint32(2)
 	stakingV4Step2Epoch := uint32(3)
 	stakingV4Step3Epoch := uint32(4)
