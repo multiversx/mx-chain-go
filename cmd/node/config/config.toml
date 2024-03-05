@@ -237,6 +237,7 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
+        UseTmpAsFilePath = true
 
 [SmartContractsStorageSimulate]
     [SmartContractsStorageSimulate.Cache]
@@ -250,6 +251,7 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
+        UseTmpAsFilePath = true
 
 [SmartContractsStorageForSCQuery]
     [SmartContractsStorageForSCQuery.Cache]
@@ -263,6 +265,7 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
+        UseTmpAsFilePath = true
 
 [StatusMetricsStorage]
     [StatusMetricsStorage.Cache]
