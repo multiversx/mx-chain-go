@@ -29,6 +29,8 @@ upgradeContracts() {
 }
 
 sovereignInit() {
+    updateNotifierNotarizationRound
+
     ../config.sh
 
     ../sovereignStart.sh

@@ -25,6 +25,10 @@ updateAndStartBridgeService() {
     python3 $SCRIPT_PATH/pyScripts/bridge_service.py $WALLET $PROXY $ESDT_SAFE_ADDRESS $MULTISIG_VERIFIER_ADDRESS
 }
 
+updateNotifierNotarizationRound() {
+    python3 $SCRIPT_PATH/pyScripts/notifier_round.py $PROXY $(getShardOfAddress)
+}
+
 setGenesisContract() {
     if [ "$MIN_VALID_SIGNERS" = "0" ]; then
         SIGNERS=""
