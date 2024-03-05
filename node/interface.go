@@ -5,6 +5,9 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/debug"
+	"github.com/multiversx/mx-chain-go/facade"
+	mainFactory "github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/update"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -61,4 +64,30 @@ type HealthService interface {
 type accountHandlerWithDataTrieMigrationStatus interface {
 	vmcommon.AccountHandler
 	IsDataTrieMigrated() (bool, error)
+}
+
+// NodeFactory can create a new node
+type NodeFactory interface {
+	CreateNewNode(opts ...Option) (NodeHandler, error)
+	IsInterfaceNil() bool
+}
+
+// NodeHandler defines the behavior of a node
+type NodeHandler interface {
+	facade.NodeHandler
+	CreateShardedStores() error
+	AddQueryHandler(name string, handler debug.QueryHandler) error
+	GetCoreComponents() mainFactory.CoreComponentsHolder
+	GetStatusCoreComponents() mainFactory.StatusCoreComponentsHolder
+	GetCryptoComponents() mainFactory.CryptoComponentsHolder
+	GetConsensusComponents() mainFactory.ConsensusComponentsHolder
+	GetBootstrapComponents() mainFactory.BootstrapComponentsHolder
+	GetDataComponents() mainFactory.DataComponentsHolder
+	GetHeartbeatV2Components() mainFactory.HeartbeatV2ComponentsHolder
+	GetNetworkComponents() mainFactory.NetworkComponentsHolder
+	GetProcessComponents() mainFactory.ProcessComponentsHolder
+	GetStateComponents() mainFactory.StateComponentsHolder
+	GetStatusComponents() mainFactory.StatusComponentsHolder
+	GetRunTypeComponents() mainFactory.RunTypeComponentsHolder
+	Close() error
 }

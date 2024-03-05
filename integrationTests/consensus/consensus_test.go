@@ -11,7 +11,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
 	"github.com/multiversx/mx-chain-core-go/data"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
@@ -56,6 +55,7 @@ func initNodesAndTest(
 	roundTime uint64,
 	consensusType string,
 	numKeysOnEachNode int,
+	consensusModel consensus.ConsensusModel,
 ) map[uint32][]*integrationTests.TestConsensusNode {
 
 	fmt.Println("Step 1. Setup nodes...")
@@ -67,6 +67,7 @@ func initNodesAndTest(
 		roundTime,
 		consensusType,
 		numKeysOnEachNode,
+		consensusModel,
 	)
 
 	for shardID, nodesList := range nodes {
@@ -110,7 +111,6 @@ func startNodesWithCommitBlock(
 	mutex *sync.Mutex,
 	nonceForRoundMap map[uint64]uint64,
 	totalCalled *int,
-	consensusModel consensus.ConsensusModel,
 ) error {
 	for idx, n := range nodes {
 		nCopy := n
@@ -175,8 +175,7 @@ func startNodesWithCommitBlock(
 			StatusCoreComponents: n.Node.GetStatusCoreComponents(),
 			ScheduledProcessor:   &consensusMocks.ScheduledProcessorStub{},
 			IsInImportMode:       n.Node.IsInImportMode(),
-			ConsensusModel:       consensusModel,
-			ChainRunType:         common.ChainRunTypeRegular,
+			RunTypeComponents:    n.Node.GetRunTypeComponents(),
 			SubRoundEndV2Creator: bls.NewSubRoundEndV2Creator(),
 			ExtraSignersHolder:   &subRoundsHolder.ExtraSignersHolderMock{},
 		}
@@ -251,7 +250,7 @@ func runFullConsensusTest(t *testing.T, consensusType string, numKeysOnEachNode 
 		"consensusSize", consensusSize,
 	)
 
-	nodes := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType, numKeysOnEachNode)
+	nodes := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType, numKeysOnEachNode, consensusModel)
 
 	defer func() {
 		for shardID := range nodes {
@@ -271,7 +270,7 @@ func runFullConsensusTest(t *testing.T, consensusType string, numKeysOnEachNode 
 		nonceForRoundMap := make(map[uint64]uint64)
 		totalCalled := 0
 
-		err := startNodesWithCommitBlock(nodes[shardID], mutex, nonceForRoundMap, &totalCalled, consensusModel)
+		err := startNodesWithCommitBlock(nodes[shardID], mutex, nonceForRoundMap, &totalCalled)
 		assert.Nil(t, err)
 
 		chDone := make(chan bool)
@@ -322,7 +321,7 @@ func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string, con
 	consensusSize := uint32(4)
 	numInvalid := uint32(2)
 	roundTime := uint64(1000)
-	nodes := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType, 1)
+	nodes := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType, 1, consensusModel)
 
 	defer func() {
 		for shardID := range nodes {
@@ -342,7 +341,7 @@ func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string, con
 		mutex := &sync.Mutex{}
 		nonceForRoundMap := make(map[uint64]uint64)
 
-		err := startNodesWithCommitBlock(nodes[shardID], mutex, nonceForRoundMap, &totalCalled, consensusModel)
+		err := startNodesWithCommitBlock(nodes[shardID], mutex, nonceForRoundMap, &totalCalled)
 		assert.Nil(t, err)
 
 		waitTime := time.Second * 30

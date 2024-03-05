@@ -1,15 +1,15 @@
 package shard
 
 import (
-	"errors"
+	"fmt"
 	"testing"
 
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	customErrors "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/mock"
+	mockFactory "github.com/multiversx/mx-chain-go/process/mock/factory"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	mockCommon "github.com/multiversx/mx-chain-go/testscommon/common"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
@@ -28,30 +28,30 @@ func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
 
 func createMockPreProcessorsContainerFactoryArguments() ArgPreProcessorsContainerFactory {
 	return ArgPreProcessorsContainerFactory{
-		ShardCoordinator:             mock.NewMultiShardsCoordinatorMock(3),
-		Store:                        &storageStubs.ChainStorerStub{},
-		Marshaller:                   &mock.MarshalizerMock{},
-		Hasher:                       &hashingMocks.HasherMock{},
-		DataPool:                     dataRetrieverMock.NewPoolsHolderMock(),
-		PubkeyConverter:              createMockPubkeyConverter(),
-		Accounts:                     &stateMock.AccountsStub{},
-		RequestHandler:               &testscommon.RequestHandlerStub{},
-		TxProcessor:                  &testscommon.TxProcessorMock{},
-		ScProcessor:                  &testscommon.SCProcessorMock{},
-		ScResultProcessor:            &testscommon.SmartContractResultsProcessorMock{},
-		RewardsTxProcessor:           &testscommon.RewardTxProcessorMock{},
-		EconomicsFee:                 &economicsmocks.EconomicsHandlerStub{},
-		GasHandler:                   &testscommon.GasHandlerStub{},
-		BlockTracker:                 &mock.BlockTrackerMock{},
-		BlockSizeComputation:         &testscommon.BlockSizeComputationStub{},
-		BalanceComputation:           &testscommon.BalanceComputationStub{},
-		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
-		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
-		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
-		TxExecutionOrderHandler:      &mockCommon.TxExecutionOrderHandlerStub{},
-		TxPreProcessorCreator:        preprocess.NewTxPreProcessorCreator(),
-		ChainRunType:                 common.ChainRunTypeRegular,
+		ShardCoordinator:                       mock.NewMultiShardsCoordinatorMock(3),
+		Store:                                  &storageStubs.ChainStorerStub{},
+		Marshaller:                             &mock.MarshalizerMock{},
+		Hasher:                                 &hashingMocks.HasherMock{},
+		DataPool:                               dataRetrieverMock.NewPoolsHolderMock(),
+		PubkeyConverter:                        createMockPubkeyConverter(),
+		Accounts:                               &stateMock.AccountsStub{},
+		RequestHandler:                         &testscommon.RequestHandlerStub{},
+		TxProcessor:                            &testscommon.TxProcessorMock{},
+		ScProcessor:                            &testscommon.SCProcessorMock{},
+		ScResultProcessor:                      &testscommon.SmartContractResultsProcessorMock{},
+		RewardsTxProcessor:                     &testscommon.RewardTxProcessorMock{},
+		EconomicsFee:                           &economicsmocks.EconomicsHandlerStub{},
+		GasHandler:                             &testscommon.GasHandlerStub{},
+		BlockTracker:                           &mock.BlockTrackerMock{},
+		BlockSizeComputation:                   &testscommon.BlockSizeComputationStub{},
+		BalanceComputation:                     &testscommon.BalanceComputationStub{},
+		EnableEpochsHandler:                    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		TxTypeHandler:                          &testscommon.TxTypeHandlerMock{},
+		ScheduledTxsExecutionHandler:           &testscommon.ScheduledTxsExecutionStub{},
+		ProcessedMiniBlocksTracker:             &testscommon.ProcessedMiniBlocksTrackerStub{},
+		TxExecutionOrderHandler:                &mockCommon.TxExecutionOrderHandlerStub{},
+		TxPreProcessorCreator:                  preprocess.NewTxPreProcessorCreator(),
+		SmartContractResultPreProcessorCreator: &mockFactory.SmartContractResultPreProcessorFactoryStub{},
 	}
 }
 
@@ -286,6 +286,17 @@ func TestNewPreProcessorsContainerFactory_NilProcessedMiniBlocksTracker(t *testi
 	assert.Nil(t, ppcf)
 }
 
+func TestNewPreProcessorsContainerFactory_NilSmartContractResulsPreProcessorCreator(t *testing.T) {
+	t.Parallel()
+
+	args := createMockPreProcessorsContainerFactoryArguments()
+	args.SmartContractResultPreProcessorCreator = nil
+	ppcf, err := NewPreProcessorsContainerFactory(args)
+
+	assert.Equal(t, process.ErrNilSmartContractResultPreProcessorCreator, err)
+	assert.Nil(t, ppcf)
+}
+
 func TestNewPreProcessorsContainerFactory_NilTxPreProcessorCreator(t *testing.T) {
 	t.Parallel()
 
@@ -339,6 +350,7 @@ func TestPreProcessorsContainerFactory_CreateErrScrPreproc(t *testing.T) {
 
 	args := createMockPreProcessorsContainerFactoryArguments()
 	args.DataPool = dataPool
+	args.SmartContractResultPreProcessorCreator, _ = preprocess.NewSmartContractResultPreProcessorFactory()
 	ppcf, err := NewPreProcessorsContainerFactory(args)
 
 	assert.Nil(t, err)
@@ -353,46 +365,34 @@ func TestPreProcessorsContainerFactory_CreateSCRPreprocessor(t *testing.T) {
 	t.Run("createSmartContractResultPreProcessor should create a main chain instance", func(t *testing.T) {
 		t.Parallel()
 
-		ppcf, err := createMockPreProcessorContainerFactory()
+		args := createMockPreProcessorsContainerFactoryArguments()
+		args.SmartContractResultPreProcessorCreator, _ = preprocess.NewSmartContractResultPreProcessorFactory()
+		ppcf, err := NewPreProcessorsContainerFactory(args)
 		require.Nil(t, err)
 		require.NotNil(t, ppcf)
-
-		ppcf.chainRunType = common.ChainRunTypeRegular
 
 		preProc, errCreate := ppcf.createSmartContractResultPreProcessor()
 
 		assert.NotNil(t, preProc)
 		assert.Nil(t, errCreate)
+		assert.Equal(t, "*preprocess.smartContractResults", fmt.Sprintf("%T", preProc))
 	})
 
 	t.Run("createSmartContractResultPreProcessor should create a sovereign chain instance", func(t *testing.T) {
 		t.Parallel()
 
-		ppcf, err := createMockPreProcessorContainerFactory()
+		args := createMockPreProcessorsContainerFactoryArguments()
+		scrppf, _ := preprocess.NewSmartContractResultPreProcessorFactory()
+		args.SmartContractResultPreProcessorCreator, _ = preprocess.NewSovereignSmartContractResultPreProcessorFactory(scrppf)
+		ppcf, err := NewPreProcessorsContainerFactory(args)
 		require.Nil(t, err)
 		require.NotNil(t, ppcf)
-
-		ppcf.chainRunType = common.ChainRunTypeSovereign
 
 		preProc, errCreate := ppcf.createSmartContractResultPreProcessor()
 
 		assert.NotNil(t, preProc)
 		assert.Nil(t, errCreate)
-	})
-
-	t.Run("createSmartContractResultPreProcessor should error when chain run type is not implemented", func(t *testing.T) {
-		t.Parallel()
-
-		ppcf, err := createMockPreProcessorContainerFactory()
-		require.Nil(t, err)
-		require.NotNil(t, ppcf)
-
-		ppcf.chainRunType = "invalid"
-
-		preProc, errCreate := ppcf.createSmartContractResultPreProcessor()
-
-		assert.Nil(t, preProc)
-		assert.True(t, errors.Is(errCreate, customErrors.ErrUnimplementedChainRunType))
+		assert.Equal(t, "*preprocess.sovereignChainIncomingSCR", fmt.Sprintf("%T", preProc))
 	})
 }
 
@@ -415,8 +415,6 @@ func TestCreateTxPreProcessor_ShouldWork(t *testing.T) {
 	ppcf, err := createMockPreProcessorContainerFactory()
 	require.Nil(t, err)
 	require.NotNil(t, ppcf)
-
-	ppcf.chainRunType = common.ChainRunTypeRegular
 
 	preProc, errCreate := ppcf.createTxPreProcessor()
 

@@ -22,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/transactionEvaluator"
 	"github.com/multiversx/mx-chain-go/process/txstatus"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/state"
@@ -46,10 +47,12 @@ func NewTestProcessorNodeWithTestWebServer(
 	txSignPrivKeyShardId uint32,
 ) *TestProcessorNodeWithTestWebServer {
 
+	runTypeComponents := componentsMock.GetRunTypeComponents()
 	tpn := NewTestProcessorNode(ArgTestProcessorNode{
 		MaxShards:            maxShards,
 		NodeShardId:          nodeShardId,
 		TxSignPrivKeyShardId: txSignPrivKeyShardId,
+		RunTypeComponents:    runTypeComponents,
 	})
 
 	argFacade := createFacadeArg(tpn)
@@ -209,13 +212,13 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 		QueryService:       tpn.SCQueryService,
 		PublicKeyConverter: TestAddressPubkeyConverter,
 	}
-	totalStakedValueHandler, err := factory.CreateTotalStakedValueHandler(args)
+	totalStakedValueHandler, err := factory.NewTotalStakedListProcessorFactory().CreateTotalStakedValueProcessorHandler(args)
 	log.LogIfError(err)
 
-	directStakedListHandler, err := factory.CreateDirectStakedListHandler(args)
+	directStakedListHandler, err := factory.NewDirectStakedListProcessorFactory().CreateDirectStakedListProcessorHandler(args)
 	log.LogIfError(err)
 
-	delegatedListHandler, err := factory.CreateDelegatedListHandler(args)
+	delegatedListHandler, err := factory.NewDelegatedListProcessorFactory().CreateDelegatedListProcessorHandler(args)
 	log.LogIfError(err)
 
 	logsFacade := &testscommon.LogsFacadeStub{}
