@@ -1081,11 +1081,10 @@ func (tpn *TestProcessorNode) initChainHandler() {
 func (tpn *TestProcessorNode) initEconomicsData(economicsConfig *config.EconomicsConfig) {
 	tpn.EnableEpochs.PenalizedTooMuchGasEnableEpoch = 0
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
-		Economics:                   economicsConfig,
-		EpochNotifier:               tpn.EpochNotifier,
-		EnableEpochsHandler:         tpn.EnableEpochsHandler,
-		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
-		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
+		Economics:           economicsConfig,
+		EpochNotifier:       tpn.EpochNotifier,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
+		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
 	tpn.EconomicsData = economics.NewTestEconomicsData(economicsData)
@@ -1434,22 +1433,23 @@ func (tpn *TestProcessorNode) initResolvers() {
 	fullArchivePreferredPeersHolder, _ := p2pFactory.NewPeersHolder([]string{})
 
 	resolverContainerFactory := resolverscontainer.FactoryArgs{
-		ShardCoordinator:                tpn.ShardCoordinator,
-		MainMessenger:                   tpn.MainMessenger,
-		FullArchiveMessenger:            tpn.FullArchiveMessenger,
-		Store:                           tpn.Storage,
-		Marshalizer:                     TestMarshalizer,
-		DataPools:                       tpn.DataPool,
-		Uint64ByteSliceConverter:        TestUint64Converter,
-		DataPacker:                      dataPacker,
-		TriesContainer:                  tpn.TrieContainer,
-		SizeCheckDelta:                  100,
-		InputAntifloodHandler:           &mock.NilAntifloodHandler{},
-		OutputAntifloodHandler:          &mock.NilAntifloodHandler{},
-		NumConcurrentResolvingJobs:      10,
-		MainPreferredPeersHolder:        preferredPeersHolder,
-		FullArchivePreferredPeersHolder: fullArchivePreferredPeersHolder,
-		PayloadValidator:                payloadValidator,
+		ShardCoordinator:                    tpn.ShardCoordinator,
+		MainMessenger:                       tpn.MainMessenger,
+		FullArchiveMessenger:                tpn.FullArchiveMessenger,
+		Store:                               tpn.Storage,
+		Marshalizer:                         TestMarshalizer,
+		DataPools:                           tpn.DataPool,
+		Uint64ByteSliceConverter:            TestUint64Converter,
+		DataPacker:                          dataPacker,
+		TriesContainer:                      tpn.TrieContainer,
+		SizeCheckDelta:                      100,
+		InputAntifloodHandler:               &mock.NilAntifloodHandler{},
+		OutputAntifloodHandler:              &mock.NilAntifloodHandler{},
+		NumConcurrentResolvingJobs:          10,
+		NumConcurrentResolvingTrieNodesJobs: 3,
+		MainPreferredPeersHolder:            preferredPeersHolder,
+		FullArchivePreferredPeersHolder:     fullArchivePreferredPeersHolder,
+		PayloadValidator:                    payloadValidator,
 	}
 
 	var err error
@@ -3492,7 +3492,7 @@ func getDefaultNodesSetup(maxShards, numNodes uint32, address []byte, pksBytes m
 
 func getDefaultNodesCoordinator(maxShards uint32, pksBytes map[uint32][]byte) nodesCoordinator.NodesCoordinator {
 	return &shardingMocks.NodesCoordinatorStub{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []nodesCoordinator.Validator, err error) {
+		ComputeConsensusGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []nodesCoordinator.Validator, err error) {
 			v, _ := nodesCoordinator.NewValidator(pksBytes[shardId], 1, defaultChancesSelection)
 			return []nodesCoordinator.Validator{v}, nil
 		},

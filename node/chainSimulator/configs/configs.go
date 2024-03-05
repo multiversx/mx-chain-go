@@ -47,6 +47,7 @@ type ArgsChainSimulatorConfigs struct {
 	TempDir               string
 	MinNodesPerShard      uint32
 	MetaChainMinNodes     uint32
+	InitialEpoch          uint32
 	RoundsPerEpoch        core.OptionalUint64
 }
 
@@ -117,6 +118,8 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 	configs.GeneralConfig.DbLookupExtensions.Enabled = true
 
 	configs.GeneralConfig.EpochStartConfig.ExtraDelayForRequestBlockInfoInMilliseconds = 1
+	configs.GeneralConfig.EpochStartConfig.GenesisEpoch = args.InitialEpoch
+	configs.EpochConfig.EnableEpochs.StakingV2EnableEpoch = args.InitialEpoch + 1
 
 	if args.RoundsPerEpoch.HasValue {
 		configs.GeneralConfig.EpochStartConfig.RoundsPerEpoch = int64(args.RoundsPerEpoch.Value)
@@ -218,6 +221,7 @@ func generateValidatorsKeyAndUpdateFiles(
 
 	nodes.ConsensusGroupSize = 1
 	nodes.MetaChainConsensusGroupSize = 1
+	nodes.Hysteresis = 0
 
 	nodes.MinNodesPerShard = args.MinNodesPerShard
 	nodes.MetaChainMinNodes = args.MetaChainMinNodes
