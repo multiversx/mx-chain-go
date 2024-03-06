@@ -1,16 +1,20 @@
 package accounts
 
 import (
+	"math/big"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/errors"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"math/big"
 )
 
 const baseESDTKeyPrefix = core.ProtectedKeyPrefix + core.ESDTKeyIdentifier
+
+var log = logger.GetOrCreate("esdt-as-balance")
 
 type esdtAsBalance struct {
 	keyPrefix  []byte
@@ -29,11 +33,13 @@ func NewESDTAsBalance(
 		return nil, errors.ErrEmptyBaseToken
 	}
 
-	e := &esdtAsBalance{keyPrefix: []byte(baseESDTKeyPrefix + baseTokenID)}
-
-	return e, nil
+	return &esdtAsBalance{
+		keyPrefix:  []byte(baseESDTKeyPrefix + baseTokenID),
+		marshaller: marshaller,
+	}, nil
 }
 
+// GetBalance returns the native esdt balance
 func (e *esdtAsBalance) GetBalance(accountDataHandler vmcommon.AccountDataHandler) *big.Int {
 	esdtData, err := e.getESDTData(accountDataHandler)
 	if err != nil {
@@ -43,6 +49,7 @@ func (e *esdtAsBalance) GetBalance(accountDataHandler vmcommon.AccountDataHandle
 	return esdtData.Value
 }
 
+// AddToBalance adds balance to the native esdt balance
 func (e *esdtAsBalance) AddToBalance(accountDataHandler vmcommon.AccountDataHandler, value *big.Int) error {
 	esdtData, err := e.getESDTData(accountDataHandler)
 	if err != nil {
@@ -55,14 +62,10 @@ func (e *esdtAsBalance) AddToBalance(accountDataHandler vmcommon.AccountDataHand
 	}
 
 	esdtData.Value.Set(newBalance)
-	err = e.saveESDTData(accountDataHandler, esdtData)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return e.saveESDTData(accountDataHandler, esdtData)
 }
 
+// SubFromBalance subtracts the value from the native esdt balance
 func (e *esdtAsBalance) SubFromBalance(accountDataHandler vmcommon.AccountDataHandler, value *big.Int) error {
 	esdtData, err := e.getESDTData(accountDataHandler)
 	if err != nil {
@@ -75,27 +78,33 @@ func (e *esdtAsBalance) SubFromBalance(accountDataHandler vmcommon.AccountDataHa
 	}
 
 	esdtData.Value.Set(newBalance)
-	err = e.saveESDTData(accountDataHandler, esdtData)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return e.saveESDTData(accountDataHandler, esdtData)
 }
 
 func (e *esdtAsBalance) getESDTData(accountDataHandler vmcommon.AccountDataHandler) (*esdt.ESDigitalToken, error) {
-	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(0), Type: uint32(core.Fungible)}
 	marshaledData, _, err := accountDataHandler.RetrieveValue(e.keyPrefix)
 	if err != nil {
-		return nil, err
+		log.Trace("esdtAsBalance.getESDTData could not load account token", "error", err)
+		return createEmptyESDT(), nil
 	}
 
+	esdtData := createEmptyESDT()
 	err = e.marshaller.Unmarshal(esdtData, marshaledData)
 	if err != nil {
 		return nil, err
 	}
 
+	// make extra sure we have these fields set
+	if esdtData.Value == nil {
+		esdtData.Value = big.NewInt(0)
+		esdtData.Type = uint32(core.Fungible)
+	}
+
 	return esdtData, nil
+}
+
+func createEmptyESDT() *esdt.ESDigitalToken {
+	return &esdt.ESDigitalToken{Value: big.NewInt(0), Type: uint32(core.Fungible)}
 }
 
 func (e *esdtAsBalance) saveESDTData(accountDataHandler vmcommon.AccountDataHandler, esdtData *esdt.ESDigitalToken) error {
@@ -104,14 +113,10 @@ func (e *esdtAsBalance) saveESDTData(accountDataHandler vmcommon.AccountDataHand
 		return err
 	}
 
-	err = accountDataHandler.SaveKeyValue(e.keyPrefix, marshaledData)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return accountDataHandler.SaveKeyValue(e.keyPrefix, marshaledData)
 }
 
+// IsInterfaceNil checks if the underlying pointer is nil
 func (e *esdtAsBalance) IsInterfaceNil() bool {
 	return e == nil
 }
