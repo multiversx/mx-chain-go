@@ -23,7 +23,9 @@ func TestTransactionSimulationComponentConstructionOnMetachain(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	cfg := testscommon.CreateTestConfigs(t, "../../../cmd/node/config")
+	cfg, err := testscommon.CreateTestConfigs(t.TempDir(), "../../../cmd/node/config")
+	require.Nil(t, err)
+
 	cfg.EpochConfig.EnableEpochs.ESDTEnableEpoch = 0
 	cfg.EpochConfig.EnableEpochs.BuiltInFunctionsEnableEpoch = 0
 	cfg.PreferencesConfig.Preferences.DestinationShardAsObserver = "metachain" // the problem was only on the metachain
@@ -72,7 +74,9 @@ func TestTransactionSimulationComponentConstructionOnShard(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	cfg := testscommon.CreateTestConfigs(t, "../../../cmd/node/config")
+	cfg, err := testscommon.CreateTestConfigs(t.TempDir(), "../../../cmd/node/config")
+	require.Nil(t, err)
+
 	cfg.EpochConfig.EnableEpochs.SCDeployEnableEpoch = 0
 	cfg.PreferencesConfig.Preferences.DestinationShardAsObserver = "0"
 	cfg.GeneralConfig.VirtualMachine.Execution.WasmVMVersions = []config.WasmVMVersionByEpoch{
@@ -98,7 +102,7 @@ func TestTransactionSimulationComponentConstructionOnShard(t *testing.T) {
 
 	// deploy the contract
 	txDeploy, hash := pr.CreateDeploySCTx(t, alice, "../testdata/adder/adder.wasm", 3000000, []string{"01"})
-	err := pr.ExecuteTransactionAsScheduled(t, txDeploy)
+	err = pr.ExecuteTransactionAsScheduled(t, txDeploy)
 	require.Nil(t, err)
 
 	// get the contract address from logs

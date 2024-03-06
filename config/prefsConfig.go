@@ -23,7 +23,7 @@ type PreferencesConfig struct {
 type OverridableConfig struct {
 	File  string
 	Path  string
-	Value string
+	Value interface{}
 }
 
 // BlockProcessingCutoffConfig holds the configuration for the block processing cutoff
