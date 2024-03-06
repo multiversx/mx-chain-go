@@ -7,7 +7,6 @@ package wasmvm
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/multiversx/mx-chain-go/common/holders"
 	"math"
 	"math/big"
 	"testing"
@@ -19,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
