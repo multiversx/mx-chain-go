@@ -88,7 +88,7 @@ func (e *esdtAsBalance) getESDTData(accountDataHandler vmcommon.AccountDataHandl
 		return createEmptyESDT(), nil
 	}
 
-	esdtData := createEmptyESDT()
+	esdtData := &esdt.ESDigitalToken{}
 	err = e.marshaller.Unmarshal(esdtData, marshaledData)
 	if err != nil {
 		return nil, err
