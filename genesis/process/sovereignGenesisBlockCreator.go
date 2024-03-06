@@ -165,10 +165,16 @@ func createSovereignShardGenesisBlock(
 	nodesListSplitter genesis.NodesListSplitter,
 ) (data.HeaderHandler, [][]byte, *genesis.IndexingData, error) {
 	sovereignGenesisConfig := createSovereignGenesisConfig()
+
 	shardProcessors, err := createProcessorsForShardGenesisBlock(arg, sovereignGenesisConfig, createGenesisRoundConfig())
 	if err != nil {
 		return nil, nil, nil, err
 	}
+
+	//genesisESDTTransfers, err := createSovereignGenesisESDTTransfers(arg, shardProcessors.scrProcessor)
+	//if err != nil {
+	//	return nil, nil, nil, err
+	//}
 
 	genesisBlock, scAddresses, indexingData, err := baseCreateShardGenesisBlock(arg, nodesListSplitter, shardProcessors)
 	if err != nil {
@@ -193,12 +199,8 @@ func createSovereignShardGenesisBlock(
 	indexingData.StakingTxs = stakingTxs
 
 	metaScrsTxs := metaProcessor.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
-	genesisESDTTransfers, err := createSovereignGenesisESDTTransfers(arg, shardProcessors.scrProcessor)
-	if err != nil {
-		return nil, nil, nil, err
-	}
 
-	indexingData.ScrsTxs = mergeScrs(indexingData.ScrsTxs, genesisESDTTransfers)
+	//indexingData.ScrsTxs = mergeScrs(indexingData.ScrsTxs, genesisESDTTransfers)
 	indexingData.ScrsTxs = mergeScrs(indexingData.ScrsTxs, metaScrsTxs)
 
 	rootHash, err := arg.Accounts.Commit()

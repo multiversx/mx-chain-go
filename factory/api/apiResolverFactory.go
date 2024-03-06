@@ -536,7 +536,7 @@ func createNewAccountsAdapterApi(args *scQueryElementArgs, chainHandler data.Cha
 		Marshaller:          args.coreComponents.InternalMarshalizer(),
 		EnableEpochsHandler: args.coreComponents.EnableEpochsHandler(),
 	}
-	accountFactory, err := factoryState.NewAccountCreator(argsAccCreator)
+	accountFactory, err := factoryState.NewSovereignAccountCreator(argsAccCreator)
 	if err != nil {
 		return nil, err
 	}

@@ -3,11 +3,12 @@ package process
 import (
 	"errors"
 	"fmt"
-	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	"math"
 	"math/big"
 	"strconv"
 	"sync"
+
+	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -196,17 +197,17 @@ func baseCreateShardGenesisBlock(
 
 	deployMetrics := &deployedScMetrics{}
 
-	scAddresses, scTxs, err := deployInitialSmartContracts(processors, arg, deployMetrics)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	indexingData.DeployInitialScTxs = scTxs
-
 	numSetBalances, err := setBalancesToTrie(arg)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("%w encountered when creating genesis block for shard %d while setting the balances to trie",
 			err, arg.ShardCoordinator.SelfId())
 	}
+
+	scAddresses, scTxs, err := deployInitialSmartContracts(processors, arg, deployMetrics)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	indexingData.DeployInitialScTxs = scTxs
 
 	numStaked, err := increaseStakersNonces(processors, arg)
 	if err != nil {

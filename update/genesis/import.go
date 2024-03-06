@@ -291,7 +291,7 @@ func newAccountCreator(
 			Marshaller:          marshaller,
 			EnableEpochsHandler: handler,
 		}
-		return factory.NewAccountCreator(args)
+		return factory.NewSovereignAccountCreator(args)
 	case ValidatorAccount:
 		return factory.NewPeerAccountCreator(), nil
 	}

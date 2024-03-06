@@ -50,26 +50,26 @@ func sendAmount(
 		return "", err
 	}
 
-	transactionArguments, err := proxy.GetDefaultTransactionArguments(context.Background(), address, networkConfig)
+	transactionArguments, _, err := proxy.GetDefaultTransactionArguments(context.Background(), address, networkConfig)
 	if err != nil {
 		return "", err
 	}
 
 	transactionArguments.Value = value
 	transactionArguments.GasLimit = txGasLimit
-	transactionArguments.RcvAddr = receiverAddress
+	transactionArguments.Receiver = receiverAddress
 
 	holder, err := cryptoProvider.NewCryptoComponentsHolder(keyGen, privateKey)
 	if err != nil {
 		return "", err
 	}
 
-	signedTx, err := ti.ApplySignatureAndGenerateTx(holder, transactionArguments)
+	err = ti.ApplySignature(holder, nil)
 	if err != nil {
 		return "", err
 	}
 
-	hash, err := proxy.SendTransaction(context.Background(), signedTx)
+	hash, err := proxy.SendTransaction(context.Background(), nil)
 	if err != nil {
 		return "", err
 	}

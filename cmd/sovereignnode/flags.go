@@ -253,7 +253,7 @@ var (
 			", if set to *:INFO the logs for all packages will have the INFO level. However, if set to *:INFO,api:DEBUG" +
 			" the logs for all packages will have the INFO level, excepting the api package which will receive a DEBUG" +
 			" log level.",
-		Value: "*:" + logger.LogInfo.String(),
+		Value: "*:" + logger.LogDebug.String(),
 	}
 	// logFile is used when the log output needs to be logged in a file
 	logSaveFile = cli.BoolFlag{

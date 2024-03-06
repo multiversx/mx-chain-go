@@ -523,7 +523,7 @@ func (gbc *genesisBlockCreator) getNewArgForShard(shardID uint32) (ArgsGenesisBl
 		Marshaller:          newArgument.Core.InternalMarshalizer(),
 		EnableEpochsHandler: newArgument.Core.EnableEpochsHandler(),
 	}
-	accCreator, err := factoryState.NewAccountCreator(argsAccCreator)
+	accCreator, err := factoryState.NewSovereignAccountCreator(argsAccCreator)
 	if err != nil {
 		return ArgsGenesisBlockCreator{}, err
 	}

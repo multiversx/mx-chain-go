@@ -33,7 +33,7 @@ func NewSovereignAccountCreator(args ArgsAccountCreator) (state.AccountFactory, 
 		return nil, errors.ErrNilEnableEpochsHandler
 	}
 
-	esdtAsBalance, err := accounts.NewESDTAsBalance("", args.Marshaller)
+	esdtAsBalance, err := accounts.NewESDTAsBalance("WEGLD-bd4d79", args.Marshaller)
 	if err != nil {
 		return nil, err
 	}

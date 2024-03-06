@@ -77,7 +77,7 @@ func NewEpochStartMetaBlockProcessor(
 		requestHandler:                    handler,
 		marshalizer:                       marshalizer,
 		hasher:                            hasher,
-		minNumConnectedPeers:              minNumConnectedPeersConfig,
+		minNumConnectedPeers:              1,
 		minNumOfPeersToConsiderBlockValid: minNumOfPeersToConsiderBlockValidConfig,
 		mutReceivedMetaBlocks:             sync.RWMutex{},
 		mapReceivedMetaBlocks:             make(map[string]data.MetaHeaderHandler),

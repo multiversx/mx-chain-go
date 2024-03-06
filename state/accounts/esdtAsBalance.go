@@ -1,13 +1,15 @@
 package accounts
 
 import (
+	"math/big"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/errors"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"math/big"
 )
 
 const baseESDTKeyPrefix = core.ProtectedKeyPrefix + core.ESDTKeyIdentifier
@@ -29,7 +31,7 @@ func NewESDTAsBalance(
 		return nil, errors.ErrEmptyBaseToken
 	}
 
-	e := &esdtAsBalance{keyPrefix: []byte(baseESDTKeyPrefix + baseTokenID)}
+	e := &esdtAsBalance{keyPrefix: []byte(baseESDTKeyPrefix + baseTokenID), marshaller: marshaller}
 
 	return e, nil
 }
@@ -83,16 +85,22 @@ func (e *esdtAsBalance) SubFromBalance(accountDataHandler vmcommon.AccountDataHa
 	return nil
 }
 
+var log = logger.GetOrCreate("est")
+
 func (e *esdtAsBalance) getESDTData(accountDataHandler vmcommon.AccountDataHandler) (*esdt.ESDigitalToken, error) {
 	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(0), Type: uint32(core.Fungible)}
 	marshaledData, _, err := accountDataHandler.RetrieveValue(e.keyPrefix)
 	if err != nil {
-		return nil, err
+		log.Error("esdtAsBalance.getESDTData", "marshalled data", string(marshaledData))
 	}
 
 	err = e.marshaller.Unmarshal(esdtData, marshaledData)
 	if err != nil {
 		return nil, err
+	}
+
+	if esdtData.Value == nil {
+		esdtData = &esdt.ESDigitalToken{Value: big.NewInt(0), Type: uint32(core.Fungible)}
 	}
 
 	return esdtData, nil

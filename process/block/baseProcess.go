@@ -1896,7 +1896,7 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 		Marshaller:          bp.marshalizer,
 		EnableEpochsHandler: bp.enableEpochsHandler,
 	}
-	accountCreator, err := factory.NewAccountCreator(argsAccCreator)
+	accountCreator, err := factory.NewSovereignAccountCreator(argsAccCreator)
 	if err != nil {
 		return err
 	}

@@ -19,6 +19,6 @@ func getAddressAndSK(pemPath string) (core.AddressHandler, []byte, error) {
 		return nil, nil, err
 	}
 
-	log.Info("loaded", "address", address.AddressAsBech32String(), "file", pemPath)
+	log.Info("loaded", "address", "dsa", "file", pemPath)
 	return address, privateKey, nil
 }

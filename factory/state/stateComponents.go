@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	chainData "github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/common"
@@ -141,7 +142,7 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 		Marshaller:          scf.core.InternalMarshalizer(),
 		EnableEpochsHandler: scf.core.EnableEpochsHandler(),
 	}
-	accountFactory, err := factoryState.NewAccountCreator(argsAccCreator)
+	accountFactory, err := factoryState.NewSovereignAccountCreator(argsAccCreator)
 	if err != nil {
 		return nil, nil, nil, err
 	}
