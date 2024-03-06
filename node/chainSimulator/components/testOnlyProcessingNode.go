@@ -23,7 +23,6 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/postprocess"
-	"github.com/multiversx/mx-chain-go/process/economics"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -61,14 +60,13 @@ type testOnlyProcessingNode struct {
 	ProcessComponentsHolder   factory.ProcessComponentsHandler
 	DataComponentsHolder      factory.DataComponentsHandler
 
-	NodesCoordinator            nodesCoordinator.NodesCoordinator
-	ChainHandler                chainData.ChainHandler
-	ArgumentsParser             process.ArgumentsParser
-	TransactionFeeHandler       process.TransactionFeeHandler
-	StoreService                dataRetriever.StorageService
-	BuiltinFunctionsCostHandler economics.BuiltInFunctionsCostHandler
-	DataPool                    dataRetriever.PoolsHolder
-	broadcastMessenger          consensus.BroadcastMessenger
+	NodesCoordinator      nodesCoordinator.NodesCoordinator
+	ChainHandler          chainData.ChainHandler
+	ArgumentsParser       process.ArgumentsParser
+	TransactionFeeHandler process.TransactionFeeHandler
+	StoreService          dataRetriever.StorageService
+	DataPool              dataRetriever.PoolsHolder
+	broadcastMessenger    consensus.BroadcastMessenger
 
 	httpServer    shared.UpgradeableHttpServerHandler
 	facadeHandler shared.FacadeHandler
@@ -203,6 +201,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		EconomicsConfig:          *args.Configs.EconomicsConfig,
 		SystemSCConfig:           *args.Configs.SystemSCConfig,
 		EpochConfig:              *args.Configs.EpochConfig,
+		RoundConfig:              *args.Configs.RoundConfig,
 		ConfigurationPathsHolder: *args.Configs.ConfigurationPathsHolder,
 		NodesCoordinator:         instance.NodesCoordinator,
 		DataComponents:           instance.DataComponentsHolder,

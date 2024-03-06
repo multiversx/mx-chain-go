@@ -92,6 +92,7 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 				},
 			},
 		},
+		RoundConfig:    testscommon.GetDefaultRoundsConfig(),
 		PrefConfigs:    config.Preferences{},
 		ImportDBConfig: config.ImportDbConfig{},
 		FlagsConfig: config.ContextFlagsConfig{

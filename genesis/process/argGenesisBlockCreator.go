@@ -63,8 +63,9 @@ type ArgsGenesisBlockCreator struct {
 	HardForkConfig          config.HardforkConfig
 	TrieStorageManagers     map[string]common.StorageManager
 	SystemSCConfig          config.SystemSmartContractsConfig
-	RoundConfig             *config.RoundConfig
-	EpochConfig             *config.EpochConfig
+	RoundConfig             config.RoundConfig
+	EpochConfig             config.EpochConfig
+	HeaderVersionConfigs    config.VersionsConfig
 	WorkingDir              string
 	BlockSignKeyGen         crypto.KeyGenerator
 	HistoryRepository       dblookupext.HistoryRepository
@@ -72,6 +73,8 @@ type ArgsGenesisBlockCreator struct {
 
 	GenesisNodePrice *big.Int
 	GenesisString    string
+
 	// created components
-	importHandler update.ImportHandler
+	importHandler          update.ImportHandler
+	versionedHeaderFactory genesis.VersionedHeaderFactory
 }
