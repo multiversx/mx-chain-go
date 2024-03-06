@@ -8,7 +8,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
@@ -100,14 +99,14 @@ func TestAccountsDBApiWithHistory_NotPermittedOrNotImplementedOperationsDoNotPan
 
 func TestAccountsDBApiWithHistory_GetAccountWithBlockInfo(t *testing.T) {
 	rootHash := []byte("rootHash")
-	options := holders.NewRootHashHolder(rootHash, core.OptionalUint32{})
+	options := holders.NewDefaultRootHashesHolder(rootHash)
 	arbitraryError := errors.New("arbitrary error")
 
 	t.Run("recreate trie fails", func(t *testing.T) {
 		expectedErr := errors.New("expected error")
 
 		accountsAdapter := &mockState.AccountsStub{
-			RecreateTrieFromEpochCalled: func(_ common.RootHashHolder) error {
+			RecreateTrieCalled: func(_ common.RootHashHolder) error {
 				return expectedErr
 			},
 		}
@@ -123,7 +122,7 @@ func TestAccountsDBApiWithHistory_GetAccountWithBlockInfo(t *testing.T) {
 		var recreatedRootHash []byte
 
 		accountsAdapter := &mockState.AccountsStub{
-			RecreateTrieFromEpochCalled: func(options common.RootHashHolder) error {
+			RecreateTrieCalled: func(options common.RootHashHolder) error {
 				recreatedRootHash = options.GetRootHash()
 				return nil
 			},
@@ -148,7 +147,7 @@ func TestAccountsDBApiWithHistory_GetAccountWithBlockInfo(t *testing.T) {
 		var recreatedRootHash []byte
 
 		accountsAdapter := &mockState.AccountsStub{
-			RecreateTrieFromEpochCalled: func(options common.RootHashHolder) error {
+			RecreateTrieCalled: func(options common.RootHashHolder) error {
 				recreatedRootHash = options.GetRootHash()
 				return nil
 			},
@@ -169,7 +168,7 @@ func TestAccountsDBApiWithHistory_GetAccountWithBlockInfo(t *testing.T) {
 		var recreatedRootHash []byte
 
 		accountsAdapter := &mockState.AccountsStub{
-			RecreateTrieFromEpochCalled: func(options common.RootHashHolder) error {
+			RecreateTrieCalled: func(options common.RootHashHolder) error {
 				recreatedRootHash = options.GetRootHash()
 				return nil
 			},
@@ -190,13 +189,13 @@ func TestAccountsDBApiWithHistory_GetAccountWithBlockInfo(t *testing.T) {
 func TestAccountsDBApiWithHistory_GetCodeWithBlockInfo(t *testing.T) {
 	contractCodeHash := []byte("codeHash")
 	rootHash := []byte("rootHash")
-	options := holders.NewRootHashHolder(rootHash, core.OptionalUint32{})
+	options := holders.NewDefaultRootHashesHolder(rootHash)
 
 	t.Run("recreate trie fails", func(t *testing.T) {
 		expectedErr := errors.New("expected error")
 
 		accountsAdapter := &mockState.AccountsStub{
-			RecreateTrieFromEpochCalled: func(_ common.RootHashHolder) error {
+			RecreateTrieCalled: func(_ common.RootHashHolder) error {
 				return expectedErr
 			},
 		}
@@ -212,7 +211,7 @@ func TestAccountsDBApiWithHistory_GetCodeWithBlockInfo(t *testing.T) {
 		var recreatedRootHash []byte
 
 		accountsAdapter := &mockState.AccountsStub{
-			RecreateTrieFromEpochCalled: func(options common.RootHashHolder) error {
+			RecreateTrieCalled: func(options common.RootHashHolder) error {
 				recreatedRootHash = options.GetRootHash()
 				return nil
 			},
@@ -250,7 +249,7 @@ func TestAccountsDBApiWithHistory_GetAccountWithBlockInfoWhenHighConcurrency(t *
 		var dummyAccountMutex sync.RWMutex
 
 		accountsAdapter := &mockState.AccountsStub{
-			RecreateTrieFromEpochCalled: func(options common.RootHashHolder) error {
+			RecreateTrieCalled: func(options common.RootHashHolder) error {
 				rootHash := options.GetRootHash()
 
 				dummyAccountMutex.Lock()
@@ -284,7 +283,7 @@ func TestAccountsDBApiWithHistory_GetAccountWithBlockInfoWhenHighConcurrency(t *
 				go func(rootHashAsInt int) {
 					rootHashAsString := fmt.Sprintf("%d", rootHashAsInt)
 					rootHash := []byte(rootHashAsString)
-					options := holders.NewRootHashHolder(rootHash, core.OptionalUint32{})
+					options := holders.NewDefaultRootHashesHolder(rootHash)
 					account, blockInfo, _ := accountsApiWithHistory.GetAccountWithBlockInfo([]byte("address"), options)
 					userAccount := account.(state.UserAccountHandler)
 

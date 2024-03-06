@@ -345,7 +345,7 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 
 		recreateCalled := false
 		trie := &trieMock.TrieStub{
-			RecreateCalled: func(root []byte) (common.Trie, error) {
+			RecreateCalled: func(root common.RootHashHolder) (common.Trie, error) {
 				recreateCalled = true
 				return &trieMock.TrieStub{
 					GetCalled: func(_ []byte) ([]byte, uint32, error) {

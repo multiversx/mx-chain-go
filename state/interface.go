@@ -37,8 +37,7 @@ type AccountsAdapter interface {
 	RevertToSnapshot(snapshot int) error
 	GetCode(codeHash []byte) []byte
 	RootHash() ([]byte, error)
-	RecreateTrie(rootHash []byte) error
-	RecreateTrieFromEpoch(options common.RootHashHolder) error
+	RecreateTrie(options common.RootHashHolder) error
 	PruneTrie(rootHash []byte, identifier TriePruningIdentifier, handler PruningHandler)
 	CancelPrune(rootHash []byte, identifier TriePruningIdentifier)
 	SnapshotState(rootHash []byte, epoch uint32)
@@ -183,7 +182,8 @@ type DataTrie interface {
 }
 
 // PeerAccountHandler models a peer state account, which can journalize a normal account's data
-//  with some extra features like signing statistics or rating information
+//
+//	with some extra features like signing statistics or rating information
 type PeerAccountHandler interface {
 	SetBLSPublicKey([]byte) error
 	GetRewardAddress() []byte

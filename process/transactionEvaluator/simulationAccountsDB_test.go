@@ -52,7 +52,7 @@ func TestReadOnlyAccountsDB_WriteOperationsShouldNotCalled(t *testing.T) {
 			t.Errorf(failErrMsg)
 			return nil
 		},
-		RecreateTrieCalled: func(_ []byte) error {
+		RecreateTrieCalled: func(_ common.RootHashHolder) error {
 			t.Errorf(failErrMsg)
 			return nil
 		},

@@ -86,12 +86,7 @@ func (a *accountsAdapter) RootHash() ([]byte, error) {
 }
 
 // RecreateTrie -
-func (a *accountsAdapter) RecreateTrie(_ []byte) error {
-	return nil
-}
-
-// RecreateTrieFromEpoch -
-func (a *accountsAdapter) RecreateTrieFromEpoch(_ common.RootHashHolder) error {
+func (a *accountsAdapter) RecreateTrie(_ common.RootHashHolder) error {
 	return nil
 }
 

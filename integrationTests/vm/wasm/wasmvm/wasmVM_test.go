@@ -7,6 +7,7 @@ package wasmvm
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"math"
 	"math/big"
 	"testing"
@@ -805,7 +806,7 @@ func TestAndCatchTrieError(t *testing.T) {
 		log.Info("finished a set - commit and recreate trie", "index", i)
 		if i%10 == 5 {
 			testContext.Accounts.PruneTrie(extraNewRootHash, state.NewRoot, state.NewPruningHandler(state.EnableDataRemoval))
-			_ = testContext.Accounts.RecreateTrie(rootHash)
+			_ = testContext.Accounts.RecreateTrie(holders.NewDefaultRootHashesHolder(rootHash))
 			continue
 		}
 

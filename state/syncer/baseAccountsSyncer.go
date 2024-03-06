@@ -3,6 +3,7 @@ package syncer
 import (
 	"context"
 	"fmt"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -224,7 +225,8 @@ func (b *baseAccountsSyncer) GetSyncedTries() map[string]common.Trie {
 	var recreatedTrie common.Trie
 	clonedMap := make(map[string]common.Trie, len(b.dataTries))
 	for key := range b.dataTries {
-		recreatedTrie, err = dataTrie.Recreate([]byte(key))
+		rootHashHolder := holders.NewDefaultRootHashesHolder([]byte(key))
+		recreatedTrie, err = dataTrie.Recreate(rootHashHolder)
 		if err != nil {
 			log.Warn("error recreating trie in baseAccountsSyncer.GetSyncedTries",
 				"roothash", []byte(key), "error", err)

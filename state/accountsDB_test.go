@@ -510,7 +510,7 @@ func TestAccountsDB_LoadAccountExistingShouldLoadDataTrie(t *testing.T) {
 			}
 			return nil, 0, nil
 		},
-		RecreateCalled: func(root []byte) (d common.Trie, err error) {
+		RecreateCalled: func(holder common.RootHashHolder) (d common.Trie, err error) {
 			return dataTrie, nil
 		},
 		GetStorageManagerCalled: func() common.StorageManager {
@@ -588,7 +588,7 @@ func TestAccountsDB_GetExistingAccountFoundShouldRetAccount(t *testing.T) {
 			}
 			return nil, 0, nil
 		},
-		RecreateCalled: func(root []byte) (d common.Trie, err error) {
+		RecreateCalled: func(root common.RootHashHolder) (d common.Trie, err error) {
 			return dataTrie, nil
 		},
 		GetStorageManagerCalled: func() common.StorageManager {
@@ -811,8 +811,8 @@ func TestAccountsDB_LoadDataWithSomeValuesShouldWork(t *testing.T) {
 
 	account := generateAccount()
 	mockTrie := &trieMock.TrieStub{
-		RecreateCalled: func(root []byte) (trie common.Trie, e error) {
-			if !bytes.Equal(root, rootHash) {
+		RecreateCalled: func(root common.RootHashHolder) (trie common.Trie, e error) {
+			if !bytes.Equal(root.GetRootHash(), rootHash) {
 				return nil, errors.New("bad root hash")
 			}
 
@@ -856,7 +856,7 @@ func TestAccountsDB_CommitShouldCallCommitFromTrie(t *testing.T) {
 		GetCalled: func(_ []byte) ([]byte, uint32, error) {
 			return serializedAccount, 0, nil
 		},
-		RecreateCalled: func(root []byte) (trie common.Trie, err error) {
+		RecreateCalled: func(root common.RootHashHolder) (trie common.Trie, err error) {
 			return &trieMock.TrieStub{
 				GetCalled: func(_ []byte) ([]byte, uint32, error) {
 					return []byte("doge"), 0, nil
@@ -904,14 +904,14 @@ func TestAccountsDB_RecreateTrieMalfunctionTrieShouldErr(t *testing.T) {
 			return &storageManager.StorageManagerStub{}
 		},
 	}
-	trieStub.RecreateFromEpochCalled = func(_ common.RootHashHolder) (tree common.Trie, e error) {
+	trieStub.RecreateCalled = func(_ common.RootHashHolder) (tree common.Trie, e error) {
 		wasCalled = true
 		return nil, errExpected
 	}
 
 	adb := generateAccountDBFromTrie(trieStub)
 
-	err := adb.RecreateTrie(nil)
+	err := adb.RecreateTrie(holders.NewDefaultRootHashesHolder([]byte{}))
 	assert.Equal(t, errExpected, err)
 	assert.True(t, wasCalled)
 }
@@ -926,13 +926,13 @@ func TestAccountsDB_RecreateTrieOutputsNilTrieShouldErr(t *testing.T) {
 			return &storageManager.StorageManagerStub{}
 		},
 	}
-	trieStub.RecreateFromEpochCalled = func(_ common.RootHashHolder) (tree common.Trie, e error) {
+	trieStub.RecreateCalled = func(_ common.RootHashHolder) (tree common.Trie, e error) {
 		wasCalled = true
 		return nil, nil
 	}
 
 	adb := generateAccountDBFromTrie(&trieStub)
-	err := adb.RecreateTrie(nil)
+	err := adb.RecreateTrie(holders.NewDefaultRootHashesHolder([]byte{}))
 
 	assert.Equal(t, state.ErrNilTrie, err)
 	assert.True(t, wasCalled)
@@ -948,14 +948,14 @@ func TestAccountsDB_RecreateTrieOkValsShouldWork(t *testing.T) {
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &storageManager.StorageManagerStub{}
 		},
-		RecreateFromEpochCalled: func(_ common.RootHashHolder) (common.Trie, error) {
+		RecreateCalled: func(_ common.RootHashHolder) (common.Trie, error) {
 			wasCalled = true
 			return &trieMock.TrieStub{}, nil
 		},
 	}
 
 	adb := generateAccountDBFromTrie(&trieStub)
-	err := adb.RecreateTrie(nil)
+	err := adb.RecreateTrie(holders.NewDefaultRootHashesHolder([]byte{}))
 
 	assert.Nil(t, err)
 	assert.True(t, wasCalled)
@@ -1466,7 +1466,7 @@ func TestAccountsDB_RecreateTrieInvalidatesJournalEntries(t *testing.T) {
 	_ = adb.SaveAccount(acc)
 
 	assert.Equal(t, 5, adb.JournalLen())
-	err := adb.RecreateTrie(rootHash)
+	err := adb.RecreateTrie(holders.NewDefaultRootHashesHolder(rootHash))
 	assert.Nil(t, err)
 	assert.Equal(t, 0, adb.JournalLen())
 }
@@ -1985,7 +1985,7 @@ func TestAccountsDB_PruningAndPruningCancellingOnTrieRollback(t *testing.T) {
 	}
 
 	for i := 0; i < len(rootHashes); i++ {
-		_, err := tr.Recreate(rootHashes[i])
+		_, err := tr.Recreate(holders.NewDefaultRootHashesHolder(rootHashes[i]))
 		assert.Nil(t, err)
 	}
 
@@ -1994,7 +1994,7 @@ func TestAccountsDB_PruningAndPruningCancellingOnTrieRollback(t *testing.T) {
 	finalizeTrieState(t, 2, tr, adb, rootHashes)
 	rollbackTrieState(t, 3, tr, adb, rootHashes)
 
-	_, err := tr.Recreate(rootHashes[2])
+	_, err := tr.Recreate(holders.NewDefaultRootHashesHolder(rootHashes[2]))
 	assert.Nil(t, err)
 }
 
@@ -2003,7 +2003,7 @@ func finalizeTrieState(t *testing.T, index int, tr common.Trie, adb state.Accoun
 	adb.CancelPrune(rootHashes[index], state.NewRoot)
 	time.Sleep(trieDbOperationDelay)
 
-	_, err := tr.Recreate(rootHashes[index-1])
+	_, err := tr.Recreate(holders.NewDefaultRootHashesHolder(rootHashes[index-1]))
 	assert.NotNil(t, err)
 }
 
@@ -2012,7 +2012,7 @@ func rollbackTrieState(t *testing.T, index int, tr common.Trie, adb state.Accoun
 	adb.CancelPrune(rootHashes[index-1], state.OldRoot)
 	time.Sleep(trieDbOperationDelay)
 
-	_, err := tr.Recreate(rootHashes[index])
+	_, err := tr.Recreate(holders.NewDefaultRootHashesHolder(rootHashes[index]))
 	assert.NotNil(t, err)
 }
 
@@ -2398,7 +2398,7 @@ func TestAccountsDB_RecreateAllTries(t *testing.T) {
 
 				return nil
 			},
-			RecreateCalled: func(root []byte) (common.Trie, error) {
+			RecreateCalled: func(root common.RootHashHolder) (common.Trie, error) {
 				return &trieMock.TrieStub{}, nil
 			},
 		}
@@ -2426,7 +2426,7 @@ func TestAccountsDB_RecreateAllTries(t *testing.T) {
 
 				return nil
 			},
-			RecreateCalled: func(root []byte) (common.Trie, error) {
+			RecreateCalled: func(root common.RootHashHolder) (common.Trie, error) {
 				return &trieMock.TrieStub{}, nil
 			},
 		}
@@ -2595,8 +2595,8 @@ func TestAccountsDB_GetAccountFromBytes(t *testing.T) {
 			},
 		}
 		args.Trie = &trieMock.TrieStub{
-			RecreateCalled: func(root []byte) (common.Trie, error) {
-				assert.Equal(t, rootHash, root)
+			RecreateCalled: func(root common.RootHashHolder) (common.Trie, error) {
+				assert.Equal(t, rootHash, root.GetRootHash())
 				return &trieMock.TrieStub{}, nil
 			},
 		}
@@ -2625,7 +2625,7 @@ func TestAccountsDB_GetAccountFromBytesShouldLoadDataTrie(t *testing.T) {
 			}
 			return nil, 0, nil
 		},
-		RecreateCalled: func(root []byte) (d common.Trie, err error) {
+		RecreateCalled: func(root common.RootHashHolder) (d common.Trie, err error) {
 			return dataTrie, nil
 		},
 		GetStorageManagerCalled: func() common.StorageManager {
@@ -3168,7 +3168,7 @@ func testAccountMethodsConcurrency(
 	assert.Nil(t, err)
 	for i := 0; i < numOperations; i++ {
 		go func(idx int) {
-			switch idx % 23 {
+			switch idx % 22 {
 			case 0:
 				_, _ = adb.GetExistingAccount(addresses[idx])
 			case 1:
@@ -3192,28 +3192,26 @@ func testAccountMethodsConcurrency(
 			case 10:
 				_, _ = adb.RootHash()
 			case 11:
-				_ = adb.RecreateTrie(rootHash)
+				_ = adb.RecreateTrie(holders.NewDefaultRootHashesHolder(rootHash))
 			case 12:
-				_ = adb.RecreateTrieFromEpoch(holders.NewRootHashHolder(rootHash, core.OptionalUint32{}))
-			case 13:
 				adb.PruneTrie(rootHash, state.OldRoot, state.NewPruningHandler(state.DisableDataRemoval))
-			case 14:
+			case 13:
 				adb.CancelPrune(rootHash, state.NewRoot)
-			case 15:
+			case 14:
 				adb.SnapshotState(rootHash, 0)
-			case 16:
+			case 15:
 				adb.SetStateCheckpoint(rootHash)
-			case 17:
+			case 16:
 				_ = adb.IsPruningEnabled()
-			case 18:
+			case 17:
 				_ = adb.GetAllLeaves(&common.TrieIteratorChannels{}, context.Background(), rootHash, parsers.NewMainTrieLeafParser())
-			case 19:
+			case 18:
 				_, _ = adb.RecreateAllTries(rootHash)
-			case 20:
+			case 19:
 				_, _ = adb.GetTrie(rootHash)
-			case 21:
+			case 20:
 				_ = adb.GetStackDebugFirstEntry()
-			case 22:
+			case 21:
 				_ = adb.SetSyncer(&mock.AccountsDBSyncerStub{})
 			}
 			wg.Done()
@@ -3306,7 +3304,7 @@ func testAccountLoadInParallel(
 			case 1:
 				_, _ = adb.GetExistingAccount(addresses[idx])
 			case 2:
-				_ = adb.RecreateTrie(rootHash)
+				_ = adb.RecreateTrie(holders.NewDefaultRootHashesHolder(rootHash))
 			}
 		}(i)
 	}

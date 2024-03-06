@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/database"
@@ -63,7 +64,7 @@ func testTrieLoadTime(t *testing.T, numChildrenPerBranch int, numTries int, maxT
 func timeTrieRecreate(tries []*keyForTrie, depth int) {
 	startTime := time.Now()
 	for j := range tries {
-		_, _ = tries[j].tr.Recreate(tries[j].key)
+		_, _ = tries[j].tr.Recreate(holders.NewDefaultRootHashesHolder(tries[j].key))
 	}
 	duration := time.Since(startTime)
 	fmt.Printf("trie with depth %d, duration %d \n", depth, duration.Nanoseconds()/int64(len(tries)))
@@ -100,7 +101,7 @@ func generateTriesWithMaxDepth(
 		key := insertKeysIntoTrie(t, tr, numTrieLevels, numChildrenPerBranch)
 
 		rootHash, _ := tr.RootHash()
-		collapsedTrie, _ := tr.Recreate(rootHash)
+		collapsedTrie, _ := tr.Recreate(holders.NewDefaultRootHashesHolder(rootHash))
 
 		if numTrieLevels == 1 {
 			key = rootHash

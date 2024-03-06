@@ -112,7 +112,7 @@ func getAccAdapter(balance *big.Int) *stateMock.AccountsStub {
 
 		return acc, nil
 	}
-	accDB.RecreateTrieCalled = func(_ []byte) error {
+	accDB.RecreateTrieCalled = func(_ common.RootHashHolder) error {
 		return nil
 	}
 
@@ -236,7 +236,7 @@ func TestNode_GetBalanceAccNotFoundShouldReturnEmpty(t *testing.T) {
 		GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
 			return nil, nil, state.NewErrAccountNotFoundAtBlock(dummyBlockInfo.forProcessing())
 		},
-		RecreateTrieCalled: func(_ []byte) error {
+		RecreateTrieCalled: func(_ common.RootHashHolder) error {
 			return nil
 		},
 	}
@@ -338,7 +338,7 @@ func TestNode_GetCodeHashAccNotFoundShouldReturnEmpty(t *testing.T) {
 		GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
 			return nil, nil, state.NewErrAccountNotFoundAtBlock(dummyBlockInfo.forProcessing())
 		},
-		RecreateTrieCalled: func(_ []byte) error {
+		RecreateTrieCalled: func(_ common.RootHashHolder) error {
 			return nil
 		},
 	}
@@ -409,7 +409,7 @@ func TestNode_GetKeyValuePairsAccNotFoundShouldReturnEmpty(t *testing.T) {
 		GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
 			return nil, nil, state.NewErrAccountNotFoundAtBlock(dummyBlockInfo.forProcessing())
 		},
-		RecreateTrieCalled: func(_ []byte) error {
+		RecreateTrieCalled: func(_ common.RootHashHolder) error {
 			return nil
 		},
 	}
@@ -474,7 +474,7 @@ func TestNode_GetKeyValuePairs(t *testing.T) {
 	accDB.GetAccountWithBlockInfoCalled = func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
 		return acc, nil, nil
 	}
-	accDB.RecreateTrieCalled = func(rootHash []byte) error {
+	accDB.RecreateTrieCalled = func(rootHash common.RootHashHolder) error {
 		return nil
 	}
 
@@ -534,7 +534,7 @@ func TestNode_GetKeyValuePairs_GetAllLeavesShouldFail(t *testing.T) {
 	accDB.GetAccountWithBlockInfoCalled = func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
 		return acc, nil, nil
 	}
-	accDB.RecreateTrieCalled = func(rootHash []byte) error {
+	accDB.RecreateTrieCalled = func(rootHash common.RootHashHolder) error {
 		return nil
 	}
 
@@ -588,7 +588,7 @@ func TestNode_GetKeyValuePairsContextShouldTimeout(t *testing.T) {
 	accDB.GetAccountWithBlockInfoCalled = func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
 		return acc, nil, nil
 	}
-	accDB.RecreateTrieCalled = func(rootHash []byte) error {
+	accDB.RecreateTrieCalled = func(rootHash common.RootHashHolder) error {
 		return nil
 	}
 
@@ -627,7 +627,7 @@ func TestNode_GetValueForKeyAccNotFoundShouldReturnEmpty(t *testing.T) {
 		GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
 			return nil, nil, state.NewErrAccountNotFoundAtBlock(dummyBlockInfo.forProcessing())
 		},
-		RecreateTrieCalled: func(_ []byte) error {
+		RecreateTrieCalled: func(_ common.RootHashHolder) error {
 			return nil
 		},
 	}
@@ -670,7 +670,7 @@ func TestNode_GetValueForKey(t *testing.T) {
 		GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
 			return acc, nil, nil
 		},
-		RecreateTrieCalled: func(_ []byte) error {
+		RecreateTrieCalled: func(_ common.RootHashHolder) error {
 			return nil
 		},
 	}
@@ -709,7 +709,7 @@ func TestNode_GetESDTDataAccNotFoundShouldReturnEmpty(t *testing.T) {
 		GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
 			return nil, nil, state.NewErrAccountNotFoundAtBlock(dummyBlockInfo.forProcessing())
 		},
-		RecreateTrieCalled: func(_ []byte) error {
+		RecreateTrieCalled: func(_ common.RootHashHolder) error {
 			return nil
 		},
 	}
@@ -752,7 +752,7 @@ func TestNode_GetESDTData(t *testing.T) {
 		GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
 			return acc, nil, nil
 		},
-		RecreateTrieCalled: func(_ []byte) error {
+		RecreateTrieCalled: func(_ common.RootHashHolder) error {
 			return nil
 		},
 	}
@@ -807,7 +807,7 @@ func TestNode_GetESDTDataForNFT(t *testing.T) {
 		GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
 			return acc, nil, nil
 		},
-		RecreateTrieCalled: func(_ []byte) error {
+		RecreateTrieCalled: func(_ common.RootHashHolder) error {
 			return nil
 		},
 	}
@@ -867,7 +867,7 @@ func TestNode_GetAllESDTTokens(t *testing.T) {
 		})
 
 	accDB := &stateMock.AccountsStub{
-		RecreateTrieCalled: func(rootHash []byte) error {
+		RecreateTrieCalled: func(rootHash common.RootHashHolder) error {
 			return nil
 		},
 	}
@@ -924,7 +924,7 @@ func TestNode_GetAllESDTTokens_GetAllLeavesShouldFail(t *testing.T) {
 		})
 
 	accDB := &stateMock.AccountsStub{
-		RecreateTrieCalled: func(rootHash []byte) error {
+		RecreateTrieCalled: func(rootHash common.RootHashHolder) error {
 			return nil
 		},
 	}
@@ -980,7 +980,7 @@ func TestNode_GetAllESDTTokensContextShouldTimeout(t *testing.T) {
 		})
 
 	accDB := &stateMock.AccountsStub{
-		RecreateTrieCalled: func(rootHash []byte) error {
+		RecreateTrieCalled: func(rootHash common.RootHashHolder) error {
 			return nil
 		},
 	}
@@ -1023,7 +1023,7 @@ func TestNode_GetAllESDTsAccNotFoundShouldReturnEmpty(t *testing.T) {
 		GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
 			return nil, nil, state.NewErrAccountNotFoundAtBlock(dummyBlockInfo.forProcessing())
 		},
-		RecreateTrieCalled: func(_ []byte) error {
+		RecreateTrieCalled: func(_ common.RootHashHolder) error {
 			return nil
 		},
 	}
@@ -1114,7 +1114,7 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 		})
 
 	accDB := &stateMock.AccountsStub{
-		RecreateTrieCalled: func(rootHash []byte) error {
+		RecreateTrieCalled: func(rootHash common.RootHashHolder) error {
 			return nil
 		},
 	}
@@ -1198,7 +1198,7 @@ func TestNode_GetAllIssuedESDTs(t *testing.T) {
 		})
 
 	accDB := &stateMock.AccountsStub{
-		RecreateTrieCalled: func(rootHash []byte) error {
+		RecreateTrieCalled: func(rootHash common.RootHashHolder) error {
 			return nil
 		},
 	}
@@ -1284,7 +1284,7 @@ func TestNode_GetESDTsWithRole(t *testing.T) {
 		})
 
 	accDB := &stateMock.AccountsStub{
-		RecreateTrieCalled: func(rootHash []byte) error {
+		RecreateTrieCalled: func(rootHash common.RootHashHolder) error {
 			return nil
 		},
 	}
@@ -1363,7 +1363,7 @@ func TestNode_GetESDTsRoles(t *testing.T) {
 		})
 
 	accDB := &stateMock.AccountsStub{
-		RecreateTrieCalled: func(rootHash []byte) error {
+		RecreateTrieCalled: func(rootHash common.RootHashHolder) error {
 			return nil
 		},
 	}
@@ -1429,7 +1429,7 @@ func TestNode_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
 	)
 
 	accDB := &stateMock.AccountsStub{
-		RecreateTrieCalled: func(rootHash []byte) error {
+		RecreateTrieCalled: func(rootHash common.RootHashHolder) error {
 			return nil
 		},
 	}
@@ -1486,7 +1486,7 @@ func TestNode_GetNFTTokenIDsRegisteredByAddressContextShouldTimeout(t *testing.T
 	)
 
 	accDB := &stateMock.AccountsStub{
-		RecreateTrieCalled: func(rootHash []byte) error {
+		RecreateTrieCalled: func(rootHash common.RootHashHolder) error {
 			return nil
 		},
 	}
@@ -3368,7 +3368,7 @@ func TestNode_GetAccountAccNotFoundShouldReturnEmpty(t *testing.T) {
 		GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
 			return nil, nil, state.NewErrAccountNotFoundAtBlock(dummyBlockInfo.forProcessing())
 		},
-		RecreateTrieCalled: func(_ []byte) error {
+		RecreateTrieCalled: func(_ common.RootHashHolder) error {
 			return nil
 		},
 	}
@@ -3415,7 +3415,7 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 		GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
 			return accnt, nil, nil
 		},
-		RecreateTrieCalled: func(rootHash []byte) error {
+		RecreateTrieCalled: func(rootHash common.RootHashHolder) error {
 			return nil
 		},
 	}
@@ -4057,7 +4057,7 @@ func TestNode_getProofErrWhenComputingProof(t *testing.T) {
 				},
 			}, nil
 		},
-		RecreateTrieCalled: func(_ []byte) error {
+		RecreateTrieCalled: func(_ common.RootHashHolder) error {
 			return nil
 		},
 	}
@@ -4743,7 +4743,7 @@ func TestNode_GetGuardianData(t *testing.T) {
 		GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
 			return testAccount, nil, nil
 		},
-		RecreateTrieCalled: func(_ []byte) error {
+		RecreateTrieCalled: func(_ common.RootHashHolder) error {
 			return nil
 		},
 	}
@@ -4784,7 +4784,7 @@ func TestNode_GetGuardianData(t *testing.T) {
 			GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
 				return testAccount, nil, nil
 			},
-			RecreateTrieCalled: func(_ []byte) error {
+			RecreateTrieCalled: func(_ common.RootHashHolder) error {
 				return nil
 			},
 		}
@@ -4812,7 +4812,7 @@ func TestNode_GetGuardianData(t *testing.T) {
 			GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
 				return nil, nil, state.NewErrAccountNotFoundAtBlock(providedBlockInfo)
 			},
-			RecreateTrieCalled: func(_ []byte) error {
+			RecreateTrieCalled: func(_ common.RootHashHolder) error {
 				return nil
 			},
 		}
@@ -4930,7 +4930,7 @@ func TestNode_GetGuardianData(t *testing.T) {
 			GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
 				return acc, nil, nil
 			},
-			RecreateTrieCalled: func(_ []byte) error {
+			RecreateTrieCalled: func(_ common.RootHashHolder) error {
 				return nil
 			},
 		}

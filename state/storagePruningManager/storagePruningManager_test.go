@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/factory"
@@ -212,7 +213,7 @@ func TestAccountsDB_PruneAfterCancelPruneShouldFail(t *testing.T) {
 	spm.CancelPrune(rootHash, state.OldRoot, trieStorage)
 	spm.PruneTrie(rootHash, state.OldRoot, trieStorage, state.NewPruningHandler(state.EnableDataRemoval))
 
-	newTr, err := tr.Recreate(rootHash)
+	newTr, err := tr.Recreate(holders.NewDefaultRootHashesHolder(rootHash))
 	assert.Nil(t, err)
 	assert.NotNil(t, newTr)
 }

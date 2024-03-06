@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"sync"
 	"testing"
 	"time"
@@ -213,7 +214,7 @@ func TestDoubleListTrieSyncer_StartSyncingNewTrieShouldWork(t *testing.T) {
 	tsm, _ := arg.DB.(*trieStorageManager)
 	db, _ := tsm.mainStorer.(storage.Persister)
 	trie, _ := createInMemoryTrieFromDB(db)
-	trie, _ = trie.Recreate(roothash)
+	trie, _ = trie.Recreate(holders.NewDefaultRootHashesHolder(roothash))
 	require.False(t, check.IfNil(trie))
 
 	var val []byte
@@ -290,7 +291,7 @@ func TestDoubleListTrieSyncer_StartSyncingPartiallyFilledTrieShouldWork(t *testi
 	tsm, _ := arg.DB.(*trieStorageManager)
 	db, _ := tsm.mainStorer.(storage.Persister)
 	trie, _ := createInMemoryTrieFromDB(db)
-	trie, _ = trie.Recreate(roothash)
+	trie, _ = trie.Recreate(holders.NewDefaultRootHashesHolder(roothash))
 	require.False(t, check.IfNil(trie))
 
 	var val []byte
