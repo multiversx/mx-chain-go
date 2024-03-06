@@ -207,6 +207,9 @@
     UnmarshalCompressedECC = 270000
     GenerateKeyECC         = 7000000
     EncodeDERSig           = 10000000
+    VerifySecp256r1         = 2000000
+    VerifyBLSSignatureShare = 5000000
+    VerifyBLSMultiSig       = 15000000
 
 [ManagedBufferAPICost]
     MBufferNew                   = 2000
