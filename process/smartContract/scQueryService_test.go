@@ -11,7 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
@@ -59,9 +58,10 @@ func createMockArgumentsForSCQuery() ArgsNewSCQueryService {
 				return &storageStubs.StorerStub{}, nil
 			},
 		},
-		Marshaller:               &marshallerMock.MarshalizerStub{},
-		Hasher:                   &testscommon.HasherStub{},
-		Uint64ByteSliceConverter: &mock.Uint64ByteSliceConverterMock{},
+		Marshaller:                 &marshallerMock.MarshalizerStub{},
+		Hasher:                     &testscommon.HasherStub{},
+		Uint64ByteSliceConverter:   &mock.Uint64ByteSliceConverterMock{},
+		IsInHistoricalBalancesMode: false,
 	}
 }
 
@@ -367,10 +367,11 @@ func TestExecuteQuery_ShouldReceiveQueryCorrectly(t *testing.T) {
 		_, _, _ = target.ExecuteQuery(&query)
 		assert.True(t, runWasCalled)
 	})
-	t.Run("block hash should work - old epoch", func(t *testing.T) {
+	t.Run("block hash should work - in deep history mode", func(t *testing.T) {
 		t.Parallel()
 
 		runWasCalled := false
+		epoch := uint32(37)
 
 		mockVM := &mock.VMExecutionHandlerStub{
 			RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (output *vmcommon.VMOutput, e error) {
@@ -399,7 +400,7 @@ func TestExecuteQuery_ShouldReceiveQueryCorrectly(t *testing.T) {
 		argsNewSCQuery.MainBlockChain = &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 				return &block.Header{
-					Epoch: 37,
+					Epoch: epoch,
 				}
 			},
 		}
@@ -429,13 +430,20 @@ func TestExecuteQuery_ShouldReceiveQueryCorrectly(t *testing.T) {
 				return true
 			},
 			GetEpochByHashCalled: func(hash []byte) (uint32, error) {
-				return 12, nil
+				return epoch, nil
 			},
 		}
+
 		recreateTrieWasCalled := false
+		recreateTrieFromEpochWasCalled := false
+
 		providedAccountsAdapter := &stateMocks.AccountsStub{
-			RecreateTrieFromEpochCalled: func(options common.RootHashHolder) error {
+			RecreateTrieCalled: func(rootHash []byte) error {
 				recreateTrieWasCalled = true
+				return nil
+			},
+			RecreateTrieFromEpochCalled: func(options common.RootHashHolder) error {
+				recreateTrieFromEpochWasCalled = true
 				assert.Equal(t, providedRootHash, options.GetRootHash())
 				return nil
 			},
@@ -445,6 +453,103 @@ func TestExecuteQuery_ShouldReceiveQueryCorrectly(t *testing.T) {
 				return providedAccountsAdapter
 			},
 		}
+		argsNewSCQuery.IsInHistoricalBalancesMode = true
+
+		target, _ := NewSCQueryService(argsNewSCQuery)
+
+		dataArgs := make([][]byte, len(args))
+		for i, arg := range args {
+			dataArgs[i] = append(dataArgs[i], arg.Bytes()...)
+		}
+		query := process.SCQuery{
+			ScAddress: scAddress,
+			FuncName:  funcName,
+			Arguments: dataArgs,
+			BlockHash: providedHash,
+		}
+
+		_, _, err := target.ExecuteQuery(&query)
+		assert.True(t, runWasCalled)
+		assert.True(t, recreateTrieFromEpochWasCalled)
+		assert.False(t, recreateTrieWasCalled)
+		assert.Nil(t, err)
+	})
+	t.Run("block hash should work - in normal mode", func(t *testing.T) {
+		t.Parallel()
+
+		epoch := uint32(12)
+		runWasCalled := false
+
+		mockVM := &mock.VMExecutionHandlerStub{
+			RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (output *vmcommon.VMOutput, e error) {
+				runWasCalled = true
+				assert.Equal(t, int64(42), big.NewInt(0).SetBytes(input.Arguments[0]).Int64())
+				assert.Equal(t, int64(43), big.NewInt(0).SetBytes(input.Arguments[1]).Int64())
+				assert.Equal(t, scAddress, input.CallerAddr)
+				assert.Equal(t, funcName, input.Function)
+
+				return &vmcommon.VMOutput{
+					ReturnCode: vmcommon.Ok,
+				}, nil
+			},
+		}
+		argsNewSCQuery := createMockArgumentsForSCQuery()
+		argsNewSCQuery.VmContainer = &mock.VMContainerMock{
+			GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
+				return mockVM, nil
+			},
+		}
+		argsNewSCQuery.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+			MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
+				return uint64(math.MaxUint64)
+			},
+		}
+		providedHash := []byte("provided hash")
+		providedRootHash := []byte("provided root hash")
+		argsNewSCQuery.Marshaller = &marshallerMock.MarshalizerMock{}
+		argsNewSCQuery.StorageService = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return &storageStubs.StorerStub{
+					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+						hdr := &block.Header{
+							RootHash: providedRootHash,
+							Epoch:    epoch,
+						}
+						buff, _ := argsNewSCQuery.Marshaller.Marshal(hdr)
+						return buff, nil
+					},
+				}, nil
+			},
+		}
+		argsNewSCQuery.HistoryRepository = &dblookupext.HistoryRepositoryStub{
+			IsEnabledCalled: func() bool {
+				return true
+			},
+			GetEpochByHashCalled: func(hash []byte) (uint32, error) {
+				return epoch, nil
+			},
+		}
+
+		recreateTrieWasCalled := false
+		recreateTrieFromEpochWasCalled := false
+
+		providedAccountsAdapter := &stateMocks.AccountsStub{
+			RecreateTrieCalled: func(rootHash []byte) error {
+				recreateTrieWasCalled = true
+				assert.Equal(t, providedRootHash, rootHash)
+				return nil
+			},
+			RecreateTrieFromEpochCalled: func(options common.RootHashHolder) error {
+				recreateTrieFromEpochWasCalled = true
+				return nil
+			},
+		}
+		argsNewSCQuery.BlockChainHook = &testscommon.BlockChainHookStub{
+			GetAccountsAdapterCalled: func() state.AccountsAdapter {
+				return providedAccountsAdapter
+			},
+		}
+		argsNewSCQuery.IsInHistoricalBalancesMode = false
 
 		target, _ := NewSCQueryService(argsNewSCQuery)
 
@@ -462,288 +567,8 @@ func TestExecuteQuery_ShouldReceiveQueryCorrectly(t *testing.T) {
 		_, _, err := target.ExecuteQuery(&query)
 		assert.True(t, runWasCalled)
 		assert.True(t, recreateTrieWasCalled)
+		assert.False(t, recreateTrieFromEpochWasCalled)
 		assert.Nil(t, err)
-	})
-	t.Run("block hash should work - current epoch", func(t *testing.T) {
-		t.Parallel()
-
-		runWasCalled := false
-
-		mockVM := &mock.VMExecutionHandlerStub{
-			RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (output *vmcommon.VMOutput, e error) {
-				runWasCalled = true
-				assert.Equal(t, int64(42), big.NewInt(0).SetBytes(input.Arguments[0]).Int64())
-				assert.Equal(t, int64(43), big.NewInt(0).SetBytes(input.Arguments[1]).Int64())
-				assert.Equal(t, scAddress, input.CallerAddr)
-				assert.Equal(t, funcName, input.Function)
-
-				return &vmcommon.VMOutput{
-					ReturnCode: vmcommon.Ok,
-				}, nil
-			},
-		}
-		argsNewSCQuery := createMockArgumentsForSCQuery()
-		argsNewSCQuery.VmContainer = &mock.VMContainerMock{
-			GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
-				return mockVM, nil
-			},
-		}
-		argsNewSCQuery.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
-			MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
-				return uint64(math.MaxUint64)
-			},
-		}
-		providedHash := []byte("provided hash")
-		providedRootHash := []byte("provided root hash")
-		argsNewSCQuery.Marshaller = &marshallerMock.MarshalizerMock{}
-		argsNewSCQuery.StorageService = &storageStubs.ChainStorerStub{
-			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
-				return &storageStubs.StorerStub{
-					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
-						hdr := &block.Header{
-							RootHash: providedRootHash,
-						}
-						buff, _ := argsNewSCQuery.Marshaller.Marshal(hdr)
-						return buff, nil
-					},
-				}, nil
-			},
-		}
-		argsNewSCQuery.HistoryRepository = &dblookupext.HistoryRepositoryStub{
-			IsEnabledCalled: func() bool {
-				return true
-			},
-			GetEpochByHashCalled: func(hash []byte) (uint32, error) {
-				return 12, nil
-			},
-		}
-		recreateTrieWasCalled := false
-		providedAccountsAdapter := &stateMocks.AccountsStub{
-			RecreateTrieCalled: func(rootHash []byte) error {
-				recreateTrieWasCalled = true
-				assert.Equal(t, providedRootHash, rootHash)
-				return nil
-			},
-		}
-		argsNewSCQuery.BlockChainHook = &testscommon.BlockChainHookStub{
-			GetAccountsAdapterCalled: func() state.AccountsAdapter {
-				return providedAccountsAdapter
-			},
-		}
-
-		target, _ := NewSCQueryService(argsNewSCQuery)
-
-		dataArgs := make([][]byte, len(args))
-		for i, arg := range args {
-			dataArgs[i] = append(dataArgs[i], arg.Bytes()...)
-		}
-		query := process.SCQuery{
-			ScAddress: scAddress,
-			FuncName:  funcName,
-			Arguments: dataArgs,
-			BlockHash: providedHash,
-		}
-
-		_, _, err := target.ExecuteQuery(&query)
-		assert.True(t, runWasCalled)
-		assert.True(t, recreateTrieWasCalled)
-		assert.Nil(t, err)
-	})
-	t.Run("block nonce should work - old epoch", func(t *testing.T) {
-		t.Parallel()
-
-		runWasCalled := false
-
-		mockVM := &mock.VMExecutionHandlerStub{
-			RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (output *vmcommon.VMOutput, e error) {
-				runWasCalled = true
-				assert.Equal(t, int64(42), big.NewInt(0).SetBytes(input.Arguments[0]).Int64())
-				assert.Equal(t, int64(43), big.NewInt(0).SetBytes(input.Arguments[1]).Int64())
-				assert.Equal(t, scAddress, input.CallerAddr)
-				assert.Equal(t, funcName, input.Function)
-
-				return &vmcommon.VMOutput{
-					ReturnCode: vmcommon.Ok,
-				}, nil
-			},
-		}
-		argsNewSCQuery := createMockArgumentsForSCQuery()
-		argsNewSCQuery.MainBlockChain = &testscommon.ChainHandlerStub{
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.Header{
-					Epoch: 37,
-				}
-			},
-		}
-		argsNewSCQuery.VmContainer = &mock.VMContainerMock{
-			GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
-				return mockVM, nil
-			},
-		}
-		argsNewSCQuery.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
-			MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
-				return uint64(math.MaxUint64)
-			},
-		}
-		providedHash := []byte("provided hash")
-		providedRootHash := []byte("provided root hash")
-		providedNonce := uint64(123)
-		argsNewSCQuery.Marshaller = &marshallerMock.MarshalizerMock{}
-		counter := 0
-		argsNewSCQuery.StorageService = &storageStubs.ChainStorerStub{
-			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
-				return &storageStubs.StorerStub{
-					GetCalled: func(key []byte) ([]byte, error) {
-						return providedHash, nil
-					},
-					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
-						counter++
-						if counter > 2 {
-							return nil, fmt.Errorf("no scheduled")
-						}
-						hdr := &block.Header{
-							RootHash: providedRootHash,
-						}
-						buff, _ := argsNewSCQuery.Marshaller.Marshal(hdr)
-						return buff, nil
-					},
-				}, nil
-			},
-		}
-		argsNewSCQuery.HistoryRepository = &dblookupext.HistoryRepositoryStub{
-			IsEnabledCalled: func() bool {
-				return true
-			},
-			GetEpochByHashCalled: func(hash []byte) (uint32, error) {
-				require.Equal(t, providedHash, hash)
-				return 12, nil
-			},
-		}
-		recreateTrieWasCalled := false
-		providedAccountsAdapter := &stateMocks.AccountsStub{
-			RecreateTrieFromEpochCalled: func(options common.RootHashHolder) error {
-				recreateTrieWasCalled = true
-				assert.Equal(t, providedRootHash, options.GetRootHash())
-				return nil
-			},
-		}
-		argsNewSCQuery.BlockChainHook = &testscommon.BlockChainHookStub{
-			GetAccountsAdapterCalled: func() state.AccountsAdapter {
-				return providedAccountsAdapter
-			},
-		}
-
-		target, _ := NewSCQueryService(argsNewSCQuery)
-
-		dataArgs := make([][]byte, len(args))
-		for i, arg := range args {
-			dataArgs[i] = append(dataArgs[i], arg.Bytes()...)
-		}
-		query := process.SCQuery{
-			ScAddress: scAddress,
-			FuncName:  funcName,
-			Arguments: dataArgs,
-			BlockNonce: core.OptionalUint64{
-				Value:    providedNonce,
-				HasValue: true,
-			},
-		}
-
-		_, _, _ = target.ExecuteQuery(&query)
-		assert.True(t, runWasCalled)
-		assert.True(t, recreateTrieWasCalled)
-	})
-	t.Run("block nonce should work - current epoch", func(t *testing.T) {
-		t.Parallel()
-
-		runWasCalled := false
-
-		mockVM := &mock.VMExecutionHandlerStub{
-			RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (output *vmcommon.VMOutput, e error) {
-				runWasCalled = true
-				assert.Equal(t, int64(42), big.NewInt(0).SetBytes(input.Arguments[0]).Int64())
-				assert.Equal(t, int64(43), big.NewInt(0).SetBytes(input.Arguments[1]).Int64())
-				assert.Equal(t, scAddress, input.CallerAddr)
-				assert.Equal(t, funcName, input.Function)
-
-				return &vmcommon.VMOutput{
-					ReturnCode: vmcommon.Ok,
-				}, nil
-			},
-		}
-		argsNewSCQuery := createMockArgumentsForSCQuery()
-		argsNewSCQuery.VmContainer = &mock.VMContainerMock{
-			GetCalled: func(key []byte) (handler vmcommon.VMExecutionHandler, e error) {
-				return mockVM, nil
-			},
-		}
-		argsNewSCQuery.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
-			MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
-				return uint64(math.MaxUint64)
-			},
-		}
-		providedHash := []byte("provided hash")
-		providedRootHash := []byte("provided root hash")
-		providedNonce := uint64(123)
-		argsNewSCQuery.Marshaller = &marshallerMock.MarshalizerMock{}
-		argsNewSCQuery.StorageService = &storageStubs.ChainStorerStub{
-			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
-				return &storageStubs.StorerStub{
-					GetCalled: func(key []byte) ([]byte, error) {
-						return providedHash, nil
-					},
-					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
-						hdr := &block.Header{
-							RootHash: providedRootHash,
-						}
-						buff, _ := argsNewSCQuery.Marshaller.Marshal(hdr)
-						return buff, nil
-					},
-				}, nil
-			},
-		}
-		argsNewSCQuery.HistoryRepository = &dblookupext.HistoryRepositoryStub{
-			IsEnabledCalled: func() bool {
-				return true
-			},
-			GetEpochByHashCalled: func(hash []byte) (uint32, error) {
-				require.Equal(t, providedHash, hash)
-				return 12, nil
-			},
-		}
-		recreateTrieWasCalled := false
-		providedAccountsAdapter := &stateMocks.AccountsStub{
-			RecreateTrieCalled: func(rootHash []byte) error {
-				recreateTrieWasCalled = true
-				assert.Equal(t, providedRootHash, rootHash)
-				return nil
-			},
-		}
-		argsNewSCQuery.BlockChainHook = &testscommon.BlockChainHookStub{
-			GetAccountsAdapterCalled: func() state.AccountsAdapter {
-				return providedAccountsAdapter
-			},
-		}
-
-		target, _ := NewSCQueryService(argsNewSCQuery)
-
-		dataArgs := make([][]byte, len(args))
-		for i, arg := range args {
-			dataArgs[i] = append(dataArgs[i], arg.Bytes()...)
-		}
-		query := process.SCQuery{
-			ScAddress: scAddress,
-			FuncName:  funcName,
-			Arguments: dataArgs,
-			BlockNonce: core.OptionalUint64{
-				Value:    providedNonce,
-				HasValue: true,
-			},
-		}
-
-		_, _, _ = target.ExecuteQuery(&query)
-		assert.True(t, runWasCalled)
-		assert.True(t, recreateTrieWasCalled)
 	})
 }
 
@@ -770,11 +595,14 @@ func TestSCQueryService_RecreateTrie(t *testing.T) {
 		err := service.recreateTrie(testRootHash, nil)
 		assert.ErrorIs(t, err, process.ErrNilBlockHeader)
 	})
-	t.Run("should call RecreateTrie for genesis block", func(t *testing.T) {
+	t.Run("should call RecreateTrieFromEpoch if in deep history mode", func(t *testing.T) {
 		t.Parallel()
 
 		recreateTrieWasCalled := false
+		recreateTrieFromEpochWasCalled := false
+
 		argsNewSCQuery := createMockArgumentsForSCQuery()
+		argsNewSCQuery.IsInHistoricalBalancesMode = true
 		argsNewSCQuery.MainBlockChain = &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 				return nil // after the genesis we do not have a header as current block
@@ -785,126 +613,15 @@ func TestSCQueryService_RecreateTrie(t *testing.T) {
 				return &stateMocks.AccountsStub{
 					RecreateTrieCalled: func(rootHash []byte) error {
 						recreateTrieWasCalled = true
+						recreateTrieFromEpochWasCalled = false
+
 						assert.Equal(t, testRootHash, rootHash)
 						return nil
 					},
-				}
-			},
-		}
-
-		service, _ := NewSCQueryService(argsNewSCQuery)
-		err := service.recreateTrie(testRootHash, &block.Header{})
-		assert.Nil(t, err)
-		assert.True(t, recreateTrieWasCalled)
-	})
-	t.Run("should call RecreateTrie for block on epoch 0", func(t *testing.T) {
-		t.Parallel()
-
-		recreateTrieWasCalled := false
-		argsNewSCQuery := createMockArgumentsForSCQuery()
-		argsNewSCQuery.MainBlockChain = &testscommon.ChainHandlerStub{
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.Header{
-					Epoch: 0,
-				}
-			},
-		}
-		argsNewSCQuery.BlockChainHook = &testscommon.BlockChainHookStub{
-			GetAccountsAdapterCalled: func() state.AccountsAdapter {
-				return &stateMocks.AccountsStub{
-					RecreateTrieCalled: func(rootHash []byte) error {
-						recreateTrieWasCalled = true
-						assert.Equal(t, testRootHash, rootHash)
-						return nil
-					},
-				}
-			},
-		}
-
-		service, _ := NewSCQueryService(argsNewSCQuery)
-		err := service.recreateTrie(testRootHash, &block.Header{})
-		assert.Nil(t, err)
-		assert.True(t, recreateTrieWasCalled)
-	})
-	t.Run("should call RecreateTrie for block on epoch 1", func(t *testing.T) {
-		t.Parallel()
-
-		recreateTrieWasCalled := false
-		argsNewSCQuery := createMockArgumentsForSCQuery()
-		argsNewSCQuery.MainBlockChain = &testscommon.ChainHandlerStub{
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.Header{
-					Epoch: 1,
-				}
-			},
-		}
-		argsNewSCQuery.BlockChainHook = &testscommon.BlockChainHookStub{
-			GetAccountsAdapterCalled: func() state.AccountsAdapter {
-				return &stateMocks.AccountsStub{
-					RecreateTrieCalled: func(rootHash []byte) error {
-						recreateTrieWasCalled = true
-						assert.Equal(t, testRootHash, rootHash)
-						return nil
-					},
-				}
-			},
-		}
-
-		service, _ := NewSCQueryService(argsNewSCQuery)
-		err := service.recreateTrie(testRootHash, &block.Header{
-			Epoch: 0,
-		})
-		assert.Nil(t, err)
-		assert.True(t, recreateTrieWasCalled)
-	})
-	t.Run("should call RecreateTrie for block on epoch 2", func(t *testing.T) {
-		t.Parallel()
-
-		recreateTrieWasCalled := false
-		argsNewSCQuery := createMockArgumentsForSCQuery()
-		argsNewSCQuery.MainBlockChain = &testscommon.ChainHandlerStub{
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.Header{
-					Epoch: 3,
-				}
-			},
-		}
-		argsNewSCQuery.BlockChainHook = &testscommon.BlockChainHookStub{
-			GetAccountsAdapterCalled: func() state.AccountsAdapter {
-				return &stateMocks.AccountsStub{
-					RecreateTrieCalled: func(rootHash []byte) error {
-						recreateTrieWasCalled = true
-						assert.Equal(t, testRootHash, rootHash)
-						return nil
-					},
-				}
-			},
-		}
-
-		service, _ := NewSCQueryService(argsNewSCQuery)
-		err := service.recreateTrie(testRootHash, &block.Header{
-			Epoch: 2,
-		})
-		assert.Nil(t, err)
-		assert.True(t, recreateTrieWasCalled)
-	})
-	t.Run("should call RecreateTrieFromEpoch for block on epoch 3", func(t *testing.T) {
-		t.Parallel()
-
-		recreateTrieWasCalled := false
-		argsNewSCQuery := createMockArgumentsForSCQuery()
-		argsNewSCQuery.MainBlockChain = &testscommon.ChainHandlerStub{
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.Header{
-					Epoch: 3,
-				}
-			},
-		}
-		argsNewSCQuery.BlockChainHook = &testscommon.BlockChainHookStub{
-			GetAccountsAdapterCalled: func() state.AccountsAdapter {
-				return &stateMocks.AccountsStub{
 					RecreateTrieFromEpochCalled: func(options common.RootHashHolder) error {
-						recreateTrieWasCalled = true
+						recreateTrieWasCalled = false
+						recreateTrieFromEpochWasCalled = true
+
 						assert.Equal(t, testRootHash, options.GetRootHash())
 						return nil
 					},
@@ -913,10 +630,53 @@ func TestSCQueryService_RecreateTrie(t *testing.T) {
 		}
 
 		service, _ := NewSCQueryService(argsNewSCQuery)
-		err := service.recreateTrie(testRootHash, &block.Header{
-			Epoch: 0,
-		})
+
+		// For genesis block, RecreateTrieFromEpoch should be called
+		err := service.recreateTrie(testRootHash, &block.Header{})
 		assert.Nil(t, err)
+		assert.True(t, recreateTrieFromEpochWasCalled)
+		assert.False(t, recreateTrieWasCalled)
+	})
+	t.Run("should call RecreateTrie if not in deep history mode", func(t *testing.T) {
+		t.Parallel()
+
+		recreateTrieWasCalled := false
+		recreateTrieFromEpochWasCalled := false
+
+		argsNewSCQuery := createMockArgumentsForSCQuery()
+		argsNewSCQuery.IsInHistoricalBalancesMode = false
+		argsNewSCQuery.MainBlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return nil // after the genesis we do not have a header as current block
+			},
+		}
+		argsNewSCQuery.BlockChainHook = &testscommon.BlockChainHookStub{
+			GetAccountsAdapterCalled: func() state.AccountsAdapter {
+				return &stateMocks.AccountsStub{
+					RecreateTrieCalled: func(rootHash []byte) error {
+						recreateTrieWasCalled = true
+						recreateTrieFromEpochWasCalled = false
+
+						assert.Equal(t, testRootHash, rootHash)
+						return nil
+					},
+					RecreateTrieFromEpochCalled: func(options common.RootHashHolder) error {
+						recreateTrieWasCalled = false
+						recreateTrieFromEpochWasCalled = true
+
+						assert.Equal(t, testRootHash, options.GetRootHash())
+						return nil
+					},
+				}
+			},
+		}
+
+		service, _ := NewSCQueryService(argsNewSCQuery)
+
+		// For genesis block, RecreateTrieFromEpoch should be called
+		err := service.recreateTrie(testRootHash, &block.Header{})
+		assert.Nil(t, err)
+		assert.False(t, recreateTrieFromEpochWasCalled)
 		assert.True(t, recreateTrieWasCalled)
 	})
 }

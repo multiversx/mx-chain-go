@@ -157,7 +157,7 @@ func SetupTestContextWithGasSchedule(t *testing.T, gasSchedule map[string]map[st
 		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
 	}, context.EpochNotifier)
 	context.RoundNotifier = &epochNotifier.RoundNotifierStub{}
-	context.EnableRoundsHandler, _ = enablers.NewEnableRoundsHandler(integrationTests.GetDefaultRoundsConfig(), context.RoundNotifier)
+	context.EnableRoundsHandler, _ = enablers.NewEnableRoundsHandler(testscommon.GetDefaultRoundsConfig(), context.RoundNotifier)
 	context.WasmVMChangeLocker = &sync.RWMutex{}
 
 	context.initAccounts()

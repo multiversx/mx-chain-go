@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 )
@@ -128,7 +129,7 @@ func TestAsyncCallDisabled(t *testing.T) {
 		SCProcessorV2EnableEpoch:                    integrationTests.UnreachableEpoch,
 	}
 
-	roundsConfig := integrationTests.GetDefaultRoundsConfig()
+	roundsConfig := testscommon.GetDefaultRoundsConfig()
 	activationRound := roundsConfig.RoundActivations["DisableAsyncCallV1"]
 	activationRound.Round = "0"
 	roundsConfig.RoundActivations["DisableAsyncCallV1"] = activationRound
