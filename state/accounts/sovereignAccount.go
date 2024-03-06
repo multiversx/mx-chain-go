@@ -32,6 +32,9 @@ func NewSovereignAccount(
 	if check.IfNil(trieLeafParser) {
 		return nil, errors.ErrNilTrieLeafParser
 	}
+	if check.IfNil(esdtBalance) {
+		return nil, errors.ErrNilESDTAsBalanceHandler
+	}
 
 	userAcc := &userAccount{
 		UserAccountData: UserAccountData{
@@ -43,8 +46,10 @@ func NewSovereignAccount(
 		dataTrieLeafParser: trieLeafParser,
 	}
 
-	sovereignAcc := &sovereignAccount{userAcc, esdtBalance}
-	return sovereignAcc, nil
+	return &sovereignAccount{
+		userAccount: userAcc,
+		esdtBalance: esdtBalance,
+	}, nil
 }
 
 // AddToBalance adds new value to balance
@@ -60,4 +65,9 @@ func (s *sovereignAccount) SubFromBalance(value *big.Int) error {
 // GetBalance returns the actual balance from the account
 func (s *sovereignAccount) GetBalance() *big.Int {
 	return s.esdtBalance.GetBalance(s.dataTrieInteractor)
+}
+
+// IsInterfaceNil checks if the underlying pointer is nil
+func (s *sovereignAccount) IsInterfaceNil() bool {
+	return s == nil
 }
