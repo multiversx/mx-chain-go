@@ -1829,7 +1829,7 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInBatches(t *testing.T, 
 	require.Nil(t, err)
 	balanceBeforeUnbonding, _ := big.NewInt(0).SetString(accountValidatorOwner.Balance, 10)
 
-	log.Info("Step 1. Create 3 transactions for unstaking: first one unstaking 11 egld each, second one unstaking 12 egld and third one unstaking 13 egld.")
+	log.Info("Step 1. Create 3 transactions for unstaking: first one unstaking 11 egld, second one unstaking 12 egld and third one unstaking 13 egld.")
 	log.Info("Step 2. Send the transactions in consecutive epochs, one TX in each epoch.")
 
 	unStakeValue1 := big.NewInt(11)
@@ -1842,8 +1842,8 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInBatches(t *testing.T, 
 
 	unStakeTxFee, _ := big.NewInt(0).SetString(unStakeTx.Fee, 10)
 
-	epochIncr := int32(1)
-	err = cs.GenerateBlocksUntilEpochIsReached(targetEpoch + epochIncr)
+	testEpoch := targetEpoch + 1
+	err = cs.GenerateBlocksUntilEpochIsReached(testEpoch)
 	require.Nil(t, err)
 
 	unStakeValue2 := big.NewInt(12)
@@ -1854,8 +1854,8 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInBatches(t *testing.T, 
 	require.Nil(t, err)
 	require.NotNil(t, unStakeTx)
 
-	epochIncr++
-	err = cs.GenerateBlocksUntilEpochIsReached(targetEpoch + epochIncr)
+	testEpoch++
+	err = cs.GenerateBlocksUntilEpochIsReached(testEpoch)
 	require.Nil(t, err)
 
 	unStakeValue3 := big.NewInt(13)
@@ -1866,8 +1866,8 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInBatches(t *testing.T, 
 	require.Nil(t, err)
 	require.NotNil(t, unStakeTx)
 
-	epochIncr++
-	err = cs.GenerateBlocksUntilEpochIsReached(targetEpoch + epochIncr)
+	testEpoch++
+	err = cs.GenerateBlocksUntilEpochIsReached(testEpoch)
 	require.Nil(t, err)
 
 	// check bls key is still staked
@@ -1905,8 +1905,8 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInBatches(t *testing.T, 
 
 	log.Info("Step 3. Wait for the unbonding epoch to start")
 
-	epochIncr += 3
-	err = cs.GenerateBlocksUntilEpochIsReached(targetEpoch + epochIncr)
+	testEpoch += 3
+	err = cs.GenerateBlocksUntilEpochIsReached(testEpoch)
 	require.Nil(t, err)
 
 	log.Info("Step 4.1. Create from the owner of staked nodes a transaction to withdraw the unstaked funds")
@@ -1943,8 +1943,8 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInBatches(t *testing.T, 
 
 	log.Info("Step 4.2. Create from the owner of staked nodes a transaction to withdraw the unstaked funds")
 
-	epochIncr++
-	err = cs.GenerateBlocksUntilEpochIsReached(targetEpoch + epochIncr)
+	testEpoch++
+	err = cs.GenerateBlocksUntilEpochIsReached(testEpoch)
 	require.Nil(t, err)
 
 	txDataField = fmt.Sprintf("unBondTokens@%s", blsKeys[0])
@@ -1971,8 +1971,8 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInBatches(t *testing.T, 
 
 	log.Info("Step 4.3. Create from the owner of staked nodes a transaction to withdraw the unstaked funds")
 
-	epochIncr++
-	err = cs.GenerateBlocksUntilEpochIsReached(targetEpoch + epochIncr)
+	testEpoch++
+	err = cs.GenerateBlocksUntilEpochIsReached(testEpoch)
 	require.Nil(t, err)
 
 	txDataField = fmt.Sprintf("unBondTokens@%s", blsKeys[0])
@@ -2249,8 +2249,8 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInEpoch(t *testing.T, cs
 
 	log.Info("Step 3. Wait for the unbonding epoch to start")
 
-	epochIncr := int32(3)
-	err = cs.GenerateBlocksUntilEpochIsReached(targetEpoch + epochIncr)
+	testEpoch := targetEpoch + 3
+	err = cs.GenerateBlocksUntilEpochIsReached(testEpoch)
 	require.Nil(t, err)
 
 	log.Info("Step 4.1. Create from the owner of staked nodes a transaction to withdraw the unstaked funds")
