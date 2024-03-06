@@ -665,8 +665,6 @@ func CreateFullGenesisBlocks(
 	dataComponents.DataPool = dataPool
 	dataComponents.BlockChain = blkc
 
-	roundsConfig := GetDefaultRoundsConfig()
-
 	argsGenesis := genesisProcess.ArgsGenesisBlockCreator{
 		Core:              coreComponents,
 		Data:              dataComponents,
@@ -729,10 +727,11 @@ func CreateFullGenesisBlocks(
 		AccountsParser:      accountsParser,
 		SmartContractParser: smartContractParser,
 		BlockSignKeyGen:     &mock.KeyGenMock{},
-		EpochConfig: &config.EpochConfig{
+		EpochConfig: config.EpochConfig{
 			EnableEpochs: enableEpochsConfig,
 		},
-		RoundConfig:             &roundsConfig,
+		RoundConfig:             testscommon.GetDefaultRoundsConfig(),
+		HeaderVersionConfigs:    testscommon.GetDefaultHeaderVersionConfig(),
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 	}
@@ -835,9 +834,11 @@ func CreateGenesisMetaBlock(
 		},
 		BlockSignKeyGen:  &mock.KeyGenMock{},
 		GenesisNodePrice: big.NewInt(1000),
-		EpochConfig: &config.EpochConfig{
+		EpochConfig: config.EpochConfig{
 			EnableEpochs: enableEpochsConfig,
 		},
+		RoundConfig:             testscommon.GetDefaultRoundsConfig(),
+		HeaderVersionConfigs:    testscommon.GetDefaultHeaderVersionConfig(),
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 	}
@@ -1379,7 +1380,7 @@ func CreateNodesWithEnableEpochsAndVmConfig(
 		nodesPerShard,
 		numMetaChainNodes,
 		epochConfig,
-		GetDefaultRoundsConfig(),
+		testscommon.GetDefaultRoundsConfig(),
 		vmConfig,
 	)
 }

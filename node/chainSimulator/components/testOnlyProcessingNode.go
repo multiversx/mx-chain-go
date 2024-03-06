@@ -201,6 +201,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		EconomicsConfig:          *args.Configs.EconomicsConfig,
 		SystemSCConfig:           *args.Configs.SystemSCConfig,
 		EpochConfig:              *args.Configs.EpochConfig,
+		RoundConfig:              *args.Configs.RoundConfig,
 		ConfigurationPathsHolder: *args.Configs.ConfigurationPathsHolder,
 		NodesCoordinator:         instance.NodesCoordinator,
 		DataComponents:           instance.DataComponentsHolder,

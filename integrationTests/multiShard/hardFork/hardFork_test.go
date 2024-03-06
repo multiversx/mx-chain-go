@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	vmFactory "github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
@@ -406,8 +407,6 @@ func hardForkImport(
 		dataComponents.DataPool = node.DataPool
 		dataComponents.BlockChain = node.BlockChain
 
-		roundConfig := integrationTests.GetDefaultRoundsConfig()
-
 		argsGenesis := process.ArgsGenesisBlockCreator{
 			GenesisTime:       0,
 			StartEpochNum:     100,
@@ -479,7 +478,7 @@ func hardForkImport(
 			AccountsParser:      &genesisMocks.AccountsParserStub{},
 			SmartContractParser: &mock.SmartContractParserStub{},
 			BlockSignKeyGen:     &mock.KeyGenMock{},
-			EpochConfig: &config.EpochConfig{
+			EpochConfig: config.EpochConfig{
 				EnableEpochs: config.EnableEpochs{
 					BuiltInFunctionsEnableEpoch:        0,
 					SCDeployEnableEpoch:                0,
@@ -491,7 +490,8 @@ func hardForkImport(
 					DelegationSmartContractEnableEpoch: 0,
 				},
 			},
-			RoundConfig:             &roundConfig,
+			RoundConfig:             testscommon.GetDefaultRoundsConfig(),
+			HeaderVersionConfigs:    testscommon.GetDefaultHeaderVersionConfig(),
 			HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 			TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 		}
