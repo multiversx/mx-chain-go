@@ -109,6 +109,7 @@ type EnableEpochs struct {
 	NFTStopCreateEnableEpoch                                 uint32
 	ChangeOwnerAddressCrossShardThroughSCEnableEpoch         uint32
 	FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch uint32
+	CurrentRandomnessOnSortingEnableEpoch                    uint32
 	BLSMultiSignerEnableEpoch                                []MultiSignerConfig
 }
 

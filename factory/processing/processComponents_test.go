@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/factory"
+	disabledStatistics "github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory/mock"
@@ -80,6 +81,7 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 	args := processComp.ProcessComponentsFactoryArgs{
 		Config:         testscommon.GetGeneralConfig(),
 		EpochConfig:    config.EpochConfig{},
+		RoundConfig:    testscommon.GetDefaultRoundsConfig(),
 		PrefConfigs:    config.Preferences{},
 		ImportDBConfig: config.ImportDbConfig{},
 		FlagsConfig: config.ContextFlagsConfig{
@@ -237,12 +239,13 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 			Outport: &outport.OutportStub{},
 		},
 		StatusCoreComponents: &factoryMocks.StatusCoreComponentsStub{
-			AppStatusHandlerField: &statusHandler.AppStatusHandlerStub{},
+			AppStatusHandlerField:  &statusHandler.AppStatusHandlerStub{},
+			StateStatsHandlerField: disabledStatistics.NewStateStatistics(),
 		},
 		TxExecutionOrderHandler: &txExecOrderStub.TxExecutionOrderHandlerStub{},
 	}
 
-	args.State = components.GetStateComponents(args.CoreData)
+	args.State = components.GetStateComponents(args.CoreData, args.StatusCoreComponents)
 
 	return args
 }

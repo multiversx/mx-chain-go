@@ -11,20 +11,31 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func createInitialNodeFacadeArgs() ArgInitialNodeFacade {
+	return ArgInitialNodeFacade{
+		ApiInterface:                "127.0.0.1:8080",
+		PprofEnabled:                true,
+		P2PPrometheusMetricsEnabled: false,
+		StatusMetricsHandler:        &testscommon.StatusMetricsStub{},
+	}
+}
+
 func TestInitialNodeFacade(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil status metrics should error", func(t *testing.T) {
 		t.Parallel()
 
-		inf, err := NewInitialNodeFacade("127.0.0.1:8080", true, nil)
+		args := createInitialNodeFacadeArgs()
+		args.StatusMetricsHandler = nil
+		inf, err := NewInitialNodeFacade(args)
 		assert.Equal(t, facade.ErrNilStatusMetrics, err)
 		assert.Nil(t, inf)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		inf, err := NewInitialNodeFacade("127.0.0.1:8080", true, &testscommon.StatusMetricsStub{})
+		inf, err := NewInitialNodeFacade(createInitialNodeFacadeArgs())
 		assert.Nil(t, err)
 		assert.NotNil(t, inf)
 	})
@@ -40,7 +51,9 @@ func TestInitialNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	}()
 
 	apiInterface := "127.0.0.1:7799"
-	inf, err := NewInitialNodeFacade(apiInterface, true, &testscommon.StatusMetricsStub{})
+	args := createInitialNodeFacadeArgs()
+	args.ApiInterface = apiInterface
+	inf, err := NewInitialNodeFacade(args)
 	assert.Nil(t, err)
 
 	inf.SetSyncer(nil)
@@ -333,6 +346,10 @@ func TestInitialNodeFacade_AllMethodsShouldNotPanic(t *testing.T) {
 	assert.Nil(t, keys)
 	assert.Equal(t, errNodeStarting, err)
 
+	left, err := inf.GetWaitingEpochsLeftForPublicKey("")
+	assert.Zero(t, left)
+	assert.Equal(t, errNodeStarting, err)
+
 	assert.NotNil(t, inf)
 }
 
@@ -342,6 +359,6 @@ func TestInitialNodeFacade_IsInterfaceNil(t *testing.T) {
 	var inf *initialNodeFacade
 	assert.True(t, inf.IsInterfaceNil())
 
-	inf, _ = NewInitialNodeFacade("127.0.0.1:7799", true, &testscommon.StatusMetricsStub{})
+	inf, _ = NewInitialNodeFacade(createInitialNodeFacadeArgs())
 	assert.False(t, inf.IsInterfaceNil())
 }

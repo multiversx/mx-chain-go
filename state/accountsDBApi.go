@@ -202,10 +202,6 @@ func (accountsDB *accountsDBApi) CancelPrune(_ []byte, _ TriePruningIdentifier) 
 func (accountsDB *accountsDBApi) SnapshotState(_ []byte, _ uint32) {
 }
 
-// SetStateCheckpoint is a not permitted operation in this implementation and thus, does nothing
-func (accountsDB *accountsDBApi) SetStateCheckpoint(_ []byte) {
-}
-
 // IsPruningEnabled will call the inner accountsAdapter method
 func (accountsDB *accountsDBApi) IsPruningEnabled() bool {
 	return accountsDB.innerAccountsAdapter.IsPruningEnabled()

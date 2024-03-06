@@ -43,12 +43,12 @@ func (stsm *snapshotTrieStorageManager) Get(key []byte) ([]byte, error) {
 	if core.IsClosingError(err) {
 		return nil, err
 	}
-	if len(val) != 0 {
-		stsm.putInPreviousStorerIfAbsent(key, val, epoch)
-		return val, nil
+	if len(val) == 0 {
+		return nil, ErrKeyNotFound
 	}
 
-	return stsm.getFromOtherStorers(key)
+	stsm.putInPreviousStorerIfAbsent(key, val, epoch)
+	return val, nil
 }
 
 func (stsm *snapshotTrieStorageManager) putInPreviousStorerIfAbsent(key []byte, val []byte, epoch core.OptionalUint32) {

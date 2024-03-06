@@ -98,10 +98,6 @@ func (a *accountsAdapter) CancelPrune(_ []byte, _ state.TriePruningIdentifier) {
 func (a *accountsAdapter) SnapshotState(_ []byte, _ uint32) {
 }
 
-// SetStateCheckpoint -
-func (a *accountsAdapter) SetStateCheckpoint(_ []byte) {
-}
-
 // IsPruningEnabled -
 func (a *accountsAdapter) IsPruningEnabled() bool {
 	return false

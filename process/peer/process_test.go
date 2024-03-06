@@ -99,10 +99,9 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 				MaxGasPriceSetGuardian: "100000",
 			},
 		},
-		EpochNotifier:               &epochNotifier.EpochNotifierStub{},
-		EnableEpochsHandler:         &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
-		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
+		EpochNotifier:       &epochNotifier.EpochNotifierStub{},
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
 
@@ -123,10 +122,7 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 		MaxComputableRounds:                  1000,
 		MaxConsecutiveRoundsOfRatingDecrease: 2000,
 		NodesSetup:                           &mock.NodesSetupStub{},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsSwitchJailWaitingFlagEnabledField:    true,
-			IsBelowSignedThresholdFlagEnabledField: true,
-		},
+		EnableEpochsHandler:                  enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.SwitchJailWaitingFlag, common.BelowSignedThresholdFlag),
 	}
 	return arguments
 }
@@ -269,6 +265,28 @@ func TestNewValidatorStatisticsProcessor_NilDataPoolShouldErr(t *testing.T) {
 
 	assert.Nil(t, validatorStatistics)
 	assert.Equal(t, process.ErrNilDataPoolHolder, err)
+}
+
+func TestNewValidatorStatisticsProcessor_NilEnableEpochsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockArguments()
+	arguments.EnableEpochsHandler = nil
+	validatorStatistics, err := peer.NewValidatorStatisticsProcessor(arguments)
+
+	assert.Nil(t, validatorStatistics)
+	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
+}
+
+func TestNewValidatorStatisticsProcessor_InvalidEnableEpochsHandlerhouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockArguments()
+	arguments.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
+	validatorStatistics, err := peer.NewValidatorStatisticsProcessor(arguments)
+
+	assert.Nil(t, validatorStatistics)
+	assert.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
 }
 
 func TestNewValidatorStatisticsProcessor(t *testing.T) {
@@ -1386,7 +1404,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksMissedRoundsGreaterTha
 	arguments.NodesCoordinator = nodesCoordinatorMock
 	arguments.MaxComputableRounds = 1
 	enableEpochsHandler, _ := arguments.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	enableEpochsHandler.IsStopDecreasingValidatorRatingWhenStuckFlagEnabledField = false
+	enableEpochsHandler.RemoveActiveFlags(common.StopDecreasingValidatorRatingWhenStuckFlag)
 	arguments.MaxConsecutiveRoundsOfRatingDecrease = 4
 
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
@@ -1397,7 +1415,7 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksMissedRoundsGreaterTha
 	require.Equal(t, 99, validatorRating)
 
 	// Flag to stop decreasing validator rating is set, but NOT enough missed rounds to stop decreasing ratings => decrease validator rating again
-	enableEpochsHandler.IsStopDecreasingValidatorRatingWhenStuckFlagEnabledField = true
+	enableEpochsHandler.AddActiveFlags(common.StopDecreasingValidatorRatingWhenStuckFlag)
 	err = validatorStatistics.CheckForMissedBlocks(4, 0, []byte("prev"), 0, 0)
 	require.Nil(t, err)
 	require.Equal(t, 98, validatorRating)
@@ -2301,7 +2319,7 @@ func TestValidatorStatistics_ProcessValidatorInfosEndOfEpochV2ComputesEligibleLe
 	enableEpochsHandler, _ := arguments.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
-	enableEpochsHandler.IsStakingV2FlagEnabledForActivationEpochCompletedField = true
+	enableEpochsHandler.AddActiveFlags(common.StakingV2FlagAfterEpoch)
 
 	tempRating1 := uint32(5000)
 	tempRating2 := uint32(8000)

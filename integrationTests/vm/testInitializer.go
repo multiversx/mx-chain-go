@@ -322,11 +322,6 @@ func createEconomicsData(enableEpochsConfig config.EnableEpochs) (process.Econom
 	minGasLimit := strconv.FormatUint(1, 10)
 	testProtocolSustainabilityAddress := "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp"
 
-	builtInCost, _ := economics.NewBuiltInFunctionsCost(&economics.ArgsBuiltInFunctionCost{
-		ArgsParser:  smartContract.NewArgumentParser(),
-		GasSchedule: mock.NewGasScheduleNotifierMock(defaults.FillGasMapInternal(map[string]map[string]uint64{}, 1)),
-	})
-
 	realEpochNotifier := forking.NewGenericEpochNotifier()
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, realEpochNotifier)
 
@@ -371,10 +366,9 @@ func createEconomicsData(enableEpochsConfig config.EnableEpochs) (process.Econom
 				MaxGasPriceSetGuardian: "2000000000",
 			},
 		},
-		EpochNotifier:               realEpochNotifier,
-		EnableEpochsHandler:         enableEpochsHandler,
-		BuiltInFunctionsCostHandler: builtInCost,
-		TxVersionChecker:            versioning.NewTxVersionChecker(minTransactionVersion),
+		EpochNotifier:       realEpochNotifier,
+		EnableEpochsHandler: enableEpochsHandler,
+		TxVersionChecker:    versioning.NewTxVersionChecker(minTransactionVersion),
 	}
 
 	return economics.NewEconomicsData(argsNewEconomicsData)
@@ -818,6 +812,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	epochNotifierInstance process.EpochNotifier,
 	guardianChecker process.GuardianChecker,
 	roundNotifierInstance process.RoundNotifier,
+	chainHandler data.ChainHandler,
 ) (*ResultsCreateTxProcessor, error) {
 	if check.IfNil(poolsHolder) {
 		poolsHolder = dataRetrieverMock.NewPoolsHolderMock()
@@ -980,6 +975,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		Marshalizer:            integrationtests.TestMarshalizer,
 		Hasher:                 integrationtests.TestHasher,
 		DataFieldParser:        dataFieldParser,
+		BlockChainHook:         blockChainHook,
 	}
 
 	argsNewSCProcessor.VMOutputCacher = txSimulatorProcessorArgs.VMOutputCacher
@@ -1006,6 +1002,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		Accounts:            simulationAccountsDB,
 		ShardCoordinator:    shardCoordinator,
 		EnableEpochsHandler: argsNewSCProcessor.EnableEpochsHandler,
+		BlockChain:          chainHandler,
 	}
 	apiTransactionEvaluator, err := transactionEvaluator.NewAPITransactionEvaluator(argsTransactionEvaluator)
 	if err != nil {
@@ -1077,7 +1074,7 @@ func CreatePreparedTxProcessorAndAccountsWithVMs(
 		senderAddressBytes,
 		senderBalance,
 		enableEpochsConfig,
-		integrationTests.GetDefaultRoundsConfig())
+		testscommon.GetDefaultRoundsConfig())
 }
 
 // CreatePreparedTxProcessorAndAccountsWithVMsWithRoundsConfig -
@@ -1128,6 +1125,7 @@ func CreatePreparedTxProcessorAndAccountsWithVMsWithRoundsConfig(
 		epochNotifierInstance,
 		guardedAccountHandler,
 		roundNotifierInstance,
+		chainHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -1174,13 +1172,13 @@ func CreatePreparedTxProcessorWithVMsAndCustomGasSchedule(
 		mock.NewMultiShardsCoordinatorMock(2),
 		integrationtests.CreateMemUnit(),
 		createMockGasScheduleNotifierWithCustomGasSchedule(updateGasSchedule),
-		integrationTests.GetDefaultRoundsConfig(),
+		testscommon.GetDefaultRoundsConfig(),
 	)
 }
 
 // CreatePreparedTxProcessorWithVMsWithShardCoordinator -
 func CreatePreparedTxProcessorWithVMsWithShardCoordinator(enableEpochsConfig config.EnableEpochs, shardCoordinator sharding.Coordinator) (*VMTestContext, error) {
-	return CreatePreparedTxProcessorWithVMsWithShardCoordinatorAndRoundConfig(enableEpochsConfig, integrationTests.GetDefaultRoundsConfig(), shardCoordinator)
+	return CreatePreparedTxProcessorWithVMsWithShardCoordinatorAndRoundConfig(enableEpochsConfig, testscommon.GetDefaultRoundsConfig(), shardCoordinator)
 }
 
 // CreatePreparedTxProcessorWithVMsWithShardCoordinatorAndRoundConfig -
@@ -1207,7 +1205,7 @@ func CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas(
 		shardCoordinator,
 		db,
 		gasScheduleNotifier,
-		integrationTests.GetDefaultRoundsConfig(),
+		testscommon.GetDefaultRoundsConfig(),
 		vmConfig,
 	)
 }
@@ -1279,6 +1277,7 @@ func CreatePreparedTxProcessorWithVMConfigWithShardCoordinatorDBAndGasAndRoundCo
 		epochNotifierInstance,
 		guardedAccountHandler,
 		roundNotifierInstance,
+		chainHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -1319,7 +1318,7 @@ func CreateTxProcessorWasmVMWithGasSchedule(
 		senderBalance,
 		gasScheduleMap,
 		enableEpochsConfig,
-		integrationTests.GetDefaultRoundsConfig(),
+		testscommon.GetDefaultRoundsConfig(),
 	)
 }
 
@@ -1374,6 +1373,7 @@ func CreateTxProcessorArwenVMWithGasScheduleAndRoundConfig(
 		epochNotifierInstance,
 		guardedAccountHandler,
 		roundNotifierInstance,
+		chainHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -1403,7 +1403,7 @@ func CreateTxProcessorWasmVMWithVMConfig(
 ) (*VMTestContext, error) {
 	return CreateTxProcessorArwenWithVMConfigAndRoundConfig(
 		enableEpochsConfig,
-		integrationTests.GetDefaultRoundsConfig(),
+		testscommon.GetDefaultRoundsConfig(),
 		vmConfig,
 		gasSchedule,
 	)
@@ -1455,6 +1455,7 @@ func CreateTxProcessorArwenWithVMConfigAndRoundConfig(
 		epochNotifierInstance,
 		guardedAccountHandler,
 		roundNotifierInstance,
+		chainHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -1492,7 +1493,7 @@ func CreatePreparedTxProcessorAndAccountsWithMockedVM(
 		senderAddressBytes,
 		senderBalance,
 		enableEpochs,
-		integrationTests.GetDefaultRoundsConfig(),
+		testscommon.GetDefaultRoundsConfig(),
 		wasmVMChangeLocker,
 	)
 }
@@ -1823,7 +1824,7 @@ func GetNodeIndex(nodeList []*integrationTests.TestProcessorNode, node *integrat
 
 // CreatePreparedTxProcessorWithVMsMultiShard -
 func CreatePreparedTxProcessorWithVMsMultiShard(selfShardID uint32, enableEpochsConfig config.EnableEpochs) (*VMTestContext, error) {
-	return CreatePreparedTxProcessorWithVMsMultiShardAndRoundConfig(selfShardID, enableEpochsConfig, integrationTests.GetDefaultRoundsConfig())
+	return CreatePreparedTxProcessorWithVMsMultiShardAndRoundConfig(selfShardID, enableEpochsConfig, testscommon.GetDefaultRoundsConfig())
 }
 
 // CreatePreparedTxProcessorWithVMsMultiShardAndRoundConfig -
@@ -1885,6 +1886,7 @@ func CreatePreparedTxProcessorWithVMsMultiShardRoundVMConfig(
 		epochNotifierInstance,
 		guardedAccountHandler,
 		roundNotifierInstance,
+		chainHandler,
 	)
 	if err != nil {
 		return nil, err

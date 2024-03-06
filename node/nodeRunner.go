@@ -727,8 +727,9 @@ func (nr *nodeRunner) createApiFacade(
 		RestAPIServerDebugMode: flagsConfig.EnableRestAPIServerDebugMode,
 		WsAntifloodConfig:      configs.GeneralConfig.WebServerAntiflood,
 		FacadeConfig: config.FacadeConfig{
-			RestApiInterface: flagsConfig.RestApiInterface,
-			PprofEnabled:     flagsConfig.EnablePprof,
+			RestApiInterface:            flagsConfig.RestApiInterface,
+			PprofEnabled:                flagsConfig.EnablePprof,
+			P2PPrometheusMetricsEnabled: flagsConfig.P2PPrometheusMetricsEnabled,
 		},
 		ApiRoutesConfig: *configs.ApiRoutesConfig,
 		AccountsState:   currentNode.stateComponents.AccountsAdapter(),
@@ -759,7 +760,14 @@ func (nr *nodeRunner) createHttpServer(managedStatusCoreComponents mainFactory.S
 	if check.IfNil(managedStatusCoreComponents) {
 		return nil, ErrNilStatusHandler
 	}
-	initialFacade, err := initial.NewInitialNodeFacade(nr.configs.FlagsConfig.RestApiInterface, nr.configs.FlagsConfig.EnablePprof, managedStatusCoreComponents.StatusMetrics())
+
+	argsInitialNodeFacade := initial.ArgInitialNodeFacade{
+		ApiInterface:                nr.configs.FlagsConfig.RestApiInterface,
+		PprofEnabled:                nr.configs.FlagsConfig.EnablePprof,
+		P2PPrometheusMetricsEnabled: nr.configs.FlagsConfig.P2PPrometheusMetricsEnabled,
+		StatusMetricsHandler:        managedStatusCoreComponents.StatusMetrics(),
+	}
+	initialFacade, err := initial.NewInitialNodeFacade(argsInitialNodeFacade)
 	if err != nil {
 		return nil, err
 	}
@@ -1217,6 +1225,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 	processArgs := processComp.ProcessComponentsFactoryArgs{
 		Config:                  *configs.GeneralConfig,
 		EpochConfig:             *configs.EpochConfig,
+		RoundConfig:             *configs.RoundConfig,
 		PrefConfigs:             *configs.PreferencesConfig,
 		ImportDBConfig:          *configs.ImportDbConfig,
 		AccountsParser:          accountsParser,

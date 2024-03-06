@@ -71,7 +71,7 @@ func createMockArgs(t *testing.T) *api.ApiResolverArgs {
 	cryptoComponents := componentsMock.GetCryptoComponents(coreComponents)
 	networkComponents := componentsMock.GetNetworkComponents(cryptoComponents)
 	dataComponents := componentsMock.GetDataComponents(coreComponents, shardCoordinator)
-	stateComponents := componentsMock.GetStateComponents(coreComponents)
+	stateComponents := componentsMock.GetStateComponents(coreComponents, componentsMock.GetStatusCoreComponents())
 	processComponents := componentsMock.GetProcessComponents(shardCoordinator, coreComponents, networkComponents, dataComponents, cryptoComponents, stateComponents)
 	argsB := componentsMock.GetBootStrapFactoryArgs()
 
@@ -347,6 +347,7 @@ func createMockSCQueryElementArgs() api.SCQueryElementArgs {
 			AppStatusHandlerCalled: func() core.AppStatusHandler {
 				return &statusHandler.AppStatusHandlerStub{}
 			},
+			StateStatsHandlerField: &testscommon.StateStatisticsHandlerStub{},
 		},
 		DataComponents: &mock.DataComponentsMock{
 			Storage:  genericMocks.NewChainStorerMock(0),

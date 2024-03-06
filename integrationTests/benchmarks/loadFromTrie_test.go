@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	disabledStatistics "github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -17,7 +18,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	testStorage "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
-	"github.com/multiversx/mx-chain-go/trie/hashesHolder/disabled"
 	"github.com/stretchr/testify/require"
 )
 
@@ -140,7 +140,7 @@ func getTrieStorageManager(store storage.Storer, marshaller marshal.Marshalizer,
 	args.MainStorer = store
 	args.Marshalizer = marshaller
 	args.Hasher = hasher
-	args.CheckpointHashesHolder = disabled.NewDisabledCheckpointHashesHolder()
+	args.StatsCollector = disabledStatistics.NewStateStatistics()
 
 	trieStorageManager, _ := trie.NewTrieStorageManager(args)
 

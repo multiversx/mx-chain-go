@@ -101,7 +101,7 @@ func createFacadeArg(tpn *TestProcessorNode) nodeFacade.ArgNodeFacade {
 
 func createTestApiConfig() config.ApiRoutesConfig {
 	routes := map[string][]string{
-		"node":        {"/status", "/metrics", "/heartbeatstatus", "/statistics", "/p2pstatus", "/debug", "/peerinfo", "/bootstrapstatus", "/connected-peers-ratings", "/managed-keys/count", "/managed-keys", "/loaded-keys", "/managed-keys/eligible", "/managed-keys/waiting"},
+		"node":        {"/status", "/metrics", "/heartbeatstatus", "/statistics", "/p2pstatus", "/debug", "/peerinfo", "/bootstrapstatus", "/connected-peers-ratings", "/managed-keys/count", "/managed-keys", "/loaded-keys", "/managed-keys/eligible", "/managed-keys/waiting", "/waiting-epochs-left/:key"},
 		"address":     {"/:address", "/:address/balance", "/:address/username", "/:address/code-hash", "/:address/key/:key", "/:address/esdt", "/:address/esdt/:tokenIdentifier"},
 		"hardfork":    {"/trigger"},
 		"network":     {"/status", "/total-staked", "/economics", "/config"},
@@ -179,6 +179,7 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 		Hasher:                    TestHasher,
 		VMOutputCacher:            &testscommon.CacherMock{},
 		DataFieldParser:           dataFieldParser,
+		BlockChainHook:            tpn.BlockchainHook,
 	}
 
 	txSimulator, err := transactionEvaluator.NewTransactionSimulator(argSimulator)
@@ -194,6 +195,7 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 		Accounts:            wrappedAccounts,
 		ShardCoordinator:    tpn.ShardCoordinator,
 		EnableEpochsHandler: tpn.EnableEpochsHandler,
+		BlockChain:          tpn.BlockChain,
 	}
 	apiTransactionEvaluator, err := transactionEvaluator.NewAPITransactionEvaluator(argsTransactionEvaluator)
 	log.LogIfError(err)
@@ -278,6 +280,7 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 		AccountsParser:           &genesisMocks.AccountsParserStub{},
 		GasScheduleNotifier:      &testscommon.GasScheduleNotifierMock{},
 		ManagedPeersMonitor:      &testscommon.ManagedPeersMonitorStub{},
+		NodesCoordinator:         tpn.NodesCoordinator,
 	}
 
 	apiResolver, err := external.NewNodeApiResolver(argsApiResolver)

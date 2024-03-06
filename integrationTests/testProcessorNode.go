@@ -219,8 +219,6 @@ var DelegationManagerConfigChangeAddress = "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02c
 // sizeCheckDelta the maximum allowed bufer overhead (p2p unmarshalling)
 const sizeCheckDelta = 100
 
-const stateCheckpointModulus = uint(100)
-
 // UnreachableEpoch defines an unreachable epoch for integration tests
 const UnreachableEpoch = uint32(1000000)
 
@@ -278,7 +276,6 @@ type ArgTestProcessorNode struct {
 	TrieStore               storage.Storer
 	HardforkPk              crypto.PublicKey
 	GenesisFile             string
-	StateCheckpointModulus  *IntWrapper
 	NodeKeys                *TestNodeKeys
 	NodesSetup              sharding.GenesisNodesSetupHandler
 	NodesCoordinator        nodesCoordinator.NodesCoordinator
@@ -486,7 +483,7 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 	}
 
 	if args.RoundsConfig == nil {
-		defaultRoundsConfig := GetDefaultRoundsConfig()
+		defaultRoundsConfig := testscommon.GetDefaultRoundsConfig()
 		args.RoundsConfig = &defaultRoundsConfig
 	}
 	genericRoundNotifier := forking.NewGenericRoundNotifier()
@@ -820,11 +817,7 @@ func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
 	if args.WithSync {
 		tpn.initBlockProcessorWithSync()
 	} else {
-		scm := stateCheckpointModulus
-		if args.StateCheckpointModulus != nil {
-			scm = args.StateCheckpointModulus.Value
-		}
-		tpn.initBlockProcessor(scm)
+		tpn.initBlockProcessor()
 	}
 
 	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
@@ -1041,7 +1034,7 @@ func (tpn *TestProcessorNode) InitializeProcessors(gasMap map[string]map[string]
 		Uint64ByteSliceConverter: TestUint64Converter,
 	}
 	tpn.SCQueryService, _ = smartContract.NewSCQueryService(argsNewScQueryService)
-	tpn.initBlockProcessor(stateCheckpointModulus)
+	tpn.initBlockProcessor()
 	tpn.BroadcastMessenger, _ = sposFactory.GetBroadcastMessenger(
 		TestMarshalizer,
 		TestHasher,
@@ -1088,11 +1081,10 @@ func (tpn *TestProcessorNode) initChainHandler() {
 func (tpn *TestProcessorNode) initEconomicsData(economicsConfig *config.EconomicsConfig) {
 	tpn.EnableEpochs.PenalizedTooMuchGasEnableEpoch = 0
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
-		Economics:                   economicsConfig,
-		EpochNotifier:               tpn.EpochNotifier,
-		EnableEpochsHandler:         tpn.EnableEpochsHandler,
-		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
-		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
+		Economics:           economicsConfig,
+		EpochNotifier:       tpn.EpochNotifier,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
+		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
 	tpn.EconomicsData = economics.NewTestEconomicsData(economicsData)
@@ -2154,7 +2146,7 @@ func (tpn *TestProcessorNode) addMockVm(blockchainHook vmcommon.BlockchainHook) 
 	_ = tpn.VMContainer.Add(factory.InternalTestingVM, mockVM)
 }
 
-func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
+func (tpn *TestProcessorNode) initBlockProcessor() {
 	var err error
 
 	if tpn.ShardCoordinator.SelfId() != core.MetachainShardId {
@@ -2187,12 +2179,6 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 
 	statusComponents := GetDefaultStatusComponents()
 
-	triesConfig := config.Config{
-		StateTriesConfig: config.StateTriesConfig{
-			CheckpointRoundsModulus: stateCheckpointModulus,
-		},
-	}
-
 	statusCoreComponents := &testFactory.StatusCoreComponentsStub{
 		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
 	}
@@ -2203,7 +2189,7 @@ func (tpn *TestProcessorNode) initBlockProcessor(stateCheckpointModulus uint) {
 		BootstrapComponents:  bootstrapComponents,
 		StatusComponents:     statusComponents,
 		StatusCoreComponents: statusCoreComponents,
-		Config:               triesConfig,
+		Config:               config.Config{},
 		AccountsDB:           accountsDb,
 		ForkDetector:         tpn.ForkDetector,
 		NodesCoordinator:     tpn.NodesCoordinator,
@@ -3506,7 +3492,7 @@ func getDefaultNodesSetup(maxShards, numNodes uint32, address []byte, pksBytes m
 
 func getDefaultNodesCoordinator(maxShards uint32, pksBytes map[uint32][]byte) nodesCoordinator.NodesCoordinator {
 	return &shardingMocks.NodesCoordinatorStub{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []nodesCoordinator.Validator, err error) {
+		ComputeConsensusGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validators []nodesCoordinator.Validator, err error) {
 			v, _ := nodesCoordinator.NewValidator(pksBytes[shardId], 1, defaultChancesSelection)
 			return []nodesCoordinator.Validator{v}, nil
 		},
@@ -3536,16 +3522,5 @@ func GetDefaultEnableEpochsConfig() *config.EnableEpochs {
 		MiniBlockPartialExecutionEnableEpoch:            UnreachableEpoch,
 		FailExecutionOnEveryAPIErrorEnableEpoch:         UnreachableEpoch,
 		DynamicGasCostForDataTrieStorageLoadEnableEpoch: UnreachableEpoch,
-	}
-}
-
-// GetDefaultRoundsConfig -
-func GetDefaultRoundsConfig() config.RoundConfig {
-	return config.RoundConfig{
-		RoundActivations: map[string]config.ActivationRoundByName{
-			"DisableAsyncCallV1": {
-				Round: "18446744073709551615",
-			},
-		},
 	}
 }

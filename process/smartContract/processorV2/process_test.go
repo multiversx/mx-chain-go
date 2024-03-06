@@ -63,7 +63,7 @@ func createAccount(address []byte) state.UserAccountHandler {
 	argsAccCreation := stateFactory.ArgsAccountCreator{
 		Hasher:              &hashingMocks.HasherMock{},
 		Marshaller:          &marshallerMock.MarshalizerMock{},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 	}
 	accountFactory, _ := stateFactory.NewAccountCreator(argsAccCreation)
 	account, _ := accountFactory.CreateAccount(address)
@@ -125,7 +125,9 @@ func createMockSmartContractProcessorArguments() scrCommon.ArgsNewSmartContractP
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsSCDeployFlagEnabledField: true,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.SCDeployFlag
+			},
 		},
 		GasSchedule:        testscommon.NewGasScheduleNotifierMock(gasSchedule),
 		WasmVMChangeLocker: &sync.RWMutex{},
@@ -3255,7 +3257,7 @@ func TestScProcessor_ProcessSmartContractResultExecuteSCIfMetaAndBuiltIn(t *test
 			return process.BuiltInFunctionCall, process.BuiltInFunctionCall
 		},
 	}
-	enableEpochsHandlerStub := &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
+	enableEpochsHandlerStub := enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
 	arguments.EnableEpochsHandler = enableEpochsHandlerStub
 
 	sc, err := NewSmartContractProcessorV2(arguments)
@@ -3273,7 +3275,7 @@ func TestScProcessor_ProcessSmartContractResultExecuteSCIfMetaAndBuiltIn(t *test
 	require.True(t, executeCalled)
 
 	executeCalled = false
-	enableEpochsHandlerStub.IsBuiltInFunctionOnMetaFlagEnabledField = true
+	enableEpochsHandlerStub.AddActiveFlags(common.BuiltInFunctionOnMetaFlag)
 	_, err = sc.ProcessSmartContractResult(&scr)
 	require.Nil(t, err)
 	require.False(t, executeCalled)
@@ -4185,10 +4187,11 @@ func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
 		},
 		EpochNotifier: &epochNotifier.EpochNotifierStub{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsGasPriceModifierFlagEnabledField: true,
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.GasPriceModifierFlag
+			},
 		},
-		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
-		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
+		TxVersionChecker: &testscommon.TxVersionCheckerStub{},
 	}
 }
 

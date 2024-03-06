@@ -110,10 +110,6 @@ func (accountsDB *accountsDBApiWithHistory) CancelPrune(_ []byte, _ TriePruningI
 func (accountsDB *accountsDBApiWithHistory) SnapshotState(_ []byte, _ uint32) {
 }
 
-// SetStateCheckpoint is a not permitted operation in this implementation and thus, does nothing
-func (accountsDB *accountsDBApiWithHistory) SetStateCheckpoint(_ []byte) {
-}
-
 // IsPruningEnabled will return false
 func (accountsDB *accountsDBApiWithHistory) IsPruningEnabled() bool {
 	return false
