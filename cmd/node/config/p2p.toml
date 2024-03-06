@@ -48,9 +48,12 @@
     # RefreshIntervalInSec represents the time in seconds between querying for new peers
     RefreshIntervalInSec = 10
 
-    # ProtocolID represents the protocol that this node will advertize to other peers
-    # To connect to other nodes, those nodes should have the same ProtocolID string
-    ProtocolID = "/erd/kad/1.0.0"
+    # ProtocolIDs represents the protocols that this node will advertise to other peers
+    # To connect to other nodes, those nodes should have at least one common protocol string
+    ProtocolIDs = [
+        "/erd/kad/1.0.0",
+        "mvx-main",
+    ]
 
     # InitialPeerList represents the list of strings of some known nodes that will bootstrap this node
     # The address will be in a self-describing addressing format.
@@ -71,10 +74,10 @@
 
 [Sharding]
     # The targeted number of peer connections
-    TargetPeerCount = 36
+    TargetPeerCount = 41
     MaxIntraShardValidators = 7
     MaxCrossShardValidators = 15
-    MaxIntraShardObservers = 2
+    MaxIntraShardObservers = 7
     MaxCrossShardObservers = 3
     MaxSeeders = 2
 
