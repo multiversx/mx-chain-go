@@ -136,6 +136,21 @@ setFeeMarketAddressCall() {
         --send || return
 }
 
+setMultisigAddress() {
+    CHECK_VARIABLES ESDT_SAFE_ADDRESS MULTISIG_VERIFIER_ADDRESS || return
+
+    mxpy --verbose contract call ${ESDT_SAFE_ADDRESS} \
+        --pem=${WALLET} \
+        --proxy=${PROXY} \
+        --chain=${CHAIN_ID} \
+        --gas-limit=10000000 \
+        --function="setMultisigAddress" \
+        --arguments ${MULTISIG_VERIFIER_ADDRESS} \
+        --recall-nonce \
+        --wait-result \
+        --send || return
+}
+
 changeEsdtSafeContractOwnerToMultisig() {
     CHECK_VARIABLES ESDT_SAFE_ADDRESS MULTISIG_VERIFIER_ADDRESS || return
 

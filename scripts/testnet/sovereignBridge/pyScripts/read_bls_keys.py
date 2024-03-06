@@ -6,7 +6,7 @@ def read_and_concatenate_pubkeys(file_path):
     with open(file_path, 'r') as file:
         data = json.load(file)
         initial_nodes = data["initialNodes"]
-        pubkeys = [node["pubkey"] for node in initial_nodes]
+        pubkeys = [f"0x{node['pubkey']}" for node in initial_nodes]
         concatenated_pubkeys = ' '.join(pubkeys)
         return concatenated_pubkeys
 

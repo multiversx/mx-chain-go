@@ -55,6 +55,32 @@ depositTokenInSC() {
         --send || return
 }
 
+nftDepositInSC() {
+    manualUpdateConfigFile #update config file
+
+    CHECK_VARIABLES DEPOSIT_TOKEN_IDENTIFIER DEPOSIT_TOKEN_NR_DECIMALS DEPOSIT_TOKEN_AMOUNT_TO_TRANSFER || return
+
+    local AMOUNT_TO_TRANSFER=$(echo "scale=0; $DEPOSIT_TOKEN_AMOUNT_TO_TRANSFER*10^$DEPOSIT_TOKEN_NR_DECIMALS/1" | bc)
+
+    mxpy --verbose contract call ${WALLET_ADDRESS} \
+        --pem=${WALLET} \
+        --proxy=${PROXY} \
+        --chain=${CHAIN_ID} \
+        --gas-limit=20000000 \
+        --function="MultiESDTNFTTransfer" \
+        --arguments \
+           ${ESDT_SAFE_ADDRESS} \
+           1 \
+           str:SNFT-34c04c \
+           2 \
+           1 \
+           str:deposit \
+           ${WALLET_ADDRESS} \
+        --recall-nonce \
+        --wait-result \
+        --send || return
+}
+
 depositTokenInSCAdder() {
     manualUpdateConfigFile #update config file
 
@@ -113,6 +139,23 @@ issueTokenSovereign() {
     local HEX_TOKEN_IDENTIFIER=$(mxpy data parse --file="${SCRIPT_PATH}/issue-sovereign-token.interaction.json"  --expression="data['transactionOnNetwork']['logs']['events'][2]['topics'][0]")
     local TOKEN_IDENTIFIER=$(echo "$HEX_TOKEN_IDENTIFIER" | xxd -r -p)
     update-config DEPOSIT_TOKEN_IDENTIFIER_SOVEREIGN $TOKEN_IDENTIFIER
+
+    mxpy --verbose contract call ${ESDT_SAFE_ADDRESS} \
+        --pem=${WALLET} \
+        --proxy=${PROXY} \
+        --chain=${CHAIN_ID} \
+        --gas-limit=100000000 \
+        --function="registerToken" \
+        --value=50000000000000000 \
+        --arguments \
+           str:${DEPOSIT_TOKEN_IDENTIFIER_SOVEREIGN} \
+           0 \
+           str:SovToken \
+           str:SOVT \
+           0x12 \
+        --recall-nonce \
+        --wait-result \
+        --send || return
 }
 
 depositTokenInSCSovereign() {
@@ -139,6 +182,64 @@ depositTokenInSCSovereign() {
            ${AMOUNT_TO_TRANSFER} \
            str:deposit \
            ${WALLET_ADDRESS} \
+        --recall-nonce \
+        --wait-result \
+        --send || return
+}
+
+depositTokenInSCSovereignBack() {
+    manualUpdateConfigFile #update config file
+
+    CHECK_VARIABLES DEPOSIT_TOKEN_IDENTIFIER_SOVEREIGN DEPOSIT_TOKEN_NR_DECIMALS DEPOSIT_TOKEN_AMOUNT_TO_TRANSFER || return
+
+    local AMOUNT_TO_TRANSFER=$(echo "scale=0; $DEPOSIT_TOKEN_AMOUNT_TO_TRANSFER*10^$DEPOSIT_TOKEN_NR_DECIMALS/1" | bc)
+
+    mxpy --verbose contract call ${WALLET_ADDRESS} \
+        --pem=${WALLET} \
+        --proxy=${PROXY_SOVEREIGN} \
+        --chain=${CHAIN_ID_SOVEREIGN} \
+        --gas-limit=20000000 \
+        --function="MultiESDTNFTTransfer" \
+        --arguments \
+           ${ESDT_SAFE_ADDRESS_SOVEREIGN} \
+           2 \
+           str:${DEPOSIT_TOKEN_IDENTIFIER} \
+           0 \
+           ${AMOUNT_TO_TRANSFER} \
+           str:${DEPOSIT_TOKEN_IDENTIFIER} \
+           0 \
+           ${AMOUNT_TO_TRANSFER} \
+           str:deposit \
+           ${WALLET_ADDRESS} \
+        --recall-nonce \
+        --wait-result \
+        --send || return
+}
+
+depositTokenInSCSovereignWithArgs() {
+    manualUpdateConfigFile #update config file
+
+    CHECK_VARIABLES DEPOSIT_TOKEN_IDENTIFIER_SOVEREIGN DEPOSIT_TOKEN_NR_DECIMALS DEPOSIT_TOKEN_AMOUNT_TO_TRANSFER || return
+
+    local AMOUNT_TO_TRANSFER=$(echo "scale=0; $DEPOSIT_TOKEN_AMOUNT_TO_TRANSFER*10^$DEPOSIT_TOKEN_NR_DECIMALS/1" | bc)
+
+    mxpy --verbose contract call ${WALLET_ADDRESS} \
+        --pem=${WALLET} \
+        --proxy=${PROXY_SOVEREIGN} \
+        --chain=${CHAIN_ID_SOVEREIGN} \
+        --gas-limit=20000000 \
+        --function="MultiESDTNFTTransfer" \
+        --arguments \
+           ${ESDT_SAFE_ADDRESS_SOVEREIGN} \
+           1 \
+           str:${DEPOSIT_TOKEN_IDENTIFIER_SOVEREIGN} \
+           0 \
+           ${AMOUNT_TO_TRANSFER} \
+           str:deposit \
+           ${WALLET_ADDRESS} \
+           0x0000000001312d00 \
+           0x616464 \
+           0x0000000401312d00 \
         --recall-nonce \
         --wait-result \
         --send || return
