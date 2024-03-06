@@ -88,22 +88,29 @@ func (e *esdtAsBalance) SubFromBalance(accountDataHandler vmcommon.AccountDataHa
 var log = logger.GetOrCreate("est")
 
 func (e *esdtAsBalance) getESDTData(accountDataHandler vmcommon.AccountDataHandler) (*esdt.ESDigitalToken, error) {
-	esdtData := &esdt.ESDigitalToken{Value: big.NewInt(0), Type: uint32(core.Fungible)}
 	marshaledData, _, err := accountDataHandler.RetrieveValue(e.keyPrefix)
 	if err != nil {
-		log.Error("esdtAsBalance.getESDTData", "marshalled data", string(marshaledData))
+		log.Trace("esdtAsBalance.getESDTData could not load account token", "error", err)
+		return createEmptyESDT(), nil
 	}
 
+	esdtData := &esdt.ESDigitalToken{}
 	err = e.marshaller.Unmarshal(esdtData, marshaledData)
 	if err != nil {
 		return nil, err
 	}
 
+	// make extra sure we have these fields set
 	if esdtData.Value == nil {
-		esdtData = &esdt.ESDigitalToken{Value: big.NewInt(0), Type: uint32(core.Fungible)}
+		esdtData.Value = big.NewInt(0)
+		esdtData.Type = uint32(core.Fungible)
 	}
 
 	return esdtData, nil
+}
+
+func createEmptyESDT() *esdt.ESDigitalToken {
+	return &esdt.ESDigitalToken{Value: big.NewInt(0), Type: uint32(core.Fungible)}
 }
 
 func (e *esdtAsBalance) saveESDTData(accountDataHandler vmcommon.AccountDataHandler, esdtData *esdt.ESDigitalToken) error {
