@@ -7,11 +7,11 @@ type sovereignTransactionProcessor struct {
 	process.TransactionProcessor
 }
 
-// ArgsNewSovereignTxProcessor
+// ArgsNewSovereignTxProcessor -
 type ArgsNewSovereignTxProcessor struct {
 }
 
-// NewSovereignTransactionProcessor
+// NewSovereignTransactionProcessor -
 func NewSovereignTransactionProcessor(args ArgsNewSovereignTxProcessor) (*sovereignTransactionProcessor, error) {
 	return nil, nil
 }
