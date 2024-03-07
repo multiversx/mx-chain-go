@@ -174,7 +174,7 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 			Store:      genericMocks.NewChainStorerMock(0),
 		},
 		CoreData: &mock.CoreComponentsMock{
-			IntMarsh:            &marshal.GogoProtoMarshalizer{},
+			IntMarsh:            &marshallerMock.MarshalizerMock{},
 			TxMarsh:             &marshal.JsonMarshalizer{},
 			UInt64ByteSliceConv: &testsMocks.Uint64ByteSliceConverterMock{},
 			AddrPubKeyConv:      addrPubKeyConv,

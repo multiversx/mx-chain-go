@@ -361,12 +361,13 @@ func GetStateFactoryArgs(coreComponents factory.CoreComponentsHolder) stateComp.
 	triesHolder.Put([]byte(dataRetriever.PeerAccountsUnit.String()), triePeers)
 
 	stateComponentsFactoryArgs := stateComp.StateComponentsFactoryArgs{
-		Config:         GetGeneralConfig(),
-		Core:           coreComponents,
-		StatusCore:     GetStatusCoreComponents(),
-		StorageService: disabled.NewChainStorer(),
-		ProcessingMode: common.Normal,
-		ChainHandler:   &testscommon.ChainHandlerStub{},
+		Config:          GetGeneralConfig(),
+		Core:            coreComponents,
+		StatusCore:      GetStatusCoreComponents(),
+		StorageService:  disabled.NewChainStorer(),
+		ProcessingMode:  common.Normal,
+		ChainHandler:    &testscommon.ChainHandlerStub{},
+		AccountsCreator: GetRunTypeComponents().AccountsCreator(),
 	}
 
 	return stateComponentsFactoryArgs
