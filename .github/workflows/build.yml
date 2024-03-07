@@ -36,3 +36,11 @@ jobs:
           cd ${GITHUB_WORKSPACE}/cmd/keygenerator && go build .
           cd ${GITHUB_WORKSPACE}/cmd/logviewer && go build .
           cd ${GITHUB_WORKSPACE}/cmd/termui && go build .
+
+      - name: Smoke test
+        run: |
+          cd ${GITHUB_WORKSPACE}/cmd/node && ./node --help
+          cd ${GITHUB_WORKSPACE}/cmd/seednode && ./seednode --smoke-test-failing
+          cd ${GITHUB_WORKSPACE}/cmd/keygenerator && ./keygenerator --help
+          cd ${GITHUB_WORKSPACE}/cmd/logviewer && ./logviewer --help
+          cd ${GITHUB_WORKSPACE}/cmd/termui && ./termui --help
