@@ -334,7 +334,7 @@ func TestIncomingHeaderHandler_AddHeaderErrorCases(t *testing.T) {
 			IncomingEvents: []*transaction.Event{
 				{
 					Topics:     [][]byte{},
-					Identifier: []byte(topicIDExecutedBridgeOp),
+					Identifier: []byte(topicIDExecuteBridgeOps),
 				},
 			},
 		}
@@ -342,15 +342,19 @@ func TestIncomingHeaderHandler_AddHeaderErrorCases(t *testing.T) {
 		handler, _ := NewIncomingHeaderProcessor(args)
 
 		err := handler.AddHeader([]byte("hash"), incomingHeader)
-		requireErrorIsInvalidNumTopics(t, err, 0, 0)
+		require.ErrorIs(t, err, errInvalidNumTopicsIncomingEvent)
 
-		incomingHeader.IncomingEvents[0] = &transaction.Event{Topics: [][]byte{[]byte("hash")}, Identifier: []byte(topicIDDeposit)}
+		incomingHeader.IncomingEvents[0] = &transaction.Event{Topics: [][]byte{[]byte(topicIDExecutedBridgeOp)}, Identifier: []byte(topicIDExecuteBridgeOps)}
 		err = handler.AddHeader([]byte("hash"), incomingHeader)
 		requireErrorIsInvalidNumTopics(t, err, 0, 1)
 
-		incomingHeader.IncomingEvents[0] = &transaction.Event{Topics: [][]byte{[]byte("hash"), []byte("hash1"), []byte("hash2")}, Identifier: []byte(topicIDDeposit)}
+		incomingHeader.IncomingEvents[0] = &transaction.Event{Topics: [][]byte{[]byte(topicIDExecutedBridgeOp), []byte("hash")}, Identifier: []byte(topicIDExecuteBridgeOps)}
 		err = handler.AddHeader([]byte("hash"), incomingHeader)
-		requireErrorIsInvalidNumTopics(t, err, 0, 3)
+		requireErrorIsInvalidNumTopics(t, err, 0, 2)
+
+		incomingHeader.IncomingEvents[0] = &transaction.Event{Topics: [][]byte{[]byte(topicIDExecutedBridgeOp), []byte("hash"), []byte("hash1"), []byte("hash2")}, Identifier: []byte(topicIDExecuteBridgeOps)}
+		err = handler.AddHeader([]byte("hash"), incomingHeader)
+		requireErrorIsInvalidNumTopics(t, err, 0, 4)
 
 		require.Equal(t, 0, numConfirmedOperations)
 	})
@@ -568,6 +572,7 @@ func TestIncomingHeaderHandler_AddHeader(t *testing.T) {
 	eventData2 := createCustomEventData(uint64(1), gasLimit2, func2, [][]byte{arg1})
 
 	topic3 := [][]byte{
+		[]byte("executedBridgeOp"),
 		[]byte("hashOfHashes"),
 		[]byte("hashOfBridgeOp"),
 	}
@@ -584,7 +589,7 @@ func TestIncomingHeaderHandler_AddHeader(t *testing.T) {
 			Data:       eventData2,
 		},
 		{
-			Identifier: []byte(topicIDExecutedBridgeOp),
+			Identifier: []byte(topicIDExecuteBridgeOps),
 			Topics:     topic3,
 		},
 	}
