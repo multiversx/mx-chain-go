@@ -39,15 +39,17 @@ jobs:
 
       - name: Smoke test the binaries
         run: |
-          ${GITHUB_WORKSPACE}/cmd/node/node --version
-          ${GITHUB_WORKSPACE}/cmd/seednode/seednode --version
-          ${GITHUB_WORKSPACE}/cmd/keygenerator/keygenerator --version
-          ${GITHUB_WORKSPACE}/cmd/logviewer/logviewer --version
-          ${GITHUB_WORKSPACE}/cmd/termui/termui --version
+          cd ${GITHUB_WORKSPACE}/cmd/node && node --version
+          cd ${GITHUB_WORKSPACE}/cmd/seednode && seednode --version
+          cd ${GITHUB_WORKSPACE}/cmd/keygenerator && keygenerator --version
+          cd ${GITHUB_WORKSPACE}/cmd/logviewer && logviewer --version
+          cd ${GITHUB_WORKSPACE}/cmd/termui && termui --version
 
       # On GitHub, we only run the short tests, and we only run them for some OS/ARCH combinations.
       - name: Run tests
         run: |
+          GOOS=$(go env GOOS)
+
           if [[ "$GOOS" == darwin ]]; then
               go test -short -v ./...
           fi
