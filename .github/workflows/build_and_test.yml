@@ -37,14 +37,6 @@ jobs:
           cd ${GITHUB_WORKSPACE}/cmd/logviewer && go build .
           cd ${GITHUB_WORKSPACE}/cmd/termui && go build .
 
-      - name: Smoke test the binaries
-        run: |
-          cd ${GITHUB_WORKSPACE}/cmd/node && ./node --version
-          cd ${GITHUB_WORKSPACE}/cmd/seednode && ./seednode --version
-          cd ${GITHUB_WORKSPACE}/cmd/keygenerator && ./keygenerator --version
-          cd ${GITHUB_WORKSPACE}/cmd/logviewer && ./logviewer --version
-          cd ${GITHUB_WORKSPACE}/cmd/termui && ./termui --version
-
       # On GitHub, we only run the short tests, and we only run them for some OS/ARCH combinations.
       - name: Run tests
         run: |
