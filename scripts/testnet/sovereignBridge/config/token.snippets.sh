@@ -107,7 +107,7 @@ depositTokenInSCAdder() {
            erd1qqqqqqqqqqqqqpgqp6k29tdnray9kzzetsv50fxgyzgkt5pqulmq0yp9c6 \
            0x0000000001312d00 \
            0x616464 \
-           0x00000004002d3101 \
+           0x0000000401312d00 \
         --recall-nonce \
         --wait-result \
         --send || return
