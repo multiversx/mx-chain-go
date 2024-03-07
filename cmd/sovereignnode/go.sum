@@ -383,8 +383,8 @@ github.com/multiversx/concurrent-map v0.1.4 h1:hdnbM8VE4b0KYJaGY5yJS2aNIW9TFFsUY
 github.com/multiversx/concurrent-map v0.1.4/go.mod h1:8cWFRJDOrWHOTNSqgYCUvwT7c7eFQ4U2vKMOp4A/9+o=
 github.com/multiversx/mx-chain-communication-go v1.0.13-0.20231129114230-d280af707381 h1:M4JNeubA+zq7NaH2LP5YsWUVeKn9hNL+HgSw2kqwWUc=
 github.com/multiversx/mx-chain-communication-go v1.0.13-0.20231129114230-d280af707381/go.mod h1:n4E8BWIV0g3AcNGe1gf+vcjUC8A2QCJ4ARQSbiUDGrI=
-github.com/multiversx/mx-chain-core-go v1.2.19-0.20240118100536-661f5af64039 h1:rusWamF1HWGAHsmdz/5TSfxHpe36HHvXCEKz3tic2yo=
-github.com/multiversx/mx-chain-core-go v1.2.19-0.20240118100536-661f5af64039/go.mod h1:P/YBoFnt25XUaCQ7Q/SD15vhnc9yV5JDhHxyFO9P8Z0=
+github.com/multiversx/mx-chain-core-go v1.2.19-0.20240307095726-9c061d593479 h1:kYmzRK4aHcP0N7W+c7RdZzXYN6LH6ChJmYayjU/S2C0=
+github.com/multiversx/mx-chain-core-go v1.2.19-0.20240307095726-9c061d593479/go.mod h1:P/YBoFnt25XUaCQ7Q/SD15vhnc9yV5JDhHxyFO9P8Z0=
 github.com/multiversx/mx-chain-crypto-go v1.2.10-0.20231129101537-ef355850e34b h1:TIE6it719ZIW0E1bFgPAgE+U3zPSkPfAloFYEIeOL3U=
 github.com/multiversx/mx-chain-crypto-go v1.2.10-0.20231129101537-ef355850e34b/go.mod h1:Ap6p7QZFtwPlb++OvCG+85BfuZ+bLP/JtQp6EwjWJsI=
 github.com/multiversx/mx-chain-es-indexer-go v1.4.19-0.20240130143831-51a477ef8088 h1:n2w2KlxwingDvxQkb7kTX6t/v6kn6c4n9iE6yQiTf7Y=
@@ -410,6 +410,8 @@ github.com/multiversx/mx-chain-vm-v1_4-go v1.4.92-0.20231228071246-c1b45eae5955 
 github.com/multiversx/mx-chain-vm-v1_4-go v1.4.92-0.20231228071246-c1b45eae5955/go.mod h1:+DLltGV0h3/H9bJaz01JyeapKNki3Rh4o5VGpjd2ZNc=
 github.com/multiversx/mx-components-big-int v1.0.0 h1:Wkr8lSzK2nDqixOrrBa47VNuqdhV1m/aJhaP1EMaiS8=
 github.com/multiversx/mx-components-big-int v1.0.0/go.mod h1:maIEMgHlNE2u78JaDD0oLzri+ShgU4okHfzP3LWGdQM=
+github.com/multiversx/mx-sdk-abi-incubator/golang v0.0.0-20240304123830-5b63f9782aea h1:fiJJGQmm0PaLnvSBQl5VIF4T9zOdvP0Ka2H7yjwZ9YE=
+github.com/multiversx/mx-sdk-abi-incubator/golang v0.0.0-20240304123830-5b63f9782aea/go.mod h1:BIWSnjXqwxBDY3FWjHFuN6PVDMqh6RuPcn8j4SjsHbk=
 github.com/neelance/astrewrite v0.0.0-20160511093645-99348263ae86/go.mod h1:kHJEU3ofeGjhHklVoIGuVj85JJwZ6kWPaJwCIxgnFmo=
 github.com/neelance/sourcemap v0.0.0-20151028013722-8c68805598ab/go.mod h1:Qr6/a/Q4r9LP1IltGz7tA7iOK1WonHEYhu1HRBA7ZiM=
 github.com/nxadm/tail v1.4.4/go.mod h1:kenIhsEOeOJmVchQTgglprH7qJGnHDVpk1VPCcaMI8A=
