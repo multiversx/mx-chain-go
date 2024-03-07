@@ -9,8 +9,7 @@ jobs:
   build:
     strategy:
       matrix:
-        runs-on: [macos-latest]
-        # runs-on: [ubuntu-latest, macos-latest, macos-13-xlarge]
+        runs-on: [ubuntu-latest, macos-latest, macos-13-xlarge]
     runs-on: ${{ matrix.runs-on }}
     name: Build
     steps:
@@ -30,13 +29,14 @@ jobs:
             curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
             dep ensure
           fi
-      # - name: Build
-      #   run: |
-      #     cd ${GITHUB_WORKSPACE}/cmd/node && go build .
-      #     cd ${GITHUB_WORKSPACE}/cmd/seednode && go build .
-      #     cd ${GITHUB_WORKSPACE}/cmd/keygenerator && go build .
-      #     cd ${GITHUB_WORKSPACE}/cmd/logviewer && go build .
-      #     cd ${GITHUB_WORKSPACE}/cmd/termui && go build .
+
+      - name: Build
+        run: |
+          cd ${GITHUB_WORKSPACE}/cmd/node && go build .
+          cd ${GITHUB_WORKSPACE}/cmd/seednode && go build .
+          cd ${GITHUB_WORKSPACE}/cmd/keygenerator && go build .
+          cd ${GITHUB_WORKSPACE}/cmd/logviewer && go build .
+          cd ${GITHUB_WORKSPACE}/cmd/termui && go build .
 
       # On GitHub, we only run the short tests, and we only run them for some OS/ARCH combinations.
       - name: Run tests
