@@ -1,4 +1,4 @@
-//go:build darwin && arm64
+//go:build arm64
 
 package node
 
