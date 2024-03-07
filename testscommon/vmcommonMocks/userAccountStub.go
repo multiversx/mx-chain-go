@@ -14,6 +14,7 @@ type UserAccountStub struct {
 	GetRootHashCalled           func() []byte
 	AccountDataHandlerCalled    func() vmcommon.AccountDataHandler
 	AddToBalanceCalled          func(value *big.Int) error
+	SubFromBalanceCalled        func(value *big.Int) error
 	GetBalanceCalled            func() *big.Int
 	ClaimDeveloperRewardsCalled func([]byte) (*big.Int, error)
 	GetDeveloperRewardCalled    func() *big.Int
@@ -70,6 +71,14 @@ func (uas *UserAccountStub) AccountDataHandler() vmcommon.AccountDataHandler {
 func (uas *UserAccountStub) AddToBalance(value *big.Int) error {
 	if uas.AddToBalanceCalled != nil {
 		return uas.AddToBalanceCalled(value)
+	}
+	return nil
+}
+
+// SubFromBalance -
+func (uas *UserAccountStub) SubFromBalance(value *big.Int) error {
+	if uas.SubFromBalanceCalled != nil {
+		return uas.SubFromBalanceCalled(value)
 	}
 	return nil
 }
@@ -159,7 +168,7 @@ func (uas *UserAccountStub) GetNonce() uint64 {
 	return 0
 }
 
-//IsInterfaceNil -
+// IsInterfaceNil -
 func (uas *UserAccountStub) IsInterfaceNil() bool {
 	return uas == nil
 }

@@ -707,6 +707,18 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.CurrentRandomnessOnSortingEnableEpoch,
 		},
+		common.CryptoAPIV2Flag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.CryptoAPIV2EnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.CryptoAPIV2EnableEpoch,
+		},
+		common.EGLDInESDTMultiTransferEnableFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.EGLDInESDTMultiTransferEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.EGLDInESDTMultiTransferEnableEpoch,
+		},
 	}
 }
 

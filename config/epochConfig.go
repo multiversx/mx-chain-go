@@ -110,6 +110,8 @@ type EnableEpochs struct {
 	ChangeOwnerAddressCrossShardThroughSCEnableEpoch         uint32
 	FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch uint32
 	CurrentRandomnessOnSortingEnableEpoch                    uint32
+	CryptoAPIV2EnableEpoch                                   uint32
+	EGLDInESDTMultiTransferEnableEpoch                       uint32
 	BLSMultiSignerEnableEpoch                                []MultiSignerConfig
 }
 

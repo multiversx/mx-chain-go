@@ -1005,5 +1005,7 @@ const (
 	FixGasRemainingForSaveKeyValueFlag                 core.EnableEpochFlag = "FixGasRemainingForSaveKeyValueFlag"
 	IsChangeOwnerAddressCrossShardThroughSCFlag        core.EnableEpochFlag = "IsChangeOwnerAddressCrossShardThroughSCFlag"
 	CurrentRandomnessOnSortingFlag                     core.EnableEpochFlag = "CurrentRandomnessOnSortingFlag"
+	CryptoAPIV2Flag                                    core.EnableEpochFlag = "CryptoAPIV2Flag"
+	EGLDInESDTMultiTransferEnableFlag                  core.EnableEpochFlag = "EGLDInESDTMultiTransferFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )
