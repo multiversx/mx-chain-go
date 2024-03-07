@@ -3,7 +3,6 @@ name: Build
 on:
   pull_request:
     branches: [master, rc/*]
-    types: [opened, ready_for_review]
   workflow_dispatch:
 
 jobs:
