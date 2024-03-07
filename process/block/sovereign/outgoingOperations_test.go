@@ -1,11 +1,15 @@
 package sovereign
 
 import (
+	"encoding/hex"
+	"math/big"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	transactionData "github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
@@ -25,21 +29,28 @@ func TestNewOutgoingOperationsFormatter(t *testing.T) {
 	t.Parallel()
 
 	t.Run("no subscribed events, should return error", func(t *testing.T) {
-		creator, err := NewOutgoingOperationsFormatter([]SubscribedEvent{}, &testscommon.RoundHandlerMock{})
+		creator, err := NewOutgoingOperationsFormatter([]SubscribedEvent{}, &testscommon.RoundHandlerMock{}, &mock.DataCodecMock{})
 		require.Nil(t, creator)
 		require.Equal(t, errNoSubscribedEvent, err)
 	})
 
 	t.Run("nil round handler, should return error", func(t *testing.T) {
 		events := createEvents()
-		creator, err := NewOutgoingOperationsFormatter(events, nil)
+		creator, err := NewOutgoingOperationsFormatter(events, nil, &mock.DataCodecMock{})
 		require.Nil(t, creator)
 		require.Equal(t, errors.ErrNilRoundHandler, err)
 	})
 
+	t.Run("nil data codec, should return error", func(t *testing.T) {
+		events := createEvents()
+		creator, err := NewOutgoingOperationsFormatter(events, &testscommon.RoundHandlerMock{}, nil)
+		require.Nil(t, creator)
+		require.Equal(t, errors.ErrNilDataCodec, err)
+	})
+
 	t.Run("should work", func(t *testing.T) {
 		events := createEvents()
-		creator, err := NewOutgoingOperationsFormatter(events, &testscommon.RoundHandlerMock{})
+		creator, err := NewOutgoingOperationsFormatter(events, &testscommon.RoundHandlerMock{}, &mock.DataCodecMock{})
 		require.Nil(t, err)
 		require.False(t, creator.IsInterfaceNil())
 	})
@@ -77,34 +88,52 @@ func TestOutgoingOperations_CreateOutgoingTxData(t *testing.T) {
 		},
 	}
 
-	creator, _ := NewOutgoingOperationsFormatter(events, roundHandler)
+	dataCodec := &mock.DataCodecMock{
+		DeserializeEventDataCalled: func(data []byte) (*sovereign.EventData, error) {
+			return &sovereign.EventData{
+				Nonce: 1,
+				TransferData: &sovereign.TransferData{
+					GasLimit: 20000000,
+					Function: []byte("add"),
+					Args:     [][]byte{big.NewInt(20000000).Bytes()},
+				},
+			}, nil
+		},
+		DeserializeTokenDataCalled: func(data []byte) (*sovereign.EsdtTokenData, error) {
+			addr0, _ := hex.DecodeString("0000000000000000000000000000000000000000000000000000000000000000")
+			amount := new(big.Int)
+			amount.SetString("123000000000000000000", 10)
+
+			return &sovereign.EsdtTokenData{
+				TokenType:  0,
+				Amount:     amount,
+				Frozen:     false,
+				Hash:       make([]byte, 0),
+				Name:       make([]byte, 0),
+				Attributes: make([]byte, 0),
+				Creator:    addr0,
+				Royalties:  big.NewInt(0),
+				Uris:       make([][]byte, 0),
+			}, nil
+		},
+		SerializeOperationCalled: func(operation sovereign.Operation) ([]byte, error) {
+			operationBytes, _ := hex.DecodeString("c0c0739e0cf6232a934d2e56cfcd10881eb1c7336f128fc155a4a84292cfe7f60000000100000006746f6b656e310000000000000000000000000906aaf7c8516d0c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000001312d0000000003616464000000010000000401312d00")
+			return operationBytes, nil
+		},
+	}
+
+	creator, _ := NewOutgoingOperationsFormatter(events, roundHandler, dataCodec)
+
+	addr, _ := hex.DecodeString("c0c0739e0cf6232a934d2e56cfcd10881eb1c7336f128fc155a4a84292cfe7f6")
+	tokenData, _ := hex.DecodeString("000000000906aaf7c8516d0c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
 	topic1 := [][]byte{
-		[]byte("rcv1"),
+		[]byte("deposit"),
+		addr,
 		[]byte("token1"),
-		[]byte("nonce1"),
-		[]byte("value1"),
+		make([]byte, 0),
+		tokenData,
 	}
-	data1 := []byte("functionToCall1@arg1@arg2@50000")
-
-	topic2 := [][]byte{
-		[]byte("rcv2"),
-		[]byte("token2"),
-		[]byte("nonce2"),
-		[]byte("value2"),
-
-		[]byte("token3"),
-		[]byte("nonce3"),
-		[]byte("value3"),
-	}
-	data2 := []byte("functionToCall2@arg2@40000")
-
-	topic3 := [][]byte{
-		[]byte("rcv3"),
-		[]byte("token4"),
-		[]byte("nonce4"),
-		[]byte("value4"),
-	}
-	data3 := []byte("functionToCall3@arg3@arg4@55000")
+	data1, _ := hex.DecodeString("000000000000000a010000000001312d00010000000361646401000000010000000401312d00")
 
 	logs := []*data.LogData{
 		{
@@ -117,24 +146,6 @@ func TestOutgoingOperations_CreateOutgoingTxData(t *testing.T) {
 						Topics:     topic1,
 						Data:       data1,
 					},
-					{
-						Address:    addr3,
-						Identifier: identifier2,
-						Topics:     topic2,
-						Data:       data2,
-					},
-					{
-						Address:    []byte("addr4"),
-						Identifier: identifier2,
-						Topics:     topic1,
-						Data:       data2,
-					},
-					{
-						Address:    addr2,
-						Identifier: identifier1,
-						Topics:     topic3,
-						Data:       data3,
-					},
 				},
 			},
 			TxHash: "",
@@ -142,6 +153,6 @@ func TestOutgoingOperations_CreateOutgoingTxData(t *testing.T) {
 	}
 
 	outgoingTxData := creator.CreateOutgoingTxsData(logs)
-	expectedTxData := []byte("bridgeOps@123@rcv1@token1@nonce1@functionToCall1@arg1@arg2@50000@rcv2@token2@nonce2@value2@token3@nonce3@functionToCall2@arg2@40000@rcv3@token4@nonce4@functionToCall3@arg3@arg4@55000")
+	expectedTxData, _ := hex.DecodeString("c0c0739e0cf6232a934d2e56cfcd10881eb1c7336f128fc155a4a84292cfe7f60000000100000006746f6b656e310000000000000000000000000906aaf7c8516d0c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000001312d0000000003616464000000010000000401312d00")
 	require.Equal(t, [][]byte{expectedTxData}, outgoingTxData)
 }

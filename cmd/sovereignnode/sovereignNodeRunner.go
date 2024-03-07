@@ -469,6 +469,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		nodesCoordinatorInstance,
 		incomingHeaderHandler,
 		outGoingOperationsPool,
+		dataCodecProcessor,
 	)
 	if err != nil {
 		return true, err
@@ -1231,6 +1232,7 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	incomingHeaderHandler process.IncomingHeaderSubscriber,
 	outGoingOperationsPool block.OutGoingOperationsPool,
+	dataCodec dataCodec.DataCodecProcessor,
 ) (mainFactory.ProcessComponentsHandler, error) {
 	configs := snr.configs
 	configurationPaths := snr.configs.ConfigurationPathsHolder
@@ -1360,6 +1362,7 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 		TxPreProcessorCreator:                 preprocess.NewSovereignTxPreProcessorCreator(),
 		ExtraHeaderSigVerifierHolder:          extraHeaderSigVerifierHolder,
 		OutGoingOperationsPool:                outGoingOperationsPool,
+		DataCodec:                             dataCodec,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {

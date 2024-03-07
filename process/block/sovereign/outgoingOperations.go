@@ -2,15 +2,15 @@ package sovereign
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-go/errors"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
-
-const bridgeOpPrefix = "bridgeOps"
 
 var log = logger.GetOrCreate("outgoing-operations")
 
@@ -23,6 +23,7 @@ type SubscribedEvent struct {
 type outgoingOperations struct {
 	subscribedEvents []SubscribedEvent
 	roundHandler     RoundHandler
+	dataCodec        DataCodecProcessor
 }
 
 // TODO: We should create a common base functionality from this component. Similar behavior is also found in
@@ -30,7 +31,7 @@ type outgoingOperations struct {
 // Task: MX-14721
 
 // NewOutgoingOperationsFormatter creates an outgoing operations formatter
-func NewOutgoingOperationsFormatter(subscribedEvents []SubscribedEvent, roundHandler RoundHandler) (*outgoingOperations, error) {
+func NewOutgoingOperationsFormatter(subscribedEvents []SubscribedEvent, roundHandler RoundHandler, dataCodec DataCodecProcessor) (*outgoingOperations, error) {
 	err := checkEvents(subscribedEvents)
 	if err != nil {
 		return nil, err
@@ -38,10 +39,14 @@ func NewOutgoingOperationsFormatter(subscribedEvents []SubscribedEvent, roundHan
 	if check.IfNil(roundHandler) {
 		return nil, errors.ErrNilRoundHandler
 	}
+	if check.IfNil(dataCodec) {
+		return nil, errors.ErrNilDataCodec
+	}
 
 	return &outgoingOperations{
 		subscribedEvents: subscribedEvents,
 		roundHandler:     roundHandler,
+		dataCodec:        dataCodec,
 	}, nil
 }
 
@@ -91,17 +96,24 @@ func (op *outgoingOperations) CreateOutgoingTxsData(logs []*data.LogData) [][]by
 		return make([][]byte, 0)
 	}
 
-	txData := []byte(bridgeOpPrefix + "@" + fmt.Sprintf("%d", op.roundHandler.Index()))
-	for _, ev := range outgoingEvents {
-		txData = append(txData, byte('@'))
-		txData = append(txData, createSCRData(ev.GetTopics())...)
-		txData = append(txData, byte('@'))
-		txData = append(txData, ev.GetData()...)
+	txsData := make([]byte, 0)
+	for i, event := range outgoingEvents {
+		operation, err := op.getOperationData(event)
+		if err != nil {
+			log.Debug("OutGoing Operation error",
+				"tx hash", logs[i].TxHash,
+				"event", hex.EncodeToString(event.GetIdentifier()),
+				"error", err)
+
+			continue
+		}
+
+		txsData = append(txsData, operation...)
 	}
 
 	// TODO: Check gas limit here and split tx data in multiple batches if required
 	// Task: MX-14720
-	return [][]byte{txData}
+	return [][]byte{txsData}
 }
 
 func (op *outgoingOperations) createOutgoingEvents(logs []*data.LogData) []data.EventHandler {
@@ -148,16 +160,59 @@ func (op *outgoingOperations) isSubscribed(event data.EventHandler, txHash strin
 	return false
 }
 
-func createSCRData(topics [][]byte) []byte {
-	ret := topics[0]
-	for idx := 1; idx < len(topics[1:]); idx += 1 {
-		transfer := []byte("@")
-		transfer = append(transfer, topics[idx]...)
-
-		ret = append(ret, transfer...)
+func (op *outgoingOperations) getOperationData(event data.EventHandler) ([]byte, error) {
+	operation, err := op.newOperationData(event.GetTopics())
+	if err != nil {
+		return nil, err
 	}
 
-	return ret
+	evData, err := op.dataCodec.DeserializeEventData(event.GetData())
+	if err != nil {
+		return nil, err
+	}
+
+	operation.TransferData = evData.TransferData
+
+	operationBytes, err := op.dataCodec.SerializeOperation(*operation)
+	if err != nil {
+		return nil, err
+	}
+
+	return operationBytes, nil
+}
+
+func (op *outgoingOperations) newOperationData(topics [][]byte) (*sovereign.Operation, error) {
+	receiver := topics[1]
+
+	var tokens []sovereign.EsdtToken
+	for i := 2; i < len(topics); i += 3 {
+		tokenIdentifier := topics[i]
+		tokenNonce := byteSliceToUint64(topics[i+1])
+		tokenData, err := op.dataCodec.DeserializeTokenData(topics[i+2])
+		if err != nil {
+			return nil, err
+		}
+
+		payment := sovereign.EsdtToken{
+			Identifier: tokenIdentifier,
+			Nonce:      tokenNonce,
+			Data:       *tokenData,
+		}
+		tokens = append(tokens, payment)
+	}
+
+	return &sovereign.Operation{
+		Address: receiver,
+		Tokens:  tokens,
+	}, nil
+}
+
+func byteSliceToUint64(byteSlice []byte) uint64 {
+	var result uint64
+	for _, b := range byteSlice {
+		result = (result << 8) | uint64(b)
+	}
+	return result
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil
