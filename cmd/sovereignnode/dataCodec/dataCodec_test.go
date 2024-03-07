@@ -79,20 +79,31 @@ func TestDataCodec_DeserializeEventData(t *testing.T) {
 
 	dataCodec := createDataCodec()
 
-	expectedEventData := &sovereign.EventData{
-		Nonce: 10,
-		TransferData: &sovereign.TransferData{
-			GasLimit: 20000000,
-			Function: []byte("add"),
-			Args:     [][]byte{big.NewInt(20000000).Bytes()},
-		},
-	}
-	eventData, err := hex.DecodeString("000000000000000a010000000001312d00010000000361646401000000010000000401312d00")
-	require.Nil(t, err)
+	t.Run("empty data should fail", func(t *testing.T) {
+		t.Parallel()
 
-	deserialized, err := dataCodec.DeserializeEventData(eventData)
-	require.Nil(t, err)
-	require.Equal(t, expectedEventData, deserialized)
+		deserialized, err := dataCodec.DeserializeEventData(nil)
+		require.Nil(t, deserialized)
+		require.Equal(t, "empty data provided", err.Error())
+	})
+	t.Run("deserialize event data should work", func(t *testing.T) {
+		t.Parallel()
+
+		expectedEventData := &sovereign.EventData{
+			Nonce: 10,
+			TransferData: &sovereign.TransferData{
+				GasLimit: 20000000,
+				Function: []byte("add"),
+				Args:     [][]byte{big.NewInt(20000000).Bytes()},
+			},
+		}
+		eventData, err := hex.DecodeString("000000000000000a010000000001312d00010000000361646401000000010000000401312d00")
+		require.Nil(t, err)
+
+		deserialized, err := dataCodec.DeserializeEventData(eventData)
+		require.Nil(t, err)
+		require.Equal(t, expectedEventData, deserialized)
+	})
 }
 
 func TestDataCodec_SerializeTokenData(t *testing.T) {
@@ -126,29 +137,39 @@ func TestDataCodec_DeserializeTokenData(t *testing.T) {
 
 	dataCodec := createDataCodec()
 
-	addr0, _ := hex.DecodeString("0000000000000000000000000000000000000000000000000000000000000000")
-	amount := new(big.Int)
-	amount.SetString("123000000000000000000", 10)
+	t.Run("empty data should fail", func(t *testing.T) {
+		t.Parallel()
 
-	expectedEsdtTokenData := &sovereign.EsdtTokenData{
-		TokenType:  0,
-		Amount:     amount,
-		Frozen:     false,
-		Hash:       make([]byte, 0),
-		Name:       []byte(""),
-		Attributes: make([]byte, 0),
-		Creator:    addr0,
-		Royalties:  big.NewInt(0),
-		Uris:       make([][]byte, 0),
-	}
+		deserialized, err := dataCodec.DeserializeTokenData(nil)
+		require.Nil(t, deserialized)
+		require.Equal(t, "empty token data provided", err.Error())
+	})
+	t.Run("empty data should fail", func(t *testing.T) {
+		t.Parallel()
 
-	tokenData, err := hex.DecodeString("000000000906aaf7c8516d0c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
-	require.Nil(t, err)
+		addr0, _ := hex.DecodeString("0000000000000000000000000000000000000000000000000000000000000000")
+		amount := new(big.Int)
+		amount.SetString("123000000000000000000", 10)
 
-	deserialized, err := dataCodec.DeserializeTokenData(tokenData)
+		expectedEsdtTokenData := &sovereign.EsdtTokenData{
+			TokenType:  0,
+			Amount:     amount,
+			Frozen:     false,
+			Hash:       make([]byte, 0),
+			Name:       []byte(""),
+			Attributes: make([]byte, 0),
+			Creator:    addr0,
+			Royalties:  big.NewInt(0),
+			Uris:       make([][]byte, 0),
+		}
 
-	require.Nil(t, err)
-	require.Equal(t, expectedEsdtTokenData, deserialized)
+		tokenData, err := hex.DecodeString("000000000906aaf7c8516d0c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
+		require.Nil(t, err)
+
+		deserialized, err := dataCodec.DeserializeTokenData(tokenData)
+		require.Nil(t, err)
+		require.Equal(t, expectedEsdtTokenData, deserialized)
+	})
 }
 
 func TestDataCodec_GetTokenDataBytes(t *testing.T) {
@@ -157,6 +178,13 @@ func TestDataCodec_GetTokenDataBytes(t *testing.T) {
 	dataCodec := createDataCodec()
 	marshaller := marshallerMock.MarshalizerMock{}
 
+	t.Run("empty token data should fail", func(t *testing.T) {
+		t.Parallel()
+
+		tokenDataBytes, err := dataCodec.GetTokenDataBytes(nil, nil)
+		require.Nil(t, tokenDataBytes)
+		require.Equal(t, "empty token data provided", err.Error())
+	})
 	t.Run("fungible token should return only amount", func(t *testing.T) {
 		t.Parallel()
 
