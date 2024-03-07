@@ -16,11 +16,12 @@ import (
 const (
 	minTopicsInTransferEvent  = 5
 	numTransferTopics         = 3
-	numExecutedBridgeOpTopics = 2
+	numExecutedBridgeOpTopics = 3
 )
 
 const (
-	topicIDExecutedBridgeOp = "executedBridgeOps"
+	topicIDExecuteBridgeOps = "executeBridgeOps"
+	topicIDExecutedBridgeOp = "executedBridgeOp"
 	topicIDDeposit          = "deposit"
 )
 
@@ -65,9 +66,21 @@ func (iep *incomingEventsProcessor) processIncomingEvents(events []data.EventHan
 		case topicIDDeposit:
 			scr, err = iep.createSCRInfo(topics, event)
 			scrs = append(scrs, scr)
-		case topicIDExecutedBridgeOp:
-			confirmedOp, err = iep.getConfirmedBridgeOperation(topics)
-			confirmedBridgeOps = append(confirmedBridgeOps, confirmedOp)
+		case topicIDExecuteBridgeOps:
+			if len(topics) == 0 {
+				return nil, errInvalidNumTopicsIncomingEvent
+			}
+
+			switch string(topics[0]) {
+			case topicIDDeposit:
+				scr, err = iep.createSCRInfo(topics, event)
+				scrs = append(scrs, scr)
+			case topicIDExecutedBridgeOp:
+				confirmedOp, err = iep.getConfirmedBridgeOperation(topics)
+				confirmedBridgeOps = append(confirmedBridgeOps, confirmedOp)
+			default:
+				return nil, errInvalidIncomingTopicIdentifier
+			}
 		default:
 			return nil, errInvalidIncomingEventIdentifier
 		}
@@ -90,8 +103,7 @@ func (iep *incomingEventsProcessor) createSCRInfo(topics [][]byte, event data.Ev
 			"error", errInvalidNumTopicsIncomingEvent,
 			"num topics", len(topics),
 			"topics", topics)
-		return nil, fmt.Errorf("%w; num topics = %d",
-			errInvalidNumTopicsIncomingEvent, len(topics))
+		return nil, fmt.Errorf("%w for %s; num topics = %d", errInvalidNumTopicsIncomingEvent, topicIDDeposit, len(topics))
 	}
 
 	receivedEventData, err := iep.getEventData(event.GetData())
@@ -185,7 +197,7 @@ func (iep *incomingEventsProcessor) createSCRData(topics [][]byte) ([]byte, erro
 
 func (iep *incomingEventsProcessor) getConfirmedBridgeOperation(topics [][]byte) (*confirmedBridgeOp, error) {
 	if len(topics) != numExecutedBridgeOpTopics {
-		return nil, fmt.Errorf("%w for %s", errInvalidNumTopicsIncomingEvent, topicIDExecutedBridgeOp)
+		return nil, fmt.Errorf("%w for %s; num topics = %d", errInvalidNumTopicsIncomingEvent, topicIDExecuteBridgeOps, len(topics))
 	}
 
 	return &confirmedBridgeOp{
