@@ -9,7 +9,8 @@ jobs:
   build:
     strategy:
       matrix:
-        runs-on: [ubuntu-latest, macos-latest, macos-13-xlarge]
+        runs-on: [macos-latest]
+        # runs-on: [ubuntu-latest, macos-latest, macos-13-xlarge]
     runs-on: ${{ matrix.runs-on }}
     name: Build
     steps:
@@ -50,7 +51,8 @@ jobs:
           GOPATH = os.getenv("GOPATH", "")
 
           for file in pathlib.Path(f"{GOPATH}/pkg/mod/github.com/multiversx").rglob("libwasmer_darwin_amd64.dylib"):
-              subprocess.check_output(f"sudo install_name_tool -id @rpath/libwasmer_darwin_amd64.dylib {file}", shell=True)
+            print(f"Fixing {file}")
+            subprocess.check_output(f"sudo install_name_tool -id @rpath/libwasmer_darwin_amd64.dylib {file}", shell=True)
           EOF
 
       # On GitHub, we only run the short tests, and we only run them for some OS/ARCH combinations.
