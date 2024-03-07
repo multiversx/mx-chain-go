@@ -15,7 +15,7 @@ jobs:
   build:
     strategy:
       matrix:
-        runs-on: [ubuntu-latest] # TODO add macos-latest when builds are possible on macs
+        runs-on: [ubuntu-latest, macos-latest, macos-13-xlarge]
     runs-on: ${{ matrix.runs-on }}
     name: Build
     steps:
@@ -47,14 +47,15 @@ jobs:
           GOPATH=$(go env GOPATH)
           ARCHIVE="multiversx_""$APP_VER_SHORT""_""$GOOS""_""$GOARCH"".tgz"
           BUILD_DIR=${GITHUB_WORKSPACE}/build
-          WASM_VERSION=$(cat go.mod | grep mx-chain-vm-v | sort -n | tail -n -1| awk -F '/' '{print$3}'| sed 's/ /@/g')
-          WASMER_DIR=${GOPATH}/pkg/mod/github.com/multiversx/${WASM_VERSION}/wasmer
+          VM_GO_VERSION=$(cat go.mod | grep mx-chain-vm-go | sort -n | tail -n -1| awk -F '/' '{print$3}'| sed 's/ /@/g')
+          VM_GO_DIR=${GOPATH}/pkg/mod/github.com/multiversx/${VM_GO_VERSION}
 
           echo "GOOS=${GOOS}" >> $GITHUB_ENV
           echo "GOARCH=${GOARCH}" >> $GITHUB_ENV
           echo "ARCHIVE=${ARCHIVE}" >> $GITHUB_ENV
           echo "BUILD_DIR=${BUILD_DIR}" >> $GITHUB_ENV
-          echo "WASMER_DIR=${WASMER_DIR}" >> $GITHUB_ENV
+          echo "VM_GO_VERSION=${VM_GO_VERSION}" >> $GITHUB_ENV
+          echo "VM_GO_DIR=${VM_GO_DIR}" >> $GITHUB_ENV
 
       - name: Build
         run: |
@@ -69,13 +70,40 @@ jobs:
           cd ${GITHUB_WORKSPACE}
 
           if [[ "$GOOS" == linux && "$GOARCH" == amd64 ]]; then
-            cp -f ${WASMER_DIR}/libwasmer_linux_amd64.so ${BUILD_DIR};
+            cp --verbose --no-preserve=mode,ownership ${VM_GO_DIR}/wasmer2/libvmexeccapi.so ${BUILD_DIR}/libvmexeccapi.so
+            cp --verbose --no-preserve=mode,ownership ${VM_GO_DIR}/wasmer/libwasmer_linux_amd64.so ${BUILD_DIR}/libwasmer_linux_amd64.so
           fi
+
+          # Actually, there's no runner for this combination (as of March 2024).
           if [[ "$GOOS" == linux && "$GOARCH" == arm64 ]]; then
-            cp -f ${WASMER_DIR}/libwasmer_linux_arm64.so ${BUILD_DIR};
+            cp --verbose --no-preserve=mode,ownership ${VM_GO_DIR}/wasmer2/libvmexeccapi_arm.so ${BUILD_DIR}/libvmexeccapi_arm.so
+            cp --verbose --no-preserve=mode,ownership ${VM_GO_DIR}/wasmer/libwasmer_linux_arm64_shim.so ${BUILD_DIR}/libwasmer_linux_arm64_shim.so
           fi
+
           if [[ "$GOOS" == darwin && "$GOARCH" == amd64 ]]; then
-            cp -f ${WASMER_DIR}/libwasmer_darwin_amd64.dylib ${BUILD_DIR};
+            cp -v ${VM_GO_DIR}/wasmer2/libvmexeccapi.dylib ${BUILD_DIR}/libvmexeccapi.dylib
+            cp -v ${VM_GO_DIR}/wasmer/libwasmer_darwin_amd64.dylib ${BUILD_DIR}/libwasmer_darwin_amd64.dylib
+          fi
+
+          if [[ "$GOOS" == darwin && "$GOARCH" == arm64 ]]; then
+            cp -v ${VM_GO_DIR}/wasmer2/libvmexeccapi_arm.dylib ${BUILD_DIR}/libvmexeccapi_arm.dylib
+            cp -v ${VM_GO_DIR}/wasmer/libwasmer_darwin_arm64_shim.dylib ${BUILD_DIR}/libwasmer_darwin_arm64_shim.dylib
+          fi
+
+          if [[ "$GOOS" == linux ]]; then
+            patchelf --set-rpath "\$ORIGIN" ${BUILD_DIR}/node
+            patchelf --set-rpath "\$ORIGIN" ${BUILD_DIR}/seednode
+
+            ldd ${BUILD_DIR}/node
+            ldd ${BUILD_DIR}/seednode
+          fi
+
+          if [[ "$GOOS" == darwin ]]; then
+            install_name_tool -add_rpath "@loader_path" ${BUILD_DIR}/node
+            install_name_tool -add_rpath "@loader_path" ${BUILD_DIR}/seednode
+
+            otool -L ${BUILD_DIR}/node
+            otool -L ${BUILD_DIR}/seednode
           fi
 
           cd ${BUILD_DIR}

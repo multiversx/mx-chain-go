@@ -1,4 +1,4 @@
-name: Build
+name: Build and smoke test
 
 on:
   pull_request:
@@ -39,11 +39,11 @@ jobs:
 
       - name: Smoke test the binaries
         run: |
-          ${GITHUB_WORKSPACE}/cmd/node --help
-          ${GITHUB_WORKSPACE}/cmd/seednode --help
-          ${GITHUB_WORKSPACE}/cmd/keygenerator --help
-          ${GITHUB_WORKSPACE}/cmd/logviewer --help
-          ${GITHUB_WORKSPACE}/cmd/termui --help
+          ${GITHUB_WORKSPACE}/cmd/node/node --help
+          ${GITHUB_WORKSPACE}/cmd/seednode/seednode --help
+          ${GITHUB_WORKSPACE}/cmd/keygenerator/keygenerator --help
+          ${GITHUB_WORKSPACE}/cmd/logviewer/logviewer --help
+          ${GITHUB_WORKSPACE}/cmd/termui/termui --help
 
       # On GitHub, we only run the short tests, and we only run them for some OS/ARCH combinations.
       - name: Run tests
