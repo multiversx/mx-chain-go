@@ -61,6 +61,7 @@ jobs:
         run: |
           mkdir -p ${BUILD_DIR}
           cd ${GITHUB_WORKSPACE}/cmd/node && go build -o "${BUILD_DIR}/node" -a -ldflags="-X main.appVersion=${APP_VER}"
+          cd ${GITHUB_WORKSPACE}/cmd/seednode && go build -o "${BUILD_DIR}/seednode" -a -ldflags="-X main.appVersion=${APP_VER}"
           cd ${GITHUB_WORKSPACE}/cmd/keygenerator && go build -o "${BUILD_DIR}/keygenerator" -a -ldflags="-X main.appVersion=${APP_VER}"
           cd ${GITHUB_WORKSPACE}/cmd/logviewer && go build -o "${BUILD_DIR}/logviewer" -a -ldflags="-X main.appVersion=${APP_VER}"
           cd ${GITHUB_WORKSPACE}/cmd/termui && go build -o "${BUILD_DIR}/termui" -a -ldflags="-X main.appVersion=${APP_VER}"
@@ -117,30 +118,30 @@ jobs:
           path: ${{ github.workspace }}/${{ env.ARCHIVE }}
           if-no-files-found: error
 
-  release:
-    needs: [build]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v2
+  # release:
+  #   needs: [build]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Check out code
+  #       uses: actions/checkout@v2
 
-        # https://docs.github.com/en/free-pro-team@latest/actions/guides/storing-workflow-data-as-artifacts#downloading-or-deleting-artifacts
-        # A directory for each artifact is created using its name
-      - name: Download all workflow run artifacts
-        uses: actions/download-artifact@v2
-        with:
-          path: assets
+  #       # https://docs.github.com/en/free-pro-team@latest/actions/guides/storing-workflow-data-as-artifacts#downloading-or-deleting-artifacts
+  #       # A directory for each artifact is created using its name
+  #     - name: Download all workflow run artifacts
+  #       uses: actions/download-artifact@v2
+  #       with:
+  #         path: assets
 
-      - name: Display structure of downloaded files
-        run: ls -R
-        working-directory: assets
+  #     - name: Display structure of downloaded files
+  #       run: ls -R
+  #       working-directory: assets
 
-      - name: Create release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release create --draft --notes="Release draft from Github Actions" vNext
-          sleep 10
-          for i in $(find ./assets -name '*.tgz' -type f); do
-            gh release upload vNext ${i}
-          done
+  #     - name: Create release
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #       run: |
+  #         gh release create --draft --notes="Release draft from Github Actions" vNext
+  #         sleep 10
+  #         for i in $(find ./assets -name '*.tgz' -type f); do
+  #           gh release upload vNext ${i}
+  #         done
