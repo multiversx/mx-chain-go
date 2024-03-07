@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
+	"github.com/multiversx/mx-chain-go/sovereignnode/dataCodec"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -25,6 +26,7 @@ type ArgsIncomingHeaderProcessor struct {
 	Marshaller                      marshal.Marshalizer
 	Hasher                          hashing.Hasher
 	MainChainNotarizationStartRound uint64
+	DataCodec                       dataCodec.DataCodecProcessor
 }
 
 type incomingHeaderProcessor struct {
@@ -55,10 +57,14 @@ func NewIncomingHeaderProcessor(args ArgsIncomingHeaderProcessor) (*incomingHead
 	if check.IfNil(args.OutGoingOperationsPool) {
 		return nil, errors.ErrNilOutGoingOperationsPool
 	}
+	if check.IfNil(args.DataCodec) {
+		return nil, errors.ErrNilDataCodec
+	}
 
 	eventsProc := &incomingEventsProcessor{
 		marshaller: args.Marshaller,
 		hasher:     args.Hasher,
+		dataCodec:  args.DataCodec,
 	}
 
 	extendedHearProc := &extendedHeaderProcessor{

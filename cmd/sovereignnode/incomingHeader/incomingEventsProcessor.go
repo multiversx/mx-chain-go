@@ -4,24 +4,23 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
-	"strings"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/sovereignnode/dataCodec"
 )
 
 const (
-	minTopicsInTransferEvent  = 4
+	minTopicsInTransferEvent  = 5
 	numTransferTopics         = 3
 	numExecutedBridgeOpTopics = 2
-	minNumEventDataTokens     = 4
 )
 
 const (
-	topicIDExecutedBridgeOp = "executedBridgeOp"
+	topicIDExecutedBridgeOp = "executedBridgeOps"
 	topicIDDeposit          = "deposit"
 )
 
@@ -49,6 +48,7 @@ type eventsResult struct {
 type incomingEventsProcessor struct {
 	marshaller marshal.Marshalizer
 	hasher     hashing.Hasher
+	dataCodec  dataCodec.DataCodecProcessor
 }
 
 func (iep *incomingEventsProcessor) processIncomingEvents(events []data.EventHandler) (*eventsResult, error) {
@@ -85,7 +85,7 @@ func (iep *incomingEventsProcessor) processIncomingEvents(events []data.EventHan
 
 func (iep *incomingEventsProcessor) createSCRInfo(topics [][]byte, event data.EventHandler) (*scrInfo, error) {
 	// TODO: Check each param validity (e.g. check that topic[0] == valid address)
-	if len(topics) < minTopicsInTransferEvent || len(topics[1:])%numTransferTopics != 0 {
+	if len(topics) < minTopicsInTransferEvent || len(topics[2:])%numTransferTopics != 0 {
 		log.Error("incomingHeaderHandler.createIncomingSCRs",
 			"error", errInvalidNumTopicsIncomingEvent,
 			"num topics", len(topics),
@@ -94,17 +94,21 @@ func (iep *incomingEventsProcessor) createSCRInfo(topics [][]byte, event data.Ev
 			errInvalidNumTopicsIncomingEvent, len(topics))
 	}
 
-	receivedEventData, err := getEventData(event.GetData())
+	receivedEventData, err := iep.getEventData(event.GetData())
 	if err != nil {
 		return nil, err
 	}
 
-	scrData := createSCRData(topics)
+	scrData, err := iep.createSCRData(topics)
+	if err != nil {
+		return nil, err
+	}
+
 	scrData = append(scrData, receivedEventData.functionCallWithArgs...)
 	scr := &smartContractResult.SmartContractResult{
 		Nonce:          receivedEventData.nonce,
 		OriginalTxHash: nil, // TODO:  Implement this in MX-14321 task
-		RcvAddr:        topics[0],
+		RcvAddr:        topics[1],
 		SndAddr:        core.ESDTSCAddress,
 		Data:           scrData,
 		Value:          big.NewInt(0),
@@ -122,51 +126,61 @@ func (iep *incomingEventsProcessor) createSCRInfo(topics [][]byte, event data.Ev
 	}, nil
 }
 
-func getEventData(data []byte) (*eventData, error) {
+func (iep *incomingEventsProcessor) getEventData(data []byte) (*eventData, error) {
 	if len(data) == 0 {
 		return nil, errEmptyLogData
 	}
 
-	tokens := strings.Split(string(data), "@")
-	numTokens := len(tokens)
-	if numTokens < minNumEventDataTokens {
-		return nil, fmt.Errorf("%w, expected min num tokens: %d, received num tokens: %d",
-			errInvalidNumTokensOnLogData, minNumEventDataTokens, numTokens)
+	evData, err := iep.dataCodec.DeserializeEventData(data)
+	if err != nil {
+		return nil, err
 	}
 
-	// TODO: Add validity checks
-	eventNonce := big.NewInt(0).SetBytes([]byte(tokens[0]))
-	gasLimit := big.NewInt(0).SetBytes([]byte(tokens[numTokens-1]))
+	gasLimit := uint64(0)
+	args := make([]byte, 0)
+	if evData.TransferData != nil {
+		gasLimit = evData.GasLimit
 
-	functionCallWithArgs := []byte("@" + tokens[1])
-	for i := 2; i < numTokens-1; i++ {
-		functionCallWithArgs = append(functionCallWithArgs, []byte("@"+tokens[i])...)
+		args = append(args, []byte("@")...)
+		args = append(args, hex.EncodeToString(evData.Function)...)
+
+		if len(evData.Args) > 0 {
+			for _, arg := range evData.Args {
+				args = append(args, []byte("@")...)
+				args = append(args, hex.EncodeToString(arg)...)
+			}
+		}
 	}
 
 	return &eventData{
-		nonce:                eventNonce.Uint64(),
-		gasLimit:             gasLimit.Uint64(),
-		functionCallWithArgs: functionCallWithArgs,
+		nonce:                evData.Nonce,
+		functionCallWithArgs: args,
+		gasLimit:             gasLimit,
 	}, nil
 }
 
-func createSCRData(topics [][]byte) []byte {
-	numTokensToTransfer := len(topics[1:]) / numTransferTopics
+func (iep *incomingEventsProcessor) createSCRData(topics [][]byte) ([]byte, error) {
+	numTokensToTransfer := len(topics[2:]) / numTransferTopics
 	numTokensToTransferBytes := big.NewInt(int64(numTokensToTransfer)).Bytes()
 
 	ret := []byte(core.BuiltInFunctionMultiESDTNFTTransfer +
 		"@" + hex.EncodeToString(numTokensToTransferBytes))
 
-	for idx := 1; idx < len(topics[1:]); idx += 3 {
+	for idx := 2; idx < 2+len(topics[2:]); idx += 3 {
+		tokenData, err := iep.dataCodec.GetTokenDataBytes(topics[idx+1], topics[idx+2])
+		if err != nil {
+			return nil, err
+		}
+
 		transfer := []byte("@" +
 			hex.EncodeToString(topics[idx]) + // tokenID
 			"@" + hex.EncodeToString(topics[idx+1]) + //nonce
-			"@" + hex.EncodeToString(topics[idx+2])) //value
+			"@" + hex.EncodeToString(tokenData)) //tokenData
 
 		ret = append(ret, transfer...)
 	}
 
-	return ret
+	return ret, nil
 }
 
 func (iep *incomingEventsProcessor) getConfirmedBridgeOperation(topics [][]byte) (*confirmedBridgeOp, error) {

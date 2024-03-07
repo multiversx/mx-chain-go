@@ -75,6 +75,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	sovereignConfig "github.com/multiversx/mx-chain-go/sovereignnode/config"
+	"github.com/multiversx/mx-chain-go/sovereignnode/dataCodec"
 	"github.com/multiversx/mx-chain-go/sovereignnode/incomingHeader"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/storage/cache"
@@ -441,11 +442,17 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 	timeToWait := time.Second * time.Duration(snr.configs.SovereignExtraConfig.OutgoingSubscribedEvents.TimeToWaitForUnconfirmedOutGoingOperationInSeconds)
 	outGoingOperationsPool := sovereignPool.NewOutGoingOperationPool(timeToWait)
 
+	dataCodecProcessor, err := dataCodec.NewDataCodec(managedCoreComponents.InternalMarshalizer())
+	if err != nil {
+		return true, err
+	}
+
 	incomingHeaderHandler, err := createIncomingHeaderProcessor(
 		&configs.SovereignExtraConfig.NotifierConfig,
 		managedDataComponents.Datapool(),
 		configs.SovereignExtraConfig.MainChainNotarization.MainChainNotarizationStartRound,
 		outGoingOperationsPool,
+		dataCodecProcessor,
 	)
 
 	managedProcessComponents, err := snr.CreateManagedProcessComponents(
@@ -1841,6 +1848,7 @@ func createIncomingHeaderProcessor(
 	dataPool dataRetriever.PoolsHolder,
 	mainChainNotarizationStartRound uint64,
 	outGoingOperationsPool block.OutGoingOperationsPool,
+	dataCodec dataCodec.DataCodecProcessor,
 ) (process.IncomingHeaderSubscriber, error) {
 	marshaller, err := marshallerFactory.NewMarshalizer(config.WebSocketConfig.MarshallerType)
 	if err != nil {
@@ -1858,6 +1866,7 @@ func createIncomingHeaderProcessor(
 		Hasher:                          hasher,
 		MainChainNotarizationStartRound: mainChainNotarizationStartRound,
 		OutGoingOperationsPool:          outGoingOperationsPool,
+		DataCodec:                       dataCodec,
 	}
 
 	return incomingHeader.NewIncomingHeaderProcessor(argsIncomingHeaderHandler)
