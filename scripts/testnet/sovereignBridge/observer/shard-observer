@@ -1,0 +1,12 @@
+FROM multiversx/chain-testnet:T1.7.6.0
+
+WORKDIR /go/mx-chain-go/cmd/node/
+RUN sed -i '/\[DbLookupExtensions\]/!b;n;c\\tEnabled = true' ./config/config.toml
+RUN sed -i '/\[HostDriversConfig\]/,/^\[/ s/Enabled = false/Enabled = true/' ./config/external.toml
+RUN sed -i '/\[HostDriversConfig\]/,/^\[/ s/MarshallerType = "json"/MarshallerType = "gogo protobuf"/' ./config/external.toml
+RUN sed -i '/\[HostDriversConfig\]/,/^\[/ s/Mode = "client"/Mode = "server"/' ./config/external.toml
+RUN sed -i '/\[HostDriversConfig\]/,/^\[/ s/URL = "127.0.0.1:22111"/URL = "0.0.0.0:22111"/' ./config/external.toml
+
+EXPOSE 8080
+EXPOSE 22111
+ENTRYPOINT ["/go/mx-chain-go/cmd/node/node", "--log-save", "--log-level=*:DEBUG,core/dblookupext:WARN", "--log-logger-name", "--rest-api-interface=0.0.0.0:8080"]
