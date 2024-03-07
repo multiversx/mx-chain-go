@@ -112,10 +112,14 @@ jobs:
           # Remove all downloaded Go packages, so that we can test the binary's independence from them (think of Wasmer libraries).
           sudo rm -rf ${GOPATH}/pkg/mod
 
-          # Test the binary in different current directories.
+          # Test binaries in different current directories.
           cd ${BUILD_DIR} && ./node --version
           cd ${GITHUB_WORKSPACE} && ${BUILD_DIR}/node --version
           cd / && ${BUILD_DIR}/node --version
+
+          cd ${BUILD_DIR} && ./seednode --version
+          cd ${GITHUB_WORKSPACE} && ${BUILD_DIR}/seednode --version
+          cd / && ${BUILD_DIR}/seednode --version
 
       - name: Package build output
         run: |
