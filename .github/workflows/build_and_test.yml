@@ -27,39 +27,28 @@ jobs:
         run: |
           go get -v -t -d ./...
           if [ -f Gopkg.toml ]; then
-              curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-              dep ensure
+            curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+            dep ensure
           fi
-      - name: Build
-        run: |
-          cd ${GITHUB_WORKSPACE}/cmd/node && go build .
-          cd ${GITHUB_WORKSPACE}/cmd/seednode && go build .
-          cd ${GITHUB_WORKSPACE}/cmd/keygenerator && go build .
-          cd ${GITHUB_WORKSPACE}/cmd/logviewer && go build .
-          cd ${GITHUB_WORKSPACE}/cmd/termui && go build .
-
-      # "libwasmer_darwin_amd64.dylib" was built with an unfortunate identifier (in the past), so we need to fix it.
-      - name: Patch libwasmer_darwin_amd64.dylib
-        run: |
-          GOPATH=$(go env GOPATH)
-
-          python3 - << "EOF"
-          import os
-          import subprocess
-          import pathlib
-
-          GOPATH = os.getenv("GOPATH", "")
-
-          for file in pathlib.Path(f"{GOPATH}/pkg/mod/github.com/multiversx").rglob("libwasmer_darwin_amd64.dylib"):
-            print(f"Fixing {file}")
-            subprocess.check_output(f"sudo install_name_tool -id @rpath/libwasmer_darwin_amd64.dylib {file}", shell=True)
-          EOF
+      # - name: Build
+      #   run: |
+      #     cd ${GITHUB_WORKSPACE}/cmd/node && go build .
+      #     cd ${GITHUB_WORKSPACE}/cmd/seednode && go build .
+      #     cd ${GITHUB_WORKSPACE}/cmd/keygenerator && go build .
+      #     cd ${GITHUB_WORKSPACE}/cmd/logviewer && go build .
+      #     cd ${GITHUB_WORKSPACE}/cmd/termui && go build .
 
       # On GitHub, we only run the short tests, and we only run them for some OS/ARCH combinations.
       - name: Run tests
         run: |
           GOOS=$(go env GOOS)
+          GOARCH=$(go env GOARCH)
+
+          if [[ "$GOOS" == linux && "$GOARCH" == amd64 ]]; then
+            # "libwasmer_darwin_amd64.dylib" was built with an unfortunate identifier (in the past), so we need to fix it.
+            GOPATH=$(go env GOPATH) python3 ${GITHUB_WORKSPACE}/.github/workflows/patch_libwasmer_darwin_amd64.py
+          fi
 
           if [[ "$GOOS" == darwin ]]; then
-              go test -short ./...
+            go test -short ./...
           fi
