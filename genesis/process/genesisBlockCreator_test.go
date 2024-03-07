@@ -12,9 +12,10 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/multiversx/mx-chain-go/process/coordinator"
-	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
-	"github.com/multiversx/mx-chain-go/process/smartContract/processorV2"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	factoryRunType "github.com/multiversx/mx-chain-go/factory/runType"
+	"github.com/multiversx/mx-chain-go/testscommon/factory"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
@@ -70,21 +71,24 @@ func createMockArgument(
 	trieStorageManagers[dataRetriever.UserAccountsUnit.String()] = storageManager
 	trieStorageManagers[dataRetriever.PeerAccountsUnit.String()] = storageManager
 
-	argsAccCreator := factoryState.ArgsAccountCreator{
-		Hasher:              &hashingMocks.HasherMock{},
-		Marshaller:          &mock.MarshalizerMock{},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-	}
-	accCreator, err := factoryState.NewAccountCreator(argsAccCreator)
+	runTypeFactory, err := factoryRunType.NewRunTypeComponentsFactory(&factory.CoreComponentsHolderMock{
+		HasherCalled: func() hashing.Hasher {
+			return &hashingMocks.HasherMock{}
+		},
+		InternalMarshalizerCalled: func() marshal.Marshalizer {
+			return &mock.MarshalizerMock{}
+		},
+		EnableEpochsHandlerCalled: func() common.EnableEpochsHandler {
+			return &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
+		},
+	})
 	require.Nil(t, err)
 
-	runType := mainFactoryMocks.NewRunTypeComponentsStub()
-	runType.BlockChainHookHandlerFactory, _ = hooks.NewBlockChainHookFactory()
-	runType.TransactionCoordinatorFactory, _ = coordinator.NewShardTransactionCoordinatorFactory()
-	runType.SCResultsPreProcessorFactory, _ = preprocess.NewSmartContractResultPreProcessorFactory()
-	runType.SCProcessorFactory, _ = processorV2.NewSCProcessFactory()
-	runType.AccountCreator = accCreator
+	runTypeComp, err := factoryRunType.NewManagedRunTypeComponents(runTypeFactory)
+	require.Nil(t, err)
 
+	err = runTypeComp.Create()
+	require.Nil(t, err)
 	arg := ArgsGenesisBlockCreator{
 		GenesisTime:   0,
 		StartEpochNum: 0,
@@ -206,13 +210,21 @@ func createMockArgument(
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 		ShardCoordinatorFactory: sharding.NewMultiShardCoordinatorFactory(),
 		TxPreprocessorCreator:   preprocess.NewTxPreProcessorCreator(),
-		RunTypeComponents:       runType,
+		RunTypeComponents:       runTypeComp,
 	}
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{
 		NumOfShards: 2,
 		SelfShardId: 0,
 	}
+
+	argsAccCreator := factoryState.ArgsAccountCreator{
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshaller:          &mock.MarshalizerMock{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+	}
+	accCreator, err := factoryState.NewAccountCreator(argsAccCreator)
+	require.Nil(t, err)
 
 	arg.Accounts, err = createAccountAdapter(
 		&mock.MarshalizerMock{},
@@ -478,6 +490,18 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 
 		gbc, err := NewGenesisBlockCreator(arg)
 		require.ErrorIs(t, err, errorsMx.ErrNilTransactionCoordinatorCreator)
+		require.Nil(t, gbc)
+	})
+	t.Run("nil AccountCreator should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
+		rtComponents := mainFactoryMocks.NewRunTypeComponentsStub()
+		rtComponents.AccountCreator = nil
+		arg.RunTypeComponents = rtComponents
+
+		gbc, err := NewGenesisBlockCreator(arg)
+		require.ErrorIs(t, err, state.ErrNilAccountFactory)
 		require.Nil(t, gbc)
 	})
 	t.Run("nil TrieStorageManagers should error", func(t *testing.T) {

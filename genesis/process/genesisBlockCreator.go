@@ -23,6 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks/counters"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/statusHandler"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -205,6 +206,9 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 	}
 	if check.IfNil(arg.RunTypeComponents.TransactionCoordinatorCreator()) {
 		return errors.ErrNilTransactionCoordinatorCreator
+	}
+	if check.IfNil(arg.RunTypeComponents.AccountsCreator()) {
+		return state.ErrNilAccountFactory
 	}
 	if arg.TrieStorageManagers == nil {
 		return genesis.ErrNilTrieStorageManager
