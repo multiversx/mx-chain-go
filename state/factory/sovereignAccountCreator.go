@@ -13,6 +13,12 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
+// ArgsSovereignAccountCreator defines needed arguments for a sovereign account creator
+type ArgsSovereignAccountCreator struct {
+	ArgsAccountCreator
+	BaseTokenID string
+}
+
 // sovereignAccountCreator has method to create a new account
 type sovereignAccountCreator struct {
 	hasher              hashing.Hasher
@@ -22,7 +28,7 @@ type sovereignAccountCreator struct {
 }
 
 // NewSovereignAccountCreator creates a new instance of AccountCreator
-func NewSovereignAccountCreator(args ArgsAccountCreator) (state.AccountFactory, error) {
+func NewSovereignAccountCreator(args ArgsSovereignAccountCreator) (state.AccountFactory, error) {
 	if check.IfNil(args.Hasher) {
 		return nil, errors.ErrNilHasher
 	}
@@ -33,7 +39,7 @@ func NewSovereignAccountCreator(args ArgsAccountCreator) (state.AccountFactory, 
 		return nil, errors.ErrNilEnableEpochsHandler
 	}
 
-	esdtAsBalance, err := accounts.NewESDTAsBalance("", args.Marshaller)
+	esdtAsBalance, err := accounts.NewESDTAsBalance(args.BaseTokenID, args.Marshaller)
 	if err != nil {
 		return nil, err
 	}
