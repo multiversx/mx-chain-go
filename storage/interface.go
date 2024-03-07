@@ -211,6 +211,7 @@ type ManagedPeersHolder interface {
 // PersisterFactoryHandler defines the behaviour of a component which is able to create persisters
 type PersisterFactoryHandler interface {
 	Create(path string) (Persister, error)
+	CreateWithRetries(path string) (Persister, error)
 	IsInterfaceNil() bool
 }
 
