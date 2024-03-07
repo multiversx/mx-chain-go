@@ -287,16 +287,16 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	log.Debug("creating healthService")
 	healthService := nr.createHealthService(flagsConfig)
 
-	log.Debug("creating runType components")
-	managedRunTypeComponents, err := nr.CreateManagedRunTypeComponents()
-	if err != nil {
-		return true, err
-	}
-
 	log.Debug("creating core components")
 	managedCoreComponents, err := nr.CreateManagedCoreComponents(
 		chanStopNodeProcess,
 	)
+	if err != nil {
+		return true, err
+	}
+
+	log.Debug("creating runType components")
+	managedRunTypeComponents, err := nr.CreateManagedRunTypeComponents(managedCoreComponents)
 	if err != nil {
 		return true, err
 	}
@@ -1597,8 +1597,8 @@ func (nr *nodeRunner) CreateManagedCryptoComponents(
 }
 
 // CreateManagedRunTypeComponents creates the managed run type components
-func (nr *nodeRunner) CreateManagedRunTypeComponents() (mainFactory.RunTypeComponentsHandler, error) {
-	runTypeComponentsFactory, err := runType.NewRunTypeComponentsFactory()
+func (nr *nodeRunner) CreateManagedRunTypeComponents(coreComponents mainFactory.CoreComponentsHandler) (mainFactory.RunTypeComponentsHandler, error) {
+	runTypeComponentsFactory, err := runType.NewRunTypeComponentsFactory(coreComponents)
 	if err != nil {
 		return nil, fmt.Errorf("newRunTypeComponentsFactory failed: %w", err)
 	}

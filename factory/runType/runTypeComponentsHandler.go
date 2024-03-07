@@ -21,6 +21,7 @@ import (
 	processSync "github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
 	"github.com/multiversx/mx-chain-go/process/track"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 var _ factory.ComponentHandler = (*managedRunTypeComponents)(nil)
@@ -347,6 +348,18 @@ func (mrc *managedRunTypeComponents) VmContainerShardFactoryCreator() factoryVm.
 	}
 
 	return mrc.runTypeComponents.vmContainerShardFactory
+}
+
+// AccountsCreator returns the accounts factory
+func (mrc *managedRunTypeComponents) AccountsCreator() state.AccountFactory {
+	mrc.mutStateComponents.RLock()
+	defer mrc.mutStateComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.accountsCreator
 }
 
 // IsInterfaceNil returns true if the interface is nil

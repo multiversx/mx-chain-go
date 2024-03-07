@@ -299,16 +299,16 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 	log.Debug("creating healthService")
 	healthService := snr.createHealthService(flagsConfig)
 
-	log.Debug("creating runType components")
-	managedRunTypeComponents, err := snr.CreateManagedRunTypeComponents()
-	if err != nil {
-		return true, err
-	}
-
 	log.Debug("creating core components")
 	managedCoreComponents, err := snr.CreateManagedCoreComponents(
 		chanStopNodeProcess,
 	)
+	if err != nil {
+		return true, err
+	}
+
+	log.Debug("creating runType components")
+	managedRunTypeComponents, err := snr.CreateManagedRunTypeComponents(managedCoreComponents, *configs.SovereignExtraConfig)
 	if err != nil {
 		return true, err
 	}
@@ -1655,14 +1655,15 @@ func (snr *sovereignNodeRunner) CreateManagedCryptoComponents(
 }
 
 // CreateManagedRunTypeComponents creates the managed runType components
-func (snr *sovereignNodeRunner) CreateManagedRunTypeComponents() (mainFactory.RunTypeComponentsHandler, error) {
-	runTypeComponentsFactory, err := runType.NewRunTypeComponentsFactory()
+func (snr *sovereignNodeRunner) CreateManagedRunTypeComponents(coreComp mainFactory.CoreComponentsHandler, cfg config.SovereignConfig) (mainFactory.RunTypeComponentsHandler, error) {
+	runTypeComponentsFactory, err := runType.NewRunTypeComponentsFactory(coreComp)
 	if err != nil {
 		return nil, fmt.Errorf("NewRunTypeComponentsFactory failed: %w", err)
 	}
 
 	sovereignRunTypeComponentsFactory, err := runType.NewSovereignRunTypeComponentsFactory(
 		runTypeComponentsFactory,
+		cfg,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("NewSovereignRunTypeComponentsFactory failed: %w", err)

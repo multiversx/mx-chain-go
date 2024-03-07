@@ -82,8 +82,8 @@ func NewProcessorRunner(tb testing.TB, config config.Configs) *ProcessorRunner {
 }
 
 func (pr *ProcessorRunner) createComponents(tb testing.TB) {
-	pr.createRunTypeComponents(tb)
 	pr.createCoreComponents(tb)
+	pr.createRunTypeComponents(tb)
 	pr.createCryptoComponents(tb)
 	pr.createStatusCoreComponents(tb)
 	pr.createNetworkComponents(tb)
@@ -95,7 +95,7 @@ func (pr *ProcessorRunner) createComponents(tb testing.TB) {
 }
 
 func (pr *ProcessorRunner) createRunTypeComponents(tb testing.TB) {
-	rtFactory, err := runType.NewRunTypeComponentsFactory()
+	rtFactory, err := runType.NewRunTypeComponentsFactory(pr.CoreComponents)
 	require.Nil(tb, err)
 
 	rtComp, err := runType.NewManagedRunTypeComponents(rtFactory)

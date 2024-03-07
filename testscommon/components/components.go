@@ -828,7 +828,7 @@ func GetProcessComponents(
 
 // GetRunTypeComponents -
 func GetRunTypeComponents() factory.RunTypeComponentsHolder {
-	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory()
+	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory(GetCoreComponents())
 	managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(runTypeComponentsFactory)
 	if err != nil {
 		log.Error("getRunTypeComponents NewManagedRunTypeComponents", "error", err.Error())
@@ -844,8 +844,8 @@ func GetRunTypeComponents() factory.RunTypeComponentsHolder {
 
 // GetSovereignRunTypeComponents -
 func GetSovereignRunTypeComponents() factory.RunTypeComponentsHolder {
-	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory()
-	sovereignComponentsFactory, _ := runType.NewSovereignRunTypeComponentsFactory(runTypeComponentsFactory)
+	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory(GetCoreComponents())
+	sovereignComponentsFactory, _ := runType.NewSovereignRunTypeComponentsFactory(runTypeComponentsFactory, getSovConfig())
 	managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(sovereignComponentsFactory)
 	if err != nil {
 		log.Error("getRunTypeComponents NewManagedRunTypeComponents", "error", err.Error())
@@ -857,6 +857,14 @@ func GetSovereignRunTypeComponents() factory.RunTypeComponentsHolder {
 		return nil
 	}
 	return managedRunTypeComponents
+}
+
+func getSovConfig() config.SovereignConfig {
+	return config.SovereignConfig{
+		GenesisConfig: config.GenesisConfig{
+			NativeESDT: "WEGLD-ab47da",
+		},
+	}
 }
 
 // DummyLoadSkPkFromPemFile -
