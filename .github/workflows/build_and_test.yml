@@ -43,5 +43,5 @@ jobs:
           GOOS=$(go env GOOS)
 
           if [[ "$GOOS" == darwin ]]; then
-              go test -short -v ./...
+              go test -short ./...
           fi
