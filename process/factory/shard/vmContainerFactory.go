@@ -87,8 +87,6 @@ func NewVMContainerFactory(args ArgVMContainerFactory) (*vmContainerFactory, err
 		return nil, process.ErrNilHasher
 	}
 
-	patchVirtualMachineConfigGivenArchitecture(&args.Config)
-
 	cryptoHook := hooks.NewVMCryptoHook()
 
 	vmf := &vmContainerFactory{
@@ -282,7 +280,7 @@ func (vmf *vmContainerFactory) getMatchingVersion(epoch uint32) config.WasmVMVer
 }
 
 func (vmf *vmContainerFactory) createInProcessWasmVMByVersion(version config.WasmVMVersionByEpoch) (vmcommon.VMExecutionHandler, error) {
-	logVMContainerFactory.Debug("createInProcessWasmVMByVersion !(darwin && arm64)", "version", version)
+	logVMContainerFactory.Debug("createInProcessWasmVMByVersion", "version", version)
 	switch version.Version {
 	case "v1.2":
 		return vmf.createInProcessWasmVMV12()
