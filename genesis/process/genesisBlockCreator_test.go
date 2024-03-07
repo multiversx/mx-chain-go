@@ -8,12 +8,13 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
-	"github.com/multiversx/mx-chain-go/process/coordinator"
-	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
-	"github.com/multiversx/mx-chain-go/process/smartContract/processorV2"
 	"math"
 	"math/big"
 	"testing"
+
+	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
+	"github.com/multiversx/mx-chain-go/process/smartContract/processorV2"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
@@ -69,11 +70,20 @@ func createMockArgument(
 	trieStorageManagers[dataRetriever.UserAccountsUnit.String()] = storageManager
 	trieStorageManagers[dataRetriever.PeerAccountsUnit.String()] = storageManager
 
+	argsAccCreator := factoryState.ArgsAccountCreator{
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshaller:          &mock.MarshalizerMock{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+	}
+	accCreator, err := factoryState.NewAccountCreator(argsAccCreator)
+	require.Nil(t, err)
+
 	runType := mainFactoryMocks.NewRunTypeComponentsStub()
 	runType.BlockChainHookHandlerFactory, _ = hooks.NewBlockChainHookFactory()
 	runType.TransactionCoordinatorFactory, _ = coordinator.NewShardTransactionCoordinatorFactory()
 	runType.SCResultsPreProcessorFactory, _ = preprocess.NewSmartContractResultPreProcessorFactory()
 	runType.SCProcessorFactory, _ = processorV2.NewSCProcessFactory()
+	runType.AccountCreator = accCreator
 
 	arg := ArgsGenesisBlockCreator{
 		GenesisTime:   0,
@@ -203,14 +213,6 @@ func createMockArgument(
 		NumOfShards: 2,
 		SelfShardId: 0,
 	}
-
-	argsAccCreator := factoryState.ArgsAccountCreator{
-		Hasher:              &hashingMocks.HasherMock{},
-		Marshaller:          &mock.MarshalizerMock{},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-	}
-	accCreator, err := factoryState.NewAccountCreator(argsAccCreator)
-	require.Nil(t, err)
 
 	arg.Accounts, err = createAccountAdapter(
 		&mock.MarshalizerMock{},
