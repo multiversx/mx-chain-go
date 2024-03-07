@@ -19,7 +19,9 @@ func (e *EpochEconomicsStub) ComputeEndOfEpochEconomics(metaBlock *block.MetaBlo
 	if e.ComputeEndOfEpochEconomicsCalled != nil {
 		return e.ComputeEndOfEpochEconomicsCalled(metaBlock)
 	}
-	return &block.Economics{}, nil
+	return &block.Economics{
+		RewardsForProtocolSustainability: big.NewInt(0),
+	}, nil
 }
 
 // VerifyRewardsPerBlock -

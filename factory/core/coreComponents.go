@@ -290,6 +290,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		ShuffleBetweenShards: true,
 		MaxNodesEnableConfig: ccf.epochConfig.EnableEpochs.MaxNodesChangeEnableEpoch,
 		EnableEpochsHandler:  enableEpochsHandler,
+		EnableEpochs:         ccf.epochConfig.EnableEpochs,
 	}
 
 	nodesShuffler, err := nodesCoordinator.NewHashValidatorsShuffler(argsNodesShuffler)

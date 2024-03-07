@@ -43,6 +43,14 @@ const NewList PeerType = "new"
 // MetachainTopicIdentifier is the identifier used in topics to define the metachain shard ID
 const MetachainTopicIdentifier = "META" // TODO - move this to mx-chain-core-go and change wherever we use the string value
 
+// AuctionList represents the list of peers which don't participate in consensus yet, but will be selected
+// based on their top up stake
+const AuctionList PeerType = "auction"
+
+// SelectedFromAuctionList represents the list of peers which have been selected from AuctionList based on
+// their top up to be distributed on the WaitingList in the next epoch
+const SelectedFromAuctionList PeerType = "selectedFromAuction"
+
 // CombinedPeerType - represents the combination of two peerTypes
 const CombinedPeerType = "%s (%s)"
 
@@ -508,12 +516,6 @@ const (
 	// MetricESDTTransferRoleEnableEpoch represents the epoch when the ESDT transfer role feature is enabled
 	MetricESDTTransferRoleEnableEpoch = "erd_esdt_transfer_role_enable_epoch"
 
-	// MetricBuiltInFunctionOnMetaEnableEpoch represents the epoch when the builtin functions on metachain are enabled
-	MetricBuiltInFunctionOnMetaEnableEpoch = "erd_builtin_function_on_meta_enable_epoch"
-
-	// MetricWaitingListFixEnableEpoch represents the epoch when the waiting list fix is enabled
-	MetricWaitingListFixEnableEpoch = "erd_waiting_list_fix_enable_epoch"
-
 	// MetricMaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
 	MetricMaxNodesChangeEnableEpoch = "erd_max_nodes_change_enable_epoch"
 
@@ -932,7 +934,6 @@ const (
 	ESDTMultiTransferFlag                              core.EnableEpochFlag = "ESDTMultiTransferFlag"
 	GlobalMintBurnFlag                                 core.EnableEpochFlag = "GlobalMintBurnFlag"
 	ESDTTransferRoleFlag                               core.EnableEpochFlag = "ESDTTransferRoleFlag"
-	BuiltInFunctionOnMetaFlag                          core.EnableEpochFlag = "BuiltInFunctionOnMetaFlag"
 	ComputeRewardCheckpointFlag                        core.EnableEpochFlag = "ComputeRewardCheckpointFlag"
 	SCRSizeInvariantCheckFlag                          core.EnableEpochFlag = "SCRSizeInvariantCheckFlag"
 	BackwardCompSaveKeyValueFlag                       core.EnableEpochFlag = "BackwardCompSaveKeyValueFlag"
@@ -973,7 +974,6 @@ const (
 	SendAlwaysFlag                                     core.EnableEpochFlag = "SendAlwaysFlag"
 	ValueLengthCheckFlag                               core.EnableEpochFlag = "ValueLengthCheckFlag"
 	CheckTransferFlag                                  core.EnableEpochFlag = "CheckTransferFlag"
-	TransferToMetaFlag                                 core.EnableEpochFlag = "TransferToMetaFlag"
 	ESDTNFTImprovementV1Flag                           core.EnableEpochFlag = "ESDTNFTImprovementV1Flag"
 	ChangeDelegationOwnerFlag                          core.EnableEpochFlag = "ChangeDelegationOwnerFlag"
 	RefactorPeersMiniBlocksFlag                        core.EnableEpochFlag = "RefactorPeersMiniBlocksFlag"
@@ -1000,10 +1000,15 @@ const (
 	ScToScLogEventFlag                                 core.EnableEpochFlag = "ScToScLogEventFlag"
 	BlockGasAndFeesReCheckFlag                         core.EnableEpochFlag = "BlockGasAndFeesReCheckFlag"
 	BalanceWaitingListsFlag                            core.EnableEpochFlag = "BalanceWaitingListsFlag"
-	WaitingListFixFlag                                 core.EnableEpochFlag = "WaitingListFixFlag"
 	NFTStopCreateFlag                                  core.EnableEpochFlag = "NFTStopCreateFlag"
 	FixGasRemainingForSaveKeyValueFlag                 core.EnableEpochFlag = "FixGasRemainingForSaveKeyValueFlag"
 	IsChangeOwnerAddressCrossShardThroughSCFlag        core.EnableEpochFlag = "IsChangeOwnerAddressCrossShardThroughSCFlag"
 	CurrentRandomnessOnSortingFlag                     core.EnableEpochFlag = "CurrentRandomnessOnSortingFlag"
+	StakeLimitsFlag                                    core.EnableEpochFlag = "StakeLimitsFlag"
+	StakingV4Step1Flag                                 core.EnableEpochFlag = "StakingV4Step1Flag"
+	StakingV4Step2Flag                                 core.EnableEpochFlag = "StakingV4Step2Flag"
+	StakingV4Step3Flag                                 core.EnableEpochFlag = "StakingV4Step3Flag"
+	StakingQueueFlag                                   core.EnableEpochFlag = "StakingQueueFlag"
+	StakingV4StartedFlag                               core.EnableEpochFlag = "StakingV4StartedFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )

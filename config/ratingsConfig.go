@@ -27,7 +27,7 @@ type MetaChain struct {
 	RatingSteps
 }
 
-//RatingValue will hold different rating options with increase and decrease steps
+// RatingValue will hold different rating options with increase and decrease steps
 type RatingValue struct {
 	Name  string
 	Value int32

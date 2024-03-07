@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -44,7 +45,7 @@ func createArgs() (config.Configs, factory.CoreComponentsHolder) {
 		EconomicsHandler:    &economicsmocks.EconomicsHandlerStub{},
 		IntMarsh:            &testscommon.MarshallerStub{},
 		UInt64ByteSliceConv: &mockTests.Uint64ByteSliceConverterMock{},
-		NodesConfig:         &testscommon.NodesSetupStub{},
+		NodesConfig:         &genesisMocks.NodesSetupStub{},
 	}
 }
 

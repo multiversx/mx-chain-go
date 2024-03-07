@@ -60,6 +60,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
+	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -696,7 +697,8 @@ func CreateVMAndBlockchainHookMeta(
 		Economics:           economicsData,
 		MessageSignVerifier: &mock.MessageSignVerifierMock{},
 		GasSchedule:         gasSchedule,
-		NodesConfigProvider: &mock.NodesSetupStub{},
+		ArgBlockChainHook:   args,
+		NodesConfigProvider: &genesisMocks.NodesSetupStub{},
 		Hasher:              integrationtests.TestHasher,
 		Marshalizer:         integrationtests.TestMarshalizer,
 		SystemSCConfig:      createSystemSCConfig(),
@@ -705,6 +707,7 @@ func CreateVMAndBlockchainHookMeta(
 		ChanceComputer:      &shardingMocks.NodesCoordinatorMock{},
 		ShardCoordinator:    mock.NewMultiShardsCoordinatorMock(1),
 		EnableEpochsHandler: enableEpochsHandler,
+		NodesCoordinator:    &shardingMocks.NodesCoordinatorMock{},
 	}
 	vmFactory, err := metachain.NewVMContainerFactory(argVMContainer)
 	if err != nil {
@@ -758,6 +761,8 @@ func createSystemSCConfig() *config.SystemSmartContractsConfig {
 			BleedPercentagePerRound:              0.00001,
 			MaxNumberOfNodesForStake:             36,
 			ActivateBLSPubKeyMessageVerification: false,
+			StakeLimitPercentage:                 100.0,
+			NodeLimitPercentage:                  100.0,
 		},
 		DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
 			MinCreationDeposit:  "1250000000000000000000",
@@ -767,6 +772,12 @@ func createSystemSCConfig() *config.SystemSmartContractsConfig {
 		DelegationSystemSCConfig: config.DelegationSystemSCConfig{
 			MinServiceFee: 1,
 			MaxServiceFee: 20,
+		},
+		SoftAuctionConfig: config.SoftAuctionConfig{
+			TopUpStep:             "10",
+			MinTopUp:              "1",
+			MaxTopUp:              "32000000",
+			MaxNumberOfIterations: 100000,
 		},
 	}
 }
@@ -1085,7 +1096,7 @@ func CreatePreparedTxProcessorAndAccountsWithVMsWithRoundsConfig(
 	enableEpochsConfig config.EnableEpochs,
 	roundsConfig config.RoundConfig,
 ) (*VMTestContext, error) {
-	feeAccumulator, _ := postprocess.NewFeeAccumulator()
+	feeAccumulator := postprocess.NewFeeAccumulator()
 	accounts := integrationtests.CreateInMemoryShardAccountsDB()
 	_, _ = CreateAccount(accounts, senderAddressBytes, senderNonce, senderBalance)
 	vmConfig := createDefaultVMConfig()
@@ -1238,7 +1249,7 @@ func CreatePreparedTxProcessorWithVMConfigWithShardCoordinatorDBAndGasAndRoundCo
 	roundsConfig config.RoundConfig,
 	vmConfig *config.VirtualMachineConfig,
 ) (*VMTestContext, error) {
-	feeAccumulator, _ := postprocess.NewFeeAccumulator()
+	feeAccumulator := postprocess.NewFeeAccumulator()
 	epochNotifierInstance := forking.NewGenericEpochNotifier()
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, epochNotifierInstance)
 	accounts := integrationtests.CreateAccountsDB(db, enableEpochsHandler)
@@ -1331,7 +1342,7 @@ func CreateTxProcessorArwenVMWithGasScheduleAndRoundConfig(
 	enableEpochsConfig config.EnableEpochs,
 	roundsConfig config.RoundConfig,
 ) (*VMTestContext, error) {
-	feeAccumulator, _ := postprocess.NewFeeAccumulator()
+	feeAccumulator := postprocess.NewFeeAccumulator()
 	accounts := integrationtests.CreateInMemoryShardAccountsDB()
 	_, _ = CreateAccount(accounts, senderAddressBytes, senderNonce, senderBalance)
 	vmConfig := createDefaultVMConfig()
@@ -1416,7 +1427,7 @@ func CreateTxProcessorArwenWithVMConfigAndRoundConfig(
 	vmConfig *config.VirtualMachineConfig,
 	gasSchedule map[string]map[string]uint64,
 ) (*VMTestContext, error) {
-	feeAccumulator, _ := postprocess.NewFeeAccumulator()
+	feeAccumulator := postprocess.NewFeeAccumulator()
 	accounts := integrationtests.CreateInMemoryShardAccountsDB()
 	wasmVMChangeLocker := &sync.RWMutex{}
 	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(gasSchedule)
@@ -1841,7 +1852,7 @@ func CreatePreparedTxProcessorWithVMsMultiShardRoundVMConfig(
 ) (*VMTestContext, error) {
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(3, selfShardID)
 
-	feeAccumulator, _ := postprocess.NewFeeAccumulator()
+	feeAccumulator := postprocess.NewFeeAccumulator()
 	accounts := integrationtests.CreateInMemoryShardAccountsDB()
 
 	wasmVMChangeLocker := &sync.RWMutex{}

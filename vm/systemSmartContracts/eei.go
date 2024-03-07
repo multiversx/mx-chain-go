@@ -1,6 +1,7 @@
 package systemSmartContracts
 
 import (
+	"errors"
 	"fmt"
 	"math/big"
 
@@ -217,6 +218,17 @@ func (host *vmContext) SendGlobalSettingToAll(_ []byte, input []byte) {
 	}
 }
 
+func (host *vmContext) transferValueOnly(
+	destination []byte,
+	sender []byte,
+	value *big.Int,
+) {
+	senderAcc, destAcc := host.getSenderDestination(sender, destination)
+
+	_ = senderAcc.BalanceDelta.Sub(senderAcc.BalanceDelta, value)
+	_ = destAcc.BalanceDelta.Add(destAcc.BalanceDelta, value)
+}
+
 func (host *vmContext) getSenderDestination(sender, destination []byte) (*vmcommon.OutputAccount, *vmcommon.OutputAccount) {
 	senderAcc, exists := host.outputAccounts[string(sender)]
 	if !exists {
@@ -241,17 +253,6 @@ func (host *vmContext) getSenderDestination(sender, destination []byte) (*vmcomm
 	return senderAcc, destAcc
 }
 
-func (host *vmContext) transferValueOnly(
-	destination []byte,
-	sender []byte,
-	value *big.Int,
-) {
-	senderAcc, destAcc := host.getSenderDestination(sender, destination)
-
-	_ = senderAcc.BalanceDelta.Sub(senderAcc.BalanceDelta, value)
-	_ = destAcc.BalanceDelta.Add(destAcc.BalanceDelta, value)
-}
-
 // Transfer handles any necessary value transfer required and takes
 // the necessary steps to create accounts
 func (host *vmContext) Transfer(
@@ -260,7 +261,7 @@ func (host *vmContext) Transfer(
 	value *big.Int,
 	input []byte,
 	gasLimit uint64,
-) error {
+) {
 	host.transferValueOnly(destination, sender, value)
 	senderAcc, destAcc := host.getSenderDestination(sender, destination)
 	outputTransfer := vmcommon.OutputTransfer{
@@ -275,8 +276,6 @@ func (host *vmContext) Transfer(
 		outputTransfer.SenderAddress = senderAcc.Address
 	}
 	destAcc.OutputTransfers = append(destAcc.OutputTransfers, outputTransfer)
-
-	return nil
 }
 
 // GetLogs returns the logs
@@ -432,7 +431,8 @@ func createDirectCallInput(
 
 func (host *vmContext) transferBeforeInternalExec(callInput *vmcommon.ContractCallInput, sender []byte, callType string) error {
 	if !host.enableEpochsHandler.IsFlagEnabled(common.MultiClaimOnDelegationFlag) {
-		return host.Transfer(callInput.RecipientAddr, sender, callInput.CallValue, nil, 0)
+		host.Transfer(callInput.RecipientAddr, sender, callInput.CallValue, nil, 0)
+		return nil
 	}
 	host.transferValueOnly(callInput.RecipientAddr, sender, callInput.CallValue)
 
@@ -591,6 +591,42 @@ func (host *vmContext) GetReturnMessage() string {
 // AddLogEntry will add a log entry
 func (host *vmContext) AddLogEntry(entry *vmcommon.LogEntry) {
 	host.logs = append(host.logs, entry)
+}
+
+// ProcessBuiltInFunction will process the given built in function and will merge the generated output accounts and logs
+func (host *vmContext) ProcessBuiltInFunction(
+	sender, destination []byte,
+	function string,
+	arguments [][]byte,
+) (*vmcommon.VMOutput, error) {
+	vmInput := createDirectCallInput(destination, sender, big.NewInt(0), function, arguments)
+	vmInput.GasProvided = host.GasLeft()
+	vmOutput, err := host.blockChainHook.ProcessBuiltInFunction(vmInput)
+	if err != nil {
+		return nil, err
+	}
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return nil, errors.New(vmOutput.ReturnMessage)
+	}
+
+	for address, outAcc := range vmOutput.OutputAccounts {
+		if len(outAcc.OutputTransfers) > 0 {
+			leftAccount, exist := host.outputAccounts[address]
+			if !exist {
+				leftAccount = &vmcommon.OutputAccount{
+					Address: []byte(address),
+				}
+				host.outputAccounts[address] = leftAccount
+			}
+			leftAccount.OutputTransfers = append(leftAccount.OutputTransfers, outAcc.OutputTransfers...)
+		}
+	}
+
+	for _, logEntry := range vmOutput.Logs {
+		host.AddLogEntry(logEntry)
+	}
+
+	return vmOutput, nil
 }
 
 // BlockChainHook returns the blockchain hook

@@ -93,6 +93,37 @@ func createArgsCoreComponentsHolder() ArgsCoreComponentsHolder {
 				},
 			},
 		},
+		RatingConfig: config.RatingsConfig{
+			General: config.General{
+				StartRating:           4000,
+				MaxRating:             10000,
+				MinRating:             1,
+				SignedBlocksThreshold: 0.025,
+				SelectionChances: []*config.SelectionChance{
+					{MaxThreshold: 0, ChancePercent: 1},
+					{MaxThreshold: 1, ChancePercent: 2},
+					{MaxThreshold: 10000, ChancePercent: 4},
+				},
+			},
+			ShardChain: config.ShardChain{
+				RatingSteps: config.RatingSteps{
+					HoursToMaxRatingFromStartRating: 2,
+					ProposerValidatorImportance:     1,
+					ProposerDecreaseFactor:          -4,
+					ValidatorDecreaseFactor:         -4,
+					ConsecutiveMissedBlocksPenalty:  1.2,
+				},
+			},
+			MetaChain: config.MetaChain{
+				RatingSteps: config.RatingSteps{
+					HoursToMaxRatingFromStartRating: 2,
+					ProposerValidatorImportance:     1,
+					ProposerDecreaseFactor:          -4,
+					ValidatorDecreaseFactor:         -4,
+					ConsecutiveMissedBlocksPenalty:  1.3,
+				},
+			},
+		},
 		ChanStopNodeProcess: make(chan endProcess.ArgEndProcess),
 		InitialRound:        0,
 		NodesSetupPath:      "../../../sharding/mock/testdata/nodesSetupMock.json",
@@ -101,6 +132,7 @@ func createArgsCoreComponentsHolder() ArgsCoreComponentsHolder {
 		WorkingDir:          ".",
 		MinNodesPerShard:    1,
 		MinNodesMeta:        1,
+		RoundDurationInMs:   6000,
 	}
 }
 
