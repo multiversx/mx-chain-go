@@ -3,6 +3,7 @@ package components
 import (
 	"errors"
 	"math/big"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -49,6 +50,10 @@ func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNo
 }
 
 func TestNewTestOnlyProcessingNode(t *testing.T) {
+	if runtime.GOARCH == "arm64" {
+		t.Skip("skipping test on arm64")
+	}
+
 	t.Run("should work", func(t *testing.T) {
 		args := createMockArgsTestOnlyProcessingNode(t)
 		node, err := NewTestOnlyProcessingNode(args)

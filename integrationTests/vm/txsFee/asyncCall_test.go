@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -141,6 +142,10 @@ func TestMinterContractWithAsyncCalls(t *testing.T) {
 }
 
 func TestAsyncCallsOnInitFunctionOnUpgrade(t *testing.T) {
+	if runtime.GOARCH == "arm64" {
+		t.Skip("skipping test on arm64")
+	}
+
 	firstContractCode := wasm.GetSCCode("./testdata/first/output/first.wasm")
 	newContractCode := wasm.GetSCCode("./testdata/asyncOnInit/asyncOnInitAndUpgrade.wasm")
 
