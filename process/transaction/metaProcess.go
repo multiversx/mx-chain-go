@@ -184,18 +184,6 @@ func (txProc *metaTxProcessor) processSCInvoking(
 	return txProc.scProcessor.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
 }
 
-func (txProc *metaTxProcessor) processBuiltInFunctionCall(
-	tx *transaction.Transaction,
-	adrSrc, adrDst []byte,
-) (vmcommon.ReturnCode, error) {
-	acntSrc, acntDst, err := txProc.getAccounts(adrSrc, adrDst)
-	if err != nil {
-		return 0, err
-	}
-
-	return txProc.scProcessor.ExecuteBuiltInFunction(tx, acntSrc, acntDst)
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (txProc *metaTxProcessor) IsInterfaceNil() bool {
 	return txProc == nil
