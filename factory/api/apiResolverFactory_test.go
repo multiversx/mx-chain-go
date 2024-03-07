@@ -205,7 +205,7 @@ func TestCreateApiResolver(t *testing.T) {
 	})
 	t.Run("NewESDTTransferParser fails causing createScQueryElement error", func(t *testing.T) {
 		failingStepsInstance.reset()
-		failingStepsInstance.marshallerFailingStep = 5
+		failingStepsInstance.marshallerFailingStep = 4
 		apiResolver, err := api.CreateApiResolver(failingArgs)
 		require.NotNil(t, err)
 		require.True(t, strings.Contains(strings.ToLower(err.Error()), "marshaller"))
@@ -221,7 +221,7 @@ func TestCreateApiResolver(t *testing.T) {
 	})
 	t.Run("createBuiltinFuncs fails should error", func(t *testing.T) {
 		failingStepsInstance.reset()
-		failingStepsInstance.marshallerFailingStep = 8
+		failingStepsInstance.marshallerFailingStep = 7
 		apiResolver, err := api.CreateApiResolver(failingArgs)
 		require.NotNil(t, err)
 		require.True(t, strings.Contains(strings.ToLower(err.Error()), "marshalizer"))
@@ -229,7 +229,7 @@ func TestCreateApiResolver(t *testing.T) {
 	})
 	t.Run("NewESDTTransferParser fails should error", func(t *testing.T) {
 		failingStepsInstance.reset()
-		failingStepsInstance.marshallerFailingStep = 9
+		failingStepsInstance.marshallerFailingStep = 8
 		apiResolver, err := api.CreateApiResolver(failingArgs)
 		require.NotNil(t, err)
 		println(err.Error())
@@ -344,7 +344,6 @@ func TestCreateApiResolver(t *testing.T) {
 }
 
 func createMockSCQueryElementArgs(shardId uint32) api.SCQueryElementArgs {
-	runTypeComponents := componentsMock.GetRunTypeComponents()
 	return api.SCQueryElementArgs{
 		GeneralConfig: &config.Config{
 			BuiltInFunctions: config.BuiltInFunctionsConfig{
@@ -469,13 +468,12 @@ func createMockSCQueryElementArgs(shardId uint32) api.SCQueryElementArgs {
 				MaxServiceFee: 100,
 			},
 		},
-		Bootstrapper:            testsMocks.NewTestBootstrapperMock(),
-		AllowVMQueriesChan:      make(chan struct{}, 1),
-		WorkingDir:              "",
-		Index:                   0,
-		GuardedAccountHandler:   &guardianMocks.GuardedAccountHandlerStub{},
-		VmContainerMetaFactory:  runTypeComponents.VmContainerMetaFactoryCreator(),
-		VmContainerShardFactory: runTypeComponents.VmContainerShardFactoryCreator(),
+		Bootstrapper:          testsMocks.NewTestBootstrapperMock(),
+		AllowVMQueriesChan:    make(chan struct{}, 1),
+		WorkingDir:            "",
+		Index:                 0,
+		GuardedAccountHandler: &guardianMocks.GuardedAccountHandlerStub{},
+		RunTypeComponents:     componentsMock.GetRunTypeComponents(),
 	}
 }
 
@@ -566,9 +564,7 @@ func TestCreateApiResolver_createArgsSCQueryService(t *testing.T) {
 		t.Parallel()
 
 		args := createMockSCQueryElementArgs(0)
-		sovereignRunTypeComponents := componentsMock.GetSovereignRunTypeComponents()
-		args.VmContainerMetaFactory = sovereignRunTypeComponents.VmContainerMetaFactoryCreator()
-		args.VmContainerShardFactory = sovereignRunTypeComponents.VmContainerShardFactoryCreator()
+		args.RunTypeComponents = componentsMock.GetSovereignRunTypeComponents()
 
 		argsScQueryService, err := api.CreateArgsSCQueryService(args)
 		require.Nil(t, err)
