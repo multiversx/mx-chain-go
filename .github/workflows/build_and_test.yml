@@ -39,11 +39,11 @@ jobs:
 
       - name: Smoke test the binaries
         run: |
-          ${GITHUB_WORKSPACE}/cmd/node/node --help
-          ${GITHUB_WORKSPACE}/cmd/seednode/seednode --help
-          ${GITHUB_WORKSPACE}/cmd/keygenerator/keygenerator --help
-          ${GITHUB_WORKSPACE}/cmd/logviewer/logviewer --help
-          ${GITHUB_WORKSPACE}/cmd/termui/termui --help
+          ${GITHUB_WORKSPACE}/cmd/node/node --version
+          ${GITHUB_WORKSPACE}/cmd/seednode/seednode --version
+          ${GITHUB_WORKSPACE}/cmd/keygenerator/keygenerator --version
+          ${GITHUB_WORKSPACE}/cmd/logviewer/logviewer --version
+          ${GITHUB_WORKSPACE}/cmd/termui/termui --version
 
       # On GitHub, we only run the short tests, and we only run them for some OS/ARCH combinations.
       - name: Run tests

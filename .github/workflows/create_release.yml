@@ -1,6 +1,7 @@
 name: Create release
 
 on:
+  pull_request:
   push:
     branches:
       - master
@@ -45,7 +46,7 @@ jobs:
           GOOS=$(go env GOOS)
           GOARCH=$(go env GOARCH)
           GOPATH=$(go env GOPATH)
-          ARCHIVE="multiversx_""$APP_VER_SHORT""_""$GOOS""_""$GOARCH"".tgz"
+          ARCHIVE="multiversx_""$APP_VER_SHORT""_""$GOOS""_""$GOARCH"".zip"
           BUILD_DIR=${GITHUB_WORKSPACE}/build
           VM_GO_VERSION=$(cat go.mod | grep mx-chain-vm-go | sort -n | tail -n -1| awk -F '/' '{print$3}'| sed 's/ /@/g')
           VM_GO_DIR=${GOPATH}/pkg/mod/github.com/multiversx/${VM_GO_VERSION}
@@ -107,15 +108,28 @@ jobs:
             otool -L ${BUILD_DIR}/seednode
           fi
 
-          cd ${BUILD_DIR}
-          tar czvf "${GITHUB_WORKSPACE}/${ARCHIVE}" *
-          stat ${GITHUB_WORKSPACE}/${ARCHIVE}
+      - name: Smoke test
+        run: |
+          # Remove all downloaded Go packages, so that we can test the binary's independence from them (think of Wasmer libraries).
+          sudo rm -rf ${GOPATH}/pkg/mod
+
+          # Test the binary in different current directories.
+          cd ${BUILD_DIR} && ./node --version
+          cd ${GITHUB_WORKSPACE} && ${BUILD_DIR}/node --version
+          cd / && ${BUILD_DIR}/node --version
+
+      - name: Package build output
+        run: |
+          sudo chown -R $USER: ${BUILD_DIR}
+          chmod -R 755 ${BUILD_DIR}
+          ls -al ${BUILD_DIR}
+          zip -r -j ${ARCHIVE} ${BUILD_DIR}
 
       - name: Save artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ env.ARCHIVE }}
-          path: ${{ github.workspace }}/${{ env.ARCHIVE }}
+          name: build-output
+          path: ${{ env.ARCHIVE }}
           if-no-files-found: error
 
   # release:
@@ -142,6 +156,6 @@ jobs:
   #       run: |
   #         gh release create --draft --notes="Release draft from Github Actions" vNext
   #         sleep 10
-  #         for i in $(find ./assets -name '*.tgz' -type f); do
+  #         for i in $(find ./assets -name '*.zip' -type f); do
   #           gh release upload vNext ${i}
   #         done
