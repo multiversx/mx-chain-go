@@ -42,7 +42,6 @@ func TestESDTIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 
 	enableEpochs := config.EnableEpochs{
 		GlobalMintBurnDisableEpoch:                  integrationTests.UnreachableEpoch,
-		BuiltInFunctionOnMetaEnableEpoch:            integrationTests.UnreachableEpoch,
 		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: integrationTests.UnreachableEpoch,
 		ScheduledMiniBlocksEnableEpoch:              integrationTests.UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch:        integrationTests.UnreachableEpoch,
@@ -174,7 +173,6 @@ func TestESDTCallBurnOnANonBurnableToken(t *testing.T) {
 
 	enableEpochs := config.EnableEpochs{
 		GlobalMintBurnDisableEpoch:                  integrationTests.UnreachableEpoch,
-		BuiltInFunctionOnMetaEnableEpoch:            integrationTests.UnreachableEpoch,
 		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: integrationTests.UnreachableEpoch,
 		ScheduledMiniBlocksEnableEpoch:              integrationTests.UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch:        integrationTests.UnreachableEpoch,
@@ -1410,7 +1408,6 @@ func TestExecOnDestWithTokenTransferFromScAtoScBWithIntermediaryExecOnDest_NotEn
 
 	enableEpochs := config.EnableEpochs{
 		GlobalMintBurnDisableEpoch:              integrationTests.UnreachableEpoch,
-		BuiltInFunctionOnMetaEnableEpoch:        integrationTests.UnreachableEpoch,
 		SCProcessorV2EnableEpoch:                integrationTests.UnreachableEpoch,
 		FailExecutionOnEveryAPIErrorEnableEpoch: integrationTests.UnreachableEpoch,
 	}
@@ -2106,7 +2103,6 @@ func TestIssueAndBurnESDT_MaxGasPerBlockExceeded(t *testing.T) {
 
 	enableEpochs := config.EnableEpochs{
 		GlobalMintBurnDisableEpoch:           integrationTests.UnreachableEpoch,
-		BuiltInFunctionOnMetaEnableEpoch:     integrationTests.UnreachableEpoch,
 		MaxBlockchainHookCountersEnableEpoch: integrationTests.UnreachableEpoch,
 	}
 	nodes := integrationTests.CreateNodesWithEnableEpochs(

@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/vm"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
@@ -62,6 +63,14 @@ func createVmContainerMockArgument(gasSchedule core.GasScheduleNotifier) ArgsNew
 				BleedPercentagePerRound:              1,
 				MaxNumberOfNodesForStake:             1,
 				ActivateBLSPubKeyMessageVerification: false,
+				StakeLimitPercentage:                 100.0,
+				NodeLimitPercentage:                  100.0,
+			},
+			SoftAuctionConfig: config.SoftAuctionConfig{
+				TopUpStep:             "10",
+				MinTopUp:              "1",
+				MaxTopUp:              "32000000",
+				MaxNumberOfIterations: 100000,
 			},
 		},
 		ValidatorAccountsDB: &stateMock.AccountsStub{},
@@ -69,6 +78,9 @@ func createVmContainerMockArgument(gasSchedule core.GasScheduleNotifier) ArgsNew
 		ChanceComputer:      &mock.RaterMock{},
 		ShardCoordinator:    &mock.ShardCoordinatorStub{},
 		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.StakeFlag),
+		NodesCoordinator: &shardingMocks.NodesCoordinatorMock{GetNumTotalEligibleCalled: func() uint64 {
+			return 1000
+		}},
 	}
 }
 
@@ -228,6 +240,18 @@ func TestNewVMContainerFactory_NilShardCoordinator(t *testing.T) {
 	assert.True(t, errors.Is(err, vm.ErrNilShardCoordinator))
 }
 
+func TestNewVMContainerFactory_NilNodesCoordinatorFails(t *testing.T) {
+	t.Parallel()
+
+	gasSchedule := makeGasSchedule()
+	argsNewVmContainerFactory := createVmContainerMockArgument(gasSchedule)
+	argsNewVmContainerFactory.NodesCoordinator = nil
+	vmf, err := NewVMContainerFactory(argsNewVmContainerFactory)
+
+	assert.True(t, check.IfNil(vmf))
+	assert.True(t, errors.Is(err, process.ErrNilNodesCoordinator))
+}
+
 func TestNewVMContainerFactory_NilEnableEpochsHandler(t *testing.T) {
 	t.Parallel()
 
@@ -341,6 +365,8 @@ func TestVmContainerFactory_Create(t *testing.T) {
 				MaxNumberOfNodesForStake:             100,
 				ActivateBLSPubKeyMessageVerification: false,
 				MinUnstakeTokensValue:                "1",
+				StakeLimitPercentage:                 100.0,
+				NodeLimitPercentage:                  100.0,
 			},
 			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
 				MinCreationDeposit:  "100",
@@ -351,12 +377,21 @@ func TestVmContainerFactory_Create(t *testing.T) {
 				MinServiceFee: 0,
 				MaxServiceFee: 100,
 			},
+			SoftAuctionConfig: config.SoftAuctionConfig{
+				TopUpStep:             "10",
+				MinTopUp:              "1",
+				MaxTopUp:              "32000000",
+				MaxNumberOfIterations: 100000,
+			},
 		},
 		ValidatorAccountsDB: &stateMock.AccountsStub{},
 		UserAccountsDB:      &stateMock.AccountsStub{},
 		ChanceComputer:      &mock.RaterMock{},
 		ShardCoordinator:    mock.NewMultiShardsCoordinatorMock(1),
 		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		NodesCoordinator: &shardingMocks.NodesCoordinatorMock{GetNumTotalEligibleCalled: func() uint64 {
+			return 1000
+		}},
 	}
 	vmf, err := NewVMContainerFactory(argsNewVMContainerFactory)
 	assert.NotNil(t, vmf)

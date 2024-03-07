@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // TxDataBuilder constructs a string to be used for transaction arguments
@@ -176,9 +177,18 @@ func (builder *TxDataBuilder) TransferESDT(token string, value int64) *TxDataBui
 	return builder.Func(core.BuiltInFunctionESDTTransfer).Str(token).Int64(value)
 }
 
-//TransferESDTNFT appends to the data string all the elements required to request an ESDT NFT transfer.
+// TransferESDTNFT appends to the data string all the elements required to request an ESDT NFT transfer.
 func (builder *TxDataBuilder) TransferESDTNFT(token string, nonce int, value int64) *TxDataBuilder {
 	return builder.Func(core.BuiltInFunctionESDTNFTTransfer).Str(token).Int(nonce).Int64(value)
+}
+
+// MultiTransferESDTNFT appends to the data string all the elements required to request an Multi ESDT NFT transfer.
+func (builder *TxDataBuilder) MultiTransferESDTNFT(destinationAddress []byte, transfers []*vmcommon.ESDTTransfer) *TxDataBuilder {
+	txBuilder := builder.Func(core.BuiltInFunctionMultiESDTNFTTransfer).Bytes(destinationAddress).Int(len(transfers))
+	for _, transfer := range transfers {
+		txBuilder.Bytes(transfer.ESDTTokenName).Int(int(transfer.ESDTTokenNonce)).BigInt(transfer.ESDTValue)
+	}
+	return txBuilder
 }
 
 // BurnESDT appends to the data string all the elements required to burn ESDT tokens.

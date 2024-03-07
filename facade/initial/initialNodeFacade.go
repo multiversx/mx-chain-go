@@ -156,6 +156,11 @@ func (inf *initialNodeFacade) ValidatorStatisticsApi() (map[string]*validator.Va
 	return nil, errNodeStarting
 }
 
+// AuctionListApi returns nil and error
+func (inf *initialNodeFacade) AuctionListApi() ([]*common.AuctionListValidatorAPIResponse, error) {
+	return nil, errNodeStarting
+}
+
 // SendBulkTransactions returns 0 and error
 func (inf *initialNodeFacade) SendBulkTransactions(_ []*transaction.Transaction) (uint64, error) {
 	return uint64(0), errNodeStarting

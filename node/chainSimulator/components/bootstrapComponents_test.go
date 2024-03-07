@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
@@ -17,8 +18,10 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
+	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -32,7 +35,7 @@ func createArgsBootstrapComponentsHolder() ArgsBootstrapComponentsHolder {
 				return "T"
 			},
 			GenesisNodesSetupCalled: func() sharding.GenesisNodesSetupHandler {
-				return &testscommon.NodesSetupStub{}
+				return &genesisMocks.NodesSetupStub{}
 			},
 			InternalMarshalizerCalled: func() marshal.Marshalizer {
 				return &testscommon.MarshallerStub{}
@@ -69,6 +72,9 @@ func createArgsBootstrapComponentsHolder() ArgsBootstrapComponentsHolder {
 			},
 			TxSignHasherCalled: func() hashing.Hasher {
 				return &testscommon.HasherStub{}
+			},
+			EnableEpochsHandlerCalled: func() common.EnableEpochsHandler {
+				return &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
 			},
 		},
 		CryptoComponents: &mock.CryptoComponentsStub{
@@ -187,6 +193,7 @@ func TestBootstrapComponentsHolder_Getters(t *testing.T) {
 	require.NotNil(t, comp.HeaderVersionHandler())
 	require.NotNil(t, comp.HeaderIntegrityVerifier())
 	require.NotNil(t, comp.GuardedAccountHandler())
+	require.NotNil(t, comp.NodesCoordinatorRegistryFactory())
 	require.Nil(t, comp.CheckSubcomponents())
 	require.Empty(t, comp.String())
 	require.Nil(t, comp.Close())

@@ -2,6 +2,7 @@ package components
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
@@ -10,6 +11,7 @@ import (
 	bootstrapComp "github.com/multiversx/mx-chain-go/factory/bootstrap"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
 
 // ArgsBootstrapComponentsHolder will hold the components needed for the bootstrap components holders
@@ -27,22 +29,21 @@ type ArgsBootstrapComponentsHolder struct {
 }
 
 type bootstrapComponentsHolder struct {
-	closeHandler            *closeHandler
-	epochStartBootstrapper  factory.EpochStartBootstrapper
-	epochBootstrapParams    factory.BootstrapParamsHolder
-	nodeType                core.NodeType
-	shardCoordinator        sharding.Coordinator
-	versionedHeaderFactory  nodeFactory.VersionedHeaderFactory
-	headerVersionHandler    nodeFactory.HeaderVersionHandler
-	headerIntegrityVerifier nodeFactory.HeaderIntegrityVerifierHandler
-	guardedAccountHandler   process.GuardedAccountHandler
+	epochStartBootstrapper           factory.EpochStartBootstrapper
+	epochBootstrapParams             factory.BootstrapParamsHolder
+	nodeType                         core.NodeType
+	shardCoordinator                 sharding.Coordinator
+	versionedHeaderFactory           nodeFactory.VersionedHeaderFactory
+	headerVersionHandler             nodeFactory.HeaderVersionHandler
+	headerIntegrityVerifier          nodeFactory.HeaderIntegrityVerifierHandler
+	guardedAccountHandler            process.GuardedAccountHandler
+	nodesCoordinatorRegistryFactory  nodesCoordinator.NodesCoordinatorRegistryFactory
+	managedBootstrapComponentsCloser io.Closer
 }
 
 // CreateBootstrapComponents will create a new instance of bootstrap components holder
 func CreateBootstrapComponents(args ArgsBootstrapComponentsHolder) (*bootstrapComponentsHolder, error) {
-	instance := &bootstrapComponentsHolder{
-		closeHandler: NewCloseHandler(),
-	}
+	instance := &bootstrapComponentsHolder{}
 
 	args.PrefsConfig.Preferences.DestinationShardAsObserver = args.ShardIDStr
 
@@ -81,10 +82,15 @@ func CreateBootstrapComponents(args ArgsBootstrapComponentsHolder) (*bootstrapCo
 	instance.headerVersionHandler = managedBootstrapComponents.HeaderVersionHandler()
 	instance.headerIntegrityVerifier = managedBootstrapComponents.HeaderIntegrityVerifier()
 	instance.guardedAccountHandler = managedBootstrapComponents.GuardedAccountHandler()
-
-	instance.collectClosableComponents()
+	instance.nodesCoordinatorRegistryFactory = managedBootstrapComponents.NodesCoordinatorRegistryFactory()
+	instance.managedBootstrapComponentsCloser = managedBootstrapComponents
 
 	return instance, nil
+}
+
+// NodesCoordinatorRegistryFactory will return the nodes coordinator registry factory
+func (b *bootstrapComponentsHolder) NodesCoordinatorRegistryFactory() nodesCoordinator.NodesCoordinatorRegistryFactory {
+	return b.nodesCoordinatorRegistryFactory
 }
 
 // EpochStartBootstrapper will return the epoch start bootstrapper
@@ -127,13 +133,9 @@ func (b *bootstrapComponentsHolder) GuardedAccountHandler() process.GuardedAccou
 	return b.guardedAccountHandler
 }
 
-func (b *bootstrapComponentsHolder) collectClosableComponents() {
-	b.closeHandler.AddComponent(b.epochStartBootstrapper)
-}
-
 // Close will call the Close methods on all inner components
 func (b *bootstrapComponentsHolder) Close() error {
-	return b.closeHandler.Close()
+	return b.managedBootstrapComponentsCloser.Close()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

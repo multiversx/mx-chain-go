@@ -69,6 +69,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
 	testStorage "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	testcommonStorage "github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -109,7 +110,6 @@ const (
 	adaptivity              = false
 	hysteresis              = float32(0.2)
 	maxTrieLevelInMemory    = uint(5)
-	delegationManagementKey = "delegationManagement"
 	delegationContractsList = "delegationContracts"
 )
 
@@ -713,6 +713,8 @@ func CreateFullGenesisBlocks(
 				MaxNumberOfNodesForStake:             100,
 				ActivateBLSPubKeyMessageVerification: false,
 				MinUnstakeTokensValue:                "1",
+				StakeLimitPercentage:                 100.0,
+				NodeLimitPercentage:                  100.0,
 			},
 			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
 				MinCreationDeposit:  "100",
@@ -722,6 +724,12 @@ func CreateFullGenesisBlocks(
 			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
 				MinServiceFee: 0,
 				MaxServiceFee: 100,
+			},
+			SoftAuctionConfig: config.SoftAuctionConfig{
+				TopUpStep:             "10",
+				MinTopUp:              "1",
+				MaxTopUp:              "32000000",
+				MaxNumberOfIterations: 100000,
 			},
 		},
 		AccountsParser:      accountsParser,
@@ -821,6 +829,8 @@ func CreateGenesisMetaBlock(
 				MaxNumberOfNodesForStake:             100,
 				ActivateBLSPubKeyMessageVerification: false,
 				MinUnstakeTokensValue:                "1",
+				StakeLimitPercentage:                 100.0,
+				NodeLimitPercentage:                  100.0,
 			},
 			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
 				MinCreationDeposit:  "100",
@@ -830,6 +840,12 @@ func CreateGenesisMetaBlock(
 			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
 				MinServiceFee: 0,
 				MaxServiceFee: 100,
+			},
+			SoftAuctionConfig: config.SoftAuctionConfig{
+				TopUpStep:             "10",
+				MinTopUp:              "1",
+				MaxTopUp:              "32000000",
+				MaxNumberOfIterations: 100000,
 			},
 		},
 		BlockSignKeyGen:  &mock.KeyGenMock{},
@@ -1520,6 +1536,9 @@ func CreateNodesWithFullGenesis(
 ) ([]*TestProcessorNode, *TestProcessorNode) {
 	enableEpochsConfig := GetDefaultEnableEpochsConfig()
 	enableEpochsConfig.StakingV2EnableEpoch = UnreachableEpoch
+	enableEpochsConfig.StakingV4Step1EnableEpoch = UnreachableEpoch
+	enableEpochsConfig.StakingV4Step2EnableEpoch = UnreachableEpoch
+	enableEpochsConfig.StakingV4Step3EnableEpoch = UnreachableEpoch
 	return CreateNodesWithFullGenesisCustomEnableEpochs(numOfShards, nodesPerShard, numMetaChainNodes, genesisFile, enableEpochsConfig)
 }
 
@@ -2608,18 +2627,7 @@ func SaveDelegationManagerConfig(nodes []*TestProcessorNode) {
 			continue
 		}
 
-		acc, _ := n.AccntState.LoadAccount(vm.DelegationManagerSCAddress)
-		userAcc, _ := acc.(state.UserAccountHandler)
-
-		managementData := &systemSmartContracts.DelegationManagement{
-			MinDeposit:          big.NewInt(100),
-			LastAddress:         vm.FirstDelegationSCAddress,
-			MinDelegationAmount: big.NewInt(1),
-		}
-		marshaledData, _ := TestMarshalizer.Marshal(managementData)
-		_ = userAcc.SaveKeyValue([]byte(delegationManagementKey), marshaledData)
-		_ = n.AccntState.SaveAccount(userAcc)
-		_, _ = n.AccntState.Commit()
+		stakingcommon.SaveDelegationManagerConfig(n.AccntState, TestMarshalizer)
 	}
 }
 
