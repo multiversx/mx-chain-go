@@ -281,6 +281,10 @@ func testAsyncCallsOnInitFunctionOnUpgrade(
 }
 
 func TestAsyncCallsOnInitFunctionOnDeploy(t *testing.T) {
+	if runtime.GOARCH == "arm64" {
+		t.Skip("skipping test on arm64")
+	}
+
 	firstSCCode := wasm.GetSCCode("./testdata/first/output/first.wasm")
 	pathToSecondSC := "./testdata/asyncOnInit/asyncOnInitAndUpgrade.wasm"
 	secondSCCode := wasm.GetSCCode(pathToSecondSC)

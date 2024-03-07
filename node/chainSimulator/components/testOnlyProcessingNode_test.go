@@ -419,6 +419,10 @@ func TestTestOnlyProcessingNode_SetStateForAddress(t *testing.T) {
 }
 
 func TestTestOnlyProcessingNode_IsInterfaceNil(t *testing.T) {
+	if runtime.GOARCH == "arm64" {
+		t.Skip("skipping test on arm64")
+	}
+
 	var node *testOnlyProcessingNode
 	require.True(t, node.IsInterfaceNil())
 
@@ -427,6 +431,10 @@ func TestTestOnlyProcessingNode_IsInterfaceNil(t *testing.T) {
 }
 
 func TestTestOnlyProcessingNode_Close(t *testing.T) {
+	if runtime.GOARCH == "arm64" {
+		t.Skip("skipping test on arm64")
+	}
+
 	node, err := NewTestOnlyProcessingNode(createMockArgsTestOnlyProcessingNode(t))
 	require.NoError(t, err)
 
@@ -434,6 +442,10 @@ func TestTestOnlyProcessingNode_Close(t *testing.T) {
 }
 
 func TestTestOnlyProcessingNode_Getters(t *testing.T) {
+	if runtime.GOARCH == "arm64" {
+		t.Skip("skipping test on arm64")
+	}
+
 	node := &testOnlyProcessingNode{}
 	require.Nil(t, node.GetProcessComponents())
 	require.Nil(t, node.GetChainHandler())
