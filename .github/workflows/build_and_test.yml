@@ -37,10 +37,17 @@ jobs:
           cd ${GITHUB_WORKSPACE}/cmd/logviewer && go build .
           cd ${GITHUB_WORKSPACE}/cmd/termui && go build .
 
-      - name: Smoke test
+      - name: Smoke test the binaries
         run: |
           ${GITHUB_WORKSPACE}/cmd/node --help
           ${GITHUB_WORKSPACE}/cmd/seednode --help
           ${GITHUB_WORKSPACE}/cmd/keygenerator --help
           ${GITHUB_WORKSPACE}/cmd/logviewer --help
           ${GITHUB_WORKSPACE}/cmd/termui --help
+
+      # On GitHub, we only run the short tests, and we only run them for some OS/ARCH combinations.
+      - name: Run tests
+        run: |
+          if [[ "$GOOS" == darwin ]]; then
+              go test -short -v ./...
+          fi
