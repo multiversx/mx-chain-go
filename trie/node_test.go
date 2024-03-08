@@ -554,6 +554,7 @@ func TestPatriciaMerkleTrie_oldRootAndOldHashesAreResetAfterEveryCommit(t *testi
 	_ = tr.Commit()
 
 	_ = tr.Update([]byte("doe"), []byte("deer"))
+	_ = tr.Update([]byte("doe"), []byte("reindeer"))
 
 	err := tr.Commit()
 	assert.Nil(t, err)

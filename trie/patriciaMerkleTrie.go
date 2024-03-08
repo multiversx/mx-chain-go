@@ -160,17 +160,13 @@ func (tr *patriciaMerkleTrie) updateBatch(key []byte, value []byte, version core
 		return nil
 	}
 
-	tr.delete(hexKey)
+	tr.batchManager.Remove(hexKey)
 	return nil
 }
 
 // Delete removes the node that has the given key from the tree
 func (tr *patriciaMerkleTrie) Delete(key []byte) {
 	hexKey := keyBytesToHex(key)
-	tr.delete(hexKey)
-}
-
-func (tr *patriciaMerkleTrie) delete(hexKey []byte) {
 	tr.batchManager.Remove(hexKey)
 }
 
@@ -280,6 +276,10 @@ func (tr *patriciaMerkleTrie) Commit() error {
 	}
 	if !tr.root.isDirty() {
 		log.Trace("trying to commit clean trie", "root", tr.root.getHash())
+
+		tr.oldRoot = make([]byte, 0)
+		tr.oldHashes = make([][]byte, 0)
+
 		return nil
 	}
 	err = tr.root.setRootHash()
@@ -294,12 +294,7 @@ func (tr *patriciaMerkleTrie) Commit() error {
 		log.Trace("started committing trie", "trie", tr.root.getHash())
 	}
 
-	err = tr.root.commitDirty(0, tr.maxTrieLevelInMemory, tr.trieStorage, tr.trieStorage)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return tr.root.commitDirty(0, tr.maxTrieLevelInMemory, tr.trieStorage, tr.trieStorage)
 }
 
 // Recreate returns a new trie that has the given root hash and database

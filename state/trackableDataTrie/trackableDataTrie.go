@@ -372,6 +372,7 @@ func (tdt *trackableDataTrie) deleteFromTrie(oldVal core.TrieData, key []byte, d
 
 	if oldVal.Version == core.AutoBalanceEnabled {
 		dtr.Delete(tdt.hasher.Compute(string(key)))
+		return
 	}
 
 	if oldVal.Version == core.NotSpecified {
