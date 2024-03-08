@@ -254,7 +254,7 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 		accountData := &accounts.UserAccountData{}
 		err := u.marshalizer.Unmarshal(accountData, leaf.Value())
 		if err != nil {
-			log.Info("this must be a leaf with code", "leaf key", leaf.Key(), "err", err)
+			log.Trace("this must be a leaf with code", "leaf key", leaf.Key(), "err", err)
 			continue
 		}
 
@@ -278,13 +278,13 @@ func (u *userAccountsSyncer) syncAccountDataTries(
 		go func(trieRootHash []byte, address []byte) {
 			defer u.throttler.EndProcessing()
 
-			log.Info("sync data trie", "roothash", trieRootHash)
+			log.Trace("sync data trie", "roothash", trieRootHash)
 			err := u.syncDataTrie(trieRootHash, address, ctx)
 			if err != nil {
 				leavesChannels.ErrChan.WriteInChanNonBlocking(err)
 			}
 			atomic.AddInt32(&u.numTriesSynced, 1)
-			log.Info("finished sync data trie", "roothash", trieRootHash)
+			log.Trace("finished sync data trie", "roothash", trieRootHash)
 			wg.Done()
 		}(accountData.RootHash, accountData.Address)
 	}
@@ -322,7 +322,7 @@ func (u *userAccountsSyncer) syncAccountCode(codeHash []byte, wg *sync.WaitGroup
 
 			u.requestHandler.RequestTrieNodes(u.shardId, [][]byte{codeHash}, factory.AccountTrieNodesTopic)
 
-			log.Info("requested trie node", "codeHash", codeHash)
+			log.Trace("requested trie node", "codeHash", codeHash)
 
 			select {
 			case <-time.After(waitTimeBetweenChecks):
