@@ -250,11 +250,14 @@ func TestUserAccountsSyncer_SyncAccountDataTries_WithCodeLeaf(t *testing.T) {
 
 		args := getDefaultUserAccountsSyncerArgs()
 
+		trieNodeCodeData, err := trie.NewInterceptedTrieNode(codeData, args.Hasher)
+		require.Nil(t, err)
+
 		numCalls := uint32(0)
 		args.Cacher = &testscommon.CacherStub{
 			GetCalled: func(key []byte) (value interface{}, ok bool) {
 				if atomic.LoadUint32(&numCalls) == 1 {
-					return codeData, true
+					return trieNodeCodeData, true
 				}
 
 				atomic.AddUint32(&numCalls, 1)
