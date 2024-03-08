@@ -9,13 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
-	"github.com/multiversx/mx-chain-core-go/data/sovereign"
-	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/sovereignnode/dataCodec"
@@ -24,11 +17,26 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	sovTests "github.com/multiversx/mx-chain-go/testscommon/sovereign"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/data/sovereign"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-sdk-abi-incubator/golang/abi"
 	"github.com/stretchr/testify/require"
 )
 
 func createArgs() ArgsIncomingHeaderProcessor {
-	dataCodecMock, _ := dataCodec.NewDataCodec(&marshallerMock.MarshalizerMock{})
+	codec := abi.NewDefaultCodec()
+	args := dataCodec.DataCodec{
+		Serializer: abi.NewSerializer(codec),
+		Marshaller: &marshallerMock.MarshalizerMock{},
+	}
+
+	dataCodecMock, _ := dataCodec.NewDataCodec(args)
 
 	return ArgsIncomingHeaderProcessor{
 		HeadersPool:            &mock.HeadersCacherStub{},
@@ -62,7 +70,7 @@ func createIncomingHeadersWithIncrementalRound(numRounds uint64) []sovereign.Inc
 				{
 					Topics:     [][]byte{[]byte("endpoint"), []byte("addr"), []byte("tokenID1"), []byte("nonce1"), tokenData},
 					Data:       createEventData(),
-					Identifier: []byte(topicIDDeposit),
+					Identifier: []byte(eventIDDeposit),
 				},
 			},
 		}
@@ -277,7 +285,7 @@ func TestIncomingHeaderHandler_AddHeaderErrorCases(t *testing.T) {
 			IncomingEvents: []*transaction.Event{
 				{
 					Topics:     [][]byte{[]byte("addr")},
-					Identifier: []byte(topicIDDeposit),
+					Identifier: []byte(eventIDDeposit),
 				},
 			},
 		}
@@ -288,26 +296,26 @@ func TestIncomingHeaderHandler_AddHeaderErrorCases(t *testing.T) {
 		err := handler.AddHeader([]byte("hash"), incomingHeader)
 		requireErrorIsInvalidNumTopics(t, err, 0, 1)
 
-		incomingHeader.IncomingEvents[0] = &transaction.Event{Topics: [][]byte{[]byte("endpoint"), []byte("addr"), []byte("tokenID1")}, Identifier: []byte(topicIDDeposit)}
+		incomingHeader.IncomingEvents[0] = &transaction.Event{Topics: [][]byte{[]byte("endpoint"), []byte("addr"), []byte("tokenID1")}, Identifier: []byte(eventIDDeposit)}
 		err = handler.AddHeader([]byte("hash"), incomingHeader)
 		requireErrorIsInvalidNumTopics(t, err, 0, 3)
 
-		incomingHeader.IncomingEvents[0] = &transaction.Event{Topics: [][]byte{[]byte("endpoint"), []byte("addr"), []byte("tokenID1"), []byte("nonce1")}, Identifier: []byte(topicIDDeposit)}
+		incomingHeader.IncomingEvents[0] = &transaction.Event{Topics: [][]byte{[]byte("endpoint"), []byte("addr"), []byte("tokenID1"), []byte("nonce1")}, Identifier: []byte(eventIDDeposit)}
 		err = handler.AddHeader([]byte("hash"), incomingHeader)
 		requireErrorIsInvalidNumTopics(t, err, 0, 4)
 
-		incomingHeader.IncomingEvents[0] = &transaction.Event{Topics: [][]byte{[]byte("endpoint"), []byte("addr"), []byte("tokenID1"), []byte("nonce1"), tokenData, []byte("tokenID2")}, Identifier: []byte(topicIDDeposit)}
+		incomingHeader.IncomingEvents[0] = &transaction.Event{Topics: [][]byte{[]byte("endpoint"), []byte("addr"), []byte("tokenID1"), []byte("nonce1"), tokenData, []byte("tokenID2")}, Identifier: []byte(eventIDDeposit)}
 		err = handler.AddHeader([]byte("hash"), incomingHeader)
 		requireErrorIsInvalidNumTopics(t, err, 0, 6)
 
 		incomingHeader.IncomingEvents = []*transaction.Event{
 			{
-				Identifier: []byte(topicIDDeposit),
+				Identifier: []byte(eventIDDeposit),
 				Topics:     [][]byte{[]byte("endpoint"), []byte("addr"), []byte("tokenID1"), []byte("nonce1"), tokenData},
 				Data:       createEventData(),
 			},
 			{
-				Identifier: []byte(topicIDDeposit),
+				Identifier: []byte(eventIDDeposit),
 				Topics:     [][]byte{[]byte("addr")},
 				Data:       createEventData(),
 			},
@@ -334,7 +342,7 @@ func TestIncomingHeaderHandler_AddHeaderErrorCases(t *testing.T) {
 			IncomingEvents: []*transaction.Event{
 				{
 					Topics:     [][]byte{},
-					Identifier: []byte(topicIDExecuteBridgeOps),
+					Identifier: []byte(eventIDExecuteBridgeOps),
 				},
 			},
 		}
@@ -344,15 +352,15 @@ func TestIncomingHeaderHandler_AddHeaderErrorCases(t *testing.T) {
 		err := handler.AddHeader([]byte("hash"), incomingHeader)
 		require.ErrorIs(t, err, errInvalidNumTopicsIncomingEvent)
 
-		incomingHeader.IncomingEvents[0] = &transaction.Event{Topics: [][]byte{[]byte(topicIDExecutedBridgeOp)}, Identifier: []byte(topicIDExecuteBridgeOps)}
+		incomingHeader.IncomingEvents[0] = &transaction.Event{Topics: [][]byte{[]byte(topicIDExecutedBridgeOp)}, Identifier: []byte(eventIDExecuteBridgeOps)}
 		err = handler.AddHeader([]byte("hash"), incomingHeader)
 		requireErrorIsInvalidNumTopics(t, err, 0, 1)
 
-		incomingHeader.IncomingEvents[0] = &transaction.Event{Topics: [][]byte{[]byte(topicIDExecutedBridgeOp), []byte("hash")}, Identifier: []byte(topicIDExecuteBridgeOps)}
+		incomingHeader.IncomingEvents[0] = &transaction.Event{Topics: [][]byte{[]byte(topicIDExecutedBridgeOp), []byte("hash")}, Identifier: []byte(eventIDExecuteBridgeOps)}
 		err = handler.AddHeader([]byte("hash"), incomingHeader)
 		requireErrorIsInvalidNumTopics(t, err, 0, 2)
 
-		incomingHeader.IncomingEvents[0] = &transaction.Event{Topics: [][]byte{[]byte(topicIDExecutedBridgeOp), []byte("hash"), []byte("hash1"), []byte("hash2")}, Identifier: []byte(topicIDExecuteBridgeOps)}
+		incomingHeader.IncomingEvents[0] = &transaction.Event{Topics: [][]byte{[]byte(topicIDExecutedBridgeOp), []byte("hash"), []byte("hash1"), []byte("hash2")}, Identifier: []byte(eventIDExecuteBridgeOps)}
 		err = handler.AddHeader([]byte("hash"), incomingHeader)
 		requireErrorIsInvalidNumTopics(t, err, 0, 4)
 
@@ -386,7 +394,7 @@ func TestIncomingHeaderHandler_AddHeaderErrorCases(t *testing.T) {
 			Header: &block.HeaderV2{},
 			IncomingEvents: []*transaction.Event{
 				{
-					Identifier: []byte(topicIDDeposit),
+					Identifier: []byte(eventIDDeposit),
 					Topics:     [][]byte{[]byte("endpoint"), []byte("addr"), []byte("tokenID1"), []byte("nonce1"), tokenData},
 					Data:       createEventData(),
 				},
@@ -407,17 +415,17 @@ func TestIncomingHeaderProcessor_getEventData(t *testing.T) {
 	handler, _ := NewIncomingHeaderProcessor(args)
 
 	input := []byte("")
-	ret, err := handler.eventsProc.getEventData(input)
+	ret, err := handler.eventsProc.createEventData(input)
 	require.Nil(t, ret)
 	require.Equal(t, errEmptyLogData, err)
 
 	input = []byte("0a")
-	ret, err = handler.eventsProc.getEventData(input)
+	ret, err = handler.eventsProc.createEventData(input)
 	require.Nil(t, ret)
 	require.True(t, strings.Contains(err.Error(), "cannot decode"))
 
 	input = []byte("0a@ffaa@bb")
-	ret, err = handler.eventsProc.getEventData(input)
+	ret, err = handler.eventsProc.createEventData(input)
 	require.Nil(t, ret)
 	require.True(t, strings.Contains(err.Error(), "cannot decode"))
 
@@ -427,7 +435,7 @@ func TestIncomingHeaderProcessor_getEventData(t *testing.T) {
 		TransferData: nil,
 	})
 	require.Equal(t, input, hexEventData)
-	ret, err = handler.eventsProc.getEventData(hexEventData)
+	ret, err = handler.eventsProc.createEventData(hexEventData)
 	require.Nil(t, err)
 	require.Equal(t, &eventData{
 		nonce:                uint64(10),
@@ -445,7 +453,7 @@ func TestIncomingHeaderProcessor_getEventData(t *testing.T) {
 		},
 	})
 	require.Equal(t, input, hexEventData)
-	ret, err = handler.eventsProc.getEventData(input)
+	ret, err = handler.eventsProc.createEventData(input)
 	require.Nil(t, err)
 	require.Equal(t, &eventData{
 		nonce:                uint64(10),
@@ -463,7 +471,7 @@ func TestIncomingHeaderProcessor_getEventData(t *testing.T) {
 		},
 	})
 	require.Equal(t, input, hexEventData)
-	ret, err = handler.eventsProc.getEventData(input)
+	ret, err = handler.eventsProc.createEventData(input)
 	require.Nil(t, err)
 	require.Equal(t, &eventData{
 		nonce:                uint64(2),
@@ -579,17 +587,17 @@ func TestIncomingHeaderHandler_AddHeader(t *testing.T) {
 
 	incomingEvents := []*transaction.Event{
 		{
-			Identifier: []byte(topicIDDeposit),
+			Identifier: []byte(eventIDDeposit),
 			Topics:     topic1,
 			Data:       eventData1,
 		},
 		{
-			Identifier: []byte(topicIDDeposit),
+			Identifier: []byte(eventIDDeposit),
 			Topics:     topic2,
 			Data:       eventData2,
 		},
 		{
-			Identifier: []byte(topicIDExecuteBridgeOps),
+			Identifier: []byte(eventIDExecuteBridgeOps),
 			Topics:     topic3,
 		},
 	}
