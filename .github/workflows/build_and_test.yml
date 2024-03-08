@@ -42,12 +42,6 @@ jobs:
       - name: Run tests
         run: |
           GOOS=$(go env GOOS)
-          GOARCH=$(go env GOARCH)
-
-          if [[ "$GOOS" == darwin && "$GOARCH" == amd64 ]]; then
-            # "libwasmer_darwin_amd64.dylib" was built with an unfortunate identifier (in the past), so we need to fix it.
-            GOPATH=$(go env GOPATH) python3 ${GITHUB_WORKSPACE}/.github/workflows/patch_libwasmer_darwin_amd64.py
-          fi
 
           if [[ "$GOOS" == darwin ]]; then
             go test -short ./...
