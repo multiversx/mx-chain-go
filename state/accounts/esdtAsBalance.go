@@ -83,7 +83,7 @@ func (e *esdtAsBalance) SubFromBalance(accountDataHandler vmcommon.AccountDataHa
 
 func (e *esdtAsBalance) getESDTData(accountDataHandler vmcommon.AccountDataHandler) (*esdt.ESDigitalToken, error) {
 	marshaledData, _, err := accountDataHandler.RetrieveValue(e.keyPrefix)
-	if err != nil {
+	if err != nil || len(marshaledData) == 0 {
 		log.Trace("esdtAsBalance.getESDTData could not load account token", "error", err)
 		return createEmptyESDT(), nil
 	}
