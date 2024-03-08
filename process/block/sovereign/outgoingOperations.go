@@ -96,11 +96,11 @@ func (op *outgoingOperations) CreateOutgoingTxsData(logs []*data.LogData) [][]by
 		return make([][]byte, 0)
 	}
 
-	txsData := make([]byte, 0)
+	txsData := make([][]byte, 0)
 	for i, event := range outgoingEvents {
 		operation, err := op.getOperationData(event)
 		if err != nil {
-			log.Debug("OutGoing Operation error",
+			log.Error("OutGoing Operation error",
 				"tx hash", logs[i].TxHash,
 				"event", hex.EncodeToString(event.GetIdentifier()),
 				"error", err)
@@ -108,12 +108,12 @@ func (op *outgoingOperations) CreateOutgoingTxsData(logs []*data.LogData) [][]by
 			continue
 		}
 
-		txsData = append(txsData, operation...)
+		txsData = append(txsData, operation)
 	}
 
 	// TODO: Check gas limit here and split tx data in multiple batches if required
 	// Task: MX-14720
-	return [][]byte{txsData}
+	return txsData
 }
 
 func (op *outgoingOperations) createOutgoingEvents(logs []*data.LogData) []data.EventHandler {
