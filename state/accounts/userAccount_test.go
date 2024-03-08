@@ -199,6 +199,16 @@ func TestUserAccount_SetAndGetRootHash(t *testing.T) {
 	assert.Equal(t, rootHash, acc.GetRootHash())
 }
 
+func TestUserAccount_SetAndGetVersion(t *testing.T) {
+	t.Parallel()
+
+	acc := createUserAcc(make([]byte, 32))
+	version := uint8(2)
+
+	acc.SetVersion(version)
+	assert.Equal(t, version, acc.GetVersion())
+}
+
 func TestUserAccount_GetAllLeaves(t *testing.T) {
 	t.Parallel()
 

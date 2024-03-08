@@ -98,6 +98,15 @@ func (sm *snapshotsManager) SnapshotUserAccountDataTrie(
 	sm.snapshotUserAccountDataTrie(mainTrieRootHash, iteratorChannels, missingNodesChannel, stats, epoch, trieStorageManager)
 }
 
+// SnapshotAccountCode -
+func (sm *snapshotsManager) SnapshotAccountCode(
+	codeHash []byte,
+	epoch uint32,
+	tsm common.StorageManager,
+) error {
+	return sm.snapshotAccountCode(codeHash, epoch, tsm)
+}
+
 // NewNilSnapshotsManager -
 func NewNilSnapshotsManager() *snapshotsManager {
 	return nil

@@ -524,6 +524,60 @@ func TestSnapshotsManager_SnapshotState(t *testing.T) {
 func TestSnapshotManager_SnapshotUserAccountDataTrie(t *testing.T) {
 	t.Parallel()
 
+	t.Run("should return if not able to unmarshall account", func(t *testing.T) {
+		t.Parallel()
+
+		args := getDefaultSnapshotManagerArgs()
+
+		account, err := accounts.NewUserAccount(testscommon.TestPubKeyAlice, &trieMock.DataTrieTrackerStub{}, &trieMock.TrieLeafParserStub{})
+		require.Nil(t, err)
+
+		accountBytes, err := args.Marshaller.Marshal(account)
+		require.Nil(t, err)
+
+		expectedErr := errors.New("expected error")
+		args.AccountFactory = &stateTest.AccountsFactoryStub{
+			CreateAccountCalled: func([]byte) (vmcommon.AccountHandler, error) {
+				return nil, expectedErr
+			},
+		}
+
+		sm, err := state.NewSnapshotsManager(args)
+		assert.NoError(t, err)
+
+		storageArgs := storage.GetStorageManagerArgs()
+		tsm, err := trie.NewTrieStorageManager(storageArgs)
+		require.Nil(t, err)
+
+		tr, _ := trie.NewTrie(tsm, args.Marshaller, &testscommon.KeccakMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 1)
+		_ = tr.Update([]byte("doe"), []byte("reindeer"))
+		_ = tr.Update([]byte("dog"), []byte("puppy"))
+		_ = tr.UpdateWithVersion(account.Address, accountBytes, core.WithoutCodeLeaf)
+		_ = tr.Commit()
+
+		rootHash, err := tr.RootHash()
+		require.Nil(t, err)
+
+		allLeavesChannels := &common.TrieIteratorChannels{
+			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+			ErrChan:    errChan.NewErrChanWrapper(),
+		}
+
+		err = tr.GetAllLeavesOnChannel(allLeavesChannels, context.TODO(), rootHash, keyBuilder.NewDisabledKeyBuilder(), parsers.NewMainTrieLeafParser())
+		require.Nil(t, err)
+
+		iteratorChannels := &common.TrieIteratorChannels{
+			LeavesChan: allLeavesChannels.LeavesChan,
+			ErrChan:    errChan.NewErrChanWrapper(),
+		}
+
+		missingNodesCh := make(chan []byte, 10)
+		sm.SnapshotUserAccountDataTrie(rootHash, iteratorChannels, missingNodesCh, &trieMocks.MockStatistics{}, uint32(2), tsm)
+
+		err = iteratorChannels.ErrChan.ReadFromChanNonBlocking()
+		require.Equal(t, expectedErr, err)
+	})
+
 	t.Run("should sync account code", func(t *testing.T) {
 		t.Parallel()
 
@@ -547,11 +601,6 @@ func TestSnapshotManager_SnapshotUserAccountDataTrie(t *testing.T) {
 
 		sm, err := state.NewSnapshotsManager(args)
 		assert.NoError(t, err)
-
-		iteratorChannels := &common.TrieIteratorChannels{
-			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-			ErrChan:    errChan.NewErrChanWrapper(),
-		}
 
 		providedEpoch := uint32(2)
 		missingNodesCh := make(chan []byte, 10)
@@ -593,12 +642,113 @@ func TestSnapshotManager_SnapshotUserAccountDataTrie(t *testing.T) {
 		rootHash, err := tr.RootHash()
 		require.Nil(t, err)
 
-		err = tr.GetAllLeavesOnChannel(iteratorChannels, context.TODO(), rootHash, keyBuilder.NewDisabledKeyBuilder(), parsers.NewMainTrieLeafParser())
+		allLeavesChannels := &common.TrieIteratorChannels{
+			LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+			ErrChan:    errChan.NewErrChanWrapper(),
+		}
+
+		err = tr.GetAllLeavesOnChannel(allLeavesChannels, context.TODO(), rootHash, keyBuilder.NewDisabledKeyBuilder(), parsers.NewMainTrieLeafParser())
 		require.Nil(t, err)
+
+		iteratorChannels := &common.TrieIteratorChannels{
+			LeavesChan: allLeavesChannels.LeavesChan,
+			ErrChan:    errChan.NewErrChanWrapper(),
+		}
 
 		sm.SnapshotUserAccountDataTrie(rootHash, iteratorChannels, missingNodesCh, &trieMocks.MockStatistics{}, providedEpoch, tsm)
 
 		err = iteratorChannels.ErrChan.ReadFromChanNonBlocking()
+		require.Nil(t, err)
+
+		require.True(t, putInEpochWithoutCacheCalled)
+	})
+}
+
+func TestSnapshotManager_SnapshotAccountCode(t *testing.T) {
+	t.Parallel()
+
+	t.Run("not able to get from storer", func(t *testing.T) {
+		t.Parallel()
+
+		args := getDefaultSnapshotManagerArgs()
+		sm, err := state.NewSnapshotsManager(args)
+		require.Nil(t, err)
+
+		codeHash := []byte("codeHash")
+		providedEpoch := uint32(2)
+
+		expectedErr := errors.New("expected error")
+		storer := &storageManager.StorageManagerStub{
+			GetFromOldEpochsWithoutAddingToCacheCalled: func(key []byte) ([]byte, core.OptionalUint32, error) {
+				return nil, core.OptionalUint32{}, expectedErr
+			},
+		}
+
+		err = sm.SnapshotAccountCode(codeHash, providedEpoch, storer)
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("not able to get from storer", func(t *testing.T) {
+		t.Parallel()
+
+		args := getDefaultSnapshotManagerArgs()
+		sm, err := state.NewSnapshotsManager(args)
+		require.Nil(t, err)
+
+		codeHash := []byte("codeHash")
+		providedEpoch := uint32(2)
+
+		expectedErr := errors.New("expected error")
+		storer := &storageManager.StorageManagerStub{
+			PutInEpochWithoutCacheCalled: func(b1, b2 []byte, u uint32) error {
+				return expectedErr
+			},
+		}
+
+		err = sm.SnapshotAccountCode(codeHash, providedEpoch, storer)
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		codeHash := []byte("codeHash")
+		codeData := []byte("codeData")
+		providedEpoch := uint32(2)
+
+		putInEpochWithoutCacheCalled := false
+		storer := &trieMocks.SnapshotPruningStorerStub{
+			GetFromOldEpochsWithoutAddingToCacheCalled: func(key []byte) ([]byte, core.OptionalUint32, error) {
+				require.Equal(t, codeHash, key)
+
+				return codeData, core.OptionalUint32{}, nil
+			},
+			PutInEpochCalled: func(_ []byte, _ []byte, _ uint32) error {
+				assert.Fail(t, "should have not been called")
+				return nil
+			},
+			PutInEpochWithoutCacheCalled: func(key, data []byte, epoch uint32) error {
+				putInEpochWithoutCacheCalled = true
+
+				require.Equal(t, codeHash, key)
+				require.Equal(t, codeData, data)
+				require.Equal(t, providedEpoch, epoch)
+
+				return nil
+			},
+		}
+		storer.MemDbMock = testscommon.NewMemDbMock()
+
+		storageArgs := storage.GetStorageManagerArgs()
+		storageArgs.MainStorer = storer
+		tsm, err := trie.NewTrieStorageManager(storageArgs)
+		require.Nil(t, err)
+
+		args := getDefaultSnapshotManagerArgs()
+		sm, err := state.NewSnapshotsManager(args)
+		require.Nil(t, err)
+
+		err = sm.SnapshotAccountCode(codeHash, providedEpoch, tsm)
 		require.Nil(t, err)
 
 		require.True(t, putInEpochWithoutCacheCalled)
