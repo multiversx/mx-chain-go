@@ -2,14 +2,14 @@ package dataCodec
 
 import (
 	"encoding/hex"
-	"fmt"
-	"github.com/multiversx/mx-chain-core-go/core"
 
+	"github.com/multiversx/mx-chain-go/errors"
+
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-sdk-abi-incubator/golang/abi"
 )
 
@@ -18,27 +18,34 @@ type abiSerializer interface {
 	Deserialize(data string, outputValues []any) error
 }
 
-// DataCodec holds the
+type dataCodec struct {
+	serializer abiSerializer
+	marshaller marshal.Marshalizer
+}
+
+// DataCodec holds the components needed for serialization/deserialization
 type DataCodec struct {
 	Serializer abiSerializer
 	Marshaller marshal.Marshalizer
 }
 
 // NewDataCodec creates a data codec which is able to serialize/deserialize data from incoming/outgoing operations
-func NewDataCodec(marshaller marshal.Marshalizer) (*DataCodec, error) {
-	if check.IfNil(marshaller) {
+func NewDataCodec(args DataCodec) (*dataCodec, error) {
+	if args.Serializer == nil {
+		return nil, errors.ErrNilSerializer
+	}
+	if check.IfNil(args.Marshaller) {
 		return nil, errors.ErrNilMarshalizer
 	}
 
-	codec := abi.NewDefaultCodec()
-	return &DataCodec{
-		Serializer: abi.NewSerializer(codec),
-		Marshaller: marshaller,
+	return &dataCodec{
+		serializer: args.Serializer,
+		marshaller: args.Marshaller,
 	}, nil
 }
 
 // SerializeEventData will receive an event data and serialize it
-func (dc *DataCodec) SerializeEventData(eventData sovereign.EventData) ([]byte, error) {
+func (dc *dataCodec) SerializeEventData(eventData sovereign.EventData) ([]byte, error) {
 	var gasLimit any
 	var function any
 	var args any
@@ -85,7 +92,7 @@ func (dc *DataCodec) SerializeEventData(eventData sovereign.EventData) ([]byte, 
 		},
 	}
 
-	encodedOp, err := dc.Serializer.Serialize([]any{eventDataStruct})
+	encodedOp, err := dc.serializer.Serialize([]any{eventDataStruct})
 	if err != nil {
 		return nil, err
 	}
@@ -95,9 +102,9 @@ func (dc *DataCodec) SerializeEventData(eventData sovereign.EventData) ([]byte, 
 }
 
 // DeserializeEventData will deserialize bytes to an event data structure
-func (dc *DataCodec) DeserializeEventData(data []byte) (*sovereign.EventData, error) {
+func (dc *dataCodec) DeserializeEventData(data []byte) (*sovereign.EventData, error) {
 	if len(data) == 0 {
-		return nil, fmt.Errorf("empty data provided")
+		return nil, errEmptyData
 	}
 
 	eventDataStruct := abi.StructValue{
@@ -129,7 +136,7 @@ func (dc *DataCodec) DeserializeEventData(data []byte) (*sovereign.EventData, er
 		},
 	}
 
-	err := dc.Serializer.Deserialize(hex.EncodeToString(data), []any{&eventDataStruct})
+	err := dc.serializer.Deserialize(hex.EncodeToString(data), []any{&eventDataStruct})
 	if err != nil {
 		return nil, err
 	}
@@ -178,7 +185,7 @@ func (dc *DataCodec) DeserializeEventData(data []byte) (*sovereign.EventData, er
 }
 
 // SerializeTokenData will receive an esdt token data and serialize it
-func (dc *DataCodec) SerializeTokenData(tokenData sovereign.EsdtTokenData) ([]byte, error) {
+func (dc *dataCodec) SerializeTokenData(tokenData sovereign.EsdtTokenData) ([]byte, error) {
 	tokenUris := make([]any, len(tokenData.Uris))
 	for i, uri := range tokenData.Uris {
 		tokenUris[i] = abi.BytesValue{Value: uri}
@@ -227,7 +234,7 @@ func (dc *DataCodec) SerializeTokenData(tokenData sovereign.EsdtTokenData) ([]by
 		},
 	}
 
-	encodedTokenData, err := dc.Serializer.Serialize([]any{tokenDataStruct})
+	encodedTokenData, err := dc.serializer.Serialize([]any{tokenDataStruct})
 	if err != nil {
 		return nil, err
 	}
@@ -236,9 +243,9 @@ func (dc *DataCodec) SerializeTokenData(tokenData sovereign.EsdtTokenData) ([]by
 }
 
 // DeserializeTokenData will deserialize bytes to an esdt token data
-func (dc *DataCodec) DeserializeTokenData(data []byte) (*sovereign.EsdtTokenData, error) {
+func (dc *dataCodec) DeserializeTokenData(data []byte) (*sovereign.EsdtTokenData, error) {
 	if len(data) == 0 {
-		return nil, fmt.Errorf("empty token data provided")
+		return nil, errEmptyTokenData
 	}
 
 	tokenDataStruct := abi.StructValue{
@@ -284,7 +291,7 @@ func (dc *DataCodec) DeserializeTokenData(data []byte) (*sovereign.EsdtTokenData
 		},
 	}
 
-	err := dc.Serializer.Deserialize(hex.EncodeToString(data), []any{&tokenDataStruct})
+	err := dc.serializer.Deserialize(hex.EncodeToString(data), []any{&tokenDataStruct})
 	if err != nil {
 		return nil, err
 	}
@@ -309,9 +316,9 @@ func (dc *DataCodec) DeserializeTokenData(data []byte) (*sovereign.EsdtTokenData
 }
 
 // GetTokenDataBytes will receive token properties, deserialize then into a digital token and return marshalled digital token
-func (dc *DataCodec) GetTokenDataBytes(tokenNonce []byte, tokenData []byte) ([]byte, error) {
+func (dc *dataCodec) GetTokenDataBytes(tokenNonce []byte, tokenData []byte) ([]byte, error) {
 	if len(tokenData) == 0 {
-		return nil, fmt.Errorf("empty token data provided")
+		return nil, errEmptyTokenData
 	}
 
 	esdtTokenData, err := dc.DeserializeTokenData(tokenData)
@@ -337,7 +344,7 @@ func (dc *DataCodec) GetTokenDataBytes(tokenNonce []byte, tokenData []byte) ([]b
 		return digitalToken.Value.Bytes(), nil
 	}
 
-	return dc.Marshaller.Marshal(digitalToken)
+	return dc.marshaller.Marshal(digitalToken)
 }
 
 func bytesToUint64(bytes []byte) uint64 {
@@ -349,7 +356,7 @@ func bytesToUint64(bytes []byte) uint64 {
 }
 
 // SerializeOperation will receive an operation and serialize it
-func (dc *DataCodec) SerializeOperation(operation sovereign.Operation) ([]byte, error) {
+func (dc *dataCodec) SerializeOperation(operation sovereign.Operation) ([]byte, error) {
 	tokens := make([]any, len(operation.Tokens))
 	for i, token := range operation.Tokens {
 		tokenUris := make([]any, len(token.Data.Uris))
@@ -468,7 +475,7 @@ func (dc *DataCodec) SerializeOperation(operation sovereign.Operation) ([]byte, 
 		},
 	}
 
-	encodedOp, err := dc.Serializer.Serialize([]any{operationStruct})
+	encodedOp, err := dc.serializer.Serialize([]any{operationStruct})
 	if err != nil {
 		return nil, err
 	}
@@ -477,6 +484,6 @@ func (dc *DataCodec) SerializeOperation(operation sovereign.Operation) ([]byte, 
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil
-func (dc *DataCodec) IsInterfaceNil() bool {
+func (dc *dataCodec) IsInterfaceNil() bool {
 	return dc == nil
 }

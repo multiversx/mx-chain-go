@@ -2,17 +2,26 @@ package dataCodec
 
 import (
 	"encoding/hex"
-	"github.com/multiversx/mx-chain-core-go/data/esdt"
-	"github.com/multiversx/mx-chain-core-go/data/sovereign"
-	"github.com/multiversx/mx-chain-go/errors"
-	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
-	"github.com/stretchr/testify/require"
 	"math/big"
 	"testing"
+
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+
+	"github.com/multiversx/mx-chain-core-go/data/esdt"
+	"github.com/multiversx/mx-chain-core-go/data/sovereign"
+	"github.com/multiversx/mx-sdk-abi-incubator/golang/abi"
+	"github.com/stretchr/testify/require"
 )
 
 func createDataCodec() DataCodecProcessor {
-	dataCodecMock, _ := NewDataCodec(&marshallerMock.MarshalizerMock{})
+	codec := abi.NewDefaultCodec()
+	args := DataCodec{
+		Serializer: abi.NewSerializer(codec),
+		Marshaller: &marshallerMock.MarshalizerMock{},
+	}
+
+	dataCodecMock, _ := NewDataCodec(args)
 
 	return dataCodecMock
 }
@@ -23,16 +32,35 @@ func TestNewDataCodec(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		marshaller := marshallerMock.MarshalizerMock{}
-		dataCodec, err := NewDataCodec(marshaller)
+		codec := abi.NewDefaultCodec()
+		args := DataCodec{
+			Serializer: abi.NewSerializer(codec),
+			Marshaller: &marshallerMock.MarshalizerMock{},
+		}
+		dataCodec, err := NewDataCodec(args)
 		require.Nil(t, err)
 		require.False(t, dataCodec.IsInterfaceNil())
 	})
-
-	t.Run("should error", func(t *testing.T) {
+	t.Run("nil serializer should error", func(t *testing.T) {
 		t.Parallel()
 
-		dataCodec, err := NewDataCodec(nil)
+		args := DataCodec{
+			Serializer: nil,
+			Marshaller: &marshallerMock.MarshalizerMock{},
+		}
+		dataCodec, err := NewDataCodec(args)
+		require.ErrorIs(t, errors.ErrNilSerializer, err)
+		require.True(t, dataCodec.IsInterfaceNil())
+	})
+	t.Run("nil marshaller should error", func(t *testing.T) {
+		t.Parallel()
+
+		codec := abi.NewDefaultCodec()
+		args := DataCodec{
+			Serializer: abi.NewSerializer(codec),
+			Marshaller: nil,
+		}
+		dataCodec, err := NewDataCodec(args)
 		require.ErrorIs(t, errors.ErrNilMarshalizer, err)
 		require.True(t, dataCodec.IsInterfaceNil())
 	})
@@ -84,7 +112,7 @@ func TestDataCodec_DeserializeEventData(t *testing.T) {
 
 		deserialized, err := dataCodec.DeserializeEventData(nil)
 		require.Nil(t, deserialized)
-		require.Equal(t, "empty data provided", err.Error())
+		require.Equal(t, errEmptyData, err)
 	})
 	t.Run("deserialize event data should work", func(t *testing.T) {
 		t.Parallel()
@@ -142,7 +170,7 @@ func TestDataCodec_DeserializeTokenData(t *testing.T) {
 
 		deserialized, err := dataCodec.DeserializeTokenData(nil)
 		require.Nil(t, deserialized)
-		require.Equal(t, "empty token data provided", err.Error())
+		require.Equal(t, errEmptyTokenData, err)
 	})
 	t.Run("empty data should fail", func(t *testing.T) {
 		t.Parallel()
@@ -183,7 +211,7 @@ func TestDataCodec_GetTokenDataBytes(t *testing.T) {
 
 		tokenDataBytes, err := dataCodec.GetTokenDataBytes(nil, nil)
 		require.Nil(t, tokenDataBytes)
-		require.Equal(t, "empty token data provided", err.Error())
+		require.Equal(t, errEmptyTokenData, err)
 	})
 	t.Run("fungible token should return only amount", func(t *testing.T) {
 		t.Parallel()
