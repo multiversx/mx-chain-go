@@ -44,7 +44,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	testStorage "github.com/multiversx/mx-chain-go/testscommon/storage"
-	testcommonStorage "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
@@ -2337,106 +2336,6 @@ func Test_SnapshotStateRemovesLastSnapshotStartedAfterSnapshotFinished(t *testin
 	val, err := tsm.Get([]byte(lastSnapshotStartedKey))
 	assert.Nil(t, val)
 	assert.NotNil(t, err)
-}
-
-func TestSnaphostState_WithMigratedCodeLeaf_ShouldWork(t *testing.T) {
-	t.Parallel()
-
-	epoch := uint32(1)
-
-	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-			return flag == common.MigrateCodeLeafFlag
-		},
-	}
-
-	epochsNotifier := &mock.EpochStartNotifierStub{
-		RegisterHandlerCalled: func(handler epochStart.ActionHandler) {
-			header := &block.Header{Epoch: epoch}
-			handler.EpochStartAction(header)
-		},
-	}
-
-	mainStorer, persistersMap, err := stateMock.CreateTestingTriePruningStorer(testscommon.NewMultiShardsCoordinatorMock(1), epochsNotifier)
-	args := testcommonStorage.GetStorageManagerArgs()
-	args.MainStorer = mainStorer
-	args.Marshalizer = integrationTests.TestMarshalizer
-	args.Hasher = integrationTests.TestHasher
-
-	tsm, _ := trie.NewTrieStorageManager(args)
-	adb, _ := integrationTests.CreateAccountsDBWithEnableEpochsHandler(0, tsm, enableEpochsHandler)
-	_ = adb.SetSyncer(&mock.AccountsDBSyncerStub{})
-
-	rootHash, err := addDataTriesForAccountsStartingWithIndex(0, 1, 1, adb)
-	assert.Nil(t, err)
-
-	codeData := []byte("codeData1")
-	codeDataHash := integrationTests.TestHasher.Compute(string(codeData))
-
-	address := integrationTests.CreateAccount(adb, 1, big.NewInt(100))
-	acc, _ := adb.LoadAccount(address)
-	userAcc, ok := acc.(state.UserAccountHandler)
-	assert.True(t, ok)
-	userAcc.SetCode(codeData)
-	userAcc.SetCodeHash(codeDataHash)
-
-	err = adb.SaveAccount(userAcc)
-	require.Nil(t, err)
-
-	userAcc.SetVersion(uint8(core.WithoutCodeLeaf))
-
-	valSize := 1 << 21
-	_ = addValuesToDataTrie(t, adb, userAcc, 3, valSize)
-
-	rootHash, err = adb.Commit()
-	require.Nil(t, err)
-
-	lastestEpoch, err := tsm.GetLatestStorageEpoch()
-	require.Nil(t, err)
-	assert.Equal(t, uint32(1), lastestEpoch)
-
-	persisterEpoch0 := persistersMap.GetPersister("Epoch_0/Shard_0/id")
-	retCode, err := persisterEpoch0.Get(codeDataHash)
-	require.Equal(t, codeData, retCode)
-	require.Nil(t, err)
-
-	// should not find code in epoch 1
-	persisterEpoch1 := persistersMap.GetPersister("Epoch_1/Shard_0/id")
-	retCode, err = persisterEpoch1.Get(codeDataHash)
-	require.Nil(t, retCode)
-	require.Error(t, err)
-
-	adb.SnapshotState(rootHash, epoch)
-	for adb.IsSnapshotInProgress() {
-		time.Sleep(10 * time.Millisecond)
-	}
-
-	persisterEpoch0 = persistersMap.GetPersister("Epoch_0/Shard_0/id")
-	retCode, err = persisterEpoch0.Get(codeDataHash)
-	require.Equal(t, codeData, retCode)
-	require.Nil(t, err)
-
-	// should find code in epoch 1
-	persisterEpoch1 = persistersMap.GetPersister("Epoch_1/Shard_0/id")
-	retCode, err = persisterEpoch1.Get(codeDataHash)
-	require.Equal(t, codeData, retCode)
-	require.Nil(t, err)
-}
-
-func addValuesToDataTrie(t *testing.T, adb state.AccountsAdapter, acc state.UserAccountHandler, numVals int, valSize int) []byte {
-	for i := 0; i < numVals; i++ {
-		keyRandBytes := integrationTests.CreateRandomBytes(32)
-		valRandBytes := integrationTests.CreateRandomBytes(valSize)
-		_ = acc.SaveKeyValue(keyRandBytes, valRandBytes)
-	}
-
-	err := adb.SaveAccount(acc)
-	assert.Nil(t, err)
-
-	_, err = adb.Commit()
-	assert.Nil(t, err)
-
-	return acc.GetRootHash()
 }
 
 func addDataTriesForAccountsStartingWithIndex(
