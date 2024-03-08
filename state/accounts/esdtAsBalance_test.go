@@ -52,6 +52,19 @@ func TestEsdtAsBalance_getESDTData(t *testing.T) {
 		require.Equal(t, createEmptyESDT(), esdtData)
 	})
 
+	t.Run("empty buffer when retrieving data, should return empty token", func(t *testing.T) {
+		esdtBalance, _ := NewESDTAsBalance(baseTokenID, &marshallerMock.MarshalizerMock{})
+		accHandler := &trie.DataTrieTrackerStub{
+			RetrieveValueCalled: func(key []byte) ([]byte, uint32, error) {
+				return nil, 0, nil
+			},
+		}
+
+		esdtData, err := esdtBalance.getESDTData(accHandler)
+		require.Nil(t, err)
+		require.Equal(t, createEmptyESDT(), esdtData)
+	})
+
 	t.Run("cannot unmarshall, should return error", func(t *testing.T) {
 		errUnmarshall := errors.New("cannot unmarshall")
 		marshaller := &marshallerMock.MarshalizerStub{
