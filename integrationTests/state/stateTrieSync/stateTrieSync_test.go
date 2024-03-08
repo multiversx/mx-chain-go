@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -371,6 +372,286 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 	require.Nil(t, err)
 	assert.Equal(t, numAccounts, numLeaves)
 	checkAllDataTriesAreSynced(t, numDataTrieLeaves, requesterTrie, dataTrieRootHashes)
+}
+
+func TestNodesSync_WithMigratedCodeLeaf_SyncNotMigratedAccount(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	// code leaf not migrated, should sync from trie
+
+	var numOfShards uint32 = 1
+	var shardID uint32 = 0
+	var txSignPrivKeyShardId uint32 = 0
+
+	numAccounts := 3
+	numDataTrieLeaves := 3
+	valSize := 1 << 21
+	version := 2
+
+	fmt.Println("Requester:	")
+	nRequester, trieStorageRequester := createTestProcessorNodeAndTrieStorage(t, numOfShards, shardID, txSignPrivKeyShardId)
+
+	fmt.Println("Resolver:")
+	nResolver, trieStorageResolver := createTestProcessorNodeAndTrieStorage(t, numOfShards, shardID, txSignPrivKeyShardId)
+
+	defer func() {
+		_ = trieStorageRequester.DestroyUnit()
+		_ = trieStorageResolver.DestroyUnit()
+
+		nRequester.Close()
+		nResolver.Close()
+	}()
+
+	time.Sleep(time.Second)
+	err := nRequester.ConnectOnMain(nResolver)
+	require.Nil(t, err)
+
+	time.Sleep(integrationTests.SyncDelay)
+
+	accState := nResolver.AccntState
+	dataTrieRootHashes := addAccountsToState(t, numAccounts, numDataTrieLeaves, accState, valSize)
+
+	codeData := []byte("codeData1")
+	codeDataHash := integrationTests.TestHasher.Compute(string(codeData))
+
+	address := integrationTests.CreateAccount(accState, 1, big.NewInt(100))
+	acc, _ := accState.LoadAccount(address)
+	userAcc, ok := acc.(state.UserAccountHandler)
+	assert.True(t, ok)
+	userAcc.SetCode(codeData)
+	userAcc.SetCodeHash(codeDataHash)
+
+	err = accState.SaveAccount(userAcc)
+	require.Nil(t, err)
+
+	rootHash := addValuesToDataTrie(t, accState, userAcc, numDataTrieLeaves, valSize)
+	dataTrieRootHashes = append(dataTrieRootHashes, rootHash)
+
+	rootHash, _ = accState.RootHash()
+	leavesChannel := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    errChan.NewErrChanWrapper(),
+	}
+	err = accState.GetAllLeaves(leavesChannel, context.Background(), rootHash, parsers.NewMainTrieLeafParser())
+
+	numLeaves := 0
+	for leaf := range leavesChannel.LeavesChan {
+		numLeaves++
+
+		accountData := &accounts.UserAccountData{}
+		err = integrationTests.TestMarshalizer.Unmarshal(accountData, leaf.Value())
+		if err != nil {
+			codeDataEntry := &state.CodeEntry{}
+			err = integrationTests.TestMarshalizer.Unmarshal(codeDataEntry, leaf.Value())
+			require.Nil(t, err)
+			require.Equal(t, codeData, codeDataEntry.Code)
+		}
+	}
+
+	trieNodesCacher := nRequester.DataPool.TrieNodes()
+	a, ok := trieNodesCacher.Get(codeData)
+	require.Nil(t, a)
+	require.False(t, ok)
+
+	require.Equal(t, numAccounts+2, numLeaves)
+	require.Nil(t, err)
+	err = leavesChannel.ErrChan.ReadFromChanNonBlocking()
+	require.Nil(t, err)
+
+	requesterTrie := nRequester.TrieContainer.Get([]byte(dataRetriever.UserAccountsUnit.String()))
+	nilRootHash, _ := requesterTrie.RootHash()
+
+	syncerArgs := getUserAccountSyncerArgs(nRequester, version)
+
+	userAccSyncer, err := syncer.NewUserAccountsSyncer(syncerArgs)
+	assert.Nil(t, err)
+
+	err = userAccSyncer.SyncAccounts(rootHash, storageMarker.NewDisabledStorageMarker())
+	assert.Nil(t, err)
+
+	_ = nRequester.AccntState.RecreateTrie(rootHash)
+
+	newRootHash, _ := nRequester.AccntState.RootHash()
+	assert.NotEqual(t, nilRootHash, newRootHash)
+	assert.Equal(t, rootHash, newRootHash)
+
+	leavesChannel = &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    errChan.NewErrChanWrapper(),
+	}
+	err = nRequester.AccntState.GetAllLeaves(leavesChannel, context.Background(), rootHash, parsers.NewMainTrieLeafParser())
+	assert.Nil(t, err)
+
+	numLeaves = 0
+	for leaf := range leavesChannel.LeavesChan {
+		numLeaves++
+
+		accountData := &accounts.UserAccountData{}
+		err = integrationTests.TestMarshalizer.Unmarshal(accountData, leaf.Value())
+		if err != nil {
+			codeDataEntry := &state.CodeEntry{}
+			err = integrationTests.TestMarshalizer.Unmarshal(codeDataEntry, leaf.Value())
+			require.Nil(t, err)
+			require.Equal(t, codeData, codeDataEntry.Code)
+		}
+	}
+	err = leavesChannel.ErrChan.ReadFromChanNonBlocking()
+	require.Nil(t, err)
+	assert.Equal(t, numAccounts+2, numLeaves) // numAccounts + 1 additional acc + code leaf
+	checkAllDataTriesAreSynced(t, numDataTrieLeaves, requesterTrie, dataTrieRootHashes)
+
+	// should not find in storage
+	ret, err := trieStorageRequester.Get(codeDataHash)
+	require.Nil(t, ret)
+	require.Error(t, err)
+}
+
+func TestNodesSync_WithMigratedCodeLeaf_SyncMigratedAccount(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	// code leaf migrated, should sync from storage
+
+	var numOfShards uint32 = 1
+	var shardID uint32 = 0
+	var txSignPrivKeyShardId uint32 = 0
+
+	numAccounts := 3
+	numDataTrieLeaves := 3
+	valSize := 1 << 21
+	version := 2
+
+	fmt.Println("Requester:	")
+	nRequester, trieStorageRequester := createTestProcessorNodeAndTrieStorage(t, numOfShards, shardID, txSignPrivKeyShardId)
+
+	fmt.Println("Resolver:")
+	nResolver, trieStorageResolver := createTestProcessorNodeAndTrieStorage(t, numOfShards, shardID, txSignPrivKeyShardId)
+
+	defer func() {
+		_ = trieStorageRequester.DestroyUnit()
+		_ = trieStorageResolver.DestroyUnit()
+
+		nRequester.Close()
+		nResolver.Close()
+	}()
+
+	time.Sleep(time.Second)
+	err := nRequester.ConnectOnMain(nResolver)
+	require.Nil(t, err)
+
+	time.Sleep(integrationTests.SyncDelay)
+
+	accState := nResolver.AccntState
+	dataTrieRootHashes := addAccountsToState(t, numAccounts, numDataTrieLeaves, accState, valSize)
+
+	codeData := []byte("codeData1")
+	codeDataHash := integrationTests.TestHasher.Compute(string(codeData))
+
+	address := integrationTests.CreateAccount(accState, 1, big.NewInt(100))
+	acc, _ := accState.LoadAccount(address)
+	userAcc, ok := acc.(state.UserAccountHandler)
+	assert.True(t, ok)
+	userAcc.SetCode(codeData)
+	userAcc.SetCodeHash(codeDataHash)
+
+	// should not find in resolver storage
+	rett, err := trieStorageResolver.Get(codeDataHash)
+	require.Nil(t, rett)
+	require.Error(t, err)
+
+	err = accState.SaveAccount(userAcc)
+	require.Nil(t, err)
+
+	userAcc.SetVersion(uint8(core.WithoutCodeLeaf))
+
+	rootHash := addValuesToDataTrie(t, accState, userAcc, numDataTrieLeaves, valSize)
+	dataTrieRootHashes = append(dataTrieRootHashes, rootHash)
+
+	// should find in resolver storage
+	rett, err = trieStorageResolver.Get(codeDataHash)
+	require.Equal(t, codeData, rett)
+	require.Nil(t, err)
+
+	rootHash, _ = accState.RootHash()
+	leavesChannel := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    errChan.NewErrChanWrapper(),
+	}
+	err = accState.GetAllLeaves(leavesChannel, context.Background(), rootHash, parsers.NewMainTrieLeafParser())
+
+	numLeaves := 0
+	for range leavesChannel.LeavesChan {
+		numLeaves++
+	}
+
+	trieNodesCacher := nRequester.DataPool.TrieNodes()
+	a, ok := trieNodesCacher.Get(codeData)
+	require.Nil(t, a)
+	require.False(t, ok)
+
+	require.Equal(t, numAccounts+1, numLeaves)
+	require.Nil(t, err)
+	err = leavesChannel.ErrChan.ReadFromChanNonBlocking()
+	require.Nil(t, err)
+
+	newAcc, err := accState.LoadAccount(address)
+	require.Nil(t, err)
+
+	userAcc, ok = newAcc.(state.UserAccountHandler)
+	require.True(t, ok)
+	require.Equal(t, uint8(core.WithoutCodeLeaf), userAcc.GetVersion())
+
+	syncerArgs := getUserAccountSyncerArgs(nRequester, version)
+
+	userAccSyncer, err := syncer.NewUserAccountsSyncer(syncerArgs)
+	assert.Nil(t, err)
+
+	// should find in resolver storage
+	rett, err = trieStorageResolver.Get(codeDataHash)
+	require.Equal(t, codeData, rett)
+	require.Nil(t, err)
+
+	// should not find in requester storage
+	ret, err := trieStorageRequester.Get(codeDataHash)
+	require.Nil(t, ret)
+	require.Error(t, err)
+
+	requesterTrie := nRequester.TrieContainer.Get([]byte(dataRetriever.UserAccountsUnit.String()))
+	nilRootHash, _ := requesterTrie.RootHash()
+
+	// trigger sync process
+	err = userAccSyncer.SyncAccounts(rootHash, storageMarker.NewDisabledStorageMarker())
+	assert.Nil(t, err)
+
+	_ = nRequester.AccntState.RecreateTrie(rootHash)
+
+	newRootHash, _ := nRequester.AccntState.RootHash()
+	assert.NotEqual(t, nilRootHash, newRootHash)
+	assert.Equal(t, rootHash, newRootHash)
+
+	leavesChannel = &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    errChan.NewErrChanWrapper(),
+	}
+	err = nRequester.AccntState.GetAllLeaves(leavesChannel, context.Background(), rootHash, parsers.NewMainTrieLeafParser())
+	assert.Nil(t, err)
+
+	numLeaves = 0
+	for range leavesChannel.LeavesChan {
+		numLeaves++
+	}
+	err = leavesChannel.ErrChan.ReadFromChanNonBlocking()
+	require.Nil(t, err)
+	assert.Equal(t, numAccounts+1, numLeaves)
+	checkAllDataTriesAreSynced(t, numDataTrieLeaves, requesterTrie, dataTrieRootHashes)
+
+	// should find in requester storage
+	ret, err = trieStorageRequester.Get(codeDataHash)
+	require.Equal(t, codeData, ret)
+	require.Nil(t, err)
 }
 
 func checkAllDataTriesAreSynced(t *testing.T, numDataTrieLeaves int, tr common.Trie, dataTriesRootHashes [][]byte) {
