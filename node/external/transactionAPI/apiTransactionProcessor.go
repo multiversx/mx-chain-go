@@ -330,22 +330,49 @@ func (atp *apiTransactionProcessor) extractRequestedTxInfo(wrappedTx *txcache.Wr
 	if requestedFieldsHandler.HasGasLimit {
 		tx.TxFields[gasLimitField] = wrappedTx.Tx.GetGasLimit()
 	}
+
 	if requestedFieldsHandler.HasGasPrice {
 		tx.TxFields[gasPriceField] = wrappedTx.Tx.GetGasPrice()
 	}
+
 	if requestedFieldsHandler.HasRcvUsername {
 		tx.TxFields[rcvUsernameField] = wrappedTx.Tx.GetRcvUserName()
 	}
+
 	if requestedFieldsHandler.HasData {
 		tx.TxFields[dataField] = wrappedTx.Tx.GetData()
 	}
+
 	if requestedFieldsHandler.HasValue {
 		tx.TxFields[valueField] = getTxValue(wrappedTx)
 	}
+
+	if requestedFieldsHandler.HasSenderShardID {
+		tx.TxFields[senderShardID] = wrappedTx.SenderShardID
+	}
+
+	if requestedFieldsHandler.HasReceiverShardID {
+		tx.TxFields[receiverShardID] = wrappedTx.ReceiverShardID
+	}
+
+	if requestedFieldsHandler.HasSignature {
+		castedTx, hasSignature := wrappedTx.Tx.(data.GuardedTransactionHandler)
+		if hasSignature {
+			tx.TxFields[signatureField] = hex.EncodeToString(castedTx.GetSignature())
+		}
+	}
+
 	if requestedFieldsHandler.HasGuardian {
 		guardedTx, isGuardedTx := wrappedTx.Tx.(data.GuardedTransactionHandler)
 		if isGuardedTx {
 			tx.TxFields[guardianField] = atp.addressPubKeyConverter.SilentEncode(guardedTx.GetGuardianAddr(), log)
+		}
+	}
+
+	if requestedFieldsHandler.HasGuardianSignature {
+		guardedTx, isGuardedTx := wrappedTx.Tx.(data.GuardedTransactionHandler)
+		if isGuardedTx {
+			tx.TxFields[guardianSignatureField] = hex.EncodeToString(guardedTx.GetGuardianSignature())
 		}
 	}
 
