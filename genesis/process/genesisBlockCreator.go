@@ -117,6 +117,7 @@ func (gbc *genesisBlockCreator) createHardForkImportHandler() error {
 		TrieStorageManagers: gbc.arg.TrieStorageManagers,
 		AddressConverter:    gbc.arg.Core.AddressPubKeyConverter(),
 		EnableEpochsHandler: gbc.arg.Core.EnableEpochsHandler(),
+		AccountCreator:      gbc.arg.RunTypeComponents.AccountsCreator(),
 	}
 	importHandler, err := hardfork.NewStateImport(argsHardForkImport)
 	if err != nil {
