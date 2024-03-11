@@ -12,7 +12,7 @@ func Test_newFieldsHandler(t *testing.T) {
 	fh := newFieldsHandler("")
 	require.Equal(t, fieldsHandler{}, fh)
 
-	fh = newFieldsHandler("nOnCe,sender,receiver,gasLimit,GASprice,receiverusername,data,value")
+	fh = newFieldsHandler("nOnCe,sender,receiver,gasLimit,GASprice,receiverusername,data,value,guardian")
 	expectedPH := fieldsHandler{
 		HasNonce:       true,
 		HasSender:      true,
@@ -22,6 +22,7 @@ func Test_newFieldsHandler(t *testing.T) {
 		HasRcvUsername: true,
 		HasData:        true,
 		HasValue:       true,
+		HasGuardian:    true,
 	}
 	require.Equal(t, expectedPH, fh)
 }

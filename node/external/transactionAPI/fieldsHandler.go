@@ -14,6 +14,7 @@ const (
 	rcvUsernameField = "receiverusername"
 	dataField        = "data"
 	valueField       = "value"
+	guardianField    = "guardian"
 )
 
 type fieldsHandler struct {
@@ -25,6 +26,7 @@ type fieldsHandler struct {
 	HasRcvUsername bool
 	HasData        bool
 	HasValue       bool
+	HasGuardian    bool
 }
 
 func newFieldsHandler(parameters string) fieldsHandler {
@@ -38,6 +40,7 @@ func newFieldsHandler(parameters string) fieldsHandler {
 		HasRcvUsername: strings.Contains(parameters, rcvUsernameField),
 		HasData:        strings.Contains(parameters, dataField),
 		HasValue:       strings.Contains(parameters, valueField),
+		HasGuardian:    strings.Contains(parameters, guardianField),
 	}
 	return ph
 }

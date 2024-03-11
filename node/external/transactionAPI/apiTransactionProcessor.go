@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	rewardTxData "github.com/multiversx/mx-chain-core-go/data/rewardTx"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
@@ -319,11 +320,11 @@ func (atp *apiTransactionProcessor) extractRequestedTxInfo(wrappedTx *txcache.Wr
 	}
 
 	if requestedFieldsHandler.HasSender {
-		tx.TxFields[senderField], _ = atp.addressPubKeyConverter.Encode(wrappedTx.Tx.GetSndAddr())
+		tx.TxFields[senderField] = atp.addressPubKeyConverter.SilentEncode(wrappedTx.Tx.GetSndAddr(), log)
 	}
 
 	if requestedFieldsHandler.HasReceiver {
-		tx.TxFields[receiverField], _ = atp.addressPubKeyConverter.Encode(wrappedTx.Tx.GetRcvAddr())
+		tx.TxFields[receiverField] = atp.addressPubKeyConverter.SilentEncode(wrappedTx.Tx.GetRcvAddr(), log)
 	}
 
 	if requestedFieldsHandler.HasGasLimit {
@@ -340,6 +341,12 @@ func (atp *apiTransactionProcessor) extractRequestedTxInfo(wrappedTx *txcache.Wr
 	}
 	if requestedFieldsHandler.HasValue {
 		tx.TxFields[valueField] = getTxValue(wrappedTx)
+	}
+	if requestedFieldsHandler.HasGuardian {
+		guardedTx, isGuardedTx := wrappedTx.Tx.(data.GuardedTransactionHandler)
+		if isGuardedTx {
+			tx.TxFields[guardianField] = atp.addressPubKeyConverter.SilentEncode(guardedTx.GetGuardianAddr(), log)
+		}
 	}
 
 	return tx
