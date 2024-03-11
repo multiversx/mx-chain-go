@@ -772,3 +772,6 @@ var ErrNilSCResultsPreProcessorCreator = errors.New("nil sc results pre processo
 
 // ErrNilFunction signals that a nil function has been provided
 var ErrNilFunction = errors.New("nil function")
+
+// ErrNilSerializer signals that a nil codec serializer has been provided
+var ErrNilSerializer = errors.New("nil serializer")

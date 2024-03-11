@@ -20,9 +20,11 @@ const (
 )
 
 const (
-	topicIDExecuteBridgeOps = "executeBridgeOps"
-	topicIDExecutedBridgeOp = "executedBridgeOp"
-	topicIDDeposit          = "deposit"
+	eventIDExecutedOutGoingBridgeOp = "executeBridgeOps"
+	eventIDDepositIncomingTransfer  = "deposit"
+
+	topicIDDepositConfirmedOutGoingOperation = "executedBridgeOp"
+	topicIDDepositIncomingTransfer           = "executeBridgeOps"
 )
 
 type confirmedBridgeOp struct {
@@ -63,19 +65,19 @@ func (iep *incomingEventsProcessor) processIncomingEvents(events []data.EventHan
 		var confirmedOp *confirmedBridgeOp
 		var err error
 		switch string(event.GetIdentifier()) {
-		case topicIDDeposit:
+		case eventIDDepositIncomingTransfer:
 			scr, err = iep.createSCRInfo(topics, event)
 			scrs = append(scrs, scr)
-		case topicIDExecuteBridgeOps:
+		case eventIDExecutedOutGoingBridgeOp:
 			if len(topics) == 0 {
 				return nil, errInvalidNumTopicsIncomingEvent
 			}
 
 			switch string(topics[0]) {
-			case topicIDDeposit:
+			case topicIDDepositIncomingTransfer:
 				scr, err = iep.createSCRInfo(topics, event)
 				scrs = append(scrs, scr)
-			case topicIDExecutedBridgeOp:
+			case topicIDDepositConfirmedOutGoingOperation:
 				confirmedOp, err = iep.getConfirmedBridgeOperation(topics)
 				confirmedBridgeOps = append(confirmedBridgeOps, confirmedOp)
 			default:
@@ -97,16 +99,12 @@ func (iep *incomingEventsProcessor) processIncomingEvents(events []data.EventHan
 }
 
 func (iep *incomingEventsProcessor) createSCRInfo(topics [][]byte, event data.EventHandler) (*scrInfo, error) {
-	// TODO: Check each param validity (e.g. check that topic[0] == valid address)
-	if len(topics) < minTopicsInTransferEvent || len(topics[2:])%numTransferTopics != 0 {
-		log.Error("incomingHeaderHandler.createIncomingSCRs",
-			"error", errInvalidNumTopicsIncomingEvent,
-			"num topics", len(topics),
-			"topics", topics)
-		return nil, fmt.Errorf("%w for %s; num topics = %d", errInvalidNumTopicsIncomingEvent, topicIDDeposit, len(topics))
+	err := checkTopicsValidity(topics)
+	if err != nil {
+		return nil, err
 	}
 
-	receivedEventData, err := iep.getEventData(event.GetData())
+	receivedEventData, err := iep.createEventData(event.GetData())
 	if err != nil {
 		return nil, err
 	}
@@ -138,7 +136,7 @@ func (iep *incomingEventsProcessor) createSCRInfo(topics [][]byte, event data.Ev
 	}, nil
 }
 
-func (iep *incomingEventsProcessor) getEventData(data []byte) (*eventData, error) {
+func (iep *incomingEventsProcessor) createEventData(data []byte) (*eventData, error) {
 	if len(data) == 0 {
 		return nil, errEmptyLogData
 	}
@@ -197,11 +195,24 @@ func (iep *incomingEventsProcessor) createSCRData(topics [][]byte) ([]byte, erro
 
 func (iep *incomingEventsProcessor) getConfirmedBridgeOperation(topics [][]byte) (*confirmedBridgeOp, error) {
 	if len(topics) != numExecutedBridgeOpTopics {
-		return nil, fmt.Errorf("%w for %s; num topics = %d", errInvalidNumTopicsIncomingEvent, topicIDExecuteBridgeOps, len(topics))
+		return nil, fmt.Errorf("%w for %s; num topics = %d", errInvalidNumTopicsIncomingEvent, eventIDExecutedOutGoingBridgeOp, len(topics))
 	}
 
 	return &confirmedBridgeOp{
 		hashOfHashes: topics[0],
 		hash:         topics[1],
 	}, nil
+}
+
+func checkTopicsValidity(topics [][]byte) error {
+	// TODO: Check each param validity (e.g. check that topic[0] == valid address)
+	if len(topics) < minTopicsInTransferEvent || len(topics[2:])%numTransferTopics != 0 {
+		log.Error("incomingHeaderHandler.createIncomingSCRs",
+			"error", errInvalidNumTopicsIncomingEvent,
+			"num topics", len(topics),
+			"topics", topics)
+		return fmt.Errorf("%w for %s; num topics = %d", errInvalidNumTopicsIncomingEvent, eventIDDepositIncomingTransfer, len(topics))
+	}
+
+	return nil
 }

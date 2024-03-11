@@ -2,17 +2,26 @@ package dataCodec
 
 import (
 	"encoding/hex"
-	"github.com/multiversx/mx-chain-core-go/data/esdt"
-	"github.com/multiversx/mx-chain-core-go/data/sovereign"
-	"github.com/multiversx/mx-chain-go/errors"
-	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
-	"github.com/stretchr/testify/require"
 	"math/big"
 	"testing"
+
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+
+	"github.com/multiversx/mx-chain-core-go/data/esdt"
+	"github.com/multiversx/mx-chain-core-go/data/sovereign"
+	"github.com/multiversx/mx-sdk-abi-incubator/golang/abi"
+	"github.com/stretchr/testify/require"
 )
 
 func createDataCodec() DataCodecProcessor {
-	dataCodecMock, _ := NewDataCodec(&marshallerMock.MarshalizerMock{})
+	codec := abi.NewDefaultCodec()
+	args := DataCodec{
+		Serializer: abi.NewSerializer(codec),
+		Marshaller: &marshallerMock.MarshalizerMock{},
+	}
+
+	dataCodecMock, _ := NewDataCodec(args)
 
 	return dataCodecMock
 }
@@ -23,16 +32,35 @@ func TestNewDataCodec(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		marshaller := marshallerMock.MarshalizerMock{}
-		dataCodec, err := NewDataCodec(marshaller)
+		codec := abi.NewDefaultCodec()
+		args := DataCodec{
+			Serializer: abi.NewSerializer(codec),
+			Marshaller: &marshallerMock.MarshalizerMock{},
+		}
+		dataCodec, err := NewDataCodec(args)
 		require.Nil(t, err)
 		require.False(t, dataCodec.IsInterfaceNil())
 	})
-
-	t.Run("should error", func(t *testing.T) {
+	t.Run("nil serializer should error", func(t *testing.T) {
 		t.Parallel()
 
-		dataCodec, err := NewDataCodec(nil)
+		args := DataCodec{
+			Serializer: nil,
+			Marshaller: &marshallerMock.MarshalizerMock{},
+		}
+		dataCodec, err := NewDataCodec(args)
+		require.ErrorIs(t, errors.ErrNilSerializer, err)
+		require.True(t, dataCodec.IsInterfaceNil())
+	})
+	t.Run("nil marshaller should error", func(t *testing.T) {
+		t.Parallel()
+
+		codec := abi.NewDefaultCodec()
+		args := DataCodec{
+			Serializer: abi.NewSerializer(codec),
+			Marshaller: nil,
+		}
+		dataCodec, err := NewDataCodec(args)
 		require.ErrorIs(t, errors.ErrNilMarshalizer, err)
 		require.True(t, dataCodec.IsInterfaceNil())
 	})
@@ -71,7 +99,22 @@ func TestDataCodec_SerializeEventData(t *testing.T) {
 		require.Nil(t, err)
 		require.Equal(t, "000000000000000a010000000001312d00010000000361646401000000010000000401312d00", hex.EncodeToString(serialized))
 	})
+	t.Run("defined transfer data empty arg should work", func(t *testing.T) {
+		t.Parallel()
 
+		eventData := sovereign.EventData{
+			Nonce: 10,
+			TransferData: &sovereign.TransferData{
+				GasLimit: 20000000,
+				Function: []byte("add"),
+				Args:     [][]byte{big.NewInt(20000000).Bytes(), make([]byte, 0)},
+			},
+		}
+
+		serialized, err := dataCodec.SerializeEventData(eventData)
+		require.Nil(t, err)
+		require.Equal(t, "000000000000000a010000000001312d00010000000361646401000000020000000401312d0000000000", hex.EncodeToString(serialized))
+	})
 }
 
 func TestDataCodec_DeserializeEventData(t *testing.T) {
@@ -84,7 +127,21 @@ func TestDataCodec_DeserializeEventData(t *testing.T) {
 
 		deserialized, err := dataCodec.DeserializeEventData(nil)
 		require.Nil(t, deserialized)
-		require.Equal(t, "empty data provided", err.Error())
+		require.Equal(t, errEmptyData, err)
+	})
+	t.Run("deserialize event data empty transfer data should work", func(t *testing.T) {
+		t.Parallel()
+
+		expectedEventData := &sovereign.EventData{
+			Nonce:        10,
+			TransferData: nil,
+		}
+		eventData, err := hex.DecodeString("000000000000000a000000")
+		require.Nil(t, err)
+
+		deserialized, err := dataCodec.DeserializeEventData(eventData)
+		require.Nil(t, err)
+		require.Equal(t, expectedEventData, deserialized)
 	})
 	t.Run("deserialize event data should work", func(t *testing.T) {
 		t.Parallel()
@@ -98,6 +155,42 @@ func TestDataCodec_DeserializeEventData(t *testing.T) {
 			},
 		}
 		eventData, err := hex.DecodeString("000000000000000a010000000001312d00010000000361646401000000010000000401312d00")
+		require.Nil(t, err)
+
+		deserialized, err := dataCodec.DeserializeEventData(eventData)
+		require.Nil(t, err)
+		require.Equal(t, expectedEventData, deserialized)
+	})
+	t.Run("deserialize event data empty arg should work", func(t *testing.T) {
+		t.Parallel()
+
+		expectedEventData := &sovereign.EventData{
+			Nonce: 10,
+			TransferData: &sovereign.TransferData{
+				GasLimit: 20000000,
+				Function: []byte("add"),
+				Args:     [][]byte{big.NewInt(20000000).Bytes(), make([]byte, 0)},
+			},
+		}
+		eventData, err := hex.DecodeString("000000000000000a010000000001312d00010000000361646401000000020000000401312d0000000000")
+		require.Nil(t, err)
+
+		deserialized, err := dataCodec.DeserializeEventData(eventData)
+		require.Nil(t, err)
+		require.Equal(t, expectedEventData, deserialized)
+	})
+	t.Run("deserialize event data gasLimit 0 should work", func(t *testing.T) {
+		t.Parallel()
+
+		expectedEventData := &sovereign.EventData{
+			Nonce: 10,
+			TransferData: &sovereign.TransferData{
+				GasLimit: 0,
+				Function: []byte("add"),
+				Args:     [][]byte{big.NewInt(20000000).Bytes(), make([]byte, 0)},
+			},
+		}
+		eventData, err := hex.DecodeString("000000000000000a010000000000000000010000000361646401000000020000000401312d0000000000")
 		require.Nil(t, err)
 
 		deserialized, err := dataCodec.DeserializeEventData(eventData)
@@ -142,9 +235,9 @@ func TestDataCodec_DeserializeTokenData(t *testing.T) {
 
 		deserialized, err := dataCodec.DeserializeTokenData(nil)
 		require.Nil(t, deserialized)
-		require.Equal(t, "empty token data provided", err.Error())
+		require.Equal(t, errEmptyTokenData, err)
 	})
-	t.Run("empty data should fail", func(t *testing.T) {
+	t.Run("token data should work", func(t *testing.T) {
 		t.Parallel()
 
 		addr0, _ := hex.DecodeString("0000000000000000000000000000000000000000000000000000000000000000")
@@ -183,7 +276,7 @@ func TestDataCodec_GetTokenDataBytes(t *testing.T) {
 
 		tokenDataBytes, err := dataCodec.GetTokenDataBytes(nil, nil)
 		require.Nil(t, tokenDataBytes)
-		require.Equal(t, "empty token data provided", err.Error())
+		require.Equal(t, errEmptyTokenData, err)
 	})
 	t.Run("fungible token should return only amount", func(t *testing.T) {
 		t.Parallel()
