@@ -152,7 +152,8 @@ func TestOutgoingOperations_CreateOutgoingTxData(t *testing.T) {
 		},
 	}
 
-	outgoingTxData := creator.CreateOutgoingTxsData(logs)
+	outgoingTxData, err := creator.CreateOutgoingTxsData(logs)
+	require.Nil(t, err)
 	expectedTxData, _ := hex.DecodeString("c0c0739e0cf6232a934d2e56cfcd10881eb1c7336f128fc155a4a84292cfe7f60000000100000006746f6b656e310000000000000000000000000906aaf7c8516d0c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000001312d0000000003616464000000010000000401312d00")
 	require.Equal(t, [][]byte{expectedTxData}, outgoingTxData)
 }

@@ -8,7 +8,7 @@ import (
 // OutgoingOperationsFormatter collects relevant outgoing events for bridge from the logs and creates outgoing data
 // that needs to be signed by validators to bridge tokens
 type OutgoingOperationsFormatter interface {
-	CreateOutgoingTxsData(logs []*data.LogData) [][]byte
+	CreateOutgoingTxsData(logs []*data.LogData) ([][]byte, error)
 	IsInterfaceNil() bool
 }
 
