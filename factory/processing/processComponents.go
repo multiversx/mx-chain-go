@@ -2093,6 +2093,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	if check.IfNil(args.RunTypeComponents.SCResultsPreProcessorCreator()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilSCResultsPreProcessorCreator)
 	}
+	if check.IfNil(args.DataCodec) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilDataCodec)
+	}
 
 	return nil
 }
