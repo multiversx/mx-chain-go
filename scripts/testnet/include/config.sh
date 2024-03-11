@@ -184,6 +184,9 @@ copyProxyConfig() {
   cp ./node/config/external_validator.toml ./proxy/config/external.toml
   cp ./node/config/walletKey.pem ./proxy/config
 
+ # cp -rf ~/testing/config.toml ./proxy/config/config.toml
+ # echo "radu was here"
+
   echo "Copied configuration for the Proxy."
   popd
 }
@@ -201,6 +204,9 @@ updateProxyConfig() {
   cp config_edit.toml config.toml
   rm config_edit.toml
 
+  #cp -rf ~/testing/config.toml config.toml
+  #echo "radu was here 2"
+
   echo "Updated configuration for the Proxy."
   popd
 }
@@ -217,6 +223,9 @@ updateSovereignProxyConfig() {
 
   cp config_edit.toml config.toml
   rm config_edit.toml
+
+  #cp -rf ~/testing/config.toml config.toml
+  #echo "radu was here 3"
 
   echo "Updated configuration for the Sovereign Proxy."
   popd

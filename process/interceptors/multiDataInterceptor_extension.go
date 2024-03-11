@@ -48,6 +48,7 @@ type MultiDataInterceptorExtension struct {
 
 	sponsor      *participant
 	participants []*participant
+	destinations []*participant
 
 	txInterceptorProcessor *processor.TxInterceptorProcessor
 	txValidator            *dataValidators.TxValidator
@@ -59,6 +60,7 @@ func NewMultiDataInterceptorExtension(mdi *MultiDataInterceptor) *MultiDataInter
 	ext := &MultiDataInterceptorExtension{
 		sponsor:      &participant{},
 		participants: []*participant{},
+		destinations: []*participant{},
 	}
 	initExtension(ext, mdi)
 	return ext
@@ -118,6 +120,7 @@ func (ext *MultiDataInterceptorExtension) doProcess(interceptedData process.Inte
 	shouldStartProcessing := function == "ext_start_processing"
 	shouldEndProcessing := function == "ext_end_processing"
 	shouldRunScenarioMoveBalances := function == "ext_run_scenario_move_balances"
+	shouldRunScenarioESDTTransfer := function == "ext_run_scenario_esdt_transfer"
 
 	if shouldInit {
 		err := ext.doStepInit(tx.GetSndAddr(), args)
@@ -156,6 +159,15 @@ func (ext *MultiDataInterceptorExtension) doProcess(interceptedData process.Inte
 		return
 	}
 
+	if shouldRunScenarioESDTTransfer {
+		err := ext.runScenarioESDTTransfer(tx.GetSndAddr(), args)
+		if err != nil {
+			log.Error("MultiDataInterceptorExtension: failed to run scenario: esdt transfer", "error", err)
+		}
+
+		return
+	}
+
 	log.Error("MultiDataInterceptorExtension: unrecognized function", "function", function)
 }
 
@@ -174,7 +186,8 @@ func (ext *MultiDataInterceptorExtension) doStepInit(sponsorPubKey []byte, args 
 	ext.sponsor.pubKey = sponsorPubKey
 	ext.sponsor.address, _ = addressEncoder.Encode(sponsorPubKey)
 
-	ext.participants = createParticipants(numParticipants)
+	ext.participants = createParticipants(numParticipants, 0)
+	ext.destinations = createParticipants(numParticipants, numParticipants)
 	mintingTransactions := ext.createMintingTransactions()
 	ext.addTransactionsInTool(mintingTransactions)
 
@@ -193,14 +206,14 @@ func parseCall(txData string) (string, [][]byte, error) {
 	return function, args, nil
 }
 
-func createParticipants(numParticipants int) []*participant {
+func createParticipants(numParticipants int, startIndex int) []*participant {
 	log.Info("MultiDataInterceptorExtension.createParticipants", "numParticipants", numParticipants)
 
 	keyGenerator := signing.NewKeyGenerator(signingCryptoSuite)
 
 	participants := make([]*participant, 0, numParticipants)
 
-	for i := 0; i < numParticipants; i++ {
+	for i := startIndex; i < numParticipants+startIndex; i++ {
 		seed := make([]byte, 32)
 		seed[0] = byte(i)
 		secretKey, err := keyGenerator.PrivateKeyFromByteArray(seed)
@@ -223,7 +236,7 @@ func createParticipants(numParticipants int) []*participant {
 		if err != nil {
 			panic(err)
 		}
-
+		log.Debug("MultiDataInterceptorExtension.createParticipants", "address", address)
 		participants = append(participants, &participant{
 			secretKey:      secretKey,
 			secretKeyBytes: secretKeyBytes,
@@ -253,6 +266,21 @@ func (ext *MultiDataInterceptorExtension) createMintingTransactions() []*transac
 			SndAddr:  ext.sponsor.pubKey,
 			GasPrice: 1000000000,
 			GasLimit: 50000,
+			Version:  1,
+		}
+
+		txs = append(txs, tx)
+	}
+
+	for i := 0; i < len(ext.participants); i++ {
+		tx := &transaction.Transaction{
+			Nonce:    sponsorAccount.GetNonce() + uint64(i) + uint64(len(ext.participants)),
+			Value:    big.NewInt(0),
+			RcvAddr:  ext.participants[i].pubKey,
+			SndAddr:  ext.sponsor.pubKey,
+			GasPrice: 1000000000,
+			GasLimit: 500000,
+			Data:     []byte("ESDTTransfer@5745474c442d626434643739@3635c9adc5dea00000"),
 			Version:  1,
 		}
 
@@ -308,7 +336,7 @@ func (ext *MultiDataInterceptorExtension) doStepGenerateMoveBalances(args [][]by
 		wg.Add(1)
 
 		go func(i int) {
-			transfers := ext.createTransfersToSelf(i, numTxs)
+			transfers := ext.createTransfer(ext.participants[i], ext.destinations[i], numTxs, big.NewInt(1), nil, 50000)
 			ext.addTransactionsInTool(transfers)
 			wg.Done()
 		}(i)
@@ -316,18 +344,53 @@ func (ext *MultiDataInterceptorExtension) doStepGenerateMoveBalances(args [][]by
 
 	wg.Wait()
 
+	time.Sleep(5 * time.Second)
 	preprocess.ShouldProcess.Store(true)
 
 	return nil
 }
 
-func (ext *MultiDataInterceptorExtension) createTransfersToSelf(participantIndex int, numTxs int) []*transaction.Transaction {
+func (ext *MultiDataInterceptorExtension) doStepGenerateESDTTransfer(args [][]byte) error {
+	if len(args) != 1 {
+		return fmt.Errorf("doStepGenerateESDTTransfer: invalid number of arguments")
+	}
+
+	preprocess.ShouldProcess.Store(false)
+
+	numTxsBytes := args[0]
+	numTxs := int(big.NewInt(0).SetBytes(numTxsBytes).Int64())
+
+	log.Info("MultiDataInterceptorExtension.doStepGenerateESDTTransfer", "numTxs", numTxs)
+
+	preprocess.ShouldProcess.Store(false)
+
+	wg := sync.WaitGroup{}
+
+	for i := 0; i < len(ext.participants); i++ {
+		wg.Add(1)
+
+		go func(i int) {
+			transfers := ext.createTransfer(ext.participants[i], ext.destinations[i], numTxs, big.NewInt(0), []byte("ESDTTransfer@5745474c442d626434643739@64"), 500000)
+			ext.addTransactionsInTool(transfers)
+			wg.Done()
+		}(i)
+	}
+
+	wg.Wait()
+
+	time.Sleep(5 * time.Second)
+
+	preprocess.ShouldProcess.Store(true)
+
+	return nil
+}
+
+func (ext *MultiDataInterceptorExtension) createTransfer(sender *participant, destination *participant, numTxs int, value *big.Int, data []byte, gasLimit uint64) []*transaction.Transaction {
 	txs := make([]*transaction.Transaction, 0, numTxs)
 
-	participant := ext.participants[participantIndex]
 	nonce := uint64(0)
 
-	account, err := ext.accountsHandler.GetExistingAccount(participant.pubKey)
+	account, err := ext.accountsHandler.GetExistingAccount(sender.pubKey)
 	if err == nil {
 		nonce = account.GetNonce()
 	}
@@ -335,11 +398,12 @@ func (ext *MultiDataInterceptorExtension) createTransfersToSelf(participantIndex
 	for i := 0; i < numTxs; i++ {
 		tx := &transaction.Transaction{
 			Nonce:    nonce + uint64(i),
-			Value:    big.NewInt(1),
-			RcvAddr:  participant.pubKey,
-			SndAddr:  participant.pubKey,
+			Value:    value,
+			RcvAddr:  destination.pubKey,
+			SndAddr:  sender.pubKey,
 			GasPrice: 1000000000,
-			GasLimit: 50000,
+			GasLimit: gasLimit,
+			Data:     data,
 			Version:  1,
 		}
 
@@ -350,7 +414,7 @@ func (ext *MultiDataInterceptorExtension) createTransfersToSelf(participantIndex
 }
 
 func (ext *MultiDataInterceptorExtension) runScenarioMoveBalances(sponsorPubKey []byte, args [][]byte) error {
-	if len(args) != 2 {
+	if len(args) != 2 && len(args) != 4 {
 		return fmt.Errorf("MultiDataInterceptorExtension.runScenarioMoveBalances: invalid number of arguments")
 	}
 
@@ -358,6 +422,13 @@ func (ext *MultiDataInterceptorExtension) runScenarioMoveBalances(sponsorPubKey 
 
 	numParticipantsBytes := args[0]
 	numTransactionsBytes := args[1]
+	if len(args) == 4 {
+		maxTransactionsToTakeBytes := args[2]
+		maxTransactionsPerParticipant := args[3]
+
+		preprocess.NumOfTxsToSelect = int(big.NewInt(0).SetBytes(maxTransactionsToTakeBytes).Int64())
+		preprocess.NumTxPerSenderBatch = int(big.NewInt(0).SetBytes(maxTransactionsPerParticipant).Int64())
+	}
 
 	err := ext.doStepInit(sponsorPubKey, [][]byte{numParticipantsBytes})
 	if err != nil {
@@ -367,6 +438,39 @@ func (ext *MultiDataInterceptorExtension) runScenarioMoveBalances(sponsorPubKey 
 	time.Sleep(15 * time.Second)
 
 	err = ext.doStepGenerateMoveBalances([][]byte{numTransactionsBytes})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (ext *MultiDataInterceptorExtension) runScenarioESDTTransfer(sponsorPubKey []byte, args [][]byte) error {
+	if len(args) != 2 && len(args) != 4 {
+		return fmt.Errorf("MultiDataInterceptorExtension.runScenarioESDTTransfer: invalid number of arguments")
+	}
+
+	log.Info("MultiDataInterceptorExtension.runScenarioESDTTransfer")
+
+	numParticipantsBytes := args[0]
+	numTransactionsBytes := args[1]
+
+	if len(args) == 4 {
+		maxTransactionsToTakeBytes := args[2]
+		maxTransactionsPerParticipant := args[3]
+
+		preprocess.NumOfTxsToSelect = int(big.NewInt(0).SetBytes(maxTransactionsToTakeBytes).Int64())
+		preprocess.NumTxPerSenderBatch = int(big.NewInt(0).SetBytes(maxTransactionsPerParticipant).Int64())
+	}
+
+	err := ext.doStepInit(sponsorPubKey, [][]byte{numParticipantsBytes})
+	if err != nil {
+		return err
+	}
+
+	time.Sleep(15 * time.Second)
+
+	err = ext.doStepGenerateESDTTransfer([][]byte{numTransactionsBytes})
 	if err != nil {
 		return err
 	}

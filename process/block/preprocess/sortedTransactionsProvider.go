@@ -6,6 +6,9 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 )
 
+var NumOfTxsToSelect = process.MaxNumOfTxsToSelect
+var NumTxPerSenderBatch = process.NumTxPerSenderBatchForFillingMiniblock
+
 // TODO: Refactor "transactions.go" to not require the components in this file anymore
 // createSortedTransactionsProvider is a "simple factory" for "SortedTransactionsProvider" objects
 func createSortedTransactionsProvider(cache storage.Cacher) SortedTransactionsProvider {
@@ -33,7 +36,7 @@ func newAdapterTxCacheToSortedTransactionsProvider(txCache TxCache) *adapterTxCa
 
 // GetSortedTransactions gets the transactions from the cache
 func (adapter *adapterTxCacheToSortedTransactionsProvider) GetSortedTransactions() []*txcache.WrappedTransaction {
-	txs := adapter.txCache.SelectTransactionsWithBandwidth(process.MaxNumOfTxsToSelect, process.NumTxPerSenderBatchForFillingMiniblock, process.MaxGasBandwidthPerBatchPerSender)
+	txs := adapter.txCache.SelectTransactionsWithBandwidth(NumOfTxsToSelect, NumTxPerSenderBatch, process.MaxGasBandwidthPerBatchPerSender)
 	return txs
 }
 
