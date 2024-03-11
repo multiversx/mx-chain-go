@@ -166,6 +166,7 @@ func NewShardProcessorEmptyWith3shards(
 			ReceiptsRepository:           &testscommon.ReceiptsRepositoryStub{},
 			BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
 			ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
+			RunTypeComponents:            mock.NewRunTypeComponentsStub(),
 		},
 	}
 	shardProc, err := NewShardProcessor(arguments)

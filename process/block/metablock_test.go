@@ -3,12 +3,14 @@ package block_test
 import (
 	"bytes"
 	"errors"
-	"github.com/multiversx/mx-chain-go/testscommon/sovereign"
 	"math/big"
 	"reflect"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/multiversx/mx-chain-go/testscommon/components"
+	"github.com/multiversx/mx-chain-go/testscommon/sovereign"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
@@ -158,6 +160,7 @@ func createMockMetaArguments(
 			ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
 			ValidatorStatisticsProcessor: &mock2.ValidatorStatisticsProcessorStub{},
 			OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolMock{},
+			RunTypeComponents:            components.GetRunTypeComponents(),
 		},
 		SCToProtocol:                 &mock.SCToProtocolStub{},
 		PendingMiniBlocksHandler:     &mock.PendingMiniBlocksHandlerStub{},

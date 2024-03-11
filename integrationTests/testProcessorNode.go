@@ -100,6 +100,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/blockInfoProviders"
+	stateFactory "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
@@ -2211,12 +2212,22 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
 	}
 
+	runTypeComp := GetDefaultRunTypeComponents(consensus.ConsensusModelV1)
+	runTypeComp.AccountCreator, _ = stateFactory.NewAccountCreator(
+		stateFactory.ArgsAccountCreator{
+			Hasher:              coreComponents.Hasher(),
+			Marshaller:          coreComponents.InternalMarshalizer(),
+			EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
+		},
+	)
+
 	argumentsBase := block.ArgBaseProcessor{
 		CoreComponents:       coreComponents,
 		DataComponents:       dataComponents,
 		BootstrapComponents:  bootstrapComponents,
 		StatusComponents:     statusComponents,
 		StatusCoreComponents: statusCoreComponents,
+		RunTypeComponents:    runTypeComp,
 		Config:               config.Config{},
 		AccountsDB:           accountsDb,
 		ForkDetector:         tpn.ForkDetector,
