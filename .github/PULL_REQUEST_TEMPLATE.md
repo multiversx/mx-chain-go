@@ -9,6 +9,12 @@
 - 
 
 ## Testing procedure
+### Test with system-tests-xx ?
+- [ ] Yes (provide here the branch)
+- [ ] No (provide here the reason why)
+
+### Manual system test description
+
 - 
 - 
 - 
