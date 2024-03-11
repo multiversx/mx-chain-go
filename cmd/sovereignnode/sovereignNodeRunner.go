@@ -1333,6 +1333,11 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 		return nil, err
 	}
 
+	outgoingOperationsHasher, err := hasherFactory.NewHasher("sha256")
+	if err != nil {
+		return nil, err
+	}
+
 	processArgs := processComp.ProcessComponentsFactoryArgs{
 		Config:                                *configs.GeneralConfig,
 		EpochConfig:                           *configs.EpochConfig,
@@ -1371,6 +1376,7 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 		ExtraHeaderSigVerifierHolder:          extraHeaderSigVerifierHolder,
 		OutGoingOperationsPool:                outGoingOperationsPool,
 		DataCodec:                             dataCodec,
+		OperationsHasher:                      outgoingOperationsHasher,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {

@@ -50,6 +50,7 @@ func (s *sovereignBlockProcessorFactory) CreateBlockProcessor(argumentsBaseProce
 		ValidatorStatisticsProcessor: argumentsBaseProcessor.ValidatorStatisticsProcessor,
 		OutgoingOperationsFormatter:  outgoingOpFormatter,
 		OutGoingOperationsPool:       argumentsBaseProcessor.OutGoingOperationsPool,
+		OperationsHasher:             argumentsBaseProcessor.OperationsHasher,
 	}
 
 	scbp, err := NewSovereignChainBlockProcessor(args)

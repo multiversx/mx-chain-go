@@ -35,6 +35,7 @@ import (
 	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
 	dbLookupFactory "github.com/multiversx/mx-chain-go/dblookupext/factory"
+	disabledComponents "github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
 	"github.com/multiversx/mx-chain-go/facade"
 	"github.com/multiversx/mx-chain-go/facade/initial"
 	mainFactory "github.com/multiversx/mx-chain-go/factory"
@@ -1295,6 +1296,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		TxPreProcessorCreator:                 preprocess.NewTxPreProcessorCreator(),
 		ExtraHeaderSigVerifierHolder:          headerCheck.NewExtraHeaderSigVerifierHolder(),
 		RunTypeComponents:                     runTypeComponents,
+		OperationsHasher:                      disabledComponents.NewHasher(),
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {
