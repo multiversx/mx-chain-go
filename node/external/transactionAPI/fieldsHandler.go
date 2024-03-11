@@ -62,10 +62,13 @@ func newFieldsHandler(parameters string) fieldsHandler {
 }
 
 func shouldConsiderField(parametersMap map[string]struct{}, field string) bool {
-	_, has := parametersMap[field]
 	_, hasWildCard := parametersMap[wildCard]
+	if hasWildCard {
+		return true
+	}
 
-	return has || hasWildCard
+	_, has := parametersMap[field]
+	return has
 }
 
 func sliceToMap(providedSlice []string) map[string]struct{} {
