@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	sovCore "github.com/multiversx/mx-chain-core-go/data/sovereign"
+	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/logging"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -42,6 +43,7 @@ type sovereignChainBlockProcessor struct {
 	chRcvAllExtendedShardHdrs    chan bool
 	outgoingOperationsFormatter  sovereign.OutgoingOperationsFormatter
 	outGoingOperationsPool       OutGoingOperationsPool
+	operationsHasher             hashing.Hasher
 }
 
 // ArgsSovereignChainBlockProcessor is a struct placeholder for args needed to create a new sovereign chain block processor
@@ -50,6 +52,7 @@ type ArgsSovereignChainBlockProcessor struct {
 	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
 	OutgoingOperationsFormatter  sovereign.OutgoingOperationsFormatter
 	OutGoingOperationsPool       OutGoingOperationsPool
+	OperationsHasher             hashing.Hasher
 }
 
 // NewSovereignChainBlockProcessor creates a new sovereign chain block processor
@@ -66,12 +69,16 @@ func NewSovereignChainBlockProcessor(args ArgsSovereignChainBlockProcessor) (*so
 	if check.IfNil(args.OutGoingOperationsPool) {
 		return nil, errors.ErrNilOutGoingOperationsPool
 	}
+	if check.IfNil(args.OperationsHasher) {
+		return nil, errors.ErrNilOperationsHasher
+	}
 
 	scbp := &sovereignChainBlockProcessor{
 		shardProcessor:               args.ShardProcessor,
 		validatorStatisticsProcessor: args.ValidatorStatisticsProcessor,
 		outgoingOperationsFormatter:  args.OutgoingOperationsFormatter,
 		outGoingOperationsPool:       args.OutGoingOperationsPool,
+		operationsHasher:             args.OperationsHasher,
 	}
 
 	scbp.uncomputedRootHash = scbp.hasher.Compute(rootHash)

@@ -476,6 +476,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		ValidatorStatisticsProcessor: validatorStatisticsProcessor,
 		OutGoingOperationsPool:       pcf.outGoingOperationsPool,
 		DataCodec:                    pcf.dataCodec,
+		OperationsHasher:             pcf.operationsHasher,
 	}
 
 	blockProcessor, err := pcf.createBlockProcessor(argumentsBaseProcessor)

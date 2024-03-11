@@ -1296,6 +1296,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		ExtraHeaderSigVerifierHolder:          headerCheck.NewExtraHeaderSigVerifierHolder(),
 		RunTypeComponents:                     runTypeComponents,
 		DataCodec:                             disabled.NewDisabledDataCodec(),
+		OperationsHasher:                      disabled.NewDisabledHasher(),
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {

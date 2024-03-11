@@ -16,6 +16,7 @@ import (
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/receipt"
+	"github.com/multiversx/mx-chain-core-go/hashing"
 	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
@@ -174,6 +175,7 @@ type ProcessComponentsFactoryArgs struct {
 	ExtraHeaderSigVerifierHolder          headerCheck.ExtraHeaderSigVerifierHolder
 	OutGoingOperationsPool                block.OutGoingOperationsPool
 	DataCodec                             sovereign.DataCodecProcessor
+	OperationsHasher                      hashing.Hasher
 }
 
 type processComponentsFactory struct {
@@ -221,6 +223,7 @@ type processComponentsFactory struct {
 	extraHeaderSigVerifierHolder          headerCheck.ExtraHeaderSigVerifierHolder
 	outGoingOperationsPool                block.OutGoingOperationsPool
 	dataCodec                             sovereign.DataCodecProcessor
+	operationsHasher                      hashing.Hasher
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -269,6 +272,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		extraHeaderSigVerifierHolder:          args.ExtraHeaderSigVerifierHolder,
 		outGoingOperationsPool:                args.OutGoingOperationsPool,
 		dataCodec:                             args.DataCodec,
+		operationsHasher:                      args.OperationsHasher,
 	}, nil
 }
 
@@ -2095,6 +2099,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.DataCodec) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilDataCodec)
+	}
+	if check.IfNil(args.OperationsHasher) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilOperationsHasher)
 	}
 
 	return nil
