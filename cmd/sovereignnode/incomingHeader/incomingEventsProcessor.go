@@ -20,11 +20,11 @@ const (
 )
 
 const (
-	eventIDExecuteBridgeOps = "executeBridgeOps"
-	eventIDDeposit          = "deposit"
+	eventIDExecutedOutGoingBridgeOp = "executeBridgeOps"
+	eventIDDepositIncomingTransfer  = "deposit"
 
-	topicIDExecutedBridgeOp = "executedBridgeOp"
-	topicIDDeposit          = "executeBridgeOps"
+	topicIDDepositConfirmedOutGoingOperation = "executedBridgeOp"
+	topicIDDepositIncomingTransfer           = "executeBridgeOps"
 )
 
 type confirmedBridgeOp struct {
@@ -65,19 +65,19 @@ func (iep *incomingEventsProcessor) processIncomingEvents(events []data.EventHan
 		var confirmedOp *confirmedBridgeOp
 		var err error
 		switch string(event.GetIdentifier()) {
-		case eventIDDeposit:
+		case eventIDDepositIncomingTransfer:
 			scr, err = iep.createSCRInfo(topics, event)
 			scrs = append(scrs, scr)
-		case eventIDExecuteBridgeOps:
+		case eventIDExecutedOutGoingBridgeOp:
 			if len(topics) == 0 {
 				return nil, errInvalidNumTopicsIncomingEvent
 			}
 
 			switch string(topics[0]) {
-			case topicIDDeposit:
+			case topicIDDepositIncomingTransfer:
 				scr, err = iep.createSCRInfo(topics, event)
 				scrs = append(scrs, scr)
-			case topicIDExecutedBridgeOp:
+			case topicIDDepositConfirmedOutGoingOperation:
 				confirmedOp, err = iep.getConfirmedBridgeOperation(topics)
 				confirmedBridgeOps = append(confirmedBridgeOps, confirmedOp)
 			default:
@@ -195,7 +195,7 @@ func (iep *incomingEventsProcessor) createSCRData(topics [][]byte) ([]byte, erro
 
 func (iep *incomingEventsProcessor) getConfirmedBridgeOperation(topics [][]byte) (*confirmedBridgeOp, error) {
 	if len(topics) != numExecutedBridgeOpTopics {
-		return nil, fmt.Errorf("%w for %s; num topics = %d", errInvalidNumTopicsIncomingEvent, eventIDExecuteBridgeOps, len(topics))
+		return nil, fmt.Errorf("%w for %s; num topics = %d", errInvalidNumTopicsIncomingEvent, eventIDExecutedOutGoingBridgeOp, len(topics))
 	}
 
 	return &confirmedBridgeOp{
@@ -211,7 +211,7 @@ func checkTopicsValidity(topics [][]byte) error {
 			"error", errInvalidNumTopicsIncomingEvent,
 			"num topics", len(topics),
 			"topics", topics)
-		return fmt.Errorf("%w for %s; num topics = %d", errInvalidNumTopicsIncomingEvent, eventIDDeposit, len(topics))
+		return fmt.Errorf("%w for %s; num topics = %d", errInvalidNumTopicsIncomingEvent, eventIDDepositIncomingTransfer, len(topics))
 	}
 
 	return nil
