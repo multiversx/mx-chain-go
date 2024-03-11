@@ -2,7 +2,6 @@ package dataCodec
 
 import (
 	"encoding/hex"
-
 	"github.com/multiversx/mx-chain-go/errors"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -107,30 +106,35 @@ func (dc *dataCodec) DeserializeEventData(data []byte) (*sovereign.EventData, er
 		return nil, errEmptyData
 	}
 
+	nonce := &abi.U64Value{}
+	gasLimit := &abi.U64Value{}
+	function := &abi.BytesValue{}
+	args := &abi.OutputListValue{
+		ItemCreator: func() any { return &abi.BytesValue{} },
+	}
+
 	eventDataStruct := abi.StructValue{
 		Fields: []abi.Field{
 			{
 				Name:  "tx_nonce",
-				Value: &abi.U64Value{},
+				Value: nonce,
 			},
 			{
 				Name: "gas_limit",
 				Value: &abi.OptionValue{
-					Value: &abi.U64Value{},
+					Value: gasLimit,
 				},
 			},
 			{
 				Name: "function",
 				Value: &abi.OptionValue{
-					Value: &abi.BytesValue{},
+					Value: function,
 				},
 			},
 			{
 				Name: "args",
 				Value: &abi.OptionValue{
-					Value: &abi.OutputListValue{
-						ItemCreator: func() any { return &abi.BytesValue{} },
-					},
+					Value: args,
 				},
 			},
 		},
@@ -141,45 +145,29 @@ func (dc *dataCodec) DeserializeEventData(data []byte) (*sovereign.EventData, er
 		return nil, err
 	}
 
-	nonce := eventDataStruct.Fields[0].Value.(*abi.U64Value).Value
-
-	gasLimit := uint64(0)
-	optionGas := eventDataStruct.Fields[1].Value.(*abi.OptionValue).Value
-	if optionGas != nil {
-		gasLimit = optionGas.(*abi.U64Value).Value
-	}
-
-	function := make([]byte, 0)
-	optionFunc := eventDataStruct.Fields[2].Value.(*abi.OptionValue).Value
-	if optionFunc != nil {
-		function = optionFunc.(*abi.BytesValue).Value
-	}
-
-	args := make([][]byte, 0)
-	optionArgs := eventDataStruct.Fields[3].Value.(*abi.OptionValue).Value
-	if optionArgs != nil {
-		items := optionArgs.(*abi.OutputListValue).Items
-		if items != nil && len(items) > 0 {
-			for _, item := range items {
-				arg := item.(*abi.BytesValue).Value
-				args = append(args, arg)
-			}
+	arguments := make([][]byte, 0)
+	for _, item := range args.Items {
+		arg, ok := item.(*abi.BytesValue)
+		if !ok {
+			return nil, errTypeAssertion
 		}
+
+		arguments = append(arguments, arg.Value)
 	}
 
 	var td *sovereign.TransferData
-	if len(function) == 0 {
+	if len(function.Value) == 0 {
 		td = nil
 	} else {
 		td = &sovereign.TransferData{
-			GasLimit: gasLimit,
-			Function: function,
-			Args:     args,
+			GasLimit: gasLimit.Value,
+			Function: function.Value,
+			Args:     arguments,
 		}
 	}
 
 	return &sovereign.EventData{
-		Nonce:        nonce,
+		Nonce:        nonce.Value,
 		TransferData: td,
 	}, nil
 }
@@ -248,45 +236,55 @@ func (dc *dataCodec) DeserializeTokenData(data []byte) (*sovereign.EsdtTokenData
 		return nil, errEmptyTokenData
 	}
 
+	enum := &abi.EnumValue{}
+	amount := &abi.BigIntValue{}
+	frozen := &abi.BoolValue{}
+	hash := &abi.BytesValue{}
+	name := &abi.BytesValue{}
+	attributes := &abi.BytesValue{}
+	creator := &abi.AddressValue{}
+	royalties := &abi.BigIntValue{}
+	uris := &abi.OutputListValue{
+		ItemCreator: func() any { return &abi.BytesValue{} },
+	}
+
 	tokenDataStruct := abi.StructValue{
 		Fields: []abi.Field{
 			{
 				Name:  "token_type",
-				Value: &abi.EnumValue{},
+				Value: enum,
 			},
 			{
 				Name:  "amount",
-				Value: &abi.BigIntValue{},
+				Value: amount,
 			},
 			{
 				Name:  "frozen",
-				Value: &abi.BoolValue{},
+				Value: frozen,
 			},
 			{
 				Name:  "hash",
-				Value: &abi.BytesValue{},
+				Value: hash,
 			},
 			{
 				Name:  "name",
-				Value: &abi.BytesValue{},
+				Value: name,
 			},
 			{
 				Name:  "attributes",
-				Value: &abi.BytesValue{},
+				Value: attributes,
 			},
 			{
 				Name:  "creator",
-				Value: &abi.AddressValue{},
+				Value: creator,
 			},
 			{
 				Name:  "royalties",
-				Value: &abi.BigIntValue{},
+				Value: royalties,
 			},
 			{
-				Name: "uris",
-				Value: &abi.OutputListValue{
-					ItemCreator: func() any { return &abi.BytesValue{} },
-				},
+				Name:  "uris",
+				Value: uris,
 			},
 		},
 	}
@@ -296,22 +294,26 @@ func (dc *dataCodec) DeserializeTokenData(data []byte) (*sovereign.EsdtTokenData
 		return nil, err
 	}
 
-	urisArg := tokenDataStruct.Fields[8].Value.(*abi.OutputListValue).Items
-	uris := make([][]byte, len(urisArg))
-	for i, item := range urisArg {
-		uris[i] = item.(*abi.BytesValue).Value
+	urisArg := make([][]byte, 0)
+	for _, item := range uris.Items {
+		uri, ok := item.(*abi.BytesValue)
+		if !ok {
+			return nil, errTypeAssertion
+		}
+
+		urisArg = append(urisArg, uri.Value)
 	}
 
 	return &sovereign.EsdtTokenData{
-		TokenType:  core.ESDTType(tokenDataStruct.Fields[0].Value.(*abi.EnumValue).Discriminant),
-		Amount:     tokenDataStruct.Fields[1].Value.(*abi.BigIntValue).Value,
-		Frozen:     tokenDataStruct.Fields[2].Value.(*abi.BoolValue).Value,
-		Hash:       tokenDataStruct.Fields[3].Value.(*abi.BytesValue).Value,
-		Name:       tokenDataStruct.Fields[4].Value.(*abi.BytesValue).Value,
-		Attributes: tokenDataStruct.Fields[5].Value.(*abi.BytesValue).Value,
-		Creator:    tokenDataStruct.Fields[6].Value.(*abi.AddressValue).Value,
-		Royalties:  tokenDataStruct.Fields[7].Value.(*abi.BigIntValue).Value,
-		Uris:       uris,
+		TokenType:  core.ESDTType(enum.Discriminant),
+		Amount:     amount.Value,
+		Frozen:     frozen.Value,
+		Hash:       hash.Value,
+		Name:       name.Value,
+		Attributes: attributes.Value,
+		Creator:    creator.Value,
+		Royalties:  royalties.Value,
+		Uris:       urisArg,
 	}, nil
 }
 
