@@ -98,6 +98,7 @@ type ArgBaseProcessor struct {
 	ValidatorStatisticsProcessor   process.ValidatorStatisticsProcessor
 	OutGoingOperationsPool         OutGoingOperationsPool
 	DataCodec                      sovereign.DataCodecProcessor
+	TopicsChecker                  sovereign.TopicsChecker
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create

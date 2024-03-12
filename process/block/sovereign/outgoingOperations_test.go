@@ -24,25 +24,44 @@ func createEvents() []SubscribedEvent {
 	}
 }
 
+func createArgs() ArgsOutgoingOperations {
+	return ArgsOutgoingOperations{
+		SubscribedEvents: createEvents(),
+		DataCodec:        &mock.DataCodecMock{},
+		TopicsChecker:    &mock.TopicsCheckerMock{},
+	}
+}
+
 func TestNewOutgoingOperationsFormatter(t *testing.T) {
 	t.Parallel()
 
 	t.Run("no subscribed events, should return error", func(t *testing.T) {
-		creator, err := NewOutgoingOperationsFormatter([]SubscribedEvent{}, &mock.DataCodecMock{})
+		args := createArgs()
+		args.SubscribedEvents = []SubscribedEvent{}
+		creator, err := NewOutgoingOperationsFormatter(args)
 		require.Nil(t, creator)
 		require.Equal(t, errNoSubscribedEvent, err)
 	})
 
 	t.Run("nil data codec, should return error", func(t *testing.T) {
-		events := createEvents()
-		creator, err := NewOutgoingOperationsFormatter(events, nil)
+		args := createArgs()
+		args.DataCodec = nil
+		creator, err := NewOutgoingOperationsFormatter(args)
 		require.Nil(t, creator)
 		require.Equal(t, errors.ErrNilDataCodec, err)
 	})
 
+	t.Run("nil topics checker, should return error", func(t *testing.T) {
+		args := createArgs()
+		args.TopicsChecker = nil
+		creator, err := NewOutgoingOperationsFormatter(args)
+		require.Nil(t, creator)
+		require.Equal(t, errors.ErrNilTopicsChecker, err)
+	})
+
 	t.Run("should work", func(t *testing.T) {
-		events := createEvents()
-		creator, err := NewOutgoingOperationsFormatter(events, &mock.DataCodecMock{})
+		args := createArgs()
+		creator, err := NewOutgoingOperationsFormatter(args)
 		require.Nil(t, err)
 		require.False(t, creator.IsInterfaceNil())
 	})
@@ -108,7 +127,18 @@ func TestOutgoingOperations_CreateOutgoingTxData(t *testing.T) {
 		},
 	}
 
-	creator, _ := NewOutgoingOperationsFormatter(events, dataCodec)
+	topicsChecker := &mock.TopicsCheckerMock{
+		CheckValidityCalled: func(topics [][]byte) error {
+			return nil
+		},
+	}
+
+	args := ArgsOutgoingOperations{
+		SubscribedEvents: events,
+		DataCodec:        dataCodec,
+		TopicsChecker:    topicsChecker,
+	}
+	creator, _ := NewOutgoingOperationsFormatter(args)
 
 	addr, _ := hex.DecodeString("c0c0739e0cf6232a934d2e56cfcd10881eb1c7336f128fc155a4a84292cfe7f6")
 	tokenData, _ := hex.DecodeString("000000000906aaf7c8516d0c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")

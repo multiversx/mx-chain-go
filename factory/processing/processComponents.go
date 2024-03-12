@@ -174,6 +174,7 @@ type ProcessComponentsFactoryArgs struct {
 	ExtraHeaderSigVerifierHolder          headerCheck.ExtraHeaderSigVerifierHolder
 	OutGoingOperationsPool                block.OutGoingOperationsPool
 	DataCodec                             sovereign.DataCodecProcessor
+	TopicsChecker                         sovereign.TopicsChecker
 }
 
 type processComponentsFactory struct {
@@ -221,6 +222,7 @@ type processComponentsFactory struct {
 	extraHeaderSigVerifierHolder          headerCheck.ExtraHeaderSigVerifierHolder
 	outGoingOperationsPool                block.OutGoingOperationsPool
 	dataCodec                             sovereign.DataCodecProcessor
+	topicsChecker                         sovereign.TopicsChecker
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -269,6 +271,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		extraHeaderSigVerifierHolder:          args.ExtraHeaderSigVerifierHolder,
 		outGoingOperationsPool:                args.OutGoingOperationsPool,
 		dataCodec:                             args.DataCodec,
+		topicsChecker:                         args.TopicsChecker,
 	}, nil
 }
 

@@ -12,13 +12,20 @@ func CreateOutgoingOperationsFormatter(
 	events []config.SubscribedEvent,
 	pubKeyConverter core.PubkeyConverter,
 	dataCodec DataCodecProcessor,
+	topicsChecker TopicsChecker,
 ) (OutgoingOperationsFormatter, error) {
 	subscribedEvents, err := getSubscribedEvents(events, pubKeyConverter)
 	if err != nil {
 		return nil, err
 	}
 
-	return NewOutgoingOperationsFormatter(subscribedEvents, dataCodec)
+	args := ArgsOutgoingOperations{
+		SubscribedEvents: subscribedEvents,
+		DataCodec:        dataCodec,
+		TopicsChecker:    topicsChecker,
+	}
+
+	return NewOutgoingOperationsFormatter(args)
 }
 
 func getSubscribedEvents(events []config.SubscribedEvent, pubKeyConverter core.PubkeyConverter) ([]SubscribedEvent, error) {
