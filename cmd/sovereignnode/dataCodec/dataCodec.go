@@ -2,30 +2,22 @@ package dataCodec
 
 import (
 	"encoding/hex"
+
 	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/process"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
-	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-sdk-abi-incubator/golang/abi"
 )
 
-type abiSerializer interface {
-	Serialize(inputValues []any) (string, error)
-	Deserialize(data string, outputValues []any) error
+// DataCodec holds the components needed for serialization/deserialization
+type DataCodec struct {
+	Serializer AbiSerializer
 }
 
 type dataCodec struct {
-	serializer abiSerializer
-	marshaller marshal.Marshalizer
-}
-
-// DataCodec holds the components needed for serialization/deserialization
-type DataCodec struct {
-	Serializer abiSerializer
-	Marshaller marshal.Marshalizer
+	serializer AbiSerializer
 }
 
 // NewDataCodec creates a data codec which is able to serialize/deserialize data from incoming/outgoing operations
@@ -33,13 +25,9 @@ func NewDataCodec(args DataCodec) (*dataCodec, error) {
 	if args.Serializer == nil {
 		return nil, errors.ErrNilSerializer
 	}
-	if check.IfNil(args.Marshaller) {
-		return nil, errors.ErrNilMarshalizer
-	}
 
 	return &dataCodec{
 		serializer: args.Serializer,
-		marshaller: args.Marshaller,
 	}, nil
 }
 
@@ -96,8 +84,7 @@ func (dc *dataCodec) SerializeEventData(eventData sovereign.EventData) ([]byte, 
 		return nil, err
 	}
 
-	operationBytes, _ := hex.DecodeString(encodedOp)
-	return operationBytes, nil
+	return hex.DecodeString(encodedOp)
 }
 
 // DeserializeEventData will deserialize bytes to an event data structure
@@ -145,39 +132,22 @@ func (dc *dataCodec) DeserializeEventData(data []byte) (*sovereign.EventData, er
 		return nil, err
 	}
 
-	arguments := make([][]byte, 0)
-	for _, item := range args.Items {
-		arg, ok := item.(*abi.BytesValue)
-		if !ok {
-			return nil, errTypeAssertion
-		}
-
-		arguments = append(arguments, arg.Value)
+	arguments, err := getTransferDataArguments(args.Items)
+	if err != nil {
+		return nil, err
 	}
 
-	var td *sovereign.TransferData
-	if len(function.Value) == 0 {
-		td = nil
-	} else {
-		td = &sovereign.TransferData{
-			GasLimit: gasLimit.Value,
-			Function: function.Value,
-			Args:     arguments,
-		}
-	}
+	transferData := getTransferData(gasLimit.Value, function.Value, arguments)
 
 	return &sovereign.EventData{
 		Nonce:        nonce.Value,
-		TransferData: td,
+		TransferData: transferData,
 	}, nil
 }
 
 // SerializeTokenData will receive an esdt token data and serialize it
 func (dc *dataCodec) SerializeTokenData(tokenData sovereign.EsdtTokenData) ([]byte, error) {
-	tokenUris := make([]any, len(tokenData.Uris))
-	for i, uri := range tokenData.Uris {
-		tokenUris[i] = abi.BytesValue{Value: uri}
-	}
+	uris := getUrisToAbiFormat(tokenData.Uris)
 
 	tokenDataStruct := abi.StructValue{
 		Fields: []abi.Field{
@@ -216,7 +186,7 @@ func (dc *dataCodec) SerializeTokenData(tokenData sovereign.EsdtTokenData) ([]by
 			{
 				Name: "uris",
 				Value: abi.InputListValue{
-					Items: tokenUris,
+					Items: uris,
 				},
 			},
 		},
@@ -294,14 +264,9 @@ func (dc *dataCodec) DeserializeTokenData(data []byte) (*sovereign.EsdtTokenData
 		return nil, err
 	}
 
-	urisArg := make([][]byte, 0)
-	for _, item := range uris.Items {
-		uri, ok := item.(*abi.BytesValue)
-		if !ok {
-			return nil, errTypeAssertion
-		}
-
-		urisArg = append(urisArg, uri.Value)
+	tokenUris, err := getTokenDataUris(uris.Items)
+	if err != nil {
+		return nil, err
 	}
 
 	return &sovereign.EsdtTokenData{
@@ -313,60 +278,105 @@ func (dc *dataCodec) DeserializeTokenData(data []byte) (*sovereign.EsdtTokenData
 		Attributes: attributes.Value,
 		Creator:    creator.Value,
 		Royalties:  royalties.Value,
-		Uris:       urisArg,
+		Uris:       tokenUris,
 	}, nil
-}
-
-// GetTokenDataBytes will receive token properties, deserialize then into a digital token and return marshalled digital token
-func (dc *dataCodec) GetTokenDataBytes(tokenNonce []byte, tokenData []byte) ([]byte, error) {
-	if len(tokenData) == 0 {
-		return nil, errEmptyTokenData
-	}
-
-	esdtTokenData, err := dc.DeserializeTokenData(tokenData)
-	if err != nil {
-		return nil, err
-	}
-
-	digitalToken := &esdt.ESDigitalToken{
-		Type:  uint32(esdtTokenData.TokenType),
-		Value: esdtTokenData.Amount,
-		TokenMetaData: &esdt.MetaData{
-			Nonce:      bytesToUint64(tokenNonce),
-			Name:       esdtTokenData.Name,
-			Creator:    esdtTokenData.Creator,
-			Royalties:  uint32(esdtTokenData.Royalties.Uint64()),
-			Hash:       esdtTokenData.Hash,
-			URIs:       esdtTokenData.Uris,
-			Attributes: esdtTokenData.Attributes,
-		},
-	}
-
-	if digitalToken.Type == uint32(core.Fungible) {
-		return digitalToken.Value.Bytes(), nil
-	}
-
-	return dc.marshaller.Marshal(digitalToken)
-}
-
-func bytesToUint64(bytes []byte) uint64 {
-	var result uint64
-	for _, b := range bytes {
-		result = (result << 8) | uint64(b)
-	}
-	return result
 }
 
 // SerializeOperation will receive an operation and serialize it
 func (dc *dataCodec) SerializeOperation(operation sovereign.Operation) ([]byte, error) {
-	tokens := make([]any, len(operation.Tokens))
-	for i, token := range operation.Tokens {
-		tokenUris := make([]any, len(token.Data.Uris))
-		for i, uri := range token.Data.Uris {
-			tokenUris[i] = abi.BytesValue{Value: uri}
+	tokens := getOperationTokens(operation.Tokens)
+
+	var transferData any
+	if operation.TransferData == nil {
+		transferData = nil
+	} else {
+		transferData = getOperationTransferData(*operation.TransferData)
+	}
+
+	operationStruct := abi.StructValue{
+		Fields: []abi.Field{
+			{
+				Name:  "receiver",
+				Value: abi.AddressValue{Value: operation.Address},
+			},
+			{
+				Name: "tokens",
+				Value: abi.InputListValue{
+					Items: tokens,
+				},
+			},
+			{
+				Name: "transfer_data",
+				Value: abi.OptionValue{
+					Value: transferData,
+				},
+			},
+		},
+	}
+
+	encodedOp, err := dc.serializer.Serialize([]any{operationStruct})
+	if err != nil {
+		return nil, err
+	}
+
+	return hex.DecodeString(encodedOp)
+}
+
+func getTransferDataArguments(items []any) ([][]byte, error) {
+	arguments := make([][]byte, 0)
+	for _, item := range items {
+		arg, ok := item.(*abi.BytesValue)
+		if !ok {
+			return nil, process.ErrWrongTypeAssertion
 		}
 
-		item := abi.StructValue{
+		arguments = append(arguments, arg.Value)
+	}
+
+	return arguments, nil
+}
+
+func getTransferData(gasLimit uint64, function []byte, arguments [][]byte) *sovereign.TransferData {
+	if len(function) == 0 {
+		return nil
+	} else {
+		return &sovereign.TransferData{
+			GasLimit: gasLimit,
+			Function: function,
+			Args:     arguments,
+		}
+	}
+}
+
+func getUrisToAbiFormat(items [][]byte) []any {
+	uris := make([]any, len(items))
+	for i, uri := range items {
+		uris[i] = abi.BytesValue{Value: uri}
+	}
+
+	return uris
+}
+
+func getTokenDataUris(items []any) ([][]byte, error) {
+	uris := make([][]byte, 0)
+	for _, item := range items {
+		uri, ok := item.(*abi.BytesValue)
+		if !ok {
+			return nil, process.ErrWrongTypeAssertion
+		}
+
+		uris = append(uris, uri.Value)
+	}
+
+	return uris, nil
+}
+
+func getOperationTokens(tokens []sovereign.EsdtToken) []any {
+	operationTokens := make([]any, 0)
+	for _, token := range tokens {
+		uris := getUrisToAbiFormat(token.Data.Uris)
+
+		tokenStruct := abi.StructValue{
 			Fields: []abi.Field{
 				{
 					Name:  "token_identifier",
@@ -415,7 +425,7 @@ func (dc *dataCodec) SerializeOperation(operation sovereign.Operation) ([]byte, 
 							{
 								Name: "uris",
 								Value: abi.InputListValue{
-									Items: tokenUris,
+									Items: uris,
 								},
 							},
 						},
@@ -424,65 +434,38 @@ func (dc *dataCodec) SerializeOperation(operation sovereign.Operation) ([]byte, 
 			},
 		}
 
-		tokens[i] = item
+		operationTokens = append(operationTokens, tokenStruct)
 	}
 
-	var transferData any
-	if operation.TransferData == nil {
-		transferData = nil
-	} else {
-		args := make([]any, len(operation.TransferData.Args))
-		for i, arg := range operation.TransferData.Args {
-			args[i] = abi.BytesValue{Value: arg}
-		}
+	return operationTokens
+}
 
-		transferData = abi.StructValue{
-			Fields: []abi.Field{
-				{
-					Name:  "gas_limit",
-					Value: abi.U64Value{Value: operation.TransferData.GasLimit},
-				},
-				{
-					Name:  "function",
-					Value: abi.BytesValue{Value: operation.TransferData.Function},
-				},
-				{
-					Name: "args",
-					Value: abi.InputListValue{
-						Items: args,
-					},
-				},
-			},
-		}
+func getOperationTransferData(transferData sovereign.TransferData) any {
+	args := make([]any, len(transferData.Args))
+	for i, arg := range transferData.Args {
+		args[i] = abi.BytesValue{Value: arg}
 	}
 
-	operationStruct := abi.StructValue{
+	transferDataStruct := abi.StructValue{
 		Fields: []abi.Field{
 			{
-				Name:  "receiver",
-				Value: abi.AddressValue{Value: operation.Address},
+				Name:  "gas_limit",
+				Value: abi.U64Value{Value: transferData.GasLimit},
 			},
 			{
-				Name: "tokens",
+				Name:  "function",
+				Value: abi.BytesValue{Value: transferData.Function},
+			},
+			{
+				Name: "args",
 				Value: abi.InputListValue{
-					Items: tokens,
-				},
-			},
-			{
-				Name: "transfer_data",
-				Value: abi.OptionValue{
-					Value: transferData,
+					Items: args,
 				},
 			},
 		},
 	}
 
-	encodedOp, err := dc.serializer.Serialize([]any{operationStruct})
-	if err != nil {
-		return nil, err
-	}
-
-	return hex.DecodeString(encodedOp)
+	return transferDataStruct
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil

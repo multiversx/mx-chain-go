@@ -2,8 +2,6 @@ package dataCodec
 
 import "errors"
 
-var errEmptyData = errors.New("empty data provided")
+var errEmptyData = errors.New("empty bytes to deserialize event data")
 
-var errEmptyTokenData = errors.New("empty token data provided")
-
-var errTypeAssertion = errors.New("error type assertion")
+var errEmptyTokenData = errors.New("empty bytes to deserialize token data")

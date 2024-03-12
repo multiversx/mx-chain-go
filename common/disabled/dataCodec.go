@@ -30,11 +30,6 @@ func (dc *dataCodec) DeserializeTokenData(_ []byte) (*sovereign.EsdtTokenData, e
 	return &sovereign.EsdtTokenData{}, nil
 }
 
-// GetTokenDataBytes returns nothing
-func (dc *dataCodec) GetTokenDataBytes(_ []byte, _ []byte) ([]byte, error) {
-	return make([]byte, 0), nil
-}
-
 // SerializeOperation returns nothing
 func (dc *dataCodec) SerializeOperation(_ sovereign.Operation) ([]byte, error) {
 	return make([]byte, 0), nil
