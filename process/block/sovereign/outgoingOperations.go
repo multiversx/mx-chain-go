@@ -20,10 +20,16 @@ type SubscribedEvent struct {
 	Addresses  map[string]string
 }
 
+type ArgsOutgoingOperations struct {
+	SubscribedEvents []SubscribedEvent
+	DataCodec        DataCodecProcessor
+	TopicsChecker    TopicsChecker
+}
+
 type outgoingOperations struct {
 	subscribedEvents []SubscribedEvent
-	roundHandler     RoundHandler
 	dataCodec        DataCodecProcessor
+	topicsChecker    TopicsChecker
 }
 
 // TODO: We should create a common base functionality from this component. Similar behavior is also found in
@@ -31,22 +37,22 @@ type outgoingOperations struct {
 // Task: MX-14721
 
 // NewOutgoingOperationsFormatter creates an outgoing operations formatter
-func NewOutgoingOperationsFormatter(subscribedEvents []SubscribedEvent, roundHandler RoundHandler, dataCodec DataCodecProcessor) (*outgoingOperations, error) {
-	err := checkEvents(subscribedEvents)
+func NewOutgoingOperationsFormatter(args ArgsOutgoingOperations) (*outgoingOperations, error) {
+	err := checkEvents(args.SubscribedEvents)
 	if err != nil {
 		return nil, err
 	}
-	if check.IfNil(roundHandler) {
-		return nil, errors.ErrNilRoundHandler
-	}
-	if check.IfNil(dataCodec) {
+	if check.IfNil(args.DataCodec) {
 		return nil, errors.ErrNilDataCodec
+	}
+	if check.IfNil(args.TopicsChecker) {
+		return nil, errors.ErrNilTopicsChecker
 	}
 
 	return &outgoingOperations{
-		subscribedEvents: subscribedEvents,
-		roundHandler:     roundHandler,
-		dataCodec:        dataCodec,
+		subscribedEvents: args.SubscribedEvents,
+		dataCodec:        args.DataCodec,
+		topicsChecker:    args.TopicsChecker,
 	}, nil
 }
 
@@ -100,7 +106,7 @@ func (op *outgoingOperations) CreateOutgoingTxsData(logs []*data.LogData) ([][]b
 	for i, event := range outgoingEvents {
 		operation, err := op.getOperationData(event)
 		if err != nil {
-			log.Error("OutGoing Operation error",
+			log.Error("outgoingOperations.CreateOutgoingTxsData error",
 				"tx hash", logs[i].TxHash,
 				"event", hex.EncodeToString(event.GetIdentifier()),
 				"error", err)
@@ -161,7 +167,7 @@ func (op *outgoingOperations) isSubscribed(event data.EventHandler, txHash strin
 }
 
 func (op *outgoingOperations) getOperationData(event data.EventHandler) ([]byte, error) {
-	operation, err := op.newOperationData(event.GetTopics())
+	operation, err := op.createOperationData(event.GetTopics())
 	if err != nil {
 		return nil, err
 	}
@@ -181,7 +187,12 @@ func (op *outgoingOperations) getOperationData(event data.EventHandler) ([]byte,
 	return operationBytes, nil
 }
 
-func (op *outgoingOperations) newOperationData(topics [][]byte) (*sovereign.Operation, error) {
+func (op *outgoingOperations) createOperationData(topics [][]byte) (*sovereign.Operation, error) {
+	err := op.topicsChecker.CheckValidity(topics)
+	if err != nil {
+		return nil, err
+	}
+
 	receiver := topics[1]
 
 	var tokens []sovereign.EsdtToken

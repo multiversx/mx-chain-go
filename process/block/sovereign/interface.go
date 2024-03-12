@@ -12,12 +12,6 @@ type OutgoingOperationsFormatter interface {
 	IsInterfaceNil() bool
 }
 
-// RoundHandler should be able to provide the current round
-type RoundHandler interface {
-	Index() int64
-	IsInterfaceNil() bool
-}
-
 // DataCodecProcessor is the interface for serializing/deserializing data
 type DataCodecProcessor interface {
 	SerializeEventData(eventData sovereign.EventData) ([]byte, error)
@@ -25,5 +19,11 @@ type DataCodecProcessor interface {
 	SerializeTokenData(tokenData sovereign.EsdtTokenData) ([]byte, error)
 	DeserializeTokenData(data []byte) (*sovereign.EsdtTokenData, error)
 	SerializeOperation(operation sovereign.Operation) ([]byte, error)
+	IsInterfaceNil() bool
+}
+
+// TopicsChecker should be able to check the topics validity
+type TopicsChecker interface {
+	CheckValidity(topics [][]byte) error
 	IsInterfaceNil() bool
 }

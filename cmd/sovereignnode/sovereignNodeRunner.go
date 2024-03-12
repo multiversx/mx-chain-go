@@ -445,7 +445,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 	outGoingOperationsPool := sovereignPool.NewOutGoingOperationPool(timeToWait)
 
 	codec := abi.NewDefaultCodec()
-	argsDataCodec := dataCodec.DataCodec{
+	argsDataCodec := dataCodec.ArgsDataCodec{
 		Serializer: abi.NewSerializer(codec),
 	}
 
@@ -480,6 +480,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		incomingHeaderHandler,
 		outGoingOperationsPool,
 		dataCodecProcessor,
+		topicsChecker,
 	)
 	if err != nil {
 		return true, err
@@ -1243,6 +1244,7 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 	incomingHeaderHandler process.IncomingHeaderSubscriber,
 	outGoingOperationsPool block.OutGoingOperationsPool,
 	dataCodec dataCodec.SovereignDataDecoder,
+	topicsChecker incomingHeader.TopicsChecker,
 ) (mainFactory.ProcessComponentsHandler, error) {
 	configs := snr.configs
 	configurationPaths := snr.configs.ConfigurationPathsHolder
@@ -1378,6 +1380,7 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 		ExtraHeaderSigVerifierHolder:          extraHeaderSigVerifierHolder,
 		OutGoingOperationsPool:                outGoingOperationsPool,
 		DataCodec:                             dataCodec,
+		TopicsChecker:                         topicsChecker,
 		OperationsHasher:                      outgoingOperationsHasher,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)

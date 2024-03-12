@@ -597,6 +597,7 @@ func GetProcessArgs(
 		ExtraHeaderSigVerifierHolder:          &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
 		OutGoingOperationsPool:                &sovereign.OutGoingOperationsPoolMock{},
 		DataCodec:                             &processMock.DataCodecMock{},
+		TopicsChecker:                         &processMock.TopicsCheckerMock{},
 		RunTypeComponents:                     GetRunTypeComponents(),
 	}
 }
