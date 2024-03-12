@@ -2,6 +2,7 @@ package mock
 
 import "github.com/multiversx/mx-chain-core-go/data/sovereign"
 
+// DataCodecMock -
 type DataCodecMock struct {
 	SerializeEventDataCalled   func(eventData sovereign.EventData) ([]byte, error)
 	DeserializeEventDataCalled func(data []byte) (*sovereign.EventData, error)
@@ -17,7 +18,7 @@ func (dcm *DataCodecMock) SerializeEventData(eventData sovereign.EventData) ([]b
 		return dcm.SerializeEventDataCalled(eventData)
 	}
 
-	return nil, nil
+	return make([]byte, 0), nil
 }
 
 // DeserializeEventData -
@@ -26,7 +27,7 @@ func (dcm *DataCodecMock) DeserializeEventData(data []byte) (*sovereign.EventDat
 		return dcm.DeserializeEventDataCalled(data)
 	}
 
-	return nil, nil
+	return &sovereign.EventData{}, nil
 }
 
 // SerializeTokenData -
@@ -35,7 +36,7 @@ func (dcm *DataCodecMock) SerializeTokenData(tokenData sovereign.EsdtTokenData) 
 		return dcm.SerializeTokenDataCalled(tokenData)
 	}
 
-	return nil, nil
+	return make([]byte, 0), nil
 }
 
 // DeserializeTokenData -
@@ -44,7 +45,7 @@ func (dcm *DataCodecMock) DeserializeTokenData(data []byte) (*sovereign.EsdtToke
 		return dcm.DeserializeTokenDataCalled(data)
 	}
 
-	return nil, nil
+	return &sovereign.EsdtTokenData{}, nil
 }
 
 // GetTokenDataBytes -
@@ -53,7 +54,7 @@ func (dcm *DataCodecMock) GetTokenDataBytes(tokenNonce []byte, tokenData []byte)
 		return dcm.GetTokenDataBytesCalled(tokenNonce, tokenData)
 	}
 
-	return nil, nil
+	return make([]byte, 0), nil
 }
 
 // SerializeOperation -
@@ -62,7 +63,7 @@ func (dcm *DataCodecMock) SerializeOperation(operation sovereign.Operation) ([]b
 		return dcm.SerializeOperationCalled(operation)
 	}
 
-	return nil, nil
+	return make([]byte, 0), nil
 }
 
 // IsInterfaceNil -

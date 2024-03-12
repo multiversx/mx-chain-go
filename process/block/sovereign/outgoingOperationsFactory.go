@@ -11,7 +11,6 @@ import (
 func CreateOutgoingOperationsFormatter(
 	events []config.SubscribedEvent,
 	pubKeyConverter core.PubkeyConverter,
-	roundHandler RoundHandler,
 	dataCodec DataCodecProcessor,
 ) (OutgoingOperationsFormatter, error) {
 	subscribedEvents, err := getSubscribedEvents(events, pubKeyConverter)
@@ -19,7 +18,7 @@ func CreateOutgoingOperationsFormatter(
 		return nil, err
 	}
 
-	return NewOutgoingOperationsFormatter(subscribedEvents, roundHandler, dataCodec)
+	return NewOutgoingOperationsFormatter(subscribedEvents, dataCodec)
 }
 
 func getSubscribedEvents(events []config.SubscribedEvent, pubKeyConverter core.PubkeyConverter) ([]SubscribedEvent, error) {

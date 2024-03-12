@@ -10,7 +10,6 @@ import (
 	transactionData "github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process/mock"
-	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
 
@@ -29,28 +28,21 @@ func TestNewOutgoingOperationsFormatter(t *testing.T) {
 	t.Parallel()
 
 	t.Run("no subscribed events, should return error", func(t *testing.T) {
-		creator, err := NewOutgoingOperationsFormatter([]SubscribedEvent{}, &testscommon.RoundHandlerMock{}, &mock.DataCodecMock{})
+		creator, err := NewOutgoingOperationsFormatter([]SubscribedEvent{}, &mock.DataCodecMock{})
 		require.Nil(t, creator)
 		require.Equal(t, errNoSubscribedEvent, err)
 	})
 
-	t.Run("nil round handler, should return error", func(t *testing.T) {
-		events := createEvents()
-		creator, err := NewOutgoingOperationsFormatter(events, nil, &mock.DataCodecMock{})
-		require.Nil(t, creator)
-		require.Equal(t, errors.ErrNilRoundHandler, err)
-	})
-
 	t.Run("nil data codec, should return error", func(t *testing.T) {
 		events := createEvents()
-		creator, err := NewOutgoingOperationsFormatter(events, &testscommon.RoundHandlerMock{}, nil)
+		creator, err := NewOutgoingOperationsFormatter(events, nil)
 		require.Nil(t, creator)
 		require.Equal(t, errors.ErrNilDataCodec, err)
 	})
 
 	t.Run("should work", func(t *testing.T) {
 		events := createEvents()
-		creator, err := NewOutgoingOperationsFormatter(events, &testscommon.RoundHandlerMock{}, &mock.DataCodecMock{})
+		creator, err := NewOutgoingOperationsFormatter(events, &mock.DataCodecMock{})
 		require.Nil(t, err)
 		require.False(t, creator.IsInterfaceNil())
 	})
@@ -79,12 +71,6 @@ func TestOutgoingOperations_CreateOutgoingTxData(t *testing.T) {
 			Addresses: map[string]string{
 				string(addr3): string(addr3),
 			},
-		},
-	}
-
-	roundHandler := &testscommon.RoundHandlerMock{
-		IndexCalled: func() int64 {
-			return 123
 		},
 	}
 
@@ -122,7 +108,7 @@ func TestOutgoingOperations_CreateOutgoingTxData(t *testing.T) {
 		},
 	}
 
-	creator, _ := NewOutgoingOperationsFormatter(events, roundHandler, dataCodec)
+	creator, _ := NewOutgoingOperationsFormatter(events, dataCodec)
 
 	addr, _ := hex.DecodeString("c0c0739e0cf6232a934d2e56cfcd10881eb1c7336f128fc155a4a84292cfe7f6")
 	tokenData, _ := hex.DecodeString("000000000906aaf7c8516d0c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
