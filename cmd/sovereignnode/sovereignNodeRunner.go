@@ -454,12 +454,15 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
+	topicsChecker := incomingHeader.NewTopicsChecker()
+
 	incomingHeaderHandler, err := createIncomingHeaderProcessor(
 		&configs.SovereignExtraConfig.NotifierConfig,
 		managedDataComponents.Datapool(),
 		configs.SovereignExtraConfig.MainChainNotarization.MainChainNotarizationStartRound,
 		outGoingOperationsPool,
 		dataCodecProcessor,
+		topicsChecker,
 	)
 
 	managedProcessComponents, err := snr.CreateManagedProcessComponents(
@@ -1856,6 +1859,7 @@ func createIncomingHeaderProcessor(
 	mainChainNotarizationStartRound uint64,
 	outGoingOperationsPool block.OutGoingOperationsPool,
 	dataCodec dataCodec.SovereignDataDecoder,
+	topicsChecker incomingHeader.TopicsChecker,
 ) (process.IncomingHeaderSubscriber, error) {
 	marshaller, err := marshallerFactory.NewMarshalizer(config.WebSocketConfig.MarshallerType)
 	if err != nil {
@@ -1874,6 +1878,7 @@ func createIncomingHeaderProcessor(
 		MainChainNotarizationStartRound: mainChainNotarizationStartRound,
 		OutGoingOperationsPool:          outGoingOperationsPool,
 		DataCodec:                       dataCodec,
+		TopicsChecker:                   topicsChecker,
 	}
 
 	return incomingHeader.NewIncomingHeaderProcessor(argsIncomingHeaderHandler)

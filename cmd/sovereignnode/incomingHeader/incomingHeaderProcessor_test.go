@@ -44,6 +44,7 @@ func createArgs() ArgsIncomingHeaderProcessor {
 		Hasher:                 &hashingMocks.HasherMock{},
 		OutGoingOperationsPool: &sovTests.OutGoingOperationsPoolMock{},
 		DataCodec:              dataCodecMock,
+		TopicsChecker:          NewTopicsChecker(),
 	}
 }
 
