@@ -11,8 +11,8 @@ import (
 	"github.com/multiversx/mx-sdk-abi-incubator/golang/abi"
 )
 
-// DataCodec holds the components needed for serialization/deserialization
-type DataCodec struct {
+// ArgsDataCodec holds the components needed for serialization/deserialization
+type ArgsDataCodec struct {
 	Serializer AbiSerializer
 }
 
@@ -21,7 +21,7 @@ type dataCodec struct {
 }
 
 // NewDataCodec creates a data codec which is able to serialize/deserialize data from incoming/outgoing operations
-func NewDataCodec(args DataCodec) (*dataCodec, error) {
+func NewDataCodec(args ArgsDataCodec) (*dataCodec, error) {
 	if args.Serializer == nil {
 		return nil, errors.ErrNilSerializer
 	}
