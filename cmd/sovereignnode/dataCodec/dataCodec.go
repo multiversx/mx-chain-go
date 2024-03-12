@@ -269,17 +269,12 @@ func (dc *dataCodec) DeserializeTokenData(data []byte) (*sovereign.EsdtTokenData
 func (dc *dataCodec) SerializeOperation(operation sovereign.Operation) ([]byte, error) {
 	tokens := getOperationTokens(operation.Tokens)
 
-	var transferData any
-	if operation.TransferData == nil {
-		transferData = nil
-	} else {
-		transferData = getOperationTransferData(*operation.TransferData)
-	}
+	operationData := getOperationData(*operation.Data)
 
 	operationStruct := abi.StructValue{
 		Fields: []abi.Field{
 			{
-				Name:  "receiver",
+				Name:  "to",
 				Value: abi.AddressValue{Value: operation.Address},
 			},
 			{
@@ -289,10 +284,8 @@ func (dc *dataCodec) SerializeOperation(operation sovereign.Operation) ([]byte, 
 				},
 			},
 			{
-				Name: "transfer_data",
-				Value: abi.OptionValue{
-					Value: transferData,
-				},
+				Name:  "data",
+				Value: operationData,
 			},
 		},
 	}
@@ -443,6 +436,32 @@ func getOperationTokens(tokens []sovereign.EsdtToken) []any {
 	}
 
 	return operationTokens
+}
+
+func getOperationData(data sovereign.EventData) any {
+	var transferData any
+	if data.TransferData == nil {
+		transferData = nil
+	} else {
+		transferData = getOperationTransferData(*data.TransferData)
+	}
+
+	operationDataStruct := abi.StructValue{
+		Fields: []abi.Field{
+			{
+				Name:  "op_nonce",
+				Value: abi.U64Value{Value: data.Nonce},
+			},
+			{
+				Name: "opt_transfer_data",
+				Value: abi.OptionValue{
+					Value: transferData,
+				},
+			},
+		},
+	}
+
+	return operationDataStruct
 }
 
 func getOperationTransferData(transferData sovereign.TransferData) any {

@@ -214,7 +214,8 @@ func TestDataCodec_SerializeOperation(t *testing.T) {
 	t.Run("full operation", func(t *testing.T) {
 		t.Parallel()
 
-		addr, _ := hex.DecodeString("c0c0739e0cf6232a934d2e56cfcd10881eb1c7336f128fc155a4a84292cfe7f6")
+		receiver, _ := hex.DecodeString("c0c0739e0cf6232a934d2e56cfcd10881eb1c7336f128fc155a4a84292cfe7f6")
+		creator, _ := hex.DecodeString("0000000000000000000000000000000000000000000000000000000000000000")
 		amount := new(big.Int)
 		amount.SetString("123000000000000000000", 10)
 
@@ -226,9 +227,9 @@ func TestDataCodec_SerializeOperation(t *testing.T) {
 				Amount:     amount,
 				Frozen:     false,
 				Hash:       []byte("hash"),
-				Name:       []byte("SVN1"),
+				Name:       []byte("SVN"),
 				Attributes: []byte("attr"),
-				Creator:    addr,
+				Creator:    creator,
 				Royalties:  big.NewInt(10000),
 				Uris:       [][]byte{[]byte("url1")},
 			},
@@ -240,38 +241,42 @@ func TestDataCodec_SerializeOperation(t *testing.T) {
 				TokenType:  core.Fungible,
 				Amount:     amount,
 				Frozen:     false,
-				Hash:       []byte("hash"),
-				Name:       []byte("SVN2"),
-				Attributes: []byte("attr"),
-				Creator:    addr,
-				Royalties:  big.NewInt(5000),
-				Uris:       [][]byte{[]byte("url2")},
+				Hash:       []byte(""),
+				Name:       []byte(""),
+				Attributes: []byte(""),
+				Creator:    creator,
+				Royalties:  big.NewInt(0),
+				Uris:       [][]byte{},
 			},
 		}
 		tokens := make([]sovereign.EsdtToken, 0)
 		tokens = append(tokens, token1)
 		tokens = append(tokens, token2)
 
-		transferData := &sovereign.TransferData{
-			GasLimit: 20000000,
-			Function: []byte("add"),
-			Args:     [][]byte{big.NewInt(20000000).Bytes()},
+		operationData := &sovereign.EventData{
+			Nonce: 100,
+			TransferData: &sovereign.TransferData{
+				GasLimit: 20000000,
+				Function: []byte("add"),
+				Args:     [][]byte{big.NewInt(20000000).Bytes()},
+			},
 		}
 
 		operation := sovereign.Operation{
-			Address:      addr,
-			Tokens:       tokens,
-			TransferData: transferData,
+			Address: receiver,
+			Tokens:  tokens,
+			Data:    operationData,
 		}
 
 		serialized, err := abiCodec.SerializeOperation(operation)
 		require.Nil(t, err)
-		require.Equal(t, "c0c0739e0cf6232a934d2e56cfcd10881eb1c7336f128fc155a4a84292cfe7f6000000020000000a53564e2d3132333435360000000000000000000000000906aaf7c8516d0c00000000000004686173680000000453564e310000000461747472c0c0739e0cf6232a934d2e56cfcd10881eb1c7336f128fc155a4a84292cfe7f6000000022710000000010000000475726c310000000a53564e2d3635343332310000000000000000000000000906aaf7c8516d0c00000000000004686173680000000453564e320000000461747472c0c0739e0cf6232a934d2e56cfcd10881eb1c7336f128fc155a4a84292cfe7f6000000021388000000010000000475726c32010000000001312d0000000003616464000000010000000401312d00", hex.EncodeToString(serialized))
+		require.Equal(t, "c0c0739e0cf6232a934d2e56cfcd10881eb1c7336f128fc155a4a84292cfe7f6000000020000000a53564e2d3132333435360000000000000000000000000906aaf7c8516d0c00000000000004686173680000000353564e00000004617474720000000000000000000000000000000000000000000000000000000000000000000000022710000000010000000475726c310000000a53564e2d3635343332310000000000000000000000000906aaf7c8516d0c000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000064010000000001312d0000000003616464000000010000000401312d00", hex.EncodeToString(serialized))
 	})
 	t.Run("operation with nil transfer data", func(t *testing.T) {
 		t.Parallel()
 
-		addr, _ := hex.DecodeString("c0c0739e0cf6232a934d2e56cfcd10881eb1c7336f128fc155a4a84292cfe7f6")
+		receiver, _ := hex.DecodeString("c0c0739e0cf6232a934d2e56cfcd10881eb1c7336f128fc155a4a84292cfe7f6")
+		addr, _ := hex.DecodeString("0000000000000000000000000000000000000000000000000000000000000000")
 		amount := new(big.Int)
 		amount.SetString("123000000000000000000", 10)
 
@@ -293,14 +298,19 @@ func TestDataCodec_SerializeOperation(t *testing.T) {
 		tokens := make([]sovereign.EsdtToken, 0)
 		tokens = append(tokens, token1)
 
-		operation := sovereign.Operation{
-			Address:      addr,
-			Tokens:       tokens,
+		operationData := &sovereign.EventData{
+			Nonce:        10,
 			TransferData: nil,
+		}
+
+		operation := sovereign.Operation{
+			Address: receiver,
+			Tokens:  tokens,
+			Data:    operationData,
 		}
 
 		serialized, err := abiCodec.SerializeOperation(operation)
 		require.Nil(t, err)
-		require.Equal(t, "c0c0739e0cf6232a934d2e56cfcd10881eb1c7336f128fc155a4a84292cfe7f6000000010000000a53564e2d3132333435360000000000000000000000000906aaf7c8516d0c00000000000004686173680000000453564e310000000461747472c0c0739e0cf6232a934d2e56cfcd10881eb1c7336f128fc155a4a84292cfe7f6000000021b58000000010000000475726c3100", hex.EncodeToString(serialized))
+		require.Equal(t, "c0c0739e0cf6232a934d2e56cfcd10881eb1c7336f128fc155a4a84292cfe7f6000000010000000a53564e2d3132333435360000000000000000000000000906aaf7c8516d0c00000000000004686173680000000453564e3100000004617474720000000000000000000000000000000000000000000000000000000000000000000000021b58000000010000000475726c31000000000000000a00", hex.EncodeToString(serialized))
 	})
 }

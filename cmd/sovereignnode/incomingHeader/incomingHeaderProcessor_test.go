@@ -31,7 +31,7 @@ import (
 
 func createArgs() ArgsIncomingHeaderProcessor {
 	codec := abi.NewDefaultCodec()
-	args := dataCodec.DataCodec{
+	args := dataCodec.ArgsDataCodec{
 		Serializer: abi.NewSerializer(codec),
 	}
 
