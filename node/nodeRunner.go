@@ -272,6 +272,10 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 ) (bool, error) {
 	goRoutinesNumberStart := runtime.NumGoroutine()
+
+	log.Debug("applying custom configs based on the current architecture")
+	applyArchCustomConfigs(nr.configs)
+
 	configs := nr.configs
 	flagsConfig := configs.FlagsConfig
 	configurationPaths := configs.ConfigurationPathsHolder
