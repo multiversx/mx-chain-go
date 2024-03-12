@@ -50,9 +50,10 @@ type eventsResult struct {
 }
 
 type incomingEventsProcessor struct {
-	marshaller marshal.Marshalizer
-	hasher     hashing.Hasher
-	dataCodec  dataCodec.SovereignDataDecoder
+	marshaller    marshal.Marshalizer
+	hasher        hashing.Hasher
+	dataCodec     dataCodec.SovereignDataDecoder
+	topicsChecker TopicsChecker
 }
 
 func (iep *incomingEventsProcessor) processIncomingEvents(events []data.EventHandler) (*eventsResult, error) {
@@ -100,7 +101,7 @@ func (iep *incomingEventsProcessor) processIncomingEvents(events []data.EventHan
 }
 
 func (iep *incomingEventsProcessor) createSCRInfo(topics [][]byte, event data.EventHandler) (*scrInfo, error) {
-	err := checkTopicsValidity(topics)
+	err := iep.topicsChecker.CheckValidity(topics)
 	if err != nil {
 		return nil, err
 	}
@@ -242,17 +243,4 @@ func (iep *incomingEventsProcessor) getConfirmedBridgeOperation(topics [][]byte)
 		hashOfHashes: topics[0],
 		hash:         topics[1],
 	}, nil
-}
-
-func checkTopicsValidity(topics [][]byte) error {
-	// TODO: Check each param validity (e.g. check that topic[0] == valid address)
-	if len(topics) < minTopicsInTransferEvent || len(topics[2:])%numTransferTopics != 0 {
-		log.Error("incomingHeaderHandler.createIncomingSCRs",
-			"error", errInvalidNumTopicsIncomingEvent,
-			"num topics", len(topics),
-			"topics", topics)
-		return fmt.Errorf("%w for %s; num topics = %d", errInvalidNumTopicsIncomingEvent, eventIDDepositIncomingTransfer, len(topics))
-	}
-
-	return nil
 }
