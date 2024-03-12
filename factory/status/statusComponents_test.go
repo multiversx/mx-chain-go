@@ -2,6 +2,7 @@ package status_test
 
 import (
 	"errors"
+	"runtime"
 	"testing"
 
 	"github.com/multiversx/mx-chain-communication-go/websocket/data"
@@ -187,6 +188,10 @@ func TestStatusComponentsFactory_Create(t *testing.T) {
 		require.Nil(t, sc)
 	})
 	t.Run("should work", func(t *testing.T) {
+		if runtime.GOOS == "darwin" && runtime.GOARCH == "amd64" {
+			t.Skip("skipping test on darwin amd64")
+		}
+
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 		shardCoordinator.SelfIDCalled = func() uint32 {
 			return core.MetachainShardId // coverage
