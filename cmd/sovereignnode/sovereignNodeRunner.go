@@ -445,7 +445,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 	outGoingOperationsPool := sovereignPool.NewOutGoingOperationPool(timeToWait)
 
 	codec := abi.NewDefaultCodec()
-	argsDataCodec := dataCodec.DataCodec{
+	argsDataCodec := dataCodec.ArgsDataCodec{
 		Serializer: abi.NewSerializer(codec),
 	}
 
