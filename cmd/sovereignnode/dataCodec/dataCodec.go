@@ -33,24 +33,7 @@ func NewDataCodec(args DataCodec) (*dataCodec, error) {
 
 // SerializeEventData will receive an event data and serialize it
 func (dc *dataCodec) SerializeEventData(eventData sovereign.EventData) ([]byte, error) {
-	var gasLimit any
-	var function any
-	var args any
-	if eventData.TransferData != nil {
-		gasLimit = abi.U64Value{Value: eventData.GasLimit}
-		function = abi.BytesValue{Value: eventData.Function}
-		arguments := make([]any, len(eventData.Args))
-		for i, arg := range eventData.Args {
-			arguments[i] = abi.BytesValue{Value: arg}
-		}
-		args = abi.InputListValue{
-			Items: arguments,
-		}
-	} else {
-		gasLimit = nil
-		function = nil
-		args = nil
-	}
+	gasLimit, function, args := getTransferDataInAbiFormat(eventData.TransferData)
 
 	eventDataStruct := abi.StructValue{
 		Fields: []abi.Field{
@@ -147,7 +130,7 @@ func (dc *dataCodec) DeserializeEventData(data []byte) (*sovereign.EventData, er
 
 // SerializeTokenData will receive an esdt token data and serialize it
 func (dc *dataCodec) SerializeTokenData(tokenData sovereign.EsdtTokenData) ([]byte, error) {
-	uris := getUrisToAbiFormat(tokenData.Uris)
+	uris := getUrisInAbiFormat(tokenData.Uris)
 
 	tokenDataStruct := abi.StructValue{
 		Fields: []abi.Field{
@@ -322,6 +305,28 @@ func (dc *dataCodec) SerializeOperation(operation sovereign.Operation) ([]byte, 
 	return hex.DecodeString(encodedOp)
 }
 
+func createTransferData(transferData sovereign.TransferData) (any, any, any) {
+	gasLimit := abi.U64Value{Value: transferData.GasLimit}
+	function := abi.BytesValue{Value: transferData.Function}
+	arguments := make([]any, len(transferData.Args))
+	for i, arg := range transferData.Args {
+		arguments[i] = abi.BytesValue{Value: arg}
+	}
+	args := abi.InputListValue{
+		Items: arguments,
+	}
+
+	return gasLimit, function, args
+}
+
+func getTransferDataInAbiFormat(transferData *sovereign.TransferData) (any, any, any) {
+	if transferData != nil {
+		return createTransferData(*transferData)
+	}
+
+	return nil, nil, nil
+}
+
 func getTransferDataArguments(items []any) ([][]byte, error) {
 	arguments := make([][]byte, 0)
 	for _, item := range items {
@@ -348,7 +353,7 @@ func getTransferData(gasLimit uint64, function []byte, arguments [][]byte) *sove
 	}
 }
 
-func getUrisToAbiFormat(items [][]byte) []any {
+func getUrisInAbiFormat(items [][]byte) []any {
 	uris := make([]any, len(items))
 	for i, uri := range items {
 		uris[i] = abi.BytesValue{Value: uri}
@@ -374,7 +379,7 @@ func getTokenDataUris(items []any) ([][]byte, error) {
 func getOperationTokens(tokens []sovereign.EsdtToken) []any {
 	operationTokens := make([]any, 0)
 	for _, token := range tokens {
-		uris := getUrisToAbiFormat(token.Data.Uris)
+		uris := getUrisInAbiFormat(token.Data.Uris)
 
 		tokenStruct := abi.StructValue{
 			Fields: []abi.Field{
