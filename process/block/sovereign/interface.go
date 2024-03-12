@@ -24,7 +24,6 @@ type DataCodecProcessor interface {
 	DeserializeEventData(data []byte) (*sovereign.EventData, error)
 	SerializeTokenData(tokenData sovereign.EsdtTokenData) ([]byte, error)
 	DeserializeTokenData(data []byte) (*sovereign.EsdtTokenData, error)
-	GetTokenDataBytes(tokenNonce []byte, tokenData []byte) ([]byte, error)
 	SerializeOperation(operation sovereign.Operation) ([]byte, error)
 	IsInterfaceNil() bool
 }
