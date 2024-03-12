@@ -776,5 +776,8 @@ var ErrNilFunction = errors.New("nil function")
 // ErrNilSerializer signals that a nil codec serializer has been provided
 var ErrNilSerializer = errors.New("nil codec serializer")
 
+// ErrNilTopicsChecker signals that a nil topics checker has been provided
+var ErrNilTopicsChecker = errors.New("nil topics checker")
+
 // ErrNilOperationsHasher signals that a nil outgoing operations hasher has been provided
 var ErrNilOperationsHasher = errors.New("nil outgoing operations hasher")

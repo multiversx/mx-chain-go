@@ -15,7 +15,7 @@ import (
 
 func createDataCodec() SovereignDataDecoder {
 	codec := abi.NewDefaultCodec()
-	args := DataCodec{
+	args := ArgsDataCodec{
 		Serializer: abi.NewSerializer(codec),
 	}
 
@@ -31,7 +31,7 @@ func TestNewDataCodec(t *testing.T) {
 		t.Parallel()
 
 		codec := abi.NewDefaultCodec()
-		args := DataCodec{
+		args := ArgsDataCodec{
 			Serializer: abi.NewSerializer(codec),
 		}
 		abiCodec, err := NewDataCodec(args)
@@ -41,7 +41,7 @@ func TestNewDataCodec(t *testing.T) {
 	t.Run("nil serializer should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := DataCodec{
+		args := ArgsDataCodec{
 			Serializer: nil,
 		}
 		abiCodec, err := NewDataCodec(args)
