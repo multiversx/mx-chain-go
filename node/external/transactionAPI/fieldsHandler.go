@@ -25,49 +25,32 @@ const (
 )
 
 type fieldsHandler struct {
-	HasNonce             bool
-	HasSender            bool
-	HasReceiver          bool
-	HasGasLimit          bool
-	HasGasPrice          bool
-	HasRcvUsername       bool
-	HasData              bool
-	HasValue             bool
-	HasSignature         bool
-	HasSenderShardID     bool
-	HasReceiverShardID   bool
-	HasGuardian          bool
-	HasGuardianSignature bool
+	fieldsMap map[string]struct{}
 }
 
 func newFieldsHandler(parameters string) fieldsHandler {
-	parameters = strings.ToLower(parameters)
-	parametersMap := sliceToMap(strings.Split(parameters, separator))
-	ph := fieldsHandler{
-		HasNonce:             shouldConsiderField(parametersMap, nonceField),
-		HasSender:            shouldConsiderField(parametersMap, senderField),
-		HasReceiver:          shouldConsiderField(parametersMap, receiverField),
-		HasGasLimit:          shouldConsiderField(parametersMap, gasLimitField),
-		HasGasPrice:          shouldConsiderField(parametersMap, gasPriceField),
-		HasRcvUsername:       shouldConsiderField(parametersMap, rcvUsernameField),
-		HasData:              shouldConsiderField(parametersMap, dataField),
-		HasValue:             shouldConsiderField(parametersMap, valueField),
-		HasSignature:         shouldConsiderField(parametersMap, signatureField),
-		HasSenderShardID:     shouldConsiderField(parametersMap, senderShardID),
-		HasReceiverShardID:   shouldConsiderField(parametersMap, receiverShardID),
-		HasGuardian:          shouldConsiderField(parametersMap, guardianField),
-		HasGuardianSignature: shouldConsiderField(parametersMap, guardianSignatureField),
+	if len(parameters) == 0 {
+		return fieldsHandler{
+			fieldsMap: map[string]struct{}{
+				hashField: {}, // hash should always be returned
+			},
+		}
 	}
-	return ph
+
+	parameters = strings.ToLower(parameters)
+	return fieldsHandler{
+		fieldsMap: sliceToMap(strings.Split(parameters, separator)),
+	}
 }
 
-func shouldConsiderField(parametersMap map[string]struct{}, field string) bool {
-	_, hasWildCard := parametersMap[wildCard]
+// IsFieldSet returns true if the provided field is set
+func (handler *fieldsHandler) IsFieldSet(field string) bool {
+	_, hasWildCard := handler.fieldsMap[wildCard]
 	if hasWildCard {
 		return true
 	}
 
-	_, has := parametersMap[field]
+	_, has := handler.fieldsMap[strings.ToLower(field)]
 	return has
 }
 

@@ -1,6 +1,8 @@
 package transactionAPI
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -10,26 +12,17 @@ func Test_newFieldsHandler(t *testing.T) {
 	t.Parallel()
 
 	fh := newFieldsHandler("")
-	require.Equal(t, fieldsHandler{}, fh)
+	require.Equal(t, fieldsHandler{make(map[string]struct{})}, fh)
 
-	fh = newFieldsHandler("nOnCe,sender,receiver,gasLimit,GASprice,receiverusername,data,value,signature,guardian,guardiansignature,sendershard,receivershard")
-	expectedPH := fieldsHandler{
-		HasNonce:             true,
-		HasSender:            true,
-		HasReceiver:          true,
-		HasGasLimit:          true,
-		HasGasPrice:          true,
-		HasRcvUsername:       true,
-		HasData:              true,
-		HasValue:             true,
-		HasSignature:         true,
-		HasSenderShardID:     true,
-		HasReceiverShardID:   true,
-		HasGuardian:          true,
-		HasGuardianSignature: true,
+	providedFields := "nOnCe,sender,receiver,gasLimit,GASprice,receiverusername,data,value,signature,guardian,guardiansignature,sendershard,receivershard"
+	splitFields := strings.Split(providedFields, separator)
+	fh = newFieldsHandler(providedFields)
+	for _, field := range splitFields {
+		require.True(t, fh.IsFieldSet(field), fmt.Sprintf("field %s is not set", field))
 	}
-	require.Equal(t, expectedPH, fh)
 
 	fh = newFieldsHandler("*")
-	require.Equal(t, expectedPH, fh)
+	for _, field := range splitFields {
+		require.True(t, fh.IsFieldSet(field))
+	}
 }

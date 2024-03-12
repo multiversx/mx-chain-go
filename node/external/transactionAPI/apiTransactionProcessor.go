@@ -309,74 +309,43 @@ func (atp *apiTransactionProcessor) getUnsignedTransactionsFromPool(requestedFie
 }
 
 func (atp *apiTransactionProcessor) extractRequestedTxInfo(wrappedTx *txcache.WrappedTransaction, requestedFieldsHandler fieldsHandler) common.Transaction {
+	fieldGetters := atp.getFieldGettersForTx(wrappedTx)
 	tx := common.Transaction{
 		TxFields: make(map[string]interface{}),
 	}
 
-	tx.TxFields[hashField] = hex.EncodeToString(wrappedTx.TxHash)
-
-	if requestedFieldsHandler.HasNonce {
-		tx.TxFields[nonceField] = wrappedTx.Tx.GetNonce()
-	}
-
-	if requestedFieldsHandler.HasSender {
-		tx.TxFields[senderField] = atp.addressPubKeyConverter.SilentEncode(wrappedTx.Tx.GetSndAddr(), log)
-	}
-
-	if requestedFieldsHandler.HasReceiver {
-		tx.TxFields[receiverField] = atp.addressPubKeyConverter.SilentEncode(wrappedTx.Tx.GetRcvAddr(), log)
-	}
-
-	if requestedFieldsHandler.HasGasLimit {
-		tx.TxFields[gasLimitField] = wrappedTx.Tx.GetGasLimit()
-	}
-
-	if requestedFieldsHandler.HasGasPrice {
-		tx.TxFields[gasPriceField] = wrappedTx.Tx.GetGasPrice()
-	}
-
-	if requestedFieldsHandler.HasRcvUsername {
-		tx.TxFields[rcvUsernameField] = wrappedTx.Tx.GetRcvUserName()
-	}
-
-	if requestedFieldsHandler.HasData {
-		tx.TxFields[dataField] = wrappedTx.Tx.GetData()
-	}
-
-	if requestedFieldsHandler.HasValue {
-		tx.TxFields[valueField] = getTxValue(wrappedTx)
-	}
-
-	if requestedFieldsHandler.HasSenderShardID {
-		tx.TxFields[senderShardID] = wrappedTx.SenderShardID
-	}
-
-	if requestedFieldsHandler.HasReceiverShardID {
-		tx.TxFields[receiverShardID] = wrappedTx.ReceiverShardID
-	}
-
-	if requestedFieldsHandler.HasSignature {
-		castedTx, hasSignature := wrappedTx.Tx.(data.GuardedTransactionHandler)
-		if hasSignature {
-			tx.TxFields[signatureField] = hex.EncodeToString(castedTx.GetSignature())
-		}
-	}
-
-	if requestedFieldsHandler.HasGuardian {
-		guardedTx, isGuardedTx := wrappedTx.Tx.(data.GuardedTransactionHandler)
-		if isGuardedTx {
-			tx.TxFields[guardianField] = atp.addressPubKeyConverter.SilentEncode(guardedTx.GetGuardianAddr(), log)
-		}
-	}
-
-	if requestedFieldsHandler.HasGuardianSignature {
-		guardedTx, isGuardedTx := wrappedTx.Tx.(data.GuardedTransactionHandler)
-		if isGuardedTx {
-			tx.TxFields[guardianSignatureField] = hex.EncodeToString(guardedTx.GetGuardianSignature())
+	for field, getter := range fieldGetters {
+		if requestedFieldsHandler.IsFieldSet(field) {
+			tx.TxFields[field] = getter()
 		}
 	}
 
 	return tx
+}
+
+func (atp *apiTransactionProcessor) getFieldGettersForTx(wrappedTx *txcache.WrappedTransaction) map[string]func() interface{} {
+	var fieldGetters = map[string]func() interface{}{
+		hashField:        func() interface{} { return hex.EncodeToString(wrappedTx.TxHash) },
+		nonceField:       func() interface{} { return wrappedTx.Tx.GetNonce() },
+		senderField:      func() interface{} { return atp.addressPubKeyConverter.SilentEncode(wrappedTx.Tx.GetSndAddr(), log) },
+		receiverField:    func() interface{} { return atp.addressPubKeyConverter.SilentEncode(wrappedTx.Tx.GetRcvAddr(), log) },
+		gasLimitField:    func() interface{} { return wrappedTx.Tx.GetGasLimit() },
+		gasPriceField:    func() interface{} { return wrappedTx.Tx.GetGasPrice() },
+		rcvUsernameField: func() interface{} { return wrappedTx.Tx.GetRcvUserName() },
+		dataField:        func() interface{} { return wrappedTx.Tx.GetData() },
+		valueField:       func() interface{} { return getTxValue(wrappedTx) },
+		senderShardID:    func() interface{} { return wrappedTx.SenderShardID },
+		receiverShardID:  func() interface{} { return wrappedTx.ReceiverShardID },
+	}
+
+	guardedTx, isGuardedTx := wrappedTx.Tx.(data.GuardedTransactionHandler)
+	if isGuardedTx {
+		fieldGetters[signatureField] = func() interface{} { return hex.EncodeToString(guardedTx.GetSignature()) }
+		fieldGetters[guardianField] = func() interface{} { return atp.addressPubKeyConverter.SilentEncode(guardedTx.GetGuardianAddr(), log) }
+		fieldGetters[guardianSignatureField] = func() interface{} { return hex.EncodeToString(guardedTx.GetGuardianSignature()) }
+	}
+
+	return fieldGetters
 }
 
 func (atp *apiTransactionProcessor) fetchTxsForSender(sender string, senderShard uint32) []*txcache.WrappedTransaction {
