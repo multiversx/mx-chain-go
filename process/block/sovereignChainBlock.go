@@ -897,7 +897,7 @@ func (scbp *sovereignChainBlockProcessor) createOutGoingMiniBlockData(outGoingOp
 	outGoingOperationsData := make([]*sovCore.OutGoingOperation, 0)
 
 	for idx, outGoingOp := range outGoingOperations {
-		outGoingOpHash := scbp.hasher.Compute(string(outGoingOp))
+		outGoingOpHash := scbp.operationsHasher.Compute(string(outGoingOp))
 		aggregatedOutGoingOperations = append(aggregatedOutGoingOperations, outGoingOpHash...)
 
 		outGoingOpHashes[idx] = outGoingOpHash
@@ -907,7 +907,7 @@ func (scbp *sovereignChainBlockProcessor) createOutGoingMiniBlockData(outGoingOp
 		})
 	}
 
-	outGoingOperationsHash := scbp.hasher.Compute(string(aggregatedOutGoingOperations))
+	outGoingOperationsHash := scbp.operationsHasher.Compute(string(aggregatedOutGoingOperations))
 	scbp.outGoingOperationsPool.Add(&sovCore.BridgeOutGoingData{
 		Hash:               outGoingOperationsHash,
 		OutGoingOperations: outGoingOperationsData,
@@ -930,7 +930,7 @@ func (scbp *sovereignChainBlockProcessor) setOutGoingMiniBlock(
 	outGoingMb *block.MiniBlock,
 	outGoingOperationsHash []byte,
 ) error {
-	outGoingMbHash, err := core.CalculateHash(scbp.marshalizer, scbp.hasher, outGoingMb)
+	outGoingMbHash, err := core.CalculateHash(scbp.marshalizer, scbp.operationsHasher, outGoingMb)
 	if err != nil {
 		return err
 	}
