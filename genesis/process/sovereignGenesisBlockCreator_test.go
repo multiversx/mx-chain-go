@@ -53,7 +53,6 @@ func createSovereignGenesisBlockCreator(t *testing.T) (ArgsGenesisBlockCreator, 
 	arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
 	arg.ShardCoordinator = sharding.NewSovereignShardCoordinator(core.SovereignChainShardId)
 	arg.DNSV2Addresses = []string{"00000000000000000500761b8c4a25d3979359223208b412285f635e71300102"}
-	arg.Config.SovereignConfig.GenesisConfig.NativeESDT = sovereignNativeToken
 
 	sovRunTypeComps := createSovRunTypeComps(t)
 	arg.RunTypeComponents = sovRunTypeComps
