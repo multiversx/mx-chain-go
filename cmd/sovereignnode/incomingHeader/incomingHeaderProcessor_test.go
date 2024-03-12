@@ -33,7 +33,6 @@ func createArgs() ArgsIncomingHeaderProcessor {
 	codec := abi.NewDefaultCodec()
 	args := dataCodec.DataCodec{
 		Serializer: abi.NewSerializer(codec),
-		Marshaller: &marshallerMock.MarshalizerMock{},
 	}
 
 	dataCodecMock, _ := dataCodec.NewDataCodec(args)
@@ -148,6 +147,13 @@ func createCustomEventData(nonce uint64, gasLimit uint64, function []byte, argum
 	})
 
 	return evData
+}
+
+func getTokenDataBytes(tokenNonce []byte, tokenData []byte) ([]byte, error) {
+	args := createArgs()
+	handler, _ := NewIncomingHeaderProcessor(args)
+
+	return handler.eventsProc.getTokenDataBytes(tokenNonce, tokenData)
 }
 
 func TestNewIncomingHeaderHandler(t *testing.T) {
@@ -505,11 +511,14 @@ func TestIncomingHeaderHandler_AddHeader(t *testing.T) {
 	arg2 := []byte("arg2")
 
 	token1Data := createTokenData(big.NewInt(100))
-	token1DataBytes, _ := args.DataCodec.GetTokenDataBytes(token1Nonce, token1Data)
+	token1DataBytes, err := getTokenDataBytes(token1Nonce, token1Data)
+	require.NoError(t, err)
 	token2Data := createTokenData(big.NewInt(50))
-	token2DataBytes, _ := args.DataCodec.GetTokenDataBytes(token1Nonce, token2Data)
+	token2DataBytes, err := getTokenDataBytes(token1Nonce, token2Data)
+	require.NoError(t, err)
 	nftData := createNftTokenData()
-	nftDataBytes, _ := args.DataCodec.GetTokenDataBytes(token2Nonce, nftData)
+	nftDataBytes, err := getTokenDataBytes(token2Nonce, nftData)
+	require.NoError(t, err)
 
 	scr1 := &smartContractResult.SmartContractResult{
 		Nonce:    0,

@@ -7,6 +7,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -51,7 +52,7 @@ type eventsResult struct {
 type incomingEventsProcessor struct {
 	marshaller marshal.Marshalizer
 	hasher     hashing.Hasher
-	dataCodec  dataCodec.DataCodecProcessor
+	dataCodec  dataCodec.SovereignDataDecoder
 }
 
 func (iep *incomingEventsProcessor) processIncomingEvents(events []data.EventHandler) (*eventsResult, error) {
@@ -177,7 +178,7 @@ func (iep *incomingEventsProcessor) createSCRData(topics [][]byte) ([]byte, erro
 		"@" + hex.EncodeToString(numTokensToTransferBytes))
 
 	for idx := 2; idx < 2+len(topics[2:]); idx += 3 {
-		tokenData, err := iep.dataCodec.GetTokenDataBytes(topics[idx+1], topics[idx+2])
+		tokenData, err := iep.getTokenDataBytes(topics[idx+1], topics[idx+2])
 		if err != nil {
 			return nil, err
 		}
@@ -191,6 +192,45 @@ func (iep *incomingEventsProcessor) createSCRData(topics [][]byte) ([]byte, erro
 	}
 
 	return ret, nil
+}
+
+func (iep *incomingEventsProcessor) getTokenDataBytes(tokenNonce []byte, tokenData []byte) ([]byte, error) {
+	if len(tokenData) == 0 {
+		return nil, fmt.Errorf("empty token data bytes provided")
+	}
+
+	esdtTokenData, err := iep.dataCodec.DeserializeTokenData(tokenData)
+	if err != nil {
+		return nil, err
+	}
+
+	digitalToken := &esdt.ESDigitalToken{
+		Type:  uint32(esdtTokenData.TokenType),
+		Value: esdtTokenData.Amount,
+		TokenMetaData: &esdt.MetaData{
+			Nonce:      bytesToUint64(tokenNonce),
+			Name:       esdtTokenData.Name,
+			Creator:    esdtTokenData.Creator,
+			Royalties:  uint32(esdtTokenData.Royalties.Uint64()),
+			Hash:       esdtTokenData.Hash,
+			URIs:       esdtTokenData.Uris,
+			Attributes: esdtTokenData.Attributes,
+		},
+	}
+
+	if digitalToken.Type == uint32(core.Fungible) {
+		return digitalToken.Value.Bytes(), nil
+	}
+
+	return iep.marshaller.Marshal(digitalToken)
+}
+
+func bytesToUint64(bytes []byte) uint64 {
+	var result uint64
+	for _, b := range bytes {
+		result = (result << 8) | uint64(b)
+	}
+	return result
 }
 
 func (iep *incomingEventsProcessor) getConfirmedBridgeOperation(topics [][]byte) (*confirmedBridgeOp, error) {

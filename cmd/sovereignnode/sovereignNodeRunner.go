@@ -447,7 +447,6 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 	codec := abi.NewDefaultCodec()
 	argsDataCodec := dataCodec.DataCodec{
 		Serializer: abi.NewSerializer(codec),
-		Marshaller: managedCoreComponents.InternalMarshalizer(),
 	}
 
 	dataCodecProcessor, err := dataCodec.NewDataCodec(argsDataCodec)
@@ -1856,7 +1855,7 @@ func createIncomingHeaderProcessor(
 	dataPool dataRetriever.PoolsHolder,
 	mainChainNotarizationStartRound uint64,
 	outGoingOperationsPool block.OutGoingOperationsPool,
-	dataCodec dataCodec.DataCodecProcessor,
+	dataCodec dataCodec.SovereignDataDecoder,
 ) (process.IncomingHeaderSubscriber, error) {
 	marshaller, err := marshallerFactory.NewMarshalizer(config.WebSocketConfig.MarshallerType)
 	if err != nil {
