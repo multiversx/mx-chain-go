@@ -39,8 +39,8 @@ func (s *sovereignBlockProcessorFactory) CreateBlockProcessor(argumentsBaseProce
 	outgoingOpFormatter, err := sovereign.CreateOutgoingOperationsFormatter(
 		argumentsBaseProcessor.Config.SovereignConfig.OutgoingSubscribedEvents.SubscribedEvents,
 		argumentsBaseProcessor.CoreComponents.AddressPubKeyConverter(),
-		argumentsBaseProcessor.CoreComponents.RoundHandler(),
-		argumentsBaseProcessor.DataCodec)
+		argumentsBaseProcessor.DataCodec,
+		argumentsBaseProcessor.TopicsChecker)
 	if err != nil {
 		return nil, err
 	}

@@ -159,6 +159,7 @@ func createMockMetaArguments(
 			ValidatorStatisticsProcessor: &mock2.ValidatorStatisticsProcessorStub{},
 			OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolMock{},
 			DataCodec:                    &mock.DataCodecMock{},
+			TopicsChecker:                &mock.TopicsCheckerMock{},
 		},
 		SCToProtocol:                 &mock.SCToProtocolStub{},
 		PendingMiniBlocksHandler:     &mock.PendingMiniBlocksHandlerStub{},
