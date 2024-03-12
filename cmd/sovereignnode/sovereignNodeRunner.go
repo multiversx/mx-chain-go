@@ -1239,7 +1239,7 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	incomingHeaderHandler process.IncomingHeaderSubscriber,
 	outGoingOperationsPool block.OutGoingOperationsPool,
-	dataCodec dataCodec.DataCodecProcessor,
+	dataCodec dataCodec.SovereignDataDecoder,
 ) (mainFactory.ProcessComponentsHandler, error) {
 	configs := snr.configs
 	configurationPaths := snr.configs.ConfigurationPathsHolder
