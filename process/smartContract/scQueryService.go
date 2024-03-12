@@ -267,15 +267,6 @@ func (service *SCQueryService) recreateTrie(blockRootHash []byte, blockHeader da
 	return accountsAdapter.RecreateTrie(rootHashHolder)
 }
 
-func (service *SCQueryService) getCurrentEpoch() uint32 {
-	header := service.mainBlockChain.GetCurrentBlockHeader()
-	if check.IfNil(header) {
-		return 0
-	}
-
-	return header.GetEpoch()
-}
-
 // TODO: extract duplicated code with nodeBlocks.go
 func (service *SCQueryService) extractBlockHeaderAndRootHash(query *process.SCQuery) (data.HeaderHandler, []byte, error) {
 	if len(query.BlockHash) > 0 {

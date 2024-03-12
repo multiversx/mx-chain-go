@@ -2481,11 +2481,14 @@ func startNodesAndIssueToken(
 
 	enableEpochs := config.EnableEpochs{
 		GlobalMintBurnDisableEpoch:                  integrationTests.UnreachableEpoch,
-		BuiltInFunctionOnMetaEnableEpoch:            integrationTests.UnreachableEpoch,
 		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: integrationTests.UnreachableEpoch,
 		ScheduledMiniBlocksEnableEpoch:              integrationTests.UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch:        integrationTests.UnreachableEpoch,
 		StakingV2EnableEpoch:                        integrationTests.UnreachableEpoch,
+		StakeLimitsEnableEpoch:                      integrationTests.UnreachableEpoch,
+		StakingV4Step1EnableEpoch:                   integrationTests.UnreachableEpoch,
+		StakingV4Step2EnableEpoch:                   integrationTests.UnreachableEpoch,
+		StakingV4Step3EnableEpoch:                   integrationTests.UnreachableEpoch,
 		AutoBalanceDataTriesEnableEpoch:             1,
 	}
 	nodes := integrationTests.CreateNodesWithEnableEpochs(

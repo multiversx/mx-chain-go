@@ -50,7 +50,7 @@ func NewRewardsCreator(args ArgsNewRewardsCreator) (*rewardsCreator, error) {
 // CreateRewardsMiniBlocks creates the rewards miniblocks according to economics data and validator info
 func (rc *rewardsCreator) CreateRewardsMiniBlocks(
 	metaBlock data.MetaHeaderHandler,
-	validatorsInfo map[uint32][]*state.ValidatorInfo,
+	validatorsInfo state.ShardValidatorsInfoMapHandler,
 	computedEconomics *block.Economics,
 ) (block.MiniBlockSlice, error) {
 	if check.IfNil(metaBlock) {
@@ -116,7 +116,7 @@ func (rc *rewardsCreator) adjustProtocolSustainabilityRewards(protocolSustainabi
 }
 
 func (rc *rewardsCreator) addValidatorRewardsToMiniBlocks(
-	validatorsInfo map[uint32][]*state.ValidatorInfo,
+	validatorsInfo state.ShardValidatorsInfoMapHandler,
 	metaBlock data.HeaderHandler,
 	miniBlocks block.MiniBlockSlice,
 	protocolSustainabilityRwdTx *rewardTx.RewardTx,
@@ -162,41 +162,40 @@ func (rc *rewardsCreator) addValidatorRewardsToMiniBlocks(
 }
 
 func (rc *rewardsCreator) computeValidatorInfoPerRewardAddress(
-	validatorsInfo map[uint32][]*state.ValidatorInfo,
+	validatorsInfo state.ShardValidatorsInfoMapHandler,
 	protocolSustainabilityRwd *rewardTx.RewardTx,
 	epoch uint32,
 ) map[string]*rewardInfoData {
 
 	rwdAddrValidatorInfo := make(map[string]*rewardInfoData)
 
-	for _, shardValidatorsInfo := range validatorsInfo {
-		for _, validatorInfo := range shardValidatorsInfo {
-			rewardsPerBlockPerNodeForShard := rc.mapBaseRewardsPerBlockPerValidator[validatorInfo.ShardId]
-			protocolRewardValue := big.NewInt(0).Mul(rewardsPerBlockPerNodeForShard, big.NewInt(0).SetUint64(uint64(validatorInfo.NumSelectedInSuccessBlocks)))
+	for _, validatorInfo := range validatorsInfo.GetAllValidatorsInfo() {
+		rewardsPerBlockPerNodeForShard := rc.mapBaseRewardsPerBlockPerValidator[validatorInfo.GetShardId()]
+		protocolRewardValue := big.NewInt(0).Mul(rewardsPerBlockPerNodeForShard, big.NewInt(0).SetUint64(uint64(validatorInfo.GetNumSelectedInSuccessBlocks())))
 
-			isFix1Enabled := rc.isRewardsFix1Enabled(epoch)
-			if isFix1Enabled && validatorInfo.LeaderSuccess == 0 && validatorInfo.ValidatorSuccess == 0 {
-				protocolSustainabilityRwd.Value.Add(protocolSustainabilityRwd.Value, protocolRewardValue)
-				continue
-			}
-			if !isFix1Enabled && validatorInfo.LeaderSuccess == 0 && validatorInfo.ValidatorFailure == 0 {
-				protocolSustainabilityRwd.Value.Add(protocolSustainabilityRwd.Value, protocolRewardValue)
-				continue
-			}
-
-			rwdInfo, ok := rwdAddrValidatorInfo[string(validatorInfo.RewardAddress)]
-			if !ok {
-				rwdInfo = &rewardInfoData{
-					accumulatedFees:     big.NewInt(0),
-					rewardsFromProtocol: big.NewInt(0),
-					address:             string(validatorInfo.RewardAddress),
-				}
-				rwdAddrValidatorInfo[string(validatorInfo.RewardAddress)] = rwdInfo
-			}
-
-			rwdInfo.accumulatedFees.Add(rwdInfo.accumulatedFees, validatorInfo.AccumulatedFees)
-			rwdInfo.rewardsFromProtocol.Add(rwdInfo.rewardsFromProtocol, protocolRewardValue)
+		isFix1Enabled := rc.isRewardsFix1Enabled(epoch)
+		if isFix1Enabled && validatorInfo.GetLeaderSuccess() == 0 && validatorInfo.GetValidatorSuccess() == 0 {
+			protocolSustainabilityRwd.Value.Add(protocolSustainabilityRwd.Value, protocolRewardValue)
+			continue
 		}
+		if !isFix1Enabled && validatorInfo.GetLeaderSuccess() == 0 && validatorInfo.GetValidatorFailure() == 0 {
+			protocolSustainabilityRwd.Value.Add(protocolSustainabilityRwd.Value, protocolRewardValue)
+			continue
+		}
+
+		rwdInfo, ok := rwdAddrValidatorInfo[string(validatorInfo.GetRewardAddress())]
+		if !ok {
+			rwdInfo = &rewardInfoData{
+				accumulatedFees:     big.NewInt(0),
+				rewardsFromProtocol: big.NewInt(0),
+				address:             string(validatorInfo.GetRewardAddress()),
+			}
+			rwdAddrValidatorInfo[string(validatorInfo.GetRewardAddress())] = rwdInfo
+		}
+
+		rwdInfo.accumulatedFees.Add(rwdInfo.accumulatedFees, validatorInfo.GetAccumulatedFees())
+		rwdInfo.rewardsFromProtocol.Add(rwdInfo.rewardsFromProtocol, protocolRewardValue)
+
 	}
 
 	return rwdAddrValidatorInfo
@@ -205,7 +204,7 @@ func (rc *rewardsCreator) computeValidatorInfoPerRewardAddress(
 // VerifyRewardsMiniBlocks verifies if received rewards miniblocks are correct
 func (rc *rewardsCreator) VerifyRewardsMiniBlocks(
 	metaBlock data.MetaHeaderHandler,
-	validatorsInfo map[uint32][]*state.ValidatorInfo,
+	validatorsInfo state.ShardValidatorsInfoMapHandler,
 	computedEconomics *block.Economics,
 ) error {
 	if check.IfNil(metaBlock) {

@@ -42,6 +42,7 @@ type ArgNodeApiResolver struct {
 	ManagedPeersMonitor      common.ManagedPeersMonitor
 	PublicKey                string
 	NodesCoordinator         nodesCoordinator.NodesCoordinator
+	StorageManagers          []common.StorageManager
 }
 
 // nodeApiResolver can resolve API requests
@@ -62,6 +63,7 @@ type nodeApiResolver struct {
 	managedPeersMonitor      common.ManagedPeersMonitor
 	publicKey                string
 	nodesCoordinator         nodesCoordinator.NodesCoordinator
+	storageManagers          []common.StorageManager
 }
 
 // NewNodeApiResolver creates a new nodeApiResolver instance
@@ -129,6 +131,7 @@ func NewNodeApiResolver(arg ArgNodeApiResolver) (*nodeApiResolver, error) {
 		managedPeersMonitor:      arg.ManagedPeersMonitor,
 		publicKey:                arg.PublicKey,
 		nodesCoordinator:         arg.NodesCoordinator,
+		storageManagers:          arg.StorageManagers,
 	}, nil
 }
 
@@ -154,6 +157,15 @@ func (nar *nodeApiResolver) SimulateTransactionExecution(tx *transaction.Transac
 
 // Close closes all underlying components
 func (nar *nodeApiResolver) Close() error {
+	for _, sm := range nar.storageManagers {
+		if check.IfNil(sm) {
+			continue
+		}
+
+		err := sm.Close()
+		log.LogIfError(err)
+	}
+
 	return nar.scQueryService.Close()
 }
 

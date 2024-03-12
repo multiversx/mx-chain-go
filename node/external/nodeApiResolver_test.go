@@ -39,7 +39,7 @@ func createMockArgs() external.ArgNodeApiResolver {
 		APIBlockHandler:          &mock.BlockAPIHandlerStub{},
 		APITransactionHandler:    &mock.TransactionAPIHandlerStub{},
 		APIInternalBlockHandler:  &mock.InternalBlockApiHandlerStub{},
-		GenesisNodesSetupHandler: &testscommon.NodesSetupStub{},
+		GenesisNodesSetupHandler: &genesisMocks.NodesSetupStub{},
 		ValidatorPubKeyConverter: &testscommon.PubkeyConverterMock{},
 		AccountsParser:           &genesisMocks.AccountsParserStub{},
 		GasScheduleNotifier:      &testscommon.GasScheduleNotifierMock{},
@@ -594,7 +594,7 @@ func TestNodeApiResolver_GetGenesisNodesPubKeys(t *testing.T) {
 	}
 
 	arg := createMockArgs()
-	arg.GenesisNodesSetupHandler = &testscommon.NodesSetupStub{
+	arg.GenesisNodesSetupHandler = &genesisMocks.NodesSetupStub{
 		InitialNodesInfoCalled: func() (map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
 			return eligible, waiting
 		},

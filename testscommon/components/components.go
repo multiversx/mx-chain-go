@@ -199,6 +199,13 @@ func GetCryptoArgs(coreComponents factory.CoreComponentsHolder) cryptoComp.Crypt
 		},
 		EnableEpochs: config.EnableEpochs{
 			BLSMultiSignerEnableEpoch: []config.MultiSignerConfig{{EnableEpoch: 0, Type: "no-KOSK"}},
+			MaxNodesChangeEnableEpoch: []config.MaxNodesChangeConfig{
+				{
+					EpochEnable:            0,
+					MaxNumNodes:            100,
+					NodesToShufflePerShard: 2,
+				},
+			},
 		},
 	}
 
@@ -548,6 +555,8 @@ func GetProcessArgs(
 				MaxNumberOfNodesForStake:             10,
 				ActivateBLSPubKeyMessageVerification: false,
 				MinUnstakeTokensValue:                "1",
+				StakeLimitPercentage:                 100,
+				NodeLimitPercentage:                  100,
 			},
 			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
 				MinCreationDeposit:  "100",
@@ -558,6 +567,12 @@ func GetProcessArgs(
 				MinServiceFee: 0,
 				MaxServiceFee: 100,
 			},
+			SoftAuctionConfig: config.SoftAuctionConfig{
+				TopUpStep:             "10",
+				MinTopUp:              "1",
+				MaxTopUp:              "32000000",
+				MaxNumberOfIterations: 100000,
+			},
 		},
 		HistoryRepo: &dblookupext.HistoryRepositoryStub{},
 		FlagsConfig: config.ContextFlagsConfig{
@@ -565,6 +580,17 @@ func GetProcessArgs(
 		},
 		RoundConfig:             testscommon.GetDefaultRoundsConfig(),
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
+		EpochConfig: config.EpochConfig{
+			EnableEpochs: config.EnableEpochs{
+				MaxNodesChangeEnableEpoch: []config.MaxNodesChangeConfig{
+					{
+						EpochEnable:            0,
+						MaxNumNodes:            100,
+						NodesToShufflePerShard: 2,
+					},
+				},
+			},
+		},
 	}
 }
 

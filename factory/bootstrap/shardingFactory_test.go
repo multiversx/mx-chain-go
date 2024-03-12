@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
@@ -41,7 +42,7 @@ func TestCreateShardCoordinator(t *testing.T) {
 	t.Run("nil pub key should error", func(t *testing.T) {
 		t.Parallel()
 
-		shardC, nodeType, err := CreateShardCoordinator(&testscommon.NodesSetupStub{}, nil, config.PreferencesConfig{}, nil)
+		shardC, nodeType, err := CreateShardCoordinator(&genesisMocks.NodesSetupStub{}, nil, config.PreferencesConfig{}, nil)
 		require.Equal(t, errErd.ErrNilPublicKey, err)
 		require.Empty(t, nodeType)
 		require.True(t, check.IfNil(shardC))
@@ -49,7 +50,7 @@ func TestCreateShardCoordinator(t *testing.T) {
 	t.Run("nil logger should error", func(t *testing.T) {
 		t.Parallel()
 
-		shardC, nodeType, err := CreateShardCoordinator(&testscommon.NodesSetupStub{}, &cryptoMocks.PublicKeyStub{}, config.PreferencesConfig{}, nil)
+		shardC, nodeType, err := CreateShardCoordinator(&genesisMocks.NodesSetupStub{}, &cryptoMocks.PublicKeyStub{}, config.PreferencesConfig{}, nil)
 		require.Equal(t, errErd.ErrNilLogger, err)
 		require.Empty(t, nodeType)
 		require.True(t, check.IfNil(shardC))
@@ -58,7 +59,7 @@ func TestCreateShardCoordinator(t *testing.T) {
 		t.Parallel()
 
 		shardC, nodeType, err := CreateShardCoordinator(
-			&testscommon.NodesSetupStub{},
+			&genesisMocks.NodesSetupStub{},
 			&cryptoMocks.PublicKeyStub{
 				ToByteArrayStub: func() ([]byte, error) {
 					return nil, expectedErr
@@ -75,7 +76,7 @@ func TestCreateShardCoordinator(t *testing.T) {
 		t.Parallel()
 
 		shardC, nodeType, err := CreateShardCoordinator(
-			&testscommon.NodesSetupStub{},
+			&genesisMocks.NodesSetupStub{},
 			&cryptoMocks.PublicKeyStub{
 				ToByteArrayStub: func() ([]byte, error) {
 					return nil, sharding.ErrPublicKeyNotFoundInGenesis // force this error here
@@ -95,7 +96,7 @@ func TestCreateShardCoordinator(t *testing.T) {
 
 		counter := 0
 		shardC, nodeType, err := CreateShardCoordinator(
-			&testscommon.NodesSetupStub{
+			&genesisMocks.NodesSetupStub{
 				GetShardIDForPubKeyCalled: func(pubKey []byte) (uint32, error) {
 					return 0, sharding.ErrPublicKeyNotFoundInGenesis // force this error
 				},
@@ -123,7 +124,7 @@ func TestCreateShardCoordinator(t *testing.T) {
 		t.Parallel()
 
 		shardC, nodeType, err := CreateShardCoordinator(
-			&testscommon.NodesSetupStub{
+			&genesisMocks.NodesSetupStub{
 				GetShardIDForPubKeyCalled: func(pubKey []byte) (uint32, error) {
 					return 0, sharding.ErrPublicKeyNotFoundInGenesis // force this error
 				},
@@ -149,7 +150,7 @@ func TestCreateShardCoordinator(t *testing.T) {
 		t.Parallel()
 
 		shardC, nodeType, err := CreateShardCoordinator(
-			&testscommon.NodesSetupStub{
+			&genesisMocks.NodesSetupStub{
 				GetShardIDForPubKeyCalled: func(pubKey []byte) (uint32, error) {
 					return core.MetachainShardId, nil
 				},
@@ -169,7 +170,7 @@ func TestCreateShardCoordinator(t *testing.T) {
 		t.Parallel()
 
 		shardC, nodeType, err := CreateShardCoordinator(
-			&testscommon.NodesSetupStub{
+			&genesisMocks.NodesSetupStub{
 				GetShardIDForPubKeyCalled: func(pubKey []byte) (uint32, error) {
 					return core.MetachainShardId, nil
 				},
@@ -192,7 +193,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 
 		nodesC, err := CreateNodesCoordinator(
 			nil,
-			&testscommon.NodesSetupStub{},
+			&genesisMocks.NodesSetupStub{},
 			config.PreferencesConfig{},
 			&mock.EpochStartNotifierStub{},
 			&cryptoMocks.PublicKeyStub{},
@@ -208,6 +209,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			&nodeTypeProviderMock.NodeTypeProviderStub{},
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
+			&shardingMocks.NodesCoordinatorRegistryFactoryMock{},
 		)
 		require.Equal(t, errErd.ErrNilShuffleOutCloser, err)
 		require.True(t, check.IfNil(nodesC))
@@ -233,6 +235,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			&nodeTypeProviderMock.NodeTypeProviderStub{},
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
+			&shardingMocks.NodesCoordinatorRegistryFactoryMock{},
 		)
 		require.Equal(t, errErd.ErrNilGenesisNodesSetupHandler, err)
 		require.True(t, check.IfNil(nodesC))
@@ -242,7 +245,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 
 		nodesC, err := CreateNodesCoordinator(
 			&testscommon.ShuffleOutCloserStub{},
-			&testscommon.NodesSetupStub{},
+			&genesisMocks.NodesSetupStub{},
 			config.PreferencesConfig{},
 			nil,
 			&cryptoMocks.PublicKeyStub{},
@@ -258,6 +261,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			&nodeTypeProviderMock.NodeTypeProviderStub{},
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
+			&shardingMocks.NodesCoordinatorRegistryFactoryMock{},
 		)
 		require.Equal(t, errErd.ErrNilEpochStartNotifier, err)
 		require.True(t, check.IfNil(nodesC))
@@ -267,7 +271,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 
 		nodesC, err := CreateNodesCoordinator(
 			&testscommon.ShuffleOutCloserStub{},
-			&testscommon.NodesSetupStub{},
+			&genesisMocks.NodesSetupStub{},
 			config.PreferencesConfig{},
 			&mock.EpochStartNotifierStub{},
 			nil,
@@ -283,6 +287,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			&nodeTypeProviderMock.NodeTypeProviderStub{},
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
+			&shardingMocks.NodesCoordinatorRegistryFactoryMock{},
 		)
 		require.Equal(t, errErd.ErrNilPublicKey, err)
 		require.True(t, check.IfNil(nodesC))
@@ -292,7 +297,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 
 		nodesC, err := CreateNodesCoordinator(
 			&testscommon.ShuffleOutCloserStub{},
-			&testscommon.NodesSetupStub{},
+			&genesisMocks.NodesSetupStub{},
 			config.PreferencesConfig{},
 			&mock.EpochStartNotifierStub{},
 			&cryptoMocks.PublicKeyStub{},
@@ -308,6 +313,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			&nodeTypeProviderMock.NodeTypeProviderStub{},
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
+			&shardingMocks.NodesCoordinatorRegistryFactoryMock{},
 		)
 		require.Equal(t, errErd.ErrNilBootstrapParamsHandler, err)
 		require.True(t, check.IfNil(nodesC))
@@ -317,7 +323,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 
 		nodesC, err := CreateNodesCoordinator(
 			&testscommon.ShuffleOutCloserStub{},
-			&testscommon.NodesSetupStub{},
+			&genesisMocks.NodesSetupStub{},
 			config.PreferencesConfig{},
 			&mock.EpochStartNotifierStub{},
 			&cryptoMocks.PublicKeyStub{},
@@ -333,6 +339,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			&nodeTypeProviderMock.NodeTypeProviderStub{},
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
+			&shardingMocks.NodesCoordinatorRegistryFactoryMock{},
 		)
 		require.Equal(t, nodesCoordinator.ErrNilNodeStopChannel, err)
 		require.True(t, check.IfNil(nodesC))
@@ -342,7 +349,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 
 		nodesC, err := CreateNodesCoordinator(
 			&testscommon.ShuffleOutCloserStub{},
-			&testscommon.NodesSetupStub{},
+			&genesisMocks.NodesSetupStub{},
 			config.PreferencesConfig{
 				DestinationShardAsObserver: "",
 			},
@@ -360,6 +367,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			&nodeTypeProviderMock.NodeTypeProviderStub{},
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
+			&shardingMocks.NodesCoordinatorRegistryFactoryMock{},
 		)
 		require.NotNil(t, err)
 		require.True(t, check.IfNil(nodesC))
@@ -369,7 +377,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 
 		nodesC, err := CreateNodesCoordinator(
 			&testscommon.ShuffleOutCloserStub{},
-			&testscommon.NodesSetupStub{},
+			&genesisMocks.NodesSetupStub{},
 			config.PreferencesConfig{
 				DestinationShardAsObserver: "disabled",
 			},
@@ -391,6 +399,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			&nodeTypeProviderMock.NodeTypeProviderStub{},
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
+			&shardingMocks.NodesCoordinatorRegistryFactoryMock{},
 		)
 		require.True(t, errors.Is(err, expectedErr))
 		require.True(t, check.IfNil(nodesC))
@@ -400,7 +409,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 
 		nodesC, err := CreateNodesCoordinator(
 			&testscommon.ShuffleOutCloserStub{},
-			&testscommon.NodesSetupStub{},
+			&genesisMocks.NodesSetupStub{},
 			config.PreferencesConfig{
 				DestinationShardAsObserver: "0",
 			},
@@ -422,6 +431,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			&nodeTypeProviderMock.NodeTypeProviderStub{},
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
+			&shardingMocks.NodesCoordinatorRegistryFactoryMock{},
 		)
 		require.True(t, errors.Is(err, expectedErr))
 		require.True(t, check.IfNil(nodesC))
@@ -431,7 +441,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 
 		nodesC, err := CreateNodesCoordinator(
 			&testscommon.ShuffleOutCloserStub{},
-			&testscommon.NodesSetupStub{},
+			&genesisMocks.NodesSetupStub{},
 			config.PreferencesConfig{
 				DestinationShardAsObserver: "0",
 			},
@@ -453,6 +463,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			&nodeTypeProviderMock.NodeTypeProviderStub{},
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
+			&shardingMocks.NodesCoordinatorRegistryFactoryMock{},
 		)
 		require.NotNil(t, err)
 		require.True(t, check.IfNil(nodesC))
@@ -462,7 +473,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 
 		nodesC, err := CreateNodesCoordinator(
 			&testscommon.ShuffleOutCloserStub{},
-			&testscommon.NodesSetupStub{},
+			&genesisMocks.NodesSetupStub{},
 			config.PreferencesConfig{
 				DestinationShardAsObserver: "0",
 			},
@@ -484,6 +495,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			&nodeTypeProviderMock.NodeTypeProviderStub{},
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
+			&shardingMocks.NodesCoordinatorRegistryFactoryMock{},
 		)
 		require.NotNil(t, err)
 		require.True(t, check.IfNil(nodesC))
@@ -493,7 +505,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 
 		nodesC, err := CreateNodesCoordinator(
 			&testscommon.ShuffleOutCloserStub{},
-			&testscommon.NodesSetupStub{},
+			&genesisMocks.NodesSetupStub{},
 			config.PreferencesConfig{
 				DestinationShardAsObserver: "0",
 			},
@@ -510,7 +522,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			&shardingMocks.NodeShufflerMock{},
 			0,
 			&bootstrapMocks.BootstrapParamsHandlerMock{
-				NodesConfigCalled: func() *nodesCoordinator.NodesCoordinatorRegistry {
+				NodesConfigCalled: func() nodesCoordinator.NodesCoordinatorRegistryHandler {
 					return &nodesCoordinator.NodesCoordinatorRegistry{
 						EpochsConfig: map[string]*nodesCoordinator.EpochValidators{
 							"0": {
@@ -536,6 +548,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			&nodeTypeProviderMock.NodeTypeProviderStub{},
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
+			&shardingMocks.NodesCoordinatorRegistryFactoryMock{},
 		)
 		require.NotNil(t, err)
 		require.True(t, check.IfNil(nodesC))
@@ -545,7 +558,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 
 		nodesC, err := CreateNodesCoordinator(
 			&testscommon.ShuffleOutCloserStub{},
-			&testscommon.NodesSetupStub{},
+			&genesisMocks.NodesSetupStub{},
 			config.PreferencesConfig{
 				DestinationShardAsObserver: "disabled",
 			},
@@ -562,7 +575,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			&shardingMocks.NodeShufflerMock{},
 			0,
 			&bootstrapMocks.BootstrapParamsHandlerMock{
-				NodesConfigCalled: func() *nodesCoordinator.NodesCoordinatorRegistry {
+				NodesConfigCalled: func() nodesCoordinator.NodesCoordinatorRegistryHandler {
 					return &nodesCoordinator.NodesCoordinatorRegistry{
 						EpochsConfig: map[string]*nodesCoordinator.EpochValidators{
 							"0": {
@@ -588,6 +601,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			&nodeTypeProviderMock.NodeTypeProviderStub{},
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
+			&shardingMocks.NodesCoordinatorRegistryFactoryMock{},
 		)
 		require.Nil(t, err)
 		require.False(t, check.IfNil(nodesC))
@@ -608,7 +622,7 @@ func TestCreateNodesShuffleOut(t *testing.T) {
 		t.Parallel()
 
 		shuffler, err := CreateNodesShuffleOut(
-			&testscommon.NodesSetupStub{},
+			&genesisMocks.NodesSetupStub{},
 			config.EpochStartConfig{
 				MaxShuffledOutRestartThreshold: 5.0,
 			},
@@ -621,7 +635,7 @@ func TestCreateNodesShuffleOut(t *testing.T) {
 		t.Parallel()
 
 		shuffler, err := CreateNodesShuffleOut(
-			&testscommon.NodesSetupStub{},
+			&genesisMocks.NodesSetupStub{},
 			config.EpochStartConfig{
 				MinShuffledOutRestartThreshold: 5.0,
 			},
@@ -634,7 +648,7 @@ func TestCreateNodesShuffleOut(t *testing.T) {
 		t.Parallel()
 
 		shuffler, err := CreateNodesShuffleOut(
-			&testscommon.NodesSetupStub{},
+			&genesisMocks.NodesSetupStub{},
 			config.EpochStartConfig{},
 			nil, // force NewShuffleOutCloser to fail
 		)
@@ -645,7 +659,7 @@ func TestCreateNodesShuffleOut(t *testing.T) {
 		t.Parallel()
 
 		shuffler, err := CreateNodesShuffleOut(
-			&testscommon.NodesSetupStub{
+			&genesisMocks.NodesSetupStub{
 				GetRoundDurationCalled: func() uint64 {
 					return 4000
 				},

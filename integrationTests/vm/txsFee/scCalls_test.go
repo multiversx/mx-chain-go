@@ -61,7 +61,6 @@ func prepareTestContextForEpoch836(tb testing.TB) (*vm.VMTestContext, []byte) {
 	testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGasAndRoundConfig(
 		config.EnableEpochs{
 			GovernanceEnableEpoch:                           unreachableEpoch,
-			WaitingListFixEnableEpoch:                       unreachableEpoch,
 			SetSenderInEeiOutputTransferEnableEpoch:         unreachableEpoch,
 			RefactorPeersMiniBlocksEnableEpoch:              unreachableEpoch,
 			MaxBlockchainHookCountersEnableEpoch:            unreachableEpoch,
@@ -369,7 +368,6 @@ func prepareTestContextForEpoch460(tb testing.TB) (*vm.VMTestContext, []byte) {
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
 		GovernanceEnableEpoch:                             unreachableEpoch,
-		WaitingListFixEnableEpoch:                         unreachableEpoch,
 		ScheduledMiniBlocksEnableEpoch:                    unreachableEpoch,
 		CorrectJailedNotUnstakedEmptyQueueEpoch:           unreachableEpoch,
 		OptimizeNFTStoreEnableEpoch:                       unreachableEpoch,
