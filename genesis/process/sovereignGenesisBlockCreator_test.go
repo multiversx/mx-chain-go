@@ -33,8 +33,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/state"
-	storageCommon "github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/vm"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
@@ -56,21 +54,20 @@ func createSovereignGenesisBlockCreator(t *testing.T) (ArgsGenesisBlockCreator, 
 	arg.ShardCoordinator = sharding.NewSovereignShardCoordinator(core.SovereignChainShardId)
 	arg.DNSV2Addresses = []string{"00000000000000000500761b8c4a25d3979359223208b412285f635e71300102"}
 	arg.Config.SovereignConfig.GenesisConfig.NativeESDT = sovereignNativeToken
-	arg.RunTypeComponents = createSovRunTypeComps(t)
 
-	storageManagerArgs := storageCommon.GetStorageManagerArgs()
-	storageManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, storageCommon.GetStorageManagerOptions())
-	trieStorageManagers := make(map[string]common.StorageManager)
-	trieStorageManagers[dataRetriever.UserAccountsUnit.String()] = storageManager
-	trieStorageManagers[dataRetriever.PeerAccountsUnit.String()] = storageManager
+	sovRunTypeComps := createSovRunTypeComps(t)
+	arg.RunTypeComponents = sovRunTypeComps
+
+	trieStorageManagers := createTrieStorageManagers()
 	arg.Accounts, _ = createAccountAdapter(
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
-		arg.RunTypeComponents.AccountsCreator(),
+		sovRunTypeComps.AccountsCreator(),
 		trieStorageManagers[dataRetriever.UserAccountsUnit.String()],
 		&testscommon.PubkeyConverterMock{},
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	)
+
 	gbc, _ := NewGenesisBlockCreator(arg)
 	sgbc, _ := NewSovereignGenesisBlockCreator(gbc)
 	return arg, sgbc
@@ -117,7 +114,10 @@ func requireTokenExists(
 	esdtData := &esdt.ESDigitalToken{}
 	err := marshaller.Unmarshal(esdtData, marshaledData)
 	require.Nil(t, err)
-	require.Equal(t, expectedValue, esdtData.Value)
+	require.Equal(t, &esdt.ESDigitalToken{
+		Type:  uint32(core.Fungible),
+		Value: expectedValue,
+	}, esdtData)
 }
 
 func getAccTokenMarshalledData(t *testing.T, tokenName []byte, account vmcommon.AccountHandler) []byte {

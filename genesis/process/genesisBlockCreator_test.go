@@ -31,7 +31,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
-	factoryState "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
@@ -63,32 +62,8 @@ func createMockArgument(
 	initialNodes genesis.InitialNodesHandler,
 	entireSupply *big.Int,
 ) ArgsGenesisBlockCreator {
-
-	storageManagerArgs := storageCommon.GetStorageManagerArgs()
-	storageManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, storageCommon.GetStorageManagerOptions())
-
-	trieStorageManagers := make(map[string]common.StorageManager)
-	trieStorageManagers[dataRetriever.UserAccountsUnit.String()] = storageManager
-	trieStorageManagers[dataRetriever.PeerAccountsUnit.String()] = storageManager
-
-	runTypeFactory, err := factoryRunType.NewRunTypeComponentsFactory(&factory.CoreComponentsHolderMock{
-		HasherCalled: func() hashing.Hasher {
-			return &hashingMocks.HasherMock{}
-		},
-		InternalMarshalizerCalled: func() marshal.Marshalizer {
-			return &mock.MarshalizerMock{}
-		},
-		EnableEpochsHandlerCalled: func() common.EnableEpochsHandler {
-			return &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
-		},
-	})
-	require.Nil(t, err)
-
-	runTypeComp, err := factoryRunType.NewManagedRunTypeComponents(runTypeFactory)
-	require.Nil(t, err)
-
-	err = runTypeComp.Create()
-	require.Nil(t, err)
+	trieStorageManagers := createTrieStorageManagers()
+	runTypeComp := createRunTypeComponents(t)
 	arg := ArgsGenesisBlockCreator{
 		GenesisTime:   0,
 		StartEpochNum: 0,
@@ -218,18 +193,11 @@ func createMockArgument(
 		SelfShardId: 0,
 	}
 
-	argsAccCreator := factoryState.ArgsAccountCreator{
-		Hasher:              &hashingMocks.HasherMock{},
-		Marshaller:          &mock.MarshalizerMock{},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-	}
-	accCreator, err := factoryState.NewAccountCreator(argsAccCreator)
-	require.Nil(t, err)
-
+	var err error
 	arg.Accounts, err = createAccountAdapter(
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
-		accCreator,
+		runTypeComp.AccountsCreator(),
 		trieStorageManagers[dataRetriever.UserAccountsUnit.String()],
 		&testscommon.PubkeyConverterMock{},
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
@@ -287,6 +255,40 @@ func createMockArgument(
 	arg.InitialNodesSetup = initialNodes
 
 	return arg
+}
+
+func createTrieStorageManagers() map[string]common.StorageManager {
+	storageManagerArgs := storageCommon.GetStorageManagerArgs()
+	storageManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, storageCommon.GetStorageManagerOptions())
+
+	trieStorageManagers := make(map[string]common.StorageManager)
+	trieStorageManagers[dataRetriever.UserAccountsUnit.String()] = storageManager
+	trieStorageManagers[dataRetriever.PeerAccountsUnit.String()] = storageManager
+
+	return trieStorageManagers
+}
+
+func createRunTypeComponents(t *testing.T) runTypeComponentsHandler {
+	runTypeFactory, err := factoryRunType.NewRunTypeComponentsFactory(&factory.CoreComponentsHolderMock{
+		HasherCalled: func() hashing.Hasher {
+			return &hashingMocks.HasherMock{}
+		},
+		InternalMarshalizerCalled: func() marshal.Marshalizer {
+			return &mock.MarshalizerMock{}
+		},
+		EnableEpochsHandlerCalled: func() common.EnableEpochsHandler {
+			return &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
+		},
+	})
+	require.Nil(t, err)
+
+	runTypeComp, err := factoryRunType.NewManagedRunTypeComponents(runTypeFactory)
+	require.Nil(t, err)
+
+	err = runTypeComp.Create()
+	require.Nil(t, err)
+
+	return runTypeComp
 }
 
 func TestNewGenesisBlockCreator(t *testing.T) {
