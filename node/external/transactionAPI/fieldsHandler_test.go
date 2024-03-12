@@ -12,7 +12,7 @@ func Test_newFieldsHandler(t *testing.T) {
 	t.Parallel()
 
 	fh := newFieldsHandler("")
-	require.Equal(t, fieldsHandler{make(map[string]struct{})}, fh)
+	require.Equal(t, fieldsHandler{map[string]struct{}{hashField: {}}}, fh)
 
 	providedFields := "nOnCe,sender,receiver,gasLimit,GASprice,receiverusername,data,value,signature,guardian,guardiansignature,sendershard,receivershard"
 	splitFields := strings.Split(providedFields, separator)
