@@ -53,6 +53,8 @@ func InitBaseMetrics(appStatusHandler core.AppStatusHandler) error {
 	appStatusHandler.SetUInt64Value(common.MetricTrieSyncNumReceivedBytes, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricAccountsSnapshotInProgress, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricPeersSnapshotInProgress, initUint)
+	appStatusHandler.SetUInt64Value(common.MetricNonceAtEpochStart, initUint)
+	appStatusHandler.SetUInt64Value(common.MetricRoundAtEpochStart, initUint)
 
 	appStatusHandler.SetInt64Value(common.MetricLastAccountsSnapshotDurationSec, initInt)
 	appStatusHandler.SetInt64Value(common.MetricLastPeersSnapshotDurationSec, initInt)

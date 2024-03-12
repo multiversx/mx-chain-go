@@ -64,6 +64,8 @@ func TestInitBaseMetrics(t *testing.T) {
 		common.MetricAccountsSnapshotNumNodes,
 		common.MetricTrieSyncNumProcessedNodes,
 		common.MetricTrieSyncNumReceivedBytes,
+		common.MetricRoundAtEpochStart,
+		common.MetricNonceAtEpochStart,
 	}
 
 	keys := make(map[string]struct{})
