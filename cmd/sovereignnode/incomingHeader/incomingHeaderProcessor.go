@@ -26,7 +26,7 @@ type ArgsIncomingHeaderProcessor struct {
 	Marshaller                      marshal.Marshalizer
 	Hasher                          hashing.Hasher
 	MainChainNotarizationStartRound uint64
-	DataCodec                       dataCodec.DataCodecProcessor
+	DataCodec                       dataCodec.SovereignDataDecoder
 }
 
 type incomingHeaderProcessor struct {
