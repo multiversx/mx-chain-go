@@ -177,7 +177,7 @@ func (op *outgoingOperations) getOperationData(event data.EventHandler) ([]byte,
 		return nil, err
 	}
 
-	operation.TransferData = evData.TransferData
+	operation.Data = evData
 
 	operationBytes, err := op.dataCodec.SerializeOperation(*operation)
 	if err != nil {
