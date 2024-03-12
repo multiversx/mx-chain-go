@@ -774,7 +774,7 @@ var ErrNilSCResultsPreProcessorCreator = errors.New("nil sc results pre processo
 var ErrNilFunction = errors.New("nil function")
 
 // ErrNilSerializer signals that a nil codec serializer has been provided
-var ErrNilSerializer = errors.New("nil serializer")
+var ErrNilSerializer = errors.New("nil codec serializer")
 
 // ErrNilOperationsHasher signals that a nil outgoing operations hasher has been provided
 var ErrNilOperationsHasher = errors.New("nil outgoing operations hasher")
