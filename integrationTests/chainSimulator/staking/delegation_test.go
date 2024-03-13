@@ -636,6 +636,19 @@ func testChainSimulatorMakeNewContractFromValidatorDataWith2StakingContracts(t *
 	require.Equal(t, topupA.String(), secondAuctionPosition.TopUpPerNode)
 }
 
+// Test description:
+// Test that 1 contract having 3 BLS keys proper handles the stakeNodes-unstakeNodes-unBondNodes sequence for 2 of the BLS keys
+// 1. Add 3 new validator private keys in the multi key handler
+// 2. Set the initial state for 1 owner and 1 delegator
+// 3. Do a stake transaction and test that the new key is on queue / auction list and has the correct topup
+// 4. Convert the validator into a staking providers and test that the key is on queue / auction list and has the correct topup
+// 5. Add 2 nodes in the staking contract
+// 6. Delegate 5000 EGLD to the contract
+// 7. Stake the 2 nodes
+// 8. UnStake 2 nodes (latest staked)
+// 9. Unbond the 2 nodes (that were un staked)
+
+// Internal test scenario #85
 func TestWIP(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -647,93 +660,96 @@ func TestWIP(t *testing.T) {
 		Value:    80,
 	}
 
-	//t.Run("staking ph 4 is not active", func(t *testing.T) {
-	//	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-	//		BypassTxSignatureCheck:   false,
-	//		TempDir:                  t.TempDir(),
-	//		PathToInitialConfig:      defaultPathToInitialConfig,
-	//		NumOfShards:              3,
-	//		GenesisTimestamp:         time.Now().Unix(),
-	//		RoundDurationInMillis:    roundDurationInMillis,
-	//		RoundsPerEpoch:           roundsPerEpoch,
-	//		ApiInterface:             api.NewNoApiInterface(),
-	//		MinNodesPerShard:         3,
-	//		MetaChainMinNodes:        3,
-	//		NumNodesWaitingListMeta:  3,
-	//		NumNodesWaitingListShard: 3,
-	//		AlterConfigsFunction: func(cfg *config.Configs) {
-	//			cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 100
-	//			cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 101
-	//			cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 102
-	//
-	//			cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 102
-	//		},
-	//	})
-	//	require.Nil(t, err)
-	//	require.NotNil(t, cs)
-	//
-	//	defer cs.Close()
-	//
-	//	testChainSimulatorMakeNewContractFromValidatorDataWith2StakingContracts(t, cs, 1)
-	//})
-	//t.Run("staking ph 4 step 1 is active", func(t *testing.T) {
-	//	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-	//		BypassTxSignatureCheck:   false,
-	//		TempDir:                  t.TempDir(),
-	//		PathToInitialConfig:      defaultPathToInitialConfig,
-	//		NumOfShards:              3,
-	//		GenesisTimestamp:         time.Now().Unix(),
-	//		RoundDurationInMillis:    roundDurationInMillis,
-	//		RoundsPerEpoch:           roundsPerEpoch,
-	//		ApiInterface:             api.NewNoApiInterface(),
-	//		MinNodesPerShard:         3,
-	//		MetaChainMinNodes:        3,
-	//		NumNodesWaitingListMeta:  3,
-	//		NumNodesWaitingListShard: 3,
-	//		AlterConfigsFunction: func(cfg *config.Configs) {
-	//			cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
-	//			cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
-	//			cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
-	//
-	//			cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
-	//		},
-	//	})
-	//	require.Nil(t, err)
-	//	require.NotNil(t, cs)
-	//
-	//	defer cs.Close()
-	//
-	//	testChainSimulatorMakeNewContractFromValidatorDataWith2StakingContracts(t, cs, 2)
-	//})
-	//t.Run("staking ph 4 step 2 is active", func(t *testing.T) {
-	//	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-	//		BypassTxSignatureCheck:   false,
-	//		TempDir:                  t.TempDir(),
-	//		PathToInitialConfig:      defaultPathToInitialConfig,
-	//		NumOfShards:              3,
-	//		GenesisTimestamp:         time.Now().Unix(),
-	//		RoundDurationInMillis:    roundDurationInMillis,
-	//		RoundsPerEpoch:           roundsPerEpoch,
-	//		ApiInterface:             api.NewNoApiInterface(),
-	//		MinNodesPerShard:         3,
-	//		MetaChainMinNodes:        3,
-	//		NumNodesWaitingListMeta:  3,
-	//		NumNodesWaitingListShard: 3,
-	//		AlterConfigsFunction: func(cfg *config.Configs) {
-	//			cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
-	//			cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
-	//			cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
-	//
-	//			cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
-	//		},
-	//	})
-	//	require.Nil(t, err)
-	//	require.NotNil(t, cs)
-	//
-	//	defer cs.Close()
-	//
-	//	testChainSimulatorMakeNewContractFromValidatorDataWith2StakingContracts(t, cs, 3)
-	//})
+	t.Run("staking ph 4 is not active", func(t *testing.T) {
+		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+			BypassTxSignatureCheck:   false,
+			TempDir:                  t.TempDir(),
+			PathToInitialConfig:      defaultPathToInitialConfig,
+			NumOfShards:              3,
+			GenesisTimestamp:         time.Now().Unix(),
+			RoundDurationInMillis:    roundDurationInMillis,
+			RoundsPerEpoch:           roundsPerEpoch,
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         3,
+			MetaChainMinNodes:        3,
+			NumNodesWaitingListMeta:  3,
+			NumNodesWaitingListShard: 3,
+			AlterConfigsFunction: func(cfg *config.Configs) {
+				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 100
+				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 101
+				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 102
+
+				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 102
+			},
+		})
+		require.Nil(t, err)
+		require.NotNil(t, cs)
+
+		defer cs.Close()
+
+		// unbond succeeded because the nodes were on queue
+		testChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnstakeAndUnbond(t, cs, 1, notStakedStatus)
+	})
+	t.Run("staking ph 4 step 1 is active", func(t *testing.T) {
+		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+			BypassTxSignatureCheck:   false,
+			TempDir:                  t.TempDir(),
+			PathToInitialConfig:      defaultPathToInitialConfig,
+			NumOfShards:              3,
+			GenesisTimestamp:         time.Now().Unix(),
+			RoundDurationInMillis:    roundDurationInMillis,
+			RoundsPerEpoch:           roundsPerEpoch,
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         3,
+			MetaChainMinNodes:        3,
+			NumNodesWaitingListMeta:  3,
+			NumNodesWaitingListShard: 3,
+			AlterConfigsFunction: func(cfg *config.Configs) {
+				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
+				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
+				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
+				cfg.EpochConfig.EnableEpochs.AlwaysMergeContextsInEEIEnableEpoch = 1
+
+				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+			},
+		})
+		require.Nil(t, err)
+		require.NotNil(t, cs)
+
+		defer cs.Close()
+
+		testChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnstakeAndUnbond(t, cs, 2, unStakedStatus)
+	})
+	t.Run("staking ph 4 step 2 is active", func(t *testing.T) {
+		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+			BypassTxSignatureCheck:   false,
+			TempDir:                  t.TempDir(),
+			PathToInitialConfig:      defaultPathToInitialConfig,
+			NumOfShards:              3,
+			GenesisTimestamp:         time.Now().Unix(),
+			RoundDurationInMillis:    roundDurationInMillis,
+			RoundsPerEpoch:           roundsPerEpoch,
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         3,
+			MetaChainMinNodes:        3,
+			NumNodesWaitingListMeta:  3,
+			NumNodesWaitingListShard: 3,
+			AlterConfigsFunction: func(cfg *config.Configs) {
+				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
+				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
+				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
+				cfg.EpochConfig.EnableEpochs.AlwaysMergeContextsInEEIEnableEpoch = 1
+
+				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+			},
+		})
+		require.Nil(t, err)
+		require.NotNil(t, cs)
+
+		defer cs.Close()
+
+		testChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnstakeAndUnbond(t, cs, 3, unStakedStatus)
+	})
 	t.Run("staking ph 4 step 3 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:   false,
@@ -752,6 +768,7 @@ func TestWIP(t *testing.T) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
+				cfg.EpochConfig.EnableEpochs.AlwaysMergeContextsInEEIEnableEpoch = 1
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
 			},
@@ -761,11 +778,16 @@ func TestWIP(t *testing.T) {
 
 		defer cs.Close()
 
-		testChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnstakeAndUnbond(t, cs, 4)
+		testChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnstakeAndUnbond(t, cs, 4, unStakedStatus)
 	})
 }
 
-func testChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnstakeAndUnbond(t *testing.T, cs chainSimulatorIntegrationTests.ChainSimulator, targetEpoch int32) {
+func testChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnstakeAndUnbond(
+	t *testing.T,
+	cs chainSimulatorIntegrationTests.ChainSimulator,
+	targetEpoch int32,
+	nodesStatusAfterUnBondTx string,
+) {
 	err := cs.GenerateBlocksUntilEpochIsReached(targetEpoch)
 	require.Nil(t, err)
 
@@ -889,9 +911,9 @@ func testChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnsta
 	require.Equal(t, len(blsKeys), len(keyStatus))
 	// key[0] should be staked
 	require.Equal(t, stakedStatus, keyStatus[blsKeys[0]])
-	// key[1] and key[2] should be not-staked
-	require.Equal(t, notStakedStatus, keyStatus[blsKeys[1]])
-	require.Equal(t, notStakedStatus, keyStatus[blsKeys[2]])
+	// key[1] and key[2] should be unstaked (unbond was not executed)
+	require.Equal(t, nodesStatusAfterUnBondTx, keyStatus[blsKeys[1]])
+	require.Equal(t, nodesStatusAfterUnBondTx, keyStatus[blsKeys[2]])
 }
 
 func getAllNodeStates(t *testing.T, metachainNode chainSimulatorProcess.NodeHandler, address []byte) map[string]string {
@@ -906,8 +928,15 @@ func getAllNodeStates(t *testing.T, metachainNode chainSimulatorProcess.NodeHand
 	require.Equal(t, okReturnCode, result.ReturnCode)
 
 	m := make(map[string]string)
-	for i := 0; i < len(result.ReturnData)-1; i += 2 {
-		m[hex.EncodeToString(result.ReturnData[i+1])] = string(result.ReturnData[i])
+	status := ""
+	for _, resultData := range result.ReturnData {
+		if len(resultData) != 96 {
+			// not a BLS key
+			status = string(resultData)
+			continue
+		}
+
+		m[hex.EncodeToString(resultData)] = status
 	}
 
 	return m

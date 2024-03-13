@@ -76,6 +76,7 @@ func NewVMContext(args VMContextArgs) (*vmContext, error) {
 	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
 		common.MultiClaimOnDelegationFlag,
 		common.SetSenderInEeiOutputTransferFlag,
+		common.AlwaysMergeContextsInEEIFlag,
 	})
 	if err != nil {
 		return nil, err
@@ -339,8 +340,11 @@ func (host *vmContext) properMergeContexts(parentContext *vmContext, returnCode 
 
 	host.scAddress = parentContext.scAddress
 	host.AddReturnMessage(parentContext.returnMessage)
-	if returnCode != vmcommon.Ok {
-		// no need to merge - revert was done - transaction will fail
+
+	// merge contexts if the return code is OK or the fix flag is activated because it was wrong not to merge them if the call failed
+	shouldMergeContexts := returnCode == vmcommon.Ok || host.enableEpochsHandler.IsFlagEnabled(common.AlwaysMergeContextsInEEIFlag)
+	if !shouldMergeContexts {
+		// backwards compatibility
 		return
 	}
 
