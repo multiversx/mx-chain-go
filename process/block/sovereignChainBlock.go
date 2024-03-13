@@ -930,7 +930,7 @@ func (scbp *sovereignChainBlockProcessor) setOutGoingMiniBlock(
 	outGoingMb *block.MiniBlock,
 	outGoingOperationsHash []byte,
 ) error {
-	outGoingMbHash, err := core.CalculateHash(scbp.marshalizer, scbp.operationsHasher, outGoingMb)
+	outGoingMbHash, err := core.CalculateHash(scbp.marshalizer, scbp.hasher, outGoingMb)
 	if err != nil {
 		return err
 	}
