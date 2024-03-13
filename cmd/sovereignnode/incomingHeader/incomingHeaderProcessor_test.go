@@ -311,7 +311,7 @@ func TestIncomingHeaderHandler_AddHeaderErrorCases(t *testing.T) {
 		err = handler.AddHeader([]byte("hash"), incomingHeader)
 		requireErrorIsInvalidNumTopics(t, err, 0, 4)
 
-		incomingHeader.IncomingEvents[0] = &transaction.Event{Topics: [][]byte{[]byte("topicID"), []byte("addr"), []byte("tokenID1"), []byte("nonce1"), tokenData, []byte("tokenID2")}, Identifier: []byte(eventIDDepositIncomingTransfer)}
+		incomingHeader.IncomingEvents[0] = &transaction.Event{Topics: [][]byte{[]byte("topicID"), []byte("addr"), []byte("tokenID1"), []byte("nonce1"), []byte("tokenData1"), []byte("tokenID2")}, Identifier: []byte(eventIDDepositIncomingTransfer)}
 		err = handler.AddHeader([]byte("hash"), incomingHeader)
 		requireErrorIsInvalidNumTopics(t, err, 0, 6)
 
@@ -522,19 +522,33 @@ func TestIncomingHeaderHandler_AddHeader(t *testing.T) {
 	require.NoError(t, err)
 
 	scr1 := &smartContractResult.SmartContractResult{
-		Nonce:    0,
-		Value:    big.NewInt(0),
-		RcvAddr:  addr1,
-		SndAddr:  core.ESDTSCAddress,
-		Data:     []byte("MultiESDTNFTTransfer@02@" + hex.EncodeToString(token1) + "@" + hex.EncodeToString(token1Nonce) + "@" + hex.EncodeToString(token1DataBytes) + "@" + hex.EncodeToString(token2) + "@" + hex.EncodeToString(token2Nonce) + "@" + hex.EncodeToString(nftDataBytes) + "@" + hex.EncodeToString(func1) + "@" + hex.EncodeToString(arg1) + "@" + hex.EncodeToString(arg2)),
+		Nonce:   0,
+		Value:   big.NewInt(0),
+		RcvAddr: addr1,
+		SndAddr: core.ESDTSCAddress,
+		Data: []byte("MultiESDTNFTTransfer@02" +
+			"@" + hex.EncodeToString(token1) +
+			"@" + hex.EncodeToString(token1Nonce) +
+			"@" + hex.EncodeToString(token1DataBytes) +
+			"@" + hex.EncodeToString(token2) +
+			"@" + hex.EncodeToString(token2Nonce) +
+			"@" + hex.EncodeToString(nftDataBytes) +
+			"@" + hex.EncodeToString(func1) +
+			"@" + hex.EncodeToString(arg1) +
+			"@" + hex.EncodeToString(arg2)),
 		GasLimit: gasLimit1,
 	}
 	scr2 := &smartContractResult.SmartContractResult{
-		Nonce:    1,
-		Value:    big.NewInt(0),
-		RcvAddr:  addr2,
-		SndAddr:  core.ESDTSCAddress,
-		Data:     []byte("MultiESDTNFTTransfer@01@" + hex.EncodeToString(token1) + "@" + hex.EncodeToString(token1Nonce) + "@" + hex.EncodeToString(token2DataBytes) + "@" + hex.EncodeToString(func2) + "@" + hex.EncodeToString(arg1)),
+		Nonce:   1,
+		Value:   big.NewInt(0),
+		RcvAddr: addr2,
+		SndAddr: core.ESDTSCAddress,
+		Data: []byte("MultiESDTNFTTransfer@01" +
+			"@" + hex.EncodeToString(token1) +
+			"@" + hex.EncodeToString(token1Nonce) +
+			"@" + hex.EncodeToString(token2DataBytes) +
+			"@" + hex.EncodeToString(func2) +
+			"@" + hex.EncodeToString(arg1)),
 		GasLimit: gasLimit2,
 	}
 
