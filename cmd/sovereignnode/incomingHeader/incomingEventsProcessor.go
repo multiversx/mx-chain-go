@@ -3,6 +3,7 @@ package incomingHeader
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -18,6 +19,7 @@ const (
 	minTopicsInTransferEvent  = 5
 	numTransferTopics         = 3
 	numExecutedBridgeOpTopics = 3
+	tokensIndex               = 2
 )
 
 const (
@@ -56,6 +58,7 @@ type incomingEventsProcessor struct {
 	topicsChecker TopicsChecker
 }
 
+// TODO refactor this to work with processors that assign tasks based on event id
 func (iep *incomingEventsProcessor) processIncomingEvents(events []data.EventHandler) (*eventsResult, error) {
 	scrs := make([]*scrInfo, 0, len(events))
 	confirmedBridgeOps := make([]*confirmedBridgeOp, 0, len(events))
@@ -72,7 +75,7 @@ func (iep *incomingEventsProcessor) processIncomingEvents(events []data.EventHan
 			scrs = append(scrs, scr)
 		case eventIDExecutedOutGoingBridgeOp:
 			if len(topics) == 0 {
-				return nil, errInvalidNumTopicsIncomingEvent
+				return nil, fmt.Errorf("%w for %s; num topics = %d", errInvalidNumTopicsIncomingEvent, eventIDExecutedOutGoingBridgeOp, len(topics))
 			}
 
 			switch string(topics[0]) {
@@ -139,36 +142,44 @@ func (iep *incomingEventsProcessor) createSCRInfo(topics [][]byte, event data.Ev
 }
 
 func (iep *incomingEventsProcessor) createEventData(data []byte) (*eventData, error) {
-	if len(data) == 0 {
-		return nil, errEmptyLogData
-	}
-
 	evData, err := iep.dataCodec.DeserializeEventData(data)
 	if err != nil {
 		return nil, err
 	}
 
-	gasLimit := uint64(0)
-	args := make([]byte, 0)
-	if evData.TransferData != nil {
-		gasLimit = evData.GasLimit
-
-		args = append(args, []byte("@")...)
-		args = append(args, hex.EncodeToString(evData.Function)...)
-
-		if len(evData.Args) > 0 {
-			for _, arg := range evData.Args {
-				args = append(args, []byte("@")...)
-				args = append(args, hex.EncodeToString(arg)...)
-			}
-		}
-	}
+	gasLimit, args := extractTransferData(evData.TransferData)
 
 	return &eventData{
 		nonce:                evData.Nonce,
 		functionCallWithArgs: args,
 		gasLimit:             gasLimit,
 	}, nil
+}
+
+func extractTransferData(transferData *sovereign.TransferData) (uint64, []byte) {
+	gasLimit := uint64(0)
+	args := make([]byte, 0)
+	if transferData != nil {
+		gasLimit = transferData.GasLimit
+
+		args = append(args, []byte("@")...)
+		args = append(args, hex.EncodeToString(transferData.Function)...)
+		args = append(args, extractArguments(transferData.Args)...)
+	}
+
+	return gasLimit, args
+}
+
+func extractArguments(arguments [][]byte) []byte {
+	args := make([]byte, 0)
+	if len(arguments) > 0 {
+		for _, arg := range arguments {
+			args = append(args, []byte("@")...)
+			args = append(args, hex.EncodeToString(arg)...)
+		}
+	}
+
+	return args
 }
 
 func (iep *incomingEventsProcessor) createSCRData(topics [][]byte) ([]byte, error) {
@@ -178,7 +189,7 @@ func (iep *incomingEventsProcessor) createSCRData(topics [][]byte) ([]byte, erro
 	ret := []byte(core.BuiltInFunctionMultiESDTNFTTransfer +
 		"@" + hex.EncodeToString(numTokensToTransferBytes))
 
-	for idx := 2; idx < 2+len(topics[2:]); idx += 3 {
+	for idx := tokensIndex; idx < tokensIndex+len(topics[tokensIndex:]); idx += numTransferTopics {
 		tokenData, err := iep.getTokenDataBytes(topics[idx+1], topics[idx+2])
 		if err != nil {
 			return nil, err
@@ -186,8 +197,8 @@ func (iep *incomingEventsProcessor) createSCRData(topics [][]byte) ([]byte, erro
 
 		transfer := []byte("@" +
 			hex.EncodeToString(topics[idx]) + // tokenID
-			"@" + hex.EncodeToString(topics[idx+1]) + //nonce
-			"@" + hex.EncodeToString(tokenData)) //tokenData
+			"@" + hex.EncodeToString(topics[idx+1]) + // nonce
+			"@" + hex.EncodeToString(tokenData)) // value/tokenData
 
 		ret = append(ret, transfer...)
 	}
@@ -196,13 +207,13 @@ func (iep *incomingEventsProcessor) createSCRData(topics [][]byte) ([]byte, erro
 }
 
 func (iep *incomingEventsProcessor) getTokenDataBytes(tokenNonce []byte, tokenData []byte) ([]byte, error) {
-	if len(tokenData) == 0 {
-		return nil, fmt.Errorf("empty token data bytes provided")
-	}
-
 	esdtTokenData, err := iep.dataCodec.DeserializeTokenData(tokenData)
 	if err != nil {
 		return nil, err
+	}
+
+	if esdtTokenData.TokenType == core.Fungible {
+		return esdtTokenData.Amount.Bytes(), nil
 	}
 
 	digitalToken := &esdt.ESDigitalToken{
@@ -217,10 +228,6 @@ func (iep *incomingEventsProcessor) getTokenDataBytes(tokenNonce []byte, tokenDa
 			URIs:       esdtTokenData.Uris,
 			Attributes: esdtTokenData.Attributes,
 		},
-	}
-
-	if digitalToken.Type == uint32(core.Fungible) {
-		return digitalToken.Value.Bytes(), nil
 	}
 
 	return iep.marshaller.Marshal(digitalToken)
