@@ -844,8 +844,8 @@ func testChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnsta
 
 	log.Info("Step 5. Add 2 nodes in the staking contract")
 	txDataFieldAddNodes := fmt.Sprintf("addNodes@%s@%s@%s@%s", blsKeys[1], mockBLSSignature+"02", blsKeys[2], mockBLSSignature+"03")
-	ownerAccount, err := cs.GetAccount(owner)
-	txAddNodes := generateTransaction(owner.Bytes, ownerAccount.Nonce, delegationAddress, big.NewInt(0), txDataFieldAddNodes, gasLimitForStakeOperation)
+	ownerNonce := getNonce(t, cs, owner)
+	txAddNodes := generateTransaction(owner.Bytes, ownerNonce, delegationAddress, big.NewInt(0), txDataFieldAddNodes, gasLimitForStakeOperation)
 
 	addNodesTxs, err := cs.SendTxsAndGenerateBlocksTilAreExecuted([]*transaction.Transaction{txAddNodes}, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
@@ -854,8 +854,8 @@ func testChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnsta
 	log.Info("Step 6. Delegate 5000 EGLD to the contract")
 	delegateValue := big.NewInt(0).Mul(oneEGLD, big.NewInt(5000))
 	txDataFieldDelegate := "delegate"
-	delegatorAccount, err := cs.GetAccount(delegator)
-	txDelegate := generateTransaction(delegator.Bytes, delegatorAccount.Nonce, delegationAddress, delegateValue, txDataFieldDelegate, gasLimitForStakeOperation)
+	delegatorNonce := getNonce(t, cs, delegator)
+	txDelegate := generateTransaction(delegator.Bytes, delegatorNonce, delegationAddress, delegateValue, txDataFieldDelegate, gasLimitForStakeOperation)
 
 	delegateTxs, err := cs.SendTxsAndGenerateBlocksTilAreExecuted([]*transaction.Transaction{txDelegate}, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
@@ -863,8 +863,8 @@ func testChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnsta
 
 	log.Info("Step 7. Stake the 2 nodes")
 	txDataFieldStakeNodes := fmt.Sprintf("stakeNodes@%s@%s", blsKeys[1], blsKeys[2])
-	ownerAccount, err = cs.GetAccount(owner)
-	txStakeNodes := generateTransaction(owner.Bytes, ownerAccount.Nonce, delegationAddress, big.NewInt(0), txDataFieldStakeNodes, gasLimitForStakeOperation)
+	ownerNonce = getNonce(t, cs, owner)
+	txStakeNodes := generateTransaction(owner.Bytes, ownerNonce, delegationAddress, big.NewInt(0), txDataFieldStakeNodes, gasLimitForStakeOperation)
 
 	stakeNodesTxs, err := cs.SendTxsAndGenerateBlocksTilAreExecuted([]*transaction.Transaction{txStakeNodes}, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
@@ -879,8 +879,8 @@ func testChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnsta
 	log.Info("Step 8. UnStake 2 nodes (latest staked)")
 
 	txDataFieldUnStakeNodes := fmt.Sprintf("unStakeNodes@%s@%s", blsKeys[1], blsKeys[2])
-	ownerAccount, err = cs.GetAccount(owner)
-	txUnStakeNodes := generateTransaction(owner.Bytes, ownerAccount.Nonce, delegationAddress, big.NewInt(0), txDataFieldUnStakeNodes, gasLimitForStakeOperation)
+	ownerNonce = getNonce(t, cs, owner)
+	txUnStakeNodes := generateTransaction(owner.Bytes, ownerNonce, delegationAddress, big.NewInt(0), txDataFieldUnStakeNodes, gasLimitForStakeOperation)
 
 	unStakeNodesTxs, err := cs.SendTxsAndGenerateBlocksTilAreExecuted([]*transaction.Transaction{txUnStakeNodes}, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
@@ -897,8 +897,8 @@ func testChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnsta
 	log.Info("Step 9. Unbond the 2 nodes (that were un staked)")
 
 	txDataFieldUnBondNodes := fmt.Sprintf("unBondNodes@%s@%s", blsKeys[1], blsKeys[2])
-	ownerAccount, err = cs.GetAccount(owner)
-	txUnBondNodes := generateTransaction(owner.Bytes, ownerAccount.Nonce, delegationAddress, big.NewInt(0), txDataFieldUnBondNodes, gasLimitForStakeOperation)
+	ownerNonce = getNonce(t, cs, owner)
+	txUnBondNodes := generateTransaction(owner.Bytes, ownerNonce, delegationAddress, big.NewInt(0), txDataFieldUnBondNodes, gasLimitForStakeOperation)
 
 	unBondNodesTxs, err := cs.SendTxsAndGenerateBlocksTilAreExecuted([]*transaction.Transaction{txUnBondNodes}, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
@@ -914,6 +914,13 @@ func testChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnsta
 	// key[1] and key[2] should be unstaked (unbond was not executed)
 	require.Equal(t, nodesStatusAfterUnBondTx, keyStatus[blsKeys[1]])
 	require.Equal(t, nodesStatusAfterUnBondTx, keyStatus[blsKeys[2]])
+}
+
+func getNonce(t *testing.T, cs chainSimulatorIntegrationTests.ChainSimulator, address dtos.WalletAddress) uint64 {
+	account, err := cs.GetAccount(address)
+	require.Nil(t, err)
+
+	return account.Nonce
 }
 
 func getAllNodeStates(t *testing.T, metachainNode chainSimulatorProcess.NodeHandler, address []byte) map[string]string {

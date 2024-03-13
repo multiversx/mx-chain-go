@@ -534,6 +534,8 @@ func (host *vmContext) ExecuteOnDestContext(destination []byte, sender []byte, v
 	vmOutput := &vmcommon.VMOutput{ReturnCode: vmcommon.UserError}
 	currContext := host.copyToNewContext()
 	defer func() {
+		// we need to reset here the output since it was already transferred in the vmOutput (host.CreateVMOutput() function)
+		// and we do not want to duplicate them
 		host.output = make([][]byte, 0)
 		host.properMergeContexts(currContext, vmOutput.ReturnCode)
 	}()
