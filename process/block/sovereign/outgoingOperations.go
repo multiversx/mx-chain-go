@@ -2,7 +2,6 @@ package sovereign
 
 import (
 	"bytes"
-	"encoding/hex"
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -108,7 +107,7 @@ func (op *outgoingOperations) CreateOutgoingTxsData(logs []*data.LogData) ([][]b
 		if err != nil {
 			log.Error("outgoingOperations.CreateOutgoingTxsData error",
 				"tx hash", logs[i].TxHash,
-				"event", hex.EncodeToString(event.GetIdentifier()),
+				"event", string(event.GetIdentifier()),
 				"error", err)
 
 			return nil, err

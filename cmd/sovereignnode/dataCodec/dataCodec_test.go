@@ -72,7 +72,7 @@ func TestDataCodec_EventDataCodec(t *testing.T) {
 
 		serialized, err := abiCodec.SerializeEventData(eventData)
 		require.Nil(t, err)
-		require.Equal(t, "000000000000000a000000", hex.EncodeToString(serialized))
+		require.Equal(t, "000000000000000a00", hex.EncodeToString(serialized))
 
 		deserialized, err := abiCodec.DeserializeEventData(serialized)
 		require.Nil(t, err)
@@ -92,7 +92,7 @@ func TestDataCodec_EventDataCodec(t *testing.T) {
 
 		serialized, err := abiCodec.SerializeEventData(eventData)
 		require.Nil(t, err)
-		require.Equal(t, "000000000000000a010000000001312d00010000000361646401000000010000000401312d00", hex.EncodeToString(serialized))
+		require.Equal(t, "000000000000000a010000000001312d0000000003616464000000010000000401312d00", hex.EncodeToString(serialized))
 
 		deserialized, err := abiCodec.DeserializeEventData(serialized)
 		require.Nil(t, err)
@@ -112,7 +112,7 @@ func TestDataCodec_EventDataCodec(t *testing.T) {
 
 		serialized, err := abiCodec.SerializeEventData(eventData)
 		require.Nil(t, err)
-		require.Equal(t, "000000000000000a010000000001312d00010000000361646401000000020000000401312d0000000000", hex.EncodeToString(serialized))
+		require.Equal(t, "000000000000000a010000000001312d0000000003616464000000020000000401312d0000000000", hex.EncodeToString(serialized))
 
 		deserialized, err := abiCodec.DeserializeEventData(serialized)
 		require.Nil(t, err)
@@ -132,7 +132,7 @@ func TestDataCodec_EventDataCodec(t *testing.T) {
 
 		serialized, err := abiCodec.SerializeEventData(eventData)
 		require.Nil(t, err)
-		require.Equal(t, "000000000000000a010000000000000000010000000361646401000000020000000401312d0000000000", hex.EncodeToString(serialized))
+		require.Equal(t, "000000000000000a01000000000000000000000003616464000000020000000401312d0000000000", hex.EncodeToString(serialized))
 
 		deserialized, err := abiCodec.DeserializeEventData(serialized)
 		require.Nil(t, err)
