@@ -209,6 +209,8 @@ func (s *stakingSC) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCod
 		return s.fixWaitingListQueueSize(args)
 	case "addMissingNodeToQueue":
 		return s.addMissingNodeToQueue(args)
+	case "unStakeAllNodesFromQueue":
+		return s.unStakeAllNodesFromQueue(args)
 	}
 
 	return vmcommon.UserError

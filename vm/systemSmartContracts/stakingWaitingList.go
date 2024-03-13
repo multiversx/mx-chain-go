@@ -801,6 +801,60 @@ func (s *stakingSC) stakeNodesFromQueue(args *vmcommon.ContractCallInput) vmcomm
 	return vmcommon.Ok
 }
 
+func (s *stakingSC) unStakeAllNodesFromQueue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !s.enableEpochsHandler.IsFlagEnabled(common.StakingV4Step1Flag) {
+		s.eei.AddReturnMessage("invalid method to call")
+		return vmcommon.UserError
+	}
+	if !bytes.Equal(args.CallerAddr, s.endOfEpochAccessAddr) {
+		s.eei.AddReturnMessage("stake nodes from waiting list can be called by endOfEpochAccess address only")
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) != 0 {
+		s.eei.AddReturnMessage("number of arguments must be equal to 0")
+		return vmcommon.UserError
+	}
+
+	waitingListData, err := s.getFirstElementsFromWaitingList(math.MaxUint32)
+	if err != nil {
+		s.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+	if len(waitingListData.blsKeys) == 0 {
+		s.eei.AddReturnMessage("no nodes in queue")
+		return vmcommon.Ok
+	}
+
+	nodePriceToUse := big.NewInt(0).Set(s.minNodePrice)
+	if s.enableEpochsHandler.IsFlagEnabled(common.CorrectLastUnJailedFlag) {
+		nodePriceToUse.Set(s.stakeValue)
+	}
+
+	for i, blsKey := range waitingListData.blsKeys {
+		registrationData := waitingListData.stakedDataList[i]
+
+		registrationData.Staked = false
+		registrationData.UnStakedEpoch = s.eei.BlockChainHook().CurrentEpoch()
+		registrationData.UnStakedNonce = s.eei.BlockChainHook().CurrentNonce()
+		registrationData.Waiting = false
+
+		err = s.saveStakingData(blsKey, registrationData)
+		if err != nil {
+			s.eei.AddReturnMessage("cannot save staking data: error " + err.Error())
+			return vmcommon.UserError
+		}
+
+		// delete element from waiting list
+		inWaitingListKey := createWaitingListKey(blsKey)
+		s.eei.SetStorage(inWaitingListKey, nil)
+	}
+
+	// delete waiting list head element
+	s.eei.SetStorage([]byte(waitingListHeadKey), nil)
+
+	return vmcommon.Ok
+}
+
 func (s *stakingSC) cleanAdditionalQueue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if !s.enableEpochsHandler.IsFlagEnabled(common.CorrectLastUnJailedFlag) {
 		s.eei.AddReturnMessage("invalid method to call")
