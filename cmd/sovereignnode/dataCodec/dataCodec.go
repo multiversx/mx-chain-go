@@ -33,30 +33,18 @@ func NewDataCodec(args ArgsDataCodec) (*dataCodec, error) {
 
 // SerializeEventData will receive an event data and serialize it
 func (dc *dataCodec) SerializeEventData(eventData sovereign.EventData) ([]byte, error) {
-	gasLimit, function, args := getTransferDataInAbiFormat(eventData.TransferData)
+	transferData := getTransferDataInAbiFormat(eventData.TransferData)
 
 	eventDataStruct := abi.StructValue{
 		Fields: []abi.Field{
 			{
-				Name:  "tx_nonce",
+				Name:  "op_nonce",
 				Value: abi.U64Value{Value: eventData.Nonce},
 			},
 			{
-				Name: "gas_limit",
+				Name: "opt_transfer_data",
 				Value: abi.OptionValue{
-					Value: gasLimit,
-				},
-			},
-			{
-				Name: "function",
-				Value: abi.OptionValue{
-					Value: function,
-				},
-			},
-			{
-				Name: "args",
-				Value: abi.OptionValue{
-					Value: args,
+					Value: transferData,
 				},
 			},
 		},
@@ -86,25 +74,28 @@ func (dc *dataCodec) DeserializeEventData(data []byte) (*sovereign.EventData, er
 	eventDataStruct := abi.StructValue{
 		Fields: []abi.Field{
 			{
-				Name:  "tx_nonce",
+				Name:  "op_nonce",
 				Value: nonce,
 			},
 			{
-				Name: "gas_limit",
+				Name: "opt_transfer_data",
 				Value: &abi.OptionValue{
-					Value: gasLimit,
-				},
-			},
-			{
-				Name: "function",
-				Value: &abi.OptionValue{
-					Value: function,
-				},
-			},
-			{
-				Name: "args",
-				Value: &abi.OptionValue{
-					Value: args,
+					Value: &abi.StructValue{
+						Fields: []abi.Field{
+							{
+								Name:  "gas_limit",
+								Value: gasLimit,
+							},
+							{
+								Name:  "function",
+								Value: function,
+							},
+							{
+								Name:  "args",
+								Value: args,
+							},
+						},
+					},
 				},
 			},
 		},
@@ -298,9 +289,7 @@ func (dc *dataCodec) SerializeOperation(operation sovereign.Operation) ([]byte, 
 	return hex.DecodeString(encodedOp)
 }
 
-func createTransferData(transferData sovereign.TransferData) (any, any, any) {
-	gasLimit := abi.U64Value{Value: transferData.GasLimit}
-	function := abi.BytesValue{Value: transferData.Function}
+func createTransferData(transferData sovereign.TransferData) any {
 	arguments := make([]any, len(transferData.Args))
 	for i, arg := range transferData.Args {
 		arguments[i] = abi.BytesValue{Value: arg}
@@ -309,15 +298,30 @@ func createTransferData(transferData sovereign.TransferData) (any, any, any) {
 		Items: arguments,
 	}
 
-	return gasLimit, function, args
+	return abi.StructValue{
+		Fields: []abi.Field{
+			{
+				Name:  "gas_limit",
+				Value: abi.U64Value{Value: transferData.GasLimit},
+			},
+			{
+				Name:  "function",
+				Value: abi.BytesValue{Value: transferData.Function},
+			},
+			{
+				Name:  "args",
+				Value: args,
+			},
+		},
+	}
 }
 
-func getTransferDataInAbiFormat(transferData *sovereign.TransferData) (any, any, any) {
+func getTransferDataInAbiFormat(transferData *sovereign.TransferData) any {
 	if transferData != nil {
 		return createTransferData(*transferData)
 	}
 
-	return nil, nil, nil
+	return nil
 }
 
 func getTransferDataArguments(items []any) ([][]byte, error) {
@@ -443,7 +447,7 @@ func getOperationData(data sovereign.EventData) any {
 	if data.TransferData == nil {
 		transferData = nil
 	} else {
-		transferData = getOperationTransferData(*data.TransferData)
+		transferData = getTransferDataInAbiFormat(data.TransferData)
 	}
 
 	operationDataStruct := abi.StructValue{
@@ -462,34 +466,6 @@ func getOperationData(data sovereign.EventData) any {
 	}
 
 	return operationDataStruct
-}
-
-func getOperationTransferData(transferData sovereign.TransferData) any {
-	args := make([]any, len(transferData.Args))
-	for i, arg := range transferData.Args {
-		args[i] = abi.BytesValue{Value: arg}
-	}
-
-	transferDataStruct := abi.StructValue{
-		Fields: []abi.Field{
-			{
-				Name:  "gas_limit",
-				Value: abi.U64Value{Value: transferData.GasLimit},
-			},
-			{
-				Name:  "function",
-				Value: abi.BytesValue{Value: transferData.Function},
-			},
-			{
-				Name: "args",
-				Value: abi.InputListValue{
-					Items: args,
-				},
-			},
-		},
-	}
-
-	return transferDataStruct
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil
