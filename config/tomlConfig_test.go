@@ -840,8 +840,8 @@ func TestEnableEpochConfig(t *testing.T) {
     # CurrentRandomnessOnSortingEnableEpoch represents the epoch when the current randomness on sorting is enabled
     CurrentRandomnessOnSortingEnableEpoch = 93
 
-    # AlwaysMergeContextsInEEI represents the epoch in which the EEI will always merge the contexts
-    AlwaysMergeContextsInEEI = 93
+    # AlwaysMergeContextsInEEIEnableEpoch represents the epoch in which the EEI will always merge the contexts
+    AlwaysMergeContextsInEEIEnableEpoch = 94
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
