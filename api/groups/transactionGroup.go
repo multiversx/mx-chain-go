@@ -184,6 +184,18 @@ func (tg *transactionGroup) simulateTransaction(c *gin.Context) {
 
 	var innerTx *transaction.Transaction
 	if ftx.InnerTransaction != nil {
+		if ftx.InnerTransaction.InnerTransaction != nil {
+			c.JSON(
+				http.StatusBadRequest,
+				shared.GenericAPIResponse{
+					Data:  nil,
+					Error: fmt.Sprintf("%s: %s", errors.ErrTxGenerationFailed.Error(), errors.ErrRecursiveRelayedTxIsNotAllowed.Error()),
+					Code:  shared.ReturnCodeRequestError,
+				},
+			)
+			return
+		}
+
 		innerTx, _, err = tg.createTransaction(ftx.InnerTransaction, nil)
 		if err != nil {
 			c.JSON(
@@ -270,6 +282,18 @@ func (tg *transactionGroup) sendTransaction(c *gin.Context) {
 
 	var innerTx *transaction.Transaction
 	if ftx.InnerTransaction != nil {
+		if ftx.InnerTransaction.InnerTransaction != nil {
+			c.JSON(
+				http.StatusBadRequest,
+				shared.GenericAPIResponse{
+					Data:  nil,
+					Error: fmt.Sprintf("%s: %s", errors.ErrTxGenerationFailed.Error(), errors.ErrRecursiveRelayedTxIsNotAllowed.Error()),
+					Code:  shared.ReturnCodeRequestError,
+				},
+			)
+			return
+		}
+
 		innerTx, _, err = tg.createTransaction(ftx.InnerTransaction, nil)
 		if err != nil {
 			c.JSON(
@@ -492,6 +516,18 @@ func (tg *transactionGroup) computeTransactionGasLimit(c *gin.Context) {
 
 	var innerTx *transaction.Transaction
 	if ftx.InnerTransaction != nil {
+		if ftx.InnerTransaction.InnerTransaction != nil {
+			c.JSON(
+				http.StatusBadRequest,
+				shared.GenericAPIResponse{
+					Data:  nil,
+					Error: fmt.Sprintf("%s: %s", errors.ErrTxGenerationFailed.Error(), errors.ErrRecursiveRelayedTxIsNotAllowed.Error()),
+					Code:  shared.ReturnCodeRequestError,
+				},
+			)
+			return
+		}
+
 		innerTx, _, err = tg.createTransaction(ftx.InnerTransaction, nil)
 		if err != nil {
 			c.JSON(

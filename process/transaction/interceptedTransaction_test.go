@@ -1528,7 +1528,8 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTx(t *testing.T) {
 	tx.Data = []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxData))
 	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
 	err = txi.CheckValidity()
-	assert.Equal(t, process.ErrRecursiveRelayedTxIsNotAllowed, err)
+	assert.True(t, strings.Contains(err.Error(), process.ErrRecursiveRelayedTxIsNotAllowed.Error()))
+	assert.Contains(t, err.Error(), "inner transaction")
 }
 
 func TestInterceptedTransaction_CheckValidityOfRelayedTxV2(t *testing.T) {
@@ -1589,7 +1590,8 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTxV2(t *testing.T) {
 	tx.Data = []byte(core.RelayedTransactionV2 + "@" + hex.EncodeToString(userTx.RcvAddr) + "@" + hex.EncodeToString(big.NewInt(0).SetUint64(userTx.Nonce).Bytes()) + "@" + hex.EncodeToString([]byte(core.RelayedTransaction)) + "@" + hex.EncodeToString(userTx.Signature))
 	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
 	err = txi.CheckValidity()
-	assert.Equal(t, process.ErrRecursiveRelayedTxIsNotAllowed, err)
+	assert.True(t, strings.Contains(err.Error(), process.ErrRecursiveRelayedTxIsNotAllowed.Error()))
+	assert.Contains(t, err.Error(), "inner transaction")
 
 	userTx.Signature = sigOk
 	userTx.SndAddr = []byte("otherAddress")
@@ -1705,7 +1707,7 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTxV3(t *testing.T) {
 		innerTx2 := &dataTransaction.Transaction{
 			Nonce:     2,
 			Value:     big.NewInt(3),
-			Data:      []byte("data inner tx 2"),
+			Data:      []byte(""),
 			GasLimit:  3,
 			GasPrice:  4,
 			RcvAddr:   recvAddress,
