@@ -68,7 +68,7 @@ func createIncomingHeadersWithIncrementalRound(numRounds uint64) []sovereign.Inc
 			},
 			IncomingEvents: []*transaction.Event{
 				{
-					Topics:     [][]byte{[]byte("endpoint"), []byte("addr"), []byte("tokenID1"), []byte("nonce1"), tokenData},
+					Topics:     [][]byte{[]byte("topicID"), []byte("addr"), []byte("tokenID1"), []byte("nonce1"), tokenData},
 					Data:       createEventData(),
 					Identifier: []byte(eventIDDepositIncomingTransfer),
 				},
@@ -303,22 +303,22 @@ func TestIncomingHeaderHandler_AddHeaderErrorCases(t *testing.T) {
 		err := handler.AddHeader([]byte("hash"), incomingHeader)
 		requireErrorIsInvalidNumTopics(t, err, 0, 1)
 
-		incomingHeader.IncomingEvents[0] = &transaction.Event{Topics: [][]byte{[]byte("endpoint"), []byte("addr"), []byte("tokenID1")}, Identifier: []byte(eventIDDepositIncomingTransfer)}
+		incomingHeader.IncomingEvents[0] = &transaction.Event{Topics: [][]byte{[]byte("topicID"), []byte("addr"), []byte("tokenID1")}, Identifier: []byte(eventIDDepositIncomingTransfer)}
 		err = handler.AddHeader([]byte("hash"), incomingHeader)
 		requireErrorIsInvalidNumTopics(t, err, 0, 3)
 
-		incomingHeader.IncomingEvents[0] = &transaction.Event{Topics: [][]byte{[]byte("endpoint"), []byte("addr"), []byte("tokenID1"), []byte("nonce1")}, Identifier: []byte(eventIDDepositIncomingTransfer)}
+		incomingHeader.IncomingEvents[0] = &transaction.Event{Topics: [][]byte{[]byte("topicID"), []byte("addr"), []byte("tokenID1"), []byte("nonce1")}, Identifier: []byte(eventIDDepositIncomingTransfer)}
 		err = handler.AddHeader([]byte("hash"), incomingHeader)
 		requireErrorIsInvalidNumTopics(t, err, 0, 4)
 
-		incomingHeader.IncomingEvents[0] = &transaction.Event{Topics: [][]byte{[]byte("endpoint"), []byte("addr"), []byte("tokenID1"), []byte("nonce1"), tokenData, []byte("tokenID2")}, Identifier: []byte(eventIDDepositIncomingTransfer)}
+		incomingHeader.IncomingEvents[0] = &transaction.Event{Topics: [][]byte{[]byte("topicID"), []byte("addr"), []byte("tokenID1"), []byte("nonce1"), tokenData, []byte("tokenID2")}, Identifier: []byte(eventIDDepositIncomingTransfer)}
 		err = handler.AddHeader([]byte("hash"), incomingHeader)
 		requireErrorIsInvalidNumTopics(t, err, 0, 6)
 
 		incomingHeader.IncomingEvents = []*transaction.Event{
 			{
 				Identifier: []byte(eventIDDepositIncomingTransfer),
-				Topics:     [][]byte{[]byte("endpoint"), []byte("addr"), []byte("tokenID1"), []byte("nonce1"), tokenData},
+				Topics:     [][]byte{[]byte("topicID"), []byte("addr"), []byte("tokenID1"), []byte("nonce1"), tokenData},
 				Data:       createEventData(),
 			},
 			{
@@ -402,7 +402,7 @@ func TestIncomingHeaderHandler_AddHeaderErrorCases(t *testing.T) {
 			IncomingEvents: []*transaction.Event{
 				{
 					Identifier: []byte(eventIDDepositIncomingTransfer),
-					Topics:     [][]byte{[]byte("endpoint"), []byte("addr"), []byte("tokenID1"), []byte("nonce1"), tokenData},
+					Topics:     [][]byte{[]byte("topicID"), []byte("addr"), []byte("tokenID1"), []byte("nonce1"), tokenData},
 					Data:       createEventData(),
 				},
 			},
@@ -424,7 +424,7 @@ func TestIncomingHeaderProcessor_getEventData(t *testing.T) {
 	input := []byte("")
 	ret, err := handler.eventsProc.createEventData(input)
 	require.Nil(t, ret)
-	require.Equal(t, errEmptyLogData, err)
+	require.Equal(t, "empty bytes to deserialize event data", err.Error())
 
 	input = []byte("0a")
 	ret, err = handler.eventsProc.createEventData(input)
@@ -436,7 +436,7 @@ func TestIncomingHeaderProcessor_getEventData(t *testing.T) {
 	require.Nil(t, ret)
 	require.True(t, strings.Contains(err.Error(), "cannot decode"))
 
-	input, err = hex.DecodeString("000000000000000a000000")
+	input, err = hex.DecodeString("000000000000000a00")
 	hexEventData, err := handler.eventsProc.dataCodec.SerializeEventData(sovereign.EventData{
 		Nonce:        10,
 		TransferData: nil,
@@ -450,7 +450,7 @@ func TestIncomingHeaderProcessor_getEventData(t *testing.T) {
 		gasLimit:             uint64(0),
 	}, ret)
 
-	input, err = hex.DecodeString("000000000000000a01000000000000005e010000000566756e6331010000000200000004617267310000000461726732")
+	input, err = hex.DecodeString("000000000000000a01000000000000005e0000000566756e63310000000200000004617267310000000461726732")
 	hexEventData, err = handler.eventsProc.dataCodec.SerializeEventData(sovereign.EventData{
 		Nonce: 10,
 		TransferData: &sovereign.TransferData{
@@ -468,7 +468,7 @@ func TestIncomingHeaderProcessor_getEventData(t *testing.T) {
 		gasLimit:             uint64(94),
 	}, ret)
 
-	input, err = hex.DecodeString("0000000000000002010000000001312d00010000000361646401000000010000000401312d00")
+	input, err = hex.DecodeString("0000000000000002010000000001312d0000000003616464000000010000000401312d00")
 	hexEventData, err = handler.eventsProc.dataCodec.SerializeEventData(sovereign.EventData{
 		Nonce: 2,
 		TransferData: &sovereign.TransferData{
@@ -492,7 +492,7 @@ func TestIncomingHeaderHandler_AddHeader(t *testing.T) {
 
 	args := createArgs()
 
-	endpoint := []byte("endpoint")
+	topicID := []byte("topicID")
 
 	addr1 := []byte("addr1")
 	addr2 := []byte("addr2")
@@ -575,7 +575,7 @@ func TestIncomingHeaderHandler_AddHeader(t *testing.T) {
 		token2Nonce,
 		nftData,
 	}
-	topic1 := append([][]byte{endpoint}, [][]byte{addr1}...)
+	topic1 := append([][]byte{topicID}, [][]byte{addr1}...)
 	topic1 = append(topic1, transfer1...)
 	topic1 = append(topic1, transfer2...)
 	eventData1 := createCustomEventData(uint64(0), gasLimit1, func1, [][]byte{arg1, arg2})
@@ -585,7 +585,7 @@ func TestIncomingHeaderHandler_AddHeader(t *testing.T) {
 		token1Nonce,
 		token2Data,
 	}
-	topic2 := append([][]byte{endpoint}, [][]byte{addr2}...)
+	topic2 := append([][]byte{topicID}, [][]byte{addr2}...)
 	topic2 = append(topic2, transfer3...)
 	eventData2 := createCustomEventData(uint64(1), gasLimit2, func2, [][]byte{arg1})
 
