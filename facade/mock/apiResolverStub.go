@@ -46,6 +46,7 @@ type ApiResolverStub struct {
 	GetGasConfigsCalled                         func() map[string]map[string]uint64
 	GetManagedKeysCountCalled                   func() int
 	GetManagedKeysCalled                        func() []string
+	GetLoadedKeysCalled                         func() []string
 	GetEligibleManagedKeysCalled                func() ([]string, error)
 	GetWaitingManagedKeysCalled                 func() ([]string, error)
 }
@@ -304,6 +305,14 @@ func (ars *ApiResolverStub) GetManagedKeysCount() int {
 func (ars *ApiResolverStub) GetManagedKeys() []string {
 	if ars.GetManagedKeysCalled != nil {
 		return ars.GetManagedKeysCalled()
+	}
+	return make([]string, 0)
+}
+
+// GetLoadedKeys -
+func (ars *ApiResolverStub) GetLoadedKeys() []string {
+	if ars.GetLoadedKeysCalled != nil {
+		return ars.GetLoadedKeysCalled()
 	}
 	return make([]string, 0)
 }
