@@ -50,6 +50,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
@@ -5120,7 +5121,7 @@ func getDefaultProcessComponents() *factoryMock.ProcessComponentsMock {
 		BlockProcess:                         &testscommon.BlockProcessorStub{},
 		BlackListHdl:                         &testscommon.TimeCacheStub{},
 		BootSore:                             &mock.BootstrapStorerMock{},
-		HeaderSigVerif:                       &mock.HeaderSigVerifierStub{},
+		HeaderSigVerif:                       &consensus.HeaderSigVerifierMock{},
 		HeaderIntegrVerif:                    &mock.HeaderIntegrityVerifierStub{},
 		ValidatorStatistics:                  &mock.ValidatorStatisticsProcessorMock{},
 		ValidatorProvider:                    &mock.ValidatorsProviderStub{},

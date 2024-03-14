@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
@@ -27,7 +28,7 @@ func initConsensusDataContainer() *ConsensusCore {
 	validatorGroupSelector := &shardingMocks.NodesCoordinatorMock{}
 	antifloodHandler := &mock.P2PAntifloodHandlerStub{}
 	peerHonestyHandler := &testscommon.PeerHonestyHandlerStub{}
-	headerSigVerifier := &mock.HeaderSigVerifierStub{}
+	headerSigVerifier := &consensusMocks.HeaderSigVerifierMock{}
 	fallbackHeaderValidator := &testscommon.FallBackHeaderValidatorStub{}
 	nodeRedundancyHandler := &mock.NodeRedundancyHandlerStub{}
 	scheduledProcessor := &consensusMocks.ScheduledProcessorStub{}
@@ -35,6 +36,7 @@ func initConsensusDataContainer() *ConsensusCore {
 	peerBlacklistHandler := &mock.PeerBlacklistHandlerStub{}
 	multiSignerContainer := cryptoMocks.NewMultiSignerContainerMock(multiSignerMock)
 	signingHandler := &consensusMocks.SigningHandlerStub{}
+	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
 
 	return &ConsensusCore{
 		blockChain:              blockChain,
@@ -58,6 +60,7 @@ func initConsensusDataContainer() *ConsensusCore {
 		messageSigningHandler:   messageSigningHandler,
 		peerBlacklistHandler:    peerBlacklistHandler,
 		signingHandler:          signingHandler,
+		enableEpochsHandler:     enableEpochsHandler,
 	}
 }
 
@@ -257,6 +260,17 @@ func TestConsensusContainerValidator_ValidateNilSignatureHandlerShouldFail(t *te
 	err := ValidateConsensusCore(container)
 
 	assert.Equal(t, ErrNilSigningHandler, err)
+}
+
+func TestConsensusContainerValidator_ValidateNilEnableEpochsHandlerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	container := initConsensusDataContainer()
+	container.enableEpochsHandler = nil
+
+	err := ValidateConsensusCore(container)
+
+	assert.Equal(t, ErrNilEnableEpochsHandler, err)
 }
 
 func TestConsensusContainerValidator_ShouldWork(t *testing.T) {

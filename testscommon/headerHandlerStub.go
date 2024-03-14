@@ -9,25 +9,27 @@ import (
 
 // HeaderHandlerStub -
 type HeaderHandlerStub struct {
-	EpochField                             uint32
-	RoundField                             uint64
-	TimestampField                         uint64
-	GetMiniBlockHeadersWithDstCalled       func(destId uint32) map[string]uint32
-	GetOrderedCrossMiniblocksWithDstCalled func(destId uint32) []*data.MiniBlockInfo
-	GetPubKeysBitmapCalled                 func() []byte
-	GetSignatureCalled                     func() []byte
-	GetRootHashCalled                      func() []byte
-	GetRandSeedCalled                      func() []byte
-	GetPrevRandSeedCalled                  func() []byte
-	GetPrevHashCalled                      func() []byte
-	CloneCalled                            func() data.HeaderHandler
-	GetChainIDCalled                       func() []byte
-	CheckChainIDCalled                     func(reference []byte) error
-	GetReservedCalled                      func() []byte
-	IsStartOfEpochBlockCalled              func() bool
-	HasScheduledMiniBlocksCalled           func() bool
-	GetNonceCalled                         func() uint64
-	CheckFieldsForNilCalled                func() error
+	EpochField                                    uint32
+	RoundField                                    uint64
+	TimestampField                                uint64
+	GetMiniBlockHeadersWithDstCalled              func(destId uint32) map[string]uint32
+	GetOrderedCrossMiniblocksWithDstCalled        func(destId uint32) []*data.MiniBlockInfo
+	GetPubKeysBitmapCalled                        func() []byte
+	GetSignatureCalled                            func() []byte
+	GetRootHashCalled                             func() []byte
+	GetRandSeedCalled                             func() []byte
+	GetPrevRandSeedCalled                         func() []byte
+	GetPrevHashCalled                             func() []byte
+	CloneCalled                                   func() data.HeaderHandler
+	GetChainIDCalled                              func() []byte
+	CheckChainIDCalled                            func(reference []byte) error
+	GetReservedCalled                             func() []byte
+	IsStartOfEpochBlockCalled                     func() bool
+	HasScheduledMiniBlocksCalled                  func() bool
+	GetNonceCalled                                func() uint64
+	CheckFieldsForNilCalled                       func() error
+	GetPreviousAggregatedSignatureAndBitmapCalled func() ([]byte, []byte)
+	SetPreviousAggregatedSignatureAndBitmapCalled func(aggregatedSignature []byte, pubkeysBitmap []byte)
 }
 
 // GetAccumulatedFees -
@@ -376,4 +378,20 @@ func (hhs *HeaderHandlerStub) HasScheduledMiniBlocks() bool {
 		return hhs.HasScheduledMiniBlocksCalled()
 	}
 	return false
+}
+
+// GetPreviousAggregatedSignatureAndBitmap -
+func (hhs *HeaderHandlerStub) GetPreviousAggregatedSignatureAndBitmap() ([]byte, []byte) {
+	if hhs.GetPreviousAggregatedSignatureAndBitmapCalled != nil {
+		return hhs.GetPreviousAggregatedSignatureAndBitmapCalled()
+	}
+
+	return nil, nil
+}
+
+// SetPreviousAggregatedSignatureAndBitmap -
+func (hhs *HeaderHandlerStub) SetPreviousAggregatedSignatureAndBitmap(aggregatedSignature []byte, pubkeysBitmap []byte) {
+	if hhs.SetPreviousAggregatedSignatureAndBitmapCalled != nil {
+		hhs.SetPreviousAggregatedSignatureAndBitmapCalled(aggregatedSignature, pubkeysBitmap)
+	}
 }

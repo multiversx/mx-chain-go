@@ -203,8 +203,8 @@ func (sr *subroundBlock) SendBlockBody(body data.BodyHandler, marshalizedBody []
 }
 
 // SendBlockHeader method sends the proposed block header in the subround Block
-func (sr *subroundBlock) SendBlockHeader(header data.HeaderHandler, marshalizedHeader []byte) bool {
-	return sr.sendBlockHeader(header, marshalizedHeader)
+func (sr *subroundBlock) SendBlockHeader(header data.HeaderHandler, marshalizedHeader []byte, signature []byte) bool {
+	return sr.sendBlockHeader(header, marshalizedHeader, signature)
 }
 
 // ComputeSubroundProcessingMetric computes processing metric related to the subround Block

@@ -863,6 +863,9 @@ func TestEnableEpochConfig(t *testing.T) {
     # CurrentRandomnessOnSortingEnableEpoch represents the epoch when the current randomness on sorting is enabled
     CurrentRandomnessOnSortingEnableEpoch = 93
 
+	# EquivalentMessagesEnableEpoch represents the epoch when the equivalent messages are enabled
+	EquivalentMessagesEnableEpoch = 94
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -976,6 +979,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch: 91,
 			MigrateDataTrieEnableEpoch:                               92,
 			CurrentRandomnessOnSortingEnableEpoch:                    93,
+			EquivalentMessagesEnableEpoch:                            94,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,

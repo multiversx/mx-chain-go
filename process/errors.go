@@ -1241,3 +1241,6 @@ var ErrEmptyChainParametersConfiguration = errors.New("empty chain parameters co
 
 // ErrNoMatchingConfigForProvidedEpoch signals that there is no matching configuration for the provided epoch
 var ErrNoMatchingConfigForProvidedEpoch = errors.New("no matching configuration")
+
+// ErrInvalidHeader is raised when header is invalid
+var ErrInvalidHeader = errors.New("header is invalid")

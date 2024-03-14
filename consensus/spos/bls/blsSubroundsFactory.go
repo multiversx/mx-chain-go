@@ -191,8 +191,8 @@ func (fct *factory) generateBlockSubround() error {
 
 	subroundBlockInstance, err := NewSubroundBlock(
 		subround,
-		fct.worker.Extend,
 		processingThresholdPercent,
+		fct.worker,
 	)
 	if err != nil {
 		return err
@@ -228,9 +228,9 @@ func (fct *factory) generateSignatureSubround() error {
 
 	subroundSignatureObject, err := NewSubroundSignature(
 		subround,
-		fct.worker.Extend,
 		fct.appStatusHandler,
 		fct.sentSignaturesTracker,
+		fct.worker,
 	)
 	if err != nil {
 		return err

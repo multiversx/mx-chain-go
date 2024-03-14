@@ -4,6 +4,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -38,6 +39,7 @@ type ConsensusCoreMock struct {
 	messageSigningHandler   consensus.P2PSigningHandler
 	peerBlacklistHandler    consensus.PeerBlacklistHandler
 	signingHandler          consensus.SigningHandler
+	enableEpochsHandler     common.EnableEpochsHandler
 }
 
 // GetAntiFloodHandler -
@@ -238,6 +240,16 @@ func (ccm *ConsensusCoreMock) SigningHandler() consensus.SigningHandler {
 // SetSigningHandler -
 func (ccm *ConsensusCoreMock) SetSigningHandler(signingHandler consensus.SigningHandler) {
 	ccm.signingHandler = signingHandler
+}
+
+// EnableEpochsHandler -
+func (ccm *ConsensusCoreMock) EnableEpochsHandler() common.EnableEpochsHandler {
+	return ccm.enableEpochsHandler
+}
+
+// SetEnableEpochsHandler -
+func (ccm *ConsensusCoreMock) SetEnableEpochsHandler(enableEpochsHandler common.EnableEpochsHandler) {
+	ccm.enableEpochsHandler = enableEpochsHandler
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

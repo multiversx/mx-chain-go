@@ -179,6 +179,7 @@ func CreateNodeWithBLSAndTxKeys(
 		ScheduledMiniBlocksEnableEpoch:       UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch: UnreachableEpoch,
 		RefactorPeersMiniBlocksEnableEpoch:   UnreachableEpoch,
+		EquivalentMessagesEnableEpoch:        UnreachableEpoch,
 	}
 
 	return CreateNode(
@@ -237,6 +238,7 @@ func CreateNodesWithNodesCoordinatorFactory(
 		MiniBlockPartialExecutionEnableEpoch:            UnreachableEpoch,
 		RefactorPeersMiniBlocksEnableEpoch:              UnreachableEpoch,
 		DynamicGasCostForDataTrieStorageLoadEnableEpoch: UnreachableEpoch,
+		EquivalentMessagesEnableEpoch:                   UnreachableEpoch,
 	}
 
 	nodesMap := make(map[uint32][]*TestProcessorNode)
@@ -423,23 +425,23 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 					}, nil
 				},
 			},
-			Marshalizer:         TestMarshalizer,
-			Hasher:              TestHasher,
-			Shuffler:            nodeShuffler,
-			BootStorer:          bootStorer,
-			EpochStartNotifier:  epochStartSubscriber,
-			ShardIDAsObserver:   shardId,
-			NbShards:            uint32(nbShards),
-			EligibleNodes:       validatorsMapForNodesCoordinator,
-			WaitingNodes:        make(map[uint32][]nodesCoordinator.Validator),
-			SelfPublicKey:       []byte(strconv.Itoa(int(shardId))),
-			ConsensusGroupCache: consensusCache,
-			ShuffledOutHandler:  &mock.ShuffledOutHandlerStub{},
-			ChanStopNode:        endProcess.GetDummyEndProcessChannel(),
-			NodeTypeProvider:    &nodeTypeProviderMock.NodeTypeProviderStub{},
-			IsFullArchive:       false,
-			EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-			ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
+			Marshalizer:              TestMarshalizer,
+			Hasher:                   TestHasher,
+			Shuffler:                 nodeShuffler,
+			BootStorer:               bootStorer,
+			EpochStartNotifier:       epochStartSubscriber,
+			ShardIDAsObserver:        shardId,
+			NbShards:                 uint32(nbShards),
+			EligibleNodes:            validatorsMapForNodesCoordinator,
+			WaitingNodes:             make(map[uint32][]nodesCoordinator.Validator),
+			SelfPublicKey:            []byte(strconv.Itoa(int(shardId))),
+			ConsensusGroupCache:      consensusCache,
+			ShuffledOutHandler:       &mock.ShuffledOutHandlerStub{},
+			ChanStopNode:             endProcess.GetDummyEndProcessChannel(),
+			NodeTypeProvider:         &nodeTypeProviderMock.NodeTypeProviderStub{},
+			IsFullArchive:            false,
+			EnableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+			ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
 			GenesisNodesSetupHandler: &testscommon.NodesSetupStub{},
 		}
 		nodesCoordinatorInstance, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
@@ -457,6 +459,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 			SingleSigVerifier:       signer,
 			KeyGen:                  keyGen,
 			FallbackHeaderValidator: &testscommon.FallBackHeaderValidatorStub{},
+			EnableEpochsHandler:     enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		}
 		headerSig, _ := headerCheck.NewHeaderSigVerifier(&args)
 
@@ -480,6 +483,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 					StakingV2EnableEpoch:                 UnreachableEpoch,
 					ScheduledMiniBlocksEnableEpoch:       UnreachableEpoch,
 					MiniBlockPartialExecutionEnableEpoch: UnreachableEpoch,
+					EquivalentMessagesEnableEpoch:        UnreachableEpoch,
 				},
 				NodeKeys:                cp.NodesKeys[shardId][i],
 				NodesSetup:              nodesSetup,
@@ -545,23 +549,23 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 					}, nil
 				},
 			},
-			Marshalizer:         TestMarshalizer,
-			Hasher:              TestHasher,
-			Shuffler:            nodeShuffler,
-			EpochStartNotifier:  epochStartSubscriber,
-			BootStorer:          bootStorer,
-			ShardIDAsObserver:   shardId,
-			NbShards:            uint32(nbShards),
-			EligibleNodes:       validatorsMapForNodesCoordinator,
-			WaitingNodes:        waitingMapForNodesCoordinator,
-			SelfPublicKey:       []byte(strconv.Itoa(int(shardId))),
-			ConsensusGroupCache: lruCache,
-			ShuffledOutHandler:  &mock.ShuffledOutHandlerStub{},
-			ChanStopNode:        endProcess.GetDummyEndProcessChannel(),
-			NodeTypeProvider:    &nodeTypeProviderMock.NodeTypeProviderStub{},
-			IsFullArchive:       false,
-			EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-			ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
+			Marshalizer:              TestMarshalizer,
+			Hasher:                   TestHasher,
+			Shuffler:                 nodeShuffler,
+			EpochStartNotifier:       epochStartSubscriber,
+			BootStorer:               bootStorer,
+			ShardIDAsObserver:        shardId,
+			NbShards:                 uint32(nbShards),
+			EligibleNodes:            validatorsMapForNodesCoordinator,
+			WaitingNodes:             waitingMapForNodesCoordinator,
+			SelfPublicKey:            []byte(strconv.Itoa(int(shardId))),
+			ConsensusGroupCache:      lruCache,
+			ShuffledOutHandler:       &mock.ShuffledOutHandlerStub{},
+			ChanStopNode:             endProcess.GetDummyEndProcessChannel(),
+			NodeTypeProvider:         &nodeTypeProviderMock.NodeTypeProviderStub{},
+			IsFullArchive:            false,
+			EnableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+			ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
 			GenesisNodesSetupHandler: &testscommon.NodesSetupStub{},
 		}
 		nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
@@ -593,6 +597,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 				SingleSigVerifier:       singleSigner,
 				KeyGen:                  keyGenForBlocks,
 				FallbackHeaderValidator: &testscommon.FallBackHeaderValidatorStub{},
+				EnableEpochsHandler:     enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 			}
 
 			headerSig, _ := headerCheck.NewHeaderSigVerifier(&args)
@@ -611,6 +616,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 					StakingV2EnableEpoch:                 UnreachableEpoch,
 					ScheduledMiniBlocksEnableEpoch:       UnreachableEpoch,
 					MiniBlockPartialExecutionEnableEpoch: UnreachableEpoch,
+					EquivalentMessagesEnableEpoch:        UnreachableEpoch,
 				},
 				NodeKeys:                cp.NodesKeys[shardId][i],
 				NodesSetup:              nodesSetup,
