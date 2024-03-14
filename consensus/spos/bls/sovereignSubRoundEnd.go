@@ -60,7 +60,7 @@ func (sr *sovereignSubRoundEnd) doSovereignEndRoundJob(ctx context.Context) bool
 
 	outGoingMBHeader := sovHeader.GetOutGoingMiniBlockHeaderHandler()
 	if check.IfNil(outGoingMBHeader) {
-		sr.sendUnconfirmedOperationsIfExist(ctx)
+		sr.sendUnconfirmedOperationsIfFound(ctx)
 		return true
 	}
 
@@ -80,7 +80,7 @@ func (sr *sovereignSubRoundEnd) doSovereignEndRoundJob(ctx context.Context) bool
 	return true
 }
 
-func (sr *sovereignSubRoundEnd) sendUnconfirmedOperationsIfExist(ctx context.Context) {
+func (sr *sovereignSubRoundEnd) sendUnconfirmedOperationsIfFound(ctx context.Context) {
 	if !sr.isSelfLeader() {
 		return
 	}
