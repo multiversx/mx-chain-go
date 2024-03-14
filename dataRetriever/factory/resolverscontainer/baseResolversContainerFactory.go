@@ -36,6 +36,7 @@ type baseResolversContainerFactory struct {
 	inputAntifloodHandler           dataRetriever.P2PAntifloodHandler
 	outputAntifloodHandler          dataRetriever.P2PAntifloodHandler
 	throttler                       dataRetriever.ResolverThrottler
+	trieNodesThrottler              dataRetriever.ResolverThrottler
 	intraShardTopic                 string
 	isFullHistoryNode               bool
 	mainPreferredPeersHolder        dataRetriever.PreferredPeersHolderHandler
@@ -78,7 +79,10 @@ func (brcf *baseResolversContainerFactory) checkParams() error {
 		return fmt.Errorf("%w for output", dataRetriever.ErrNilAntifloodHandler)
 	}
 	if check.IfNil(brcf.throttler) {
-		return dataRetriever.ErrNilThrottler
+		return fmt.Errorf("%w for the main throttler", dataRetriever.ErrNilThrottler)
+	}
+	if check.IfNil(brcf.trieNodesThrottler) {
+		return fmt.Errorf("%w for the trie nodes throttler", dataRetriever.ErrNilThrottler)
 	}
 	if check.IfNil(brcf.mainPreferredPeersHolder) {
 		return fmt.Errorf("%w for main network", dataRetriever.ErrNilPreferredPeersHolder)
@@ -351,7 +355,7 @@ func (brcf *baseResolversContainerFactory) createTrieNodesResolver(
 			SenderResolver:   resolverSender,
 			Marshaller:       brcf.marshalizer,
 			AntifloodHandler: brcf.inputAntifloodHandler,
-			Throttler:        brcf.throttler,
+			Throttler:        brcf.trieNodesThrottler,
 		},
 		TrieDataGetter: trie,
 	}
