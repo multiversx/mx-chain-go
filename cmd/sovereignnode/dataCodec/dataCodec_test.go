@@ -65,14 +65,16 @@ func TestDataCodec_EventDataCodec(t *testing.T) {
 	t.Run("nil transfer data should work", func(t *testing.T) {
 		t.Parallel()
 
+		sender, _ := hex.DecodeString("0000000000000000000000000000000000000000000000000000000000000000")
 		eventData := sovereign.EventData{
 			Nonce:        10,
+			Sender:       sender,
 			TransferData: nil,
 		}
 
 		serialized, err := abiCodec.SerializeEventData(eventData)
 		require.Nil(t, err)
-		require.Equal(t, "000000000000000a00", hex.EncodeToString(serialized))
+		require.Equal(t, "000000000000000a000000000000000000000000000000000000000000000000000000000000000000", hex.EncodeToString(serialized))
 
 		deserialized, err := abiCodec.DeserializeEventData(serialized)
 		require.Nil(t, err)
@@ -81,8 +83,10 @@ func TestDataCodec_EventDataCodec(t *testing.T) {
 	t.Run("defined transfer data should work", func(t *testing.T) {
 		t.Parallel()
 
+		sender, _ := hex.DecodeString("0000000000000000000000000000000000000000000000000000000000000000")
 		eventData := sovereign.EventData{
-			Nonce: 10,
+			Nonce:  10,
+			Sender: sender,
 			TransferData: &sovereign.TransferData{
 				GasLimit: 20000000,
 				Function: []byte("add"),
@@ -92,7 +96,7 @@ func TestDataCodec_EventDataCodec(t *testing.T) {
 
 		serialized, err := abiCodec.SerializeEventData(eventData)
 		require.Nil(t, err)
-		require.Equal(t, "000000000000000a010000000001312d0000000003616464000000010000000401312d00", hex.EncodeToString(serialized))
+		require.Equal(t, "000000000000000a0000000000000000000000000000000000000000000000000000000000000000010000000001312d0000000003616464000000010000000401312d00", hex.EncodeToString(serialized))
 
 		deserialized, err := abiCodec.DeserializeEventData(serialized)
 		require.Nil(t, err)
@@ -101,8 +105,10 @@ func TestDataCodec_EventDataCodec(t *testing.T) {
 	t.Run("defined transfer data empty arg should work", func(t *testing.T) {
 		t.Parallel()
 
+		sender, _ := hex.DecodeString("0000000000000000000000000000000000000000000000000000000000000000")
 		eventData := sovereign.EventData{
-			Nonce: 10,
+			Nonce:  10,
+			Sender: sender,
 			TransferData: &sovereign.TransferData{
 				GasLimit: 20000000,
 				Function: []byte("add"),
@@ -112,7 +118,7 @@ func TestDataCodec_EventDataCodec(t *testing.T) {
 
 		serialized, err := abiCodec.SerializeEventData(eventData)
 		require.Nil(t, err)
-		require.Equal(t, "000000000000000a010000000001312d0000000003616464000000020000000401312d0000000000", hex.EncodeToString(serialized))
+		require.Equal(t, "000000000000000a0000000000000000000000000000000000000000000000000000000000000000010000000001312d0000000003616464000000020000000401312d0000000000", hex.EncodeToString(serialized))
 
 		deserialized, err := abiCodec.DeserializeEventData(serialized)
 		require.Nil(t, err)
@@ -121,8 +127,10 @@ func TestDataCodec_EventDataCodec(t *testing.T) {
 	t.Run("deserialize event data gasLimit 0 should work", func(t *testing.T) {
 		t.Parallel()
 
+		sender, _ := hex.DecodeString("0000000000000000000000000000000000000000000000000000000000000000")
 		eventData := sovereign.EventData{
-			Nonce: 10,
+			Nonce:  10,
+			Sender: sender,
 			TransferData: &sovereign.TransferData{
 				GasLimit: 0,
 				Function: []byte("add"),
@@ -132,7 +140,7 @@ func TestDataCodec_EventDataCodec(t *testing.T) {
 
 		serialized, err := abiCodec.SerializeEventData(eventData)
 		require.Nil(t, err)
-		require.Equal(t, "000000000000000a01000000000000000000000003616464000000020000000401312d0000000000", hex.EncodeToString(serialized))
+		require.Equal(t, "000000000000000a000000000000000000000000000000000000000000000000000000000000000001000000000000000000000003616464000000020000000401312d0000000000", hex.EncodeToString(serialized))
 
 		deserialized, err := abiCodec.DeserializeEventData(serialized)
 		require.Nil(t, err)
@@ -253,8 +261,10 @@ func TestDataCodec_SerializeOperation(t *testing.T) {
 		tokens = append(tokens, token1)
 		tokens = append(tokens, token2)
 
+		sender, _ := hex.DecodeString("0000000000000000000000000000000000000000000000000000000000000000")
 		operationData := &sovereign.EventData{
-			Nonce: 100,
+			Nonce:  100,
+			Sender: sender,
 			TransferData: &sovereign.TransferData{
 				GasLimit: 20000000,
 				Function: []byte("add"),
@@ -270,7 +280,7 @@ func TestDataCodec_SerializeOperation(t *testing.T) {
 
 		serialized, err := abiCodec.SerializeOperation(operation)
 		require.Nil(t, err)
-		require.Equal(t, "c0c0739e0cf6232a934d2e56cfcd10881eb1c7336f128fc155a4a84292cfe7f6000000020000000a53564e2d3132333435360000000000000000000000000906aaf7c8516d0c00000000000004686173680000000353564e00000004617474720000000000000000000000000000000000000000000000000000000000000000000000022710000000010000000475726c310000000a53564e2d3635343332310000000000000000000000000906aaf7c8516d0c000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000064010000000001312d0000000003616464000000010000000401312d00", hex.EncodeToString(serialized))
+		require.Equal(t, "c0c0739e0cf6232a934d2e56cfcd10881eb1c7336f128fc155a4a84292cfe7f6000000020000000a53564e2d3132333435360000000000000000000000000906aaf7c8516d0c00000000000004686173680000000353564e00000004617474720000000000000000000000000000000000000000000000000000000000000000000000022710000000010000000475726c310000000a53564e2d3635343332310000000000000000000000000906aaf7c8516d0c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000640000000000000000000000000000000000000000000000000000000000000000010000000001312d0000000003616464000000010000000401312d00", hex.EncodeToString(serialized))
 	})
 	t.Run("operation with nil transfer data", func(t *testing.T) {
 		t.Parallel()
@@ -298,8 +308,10 @@ func TestDataCodec_SerializeOperation(t *testing.T) {
 		tokens := make([]sovereign.EsdtToken, 0)
 		tokens = append(tokens, token1)
 
+		sender, _ := hex.DecodeString("0000000000000000000000000000000000000000000000000000000000000000")
 		operationData := &sovereign.EventData{
 			Nonce:        10,
+			Sender:       sender,
 			TransferData: nil,
 		}
 
@@ -311,6 +323,6 @@ func TestDataCodec_SerializeOperation(t *testing.T) {
 
 		serialized, err := abiCodec.SerializeOperation(operation)
 		require.Nil(t, err)
-		require.Equal(t, "c0c0739e0cf6232a934d2e56cfcd10881eb1c7336f128fc155a4a84292cfe7f6000000010000000a53564e2d3132333435360000000000000000000000000906aaf7c8516d0c00000000000004686173680000000453564e3100000004617474720000000000000000000000000000000000000000000000000000000000000000000000021b58000000010000000475726c31000000000000000a00", hex.EncodeToString(serialized))
+		require.Equal(t, "c0c0739e0cf6232a934d2e56cfcd10881eb1c7336f128fc155a4a84292cfe7f6000000010000000a53564e2d3132333435360000000000000000000000000906aaf7c8516d0c00000000000004686173680000000453564e3100000004617474720000000000000000000000000000000000000000000000000000000000000000000000021b58000000010000000475726c31000000000000000a000000000000000000000000000000000000000000000000000000000000000000", hex.EncodeToString(serialized))
 	})
 }
