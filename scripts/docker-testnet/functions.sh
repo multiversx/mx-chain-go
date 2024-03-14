@@ -82,8 +82,7 @@ updateProxyConfigDocker() {
         generateProxyObserverListDocker config_edit.toml
     fi
 
-    cp config_edit.toml config.toml
-    rm config_edit.toml
+    mv config_edit.toml config.toml
 
     echo "Updated configuration for the Proxy."
     popd
