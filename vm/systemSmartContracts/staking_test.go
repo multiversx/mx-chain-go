@@ -3656,7 +3656,6 @@ func TestStakingSc_UnStakeAllFromQueue(t *testing.T) {
 	args.StakingAccessAddr = stakingAccessAddress
 	args.StakingSCConfig.MaxNumberOfNodesForStake = 1
 	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
-	enableEpochsHandler.AddActiveFlags(common.StakingV4Step1Flag)
 	args.Eei = eei
 	args.StakingSCConfig.UnBondPeriod = 100
 	stakingSmartContract, _ := NewStakingSmartContract(args)
@@ -3678,23 +3677,22 @@ func TestStakingSc_UnStakeAllFromQueue(t *testing.T) {
 
 	arguments := CreateVmContractCallInput()
 	validatorData := &ValidatorDataV2{
-		TotalStakeValue: big.NewInt(200),
+		TotalStakeValue: big.NewInt(400),
 		TotalUnstaked:   big.NewInt(0),
 		RewardAddress:   stakerAddress,
 		BlsPubKeys:      [][]byte{[]byte("firstKey "), []byte("secondKey"), []byte("thirdKey "), []byte("fourthKey")},
 	}
-	arguments.CallerAddr = []byte("endOfEpoch")
+	arguments.CallerAddr = stakingSmartContract.endOfEpochAccessAddr
 	marshaledData, _ := stakingSmartContract.marshalizer.Marshal(validatorData)
 	eei.SetStorageForAddress(vm.ValidatorSCAddress, stakerAddress, marshaledData)
 
-	currentOutPutIndex := len(eei.output)
-
+	enableEpochsHandler.AddActiveFlags(common.StakingV4Step1Flag)
+	enableEpochsHandler.AddActiveFlags(common.StakingV4StartedFlag)
 	arguments.Function = "unStakeAllNodesFromQueue"
 	retCode := stakingSmartContract.Execute(arguments)
 	assert.Equal(t, retCode, vmcommon.Ok)
 
-	assert.Equal(t, eei.GetStorage([]byte(waitingListHeadKey)), nil)
-
+	assert.Equal(t, len(eei.GetStorage([]byte(waitingListHeadKey))), 0)
 	newHead, _ := stakingSmartContract.getWaitingListHead()
 	assert.Equal(t, uint32(0), newHead.Length) // no entries in the queue list
 
@@ -3704,13 +3702,7 @@ func TestStakingSc_UnStakeAllFromQueue(t *testing.T) {
 	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("thirdKey "))
 	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("fourthKey"))
 
-	validatorData = &ValidatorDataV2{
-		TotalStakeValue: big.NewInt(400),
-	}
-	marshaledData, _ = stakingSmartContract.marshalizer.Marshal(validatorData)
-	eei.SetStorageForAddress(vm.ValidatorSCAddress, stakerAddress, marshaledData)
-
 	// surprisingly, the queue works again as we did not activate the staking v4
-	doGetStatus(t, stakingSmartContract, eei, []byte("thirdKey "), "queued")
-	doGetStatus(t, stakingSmartContract, eei, []byte("fourthKey"), "queued")
+	doGetStatus(t, stakingSmartContract, eei, []byte("thirdKey "), "staked")
+	doGetStatus(t, stakingSmartContract, eei, []byte("fourthKey"), "staked")
 }
