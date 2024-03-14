@@ -3224,7 +3224,7 @@ func doGetStatus(t *testing.T, sc *stakingSC, eei *vmContext, blsKey []byte, exp
 	assert.Equal(t, vmcommon.Ok, retCode)
 
 	lastOutput := eei.output[len(eei.output)-1]
-	assert.True(t, bytes.Equal(lastOutput, []byte(expectedStatus)))
+	assert.Equal(t, expectedStatus, string(lastOutput))
 }
 
 func doGetWaitingListSize(t *testing.T, sc *stakingSC, eei *vmContext, expectedSize int) {
@@ -3628,11 +3628,11 @@ func TestStakingSC_UnStakeAllFromQueueErrors(t *testing.T) {
 	require.Equal(t, eei.returnMessage, "stake nodes from waiting list can be called by endOfEpochAccess address only")
 
 	eei.returnMessage = ""
-	vmInput.CallerAddr = vm.EndOfEpochAddress
+	vmInput.CallerAddr = []byte("endOfEpoch")
 	vmInput.Arguments = [][]byte{{1}}
 	returnCode = sc.Execute(vmInput)
 	require.Equal(t, returnCode, vmcommon.UserError)
-	require.Equal(t, eei.returnMessage, "number of arguments must be equal to 0")
+	require.Equal(t, "number of arguments must be equal to 0", eei.returnMessage)
 
 	vmInput.Arguments = [][]byte{}
 	returnCode = sc.Execute(vmInput)
@@ -3668,21 +3668,22 @@ func TestStakingSc_UnStakeAllFromQueue(t *testing.T) {
 	}
 
 	// do stake should work
-	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("firsstKey"))
+	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("firstKey "))
 	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("secondKey"))
-	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("thirdKeyy"))
+	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("thirdKey "))
 	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("fourthKey"))
 
-	waitingListHead, _ := stakingSmartContract.getWaitingListHead()
-	require.Equal(t, waitingListHead.Length, 3)
+	waitingReturn := doGetWaitingListRegisterNonceAndRewardAddress(t, stakingSmartContract, eei)
+	assert.Equal(t, len(waitingReturn), 9)
 
 	arguments := CreateVmContractCallInput()
 	validatorData := &ValidatorDataV2{
 		TotalStakeValue: big.NewInt(200),
 		TotalUnstaked:   big.NewInt(0),
 		RewardAddress:   stakerAddress,
-		BlsPubKeys:      [][]byte{[]byte("firsstKey"), []byte("secondKey"), []byte("thirdKeyy"), []byte("fourthKey")},
+		BlsPubKeys:      [][]byte{[]byte("firstKey "), []byte("secondKey"), []byte("thirdKey "), []byte("fourthKey")},
 	}
+	arguments.CallerAddr = []byte("endOfEpoch")
 	marshaledData, _ := stakingSmartContract.marshalizer.Marshal(validatorData)
 	eei.SetStorageForAddress(vm.ValidatorSCAddress, stakerAddress, marshaledData)
 
@@ -3694,10 +3695,22 @@ func TestStakingSc_UnStakeAllFromQueue(t *testing.T) {
 
 	assert.Equal(t, eei.GetStorage([]byte(waitingListHeadKey)), nil)
 
-	for i := currentOutPutIndex; i < len(eei.output); i += 2 {
-		checkIsStaked(t, stakingSmartContract, arguments.CallerAddr, eei.output[i], vmcommon.Ok)
+	newHead, _ := stakingSmartContract.getWaitingListHead()
+	assert.Equal(t, uint32(0), newHead.Length) // no entries in the queue list
+
+	doGetStatus(t, stakingSmartContract, eei, []byte("secondKey"), "unStaked")
+
+	// stake them again - as they were deleted from waiting list
+	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("thirdKey "))
+	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("fourthKey"))
+
+	validatorData = &ValidatorDataV2{
+		TotalStakeValue: big.NewInt(400),
 	}
-	assert.Equal(t, 6, len(eei.output)-currentOutPutIndex)
-	stakingConfig := stakingSmartContract.getConfig()
-	assert.Equal(t, stakingConfig.StakedNodes, int64(4))
+	marshaledData, _ = stakingSmartContract.marshalizer.Marshal(validatorData)
+	eei.SetStorageForAddress(vm.ValidatorSCAddress, stakerAddress, marshaledData)
+
+	// surprisingly, the queue works again as we did not activate the staking v4
+	doGetStatus(t, stakingSmartContract, eei, []byte("thirdKey "), "queued")
+	doGetStatus(t, stakingSmartContract, eei, []byte("fourthKey"), "queued")
 }
