@@ -181,18 +181,13 @@ func (s *systemSCProcessor) unStakeAllNodesFromQueue() error {
 	}
 	vmOutput, errRun := s.systemVM.RunSmartContractCall(vmInput)
 	if errRun != nil {
-		return fmt.Errorf("%w when unStaking all nodes from waiting list", errRun)
+		return fmt.Errorf("%w when unStaking all nodes from staking queue", errRun)
 	}
 	if vmOutput.ReturnCode != vmcommon.Ok {
-		return fmt.Errorf("got return code %s when unStaking all nodes from waiting list", vmOutput.ReturnCode)
+		return fmt.Errorf("got return code %s when unStaking all nodes from staking queue", vmOutput.ReturnCode)
 	}
 
-	err := s.processSCOutputAccounts(vmOutput)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return s.processSCOutputAccounts(vmOutput)
 }
 
 func (s *systemSCProcessor) unStakeNodesWithNotEnoughFundsWithStakingV4(
