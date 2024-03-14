@@ -1,7 +1,5 @@
 //go:build !race
 
-// TODO reinstate test after Wasm VM pointer fix
-
 package process
 
 import (

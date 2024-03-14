@@ -236,16 +236,11 @@ func createArgsProcessComponentsHolder() ArgsProcessComponentsHolder {
 }
 
 func TestCreateProcessComponents(t *testing.T) {
-	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	t.Run("should work", func(t *testing.T) {
-		// TODO reinstate test after Wasm VM pointer fix
-		if testing.Short() {
-			t.Skip("cannot run with -race -short; requires Wasm VM fix")
-		}
-
-		t.Parallel()
-
 		comp, err := CreateProcessComponents(createArgsProcessComponentsHolder())
 		require.NoError(t, err)
 		require.NotNil(t, comp)
@@ -351,12 +346,9 @@ func TestCreateProcessComponents(t *testing.T) {
 }
 
 func TestProcessComponentsHolder_IsInterfaceNil(t *testing.T) {
-	// TODO reinstate test after Wasm VM pointer fix
 	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Wasm VM fix")
+		t.Skip("this is not a short test")
 	}
-
-	t.Parallel()
 
 	var comp *processComponentsHolder
 	require.True(t, comp.IsInterfaceNil())
@@ -367,12 +359,9 @@ func TestProcessComponentsHolder_IsInterfaceNil(t *testing.T) {
 }
 
 func TestProcessComponentsHolder_Getters(t *testing.T) {
-	// TODO reinstate test after Wasm VM pointer fix
 	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Wasm VM fix")
+		t.Skip("this is not a short test")
 	}
-
-	t.Parallel()
 
 	comp, err := CreateProcessComponents(createArgsProcessComponentsHolder())
 	require.NoError(t, err)
