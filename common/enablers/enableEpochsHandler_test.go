@@ -112,7 +112,6 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		ChangeOwnerAddressCrossShardThroughSCEnableEpoch:         94,
 		CurrentRandomnessOnSortingEnableEpoch:                    95,
 		EquivalentMessagesEnableEpoch:                            96,
-		ConsensusPropagationChangesEnableEpoch:                   97,
 	}
 }
 
@@ -303,7 +302,7 @@ func TestEnableEpochsHandler_IsFlagEnabled(t *testing.T) {
 	require.True(t, handler.IsFlagEnabled(common.IsChangeOwnerAddressCrossShardThroughSCFlag))
 	require.True(t, handler.IsFlagEnabled(common.CurrentRandomnessOnSortingFlag))
 	require.True(t, handler.IsFlagEnabled(common.EquivalentMessagesFlag))
-	require.True(t, handler.IsFlagEnabled(common.ConsensusPropagationChangesFlag))
+	require.True(t, handler.IsFlagEnabled(common.EquivalentMessagesFlag))
 }
 
 func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
@@ -417,7 +416,6 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch, handler.GetActivationEpoch(common.FixGasRemainingForSaveKeyValueFlag))
 	require.Equal(t, cfg.CurrentRandomnessOnSortingEnableEpoch, handler.GetActivationEpoch(common.CurrentRandomnessOnSortingFlag))
 	require.Equal(t, cfg.EquivalentMessagesEnableEpoch, handler.GetActivationEpoch(common.EquivalentMessagesFlag))
-	require.Equal(t, cfg.ConsensusPropagationChangesEnableEpoch, handler.GetActivationEpoch(common.ConsensusPropagationChangesFlag))
 }
 
 func TestEnableEpochsHandler_IsInterfaceNil(t *testing.T) {

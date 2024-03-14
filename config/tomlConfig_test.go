@@ -866,9 +866,6 @@ func TestEnableEpochConfig(t *testing.T) {
 	# EquivalentMessagesEnableEpoch represents the epoch when the equivalent messages are enabled
 	EquivalentMessagesEnableEpoch = 94
 
-    # ConsensusPropagationChangesEnableEpoch represents the epoch when the consensus propagation changes are enabled
-    ConsensusPropagationChangesEnableEpoch = 95
-
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -983,7 +980,6 @@ func TestEnableEpochConfig(t *testing.T) {
 			MigrateDataTrieEnableEpoch:                               92,
 			CurrentRandomnessOnSortingEnableEpoch:                    93,
 			EquivalentMessagesEnableEpoch:                            94,
-			ConsensusPropagationChangesEnableEpoch:                   95,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,

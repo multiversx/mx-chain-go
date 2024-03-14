@@ -3,7 +3,6 @@ package bls
 import (
 	"context"
 	"encoding/hex"
-	"fmt"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -22,9 +21,9 @@ type subroundSignature struct {
 // NewSubroundSignature creates a subroundSignature object
 func NewSubroundSignature(
 	baseSubround *spos.Subround,
-	extend func(subroundId int),
 	appStatusHandler core.AppStatusHandler,
 	sentSignatureTracker spos.SentSignaturesTracker,
+	worker spos.WorkerHandler,
 ) (*subroundSignature, error) {
 	err := checkNewSubroundSignatureParams(
 		baseSubround,
@@ -32,14 +31,14 @@ func NewSubroundSignature(
 	if err != nil {
 		return nil, err
 	}
-	if extend == nil {
-		return nil, fmt.Errorf("%w for extend function", spos.ErrNilFunctionHandler)
-	}
 	if check.IfNil(appStatusHandler) {
 		return nil, spos.ErrNilAppStatusHandler
 	}
 	if check.IfNil(sentSignatureTracker) {
 		return nil, ErrNilSentSignatureTracker
+	}
+	if check.IfNil(worker) {
+		return nil, spos.ErrNilWorker
 	}
 
 	srSignature := subroundSignature{
@@ -49,7 +48,7 @@ func NewSubroundSignature(
 	}
 	srSignature.Job = srSignature.doSignatureJob
 	srSignature.Check = srSignature.doSignatureConsensusCheck
-	srSignature.Extend = extend
+	srSignature.Extend = worker.Extend
 
 	return &srSignature, nil
 }
@@ -79,45 +78,51 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 		return false
 	}
 
-	isSelfLeader := sr.IsSelfLeaderInCurrentRound() && sr.ShouldConsiderSelfKeyInConsensus()
-	isSelfInConsensusGroup := sr.IsNodeInConsensusGroup(sr.SelfPubKey()) && sr.ShouldConsiderSelfKeyInConsensus()
-
-	if isSelfLeader || isSelfInConsensusGroup {
-		selfIndex, err := sr.SelfConsensusGroupIndex()
+	isSelfSingleKeyLeader := sr.IsSelfLeaderInCurrentRound() && sr.ShouldConsiderSelfKeyInConsensus()
+	isSelfSingleKeyInConsensusGroup := sr.IsNodeInConsensusGroup(sr.SelfPubKey()) && sr.ShouldConsiderSelfKeyInConsensus()
+	isFlagActive := sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch())
+	// if single key leader, the signature has been sent on subroundBlock, thus the current round can be marked as finished
+	if isSelfSingleKeyLeader && isFlagActive {
+		leader, err := sr.GetLeader()
 		if err != nil {
-			log.Debug("doSignatureJob.SelfConsensusGroupIndex: not in consensus group")
+			return false
+		}
+		err = sr.SetJobDone(leader, sr.Current(), true)
+		if err != nil {
 			return false
 		}
 
-		signatureShare, err := sr.SigningHandler().CreateSignatureShareForPublicKey(
-			sr.GetData(),
-			uint16(selfIndex),
-			sr.Header.GetEpoch(),
-			[]byte(sr.SelfPubKey()),
-		)
-		if err != nil {
-			log.Debug("doSignatureJob.CreateSignatureShareForPublicKey", "error", err.Error())
-			return false
-		}
+		sr.SetStatus(sr.Current(), spos.SsFinished)
 
-		if !isSelfLeader {
-			ok := sr.createAndSendSignatureMessage(signatureShare, []byte(sr.SelfPubKey()))
-			if !ok {
-				return false
-			}
-		}
+		sr.appStatusHandler.SetStringValue(common.MetricConsensusRoundState, "signed")
 
-		ok := sr.completeSignatureSubRound(sr.SelfPubKey(), isSelfLeader)
-		if !ok {
+		log.Debug("step 2: subround has been finished for leader",
+			"subround", sr.Name())
+
+		return true
+	}
+
+	if isSelfSingleKeyLeader || isSelfSingleKeyInConsensusGroup {
+		if !sr.doSignatureJobForSingleKey(isSelfSingleKeyLeader, isFlagActive) {
 			return false
 		}
 	}
 
-	return sr.doSignatureJobForManagedKeys()
+	if !sr.doSignatureJobForManagedKeys() {
+		return false
+	}
+
+	if isFlagActive {
+		sr.SetStatus(sr.Current(), spos.SsFinished)
+
+		log.Debug("step 2: subround has been finished",
+			"subround", sr.Name())
+	}
+
+	return true
 }
 
 func (sr *subroundSignature) createAndSendSignatureMessage(signatureShare []byte, pkBytes []byte) bool {
-	// TODO: Analyze it is possible to send message only to leader with O(1) instead of O(n)
 	cnsMsg := consensus.NewConsensusMessage(
 		sr.GetData(),
 		signatureShare,
@@ -158,6 +163,7 @@ func (sr *subroundSignature) completeSignatureSubRound(pk string, shouldWaitForA
 		return false
 	}
 
+	// TODO[cleanup cns finality]: do not wait for signatures anymore, this will be done on subroundEndRound
 	if shouldWaitForAllSigsAsync {
 		go sr.waitAllSignatures()
 	}
@@ -169,6 +175,11 @@ func (sr *subroundSignature) completeSignatureSubRound(pk string, shouldWaitForA
 // If the signature is valid, then the jobDone map corresponding to the node which sent it,
 // is set on true for the subround Signature
 func (sr *subroundSignature) receivedSignature(_ context.Context, cnsDta *consensus.Message) bool {
+	// TODO[cleanup cns finality]: remove this method, received signatures will be handled on subroundEndRound
+	if sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch()) {
+		return true
+	}
+
 	node := string(cnsDta.PubKey)
 	pkForLogs := core.GetTrimmedPk(hex.EncodeToString(cnsDta.PubKey))
 
@@ -230,7 +241,6 @@ func (sr *subroundSignature) receivedSignature(_ context.Context, cnsDta *consen
 		spos.ValidatorPeerHonestyIncreaseFactor,
 	)
 
-	sr.appStatusHandler.SetStringValue(common.MetricConsensusRoundState, "signed")
 	return true
 }
 
@@ -241,13 +251,28 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 	}
 
 	if sr.IsSubroundFinished(sr.Current()) {
-		sr.appStatusHandler.SetStringValue(common.MetricConsensusRoundState, "signed")
+		return true
+	}
+
+	if check.IfNil(sr.Header) {
+		return false
+	}
+
+	isSelfInConsensusGroup := sr.IsNodeInConsensusGroup(sr.SelfPubKey()) || sr.IsMultiKeyInConsensusGroup()
+	if !isSelfInConsensusGroup {
+		log.Debug("step 2: subround has been finished",
+			"subround", sr.Name())
+		sr.SetStatus(sr.Current(), spos.SsFinished)
 
 		return true
 	}
 
+	// TODO[cleanup cns finality]: simply return false and remove the rest of the method. This will be handled by subroundEndRound
+	if sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch()) {
+		return false
+	}
+
 	isSelfLeader := sr.IsSelfLeaderInCurrentRound() || sr.IsMultiKeyLeaderInCurrentRound()
-	isSelfInConsensusGroup := sr.IsNodeInConsensusGroup(sr.SelfPubKey()) || sr.IsMultiKeyInConsensusGroup()
 
 	threshold := sr.Threshold(sr.Current())
 	if sr.FallbackHeaderValidator().ShouldApplyFallbackValidation(sr.Header) {
@@ -261,7 +286,8 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 	areSignaturesCollected, numSigs := sr.areSignaturesCollected(threshold)
 	areAllSignaturesCollected := numSigs == sr.ConsensusGroupSize()
 
-	isJobDoneByLeader := isSelfLeader && (areAllSignaturesCollected || (areSignaturesCollected && sr.WaitingAllSignaturesTimeOut))
+	isSignatureCollectionDone := areAllSignaturesCollected || (areSignaturesCollected && sr.WaitingAllSignaturesTimeOut)
+	isJobDoneByLeader := isSelfLeader && isSignatureCollectionDone
 
 	selfJobDone := true
 	if sr.IsNodeInConsensusGroup(sr.SelfPubKey()) {
@@ -349,7 +375,8 @@ func (sr *subroundSignature) remainingTime() time.Duration {
 }
 
 func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
-	isMultiKeyLeader := sr.IsMultiKeyLeaderInCurrentRound()
+	isCurrentNodeMultiKeyLeader := sr.IsMultiKeyLeaderInCurrentRound()
+	isFlagActive := sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch())
 
 	numMultiKeysSignaturesSent := 0
 	for idx, pk := range sr.ConsensusGroup() {
@@ -361,15 +388,9 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 			continue
 		}
 
-		selfIndex, err := sr.ConsensusGroupIndex(pk)
-		if err != nil {
-			log.Warn("doSignatureJobForManagedKeys: index not found", "pk", pkBytes)
-			continue
-		}
-
 		signatureShare, err := sr.SigningHandler().CreateSignatureShareForPublicKey(
 			sr.GetData(),
-			uint16(selfIndex),
+			uint16(idx),
 			sr.Header.GetEpoch(),
 			pkBytes,
 		)
@@ -378,7 +399,12 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 			return false
 		}
 
-		if !isMultiKeyLeader {
+		isCurrentManagedKeyLeader := idx == spos.IndexOfLeaderInConsensusGroup
+		// TODO[cleanup cns finality]: update the check
+		// with the equivalent messages feature on, signatures from all managed keys must be broadcast, as the aggregation is done by any participant
+		shouldBroadcastSignatureShare := (!isCurrentNodeMultiKeyLeader && !isFlagActive) ||
+			(!isCurrentManagedKeyLeader && isFlagActive)
+		if shouldBroadcastSignatureShare {
 			ok := sr.createAndSendSignatureMessage(signatureShare, pkBytes)
 			if !ok {
 				return false
@@ -386,10 +412,11 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 
 			numMultiKeysSignaturesSent++
 		}
+		// with the equivalent messages feature on, the leader signature is sent on subroundBlock, thus we should update its status here as well
 		sr.sentSignatureTracker.SignatureSent(pkBytes)
 
-		isLeader := idx == spos.IndexOfLeaderInConsensusGroup
-		ok := sr.completeSignatureSubRound(pk, isLeader)
+		shouldWaitForAllSigsAsync := isCurrentManagedKeyLeader && !isFlagActive
+		ok := sr.completeSignatureSubRound(pk, shouldWaitForAllSigsAsync)
 		if !ok {
 			return false
 		}
@@ -400,6 +427,36 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 	}
 
 	return true
+}
+
+func (sr *subroundSignature) doSignatureJobForSingleKey(isSelfLeader bool, isFlagActive bool) bool {
+	selfIndex, err := sr.SelfConsensusGroupIndex()
+	if err != nil {
+		log.Debug("doSignatureJob.SelfConsensusGroupIndex: not in consensus group")
+		return false
+	}
+
+	signatureShare, err := sr.SigningHandler().CreateSignatureShareForPublicKey(
+		sr.GetData(),
+		uint16(selfIndex),
+		sr.Header.GetEpoch(),
+		[]byte(sr.SelfPubKey()),
+	)
+	if err != nil {
+		log.Debug("doSignatureJob.CreateSignatureShareForPublicKey", "error", err.Error())
+		return false
+	}
+
+	// leader already sent his signature on subround block
+	if !isSelfLeader {
+		ok := sr.createAndSendSignatureMessage(signatureShare, []byte(sr.SelfPubKey()))
+		if !ok {
+			return false
+		}
+	}
+
+	shouldWaitForAllSigsAsync := isSelfLeader && !isFlagActive
+	return sr.completeSignatureSubRound(sr.SelfPubKey(), shouldWaitForAllSigsAsync)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

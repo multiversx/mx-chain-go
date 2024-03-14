@@ -380,7 +380,7 @@ func TestCheckMessageWithBlockBodyAndHeaderValidity_NilSigShareAfterActivation(t
 	consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
 	consensusMessageValidatorArgs.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-			return flag == common.ConsensusPropagationChangesFlag
+			return flag == common.EquivalentMessagesFlag
 		},
 	}
 	cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
@@ -479,7 +479,7 @@ func TestCheckConsensusMessageValidityForMessageType_MessageWithBlockHeaderInval
 	consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
 	consensusMessageValidatorArgs.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-			return flag == common.ConsensusPropagationChangesFlag
+			return flag == common.EquivalentMessagesFlag
 		},
 	}
 	cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)

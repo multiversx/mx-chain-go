@@ -171,7 +171,7 @@ func (sr *subroundBlock) sendBlock(header data.HeaderHandler, body data.BodyHand
 
 func (sr *subroundBlock) getSignatureShare(leader string, header data.HeaderHandler, marshalledHeader []byte) ([]byte, bool) {
 	// TODO[cleanup cns finality]: remove this
-	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.ConsensusPropagationChangesFlag, header.GetEpoch()) {
+	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
 		return nil, true
 	}
 
@@ -429,7 +429,7 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 
 func (sr *subroundBlock) addProofOnHeader(header data.HeaderHandler) bool {
 	// TODO[cleanup cns finality]: remove this
-	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.ConsensusPropagationChangesFlag, header.GetEpoch()) {
+	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch()) {
 		return true
 	}
 
@@ -440,7 +440,7 @@ func (sr *subroundBlock) addProofOnHeader(header data.HeaderHandler) bool {
 	}
 
 	// this may happen in 2 cases:
-	// 1. on the very first block, after consensus propagation changes flag activation
+	// 1. on the very first block, after equivalent messages flag activation
 	// in this case, we set the previous proof as signature and bitmap from the previous header
 	// 2. current node is leader in the first block after sync
 	// in this case, we won't set the proof, return false and wait for the next round to receive a proof
@@ -450,7 +450,7 @@ func (sr *subroundBlock) addProofOnHeader(header data.HeaderHandler) bool {
 		return false
 	}
 
-	isFlagEnabledForCurrentHeader := sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.ConsensusPropagationChangesFlag, currentHeader.GetEpoch())
+	isFlagEnabledForCurrentHeader := sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, currentHeader.GetEpoch())
 	if !isFlagEnabledForCurrentHeader {
 		header.SetPreviousAggregatedSignatureAndBitmap(currentHeader.GetSignature(), currentHeader.GetPubKeysBitmap())
 		return true
@@ -544,7 +544,7 @@ func (sr *subroundBlock) saveProofForPreviousHeaderIfNeeded() {
 	}
 
 	// TODO[cleanup cns finality]: remove this
-	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.ConsensusPropagationChangesFlag, currentHeader.GetEpoch()) {
+	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, currentHeader.GetEpoch()) {
 		return
 	}
 
@@ -563,7 +563,7 @@ func (sr *subroundBlock) saveProofForPreviousHeaderIfNeeded() {
 
 func (sr *subroundBlock) saveLeaderSignature(nodeKey []byte, signature []byte) error {
 	// TODO[cleanup cns finality]: remove
-	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.ConsensusPropagationChangesFlag, sr.Header.GetEpoch()) {
+	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch()) {
 		return nil
 	}
 
@@ -602,7 +602,7 @@ func (sr *subroundBlock) verifyLeaderSignature(
 	blockHeaderHash []byte,
 	signature []byte,
 ) bool {
-	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.ConsensusPropagationChangesFlag, sr.Header.GetEpoch()) {
+	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch()) {
 		return true
 	}
 

@@ -445,7 +445,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		r := sr.DoBlockJob()
 		assert.False(t, r)
 	})
-	t.Run("should work, consensus propagation changes flag enabled", func(t *testing.T) {
+	t.Run("should work, equivalent messages flag enabled", func(t *testing.T) {
 		t.Parallel()
 
 		providedSignature := []byte("provided signature")
@@ -488,7 +488,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		})
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.ConsensusPropagationChangesFlag
+				return flag == common.EquivalentMessagesFlag
 			},
 		}
 		container.SetEnableEpochsHandler(enableEpochsHandler)
@@ -521,7 +521,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		assert.Equal(t, providedSignature, sig)
 		assert.Equal(t, providedBitmap, bitmap)
 	})
-	t.Run("should work, consensus propagation changes flag not enabled", func(t *testing.T) {
+	t.Run("should work, equivalent messages flag not enabled", func(t *testing.T) {
 		t.Parallel()
 		container := mock.InitConsensusCore()
 		sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
@@ -702,7 +702,7 @@ func TestSubroundBlock_ReceivedBlockBodyAndHeaderOK(t *testing.T) {
 		container.SetBlockProcessor(blockProcessor)
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.ConsensusPropagationChangesFlag
+				return flag == common.EquivalentMessagesFlag
 			},
 		}
 		container.SetEnableEpochsHandler(enableEpochsHandler)
@@ -855,7 +855,7 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 	assert.True(t, r)
 }
 
-func TestSubroundBlock_ReceivedBlockShouldWorkWithPropagationChangesFlagEnabled(t *testing.T) {
+func TestSubroundBlock_ReceivedBlockShouldWorkWithEquivalentMessagesFlagEnabled(t *testing.T) {
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
@@ -869,7 +869,7 @@ func TestSubroundBlock_ReceivedBlockShouldWorkWithPropagationChangesFlagEnabled(
 
 	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-			return flag == common.ConsensusPropagationChangesFlag
+			return flag == common.EquivalentMessagesFlag
 		},
 	}
 	container.SetEnableEpochsHandler(enableEpochsHandler)
