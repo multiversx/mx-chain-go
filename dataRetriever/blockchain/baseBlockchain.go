@@ -76,6 +76,8 @@ func (bbc *baseBlockChain) GetCurrentBlockHeaderHash() []byte {
 func (bbc *baseBlockChain) SetCurrentBlockHeaderHash(hash []byte) {
 	bbc.mut.Lock()
 	bbc.currentBlockHeaderHash = hash
+	// reset the header proof in order to avoid using the old one with the new hash
+	bbc.currentHeaderProof = data.HeaderProof{}
 	bbc.mut.Unlock()
 }
 
