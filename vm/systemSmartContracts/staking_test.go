@@ -3673,8 +3673,8 @@ func TestStakingSc_UnStakeAllFromQueue(t *testing.T) {
 	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("thirdKey "))
 	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("fourthKey"))
 
-	waitingListHead, _ := stakingSmartContract.getWaitingListHead()
-	require.Equal(t, waitingListHead.Length, 3)
+	waitingReturn := doGetWaitingListRegisterNonceAndRewardAddress(t, stakingSmartContract, eei)
+	assert.Equal(t, len(waitingReturn), 9)
 
 	arguments := CreateVmContractCallInput()
 	validatorData := &ValidatorDataV2{
@@ -3693,15 +3693,31 @@ func TestStakingSc_UnStakeAllFromQueue(t *testing.T) {
 	retCode := stakingSmartContract.Execute(arguments)
 	assert.Equal(t, retCode, vmcommon.Ok)
 
-	currentOutPutIndex = len(eei.output)
-	arguments.Function = "stakeNodesFromQueue"
-	retCode = stakingSmartContract.Execute(arguments)
+	// nothing to stake - as not enough funds - one remains in waiting queue
+	assert.Equal(t, currentOutPutIndex, len(eei.output))
+
+	cleanAdditionalInput := CreateVmContractCallInput()
+	cleanAdditionalInput.Function = "cleanAdditionalQueue"
+	cleanAdditionalInput.CallerAddr = args.EndOfEpochAccessAddr
+	retCode = stakingSmartContract.Execute(cleanAdditionalInput)
 	assert.Equal(t, retCode, vmcommon.Ok)
 
-	for i := currentOutPutIndex; i < len(eei.output); i += 2 {
-		checkIsStaked(t, stakingSmartContract, arguments.CallerAddr, eei.output[i], vmcommon.Ok)
+	newHead, _ := stakingSmartContract.getWaitingListHead()
+	assert.Equal(t, uint32(0), newHead.Length) // no entries in the queue list
+
+	doGetStatus(t, stakingSmartContract, eei, []byte("secondKey"), "unStaked")
+
+	// stake them again - as they were deleted from waiting list
+	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("thirdKey "))
+	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("fourthKey"))
+
+	validatorData = &ValidatorDataV2{
+		TotalStakeValue: big.NewInt(400),
 	}
-	assert.Equal(t, 6, len(eei.output)-currentOutPutIndex)
-	stakingConfig := stakingSmartContract.getConfig()
-	assert.Equal(t, stakingConfig.StakedNodes, int64(4))
+	marshaledData, _ = stakingSmartContract.marshalizer.Marshal(validatorData)
+	eei.SetStorageForAddress(vm.ValidatorSCAddress, stakerAddress, marshaledData)
+
+	// surprisingly, the queue works again as we did not activate the staking v4
+	doGetStatus(t, stakingSmartContract, eei, []byte("thirdKey "), "queued")
+	doGetStatus(t, stakingSmartContract, eei, []byte("fourthKey"), "queued")
 }
