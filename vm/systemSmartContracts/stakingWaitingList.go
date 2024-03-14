@@ -827,15 +827,9 @@ func (s *stakingSC) unStakeAllNodesFromQueue(args *vmcommon.ContractCallInput) v
 	for i, blsKey := range waitingListData.blsKeys {
 		registrationData := waitingListData.stakedDataList[i]
 
-		registrationData.Staked = false
-		registrationData.UnStakedEpoch = s.eei.BlockChainHook().CurrentEpoch()
-		registrationData.UnStakedNonce = s.eei.BlockChainHook().CurrentNonce()
-		registrationData.Waiting = false
-
-		err = s.saveStakingData(blsKey, registrationData)
-		if err != nil {
-			s.eei.AddReturnMessage("cannot save staking data: error " + err.Error())
-			return vmcommon.UserError
+		result := s.doUnStake(blsKey, registrationData)
+		if result != vmcommon.Ok {
+			return result
 		}
 
 		// delete element from waiting list
