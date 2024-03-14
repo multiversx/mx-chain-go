@@ -1,5 +1,18 @@
 #!/usr/bin/env bash
 
+IP_BIT=3
+
+cloneRepositories() {
+  if [[ -n $CI_RUN ]]; then
+    echo "Repositories have been cloned in the CI"
+  else
+    cd $(dirname $MULTIVERSXDIR)
+
+    git clone git@github.com:multiversx/mx-chain-deploy-go.git || true
+    git clone git@github.com:multiversx/mx-chain-proxy-go.git || true
+  fi
+}
+
 startSeedNode() {
   docker run -d --name seednode -v ${TESTNETDIR}/seednode/config:/go/mx-chain-go/cmd/seednode/config seednode:dev \
   --rest-api-interface=0.0.0.0:10000
@@ -13,14 +26,17 @@ startObservers() {
      # Your commands or code to be executed in each iteration
      KEY_INDEX=$((TOTAL_NODECOUNT - observerIdx - 1))
 
-     docker run -d --name "observer${observerIdx}" \
+     docker run -d --name "observer${observerIdx}-172.17.0.${IP_BIT}-10200-shard${i}" \
      -v $TESTNETDIR/node/config:/go/mx-chain-go/cmd/node/config \
      node:dev \
      --destination-shard-as-observer $i \
      --rest-api-interface=0.0.0.0:10200 \
      --config ./config/config_observer.toml \
      --sk-index=${KEY_INDEX} \
+     $EXTRA_OBSERVERS_FLAGS
 
+
+     (( IP_BIT++ ))
      ((observerIdx++)) || true
    done
  done
@@ -28,14 +44,16 @@ startObservers() {
  for ((i = 0; i < META_OBSERVERCOUNT; i++)); do
     KEY_INDEX=$((TOTAL_NODECOUNT - observerIdx - 1))
 
-    docker run -d --name "observer${observerIdx}" \
+    docker run -d --name "observer${observerIdx}-172.17.0.${IP_BIT}-10200-metachain" \
         -v $TESTNETDIR/node/config:/go/mx-chain-go/cmd/node/config \
         node:dev \
         --destination-shard-as-observer "metachain" \
         --rest-api-interface=0.0.0.0:10200 \
         --config ./config/config_observer.toml \
         --sk-index=${KEY_INDEX} \
+        $EXTRA_OBSERVERS_FLAGS
 
+    (( IP_BIT++ ))
     ((observerIdx++)) || true
  done
 }
@@ -46,25 +64,27 @@ startValidators() {
  for ((i = 0; i < SHARDCOUNT; i++)); do
    for ((j = 0; j < SHARD_VALIDATORCOUNT; j++)); do
 
-     docker run -d --name "validator${validatorIdx}" \
+     docker run -d --name "validator${validatorIdx}-172.17.0.${IP_BIT}-10200-shard${i}" \
      -v $TESTNETDIR/node/config:/go/mx-chain-go/cmd/node/config \
      node:dev \
      --rest-api-interface=0.0.0.0:10200 \
      --config ./config/config_validator.toml \
      --sk-index=${validatorIdx} \
 
+     (( IP_BIT++ ))
      ((validatorIdx++)) || true
    done
  done
 
   for ((i = 0; i < META_VALIDATORCOUNT; i++)); do
-     docker run -d --name "validator${validatorIdx}" \
+     docker run -d --name "validator${validatorIdx}-172.17.0.${IP_BIT}-10200-metachain" \
          -v $TESTNETDIR/node/config:/go/mx-chain-go/cmd/node/config \
          node:dev \
          --rest-api-interface=0.0.0.0:10200 \
          --config ./config/config_observer.toml \
          --sk-index=${validatorIdx} \
 
+     (( IP_BIT++ ))
      ((validatorIdx++)) || true
   done
 }
@@ -89,7 +109,7 @@ updateProxyConfigDocker() {
 }
 
 generateProxyObserverListDocker() {
-  IP_BIT=3
+  local ipBit=3
   OUTPUTFILE=$!
 
 
@@ -98,25 +118,25 @@ generateProxyObserverListDocker() {
 
         echo "[[Observers]]" >> config_edit.toml
         echo "   ShardId = $i" >> config_edit.toml
-        echo "   Address = \"http://172.17.0.${IP_BIT}:10200\"" >> config_edit.toml
+        echo "   Address = \"http://172.17.0.${ipBit}:10200\"" >> config_edit.toml
         echo ""$'\n' >> config_edit.toml
 
-        (( IP_BIT++ ))
+        (( ipBit++ )) || true
      done
   done
 
   for META_OBSERVER in $(seq $META_OBSERVERCOUNT); do
         echo "[[Observers]]" >> config_edit.toml
         echo "   ShardId = $METASHARD_ID" >> config_edit.toml
-        echo "   Address = \"http://172.17.0.${IP_BIT}:10200\"" >> config_edit.toml
+        echo "   Address = \"http://172.17.0.${ipBit}:10200\"" >> config_edit.toml
         echo ""$'\n' >> config_edit.toml
 
-        (( IP_BIT++ ))
+        (( ipBit++ )) || true
   done
 }
 
 generateProxyValidatorListDocker() {
-  IP_BIT=3
+  local ipBit=3
   OUTPUTFILE=$!
 
 
@@ -125,22 +145,22 @@ generateProxyValidatorListDocker() {
 
         echo "[[Observers]]" >> config_edit.toml
         echo "   ShardId = $i" >> config_edit.toml
-        echo "   Address = \"http://172.17.0.${IP_BIT}:10200\"" >> config_edit.toml
+        echo "   Address = \"http://172.17.0.${ipBit}:10200\"" >> config_edit.toml
         echo "   Type = \"Validator\"" >> config_edit.toml
         echo ""$'\n' >> config_edit.toml
 
-        (( IP_BIT++ ))
+        (( ipBit++ )) || true
      done
   done
 
   for META_OBSERVER in $(seq $META_VALIDATORCOUNT); do
         echo "[[Observers]]" >> config_edit.toml
         echo "   ShardId = $METASHARD_ID" >> config_edit.toml
-        echo "   Address = \"http://172.17.0.${IP_BIT}:10200\"" >> config_edit.toml
+        echo "   Address = \"http://172.17.0.${ipBit}:10200\"" >> config_edit.toml
         echo "   Type = \"Validator\"" >> config_edit.toml
         echo ""$'\n' >> config_edit.toml
 
-        (( IP_BIT++ ))
+        (( ipBit++ )) || true
   done
 }
 

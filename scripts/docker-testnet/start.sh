@@ -11,6 +11,8 @@ source "$DOCKERTESTNETDIR/functions.sh"
 source "$MULTIVERSXTESTNETSCRIPTSDIR/include/config.sh"
 source "$MULTIVERSXTESTNETSCRIPTSDIR/include/build.sh"
 
+cloneRepositories
+
 prepareFolders
 
 buildConfigGenerator
