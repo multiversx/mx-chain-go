@@ -28,6 +28,10 @@ import (
 
 // // Internal test scenario #3
 func TestChainSimulator_SimpleStake(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	t.Run("staking ph 4 is not active", func(t *testing.T) {
 		testChainSimulatorSimpleStake(t, 1, "queued")
 	})

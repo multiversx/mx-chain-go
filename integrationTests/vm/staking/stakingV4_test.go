@@ -175,7 +175,9 @@ func checkStakingV4EpochChangeFlow(
 }
 
 func TestStakingV4(t *testing.T) {
-	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	numOfMetaNodes := uint32(400)
 	numOfShards := uint32(3)
@@ -271,7 +273,9 @@ func TestStakingV4(t *testing.T) {
 }
 
 func TestStakingV4MetaProcessor_ProcessMultipleNodesWithSameSetupExpectSameRootHash(t *testing.T) {
-	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	numOfMetaNodes := uint32(6)
 	numOfShards := uint32(3)
@@ -318,7 +322,9 @@ func TestStakingV4MetaProcessor_ProcessMultipleNodesWithSameSetupExpectSameRootH
 }
 
 func TestStakingV4_UnStakeNodesWithNotEnoughFunds(t *testing.T) {
-	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	pubKeys := generateAddresses(0, 20)
 
@@ -476,7 +482,9 @@ func TestStakingV4_UnStakeNodesWithNotEnoughFunds(t *testing.T) {
 }
 
 func TestStakingV4_StakeNewNodes(t *testing.T) {
-	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	pubKeys := generateAddresses(0, 20)
 
@@ -617,7 +625,9 @@ func TestStakingV4_StakeNewNodes(t *testing.T) {
 }
 
 func TestStakingV4_UnStakeNodes(t *testing.T) {
-	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	pubKeys := generateAddresses(0, 20)
 
@@ -812,7 +822,9 @@ func TestStakingV4_UnStakeNodes(t *testing.T) {
 }
 
 func TestStakingV4_JailAndUnJailNodes(t *testing.T) {
-	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	pubKeys := generateAddresses(0, 20)
 
@@ -969,7 +981,9 @@ func TestStakingV4_JailAndUnJailNodes(t *testing.T) {
 }
 
 func TestStakingV4_DifferentEdgeCasesWithNotEnoughNodesInWaitingShouldSendShuffledToToWaiting(t *testing.T) {
-	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	pubKeys := generateAddresses(0, 20)
 
@@ -1184,7 +1198,9 @@ func TestStakingV4_DifferentEdgeCasesWithNotEnoughNodesInWaitingShouldSendShuffl
 }
 
 func TestStakingV4_NewlyStakedNodesInStakingV4Step2ShouldBeSentToWaitingIfListIsTooLow(t *testing.T) {
-	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	pubKeys := generateAddresses(0, 20)
 
@@ -1323,7 +1339,9 @@ func TestStakingV4_NewlyStakedNodesInStakingV4Step2ShouldBeSentToWaitingIfListIs
 }
 
 func TestStakingV4_LeavingNodesEdgeCases(t *testing.T) {
-	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	pubKeys := generateAddresses(0, 20)
 
