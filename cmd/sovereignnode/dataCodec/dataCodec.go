@@ -42,6 +42,10 @@ func (dc *dataCodec) SerializeEventData(eventData sovereign.EventData) ([]byte, 
 				Value: abi.U64Value{Value: eventData.Nonce},
 			},
 			{
+				Name:  "op_sender",
+				Value: abi.AddressValue{Value: eventData.Sender},
+			},
+			{
 				Name: "opt_transfer_data",
 				Value: abi.OptionValue{
 					Value: transferData,
@@ -65,6 +69,7 @@ func (dc *dataCodec) DeserializeEventData(data []byte) (*sovereign.EventData, er
 	}
 
 	nonce := &abi.U64Value{}
+	sender := &abi.AddressValue{}
 	gasLimit := &abi.U64Value{}
 	function := &abi.BytesValue{}
 	args := &abi.OutputListValue{
@@ -76,6 +81,10 @@ func (dc *dataCodec) DeserializeEventData(data []byte) (*sovereign.EventData, er
 			{
 				Name:  "op_nonce",
 				Value: nonce,
+			},
+			{
+				Name:  "op_sender",
+				Value: sender,
 			},
 			{
 				Name: "opt_transfer_data",
@@ -115,6 +124,7 @@ func (dc *dataCodec) DeserializeEventData(data []byte) (*sovereign.EventData, er
 
 	return &sovereign.EventData{
 		Nonce:        nonce.Value,
+		Sender:       sender.Value,
 		TransferData: transferData,
 	}, nil
 }
@@ -455,6 +465,10 @@ func getOperationData(data sovereign.EventData) any {
 			{
 				Name:  "op_nonce",
 				Value: abi.U64Value{Value: data.Nonce},
+			},
+			{
+				Name:  "op_sender",
+				Value: abi.AddressValue{Value: data.Sender},
 			},
 			{
 				Name: "opt_transfer_data",

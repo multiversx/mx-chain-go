@@ -121,10 +121,12 @@ func createNftTokenData() []byte {
 func createEventData() []byte {
 	args := createArgs()
 
+	sender, _ := hex.DecodeString("0000000000000000000000000000000000000000000000000000000000000000")
 	tdArgs := make([][]byte, 0)
 	tdArgs = append(tdArgs, []byte("arg1"))
 	evData, _ := args.DataCodec.SerializeEventData(sovereign.EventData{
-		Nonce: 10,
+		Nonce:  10,
+		Sender: sender,
 		TransferData: &sovereign.TransferData{
 			GasLimit: 255,
 			Function: []byte("func1"),
@@ -135,11 +137,12 @@ func createEventData() []byte {
 	return evData
 }
 
-func createCustomEventData(nonce uint64, gasLimit uint64, function []byte, arguments [][]byte) []byte {
+func createCustomEventData(nonce uint64, sender []byte, gasLimit uint64, function []byte, arguments [][]byte) []byte {
 	args := createArgs()
 
 	evData, _ := args.DataCodec.SerializeEventData(sovereign.EventData{
-		Nonce: nonce,
+		Nonce:  nonce,
+		Sender: sender,
 		TransferData: &sovereign.TransferData{
 			GasLimit: gasLimit,
 			Function: function,
@@ -311,7 +314,7 @@ func TestIncomingHeaderHandler_AddHeaderErrorCases(t *testing.T) {
 		err = handler.AddHeader([]byte("hash"), incomingHeader)
 		requireErrorIsInvalidNumTopics(t, err, 0, 4)
 
-		incomingHeader.IncomingEvents[0] = &transaction.Event{Topics: [][]byte{[]byte("topicID"), []byte("addr"), []byte("tokenID1"), []byte("nonce1"), tokenData, []byte("tokenID2")}, Identifier: []byte(eventIDDepositIncomingTransfer)}
+		incomingHeader.IncomingEvents[0] = &transaction.Event{Topics: [][]byte{[]byte("topicID"), []byte("addr"), []byte("tokenID1"), []byte("nonce1"), []byte("tokenData1"), []byte("tokenID2")}, Identifier: []byte(eventIDDepositIncomingTransfer)}
 		err = handler.AddHeader([]byte("hash"), incomingHeader)
 		requireErrorIsInvalidNumTopics(t, err, 0, 6)
 
@@ -436,9 +439,11 @@ func TestIncomingHeaderProcessor_getEventData(t *testing.T) {
 	require.Nil(t, ret)
 	require.True(t, strings.Contains(err.Error(), "cannot decode"))
 
-	input, err = hex.DecodeString("000000000000000a00")
+	input, err = hex.DecodeString("000000000000000a000000000000000000000000000000000000000000000000000000000000000000")
+	sender, _ := hex.DecodeString("0000000000000000000000000000000000000000000000000000000000000000")
 	hexEventData, err := handler.eventsProc.dataCodec.SerializeEventData(sovereign.EventData{
 		Nonce:        10,
+		Sender:       sender,
 		TransferData: nil,
 	})
 	require.Equal(t, input, hexEventData)
@@ -450,9 +455,11 @@ func TestIncomingHeaderProcessor_getEventData(t *testing.T) {
 		gasLimit:             uint64(0),
 	}, ret)
 
-	input, err = hex.DecodeString("000000000000000a01000000000000005e0000000566756e63310000000200000004617267310000000461726732")
+	input, err = hex.DecodeString("000000000000000a000000000000000000000000000000000000000000000000000000000000000001000000000000005e0000000566756e63310000000200000004617267310000000461726732")
+	sender, _ = hex.DecodeString("0000000000000000000000000000000000000000000000000000000000000000")
 	hexEventData, err = handler.eventsProc.dataCodec.SerializeEventData(sovereign.EventData{
-		Nonce: 10,
+		Nonce:  10,
+		Sender: sender,
 		TransferData: &sovereign.TransferData{
 			GasLimit: 94,
 			Function: []byte("func1"),
@@ -468,9 +475,11 @@ func TestIncomingHeaderProcessor_getEventData(t *testing.T) {
 		gasLimit:             uint64(94),
 	}, ret)
 
-	input, err = hex.DecodeString("0000000000000002010000000001312d0000000003616464000000010000000401312d00")
+	input, err = hex.DecodeString("00000000000000020000000000000000000000000000000000000000000000000000000000000000010000000001312d0000000003616464000000010000000401312d00")
+	sender, _ = hex.DecodeString("0000000000000000000000000000000000000000000000000000000000000000")
 	hexEventData, err = handler.eventsProc.dataCodec.SerializeEventData(sovereign.EventData{
-		Nonce: 2,
+		Nonce:  2,
+		Sender: sender,
 		TransferData: &sovereign.TransferData{
 			GasLimit: 20000000,
 			Function: []byte("add"),
@@ -522,19 +531,33 @@ func TestIncomingHeaderHandler_AddHeader(t *testing.T) {
 	require.NoError(t, err)
 
 	scr1 := &smartContractResult.SmartContractResult{
-		Nonce:    0,
-		Value:    big.NewInt(0),
-		RcvAddr:  addr1,
-		SndAddr:  core.ESDTSCAddress,
-		Data:     []byte("MultiESDTNFTTransfer@02@" + hex.EncodeToString(token1) + "@" + hex.EncodeToString(token1Nonce) + "@" + hex.EncodeToString(token1DataBytes) + "@" + hex.EncodeToString(token2) + "@" + hex.EncodeToString(token2Nonce) + "@" + hex.EncodeToString(nftDataBytes) + "@" + hex.EncodeToString(func1) + "@" + hex.EncodeToString(arg1) + "@" + hex.EncodeToString(arg2)),
+		Nonce:   0,
+		Value:   big.NewInt(0),
+		RcvAddr: addr1,
+		SndAddr: core.ESDTSCAddress,
+		Data: []byte("MultiESDTNFTTransfer@02" +
+			"@" + hex.EncodeToString(token1) +
+			"@" + hex.EncodeToString(token1Nonce) +
+			"@" + hex.EncodeToString(token1DataBytes) +
+			"@" + hex.EncodeToString(token2) +
+			"@" + hex.EncodeToString(token2Nonce) +
+			"@" + hex.EncodeToString(nftDataBytes) +
+			"@" + hex.EncodeToString(func1) +
+			"@" + hex.EncodeToString(arg1) +
+			"@" + hex.EncodeToString(arg2)),
 		GasLimit: gasLimit1,
 	}
 	scr2 := &smartContractResult.SmartContractResult{
-		Nonce:    1,
-		Value:    big.NewInt(0),
-		RcvAddr:  addr2,
-		SndAddr:  core.ESDTSCAddress,
-		Data:     []byte("MultiESDTNFTTransfer@01@" + hex.EncodeToString(token1) + "@" + hex.EncodeToString(token1Nonce) + "@" + hex.EncodeToString(token2DataBytes) + "@" + hex.EncodeToString(func2) + "@" + hex.EncodeToString(arg1)),
+		Nonce:   1,
+		Value:   big.NewInt(0),
+		RcvAddr: addr2,
+		SndAddr: core.ESDTSCAddress,
+		Data: []byte("MultiESDTNFTTransfer@01" +
+			"@" + hex.EncodeToString(token1) +
+			"@" + hex.EncodeToString(token1Nonce) +
+			"@" + hex.EncodeToString(token2DataBytes) +
+			"@" + hex.EncodeToString(func2) +
+			"@" + hex.EncodeToString(arg1)),
 		GasLimit: gasLimit2,
 	}
 
@@ -578,7 +601,8 @@ func TestIncomingHeaderHandler_AddHeader(t *testing.T) {
 	topic1 := append([][]byte{topicID}, [][]byte{addr1}...)
 	topic1 = append(topic1, transfer1...)
 	topic1 = append(topic1, transfer2...)
-	eventData1 := createCustomEventData(uint64(0), gasLimit1, func1, [][]byte{arg1, arg2})
+	sender1, _ := hex.DecodeString("000000000000000000010000000000000000000000000000000000000002ffff")
+	eventData1 := createCustomEventData(uint64(0), sender1, gasLimit1, func1, [][]byte{arg1, arg2})
 
 	transfer3 := [][]byte{
 		token1,
@@ -587,7 +611,8 @@ func TestIncomingHeaderHandler_AddHeader(t *testing.T) {
 	}
 	topic2 := append([][]byte{topicID}, [][]byte{addr2}...)
 	topic2 = append(topic2, transfer3...)
-	eventData2 := createCustomEventData(uint64(1), gasLimit2, func2, [][]byte{arg1})
+	sender2, _ := hex.DecodeString("0000000000000000000000000000000000000000000000000000000000000000")
+	eventData2 := createCustomEventData(uint64(1), sender2, gasLimit2, func2, [][]byte{arg1})
 
 	topic3 := [][]byte{
 		[]byte("executedBridgeOp"),
