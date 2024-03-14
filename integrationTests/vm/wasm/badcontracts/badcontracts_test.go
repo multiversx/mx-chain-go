@@ -1,5 +1,3 @@
-//go:build !race
-
 package badcontracts
 
 import (
@@ -11,9 +9,8 @@ import (
 )
 
 func Test_Bad_C_NoPanic(t *testing.T) {
-	// TODO reinstate test after Wasm VM pointer fix
 	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Wasm VM fix")
+		t.Skip("this is not a short test")
 	}
 
 	context := wasm.SetupTestContext(t)
