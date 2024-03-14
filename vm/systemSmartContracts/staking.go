@@ -649,6 +649,11 @@ func (s *stakingSC) tryUnStake(key []byte, registrationData *StakedDataV2_0) vmc
 	}
 
 	s.removeFromStakedNodes()
+
+	return s.doUnStake(key, registrationData)
+}
+
+func (s *stakingSC) doUnStake(key []byte, registrationData *StakedDataV2_0) vmcommon.ReturnCode {
 	registrationData.Staked = false
 	registrationData.UnStakedEpoch = s.eei.BlockChainHook().CurrentEpoch()
 	registrationData.UnStakedNonce = s.eei.BlockChainHook().CurrentNonce()
