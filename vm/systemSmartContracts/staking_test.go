@@ -3692,10 +3692,7 @@ func TestStakingSc_UnStakeAllFromQueue(t *testing.T) {
 	retCode := stakingSmartContract.Execute(arguments)
 	assert.Equal(t, retCode, vmcommon.Ok)
 
-	currentOutPutIndex = len(eei.output)
-	arguments.Function = "stakeNodesFromQueue"
-	retCode = stakingSmartContract.Execute(arguments)
-	assert.Equal(t, retCode, vmcommon.Ok)
+	assert.Equal(t, eei.GetStorage([]byte(waitingListHeadKey)), nil)
 
 	for i := currentOutPutIndex; i < len(eei.output); i += 2 {
 		checkIsStaked(t, stakingSmartContract, arguments.CallerAddr, eei.output[i], vmcommon.Ok)
