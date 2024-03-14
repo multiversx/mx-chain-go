@@ -2053,14 +2053,6 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Init(t *testing.T)
 		0: {
 			createValidatorInfo(owner1ListPubKeysStaked[0], common.EligibleList, "", 0, owner1),
 			createValidatorInfo(owner1ListPubKeysStaked[1], common.WaitingList, "", 0, owner1),
-			createValidatorInfo(owner1ListPubKeysWaiting[0], common.AuctionList, "", 0, owner1),
-			createValidatorInfo(owner1ListPubKeysWaiting[1], common.AuctionList, "", 0, owner1),
-			createValidatorInfo(owner1ListPubKeysWaiting[2], common.AuctionList, "", 0, owner1),
-
-			createValidatorInfo(owner2ListPubKeysWaiting[0], common.AuctionList, "", 0, owner2),
-
-			createValidatorInfo(owner3ListPubKeysWaiting[0], common.AuctionList, "", 0, owner3),
-			createValidatorInfo(owner3ListPubKeysWaiting[1], common.AuctionList, "", 0, owner3),
 		},
 		1: {
 			createValidatorInfo(owner2ListPubKeysStaked[0], common.EligibleList, "", 1, owner2),
