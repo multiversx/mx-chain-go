@@ -821,13 +821,7 @@ func (s *stakingSC) unStakeAllNodesFromQueue(args *vmcommon.ContractCallInput) v
 		return vmcommon.UserError
 	}
 	if len(waitingListData.blsKeys) == 0 {
-		s.eei.AddReturnMessage("no nodes in queue")
 		return vmcommon.Ok
-	}
-
-	nodePriceToUse := big.NewInt(0).Set(s.minNodePrice)
-	if s.enableEpochsHandler.IsFlagEnabled(common.CorrectLastUnJailedFlag) {
-		nodePriceToUse.Set(s.stakeValue)
 	}
 
 	for i, blsKey := range waitingListData.blsKeys {
