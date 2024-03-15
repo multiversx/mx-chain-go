@@ -27,11 +27,14 @@ updateSeednodeConfig
 copyNodeConfig
 updateNodeConfig
 
+createDockerNetwork
+
 startSeedNode
 startObservers
 startValidators
 
 if [ $USE_PROXY -eq 1 ]; then
+  buildProxyImage
   prepareFolders_Proxy
   copyProxyConfig
   updateProxyConfigDocker

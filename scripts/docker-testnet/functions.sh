@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 
-IP_BIT=3
+# Starts from 3, if the DOCKER_NETWORK_SUBNET ends with a 0. The first IP address is reserved for the gateway and the
+# second one is allocated to the seednode. Therefore the counting starts from 3. If you modify the DOCKER_NETWORK_SUBNET
+# variable, make sure to change this one accordingly too.
+IP_HOST_BYTE=3
 
 cloneRepositories() {
   if [[ -n $CI_RUN ]]; then
@@ -13,8 +16,18 @@ cloneRepositories() {
   fi
 }
 
+createDockerNetwork() {
+  docker network create -d bridge --subnet=${DOCKER_NETWORK_SUBNET} ${DOCKER_NETWORK_NAME}
+
+  # this variable is used to keep track of the allocated IP addresses in the network, by removing the last byte
+  # of the DOCKER_NETWORK_SUBNET. One can consider this the host network address without the last byte at the end.
+  export NETWORK_ADDRESS=$(echo "$DOCKER_NETWORK_SUBNET" | rev | cut -d. -f2- | rev)
+}
+
 startSeedNode() {
-  docker run -d --name seednode -v ${TESTNETDIR}/seednode/config:/go/mx-chain-go/cmd/seednode/config seednode:dev \
+  docker run -d --name seednode -v ${TESTNETDIR}/seednode/config:/go/mx-chain-go/cmd/seednode/config \
+  --network ${DOCKER_NETWORK_NAME} \
+  seednode:dev \
   --rest-api-interface=0.0.0.0:10000
 }
 
@@ -26,8 +39,9 @@ startObservers() {
      # Your commands or code to be executed in each iteration
      KEY_INDEX=$((TOTAL_NODECOUNT - observerIdx - 1))
 
-     docker run -d --name "observer${observerIdx}-172.17.0.${IP_BIT}-10200-shard${i}" \
+     docker run -d --name "observer${observerIdx}-${NETWORK_ADDRESS}.${IP_HOST_BYTE}-10200-shard${i}" \
      -v $TESTNETDIR/node/config:/go/mx-chain-go/cmd/node/config \
+     --network ${DOCKER_NETWORK_NAME} \
      node:dev \
      --destination-shard-as-observer $i \
      --rest-api-interface=0.0.0.0:10200 \
@@ -36,7 +50,7 @@ startObservers() {
      $EXTRA_OBSERVERS_FLAGS
 
 
-     (( IP_BIT++ ))
+     (( IP_HOST_BYTE++ ))
      ((observerIdx++)) || true
    done
  done
@@ -44,8 +58,9 @@ startObservers() {
  for ((i = 0; i < META_OBSERVERCOUNT; i++)); do
     KEY_INDEX=$((TOTAL_NODECOUNT - observerIdx - 1))
 
-    docker run -d --name "observer${observerIdx}-172.17.0.${IP_BIT}-10200-metachain" \
+    docker run -d --name "observer${observerIdx}-${NETWORK_ADDRESS}.${IP_HOST_BYTE}-10200-metachain" \
         -v $TESTNETDIR/node/config:/go/mx-chain-go/cmd/node/config \
+        --network ${DOCKER_NETWORK_NAME} \
         node:dev \
         --destination-shard-as-observer "metachain" \
         --rest-api-interface=0.0.0.0:10200 \
@@ -53,7 +68,7 @@ startObservers() {
         --sk-index=${KEY_INDEX} \
         $EXTRA_OBSERVERS_FLAGS
 
-    (( IP_BIT++ ))
+    (( IP_HOST_BYTE++ ))
     ((observerIdx++)) || true
  done
 }
@@ -64,27 +79,29 @@ startValidators() {
  for ((i = 0; i < SHARDCOUNT; i++)); do
    for ((j = 0; j < SHARD_VALIDATORCOUNT; j++)); do
 
-     docker run -d --name "validator${validatorIdx}-172.17.0.${IP_BIT}-10200-shard${i}" \
+     docker run -d --name "validator${validatorIdx}-${NETWORK_ADDRESS}.${IP_HOST_BYTE}-10200-shard${i}" \
      -v $TESTNETDIR/node/config:/go/mx-chain-go/cmd/node/config \
+     --network ${DOCKER_NETWORK_NAME} \
      node:dev \
      --rest-api-interface=0.0.0.0:10200 \
      --config ./config/config_validator.toml \
      --sk-index=${validatorIdx} \
 
-     (( IP_BIT++ ))
+     (( IP_HOST_BYTE++ ))
      ((validatorIdx++)) || true
    done
  done
 
   for ((i = 0; i < META_VALIDATORCOUNT; i++)); do
-     docker run -d --name "validator${validatorIdx}-172.17.0.${IP_BIT}-10200-metachain" \
+     docker run -d --name "validator${validatorIdx}-${NETWORK_ADDRESS}.${IP_HOST_BYTE}-10200-metachain" \
          -v $TESTNETDIR/node/config:/go/mx-chain-go/cmd/node/config \
+         --network ${DOCKER_NETWORK_NAME} \
          node:dev \
          --rest-api-interface=0.0.0.0:10200 \
          --config ./config/config_observer.toml \
          --sk-index=${validatorIdx} \
 
-     (( IP_BIT++ ))
+     (( IP_HOST_BYTE++ ))
      ((validatorIdx++)) || true
   done
 }
@@ -109,7 +126,7 @@ updateProxyConfigDocker() {
 }
 
 generateProxyObserverListDocker() {
-  local ipBit=3
+  local ipByte=3
   OUTPUTFILE=$!
 
 
@@ -118,25 +135,25 @@ generateProxyObserverListDocker() {
 
         echo "[[Observers]]" >> config_edit.toml
         echo "   ShardId = $i" >> config_edit.toml
-        echo "   Address = \"http://172.17.0.${ipBit}:10200\"" >> config_edit.toml
+        echo "   Address = \"http://${NETWORK_ADDRESS}.${ipByte}:10200\"" >> config_edit.toml
         echo ""$'\n' >> config_edit.toml
 
-        (( ipBit++ )) || true
+        (( ipByte++ )) || true
      done
   done
 
   for META_OBSERVER in $(seq $META_OBSERVERCOUNT); do
         echo "[[Observers]]" >> config_edit.toml
         echo "   ShardId = $METASHARD_ID" >> config_edit.toml
-        echo "   Address = \"http://172.17.0.${ipBit}:10200\"" >> config_edit.toml
+        echo "   Address = \"http://${NETWORK_ADDRESS}.${ipByte}:10200\"" >> config_edit.toml
         echo ""$'\n' >> config_edit.toml
 
-        (( ipBit++ )) || true
+        (( ipByte++ )) || true
   done
 }
 
 generateProxyValidatorListDocker() {
-  local ipBit=3
+  local ipByte=3
   OUTPUTFILE=$!
 
 
@@ -145,28 +162,35 @@ generateProxyValidatorListDocker() {
 
         echo "[[Observers]]" >> config_edit.toml
         echo "   ShardId = $i" >> config_edit.toml
-        echo "   Address = \"http://172.17.0.${ipBit}:10200\"" >> config_edit.toml
+        echo "   Address = \"http://${NETWORK_ADDRESS}.${ipByte}:10200\"" >> config_edit.toml
         echo "   Type = \"Validator\"" >> config_edit.toml
         echo ""$'\n' >> config_edit.toml
 
-        (( ipBit++ )) || true
+        (( ipByte++ )) || true
      done
   done
 
   for META_OBSERVER in $(seq $META_VALIDATORCOUNT); do
         echo "[[Observers]]" >> config_edit.toml
         echo "   ShardId = $METASHARD_ID" >> config_edit.toml
-        echo "   Address = \"http://172.17.0.${ipBit}:10200\"" >> config_edit.toml
+        echo "   Address = \"http://${NETWORK_ADDRESS}.${ipByte}:10200\"" >> config_edit.toml
         echo "   Type = \"Validator\"" >> config_edit.toml
         echo ""$'\n' >> config_edit.toml
 
-        (( ipBit++ )) || true
+        (( ipByte++ )) || true
   done
+}
+
+buildProxyImage() {
+  pushd ${PROXYDIR}
+  cd ../..
+  docker build -f docker/Dockerfile . -t proxy:dev
 }
 
 startProxyDocker() {
   docker run -d --name "proxy" \
            -p $PORT_PROXY:8080 \
            -v $TESTNETDIR/proxy/config:/mx-chain-proxy-go/cmd/proxy/config \
-           multiversx/chain-proxy:v1.1.45-sp4
+           --network ${DOCKER_NETWORK_NAME} \
+           proxy:dev
 }

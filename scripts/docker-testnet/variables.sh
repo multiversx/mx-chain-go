@@ -1,5 +1,14 @@
 # These paths must be absolute
 
+########################################################################
+# Docker network configuration
+
+# Don't change the subnet, unless you know what you are doing. Prone to errors.
+export DOCKER_NETWORK_SUBNET="172.18.0.0/24"
+export DOCKER_NETWORK_NAME="local-testnet"
+########################################################################
+
+
 # METASHARD_ID will be used to identify a shard ID as metachain
 export METASHARD_ID=4294967295
 
@@ -92,8 +101,9 @@ export ALWAYS_NEW_APP_VERSION=0
 # each time.
 export ALWAYS_UPDATE_CONFIGS=1
 
-# IP of the seednode
-export SEEDNODE_IP="172.17.0.2"
+# IP of the seednode. This should be the first IP allocated in the local testnet network. If you modify the default
+# DOCKER_NETWORK_SUBNET, you will need to edit this one accordingly too.
+export SEEDNODE_IP="$(echo "$DOCKER_NETWORK_SUBNET" | rev | cut -d. -f2- | rev).2"
 
 # Ports used by the Nodes
 export PORT_SEEDNODE="9999"
@@ -134,8 +144,6 @@ export PROXY=$PROXYDIR/proxy    # Leave unchanged.
 
 export PORT_PROXY="7950"
 export PROXY_DELAY=10
-
-
 
 ########################################################################
 # TxGen configuration
