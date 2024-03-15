@@ -936,7 +936,7 @@ func TestStakingV4_JailAndUnJailNodes(t *testing.T) {
 	requireSameSliceDifferentOrder(t, currNodesConfig.auction, queue)
 
 	// 3. Epoch = stakingV4Step2
-	node.Process(t, 2)
+	node.Process(t, 1)
 	currNodesConfig = node.NodesConfig
 	queue = append(queue, getAllPubKeys(currNodesConfig.shuffledOut)...)
 	require.Empty(t, currNodesConfig.queue)
@@ -946,11 +946,9 @@ func TestStakingV4_JailAndUnJailNodes(t *testing.T) {
 	newJailed := getAllPubKeys(currNodesConfig.waiting)[:1]
 	node.ProcessJail(t, newJailed)
 
-	// TODO fix the test below this point
-	return
 	// 4. Epoch = stakingV4Step3;
 	// 4.1 Expect jailed node from waiting list is now leaving
-	node.Process(t, 5)
+	node.Process(t, 4)
 	currNodesConfig = node.NodesConfig
 	requireMapContains(t, currNodesConfig.leaving, newJailed)
 	requireSliceContainsNumOfElements(t, currNodesConfig.auction, newJailed, 0)
@@ -963,7 +961,7 @@ func TestStakingV4_JailAndUnJailNodes(t *testing.T) {
 	require.Empty(t, currNodesConfig.queue)
 
 	// 5. Epoch is now after whole staking v4 chain is activated
-	node.Process(t, 4)
+	node.Process(t, 3)
 	currNodesConfig = node.NodesConfig
 	queue = currNodesConfig.auction
 	newJailed = queue[:1]
