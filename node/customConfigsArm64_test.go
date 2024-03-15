@@ -63,7 +63,7 @@ func TestApplyArchCustomConfigs(t *testing.T) {
 		expectedVMConfig.Execution.WasmVMVersions = expectedVMWasmVersionsConfig
 		expectedVMConfig.Querying.WasmVMVersions = expectedVMWasmVersionsConfig
 
-		applyArchCustomConfigs(providedConfigs)
+		ApplyArchCustomConfigs(providedConfigs)
 
 		assert.Equal(t, expectedVMConfig, providedConfigs.GeneralConfig.VirtualMachine)
 	})
@@ -78,7 +78,7 @@ func TestApplyArchCustomConfigs(t *testing.T) {
 		expectedVMConfig.Execution.WasmVMVersions = expectedVMWasmVersionsConfig
 		expectedVMConfig.Querying.WasmVMVersions = expectedVMWasmVersionsConfig
 
-		applyArchCustomConfigs(providedConfigs)
+		ApplyArchCustomConfigs(providedConfigs)
 
 		expectedConfig := &config.Configs{
 			GeneralConfig: &config.Config{
