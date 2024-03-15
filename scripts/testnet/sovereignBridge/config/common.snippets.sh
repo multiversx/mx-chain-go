@@ -33,6 +33,8 @@ sovereignInit() {
 
     ../config.sh
 
+    updateAndStartBridgeService
+
     ../sovereignStart.sh
 
     deployObserver
@@ -43,7 +45,6 @@ sovereignInit() {
 
     setSovereignBridgeAddress
 
-    updateAndStartBridgeService
 
     getFundsInAddressSovereign
 
@@ -66,6 +67,8 @@ upgradeContractsAndStartSovereign() {
 
 stopSovereign() {
     ../stop.sh
+
+    screen -S sovereignBridgeService -X kill
 
     ../clean.sh
 

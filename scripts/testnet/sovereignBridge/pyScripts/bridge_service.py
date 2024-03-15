@@ -2,14 +2,15 @@ import os
 import re
 import subprocess
 import sys
+from datetime import datetime
 
 
-def update_env(lines, identifier, contract_address) -> []:
+def update_env(lines, identifier, value) -> []:
     updated_lines = []
 
     for line in lines:
         if line.startswith(identifier):
-            line = re.sub(r'"(.*?)"', f'"{contract_address}"', line)
+            line = re.sub(r'"(.*?)"', f'"{value}"', line)
 
         updated_lines.append(line)
 
@@ -20,7 +21,7 @@ def build_and_run_server(server_path):
     os.chdir(server_path)
 
     build_command = "go build"
-    run_command = "./server"
+    run_service = "screen -L -Logfile sovereignBridgeService"+datetime.now().strftime("%Y-%m-%d %H:%M:%S")+".txt -d -m -S sovereignBridgeService ./server"
 
     build_process = subprocess.run(build_command, shell=True, capture_output=True, text=True)
     if build_process.returncode == 0:
@@ -30,6 +31,12 @@ def build_and_run_server(server_path):
         return
 
     # TODO start terminal with server app
+    run_process = subprocess.run(run_service, shell=True, capture_output=True, text=True)
+    if run_process.returncode == 0:
+        print("Bridge service running...")
+    else:
+        print("Error running bridge service.")
+        return
 
 
 def main():
@@ -54,6 +61,8 @@ def main():
     updated_lines = update_env(updated_lines, "MULTIVERSX_PROXY", os.path.expanduser(proxy))
     updated_lines = update_env(updated_lines, "MULTISIG_SC_ADDRESS", multisig_address)
     updated_lines = update_env(updated_lines, "ESDT_SAFE_SC_ADDRESS", esdt_safe_address)
+    updated_lines = update_env(updated_lines, "CERT_FILE", os.path.expanduser("~/MultiversX/testnet/node/config/certificate.crt"))
+    updated_lines = update_env(updated_lines, "CERT_PK_FILE", os.path.expanduser("~/MultiversX/testnet/node/config/private_key.crt"))
 
     with open(env_path, 'w') as file:
         file.writelines(updated_lines)
