@@ -247,7 +247,7 @@ func (iep *incomingEventsProcessor) getConfirmedBridgeOperation(topics [][]byte)
 	}
 
 	return &confirmedBridgeOp{
-		hashOfHashes: topics[0],
-		hash:         topics[1],
+		hashOfHashes: topics[1],
+		hash:         topics[2],
 	}, nil
 }
