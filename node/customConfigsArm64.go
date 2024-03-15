@@ -8,11 +8,12 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 )
 
-func applyArchCustomConfigs(configs *config.Configs) {
-	log.Debug("applyArchCustomConfigs", "architecture", runtime.GOARCH)
+// ApplyArchCustomConfigs will apply configuration tweaks based on the architecture the node is running on
+func ApplyArchCustomConfigs(configs *config.Configs) {
+	log.Debug("ApplyArchCustomConfigs", "architecture", runtime.GOARCH)
 
 	firstSupportedWasmer2VMVersion := "v1.5"
-	log.Debug("applyArchCustomConfigs - hardcoding the initial VM to " + firstSupportedWasmer2VMVersion)
+	log.Debug("ApplyArchCustomConfigs - hardcoding the initial VM to " + firstSupportedWasmer2VMVersion)
 	configs.GeneralConfig.VirtualMachine.Execution.WasmVMVersions = []config.WasmVMVersionByEpoch{
 		{
 			StartEpoch: 0,
