@@ -99,6 +99,18 @@ func getIntersection(slice1, slice2 [][]byte) [][]byte {
 	return ret
 }
 
+func getAllPubKeysFromConfig(nodesCfg nodesConfig) [][]byte {
+	allPubKeys := getAllPubKeys(nodesCfg.eligible)
+	allPubKeys = append(allPubKeys, getAllPubKeys(nodesCfg.waiting)...)
+	allPubKeys = append(allPubKeys, getAllPubKeys(nodesCfg.leaving)...)
+	allPubKeys = append(allPubKeys, getAllPubKeys(nodesCfg.shuffledOut)...)
+	allPubKeys = append(allPubKeys, nodesCfg.queue...)
+	allPubKeys = append(allPubKeys, nodesCfg.auction...)
+	allPubKeys = append(allPubKeys, nodesCfg.new...)
+
+	return allPubKeys
+}
+
 func unStake(t *testing.T, owner []byte, accountsDB state.AccountsAdapter, marshaller marshal.Marshalizer, stake *big.Int) {
 	validatorSC := stakingcommon.LoadUserAccount(accountsDB, vm.ValidatorSCAddress)
 	ownerStoredData, _, err := validatorSC.RetrieveValue(owner)
@@ -445,7 +457,7 @@ func TestStakingV4_UnStakeNodesWithNotEnoughFunds(t *testing.T) {
 	// Owner1 will unStake some EGLD => at the end of next epoch, he should not be able to reStake all the nodes
 	unStake(t, []byte(owner1), node.AccountsAdapter, node.Marshaller, big.NewInt(0.1*nodePrice))
 
-	// 3. re-stake the nodes that were in the queue
+	// 3. ReStake the nodes that were in the queue
 	queue = remove(queue, owner1StakingQueue[0])
 	node.ProcessReStake(t, queue)
 	currNodesConfig = node.NodesConfig
@@ -469,6 +481,8 @@ func TestStakingV4_UnStakeNodesWithNotEnoughFunds(t *testing.T) {
 	require.Len(t, currNodesConfig.auction, 3)
 	requireSameSliceDifferentOrder(t, currNodesConfig.auction, queue)
 	require.Len(t, getAllPubKeys(currNodesConfig.leaving), 0)
+	// There are no more unStaked nodes left from owner1 because of insufficient funds
+	requireSliceContainsNumOfElements(t, getAllPubKeysFromConfig(currNodesConfig), owner1StakingQueue, 0)
 
 	// Owner3 will unStake EGLD => he will have negative top-up at the selection time => one of his nodes will be unStaked.
 	// His other node should not have been selected => remains in auction.
@@ -735,9 +749,7 @@ func TestStakingV4_UnStakeNodes(t *testing.T) {
 	// Owner2's node from waiting list which was unStaked in previous epoch is now leaving
 	require.Len(t, currNodesConfig.leaving, 1)
 	require.Equal(t, owner2Stats.WaitingBlsKeys[core.MetachainShardId][0], currNodesConfig.leaving[core.MetachainShardId][0])
-	require.Len(t, currNodesConfig.auction, 0) // no nodes from queue were moved to auction list
-	// All nodes from queue have been unstaked, the auction list is empty
-	requireSameSliceDifferentOrder(t, make([][]byte, 0), currNodesConfig.auction)
+	require.Empty(t, currNodesConfig.auction) // all nodes from queue have been unStaked, the auction list is empty
 
 	// 2.1 restake the nodes that were on the queue
 	node.ProcessReStake(t, queue)
@@ -927,8 +939,8 @@ func TestStakingV4_JailAndUnJailNodes(t *testing.T) {
 	require.Len(t, getAllPubKeys(currNodesConfig.waiting), 4)
 	require.Empty(t, currNodesConfig.queue)
 
-	// 2.1 re-stake the nodes that were in the queue
-	// but first, we need to unjail the nodes
+	// 2.1 ReStake the nodes that were in the queue
+	// but first, we need to unJail the nodes
 	node.ProcessUnJail(t, jailedNodes)
 	node.ProcessReStake(t, queue)
 	currNodesConfig = node.NodesConfig
@@ -1490,9 +1502,7 @@ func TestStakingV4_LeavingNodesEdgeCases(t *testing.T) {
 	// Fast-forward multiple epochs and check that newOwner1's forced nodes from previous epochs left
 	node.Process(t, 20)
 	currNodesConfig = node.NodesConfig
-	allCurrentNodesInSystem := append(getAllPubKeys(currNodesConfig.eligible), getAllPubKeys(currNodesConfig.waiting)...)
-	allCurrentNodesInSystem = append(allCurrentNodesInSystem, getAllPubKeys(currNodesConfig.leaving)...)
-	allCurrentNodesInSystem = append(allCurrentNodesInSystem, currNodesConfig.auction...)
+	allCurrentNodesInSystem := getAllPubKeysFromConfig(currNodesConfig)
 	owner1LeftNodes := getIntersection(owner1NodesThatAreStillForcedToRemain, allCurrentNodesInSystem)
 	require.Zero(t, len(owner1LeftNodes))
 }
