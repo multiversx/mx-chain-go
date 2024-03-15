@@ -19,6 +19,8 @@ deployAll() {
 }
 
 upgradeContracts() {
+    copyContracts
+
     upgradeEsdtSafeContract
 
     upgradeFeeMarketContract
@@ -39,6 +41,8 @@ sovereignInit() {
 
     setMultisigAddress
 
+    setSovereignBridgeAddress
+
     updateAndStartBridgeService
 
     getFundsInAddressSovereign
@@ -50,6 +54,14 @@ sovereignInit() {
     unpauseEsdtSafeContractSovereign
 
     issueTokenSovereign
+}
+
+upgradeContractsAndStartSovereign() {
+    copyContracts
+
+    upgradeContracts
+
+    sovereignInit
 }
 
 stopSovereign() {

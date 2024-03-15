@@ -151,6 +151,21 @@ setMultisigAddress() {
         --send || return
 }
 
+setSovereignBridgeAddress() {
+    CHECK_VARIABLES ESDT_SAFE_ADDRESS ESDT_SAFE_ADDRESS_SOVEREIGN || return
+
+    mxpy --verbose contract call ${ESDT_SAFE_ADDRESS} \
+        --pem=${WALLET} \
+        --proxy=${PROXY} \
+        --chain=${CHAIN_ID} \
+        --gas-limit=10000000 \
+        --function="setSovereignBridgeAddress" \
+        --arguments ${ESDT_SAFE_ADDRESS_SOVEREIGN} \
+        --recall-nonce \
+        --wait-result \
+        --send || return
+}
+
 changeEsdtSafeContractOwnerToMultisig() {
     CHECK_VARIABLES ESDT_SAFE_ADDRESS MULTISIG_VERIFIER_ADDRESS || return
 

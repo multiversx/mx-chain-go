@@ -187,6 +187,38 @@ depositTokenInSCSovereign() {
         --send || return
 }
 
+depositTokenInSCSovereignFail() {
+    manualUpdateConfigFile #update config file
+
+    CHECK_VARIABLES DEPOSIT_TOKEN_IDENTIFIER_SOVEREIGN DEPOSIT_TOKEN_NR_DECIMALS DEPOSIT_TOKEN_AMOUNT_TO_TRANSFER || return
+
+    local AMOUNT_TO_TRANSFER=$(echo "scale=0; $DEPOSIT_TOKEN_AMOUNT_TO_TRANSFER*10^$DEPOSIT_TOKEN_NR_DECIMALS/1" | bc)
+
+    mxpy --verbose contract call ${WALLET_ADDRESS} \
+        --pem=${WALLET} \
+        --proxy=${PROXY_SOVEREIGN} \
+        --chain=${CHAIN_ID_SOVEREIGN} \
+        --gas-limit=20000000 \
+        --function="MultiESDTNFTTransfer" \
+        --arguments \
+           ${ESDT_SAFE_ADDRESS_SOVEREIGN} \
+           2 \
+           str:${DEPOSIT_TOKEN_IDENTIFIER_SOVEREIGN} \
+           0 \
+           ${AMOUNT_TO_TRANSFER} \
+           str:${DEPOSIT_TOKEN_IDENTIFIER_SOVEREIGN} \
+           0 \
+           ${AMOUNT_TO_TRANSFER} \
+           str:deposit \
+           erd1qqqqqqqqqqqqqpgqpzu5ezwlsm7zqnke62ylsxjtwta7qz50ulmqa9xpwa \
+           0x0000000001312d00 \
+           0x61646464 \
+           0x0000000401312d00 \
+        --recall-nonce \
+        --wait-result \
+        --send || return
+}
+
 depositTokenInSCSovereignBack() {
     manualUpdateConfigFile #update config file
 
