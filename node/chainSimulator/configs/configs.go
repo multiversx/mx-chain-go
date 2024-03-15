@@ -92,7 +92,7 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 		return nil, err
 	}
 
-	configs.ConfigurationPathsHolder.AllValidatorKeys = path.Join(args.OriginalConfigsPath, allValidatorsPemFileName)
+	configs.ConfigurationPathsHolder.AllValidatorKeys = path.Join(args.TempDir, allValidatorsPemFileName)
 	err = generateValidatorsPem(configs.ConfigurationPathsHolder.AllValidatorKeys, publicKeys, privateKeys)
 	if err != nil {
 		return nil, err
