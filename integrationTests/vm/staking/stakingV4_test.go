@@ -216,8 +216,7 @@ func TestStakingV4(t *testing.T) {
 	require.Len(t, getAllPubKeys(nodesConfigStakingV4Step1.waiting), totalWaiting)
 	require.Empty(t, nodesConfigStakingV4Step1.queue)
 	require.Empty(t, nodesConfigStakingV4Step1.shuffledOut)
-	// the queue should be empty
-	requireSameSliceDifferentOrder(t, make([][]byte, 0), nodesConfigStakingV4Step1.auction)
+	require.Empty(t, nodesConfigStakingV4Step1.auction) // the queue should be empty
 
 	// 3. re-stake the node nodes that were in the queue
 	node.ProcessReStake(t, initialNodes.queue)
@@ -329,7 +328,7 @@ func TestStakingV4_UnStakeNodesWithNotEnoughFunds(t *testing.T) {
 	pubKeys := generateAddresses(0, 20)
 
 	// Owner1 has 8 nodes, but enough stake for just 7 nodes. At the end of the epoch(staking v4 init),
-	// all node from the queue should be unstaked
+	// his last node from staking queue should be unStaked
 	owner1 := "owner1"
 	owner1Stats := &OwnerStats{
 		EligibleBlsKeys: map[uint32][][]byte{
@@ -437,14 +436,13 @@ func TestStakingV4_UnStakeNodesWithNotEnoughFunds(t *testing.T) {
 	// Owner1 will have the second node from queue removed, before adding all the nodes to auction list
 	queue = remove(queue, owner1StakingQueue[1])
 	require.Empty(t, currNodesConfig.queue)
-	// all nodes from the queue should be unstaked and the auction list should be empty
-	requireSameSliceDifferentOrder(t, currNodesConfig.auction, make([][]byte, 0))
+	require.Empty(t, currNodesConfig.auction) // all nodes from the queue should be unStaked and the auction list should be empty
 
 	// Owner2 will have one of the nodes in waiting list removed
 	require.Len(t, getAllPubKeys(currNodesConfig.leaving), 1)
 	requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesConfig.leaving), getAllPubKeys(owner2Stats.WaitingBlsKeys), 1)
 
-	// Owner1 will unStake some EGLD => at the end of next epoch, he should not be able to restake all the nodes
+	// Owner1 will unStake some EGLD => at the end of next epoch, he should not be able to reStake all the nodes
 	unStake(t, []byte(owner1), node.AccountsAdapter, node.Marshaller, big.NewInt(0.1*nodePrice))
 
 	// 3. re-stake the nodes that were in the queue
@@ -590,13 +588,13 @@ func TestStakingV4_StakeNewNodes(t *testing.T) {
 	// 2. Check config after staking v4 init when a new node is staked
 	node.Process(t, 4)
 	node.ProcessStake(t, newNodes1)
+	node.ProcessReStake(t, queue)
 	currNodesConfig = node.NodesConfig
 	queue = append(queue, newNodes1[newOwner1].BLSKeys...)
 	require.Empty(t, currNodesConfig.queue)
 	require.Empty(t, currNodesConfig.leaving)
-	require.Len(t, currNodesConfig.auction, 1) // queue nodes were not automatically moved to auction, they were unstaked
-	auction := [][]byte{newNodes1[newOwner1].BLSKeys[0]}
-	requireSameSliceDifferentOrder(t, currNodesConfig.auction, auction)
+	require.Len(t, currNodesConfig.auction, 5)
+	requireSameSliceDifferentOrder(t, currNodesConfig.auction, queue)
 
 	// NewOwner2 stakes 2 node with top up = 2*node price; should be sent to auction list
 	newOwner2 := "newOwner2"
@@ -610,9 +608,9 @@ func TestStakingV4_StakeNewNodes(t *testing.T) {
 	node.Process(t, 4)
 	node.ProcessStake(t, newNodes2)
 	currNodesConfig = node.NodesConfig
-	auction = append(auction, newNodes2[newOwner2].BLSKeys...)
+	queue = append(queue, newNodes2[newOwner2].BLSKeys...)
 	require.Empty(t, currNodesConfig.queue)
-	requireSliceContainsNumOfElements(t, currNodesConfig.auction, auction, 3)
+	requireSliceContainsNumOfElements(t, currNodesConfig.auction, queue, 7)
 
 	// 3. Epoch =  staking v4 step3
 	// Only the new 2 owners + owner3 had enough top up to be distributed to waiting.
@@ -622,6 +620,9 @@ func TestStakingV4_StakeNewNodes(t *testing.T) {
 	require.Empty(t, currNodesConfig.queue)
 	requireMapContains(t, currNodesConfig.waiting, newNodes1[newOwner1].BLSKeys)
 	requireMapContains(t, currNodesConfig.waiting, newNodes2[newOwner2].BLSKeys)
+	requireMapContains(t, currNodesConfig.waiting, owner3StakingQueue)
+	requireSliceContains(t, currNodesConfig.auction, owner1StakingQueue)
+	requireSliceContains(t, currNodesConfig.auction, newNodes0[newOwner0].BLSKeys)
 }
 
 func TestStakingV4_UnStakeNodes(t *testing.T) {
