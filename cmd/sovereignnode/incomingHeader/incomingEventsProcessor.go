@@ -23,11 +23,11 @@ const (
 )
 
 const (
-	eventIDExecutedOutGoingBridgeOp = "executeBridgeOps"
+	eventIDExecutedOutGoingBridgeOp = "executed"
 	eventIDDepositIncomingTransfer  = "deposit"
 
 	topicIDDepositConfirmedOutGoingOperation = "executedBridgeOp"
-	topicIDDepositIncomingTransfer           = "executeBridgeOps"
+	topicIDDepositIncomingTransfer           = "deposit"
 )
 
 type confirmedBridgeOp struct {
