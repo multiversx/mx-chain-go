@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/factory"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/genesis/data"
+	"github.com/multiversx/mx-chain-go/node"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
@@ -124,6 +125,8 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 	if err != nil {
 		return nil, err
 	}
+
+	node.ApplyArchCustomConfigs(configs)
 
 	if args.AlterConfigsFunction != nil {
 		args.AlterConfigsFunction(configs)
