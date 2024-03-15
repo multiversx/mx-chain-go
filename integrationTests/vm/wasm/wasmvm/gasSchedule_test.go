@@ -33,7 +33,7 @@ func Test_searchingForPanic(t *testing.T) {
 }
 
 func Benchmark_VmDeployWithBadContractAndExecute(b *testing.B) {
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV4.toml")
+	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/" + common.LatestGasScheduleFileName)
 
 	result, err := RunTest("../testdata/misc/bad.wasm", 0, "bigLoop", nil, b.N, gasSchedule, 1500000000)
 	require.Nil(b, err)
@@ -47,7 +47,7 @@ func Benchmark_VmDeployWithBadContractAndExecute(b *testing.B) {
 }
 
 func Benchmark_VmDeployWithBadContractAndExecute2(b *testing.B) {
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV4.toml")
+	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/" + common.LatestGasScheduleFileName)
 
 	arg, _ := hex.DecodeString("012c")
 	result, err := RunTest("../testdata/misc/bad.wasm", 0, "stressBigInts", [][]byte{arg}, b.N, gasSchedule, 1500000000)

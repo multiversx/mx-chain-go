@@ -100,7 +100,7 @@ var InitialRating = uint32(50)
 var AdditionalGasLimit = uint64(999000)
 
 // GasSchedulePath --
-const GasSchedulePath = "../../../../cmd/node/config/gasSchedules/gasScheduleV4.toml"
+const GasSchedulePath = "../../../../cmd/node/config/gasSchedules/" + common.LatestGasScheduleFileName
 
 var log = logger.GetOrCreate("integrationtests")
 

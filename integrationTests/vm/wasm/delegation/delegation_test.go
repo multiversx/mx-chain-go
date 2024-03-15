@@ -86,12 +86,12 @@ func TestDelegation_Claims(t *testing.T) {
 	context.GasLimit = 30000000
 	err = context.ExecuteSC(&context.Alice, "claimRewards")
 	require.Nil(t, err)
-	require.Equal(t, 8148760, int(context.LastConsumedFee))
+	require.Equal(t, 9047155, int(context.LastConsumedFee))
 	RequireAlmostEquals(t, NewBalance(600), NewBalanceBig(context.GetAccountBalanceDelta(&context.Alice)))
 
 	err = context.ExecuteSC(&context.Bob, "claimRewards")
 	require.Nil(t, err)
-	require.Equal(t, 8059660, int(context.LastConsumedFee))
+	require.Equal(t, 8957605, int(context.LastConsumedFee))
 	RequireAlmostEquals(t, NewBalance(400), NewBalanceBig(context.GetAccountBalanceDelta(&context.Bob)))
 
 	err = context.ExecuteSC(&context.Carol, "claimRewards")
@@ -168,7 +168,10 @@ func addNodes(context *wasm.TestContext, stakePerNode int, numNodes int) {
 	err := context.ExecuteSC(&context.Owner, "setStakePerNode@"+NewBalance(stakePerNode).ToHex())
 	require.Nil(context.T, err)
 
-	addNodesArguments := make([]string, 0, numNodes*2)
+	maxNodesPerTransaction := 30
+
+	addNodesArguments := make([]string, 0, maxNodesPerTransaction*2)
+	consumedFee := uint64(0)
 	for tag := 0; tag < numNodes; tag++ {
 		tagBytes := make([]byte, 4)
 		binary.LittleEndian.PutUint32(tagBytes, uint32(tag))
@@ -178,12 +181,24 @@ func addNodes(context *wasm.TestContext, stakePerNode int, numNodes int) {
 
 		addNodesArguments = append(addNodesArguments, hex.EncodeToString(blsKey))
 		addNodesArguments = append(addNodesArguments, hex.EncodeToString(blsSignature))
+
+		if len(addNodesArguments) == maxNodesPerTransaction*2 {
+			consumedFee += stakeNodes(context, addNodesArguments)
+			addNodesArguments = make([]string, 0, maxNodesPerTransaction*2)
+		}
+	}
+	if len(addNodesArguments) > 0 {
+		consumedFee += stakeNodes(context, addNodesArguments)
 	}
 
-	err = context.ExecuteSC(&context.Owner, "addNodes@"+strings.Join(addNodesArguments, "@"))
-	require.Nil(context.T, err)
 	require.Equal(context.T, numNodes, int(context.QuerySCInt("getNumNodes", [][]byte{})))
-	fmt.Println("addNodes consumed (gas):", context.LastConsumedFee)
+	fmt.Println("addNodes consumed (gas):", consumedFee, "numNodes:", numNodes)
+}
+
+func stakeNodes(context *wasm.TestContext, addNodesArguments []string) uint64 {
+	err := context.ExecuteSC(&context.Owner, "addNodes@"+strings.Join(addNodesArguments, "@"))
+	require.Nil(context.T, err)
+	return context.LastConsumedFee
 }
 
 func TestDelegationProcessManyAotInProcess(t *testing.T) {

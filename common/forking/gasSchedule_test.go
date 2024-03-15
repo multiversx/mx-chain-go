@@ -24,7 +24,7 @@ func createGasScheduleNotifierArgs() ArgsNewGasScheduleNotifier {
 				},
 				{
 					StartEpoch: 2,
-					FileName:   "gasScheduleV2.toml",
+					FileName:   common.LatestGasScheduleFileName,
 				},
 			}},
 		ConfigDir:          "../../cmd/node/config/gasSchedules",
@@ -149,7 +149,7 @@ func TestGasScheduleNotifier_CheckEpochShouldCall(t *testing.T) {
 			atomic.AddUint32(&numCalled, 1)
 
 			if numCalled == 2 {
-				assert.Equal(t, gasMap["BaseOperationCost"]["AoTPreparePerByte"], uint64(300))
+				assert.Equal(t, gasMap["BaseOperationCost"]["AoTPreparePerByte"], uint64(100))
 			} else {
 				assert.Equal(t, gasMap["BaseOperationCost"]["AoTPreparePerByte"], uint64(50))
 			}
@@ -160,8 +160,8 @@ func TestGasScheduleNotifier_CheckEpochShouldCall(t *testing.T) {
 
 	assert.Equal(t, uint32(2), atomic.LoadUint32(&numCalled))
 	assert.Equal(t, newEpoch, g.currentEpoch)
-	assert.Equal(t, uint64(300), g.LatestGasSchedule()["BaseOperationCost"]["AoTPreparePerByte"])
-	assert.Equal(t, uint64(300), g.LatestGasScheduleCopy()["BaseOperationCost"]["AoTPreparePerByte"])
+	assert.Equal(t, uint64(100), g.LatestGasSchedule()["BaseOperationCost"]["AoTPreparePerByte"])
+	assert.Equal(t, uint64(100), g.LatestGasScheduleCopy()["BaseOperationCost"]["AoTPreparePerByte"])
 }
 
 func TestGasScheduleNotifier_CheckEpochInSyncShouldWork(t *testing.T) {

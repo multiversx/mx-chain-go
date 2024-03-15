@@ -224,7 +224,7 @@ func TestNewSystemSCFactory_GasScheduleChangeMissingElementsShouldNotPanic(t *te
 	arguments := createMockNewSystemScFactoryArgs()
 	scFactory, _ := NewSystemSCFactory(arguments)
 
-	gasSchedule, err := common.LoadGasScheduleConfig("../../cmd/node/config/gasSchedules/gasScheduleV3.toml")
+	gasSchedule, err := common.LoadGasScheduleConfig("../../cmd/node/config/gasSchedules/" + common.LatestGasScheduleFileName)
 	delete(gasSchedule["MetaChainSystemSCsCost"], "UnstakeTokens")
 	require.Nil(t, err)
 
@@ -246,7 +246,7 @@ func TestNewSystemSCFactory_GasScheduleChangeShouldWork(t *testing.T) {
 	arguments := createMockNewSystemScFactoryArgs()
 	scFactory, _ := NewSystemSCFactory(arguments)
 
-	gasSchedule, err := common.LoadGasScheduleConfig("../../cmd/node/config/gasSchedules/gasScheduleV3.toml")
+	gasSchedule, err := common.LoadGasScheduleConfig("../../cmd/node/config/gasSchedules/" + common.LatestGasScheduleFileName)
 	require.Nil(t, err)
 
 	scFactory.GasScheduleChange(gasSchedule)

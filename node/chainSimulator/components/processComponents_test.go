@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
 	"github.com/multiversx/mx-chain-core-go/hashing/keccak"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	commonFactory "github.com/multiversx/mx-chain-go/common/factory"
 	disabledStatistics "github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
@@ -66,7 +67,7 @@ func createArgsProcessComponentsHolder() ArgsProcessComponentsHolder {
 				GasScheduleByEpochs: []config.GasScheduleByEpochs{
 					{
 						StartEpoch: 0,
-						FileName:   "../../../cmd/node/config/gasSchedules/gasScheduleV7.toml",
+						FileName:   "../../../cmd/node/config/gasSchedules/" + common.LatestGasScheduleFileName,
 					},
 				},
 			},

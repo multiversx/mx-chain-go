@@ -895,6 +895,9 @@ const MetricTrieSyncNumProcessedNodes = "erd_trie_sync_num_nodes_processed"
 // FullArchiveMetricSuffix is the suffix added to metrics specific for full archive network
 const FullArchiveMetricSuffix = "_full_archive"
 
+// LatestGasScheduleFileName is the name of the file that holds the latest gas schedule
+const LatestGasScheduleFileName = "gasScheduleV7.toml"
+
 // Enable epoch flags definitions
 const (
 	SCDeployFlag                                       core.EnableEpochFlag = "SCDeployFlag"

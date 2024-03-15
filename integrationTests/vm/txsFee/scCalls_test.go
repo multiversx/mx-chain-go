@@ -44,7 +44,7 @@ func prepareTestContextForEpoch836(tb testing.TB) (*vm.VMTestContext, []byte) {
 
 	cfg := config.GasScheduleByEpochs{
 		StartEpoch: 0,
-		FileName:   "gasScheduleV6.toml",
+		FileName:   common.LatestGasScheduleFileName,
 	}
 
 	argsGasScheduleNotifier := forking.ArgsNewGasScheduleNotifier{

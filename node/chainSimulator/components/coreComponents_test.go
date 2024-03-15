@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/stretchr/testify/require"
 )
@@ -127,7 +128,7 @@ func createArgsCoreComponentsHolder() ArgsCoreComponentsHolder {
 		ChanStopNodeProcess: make(chan endProcess.ArgEndProcess),
 		InitialRound:        0,
 		NodesSetupPath:      "../../../sharding/mock/testdata/nodesSetupMock.json",
-		GasScheduleFilename: "../../../cmd/node/config/gasSchedules/gasScheduleV7.toml",
+		GasScheduleFilename: "../../../cmd/node/config/gasSchedules/" + common.LatestGasScheduleFileName,
 		NumShards:           3,
 		WorkingDir:          ".",
 		MinNodesPerShard:    1,

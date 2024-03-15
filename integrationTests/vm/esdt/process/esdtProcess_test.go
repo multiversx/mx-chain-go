@@ -2042,7 +2042,7 @@ func TestIssueESDT_FromSCWithNotEnoughGas(t *testing.T) {
 		}
 	}()
 
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV3.toml")
+	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/" + common.LatestGasScheduleFileName)
 	for _, n := range nodes {
 		n.EconomicsData.SetMaxGasLimitPerBlock(1500000000, 0)
 		if check.IfNil(n.SystemSCFactory) {
@@ -2126,7 +2126,7 @@ func TestIssueAndBurnESDT_MaxGasPerBlockExceeded(t *testing.T) {
 		}
 	}()
 
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV3.toml")
+	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/" + common.LatestGasScheduleFileName)
 	for _, n := range nodes {
 		n.EconomicsData.SetMaxGasLimitPerBlock(1500000000, 0)
 		if check.IfNil(n.SystemSCFactory) {
