@@ -108,11 +108,12 @@ type EnableEpochs struct {
 	ChangeOwnerAddressCrossShardThroughSCEnableEpoch         uint32
 	FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch uint32
 	CurrentRandomnessOnSortingEnableEpoch                    uint32
-	BLSMultiSignerEnableEpoch                                []MultiSignerConfig
 	StakeLimitsEnableEpoch                                   uint32
 	StakingV4Step1EnableEpoch                                uint32
 	StakingV4Step2EnableEpoch                                uint32
 	StakingV4Step3EnableEpoch                                uint32
+	AlwaysMergeContextsInEEIEnableEpoch                      uint32
+	BLSMultiSignerEnableEpoch                                []MultiSignerConfig
 }
 
 // GasScheduleByEpochs represents a gas schedule toml entry that will be applied from the provided epoch
