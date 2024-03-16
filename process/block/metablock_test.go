@@ -160,6 +160,7 @@ func createMockMetaArguments(
 			OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolMock{},
 			DataCodec:                    &mock.DataCodecMock{},
 			TopicsChecker:                &mock.TopicsCheckerMock{},
+			OperationsHasher:             &mock.HasherStub{},
 		},
 		SCToProtocol:                 &mock.SCToProtocolStub{},
 		PendingMiniBlocksHandler:     &mock.PendingMiniBlocksHandlerStub{},

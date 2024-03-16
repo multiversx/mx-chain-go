@@ -125,6 +125,7 @@ func createArgBaseProcessor(
 		ReceiptsRepository:             &testscommon.ReceiptsRepositoryStub{},
 		BlockProcessingCutoffHandler:   &testscommon.BlockProcessingCutoffStub{},
 		ManagedPeersHolder:             &testscommon.ManagedPeersHolderStub{},
+		OperationsHasher:               &mock.HasherStub{},
 	}
 }
 
