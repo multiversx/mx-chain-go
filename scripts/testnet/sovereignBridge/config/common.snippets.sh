@@ -33,18 +33,17 @@ sovereignInit() {
 
     ../config.sh
 
+    deployMultisigVerifierContract
+
     updateAndStartBridgeService
 
     ../sovereignStart.sh
 
     deployObserver
 
-    deployMultisigVerifierContract
-
     setMultisigAddress
 
     setSovereignBridgeAddress
-
 
     getFundsInAddressSovereign
 
