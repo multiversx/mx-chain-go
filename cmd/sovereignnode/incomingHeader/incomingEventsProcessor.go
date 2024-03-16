@@ -26,8 +26,8 @@ const (
 	eventIDExecutedOutGoingBridgeOp = "executed"
 	eventIDDepositIncomingTransfer  = "deposit"
 
-	topicIDDepositConfirmedOutGoingOperation = "executedBridgeOp"
-	topicIDDepositIncomingTransfer           = "deposit"
+	topicIDConfirmedOutGoingOperation = "executedBridgeOp"
+	topicIDDepositIncomingTransfer    = "deposit"
 )
 
 type confirmedBridgeOp struct {
@@ -82,7 +82,7 @@ func (iep *incomingEventsProcessor) processIncomingEvents(events []data.EventHan
 			case topicIDDepositIncomingTransfer:
 				scr, err = iep.createSCRInfo(topics, event)
 				scrs = append(scrs, scr)
-			case topicIDDepositConfirmedOutGoingOperation:
+			case topicIDConfirmedOutGoingOperation:
 				confirmedOp, err = iep.getConfirmedBridgeOperation(topics)
 				confirmedBridgeOps = append(confirmedBridgeOps, confirmedOp)
 			default:
@@ -129,6 +129,9 @@ func (iep *incomingEventsProcessor) createSCRInfo(topics [][]byte, event data.Ev
 		Value:          big.NewInt(0),
 		GasLimit:       receivedEventData.gasLimit,
 	}
+
+	d := string(scr.Data)
+	_ = d
 
 	hash, err := core.CalculateHash(iep.marshaller, iep.hasher, scr)
 	if err != nil {
