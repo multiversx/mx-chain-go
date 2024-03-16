@@ -20,6 +20,8 @@ type dataCodec struct {
 	serializer AbiSerializer
 }
 
+// TODO MX-15286 split data codec in multiple components
+
 // NewDataCodec creates a data codec which is able to serialize/deserialize data from incoming/outgoing operations
 func NewDataCodec(args ArgsDataCodec) (*dataCodec, error) {
 	if args.Serializer == nil {
