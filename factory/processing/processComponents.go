@@ -2099,6 +2099,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	if check.IfNil(args.DataCodec) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilDataCodec)
 	}
+	if check.IfNil(args.TopicsChecker) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilTopicsChecker)
+	}
 
 	return nil
 }
