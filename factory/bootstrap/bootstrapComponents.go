@@ -72,6 +72,9 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 	if check.IfNil(args.CoreComponents) {
 		return nil, errors.ErrNilCoreComponentsHolder
 	}
+	if check.IfNil(args.CoreComponents.EnableEpochsHandler()) {
+		return nil, errors.ErrNilEnableEpochsHandler
+	}
 	if check.IfNil(args.CryptoComponents) {
 		return nil, errors.ErrNilCryptoComponentsHolder
 	}

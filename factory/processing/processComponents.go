@@ -163,6 +163,9 @@ type ProcessComponentsFactoryArgs struct {
 	StatusComponents        factory.StatusComponentsHolder
 	StatusCoreComponents    factory.StatusCoreComponentsHolder
 	TxExecutionOrderHandler common.TxExecutionOrderHandler
+
+	GenesisNonce uint64
+	GenesisRound uint64
 }
 
 type processComponentsFactory struct {
@@ -200,6 +203,9 @@ type processComponentsFactory struct {
 	statusComponents        factory.StatusComponentsHolder
 	statusCoreComponents    factory.StatusCoreComponentsHolder
 	txExecutionOrderHandler common.TxExecutionOrderHandler
+
+	genesisNonce uint64
+	genesisRound uint64
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -237,6 +243,9 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		statusCoreComponents:    args.StatusCoreComponents,
 		flagsConfig:             args.FlagsConfig,
 		txExecutionOrderHandler: args.TxExecutionOrderHandler,
+		genesisNonce:            args.GenesisNonce,
+		genesisRound:            args.GenesisRound,
+		roundConfig:             args.RoundConfig,
 	}, nil
 }
 
@@ -888,13 +897,17 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		HardForkConfig:          pcf.config.Hardfork,
 		TrieStorageManagers:     pcf.state.TrieStorageManagers(),
 		SystemSCConfig:          *pcf.systemSCConfig,
-		RoundConfig:             &pcf.roundConfig,
-		EpochConfig:             &pcf.epochConfig,
+		RoundConfig:             pcf.roundConfig,
+		EpochConfig:             pcf.epochConfig,
+		HeaderVersionConfigs:    pcf.config.Versions,
 		BlockSignKeyGen:         pcf.crypto.BlockSignKeyGen(),
 		HistoryRepository:       pcf.historyRepo,
 		GenesisNodePrice:        genesisNodePrice,
 		GenesisString:           pcf.config.GeneralSettings.GenesisString,
 		TxExecutionOrderHandler: pcf.txExecutionOrderHandler,
+		GenesisEpoch:            pcf.config.EpochStartConfig.GenesisEpoch,
+		GenesisNonce:            pcf.genesisNonce,
+		GenesisRound:            pcf.genesisRound,
 	}
 
 	gbc, err := processGenesis.NewGenesisBlockCreator(arg)

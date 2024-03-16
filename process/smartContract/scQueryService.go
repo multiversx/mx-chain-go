@@ -22,53 +22,57 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 	"github.com/multiversx/mx-chain-go/sharding"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 )
 
 var _ process.SCQueryService = (*SCQueryService)(nil)
 
+var logQueryService = logger.GetOrCreate("process/smartcontract.queryService")
+
 // MaxGasLimitPerQuery - each unit is the equivalent of 1 nanosecond processing time
 const MaxGasLimitPerQuery = 300_000_000_000
 
 // SCQueryService can execute Get functions over SC to fetch stored values
 type SCQueryService struct {
-	vmContainer              process.VirtualMachinesContainer
-	economicsFee             process.FeeHandler
-	mutRunSc                 sync.Mutex
-	blockChainHook           process.BlockChainHookWithAccountsAdapter
-	mainBlockChain           data.ChainHandler
-	apiBlockChain            data.ChainHandler
-	numQueries               int
-	gasForQuery              uint64
-	wasmVMChangeLocker       common.Locker
-	bootstrapper             process.Bootstrapper
-	allowExternalQueriesChan chan struct{}
-	historyRepository        dblookupext.HistoryRepository
-	shardCoordinator         sharding.Coordinator
-	storageService           dataRetriever.StorageService
-	marshaller               marshal.Marshalizer
-	hasher                   hashing.Hasher
-	uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
+	vmContainer                process.VirtualMachinesContainer
+	economicsFee               process.FeeHandler
+	mutRunSc                   sync.Mutex
+	blockChainHook             process.BlockChainHookWithAccountsAdapter
+	mainBlockChain             data.ChainHandler
+	apiBlockChain              data.ChainHandler
+	gasForQuery                uint64
+	wasmVMChangeLocker         common.Locker
+	bootstrapper               process.Bootstrapper
+	allowExternalQueriesChan   chan struct{}
+	historyRepository          dblookupext.HistoryRepository
+	shardCoordinator           sharding.Coordinator
+	storageService             dataRetriever.StorageService
+	marshaller                 marshal.Marshalizer
+	hasher                     hashing.Hasher
+	uint64ByteSliceConverter   typeConverters.Uint64ByteSliceConverter
+	isInHistoricalBalancesMode bool
 }
 
 // ArgsNewSCQueryService defines the arguments needed for the sc query service
 type ArgsNewSCQueryService struct {
-	VmContainer              process.VirtualMachinesContainer
-	EconomicsFee             process.FeeHandler
-	BlockChainHook           process.BlockChainHookWithAccountsAdapter
-	MainBlockChain           data.ChainHandler
-	APIBlockChain            data.ChainHandler
-	WasmVMChangeLocker       common.Locker
-	Bootstrapper             process.Bootstrapper
-	AllowExternalQueriesChan chan struct{}
-	MaxGasLimitPerQuery      uint64
-	HistoryRepository        dblookupext.HistoryRepository
-	ShardCoordinator         sharding.Coordinator
-	StorageService           dataRetriever.StorageService
-	Marshaller               marshal.Marshalizer
-	Hasher                   hashing.Hasher
-	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
+	VmContainer                process.VirtualMachinesContainer
+	EconomicsFee               process.FeeHandler
+	BlockChainHook             process.BlockChainHookWithAccountsAdapter
+	MainBlockChain             data.ChainHandler
+	APIBlockChain              data.ChainHandler
+	WasmVMChangeLocker         common.Locker
+	Bootstrapper               process.Bootstrapper
+	AllowExternalQueriesChan   chan struct{}
+	MaxGasLimitPerQuery        uint64
+	HistoryRepository          dblookupext.HistoryRepository
+	ShardCoordinator           sharding.Coordinator
+	StorageService             dataRetriever.StorageService
+	Marshaller                 marshal.Marshalizer
+	Hasher                     hashing.Hasher
+	Uint64ByteSliceConverter   typeConverters.Uint64ByteSliceConverter
+	IsInHistoricalBalancesMode bool
 }
 
 // NewSCQueryService returns a new instance of SCQueryService
@@ -85,21 +89,22 @@ func NewSCQueryService(
 		gasForQuery = args.MaxGasLimitPerQuery
 	}
 	return &SCQueryService{
-		vmContainer:              args.VmContainer,
-		economicsFee:             args.EconomicsFee,
-		mainBlockChain:           args.MainBlockChain,
-		apiBlockChain:            args.APIBlockChain,
-		blockChainHook:           args.BlockChainHook,
-		wasmVMChangeLocker:       args.WasmVMChangeLocker,
-		bootstrapper:             args.Bootstrapper,
-		gasForQuery:              gasForQuery,
-		allowExternalQueriesChan: args.AllowExternalQueriesChan,
-		historyRepository:        args.HistoryRepository,
-		shardCoordinator:         args.ShardCoordinator,
-		storageService:           args.StorageService,
-		marshaller:               args.Marshaller,
-		hasher:                   args.Hasher,
-		uint64ByteSliceConverter: args.Uint64ByteSliceConverter,
+		vmContainer:                args.VmContainer,
+		economicsFee:               args.EconomicsFee,
+		mainBlockChain:             args.MainBlockChain,
+		apiBlockChain:              args.APIBlockChain,
+		blockChainHook:             args.BlockChainHook,
+		wasmVMChangeLocker:         args.WasmVMChangeLocker,
+		bootstrapper:               args.Bootstrapper,
+		gasForQuery:                gasForQuery,
+		allowExternalQueriesChan:   args.AllowExternalQueriesChan,
+		historyRepository:          args.HistoryRepository,
+		shardCoordinator:           args.ShardCoordinator,
+		storageService:             args.StorageService,
+		marshaller:                 args.Marshaller,
+		hasher:                     args.Hasher,
+		uint64ByteSliceConverter:   args.Uint64ByteSliceConverter,
+		isInHistoricalBalancesMode: args.IsInHistoricalBalancesMode,
 	}, nil
 }
 
@@ -179,8 +184,7 @@ func (service *SCQueryService) shouldAllowQueriesExecution() bool {
 }
 
 func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice uint64) (*vmcommon.VMOutput, common.BlockInfo, error) {
-	log.Trace("executeScCall", "function", query.FuncName, "numQueries", service.numQueries)
-	service.numQueries++
+	logQueryService.Trace("executeScCall", "address", query.ScAddress, "function", query.FuncName, "blockNonce", query.BlockNonce.Value, "blockHash", query.BlockHash)
 
 	shouldEarlyExitBecauseOfSyncState := query.ShouldBeSynced && service.bootstrapper.GetNodeState() == common.NsNotSynchronized
 	if shouldEarlyExitBecauseOfSyncState {
@@ -198,10 +202,7 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 			return nil, nil, err
 		}
 
-		accountsAdapter := service.blockChainHook.GetAccountsAdapter()
-
-		holder := holders.NewRootHashHolder(blockRootHash, core.OptionalUint32{Value: blockHeader.GetEpoch(), HasValue: true})
-		err = accountsAdapter.RecreateTrieFromEpoch(holder)
+		err = service.recreateTrie(blockRootHash, blockHeader)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -230,15 +231,6 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 		return nil, nil, err
 	}
 
-	if service.hasRetriableExecutionError(vmOutput) {
-		log.Error("Retriable execution error detected. Will retry (once) executeScCall()", "returnCode", vmOutput.ReturnCode, "returnMessage", vmOutput.ReturnMessage)
-
-		vmOutput, err = vm.RunSmartContractCall(vmInput)
-		if err != nil {
-			return nil, nil, err
-		}
-	}
-
 	if query.SameScState {
 		err = service.checkForRootHashChanges(rootHashBeforeExecution)
 		if err != nil {
@@ -257,6 +249,24 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 	}
 	blockInfo := holders.NewBlockInfo(blockHash, blockNonce, blockRootHash)
 	return vmOutput, blockInfo, nil
+}
+
+func (service *SCQueryService) recreateTrie(blockRootHash []byte, blockHeader data.HeaderHandler) error {
+	if check.IfNil(blockHeader) {
+		return process.ErrNilBlockHeader
+	}
+
+	accountsAdapter := service.blockChainHook.GetAccountsAdapter()
+
+	if service.isInHistoricalBalancesMode {
+		logQueryService.Trace("calling RecreateTrieFromEpoch", "block", blockHeader.GetNonce(), "rootHash", blockRootHash)
+		holder := holders.NewRootHashHolder(blockRootHash, core.OptionalUint32{Value: blockHeader.GetEpoch(), HasValue: true})
+
+		return accountsAdapter.RecreateTrieFromEpoch(holder)
+	}
+
+	logQueryService.Trace("calling RecreateTrie", "block", blockHeader.GetNonce(), "rootHash", blockRootHash)
+	return accountsAdapter.RecreateTrie(blockRootHash)
 }
 
 // TODO: extract duplicated code with nodeBlocks.go
@@ -415,10 +425,6 @@ func (service *SCQueryService) createVMCallInput(query *process.SCQuery, gasPric
 	}
 
 	return vmContractCallInput
-}
-
-func (service *SCQueryService) hasRetriableExecutionError(vmOutput *vmcommon.VMOutput) bool {
-	return vmOutput.ReturnMessage == "allocation error"
 }
 
 // ComputeScCallGasLimit will estimate how many gas a transaction will consume

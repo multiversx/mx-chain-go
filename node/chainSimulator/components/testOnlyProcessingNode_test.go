@@ -3,6 +3,7 @@ package components
 import (
 	"errors"
 	"math/big"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -49,6 +50,10 @@ func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNo
 }
 
 func TestNewTestOnlyProcessingNode(t *testing.T) {
+	if runtime.GOARCH == "arm64" {
+		t.Skip("skipping test on arm64")
+	}
+
 	t.Run("should work", func(t *testing.T) {
 		args := createMockArgsTestOnlyProcessingNode(t)
 		node, err := NewTestOnlyProcessingNode(args)
@@ -254,6 +259,7 @@ func TestTestOnlyProcessingNode_SetStateForAddress(t *testing.T) {
 
 	node, err := NewTestOnlyProcessingNode(createMockArgsTestOnlyProcessingNode(t))
 	require.NoError(t, err)
+	nonce := uint64(100)
 
 	address := "erd1qtc600lryvytxuy4h7vn7xmsy5tw6vuw3tskr75cwnmv4mnyjgsq6e5zgj"
 	scAddress := "erd1qqqqqqqqqqqqqpgqrchxzx5uu8sv3ceg8nx8cxc0gesezure5awqn46gtd"
@@ -261,7 +267,7 @@ func TestTestOnlyProcessingNode_SetStateForAddress(t *testing.T) {
 	scAddressBytes, _ := node.CoreComponentsHolder.AddressPubKeyConverter().Decode(scAddress)
 	addressState := &dtos.AddressState{
 		Address: "erd1qtc600lryvytxuy4h7vn7xmsy5tw6vuw3tskr75cwnmv4mnyjgsq6e5zgj",
-		Nonce:   100,
+		Nonce:   &nonce,
 		Balance: "1000000000000000000",
 		Keys: map[string]string{
 			"01": "02",
@@ -278,7 +284,7 @@ func TestTestOnlyProcessingNode_SetStateForAddress(t *testing.T) {
 
 		account, err := node.StateComponentsHolder.AccountsAdapter().GetExistingAccount(addressBytes)
 		require.NoError(t, err)
-		require.Equal(t, addressState.Nonce, account.GetNonce())
+		require.Equal(t, *addressState.Nonce, account.GetNonce())
 	})
 	t.Run("LoadAccount failure should error", func(t *testing.T) {
 		nodeLocal, errLocal := NewTestOnlyProcessingNode(createMockArgsTestOnlyProcessingNode(t))
@@ -313,6 +319,7 @@ func TestTestOnlyProcessingNode_SetStateForAddress(t *testing.T) {
 						AddToBalanceCalled: func(value *big.Int) error {
 							return expectedErr
 						},
+						Balance: big.NewInt(0),
 					}, nil
 				},
 			},
@@ -333,6 +340,7 @@ func TestTestOnlyProcessingNode_SetStateForAddress(t *testing.T) {
 						SaveKeyValueCalled: func(key []byte, value []byte) error {
 							return expectedErr
 						},
+						Balance: big.NewInt(0),
 					}, nil
 				},
 			},
@@ -411,6 +419,10 @@ func TestTestOnlyProcessingNode_SetStateForAddress(t *testing.T) {
 }
 
 func TestTestOnlyProcessingNode_IsInterfaceNil(t *testing.T) {
+	if runtime.GOARCH == "arm64" {
+		t.Skip("skipping test on arm64")
+	}
+
 	var node *testOnlyProcessingNode
 	require.True(t, node.IsInterfaceNil())
 
@@ -419,6 +431,10 @@ func TestTestOnlyProcessingNode_IsInterfaceNil(t *testing.T) {
 }
 
 func TestTestOnlyProcessingNode_Close(t *testing.T) {
+	if runtime.GOARCH == "arm64" {
+		t.Skip("skipping test on arm64")
+	}
+
 	node, err := NewTestOnlyProcessingNode(createMockArgsTestOnlyProcessingNode(t))
 	require.NoError(t, err)
 
@@ -426,6 +442,10 @@ func TestTestOnlyProcessingNode_Close(t *testing.T) {
 }
 
 func TestTestOnlyProcessingNode_Getters(t *testing.T) {
+	if runtime.GOARCH == "arm64" {
+		t.Skip("skipping test on arm64")
+	}
+
 	node := &testOnlyProcessingNode{}
 	require.Nil(t, node.GetProcessComponents())
 	require.Nil(t, node.GetChainHandler())

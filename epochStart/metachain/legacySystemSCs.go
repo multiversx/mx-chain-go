@@ -164,7 +164,7 @@ func (s *legacySystemSCProcessor) processLegacy(
 		}
 	}
 
-	if s.enableEpochsHandler.IsFlagEnabled(common.DelegationSmartContractFlag) {
+	if s.enableEpochsHandler.IsFlagEnabled(common.DelegationSmartContractFlagInSpecificEpochOnly) {
 		err := s.initDelegationSystemSC()
 		if err != nil {
 			return err

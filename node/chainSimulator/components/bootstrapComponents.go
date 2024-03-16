@@ -42,7 +42,7 @@ type bootstrapComponentsHolder struct {
 }
 
 // CreateBootstrapComponents will create a new instance of bootstrap components holder
-func CreateBootstrapComponents(args ArgsBootstrapComponentsHolder) (factory.BootstrapComponentsHandler, error) {
+func CreateBootstrapComponents(args ArgsBootstrapComponentsHolder) (*bootstrapComponentsHolder, error) {
 	instance := &bootstrapComponentsHolder{}
 
 	args.PrefsConfig.Preferences.DestinationShardAsObserver = args.ShardIDStr

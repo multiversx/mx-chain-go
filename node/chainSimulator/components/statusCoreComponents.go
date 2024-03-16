@@ -23,7 +23,7 @@ type statusCoreComponentsHolder struct {
 }
 
 // CreateStatusCoreComponents will create a new instance of factory.StatusCoreComponentsHandler
-func CreateStatusCoreComponents(configs config.Configs, coreComponents factory.CoreComponentsHolder) (factory.StatusCoreComponentsHandler, error) {
+func CreateStatusCoreComponents(configs config.Configs, coreComponents factory.CoreComponentsHolder) (*statusCoreComponentsHolder, error) {
 	var err error
 
 	statusCoreComponentsFactory, err := statusCore.NewStatusCoreComponentsFactory(statusCore.StatusCoreComponentsFactoryArgs{

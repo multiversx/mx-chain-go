@@ -92,6 +92,7 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 				},
 			},
 		},
+		RoundConfig:    testscommon.GetDefaultRoundsConfig(),
 		PrefConfigs:    config.Preferences{},
 		ImportDBConfig: config.ImportDbConfig{},
 		FlagsConfig: config.ContextFlagsConfig{
@@ -263,7 +264,7 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 		TxExecutionOrderHandler: &txExecOrderStub.TxExecutionOrderHandlerStub{},
 	}
 
-	args.State = components.GetStateComponents(args.CoreData)
+	args.State = components.GetStateComponents(args.CoreData, args.StatusCoreComponents)
 
 	return args
 }

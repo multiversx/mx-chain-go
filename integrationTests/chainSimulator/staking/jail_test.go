@@ -71,8 +71,8 @@ func testChainSimulatorJailAndUnJail(t *testing.T, targetEpoch int32, nodeStatus
 		RoundDurationInMillis:  roundDurationInMillis,
 		RoundsPerEpoch:         roundsPerEpoch,
 		ApiInterface:           api.NewNoApiInterface(),
-		MinNodesPerShard:       3,
-		MetaChainMinNodes:      3,
+		MinNodesPerShard:       2,
+		MetaChainMinNodes:      2,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			configs.SetStakingV4ActivationEpochs(cfg, stakingV4JailUnJailStep1EnableEpoch)
 			newNumNodes := cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake + 8 // 8 nodes until new nodes will be placed on queue
@@ -85,7 +85,7 @@ func testChainSimulatorJailAndUnJail(t *testing.T, targetEpoch int32, nodeStatus
 	defer cs.Close()
 
 	metachainNode := cs.GetNodeHandler(core.MetachainShardId)
-	err = cs.GenerateBlocks(30)
+	err = cs.GenerateBlocksUntilEpochIsReached(1)
 	require.Nil(t, err)
 
 	_, blsKeys, err := chainSimulator.GenerateBlsPrivateKeys(1)

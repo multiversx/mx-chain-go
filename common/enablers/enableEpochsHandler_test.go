@@ -113,6 +113,7 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		StakingV4Step1EnableEpoch:                                96,
 		StakingV4Step2EnableEpoch:                                97,
 		StakingV4Step3EnableEpoch:                                98,
+		AlwaysMergeContextsInEEIEnableEpoch:                      99,
 	}
 }
 
@@ -319,6 +320,7 @@ func TestEnableEpochsHandler_IsFlagEnabled(t *testing.T) {
 	require.True(t, handler.IsFlagEnabled(common.StakingV4Step3Flag))
 	require.False(t, handler.IsFlagEnabled(common.StakingQueueFlag))
 	require.True(t, handler.IsFlagEnabled(common.StakingV4StartedFlag))
+	require.True(t, handler.IsFlagEnabled(common.AlwaysMergeContextsInEEIFlag))
 }
 
 func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
@@ -434,6 +436,7 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.StakingV4Step3EnableEpoch, handler.GetActivationEpoch(common.StakingV4Step3Flag))
 	require.Equal(t, cfg.StakingV4Step1EnableEpoch, handler.GetActivationEpoch(common.StakingQueueFlag))
 	require.Equal(t, cfg.StakingV4Step1EnableEpoch, handler.GetActivationEpoch(common.StakingV4StartedFlag))
+	require.Equal(t, cfg.AlwaysMergeContextsInEEIEnableEpoch, handler.GetActivationEpoch(common.AlwaysMergeContextsInEEIFlag))
 }
 
 func TestEnableEpochsHandler_IsInterfaceNil(t *testing.T) {

@@ -13,7 +13,6 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/errors"
-	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/process"
@@ -33,7 +32,7 @@ type statusComponentsHolder struct {
 }
 
 // CreateStatusComponents will create a new instance of status components holder
-func CreateStatusComponents(shardID uint32, appStatusHandler core.AppStatusHandler, statusPollingIntervalSec int) (factory.StatusComponentsHandler, error) {
+func CreateStatusComponents(shardID uint32, appStatusHandler core.AppStatusHandler, statusPollingIntervalSec int) (*statusComponentsHolder, error) {
 	if check.IfNil(appStatusHandler) {
 		return nil, core.ErrNilAppStatusHandler
 	}
