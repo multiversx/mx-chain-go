@@ -262,6 +262,7 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 		OutGoingOperationsPool:                &sovereign.OutGoingOperationsPoolMock{},
 		IncomingHeaderSubscriber:              &sovereign.IncomingHeaderSubscriberStub{},
 		DataCodec:                             &processMock.DataCodecMock{},
+		TopicsChecker:                         &processMock.TopicsCheckerMock{},
 		RunTypeComponents:                     components.GetRunTypeComponents(),
 	}
 

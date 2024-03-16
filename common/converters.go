@@ -51,3 +51,17 @@ func AssignShardForPubKeyWhenNotSpecified(pubKey []byte, numShards uint32) uint3
 func SuffixedMetric(metric string, suffix string) string {
 	return fmt.Sprintf("%s%s", metric, suffix)
 }
+
+// ByteSliceToUint64 convert bytes to uint64 value
+func ByteSliceToUint64(bytes []byte) (uint64, error) {
+	if len(bytes) > 8 {
+		return 0, ErrCannotConvertBytesToUint64
+	}
+
+	var result uint64
+	for _, b := range bytes {
+		result = (result << 8) | uint64(b)
+	}
+
+	return result, nil
+}
