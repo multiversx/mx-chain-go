@@ -3,16 +3,18 @@ package incomingHeader
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"math/big"
+
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/sovereignnode/dataCodec"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/sovereignnode/dataCodec"
 )
 
 const (
@@ -219,11 +221,16 @@ func (iep *incomingEventsProcessor) getTokenDataBytes(tokenNonce []byte, tokenDa
 		return esdtTokenData.Amount.Bytes(), nil
 	}
 
+	nonce, err := common.ByteSliceToUint64(tokenNonce)
+	if err != nil {
+		return nil, err
+	}
+
 	digitalToken := &esdt.ESDigitalToken{
 		Type:  uint32(esdtTokenData.TokenType),
 		Value: esdtTokenData.Amount,
 		TokenMetaData: &esdt.MetaData{
-			Nonce:      bytesToUint64(tokenNonce),
+			Nonce:      nonce,
 			Name:       esdtTokenData.Name,
 			Creator:    esdtTokenData.Creator,
 			Royalties:  uint32(esdtTokenData.Royalties.Uint64()),
@@ -234,14 +241,6 @@ func (iep *incomingEventsProcessor) getTokenDataBytes(tokenNonce []byte, tokenDa
 	}
 
 	return iep.marshaller.Marshal(digitalToken)
-}
-
-func bytesToUint64(bytes []byte) uint64 {
-	var result uint64
-	for _, b := range bytes {
-		result = (result << 8) | uint64(b)
-	}
-	return result
 }
 
 func (iep *incomingEventsProcessor) getConfirmedBridgeOperation(topics [][]byte) (*confirmedBridgeOp, error) {
