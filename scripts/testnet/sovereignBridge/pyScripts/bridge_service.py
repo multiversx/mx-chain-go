@@ -21,7 +21,7 @@ def build_and_run_server(server_path):
     os.chdir(server_path)
 
     build_command = "go build"
-    run_service = "screen -L -Logfile sovereignBridgeService"+datetime.now().strftime("%Y-%m-%d %H:%M:%S")+".txt -d -m -S sovereignBridgeService ./server"
+    run_service = "screen -L -Logfile sovereignBridgeService.txt -d -m -S sovereignBridgeService ./server"
 
     build_process = subprocess.run(build_command, shell=True, capture_output=True, text=True)
     if build_process.returncode == 0:
@@ -62,7 +62,7 @@ def main():
     updated_lines = update_env(updated_lines, "MULTISIG_SC_ADDRESS", multisig_address)
     updated_lines = update_env(updated_lines, "ESDT_SAFE_SC_ADDRESS", esdt_safe_address)
     updated_lines = update_env(updated_lines, "CERT_FILE", os.path.expanduser("~/MultiversX/testnet/node/config/certificate.crt"))
-    updated_lines = update_env(updated_lines, "CERT_PK_FILE", os.path.expanduser("~/MultiversX/testnet/node/config/private_key.crt"))
+    updated_lines = update_env(updated_lines, "CERT_PK_FILE", os.path.expanduser("~/MultiversX/testnet/node/config/private_key.pem"))
 
     with open(env_path, 'w') as file:
         file.writelines(updated_lines)
