@@ -37,6 +37,8 @@ func TestNewOutgoingOperationsFormatter(t *testing.T) {
 	t.Parallel()
 
 	t.Run("no subscribed events, should return error", func(t *testing.T) {
+		t.Parallel()
+
 		args := createArgs()
 		args.SubscribedEvents = []SubscribedEvent{}
 		creator, err := NewOutgoingOperationsFormatter(args)
@@ -45,6 +47,8 @@ func TestNewOutgoingOperationsFormatter(t *testing.T) {
 	})
 
 	t.Run("nil data codec, should return error", func(t *testing.T) {
+		t.Parallel()
+
 		args := createArgs()
 		args.DataCodec = nil
 		creator, err := NewOutgoingOperationsFormatter(args)
@@ -53,6 +57,8 @@ func TestNewOutgoingOperationsFormatter(t *testing.T) {
 	})
 
 	t.Run("nil topics checker, should return error", func(t *testing.T) {
+		t.Parallel()
+
 		args := createArgs()
 		args.TopicsChecker = nil
 		creator, err := NewOutgoingOperationsFormatter(args)
@@ -61,6 +67,8 @@ func TestNewOutgoingOperationsFormatter(t *testing.T) {
 	})
 
 	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
 		args := createArgs()
 		creator, err := NewOutgoingOperationsFormatter(args)
 		require.Nil(t, err)
@@ -100,6 +108,7 @@ func TestOutgoingOperations_CheckEvent(t *testing.T) {
 
 	t.Run("invalid identifier", func(t *testing.T) {
 		t.Parallel()
+
 		events := []SubscribedEvent{
 			{
 				Identifier: []byte(""),
@@ -120,6 +129,7 @@ func TestOutgoingOperations_CheckEvent(t *testing.T) {
 	})
 	t.Run("no addresses", func(t *testing.T) {
 		t.Parallel()
+
 		events := []SubscribedEvent{
 			{
 				Identifier: []byte("identifier"),
@@ -138,6 +148,7 @@ func TestOutgoingOperations_CheckEvent(t *testing.T) {
 	})
 	t.Run("invalid address", func(t *testing.T) {
 		t.Parallel()
+
 		events := []SubscribedEvent{
 			{
 				Identifier: []byte("identifier"),
@@ -179,6 +190,8 @@ func TestOutgoingOperations_OutgoingEvents(t *testing.T) {
 	}
 
 	t.Run("nil logs", func(t *testing.T) {
+		t.Parallel()
+
 		outgoingOps := createValidArgs()
 
 		outgoingTxData, err := outgoingOps.CreateOutgoingTxsData(nil)
@@ -186,6 +199,8 @@ func TestOutgoingOperations_OutgoingEvents(t *testing.T) {
 		require.Equal(t, 0, len(outgoingTxData))
 	})
 	t.Run("deserialize token error", func(t *testing.T) {
+		t.Parallel()
+
 		outgoingOps := createValidArgs()
 
 		outgoingOps.dataCodec = &mock.DataCodecMock{
@@ -199,6 +214,8 @@ func TestOutgoingOperations_OutgoingEvents(t *testing.T) {
 		require.Equal(t, "deserialize token data error", err.Error())
 	})
 	t.Run("deserialize event error", func(t *testing.T) {
+		t.Parallel()
+
 		outgoingOps := createValidArgs()
 
 		outgoingOps.dataCodec = &mock.DataCodecMock{
@@ -215,6 +232,8 @@ func TestOutgoingOperations_OutgoingEvents(t *testing.T) {
 		require.Equal(t, "deserialize event data error", err.Error())
 	})
 	t.Run("serialize operation error", func(t *testing.T) {
+		t.Parallel()
+
 		outgoingOps := createValidArgs()
 
 		outgoingOps.dataCodec = &mock.DataCodecMock{
