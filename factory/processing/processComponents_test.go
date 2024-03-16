@@ -263,6 +263,7 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 		IncomingHeaderSubscriber:              &sovereign.IncomingHeaderSubscriberStub{},
 		DataCodec:                             &processMock.DataCodecMock{},
 		TopicsChecker:                         &processMock.TopicsCheckerMock{},
+		OperationsHasher:                      &processMock.HasherStub{},
 		RunTypeComponents:                     components.GetRunTypeComponents(),
 	}
 

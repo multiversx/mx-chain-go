@@ -598,6 +598,7 @@ func GetProcessArgs(
 		OutGoingOperationsPool:                &sovereign.OutGoingOperationsPoolMock{},
 		DataCodec:                             &processMock.DataCodecMock{},
 		TopicsChecker:                         &processMock.TopicsCheckerMock{},
+		OperationsHasher:                      &processMock.HasherStub{},
 		RunTypeComponents:                     GetRunTypeComponents(),
 	}
 }
