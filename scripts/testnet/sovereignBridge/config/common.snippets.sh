@@ -58,8 +58,6 @@ sovereignInit() {
 }
 
 upgradeContractsAndStartSovereign() {
-    copyContracts
-
     upgradeContracts
 
     sovereignInit
