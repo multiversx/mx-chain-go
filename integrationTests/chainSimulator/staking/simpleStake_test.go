@@ -114,15 +114,14 @@ func testChainSimulatorSimpleStake(t *testing.T, targetEpoch int32, nodesStatus 
 
 	_ = cs.GenerateBlocks(1)
 
-	metachainNode := cs.GetNodeHandler(core.MetachainShardId)
 	if targetEpoch < 2 {
 		bls1, _ := hex.DecodeString(blsKeys[1])
 		bls2, _ := hex.DecodeString(blsKeys[2])
 
-		blsKeyStatus := getBLSKeyStatus(t, metachainNode, bls1)
+		blsKeyStatus := getBLSKeyStatus(t, cs, bls1)
 		require.Equal(t, nodesStatus, blsKeyStatus)
 
-		blsKeyStatus = getBLSKeyStatus(t, metachainNode, bls2)
+		blsKeyStatus = getBLSKeyStatus(t, cs, bls2)
 		require.Equal(t, nodesStatus, blsKeyStatus)
 	} else {
 		// tx2 -- validator should be in queue

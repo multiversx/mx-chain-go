@@ -84,7 +84,6 @@ func testChainSimulatorJailAndUnJail(t *testing.T, targetEpoch int32, nodeStatus
 	require.NotNil(t, cs)
 	defer cs.Close()
 
-	metachainNode := cs.GetNodeHandler(core.MetachainShardId)
 	err = cs.GenerateBlocksUntilEpochIsReached(1)
 	require.Nil(t, err)
 
@@ -106,7 +105,7 @@ func testChainSimulatorJailAndUnJail(t *testing.T, targetEpoch int32, nodeStatus
 	require.Nil(t, err)
 
 	decodedBLSKey, _ := hex.DecodeString(blsKeys[0])
-	status := getBLSKeyStatus(t, metachainNode, decodedBLSKey)
+	status := getBLSKeyStatus(t, cs, decodedBLSKey)
 	require.Equal(t, "jailed", status)
 
 	// do an unjail transaction
@@ -125,7 +124,7 @@ func testChainSimulatorJailAndUnJail(t *testing.T, targetEpoch int32, nodeStatus
 	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
-	status = getBLSKeyStatus(t, metachainNode, decodedBLSKey)
+	status = getBLSKeyStatus(t, cs, decodedBLSKey)
 	require.Equal(t, "staked", status)
 
 	checkValidatorStatus(t, cs, blsKeys[0], nodeStatusAfterUnJail)
@@ -185,7 +184,6 @@ func TestChainSimulator_FromQueueToAuctionList(t *testing.T) {
 	require.NotNil(t, cs)
 	defer cs.Close()
 
-	metachainNode := cs.GetNodeHandler(core.MetachainShardId)
 	err = cs.GenerateBlocks(30)
 	require.Nil(t, err)
 
@@ -210,7 +208,7 @@ func TestChainSimulator_FromQueueToAuctionList(t *testing.T) {
 	require.Nil(t, err)
 
 	decodedBLSKey0, _ := hex.DecodeString(blsKeys[0])
-	status := getBLSKeyStatus(t, metachainNode, decodedBLSKey0)
+	status := getBLSKeyStatus(t, cs, decodedBLSKey0)
 	require.Equal(t, "jailed", status)
 
 	// add one more node
@@ -221,7 +219,7 @@ func TestChainSimulator_FromQueueToAuctionList(t *testing.T) {
 	require.NotNil(t, stakeTx)
 
 	decodedBLSKey1, _ := hex.DecodeString(blsKeys[1])
-	status = getBLSKeyStatus(t, metachainNode, decodedBLSKey1)
+	status = getBLSKeyStatus(t, cs, decodedBLSKey1)
 	require.Equal(t, "staked", status)
 
 	// unJail the first node
@@ -234,13 +232,13 @@ func TestChainSimulator_FromQueueToAuctionList(t *testing.T) {
 	require.NotNil(t, unJailTx)
 	require.Equal(t, transaction.TxStatusSuccess, unJailTx.Status)
 
-	status = getBLSKeyStatus(t, metachainNode, decodedBLSKey0)
+	status = getBLSKeyStatus(t, cs, decodedBLSKey0)
 	require.Equal(t, "queued", status)
 
 	err = cs.GenerateBlocksUntilEpochIsReached(stakingV4JailUnJailStep1EnableEpoch)
 	require.Nil(t, err)
 
-	status = getBLSKeyStatus(t, metachainNode, decodedBLSKey0)
+	status = getBLSKeyStatus(t, cs, decodedBLSKey0)
 	require.Equal(t, "staked", status)
 
 	checkValidatorStatus(t, cs, blsKeys[0], "auction")
