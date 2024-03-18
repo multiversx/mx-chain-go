@@ -2,7 +2,7 @@
 
 set -eux
 
-cd ${MULTIVERSXDIR}
+pushd ../..
 
 docker build -f docker/seednode/Dockerfile . -t seednode:dev
 
