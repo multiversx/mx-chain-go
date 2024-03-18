@@ -7,11 +7,18 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
-	"github.com/multiversx/mx-chain-go/errors"
 	logger "github.com/multiversx/mx-chain-logger-go"
+
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/errors"
 )
 
 var log = logger.GetOrCreate("outgoing-operations")
+
+const (
+	numTransferTopics = 3
+	tokensIndex       = 2
+)
 
 // SubscribedEvent contains a subscribed event from the sovereign chain needed to be transferred to the main chain
 type SubscribedEvent struct {
@@ -192,12 +199,13 @@ func (op *outgoingOperations) createOperationData(topics [][]byte) (*sovereign.O
 		return nil, err
 	}
 
-	receiver := topics[1]
-
-	var tokens []sovereign.EsdtToken
-	for i := 2; i < len(topics); i += 3 {
+	tokens := make([]sovereign.EsdtToken, 0)
+	for i := tokensIndex; i < len(topics); i += numTransferTopics {
 		tokenIdentifier := topics[i]
-		tokenNonce := byteSliceToUint64(topics[i+1])
+		tokenNonce, err := common.ByteSliceToUint64(topics[i+1])
+		if err != nil {
+			return nil, err
+		}
 		tokenData, err := op.dataCodec.DeserializeTokenData(topics[i+2])
 		if err != nil {
 			return nil, err
@@ -212,17 +220,9 @@ func (op *outgoingOperations) createOperationData(topics [][]byte) (*sovereign.O
 	}
 
 	return &sovereign.Operation{
-		Address: receiver,
+		Address: topics[1],
 		Tokens:  tokens,
 	}, nil
-}
-
-func byteSliceToUint64(byteSlice []byte) uint64 {
-	var result uint64
-	for _, b := range byteSlice {
-		result = (result << 8) | uint64(b)
-	}
-	return result
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil
