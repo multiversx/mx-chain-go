@@ -22,7 +22,7 @@ type trieBatchManager struct {
 }
 
 // NewTrieBatchManager creates a new instance of trieBatchManager
-func NewTrieBatchManager() common.TrieBatchManager {
+func NewTrieBatchManager() *trieBatchManager {
 	return &trieBatchManager{
 		currentBatch:       trieChangesBatch.NewTrieChangesBatch(),
 		tempBatch:          nil,
@@ -83,12 +83,12 @@ func (t *trieBatchManager) Get(key []byte) ([]byte, bool) {
 	return nil, false
 }
 
-// Remove removes the key from the current batch
-func (t *trieBatchManager) Remove(key []byte) {
+// MarkForRemoval marks the key for removal in the current batch
+func (t *trieBatchManager) MarkForRemoval(key []byte) {
 	t.mutex.RLock()
 	defer t.mutex.RUnlock()
 
-	t.currentBatch.Remove(key)
+	t.currentBatch.MarkForRemoval(key)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

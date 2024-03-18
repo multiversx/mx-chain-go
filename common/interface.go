@@ -391,6 +391,6 @@ type TrieBatchManager interface {
 // BatchHandler is the interface for the batch handler
 type BatchHandler interface {
 	Add(key []byte, data core.TrieData)
-	Remove(key []byte)
+	MarkForRemoval(key []byte)
 	Get(key []byte) ([]byte, bool)
 }
