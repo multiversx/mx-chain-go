@@ -16,23 +16,23 @@ func TestDataCodec_MethodsShouldNotPanic(t *testing.T) {
 
 	require.NotPanics(t, func() {
 		serializedEventData, err := dc.SerializeEventData(sovereign.EventData{})
-		require.NotNil(t, serializedEventData)
+		require.Equal(t, make([]byte, 0), serializedEventData)
 		require.NoError(t, err)
 
 		deserializedEventData, err := dc.DeserializeEventData([]byte("data"))
-		require.NotNil(t, deserializedEventData)
+		require.Equal(t, &sovereign.EventData{}, deserializedEventData)
 		require.NoError(t, err)
 
 		serializedTokenData, err := dc.SerializeTokenData(sovereign.EsdtTokenData{})
-		require.NotNil(t, serializedTokenData)
+		require.Equal(t, make([]byte, 0), serializedTokenData)
 		require.NoError(t, err)
 
 		deserializedTokenData, err := dc.DeserializeTokenData([]byte("data"))
-		require.NotNil(t, deserializedTokenData)
+		require.Equal(t, &sovereign.EsdtTokenData{}, deserializedTokenData)
 		require.NoError(t, err)
 
 		deserializedOperation, err := dc.SerializeOperation(sovereign.Operation{})
-		require.NotNil(t, deserializedOperation)
+		require.Equal(t, make([]byte, 0), deserializedOperation)
 		require.NoError(t, err)
 	})
 }
