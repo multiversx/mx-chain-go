@@ -22,6 +22,8 @@ const (
 	numTransferTopics         = 3
 	numExecutedBridgeOpTopics = 3
 	tokensIndex               = 2
+	hashOfHashesIndex         = 1
+	hashOfOperationIndex      = 2
 )
 
 const (
@@ -77,7 +79,7 @@ func (iep *incomingEventsProcessor) processIncomingEvents(events []data.EventHan
 			scrs = append(scrs, scr)
 		case eventIDExecutedOutGoingBridgeOp:
 			if len(topics) == 0 {
-				return nil, fmt.Errorf("%w for %s; num topics = %d", errInvalidNumTopicsIncomingEvent, eventIDExecutedOutGoingBridgeOp, len(topics))
+				return nil, fmt.Errorf("%w for event id: %s", errInvalidNumTopicsIncomingEvent, eventIDExecutedOutGoingBridgeOp)
 			}
 
 			switch string(topics[0]) {
@@ -132,9 +134,6 @@ func (iep *incomingEventsProcessor) createSCRInfo(topics [][]byte, event data.Ev
 		GasLimit:       receivedEventData.gasLimit,
 	}
 
-	d := string(scr.Data)
-	_ = d
-
 	hash, err := core.CalculateHash(iep.marshaller, iep.hasher, scr)
 	if err != nil {
 		return nil, err
@@ -152,16 +151,15 @@ func (iep *incomingEventsProcessor) createEventData(data []byte) (*eventData, er
 		return nil, err
 	}
 
-	gasLimit, args := extractTransferData(evData.TransferData)
-
+	gasLimit, functionCallWithArgs := extractSCTransferInfo(evData.TransferData)
 	return &eventData{
 		nonce:                evData.Nonce,
-		functionCallWithArgs: args,
+		functionCallWithArgs: functionCallWithArgs,
 		gasLimit:             gasLimit,
 	}, nil
 }
 
-func extractTransferData(transferData *sovereign.TransferData) (uint64, []byte) {
+func extractSCTransferInfo(transferData *sovereign.TransferData) (uint64, []byte) {
 	gasLimit := uint64(0)
 	args := make([]byte, 0)
 	if transferData != nil {
@@ -176,25 +174,27 @@ func extractTransferData(transferData *sovereign.TransferData) (uint64, []byte) 
 }
 
 func extractArguments(arguments [][]byte) []byte {
+	if len(arguments) == 0 {
+		return make([]byte, 0)
+	}
+
 	args := make([]byte, 0)
-	if len(arguments) > 0 {
-		for _, arg := range arguments {
-			args = append(args, []byte("@")...)
-			args = append(args, hex.EncodeToString(arg)...)
-		}
+	for _, arg := range arguments {
+		args = append(args, []byte("@")...)
+		args = append(args, hex.EncodeToString(arg)...)
 	}
 
 	return args
 }
 
 func (iep *incomingEventsProcessor) createSCRData(topics [][]byte) ([]byte, error) {
-	numTokensToTransfer := len(topics[2:]) / numTransferTopics
+	numTokensToTransfer := len(topics[tokensIndex:]) / numTransferTopics
 	numTokensToTransferBytes := big.NewInt(int64(numTokensToTransfer)).Bytes()
 
 	ret := []byte(core.BuiltInFunctionMultiESDTNFTTransfer +
 		"@" + hex.EncodeToString(numTokensToTransferBytes))
 
-	for idx := tokensIndex; idx < tokensIndex+len(topics[tokensIndex:]); idx += numTransferTopics {
+	for idx := tokensIndex; idx < len(topics); idx += numTransferTopics {
 		tokenData, err := iep.getTokenDataBytes(topics[idx+1], topics[idx+2])
 		if err != nil {
 			return nil, err
@@ -249,7 +249,7 @@ func (iep *incomingEventsProcessor) getConfirmedBridgeOperation(topics [][]byte)
 	}
 
 	return &confirmedBridgeOp{
-		hashOfHashes: topics[1],
-		hash:         topics[2],
+		hashOfHashes: topics[hashOfHashesIndex],
+		hash:         topics[hashOfOperationIndex],
 	}, nil
 }

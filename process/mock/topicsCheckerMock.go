@@ -5,6 +5,7 @@ type TopicsCheckerMock struct {
 	CheckValidityCalled func(topics [][]byte) error
 }
 
+// CheckValidity -
 func (tc *TopicsCheckerMock) CheckValidity(topics [][]byte) error {
 	if tc.CheckValidityCalled != nil {
 		return tc.CheckValidityCalled(topics)
