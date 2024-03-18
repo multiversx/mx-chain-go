@@ -23,10 +23,11 @@
         [Node.Transports.TCP]
             ListenAddress = "/ip4/0.0.0.0/tcp/%d" # TCP listen address
             PreventPortReuse = false
-        [Node.ResourceLimiter]
-            Type = "default autoscale" #available options "default autoscale", "infinite", "default with manual scale".
-            ManualSystemMemoryInMB = 0 # not taken into account if the type is not "default with manual scale"
-            ManualMaximumFD = 0 # not taken into account if the type is not "default with manual scale"
+
+    [Node.ResourceLimiter]
+        Type = "default autoscale" #available options "default autoscale", "infinite", "default with manual scale".
+        ManualSystemMemoryInMB = 0 # not taken into account if the type is not "default with manual scale"
+        ManualMaximumFD = 0 # not taken into account if the type is not "default with manual scale"
 
 # P2P peer discovery section
 
@@ -71,10 +72,10 @@
 
 [Sharding]
     # The targeted number of peer connections
-    TargetPeerCount = 36
+    TargetPeerCount = 41
     MaxIntraShardValidators = 7
     MaxCrossShardValidators = 15
-    MaxIntraShardObservers = 2
+    MaxIntraShardObservers = 7
     MaxCrossShardObservers = 3
     MaxSeeders = 2
 

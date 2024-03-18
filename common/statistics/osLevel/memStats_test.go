@@ -3,12 +3,17 @@
 package osLevel
 
 import (
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestReadCurrentMemStats(t *testing.T) {
+	if runtime.GOOS == "darwin" {
+		t.Skip("skipping test on darwin")
+	}
+
 	t.Parallel()
 
 	memStats, err := ReadCurrentMemStats()

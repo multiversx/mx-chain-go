@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -22,6 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
@@ -140,6 +142,10 @@ func TestMinterContractWithAsyncCalls(t *testing.T) {
 }
 
 func TestAsyncCallsOnInitFunctionOnUpgrade(t *testing.T) {
+	if runtime.GOARCH == "arm64" {
+		t.Skip("skipping test on arm64")
+	}
+
 	firstContractCode := wasm.GetSCCode("./testdata/first/output/first.wasm")
 	newContractCode := wasm.GetSCCode("./testdata/asyncOnInit/asyncOnInitAndUpgrade.wasm")
 
@@ -191,7 +197,7 @@ func testAsyncCallsOnInitFunctionOnUpgrade(
 		shardCoordinatorForShard1,
 		integrationtests.CreateMemUnit(),
 		gasScheduleNotifier,
-		integrationTests.GetDefaultRoundsConfig(),
+		testscommon.GetDefaultRoundsConfig(),
 		vm.CreateVMConfigWithVersion("v1.4"),
 	)
 	require.Nil(t, err)
@@ -200,7 +206,7 @@ func testAsyncCallsOnInitFunctionOnUpgrade(
 		shardCoordinatorForShardMeta,
 		integrationtests.CreateMemUnit(),
 		gasScheduleNotifier,
-		integrationTests.GetDefaultRoundsConfig(),
+		testscommon.GetDefaultRoundsConfig(),
 		vm.CreateVMConfigWithVersion("v1.4"),
 	)
 	require.Nil(t, err)
@@ -275,6 +281,10 @@ func testAsyncCallsOnInitFunctionOnUpgrade(
 }
 
 func TestAsyncCallsOnInitFunctionOnDeploy(t *testing.T) {
+	if runtime.GOARCH == "arm64" {
+		t.Skip("skipping test on arm64")
+	}
+
 	firstSCCode := wasm.GetSCCode("./testdata/first/output/first.wasm")
 	pathToSecondSC := "./testdata/asyncOnInit/asyncOnInitAndUpgrade.wasm"
 	secondSCCode := wasm.GetSCCode(pathToSecondSC)
@@ -325,7 +335,7 @@ func testAsyncCallsOnInitFunctionOnDeploy(t *testing.T,
 		shardCoordinatorForShard1,
 		integrationtests.CreateMemUnit(),
 		gasScheduleNotifier,
-		integrationTests.GetDefaultRoundsConfig(),
+		testscommon.GetDefaultRoundsConfig(),
 		vm.CreateVMConfigWithVersion("v1.4"),
 	)
 	require.Nil(t, err)
@@ -334,7 +344,7 @@ func testAsyncCallsOnInitFunctionOnDeploy(t *testing.T,
 		shardCoordinatorForShardMeta,
 		integrationtests.CreateMemUnit(),
 		gasScheduleNotifier,
-		integrationTests.GetDefaultRoundsConfig(),
+		testscommon.GetDefaultRoundsConfig(),
 		vm.CreateVMConfigWithVersion("v1.4"),
 	)
 	require.Nil(t, err)

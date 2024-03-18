@@ -88,12 +88,14 @@ type EvictionWaitingListConfig struct {
 
 // EpochStartConfig will hold the configuration of EpochStart settings
 type EpochStartConfig struct {
-	MinRoundsBetweenEpochs            int64
-	RoundsPerEpoch                    int64
-	MinShuffledOutRestartThreshold    float64
-	MaxShuffledOutRestartThreshold    float64
-	MinNumConnectedPeersToStart       int
-	MinNumOfPeersToConsiderBlockValid int
+	MinRoundsBetweenEpochs                      int64
+	RoundsPerEpoch                              int64
+	MinShuffledOutRestartThreshold              float64
+	MaxShuffledOutRestartThreshold              float64
+	MinNumConnectedPeersToStart                 int
+	MinNumOfPeersToConsiderBlockValid           int
+	ExtraDelayForRequestBlockInfoInMilliseconds int
+	GenesisEpoch                                uint32
 }
 
 // BlockSizeThrottleConfig will hold the configuration for adaptive block size throttle
@@ -193,15 +195,16 @@ type Config struct {
 	PublicKeyPIDSignature CacheConfig
 	PeerHonesty           CacheConfig
 
-	Antiflood           AntifloodConfig
-	WebServerAntiflood  WebServerAntifloodConfig
-	ResourceStats       ResourceStatsConfig
-	HeartbeatV2         HeartbeatV2Config
-	ValidatorStatistics ValidatorStatisticsConfig
-	GeneralSettings     GeneralSettingsConfig
-	Consensus           ConsensusConfig
-	StoragePruning      StoragePruningConfig
-	LogsAndEvents       LogsAndEventsConfig
+	Antiflood            AntifloodConfig
+	WebServerAntiflood   WebServerAntifloodConfig
+	ResourceStats        ResourceStatsConfig
+	HeartbeatV2          HeartbeatV2Config
+	ValidatorStatistics  ValidatorStatisticsConfig
+	GeneralSettings      GeneralSettingsConfig
+	Consensus            ConsensusConfig
+	StoragePruning       StoragePruningConfig
+	LogsAndEvents        LogsAndEventsConfig
+	HardwareRequirements HardwareRequirementsConfig
 
 	NTPConfig               NTPConfig
 	HeadersPoolConfig       HeadersPoolConfig
@@ -289,6 +292,11 @@ type GeneralSettingsConfig struct {
 	SetGuardianEpochsDelay               uint32
 }
 
+// HardwareRequirementsConfig will hold the hardware requirements config
+type HardwareRequirementsConfig struct {
+	CPUFlags []string
+}
+
 // FacadeConfig will hold different configuration option that will be passed to the node facade
 type FacadeConfig struct {
 	RestApiInterface            string
@@ -359,15 +367,16 @@ type TxAccumulatorConfig struct {
 
 // AntifloodConfig will hold all p2p antiflood parameters
 type AntifloodConfig struct {
-	Enabled                   bool
-	NumConcurrentResolverJobs int32
-	OutOfSpecs                FloodPreventerConfig
-	FastReacting              FloodPreventerConfig
-	SlowReacting              FloodPreventerConfig
-	PeerMaxOutput             AntifloodLimitsConfig
-	Cache                     CacheConfig
-	Topic                     TopicAntifloodConfig
-	TxAccumulator             TxAccumulatorConfig
+	Enabled                             bool
+	NumConcurrentResolverJobs           int32
+	NumConcurrentResolvingTrieNodesJobs int32
+	OutOfSpecs                          FloodPreventerConfig
+	FastReacting                        FloodPreventerConfig
+	SlowReacting                        FloodPreventerConfig
+	PeerMaxOutput                       AntifloodLimitsConfig
+	Cache                               CacheConfig
+	Topic                               TopicAntifloodConfig
+	TxAccumulator                       TxAccumulatorConfig
 }
 
 // FloodPreventerConfig will hold all flood preventer parameters

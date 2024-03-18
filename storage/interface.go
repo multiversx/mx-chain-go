@@ -216,8 +216,8 @@ type PersisterFactoryHandler interface {
 
 // StateStatsHandler defines the behaviour needed to handler storage statistics
 type StateStatsHandler interface {
-	IncrCache()
-	IncrSnapshotCache()
-	IncrPersister(epoch uint32)
-	IncrSnapshotPersister(epoch uint32)
+	IncrementCache()
+	IncrementSnapshotCache()
+	IncrementPersister(epoch uint32)
+	IncrementSnapshotPersister(epoch uint32)
 }

@@ -69,6 +69,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
 	testStorage "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	testcommonStorage "github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -109,7 +110,6 @@ const (
 	adaptivity              = false
 	hysteresis              = float32(0.2)
 	maxTrieLevelInMemory    = uint(5)
-	delegationManagementKey = "delegationManagement"
 	delegationContractsList = "delegationContracts"
 )
 
@@ -647,7 +647,7 @@ func CreateFullGenesisBlocks(
 	gasSchedule := wasmConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)
 
-	coreComponents := GetDefaultCoreComponents()
+	coreComponents := GetDefaultCoreComponents(enableEpochsConfig)
 	coreComponents.InternalMarshalizerField = TestMarshalizer
 	coreComponents.TxMarshalizerField = TestTxSignMarshalizer
 	coreComponents.HasherField = TestHasher
@@ -664,8 +664,6 @@ func CreateFullGenesisBlocks(
 	dataComponents.Store = store
 	dataComponents.DataPool = dataPool
 	dataComponents.BlockChain = blkc
-
-	roundsConfig := GetDefaultRoundsConfig()
 
 	argsGenesis := genesisProcess.ArgsGenesisBlockCreator{
 		Core:              coreComponents,
@@ -715,6 +713,8 @@ func CreateFullGenesisBlocks(
 				MaxNumberOfNodesForStake:             100,
 				ActivateBLSPubKeyMessageVerification: false,
 				MinUnstakeTokensValue:                "1",
+				StakeLimitPercentage:                 100.0,
+				NodeLimitPercentage:                  100.0,
 			},
 			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
 				MinCreationDeposit:  "100",
@@ -725,14 +725,21 @@ func CreateFullGenesisBlocks(
 				MinServiceFee: 0,
 				MaxServiceFee: 100,
 			},
+			SoftAuctionConfig: config.SoftAuctionConfig{
+				TopUpStep:             "10",
+				MinTopUp:              "1",
+				MaxTopUp:              "32000000",
+				MaxNumberOfIterations: 100000,
+			},
 		},
 		AccountsParser:      accountsParser,
 		SmartContractParser: smartContractParser,
 		BlockSignKeyGen:     &mock.KeyGenMock{},
-		EpochConfig: &config.EpochConfig{
+		EpochConfig: config.EpochConfig{
 			EnableEpochs: enableEpochsConfig,
 		},
-		RoundConfig:             &roundsConfig,
+		RoundConfig:             testscommon.GetDefaultRoundsConfig(),
+		HeaderVersionConfigs:    testscommon.GetDefaultHeaderVersionConfig(),
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 	}
@@ -763,7 +770,7 @@ func CreateGenesisMetaBlock(
 	gasSchedule := wasmConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)
 
-	coreComponents := GetDefaultCoreComponents()
+	coreComponents := GetDefaultCoreComponents(enableEpochsConfig)
 	coreComponents.InternalMarshalizerField = marshalizer
 	coreComponents.HasherField = hasher
 	coreComponents.Uint64ByteSliceConverterField = uint64Converter
@@ -822,6 +829,8 @@ func CreateGenesisMetaBlock(
 				MaxNumberOfNodesForStake:             100,
 				ActivateBLSPubKeyMessageVerification: false,
 				MinUnstakeTokensValue:                "1",
+				StakeLimitPercentage:                 100.0,
+				NodeLimitPercentage:                  100.0,
 			},
 			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
 				MinCreationDeposit:  "100",
@@ -832,12 +841,20 @@ func CreateGenesisMetaBlock(
 				MinServiceFee: 0,
 				MaxServiceFee: 100,
 			},
+			SoftAuctionConfig: config.SoftAuctionConfig{
+				TopUpStep:             "10",
+				MinTopUp:              "1",
+				MaxTopUp:              "32000000",
+				MaxNumberOfIterations: 100000,
+			},
 		},
 		BlockSignKeyGen:  &mock.KeyGenMock{},
 		GenesisNodePrice: big.NewInt(1000),
-		EpochConfig: &config.EpochConfig{
+		EpochConfig: config.EpochConfig{
 			EnableEpochs: enableEpochsConfig,
 		},
+		RoundConfig:             testscommon.GetDefaultRoundsConfig(),
+		HeaderVersionConfigs:    testscommon.GetDefaultHeaderVersionConfig(),
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 	}
@@ -1379,7 +1396,7 @@ func CreateNodesWithEnableEpochsAndVmConfig(
 		nodesPerShard,
 		numMetaChainNodes,
 		epochConfig,
-		GetDefaultRoundsConfig(),
+		testscommon.GetDefaultRoundsConfig(),
 		vmConfig,
 	)
 }
@@ -1519,6 +1536,9 @@ func CreateNodesWithFullGenesis(
 ) ([]*TestProcessorNode, *TestProcessorNode) {
 	enableEpochsConfig := GetDefaultEnableEpochsConfig()
 	enableEpochsConfig.StakingV2EnableEpoch = UnreachableEpoch
+	enableEpochsConfig.StakingV4Step1EnableEpoch = UnreachableEpoch
+	enableEpochsConfig.StakingV4Step2EnableEpoch = UnreachableEpoch
+	enableEpochsConfig.StakingV4Step3EnableEpoch = UnreachableEpoch
 	return CreateNodesWithFullGenesisCustomEnableEpochs(numOfShards, nodesPerShard, numMetaChainNodes, genesisFile, enableEpochsConfig)
 }
 
@@ -2166,7 +2186,7 @@ func generateValidTx(
 	_ = accnts.SaveAccount(acc)
 	_, _ = accnts.Commit()
 
-	coreComponents := GetDefaultCoreComponents()
+	coreComponents := GetDefaultCoreComponents(CreateEnableEpochsConfig())
 	coreComponents.InternalMarshalizerField = TestMarshalizer
 	coreComponents.TxMarshalizerField = TestTxSignMarshalizer
 	coreComponents.VmMarshalizerField = TestMarshalizer
@@ -2607,18 +2627,7 @@ func SaveDelegationManagerConfig(nodes []*TestProcessorNode) {
 			continue
 		}
 
-		acc, _ := n.AccntState.LoadAccount(vm.DelegationManagerSCAddress)
-		userAcc, _ := acc.(state.UserAccountHandler)
-
-		managementData := &systemSmartContracts.DelegationManagement{
-			MinDeposit:          big.NewInt(100),
-			LastAddress:         vm.FirstDelegationSCAddress,
-			MinDelegationAmount: big.NewInt(1),
-		}
-		marshaledData, _ := TestMarshalizer.Marshal(managementData)
-		_ = userAcc.SaveKeyValue([]byte(delegationManagementKey), marshaledData)
-		_ = n.AccntState.SaveAccount(userAcc)
-		_, _ = n.AccntState.Commit()
+		stakingcommon.SaveDelegationManagerConfig(n.AccntState, TestMarshalizer)
 	}
 }
 

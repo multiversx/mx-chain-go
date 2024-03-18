@@ -114,3 +114,12 @@ var ErrNilGenesisNodesSetupHandler = errors.New("nil genesis nodes setup handler
 
 // ErrKeyNotFoundInWaitingList signals that the provided key has not been found in waiting list
 var ErrKeyNotFoundInWaitingList = errors.New("key not found in waiting list")
+
+// ErrNilNodesCoordinatorRegistryFactory signals that a nil nodes coordinator registry factory has been given
+var ErrNilNodesCoordinatorRegistryFactory = errors.New("nil nodes coordinator registry factory has been given")
+
+// ErrReceivedAuctionValidatorsBeforeStakingV4 signals that auction nodes have been received from peer mini blocks before enabling staking v4
+var ErrReceivedAuctionValidatorsBeforeStakingV4 = errors.New("should not have received selected nodes from auction in peer mini blocks, since staking v4 is not enabled yet")
+
+// ErrNilEpochNotifier signals that a nil EpochNotifier has been provided
+var ErrNilEpochNotifier = errors.New("nil epoch notifier provided")
