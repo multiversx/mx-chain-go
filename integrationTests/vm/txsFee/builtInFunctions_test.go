@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
@@ -321,7 +322,7 @@ func TestBuildInFunctionSaveKeyValue_NotEnoughGasForTheSameKeyValue(t *testing.T
 		shardCoord,
 		integrationtests.CreateMemUnit(),
 		gasScheduleNotifier,
-		integrationTests.GetDefaultRoundsConfig(),
+		testscommon.GetDefaultRoundsConfig(),
 		vm.CreateVMConfigWithVersion("v1.5"),
 	)
 	require.Nil(t, err)

@@ -137,6 +137,11 @@ func (tdt *trackableDataTrie) MigrateDataTrieLeaves(args vmcommon.ArgsMigrateDat
 	dataToBeMigrated := args.TrieMigrator.GetLeavesToBeMigrated()
 	log.Debug("num leaves to be migrated", "num", len(dataToBeMigrated), "account", tdt.identifier)
 	for _, leafData := range dataToBeMigrated {
+		val, err := tdt.getValueWithoutMetadata(leafData.Key, leafData)
+		if err != nil {
+			return err
+		}
+
 		originalKey, err := tdt.getOriginalKeyFromTrieData(leafData)
 		if err != nil {
 			return err
@@ -144,7 +149,7 @@ func (tdt *trackableDataTrie) MigrateDataTrieLeaves(args vmcommon.ArgsMigrateDat
 
 		dataEntry := dirtyData{
 			index:      tdt.getIndexForKey(originalKey),
-			value:      leafData.Value,
+			value:      val,
 			newVersion: args.NewVersion,
 		}
 

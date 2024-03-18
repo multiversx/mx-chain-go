@@ -43,6 +43,7 @@ import (
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/multiversx/mx-chain-vm-common-go/dataTrieMigrator"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -127,7 +128,7 @@ func getDefaultStateComponentsWithCustomEnableEpochs(enableEpochs common.EnableE
 
 func getDefaultStateComponents(
 	db common.BaseStorer,
-	enableEpochs common.EnableEpochsHandler,
+	enableEpochsHandler common.EnableEpochsHandler,
 ) (*state.AccountsDB, common.Trie, common.StorageManager) {
 	generalCfg := config.TrieStorageManagerConfig{
 		PruningBufferLen:      1000,
@@ -140,7 +141,7 @@ func getDefaultStateComponents(
 	args := storage.GetStorageManagerArgs()
 	args.MainStorer = db
 	trieStorage, _ := trie.NewTrieStorageManager(args)
-	tr, _ := trie.NewTrie(trieStorage, marshaller, hasher, enableEpochs, 5)
+	tr, _ := trie.NewTrie(trieStorage, marshaller, hasher, enableEpochsHandler, 5)
 	ewlArgs := evictionWaitingList.MemoryEvictionWaitingListArgs{
 		RootHashesSize: 100,
 		HashesSize:     10000,
@@ -150,7 +151,7 @@ func getDefaultStateComponents(
 	argsAccCreator := factory.ArgsAccountCreator{
 		Hasher:              hasher,
 		Marshaller:          marshaller,
-		EnableEpochsHandler: enableEpochs,
+		EnableEpochsHandler: enableEpochsHandler,
 	}
 	accCreator, _ := factory.NewAccountCreator(argsAccCreator)
 
@@ -3112,6 +3113,52 @@ func testAccountMethodsConcurrency(
 	}
 
 	wg.Wait()
+}
+
+func TestAccountsDB_MigrateDataTrieWithFunc(t *testing.T) {
+	t.Parallel()
+
+	enableEpochsHandler := enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
+	adb, _, _ := getDefaultStateComponents(testscommon.NewSnapshotPruningStorerMock(), enableEpochsHandler)
+
+	addr := []byte("addr")
+	acc, _ := adb.LoadAccount(addr)
+	value := []byte("value")
+	_ = acc.(state.UserAccountHandler).SaveKeyValue([]byte("key"), value)
+	_ = acc.(state.UserAccountHandler).SaveKeyValue([]byte("key2"), value)
+	_ = adb.SaveAccount(acc)
+
+	enableEpochsHandler.AddActiveFlags(common.AutoBalanceDataTriesFlag)
+	acc, _ = adb.LoadAccount(addr)
+
+	isMigrated, err := acc.(state.AccountHandlerWithDataTrieMigrationStatus).IsDataTrieMigrated()
+	assert.Nil(t, err)
+	assert.False(t, isMigrated)
+
+	accWithMigrate := acc.(vmcommon.UserAccountHandler).AccountDataHandler()
+	dataTrieMig := dataTrieMigrator.NewDataTrieMigrator(dataTrieMigrator.ArgsNewDataTrieMigrator{
+		GasProvided: 100000000,
+		DataTrieGasCost: dataTrieMigrator.DataTrieGasCost{
+			TrieLoadPerNode:  1,
+			TrieStorePerNode: 1,
+		},
+	})
+	err = accWithMigrate.MigrateDataTrieLeaves(vmcommon.ArgsMigrateDataTrieLeaves{
+		OldVersion:   core.NotSpecified,
+		NewVersion:   core.AutoBalanceEnabled,
+		TrieMigrator: dataTrieMig,
+	})
+	assert.Nil(t, err)
+	_ = adb.SaveAccount(acc)
+
+	acc, _ = adb.LoadAccount(addr)
+	retrievedVal, _, err := acc.(state.UserAccountHandler).RetrieveValue([]byte("key"))
+	assert.Equal(t, value, retrievedVal)
+	assert.Nil(t, err)
+
+	isMigrated, err = acc.(state.AccountHandlerWithDataTrieMigrationStatus).IsDataTrieMigrated()
+	assert.Nil(t, err)
+	assert.True(t, isMigrated)
 }
 
 func BenchmarkAccountsDB_GetMethodsInParallel(b *testing.B) {

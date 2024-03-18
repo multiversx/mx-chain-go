@@ -45,7 +45,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	accountsDb[state.UserAccountsState] = tpn.AccntState
 	accountsDb[state.PeerAccountsState] = tpn.PeerState
 
-	coreComponents := GetDefaultCoreComponents()
+	coreComponents := GetDefaultCoreComponents(CreateEnableEpochsConfig())
 	coreComponents.InternalMarshalizerField = TestMarshalizer
 	coreComponents.HasherField = TestHasher
 	coreComponents.Uint64ByteSliceConverterField = TestUint64Converter
@@ -104,6 +104,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		OutportDataProvider:          &outport.OutportDataProviderStub{},
 		BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
 		ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
+		SentSignaturesTracker:        &testscommon.SentSignatureTrackerStub{},
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
@@ -116,14 +117,14 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 			PendingMiniBlocksHandler:  &mock.PendingMiniBlocksHandlerStub{},
 			EpochStartDataCreator:     &mock.EpochStartDataCreatorStub{},
 			EpochEconomics:            &mock.EpochEconomicsStub{},
-			EpochRewardsCreator:       &mock.EpochRewardsCreatorStub{},
-			EpochValidatorInfoCreator: &mock.EpochValidatorInfoCreatorStub{},
-			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{
+			EpochRewardsCreator:       &testscommon.RewardsCreatorStub{},
+			EpochValidatorInfoCreator: &testscommon.EpochValidatorInfoCreatorStub{},
+			ValidatorStatisticsProcessor: &testscommon.ValidatorStatisticsProcessorStub{
 				UpdatePeerStateCalled: func(header data.MetaHeaderHandler) ([]byte, error) {
 					return []byte("validator stats root hash"), nil
 				},
 			},
-			EpochSystemSCProcessor: &mock.EpochStartSystemSCStub{},
+			EpochSystemSCProcessor: &testscommon.EpochStartSystemSCStub{},
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)

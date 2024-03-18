@@ -451,19 +451,6 @@ func TestMetaTxProcessor_ProcessTransactionBuiltInCallTxShouldWork(t *testing.T)
 	assert.Nil(t, err)
 	assert.True(t, wasCalled)
 	assert.Equal(t, 0, saveAccountCalled)
-
-	builtInCalled := false
-	scProcessorMock.ExecuteBuiltInFunctionCalled = func(tx data.TransactionHandler, acntSrc, acntDst state.UserAccountHandler) (vmcommon.ReturnCode, error) {
-		builtInCalled = true
-		return 0, nil
-	}
-
-	enableEpochsHandlerStub.AddActiveFlags(common.BuiltInFunctionOnMetaFlag)
-
-	_, err = txProc.ProcessTransaction(&tx)
-	assert.Nil(t, err)
-	assert.True(t, builtInCalled)
-	assert.Equal(t, 0, saveAccountCalled)
 }
 
 func TestMetaTxProcessor_ProcessTransactionWithInvalidUsernameShouldNotError(t *testing.T) {
