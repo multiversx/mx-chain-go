@@ -10,17 +10,20 @@ type AbiSerializer interface {
 	Deserialize(data string, outputValues []any) error
 }
 
-type EventDataProcessor interface {
+// EventDataEncoder is the interface for serializing/deserializing event data
+type EventDataEncoder interface {
 	SerializeEventData(eventData sovereign.EventData) ([]byte, error)
 	DeserializeEventData(data []byte) (*sovereign.EventData, error)
 }
 
-type TokenDataProcessor interface {
+// TokenDataEncoder is the interface for serializing/deserializing token data
+type TokenDataEncoder interface {
 	SerializeTokenData(tokenData sovereign.EsdtTokenData) ([]byte, error)
 	DeserializeTokenData(data []byte) (*sovereign.EsdtTokenData, error)
 }
 
-type OperationDataProcessor interface {
+// OperationDataEncoder is the interface for serializing operations
+type OperationDataEncoder interface {
 	SerializeOperation(operation sovereign.Operation) ([]byte, error)
 }
 
