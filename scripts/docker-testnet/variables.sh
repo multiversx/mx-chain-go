@@ -106,25 +106,6 @@ export PORT_ORIGIN_OBSERVER_REST="10000"
 export PORT_ORIGIN_VALIDATOR="21500"
 export PORT_ORIGIN_VALIDATOR_REST="9500"
 
-# UI configuration profiles
-
-## Use tmux or not. If set to 1, only 2 terminal windows will be opened, and
-## tmux will be used to display the running executables using split windows.
-## Recommended. Tmux needs to be installed.
-#export USETMUX=1
-#
-## Log level for the logger in the Node.
-#export LOGLEVEL="*:INFO"
-#
-#
-#if [ "$TESTNETMODE" == "debug" ]; then
-#  LOGLEVEL="*:DEBUG,api:INFO"
-#fi
-#
-#if [ "$TESTNETMODE" == "trace" ]; then
-#  LOGLEVEL="*:TRACE"
-#fi
-
 ########################################################################
 # Proxy configuration
 
