@@ -8,9 +8,23 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 )
+
+func TestNotEnoughGas(t *testing.T) {
+	context := wasm.SetupTestContext(t)
+	defer context.Close()
+
+	err := context.DeploySC("../testdata/esdt-safe.wasm", "@c0c0739e0cf6232a934d2e56cfcd10881eb1c7336f128fc155a4a84292cfe7f6")
+	require.Nil(t, err)
+	vault := context.ScAddress
+
+	context.ScAddress = vault
+	err = context.ExecuteSCWithValue(&context.Owner, "exec@c0c0739e0cf6232a934d2e56cfcd10881eb1c7336f128fc155a4a84292cfe7f6000000020000000a53564e2d6136616565660000000000000000000000000906aaf7c8516d0c000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a53564e2d6136616565660000000000000000000000000906aaf7c8516d0c000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001c0c0739e0cf6232a934d2e56cfcd10881eb1c7336f128fc155a4a84292cfe7f600", big.NewInt(0))
+	require.Nil(t, err)
+}
 
 func TestTransfers_DuplicatedTransferValueEvents(t *testing.T) {
 	context := wasm.SetupTestContext(t)
