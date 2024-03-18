@@ -1,6 +1,7 @@
 package shard
 
 import (
+	"runtime"
 	"sync"
 	"testing"
 
@@ -150,6 +151,10 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 }
 
 func TestVmContainerFactory_Create(t *testing.T) {
+	if runtime.GOARCH == "arm64" {
+		t.Skip("skipping test on arm64")
+	}
+
 	t.Parallel()
 
 	args := createMockVMAccountsArguments()
@@ -175,6 +180,10 @@ func TestVmContainerFactory_Create(t *testing.T) {
 }
 
 func TestVmContainerFactory_ResolveWasmVMVersion(t *testing.T) {
+	if runtime.GOARCH == "arm64" {
+		t.Skip("skipping test on arm64")
+	}
+
 	epochNotifierInstance := forking.NewGenericEpochNotifier()
 
 	numCalled := 0

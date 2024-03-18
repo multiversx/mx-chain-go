@@ -289,7 +289,7 @@ func (e *epochStartData) getShardDataFromEpochStartData(
 	}
 
 	epochStartIdentifier := core.EpochStartIdentifier(prevEpoch)
-	if prevEpoch == 0 {
+	if prevEpoch == e.genesisEpoch {
 		return lastMetaHash, []byte(epochStartIdentifier), nil
 	}
 

@@ -130,6 +130,7 @@ type processComponents struct {
 	esdtDataStorageForApi            vmcommon.ESDTNFTStorageHandler
 	accountsParser                   genesis.AccountsParser
 	receiptsRepository               mainFactory.ReceiptsRepository
+	sentSignaturesTracker            process.SentSignaturesTracker
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -139,6 +140,7 @@ type ProcessComponentsFactoryArgs struct {
 	EpochConfig            config.EpochConfig
 	PrefConfigs            config.Preferences
 	ImportDBConfig         config.ImportDbConfig
+	EconomicsConfig        config.EconomicsConfig
 	AccountsParser         genesis.AccountsParser
 	SmartContractParser    genesis.InitialSmartContractParser
 	GasSchedule            core.GasScheduleNotifier
@@ -161,6 +163,9 @@ type ProcessComponentsFactoryArgs struct {
 	StatusComponents        factory.StatusComponentsHolder
 	StatusCoreComponents    factory.StatusCoreComponentsHolder
 	TxExecutionOrderHandler common.TxExecutionOrderHandler
+
+	GenesisNonce uint64
+	GenesisRound uint64
 }
 
 type processComponentsFactory struct {
@@ -169,6 +174,7 @@ type processComponentsFactory struct {
 	epochConfig            config.EpochConfig
 	prefConfigs            config.Preferences
 	importDBConfig         config.ImportDbConfig
+	economicsConfig        config.EconomicsConfig
 	accountsParser         genesis.AccountsParser
 	smartContractParser    genesis.InitialSmartContractParser
 	gasSchedule            core.GasScheduleNotifier
@@ -185,6 +191,8 @@ type processComponentsFactory struct {
 	importHandler          update.ImportHandler
 	flagsConfig            config.ContextFlagsConfig
 	esdtNftStorage         vmcommon.ESDTNFTStorageHandler
+	stakingDataProviderAPI peer.StakingDataProviderAPI
+	auctionListSelectorAPI epochStart.AuctionListSelector
 
 	data                    factory.DataComponentsHolder
 	coreData                factory.CoreComponentsHolder
@@ -195,6 +203,9 @@ type processComponentsFactory struct {
 	statusComponents        factory.StatusComponentsHolder
 	statusCoreComponents    factory.StatusCoreComponentsHolder
 	txExecutionOrderHandler common.TxExecutionOrderHandler
+
+	genesisNonce uint64
+	genesisRound uint64
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -209,6 +220,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		epochConfig:             args.EpochConfig,
 		prefConfigs:             args.PrefConfigs,
 		importDBConfig:          args.ImportDBConfig,
+		economicsConfig:         args.EconomicsConfig,
 		accountsParser:          args.AccountsParser,
 		smartContractParser:     args.SmartContractParser,
 		gasSchedule:             args.GasSchedule,
@@ -231,6 +243,9 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		statusCoreComponents:    args.StatusCoreComponents,
 		flagsConfig:             args.FlagsConfig,
 		txExecutionOrderHandler: args.TxExecutionOrderHandler,
+		genesisNonce:            args.GenesisNonce,
+		genesisRound:            args.GenesisRound,
+		roundConfig:             args.RoundConfig,
 	}, nil
 }
 
@@ -398,30 +413,6 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 
 	err = genesisMetaBlock.SetValidatorStatsRootHash(validatorStatsRootHash)
-	if err != nil {
-		return nil, err
-	}
-
-	startEpochNum := pcf.bootstrapComponents.EpochBootstrapParams().Epoch()
-	if startEpochNum == 0 {
-		err = pcf.indexGenesisBlocks(genesisBlocks, initialTxs, genesisAccounts)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	cacheRefreshDuration := time.Duration(pcf.config.ValidatorStatistics.CacheRefreshIntervalInSec) * time.Second
-	argVSP := peer.ArgValidatorsProvider{
-		NodesCoordinator:                  pcf.nodesCoordinator,
-		StartEpoch:                        startEpochNum,
-		EpochStartEventNotifier:           pcf.coreData.EpochStartNotifierWithConfirm(),
-		CacheRefreshIntervalDurationInSec: cacheRefreshDuration,
-		ValidatorStatistics:               validatorStatisticsProcessor,
-		MaxRating:                         pcf.maxRating,
-		PubKeyConverter:                   pcf.coreData.ValidatorPubKeyConverter(),
-	}
-
-	validatorsProvider, err := peer.NewValidatorsProvider(argVSP)
 	if err != nil {
 		return nil, err
 	}
@@ -606,6 +597,11 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
+	sentSignaturesTracker, err := track.NewSentSignaturesTracker(pcf.crypto.KeysHandler())
+	if err != nil {
+		return nil, fmt.Errorf("%w when assembling components for the sent signatures tracker", err)
+	}
+
 	blockProcessorComponents, err := pcf.newBlockProcessor(
 		requestHandler,
 		forkDetector,
@@ -621,7 +617,35 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		receiptsRepository,
 		blockCutoffProcessingHandler,
 		pcf.state.MissingTrieNodesNotifier(),
+		sentSignaturesTracker,
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	startEpochNum := pcf.bootstrapComponents.EpochBootstrapParams().Epoch()
+	if startEpochNum == 0 {
+		err = pcf.indexGenesisBlocks(genesisBlocks, initialTxs, genesisAccounts)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	cacheRefreshDuration := time.Duration(pcf.config.ValidatorStatistics.CacheRefreshIntervalInSec) * time.Second
+	argVSP := peer.ArgValidatorsProvider{
+		NodesCoordinator:                  pcf.nodesCoordinator,
+		StartEpoch:                        startEpochNum,
+		EpochStartEventNotifier:           pcf.coreData.EpochStartNotifierWithConfirm(),
+		CacheRefreshIntervalDurationInSec: cacheRefreshDuration,
+		ValidatorStatistics:               validatorStatisticsProcessor,
+		MaxRating:                         pcf.maxRating,
+		ValidatorPubKeyConverter:          pcf.coreData.ValidatorPubKeyConverter(),
+		AddressPubKeyConverter:            pcf.coreData.AddressPubKeyConverter(),
+		AuctionListSelector:               pcf.auctionListSelectorAPI,
+		StakingDataProvider:               pcf.stakingDataProviderAPI,
+	}
+
+	validatorsProvider, err := peer.NewValidatorsProvider(argVSP)
 	if err != nil {
 		return nil, err
 	}
@@ -734,11 +758,11 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		esdtDataStorageForApi:            pcf.esdtNftStorage,
 		accountsParser:                   pcf.accountsParser,
 		receiptsRepository:               receiptsRepository,
+		sentSignaturesTracker:            sentSignaturesTracker,
 	}, nil
 }
 
 func (pcf *processComponentsFactory) newValidatorStatisticsProcessor() (process.ValidatorStatisticsProcessor, error) {
-
 	storageService := pcf.data.StorageService()
 
 	var peerDataPool peer.DataPool = pcf.data.Datapool()
@@ -802,21 +826,22 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochSt
 		}
 
 		argEpochStart := &shardchain.ArgsShardEpochStartTrigger{
-			Marshalizer:          pcf.coreData.InternalMarshalizer(),
-			Hasher:               pcf.coreData.Hasher(),
-			HeaderValidator:      headerValidator,
-			Uint64Converter:      pcf.coreData.Uint64ByteSliceConverter(),
-			DataPool:             pcf.data.Datapool(),
-			Storage:              pcf.data.StorageService(),
-			RequestHandler:       requestHandler,
-			Epoch:                pcf.bootstrapComponents.EpochBootstrapParams().Epoch(),
-			EpochStartNotifier:   pcf.coreData.EpochStartNotifierWithConfirm(),
-			Validity:             process.MetaBlockValidity,
-			Finality:             process.BlockFinality,
-			PeerMiniBlocksSyncer: peerMiniBlockSyncer,
-			RoundHandler:         pcf.coreData.RoundHandler(),
-			AppStatusHandler:     pcf.statusCoreComponents.AppStatusHandler(),
-			EnableEpochsHandler:  pcf.coreData.EnableEpochsHandler(),
+			Marshalizer:                   pcf.coreData.InternalMarshalizer(),
+			Hasher:                        pcf.coreData.Hasher(),
+			HeaderValidator:               headerValidator,
+			Uint64Converter:               pcf.coreData.Uint64ByteSliceConverter(),
+			DataPool:                      pcf.data.Datapool(),
+			Storage:                       pcf.data.StorageService(),
+			RequestHandler:                requestHandler,
+			Epoch:                         pcf.bootstrapComponents.EpochBootstrapParams().Epoch(),
+			EpochStartNotifier:            pcf.coreData.EpochStartNotifierWithConfirm(),
+			Validity:                      process.MetaBlockValidity,
+			Finality:                      process.BlockFinality,
+			PeerMiniBlocksSyncer:          peerMiniBlockSyncer,
+			RoundHandler:                  pcf.coreData.RoundHandler(),
+			AppStatusHandler:              pcf.statusCoreComponents.AppStatusHandler(),
+			EnableEpochsHandler:           pcf.coreData.EnableEpochsHandler(),
+			ExtraDelayForRequestBlockInfo: time.Duration(pcf.config.EpochStartConfig.ExtraDelayForRequestBlockInfoInMilliseconds) * time.Millisecond,
 		}
 		return shardchain.NewEpochStartTrigger(argEpochStart)
 	}
@@ -872,13 +897,17 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		HardForkConfig:          pcf.config.Hardfork,
 		TrieStorageManagers:     pcf.state.TrieStorageManagers(),
 		SystemSCConfig:          *pcf.systemSCConfig,
-		RoundConfig:             &pcf.roundConfig,
-		EpochConfig:             &pcf.epochConfig,
+		RoundConfig:             pcf.roundConfig,
+		EpochConfig:             pcf.epochConfig,
+		HeaderVersionConfigs:    pcf.config.Versions,
 		BlockSignKeyGen:         pcf.crypto.BlockSignKeyGen(),
 		HistoryRepository:       pcf.historyRepo,
 		GenesisNodePrice:        genesisNodePrice,
 		GenesisString:           pcf.config.GeneralSettings.GenesisString,
 		TxExecutionOrderHandler: pcf.txExecutionOrderHandler,
+		GenesisEpoch:            pcf.config.EpochStartConfig.GenesisEpoch,
+		GenesisNonce:            pcf.genesisNonce,
+		GenesisRound:            pcf.genesisRound,
 	}
 
 	gbc, err := processGenesis.NewGenesisBlockCreator(arg)
@@ -1357,23 +1386,24 @@ func (pcf *processComponentsFactory) newShardResolverContainerFactory(
 	}
 
 	resolversContainerFactoryArgs := resolverscontainer.FactoryArgs{
-		ShardCoordinator:                pcf.bootstrapComponents.ShardCoordinator(),
-		MainMessenger:                   pcf.network.NetworkMessenger(),
-		FullArchiveMessenger:            pcf.network.FullArchiveNetworkMessenger(),
-		Store:                           pcf.data.StorageService(),
-		Marshalizer:                     pcf.coreData.InternalMarshalizer(),
-		DataPools:                       pcf.data.Datapool(),
-		Uint64ByteSliceConverter:        pcf.coreData.Uint64ByteSliceConverter(),
-		DataPacker:                      dataPacker,
-		TriesContainer:                  pcf.state.TriesContainer(),
-		SizeCheckDelta:                  pcf.config.Marshalizer.SizeCheckDelta,
-		InputAntifloodHandler:           pcf.network.InputAntiFloodHandler(),
-		OutputAntifloodHandler:          pcf.network.OutputAntiFloodHandler(),
-		NumConcurrentResolvingJobs:      pcf.config.Antiflood.NumConcurrentResolverJobs,
-		IsFullHistoryNode:               pcf.prefConfigs.Preferences.FullArchive,
-		MainPreferredPeersHolder:        pcf.network.PreferredPeersHolderHandler(),
-		FullArchivePreferredPeersHolder: pcf.network.FullArchivePreferredPeersHolderHandler(),
-		PayloadValidator:                payloadValidator,
+		ShardCoordinator:                    pcf.bootstrapComponents.ShardCoordinator(),
+		MainMessenger:                       pcf.network.NetworkMessenger(),
+		FullArchiveMessenger:                pcf.network.FullArchiveNetworkMessenger(),
+		Store:                               pcf.data.StorageService(),
+		Marshalizer:                         pcf.coreData.InternalMarshalizer(),
+		DataPools:                           pcf.data.Datapool(),
+		Uint64ByteSliceConverter:            pcf.coreData.Uint64ByteSliceConverter(),
+		DataPacker:                          dataPacker,
+		TriesContainer:                      pcf.state.TriesContainer(),
+		SizeCheckDelta:                      pcf.config.Marshalizer.SizeCheckDelta,
+		InputAntifloodHandler:               pcf.network.InputAntiFloodHandler(),
+		OutputAntifloodHandler:              pcf.network.OutputAntiFloodHandler(),
+		NumConcurrentResolvingJobs:          pcf.config.Antiflood.NumConcurrentResolverJobs,
+		NumConcurrentResolvingTrieNodesJobs: pcf.config.Antiflood.NumConcurrentResolvingTrieNodesJobs,
+		IsFullHistoryNode:                   pcf.prefConfigs.Preferences.FullArchive,
+		MainPreferredPeersHolder:            pcf.network.PreferredPeersHolderHandler(),
+		FullArchivePreferredPeersHolder:     pcf.network.FullArchivePreferredPeersHolderHandler(),
+		PayloadValidator:                    payloadValidator,
 	}
 	resolversContainerFactory, err := resolverscontainer.NewShardResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
@@ -1393,23 +1423,24 @@ func (pcf *processComponentsFactory) newMetaResolverContainerFactory(
 	}
 
 	resolversContainerFactoryArgs := resolverscontainer.FactoryArgs{
-		ShardCoordinator:                pcf.bootstrapComponents.ShardCoordinator(),
-		MainMessenger:                   pcf.network.NetworkMessenger(),
-		FullArchiveMessenger:            pcf.network.FullArchiveNetworkMessenger(),
-		Store:                           pcf.data.StorageService(),
-		Marshalizer:                     pcf.coreData.InternalMarshalizer(),
-		DataPools:                       pcf.data.Datapool(),
-		Uint64ByteSliceConverter:        pcf.coreData.Uint64ByteSliceConverter(),
-		DataPacker:                      dataPacker,
-		TriesContainer:                  pcf.state.TriesContainer(),
-		SizeCheckDelta:                  pcf.config.Marshalizer.SizeCheckDelta,
-		InputAntifloodHandler:           pcf.network.InputAntiFloodHandler(),
-		OutputAntifloodHandler:          pcf.network.OutputAntiFloodHandler(),
-		NumConcurrentResolvingJobs:      pcf.config.Antiflood.NumConcurrentResolverJobs,
-		IsFullHistoryNode:               pcf.prefConfigs.Preferences.FullArchive,
-		MainPreferredPeersHolder:        pcf.network.PreferredPeersHolderHandler(),
-		FullArchivePreferredPeersHolder: pcf.network.FullArchivePreferredPeersHolderHandler(),
-		PayloadValidator:                payloadValidator,
+		ShardCoordinator:                    pcf.bootstrapComponents.ShardCoordinator(),
+		MainMessenger:                       pcf.network.NetworkMessenger(),
+		FullArchiveMessenger:                pcf.network.FullArchiveNetworkMessenger(),
+		Store:                               pcf.data.StorageService(),
+		Marshalizer:                         pcf.coreData.InternalMarshalizer(),
+		DataPools:                           pcf.data.Datapool(),
+		Uint64ByteSliceConverter:            pcf.coreData.Uint64ByteSliceConverter(),
+		DataPacker:                          dataPacker,
+		TriesContainer:                      pcf.state.TriesContainer(),
+		SizeCheckDelta:                      pcf.config.Marshalizer.SizeCheckDelta,
+		InputAntifloodHandler:               pcf.network.InputAntiFloodHandler(),
+		OutputAntifloodHandler:              pcf.network.OutputAntiFloodHandler(),
+		NumConcurrentResolvingJobs:          pcf.config.Antiflood.NumConcurrentResolverJobs,
+		NumConcurrentResolvingTrieNodesJobs: pcf.config.Antiflood.NumConcurrentResolvingTrieNodesJobs,
+		IsFullHistoryNode:                   pcf.prefConfigs.Preferences.FullArchive,
+		MainPreferredPeersHolder:            pcf.network.PreferredPeersHolderHandler(),
+		FullArchivePreferredPeersHolder:     pcf.network.FullArchivePreferredPeersHolderHandler(),
+		PayloadValidator:                    payloadValidator,
 	}
 
 	return resolverscontainer.NewMetaResolversContainerFactory(resolversContainerFactoryArgs)

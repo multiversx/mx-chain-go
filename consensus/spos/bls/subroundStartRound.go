@@ -54,7 +54,7 @@ func NewSubroundStartRound(
 		return nil, fmt.Errorf("%w for resetConsensusMessages function", spos.ErrNilFunctionHandler)
 	}
 	if check.IfNil(sentSignatureTracker) {
-		return nil, spos.ErrNilSentSignatureTracker
+		return nil, ErrNilSentSignatureTracker
 	}
 
 	srStartRound := subroundStartRound{
@@ -155,6 +155,8 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 			sr.ConsensusGroup(),
 			sr.RoundHandler().Index(),
 		)
+		// we should not return here, the multikey redundancy system relies on it
+		// the NodeRedundancyHandler "thinks" it is in redundancy mode even if we use the multikey redundancy system
 	}
 
 	leader, err := sr.GetLeader()

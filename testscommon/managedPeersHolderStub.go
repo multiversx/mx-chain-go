@@ -17,6 +17,7 @@ type ManagedPeersHolderStub struct {
 	IncrementRoundsWithoutReceivedMessagesCalled func(pkBytes []byte)
 	ResetRoundsWithoutReceivedMessagesCalled     func(pkBytes []byte, pid core.PeerID)
 	GetManagedKeysByCurrentNodeCalled            func() map[string]crypto.PrivateKey
+	GetLoadedKeysByCurrentNodeCalled             func() [][]byte
 	IsKeyManagedByCurrentNodeCalled              func(pkBytes []byte) bool
 	IsKeyRegisteredCalled                        func(pkBytes []byte) bool
 	IsPidManagedByCurrentNodeCalled              func(pid core.PeerID) bool
@@ -25,6 +26,7 @@ type ManagedPeersHolderStub struct {
 	GetNextPeerAuthenticationTimeCalled          func(pkBytes []byte) (time.Time, error)
 	SetNextPeerAuthenticationTimeCalled          func(pkBytes []byte, nextTime time.Time)
 	IsMultiKeyModeCalled                         func() bool
+	GetRedundancyStepInReasonCalled              func() string
 }
 
 // AddManagedPeer -
@@ -89,6 +91,14 @@ func (stub *ManagedPeersHolderStub) GetManagedKeysByCurrentNode() map[string]cry
 	return nil
 }
 
+// GetLoadedKeysByCurrentNode -
+func (stub *ManagedPeersHolderStub) GetLoadedKeysByCurrentNode() [][]byte {
+	if stub.GetLoadedKeysByCurrentNodeCalled != nil {
+		return stub.GetLoadedKeysByCurrentNodeCalled()
+	}
+	return make([][]byte, 0)
+}
+
 // IsKeyManagedByCurrentNode -
 func (stub *ManagedPeersHolderStub) IsKeyManagedByCurrentNode(pkBytes []byte) bool {
 	if stub.IsKeyManagedByCurrentNodeCalled != nil {
@@ -149,6 +159,15 @@ func (stub *ManagedPeersHolderStub) IsMultiKeyMode() bool {
 		return stub.IsMultiKeyModeCalled()
 	}
 	return false
+}
+
+// GetRedundancyStepInReason -
+func (stub *ManagedPeersHolderStub) GetRedundancyStepInReason() string {
+	if stub.GetRedundancyStepInReasonCalled != nil {
+		return stub.GetRedundancyStepInReasonCalled()
+	}
+
+	return ""
 }
 
 // IsInterfaceNil -

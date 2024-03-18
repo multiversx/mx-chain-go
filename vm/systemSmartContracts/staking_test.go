@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -53,6 +54,8 @@ func createMockStakingScArgumentsWithSystemScAddresses(
 			MaxNumberOfNodesForStake:             10,
 			ActivateBLSPubKeyMessageVerification: false,
 			MinUnstakeTokensValue:                "1",
+			StakeLimitPercentage:                 1.0,
+			NodeLimitPercentage:                  1.0,
 		},
 		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(
 			common.StakeFlag,
@@ -92,6 +95,18 @@ func CreateVmContractCallInput() *vmcommon.ContractCallInput {
 		},
 		RecipientAddr: []byte("rcpntaddr"),
 		Function:      "something",
+	}
+}
+
+func createArgsVMContext() VMContextArgs {
+	return VMContextArgs{
+		BlockChainHook:      &mock.BlockChainHookStub{},
+		CryptoHook:          hooks.NewVMCryptoHook(),
+		InputParser:         &mock.ArgumentParserMock{},
+		ValidatorAccountsDB: &stateMock.AccountsStub{},
+		ChanceComputer:      &mock.RaterMock{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		UserAccountsDB:      &stateMock.AccountsStub{},
 	}
 }
 
@@ -998,6 +1013,93 @@ func TestStakingSc_ExecuteIsStaked(t *testing.T) {
 	checkIsStaked(t, stakingSmartContract, callerAddress, stakerPubKey, vmcommon.UserError)
 }
 
+func TestStakingSc_StakeWithStakingV4(t *testing.T) {
+	t.Parallel()
+
+	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
+	enableEpochsHandler.AddActiveFlags(common.StakingV2Flag)
+
+	args := createMockStakingScArguments()
+	stakingAccessAddress := []byte("stakingAccessAddress")
+	args.StakingAccessAddr = stakingAccessAddress
+	args.StakingSCConfig.MaxNumberOfNodesForStake = 4
+	args.EnableEpochsHandler = enableEpochsHandler
+
+	argsVMContext := createArgsVMContext()
+	argsVMContext.EnableEpochsHandler = enableEpochsHandler
+	eei, _ := NewVMContext(argsVMContext)
+	args.Eei = eei
+
+	stakingSmartContract, _ := NewStakingSmartContract(args)
+
+	for i := 0; i < 10; i++ {
+		idxStr := strconv.Itoa(i)
+		addr := []byte("addr" + idxStr)
+		doStake(t, stakingSmartContract, stakingAccessAddress, addr, addr)
+
+		if uint64(i) < stakingSmartContract.maxNumNodes {
+			checkIsStaked(t, stakingSmartContract, addr, addr, vmcommon.Ok)
+		} else {
+			checkIsStaked(t, stakingSmartContract, addr, addr, vmcommon.UserError)
+			require.True(t, strings.Contains(eei.returnMessage, "staking is full"))
+			eei.returnMessage = ""
+		}
+	}
+	requireRegisteredNodes(t, stakingSmartContract, eei, 4, 6)
+
+	doUnStake(t, stakingSmartContract, stakingAccessAddress, []byte("addr0"), []byte("addr0"), vmcommon.Ok)
+	requireRegisteredNodes(t, stakingSmartContract, eei, 4, 5)
+
+	enableEpochsHandler.AddActiveFlags(common.StakingV4StartedFlag)
+	for i := 5; i < 10; i++ {
+		idxStr := strconv.Itoa(i)
+		addr := []byte("addr" + idxStr)
+		err := stakingSmartContract.removeFromWaitingList(addr)
+		require.Nil(t, err)
+	}
+
+	for i := 10; i < 20; i++ {
+		idxStr := strconv.Itoa(i)
+		addr := []byte("addr" + idxStr)
+		doStake(t, stakingSmartContract, stakingAccessAddress, addr, addr)
+		checkIsStaked(t, stakingSmartContract, addr, addr, vmcommon.Ok)
+	}
+	requireRegisteredNodes(t, stakingSmartContract, eei, 14, 0)
+
+	doUnStake(t, stakingSmartContract, stakingAccessAddress, []byte("addr10"), []byte("addr10"), vmcommon.Ok)
+	requireRegisteredNodes(t, stakingSmartContract, eei, 13, 0)
+}
+
+func TestStakingSc_UnStakeNodeFromWaitingListAfterStakingV4ShouldError(t *testing.T) {
+	t.Parallel()
+
+	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
+	enableEpochsHandler.AddActiveFlags(common.StakingV2Flag)
+
+	args := createMockStakingScArguments()
+	stakingAccessAddress := []byte("stakingAccessAddress")
+	args.StakingAccessAddr = stakingAccessAddress
+	args.StakingSCConfig.MaxNumberOfNodesForStake = 2
+	args.EnableEpochsHandler = enableEpochsHandler
+
+	argsVMContext := createArgsVMContext()
+	argsVMContext.EnableEpochsHandler = enableEpochsHandler
+	eei, _ := NewVMContext(argsVMContext)
+	args.Eei = eei
+
+	stakingSmartContract, _ := NewStakingSmartContract(args)
+
+	doStake(t, stakingSmartContract, stakingAccessAddress, []byte("address0"), []byte("address0"))
+	doStake(t, stakingSmartContract, stakingAccessAddress, []byte("address1"), []byte("address1"))
+	doStake(t, stakingSmartContract, stakingAccessAddress, []byte("address2"), []byte("address2"))
+	requireRegisteredNodes(t, stakingSmartContract, eei, 2, 1)
+
+	enableEpochsHandler.AddActiveFlags(common.StakingV4StartedFlag)
+	eei.returnMessage = ""
+	doUnStake(t, stakingSmartContract, stakingAccessAddress, []byte("address2"), []byte("address2"), vmcommon.ExecutionFailed)
+	require.Equal(t, eei.returnMessage, vm.ErrWaitingListDisabled.Error())
+}
+
 func TestStakingSc_StakeWithV1ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -1161,14 +1263,7 @@ func TestStakingSc_ExecuteStakeStakeJailAndSwitch(t *testing.T) {
 	_ = json.Unmarshal(marshaledData, stakedData)
 	assert.True(t, stakedData.Jailed)
 	assert.True(t, stakedData.Staked)
-
-	arguments.Function = "getTotalNumberOfRegisteredNodes"
-	arguments.Arguments = [][]byte{}
-	retCode = stakingSmartContract.Execute(arguments)
-	assert.Equal(t, retCode, vmcommon.Ok)
-
-	lastOutput := eei.output[len(eei.output)-1]
-	assert.Equal(t, lastOutput, []byte{2})
+	requireTotalNumberOfRegisteredNodes(t, stakingSmartContract, eei, big.NewInt(2))
 }
 
 func TestStakingSc_ExecuteStakeStakeJailAndSwitchWithBoundaries(t *testing.T) {
@@ -1305,14 +1400,7 @@ func TestStakingSc_ExecuteStakeStakeJailAndSwitchWithBoundaries(t *testing.T) {
 			_ = json.Unmarshal(marshaledData, stakedData)
 			assert.Equal(t, tt.shouldBeJailed, stakedData.Jailed)
 			assert.Equal(t, tt.shouldBeStaked, stakedData.Staked)
-
-			arguments.Function = "getTotalNumberOfRegisteredNodes"
-			arguments.Arguments = [][]byte{}
-			retCode = stakingSmartContract.Execute(arguments)
-			assert.Equal(t, vmcommon.Ok, retCode)
-
-			lastOutput := eei.output[len(eei.output)-1]
-			assert.Equal(t, []byte{byte(tt.remainingStakedNodesNumber)}, lastOutput)
+			requireTotalNumberOfRegisteredNodes(t, stakingSmartContract, eei, big.NewInt(int64(tt.remainingStakedNodesNumber)))
 		})
 	}
 }
@@ -1447,14 +1535,7 @@ func TestStakingSc_ExecuteStakeStakeStakeJailJailUnJailTwice(t *testing.T) {
 	doGetWaitingListSize(t, stakingSmartContract, eei, 2)
 	outPut = doGetWaitingListRegisterNonceAndRewardAddress(t, stakingSmartContract, eei)
 	assert.Equal(t, 6, len(outPut))
-
-	arguments.Function = "getTotalNumberOfRegisteredNodes"
-	arguments.Arguments = [][]byte{}
-	retCode = stakingSmartContract.Execute(arguments)
-	assert.Equal(t, retCode, vmcommon.Ok)
-
-	lastOutput := eei.output[len(eei.output)-1]
-	assert.Equal(t, lastOutput, []byte{4})
+	requireTotalNumberOfRegisteredNodes(t, stakingSmartContract, eei, big.NewInt(4))
 }
 
 func TestStakingSc_ExecuteStakeUnStakeJailCombinations(t *testing.T) {
@@ -3335,6 +3416,150 @@ func TestStakingSc_fixMissingNodeAddOneNodeOnly(t *testing.T) {
 	waitingListData, _ := sc.getFirstElementsFromWaitingList(50)
 	assert.Equal(t, len(waitingListData.blsKeys), 1)
 	assert.Equal(t, waitingListData.blsKeys[0], blsKey)
+}
+
+func TestStakingSC_StakingV4Flags(t *testing.T) {
+	t.Parallel()
+
+	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
+	enableEpochsHandler.AddActiveFlags(common.StakeFlag)
+	enableEpochsHandler.AddActiveFlags(common.CorrectLastUnJailedFlag)
+	enableEpochsHandler.AddActiveFlags(common.CorrectFirstQueuedFlag)
+	enableEpochsHandler.AddActiveFlags(common.CorrectJailedNotUnStakedEmptyQueueFlag)
+	enableEpochsHandler.AddActiveFlags(common.ValidatorToDelegationFlag)
+	enableEpochsHandler.AddActiveFlags(common.StakingV4Step1Flag)
+	enableEpochsHandler.AddActiveFlags(common.StakingV2Flag)
+	enableEpochsHandler.AddActiveFlags(common.StakingV4StartedFlag)
+
+	argsVMContext := createArgsVMContext()
+	argsVMContext.EnableEpochsHandler = enableEpochsHandler
+	eei, _ := NewVMContext(argsVMContext)
+
+	args := createMockStakingScArguments()
+	args.Eei = eei
+	args.EnableEpochsHandler = enableEpochsHandler
+	stakingSmartContract, _ := NewStakingSmartContract(args)
+
+	// Functions which are not allowed starting STAKING V4 INIT
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "getQueueIndex"
+	retCode := stakingSmartContract.Execute(arguments)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.Equal(t, vm.ErrWaitingListDisabled.Error(), eei.returnMessage)
+
+	eei.CleanCache()
+	arguments.Function = "getQueueSize"
+	retCode = stakingSmartContract.Execute(arguments)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.Equal(t, vm.ErrWaitingListDisabled.Error(), eei.returnMessage)
+
+	eei.CleanCache()
+	arguments.Function = "fixWaitingListQueueSize"
+	retCode = stakingSmartContract.Execute(arguments)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.Equal(t, vm.ErrWaitingListDisabled.Error(), eei.returnMessage)
+
+	eei.CleanCache()
+	arguments.Function = "addMissingNodeToQueue"
+	retCode = stakingSmartContract.Execute(arguments)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.Equal(t, vm.ErrWaitingListDisabled.Error(), eei.returnMessage)
+
+	// Functions which are allowed to be called by systemSC at the end of the epoch in epoch = STAKING V4 INIT
+	eei.CleanCache()
+	arguments.Function = "switchJailedWithWaiting"
+	retCode = stakingSmartContract.Execute(arguments)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.True(t, strings.Contains(eei.returnMessage, "function not allowed to be called by address"))
+
+	eei.CleanCache()
+	arguments.Function = "resetLastUnJailedFromQueue"
+	retCode = stakingSmartContract.Execute(arguments)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.True(t, strings.Contains(eei.returnMessage, "can be called by endOfEpochAccess address only"))
+
+	eei.CleanCache()
+	arguments.Function = "stakeNodesFromQueue"
+	retCode = stakingSmartContract.Execute(arguments)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.True(t, strings.Contains(eei.returnMessage, "can be called by endOfEpochAccess address only"))
+
+	eei.CleanCache()
+	arguments.Function = "cleanAdditionalQueue"
+	retCode = stakingSmartContract.Execute(arguments)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.True(t, strings.Contains(eei.returnMessage, "can be called by endOfEpochAccess address only"))
+
+	enableEpochsHandler.RemoveActiveFlags(common.StakingV4Step1Flag)
+	// All functions from above are not allowed anymore starting STAKING V4 epoch
+	eei.CleanCache()
+	arguments.Function = "getQueueIndex"
+	retCode = stakingSmartContract.Execute(arguments)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.Equal(t, vm.ErrWaitingListDisabled.Error(), eei.returnMessage)
+
+	eei.CleanCache()
+	arguments.Function = "getQueueSize"
+	retCode = stakingSmartContract.Execute(arguments)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.Equal(t, vm.ErrWaitingListDisabled.Error(), eei.returnMessage)
+
+	eei.CleanCache()
+	arguments.Function = "fixWaitingListQueueSize"
+	retCode = stakingSmartContract.Execute(arguments)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.Equal(t, vm.ErrWaitingListDisabled.Error(), eei.returnMessage)
+
+	eei.CleanCache()
+	arguments.Function = "addMissingNodeToQueue"
+	retCode = stakingSmartContract.Execute(arguments)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.Equal(t, vm.ErrWaitingListDisabled.Error(), eei.returnMessage)
+
+	eei.CleanCache()
+	arguments.Function = "switchJailedWithWaiting"
+	retCode = stakingSmartContract.Execute(arguments)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.Equal(t, vm.ErrWaitingListDisabled.Error(), eei.returnMessage)
+
+	eei.CleanCache()
+	arguments.Function = "resetLastUnJailedFromQueue"
+	retCode = stakingSmartContract.Execute(arguments)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.Equal(t, vm.ErrWaitingListDisabled.Error(), eei.returnMessage)
+
+	eei.CleanCache()
+	arguments.Function = "stakeNodesFromQueue"
+	retCode = stakingSmartContract.Execute(arguments)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.Equal(t, vm.ErrWaitingListDisabled.Error(), eei.returnMessage)
+
+	eei.CleanCache()
+	arguments.Function = "cleanAdditionalQueue"
+	retCode = stakingSmartContract.Execute(arguments)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.Equal(t, vm.ErrWaitingListDisabled.Error(), eei.returnMessage)
+}
+
+func requireRegisteredNodes(t *testing.T, stakingSC *stakingSC, eei *vmContext, stakedNodes int64, waitingListNodes uint32) {
+	stakeConfig := stakingSC.getConfig()
+	waitingList, _ := stakingSC.getWaitingListHead()
+	require.Equal(t, stakedNodes, stakeConfig.StakedNodes)
+	require.Equal(t, waitingListNodes, waitingList.Length)
+
+	requireTotalNumberOfRegisteredNodes(t, stakingSC, eei, big.NewInt(stakedNodes+int64(waitingListNodes)))
+}
+
+func requireTotalNumberOfRegisteredNodes(t *testing.T, stakingSC *stakingSC, eei *vmContext, expectedRegisteredNodes *big.Int) {
+	arguments := CreateVmContractCallInput()
+	arguments.Function = "getTotalNumberOfRegisteredNodes"
+	arguments.Arguments = [][]byte{}
+
+	retCode := stakingSC.Execute(arguments)
+	lastOutput := eei.output[len(eei.output)-1]
+	noOfRegisteredNodes := big.NewInt(0).SetBytes(lastOutput)
+	require.Equal(t, retCode, vmcommon.Ok)
+	require.Equal(t, expectedRegisteredNodes, noOfRegisteredNodes)
 }
 
 func TestStakingSc_fixMissingNodeAddAsLast(t *testing.T) {

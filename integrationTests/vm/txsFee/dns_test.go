@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"runtime"
 	"testing"
 	"unicode/utf8"
 
@@ -19,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
@@ -115,6 +117,10 @@ func TestDeployDNSContract_TestRegisterAndResolveAndSendTxWithSndAndRcvUserName(
 // relayer address is in shard 2, creates a transaction on the behalf of the user from shard 2, that will call the DNS contract
 // from shard 1.
 func TestDeployDNSContract_TestGasWhenSaveUsernameFailsCrossShardBackwardsCompatibility(t *testing.T) {
+	if runtime.GOARCH == "arm64" {
+		t.Skip("skipping test on arm64")
+	}
+
 	enableEpochs := config.EnableEpochs{
 		ChangeUsernameEnableEpoch: 1000, // flag disabled, backwards compatibility
 		SCProcessorV2EnableEpoch:  1000,
@@ -124,7 +130,7 @@ func TestDeployDNSContract_TestGasWhenSaveUsernameFailsCrossShardBackwardsCompat
 	testContextForDNSContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShardRoundVMConfig(
 		1,
 		enableEpochs,
-		integrationTests.GetDefaultRoundsConfig(),
+		testscommon.GetDefaultRoundsConfig(),
 		vmConfig,
 	)
 	require.Nil(t, err)
@@ -133,7 +139,7 @@ func TestDeployDNSContract_TestGasWhenSaveUsernameFailsCrossShardBackwardsCompat
 	testContextForRelayerAndUser, err := vm.CreatePreparedTxProcessorWithVMsMultiShardRoundVMConfig(
 		2,
 		enableEpochs,
-		integrationTests.GetDefaultRoundsConfig(),
+		testscommon.GetDefaultRoundsConfig(),
 		vmConfig,
 	)
 	require.Nil(t, err)

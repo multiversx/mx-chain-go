@@ -33,7 +33,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/economics"
 	"github.com/multiversx/mx-chain-go/process/rating"
-	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/statusHandler"
@@ -244,35 +243,15 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	}
 
 	wasmVMChangeLocker := &sync.RWMutex{}
-	gasScheduleConfigurationFolderName := ccf.configPathsHolder.GasScheduleDirectoryName
-	argsGasScheduleNotifier := forking.ArgsNewGasScheduleNotifier{
-		GasScheduleConfig:  ccf.epochConfig.GasSchedule,
-		ConfigDir:          gasScheduleConfigurationFolderName,
-		EpochNotifier:      epochNotifier,
-		WasmVMChangeLocker: wasmVMChangeLocker,
-	}
-	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(argsGasScheduleNotifier)
-	if err != nil {
-		return nil, err
-	}
-
-	builtInCostHandler, err := economics.NewBuiltInFunctionsCost(&economics.ArgsBuiltInFunctionCost{
-		ArgsParser:  smartContract.NewArgumentParser(),
-		GasSchedule: gasScheduleNotifier,
-	})
-	if err != nil {
-		return nil, err
-	}
 
 	txVersionChecker := versioning.NewTxVersionChecker(ccf.config.GeneralSettings.MinTransactionVersion)
 
 	log.Trace("creating economics data components")
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
-		Economics:                   &ccf.economicsConfig,
-		EpochNotifier:               epochNotifier,
-		EnableEpochsHandler:         enableEpochsHandler,
-		BuiltInFunctionsCostHandler: builtInCostHandler,
-		TxVersionChecker:            txVersionChecker,
+		Economics:           &ccf.economicsConfig,
+		EpochNotifier:       epochNotifier,
+		EnableEpochsHandler: enableEpochsHandler,
+		TxVersionChecker:    txVersionChecker,
 	}
 	economicsData, err := economics.NewEconomicsData(argsNewEconomicsData)
 	if err != nil {
@@ -311,6 +290,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		ShuffleBetweenShards: true,
 		MaxNodesEnableConfig: ccf.epochConfig.EnableEpochs.MaxNodesChangeEnableEpoch,
 		EnableEpochsHandler:  enableEpochsHandler,
+		EnableEpochs:         ccf.epochConfig.EnableEpochs,
 	}
 
 	nodesShuffler, err := nodesCoordinator.NewHashValidatorsShuffler(argsNodesShuffler)

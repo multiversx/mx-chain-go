@@ -2,7 +2,6 @@ package bootstrap
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"strconv"
 
@@ -196,22 +195,22 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 
 func (e *epochStartBootstrap) checkIfShuffledOut(
 	pubKey []byte,
-	nodesConfig *nodesCoordinator.NodesCoordinatorRegistry,
+	nodesConfig nodesCoordinator.NodesCoordinatorRegistryHandler,
 ) (uint32, bool) {
 	epochIDasString := fmt.Sprint(e.baseData.lastEpoch)
-	epochConfig := nodesConfig.EpochsConfig[epochIDasString]
+	epochConfig := nodesConfig.GetEpochsConfig()[epochIDasString]
 	if epochConfig == nil {
 		return e.baseData.shardId, false
 	}
 
-	newShardId, isWaitingForShard := checkIfPubkeyIsInMap(pubKey, epochConfig.WaitingValidators)
+	newShardId, isWaitingForShard := checkIfPubkeyIsInMap(pubKey, epochConfig.GetWaitingValidators())
 	if isWaitingForShard {
 		isShuffledOut := newShardId != e.baseData.shardId
 		e.nodeType = core.NodeTypeValidator
 		return newShardId, isShuffledOut
 	}
 
-	newShardId, isEligibleForShard := checkIfPubkeyIsInMap(pubKey, epochConfig.EligibleValidators)
+	newShardId, isEligibleForShard := checkIfPubkeyIsInMap(pubKey, epochConfig.GetEligibleValidators())
 	if isEligibleForShard {
 		isShuffledOut := newShardId != e.baseData.shardId
 		e.nodeType = core.NodeTypeValidator
@@ -252,7 +251,7 @@ func checkIfValidatorIsInList(
 	return false
 }
 
-func (e *epochStartBootstrap) getLastBootstrapData(storer storage.Storer) (*bootstrapStorage.BootstrapData, *nodesCoordinator.NodesCoordinatorRegistry, error) {
+func (e *epochStartBootstrap) getLastBootstrapData(storer storage.Storer) (*bootstrapStorage.BootstrapData, nodesCoordinator.NodesCoordinatorRegistryHandler, error) {
 	bootStorer, err := bootstrapStorage.NewBootstrapStorer(e.coreComponentsHolder.InternalMarshalizer(), storer)
 	if err != nil {
 		return nil, nil, err
@@ -271,8 +270,7 @@ func (e *epochStartBootstrap) getLastBootstrapData(storer storage.Storer) (*boot
 		return nil, nil, err
 	}
 
-	config := &nodesCoordinator.NodesCoordinatorRegistry{}
-	err = json.Unmarshal(d, config)
+	config, err := e.nodesCoordinatorRegistryFactory.CreateNodesCoordinatorRegistry(d)
 	if err != nil {
 		return nil, nil, err
 	}
