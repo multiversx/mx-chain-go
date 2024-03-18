@@ -6,14 +6,18 @@
 IP_HOST_BYTE=3
 
 cloneRepositories() {
-  if [[ -n $CI_RUN ]]; then
-    echo "Repositories have been cloned in the CI"
-  else
-    cd $(dirname $MULTIVERSXDIR)
+  cd $(dirname $MULTIVERSXDIR)
 
-    git clone git@github.com:multiversx/mx-chain-deploy-go.git || true
-    git clone git@github.com:multiversx/mx-chain-proxy-go.git || true
-  fi
+  git clone git@github.com:multiversx/mx-chain-deploy-go.git || true
+  git clone git@github.com:multiversx/mx-chain-proxy-go.git || true
+}
+
+buildNodeImages() {
+  cd $MULTIVERSXDIR
+
+  docker build -f docker/seednode/Dockerfile . -t seednode:dev
+
+  docker build -f docker/node/Dockerfile . -t node:dev
 }
 
 createDockerNetwork() {
@@ -25,10 +29,11 @@ createDockerNetwork() {
 }
 
 startSeedNode() {
-  docker run -d --name seednode -v ${TESTNETDIR}/seednode/config:/go/mx-chain-go/cmd/seednode/config \
-  --network ${DOCKER_NETWORK_NAME} \
-  seednode:dev \
-  --rest-api-interface=0.0.0.0:10000
+  docker run -d --name seednode \
+      -v ${TESTNETDIR}/seednode/config:/go/mx-chain-go/cmd/seednode/config \
+      --network ${DOCKER_NETWORK_NAME} \
+      seednode:dev \
+      --rest-api-interface=0.0.0.0:10000
 }
 
 startObservers() {
@@ -40,14 +45,14 @@ startObservers() {
      KEY_INDEX=$((TOTAL_NODECOUNT - observerIdx - 1))
 
      docker run -d --name "observer${observerIdx}-${NETWORK_ADDRESS}.${IP_HOST_BYTE}-10200-shard${i}" \
-     -v $TESTNETDIR/node/config:/go/mx-chain-go/cmd/node/config \
-     --network ${DOCKER_NETWORK_NAME} \
-     node:dev \
-     --destination-shard-as-observer $i \
-     --rest-api-interface=0.0.0.0:10200 \
-     --config ./config/config_observer.toml \
-     --sk-index=${KEY_INDEX} \
-     $EXTRA_OBSERVERS_FLAGS
+         -v $TESTNETDIR/node/config:/go/mx-chain-go/cmd/node/config \
+         --network ${DOCKER_NETWORK_NAME} \
+         node:dev \
+         --destination-shard-as-observer $i \
+         --rest-api-interface=0.0.0.0:10200 \
+         --config ./config/config_observer.toml \
+         --sk-index=${KEY_INDEX} \
+         $EXTRA_OBSERVERS_FLAGS
 
 
      (( IP_HOST_BYTE++ ))
@@ -80,12 +85,12 @@ startValidators() {
    for ((j = 0; j < SHARD_VALIDATORCOUNT; j++)); do
 
      docker run -d --name "validator${validatorIdx}-${NETWORK_ADDRESS}.${IP_HOST_BYTE}-10200-shard${i}" \
-     -v $TESTNETDIR/node/config:/go/mx-chain-go/cmd/node/config \
-     --network ${DOCKER_NETWORK_NAME} \
-     node:dev \
-     --rest-api-interface=0.0.0.0:10200 \
-     --config ./config/config_validator.toml \
-     --sk-index=${validatorIdx} \
+         -v $TESTNETDIR/node/config:/go/mx-chain-go/cmd/node/config \
+         --network ${DOCKER_NETWORK_NAME} \
+         node:dev \
+         --rest-api-interface=0.0.0.0:10200 \
+         --config ./config/config_validator.toml \
+         --sk-index=${validatorIdx} \
 
      (( IP_HOST_BYTE++ ))
      ((validatorIdx++)) || true
@@ -127,8 +132,6 @@ updateProxyConfigDocker() {
 
 generateProxyObserverListDocker() {
   local ipByte=3
-  OUTPUTFILE=$!
-
 
   for ((i = 0; i < SHARDCOUNT; i++)); do
      for ((j = 0; j < SHARD_OBSERVERCOUNT; j++)); do
@@ -154,8 +157,6 @@ generateProxyObserverListDocker() {
 
 generateProxyValidatorListDocker() {
   local ipByte=3
-  OUTPUTFILE=$!
-
 
   for ((i = 0; i < SHARDCOUNT; i++)); do
      for ((j = 0; j < SHARD_VALIDATORCOUNT; j++)); do
@@ -189,8 +190,8 @@ buildProxyImage() {
 
 startProxyDocker() {
   docker run -d --name "proxy" \
-           -p $PORT_PROXY:8080 \
-           -v $TESTNETDIR/proxy/config:/mx-chain-proxy-go/cmd/proxy/config \
-           --network ${DOCKER_NETWORK_NAME} \
-           proxy:dev
+      -v $TESTNETDIR/proxy/config:/mx-chain-proxy-go/cmd/proxy/config \
+      --network ${DOCKER_NETWORK_NAME} \
+      -p $PORT_PROXY:8080 \
+      proxy:dev
 }
