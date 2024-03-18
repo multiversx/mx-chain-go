@@ -131,6 +131,7 @@ func CreateAccountsDB(db storage.Storer, enableEpochs common.EnableEpochsHandler
 		StoragePruningManager: spm,
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
 		SnapshotsManager:      snapshotsManager,
+		StateChangesCollector: state.NewStateChangesCollector(),
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 
