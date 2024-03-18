@@ -807,7 +807,7 @@ func TestExtensionNode_loadChildren(t *testing.T) {
 	tr, _ := newEmptyTrie()
 	_ = tr.Update([]byte("dog"), []byte("puppy"))
 	_ = tr.Update([]byte("ddog"), []byte("cat"))
-	CommitBatchToTrie(tr)
+	ExecuteUpdatesFromBatch(tr)
 	_ = tr.root.setRootHash()
 	nodes, _ := getEncodedTrieNodesAndHashes(tr)
 	nodesCacher, _ := cache.NewLRUCache(100)

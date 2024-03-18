@@ -73,7 +73,7 @@ func initTrieMultipleValues(nr int) (common.Trie, [][]byte) {
 func initTrie() common.Trie {
 	tr := emptyTrie()
 	addDefaultDataToTrie(tr)
-	trie.CommitBatchToTrie(tr)
+	trie.ExecuteUpdatesFromBatch(tr)
 
 	return tr
 }
@@ -944,7 +944,7 @@ func TestPatriciaMerkleTrie_GetOldRoot(t *testing.T) {
 	expecterOldRoot, _ := tr.RootHash()
 
 	_ = tr.Update([]byte("eggod"), []byte("cat"))
-	trie.CommitBatchToTrie(tr)
+	trie.ExecuteUpdatesFromBatch(tr)
 	assert.Equal(t, expecterOldRoot, tr.GetOldRoot())
 }
 
@@ -1512,7 +1512,7 @@ func TestPatriciaMerkleTrie_IsMigrated(t *testing.T) {
 		tr, _ := trie.NewTrie(tsm, marshaller, hasher, enableEpochs, maxTrieInMem)
 
 		_ = tr.Update([]byte("dog"), []byte("reindeer"))
-		trie.CommitBatchToTrie(tr)
+		trie.ExecuteUpdatesFromBatch(tr)
 		isMigrated, err := tr.IsMigratedToLatestVersion()
 		assert.False(t, isMigrated)
 		assert.Nil(t, err)

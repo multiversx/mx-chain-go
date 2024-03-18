@@ -112,7 +112,7 @@ func GetDefaultTrieStorageManagerParameters() NewTrieStorageManagerArgs {
 	}
 }
 
-func CommitBatchToTrie(tr common.Trie) {
+func ExecuteUpdatesFromBatch(tr common.Trie) {
 	pmt, _ := tr.(*patriciaMerkleTrie)
 	_ = pmt.updateTrie()
 }

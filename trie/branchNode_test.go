@@ -210,8 +210,8 @@ func TestBranchNode_setRootHash(t *testing.T) {
 		_ = tr2.Update(val, val)
 	}
 
-	CommitBatchToTrie(tr1)
-	CommitBatchToTrie(tr2)
+	ExecuteUpdatesFromBatch(tr1)
+	ExecuteUpdatesFromBatch(tr2)
 
 	err := tr1.root.setRootHash()
 	_ = tr2.root.setHash()
@@ -1107,7 +1107,7 @@ func TestPatriciaMerkleTrie_CommitCollapsedDirtyTrieShouldWork(t *testing.T) {
 
 	tr.root, _ = tr.root.getCollapsed()
 	tr.Delete([]byte("zzz"))
-	CommitBatchToTrie(tr)
+	ExecuteUpdatesFromBatch(tr)
 
 	assert.True(t, tr.root.isDirty())
 	assert.True(t, tr.root.isCollapsed())

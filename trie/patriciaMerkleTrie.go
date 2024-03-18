@@ -98,6 +98,7 @@ func NewTrie(
 // If the key is present in the tree, it returns the corresponding value
 func (tr *patriciaMerkleTrie) Get(key []byte) ([]byte, uint32, error) {
 	hexKey := keyBytesToHex(key)
+	//TODO in order to reduce the memory usage, store keys as bytes and convert them to hex only when needed
 	val, found := tr.batchManager.Get(hexKey)
 	if found {
 		return val, 0, nil
