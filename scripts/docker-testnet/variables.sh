@@ -28,14 +28,8 @@ export USE_TXGEN=0
 # anyway.
 export TESTNETDIR="$HOME/MultiversX/testnet"
 
-
 # Path to mx-chain-deploy-go, branch: master. Default: near mx-chain-go.
-
-if [[ -n $CI_RUN ]]; then
-  export CONFIGGENERATORDIR="$(dirname $MULTIVERSXDIR)/mx-chain-go/mx-chain-deploy-go/cmd/filegen"
-else
-  export CONFIGGENERATORDIR="$(dirname $MULTIVERSXDIR)/mx-chain-deploy-go/cmd/filegen"
-fi
+export CONFIGGENERATORDIR="$(dirname $MULTIVERSXDIR)/mx-chain-deploy-go/cmd/filegen"
 
 export CONFIGGENERATOR="$CONFIGGENERATORDIR/filegen"    # Leave unchanged.
 export CONFIGGENERATOROUTPUTDIR="output"
@@ -114,32 +108,28 @@ export PORT_ORIGIN_VALIDATOR_REST="9500"
 
 # UI configuration profiles
 
-# Use tmux or not. If set to 1, only 2 terminal windows will be opened, and
-# tmux will be used to display the running executables using split windows.
-# Recommended. Tmux needs to be installed.
-export USETMUX=1
-
-# Log level for the logger in the Node.
-export LOGLEVEL="*:INFO"
-
-
-if [ "$TESTNETMODE" == "debug" ]; then
-  LOGLEVEL="*:DEBUG,api:INFO"
-fi
-
-if [ "$TESTNETMODE" == "trace" ]; then
-  LOGLEVEL="*:TRACE"
-fi
+## Use tmux or not. If set to 1, only 2 terminal windows will be opened, and
+## tmux will be used to display the running executables using split windows.
+## Recommended. Tmux needs to be installed.
+#export USETMUX=1
+#
+## Log level for the logger in the Node.
+#export LOGLEVEL="*:INFO"
+#
+#
+#if [ "$TESTNETMODE" == "debug" ]; then
+#  LOGLEVEL="*:DEBUG,api:INFO"
+#fi
+#
+#if [ "$TESTNETMODE" == "trace" ]; then
+#  LOGLEVEL="*:TRACE"
+#fi
 
 ########################################################################
 # Proxy configuration
 
 # Path to mx-chain-proxy-go, branch: master. Default: near mx-chain-go.
-if [[ -n $CI_RUN ]]; then
-  export PROXYDIR="$(dirname $MULTIVERSXDIR)/mx-chain-go/mx-chain-proxy-go/cmd/proxy"
-else
-   export PROXYDIR="$(dirname $MULTIVERSXDIR)/mx-chain-proxy-go/cmd/proxy"
-fi
+export PROXYDIR="$(dirname $MULTIVERSXDIR)/mx-chain-proxy-go/cmd/proxy"
 export PROXY=$PROXYDIR/proxy    # Leave unchanged.
 
 export PORT_PROXY="7950"
