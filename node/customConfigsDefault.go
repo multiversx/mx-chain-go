@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 )
 
-func applyArchCustomConfigs(_ *config.Configs) {
-	log.Debug("applyArchCustomConfigs - nothing to do", "architecture", runtime.GOARCH)
+// ApplyArchCustomConfigs will apply configuration tweaks based on the architecture the node is running on
+func ApplyArchCustomConfigs(_ *config.Configs) {
+	log.Debug("ApplyArchCustomConfigs - nothing to do", "architecture", runtime.GOARCH)
 }

@@ -287,12 +287,6 @@
     # CurrentRandomnessOnSortingEnableEpoch represents the epoch when the current randomness on sorting is enabled
     CurrentRandomnessOnSortingEnableEpoch = 4
 
-    # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
-    BLSMultiSignerEnableEpoch = [
-        { EnableEpoch = 0, Type = "no-KOSK" },
-        { EnableEpoch = 1, Type = "KOSK" }
-    ]
-
     # StakeLimitsEnableEpoch represents the epoch when stake limits on validators are enabled
     StakeLimitsEnableEpoch = 5
 
@@ -306,6 +300,15 @@
 
     # StakingV4Step3EnableEpoch represents the epoch in which selected nodes from auction will be distributed to waiting list
     StakingV4Step3EnableEpoch = 6
+
+    # AlwaysMergeContextsInEEIEnableEpoch represents the epoch in which the EEI will always merge the contexts
+    AlwaysMergeContextsInEEIEnableEpoch = 4
+
+    # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
+    BLSMultiSignerEnableEpoch = [
+        { EnableEpoch = 0, Type = "no-KOSK" },
+        { EnableEpoch = 1, Type = "KOSK" }
+    ]
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [

@@ -725,6 +725,12 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.StakingV4Step1EnableEpoch,
 		},
+		common.AlwaysMergeContextsInEEIFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.AlwaysMergeContextsInEEIEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.AlwaysMergeContextsInEEIEnableEpoch,
+		},
 	}
 }
 
