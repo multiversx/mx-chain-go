@@ -675,6 +675,7 @@ func TestChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnsta
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
+				cfg.EpochConfig.EnableEpochs.StakeLimitsEnableEpoch = 100
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 100
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 101
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 102
@@ -705,12 +706,14 @@ func TestChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnsta
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
+				cfg.EpochConfig.EnableEpochs.StakeLimitsEnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 				cfg.EpochConfig.EnableEpochs.AlwaysMergeContextsInEEIEnableEpoch = 1
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+				cfg.SystemSCConfig.StakingSystemSCConfig.NodeLimitPercentage = 1
 			},
 		})
 		require.Nil(t, err)
@@ -735,12 +738,14 @@ func TestChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnsta
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
+				cfg.EpochConfig.EnableEpochs.StakeLimitsEnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 				cfg.EpochConfig.EnableEpochs.AlwaysMergeContextsInEEIEnableEpoch = 1
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+				cfg.SystemSCConfig.StakingSystemSCConfig.NodeLimitPercentage = 1
 			},
 		})
 		require.Nil(t, err)
@@ -765,12 +770,14 @@ func TestChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnsta
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
+				cfg.EpochConfig.EnableEpochs.StakeLimitsEnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 				cfg.EpochConfig.EnableEpochs.AlwaysMergeContextsInEEIEnableEpoch = 1
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+				cfg.SystemSCConfig.StakingSystemSCConfig.NodeLimitPercentage = 1
 			},
 		})
 		require.Nil(t, err)
@@ -1500,6 +1507,7 @@ func TestChainSimulator_MergeDelegation(t *testing.T) {
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
+				cfg.EpochConfig.EnableEpochs.StakeLimitsEnableEpoch = 100
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 100
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 101
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 102
@@ -1530,11 +1538,13 @@ func TestChainSimulator_MergeDelegation(t *testing.T) {
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
+				cfg.EpochConfig.EnableEpochs.StakeLimitsEnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+				cfg.SystemSCConfig.StakingSystemSCConfig.NodeLimitPercentage = 1
 			},
 		})
 		require.Nil(t, err)
@@ -1560,11 +1570,13 @@ func TestChainSimulator_MergeDelegation(t *testing.T) {
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
+				cfg.EpochConfig.EnableEpochs.StakeLimitsEnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+				cfg.SystemSCConfig.StakingSystemSCConfig.NodeLimitPercentage = 1
 			},
 		})
 		require.Nil(t, err)
@@ -1590,11 +1602,13 @@ func TestChainSimulator_MergeDelegation(t *testing.T) {
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
+				cfg.EpochConfig.EnableEpochs.StakeLimitsEnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+				cfg.SystemSCConfig.StakingSystemSCConfig.NodeLimitPercentage = 1
 			},
 		})
 		require.Nil(t, err)

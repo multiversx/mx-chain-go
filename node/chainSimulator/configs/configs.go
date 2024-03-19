@@ -168,12 +168,14 @@ func SetQuickJailRatingConfig(cfg *config.Configs) {
 //   - Step 2 activation epoch
 //   - Step 3 activation epoch
 func SetStakingV4ActivationEpochs(cfg *config.Configs, initialEpoch uint32) {
+	cfg.EpochConfig.EnableEpochs.StakeLimitsEnableEpoch = initialEpoch
 	cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = initialEpoch
 	cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = initialEpoch + 1
 	cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = initialEpoch + 2
 
 	// Set the MaxNodesChange enable epoch for index 2
 	cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = initialEpoch + 2
+	cfg.SystemSCConfig.StakingSystemSCConfig.NodeLimitPercentage = 1
 }
 
 func generateGenesisFile(args ArgsChainSimulatorConfigs, configs *config.Configs) (*dtos.InitialWalletKeys, error) {
