@@ -35,14 +35,14 @@ func createArgs() ArgsIncomingHeaderProcessor {
 		Marshaller:             &marshallerMock.MarshalizerMock{},
 		Hasher:                 &hashingMocks.HasherMock{},
 		OutGoingOperationsPool: &sovTests.OutGoingOperationsPoolMock{},
-		DataCodec: &mock.DataCodecMock{
+		DataCodec: &sovTests.DataCodecMock{
 			DeserializeTokenDataCalled: func(_ []byte) (*sovereign.EsdtTokenData, error) {
 				return &sovereign.EsdtTokenData{
 					Amount: big.NewInt(0),
 				}, nil
 			},
 		},
-		TopicsChecker: &mock.TopicsCheckerMock{},
+		TopicsChecker: &sovTests.TopicsCheckerMock{},
 	}
 }
 
@@ -236,7 +236,7 @@ func TestIncomingHeaderHandler_AddHeaderErrorCases(t *testing.T) {
 		errNumTopics := fmt.Errorf("invalid num topics")
 
 		args := createArgs()
-		args.TopicsChecker = &mock.TopicsCheckerMock{
+		args.TopicsChecker = &sovTests.TopicsCheckerMock{
 			CheckValidityCalled: func(topics [][]byte) error {
 				return errNumTopics
 			},
@@ -263,7 +263,7 @@ func TestIncomingHeaderHandler_AddHeaderErrorCases(t *testing.T) {
 		errNumTopics := fmt.Errorf("invalid num topics")
 
 		args := createArgs()
-		args.TopicsChecker = &mock.TopicsCheckerMock{
+		args.TopicsChecker = &sovTests.TopicsCheckerMock{
 			CheckValidityCalled: func(topics [][]byte) error {
 				return errNumTopics
 			},
@@ -382,7 +382,7 @@ func TestIncomingHeaderHandler_AddHeaderErrorCases(t *testing.T) {
 		errCannotDeserializeEventData := fmt.Errorf("cannot deserialize event data")
 
 		args := createArgs()
-		args.DataCodec = &mock.DataCodecMock{
+		args.DataCodec = &sovTests.DataCodecMock{
 			DeserializeEventDataCalled: func(_ []byte) (*sovereign.EventData, error) {
 				return nil, errCannotDeserializeEventData
 			},
@@ -410,7 +410,7 @@ func TestIncomingHeaderHandler_AddHeaderErrorCases(t *testing.T) {
 		errCannotDeserializeTokenData := fmt.Errorf("cannot deserialize token data")
 
 		args := createArgs()
-		args.DataCodec = &mock.DataCodecMock{
+		args.DataCodec = &sovTests.DataCodecMock{
 			DeserializeTokenDataCalled: func(_ []byte) (*sovereign.EsdtTokenData, error) {
 				return nil, errCannotDeserializeTokenData
 			},
@@ -442,7 +442,7 @@ func TestIncomingHeaderProcessor_createEventData(t *testing.T) {
 		inputEventData := []byte("data")
 
 		args := createArgs()
-		args.DataCodec = &mock.DataCodecMock{
+		args.DataCodec = &sovTests.DataCodecMock{
 			DeserializeEventDataCalled: func(data []byte) (*sovereign.EventData, error) {
 				require.Equal(t, inputEventData, data)
 
@@ -466,7 +466,7 @@ func TestIncomingHeaderProcessor_createEventData(t *testing.T) {
 		func1 := []byte("func1")
 
 		args := createArgs()
-		args.DataCodec = &mock.DataCodecMock{
+		args.DataCodec = &sovTests.DataCodecMock{
 			DeserializeEventDataCalled: func(_ []byte) (*sovereign.EventData, error) {
 				return &sovereign.EventData{
 					TransferData: &sovereign.TransferData{
@@ -494,7 +494,7 @@ func TestIncomingHeaderProcessor_createEventData(t *testing.T) {
 		arg2 := []byte("arg2")
 
 		args := createArgs()
-		args.DataCodec = &mock.DataCodecMock{
+		args.DataCodec = &sovTests.DataCodecMock{
 			DeserializeEventDataCalled: func(_ []byte) (*sovereign.EventData, error) {
 				return &sovereign.EventData{
 					TransferData: &sovereign.TransferData{
@@ -536,7 +536,7 @@ func TestIncomingHeaderProcessor_createSCRData(t *testing.T) {
 	}
 
 	args := createArgs()
-	args.DataCodec = &mock.DataCodecMock{
+	args.DataCodec = &sovTests.DataCodecMock{
 		DeserializeTokenDataCalled: func(_ []byte) (*sovereign.EsdtTokenData, error) {
 			return &sovereign.EsdtTokenData{
 				TokenType: core.NonFungible,
@@ -752,28 +752,31 @@ func TestIncomingHeaderHandler_AddHeader(t *testing.T) {
 		},
 	}
 
-	tcCalled := -1
-	args.TopicsChecker = &mock.TopicsCheckerMock{
+	checkValidityCt := -1
+	args.TopicsChecker = &sovTests.TopicsCheckerMock{
 		CheckValidityCalled: func(topics [][]byte) error {
-			tcCalled++
+			checkValidityCt++
 
-			if tcCalled == 0 {
+			switch checkValidityCt {
+			case 0:
 				require.Equal(t, topic1, topics)
-			} else {
+			case 1:
 				require.Equal(t, topic2, topics)
+			default:
+				require.Fail(t, "check validity called more than 2 times")
 			}
-
 			return nil
 		},
 	}
 
 	deserializeEventDataCt := -1
 	deserializeTokenDataCt := -1
-	args.DataCodec = &mock.DataCodecMock{
+	args.DataCodec = &sovTests.DataCodecMock{
 		DeserializeEventDataCalled: func(data []byte) (*sovereign.EventData, error) {
 			deserializeEventDataCt++
 
-			if deserializeEventDataCt == 0 {
+			switch deserializeEventDataCt {
+			case 0:
 				require.Equal(t, eventData1, data)
 
 				return &sovereign.EventData{
@@ -784,7 +787,8 @@ func TestIncomingHeaderHandler_AddHeader(t *testing.T) {
 						GasLimit: gasLimit1,
 					},
 				}, nil
-			} else if deserializeEventDataCt == 1 {
+
+			case 1:
 				require.Equal(t, eventData2, data)
 
 				return &sovereign.EventData{
@@ -795,30 +799,31 @@ func TestIncomingHeaderHandler_AddHeader(t *testing.T) {
 						GasLimit: gasLimit2,
 					},
 				}, nil
-			} else {
+
+			default:
 				require.Fail(t, "deserialize event data called more than 2 times")
 				return nil, nil
 			}
 		},
-
 		DeserializeTokenDataCalled: func(data []byte) (*sovereign.EsdtTokenData, error) {
 			deserializeTokenDataCt++
 
-			if deserializeTokenDataCt == 0 {
+			switch deserializeTokenDataCt {
+			case 0:
 				require.Equal(t, token1Data, data)
-
 				return &sovereign.EsdtTokenData{
 					TokenType: core.Fungible,
 					Amount:    amount1,
 				}, nil
-			} else if deserializeTokenDataCt == 1 || deserializeTokenDataCt == 2 {
-				require.Equal(t, token2Data, data)
 
+			case 1, 2:
+				require.Equal(t, token2Data, data)
 				return &sovereign.EsdtTokenData{
 					TokenType: core.Fungible,
 					Amount:    amount2,
 				}, nil
-			} else {
+
+			default:
 				require.Fail(t, "deserialize token data called more than 3 times")
 				return nil, nil
 			}
