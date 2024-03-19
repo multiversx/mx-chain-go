@@ -838,6 +838,9 @@ func TestIncomingHeaderHandler_AddHeader(t *testing.T) {
 
 	err = handler.AddHeader([]byte("hash"), incomingHeader)
 	require.Nil(t, err)
+	require.Equal(t, 1, checkValidityCt)
+	require.Equal(t, 1, deserializeEventDataCt)
+	require.Equal(t, 2, deserializeTokenDataCt)
 	require.True(t, wasAddedInHeaderPool)
 	require.True(t, wasAddedInTxPool)
 	require.True(t, wasOutGoingOpConfirmed)
