@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	transactionData "github.com/multiversx/mx-chain-core-go/data/transaction"
@@ -69,13 +70,6 @@ func TestNewOutgoingOperationsFormatter(t *testing.T) {
 }
 
 func createOutgoingOpsFormatter() *outgoingOperations {
-	dataCodec := &mock.DataCodecMock{}
-	topicsChecker := &mock.TopicsCheckerMock{
-		CheckValidityCalled: func(topics [][]byte) error {
-			return nil
-		},
-	}
-
 	events := []SubscribedEvent{
 		{
 			Identifier: []byte("deposit"),
@@ -88,11 +82,11 @@ func createOutgoingOpsFormatter() *outgoingOperations {
 
 	args := ArgsOutgoingOperations{
 		SubscribedEvents: events,
-		DataCodec:        dataCodec,
-		TopicsChecker:    topicsChecker,
+		DataCodec:        &mock.DataCodecMock{},
+		TopicsChecker:    &mock.TopicsCheckerMock{},
 	}
-	creator, _ := NewOutgoingOperationsFormatter(args)
-	return creator
+	opFormatter, _ := NewOutgoingOperationsFormatter(args)
+	return opFormatter
 }
 
 func TestOutgoingOperations_CheckEvent(t *testing.T) {
@@ -111,8 +105,8 @@ func TestOutgoingOperations_CheckEvent(t *testing.T) {
 			},
 		}
 
-		creator, err := NewOutgoingOperationsFormatter(args)
-		require.Nil(t, creator)
+		opFormatter, err := NewOutgoingOperationsFormatter(args)
+		require.Nil(t, opFormatter)
 		require.ErrorContains(t, err, "no subscribed identifier")
 	})
 	t.Run("no addresses", func(t *testing.T) {
@@ -126,8 +120,8 @@ func TestOutgoingOperations_CheckEvent(t *testing.T) {
 			},
 		}
 
-		creator, err := NewOutgoingOperationsFormatter(args)
-		require.Nil(t, creator)
+		opFormatter, err := NewOutgoingOperationsFormatter(args)
+		require.Nil(t, opFormatter)
 		require.ErrorContains(t, err, errNoSubscribedAddresses.Error())
 	})
 	t.Run("invalid address", func(t *testing.T) {
@@ -143,8 +137,8 @@ func TestOutgoingOperations_CheckEvent(t *testing.T) {
 			},
 		}
 
-		creator, err := NewOutgoingOperationsFormatter(args)
-		require.Nil(t, creator)
+		opFormatter, err := NewOutgoingOperationsFormatter(args)
+		require.Nil(t, opFormatter)
 		require.ErrorContains(t, err, errNoSubscribedAddresses.Error())
 	})
 }
@@ -271,7 +265,7 @@ func TestOutgoingOperations_CreateOutgoingTxData(t *testing.T) {
 	amount := new(big.Int)
 	amount.SetString("123000000000000000000", 10)
 	tokenData := sovereign.EsdtTokenData{
-		TokenType: 0,
+		TokenType: core.Fungible,
 		Amount:    amount,
 	}
 
