@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/errors"
-	"github.com/multiversx/mx-chain-go/process/mock"
+	sovTests "github.com/multiversx/mx-chain-go/testscommon/sovereign"
 )
 
 func createEvents() []SubscribedEvent {
@@ -29,8 +29,8 @@ func createEvents() []SubscribedEvent {
 func createArgs() ArgsOutgoingOperations {
 	return ArgsOutgoingOperations{
 		SubscribedEvents: createEvents(),
-		DataCodec:        &mock.DataCodecMock{},
-		TopicsChecker:    &mock.TopicsCheckerMock{},
+		DataCodec:        &sovTests.DataCodecMock{},
+		TopicsChecker:    &sovTests.TopicsCheckerMock{},
 	}
 }
 
@@ -82,8 +82,8 @@ func createOutgoingOpsFormatter() *outgoingOperations {
 
 	args := ArgsOutgoingOperations{
 		SubscribedEvents: events,
-		DataCodec:        &mock.DataCodecMock{},
-		TopicsChecker:    &mock.TopicsCheckerMock{},
+		DataCodec:        &sovTests.DataCodecMock{},
+		TopicsChecker:    &sovTests.TopicsCheckerMock{},
 	}
 	opFormatter, _ := NewOutgoingOperationsFormatter(args)
 	return opFormatter
@@ -176,7 +176,7 @@ func TestOutgoingOperations_CreateOutgoingTxsDataErrorCases(t *testing.T) {
 
 		outgoingOpsFormatter := createOutgoingOpsFormatter()
 		errDeserializeTokenData := fmt.Errorf("deserialize token data error")
-		outgoingOpsFormatter.dataCodec = &mock.DataCodecMock{
+		outgoingOpsFormatter.dataCodec = &sovTests.DataCodecMock{
 			DeserializeTokenDataCalled: func(_ []byte) (*sovereign.EsdtTokenData, error) {
 				return nil, errDeserializeTokenData
 			},
@@ -191,7 +191,7 @@ func TestOutgoingOperations_CreateOutgoingTxsDataErrorCases(t *testing.T) {
 
 		outgoingOpsFormatter := createOutgoingOpsFormatter()
 		errDeserializeEventData := fmt.Errorf("deserialize event data error")
-		outgoingOpsFormatter.dataCodec = &mock.DataCodecMock{
+		outgoingOpsFormatter.dataCodec = &sovTests.DataCodecMock{
 			DeserializeEventDataCalled: func(data []byte) (*sovereign.EventData, error) {
 				return nil, errDeserializeEventData
 			},
@@ -206,7 +206,7 @@ func TestOutgoingOperations_CreateOutgoingTxsDataErrorCases(t *testing.T) {
 
 		outgoingOpsFormatter := createOutgoingOpsFormatter()
 		errSerializeOperation := fmt.Errorf("serialize operation error")
-		outgoingOpsFormatter.dataCodec = &mock.DataCodecMock{
+		outgoingOpsFormatter.dataCodec = &sovTests.DataCodecMock{
 			SerializeOperationCalled: func(operation sovereign.Operation) ([]byte, error) {
 				return nil, errSerializeOperation
 			},
@@ -221,7 +221,7 @@ func TestOutgoingOperations_CreateOutgoingTxsDataErrorCases(t *testing.T) {
 
 		outgoingOpsFormatter := createOutgoingOpsFormatter()
 		errInvalidTopics := fmt.Errorf("check topics error")
-		outgoingOpsFormatter.topicsChecker = &mock.TopicsCheckerMock{
+		outgoingOpsFormatter.topicsChecker = &sovTests.TopicsCheckerMock{
 			CheckValidityCalled: func(topics [][]byte) error {
 				return errInvalidTopics
 			},
@@ -271,7 +271,7 @@ func TestOutgoingOperations_CreateOutgoingTxData(t *testing.T) {
 
 	operationBytes := []byte("operationBytes")
 
-	dataCodec := &mock.DataCodecMock{
+	dataCodec := &sovTests.DataCodecMock{
 		DeserializeEventDataCalled: func(data []byte) (*sovereign.EventData, error) {
 			require.Equal(t, data1, data)
 
@@ -309,7 +309,7 @@ func TestOutgoingOperations_CreateOutgoingTxData(t *testing.T) {
 	args := ArgsOutgoingOperations{
 		SubscribedEvents: events,
 		DataCodec:        dataCodec,
-		TopicsChecker:    &mock.TopicsCheckerMock{},
+		TopicsChecker:    &sovTests.TopicsCheckerMock{},
 	}
 	opFormatter, _ := NewOutgoingOperationsFormatter(args)
 
