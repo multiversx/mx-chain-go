@@ -161,16 +161,16 @@ func (iep *incomingEventsProcessor) createEventData(data []byte) (*eventData, er
 
 func extractSCTransferInfo(transferData *sovereign.TransferData) (uint64, []byte) {
 	gasLimit := uint64(0)
-	args := make([]byte, 0)
+	functionCallWithArgs := make([]byte, 0)
 	if transferData != nil {
 		gasLimit = transferData.GasLimit
 
-		args = append(args, []byte("@")...)
-		args = append(args, hex.EncodeToString(transferData.Function)...)
-		args = append(args, extractArguments(transferData.Args)...)
+		functionCallWithArgs = append(functionCallWithArgs, []byte("@")...)
+		functionCallWithArgs = append(functionCallWithArgs, hex.EncodeToString(transferData.Function)...)
+		functionCallWithArgs = append(functionCallWithArgs, extractArguments(transferData.Args)...)
 	}
 
-	return gasLimit, args
+	return gasLimit, functionCallWithArgs
 }
 
 func extractArguments(arguments [][]byte) []byte {

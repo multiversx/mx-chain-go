@@ -19,9 +19,8 @@ func createDataCodec() SovereignDataDecoder {
 		Serializer: abi.NewSerializer(codec),
 	}
 
-	dataCodecMock, _ := NewDataCodec(args)
-
-	return dataCodecMock
+	dtaCodec, _ := NewDataCodec(args)
+	return dtaCodec
 }
 
 func TestNewDataCodec(t *testing.T) {
