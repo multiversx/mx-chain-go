@@ -649,7 +649,7 @@ func testChainSimulatorMakeNewContractFromValidatorDataWith2StakingContracts(t *
 // 9. Unbond the 2 nodes (that were un staked)
 
 // Internal test scenario #85
-func TestWIP(t *testing.T) {
+func TestChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnstakeAndUnbond(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
