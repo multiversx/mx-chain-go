@@ -34,7 +34,7 @@ def main():
 
     updated_lines = update_toml(lines, "OutgoingSubscribedEvents", "deposit", sovereign_chain_address)
     updated_lines = update_toml(updated_lines, "NotifierConfig", "deposit", main_chain_address)
-    updated_lines = update_toml(updated_lines, "NotifierConfig", "executeBridgeOps", main_chain_address)
+    updated_lines = update_toml(updated_lines, "NotifierConfig", "execute", main_chain_address)
 
     with open(toml_path, 'w') as file:
         file.writelines(updated_lines)

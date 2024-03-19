@@ -9,6 +9,7 @@ deployEsdtSafeContract() {
         --chain=${CHAIN_ID} \
         --gas-limit=200000000 \
         --arguments \
+            false \
             ${MIN_VALID_SIGNERS} \
             ${INITIATOR_ADDRESS} \
             ${SIGNERS} \

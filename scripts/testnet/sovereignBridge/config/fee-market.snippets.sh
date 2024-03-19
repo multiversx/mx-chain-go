@@ -109,3 +109,63 @@ disableFeeMarketContractCall() {
         --wait-result \
         --send || return
 }
+
+setAnyTokenFeeMarketContract() {
+    setAnyTokenFeeMarketContractCall ${FEE_MARKET_ADDRESS} ${PROXY} ${CHAIN_ID}
+}
+setAnyTokenFeeMarketContractSovereign() {
+    setAnyTokenFeeMarketContractCall ${FEE_MARKET_ADDRESS_SOVEREIGN} ${PROXY_SOVEREIGN} ${CHAIN_ID_SOVEREIGN}
+}
+setAnyTokenFeeMarketContractCall() {
+    if [ $# -lt 3 ]; then
+            echo "Usage: $0 <arg1> <arg2> <arg3>"
+            exit 1
+        fi
+
+        local ADDRESS=$1
+        local URL=$2
+        local CHAIN=$3
+
+        mxpy --verbose contract call ${ADDRESS} \
+            --pem=${WALLET} \
+            --proxy=${URL} \
+            --chain=${CHAIN} \
+            --gas-limit=10000000 \
+            --function="addFee" \
+            --arguments \
+                ${DEPOSIT_TOKEN_IDENTIFIER} \
+                0x010000000a53564e2d336139373166000000081bc16d674ec800000000000829a2241af62c0000 \
+            --recall-nonce \
+            --wait-result \
+            --send || return
+}
+
+setAnyTokenFeeMarketContract() {
+    setAnyTokenFeeMarketContractCall ${FEE_MARKET_ADDRESS} ${PROXY} ${CHAIN_ID}
+}
+setAnyTokenFeeMarketContractSovereign() {
+    setAnyTokenFeeMarketContractCall ${FEE_MARKET_ADDRESS_SOVEREIGN} ${PROXY_SOVEREIGN} ${CHAIN_ID_SOVEREIGN}
+}
+setAnyTokenFeeMarketContractCall() {
+    if [ $# -lt 3 ]; then
+            echo "Usage: $0 <arg1> <arg2> <arg3>"
+            exit 1
+        fi
+
+        local ADDRESS=$1
+        local URL=$2
+        local CHAIN=$3
+
+        mxpy --verbose contract call ${ADDRESS} \
+            --pem=${WALLET} \
+            --proxy=${URL} \
+            --chain=${CHAIN} \
+            --gas-limit=10000000 \
+            --function="addFee" \
+            --arguments \
+                WEGLD-dd8471 \
+                0x020000000a53564e2d336139373166000000081bc16d674ec800000000000829a2241af62c0000 \
+            --recall-nonce \
+            --wait-result \
+            --send || return
+}
