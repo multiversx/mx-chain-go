@@ -51,6 +51,8 @@ func TestTrieChangesBatch_MarkForRemoval(t *testing.T) {
 	tcb.MarkForRemoval(keyForDeletion)
 	assert.Equal(t, 0, len(tcb.insertedData))
 	assert.Equal(t, 1, len(tcb.deletedKeys))
+	_, found := tcb.deletedKeys[string(keyForDeletion)]
+	assert.True(t, found)
 }
 
 func TestTrieChangesBatch_Get(t *testing.T) {

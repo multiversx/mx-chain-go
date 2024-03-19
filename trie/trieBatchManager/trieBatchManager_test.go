@@ -14,7 +14,7 @@ func TestNewTrieBatchManager(t *testing.T) {
 	tbm := NewTrieBatchManager()
 	assert.False(t, check.IfNil(tbm))
 
-	assert.False(t, tbm.isUpdateIsProgress)
+	assert.False(t, tbm.isUpdateInProgress)
 	assert.False(t, check.IfNil(tbm.currentBatch))
 	assert.True(t, check.IfNil(tbm.tempBatch))
 }
@@ -25,11 +25,11 @@ func TestTrieBatchManager_TrieUpdateInProgress(t *testing.T) {
 	tbm := NewTrieBatchManager()
 	tbm.currentBatch.Add([]byte("key1"), core.TrieData{})
 	tbm.currentBatch.Add([]byte("key2"), core.TrieData{})
-	assert.False(t, tbm.isUpdateIsProgress)
+	assert.False(t, tbm.isUpdateInProgress)
 	assert.True(t, check.IfNil(tbm.tempBatch))
 
 	batchManager, err := tbm.MarkTrieUpdateInProgress()
-	assert.True(t, tbm.isUpdateIsProgress)
+	assert.True(t, tbm.isUpdateInProgress)
 	assert.False(t, check.IfNil(tbm.tempBatch))
 	assert.Nil(t, err)
 	_, found := batchManager.Get([]byte("key1"))
@@ -42,7 +42,7 @@ func TestTrieBatchManager_TrieUpdateInProgress(t *testing.T) {
 	assert.Equal(t, ErrTrieUpdateInProgress, err)
 
 	tbm.MarkTrieUpdateCompleted()
-	assert.False(t, tbm.isUpdateIsProgress)
+	assert.False(t, tbm.isUpdateInProgress)
 	assert.True(t, check.IfNil(tbm.tempBatch))
 }
 
@@ -93,11 +93,12 @@ func TestTrieBatchManager_Get(t *testing.T) {
 		assert.True(t, found)
 		assert.Equal(t, value, data)
 	})
-	t.Run("check temp batch is not nil", func(t *testing.T) {
+	t.Run("code does not panic if temp batch is nil", func(t *testing.T) {
 		t.Parallel()
 
 		tbm := NewTrieBatchManager()
-		tbm.isUpdateIsProgress = true
+		tbm.isUpdateInProgress = true
+		tbm.tempBatch = nil
 
 		data, found := tbm.Get(key)
 		assert.False(t, found)

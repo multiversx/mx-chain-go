@@ -17,7 +17,7 @@ type trieBatchManager struct {
 	currentBatch common.TrieBatcher
 	tempBatch    common.TrieBatcher
 
-	isUpdateIsProgress bool
+	isUpdateInProgress bool
 	mutex              sync.RWMutex
 }
 
@@ -26,7 +26,7 @@ func NewTrieBatchManager() *trieBatchManager {
 	return &trieBatchManager{
 		currentBatch:       trieChangesBatch.NewTrieChangesBatch(),
 		tempBatch:          nil,
-		isUpdateIsProgress: false,
+		isUpdateInProgress: false,
 	}
 }
 
@@ -35,11 +35,11 @@ func (t *trieBatchManager) MarkTrieUpdateInProgress() (common.TrieBatcher, error
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
 
-	if t.isUpdateIsProgress {
+	if t.isUpdateInProgress {
 		return nil, ErrTrieUpdateInProgress
 	}
 
-	t.isUpdateIsProgress = true
+	t.isUpdateInProgress = true
 	t.tempBatch = t.currentBatch
 	t.currentBatch = trieChangesBatch.NewTrieChangesBatch()
 
@@ -51,7 +51,7 @@ func (t *trieBatchManager) MarkTrieUpdateCompleted() {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
 
-	t.isUpdateIsProgress = false
+	t.isUpdateInProgress = false
 	t.tempBatch = nil
 }
 
@@ -73,7 +73,7 @@ func (t *trieBatchManager) Get(key []byte) ([]byte, bool) {
 		return val, true
 	}
 
-	if t.isUpdateIsProgress && !check.IfNil(t.tempBatch) {
+	if t.isUpdateInProgress && !check.IfNil(t.tempBatch) {
 		val, isPresent = t.tempBatch.Get(key)
 		if isPresent {
 			return val, true
