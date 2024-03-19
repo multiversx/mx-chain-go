@@ -429,7 +429,7 @@ func TestIncomingHeaderHandler_AddHeaderErrorCases(t *testing.T) {
 
 		handler, _ := NewIncomingHeaderProcessor(args)
 		err := handler.AddHeader([]byte("hash"), incomingHeader)
-		require.ErrorContains(t, err, "cannot deserialize token data")
+		require.ErrorContains(t, err, errCannotDeserializeTokenData.Error())
 	})
 }
 
