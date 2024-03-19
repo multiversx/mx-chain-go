@@ -5,13 +5,14 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	transactionData "github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/errors"
-	"github.com/multiversx/mx-chain-go/process/mock"
+	sovTests "github.com/multiversx/mx-chain-go/testscommon/sovereign"
 )
 
 func createEvents() []SubscribedEvent {
@@ -28,8 +29,8 @@ func createEvents() []SubscribedEvent {
 func createArgs() ArgsOutgoingOperations {
 	return ArgsOutgoingOperations{
 		SubscribedEvents: createEvents(),
-		DataCodec:        &mock.DataCodecMock{},
-		TopicsChecker:    &mock.TopicsCheckerMock{},
+		DataCodec:        &sovTests.DataCodecMock{},
+		TopicsChecker:    &sovTests.TopicsCheckerMock{},
 	}
 }
 
@@ -69,13 +70,6 @@ func TestNewOutgoingOperationsFormatter(t *testing.T) {
 }
 
 func createOutgoingOpsFormatter() *outgoingOperations {
-	dataCodec := &mock.DataCodecMock{}
-	topicsChecker := &mock.TopicsCheckerMock{
-		CheckValidityCalled: func(topics [][]byte) error {
-			return nil
-		},
-	}
-
 	events := []SubscribedEvent{
 		{
 			Identifier: []byte("deposit"),
@@ -88,11 +82,11 @@ func createOutgoingOpsFormatter() *outgoingOperations {
 
 	args := ArgsOutgoingOperations{
 		SubscribedEvents: events,
-		DataCodec:        dataCodec,
-		TopicsChecker:    topicsChecker,
+		DataCodec:        &sovTests.DataCodecMock{},
+		TopicsChecker:    &sovTests.TopicsCheckerMock{},
 	}
-	creator, _ := NewOutgoingOperationsFormatter(args)
-	return creator
+	opFormatter, _ := NewOutgoingOperationsFormatter(args)
+	return opFormatter
 }
 
 func TestOutgoingOperations_CheckEvent(t *testing.T) {
@@ -111,8 +105,8 @@ func TestOutgoingOperations_CheckEvent(t *testing.T) {
 			},
 		}
 
-		creator, err := NewOutgoingOperationsFormatter(args)
-		require.Nil(t, creator)
+		opFormatter, err := NewOutgoingOperationsFormatter(args)
+		require.Nil(t, opFormatter)
 		require.ErrorContains(t, err, "no subscribed identifier")
 	})
 	t.Run("no addresses", func(t *testing.T) {
@@ -126,8 +120,8 @@ func TestOutgoingOperations_CheckEvent(t *testing.T) {
 			},
 		}
 
-		creator, err := NewOutgoingOperationsFormatter(args)
-		require.Nil(t, creator)
+		opFormatter, err := NewOutgoingOperationsFormatter(args)
+		require.Nil(t, opFormatter)
 		require.ErrorContains(t, err, errNoSubscribedAddresses.Error())
 	})
 	t.Run("invalid address", func(t *testing.T) {
@@ -143,8 +137,8 @@ func TestOutgoingOperations_CheckEvent(t *testing.T) {
 			},
 		}
 
-		creator, err := NewOutgoingOperationsFormatter(args)
-		require.Nil(t, creator)
+		opFormatter, err := NewOutgoingOperationsFormatter(args)
+		require.Nil(t, opFormatter)
 		require.ErrorContains(t, err, errNoSubscribedAddresses.Error())
 	})
 }
@@ -182,7 +176,7 @@ func TestOutgoingOperations_CreateOutgoingTxsDataErrorCases(t *testing.T) {
 
 		outgoingOpsFormatter := createOutgoingOpsFormatter()
 		errDeserializeTokenData := fmt.Errorf("deserialize token data error")
-		outgoingOpsFormatter.dataCodec = &mock.DataCodecMock{
+		outgoingOpsFormatter.dataCodec = &sovTests.DataCodecMock{
 			DeserializeTokenDataCalled: func(_ []byte) (*sovereign.EsdtTokenData, error) {
 				return nil, errDeserializeTokenData
 			},
@@ -197,7 +191,7 @@ func TestOutgoingOperations_CreateOutgoingTxsDataErrorCases(t *testing.T) {
 
 		outgoingOpsFormatter := createOutgoingOpsFormatter()
 		errDeserializeEventData := fmt.Errorf("deserialize event data error")
-		outgoingOpsFormatter.dataCodec = &mock.DataCodecMock{
+		outgoingOpsFormatter.dataCodec = &sovTests.DataCodecMock{
 			DeserializeEventDataCalled: func(data []byte) (*sovereign.EventData, error) {
 				return nil, errDeserializeEventData
 			},
@@ -212,7 +206,7 @@ func TestOutgoingOperations_CreateOutgoingTxsDataErrorCases(t *testing.T) {
 
 		outgoingOpsFormatter := createOutgoingOpsFormatter()
 		errSerializeOperation := fmt.Errorf("serialize operation error")
-		outgoingOpsFormatter.dataCodec = &mock.DataCodecMock{
+		outgoingOpsFormatter.dataCodec = &sovTests.DataCodecMock{
 			SerializeOperationCalled: func(operation sovereign.Operation) ([]byte, error) {
 				return nil, errSerializeOperation
 			},
@@ -227,7 +221,7 @@ func TestOutgoingOperations_CreateOutgoingTxsDataErrorCases(t *testing.T) {
 
 		outgoingOpsFormatter := createOutgoingOpsFormatter()
 		errInvalidTopics := fmt.Errorf("check topics error")
-		outgoingOpsFormatter.topicsChecker = &mock.TopicsCheckerMock{
+		outgoingOpsFormatter.topicsChecker = &sovTests.TopicsCheckerMock{
 			CheckValidityCalled: func(topics [][]byte) error {
 				return errInvalidTopics
 			},
@@ -271,13 +265,13 @@ func TestOutgoingOperations_CreateOutgoingTxData(t *testing.T) {
 	amount := new(big.Int)
 	amount.SetString("123000000000000000000", 10)
 	tokenData := sovereign.EsdtTokenData{
-		TokenType: 0,
+		TokenType: core.Fungible,
 		Amount:    amount,
 	}
 
 	operationBytes := []byte("operationBytes")
 
-	dataCodec := &mock.DataCodecMock{
+	dataCodec := &sovTests.DataCodecMock{
 		DeserializeEventDataCalled: func(data []byte) (*sovereign.EventData, error) {
 			require.Equal(t, data1, data)
 
@@ -315,7 +309,7 @@ func TestOutgoingOperations_CreateOutgoingTxData(t *testing.T) {
 	args := ArgsOutgoingOperations{
 		SubscribedEvents: events,
 		DataCodec:        dataCodec,
-		TopicsChecker:    &mock.TopicsCheckerMock{},
+		TopicsChecker:    &sovTests.TopicsCheckerMock{},
 	}
 	opFormatter, _ := NewOutgoingOperationsFormatter(args)
 

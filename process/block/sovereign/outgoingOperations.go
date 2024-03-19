@@ -18,6 +18,7 @@ var log = logger.GetOrCreate("outgoing-operations")
 const (
 	numTransferTopics = 3
 	tokensIndex       = 2
+	receiverIndex     = 1
 )
 
 // SubscribedEvent contains a subscribed event from the sovereign chain needed to be transferred to the main chain
@@ -220,7 +221,7 @@ func (op *outgoingOperations) createOperationData(topics [][]byte) (*sovereign.O
 	}
 
 	return &sovereign.Operation{
-		Address: topics[1],
+		Address: topics[receiverIndex],
 		Tokens:  tokens,
 	}, nil
 }
