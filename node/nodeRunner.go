@@ -1295,6 +1295,8 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		TxPreProcessorCreator:                 preprocess.NewTxPreProcessorCreator(),
 		ExtraHeaderSigVerifierHolder:          headerCheck.NewExtraHeaderSigVerifierHolder(),
 		RunTypeComponents:                     runTypeComponents,
+		DataCodec:                             disabled.NewDisabledDataCodec(),
+		TopicsChecker:                         disabled.NewDisabledTopicsChecker(),
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {

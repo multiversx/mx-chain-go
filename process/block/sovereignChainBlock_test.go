@@ -214,9 +214,9 @@ func TestSovereignChainBlockProcessor_createAndSetOutGoingMiniBlock(t *testing.T
 	bridgeOpsHash := hasher.Compute(string(append(bridgeOp1Hash, bridgeOp2Hash...)))
 
 	outgoingOperationsFormatter := &sovereign.OutgoingOperationsFormatterMock{
-		CreateOutgoingTxDataCalled: func(logs []*data.LogData) [][]byte {
+		CreateOutgoingTxDataCalled: func(logs []*data.LogData) ([][]byte, error) {
 			require.Equal(t, expectedLogs, logs)
-			return [][]byte{bridgeOp1, bridgeOp2}
+			return [][]byte{bridgeOp1, bridgeOp2}, nil
 		},
 	}
 

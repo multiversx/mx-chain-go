@@ -475,6 +475,8 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		ManagedPeersHolder:           pcf.crypto.ManagedPeersHolder(),
 		ValidatorStatisticsProcessor: validatorStatisticsProcessor,
 		OutGoingOperationsPool:       pcf.outGoingOperationsPool,
+		DataCodec:                    pcf.dataCodec,
+		TopicsChecker:                pcf.topicsChecker,
 	}
 
 	blockProcessor, err := pcf.createBlockProcessor(argumentsBaseProcessor)

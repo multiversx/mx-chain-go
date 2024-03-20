@@ -50,6 +50,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/poolsCleaner"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
+	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/heartbeat/validator"
@@ -172,6 +173,8 @@ type ProcessComponentsFactoryArgs struct {
 	TxPreProcessorCreator                 preprocess.TxPreProcessorCreator
 	ExtraHeaderSigVerifierHolder          headerCheck.ExtraHeaderSigVerifierHolder
 	OutGoingOperationsPool                block.OutGoingOperationsPool
+	DataCodec                             sovereign.DataCodecProcessor
+	TopicsChecker                         sovereign.TopicsChecker
 }
 
 type processComponentsFactory struct {
@@ -218,6 +221,8 @@ type processComponentsFactory struct {
 	txPreprocessorCreator                 preprocess.TxPreProcessorCreator
 	extraHeaderSigVerifierHolder          headerCheck.ExtraHeaderSigVerifierHolder
 	outGoingOperationsPool                block.OutGoingOperationsPool
+	dataCodec                             sovereign.DataCodecProcessor
+	topicsChecker                         sovereign.TopicsChecker
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -265,6 +270,8 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		txPreprocessorCreator:                 args.TxPreProcessorCreator,
 		extraHeaderSigVerifierHolder:          args.ExtraHeaderSigVerifierHolder,
 		outGoingOperationsPool:                args.OutGoingOperationsPool,
+		dataCodec:                             args.DataCodec,
+		topicsChecker:                         args.TopicsChecker,
 	}, nil
 }
 
@@ -2088,6 +2095,12 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.RunTypeComponents.SCResultsPreProcessorCreator()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilSCResultsPreProcessorCreator)
+	}
+	if check.IfNil(args.DataCodec) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilDataCodec)
+	}
+	if check.IfNil(args.TopicsChecker) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilTopicsChecker)
 	}
 
 	return nil
