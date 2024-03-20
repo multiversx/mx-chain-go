@@ -41,6 +41,8 @@
 [OutGoingBridge]
     GRPCHost = "localhost"
     GRPCPort = "8085"
+    # Hasher type for outgoing operations
+    Hasher = "sha256"
 
 [NotifierConfig]
     SubscribedEvents = [
