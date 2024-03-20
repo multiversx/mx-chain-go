@@ -1,7 +1,5 @@
 //go:build !race
 
-// TODO reinstate test after Wasm VM pointer fix
-
 package process
 
 import (
@@ -180,7 +178,7 @@ func createMockArgument(
 				SCDeployEnableEpoch:               unreachableEpoch,
 				CleanUpInformativeSCRsEnableEpoch: unreachableEpoch,
 				SCProcessorV2EnableEpoch:          unreachableEpoch,
-				StakeLimitsEnableEpoch:         10,
+				StakeLimitsEnableEpoch:            10,
 			},
 		},
 		RoundConfig:             testscommon.GetDefaultRoundsConfig(),
@@ -897,9 +895,9 @@ func TestCreateArgsGenesisBlockCreator_ShouldWorkAndCreateEmpty(t *testing.T) {
 	blocks, err := gbc.CreateGenesisBlocks()
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(blocks))
-	for _, block := range blocks {
-		assert.Zero(t, block.GetNonce())
-		assert.Zero(t, block.GetRound())
-		assert.Zero(t, block.GetEpoch())
+	for _, blockInstance := range blocks {
+		assert.Zero(t, blockInstance.GetNonce())
+		assert.Zero(t, blockInstance.GetRound())
+		assert.Zero(t, blockInstance.GetEpoch())
 	}
 }

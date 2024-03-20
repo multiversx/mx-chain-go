@@ -17,6 +17,10 @@ import (
 
 // minGasPrice = 1, gasPerDataByte = 1, minGasLimit = 1
 func TestMoveBalanceSelfShouldWorkAndConsumeTxFeeWhenAllFlagsAreDisabled(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
 		PenalizedTooMuchGasEnableEpoch: 100,
 		SCDeployEnableEpoch:            100,
@@ -57,6 +61,10 @@ func TestMoveBalanceSelfShouldWorkAndConsumeTxFeeWhenAllFlagsAreDisabled(t *test
 
 // minGasPrice = 1, gasPerDataByte = 1, minGasLimit = 1
 func TestMoveBalanceAllFlagsDisabledLessBalanceThanGasLimitMulGasPrice(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
 		PenalizedTooMuchGasEnableEpoch: integrationTests.UnreachableEpoch,
 		BuiltInFunctionsEnableEpoch:    integrationTests.UnreachableEpoch,
@@ -80,6 +88,10 @@ func TestMoveBalanceAllFlagsDisabledLessBalanceThanGasLimitMulGasPrice(t *testin
 }
 
 func TestMoveBalanceSelfShouldWorkAndConsumeTxFeeWhenSomeFlagsAreDisabled(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(
 		config.EnableEpochs{
 			PenalizedTooMuchGasEnableEpoch:   0,
