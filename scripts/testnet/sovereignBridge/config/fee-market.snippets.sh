@@ -110,13 +110,13 @@ disableFeeMarketContractCall() {
         --send || return
 }
 
-setAnyTokenFeeMarketContract() {
-    setAnyTokenFeeMarketContractCall ${FEE_MARKET_ADDRESS} ${PROXY} ${CHAIN_ID}
+setFixedFeeMarketContract() {
+    setFixedFeeMarketContractCall ${FEE_MARKET_ADDRESS} ${PROXY} ${CHAIN_ID}
 }
-setAnyTokenFeeMarketContractSovereign() {
-    setAnyTokenFeeMarketContractCall ${FEE_MARKET_ADDRESS_SOVEREIGN} ${PROXY_SOVEREIGN} ${CHAIN_ID_SOVEREIGN}
+setFixedFeeMarketContractSovereign() {
+    setFixedFeeMarketContractCall ${FEE_MARKET_ADDRESS_SOVEREIGN} ${PROXY_SOVEREIGN} ${CHAIN_ID_SOVEREIGN}
 }
-setAnyTokenFeeMarketContractCall() {
+setFixedFeeMarketContractCall() {
     if [ $# -lt 3 ]; then
             echo "Usage: $0 <arg1> <arg2> <arg3>"
             exit 1
@@ -133,8 +133,8 @@ setAnyTokenFeeMarketContractCall() {
             --gas-limit=10000000 \
             --function="addFee" \
             --arguments \
-                ${DEPOSIT_TOKEN_IDENTIFIER} \
-                0x010000000a53564e2d336139373166000000081bc16d674ec800000000000829a2241af62c0000 \
+                str:SVN-c53da0 \
+                0x010000000a53564e2d6335336461300000000901314fb370629800000000000901c9f78d2893e40000 \
             --recall-nonce \
             --wait-result \
             --send || return
@@ -163,8 +163,8 @@ setAnyTokenFeeMarketContractCall() {
             --gas-limit=10000000 \
             --function="addFee" \
             --arguments \
-                WEGLD-dd8471 \
-                0x020000000a53564e2d336139373166000000081bc16d674ec800000000000829a2241af62c0000 \
+                str:SVN-cb685a \
+                0x020000000c5745474c442d64643834373100000008de0b6b3a7640000000000008ebec21ee1da40000 \
             --recall-nonce \
             --wait-result \
             --send || return

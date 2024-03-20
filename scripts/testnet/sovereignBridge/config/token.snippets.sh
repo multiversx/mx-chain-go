@@ -407,3 +407,46 @@ depositTokenInSC2Sovereign() {
         --send || return
 }
 
+dep() {
+    manualUpdateConfigFile #update config file
+
+    CHECK_VARIABLES DEPOSIT_TOKEN_IDENTIFIER DEPOSIT_TOKEN_NR_DECIMALS DEPOSIT_TOKEN_AMOUNT_TO_TRANSFER || return
+
+    local AMOUNT_TO_TRANSFER=$(echo "scale=0; $DEPOSIT_TOKEN_AMOUNT_TO_TRANSFER*10^$DEPOSIT_TOKEN_NR_DECIMALS/1" | bc)
+
+    mxpy --verbose contract call ${WALLET_ADDRESS} \
+        --pem=${WALLET} \
+        --proxy=${PROXY} \
+        --chain=${CHAIN_ID} \
+        --gas-limit=20000000 \
+        --function="MultiESDTNFTTransfer" \
+        --arguments \
+           ${ESDT_SAFE_ADDRESS} \
+           2 \
+           str:SVN-c53da0 \
+           0 \
+           ${AMOUNT_TO_TRANSFER} \
+           str:${DEPOSIT_TOKEN_IDENTIFIER} \
+           0 \
+           ${AMOUNT_TO_TRANSFER} \
+           str:deposit \
+           ${WALLET_ADDRESS} \
+        --recall-nonce \
+        --wait-result \
+        --send || return
+}
+
+distributeFees() {
+    mxpy --verbose contract call ${FEE_MARKET_ADDRESS} \
+        --pem=${WALLET} \
+        --proxy=${PROXY} \
+        --chain=${CHAIN_ID} \
+        --gas-limit=20000000 \
+        --function="distributeFees" \
+        --arguments \
+           erd1fp7lg768s4t7yk2e3yz6t69dt6n85hdxq477h7vq3dywszrng8fs3j4ku8 \
+           0x2710 \
+        --recall-nonce \
+        --wait-result \
+        --send || return
+}

@@ -9,7 +9,7 @@ deployAll() {
 
     unpauseEsdtSafeContract
 
-    issueToken
+#    issueToken
 
     setGenesisContract
 
