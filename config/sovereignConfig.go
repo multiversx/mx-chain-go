@@ -9,7 +9,6 @@ type SovereignConfig struct {
 	OutGoingBridge                   OutGoingBridge           `toml:"OutGoingBridge"`
 	NotifierConfig                   NotifierConfig           `toml:"NotifierConfig"`
 	GenesisConfig                    GenesisConfig            `toml:"GenesisConfig"`
-	OutGoingOperationsConfig         OutgoingOperationsConfig `toml:"OutgoingOperationsConfig"`
 	OutGoingBridgeCertificate        OutGoingBridgeCertificate
 }
 
@@ -28,6 +27,7 @@ type MainChainNotarization struct {
 type OutGoingBridge struct {
 	GRPCHost string `toml:"GRPCHost"`
 	GRPCPort string `toml:"GRPCPort"`
+	Hasher   string `toml:"Hasher"`
 }
 
 // OutGoingBridgeCertificate holds config for outgoing bridge certificate paths
@@ -64,9 +64,4 @@ type WebSocketConfig struct {
 // GenesisConfig should hold all sovereign genesis related configs
 type GenesisConfig struct {
 	NativeESDT string `toml:"NativeESDT"`
-}
-
-// OutgoingOperationsConfig should hold outgoing operations configs
-type OutgoingOperationsConfig struct {
-	Hasher string `toml:"Hasher"`
 }

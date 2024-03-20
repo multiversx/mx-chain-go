@@ -47,7 +47,7 @@ func (s *sovereignBlockProcessorFactory) CreateBlockProcessor(argumentsBaseProce
 		return nil, err
 	}
 
-	operationsHasher, err := factory.NewHasher(argumentsBaseProcessor.Config.SovereignConfig.OutGoingOperationsConfig.Hasher)
+	operationsHasher, err := factory.NewHasher(argumentsBaseProcessor.Config.SovereignConfig.OutGoingBridge.Hasher)
 	if err != nil {
 		return nil, err
 	}
