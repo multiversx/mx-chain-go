@@ -69,3 +69,7 @@
 [GenesisConfig]
     # NativeESDT specifies the sovereign shard's native esdt currency
     NativeESDT = "WEGLD-bd4d79"
+
+[OutgoingOperationsConfig]
+    # Hasher type for outgoing operations
+    Hasher = "sha256"

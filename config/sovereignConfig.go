@@ -9,6 +9,7 @@ type SovereignConfig struct {
 	OutGoingBridge                   OutGoingBridge           `toml:"OutGoingBridge"`
 	NotifierConfig                   NotifierConfig           `toml:"NotifierConfig"`
 	GenesisConfig                    GenesisConfig            `toml:"GenesisConfig"`
+	OutGoingOperationsConfig         OutgoingOperationsConfig `toml:"OutgoingOperationsConfig"`
 	OutGoingBridgeCertificate        OutGoingBridgeCertificate
 }
 
@@ -63,4 +64,9 @@ type WebSocketConfig struct {
 // GenesisConfig should hold all sovereign genesis related configs
 type GenesisConfig struct {
 	NativeESDT string `toml:"NativeESDT"`
+}
+
+// OutgoingOperationsConfig should hold outgoing operations configs
+type OutgoingOperationsConfig struct {
+	Hasher string `toml:"Hasher"`
 }

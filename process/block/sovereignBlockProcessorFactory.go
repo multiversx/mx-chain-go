@@ -2,11 +2,13 @@ package block
 
 import (
 	"errors"
+
+	mxErrors "github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	mxErrors "github.com/multiversx/mx-chain-go/errors"
-	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-core-go/hashing/factory"
 )
 
 type sovereignBlockProcessorFactory struct {
@@ -45,11 +47,17 @@ func (s *sovereignBlockProcessorFactory) CreateBlockProcessor(argumentsBaseProce
 		return nil, err
 	}
 
+	operationsHasher, err := factory.NewHasher(argumentsBaseProcessor.Config.SovereignConfig.OutGoingOperationsConfig.Hasher)
+	if err != nil {
+		return nil, err
+	}
+
 	args := ArgsSovereignChainBlockProcessor{
 		ShardProcessor:               shardProc,
 		ValidatorStatisticsProcessor: argumentsBaseProcessor.ValidatorStatisticsProcessor,
 		OutgoingOperationsFormatter:  outgoingOpFormatter,
 		OutGoingOperationsPool:       argumentsBaseProcessor.OutGoingOperationsPool,
+		OperationsHasher:             operationsHasher,
 	}
 
 	scbp, err := NewSovereignChainBlockProcessor(args)
