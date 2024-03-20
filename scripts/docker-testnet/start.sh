@@ -2,7 +2,9 @@
 
 set -eux
 
-file_path="./tmp/stopped_containers"
+export DOCKERTESTNETDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
+file_path="${DOCKERTESTNETDIR}/tmp/stopped_containers"
 
 # Check if the file exists
 if [ ! -f "$file_path" ]; then
@@ -15,4 +17,4 @@ while IFS= read -r line; do
     docker start $line
 done < "$file_path"
 
-rmdir ./tmp
+rm -rf "${DOCKERTESTNETDIR}/tmp"
