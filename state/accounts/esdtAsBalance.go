@@ -83,7 +83,7 @@ func (e *esdtAsBalance) SubFromBalance(accountDataHandler vmcommon.AccountDataHa
 
 func (e *esdtAsBalance) getESDTData(accountDataHandler vmcommon.AccountDataHandler) (*esdt.ESDigitalToken, error) {
 	marshaledData, _, err := accountDataHandler.RetrieveValue(e.keyPrefix)
-	if err != nil {
+	if err != nil || len(marshaledData) == 0 {
 		log.Trace("esdtAsBalance.getESDTData could not load account token", "error", err)
 		return createEmptyESDT(), nil
 	}
@@ -94,17 +94,22 @@ func (e *esdtAsBalance) getESDTData(accountDataHandler vmcommon.AccountDataHandl
 		return nil, err
 	}
 
-	// make extra sure we have these fields set
-	if esdtData.Value == nil {
-		esdtData.Value = big.NewInt(0)
-		esdtData.Type = uint32(core.Fungible)
-	}
+	fillMandatoryFields(esdtData)
 
 	return esdtData, nil
 }
 
 func createEmptyESDT() *esdt.ESDigitalToken {
 	return &esdt.ESDigitalToken{Value: big.NewInt(0), Type: uint32(core.Fungible)}
+}
+
+func fillMandatoryFields(esdtData *esdt.ESDigitalToken) {
+	// make extra sure we have these fields set
+	if esdtData.Value == nil {
+		esdtData.Value = big.NewInt(0)
+	}
+
+	esdtData.Type = uint32(core.Fungible)
 }
 
 func (e *esdtAsBalance) saveESDTData(accountDataHandler vmcommon.AccountDataHandler, esdtData *esdt.ESDigitalToken) error {

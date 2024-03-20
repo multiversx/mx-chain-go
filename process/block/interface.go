@@ -4,8 +4,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	sovereignCore "github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 type blockProcessor interface {
@@ -61,5 +62,10 @@ type BlockProcessorCreator interface {
 // HeaderValidatorCreator is an interface for creating header validators
 type HeaderValidatorCreator interface {
 	CreateHeaderValidator(args ArgsHeaderValidator) (process.HeaderConstructionValidator, error)
+	IsInterfaceNil() bool
+}
+
+type runTypeComponentsHolder interface {
+	AccountsCreator() state.AccountFactory
 	IsInterfaceNil() bool
 }

@@ -50,6 +50,7 @@ type runTypeComponentsHandler interface {
 	TransactionCoordinatorCreator() coordinator.TransactionCoordinatorCreator
 	SCResultsPreProcessorCreator() preprocess.SmartContractResultPreProcessorCreator
 	SCProcessorCreator() scrCommon.SCProcessorCreator
+	AccountsCreator() state.AccountFactory
 	IsInterfaceNil() bool
 }
 

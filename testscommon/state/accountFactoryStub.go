@@ -1,6 +1,8 @@
 package state
 
 import (
+	"math/big"
+
 	"github.com/multiversx/mx-chain-vm-common-go"
 )
 
@@ -13,7 +15,11 @@ type AccountsFactoryStub struct {
 
 // CreateAccount -
 func (afs *AccountsFactoryStub) CreateAccount(address []byte) (vmcommon.AccountHandler, error) {
-	return afs.CreateAccountCalled(address)
+	if afs.CreateAccountCalled != nil {
+		return afs.CreateAccountCalled(address)
+	}
+
+	return &UserAccountStub{Address: address, Balance: big.NewInt(0)}, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

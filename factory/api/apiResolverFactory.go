@@ -37,7 +37,6 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/blockInfoProviders"
 	disabledState "github.com/multiversx/mx-chain-go/state/disabled"
-	factoryState "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/evictionWaitingList"
 	"github.com/multiversx/mx-chain-go/state/syncer"
@@ -75,44 +74,42 @@ type ApiResolverArgs struct {
 }
 
 type scQueryServiceArgs struct {
-	generalConfig           *config.Config
-	epochConfig             *config.EpochConfig
-	coreComponents          factory.CoreComponentsHolder
-	stateComponents         factory.StateComponentsHolder
-	dataComponents          factory.DataComponentsHolder
-	processComponents       factory.ProcessComponentsHolder
-	statusCoreComponents    factory.StatusCoreComponentsHolder
-	gasScheduleNotifier     core.GasScheduleNotifier
-	messageSigVerifier      vm.MessageSignVerifier
-	systemSCConfig          *config.SystemSmartContractsConfig
-	bootstrapper            process.Bootstrapper
-	guardedAccountHandler   process.GuardedAccountHandler
-	allowVMQueriesChan      chan struct{}
-	workingDir              string
-	processingMode          common.NodeProcessingMode
-	vmContainerMetaFactory  factoryVm.VmContainerCreator
-	vmContainerShardFactory factoryVm.VmContainerCreator
+	generalConfig         *config.Config
+	epochConfig           *config.EpochConfig
+	coreComponents        factory.CoreComponentsHolder
+	stateComponents       factory.StateComponentsHolder
+	dataComponents        factory.DataComponentsHolder
+	processComponents     factory.ProcessComponentsHolder
+	statusCoreComponents  factory.StatusCoreComponentsHolder
+	runTypeComponents     factory.RunTypeComponentsHolder
+	gasScheduleNotifier   core.GasScheduleNotifier
+	messageSigVerifier    vm.MessageSignVerifier
+	systemSCConfig        *config.SystemSmartContractsConfig
+	bootstrapper          process.Bootstrapper
+	guardedAccountHandler process.GuardedAccountHandler
+	allowVMQueriesChan    chan struct{}
+	workingDir            string
+	processingMode        common.NodeProcessingMode
 }
 
 type scQueryElementArgs struct {
-	generalConfig           *config.Config
-	epochConfig             *config.EpochConfig
-	coreComponents          factory.CoreComponentsHolder
-	stateComponents         factory.StateComponentsHolder
-	dataComponents          factory.DataComponentsHolder
-	processComponents       factory.ProcessComponentsHolder
-	statusCoreComponents    factory.StatusCoreComponentsHolder
-	gasScheduleNotifier     core.GasScheduleNotifier
-	messageSigVerifier      vm.MessageSignVerifier
-	systemSCConfig          *config.SystemSmartContractsConfig
-	bootstrapper            process.Bootstrapper
-	guardedAccountHandler   process.GuardedAccountHandler
-	allowVMQueriesChan      chan struct{}
-	workingDir              string
-	index                   int
-	processingMode          common.NodeProcessingMode
-	vmContainerMetaFactory  factoryVm.VmContainerCreator
-	vmContainerShardFactory factoryVm.VmContainerCreator
+	generalConfig         *config.Config
+	epochConfig           *config.EpochConfig
+	coreComponents        factory.CoreComponentsHolder
+	stateComponents       factory.StateComponentsHolder
+	dataComponents        factory.DataComponentsHolder
+	processComponents     factory.ProcessComponentsHolder
+	statusCoreComponents  factory.StatusCoreComponentsHolder
+	runTypeComponents     factory.RunTypeComponentsHolder
+	gasScheduleNotifier   core.GasScheduleNotifier
+	messageSigVerifier    vm.MessageSignVerifier
+	systemSCConfig        *config.SystemSmartContractsConfig
+	bootstrapper          process.Bootstrapper
+	guardedAccountHandler process.GuardedAccountHandler
+	allowVMQueriesChan    chan struct{}
+	workingDir            string
+	index                 int
+	processingMode        common.NodeProcessingMode
 }
 
 // CreateApiResolver is able to create an ApiResolver instance that will solve the REST API requests through the node facade
@@ -131,23 +128,22 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 	}
 
 	argsSCQuery := &scQueryServiceArgs{
-		generalConfig:           args.Configs.GeneralConfig,
-		epochConfig:             args.Configs.EpochConfig,
-		coreComponents:          args.CoreComponents,
-		dataComponents:          args.DataComponents,
-		stateComponents:         args.StateComponents,
-		processComponents:       args.ProcessComponents,
-		statusCoreComponents:    args.StatusCoreComponents,
-		gasScheduleNotifier:     args.GasScheduleNotifier,
-		messageSigVerifier:      args.CryptoComponents.MessageSignVerifier(),
-		systemSCConfig:          args.Configs.SystemSCConfig,
-		bootstrapper:            args.Bootstrapper,
-		guardedAccountHandler:   args.BootstrapComponents.GuardedAccountHandler(),
-		allowVMQueriesChan:      args.AllowVMQueriesChan,
-		workingDir:              apiWorkingDir,
-		processingMode:          args.ProcessingMode,
-		vmContainerMetaFactory:  args.RunTypeComponents.VmContainerMetaFactoryCreator(),
-		vmContainerShardFactory: args.RunTypeComponents.VmContainerShardFactoryCreator(),
+		generalConfig:         args.Configs.GeneralConfig,
+		epochConfig:           args.Configs.EpochConfig,
+		coreComponents:        args.CoreComponents,
+		dataComponents:        args.DataComponents,
+		stateComponents:       args.StateComponents,
+		processComponents:     args.ProcessComponents,
+		statusCoreComponents:  args.StatusCoreComponents,
+		gasScheduleNotifier:   args.GasScheduleNotifier,
+		messageSigVerifier:    args.CryptoComponents.MessageSignVerifier(),
+		systemSCConfig:        args.Configs.SystemSCConfig,
+		bootstrapper:          args.Bootstrapper,
+		guardedAccountHandler: args.BootstrapComponents.GuardedAccountHandler(),
+		allowVMQueriesChan:    args.AllowVMQueriesChan,
+		workingDir:            apiWorkingDir,
+		processingMode:        args.ProcessingMode,
+		runTypeComponents:     args.RunTypeComponents,
 	}
 
 	scQueryService, err := createScQueryService(argsSCQuery)
@@ -307,24 +303,23 @@ func createScQueryService(
 	}
 
 	argsQueryElem := &scQueryElementArgs{
-		generalConfig:           args.generalConfig,
-		epochConfig:             args.epochConfig,
-		coreComponents:          args.coreComponents,
-		stateComponents:         args.stateComponents,
-		dataComponents:          args.dataComponents,
-		processComponents:       args.processComponents,
-		statusCoreComponents:    args.statusCoreComponents,
-		gasScheduleNotifier:     args.gasScheduleNotifier,
-		messageSigVerifier:      args.messageSigVerifier,
-		systemSCConfig:          args.systemSCConfig,
-		bootstrapper:            args.bootstrapper,
-		guardedAccountHandler:   args.guardedAccountHandler,
-		allowVMQueriesChan:      args.allowVMQueriesChan,
-		workingDir:              args.workingDir,
-		index:                   0,
-		processingMode:          args.processingMode,
-		vmContainerMetaFactory:  args.vmContainerMetaFactory,
-		vmContainerShardFactory: args.vmContainerShardFactory,
+		generalConfig:         args.generalConfig,
+		epochConfig:           args.epochConfig,
+		coreComponents:        args.coreComponents,
+		stateComponents:       args.stateComponents,
+		dataComponents:        args.dataComponents,
+		processComponents:     args.processComponents,
+		statusCoreComponents:  args.statusCoreComponents,
+		gasScheduleNotifier:   args.gasScheduleNotifier,
+		messageSigVerifier:    args.messageSigVerifier,
+		systemSCConfig:        args.systemSCConfig,
+		bootstrapper:          args.bootstrapper,
+		guardedAccountHandler: args.guardedAccountHandler,
+		allowVMQueriesChan:    args.allowVMQueriesChan,
+		workingDir:            args.workingDir,
+		index:                 0,
+		processingMode:        args.processingMode,
+		runTypeComponents:     args.runTypeComponents,
 	}
 
 	var err error
@@ -453,7 +448,7 @@ func createArgsSCQueryService(args *scQueryElementArgs) (*smartContract.ArgsNewS
 			EnableEpochsHandler: args.coreComponents.EnableEpochsHandler(),
 		}
 
-		vmContainer, vmFactory, err = args.vmContainerMetaFactory.CreateVmContainerFactory(argsHook, argsNewVmContainerFactory)
+		vmContainer, vmFactory, err = args.runTypeComponents.VmContainerMetaFactoryCreator().CreateVmContainerFactory(argsHook, argsNewVmContainerFactory)
 	} else {
 		argsHook.BlockChain, err = blockchain.NewBlockChain(disabled.NewAppStatusHandler())
 		if err != nil {
@@ -493,7 +488,7 @@ func createArgsSCQueryService(args *scQueryElementArgs) (*smartContract.ArgsNewS
 			ShardCoordinator:    args.processComponents.ShardCoordinator(),
 		}
 
-		vmContainer, vmFactory, err = args.vmContainerShardFactory.CreateVmContainerFactory(argsHook, argsNewVmContainerFactory)
+		vmContainer, vmFactory, err = args.runTypeComponents.VmContainerShardFactoryCreator().CreateVmContainerFactory(argsHook, argsNewVmContainerFactory)
 	}
 
 	if err != nil {
@@ -531,16 +526,6 @@ func createArgsSCQueryService(args *scQueryElementArgs) (*smartContract.ArgsNewS
 }
 
 func createNewAccountsAdapterApi(args *scQueryElementArgs, chainHandler data.ChainHandler) (state.AccountsAdapterAPI, error) {
-	argsAccCreator := factoryState.ArgsAccountCreator{
-		Hasher:              args.coreComponents.Hasher(),
-		Marshaller:          args.coreComponents.InternalMarshalizer(),
-		EnableEpochsHandler: args.coreComponents.EnableEpochsHandler(),
-	}
-	accountFactory, err := factoryState.NewAccountCreator(argsAccCreator)
-	if err != nil {
-		return nil, err
-	}
-
 	storagePruning, err := newStoragePruningManager(args)
 	if err != nil {
 		return nil, err
@@ -581,7 +566,7 @@ func createNewAccountsAdapterApi(args *scQueryElementArgs, chainHandler data.Cha
 		Trie:                  merkleTrie,
 		Hasher:                args.coreComponents.Hasher(),
 		Marshaller:            args.coreComponents.InternalMarshalizer(),
-		AccountFactory:        accountFactory,
+		AccountFactory:        args.runTypeComponents.AccountsCreator(),
 		StoragePruningManager: storagePruning,
 		AddressConverter:      args.coreComponents.AddressPubKeyConverter(),
 		SnapshotsManager:      disabledState.NewDisabledSnapshotsManager(),
