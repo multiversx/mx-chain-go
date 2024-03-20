@@ -51,3 +51,12 @@ func AssignShardForPubKeyWhenNotSpecified(pubKey []byte, numShards uint32) uint3
 func SuffixedMetric(metric string, suffix string) string {
 	return fmt.Sprintf("%s%s", metric, suffix)
 }
+
+// GasScheduleSortName returns the gas schedule sort name
+func GasScheduleSortName(filename string) string {
+	replaced := strings.ReplaceAll(filename, "gasScheduleV", "")
+	replaced = strings.ReplaceAll(replaced, ".toml", "")
+
+	str := fmt.Sprintf("%05s", replaced)
+	return str
+}

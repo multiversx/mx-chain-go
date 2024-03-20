@@ -82,7 +82,7 @@ func createMockArgs(t *testing.T) *api.ApiResolverArgs {
 	err = mbc.Create()
 	require.Nil(t, err)
 
-	gasSchedule, _ := common.LoadGasScheduleConfig("../../cmd/node/config/gasSchedules/gasScheduleV1.toml")
+	gasSchedule, _ := common.LoadGasScheduleConfig("../../cmd/node/config/gasSchedules/" + common.LatestGasScheduleFileName)
 	economicsConfig := testscommon.GetEconomicsConfig()
 	cfg := componentsMock.GetGeneralConfig()
 
@@ -360,7 +360,7 @@ func createMockSCQueryElementArgs() api.SCQueryElementArgs {
 		},
 		GasScheduleNotifier: &testscommon.GasScheduleNotifierMock{
 			LatestGasScheduleCalled: func() map[string]map[string]uint64 {
-				gasSchedule, _ := common.LoadGasScheduleConfig("../../cmd/node/config/gasSchedules/gasScheduleV1.toml")
+				gasSchedule, _ := common.LoadGasScheduleConfig("../../cmd/node/config/gasSchedules/" + common.LatestGasScheduleFileName)
 				return gasSchedule
 			},
 		},

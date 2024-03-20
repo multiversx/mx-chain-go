@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"sort"
 	"strconv"
 	"strings"
 	"testing"
@@ -374,4 +375,28 @@ func TestSuffixedMetric(t *testing.T) {
 	providedSuffix = common.FullArchiveMetricSuffix
 	expectedMetric = providedMetric + providedSuffix
 	require.Equal(t, expectedMetric, common.SuffixedMetric(providedMetric, providedSuffix))
+}
+
+func TestGasScheduleSortName(t *testing.T) {
+	t.Parallel()
+
+	entries := []string{
+		"gasScheduleV1.toml",
+		"gasScheduleV10.toml",
+		"gasScheduleV03.toml",
+		"gasScheduleV2.toml",
+	}
+
+	sorted := []string{
+		"gasScheduleV1.toml",
+		"gasScheduleV2.toml",
+		"gasScheduleV03.toml",
+		"gasScheduleV10.toml",
+	}
+
+	sort.Slice(entries, func(i, j int) bool {
+		return common.GasScheduleSortName(entries[i]) < common.GasScheduleSortName(entries[j])
+	})
+
+	require.Equal(t, sorted, entries)
 }

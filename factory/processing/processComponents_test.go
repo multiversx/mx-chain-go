@@ -63,7 +63,7 @@ const (
 )
 
 var (
-	gasSchedule, _    = common.LoadGasScheduleConfig("../../cmd/node/config/gasSchedules/gasScheduleV1.toml")
+	gasSchedule, _    = common.LoadGasScheduleConfig("../../cmd/node/config/gasSchedules/" + common.LatestGasScheduleFileName)
 	addrPubKeyConv, _ = factory.NewPubkeyConverter(config.PubkeyConfig{
 		Length:          32,
 		Type:            "bech32",

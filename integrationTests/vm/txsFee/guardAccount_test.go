@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/guardians"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests"
@@ -131,7 +132,7 @@ func getLatestGasScheduleVersion(tb testing.TB, directoryToSearch string) string
 	}
 
 	sort.Slice(files, func(i, j int) bool {
-		return files[i] > files[j]
+		return common.GasScheduleSortName(files[i]) > common.GasScheduleSortName(files[j])
 	})
 
 	gasSchedule := files[0]

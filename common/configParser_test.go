@@ -1,8 +1,10 @@
 package common_test
 
 import (
+	"log"
 	"os"
 	"path"
+	"sort"
 	"strings"
 	"testing"
 
@@ -515,4 +517,21 @@ func TestGetNodeProcessingMode(t *testing.T) {
 
 	mode = common.GetNodeProcessingMode(&config.ImportDbConfig{})
 	assert.Equal(t, common.Normal, mode)
+}
+
+func TestLatestVersionOfGasScheduleIsUsed(t *testing.T) {
+	t.Parallel()
+
+	entries, err := os.ReadDir("../cmd/node/config/gasSchedules")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	assert.True(t, len(entries) > 0, "No gas schedule files found")
+
+	sort.Slice(entries, func(i, j int) bool {
+		return common.GasScheduleSortName(entries[i].Name()) > common.GasScheduleSortName(entries[j].Name())
+	})
+
+	assert.Equal(t, common.LatestGasScheduleFileName, entries[0].Name(), "Latest gas schedule file is not used. Please update common.LatestGasScheduleFileName and enableEpochs.toml.")
 }

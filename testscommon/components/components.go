@@ -87,7 +87,7 @@ func GetCoreArgs() coreComp.CoreComponentsFactoryArgs {
 				GasScheduleByEpochs: []config.GasScheduleByEpochs{
 					{
 						StartEpoch: 0,
-						FileName:   "gasScheduleV1.toml",
+						FileName:   common.LatestGasScheduleFileName,
 					},
 				},
 			},
@@ -111,7 +111,7 @@ func GetStatusCoreArgs(coreComponents factory.CoreComponentsHolder) statusCore.S
 				GasScheduleByEpochs: []config.GasScheduleByEpochs{
 					{
 						StartEpoch: 0,
-						FileName:   "gasScheduleV1.toml",
+						FileName:   common.LatestGasScheduleFileName,
 					},
 				},
 			},

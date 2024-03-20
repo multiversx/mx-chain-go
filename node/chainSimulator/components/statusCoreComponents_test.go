@@ -3,6 +3,7 @@ package components
 import (
 	"testing"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/mock"
@@ -25,7 +26,7 @@ func createArgs() (config.Configs, factory.CoreComponentsHolder) {
 				GasScheduleByEpochs: []config.GasScheduleByEpochs{
 					{
 						StartEpoch: 0,
-						FileName:   "gasScheduleV1.toml",
+						FileName:   common.LatestGasScheduleFileName,
 					},
 				},
 			},
