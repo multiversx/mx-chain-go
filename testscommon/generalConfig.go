@@ -432,7 +432,7 @@ func GetGeneralConfig() config.Config {
 					},
 				},
 			},
-			OutGoingOperationsConfig: config.OutgoingOperationsConfig{
+			OutGoingBridge: config.OutGoingBridge{
 				Hasher: "sha256",
 			},
 		},
