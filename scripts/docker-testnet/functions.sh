@@ -29,105 +29,139 @@ createDockerNetwork() {
 }
 
 startSeedNode() {
+  local publishPortArgs=""
+  if [[ "$DOCKER_PUBLISH_PORTS" -gt 0 ]]; then
+    publishPortArgs="-p $DOCKER_PUBLISH_PORT_RANGE:10000"
+    (( DOCKER_PUBLISH_PORT_RANGE++ ))
+  fi
+
   docker run -d --name seednode \
       -v ${TESTNETDIR}/seednode/config:/go/mx-chain-go/cmd/seednode/config \
       --network ${DOCKER_NETWORK_NAME} \
+      $publishPortArgs \
       seednode:dev \
       --rest-api-interface=0.0.0.0:10000
 }
 
 startObservers() {
- local observerIdx=0
- # Example for loop with injected variables in Bash
- for ((i = 0; i < SHARDCOUNT; i++)); do
-   for ((j = 0; j < SHARD_OBSERVERCOUNT; j++)); do
-     # Your commands or code to be executed in each iteration
+  local observerIdx=0
+  local publishPortArgs=""
+
+  # Example for loop with injected variables in Bash
+  for ((i = 0; i < SHARDCOUNT; i++)); do
+    for ((j = 0; j < SHARD_OBSERVERCOUNT; j++)); do
+      # Your commands or code to be executed in each iteration
+      KEY_INDEX=$((TOTAL_NODECOUNT - observerIdx - 1))
+
+      if [[ "$DOCKER_PUBLISH_PORTS" -gt 0 ]]; then
+        publishPortArgs="-p $DOCKER_PUBLISH_PORT_RANGE:10000"
+      fi
+
+      docker run -d --name "observer${observerIdx}-${NETWORK_ADDRESS}.${IP_HOST_BYTE}-10200-shard${i}" \
+          -v $TESTNETDIR/node/config:/go/mx-chain-go/cmd/node/config \
+          --network ${DOCKER_NETWORK_NAME} \
+          $publishPortArgs \
+          node:dev \
+          --destination-shard-as-observer $i \
+          --rest-api-interface=0.0.0.0:10200 \
+          --config ./config/config_observer.toml \
+          --sk-index=${KEY_INDEX} \
+          $EXTRA_OBSERVERS_FLAGS
+
+
+      (( IP_HOST_BYTE++ ))
+      (( DOCKER_PUBLISH_PORT_RANGE++ ))
+      ((observerIdx++)) || true
+    done
+  done
+
+  for ((i = 0; i < META_OBSERVERCOUNT; i++)); do
      KEY_INDEX=$((TOTAL_NODECOUNT - observerIdx - 1))
 
-     docker run -d --name "observer${observerIdx}-${NETWORK_ADDRESS}.${IP_HOST_BYTE}-10200-shard${i}" \
+     if [[ "$DOCKER_PUBLISH_PORTS" -gt 0 ]]; then
+       publishPortArgs="-p $DOCKER_PUBLISH_PORT_RANGE:10000"
+     fi
+
+     docker run -d --name "observer${observerIdx}-${NETWORK_ADDRESS}.${IP_HOST_BYTE}-10200-metachain" \
          -v $TESTNETDIR/node/config:/go/mx-chain-go/cmd/node/config \
          --network ${DOCKER_NETWORK_NAME} \
+         $publishPortArgs \
          node:dev \
-         --destination-shard-as-observer $i \
+         --destination-shard-as-observer "metachain" \
          --rest-api-interface=0.0.0.0:10200 \
          --config ./config/config_observer.toml \
          --sk-index=${KEY_INDEX} \
          $EXTRA_OBSERVERS_FLAGS
 
-
      (( IP_HOST_BYTE++ ))
+     (( DOCKER_PUBLISH_PORT_RANGE++ ))
      ((observerIdx++)) || true
-   done
- done
-
- for ((i = 0; i < META_OBSERVERCOUNT; i++)); do
-    KEY_INDEX=$((TOTAL_NODECOUNT - observerIdx - 1))
-
-    docker run -d --name "observer${observerIdx}-${NETWORK_ADDRESS}.${IP_HOST_BYTE}-10200-metachain" \
-        -v $TESTNETDIR/node/config:/go/mx-chain-go/cmd/node/config \
-        --network ${DOCKER_NETWORK_NAME} \
-        node:dev \
-        --destination-shard-as-observer "metachain" \
-        --rest-api-interface=0.0.0.0:10200 \
-        --config ./config/config_observer.toml \
-        --sk-index=${KEY_INDEX} \
-        $EXTRA_OBSERVERS_FLAGS
-
-    (( IP_HOST_BYTE++ ))
-    ((observerIdx++)) || true
- done
+  done
 }
 
 startValidators() {
- validatorIdx=0
- # Example for loop with injected variables in Bash
- for ((i = 0; i < SHARDCOUNT; i++)); do
-   for ((j = 0; j < SHARD_VALIDATORCOUNT; j++)); do
+  local validatorIdx=0
+  local publishPortArgs=""
+  # Example for loop with injected variables in Bash
+  for ((i = 0; i < SHARDCOUNT; i++)); do
+    for ((j = 0; j < SHARD_VALIDATORCOUNT; j++)); do
 
-     docker run -d --name "validator${validatorIdx}-${NETWORK_ADDRESS}.${IP_HOST_BYTE}-10200-shard${i}" \
-         -v $TESTNETDIR/node/config:/go/mx-chain-go/cmd/node/config \
-         --network ${DOCKER_NETWORK_NAME} \
-         node:dev \
-         --rest-api-interface=0.0.0.0:10200 \
-         --config ./config/config_validator.toml \
-         --sk-index=${validatorIdx} \
+      if [[ "$DOCKER_PUBLISH_PORTS" -gt 0 ]]; then
+        publishPortArgs="-p $DOCKER_PUBLISH_PORT_RANGE:10000"
+      fi
 
-     (( IP_HOST_BYTE++ ))
-     ((validatorIdx++)) || true
-   done
- done
+      docker run -d --name "validator${validatorIdx}-${NETWORK_ADDRESS}.${IP_HOST_BYTE}-10200-shard${i}" \
+          -v $TESTNETDIR/node/config:/go/mx-chain-go/cmd/node/config \
+          --network ${DOCKER_NETWORK_NAME} \
+          $publishPortArgs \
+          node:dev \
+          --rest-api-interface=0.0.0.0:10200 \
+          --config ./config/config_validator.toml \
+          --sk-index=${validatorIdx} \
+
+      (( IP_HOST_BYTE++ ))
+      (( DOCKER_PUBLISH_PORT_RANGE++ ))
+      ((validatorIdx++)) || true
+    done
+  done
 
   for ((i = 0; i < META_VALIDATORCOUNT; i++)); do
-     docker run -d --name "validator${validatorIdx}-${NETWORK_ADDRESS}.${IP_HOST_BYTE}-10200-metachain" \
+
+    if [[ "$DOCKER_PUBLISH_PORTS" -gt 0 ]]; then
+      publishPortArgs="-p $DOCKER_PUBLISH_PORT_RANGE:10000"
+    fi
+
+    docker run -d --name "validator${validatorIdx}-${NETWORK_ADDRESS}.${IP_HOST_BYTE}-10200-metachain" \
          -v $TESTNETDIR/node/config:/go/mx-chain-go/cmd/node/config \
          --network ${DOCKER_NETWORK_NAME} \
+         $publishPortArgs \
          node:dev \
          --rest-api-interface=0.0.0.0:10200 \
          --config ./config/config_observer.toml \
          --sk-index=${validatorIdx} \
 
-     (( IP_HOST_BYTE++ ))
-     ((validatorIdx++)) || true
+    (( IP_HOST_BYTE++ ))
+    (( DOCKER_PUBLISH_PORT_RANGE++ ))
+    ((validatorIdx++)) || true
   done
 }
 
 updateProxyConfigDocker() {
-    pushd $TESTNETDIR/proxy/config
-    cp config.toml config_edit.toml
+  pushd $TESTNETDIR/proxy/config
+  cp config.toml config_edit.toml
 
-    # Truncate config.toml before the [[Observers]] list
-    sed -i -n '/\[\[Observers\]\]/q;p' config_edit.toml
+  # Truncate config.toml before the [[Observers]] list
+  sed -i -n '/\[\[Observers\]\]/q;p' config_edit.toml
 
-    if [ "$SHARD_OBSERVERCOUNT" -le 0 ]; then
-        generateProxyValidatorListDocker config_edit.toml
-    else
-        generateProxyObserverListDocker config_edit.toml
-    fi
+  if [ "$SHARD_OBSERVERCOUNT" -le 0 ]; then
+    generateProxyValidatorListDocker config_edit.toml
+  else
+    generateProxyObserverListDocker config_edit.toml
+  fi
 
-    mv config_edit.toml config.toml
-
-    echo "Updated configuration for the Proxy."
-    popd
+  mv config_edit.toml config.toml
+  echo "Updated configuration for the Proxy."
+  popd
 }
 
 generateProxyObserverListDocker() {

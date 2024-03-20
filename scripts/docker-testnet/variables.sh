@@ -6,6 +6,14 @@
 # Don't change the subnet, unless you know what you are doing. Prone to errors.
 export DOCKER_NETWORK_SUBNET="172.18.0.0/24"
 export DOCKER_NETWORK_NAME="local-testnet"
+
+# By default ports won't be published. If set to 1, all containers will port-forward to host network.
+export DOCKER_PUBLISH_PORTS=1
+
+if [[ "$DOCKER_PUBLISH_PORTS" -gt 0 ]]; then
+  export DOCKER_PUBLISH_PORT_RANGE=30000
+fi
+
 ########################################################################
 
 
