@@ -2,7 +2,6 @@ package status_test
 
 import (
 	"errors"
-	"runtime"
 	"testing"
 
 	"github.com/multiversx/mx-chain-communication-go/websocket/data"
@@ -136,7 +135,9 @@ func TestNewStatusComponentsFactory(t *testing.T) {
 }
 
 func TestStatusComponentsFactory_Create(t *testing.T) {
-	// no t.Parallel for these tests as they create real components
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	t.Run("NewSoftwareVersionFactory fails should return error", func(t *testing.T) {
 		args := createMockStatusComponentsFactoryArgs()
@@ -188,10 +189,6 @@ func TestStatusComponentsFactory_Create(t *testing.T) {
 		require.Nil(t, sc)
 	})
 	t.Run("should work", func(t *testing.T) {
-		if runtime.GOOS == "darwin" && runtime.GOARCH == "amd64" {
-			t.Skip("skipping test on darwin amd64")
-		}
-
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 		shardCoordinator.SelfIDCalled = func() uint32 {
 			return core.MetachainShardId // coverage

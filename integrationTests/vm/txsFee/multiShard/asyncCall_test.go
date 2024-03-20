@@ -1,5 +1,3 @@
-//go:build !race
-
 package multiShard
 
 import (
@@ -17,9 +15,8 @@ import (
 )
 
 func TestAsyncCallShouldWork(t *testing.T) {
-	// TODO reinstate test after Wasm VM pointer fix
 	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Wasm VM fix")
+		t.Skip("this is not a short test")
 	}
 
 	enableEpochs := config.EnableEpochs{
@@ -119,7 +116,7 @@ func TestAsyncCallShouldWork(t *testing.T) {
 
 func TestAsyncCallDisabled(t *testing.T) {
 	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Arwen fix")
+		t.Skip("this is not a short test")
 	}
 
 	enableEpochs := config.EnableEpochs{

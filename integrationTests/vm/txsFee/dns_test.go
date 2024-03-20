@@ -1,14 +1,9 @@
-//go:build !race
-
-// TODO remove build condition above to allow -race -short, after Wasm VM fix
-
 package txsFee
 
 import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
-	"runtime"
 	"testing"
 	"unicode/utf8"
 
@@ -30,6 +25,10 @@ import (
 const returnOkData = "@6f6b"
 
 func TestDeployDNSContract_TestRegisterAndResolveAndSendTxWithSndAndRcvUserName(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
 		DynamicGasCostForDataTrieStorageLoadEnableEpoch: 10,
 	})
@@ -117,8 +116,8 @@ func TestDeployDNSContract_TestRegisterAndResolveAndSendTxWithSndAndRcvUserName(
 // relayer address is in shard 2, creates a transaction on the behalf of the user from shard 2, that will call the DNS contract
 // from shard 1.
 func TestDeployDNSContract_TestGasWhenSaveUsernameFailsCrossShardBackwardsCompatibility(t *testing.T) {
-	if runtime.GOARCH == "arm64" {
-		t.Skip("skipping test on arm64")
+	if testing.Short() {
+		t.Skip("this is not a short test")
 	}
 
 	enableEpochs := config.EnableEpochs{
@@ -197,6 +196,10 @@ func TestDeployDNSContract_TestGasWhenSaveUsernameFailsCrossShardBackwardsCompat
 }
 
 func TestDeployDNSContract_TestGasWhenSaveUsernameAfterDNSv2IsActivated(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContextForDNSContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{
 		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
 	})

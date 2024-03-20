@@ -1,7 +1,3 @@
-//go:build !race
-
-// TODO remove build condition above to allow -race -short, after Wasm VM fix
-
 package txsFee
 
 import (
@@ -28,6 +24,10 @@ import (
 )
 
 func TestBuildInFunctionChangeOwnerCallShouldWorkV1(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(
 		config.EnableEpochs{
 			PenalizedTooMuchGasEnableEpoch: integrationTests.UnreachableEpoch,
@@ -66,6 +66,10 @@ func TestBuildInFunctionChangeOwnerCallShouldWorkV1(t *testing.T) {
 }
 
 func TestBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(
 		config.EnableEpochs{
 			PenalizedTooMuchGasEnableEpoch: integrationTests.UnreachableEpoch,
@@ -103,6 +107,10 @@ func TestBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
 }
 
 func TestBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -140,6 +148,10 @@ func TestBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(t *testing.T) 
 }
 
 func TestBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -174,6 +186,10 @@ func TestBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *testing.T) 
 }
 
 func TestBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -210,6 +226,10 @@ func TestBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldNotConsumeGas(t
 }
 
 func TestBuildInFunctionChangeOwnerOutOfGasShouldConsumeGas(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -245,6 +265,10 @@ func TestBuildInFunctionChangeOwnerOutOfGasShouldConsumeGas(t *testing.T) {
 }
 
 func TestBuildInFunctionSaveKeyValue_WrongDestination(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	shardCoord, _ := sharding.NewMultiShardCoordinator(2, 0)
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinator(
@@ -280,6 +304,10 @@ func TestBuildInFunctionSaveKeyValue_WrongDestination(t *testing.T) {
 }
 
 func TestBuildInFunctionSaveKeyValue_NotEnoughGasFor3rdSave(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	shardCoord, _ := sharding.NewMultiShardCoordinator(2, 0)
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinator(
@@ -308,6 +336,10 @@ func TestBuildInFunctionSaveKeyValue_NotEnoughGasFor3rdSave(t *testing.T) {
 }
 
 func TestBuildInFunctionSaveKeyValue_NotEnoughGasForTheSameKeyValue(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	shardCoord, _ := sharding.NewMultiShardCoordinator(2, 0)
 
 	gasScheduleNotifier := vm.CreateMockGasScheduleNotifier()
