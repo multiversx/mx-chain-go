@@ -337,6 +337,61 @@ func TestSovereignSubRoundEnd_DoEndJobByLeader(t *testing.T) {
 		require.True(t, success)
 		require.True(t, wasDataSent)
 	})
+
+	t.Run("no outgoing operations in current block, but found unconfirmed operations, leader should send them", func(t *testing.T) {
+		t.Parallel()
+
+		unconfirmedBridgeOutGoingData := &sovCore.BridgeOutGoingData{
+			Hash: []byte("hashOfHashes"),
+			OutGoingOperations: []*sovCore.OutGoingOperation{
+				{
+					Hash: []byte("hashOp1"),
+					Data: []byte("bridgeOp1"),
+				},
+			},
+		}
+
+		pool := &sovereign.OutGoingOperationsPoolMock{
+			GetUnconfirmedOperationsCalled: func() []*sovCore.BridgeOutGoingData {
+				return []*sovCore.BridgeOutGoingData{unconfirmedBridgeOutGoingData}
+			},
+		}
+
+		wasDataSent := false
+		currCtx := context.Background()
+		wg := sync.WaitGroup{}
+		wg.Add(1)
+		bridgeHandler := &sovereign.BridgeOperationsHandlerMock{
+			SendCalled: func(ctx context.Context, data *sovCore.BridgeOperations) (*sovCore.BridgeOperationsResponse, error) {
+				defer func() {
+					wg.Done()
+				}()
+
+				require.Equal(t, currCtx, ctx)
+				require.Equal(t, &sovCore.BridgeOperations{
+					Data: []*sovCore.BridgeOutGoingData{
+						unconfirmedBridgeOutGoingData,
+					},
+				}, data)
+
+				wasDataSent = true
+				return &sovCore.BridgeOperationsResponse{}, nil
+			},
+		}
+
+		sovHdr := &block.SovereignChainHeader{
+			Header: &block.Header{
+				Nonce: 4,
+			},
+			OutGoingMiniBlockHeader: nil,
+		}
+		sovEndRound := createSovSubRoundEndWithSelfLeader(pool, bridgeHandler, sovHdr)
+		success := sovEndRound.DoSovereignEndRoundJob(currCtx)
+
+		wg.Wait()
+		require.True(t, success)
+		require.True(t, wasDataSent)
+	})
 }
 
 func TestSovereignSubRoundEnd_DoEndJobByParticipant(t *testing.T) {
@@ -452,4 +507,45 @@ func TestSovereignSubRoundEnd_DoEndJobByParticipant(t *testing.T) {
 		require.Equal(t, 0, getUnconfirmedCalled)
 	})
 
+	t.Run("no outgoing operations in current block, but found unconfirmed operations, participant should NOT send them", func(t *testing.T) {
+		t.Parallel()
+
+		getUnconfirmedCalled := 0
+		pool := &sovereign.OutGoingOperationsPoolMock{
+			GetUnconfirmedOperationsCalled: func() []*sovCore.BridgeOutGoingData {
+				getUnconfirmedCalled++
+				return make([]*sovCore.BridgeOutGoingData, 1)
+			},
+		}
+
+		wasDataSent := false
+		currCtx := context.Background()
+		spyChan := make(chan struct{})
+		bridgeHandler := &sovereign.BridgeOperationsHandlerMock{
+			SendCalled: func(ctx context.Context, data *sovCore.BridgeOperations) (*sovCore.BridgeOperationsResponse, error) {
+				spyChan <- struct{}{}
+				wasDataSent = true
+				return &sovCore.BridgeOperationsResponse{}, nil
+			},
+		}
+
+		sovHdr := &block.SovereignChainHeader{
+			Header: &block.Header{
+				Nonce: 4,
+			},
+			OutGoingMiniBlockHeader: nil,
+		}
+		sovEndRound := createSovSubRoundEndWithParticipant(pool, bridgeHandler, sovHdr)
+		success := sovEndRound.DoSovereignEndRoundJob(currCtx)
+
+		select {
+		case <-spyChan:
+			require.Fail(t, "should not have sent data as participant")
+		case <-time.After(time.Second):
+		}
+
+		require.True(t, success)
+		require.False(t, wasDataSent)
+		require.Zero(t, getUnconfirmedCalled)
+	})
 }
