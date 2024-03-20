@@ -274,7 +274,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	goRoutinesNumberStart := runtime.NumGoroutine()
 
 	log.Debug("applying custom configs based on the current architecture")
-	applyArchCustomConfigs(nr.configs)
+	ApplyArchCustomConfigs(nr.configs)
 
 	configs := nr.configs
 	flagsConfig := configs.FlagsConfig

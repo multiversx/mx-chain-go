@@ -52,7 +52,7 @@ func TestApplyArchCustomConfigs(t *testing.T) {
 			},
 		}
 
-		applyArchCustomConfigs(providedConfigs)
+		ApplyArchCustomConfigs(providedConfigs)
 
 		assert.Equal(t, executionVMConfig, providedConfigs.GeneralConfig.VirtualMachine.Execution)
 		assert.Equal(t, queryVMConfig, providedConfigs.GeneralConfig.VirtualMachine.Querying)
@@ -67,7 +67,7 @@ func TestApplyArchCustomConfigs(t *testing.T) {
 		emptyConfigs := &config.Configs{
 			GeneralConfig: &config.Config{},
 		}
-		applyArchCustomConfigs(providedConfigs)
+		ApplyArchCustomConfigs(providedConfigs)
 
 		assert.Equal(t, emptyConfigs, providedConfigs)
 	})
