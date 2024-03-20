@@ -2,42 +2,17 @@
 
 set -eux
 
-export DOCKERTESTNETDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+file_path="./tmp/stopped_containers"
 
-MULTIVERSXTESTNETSCRIPTSDIR="$(dirname "$DOCKERTESTNETDIR")/testnet"
-
-source "$DOCKERTESTNETDIR/variables.sh"
-source "$DOCKERTESTNETDIR/functions.sh"
-source "$MULTIVERSXTESTNETSCRIPTSDIR/include/config.sh"
-source "$MULTIVERSXTESTNETSCRIPTSDIR/include/build.sh"
-
-cloneRepositories
-
-prepareFolders
-
-buildConfigGenerator
-
-generateConfig
-
-copyConfig
-
-copySeednodeConfig
-updateSeednodeConfig
-
-copyNodeConfig
-updateNodeConfig
-
-createDockerNetwork
-
-startSeedNode
-startObservers
-startValidators
-
-if [ $USE_PROXY -eq 1 ]; then
-  buildProxyImage
-  prepareFolders_Proxy
-  copyProxyConfig
-  updateProxyConfigDocker
-  startProxyDocker
+# Check if the file exists
+if [ ! -f "$file_path" ]; then
+    echo "File $file_path not found."
+    exit 1
 fi
 
+# Read the file line by line
+while IFS= read -r line; do
+    docker start $line
+done < "$file_path"
+
+rmdir ./tmp
