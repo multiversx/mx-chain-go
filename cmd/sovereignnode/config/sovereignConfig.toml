@@ -45,7 +45,7 @@
 [NotifierConfig]
     SubscribedEvents = [
         { Identifier = "deposit", Addresses = ["erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th"] },
-        { Identifier = "executedBridgeOp", Addresses = ["erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th"] }
+        { Identifier = "executed", Addresses = ["erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th"] }
     ]
     [NotifierConfig.WebSocket]
         Url = "localhost:22111"
