@@ -6,14 +6,6 @@ import (
 	"sort"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
-	sovCore "github.com/multiversx/mx-chain-core-go/data/sovereign"
-	"github.com/multiversx/mx-chain-core-go/hashing"
-	logger "github.com/multiversx/mx-chain-logger-go"
-
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/logging"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -22,6 +14,14 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/state"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	sovCore "github.com/multiversx/mx-chain-core-go/data/sovereign"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var rootHash = "uncomputed root hash"
