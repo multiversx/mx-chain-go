@@ -95,6 +95,7 @@ func createSovRunTypeComps(t *testing.T) runTypeComponentsHandler {
 	)
 	require.Nil(t, err)
 	sovRunTypeComp, err := factoryRunType.NewManagedRunTypeComponents(sovRunTypeFactory)
+	require.Nil(t, err)
 
 	err = sovRunTypeComp.Create()
 	require.Nil(t, err)
