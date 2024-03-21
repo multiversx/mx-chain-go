@@ -9,7 +9,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/factory"
@@ -193,12 +192,6 @@ func createSovereignShardGenesisBlock(
 	indexingData.StakingTxs = stakingTxs
 
 	metaScrsTxs := metaProcessor.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
-	genesisESDTTransfers, err := createSovereignGenesisESDTTransfers(arg, shardProcessors.scrProcessor)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	indexingData.ScrsTxs = mergeScrs(indexingData.ScrsTxs, genesisESDTTransfers)
 	indexingData.ScrsTxs = mergeScrs(indexingData.ScrsTxs, metaScrsTxs)
 
 	rootHash, err := arg.Accounts.Commit()
@@ -316,54 +309,4 @@ func setSovereignStakedData(
 	)
 
 	return stakingTxs, nil
-}
-
-func createSovereignGenesisESDTTransfers(args ArgsGenesisBlockCreator, scrProcessor process.SmartContractResultProcessor) (map[string]data.TransactionHandler, error) {
-	initialESDTTxs := make(map[string]data.TransactionHandler, 0)
-	initialAccounts := args.AccountsParser.InitialAccounts()
-
-	tokenID := args.Config.SovereignConfig.GenesisConfig.NativeESDT
-	for nonce, initialAcc := range initialAccounts {
-		accInitialBalance := initialAcc.GetBalanceValue()
-
-		log.Debug("creating genesis initial esdt balance",
-			"address", initialAcc.GetAddress(), "balance", accInitialBalance.String(), "tokenID", tokenID)
-
-		scr := &smartContractResult.SmartContractResult{
-			Nonce:   uint64(nonce),
-			RcvAddr: initialAcc.AddressBytes(),
-			SndAddr: core.ESDTSCAddress,
-			Data:    createGenesisSCRData(tokenID, accInitialBalance),
-			Value:   big.NewInt(0),
-		}
-
-		retCode, err := scrProcessor.ProcessSmartContractResult(scr)
-		if err != nil {
-			return nil, err
-		}
-
-		if retCode != vmcommon.Ok {
-			log.Error("could not generate initial esdt balances",
-				"func", "createSovereignGenesisESDTTransfers", "ret code", retCode, "address", initialAcc.GetAddress())
-			return nil, errCouldNotGenerateInitialESDTTransfers
-		}
-
-		hash, err := core.CalculateHash(args.Core.InternalMarshalizer(), args.Core.Hasher(), scr)
-		if err != nil {
-			return nil, err
-		}
-
-		initialESDTTxs[string(hash)] = scr
-	}
-
-	return initialESDTTxs, nil
-}
-
-func createGenesisSCRData(tokenID string, value *big.Int) []byte {
-	numTokensToTransferBytes := big.NewInt(1).Bytes()
-	return []byte(core.BuiltInFunctionMultiESDTNFTTransfer +
-		"@" + hex.EncodeToString(numTokensToTransferBytes) +
-		"@" + hex.EncodeToString([]byte(tokenID)) + // tokenID
-		"@" + hex.EncodeToString(big.NewInt(0).Bytes()) + //nonce
-		"@" + hex.EncodeToString(value.Bytes())) // value
 }

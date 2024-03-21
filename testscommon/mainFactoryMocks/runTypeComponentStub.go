@@ -15,7 +15,9 @@ import (
 	"github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
 	"github.com/multiversx/mx-chain-go/process/track"
+	"github.com/multiversx/mx-chain-go/state"
 	testFactory "github.com/multiversx/mx-chain-go/testscommon/factory"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 )
 
 // RunTypeComponentsStub -
@@ -38,6 +40,7 @@ type RunTypeComponentsStub struct {
 	ConsensusModelType                  consensus.ConsensusModel
 	VmContainerMetaFactory              factoryVm.VmContainerCreator
 	VmContainerShardFactory             factoryVm.VmContainerCreator
+	AccountCreator                      state.AccountFactory
 }
 
 // NewRunTypeComponentsStub -
@@ -61,6 +64,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		ConsensusModelType:                  consensus.ConsensusModelV1,
 		VmContainerMetaFactory:              &testFactory.VMContainerMetaFactoryMock{},
 		VmContainerShardFactory:             &testFactory.VMContainerShardFactoryMock{},
+		AccountCreator:                      &stateMock.AccountsFactoryStub{},
 	}
 }
 
@@ -172,6 +176,11 @@ func (r *RunTypeComponentsStub) VmContainerMetaFactoryCreator() factoryVm.VmCont
 // VmContainerShardFactoryCreator -
 func (r *RunTypeComponentsStub) VmContainerShardFactoryCreator() factoryVm.VmContainerCreator {
 	return r.VmContainerShardFactory
+}
+
+// AccountsCreator -
+func (r *RunTypeComponentsStub) AccountsCreator() state.AccountFactory {
+	return r.AccountCreator
 }
 
 // IsInterfaceNil -

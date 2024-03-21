@@ -3,6 +3,7 @@ package processing
 import (
 	"errors"
 	"fmt"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
@@ -448,6 +449,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		BootstrapComponents:          pcf.bootstrapComponents,
 		StatusComponents:             pcf.statusComponents,
 		StatusCoreComponents:         pcf.statusCoreComponents,
+		RunTypeComponents:            pcf.runTypeComponents,
 		Config:                       pcf.config,
 		PrefsConfig:                  pcf.prefConfigs,
 		Version:                      pcf.flagsConfig.Version,
@@ -911,6 +913,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		BootstrapComponents:          pcf.bootstrapComponents,
 		StatusComponents:             pcf.statusComponents,
 		StatusCoreComponents:         pcf.statusCoreComponents,
+		RunTypeComponents:            pcf.runTypeComponents,
 		Config:                       pcf.config,
 		PrefsConfig:                  pcf.prefConfigs,
 		Version:                      pcf.flagsConfig.Version,

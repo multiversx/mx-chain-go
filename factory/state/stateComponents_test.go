@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/errors"
 	stateComp "github.com/multiversx/mx-chain-go/factory/state"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
@@ -37,6 +38,17 @@ func TestNewStateComponentsFactory(t *testing.T) {
 		scf, err := stateComp.NewStateComponentsFactory(args)
 		require.Nil(t, scf)
 		require.Equal(t, errors.ErrNilStatusCoreComponents, err)
+	})
+	t.Run("nil accounts creator, should error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents := componentsMock.GetCoreComponents()
+		args := componentsMock.GetStateFactoryArgs(coreComponents)
+		args.AccountsCreator = nil
+
+		scf, err := stateComp.NewStateComponentsFactory(args)
+		require.Nil(t, scf)
+		require.Equal(t, state.ErrNilAccountFactory, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()

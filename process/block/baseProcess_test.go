@@ -28,6 +28,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
+	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	blproc "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -40,6 +41,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
+	"github.com/multiversx/mx-chain-go/testscommon/components"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
@@ -125,6 +127,7 @@ func createArgBaseProcessor(
 		ReceiptsRepository:             &testscommon.ReceiptsRepositoryStub{},
 		BlockProcessingCutoffHandler:   &testscommon.BlockProcessingCutoffStub{},
 		ManagedPeersHolder:             &testscommon.ManagedPeersHolderStub{},
+		RunTypeComponents:              components.GetRunTypeComponents(),
 	}
 }
 
@@ -786,6 +789,22 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				return createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 			},
 			expectedErr: nil,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.RunTypeComponents = nil
+				return args
+			},
+			expectedErr: errorsMx.ErrNilRunTypeComponents,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.RunTypeComponents = &mock.RunTypeComponentsStub{AccountCreator: nil}
+				return args
+			},
+			expectedErr: state.ErrNilAccountFactory,
 		},
 	}
 

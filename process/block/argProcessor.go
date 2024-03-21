@@ -68,6 +68,7 @@ type ArgBaseProcessor struct {
 	BootstrapComponents  bootstrapComponentsHolder
 	StatusComponents     statusComponentsHolder
 	StatusCoreComponents statusCoreComponentsHolder
+	RunTypeComponents    runTypeComponentsHolder
 
 	Config                         config.Config
 	PrefsConfig                    config.Preferences

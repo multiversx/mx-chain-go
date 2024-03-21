@@ -60,6 +60,7 @@ func (sr *sovereignSubRoundEnd) doSovereignEndRoundJob(ctx context.Context) bool
 
 	outGoingMBHeader := sovHeader.GetOutGoingMiniBlockHeaderHandler()
 	if check.IfNil(outGoingMBHeader) {
+		sr.sendUnconfirmedOperationsIfFound(ctx)
 		return true
 	}
 
@@ -69,7 +70,7 @@ func (sr *sovereignSubRoundEnd) doSovereignEndRoundJob(ctx context.Context) bool
 		return false
 	}
 
-	if !(sr.IsSelfLeaderInCurrentRound() || sr.IsMultiKeyLeaderInCurrentRound()) {
+	if !sr.isSelfLeader() {
 		return true
 	}
 
@@ -77,6 +78,20 @@ func (sr *sovereignSubRoundEnd) doSovereignEndRoundJob(ctx context.Context) bool
 	go sr.sendOutGoingOperations(ctx, outGoingOperations)
 
 	return true
+}
+
+func (sr *sovereignSubRoundEnd) sendUnconfirmedOperationsIfFound(ctx context.Context) {
+	if !sr.isSelfLeader() {
+		return
+	}
+
+	unconfirmedOperations := sr.outGoingOperationsPool.GetUnconfirmedOperations()
+	if len(unconfirmedOperations) == 0 {
+		return
+	}
+
+	log.Debug("found unconfirmed operations", "num unconfirmed operations", len(unconfirmedOperations))
+	go sr.sendOutGoingOperations(ctx, unconfirmedOperations)
 }
 
 func (sr *sovereignSubRoundEnd) updateBridgeDataWithSignatures(
@@ -95,6 +110,10 @@ func (sr *sovereignSubRoundEnd) updateBridgeDataWithSignatures(
 	sr.outGoingOperationsPool.Delete(hash)
 	sr.outGoingOperationsPool.Add(currBridgeData)
 	return currBridgeData, nil
+}
+
+func (sr *sovereignSubRoundEnd) isSelfLeader() bool {
+	return sr.IsSelfLeaderInCurrentRound() || sr.IsMultiKeyLeaderInCurrentRound()
 }
 
 func (sr *sovereignSubRoundEnd) getAllOutGoingOperations(currentOperations *sovereign.BridgeOutGoingData) []*sovereign.BridgeOutGoingData {
