@@ -54,7 +54,7 @@ startObservers() {
       KEY_INDEX=$((TOTAL_NODECOUNT - observerIdx - 1))
 
       if [[ "$DOCKER_PUBLISH_PORTS" -gt 0 ]]; then
-        publishPortArgs="-p $DOCKER_PUBLISH_PORT_RANGE:10000"
+        publishPortArgs="-p $DOCKER_PUBLISH_PORT_RANGE:10200"
       fi
 
       docker run -d --name "observer${observerIdx}-${NETWORK_ADDRESS}.${IP_HOST_BYTE}-10200-shard${i}" \
@@ -79,7 +79,7 @@ startObservers() {
      KEY_INDEX=$((TOTAL_NODECOUNT - observerIdx - 1))
 
      if [[ "$DOCKER_PUBLISH_PORTS" -gt 0 ]]; then
-       publishPortArgs="-p $DOCKER_PUBLISH_PORT_RANGE:10000"
+       publishPortArgs="-p $DOCKER_PUBLISH_PORT_RANGE:10200"
      fi
 
      docker run -d --name "observer${observerIdx}-${NETWORK_ADDRESS}.${IP_HOST_BYTE}-10200-metachain" \
@@ -107,7 +107,7 @@ startValidators() {
     for ((j = 0; j < SHARD_VALIDATORCOUNT; j++)); do
 
       if [[ "$DOCKER_PUBLISH_PORTS" -gt 0 ]]; then
-        publishPortArgs="-p $DOCKER_PUBLISH_PORT_RANGE:10000"
+        publishPortArgs="-p $DOCKER_PUBLISH_PORT_RANGE:10200"
       fi
 
       docker run -d --name "validator${validatorIdx}-${NETWORK_ADDRESS}.${IP_HOST_BYTE}-10200-shard${i}" \
@@ -128,7 +128,7 @@ startValidators() {
   for ((i = 0; i < META_VALIDATORCOUNT; i++)); do
 
     if [[ "$DOCKER_PUBLISH_PORTS" -gt 0 ]]; then
-      publishPortArgs="-p $DOCKER_PUBLISH_PORT_RANGE:10000"
+      publishPortArgs="-p $DOCKER_PUBLISH_PORT_RANGE:10200"
     fi
 
     docker run -d --name "validator${validatorIdx}-${NETWORK_ADDRESS}.${IP_HOST_BYTE}-10200-metachain" \
