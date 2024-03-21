@@ -26,7 +26,6 @@ func TestScDeploy(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	builtinEnableEpoch := uint32(0)
 	deployEnableEpoch := uint32(1)
 	relayedTxEnableEpoch := uint32(0)
 	penalizedTooMuchGasEnableEpoch := uint32(0)
@@ -34,11 +33,13 @@ func TestScDeploy(t *testing.T) {
 	scProcessorV2EnableEpoch := integrationTests.UnreachableEpoch
 
 	enableEpochs := integrationTests.CreateEnableEpochsConfig()
-	enableEpochs.BuiltInFunctionOnMetaEnableEpoch = builtinEnableEpoch
 	enableEpochs.SCDeployEnableEpoch = deployEnableEpoch
 	enableEpochs.RelayedTransactionsEnableEpoch = relayedTxEnableEpoch
 	enableEpochs.PenalizedTooMuchGasEnableEpoch = penalizedTooMuchGasEnableEpoch
 	enableEpochs.SCProcessorV2EnableEpoch = scProcessorV2EnableEpoch
+	enableEpochs.StakingV4Step1EnableEpoch = integrationTests.StakingV4Step1EnableEpoch
+	enableEpochs.StakingV4Step2EnableEpoch = integrationTests.StakingV4Step2EnableEpoch
+	enableEpochs.StakingV4Step3EnableEpoch = integrationTests.StakingV4Step3EnableEpoch
 
 	shardNode := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
 		MaxShards:            1,

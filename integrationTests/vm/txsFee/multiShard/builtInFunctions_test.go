@@ -33,7 +33,7 @@ func getZeroGasAndFees() scheduled.GasAndFees {
 // 4. Execute SCR from context destination on context source ( the new owner will receive the developer rewards)
 func TestBuiltInFunctionExecuteOnSourceAndDestinationShouldWork(t *testing.T) {
 	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Wasm VM fix")
+		t.Skip("this is not a short test")
 	}
 
 	testContextSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(

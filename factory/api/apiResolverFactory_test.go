@@ -1,6 +1,7 @@
 package api_test
 
 import (
+	"fmt"
 	"strings"
 	"sync"
 	"testing"
@@ -26,6 +27,7 @@ import (
 	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
@@ -70,7 +72,7 @@ func createMockArgs(t *testing.T) *api.ApiResolverArgs {
 	cryptoComponents := componentsMock.GetCryptoComponents(coreComponents)
 	networkComponents := componentsMock.GetNetworkComponents(cryptoComponents)
 	dataComponents := componentsMock.GetDataComponents(coreComponents, shardCoordinator)
-	stateComponents := componentsMock.GetStateComponents(coreComponents)
+	stateComponents := componentsMock.GetStateComponents(coreComponents, componentsMock.GetStatusCoreComponents())
 	processComponents := componentsMock.GetProcessComponents(shardCoordinator, coreComponents, networkComponents, dataComponents, cryptoComponents, stateComponents)
 	argsB := componentsMock.GetBootStrapFactoryArgs()
 
@@ -327,7 +329,7 @@ func createMockSCQueryElementArgs() api.SCQueryElementArgs {
 			EnableEpochsHandlerField:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			UInt64ByteSliceConv:          &testsMocks.Uint64ByteSliceConverterMock{},
 			EconomicsHandler:             &economicsmocks.EconomicsHandlerStub{},
-			NodesConfig:                  &testscommon.NodesSetupStub{},
+			NodesConfig:                  &genesisMocks.NodesSetupStub{},
 			Hash:                         &testscommon.HasherStub{},
 			RatingHandler:                &testscommon.RaterMock{},
 			WasmVMChangeLockerInternal:   &sync.RWMutex{},
@@ -346,6 +348,7 @@ func createMockSCQueryElementArgs() api.SCQueryElementArgs {
 			AppStatusHandlerCalled: func() core.AppStatusHandler {
 				return &statusHandler.AppStatusHandlerStub{}
 			},
+			StateStatsHandlerField: &testscommon.StateStatisticsHandlerStub{},
 		},
 		DataComponents: &mock.DataComponentsMock{
 			Storage:  genericMocks.NewChainStorerMock(0),
@@ -379,9 +382,10 @@ func TestCreateApiResolver_createScQueryElement(t *testing.T) {
 
 		args := createMockSCQueryElementArgs()
 		args.GuardedAccountHandler = nil
-		scQueryService, err := api.CreateScQueryElement(args)
+		scQueryService, storageManager, err := api.CreateScQueryElement(args)
 		require.Equal(t, process.ErrNilGuardedAccountHandler, err)
 		require.Nil(t, scQueryService)
+		require.Nil(t, storageManager)
 	})
 	t.Run("DecodeAddresses fails", func(t *testing.T) {
 		t.Parallel()
@@ -390,10 +394,11 @@ func TestCreateApiResolver_createScQueryElement(t *testing.T) {
 		args.CoreComponents = &mock.CoreComponentsMock{
 			AddrPubKeyConv: nil,
 		}
-		scQueryService, err := api.CreateScQueryElement(args)
+		scQueryService, storageManager, err := api.CreateScQueryElement(args)
 		require.NotNil(t, err)
 		require.True(t, strings.Contains(strings.ToLower(err.Error()), "public key converter"))
 		require.Nil(t, scQueryService)
+		require.Nil(t, storageManager)
 	})
 	t.Run("createBuiltinFuncs fails", func(t *testing.T) {
 		t.Parallel()
@@ -401,10 +406,11 @@ func TestCreateApiResolver_createScQueryElement(t *testing.T) {
 		args := createMockSCQueryElementArgs()
 		coreCompMock := args.CoreComponents.(*mock.CoreComponentsMock)
 		coreCompMock.IntMarsh = nil
-		scQueryService, err := api.CreateScQueryElement(args)
+		scQueryService, storageManager, err := api.CreateScQueryElement(args)
 		require.NotNil(t, err)
 		require.True(t, strings.Contains(strings.ToLower(err.Error()), "marshalizer"))
 		require.Nil(t, scQueryService)
+		require.Nil(t, storageManager)
 	})
 	t.Run("NewCache fails", func(t *testing.T) {
 		t.Parallel()
@@ -414,10 +420,11 @@ func TestCreateApiResolver_createScQueryElement(t *testing.T) {
 			Type:        "LRU",
 			SizeInBytes: 1,
 		}
-		scQueryService, err := api.CreateScQueryElement(args)
+		scQueryService, storageManager, err := api.CreateScQueryElement(args)
 		require.NotNil(t, err)
 		require.True(t, strings.Contains(strings.ToLower(err.Error()), "lru"))
 		require.Nil(t, scQueryService)
+		require.Nil(t, storageManager)
 	})
 	t.Run("metachain - NewVMContainerFactory fails", func(t *testing.T) {
 		t.Parallel()
@@ -432,10 +439,11 @@ func TestCreateApiResolver_createScQueryElement(t *testing.T) {
 		}
 		coreCompMock := args.CoreComponents.(*mock.CoreComponentsMock)
 		coreCompMock.Hash = nil
-		scQueryService, err := api.CreateScQueryElement(args)
+		scQueryService, storageManager, err := api.CreateScQueryElement(args)
 		require.NotNil(t, err)
 		require.True(t, strings.Contains(strings.ToLower(err.Error()), "hasher"))
 		require.Nil(t, scQueryService)
+		require.Nil(t, storageManager)
 	})
 	t.Run("shard - NewVMContainerFactory fails", func(t *testing.T) {
 		t.Parallel()
@@ -443,10 +451,30 @@ func TestCreateApiResolver_createScQueryElement(t *testing.T) {
 		args := createMockSCQueryElementArgs()
 		coreCompMock := args.CoreComponents.(*mock.CoreComponentsMock)
 		coreCompMock.Hash = nil
-		scQueryService, err := api.CreateScQueryElement(args)
+		scQueryService, storageManager, err := api.CreateScQueryElement(args)
 		require.NotNil(t, err)
 		require.True(t, strings.Contains(strings.ToLower(err.Error()), "hasher"))
 		require.Nil(t, scQueryService)
+		require.Nil(t, storageManager)
+	})
+}
+
+func TestCreateApiResolver_createBlockchainForScQuery(t *testing.T) {
+	t.Parallel()
+
+	t.Run("for metachain", func(t *testing.T) {
+		t.Parallel()
+
+		apiBlockchain, err := api.CreateBlockchainForScQuery(core.MetachainShardId)
+		require.NoError(t, err)
+		require.Equal(t, "*blockchain.metaChain", fmt.Sprintf("%T", apiBlockchain))
 	})
 
+	t.Run("for shard", func(t *testing.T) {
+		t.Parallel()
+
+		apiBlockchain, err := api.CreateBlockchainForScQuery(0)
+		require.NoError(t, err)
+		require.Equal(t, "*blockchain.blockChain", fmt.Sprintf("%T", apiBlockchain))
+	})
 }

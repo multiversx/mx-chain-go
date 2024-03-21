@@ -25,7 +25,7 @@ type dataComponentsHolder struct {
 }
 
 // CreateDataComponents will create the data components holder
-func CreateDataComponents(args ArgsDataComponentsHolder) (factory.DataComponentsHandler, error) {
+func CreateDataComponents(args ArgsDataComponentsHolder) (*dataComponentsHolder, error) {
 	miniBlockStorer, err := args.StorageService.GetStorer(dataRetriever.MiniBlockUnit)
 	if err != nil {
 		return nil, err
@@ -89,6 +89,7 @@ func (d *dataComponentsHolder) Clone() interface{} {
 		storageService:    d.storageService,
 		dataPool:          d.dataPool,
 		miniBlockProvider: d.miniBlockProvider,
+		closeHandler:      d.closeHandler,
 	}
 }
 

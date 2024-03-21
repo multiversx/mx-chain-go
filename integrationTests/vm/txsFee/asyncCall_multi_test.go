@@ -1,5 +1,3 @@
-//go:build !race
-
 package txsFee
 
 import (
@@ -23,6 +21,10 @@ var egldBalance = big.NewInt(50000000000)
 var esdtBalance = big.NewInt(100)
 
 func TestAsyncCallLegacy(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -66,6 +68,10 @@ func TestAsyncCallLegacy(t *testing.T) {
 }
 
 func TestAsyncCallMulti(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -113,6 +119,10 @@ func TestAsyncCallMulti(t *testing.T) {
 }
 
 func TestAsyncCallTransferAndExecute(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -164,6 +174,10 @@ func TestAsyncCallTransferAndExecute(t *testing.T) {
 }
 
 func TestAsyncCallTransferESDTAndExecute_Success(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	numberOfCallsFromParent := 3
 	numberOfBackTransfers := 2
 	transferESDTAndExecute(t, numberOfCallsFromParent, numberOfBackTransfers)
@@ -280,6 +294,10 @@ func deployForwarderAndTestContract(
 }
 
 func TestAsyncCallMulti_CrossShard(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContextFirstContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContextFirstContract.Close()
@@ -366,6 +384,10 @@ func TestAsyncCallMulti_CrossShard(t *testing.T) {
 }
 
 func TestAsyncCallTransferAndExecute_CrossShard(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	childShard, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
 	require.Nil(t, err)
 	defer childShard.Close()
@@ -448,6 +470,10 @@ func TestAsyncCallTransferAndExecute_CrossShard(t *testing.T) {
 }
 
 func TestAsyncCallTransferESDTAndExecute_CrossShard_Success(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	numberOfCallsFromParent := 3
 	numberOfBackTransfers := 2
 	transferESDTAndExecuteCrossShard(t, numberOfCallsFromParent, numberOfBackTransfers)

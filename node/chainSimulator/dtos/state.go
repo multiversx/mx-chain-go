@@ -3,7 +3,7 @@ package dtos
 // AddressState will hold the address state
 type AddressState struct {
 	Address          string            `json:"address"`
-	Nonce            uint64            `json:"nonce,omitempty"`
+	Nonce            *uint64           `json:"nonce,omitempty"`
 	Balance          string            `json:"balance,omitempty"`
 	Code             string            `json:"code,omitempty"`
 	RootHash         string            `json:"rootHash,omitempty"`

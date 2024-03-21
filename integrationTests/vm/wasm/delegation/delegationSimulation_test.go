@@ -1,5 +1,3 @@
-//go:build !race
-
 package delegation
 
 import (
