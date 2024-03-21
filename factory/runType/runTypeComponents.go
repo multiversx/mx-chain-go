@@ -3,9 +3,11 @@ package runType
 import (
 	"fmt"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
+	"github.com/multiversx/mx-chain-go/errors"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
@@ -19,10 +21,13 @@ import (
 	"github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
 	"github.com/multiversx/mx-chain-go/process/track"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/factory"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 )
 
 type runTypeComponentsFactory struct {
+	coreComponents process.CoreComponentsHolder
 }
 
 // runTypeComponents struct holds the components needed for a run type
@@ -45,11 +50,18 @@ type runTypeComponents struct {
 	consensusModel                      consensus.ConsensusModel
 	vmContainerMetaFactory              factoryVm.VmContainerCreator
 	vmContainerShardFactory             factoryVm.VmContainerCreator
+	accountsCreator                     state.AccountFactory
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
-func NewRunTypeComponentsFactory() (*runTypeComponentsFactory, error) {
-	return &runTypeComponentsFactory{}, nil
+func NewRunTypeComponentsFactory(coreComponents process.CoreComponentsHolder) (*runTypeComponentsFactory, error) {
+	if check.IfNil(coreComponents) {
+		return nil, errors.ErrNilCoreComponents
+	}
+
+	return &runTypeComponentsFactory{
+		coreComponents: coreComponents,
+	}, nil
 }
 
 // Create creates the runType components
@@ -139,6 +151,15 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		return nil, fmt.Errorf("runTypeComponentsFactory - NewVmContainerShardFactory failed: %w", err)
 	}
 
+	accountsCreator, err := factory.NewAccountCreator(factory.ArgsAccountCreator{
+		Hasher:              rcf.coreComponents.Hasher(),
+		Marshaller:          rcf.coreComponents.InternalMarshalizer(),
+		EnableEpochsHandler: rcf.coreComponents.EnableEpochsHandler(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("runTypeComponentsFactory - NewAccountCreator failed: %w", err)
+	}
+
 	return &runTypeComponents{
 		blockChainHookHandlerCreator:        blockChainHookHandlerFactory,
 		epochStartBootstrapperCreator:       epochStartBootstrapperFactory,
@@ -158,6 +179,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		consensusModel:                      consensus.ConsensusModelV1,
 		vmContainerMetaFactory:              vmContainerMetaCreator,
 		vmContainerShardFactory:             vmContainerShardCreator,
+		accountsCreator:                     accountsCreator,
 	}, nil
 }
 

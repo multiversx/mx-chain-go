@@ -29,9 +29,9 @@ func TestBootstrapComponents_Create_Close_ShouldWork(t *testing.T) {
 	nr, err := node.NewNodeRunner(configs)
 	require.Nil(t, err)
 
-	managedRunTypeComponents, err := nr.CreateManagedRunTypeComponents()
-	require.Nil(t, err)
 	managedCoreComponents, err := nr.CreateManagedCoreComponents(chanStopNodeProcess)
+	require.Nil(t, err)
+	managedRunTypeComponents, err := nr.CreateManagedRunTypeComponents(managedCoreComponents)
 	require.Nil(t, err)
 	managedStatusCoreComponents, err := nr.CreateManagedStatusCoreComponents(managedCoreComponents)
 	require.Nil(t, err)

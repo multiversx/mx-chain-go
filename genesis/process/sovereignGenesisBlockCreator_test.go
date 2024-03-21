@@ -14,11 +14,14 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
-	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	factoryRunType "github.com/multiversx/mx-chain-go/factory/runType"
 	"github.com/multiversx/mx-chain-go/genesis/mock"
 	nodeMock "github.com/multiversx/mx-chain-go/node/mock"
 	"github.com/multiversx/mx-chain-go/process"
@@ -26,7 +29,9 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	stateAcc "github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/factory"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/vm"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -48,10 +53,54 @@ func createSovereignGenesisBlockCreator(t *testing.T) (ArgsGenesisBlockCreator, 
 	arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
 	arg.ShardCoordinator = sharding.NewSovereignShardCoordinator(core.SovereignChainShardId)
 	arg.DNSV2Addresses = []string{"00000000000000000500761b8c4a25d3979359223208b412285f635e71300102"}
-	arg.Config.SovereignConfig.GenesisConfig.NativeESDT = sovereignNativeToken
+
+	sovRunTypeComps := createSovRunTypeComps(t)
+	arg.RunTypeComponents = sovRunTypeComps
+
+	trieStorageManagers := createTrieStorageManagers()
+	arg.Accounts, _ = createAccountAdapter(
+		&mock.MarshalizerMock{},
+		&hashingMocks.HasherMock{},
+		sovRunTypeComps.AccountsCreator(),
+		trieStorageManagers[dataRetriever.UserAccountsUnit.String()],
+		&testscommon.PubkeyConverterMock{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+	)
+
 	gbc, _ := NewGenesisBlockCreator(arg)
 	sgbc, _ := NewSovereignGenesisBlockCreator(gbc)
 	return arg, sgbc
+}
+
+func createSovRunTypeComps(t *testing.T) runTypeComponentsHandler {
+	runTypeFactory, err := factoryRunType.NewRunTypeComponentsFactory(&factory.CoreComponentsHolderMock{
+		HasherCalled: func() hashing.Hasher {
+			return &hashingMocks.HasherMock{}
+		},
+		InternalMarshalizerCalled: func() marshal.Marshalizer {
+			return &mock.MarshalizerMock{}
+		},
+		EnableEpochsHandlerCalled: func() common.EnableEpochsHandler {
+			return &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
+		},
+	})
+	require.Nil(t, err)
+
+	sovRunTypeFactory, err := factoryRunType.NewSovereignRunTypeComponentsFactory(runTypeFactory,
+		config.SovereignConfig{
+			GenesisConfig: config.GenesisConfig{
+				NativeESDT: sovereignNativeToken,
+			},
+		},
+	)
+	require.Nil(t, err)
+	sovRunTypeComp, err := factoryRunType.NewManagedRunTypeComponents(sovRunTypeFactory)
+	require.Nil(t, err)
+
+	err = sovRunTypeComp.Create()
+	require.Nil(t, err)
+
+	return sovRunTypeComp
 }
 
 func requireTokenExists(
@@ -65,7 +114,10 @@ func requireTokenExists(
 	esdtData := &esdt.ESDigitalToken{}
 	err := marshaller.Unmarshal(esdtData, marshaledData)
 	require.Nil(t, err)
-	require.Equal(t, expectedValue, esdtData.Value)
+	require.Equal(t, &esdt.ESDigitalToken{
+		Type:  uint32(core.Fungible),
+		Value: expectedValue,
+	}, esdtData)
 }
 
 func getAccTokenMarshalledData(t *testing.T, tokenName []byte, account vmcommon.AccountHandler) []byte {
@@ -90,17 +142,6 @@ func getAccount(t *testing.T, accountsDb stateAcc.AccountsAdapter, address strin
 	require.Nil(t, err)
 
 	return account
-}
-
-func requireSCRHashExists(
-	t *testing.T,
-	scr *smartContractResult.SmartContractResult,
-	allSCRs map[string]data.TransactionHandler,
-	args ArgsGenesisBlockCreator,
-) {
-	hash, err := core.CalculateHash(args.Core.InternalMarshalizer(), args.Core.Hasher(), scr)
-	require.Nil(t, err)
-	require.Contains(t, allSCRs, string(hash))
 }
 
 func TestNewSovereignGenesisBlockCreator(t *testing.T) {
@@ -174,38 +215,10 @@ func TestSovereignGenesisBlockCreator_CreateGenesisBaseProcess(t *testing.T) {
 
 	balance1 := big.NewInt(5000)
 	balance2 := big.NewInt(2000)
+	balance3 := big.NewInt(0)
 	requireTokenExists(t, acc1, []byte(sovereignNativeToken), balance1, args.Core.InternalMarshalizer())
 	requireTokenExists(t, acc2, []byte(sovereignNativeToken), balance2, args.Core.InternalMarshalizer())
-	acc3TokenData := getAccTokenMarshalledData(t, []byte(sovereignNativeToken), acc3)
-	require.Empty(t, acc3TokenData)
-
-	scr1 := &smartContractResult.SmartContractResult{
-		Nonce:   uint64(0),
-		RcvAddr: acc1.AddressBytes(),
-		SndAddr: core.ESDTSCAddress,
-		Data:    []byte("MultiESDTNFTTransfer@01@5745474c442d626434643739@@1388"),
-		Value:   big.NewInt(0),
-	}
-
-	scr2 := &smartContractResult.SmartContractResult{
-		Nonce:   uint64(1),
-		RcvAddr: acc2.AddressBytes(),
-		SndAddr: core.ESDTSCAddress,
-		Data:    []byte("MultiESDTNFTTransfer@01@5745474c442d626434643739@@07d0"),
-		Value:   big.NewInt(0),
-	}
-
-	scr3 := &smartContractResult.SmartContractResult{
-		Nonce:   uint64(2),
-		RcvAddr: acc3.AddressBytes(),
-		SndAddr: core.ESDTSCAddress,
-		Data:    []byte("MultiESDTNFTTransfer@01@5745474c442d626434643739@@"),
-		Value:   big.NewInt(0),
-	}
-
-	requireSCRHashExists(t, scr1, sovereignIdxData.ScrsTxs, args)
-	requireSCRHashExists(t, scr2, sovereignIdxData.ScrsTxs, args)
-	requireSCRHashExists(t, scr3, sovereignIdxData.ScrsTxs, args)
+	requireTokenExists(t, acc3, []byte(sovereignNativeToken), balance3, args.Core.InternalMarshalizer())
 }
 
 func TestSovereignGenesisBlockCreator_initGenesisAccountsErrorCases(t *testing.T) {
@@ -267,48 +280,6 @@ func TestSovereignGenesisBlockCreator_initGenesisAccountsErrorCases(t *testing.T
 
 		err := sgbc.initGenesisAccounts()
 		require.Equal(t, localErr, err)
-	})
-}
-
-func TestSovereignGenesisBlockCreator_createSovereignGenesisESDTTransfersErrorCases(t *testing.T) {
-	t.Parallel()
-
-	t.Run("cannot process scr, should return error", func(t *testing.T) {
-		args, _ := createSovereignGenesisBlockCreator(t)
-
-		errProcessSCR := errors.New("error processing scr")
-		scrProc := &testscommon.SmartContractResultsProcessorMock{
-			ProcessSmartContractResultCalled: func(scr *smartContractResult.SmartContractResult) (vmcommon.ReturnCode, error) {
-				return vmcommon.UserError, errProcessSCR
-			},
-		}
-		res, err := createSovereignGenesisESDTTransfers(args, scrProc)
-		require.Nil(t, res)
-		require.Equal(t, errProcessSCR, err)
-	})
-
-	t.Run("scr ret code not ok, should return error", func(t *testing.T) {
-		args, _ := createSovereignGenesisBlockCreator(t)
-
-		scrProc := &testscommon.SmartContractResultsProcessorMock{
-			ProcessSmartContractResultCalled: func(scr *smartContractResult.SmartContractResult) (vmcommon.ReturnCode, error) {
-				return vmcommon.UserError, nil
-			},
-		}
-		res, err := createSovereignGenesisESDTTransfers(args, scrProc)
-		require.Nil(t, res)
-		require.Equal(t, errCouldNotGenerateInitialESDTTransfers, err)
-	})
-
-	t.Run("cannot compute scr hash, should return error", func(t *testing.T) {
-		args, _ := createSovereignGenesisBlockCreator(t)
-		args.Core = &mock.CoreComponentsMock{
-			Hash:     nil,
-			IntMarsh: &marshallerMock.MarshalizerMock{},
-		}
-		res, err := createSovereignGenesisESDTTransfers(args, &testscommon.SmartContractResultsProcessorMock{})
-		require.Nil(t, res)
-		require.Equal(t, core.ErrNilHasher, err)
 	})
 }
 

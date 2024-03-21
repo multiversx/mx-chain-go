@@ -127,6 +127,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		blockProcessingCutoffHandler:  arguments.BlockProcessingCutoffHandler,
 		managedPeersHolder:            arguments.ManagedPeersHolder,
 		crossNotarizer:                notarizer,
+		accountCreator:                arguments.RunTypeComponents.AccountsCreator(),
 	}
 
 	sp := shardProcessor{

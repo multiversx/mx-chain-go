@@ -3,7 +3,6 @@ package block_test
 import (
 	"bytes"
 	"errors"
-	"github.com/multiversx/mx-chain-go/testscommon/sovereign"
 	"math/big"
 	"reflect"
 	"sync"
@@ -27,6 +26,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/components"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -34,6 +34,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/sovereign"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -158,6 +159,7 @@ func createMockMetaArguments(
 			ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
 			ValidatorStatisticsProcessor: &mock2.ValidatorStatisticsProcessorStub{},
 			OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolMock{},
+			RunTypeComponents:            components.GetRunTypeComponents(),
 		},
 		SCToProtocol:                 &mock.SCToProtocolStub{},
 		PendingMiniBlocksHandler:     &mock.PendingMiniBlocksHandlerStub{},

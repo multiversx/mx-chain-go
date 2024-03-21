@@ -143,6 +143,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		blockProcessingCutoffHandler:  arguments.BlockProcessingCutoffHandler,
 		managedPeersHolder:            arguments.ManagedPeersHolder,
 		crossNotarizer:                notarizer,
+		accountCreator:                arguments.RunTypeComponents.AccountsCreator(),
 	}
 
 	mp := metaProcessor{
