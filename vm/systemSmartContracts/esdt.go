@@ -57,6 +57,7 @@ type esdt struct {
 	mutExecution           sync.RWMutex
 	addressPubKeyConverter core.PubkeyConverter
 	enableEpochsHandler    common.EnableEpochsHandler
+	tokenIDCreator         TokenIdentifierCreatorHandler
 }
 
 // ArgsNewESDTSmartContract defines the arguments needed for the esdt contract
@@ -116,6 +117,8 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 		return nil, vm.ErrInvalidBaseIssuingCost
 	}
 
+	tokenIDCreator, _ := NewTokenIDCreator(args.Eei, args.Hasher)
+
 	return &esdt{
 		eei:             args.Eei,
 		gasCost:         args.GasCost,
@@ -129,6 +132,7 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 		endOfEpochSCAddress:    args.EndOfEpochSCAddress,
 		addressPubKeyConverter: args.AddressPubKeyConverter,
 		enableEpochsHandler:    args.EnableEpochsHandler,
+		tokenIDCreator:         tokenIDCreator,
 	}, nil
 }
 
@@ -626,7 +630,7 @@ func (e *esdt) createNewToken(
 		return nil, nil, vm.ErrTickerNameNotValid
 	}
 
-	tokenIdentifier, err := e.createNewTokenIdentifier(owner, tickerName)
+	tokenIdentifier, err := e.tokenIDCreator.CreateNewTokenIdentifier(owner, tickerName)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -684,28 +688,6 @@ func isTokenNameHumanReadable(tokenName []byte) bool {
 		}
 	}
 	return true
-}
-
-func (e *esdt) createNewTokenIdentifier(caller []byte, ticker []byte) ([]byte, error) {
-	newRandomBase := append(caller, e.eei.BlockChainHook().CurrentRandomSeed()...)
-	newRandom := e.hasher.Compute(string(newRandomBase))
-	newRandomForTicker := newRandom[:tickerRandomSequenceLength]
-
-	tickerPrefix := append(ticker, []byte(tickerSeparator)...)
-	newRandomAsBigInt := big.NewInt(0).SetBytes(newRandomForTicker)
-
-	one := big.NewInt(1)
-	for i := 0; i < numOfRetriesForIdentifier; i++ {
-		encoded := fmt.Sprintf("%06x", newRandomAsBigInt)
-		newIdentifier := append(tickerPrefix, encoded...)
-		buff := e.eei.GetStorage(newIdentifier)
-		if len(buff) == 0 {
-			return newIdentifier, nil
-		}
-		newRandomAsBigInt.Add(newRandomAsBigInt, one)
-	}
-
-	return nil, vm.ErrCouldNotCreateNewTokenIdentifier
 }
 
 func (e *esdt) upgradeProperties(tokenIdentifier []byte, token *ESDTDataV2, args [][]byte, isCreate bool, callerAddr []byte) error {
