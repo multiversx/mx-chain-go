@@ -35,18 +35,15 @@ import (
 
 func createMockArgumentsNewStakingToPeer() ArgStakingToPeer {
 	return ArgStakingToPeer{
-		PubkeyConv:  testscommon.NewPubkeyConverterMock(32),
-		Hasher:      &hashingMocks.HasherMock{},
-		Marshalizer: &mock.MarshalizerStub{},
-		PeerState:   &stateMock.AccountsStub{},
-		BaseState:   &stateMock.AccountsStub{},
-		ArgParser:   &mock.ArgumentParserMock{},
-		CurrTxs:     &mock.TxForCurrentBlockStub{},
-		RatingsData: &mock.RatingsInfoMock{},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsStakeFlagEnabledField:                 true,
-			IsValidatorToDelegationFlagEnabledField: true,
-		},
+		PubkeyConv:          testscommon.NewPubkeyConverterMock(32),
+		Hasher:              &hashingMocks.HasherMock{},
+		Marshalizer:         &mock.MarshalizerStub{},
+		PeerState:           &stateMock.AccountsStub{},
+		BaseState:           &stateMock.AccountsStub{},
+		ArgParser:           &mock.ArgumentParserMock{},
+		CurrTxs:             &mock.TxForCurrentBlockStub{},
+		RatingsData:         &mock.RatingsInfoMock{},
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.StakeFlag, common.ValidatorToDelegationFlag),
 	}
 }
 
@@ -64,7 +61,7 @@ func createBlockBody() *block.Body {
 }
 
 func createStakingScAccount() state.UserAccountHandler {
-	dtt, _ := trackableDataTrie.NewTrackableDataTrie(vm.StakingSCAddress, &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	dtt, _ := trackableDataTrie.NewTrackableDataTrie(vm.StakingSCAddress, &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, enableEpochsHandlerMock.NewEnableEpochsHandlerStub())
 
 	userAcc, _ := accounts.NewUserAccount(vm.StakingSCAddress, dtt, &trie.TrieLeafParserStub{})
 	return userAcc
@@ -156,6 +153,17 @@ func TestNewStakingToPeerNilEnableEpochsHandlerShouldErr(t *testing.T) {
 	stp, err := NewStakingToPeer(arguments)
 	assert.Nil(t, stp)
 	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
+}
+
+func TestNewStakingToPeerInvalidEnableEpochsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockArgumentsNewStakingToPeer()
+	arguments.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
+
+	stp, err := NewStakingToPeer(arguments)
+	assert.Nil(t, stp)
+	assert.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
 }
 
 func TestNewStakingToPeer_ShouldWork(t *testing.T) {
@@ -665,8 +673,10 @@ func TestStakingToPeer_UpdatePeerState(t *testing.T) {
 		},
 	}
 
+	enableEpochsHandler := enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.StakeFlag, common.ValidatorToDelegationFlag)
 	arguments := createMockArgumentsNewStakingToPeer()
 	arguments.PeerState = peerAccountsDB
+	arguments.EnableEpochsHandler = enableEpochsHandler
 	stp, _ := NewStakingToPeer(arguments)
 
 	stakingData := systemSmartContracts.StakedDataV2_0{
@@ -695,11 +705,19 @@ func TestStakingToPeer_UpdatePeerState(t *testing.T) {
 	assert.True(t, bytes.Equal(stakingData.RewardAddress, peerAccount.GetRewardAddress()))
 	assert.Equal(t, string(common.NewList), peerAccount.GetList())
 
+	enableEpochsHandler.AddActiveFlags(common.StakingV4StartedFlag)
+	err = stp.updatePeerState(stakingData, blsPubKey, nonce)
+	assert.NoError(t, err)
+	assert.True(t, bytes.Equal(blsPubKey, peerAccount.GetBLSPublicKey()))
+	assert.True(t, bytes.Equal(stakingData.RewardAddress, peerAccount.GetRewardAddress()))
+	assert.Equal(t, string(common.AuctionList), peerAccount.GetList())
+	enableEpochsHandler.RemoveActiveFlags(common.StakingV4StartedFlag)
+
 	stakingData.UnStakedNonce = 11
 	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.UnStakedNonce)
 	assert.Equal(t, string(common.LeavingList), peerAccount.GetList())
 
-	peerAccount.SetListAndIndex(0, string(common.EligibleList), 5)
+	peerAccount.SetListAndIndex(0, string(common.EligibleList), 5, false)
 	stakingData.JailedNonce = 12
 	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.JailedNonce)
 	assert.Equal(t, string(common.LeavingList), peerAccount.GetList())
@@ -712,6 +730,12 @@ func TestStakingToPeer_UpdatePeerState(t *testing.T) {
 	stakingData.UnJailedNonce = 14
 	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.UnJailedNonce)
 	assert.Equal(t, string(common.NewList), peerAccount.GetList())
+
+	enableEpochsHandler.AddActiveFlags(common.StakingV4StartedFlag)
+	err = stp.updatePeerState(stakingData, blsPubKey, stakingData.UnJailedNonce)
+	assert.NoError(t, err)
+	assert.Equal(t, string(common.AuctionList), peerAccount.GetList())
+	enableEpochsHandler.RemoveActiveFlags(common.StakingV4StartedFlag)
 
 	stakingData.UnStakedNonce = 15
 	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.UnStakedNonce)
@@ -761,7 +785,7 @@ func TestStakingToPeer_UnJailFromInactive(t *testing.T) {
 	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.UnStakedNonce)
 	assert.Equal(t, string(common.LeavingList), peerAccount.GetList())
 
-	peerAccount.SetListAndIndex(0, string(common.JailedList), 5)
+	peerAccount.SetListAndIndex(0, string(common.JailedList), 5, false)
 	stakingData.UnJailedNonce = 14
 	_ = stp.updatePeerState(stakingData, blsPubKey, stakingData.UnJailedNonce)
 	assert.Equal(t, string(common.InactiveList), peerAccount.GetList())

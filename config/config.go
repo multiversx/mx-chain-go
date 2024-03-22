@@ -88,12 +88,14 @@ type EvictionWaitingListConfig struct {
 
 // EpochStartConfig will hold the configuration of EpochStart settings
 type EpochStartConfig struct {
-	MinRoundsBetweenEpochs            int64
-	RoundsPerEpoch                    int64
-	MinShuffledOutRestartThreshold    float64
-	MaxShuffledOutRestartThreshold    float64
-	MinNumConnectedPeersToStart       int
-	MinNumOfPeersToConsiderBlockValid int
+	MinRoundsBetweenEpochs                      int64
+	RoundsPerEpoch                              int64
+	MinShuffledOutRestartThreshold              float64
+	MaxShuffledOutRestartThreshold              float64
+	MinNumConnectedPeersToStart                 int
+	MinNumOfPeersToConsiderBlockValid           int
+	ExtraDelayForRequestBlockInfoInMilliseconds int
+	GenesisEpoch                                uint32
 }
 
 // BlockSizeThrottleConfig will hold the configuration for adaptive block size throttle
@@ -106,6 +108,11 @@ type BlockSizeThrottleConfig struct {
 type SoftwareVersionConfig struct {
 	StableTagLocation        string
 	PollingIntervalInMinutes int
+}
+
+// GatewayMetricsConfig will hold the configuration for gateway endpoint configuration
+type GatewayMetricsConfig struct {
+	URL string
 }
 
 // HeartbeatV2Config will hold the configuration for heartbeat v2
@@ -154,14 +161,12 @@ type Config struct {
 	BootstrapStorage StorageConfig
 	MetaBlockStorage StorageConfig
 
-	AccountsTrieStorage                StorageConfig
-	PeerAccountsTrieStorage            StorageConfig
-	AccountsTrieCheckpointsStorage     StorageConfig
-	PeerAccountsTrieCheckpointsStorage StorageConfig
-	EvictionWaitingList                EvictionWaitingListConfig
-	StateTriesConfig                   StateTriesConfig
-	TrieStorageManagerConfig           TrieStorageManagerConfig
-	BadBlocksCache                     CacheConfig
+	AccountsTrieStorage      StorageConfig
+	PeerAccountsTrieStorage  StorageConfig
+	EvictionWaitingList      EvictionWaitingListConfig
+	StateTriesConfig         StateTriesConfig
+	TrieStorageManagerConfig TrieStorageManagerConfig
+	BadBlocksCache           CacheConfig
 
 	TxBlockBodyDataPool         CacheConfig
 	PeerBlockBodyDataPool       CacheConfig
@@ -212,6 +217,7 @@ type Config struct {
 	Health   HealthServiceConfig
 
 	SoftwareVersionConfig SoftwareVersionConfig
+	GatewayMetricsConfig  GatewayMetricsConfig
 	DbLookupExtensions    DbLookupExtensionsConfig
 	Versions              VersionsConfig
 	Logs                  LogsConfig
@@ -293,27 +299,26 @@ type HardwareRequirementsConfig struct {
 
 // FacadeConfig will hold different configuration option that will be passed to the node facade
 type FacadeConfig struct {
-	RestApiInterface string
-	PprofEnabled     bool
+	RestApiInterface            string
+	PprofEnabled                bool
+	P2PPrometheusMetricsEnabled bool
 }
 
 // StateTriesConfig will hold information about state tries
 type StateTriesConfig struct {
-	CheckpointRoundsModulus     uint
-	CheckpointsEnabled          bool
 	SnapshotsEnabled            bool
 	AccountsStatePruningEnabled bool
 	PeerStatePruningEnabled     bool
 	MaxStateTrieLevelInMemory   uint
 	MaxPeerTrieLevelInMemory    uint
+	StateStatisticsEnabled      bool
 }
 
 // TrieStorageManagerConfig will hold config information about trie storage manager
 type TrieStorageManagerConfig struct {
-	PruningBufferLen              uint32
-	SnapshotsBufferLen            uint32
-	SnapshotsGoroutineNum         uint32
-	CheckpointHashesHolderMaxSize uint64
+	PruningBufferLen      uint32
+	SnapshotsBufferLen    uint32
+	SnapshotsGoroutineNum uint32
 }
 
 // EndpointsThrottlersConfig holds a pair of an endpoint and its maximum number of simultaneous go routines

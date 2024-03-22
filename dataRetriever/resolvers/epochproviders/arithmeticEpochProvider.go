@@ -9,7 +9,7 @@ import (
 )
 
 // deltaEpochActive represents how many epochs behind the current computed epoch are to be considered "active" and
-//cause the requests to be sent to all peers regardless of being full observers or not. Usually, a node will have
+// cause the requests to be sent to all peers regardless of being full observers or not. Usually, a node will have
 // [config.toml].[StoragePruning].NumActivePersisters opened persisters but to the fact that a shorter epoch can happen,
 // that value is lowered at a maximum 1.
 const deltaEpochActive = uint32(1)

@@ -38,19 +38,20 @@ type syncValidatorStatus struct {
 
 // ArgsNewSyncValidatorStatus holds the arguments needed for creating a new validator status process component
 type ArgsNewSyncValidatorStatus struct {
-	DataPool            dataRetriever.PoolsHolder
-	Marshalizer         marshal.Marshalizer
-	Hasher              hashing.Hasher
-	RequestHandler      process.RequestHandler
-	ChanceComputer      nodesCoordinator.ChanceComputer
-	GenesisNodesConfig  sharding.GenesisNodesSetupHandler
-	NodeShuffler        nodesCoordinator.NodesShuffler
-	PubKey              []byte
-	ShardIdAsObserver   uint32
-	ChanNodeStop        chan endProcess.ArgEndProcess
-	NodeTypeProvider    NodeTypeProviderHandler
-	IsFullArchive       bool
-	EnableEpochsHandler common.EnableEpochsHandler
+	DataPool                        dataRetriever.PoolsHolder
+	Marshalizer                     marshal.Marshalizer
+	Hasher                          hashing.Hasher
+	RequestHandler                  process.RequestHandler
+	ChanceComputer                  nodesCoordinator.ChanceComputer
+	GenesisNodesConfig              sharding.GenesisNodesSetupHandler
+	NodeShuffler                    nodesCoordinator.NodesShuffler
+	PubKey                          []byte
+	ShardIdAsObserver               uint32
+	ChanNodeStop                    chan endProcess.ArgEndProcess
+	NodeTypeProvider                NodeTypeProviderHandler
+	IsFullArchive                   bool
+	EnableEpochsHandler             common.EnableEpochsHandler
+	NodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory
 }
 
 // NewSyncValidatorStatus creates a new validator status process component
@@ -111,25 +112,27 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 	s.memDB = disabled.CreateMemUnit()
 
 	argsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-		ShardConsensusGroupSize: int(args.GenesisNodesConfig.GetShardConsensusGroupSize()),
-		MetaConsensusGroupSize:  int(args.GenesisNodesConfig.GetMetaConsensusGroupSize()),
-		Marshalizer:             args.Marshalizer,
-		Hasher:                  args.Hasher,
-		Shuffler:                args.NodeShuffler,
-		EpochStartNotifier:      &disabled.EpochStartNotifier{},
-		BootStorer:              s.memDB,
-		ShardIDAsObserver:       args.ShardIdAsObserver,
-		NbShards:                args.GenesisNodesConfig.NumberOfShards(),
-		EligibleNodes:           eligibleValidators,
-		WaitingNodes:            waitingValidators,
-		SelfPublicKey:           args.PubKey,
-		ConsensusGroupCache:     consensusGroupCache,
-		ShuffledOutHandler:      disabled.NewShuffledOutHandler(),
-		ChanStopNode:            args.ChanNodeStop,
-		NodeTypeProvider:        args.NodeTypeProvider,
-		IsFullArchive:           args.IsFullArchive,
-		EnableEpochsHandler:     args.EnableEpochsHandler,
-		ValidatorInfoCacher:     s.dataPool.CurrentEpochValidatorInfo(),
+		ShardConsensusGroupSize:         int(args.GenesisNodesConfig.GetShardConsensusGroupSize()),
+		MetaConsensusGroupSize:          int(args.GenesisNodesConfig.GetMetaConsensusGroupSize()),
+		Marshalizer:                     args.Marshalizer,
+		Hasher:                          args.Hasher,
+		Shuffler:                        args.NodeShuffler,
+		EpochStartNotifier:              &disabled.EpochStartNotifier{},
+		BootStorer:                      s.memDB,
+		ShardIDAsObserver:               args.ShardIdAsObserver,
+		NbShards:                        args.GenesisNodesConfig.NumberOfShards(),
+		EligibleNodes:                   eligibleValidators,
+		WaitingNodes:                    waitingValidators,
+		SelfPublicKey:                   args.PubKey,
+		ConsensusGroupCache:             consensusGroupCache,
+		ShuffledOutHandler:              disabled.NewShuffledOutHandler(),
+		ChanStopNode:                    args.ChanNodeStop,
+		NodeTypeProvider:                args.NodeTypeProvider,
+		IsFullArchive:                   args.IsFullArchive,
+		EnableEpochsHandler:             args.EnableEpochsHandler,
+		ValidatorInfoCacher:             s.dataPool.CurrentEpochValidatorInfo(),
+		GenesisNodesSetupHandler:        s.genesisNodesConfig,
+		NodesCoordinatorRegistryFactory: args.NodesCoordinatorRegistryFactory,
 	}
 	baseNodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argsNodesCoordinator)
 	if err != nil {
@@ -150,7 +153,7 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 func (s *syncValidatorStatus) NodesConfigFromMetaBlock(
 	currMetaBlock data.HeaderHandler,
 	prevMetaBlock data.HeaderHandler,
-) (*nodesCoordinator.NodesCoordinatorRegistry, uint32, []*block.MiniBlock, error) {
+) (nodesCoordinator.NodesCoordinatorRegistryHandler, uint32, []*block.MiniBlock, error) {
 	if currMetaBlock.GetNonce() > 1 && !currMetaBlock.IsStartOfEpochBlock() {
 		return nil, 0, nil, epochStart.ErrNotEpochStartBlock
 	}
@@ -176,8 +179,8 @@ func (s *syncValidatorStatus) NodesConfigFromMetaBlock(
 		return nil, 0, nil, err
 	}
 
-	nodesConfig := s.nodeCoordinator.NodesCoordinatorToRegistry()
-	nodesConfig.CurrentEpoch = currMetaBlock.GetEpoch()
+	nodesConfig := s.nodeCoordinator.NodesCoordinatorToRegistry(currMetaBlock.GetEpoch())
+	nodesConfig.SetCurrentEpoch(currMetaBlock.GetEpoch())
 	return nodesConfig, selfShardId, allMiniblocks, nil
 }
 
@@ -227,7 +230,7 @@ func (s *syncValidatorStatus) getPeerBlockBodyForMeta(
 		return nil, nil, err
 	}
 
-	if metaBlock.GetEpoch() >= s.enableEpochsHandler.RefactorPeersMiniBlocksEnableEpoch() {
+	if s.enableEpochsHandler.IsFlagEnabledInEpoch(common.RefactorPeersMiniBlocksFlag, metaBlock.GetEpoch()) {
 		s.transactionsSyncer.ClearFields()
 		ctx, cancel = context.WithTimeout(context.Background(), time.Minute)
 		err = s.transactionsSyncer.SyncTransactionsFor(peerMiniBlocks, metaBlock.GetEpoch(), ctx)

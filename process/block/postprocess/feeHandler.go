@@ -26,13 +26,14 @@ type feeHandler struct {
 }
 
 // NewFeeAccumulator constructor for the fee accumulator
-func NewFeeAccumulator() (*feeHandler, error) {
-	f := &feeHandler{}
-	f.accumulatedFees = big.NewInt(0)
-	f.developerFees = big.NewInt(0)
-	f.mapHashFee = make(map[string]*feeData)
-	f.mapDependentHashes = make(map[string][]byte)
-	return f, nil
+func NewFeeAccumulator() *feeHandler {
+	return &feeHandler{
+		mut:                sync.RWMutex{},
+		mapHashFee:         make(map[string]*feeData),
+		accumulatedFees:    big.NewInt(0),
+		developerFees:      big.NewInt(0),
+		mapDependentHashes: make(map[string][]byte),
+	}
 }
 
 // CreateBlockStarted does the cleanup before creating a new block

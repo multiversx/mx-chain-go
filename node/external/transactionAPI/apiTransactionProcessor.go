@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	rewardTxData "github.com/multiversx/mx-chain-core-go/data/rewardTx"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
@@ -308,41 +309,43 @@ func (atp *apiTransactionProcessor) getUnsignedTransactionsFromPool(requestedFie
 }
 
 func (atp *apiTransactionProcessor) extractRequestedTxInfo(wrappedTx *txcache.WrappedTransaction, requestedFieldsHandler fieldsHandler) common.Transaction {
+	fieldGetters := atp.getFieldGettersForTx(wrappedTx)
 	tx := common.Transaction{
 		TxFields: make(map[string]interface{}),
 	}
 
-	tx.TxFields[hashField] = hex.EncodeToString(wrappedTx.TxHash)
-
-	if requestedFieldsHandler.HasNonce {
-		tx.TxFields[nonceField] = wrappedTx.Tx.GetNonce()
-	}
-
-	if requestedFieldsHandler.HasSender {
-		tx.TxFields[senderField], _ = atp.addressPubKeyConverter.Encode(wrappedTx.Tx.GetSndAddr())
-	}
-
-	if requestedFieldsHandler.HasReceiver {
-		tx.TxFields[receiverField], _ = atp.addressPubKeyConverter.Encode(wrappedTx.Tx.GetRcvAddr())
-	}
-
-	if requestedFieldsHandler.HasGasLimit {
-		tx.TxFields[gasLimitField] = wrappedTx.Tx.GetGasLimit()
-	}
-	if requestedFieldsHandler.HasGasPrice {
-		tx.TxFields[gasPriceField] = wrappedTx.Tx.GetGasPrice()
-	}
-	if requestedFieldsHandler.HasRcvUsername {
-		tx.TxFields[rcvUsernameField] = wrappedTx.Tx.GetRcvUserName()
-	}
-	if requestedFieldsHandler.HasData {
-		tx.TxFields[dataField] = wrappedTx.Tx.GetData()
-	}
-	if requestedFieldsHandler.HasValue {
-		tx.TxFields[valueField] = getTxValue(wrappedTx)
+	for field, value := range fieldGetters {
+		if requestedFieldsHandler.IsFieldSet(field) {
+			tx.TxFields[field] = value
+		}
 	}
 
 	return tx
+}
+
+func (atp *apiTransactionProcessor) getFieldGettersForTx(wrappedTx *txcache.WrappedTransaction) map[string]interface{} {
+	var fieldGetters = map[string]interface{}{
+		hashField:        hex.EncodeToString(wrappedTx.TxHash),
+		nonceField:       wrappedTx.Tx.GetNonce(),
+		senderField:      atp.addressPubKeyConverter.SilentEncode(wrappedTx.Tx.GetSndAddr(), log),
+		receiverField:    atp.addressPubKeyConverter.SilentEncode(wrappedTx.Tx.GetRcvAddr(), log),
+		gasLimitField:    wrappedTx.Tx.GetGasLimit(),
+		gasPriceField:    wrappedTx.Tx.GetGasPrice(),
+		rcvUsernameField: wrappedTx.Tx.GetRcvUserName(),
+		dataField:        wrappedTx.Tx.GetData(),
+		valueField:       getTxValue(wrappedTx),
+		senderShardID:    wrappedTx.SenderShardID,
+		receiverShardID:  wrappedTx.ReceiverShardID,
+	}
+
+	guardedTx, isGuardedTx := wrappedTx.Tx.(data.GuardedTransactionHandler)
+	if isGuardedTx {
+		fieldGetters[signatureField] = hex.EncodeToString(guardedTx.GetSignature())
+		fieldGetters[guardianField] = atp.addressPubKeyConverter.SilentEncode(guardedTx.GetGuardianAddr(), log)
+		fieldGetters[guardianSignatureField] = hex.EncodeToString(guardedTx.GetGuardianSignature())
+	}
+
+	return fieldGetters
 }
 
 func (atp *apiTransactionProcessor) fetchTxsForSender(sender string, senderShard uint32) []*txcache.WrappedTransaction {

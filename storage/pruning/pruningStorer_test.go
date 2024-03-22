@@ -17,6 +17,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/random"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/database"
@@ -88,6 +89,7 @@ func getDefaultArgs() pruning.StorerArgs {
 		CustomDatabaseRemover:  &testscommon.CustomDatabaseRemoverStub{},
 		MaxBatchSize:           10,
 		PersistersTracker:      pruning.NewPersistersTracker(epochsData),
+		StateStatsHandler:      disabled.NewStateStatistics(),
 	}
 }
 
@@ -120,6 +122,7 @@ func getDefaultArgsSerialDB() pruning.StorerArgs {
 		CustomDatabaseRemover:  &testscommon.CustomDatabaseRemoverStub{},
 		MaxBatchSize:           20,
 		PersistersTracker:      pruning.NewPersistersTracker(epochData),
+		StateStatsHandler:      disabled.NewStateStatistics(),
 	}
 }
 
@@ -1050,16 +1053,13 @@ func TestPruningStorer_ConcurrentOperations(t *testing.T) {
 	fmt.Println(testDir)
 	args := getDefaultArgs()
 
-	dbConfigHandler := factory.NewDBConfigHandler(
-		config.DBConfig{
-			FilePath:          filepath.Join(testDir, dbName),
-			Type:              "LvlDBSerial",
-			MaxBatchSize:      100,
-			MaxOpenFiles:      10,
-			BatchDelaySeconds: 2,
-		},
-	)
-	persisterFactory, err := factory.NewPersisterFactory(dbConfigHandler)
+	persisterFactory, err := factory.NewPersisterFactory(config.DBConfig{
+		FilePath:          filepath.Join(testDir, dbName),
+		Type:              "LvlDBSerial",
+		MaxBatchSize:      100,
+		MaxOpenFiles:      10,
+		BatchDelaySeconds: 2,
+	})
 	require.Nil(t, err)
 
 	args.PersisterFactory = persisterFactory

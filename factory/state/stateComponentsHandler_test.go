@@ -27,7 +27,7 @@ func TestNewManagedStateComponents(t *testing.T) {
 		t.Parallel()
 
 		coreComponents := componentsMock.GetCoreComponents()
-		args := componentsMock.GetStateFactoryArgs(coreComponents)
+		args := componentsMock.GetStateFactoryArgs(coreComponents, componentsMock.GetStatusCoreComponents())
 		stateComponentsFactory, _ := stateComp.NewStateComponentsFactory(args)
 		managedStateComponents, err := stateComp.NewManagedStateComponents(stateComponentsFactory)
 		require.NoError(t, err)
@@ -42,7 +42,7 @@ func TestManagedStateComponents_Create(t *testing.T) {
 		t.Parallel()
 
 		coreComponents := componentsMock.GetCoreComponents()
-		args := componentsMock.GetStateFactoryArgs(coreComponents)
+		args := componentsMock.GetStateFactoryArgs(coreComponents, componentsMock.GetStatusCoreComponents())
 		stateComponentsFactory, _ := stateComp.NewStateComponentsFactory(args)
 		managedStateComponents, err := stateComp.NewManagedStateComponents(stateComponentsFactory)
 		require.NoError(t, err)
@@ -56,7 +56,7 @@ func TestManagedStateComponents_Create(t *testing.T) {
 		t.Parallel()
 
 		coreComponents := componentsMock.GetCoreComponents()
-		args := componentsMock.GetStateFactoryArgs(coreComponents)
+		args := componentsMock.GetStateFactoryArgs(coreComponents, componentsMock.GetStatusCoreComponents())
 		stateComponentsFactory, _ := stateComp.NewStateComponentsFactory(args)
 		managedStateComponents, err := stateComp.NewManagedStateComponents(stateComponentsFactory)
 		require.NoError(t, err)
@@ -87,7 +87,7 @@ func TestManagedStateComponents_Close(t *testing.T) {
 	t.Parallel()
 
 	coreComponents := componentsMock.GetCoreComponents()
-	args := componentsMock.GetStateFactoryArgs(coreComponents)
+	args := componentsMock.GetStateFactoryArgs(coreComponents, componentsMock.GetStatusCoreComponents())
 	stateComponentsFactory, _ := stateComp.NewStateComponentsFactory(args)
 	managedStateComponents, _ := stateComp.NewManagedStateComponents(stateComponentsFactory)
 	require.NoError(t, managedStateComponents.Close())
@@ -102,7 +102,7 @@ func TestManagedStateComponents_CheckSubcomponents(t *testing.T) {
 	t.Parallel()
 
 	coreComponents := componentsMock.GetCoreComponents()
-	args := componentsMock.GetStateFactoryArgs(coreComponents)
+	args := componentsMock.GetStateFactoryArgs(coreComponents, componentsMock.GetStatusCoreComponents())
 	stateComponentsFactory, _ := stateComp.NewStateComponentsFactory(args)
 	managedStateComponents, _ := stateComp.NewManagedStateComponents(stateComponentsFactory)
 	err := managedStateComponents.CheckSubcomponents()
@@ -121,7 +121,7 @@ func TestManagedStateComponents_Setters(t *testing.T) {
 	t.Parallel()
 
 	coreComponents := componentsMock.GetCoreComponents()
-	args := componentsMock.GetStateFactoryArgs(coreComponents)
+	args := componentsMock.GetStateFactoryArgs(coreComponents, componentsMock.GetStatusCoreComponents())
 	stateComponentsFactory, _ := stateComp.NewStateComponentsFactory(args)
 	managedStateComponents, _ := stateComp.NewManagedStateComponents(stateComponentsFactory)
 	err := managedStateComponents.Create()
@@ -153,7 +153,7 @@ func TestManagedStateComponents_IsInterfaceNil(t *testing.T) {
 	require.True(t, managedStateComponents.IsInterfaceNil())
 
 	coreComponents := componentsMock.GetCoreComponents()
-	args := componentsMock.GetStateFactoryArgs(coreComponents)
+	args := componentsMock.GetStateFactoryArgs(coreComponents, componentsMock.GetStatusCoreComponents())
 	stateComponentsFactory, _ := stateComp.NewStateComponentsFactory(args)
 	managedStateComponents, _ = stateComp.NewManagedStateComponents(stateComponentsFactory)
 	require.False(t, managedStateComponents.IsInterfaceNil())

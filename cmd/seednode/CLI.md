@@ -21,6 +21,7 @@ GLOBAL OPTIONS:
    --log-save                             Boolean option for enabling log saving. If set, it will automatically save all the logs into a file.
    --config [path]                        The [path] for the main configuration file. This TOML file contain the main configurations such as the marshalizer type (default: "./config/config.toml")
    --p2p-key-pem-file filepath            The filepath for the PEM file which contains the secret keys for the p2p key. If this is not specified a new key will be generated (internally) by default. (default: "./config/p2pKey.pem")
+   --p2p-prometheus-metrics               Boolean option for enabling the /debug/metrics/prometheus route for p2p prometheus metrics
    --help, -h                             show help
    --version, -v                          print the version
    

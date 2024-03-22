@@ -16,6 +16,10 @@ import (
 )
 
 func TestESDTTransferShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -46,6 +50,10 @@ func TestESDTTransferShouldWork(t *testing.T) {
 }
 
 func TestMultiESDTNFTTransferViaRelayedV2(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	tokenID1 := []byte("MYNFT1")
 	tokenID2 := []byte("MYNFT2")
 	sh0Addr := []byte("12345678901234567890123456789010")

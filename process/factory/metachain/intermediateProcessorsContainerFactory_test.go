@@ -3,6 +3,7 @@ package metachain_test
 import (
 	"testing"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory/metachain"
 	"github.com/multiversx/mx-chain-go/process/mock"
@@ -29,7 +30,7 @@ func createMockArgsNewIntermediateProcessorsFactory() metachain.ArgsNewIntermedi
 		Store:                   &storageStubs.ChainStorerStub{},
 		PoolsHolder:             dataRetrieverMock.NewPoolsHolderMock(),
 		EconomicsFee:            &economicsmocks.EconomicsHandlerStub{},
-		EnableEpochsHandler:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{IsKeepExecOrderOnCreatedSCRsEnabledField: true},
+		EnableEpochsHandler:     enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.KeepExecOrderOnCreatedSCRsFlag),
 		TxExecutionOrderHandler: &txExecOrderStub.TxExecutionOrderHandlerStub{},
 	}
 	return args

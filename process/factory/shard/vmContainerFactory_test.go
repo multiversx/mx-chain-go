@@ -1,6 +1,7 @@
 package shard
 
 import (
+	"runtime"
 	"sync"
 	"testing"
 
@@ -128,8 +129,6 @@ func TestNewVMContainerFactory_NilBlockChainHookShouldErr(t *testing.T) {
 }
 
 func TestNewVMContainerFactory_NilHasherShouldErr(t *testing.T) {
-	t.Parallel()
-
 	args := createMockVMAccountsArguments()
 	args.Hasher = nil
 	vmf, err := NewVMContainerFactory(args)
@@ -139,7 +138,9 @@ func TestNewVMContainerFactory_NilHasherShouldErr(t *testing.T) {
 }
 
 func TestNewVMContainerFactory_OkValues(t *testing.T) {
-	t.Parallel()
+	if runtime.GOARCH == "arm64" {
+		t.Skip("skipping test on arm64")
+	}
 
 	args := createMockVMAccountsArguments()
 	vmf, err := NewVMContainerFactory(args)
@@ -150,7 +151,9 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 }
 
 func TestVmContainerFactory_Create(t *testing.T) {
-	t.Parallel()
+	if runtime.GOARCH == "arm64" {
+		t.Skip("skipping test on arm64")
+	}
 
 	args := createMockVMAccountsArguments()
 	vmf, _ := NewVMContainerFactory(args)
@@ -175,6 +178,10 @@ func TestVmContainerFactory_Create(t *testing.T) {
 }
 
 func TestVmContainerFactory_ResolveWasmVMVersion(t *testing.T) {
+	if runtime.GOARCH == "arm64" {
+		t.Skip("skipping test on arm64")
+	}
+
 	epochNotifierInstance := forking.NewGenericEpochNotifier()
 
 	numCalled := 0

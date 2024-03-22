@@ -1,5 +1,3 @@
-//go:build !race
-
 package delegation
 
 import (
@@ -33,9 +31,8 @@ var NewBalanceBig = wasm.NewBalanceBig
 var RequireAlmostEquals = wasm.RequireAlmostEquals
 
 func TestDelegation_Claims(t *testing.T) {
-	// TODO reinstate test after Wasm VM pointer fix
 	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Wasm VM fix")
+		t.Skip("this is not a short test")
 	}
 
 	context := wasm.SetupTestContext(t)

@@ -19,7 +19,6 @@ func GetGeneralConfig() config.Config {
 			SignatureLength: 48,
 		},
 		StateTriesConfig: config.StateTriesConfig{
-			CheckpointRoundsModulus:     5,
 			AccountsStatePruningEnabled: true,
 			PeerStatePruningEnabled:     true,
 			MaxStateTrieLevelInMemory:   5,
@@ -50,20 +49,6 @@ func GetGeneralConfig() config.Config {
 				MaxOpenFiles:      10,
 			},
 		},
-		AccountsTrieCheckpointsStorage: config.StorageConfig{
-			Cache: config.CacheConfig{
-				Capacity: 10000,
-				Type:     "LRU",
-				Shards:   1,
-			},
-			DB: config.DBConfig{
-				FilePath:          "AccountsTrieCheckpoints",
-				Type:              "MemoryDB",
-				BatchDelaySeconds: 30,
-				MaxBatchSize:      6,
-				MaxOpenFiles:      10,
-			},
-		},
 		PeerAccountsTrieStorage: config.StorageConfig{
 			Cache: config.CacheConfig{
 				Capacity: 10000,
@@ -72,20 +57,6 @@ func GetGeneralConfig() config.Config {
 			},
 			DB: config.DBConfig{
 				FilePath:          "PeerAccountsTrie/MainDB",
-				Type:              "MemoryDB",
-				BatchDelaySeconds: 30,
-				MaxBatchSize:      6,
-				MaxOpenFiles:      10,
-			},
-		},
-		PeerAccountsTrieCheckpointsStorage: config.StorageConfig{
-			Cache: config.CacheConfig{
-				Capacity: 10000,
-				Type:     "LRU",
-				Shards:   1,
-			},
-			DB: config.DBConfig{
-				FilePath:          "PeerAccountsTrieCheckpoints",
 				Type:              "MemoryDB",
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,

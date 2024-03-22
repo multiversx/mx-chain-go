@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/random"
-	storageCore "github.com/multiversx/mx-chain-core-go/storage"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/database"
@@ -196,7 +196,7 @@ func TestNewFullHistoryPruningStorer_GetBulkFromEpoch(t *testing.T) {
 	res, err := fhps.GetBulkFromEpoch([][]byte{testKey0, testKey1}, testEpoch)
 	assert.Nil(t, err)
 
-	expected := []storageCore.KeyValuePair{
+	expected := []data.KeyValuePair{
 		{Key: testKey0, Value: testVal0},
 		{Key: testKey1, Value: testVal1},
 	}
@@ -224,7 +224,7 @@ func TestNewFullHistoryPruningStorer_GetBulkFromEpochShouldNotLoadFromCache(t *t
 	res, err := fhps.GetBulkFromEpoch([][]byte{testKey0, testKey1}, testEpoch)
 	assert.Nil(t, err)
 
-	expected := []storageCore.KeyValuePair{
+	expected := []data.KeyValuePair{
 		{Key: testKey0, Value: testVal0},
 		{Key: testKey1, Value: testVal1},
 	}
@@ -294,16 +294,13 @@ func TestFullHistoryPruningStorer_ConcurrentOperations(t *testing.T) {
 
 	fmt.Println(testDir)
 	args := getDefaultArgs()
-	dbConfigHandler := factory.NewDBConfigHandler(
-		config.DBConfig{
-			FilePath:          filepath.Join(testDir, dbName),
-			Type:              "LvlDBSerial",
-			MaxBatchSize:      100,
-			MaxOpenFiles:      10,
-			BatchDelaySeconds: 2,
-		},
-	)
-	persisterFactory, err := factory.NewPersisterFactory(dbConfigHandler)
+	persisterFactory, err := factory.NewPersisterFactory(config.DBConfig{
+		FilePath:          filepath.Join(testDir, dbName),
+		Type:              "LvlDBSerial",
+		MaxBatchSize:      100,
+		MaxOpenFiles:      10,
+		BatchDelaySeconds: 2,
+	})
 	require.Nil(t, err)
 	args.PersisterFactory = persisterFactory
 

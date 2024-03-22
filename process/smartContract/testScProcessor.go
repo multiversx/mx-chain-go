@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 // TestScProcessor extends scProcessor and is used in tests as it exposes some functions
@@ -26,7 +27,7 @@ func NewTestScProcessor(internalData *scProcessor) *TestScProcessor {
 func (tsp *TestScProcessor) GetCompositeTestError() error {
 	var returnError error
 
-	if tsp.enableEpochsHandler.IsCleanUpInformativeSCRsFlagEnabled() {
+	if tsp.enableEpochsHandler.IsFlagEnabled(common.CleanUpInformativeSCRsFlag) {
 		allLogs := tsp.txLogsProcessor.GetAllCurrentLogs()
 		for _, logs := range allLogs {
 			for _, event := range logs.GetLogEvents() {

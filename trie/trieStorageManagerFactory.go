@@ -6,9 +6,8 @@ import (
 
 // StorageManagerOptions specify the options that a trie storage manager can have
 type StorageManagerOptions struct {
-	PruningEnabled     bool
-	SnapshotsEnabled   bool
-	CheckpointsEnabled bool
+	PruningEnabled   bool
+	SnapshotsEnabled bool
 }
 
 // CreateTrieStorageManager creates a new trie storage manager based on the given type
@@ -19,7 +18,6 @@ func CreateTrieStorageManager(
 	log.Debug("trie storage manager options",
 		"trie pruning status", options.PruningEnabled,
 		"trie snapshot status", options.SnapshotsEnabled,
-		"trie checkpoints status", options.CheckpointsEnabled,
 	)
 
 	var tsm common.StorageManager
@@ -37,13 +35,6 @@ func CreateTrieStorageManager(
 
 	if !options.SnapshotsEnabled {
 		tsm, err = NewTrieStorageManagerWithoutSnapshot(tsm)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if !options.CheckpointsEnabled {
-		tsm, err = NewTrieStorageManagerWithoutCheckpoints(tsm)
 		if err != nil {
 			return nil, err
 		}

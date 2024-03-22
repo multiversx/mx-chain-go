@@ -1,6 +1,7 @@
 package preprocess_test
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -19,9 +20,7 @@ import (
 )
 
 func createEnableEpochsHandler() common.EnableEpochsHandler {
-	return &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsSCDeployFlagEnabledField: true,
-	}
+	return enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.SCDeployFlag)
 }
 
 func TestNewGasComputation_NilEconomicsFeeHandlerShouldErr(t *testing.T) {
@@ -48,6 +47,19 @@ func TestNewGasComputation_NilEnableEpochsHandlerShouldErr(t *testing.T) {
 
 	assert.Nil(t, gc)
 	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
+}
+
+func TestNewGasComputation_InvalidEnableEpochsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	gc, err := preprocess.NewGasComputation(
+		&economicsmocks.EconomicsHandlerStub{},
+		&testscommon.TxTypeHandlerMock{},
+		enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined(),
+	)
+
+	assert.Nil(t, gc)
+	assert.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
 }
 
 func TestNewGasComputation_ShouldWork(t *testing.T) {
@@ -447,7 +459,7 @@ func TestComputeGasProvidedByMiniBlock_ShouldWorkV1(t *testing.T) {
 				}
 				return process.MoveBalance, process.MoveBalance
 			}},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 	)
 
 	txHashes := make([][]byte, 0)
@@ -527,7 +539,7 @@ func TestComputeGasProvidedByTx_ShouldWorkWhenTxReceiverAddressIsASmartContractC
 			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
 				return process.SCInvoking, process.SCInvoking
 			}},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 	)
 
 	tx := transaction.Transaction{GasLimit: 7, RcvAddr: make([]byte, core.NumInitCharactersForScAddress+1)}

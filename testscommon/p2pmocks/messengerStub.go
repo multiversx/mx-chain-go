@@ -46,6 +46,7 @@ type MessengerStub struct {
 	SignUsingPrivateKeyCalled               func(skBytes []byte, payload []byte) ([]byte, error)
 	ProcessReceivedMessageCalled            func(message p2p.MessageP2P, fromConnectedPeer core.PeerID, source p2p.MessageHandler) error
 	SetDebuggerCalled                       func(debugger p2p.Debugger) error
+	HasCompatibleProtocolIDCalled           func(address string) bool
 }
 
 // ID -
@@ -367,6 +368,15 @@ func (ms *MessengerStub) SetDebugger(debugger p2p.Debugger) error {
 		return ms.SetDebuggerCalled(debugger)
 	}
 	return nil
+}
+
+// HasCompatibleProtocolID -
+func (ms *MessengerStub) HasCompatibleProtocolID(address string) bool {
+	if ms.HasCompatibleProtocolIDCalled != nil {
+		return ms.HasCompatibleProtocolIDCalled(address)
+	}
+
+	return false
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/dataPool"
@@ -140,6 +141,11 @@ func (holder *PoolsHolderMock) RewardTransactions() dataRetriever.ShardedDataCac
 // Headers -
 func (holder *PoolsHolderMock) Headers() dataRetriever.HeadersPool {
 	return holder.headers
+}
+
+// SetHeadersPool -
+func (holder *PoolsHolderMock) SetHeadersPool(headersPool dataRetriever.HeadersPool) {
+	holder.headers = headersPool
 }
 
 // MiniBlocks -

@@ -6,19 +6,21 @@ import (
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
 
 // BootstrapComponentsStub -
 type BootstrapComponentsStub struct {
-	Bootstrapper               factory.EpochStartBootstrapper
-	BootstrapParams            factory.BootstrapParamsHolder
-	NodeRole                   core.NodeType
-	ShCoordinator              sharding.Coordinator
-	ShardCoordinatorCalled     func() sharding.Coordinator
-	HdrVersionHandler          nodeFactory.HeaderVersionHandler
-	VersionedHdrFactory        nodeFactory.VersionedHeaderFactory
-	HdrIntegrityVerifier       nodeFactory.HeaderIntegrityVerifierHandler
-	GuardedAccountHandlerField process.GuardedAccountHandler
+	Bootstrapper                         factory.EpochStartBootstrapper
+	BootstrapParams                      factory.BootstrapParamsHolder
+	NodeRole                             core.NodeType
+	ShCoordinator                        sharding.Coordinator
+	ShardCoordinatorCalled               func() sharding.Coordinator
+	HdrVersionHandler                    nodeFactory.HeaderVersionHandler
+	VersionedHdrFactory                  nodeFactory.VersionedHeaderFactory
+	HdrIntegrityVerifier                 nodeFactory.HeaderIntegrityVerifierHandler
+	GuardedAccountHandlerField           process.GuardedAccountHandler
+	NodesCoordinatorRegistryFactoryField nodesCoordinator.NodesCoordinatorRegistryFactory
 }
 
 // Create -
@@ -83,6 +85,11 @@ func (bcs *BootstrapComponentsStub) SetShardCoordinator(shardCoordinator shardin
 // GuardedAccountHandler -
 func (bcs *BootstrapComponentsStub) GuardedAccountHandler() process.GuardedAccountHandler {
 	return bcs.GuardedAccountHandlerField
+}
+
+// NodesCoordinatorRegistryFactory -
+func (bcs *BootstrapComponentsStub) NodesCoordinatorRegistryFactory() nodesCoordinator.NodesCoordinatorRegistryFactory {
+	return bcs.NodesCoordinatorRegistryFactoryField
 }
 
 // String -

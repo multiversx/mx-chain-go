@@ -1,5 +1,3 @@
-//go:build !race
-
 package multiShard
 
 import (
@@ -16,6 +14,10 @@ import (
 )
 
 func TestRelayedSCDeployShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContextRelayer, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContextRelayer.Close()

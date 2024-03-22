@@ -1,5 +1,3 @@
-//go:build !race
-
 package delegation
 
 import (
@@ -19,6 +17,10 @@ import (
 )
 
 func TestDelegationSystemClaimMulti(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	tpn := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
 		MaxShards:            1,
 		NodeShardId:          core.MetachainShardId,
@@ -127,6 +129,10 @@ func TestDelegationSystemClaimMulti(t *testing.T) {
 }
 
 func TestDelegationSystemRedelegateMulti(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	tpn := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
 		MaxShards:            1,
 		NodeShardId:          core.MetachainShardId,

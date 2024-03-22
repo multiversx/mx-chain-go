@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -59,7 +60,7 @@ func (c *chainStorer) GetStorer(unitType dataRetriever.UnitType) (storage.Storer
 	_, ok := c.mapStorages[unitType]
 	if !ok {
 		log.Debug("created new mem storer", "key", unitType)
-		c.mapStorages[unitType] = CreateMemUnit()
+		c.mapStorages[unitType] = testscommon.CreateMemUnit()
 	}
 
 	store := c.mapStorages[unitType]

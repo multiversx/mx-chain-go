@@ -1,5 +1,7 @@
 package view
 
+import "github.com/multiversx/mx-chain-core-go/core"
+
 // Presenter defines the methods that return information about node
 type Presenter interface {
 	GetAppVersion() string
@@ -61,6 +63,7 @@ type Presenter interface {
 
 	GetTrieSyncNumProcessedNodes() uint64
 	GetTrieSyncNumBytesReceived() uint64
+	GetTrieSyncProcessedPercentage() core.OptionalUint64
 
 	InvalidateCache()
 	IsInterfaceNil() bool

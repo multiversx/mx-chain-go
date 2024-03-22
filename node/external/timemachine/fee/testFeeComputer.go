@@ -12,14 +12,6 @@ func NewTestFeeComputer(feeComputerInstance *feeComputer) *testFeeComputer {
 	}
 }
 
-// LenEconomicsInstances returns the number of economic instances
-func (computer *testFeeComputer) LenEconomicsInstances() int {
-	computer.mutex.RLock()
-	defer computer.mutex.RUnlock()
-
-	return len(computer.economicsInstances)
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (computer *testFeeComputer) IsInterfaceNil() bool {
 	return computer == nil

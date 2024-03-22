@@ -52,7 +52,9 @@ func TestExecTransaction_SelfTransactionShouldWork(t *testing.T) {
 }
 
 func TestExecTransaction_SelfTransactionWithRevertShouldWork(t *testing.T) {
-	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	trieStorage, _ := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
 	accnts, _ := integrationTests.CreateAccountsDB(0, trieStorage)
@@ -182,7 +184,6 @@ func TestExecTransaction_MoreTransactionsMoreIterationsWithRevertShouldWork(t *t
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-	t.Parallel()
 
 	trieStorage, _ := integrationTests.CreateTrieStorageManager(integrationTests.CreateMemUnit())
 	accnts, _ := integrationTests.CreateAccountsDB(0, trieStorage)

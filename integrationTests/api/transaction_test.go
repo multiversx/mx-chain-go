@@ -7,13 +7,17 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/multiversx/mx-chain-go/api/groups"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestTransactionGroup(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	node := integrationTests.NewTestProcessorNodeWithTestWebServer(3, 0, 0)
 
 	testTransactionGasCostWithMissingFields(t, node)
@@ -21,7 +25,7 @@ func TestTransactionGroup(t *testing.T) {
 
 func testTransactionGasCostWithMissingFields(tb testing.TB, node *integrationTests.TestProcessorNodeWithTestWebServer) {
 	// this is an example found in the wild, should not add more fields in order to pass the tests
-	tx := groups.SendTxRequest{
+	tx := transaction.FrontendTransaction{
 		Sender:   "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80",
 		Receiver: "erd188anxz35atlef7cucszypmvx88lhz4m7a7t7lhcwt6sfphpsqlkswfhcx2",
 		Value:    "100",

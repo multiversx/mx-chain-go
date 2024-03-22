@@ -8,11 +8,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/iteratorChannelsProvider"
+	"github.com/multiversx/mx-chain-go/state/lastSnapshotMarker"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	testState "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
@@ -73,16 +77,6 @@ func TestNewPeerAccountsDB(t *testing.T) {
 		assert.True(t, check.IfNil(adb))
 		assert.Equal(t, state.ErrNilStoragePruningManager, err)
 	})
-	t.Run("nil process status handler should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockAccountsDBArgs()
-		args.ProcessStatusHandler = nil
-
-		adb, err := state.NewPeerAccountsDB(args)
-		assert.True(t, check.IfNil(adb))
-		assert.Equal(t, state.ErrNilProcessStatusHandler, err)
-	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -109,6 +103,20 @@ func TestNewPeerAccountsDB_SnapshotState(t *testing.T) {
 			}
 		},
 	}
+
+	snapshotsManager, _ := state.NewSnapshotsManager(state.ArgsNewSnapshotsManager{
+		ProcessingMode:       common.Normal,
+		Marshaller:           &marshallerMock.MarshalizerMock{},
+		AddressConverter:     &testscommon.PubkeyConverterMock{},
+		ProcessStatusHandler: &testscommon.ProcessStatusHandlerStub{},
+		StateMetrics:         &testState.StateMetricsStub{},
+		AccountFactory:       args.AccountFactory,
+		ChannelsProvider:     iteratorChannelsProvider.NewPeerStateIteratorChannelsProvider(),
+		LastSnapshotMarker:   lastSnapshotMarker.NewLastSnapshotMarker(),
+		StateStatsHandler:    statistics.NewStateStatistics(),
+	})
+	args.SnapshotsManager = snapshotsManager
+
 	adb, err := state.NewPeerAccountsDB(args)
 
 	assert.Nil(t, err)
@@ -144,38 +152,6 @@ func TestNewPeerAccountsDB_SnapshotStateGetLatestStorageEpochErrDoesNotSnapshot(
 
 	adb.SnapshotState([]byte("rootHash"), 0)
 	assert.False(t, snapshotCalled)
-}
-
-func TestNewPeerAccountsDB_SetStateCheckpoint(t *testing.T) {
-	t.Parallel()
-
-	checkpointInProgress := atomic.Flag{}
-	checkpointInProgress.SetValue(true)
-	checkpointCalled := false
-	args := createMockAccountsDBArgs()
-	args.Trie = &trieMock.TrieStub{
-		GetStorageManagerCalled: func() common.StorageManager {
-			return &storageManager.StorageManagerStub{
-				SetCheckpointCalled: func(_ []byte, _ []byte, _ *common.TrieIteratorChannels, _ chan []byte, stats common.SnapshotStatisticsHandler) {
-					checkpointCalled = true
-					stats.SnapshotFinished()
-				},
-				ExitPruningBufferingModeCalled: func() {
-					checkpointInProgress.SetValue(false)
-				},
-			}
-		},
-	}
-	adb, err := state.NewPeerAccountsDB(args)
-
-	assert.Nil(t, err)
-	assert.False(t, check.IfNil(adb))
-
-	adb.SetStateCheckpoint([]byte("rootHash"))
-	for checkpointInProgress.IsSet() {
-		time.Sleep(10 * time.Millisecond)
-	}
-	assert.True(t, checkpointCalled)
 }
 
 func TestNewPeerAccountsDB_RecreateAllTries(t *testing.T) {
@@ -397,7 +373,17 @@ func TestPeerAccountsDB_SetSyncerAndStartSnapshotIfNeededMarksActiveDB(t *testin
 		}
 
 		args := createMockAccountsDBArgs()
-		args.ProcessingMode = common.ImportDb
+		args.SnapshotsManager, _ = state.NewSnapshotsManager(state.ArgsNewSnapshotsManager{
+			ProcessingMode:       common.ImportDb,
+			Marshaller:           &marshallerMock.MarshalizerMock{},
+			AddressConverter:     &testscommon.PubkeyConverterMock{},
+			ProcessStatusHandler: &testscommon.ProcessStatusHandlerStub{},
+			StateMetrics:         &testState.StateMetricsStub{},
+			AccountFactory:       args.AccountFactory,
+			ChannelsProvider:     iteratorChannelsProvider.NewUserStateIteratorChannelsProvider(),
+			LastSnapshotMarker:   lastSnapshotMarker.NewLastSnapshotMarker(),
+			StateStatsHandler:    statistics.NewStateStatistics(),
+		})
 		args.Trie = trieStub
 		adb, _ := state.NewPeerAccountsDB(args)
 		err := adb.SetSyncer(&mock.AccountsDBSyncerStub{})
@@ -433,7 +419,7 @@ func TestPeerAccountsDB_SnapshotStateOnAClosedStorageManagerShouldNotMarkActiveD
 						activeDBWasPut = true
 					}
 
-					if string(key) == state.LastSnapshotStarted {
+					if string(key) == lastSnapshotMarker.LastSnapshot {
 						lastSnapshotStartedWasPut = true
 					}
 
@@ -451,7 +437,7 @@ func TestPeerAccountsDB_SnapshotStateOnAClosedStorageManagerShouldNotMarkActiveD
 
 	mut.RLock()
 	defer mut.RUnlock()
-	assert.True(t, lastSnapshotStartedWasPut)
+	assert.False(t, lastSnapshotStartedWasPut)
 	assert.False(t, activeDBWasPut)
 }
 

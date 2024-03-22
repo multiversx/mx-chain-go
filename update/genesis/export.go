@@ -311,8 +311,7 @@ func (se *stateExport) exportTrie(key string, trie common.Trie) error {
 	}
 
 	if accType == ValidatorAccount {
-		var validatorData map[uint32][]*state.ValidatorInfo
-		validatorData, err = getValidatorDataFromLeaves(leavesChannels, se.shardCoordinator, se.marshalizer)
+		validatorData, err := getValidatorDataFromLeaves(leavesChannels, se.marshalizer)
 		if err != nil {
 			return err
 		}
@@ -443,30 +442,28 @@ func (se *stateExport) exportValidatorInfo(key string, validatorInfo *state.Shar
 	return nil
 }
 
-func (se *stateExport) exportNodesSetupJson(validators map[uint32][]*state.ValidatorInfo) error {
+func (se *stateExport) exportNodesSetupJson(validators state.ShardValidatorsInfoMapHandler) error {
 	acceptedListsForExport := []common.PeerType{common.EligibleList, common.WaitingList, common.JailedList}
 	initialNodes := make([]*sharding.InitialNode, 0)
 
-	for _, validatorsInShard := range validators {
-		for _, validator := range validatorsInShard {
-			if shouldExportValidator(validator, acceptedListsForExport) {
+	for _, validator := range validators.GetAllValidatorsInfo() {
+		if shouldExportValidator(validator, acceptedListsForExport) {
 
-				pubKey, err := se.validatorPubKeyConverter.Encode(validator.GetPublicKey())
-				if err != nil {
-					return nil
-				}
-
-				rewardAddress, err := se.addressPubKeyConverter.Encode(validator.GetRewardAddress())
-				if err != nil {
-					return nil
-				}
-
-				initialNodes = append(initialNodes, &sharding.InitialNode{
-					PubKey:        pubKey,
-					Address:       rewardAddress,
-					InitialRating: validator.GetRating(),
-				})
+			pubKey, err := se.validatorPubKeyConverter.Encode(validator.GetPublicKey())
+			if err != nil {
+				return nil
 			}
+
+			rewardAddress, err := se.addressPubKeyConverter.Encode(validator.GetRewardAddress())
+			if err != nil {
+				return nil
+			}
+
+			initialNodes = append(initialNodes, &sharding.InitialNode{
+				PubKey:        pubKey,
+				Address:       rewardAddress,
+				InitialRating: validator.GetRating(),
+			})
 		}
 	}
 

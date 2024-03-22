@@ -64,6 +64,7 @@ func TestManagedStatusCoreComponents_Create(t *testing.T) {
 		require.Nil(t, managedStatusCoreComponents.AppStatusHandler())
 		require.Nil(t, managedStatusCoreComponents.StatusMetrics())
 		require.Nil(t, managedStatusCoreComponents.PersistentStatusHandler())
+		require.Nil(t, managedStatusCoreComponents.StateStatsHandler())
 
 		err = managedStatusCoreComponents.Create()
 		require.NoError(t, err)
@@ -74,6 +75,7 @@ func TestManagedStatusCoreComponents_Create(t *testing.T) {
 		require.NotNil(t, managedStatusCoreComponents.AppStatusHandler())
 		require.NotNil(t, managedStatusCoreComponents.StatusMetrics())
 		require.NotNil(t, managedStatusCoreComponents.PersistentStatusHandler())
+		require.NotNil(t, managedStatusCoreComponents.StateStatsHandler())
 
 		require.Equal(t, factory.StatusCoreComponentsName, managedStatusCoreComponents.String())
 	})

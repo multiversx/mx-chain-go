@@ -3,7 +3,7 @@ package pruning_test
 import (
 	"testing"
 
-	storageCore "github.com/multiversx/mx-chain-core-go/storage"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/storage/pruning"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
@@ -61,7 +61,7 @@ func TestFullHistoryTriePruningStorer_CallsMethodsFromUndelyingFHPS(t *testing.T
 
 		getBulkFromEpochCalled := false
 		sweo := &storage.StorerStub{
-			GetBulkFromEpochCalled: func(_ [][]byte, _ uint32) ([]storageCore.KeyValuePair, error) {
+			GetBulkFromEpochCalled: func(_ [][]byte, _ uint32) ([]data.KeyValuePair, error) {
 				getBulkFromEpochCalled = true
 				return nil, nil
 			},

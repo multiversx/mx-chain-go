@@ -1,7 +1,3 @@
-//go:build !race
-
-// TODO remove build condition above to allow -race -short, after Wasm VM fix
-
 package txsFee
 
 import (
@@ -25,6 +21,10 @@ import (
 )
 
 func TestAsyncESDTCallShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
 		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
 	})
@@ -79,6 +79,10 @@ func TestAsyncESDTCallShouldWork(t *testing.T) {
 }
 
 func TestAsyncESDTCallSecondScRefusesPayment(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -132,6 +136,10 @@ func TestAsyncESDTCallSecondScRefusesPayment(t *testing.T) {
 }
 
 func TestAsyncESDTCallsOutOfGas(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -184,6 +192,10 @@ func TestAsyncESDTCallsOutOfGas(t *testing.T) {
 }
 
 func TestAsyncMultiTransferOnCallback(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
 		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
 	})
@@ -279,6 +291,10 @@ func TestAsyncMultiTransferOnCallback(t *testing.T) {
 }
 
 func TestAsyncMultiTransferOnCallAndOnCallback(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -379,6 +395,10 @@ func TestAsyncMultiTransferOnCallAndOnCallback(t *testing.T) {
 }
 
 func TestSendNFTToContractWith0Function(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -428,6 +448,10 @@ func TestSendNFTToContractWith0Function(t *testing.T) {
 }
 
 func TestSendNFTToContractWith0FunctionNonPayable(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -478,6 +502,10 @@ func TestSendNFTToContractWith0FunctionNonPayable(t *testing.T) {
 }
 
 func TestAsyncESDTCallForThirdContractShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()

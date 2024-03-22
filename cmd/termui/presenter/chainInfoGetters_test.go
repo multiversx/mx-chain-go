@@ -5,8 +5,10 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/cmd/termui/provider"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPresenterStatusHandler_GetNonce(t *testing.T) {
@@ -268,4 +270,71 @@ func TestPresenterStatusHandler_GetEpochInfoExtraRound(t *testing.T) {
 	assert.Equal(t, numRoundsPerEpoch+roundAtEpochStart, currentEpochFinishRound)
 	assert.Equal(t, expectedRemainingTime, remainingTime)
 	assert.Equal(t, 100, epochLoadPercent)
+}
+
+func TestGetTrieSyncProcessedPercentage(t *testing.T) {
+	t.Parallel()
+
+	t.Run("not valid num estimated nodes", func(t *testing.T) {
+		t.Parallel()
+
+		presenterStatusHandler := NewPresenterStatusHandler()
+
+		numEstNodes := uint64(0)
+		numProcessedNodes := uint64(100)
+		presenterStatusHandler.SetUInt64Value(provider.AccountsSnapshotNumNodesMetric, numEstNodes)
+		presenterStatusHandler.SetUInt64Value(common.MetricTrieSyncNumProcessedNodes, numProcessedNodes)
+
+		trieSyncPercentage := presenterStatusHandler.GetTrieSyncProcessedPercentage()
+		require.Equal(t, core.OptionalUint64{
+			Value:    0,
+			HasValue: false,
+		}, trieSyncPercentage)
+	})
+
+	t.Run("num nodes higher than estimated num nodes, should return 100 percentage", func(t *testing.T) {
+		t.Parallel()
+
+		presenterStatusHandler := NewPresenterStatusHandler()
+
+		numEstNodes := uint64(1000)
+		numProcessedNodes := uint64(1010)
+		presenterStatusHandler.SetUInt64Value(provider.AccountsSnapshotNumNodesMetric, numEstNodes)
+		presenterStatusHandler.SetUInt64Value(common.MetricTrieSyncNumProcessedNodes, numProcessedNodes)
+
+		trieSyncPercentage := presenterStatusHandler.GetTrieSyncProcessedPercentage()
+		require.Equal(t, core.OptionalUint64{
+			Value:    100,
+			HasValue: true,
+		}, trieSyncPercentage)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		presenterStatusHandler := NewPresenterStatusHandler()
+
+		numNodes := uint64(1000)
+		numProcessedNodes := uint64(100)
+		presenterStatusHandler.SetUInt64Value(provider.AccountsSnapshotNumNodesMetric, numNodes)
+		presenterStatusHandler.SetUInt64Value(common.MetricTrieSyncNumProcessedNodes, numProcessedNodes)
+
+		trieSyncPercentage := presenterStatusHandler.GetTrieSyncProcessedPercentage()
+		require.Equal(t, core.OptionalUint64{
+			Value:    10,
+			HasValue: true,
+		}, trieSyncPercentage)
+	})
+}
+
+func TestGetTrieSyncNumBytesReceived(t *testing.T) {
+	t.Parallel()
+
+	presenterStatusHandler := NewPresenterStatusHandler()
+
+	numReceivedNodes := uint64(100)
+	presenterStatusHandler.SetUInt64Value(common.MetricTrieSyncNumReceivedBytes, numReceivedNodes)
+
+	trieSyncPercentage := presenterStatusHandler.GetTrieSyncNumBytesReceived()
+	require.Equal(t, numReceivedNodes, trieSyncPercentage)
 }

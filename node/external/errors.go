@@ -43,3 +43,6 @@ var ErrNilGasScheduler = errors.New("nil gas scheduler")
 
 // ErrNilManagedPeersMonitor signals that a nil managed peers monitor has been provided
 var ErrNilManagedPeersMonitor = errors.New("nil managed peers monitor")
+
+// ErrNilNodesCoordinator signals a nil nodes coordinator has been provided
+var ErrNilNodesCoordinator = errors.New("nil nodes coordinator")
