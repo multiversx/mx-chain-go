@@ -58,6 +58,7 @@ type esdt struct {
 	mutExecution           sync.RWMutex
 	addressPubKeyConverter core.PubkeyConverter
 	enableEpochsHandler    common.EnableEpochsHandler
+	esdtPrefix             []byte
 }
 
 // ArgsNewESDTSmartContract defines the arguments needed for the esdt contract
@@ -71,6 +72,7 @@ type ArgsNewESDTSmartContract struct {
 	EndOfEpochSCAddress    []byte
 	AddressPubKeyConverter core.PubkeyConverter
 	EnableEpochsHandler    common.EnableEpochsHandler
+	ESDTPrefix             string
 }
 
 // NewESDTSmartContract creates the esdt smart contract, which controls the issuing of tokens
@@ -129,7 +131,16 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 		endOfEpochSCAddress:    args.EndOfEpochSCAddress,
 		addressPubKeyConverter: args.AddressPubKeyConverter,
 		enableEpochsHandler:    args.EnableEpochsHandler,
+		esdtPrefix:             createESDTPrefixWithSeparator(args.ESDTPrefix),
 	}, nil
+}
+
+func createESDTPrefixWithSeparator(esdtPrefix string) []byte {
+	if len(esdtPrefix) == 0 {
+		return nil
+	}
+
+	return append([]byte(esdtPrefix), []byte(tickerSeparator)...)
 }
 
 // Execute calls one of the functions from the esdt smart contract and runs the code according to the input
@@ -696,12 +707,20 @@ func (e *esdt) createNewTokenIdentifier(caller []byte, ticker []byte) ([]byte, e
 		newIdentifier := append(tickerPrefix, encoded...)
 		buff := e.eei.GetStorage(newIdentifier)
 		if len(buff) == 0 {
-			return newIdentifier, nil
+			return e.createTokenIdentifierWithPrefix(newIdentifier), nil
 		}
 		newRandomAsBigInt.Add(newRandomAsBigInt, one)
 	}
 
 	return nil, vm.ErrCouldNotCreateNewTokenIdentifier
+}
+
+func (e *esdt) createTokenIdentifierWithPrefix(tokenID []byte) []byte {
+	if len(e.esdtPrefix) == 0 {
+		return tokenID
+	}
+
+	return append(e.esdtPrefix, tokenID...)
 }
 
 func (e *esdt) upgradeProperties(tokenIdentifier []byte, token *ESDTDataV2, args [][]byte, isCreate bool, callerAddr []byte) error {
