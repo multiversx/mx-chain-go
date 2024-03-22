@@ -15,6 +15,10 @@ import (
 const mintingValue = "100000000"
 
 func TestInterceptedTxWithoutDataField(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	value := big.NewInt(0)
 	value.SetString("999", 10)
 
@@ -35,6 +39,10 @@ func TestInterceptedTxWithoutDataField(t *testing.T) {
 }
 
 func TestInterceptedTxWithDataField(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	value := big.NewInt(0)
 	value.SetString("999", 10)
 
@@ -55,6 +63,10 @@ func TestInterceptedTxWithDataField(t *testing.T) {
 }
 
 func TestInterceptedTxWithSigningOverTxHash(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	value := big.NewInt(0)
 	value.SetString("1000000000000000000", 10)
 

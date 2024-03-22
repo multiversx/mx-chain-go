@@ -1,7 +1,3 @@
-//go:build !race
-
-// TODO remove build condition above to allow -race -short, after Wasm VM fix
-
 package txsFee
 
 import (
@@ -19,6 +15,10 @@ import (
 )
 
 func TestRelayedScCallShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
 		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
 	})
@@ -63,6 +63,10 @@ func TestRelayedScCallShouldWork(t *testing.T) {
 }
 
 func TestRelayedScCallContractNotFoundShouldConsumeGas(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -102,6 +106,10 @@ func TestRelayedScCallContractNotFoundShouldConsumeGas(t *testing.T) {
 }
 
 func TestRelayedScCallInvalidMethodShouldConsumeGas(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -141,6 +149,10 @@ func TestRelayedScCallInvalidMethodShouldConsumeGas(t *testing.T) {
 }
 
 func TestRelayedScCallInsufficientGasLimitShouldConsumeGas(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -179,6 +191,10 @@ func TestRelayedScCallInsufficientGasLimitShouldConsumeGas(t *testing.T) {
 }
 
 func TestRelayedScCallOutOfGasShouldConsumeGas(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -218,6 +234,10 @@ func TestRelayedScCallOutOfGasShouldConsumeGas(t *testing.T) {
 }
 
 func TestRelayedDeployInvalidContractShouldIncrementNonceOnSender(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	senderAddr := []byte("12345678901234567890123456789011")
 
 	t.Run("nonce fix is disabled, should increase the sender's nonce if inner tx has correct nonce", func(t *testing.T) {

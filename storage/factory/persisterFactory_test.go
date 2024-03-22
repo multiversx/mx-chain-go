@@ -214,18 +214,18 @@ func TestGetTmpFilePath(t *testing.T) {
 	pathSeparator := "/"
 
 	tmpDir := os.TempDir()
-	tmpBasePath := tmpDir + pathSeparator
+	tmpBasePath := path.Join(tmpDir, pathSeparator)
 
-	path, err := factory.GetTmpFilePath("aaaa/bbbb/cccc")
+	tmpPath, err := factory.GetTmpFilePath("aaaa/bbbb/cccc")
 	require.Nil(t, err)
-	require.True(t, strings.Contains(path, tmpBasePath+"cccc"))
+	require.True(t, strings.Contains(tmpPath, path.Join(tmpBasePath, "cccc")))
 
-	path, _ = factory.GetTmpFilePath("aaaa")
-	require.True(t, strings.Contains(path, tmpBasePath+"aaaa"))
+	tmpPath, _ = factory.GetTmpFilePath("aaaa")
+	require.True(t, strings.Contains(tmpPath, path.Join(tmpBasePath, "aaaa")))
 
-	path, _ = factory.GetTmpFilePath("")
-	require.True(t, strings.Contains(path, tmpBasePath+""))
+	tmpPath, _ = factory.GetTmpFilePath("")
+	require.True(t, strings.Contains(tmpPath, path.Join(tmpBasePath, "")))
 
-	path, _ = factory.GetTmpFilePath("/")
-	require.True(t, strings.Contains(path, tmpBasePath+""))
+	tmpPath, _ = factory.GetTmpFilePath("/")
+	require.True(t, strings.Contains(tmpPath, path.Join(tmpBasePath, "")))
 }

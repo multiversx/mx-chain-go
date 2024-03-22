@@ -2,6 +2,7 @@ package components
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
@@ -26,28 +27,29 @@ type ArgsCryptoComponentsHolder struct {
 }
 
 type cryptoComponentsHolder struct {
-	publicKey               crypto.PublicKey
-	privateKey              crypto.PrivateKey
-	p2pPublicKey            crypto.PublicKey
-	p2pPrivateKey           crypto.PrivateKey
-	p2pSingleSigner         crypto.SingleSigner
-	txSingleSigner          crypto.SingleSigner
-	blockSigner             crypto.SingleSigner
-	multiSignerContainer    cryptoCommon.MultiSignerContainer
-	peerSignatureHandler    crypto.PeerSignatureHandler
-	blockSignKeyGen         crypto.KeyGenerator
-	txSignKeyGen            crypto.KeyGenerator
-	p2pKeyGen               crypto.KeyGenerator
-	messageSignVerifier     vm.MessageSignVerifier
-	consensusSigningHandler consensus.SigningHandler
-	managedPeersHolder      common.ManagedPeersHolder
-	keysHandler             consensus.KeysHandler
-	publicKeyBytes          []byte
-	publicKeyString         string
+	publicKey                     crypto.PublicKey
+	privateKey                    crypto.PrivateKey
+	p2pPublicKey                  crypto.PublicKey
+	p2pPrivateKey                 crypto.PrivateKey
+	p2pSingleSigner               crypto.SingleSigner
+	txSingleSigner                crypto.SingleSigner
+	blockSigner                   crypto.SingleSigner
+	multiSignerContainer          cryptoCommon.MultiSignerContainer
+	peerSignatureHandler          crypto.PeerSignatureHandler
+	blockSignKeyGen               crypto.KeyGenerator
+	txSignKeyGen                  crypto.KeyGenerator
+	p2pKeyGen                     crypto.KeyGenerator
+	messageSignVerifier           vm.MessageSignVerifier
+	consensusSigningHandler       consensus.SigningHandler
+	managedPeersHolder            common.ManagedPeersHolder
+	keysHandler                   consensus.KeysHandler
+	publicKeyBytes                []byte
+	publicKeyString               string
+	managedCryptoComponentsCloser io.Closer
 }
 
 // CreateCryptoComponents will create a new instance of cryptoComponentsHolder
-func CreateCryptoComponents(args ArgsCryptoComponentsHolder) (factory.CryptoComponentsHandler, error) {
+func CreateCryptoComponents(args ArgsCryptoComponentsHolder) (*cryptoComponentsHolder, error) {
 	instance := &cryptoComponentsHolder{}
 
 	cryptoComponentsHandlerArgs := cryptoComp.CryptoComponentsFactoryArgs{
@@ -104,6 +106,7 @@ func CreateCryptoComponents(args ArgsCryptoComponentsHolder) (factory.CryptoComp
 	instance.consensusSigningHandler = managedCryptoComponents.ConsensusSigningHandler()
 	instance.managedPeersHolder = managedCryptoComponents.ManagedPeersHolder()
 	instance.keysHandler = managedCryptoComponents.KeysHandler()
+	instance.managedCryptoComponentsCloser = managedCryptoComponents
 
 	if args.BypassTxSignatureCheck {
 		instance.txSingleSigner = &singlesig.DisabledSingleSig{}
@@ -219,24 +222,25 @@ func (c *cryptoComponentsHolder) KeysHandler() consensus.KeysHandler {
 // Clone will clone the cryptoComponentsHolder
 func (c *cryptoComponentsHolder) Clone() interface{} {
 	return &cryptoComponentsHolder{
-		publicKey:               c.PublicKey(),
-		privateKey:              c.PrivateKey(),
-		p2pPublicKey:            c.P2pPublicKey(),
-		p2pPrivateKey:           c.P2pPrivateKey(),
-		p2pSingleSigner:         c.P2pSingleSigner(),
-		txSingleSigner:          c.TxSingleSigner(),
-		blockSigner:             c.BlockSigner(),
-		multiSignerContainer:    c.MultiSignerContainer(),
-		peerSignatureHandler:    c.PeerSignatureHandler(),
-		blockSignKeyGen:         c.BlockSignKeyGen(),
-		txSignKeyGen:            c.TxSignKeyGen(),
-		p2pKeyGen:               c.P2pKeyGen(),
-		messageSignVerifier:     c.MessageSignVerifier(),
-		consensusSigningHandler: c.ConsensusSigningHandler(),
-		managedPeersHolder:      c.ManagedPeersHolder(),
-		keysHandler:             c.KeysHandler(),
-		publicKeyBytes:          c.PublicKeyBytes(),
-		publicKeyString:         c.PublicKeyString(),
+		publicKey:                     c.PublicKey(),
+		privateKey:                    c.PrivateKey(),
+		p2pPublicKey:                  c.P2pPublicKey(),
+		p2pPrivateKey:                 c.P2pPrivateKey(),
+		p2pSingleSigner:               c.P2pSingleSigner(),
+		txSingleSigner:                c.TxSingleSigner(),
+		blockSigner:                   c.BlockSigner(),
+		multiSignerContainer:          c.MultiSignerContainer(),
+		peerSignatureHandler:          c.PeerSignatureHandler(),
+		blockSignKeyGen:               c.BlockSignKeyGen(),
+		txSignKeyGen:                  c.TxSignKeyGen(),
+		p2pKeyGen:                     c.P2pKeyGen(),
+		messageSignVerifier:           c.MessageSignVerifier(),
+		consensusSigningHandler:       c.ConsensusSigningHandler(),
+		managedPeersHolder:            c.ManagedPeersHolder(),
+		keysHandler:                   c.KeysHandler(),
+		publicKeyBytes:                c.PublicKeyBytes(),
+		publicKeyString:               c.PublicKeyString(),
+		managedCryptoComponentsCloser: c.managedCryptoComponentsCloser,
 	}
 }
 
@@ -261,5 +265,5 @@ func (c *cryptoComponentsHolder) String() string {
 
 // Close will do nothing
 func (c *cryptoComponentsHolder) Close() error {
-	return nil
+	return c.managedCryptoComponentsCloser.Close()
 }
