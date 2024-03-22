@@ -4489,7 +4489,7 @@ func TestEsdt_createNewTokenIdentifierWithPrefix(t *testing.T) {
 	t.Parallel()
 
 	caller := []byte("caller")
-	tokenName := []byte("token")
+	tokenName := []byte("TICKER")
 
 	prefix := "prefix"
 	randomness := []byte("randomness")
@@ -4517,4 +4517,23 @@ func TestEsdt_createNewTokenIdentifierWithPrefix(t *testing.T) {
 	tokenID, err := esdtSC.createNewTokenIdentifier(caller, tokenName)
 	require.Nil(t, err)
 	require.Equal(t, []byte(fmt.Sprintf("%s-%s-%s", prefix, string(tokenName), suffix)), tokenID)
+
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr:  caller,
+			CallValue:   big.NewInt(0),
+			GasProvided: 100000,
+		},
+		RecipientAddr: []byte("addr"),
+		Function:      "issueNonFungible",
+	}
+	eei.gasRemaining = vmInput.GasProvided
+	vmInput.CallValue, _ = big.NewInt(0).SetString(args.ESDTSCConfig.BaseIssuingCost, 10)
+	vmInput.GasProvided = args.GasCost.MetaChainSystemSCsCost.ESDTIssue
+	vmInput.Arguments = [][]byte{caller, tokenName}
+
+	output := esdtSC.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+	//lastOutput := eei.output[len(eei.output)-1]
+	//assert.Equal(t, len(lastOutput), len(tokenName)+1+6)
 }

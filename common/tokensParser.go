@@ -33,6 +33,10 @@ func ExtractTokenIDAndNonceFromTokenStorageKey(tokenKey []byte) ([]byte, uint64)
 		return tokenKey, 0
 	}
 
+	if strings.Count(token, separatorChar) == 2 && string(token[len(token)-1]) != separatorChar {
+		token = token[indexOfFirstHyphen+1:]
+	}
+
 	tokenTicker := token[:indexOfFirstHyphen]
 	randomSequencePlusNonce := token[indexOfFirstHyphen+1:]
 
