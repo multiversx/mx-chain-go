@@ -1,7 +1,3 @@
-//go:build !race
-
-// TODO remove build condition above to allow -race -short, after Wasm VM fix
-
 package txsFee
 
 import (
@@ -17,6 +13,10 @@ import (
 )
 
 func TestRelayedScDeployShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	t.Run("before relayed fix", testRelayedScDeployShouldWork(integrationTests.UnreachableEpoch))
 	t.Run("after relayed fix", testRelayedScDeployShouldWork(0))
 }
@@ -66,6 +66,10 @@ func testRelayedScDeployShouldWork(relayedFixActivationEpoch uint32) func(t *tes
 }
 
 func TestRelayedScDeployInvalidCodeShouldConsumeGas(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	t.Run("before relayed fix", testRelayedScDeployInvalidCodeShouldConsumeGas(integrationTests.UnreachableEpoch))
 	t.Run("after relayed fix", testRelayedScDeployInvalidCodeShouldConsumeGas(0))
 }
@@ -116,6 +120,10 @@ func testRelayedScDeployInvalidCodeShouldConsumeGas(relayedFixActivationEpoch ui
 }
 
 func TestRelayedScDeployInsufficientGasLimitShouldConsumeGas(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	t.Run("before relayed fix", testRelayedScDeployInsufficientGasLimitShouldConsumeGas(integrationTests.UnreachableEpoch, big.NewInt(31930), big.NewInt(18070)))
 	t.Run("after relayed fix", testRelayedScDeployInsufficientGasLimitShouldConsumeGas(0, big.NewInt(31240), big.NewInt(18760)))
 }
@@ -163,6 +171,10 @@ func testRelayedScDeployInsufficientGasLimitShouldConsumeGas(relayedFixActivatio
 }
 
 func TestRelayedScDeployOutOfGasShouldConsumeGas(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	t.Run("before relayed fix", testRelayedScDeployOutOfGasShouldConsumeGas(integrationTests.UnreachableEpoch))
 	t.Run("after relayed fix", testRelayedScDeployOutOfGasShouldConsumeGas(0))
 }

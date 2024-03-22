@@ -1,7 +1,3 @@
-//go:build !race
-
-// TODO remove build condition above to allow -race -short, after Wasm VM fix
-
 package txsFee
 
 import (
@@ -17,6 +13,10 @@ import (
 )
 
 func TestRelayedESDTTransferShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	t.Run("before relayed move balance fix", testRelayedESDTTransferShouldWork(integrationTests.UnreachableEpoch))
 	t.Run("after relayed move balance fix", testRelayedESDTTransferShouldWork(0))
 }
@@ -71,6 +71,10 @@ func testRelayedESDTTransferShouldWork(relayedFixActivationEpoch uint32) func(t 
 }
 
 func TestRelayedESTTransferNotEnoughESTValueShouldConsumeGas(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	t.Run("before relayed move balance fix", testRelayedESTTransferNotEnoughESTValueShouldConsumeGas(integrationTests.UnreachableEpoch))
 	t.Run("after relayed move balance fix", testRelayedESTTransferNotEnoughESTValueShouldConsumeGas(0))
 }

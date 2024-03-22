@@ -121,6 +121,7 @@ type baseProcessor struct {
 
 	mutNonceOfFirstCommittedBlock sync.RWMutex
 	nonceOfFirstCommittedBlock    core.OptionalUint64
+	extraDelayRequestBlockInfo    time.Duration
 }
 
 type bootStorerDataArgs struct {
@@ -1685,7 +1686,7 @@ func (bp *baseProcessor) requestMiniBlocksIfNeeded(headerHandler data.HeaderHand
 		return
 	}
 
-	waitTime := common.ExtraDelayForRequestBlockInfo
+	waitTime := bp.extraDelayRequestBlockInfo
 	roundDifferences := bp.roundHandler.Index() - int64(headerHandler.GetRound())
 	if roundDifferences > 1 {
 		waitTime = 0
@@ -2122,8 +2123,15 @@ func (bp *baseProcessor) checkSentSignaturesAtCommitTime(header data.HeaderHandl
 		return err
 	}
 
+	consensusGroup := make([]string, 0, len(validatorsGroup))
 	for _, validator := range validatorsGroup {
-		bp.sentSignaturesTracker.ResetCountersForManagedBlockSigner(validator.PubKey())
+		consensusGroup = append(consensusGroup, string(validator.PubKey()))
+	}
+
+	signers := headerCheck.ComputeSignersPublicKeys(consensusGroup, header.GetPubKeysBitmap())
+
+	for _, signer := range signers {
+		bp.sentSignaturesTracker.ResetCountersForManagedBlockSigner([]byte(signer))
 	}
 
 	return nil

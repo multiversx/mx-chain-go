@@ -1,7 +1,3 @@
-//go:build !race
-
-// TODO remove build condition above to allow -race -short, after Wasm VM fix
-
 package txsFee
 
 import (
@@ -20,6 +16,10 @@ import (
 )
 
 func TestRelayedBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	t.Run("before relayed move balance fix", testRelayedBuildInFunctionChangeOwnerCallShouldWork(integrationTests.UnreachableEpoch))
 	t.Run("after relayed move balance fix", testRelayedBuildInFunctionChangeOwnerCallShouldWork(0))
 }
@@ -76,6 +76,10 @@ func testRelayedBuildInFunctionChangeOwnerCallShouldWork(relayedFixActivationEpo
 }
 
 func TestRelayedBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	t.Run("before relayed move balance fix", testRelayedBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(integrationTests.UnreachableEpoch))
 	t.Run("after relayed move balance fix", testRelayedBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(0))
 }
@@ -131,6 +135,10 @@ func testRelayedBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(relayed
 }
 
 func TestRelayedBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -175,6 +183,10 @@ func TestRelayedBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *test
 }
 
 func TestRelayedBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldConsumeGas(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	t.Run("nonce fix is disabled, should increase the sender's nonce", func(t *testing.T) {
 		testRelayedBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldConsumeGas(t,
 			config.EnableEpochs{
@@ -239,6 +251,10 @@ func testRelayedBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldConsumeG
 }
 
 func TestRelayedBuildInFunctionChangeOwnerCallOutOfGasShouldConsumeGas(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()

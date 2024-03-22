@@ -156,10 +156,10 @@ func createMockMetaArguments(
 		PendingMiniBlocksHandler:     &mock.PendingMiniBlocksHandlerStub{},
 		EpochStartDataCreator:        &mock.EpochStartDataCreatorStub{},
 		EpochEconomics:               &mock.EpochEconomicsStub{},
-		EpochRewardsCreator:          &mock.EpochRewardsCreatorStub{},
-		EpochValidatorInfoCreator:    &mock.EpochValidatorInfoCreatorStub{},
-		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
-		EpochSystemSCProcessor:       &mock.EpochStartSystemSCStub{},
+		EpochRewardsCreator:          &testscommon.RewardsCreatorStub{},
+		EpochValidatorInfoCreator:    &testscommon.EpochValidatorInfoCreatorStub{},
+		ValidatorStatisticsProcessor: &testscommon.ValidatorStatisticsProcessorStub{},
+		EpochSystemSCProcessor:       &testscommon.EpochStartSystemSCStub{},
 	}
 	return arguments
 }
@@ -992,6 +992,7 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	mdp := initDataPool([]byte("tx_hash"))
 	rootHash := []byte("rootHash")
 	hdr := createMetaBlockHeader()
+	hdr.PubKeysBitmap = []byte{0b11111111}
 	body := &block.Body{}
 	accounts := &stateMock.AccountsStub{
 		CommitCalled: func() (i []byte, e error) {
@@ -1207,7 +1208,7 @@ func TestMetaProcessor_RevertStateRevertPeerStateFailsShouldErr(t *testing.T) {
 			return nil
 		},
 	}
-	arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
+	arguments.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{
 		RevertPeerStateCalled: func(header data.MetaHeaderHandler) error {
 			return expectedErr
 		},
@@ -1236,7 +1237,7 @@ func TestMetaProcessor_RevertStateShouldWork(t *testing.T) {
 			return nil
 		},
 	}
-	arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
+	arguments.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{
 		RevertPeerStateCalled: func(header data.MetaHeaderHandler) error {
 			revertePeerStateWasCalled = true
 			return nil
@@ -3010,7 +3011,7 @@ func TestMetaProcessor_CreateAndProcessBlockCallsProcessAfterFirstEpoch(t *testi
 	dataComponents.DataPool = dPool
 	dataComponents.BlockChain = blkc
 	calledSaveNodesCoordinator := false
-	arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
+	arguments.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{
 		SaveNodesCoordinatorUpdatesCalled: func(epoch uint32) (bool, error) {
 			calledSaveNodesCoordinator = true
 			return true, nil
@@ -3018,7 +3019,7 @@ func TestMetaProcessor_CreateAndProcessBlockCallsProcessAfterFirstEpoch(t *testi
 	}
 
 	toggleCalled := false
-	arguments.EpochSystemSCProcessor = &mock.EpochStartSystemSCStub{
+	arguments.EpochSystemSCProcessor = &testscommon.EpochStartSystemSCStub{
 		ToggleUnStakeUnBondCalled: func(value bool) error {
 			toggleCalled = true
 			assert.Equal(t, value, true)
@@ -3154,7 +3155,7 @@ func TestMetaProcessor_CreateNewHeaderValsOK(t *testing.T) {
 func TestMetaProcessor_ProcessEpochStartMetaBlock(t *testing.T) {
 	t.Parallel()
 
-	header := &block.MetaBlock{
+	headerMeta := &block.MetaBlock{
 		Nonce:           1,
 		Round:           1,
 		PrevHash:        []byte("hash1"),
@@ -3173,19 +3174,18 @@ func TestMetaProcessor_ProcessEpochStartMetaBlock(t *testing.T) {
 		arguments := createMockMetaArguments(coreC, dataC, bootstrapC, statusC)
 
 		wasCalled := false
-		arguments.EpochRewardsCreator = &mock.EpochRewardsCreatorStub{
+		arguments.EpochRewardsCreator = &testscommon.RewardsCreatorStub{
 			VerifyRewardsMiniBlocksCalled: func(
-				metaBlock data.MetaHeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+				metaBlock data.MetaHeaderHandler, validatorsInfo state.ShardValidatorsInfoMapHandler, computedEconomics *block.Economics,
 			) error {
 				assert.True(t, wasCalled)
 				return nil
 			},
 		}
 
-		arguments.EpochSystemSCProcessor = &mock.EpochStartSystemSCStub{
-			ProcessSystemSmartContractCalled: func(validatorInfos map[uint32][]*state.ValidatorInfo, nonce uint64, epoch uint32) error {
-				assert.Equal(t, header.GetEpoch(), epoch)
-				assert.Equal(t, header.GetNonce(), nonce)
+		arguments.EpochSystemSCProcessor = &testscommon.EpochStartSystemSCStub{
+			ProcessSystemSmartContractCalled: func(validatorsInfo state.ShardValidatorsInfoMapHandler, header data.HeaderHandler) error {
+				assert.Equal(t, headerMeta, header)
 				wasCalled = true
 				return nil
 			},
@@ -3193,7 +3193,7 @@ func TestMetaProcessor_ProcessEpochStartMetaBlock(t *testing.T) {
 
 		mp, _ := blproc.NewMetaProcessor(arguments)
 
-		err := mp.ProcessEpochStartMetaBlock(header, &block.Body{})
+		err := mp.ProcessEpochStartMetaBlock(headerMeta, &block.Body{})
 		assert.Nil(t, err)
 	})
 
@@ -3210,23 +3210,21 @@ func TestMetaProcessor_ProcessEpochStartMetaBlock(t *testing.T) {
 			},
 		}
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-
-		arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{}
+		arguments.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{}
 
 		wasCalled := false
-		arguments.EpochRewardsCreator = &mock.EpochRewardsCreatorStub{
+		arguments.EpochRewardsCreator = &testscommon.RewardsCreatorStub{
 			VerifyRewardsMiniBlocksCalled: func(
-				metaBlock data.MetaHeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+				metaBlock data.MetaHeaderHandler, validatorsInfo state.ShardValidatorsInfoMapHandler, computedEconomics *block.Economics,
 			) error {
 				wasCalled = true
 				return nil
 			},
 		}
 
-		arguments.EpochSystemSCProcessor = &mock.EpochStartSystemSCStub{
-			ProcessSystemSmartContractCalled: func(validatorInfos map[uint32][]*state.ValidatorInfo, nonce uint64, epoch uint32) error {
-				assert.Equal(t, header.GetEpoch(), epoch)
-				assert.Equal(t, header.GetNonce(), nonce)
+		arguments.EpochSystemSCProcessor = &testscommon.EpochStartSystemSCStub{
+			ProcessSystemSmartContractCalled: func(validatorInfos state.ShardValidatorsInfoMapHandler, header data.HeaderHandler) error {
+				assert.Equal(t, headerMeta, header)
 				assert.True(t, wasCalled)
 				return nil
 			},
@@ -3234,7 +3232,7 @@ func TestMetaProcessor_ProcessEpochStartMetaBlock(t *testing.T) {
 
 		mp, _ := blproc.NewMetaProcessor(arguments)
 
-		err := mp.ProcessEpochStartMetaBlock(header, &block.Body{})
+		err := mp.ProcessEpochStartMetaBlock(headerMeta, &block.Body{})
 		assert.Nil(t, err)
 	})
 }
@@ -3323,7 +3321,7 @@ func TestMetaProcessor_CreateEpochStartBodyShouldFail(t *testing.T) {
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
 		expectedErr := errors.New("expected error")
-		arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
+		arguments.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{
 			RootHashCalled: func() ([]byte, error) {
 				return nil, expectedErr
 			},
@@ -3341,8 +3339,8 @@ func TestMetaProcessor_CreateEpochStartBodyShouldFail(t *testing.T) {
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
 		expectedErr := errors.New("expected error")
-		arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
-			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
+		arguments.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{
+			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (state.ShardValidatorsInfoMapHandler, error) {
 				return nil, expectedErr
 			},
 		}
@@ -3359,8 +3357,8 @@ func TestMetaProcessor_CreateEpochStartBodyShouldFail(t *testing.T) {
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
 		expectedErr := errors.New("expected error")
-		arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
-			ProcessRatingsEndOfEpochCalled: func(validatorsInfo map[uint32][]*state.ValidatorInfo, epoch uint32) error {
+		arguments.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{
+			ProcessRatingsEndOfEpochCalled: func(validatorsInfo state.ShardValidatorsInfoMapHandler, epoch uint32) error {
 				return expectedErr
 			},
 		}
@@ -3376,15 +3374,13 @@ func TestMetaProcessor_CreateEpochStartBodyShouldFail(t *testing.T) {
 func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 	t.Parallel()
 
-	expectedValidatorsInfo := map[uint32][]*state.ValidatorInfo{
-		0: {
-			&state.ValidatorInfo{
-				ShardId:         1,
-				RewardAddress:   []byte("rewardAddr1"),
-				AccumulatedFees: big.NewInt(10),
-			},
-		},
-	}
+	expectedValidatorsInfo := state.NewShardValidatorsInfoMap()
+	_ = expectedValidatorsInfo.Add(
+		&state.ValidatorInfo{
+			ShardId:         1,
+			RewardAddress:   []byte("rewardAddr1"),
+			AccumulatedFees: big.NewInt(10),
+		})
 
 	rewardMiniBlocks := block.MiniBlockSlice{
 		&block.MiniBlock{
@@ -3425,11 +3421,11 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 		}
 
 		expectedRootHash := []byte("root hash")
-		arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
+		arguments.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{
 			RootHashCalled: func() ([]byte, error) {
 				return expectedRootHash, nil
 			},
-			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
+			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (state.ShardValidatorsInfoMapHandler, error) {
 				assert.Equal(t, expectedRootHash, rootHash)
 
 				return expectedValidatorsInfo, nil
@@ -3437,32 +3433,31 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 		}
 
 		wasCalled := false
-		arguments.EpochSystemSCProcessor = &mock.EpochStartSystemSCStub{
-			ProcessSystemSmartContractCalled: func(validatorsInfo map[uint32][]*state.ValidatorInfo, nonce uint64, epoch uint32) error {
+		arguments.EpochSystemSCProcessor = &testscommon.EpochStartSystemSCStub{
+			ProcessSystemSmartContractCalled: func(validatorsInfo state.ShardValidatorsInfoMapHandler, header data.HeaderHandler) error {
 				wasCalled = true
-				assert.Equal(t, mb.GetNonce(), nonce)
-				assert.Equal(t, mb.GetEpoch(), epoch)
+				assert.Equal(t, mb, header)
 				return nil
 			},
 		}
 
 		expectedRewardsForProtocolSustain := big.NewInt(11)
-		arguments.EpochRewardsCreator = &mock.EpochRewardsCreatorStub{
+		arguments.EpochRewardsCreator = &testscommon.RewardsCreatorStub{
 			CreateRewardsMiniBlocksCalled: func(
-				metaBlock data.MetaHeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+				metaBlock data.MetaHeaderHandler, validatorsInfo state.ShardValidatorsInfoMapHandler, computedEconomics *block.Economics,
 			) (block.MiniBlockSlice, error) {
 				assert.Equal(t, expectedValidatorsInfo, validatorsInfo)
 				assert.Equal(t, mb, metaBlock)
 				assert.True(t, wasCalled)
 				return rewardMiniBlocks, nil
 			},
-			GetProtocolSustainCalled: func() *big.Int {
+			GetProtocolSustainabilityRewardsCalled: func() *big.Int {
 				return expectedRewardsForProtocolSustain
 			},
 		}
 
-		arguments.EpochValidatorInfoCreator = &mock.EpochValidatorInfoCreatorStub{
-			CreateValidatorInfoMiniBlocksCalled: func(validatorsInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error) {
+		arguments.EpochValidatorInfoCreator = &testscommon.EpochValidatorInfoCreatorStub{
+			CreateValidatorInfoMiniBlocksCalled: func(validatorsInfo state.ShardValidatorsInfoMapHandler) (block.MiniBlockSlice, error) {
 				assert.Equal(t, expectedValidatorsInfo, validatorsInfo)
 				return validatorInfoMiniBlocks, nil
 			},
@@ -3505,11 +3500,11 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 		}
 
 		expectedRootHash := []byte("root hash")
-		arguments.ValidatorStatisticsProcessor = &mock.ValidatorStatisticsProcessorStub{
+		arguments.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{
 			RootHashCalled: func() ([]byte, error) {
 				return expectedRootHash, nil
 			},
-			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
+			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (state.ShardValidatorsInfoMapHandler, error) {
 				assert.Equal(t, expectedRootHash, rootHash)
 				return expectedValidatorsInfo, nil
 			},
@@ -3517,32 +3512,31 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 
 		wasCalled := false
 		expectedRewardsForProtocolSustain := big.NewInt(11)
-		arguments.EpochRewardsCreator = &mock.EpochRewardsCreatorStub{
+		arguments.EpochRewardsCreator = &testscommon.RewardsCreatorStub{
 			CreateRewardsMiniBlocksCalled: func(
-				metaBlock data.MetaHeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+				metaBlock data.MetaHeaderHandler, validatorsInfo state.ShardValidatorsInfoMapHandler, computedEconomics *block.Economics,
 			) (block.MiniBlockSlice, error) {
 				wasCalled = true
 				assert.Equal(t, expectedValidatorsInfo, validatorsInfo)
 				assert.Equal(t, mb, metaBlock)
 				return rewardMiniBlocks, nil
 			},
-			GetProtocolSustainCalled: func() *big.Int {
+			GetProtocolSustainabilityRewardsCalled: func() *big.Int {
 				return expectedRewardsForProtocolSustain
 			},
 		}
 
-		arguments.EpochValidatorInfoCreator = &mock.EpochValidatorInfoCreatorStub{
-			CreateValidatorInfoMiniBlocksCalled: func(validatorsInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error) {
+		arguments.EpochValidatorInfoCreator = &testscommon.EpochValidatorInfoCreatorStub{
+			CreateValidatorInfoMiniBlocksCalled: func(validatorsInfo state.ShardValidatorsInfoMapHandler) (block.MiniBlockSlice, error) {
 				assert.Equal(t, expectedValidatorsInfo, validatorsInfo)
 				return validatorInfoMiniBlocks, nil
 			},
 		}
 
-		arguments.EpochSystemSCProcessor = &mock.EpochStartSystemSCStub{
-			ProcessSystemSmartContractCalled: func(validatorsInfo map[uint32][]*state.ValidatorInfo, nonce uint64, epoch uint32) error {
+		arguments.EpochSystemSCProcessor = &testscommon.EpochStartSystemSCStub{
+			ProcessSystemSmartContractCalled: func(validatorsInfo state.ShardValidatorsInfoMapHandler, header data.HeaderHandler) error {
 				assert.True(t, wasCalled)
-				assert.Equal(t, mb.GetNonce(), nonce)
-				assert.Equal(t, mb.GetEpoch(), epoch)
+				assert.Equal(t, mb, header)
 				return nil
 			},
 		}
@@ -3617,8 +3611,7 @@ func TestMetaProcessor_getAllMarshalledTxs(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockMetaArguments(createMockComponentHolders())
-
-	arguments.EpochRewardsCreator = &mock.EpochRewardsCreatorStub{
+	arguments.EpochRewardsCreator = &testscommon.RewardsCreatorStub{
 		CreateMarshalledDataCalled: func(body *block.Body) map[string][][]byte {
 			marshalledData := make(map[string][][]byte)
 			for _, miniBlock := range body.MiniBlocks {
@@ -3631,7 +3624,7 @@ func TestMetaProcessor_getAllMarshalledTxs(t *testing.T) {
 		},
 	}
 
-	arguments.EpochValidatorInfoCreator = &mock.EpochValidatorInfoCreatorStub{
+	arguments.EpochValidatorInfoCreator = &testscommon.EpochValidatorInfoCreatorStub{
 		CreateMarshalledDataCalled: func(body *block.Body) map[string][][]byte {
 			marshalledData := make(map[string][][]byte)
 			for _, miniBlock := range body.MiniBlocks {

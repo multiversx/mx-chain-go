@@ -1016,6 +1016,11 @@ func (n *Node) ValidatorStatisticsApi() (map[string]*validator.ValidatorStatisti
 	return n.processComponents.ValidatorsProvider().GetLatestValidators(), nil
 }
 
+// AuctionListApi will return the auction list config along with qualified nodes
+func (n *Node) AuctionListApi() ([]*common.AuctionListValidatorAPIResponse, error) {
+	return n.processComponents.ValidatorsProvider().GetAuctionList()
+}
+
 // DirectTrigger will start the hardfork trigger
 func (n *Node) DirectTrigger(epoch uint32, withEarlyEndOfEpoch bool) error {
 	return n.processComponents.HardforkTrigger().Trigger(epoch, withEarlyEndOfEpoch)
