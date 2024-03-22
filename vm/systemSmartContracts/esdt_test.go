@@ -25,6 +25,7 @@ import (
 )
 
 func createMockArgumentsForESDT() ArgsNewESDTSmartContract {
+	tknIDCreator, _ := NewTokenIDCreator(&mock.SystemEIStub{}, &hashingMocks.HasherMock{})
 	return ArgsNewESDTSmartContract{
 		Eei:     &mock.SystemEIStub{},
 		GasCost: vm.GasCost{MetaChainSystemSCsCost: vm.MetaChainSystemSCsCost{ESDTIssue: 10}},
@@ -45,6 +46,7 @@ func createMockArgumentsForESDT() ArgsNewESDTSmartContract {
 			common.ESDTTransferRoleFlag,
 			common.ESDTMetadataContinuousCleanupFlag,
 		),
+		TokenIDCreator: tknIDCreator,
 	}
 }
 

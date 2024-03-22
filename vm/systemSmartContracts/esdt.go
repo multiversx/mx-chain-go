@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/vm"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
@@ -71,6 +72,7 @@ type ArgsNewESDTSmartContract struct {
 	EndOfEpochSCAddress    []byte
 	AddressPubKeyConverter core.PubkeyConverter
 	EnableEpochsHandler    common.EnableEpochsHandler
+	TokenIDCreator         TokenIdentifierCreatorHandler
 }
 
 // NewESDTSmartContract creates the esdt smart contract, which controls the issuing of tokens
@@ -86,6 +88,9 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 	}
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, vm.ErrNilEnableEpochsHandler
+	}
+	if check.IfNil(args.TokenIDCreator) {
+		return nil, errorsMx.ErrNilTokenIDCreator
 	}
 	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
 		common.ESDTMetadataContinuousCleanupFlag,
@@ -117,8 +122,6 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 		return nil, vm.ErrInvalidBaseIssuingCost
 	}
 
-	tokenIDCreator, _ := NewTokenIDCreator(args.Eei, args.Hasher)
-
 	return &esdt{
 		eei:             args.Eei,
 		gasCost:         args.GasCost,
@@ -132,7 +135,7 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 		endOfEpochSCAddress:    args.EndOfEpochSCAddress,
 		addressPubKeyConverter: args.AddressPubKeyConverter,
 		enableEpochsHandler:    args.EnableEpochsHandler,
-		tokenIDCreator:         tokenIDCreator,
+		tokenIDCreator:         args.TokenIDCreator,
 	}, nil
 }
 
