@@ -21,4 +21,5 @@ type ChainSimulator interface {
 	GenerateAndMintWalletAddress(targetShardID uint32, value *big.Int) (dtos.WalletAddress, error)
 	GetInitialWalletKeys() *dtos.InitialWalletKeys
 	GetAccount(address dtos.WalletAddress) (api.AccountResponse, error)
+	ForceResetValidatorStatisticsCache() error
 }

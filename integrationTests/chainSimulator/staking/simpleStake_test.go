@@ -212,7 +212,7 @@ func TestChainSimulator_StakingV4Step2APICalls(t *testing.T) {
 	require.Nil(t, err)
 
 	// In step 1, only the previously staked node should be in auction list
-	err = metachainNode.GetProcessComponents().ValidatorsProvider().ForceUpdate()
+	err = cs.ForceResetValidatorStatisticsCache()
 	require.Nil(t, err)
 	auctionList, err := metachainNode.GetProcessComponents().ValidatorsProvider().GetAuctionList()
 	require.Nil(t, err)
@@ -229,7 +229,7 @@ func TestChainSimulator_StakingV4Step2APICalls(t *testing.T) {
 	require.Nil(t, err)
 
 	// after the re-stake process, the node should be in auction list
-	err = metachainNode.GetProcessComponents().ValidatorsProvider().ForceUpdate()
+	err = cs.ForceResetValidatorStatisticsCache()
 	require.Nil(t, err)
 	auctionList, err = metachainNode.GetProcessComponents().ValidatorsProvider().GetAuctionList()
 	require.Nil(t, err)

@@ -248,7 +248,7 @@ func TestChainSimulator_FromQueueToAuctionList(t *testing.T) {
 }
 
 func checkValidatorStatus(t *testing.T, cs chainSimulatorIntegrationTests.ChainSimulator, blsKey string, expectedStatus string) {
-	err := cs.GetNodeHandler(core.MetachainShardId).GetProcessComponents().ValidatorsProvider().ForceUpdate()
+	err := cs.ForceResetValidatorStatisticsCache()
 	require.Nil(t, err)
 
 	validatorsStatistics, err := cs.GetNodeHandler(core.MetachainShardId).GetFacadeHandler().ValidatorStatisticsApi()
