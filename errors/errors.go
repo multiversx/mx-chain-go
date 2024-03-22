@@ -775,3 +775,6 @@ var ErrEmptyBaseToken = errors.New("empty base token")
 
 // ErrNilESDTAsBalanceHandler signals that a nil esdt as balance handler was provided
 var ErrNilESDTAsBalanceHandler = errors.New("nil esdt as balance handler provided")
+
+// ErrNilTokenIDCreator signals that a nil token id creator has been provided
+var ErrNilTokenIDCreator = errors.New("nil token id creator has been provided")

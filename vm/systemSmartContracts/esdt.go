@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/vm"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
@@ -57,6 +58,7 @@ type esdt struct {
 	mutExecution           sync.RWMutex
 	addressPubKeyConverter core.PubkeyConverter
 	enableEpochsHandler    common.EnableEpochsHandler
+	tokenIDCreator         TokenIdentifierCreatorHandler
 }
 
 // ArgsNewESDTSmartContract defines the arguments needed for the esdt contract
@@ -70,6 +72,7 @@ type ArgsNewESDTSmartContract struct {
 	EndOfEpochSCAddress    []byte
 	AddressPubKeyConverter core.PubkeyConverter
 	EnableEpochsHandler    common.EnableEpochsHandler
+	TokenIDCreator         TokenIdentifierCreatorHandler
 }
 
 // NewESDTSmartContract creates the esdt smart contract, which controls the issuing of tokens
@@ -85,6 +88,9 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 	}
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, vm.ErrNilEnableEpochsHandler
+	}
+	if check.IfNil(args.TokenIDCreator) {
+		return nil, errorsMx.ErrNilTokenIDCreator
 	}
 	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
 		common.ESDTMetadataContinuousCleanupFlag,
@@ -129,6 +135,7 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 		endOfEpochSCAddress:    args.EndOfEpochSCAddress,
 		addressPubKeyConverter: args.AddressPubKeyConverter,
 		enableEpochsHandler:    args.EnableEpochsHandler,
+		tokenIDCreator:         args.TokenIDCreator,
 	}, nil
 }
 
@@ -626,7 +633,7 @@ func (e *esdt) createNewToken(
 		return nil, nil, vm.ErrTickerNameNotValid
 	}
 
-	tokenIdentifier, err := e.createNewTokenIdentifier(owner, tickerName)
+	tokenIdentifier, err := e.tokenIDCreator.CreateNewTokenIdentifier(owner, tickerName)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -684,28 +691,6 @@ func isTokenNameHumanReadable(tokenName []byte) bool {
 		}
 	}
 	return true
-}
-
-func (e *esdt) createNewTokenIdentifier(caller []byte, ticker []byte) ([]byte, error) {
-	newRandomBase := append(caller, e.eei.BlockChainHook().CurrentRandomSeed()...)
-	newRandom := e.hasher.Compute(string(newRandomBase))
-	newRandomForTicker := newRandom[:tickerRandomSequenceLength]
-
-	tickerPrefix := append(ticker, []byte(tickerSeparator)...)
-	newRandomAsBigInt := big.NewInt(0).SetBytes(newRandomForTicker)
-
-	one := big.NewInt(1)
-	for i := 0; i < numOfRetriesForIdentifier; i++ {
-		encoded := fmt.Sprintf("%06x", newRandomAsBigInt)
-		newIdentifier := append(tickerPrefix, encoded...)
-		buff := e.eei.GetStorage(newIdentifier)
-		if len(buff) == 0 {
-			return newIdentifier, nil
-		}
-		newRandomAsBigInt.Add(newRandomAsBigInt, one)
-	}
-
-	return nil, vm.ErrCouldNotCreateNewTokenIdentifier
 }
 
 func (e *esdt) upgradeProperties(tokenIdentifier []byte, token *ESDTDataV2, args [][]byte, isCreate bool, callerAddr []byte) error {
