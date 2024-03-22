@@ -4484,3 +4484,37 @@ func TestEsdt_SetNFTCreateRoleAfterStopNFTCreateShouldNotWork(t *testing.T) {
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
 }
+
+func TestEsdt_createNewTokenIdentifierWithPrefix(t *testing.T) {
+	t.Parallel()
+
+	caller := []byte("caller")
+	tokenName := []byte("token")
+
+	prefix := "prefix"
+	randomness := []byte("randomness")
+	randomTicker := []byte("75f")
+	randomSuffixBigInt := big.NewInt(0).SetBytes(randomTicker)
+	suffix := fmt.Sprintf("%06x", randomSuffixBigInt)
+
+	args := createMockArgumentsForESDT()
+	args.ESDTPrefix = prefix
+	args.Hasher = &testscommon.HasherStub{
+		ComputeCalled: func(s string) []byte {
+			require.Equal(t, string(append(caller, randomness...)), s)
+			return randomTicker
+		},
+	}
+	eei := createDefaultEei()
+	eei.blockChainHook = &testscommon.BlockChainHookStub{
+		CurrentRandomSeedCalled: func() []byte {
+			return randomness
+		},
+	}
+	args.Eei = eei
+
+	esdtSC, _ := NewESDTSmartContract(args)
+	tokenID, err := esdtSC.createNewTokenIdentifier(caller, tokenName)
+	require.Nil(t, err)
+	require.Equal(t, []byte(fmt.Sprintf("%s-%s-%s", prefix, string(tokenName), suffix)), tokenID)
+}
