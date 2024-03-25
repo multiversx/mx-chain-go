@@ -12,7 +12,6 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
-	mock2 "github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/process"
 	blproc "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -159,7 +158,7 @@ func createMockMetaArguments(
 			BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
 			ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
 			SentSignaturesTracker:        &testscommon.SentSignatureTrackerStub{},
-			ValidatorStatisticsProcessor: &mock2.ValidatorStatisticsProcessorStub{},
+			ValidatorStatisticsProcessor: &testscommon.ValidatorStatisticsProcessorStub{},
 			OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolMock{},
 			RunTypeComponents:            components.GetRunTypeComponents(),
 			DataCodec:                    &sovereign.DataCodecMock{},
@@ -1222,7 +1221,7 @@ func TestMetaProcessor_RevertStateRevertPeerStateFailsShouldErr(t *testing.T) {
 		},
 	}
 	arguments.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{
-		RevertPeerStateCalled: func(header data.MetaHeaderHandler) error {
+		RevertPeerStateCalled: func(header data.CommonHeaderHandler) error {
 			return expectedErr
 		},
 	}
@@ -1251,11 +1250,12 @@ func TestMetaProcessor_RevertStateShouldWork(t *testing.T) {
 		},
 	}
 	arguments.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{
-		RevertPeerStateCalled: func(header data.MetaHeaderHandler) error {
-			revertePeerStateWasCalled = true
+		RevertPeerStateCalled: func(header data.CommonHeaderHandler) error {
+			recreatePeerTrieWasCalled = true
 			return nil
 		},
 	}
+
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	hdr := block.MetaBlock{Nonce: 37}

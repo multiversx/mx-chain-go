@@ -8,6 +8,7 @@ import (
 // ValidatorStatisticsProcessorStub -
 type ValidatorStatisticsProcessorStub struct {
 	UpdatePeerStateCalled                    func(header data.CommonHeaderHandler) ([]byte, error)
+	RevertPeerStateCalled                    func(header data.CommonHeaderHandler) error
 	GetPeerAccountCalled                     func(address []byte) (state.PeerAccountHandler, error)
 	RootHashCalled                           func() ([]byte, error)
 	LastFinalizedRootHashCalled              func() []byte
@@ -63,7 +64,7 @@ func (vsp *ValidatorStatisticsProcessorStub) GetValidatorInfoForRootHash(rootHas
 }
 
 // UpdatePeerState -
-func (vsp *ValidatorStatisticsProcessorStub) UpdatePeerState(header data.MetaHeaderHandler, _ map[string]data.HeaderHandler) ([]byte, error) {
+func (vsp *ValidatorStatisticsProcessorStub) UpdatePeerState(header data.CommonHeaderHandler, _ map[string]data.CommonHeaderHandler) ([]byte, error) {
 	if vsp.UpdatePeerStateCalled != nil {
 		return vsp.UpdatePeerStateCalled(header)
 	}
@@ -79,7 +80,7 @@ func (vsp *ValidatorStatisticsProcessorStub) ProcessRatingsEndOfEpoch(validatorI
 }
 
 // RevertPeerState -
-func (vsp *ValidatorStatisticsProcessorStub) RevertPeerState(header data.MetaHeaderHandler) error {
+func (vsp *ValidatorStatisticsProcessorStub) RevertPeerState(header data.CommonHeaderHandler) error {
 	if vsp.RevertPeerStateCalled != nil {
 		return vsp.RevertPeerStateCalled(header)
 	}
