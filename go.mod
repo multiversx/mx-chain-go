@@ -15,13 +15,13 @@ require (
 	github.com/klauspost/cpuid/v2 v2.2.5
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/multiversx/mx-chain-communication-go v1.0.13-0.20240126121117-627adccf10ad
-	github.com/multiversx/mx-chain-core-go v1.2.19-0.20240222081523-011c96ab2548
+	github.com/multiversx/mx-chain-core-go v1.2.19-0.20240325121756-24fb7f0e0e6b
 	github.com/multiversx/mx-chain-crypto-go v1.2.10-0.20231206065052-38843c1f1479
 	github.com/multiversx/mx-chain-es-indexer-go v1.4.19-0.20240129150813-a772c480d33a
 	github.com/multiversx/mx-chain-logger-go v1.0.14-0.20240129144507-d00e967c890c
 	github.com/multiversx/mx-chain-scenario-go v1.4.3-0.20240212160120-cc32d1580157
 	github.com/multiversx/mx-chain-storage-go v1.0.15-0.20240129144933-b1c0d642d7f8
-	github.com/multiversx/mx-chain-vm-common-go v1.5.12-0.20240305123516-2231c71162a2
+	github.com/multiversx/mx-chain-vm-common-go v1.5.12-0.20240325122237-d1278526c5ac
 	github.com/multiversx/mx-chain-vm-go v1.5.28-0.20240307121727-b8d371971d9a
 	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.66-0.20240308085208-3b5a4ab4dd34
 	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.67-0.20240308082903-132f9002736b
@@ -32,7 +32,7 @@ require (
 	github.com/shirou/gopsutil v3.21.11+incompatible
 	github.com/stretchr/testify v1.8.4
 	github.com/urfave/cli v1.22.10
-	golang.org/x/crypto v0.10.0
+	golang.org/x/crypto v0.14.0
 	gopkg.in/go-playground/validator.v8 v8.18.2
 )
 
@@ -74,7 +74,7 @@ require (
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/gopacket v1.1.19 // indirect
 	github.com/google/pprof v0.0.0-20230602150820-91b7bce49751 // indirect
-	github.com/google/uuid v1.3.0 // indirect
+	github.com/google/uuid v1.3.1 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
@@ -175,13 +175,15 @@ require (
 	golang.org/x/arch v0.3.0 // indirect
 	golang.org/x/exp v0.0.0-20230321023759-10a507213a29 // indirect
 	golang.org/x/mod v0.10.0 // indirect
-	golang.org/x/net v0.11.0 // indirect
-	golang.org/x/sync v0.2.0 // indirect
-	golang.org/x/sys v0.10.0 // indirect
-	golang.org/x/text v0.10.0 // indirect
+	golang.org/x/net v0.16.0 // indirect
+	golang.org/x/sync v0.4.0 // indirect
+	golang.org/x/sys v0.13.0 // indirect
+	golang.org/x/text v0.13.0 // indirect
 	golang.org/x/tools v0.9.1 // indirect
 	gonum.org/v1/gonum v0.11.0 // indirect
-	google.golang.org/protobuf v1.30.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20231002182017-d307bd883b97 // indirect
+	google.golang.org/grpc v1.60.1 // indirect
+	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.2.1 // indirect
