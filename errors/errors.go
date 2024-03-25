@@ -773,6 +773,12 @@ var ErrNilSCResultsPreProcessorCreator = errors.New("nil sc results pre processo
 // ErrNilFunction signals that a nil function has been provided
 var ErrNilFunction = errors.New("nil function")
 
+// ErrEmptyBaseToken signals that an empty base token has been provided
+var ErrEmptyBaseToken = errors.New("empty base token")
+
+// ErrNilESDTAsBalanceHandler signals that a nil esdt as balance handler was provided
+var ErrNilESDTAsBalanceHandler = errors.New("nil esdt as balance handler provided")
+
 // ErrNilSerializer signals that a nil codec serializer has been provided
 var ErrNilSerializer = errors.New("nil codec serializer")
 

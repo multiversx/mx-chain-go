@@ -287,16 +287,16 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	log.Debug("creating healthService")
 	healthService := nr.createHealthService(flagsConfig)
 
-	log.Debug("creating runType components")
-	managedRunTypeComponents, err := nr.CreateManagedRunTypeComponents()
-	if err != nil {
-		return true, err
-	}
-
 	log.Debug("creating core components")
 	managedCoreComponents, err := nr.CreateManagedCoreComponents(
 		chanStopNodeProcess,
 	)
+	if err != nil {
+		return true, err
+	}
+
+	log.Debug("creating runType components")
+	managedRunTypeComponents, err := nr.CreateManagedRunTypeComponents(managedCoreComponents)
 	if err != nil {
 		return true, err
 	}
@@ -344,6 +344,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedCoreComponents,
 		managedDataComponents,
 		managedStatusCoreComponents,
+		managedRunTypeComponents,
 	)
 	if err != nil {
 		return true, err
@@ -1378,6 +1379,7 @@ func (nr *nodeRunner) CreateManagedStateComponents(
 	coreComponents mainFactory.CoreComponentsHolder,
 	dataComponents mainFactory.DataComponentsHandler,
 	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
+	runTypeComponents mainFactory.RunTypeComponentsHolder,
 ) (mainFactory.StateComponentsHandler, error) {
 	stateArgs := stateComp.StateComponentsFactoryArgs{
 		Config:                   *nr.configs.GeneralConfig,
@@ -1387,6 +1389,7 @@ func (nr *nodeRunner) CreateManagedStateComponents(
 		ProcessingMode:           common.GetNodeProcessingMode(nr.configs.ImportDbConfig),
 		ShouldSerializeSnapshots: nr.configs.FlagsConfig.SerializeSnapshots,
 		ChainHandler:             dataComponents.Blockchain(),
+		AccountsCreator:          runTypeComponents.AccountsCreator(),
 	}
 
 	stateComponentsFactory, err := stateComp.NewStateComponentsFactory(stateArgs)
@@ -1599,8 +1602,8 @@ func (nr *nodeRunner) CreateManagedCryptoComponents(
 }
 
 // CreateManagedRunTypeComponents creates the managed run type components
-func (nr *nodeRunner) CreateManagedRunTypeComponents() (mainFactory.RunTypeComponentsHandler, error) {
-	runTypeComponentsFactory, err := runType.NewRunTypeComponentsFactory()
+func (nr *nodeRunner) CreateManagedRunTypeComponents(coreComponents mainFactory.CoreComponentsHandler) (mainFactory.RunTypeComponentsHandler, error) {
+	runTypeComponentsFactory, err := runType.NewRunTypeComponentsFactory(coreComponents)
 	if err != nil {
 		return nil, fmt.Errorf("newRunTypeComponentsFactory failed: %w", err)
 	}

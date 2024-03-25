@@ -23,7 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks/counters"
-	factoryState "github.com/multiversx/mx-chain-go/state/factory"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/statusHandler"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -117,6 +117,7 @@ func (gbc *genesisBlockCreator) createHardForkImportHandler() error {
 		TrieStorageManagers: gbc.arg.TrieStorageManagers,
 		AddressConverter:    gbc.arg.Core.AddressPubKeyConverter(),
 		EnableEpochsHandler: gbc.arg.Core.EnableEpochsHandler(),
+		AccountCreator:      gbc.arg.RunTypeComponents.AccountsCreator(),
 	}
 	importHandler, err := hardfork.NewStateImport(argsHardForkImport)
 	if err != nil {
@@ -206,6 +207,9 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 	}
 	if check.IfNil(arg.RunTypeComponents.TransactionCoordinatorCreator()) {
 		return errors.ErrNilTransactionCoordinatorCreator
+	}
+	if check.IfNil(arg.RunTypeComponents.AccountsCreator()) {
+		return state.ErrNilAccountFactory
 	}
 	if arg.TrieStorageManagers == nil {
 		return genesis.ErrNilTrieStorageManager
@@ -517,21 +521,10 @@ func (gbc *genesisBlockCreator) getNewArgForShard(shardID uint32) (ArgsGenesisBl
 		return newArgument, nil
 	}
 	newArgument := gbc.arg // copy the arguments
-
-	argsAccCreator := factoryState.ArgsAccountCreator{
-		Hasher:              newArgument.Core.Hasher(),
-		Marshaller:          newArgument.Core.InternalMarshalizer(),
-		EnableEpochsHandler: newArgument.Core.EnableEpochsHandler(),
-	}
-	accCreator, err := factoryState.NewAccountCreator(argsAccCreator)
-	if err != nil {
-		return ArgsGenesisBlockCreator{}, err
-	}
-
 	newArgument.Accounts, err = createAccountAdapter(
 		newArgument.Core.InternalMarshalizer(),
 		newArgument.Core.Hasher(),
-		accCreator,
+		gbc.arg.RunTypeComponents.AccountsCreator(),
 		gbc.arg.TrieStorageManagers[dataRetriever.UserAccountsUnit.String()],
 		gbc.arg.Core.AddressPubKeyConverter(),
 		newArgument.Core.EnableEpochsHandler(),

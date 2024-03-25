@@ -56,7 +56,11 @@ func (fdm *ForkDetectorStub) GetHighestFinalBlockHash() []byte {
 
 // ProbableHighestNonce -
 func (fdm *ForkDetectorStub) ProbableHighestNonce() uint64 {
-	return fdm.ProbableHighestNonceCalled()
+	if fdm.ProbableHighestNonceCalled != nil {
+		return fdm.ProbableHighestNonceCalled()
+	}
+
+	return 0
 }
 
 // SetRollBackNonce -

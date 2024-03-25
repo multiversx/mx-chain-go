@@ -590,6 +590,7 @@ type RunTypeComponentsHolder interface {
 	ConsensusModel() consensus.ConsensusModel
 	VmContainerMetaFactoryCreator() factoryVm.VmContainerCreator
 	VmContainerShardFactoryCreator() factoryVm.VmContainerCreator
+	AccountsCreator() state.AccountFactory
 	Create() error
 	Close() error
 	CheckSubcomponents() error

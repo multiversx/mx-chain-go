@@ -30,6 +30,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext"
 	debugFactory "github.com/multiversx/mx-chain-go/debug/factory"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -38,7 +39,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -125,6 +125,7 @@ type baseProcessor struct {
 	getExtraMissingNoncesToRequestFunc   func(prevHdr data.HeaderHandler, lastNotarizedHdrNonce uint64) []uint64
 
 	crossNotarizer crossNotarizer
+	accountCreator state.AccountFactory
 }
 
 type bootStorerDataArgs struct {
@@ -580,6 +581,12 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.ManagedPeersHolder) {
 		return process.ErrNilManagedPeersHolder
+	}
+	if check.IfNil(arguments.RunTypeComponents) {
+		return errors.ErrNilRunTypeComponents
+	}
+	if check.IfNil(arguments.RunTypeComponents.AccountsCreator()) {
+		return state.ErrNilAccountFactory
 	}
 
 	return nil
@@ -1890,19 +1897,8 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 	totalSizeAccounts := 0
 	totalSizeAccountsDataTries := 0
 	totalSizeCodeLeaves := 0
-
-	argsAccCreator := factory.ArgsAccountCreator{
-		Hasher:              bp.hasher,
-		Marshaller:          bp.marshalizer,
-		EnableEpochsHandler: bp.enableEpochsHandler,
-	}
-	accountCreator, err := factory.NewAccountCreator(argsAccCreator)
-	if err != nil {
-		return err
-	}
-
 	for leaf := range iteratorChannels.LeavesChan {
-		userAccount, errUnmarshal := bp.unmarshalUserAccount(accountCreator, leaf.Key(), leaf.Value())
+		userAccount, errUnmarshal := bp.unmarshalUserAccount(bp.accountCreator, leaf.Key(), leaf.Value())
 		if errUnmarshal != nil {
 			numCodeLeaves++
 			totalSizeCodeLeaves += len(leaf.Value())
