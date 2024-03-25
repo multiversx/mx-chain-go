@@ -296,7 +296,8 @@ func (host *vmContext) ProcessBuiltInFunction(
 ) error {
 	vmInput := host.createVMInputIfIsIntraShardBuiltInCall(destination, sender, value, input, gasLimit)
 	if vmInput == nil {
-		return host.Transfer(destination, sender, value, input, gasLimit)
+		host.Transfer(destination, sender, value, input, gasLimit)
+		return nil
 	}
 
 	vmOutput, err := host.blockChainHook.ProcessBuiltInFunction(vmInput)
@@ -313,7 +314,8 @@ func (host *vmContext) ProcessBuiltInFunction(
 	}
 
 	// add the SCR for the builtin function
-	return host.Transfer(destination, sender, value, input, gasLimit)
+	host.Transfer(destination, sender, value, input, gasLimit)
+	return nil
 }
 
 func (host *vmContext) createVMInputIfIsIntraShardBuiltInCall(destination []byte,
@@ -666,42 +668,6 @@ func (host *vmContext) GetReturnMessage() string {
 // AddLogEntry will add a log entry
 func (host *vmContext) AddLogEntry(entry *vmcommon.LogEntry) {
 	host.logs = append(host.logs, entry)
-}
-
-// ProcessBuiltInFunction will process the given built in function and will merge the generated output accounts and logs
-func (host *vmContext) ProcessBuiltInFunction(
-	sender, destination []byte,
-	function string,
-	arguments [][]byte,
-) (*vmcommon.VMOutput, error) {
-	vmInput := createDirectCallInput(destination, sender, big.NewInt(0), function, arguments)
-	vmInput.GasProvided = host.GasLeft()
-	vmOutput, err := host.blockChainHook.ProcessBuiltInFunction(vmInput)
-	if err != nil {
-		return nil, err
-	}
-	if vmOutput.ReturnCode != vmcommon.Ok {
-		return nil, errors.New(vmOutput.ReturnMessage)
-	}
-
-	for address, outAcc := range vmOutput.OutputAccounts {
-		if len(outAcc.OutputTransfers) > 0 {
-			leftAccount, exist := host.outputAccounts[address]
-			if !exist {
-				leftAccount = &vmcommon.OutputAccount{
-					Address: []byte(address),
-				}
-				host.outputAccounts[address] = leftAccount
-			}
-			leftAccount.OutputTransfers = append(leftAccount.OutputTransfers, outAcc.OutputTransfers...)
-		}
-	}
-
-	for _, logEntry := range vmOutput.Logs {
-		host.AddLogEntry(logEntry)
-	}
-
-	return vmOutput, nil
 }
 
 // BlockChainHook returns the blockchain hook
