@@ -4,10 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
-	sovereignCore "github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
@@ -21,6 +17,11 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/sovereign"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	sovereignCore "github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/stretchr/testify/require"
 )
 
@@ -85,6 +86,7 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
 			OutgoingOperationsFormatter:  &sovereign.OutgoingOperationsFormatterMock{},
 			OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolMock{},
+			OperationsHasher:             &mock.HasherStub{},
 		})
 
 		require.Nil(t, scbp)
@@ -101,6 +103,7 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 			ValidatorStatisticsProcessor: nil,
 			OutgoingOperationsFormatter:  &sovereign.OutgoingOperationsFormatterMock{},
 			OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolMock{},
+			OperationsHasher:             &mock.HasherStub{},
 		})
 
 		require.Nil(t, scbp)
@@ -117,6 +120,7 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
 			OutgoingOperationsFormatter:  nil,
 			OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolMock{},
+			OperationsHasher:             &mock.HasherStub{},
 		})
 
 		require.Nil(t, scbp)
@@ -133,10 +137,28 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
 			OutgoingOperationsFormatter:  &sovereign.OutgoingOperationsFormatterMock{},
 			OutGoingOperationsPool:       nil,
+			OperationsHasher:             &mock.HasherStub{},
 		})
 
 		require.Nil(t, scbp)
 		require.Equal(t, errors.ErrNilOutGoingOperationsPool, err)
+	})
+
+	t.Run("should error when operations hasher is nil", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		sp, _ := blproc.NewShardProcessor(arguments)
+		scbp, err := blproc.NewSovereignChainBlockProcessor(blproc.ArgsSovereignChainBlockProcessor{
+			ShardProcessor:               sp,
+			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
+			OutgoingOperationsFormatter:  &sovereign.OutgoingOperationsFormatterMock{},
+			OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolMock{},
+			OperationsHasher:             nil,
+		})
+
+		require.Nil(t, scbp)
+		require.Equal(t, errors.ErrNilOperationsHasher, err)
 	})
 
 	t.Run("should error when type assertion to extendedShardHeaderTrackHandler fails", func(t *testing.T) {
@@ -149,6 +171,7 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
 			OutgoingOperationsFormatter:  &sovereign.OutgoingOperationsFormatterMock{},
 			OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolMock{},
+			OperationsHasher:             &mock.HasherStub{},
 		})
 
 		require.Nil(t, scbp)
@@ -169,6 +192,7 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
 			OutgoingOperationsFormatter:  &sovereign.OutgoingOperationsFormatterMock{},
 			OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolMock{},
+			OperationsHasher:             &mock.HasherStub{},
 		})
 
 		require.Nil(t, scbp)
@@ -185,6 +209,7 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
 			OutgoingOperationsFormatter:  &sovereign.OutgoingOperationsFormatterMock{},
 			OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolMock{},
+			OperationsHasher:             &mock.HasherStub{},
 		})
 
 		require.NotNil(t, scbp)
@@ -208,15 +233,15 @@ func TestSovereignChainBlockProcessor_createAndSetOutGoingMiniBlock(t *testing.T
 	bridgeOp1 := []byte("bridgeOp@123@rcv1@token1@val1")
 	bridgeOp2 := []byte("bridgeOp@124@rcv2@token2@val2")
 
-	hasher := arguments.CoreComponents.Hasher()
-	bridgeOp1Hash := hasher.Compute(string(bridgeOp1))
-	bridgeOp2Hash := hasher.Compute(string(bridgeOp2))
-	bridgeOpsHash := hasher.Compute(string(append(bridgeOp1Hash, bridgeOp2Hash...)))
+	outgoingOpsHasher := &mock.HasherStub{}
+	bridgeOp1Hash := outgoingOpsHasher.Compute(string(bridgeOp1))
+	bridgeOp2Hash := outgoingOpsHasher.Compute(string(bridgeOp2))
+	bridgeOpsHash := outgoingOpsHasher.Compute(string(append(bridgeOp1Hash, bridgeOp2Hash...)))
 
 	outgoingOperationsFormatter := &sovereign.OutgoingOperationsFormatterMock{
-		CreateOutgoingTxDataCalled: func(logs []*data.LogData) [][]byte {
+		CreateOutgoingTxDataCalled: func(logs []*data.LogData) ([][]byte, error) {
 			require.Equal(t, expectedLogs, logs)
-			return [][]byte{bridgeOp1, bridgeOp2}
+			return [][]byte{bridgeOp1, bridgeOp2}, nil
 		},
 	}
 
@@ -254,6 +279,7 @@ func TestSovereignChainBlockProcessor_createAndSetOutGoingMiniBlock(t *testing.T
 		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
 		OutgoingOperationsFormatter:  outgoingOperationsFormatter,
 		OutGoingOperationsPool:       outGoingOperationsPool,
+		OperationsHasher:             outgoingOpsHasher,
 	})
 
 	sovChainHdr := &block.SovereignChainHeader{}
@@ -279,7 +305,7 @@ func TestSovereignChainBlockProcessor_createAndSetOutGoingMiniBlock(t *testing.T
 	}
 	require.Equal(t, expectedBlockBody, blockBody)
 
-	expectedOutGoingMbHash, err := core.CalculateHash(arguments.CoreComponents.InternalMarshalizer(), hasher, expectedOutGoingMb)
+	expectedOutGoingMbHash, err := core.CalculateHash(arguments.CoreComponents.InternalMarshalizer(), arguments.CoreComponents.Hasher(), expectedOutGoingMb)
 	require.Nil(t, err)
 
 	expectedSovChainHeader := &block.SovereignChainHeader{

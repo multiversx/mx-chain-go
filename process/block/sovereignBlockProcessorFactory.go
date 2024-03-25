@@ -2,11 +2,13 @@ package block
 
 import (
 	"errors"
+
+	mxErrors "github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	mxErrors "github.com/multiversx/mx-chain-go/errors"
-	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-core-go/hashing/factory"
 )
 
 type sovereignBlockProcessorFactory struct {
@@ -39,7 +41,13 @@ func (s *sovereignBlockProcessorFactory) CreateBlockProcessor(argumentsBaseProce
 	outgoingOpFormatter, err := sovereign.CreateOutgoingOperationsFormatter(
 		argumentsBaseProcessor.Config.SovereignConfig.OutgoingSubscribedEvents.SubscribedEvents,
 		argumentsBaseProcessor.CoreComponents.AddressPubKeyConverter(),
-		argumentsBaseProcessor.CoreComponents.RoundHandler())
+		argumentsBaseProcessor.DataCodec,
+		argumentsBaseProcessor.TopicsChecker)
+	if err != nil {
+		return nil, err
+	}
+
+	operationsHasher, err := factory.NewHasher(argumentsBaseProcessor.Config.SovereignConfig.OutGoingBridge.Hasher)
 	if err != nil {
 		return nil, err
 	}
@@ -49,6 +57,7 @@ func (s *sovereignBlockProcessorFactory) CreateBlockProcessor(argumentsBaseProce
 		ValidatorStatisticsProcessor: argumentsBaseProcessor.ValidatorStatisticsProcessor,
 		OutgoingOperationsFormatter:  outgoingOpFormatter,
 		OutGoingOperationsPool:       argumentsBaseProcessor.OutGoingOperationsPool,
+		OperationsHasher:             operationsHasher,
 	}
 
 	scbp, err := NewSovereignChainBlockProcessor(args)
