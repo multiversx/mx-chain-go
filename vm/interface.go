@@ -60,7 +60,7 @@ type SystemEI interface {
 	GetLogs() []*vmcommon.LogEntry
 	SetOwnerOperatingOnAccount(newOwner []byte) error
 	UpdateCodeDeployerAddress(scAddress string, newOwner []byte) error
-	ProcessBuiltInFunction(sender, destination []byte, function string, arguments [][]byte) (*vmcommon.VMOutput, error)
+	ProcessBuiltInFunction(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) error
 
 	IsInterfaceNil() bool
 }

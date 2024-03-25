@@ -123,7 +123,7 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 		RewardsHandler:                       economicsData,
 		MaxComputableRounds:                  1000,
 		MaxConsecutiveRoundsOfRatingDecrease: 2000,
-		NodesSetup:                           &testscommon.NodesSetupStub{},
+		NodesSetup:                           &genesisMocks.NodesSetupStub{},
 		EnableEpochsHandler:                  enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.SwitchJailWaitingFlag, common.BelowSignedThresholdFlag),
 	}
 	return arguments
@@ -313,7 +313,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateErrOnGetAccountFail(t *tes
 
 	arguments := createMockArguments()
 	arguments.PeerAdapter = peerAdapters
-	arguments.NodesSetup = &testscommon.NodesSetupStub{InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
+	arguments.NodesSetup = &genesisMocks.NodesSetupStub{InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
 		oneMap := make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
 		oneMap[0] = append(oneMap[0], mock.NewNodeInfo([]byte("aaaa"), []byte("aaaa"), 0, 50))
 		return oneMap, oneMap
@@ -335,7 +335,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateGetAccountReturnsInvalid(t
 
 	arguments := createMockArguments()
 	arguments.PeerAdapter = peerAdapter
-	arguments.NodesSetup = &testscommon.NodesSetupStub{InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
+	arguments.NodesSetup = &genesisMocks.NodesSetupStub{InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
 		oneMap := make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
 		oneMap[0] = append(oneMap[0], mock.NewNodeInfo([]byte("aaaa"), []byte("aaaa"), 0, 50))
 		return oneMap, oneMap
@@ -360,7 +360,7 @@ func TestValidatorStatisticsProcessor_SaveInitialStateSetAddressErrors(t *testin
 	}
 
 	arguments := createMockArguments()
-	arguments.NodesSetup = &testscommon.NodesSetupStub{InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
+	arguments.NodesSetup = &genesisMocks.NodesSetupStub{InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
 		oneMap := make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
 		oneMap[0] = append(oneMap[0], mock.NewNodeInfo([]byte("aaaa"), []byte("aaaa"), 0, 50))
 		return oneMap, oneMap

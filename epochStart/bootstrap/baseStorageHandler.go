@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -37,6 +38,7 @@ type StorageHandlerArgs struct {
 	NodeProcessingMode              common.NodeProcessingMode
 	RepopulateTokensSupplies        bool
 	StateStatsHandler               common.StateStatisticsHandler
+	AdditionalStorageServiceCreator process.AdditionalStorageServiceCreator
 }
 
 func checkNilArgs(args StorageHandlerArgs) error {

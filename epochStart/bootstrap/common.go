@@ -3,39 +3,14 @@ package bootstrap
 import (
 	"fmt"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
-	"github.com/multiversx/mx-chain-core-go/hashing"
-	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/statistics"
-	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/epochStart"
-	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/errors"
-	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/sharding"
-	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
 
 const baseErrorMessage = "error with epoch start bootstrapper arguments"
-
-type StorageHandlerArgs struct {
-	GeneralConfig                   config.Config
-	PrefsConfig                     config.PreferencesConfig
-	ShardCoordinator                sharding.Coordinator
-	PathManagerHandler              storage.PathManagerHandler
-	Marshalizer                     marshal.Marshalizer
-	Hasher                          hashing.Hasher
-	CurrentEpoch                    uint32
-	Uint64Converter                 typeConverters.Uint64ByteSliceConverter
-	NodeTypeProvider                core.NodeTypeProviderHandler
-	NodeProcessingMode              common.NodeProcessingMode
-	ManagedPeersHolder              common.ManagedPeersHolder
-	AdditionalStorageServiceCreator process.AdditionalStorageServiceCreator
-	StateStatsHandler               common.StateStatisticsHandler
-}
 
 func checkArguments(args ArgsEpochStartBootstrap) error {
 	if check.IfNil(args.GenesisShardCoordinator) {

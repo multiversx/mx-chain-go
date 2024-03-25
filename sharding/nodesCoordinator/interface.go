@@ -32,6 +32,7 @@ type NodesCoordinator interface {
 	GetNumTotalEligible() uint64
 	GetWaitingEpochsLeftForPublicKey(publicKey []byte) (uint32, error)
 	EpochStartPrepare(metaHdr data.HeaderHandler, body data.BodyHandler)
+	NodesCoordinatorToRegistry(epoch uint32) NodesCoordinatorRegistryHandler
 	IsInterfaceNil() bool
 }
 
