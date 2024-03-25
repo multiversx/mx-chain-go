@@ -3,7 +3,7 @@ package mock
 import (
 	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/state"
-	sovereignMocks "github.com/multiversx/mx-chain-go/testscommon/sovereign"
+	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 )
 
@@ -18,8 +18,8 @@ type RunTypeComponentsStub struct {
 func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 	return &RunTypeComponentsStub{
 		AccountCreator:       &stateMock.AccountsFactoryStub{},
-		DataCodecFactory:     &sovereignMocks.DataCodecFactoryMock{},
-		TopicsCheckerFactory: &sovereignMocks.TopicsCheckerFactoryMock{},
+		DataCodecFactory:     &genericMocks.DataCodecFactoryMock{},
+		TopicsCheckerFactory: &genericMocks.TopicsCheckerFactoryMock{},
 	}
 }
 

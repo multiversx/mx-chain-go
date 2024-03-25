@@ -18,7 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/state"
 	testFactory "github.com/multiversx/mx-chain-go/testscommon/factory"
-	sovereignMocks "github.com/multiversx/mx-chain-go/testscommon/sovereign"
+	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 )
 
@@ -69,8 +69,8 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		VmContainerMetaFactory:              &testFactory.VMContainerMetaFactoryMock{},
 		VmContainerShardFactory:             &testFactory.VMContainerShardFactoryMock{},
 		AccountCreator:                      &stateMock.AccountsFactoryStub{},
-		DataCodecFactory:                    &sovereignMocks.DataCodecFactoryMock{},
-		TopicsCheckerFactory:                &sovereignMocks.TopicsCheckerFactoryMock{},
+		DataCodecFactory:                    &genericMocks.DataCodecFactoryMock{},
+		TopicsCheckerFactory:                &genericMocks.TopicsCheckerFactoryMock{},
 	}
 }
 

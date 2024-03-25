@@ -37,12 +37,12 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
+	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/sovereign"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -819,7 +819,7 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 		{
 			args: func() blproc.ArgBaseProcessor {
 				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-				args.RunTypeComponents = &mock.RunTypeComponentsStub{AccountCreator: &stateMock.AccountsFactoryStub{}, DataCodecFactory: &sovereign.DataCodecFactoryMock{}, TopicsCheckerFactory: nil}
+				args.RunTypeComponents = &mock.RunTypeComponentsStub{AccountCreator: &stateMock.AccountsFactoryStub{}, DataCodecFactory: &genericMocks.DataCodecFactoryMock{}, TopicsCheckerFactory: nil}
 				return args
 			},
 			expectedErr: errorsMx.ErrNilTopicsCheckerCreator,
