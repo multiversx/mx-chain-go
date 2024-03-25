@@ -129,6 +129,8 @@ func getEventData(data []byte) (*eventData, error) {
 
 	tokens := strings.Split(string(data), "@")
 	numTokens := len(tokens)
+
+	// TODO: WITHOUT FUNCTION CALL
 	if numTokens < minNumEventDataTokens {
 		return nil, fmt.Errorf("%w, expected min num tokens: %d, received num tokens: %d",
 			errInvalidNumTokensOnLogData, minNumEventDataTokens, numTokens)
