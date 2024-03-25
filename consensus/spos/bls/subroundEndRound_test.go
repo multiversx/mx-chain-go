@@ -61,7 +61,7 @@ func initSubroundEndRoundWithContainer(
 		displayStatistics,
 		&subRounds.SubRoundEndExtraSignersHolderMock{},
 		&statusHandler.AppStatusHandlerStub{},
-		&mock.SentSignatureTrackerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 	)
 
 	return srEndRound
@@ -105,7 +105,7 @@ func TestNewSubroundEndRound(t *testing.T) {
 			displayStatistics,
 			&subRounds.SubRoundEndExtraSignersHolderMock{},
 			&statusHandler.AppStatusHandlerStub{},
-			&mock.SentSignatureTrackerStub{},
+			&testscommon.SentSignatureTrackerStub{},
 		)
 
 		assert.Nil(t, srEndRound)
@@ -121,7 +121,7 @@ func TestNewSubroundEndRound(t *testing.T) {
 			displayStatistics,
 			&subRounds.SubRoundEndExtraSignersHolderMock{},
 			&statusHandler.AppStatusHandlerStub{},
-			&mock.SentSignatureTrackerStub{},
+			&testscommon.SentSignatureTrackerStub{},
 		)
 
 		assert.Nil(t, srEndRound)
@@ -137,7 +137,7 @@ func TestNewSubroundEndRound(t *testing.T) {
 			displayStatistics,
 			&subRounds.SubRoundEndExtraSignersHolderMock{},
 			nil,
-			&mock.SentSignatureTrackerStub{},
+			&testscommon.SentSignatureTrackerStub{},
 		)
 
 		assert.Nil(t, srEndRound)
@@ -157,7 +157,7 @@ func TestNewSubroundEndRound(t *testing.T) {
 		)
 
 		assert.Nil(t, srEndRound)
-		assert.Equal(t, spos.ErrNilSentSignatureTracker, err)
+		assert.Equal(t, bls.ErrNilSentSignatureTracker, err)
 	})
 }
 
@@ -192,7 +192,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockChainShouldFail(t *testing.
 		displayStatistics,
 		&subRounds.SubRoundEndExtraSignersHolderMock{},
 		&statusHandler.AppStatusHandlerStub{},
-		&mock.SentSignatureTrackerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -230,7 +230,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockProcessorShouldFail(t *test
 		displayStatistics,
 		&subRounds.SubRoundEndExtraSignersHolderMock{},
 		&statusHandler.AppStatusHandlerStub{},
-		&mock.SentSignatureTrackerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -269,7 +269,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilConsensusStateShouldFail(t *test
 		displayStatistics,
 		&subRounds.SubRoundEndExtraSignersHolderMock{},
 		&statusHandler.AppStatusHandlerStub{},
-		&mock.SentSignatureTrackerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -307,7 +307,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilMultiSignerContainerShouldFail(t
 		displayStatistics,
 		&subRounds.SubRoundEndExtraSignersHolderMock{},
 		&statusHandler.AppStatusHandlerStub{},
-		&mock.SentSignatureTrackerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -345,7 +345,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilRoundHandlerShouldFail(t *testin
 		displayStatistics,
 		&subRounds.SubRoundEndExtraSignersHolderMock{},
 		&statusHandler.AppStatusHandlerStub{},
-		&mock.SentSignatureTrackerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -383,7 +383,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSyncTimerShouldFail(t *testing.T
 		displayStatistics,
 		&subRounds.SubRoundEndExtraSignersHolderMock{},
 		&statusHandler.AppStatusHandlerStub{},
-		&mock.SentSignatureTrackerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
@@ -421,7 +421,7 @@ func TestSubroundEndRound_NewSubroundEndRoundShouldWork(t *testing.T) {
 		displayStatistics,
 		&subRounds.SubRoundEndExtraSignersHolderMock{},
 		&statusHandler.AppStatusHandlerStub{},
-		&mock.SentSignatureTrackerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 	)
 
 	assert.False(t, check.IfNil(srEndRound))
@@ -927,16 +927,8 @@ func TestSubroundEndRound_ReceivedBlockHeaderFinalInfoShouldWork(t *testing.T) {
 		PubKey:     []byte("A"),
 	}
 
-	sentTrackerInterface := sr.GetSentSignatureTracker()
-	sentTracker := sentTrackerInterface.(*mock.SentSignatureTrackerStub)
-	receivedActualSignersCalled := false
-	sentTracker.ReceivedActualSignersCalled = func(signersPks []string) {
-		receivedActualSignersCalled = true
-	}
-
 	res := sr.ReceivedBlockHeaderFinalInfo(&cnsData)
 	assert.True(t, res)
-	assert.True(t, receivedActualSignersCalled)
 }
 
 func TestSubroundEndRound_ReceivedBlockHeaderFinalInfoShouldReturnFalseWhenFinalInfoIsNotValid(t *testing.T) {
@@ -1347,7 +1339,7 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 		assert.False(t, res)
 	})
 
-	t.Run("received message for self leader", func(t *testing.T) {
+	t.Run("received message from self leader should return false", func(t *testing.T) {
 		t.Parallel()
 
 		container := mock.InitConsensusCore()
@@ -1361,6 +1353,53 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 		}
 
 		res := sr.ReceivedInvalidSignersInfo(&cnsData)
+		assert.False(t, res)
+	})
+
+	t.Run("received message from self multikey leader should return false", func(t *testing.T) {
+		t.Parallel()
+
+		container := mock.InitConsensusCore()
+		keysHandler := &testscommon.KeysHandlerStub{
+			IsKeyManagedByCurrentNodeCalled: func(pkBytes []byte) bool {
+				return string(pkBytes) == "A"
+			},
+		}
+		ch := make(chan bool, 1)
+		consensusState := initConsensusStateWithKeysHandler(keysHandler)
+		sr, _ := spos.NewSubround(
+			bls.SrSignature,
+			bls.SrEndRound,
+			-1,
+			int64(85*roundTimeDuration/100),
+			int64(95*roundTimeDuration/100),
+			"(END_ROUND)",
+			consensusState,
+			ch,
+			executeStoredMessages,
+			container,
+			chainID,
+			currentPid,
+			&statusHandler.AppStatusHandlerStub{},
+		)
+
+		srEndRound, _ := bls.NewSubroundEndRound(
+			sr,
+			extend,
+			bls.ProcessingThresholdPercent,
+			displayStatistics,
+			&statusHandler.AppStatusHandlerStub{},
+			&testscommon.SentSignatureTrackerStub{},
+		)
+
+		srEndRound.SetSelfPubKey("A")
+
+		cnsData := consensus.Message{
+			BlockHeaderHash: []byte("X"),
+			PubKey:          []byte("A"),
+		}
+
+		res := srEndRound.ReceivedInvalidSignersInfo(&cnsData)
 		assert.False(t, res)
 	})
 
@@ -1581,29 +1620,60 @@ func TestVerifyInvalidSigners(t *testing.T) {
 func TestSubroundEndRound_CreateAndBroadcastInvalidSigners(t *testing.T) {
 	t.Parallel()
 
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
+	t.Run("redundancy node should not send while main is active", func(t *testing.T) {
+		t.Parallel()
 
-	expectedInvalidSigners := []byte("invalid signers")
+		expectedInvalidSigners := []byte("invalid signers")
 
-	wasCalled := false
-	container := mock.InitConsensusCore()
-	messenger := &mock.BroadcastMessengerMock{
-		BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
-			wg.Done()
-			assert.Equal(t, expectedInvalidSigners, message.InvalidSigners)
-			wasCalled = true
-			return nil
-		},
-	}
-	container.SetBroadcastMessenger(messenger)
-	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+		container := mock.InitConsensusCore()
+		nodeRedundancy := &mock.NodeRedundancyHandlerStub{
+			IsRedundancyNodeCalled: func() bool {
+				return true
+			},
+			IsMainMachineActiveCalled: func() bool {
+				return true
+			},
+		}
+		container.SetNodeRedundancyHandler(nodeRedundancy)
+		messenger := &mock.BroadcastMessengerMock{
+			BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
+				assert.Fail(t, "should have not been called")
+				return nil
+			},
+		}
+		container.SetBroadcastMessenger(messenger)
+		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 
-	sr.CreateAndBroadcastInvalidSigners(expectedInvalidSigners)
+		sr.CreateAndBroadcastInvalidSigners(expectedInvalidSigners)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
 
-	wg.Wait()
+		wg := &sync.WaitGroup{}
+		wg.Add(1)
 
-	require.True(t, wasCalled)
+		expectedInvalidSigners := []byte("invalid signers")
+
+		wasCalled := false
+		container := mock.InitConsensusCore()
+		messenger := &mock.BroadcastMessengerMock{
+			BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
+				assert.Equal(t, expectedInvalidSigners, message.InvalidSigners)
+				wasCalled = true
+				wg.Done()
+				return nil
+			},
+		}
+		container.SetBroadcastMessenger(messenger)
+		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+		sr.SetSelfPubKey("A")
+
+		sr.CreateAndBroadcastInvalidSigners(expectedInvalidSigners)
+
+		wg.Wait()
+
+		require.True(t, wasCalled)
+	})
 }
 
 func TestGetFullMessagesForInvalidSigners(t *testing.T) {
@@ -1692,7 +1762,7 @@ func TestSubroundEndRound_getMinConsensusGroupIndexOfManagedKeys(t *testing.T) {
 		displayStatistics,
 		&subRounds.SubRoundEndExtraSignersHolderMock{},
 		&statusHandler.AppStatusHandlerStub{},
-		&mock.SentSignatureTrackerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 	)
 
 	t.Run("no managed keys from consensus group", func(t *testing.T) {

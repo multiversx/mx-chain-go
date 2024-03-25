@@ -24,6 +24,7 @@ func (pcf *processComponentsFactory) NewBlockProcessor(
 	receiptsRepository factory.ReceiptsRepository,
 	blockProcessingCutoff cutoff.BlockProcessingCutoffHandler,
 	missingTrieNodesNotifier common.MissingTrieNodesNotifier,
+	sentSignaturesTracker process.SentSignaturesTracker,
 ) (process.BlockProcessor, error) {
 	blockProcessorComponents, err := pcf.newBlockProcessor(
 		requestHandler,
@@ -40,6 +41,7 @@ func (pcf *processComponentsFactory) NewBlockProcessor(
 		receiptsRepository,
 		blockProcessingCutoff,
 		missingTrieNodesNotifier,
+		sentSignaturesTracker,
 	)
 	if err != nil {
 		return nil, err

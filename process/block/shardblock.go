@@ -126,6 +126,8 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		processStatusHandler:          arguments.CoreComponents.ProcessStatusHandler(),
 		blockProcessingCutoffHandler:  arguments.BlockProcessingCutoffHandler,
 		managedPeersHolder:            arguments.ManagedPeersHolder,
+		sentSignaturesTracker:         arguments.SentSignaturesTracker,
+		extraDelayRequestBlockInfo:    time.Duration(arguments.Config.EpochStartConfig.ExtraDelayForRequestBlockInfoInMilliseconds) * time.Millisecond,
 		crossNotarizer:                notarizer,
 		accountCreator:                arguments.RunTypeComponents.AccountsCreator(),
 	}
@@ -999,7 +1001,12 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.updateLastCommittedInDebugger(headerHandler.GetRound())
 
-	errNotCritical := sp.updateCrossShardInfo(processedMetaHdrs)
+	errNotCritical := sp.checkSentSignaturesAtCommitTime(headerHandler)
+	if errNotCritical != nil {
+		log.Debug("checkSentSignaturesBeforeCommitting", "error", errNotCritical.Error())
+	}
+
+	errNotCritical = sp.updateCrossShardInfo(processedMetaHdrs)
 	if errNotCritical != nil {
 		log.Debug("updateCrossShardInfo", "error", errNotCritical.Error())
 	}

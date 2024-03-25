@@ -114,6 +114,7 @@ func CreateNodesCoordinator(
 	nodeTypeProvider core.NodeTypeProviderHandler,
 	enableEpochsHandler common.EnableEpochsHandler,
 	validatorInfoCacher epochStart.ValidatorInfoCacher,
+	nodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory,
 	nodesCoordinatorFactory nodesCoordinator.NodesCoordinatorWithRaterFactory,
 ) (nodesCoordinator.NodesCoordinator, error) {
 	if check.IfNil(nodeShufflerOut) {
@@ -171,15 +172,15 @@ func CreateNodesCoordinator(
 	if bootstrapParameters.NodesConfig() != nil {
 		nodeRegistry := bootstrapParameters.NodesConfig()
 		currentEpoch = bootstrapParameters.Epoch()
-		epochsConfig, ok := nodeRegistry.EpochsConfig[fmt.Sprintf("%d", currentEpoch)]
+		epochsConfig, ok := nodeRegistry.GetEpochsConfig()[fmt.Sprintf("%d", currentEpoch)]
 		if ok {
-			eligibles := epochsConfig.EligibleValidators
+			eligibles := epochsConfig.GetEligibleValidators()
 			eligibleValidators, err = nodesCoordinator.SerializableValidatorsToValidators(eligibles)
 			if err != nil {
 				return nil, err
 			}
 
-			waitings := epochsConfig.WaitingValidators
+			waitings := epochsConfig.GetWaitingValidators()
 			waitingValidators, err = nodesCoordinator.SerializableValidatorsToValidators(waitings)
 			if err != nil {
 				return nil, err
@@ -203,28 +204,29 @@ func CreateNodesCoordinator(
 	}
 
 	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-		ShardConsensusGroupSize:  shardConsensusGroupSize,
-		MetaConsensusGroupSize:   metaConsensusGroupSize,
-		Marshalizer:              marshalizer,
-		Hasher:                   hasher,
-		Shuffler:                 nodeShuffler,
-		EpochStartNotifier:       epochStartNotifier,
-		BootStorer:               bootStorer,
-		ShardIDAsObserver:        shardIDAsObserver,
-		NbShards:                 nbShards,
-		EligibleNodes:            eligibleValidators,
-		WaitingNodes:             waitingValidators,
-		SelfPublicKey:            pubKeyBytes,
-		ConsensusGroupCache:      consensusGroupCache,
-		ShuffledOutHandler:       shuffledOutHandler,
-		Epoch:                    currentEpoch,
-		StartEpoch:               startEpoch,
-		ChanStopNode:             chanNodeStop,
-		NodeTypeProvider:         nodeTypeProvider,
-		IsFullArchive:            prefsConfig.FullArchive,
-		EnableEpochsHandler:      enableEpochsHandler,
-		ValidatorInfoCacher:      validatorInfoCacher,
-		GenesisNodesSetupHandler: nodesConfig,
+		ShardConsensusGroupSize:         shardConsensusGroupSize,
+		MetaConsensusGroupSize:          metaConsensusGroupSize,
+		Marshalizer:                     marshalizer,
+		Hasher:                          hasher,
+		Shuffler:                        nodeShuffler,
+		EpochStartNotifier:              epochStartNotifier,
+		BootStorer:                      bootStorer,
+		ShardIDAsObserver:               shardIDAsObserver,
+		NbShards:                        nbShards,
+		EligibleNodes:                   eligibleValidators,
+		WaitingNodes:                    waitingValidators,
+		SelfPublicKey:                   pubKeyBytes,
+		ConsensusGroupCache:             consensusGroupCache,
+		ShuffledOutHandler:              shuffledOutHandler,
+		Epoch:                           currentEpoch,
+		StartEpoch:                      startEpoch,
+		ChanStopNode:                    chanNodeStop,
+		NodeTypeProvider:                nodeTypeProvider,
+		IsFullArchive:                   prefsConfig.FullArchive,
+		EnableEpochsHandler:             enableEpochsHandler,
+		ValidatorInfoCacher:             validatorInfoCacher,
+		GenesisNodesSetupHandler:        nodesConfig,
+		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
 	}
 
 	argumentsNodesCoordinatorWithRater := &nodesCoordinator.NodesCoordinatorWithRaterArgs{

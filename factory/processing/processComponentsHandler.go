@@ -174,6 +174,9 @@ func (mpc *managedProcessComponents) CheckSubcomponents() error {
 	if check.IfNil(mpc.processComponents.esdtDataStorageForApi) {
 		return errors.ErrNilESDTDataStorage
 	}
+	if check.IfNil(m.processComponents.sentSignaturesTracker) {
+		return errors.ErrNilSentSignatureTracker
+	}
 
 	return nil
 }
@@ -656,6 +659,18 @@ func (mpc *managedProcessComponents) ReceiptsRepository() factory.ReceiptsReposi
 	}
 
 	return mpc.processComponents.receiptsRepository
+}
+
+// SentSignaturesTracker returns the signature tracker
+func (m *managedProcessComponents) SentSignaturesTracker() process.SentSignaturesTracker {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.sentSignaturesTracker
 }
 
 // IsInterfaceNil returns true if the interface is nil

@@ -19,6 +19,10 @@ import (
 // TODO add integration and unit tests with generating and broadcasting transaction with empty recv address
 
 func TestRunSCWithoutTransferShouldRunSCCode(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	vmOpGas := uint64(1)
 	senderAddressBytes := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(11)
@@ -89,6 +93,10 @@ func TestRunSCWithoutTransferShouldRunSCCode(t *testing.T) {
 }
 
 func TestRunSCWithTransferShouldRunSCCode(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	vmOpGas := uint64(1)
 	senderAddressBytes := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(11)
@@ -160,6 +168,10 @@ func TestRunSCWithTransferShouldRunSCCode(t *testing.T) {
 }
 
 func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	vmOpGas := uint64(1)
 	senderAddressBytes := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(11)
@@ -231,6 +243,10 @@ func TestRunWithTransferAndGasShouldRunSCCode(t *testing.T) {
 }
 
 func TestRunWithTransferWithInsufficientGasShouldReturnErr(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	vmOpGas := uint64(1)
 	senderAddressBytes := []byte("12345678901234567890123456789012")
 	senderNonce := uint64(11)

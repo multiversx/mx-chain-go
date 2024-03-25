@@ -35,10 +35,13 @@
     # SyncProcessTimeInMillis is the value in milliseconds used when processing blocks while synchronizing blocks
     SyncProcessTimeInMillis = 12000
 
-   # SetGuardianEpochsDelay represents the delay in epochs between the execution time of the SetGuardian transaction and
-   # the activation of the configured guardian.
-   # Make sure that this is greater than the unbonding period!
-   SetGuardianEpochsDelay = 2 # TODO: for mainnet should be 20, 2 is just for testing
+    # SetGuardianEpochsDelay represents the delay in epochs between the execution time of the SetGuardian transaction and
+    # the activation of the configured guardian.
+    # Make sure that this is greater than the unbonding period!
+    SetGuardianEpochsDelay = 2 # TODO: for mainnet should be 20, 2 is just for testing
+
+[HardwareRequirements]
+    CPUFlags = ["SSE4", "SSE42"]
 
 [Versions]
     DefaultVersion = "default"
@@ -489,6 +492,7 @@
 [Antiflood]
     Enabled = true
     NumConcurrentResolverJobs = 50
+    NumConcurrentResolvingTrieNodesJobs = 3
     [Antiflood.FastReacting]
         IntervalInSeconds = 1
         ReservedPercent   = 20.0
@@ -617,6 +621,7 @@
    Type = "json"
 
 [EpochStartConfig]
+    GenesisEpoch = 0
     MinRoundsBetweenEpochs = 20
     RoundsPerEpoch         = 200
     # Min and Max ShuffledOutRestartThreshold represents the minimum and maximum duration of an epoch (in percentage) after a node which
@@ -626,6 +631,7 @@
 
     MinNumConnectedPeersToStart       = 2
     MinNumOfPeersToConsiderBlockValid = 2
+    ExtraDelayForRequestBlockInfoInMilliseconds = 3000
 
 # ResourceStats, if enabled, will output in a folder called "stats"
 # resource statistics. For example: number of active go routines, memory allocation, number of GC sweeps, etc.
@@ -655,6 +661,7 @@
     PeerStatePruningEnabled = true
     MaxStateTrieLevelInMemory = 5
     MaxPeerTrieLevelInMemory = 5
+    StateStatisticsEnabled = false
 
 [BlockSizeThrottleConfig]
     MinSizeInBytes = 104857 # 104857 is 10% from 1MB
@@ -666,6 +673,8 @@
         TimeOutForSCExecutionInMilliseconds = 10000 # 10 seconds = 10000 milliseconds
         WasmerSIGSEGVPassthrough            = false # must be false for release
         WasmVMVersions = [
+            { StartEpoch = 0, Version = "v1.4" },
+            { StartEpoch = 1, Version = "v1.5" }, # TODO: set also the RoundActivations.DisableAsyncCallV1 accordingly
             { StartEpoch = 0, Version = "v1.5" },
             { StartEpoch = 1, Version = "v1.4" },
             { StartEpoch = 3, Version = "v1.5" }, # TODO: set also the RoundActivations.DisableAsyncCallV1 accordingly

@@ -37,8 +37,7 @@ type SystemSCContainer interface {
 type SystemEI interface {
 	ExecuteOnDestContext(destination []byte, sender []byte, value *big.Int, input []byte) (*vmcommon.VMOutput, error)
 	DeploySystemSC(baseContract []byte, newAddress []byte, ownerAddress []byte, initFunction string, value *big.Int, input [][]byte) (vmcommon.ReturnCode, error)
-	Transfer(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) error
-	ProcessBuiltInFunction(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) error
+	Transfer(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64)
 	SendGlobalSettingToAll(sender []byte, input []byte)
 	GetBalance(addr []byte) *big.Int
 	SetStorage(key []byte, value []byte)
@@ -61,6 +60,7 @@ type SystemEI interface {
 	GetLogs() []*vmcommon.LogEntry
 	SetOwnerOperatingOnAccount(newOwner []byte) error
 	UpdateCodeDeployerAddress(scAddress string, newOwner []byte) error
+	ProcessBuiltInFunction(sender, destination []byte, function string, arguments [][]byte) (*vmcommon.VMOutput, error)
 
 	IsInterfaceNil() bool
 }
@@ -68,6 +68,12 @@ type SystemEI interface {
 // EconomicsHandler defines the methods to get data from the economics component
 type EconomicsHandler interface {
 	GenesisTotalSupply() *big.Int
+	IsInterfaceNil() bool
+}
+
+// NodesCoordinator defines the methods needed about nodes in system SCs from nodes coordinator
+type NodesCoordinator interface {
+	GetNumTotalEligible() uint64
 	IsInterfaceNil() bool
 }
 

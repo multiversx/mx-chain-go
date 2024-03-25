@@ -82,6 +82,7 @@ func (pcf *processComponentsFactory) createAPITransactionEvaluator() (factory.Tr
 		Accounts:            simulationAccountsDB,
 		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+		BlockChain:          pcf.data.Blockchain(),
 	})
 
 	return apiTransactionEvaluator, vmContainerFactory, err
@@ -171,6 +172,8 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorForMeta(
 		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 	}
+
+	args.BlockChainHook = vmContainerFactory.BlockChainHookImpl()
 
 	vmContainer, vmFactory, err := pcf.runTypeComponents.VmContainerMetaFactoryCreator().CreateVmContainerFactory(argsHook, argsNewVmContainerFactory)
 	if err != nil {

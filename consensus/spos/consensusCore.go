@@ -14,7 +14,7 @@ import (
 )
 
 // ConsensusCore implements ConsensusCoreHandler and provides access to common functionality
-//  for the rest of the consensus structures
+// for the rest of the consensus structures
 type ConsensusCore struct {
 	blockChain                    data.ChainHandler
 	blockProcessor                process.BlockProcessor
@@ -148,7 +148,7 @@ func (cc *ConsensusCore) MultiSignerContainer() cryptoCommon.MultiSignerContaine
 	return cc.multiSignerContainer
 }
 
-//RoundHandler gets the RoundHandler stored in the ConsensusCore
+// RoundHandler gets the RoundHandler stored in the ConsensusCore
 func (cc *ConsensusCore) RoundHandler() consensus.RoundHandler {
 	return cc.roundHandler
 }
@@ -158,7 +158,7 @@ func (cc *ConsensusCore) ShardCoordinator() sharding.Coordinator {
 	return cc.shardCoordinator
 }
 
-//SyncTimer gets the SyncTimer stored in the ConsensusCore
+// SyncTimer gets the SyncTimer stored in the ConsensusCore
 func (cc *ConsensusCore) SyncTimer() ntp.SyncTimer {
 	return cc.syncTimer
 }

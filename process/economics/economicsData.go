@@ -27,31 +27,26 @@ var log = logger.GetOrCreate("process/economics")
 type economicsData struct {
 	*gasConfigHandler
 	*rewardsConfigHandler
-	gasPriceModifier            float64
-	minInflation                float64
-	yearSettings                map[uint32]*config.YearSetting
-	mutYearSettings             sync.RWMutex
-	statusHandler               core.AppStatusHandler
-	builtInFunctionsCostHandler BuiltInFunctionsCostHandler
-	enableEpochsHandler         common.EnableEpochsHandler
-	txVersionHandler            process.TxVersionCheckerHandler
-	mut                         sync.RWMutex
+	gasPriceModifier    float64
+	minInflation        float64
+	yearSettings        map[uint32]*config.YearSetting
+	mutYearSettings     sync.RWMutex
+	statusHandler       core.AppStatusHandler
+	enableEpochsHandler common.EnableEpochsHandler
+	txVersionHandler    process.TxVersionCheckerHandler
+	mut                 sync.RWMutex
 }
 
 // ArgsNewEconomicsData defines the arguments needed for new economics economicsData
 type ArgsNewEconomicsData struct {
-	TxVersionChecker            process.TxVersionCheckerHandler
-	BuiltInFunctionsCostHandler BuiltInFunctionsCostHandler
-	Economics                   *config.EconomicsConfig
-	EpochNotifier               process.EpochNotifier
-	EnableEpochsHandler         common.EnableEpochsHandler
+	TxVersionChecker    process.TxVersionCheckerHandler
+	Economics           *config.EconomicsConfig
+	EpochNotifier       process.EpochNotifier
+	EnableEpochsHandler common.EnableEpochsHandler
 }
 
 // NewEconomicsData will create an object with information about economics parameters
 func NewEconomicsData(args ArgsNewEconomicsData) (*economicsData, error) {
-	if check.IfNil(args.BuiltInFunctionsCostHandler) {
-		return nil, process.ErrNilBuiltInFunctionsCostHandler
-	}
 	if check.IfNil(args.TxVersionChecker) {
 		return nil, process.ErrNilTransactionVersionChecker
 	}
@@ -75,12 +70,11 @@ func NewEconomicsData(args ArgsNewEconomicsData) (*economicsData, error) {
 	}
 
 	ed := &economicsData{
-		minInflation:                args.Economics.GlobalSettings.MinimumInflation,
-		gasPriceModifier:            args.Economics.FeeSettings.GasPriceModifier,
-		statusHandler:               statusHandler.NewNilStatusHandler(),
-		builtInFunctionsCostHandler: args.BuiltInFunctionsCostHandler,
-		enableEpochsHandler:         args.EnableEpochsHandler,
-		txVersionHandler:            args.TxVersionChecker,
+		minInflation:        args.Economics.GlobalSettings.MinimumInflation,
+		gasPriceModifier:    args.Economics.FeeSettings.GasPriceModifier,
+		statusHandler:       statusHandler.NewNilStatusHandler(),
+		enableEpochsHandler: args.EnableEpochsHandler,
+		txVersionHandler:    args.TxVersionChecker,
 	}
 
 	ed.yearSettings = make(map[uint32]*config.YearSetting)
@@ -517,23 +511,8 @@ func (ed *economicsData) ComputeGasUsedAndFeeBasedOnRefundValue(tx data.Transact
 // ComputeGasUsedAndFeeBasedOnRefundValueInEpoch will compute gas used value and transaction fee using refund value from a SCR in a specific epoch
 func (ed *economicsData) ComputeGasUsedAndFeeBasedOnRefundValueInEpoch(tx data.TransactionWithFeeHandler, refundValue *big.Int, epoch uint32) (uint64, *big.Int) {
 	if refundValue.Cmp(big.NewInt(0)) == 0 {
-		if ed.builtInFunctionsCostHandler.IsBuiltInFuncCall(tx) {
-			builtInCost := ed.builtInFunctionsCostHandler.ComputeBuiltInCost(tx)
-			computedGasLimit := ed.ComputeGasLimitInEpoch(tx, epoch)
-
-			gasLimitWithBuiltInCost := builtInCost + computedGasLimit
-			txFee := ed.ComputeTxFeeBasedOnGasUsedInEpoch(tx, gasLimitWithBuiltInCost, epoch)
-
-			gasLimitWithoutMoveBalance := tx.GetGasLimit() - computedGasLimit
-			// transaction will consume all the gas if sender provided too much gas
-			if isTooMuchGasProvided(gasLimitWithoutMoveBalance, gasLimitWithoutMoveBalance-builtInCost) {
-				return tx.GetGasLimit(), ed.ComputeTxFeeInEpoch(tx, epoch)
-			}
-
-			return gasLimitWithBuiltInCost, txFee
-		}
-
 		txFee := ed.ComputeTxFeeInEpoch(tx, epoch)
+
 		return tx.GetGasLimit(), txFee
 	}
 
@@ -558,15 +537,6 @@ func (ed *economicsData) ComputeGasUsedAndFeeBasedOnRefundValueInEpoch(tx data.T
 	gasUsed := moveBalanceGasUnits + scOpGasUnits.Uint64()
 
 	return gasUsed, txFee
-}
-
-func isTooMuchGasProvided(gasProvided uint64, gasRemained uint64) bool {
-	if gasProvided <= gasRemained {
-		return false
-	}
-
-	gasUsed := gasProvided - gasRemained
-	return gasProvided > gasUsed*process.MaxGasFeeHigherFactorAccepted
 }
 
 // ComputeTxFeeBasedOnGasUsed will compute transaction fee

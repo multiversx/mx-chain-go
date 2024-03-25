@@ -50,6 +50,11 @@ func (n *nodesCoordinator) GetAllWaitingValidatorsPublicKeys(_ uint32) (map[uint
 	return nil, nil
 }
 
+// GetAllShuffledOutValidatorsPublicKeys -
+func (n *nodesCoordinator) GetAllShuffledOutValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
+	return nil, nil
+}
+
 // GetConsensusValidatorsPublicKeys -
 func (n *nodesCoordinator) GetConsensusValidatorsPublicKeys(_ []byte, _ uint64, _ uint32, _ uint32) ([]string, error) {
 	return nil, nil

@@ -19,14 +19,36 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
+func createStorageHandlerArgs() StorageHandlerArgs {
+	return StorageHandlerArgs{
+		GeneralConfig:                   testscommon.GetGeneralConfig(),
+		PreferencesConfig:               config.PreferencesConfig{},
+		ShardCoordinator:                &mock.ShardCoordinatorStub{},
+		PathManagerHandler:              &testscommon.PathManagerStub{},
+		Marshaller:                      &mock.MarshalizerMock{},
+		Hasher:                          &hashingMocks.HasherMock{},
+		CurrentEpoch:                    0,
+		Uint64Converter:                 &mock.Uint64ByteSliceConverterMock{},
+		NodeTypeProvider:                &nodeTypeProviderMock.NodeTypeProviderStub{},
+		NodesCoordinatorRegistryFactory: &shardingMocks.NodesCoordinatorRegistryFactoryMock{},
+		ManagedPeersHolder:              &testscommon.ManagedPeersHolderStub{},
+		SnapshotsEnabled:                false,
+		NodeProcessingMode:              common.Normal,
+		StateStatsHandler:               disabled.NewStateStatistics(),
+		RepopulateTokensSupplies:        false,
+	}
+}
+
 func TestNewMetaStorageHandler_InvalidConfigErr(t *testing.T) {
-	args := createMetaHandlerArgs()
+	args := createStorageHandlerArgs()
 	args.GeneralConfig = config.Config{}
+
 	mtStrHandler, err := NewMetaStorageHandler(args)
 	assert.True(t, check.IfNil(mtStrHandler))
 	assert.NotNil(t, err)
@@ -37,7 +59,7 @@ func TestNewMetaStorageHandler_CreateForMetaErr(t *testing.T) {
 		_ = os.RemoveAll("./Epoch_0")
 	}()
 
-	args := createMetaHandlerArgs()
+	args := createStorageHandlerArgs()
 	mtStrHandler, err := NewMetaStorageHandler(args)
 	assert.False(t, check.IfNil(mtStrHandler))
 	assert.Nil(t, err)
@@ -48,12 +70,11 @@ func TestMetaStorageHandler_saveLastHeader(t *testing.T) {
 		_ = os.RemoveAll("./Epoch_0")
 	}()
 
-	args := createMetaHandlerArgs()
+	args := createStorageHandlerArgs()
 	mtStrHandler, _ := NewMetaStorageHandler(args)
-
 	header := &block.MetaBlock{Nonce: 0}
 
-	headerHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, header)
+	headerHash, _ := core.CalculateHash(args.Marshaller, args.Hasher, header)
 	expectedBootInfo := bootstrapStorage.BootstrapHeaderInfo{
 		ShardId: core.MetachainShardId, Hash: headerHash,
 	}
@@ -68,13 +89,13 @@ func TestMetaStorageHandler_saveLastCrossNotarizedHeaders(t *testing.T) {
 		_ = os.RemoveAll("./Epoch_0")
 	}()
 
-	args := createMetaHandlerArgs()
+	args := createStorageHandlerArgs()
 	mtStrHandler, _ := NewMetaStorageHandler(args)
 
 	hdr1 := &block.Header{Nonce: 1}
 	hdr2 := &block.Header{Nonce: 2}
-	hdrHash1, _ := core.CalculateHash(args.Marshalizer, args.Hasher, hdr1)
-	hdrHash2, _ := core.CalculateHash(args.Marshalizer, args.Hasher, hdr2)
+	hdrHash1, _ := core.CalculateHash(args.Marshaller, args.Hasher, hdr1)
+	hdrHash2, _ := core.CalculateHash(args.Marshaller, args.Hasher, hdr2)
 
 	hdr3 := &block.MetaBlock{
 		Nonce: 3,
@@ -94,7 +115,7 @@ func TestMetaStorageHandler_saveTriggerRegistry(t *testing.T) {
 		_ = os.RemoveAll("./Epoch_0")
 	}()
 
-	args := createMetaHandlerArgs()
+	args := createStorageHandlerArgs()
 	mtStrHandler, _ := NewMetaStorageHandler(args)
 
 	components := &ComponentsNeededForBootstrap{
@@ -111,7 +132,7 @@ func TestMetaStorageHandler_saveDataToStorage(t *testing.T) {
 		_ = os.RemoveAll("./Epoch_0")
 	}()
 
-	args := createMetaHandlerArgs()
+	args := createStorageHandlerArgs()
 	mtStrHandler, _ := NewMetaStorageHandler(args)
 
 	components := &ComponentsNeededForBootstrap{
@@ -145,9 +166,8 @@ func testMetaWithMissingStorer(missingUnit dataRetriever.UnitType, atCallNumber 
 			_ = os.RemoveAll("./Epoch_0")
 		}()
 
-		args := createMetaHandlerArgs()
+		args := createStorageHandlerArgs()
 		mtStrHandler, _ := NewMetaStorageHandler(args)
-
 		counter := 0
 		mtStrHandler.storageService = &storageStubs.ChainStorerStub{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {

@@ -36,6 +36,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/process/block/cutoff"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
+	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -89,6 +90,7 @@ type baseProcessor struct {
 	processDebugger         process.Debugger
 	processStatusHandler    common.ProcessStatusHandler
 	managedPeersHolder      common.ManagedPeersHolder
+	sentSignaturesTracker   process.SentSignaturesTracker
 
 	versionedHeaderFactory       nodeFactory.VersionedHeaderFactory
 	headerIntegrityVerifier      process.HeaderIntegrityVerifier
@@ -117,8 +119,10 @@ type baseProcessor struct {
 	processedMiniBlocksTracker    process.ProcessedMiniBlocksTracker
 	receiptsRepository            receiptsRepository
 
-	mutNonceOfFirstCommittedBlock        sync.RWMutex
-	nonceOfFirstCommittedBlock           core.OptionalUint64
+	mutNonceOfFirstCommittedBlock sync.RWMutex
+	nonceOfFirstCommittedBlock    core.OptionalUint64
+	extraDelayRequestBlockInfo    time.Duration
+
 	requestMissingHeadersFunc            func(missingNonces []uint64, shardID uint32)
 	cleanupBlockTrackerPoolsForShardFunc func(shardID uint32, noncesToPrevFinal uint64)
 	cleanupPoolsForCrossShardFunc        func(shardID uint32, noncesToPrevFinal uint64)
@@ -581,6 +585,9 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.ManagedPeersHolder) {
 		return process.ErrNilManagedPeersHolder
+	}
+	if check.IfNil(arguments.SentSignaturesTracker) {
+		return process.ErrNilSentSignatureTracker
 	}
 	if check.IfNil(arguments.RunTypeComponents) {
 		return errors.ErrNilRunTypeComponents
@@ -1813,7 +1820,7 @@ func (bp *baseProcessor) requestMiniBlocksIfNeeded(headerHandler data.HeaderHand
 		return
 	}
 
-	waitTime := common.ExtraDelayForRequestBlockInfo
+	waitTime := bp.extraDelayRequestBlockInfo
 	roundDifferences := bp.roundHandler.Index() - int64(headerHandler.GetRound())
 	if roundDifferences > 1 {
 		waitTime = 0
@@ -2251,4 +2258,24 @@ func waitForHeaderHashes(waitTime time.Duration, chanRcvHeaderHashes chan bool) 
 	case <-timer.C:
 		return process.ErrTimeIsOut
 	}
+}
+
+func (bp *baseProcessor) checkSentSignaturesAtCommitTime(header data.HeaderHandler) error {
+	validatorsGroup, err := headerCheck.ComputeConsensusGroup(header, bp.nodesCoordinator)
+	if err != nil {
+		return err
+	}
+
+	consensusGroup := make([]string, 0, len(validatorsGroup))
+	for _, validator := range validatorsGroup {
+		consensusGroup = append(consensusGroup, string(validator.PubKey()))
+	}
+
+	signers := headerCheck.ComputeSignersPublicKeys(consensusGroup, header.GetPubKeysBitmap())
+
+	for _, signer := range signers {
+		bp.sentSignaturesTracker.ResetCountersForManagedBlockSigner([]byte(signer))
+	}
+
+	return nil
 }

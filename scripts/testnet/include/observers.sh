@@ -106,11 +106,19 @@ assembleCommand_startObserverNode() {
   let "KEY_INDEX=$TOTAL_NODECOUNT - $OBSERVER_INDEX - 1"
   WORKING_DIR=$TESTNETDIR/node_working_dirs/observer$OBSERVER_INDEX
 
+  KEYS_FLAGS="-validator-key-pem-file ./config/validatorKey.pem -sk-index $KEY_INDEX"
+  # if node is running in multi key mode, in order to avoid loading the common allValidatorKeys.pem file
+  # and force generating a new key for observers, simply provide an invalid path
+  if [[ $MULTI_KEY_NODES -eq 1 ]]; then
+        TMP_MISSING_PEM="missing-file.pem"
+        KEYS_FLAGS="-all-validator-keys-pem-file $TMP_MISSING_PEM -validator-key-pem-file $TMP_MISSING_PEM"
+  fi
+
   local nodeCommand="./node \
-        --port $PORT --profile-mode --log-save --log-level $LOGLEVEL --log-logger-name --log-correlation --use-health-service --rest-api-interface localhost:$RESTAPIPORT \
-        --destination-shard-as-observer $SHARD \
-        --sk-index $KEY_INDEX \
-        --working-directory $WORKING_DIR --config-external ./config/external_observer.toml --config ./config/config_observer.toml $EXTRA_OBSERVERS_FLAGS"
+        -port $PORT --profile-mode -log-save -log-level $LOGLEVEL --log-logger-name --log-correlation --use-health-service -rest-api-interface localhost:$RESTAPIPORT \
+        -destination-shard-as-observer $SHARD \
+        $KEYS_FLAGS \
+        -working-directory $WORKING_DIR -config ./config/config_observer.toml $EXTRA_OBSERVERS_FLAGS"
 
   if [ -n "$NODE_NICENESS" ]
   then
