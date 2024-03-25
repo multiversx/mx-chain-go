@@ -31,6 +31,10 @@ import (
 	ed25519SingleSig "github.com/multiversx/mx-chain-crypto-go/signing/ed25519/singlesig"
 	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
 	mclsig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/singlesig"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
+	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
+
 	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/enablers"
@@ -129,9 +133,6 @@ import (
 	"github.com/multiversx/mx-chain-go/vm"
 	vmProcess "github.com/multiversx/mx-chain-go/vm/process"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/multiversx/mx-chain-vm-common-go/parsers"
-	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 )
 
 var zero = big.NewInt(0)
@@ -3283,6 +3284,8 @@ func GetDefaultRunTypeComponents(consensusModel consensus.ConsensusModel) *mainF
 		BootstrapperFactory:                 rt.BootstrapperCreator(),
 		SCResultsPreProcessorFactory:        rt.SCResultsPreProcessorCreator(),
 		ConsensusModelType:                  consensusModel,
+		DataCodecFactory:                    rt.DataCodecCreator(),
+		TopicsCheckerFactory:                rt.TopicsCheckerCreator(),
 	}
 }
 
