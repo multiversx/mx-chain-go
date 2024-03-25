@@ -8,14 +8,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/core/partitioning"
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
-	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/data/outport"
-	"github.com/multiversx/mx-chain-core-go/data/receipt"
 	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
@@ -76,6 +68,15 @@ import (
 	updateDisabled "github.com/multiversx/mx-chain-go/update/disabled"
 	updateFactory "github.com/multiversx/mx-chain-go/update/factory"
 	"github.com/multiversx/mx-chain-go/update/trigger"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/partitioning"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
+	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-core-go/data/receipt"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
 )
@@ -173,8 +174,8 @@ type ProcessComponentsFactoryArgs struct {
 	TxPreProcessorCreator                 preprocess.TxPreProcessorCreator
 	ExtraHeaderSigVerifierHolder          headerCheck.ExtraHeaderSigVerifierHolder
 	OutGoingOperationsPool                block.OutGoingOperationsPool
-	DataCodec                             sovereign.DataCodecProcessor
-	TopicsChecker                         sovereign.TopicsChecker
+	DataCodec                             sovereign.DataDecoderHandler
+	TopicsChecker                         sovereign.TopicsCheckerHandler
 }
 
 type processComponentsFactory struct {
@@ -221,8 +222,8 @@ type processComponentsFactory struct {
 	txPreprocessorCreator                 preprocess.TxPreProcessorCreator
 	extraHeaderSigVerifierHolder          headerCheck.ExtraHeaderSigVerifierHolder
 	outGoingOperationsPool                block.OutGoingOperationsPool
-	dataCodec                             sovereign.DataCodecProcessor
-	topicsChecker                         sovereign.TopicsChecker
+	dataCodec                             sovereign.DataDecoderHandler
+	topicsChecker                         sovereign.TopicsCheckerHandler
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory

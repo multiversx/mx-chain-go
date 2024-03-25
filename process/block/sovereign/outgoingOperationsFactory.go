@@ -3,16 +3,17 @@ package sovereign
 import (
 	"fmt"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/config"
+
+	"github.com/multiversx/mx-chain-core-go/core"
 )
 
 // CreateOutgoingOperationsFormatter creates an outgoing operations formatter
 func CreateOutgoingOperationsFormatter(
 	events []config.SubscribedEvent,
 	pubKeyConverter core.PubkeyConverter,
-	dataCodec DataCodecProcessor,
-	topicsChecker TopicsChecker,
+	dataCodec DataDecoderHandler,
+	topicsChecker TopicsCheckerHandler,
 ) (OutgoingOperationsFormatter, error) {
 	subscribedEvents, err := getSubscribedEvents(events, pubKeyConverter)
 	if err != nil {

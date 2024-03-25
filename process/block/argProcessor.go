@@ -1,11 +1,6 @@
 package block
 
 import (
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
-	"github.com/multiversx/mx-chain-core-go/hashing"
-	"github.com/multiversx/mx-chain-core-go/marshal"
 	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
@@ -19,6 +14,12 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 )
 
 type coreComponentsHolder interface {
@@ -98,8 +99,8 @@ type ArgBaseProcessor struct {
 	ManagedPeersHolder             common.ManagedPeersHolder
 	ValidatorStatisticsProcessor   process.ValidatorStatisticsProcessor
 	OutGoingOperationsPool         OutGoingOperationsPool
-	DataCodec                      sovereign.DataCodecProcessor
-	TopicsChecker                  sovereign.TopicsChecker
+	DataCodec                      sovereign.DataDecoderHandler
+	TopicsChecker                  sovereign.TopicsCheckerHandler
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create
