@@ -292,7 +292,7 @@ func (ihnc *indexHashedNodesCoordinator) setNodesPerShards(
 		numTotalEligible += uint64(nbNodesShard)
 	}
 
-	return ihnc.baseSetNodesPerShard(nodesConfig, numTotalEligible, eligible, waiting, leaving, epoch)
+	return ihnc.baseSetNodesPerShard(nodesConfig, numTotalEligible, eligible, waiting, leaving, shuffledOut, epoch)
 }
 
 func (ihnc *indexHashedNodesCoordinator) baseSetNodesPerShard(
@@ -301,6 +301,7 @@ func (ihnc *indexHashedNodesCoordinator) baseSetNodesPerShard(
 	eligible map[uint32][]Validator,
 	waiting map[uint32][]Validator,
 	leaving map[uint32][]Validator,
+	shuffledOut map[uint32][]Validator,
 	epoch uint32,
 ) error {
 	var err error
