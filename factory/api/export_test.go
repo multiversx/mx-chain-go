@@ -55,7 +55,7 @@ func CreateScQueryElement(args SCQueryElementArgs) (process.SCQueryService, comm
 
 // CreateArgsSCQueryService -
 func CreateArgsSCQueryService(args SCQueryElementArgs) (*smartContract.ArgsNewSCQueryService, error) {
-	return createArgsSCQueryService(&scQueryElementArgs{
+	argsSCQuery, _, err := createArgsSCQueryService(&scQueryElementArgs{
 		generalConfig:         args.GeneralConfig,
 		epochConfig:           args.EpochConfig,
 		coreComponents:        args.CoreComponents,
@@ -73,6 +73,8 @@ func CreateArgsSCQueryService(args SCQueryElementArgs) (*smartContract.ArgsNewSC
 		guardedAccountHandler: args.GuardedAccountHandler,
 		runTypeComponents:     args.RunTypeComponents,
 	})
+
+	return argsSCQuery, err
 }
 
 // CreateBlockchainForScQuery -

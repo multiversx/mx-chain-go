@@ -174,7 +174,7 @@ func (mpc *managedProcessComponents) CheckSubcomponents() error {
 	if check.IfNil(mpc.processComponents.esdtDataStorageForApi) {
 		return errors.ErrNilESDTDataStorage
 	}
-	if check.IfNil(m.processComponents.sentSignaturesTracker) {
+	if check.IfNil(mpc.processComponents.sentSignaturesTracker) {
 		return errors.ErrNilSentSignatureTracker
 	}
 

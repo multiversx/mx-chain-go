@@ -173,12 +173,12 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorForMeta(
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 	}
 
-	args.BlockChainHook = vmContainerFactory.BlockChainHookImpl()
-
 	vmContainer, vmFactory, err := pcf.runTypeComponents.VmContainerMetaFactoryCreator().CreateVmContainerFactory(argsHook, argsNewVmContainerFactory)
 	if err != nil {
 		return args, nil, nil, err
 	}
+
+	args.BlockChainHook = vmFactory.BlockChainHookImpl()
 
 	txTypeHandler, err := pcf.createTxTypeHandler(builtInFuncFactory)
 	if err != nil {
@@ -375,6 +375,8 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorShard(
 	if err != nil {
 		return args, nil, nil, err
 	}
+
+	args.BlockChainHook = vmFactory.BlockChainHookImpl()
 
 	err = builtInFuncFactory.SetPayableHandler(vmFactory.BlockChainHookImpl())
 	if err != nil {

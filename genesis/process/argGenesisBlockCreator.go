@@ -93,7 +93,6 @@ type ArgsGenesisBlockCreator struct {
 	// created components
 	importHandler          update.ImportHandler
 	versionedHeaderFactory genesis.VersionedHeaderFactory
-	importHandler update.ImportHandler
 
 	ShardCoordinatorFactory sharding.ShardCoordinatorFactory
 	DNSV2Addresses          []string

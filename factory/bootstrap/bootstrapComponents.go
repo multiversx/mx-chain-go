@@ -70,7 +70,7 @@ type bootstrapComponents struct {
 	versionedHeaderFactory          nodeFactory.VersionedHeaderFactory
 	headerIntegrityVerifier         nodeFactory.HeaderIntegrityVerifierHandler
 	guardedAccountHandler           process.GuardedAccountHandler
-	nodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory
+	nodesCoordinatorRegistryFactory nodesCoord.NodesCoordinatorRegistryFactory
 }
 
 // NewBootstrapComponentsFactory creates an instance of bootstrapComponentsFactory
@@ -215,7 +215,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		return nil, err
 	}
 
-	nodesCoordinatorRegistryFactory, err := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
+	nodesCoordinatorRegistryFactory, err := nodesCoord.NewNodesCoordinatorRegistryFactory(
 		bcf.coreComponents.InternalMarshalizer(),
 		bcf.coreComponents.EnableEpochsHandler().GetActivationEpoch(common.StakingV4Step2Flag),
 	)
@@ -224,33 +224,34 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 	}
 
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
-		CoreComponentsHolder:            bcf.coreComponents,
-		CryptoComponentsHolder:          bcf.cryptoComponents,
-		MainMessenger:                   bcf.networkComponents.NetworkMessenger(),
-		FullArchiveMessenger:            bcf.networkComponents.FullArchiveNetworkMessenger(),
-		GeneralConfig:                   bcf.config,
-		PrefsConfig:                     bcf.prefConfig.Preferences,
-		FlagsConfig:                     bcf.flagsConfig,
-		EconomicsData:                   bcf.coreComponents.EconomicsData(),
-		GenesisNodesConfig:              bcf.coreComponents.GenesisNodesSetup(),
-		GenesisShardCoordinator:         genesisShardCoordinator,
-		StorageUnitOpener:               unitOpener,
-		Rater:                           bcf.coreComponents.Rater(),
-		DestinationShardAsObserver:      destShardIdAsObserver,
-		NodeShuffler:                    bcf.coreComponents.NodesShuffler(),
-		RoundHandler:                    bcf.coreComponents.RoundHandler(),
-		LatestStorageDataProvider:       latestStorageDataProvider,
-		ArgumentsParser:                 smartContract.NewArgumentParser(),
-		StatusHandler:                   bcf.statusCoreComponents.AppStatusHandler(),
-		HeaderIntegrityVerifier:         headerIntegrityVerifier,
-		DataSyncerCreator:               dataSyncerFactory,
-		ScheduledSCRsStorer:             nil, // will be updated after sync from network
-		TrieSyncStatisticsProvider:      tss,
-		NodeProcessingMode:              common.GetNodeProcessingMode(&bcf.importDbConfig),
-		StateStatsHandler:               bcf.statusCoreComponents.StateStatsHandler(),
-		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
-		ShardCoordinatorFactory:         bcf.shardCoordinatorFactory,
-		AdditionalStorageServiceCreator: bcf.runTypeComponents.AdditionalStorageServiceCreator(),
+		CoreComponentsHolder:             bcf.coreComponents,
+		CryptoComponentsHolder:           bcf.cryptoComponents,
+		MainMessenger:                    bcf.networkComponents.NetworkMessenger(),
+		FullArchiveMessenger:             bcf.networkComponents.FullArchiveNetworkMessenger(),
+		GeneralConfig:                    bcf.config,
+		PrefsConfig:                      bcf.prefConfig.Preferences,
+		FlagsConfig:                      bcf.flagsConfig,
+		EconomicsData:                    bcf.coreComponents.EconomicsData(),
+		GenesisNodesConfig:               bcf.coreComponents.GenesisNodesSetup(),
+		GenesisShardCoordinator:          genesisShardCoordinator,
+		StorageUnitOpener:                unitOpener,
+		Rater:                            bcf.coreComponents.Rater(),
+		DestinationShardAsObserver:       destShardIdAsObserver,
+		NodeShuffler:                     bcf.coreComponents.NodesShuffler(),
+		RoundHandler:                     bcf.coreComponents.RoundHandler(),
+		LatestStorageDataProvider:        latestStorageDataProvider,
+		ArgumentsParser:                  smartContract.NewArgumentParser(),
+		StatusHandler:                    bcf.statusCoreComponents.AppStatusHandler(),
+		HeaderIntegrityVerifier:          headerIntegrityVerifier,
+		DataSyncerCreator:                dataSyncerFactory,
+		ScheduledSCRsStorer:              nil, // will be updated after sync from network
+		TrieSyncStatisticsProvider:       tss,
+		NodeProcessingMode:               common.GetNodeProcessingMode(&bcf.importDbConfig),
+		StateStatsHandler:                bcf.statusCoreComponents.StateStatsHandler(),
+		NodesCoordinatorWithRaterFactory: bcf.nodesCoordinatorWithRaterFactory,
+		NodesCoordinatorRegistryFactory:  nodesCoordinatorRegistryFactory,
+		ShardCoordinatorFactory:          bcf.shardCoordinatorFactory,
+		AdditionalStorageServiceCreator:  bcf.runTypeComponents.AdditionalStorageServiceCreator(),
 	}
 
 	var epochStartBootstrapper factory.EpochStartBootstrapper

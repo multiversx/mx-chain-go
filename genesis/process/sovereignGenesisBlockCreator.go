@@ -81,7 +81,7 @@ func (gbc *sovereignGenesisBlockCreator) initGenesisAccounts() error {
 }
 
 func (gbc *sovereignGenesisBlockCreator) createSovereignEmptyGenesisBlocks() (map[uint32]data.HeaderHandler, error) {
-	err := gbc.computeSovereignDNSAddresses(createSovereignGenesisConfig())
+	err := gbc.computeSovereignDNSAddresses(createSovereignGenesisConfig(gbc.arg.EpochConfig.EnableEpochs))
 	if err != nil {
 		return nil, err
 	}
@@ -102,8 +102,8 @@ func (gbc *sovereignGenesisBlockCreator) createSovereignEmptyGenesisBlocks() (ma
 	return mapEmptyGenesisBlocks, nil
 }
 
-func createSovereignGenesisConfig() config.EnableEpochs {
-	cfg := createGenesisConfig()
+func createSovereignGenesisConfig(providedEnableEpochs config.EnableEpochs) config.EnableEpochs {
+	cfg := createGenesisConfig(providedEnableEpochs)
 	cfg.ESDTMultiTransferEnableEpoch = 0
 	return cfg
 }
@@ -163,8 +163,8 @@ func createSovereignShardGenesisBlock(
 	arg ArgsGenesisBlockCreator,
 	nodesListSplitter genesis.NodesListSplitter,
 ) (data.HeaderHandler, [][]byte, *genesis.IndexingData, error) {
-	sovereignGenesisConfig := createSovereignGenesisConfig()
-	shardProcessors, err := createProcessorsForShardGenesisBlock(arg, sovereignGenesisConfig, createGenesisRoundConfig())
+	sovereignGenesisConfig := createSovereignGenesisConfig(arg.EpochConfig.EnableEpochs)
+	shardProcessors, err := createProcessorsForShardGenesisBlock(arg, sovereignGenesisConfig, createGenesisRoundConfig(arg.RoundConfig))
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -174,7 +174,7 @@ func createSovereignShardGenesisBlock(
 		return nil, nil, nil, err
 	}
 
-	metaProcessor, err := createProcessorsForMetaGenesisBlock(arg, sovereignGenesisConfig, createGenesisRoundConfig())
+	metaProcessor, err := createProcessorsForMetaGenesisBlock(arg, sovereignGenesisConfig, createGenesisRoundConfig(arg.RoundConfig))
 	if err != nil {
 		return nil, nil, nil, err
 	}

@@ -11,7 +11,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
-	disabledStatistics "github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	factoryErrors "github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/api"
@@ -35,6 +34,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	stateMocks "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/require"
@@ -209,7 +209,7 @@ func TestCreateApiResolver(t *testing.T) {
 		failingStepsInstance.marshallerFailingStep = 4
 		apiResolver, err := api.CreateApiResolver(failingArgs)
 		require.NotNil(t, err)
-		require.True(t, strings.Contains(strings.ToLower(err.Error()), "marshaller"))
+		require.True(t, strings.Contains(strings.ToLower(err.Error()), "marshalizer"))
 		require.True(t, check.IfNil(apiResolver))
 	})
 	t.Run("DecodeAddresses fails should error", func(t *testing.T) {
@@ -217,7 +217,7 @@ func TestCreateApiResolver(t *testing.T) {
 		failingStepsInstance.addressPublicKeyConverterFailingStep = 3
 		apiResolver, err := api.CreateApiResolver(failingArgs)
 		require.NotNil(t, err)
-		require.True(t, strings.Contains(strings.ToLower(err.Error()), "public key converter"))
+		require.True(t, strings.Contains(strings.ToLower(err.Error()), "nil address converter"))
 		require.True(t, check.IfNil(apiResolver))
 	})
 	t.Run("createBuiltinFuncs fails should error", func(t *testing.T) {
@@ -233,8 +233,7 @@ func TestCreateApiResolver(t *testing.T) {
 		failingStepsInstance.marshallerFailingStep = 8
 		apiResolver, err := api.CreateApiResolver(failingArgs)
 		require.NotNil(t, err)
-		println(err.Error())
-		require.True(t, strings.Contains(strings.ToLower(err.Error()), "marshaller"))
+		require.True(t, strings.Contains(strings.ToLower(err.Error()), "marshalizer"))
 		require.True(t, check.IfNil(apiResolver))
 	})
 	t.Run("NewTxTypeHandler fails should error", func(t *testing.T) {
@@ -258,7 +257,7 @@ func TestCreateApiResolver(t *testing.T) {
 		failingStepsInstance.marshallerFailingStep = 10
 		apiResolver, err := api.CreateApiResolver(failingArgs)
 		require.NotNil(t, err)
-		require.True(t, strings.Contains(strings.ToLower(err.Error()), "marshalizer"))
+		require.True(t, strings.Contains(strings.ToLower(err.Error()), "marshaller"))
 		require.True(t, check.IfNil(apiResolver))
 	})
 	t.Run("NewOperationDataFieldParser fails should error", func(t *testing.T) {
@@ -306,7 +305,7 @@ func TestCreateApiResolver(t *testing.T) {
 		failingStepsInstance.addressPublicKeyConverterFailingStep = 10
 		apiResolver, err := api.CreateApiResolver(failingArgs)
 		require.NotNil(t, err)
-		require.True(t, strings.Contains(strings.ToLower(err.Error()), "public key converter"))
+		require.True(t, strings.Contains(strings.ToLower(err.Error()), "pubkey converter"))
 		require.True(t, check.IfNil(apiResolver))
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -417,6 +416,7 @@ func createMockSCQueryElementArgs(shardId uint32) api.SCQueryElementArgs {
 			ShardCoord: &testscommon.ShardsCoordinatorMock{
 				CurrentShard: shardId,
 			},
+			NodesCoord: &shardingMocks.NodesCoordinatorStub{},
 		},
 		GasScheduleNotifier: &testscommon.GasScheduleNotifierMock{
 			LatestGasScheduleCalled: func() map[string]map[string]uint64 {
@@ -447,7 +447,7 @@ func createMockSCQueryElementArgs(shardId uint32) api.SCQueryElementArgs {
 				OwnerAddress: "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80",
 			},
 			StakingSystemSCConfig: config.StakingSystemSCConfig{
-				GenesisNodePrice:                     "2500000000000000000000",
+				GenesisNodePrice:                     "1000",
 				MinStakeValue:                        "1",
 				UnJailValue:                          "1",
 				MinStepValue:                         "1",
@@ -458,6 +458,8 @@ func createMockSCQueryElementArgs(shardId uint32) api.SCQueryElementArgs {
 				MaxNumberOfNodesForStake:             10,
 				ActivateBLSPubKeyMessageVerification: false,
 				MinUnstakeTokensValue:                "1",
+				NodeLimitPercentage:                  100.0,
+				StakeLimitPercentage:                 100.0,
 			},
 			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
 				MinCreationDeposit:  "100",

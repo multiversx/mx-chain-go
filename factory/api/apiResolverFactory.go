@@ -357,15 +357,19 @@ func createScQueryService(
 func createScQueryElement(
 	args scQueryElementArgs,
 ) (process.SCQueryService, common.StorageManager, error) {
-	argsNewSCQueryService, err := createArgsSCQueryService(args)
+	argsNewSCQueryService, storageMapper, err := createArgsSCQueryService(&args)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+	scQueryService, err := smartContract.NewSCQueryService(*argsNewSCQueryService)
+	if err != nil {
+		return nil, nil, err
 	}
 
-	return smartContract.NewSCQueryService(*argsNewSCQueryService)
+	return scQueryService, storageMapper, nil
 }
 
-func createArgsSCQueryService(args *scQueryElementArgs) (*smartContract.ArgsNewSCQueryService, error) {
+func createArgsSCQueryService(args *scQueryElementArgs) (*smartContract.ArgsNewSCQueryService, common.StorageManager, error) {
 	var err error
 
 	selfShardID := args.processComponents.ShardCoordinator().SelfId()
@@ -451,7 +455,7 @@ func createArgsSCQueryService(args *scQueryElementArgs) (*smartContract.ArgsNewS
 			return nil, nil, err
 		}
 
-		argsHook.Accounts, err = createNewAccountsAdapterApi(args, argsHook.BlockChain)
+		argsHook.Accounts, storageManager, err = createNewAccountsAdapterApi(args, argsHook.BlockChain)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -470,6 +474,7 @@ func createArgsSCQueryService(args *scQueryElementArgs) (*smartContract.ArgsNewS
 			ChanceComputer:             args.coreComponents.Rater(),
 			ShardCoordinator:           args.processComponents.ShardCoordinator(),
 			EnableEpochsHandler:        args.coreComponents.EnableEpochsHandler(),
+			NodesCoordinator:           args.processComponents.NodesCoordinator(),
 			IsInHistoricalBalancesMode: args.isInHistoricalBalancesMode,
 		}
 
@@ -477,18 +482,18 @@ func createArgsSCQueryService(args *scQueryElementArgs) (*smartContract.ArgsNewS
 	} else {
 		argsHook.BlockChain, err = blockchain.NewBlockChain(disabled.NewAppStatusHandler())
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
-		argsHook.Accounts, err = createNewAccountsAdapterApi(args, argsHook.BlockChain)
+		argsHook.Accounts, storageManager, err = createNewAccountsAdapterApi(args, argsHook.BlockChain)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		queryVirtualMachineConfig := args.generalConfig.VirtualMachine.Querying.VirtualMachineConfig
 		esdtTransferParser, errParser := parsers.NewESDTTransferParser(args.coreComponents.InternalMarshalizer())
 		if errParser != nil {
-			return nil, errParser
+			return nil, nil, errParser
 		}
 
 		argsNewVmContainerFactory := factoryVm.ArgsVmContainerFactory{
@@ -511,19 +516,20 @@ func createArgsSCQueryService(args *scQueryElementArgs) (*smartContract.ArgsNewS
 			UserAccountsDB:      args.stateComponents.AccountsAdapterAPI(),
 			ChanceComputer:      args.coreComponents.Rater(),
 			ShardCoordinator:    args.processComponents.ShardCoordinator(),
+			NodesCoordinator:    args.processComponents.NodesCoordinator(),
 		}
 
 		vmContainer, vmFactory, err = args.runTypeComponents.VmContainerShardFactoryCreator().CreateVmContainerFactory(argsHook, argsNewVmContainerFactory)
 	}
 
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	log.Debug("maximum gas per VM Query", "value", maxGasForVmQueries)
 
 	err = vmFactory.BlockChainHookImpl().SetVMContainer(vmContainer)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	err = builtInFuncFactory.SetPayableHandler(vmFactory.BlockChainHookImpl())
@@ -547,11 +553,20 @@ func createArgsSCQueryService(args *scQueryElementArgs) (*smartContract.ArgsNewS
 		Marshaller:               args.coreComponents.InternalMarshalizer(),
 		Hasher:                   args.coreComponents.Hasher(),
 		Uint64ByteSliceConverter: args.coreComponents.Uint64ByteSliceConverter(),
-	}, nil
+	}, storageManager, nil
 }
 
-func createNewAccountsAdapterApi(args *scQueryElementArgs, chainHandler data.ChainHandler) (state.AccountsAdapterAPI, error) {
-	storagePruning, err := newStoragePruningManager(args)
+func createBlockchainForScQuery(selfShardID uint32) (data.ChainHandler, error) {
+	isMetachain := selfShardID == core.MetachainShardId
+	if isMetachain {
+		return blockchain.NewMetaChain(disabled.NewAppStatusHandler())
+	}
+
+	return blockchain.NewBlockChain(disabled.NewAppStatusHandler())
+}
+
+func createNewAccountsAdapterApi(args *scQueryElementArgs, chainHandler data.ChainHandler) (state.AccountsAdapterAPI, common.StorageManager, error) {
+	storagePruning, err := newStoragePruningManager(*args)
 	if err != nil {
 		return nil, nil, err
 	}

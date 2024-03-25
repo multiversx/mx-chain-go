@@ -3,10 +3,11 @@ package process
 import (
 	"errors"
 	"fmt"
-	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	"math"
 	"math/big"
 	"sync"
+
+	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -86,7 +87,10 @@ func CreateShardGenesisBlock(
 		return createShardGenesisBlockAfterHardFork(arg, body, hardForkBlockProcessor)
 	}
 
-	processors, err := createProcessorsForShardGenesisBlock(arg, createGenesisConfig(), createGenesisRoundConfig())
+	processors, err := createProcessorsForShardGenesisBlock(
+		arg, createGenesisConfig(arg.EpochConfig.EnableEpochs),
+		createGenesisRoundConfig(arg.RoundConfig),
+	)
 	if err != nil {
 		return nil, nil, nil, err
 	}

@@ -302,7 +302,7 @@ func (ncm *NodesCoordinatorMock) EpochStartPrepare(_ data.HeaderHandler, _ data.
 }
 
 // NodesCoordinatorToRegistry -
-func (ncm *NodesCoordinatorMock) NodesCoordinatorToRegistry() *nodesCoordinator.NodesCoordinatorRegistry {
+func (ncm *NodesCoordinatorMock) NodesCoordinatorToRegistry(_ uint32) nodesCoordinator.NodesCoordinatorRegistryHandler {
 	return nil
 }
 

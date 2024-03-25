@@ -483,10 +483,6 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		DataCodec:                    pcf.dataCodec,
 		TopicsChecker:                pcf.topicsChecker,
 	}
-	arguments := block.ArgShardProcessor{
-		ArgBaseProcessor: argumentsBaseProcessor,
-	}
-
 	blockProcessor, err := pcf.createBlockProcessor(argumentsBaseProcessor)
 	if err != nil {
 		return nil, err
