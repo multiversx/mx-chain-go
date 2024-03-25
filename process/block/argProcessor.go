@@ -10,7 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/cutoff"
-	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -99,8 +98,6 @@ type ArgBaseProcessor struct {
 	ManagedPeersHolder             common.ManagedPeersHolder
 	ValidatorStatisticsProcessor   process.ValidatorStatisticsProcessor
 	OutGoingOperationsPool         OutGoingOperationsPool
-	DataCodec                      sovereign.DataDecoderHandler
-	TopicsChecker                  sovereign.TopicsCheckerHandler
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create

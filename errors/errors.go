@@ -787,3 +787,9 @@ var ErrNilTopicsChecker = errors.New("nil topics checker")
 
 // ErrNilOperationsHasher signals that a nil outgoing operations hasher has been provided
 var ErrNilOperationsHasher = errors.New("nil outgoing operations hasher")
+
+// ErrNilDataCodecCreator signals that a nil data codec creator has been provided
+var ErrNilDataCodecCreator = errors.New("nil data codec creator")
+
+// ErrNilTopicsCheckerCreator signals that a nil topics checker creator has been provided
+var ErrNilTopicsCheckerCreator = errors.New("nil topics checker creator")

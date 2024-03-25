@@ -261,8 +261,6 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 		ExtraHeaderSigVerifierHolder:          &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
 		OutGoingOperationsPool:                &sovereign.OutGoingOperationsPoolMock{},
 		IncomingHeaderSubscriber:              &sovereign.IncomingHeaderSubscriberStub{},
-		DataCodec:                             &sovereign.DataCodecMock{},
-		TopicsChecker:                         &sovereign.TopicsCheckerMock{},
 		RunTypeComponents:                     components.GetRunTypeComponents(),
 	}
 
@@ -804,6 +802,8 @@ func getRunTypeComponentsMock() *mainFactoryMocks.RunTypeComponentsStub {
 		SCResultsPreProcessorFactory:        rt.SCResultsPreProcessorCreator(),
 		VmContainerMetaFactory:              rt.VmContainerMetaFactoryCreator(),
 		VmContainerShardFactory:             rt.VmContainerShardFactoryCreator(),
+		DataCodecFactory:                    rt.DataCodecCreator(),
+		TopicsCheckerFactory:                rt.TopicsCheckerCreator(),
 	}
 }
 

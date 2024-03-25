@@ -310,8 +310,14 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
+	log.Debug("creating args for runType components")
+	argsSovereignRunTypeComponents, err := snr.CreateArgsRunTypeComponents()
+	if err != nil {
+		return true, err
+	}
+
 	log.Debug("creating runType components")
-	managedRunTypeComponents, err := snr.CreateManagedRunTypeComponents(managedCoreComponents, *configs.SovereignExtraConfig)
+	managedRunTypeComponents, err := snr.CreateManagedRunTypeComponents(managedCoreComponents, *argsSovereignRunTypeComponents)
 	if err != nil {
 		return true, err
 	}
@@ -445,25 +451,12 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 	timeToWait := time.Second * time.Duration(snr.configs.SovereignExtraConfig.OutgoingSubscribedEvents.TimeToWaitForUnconfirmedOutGoingOperationInSeconds)
 	outGoingOperationsPool := sovereignPool.NewOutGoingOperationPool(timeToWait)
 
-	codec := abi.NewDefaultCodec()
-	argsDataCodec := dataCodec.ArgsDataCodec{
-		Serializer: abi.NewSerializer(codec),
-	}
-
-	dataCodecProcessor, err := dataCodec.NewDataCodec(argsDataCodec)
-	if err != nil {
-		return true, err
-	}
-
-	topicsChecker := incomingHeader.NewTopicsChecker()
-
 	incomingHeaderHandler, err := createIncomingHeaderProcessor(
 		&configs.SovereignExtraConfig.NotifierConfig,
 		managedDataComponents.Datapool(),
 		configs.SovereignExtraConfig.MainChainNotarization.MainChainNotarizationStartRound,
 		outGoingOperationsPool,
-		dataCodecProcessor,
-		topicsChecker,
+		managedRunTypeComponents,
 	)
 
 	managedProcessComponents, err := snr.CreateManagedProcessComponents(
@@ -480,8 +473,6 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		nodesCoordinatorInstance,
 		incomingHeaderHandler,
 		outGoingOperationsPool,
-		dataCodecProcessor,
-		topicsChecker,
 	)
 	if err != nil {
 		return true, err
@@ -1244,8 +1235,6 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	incomingHeaderHandler process.IncomingHeaderSubscriber,
 	outGoingOperationsPool block.OutGoingOperationsPool,
-	dataCodec dataCodec.SovereignDataDecoder,
-	topicsChecker incomingHeader.TopicsChecker,
 ) (mainFactory.ProcessComponentsHandler, error) {
 	configs := snr.configs
 	configurationPaths := snr.configs.ConfigurationPathsHolder
@@ -1375,8 +1364,6 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 		TxPreProcessorCreator:                 preprocess.NewSovereignTxPreProcessorCreator(),
 		ExtraHeaderSigVerifierHolder:          extraHeaderSigVerifierHolder,
 		OutGoingOperationsPool:                outGoingOperationsPool,
-		DataCodec:                             dataCodec,
-		TopicsChecker:                         topicsChecker,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1680,8 +1667,30 @@ func (snr *sovereignNodeRunner) CreateManagedCryptoComponents(
 	return managedCryptoComponents, nil
 }
 
+func (snr *sovereignNodeRunner) CreateArgsRunTypeComponents() (*runType.ArgsSovereignRunTypeComponents, error) {
+	sovereignCfg := snr.configs.SovereignExtraConfig
+
+	codec := abi.NewDefaultCodec()
+	argsDataCodec := dataCodec.ArgsDataCodec{
+		Serializer: abi.NewSerializer(codec),
+	}
+
+	dataCodecHandler, err := dataCodec.NewDataCodec(argsDataCodec)
+	if err != nil {
+		return nil, err
+	}
+
+	topicsCheckerHandler := incomingHeader.NewTopicsChecker()
+
+	return &runType.ArgsSovereignRunTypeComponents{
+		Config:        *sovereignCfg,
+		DataCodec:     dataCodecHandler,
+		TopicsChecker: topicsCheckerHandler,
+	}, nil
+}
+
 // CreateManagedRunTypeComponents creates the managed runType components
-func (snr *sovereignNodeRunner) CreateManagedRunTypeComponents(coreComp mainFactory.CoreComponentsHandler, cfg config.SovereignConfig) (mainFactory.RunTypeComponentsHandler, error) {
+func (snr *sovereignNodeRunner) CreateManagedRunTypeComponents(coreComp mainFactory.CoreComponentsHandler, args runType.ArgsSovereignRunTypeComponents) (mainFactory.RunTypeComponentsHandler, error) {
 	runTypeComponentsFactory, err := runType.NewRunTypeComponentsFactory(coreComp)
 	if err != nil {
 		return nil, fmt.Errorf("NewRunTypeComponentsFactory failed: %w", err)
@@ -1689,7 +1698,7 @@ func (snr *sovereignNodeRunner) CreateManagedRunTypeComponents(coreComp mainFact
 
 	sovereignRunTypeComponentsFactory, err := runType.NewSovereignRunTypeComponentsFactory(
 		runTypeComponentsFactory,
-		cfg,
+		args,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("NewSovereignRunTypeComponentsFactory failed: %w", err)
@@ -1868,8 +1877,7 @@ func createIncomingHeaderProcessor(
 	dataPool dataRetriever.PoolsHolder,
 	mainChainNotarizationStartRound uint64,
 	outGoingOperationsPool block.OutGoingOperationsPool,
-	dataCodec dataCodec.SovereignDataDecoder,
-	topicsChecker incomingHeader.TopicsChecker,
+	runTypeComponents mainFactory.RunTypeComponentsHolder,
 ) (process.IncomingHeaderSubscriber, error) {
 	marshaller, err := marshallerFactory.NewMarshalizer(config.WebSocketConfig.MarshallerType)
 	if err != nil {
@@ -1887,8 +1895,8 @@ func createIncomingHeaderProcessor(
 		Hasher:                          hasher,
 		MainChainNotarizationStartRound: mainChainNotarizationStartRound,
 		OutGoingOperationsPool:          outGoingOperationsPool,
-		DataCodec:                       dataCodec,
-		TopicsChecker:                   topicsChecker,
+		DataCodec:                       runTypeComponents.DataCodecCreator().CreateDataCodec(),
+		TopicsChecker:                   runTypeComponents.TopicsCheckerCreator().CreateTopicsChecker(),
 	}
 
 	return incomingHeader.NewIncomingHeaderProcessor(argsIncomingHeaderHandler)

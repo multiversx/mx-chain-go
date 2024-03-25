@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
+	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
@@ -17,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/state"
 	testFactory "github.com/multiversx/mx-chain-go/testscommon/factory"
+	sovereignMocks "github.com/multiversx/mx-chain-go/testscommon/sovereign"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 )
 
@@ -41,6 +43,8 @@ type RunTypeComponentsStub struct {
 	VmContainerMetaFactory              factoryVm.VmContainerCreator
 	VmContainerShardFactory             factoryVm.VmContainerCreator
 	AccountCreator                      state.AccountFactory
+	DataCodecFactory                    sovereign.DataDecoderCreator
+	TopicsCheckerFactory                sovereign.TopicsCheckerCreator
 }
 
 // NewRunTypeComponentsStub -
@@ -65,6 +69,8 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		VmContainerMetaFactory:              &testFactory.VMContainerMetaFactoryMock{},
 		VmContainerShardFactory:             &testFactory.VMContainerShardFactoryMock{},
 		AccountCreator:                      &stateMock.AccountsFactoryStub{},
+		DataCodecFactory:                    &sovereignMocks.DataCodecFactoryMock{},
+		TopicsCheckerFactory:                &sovereignMocks.TopicsCheckerFactoryMock{},
 	}
 }
 
@@ -181,6 +187,14 @@ func (r *RunTypeComponentsStub) VmContainerShardFactoryCreator() factoryVm.VmCon
 // AccountsCreator -
 func (r *RunTypeComponentsStub) AccountsCreator() state.AccountFactory {
 	return r.AccountCreator
+}
+
+func (r *RunTypeComponentsStub) DataCodecCreator() sovereign.DataDecoderCreator {
+	return r.DataCodecFactory
+}
+
+func (r *RunTypeComponentsStub) TopicsCheckerCreator() sovereign.TopicsCheckerCreator {
+	return r.TopicsCheckerFactory
 }
 
 // IsInterfaceNil -
