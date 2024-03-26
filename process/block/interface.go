@@ -2,9 +2,9 @@ package block
 
 import (
 	"github.com/multiversx/mx-chain-go/common"
-	factorySovereign "github.com/multiversx/mx-chain-go/factory/sovereign"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
+	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/state"
 
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -75,7 +75,7 @@ type HeaderValidatorCreator interface {
 
 type runTypeComponentsHolder interface {
 	AccountsCreator() state.AccountFactory
-	DataCodecCreator() factorySovereign.DataDecoderCreator
-	TopicsCheckerCreator() factorySovereign.TopicsCheckerCreator
+	DataCodecHandler() sovereign.DataDecoderHandler
+	TopicsCheckerHandler() sovereign.TopicsCheckerHandler
 	IsInterfaceNil() bool
 }

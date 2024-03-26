@@ -4,11 +4,11 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
-	factorySovereign "github.com/multiversx/mx-chain-go/factory/sovereign"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
+	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
@@ -18,7 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/state"
 	testFactory "github.com/multiversx/mx-chain-go/testscommon/factory"
-	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	sovereignMocks "github.com/multiversx/mx-chain-go/testscommon/sovereign"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 )
 
@@ -44,8 +44,8 @@ type RunTypeComponentsStub struct {
 	VmContainerShardFactory             factoryVm.VmContainerCreator
 	AccountCreator                      state.AccountFactory
 	OutGoingOperationsPool              block.OutGoingOperationsPoolCreator
-	DataCodecFactory                    factorySovereign.DataDecoderCreator
-	TopicsCheckerFactory                factorySovereign.TopicsCheckerCreator
+	DataCodec                           sovereign.DataDecoderHandler
+	TopicsChecker                       sovereign.TopicsCheckerHandler
 }
 
 // NewRunTypeComponentsStub -
@@ -71,8 +71,8 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		VmContainerShardFactory:             &testFactory.VMContainerShardFactoryMock{},
 		AccountCreator:                      &stateMock.AccountsFactoryStub{},
 		OutGoingOperationsPool:              &genericMocks.OutGoingOperationsFactoryMock{},
-		DataCodecFactory:                    &genericMocks.DataCodecFactoryMock{},
-		TopicsCheckerFactory:                &genericMocks.TopicsCheckerFactoryMock{},
+		DataCodec:                           &sovereignMocks.DataCodecMock{},
+		TopicsChecker:                       &sovereignMocks.TopicsCheckerMock{},
 	}
 }
 
@@ -195,12 +195,12 @@ func (r *RunTypeComponentsStub) OutGoingOperationsPoolCreator() block.OutGoingOp
 	return r.OutGoingOperationsPool
 }
 
-func (r *RunTypeComponentsStub) DataCodecCreator() factorySovereign.DataDecoderCreator {
-	return r.DataCodecFactory
+func (r *RunTypeComponentsStub) DataCodecHandler() sovereign.DataDecoderHandler {
+	return r.DataCodec
 }
 
-func (r *RunTypeComponentsStub) TopicsCheckerCreator() factorySovereign.TopicsCheckerCreator {
-	return r.TopicsCheckerFactory
+func (r *RunTypeComponentsStub) TopicsCheckerHandler() sovereign.TopicsCheckerHandler {
+	return r.TopicsChecker
 }
 
 // IsInterfaceNil -

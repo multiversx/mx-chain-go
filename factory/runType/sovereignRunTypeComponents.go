@@ -9,7 +9,6 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/errors"
-	factorySovereign "github.com/multiversx/mx-chain-go/factory/sovereign"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
@@ -155,15 +154,9 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 
 	outGoingOperationsPoolCreator := sovereignFactory.NewSovereignOutGoingOperationPoolFactory(rcf.cfg.OutgoingSubscribedEvents.TimeToWaitForUnconfirmedOutGoingOperationInSeconds)
 
-	dataCodecCreator, err := factorySovereign.NewSovereignDataCodecFactory(rcf.dataCodec)
-	if err != nil {
-		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignDataCodecFactory failed: %w", err)
-	}
+	dataCodec := rcf.dataCodec
 
-	topicsCheckerCreator, err := factorySovereign.NewSovereignTopicsCheckerFactory(rcf.topicsChecker)
-	if err != nil {
-		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignTopicsCheckerFactory failed: %w", err)
-	}
+	topicsChecker := rcf.topicsChecker
 
 	return &runTypeComponents{
 		blockChainHookHandlerCreator:        blockChainHookHandlerFactory,
@@ -186,7 +179,7 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		vmContainerShardFactory:             vmContainerShardCreator,
 		accountsCreator:                     accountsCreator,
 		outGoingOperationsPoolCreator:       outGoingOperationsPoolCreator,
-		dataCodecCreator:                    dataCodecCreator,
-		topicsCheckerCreator:                topicsCheckerCreator,
+		dataCodecHandler:                    dataCodec,
+		topicsCheckerHandler:                topicsChecker,
 	}, nil
 }
