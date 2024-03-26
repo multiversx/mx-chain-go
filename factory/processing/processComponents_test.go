@@ -260,7 +260,6 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 		ShardResolversContainerFactoryCreator: resolverscontainer.NewShardResolversContainerFactoryCreator(),
 		TxPreProcessorCreator:                 preprocess.NewTxPreProcessorCreator(),
 		ExtraHeaderSigVerifierHolder:          &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
-		OutGoingOperationsPool:                &sovereign.OutGoingOperationsPoolMock{},
 		IncomingHeaderSubscriber:              &sovereign.IncomingHeaderSubscriberStub{},
 		RunTypeComponents:                     components.GetRunTypeComponents(),
 	}
