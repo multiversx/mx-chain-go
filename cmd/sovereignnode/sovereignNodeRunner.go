@@ -57,7 +57,6 @@ import (
 	"github.com/multiversx/mx-chain-go/node/metrics"
 	trieIteratorsFactory "github.com/multiversx/mx-chain-go/node/trieIterators/factory"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
@@ -447,13 +446,10 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 
 	log.Debug("creating process components")
 
-	outGoingOperationsPool := managedRunTypeComponents.OutGoingOperationsPoolCreator().CreateOutGoingOperationPool()
-
 	incomingHeaderHandler, err := createIncomingHeaderProcessor(
 		&configs.SovereignExtraConfig.NotifierConfig,
 		managedDataComponents.Datapool(),
 		configs.SovereignExtraConfig.MainChainNotarization.MainChainNotarizationStartRound,
-		outGoingOperationsPool,
 		managedRunTypeComponents,
 	)
 
@@ -470,7 +466,6 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		gasScheduleNotifier,
 		nodesCoordinatorInstance,
 		incomingHeaderHandler,
-		outGoingOperationsPool,
 	)
 	if err != nil {
 		return true, err
@@ -527,7 +522,6 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		managedStatusComponents,
 		managedProcessComponents,
 		managedStatusCoreComponents,
-		outGoingOperationsPool,
 		outGoingBridgeOpHandler,
 		managedRunTypeComponents,
 	)
@@ -893,7 +887,6 @@ func (snr *sovereignNodeRunner) CreateManagedConsensusComponents(
 	statusComponents mainFactory.StatusComponentsHolder,
 	processComponents mainFactory.ProcessComponentsHolder,
 	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
-	outGoingOperationsPool block.OutGoingOperationsPool,
 	outGoingBridgeOpHandler bls.BridgeOperationsHandler,
 	runTypeComponents mainFactory.RunTypeComponentsHolder,
 ) (mainFactory.ConsensusComponentsHandler, error) {
@@ -913,7 +906,7 @@ func (snr *sovereignNodeRunner) CreateManagedConsensusComponents(
 		return nil, err
 	}
 
-	sovSubRoundEndCreator, err := bls.NewSovereignSubRoundEndCreator(outGoingOperationsPool, outGoingBridgeOpHandler)
+	sovSubRoundEndCreator, err := bls.NewSovereignSubRoundEndCreator(runTypeComponents.OutGoingOperationsPoolHandler(), outGoingBridgeOpHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -1232,7 +1225,6 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 	gasScheduleNotifier core.GasScheduleNotifier,
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	incomingHeaderHandler process.IncomingHeaderSubscriber,
-	outGoingOperationsPool block.OutGoingOperationsPool,
 ) (mainFactory.ProcessComponentsHandler, error) {
 	configs := snr.configs
 	configurationPaths := snr.configs.ConfigurationPathsHolder
@@ -1361,7 +1353,6 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 		ShardResolversContainerFactoryCreator: resolverscontainer.NewSovereignShardResolversContainerFactoryCreator(),
 		TxPreProcessorCreator:                 preprocess.NewSovereignTxPreProcessorCreator(),
 		ExtraHeaderSigVerifierHolder:          extraHeaderSigVerifierHolder,
-		OutGoingOperationsPool:                outGoingOperationsPool,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1874,7 +1865,6 @@ func createIncomingHeaderProcessor(
 	config *config.NotifierConfig,
 	dataPool dataRetriever.PoolsHolder,
 	mainChainNotarizationStartRound uint64,
-	outGoingOperationsPool block.OutGoingOperationsPool,
 	runTypeComponents mainFactory.RunTypeComponentsHolder,
 ) (process.IncomingHeaderSubscriber, error) {
 	marshaller, err := marshallerFactory.NewMarshalizer(config.WebSocketConfig.MarshallerType)
@@ -1892,7 +1882,7 @@ func createIncomingHeaderProcessor(
 		Marshaller:                      marshaller,
 		Hasher:                          hasher,
 		MainChainNotarizationStartRound: mainChainNotarizationStartRound,
-		OutGoingOperationsPool:          outGoingOperationsPool,
+		OutGoingOperationsPool:          runTypeComponents.OutGoingOperationsPoolHandler(),
 		DataCodec:                       runTypeComponents.DataCodecHandler(),
 		TopicsChecker:                   runTypeComponents.TopicsCheckerHandler(),
 	}

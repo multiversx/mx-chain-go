@@ -56,7 +56,7 @@ func (s *sovereignBlockProcessorFactory) CreateBlockProcessor(argumentsBaseProce
 		ShardProcessor:               shardProc,
 		ValidatorStatisticsProcessor: argumentsBaseProcessor.ValidatorStatisticsProcessor,
 		OutgoingOperationsFormatter:  outgoingOpFormatter,
-		OutGoingOperationsPool:       argumentsBaseProcessor.OutGoingOperationsPool,
+		OutGoingOperationsPool:       argumentsBaseProcessor.RunTypeComponents.OutGoingOperationsPoolHandler(),
 		OperationsHasher:             operationsHasher,
 	}
 

@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/state"
 	sovereignMocks "github.com/multiversx/mx-chain-go/testscommon/sovereign"
@@ -9,23 +10,29 @@ import (
 
 // RunTypeComponentsStub -
 type RunTypeComponentsStub struct {
-	AccountCreator state.AccountFactory
-	DataCodec      sovereign.DataDecoderHandler
-	TopicsChecker  sovereign.TopicsCheckerHandler
+	AccountCreator         state.AccountFactory
+	OutGoingOperationsPool block.OutGoingOperationsPool
+	DataCodec              sovereign.DataDecoderHandler
+	TopicsChecker          sovereign.TopicsCheckerHandler
 }
 
 // NewRunTypeComponentsStub -
 func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 	return &RunTypeComponentsStub{
-		AccountCreator: &stateMock.AccountsFactoryStub{},
-		DataCodec:      &sovereignMocks.DataCodecMock{},
-		TopicsChecker:  &sovereignMocks.TopicsCheckerMock{},
+		AccountCreator:         &stateMock.AccountsFactoryStub{},
+		OutGoingOperationsPool: &sovereignMocks.OutGoingOperationsPoolMock{},
+		DataCodec:              &sovereignMocks.DataCodecMock{},
+		TopicsChecker:          &sovereignMocks.TopicsCheckerMock{},
 	}
 }
 
 // AccountsCreator  -
 func (r *RunTypeComponentsStub) AccountsCreator() state.AccountFactory {
 	return r.AccountCreator
+}
+
+func (r *RunTypeComponentsStub) OutGoingOperationsPoolHandler() block.OutGoingOperationsPool {
+	return r.OutGoingOperationsPool
 }
 
 // DataCodecHandler  -

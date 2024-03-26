@@ -593,7 +593,7 @@ type RunTypeComponentsHolder interface {
 	VmContainerMetaFactoryCreator() factoryVm.VmContainerCreator
 	VmContainerShardFactoryCreator() factoryVm.VmContainerCreator
 	AccountsCreator() state.AccountFactory
-	OutGoingOperationsPoolCreator() processBlock.OutGoingOperationsPoolCreator
+	OutGoingOperationsPoolHandler() processBlock.OutGoingOperationsPool
 	DataCodecHandler() sovereign.DataDecoderHandler
 	TopicsCheckerHandler() sovereign.TopicsCheckerHandler
 	Create() error

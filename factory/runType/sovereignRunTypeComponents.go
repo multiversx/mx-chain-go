@@ -2,6 +2,7 @@ package runType
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -152,7 +153,8 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignAccountCreator failed: %w", err)
 	}
 
-	outGoingOperationsPoolCreator := sovereignFactory.NewSovereignOutGoingOperationPoolFactory(rcf.cfg.OutgoingSubscribedEvents.TimeToWaitForUnconfirmedOutGoingOperationInSeconds)
+	expiryTime := time.Second * time.Duration(rcf.cfg.OutgoingSubscribedEvents.TimeToWaitForUnconfirmedOutGoingOperationInSeconds)
+	outGoingOperationsPoolCreator := sovereignFactory.NewOutGoingOperationPool(expiryTime)
 
 	dataCodec := rcf.dataCodec
 
@@ -178,7 +180,7 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		vmContainerMetaFactory:              rtc.vmContainerMetaFactory,
 		vmContainerShardFactory:             vmContainerShardCreator,
 		accountsCreator:                     accountsCreator,
-		outGoingOperationsPoolCreator:       outGoingOperationsPoolCreator,
+		outGoingOperationsPoolHandler:       outGoingOperationsPoolCreator,
 		dataCodecHandler:                    dataCodec,
 		topicsCheckerHandler:                topicsChecker,
 	}, nil

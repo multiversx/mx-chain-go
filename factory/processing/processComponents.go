@@ -172,7 +172,6 @@ type ProcessComponentsFactoryArgs struct {
 	ShardResolversContainerFactoryCreator resolverscontainer.ShardResolversContainerFactoryCreator
 	TxPreProcessorCreator                 preprocess.TxPreProcessorCreator
 	ExtraHeaderSigVerifierHolder          headerCheck.ExtraHeaderSigVerifierHolder
-	OutGoingOperationsPool                block.OutGoingOperationsPool
 }
 
 type processComponentsFactory struct {
@@ -218,7 +217,6 @@ type processComponentsFactory struct {
 	shardResolversContainerFactoryCreator resolverscontainer.ShardResolversContainerFactoryCreator
 	txPreprocessorCreator                 preprocess.TxPreProcessorCreator
 	extraHeaderSigVerifierHolder          headerCheck.ExtraHeaderSigVerifierHolder
-	outGoingOperationsPool                block.OutGoingOperationsPool
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -265,7 +263,6 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		shardResolversContainerFactoryCreator: args.ShardResolversContainerFactoryCreator,
 		txPreprocessorCreator:                 args.TxPreProcessorCreator,
 		extraHeaderSigVerifierHolder:          args.ExtraHeaderSigVerifierHolder,
-		outGoingOperationsPool:                args.OutGoingOperationsPool,
 	}, nil
 }
 
@@ -2116,6 +2113,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.RunTypeComponents.AccountsCreator()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilAccountsCreator)
+	}
+	if check.IfNil(args.RunTypeComponents.OutGoingOperationsPoolHandler()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilOutGoingOperationsPool)
 	}
 	if check.IfNil(args.RunTypeComponents.DataCodecHandler()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilDataCodec)
