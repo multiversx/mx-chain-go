@@ -78,7 +78,7 @@ func TestNewTestOnlyProcessingNode(t *testing.T) {
 		require.NotNil(t, header)
 		require.NotNil(t, block)
 
-		err = node.ProcessComponentsHolder.BlockProcessor().ProcessBlock(header, block, func() time.Duration {
+		_, _, err = node.ProcessComponentsHolder.BlockProcessor().ProcessBlock(header, block, func() time.Duration {
 			return 1000
 		})
 		assert.Nil(t, err)

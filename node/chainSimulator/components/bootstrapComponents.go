@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/testscommon/components"
 )
 
 // ArgsBootstrapComponentsHolder will hold the components needed for the bootstrap components holders
@@ -48,15 +49,18 @@ func CreateBootstrapComponents(args ArgsBootstrapComponentsHolder) (*bootstrapCo
 	args.PrefsConfig.Preferences.DestinationShardAsObserver = args.ShardIDStr
 
 	bootstrapComponentsFactoryArgs := bootstrapComp.BootstrapComponentsFactoryArgs{
-		Config:               args.Config,
-		PrefConfig:           args.PrefsConfig,
-		ImportDbConfig:       args.ImportDBConfig,
-		FlagsConfig:          args.FlagsConfig,
-		WorkingDir:           args.WorkingDir,
-		CoreComponents:       args.CoreComponents,
-		CryptoComponents:     args.CryptoComponents,
-		NetworkComponents:    args.NetworkComponents,
-		StatusCoreComponents: args.StatusCoreComponents,
+		Config:                           args.Config,
+		PrefConfig:                       args.PrefsConfig,
+		ImportDbConfig:                   args.ImportDBConfig,
+		FlagsConfig:                      args.FlagsConfig,
+		WorkingDir:                       args.WorkingDir,
+		CoreComponents:                   args.CoreComponents,
+		CryptoComponents:                 args.CryptoComponents,
+		NetworkComponents:                args.NetworkComponents,
+		StatusCoreComponents:             args.StatusCoreComponents,
+		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
+		ShardCoordinatorFactory:          sharding.NewMultiShardCoordinatorFactory(),
+		RunTypeComponents:                components.GetRunTypeComponents(),
 	}
 
 	bootstrapComponentsFactory, err := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)

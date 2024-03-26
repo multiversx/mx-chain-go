@@ -524,16 +524,6 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		require.ErrorIs(t, err, genesis.ErrNilTrieStorageManager)
 		require.Nil(t, gbc)
 	})
-	t.Run("nil EpochConfig should error", func(t *testing.T) {
-		t.Parallel()
-
-		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
-		arg.EpochConfig = nil
-
-		gbc, err := NewGenesisBlockCreator(arg)
-		require.ErrorIs(t, err, genesis.ErrNilEpochConfig)
-		require.Nil(t, gbc)
-	})
 	t.Run("nil shard coordinator factory, should error", func(t *testing.T) {
 		t.Parallel()
 

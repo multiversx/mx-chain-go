@@ -698,7 +698,7 @@ func CreateVMAndBlockchainHookMeta(
 		MessageSignVerifier: &mock.MessageSignVerifierMock{},
 		GasSchedule:         gasSchedule,
 		ArgBlockChainHook:   args,
-		NodesConfigProvider: &testscommon.NodesSetupStub{},
+		NodesConfigProvider: &genesisMocks.NodesSetupStub{},
 		Hasher:              integrationtests.TestHasher,
 		Marshalizer:         integrationtests.TestMarshalizer,
 		SystemSCConfig:      createSystemSCConfig(),

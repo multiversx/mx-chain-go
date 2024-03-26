@@ -8,11 +8,14 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-go/common"
+	disabled2 "github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/common/ordering"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
+	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
 	"github.com/multiversx/mx-chain-go/dblookupext"
 	dbLookupFactory "github.com/multiversx/mx-chain-go/dblookupext/factory"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -20,11 +23,16 @@ import (
 	processComp "github.com/multiversx/mx-chain-go/factory/processing"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
+	process2 "github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/preprocess"
+	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
+	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/interceptors/disabled"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage/cache"
+	"github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/update"
 	"github.com/multiversx/mx-chain-go/update/trigger"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -183,35 +191,46 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 	}
 
 	processArgs := processComp.ProcessComponentsFactoryArgs{
-		Config:                  args.Config,
-		EpochConfig:             args.EpochConfig,
-		RoundConfig:             args.RoundConfig,
-		PrefConfigs:             args.PrefsConfig,
-		ImportDBConfig:          args.ImportDBConfig,
-		EconomicsConfig:         args.EconomicsConfig,
-		AccountsParser:          accountsParser,
-		SmartContractParser:     smartContractParser,
-		GasSchedule:             gasScheduleNotifier,
-		NodesCoordinator:        args.NodesCoordinator,
-		RequestedItemsHandler:   requestedItemsHandler,
-		WhiteListHandler:        whiteListRequest,
-		WhiteListerVerifiedTxs:  whiteListerVerifiedTxs,
-		MaxRating:               50,
-		SystemSCConfig:          &args.SystemSCConfig,
-		ImportStartHandler:      importStartHandler,
-		HistoryRepo:             historyRepository,
-		FlagsConfig:             args.FlagsConfig,
-		Data:                    args.DataComponents,
-		CoreData:                args.CoreComponents,
-		Crypto:                  args.CryptoComponents,
-		State:                   args.StateComponents,
-		Network:                 args.NetworkComponents,
-		BootstrapComponents:     args.BootstrapComponents,
-		StatusComponents:        args.StatusComponents,
-		StatusCoreComponents:    args.StatusCoreComponents,
-		TxExecutionOrderHandler: txExecutionOrderHandler,
-		GenesisNonce:            args.GenesisNonce,
-		GenesisRound:            args.GenesisRound,
+		Config:                                args.Config,
+		EpochConfig:                           args.EpochConfig,
+		RoundConfig:                           args.RoundConfig,
+		PrefConfigs:                           args.PrefsConfig,
+		ImportDBConfig:                        args.ImportDBConfig,
+		EconomicsConfig:                       args.EconomicsConfig,
+		AccountsParser:                        accountsParser,
+		SmartContractParser:                   smartContractParser,
+		GasSchedule:                           gasScheduleNotifier,
+		NodesCoordinator:                      args.NodesCoordinator,
+		RequestedItemsHandler:                 requestedItemsHandler,
+		WhiteListHandler:                      whiteListRequest,
+		WhiteListerVerifiedTxs:                whiteListerVerifiedTxs,
+		MaxRating:                             50,
+		SystemSCConfig:                        &args.SystemSCConfig,
+		ImportStartHandler:                    importStartHandler,
+		HistoryRepo:                           historyRepository,
+		FlagsConfig:                           args.FlagsConfig,
+		Data:                                  args.DataComponents,
+		CoreData:                              args.CoreComponents,
+		Crypto:                                args.CryptoComponents,
+		State:                                 args.StateComponents,
+		Network:                               args.NetworkComponents,
+		BootstrapComponents:                   args.BootstrapComponents,
+		StatusComponents:                      args.StatusComponents,
+		StatusCoreComponents:                  args.StatusCoreComponents,
+		TxExecutionOrderHandler:               txExecutionOrderHandler,
+		GenesisNonce:                          args.GenesisNonce,
+		GenesisRound:                          args.GenesisRound,
+		RunTypeComponents:                     components.GetRunTypeComponents(),
+		ShardCoordinatorFactory:               sharding.NewMultiShardCoordinatorFactory(),
+		GenesisBlockCreatorFactory:            process2.NewGenesisBlockCreatorFactory(),
+		GenesisMetaBlockChecker:               processComp.NewGenesisMetaBlockChecker(),
+		ExtraHeaderSigVerifierHolder:          headerCheck.NewExtraHeaderSigVerifierHolder(),
+		DataCodec:                             disabled2.NewDisabledDataCodec(),
+		TopicsChecker:                         disabled2.NewDisabledTopicsChecker(),
+		TxPreProcessorCreator:                 preprocess.NewTxPreProcessorCreator(),
+		InterceptorsContainerFactoryCreator:   interceptorscontainer.NewShardInterceptorsContainerFactoryCreator(),
+		RequesterContainerFactoryCreator:      requesterscontainer.NewShardRequestersContainerFactoryCreator(),
+		ShardResolversContainerFactoryCreator: resolverscontainer.NewShardResolversContainerFactoryCreator(),
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {

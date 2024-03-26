@@ -48,7 +48,7 @@ func CreateProcessorNodesWithNodesCoordinator(
 	waitingMap := GenValidatorsFromPubKeys(pubKeysWaiting, nbShards)
 	waitingMapForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(waitingMap)
 
-	nodesSetup := &testscommon.NodesSetupStub{InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
+	nodesSetup := &genesisMocks.NodesSetupStub{InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
 		return validatorsMap, waitingMap
 	}}
 

@@ -37,7 +37,7 @@ func createArgsCryptoComponentsHolder() ArgsCryptoComponentsHolder {
 			},
 		},
 		Preferences: config.Preferences{},
-		CoreComponentsHolder: &factory.CoreComponentsHolderStub{
+		CoreComponentsHolder: &factory.CoreComponentsHolderMock{
 			ValidatorPubKeyConverterCalled: func() core.PubkeyConverter {
 				return &testscommon.PubkeyConverterStub{
 					EncodeCalled: func(pkBytes []byte) (string, error) {
@@ -80,7 +80,7 @@ func TestCreateCryptoComponents(t *testing.T) {
 		t.Parallel()
 
 		args := createArgsCryptoComponentsHolder()
-		args.CoreComponentsHolder = &factory.CoreComponentsHolderStub{
+		args.CoreComponentsHolder = &factory.CoreComponentsHolderMock{
 			ValidatorPubKeyConverterCalled: func() core.PubkeyConverter {
 				return nil
 			},
@@ -93,7 +93,7 @@ func TestCreateCryptoComponents(t *testing.T) {
 		t.Parallel()
 
 		args := createArgsCryptoComponentsHolder()
-		args.CoreComponentsHolder = &factory.CoreComponentsHolderStub{
+		args.CoreComponentsHolder = &factory.CoreComponentsHolderMock{
 			ValidatorPubKeyConverterCalled: func() core.PubkeyConverter {
 				return &testscommon.PubkeyConverterStub{
 					EncodeCalled: func(pkBytes []byte) (string, error) {

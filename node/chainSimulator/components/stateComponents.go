@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-go/factory"
 	factoryState "github.com/multiversx/mx-chain-go/factory/state"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon/components"
 )
 
 // ArgsStateComponents will hold the components needed for state components
@@ -42,6 +43,7 @@ func CreateStateComponents(args ArgsStateComponents) (*stateComponentsHolder, er
 		ProcessingMode:           common.Normal,
 		ShouldSerializeSnapshots: false,
 		ChainHandler:             args.ChainHandler,
+		AccountsCreator:          components.GetRunTypeComponents().AccountsCreator(),
 	})
 	if err != nil {
 		return nil, err

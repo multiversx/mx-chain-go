@@ -669,7 +669,6 @@ func CreateFullGenesisBlocks(
 	dataComponents.DataPool = dataPool
 	dataComponents.BlockChain = blkc
 
-	roundsConfig := GetDefaultRoundsConfig()
 	runTypeComponents := mainFactoryMocks.NewRunTypeComponentsStub()
 	runTypeComponents.BlockChainHookHandlerFactory, _ = hooks.NewBlockChainHookFactory()
 	runTypeComponents.TransactionCoordinatorFactory, _ = coordinator.NewShardTransactionCoordinatorFactory()

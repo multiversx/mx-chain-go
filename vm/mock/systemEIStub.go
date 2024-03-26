@@ -37,7 +37,7 @@ type SystemEIStub struct {
 	GasLeftCalled                       func() uint64
 	CleanStorageUpdatesCalled           func()
 	ReturnMessage                       string
-	ProcessBuiltInFunctionCalled        func(sender, destination []byte, function string, arguments [][]byte) (*vmcommon.VMOutput, error)
+	ProcessBuiltInFunctionCalled        func(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) error
 	AddLogEntryCalled                   func(entry *vmcommon.LogEntry)
 	SetOwnerOperatingOnAccountCalled    func(newOwner []byte) error
 	UpdateCodeDeployerAddressCalled     func(scAddress string, newOwner []byte) error
@@ -212,8 +212,8 @@ func (s *SystemEIStub) Transfer(destination []byte, sender []byte, value *big.In
 
 // ProcessBuiltInFunction -
 func (s *SystemEIStub) ProcessBuiltInFunction(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) error {
-	if s.ProcessBuiltInCalled != nil {
-		return s.ProcessBuiltInCalled(destination, sender, value, input, gasLimit)
+	if s.ProcessBuiltInFunctionCalled != nil {
+		return s.ProcessBuiltInFunctionCalled(destination, sender, value, input, gasLimit)
 	}
 	return nil
 }
@@ -316,14 +316,6 @@ func (s *SystemEIStub) UpdateCodeDeployerAddress(scAddress string, newOwner []by
 	}
 
 	return nil
-}
-
-// ProcessBuiltInFunction -
-func (s *SystemEIStub) ProcessBuiltInFunction(sender, destination []byte, function string, arguments [][]byte) (*vmcommon.VMOutput, error) {
-	if s.ProcessBuiltInFunctionCalled != nil {
-		return s.ProcessBuiltInFunctionCalled(sender, destination, function, arguments)
-	}
-	return &vmcommon.VMOutput{}, nil
 }
 
 // IsInterfaceNil -

@@ -65,7 +65,7 @@ func TestBlocksCreator_IncrementRound(t *testing.T) {
 	wasSetUInt64ValueCalled := false
 	nodeHandler := &chainSimulator.NodeHandlerMock{
 		GetCoreComponentsCalled: func() factory.CoreComponentsHolder {
-			return &testsFactory.CoreComponentsHolderStub{
+			return &testsFactory.CoreComponentsHolderMock{
 				RoundHandlerCalled: func() consensus.RoundHandler {
 					return &testscommon.RoundHandlerMock{
 						IncrementIndexCalled: func() {
@@ -306,7 +306,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 		nodeHandler := getNodeHandler()
 		rh := nodeHandler.GetCoreComponents().RoundHandler()
 		nodeHandler.GetCoreComponentsCalled = func() factory.CoreComponentsHolder {
-			return &testsFactory.CoreComponentsHolderStub{
+			return &testsFactory.CoreComponentsHolderMock{
 				RoundHandlerCalled: func() consensus.RoundHandler {
 					return rh
 				},
@@ -557,7 +557,7 @@ func testCreateNewBlock(t *testing.T, blockProcess process.BlockProcessor, expec
 func getNodeHandler() *chainSimulator.NodeHandlerMock {
 	return &chainSimulator.NodeHandlerMock{
 		GetCoreComponentsCalled: func() factory.CoreComponentsHolder {
-			return &testsFactory.CoreComponentsHolderStub{
+			return &testsFactory.CoreComponentsHolderMock{
 				RoundHandlerCalled: func() consensus.RoundHandler {
 					return &testscommon.RoundHandlerMock{
 						TimeStampCalled: func() time.Time {

@@ -30,7 +30,7 @@ import (
 
 func createArgsBootstrapComponentsHolder() ArgsBootstrapComponentsHolder {
 	return ArgsBootstrapComponentsHolder{
-		CoreComponents: &factory.CoreComponentsHolderStub{
+		CoreComponents: &factory.CoreComponentsHolderMock{
 			ChainIDCalled: func() string {
 				return "T"
 			},
