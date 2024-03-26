@@ -9,11 +9,11 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
+	factorySovereign "github.com/multiversx/mx-chain-go/factory/sovereign"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/process"
 	processBlock "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
-	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
@@ -383,7 +383,7 @@ func (mrc *managedRunTypeComponents) AccountsCreator() state.AccountFactory {
 }
 
 // DataCodecCreator returns the data codec factory
-func (mrc *managedRunTypeComponents) DataCodecCreator() sovereign.DataDecoderCreator {
+func (mrc *managedRunTypeComponents) DataCodecCreator() factorySovereign.DataDecoderCreator {
 	mrc.mutStateComponents.RLock()
 	defer mrc.mutStateComponents.RUnlock()
 
@@ -395,7 +395,7 @@ func (mrc *managedRunTypeComponents) DataCodecCreator() sovereign.DataDecoderCre
 }
 
 // TopicsCheckerCreator returns the topics checker factory
-func (mrc *managedRunTypeComponents) TopicsCheckerCreator() sovereign.TopicsCheckerCreator {
+func (mrc *managedRunTypeComponents) TopicsCheckerCreator() factorySovereign.TopicsCheckerCreator {
 	mrc.mutStateComponents.RLock()
 	defer mrc.mutStateComponents.RUnlock()
 

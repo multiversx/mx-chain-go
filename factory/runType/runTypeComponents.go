@@ -7,7 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/errors"
-	sovereignFactory "github.com/multiversx/mx-chain-go/factory/sovereign"
+	factorySovereign "github.com/multiversx/mx-chain-go/factory/sovereign"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
@@ -53,8 +53,8 @@ type runTypeComponents struct {
 	vmContainerMetaFactory              factoryVm.VmContainerCreator
 	vmContainerShardFactory             factoryVm.VmContainerCreator
 	accountsCreator                     state.AccountFactory
-	dataCodecCreator                    sovereignFactory.DataDecoderCreator
-	topicsCheckerCreator                sovereignFactory.TopicsCheckerCreator
+	dataCodecCreator                    factorySovereign.DataDecoderCreator
+	topicsCheckerCreator                factorySovereign.TopicsCheckerCreator
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
@@ -155,9 +155,9 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		return nil, fmt.Errorf("runTypeComponentsFactory - NewAccountCreator failed: %w", err)
 	}
 
-	dataCodecCreator := sovereignFactory.NewDataCodecFactory()
+	dataCodecCreator := factorySovereign.NewDataCodecFactory()
 
-	topicsCheckerCreator := sovereignFactory.NewTopicsCheckerFactory()
+	topicsCheckerCreator := factorySovereign.NewTopicsCheckerFactory()
 
 	return &runTypeComponents{
 		blockChainHookHandlerCreator:        blockChainHookHandlerFactory,
