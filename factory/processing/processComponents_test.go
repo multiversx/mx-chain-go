@@ -892,7 +892,7 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		rtMock.DataCodec = nil
 		args.RunTypeComponents = rtMock
 		pcf, err := processComp.NewProcessComponentsFactory(args)
-		require.True(t, errors.Is(err, errorsMx.ErrNilDataCodecCreator))
+		require.True(t, errors.Is(err, errorsMx.ErrNilDataCodec))
 		require.Nil(t, pcf)
 	})
 	t.Run("nil TopicsCheckerHandler should error", func(t *testing.T) {
@@ -903,7 +903,7 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		rtMock.TopicsChecker = nil
 		args.RunTypeComponents = rtMock
 		pcf, err := processComp.NewProcessComponentsFactory(args)
-		require.True(t, errors.Is(err, errorsMx.ErrNilTopicsCheckerCreator))
+		require.True(t, errors.Is(err, errorsMx.ErrNilTopicsChecker))
 		require.Nil(t, pcf)
 	})
 	t.Run("should work", func(t *testing.T) {

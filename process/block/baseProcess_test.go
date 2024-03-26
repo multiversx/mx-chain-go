@@ -814,7 +814,7 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				args.RunTypeComponents = &mock.RunTypeComponentsStub{AccountCreator: &stateMock.AccountsFactoryStub{}, DataCodec: nil}
 				return args
 			},
-			expectedErr: errorsMx.ErrNilDataCodecCreator,
+			expectedErr: errorsMx.ErrNilDataCodec,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
@@ -822,7 +822,7 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				args.RunTypeComponents = &mock.RunTypeComponentsStub{AccountCreator: &stateMock.AccountsFactoryStub{}, DataCodec: &sovereign.DataCodecMock{}, TopicsChecker: nil}
 				return args
 			},
-			expectedErr: errorsMx.ErrNilTopicsCheckerCreator,
+			expectedErr: errorsMx.ErrNilTopicsChecker,
 		},
 	}
 

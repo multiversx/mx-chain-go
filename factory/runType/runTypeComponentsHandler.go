@@ -146,10 +146,10 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 		return errors.ErrNilAccountsCreator
 	}
 	if check.IfNil(mrc.dataCodecHandler) {
-		return errors.ErrNilDataCodecCreator
+		return errors.ErrNilDataCodec
 	}
 	if check.IfNil(mrc.topicsCheckerHandler) {
-		return errors.ErrNilTopicsCheckerCreator
+		return errors.ErrNilTopicsChecker
 	}
 	return nil
 }
