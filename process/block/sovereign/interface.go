@@ -22,20 +22,8 @@ type DataDecoderHandler interface {
 	IsInterfaceNil() bool
 }
 
-// DataDecoderCreator is an interface for creating data decoder
-type DataDecoderCreator interface {
-	CreateDataCodec() DataDecoderHandler
-	IsInterfaceNil() bool
-}
-
 // TopicsCheckerHandler should be able to check the topics validity
 type TopicsCheckerHandler interface {
 	CheckValidity(topics [][]byte) error
-	IsInterfaceNil() bool
-}
-
-// TopicsCheckerCreator is an interface for creating topics checker
-type TopicsCheckerCreator interface {
-	CreateTopicsChecker() TopicsCheckerHandler
 	IsInterfaceNil() bool
 }

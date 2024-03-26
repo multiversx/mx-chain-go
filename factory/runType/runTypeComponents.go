@@ -13,7 +13,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block"
 	processBlock "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
-	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
@@ -54,8 +53,8 @@ type runTypeComponents struct {
 	vmContainerMetaFactory              factoryVm.VmContainerCreator
 	vmContainerShardFactory             factoryVm.VmContainerCreator
 	accountsCreator                     state.AccountFactory
-	dataCodecCreator                    sovereign.DataDecoderCreator
-	topicsCheckerCreator                sovereign.TopicsCheckerCreator
+	dataCodecCreator                    sovereignFactory.DataDecoderCreator
+	topicsCheckerCreator                sovereignFactory.TopicsCheckerCreator
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
