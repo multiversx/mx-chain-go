@@ -1,7 +1,7 @@
 package mock
 
 import (
-	"github.com/multiversx/mx-chain-go/process/block/sovereign"
+	factorySovereign "github.com/multiversx/mx-chain-go/factory/sovereign"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
@@ -10,8 +10,8 @@ import (
 // RunTypeComponentsStub -
 type RunTypeComponentsStub struct {
 	AccountCreator       state.AccountFactory
-	DataCodecFactory     sovereign.DataDecoderCreator
-	TopicsCheckerFactory sovereign.TopicsCheckerCreator
+	DataCodecFactory     factorySovereign.DataDecoderCreator
+	TopicsCheckerFactory factorySovereign.TopicsCheckerCreator
 }
 
 // NewRunTypeComponentsStub -
@@ -29,12 +29,12 @@ func (r *RunTypeComponentsStub) AccountsCreator() state.AccountFactory {
 }
 
 // DataCodecCreator  -
-func (r *RunTypeComponentsStub) DataCodecCreator() sovereign.DataDecoderCreator {
+func (r *RunTypeComponentsStub) DataCodecCreator() factorySovereign.DataDecoderCreator {
 	return r.DataCodecFactory
 }
 
 // TopicsCheckerCreator  -
-func (r *RunTypeComponentsStub) TopicsCheckerCreator() sovereign.TopicsCheckerCreator {
+func (r *RunTypeComponentsStub) TopicsCheckerCreator() factorySovereign.TopicsCheckerCreator {
 	return r.TopicsCheckerFactory
 }
 

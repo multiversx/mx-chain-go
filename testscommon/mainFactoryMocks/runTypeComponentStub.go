@@ -4,11 +4,11 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
+	factorySovereign "github.com/multiversx/mx-chain-go/factory/sovereign"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
-	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
@@ -43,8 +43,8 @@ type RunTypeComponentsStub struct {
 	VmContainerMetaFactory              factoryVm.VmContainerCreator
 	VmContainerShardFactory             factoryVm.VmContainerCreator
 	AccountCreator                      state.AccountFactory
-	DataCodecFactory                    sovereign.DataDecoderCreator
-	TopicsCheckerFactory                sovereign.TopicsCheckerCreator
+	DataCodecFactory                    factorySovereign.DataDecoderCreator
+	TopicsCheckerFactory                factorySovereign.TopicsCheckerCreator
 }
 
 // NewRunTypeComponentsStub -
@@ -189,11 +189,11 @@ func (r *RunTypeComponentsStub) AccountsCreator() state.AccountFactory {
 	return r.AccountCreator
 }
 
-func (r *RunTypeComponentsStub) DataCodecCreator() sovereign.DataDecoderCreator {
+func (r *RunTypeComponentsStub) DataCodecCreator() factorySovereign.DataDecoderCreator {
 	return r.DataCodecFactory
 }
 
-func (r *RunTypeComponentsStub) TopicsCheckerCreator() sovereign.TopicsCheckerCreator {
+func (r *RunTypeComponentsStub) TopicsCheckerCreator() factorySovereign.TopicsCheckerCreator {
 	return r.TopicsCheckerFactory
 }
 

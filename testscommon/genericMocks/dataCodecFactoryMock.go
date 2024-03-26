@@ -1,13 +1,14 @@
 package genericMocks
 
 import (
+	factorySovereign "github.com/multiversx/mx-chain-go/factory/sovereign"
 	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	sovereignMock "github.com/multiversx/mx-chain-go/testscommon/sovereign"
 )
 
 // DataCodecFactoryMock -
 type DataCodecFactoryMock struct {
-	CreateDataCodecCalled func() sovereign.DataDecoderCreator
+	CreateDataCodecCalled func() factorySovereign.DataDecoderCreator
 }
 
 // CreateDataCodec -
