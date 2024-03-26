@@ -8,7 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/errors"
-	sovereignFactory "github.com/multiversx/mx-chain-go/factory/sovereign"
+	factorySovereign "github.com/multiversx/mx-chain-go/factory/sovereign"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
@@ -152,12 +152,12 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignAccountCreator failed: %w", err)
 	}
 
-	dataCodecCreator, err := sovereignFactory.NewSovereignDataCodecFactory(rcf.dataCodec)
+	dataCodecCreator, err := factorySovereign.NewSovereignDataCodecFactory(rcf.dataCodec)
 	if err != nil {
 		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignDataCodecFactory failed: %w", err)
 	}
 
-	topicsCheckerCreator, err := sovereignFactory.NewSovereignTopicsCheckerFactory(rcf.topicsChecker)
+	topicsCheckerCreator, err := factorySovereign.NewSovereignTopicsCheckerFactory(rcf.topicsChecker)
 	if err != nil {
 		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignTopicsCheckerFactory failed: %w", err)
 	}
