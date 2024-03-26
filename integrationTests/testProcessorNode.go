@@ -3284,6 +3284,7 @@ func GetDefaultRunTypeComponents(consensusModel consensus.ConsensusModel) *mainF
 		BootstrapperFactory:                 rt.BootstrapperCreator(),
 		SCResultsPreProcessorFactory:        rt.SCResultsPreProcessorCreator(),
 		ConsensusModelType:                  consensusModel,
+		OutGoingOperationsPool:              rt.OutGoingOperationsPoolHandler(),
 		DataCodec:                           rt.DataCodecHandler(),
 		TopicsChecker:                       rt.TopicsCheckerHandler(),
 	}
