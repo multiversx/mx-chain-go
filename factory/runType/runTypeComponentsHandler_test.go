@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/runType"
@@ -60,7 +61,7 @@ func TestManagedRunTypeComponents_Create(t *testing.T) {
 		require.Nil(t, managedRunTypeComponents.AdditionalStorageServiceCreator())
 		require.Nil(t, managedRunTypeComponents.SCProcessorCreator())
 		require.Nil(t, managedRunTypeComponents.SCResultsPreProcessorCreator())
-		require.Nil(t, managedRunTypeComponents.ConsensusModel())
+		require.Equal(t, consensus.ConsensusModelInvalid, managedRunTypeComponents.ConsensusModel())
 		require.Nil(t, managedRunTypeComponents.VmContainerMetaFactoryCreator())
 		require.Nil(t, managedRunTypeComponents.VmContainerShardFactoryCreator())
 		require.Nil(t, managedRunTypeComponents.AccountsCreator())
