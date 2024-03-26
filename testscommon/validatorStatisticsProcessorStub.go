@@ -79,14 +79,6 @@ func (vsp *ValidatorStatisticsProcessorStub) ProcessRatingsEndOfEpoch(validatorI
 	return nil
 }
 
-// RevertPeerState -
-func (vsp *ValidatorStatisticsProcessorStub) RevertPeerState(header data.CommonHeaderHandler) error {
-	if vsp.RevertPeerStateCalled != nil {
-		return vsp.RevertPeerStateCalled(header)
-	}
-	return nil
-}
-
 // RootHash -
 func (vsp *ValidatorStatisticsProcessorStub) RootHash() ([]byte, error) {
 	if vsp.RootHashCalled != nil {
@@ -126,6 +118,14 @@ func (vsp *ValidatorStatisticsProcessorStub) SaveNodesCoordinatorUpdates(epoch u
 		return vsp.SaveNodesCoordinatorUpdatesCalled(epoch)
 	}
 	return false, nil
+}
+
+// RevertPeerState -
+func (vsp *ValidatorStatisticsProcessorStub) RevertPeerState(header data.MetaHeaderHandler) error {
+	if vsp.RevertPeerStateCalled != nil {
+		return vsp.RevertPeerStateCalled(header)
+	}
+	return nil
 }
 
 // IsInterfaceNil -

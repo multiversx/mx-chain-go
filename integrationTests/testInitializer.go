@@ -31,6 +31,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	"github.com/multiversx/mx-chain-go/genesis"
@@ -669,7 +670,7 @@ func CreateFullGenesisBlocks(
 	dataComponents.DataPool = dataPool
 	dataComponents.BlockChain = blkc
 
-	runTypeComponents := mainFactoryMocks.NewRunTypeComponentsStub()
+	runTypeComponents := GetDefaultRunTypeComponents(consensus.ConsensusModelV1)
 	runTypeComponents.BlockChainHookHandlerFactory, _ = hooks.NewBlockChainHookFactory()
 	runTypeComponents.TransactionCoordinatorFactory, _ = coordinator.NewShardTransactionCoordinatorFactory()
 	runTypeComponents.SCResultsPreProcessorFactory, _ = preprocess.NewSmartContractResultPreProcessorFactory()
@@ -1583,6 +1584,7 @@ func CreateNodesWithFullGenesisCustomEnableEpochs(
 		GenesisFile:          genesisFile,
 		EpochsConfig:         enableEpochsConfig,
 		EconomicsConfig:      economicsConfig,
+		RunTypeComponents:    GetDefaultRunTypeComponents(consensus.ConsensusModelV1),
 	})
 
 	idx := 0

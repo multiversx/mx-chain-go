@@ -2,10 +2,12 @@ package bootstrap
 
 import (
 	"fmt"
-	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -42,6 +44,7 @@ func createStorageHandlerArgs() StorageHandlerArgs {
 		NodeProcessingMode:              common.Normal,
 		StateStatsHandler:               disabled.NewStateStatistics(),
 		RepopulateTokensSupplies:        false,
+		AdditionalStorageServiceCreator: &testscommon.AdditionalStorageServiceFactoryMock{},
 	}
 }
 
@@ -194,22 +197,4 @@ func testMetaWithMissingStorer(missingUnit dataRetriever.UnitType, atCallNumber 
 		require.True(t, strings.Contains(err.Error(), storage.ErrKeyNotFound.Error()))
 		require.True(t, strings.Contains(err.Error(), missingUnit.String()))
 	}
-}
-
-func createMetaHandlerArgs() StorageHandlerArgs {
-	return StorageHandlerArgs{
-		GeneralConfig:                   testscommon.GetGeneralConfig(),
-		PrefsConfig:                     config.PreferencesConfig{},
-		ShardCoordinator:                &mock.ShardCoordinatorStub{},
-		PathManagerHandler:              &testscommon.PathManagerStub{},
-		Marshalizer:                     &mock.MarshalizerMock{},
-		Hasher:                          &hashingMocks.HasherMock{},
-		CurrentEpoch:                    1,
-		Uint64Converter:                 &mock.Uint64ByteSliceConverterMock{},
-		NodeTypeProvider:                &nodeTypeProviderMock.NodeTypeProviderStub{},
-		ManagedPeersHolder:              &testscommon.ManagedPeersHolderStub{},
-		AdditionalStorageServiceCreator: &testscommon.AdditionalStorageServiceFactoryMock{},
-		StateStatsHandler:               disabled.NewStateStatistics(),
-	}
-
 }

@@ -154,7 +154,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	pksBytes := integrationTests.CreatePkBytes(uint32(numOfShards))
 	address := []byte("afafafafafafafafafafafafafafafaf")
 
-	nodesConfig := &testscommon.NodesSetupStub{
+	nodesConfig := &genesisMocks.NodesSetupStub{
 		InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
 			oneMap := make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
 			for i := uint32(0); i < uint32(numOfShards); i++ {

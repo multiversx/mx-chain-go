@@ -504,7 +504,7 @@ func hardForkImport(
 			RoundConfig:             testscommon.GetDefaultRoundsConfig(),
 			HeaderVersionConfigs:    testscommon.GetDefaultHeaderVersionConfig(),
 			HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
-			TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{}, RoundConfig: &roundConfig,
+			TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 			RunTypeComponents:       componentsMock.GetRunTypeComponents(),
 			ShardCoordinatorFactory: sharding.NewMultiShardCoordinatorFactory(),
 			TxPreprocessorCreator:   preprocess.NewTxPreProcessorCreator(),

@@ -130,6 +130,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		extraDelayRequestBlockInfo:    time.Duration(arguments.Config.EpochStartConfig.ExtraDelayForRequestBlockInfoInMilliseconds) * time.Millisecond,
 		crossNotarizer:                notarizer,
 		accountCreator:                arguments.RunTypeComponents.AccountsCreator(),
+		validatorStatisticsProcessor:  arguments.ValidatorStatisticsProcessor,
 	}
 
 	sp := shardProcessor{

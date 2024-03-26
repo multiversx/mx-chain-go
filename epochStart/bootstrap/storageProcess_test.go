@@ -149,7 +149,7 @@ func TestStorageEpochStartBootstrap_BootstrapFromGenesis(t *testing.T) {
 			return 1
 		},
 	}
-	args.GenesisNodesConfig = &testscommon.NodesSetupStub{
+	args.GenesisNodesConfig = &genesisMocks.NodesSetupStub{
 		GetRoundDurationCalled: func() uint64 {
 			return roundDuration
 		},
@@ -173,7 +173,7 @@ func TestStorageEpochStartBootstrap_BootstrapMetablockNotFound(t *testing.T) {
 			return 1
 		},
 	}
-	args.GenesisNodesConfig = &testscommon.NodesSetupStub{
+	args.GenesisNodesConfig = &genesisMocks.NodesSetupStub{
 		GetRoundDurationCalled: func() uint64 {
 			return roundDuration
 		},

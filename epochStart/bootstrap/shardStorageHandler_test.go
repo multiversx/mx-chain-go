@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"os"
 	"sort"
 	"strings"
@@ -14,8 +13,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -1041,24 +1038,6 @@ func Test_getShardHeaderAndMetaHashes(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, shardHeader, headers[shardHdrKey])
 	require.Equal(t, metaHashes, headers[shardHdrKey].(data.ShardHeaderHandler).GetMetaBlockHashes())
-}
-
-func createDefaultShardStorageArgs() StorageHandlerArgs {
-	return StorageHandlerArgs{
-		GeneralConfig:                   testscommon.GetGeneralConfig(),
-		PrefsConfig:                     config.PreferencesConfig{},
-		ShardCoordinator:                &mock.ShardCoordinatorStub{},
-		PathManagerHandler:              &testscommon.PathManagerStub{},
-		Marshalizer:                     &mock.MarshalizerMock{},
-		Hasher:                          &hashingMocks.HasherMock{},
-		CurrentEpoch:                    1,
-		Uint64Converter:                 &mock.Uint64ByteSliceConverterMock{},
-		NodeTypeProvider:                &nodeTypeProviderMock.NodeTypeProviderStub{},
-		NodeProcessingMode:              common.Normal,
-		ManagedPeersHolder:              &testscommon.ManagedPeersHolderStub{},
-		AdditionalStorageServiceCreator: &testscommon.AdditionalStorageServiceFactoryMock{},
-		StateStatsHandler:               disabled.NewStateStatistics(),
-	}
 }
 
 func createDefaultEpochStartShardData(lastFinishedMetaBlockHash []byte, shardHeaderHash []byte) []block.EpochStartShardData {

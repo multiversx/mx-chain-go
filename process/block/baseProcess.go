@@ -128,8 +128,9 @@ type baseProcessor struct {
 	cleanupPoolsForCrossShardFunc        func(shardID uint32, noncesToPrevFinal uint64)
 	getExtraMissingNoncesToRequestFunc   func(prevHdr data.HeaderHandler, lastNotarizedHdrNonce uint64) []uint64
 
-	crossNotarizer crossNotarizer
-	accountCreator state.AccountFactory
+	crossNotarizer               crossNotarizer
+	accountCreator               state.AccountFactory
+	validatorStatisticsProcessor process.ValidatorStatisticsProcessor
 }
 
 type bootStorerDataArgs struct {
@@ -1712,17 +1713,16 @@ func (bp *baseProcessor) revertAccountsStates(header data.HeaderHandler, rootHas
 		return err
 	}
 
-	validatorInfo, ok := header.(data.ValidatorStatisticsInfoHandler)
+	metaHeader, ok := header.(data.MetaHeaderHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
 
-	err = bp.accountsDB[state.PeerAccountsState].RecreateTrie(validatorInfo.GetValidatorStatsRootHash())
+	err = bp.validatorStatisticsProcessor.RevertPeerState(metaHeader)
 	if err != nil {
 		log.Debug("revert peer state with error for header",
-			"nonce", header.GetNonce(),
-			"header root hash", header.GetRootHash(),
-			"validators root hash", validatorInfo.GetValidatorStatsRootHash(),
+			"nonce", metaHeader.GetNonce(),
+			"validators root hash", metaHeader.GetValidatorStatsRootHash(),
 			"error", err.Error(),
 		)
 

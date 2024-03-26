@@ -265,7 +265,7 @@ func getSyncValidatorStatusArgs() ArgsNewSyncValidatorStatus {
 		Hasher:         &hashingMocks.HasherMock{},
 		RequestHandler: &testscommon.RequestHandlerStub{},
 		ChanceComputer: &shardingMocks.NodesCoordinatorStub{},
-		GenesisNodesConfig: &testscommon.NodesSetupStub{
+		GenesisNodesConfig: &genesisMocks.NodesSetupStub{
 			NumberOfShardsCalled: func() uint32 {
 				return 1
 			},

@@ -513,6 +513,10 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 
 	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
 
+	if check.IfNil(args.RunTypeComponents) {
+		args.RunTypeComponents = GetDefaultRunTypeComponents(consensus.ConsensusModelV1)
+	}
+
 	tpn := &TestProcessorNode{
 		ShardCoordinator:           shardCoordinator,
 		MainMessenger:              messenger,
@@ -3314,6 +3318,7 @@ func GetDefaultRunTypeComponents(consensusModel consensus.ConsensusModel) *mainF
 		SCProcessorFactory:                  rt.SCProcessorCreator(),
 		BootstrapperFactory:                 rt.BootstrapperCreator(),
 		SCResultsPreProcessorFactory:        rt.SCResultsPreProcessorCreator(),
+		AccountCreator:                      rt.AccountsCreator(),
 		ConsensusModelType:                  consensusModel,
 	}
 }
