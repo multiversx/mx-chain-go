@@ -99,7 +99,7 @@ func initSubroundStartRoundWithContainerAndSigners(container spos.ConsensusCoreH
 		bls.ProcessingThresholdPercent,
 		executeStoredMessages,
 		resetConsensusMessages,
-		&mock.SentSignatureTrackerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 		extraSignersHolder,
 	)
 
@@ -341,7 +341,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilExtraSignersHolderShouldFail
 		bls.ProcessingThresholdPercent,
 		executeStoredMessages,
 		resetConsensusMessages,
-		&mock.SentSignatureTrackerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 		nil,
 	)
 	require.Nil(t, srStartRound)

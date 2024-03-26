@@ -1346,6 +1346,7 @@ func TestWorker_ProcessReceivedMessageWithHeaderAndWrongHash(t *testing.T) {
 		nil,
 		currentPid,
 		nil,
+		nil,
 	)
 	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
 	msg := &p2pmocks.P2PMessageMock{

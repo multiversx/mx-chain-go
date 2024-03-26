@@ -1381,6 +1381,7 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 			chainID,
 			currentPid,
 			&statusHandler.AppStatusHandlerStub{},
+			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		)
 
 		srEndRound, _ := bls.NewSubroundEndRound(
@@ -1388,6 +1389,7 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 			extend,
 			bls.ProcessingThresholdPercent,
 			displayStatistics,
+			&subRounds.SubRoundEndExtraSignersHolderMock{},
 			&statusHandler.AppStatusHandlerStub{},
 			&testscommon.SentSignatureTrackerStub{},
 		)
@@ -1395,8 +1397,8 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 		srEndRound.SetSelfPubKey("A")
 
 		cnsData := consensus.Message{
-			BlockHeaderHash: []byte("X"),
-			PubKey:          []byte("A"),
+			HeaderHash: []byte("X"),
+			PubKey:     []byte("A"),
 		}
 
 		res := srEndRound.ReceivedInvalidSignersInfo(&cnsData)
@@ -1642,7 +1644,7 @@ func TestSubroundEndRound_CreateAndBroadcastInvalidSigners(t *testing.T) {
 			},
 		}
 		container.SetBroadcastMessenger(messenger)
-		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
+		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 
 		sr.CreateAndBroadcastInvalidSigners(expectedInvalidSigners)
 	})

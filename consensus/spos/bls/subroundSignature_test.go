@@ -45,7 +45,7 @@ func initSubroundSignatureWithExtraSigners(extraSigners bls.SubRoundSignatureExt
 		extend,
 		&statusHandler.AppStatusHandlerStub{},
 		extraSigners,
-		&mock.SentSignatureTrackerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 	)
 
 	return srSignature
@@ -76,8 +76,8 @@ func initSubroundSignatureWithContainer(container *mock.ConsensusCoreMock, enabl
 		sr,
 		extend,
 		&statusHandler.AppStatusHandlerStub{},
-		&testscommon.SentSignatureTrackerStub{},
 		&subRounds.SubRoundSignatureExtraSignersHolderMock{},
+		&testscommon.SentSignatureTrackerStub{},
 	)
 
 	return srSignature
@@ -356,7 +356,7 @@ func TestSubroundSignature_NewSubroundSignatureNilExtraSignersHolderShouldFail(t
 	t.Parallel()
 
 	sr, _ := defaultSubround(initConsensusState(), make(chan bool, 1), mock.InitConsensusCore())
-	srSignature, err := bls.NewSubroundSignature(sr, extend, &statusHandler.AppStatusHandlerStub{}, nil, &mock.SentSignatureTrackerStub{})
+	srSignature, err := bls.NewSubroundSignature(sr, extend, &statusHandler.AppStatusHandlerStub{}, nil, &testscommon.SentSignatureTrackerStub{})
 	require.True(t, check.IfNil(srSignature))
 	require.Equal(t, errorsMx.ErrNilSignatureRoundExtraSignersHolder, err)
 }
