@@ -45,7 +45,7 @@ func TestNewBootstrapComponentsFactory(t *testing.T) {
 		t.Parallel()
 
 		argsCopy := args
-		argsCopy.CoreComponents = &factory.CoreComponentsHolderStub{
+		argsCopy.CoreComponents = &factory.CoreComponentsHolderMock{
 			EnableEpochsHandlerCalled: func() common.EnableEpochsHandler {
 				return nil
 			},

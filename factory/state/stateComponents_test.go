@@ -43,7 +43,7 @@ func TestNewStateComponentsFactory(t *testing.T) {
 		t.Parallel()
 
 		coreComponents := componentsMock.GetCoreComponents()
-		args := componentsMock.GetStateFactoryArgs(coreComponents)
+		args := componentsMock.GetStateFactoryArgs(coreComponents, componentsMock.GetStatusCoreComponents())
 		args.AccountsCreator = nil
 
 		scf, err := stateComp.NewStateComponentsFactory(args)

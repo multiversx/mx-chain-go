@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
@@ -100,6 +101,8 @@ func createVmContainerMockArgument(gasSchedule core.GasScheduleNotifier) metacha
 				MaxNumberOfNodesForStake:             100,
 				ActivateBLSPubKeyMessageVerification: false,
 				MinUnstakeTokensValue:                "1",
+				StakeLimitPercentage:                 100.0,
+				NodeLimitPercentage:                  100.0,
 			},
 			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
 				MinCreationDeposit:  "100",
@@ -116,6 +119,7 @@ func createVmContainerMockArgument(gasSchedule core.GasScheduleNotifier) metacha
 		ChanceComputer:      &mock.RaterMock{},
 		ShardCoordinator:    &mock.ShardCoordinatorStub{},
 		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.StakeFlag),
+		NodesCoordinator:    &shardingMocks.NodesCoordinatorMock{},
 	}
 }
 
@@ -165,6 +169,7 @@ func TestVmContainerMetaFactory_CreateVmContainerFactoryMeta(t *testing.T) {
 		ShardCoordinator:    argsMeta.ShardCoordinator,
 		PubkeyConv:          argsMeta.PubkeyConv,
 		EnableEpochsHandler: argsMeta.EnableEpochsHandler,
+		NodesCoordinator:    argsMeta.NodesCoordinator,
 	}
 
 	vmContainer, vmFactory, err := vmContainerMetaFactory.CreateVmContainerFactory(argsBlockchain, args)

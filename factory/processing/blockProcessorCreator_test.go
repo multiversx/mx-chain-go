@@ -82,10 +82,10 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 
 		bp, err := pcf.NewBlockProcessor(
 			&testscommon.ExtendedShardHeaderRequestHandlerStub{},
-			&mock.ForkDetectorStub{},
+			&processMocks.ForkDetectorStub{},
 			&mock.EpochStartTriggerStub{},
 			&mock.BoostrapStorerStub{},
-			&mock.ValidatorStatisticsProcessorStub{},
+			&testscommon.ValidatorStatisticsProcessorStub{},
 			&mock.HeaderValidatorStub{},
 			&mock.ExtendedShardHeaderTrackerStub{},
 			&mock.PendingMiniBlocksHandlerStub{},
@@ -94,7 +94,9 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 			&testscommon.ProcessedMiniBlocksTrackerStub{},
 			&testscommon.ReceiptsRepositoryStub{},
 			&testscommon.BlockProcessingCutoffStub{},
-			&testscommon.MissingTrieNodesNotifierStub{})
+			&testscommon.MissingTrieNodesNotifierStub{},
+			&testscommon.SentSignatureTrackerStub{},
+		)
 
 		require.NoError(t, err)
 		require.Equal(t, "*block.sovereignChainBlockProcessor", fmt.Sprintf("%T", bp))

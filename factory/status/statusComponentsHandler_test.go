@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/p2p"
 	factoryMocks "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/require"
 )
@@ -147,7 +148,7 @@ func TestManagedStatusComponents_StartPolling(t *testing.T) {
 		managedStatusComponents, _ := statusComp.NewManagedStatusComponents(scf)
 		err := managedStatusComponents.Create()
 		require.NoError(t, err)
-		require.NoError(t, managedStatusComponents.SetForkDetector(&mock.ForkDetectorStub{}))
+		require.NoError(t, managedStatusComponents.SetForkDetector(&processMocks.ForkDetectorStub{}))
 
 		err = managedStatusComponents.StartPolling()
 		require.NoError(t, err)
