@@ -2,7 +2,7 @@ package genericMocks
 
 import (
 	"github.com/multiversx/mx-chain-go/process/block/sovereign"
-	sovereign2 "github.com/multiversx/mx-chain-go/testscommon/sovereign"
+	sovereignMock "github.com/multiversx/mx-chain-go/testscommon/sovereign"
 )
 
 // DataCodecFactoryMock -
@@ -15,7 +15,7 @@ func (dc *DataCodecFactoryMock) CreateDataCodec() sovereign.DataDecoderHandler {
 	if dc.CreateDataCodecCalled != nil {
 		return dc.CreateDataCodec()
 	}
-	return &sovereign2.DataCodecMock{}
+	return &sovereignMock.DataCodecMock{}
 }
 
 // IsInterfaceNil -

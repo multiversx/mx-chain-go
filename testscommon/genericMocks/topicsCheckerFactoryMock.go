@@ -2,7 +2,7 @@ package genericMocks
 
 import (
 	"github.com/multiversx/mx-chain-go/process/block/sovereign"
-	sovereign2 "github.com/multiversx/mx-chain-go/testscommon/sovereign"
+	sovereignMock "github.com/multiversx/mx-chain-go/testscommon/sovereign"
 )
 
 // TopicsCheckerFactoryMock -
@@ -15,7 +15,7 @@ func (tc *TopicsCheckerFactoryMock) CreateTopicsChecker() sovereign.TopicsChecke
 	if tc.CreateTopicsCheckerCalled != nil {
 		return tc.CreateTopicsChecker()
 	}
-	return &sovereign2.TopicsCheckerMock{}
+	return &sovereignMock.TopicsCheckerMock{}
 }
 
 // IsInterfaceNil -

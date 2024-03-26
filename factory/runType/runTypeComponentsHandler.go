@@ -133,6 +133,18 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	if check.IfNil(mrc.scResultPreProcessorCreator) {
 		return errors.ErrNilSCResultsPreProcessorCreator
 	}
+	if mrc.consensusModel == consensus.ConsensusModelInvalid {
+		return errors.ErrInvalidConsensusModel
+	}
+	if check.IfNil(mrc.vmContainerMetaFactory) {
+		return errors.ErrNilVmContainerMetaFactoryCreator
+	}
+	if check.IfNil(mrc.vmContainerShardFactory) {
+		return errors.ErrNilVmContainerShardFactoryCreator
+	}
+	if check.IfNil(mrc.accountsCreator) {
+		return errors.ErrNilAccountsCreator
+	}
 	if check.IfNil(mrc.dataCodecCreator) {
 		return errors.ErrNilDataCodecCreator
 	}

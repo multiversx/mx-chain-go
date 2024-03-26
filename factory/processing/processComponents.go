@@ -2060,8 +2060,29 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	if check.IfNil(args.RunTypeComponents) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilRunTypeComponents)
 	}
+	if check.IfNil(args.RunTypeComponents.BlockChainHookHandlerCreator()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilBlockChainHookHandlerCreator)
+	}
 	if check.IfNil(args.RunTypeComponents.BlockProcessorCreator()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilBlockProcessorCreator)
+	}
+	if check.IfNil(args.RunTypeComponents.BlockTrackerCreator()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilBlockTrackerCreator)
+	}
+	if check.IfNil(args.RunTypeComponents.BootstrapperFromStorageCreator()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilBootstrapperFromStorageCreator)
+	}
+	if check.IfNil(args.RunTypeComponents.BootstrapperCreator()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilBootstrapperCreator)
+	}
+	if check.IfNil(args.RunTypeComponents.EpochStartBootstrapperCreator()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilEpochStartBootstrapperCreator)
+	}
+	if check.IfNil(args.RunTypeComponents.ForkDetectorCreator()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilForkDetectorCreator)
+	}
+	if check.IfNil(args.RunTypeComponents.HeaderValidatorCreator()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilHeaderValidatorCreator)
 	}
 	if check.IfNil(args.RunTypeComponents.RequestHandlerCreator()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilRequestHandlerCreator)
@@ -2069,26 +2090,32 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	if check.IfNil(args.RunTypeComponents.ScheduledTxsExecutionCreator()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilScheduledTxsExecutionCreator)
 	}
-	if check.IfNil(args.RunTypeComponents.BlockTrackerCreator()) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilBlockTrackerCreator)
-	}
 	if check.IfNil(args.RunTypeComponents.TransactionCoordinatorCreator()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilTransactionCoordinatorCreator)
-	}
-	if check.IfNil(args.RunTypeComponents.HeaderValidatorCreator()) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilHeaderValidatorCreator)
-	}
-	if check.IfNil(args.RunTypeComponents.ForkDetectorCreator()) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilForkDetectorCreator)
 	}
 	if check.IfNil(args.RunTypeComponents.ValidatorStatisticsProcessorCreator()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilValidatorStatisticsProcessorCreator)
 	}
-	if check.IfNil(args.RunTypeComponents.SCProcessorCreator()) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilSCProcessorCreator)
+	if check.IfNil(args.RunTypeComponents.AdditionalStorageServiceCreator()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilAdditionalStorageServiceCreator)
 	}
 	if check.IfNil(args.RunTypeComponents.SCResultsPreProcessorCreator()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilSCResultsPreProcessorCreator)
+	}
+	if check.IfNil(args.RunTypeComponents.SCProcessorCreator()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilSCProcessorCreator)
+	}
+	if args.RunTypeComponents.ConsensusModel() == consensus.ConsensusModelInvalid {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrInvalidConsensusModel)
+	}
+	if check.IfNil(args.RunTypeComponents.VmContainerMetaFactoryCreator()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilVmContainerMetaFactoryCreator)
+	}
+	if check.IfNil(args.RunTypeComponents.VmContainerShardFactoryCreator()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilVmContainerShardFactoryCreator)
+	}
+	if check.IfNil(args.RunTypeComponents.AccountsCreator()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilAccountsCreator)
 	}
 	if check.IfNil(args.RunTypeComponents.DataCodecCreator()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilDataCodecCreator)

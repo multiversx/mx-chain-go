@@ -793,3 +793,15 @@ var ErrNilDataCodecCreator = errors.New("nil data codec creator")
 
 // ErrNilTopicsCheckerCreator signals that a nil topics checker creator has been provided
 var ErrNilTopicsCheckerCreator = errors.New("nil topics checker creator")
+
+// ErrInvalidConsensusModel signals that an invalid consensus model has been provided
+var ErrInvalidConsensusModel = errors.New("invalid consensus model")
+
+// ErrNilVmContainerMetaFactoryCreator signals that a nil vm container meta factory creator has been provided
+var ErrNilVmContainerMetaFactoryCreator = errors.New("nil vm container meta factory creator")
+
+// ErrNilVmContainerShardFactoryCreator signals that a nil vm container shard factory creator has been provided
+var ErrNilVmContainerShardFactoryCreator = errors.New("nil vm container shard factory creator")
+
+// ErrNilAccountsCreator signals that a nil accoutns creator has been provided
+var ErrNilAccountsCreator = errors.New("nil accounts creator")

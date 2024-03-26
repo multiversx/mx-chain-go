@@ -9,8 +9,8 @@ type dataCodecFactory struct {
 }
 
 // NewDataCodecFactory creates a new data codec factory
-func NewDataCodecFactory() (*dataCodecFactory, error) {
-	return &dataCodecFactory{}, nil
+func NewDataCodecFactory() *dataCodecFactory {
+	return &dataCodecFactory{}
 }
 
 // CreateDataCodec creates a new data codec for the chain run type normal

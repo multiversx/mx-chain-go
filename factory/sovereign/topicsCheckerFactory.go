@@ -9,8 +9,8 @@ type topicsCheckerFactory struct {
 }
 
 // NewTopicsCheckerFactory creates a new topics checker factory
-func NewTopicsCheckerFactory() (*topicsCheckerFactory, error) {
-	return &topicsCheckerFactory{}, nil
+func NewTopicsCheckerFactory() *topicsCheckerFactory {
+	return &topicsCheckerFactory{}
 }
 
 // CreateTopicsChecker creates a new topics checker for the chain run type normal

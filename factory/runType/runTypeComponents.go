@@ -77,9 +77,6 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 	}
 
 	epochStartBootstrapperFactory := bootstrap.NewEpochStartBootstrapperFactory()
-	if err != nil {
-		return nil, fmt.Errorf("runTypeComponentsFactory - NewEpochStartBootstrapperFactory failed: %w", err)
-	}
 
 	bootstrapperFromStorageFactory, err := storageBootstrap.NewShardStorageBootstrapperFactory()
 	if err != nil {
@@ -107,9 +104,6 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 	}
 
 	requestHandlerFactory := requestHandlers.NewResolverRequestHandlerFactory()
-	if err != nil {
-		return nil, fmt.Errorf("runTypeComponentsFactory - NewResolverRequestHandlerFactory failed: %w", err)
-	}
 
 	headerValidatorFactory, err := block.NewShardHeaderValidatorFactory()
 	if err != nil {
@@ -142,9 +136,6 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 	}
 
 	scProcessorCreator := processProxy.NewSCProcessProxyFactory()
-	if err != nil {
-		return nil, fmt.Errorf("runTypeComponentsFactory - NewSCProcessProxyFactory failed: %w", err)
-	}
 
 	vmContainerMetaCreator, err := factoryVm.NewVmContainerMetaFactory(blockChainHookHandlerFactory)
 	if err != nil {
@@ -165,15 +156,9 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		return nil, fmt.Errorf("runTypeComponentsFactory - NewAccountCreator failed: %w", err)
 	}
 
-	dataCodecCreator, err := sovereignFactory.NewDataCodecFactory()
-	if err != nil {
-		return nil, fmt.Errorf("runTypeComponentsFactory - NewDataCodecFactory failed: %w", err)
-	}
+	dataCodecCreator := sovereignFactory.NewDataCodecFactory()
 
-	topicsCheckerCreator, err := sovereignFactory.NewTopicsCheckerFactory()
-	if err != nil {
-		return nil, fmt.Errorf("runTypeComponentsFactory - NewTopicsCheckerFactory failed: %w", err)
-	}
+	topicsCheckerCreator := sovereignFactory.NewTopicsCheckerFactory()
 
 	return &runTypeComponents{
 		blockChainHookHandlerCreator:        blockChainHookHandlerFactory,
