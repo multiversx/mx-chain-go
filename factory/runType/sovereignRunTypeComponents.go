@@ -152,6 +152,8 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignAccountCreator failed: %w", err)
 	}
 
+	outGoingOperationsPoolCreator := sovereignFactory.NewSovereignOutGoingOperationPoolFactory(rcf.cfg.OutgoingSubscribedEvents.TimeToWaitForUnconfirmedOutGoingOperationInSeconds)
+
 	dataCodecCreator, err := sovereignFactory.NewSovereignDataCodecFactory(rcf.dataCodec)
 	if err != nil {
 		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignDataCodecFactory failed: %w", err)
@@ -182,6 +184,7 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		vmContainerMetaFactory:              rtc.vmContainerMetaFactory,
 		vmContainerShardFactory:             vmContainerShardCreator,
 		accountsCreator:                     accountsCreator,
+		outGoingOperationsPoolCreator:       outGoingOperationsPoolCreator,
 		dataCodecCreator:                    dataCodecCreator,
 		topicsCheckerCreator:                topicsCheckerCreator,
 	}, nil

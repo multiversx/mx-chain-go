@@ -382,6 +382,18 @@ func (mrc *managedRunTypeComponents) AccountsCreator() state.AccountFactory {
 	return mrc.runTypeComponents.accountsCreator
 }
 
+// OutGoingOperationsPoolCreator return the outgoing operations pool factory
+func (mrc *managedRunTypeComponents) OutGoingOperationsPoolCreator() processBlock.OutGoingOperationsPoolCreator {
+	mrc.mutStateComponents.RLock()
+	defer mrc.mutStateComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.outGoingOperationsPoolCreator
+}
+
 // DataCodecCreator returns the data codec factory
 func (mrc *managedRunTypeComponents) DataCodecCreator() factorySovereign.DataDecoderCreator {
 	mrc.mutStateComponents.RLock()

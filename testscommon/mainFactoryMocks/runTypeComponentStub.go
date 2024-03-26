@@ -43,6 +43,7 @@ type RunTypeComponentsStub struct {
 	VmContainerMetaFactory              factoryVm.VmContainerCreator
 	VmContainerShardFactory             factoryVm.VmContainerCreator
 	AccountCreator                      state.AccountFactory
+	OutGoingOperationsPool              block.OutGoingOperationsPoolCreator
 	DataCodecFactory                    factorySovereign.DataDecoderCreator
 	TopicsCheckerFactory                factorySovereign.TopicsCheckerCreator
 }
@@ -69,6 +70,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		VmContainerMetaFactory:              &testFactory.VMContainerMetaFactoryMock{},
 		VmContainerShardFactory:             &testFactory.VMContainerShardFactoryMock{},
 		AccountCreator:                      &stateMock.AccountsFactoryStub{},
+		OutGoingOperationsPool:              &genericMocks.OutGoingOperationsFactoryMock{},
 		DataCodecFactory:                    &genericMocks.DataCodecFactoryMock{},
 		TopicsCheckerFactory:                &genericMocks.TopicsCheckerFactoryMock{},
 	}
@@ -187,6 +189,10 @@ func (r *RunTypeComponentsStub) VmContainerShardFactoryCreator() factoryVm.VmCon
 // AccountsCreator -
 func (r *RunTypeComponentsStub) AccountsCreator() state.AccountFactory {
 	return r.AccountCreator
+}
+
+func (r *RunTypeComponentsStub) OutGoingOperationsPoolCreator() block.OutGoingOperationsPoolCreator {
+	return r.OutGoingOperationsPool
 }
 
 func (r *RunTypeComponentsStub) DataCodecCreator() factorySovereign.DataDecoderCreator {

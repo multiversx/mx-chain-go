@@ -53,6 +53,7 @@ type runTypeComponents struct {
 	vmContainerMetaFactory              factoryVm.VmContainerCreator
 	vmContainerShardFactory             factoryVm.VmContainerCreator
 	accountsCreator                     state.AccountFactory
+	outGoingOperationsPoolCreator       processBlock.OutGoingOperationsPoolCreator
 	dataCodecCreator                    factorySovereign.DataDecoderCreator
 	topicsCheckerCreator                factorySovereign.TopicsCheckerCreator
 }
@@ -155,6 +156,8 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		return nil, fmt.Errorf("runTypeComponentsFactory - NewAccountCreator failed: %w", err)
 	}
 
+	outGoingOperationsPoolCreator := factorySovereign.NewOutGoingOperationPoolFactory()
+
 	dataCodecCreator := factorySovereign.NewDataCodecFactory()
 
 	topicsCheckerCreator := factorySovereign.NewTopicsCheckerFactory()
@@ -179,6 +182,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		vmContainerMetaFactory:              vmContainerMetaCreator,
 		vmContainerShardFactory:             vmContainerShardCreator,
 		accountsCreator:                     accountsCreator,
+		outGoingOperationsPoolCreator:       outGoingOperationsPoolCreator,
 		dataCodecCreator:                    dataCodecCreator,
 		topicsCheckerCreator:                topicsCheckerCreator,
 	}, nil

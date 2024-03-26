@@ -55,6 +55,12 @@ type OutGoingOperationsPool interface {
 	IsInterfaceNil() bool
 }
 
+// OutGoingOperationsPoolCreator defines the outgoing operations pool factory handler
+type OutGoingOperationsPoolCreator interface {
+	CreateOutGoingOperationPool() OutGoingOperationsPool
+	IsInterfaceNil() bool
+}
+
 // BlockProcessorCreator defines the block processor factory handler
 type BlockProcessorCreator interface {
 	CreateBlockProcessor(argumentsBaseProcessor ArgBaseProcessor) (process.DebuggerBlockProcessor, error)
