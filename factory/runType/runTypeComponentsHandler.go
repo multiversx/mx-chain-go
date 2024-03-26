@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-go/consensus"
+	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/errors"
@@ -386,7 +387,7 @@ func (mrc *managedRunTypeComponents) AccountsCreator() state.AccountFactory {
 }
 
 // OutGoingOperationsPoolHandler return the outgoing operations pool factory
-func (mrc *managedRunTypeComponents) OutGoingOperationsPoolHandler() processBlock.OutGoingOperationsPool {
+func (mrc *managedRunTypeComponents) OutGoingOperationsPoolHandler() sovereignBlock.OutGoingOperationsPool {
 	mrc.mutStateComponents.RLock()
 	defer mrc.mutStateComponents.RUnlock()
 

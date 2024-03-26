@@ -2,19 +2,20 @@ package bls
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
+
 	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	"github.com/multiversx/mx-chain-go/errors"
-	"github.com/multiversx/mx-chain-go/process/block"
 )
 
 type sovereignSubRoundEndCreator struct {
-	outGoingOperationsPool block.OutGoingOperationsPool
+	outGoingOperationsPool sovereign.OutGoingOperationsPool
 	bridgeOpHandler        BridgeOperationsHandler
 }
 
 // NewSovereignSubRoundEndCreator creates a new sovereign subround end factory
 func NewSovereignSubRoundEndCreator(
-	outGoingOperationsPool block.OutGoingOperationsPool,
+	outGoingOperationsPool sovereign.OutGoingOperationsPool,
 	bridgeOpHandler BridgeOperationsHandler,
 ) (*sovereignSubRoundEndCreator, error) {
 	if check.IfNil(outGoingOperationsPool) {

@@ -2,6 +2,7 @@ package mainFactoryMocks
 
 import (
 	"github.com/multiversx/mx-chain-go/consensus"
+	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
@@ -43,7 +44,7 @@ type RunTypeComponentsStub struct {
 	VmContainerMetaFactory              factoryVm.VmContainerCreator
 	VmContainerShardFactory             factoryVm.VmContainerCreator
 	AccountCreator                      state.AccountFactory
-	OutGoingOperationsPool              block.OutGoingOperationsPool
+	OutGoingOperationsPool              sovereignBlock.OutGoingOperationsPool
 	DataCodec                           sovereign.DataDecoderHandler
 	TopicsChecker                       sovereign.TopicsCheckerHandler
 }
@@ -191,7 +192,7 @@ func (r *RunTypeComponentsStub) AccountsCreator() state.AccountFactory {
 	return r.AccountCreator
 }
 
-func (r *RunTypeComponentsStub) OutGoingOperationsPoolHandler() block.OutGoingOperationsPool {
+func (r *RunTypeComponentsStub) OutGoingOperationsPoolHandler() sovereignBlock.OutGoingOperationsPool {
 	return r.OutGoingOperationsPool
 }
 
