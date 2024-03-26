@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/multiversx/mx-chain-go/factory/sovereign"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewTopicsCheckerFactory(t *testing.T) {

@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory/sovereign"
 	sovereignMock "github.com/multiversx/mx-chain-go/testscommon/sovereign"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewSovereignTopicsCheckerFactory(t *testing.T) {
