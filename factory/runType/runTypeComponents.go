@@ -3,16 +3,17 @@ package runType
 import (
 	"fmt"
 
+	"github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/errors"
-	factorySovereign "github.com/multiversx/mx-chain-go/factory/sovereign"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
 	processBlock "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
+	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
@@ -53,8 +54,8 @@ type runTypeComponents struct {
 	vmContainerMetaFactory              factoryVm.VmContainerCreator
 	vmContainerShardFactory             factoryVm.VmContainerCreator
 	accountsCreator                     state.AccountFactory
-	dataCodecCreator                    factorySovereign.DataDecoderCreator
-	topicsCheckerCreator                factorySovereign.TopicsCheckerCreator
+	dataCodecHandler                    sovereign.DataDecoderHandler
+	topicsCheckerHandler                sovereign.TopicsCheckerHandler
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
@@ -155,9 +156,9 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		return nil, fmt.Errorf("runTypeComponentsFactory - NewAccountCreator failed: %w", err)
 	}
 
-	dataCodecCreator := factorySovereign.NewDataCodecFactory()
+	dataCodec := disabled.NewDisabledDataCodec()
 
-	topicsCheckerCreator := factorySovereign.NewTopicsCheckerFactory()
+	topicsChecker := disabled.NewDisabledTopicsChecker()
 
 	return &runTypeComponents{
 		blockChainHookHandlerCreator:        blockChainHookHandlerFactory,
@@ -179,8 +180,8 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		vmContainerMetaFactory:              vmContainerMetaCreator,
 		vmContainerShardFactory:             vmContainerShardCreator,
 		accountsCreator:                     accountsCreator,
-		dataCodecCreator:                    dataCodecCreator,
-		topicsCheckerCreator:                topicsCheckerCreator,
+		dataCodecHandler:                    dataCodec,
+		topicsCheckerHandler:                topicsChecker,
 	}, nil
 }
 

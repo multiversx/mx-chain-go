@@ -1895,8 +1895,8 @@ func createIncomingHeaderProcessor(
 		Hasher:                          hasher,
 		MainChainNotarizationStartRound: mainChainNotarizationStartRound,
 		OutGoingOperationsPool:          outGoingOperationsPool,
-		DataCodec:                       runTypeComponents.DataCodecCreator().CreateDataCodec(),
-		TopicsChecker:                   runTypeComponents.TopicsCheckerCreator().CreateTopicsChecker(),
+		DataCodec:                       runTypeComponents.DataCodecHandler(),
+		TopicsChecker:                   runTypeComponents.TopicsCheckerHandler(),
 	}
 
 	return incomingHeader.NewIncomingHeaderProcessor(argsIncomingHeaderHandler)

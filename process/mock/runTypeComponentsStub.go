@@ -1,25 +1,25 @@
 package mock
 
 import (
-	factorySovereign "github.com/multiversx/mx-chain-go/factory/sovereign"
+	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	sovereignMocks "github.com/multiversx/mx-chain-go/testscommon/sovereign"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 )
 
 // RunTypeComponentsStub -
 type RunTypeComponentsStub struct {
-	AccountCreator       state.AccountFactory
-	DataCodecFactory     factorySovereign.DataDecoderCreator
-	TopicsCheckerFactory factorySovereign.TopicsCheckerCreator
+	AccountCreator state.AccountFactory
+	DataCodec      sovereign.DataDecoderHandler
+	TopicsChecker  sovereign.TopicsCheckerHandler
 }
 
 // NewRunTypeComponentsStub -
 func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 	return &RunTypeComponentsStub{
-		AccountCreator:       &stateMock.AccountsFactoryStub{},
-		DataCodecFactory:     &genericMocks.DataCodecFactoryMock{},
-		TopicsCheckerFactory: &genericMocks.TopicsCheckerFactoryMock{},
+		AccountCreator: &stateMock.AccountsFactoryStub{},
+		DataCodec:      &sovereignMocks.DataCodecMock{},
+		TopicsChecker:  &sovereignMocks.TopicsCheckerMock{},
 	}
 }
 
@@ -28,14 +28,14 @@ func (r *RunTypeComponentsStub) AccountsCreator() state.AccountFactory {
 	return r.AccountCreator
 }
 
-// DataCodecCreator  -
-func (r *RunTypeComponentsStub) DataCodecCreator() factorySovereign.DataDecoderCreator {
-	return r.DataCodecFactory
+// DataCodecHandler  -
+func (r *RunTypeComponentsStub) DataCodecHandler() sovereign.DataDecoderHandler {
+	return r.DataCodec
 }
 
-// TopicsCheckerCreator  -
-func (r *RunTypeComponentsStub) TopicsCheckerCreator() factorySovereign.TopicsCheckerCreator {
-	return r.TopicsCheckerFactory
+// TopicsCheckerHandler  -
+func (r *RunTypeComponentsStub) TopicsCheckerHandler() sovereign.TopicsCheckerHandler {
+	return r.TopicsChecker
 }
 
 // IsInterfaceNil -

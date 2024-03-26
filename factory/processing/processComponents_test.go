@@ -889,18 +889,18 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 
 		args := createMockProcessComponentsFactoryArgs()
 		rtMock := getRunTypeComponentsMock()
-		rtMock.DataCodecFactory = nil
+		rtMock.DataCodec = nil
 		args.RunTypeComponents = rtMock
 		pcf, err := processComp.NewProcessComponentsFactory(args)
 		require.True(t, errors.Is(err, errorsMx.ErrNilDataCodecCreator))
 		require.Nil(t, pcf)
 	})
-	t.Run("nil TopicsCheckerCreator should error", func(t *testing.T) {
+	t.Run("nil TopicsCheckerHandler should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockProcessComponentsFactoryArgs()
 		rtMock := getRunTypeComponentsMock()
-		rtMock.TopicsCheckerFactory = nil
+		rtMock.TopicsChecker = nil
 		args.RunTypeComponents = rtMock
 		pcf, err := processComp.NewProcessComponentsFactory(args)
 		require.True(t, errors.Is(err, errorsMx.ErrNilTopicsCheckerCreator))
@@ -937,8 +937,8 @@ func getRunTypeComponentsMock() *mainFactoryMocks.RunTypeComponentsStub {
 		VmContainerMetaFactory:              rt.VmContainerMetaFactoryCreator(),
 		VmContainerShardFactory:             rt.VmContainerShardFactoryCreator(),
 		AccountCreator:                      rt.AccountsCreator(),
-		DataCodecFactory:                    rt.DataCodecCreator(),
-		TopicsCheckerFactory:                rt.TopicsCheckerCreator(),
+		DataCodec:                           rt.DataCodecHandler(),
+		TopicsChecker:                       rt.TopicsCheckerHandler(),
 	}
 }
 

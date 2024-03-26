@@ -2117,10 +2117,10 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	if check.IfNil(args.RunTypeComponents.AccountsCreator()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilAccountsCreator)
 	}
-	if check.IfNil(args.RunTypeComponents.DataCodecCreator()) {
+	if check.IfNil(args.RunTypeComponents.DataCodecHandler()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilDataCodecCreator)
 	}
-	if check.IfNil(args.RunTypeComponents.TopicsCheckerCreator()) {
+	if check.IfNil(args.RunTypeComponents.TopicsCheckerHandler()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilTopicsCheckerCreator)
 	}
 

@@ -9,11 +9,11 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
-	factorySovereign "github.com/multiversx/mx-chain-go/factory/sovereign"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/process"
 	processBlock "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
+	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
@@ -145,10 +145,10 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	if check.IfNil(mrc.accountsCreator) {
 		return errors.ErrNilAccountsCreator
 	}
-	if check.IfNil(mrc.dataCodecCreator) {
+	if check.IfNil(mrc.dataCodecHandler) {
 		return errors.ErrNilDataCodecCreator
 	}
-	if check.IfNil(mrc.topicsCheckerCreator) {
+	if check.IfNil(mrc.topicsCheckerHandler) {
 		return errors.ErrNilTopicsCheckerCreator
 	}
 	return nil
@@ -382,8 +382,8 @@ func (mrc *managedRunTypeComponents) AccountsCreator() state.AccountFactory {
 	return mrc.runTypeComponents.accountsCreator
 }
 
-// DataCodecCreator returns the data codec factory
-func (mrc *managedRunTypeComponents) DataCodecCreator() factorySovereign.DataDecoderCreator {
+// DataCodecHandler returns the data codec factory
+func (mrc *managedRunTypeComponents) DataCodecHandler() sovereign.DataDecoderHandler {
 	mrc.mutStateComponents.RLock()
 	defer mrc.mutStateComponents.RUnlock()
 
@@ -391,11 +391,11 @@ func (mrc *managedRunTypeComponents) DataCodecCreator() factorySovereign.DataDec
 		return nil
 	}
 
-	return mrc.runTypeComponents.dataCodecCreator
+	return mrc.runTypeComponents.dataCodecHandler
 }
 
-// TopicsCheckerCreator returns the topics checker factory
-func (mrc *managedRunTypeComponents) TopicsCheckerCreator() factorySovereign.TopicsCheckerCreator {
+// TopicsCheckerHandler returns the topics checker factory
+func (mrc *managedRunTypeComponents) TopicsCheckerHandler() sovereign.TopicsCheckerHandler {
 	mrc.mutStateComponents.RLock()
 	defer mrc.mutStateComponents.RUnlock()
 
@@ -403,7 +403,7 @@ func (mrc *managedRunTypeComponents) TopicsCheckerCreator() factorySovereign.Top
 		return nil
 	}
 
-	return mrc.runTypeComponents.topicsCheckerCreator
+	return mrc.runTypeComponents.topicsCheckerHandler
 }
 
 // IsInterfaceNil returns true if the interface is nil

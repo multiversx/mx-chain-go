@@ -589,10 +589,10 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.RunTypeComponents.AccountsCreator()) {
 		return state.ErrNilAccountFactory
 	}
-	if check.IfNil(arguments.RunTypeComponents.DataCodecCreator()) {
+	if check.IfNil(arguments.RunTypeComponents.DataCodecHandler()) {
 		return errors.ErrNilDataCodecCreator
 	}
-	if check.IfNil(arguments.RunTypeComponents.TopicsCheckerCreator()) {
+	if check.IfNil(arguments.RunTypeComponents.TopicsCheckerHandler()) {
 		return errors.ErrNilTopicsCheckerCreator
 	}
 
