@@ -3,7 +3,6 @@ package sovereign
 import (
 	"time"
 
-	"github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	"github.com/multiversx/mx-chain-go/process/block"
 )
 
@@ -20,7 +19,7 @@ func NewSovereignOutGoingOperationPoolFactory(duration uint32) *sovereignOutGoin
 
 // CreateOutGoingOperationPool creates a new outgoing operation pool for the chain run type sovereign
 func (soopf *sovereignOutGoingOperationPoolFactory) CreateOutGoingOperationPool() block.OutGoingOperationsPool {
-	return sovereign.NewOutGoingOperationPool(soopf.timeToWait)
+	return NewOutGoingOperationPool(soopf.timeToWait)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/errors"
@@ -156,7 +157,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		return nil, fmt.Errorf("runTypeComponentsFactory - NewAccountCreator failed: %w", err)
 	}
 
-	outGoingOperationsPoolCreator := factorySovereign.NewOutGoingOperationPoolFactory()
+	outGoingOperationsPoolCreator := sovereign.NewOutGoingOperationPoolFactory()
 
 	dataCodecCreator := factorySovereign.NewDataCodecFactory()
 
