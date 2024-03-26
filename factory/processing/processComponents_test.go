@@ -883,6 +883,17 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		require.True(t, errors.Is(err, errorsMx.ErrNilAccountsCreator))
 		require.Nil(t, pcf)
 	})
+	t.Run("nil OutGoingOperationsPool should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockProcessComponentsFactoryArgs()
+		rtMock := getRunTypeComponentsMock()
+		rtMock.OutGoingOperationsPool = nil
+		args.RunTypeComponents = rtMock
+		pcf, err := processComp.NewProcessComponentsFactory(args)
+		require.True(t, errors.Is(err, errorsMx.ErrNilOutGoingOperationsPool))
+		require.Nil(t, pcf)
+	})
 	t.Run("nil DataDecoderCreator should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -936,6 +947,7 @@ func getRunTypeComponentsMock() *mainFactoryMocks.RunTypeComponentsStub {
 		VmContainerMetaFactory:              rt.VmContainerMetaFactoryCreator(),
 		VmContainerShardFactory:             rt.VmContainerShardFactoryCreator(),
 		AccountCreator:                      rt.AccountsCreator(),
+		OutGoingOperationsPool:              rt.OutGoingOperationsPoolHandler(),
 		DataCodec:                           rt.DataCodecHandler(),
 		TopicsChecker:                       rt.TopicsCheckerHandler(),
 	}

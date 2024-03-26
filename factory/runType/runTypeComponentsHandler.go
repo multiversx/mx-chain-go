@@ -145,7 +145,9 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	if check.IfNil(mrc.accountsCreator) {
 		return errors.ErrNilAccountsCreator
 	}
-	//TODO OGO
+	if check.IfNil(mrc.outGoingOperationsPoolHandler) {
+		return errors.ErrNilOutGoingOperationsPool
+	}
 	if check.IfNil(mrc.dataCodecHandler) {
 		return errors.ErrNilDataCodec
 	}
