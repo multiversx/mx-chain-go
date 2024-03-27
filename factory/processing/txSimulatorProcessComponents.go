@@ -145,7 +145,7 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorForMeta(
 		BuiltInFunctions:         builtInFuncFactory.BuiltInFunctionContainer(),
 		DataPool:                 pcf.data.Datapool(),
 		CompiledSCPool:           pcf.data.Datapool().SmartContracts(),
-		ConfigSCStorage:          pcf.config.SmartContractsStorage,
+		ConfigSCStorage:          pcf.config.SmartContractsStorageSimulate,
 		WorkingDir:               pcf.flagsConfig.WorkingDir,
 		NFTStorageHandler:        builtInFuncFactory.NFTStorageHandler(),
 		GlobalSettingsHandler:    builtInFuncFactory.ESDTGlobalSettingsHandler(),
@@ -175,6 +175,11 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorForMeta(
 	}
 
 	vmContainer, vmFactory, err := pcf.runTypeComponents.VmContainerMetaFactoryCreator().CreateVmContainerFactory(argsHook, argsNewVmContainerFactory)
+	if err != nil {
+		return args, nil, nil, err
+	}
+
+	err = builtInFuncFactory.SetPayableHandler(vmFactory.BlockChainHookImpl())
 	if err != nil {
 		return args, nil, nil, err
 	}

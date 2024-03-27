@@ -264,6 +264,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 			EpochStartBootstrapperCreator:    bcf.runTypeComponents.EpochStartBootstrapperCreator(),
 			NodesCoordinatorWithRaterFactory: bcf.nodesCoordinatorWithRaterFactory,
 			ShardCoordinatorFactory:          bcf.shardCoordinatorFactory,
+			ResolverRequestFactory:           bcf.runTypeComponents.RequestHandlerCreator(),
 		}
 
 		epochStartBootstrapper, err = bootstrap.NewStorageEpochStartBootstrap(storageArg)
