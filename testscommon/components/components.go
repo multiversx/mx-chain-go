@@ -863,7 +863,6 @@ func GetProcessComponents(
 
 // GetRunTypeComponents -
 func GetRunTypeComponents() factory.RunTypeComponentsHolder {
-	GetCoreComponents()
 	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory(&mockCoreComp.CoreComponentsStub{
 		HasherField:              &hashingMocks.HasherMock{},
 		InternalMarshalizerField: &marshallerMock.MarshalizerMock{},
@@ -882,9 +881,29 @@ func GetRunTypeComponents() factory.RunTypeComponentsHolder {
 	return managedRunTypeComponents
 }
 
+// GetRunTypeComponentsWithCoreComp -
+func GetRunTypeComponentsWithCoreComp(coreComponents factory.CoreComponentsHandler) factory.RunTypeComponentsHolder {
+	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory(coreComponents)
+	managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(runTypeComponentsFactory)
+	if err != nil {
+		log.Error("getRunTypeComponents NewManagedRunTypeComponents", "error", err.Error())
+		return nil
+	}
+	err = managedRunTypeComponents.Create()
+	if err != nil {
+		log.Error("getRunTypeComponents Create", "error", err.Error())
+		return nil
+	}
+	return managedRunTypeComponents
+}
+
 // GetSovereignRunTypeComponents -
 func GetSovereignRunTypeComponents() factory.RunTypeComponentsHolder {
-	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory(GetCoreComponents())
+	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory(&mockCoreComp.CoreComponentsStub{
+		HasherField:              &hashingMocks.HasherMock{},
+		InternalMarshalizerField: &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandlerField: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+	})
 	sovereignComponentsFactory, _ := runType.NewSovereignRunTypeComponentsFactory(runTypeComponentsFactory, getSovConfig())
 	managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(sovereignComponentsFactory)
 	if err != nil {

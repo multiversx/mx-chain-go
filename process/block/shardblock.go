@@ -415,7 +415,6 @@ func (sp *shardProcessor) requestEpochStartInfo(header data.ShardHeaderHandler, 
 
 // RevertStateToBlock recreates the state tries to the root hashes indicated by the provided root hash and header
 func (sp *shardProcessor) RevertStateToBlock(header data.HeaderHandler, rootHash []byte) error {
-
 	err := sp.accountsDB[state.UserAccountsState].RecreateTrie(rootHash)
 	if err != nil {
 		log.Debug("recreate trie with error for header",

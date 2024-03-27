@@ -100,7 +100,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/blockInfoProviders"
-	stateFactory "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
@@ -427,6 +426,8 @@ type TestProcessorNode struct {
 	RequestHandlerCreator processing.RequestHandlerCreator
 	BlockTrackerCreator   track.BlockTrackerCreator
 	BlockProcessorCreator processing.BlockProcessorCreator
+
+	RunTypeComponents factory.RunTypeComponentsHolder
 }
 
 // CreatePkBytes creates 'numShards' public key-like byte slices
@@ -447,6 +448,7 @@ func CreatePkBytes(numShards uint32) map[uint32][]byte {
 }
 
 func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
+
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(args.MaxShards, args.NodeShardId)
 
 	pksBytes := CreatePkBytes(args.MaxShards)
@@ -513,9 +515,11 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 
 	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
 
-	if check.IfNil(args.RunTypeComponents) {
-		args.RunTypeComponents = GetDefaultRunTypeComponents(consensus.ConsensusModelV1)
-	}
+	args.RunTypeComponents = components.GetRunTypeComponentsWithCoreComp(&mock.CoreComponentsStub{
+		HasherField:              TestHasher,
+		InternalMarshalizerField: TestMarshalizer,
+		EnableEpochsHandlerField: enableEpochsHandler,
+	})
 
 	tpn := &TestProcessorNode{
 		ShardCoordinator:           shardCoordinator,
@@ -551,6 +555,7 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 		RequestHandlerCreator:      requestHandlers.NewResolverRequestHandlerFactory(),
 		BlockProcessorCreator:      args.RunTypeComponents.BlockProcessorCreator(),
 		BlockTrackerCreator:        args.RunTypeComponents.BlockTrackerCreator(),
+		RunTypeComponents:          args.RunTypeComponents,
 	}
 
 	tpn.NodeKeys = args.NodeKeys
@@ -730,6 +735,7 @@ func (tpn *TestProcessorNode) initGenesisBlocks(args ArgTestProcessorNode) {
 			&genesisMocks.AccountsParserStub{},
 			tpn.SmartContractParser,
 			tpn.EnableEpochs,
+			tpn.RunTypeComponents,
 		)
 		return
 	}
@@ -2214,22 +2220,13 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
 	}
 
-	runTypeComp := GetDefaultRunTypeComponents(consensus.ConsensusModelV1)
-	runTypeComp.AccountCreator, _ = stateFactory.NewAccountCreator(
-		stateFactory.ArgsAccountCreator{
-			Hasher:              coreComponents.Hasher(),
-			Marshaller:          coreComponents.InternalMarshalizer(),
-			EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
-		},
-	)
-
 	argumentsBase := block.ArgBaseProcessor{
 		CoreComponents:       coreComponents,
 		DataComponents:       dataComponents,
 		BootstrapComponents:  bootstrapComponents,
 		StatusComponents:     statusComponents,
 		StatusCoreComponents: statusCoreComponents,
-		RunTypeComponents:    runTypeComp,
+		RunTypeComponents:    tpn.RunTypeComponents,
 		Config:               config.Config{},
 		AccountsDB:           accountsDb,
 		ForkDetector:         tpn.ForkDetector,

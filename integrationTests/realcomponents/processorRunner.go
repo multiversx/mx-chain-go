@@ -48,7 +48,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
-	"github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/headerSigVerifier"
 	"github.com/multiversx/mx-chain-go/update/trigger"
 	"github.com/stretchr/testify/require"
@@ -293,7 +292,7 @@ func (pr *ProcessorRunner) createStateComponents(tb testing.TB) {
 		ProcessingMode:           common.Normal,
 		ShouldSerializeSnapshots: false,
 		ChainHandler:             pr.DataComponents.Blockchain(),
-		AccountsCreator:          components.GetRunTypeComponents().AccountsCreator(),
+		AccountsCreator:          pr.RunTypeComponents.AccountsCreator(),
 	}
 
 	stateFactory, err := factoryState.NewStateComponentsFactory(argsState)

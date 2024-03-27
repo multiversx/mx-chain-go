@@ -22,7 +22,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/transactionEvaluator"
 	"github.com/multiversx/mx-chain-go/process/txstatus"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/state"
@@ -47,12 +46,10 @@ func NewTestProcessorNodeWithTestWebServer(
 	txSignPrivKeyShardId uint32,
 ) *TestProcessorNodeWithTestWebServer {
 
-	runTypeComponents := componentsMock.GetRunTypeComponents()
 	tpn := NewTestProcessorNode(ArgTestProcessorNode{
 		MaxShards:            maxShards,
 		NodeShardId:          nodeShardId,
 		TxSignPrivKeyShardId: txSignPrivKeyShardId,
-		RunTypeComponents:    runTypeComponents,
 	})
 
 	argFacade := createFacadeArg(tpn)

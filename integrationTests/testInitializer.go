@@ -31,9 +31,9 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/config"
-	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
+	mainFactory "github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/genesis"
 	genesisProcess "github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
@@ -43,11 +43,9 @@ import (
 	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
-	"github.com/multiversx/mx-chain-go/process/coordinator"
 	procFactory "github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
-	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	txProc "github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -648,6 +646,7 @@ func CreateFullGenesisBlocks(
 	accountsParser genesis.AccountsParser,
 	smartContractParser genesis.InitialSmartContractParser,
 	enableEpochsConfig config.EnableEpochs,
+	runTypeComp mainFactory.RunTypeComponentsHolder,
 ) map[uint32]data.HeaderHandler {
 	gasSchedule := wasmConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)
@@ -669,11 +668,6 @@ func CreateFullGenesisBlocks(
 	dataComponents.Store = store
 	dataComponents.DataPool = dataPool
 	dataComponents.BlockChain = blkc
-
-	runTypeComponents := GetDefaultRunTypeComponents(consensus.ConsensusModelV1)
-	runTypeComponents.BlockChainHookHandlerFactory, _ = hooks.NewBlockChainHookFactory()
-	runTypeComponents.TransactionCoordinatorFactory, _ = coordinator.NewShardTransactionCoordinatorFactory()
-	runTypeComponents.SCResultsPreProcessorFactory, _ = preprocess.NewSmartContractResultPreProcessorFactory()
 
 	argsGenesis := genesisProcess.ArgsGenesisBlockCreator{
 		Core:              coreComponents,
@@ -754,7 +748,7 @@ func CreateFullGenesisBlocks(
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 		ShardCoordinatorFactory: sharding.NewMultiShardCoordinatorFactory(),
 		TxPreprocessorCreator:   preprocess.NewTxPreProcessorCreator(),
-		RunTypeComponents:       runTypeComponents,
+		RunTypeComponents:       runTypeComp,
 	}
 
 	genesisProcessor, _ := genesisProcess.NewGenesisBlockCreator(argsGenesis)
@@ -1584,7 +1578,6 @@ func CreateNodesWithFullGenesisCustomEnableEpochs(
 		GenesisFile:          genesisFile,
 		EpochsConfig:         enableEpochsConfig,
 		EconomicsConfig:      economicsConfig,
-		RunTypeComponents:    GetDefaultRunTypeComponents(consensus.ConsensusModelV1),
 	})
 
 	idx := 0
