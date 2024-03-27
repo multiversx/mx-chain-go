@@ -133,6 +133,10 @@ func (tu *txUnmarshaller) prepareNormalTx(tx *transaction.Transaction) *transact
 		apiTx.GuardianSignature = hex.EncodeToString(tx.GuardianSignature)
 	}
 
+	if len(tx.RelayerAddr) > 0 {
+		apiTx.RelayerAddress = tu.addressPubKeyConverter.SilentEncode(tx.RelayerAddr, log)
+	}
+
 	return apiTx
 }
 
@@ -161,6 +165,10 @@ func (tu *txUnmarshaller) prepareInvalidTx(tx *transaction.Transaction) *transac
 	if len(tx.GuardianAddr) > 0 {
 		apiTx.GuardianAddr = tu.addressPubKeyConverter.SilentEncode(tx.GuardianAddr, log)
 		apiTx.GuardianSignature = hex.EncodeToString(tx.GuardianSignature)
+	}
+
+	if len(tx.RelayerAddr) > 0 {
+		apiTx.RelayerAddress = tu.addressPubKeyConverter.SilentEncode(tx.RelayerAddr, log)
 	}
 
 	return apiTx

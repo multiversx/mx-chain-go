@@ -312,6 +312,7 @@ func TestTransactionGroup_sendTransaction(t *testing.T) {
 			expectedErr,
 		)
 	})
+	t.Run("recursive relayed v3 should error", testRecursiveRelayedV3("/transaction/send"))
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -520,6 +521,7 @@ func TestTransactionGroup_computeTransactionGasLimit(t *testing.T) {
 			expectedErr,
 		)
 	})
+	t.Run("recursive relayed v3 should error", testRecursiveRelayedV3("/transaction/cost"))
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -640,6 +642,7 @@ func TestTransactionGroup_simulateTransaction(t *testing.T) {
 			expectedErr,
 		)
 	})
+	t.Run("recursive relayed v3 should error", testRecursiveRelayedV3("/transaction/simulate"))
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -1125,5 +1128,64 @@ func getTransactionRoutesConfig() config.ApiRoutesConfig {
 				},
 			},
 		},
+	}
+}
+
+func testRecursiveRelayedV3(url string) func(t *testing.T) {
+	return func(t *testing.T) {
+		t.Parallel()
+
+		facade := &mock.FacadeStub{
+			CreateTransactionHandler: func(txArgs *external.ArgsCreateTransaction) (*dataTx.Transaction, []byte, error) {
+				txHash, _ := hex.DecodeString(hexTxHash)
+				return nil, txHash, nil
+			},
+			SendBulkTransactionsHandler: func(txs []*dataTx.Transaction) (u uint64, err error) {
+				return 1, nil
+			},
+			ValidateTransactionHandler: func(tx *dataTx.Transaction) error {
+				return nil
+			},
+		}
+
+		userTx1 := fmt.Sprintf(`{"nonce": %d, "sender":"%s", "receiver":"%s", "value":"%s", "signature":"%s"}`,
+			nonce,
+			sender,
+			receiver,
+			value,
+			signature,
+		)
+		userTx2 := fmt.Sprintf(`{"nonce": %d, "sender":"%s", "receiver":"%s", "value":"%s", "signature":"%s", "innerTransaction":%s}`,
+			nonce,
+			sender,
+			receiver,
+			value,
+			signature,
+			userTx1,
+		)
+		tx := fmt.Sprintf(`{"nonce": %d, "sender":"%s", "receiver":"%s", "value":"%s", "signature":"%s", "innerTransaction":%s}`,
+			nonce,
+			sender,
+			receiver,
+			value,
+			signature,
+			userTx2,
+		)
+
+		transactionGroup, err := groups.NewTransactionGroup(facade)
+		require.NoError(t, err)
+
+		ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
+
+		req, _ := http.NewRequest("POST", url, bytes.NewBuffer([]byte(tx)))
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		txResp := shared.GenericAPIResponse{}
+		loadResponse(resp.Body, &txResp)
+
+		assert.Equal(t, http.StatusBadRequest, resp.Code)
+		assert.True(t, strings.Contains(txResp.Error, apiErrors.ErrRecursiveRelayedTxIsNotAllowed.Error()))
+		assert.Empty(t, txResp.Data)
 	}
 }

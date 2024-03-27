@@ -139,6 +139,8 @@ func TestInitConfigMetrics(t *testing.T) {
 			ESDTTransferRoleEnableEpoch:                 33,
 			SetGuardianEnableEpoch:                      34,
 			ScToScLogEventEnableEpoch:                   35,
+			RelayedTransactionsV3EnableEpoch:            36,
+			FixRelayedMoveBalanceEnableEpoch:            37,
 			MaxNodesChangeEnableEpoch: []config.MaxNodesChangeConfig{
 				{
 					EpochEnable:            0,
@@ -196,6 +198,8 @@ func TestInitConfigMetrics(t *testing.T) {
 		"erd_max_nodes_change_enable_epoch0_nodes_to_shuffle_per_shard": uint32(2),
 		"erd_set_guardian_feature_enable_epoch":                         uint32(34),
 		"erd_set_sc_to_sc_log_event_enable_epoch":                       uint32(35),
+		"erd_relayed_transactions_v3_enable_epoch":                      uint32(36),
+		"erd_fix_relayed_move_balance_enable_epoch":                     uint32(37),
 		common.MetricGatewayMetricsEndpoint:                             "http://localhost:8080",
 	}
 

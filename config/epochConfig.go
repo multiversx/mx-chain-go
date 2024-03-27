@@ -113,6 +113,8 @@ type EnableEpochs struct {
 	StakingV4Step2EnableEpoch                                uint32
 	StakingV4Step3EnableEpoch                                uint32
 	AlwaysMergeContextsInEEIEnableEpoch                      uint32
+	RelayedTransactionsV3EnableEpoch                  		 uint32
+	FixRelayedMoveBalanceEnableEpoch                  		 uint32
 	BLSMultiSignerEnableEpoch                                []MultiSignerConfig
 }
 

@@ -850,6 +850,12 @@ func TestEnableEpochConfig(t *testing.T) {
     # AlwaysMergeContextsInEEIEnableEpoch represents the epoch in which the EEI will always merge the contexts
     AlwaysMergeContextsInEEIEnableEpoch = 94
 
+    # RelayedTransactionsV3EnableEpoch represents the epoch when the relayed transactions V3 will be enabled
+    RelayedTransactionsV3EnableEpoch = 95
+
+    # FixRelayedMoveBalanceEnableEpoch represents the epoch when the fix for relayed for move balance will be enabled
+    FixRelayedMoveBalanceEnableEpoch = 96
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -962,6 +968,8 @@ func TestEnableEpochConfig(t *testing.T) {
 			MigrateDataTrieEnableEpoch:                               92,
 			CurrentRandomnessOnSortingEnableEpoch:                    93,
 			AlwaysMergeContextsInEEIEnableEpoch:                      94,
+			RelayedTransactionsV3EnableEpoch:                  		  95,
+			FixRelayedMoveBalanceEnableEpoch:                  		  96,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,

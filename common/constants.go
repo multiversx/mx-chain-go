@@ -492,6 +492,12 @@ const (
 	// MetricRelayedTransactionsV2EnableEpoch represents the epoch when the relayed transactions v2 is enabled
 	MetricRelayedTransactionsV2EnableEpoch = "erd_relayed_transactions_v2_enable_epoch"
 
+	// MetricRelayedTransactionsV3EnableEpoch represents the epoch when the relayed transactions v3 is enabled
+	MetricRelayedTransactionsV3EnableEpoch = "erd_relayed_transactions_v3_enable_epoch"
+
+	// MetricFixRelayedMoveBalanceEnableEpoch represents the epoch when the fix for relayed move balance is enabled
+	MetricFixRelayedMoveBalanceEnableEpoch = "erd_fix_relayed_move_balance_enable_epoch"
+
 	// MetricUnbondTokensV2EnableEpoch represents the epoch when the unbond tokens v2 is applied
 	MetricUnbondTokensV2EnableEpoch = "erd_unbond_tokens_v2_enable_epoch"
 
@@ -1011,5 +1017,7 @@ const (
 	StakingQueueFlag                                   core.EnableEpochFlag = "StakingQueueFlag"
 	StakingV4StartedFlag                               core.EnableEpochFlag = "StakingV4StartedFlag"
 	AlwaysMergeContextsInEEIFlag                       core.EnableEpochFlag = "AlwaysMergeContextsInEEIFlag"
+	RelayedTransactionsV3Flag                          core.EnableEpochFlag = "RelayedTransactionsV3Flag"
+	FixRelayedMoveBalanceFlag                          core.EnableEpochFlag = "FixRelayedMoveBalanceFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )

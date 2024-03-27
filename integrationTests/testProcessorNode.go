@@ -2606,6 +2606,7 @@ func (tpn *TestProcessorNode) SendTransaction(tx *dataTransaction.Transaction) (
 		Options:          tx.Options,
 		Guardian:         guardianAddress,
 		GuardianSigHex:   hex.EncodeToString(tx.GuardianSignature),
+		InnerTransaction: tx.InnerTransaction,
 	}
 	tx, txHash, err := tpn.Node.CreateTransaction(createTxArgs)
 	if err != nil {
@@ -3251,6 +3252,8 @@ func CreateEnableEpochsConfig() config.EnableEpochs {
 		MiniBlockPartialExecutionEnableEpoch:              UnreachableEpoch,
 		RefactorPeersMiniBlocksEnableEpoch:                UnreachableEpoch,
 		SCProcessorV2EnableEpoch:                          UnreachableEpoch,
+		RelayedTransactionsV3EnableEpoch:                  UnreachableEpoch,
+		FixRelayedMoveBalanceEnableEpoch:                  UnreachableEpoch,
 	}
 }
 

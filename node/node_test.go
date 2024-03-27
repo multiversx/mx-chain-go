@@ -1865,6 +1865,7 @@ func getDefaultTransactionArgs() *external.ArgsCreateTransaction {
 		Options:          0,
 		Guardian:         "",
 		GuardianSigHex:   "",
+		InnerTransaction: nil,
 	}
 }
 
@@ -5104,6 +5105,7 @@ func getDefaultCoreComponents() *nodeMockFactory.CoreComponentsMock {
 		StartTime:             time.Time{},
 		EpochChangeNotifier:   &epochNotifier.EpochNotifierStub{},
 		TxVersionCheckHandler: versioning.NewTxVersionChecker(0),
+		EnableEpochsHandlerField: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 }
 

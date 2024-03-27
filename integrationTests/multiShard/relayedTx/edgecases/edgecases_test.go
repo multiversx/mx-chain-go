@@ -6,8 +6,10 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/multiShard/relayedTx"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -38,12 +40,10 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTxButWrongNonceShoul
 	for i := int64(0); i < nrRoundsToTest; i++ {
 		for _, player := range players {
 			player.Nonce += 1
-			relayerTx := relayedTx.CreateAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress1, sendValue, integrationTests.MinTxGasLimit, []byte(""))
-			totalFee := nodes[0].EconomicsData.ComputeTxFee(relayerTx)
-			totalFees.Add(totalFees, totalFee)
-			relayerTx = relayedTx.CreateAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress2, sendValue, integrationTests.MinTxGasLimit, []byte(""))
-			totalFee = nodes[0].EconomicsData.ComputeTxFee(relayerTx)
-			totalFees.Add(totalFees, totalFee)
+			relayerTx, userTx := relayedTx.CreateAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress1, sendValue, integrationTests.MinTxGasLimit, []byte(""))
+			appendFeeToTotalFees(relayerTx, userTx, nodes[0].EconomicsData, totalFees)
+			relayerTx, userTx = relayedTx.CreateAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress2, sendValue, integrationTests.MinTxGasLimit, []byte(""))
+			appendFeeToTotalFees(relayerTx, userTx, nodes[0].EconomicsData, totalFees)
 		}
 
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
@@ -100,10 +100,16 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTxButWithTooMuchGas(
 	additionalGasLimit := uint64(100000)
 	tooMuchGasLimit := integrationTests.MinTxGasLimit + additionalGasLimit
 	nrRoundsToTest := int64(5)
+
+	txsSentEachRound := big.NewInt(2) // 2 relayed txs each round
+	txsSentPerPlayer := big.NewInt(0).Mul(txsSentEachRound, big.NewInt(nrRoundsToTest))
+	initialPlayerFunds := big.NewInt(0).Mul(sendValue, txsSentPerPlayer)
+	integrationTests.MintAllPlayers(nodes, players, initialPlayerFunds)
+
 	for i := int64(0); i < nrRoundsToTest; i++ {
 		for _, player := range players {
-			_ = relayedTx.CreateAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress1, sendValue, tooMuchGasLimit, []byte(""))
-			_ = relayedTx.CreateAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress2, sendValue, tooMuchGasLimit, []byte(""))
+			_, _ = relayedTx.CreateAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress1, sendValue, tooMuchGasLimit, []byte(""))
+			_, _ = relayedTx.CreateAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress2, sendValue, tooMuchGasLimit, []byte(""))
 		}
 
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
@@ -124,8 +130,8 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTxButWithTooMuchGas(
 
 	finalBalance := big.NewInt(0).Mul(big.NewInt(int64(len(players))), big.NewInt(nrRoundsToTest))
 	finalBalance.Mul(finalBalance, sendValue)
-	assert.Equal(t, receiver1.GetBalance().Cmp(finalBalance), 0)
-	assert.Equal(t, receiver2.GetBalance().Cmp(finalBalance), 0)
+	assert.Equal(t, 0, receiver1.GetBalance().Cmp(finalBalance))
+	assert.Equal(t, 0, receiver2.GetBalance().Cmp(finalBalance))
 
 	players = append(players, relayer)
 	checkPlayerBalancesWithPenalization(t, nodes, players)
@@ -139,7 +145,19 @@ func checkPlayerBalancesWithPenalization(
 
 	for i := 0; i < len(players); i++ {
 		userAcc := relayedTx.GetUserAccount(nodes, players[i].Address)
-		assert.Equal(t, userAcc.GetBalance().Cmp(players[i].Balance), 0)
+		assert.Equal(t, 0, userAcc.GetBalance().Cmp(players[i].Balance))
 		assert.Equal(t, userAcc.GetNonce(), players[i].Nonce)
 	}
+}
+
+func appendFeeToTotalFees(relayerTx, userTx *transaction.Transaction, economicsData process.EconomicsDataHandler, totalFees *big.Int) {
+	relayerFee := economicsData.ComputeMoveBalanceFee(relayerTx)
+	totalFees.Add(totalFees, relayerFee)
+
+	userTxCopy := *userTx
+	if userTxCopy.GasLimit == 0 { // relayed v2
+		userTxCopy.GasLimit = relayerTx.GasLimit - economicsData.ComputeGasLimit(relayerTx)
+	}
+	userFee := economicsData.ComputeTxFee(&userTxCopy)
+	totalFees.Add(totalFees, userFee)
 }
