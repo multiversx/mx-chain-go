@@ -39,7 +39,7 @@ type BufferedErrChan interface {
 type Trie interface {
 	Get(key []byte) ([]byte, uint32, error)
 	Update(key, value []byte) error
-	Delete(key []byte) error
+	Delete(key []byte)
 	RootHash() ([]byte, error)
 	Commit() error
 	Recreate(root []byte) (Trie, error)
@@ -370,4 +370,27 @@ type ExecutionOrderGetter interface {
 	Contains(txHash []byte) bool
 	Len() int
 	IsInterfaceNil() bool
+}
+
+// TrieBatcher defines the methods needed for a trie batcher
+type TrieBatcher interface {
+	BatchHandler
+	GetSortedDataForInsertion() ([]string, map[string]core.TrieData)
+	GetSortedDataForRemoval() []string
+	IsInterfaceNil() bool
+}
+
+// TrieBatchManager defines the methods needed for managing the trie batch
+type TrieBatchManager interface {
+	BatchHandler
+	MarkTrieUpdateInProgress() (TrieBatcher, error)
+	MarkTrieUpdateCompleted()
+	IsInterfaceNil() bool
+}
+
+// BatchHandler is the interface for the batch handler
+type BatchHandler interface {
+	Add(key []byte, data core.TrieData)
+	Remove(key []byte)
+	Get(key []byte) ([]byte, bool)
 }

@@ -424,10 +424,9 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 				updateCalled = true
 				return nil
 			},
-			DeleteCalled: func(key []byte) error {
+			DeleteCalled: func(key []byte) {
 				assert.Equal(t, expectedKey, key)
 				deleteCalled = true
-				return nil
 			},
 		}
 
@@ -476,9 +475,8 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 				updateCalled = true
 				return nil
 			},
-			DeleteCalled: func(key []byte) error {
+			DeleteCalled: func(key []byte) {
 				assert.Fail(t, "this should not have been called")
-				return nil
 			},
 		}
 
@@ -537,9 +535,8 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 				updateCalled = true
 				return nil
 			},
-			DeleteCalled: func(key []byte) error {
+			DeleteCalled: func(key []byte) {
 				assert.Fail(t, "this delete should not have been called")
-				return nil
 			},
 		}
 
@@ -587,9 +584,8 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 				updateCalled = true
 				return nil
 			},
-			DeleteCalled: func(key []byte) error {
+			DeleteCalled: func(key []byte) {
 				assert.Fail(t, "this delete should not have been called")
-				return nil
 			},
 		}
 
@@ -643,10 +639,9 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 			GetCalled: func(key []byte) ([]byte, uint32, error) {
 				return []byte("value"), 0, nil
 			},
-			DeleteCalled: func(key []byte) error {
+			DeleteCalled: func(key []byte) {
 				assert.Equal(t, expectedKey, key)
 				updateCalled = true
-				return nil
 			},
 		}
 
@@ -669,10 +664,9 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 			GetCalled: func(key []byte) ([]byte, uint32, error) {
 				return nil, 0, nil
 			},
-			DeleteCalled: func(key []byte) error {
+			DeleteCalled: func(key []byte) {
 				assert.Equal(t, expectedKey, key)
 				deleteCalled = true
-				return nil
 			},
 		}
 
@@ -700,10 +694,9 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 
 				return nil, 0, nil
 			},
-			DeleteCalled: func(key []byte) error {
+			DeleteCalled: func(key []byte) {
 				assert.Equal(t, hasher.Compute(string(expectedKey)), key)
 				deleteCalled = true
-				return nil
 			},
 		}
 
@@ -735,10 +728,9 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 
 				return nil, 0, nil
 			},
-			DeleteCalled: func(key []byte) error {
+			DeleteCalled: func(key []byte) {
 				assert.Equal(t, expectedKey, key)
 				deleteCalled++
-				return nil
 			},
 		}
 
@@ -779,9 +771,8 @@ func TestTrackableDataTrie_SaveDirtyData(t *testing.T) {
 				updateCalled = true
 				return nil
 			},
-			DeleteCalled: func(key []byte) error {
+			DeleteCalled: func(key []byte) {
 				assert.Fail(t, "this delete should not have been called")
-				return nil
 			},
 		}
 

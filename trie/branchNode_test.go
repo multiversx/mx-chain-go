@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
+	"github.com/multiversx/mx-chain-go/trie/trieBatchManager"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -82,6 +83,7 @@ func newEmptyTrie() (*patriciaMerkleTrie, *trieStorageManager) {
 		maxTrieLevelInMemory: 5,
 		chanClose:            make(chan struct{}),
 		enableEpochsHandler:  &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		batchManager:         trieBatchManager.NewTrieBatchManager(),
 	}
 
 	return tr, trieStorage
@@ -92,6 +94,7 @@ func initTrie() *patriciaMerkleTrie {
 	_ = tr.Update([]byte("doe"), []byte("reindeer"))
 	_ = tr.Update([]byte("dog"), []byte("puppy"))
 	_ = tr.Update([]byte("ddog"), []byte("cat"))
+	ExecuteUpdatesFromBatch(tr)
 
 	return tr
 }
@@ -206,6 +209,9 @@ func TestBranchNode_setRootHash(t *testing.T) {
 		_ = tr1.Update(val, val)
 		_ = tr2.Update(val, val)
 	}
+
+	ExecuteUpdatesFromBatch(tr1)
+	ExecuteUpdatesFromBatch(tr2)
 
 	err := tr1.root.setRootHash()
 	_ = tr2.root.setHash()
@@ -943,7 +949,7 @@ func TestReduceBranchNodeWithExtensionNodeChildShouldWork(t *testing.T) {
 	_ = tr.Update([]byte("dog"), []byte("dog"))
 	_ = tr.Update([]byte("doll"), []byte("doll"))
 	_ = tr.Update([]byte("wolf"), []byte("wolf"))
-	_ = tr.Delete([]byte("wolf"))
+	tr.Delete([]byte("wolf"))
 
 	expectedHash, _ := expectedTr.RootHash()
 	hash, _ := tr.RootHash()
@@ -962,7 +968,7 @@ func TestReduceBranchNodeWithBranchNodeChildShouldWork(t *testing.T) {
 	_ = tr.Update([]byte("doe"), []byte("reindeer"))
 	_ = tr.Update([]byte("dog"), []byte("puppy"))
 	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
-	_ = tr.Delete([]byte("doe"))
+	tr.Delete([]byte("doe"))
 
 	expectedHash, _ := expectedTr.RootHash()
 	hash, _ := tr.RootHash()
@@ -981,7 +987,7 @@ func TestReduceBranchNodeWithLeafNodeChildShouldWork(t *testing.T) {
 	_ = tr.Update([]byte("doe"), []byte("reindeer"))
 	_ = tr.Update([]byte("dog"), []byte("puppy"))
 	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
-	_ = tr.Delete([]byte("dog"))
+	tr.Delete([]byte("dog"))
 
 	expectedHash, _ := expectedTr.RootHash()
 	hash, _ := tr.RootHash()
@@ -1000,7 +1006,7 @@ func TestReduceBranchNodeWithLeafNodeValueShouldWork(t *testing.T) {
 	_ = tr.Update([]byte("doe"), []byte("reindeer"))
 	_ = tr.Update([]byte("dog"), []byte("puppy"))
 	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
-	_ = tr.Delete([]byte("dogglesworth"))
+	tr.Delete([]byte("dogglesworth"))
 
 	expectedHash, _ := expectedTr.RootHash()
 	hash, _ := tr.RootHash()
@@ -1100,7 +1106,8 @@ func TestPatriciaMerkleTrie_CommitCollapsedDirtyTrieShouldWork(t *testing.T) {
 	_ = tr.Commit()
 
 	tr.root, _ = tr.root.getCollapsed()
-	_ = tr.Delete([]byte("zzz"))
+	tr.Delete([]byte("zzz"))
+	ExecuteUpdatesFromBatch(tr)
 
 	assert.True(t, tr.root.isDirty())
 	assert.True(t, tr.root.isCollapsed())
