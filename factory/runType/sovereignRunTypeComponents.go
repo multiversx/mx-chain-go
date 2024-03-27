@@ -2,9 +2,11 @@ package runType
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
+	sovereignFactory "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/errors"
@@ -157,6 +159,9 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignAccountCreator failed: %w", err)
 	}
 
+	expiryTime := time.Second * time.Duration(rcf.cfg.OutgoingSubscribedEvents.TimeToWaitForUnconfirmedOutGoingOperationInSeconds)
+	outGoingOperationsPoolCreator := sovereignFactory.NewOutGoingOperationPool(expiryTime)
+
 	dataCodec := rcf.dataCodec
 
 	topicsChecker := rcf.topicsChecker
@@ -181,6 +186,7 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		vmContainerMetaFactory:              rtc.vmContainerMetaFactory,
 		vmContainerShardFactory:             vmContainerShardCreator,
 		accountsCreator:                     accountsCreator,
+		outGoingOperationsPoolHandler:       outGoingOperationsPoolCreator,
 		dataCodecHandler:                    dataCodec,
 		topicsCheckerHandler:                topicsChecker,
 	}, nil

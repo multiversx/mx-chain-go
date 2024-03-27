@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/logging"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
@@ -43,7 +44,7 @@ type sovereignChainBlockProcessor struct {
 	extendedShardHeaderRequester extendedShardHeaderRequestHandler
 	chRcvAllExtendedShardHdrs    chan bool
 	outgoingOperationsFormatter  sovereign.OutgoingOperationsFormatter
-	outGoingOperationsPool       OutGoingOperationsPool
+	outGoingOperationsPool       sovereignBlock.OutGoingOperationsPool
 	operationsHasher             hashing.Hasher
 }
 
@@ -52,7 +53,7 @@ type ArgsSovereignChainBlockProcessor struct {
 	ShardProcessor               *shardProcessor
 	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
 	OutgoingOperationsFormatter  sovereign.OutgoingOperationsFormatter
-	OutGoingOperationsPool       OutGoingOperationsPool
+	OutGoingOperationsPool       sovereignBlock.OutGoingOperationsPool
 	OperationsHasher             hashing.Hasher
 }
 

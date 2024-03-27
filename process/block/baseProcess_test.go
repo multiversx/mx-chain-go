@@ -811,7 +811,15 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 		{
 			args: func() blproc.ArgBaseProcessor {
 				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-				args.RunTypeComponents = &mock.RunTypeComponentsStub{AccountCreator: &stateMock.AccountsFactoryStub{}, DataCodec: nil}
+				args.RunTypeComponents = &mock.RunTypeComponentsStub{AccountCreator: &stateMock.AccountsFactoryStub{}, OutGoingOperationsPool: nil}
+				return args
+			},
+			expectedErr: errorsMx.ErrNilOutGoingOperationsPool,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.RunTypeComponents = &mock.RunTypeComponentsStub{AccountCreator: &stateMock.AccountsFactoryStub{}, OutGoingOperationsPool: &sovereign.OutGoingOperationsPoolMock{}, DataCodec: nil}
 				return args
 			},
 			expectedErr: errorsMx.ErrNilDataCodec,
@@ -819,7 +827,7 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 		{
 			args: func() blproc.ArgBaseProcessor {
 				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-				args.RunTypeComponents = &mock.RunTypeComponentsStub{AccountCreator: &stateMock.AccountsFactoryStub{}, DataCodec: &sovereign.DataCodecMock{}, TopicsChecker: nil}
+				args.RunTypeComponents = &mock.RunTypeComponentsStub{AccountCreator: &stateMock.AccountsFactoryStub{}, OutGoingOperationsPool: &sovereign.OutGoingOperationsPoolMock{}, DataCodec: &sovereign.DataCodecMock{}, TopicsChecker: nil}
 				return args
 			},
 			expectedErr: errorsMx.ErrNilTopicsChecker,

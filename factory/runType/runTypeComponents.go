@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/consensus"
+	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/errors"
@@ -54,6 +55,7 @@ type runTypeComponents struct {
 	vmContainerMetaFactory              factoryVm.VmContainerCreator
 	vmContainerShardFactory             factoryVm.VmContainerCreator
 	accountsCreator                     state.AccountFactory
+	outGoingOperationsPoolHandler       sovereignBlock.OutGoingOperationsPool
 	dataCodecHandler                    sovereign.DataDecoderHandler
 	topicsCheckerHandler                sovereign.TopicsCheckerHandler
 }
@@ -156,6 +158,8 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		return nil, fmt.Errorf("runTypeComponentsFactory - NewAccountCreator failed: %w", err)
 	}
 
+	outGoingOperationsPool := disabled.NewDisabledOutGoingOperationPool()
+
 	dataCodec := disabled.NewDisabledDataCodec()
 
 	topicsChecker := disabled.NewDisabledTopicsChecker()
@@ -180,6 +184,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		vmContainerMetaFactory:              vmContainerMetaCreator,
 		vmContainerShardFactory:             vmContainerShardCreator,
 		accountsCreator:                     accountsCreator,
+		outGoingOperationsPoolHandler:       outGoingOperationsPool,
 		dataCodecHandler:                    dataCodec,
 		topicsCheckerHandler:                topicsChecker,
 	}, nil

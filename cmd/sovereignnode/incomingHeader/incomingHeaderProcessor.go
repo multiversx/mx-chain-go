@@ -3,9 +3,9 @@ package incomingHeader
 import (
 	"encoding/hex"
 
+	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/sovereignnode/dataCodec"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -22,7 +22,7 @@ var log = logger.GetOrCreate("headerSubscriber")
 // ArgsIncomingHeaderProcessor is a struct placeholder for args needed to create a new incoming header processor
 type ArgsIncomingHeaderProcessor struct {
 	HeadersPool                     HeadersPool
-	OutGoingOperationsPool          block.OutGoingOperationsPool
+	OutGoingOperationsPool          sovereignBlock.OutGoingOperationsPool
 	TxPool                          TransactionPool
 	Marshaller                      marshal.Marshalizer
 	Hasher                          hashing.Hasher
@@ -36,7 +36,7 @@ type incomingHeaderProcessor struct {
 	extendedHeaderProc *extendedHeaderProcessor
 
 	txPool                          TransactionPool
-	outGoingPool                    block.OutGoingOperationsPool
+	outGoingPool                    sovereignBlock.OutGoingOperationsPool
 	mainChainNotarizationStartRound uint64
 }
 
