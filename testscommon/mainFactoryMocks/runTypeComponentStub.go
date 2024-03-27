@@ -189,10 +189,12 @@ func (r *RunTypeComponentsStub) AccountsCreator() state.AccountFactory {
 	return r.AccountCreator
 }
 
+// DataCodecHandler -
 func (r *RunTypeComponentsStub) DataCodecHandler() sovereign.DataDecoderHandler {
 	return r.DataCodec
 }
 
+// TopicsCheckerHandler -
 func (r *RunTypeComponentsStub) TopicsCheckerHandler() sovereign.TopicsCheckerHandler {
 	return r.TopicsChecker
 }
