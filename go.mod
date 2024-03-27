@@ -14,18 +14,18 @@ require (
 	github.com/gorilla/websocket v1.5.0
 	github.com/klauspost/cpuid/v2 v2.2.5
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/multiversx/mx-chain-communication-go v1.0.13
+	github.com/multiversx/mx-chain-communication-go v1.0.14
 	github.com/multiversx/mx-chain-core-go v1.2.19
-	github.com/multiversx/mx-chain-crypto-go v1.2.10
+	github.com/multiversx/mx-chain-crypto-go v1.2.11
 	github.com/multiversx/mx-chain-es-indexer-go v1.4.19
 	github.com/multiversx/mx-chain-logger-go v1.0.14
 	github.com/multiversx/mx-chain-scenario-go v1.4.3
 	github.com/multiversx/mx-chain-storage-go v1.0.15
 	github.com/multiversx/mx-chain-vm-common-go v1.5.12
-	github.com/multiversx/mx-chain-vm-go v1.5.28
-	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.66
-	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.67
-	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.96
+	github.com/multiversx/mx-chain-vm-go v1.5.29
+	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.67
+	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.68
+	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.97
 	github.com/pelletier/go-toml v1.9.3
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.14.0
