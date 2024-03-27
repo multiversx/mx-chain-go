@@ -35,18 +35,18 @@ import (
 )
 
 type ArgsSovereignRunTypeComponents struct {
-	Config                config.SovereignConfig
-	DataCodec             sovereign.DataDecoderHandler
-	TopicsChecker         sovereign.TopicsCheckerHandler
-	IncomingHeaderHandler processComp.IncomingHeaderSubscriber
+	Config        config.SovereignConfig
+	DataCodec     sovereign.DataDecoderHandler
+	TopicsChecker sovereign.TopicsCheckerHandler
+	ExtraVerifier processComp.ExtraHeaderSigVerifierHandler
 }
 
 type sovereignRunTypeComponentsFactory struct {
 	*runTypeComponentsFactory
-	cfg                   config.SovereignConfig
-	dataCodec             sovereign.DataDecoderHandler
-	topicsChecker         sovereign.TopicsCheckerHandler
-	incomingHeaderHandler processComp.IncomingHeaderSubscriber
+	cfg           config.SovereignConfig
+	dataCodec     sovereign.DataDecoderHandler
+	topicsChecker sovereign.TopicsCheckerHandler
+	extraVerifier processComp.ExtraHeaderSigVerifierHandler
 }
 
 // NewSovereignRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
@@ -60,8 +60,8 @@ func NewSovereignRunTypeComponentsFactory(fact *runTypeComponentsFactory, args A
 	if check.IfNil(args.TopicsChecker) {
 		return nil, errors.ErrNilTopicsChecker
 	}
-	if check.IfNil(args.IncomingHeaderHandler) {
-		return nil, errors.ErrNilIncomingHeaderSubscriber
+	if check.IfNil(args.ExtraVerifier) {
+		return nil, errors.ErrNilExtraSubRoundSigner
 	}
 
 	return &sovereignRunTypeComponentsFactory{
@@ -69,7 +69,7 @@ func NewSovereignRunTypeComponentsFactory(fact *runTypeComponentsFactory, args A
 		cfg:                      args.Config,
 		dataCodec:                args.DataCodec,
 		topicsChecker:            args.TopicsChecker,
-		incomingHeaderHandler:    args.IncomingHeaderHandler,
+		extraVerifier:            args.ExtraVerifier,
 	}, nil
 }
 
@@ -185,7 +185,10 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 
 	genesisMetaBlockCreator := processing.NewSovereignGenesisMetaBlockChecker()
 
-	//rtc.extraHeaderSigVerifierHandler.RegisterExtraHeaderSigVerifier()
+	err = rtc.extraHeaderSigVerifierHandler.RegisterExtraHeaderSigVerifier(rcf.extraVerifier)
+	if err != nil {
+		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - RegisterExtraHeaderSigVerifier failed: %w", err)
+	}
 
 	txPreProcessorCreator := preprocess.NewSovereignTxPreProcessorCreator()
 
@@ -194,8 +197,6 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 	requesterContainerCreator := requesterscontainer.NewSovereignShardRequestersContainerFactoryCreator()
 
 	shardResolversContainerCreator := resolverscontainer.NewSovereignShardResolversContainerFactoryCreator()
-
-	incomingHeaderHandler := rcf.incomingHeaderHandler
 
 	return &runTypeComponents{
 		blockChainHookHandlerCreator:        blockChainHookHandlerFactory,
@@ -228,6 +229,5 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		interceptorsContainerCreator:        interceptorsContainerCreator,
 		requesterContainerCreator:           requesterContainerCreator,
 		shardResolversContainerCreator:      shardResolversContainerCreator,
-		incomingHeaderHandler:               incomingHeaderHandler,
 	}, nil
 }

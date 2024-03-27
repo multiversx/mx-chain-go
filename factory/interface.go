@@ -611,7 +611,6 @@ type RunTypeComponentsHolder interface {
 	InterceptorsContainerCreator() interceptorscontainer.InterceptorsContainerFactoryCreator
 	RequesterContainerCreator() requesterscontainer.RequesterContainerFactoryCreator
 	ShardResolversContainerCreator() resolverscontainer.ShardResolversContainerFactoryCreator
-	IncomingHeaderHandler() process.IncomingHeaderSubscriber
 	Create() error
 	Close() error
 	CheckSubcomponents() error

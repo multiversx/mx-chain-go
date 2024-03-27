@@ -163,15 +163,7 @@ type ProcessComponentsFactoryArgs struct {
 	TxExecutionOrderHandler common.TxExecutionOrderHandler
 	RunTypeComponents       factory.RunTypeComponentsHolder
 
-	ShardCoordinatorFactory               sharding.ShardCoordinatorFactory
-	GenesisBlockCreatorFactory            processGenesis.GenesisBlockCreatorFactory
-	GenesisMetaBlockChecker               GenesisMetaBlockChecker
-	RequesterContainerFactoryCreator      requesterscontainer.RequesterContainerFactoryCreator
-	IncomingHeaderSubscriber              process.IncomingHeaderSubscriber
-	InterceptorsContainerFactoryCreator   interceptorscontainer.InterceptorsContainerFactoryCreator
-	ShardResolversContainerFactoryCreator resolverscontainer.ShardResolversContainerFactoryCreator
-	TxPreProcessorCreator                 preprocess.TxPreProcessorCreator
-	ExtraHeaderSigVerifierHolder          headerCheck.ExtraHeaderSigVerifierHolder
+	IncomingHeaderSubscriber process.IncomingHeaderSubscriber
 }
 
 type processComponentsFactory struct {
@@ -208,15 +200,7 @@ type processComponentsFactory struct {
 	txExecutionOrderHandler common.TxExecutionOrderHandler
 	runTypeComponents       factory.RunTypeComponentsHolder
 
-	shardCoordinatorFactory               sharding.ShardCoordinatorFactory
-	genesisBlockCreatorFactory            processGenesis.GenesisBlockCreatorFactory
-	genesisMetaBlockChecker               GenesisMetaBlockChecker
-	requesterContainerFactoryCreator      requesterscontainer.RequesterContainerFactoryCreator
-	incomingHeaderSubscriber              process.IncomingHeaderSubscriber
-	interceptorsContainerFactoryCreator   interceptorscontainer.InterceptorsContainerFactoryCreator
-	shardResolversContainerFactoryCreator resolverscontainer.ShardResolversContainerFactoryCreator
-	txPreprocessorCreator                 preprocess.TxPreProcessorCreator
-	extraHeaderSigVerifierHolder          headerCheck.ExtraHeaderSigVerifierHolder
+	incomingHeaderSubscriber process.IncomingHeaderSubscriber
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -227,42 +211,34 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 	}
 
 	return &processComponentsFactory{
-		config:                                args.Config,
-		epochConfig:                           args.EpochConfig,
-		prefConfigs:                           args.PrefConfigs,
-		importDBConfig:                        args.ImportDBConfig,
-		accountsParser:                        args.AccountsParser,
-		smartContractParser:                   args.SmartContractParser,
-		gasSchedule:                           args.GasSchedule,
-		nodesCoordinator:                      args.NodesCoordinator,
-		data:                                  args.Data,
-		coreData:                              args.CoreData,
-		crypto:                                args.Crypto,
-		state:                                 args.State,
-		network:                               args.Network,
-		bootstrapComponents:                   args.BootstrapComponents,
-		statusComponents:                      args.StatusComponents,
-		requestedItemsHandler:                 args.RequestedItemsHandler,
-		whiteListHandler:                      args.WhiteListHandler,
-		whiteListerVerifiedTxs:                args.WhiteListerVerifiedTxs,
-		maxRating:                             args.MaxRating,
-		systemSCConfig:                        args.SystemSCConfig,
-		importStartHandler:                    args.ImportStartHandler,
-		historyRepo:                           args.HistoryRepo,
-		epochNotifier:                         args.CoreData.EpochNotifier(),
-		statusCoreComponents:                  args.StatusCoreComponents,
-		flagsConfig:                           args.FlagsConfig,
-		runTypeComponents:                     args.RunTypeComponents,
-		shardCoordinatorFactory:               args.ShardCoordinatorFactory,
-		genesisBlockCreatorFactory:            args.GenesisBlockCreatorFactory,
-		genesisMetaBlockChecker:               args.GenesisMetaBlockChecker,
-		txExecutionOrderHandler:               args.TxExecutionOrderHandler,
-		requesterContainerFactoryCreator:      args.RequesterContainerFactoryCreator,
-		incomingHeaderSubscriber:              args.IncomingHeaderSubscriber,
-		interceptorsContainerFactoryCreator:   args.InterceptorsContainerFactoryCreator,
-		shardResolversContainerFactoryCreator: args.ShardResolversContainerFactoryCreator,
-		txPreprocessorCreator:                 args.TxPreProcessorCreator,
-		extraHeaderSigVerifierHolder:          args.ExtraHeaderSigVerifierHolder,
+		config:                   args.Config,
+		epochConfig:              args.EpochConfig,
+		prefConfigs:              args.PrefConfigs,
+		importDBConfig:           args.ImportDBConfig,
+		accountsParser:           args.AccountsParser,
+		smartContractParser:      args.SmartContractParser,
+		gasSchedule:              args.GasSchedule,
+		nodesCoordinator:         args.NodesCoordinator,
+		data:                     args.Data,
+		coreData:                 args.CoreData,
+		crypto:                   args.Crypto,
+		state:                    args.State,
+		network:                  args.Network,
+		bootstrapComponents:      args.BootstrapComponents,
+		statusComponents:         args.StatusComponents,
+		requestedItemsHandler:    args.RequestedItemsHandler,
+		whiteListHandler:         args.WhiteListHandler,
+		whiteListerVerifiedTxs:   args.WhiteListerVerifiedTxs,
+		maxRating:                args.MaxRating,
+		systemSCConfig:           args.SystemSCConfig,
+		importStartHandler:       args.ImportStartHandler,
+		historyRepo:              args.HistoryRepo,
+		epochNotifier:            args.CoreData.EpochNotifier(),
+		statusCoreComponents:     args.StatusCoreComponents,
+		flagsConfig:              args.FlagsConfig,
+		txExecutionOrderHandler:  args.TxExecutionOrderHandler,
+		runTypeComponents:        args.RunTypeComponents,
+		incomingHeaderSubscriber: args.IncomingHeaderSubscriber,
 	}, nil
 }
 
@@ -299,7 +275,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		SingleSigVerifier:            pcf.crypto.BlockSigner(),
 		KeyGen:                       pcf.crypto.BlockSignKeyGen(),
 		FallbackHeaderValidator:      fallbackHeaderValidator,
-		ExtraHeaderSigVerifierHolder: pcf.extraHeaderSigVerifierHolder,
+		ExtraHeaderSigVerifierHolder: pcf.runTypeComponents.ExtraHeaderSigVerifierHandler(),
 	}
 	headerSigVerifier, err := headerCheck.NewHeaderSigVerifier(argsHeaderSig)
 	if err != nil {
@@ -395,7 +371,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	err = pcf.genesisMetaBlockChecker.SetValidatorRootHashOnGenesisMetaBlock(genesisBlocks[core.MetachainShardId], validatorStatsRootHash)
+	err = pcf.runTypeComponents.GenesisMetaBlockCreator().SetValidatorRootHashOnGenesisMetaBlock(genesisBlocks[core.MetachainShardId], validatorStatsRootHash)
 	if err != nil {
 		return nil, err
 	}
@@ -916,14 +892,14 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		GenesisString:           pcf.config.GeneralSettings.GenesisString,
 		TxExecutionOrderHandler: pcf.txExecutionOrderHandler,
 		RunTypeComponents:       pcf.runTypeComponents,
-		ShardCoordinatorFactory: pcf.shardCoordinatorFactory,
-		TxPreprocessorCreator:   pcf.txPreprocessorCreator,
+		ShardCoordinatorFactory: pcf.runTypeComponents.ShardCoordinatorCreator(),
+		TxPreprocessorCreator:   pcf.runTypeComponents.TxPreProcessorCreator(),
 		DNSV2Addresses:          pcf.config.BuiltInFunctions.DNSV2Addresses,
 		// TODO: We should only pass the whole config instead of passing sub-configs as above
 		Config: pcf.config,
 	}
 
-	gbc, err := pcf.genesisBlockCreatorFactory.CreateGenesisBlockCreator(arg)
+	gbc, err := pcf.runTypeComponents.GenesisBlockCreator().CreateGenesisBlockCreator(arg)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1417,7 +1393,7 @@ func (pcf *processComponentsFactory) newShardResolverContainerFactory(
 		FullArchivePreferredPeersHolder: pcf.network.FullArchivePreferredPeersHolderHandler(),
 		PayloadValidator:                payloadValidator,
 	}
-	resolversContainerFactory, err := pcf.shardResolversContainerFactoryCreator.CreateShardResolversContainerFactory(resolversContainerFactoryArgs)
+	resolversContainerFactory, err := pcf.runTypeComponents.ShardResolversContainerCreator().CreateShardResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -1483,7 +1459,7 @@ func (pcf *processComponentsFactory) newRequestersContainerFactory(
 	}
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		return pcf.requesterContainerFactoryCreator.CreateRequesterContainerFactory(requestersContainerFactoryArgs)
+		return pcf.runTypeComponents.RequesterContainerCreator().CreateRequesterContainerFactory(requestersContainerFactoryArgs)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
 		return requesterscontainer.NewMetaRequestersContainerFactory(requestersContainerFactoryArgs)
@@ -1708,7 +1684,7 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 		IncomingHeaderSubscriber:     pcf.incomingHeaderSubscriber,
 	}
 
-	interceptorContainerFactory, err := pcf.interceptorsContainerFactoryCreator.CreateInterceptorsContainerFactory(shardInterceptorsContainerFactoryArgs)
+	interceptorContainerFactory, err := pcf.runTypeComponents.InterceptorsContainerCreator().CreateInterceptorsContainerFactory(shardInterceptorsContainerFactoryArgs)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1869,7 +1845,7 @@ func (pcf *processComponentsFactory) createExportFactoryHandler(
 		NumConcurrentTrieSyncers:         pcf.config.TrieSync.NumConcurrentTrieSyncers,
 		TrieSyncerVersion:                pcf.config.TrieSync.TrieSyncerVersion,
 		NodeOperationMode:                nodeOperationMode,
-		ShardCoordinatorFactory:          pcf.shardCoordinatorFactory,
+		ShardCoordinatorFactory:          pcf.runTypeComponents.ShardCoordinatorCreator(),
 	}
 	return updateFactory.NewExportHandlerFactory(argsExporter)
 }
@@ -2030,30 +2006,6 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	if check.IfNil(args.TxExecutionOrderHandler) {
 		return fmt.Errorf("%s: %w", baseErrMessage, process.ErrNilTxExecutionOrderHandler)
 	}
-	if check.IfNil(args.ShardCoordinatorFactory) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilShardCoordinatorFactory)
-	}
-	if check.IfNil(args.GenesisBlockCreatorFactory) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilGenesisBlockFactory)
-	}
-	if check.IfNil(args.GenesisMetaBlockChecker) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilGenesisMetaBlockChecker)
-	}
-	if check.IfNil(args.RequesterContainerFactoryCreator) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilRequesterContainerFactoryCreator)
-	}
-	if check.IfNil(args.InterceptorsContainerFactoryCreator) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilInterceptorsContainerFactoryCreator)
-	}
-	if check.IfNil(args.ShardResolversContainerFactoryCreator) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilShardResolversContainerFactoryCreator)
-	}
-	if check.IfNil(args.TxPreProcessorCreator) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilTxPreProcessorCreator)
-	}
-	if check.IfNil(args.ExtraHeaderSigVerifierHolder) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilExtraHeaderSigVerifierHolder)
-	}
 	if check.IfNil(args.RunTypeComponents) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilRunTypeComponents)
 	}
@@ -2143,9 +2095,6 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.RunTypeComponents.ShardResolversContainerCreator()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilShardResolversContainerFactoryCreator)
-	}
-	if check.IfNil(args.RunTypeComponents.IncomingHeaderHandler()) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilIncomingHeaderSubscriber)
 	}
 
 	return nil

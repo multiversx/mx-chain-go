@@ -44,6 +44,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/sovereign"
 	testState "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	updateMocks "github.com/multiversx/mx-chain-go/update/mock"
@@ -244,8 +245,9 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 			AppStatusHandlerField:  &statusHandler.AppStatusHandlerStub{},
 			StateStatsHandlerField: disabledStatistics.NewStateStatistics(),
 		},
-		TxExecutionOrderHandler: &txExecOrderStub.TxExecutionOrderHandlerStub{},
-		RunTypeComponents:       components.GetRunTypeComponents(),
+		TxExecutionOrderHandler:  &txExecOrderStub.TxExecutionOrderHandlerStub{},
+		RunTypeComponents:        components.GetRunTypeComponents(),
+		IncomingHeaderSubscriber: &sovereign.IncomingHeaderSubscriberStub{},
 	}
 
 	args.State = components.GetStateComponents(args.CoreData)
@@ -577,76 +579,13 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		require.True(t, errors.Is(err, errorsMx.ErrNilStatusCoreComponents))
 		require.Nil(t, pcf)
 	})
-	t.Run("nil shard coordinator factory, should error", func(t *testing.T) {
+	t.Run("nil IncomingHeaderHandler should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockProcessComponentsFactoryArgs()
-		args.ShardCoordinatorFactory = nil
+		args.IncomingHeaderSubscriber = nil
 		pcf, err := processComp.NewProcessComponentsFactory(args)
-		require.True(t, errors.Is(err, errorsMx.ErrNilShardCoordinatorFactory))
-		require.Nil(t, pcf)
-	})
-	t.Run("nil genesis block creator factory, should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockProcessComponentsFactoryArgs()
-		args.GenesisBlockCreatorFactory = nil
-		pcf, err := processComp.NewProcessComponentsFactory(args)
-		require.True(t, errors.Is(err, errorsMx.ErrNilGenesisBlockFactory))
-		require.Nil(t, pcf)
-	})
-	t.Run("nil meta genesis block checker, should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockProcessComponentsFactoryArgs()
-		args.GenesisMetaBlockChecker = nil
-		pcf, err := processComp.NewProcessComponentsFactory(args)
-		require.True(t, errors.Is(err, errorsMx.ErrNilGenesisMetaBlockChecker))
-		require.Nil(t, pcf)
-	})
-	t.Run("nil requester container factory creator, should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockProcessComponentsFactoryArgs()
-		args.RequesterContainerFactoryCreator = nil
-		pcf, err := processComp.NewProcessComponentsFactory(args)
-		require.True(t, errors.Is(err, errorsMx.ErrNilRequesterContainerFactoryCreator))
-		require.Nil(t, pcf)
-	})
-	t.Run("nil interceptors container factory creator, should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockProcessComponentsFactoryArgs()
-		args.InterceptorsContainerFactoryCreator = nil
-		pcf, err := processComp.NewProcessComponentsFactory(args)
-		require.True(t, errors.Is(err, errorsMx.ErrNilInterceptorsContainerFactoryCreator))
-		require.Nil(t, pcf)
-	})
-	t.Run("nil shard resolvers container factory creator, should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockProcessComponentsFactoryArgs()
-		args.ShardResolversContainerFactoryCreator = nil
-		pcf, err := processComp.NewProcessComponentsFactory(args)
-		require.True(t, errors.Is(err, errorsMx.ErrNilShardResolversContainerFactoryCreator))
-		require.Nil(t, pcf)
-	})
-	t.Run("nil tx pre processor creator, should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockProcessComponentsFactoryArgs()
-		args.TxPreProcessorCreator = nil
-		pcf, err := processComp.NewProcessComponentsFactory(args)
-		require.True(t, errors.Is(err, errorsMx.ErrNilTxPreProcessorCreator))
-		require.Nil(t, pcf)
-	})
-	t.Run("nil extra header sig verifier holder, should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockProcessComponentsFactoryArgs()
-		args.ExtraHeaderSigVerifierHolder = nil
-		pcf, err := processComp.NewProcessComponentsFactory(args)
-		require.True(t, errors.Is(err, errorsMx.ErrNilExtraHeaderSigVerifierHolder))
+		require.True(t, errors.Is(err, errorsMx.ErrNilIncomingHeaderSubscriber))
 		require.Nil(t, pcf)
 	})
 	t.Run("nil RunTypeComponents should error", func(t *testing.T) {
@@ -986,17 +925,6 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		args.RunTypeComponents = rtMock
 		pcf, err := processComp.NewProcessComponentsFactory(args)
 		require.True(t, errors.Is(err, errorsMx.ErrNilShardResolversContainerFactoryCreator))
-		require.Nil(t, pcf)
-	})
-	t.Run("nil IncomingHeaderHandler should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockProcessComponentsFactoryArgs()
-		rtMock := getRunTypeComponentsMock()
-		rtMock.IncomingHeaderSubscriber = nil
-		args.RunTypeComponents = rtMock
-		pcf, err := processComp.NewProcessComponentsFactory(args)
-		require.True(t, errors.Is(err, errorsMx.ErrNilIncomingHeaderSubscriber))
 		require.Nil(t, pcf)
 	})
 	t.Run("should work", func(t *testing.T) {

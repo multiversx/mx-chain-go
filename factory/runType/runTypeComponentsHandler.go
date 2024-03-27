@@ -186,9 +186,6 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	if check.IfNil(mrc.shardResolversContainerCreator) {
 		return errors.ErrNilShardResolversContainerFactoryCreator
 	}
-	if check.IfNil(mrc.incomingHeaderHandler) {
-		return errors.ErrNilIncomingHeaderSubscriber
-	}
 	return nil
 }
 
@@ -550,18 +547,6 @@ func (mrc *managedRunTypeComponents) ShardResolversContainerCreator() resolversc
 	}
 
 	return mrc.runTypeComponents.shardResolversContainerCreator
-}
-
-// IncomingHeaderHandler returns the incoming header handler factory
-func (mrc *managedRunTypeComponents) IncomingHeaderHandler() process.IncomingHeaderSubscriber {
-	mrc.mutStateComponents.RLock()
-	defer mrc.mutStateComponents.RUnlock()
-
-	if check.IfNil(mrc.runTypeComponents) {
-		return nil
-	}
-
-	return mrc.runTypeComponents.incomingHeaderHandler
 }
 
 // IsInterfaceNil returns true if the interface is nil

@@ -63,7 +63,6 @@ type RunTypeComponentsStub struct {
 	InterceptorsContainerFactoryCreator   interceptorscontainer.InterceptorsContainerFactoryCreator
 	RequesterContainerFactoryCreator      requesterscontainer.RequesterContainerFactoryCreator
 	ShardResolversContainerFactoryCreator resolverscontainer.ShardResolversContainerFactoryCreator
-	IncomingHeaderSubscriber              process.IncomingHeaderSubscriber
 }
 
 // NewRunTypeComponentsStub -
@@ -99,7 +98,6 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		ShardResolversContainerFactoryCreator: resolverscontainer.NewShardResolversContainerFactoryCreator(),
 		TxPreProcessorFactory:                 preprocess.NewTxPreProcessorCreator(),
 		ExtraHeaderSigVerifierHolder:          &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
-		IncomingHeaderSubscriber:              &sovereignMocks.IncomingHeaderSubscriberStub{},
 	}
 }
 
@@ -271,11 +269,6 @@ func (r *RunTypeComponentsStub) RequesterContainerCreator() requesterscontainer.
 // ShardResolversContainerCreator -
 func (r *RunTypeComponentsStub) ShardResolversContainerCreator() resolverscontainer.ShardResolversContainerFactoryCreator {
 	return r.ShardResolversContainerFactoryCreator
-}
-
-// IncomingHeaderHandler -
-func (r *RunTypeComponentsStub) IncomingHeaderHandler() process.IncomingHeaderSubscriber {
-	return r.IncomingHeaderSubscriber
 }
 
 // IsInterfaceNil -

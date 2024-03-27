@@ -73,7 +73,6 @@ type runTypeComponents struct {
 	interceptorsContainerCreator        interceptorscontainer.InterceptorsContainerFactoryCreator
 	requesterContainerCreator           requesterscontainer.RequesterContainerFactoryCreator
 	shardResolversContainerCreator      resolverscontainer.ShardResolversContainerFactoryCreator
-	incomingHeaderHandler               process.IncomingHeaderSubscriber
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
@@ -196,8 +195,6 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 
 	shardResolversContainerCreator := resolverscontainer.NewShardResolversContainerFactoryCreator()
 
-	incomingHeaderHandler := disabled.NewDisabledIncomingHeaderProcessor()
-
 	return &runTypeComponents{
 		blockChainHookHandlerCreator:        blockChainHookHandlerFactory,
 		epochStartBootstrapperCreator:       epochStartBootstrapperFactory,
@@ -229,7 +226,6 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		interceptorsContainerCreator:        interceptorsContainerCreator,
 		requesterContainerCreator:           requesterContainerCreator,
 		shardResolversContainerCreator:      shardResolversContainerCreator,
-		incomingHeaderHandler:               incomingHeaderHandler,
 	}, nil
 }
 

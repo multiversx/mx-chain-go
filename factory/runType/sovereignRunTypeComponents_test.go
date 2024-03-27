@@ -47,6 +47,14 @@ func TestNewSovereignRunTypeComponentsFactory(t *testing.T) {
 		require.Nil(t, srcf)
 		require.ErrorIs(t, errors.ErrNilTopicsChecker, err)
 	})
+	t.Run("nil extra header verifier", func(t *testing.T) {
+		rcf, _ := runType.NewRunTypeComponentsFactory(createCoreComponents())
+		sovArgs := createSovRunTypeArgs()
+		sovArgs.ExtraVerifier = nil
+		srcf, err := runType.NewSovereignRunTypeComponentsFactory(rcf, sovArgs)
+		require.Nil(t, srcf)
+		require.ErrorIs(t, errors.ErrNilExtraSubRoundSigner, err)
+	})
 	t.Run("should work", func(t *testing.T) {
 		rcf, _ := runType.NewRunTypeComponentsFactory(createCoreComponents())
 		srcf, err := runType.NewSovereignRunTypeComponentsFactory(rcf, createSovRunTypeArgs())
