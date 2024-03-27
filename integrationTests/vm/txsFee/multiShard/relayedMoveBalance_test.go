@@ -16,6 +16,10 @@ import (
 const minGasLimit = uint64(1)
 
 func TestRelayedMoveBalanceRelayerShard0InnerTxSenderAndReceiverShard1ShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	t.Run("before relayed move balance fix", testRelayedMoveBalanceRelayerShard0InnerTxSenderAndReceiverShard1ShouldWork(integrationTests.UnreachableEpoch))
 	t.Run("after relayed move balance fix", testRelayedMoveBalanceRelayerShard0InnerTxSenderAndReceiverShard1ShouldWork(0))
 }
@@ -72,6 +76,10 @@ func testRelayedMoveBalanceRelayerShard0InnerTxSenderAndReceiverShard1ShouldWork
 }
 
 func TestRelayedMoveBalanceRelayerAndInnerTxSenderShard0ReceiverShard1(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	t.Run("before relayed move balance fix", testRelayedMoveBalanceRelayerAndInnerTxSenderShard0ReceiverShard1(integrationTests.UnreachableEpoch))
 	t.Run("after relayed move balance fix", testRelayedMoveBalanceRelayerAndInnerTxSenderShard0ReceiverShard1(0))
 }
@@ -126,6 +134,10 @@ func testRelayedMoveBalanceRelayerAndInnerTxSenderShard0ReceiverShard1(relayedFi
 }
 
 func TestRelayedMoveBalanceExecuteOnSourceAndDestination(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	t.Run("before relayed move balance fix", testRelayedMoveBalanceExecuteOnSourceAndDestination(integrationTests.UnreachableEpoch))
 	t.Run("after relayed move balance fix", testRelayedMoveBalanceExecuteOnSourceAndDestination(0))
 }
@@ -203,6 +215,10 @@ func testRelayedMoveBalanceExecuteOnSourceAndDestination(relayedFixActivationEpo
 }
 
 func TestRelayedMoveBalanceExecuteOnSourceAndDestinationRelayerAndInnerTxSenderShard0InnerTxReceiverShard1ShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	t.Run("before relayed move balance fix", testRelayedMoveBalanceExecuteOnSourceAndDestinationRelayerAndInnerTxSenderShard0InnerTxReceiverShard1ShouldWork(integrationTests.UnreachableEpoch))
 	t.Run("after relayed move balance fix", testRelayedMoveBalanceExecuteOnSourceAndDestinationRelayerAndInnerTxSenderShard0InnerTxReceiverShard1ShouldWork(0))
 }
@@ -276,6 +292,10 @@ func testRelayedMoveBalanceExecuteOnSourceAndDestinationRelayerAndInnerTxSenderS
 }
 
 func TestRelayedMoveBalanceRelayerAndInnerTxReceiverShard0SenderShard1(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	t.Run("before relayed move balance fix", testRelayedMoveBalanceRelayerAndInnerTxReceiverShard0SenderShard1(integrationTests.UnreachableEpoch))
 	t.Run("after relayed move balance fix", testRelayedMoveBalanceRelayerAndInnerTxReceiverShard0SenderShard1(0))
 }
@@ -361,6 +381,10 @@ func testRelayedMoveBalanceRelayerAndInnerTxReceiverShard0SenderShard1(relayedFi
 }
 
 func TestMoveBalanceRelayerShard0InnerTxSenderShard1InnerTxReceiverShard2ShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	t.Run("before relayed move balance fix", testMoveBalanceRelayerShard0InnerTxSenderShard1InnerTxReceiverShard2ShouldWork(integrationTests.UnreachableEpoch))
 	t.Run("after relayed move balance fix", testMoveBalanceRelayerShard0InnerTxSenderShard1InnerTxReceiverShard2ShouldWork(0))
 }

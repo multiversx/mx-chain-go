@@ -7,6 +7,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
@@ -85,14 +86,6 @@ type Notifier interface {
 	IsInterfaceNil() bool
 }
 
-// ValidatorStatisticsProcessorHandler defines the actions for processing validator statistics
-// needed in the epoch events
-type ValidatorStatisticsProcessorHandler interface {
-	Process(info data.ShardValidatorInfoHandler) error
-	Commit() ([]byte, error)
-	IsInterfaceNil() bool
-}
-
 // ValidatorInfoCreator defines the methods to create a validator info
 type ValidatorInfoCreator interface {
 	PeerAccountToValidatorInfo(peerAccount state.PeerAccountHandler) *state.ValidatorInfo
@@ -161,9 +154,12 @@ type StakingDataProvider interface {
 	GetTotalStakeEligibleNodes() *big.Int
 	GetTotalTopUpStakeEligibleNodes() *big.Int
 	GetNodeStakedTopUp(blsKey []byte) (*big.Int, error)
-	PrepareStakingDataForRewards(keys map[uint32][][]byte) error
-	FillValidatorInfo(blsKey []byte) error
-	ComputeUnQualifiedNodes(validatorInfos map[uint32][]*state.ValidatorInfo) ([][]byte, map[string][][]byte, error)
+	PrepareStakingData(validatorsMap state.ShardValidatorsInfoMapHandler) error
+	FillValidatorInfo(validator state.ValidatorInfoHandler) error
+	ComputeUnQualifiedNodes(validatorInfos state.ShardValidatorsInfoMapHandler) ([][]byte, map[string][][]byte, error)
+	GetBlsKeyOwner(blsKey []byte) (string, error)
+	GetNumOfValidatorsInCurrentEpoch() uint32
+	GetOwnersData() map[string]*OwnerData
 	Clean()
 	IsInterfaceNil() bool
 }
@@ -186,10 +182,10 @@ type EpochEconomicsDataProvider interface {
 // RewardsCreator defines the functionality for the metachain to create rewards at end of epoch
 type RewardsCreator interface {
 	CreateRewardsMiniBlocks(
-		metaBlock data.MetaHeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+		metaBlock data.MetaHeaderHandler, validatorsInfo state.ShardValidatorsInfoMapHandler, computedEconomics *block.Economics,
 	) (block.MiniBlockSlice, error)
 	VerifyRewardsMiniBlocks(
-		metaBlock data.MetaHeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+		metaBlock data.MetaHeaderHandler, validatorsInfo state.ShardValidatorsInfoMapHandler, computedEconomics *block.Economics,
 	) error
 	GetProtocolSustainabilityRewards() *big.Int
 	GetLocalTxCache() TransactionCacher
@@ -212,5 +208,23 @@ type EpochNotifier interface {
 // EpochStartNotifier defines which actions should be done for handling new epoch's events
 type EpochStartNotifier interface {
 	RegisterHandler(handler ActionHandler)
+	IsInterfaceNil() bool
+}
+
+// MaxNodesChangeConfigProvider provides all config.MaxNodesChangeConfig, as well as
+// the current config.MaxNodesChangeConfig based on the current epoch
+type MaxNodesChangeConfigProvider interface {
+	GetAllNodesConfig() []config.MaxNodesChangeConfig
+	GetCurrentNodesConfig() config.MaxNodesChangeConfig
+	EpochConfirmed(epoch uint32, round uint64)
+	IsInterfaceNil() bool
+}
+
+// AuctionListSelector handles selection of nodes from auction list to be sent to waiting list, based on their top up
+type AuctionListSelector interface {
+	SelectNodesFromAuctionList(
+		validatorsInfoMap state.ShardValidatorsInfoMapHandler,
+		randomness []byte,
+	) error
 	IsInterfaceNil() bool
 }

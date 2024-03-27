@@ -6,7 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/sharding"
+
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
 )
@@ -14,25 +14,20 @@ import (
 // TODO: create a structure or use this function also in process/peer/process.go
 func getValidatorDataFromLeaves(
 	leavesChannels *common.TrieIteratorChannels,
-	shardCoordinator sharding.Coordinator,
 	marshalizer marshal.Marshalizer,
-) (map[uint32][]*state.ValidatorInfo, error) {
-
-	validators := make(map[uint32][]*state.ValidatorInfo, shardCoordinator.NumberOfShards()+1)
-	for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
-		validators[i] = make([]*state.ValidatorInfo, 0)
-	}
-	validators[core.MetachainShardId] = make([]*state.ValidatorInfo, 0)
-
+) (state.ShardValidatorsInfoMapHandler, error) {
+	validators := state.NewShardValidatorsInfoMap()
 	for pa := range leavesChannels.LeavesChan {
 		peerAccount, err := unmarshalPeer(pa, marshalizer)
 		if err != nil {
 			return nil, err
 		}
 
-		currentShardId := peerAccount.GetShardId()
 		validatorInfoData := peerAccountToValidatorInfo(peerAccount)
-		validators[currentShardId] = append(validators[currentShardId], validatorInfoData)
+		err = validators.Add(validatorInfoData)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	err := leavesChannels.ErrChan.ReadFromChanNonBlocking()
@@ -60,7 +55,9 @@ func peerAccountToValidatorInfo(peerAccount state.PeerAccountHandler) *state.Val
 		PublicKey:                  peerAccount.AddressBytes(),
 		ShardId:                    peerAccount.GetShardId(),
 		List:                       getActualList(peerAccount),
+		PreviousList:               peerAccount.GetPreviousList(),
 		Index:                      peerAccount.GetIndexInList(),
+		PreviousIndex:              peerAccount.GetPreviousIndexInList(),
 		TempRating:                 peerAccount.GetTempRating(),
 		Rating:                     peerAccount.GetRating(),
 		RewardAddress:              peerAccount.GetRewardAddress(),
@@ -92,7 +89,7 @@ func getActualList(peerAccount state.PeerAccountHandler) string {
 	return string(common.LeavingList)
 }
 
-func shouldExportValidator(validator *state.ValidatorInfo, allowedLists []common.PeerType) bool {
+func shouldExportValidator(validator state.ValidatorInfoHandler, allowedLists []common.PeerType) bool {
 	validatorList := validator.GetList()
 
 	for _, list := range allowedLists {

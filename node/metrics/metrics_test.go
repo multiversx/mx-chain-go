@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
@@ -63,6 +64,8 @@ func TestInitBaseMetrics(t *testing.T) {
 		common.MetricAccountsSnapshotNumNodes,
 		common.MetricTrieSyncNumProcessedNodes,
 		common.MetricTrieSyncNumReceivedBytes,
+		common.MetricRoundAtEpochStart,
+		common.MetricNonceAtEpochStart,
 	}
 
 	keys := make(map[string]struct{})
@@ -134,12 +137,10 @@ func TestInitConfigMetrics(t *testing.T) {
 			ESDTMultiTransferEnableEpoch:                31,
 			GlobalMintBurnDisableEpoch:                  32,
 			ESDTTransferRoleEnableEpoch:                 33,
-			BuiltInFunctionOnMetaEnableEpoch:            34,
-			WaitingListFixEnableEpoch:                   35,
-			SetGuardianEnableEpoch:                      36,
-			ScToScLogEventEnableEpoch:                   37,
-			RelayedTransactionsV3EnableEpoch:            38,
-			FixRelayedMoveBalanceEnableEpoch:            39,
+			SetGuardianEnableEpoch:                      34,
+			ScToScLogEventEnableEpoch:                   35,
+			RelayedTransactionsV3EnableEpoch:            36,
+			FixRelayedMoveBalanceEnableEpoch:            37,
 			MaxNodesChangeEnableEpoch: []config.MaxNodesChangeConfig{
 				{
 					EpochEnable:            0,
@@ -188,8 +189,6 @@ func TestInitConfigMetrics(t *testing.T) {
 		"erd_esdt_multi_transfer_enable_epoch":                          uint32(31),
 		"erd_global_mint_burn_disable_epoch":                            uint32(32),
 		"erd_esdt_transfer_role_enable_epoch":                           uint32(33),
-		"erd_builtin_function_on_meta_enable_epoch":                     uint32(34),
-		"erd_waiting_list_fix_enable_epoch":                             uint32(35),
 		"erd_max_nodes_change_enable_epoch":                             nil,
 		"erd_total_supply":                                              "12345",
 		"erd_hysteresis":                                                "0.100000",
@@ -197,10 +196,10 @@ func TestInitConfigMetrics(t *testing.T) {
 		"erd_max_nodes_change_enable_epoch0_epoch_enable":               uint32(0),
 		"erd_max_nodes_change_enable_epoch0_max_num_nodes":              uint32(1),
 		"erd_max_nodes_change_enable_epoch0_nodes_to_shuffle_per_shard": uint32(2),
-		"erd_set_guardian_feature_enable_epoch":                         uint32(36),
-		"erd_set_sc_to_sc_log_event_enable_epoch":                       uint32(37),
-		"erd_relayed_transactions_v3_enable_epoch":                      uint32(38),
-		"erd_fix_relayed_move_balance_enable_epoch":                     uint32(39),
+		"erd_set_guardian_feature_enable_epoch":                         uint32(34),
+		"erd_set_sc_to_sc_log_event_enable_epoch":                       uint32(35),
+		"erd_relayed_transactions_v3_enable_epoch":                      uint32(36),
+		"erd_fix_relayed_move_balance_enable_epoch":                     uint32(37),
 		common.MetricGatewayMetricsEndpoint:                             "http://localhost:8080",
 	}
 
@@ -210,7 +209,7 @@ func TestInitConfigMetrics(t *testing.T) {
 		},
 	}
 
-	genesisNodesConfig := &testscommon.NodesSetupStub{
+	genesisNodesConfig := &genesisMocks.NodesSetupStub{
 		GetAdaptivityCalled: func() bool {
 			return true
 		},
@@ -241,7 +240,7 @@ func TestInitConfigMetrics(t *testing.T) {
 		assert.Equal(t, v, keys[k])
 	}
 
-	genesisNodesConfig = &testscommon.NodesSetupStub{
+	genesisNodesConfig = &genesisMocks.NodesSetupStub{
 		GetAdaptivityCalled: func() bool {
 			return false
 		},
@@ -367,7 +366,7 @@ func TestInitMetrics(t *testing.T) {
 			return 0
 		},
 	}
-	nodesSetup := &testscommon.NodesSetupStub{
+	nodesSetup := &genesisMocks.NodesSetupStub{
 		GetShardConsensusGroupSizeCalled: func() uint32 {
 			return 63
 		},

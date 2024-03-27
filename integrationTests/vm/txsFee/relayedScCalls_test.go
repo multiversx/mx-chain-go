@@ -1,7 +1,3 @@
-//go:build !race
-
-// TODO remove build condition above to allow -race -short, after Wasm VM fix
-
 package txsFee
 
 import (
@@ -19,6 +15,10 @@ import (
 )
 
 func TestRelayedScCallShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	t.Run("before relayed fix", testRelayedScCallShouldWork(integrationTests.UnreachableEpoch))
 	t.Run("after relayed fix", testRelayedScCallShouldWork(0))
 }
@@ -71,6 +71,10 @@ func testRelayedScCallShouldWork(relayedFixActivationEpoch uint32) func(t *testi
 }
 
 func TestRelayedScCallContractNotFoundShouldConsumeGas(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	t.Run("before relayed fix", testRelayedScCallContractNotFoundShouldConsumeGas(integrationTests.UnreachableEpoch))
 	t.Run("after relayed fix", testRelayedScCallContractNotFoundShouldConsumeGas(0))
 }
@@ -119,6 +123,10 @@ func testRelayedScCallContractNotFoundShouldConsumeGas(relayedFixActivationEpoch
 }
 
 func TestRelayedScCallInvalidMethodShouldConsumeGas(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	t.Run("before relayed fix", testRelayedScCallInvalidMethodShouldConsumeGas(integrationTests.UnreachableEpoch))
 	t.Run("after relayed fix", testRelayedScCallInvalidMethodShouldConsumeGas(0))
 }
@@ -167,6 +175,10 @@ func testRelayedScCallInvalidMethodShouldConsumeGas(relayedFixActivationEpoch ui
 }
 
 func TestRelayedScCallInsufficientGasLimitShouldConsumeGas(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	t.Run("before relayed fix", testRelayedScCallInsufficientGasLimitShouldConsumeGas(integrationTests.UnreachableEpoch, big.NewInt(28100), big.NewInt(13800)))
 	t.Run("after relayed fix", testRelayedScCallInsufficientGasLimitShouldConsumeGas(0, big.NewInt(28050), big.NewInt(13850)))
 }
@@ -213,6 +225,10 @@ func testRelayedScCallInsufficientGasLimitShouldConsumeGas(relayedFixActivationE
 }
 
 func TestRelayedScCallOutOfGasShouldConsumeGas(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	t.Run("before relayed fix", testRelayedScCallOutOfGasShouldConsumeGas(integrationTests.UnreachableEpoch))
 	t.Run("after relayed fix", testRelayedScCallOutOfGasShouldConsumeGas(0))
 }
@@ -261,6 +277,10 @@ func testRelayedScCallOutOfGasShouldConsumeGas(relayedFixActivationEpoch uint32)
 }
 
 func TestRelayedDeployInvalidContractShouldIncrementNonceOnSender(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	senderAddr := []byte("12345678901234567890123456789011")
 
 	t.Run("nonce fix is disabled, should increase the sender's nonce if inner tx has correct nonce", func(t *testing.T) {

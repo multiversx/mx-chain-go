@@ -90,9 +90,6 @@
     # ValidatorToDelegationEnableEpoch represents the epoch when the validator-to-delegation feature will be enabled
     ValidatorToDelegationEnableEpoch = 1
 
-    # WaitingListFixEnableEpoch represents the epoch when the 6 epoch waiting list fix is enabled
-    WaitingListFixEnableEpoch = 1000000
-
     # IncrementSCRNonceInMultiTransferEnableEpoch represents the epoch when the fix for preventing the generation of the same SCRs
     # is enabled. The fix is done by adding an extra increment.
     IncrementSCRNonceInMultiTransferEnableEpoch = 1
@@ -105,9 +102,6 @@
 
     # ESDTTransferRoleEnableEpoch represents the epoch when esdt transfer role set is enabled
     ESDTTransferRoleEnableEpoch = 1
-
-    # BuiltInFunctionOnMetaEnableEpoch represents the epoch when built in function processing on metachain is enabled
-    BuiltInFunctionOnMetaEnableEpoch = 1000000
 
     # ComputeRewardCheckpointEnableEpoch represents the epoch when compute rewards checkpoint epoch is enabled
     ComputeRewardCheckpointEnableEpoch = 1
@@ -258,7 +252,7 @@
     AutoBalanceDataTriesEnableEpoch = 1
 
     # MigrateDataTrieEnableEpoch represents the epoch when the data tries migration is enabled
-    MigrateDataTrieEnableEpoch = 2
+    MigrateDataTrieEnableEpoch = 1
 
     # KeepExecOrderOnCreatedSCRsEnableEpoch represents the epoch when the execution order of created SCRs is ensured
     KeepExecOrderOnCreatedSCRsEnableEpoch = 1
@@ -293,11 +287,29 @@
     # CurrentRandomnessOnSortingEnableEpoch represents the epoch when the current randomness on sorting is enabled
     CurrentRandomnessOnSortingEnableEpoch = 4
 
+    # StakeLimitsEnableEpoch represents the epoch when stake limits on validators are enabled
+    # Should have the same value as StakingV4Step1EnableEpoch that triggers the automatic unstake operations for the queue nodes
+    StakeLimitsEnableEpoch = 4
+
+    # StakingV4Step1EnableEpoch represents the epoch when staking v4 is initialized. This is the epoch in which
+    # all nodes from staking queue are moved in the auction list
+    StakingV4Step1EnableEpoch = 4
+
+    # StakingV4Step2EnableEpoch represents the epoch when staking v4 is enabled. Should have a greater value than StakingV4Step1EnableEpoch.
+    # From this epoch, all shuffled out nodes are moved to auction nodes. No auction nodes selection is done yet.
+    StakingV4Step2EnableEpoch = 5
+
+    # StakingV4Step3EnableEpoch represents the epoch in which selected nodes from auction will be distributed to waiting list
+    StakingV4Step3EnableEpoch = 6
+
+    # AlwaysMergeContextsInEEIEnableEpoch represents the epoch in which the EEI will always merge the contexts
+    AlwaysMergeContextsInEEIEnableEpoch = 4
+
     # RelayedTransactionsV3EnableEpoch represents the epoch when the relayed transactions V3 will be enabled
-    RelayedTransactionsV3EnableEpoch = 4
+    RelayedTransactionsV3EnableEpoch = 7
 
     # FixRelayedMoveBalanceEnableEpoch represents the epoch when the fix for relayed for move balance will be enabled
-    FixRelayedMoveBalanceEnableEpoch = 4
+    FixRelayedMoveBalanceEnableEpoch = 7
 
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
@@ -307,8 +319,13 @@
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
-        { EpochEnable = 0, MaxNumNodes = 36, NodesToShufflePerShard = 4 },
-        { EpochEnable = 1, MaxNumNodes = 56, NodesToShufflePerShard = 2 }
+        { EpochEnable = 0, MaxNumNodes = 48, NodesToShufflePerShard = 4 },  # 4 shuffled out keys / shard will not be reached normally
+        { EpochEnable = 1, MaxNumNodes = 64, NodesToShufflePerShard = 2 },
+        # Staking v4 configuration, where:
+        # - Enable epoch = StakingV4Step3EnableEpoch
+        # - NodesToShufflePerShard = same as previous entry in MaxNodesChangeEnableEpoch
+        # - MaxNumNodes = (MaxNumNodesFromPreviousEpochEnable - (numOfShards+1)*NodesToShufflePerShard)
+        { EpochEnable = 6, MaxNumNodes = 56, NodesToShufflePerShard = 2 },
     ]
 
 [GasSchedule]
