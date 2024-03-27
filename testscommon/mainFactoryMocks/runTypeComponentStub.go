@@ -218,14 +218,17 @@ func (r *RunTypeComponentsStub) AccountsCreator() state.AccountFactory {
 	return r.AccountCreator
 }
 
+// OutGoingOperationsPoolHandler -
 func (r *RunTypeComponentsStub) OutGoingOperationsPoolHandler() sovereignBlock.OutGoingOperationsPool {
 	return r.OutGoingOperationsPool
 }
 
+// DataCodecHandler -
 func (r *RunTypeComponentsStub) DataCodecHandler() sovereign.DataDecoderHandler {
 	return r.DataCodec
 }
 
+// TopicsCheckerHandler -
 func (r *RunTypeComponentsStub) TopicsCheckerHandler() sovereign.TopicsCheckerHandler {
 	return r.TopicsChecker
 }

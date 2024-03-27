@@ -54,6 +54,12 @@ func NewSovereignRunTypeComponentsFactory(fact *runTypeComponentsFactory, args A
 	if check.IfNil(fact) {
 		return nil, errors.ErrNilRunTypeComponentsFactory
 	}
+	if check.IfNil(args.DataCodec) {
+		return nil, errors.ErrNilDataCodec
+	}
+	if check.IfNil(args.TopicsChecker) {
+		return nil, errors.ErrNilTopicsChecker
+	}
 	if check.IfNil(args.IncomingHeaderHandler) {
 		return nil, errors.ErrNilIncomingHeaderSubscriber
 	}
