@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -41,6 +39,9 @@ import (
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/vm"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
@@ -477,8 +478,6 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		ManagedPeersHolder:           pcf.crypto.ManagedPeersHolder(),
 		ValidatorStatisticsProcessor: validatorStatisticsProcessor,
 		OutGoingOperationsPool:       pcf.outGoingOperationsPool,
-		DataCodec:                    pcf.dataCodec,
-		TopicsChecker:                pcf.topicsChecker,
 	}
 
 	blockProcessor, err := pcf.createBlockProcessor(argumentsBaseProcessor)

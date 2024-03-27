@@ -5,14 +5,14 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/multiversx/mx-chain-go/errors"
+	sovTests "github.com/multiversx/mx-chain-go/testscommon/sovereign"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	transactionData "github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/stretchr/testify/require"
-
-	"github.com/multiversx/mx-chain-go/errors"
-	sovTests "github.com/multiversx/mx-chain-go/testscommon/sovereign"
 )
 
 func createEvents() []SubscribedEvent {

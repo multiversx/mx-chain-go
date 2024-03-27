@@ -601,8 +601,6 @@ func GetProcessArgs(
 		TxPreProcessorCreator:                 preprocess.NewTxPreProcessorCreator(),
 		ExtraHeaderSigVerifierHolder:          &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
 		OutGoingOperationsPool:                &sovereign.OutGoingOperationsPoolMock{},
-		DataCodec:                             &sovereign.DataCodecMock{},
-		TopicsChecker:                         &sovereign.TopicsCheckerMock{},
 		RunTypeComponents:                     GetRunTypeComponents(),
 	}
 }
@@ -858,7 +856,7 @@ func GetRunTypeComponents() factory.RunTypeComponentsHolder {
 // GetSovereignRunTypeComponents -
 func GetSovereignRunTypeComponents() factory.RunTypeComponentsHolder {
 	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory(GetCoreComponents())
-	sovereignComponentsFactory, _ := runType.NewSovereignRunTypeComponentsFactory(runTypeComponentsFactory, getSovConfig())
+	sovereignComponentsFactory, _ := runType.NewSovereignRunTypeComponentsFactory(runTypeComponentsFactory, createSovRunTypeArgs())
 	managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(sovereignComponentsFactory)
 	if err != nil {
 		log.Error("getRunTypeComponents NewManagedRunTypeComponents", "error", err.Error())
@@ -872,11 +870,15 @@ func GetSovereignRunTypeComponents() factory.RunTypeComponentsHolder {
 	return managedRunTypeComponents
 }
 
-func getSovConfig() config.SovereignConfig {
-	return config.SovereignConfig{
-		GenesisConfig: config.GenesisConfig{
-			NativeESDT: "WEGLD-ab47da",
+func createSovRunTypeArgs() runType.ArgsSovereignRunTypeComponents {
+	return runType.ArgsSovereignRunTypeComponents{
+		Config: config.SovereignConfig{
+			GenesisConfig: config.GenesisConfig{
+				NativeESDT: "WEGLD-ab47da",
+			},
 		},
+		DataCodec:     &sovereign.DataCodecMock{},
+		TopicsChecker: &sovereign.TopicsCheckerMock{},
 	}
 }
 

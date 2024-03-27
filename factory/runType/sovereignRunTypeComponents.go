@@ -3,7 +3,6 @@ package runType
 import (
 	"fmt"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
@@ -12,6 +11,7 @@ import (
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
+	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
@@ -21,22 +21,40 @@ import (
 	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/state/factory"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
+
+	"github.com/multiversx/mx-chain-core-go/core/check"
 )
+
+type ArgsSovereignRunTypeComponents struct {
+	Config        config.SovereignConfig
+	DataCodec     sovereign.DataDecoderHandler
+	TopicsChecker sovereign.TopicsCheckerHandler
+}
 
 type sovereignRunTypeComponentsFactory struct {
 	*runTypeComponentsFactory
-	cfg config.SovereignConfig
+	cfg           config.SovereignConfig
+	dataCodec     sovereign.DataDecoderHandler
+	topicsChecker sovereign.TopicsCheckerHandler
 }
 
 // NewSovereignRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
-func NewSovereignRunTypeComponentsFactory(fact *runTypeComponentsFactory, cfg config.SovereignConfig) (*sovereignRunTypeComponentsFactory, error) {
+func NewSovereignRunTypeComponentsFactory(fact *runTypeComponentsFactory, args ArgsSovereignRunTypeComponents) (*sovereignRunTypeComponentsFactory, error) {
 	if check.IfNil(fact) {
 		return nil, errors.ErrNilRunTypeComponentsFactory
+	}
+	if check.IfNil(args.DataCodec) {
+		return nil, errors.ErrNilDataCodec
+	}
+	if check.IfNil(args.TopicsChecker) {
+		return nil, errors.ErrNilTopicsChecker
 	}
 
 	return &sovereignRunTypeComponentsFactory{
 		runTypeComponentsFactory: fact,
-		cfg:                      cfg,
+		cfg:                      args.Config,
+		dataCodec:                args.DataCodec,
+		topicsChecker:            args.TopicsChecker,
 	}, nil
 }
 
@@ -139,6 +157,10 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignAccountCreator failed: %w", err)
 	}
 
+	dataCodec := rcf.dataCodec
+
+	topicsChecker := rcf.topicsChecker
+
 	return &runTypeComponents{
 		blockChainHookHandlerCreator:        blockChainHookHandlerFactory,
 		epochStartBootstrapperCreator:       epochStartBootstrapperFactory,
@@ -159,5 +181,7 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		vmContainerMetaFactory:              rtc.vmContainerMetaFactory,
 		vmContainerShardFactory:             vmContainerShardCreator,
 		accountsCreator:                     accountsCreator,
+		dataCodecHandler:                    dataCodec,
+		topicsCheckerHandler:                topicsChecker,
 	}, nil
 }

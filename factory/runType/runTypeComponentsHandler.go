@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
@@ -14,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	processBlock "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
+	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
@@ -22,6 +22,8 @@ import (
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
 	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/state"
+
+	"github.com/multiversx/mx-chain-core-go/core/check"
 )
 
 var _ factory.ComponentHandler = (*managedRunTypeComponents)(nil)
@@ -130,6 +132,24 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	}
 	if check.IfNil(mrc.scResultPreProcessorCreator) {
 		return errors.ErrNilSCResultsPreProcessorCreator
+	}
+	if mrc.consensusModel == consensus.ConsensusModelInvalid {
+		return errors.ErrInvalidConsensusModel
+	}
+	if check.IfNil(mrc.vmContainerMetaFactory) {
+		return errors.ErrNilVmContainerMetaFactoryCreator
+	}
+	if check.IfNil(mrc.vmContainerShardFactory) {
+		return errors.ErrNilVmContainerShardFactoryCreator
+	}
+	if check.IfNil(mrc.accountsCreator) {
+		return errors.ErrNilAccountsCreator
+	}
+	if check.IfNil(mrc.dataCodecHandler) {
+		return errors.ErrNilDataCodec
+	}
+	if check.IfNil(mrc.topicsCheckerHandler) {
+		return errors.ErrNilTopicsChecker
 	}
 	return nil
 }
@@ -360,6 +380,30 @@ func (mrc *managedRunTypeComponents) AccountsCreator() state.AccountFactory {
 	}
 
 	return mrc.runTypeComponents.accountsCreator
+}
+
+// DataCodecHandler returns the data codec factory
+func (mrc *managedRunTypeComponents) DataCodecHandler() sovereign.DataDecoderHandler {
+	mrc.mutStateComponents.RLock()
+	defer mrc.mutStateComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.dataCodecHandler
+}
+
+// TopicsCheckerHandler returns the topics checker factory
+func (mrc *managedRunTypeComponents) TopicsCheckerHandler() sovereign.TopicsCheckerHandler {
+	mrc.mutStateComponents.RLock()
+	defer mrc.mutStateComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.topicsCheckerHandler
 }
 
 // IsInterfaceNil returns true if the interface is nil
