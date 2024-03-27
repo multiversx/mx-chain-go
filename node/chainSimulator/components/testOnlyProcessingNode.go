@@ -285,6 +285,14 @@ func (node *testOnlyProcessingNode) createNodesCoordinator(pref config.Preferenc
 		return err
 	}
 
+	shardID := node.BootstrapComponentsHolder.ShardCoordinator().SelfId()
+	shardIDStr := fmt.Sprintf("%d", shardID)
+	if shardID == core.MetachainShardId {
+		shardIDStr = "metachain"
+	}
+
+	pref.DestinationShardAsObserver = shardIDStr
+
 	node.NodesCoordinator, err = bootstrapComp.CreateNodesCoordinator(
 		nodesShufflerOut,
 		node.CoreComponentsHolder.GenesisNodesSetup(),
