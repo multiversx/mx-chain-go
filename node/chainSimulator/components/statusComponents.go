@@ -53,7 +53,7 @@ func CreateStatusComponents(shardID uint32, appStatusHandler core.AppStatusHandl
 	instance.outportHandler, err = factory.CreateOutport(&factory.OutportFactoryArgs{
 		IsImportDB:               false,
 		ShardID:                  shardID,
-		RetrialInterval:          100 * time.Millisecond,
+		RetrialInterval:          time.Second,
 		HostDriversArgs:          hostDriverArgs,
 		EventNotifierFactoryArgs: &factory.EventNotifierFactoryArgs{},
 	})
