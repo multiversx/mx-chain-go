@@ -94,7 +94,7 @@ func initTrie() *patriciaMerkleTrie {
 	_ = tr.Update([]byte("doe"), []byte("reindeer"))
 	_ = tr.Update([]byte("dog"), []byte("puppy"))
 	_ = tr.Update([]byte("ddog"), []byte("cat"))
-	_ = tr.updateTrie()
+	ExecuteUpdatesFromBatch(tr)
 
 	return tr
 }
