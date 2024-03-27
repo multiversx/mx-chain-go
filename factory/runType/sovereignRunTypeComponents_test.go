@@ -26,14 +26,33 @@ func createSovRunTypeArgs() runType.ArgsSovereignRunTypeComponents {
 func TestNewSovereignRunTypeComponentsFactory(t *testing.T) {
 	t.Parallel()
 
-	srcf, err := runType.NewSovereignRunTypeComponentsFactory(nil, createSovRunTypeArgs())
-	require.Nil(t, srcf)
-	require.ErrorIs(t, errors.ErrNilRunTypeComponentsFactory, err)
-
-	rcf, _ := runType.NewRunTypeComponentsFactory(createCoreComponents())
-	srcf, err = runType.NewSovereignRunTypeComponentsFactory(rcf, createSovRunTypeArgs())
-	require.NotNil(t, srcf)
-	require.NoError(t, err)
+	t.Run("nil runType components factory", func(t *testing.T) {
+		srcf, err := runType.NewSovereignRunTypeComponentsFactory(nil, createSovRunTypeArgs())
+		require.Nil(t, srcf)
+		require.ErrorIs(t, errors.ErrNilRunTypeComponentsFactory, err)
+	})
+	t.Run("nil data codec", func(t *testing.T) {
+		rcf, _ := runType.NewRunTypeComponentsFactory(createCoreComponents())
+		sovArgs := createSovRunTypeArgs()
+		sovArgs.DataCodec = nil
+		srcf, err := runType.NewSovereignRunTypeComponentsFactory(rcf, sovArgs)
+		require.Nil(t, srcf)
+		require.ErrorIs(t, errors.ErrNilDataCodec, err)
+	})
+	t.Run("nil topics checker", func(t *testing.T) {
+		rcf, _ := runType.NewRunTypeComponentsFactory(createCoreComponents())
+		sovArgs := createSovRunTypeArgs()
+		sovArgs.TopicsChecker = nil
+		srcf, err := runType.NewSovereignRunTypeComponentsFactory(rcf, sovArgs)
+		require.Nil(t, srcf)
+		require.ErrorIs(t, errors.ErrNilTopicsChecker, err)
+	})
+	t.Run("should work", func(t *testing.T) {
+		rcf, _ := runType.NewRunTypeComponentsFactory(createCoreComponents())
+		srcf, err := runType.NewSovereignRunTypeComponentsFactory(rcf, createSovRunTypeArgs())
+		require.NotNil(t, srcf)
+		require.NoError(t, err)
+	})
 }
 
 func TestSovereignRunTypeComponentsFactory_Create(t *testing.T) {

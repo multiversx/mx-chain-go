@@ -196,10 +196,12 @@ func (r *RunTypeComponentsStub) OutGoingOperationsPoolHandler() sovereignBlock.O
 	return r.OutGoingOperationsPool
 }
 
+// DataCodecHandler -
 func (r *RunTypeComponentsStub) DataCodecHandler() sovereign.DataDecoderHandler {
 	return r.DataCodec
 }
 
+// TopicsCheckerHandler -
 func (r *RunTypeComponentsStub) TopicsCheckerHandler() sovereign.TopicsCheckerHandler {
 	return r.TopicsChecker
 }
