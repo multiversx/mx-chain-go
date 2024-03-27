@@ -112,15 +112,6 @@ func baseCreateShardGenesisBlock(
 		DeployInitialScTxs: make([]data.TransactionHandler, 0),
 	}
 
-	processors, err := createProcessorsForShardGenesisBlock(
-		arg,
-		createGenesisConfig(arg.EpochConfig.EnableEpochs),
-		createGenesisRoundConfig(arg.RoundConfig),
-	)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
 	deployMetrics := &deployedScMetrics{}
 
 	scAddresses, scTxs, err := deployInitialSmartContracts(processors, arg, deployMetrics)

@@ -392,7 +392,7 @@ func createArgsSCQueryService(args *scQueryElementArgs) (*smartContract.ArgsNewS
 		return nil, nil, err
 	}
 
-	accountsAdapterApi, storageManager, err := createNewAccountsAdapterApi(args, apiBlockchain)
+	accountsAdapterApi, _, err := createNewAccountsAdapterApi(args, apiBlockchain)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -446,6 +446,7 @@ func createArgsSCQueryService(args *scQueryElementArgs) (*smartContract.ArgsNewS
 
 	var vmContainer process.VirtualMachinesContainer
 	var vmFactory process.VirtualMachinesContainerFactory
+	var storageManager common.StorageManager
 	maxGasForVmQueries := args.generalConfig.VirtualMachine.GasConfig.ShardMaxGasPerVmQuery
 	if selfShardID == core.MetachainShardId {
 		maxGasForVmQueries = args.generalConfig.VirtualMachine.GasConfig.MetaMaxGasPerVmQuery
