@@ -6,22 +6,29 @@ import (
 
 	"github.com/multiversx/mx-chain-go/consensus"
 	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
+	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
+	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/factory/processing"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
+	genesisProcess "github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/process"
 	processBlock "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
+	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 	processSync "github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
 	"github.com/multiversx/mx-chain-go/process/track"
+	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -154,6 +161,33 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	}
 	if check.IfNil(mrc.topicsCheckerHandler) {
 		return errors.ErrNilTopicsChecker
+	}
+	if check.IfNil(mrc.shardCoordinatorCreator) {
+		return errors.ErrNilShardCoordinatorFactory
+	}
+	if check.IfNil(mrc.genesisBlockCreator) {
+		return errors.ErrNilGenesisBlockFactory
+	}
+	if check.IfNil(mrc.genesisMetaBlockCreator) {
+		return errors.ErrNilGenesisMetaBlockChecker
+	}
+	if check.IfNil(mrc.extraHeaderSigVerifierHandler) {
+		return errors.ErrNilExtraHeaderSigVerifierHolder
+	}
+	if check.IfNil(mrc.txPreProcessorCreator) {
+		return errors.ErrNilTxPreProcessorCreator
+	}
+	if check.IfNil(mrc.interceptorsContainerCreator) {
+		return errors.ErrNilInterceptorsContainerFactoryCreator
+	}
+	if check.IfNil(mrc.requesterContainerCreator) {
+		return errors.ErrNilRequesterContainerFactoryCreator
+	}
+	if check.IfNil(mrc.shardResolversContainerCreator) {
+		return errors.ErrNilShardResolversContainerFactoryCreator
+	}
+	if check.IfNil(mrc.incomingHeaderHandler) {
+		return errors.ErrNilIncomingHeaderSubscriber
 	}
 	return nil
 }
@@ -420,6 +454,114 @@ func (mrc *managedRunTypeComponents) TopicsCheckerHandler() sovereign.TopicsChec
 	}
 
 	return mrc.runTypeComponents.topicsCheckerHandler
+}
+
+// ShardCoordinatorCreator returns the shard coordinator factory
+func (mrc *managedRunTypeComponents) ShardCoordinatorCreator() sharding.ShardCoordinatorFactory {
+	mrc.mutStateComponents.RLock()
+	defer mrc.mutStateComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.shardCoordinatorCreator
+}
+
+// GenesisBlockCreator returns the genesis block factory
+func (mrc *managedRunTypeComponents) GenesisBlockCreator() genesisProcess.GenesisBlockCreatorFactory {
+	mrc.mutStateComponents.RLock()
+	defer mrc.mutStateComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.genesisBlockCreator
+}
+
+// GenesisMetaBlockCreator returns the genesis meta block factory
+func (mrc *managedRunTypeComponents) GenesisMetaBlockCreator() processing.GenesisMetaBlockChecker {
+	mrc.mutStateComponents.RLock()
+	defer mrc.mutStateComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.genesisMetaBlockCreator
+}
+
+// ExtraHeaderSigVerifierHandler returns the extra header sig verifier handler
+func (mrc *managedRunTypeComponents) ExtraHeaderSigVerifierHandler() headerCheck.ExtraHeaderSigVerifierHolder {
+	mrc.mutStateComponents.RLock()
+	defer mrc.mutStateComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.extraHeaderSigVerifierHandler
+}
+
+// TxPreProcessorCreator returns the tx pre processor creator factory
+func (mrc *managedRunTypeComponents) TxPreProcessorCreator() preprocess.TxPreProcessorCreator {
+	mrc.mutStateComponents.RLock()
+	defer mrc.mutStateComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.txPreProcessorCreator
+}
+
+// InterceptorsContainerCreator returns the interceptors container factory
+func (mrc *managedRunTypeComponents) InterceptorsContainerCreator() interceptorscontainer.InterceptorsContainerFactoryCreator {
+	mrc.mutStateComponents.RLock()
+	defer mrc.mutStateComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.interceptorsContainerCreator
+}
+
+// RequesterContainerCreator returns the requester container factory
+func (mrc *managedRunTypeComponents) RequesterContainerCreator() requesterscontainer.RequesterContainerFactoryCreator {
+	mrc.mutStateComponents.RLock()
+	defer mrc.mutStateComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.requesterContainerCreator
+}
+
+// ShardResolversContainerCreator returns the shard resolvers container factory
+func (mrc *managedRunTypeComponents) ShardResolversContainerCreator() resolverscontainer.ShardResolversContainerFactoryCreator {
+	mrc.mutStateComponents.RLock()
+	defer mrc.mutStateComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.shardResolversContainerCreator
+}
+
+// IncomingHeaderHandler returns the incoming header handler factory
+func (mrc *managedRunTypeComponents) IncomingHeaderHandler() process.IncomingHeaderSubscriber {
+	mrc.mutStateComponents.RLock()
+	defer mrc.mutStateComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.incomingHeaderHandler
 }
 
 // IsInterfaceNil returns true if the interface is nil

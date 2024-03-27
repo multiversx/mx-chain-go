@@ -12,12 +12,16 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
+	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
+	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/dblookupext"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
+	"github.com/multiversx/mx-chain-go/factory/processing"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/genesis"
+	genesisProcess "github.com/multiversx/mx-chain-go/genesis/process"
 	heartbeatData "github.com/multiversx/mx-chain-go/heartbeat/data"
 	"github.com/multiversx/mx-chain-go/node/external"
 	"github.com/multiversx/mx-chain-go/ntp"
@@ -28,6 +32,8 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
+	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
@@ -597,6 +603,15 @@ type RunTypeComponentsHolder interface {
 	OutGoingOperationsPoolHandler() sovereignBlock.OutGoingOperationsPool
 	DataCodecHandler() sovereign.DataDecoderHandler
 	TopicsCheckerHandler() sovereign.TopicsCheckerHandler
+	ShardCoordinatorCreator() sharding.ShardCoordinatorFactory
+	GenesisBlockCreator() genesisProcess.GenesisBlockCreatorFactory
+	GenesisMetaBlockCreator() processing.GenesisMetaBlockChecker
+	ExtraHeaderSigVerifierHandler() headerCheck.ExtraHeaderSigVerifierHolder
+	TxPreProcessorCreator() preprocess.TxPreProcessorCreator
+	InterceptorsContainerCreator() interceptorscontainer.InterceptorsContainerFactoryCreator
+	RequesterContainerCreator() requesterscontainer.RequesterContainerFactoryCreator
+	ShardResolversContainerCreator() resolverscontainer.ShardResolversContainerFactoryCreator
+	IncomingHeaderHandler() process.IncomingHeaderSubscriber
 	Create() error
 	Close() error
 	CheckSubcomponents() error

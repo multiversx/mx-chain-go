@@ -7,20 +7,27 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
 	sovereignFactory "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
+	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
+	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/factory/processing"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
+	"github.com/multiversx/mx-chain-go/genesis/process"
+	processComp "github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/processorV2"
 	"github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
 	"github.com/multiversx/mx-chain-go/process/track"
+	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state/factory"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 
@@ -28,16 +35,18 @@ import (
 )
 
 type ArgsSovereignRunTypeComponents struct {
-	Config        config.SovereignConfig
-	DataCodec     sovereign.DataDecoderHandler
-	TopicsChecker sovereign.TopicsCheckerHandler
+	Config                config.SovereignConfig
+	DataCodec             sovereign.DataDecoderHandler
+	TopicsChecker         sovereign.TopicsCheckerHandler
+	IncomingHeaderHandler processComp.IncomingHeaderSubscriber
 }
 
 type sovereignRunTypeComponentsFactory struct {
 	*runTypeComponentsFactory
-	cfg           config.SovereignConfig
-	dataCodec     sovereign.DataDecoderHandler
-	topicsChecker sovereign.TopicsCheckerHandler
+	cfg                   config.SovereignConfig
+	dataCodec             sovereign.DataDecoderHandler
+	topicsChecker         sovereign.TopicsCheckerHandler
+	incomingHeaderHandler processComp.IncomingHeaderSubscriber
 }
 
 // NewSovereignRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
@@ -45,12 +54,16 @@ func NewSovereignRunTypeComponentsFactory(fact *runTypeComponentsFactory, args A
 	if check.IfNil(fact) {
 		return nil, errors.ErrNilRunTypeComponentsFactory
 	}
+	if check.IfNil(args.IncomingHeaderHandler) {
+		return nil, errors.ErrNilIncomingHeaderSubscriber
+	}
 
 	return &sovereignRunTypeComponentsFactory{
 		runTypeComponentsFactory: fact,
 		cfg:                      args.Config,
 		dataCodec:                args.DataCodec,
 		topicsChecker:            args.TopicsChecker,
+		incomingHeaderHandler:    args.IncomingHeaderHandler,
 	}, nil
 }
 
@@ -160,6 +173,24 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 
 	topicsChecker := rcf.topicsChecker
 
+	shardCoordinatorCreator := sharding.NewSovereignShardCoordinatorFactory()
+
+	genesisBlockCreator := process.NewSovereignGenesisBlockCreatorFactory()
+
+	genesisMetaBlockCreator := processing.NewSovereignGenesisMetaBlockChecker()
+
+	//rtc.extraHeaderSigVerifierHandler.RegisterExtraHeaderSigVerifier()
+
+	txPreProcessorCreator := preprocess.NewSovereignTxPreProcessorCreator()
+
+	interceptorsContainerCreator := interceptorscontainer.NewSovereignShardInterceptorsContainerFactoryCreator()
+
+	requesterContainerCreator := requesterscontainer.NewSovereignShardRequestersContainerFactoryCreator()
+
+	shardResolversContainerCreator := resolverscontainer.NewSovereignShardResolversContainerFactoryCreator()
+
+	incomingHeaderHandler := rcf.incomingHeaderHandler
+
 	return &runTypeComponents{
 		blockChainHookHandlerCreator:        blockChainHookHandlerFactory,
 		epochStartBootstrapperCreator:       epochStartBootstrapperFactory,
@@ -183,5 +214,14 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		outGoingOperationsPoolHandler:       outGoingOperationsPoolCreator,
 		dataCodecHandler:                    dataCodec,
 		topicsCheckerHandler:                topicsChecker,
+		shardCoordinatorCreator:             shardCoordinatorCreator,
+		genesisBlockCreator:                 genesisBlockCreator,
+		genesisMetaBlockCreator:             genesisMetaBlockCreator,
+		extraHeaderSigVerifierHandler:       rtc.extraHeaderSigVerifierHandler,
+		txPreProcessorCreator:               txPreProcessorCreator,
+		interceptorsContainerCreator:        interceptorsContainerCreator,
+		requesterContainerCreator:           requesterContainerCreator,
+		shardResolversContainerCreator:      shardResolversContainerCreator,
+		incomingHeaderHandler:               incomingHeaderHandler,
 	}, nil
 }

@@ -2120,8 +2120,32 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	if check.IfNil(args.RunTypeComponents.DataCodecHandler()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilDataCodec)
 	}
-	if check.IfNil(args.RunTypeComponents.TopicsCheckerHandler()) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilTopicsChecker)
+	if check.IfNil(args.RunTypeComponents.ShardCoordinatorCreator()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilShardCoordinatorFactory)
+	}
+	if check.IfNil(args.RunTypeComponents.GenesisBlockCreator()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilGenesisBlockFactory)
+	}
+	if check.IfNil(args.RunTypeComponents.GenesisMetaBlockCreator()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilGenesisMetaBlockChecker)
+	}
+	if check.IfNil(args.RunTypeComponents.ExtraHeaderSigVerifierHandler()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilExtraHeaderSigVerifierHolder)
+	}
+	if check.IfNil(args.RunTypeComponents.TxPreProcessorCreator()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilTxPreProcessorCreator)
+	}
+	if check.IfNil(args.RunTypeComponents.InterceptorsContainerCreator()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilInterceptorsContainerFactoryCreator)
+	}
+	if check.IfNil(args.RunTypeComponents.RequesterContainerCreator()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilRequesterContainerFactoryCreator)
+	}
+	if check.IfNil(args.RunTypeComponents.ShardResolversContainerCreator()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilShardResolversContainerFactoryCreator)
+	}
+	if check.IfNil(args.RunTypeComponents.IncomingHeaderHandler()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilIncomingHeaderSubscriber)
 	}
 
 	return nil

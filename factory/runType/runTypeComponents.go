@@ -6,16 +6,22 @@ import (
 	"github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/consensus"
 	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
+	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
+	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/factory/processing"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
+	genesisProcess "github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
 	processBlock "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
+	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/processProxy"
@@ -23,6 +29,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
 	"github.com/multiversx/mx-chain-go/process/track"
+	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/factory"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
@@ -58,6 +65,15 @@ type runTypeComponents struct {
 	outGoingOperationsPoolHandler       sovereignBlock.OutGoingOperationsPool
 	dataCodecHandler                    sovereign.DataDecoderHandler
 	topicsCheckerHandler                sovereign.TopicsCheckerHandler
+	shardCoordinatorCreator             sharding.ShardCoordinatorFactory
+	genesisBlockCreator                 genesisProcess.GenesisBlockCreatorFactory
+	genesisMetaBlockCreator             processing.GenesisMetaBlockChecker
+	extraHeaderSigVerifierHandler       headerCheck.ExtraHeaderSigVerifierHolder
+	txPreProcessorCreator               preprocess.TxPreProcessorCreator
+	interceptorsContainerCreator        interceptorscontainer.InterceptorsContainerFactoryCreator
+	requesterContainerCreator           requesterscontainer.RequesterContainerFactoryCreator
+	shardResolversContainerCreator      resolverscontainer.ShardResolversContainerFactoryCreator
+	incomingHeaderHandler               process.IncomingHeaderSubscriber
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
@@ -164,6 +180,24 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 
 	topicsChecker := disabled.NewDisabledTopicsChecker()
 
+	shardCoordinatorCreator := sharding.NewMultiShardCoordinatorFactory()
+
+	genesisBlockCreator := genesisProcess.NewGenesisBlockCreatorFactory()
+
+	genesisMetaBlockCreator := processing.NewGenesisMetaBlockChecker()
+
+	extraHeaderSigVerifierHandler := headerCheck.NewExtraHeaderSigVerifierHolder()
+
+	txPreProcessorCreator := preprocess.NewTxPreProcessorCreator()
+
+	interceptorsContainerCreator := interceptorscontainer.NewShardInterceptorsContainerFactoryCreator()
+
+	requesterContainerCreator := requesterscontainer.NewShardRequestersContainerFactoryCreator()
+
+	shardResolversContainerCreator := resolverscontainer.NewShardResolversContainerFactoryCreator()
+
+	incomingHeaderHandler := disabled.NewDisabledIncomingHeaderProcessor()
+
 	return &runTypeComponents{
 		blockChainHookHandlerCreator:        blockChainHookHandlerFactory,
 		epochStartBootstrapperCreator:       epochStartBootstrapperFactory,
@@ -187,6 +221,15 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		outGoingOperationsPoolHandler:       outGoingOperationsPool,
 		dataCodecHandler:                    dataCodec,
 		topicsCheckerHandler:                topicsChecker,
+		shardCoordinatorCreator:             shardCoordinatorCreator,
+		genesisBlockCreator:                 genesisBlockCreator,
+		genesisMetaBlockCreator:             genesisMetaBlockCreator,
+		extraHeaderSigVerifierHandler:       extraHeaderSigVerifierHandler,
+		txPreProcessorCreator:               txPreProcessorCreator,
+		interceptorsContainerCreator:        interceptorsContainerCreator,
+		requesterContainerCreator:           requesterContainerCreator,
+		shardResolversContainerCreator:      shardResolversContainerCreator,
+		incomingHeaderHandler:               incomingHeaderHandler,
 	}, nil
 }
 
