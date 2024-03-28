@@ -340,11 +340,7 @@ func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte) (*CodeEntry, error
 	}
 
 	if oldCodeEntry.NumReferences <= 1 {
-		err = adb.mainTrie.Delete(oldCodeHash)
-		if err != nil {
-			return nil, err
-		}
-
+		adb.mainTrie.Delete(oldCodeHash)
 		return unmodifiedOldCodeEntry, nil
 	}
 
@@ -528,7 +524,8 @@ func (adb *AccountsDB) RemoveAccount(address []byte) error {
 		"address", hex.EncodeToString(address),
 	)
 
-	return adb.mainTrie.Delete(address)
+	adb.mainTrie.Delete(address)
+	return nil
 }
 
 func (adb *AccountsDB) removeCodeAndDataTrie(acnt vmcommon.AccountHandler) error {
