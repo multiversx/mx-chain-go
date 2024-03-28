@@ -1,9 +1,10 @@
 package trieChangesBatch
 
 import (
-	"github.com/multiversx/mx-chain-core-go/core"
 	"sort"
 	"sync"
+
+	"github.com/multiversx/mx-chain-core-go/core"
 )
 
 type trieChangesBatch struct {
@@ -34,8 +35,8 @@ func (t *trieChangesBatch) Add(key []byte, data core.TrieData) {
 	t.insertedData[string(key)] = data
 }
 
-// Remove removes the key from the batch
-func (t *trieChangesBatch) Remove(key []byte) {
+// MarkForRemoval marks the key for removal
+func (t *trieChangesBatch) MarkForRemoval(key []byte) {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
 

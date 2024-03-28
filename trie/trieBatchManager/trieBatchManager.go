@@ -17,16 +17,16 @@ type trieBatchManager struct {
 	currentBatch common.TrieBatcher
 	tempBatch    common.TrieBatcher
 
-	isUpdateIsProgress bool
+	isUpdateInProgress bool
 	mutex              sync.RWMutex
 }
 
 // NewTrieBatchManager creates a new instance of trieBatchManager
-func NewTrieBatchManager() common.TrieBatchManager {
+func NewTrieBatchManager() *trieBatchManager {
 	return &trieBatchManager{
 		currentBatch:       trieChangesBatch.NewTrieChangesBatch(),
 		tempBatch:          nil,
-		isUpdateIsProgress: false,
+		isUpdateInProgress: false,
 	}
 }
 
@@ -35,11 +35,11 @@ func (t *trieBatchManager) MarkTrieUpdateInProgress() (common.TrieBatcher, error
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
 
-	if t.isUpdateIsProgress {
+	if t.isUpdateInProgress {
 		return nil, ErrTrieUpdateInProgress
 	}
 
-	t.isUpdateIsProgress = true
+	t.isUpdateInProgress = true
 	t.tempBatch = t.currentBatch
 	t.currentBatch = trieChangesBatch.NewTrieChangesBatch()
 
@@ -51,7 +51,7 @@ func (t *trieBatchManager) MarkTrieUpdateCompleted() {
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
 
-	t.isUpdateIsProgress = false
+	t.isUpdateInProgress = false
 	t.tempBatch = nil
 }
 
@@ -73,7 +73,7 @@ func (t *trieBatchManager) Get(key []byte) ([]byte, bool) {
 		return val, true
 	}
 
-	if t.isUpdateIsProgress && !check.IfNil(t.tempBatch) {
+	if t.isUpdateInProgress && !check.IfNil(t.tempBatch) {
 		val, isPresent = t.tempBatch.Get(key)
 		if isPresent {
 			return val, true
@@ -83,12 +83,12 @@ func (t *trieBatchManager) Get(key []byte) ([]byte, bool) {
 	return nil, false
 }
 
-// Remove removes the key from the current batch
-func (t *trieBatchManager) Remove(key []byte) {
+// MarkForRemoval marks the key for removal in the current batch
+func (t *trieBatchManager) MarkForRemoval(key []byte) {
 	t.mutex.RLock()
 	defer t.mutex.RUnlock()
 
-	t.currentBatch.Remove(key)
+	t.currentBatch.MarkForRemoval(key)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
