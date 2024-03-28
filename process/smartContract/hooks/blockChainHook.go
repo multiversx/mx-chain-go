@@ -826,8 +826,7 @@ func (bh *BlockChainHookImpl) makeCompiledSCStorage() error {
 	dbConfig := factory.GetDBFromConfig(bh.configSCStorage.DB)
 	dbConfig.FilePath = path.Join(bh.workingDir, defaultCompiledSCPath, bh.configSCStorage.DB.FilePath)
 
-	dbConfigHandler := factory.NewDBConfigHandler(bh.configSCStorage.DB)
-	persisterFactory, err := factory.NewPersisterFactory(dbConfigHandler)
+	persisterFactory, err := factory.NewPersisterFactory(bh.configSCStorage.DB)
 	if err != nil {
 		return err
 	}

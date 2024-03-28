@@ -35,15 +35,15 @@ func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
 
 func createMockArgsNewIntermediateResultsProcessor() ArgsNewIntermediateResultsProcessor {
 	args := ArgsNewIntermediateResultsProcessor{
-		Hasher:              &hashingMocks.HasherMock{},
-		Marshalizer:         &mock.MarshalizerMock{},
-		Coordinator:         mock.NewMultiShardsCoordinatorMock(5),
-		PubkeyConv:          createMockPubkeyConverter(),
-		Store:               &storage.ChainStorerStub{},
-		BlockType:           block.SmartContractResultBlock,
-		CurrTxs:             &mock.TxForCurrentBlockStub{},
-		EconomicsFee:        &economicsmocks.EconomicsHandlerStub{},
-		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.KeepExecOrderOnCreatedSCRsFlag),
+		Hasher:                  &hashingMocks.HasherMock{},
+		Marshalizer:             &mock.MarshalizerMock{},
+		Coordinator:             mock.NewMultiShardsCoordinatorMock(5),
+		PubkeyConv:              createMockPubkeyConverter(),
+		Store:                   &storage.ChainStorerStub{},
+		BlockType:               block.SmartContractResultBlock,
+		CurrTxs:                 &mock.TxForCurrentBlockStub{},
+		EconomicsFee:            &economicsmocks.EconomicsHandlerStub{},
+		EnableEpochsHandler:     enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.KeepExecOrderOnCreatedSCRsFlag),
 		TxExecutionOrderHandler: &txExecOrderStub.TxExecutionOrderHandlerStub{},
 	}
 

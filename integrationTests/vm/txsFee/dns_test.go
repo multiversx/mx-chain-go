@@ -1,7 +1,3 @@
-//go:build !race
-
-// TODO remove build condition above to allow -race -short, after Wasm VM fix
-
 package txsFee
 
 import (
@@ -19,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
@@ -28,6 +25,10 @@ import (
 const returnOkData = "@6f6b"
 
 func TestDeployDNSContract_TestRegisterAndResolveAndSendTxWithSndAndRcvUserName(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
 		DynamicGasCostForDataTrieStorageLoadEnableEpoch: 10,
 	})
@@ -115,6 +116,10 @@ func TestDeployDNSContract_TestRegisterAndResolveAndSendTxWithSndAndRcvUserName(
 // relayer address is in shard 2, creates a transaction on the behalf of the user from shard 2, that will call the DNS contract
 // from shard 1.
 func TestDeployDNSContract_TestGasWhenSaveUsernameFailsCrossShardBackwardsCompatibility(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	enableEpochs := config.EnableEpochs{
 		ChangeUsernameEnableEpoch: 1000, // flag disabled, backwards compatibility
 		SCProcessorV2EnableEpoch:  1000,
@@ -124,7 +129,7 @@ func TestDeployDNSContract_TestGasWhenSaveUsernameFailsCrossShardBackwardsCompat
 	testContextForDNSContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShardRoundVMConfig(
 		1,
 		enableEpochs,
-		integrationTests.GetDefaultRoundsConfig(),
+		testscommon.GetDefaultRoundsConfig(),
 		vmConfig,
 	)
 	require.Nil(t, err)
@@ -133,7 +138,7 @@ func TestDeployDNSContract_TestGasWhenSaveUsernameFailsCrossShardBackwardsCompat
 	testContextForRelayerAndUser, err := vm.CreatePreparedTxProcessorWithVMsMultiShardRoundVMConfig(
 		2,
 		enableEpochs,
-		integrationTests.GetDefaultRoundsConfig(),
+		testscommon.GetDefaultRoundsConfig(),
 		vmConfig,
 	)
 	require.Nil(t, err)
@@ -191,6 +196,10 @@ func TestDeployDNSContract_TestGasWhenSaveUsernameFailsCrossShardBackwardsCompat
 }
 
 func TestDeployDNSContract_TestGasWhenSaveUsernameAfterDNSv2IsActivated(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContextForDNSContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{
 		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
 	})

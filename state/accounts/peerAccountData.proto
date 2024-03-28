@@ -33,4 +33,6 @@ message PeerAccountData {
     uint32      TotalValidatorIgnoredSignaturesRate = 16 [(gogoproto.jsontag) = "totalValidatorIgnoredSignaturesRate"];
     uint64      Nonce                               = 17 [(gogoproto.jsontag) = "nonce"];
     uint32      UnStakedEpoch                       = 18 [(gogoproto.jsontag) = "unStakedEpoch"];
+    string      PreviousList                        = 19 [(gogoproto.jsontag) = "previousList,omitempty"];
+    uint32      PreviousIndexInList                 = 20 [(gogoproto.jsontag) = "previousIndexInList,omitempty"];
 }

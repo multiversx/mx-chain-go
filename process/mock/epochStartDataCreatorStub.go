@@ -1,6 +1,9 @@
 package mock
 
-import "github.com/multiversx/mx-chain-core-go/data/block"
+import (
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"math/big"
+)
 
 // EpochStartDataCreatorStub -
 type EpochStartDataCreatorStub struct {
@@ -13,7 +16,11 @@ func (e *EpochStartDataCreatorStub) CreateEpochStartData() (*block.EpochStart, e
 	if e.CreateEpochStartDataCalled != nil {
 		return e.CreateEpochStartDataCalled()
 	}
-	return &block.EpochStart{}, nil
+	return &block.EpochStart{
+		LastFinalizedHeaders: []block.EpochStartShardData{{}},
+		Economics: block.Economics{
+			RewardsForProtocolSustainability: big.NewInt(0)},
+	}, nil
 }
 
 // VerifyEpochStartDataForMetablock -

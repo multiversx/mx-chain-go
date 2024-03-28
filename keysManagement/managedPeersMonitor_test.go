@@ -281,3 +281,20 @@ func TestManagedPeersMonitor_GetManagedKeys(t *testing.T) {
 	keys := monitor.GetManagedKeys()
 	require.Equal(t, expectedManagedKeys, keys)
 }
+
+func TestManagedPeersMonitor_GetLoadedKeys(t *testing.T) {
+	t.Parallel()
+
+	loadedKeys := [][]byte{[]byte("pk1"), []byte("pk2"), []byte("pk3")}
+	args := createMockArgManagedPeersMonitor()
+	args.ManagedPeersHolder = &testscommon.ManagedPeersHolderStub{
+		GetLoadedKeysByCurrentNodeCalled: func() [][]byte {
+			return loadedKeys
+		},
+	}
+	monitor, err := NewManagedPeersMonitor(args)
+	require.NoError(t, err)
+
+	keys := monitor.GetLoadedKeys()
+	require.Equal(t, loadedKeys, keys)
+}
