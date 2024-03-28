@@ -2391,7 +2391,7 @@ func (e *esdt) sendTokenTypeToSystemAccounts(caller []byte, tokenID []byte, toke
 
 	builtInFunc := core.ESDTSetTokenType
 	esdtTransferData := builtInFunc + "@" + hex.EncodeToString(tokenID) + "@" + hex.EncodeToString(token.TokenType)
-	e.eei.SendGlobalSettingToAll(e.eSDTSCAddress, []byte(esdtTransferData))
+	e.eei.SendGlobalSettingToAll(e.esdtSCAddress, []byte(esdtTransferData))
 
 	logEntry := &vmcommon.LogEntry{
 		Identifier: []byte(builtInFunc),
