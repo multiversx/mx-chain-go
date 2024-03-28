@@ -1,6 +1,8 @@
 package testscommon
 
-import "github.com/multiversx/mx-chain-core-go/core"
+import (
+	"github.com/multiversx/mx-chain-core-go/core"
+)
 
 // SnapshotPruningStorerMock -
 type SnapshotPruningStorerMock struct {

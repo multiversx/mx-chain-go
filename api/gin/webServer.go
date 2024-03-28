@@ -19,9 +19,12 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/facade"
 	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var log = logger.GetOrCreate("api/gin")
+
+const prometheusMetricsRoute = "/debug/metrics/prometheus"
 
 // ArgsNewWebServer holds the arguments needed to create a new instance of webServer
 type ArgsNewWebServer struct {
@@ -226,6 +229,10 @@ func (ws *webServer) registerRoutes(ginRouter *gin.Engine) {
 
 	if ws.facade.PprofEnabled() {
 		pprof.Register(ginRouter)
+	}
+
+	if ws.facade.P2PPrometheusMetricsEnabled() {
+		ginRouter.GET(prometheusMetricsRoute, gin.WrapH(promhttp.Handler()))
 	}
 }
 

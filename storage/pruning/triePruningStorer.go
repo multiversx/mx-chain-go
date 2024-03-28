@@ -3,6 +3,7 @@ package pruning
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -94,6 +95,7 @@ func (ps *triePruningStorer) PutInEpochWithoutCache(key []byte, data []byte, epo
 func (ps *triePruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte) ([]byte, core.OptionalUint32, error) {
 	v, ok := ps.cacher.Get(key)
 	if ok && !bytes.Equal([]byte(common.ActiveDBKey), key) {
+		ps.stateStatsHandler.IncrementSnapshotCache()
 		return v.([]byte), core.OptionalUint32{}, nil
 	}
 
@@ -104,7 +106,7 @@ func (ps *triePruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte) ([
 	for idx := 1; idx < len(ps.activePersisters); idx++ {
 		val, err := ps.activePersisters[idx].persister.Get(key)
 		if err != nil {
-			if err == storage.ErrDBIsClosed {
+			if errors.Is(err, storage.ErrDBIsClosed) {
 				numClosedDbs++
 			}
 
@@ -115,6 +117,9 @@ func (ps *triePruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte) ([
 			Value:    ps.activePersisters[idx].epoch,
 			HasValue: true,
 		}
+
+		ps.stateStatsHandler.IncrementSnapshotPersister(epoch.Value)
+
 		return val, epoch, nil
 	}
 

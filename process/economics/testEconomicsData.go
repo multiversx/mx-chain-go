@@ -19,12 +19,13 @@ func NewTestEconomicsData(internalData *economicsData) *TestEconomicsData {
 }
 
 // SetMaxGasLimitPerBlock sets the maximum gas limit allowed per one block
-func (ted *TestEconomicsData) SetMaxGasLimitPerBlock(maxGasLimitPerBlock uint64) {
-	ted.maxGasLimitPerBlock = maxGasLimitPerBlock
-	ted.maxGasLimitPerMiniBlock = maxGasLimitPerBlock
-	ted.maxGasLimitPerMetaBlock = maxGasLimitPerBlock
-	ted.maxGasLimitPerMetaMiniBlock = maxGasLimitPerBlock
-	ted.maxGasLimitPerTx = maxGasLimitPerBlock
+func (ted *TestEconomicsData) SetMaxGasLimitPerBlock(maxGasLimitPerBlock uint64, epoch uint32) {
+	gc := ted.getGasConfigForEpoch(epoch)
+	gc.maxGasLimitPerBlock = maxGasLimitPerBlock
+	gc.maxGasLimitPerMiniBlock = maxGasLimitPerBlock
+	gc.maxGasLimitPerMetaBlock = maxGasLimitPerBlock
+	gc.maxGasLimitPerMetaMiniBlock = maxGasLimitPerBlock
+	gc.maxGasLimitPerTx = maxGasLimitPerBlock
 }
 
 // SetMinGasPrice sets the minimum gas price for a transaction to be accepted
@@ -33,13 +34,15 @@ func (ted *TestEconomicsData) SetMinGasPrice(minGasPrice uint64) {
 }
 
 // SetMinGasLimit sets the minimum gas limit for a transaction to be accepted
-func (ted *TestEconomicsData) SetMinGasLimit(minGasLimit uint64) {
-	ted.minGasLimit = minGasLimit
+func (ted *TestEconomicsData) SetMinGasLimit(minGasLimit uint64, epoch uint32) {
+	gc := ted.getGasConfigForEpoch(epoch)
+	gc.minGasLimit = minGasLimit
 }
 
 // GetMinGasLimit returns the minimum gas limit for a transaction to be accepted
-func (ted *TestEconomicsData) GetMinGasLimit() uint64 {
-	return ted.minGasLimit
+func (ted *TestEconomicsData) GetMinGasLimit(epoch uint32) uint64 {
+	gc := ted.getGasConfigForEpoch(epoch)
+	return gc.minGasLimit
 }
 
 // GetMinGasPrice returns the current min gas price

@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/directoryhandler"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
@@ -55,20 +56,24 @@ type bootstrapComponentsFactory struct {
 }
 
 type bootstrapComponents struct {
-	epochStartBootstrapper  factory.EpochStartBootstrapper
-	bootstrapParamsHolder   factory.BootstrapParamsHolder
-	nodeType                core.NodeType
-	shardCoordinator        sharding.Coordinator
-	headerVersionHandler    nodeFactory.HeaderVersionHandler
-	versionedHeaderFactory  nodeFactory.VersionedHeaderFactory
-	headerIntegrityVerifier nodeFactory.HeaderIntegrityVerifierHandler
-	guardedAccountHandler   process.GuardedAccountHandler
+	epochStartBootstrapper          factory.EpochStartBootstrapper
+	bootstrapParamsHolder           factory.BootstrapParamsHolder
+	nodeType                        core.NodeType
+	shardCoordinator                sharding.Coordinator
+	headerVersionHandler            nodeFactory.HeaderVersionHandler
+	versionedHeaderFactory          nodeFactory.VersionedHeaderFactory
+	headerIntegrityVerifier         nodeFactory.HeaderIntegrityVerifierHandler
+	guardedAccountHandler           process.GuardedAccountHandler
+	nodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory
 }
 
 // NewBootstrapComponentsFactory creates an instance of bootstrapComponentsFactory
 func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootstrapComponentsFactory, error) {
 	if check.IfNil(args.CoreComponents) {
 		return nil, errors.ErrNilCoreComponentsHolder
+	}
+	if check.IfNil(args.CoreComponents.EnableEpochsHandler()) {
+		return nil, errors.ErrNilEnableEpochsHandler
 	}
 	if check.IfNil(args.CryptoComponents) {
 		return nil, errors.ErrNilCryptoComponentsHolder
@@ -185,30 +190,40 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		return nil, err
 	}
 
+	nodesCoordinatorRegistryFactory, err := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
+		bcf.coreComponents.InternalMarshalizer(),
+		bcf.coreComponents.EnableEpochsHandler().GetActivationEpoch(common.StakingV4Step2Flag),
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
-		CoreComponentsHolder:       bcf.coreComponents,
-		CryptoComponentsHolder:     bcf.cryptoComponents,
-		MainMessenger:              bcf.networkComponents.NetworkMessenger(),
-		FullArchiveMessenger:       bcf.networkComponents.FullArchiveNetworkMessenger(),
-		GeneralConfig:              bcf.config,
-		PrefsConfig:                bcf.prefConfig.Preferences,
-		FlagsConfig:                bcf.flagsConfig,
-		EconomicsData:              bcf.coreComponents.EconomicsData(),
-		GenesisNodesConfig:         bcf.coreComponents.GenesisNodesSetup(),
-		GenesisShardCoordinator:    genesisShardCoordinator,
-		StorageUnitOpener:          unitOpener,
-		Rater:                      bcf.coreComponents.Rater(),
-		DestinationShardAsObserver: destShardIdAsObserver,
-		NodeShuffler:               bcf.coreComponents.NodesShuffler(),
-		RoundHandler:               bcf.coreComponents.RoundHandler(),
-		LatestStorageDataProvider:  latestStorageDataProvider,
-		ArgumentsParser:            smartContract.NewArgumentParser(),
-		StatusHandler:              bcf.statusCoreComponents.AppStatusHandler(),
-		HeaderIntegrityVerifier:    headerIntegrityVerifier,
-		DataSyncerCreator:          dataSyncerFactory,
-		ScheduledSCRsStorer:        nil, // will be updated after sync from network
-		TrieSyncStatisticsProvider: tss,
-		NodeProcessingMode:         common.GetNodeProcessingMode(&bcf.importDbConfig),
+		CoreComponentsHolder:            bcf.coreComponents,
+		CryptoComponentsHolder:          bcf.cryptoComponents,
+		MainMessenger:                   bcf.networkComponents.NetworkMessenger(),
+		FullArchiveMessenger:            bcf.networkComponents.FullArchiveNetworkMessenger(),
+		GeneralConfig:                   bcf.config,
+		PrefsConfig:                     bcf.prefConfig.Preferences,
+		FlagsConfig:                     bcf.flagsConfig,
+		EconomicsData:                   bcf.coreComponents.EconomicsData(),
+		GenesisNodesConfig:              bcf.coreComponents.GenesisNodesSetup(),
+		GenesisShardCoordinator:         genesisShardCoordinator,
+		StorageUnitOpener:               unitOpener,
+		Rater:                           bcf.coreComponents.Rater(),
+		DestinationShardAsObserver:      destShardIdAsObserver,
+		NodeShuffler:                    bcf.coreComponents.NodesShuffler(),
+		RoundHandler:                    bcf.coreComponents.RoundHandler(),
+		LatestStorageDataProvider:       latestStorageDataProvider,
+		ArgumentsParser:                 smartContract.NewArgumentParser(),
+		StatusHandler:                   bcf.statusCoreComponents.AppStatusHandler(),
+		HeaderIntegrityVerifier:         headerIntegrityVerifier,
+		DataSyncerCreator:               dataSyncerFactory,
+		ScheduledSCRsStorer:             nil, // will be updated after sync from network
+		TrieSyncStatisticsProvider:      tss,
+		NodeProcessingMode:              common.GetNodeProcessingMode(&bcf.importDbConfig),
+		StateStatsHandler:               bcf.statusCoreComponents.StateStatsHandler(),
+		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
 	}
 
 	var epochStartBootstrapper factory.EpochStartBootstrapper
@@ -259,12 +274,13 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		bootstrapParamsHolder: &bootstrapParams{
 			bootstrapParams: bootstrapParameters,
 		},
-		nodeType:                nodeType,
-		shardCoordinator:        shardCoordinator,
-		headerVersionHandler:    headerVersionHandler,
-		headerIntegrityVerifier: headerIntegrityVerifier,
-		versionedHeaderFactory:  versionedHeaderFactory,
-		guardedAccountHandler:   guardedAccountHandler,
+		nodeType:                        nodeType,
+		shardCoordinator:                shardCoordinator,
+		headerVersionHandler:            headerVersionHandler,
+		headerIntegrityVerifier:         headerIntegrityVerifier,
+		versionedHeaderFactory:          versionedHeaderFactory,
+		guardedAccountHandler:           guardedAccountHandler,
+		nodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
 	}, nil
 }
 

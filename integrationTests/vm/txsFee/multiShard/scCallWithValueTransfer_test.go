@@ -1,5 +1,3 @@
-//go:build !race
-
 package multiShard
 
 import (
@@ -16,10 +14,18 @@ import (
 )
 
 func TestDeployContractAndTransferValueSCProcessorV1(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testDeployContractAndTransferValue(t, 1000)
 }
 
 func TestDeployContractAndTransferValueSCProcessorV2(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testDeployContractAndTransferValue(t, 0)
 }
 

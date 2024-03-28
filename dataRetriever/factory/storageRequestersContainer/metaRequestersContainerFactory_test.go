@@ -6,9 +6,11 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-go/common/statistics"
+	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	"github.com/multiversx/mx-chain-go/dataRetriever/factory/storageRequestersContainer"
+	storagerequesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/storageRequestersContainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -122,6 +124,17 @@ func TestNewMetaRequestersContainerFactory_NilDataPackerShouldErr(t *testing.T) 
 	assert.Equal(t, dataRetriever.ErrNilDataPacker, err)
 }
 
+func TestNewMetaRequestersContainerFactory_NilStateStatsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := getArgumentsMeta()
+	args.StateStatsHandler = nil
+	rcf, err := storagerequesterscontainer.NewMetaRequestersContainerFactory(args)
+
+	assert.Nil(t, rcf)
+	assert.Equal(t, statistics.ErrNilStateStatsHandler, err)
+}
+
 func TestNewMetaRequestersContainerFactory_ShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -166,11 +179,10 @@ func TestMetaRequestersContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numRequestersUnsigned := noOfShards + 1
 	numRequestersRewards := noOfShards
 	numRequestersTxs := noOfShards + 1
-	numRequestersTrieNodes := 2
 	numPeerAuthentication := 1
 	numValidatorInfo := 1
 	totalRequesters := numRequestersShardHeadersForMetachain + numRequesterMetablocks + numRequestersMiniBlocks +
-		numRequestersUnsigned + numRequestersTxs + numRequestersTrieNodes + numRequestersRewards + numPeerAuthentication +
+		numRequestersUnsigned + numRequestersTxs + numRequestersRewards + numPeerAuthentication +
 		numValidatorInfo
 
 	assert.Equal(t, totalRequesters, container.Len())
@@ -206,7 +218,6 @@ func getArgumentsMeta() storagerequesterscontainer.FactoryArgs {
 				SnapshotsGoroutineNum: 2,
 			},
 			StateTriesConfig: config.StateTriesConfig{
-				CheckpointRoundsModulus:     100,
 				AccountsStatePruningEnabled: false,
 				PeerStatePruningEnabled:     false,
 				MaxStateTrieLevelInMemory:   5,
@@ -226,5 +237,6 @@ func getArgumentsMeta() storagerequesterscontainer.FactoryArgs {
 		ManualEpochStartNotifier: &mock.ManualEpochStartNotifierStub{},
 		ChanGracefullyClose:      make(chan endProcess.ArgEndProcess),
 		EnableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		StateStatsHandler:        disabled.NewStateStatistics(),
 	}
 }

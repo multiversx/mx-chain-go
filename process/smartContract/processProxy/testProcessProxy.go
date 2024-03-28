@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/process/smartContract/processorV2"
@@ -144,11 +145,11 @@ func (proxy *scProcessorTestProxy) IsInterfaceNil() bool {
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
-func (proxy *scProcessorTestProxy) EpochConfirmed(_ uint32, _ uint64) {
+func (proxy *scProcessorTestProxy) EpochConfirmed(epoch uint32, _ uint64) {
 	proxy.mutRc.Lock()
 	defer proxy.mutRc.Unlock()
 
-	if proxy.args.EnableEpochsHandler.IsSCProcessorV2FlagEnabled() {
+	if proxy.args.EnableEpochsHandler.IsFlagEnabledInEpoch(common.SCProcessorV2Flag, epoch) {
 		proxy.setActiveProcessorV2()
 		return
 	}

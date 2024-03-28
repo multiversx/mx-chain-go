@@ -202,7 +202,7 @@ func (idh *interceptorDebugHandler) incrementNumOfPrints() {
 	}
 }
 
-//TODO replace this with a call to Query(search) when a suitable conditional parser will be used. Also replace config parameters
+// TODO replace this with a call to Query(search) when a suitable conditional parser will be used. Also replace config parameters
 // with a query string so it will be more extensible
 func (idh *interceptorDebugHandler) getStringEvents(maxNumPrints int) []string {
 	acceptEvent := func(ev *event) bool {

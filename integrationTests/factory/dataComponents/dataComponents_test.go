@@ -13,6 +13,10 @@ import (
 )
 
 func TestDataComponents_Create_Close_ShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	time.Sleep(time.Second * 4)
 
 	gc := goroutines.NewGoCounter(goroutines.TestsRelevantGoRoutines)

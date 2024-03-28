@@ -22,7 +22,8 @@ func TestOverrideConfigValues(t *testing.T) {
 		t.Parallel()
 
 		err := OverrideConfigValues([]config.OverridableConfig{{File: "invalid.toml"}}, &config.Configs{})
-		require.Equal(t, "invalid config file <invalid.toml>. Available options are config.toml,enableEpochs.toml,p2p.toml,external.toml", err.Error())
+		availableOptionsString := "api.toml,config.toml,economics.toml,enableEpochs.toml,enableRounds.toml,external.toml,fullArchiveP2P.toml,p2p.toml,ratings.toml,systemSmartContractsConfig.toml"
+		require.Equal(t, "invalid config file <invalid.toml>. Available options are "+availableOptionsString, err.Error())
 	})
 
 	t.Run("nil config, should error", func(t *testing.T) {
@@ -80,5 +81,58 @@ func TestOverrideConfigValues(t *testing.T) {
 		err := OverrideConfigValues([]config.OverridableConfig{{Path: "EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch", Value: "37", File: "enableEpochs.toml"}}, configs)
 		require.NoError(t, err)
 		require.Equal(t, uint32(37), configs.EpochConfig.EnableEpochs.ESDTMetadataContinuousCleanupEnableEpoch)
+	})
+
+	t.Run("should work for api.toml", func(t *testing.T) {
+		t.Parallel()
+
+		configs := &config.Configs{ApiRoutesConfig: &config.ApiRoutesConfig{}}
+
+		err := OverrideConfigValues([]config.OverridableConfig{{Path: "Logging.LoggingEnabled", Value: "true", File: "api.toml"}}, configs)
+		require.NoError(t, err)
+		require.True(t, configs.ApiRoutesConfig.Logging.LoggingEnabled)
+	})
+
+	t.Run("should work for economics.toml", func(t *testing.T) {
+		t.Parallel()
+
+		configs := &config.Configs{EconomicsConfig: &config.EconomicsConfig{}}
+
+		err := OverrideConfigValues([]config.OverridableConfig{{Path: "GlobalSettings.GenesisTotalSupply", Value: "37", File: "economics.toml"}}, configs)
+		require.NoError(t, err)
+		require.Equal(t, "37", configs.EconomicsConfig.GlobalSettings.GenesisTotalSupply)
+	})
+
+	t.Run("should work for enableRounds.toml", func(t *testing.T) {
+		// TODO: fix this test
+		t.Skip("skipped, as this test requires the fix from this PR: https://github.com/multiversx/mx-chain-go/pull/5851")
+
+		t.Parallel()
+
+		configs := &config.Configs{RoundConfig: &config.RoundConfig{}}
+
+		err := OverrideConfigValues([]config.OverridableConfig{{Path: "RoundActivations.DisableAsyncCallV1.Round", Value: "37", File: "enableRounds.toml"}}, configs)
+		require.NoError(t, err)
+		require.Equal(t, uint32(37), configs.RoundConfig.RoundActivations["DisableAsyncCallV1"])
+	})
+
+	t.Run("should work for ratings.toml", func(t *testing.T) {
+		t.Parallel()
+
+		configs := &config.Configs{RatingsConfig: &config.RatingsConfig{}}
+
+		err := OverrideConfigValues([]config.OverridableConfig{{Path: "General.StartRating", Value: "37", File: "ratings.toml"}}, configs)
+		require.NoError(t, err)
+		require.Equal(t, uint32(37), configs.RatingsConfig.General.StartRating)
+	})
+
+	t.Run("should work for systemSmartContractsConfig.toml", func(t *testing.T) {
+		t.Parallel()
+
+		configs := &config.Configs{SystemSCConfig: &config.SystemSmartContractsConfig{}}
+
+		err := OverrideConfigValues([]config.OverridableConfig{{Path: "StakingSystemSCConfig.UnBondPeriod", Value: "37", File: "systemSmartContractsConfig.toml"}}, configs)
+		require.NoError(t, err)
+		require.Equal(t, uint64(37), configs.SystemSCConfig.StakingSystemSCConfig.UnBondPeriod)
 	})
 }

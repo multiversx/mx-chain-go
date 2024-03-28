@@ -40,7 +40,8 @@
    # configuration of the node has the false value)
    # The Path indicates what value to change, while Value represents the new value in string format. The node operator must make sure
    # to follow the same type of the original value (ex: uint32: "37", float32: "37.0", bool: "true")
-   # File represents the file name that holds the configuration. Currently, the supported files are: config.toml, external.toml, p2p.toml and enableEpochs.toml
+   # File represents the file name that holds the configuration. Currently, the supported files are:
+   # api.toml, config.toml, economics.toml, enableEpochs.toml, enableRounds.toml, external.toml, fullArchiveP2P.toml, p2p.toml, ratings.toml, systemSmartContractsConfig.toml
    # -------------------------------
    # Un-comment and update the following section in order to enable config values overloading
    # -------------------------------

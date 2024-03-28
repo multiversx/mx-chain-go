@@ -76,10 +76,10 @@ func (s *stakingSC) getOrCreateRegisteredData(key []byte) (*StakedDataV2_0, erro
 }
 
 func (s *stakingSC) saveStakingData(key []byte, stakedData *StakedDataV2_0) error {
-	if !s.enableEpochsHandler.IsStakeFlagEnabled() {
+	if !s.enableEpochsHandler.IsFlagEnabled(common.StakeFlag) {
 		return s.saveAsStakingDataV1P0(key, stakedData)
 	}
-	if !s.enableEpochsHandler.IsStakingV2FlagEnabled() {
+	if !s.enableEpochsHandler.IsFlagEnabled(common.StakingV2Flag) {
 		return s.saveAsStakingDataV1P1(key, stakedData)
 	}
 

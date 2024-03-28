@@ -1,7 +1,3 @@
-//go:build !race
-
-// TODO remove build condition above to allow -race -short, after Wasm VM fix
-
 package txsFee
 
 import (
@@ -23,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
 	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
@@ -60,7 +57,6 @@ func prepareTestContextForEpoch836(tb testing.TB) (*vm.VMTestContext, []byte) {
 	testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGasAndRoundConfig(
 		config.EnableEpochs{
 			GovernanceEnableEpoch:                           unreachableEpoch,
-			WaitingListFixEnableEpoch:                       unreachableEpoch,
 			SetSenderInEeiOutputTransferEnableEpoch:         unreachableEpoch,
 			RefactorPeersMiniBlocksEnableEpoch:              unreachableEpoch,
 			MaxBlockchainHookCountersEnableEpoch:            unreachableEpoch,
@@ -69,7 +65,7 @@ func prepareTestContextForEpoch836(tb testing.TB) (*vm.VMTestContext, []byte) {
 		mock.NewMultiShardsCoordinatorMock(2),
 		db,
 		gasScheduleNotifier,
-		integrationTests.GetDefaultRoundsConfig(),
+		testscommon.GetDefaultRoundsConfig(),
 	)
 	require.Nil(tb, err)
 
@@ -90,6 +86,10 @@ func prepareTestContextForEpoch836(tb testing.TB) (*vm.VMTestContext, []byte) {
 }
 
 func TestScCallShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
 		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
 	})
@@ -134,6 +134,10 @@ func TestScCallShouldWork(t *testing.T) {
 }
 
 func TestScCallContractNotFoundShouldConsumeGas(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -163,6 +167,10 @@ func TestScCallContractNotFoundShouldConsumeGas(t *testing.T) {
 }
 
 func TestScCallInvalidMethodToCallShouldConsumeGas(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -196,6 +204,10 @@ func TestScCallInvalidMethodToCallShouldConsumeGas(t *testing.T) {
 }
 
 func TestScCallInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -230,6 +242,10 @@ func TestScCallInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
 }
 
 func TestScCallOutOfGasShouldConsumeGas(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -263,6 +279,10 @@ func TestScCallOutOfGasShouldConsumeGas(t *testing.T) {
 }
 
 func TestScCallAndGasChangeShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
 		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
 	})
@@ -308,6 +328,10 @@ func TestScCallAndGasChangeShouldWork(t *testing.T) {
 }
 
 func TestESDTScCallAndGasChangeShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -368,7 +392,6 @@ func prepareTestContextForEpoch460(tb testing.TB) (*vm.VMTestContext, []byte) {
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
 		GovernanceEnableEpoch:                             unreachableEpoch,
-		WaitingListFixEnableEpoch:                         unreachableEpoch,
 		ScheduledMiniBlocksEnableEpoch:                    unreachableEpoch,
 		CorrectJailedNotUnstakedEmptyQueueEpoch:           unreachableEpoch,
 		OptimizeNFTStoreEnableEpoch:                       unreachableEpoch,
@@ -419,6 +442,10 @@ func prepareTestContextForEpoch460(tb testing.TB) (*vm.VMTestContext, []byte) {
 }
 
 func TestScCallBuyNFT_OneFailedTxAndOneOkTx(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, scAddress := prepareTestContextForEpoch460(t)
 	defer testContext.Close()
 
@@ -488,6 +515,10 @@ func TestScCallBuyNFT_OneFailedTxAndOneOkTx(t *testing.T) {
 }
 
 func TestScCallBuyNFT_TwoOkTxs(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, scAddress := prepareTestContextForEpoch460(t)
 	defer testContext.Close()
 
@@ -557,6 +588,10 @@ func TestScCallBuyNFT_TwoOkTxs(t *testing.T) {
 }
 
 func TestScCallDistributeStakingRewards_ShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, scAddress := prepareTestContextForEpoch836(t)
 	defer testContext.Close()
 

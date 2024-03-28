@@ -7,7 +7,9 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/facade"
@@ -31,6 +33,7 @@ type ArgsApiTransactionEvaluator struct {
 	Accounts            state.AccountsAdapterWithClean
 	ShardCoordinator    sharding.Coordinator
 	EnableEpochsHandler common.EnableEpochsHandler
+	BlockChain          data.ChainHandler
 }
 
 type apiTransactionEvaluator struct {
@@ -40,6 +43,7 @@ type apiTransactionEvaluator struct {
 	feeHandler          process.FeeHandler
 	txSimulator         facade.TransactionSimulatorProcessor
 	enableEpochsHandler common.EnableEpochsHandler
+	blockChain          data.ChainHandler
 	mutExecution        sync.RWMutex
 }
 
@@ -63,6 +67,15 @@ func NewAPITransactionEvaluator(args ArgsApiTransactionEvaluator) (*apiTransacti
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(args.BlockChain) {
+		return nil, process.ErrNilBlockChain
+	}
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.CleanUpInformativeSCRsFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	tce := &apiTransactionEvaluator{
 		txTypeHandler:       args.TxTypeHandler,
@@ -71,6 +84,7 @@ func NewAPITransactionEvaluator(args ArgsApiTransactionEvaluator) (*apiTransacti
 		accounts:            args.Accounts,
 		shardCoordinator:    args.ShardCoordinator,
 		enableEpochsHandler: args.EnableEpochsHandler,
+		blockChain:          args.BlockChain,
 	}
 
 	return tce, nil
@@ -84,7 +98,9 @@ func (ate *apiTransactionEvaluator) SimulateTransactionExecution(tx *transaction
 		ate.mutExecution.Unlock()
 	}()
 
-	return ate.txSimulator.ProcessTx(tx)
+	currentHeader := ate.getCurrentBlockHeader()
+
+	return ate.txSimulator.ProcessTx(tx, currentHeader)
 }
 
 // ComputeTransactionGasLimit will calculate how many gas units a transaction will consume
@@ -133,8 +149,8 @@ func (ate *apiTransactionEvaluator) simulateTransactionCost(tx *transaction.Tran
 	}
 
 	costResponse := &transaction.CostResponse{}
-
-	res, err := ate.txSimulator.ProcessTx(tx)
+	currentHeader := ate.getCurrentBlockHeader()
+	res, err := ate.txSimulator.ProcessTx(tx, currentHeader)
 	if err != nil {
 		costResponse.ReturnMessage = err.Error()
 		return costResponse, nil
@@ -179,7 +195,7 @@ func (ate *apiTransactionEvaluator) computeGasUnitsBasedOnVMOutput(tx *transacti
 		return tx.GasLimit - vmOutput.GasRemaining
 	}
 
-	isTooMuchGasV2MsgFlagSet := ate.enableEpochsHandler.IsCleanUpInformativeSCRsFlagEnabled()
+	isTooMuchGasV2MsgFlagSet := ate.enableEpochsHandler.IsFlagEnabled(common.CleanUpInformativeSCRsFlag)
 	if isTooMuchGasV2MsgFlagSet {
 		gasNeededForProcessing := extractGasRemainedFromMessage(vmOutput.ReturnMessage, gasUsedSlitString)
 		return ate.feeHandler.ComputeGasLimit(tx) + gasNeededForProcessing
@@ -219,6 +235,15 @@ func (ate *apiTransactionEvaluator) addMissingFieldsIfNeeded(tx *transaction.Tra
 	}
 
 	return nil
+}
+
+func (ate *apiTransactionEvaluator) getCurrentBlockHeader() data.HeaderHandler {
+	currentHeader := ate.blockChain.GetCurrentBlockHeader()
+	if check.IfNil(currentHeader) {
+		return ate.blockChain.GetGenesisHeader()
+	}
+
+	return currentHeader
 }
 
 func (ate *apiTransactionEvaluator) getTxGasLimit(tx *transaction.Transaction) (uint64, error) {

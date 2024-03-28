@@ -39,6 +39,10 @@ func createDefaultConfig() p2pConfig.P2PConfig {
 }
 
 func TestConnectionsInNetworkShardingWithShardingWithLists(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	p2pCfg := createDefaultConfig()
 	p2pCfg.Sharding = p2pConfig.ShardingConfig{
 		TargetPeerCount:         12,
@@ -54,10 +58,6 @@ func TestConnectionsInNetworkShardingWithShardingWithLists(t *testing.T) {
 }
 
 func testConnectionsInNetworkSharding(t *testing.T, p2pConfig p2pConfig.P2PConfig) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
 	nodesPerShard := 8
 	numMetaNodes := 8
 	numObserversOnShard := 2

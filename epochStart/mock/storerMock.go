@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/multiversx/mx-chain-core-go/storage"
+	"github.com/multiversx/mx-chain-core-go/data"
 )
 
 // StorerMock -
@@ -55,7 +55,7 @@ func (sm *StorerMock) GetFromEpoch(key []byte, _ uint32) ([]byte, error) {
 }
 
 // GetBulkFromEpoch -
-func (sm *StorerMock) GetBulkFromEpoch(keys [][]byte, _ uint32) ([]storage.KeyValuePair, error) {
+func (sm *StorerMock) GetBulkFromEpoch(_ [][]byte, _ uint32) ([]data.KeyValuePair, error) {
 	return nil, errors.New("not implemented")
 }
 

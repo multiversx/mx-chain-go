@@ -59,17 +59,22 @@ func TestMockContract_AsyncLegacy_InShard(t *testing.T) {
 }
 
 func TestMockContract_AsyncLegacy_CrossShard(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testMockContract_CrossShard(t, LegacyAsyncCallType)
 }
 
 func TestMockContract_NewAsync_CrossShard(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testMockContract_CrossShard(t, NewAsyncCallType)
 }
 
 func testMockContract_CrossShard(t *testing.T, asyncCallType []byte) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 	transferEGLD := big.NewInt(42)
 
 	numberOfShards := 2

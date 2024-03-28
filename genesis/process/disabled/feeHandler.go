@@ -163,6 +163,26 @@ func (fh *FeeHandler) ComputeTxFeeBasedOnGasUsed(_ data.TransactionWithFeeHandle
 	return big.NewInt(0)
 }
 
+// ComputeTxFeeInEpoch returns 0
+func (fh *FeeHandler) ComputeTxFeeInEpoch(tx data.TransactionWithFeeHandler, epoch uint32) *big.Int {
+	return big.NewInt(0)
+}
+
+// ComputeGasLimitInEpoch returns 0
+func (fh *FeeHandler) ComputeGasLimitInEpoch(tx data.TransactionWithFeeHandler, epoch uint32) uint64 {
+	return 0
+}
+
+// ComputeGasUsedAndFeeBasedOnRefundValueInEpoch returns 0
+func (fh *FeeHandler) ComputeGasUsedAndFeeBasedOnRefundValueInEpoch(tx data.TransactionWithFeeHandler, refundValue *big.Int, epoch uint32) (uint64, *big.Int) {
+	return 0, big.NewInt(0)
+}
+
+// ComputeTxFeeBasedOnGasUsedInEpoch returns 0
+func (fh *FeeHandler) ComputeTxFeeBasedOnGasUsedInEpoch(tx data.TransactionWithFeeHandler, gasUsed uint64, epoch uint32) *big.Int {
+	return big.NewInt(0)
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (fh *FeeHandler) IsInterfaceNil() bool {
 	return fh == nil

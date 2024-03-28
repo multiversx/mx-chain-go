@@ -27,12 +27,12 @@ type ContextFlagsConfig struct {
 	SerializeSnapshots           bool
 	OperationMode                string
 	RepopulateTokensSupplies     bool
+	P2PPrometheusMetricsEnabled  bool
 }
 
 // ImportDbConfig will hold the import-db parameters
 type ImportDbConfig struct {
 	IsImportDBMode                bool
-	ImportDBStartInEpoch          uint32
 	ImportDBTargetShardID         uint32
 	ImportDBWorkingDir            string
 	ImportDbNoSigCheckFlag        bool

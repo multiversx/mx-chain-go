@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/receipt"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
@@ -33,6 +34,7 @@ type ArgsTxSimulator struct {
 	Hasher                    hashing.Hasher
 	Marshalizer               marshal.Marshalizer
 	DataFieldParser           DataFieldParser
+	BlockChainHook            process.BlockChainHookHandler
 }
 
 type refundHandler interface {
@@ -50,6 +52,7 @@ type transactionSimulator struct {
 	marshalizer            marshal.Marshalizer
 	refundDetector         refundHandler
 	dataFieldParser        DataFieldParser
+	blockChainHook         process.BlockChainHookHandler
 }
 
 // NewTransactionSimulator returns a new instance of a transactionSimulator
@@ -78,6 +81,9 @@ func NewTransactionSimulator(args ArgsTxSimulator) (*transactionSimulator, error
 	if check.IfNilReflect(args.DataFieldParser) {
 		return nil, ErrNilDataFieldParser
 	}
+	if check.IfNil(args.BlockChainHook) {
+		return nil, process.ErrNilBlockChainHook
+	}
 
 	return &transactionSimulator{
 		txProcessor:            args.TransactionProcessor,
@@ -89,16 +95,19 @@ func NewTransactionSimulator(args ArgsTxSimulator) (*transactionSimulator, error
 		hasher:                 args.Hasher,
 		refundDetector:         transactionAPI.NewRefundDetector(),
 		dataFieldParser:        args.DataFieldParser,
+		blockChainHook:         args.BlockChainHook,
 	}, nil
 }
 
 // ProcessTx will process the transaction in a special environment, where state-writing is not allowed
-func (ts *transactionSimulator) ProcessTx(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error) {
+func (ts *transactionSimulator) ProcessTx(tx *transaction.Transaction, currentHeader data.HeaderHandler) (*txSimData.SimulationResultsWithVMOutput, error) {
 	ts.mutOperation.Lock()
 	defer ts.mutOperation.Unlock()
 
 	txStatus := transaction.TxStatusPending
 	failReason := ""
+
+	ts.blockChainHook.SetCurrentHeader(currentHeader)
 
 	retCode, err := ts.txProcessor.ProcessTransaction(tx)
 	if err != nil {

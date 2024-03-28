@@ -5,6 +5,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/state"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // Validator defines a node that can be allocated to a shard for participation in a consensus group as validator
@@ -29,6 +30,7 @@ type NodesCoordinator interface {
 	GetConsensusWhitelistedNodes(epoch uint32) (map[string]struct{}, error)
 	ConsensusGroupSize(uint32) int
 	GetNumTotalEligible() uint64
+	GetWaitingEpochsLeftForPublicKey(publicKey []byte) (uint32, error)
 	IsInterfaceNil() bool
 }
 
@@ -45,6 +47,7 @@ type PublicKeysSelector interface {
 	GetAllEligibleValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
 	GetAllWaitingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
 	GetAllLeavingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
+	GetAllShuffledOutValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
 	GetConsensusValidatorsPublicKeys(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
 	GetOwnPublicKey() []byte
 }
@@ -63,7 +66,7 @@ type NodesCoordinatorHelper interface {
 	GetChance(uint32) uint32
 }
 
-//ChanceComputer provides chance computation capabilities based on a rating
+// ChanceComputer provides chance computation capabilities based on a rating
 type ChanceComputer interface {
 	//GetChance returns the chances for the rating
 	GetChance(uint32) uint32
@@ -71,7 +74,7 @@ type ChanceComputer interface {
 	IsInterfaceNil() bool
 }
 
-//Cacher provides the capabilities needed to store and retrieve information needed in the NodesCoordinator
+// Cacher provides the capabilities needed to store and retrieve information needed in the NodesCoordinator
 type Cacher interface {
 	// Clear is used to completely clear the cache.
 	Clear()
@@ -129,4 +132,46 @@ type EpochsConfigUpdateHandler interface {
 	NodesCoordinator
 	SetNodesConfigFromValidatorsInfo(epoch uint32, randomness []byte, validatorsInfo []*state.ShardValidatorInfo) error
 	IsEpochInConfig(epoch uint32) bool
+}
+
+// GenesisNodesSetupHandler defines a component able to provide the genesis nodes info
+type GenesisNodesSetupHandler interface {
+	MinShardHysteresisNodes() uint32
+	MinMetaHysteresisNodes() uint32
+	IsInterfaceNil() bool
+}
+
+// EpochValidatorsHandler defines what one epoch configuration for a nodes coordinator should hold
+type EpochValidatorsHandler interface {
+	GetEligibleValidators() map[string][]*SerializableValidator
+	GetWaitingValidators() map[string][]*SerializableValidator
+	GetLeavingValidators() map[string][]*SerializableValidator
+}
+
+// EpochValidatorsHandlerWithAuction defines what one epoch configuration for a nodes coordinator should hold + shuffled out validators
+type EpochValidatorsHandlerWithAuction interface {
+	EpochValidatorsHandler
+	GetShuffledOutValidators() map[string][]*SerializableValidator
+}
+
+// NodesCoordinatorRegistryHandler defines what is used to initialize nodes coordinator
+type NodesCoordinatorRegistryHandler interface {
+	GetEpochsConfig() map[string]EpochValidatorsHandler
+	GetCurrentEpoch() uint32
+	SetCurrentEpoch(epoch uint32)
+}
+
+// NodesCoordinatorRegistryFactory handles NodesCoordinatorRegistryHandler marshall/unmarshall
+type NodesCoordinatorRegistryFactory interface {
+	CreateNodesCoordinatorRegistry(buff []byte) (NodesCoordinatorRegistryHandler, error)
+	GetRegistryData(registry NodesCoordinatorRegistryHandler, epoch uint32) ([]byte, error)
+	IsInterfaceNil() bool
+}
+
+// EpochNotifier can notify upon an epoch change and provide the current epoch
+type EpochNotifier interface {
+	RegisterNotifyHandler(handler vmcommon.EpochSubscriberHandler)
+	CurrentEpoch() uint32
+	CheckEpoch(header data.HeaderHandler)
+	IsInterfaceNil() bool
 }

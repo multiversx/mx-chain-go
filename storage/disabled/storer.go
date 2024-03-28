@@ -1,7 +1,7 @@
 package disabled
 
 import (
-	storageCore "github.com/multiversx/mx-chain-core-go/storage"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-storage-go/common"
 )
 
@@ -62,7 +62,7 @@ func (s *storer) GetFromEpoch(_ []byte, _ uint32) ([]byte, error) {
 }
 
 // GetBulkFromEpoch returns nil
-func (s *storer) GetBulkFromEpoch(_ [][]byte, _ uint32) ([]storageCore.KeyValuePair, error) {
+func (s *storer) GetBulkFromEpoch(_ [][]byte, _ uint32) ([]data.KeyValuePair, error) {
 	return nil, nil
 }
 

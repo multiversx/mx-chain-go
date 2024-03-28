@@ -61,6 +61,7 @@ func NewValidatorAccountsSyncer(args ArgsNewValidatorAccountsSyncer) (*validator
 }
 
 // SyncAccounts will launch the syncing method to gather all the data needed for validatorAccounts - it is a blocking method
+// TODO: handle trie storage statistics here
 func (v *validatorAccountsSyncer) SyncAccounts(rootHash []byte, storageMarker common.StorageMarker) error {
 	if check.IfNil(storageMarker) {
 		return ErrNilStorageMarker

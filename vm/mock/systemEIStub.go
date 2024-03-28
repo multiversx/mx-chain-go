@@ -10,7 +10,7 @@ import (
 
 // SystemEIStub -
 type SystemEIStub struct {
-	TransferCalled                      func(destination []byte, sender []byte, value *big.Int, input []byte) error
+	TransferCalled                      func(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64)
 	GetBalanceCalled                    func(addr []byte) *big.Int
 	SetStorageCalled                    func(key []byte, value []byte)
 	AddReturnMessageCalled              func(msg string)
@@ -37,6 +37,7 @@ type SystemEIStub struct {
 	GasLeftCalled                       func() uint64
 	CleanStorageUpdatesCalled           func()
 	ReturnMessage                       string
+	ProcessBuiltInFunctionCalled        func(sender, destination []byte, function string, arguments [][]byte) (*vmcommon.VMOutput, error)
 	AddLogEntryCalled                   func(entry *vmcommon.LogEntry)
 	SetOwnerOperatingOnAccountCalled    func(newOwner []byte) error
 	UpdateCodeDeployerAddressCalled     func(scAddress string, newOwner []byte) error
@@ -203,11 +204,10 @@ func (s *SystemEIStub) SendGlobalSettingToAll(sender []byte, input []byte) {
 }
 
 // Transfer -
-func (s *SystemEIStub) Transfer(destination []byte, sender []byte, value *big.Int, input []byte, _ uint64) error {
+func (s *SystemEIStub) Transfer(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) {
 	if s.TransferCalled != nil {
-		return s.TransferCalled(destination, sender, value, input)
+		s.TransferCalled(destination, sender, value, input, gasLimit)
 	}
-	return nil
 }
 
 // GetBalance -
@@ -308,6 +308,14 @@ func (s *SystemEIStub) UpdateCodeDeployerAddress(scAddress string, newOwner []by
 	}
 
 	return nil
+}
+
+// ProcessBuiltInFunction -
+func (s *SystemEIStub) ProcessBuiltInFunction(sender, destination []byte, function string, arguments [][]byte) (*vmcommon.VMOutput, error) {
+	if s.ProcessBuiltInFunctionCalled != nil {
+		return s.ProcessBuiltInFunctionCalled(sender, destination, function, arguments)
+	}
+	return &vmcommon.VMOutput{}, nil
 }
 
 // IsInterfaceNil -

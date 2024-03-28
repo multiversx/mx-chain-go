@@ -63,6 +63,13 @@ func NewMetaTxProcessor(args ArgsNewMetaTxProcessor) (*metaTxProcessor, error) {
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.PenalizedTooMuchGasFlag,
+		common.ESDTFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
 	if check.IfNil(args.TxVersionChecker) {
 		return nil, process.ErrNilTransactionVersionChecker
 	}
@@ -82,8 +89,6 @@ func NewMetaTxProcessor(args ArgsNewMetaTxProcessor) (*metaTxProcessor, error) {
 		txVersionChecker:    args.TxVersionChecker,
 		guardianChecker:     args.GuardianChecker,
 	}
-	// backwards compatibility
-	baseTxProcess.enableEpochsHandler.ResetPenalizedTooMuchGasFlag()
 
 	txProc := &metaTxProcessor{
 		baseTxProcessor:     baseTxProcess,
@@ -131,18 +136,13 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) (
 	}
 
 	txType, _ := txProc.txTypeHandler.ComputeTransactionType(tx)
-
 	switch txType {
 	case process.SCDeployment:
 		return txProc.processSCDeployment(tx, tx.SndAddr)
 	case process.SCInvoking:
 		return txProc.processSCInvoking(tx, tx.SndAddr, tx.RcvAddr)
 	case process.BuiltInFunctionCall:
-		if txProc.enableEpochsHandler.IsBuiltInFunctionOnMetaFlagEnabled() {
-			return txProc.processBuiltInFunctionCall(tx, tx.SndAddr, tx.RcvAddr)
-		}
-
-		if txProc.enableEpochsHandler.IsESDTFlagEnabled() {
+		if txProc.enableEpochsHandler.IsFlagEnabled(common.ESDTFlag) {
 			return txProc.processSCInvoking(tx, tx.SndAddr, tx.RcvAddr)
 		}
 	}
@@ -182,18 +182,6 @@ func (txProc *metaTxProcessor) processSCInvoking(
 	}
 
 	return txProc.scProcessor.ExecuteSmartContractTransaction(tx, acntSrc, acntDst)
-}
-
-func (txProc *metaTxProcessor) processBuiltInFunctionCall(
-	tx *transaction.Transaction,
-	adrSrc, adrDst []byte,
-) (vmcommon.ReturnCode, error) {
-	acntSrc, acntDst, err := txProc.getAccounts(adrSrc, adrDst)
-	if err != nil {
-		return 0, err
-	}
-
-	return txProc.scProcessor.ExecuteBuiltInFunction(tx, acntSrc, acntDst)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
