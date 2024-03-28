@@ -23,8 +23,8 @@ func TestTrieBatchManager_TrieUpdateInProgress(t *testing.T) {
 	t.Parallel()
 
 	tbm := NewTrieBatchManager()
-	tbm.currentBatch.Add([]byte("key1"), core.TrieData{})
-	tbm.currentBatch.Add([]byte("key2"), core.TrieData{})
+	tbm.Add([]byte("key1"), core.TrieData{})
+	tbm.Add([]byte("key2"), core.TrieData{})
 	assert.False(t, tbm.isUpdateInProgress)
 	assert.True(t, check.IfNil(tbm.tempBatch))
 
