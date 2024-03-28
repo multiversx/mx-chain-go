@@ -1269,10 +1269,10 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 	processArgs := processComp.ProcessComponentsFactoryArgs{
 		Config:                                *configs.GeneralConfig,
 		EpochConfig:                           *configs.EpochConfig,
-		RoundConfig:             *configs.RoundConfig,
+		RoundConfig:                           *configs.RoundConfig,
 		PrefConfigs:                           *configs.PreferencesConfig,
 		ImportDBConfig:                        *configs.ImportDbConfig,
-		EconomicsConfig:         *configs.EconomicsConfig,
+		EconomicsConfig:                       *configs.EconomicsConfig,
 		AccountsParser:                        accountsParser,
 		SmartContractParser:                   smartContractParser,
 		GasSchedule:                           gasScheduleNotifier,
