@@ -525,7 +525,7 @@ func (bh *BlockChainHookImpl) processMaxBuiltInCounters(input *vmcommon.Contract
 
 // SaveNFTMetaDataToSystemAccount will save NFT meta-data to system account for the given transaction
 func (bh *BlockChainHookImpl) SaveNFTMetaDataToSystemAccount(tx data.TransactionHandler) error {
-	return bh.nftStorageHandler.SaveNFTMetaDataToSystemAccount(tx)
+	return bh.nftStorageHandler.SaveNFTMetaData(tx)
 }
 
 // GetShardOfAddress is the hook that returns the shard of a given address

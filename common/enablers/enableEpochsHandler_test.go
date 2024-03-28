@@ -109,11 +109,12 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch: 93,
 		ChangeOwnerAddressCrossShardThroughSCEnableEpoch:         94,
 		CurrentRandomnessOnSortingEnableEpoch:                    95,
-		StakeLimitsEnableEpoch:                                   95,
-		StakingV4Step1EnableEpoch:                                96,
-		StakingV4Step2EnableEpoch:                                97,
-		StakingV4Step3EnableEpoch:                                98,
-		AlwaysMergeContextsInEEIEnableEpoch:                      99,
+		StakeLimitsEnableEpoch:                                   96,
+		StakingV4Step1EnableEpoch:                                97,
+		StakingV4Step2EnableEpoch:                                98,
+		StakingV4Step3EnableEpoch:                                99,
+		AlwaysMergeContextsInEEIEnableEpoch:                      100,
+		DynamicESDTEnableEpoch:                                   101,
 	}
 }
 
@@ -321,6 +322,7 @@ func TestEnableEpochsHandler_IsFlagEnabled(t *testing.T) {
 	require.False(t, handler.IsFlagEnabled(common.StakingQueueFlag))
 	require.True(t, handler.IsFlagEnabled(common.StakingV4StartedFlag))
 	require.True(t, handler.IsFlagEnabled(common.AlwaysMergeContextsInEEIFlag))
+	require.True(t, handler.IsFlagEnabled(common.DynamicESDTFlag))
 }
 
 func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
@@ -437,6 +439,7 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.StakingV4Step1EnableEpoch, handler.GetActivationEpoch(common.StakingQueueFlag))
 	require.Equal(t, cfg.StakingV4Step1EnableEpoch, handler.GetActivationEpoch(common.StakingV4StartedFlag))
 	require.Equal(t, cfg.AlwaysMergeContextsInEEIEnableEpoch, handler.GetActivationEpoch(common.AlwaysMergeContextsInEEIFlag))
+	require.Equal(t, cfg.DynamicESDTEnableEpoch, handler.GetActivationEpoch(common.DynamicESDTFlag))
 }
 
 func TestEnableEpochsHandler_IsInterfaceNil(t *testing.T) {

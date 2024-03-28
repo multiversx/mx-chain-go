@@ -375,7 +375,7 @@ func TestESDTIssueFromASmartContractSimulated(t *testing.T) {
 	interimProc, _ := metaNode.InterimProcContainer.Get(block.SmartContractResultBlock)
 	mapCreatedSCRs := interimProc.GetAllCurrentFinishedTxs()
 
-	require.Equal(t, len(mapCreatedSCRs), 2)
+	require.Equal(t, len(mapCreatedSCRs), 3)
 	foundTransfer := false
 	for _, addedSCR := range mapCreatedSCRs {
 		foundTransfer = foundTransfer || strings.Contains(string(addedSCR.GetData()), core.BuiltInFunctionESDTTransfer)
