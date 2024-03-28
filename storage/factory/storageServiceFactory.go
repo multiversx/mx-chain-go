@@ -324,7 +324,7 @@ func (psf *StorageServiceFactory) createAndAddStorageUnitsForSovereign(
 
 	extendedHeaderConfig := psf.generalConfig.SovereignConfig.ExtendedShardHeaderStorage
 	dbConfigExtendedHeader := NewDBConfigHandler(extendedHeaderConfig.DB)
-	extendedHeaderPersisterCreator, err := NewPersisterFactory(dbConfigExtendedHeader)
+	extendedHeaderPersisterCreator, err := NewPersisterFactory(dbConfigExtendedHeader.conf)
 	if err != nil {
 		return err
 	}
