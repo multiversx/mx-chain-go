@@ -12,7 +12,7 @@ import (
 
 // StartOfEpochNodesConfigHandler defines the methods to process nodesConfig from epoch start metablocks
 type StartOfEpochNodesConfigHandler interface {
-	NodesConfigFromMetaBlock(currMetaBlock data.HeaderHandler, prevMetaBlock data.HeaderHandler) (*nodesCoordinator.NodesCoordinatorRegistry, uint32, []*block.MiniBlock, error)
+	NodesConfigFromMetaBlock(currMetaBlock data.HeaderHandler, prevMetaBlock data.HeaderHandler) (nodesCoordinator.NodesCoordinatorRegistryHandler, uint32, []*block.MiniBlock, error)
 	IsInterfaceNil() bool
 }
 
@@ -25,7 +25,7 @@ type EpochStartMetaBlockInterceptorProcessor interface {
 // StartInEpochNodesCoordinator defines the methods to process and save nodesCoordinator information to storage
 type StartInEpochNodesCoordinator interface {
 	EpochStartPrepare(metaHdr data.HeaderHandler, body data.BodyHandler)
-	NodesCoordinatorToRegistry() *nodesCoordinator.NodesCoordinatorRegistry
+	NodesCoordinatorToRegistry(epoch uint32) nodesCoordinator.NodesCoordinatorRegistryHandler
 	ShardIdForEpoch(epoch uint32) (uint32, error)
 	IsInterfaceNil() bool
 }

@@ -60,7 +60,7 @@ func (ihnc *indexHashedNodesCoordinatorWithRater) ComputeAdditionalLeaving(allVa
 	return ihnc.baseNodesCoordinatorWithRater.ComputeAdditionalLeaving(allValidators)
 }
 
-//IsInterfaceNil verifies that the underlying value is nil
+// IsInterfaceNil verifies that the underlying value is nil
 func (ihnc *indexHashedNodesCoordinatorWithRater) IsInterfaceNil() bool {
 	return ihnc == nil
 }

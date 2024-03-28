@@ -13,12 +13,15 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	dataRetrieverTests "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
+	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
@@ -42,17 +45,18 @@ func GetDefaultCoreComponents() *mock.CoreComponentsMock {
 		MinTransactionVersionCalled: func() uint32 {
 			return 1
 		},
-		WatchdogTimer:         &testscommon.WatchdogMock{},
-		AlarmSch:              &testscommon.AlarmSchedulerStub{},
-		NtpSyncTimer:          &testscommon.SyncTimerStub{},
-		RoundHandlerField:     &testscommon.RoundHandlerMock{},
-		EconomicsHandler:      &economicsmocks.EconomicsHandlerStub{},
-		RatingsConfig:         &testscommon.RatingsInfoMock{},
-		RatingHandler:         &testscommon.RaterMock{},
-		NodesConfig:           &testscommon.NodesSetupStub{},
-		StartTime:             time.Time{},
-		NodeTypeProviderField: &nodeTypeProviderMock.NodeTypeProviderStub{},
-		EpochChangeNotifier:   &epochNotifierMock.EpochNotifierStub{},
+		WatchdogTimer:            &testscommon.WatchdogMock{},
+		AlarmSch:                 &testscommon.AlarmSchedulerStub{},
+		NtpSyncTimer:             &testscommon.SyncTimerStub{},
+		RoundHandlerField:        &testscommon.RoundHandlerMock{},
+		EconomicsHandler:         &economicsmocks.EconomicsHandlerStub{},
+		RatingsConfig:            &testscommon.RatingsInfoMock{},
+		RatingHandler:            &testscommon.RaterMock{},
+		NodesConfig:              &genesisMocks.NodesSetupStub{},
+		StartTime:                time.Time{},
+		NodeTypeProviderField:    &nodeTypeProviderMock.NodeTypeProviderStub{},
+		EpochChangeNotifier:      &epochNotifierMock.EpochNotifierStub{},
+		EnableEpochsHandlerField: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 }
 
@@ -131,8 +135,8 @@ func GetDefaultProcessComponents(shardCoordinator sharding.Coordinator) *mock.Pr
 		BootSore:                 &mock.BootstrapStorerMock{},
 		HeaderSigVerif:           &mock.HeaderSigVerifierStub{},
 		HeaderIntegrVerif:        &mock.HeaderIntegrityVerifierStub{},
-		ValidatorStatistics:      &mock.ValidatorStatisticsProcessorStub{},
-		ValidatorProvider:        &mock.ValidatorsProviderStub{},
+		ValidatorStatistics:      &testscommon.ValidatorStatisticsProcessorStub{},
+		ValidatorProvider:        &stakingcommon.ValidatorsProviderStub{},
 		BlockTrack:               &mock.BlockTrackerStub{},
 		PendingMiniBlocksHdl:     &mock.PendingMiniBlocksHandlerStub{},
 		ReqHandler:               &testscommon.RequestHandlerStub{},

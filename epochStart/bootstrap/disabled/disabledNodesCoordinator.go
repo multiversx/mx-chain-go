@@ -50,6 +50,11 @@ func (n *nodesCoordinator) GetAllWaitingValidatorsPublicKeys(_ uint32) (map[uint
 	return nil, nil
 }
 
+// GetAllShuffledOutValidatorsPublicKeys -
+func (n *nodesCoordinator) GetAllShuffledOutValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
+	return nil, nil
+}
+
 // GetConsensusValidatorsPublicKeys -
 func (n *nodesCoordinator) GetConsensusValidatorsPublicKeys(_ []byte, _ uint64, _ uint32, _ uint32) ([]string, error) {
 	return nil, nil
@@ -114,7 +119,7 @@ func (n *nodesCoordinator) EpochStartPrepare(_ data.HeaderHandler, _ data.BodyHa
 }
 
 // NodesCoordinatorToRegistry -
-func (n *nodesCoordinator) NodesCoordinatorToRegistry() *nodesCoord.NodesCoordinatorRegistry {
+func (n *nodesCoordinator) NodesCoordinatorToRegistry(_ uint32) nodesCoord.NodesCoordinatorRegistryHandler {
 	return nil
 }
 

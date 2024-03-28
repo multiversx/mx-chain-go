@@ -36,6 +36,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	factoryMocks "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	outportMocks "github.com/multiversx/mx-chain-go/testscommon/outport"
@@ -67,7 +68,7 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 			AlarmSch:            &testscommon.AlarmSchedulerStub{},
 			NtpSyncTimer:        &testscommon.SyncTimerStub{},
 			GenesisBlockTime:    time.Time{},
-			NodesConfig: &testscommon.NodesSetupStub{
+			NodesConfig: &genesisMocks.NodesSetupStub{
 				GetShardConsensusGroupSizeCalled: func() uint32 {
 					return 2
 				},
@@ -153,6 +154,7 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 			HeaderSigVerif:                       &testsMocks.HeaderSigVerifierStub{},
 			HeaderIntegrVerif:                    &mock.HeaderIntegrityVerifierStub{},
 			FallbackHdrValidator:                 &testscommon.FallBackHeaderValidatorStub{},
+			SentSignaturesTrackerInternal:        &testscommon.SentSignatureTrackerStub{},
 		},
 		StateComponents: &factoryMocks.StateComponentsMock{
 			StorageManagers: map[string]common.StorageManager{

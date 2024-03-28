@@ -96,6 +96,7 @@ type ArgBaseProcessor struct {
 	ReceiptsRepository             receiptsRepository
 	BlockProcessingCutoffHandler   cutoff.BlockProcessingCutoffHandler
 	ManagedPeersHolder             common.ManagedPeersHolder
+	SentSignaturesTracker          process.SentSignaturesTracker
 	ValidatorStatisticsProcessor   process.ValidatorStatisticsProcessor
 	OutGoingOperationsPool         OutGoingOperationsPool
 	DataCodec                      sovereign.DataCodecProcessor

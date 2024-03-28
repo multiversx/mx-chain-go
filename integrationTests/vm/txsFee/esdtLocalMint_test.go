@@ -14,6 +14,10 @@ import (
 )
 
 func TestESDTLocalMintShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -44,6 +48,10 @@ func TestESDTLocalMintShouldWork(t *testing.T) {
 }
 
 func TestESDTLocalMintNotAllowedShouldErr(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()

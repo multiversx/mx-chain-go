@@ -96,6 +96,7 @@ type Facade interface {
 	EncodeAddressPubkey(pk []byte) (string, error)
 	GetThrottlerForEndpoint(endpoint string) (core.Throttler, bool)
 	ValidatorStatisticsApi() (map[string]*validator.ValidatorStatistics, error)
+	AuctionListApi() ([]*common.AuctionListValidatorAPIResponse, error)
 	ExecuteSCQuery(*process.SCQuery) (*vm.VMOutputApi, api.BlockInfo, error)
 	DecodeAddressPubkey(pk string) ([]byte, error)
 	GetProof(rootHash string, address string) (*common.GetProofResponse, error)
@@ -113,6 +114,7 @@ type Facade interface {
 	IsDataTrieMigrated(address string, options api.AccountQueryOptions) (bool, error)
 	GetManagedKeysCount() int
 	GetManagedKeys() []string
+	GetLoadedKeys() []string
 	GetEligibleManagedKeys() ([]string, error)
 	GetWaitingManagedKeys() ([]string, error)
 	GetWaitingEpochsLeftForPublicKey(publicKey string) (uint32, error)
