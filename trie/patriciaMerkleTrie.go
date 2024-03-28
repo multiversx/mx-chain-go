@@ -269,13 +269,8 @@ func (tr *patriciaMerkleTrie) Commit() error {
 	return nil
 }
 
-// Recreate returns a new trie that has the given root hash and database
-func (tr *patriciaMerkleTrie) Recreate(root []byte) (common.Trie, error) {
-	return tr.recreate(root, tr.trieStorage)
-}
-
-// RecreateFromEpoch returns a new trie, given the options
-func (tr *patriciaMerkleTrie) RecreateFromEpoch(options common.RootHashHolder) (common.Trie, error) {
+// Recreate returns a new trie, given the options
+func (tr *patriciaMerkleTrie) Recreate(options common.RootHashHolder) (common.Trie, error) {
 	if check.IfNil(options) {
 		return nil, ErrNilRootHashHolder
 	}

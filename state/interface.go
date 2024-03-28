@@ -78,8 +78,7 @@ type AccountsAdapter interface {
 	RevertToSnapshot(snapshot int) error
 	GetCode(codeHash []byte) []byte
 	RootHash() ([]byte, error)
-	RecreateTrie(rootHash []byte) error
-	RecreateTrieFromEpoch(options common.RootHashHolder) error
+	RecreateTrie(options common.RootHashHolder) error
 	PruneTrie(rootHash []byte, identifier TriePruningIdentifier, handler PruningHandler)
 	CancelPrune(rootHash []byte, identifier TriePruningIdentifier)
 	SnapshotState(rootHash []byte, epoch uint32)
