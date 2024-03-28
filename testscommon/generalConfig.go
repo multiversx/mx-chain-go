@@ -363,7 +363,8 @@ func GetGeneralConfig() config.Config {
 			CheckNodesOnDisk:          false,
 		},
 		Antiflood: config.AntifloodConfig{
-			NumConcurrentResolverJobs: 2,
+			NumConcurrentResolverJobs:           2,
+			NumConcurrentResolvingTrieNodesJobs: 1,
 			TxAccumulator: config.TxAccumulatorConfig{
 				MaxAllowedTimeInMilliseconds:   10,
 				MaxDeviationTimeInMilliseconds: 1,
@@ -414,6 +415,9 @@ func GetGeneralConfig() config.Config {
 				"erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c", //shard 1
 				"erd1najnxxweyw6plhg8efql330nttrj6l5cf87wqsuym85s9ha0hmdqnqgenp", //shard 2
 			},
+		},
+		ResourceStats: config.ResourceStatsConfig{
+			RefreshIntervalInSec: 1,
 		},
 	}
 }

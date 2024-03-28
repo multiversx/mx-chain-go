@@ -177,14 +177,14 @@ func (aas *StateUserAccountHandlerStub) ClaimDeveloperRewards(senderAddr []byte)
 	return nil, nil
 }
 
-//AddToDeveloperReward -
+// AddToDeveloperReward -
 func (aas *StateUserAccountHandlerStub) AddToDeveloperReward(val *big.Int) {
 	if aas.AddToDeveloperRewardCalled != nil {
 		aas.AddToDeveloperRewardCalled(val)
 	}
 }
 
-//GetDeveloperReward -
+// GetDeveloperReward -
 func (aas *StateUserAccountHandlerStub) GetDeveloperReward() *big.Int {
 	if aas.GetDeveloperRewardCalled != nil {
 		return aas.GetDeveloperRewardCalled()
@@ -230,7 +230,7 @@ func (aas *StateUserAccountHandlerStub) GetUserName() []byte {
 	return nil
 }
 
-//IsGuarded -
+// IsGuarded -
 func (aas *StateUserAccountHandlerStub) IsGuarded() bool {
 	if aas.IsGuardedCalled != nil {
 		return aas.IsGuardedCalled()

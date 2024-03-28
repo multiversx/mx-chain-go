@@ -159,7 +159,7 @@ func (uas *UserAccountStub) GetNonce() uint64 {
 	return 0
 }
 
-//IsInterfaceNil -
+// IsInterfaceNil -
 func (uas *UserAccountStub) IsInterfaceNil() bool {
 	return uas == nil
 }

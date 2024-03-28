@@ -1,7 +1,3 @@
-//go:build !race
-
-// TODO remove build condition above to allow -race -short, after Wasm VM fix
-
 package multiShard
 
 import (
@@ -27,6 +23,10 @@ import (
 // 4. Execute SCR with the smart contract call on shard 1
 // 5. Execute SCR with refund on relayer shard (shard 2)
 func TestRelayedTxScCallMultiShardShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	enableEpochs := config.EnableEpochs{
 		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
 	}
@@ -136,6 +136,10 @@ func TestRelayedTxScCallMultiShardShouldWork(t *testing.T) {
 }
 
 func TestRelayedTxScCallMultiShardFailOnInnerTxDst(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContextRelayer, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContextRelayer.Close()

@@ -15,6 +15,10 @@ import (
 )
 
 func TestMultiESDTTransferShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -69,6 +73,10 @@ func TestMultiESDTTransferShouldWork(t *testing.T) {
 }
 
 func TestMultiESDTTransferFailsBecauseOfMaxLimit(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMsAndCustomGasSchedule(config.EnableEpochs{},
 		func(gasMap wasmConfig.GasScheduleMap) {
 			gasMap[common.MaxPerTransaction]["MaxNumberOfTransfersPerTx"] = 1
