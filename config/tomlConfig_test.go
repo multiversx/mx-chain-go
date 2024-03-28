@@ -472,7 +472,8 @@ func TestAPIRoutesToml(t *testing.T) {
 
 func TestP2pConfig(t *testing.T) {
 	initialPeersList := "/ip4/127.0.0.1/tcp/9999/p2p/16Uiu2HAkw5SNNtSvH1zJiQ6Gc3WoGNSxiyNueRKe6fuAuh57G3Bk"
-	protocolID := "test protocol id"
+	protocolID1 := "test protocol id 1"
+	protocolID2 := "test protocol id 2"
 	shardingType := "ListSharder"
 	port := "37373-38383"
 
@@ -499,7 +500,13 @@ func TestP2pConfig(t *testing.T) {
     Enabled = false
     Type = ""
     RefreshIntervalInSec = 0
-    ProtocolID = "` + protocolID + `"
+
+    # ProtocolIDs represents the protocols that this node will advertise to other peers
+    # To connect to other nodes, those nodes should have at least one common protocol string
+    ProtocolIDs = [
+        "` + protocolID1 + `",
+        "` + protocolID2 + `",
+    ]
     InitialPeerList = ["` + initialPeersList + `"]
 
     #kademlia's routing table bucket size
@@ -537,7 +544,7 @@ func TestP2pConfig(t *testing.T) {
 			},
 		},
 		KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{
-			ProtocolID:      protocolID,
+			ProtocolIDs:     []string{protocolID1, protocolID2},
 			InitialPeerList: []string{initialPeersList},
 		},
 		Sharding: p2pConfig.ShardingConfig{

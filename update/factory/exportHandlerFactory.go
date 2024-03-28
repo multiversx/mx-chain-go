@@ -619,8 +619,7 @@ func createStorer(storageConfig config.StorageConfig, folder string) (storage.St
 	dbConfig := storageFactory.GetDBFromConfig(storageConfig.DB)
 	dbConfig.FilePath = path.Join(folder, storageConfig.DB.FilePath)
 
-	dbConfigHandler := storageFactory.NewDBConfigHandler(storageConfig.DB)
-	persisterFactory, err := storageFactory.NewPersisterFactory(dbConfigHandler)
+	persisterFactory, err := storageFactory.NewPersisterFactory(storageConfig.DB)
 	if err != nil {
 		return nil, err
 	}
