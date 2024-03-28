@@ -9,6 +9,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	chainSimulatorIntegrationTests "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
@@ -76,7 +77,7 @@ func testChainSimulatorJailAndUnJail(t *testing.T, targetEpoch int32, nodeStatus
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			configs.SetStakingV4ActivationEpochs(cfg, stakingV4JailUnJailStep1EnableEpoch)
 			newNumNodes := cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake + 8 // 8 nodes until new nodes will be placed on queue
-			configs.SetMaxNumberOfNodesInConfigs(cfg, newNumNodes, numOfShards)
+			configs.SetMaxNumberOfNodesInConfigs(cfg, uint32(newNumNodes), 0, numOfShards)
 			configs.SetQuickJailRatingConfig(cfg)
 		},
 	})
@@ -145,7 +146,7 @@ func testChainSimulatorJailAndUnJail(t *testing.T, targetEpoch int32, nodeStatus
 // Add a new node and wait until the node get jailed
 // Add a second node to take the place of the jailed node
 // UnJail the first node --> should go in queue
-// Activate staking v4 step 1 --> node should be moved from queue to auction list
+// Activate staking v4 step 1 --> node should be unstaked as the queue is cleaned up
 
 // Internal test scenario #2
 func TestChainSimulator_FromQueueToAuctionList(t *testing.T) {
@@ -178,7 +179,7 @@ func TestChainSimulator_FromQueueToAuctionList(t *testing.T) {
 			configs.SetQuickJailRatingConfig(cfg)
 
 			newNumNodes := cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake + 1
-			configs.SetMaxNumberOfNodesInConfigs(cfg, newNumNodes, numOfShards)
+			configs.SetMaxNumberOfNodesInConfigs(cfg, uint32(newNumNodes), 0, numOfShards)
 		},
 	})
 	require.Nil(t, err)
@@ -241,13 +242,13 @@ func TestChainSimulator_FromQueueToAuctionList(t *testing.T) {
 	require.Nil(t, err)
 
 	status = getBLSKeyStatus(t, metachainNode, decodedBLSKey0)
-	require.Equal(t, "staked", status)
+	require.Equal(t, unStakedStatus, status)
 
-	checkValidatorStatus(t, cs, blsKeys[0], "auction")
+	checkValidatorStatus(t, cs, blsKeys[0], string(common.InactiveList))
 }
 
 func checkValidatorStatus(t *testing.T, cs chainSimulatorIntegrationTests.ChainSimulator, blsKey string, expectedStatus string) {
-	err := cs.GetNodeHandler(core.MetachainShardId).GetProcessComponents().ValidatorsProvider().ForceUpdate()
+	err := cs.ForceResetValidatorStatisticsCache()
 	require.Nil(t, err)
 
 	validatorsStatistics, err := cs.GetNodeHandler(core.MetachainShardId).GetFacadeHandler().ValidatorStatisticsApi()

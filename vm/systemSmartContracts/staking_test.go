@@ -3224,7 +3224,7 @@ func doGetStatus(t *testing.T, sc *stakingSC, eei *vmContext, blsKey []byte, exp
 	assert.Equal(t, vmcommon.Ok, retCode)
 
 	lastOutput := eei.output[len(eei.output)-1]
-	assert.True(t, bytes.Equal(lastOutput, []byte(expectedStatus)))
+	assert.Equal(t, expectedStatus, string(lastOutput))
 }
 
 func doGetWaitingListSize(t *testing.T, sc *stakingSC, eei *vmContext, expectedSize int) {
@@ -3590,4 +3590,119 @@ func TestStakingSc_fixMissingNodeAddAsLast(t *testing.T) {
 	waitingListData, _ := sc.getFirstElementsFromWaitingList(50)
 	assert.Equal(t, len(waitingListData.blsKeys), 4)
 	assert.Equal(t, waitingListData.blsKeys[3], blsKey)
+}
+
+func TestStakingSC_UnStakeAllFromQueueErrors(t *testing.T) {
+	t.Parallel()
+
+	blockChainHook := &mock.BlockChainHookStub{}
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
+		return nil, 0, nil
+	}
+
+	eei := createDefaultEei()
+	eei.blockChainHook = blockChainHook
+	eei.SetSCAddress([]byte("addr"))
+
+	stakingAccessAddress := vm.ValidatorSCAddress
+	args := createMockStakingScArguments()
+	args.StakingAccessAddr = stakingAccessAddress
+	args.StakingSCConfig.MaxNumberOfNodesForStake = 1
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
+
+	args.Eei = eei
+	args.StakingSCConfig.UnBondPeriod = 100
+	sc, _ := NewStakingSmartContract(args)
+
+	vmInput := CreateVmContractCallInput()
+	vmInput.Function = "unStakeAllNodesFromQueue"
+
+	returnCode := sc.Execute(vmInput)
+	require.Equal(t, returnCode, vmcommon.UserError)
+	require.Equal(t, eei.returnMessage, "invalid method to call")
+
+	eei.returnMessage = ""
+	enableEpochsHandler.AddActiveFlags(common.StakingV4Step1Flag)
+	returnCode = sc.Execute(vmInput)
+	require.Equal(t, returnCode, vmcommon.UserError)
+	require.Equal(t, eei.returnMessage, "stake nodes from waiting list can be called by endOfEpochAccess address only")
+
+	eei.returnMessage = ""
+	vmInput.CallerAddr = []byte("endOfEpoch")
+	vmInput.Arguments = [][]byte{{1}}
+	returnCode = sc.Execute(vmInput)
+	require.Equal(t, returnCode, vmcommon.UserError)
+	require.Equal(t, "number of arguments must be equal to 0", eei.returnMessage)
+
+	vmInput.Arguments = [][]byte{}
+	returnCode = sc.Execute(vmInput)
+	require.Equal(t, returnCode, vmcommon.Ok)
+}
+
+func TestStakingSc_UnStakeAllFromQueue(t *testing.T) {
+	t.Parallel()
+
+	blockChainHook := &mock.BlockChainHookStub{}
+	blockChainHook.GetStorageDataCalled = func(accountsAddress []byte, index []byte) ([]byte, uint32, error) {
+		return nil, 0, nil
+	}
+
+	eei := createDefaultEei()
+	eei.blockChainHook = blockChainHook
+	eei.SetSCAddress([]byte("addr"))
+
+	stakingAccessAddress := vm.ValidatorSCAddress
+	args := createMockStakingScArguments()
+	args.StakingAccessAddr = stakingAccessAddress
+	args.StakingSCConfig.MaxNumberOfNodesForStake = 1
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
+	args.Eei = eei
+	args.StakingSCConfig.UnBondPeriod = 100
+	stakingSmartContract, _ := NewStakingSmartContract(args)
+
+	stakerAddress := []byte("stakerAddr")
+
+	blockChainHook.CurrentNonceCalled = func() uint64 {
+		return 1
+	}
+
+	// do stake should work
+	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("firstKey "))
+	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("secondKey"))
+	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("thirdKey "))
+	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("fourthKey"))
+
+	waitingReturn := doGetWaitingListRegisterNonceAndRewardAddress(t, stakingSmartContract, eei)
+	assert.Equal(t, len(waitingReturn), 9)
+
+	arguments := CreateVmContractCallInput()
+	validatorData := &ValidatorDataV2{
+		TotalStakeValue: big.NewInt(400),
+		TotalUnstaked:   big.NewInt(0),
+		RewardAddress:   stakerAddress,
+		BlsPubKeys:      [][]byte{[]byte("firstKey "), []byte("secondKey"), []byte("thirdKey "), []byte("fourthKey")},
+	}
+	arguments.CallerAddr = stakingSmartContract.endOfEpochAccessAddr
+	marshaledData, _ := stakingSmartContract.marshalizer.Marshal(validatorData)
+	eei.SetStorageForAddress(vm.ValidatorSCAddress, stakerAddress, marshaledData)
+
+	enableEpochsHandler.AddActiveFlags(common.StakingV4Step1Flag)
+	enableEpochsHandler.AddActiveFlags(common.StakingV4StartedFlag)
+	arguments.Function = "unStakeAllNodesFromQueue"
+	retCode := stakingSmartContract.Execute(arguments)
+	assert.Equal(t, retCode, vmcommon.Ok)
+
+	assert.Equal(t, len(eei.GetStorage([]byte(waitingListHeadKey))), 0)
+	newHead, _ := stakingSmartContract.getWaitingListHead()
+	assert.Equal(t, uint32(0), newHead.Length) // no entries in the queue list
+
+	doGetStatus(t, stakingSmartContract, eei, []byte("secondKey"), "unStaked")
+
+	// stake them again - as they were deleted from waiting list
+	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("thirdKey "))
+	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("fourthKey"))
+
+	// surprisingly, the queue works again as we did not activate the staking v4
+	doGetStatus(t, stakingSmartContract, eei, []byte("thirdKey "), "staked")
+	doGetStatus(t, stakingSmartContract, eei, []byte("fourthKey"), "staked")
 }

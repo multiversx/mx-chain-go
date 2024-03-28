@@ -60,6 +60,10 @@ func createTestProcessorNodeAndTrieStorage(
 }
 
 func TestNode_RequestInterceptTrieNodesWithMessenger(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	t.Run("test with double lists version", func(t *testing.T) {
 		testNodeRequestInterceptTrieNodesWithMessenger(t, 2)
 	})
@@ -181,6 +185,10 @@ func printStatistics(ctx context.Context, stats common.SizeSyncStatisticsHandler
 }
 
 func TestNode_RequestInterceptTrieNodesWithMessengerNotSyncingShouldErr(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	t.Run("test with double lists version", func(t *testing.T) {
 		testNodeRequestInterceptTrieNodesWithMessengerNotSyncingShouldErr(t, 2)
 	})

@@ -3,7 +3,6 @@ package components
 import (
 	"errors"
 	"math/big"
-	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -50,8 +49,8 @@ func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNo
 }
 
 func TestNewTestOnlyProcessingNode(t *testing.T) {
-	if runtime.GOARCH == "arm64" {
-		t.Skip("skipping test on arm64")
+	if testing.Short() {
+		t.Skip("this is not a short test")
 	}
 
 	t.Run("should work", func(t *testing.T) {
@@ -140,9 +139,8 @@ func TestNewTestOnlyProcessingNode(t *testing.T) {
 }
 
 func TestTestOnlyProcessingNode_SetKeyValueForAddress(t *testing.T) {
-	// TODO reinstate test after Wasm VM pointer fix
 	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Wasm VM fix")
+		t.Skip("this is not a short test")
 	}
 
 	goodKeyValueMap := map[string]string{
@@ -252,9 +250,8 @@ func TestTestOnlyProcessingNode_SetKeyValueForAddress(t *testing.T) {
 }
 
 func TestTestOnlyProcessingNode_SetStateForAddress(t *testing.T) {
-	// TODO reinstate test after Wasm VM pointer fix
 	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Wasm VM fix")
+		t.Skip("this is not a short test")
 	}
 
 	node, err := NewTestOnlyProcessingNode(createMockArgsTestOnlyProcessingNode(t))
@@ -419,8 +416,8 @@ func TestTestOnlyProcessingNode_SetStateForAddress(t *testing.T) {
 }
 
 func TestTestOnlyProcessingNode_IsInterfaceNil(t *testing.T) {
-	if runtime.GOARCH == "arm64" {
-		t.Skip("skipping test on arm64")
+	if testing.Short() {
+		t.Skip("this is not a short test")
 	}
 
 	var node *testOnlyProcessingNode
@@ -431,8 +428,8 @@ func TestTestOnlyProcessingNode_IsInterfaceNil(t *testing.T) {
 }
 
 func TestTestOnlyProcessingNode_Close(t *testing.T) {
-	if runtime.GOARCH == "arm64" {
-		t.Skip("skipping test on arm64")
+	if testing.Short() {
+		t.Skip("this is not a short test")
 	}
 
 	node, err := NewTestOnlyProcessingNode(createMockArgsTestOnlyProcessingNode(t))
@@ -442,8 +439,8 @@ func TestTestOnlyProcessingNode_Close(t *testing.T) {
 }
 
 func TestTestOnlyProcessingNode_Getters(t *testing.T) {
-	if runtime.GOARCH == "arm64" {
-		t.Skip("skipping test on arm64")
+	if testing.Short() {
+		t.Skip("this is not a short test")
 	}
 
 	node := &testOnlyProcessingNode{}

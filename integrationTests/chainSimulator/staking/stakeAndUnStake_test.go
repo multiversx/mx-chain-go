@@ -69,7 +69,7 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 		NumNodesWaitingListShard: 0,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			newNumNodes := cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake + 8 // 8 nodes until new nodes will be placed on queue
-			configs.SetMaxNumberOfNodesInConfigs(cfg, newNumNodes, numOfShards)
+			configs.SetMaxNumberOfNodesInConfigs(cfg, uint32(newNumNodes), 0, numOfShards)
 		},
 	})
 	require.Nil(t, err)
@@ -152,7 +152,7 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 	require.Nil(t, err)
 
 	metachainNode := cs.GetNodeHandler(core.MetachainShardId)
-	err = metachainNode.GetProcessComponents().ValidatorsProvider().ForceUpdate()
+	err = cs.ForceResetValidatorStatisticsCache()
 	require.Nil(t, err)
 	validatorStatistics, err := metachainNode.GetFacadeHandler().ValidatorStatisticsApi()
 	require.Nil(t, err)
@@ -200,8 +200,10 @@ func TestChainSimulator_AddANewValidatorAfterStakingV4(t *testing.T) {
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.SystemSCConfig.StakingSystemSCConfig.NodeLimitPercentage = 1
 			cfg.GeneralConfig.ValidatorStatistics.CacheRefreshIntervalInSec = 1
-			newNumNodes := cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake + 8 // 8 nodes until new nodes will be placed on queue
-			configs.SetMaxNumberOfNodesInConfigs(cfg, newNumNodes, numOfShards)
+			eligibleNodes := cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake
+			// 8 nodes until new nodes will be placed on queue
+			waitingNodes := uint32(8)
+			configs.SetMaxNumberOfNodesInConfigs(cfg, uint32(eligibleNodes), waitingNodes, numOfShards)
 		},
 	})
 	require.Nil(t, err)
@@ -262,7 +264,7 @@ func TestChainSimulator_AddANewValidatorAfterStakingV4(t *testing.T) {
 	require.Nil(t, err)
 
 	metachainNode := cs.GetNodeHandler(core.MetachainShardId)
-	err = metachainNode.GetProcessComponents().ValidatorsProvider().ForceUpdate()
+	err = cs.ForceResetValidatorStatisticsCache()
 	require.Nil(t, err)
 	results, err := metachainNode.GetFacadeHandler().AuctionListApi()
 	require.Nil(t, err)
@@ -328,7 +330,7 @@ func testStakeUnStakeUnBond(t *testing.T, targetEpoch int32) {
 			cfg.SystemSCConfig.StakingSystemSCConfig.UnBondPeriod = 1
 			cfg.SystemSCConfig.StakingSystemSCConfig.UnBondPeriodInEpochs = 1
 			newNumNodes := cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake + 10
-			configs.SetMaxNumberOfNodesInConfigs(cfg, newNumNodes, numOfShards)
+			configs.SetMaxNumberOfNodesInConfigs(cfg, uint32(newNumNodes), 0, numOfShards)
 		},
 	})
 	require.Nil(t, err)
@@ -677,6 +679,7 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation(t *testi
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
+				cfg.EpochConfig.EnableEpochs.StakeLimitsEnableEpoch = 100
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 100
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 101
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 102
@@ -707,11 +710,13 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation(t *testi
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
+				cfg.EpochConfig.EnableEpochs.StakeLimitsEnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+				cfg.SystemSCConfig.StakingSystemSCConfig.NodeLimitPercentage = 1
 			},
 		})
 		require.Nil(t, err)
@@ -737,11 +742,13 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation(t *testi
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
+				cfg.EpochConfig.EnableEpochs.StakeLimitsEnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+				cfg.SystemSCConfig.StakingSystemSCConfig.NodeLimitPercentage = 1
 			},
 		})
 		require.Nil(t, err)
@@ -767,11 +774,13 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation(t *testi
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
+				cfg.EpochConfig.EnableEpochs.StakeLimitsEnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+				cfg.SystemSCConfig.StakingSystemSCConfig.NodeLimitPercentage = 1
 			},
 		})
 		require.Nil(t, err)
@@ -810,7 +819,7 @@ func testChainSimulatorDirectStakedUnstakeFundsWithDeactivation(t *testing.T, cs
 	err = cs.GenerateBlocks(2) // allow the metachain to finalize the block that contains the staking of the node
 	require.Nil(t, err)
 
-	testBLSKeyStaked(t, cs, metachainNode, blsKeys[0], targetEpoch)
+	testBLSKeyStaked(t, metachainNode, blsKeys[0])
 
 	stakeValue = big.NewInt(0).Set(minimumStakeValue)
 	txDataField = fmt.Sprintf("stake@01@%s@%s", blsKeys[1], mockBLSSignature)
@@ -822,7 +831,7 @@ func testChainSimulatorDirectStakedUnstakeFundsWithDeactivation(t *testing.T, cs
 	err = cs.GenerateBlocks(2) // allow the metachain to finalize the block that contains the staking of the node
 	require.Nil(t, err)
 
-	testBLSKeyStaked(t, cs, metachainNode, blsKeys[1], targetEpoch)
+	testBLSKeyStaked(t, metachainNode, blsKeys[1])
 
 	log.Info("Step 1. Check the stake amount for the owner of the staked nodes")
 	checkExpectedStakedValue(t, metachainNode, validatorOwner.Bytes, 5000)
@@ -891,9 +900,8 @@ func checkOneOfTheNodesIsUnstaked(t *testing.T,
 }
 
 func testBLSKeyStaked(t *testing.T,
-	cs chainSimulatorIntegrationTests.ChainSimulator,
 	metachainNode chainSimulatorProcess.NodeHandler,
-	blsKey string, targetEpoch int32,
+	blsKey string,
 ) {
 	decodedBLSKey, _ := hex.DecodeString(blsKey)
 	err := metachainNode.GetProcessComponents().ValidatorsProvider().ForceUpdate()
@@ -952,6 +960,7 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation_WithReac
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
+				cfg.EpochConfig.EnableEpochs.StakeLimitsEnableEpoch = 100
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 100
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 101
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 102
@@ -982,11 +991,13 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation_WithReac
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
+				cfg.EpochConfig.EnableEpochs.StakeLimitsEnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+				cfg.SystemSCConfig.StakingSystemSCConfig.NodeLimitPercentage = 1
 			},
 		})
 		require.Nil(t, err)
@@ -1012,11 +1023,13 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation_WithReac
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
+				cfg.EpochConfig.EnableEpochs.StakeLimitsEnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+				cfg.SystemSCConfig.StakingSystemSCConfig.NodeLimitPercentage = 1
 			},
 		})
 		require.Nil(t, err)
@@ -1042,11 +1055,13 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation_WithReac
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
+				cfg.EpochConfig.EnableEpochs.StakeLimitsEnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+				cfg.SystemSCConfig.StakingSystemSCConfig.NodeLimitPercentage = 1
 			},
 		})
 		require.Nil(t, err)
@@ -1085,7 +1100,7 @@ func testChainSimulatorDirectStakedUnstakeFundsWithDeactivationAndReactivation(t
 	err = cs.GenerateBlocks(2) // allow the metachain to finalize the block that contains the staking of the node
 	require.Nil(t, err)
 
-	testBLSKeyStaked(t, cs, metachainNode, blsKeys[0], targetEpoch)
+	testBLSKeyStaked(t, metachainNode, blsKeys[0])
 
 	stakeValue = big.NewInt(0).Set(minimumStakeValue)
 	txDataField = fmt.Sprintf("stake@01@%s@%s", blsKeys[1], mockBLSSignature)
@@ -1097,7 +1112,7 @@ func testChainSimulatorDirectStakedUnstakeFundsWithDeactivationAndReactivation(t
 	err = cs.GenerateBlocks(2) // allow the metachain to finalize the block that contains the staking of the node
 	require.Nil(t, err)
 
-	testBLSKeyStaked(t, cs, metachainNode, blsKeys[1], targetEpoch)
+	testBLSKeyStaked(t, metachainNode, blsKeys[1])
 
 	log.Info("Step 1. Check the stake amount for the owner of the staked nodes")
 	checkExpectedStakedValue(t, metachainNode, validatorOwner.Bytes, 5000)
@@ -1144,8 +1159,8 @@ func testChainSimulatorDirectStakedUnstakeFundsWithDeactivationAndReactivation(t
 	err = cs.GenerateBlocksUntilEpochIsReached(targetEpoch + 1)
 	require.Nil(t, err)
 
-	testBLSKeyStaked(t, cs, metachainNode, blsKeys[0], targetEpoch)
-	testBLSKeyStaked(t, cs, metachainNode, blsKeys[1], targetEpoch)
+	testBLSKeyStaked(t, metachainNode, blsKeys[0])
+	testBLSKeyStaked(t, metachainNode, blsKeys[1])
 }
 
 // Test description:
@@ -1315,7 +1330,7 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsBeforeUnbonding(t *testi
 	err = cs.GenerateBlocks(2) // allow the metachain to finalize the block that contains the staking of the node
 	require.Nil(t, err)
 
-	testBLSKeyStaked(t, cs, metachainNode, blsKeys[0], targetEpoch)
+	testBLSKeyStaked(t, metachainNode, blsKeys[0])
 
 	shardIDValidatorOwner := cs.GetNodeHandler(0).GetShardCoordinator().ComputeId(validatorOwner.Bytes)
 	accountValidatorOwner, _, err := cs.GetNodeHandler(shardIDValidatorOwner).GetFacadeHandler().GetAccount(validatorOwner.Bech32, coreAPI.AccountQueryOptions{})
@@ -1336,7 +1351,7 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsBeforeUnbonding(t *testi
 	require.Nil(t, err)
 
 	// check bls key is still staked
-	testBLSKeyStaked(t, cs, metachainNode, blsKeys[0], targetEpoch)
+	testBLSKeyStaked(t, metachainNode, blsKeys[0])
 
 	txDataField = fmt.Sprintf("unBondTokens@%s", blsKeys[0])
 	txUnBond := generateTransaction(validatorOwner.Bytes, 2, vm.ValidatorSCAddress, zeroValue, txDataField, gasLimitForUnBond)
@@ -1549,7 +1564,7 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInFirstEpoch(t *testing.
 	err = cs.GenerateBlocks(2) // allow the metachain to finalize the block that contains the staking of the node
 	require.Nil(t, err)
 
-	testBLSKeyStaked(t, cs, metachainNode, blsKeys[0], targetEpoch)
+	testBLSKeyStaked(t, metachainNode, blsKeys[0])
 
 	shardIDValidatorOwner := cs.GetNodeHandler(0).GetShardCoordinator().ComputeId(validatorOwner.Bytes)
 	accountValidatorOwner, _, err := cs.GetNodeHandler(shardIDValidatorOwner).GetFacadeHandler().GetAccount(validatorOwner.Bech32, coreAPI.AccountQueryOptions{})
@@ -1568,7 +1583,7 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInFirstEpoch(t *testing.
 	require.Nil(t, err)
 
 	// check bls key is still staked
-	testBLSKeyStaked(t, cs, metachainNode, blsKeys[0], targetEpoch)
+	testBLSKeyStaked(t, metachainNode, blsKeys[0])
 
 	scQuery := &process.SCQuery{
 		ScAddress:  vm.ValidatorSCAddress,
@@ -1822,7 +1837,7 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInBatches(t *testing.T, 
 	err = cs.GenerateBlocks(2)
 	require.Nil(t, err)
 
-	testBLSKeyStaked(t, cs, metachainNode, blsKeys[0], targetEpoch)
+	testBLSKeyStaked(t, metachainNode, blsKeys[0])
 
 	shardIDValidatorOwner := cs.GetNodeHandler(0).GetShardCoordinator().ComputeId(validatorOwner.Bytes)
 	accountValidatorOwner, _, err := cs.GetNodeHandler(shardIDValidatorOwner).GetFacadeHandler().GetAccount(validatorOwner.Bech32, coreAPI.AccountQueryOptions{})
@@ -1871,7 +1886,7 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInBatches(t *testing.T, 
 	require.Nil(t, err)
 
 	// check bls key is still staked
-	testBLSKeyStaked(t, cs, metachainNode, blsKeys[0], targetEpoch)
+	testBLSKeyStaked(t, metachainNode, blsKeys[0])
 
 	scQuery := &process.SCQuery{
 		ScAddress:  vm.ValidatorSCAddress,
@@ -2178,7 +2193,7 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInEpoch(t *testing.T, cs
 	err = cs.GenerateBlocks(2)
 	require.Nil(t, err)
 
-	testBLSKeyStaked(t, cs, metachainNode, blsKeys[0], targetEpoch)
+	testBLSKeyStaked(t, metachainNode, blsKeys[0])
 
 	shardIDValidatorOwner := cs.GetNodeHandler(0).GetShardCoordinator().ComputeId(validatorOwner.Bytes)
 	accountValidatorOwner, _, err := cs.GetNodeHandler(shardIDValidatorOwner).GetFacadeHandler().GetAccount(validatorOwner.Bech32, coreAPI.AccountQueryOptions{})
@@ -2215,7 +2230,7 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInEpoch(t *testing.T, cs
 	require.NotNil(t, unStakeTx)
 
 	// check bls key is still staked
-	testBLSKeyStaked(t, cs, metachainNode, blsKeys[0], targetEpoch)
+	testBLSKeyStaked(t, metachainNode, blsKeys[0])
 
 	scQuery := &process.SCQuery{
 		ScAddress:  vm.ValidatorSCAddress,

@@ -33,6 +33,10 @@ func TestTrieLoadTime(t *testing.T) {
 }
 
 func TestTrieLoadTimeForOneLevel(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	numTrieLevels := 1
 	numTries := 10000
 	numChildrenPerBranch := 8

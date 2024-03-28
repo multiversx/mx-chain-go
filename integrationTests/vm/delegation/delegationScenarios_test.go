@@ -1,5 +1,3 @@
-//go:build !race
-
 package delegation
 
 import (
@@ -32,6 +30,10 @@ import (
 )
 
 func TestDelegationSystemNodesOperationsTestBackwardComp(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	tpn := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
 		MaxShards:            1,
 		NodeShardId:          core.MetachainShardId,
@@ -82,6 +84,10 @@ func TestDelegationSystemNodesOperationsTestBackwardComp(t *testing.T) {
 }
 
 func TestDelegationSystemNodesOperations(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	tpn := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
 		MaxShards:            1,
 		NodeShardId:          core.MetachainShardId,
@@ -163,6 +169,10 @@ func TestDelegationSystemNodesOperations(t *testing.T) {
 }
 
 func TestDelegationSystemReStakeNodes(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	tpn := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
 		MaxShards:            1,
 		NodeShardId:          core.MetachainShardId,
@@ -230,6 +240,10 @@ func TestDelegationSystemReStakeNodes(t *testing.T) {
 }
 
 func TestDelegationChangeConfig(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	tpn := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
 		MaxShards:            1,
 		NodeShardId:          core.MetachainShardId,
@@ -288,6 +302,10 @@ func TestDelegationChangeConfig(t *testing.T) {
 }
 
 func TestDelegationSystemDelegateUnDelegateFromTopUpWithdraw(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	tpn := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
 		MaxShards:            1,
 		NodeShardId:          core.MetachainShardId,
@@ -348,6 +366,10 @@ func TestDelegationSystemDelegateUnDelegateFromTopUpWithdraw(t *testing.T) {
 }
 
 func TestDelegationSystemDelegateUnDelegateOnlyPartOfDelegation(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	tpn := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
 		MaxShards:            1,
 		NodeShardId:          core.MetachainShardId,
@@ -409,6 +431,10 @@ func TestDelegationSystemDelegateUnDelegateOnlyPartOfDelegation(t *testing.T) {
 }
 
 func TestDelegationSystemMultipleDelegationContractsAndSameBlsKeysShouldNotWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	tpn := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
 		MaxShards:            1,
 		NodeShardId:          core.MetachainShardId,
@@ -483,6 +509,10 @@ func TestDelegationSystemMultipleDelegationContractsAndSameBlsKeysShouldNotWork(
 }
 
 func TestDelegationSystemMultipleDelegationContractsAndSameDelegators(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	tpn := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
 		MaxShards:            1,
 		NodeShardId:          core.MetachainShardId,
@@ -551,6 +581,10 @@ func TestDelegationSystemMultipleDelegationContractsAndSameDelegators(t *testing
 }
 
 func TestDelegationRewardsComputationAfterChangeServiceFee(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	tpn := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
 		MaxShards:            1,
 		NodeShardId:          core.MetachainShardId,
@@ -655,6 +689,10 @@ func TestDelegationRewardsComputationAfterChangeServiceFee(t *testing.T) {
 }
 
 func TestDelegationUnJail(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	tpn := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
 		MaxShards:            1,
 		NodeShardId:          core.MetachainShardId,
@@ -718,6 +756,10 @@ func TestDelegationUnJail(t *testing.T) {
 }
 
 func TestDelegationSystemDelegateSameUsersAFewTimes(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	tpn := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
 		MaxShards:            1,
 		NodeShardId:          core.MetachainShardId,
@@ -779,6 +821,10 @@ func TestDelegationSystemDelegateSameUsersAFewTimes(t *testing.T) {
 }
 
 func TestDelegationSystemMultipleDelegationContractsAndSameDelegatorsClaimRewardsMultipleTimeUndelegateClaimRewardsMultipleTime(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	tpn := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
 		MaxShards:            1,
 		NodeShardId:          core.MetachainShardId,
@@ -931,6 +977,10 @@ func TestDelegationSystemMultipleDelegationContractsAndSameDelegatorsClaimReward
 }
 
 func TestDelegationSystemDelegateUnDelegateReceiveRewardsWhenAllIsUndelegated(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	tpn := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
 		MaxShards:            1,
 		NodeShardId:          core.MetachainShardId,
@@ -1069,6 +1119,10 @@ func TestDelegationSystemDelegateUnDelegateReceiveRewardsWhenAllIsUndelegated(t 
 }
 
 func TestDelegationSystemCleanUpContract(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	tpn := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
 		MaxShards:            1,
 		NodeShardId:          core.MetachainShardId,

@@ -28,6 +28,10 @@ import (
 
 // // Internal test scenario #3
 func TestChainSimulator_SimpleStake(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	t.Run("staking ph 4 is not active", func(t *testing.T) {
 		testChainSimulatorSimpleStake(t, 1, "queued")
 	})
@@ -139,8 +143,9 @@ func testChainSimulatorSimpleStake(t *testing.T, targetEpoch int32, nodesStatus 
 // - 2 nodes to shuffle per shard
 // - max num nodes config for stakingV4 step3 = 24 (being downsized from previously 32 nodes)
 // Steps:
-// 1. Stake 1 node and check that in stakingV4 step1 it is found in auction
-// 2. From stakingV4 step2 onwards, check that api returns 8 qualified + 1 unqualified nodes
+// 1. Stake 1 node and check that in stakingV4 step1 it is unstaked
+// 2. Re-stake the node to enter the auction list
+// 3. From stakingV4 step2 onwards, check that api returns 8 qualified + 1 unqualified nodes
 func TestChainSimulator_StakingV4Step2APICalls(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -207,9 +212,26 @@ func TestChainSimulator_StakingV4Step2APICalls(t *testing.T) {
 	require.Nil(t, err)
 
 	// In step 1, only the previously staked node should be in auction list
-	err = metachainNode.GetProcessComponents().ValidatorsProvider().ForceUpdate()
+	err = cs.ForceResetValidatorStatisticsCache()
 	require.Nil(t, err)
 	auctionList, err := metachainNode.GetProcessComponents().ValidatorsProvider().GetAuctionList()
+	require.Nil(t, err)
+	require.Empty(t, auctionList)
+
+	// re-stake the node
+	txDataField = fmt.Sprintf("reStakeUnStakedNodes@%s", blsKeys[0])
+	txReStake := generateTransaction(validatorOwner.Bytes, 1, vm.ValidatorSCAddress, big.NewInt(0), txDataField, gasLimitForStakeOperation)
+	reStakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txReStake, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, reStakeTx)
+
+	err = cs.GenerateBlocks(2)
+	require.Nil(t, err)
+
+	// after the re-stake process, the node should be in auction list
+	err = cs.ForceResetValidatorStatisticsCache()
+	require.Nil(t, err)
+	auctionList, err = metachainNode.GetProcessComponents().ValidatorsProvider().GetAuctionList()
 	require.Nil(t, err)
 	require.Equal(t, []*common.AuctionListValidatorAPIResponse{
 		{
