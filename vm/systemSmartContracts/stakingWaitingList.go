@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/multiversx/mx-chain-core-go/core"
 	"math"
 	"math/big"
 	"strconv"
@@ -824,6 +825,8 @@ func (s *stakingSC) unStakeAllNodesFromQueue(args *vmcommon.ContractCallInput) v
 		return vmcommon.Ok
 	}
 
+	orderedListOwners := make([]string, 0)
+	mapOwnerKeys := make(map[string][][]byte)
 	for i, blsKey := range waitingListData.blsKeys {
 		registrationData := waitingListData.stakedDataList[i]
 
@@ -835,10 +838,41 @@ func (s *stakingSC) unStakeAllNodesFromQueue(args *vmcommon.ContractCallInput) v
 		// delete element from waiting list
 		inWaitingListKey := createWaitingListKey(blsKey)
 		s.eei.SetStorage(inWaitingListKey, nil)
+
+		ownerAddr := string(registrationData.OwnerAddress)
+		_, exists := mapOwnerKeys[ownerAddr]
+		if !exists {
+			mapOwnerKeys[ownerAddr] = make([][]byte, 0)
+			orderedListOwners = append(orderedListOwners, ownerAddr)
+		}
+
+		mapOwnerKeys[ownerAddr] = append(mapOwnerKeys[ownerAddr], blsKey)
 	}
 
 	// delete waiting list head element
 	s.eei.SetStorage([]byte(waitingListHeadKey), nil)
+
+	// call unStakeAtEndOfEpoch from the delegation contracts to compute the new unStaked list
+	for _, owner := range orderedListOwners {
+		listOfKeys := mapOwnerKeys[owner]
+
+		if s.eei.BlockChainHook().GetShardOfAddress([]byte(owner)) != core.MetachainShardId {
+			continue
+		}
+
+		unStakeCall := "unStakeAtEndOfEpoch"
+		for _, key := range listOfKeys {
+			unStakeCall += "@" + hex.EncodeToString(key)
+		}
+		vmOutput, err := s.eei.ExecuteOnDestContext([]byte(owner), args.RecipientAddr, big.NewInt(0), []byte(unStakeCall))
+		if err != nil {
+			s.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
+		if vmOutput.ReturnCode != vmcommon.Ok {
+			return vmOutput.ReturnCode
+		}
+	}
 
 	return vmcommon.Ok
 }
