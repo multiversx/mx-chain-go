@@ -14,6 +14,10 @@ import (
 )
 
 func TestTransactionGroup(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	node := integrationTests.NewTestProcessorNodeWithTestWebServer(3, 0, 0)
 
 	testTransactionGasCostWithMissingFields(t, node)

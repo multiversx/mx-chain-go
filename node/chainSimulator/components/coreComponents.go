@@ -29,7 +29,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/economics"
 	"github.com/multiversx/mx-chain-go/process/rating"
-	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/statusHandler"
@@ -96,7 +95,7 @@ type ArgsCoreComponentsHolder struct {
 }
 
 // CreateCoreComponents will create a new instance of factory.CoreComponentsHolder
-func CreateCoreComponents(args ArgsCoreComponentsHolder) (factory.CoreComponentsHandler, error) {
+func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder, error) {
 	var err error
 	instance := &coreComponentsHolder{
 		closeHandler: NewCloseHandler(),
@@ -162,38 +161,15 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (factory.CoreComponents
 		return nil, err
 	}
 
-	argsGasSchedule := forking.ArgsNewGasScheduleNotifier{
-		GasScheduleConfig: config.GasScheduleConfig{
-			GasScheduleByEpochs: []config.GasScheduleByEpochs{
-				{
-					StartEpoch: 0,
-					FileName:   args.GasScheduleFilename,
-				},
-			},
-		},
-		ConfigDir:          "",
-		EpochNotifier:      instance.epochNotifier,
-		WasmVMChangeLocker: instance.wasmVMChangeLocker,
-	}
-	gasScheduleNotifier, err := forking.NewGasScheduleNotifier(argsGasSchedule)
-	if err != nil {
-		return nil, err
-	}
-
-	builtInCostHandler, err := economics.NewBuiltInFunctionsCost(&economics.ArgsBuiltInFunctionCost{
-		ArgsParser:  smartContract.NewArgumentParser(),
-		GasSchedule: gasScheduleNotifier,
-	})
 	if err != nil {
 		return nil, err
 	}
 
 	argsEconomicsHandler := economics.ArgsNewEconomicsData{
-		TxVersionChecker:            instance.txVersionChecker,
-		BuiltInFunctionsCostHandler: builtInCostHandler,
-		Economics:                   &args.EconomicsConfig,
-		EpochNotifier:               instance.epochNotifier,
-		EnableEpochsHandler:         instance.enableEpochsHandler,
+		TxVersionChecker:    instance.txVersionChecker,
+		Economics:           &args.EconomicsConfig,
+		EpochNotifier:       instance.epochNotifier,
+		EnableEpochsHandler: instance.enableEpochsHandler,
 	}
 
 	instance.economicsData, err = economics.NewEconomicsData(argsEconomicsHandler)

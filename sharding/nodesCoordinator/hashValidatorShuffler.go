@@ -624,7 +624,7 @@ func shouldDistributeShuffledToWaitingInStakingV4(shuffledNodesCfg *shuffledNode
 
 	distributeShuffledToWaitingInStakingV4 := false
 	if totalNodes <= shuffledNodesCfg.maxNumNodes {
-		log.Warn("num of total nodes in waiting is too low after shuffling; will distribute " +
+		log.Debug("num of total nodes in waiting is too low after shuffling; will distribute " +
 			"shuffled out nodes directly to waiting and skip sending them to auction")
 
 		distributeShuffledToWaitingInStakingV4 = true

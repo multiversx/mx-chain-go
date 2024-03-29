@@ -80,8 +80,19 @@ var (
 func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFactoryArgs {
 
 	args := processComp.ProcessComponentsFactoryArgs{
-		Config:         testscommon.GetGeneralConfig(),
-		EpochConfig:    config.EpochConfig{},
+		Config: testscommon.GetGeneralConfig(),
+		EpochConfig: config.EpochConfig{
+			EnableEpochs: config.EnableEpochs{
+				MaxNodesChangeEnableEpoch: []config.MaxNodesChangeConfig{
+					{
+						EpochEnable:            0,
+						MaxNumNodes:            100,
+						NodesToShufflePerShard: 2,
+					},
+				},
+			},
+		},
+		RoundConfig:    testscommon.GetDefaultRoundsConfig(),
 		PrefConfigs:    config.Preferences{},
 		ImportDBConfig: config.ImportDbConfig{},
 		FlagsConfig: config.ContextFlagsConfig{
@@ -253,7 +264,7 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 		TxExecutionOrderHandler: &txExecOrderStub.TxExecutionOrderHandlerStub{},
 	}
 
-	args.State = components.GetStateComponents(args.CoreData)
+	args.State = components.GetStateComponents(args.CoreData, args.StatusCoreComponents)
 
 	return args
 }

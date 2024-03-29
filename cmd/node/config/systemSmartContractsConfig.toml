@@ -8,7 +8,7 @@
     NumRoundsWithoutBleed = 100
     MaximumPercentageToBleed = 0.5
     BleedPercentagePerRound = 0.00001
-    MaxNumberOfNodesForStake = 36
+    MaxNumberOfNodesForStake = 64
     UnJailValue = "2500000000000000000" #0.1% of genesis node price
     ActivateBLSPubKeyMessageVerification = false
     StakeLimitPercentage = 1.0 #fraction of value 1 - 100%, for the time being no stake limit

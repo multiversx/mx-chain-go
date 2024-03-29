@@ -164,7 +164,7 @@ func (s *legacySystemSCProcessor) processLegacy(
 		}
 	}
 
-	if s.enableEpochsHandler.IsFlagEnabled(common.DelegationSmartContractFlag) {
+	if s.enableEpochsHandler.IsFlagEnabled(common.DelegationSmartContractFlagInSpecificEpochOnly) {
 		err := s.initDelegationSystemSC()
 		if err != nil {
 			return err
@@ -1231,6 +1231,16 @@ func (s *legacySystemSCProcessor) addNewlyStakedNodesToValidatorTrie(
 			RewardAddress:   rewardAddress,
 			AccumulatedFees: big.NewInt(0),
 		}
+
+		existingValidator := validatorsInfoMap.GetValidator(validatorInfo.GetPublicKey())
+		// This fix is not be backwards incompatible
+		if !check.IfNil(existingValidator) && s.enableEpochsHandler.IsFlagEnabled(common.StakingV4StartedFlag) {
+			err = validatorsInfoMap.Delete(existingValidator)
+			if err != nil {
+				return err
+			}
+		}
+
 		err = validatorsInfoMap.Add(validatorInfo)
 		if err != nil {
 			return err

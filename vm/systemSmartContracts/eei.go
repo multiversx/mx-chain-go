@@ -76,6 +76,7 @@ func NewVMContext(args VMContextArgs) (*vmContext, error) {
 	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
 		common.MultiClaimOnDelegationFlag,
 		common.SetSenderInEeiOutputTransferFlag,
+		common.AlwaysMergeContextsInEEIFlag,
 	})
 	if err != nil {
 		return nil, err
@@ -339,8 +340,11 @@ func (host *vmContext) properMergeContexts(parentContext *vmContext, returnCode 
 
 	host.scAddress = parentContext.scAddress
 	host.AddReturnMessage(parentContext.returnMessage)
-	if returnCode != vmcommon.Ok {
-		// no need to merge - revert was done - transaction will fail
+
+	// merge contexts if the return code is OK or the fix flag is activated because it was wrong not to merge them if the call failed
+	shouldMergeContexts := returnCode == vmcommon.Ok || host.enableEpochsHandler.IsFlagEnabled(common.AlwaysMergeContextsInEEIFlag)
+	if !shouldMergeContexts {
+		// backwards compatibility
 		return
 	}
 
@@ -530,6 +534,8 @@ func (host *vmContext) ExecuteOnDestContext(destination []byte, sender []byte, v
 	vmOutput := &vmcommon.VMOutput{ReturnCode: vmcommon.UserError}
 	currContext := host.copyToNewContext()
 	defer func() {
+		// we need to reset here the output since it was already transferred in the vmOutput (host.CreateVMOutput() function)
+		// and we do not want to duplicate them
 		host.output = make([][]byte, 0)
 		host.properMergeContexts(currContext, vmOutput.ReturnCode)
 	}()

@@ -31,7 +31,9 @@ func createAccountsRepository(accDB state.AccountsAdapter, blockchain chainData.
 }
 
 func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
-	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	trieStorage, _ := integrationTests.CreateTrieStorageManager(testscommon.CreateMemUnit())
 	accDB, _ := integrationTests.CreateAccountsDB(0, trieStorage)
@@ -67,7 +69,9 @@ func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
 }
 
 func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
-	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	testNonce := uint64(7)
 	testBalance := big.NewInt(100)

@@ -15,7 +15,7 @@ jobs:
   build:
     strategy:
       matrix:
-        runs-on: [ubuntu-latest] # TODO add macos-latest when builds are possible on macs
+        runs-on: [ubuntu-latest, macos-latest, macos-13-xlarge]
     runs-on: ${{ matrix.runs-on }}
     name: Build
     steps:
@@ -45,21 +45,23 @@ jobs:
           GOOS=$(go env GOOS)
           GOARCH=$(go env GOARCH)
           GOPATH=$(go env GOPATH)
-          ARCHIVE="multiversx_""$APP_VER_SHORT""_""$GOOS""_""$GOARCH"".tgz"
+          ARCHIVE="multiversx_""$APP_VER_SHORT""_""$GOOS""_""$GOARCH"".zip"
           BUILD_DIR=${GITHUB_WORKSPACE}/build
-          WASM_VERSION=$(cat go.mod | grep mx-chain-vm-v | sort -n | tail -n -1| awk -F '/' '{print$3}'| sed 's/ /@/g')
-          WASMER_DIR=${GOPATH}/pkg/mod/github.com/multiversx/${WASM_VERSION}/wasmer
+          VM_GO_VERSION=$(cat go.mod | grep mx-chain-vm-go | sort -n | tail -n -1| awk -F '/' '{print$3}'| sed 's/ /@/g')
+          VM_GO_DIR=${GOPATH}/pkg/mod/github.com/multiversx/${VM_GO_VERSION}
 
           echo "GOOS=${GOOS}" >> $GITHUB_ENV
           echo "GOARCH=${GOARCH}" >> $GITHUB_ENV
           echo "ARCHIVE=${ARCHIVE}" >> $GITHUB_ENV
           echo "BUILD_DIR=${BUILD_DIR}" >> $GITHUB_ENV
-          echo "WASMER_DIR=${WASMER_DIR}" >> $GITHUB_ENV
+          echo "VM_GO_VERSION=${VM_GO_VERSION}" >> $GITHUB_ENV
+          echo "VM_GO_DIR=${VM_GO_DIR}" >> $GITHUB_ENV
 
       - name: Build
         run: |
           mkdir -p ${BUILD_DIR}
           cd ${GITHUB_WORKSPACE}/cmd/node && go build -o "${BUILD_DIR}/node" -a -ldflags="-X main.appVersion=${APP_VER}"
+          cd ${GITHUB_WORKSPACE}/cmd/seednode && go build -o "${BUILD_DIR}/seednode" -a -ldflags="-X main.appVersion=${APP_VER}"
           cd ${GITHUB_WORKSPACE}/cmd/keygenerator && go build -o "${BUILD_DIR}/keygenerator" -a -ldflags="-X main.appVersion=${APP_VER}"
           cd ${GITHUB_WORKSPACE}/cmd/logviewer && go build -o "${BUILD_DIR}/logviewer" -a -ldflags="-X main.appVersion=${APP_VER}"
           cd ${GITHUB_WORKSPACE}/cmd/termui && go build -o "${BUILD_DIR}/termui" -a -ldflags="-X main.appVersion=${APP_VER}"
@@ -69,24 +71,68 @@ jobs:
           cd ${GITHUB_WORKSPACE}
 
           if [[ "$GOOS" == linux && "$GOARCH" == amd64 ]]; then
-            cp -f ${WASMER_DIR}/libwasmer_linux_amd64.so ${BUILD_DIR};
-          fi
-          if [[ "$GOOS" == linux && "$GOARCH" == arm64 ]]; then
-            cp -f ${WASMER_DIR}/libwasmer_linux_arm64.so ${BUILD_DIR};
-          fi
-          if [[ "$GOOS" == darwin && "$GOARCH" == amd64 ]]; then
-            cp -f ${WASMER_DIR}/libwasmer_darwin_amd64.dylib ${BUILD_DIR};
+            cp --verbose --no-preserve=mode,ownership ${VM_GO_DIR}/wasmer2/libvmexeccapi.so ${BUILD_DIR}/libvmexeccapi.so
+            cp --verbose --no-preserve=mode,ownership ${VM_GO_DIR}/wasmer/libwasmer_linux_amd64.so ${BUILD_DIR}/libwasmer_linux_amd64.so
           fi
 
-          cd ${BUILD_DIR}
-          tar czvf "${GITHUB_WORKSPACE}/${ARCHIVE}" *
-          stat ${GITHUB_WORKSPACE}/${ARCHIVE}
+          # Actually, there's no runner for this combination (as of March 2024).
+          if [[ "$GOOS" == linux && "$GOARCH" == arm64 ]]; then
+            cp --verbose --no-preserve=mode,ownership ${VM_GO_DIR}/wasmer2/libvmexeccapi_arm.so ${BUILD_DIR}/libvmexeccapi_arm.so
+            cp --verbose --no-preserve=mode,ownership ${VM_GO_DIR}/wasmer/libwasmer_linux_arm64_shim.so ${BUILD_DIR}/libwasmer_linux_arm64_shim.so
+          fi
+
+          if [[ "$GOOS" == darwin && "$GOARCH" == amd64 ]]; then
+            cp -v ${VM_GO_DIR}/wasmer2/libvmexeccapi.dylib ${BUILD_DIR}/libvmexeccapi.dylib
+            cp -v ${VM_GO_DIR}/wasmer/libwasmer_darwin_amd64.dylib ${BUILD_DIR}/libwasmer_darwin_amd64.dylib
+          fi
+
+          if [[ "$GOOS" == darwin && "$GOARCH" == arm64 ]]; then
+            cp -v ${VM_GO_DIR}/wasmer2/libvmexeccapi_arm.dylib ${BUILD_DIR}/libvmexeccapi_arm.dylib
+            cp -v ${VM_GO_DIR}/wasmer/libwasmer_darwin_arm64_shim.dylib ${BUILD_DIR}/libwasmer_darwin_arm64_shim.dylib
+          fi
+
+          if [[ "$GOOS" == linux ]]; then
+            patchelf --set-rpath "\$ORIGIN" ${BUILD_DIR}/node
+            patchelf --set-rpath "\$ORIGIN" ${BUILD_DIR}/seednode
+
+            ldd ${BUILD_DIR}/node
+            ldd ${BUILD_DIR}/seednode
+          fi
+
+          if [[ "$GOOS" == darwin ]]; then
+            install_name_tool -add_rpath "@loader_path" ${BUILD_DIR}/node
+            install_name_tool -add_rpath "@loader_path" ${BUILD_DIR}/seednode
+
+            otool -L ${BUILD_DIR}/node
+            otool -L ${BUILD_DIR}/seednode
+          fi
+
+      - name: Smoke test
+        run: |
+          # Remove all downloaded Go packages, so that we can test the binary's independence from them (think of Wasmer libraries).
+          sudo rm -rf ${GOPATH}/pkg/mod
+
+          # Test binaries in different current directories.
+          cd ${BUILD_DIR} && ./node --version
+          cd ${GITHUB_WORKSPACE} && ${BUILD_DIR}/node --version
+          cd / && ${BUILD_DIR}/node --version
+
+          cd ${BUILD_DIR} && ./seednode --version
+          cd ${GITHUB_WORKSPACE} && ${BUILD_DIR}/seednode --version
+          cd / && ${BUILD_DIR}/seednode --version
+
+      - name: Package build output
+        run: |
+          sudo chown -R $USER: ${BUILD_DIR}
+          chmod -R 755 ${BUILD_DIR}
+          ls -al ${BUILD_DIR}
+          zip -r -j ${ARCHIVE} ${BUILD_DIR}
 
       - name: Save artifacts
         uses: actions/upload-artifact@v3
         with:
           name: ${{ env.ARCHIVE }}
-          path: ${{ github.workspace }}/${{ env.ARCHIVE }}
+          path: ${{ env.ARCHIVE }}
           if-no-files-found: error
 
   release:
@@ -113,6 +159,6 @@ jobs:
         run: |
           gh release create --draft --notes="Release draft from Github Actions" vNext
           sleep 10
-          for i in $(find ./assets -name '*.tgz' -type f); do
+          for i in $(find ./assets -name '*.zip' -type f); do
             gh release upload vNext ${i}
           done

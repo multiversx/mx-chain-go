@@ -67,11 +67,9 @@ func createMockStatusComponentsFactoryArgs() statusComp.StatusComponentsFactoryA
 }
 
 func TestNewStatusComponentsFactory(t *testing.T) {
-	t.Parallel()
+	// no t.Parallel for these tests as they create real components
 
 	t.Run("nil CoreComponents should error", func(t *testing.T) {
-		t.Parallel()
-
 		args := createMockStatusComponentsFactoryArgs()
 		args.CoreComponents = nil
 		scf, err := statusComp.NewStatusComponentsFactory(args)
@@ -79,8 +77,6 @@ func TestNewStatusComponentsFactory(t *testing.T) {
 		require.Equal(t, errorsMx.ErrNilCoreComponentsHolder, err)
 	})
 	t.Run("CoreComponents with nil GenesisNodesSetup should error", func(t *testing.T) {
-		t.Parallel()
-
 		args := createMockStatusComponentsFactoryArgs()
 		args.CoreComponents = &mock.CoreComponentsMock{
 			NodesConfig: nil,
@@ -90,8 +86,6 @@ func TestNewStatusComponentsFactory(t *testing.T) {
 		require.Equal(t, errorsMx.ErrNilGenesisNodesSetupHandler, err)
 	})
 	t.Run("nil NetworkComponents should error", func(t *testing.T) {
-		t.Parallel()
-
 		args := createMockStatusComponentsFactoryArgs()
 		args.NetworkComponents = nil
 		scf, err := statusComp.NewStatusComponentsFactory(args)
@@ -99,8 +93,6 @@ func TestNewStatusComponentsFactory(t *testing.T) {
 		require.Equal(t, errorsMx.ErrNilNetworkComponentsHolder, err)
 	})
 	t.Run("nil ShardCoordinator should error", func(t *testing.T) {
-		t.Parallel()
-
 		args := createMockStatusComponentsFactoryArgs()
 		args.ShardCoordinator = nil
 		scf, err := statusComp.NewStatusComponentsFactory(args)
@@ -108,8 +100,6 @@ func TestNewStatusComponentsFactory(t *testing.T) {
 		require.Equal(t, errorsMx.ErrNilShardCoordinator, err)
 	})
 	t.Run("nil NodesCoordinator should error", func(t *testing.T) {
-		t.Parallel()
-
 		args := createMockStatusComponentsFactoryArgs()
 		args.NodesCoordinator = nil
 		scf, err := statusComp.NewStatusComponentsFactory(args)
@@ -117,8 +107,6 @@ func TestNewStatusComponentsFactory(t *testing.T) {
 		require.Equal(t, errorsMx.ErrNilNodesCoordinator, err)
 	})
 	t.Run("nil EpochStartNotifier should error", func(t *testing.T) {
-		t.Parallel()
-
 		args := createMockStatusComponentsFactoryArgs()
 		args.EpochStartNotifier = nil
 		scf, err := statusComp.NewStatusComponentsFactory(args)
@@ -126,8 +114,6 @@ func TestNewStatusComponentsFactory(t *testing.T) {
 		require.Equal(t, errorsMx.ErrNilEpochStartNotifier, err)
 	})
 	t.Run("nil StatusCoreComponents should error", func(t *testing.T) {
-		t.Parallel()
-
 		args := createMockStatusComponentsFactoryArgs()
 		args.StatusCoreComponents = nil
 		scf, err := statusComp.NewStatusComponentsFactory(args)
@@ -135,8 +121,6 @@ func TestNewStatusComponentsFactory(t *testing.T) {
 		require.Equal(t, errorsMx.ErrNilStatusCoreComponents, err)
 	})
 	t.Run("nil CryptoComponents should error", func(t *testing.T) {
-		t.Parallel()
-
 		args := createMockStatusComponentsFactoryArgs()
 		args.CryptoComponents = nil
 		scf, err := statusComp.NewStatusComponentsFactory(args)
@@ -144,8 +128,6 @@ func TestNewStatusComponentsFactory(t *testing.T) {
 		require.Equal(t, errorsMx.ErrNilCryptoComponents, err)
 	})
 	t.Run("should work", func(t *testing.T) {
-		t.Parallel()
-
 		scf, err := statusComp.NewStatusComponentsFactory(createMockStatusComponentsFactoryArgs())
 		require.NotNil(t, scf)
 		require.NoError(t, err)
@@ -153,11 +135,11 @@ func TestNewStatusComponentsFactory(t *testing.T) {
 }
 
 func TestStatusComponentsFactory_Create(t *testing.T) {
-	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	t.Run("NewSoftwareVersionFactory fails should return error", func(t *testing.T) {
-		t.Parallel()
-
 		args := createMockStatusComponentsFactoryArgs()
 		args.StatusCoreComponents = &factory.StatusCoreComponentsStub{
 			AppStatusHandlerField: nil, // make NewSoftwareVersionFactory fail
@@ -170,8 +152,6 @@ func TestStatusComponentsFactory_Create(t *testing.T) {
 		require.Nil(t, sc)
 	})
 	t.Run("softwareVersionCheckerFactory.Create fails should return error", func(t *testing.T) {
-		t.Parallel()
-
 		args := createMockStatusComponentsFactoryArgs()
 		args.Config.SoftwareVersionConfig.PollingIntervalInMinutes = 0
 		scf, _ := statusComp.NewStatusComponentsFactory(args)
@@ -182,8 +162,6 @@ func TestStatusComponentsFactory_Create(t *testing.T) {
 		require.Nil(t, sc)
 	})
 	t.Run("invalid round duration should error", func(t *testing.T) {
-		t.Parallel()
-
 		args := createMockStatusComponentsFactoryArgs()
 		args.CoreComponents = &mock.CoreComponentsMock{
 			NodesConfig: &genesisMocks.NodesSetupStub{
@@ -200,8 +178,6 @@ func TestStatusComponentsFactory_Create(t *testing.T) {
 		require.Nil(t, sc)
 	})
 	t.Run("makeWebSocketDriverArgs fails due to invalid marshaller type should error", func(t *testing.T) {
-		t.Parallel()
-
 		args := createMockStatusComponentsFactoryArgs()
 		args.ExternalConfig.HostDriversConfig[0].Enabled = true
 		args.ExternalConfig.HostDriversConfig[0].MarshallerType = "invalid type"
@@ -213,8 +189,6 @@ func TestStatusComponentsFactory_Create(t *testing.T) {
 		require.Nil(t, sc)
 	})
 	t.Run("should work", func(t *testing.T) {
-		t.Parallel()
-
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 		shardCoordinator.SelfIDCalled = func() uint32 {
 			return core.MetachainShardId // coverage
@@ -233,7 +207,7 @@ func TestStatusComponentsFactory_Create(t *testing.T) {
 }
 
 func TestStatusComponentsFactory_epochStartEventHandler(t *testing.T) {
-	t.Parallel()
+	// no t.Parallel for these tests as they create real components
 
 	args := createMockStatusComponentsFactoryArgs()
 	args.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
@@ -253,7 +227,7 @@ func TestStatusComponentsFactory_epochStartEventHandler(t *testing.T) {
 }
 
 func TestStatusComponentsFactory_IsInterfaceNil(t *testing.T) {
-	t.Parallel()
+	// no t.Parallel for these tests as they create real components
 
 	args := createMockStatusComponentsFactoryArgs()
 	args.CoreComponents = nil
@@ -265,7 +239,7 @@ func TestStatusComponentsFactory_IsInterfaceNil(t *testing.T) {
 }
 
 func TestStatusComponents_Close(t *testing.T) {
-	t.Parallel()
+	// no t.Parallel for these tests as they create real components
 
 	scf, _ := statusComp.NewStatusComponentsFactory(createMockStatusComponentsFactoryArgs())
 	cc, err := scf.Create()
@@ -276,7 +250,7 @@ func TestStatusComponents_Close(t *testing.T) {
 }
 
 func TestMakeHostDriversArgs(t *testing.T) {
-	t.Parallel()
+	// no t.Parallel for these tests as they create real components
 
 	args := createMockStatusComponentsFactoryArgs()
 	args.ExternalConfig.HostDriversConfig = []config.HostDriversConfig{

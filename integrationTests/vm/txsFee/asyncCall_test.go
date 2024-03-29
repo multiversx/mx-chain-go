@@ -1,7 +1,3 @@
-//go:build !race
-
-// TODO remove build condition above to allow -race -short, after Wasm VM fix
-
 package txsFee
 
 import (
@@ -22,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
@@ -32,6 +29,10 @@ import (
 const upgradeContractFunction = "upgradeContract"
 
 func TestAsyncCallShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -84,6 +85,10 @@ func TestAsyncCallShouldWork(t *testing.T) {
 }
 
 func TestMinterContractWithAsyncCalls(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMsAndCustomGasSchedule(config.EnableEpochs{}, func(gasMap wasmConfig.GasScheduleMap) {
 		// if `MaxBuiltInCallsPerTx` is 200 test will fail
 		gasMap[common.MaxPerTransaction]["MaxBuiltInCallsPerTx"] = 199
@@ -140,6 +145,10 @@ func TestMinterContractWithAsyncCalls(t *testing.T) {
 }
 
 func TestAsyncCallsOnInitFunctionOnUpgrade(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	firstContractCode := wasm.GetSCCode("./testdata/first/output/first.wasm")
 	newContractCode := wasm.GetSCCode("./testdata/asyncOnInit/asyncOnInitAndUpgrade.wasm")
 
@@ -191,7 +200,7 @@ func testAsyncCallsOnInitFunctionOnUpgrade(
 		shardCoordinatorForShard1,
 		integrationtests.CreateMemUnit(),
 		gasScheduleNotifier,
-		integrationTests.GetDefaultRoundsConfig(),
+		testscommon.GetDefaultRoundsConfig(),
 		vm.CreateVMConfigWithVersion("v1.4"),
 	)
 	require.Nil(t, err)
@@ -200,7 +209,7 @@ func testAsyncCallsOnInitFunctionOnUpgrade(
 		shardCoordinatorForShardMeta,
 		integrationtests.CreateMemUnit(),
 		gasScheduleNotifier,
-		integrationTests.GetDefaultRoundsConfig(),
+		testscommon.GetDefaultRoundsConfig(),
 		vm.CreateVMConfigWithVersion("v1.4"),
 	)
 	require.Nil(t, err)
@@ -275,6 +284,10 @@ func testAsyncCallsOnInitFunctionOnUpgrade(
 }
 
 func TestAsyncCallsOnInitFunctionOnDeploy(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	firstSCCode := wasm.GetSCCode("./testdata/first/output/first.wasm")
 	pathToSecondSC := "./testdata/asyncOnInit/asyncOnInitAndUpgrade.wasm"
 	secondSCCode := wasm.GetSCCode(pathToSecondSC)
@@ -325,7 +338,7 @@ func testAsyncCallsOnInitFunctionOnDeploy(t *testing.T,
 		shardCoordinatorForShard1,
 		integrationtests.CreateMemUnit(),
 		gasScheduleNotifier,
-		integrationTests.GetDefaultRoundsConfig(),
+		testscommon.GetDefaultRoundsConfig(),
 		vm.CreateVMConfigWithVersion("v1.4"),
 	)
 	require.Nil(t, err)
@@ -334,7 +347,7 @@ func testAsyncCallsOnInitFunctionOnDeploy(t *testing.T,
 		shardCoordinatorForShardMeta,
 		integrationtests.CreateMemUnit(),
 		gasScheduleNotifier,
-		integrationTests.GetDefaultRoundsConfig(),
+		testscommon.GetDefaultRoundsConfig(),
 		vm.CreateVMConfigWithVersion("v1.4"),
 	)
 	require.Nil(t, err)

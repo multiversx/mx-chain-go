@@ -47,9 +47,12 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageMock "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
@@ -97,6 +100,29 @@ func createPhysicalUnit(t *testing.T) (storage.Storer, string) {
 	unit, _ := storageunit.NewStorageUnit(cache, persist)
 
 	return unit, dir
+}
+
+func createMockArgsForSystemSCProcessor() ArgsNewEpochStartSystemSCProcessing {
+	return ArgsNewEpochStartSystemSCProcessing{
+		SystemVM:                     &mock.VMExecutionHandlerStub{},
+		UserAccountsDB:               &stateMock.AccountsStub{},
+		PeerAccountsDB:               &stateMock.AccountsStub{},
+		Marshalizer:                  &marshallerMock.MarshalizerStub{},
+		StartRating:                  0,
+		ValidatorInfoCreator:         &testscommon.ValidatorStatisticsProcessorStub{},
+		ChanceComputer:               &mock.ChanceComputerStub{},
+		ShardCoordinator:             &testscommon.ShardsCoordinatorMock{},
+		EndOfEpochCallerAddress:      vm.EndOfEpochAddress,
+		StakingSCAddress:             vm.StakingSCAddress,
+		ESDTOwnerAddressBytes:        vm.ESDTSCAddress,
+		GenesisNodesConfig:           &genesisMocks.NodesSetupStub{},
+		EpochNotifier:                &epochNotifier.EpochNotifierStub{},
+		NodesConfigProvider:          &shardingMocks.NodesCoordinatorStub{},
+		StakingDataProvider:          &stakingcommon.StakingDataProviderStub{},
+		AuctionListSelector:          &stakingcommon.AuctionListSelectorStub{},
+		MaxNodesChangeConfigProvider: &testscommon.MaxNodesChangeConfigProviderStub{},
+		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+	}
 }
 
 func TestNewSystemSCProcessor(t *testing.T) {
@@ -956,21 +982,178 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 func TestSystemSCProcessor_ProcessSystemSmartContractInitDelegationMgr(t *testing.T) {
 	t.Parallel()
 
-	args, _ := createFullArgumentsForSystemSCProcessing(config.EnableEpochs{
-		StakingV2EnableEpoch: 1000,
-	}, testscommon.CreateMemUnit())
-	s, _ := NewSystemSCProcessor(args)
+	expectedErr := errors.New("expected error")
+	t.Run("flag not active", func(t *testing.T) {
+		args := createMockArgsForSystemSCProcessor()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				if flag == common.GovernanceFlagInSpecificEpochOnly ||
+					flag == common.StakingV4Step1Flag ||
+					flag == common.StakingV4Step2Flag ||
+					flag == common.SwitchHysteresisForMinNodesFlagInSpecificEpochOnly ||
+					flag == common.StakingV2OwnerFlagInSpecificEpochOnly ||
+					flag == common.CorrectLastUnJailedFlagInSpecificEpochOnly ||
+					flag == common.DelegationSmartContractFlagInSpecificEpochOnly ||
+					flag == common.CorrectLastUnJailedFlag ||
+					flag == common.SwitchJailWaitingFlag ||
+					flag == common.StakingV2Flag ||
+					flag == common.ESDTFlagInSpecificEpochOnly {
 
-	validatorsInfo := state.NewShardValidatorsInfoMap()
-	err := s.ProcessSystemSmartContract(validatorsInfo, &block.Header{})
-	assert.Nil(t, err)
+					return false
+				}
 
-	acc, err := s.userAccountsDB.GetExistingAccount(vm.DelegationManagerSCAddress)
-	assert.Nil(t, err)
+				return true
+			},
+		}
+		args.SystemVM = &mock.VMExecutionHandlerStub{
+			RunSmartContractCreateCalled: func(input *vmcommon.ContractCreateInput) (*vmcommon.VMOutput, error) {
+				assert.Fail(t, "should have not called")
 
-	userAcc, _ := acc.(state.UserAccountHandler)
-	assert.Equal(t, userAcc.GetOwnerAddress(), vm.DelegationManagerSCAddress)
-	assert.NotNil(t, userAcc.GetCodeMetadata())
+				return nil, fmt.Errorf("should have not called")
+			},
+		}
+		processor, _ := NewSystemSCProcessor(args)
+		require.NotNil(t, processor)
+
+		validatorsInfo := state.NewShardValidatorsInfoMap()
+		err := processor.ProcessSystemSmartContract(validatorsInfo, &block.Header{})
+		require.Nil(t, err)
+	})
+	t.Run("flag active", func(t *testing.T) {
+		args := createMockArgsForSystemSCProcessor()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.DelegationSmartContractFlagInSpecificEpochOnly
+			},
+		}
+		runSmartContractCreateCalled := false
+		args.SystemVM = &mock.VMExecutionHandlerStub{
+			RunSmartContractCreateCalled: func(input *vmcommon.ContractCreateInput) (*vmcommon.VMOutput, error) {
+				runSmartContractCreateCalled = true
+
+				return &vmcommon.VMOutput{}, nil
+			},
+		}
+		processor, _ := NewSystemSCProcessor(args)
+		require.NotNil(t, processor)
+
+		validatorsInfo := state.NewShardValidatorsInfoMap()
+		err := processor.ProcessSystemSmartContract(validatorsInfo, &block.Header{})
+		require.Nil(t, err)
+		require.True(t, runSmartContractCreateCalled)
+	})
+	t.Run("flag active but contract create call errors, should error", func(t *testing.T) {
+		args := createMockArgsForSystemSCProcessor()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.DelegationSmartContractFlagInSpecificEpochOnly
+			},
+		}
+		runSmartContractCreateCalled := false
+		args.SystemVM = &mock.VMExecutionHandlerStub{
+			RunSmartContractCreateCalled: func(input *vmcommon.ContractCreateInput) (*vmcommon.VMOutput, error) {
+				runSmartContractCreateCalled = true
+
+				return nil, expectedErr
+			},
+		}
+		processor, _ := NewSystemSCProcessor(args)
+		require.NotNil(t, processor)
+
+		validatorsInfo := state.NewShardValidatorsInfoMap()
+		err := processor.ProcessSystemSmartContract(validatorsInfo, &block.Header{})
+		require.ErrorIs(t, err, expectedErr)
+		require.True(t, runSmartContractCreateCalled)
+	})
+}
+
+func TestSystemSCProcessor_ProcessSystemSmartContractInitGovernance(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("expected error")
+	t.Run("flag not active", func(t *testing.T) {
+		args := createMockArgsForSystemSCProcessor()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				if flag == common.GovernanceFlagInSpecificEpochOnly ||
+					flag == common.StakingV4Step1Flag ||
+					flag == common.StakingV4Step2Flag ||
+					flag == common.SwitchHysteresisForMinNodesFlagInSpecificEpochOnly ||
+					flag == common.StakingV2OwnerFlagInSpecificEpochOnly ||
+					flag == common.CorrectLastUnJailedFlagInSpecificEpochOnly ||
+					flag == common.DelegationSmartContractFlagInSpecificEpochOnly ||
+					flag == common.CorrectLastUnJailedFlag ||
+					flag == common.SwitchJailWaitingFlag ||
+					flag == common.StakingV2Flag ||
+					flag == common.ESDTFlagInSpecificEpochOnly {
+
+					return false
+				}
+
+				return true
+			},
+		}
+		args.SystemVM = &mock.VMExecutionHandlerStub{
+			RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+				assert.Fail(t, "should have not called")
+
+				return nil, fmt.Errorf("should have not called")
+			},
+		}
+		processor, _ := NewSystemSCProcessor(args)
+		require.NotNil(t, processor)
+
+		validatorsInfo := state.NewShardValidatorsInfoMap()
+		err := processor.ProcessSystemSmartContract(validatorsInfo, &block.Header{})
+		require.Nil(t, err)
+	})
+	t.Run("flag active", func(t *testing.T) {
+		args := createMockArgsForSystemSCProcessor()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.GovernanceFlagInSpecificEpochOnly
+			},
+		}
+		runSmartContractCreateCalled := false
+		args.SystemVM = &mock.VMExecutionHandlerStub{
+			RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+				runSmartContractCreateCalled = true
+
+				return &vmcommon.VMOutput{}, nil
+			},
+		}
+		processor, _ := NewSystemSCProcessor(args)
+		require.NotNil(t, processor)
+
+		validatorsInfo := state.NewShardValidatorsInfoMap()
+		err := processor.ProcessSystemSmartContract(validatorsInfo, &block.Header{})
+		require.Nil(t, err)
+		require.True(t, runSmartContractCreateCalled)
+	})
+	t.Run("flag active but contract call errors, should error", func(t *testing.T) {
+		args := createMockArgsForSystemSCProcessor()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.GovernanceFlagInSpecificEpochOnly
+			},
+		}
+		runSmartContractCreateCalled := false
+		args.SystemVM = &mock.VMExecutionHandlerStub{
+			RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+				runSmartContractCreateCalled = true
+
+				return nil, expectedErr
+			},
+		}
+		processor, _ := NewSystemSCProcessor(args)
+		require.NotNil(t, processor)
+
+		validatorsInfo := state.NewShardValidatorsInfoMap()
+		err := processor.ProcessSystemSmartContract(validatorsInfo, &block.Header{})
+		require.ErrorIs(t, err, expectedErr)
+		require.Contains(t, err.Error(), "governanceV2")
+		require.True(t, runSmartContractCreateCalled)
+	})
 }
 
 func TestSystemSCProcessor_ProcessDelegationRewardsNothingToExecute(t *testing.T) {
@@ -1870,14 +2053,6 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Init(t *testing.T)
 		0: {
 			createValidatorInfo(owner1ListPubKeysStaked[0], common.EligibleList, "", 0, owner1),
 			createValidatorInfo(owner1ListPubKeysStaked[1], common.WaitingList, "", 0, owner1),
-			createValidatorInfo(owner1ListPubKeysWaiting[0], common.AuctionList, "", 0, owner1),
-			createValidatorInfo(owner1ListPubKeysWaiting[1], common.AuctionList, "", 0, owner1),
-			createValidatorInfo(owner1ListPubKeysWaiting[2], common.AuctionList, "", 0, owner1),
-
-			createValidatorInfo(owner2ListPubKeysWaiting[0], common.AuctionList, "", 0, owner2),
-
-			createValidatorInfo(owner3ListPubKeysWaiting[0], common.AuctionList, "", 0, owner3),
-			createValidatorInfo(owner3ListPubKeysWaiting[1], common.AuctionList, "", 0, owner3),
 		},
 		1: {
 			createValidatorInfo(owner2ListPubKeysStaked[0], common.EligibleList, "", 1, owner2),
@@ -2201,7 +2376,61 @@ func TestSystemSCProcessor_ProcessSystemSmartContractNilInputValues(t *testing.T
 		err := s.ProcessSystemSmartContract(validatorsInfoMap, nil)
 		require.Equal(t, process.ErrNilHeaderHandler, err)
 	})
+}
 
+func TestLegacySystemSCProcessor_addNewlyStakedNodesToValidatorTrie(t *testing.T) {
+	t.Parallel()
+
+	args, _ := createFullArgumentsForSystemSCProcessing(config.EnableEpochs{}, testscommon.CreateMemUnit())
+	sysProc, _ := NewSystemSCProcessor(args)
+
+	pubKey := []byte("pubKey")
+	existingValidator := &state.ValidatorInfo{
+		PublicKey: pubKey,
+		List:      "inactive",
+	}
+
+	nonce := uint64(4)
+	newList := common.AuctionList
+	newlyAddedValidator := &state.ValidatorInfo{
+		PublicKey:       pubKey,
+		List:            string(newList),
+		Index:           uint32(nonce),
+		TempRating:      sysProc.startRating,
+		Rating:          sysProc.startRating,
+		RewardAddress:   pubKey,
+		AccumulatedFees: big.NewInt(0),
+	}
+
+	// Check before stakingV4, we should have both validators
+	validatorsInfo := state.NewShardValidatorsInfoMap()
+	_ = validatorsInfo.Add(existingValidator)
+	args.EpochNotifier.CheckEpoch(&block.Header{Epoch: stakingV4Step1EnableEpoch - 1, Nonce: 1})
+	err := sysProc.addNewlyStakedNodesToValidatorTrie(
+		validatorsInfo,
+		[][]byte{pubKey, pubKey},
+		nonce,
+		newList,
+	)
+	require.Nil(t, err)
+	require.Equal(t, map[uint32][]state.ValidatorInfoHandler{
+		0: {existingValidator, newlyAddedValidator},
+	}, validatorsInfo.GetShardValidatorsInfoMap())
+
+	// Check after stakingV4, we should only have the new one
+	validatorsInfo = state.NewShardValidatorsInfoMap()
+	_ = validatorsInfo.Add(existingValidator)
+	args.EpochNotifier.CheckEpoch(&block.Header{Epoch: stakingV4Step1EnableEpoch, Nonce: 1})
+	err = sysProc.addNewlyStakedNodesToValidatorTrie(
+		validatorsInfo,
+		[][]byte{pubKey, pubKey},
+		nonce,
+		newList,
+	)
+	require.Nil(t, err)
+	require.Equal(t, map[uint32][]state.ValidatorInfoHandler{
+		0: {newlyAddedValidator},
+	}, validatorsInfo.GetShardValidatorsInfoMap())
 }
 
 func requireTopUpPerNodes(t *testing.T, s epochStart.StakingDataProvider, stakedPubKeys [][]byte, topUp *big.Int) {

@@ -178,7 +178,8 @@ func (vic *validatorInfoCreator) deterministicSortValidators(validators []state.
 		bValidatorString := validators[b].GoString()
 		// possible issues as we have 2 entries with the same public key. Print & assure deterministic sorting
 		log.Warn("found 2 entries in validatorInfoCreator.deterministicSortValidators with the same public key",
-			"validator a", aValidatorString, "validator b", bValidatorString)
+			"validator a", aValidatorString, "validator b", bValidatorString,
+			"validator a pub key", validators[a].GetPublicKey(), "validator b pub key", validators[b].GetPublicKey())
 
 		// since the GoString will include all fields, we do not need to marshal the struct again. Strings comparison will
 		// suffice in this case.

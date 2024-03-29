@@ -1,7 +1,5 @@
 //go:build !race
 
-// TODO reinstate test after Wasm VM pointer fix
-
 package process
 
 import (
@@ -13,6 +11,8 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -173,24 +173,23 @@ func createMockArgument(
 		TrieStorageManagers: trieStorageManagers,
 		BlockSignKeyGen:     &mock.KeyGenMock{},
 		GenesisNodePrice:    nodePrice,
-		EpochConfig: &config.EpochConfig{
+		EpochConfig: config.EpochConfig{
 			EnableEpochs: config.EnableEpochs{
-				BuiltInFunctionsEnableEpoch:    0,
-				SCDeployEnableEpoch:            0,
-				RelayedTransactionsEnableEpoch: 0,
-				PenalizedTooMuchGasEnableEpoch: 0,
-				StakeLimitsEnableEpoch:         10,
+				SCDeployEnableEpoch:               unreachableEpoch,
+				CleanUpInformativeSCRsEnableEpoch: unreachableEpoch,
+				SCProcessorV2EnableEpoch:          unreachableEpoch,
+				StakeLimitsEnableEpoch:            10,
 			},
 		},
-		RoundConfig: &config.RoundConfig{
-			RoundActivations: map[string]config.ActivationRoundByName{
-				"DisableAsyncCallV1": {
-					Round: "18446744073709551615",
-				},
-			},
-		},
+		RoundConfig:             testscommon.GetDefaultRoundsConfig(),
+		HeaderVersionConfigs:    testscommon.GetDefaultHeaderVersionConfig(),
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
+		versionedHeaderFactory: &testscommon.VersionedHeaderFactoryStub{
+			CreateCalled: func(epoch uint32) data.HeaderHandler {
+				return &block.Header{}
+			},
+		},
 	}
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{
@@ -434,16 +433,6 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 
 		gbc, err := NewGenesisBlockCreator(arg)
 		require.True(t, errors.Is(err, genesis.ErrNilTrieStorageManager))
-		require.Nil(t, gbc)
-	})
-	t.Run("nil EpochConfig should error", func(t *testing.T) {
-		t.Parallel()
-
-		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
-		arg.EpochConfig = nil
-
-		gbc, err := NewGenesisBlockCreator(arg)
-		require.True(t, errors.Is(err, genesis.ErrNilEpochConfig))
 		require.Nil(t, gbc)
 	})
 	t.Run("invalid GenesisNodePrice should error", func(t *testing.T) {
@@ -906,9 +895,9 @@ func TestCreateArgsGenesisBlockCreator_ShouldWorkAndCreateEmpty(t *testing.T) {
 	blocks, err := gbc.CreateGenesisBlocks()
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(blocks))
-	for _, block := range blocks {
-		assert.Zero(t, block.GetNonce())
-		assert.Zero(t, block.GetRound())
-		assert.Zero(t, block.GetEpoch())
+	for _, blockInstance := range blocks {
+		assert.Zero(t, blockInstance.GetNonce())
+		assert.Zero(t, blockInstance.GetRound())
+		assert.Zero(t, blockInstance.GetEpoch())
 	}
 }

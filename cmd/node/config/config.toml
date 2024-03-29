@@ -492,6 +492,7 @@
 [Antiflood]
     Enabled = true
     NumConcurrentResolverJobs = 50
+    NumConcurrentResolvingTrieNodesJobs = 3
     [Antiflood.FastReacting]
         IntervalInSeconds = 1
         ReservedPercent   = 20.0
@@ -620,6 +621,7 @@
    Type = "json"
 
 [EpochStartConfig]
+    GenesisEpoch = 0
     MinRoundsBetweenEpochs = 20
     RoundsPerEpoch         = 200
     # Min and Max ShuffledOutRestartThreshold represents the minimum and maximum duration of an epoch (in percentage) after a node which
@@ -629,6 +631,7 @@
 
     MinNumConnectedPeersToStart       = 2
     MinNumOfPeersToConsiderBlockValid = 2
+    ExtraDelayForRequestBlockInfoInMilliseconds = 3000
 
 # ResourceStats, if enabled, will output in a folder called "stats"
 # resource statistics. For example: number of active go routines, memory allocation, number of GC sweeps, etc.
@@ -658,6 +661,7 @@
     PeerStatePruningEnabled = true
     MaxStateTrieLevelInMemory = 5
     MaxPeerTrieLevelInMemory = 5
+    StateStatisticsEnabled = false
 
 [BlockSizeThrottleConfig]
     MinSizeInBytes = 104857 # 104857 is 10% from 1MB

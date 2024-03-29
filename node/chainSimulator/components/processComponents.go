@@ -2,6 +2,7 @@ package components
 
 import (
 	"fmt"
+	"io"
 	"math/big"
 	"path/filepath"
 	"time"
@@ -42,6 +43,7 @@ type ArgsProcessComponentsHolder struct {
 	NodesCoordinator     nodesCoordinator.NodesCoordinator
 
 	EpochConfig              config.EpochConfig
+	RoundConfig              config.RoundConfig
 	ConfigurationPathsHolder config.ConfigurationPathsHolder
 	FlagsConfig              config.ContextFlagsConfig
 	ImportDBConfig           config.ImportDbConfig
@@ -49,10 +51,12 @@ type ArgsProcessComponentsHolder struct {
 	Config                   config.Config
 	EconomicsConfig          config.EconomicsConfig
 	SystemSCConfig           config.SystemSmartContractsConfig
+
+	GenesisNonce uint64
+	GenesisRound uint64
 }
 
 type processComponentsHolder struct {
-	closeHandler                     *closeHandler
 	receiptsRepository               factory.ReceiptsRepository
 	nodesCoordinator                 nodesCoordinator.NodesCoordinator
 	shardCoordinator                 sharding.Coordinator
@@ -93,11 +97,12 @@ type processComponentsHolder struct {
 	processedMiniBlocksTracker       process.ProcessedMiniBlocksTracker
 	esdtDataStorageHandlerForAPI     vmcommon.ESDTNFTStorageHandler
 	accountsParser                   genesis.AccountsParser
-	sendSignatureTracker             process.SentSignaturesTracker
+	sentSignatureTracker             process.SentSignaturesTracker
+	managedProcessComponentsCloser   io.Closer
 }
 
 // CreateProcessComponents will create the process components holder
-func CreateProcessComponents(args ArgsProcessComponentsHolder) (factory.ProcessComponentsHandler, error) {
+func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponentsHolder, error) {
 	importStartHandler, err := trigger.NewImportStartHandler(filepath.Join(args.FlagsConfig.DbDir, common.DefaultDBPath), args.FlagsConfig.Version)
 	if err != nil {
 		return nil, err
@@ -180,6 +185,7 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (factory.ProcessC
 	processArgs := processComp.ProcessComponentsFactoryArgs{
 		Config:                  args.Config,
 		EpochConfig:             args.EpochConfig,
+		RoundConfig:             args.RoundConfig,
 		PrefConfigs:             args.PrefsConfig,
 		ImportDBConfig:          args.ImportDBConfig,
 		EconomicsConfig:         args.EconomicsConfig,
@@ -204,6 +210,8 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (factory.ProcessC
 		StatusComponents:        args.StatusComponents,
 		StatusCoreComponents:    args.StatusCoreComponents,
 		TxExecutionOrderHandler: txExecutionOrderHandler,
+		GenesisNonce:            args.GenesisNonce,
+		GenesisRound:            args.GenesisRound,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -221,7 +229,6 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (factory.ProcessC
 	}
 
 	instance := &processComponentsHolder{
-		closeHandler:                     NewCloseHandler(),
 		receiptsRepository:               managedProcessComponents.ReceiptsRepository(),
 		nodesCoordinator:                 managedProcessComponents.NodesCoordinator(),
 		shardCoordinator:                 managedProcessComponents.ShardCoordinator(),
@@ -262,17 +269,16 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (factory.ProcessC
 		processedMiniBlocksTracker:       managedProcessComponents.ProcessedMiniBlocksTracker(),
 		esdtDataStorageHandlerForAPI:     managedProcessComponents.ESDTDataStorageHandlerForAPI(),
 		accountsParser:                   managedProcessComponents.AccountsParser(),
-		sendSignatureTracker:             managedProcessComponents.SentSignaturesTracker(),
+		sentSignatureTracker:             managedProcessComponents.SentSignaturesTracker(),
+		managedProcessComponentsCloser:   managedProcessComponents,
 	}
-
-	instance.collectClosableComponents()
 
 	return instance, nil
 }
 
-// SentSignaturesTracker will return the send signature tracker
+// SentSignaturesTracker will return the sent signature tracker
 func (p *processComponentsHolder) SentSignaturesTracker() process.SentSignaturesTracker {
-	return p.sendSignatureTracker
+	return p.sentSignatureTracker
 }
 
 // NodesCoordinator will return the nodes coordinator
@@ -475,19 +481,9 @@ func (p *processComponentsHolder) ReceiptsRepository() factory.ReceiptsRepositor
 	return p.receiptsRepository
 }
 
-func (p *processComponentsHolder) collectClosableComponents() {
-	p.closeHandler.AddComponent(p.interceptorsContainer)
-	p.closeHandler.AddComponent(p.fullArchiveInterceptorsContainer)
-	p.closeHandler.AddComponent(p.resolversContainer)
-	p.closeHandler.AddComponent(p.epochStartTrigger)
-	p.closeHandler.AddComponent(p.blockProcessor)
-	p.closeHandler.AddComponent(p.validatorsProvider)
-	p.closeHandler.AddComponent(p.txsSenderHandler)
-}
-
 // Close will call the Close methods on all inner components
 func (p *processComponentsHolder) Close() error {
-	return p.closeHandler.Close()
+	return p.managedProcessComponentsCloser.Close()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

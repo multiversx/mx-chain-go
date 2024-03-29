@@ -1,5 +1,3 @@
-//go:build !race
-
 package node
 
 import (
@@ -22,7 +20,9 @@ import (
 const originalConfigsPath = "../cmd/node/config"
 
 func TestNewNodeRunner(t *testing.T) {
-	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	t.Run("nil configs should error", func(t *testing.T) {
 		t.Parallel()
@@ -45,13 +45,12 @@ func TestNewNodeRunner(t *testing.T) {
 }
 
 func TestNodeRunner_StartAndCloseNodeUsingSIGINT(t *testing.T) {
-	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	configs, err := testscommon.CreateTestConfigs(t.TempDir(), originalConfigsPath)
 	require.Nil(t, err)
-	configs.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].MaxNumNodes = 50
-
-
 
 	runner, _ := NewNodeRunner(configs)
 
@@ -79,7 +78,9 @@ func TestNodeRunner_StartAndCloseNodeUsingSIGINT(t *testing.T) {
 }
 
 func TestCopyDirectory(t *testing.T) {
-	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	file1Name := "file1.toml"
 	file1Contents := []byte("file1")
@@ -137,7 +138,9 @@ func TestCopyDirectory(t *testing.T) {
 }
 
 func TestWaitForSignal(t *testing.T) {
-	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	closedCalled := make(map[string]struct{})
 	healthServiceClosableComponent := &mock.CloserStub{

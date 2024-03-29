@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/vm"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
@@ -123,6 +124,60 @@ func (tmp *TestMetaProcessor) doStake(
 	return tmp.runSC(t, arguments)
 }
 
+// ProcessReStake will create a block containing mini blocks with re-staking txs using provided nodes.
+// Block will be committed + call to validator system sc will be made to stake all nodes
+func (tmp *TestMetaProcessor) ProcessReStake(t *testing.T, blsKeys [][]byte) {
+	header := tmp.createNewHeader(t, tmp.currentRound)
+	tmp.BlockChainHook.SetCurrentHeader(header)
+
+	txHashes := make([][]byte, 0)
+	for _, blsKey := range blsKeys {
+		scrs := tmp.doReStake(t, blsKey)
+		txHashes = append(txHashes, tmp.addTxsToCacher(scrs)...)
+	}
+
+	tmp.commitBlockTxs(t, txHashes, header)
+}
+
+func (tmp *TestMetaProcessor) doReStake(
+	t *testing.T,
+	blsKey []byte,
+) map[string]*smartContractResult.SmartContractResult {
+	owner := tmp.getOwnerOfBLSKey(t, blsKey)
+
+	arguments := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr:  owner,
+			Arguments:   [][]byte{blsKey},
+			CallValue:   big.NewInt(0),
+			GasProvided: 10,
+		},
+		RecipientAddr: vm.ValidatorSCAddress,
+		Function:      "reStakeUnStakedNodes",
+	}
+
+	return tmp.runSC(t, arguments)
+}
+
+func (tmp *TestMetaProcessor) getOwnerOfBLSKey(t *testing.T, blsKey []byte) []byte {
+	arguments := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr:  vm.ValidatorSCAddress,
+			Arguments:   [][]byte{blsKey},
+			CallValue:   big.NewInt(0),
+			GasProvided: 10,
+		},
+		RecipientAddr: vm.StakingSCAddress,
+		Function:      "getOwner",
+	}
+
+	vmOutput, err := tmp.SystemVM.RunSmartContractCall(arguments)
+	require.Nil(t, err)
+	require.Equal(t, vmcommon.Ok, vmOutput.ReturnCode)
+
+	return vmOutput.ReturnData[0]
+}
+
 func createStakeArgs(blsKeys [][]byte) [][]byte {
 	numBLSKeys := int64(len(blsKeys))
 	numBLSKeysBytes := big.NewInt(numBLSKeys).Bytes()
@@ -161,7 +216,7 @@ func (tmp *TestMetaProcessor) doUnStake(
 			CallerAddr:  owner,
 			Arguments:   blsKeys,
 			CallValue:   big.NewInt(0),
-			GasProvided: 10,
+			GasProvided: 100,
 		},
 		RecipientAddr: vm.ValidatorSCAddress,
 		Function:      "unStake",
@@ -212,6 +267,12 @@ func (tmp *TestMetaProcessor) ProcessUnJail(t *testing.T, blsKeys [][]byte) {
 	}
 
 	tmp.commitBlockTxs(t, txHashes, header)
+}
+
+// ClearStoredMbs clears the stored miniblocks
+func (tmp *TestMetaProcessor) ClearStoredMbs() {
+	txCoordMock, _ := tmp.TxCoordinator.(*testscommon.TransactionCoordinatorMock)
+	txCoordMock.ClearStoredMbs()
 }
 
 func (tmp *TestMetaProcessor) doUnJail(
