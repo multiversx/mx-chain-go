@@ -45,14 +45,10 @@
    # -------------------------------
    # Un-comment and update the following section in order to enable config values overloading
    # -------------------------------
-   # OverridableConfigTomlValues = [
-      # { File = "config.toml", Path = "StoragePruning.NumEpochsToKeep", Value = 4 },
-      # { File = "config.toml", Path = "MiniBlocksStorage.Cache.Name", Value = "MiniBlocksStorage" },
-      # { File = "external.toml", Path = "ElasticSearchConnector.Enabled", Value = true },
-      # { File = "external.toml", Path = "HostDriversConfig", Value = [
-      #    { Enabled = false, URL = "127.0.0.1:22111" },
-      # ] },
-   # ]
+    OverridableConfigTomlValues = [
+       { File = "config.toml", Path = "VirtualMachine.Execution.WasmVMVersions", Value = [{ StartEpoch = 0, Version = "v1.5" }] },
+       { File = "config.toml", Path = "VirtualMachine.Querying.WasmVMVersions", Value = [{ StartEpoch = 0, Version = "v1.5" }] },
+    ]
 
 # BlockProcessingCutoff can be used to stop processing blocks at a certain round, nonce or epoch.
 # This can be useful for snapshotting different stuff and also for debugging purposes.
