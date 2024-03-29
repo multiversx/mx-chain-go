@@ -125,6 +125,7 @@ func testStakingProviderWithNodesReStakeUnStaked(t *testing.T, stakingV4Activati
 	require.Equal(t, "staked", status)
 
 	err = cs.GenerateBlocks(20)
+	require.Nil(t, err)
 
 	checkValidatorStatus(t, cs, blsKeys[0], "auction")
 }
