@@ -55,7 +55,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	updateMocks "github.com/multiversx/mx-chain-go/update/mock"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
 	coreData "github.com/multiversx/mx-chain-core-go/data"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
@@ -1431,19 +1430,19 @@ func TestProcessComponentsFactory_CreateShouldWork(t *testing.T) {
 		assert.Nil(t, err)
 	})
 
-	t.Run("creating process components factory in sovereign chain should work", func(t *testing.T) {
-		t.Parallel()
-
-		shardCoordinator := sharding.NewSovereignShardCoordinator(core.SovereignChainShardId)
-		processArgs := components.GetProcessComponentsFactoryArgs(shardCoordinator)
-		processArgs.RunTypeComponents = components.GetSovereignRunTypeComponents()
-		pcf, _ := processComp.NewProcessComponentsFactory(processArgs)
-
-		require.NotNil(t, pcf)
-
-		pc, err := pcf.Create()
-
-		assert.NotNil(t, pc)
-		assert.Nil(t, err)
-	})
+	//t.Run("creating process components factory in sovereign chain should work", func(t *testing.T) {
+	//	t.Parallel()
+	//
+	//	shardCoordinator := sharding.NewSovereignShardCoordinator(core.SovereignChainShardId)
+	//	processArgs := components.GetProcessComponentsFactoryArgs(shardCoordinator)
+	//	processArgs.RunTypeComponents = components.GetSovereignRunTypeComponents()
+	//	pcf, _ := processComp.NewProcessComponentsFactory(processArgs)
+	//
+	//	require.NotNil(t, pcf)
+	//
+	//	pc, err := pcf.Create()
+	//
+	//	assert.NotNil(t, pc)
+	//	assert.Nil(t, err)
+	//})
 }

@@ -43,6 +43,7 @@ import (
 	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
+	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/rating"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -250,6 +251,19 @@ func GetDataArgs(coreComponents factory.CoreComponentsHolder, shardCoordinator s
 // GetCoreComponents -
 func GetCoreComponents() factory.CoreComponentsHolder {
 	coreArgs := GetCoreArgs()
+	return createCoreComponents(coreArgs)
+}
+
+// GetSovereignCoreComponents -
+func GetSovereignCoreComponents() factory.CoreComponentsHolder {
+	coreArgs := GetCoreArgs()
+	coreArgs.NodesFilename = "../mock/testdata/sovereignNodesSetupMock.json"
+	coreArgs.GenesisNodesSetupFactory = sharding.NewSovereignGenesisNodesSetupFactory()
+	coreArgs.RatingsDataFactory = rating.NewSovereignRatingsDataFactory()
+	return createCoreComponents(coreArgs)
+}
+
+func createCoreComponents(coreArgs coreComp.CoreComponentsFactoryArgs) factory.CoreComponentsHolder {
 	coreComponentsFactory, _ := coreComp.NewCoreComponentsFactory(coreArgs)
 	coreComponents, err := coreComp.NewManagedCoreComponents(coreComponentsFactory)
 	if err != nil {
@@ -393,6 +407,25 @@ func GetProcessComponentsFactoryArgs(shardCoordinator sharding.Coordinator) proc
 		stateComponents,
 		networkComponents,
 	)
+	return processArgs
+}
+
+// GetSovereignProcessComponentsFactoryArgs -
+func GetSovereignProcessComponentsFactoryArgs(shardCoordinator sharding.Coordinator) processComp.ProcessComponentsFactoryArgs {
+	coreComponents := GetSovereignCoreComponents()
+	cryptoComponents := GetCryptoComponents(coreComponents)
+	networkComponents := GetNetworkComponents(cryptoComponents)
+	dataComponents := GetSovereignDataComponents(coreComponents, shardCoordinator)
+	stateComponents := GetSovereignStateComponents(coreComponents)
+	processArgs := GetSovereignProcessArgs(
+		shardCoordinator,
+		coreComponents,
+		dataComponents,
+		cryptoComponents,
+		stateComponents,
+		networkComponents,
+	)
+
 	return processArgs
 }
 
@@ -602,6 +635,50 @@ func GetProcessArgs(
 	}
 }
 
+func GetSovereignProcessArgs(
+	shardCoordinator sharding.Coordinator,
+	coreComponents factory.CoreComponentsHolder,
+	dataComponents factory.DataComponentsHolder,
+	cryptoComponents factory.CryptoComponentsHolder,
+	stateComponents factory.StateComponentsHolder,
+	networkComponents factory.NetworkComponentsHolder,
+) processComp.ProcessComponentsFactoryArgs {
+	processArgs := GetProcessArgs(
+		shardCoordinator,
+		coreComponents,
+		dataComponents,
+		cryptoComponents,
+		stateComponents,
+		networkComponents,
+	)
+
+	bootstrapComponentsFactoryArgs := GetBootStrapFactoryArgs()
+	bootstrapComponentsFactoryArgs.RunTypeComponents = GetSovereignRunTypeComponents()
+	bootstrapComponentsFactoryArgs.NodesCoordinatorWithRaterFactory = nodesCoordinator.NewSovereignIndexHashedNodesCoordinatorWithRaterFactory()
+	bootstrapComponentsFactory, _ := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
+	bootstrapComponents, _ := bootstrapComp.NewTestManagedBootstrapComponents(bootstrapComponentsFactory)
+	_ = bootstrapComponents.Create()
+	_ = bootstrapComponents.SetShardCoordinator(shardCoordinator)
+
+	statusCoreComponents := GetSovereignStatusCoreComponents()
+
+	extraHeaderSigVerifierHolder := headerCheck.NewExtraHeaderSigVerifierHolder()
+	sovHeaderSigVerifier, _ := headerCheck.NewSovereignHeaderSigVerifier(cryptoComponents.BlockSigner())
+	_ = extraHeaderSigVerifierHolder.RegisterExtraHeaderSigVerifier(sovHeaderSigVerifier)
+
+	processArgs.BootstrapComponents = bootstrapComponents
+	processArgs.StatusCoreComponents = statusCoreComponents
+	processArgs.GenesisBlockCreatorFactory = process.NewSovereignGenesisBlockCreatorFactory()
+	processArgs.GenesisMetaBlockChecker = processComp.NewSovereignGenesisMetaBlockChecker()
+	processArgs.RequesterContainerFactoryCreator = requesterscontainer.NewSovereignShardRequestersContainerFactoryCreator()
+	processArgs.InterceptorsContainerFactoryCreator = interceptorscontainer.NewSovereignShardInterceptorsContainerFactoryCreator()
+	processArgs.ShardResolversContainerFactoryCreator = resolverscontainer.NewSovereignShardResolversContainerFactoryCreator()
+	processArgs.ExtraHeaderSigVerifierHolder = extraHeaderSigVerifierHolder
+	processArgs.RunTypeComponents = GetSovereignRunTypeComponents()
+
+	return processArgs
+}
+
 // GetStatusComponents -
 func GetStatusComponents(
 	coreComponents factory.CoreComponentsHolder,
@@ -728,6 +805,17 @@ func GetNetworkComponents(cryptoComp factory.CryptoComponentsHolder) factory.Net
 // GetDataComponents -
 func GetDataComponents(coreComponents factory.CoreComponentsHolder, shardCoordinator sharding.Coordinator) factory.DataComponentsHolder {
 	dataArgs := GetDataArgs(coreComponents, shardCoordinator)
+	return createDataComponents(dataArgs)
+}
+
+// GetSovereignDataComponents -
+func GetSovereignDataComponents(coreComponents factory.CoreComponentsHolder, shardCoordinator sharding.Coordinator) factory.DataComponentsHolder {
+	dataArgs := GetDataArgs(coreComponents, shardCoordinator)
+	dataArgs.AdditionalStorageServiceCreator = GetSovereignRunTypeComponents().AdditionalStorageServiceCreator()
+	return createDataComponents(dataArgs)
+}
+
+func createDataComponents(dataArgs dataComp.DataComponentsFactoryArgs) factory.DataComponentsHolder {
 	dataComponentsFactory, _ := dataComp.NewDataComponentsFactory(dataArgs)
 	dataComponents, _ := dataComp.NewManagedDataComponents(dataComponentsFactory)
 	_ = dataComponents.Create()
@@ -755,6 +843,18 @@ func GetCryptoComponents(coreComponents factory.CoreComponentsHolder) factory.Cr
 // GetStateComponents -
 func GetStateComponents(coreComponents factory.CoreComponentsHolder) factory.StateComponentsHolder {
 	stateArgs := GetStateFactoryArgs(coreComponents)
+	return createStateComponents(stateArgs)
+}
+
+// GetSovereignStateComponents -
+func GetSovereignStateComponents(coreComponents factory.CoreComponentsHolder) factory.StateComponentsHolder {
+	stateArgs := GetStateFactoryArgs(coreComponents)
+	stateArgs.StatusCore = GetSovereignStatusCoreComponents()
+	stateArgs.AccountsCreator = GetSovereignRunTypeComponents().AccountsCreator()
+	return createStateComponents(stateArgs)
+}
+
+func createStateComponents(stateArgs stateComp.StateComponentsFactoryArgs) factory.StateComponentsHolder {
 	stateComponentsFactory, err := stateComp.NewStateComponentsFactory(stateArgs)
 	if err != nil {
 		log.Error("getStateComponents NewStateComponentsFactory", "error", err.Error())
@@ -777,6 +877,16 @@ func GetStateComponents(coreComponents factory.CoreComponentsHolder) factory.Sta
 // GetStatusCoreComponents -
 func GetStatusCoreComponents() factory.StatusCoreComponentsHolder {
 	args := GetStatusCoreArgs(GetCoreComponents())
+	return createStatusCoreComponents(args)
+}
+
+// GetSovereignStatusCoreComponents -
+func GetSovereignStatusCoreComponents() factory.StatusCoreComponentsHolder {
+	args := GetStatusCoreArgs(GetSovereignCoreComponents())
+	return createStatusCoreComponents(args)
+}
+
+func createStatusCoreComponents(args statusCore.StatusCoreComponentsFactoryArgs) factory.StatusCoreComponentsHolder {
 	statusCoreFactory, err := statusCore.NewStatusCoreComponentsFactory(args)
 	if err != nil {
 		log.Error("GetStatusCoreComponents NewStatusCoreComponentsFactory", "error", err.Error())
