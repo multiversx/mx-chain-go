@@ -104,6 +104,7 @@ func (ald *auctionListDisplayer) DisplayExtraOwnersData(ownersData map[string]*O
 		"Num auction nodes",
 		"Total top up",
 		"Top up per node",
+		"Auction list nodes",
 	}
 
 	lines := make([]*display.LineData, 0, len(ownersData))
@@ -115,11 +116,12 @@ func (ald *auctionListDisplayer) DisplayExtraOwnersData(ownersData map[string]*O
 			strconv.Itoa(int(owner.numAuctionNodes)),
 			getPrettyValue(owner.totalTopUp, ald.softAuctionConfig.denominator),
 			getPrettyValue(owner.topUpPerNode, ald.softAuctionConfig.denominator),
+			ald.getShortDisplayableBlsKeys(owner.auctionList),
 		}
 		lines = append(lines, display.NewLineData(false, line))
 	}
 
-	ald.tableDisplayer.DisplayTable(tableHeader, lines, "Extra nodes config not in auction list")
+	ald.tableDisplayer.DisplayTable(tableHeader, lines, "All nodes config with and without auction")
 }
 
 func getPrettyValue(val *big.Int, denominator *big.Int) string {

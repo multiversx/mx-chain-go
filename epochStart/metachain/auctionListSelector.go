@@ -264,16 +264,19 @@ func (als *auctionListSelector) getAuctionData() (map[string]*OwnerAuctionData, 
 			}
 			copy(ownersData[owner].auctionList, ownerData.AuctionList)
 			numOfNodesInAuction += uint32(numAuctionNodes)
-		} else {
-			extraOwnersData[owner] = &OwnerAuctionData{
-				numActiveNodes:        ownerData.NumActiveNodes,
-				numStakedNodes:        ownerData.NumStakedNodes,
-				totalTopUp:            ownerData.TotalTopUp,
-				topUpPerNode:          ownerData.TopUpPerNode,
-				qualifiedTopUpPerNode: ownerData.TopUpPerNode,
-				auctionList:           make([]state.ValidatorInfoHandler, 0),
-			}
 		}
+		numAuctionNodes := len(ownerData.AuctionList)
+		extraOwnersData[owner] = &OwnerAuctionData{
+			numActiveNodes:           ownerData.NumActiveNodes,
+			numAuctionNodes:          int64(numAuctionNodes),
+			numQualifiedAuctionNodes: int64(numAuctionNodes),
+			numStakedNodes:           ownerData.NumStakedNodes,
+			totalTopUp:               ownerData.TotalTopUp,
+			topUpPerNode:             ownerData.TopUpPerNode,
+			qualifiedTopUpPerNode:    ownerData.TopUpPerNode,
+			auctionList:              make([]state.ValidatorInfoHandler, numAuctionNodes),
+		}
+		copy(extraOwnersData[owner].auctionList, ownerData.AuctionList)
 	}
 
 	return ownersData, extraOwnersData, numOfNodesInAuction
