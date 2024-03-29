@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/multiversx/mx-chain-core-go/core"
 	"math"
 	"math/big"
 	"strconv"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/vm"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -829,7 +829,6 @@ func (s *stakingSC) unStakeAllNodesFromQueue(args *vmcommon.ContractCallInput) v
 	mapOwnerKeys := make(map[string][][]byte)
 	for i, blsKey := range waitingListData.blsKeys {
 		registrationData := waitingListData.stakedDataList[i]
-
 		result := s.doUnStake(blsKey, registrationData)
 		if result != vmcommon.Ok {
 			return result
@@ -864,17 +863,27 @@ func (s *stakingSC) unStakeAllNodesFromQueue(args *vmcommon.ContractCallInput) v
 		for _, key := range listOfKeys {
 			unStakeCall += "@" + hex.EncodeToString(key)
 		}
-		vmOutput, err := s.eei.ExecuteOnDestContext([]byte(owner), args.RecipientAddr, big.NewInt(0), []byte(unStakeCall))
-		if err != nil {
-			s.eei.AddReturnMessage(err.Error())
-			return vmcommon.UserError
-		}
-		if vmOutput.ReturnCode != vmcommon.Ok {
-			return vmOutput.ReturnCode
+		returnCode := s.executeOnStakeAtEndOfEpoch([]byte(owner), listOfKeys, args.RecipientAddr)
+		if returnCode != vmcommon.Ok {
+			return returnCode
 		}
 	}
 
 	return vmcommon.Ok
+}
+
+func (s *stakingSC) executeOnStakeAtEndOfEpoch(destinationAddress []byte, listOfKeys [][]byte, senderAddress []byte) vmcommon.ReturnCode {
+	unStakeCall := "unStakeAtEndOfEpoch"
+	for _, key := range listOfKeys {
+		unStakeCall += "@" + hex.EncodeToString(key)
+	}
+	vmOutput, err := s.eei.ExecuteOnDestContext(destinationAddress, senderAddress, big.NewInt(0), []byte(unStakeCall))
+	if err != nil {
+		s.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	return vmOutput.ReturnCode
 }
 
 func (s *stakingSC) cleanAdditionalQueue(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
