@@ -76,7 +76,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		OutGoingOperationsPool:              &sovereignMocks.OutGoingOperationsPoolMock{},
 		DataCodec:                           &sovereignMocks.DataCodecMock{},
 		TopicsChecker:                       &sovereignMocks.TopicsCheckerMock{},
-		ShardCoordinatorFactory:             &testFactory.MultiShardCoordinatorFactoryMock{},
+		ShardCoordinatorFactory:             sharding.NewMultiShardCoordinatorFactory(),
 	}
 }
 

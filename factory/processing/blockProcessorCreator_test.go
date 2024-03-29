@@ -5,14 +5,12 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/hashing"
-	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	dataComp "github.com/multiversx/mx-chain-go/factory/data"
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	processComp "github.com/multiversx/mx-chain-go/factory/processing"
+	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
 	disabledState "github.com/multiversx/mx-chain-go/state/disabled"
@@ -25,6 +23,10 @@ import (
 	storageManager "github.com/multiversx/mx-chain-go/testscommon/storage"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 )
@@ -68,7 +70,7 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 	t.Run("new block processor creator for shard in sovereign chain should work", func(t *testing.T) {
 		t.Parallel()
 
-		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
+		shardCoordinator := sharding.NewSovereignShardCoordinator(core.SovereignChainShardId)
 		args := componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator)
 		args.RunTypeComponents = componentsMock.GetSovereignRunTypeComponents()
 		pcf, err := processComp.NewProcessComponentsFactory(args)
