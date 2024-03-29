@@ -11,7 +11,6 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	errorsCommon "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/state"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const maxPubKeyDisplayableLen = 20
@@ -69,9 +68,6 @@ func checkDisplayerNilArgs(args ArgsAuctionListDisplayer) error {
 
 // DisplayOwnersData will display initial owners data for auction selection
 func (ald *auctionListDisplayer) DisplayOwnersData(ownersData map[string]*OwnerAuctionData) {
-	if log.GetLevel() > logger.LogDebug {
-		return
-	}
 
 	tableHeader := []string{
 		"Owner",
@@ -98,6 +94,32 @@ func (ald *auctionListDisplayer) DisplayOwnersData(ownersData map[string]*OwnerA
 	}
 
 	ald.tableDisplayer.DisplayTable(tableHeader, lines, "Initial nodes config in auction list")
+}
+
+func (ald *auctionListDisplayer) DisplayExtraOwnersData(ownersData map[string]*OwnerAuctionData) {
+	tableHeader := []string{
+		"Owner",
+		"Num staked nodes",
+		"Num active nodes",
+		"Num auction nodes",
+		"Total top up",
+		"Top up per node",
+	}
+
+	lines := make([]*display.LineData, 0, len(ownersData))
+	for ownerPubKey, owner := range ownersData {
+		line := []string{
+			ald.addressPubKeyConverter.SilentEncode([]byte(ownerPubKey), log),
+			strconv.Itoa(int(owner.numStakedNodes)),
+			strconv.Itoa(int(owner.numActiveNodes)),
+			strconv.Itoa(int(owner.numAuctionNodes)),
+			getPrettyValue(owner.totalTopUp, ald.softAuctionConfig.denominator),
+			getPrettyValue(owner.topUpPerNode, ald.softAuctionConfig.denominator),
+		}
+		lines = append(lines, display.NewLineData(false, line))
+	}
+
+	ald.tableDisplayer.DisplayTable(tableHeader, lines, "Extra nodes config not in auction list")
 }
 
 func getPrettyValue(val *big.Int, denominator *big.Int) string {
@@ -144,9 +166,6 @@ func (ald *auctionListDisplayer) getShortKey(pubKey []byte) string {
 
 // DisplayOwnersSelectedNodes will display owners' selected nodes
 func (ald *auctionListDisplayer) DisplayOwnersSelectedNodes(ownersData map[string]*OwnerAuctionData) {
-	if log.GetLevel() > logger.LogDebug {
-		return
-	}
 
 	tableHeader := []string{
 		"Owner",
@@ -185,9 +204,6 @@ func (ald *auctionListDisplayer) DisplayAuctionList(
 	ownersData map[string]*OwnerAuctionData,
 	numOfSelectedNodes uint32,
 ) {
-	if log.GetLevel() > logger.LogDebug {
-		return
-	}
 
 	tableHeader := []string{"Owner", "Registered key", "Qualified TopUp per node"}
 	lines := make([]*display.LineData, 0, len(auctionList))

@@ -190,7 +190,7 @@ func (als *auctionListSelector) SelectNodesFromAuctionList(
 		return process.ErrNilRandSeed
 	}
 
-	ownersData, auctionListSize := als.getAuctionData()
+	ownersData, extraOwnersData, auctionListSize := als.getAuctionData()
 	if auctionListSize == 0 {
 		log.Info("auctionListSelector.SelectNodesFromAuctionList: empty auction list; skip selection")
 		return nil
@@ -230,6 +230,7 @@ func (als *auctionListSelector) SelectNodesFromAuctionList(
 	)
 
 	als.auctionListDisplayer.DisplayOwnersData(ownersData)
+	als.auctionListDisplayer.(*auctionListDisplayer).DisplayExtraOwnersData(extraOwnersData)
 	numOfAvailableNodeSlots := core.MinUint32(auctionListSize, availableSlots)
 
 	sw := core.NewStopWatch()
@@ -242,8 +243,9 @@ func (als *auctionListSelector) SelectNodesFromAuctionList(
 	return als.sortAuctionList(ownersData, numOfAvailableNodeSlots, validatorsInfoMap, randomness)
 }
 
-func (als *auctionListSelector) getAuctionData() (map[string]*OwnerAuctionData, uint32) {
+func (als *auctionListSelector) getAuctionData() (map[string]*OwnerAuctionData, map[string]*OwnerAuctionData, uint32) {
 	ownersData := make(map[string]*OwnerAuctionData)
+	extraOwnersData := make(map[string]*OwnerAuctionData)
 	numOfNodesInAuction := uint32(0)
 
 	for owner, ownerData := range als.stakingDataProvider.GetOwnersData() {
@@ -262,10 +264,19 @@ func (als *auctionListSelector) getAuctionData() (map[string]*OwnerAuctionData, 
 			}
 			copy(ownersData[owner].auctionList, ownerData.AuctionList)
 			numOfNodesInAuction += uint32(numAuctionNodes)
+		} else {
+			extraOwnersData[owner] = &OwnerAuctionData{
+				numActiveNodes:        ownerData.NumActiveNodes,
+				numStakedNodes:        ownerData.NumStakedNodes,
+				totalTopUp:            ownerData.TotalTopUp,
+				topUpPerNode:          ownerData.TopUpPerNode,
+				qualifiedTopUpPerNode: ownerData.TopUpPerNode,
+				auctionList:           make([]state.ValidatorInfoHandler, 0),
+			}
 		}
 	}
 
-	return ownersData, numOfNodesInAuction
+	return ownersData, extraOwnersData, numOfNodesInAuction
 }
 
 func isInAuction(validator state.ValidatorInfoHandler) bool {
