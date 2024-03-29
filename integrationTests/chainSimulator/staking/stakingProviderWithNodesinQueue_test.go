@@ -3,6 +3,10 @@ package staking
 import (
 	"encoding/hex"
 	"fmt"
+	"math/big"
+	"testing"
+	"time"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/config"
@@ -11,9 +15,6 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/stretchr/testify/require"
-	"math/big"
-	"testing"
-	"time"
 )
 
 func TestStakingProviderWithNodes(t *testing.T) {
@@ -123,6 +124,10 @@ func testStakingProviderWithNodesReStakeUnStaked(t *testing.T, stakingV4Activati
 
 	status = getBLSKeyStatus(t, metachainNode, decodedBLSKey0)
 	require.Equal(t, "staked", status)
+
+	result := getAllNodeStates(t, metachainNode, delegationAddressBytes)
+	require.NotNil(t, result)
+	require.Equal(t, "staked", result[blsKeys[0]])
 
 	err = cs.GenerateBlocks(20)
 	require.Nil(t, err)
