@@ -115,6 +115,10 @@ func testStakingProviderWithNodesReStakeUnStaked(t *testing.T, stakingV4Activati
 	status = getBLSKeyStatus(t, metachainNode, decodedBLSKey0)
 	require.Equal(t, "unStaked", status)
 
+	result := getAllNodeStates(t, metachainNode, delegationAddressBytes)
+	require.NotNil(t, result)
+	require.Equal(t, "unStaked", result[blsKeys[0]])
+
 	ownerNonce = getNonce(t, cs, validatorOwner)
 	reStakeTxData := fmt.Sprintf("reStakeUnStakedNodes@%s", blsKeys[0])
 	reStakeNodes := generateTransaction(validatorOwner.Bytes, ownerNonce, delegationAddressBytes, big.NewInt(0), reStakeTxData, gasLimitForStakeOperation)
@@ -125,7 +129,7 @@ func testStakingProviderWithNodesReStakeUnStaked(t *testing.T, stakingV4Activati
 	status = getBLSKeyStatus(t, metachainNode, decodedBLSKey0)
 	require.Equal(t, "staked", status)
 
-	result := getAllNodeStates(t, metachainNode, delegationAddressBytes)
+	result = getAllNodeStates(t, metachainNode, delegationAddressBytes)
 	require.NotNil(t, result)
 	require.Equal(t, "staked", result[blsKeys[0]])
 
