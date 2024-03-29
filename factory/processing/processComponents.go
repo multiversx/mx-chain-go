@@ -163,7 +163,6 @@ type ProcessComponentsFactoryArgs struct {
 	TxExecutionOrderHandler common.TxExecutionOrderHandler
 	RunTypeComponents       factory.RunTypeComponentsHolder
 
-	ShardCoordinatorFactory               sharding.ShardCoordinatorFactory
 	GenesisBlockCreatorFactory            processGenesis.GenesisBlockCreatorFactory
 	GenesisMetaBlockChecker               GenesisMetaBlockChecker
 	RequesterContainerFactoryCreator      requesterscontainer.RequesterContainerFactoryCreator
@@ -208,7 +207,6 @@ type processComponentsFactory struct {
 	txExecutionOrderHandler common.TxExecutionOrderHandler
 	runTypeComponents       factory.RunTypeComponentsHolder
 
-	shardCoordinatorFactory               sharding.ShardCoordinatorFactory
 	genesisBlockCreatorFactory            processGenesis.GenesisBlockCreatorFactory
 	genesisMetaBlockChecker               GenesisMetaBlockChecker
 	requesterContainerFactoryCreator      requesterscontainer.RequesterContainerFactoryCreator
@@ -253,7 +251,6 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		statusCoreComponents:                  args.StatusCoreComponents,
 		flagsConfig:                           args.FlagsConfig,
 		runTypeComponents:                     args.RunTypeComponents,
-		shardCoordinatorFactory:               args.ShardCoordinatorFactory,
 		genesisBlockCreatorFactory:            args.GenesisBlockCreatorFactory,
 		genesisMetaBlockChecker:               args.GenesisMetaBlockChecker,
 		txExecutionOrderHandler:               args.TxExecutionOrderHandler,
@@ -916,7 +913,6 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		GenesisString:           pcf.config.GeneralSettings.GenesisString,
 		TxExecutionOrderHandler: pcf.txExecutionOrderHandler,
 		RunTypeComponents:       pcf.runTypeComponents,
-		ShardCoordinatorFactory: pcf.shardCoordinatorFactory,
 		TxPreprocessorCreator:   pcf.txPreprocessorCreator,
 		DNSV2Addresses:          pcf.config.BuiltInFunctions.DNSV2Addresses,
 		// TODO: We should only pass the whole config instead of passing sub-configs as above
@@ -1869,7 +1865,7 @@ func (pcf *processComponentsFactory) createExportFactoryHandler(
 		NumConcurrentTrieSyncers:         pcf.config.TrieSync.NumConcurrentTrieSyncers,
 		TrieSyncerVersion:                pcf.config.TrieSync.TrieSyncerVersion,
 		NodeOperationMode:                nodeOperationMode,
-		ShardCoordinatorFactory:          pcf.shardCoordinatorFactory,
+		ShardCoordinatorFactory:          pcf.runTypeComponents.ShardCoordinatorCreator(),
 	}
 	return updateFactory.NewExportHandlerFactory(argsExporter)
 }
@@ -2030,9 +2026,6 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	if check.IfNil(args.TxExecutionOrderHandler) {
 		return fmt.Errorf("%s: %w", baseErrMessage, process.ErrNilTxExecutionOrderHandler)
 	}
-	if check.IfNil(args.ShardCoordinatorFactory) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilShardCoordinatorFactory)
-	}
 	if check.IfNil(args.GenesisBlockCreatorFactory) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilGenesisBlockFactory)
 	}
@@ -2122,6 +2115,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.RunTypeComponents.TopicsCheckerHandler()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilTopicsChecker)
+	}
+	if check.IfNil(args.RunTypeComponents.ShardCoordinatorCreator()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilShardCoordinatorFactory)
 	}
 
 	return nil

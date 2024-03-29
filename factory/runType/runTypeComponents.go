@@ -23,6 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
 	"github.com/multiversx/mx-chain-go/process/track"
+	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/factory"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
@@ -58,6 +59,7 @@ type runTypeComponents struct {
 	outGoingOperationsPoolHandler       sovereignBlock.OutGoingOperationsPool
 	dataCodecHandler                    sovereign.DataDecoderHandler
 	topicsCheckerHandler                sovereign.TopicsCheckerHandler
+	shardCoordinatorCreator             sharding.ShardCoordinatorFactory
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
@@ -164,6 +166,8 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 
 	topicsChecker := disabled.NewDisabledTopicsChecker()
 
+	shardCoordinatorCreator := sharding.NewMultiShardCoordinatorFactory()
+
 	return &runTypeComponents{
 		blockChainHookHandlerCreator:        blockChainHookHandlerFactory,
 		epochStartBootstrapperCreator:       epochStartBootstrapperFactory,
@@ -187,6 +191,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		outGoingOperationsPoolHandler:       outGoingOperationsPool,
 		dataCodecHandler:                    dataCodec,
 		topicsCheckerHandler:                topicsChecker,
+		shardCoordinatorCreator:             shardCoordinatorCreator,
 	}, nil
 }
 

@@ -597,6 +597,7 @@ type RunTypeComponentsHolder interface {
 	OutGoingOperationsPoolHandler() sovereignBlock.OutGoingOperationsPool
 	DataCodecHandler() sovereign.DataDecoderHandler
 	TopicsCheckerHandler() sovereign.TopicsCheckerHandler
+	ShardCoordinatorCreator() sharding.ShardCoordinatorFactory
 	Create() error
 	Close() error
 	CheckSubcomponents() error

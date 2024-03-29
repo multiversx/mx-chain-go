@@ -252,7 +252,6 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 			StateStatsHandlerField: disabledStatistics.NewStateStatistics(),
 		},
 		TxExecutionOrderHandler:               &txExecOrderStub.TxExecutionOrderHandlerStub{},
-		ShardCoordinatorFactory:               sharding.NewMultiShardCoordinatorFactory(),
 		GenesisBlockCreatorFactory:            genesisProcess.NewGenesisBlockCreatorFactory(),
 		GenesisMetaBlockChecker:               processComp.NewGenesisMetaBlockChecker(),
 		RequesterContainerFactoryCreator:      requesterscontainer.NewShardRequestersContainerFactoryCreator(),
@@ -593,15 +592,6 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		require.True(t, errors.Is(err, errorsMx.ErrNilStatusCoreComponents))
 		require.Nil(t, pcf)
 	})
-	t.Run("nil shard coordinator factory, should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockProcessComponentsFactoryArgs()
-		args.ShardCoordinatorFactory = nil
-		pcf, err := processComp.NewProcessComponentsFactory(args)
-		require.True(t, errors.Is(err, errorsMx.ErrNilShardCoordinatorFactory))
-		require.Nil(t, pcf)
-	})
 	t.Run("nil genesis block creator factory, should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -914,6 +904,17 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		args.RunTypeComponents = rtMock
 		pcf, err := processComp.NewProcessComponentsFactory(args)
 		require.True(t, errors.Is(err, errorsMx.ErrNilTopicsChecker))
+		require.Nil(t, pcf)
+	})
+	t.Run("nil ShardCoordinatorFactory should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockProcessComponentsFactoryArgs()
+		rtMock := getRunTypeComponentsMock()
+		rtMock.ShardCoordinatorFactory = nil
+		args.RunTypeComponents = rtMock
+		pcf, err := processComp.NewProcessComponentsFactory(args)
+		require.True(t, errors.Is(err, errorsMx.ErrNilShardCoordinatorFactory))
 		require.Nil(t, pcf)
 	})
 	t.Run("should work", func(t *testing.T) {

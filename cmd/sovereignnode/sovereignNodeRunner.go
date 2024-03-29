@@ -1344,7 +1344,6 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 		FlagsConfig:                           *configs.FlagsConfig,
 		TxExecutionOrderHandler:               ordering.NewOrderedCollection(),
 		RunTypeComponents:                     runTypeComponents,
-		ShardCoordinatorFactory:               sharding.NewSovereignShardCoordinatorFactory(),
 		GenesisBlockCreatorFactory:            genesisProcess.NewSovereignGenesisBlockCreatorFactory(),
 		GenesisMetaBlockChecker:               processComp.NewSovereignGenesisMetaBlockChecker(),
 		RequesterContainerFactoryCreator:      requesterscontainer.NewSovereignShardRequestersContainerFactoryCreator(),
@@ -1485,7 +1484,6 @@ func (snr *sovereignNodeRunner) CreateManagedBootstrapComponents(
 		StatusCoreComponents:             statusCoreComponents,
 		RunTypeComponents:                runTypeComponents,
 		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewSovereignIndexHashedNodesCoordinatorWithRaterFactory(),
-		ShardCoordinatorFactory:          sharding.NewSovereignShardCoordinatorFactory(),
 	}
 
 	bootstrapComponentsFactory, err := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
