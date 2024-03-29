@@ -14,18 +14,18 @@ require (
 	github.com/gorilla/websocket v1.5.0
 	github.com/klauspost/cpuid/v2 v2.2.5
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/multiversx/mx-chain-communication-go v1.0.13-0.20240126121117-627adccf10ad
-	github.com/multiversx/mx-chain-core-go v1.2.19-0.20240325125442-4fced051a598
+	github.com/multiversx/mx-chain-communication-go v1.0.13-0.20240321151517-2fffad77c605
+	github.com/multiversx/mx-chain-core-go v1.2.20-0.20240328111817-b846b1c176aa
 	github.com/multiversx/mx-chain-crypto-go v1.2.10-0.20231206065052-38843c1f1479
-	github.com/multiversx/mx-chain-es-indexer-go v1.4.19-0.20240129150813-a772c480d33a
+	github.com/multiversx/mx-chain-es-indexer-go v1.4.20-0.20240228094052-28a36809b9b8
 	github.com/multiversx/mx-chain-logger-go v1.0.14-0.20240129144507-d00e967c890c
 	github.com/multiversx/mx-chain-scenario-go v1.4.3-0.20240212160120-cc32d1580157
-	github.com/multiversx/mx-chain-storage-go v1.0.15-0.20240129144933-b1c0d642d7f8
-	github.com/multiversx/mx-chain-vm-common-go v1.5.12-0.20240325125548-cdd6cb3e110b
-	github.com/multiversx/mx-chain-vm-go v1.5.28-0.20240307121727-b8d371971d9a
-	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.66-0.20240308085208-3b5a4ab4dd34
-	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.67-0.20240308082903-132f9002736b
-	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.96-0.20240308082831-f05004a05b35
+	github.com/multiversx/mx-chain-storage-go v1.0.15-0.20240321150623-3974ec1d6474
+	github.com/multiversx/mx-chain-vm-common-go v1.5.12-0.20240328112153-dcc93e27e9b7
+	github.com/multiversx/mx-chain-vm-go v1.5.28-0.20240321153018-3e5a88ba7368
+	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.66-0.20240321152247-79521988c8e6
+	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.67-0.20240321152532-45da5eabdc38
+	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.96-0.20240321152756-16110ce9d968
 	github.com/pelletier/go-toml v1.9.3
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.14.0
