@@ -423,7 +423,7 @@ func GetSovereignProcessComponentsFactoryArgs(shardCoordinator sharding.Coordina
 	cryptoComponents := GetCryptoComponents(coreComponents)
 	networkComponents := GetNetworkComponents(cryptoComponents)
 	dataComponents := GetSovereignDataComponents(coreComponents, shardCoordinator)
-	stateComponents := GetSovereignStateComponents(coreComponents)
+	stateComponents := GetSovereignStateComponents(coreComponents, GetSovereignStatusCoreComponents())
 	processArgs := GetSovereignProcessArgs(
 		shardCoordinator,
 		coreComponents,
@@ -874,8 +874,8 @@ func GetStateComponents(coreComponents factory.CoreComponentsHolder, statusCoreC
 }
 
 // GetSovereignStateComponents -
-func GetSovereignStateComponents(coreComponents factory.CoreComponentsHolder) factory.StateComponentsHolder {
-	stateArgs := GetStateFactoryArgs(coreComponents)
+func GetSovereignStateComponents(coreComponents factory.CoreComponentsHolder, statusCoreComponents factory.StatusCoreComponentsHolder) factory.StateComponentsHolder {
+	stateArgs := GetStateFactoryArgs(coreComponents, statusCoreComponents)
 	stateArgs.StatusCore = GetSovereignStatusCoreComponents()
 	stateArgs.AccountsCreator = GetSovereignRunTypeComponents().AccountsCreator()
 	return createStateComponents(stateArgs)
