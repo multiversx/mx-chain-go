@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/multiversx/mx-chain-go/trie/leavesRetriever/trieNodeData"
 	"io"
 	"math"
 	"sync"
@@ -559,6 +560,19 @@ func (ln *leafNode) collectLeavesForMigration(
 	}
 
 	return migrationArgs.TrieMigrator.AddLeafToMigrationQueue(leafData, migrationArgs.NewVersion)
+}
+
+func (ln *leafNode) getNodeData(keyBuilder common.KeyBuilder) ([]common.TrieNodeData, error) {
+	err := ln.isEmptyOrNil()
+	if err != nil {
+		return nil, fmt.Errorf("getNodeData error %w", err)
+	}
+
+	data := make([]common.TrieNodeData, 1)
+	keyBuilder.BuildKey(ln.Key)
+	data[0] = trieNodeData.NewLeafNodeData(keyBuilder.Clone(), ln.Value)
+
+	return data, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

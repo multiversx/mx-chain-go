@@ -7,6 +7,7 @@ type KeyBuilderStub struct {
 	BuildKeyCalled func(keyPart []byte)
 	GetKeyCalled   func() ([]byte, error)
 	CloneCalled    func() common.KeyBuilder
+	SizeCalled     func() uint
 }
 
 // BuildKey -
@@ -32,6 +33,15 @@ func (stub *KeyBuilderStub) Clone() common.KeyBuilder {
 	}
 
 	return &KeyBuilderStub{}
+}
+
+// Size -
+func (stub *KeyBuilderStub) Size() uint {
+	if stub.SizeCalled != nil {
+		return stub.SizeCalled()
+	}
+
+	return 0
 }
 
 // IsInterfaceNil -

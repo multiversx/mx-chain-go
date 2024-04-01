@@ -27,6 +27,11 @@ func (dkb *disabledKeyBuilder) Clone() common.KeyBuilder {
 	return &disabledKeyBuilder{}
 }
 
+// Size returns 0 for this implementation
+func (dkb *disabledKeyBuilder) Size() uint {
+	return 0
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (dkb *disabledKeyBuilder) IsInterfaceNil() bool {
 	return dkb == nil

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/multiversx/mx-chain-go/trie/leavesRetriever/trieNodeData"
 	"io"
 	"sync"
 
@@ -993,6 +994,27 @@ func (bn *branchNode) collectLeavesForMigration(
 	}
 
 	return true, nil
+}
+
+func (bn *branchNode) getNodeData(keyBuilder common.KeyBuilder) ([]common.TrieNodeData, error) {
+	err := bn.isEmptyOrNil()
+	if err != nil {
+		return nil, fmt.Errorf("getNodeData error %w", err)
+	}
+
+	data := make([]common.TrieNodeData, 0)
+	for i := range bn.EncodedChildren {
+		if len(bn.EncodedChildren[i]) == 0 {
+			continue
+		}
+
+		clonedKeyBuilder := keyBuilder.Clone()
+		clonedKeyBuilder.BuildKey([]byte{byte(i)})
+		childData := trieNodeData.NewIntermediaryNodeData(clonedKeyBuilder, bn.EncodedChildren[i])
+		data = append(data, childData)
+	}
+
+	return data, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

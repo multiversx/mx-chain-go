@@ -60,6 +60,11 @@ func hexToTrieKeyBytes(hex []byte) ([]byte, error) {
 	return key, nil
 }
 
+// Size returns the size of the key
+func (kb *keyBuilder) Size() uint {
+	return uint(len(kb.key))
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (kb *keyBuilder) IsInterfaceNil() bool {
 	return kb == nil
