@@ -1,14 +1,14 @@
 package storage
 
 import (
-	"github.com/multiversx/mx-chain-storage-go/storageUnit"
+	"github.com/multiversx/mx-chain-storage-go/common"
 )
 
 // MaxRetriesToCreateDB represents the maximum number of times to try to create DB if it failed
-const MaxRetriesToCreateDB = storageUnit.MaxRetriesToCreateDB
+const MaxRetriesToCreateDB = common.MaxRetriesToCreateDB
 
 // SleepTimeBetweenCreateDBRetries represents the number of seconds to sleep between DB creates
-const SleepTimeBetweenCreateDBRetries = storageUnit.SleepTimeBetweenCreateDBRetries
+const SleepTimeBetweenCreateDBRetries = common.SleepTimeBetweenCreateDBRetries
 
 // PathShardPlaceholder represents the placeholder for the shard ID in paths
 const PathShardPlaceholder = "[S]"

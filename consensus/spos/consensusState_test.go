@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -603,6 +604,40 @@ func TestConsensusState_IsMultiKeyJobDone(t *testing.T) {
 		_ = cns.SetJobDone(managedKeyInConsensus, 0, true)
 		assert.True(t, cns.IsMultiKeyJobDone(0))
 	})
+}
+
+func TestConsensusState_GetMultikeyRedundancyStepInReason(t *testing.T) {
+	t.Parallel()
+
+	expectedString := "expected string"
+	keysHandler := &testscommon.KeysHandlerStub{
+		GetRedundancyStepInReasonCalled: func() string {
+			return expectedString
+		},
+	}
+	cns := internalInitConsensusStateWithKeysHandler(keysHandler)
+
+	assert.Equal(t, expectedString, cns.GetMultikeyRedundancyStepInReason())
+}
+
+func TestConsensusState_ResetRoundsWithoutReceivedMessages(t *testing.T) {
+	t.Parallel()
+
+	resetRoundsWithoutReceivedMessagesCalled := false
+	testPkBytes := []byte("pk bytes")
+	testPid := core.PeerID("pid")
+
+	keysHandler := &testscommon.KeysHandlerStub{
+		ResetRoundsWithoutReceivedMessagesCalled: func(pkBytes []byte, pid core.PeerID) {
+			resetRoundsWithoutReceivedMessagesCalled = true
+			assert.Equal(t, testPkBytes, pkBytes)
+			assert.Equal(t, testPid, pid)
+		},
+	}
+	cns := internalInitConsensusStateWithKeysHandler(keysHandler)
+
+	cns.ResetRoundsWithoutReceivedMessages(testPkBytes, testPid)
+	assert.True(t, resetRoundsWithoutReceivedMessagesCalled)
 }
 
 func TestConsensusState_InitAddGetProcessedHeadersHashesShouldWork(t *testing.T) {

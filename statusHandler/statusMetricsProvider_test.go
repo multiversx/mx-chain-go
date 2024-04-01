@@ -315,7 +315,6 @@ func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 	sm.SetUInt64Value(common.MetricDelegationSmartContractEnableEpoch, 2)
 	sm.SetUInt64Value(common.MetricIncrementSCRNonceInMultiTransferEnableEpoch, 3)
 	sm.SetUInt64Value(common.MetricBalanceWaitingListsEnableEpoch, 4)
-	sm.SetUInt64Value(common.MetricWaitingListFixEnableEpoch, 1)
 	sm.SetUInt64Value(common.MetricSetGuardianEnableEpoch, 3)
 
 	maxNodesChangeConfig := []map[string]uint64{
@@ -365,7 +364,6 @@ func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 		common.MetricDelegationSmartContractEnableEpoch:          uint64(2),
 		common.MetricIncrementSCRNonceInMultiTransferEnableEpoch: uint64(3),
 		common.MetricBalanceWaitingListsEnableEpoch:              uint64(4),
-		common.MetricWaitingListFixEnableEpoch:                   uint64(1),
 		common.MetricSetGuardianEnableEpoch:                      uint64(3),
 
 		common.MetricMaxNodesChangeEnableEpoch: []map[string]interface{}{

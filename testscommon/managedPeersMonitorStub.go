@@ -6,12 +6,21 @@ type ManagedPeersMonitorStub struct {
 	GetEligibleManagedKeysCalled func() ([][]byte, error)
 	GetWaitingManagedKeysCalled  func() ([][]byte, error)
 	GetManagedKeysCalled         func() [][]byte
+	GetLoadedKeysCalled          func() [][]byte
 }
 
 // GetManagedKeys -
 func (stub *ManagedPeersMonitorStub) GetManagedKeys() [][]byte {
 	if stub.GetManagedKeysCalled != nil {
 		return stub.GetManagedKeysCalled()
+	}
+	return make([][]byte, 0)
+}
+
+// GetLoadedKeys -
+func (stub *ManagedPeersMonitorStub) GetLoadedKeys() [][]byte {
+	if stub.GetLoadedKeysCalled != nil {
+		return stub.GetLoadedKeysCalled()
 	}
 	return make([][]byte, 0)
 }

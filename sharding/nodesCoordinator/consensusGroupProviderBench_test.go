@@ -1,11 +1,9 @@
 package nodesCoordinator
 
 import (
-	"math/rand"
 	"testing"
 )
 
-const randSeed = 75
 const numValidators = 63
 const numValidatorsInEligibleList = 400
 
@@ -20,7 +18,6 @@ func getRandomness() []byte {
 
 func BenchmarkReslicingBasedProvider_Get(b *testing.B) {
 	numVals := numValidators
-	rand.Seed(randSeed)
 	expElList := getExpandedEligibleList(numValidatorsInEligibleList)
 	randomness := getRandomness()
 
@@ -32,7 +29,6 @@ func BenchmarkReslicingBasedProvider_Get(b *testing.B) {
 
 func BenchmarkSelectionBasedProvider_Get(b *testing.B) {
 	numVals := numValidators
-	rand.Seed(randSeed)
 	expElList := getExpandedEligibleList(numValidatorsInEligibleList)
 	randomness := getRandomness()
 

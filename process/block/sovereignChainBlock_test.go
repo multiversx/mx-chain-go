@@ -83,7 +83,7 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 
 		scbp, err := blproc.NewSovereignChainBlockProcessor(blproc.ArgsSovereignChainBlockProcessor{
 			ShardProcessor:               nil,
-			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
+			ValidatorStatisticsProcessor: &testscommon.ValidatorStatisticsProcessorStub{},
 			OutgoingOperationsFormatter:  &sovereign.OutgoingOperationsFormatterMock{},
 			OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolMock{},
 			OperationsHasher:             &mock.HasherStub{},
@@ -117,7 +117,7 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 		sp, _ := blproc.NewShardProcessor(arguments)
 		scbp, err := blproc.NewSovereignChainBlockProcessor(blproc.ArgsSovereignChainBlockProcessor{
 			ShardProcessor:               sp,
-			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
+			ValidatorStatisticsProcessor: &testscommon.ValidatorStatisticsProcessorStub{},
 			OutgoingOperationsFormatter:  nil,
 			OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolMock{},
 			OperationsHasher:             &mock.HasherStub{},
@@ -134,7 +134,7 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 		sp, _ := blproc.NewShardProcessor(arguments)
 		scbp, err := blproc.NewSovereignChainBlockProcessor(blproc.ArgsSovereignChainBlockProcessor{
 			ShardProcessor:               sp,
-			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
+			ValidatorStatisticsProcessor: &testscommon.ValidatorStatisticsProcessorStub{},
 			OutgoingOperationsFormatter:  &sovereign.OutgoingOperationsFormatterMock{},
 			OutGoingOperationsPool:       nil,
 			OperationsHasher:             &mock.HasherStub{},
@@ -151,7 +151,7 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 		sp, _ := blproc.NewShardProcessor(arguments)
 		scbp, err := blproc.NewSovereignChainBlockProcessor(blproc.ArgsSovereignChainBlockProcessor{
 			ShardProcessor:               sp,
-			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
+			ValidatorStatisticsProcessor: &testscommon.ValidatorStatisticsProcessorStub{},
 			OutgoingOperationsFormatter:  &sovereign.OutgoingOperationsFormatterMock{},
 			OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolMock{},
 			OperationsHasher:             nil,
@@ -168,7 +168,7 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 		sp, _ := blproc.NewShardProcessor(arguments)
 		scbp, err := blproc.NewSovereignChainBlockProcessor(blproc.ArgsSovereignChainBlockProcessor{
 			ShardProcessor:               sp,
-			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
+			ValidatorStatisticsProcessor: &testscommon.ValidatorStatisticsProcessorStub{},
 			OutgoingOperationsFormatter:  &sovereign.OutgoingOperationsFormatterMock{},
 			OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolMock{},
 			OperationsHasher:             &mock.HasherStub{},
@@ -189,7 +189,7 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 		sp, _ := blproc.NewShardProcessor(arguments)
 		scbp, err := blproc.NewSovereignChainBlockProcessor(blproc.ArgsSovereignChainBlockProcessor{
 			ShardProcessor:               sp,
-			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
+			ValidatorStatisticsProcessor: &testscommon.ValidatorStatisticsProcessorStub{},
 			OutgoingOperationsFormatter:  &sovereign.OutgoingOperationsFormatterMock{},
 			OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolMock{},
 			OperationsHasher:             &mock.HasherStub{},
@@ -206,7 +206,7 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 		sp, _ := blproc.NewShardProcessor(arguments)
 		scbp, err := blproc.NewSovereignChainBlockProcessor(blproc.ArgsSovereignChainBlockProcessor{
 			ShardProcessor:               sp,
-			ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
+			ValidatorStatisticsProcessor: &testscommon.ValidatorStatisticsProcessorStub{},
 			OutgoingOperationsFormatter:  &sovereign.OutgoingOperationsFormatterMock{},
 			OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolMock{},
 			OperationsHasher:             &mock.HasherStub{},
@@ -276,7 +276,7 @@ func TestSovereignChainBlockProcessor_createAndSetOutGoingMiniBlock(t *testing.T
 	sp, _ := blproc.NewShardProcessor(arguments)
 	scbp, _ := blproc.NewSovereignChainBlockProcessor(blproc.ArgsSovereignChainBlockProcessor{
 		ShardProcessor:               sp,
-		ValidatorStatisticsProcessor: &mock.ValidatorStatisticsProcessorStub{},
+		ValidatorStatisticsProcessor: &testscommon.ValidatorStatisticsProcessorStub{},
 		OutgoingOperationsFormatter:  outgoingOperationsFormatter,
 		OutGoingOperationsPool:       outGoingOperationsPool,
 		OperationsHasher:             outgoingOpsHasher,

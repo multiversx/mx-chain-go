@@ -2,12 +2,12 @@ package vm_test
 
 import (
 	"fmt"
-	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/process"
 	factory2 "github.com/multiversx/mx-chain-go/process/factory"
+	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/stretchr/testify/require"
 )
@@ -87,6 +87,7 @@ func TestNewSovereignVmContainerShardFactory_CreateVmContainerFactoryShard(t *te
 		ChanceComputer:      argsMeta.ChanceComputer,
 		ShardCoordinator:    argsMeta.ShardCoordinator,
 		PubkeyConv:          argsMeta.PubkeyConv,
+		NodesCoordinator:    argsMeta.NodesCoordinator,
 	}
 
 	vmContainer, vmFactory, err := sovereignVmContainerShardFactory.CreateVmContainerFactory(argsBlockchain, args)
