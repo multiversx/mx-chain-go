@@ -679,6 +679,48 @@ func GetSovereignProcessArgs(
 		networkComponents,
 	)
 
+	addrConverter, _ := commonFactory.NewPubkeyConverter(config.PubkeyConfig{
+		Length:          32,
+		Type:            "bech32",
+		SignatureLength: 0,
+		Hrp:             "erd",
+	})
+	balance := new(big.Int)
+	balance.SetString("6000000000000000000000", 10)
+	acc1 := data.InitialAccount{
+		Address:      "erd1whq0zspt6ktnv37gqj303da0vygyqwf5q52m7erftd0rl7laygfs6rhpct",
+		Supply:       big.NewInt(0).Mul(big.NewInt(2500000000), big.NewInt(1000000000000)),
+		Balance:      balance,
+		StakingValue: big.NewInt(0).Mul(big.NewInt(2500000000), big.NewInt(1000000000000)),
+		Delegation: &data.DelegationData{
+			Address: "",
+			Value:   big.NewInt(0),
+		},
+	}
+
+	acc1Bytes, _ := addrConverter.Decode(acc1.Address)
+	acc1.SetAddressBytes(acc1Bytes)
+	initialAccounts := []genesis.InitialAccountHandler{&acc1}
+
+	processArgs.AccountsParser = &mock.AccountsParserStub{
+		InitialAccountsCalled: func() []genesis.InitialAccountHandler {
+			return initialAccounts
+		},
+		GenerateInitialTransactionsCalled: func(shardCoordinator sharding.Coordinator, initialIndexingData map[uint32]*genesis.IndexingData) ([]*block.MiniBlock, map[uint32]*outport.TransactionPool, error) {
+			txsPool := make(map[uint32]*outport.TransactionPool)
+			for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
+				txsPool[i] = &outport.TransactionPool{}
+			}
+
+			return make([]*block.MiniBlock, 4), txsPool, nil
+		},
+		InitialAccountsSplitOnAddressesShardsCalled: func(shardCoordinator sharding.Coordinator) (map[uint32][]genesis.InitialAccountHandler, error) {
+			return map[uint32][]genesis.InitialAccountHandler{
+				0: {initialAccounts[0]},
+			}, nil
+		},
+	}
+
 	bootstrapComponentsFactoryArgs := GetBootStrapFactoryArgs()
 	bootstrapComponentsFactoryArgs.RunTypeComponents = GetSovereignRunTypeComponents()
 	bootstrapComponentsFactoryArgs.NodesCoordinatorWithRaterFactory = nodesCoordinator.NewSovereignIndexHashedNodesCoordinatorWithRaterFactory()
@@ -701,6 +743,7 @@ func GetSovereignProcessArgs(
 	processArgs.InterceptorsContainerFactoryCreator = interceptorscontainer.NewSovereignShardInterceptorsContainerFactoryCreator()
 	processArgs.ShardResolversContainerFactoryCreator = resolverscontainer.NewSovereignShardResolversContainerFactoryCreator()
 	processArgs.ExtraHeaderSigVerifierHolder = extraHeaderSigVerifierHolder
+	processArgs.IncomingHeaderSubscriber = &sovereign.IncomingHeaderSubscriberStub{}
 	processArgs.RunTypeComponents = GetSovereignRunTypeComponents()
 
 	return processArgs
@@ -838,6 +881,8 @@ func GetDataComponents(coreComponents factory.CoreComponentsHolder, shardCoordin
 // GetSovereignDataComponents -
 func GetSovereignDataComponents(coreComponents factory.CoreComponentsHolder, shardCoordinator sharding.Coordinator) factory.DataComponentsHolder {
 	dataArgs := GetDataArgs(coreComponents, shardCoordinator)
+	dataArgs.Crypto = GetCryptoComponents(coreComponents)
+	dataArgs.StatusCore = GetSovereignStatusCoreComponents()
 	dataArgs.AdditionalStorageServiceCreator = GetSovereignRunTypeComponents().AdditionalStorageServiceCreator()
 	return createDataComponents(dataArgs)
 }
@@ -876,7 +921,6 @@ func GetStateComponents(coreComponents factory.CoreComponentsHolder, statusCoreC
 // GetSovereignStateComponents -
 func GetSovereignStateComponents(coreComponents factory.CoreComponentsHolder, statusCoreComponents factory.StatusCoreComponentsHolder) factory.StateComponentsHolder {
 	stateArgs := GetStateFactoryArgs(coreComponents, statusCoreComponents)
-	stateArgs.StatusCore = GetSovereignStatusCoreComponents()
 	stateArgs.AccountsCreator = GetSovereignRunTypeComponents().AccountsCreator()
 	return createStateComponents(stateArgs)
 }
