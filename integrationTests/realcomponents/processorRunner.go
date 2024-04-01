@@ -13,8 +13,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/common/ordering"
 	"github.com/multiversx/mx-chain-go/config"
@@ -50,7 +51,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon/headerSigVerifier"
 	"github.com/multiversx/mx-chain-go/update/trigger"
-	"github.com/stretchr/testify/require"
 )
 
 // ProcessorRunner is a test emulation to the nodeRunner component
@@ -478,8 +478,6 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 		TxPreProcessorCreator:                 preprocess.NewTxPreProcessorCreator(),
 		ExtraHeaderSigVerifierHolder:          &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
 		RunTypeComponents:                     pr.RunTypeComponents,
-		TopicsChecker:                         disabled.NewDisabledTopicsChecker(),
-		DataCodec:                             disabled.NewDisabledDataCodec(),
 	}
 
 	processFactory, err := factoryProcessing.NewProcessComponentsFactory(argsProcess)
