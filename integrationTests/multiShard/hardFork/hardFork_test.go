@@ -12,6 +12,11 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -34,10 +39,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/multiversx/mx-chain-go/update/factory"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 var log = logger.GetOrCreate("integrationTests/hardfork")
@@ -506,7 +507,6 @@ func hardForkImport(
 			HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 			TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 			RunTypeComponents:       componentsMock.GetRunTypeComponents(),
-			ShardCoordinatorFactory: sharding.NewMultiShardCoordinatorFactory(),
 			TxPreprocessorCreator:   preprocess.NewTxPreProcessorCreator(),
 		}
 

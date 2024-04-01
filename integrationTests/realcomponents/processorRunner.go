@@ -469,7 +469,6 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 		StatusComponents:                      pr.StatusComponents,
 		StatusCoreComponents:                  pr.StatusCoreComponents,
 		TxExecutionOrderHandler:               txExecutionOrderHandler,
-		ShardCoordinatorFactory:               sharding.NewMultiShardCoordinatorFactory(),
 		GenesisBlockCreatorFactory:            process.NewGenesisBlockCreatorFactory(),
 		GenesisMetaBlockChecker:               factoryProcessing.NewGenesisMetaBlockChecker(),
 		RequesterContainerFactoryCreator:      requesterscontainer.NewShardRequestersContainerFactoryCreator(),
