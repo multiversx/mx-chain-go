@@ -237,7 +237,6 @@ func (pr *ProcessorRunner) createBootstrapComponents(tb testing.TB) {
 		StatusCoreComponents:             pr.StatusCoreComponents,
 		RunTypeComponents:                pr.RunTypeComponents,
 		NodesCoordinatorWithRaterFactory: nodesCoord.NewIndexHashedNodesCoordinatorWithRaterFactory(),
-		ShardCoordinatorFactory:          sharding.NewMultiShardCoordinatorFactory(),
 	}
 
 	bootstrapFactory, err := factoryBootstrap.NewBootstrapComponentsFactory(argsBootstrap)
