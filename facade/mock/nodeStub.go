@@ -54,6 +54,7 @@ type NodeStub struct {
 	VerifyProofCalled                              func(rootHash string, address string, proof [][]byte) (bool, error)
 	GetTokenSupplyCalled                           func(token string) (*api.ESDTSupply, error)
 	IsDataTrieMigratedCalled                       func(address string, options api.AccountQueryOptions) (bool, error)
+	AuctionListApiCalled                           func() ([]*common.AuctionListValidatorAPIResponse, error)
 }
 
 // GetProof -
@@ -139,7 +140,11 @@ func (ns *NodeStub) DecodeAddressPubkey(pk string) ([]byte, error) {
 
 // GetBalance -
 func (ns *NodeStub) GetBalance(address string, options api.AccountQueryOptions) (*big.Int, api.BlockInfo, error) {
-	return ns.GetBalanceCalled(address, options)
+	if ns.GetBalanceCalled != nil {
+		return ns.GetBalanceCalled(address, options)
+	}
+
+	return nil, api.BlockInfo{}, nil
 }
 
 // CreateTransaction -
@@ -150,22 +155,38 @@ func (ns *NodeStub) CreateTransaction(txArgs *external.ArgsCreateTransaction) (*
 
 // ValidateTransaction -
 func (ns *NodeStub) ValidateTransaction(tx *transaction.Transaction) error {
-	return ns.ValidateTransactionHandler(tx)
+	if ns.ValidateTransactionHandler != nil {
+		return ns.ValidateTransactionHandler(tx)
+	}
+
+	return nil
 }
 
 // ValidateTransactionForSimulation -
 func (ns *NodeStub) ValidateTransactionForSimulation(tx *transaction.Transaction, bypassSignature bool) error {
-	return ns.ValidateTransactionForSimulationCalled(tx, bypassSignature)
+	if ns.ValidateTransactionForSimulationCalled != nil {
+		return ns.ValidateTransactionForSimulationCalled(tx, bypassSignature)
+	}
+
+	return nil
 }
 
 // SendBulkTransactions -
 func (ns *NodeStub) SendBulkTransactions(txs []*transaction.Transaction) (uint64, error) {
-	return ns.SendBulkTransactionsHandler(txs)
+	if ns.SendBulkTransactionsHandler != nil {
+		return ns.SendBulkTransactionsHandler(txs)
+	}
+
+	return 0, nil
 }
 
 // GetAccount -
 func (ns *NodeStub) GetAccount(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
-	return ns.GetAccountCalled(address, options)
+	if ns.GetAccountCalled != nil {
+		return ns.GetAccountCalled(address, options)
+	}
+
+	return api.AccountResponse{}, api.BlockInfo{}, nil
 }
 
 // GetCode -
@@ -179,22 +200,47 @@ func (ns *NodeStub) GetCode(codeHash []byte, options api.AccountQueryOptions) ([
 
 // GetHeartbeats -
 func (ns *NodeStub) GetHeartbeats() []data.PubKeyHeartbeat {
-	return ns.GetHeartbeatsHandler()
+	if ns.GetHeartbeatsHandler != nil {
+		return ns.GetHeartbeatsHandler()
+	}
+
+	return nil
 }
 
 // ValidatorStatisticsApi -
 func (ns *NodeStub) ValidatorStatisticsApi() (map[string]*validator.ValidatorStatistics, error) {
-	return ns.ValidatorStatisticsApiCalled()
+	if ns.ValidatorStatisticsApiCalled != nil {
+		return ns.ValidatorStatisticsApiCalled()
+	}
+
+	return nil, nil
+}
+
+// AuctionListApi -
+func (ns *NodeStub) AuctionListApi() ([]*common.AuctionListValidatorAPIResponse, error) {
+	if ns.AuctionListApiCalled != nil {
+		return ns.AuctionListApiCalled()
+	}
+
+	return nil, nil
 }
 
 // DirectTrigger -
 func (ns *NodeStub) DirectTrigger(epoch uint32, withEarlyEndOfEpoch bool) error {
-	return ns.DirectTriggerCalled(epoch, withEarlyEndOfEpoch)
+	if ns.DirectTriggerCalled != nil {
+		return ns.DirectTriggerCalled(epoch, withEarlyEndOfEpoch)
+	}
+
+	return nil
 }
 
 // IsSelfTrigger -
 func (ns *NodeStub) IsSelfTrigger() bool {
-	return ns.IsSelfTriggerCalled()
+	if ns.IsSelfTriggerCalled != nil {
+		return ns.IsSelfTriggerCalled()
+	}
+
+	return false
 }
 
 // GetQueryHandler -

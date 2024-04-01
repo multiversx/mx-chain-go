@@ -17,6 +17,7 @@ import (
 	epochStartMocks "github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks/epochStart"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
@@ -246,6 +247,11 @@ func TestSyncValidatorStatus_getPeerBlockBodyForMeta(t *testing.T) {
 }
 
 func getSyncValidatorStatusArgs() ArgsNewSyncValidatorStatus {
+	nodesCoordinatorRegistryFactory, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
+		&mock.MarshalizerMock{},
+		444,
+	)
+
 	return ArgsNewSyncValidatorStatus{
 		DataPool: &dataRetrieverMock.PoolsHolderStub{
 			MiniBlocksCalled: func() storage.Cacher {
@@ -259,7 +265,7 @@ func getSyncValidatorStatusArgs() ArgsNewSyncValidatorStatus {
 		Hasher:         &hashingMocks.HasherMock{},
 		RequestHandler: &testscommon.RequestHandlerStub{},
 		ChanceComputer: &shardingMocks.NodesCoordinatorStub{},
-		GenesisNodesConfig: &testscommon.NodesSetupStub{
+		GenesisNodesConfig: &genesisMocks.NodesSetupStub{
 			NumberOfShardsCalled: func() uint32 {
 				return 1
 			},
@@ -308,6 +314,7 @@ func getSyncValidatorStatusArgs() ArgsNewSyncValidatorStatus {
 		NodeTypeProvider:                 &nodeTypeProviderMock.NodeTypeProviderStub{},
 		IsFullArchive:                    false,
 		EnableEpochsHandler:              &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		NodesCoordinatorRegistryFactory:  nodesCoordinatorRegistryFactory,
 		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
 	}
 }

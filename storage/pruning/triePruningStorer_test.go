@@ -76,6 +76,31 @@ func TestTriePruningStorer_GetFromOldEpochsWithoutCacheSearchesOnlyOldEpochsAndR
 	assert.True(t, strings.Contains(err.Error(), "not found"))
 }
 
+func TestTriePruningStorer_GetFromOldEpochsWithCache(t *testing.T) {
+	t.Parallel()
+
+	args := getDefaultArgs()
+	ps, _ := pruning.NewTriePruningStorer(args)
+	cacher := testscommon.NewCacherMock()
+	ps.SetCacher(cacher)
+
+	testKey1 := []byte("key1")
+	testVal1 := []byte("value1")
+
+	err := ps.PutInEpoch(testKey1, testVal1, 0)
+	assert.Nil(t, err)
+
+	err = ps.ChangeEpochSimple(1)
+	assert.Nil(t, err)
+	ps.SetEpochForPutOperation(1)
+
+	res, epoch, err := ps.GetFromOldEpochsWithoutAddingToCache(testKey1)
+	assert.Equal(t, testVal1, res)
+	assert.Nil(t, err)
+	assert.False(t, epoch.HasValue)
+	assert.Equal(t, uint32(0), epoch.Value)
+}
+
 func TestTriePruningStorer_GetFromOldEpochsWithoutCacheLessActivePersisters(t *testing.T) {
 	t.Parallel()
 

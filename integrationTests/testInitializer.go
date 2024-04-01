@@ -33,6 +33,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
+	mainFactory "github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/genesis"
 	genesisProcess "github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
@@ -42,11 +43,9 @@ import (
 	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
-	"github.com/multiversx/mx-chain-go/process/coordinator"
 	procFactory "github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
-	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	txProc "github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -73,6 +72,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
 	testStorage "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	testcommonStorage "github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -113,7 +113,6 @@ const (
 	adaptivity              = false
 	hysteresis              = float32(0.2)
 	maxTrieLevelInMemory    = uint(5)
-	delegationManagementKey = "delegationManagement"
 	delegationContractsList = "delegationContracts"
 )
 
@@ -157,7 +156,7 @@ func createP2PConfig(initialPeerList []string) p2pConfig.P2PConfig {
 			Enabled:                          true,
 			Type:                             "optimized",
 			RefreshIntervalInSec:             2,
-			ProtocolID:                       "/erd/kad/1.0.0",
+			ProtocolIDs:                      []string{"/erd/kad/1.0.0"},
 			InitialPeerList:                  initialPeerList,
 			BucketSize:                       100,
 			RoutingTableRefreshIntervalInSec: 100,
@@ -647,11 +646,12 @@ func CreateFullGenesisBlocks(
 	accountsParser genesis.AccountsParser,
 	smartContractParser genesis.InitialSmartContractParser,
 	enableEpochsConfig config.EnableEpochs,
+	runTypeComp mainFactory.RunTypeComponentsHolder,
 ) map[uint32]data.HeaderHandler {
 	gasSchedule := wasmConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)
 
-	coreComponents := GetDefaultCoreComponents()
+	coreComponents := GetDefaultCoreComponents(enableEpochsConfig)
 	coreComponents.InternalMarshalizerField = TestMarshalizer
 	coreComponents.TxMarshalizerField = TestTxSignMarshalizer
 	coreComponents.HasherField = TestHasher
@@ -668,12 +668,6 @@ func CreateFullGenesisBlocks(
 	dataComponents.Store = store
 	dataComponents.DataPool = dataPool
 	dataComponents.BlockChain = blkc
-
-	roundsConfig := GetDefaultRoundsConfig()
-	runTypeComponents := mainFactoryMocks.NewRunTypeComponentsStub()
-	runTypeComponents.BlockChainHookHandlerFactory, _ = hooks.NewBlockChainHookFactory()
-	runTypeComponents.TransactionCoordinatorFactory, _ = coordinator.NewShardTransactionCoordinatorFactory()
-	runTypeComponents.SCResultsPreProcessorFactory, _ = preprocess.NewSmartContractResultPreProcessorFactory()
 
 	argsGenesis := genesisProcess.ArgsGenesisBlockCreator{
 		Core:              coreComponents,
@@ -723,6 +717,8 @@ func CreateFullGenesisBlocks(
 				MaxNumberOfNodesForStake:             100,
 				ActivateBLSPubKeyMessageVerification: false,
 				MinUnstakeTokensValue:                "1",
+				StakeLimitPercentage:                 100.0,
+				NodeLimitPercentage:                  100.0,
 			},
 			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
 				MinCreationDeposit:  "100",
@@ -733,19 +729,26 @@ func CreateFullGenesisBlocks(
 				MinServiceFee: 0,
 				MaxServiceFee: 100,
 			},
+			SoftAuctionConfig: config.SoftAuctionConfig{
+				TopUpStep:             "10",
+				MinTopUp:              "1",
+				MaxTopUp:              "32000000",
+				MaxNumberOfIterations: 100000,
+			},
 		},
 		AccountsParser:      accountsParser,
 		SmartContractParser: smartContractParser,
 		BlockSignKeyGen:     &mock.KeyGenMock{},
-		EpochConfig: &config.EpochConfig{
+		EpochConfig: config.EpochConfig{
 			EnableEpochs: enableEpochsConfig,
 		},
-		RoundConfig:             &roundsConfig,
+		RoundConfig:             testscommon.GetDefaultRoundsConfig(),
+		HeaderVersionConfigs:    testscommon.GetDefaultHeaderVersionConfig(),
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 		ShardCoordinatorFactory: sharding.NewMultiShardCoordinatorFactory(),
 		TxPreprocessorCreator:   preprocess.NewTxPreProcessorCreator(),
-		RunTypeComponents:       runTypeComponents,
+		RunTypeComponents:       runTypeComp,
 	}
 
 	genesisProcessor, _ := genesisProcess.NewGenesisBlockCreator(argsGenesis)
@@ -774,7 +777,7 @@ func CreateGenesisMetaBlock(
 	gasSchedule := wasmConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)
 
-	coreComponents := GetDefaultCoreComponents()
+	coreComponents := GetDefaultCoreComponents(enableEpochsConfig)
 	coreComponents.InternalMarshalizerField = marshalizer
 	coreComponents.HasherField = hasher
 	coreComponents.Uint64ByteSliceConverterField = uint64Converter
@@ -833,6 +836,8 @@ func CreateGenesisMetaBlock(
 				MaxNumberOfNodesForStake:             100,
 				ActivateBLSPubKeyMessageVerification: false,
 				MinUnstakeTokensValue:                "1",
+				StakeLimitPercentage:                 100.0,
+				NodeLimitPercentage:                  100.0,
 			},
 			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
 				MinCreationDeposit:  "100",
@@ -843,12 +848,20 @@ func CreateGenesisMetaBlock(
 				MinServiceFee: 0,
 				MaxServiceFee: 100,
 			},
+			SoftAuctionConfig: config.SoftAuctionConfig{
+				TopUpStep:             "10",
+				MinTopUp:              "1",
+				MaxTopUp:              "32000000",
+				MaxNumberOfIterations: 100000,
+			},
 		},
 		BlockSignKeyGen:  &mock.KeyGenMock{},
 		GenesisNodePrice: big.NewInt(1000),
-		EpochConfig: &config.EpochConfig{
+		EpochConfig: config.EpochConfig{
 			EnableEpochs: enableEpochsConfig,
 		},
+		RoundConfig:             testscommon.GetDefaultRoundsConfig(),
+		HeaderVersionConfigs:    testscommon.GetDefaultHeaderVersionConfig(),
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 		TxPreprocessorCreator:   preprocess.NewTxPreProcessorCreator(),
@@ -1392,7 +1405,7 @@ func CreateNodesWithEnableEpochsAndVmConfig(
 		nodesPerShard,
 		numMetaChainNodes,
 		epochConfig,
-		GetDefaultRoundsConfig(),
+		testscommon.GetDefaultRoundsConfig(),
 		vmConfig,
 	)
 }
@@ -1532,6 +1545,9 @@ func CreateNodesWithFullGenesis(
 ) ([]*TestProcessorNode, *TestProcessorNode) {
 	enableEpochsConfig := GetDefaultEnableEpochsConfig()
 	enableEpochsConfig.StakingV2EnableEpoch = UnreachableEpoch
+	enableEpochsConfig.StakingV4Step1EnableEpoch = UnreachableEpoch
+	enableEpochsConfig.StakingV4Step2EnableEpoch = UnreachableEpoch
+	enableEpochsConfig.StakingV4Step3EnableEpoch = UnreachableEpoch
 	return CreateNodesWithFullGenesisCustomEnableEpochs(numOfShards, nodesPerShard, numMetaChainNodes, genesisFile, enableEpochsConfig)
 }
 
@@ -2179,7 +2195,7 @@ func generateValidTx(
 	_ = accnts.SaveAccount(acc)
 	_, _ = accnts.Commit()
 
-	coreComponents := GetDefaultCoreComponents()
+	coreComponents := GetDefaultCoreComponents(CreateEnableEpochsConfig())
 	coreComponents.InternalMarshalizerField = TestMarshalizer
 	coreComponents.TxMarshalizerField = TestTxSignMarshalizer
 	coreComponents.VmMarshalizerField = TestMarshalizer
@@ -2620,18 +2636,7 @@ func SaveDelegationManagerConfig(nodes []*TestProcessorNode) {
 			continue
 		}
 
-		acc, _ := n.AccntState.LoadAccount(vm.DelegationManagerSCAddress)
-		userAcc, _ := acc.(state.UserAccountHandler)
-
-		managementData := &systemSmartContracts.DelegationManagement{
-			MinDeposit:          big.NewInt(100),
-			LastAddress:         vm.FirstDelegationSCAddress,
-			MinDelegationAmount: big.NewInt(1),
-		}
-		marshaledData, _ := TestMarshalizer.Marshal(managementData)
-		_ = userAcc.SaveKeyValue([]byte(delegationManagementKey), marshaledData)
-		_ = n.AccntState.SaveAccount(userAcc)
-		_, _ = n.AccntState.Commit()
+		stakingcommon.SaveDelegationManagerConfig(n.AccntState, TestMarshalizer)
 	}
 }
 

@@ -31,6 +31,7 @@ type UserAccountStub struct {
 	RetrieveValueCalled      func(_ []byte) ([]byte, uint32, error)
 	SetDataTrieCalled        func(dataTrie common.Trie)
 	GetRootHashCalled        func() []byte
+	SaveKeyValueCalled       func(key []byte, value []byte) error
 }
 
 // HasNewCode -
@@ -173,7 +174,10 @@ func (u *UserAccountStub) RetrieveValue(key []byte) ([]byte, uint32, error) {
 }
 
 // SaveKeyValue -
-func (u *UserAccountStub) SaveKeyValue(_ []byte, _ []byte) error {
+func (u *UserAccountStub) SaveKeyValue(key []byte, value []byte) error {
+	if u.SaveKeyValueCalled != nil {
+		return u.SaveKeyValueCalled(key, value)
+	}
 	return nil
 }
 

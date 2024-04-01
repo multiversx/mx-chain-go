@@ -1,5 +1,3 @@
-//go:build !race
-
 package erc20
 
 import (
@@ -10,9 +8,8 @@ import (
 )
 
 func Test_C_001(t *testing.T) {
-	// TODO reinstate test after Wasm VM pointer fix
 	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Wasm VM fix")
+		t.Skip("this is not a short test")
 	}
 
 	context := wasm.SetupTestContext(t)

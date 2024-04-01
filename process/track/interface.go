@@ -1,6 +1,7 @@
 package track
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/process"
 )
@@ -46,6 +47,13 @@ type blockBalancerHandler interface {
 	SetNumPendingMiniBlocks(shardID uint32, numPendingMiniBlocks uint32)
 	GetLastShardProcessedMetaNonce(shardID uint32) uint64
 	SetLastShardProcessedMetaNonce(shardID uint32, nonce uint64)
+	IsInterfaceNil() bool
+}
+
+// KeysHandler defines the operations implemented by a component that will manage all keys,
+// including the single signer keys or the set of multi-keys
+type KeysHandler interface {
+	ResetRoundsWithoutReceivedMessages(pkBytes []byte, pid core.PeerID)
 	IsInterfaceNil() bool
 }
 

@@ -21,7 +21,7 @@ func TestNewStateComponentsFactory(t *testing.T) {
 		t.Parallel()
 
 		coreComponents := componentsMock.GetCoreComponents()
-		args := componentsMock.GetStateFactoryArgs(coreComponents)
+		args := componentsMock.GetStateFactoryArgs(coreComponents, componentsMock.GetStatusCoreComponents())
 		args.Core = nil
 
 		scf, err := stateComp.NewStateComponentsFactory(args)
@@ -32,7 +32,7 @@ func TestNewStateComponentsFactory(t *testing.T) {
 		t.Parallel()
 
 		coreComponents := componentsMock.GetCoreComponents()
-		args := componentsMock.GetStateFactoryArgs(coreComponents)
+		args := componentsMock.GetStateFactoryArgs(coreComponents, componentsMock.GetStatusCoreComponents())
 		args.StatusCore = nil
 
 		scf, err := stateComp.NewStateComponentsFactory(args)
@@ -43,7 +43,7 @@ func TestNewStateComponentsFactory(t *testing.T) {
 		t.Parallel()
 
 		coreComponents := componentsMock.GetCoreComponents()
-		args := componentsMock.GetStateFactoryArgs(coreComponents)
+		args := componentsMock.GetStateFactoryArgs(coreComponents, componentsMock.GetStatusCoreComponents())
 		args.AccountsCreator = nil
 
 		scf, err := stateComp.NewStateComponentsFactory(args)
@@ -54,7 +54,7 @@ func TestNewStateComponentsFactory(t *testing.T) {
 		t.Parallel()
 
 		coreComponents := componentsMock.GetCoreComponents()
-		args := componentsMock.GetStateFactoryArgs(coreComponents)
+		args := componentsMock.GetStateFactoryArgs(coreComponents, componentsMock.GetStatusCoreComponents())
 
 		scf, err := stateComp.NewStateComponentsFactory(args)
 		require.NoError(t, err)
@@ -69,7 +69,7 @@ func TestStateComponentsFactory_Create(t *testing.T) {
 		t.Parallel()
 
 		coreComponents := componentsMock.GetCoreComponents()
-		args := componentsMock.GetStateFactoryArgs(coreComponents)
+		args := componentsMock.GetStateFactoryArgs(coreComponents, componentsMock.GetStatusCoreComponents())
 		coreCompStub := factory.NewCoreComponentsHolderStubFromRealComponent(args.Core)
 		coreCompStub.InternalMarshalizerCalled = func() marshal.Marshalizer {
 			return nil
@@ -85,7 +85,7 @@ func TestStateComponentsFactory_Create(t *testing.T) {
 		t.Parallel()
 
 		coreComponents := componentsMock.GetCoreComponents()
-		args := componentsMock.GetStateFactoryArgs(coreComponents)
+		args := componentsMock.GetStateFactoryArgs(coreComponents, componentsMock.GetStatusCoreComponents())
 		args.Config.EvictionWaitingList.RootHashesSize = 0
 		scf, _ := stateComp.NewStateComponentsFactory(args)
 
@@ -97,7 +97,7 @@ func TestStateComponentsFactory_Create(t *testing.T) {
 		t.Parallel()
 
 		coreComponents := componentsMock.GetCoreComponents()
-		args := componentsMock.GetStateFactoryArgs(coreComponents)
+		args := componentsMock.GetStateFactoryArgs(coreComponents, componentsMock.GetStatusCoreComponents())
 
 		coreCompStub := factory.NewCoreComponentsHolderStubFromRealComponent(args.Core)
 		cnt := 0
@@ -119,7 +119,7 @@ func TestStateComponentsFactory_Create(t *testing.T) {
 		t.Parallel()
 
 		coreComponents := componentsMock.GetCoreComponents()
-		args := componentsMock.GetStateFactoryArgs(coreComponents)
+		args := componentsMock.GetStateFactoryArgs(coreComponents, componentsMock.GetStatusCoreComponents())
 
 		coreCompStub := factory.NewCoreComponentsHolderStubFromRealComponent(args.Core)
 		cnt := 0
@@ -141,7 +141,7 @@ func TestStateComponentsFactory_Create(t *testing.T) {
 		t.Parallel()
 
 		coreComponents := componentsMock.GetCoreComponents()
-		args := componentsMock.GetStateFactoryArgs(coreComponents)
+		args := componentsMock.GetStateFactoryArgs(coreComponents, componentsMock.GetStatusCoreComponents())
 		scf, _ := stateComp.NewStateComponentsFactory(args)
 
 		sc, err := scf.Create()
@@ -155,7 +155,7 @@ func TestStateComponents_Close(t *testing.T) {
 	t.Parallel()
 
 	coreComponents := componentsMock.GetCoreComponents()
-	args := componentsMock.GetStateFactoryArgs(coreComponents)
+	args := componentsMock.GetStateFactoryArgs(coreComponents, componentsMock.GetStatusCoreComponents())
 	scf, _ := stateComp.NewStateComponentsFactory(args)
 
 	sc, err := scf.Create()
