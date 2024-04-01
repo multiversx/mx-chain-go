@@ -95,8 +95,8 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 	//		&testscommon.ReceiptsRepositoryStub{},
 	//		&testscommon.BlockProcessingCutoffStub{},
 	//		&testscommon.MissingTrieNodesNotifierStub{},
-			&testscommon.SentSignatureTrackerStub{},
-		)
+	//		&testscommon.SentSignatureTrackerStub{},
+	//	)
 	//
 	//	require.NoError(t, err)
 	//	require.Equal(t, "*block.sovereignChainBlockProcessor", fmt.Sprintf("%T", bp))
