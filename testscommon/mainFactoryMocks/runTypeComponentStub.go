@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
+	processGenesis "github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
@@ -49,6 +50,7 @@ type RunTypeComponentsStub struct {
 	DataCodec                           sovereign.DataDecoderHandler
 	TopicsChecker                       sovereign.TopicsCheckerHandler
 	ShardCoordinatorFactory             sharding.ShardCoordinatorFactory
+	GenesisBlockFactory                 processGenesis.GenesisBlockCreatorFactory
 }
 
 // NewRunTypeComponentsStub -
@@ -77,6 +79,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		DataCodec:                           &sovereignMocks.DataCodecMock{},
 		TopicsChecker:                       &sovereignMocks.TopicsCheckerMock{},
 		ShardCoordinatorFactory:             sharding.NewMultiShardCoordinatorFactory(),
+		GenesisBlockFactory:                 &testFactory.GenesisBlockCreatorFactoryMock{},
 	}
 }
 
@@ -213,6 +216,11 @@ func (r *RunTypeComponentsStub) TopicsCheckerHandler() sovereign.TopicsCheckerHa
 // ShardCoordinatorCreator -
 func (r *RunTypeComponentsStub) ShardCoordinatorCreator() sharding.ShardCoordinatorFactory {
 	return r.ShardCoordinatorFactory
+}
+
+// ShardCoordinatorCreator -
+func (r *RunTypeComponentsStub) GenesisBlockCreator() processGenesis.GenesisBlockCreatorFactory {
+	return r.GenesisBlockFactory
 }
 
 // IsInterfaceNil -

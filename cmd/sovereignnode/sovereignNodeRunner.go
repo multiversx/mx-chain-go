@@ -51,7 +51,6 @@ import (
 	"github.com/multiversx/mx-chain-go/factory/statusCore"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
-	genesisProcess "github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/health"
 	"github.com/multiversx/mx-chain-go/node"
 	"github.com/multiversx/mx-chain-go/node/metrics"
@@ -1344,7 +1343,6 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 		FlagsConfig:                           *configs.FlagsConfig,
 		TxExecutionOrderHandler:               ordering.NewOrderedCollection(),
 		RunTypeComponents:                     runTypeComponents,
-		GenesisBlockCreatorFactory:            genesisProcess.NewSovereignGenesisBlockCreatorFactory(),
 		GenesisMetaBlockChecker:               processComp.NewSovereignGenesisMetaBlockChecker(),
 		RequesterContainerFactoryCreator:      requesterscontainer.NewSovereignShardRequestersContainerFactoryCreator(),
 		IncomingHeaderSubscriber:              incomingHeaderHandler,

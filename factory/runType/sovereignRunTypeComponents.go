@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/errors"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
+	"github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/block/sovereign"
@@ -169,6 +170,8 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 
 	shardCoordinatorCreator := sharding.NewSovereignShardCoordinatorFactory()
 
+	genesisBlockCreator := process.NewSovereignGenesisBlockCreatorFactory()
+
 	return &runTypeComponents{
 		blockChainHookHandlerCreator:        blockChainHookHandlerFactory,
 		epochStartBootstrapperCreator:       epochStartBootstrapperFactory,
@@ -193,5 +196,6 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		dataCodecHandler:                    dataCodec,
 		topicsCheckerHandler:                topicsChecker,
 		shardCoordinatorCreator:             shardCoordinatorCreator,
+		genesisBlockCreatorFactory:          genesisBlockCreator,
 	}, nil
 }

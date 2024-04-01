@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
+	processComp "github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/process"
 	processBlock "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
@@ -436,6 +437,18 @@ func (mrc *managedRunTypeComponents) ShardCoordinatorCreator() sharding.ShardCoo
 	}
 
 	return mrc.runTypeComponents.shardCoordinatorCreator
+}
+
+// GenesisBlockCreator returns the genesis block factory
+func (mrc *managedRunTypeComponents) GenesisBlockCreator() processComp.GenesisBlockCreatorFactory {
+	mrc.mutStateComponents.RLock()
+	defer mrc.mutStateComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.genesisBlockCreatorFactory
 }
 
 // IsInterfaceNil returns true if the interface is nil

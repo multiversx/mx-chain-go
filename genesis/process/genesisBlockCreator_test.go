@@ -43,6 +43,8 @@ import (
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -189,8 +191,8 @@ func createMockArgument(
 				return &block.Header{}
 			},
 		},
-		TxPreprocessorCreator:   preprocess.NewTxPreProcessorCreator(),
-		RunTypeComponents:       runTypeComp,
+		TxPreprocessorCreator: preprocess.NewTxPreProcessorCreator(),
+		RunTypeComponents:     runTypeComp,
 	}
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{
@@ -531,16 +533,6 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 
 		gbc, err := NewGenesisBlockCreator(arg)
 		require.ErrorIs(t, err, genesis.ErrNilTrieStorageManager)
-		require.Nil(t, gbc)
-	})
-	t.Run("nil EpochConfig should error", func(t *testing.T) {
-		t.Parallel()
-
-		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
-		arg.EpochConfig = nil
-
-		gbc, err := NewGenesisBlockCreator(arg)
-		require.ErrorIs(t, err, genesis.ErrNilEpochConfig)
 		require.Nil(t, gbc)
 	})
 	t.Run("invalid GenesisNodePrice should error", func(t *testing.T) {

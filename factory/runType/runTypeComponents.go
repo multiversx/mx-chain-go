@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/errors"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
+	processGenesis "github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
 	processBlock "github.com/multiversx/mx-chain-go/process/block"
@@ -60,6 +61,7 @@ type runTypeComponents struct {
 	dataCodecHandler                    sovereign.DataDecoderHandler
 	topicsCheckerHandler                sovereign.TopicsCheckerHandler
 	shardCoordinatorCreator             sharding.ShardCoordinatorFactory
+	genesisBlockCreatorFactory          processGenesis.GenesisBlockCreatorFactory
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
@@ -168,6 +170,8 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 
 	shardCoordinatorCreator := sharding.NewMultiShardCoordinatorFactory()
 
+	genesisBlockCreator := processGenesis.NewGenesisBlockCreatorFactory()
+
 	return &runTypeComponents{
 		blockChainHookHandlerCreator:        blockChainHookHandlerFactory,
 		epochStartBootstrapperCreator:       epochStartBootstrapperFactory,
@@ -192,6 +196,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		dataCodecHandler:                    dataCodec,
 		topicsCheckerHandler:                topicsChecker,
 		shardCoordinatorCreator:             shardCoordinatorCreator,
+		genesisBlockCreatorFactory:          genesisBlockCreator,
 	}, nil
 }
 

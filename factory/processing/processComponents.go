@@ -168,7 +168,6 @@ type ProcessComponentsFactoryArgs struct {
 	GenesisNonce uint64
 	GenesisRound uint64
 
-	GenesisBlockCreatorFactory            processGenesis.GenesisBlockCreatorFactory
 	GenesisMetaBlockChecker               GenesisMetaBlockChecker
 	RequesterContainerFactoryCreator      requesterscontainer.RequesterContainerFactoryCreator
 	IncomingHeaderSubscriber              process.IncomingHeaderSubscriber
@@ -218,7 +217,6 @@ type processComponentsFactory struct {
 	genesisNonce uint64
 	genesisRound uint64
 
-	genesisBlockCreatorFactory            processGenesis.GenesisBlockCreatorFactory
 	genesisMetaBlockChecker               GenesisMetaBlockChecker
 	requesterContainerFactoryCreator      requesterscontainer.RequesterContainerFactoryCreator
 	incomingHeaderSubscriber              process.IncomingHeaderSubscriber
@@ -267,7 +265,6 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		genesisRound:                          args.GenesisRound,
 		roundConfig:                           args.RoundConfig,
 		runTypeComponents:                     args.RunTypeComponents,
-		genesisBlockCreatorFactory:            args.GenesisBlockCreatorFactory,
 		genesisMetaBlockChecker:               args.GenesisMetaBlockChecker,
 		requesterContainerFactoryCreator:      args.RequesterContainerFactoryCreator,
 		incomingHeaderSubscriber:              args.IncomingHeaderSubscriber,
@@ -948,7 +945,7 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		Config: pcf.config,
 	}
 
-	gbc, err := pcf.genesisBlockCreatorFactory.CreateGenesisBlockCreator(arg)
+	gbc, err := pcf.runTypeComponents.GenesisBlockCreator().CreateGenesisBlockCreator(arg)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -2057,7 +2054,7 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	if check.IfNil(args.TxExecutionOrderHandler) {
 		return fmt.Errorf("%s: %w", baseErrMessage, process.ErrNilTxExecutionOrderHandler)
 	}
-	if check.IfNil(args.GenesisBlockCreatorFactory) {
+	if check.IfNil(args.RunTypeComponents.GenesisBlockCreator()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilGenesisBlockFactory)
 	}
 	if check.IfNil(args.GenesisMetaBlockChecker) {

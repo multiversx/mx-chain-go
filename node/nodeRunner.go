@@ -46,7 +46,6 @@ import (
 	"github.com/multiversx/mx-chain-go/factory/statusCore"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
-	genesisProcess "github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/health"
 	"github.com/multiversx/mx-chain-go/node/metrics"
 	trieIteratorsFactory "github.com/multiversx/mx-chain-go/node/trieIterators/factory"
@@ -1295,7 +1294,6 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		HistoryRepo:                           historyRepository,
 		FlagsConfig:                           *configs.FlagsConfig,
 		TxExecutionOrderHandler:               txExecutionOrderHandler,
-		GenesisBlockCreatorFactory:            genesisProcess.NewGenesisBlockCreatorFactory(),
 		GenesisMetaBlockChecker:               processComp.NewGenesisMetaBlockChecker(),
 		RequesterContainerFactoryCreator:      requesterscontainer.NewShardRequestersContainerFactoryCreator(),
 		InterceptorsContainerFactoryCreator:   interceptorscontainer.NewShardInterceptorsContainerFactoryCreator(),
