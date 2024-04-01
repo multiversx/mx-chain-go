@@ -1318,6 +1318,22 @@ func TestNodeFacade_GetEligibleManagedKeys(t *testing.T) {
 	assert.Equal(t, expectedResult, result)
 }
 
+func TestNodeFacade_GetLoadedKeys(t *testing.T) {
+	t.Parallel()
+
+	providedLoadedKeys := []string{"pk1", "pk2"}
+	arg := createMockArguments()
+	arg.ApiResolver = &mock.ApiResolverStub{
+		GetLoadedKeysCalled: func() []string {
+			return providedLoadedKeys
+		},
+	}
+	nf, _ := NewNodeFacade(arg)
+
+	keys := nf.GetLoadedKeys()
+	require.Equal(t, providedLoadedKeys, keys)
+}
+
 func TestNodeFacade_GetWaitingEpochsLeftForPublicKey(t *testing.T) {
 	t.Parallel()
 

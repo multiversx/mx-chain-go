@@ -21,8 +21,7 @@ import (
 func createEconomicsData() process.EconomicsDataHandler {
 	economicsConfig := testscommon.GetEconomicsConfig()
 	economicsData, _ := economics.NewEconomicsData(economics.ArgsNewEconomicsData{
-		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
-		Economics:                   &economicsConfig,
+		Economics: &economicsConfig,
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
 				if flag == common.PenalizedTooMuchGasFlag {

@@ -186,7 +186,6 @@ func NewSmartContractProcessor(args scrCommon.ArgsNewSmartContractProcessor) (*s
 		common.OptimizeGasUsedInCrossMiniBlocksFlag,
 		common.OptimizeNFTStoreFlag,
 		common.RemoveNonUpdatedStorageFlag,
-		common.BuiltInFunctionOnMetaFlag,
 		common.BackwardCompSaveKeyValueFlag,
 		common.ReturnDataToLastTransferFlagAfterEpoch,
 		common.FixAsyncCallBackArgsListFlag,
@@ -2799,7 +2798,7 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 		returnCode, err = sc.ExecuteSmartContractTransaction(scr, scrData.GetSender(), scrData.GetDestination())
 		return returnCode, err
 	case process.BuiltInFunctionCall:
-		if sc.shardCoordinator.SelfId() == core.MetachainShardId && !sc.enableEpochsHandler.IsFlagEnabled(common.BuiltInFunctionOnMetaFlag) {
+		if sc.shardCoordinator.SelfId() == core.MetachainShardId {
 			returnCode, err = sc.ExecuteSmartContractTransaction(scr, scrData.GetSender(), scrData.GetDestination())
 			return returnCode, err
 		}
@@ -2837,7 +2836,8 @@ func (sc *scProcessor) processSimpleSCR(
 	if err != nil {
 		return err
 	}
-	if !isPayable && !bytes.Equal(scResult.RcvAddr, scResult.OriginalSender) {
+	isSenderMeta := sc.shardCoordinator.ComputeId(scResult.SndAddr) == core.MetachainShardId
+	if !isPayable && !bytes.Equal(scResult.RcvAddr, scResult.OriginalSender) && !isSenderMeta {
 		return process.ErrAccountNotPayable
 	}
 

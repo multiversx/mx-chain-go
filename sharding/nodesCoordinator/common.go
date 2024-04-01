@@ -58,6 +58,7 @@ func displayNodesConfiguration(
 	waiting map[uint32][]Validator,
 	leaving map[uint32][]Validator,
 	actualRemaining map[uint32][]Validator,
+	shuffledOut map[uint32][]Validator,
 	nbShards uint32,
 ) {
 	for shard := uint32(0); shard <= nbShards; shard++ {
@@ -80,6 +81,10 @@ func displayNodesConfiguration(
 		for _, v := range actualRemaining[shardID] {
 			pk := v.PubKey()
 			log.Debug("actually remaining", "pk", pk, "shardID", shardID)
+		}
+		for _, v := range shuffledOut[shardID] {
+			pk := v.PubKey()
+			log.Debug("shuffled out", "pk", pk, "shardID", shardID)
 		}
 	}
 }

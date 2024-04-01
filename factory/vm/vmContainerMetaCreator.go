@@ -44,6 +44,7 @@ func (vcmf *vmContainerMetaFactory) CreateVmContainerFactory(argsHook hooks.ArgB
 		ChanceComputer:      args.ChanceComputer,
 		ShardCoordinator:    args.ShardCoordinator,
 		EnableEpochsHandler: args.EnableEpochsHandler,
+		NodesCoordinator:    args.NodesCoordinator,
 	}
 	vmFactory, err := metachain.NewVMContainerFactory(argsNewVmFactory)
 	if err != nil {

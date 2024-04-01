@@ -10,8 +10,7 @@ import (
 
 // SystemEIStub -
 type SystemEIStub struct {
-	TransferCalled                      func(destination []byte, sender []byte, value *big.Int, input []byte) error
-	ProcessBuiltInCalled                func(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) error
+	TransferCalled                      func(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64)
 	GetBalanceCalled                    func(addr []byte) *big.Int
 	SetStorageCalled                    func(key []byte, value []byte)
 	AddReturnMessageCalled              func(msg string)
@@ -38,6 +37,7 @@ type SystemEIStub struct {
 	GasLeftCalled                       func() uint64
 	CleanStorageUpdatesCalled           func()
 	ReturnMessage                       string
+	ProcessBuiltInFunctionCalled        func(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) error
 	AddLogEntryCalled                   func(entry *vmcommon.LogEntry)
 	SetOwnerOperatingOnAccountCalled    func(newOwner []byte) error
 	UpdateCodeDeployerAddressCalled     func(scAddress string, newOwner []byte) error
@@ -204,17 +204,16 @@ func (s *SystemEIStub) SendGlobalSettingToAll(sender []byte, input []byte) {
 }
 
 // Transfer -
-func (s *SystemEIStub) Transfer(destination []byte, sender []byte, value *big.Int, input []byte, _ uint64) error {
+func (s *SystemEIStub) Transfer(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) {
 	if s.TransferCalled != nil {
-		return s.TransferCalled(destination, sender, value, input)
+		s.TransferCalled(destination, sender, value, input, gasLimit)
 	}
-	return nil
 }
 
 // ProcessBuiltInFunction -
 func (s *SystemEIStub) ProcessBuiltInFunction(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) error {
-	if s.ProcessBuiltInCalled != nil {
-		return s.ProcessBuiltInCalled(destination, sender, value, input, gasLimit)
+	if s.ProcessBuiltInFunctionCalled != nil {
+		return s.ProcessBuiltInFunctionCalled(destination, sender, value, input, gasLimit)
 	}
 	return nil
 }

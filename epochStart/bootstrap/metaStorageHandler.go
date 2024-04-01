@@ -20,26 +20,29 @@ type metaStorageHandler struct {
 }
 
 // NewMetaStorageHandler will return a new instance of metaStorageHandler
-func NewMetaStorageHandler(
-	args StorageHandlerArgs,
-) (*metaStorageHandler, error) {
+func NewMetaStorageHandler(args StorageHandlerArgs) (*metaStorageHandler, error) {
+	err := checkNilArgs(args)
+	if err != nil {
+		return nil, err
+	}
+
 	epochStartNotifier := &disabled.EpochStartNotifier{}
 	storageFactory, err := factory.NewStorageServiceFactory(
 		factory.StorageServiceFactoryArgs{
 			Config:                          args.GeneralConfig,
-			PrefsConfig:                     args.PrefsConfig,
+			PrefsConfig:                     args.PreferencesConfig,
 			ShardCoordinator:                args.ShardCoordinator,
 			PathManager:                     args.PathManagerHandler,
 			EpochStartNotifier:              epochStartNotifier,
 			NodeTypeProvider:                args.NodeTypeProvider,
-			CurrentEpoch:                    args.CurrentEpoch,
 			StorageType:                     factory.BootstrapStorageService,
+			ManagedPeersHolder:              args.ManagedPeersHolder,
+			CurrentEpoch:                    args.CurrentEpoch,
 			CreateTrieEpochRootHashStorer:   false,
 			NodeProcessingMode:              args.NodeProcessingMode,
-			RepopulateTokensSupplies:        false, // tokens supplies cannot be repopulated at this time
-			ManagedPeersHolder:              args.ManagedPeersHolder,
-			AdditionalStorageServiceCreator: args.AdditionalStorageServiceCreator,
+			RepopulateTokensSupplies:        false,
 			StateStatsHandler:               args.StateStatsHandler,
+			AdditionalStorageServiceCreator: args.AdditionalStorageServiceCreator,
 		},
 	)
 	if err != nil {
@@ -52,12 +55,13 @@ func NewMetaStorageHandler(
 	}
 
 	base := &baseStorageHandler{
-		storageService:   storageService,
-		shardCoordinator: args.ShardCoordinator,
-		marshalizer:      args.Marshalizer,
-		hasher:           args.Hasher,
-		currentEpoch:     args.CurrentEpoch,
-		uint64Converter:  args.Uint64Converter,
+		storageService:                  storageService,
+		shardCoordinator:                args.ShardCoordinator,
+		marshalizer:                     args.Marshaller,
+		hasher:                          args.Hasher,
+		currentEpoch:                    args.CurrentEpoch,
+		uint64Converter:                 args.Uint64Converter,
+		nodesCoordinatorRegistryFactory: args.NodesCoordinatorRegistryFactory,
 	}
 
 	return &metaStorageHandler{baseStorageHandler: base}, nil

@@ -1,7 +1,3 @@
-//go:build !race
-
-// TODO remove build condition above to allow -race -short, after Wasm VM fix
-
 package txsFee
 
 import (
@@ -19,6 +15,10 @@ import (
 )
 
 func TestRelayedAsyncCallShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	senderAddr := []byte("12345678901234567890123456789011")
 
 	t.Run("nonce fix is disabled, should increase the sender's nonce", func(t *testing.T) {
