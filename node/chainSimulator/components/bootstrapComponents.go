@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/factory"
@@ -13,6 +12,8 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/testscommon/components"
+
+	"github.com/multiversx/mx-chain-core-go/core"
 )
 
 // ArgsBootstrapComponentsHolder will hold the components needed for the bootstrap components holders
@@ -59,7 +60,6 @@ func CreateBootstrapComponents(args ArgsBootstrapComponentsHolder) (*bootstrapCo
 		NetworkComponents:                args.NetworkComponents,
 		StatusCoreComponents:             args.StatusCoreComponents,
 		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
-		ShardCoordinatorFactory:          sharding.NewMultiShardCoordinatorFactory(),
 		RunTypeComponents:                components.GetRunTypeComponents(),
 	}
 
