@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/consensus"
 	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
+	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/errors"
@@ -60,6 +61,7 @@ type runTypeComponents struct {
 	dataCodecHandler                    sovereign.DataDecoderHandler
 	topicsCheckerHandler                sovereign.TopicsCheckerHandler
 	shardCoordinatorCreator             sharding.ShardCoordinatorFactory
+	requestersContainerCreator          requesterscontainer.RequesterContainerFactoryCreator
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
@@ -168,6 +170,8 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 
 	shardCoordinatorCreator := sharding.NewMultiShardCoordinatorFactory()
 
+	requestersContainerCreator := requesterscontainer.NewShardRequestersContainerFactoryCreator()
+
 	return &runTypeComponents{
 		blockChainHookHandlerCreator:        blockChainHookHandlerFactory,
 		epochStartBootstrapperCreator:       epochStartBootstrapperFactory,
@@ -192,6 +196,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		dataCodecHandler:                    dataCodec,
 		topicsCheckerHandler:                topicsChecker,
 		shardCoordinatorCreator:             shardCoordinatorCreator,
+		requestersContainerCreator:          requestersContainerCreator,
 	}, nil
 }
 

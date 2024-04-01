@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
 	sovereignFactory "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
+	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/errors"
@@ -169,6 +170,8 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 
 	shardCoordinatorCreator := sharding.NewSovereignShardCoordinatorFactory()
 
+	requestersContainerCreator := requesterscontainer.NewSovereignShardRequestersContainerFactoryCreator()
+
 	return &runTypeComponents{
 		blockChainHookHandlerCreator:        blockChainHookHandlerFactory,
 		epochStartBootstrapperCreator:       epochStartBootstrapperFactory,
@@ -193,5 +196,6 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		dataCodecHandler:                    dataCodec,
 		topicsCheckerHandler:                topicsChecker,
 		shardCoordinatorCreator:             shardCoordinatorCreator,
+		requestersContainerCreator:          requestersContainerCreator,
 	}, nil
 }

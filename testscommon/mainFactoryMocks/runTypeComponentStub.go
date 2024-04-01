@@ -3,6 +3,7 @@ package mainFactoryMocks
 import (
 	"github.com/multiversx/mx-chain-go/consensus"
 	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
+	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
@@ -49,6 +50,7 @@ type RunTypeComponentsStub struct {
 	DataCodec                           sovereign.DataDecoderHandler
 	TopicsChecker                       sovereign.TopicsCheckerHandler
 	ShardCoordinatorFactory             sharding.ShardCoordinatorFactory
+	RequestersContainerFactory          requesterscontainer.RequesterContainerFactoryCreator
 }
 
 // NewRunTypeComponentsStub -
@@ -77,6 +79,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		DataCodec:                           &sovereignMocks.DataCodecMock{},
 		TopicsChecker:                       &sovereignMocks.TopicsCheckerMock{},
 		ShardCoordinatorFactory:             sharding.NewMultiShardCoordinatorFactory(),
+		RequestersContainerFactory:          requesterscontainer.NewShardRequestersContainerFactoryCreator(),
 	}
 }
 
@@ -213,6 +216,11 @@ func (r *RunTypeComponentsStub) TopicsCheckerHandler() sovereign.TopicsCheckerHa
 // ShardCoordinatorCreator -
 func (r *RunTypeComponentsStub) ShardCoordinatorCreator() sharding.ShardCoordinatorFactory {
 	return r.ShardCoordinatorFactory
+}
+
+// RequestersContainerCreator -
+func (r *RunTypeComponentsStub) RequestersContainerCreator() requesterscontainer.RequesterContainerFactoryCreator {
+	return r.RequestersContainerFactory
 }
 
 // IsInterfaceNil -

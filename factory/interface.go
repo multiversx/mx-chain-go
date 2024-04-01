@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
+	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/dblookupext"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -600,6 +601,7 @@ type RunTypeComponentsHolder interface {
 	DataCodecHandler() sovereign.DataDecoderHandler
 	TopicsCheckerHandler() sovereign.TopicsCheckerHandler
 	ShardCoordinatorCreator() sharding.ShardCoordinatorFactory
+	RequestersContainerCreator() requesterscontainer.RequesterContainerFactoryCreator
 	Create() error
 	Close() error
 	CheckSubcomponents() error

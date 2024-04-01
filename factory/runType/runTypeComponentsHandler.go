@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/consensus"
 	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
+	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/errors"
@@ -436,6 +437,18 @@ func (mrc *managedRunTypeComponents) ShardCoordinatorCreator() sharding.ShardCoo
 	}
 
 	return mrc.runTypeComponents.shardCoordinatorCreator
+}
+
+// ShardRequestersContainerCreator returns the shard coordinator factory
+func (mrc *managedRunTypeComponents) RequestersContainerCreator() requesterscontainer.RequesterContainerFactoryCreator {
+	mrc.mutStateComponents.RLock()
+	defer mrc.mutStateComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.requestersContainerCreator
 }
 
 // IsInterfaceNil returns true if the interface is nil
