@@ -69,7 +69,7 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 		NumNodesWaitingListShard: 0,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			newNumNodes := cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake + 8 // 8 nodes until new nodes will be placed on queue
-			configs.SetMaxNumberOfNodesInConfigs(cfg, newNumNodes, numOfShards)
+			configs.SetMaxNumberOfNodesInConfigs(cfg, uint32(newNumNodes), 0, numOfShards)
 		},
 	})
 	require.Nil(t, err)
@@ -152,7 +152,7 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 	require.Nil(t, err)
 
 	metachainNode := cs.GetNodeHandler(core.MetachainShardId)
-	err = metachainNode.GetProcessComponents().ValidatorsProvider().ForceUpdate()
+	err = cs.ForceResetValidatorStatisticsCache()
 	require.Nil(t, err)
 	validatorStatistics, err := metachainNode.GetFacadeHandler().ValidatorStatisticsApi()
 	require.Nil(t, err)
@@ -200,8 +200,10 @@ func TestChainSimulator_AddANewValidatorAfterStakingV4(t *testing.T) {
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.SystemSCConfig.StakingSystemSCConfig.NodeLimitPercentage = 1
 			cfg.GeneralConfig.ValidatorStatistics.CacheRefreshIntervalInSec = 1
-			newNumNodes := cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake + 8 // 8 nodes until new nodes will be placed on queue
-			configs.SetMaxNumberOfNodesInConfigs(cfg, newNumNodes, numOfShards)
+			eligibleNodes := cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake
+			// 8 nodes until new nodes will be placed on queue
+			waitingNodes := uint32(8)
+			configs.SetMaxNumberOfNodesInConfigs(cfg, uint32(eligibleNodes), waitingNodes, numOfShards)
 		},
 	})
 	require.Nil(t, err)
@@ -262,7 +264,7 @@ func TestChainSimulator_AddANewValidatorAfterStakingV4(t *testing.T) {
 	require.Nil(t, err)
 
 	metachainNode := cs.GetNodeHandler(core.MetachainShardId)
-	err = metachainNode.GetProcessComponents().ValidatorsProvider().ForceUpdate()
+	err = cs.ForceResetValidatorStatisticsCache()
 	require.Nil(t, err)
 	results, err := metachainNode.GetFacadeHandler().AuctionListApi()
 	require.Nil(t, err)
@@ -328,7 +330,7 @@ func testStakeUnStakeUnBond(t *testing.T, targetEpoch int32) {
 			cfg.SystemSCConfig.StakingSystemSCConfig.UnBondPeriod = 1
 			cfg.SystemSCConfig.StakingSystemSCConfig.UnBondPeriodInEpochs = 1
 			newNumNodes := cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake + 10
-			configs.SetMaxNumberOfNodesInConfigs(cfg, newNumNodes, numOfShards)
+			configs.SetMaxNumberOfNodesInConfigs(cfg, uint32(newNumNodes), 0, numOfShards)
 		},
 	})
 	require.Nil(t, err)

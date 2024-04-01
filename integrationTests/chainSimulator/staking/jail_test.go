@@ -77,7 +77,7 @@ func testChainSimulatorJailAndUnJail(t *testing.T, targetEpoch int32, nodeStatus
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			configs.SetStakingV4ActivationEpochs(cfg, stakingV4JailUnJailStep1EnableEpoch)
 			newNumNodes := cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake + 8 // 8 nodes until new nodes will be placed on queue
-			configs.SetMaxNumberOfNodesInConfigs(cfg, newNumNodes, numOfShards)
+			configs.SetMaxNumberOfNodesInConfigs(cfg, uint32(newNumNodes), 0, numOfShards)
 			configs.SetQuickJailRatingConfig(cfg)
 		},
 	})
@@ -179,7 +179,7 @@ func TestChainSimulator_FromQueueToAuctionList(t *testing.T) {
 			configs.SetQuickJailRatingConfig(cfg)
 
 			newNumNodes := cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake + 1
-			configs.SetMaxNumberOfNodesInConfigs(cfg, newNumNodes, numOfShards)
+			configs.SetMaxNumberOfNodesInConfigs(cfg, uint32(newNumNodes), 0, numOfShards)
 		},
 	})
 	require.Nil(t, err)
@@ -248,7 +248,7 @@ func TestChainSimulator_FromQueueToAuctionList(t *testing.T) {
 }
 
 func checkValidatorStatus(t *testing.T, cs chainSimulatorIntegrationTests.ChainSimulator, blsKey string, expectedStatus string) {
-	err := cs.GetNodeHandler(core.MetachainShardId).GetProcessComponents().ValidatorsProvider().ForceUpdate()
+	err := cs.ForceResetValidatorStatisticsCache()
 	require.Nil(t, err)
 
 	validatorsStatistics, err := cs.GetNodeHandler(core.MetachainShardId).GetFacadeHandler().ValidatorStatisticsApi()
