@@ -33,40 +33,42 @@ func NewSovereignIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*so
 
 	ihnc := &sovereignIndexHashedNodesCoordinator{
 		indexHashedNodesCoordinator: &indexHashedNodesCoordinator{
-			marshalizer:                   arguments.Marshalizer,
-			hasher:                        arguments.Hasher,
-			shuffler:                      arguments.Shuffler,
-			epochStartRegistrationHandler: arguments.EpochStartNotifier,
-			bootStorer:                    arguments.BootStorer,
-			selfPubKey:                    arguments.SelfPublicKey,
-			nodesConfig:                   nodesConfig,
-			currentEpoch:                  arguments.Epoch,
-			savedStateKey:                 savedKey,
-			shardConsensusGroupSize:       arguments.ShardConsensusGroupSize,
-			metaConsensusGroupSize:        arguments.MetaConsensusGroupSize,
-			consensusGroupCacher:          arguments.ConsensusGroupCache,
-			shardIDAsObserver:             arguments.ShardIDAsObserver,
-			shuffledOutHandler:            arguments.ShuffledOutHandler,
-			startEpoch:                    arguments.StartEpoch,
-			publicKeyToValidatorMap:       make(map[string]*validatorWithShardID),
-			chanStopNode:                  arguments.ChanStopNode,
-			nodeTypeProvider:              arguments.NodeTypeProvider,
-			isFullArchive:                 arguments.IsFullArchive,
-			enableEpochsHandler:           arguments.EnableEpochsHandler,
-			validatorInfoCacher:           arguments.ValidatorInfoCacher,
+			marshalizer:                     arguments.Marshalizer,
+			hasher:                          arguments.Hasher,
+			shuffler:                        arguments.Shuffler,
+			epochStartRegistrationHandler:   arguments.EpochStartNotifier,
+			bootStorer:                      arguments.BootStorer,
+			selfPubKey:                      arguments.SelfPublicKey,
+			nodesConfig:                     nodesConfig,
+			currentEpoch:                    arguments.Epoch,
+			savedStateKey:                   savedKey,
+			shardConsensusGroupSize:         arguments.ShardConsensusGroupSize,
+			metaConsensusGroupSize:          arguments.MetaConsensusGroupSize,
+			consensusGroupCacher:            arguments.ConsensusGroupCache,
+			shardIDAsObserver:               arguments.ShardIDAsObserver,
+			shuffledOutHandler:              arguments.ShuffledOutHandler,
+			startEpoch:                      arguments.StartEpoch,
+			publicKeyToValidatorMap:         make(map[string]*validatorWithShardID),
+			chanStopNode:                    arguments.ChanStopNode,
+			nodeTypeProvider:                arguments.NodeTypeProvider,
+			isFullArchive:                   arguments.IsFullArchive,
+			enableEpochsHandler:             arguments.EnableEpochsHandler,
+			validatorInfoCacher:             arguments.ValidatorInfoCacher,
+			genesisNodesSetupHandler:        arguments.GenesisNodesSetupHandler,
+			nodesCoordinatorRegistryFactory: arguments.NodesCoordinatorRegistryFactory,
 		},
 	}
 
 	ihnc.loadingFromDisk.Store(false)
 
 	ihnc.nodesCoordinatorHelper = ihnc
-	err = ihnc.setNodesPerShards(arguments.EligibleNodes, arguments.WaitingNodes, nil, arguments.Epoch)
+	err = ihnc.setNodesPerShards(arguments.EligibleNodes, arguments.WaitingNodes, nil, nil, arguments.Epoch)
 	if err != nil {
 		return nil, err
 	}
 
 	ihnc.fillPublicKeyToValidatorMap()
-	err = ihnc.saveState(ihnc.savedStateKey)
+	err = ihnc.saveState(ihnc.savedStateKey, arguments.Epoch)
 	if err != nil {
 		log.Error("saving initial nodes coordinator config failed",
 			"error", err.Error())
@@ -107,6 +109,7 @@ func (ihnc *sovereignIndexHashedNodesCoordinator) setNodesPerShards(
 	eligible map[uint32][]Validator,
 	waiting map[uint32][]Validator,
 	leaving map[uint32][]Validator,
+	shuffledOut map[uint32][]Validator,
 	epoch uint32,
 ) error {
 	ihnc.mutNodesConfig.Lock()
@@ -131,7 +134,7 @@ func (ihnc *sovereignIndexHashedNodesCoordinator) setNodesPerShards(
 	}
 	numTotalEligible := uint64(nbNodesShard)
 
-	err := ihnc.baseSetNodesPerShard(nodesConfig, numTotalEligible, eligible, waiting, leaving, epoch)
+	err := ihnc.baseSetNodesPerShard(nodesConfig, numTotalEligible, eligible, waiting, leaving, shuffledOut, epoch)
 	if err != nil {
 		return err
 	}

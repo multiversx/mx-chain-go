@@ -27,7 +27,7 @@ func defaultSubroundStartRoundFromSubround(sr *spos.Subround) (bls.SubroundStart
 		bls.ProcessingThresholdPercent,
 		executeStoredMessages,
 		resetConsensusMessages,
-		&mock.SentSignatureTrackerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 		&subRounds.SubRoundStartExtraSignersHolderMock{},
 	)
 
@@ -41,7 +41,7 @@ func defaultWithoutErrorSubroundStartRoundFromSubround(sr *spos.Subround) bls.Su
 		bls.ProcessingThresholdPercent,
 		executeStoredMessages,
 		resetConsensusMessages,
-		&mock.SentSignatureTrackerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 		&subRounds.SubRoundStartExtraSignersHolderMock{},
 	)
 
@@ -82,7 +82,7 @@ func initSubroundStartRoundWithContainer(container spos.ConsensusCoreHandler) bl
 		bls.ProcessingThresholdPercent,
 		executeStoredMessages,
 		resetConsensusMessages,
-		&mock.SentSignatureTrackerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 		&subRounds.SubRoundStartExtraSignersHolderMock{},
 	)
 
@@ -99,7 +99,7 @@ func initSubroundStartRoundWithContainerAndSigners(container spos.ConsensusCoreH
 		bls.ProcessingThresholdPercent,
 		executeStoredMessages,
 		resetConsensusMessages,
-		&mock.SentSignatureTrackerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 		extraSignersHolder,
 	)
 
@@ -143,7 +143,7 @@ func TestNewSubroundStartRound(t *testing.T) {
 			bls.ProcessingThresholdPercent,
 			executeStoredMessages,
 			resetConsensusMessages,
-			&mock.SentSignatureTrackerStub{},
+			&testscommon.SentSignatureTrackerStub{},
 			&subRounds.SubRoundStartExtraSignersHolderMock{},
 		)
 
@@ -159,7 +159,7 @@ func TestNewSubroundStartRound(t *testing.T) {
 			bls.ProcessingThresholdPercent,
 			executeStoredMessages,
 			resetConsensusMessages,
-			&mock.SentSignatureTrackerStub{},
+			&testscommon.SentSignatureTrackerStub{},
 			&subRounds.SubRoundStartExtraSignersHolderMock{},
 		)
 
@@ -176,7 +176,7 @@ func TestNewSubroundStartRound(t *testing.T) {
 			bls.ProcessingThresholdPercent,
 			nil,
 			resetConsensusMessages,
-			&mock.SentSignatureTrackerStub{},
+			&testscommon.SentSignatureTrackerStub{},
 			&subRounds.SubRoundStartExtraSignersHolderMock{},
 		)
 
@@ -193,7 +193,7 @@ func TestNewSubroundStartRound(t *testing.T) {
 			bls.ProcessingThresholdPercent,
 			executeStoredMessages,
 			nil,
-			&mock.SentSignatureTrackerStub{},
+			&testscommon.SentSignatureTrackerStub{},
 			&subRounds.SubRoundStartExtraSignersHolderMock{},
 		)
 
@@ -215,7 +215,7 @@ func TestNewSubroundStartRound(t *testing.T) {
 		)
 
 		assert.Nil(t, srStartRound)
-		assert.Equal(t, spos.ErrNilSentSignatureTracker, err)
+		assert.Equal(t, bls.ErrNilSentSignatureTracker, err)
 	})
 }
 
@@ -341,7 +341,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilExtraSignersHolderShouldFail
 		bls.ProcessingThresholdPercent,
 		executeStoredMessages,
 		resetConsensusMessages,
-		&mock.SentSignatureTrackerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 		nil,
 	)
 	require.Nil(t, srStartRound)
@@ -414,7 +414,7 @@ func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnTrueWhenInitCu
 
 	sr := *initSubroundStartRoundWithContainer(container)
 	sentTrackerInterface := sr.GetSentSignatureTracker()
-	sentTracker := sentTrackerInterface.(*mock.SentSignatureTrackerStub)
+	sentTracker := sentTrackerInterface.(*testscommon.SentSignatureTrackerStub)
 	startRoundCalled := false
 	sentTracker.StartRoundCalled = func() {
 		startRoundCalled = true
@@ -635,7 +635,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			bls.ProcessingThresholdPercent,
 			displayStatistics,
 			executeStoredMessages,
-			&mock.SentSignatureTrackerStub{},
+			&testscommon.SentSignatureTrackerStub{},
 			&subRounds.SubRoundStartExtraSignersHolderMock{},
 		)
 		srStartRound.Check()
@@ -691,7 +691,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			bls.ProcessingThresholdPercent,
 			displayStatistics,
 			executeStoredMessages,
-			&mock.SentSignatureTrackerStub{},
+			&testscommon.SentSignatureTrackerStub{},
 			&subRounds.SubRoundStartExtraSignersHolderMock{},
 		)
 		srStartRound.Check()
@@ -746,7 +746,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			bls.ProcessingThresholdPercent,
 			displayStatistics,
 			executeStoredMessages,
-			&mock.SentSignatureTrackerStub{},
+			&testscommon.SentSignatureTrackerStub{},
 			&subRounds.SubRoundStartExtraSignersHolderMock{},
 		)
 		srStartRound.Check()
@@ -812,7 +812,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			bls.ProcessingThresholdPercent,
 			displayStatistics,
 			executeStoredMessages,
-			&mock.SentSignatureTrackerStub{},
+			&testscommon.SentSignatureTrackerStub{},
 			&subRounds.SubRoundStartExtraSignersHolderMock{},
 		)
 		srStartRound.Check()
@@ -882,7 +882,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 			bls.ProcessingThresholdPercent,
 			displayStatistics,
 			executeStoredMessages,
-			&mock.SentSignatureTrackerStub{},
+			&testscommon.SentSignatureTrackerStub{},
 			&subRounds.SubRoundStartExtraSignersHolderMock{},
 		)
 		srStartRound.Check()

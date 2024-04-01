@@ -61,20 +61,24 @@ type bootstrapComponentsFactory struct {
 }
 
 type bootstrapComponents struct {
-	epochStartBootstrapper  factory.EpochStartBootstrapper
-	bootstrapParamsHolder   factory.BootstrapParamsHolder
-	nodeType                core.NodeType
-	shardCoordinator        sharding.Coordinator
-	headerVersionHandler    nodeFactory.HeaderVersionHandler
-	versionedHeaderFactory  nodeFactory.VersionedHeaderFactory
-	headerIntegrityVerifier nodeFactory.HeaderIntegrityVerifierHandler
-	guardedAccountHandler   process.GuardedAccountHandler
+	epochStartBootstrapper          factory.EpochStartBootstrapper
+	bootstrapParamsHolder           factory.BootstrapParamsHolder
+	nodeType                        core.NodeType
+	shardCoordinator                sharding.Coordinator
+	headerVersionHandler            nodeFactory.HeaderVersionHandler
+	versionedHeaderFactory          nodeFactory.VersionedHeaderFactory
+	headerIntegrityVerifier         nodeFactory.HeaderIntegrityVerifierHandler
+	guardedAccountHandler           process.GuardedAccountHandler
+	nodesCoordinatorRegistryFactory nodesCoord.NodesCoordinatorRegistryFactory
 }
 
 // NewBootstrapComponentsFactory creates an instance of bootstrapComponentsFactory
 func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootstrapComponentsFactory, error) {
 	if check.IfNil(args.CoreComponents) {
 		return nil, errors.ErrNilCoreComponentsHolder
+	}
+	if check.IfNil(args.CoreComponents.EnableEpochsHandler()) {
+		return nil, errors.ErrNilEnableEpochsHandler
 	}
 	if check.IfNil(args.CryptoComponents) {
 		return nil, errors.ErrNilCryptoComponentsHolder
@@ -209,6 +213,14 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		return nil, err
 	}
 
+	nodesCoordinatorRegistryFactory, err := nodesCoord.NewNodesCoordinatorRegistryFactory(
+		bcf.coreComponents.InternalMarshalizer(),
+		bcf.coreComponents.EnableEpochsHandler().GetActivationEpoch(common.StakingV4Step2Flag),
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
 		CoreComponentsHolder:             bcf.coreComponents,
 		CryptoComponentsHolder:           bcf.cryptoComponents,
@@ -235,6 +247,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		NodeProcessingMode:               common.GetNodeProcessingMode(&bcf.importDbConfig),
 		StateStatsHandler:                bcf.statusCoreComponents.StateStatsHandler(),
 		NodesCoordinatorWithRaterFactory: bcf.nodesCoordinatorWithRaterFactory,
+		NodesCoordinatorRegistryFactory:  nodesCoordinatorRegistryFactory,
 		ShardCoordinatorFactory:          bcf.runTypeComponents.ShardCoordinatorCreator(),
 		AdditionalStorageServiceCreator:  bcf.runTypeComponents.AdditionalStorageServiceCreator(),
 	}
@@ -249,6 +262,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 			EpochStartBootstrapperCreator:    bcf.runTypeComponents.EpochStartBootstrapperCreator(),
 			NodesCoordinatorWithRaterFactory: bcf.nodesCoordinatorWithRaterFactory,
 			ShardCoordinatorFactory:          bcf.runTypeComponents.ShardCoordinatorCreator(),
+			ResolverRequestFactory:           bcf.runTypeComponents.RequestHandlerCreator(),
 		}
 
 		epochStartBootstrapper, err = bootstrap.NewStorageEpochStartBootstrap(storageArg)
@@ -291,12 +305,13 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		bootstrapParamsHolder: &bootstrapParams{
 			bootstrapParams: bootstrapParameters,
 		},
-		nodeType:                nodeType,
-		shardCoordinator:        shardCoordinator,
-		headerVersionHandler:    headerVersionHandler,
-		headerIntegrityVerifier: headerIntegrityVerifier,
-		versionedHeaderFactory:  versionedHeaderFactory,
-		guardedAccountHandler:   guardedAccountHandler,
+		nodeType:                        nodeType,
+		shardCoordinator:                shardCoordinator,
+		headerVersionHandler:            headerVersionHandler,
+		headerIntegrityVerifier:         headerIntegrityVerifier,
+		versionedHeaderFactory:          versionedHeaderFactory,
+		guardedAccountHandler:           guardedAccountHandler,
+		nodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
 	}, nil
 }
 

@@ -107,6 +107,7 @@ func testManagedProcessComponentsCreateShouldWork(t *testing.T, shardID uint32, 
 	require.True(t, check.IfNil(managedProcessComponents.ReceiptsRepository()))
 	require.True(t, check.IfNil(managedProcessComponents.FullArchivePeerShardMapper()))
 	require.True(t, check.IfNil(managedProcessComponents.FullArchiveInterceptorsContainer()))
+		require.True(t, check.IfNil(managedProcessComponents.SentSignaturesTracker()))
 
 	err := managedProcessComponents.Create()
 	require.NoError(t, err)
@@ -150,6 +151,7 @@ func testManagedProcessComponentsCreateShouldWork(t *testing.T, shardID uint32, 
 	require.False(t, check.IfNil(managedProcessComponents.ReceiptsRepository()))
 	require.False(t, check.IfNil(managedProcessComponents.FullArchivePeerShardMapper()))
 	require.False(t, check.IfNil(managedProcessComponents.FullArchiveInterceptorsContainer()))
+		require.False(t, check.IfNil(managedProcessComponents.SentSignaturesTracker()))
 
 }
 

@@ -16,24 +16,26 @@ import (
 
 // ArgsVmContainerFactory hold the argument needed for creating vm container
 type ArgsVmContainerFactory struct {
-	Config              config.VirtualMachineConfig
-	BlockGasLimit       uint64
-	GasSchedule         core.GasScheduleNotifier
-	EpochNotifier       process.EpochNotifier
-	EnableEpochsHandler common.EnableEpochsHandler
-	WasmVMChangeLocker  common.Locker
-	ESDTTransferParser  vmcommon.ESDTTransferParser
-	BuiltInFunctions    vmcommon.BuiltInFunctionContainer
-	BlockChainHook      process.BlockChainHookWithAccountsAdapter
-	Hasher              hashing.Hasher
-	Economics           process.EconomicsDataHandler
-	MessageSignVerifier vm.MessageSignVerifier
-	NodesConfigProvider vm.NodesConfigProvider
-	Marshalizer         marshal.Marshalizer
-	SystemSCConfig      *config.SystemSmartContractsConfig
-	ValidatorAccountsDB state.AccountsAdapter
-	UserAccountsDB      state.AccountsAdapter
-	ChanceComputer      nodesCoordinator.ChanceComputer
-	ShardCoordinator    sharding.Coordinator
-	PubkeyConv          core.PubkeyConverter
+	Config                     config.VirtualMachineConfig
+	BlockGasLimit              uint64
+	GasSchedule                core.GasScheduleNotifier
+	EpochNotifier              process.EpochNotifier
+	EnableEpochsHandler        common.EnableEpochsHandler
+	WasmVMChangeLocker         common.Locker
+	ESDTTransferParser         vmcommon.ESDTTransferParser
+	BuiltInFunctions           vmcommon.BuiltInFunctionContainer
+	BlockChainHook             process.BlockChainHookWithAccountsAdapter
+	Hasher                     hashing.Hasher
+	Economics                  process.EconomicsDataHandler
+	MessageSignVerifier        vm.MessageSignVerifier
+	NodesConfigProvider        vm.NodesConfigProvider
+	Marshalizer                marshal.Marshalizer
+	SystemSCConfig             *config.SystemSmartContractsConfig
+	ValidatorAccountsDB        state.AccountsAdapter
+	UserAccountsDB             state.AccountsAdapter
+	ChanceComputer             nodesCoordinator.ChanceComputer
+	ShardCoordinator           sharding.Coordinator
+	PubkeyConv                 core.PubkeyConverter
+	IsInHistoricalBalancesMode bool
+	NodesCoordinator           vm.NodesCoordinator
 }

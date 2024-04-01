@@ -29,13 +29,17 @@ message ValidatorInfo {
     uint32  TotalValidatorSuccess           = 18 [(gogoproto.jsontag) = "totalValidatorSuccess"];
     uint32  TotalValidatorFailure           = 19 [(gogoproto.jsontag) = "totalValidatorFailure"];
     uint32  TotalValidatorIgnoredSignatures = 20 [(gogoproto.jsontag) = "totalValidatorIgnoredSignatures"];
+    string  PreviousList                    = 21 [(gogoproto.jsontag) = "previousList,omitempty"];
+    uint32  PreviousIndex                   = 22 [(gogoproto.jsontag) = "previousIndex,omitempty"];
 }
 
 // ShardValidatorInfo represents the data regarding a validator that is stored in the PeerMiniblocks
 message ShardValidatorInfo {
-    bytes   PublicKey   = 1 [(gogoproto.jsontag) = "publicKey"];
-    uint32  ShardId     = 2 [(gogoproto.jsontag) = "shardId"];
-    string  List        = 3 [(gogoproto.jsontag) = "list,omitempty"];
-    uint32  Index       = 4 [(gogoproto.jsontag) = "index"];
-    uint32  TempRating  = 5 [(gogoproto.jsontag) = "tempRating"];
+    bytes   PublicKey     = 1 [(gogoproto.jsontag) = "publicKey"];
+    uint32  ShardId       = 2 [(gogoproto.jsontag) = "shardId"];
+    string  List          = 3 [(gogoproto.jsontag) = "list,omitempty"];
+    uint32  Index         = 4 [(gogoproto.jsontag) = "index"];
+    uint32  TempRating    = 5 [(gogoproto.jsontag) = "tempRating"];
+    string  PreviousList  = 6 [(gogoproto.jsontag) = "previousList,omitempty"];
+    uint32  PreviousIndex = 7 [(gogoproto.jsontag) = "previousIndex,omitempty"];
 }

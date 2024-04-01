@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/common/ordering"
 	"github.com/multiversx/mx-chain-go/config"
@@ -291,6 +292,7 @@ func (pr *ProcessorRunner) createStateComponents(tb testing.TB) {
 		ProcessingMode:           common.Normal,
 		ShouldSerializeSnapshots: false,
 		ChainHandler:             pr.DataComponents.Blockchain(),
+		AccountsCreator:          pr.RunTypeComponents.AccountsCreator(),
 	}
 
 	stateFactory, err := factoryState.NewStateComponentsFactory(argsState)
@@ -336,6 +338,7 @@ func (pr *ProcessorRunner) createStatusComponents(tb testing.TB) {
 		pr.CoreComponents.NodeTypeProvider(),
 		pr.CoreComponents.EnableEpochsHandler(),
 		pr.DataComponents.Datapool().CurrentEpochValidatorInfo(),
+		pr.BootstrapComponents.NodesCoordinatorRegistryFactory(),
 		nodesCoord.NewIndexHashedNodesCoordinatorWithRaterFactory(),
 	)
 	require.Nil(tb, err)
@@ -439,6 +442,7 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 	argsProcess := factoryProcessing.ProcessComponentsFactoryArgs{
 		Config:         *pr.Config.GeneralConfig,
 		EpochConfig:    *pr.Config.EpochConfig,
+		RoundConfig:    *pr.Config.RoundConfig,
 		PrefConfigs:    *pr.Config.PreferencesConfig,
 		ImportDBConfig: *pr.Config.ImportDbConfig,
 		FlagsConfig: config.ContextFlagsConfig{
@@ -474,6 +478,8 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 		TxPreProcessorCreator:                 preprocess.NewTxPreProcessorCreator(),
 		ExtraHeaderSigVerifierHolder:          &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
 		RunTypeComponents:                     pr.RunTypeComponents,
+		TopicsChecker:                         disabled.NewDisabledTopicsChecker(),
+		DataCodec:                             disabled.NewDisabledDataCodec(),
 	}
 
 	processFactory, err := factoryProcessing.NewProcessComponentsFactory(argsProcess)

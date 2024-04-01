@@ -1,7 +1,3 @@
-//go:build !race
-
-// TODO remove build condition above to allow -race -short, after Wasm VM fix
-
 package txsFee
 
 import (
@@ -31,7 +27,9 @@ type dataTrie interface {
 }
 
 func TestMigrateDataTrieBuiltInFunc(t *testing.T) {
-	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	enableEpochs := config.EnableEpochs{
 		AutoBalanceDataTriesEnableEpoch: 0,
@@ -215,7 +213,8 @@ func generateDataTrie(
 
 	for i := 1; i < numLeaves; i++ {
 		key := keyGenerator(i)
-		err := tr.UpdateWithVersion(key, key, core.NotSpecified)
+		value := getValWithAppendedData(key, key, accAddr)
+		err := tr.UpdateWithVersion(key, value, core.NotSpecified)
 		require.Nil(t, err)
 
 		keys[i] = key
@@ -224,6 +223,13 @@ func generateDataTrie(
 	rootHash := saveAccount(t, testContext, dataTr, acc)
 
 	return rootHash, keys
+}
+
+func getValWithAppendedData(key, val, address []byte) []byte {
+	suffix := append(key, address...)
+	val = append(val, suffix...)
+
+	return val
 }
 
 func initDataTrie(

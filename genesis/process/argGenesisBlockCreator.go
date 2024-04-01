@@ -59,7 +59,10 @@ type runTypeComponentsHandler interface {
 // ArgsGenesisBlockCreator holds the arguments which are needed to create a genesis block
 type ArgsGenesisBlockCreator struct {
 	GenesisTime             uint64
+	GenesisNonce            uint64
+	GenesisRound            uint64
 	StartEpochNum           uint32
+	GenesisEpoch            uint32
 	Data                    dataComponentsHandler
 	Core                    coreComponentsHandler
 	Accounts                state.AccountsAdapter
@@ -75,8 +78,9 @@ type ArgsGenesisBlockCreator struct {
 	HardForkConfig          config.HardforkConfig
 	TrieStorageManagers     map[string]common.StorageManager
 	SystemSCConfig          config.SystemSmartContractsConfig
-	RoundConfig             *config.RoundConfig
-	EpochConfig             *config.EpochConfig
+	RoundConfig             config.RoundConfig
+	EpochConfig             config.EpochConfig
+	HeaderVersionConfigs    config.VersionsConfig
 	WorkingDir              string
 	BlockSignKeyGen         crypto.KeyGenerator
 	HistoryRepository       dblookupext.HistoryRepository
@@ -87,8 +91,10 @@ type ArgsGenesisBlockCreator struct {
 
 	GenesisNodePrice *big.Int
 	GenesisString    string
+
 	// created components
-	importHandler update.ImportHandler
+	importHandler          update.ImportHandler
+	versionedHeaderFactory genesis.VersionedHeaderFactory
 
 	DNSV2Addresses []string
 }

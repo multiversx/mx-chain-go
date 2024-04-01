@@ -62,7 +62,7 @@
     ESDTEnableEpoch = 1
 
     # GovernanceEnableEpoch represents the epoch when governance is enabled
-    GovernanceEnableEpoch = 5
+    GovernanceEnableEpoch = 1
 
     # DelegationManagerEnableEpoch represents the epoch when the delegation manager is enabled
     # epoch should not be 0
@@ -90,9 +90,6 @@
     # ValidatorToDelegationEnableEpoch represents the epoch when the validator-to-delegation feature will be enabled
     ValidatorToDelegationEnableEpoch = 1
 
-    # WaitingListFixEnableEpoch represents the epoch when the 6 epoch waiting list fix is enabled
-    WaitingListFixEnableEpoch = 1000000
-
     # IncrementSCRNonceInMultiTransferEnableEpoch represents the epoch when the fix for preventing the generation of the same SCRs
     # is enabled. The fix is done by adding an extra increment.
     IncrementSCRNonceInMultiTransferEnableEpoch = 1
@@ -105,9 +102,6 @@
 
     # ESDTTransferRoleEnableEpoch represents the epoch when esdt transfer role set is enabled
     ESDTTransferRoleEnableEpoch = 1
-
-    # BuiltInFunctionOnMetaEnableEpoch represents the epoch when built in function processing on metachain is enabled
-    BuiltInFunctionOnMetaEnableEpoch = 1000000
 
     # ComputeRewardCheckpointEnableEpoch represents the epoch when compute rewards checkpoint epoch is enabled
     ComputeRewardCheckpointEnableEpoch = 1
@@ -252,43 +246,64 @@
     DeterministicSortOnValidatorsInfoEnableEpoch = 1
 
     # SCProcessorV2EnableEpoch represents the epoch when SC processor V2 will be used
-    SCProcessorV2EnableEpoch = 3
+    SCProcessorV2EnableEpoch = 1
 
     # AutoBalanceDataTriesEnableEpoch represents the epoch when the data tries are automatically balanced by inserting at the hashed key instead of the normal key
-    AutoBalanceDataTriesEnableEpoch = 3
+    AutoBalanceDataTriesEnableEpoch = 1
+
+    # MigrateDataTrieEnableEpoch represents the epoch when the data tries migration is enabled
+    MigrateDataTrieEnableEpoch = 1
 
     # KeepExecOrderOnCreatedSCRsEnableEpoch represents the epoch when the execution order of created SCRs is ensured
-    KeepExecOrderOnCreatedSCRsEnableEpoch = 3
+    KeepExecOrderOnCreatedSCRsEnableEpoch = 1
 
     # MultiClaimOnDelegationEnableEpoch represents the epoch when the multi claim on delegation is enabled
-    MultiClaimOnDelegationEnableEpoch = 3
+    MultiClaimOnDelegationEnableEpoch = 1
 
     # ChangeUsernameEnableEpoch represents the epoch when changing username is enabled
-    ChangeUsernameEnableEpoch = 3
+    ChangeUsernameEnableEpoch = 4
 
     # ConsistentTokensValuesLengthCheckEnableEpoch represents the epoch when the consistent tokens values length check is enabled
-    ConsistentTokensValuesLengthCheckEnableEpoch = 3
+    ConsistentTokensValuesLengthCheckEnableEpoch = 1
 
     # FixDelegationChangeOwnerOnAccountEnableEpoch represents the epoch when the fix for the delegation system smart contract is enabled
-    FixDelegationChangeOwnerOnAccountEnableEpoch = 3
+    FixDelegationChangeOwnerOnAccountEnableEpoch = 1
 
     # DynamicGasCostForDataTrieStorageLoadEnableEpoch represents the epoch when dynamic gas cost for data trie storage load will be enabled
-    DynamicGasCostForDataTrieStorageLoadEnableEpoch = 3
+    DynamicGasCostForDataTrieStorageLoadEnableEpoch = 1
 
     # ScToScLogEventEnableEpoch represents the epoch when the sc to sc log event feature is enabled
-    ScToScLogEventEnableEpoch = 3
+    ScToScLogEventEnableEpoch = 1
 
     # NFTStopCreateEnableEpoch represents the epoch when NFT stop create feature is enabled
-    NFTStopCreateEnableEpoch = 3
+    NFTStopCreateEnableEpoch = 1
 
     # ChangeOwnerAddressCrossShardThroughSCEnableEpoch represents the epoch when the change owner address built in function will work also through a smart contract call cross shard
-    ChangeOwnerAddressCrossShardThroughSCEnableEpoch = 3
+    ChangeOwnerAddressCrossShardThroughSCEnableEpoch = 1
 
     # FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch represents the epoch when the fix for the remaining gas in the SaveKeyValue builtin function is enabled
-    FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch = 3
+    FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch = 1
 
     # CurrentRandomnessOnSortingEnableEpoch represents the epoch when the current randomness on sorting is enabled
     CurrentRandomnessOnSortingEnableEpoch = 4
+
+    # StakeLimitsEnableEpoch represents the epoch when stake limits on validators are enabled
+    # Should have the same value as StakingV4Step1EnableEpoch that triggers the automatic unstake operations for the queue nodes
+    StakeLimitsEnableEpoch = 4
+
+    # StakingV4Step1EnableEpoch represents the epoch when staking v4 is initialized. This is the epoch in which
+    # all nodes from staking queue are moved in the auction list
+    StakingV4Step1EnableEpoch = 4
+
+    # StakingV4Step2EnableEpoch represents the epoch when staking v4 is enabled. Should have a greater value than StakingV4Step1EnableEpoch.
+    # From this epoch, all shuffled out nodes are moved to auction nodes. No auction nodes selection is done yet.
+    StakingV4Step2EnableEpoch = 5
+
+    # StakingV4Step3EnableEpoch represents the epoch in which selected nodes from auction will be distributed to waiting list
+    StakingV4Step3EnableEpoch = 6
+
+    # AlwaysMergeContextsInEEIEnableEpoch represents the epoch in which the EEI will always merge the contexts
+    AlwaysMergeContextsInEEIEnableEpoch = 4
 
     # ConsensusModelV2EnableEpoch represents the epoch when the consensus model V2 is enabled
     ConsensusModelV2EnableEpoch = 2
@@ -301,13 +316,17 @@
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
-        { EpochEnable = 0, MaxNumNodes = 36, NodesToShufflePerShard = 4 },
-        { EpochEnable = 1, MaxNumNodes = 56, NodesToShufflePerShard = 2 }
+        { EpochEnable = 0, MaxNumNodes = 48, NodesToShufflePerShard = 4 },  # 4 shuffled out keys / shard will not be reached normally
+        { EpochEnable = 1, MaxNumNodes = 64, NodesToShufflePerShard = 2 },
+        # Staking v4 configuration, where:
+        # - Enable epoch = StakingV4Step3EnableEpoch
+        # - NodesToShufflePerShard = same as previous entry in MaxNodesChangeEnableEpoch
+        # - MaxNumNodes = (MaxNumNodesFromPreviousEpochEnable - (numOfShards+1)*NodesToShufflePerShard)
+        { EpochEnable = 6, MaxNumNodes = 56, NodesToShufflePerShard = 2 },
     ]
 
 [GasSchedule]
     # GasScheduleByEpochs holds the configuration for the gas schedule that will be applied from specific epochs
     GasScheduleByEpochs = [
-        { StartEpoch = 0, FileName = "gasScheduleV1.toml" },
-        { StartEpoch = 1, FileName = "gasScheduleV7.toml" },
+        { StartEpoch = 0, FileName = "gasScheduleV7.toml" },
     ]

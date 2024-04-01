@@ -191,12 +191,10 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("save jailed always"), "epoch", enableEpochs.SaveJailedAlwaysEnableEpoch)
 	log.Debug(readEpochFor("validator to delegation"), "epoch", enableEpochs.ValidatorToDelegationEnableEpoch)
 	log.Debug(readEpochFor("re-delegate below minimum check"), "epoch", enableEpochs.ReDelegateBelowMinCheckEnableEpoch)
-	log.Debug(readEpochFor("waiting waiting list"), "epoch", enableEpochs.WaitingListFixEnableEpoch)
 	log.Debug(readEpochFor("increment SCR nonce in multi transfer"), "epoch", enableEpochs.IncrementSCRNonceInMultiTransferEnableEpoch)
 	log.Debug(readEpochFor("esdt and NFT multi transfer"), "epoch", enableEpochs.ESDTMultiTransferEnableEpoch)
 	log.Debug(readEpochFor("contract global mint and burn"), "epoch", enableEpochs.GlobalMintBurnDisableEpoch)
 	log.Debug(readEpochFor("contract transfer role"), "epoch", enableEpochs.ESDTTransferRoleEnableEpoch)
-	log.Debug(readEpochFor("built in functions on metachain"), "epoch", enableEpochs.BuiltInFunctionOnMetaEnableEpoch)
 	log.Debug(readEpochFor("compute rewards checkpoint on delegation"), "epoch", enableEpochs.ComputeRewardCheckpointEnableEpoch)
 	log.Debug(readEpochFor("esdt NFT create on multiple shards"), "epoch", enableEpochs.ESDTNFTCreateOnMultiShardEnableEpoch)
 	log.Debug(readEpochFor("SCR size invariant check"), "epoch", enableEpochs.SCRSizeInvariantCheckEnableEpoch)
@@ -412,6 +410,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		managedCoreComponents.NodeTypeProvider(),
 		managedCoreComponents.EnableEpochsHandler(),
 		managedDataComponents.Datapool().CurrentEpochValidatorInfo(),
+		managedBootstrapComponents.NodesCoordinatorRegistryFactory(),
 		nodesCoordinator.NewSovereignIndexHashedNodesCoordinatorWithRaterFactory(),
 	)
 	if err != nil {
@@ -1097,7 +1096,7 @@ func (snr *sovereignNodeRunner) logInformation(
 	log.Info("Bootstrap", "epoch", bootstrapComponents.EpochBootstrapParams().Epoch())
 	if bootstrapComponents.EpochBootstrapParams().NodesConfig() != nil {
 		log.Info("the epoch from nodesConfig is",
-			"epoch", bootstrapComponents.EpochBootstrapParams().NodesConfig().CurrentEpoch)
+			"epoch", bootstrapComponents.EpochBootstrapParams().NodesConfig().GetCurrentEpoch())
 	}
 
 	var shardIdString = core.GetShardIDString(bootstrapComponents.ShardCoordinator().SelfId())
@@ -1320,6 +1319,7 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 	processArgs := processComp.ProcessComponentsFactoryArgs{
 		Config:                                *configs.GeneralConfig,
 		EpochConfig:                           *configs.EpochConfig,
+		RoundConfig:                           *configs.RoundConfig,
 		PrefConfigs:                           *configs.PreferencesConfig,
 		ImportDBConfig:                        *configs.ImportDbConfig,
 		AccountsParser:                        sovereignAccountsParser,

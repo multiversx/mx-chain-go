@@ -73,7 +73,7 @@ type Parameters struct {
 	Epoch       uint32
 	SelfShardId uint32
 	NumOfShards uint32
-	NodesConfig *nodesCoordinator.NodesCoordinatorRegistry
+	NodesConfig nodesCoordinator.NodesCoordinatorRegistryHandler
 }
 
 // ComponentsNeededForBootstrap holds the components which need to be initialized from network
@@ -81,7 +81,7 @@ type ComponentsNeededForBootstrap struct {
 	EpochStartMetaBlock data.MetaHeaderHandler
 	PreviousEpochStart  data.MetaHeaderHandler
 	ShardHeader         data.HeaderHandler
-	NodesConfig         *nodesCoordinator.NodesCoordinatorRegistry
+	NodesConfig         nodesCoordinator.NodesCoordinatorRegistryHandler
 	Headers             map[string]data.HeaderHandler
 	ShardCoordinator    sharding.Coordinator
 	PendingMiniBlocks   map[string]*block.MiniBlock
@@ -136,15 +136,17 @@ type epochStartBootstrap struct {
 	storageOpenerHandler            storage.UnitOpenerHandler
 	latestStorageDataProvider       storage.LatestStorageDataProviderHandler
 	argumentsParser                 process.ArgumentsParser
+
 	dataSyncerFactory               types.ScheduledDataSyncerCreator
 	dataSyncerWithScheduled         types.ScheduledDataSyncer
 	storageService                  dataRetriever.StorageService
+	nodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory
 
 	// gathered data
 	epochStartMeta      data.MetaHeaderHandler
 	prevEpochStartMeta  data.MetaHeaderHandler
 	syncedHeaders       map[string]data.HeaderHandler
-	nodesConfig         *nodesCoordinator.NodesCoordinatorRegistry
+	nodesConfig         nodesCoordinator.NodesCoordinatorRegistryHandler
 	baseData            baseDataInStorage
 	startRound          int64
 	nodeType            core.NodeType
@@ -192,6 +194,7 @@ type ArgsEpochStartBootstrap struct {
 	TrieSyncStatisticsProvider       common.SizeSyncStatisticsHandler
 	NodeProcessingMode               common.NodeProcessingMode
 	StateStatsHandler                common.StateStatisticsHandler
+	NodesCoordinatorRegistryFactory  nodesCoordinator.NodesCoordinatorRegistryFactory
 	NodesCoordinatorWithRaterFactory nodesCoordinator.NodesCoordinatorWithRaterFactory
 	ShardCoordinatorFactory          sharding.ShardCoordinatorFactory
 	AdditionalStorageServiceCreator  process.AdditionalStorageServiceCreator
@@ -245,6 +248,8 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		nodeProcessingMode:               args.NodeProcessingMode,
 		nodeOperationMode:                common.NormalOperation,
 		stateStatsHandler:                args.StateStatsHandler,
+		startEpoch:                       args.GeneralConfig.EpochStartConfig.GenesisEpoch,
+		nodesCoordinatorRegistryFactory:  args.NodesCoordinatorRegistryFactory,
 		nodesCoordinatorWithRaterFactory: args.NodesCoordinatorWithRaterFactory,
 		shardCoordinatorFactory:          args.ShardCoordinatorFactory,
 		additionalStorageServiceCreator:  args.AdditionalStorageServiceCreator,
@@ -780,6 +785,7 @@ func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) ([]*block.MiniBl
 		NodeTypeProvider:                 e.coreComponentsHolder.NodeTypeProvider(),
 		IsFullArchive:                    e.prefsConfig.FullArchive,
 		EnableEpochsHandler:              e.coreComponentsHolder.EnableEpochsHandler(),
+		NodesCoordinatorRegistryFactory:  e.nodesCoordinatorRegistryFactory,
 		NodesCoordinatorWithRaterFactory: e.nodesCoordinatorWithRaterFactory,
 	}
 
@@ -798,23 +804,23 @@ func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) ([]*block.MiniBl
 func (e *epochStartBootstrap) requestAndProcessForMeta(peerMiniBlocks []*block.MiniBlock) error {
 	var err error
 
-	args := StorageHandlerArgs{
+	argsStorageHandler := StorageHandlerArgs{
 		GeneralConfig:                   e.generalConfig,
-		PrefsConfig:                     e.prefsConfig,
+		PreferencesConfig:               e.prefsConfig,
 		ShardCoordinator:                e.shardCoordinator,
 		PathManagerHandler:              e.coreComponentsHolder.PathHandler(),
-		Marshalizer:                     e.coreComponentsHolder.InternalMarshalizer(),
+		Marshaller:                      e.coreComponentsHolder.InternalMarshalizer(),
 		Hasher:                          e.coreComponentsHolder.Hasher(),
 		CurrentEpoch:                    e.epochStartMeta.GetEpoch(),
 		Uint64Converter:                 e.coreComponentsHolder.Uint64ByteSliceConverter(),
 		NodeTypeProvider:                e.coreComponentsHolder.NodeTypeProvider(),
-		NodeProcessingMode:              e.nodeProcessingMode,
+		NodesCoordinatorRegistryFactory: e.nodesCoordinatorRegistryFactory,
 		ManagedPeersHolder:              e.cryptoComponentsHolder.ManagedPeersHolder(),
-		AdditionalStorageServiceCreator: e.additionalStorageServiceCreator,
+		NodeProcessingMode:              e.nodeProcessingMode,
 		StateStatsHandler:               e.stateStatsHandler,
+		AdditionalStorageServiceCreator: e.additionalStorageServiceCreator,
 	}
-
-	storageHandlerComponent, err := NewMetaStorageHandler(args)
+	storageHandlerComponent, err := NewMetaStorageHandler(argsStorageHandler)
 	if err != nil {
 		return err
 	}
@@ -971,23 +977,23 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 		e.syncedHeaders[hash] = hdr
 	}
 
-	args := StorageHandlerArgs{
+	argsStorageHandler := StorageHandlerArgs{
 		GeneralConfig:                   e.generalConfig,
-		PrefsConfig:                     e.prefsConfig,
+		PreferencesConfig:               e.prefsConfig,
 		ShardCoordinator:                e.shardCoordinator,
 		PathManagerHandler:              e.coreComponentsHolder.PathHandler(),
-		Marshalizer:                     e.coreComponentsHolder.InternalMarshalizer(),
+		Marshaller:                      e.coreComponentsHolder.InternalMarshalizer(),
 		Hasher:                          e.coreComponentsHolder.Hasher(),
 		CurrentEpoch:                    e.baseData.lastEpoch,
 		Uint64Converter:                 e.coreComponentsHolder.Uint64ByteSliceConverter(),
 		NodeTypeProvider:                e.coreComponentsHolder.NodeTypeProvider(),
-		NodeProcessingMode:              e.nodeProcessingMode,
+		NodesCoordinatorRegistryFactory: e.nodesCoordinatorRegistryFactory,
 		ManagedPeersHolder:              e.cryptoComponentsHolder.ManagedPeersHolder(),
-		AdditionalStorageServiceCreator: e.additionalStorageServiceCreator,
+		NodeProcessingMode:              e.nodeProcessingMode,
 		StateStatsHandler:               e.stateStatsHandler,
+		AdditionalStorageServiceCreator: e.additionalStorageServiceCreator,
 	}
-
-	storageHandlerComponent, err := NewShardStorageHandler(args)
+	storageHandlerComponent, err := NewShardStorageHandler(argsStorageHandler)
 	if err != nil {
 		return err
 	}
@@ -1241,22 +1247,23 @@ func (e *epochStartBootstrap) createResolversContainer() error {
 	//  this one should only be used before determining the correct shard where the node should reside
 	log.Debug("epochStartBootstrap.createRequestHandler", "shard", e.shardCoordinator.SelfId())
 	resolversContainerArgs := resolverscontainer.FactoryArgs{
-		ShardCoordinator:                e.shardCoordinator,
-		MainMessenger:                   e.mainMessenger,
-		FullArchiveMessenger:            e.fullArchiveMessenger,
-		Store:                           storageService,
-		Marshalizer:                     e.coreComponentsHolder.InternalMarshalizer(),
-		DataPools:                       e.dataPool,
-		Uint64ByteSliceConverter:        uint64ByteSlice.NewBigEndianConverter(),
-		NumConcurrentResolvingJobs:      10,
-		DataPacker:                      dataPacker,
-		TriesContainer:                  e.trieContainer,
-		SizeCheckDelta:                  0,
-		InputAntifloodHandler:           disabled.NewAntiFloodHandler(),
-		OutputAntifloodHandler:          disabled.NewAntiFloodHandler(),
-		MainPreferredPeersHolder:        disabled.NewPreferredPeersHolder(),
-		FullArchivePreferredPeersHolder: disabled.NewPreferredPeersHolder(),
-		PayloadValidator:                payloadValidator,
+		ShardCoordinator:                    e.shardCoordinator,
+		MainMessenger:                       e.mainMessenger,
+		FullArchiveMessenger:                e.fullArchiveMessenger,
+		Store:                               storageService,
+		Marshalizer:                         e.coreComponentsHolder.InternalMarshalizer(),
+		DataPools:                           e.dataPool,
+		Uint64ByteSliceConverter:            uint64ByteSlice.NewBigEndianConverter(),
+		NumConcurrentResolvingJobs:          10,
+		NumConcurrentResolvingTrieNodesJobs: 3,
+		DataPacker:                          dataPacker,
+		TriesContainer:                      e.trieContainer,
+		SizeCheckDelta:                      0,
+		InputAntifloodHandler:               disabled.NewAntiFloodHandler(),
+		OutputAntifloodHandler:              disabled.NewAntiFloodHandler(),
+		MainPreferredPeersHolder:            disabled.NewPreferredPeersHolder(),
+		FullArchivePreferredPeersHolder:     disabled.NewPreferredPeersHolder(),
+		PayloadValidator:                    payloadValidator,
 	}
 	resolverFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerArgs)
 	if err != nil {

@@ -7,11 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory/bootstrap"
@@ -19,6 +15,11 @@ import (
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewBootstrapComponentsFactory(t *testing.T) {
@@ -40,6 +41,19 @@ func TestNewBootstrapComponentsFactory(t *testing.T) {
 		bcf, err := bootstrap.NewBootstrapComponentsFactory(argsCopy)
 		require.Nil(t, bcf)
 		require.Equal(t, errorsMx.ErrNilCoreComponentsHolder, err)
+	})
+	t.Run("nil enable epochs handler should error", func(t *testing.T) {
+		t.Parallel()
+
+		argsCopy := args
+		argsCopy.CoreComponents = &factory.CoreComponentsHolderMock{
+			EnableEpochsHandlerCalled: func() common.EnableEpochsHandler {
+				return nil
+			},
+		}
+		bcf, err := bootstrap.NewBootstrapComponentsFactory(argsCopy)
+		require.Nil(t, bcf)
+		require.Equal(t, errorsMx.ErrNilEnableEpochsHandler, err)
 	})
 	t.Run("nil crypto components should error", func(t *testing.T) {
 		t.Parallel()
@@ -275,7 +289,8 @@ func TestBootstrapComponentsFactory_Create(t *testing.T) {
 		coreComponents := componentsMock.GetDefaultCoreComponents()
 		args.CoreComponents = coreComponents
 		coreComponents.RatingHandler = nil
-		bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
+		bcf, err := bootstrap.NewBootstrapComponentsFactory(args)
+		require.Nil(t, err)
 		require.NotNil(t, bcf)
 
 		bc, err := bcf.Create()

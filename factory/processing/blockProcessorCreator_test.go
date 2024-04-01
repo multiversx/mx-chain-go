@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	storageManager "github.com/multiversx/mx-chain-go/testscommon/storage"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
@@ -47,10 +48,10 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 
 		bp, err := pcf.NewBlockProcessor(
 			&testscommon.RequestHandlerStub{},
-			&mock.ForkDetectorStub{},
+			&processMocks.ForkDetectorStub{},
 			&mock.EpochStartTriggerStub{},
 			&mock.BoostrapStorerStub{},
-			&mock.ValidatorStatisticsProcessorStub{},
+			&testscommon.ValidatorStatisticsProcessorStub{},
 			&mock.HeaderValidatorStub{},
 			&mock.BlockTrackerStub{},
 			&mock.PendingMiniBlocksHandlerStub{},
@@ -60,6 +61,7 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 			&testscommon.ReceiptsRepositoryStub{},
 			&testscommon.BlockProcessingCutoffStub{},
 			&testscommon.MissingTrieNodesNotifierStub{},
+			&testscommon.SentSignatureTrackerStub{},
 		)
 
 		require.NoError(t, err)
@@ -80,10 +82,10 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 	//
 	//	bp, err := pcf.NewBlockProcessor(
 	//		&testscommon.ExtendedShardHeaderRequestHandlerStub{},
-	//		&mock.ForkDetectorStub{},
+	//		&processMocks.ForkDetectorStub{},
 	//		&mock.EpochStartTriggerStub{},
 	//		&mock.BoostrapStorerStub{},
-	//		&mock.ValidatorStatisticsProcessorStub{},
+	//		&testscommon.ValidatorStatisticsProcessorStub{},
 	//		&mock.HeaderValidatorStub{},
 	//		&mock.ExtendedShardHeaderTrackerStub{},
 	//		&mock.PendingMiniBlocksHandlerStub{},
@@ -92,7 +94,9 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 	//		&testscommon.ProcessedMiniBlocksTrackerStub{},
 	//		&testscommon.ReceiptsRepositoryStub{},
 	//		&testscommon.BlockProcessingCutoffStub{},
-	//		&testscommon.MissingTrieNodesNotifierStub{})
+	//		&testscommon.MissingTrieNodesNotifierStub{},
+			&testscommon.SentSignatureTrackerStub{},
+		)
 	//
 	//	require.NoError(t, err)
 	//	require.Equal(t, "*block.sovereignChainBlockProcessor", fmt.Sprintf("%T", bp))
@@ -205,10 +209,10 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 
 	bp, err := pcf.NewBlockProcessor(
 		&testscommon.RequestHandlerStub{},
-		&mock.ForkDetectorStub{},
+		&processMocks.ForkDetectorStub{},
 		&mock.EpochStartTriggerStub{},
 		&mock.BoostrapStorerStub{},
-		&mock.ValidatorStatisticsProcessorStub{},
+		&testscommon.ValidatorStatisticsProcessorStub{},
 		&mock.HeaderValidatorStub{},
 		&mock.BlockTrackerStub{},
 		&mock.PendingMiniBlocksHandlerStub{},
@@ -218,6 +222,7 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 		&testscommon.ReceiptsRepositoryStub{},
 		&testscommon.BlockProcessingCutoffStub{},
 		&testscommon.MissingTrieNodesNotifierStub{},
+		&testscommon.SentSignatureTrackerStub{},
 	)
 
 	require.NoError(t, err)
