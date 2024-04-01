@@ -218,7 +218,6 @@ type processComponentsFactory struct {
 	genesisNonce uint64
 	genesisRound uint64
 
-	shardCoordinatorFactory               sharding.ShardCoordinatorFactory
 	genesisBlockCreatorFactory            processGenesis.GenesisBlockCreatorFactory
 	genesisMetaBlockChecker               GenesisMetaBlockChecker
 	requesterContainerFactoryCreator      requesterscontainer.RequesterContainerFactoryCreator
