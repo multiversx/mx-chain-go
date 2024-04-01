@@ -697,10 +697,23 @@ func GetSovereignProcessArgs(
 			Value:   big.NewInt(0),
 		},
 	}
+	acc2 := data.InitialAccount{
+		Address:      "erd129ppuuvtylghsx7muf29xnzw5lm9v2v8h4942ynymjpu2ftycgtq0rgq3h",
+		Supply:       big.NewInt(0).Mul(big.NewInt(2500000000), big.NewInt(1000000000000)),
+		Balance:      balance,
+		StakingValue: big.NewInt(0).Mul(big.NewInt(2500000000), big.NewInt(1000000000000)),
+		Delegation: &data.DelegationData{
+			Address: "",
+			Value:   big.NewInt(0),
+		},
+	}
 
 	acc1Bytes, _ := addrConverter.Decode(acc1.Address)
 	acc1.SetAddressBytes(acc1Bytes)
-	initialAccounts := []genesis.InitialAccountHandler{&acc1}
+
+	acc2Bytes, _ := addrConverter.Decode(acc2.Address)
+	acc2.SetAddressBytes(acc2Bytes)
+	initialAccounts := []genesis.InitialAccountHandler{&acc1, &acc2}
 
 	processArgs.AccountsParser = &mock.AccountsParserStub{
 		InitialAccountsCalled: func() []genesis.InitialAccountHandler {
@@ -716,7 +729,7 @@ func GetSovereignProcessArgs(
 		},
 		InitialAccountsSplitOnAddressesShardsCalled: func(shardCoordinator sharding.Coordinator) (map[uint32][]genesis.InitialAccountHandler, error) {
 			return map[uint32][]genesis.InitialAccountHandler{
-				0: {initialAccounts[0]},
+				0: {initialAccounts[0], initialAccounts[1]},
 			}, nil
 		},
 	}
