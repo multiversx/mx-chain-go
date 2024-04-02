@@ -12,13 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/core/versioning"
-	"github.com/multiversx/mx-chain-core-go/data"
-	dataBatch "github.com/multiversx/mx-chain-core-go/data/batch"
-	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	disabledStatistics "github.com/multiversx/mx-chain-go/common/statistics/disabled"
@@ -54,6 +47,14 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/syncer"
 	validatorInfoCacherStub "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
 	"github.com/multiversx/mx-chain-go/trie/factory"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/versioning"
+	"github.com/multiversx/mx-chain-core-go/data"
+	dataBatch "github.com/multiversx/mx-chain-core-go/data/batch"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -243,8 +244,7 @@ func createMockEpochStartBootstrapArgs(
 		TrieSyncStatisticsProvider:       &testscommon.SizeSyncStatisticsHandlerStub{},
 		StateStatsHandler:                disabledStatistics.NewStateStatistics(),
 		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
-		ShardCoordinatorFactory:          sharding.NewMultiShardCoordinatorFactory(),
-		AdditionalStorageServiceCreator:  &testscommon.AdditionalStorageServiceFactoryMock{},
+		RunTypeComponents:                mock.NewRunTypeComponentsStub(),
 	}
 }
 
@@ -647,23 +647,35 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, errorsMx.ErrNilNodesCoordinatorFactory))
 	})
-	t.Run("nil shard coordinator factory", func(t *testing.T) {
+	t.Run("nil RunTypeComponents should error", func(t *testing.T) {
 		t.Parallel()
 
 		coreComp, cryptoComp := createComponentsForEpochStart()
 		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
-		args.ShardCoordinatorFactory = nil
+		args.RunTypeComponents = nil
+
+		epochStartProvider, err := NewEpochStartBootstrap(args)
+		require.True(t, errors.Is(err, errorsMx.ErrNilRunTypeComponents))
+		require.Nil(t, epochStartProvider)
+	})
+	t.Run("nil ShardCoordinatorFactory should error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComp, cryptoComp := createComponentsForEpochStart()
+		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+		args.RunTypeComponents = &mock.RunTypeComponentsStub{ShardCoordinatorFactory: nil}
 
 		epochStartProvider, err := NewEpochStartBootstrap(args)
 		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, errorsMx.ErrNilShardCoordinatorFactory))
 	})
-	t.Run("nil additional storage service creator", func(t *testing.T) {
+	t.Run("nil AdditionalStorageServiceCreator should error", func(t *testing.T) {
 		t.Parallel()
 
 		coreComp, cryptoComp := createComponentsForEpochStart()
 		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
-		args.AdditionalStorageServiceCreator = nil
+		args.RunTypeComponents = &mock.RunTypeComponentsStub{ShardCoordinatorFactory: &testscommon.MultiShardCoordinatorFactoryMock{}, AdditionalStorageServiceFactory: nil}
+
 		epochStartProvider, err := NewEpochStartBootstrap(args)
 		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, errorsMx.ErrNilAdditionalStorageServiceCreator))

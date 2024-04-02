@@ -3,10 +3,6 @@ package bootstrap
 import (
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/versioning"
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/types"
@@ -26,6 +22,11 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageMocks "github.com/multiversx/mx-chain-go/testscommon/storage"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/versioning"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/stretchr/testify/require"
 )
 
@@ -216,9 +217,8 @@ func getDefaultArgs() ArgsEpochStartBootstrap {
 			ForceStartFromNetwork: false,
 		},
 		TrieSyncStatisticsProvider:       &testscommon.SizeSyncStatisticsHandlerStub{},
-		AdditionalStorageServiceCreator:  &testscommon.AdditionalStorageServiceFactoryMock{},
 		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
-		ShardCoordinatorFactory:          sharding.NewMultiShardCoordinatorFactory(),
+		RunTypeComponents:                mock.NewRunTypeComponentsStub(),
 		StateStatsHandler:                disabled.NewStateStatistics(),
 		NodesCoordinatorRegistryFactory:  &shardingMocks.NodesCoordinatorRegistryFactoryMock{},
 	}

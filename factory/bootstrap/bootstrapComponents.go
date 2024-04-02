@@ -248,8 +248,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		StateStatsHandler:                bcf.statusCoreComponents.StateStatsHandler(),
 		NodesCoordinatorWithRaterFactory: bcf.nodesCoordinatorWithRaterFactory,
 		NodesCoordinatorRegistryFactory:  nodesCoordinatorRegistryFactory,
-		ShardCoordinatorFactory:          bcf.runTypeComponents.ShardCoordinatorCreator(),
-		AdditionalStorageServiceCreator:  bcf.runTypeComponents.AdditionalStorageServiceCreator(),
+		RunTypeComponents:                bcf.runTypeComponents,
 	}
 
 	var epochStartBootstrapper factory.EpochStartBootstrapper
