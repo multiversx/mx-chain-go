@@ -28,7 +28,6 @@ import (
 	factoryStatusCore "github.com/multiversx/mx-chain-go/factory/statusCore"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
-	"github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
@@ -443,29 +442,28 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 			Version:    "test",
 			WorkingDir: pr.Config.FlagsConfig.WorkingDir,
 		},
-		AccountsParser:             accountsParser,
-		SmartContractParser:        smartContractParser,
-		GasSchedule:                gasScheduleNotifier,
-		NodesCoordinator:           pr.NodesCoordinator,
-		RequestedItemsHandler:      requestedItemsHandler,
-		WhiteListHandler:           whiteListRequest,
-		WhiteListerVerifiedTxs:     whiteListerVerifiedTxs,
-		MaxRating:                  pr.Config.RatingsConfig.General.MaxRating,
-		SystemSCConfig:             pr.Config.SystemSCConfig,
-		ImportStartHandler:         importStartHandler,
-		HistoryRepo:                historyRepository,
-		Data:                       pr.DataComponents,
-		CoreData:                   pr.CoreComponents,
-		Crypto:                     pr.CryptoComponents,
-		State:                      pr.StateComponents,
-		Network:                    pr.NetworkComponents,
-		BootstrapComponents:        pr.BootstrapComponents,
-		StatusComponents:           pr.StatusComponents,
-		StatusCoreComponents:       pr.StatusCoreComponents,
-		TxExecutionOrderHandler:    txExecutionOrderHandler,
-		GenesisBlockCreatorFactory: process.NewGenesisBlockCreatorFactory(),
-		GenesisMetaBlockChecker:    factoryProcessing.NewGenesisMetaBlockChecker(),
-		RunTypeComponents:          pr.RunTypeComponents,
+		AccountsParser:          accountsParser,
+		SmartContractParser:     smartContractParser,
+		GasSchedule:             gasScheduleNotifier,
+		NodesCoordinator:        pr.NodesCoordinator,
+		RequestedItemsHandler:   requestedItemsHandler,
+		WhiteListHandler:        whiteListRequest,
+		WhiteListerVerifiedTxs:  whiteListerVerifiedTxs,
+		MaxRating:               pr.Config.RatingsConfig.General.MaxRating,
+		SystemSCConfig:          pr.Config.SystemSCConfig,
+		ImportStartHandler:      importStartHandler,
+		HistoryRepo:             historyRepository,
+		Data:                    pr.DataComponents,
+		CoreData:                pr.CoreComponents,
+		Crypto:                  pr.CryptoComponents,
+		State:                   pr.StateComponents,
+		Network:                 pr.NetworkComponents,
+		BootstrapComponents:     pr.BootstrapComponents,
+		StatusComponents:        pr.StatusComponents,
+		StatusCoreComponents:    pr.StatusCoreComponents,
+		TxExecutionOrderHandler: txExecutionOrderHandler,
+		GenesisMetaBlockChecker: factoryProcessing.NewGenesisMetaBlockChecker(),
+		RunTypeComponents:       pr.RunTypeComponents,
 	}
 
 	processFactory, err := factoryProcessing.NewProcessComponentsFactory(argsProcess)

@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
+	processGenesis "github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
@@ -58,6 +59,7 @@ type RunTypeComponentsStub struct {
 	ShardResolversContainerFactory      resolverscontainer.ShardResolversContainerFactoryCreator
 	TxPreProcessorFactory               preprocess.TxPreProcessorCreator
 	ExtraHeaderSigVerifier              headerCheck.ExtraHeaderSigVerifierHolder
+	GenesisBlockFactory                 processGenesis.GenesisBlockCreatorFactory
 }
 
 // NewRunTypeComponentsStub -
@@ -91,6 +93,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		ShardResolversContainerFactory:      resolverscontainer.NewShardResolversContainerFactoryCreator(),
 		TxPreProcessorFactory:               preprocess.NewTxPreProcessorCreator(),
 		ExtraHeaderSigVerifier:              headerCheck.NewExtraHeaderSigVerifierHolder(),
+		GenesisBlockFactory:                 processGenesis.NewGenesisBlockCreatorFactory(),
 	}
 }
 
@@ -252,6 +255,11 @@ func (r *RunTypeComponentsStub) TxPreProcessorCreator() preprocess.TxPreProcesso
 // ExtraHeaderSigVerifierHandler -
 func (r *RunTypeComponentsStub) ExtraHeaderSigVerifierHandler() headerCheck.ExtraHeaderSigVerifierHolder {
 	return r.ExtraHeaderSigVerifier
+}
+
+// GenesisBlockCreator -
+func (r *RunTypeComponentsStub) GenesisBlockCreator() processGenesis.GenesisBlockCreatorFactory {
+	return r.GenesisBlockFactory
 }
 
 // IsInterfaceNil -

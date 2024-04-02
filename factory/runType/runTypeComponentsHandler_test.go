@@ -73,6 +73,7 @@ func TestManagedRunTypeComponents_Create(t *testing.T) {
 		require.Nil(t, managedRunTypeComponents.InterceptorsContainerFactoryCreator())
 		require.Nil(t, managedRunTypeComponents.TxPreProcessorCreator())
 		require.Nil(t, managedRunTypeComponents.ExtraHeaderSigVerifierHandler())
+		require.Nil(t, managedRunTypeComponents.GenesisBlockCreator())
 
 		err = managedRunTypeComponents.Create()
 		require.NoError(t, err)
@@ -103,6 +104,7 @@ func TestManagedRunTypeComponents_Create(t *testing.T) {
 		require.NotNil(t, managedRunTypeComponents.InterceptorsContainerFactoryCreator())
 		require.NotNil(t, managedRunTypeComponents.TxPreProcessorCreator())
 		require.NotNil(t, managedRunTypeComponents.ExtraHeaderSigVerifierHandler())
+		require.NotNil(t, managedRunTypeComponents.GenesisBlockCreator())
 
 		require.Equal(t, factory.RunTypeComponentsName, managedRunTypeComponents.String())
 		require.NoError(t, managedRunTypeComponents.Close())

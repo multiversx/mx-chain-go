@@ -168,9 +168,8 @@ type ProcessComponentsFactoryArgs struct {
 	GenesisNonce uint64
 	GenesisRound uint64
 
-	GenesisBlockCreatorFactory processGenesis.GenesisBlockCreatorFactory
-	GenesisMetaBlockChecker    GenesisMetaBlockChecker
-	IncomingHeaderSubscriber   process.IncomingHeaderSubscriber
+	GenesisMetaBlockChecker  GenesisMetaBlockChecker
+	IncomingHeaderSubscriber process.IncomingHeaderSubscriber
 }
 
 type processComponentsFactory struct {
@@ -213,9 +212,8 @@ type processComponentsFactory struct {
 	genesisNonce uint64
 	genesisRound uint64
 
-	genesisBlockCreatorFactory processGenesis.GenesisBlockCreatorFactory
-	genesisMetaBlockChecker    GenesisMetaBlockChecker
-	incomingHeaderSubscriber   process.IncomingHeaderSubscriber
+	genesisMetaBlockChecker  GenesisMetaBlockChecker
+	incomingHeaderSubscriber process.IncomingHeaderSubscriber
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -226,40 +224,39 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 	}
 
 	return &processComponentsFactory{
-		config:                     args.Config,
-		epochConfig:                args.EpochConfig,
-		prefConfigs:                args.PrefConfigs,
-		importDBConfig:             args.ImportDBConfig,
-		economicsConfig:            args.EconomicsConfig,
-		accountsParser:             args.AccountsParser,
-		smartContractParser:        args.SmartContractParser,
-		gasSchedule:                args.GasSchedule,
-		nodesCoordinator:           args.NodesCoordinator,
-		data:                       args.Data,
-		coreData:                   args.CoreData,
-		crypto:                     args.Crypto,
-		state:                      args.State,
-		network:                    args.Network,
-		bootstrapComponents:        args.BootstrapComponents,
-		statusComponents:           args.StatusComponents,
-		requestedItemsHandler:      args.RequestedItemsHandler,
-		whiteListHandler:           args.WhiteListHandler,
-		whiteListerVerifiedTxs:     args.WhiteListerVerifiedTxs,
-		maxRating:                  args.MaxRating,
-		systemSCConfig:             args.SystemSCConfig,
-		importStartHandler:         args.ImportStartHandler,
-		historyRepo:                args.HistoryRepo,
-		epochNotifier:              args.CoreData.EpochNotifier(),
-		statusCoreComponents:       args.StatusCoreComponents,
-		flagsConfig:                args.FlagsConfig,
-		txExecutionOrderHandler:    args.TxExecutionOrderHandler,
-		genesisNonce:               args.GenesisNonce,
-		genesisRound:               args.GenesisRound,
-		roundConfig:                args.RoundConfig,
-		runTypeComponents:          args.RunTypeComponents,
-		genesisBlockCreatorFactory: args.GenesisBlockCreatorFactory,
-		genesisMetaBlockChecker:    args.GenesisMetaBlockChecker,
-		incomingHeaderSubscriber:   args.IncomingHeaderSubscriber,
+		config:                   args.Config,
+		epochConfig:              args.EpochConfig,
+		prefConfigs:              args.PrefConfigs,
+		importDBConfig:           args.ImportDBConfig,
+		economicsConfig:          args.EconomicsConfig,
+		accountsParser:           args.AccountsParser,
+		smartContractParser:      args.SmartContractParser,
+		gasSchedule:              args.GasSchedule,
+		nodesCoordinator:         args.NodesCoordinator,
+		data:                     args.Data,
+		coreData:                 args.CoreData,
+		crypto:                   args.Crypto,
+		state:                    args.State,
+		network:                  args.Network,
+		bootstrapComponents:      args.BootstrapComponents,
+		statusComponents:         args.StatusComponents,
+		requestedItemsHandler:    args.RequestedItemsHandler,
+		whiteListHandler:         args.WhiteListHandler,
+		whiteListerVerifiedTxs:   args.WhiteListerVerifiedTxs,
+		maxRating:                args.MaxRating,
+		systemSCConfig:           args.SystemSCConfig,
+		importStartHandler:       args.ImportStartHandler,
+		historyRepo:              args.HistoryRepo,
+		epochNotifier:            args.CoreData.EpochNotifier(),
+		statusCoreComponents:     args.StatusCoreComponents,
+		flagsConfig:              args.FlagsConfig,
+		txExecutionOrderHandler:  args.TxExecutionOrderHandler,
+		genesisNonce:             args.GenesisNonce,
+		genesisRound:             args.GenesisRound,
+		roundConfig:              args.RoundConfig,
+		runTypeComponents:        args.RunTypeComponents,
+		genesisMetaBlockChecker:  args.GenesisMetaBlockChecker,
+		incomingHeaderSubscriber: args.IncomingHeaderSubscriber,
 	}, nil
 }
 
@@ -932,7 +929,7 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		Config: pcf.config,
 	}
 
-	gbc, err := pcf.genesisBlockCreatorFactory.CreateGenesisBlockCreator(arg)
+	gbc, err := pcf.runTypeComponents.GenesisBlockCreator().CreateGenesisBlockCreator(arg)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -2041,9 +2038,6 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	if check.IfNil(args.TxExecutionOrderHandler) {
 		return fmt.Errorf("%s: %w", baseErrMessage, process.ErrNilTxExecutionOrderHandler)
 	}
-	if check.IfNil(args.GenesisBlockCreatorFactory) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilGenesisBlockFactory)
-	}
 	if check.IfNil(args.GenesisMetaBlockChecker) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilGenesisMetaBlockChecker)
 	}
@@ -2133,6 +2127,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.RunTypeComponents.ExtraHeaderSigVerifierHandler()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilExtraHeaderSigVerifierHolder)
+	}
+	if check.IfNil(args.RunTypeComponents.GenesisBlockCreator()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilGenesisBlockFactory)
 	}
 
 	return nil

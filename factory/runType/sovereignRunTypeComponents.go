@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/errors"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
+	processComp "github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
@@ -192,6 +193,8 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - RegisterExtraHeaderSigVerifier failed: %w", err)
 	}
 
+	genesisBlockCreator := processComp.NewSovereignGenesisBlockCreatorFactory()
+
 	return &runTypeComponents{
 		blockChainHookHandlerCreator:          blockChainHookHandlerFactory,
 		epochStartBootstrapperCreator:         epochStartBootstrapperFactory,
@@ -221,5 +224,6 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		shardResolversContainerFactoryCreator: shardResolversContainerFactoryCreator,
 		txPreProcessorCreator:                 txPreProcessorCreator,
 		extraHeaderSigVerifierHandler:         rtc.extraHeaderSigVerifierHandler,
+		genesisBlockCreatorFactory:            genesisBlockCreator,
 	}, nil
 }

@@ -51,7 +51,6 @@ import (
 	"github.com/multiversx/mx-chain-go/factory/statusCore"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
-	genesisProcess "github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/health"
 	"github.com/multiversx/mx-chain-go/node"
 	"github.com/multiversx/mx-chain-go/node/metrics"
@@ -1304,36 +1303,35 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 		time.Duration(uint64(time.Millisecond) * coreComponents.GenesisNodesSetup().GetRoundDuration()))
 
 	processArgs := processComp.ProcessComponentsFactoryArgs{
-		Config:                     *configs.GeneralConfig,
-		EpochConfig:                *configs.EpochConfig,
-		RoundConfig:                *configs.RoundConfig,
-		PrefConfigs:                *configs.PreferencesConfig,
-		ImportDBConfig:             *configs.ImportDbConfig,
-		AccountsParser:             sovereignAccountsParser,
-		SmartContractParser:        smartContractParser,
-		GasSchedule:                gasScheduleNotifier,
-		NodesCoordinator:           nodesCoordinator,
-		Data:                       dataComponents,
-		CoreData:                   coreComponents,
-		Crypto:                     cryptoComponents,
-		State:                      stateComponents,
-		Network:                    networkComponents,
-		BootstrapComponents:        bootstrapComponents,
-		StatusComponents:           statusComponents,
-		StatusCoreComponents:       statusCoreComponents,
-		RequestedItemsHandler:      requestedItemsHandler,
-		WhiteListHandler:           whiteListRequest,
-		WhiteListerVerifiedTxs:     whiteListerVerifiedTxs,
-		MaxRating:                  configs.RatingsConfig.General.MaxRating,
-		SystemSCConfig:             configs.SystemSCConfig,
-		ImportStartHandler:         importStartHandler,
-		HistoryRepo:                historyRepository,
-		FlagsConfig:                *configs.FlagsConfig,
-		TxExecutionOrderHandler:    ordering.NewOrderedCollection(),
-		RunTypeComponents:          runTypeComponents,
-		GenesisBlockCreatorFactory: genesisProcess.NewSovereignGenesisBlockCreatorFactory(),
-		GenesisMetaBlockChecker:    processComp.NewSovereignGenesisMetaBlockChecker(),
-		IncomingHeaderSubscriber:   incomingHeaderHandler,
+		Config:                   *configs.GeneralConfig,
+		EpochConfig:              *configs.EpochConfig,
+		RoundConfig:              *configs.RoundConfig,
+		PrefConfigs:              *configs.PreferencesConfig,
+		ImportDBConfig:           *configs.ImportDbConfig,
+		AccountsParser:           sovereignAccountsParser,
+		SmartContractParser:      smartContractParser,
+		GasSchedule:              gasScheduleNotifier,
+		NodesCoordinator:         nodesCoordinator,
+		Data:                     dataComponents,
+		CoreData:                 coreComponents,
+		Crypto:                   cryptoComponents,
+		State:                    stateComponents,
+		Network:                  networkComponents,
+		BootstrapComponents:      bootstrapComponents,
+		StatusComponents:         statusComponents,
+		StatusCoreComponents:     statusCoreComponents,
+		RequestedItemsHandler:    requestedItemsHandler,
+		WhiteListHandler:         whiteListRequest,
+		WhiteListerVerifiedTxs:   whiteListerVerifiedTxs,
+		MaxRating:                configs.RatingsConfig.General.MaxRating,
+		SystemSCConfig:           configs.SystemSCConfig,
+		ImportStartHandler:       importStartHandler,
+		HistoryRepo:              historyRepository,
+		FlagsConfig:              *configs.FlagsConfig,
+		TxExecutionOrderHandler:  ordering.NewOrderedCollection(),
+		RunTypeComponents:        runTypeComponents,
+		GenesisMetaBlockChecker:  processComp.NewSovereignGenesisMetaBlockChecker(),
+		IncomingHeaderSubscriber: incomingHeaderHandler,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {

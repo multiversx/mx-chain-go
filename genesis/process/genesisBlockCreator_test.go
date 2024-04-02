@@ -33,7 +33,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	storageCommon "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
@@ -467,7 +466,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		t.Parallel()
 
 		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
-		rtComponents := mainFactoryMocks.NewRunTypeComponentsStub()
+		rtComponents := mock.NewRunTypeComponentsStub()
 		rtComponents.BlockChainHookHandlerFactory = nil
 		arg.RunTypeComponents = rtComponents
 
@@ -479,7 +478,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		t.Parallel()
 
 		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
-		rtComponents := mainFactoryMocks.NewRunTypeComponentsStub()
+		rtComponents := mock.NewRunTypeComponentsStub()
 		rtComponents.SCResultsPreProcessorFactory = nil
 		arg.RunTypeComponents = rtComponents
 
@@ -491,7 +490,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		t.Parallel()
 
 		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
-		rtComponents := mainFactoryMocks.NewRunTypeComponentsStub()
+		rtComponents := mock.NewRunTypeComponentsStub()
 		rtComponents.TransactionCoordinatorFactory = nil
 		arg.RunTypeComponents = rtComponents
 
@@ -503,7 +502,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		t.Parallel()
 
 		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
-		rtComponents := mainFactoryMocks.NewRunTypeComponentsStub()
+		rtComponents := mock.NewRunTypeComponentsStub()
 		rtComponents.AccountCreator = nil
 		arg.RunTypeComponents = rtComponents
 
@@ -515,7 +514,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		t.Parallel()
 
 		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
-		rtComponents := mainFactoryMocks.NewRunTypeComponentsStub()
+		rtComponents := mock.NewRunTypeComponentsStub()
 		rtComponents.ShardCoordinatorFactory = nil
 		arg.RunTypeComponents = rtComponents
 
@@ -527,7 +526,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		t.Parallel()
 
 		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
-		rtComponents := mainFactoryMocks.NewRunTypeComponentsStub()
+		rtComponents := mock.NewRunTypeComponentsStub()
 		rtComponents.TxPreProcessorFactory = nil
 		arg.RunTypeComponents = rtComponents
 
