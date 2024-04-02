@@ -601,7 +601,7 @@ type RunTypeComponentsHolder interface {
 	DataCodecHandler() sovereign.DataDecoderHandler
 	TopicsCheckerHandler() sovereign.TopicsCheckerHandler
 	ShardCoordinatorCreator() sharding.ShardCoordinatorFactory
-	RequestersContainerCreator() requesterscontainer.RequesterContainerFactoryCreator
+	RequestersContainerFactoryCreator() requesterscontainer.RequesterContainerFactoryCreator
 	Create() error
 	Close() error
 	CheckSubcomponents() error

@@ -973,7 +973,7 @@ func getRunTypeComponentsMock() *mainFactoryMocks.RunTypeComponentsStub {
 		DataCodec:                           rt.DataCodecHandler(),
 		TopicsChecker:                       rt.TopicsCheckerHandler(),
 		ShardCoordinatorFactory:             rt.ShardCoordinatorCreator(),
-		RequestersContainerFactory:          rt.RequestersContainerCreator(),
+		RequestersContainerFactory:          rt.RequestersContainerFactoryCreator(),
 	}
 }
 

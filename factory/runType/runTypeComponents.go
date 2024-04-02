@@ -61,7 +61,7 @@ type runTypeComponents struct {
 	dataCodecHandler                    sovereign.DataDecoderHandler
 	topicsCheckerHandler                sovereign.TopicsCheckerHandler
 	shardCoordinatorCreator             sharding.ShardCoordinatorFactory
-	requestersContainerCreator          requesterscontainer.RequesterContainerFactoryCreator
+	requestersContainerFactoryCreator   requesterscontainer.RequesterContainerFactoryCreator
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
@@ -170,7 +170,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 
 	shardCoordinatorCreator := sharding.NewMultiShardCoordinatorFactory()
 
-	requestersContainerCreator := requesterscontainer.NewShardRequestersContainerFactoryCreator()
+	requestersContainerFactoryCreator := requesterscontainer.NewShardRequestersContainerFactoryCreator()
 
 	return &runTypeComponents{
 		blockChainHookHandlerCreator:        blockChainHookHandlerFactory,
@@ -196,7 +196,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		dataCodecHandler:                    dataCodec,
 		topicsCheckerHandler:                topicsChecker,
 		shardCoordinatorCreator:             shardCoordinatorCreator,
-		requestersContainerCreator:          requestersContainerCreator,
+		requestersContainerFactoryCreator:   requestersContainerFactoryCreator,
 	}, nil
 }
 

@@ -1507,7 +1507,7 @@ func (pcf *processComponentsFactory) newRequestersContainerFactory(
 	}
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		return pcf.runTypeComponents.RequestersContainerCreator().CreateRequesterContainerFactory(requestersContainerFactoryArgs)
+		return pcf.runTypeComponents.RequestersContainerFactoryCreator().CreateRequesterContainerFactory(requestersContainerFactoryArgs)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
 		return requesterscontainer.NewMetaRequestersContainerFactory(requestersContainerFactoryArgs)
@@ -2144,7 +2144,7 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	if check.IfNil(args.RunTypeComponents.ShardCoordinatorCreator()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilShardCoordinatorFactory)
 	}
-	if check.IfNil(args.RunTypeComponents.RequestersContainerCreator()) {
+	if check.IfNil(args.RunTypeComponents.RequestersContainerFactoryCreator()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilRequesterContainerFactoryCreator)
 	}
 

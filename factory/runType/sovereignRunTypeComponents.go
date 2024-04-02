@@ -170,7 +170,7 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 
 	shardCoordinatorCreator := sharding.NewSovereignShardCoordinatorFactory()
 
-	requestersContainerCreator := requesterscontainer.NewSovereignShardRequestersContainerFactoryCreator()
+	requestersContainerFactoryCreator := requesterscontainer.NewSovereignShardRequestersContainerFactoryCreator()
 
 	return &runTypeComponents{
 		blockChainHookHandlerCreator:        blockChainHookHandlerFactory,
@@ -196,6 +196,6 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		dataCodecHandler:                    dataCodec,
 		topicsCheckerHandler:                topicsChecker,
 		shardCoordinatorCreator:             shardCoordinatorCreator,
-		requestersContainerCreator:          requestersContainerCreator,
+		requestersContainerFactoryCreator:   requestersContainerFactoryCreator,
 	}, nil
 }

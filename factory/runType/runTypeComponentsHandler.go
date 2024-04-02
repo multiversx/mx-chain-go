@@ -439,8 +439,8 @@ func (mrc *managedRunTypeComponents) ShardCoordinatorCreator() sharding.ShardCoo
 	return mrc.runTypeComponents.shardCoordinatorCreator
 }
 
-// ShardRequestersContainerCreator returns the shard coordinator factory
-func (mrc *managedRunTypeComponents) RequestersContainerCreator() requesterscontainer.RequesterContainerFactoryCreator {
+// RequestersContainerFactoryCreator returns the shard coordinator factory
+func (mrc *managedRunTypeComponents) RequestersContainerFactoryCreator() requesterscontainer.RequesterContainerFactoryCreator {
 	mrc.mutStateComponents.RLock()
 	defer mrc.mutStateComponents.RUnlock()
 
@@ -448,7 +448,7 @@ func (mrc *managedRunTypeComponents) RequestersContainerCreator() requesterscont
 		return nil
 	}
 
-	return mrc.runTypeComponents.requestersContainerCreator
+	return mrc.runTypeComponents.requestersContainerFactoryCreator
 }
 
 // IsInterfaceNil returns true if the interface is nil

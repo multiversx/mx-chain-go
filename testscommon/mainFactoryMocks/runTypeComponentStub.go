@@ -218,8 +218,8 @@ func (r *RunTypeComponentsStub) ShardCoordinatorCreator() sharding.ShardCoordina
 	return r.ShardCoordinatorFactory
 }
 
-// RequestersContainerCreator -
-func (r *RunTypeComponentsStub) RequestersContainerCreator() requesterscontainer.RequesterContainerFactoryCreator {
+// RequestersContainerFactoryCreator -
+func (r *RunTypeComponentsStub) RequestersContainerFactoryCreator() requesterscontainer.RequesterContainerFactoryCreator {
 	return r.RequestersContainerFactory
 }
 
