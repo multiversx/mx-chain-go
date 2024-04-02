@@ -606,6 +606,7 @@ type RunTypeComponentsHolder interface {
 	RequestersContainerFactoryCreator() requesterscontainer.RequesterContainerFactoryCreator
 	InterceptorsContainerFactoryCreator() interceptorscontainer.InterceptorsContainerFactoryCreator
 	ShardResolversContainerFactoryCreator() resolverscontainer.ShardResolversContainerFactoryCreator
+	TxPreProcessorCreator() preprocess.TxPreProcessorCreator
 	Create() error
 	Close() error
 	CheckSubcomponents() error

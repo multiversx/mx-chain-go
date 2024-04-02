@@ -178,6 +178,8 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 
 	shardResolversContainerFactoryCreator := resolverscontainer.NewSovereignShardResolversContainerFactoryCreator()
 
+	txPreProcessorCreator := preprocess.NewSovereignTxPreProcessorCreator()
+
 	return &runTypeComponents{
 		blockChainHookHandlerCreator:          blockChainHookHandlerFactory,
 		epochStartBootstrapperCreator:         epochStartBootstrapperFactory,
@@ -205,5 +207,6 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		requestersContainerFactoryCreator:     requestersContainerFactoryCreator,
 		interceptorsContainerFactoryCreator:   interceptorsContainerFactoryCreator,
 		shardResolversContainerFactoryCreator: shardResolversContainerFactoryCreator,
+		txPreProcessorCreator:                 txPreProcessorCreator,
 	}, nil
 }

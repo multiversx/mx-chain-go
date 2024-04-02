@@ -22,7 +22,6 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
 	process2 "github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/interceptors/disabled"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -221,7 +220,6 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		GenesisBlockCreatorFactory:   process2.NewGenesisBlockCreatorFactory(),
 		GenesisMetaBlockChecker:      processComp.NewGenesisMetaBlockChecker(),
 		ExtraHeaderSigVerifierHolder: headerCheck.NewExtraHeaderSigVerifierHolder(),
-		TxPreProcessorCreator:        preprocess.NewTxPreProcessorCreator(),
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {

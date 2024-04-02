@@ -168,10 +168,10 @@ type ProcessComponentsFactoryArgs struct {
 	GenesisNonce uint64
 	GenesisRound uint64
 
-	GenesisBlockCreatorFactory   processGenesis.GenesisBlockCreatorFactory
-	GenesisMetaBlockChecker      GenesisMetaBlockChecker
-	IncomingHeaderSubscriber     process.IncomingHeaderSubscriber
-	TxPreProcessorCreator        preprocess.TxPreProcessorCreator
+	GenesisBlockCreatorFactory processGenesis.GenesisBlockCreatorFactory
+	GenesisMetaBlockChecker    GenesisMetaBlockChecker
+	IncomingHeaderSubscriber   process.IncomingHeaderSubscriber
+
 	ExtraHeaderSigVerifierHolder headerCheck.ExtraHeaderSigVerifierHolder
 }
 
@@ -218,7 +218,6 @@ type processComponentsFactory struct {
 	genesisBlockCreatorFactory   processGenesis.GenesisBlockCreatorFactory
 	genesisMetaBlockChecker      GenesisMetaBlockChecker
 	incomingHeaderSubscriber     process.IncomingHeaderSubscriber
-	txPreprocessorCreator        preprocess.TxPreProcessorCreator
 	extraHeaderSigVerifierHolder headerCheck.ExtraHeaderSigVerifierHolder
 }
 
@@ -264,7 +263,6 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		genesisBlockCreatorFactory:   args.GenesisBlockCreatorFactory,
 		genesisMetaBlockChecker:      args.GenesisMetaBlockChecker,
 		incomingHeaderSubscriber:     args.IncomingHeaderSubscriber,
-		txPreprocessorCreator:        args.TxPreProcessorCreator,
 		extraHeaderSigVerifierHolder: args.ExtraHeaderSigVerifierHolder,
 	}, nil
 }
@@ -933,7 +931,6 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		GenesisNonce:            pcf.genesisNonce,
 		GenesisRound:            pcf.genesisRound,
 		RunTypeComponents:       pcf.runTypeComponents,
-		TxPreprocessorCreator:   pcf.txPreprocessorCreator,
 		DNSV2Addresses:          pcf.config.BuiltInFunctions.DNSV2Addresses,
 		// TODO: We should only pass the whole config instead of passing sub-configs as above
 		Config: pcf.config,
@@ -2054,9 +2051,6 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	if check.IfNil(args.GenesisMetaBlockChecker) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilGenesisMetaBlockChecker)
 	}
-	if check.IfNil(args.TxPreProcessorCreator) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilTxPreProcessorCreator)
-	}
 	if check.IfNil(args.ExtraHeaderSigVerifierHolder) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilExtraHeaderSigVerifierHolder)
 	}
@@ -2140,6 +2134,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.RunTypeComponents.ShardResolversContainerFactoryCreator()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilShardResolversContainerFactoryCreator)
+	}
+	if check.IfNil(args.RunTypeComponents.TxPreProcessorCreator()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilTxPreProcessorCreator)
 	}
 
 	return nil

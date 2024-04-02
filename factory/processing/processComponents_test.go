@@ -23,7 +23,6 @@ import (
 	testsMocks "github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -272,7 +271,6 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 		TxExecutionOrderHandler:      &txExecOrderStub.TxExecutionOrderHandlerStub{},
 		GenesisBlockCreatorFactory:   genesisProcess.NewGenesisBlockCreatorFactory(),
 		GenesisMetaBlockChecker:      processComp.NewGenesisMetaBlockChecker(),
-		TxPreProcessorCreator:        preprocess.NewTxPreProcessorCreator(),
 		ExtraHeaderSigVerifierHolder: &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
 		IncomingHeaderSubscriber:     &sovereign.IncomingHeaderSubscriberStub{},
 		RunTypeComponents:            components.GetRunTypeComponents(),
@@ -625,15 +623,6 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		require.True(t, errors.Is(err, errorsMx.ErrNilGenesisMetaBlockChecker))
 		require.Nil(t, pcf)
 	})
-	t.Run("nil tx pre processor creator, should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockProcessComponentsFactoryArgs()
-		args.TxPreProcessorCreator = nil
-		pcf, err := processComp.NewProcessComponentsFactory(args)
-		require.True(t, errors.Is(err, errorsMx.ErrNilTxPreProcessorCreator))
-		require.Nil(t, pcf)
-	})
 	t.Run("nil extra header sig verifier holder, should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -936,6 +925,17 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		args.RunTypeComponents = rtMock
 		pcf, err := processComp.NewProcessComponentsFactory(args)
 		require.True(t, errors.Is(err, errorsMx.ErrNilShardResolversContainerFactoryCreator))
+		require.Nil(t, pcf)
+	})
+	t.Run("nil TxPreProcessorFactory should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockProcessComponentsFactoryArgs()
+		rtMock := getRunTypeComponentsMock()
+		rtMock.TxPreProcessorFactory = nil
+		args.RunTypeComponents = rtMock
+		pcf, err := processComp.NewProcessComponentsFactory(args)
+		require.True(t, errors.Is(err, errorsMx.ErrNilTxPreProcessorCreator))
 		require.Nil(t, pcf)
 	})
 	t.Run("should work", func(t *testing.T) {
