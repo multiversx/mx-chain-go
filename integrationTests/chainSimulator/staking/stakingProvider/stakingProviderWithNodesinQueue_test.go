@@ -3,8 +3,6 @@ package stakingProvider
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/staking"
-
 	"math/big"
 	"testing"
 	"time"
@@ -12,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/staking"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"

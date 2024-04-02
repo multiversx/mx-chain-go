@@ -2,6 +2,9 @@ package staking
 
 import (
 	"encoding/hex"
+	"math/big"
+	"testing"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	chainSimulatorIntegrationTests "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
@@ -11,8 +14,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/stretchr/testify/require"
-	"math/big"
-	"testing"
 )
 
 const (
@@ -33,12 +34,14 @@ const (
 	AuctionStatus   = "auction"
 )
 
-var InitialDelegationValue = big.NewInt(0).Mul(OneEGLD, big.NewInt(1250))
-var ZeroValue = big.NewInt(0)
+var (
+	ZeroValue              = big.NewInt(0)
+	InitialDelegationValue = big.NewInt(0).Mul(OneEGLD, big.NewInt(1250))
+	MinimumStakeValue      = big.NewInt(0).Mul(OneEGLD, big.NewInt(2500))
+	OneEGLD                = big.NewInt(1000000000000000000)
+)
 
-var MinimumStakeValue = big.NewInt(0).Mul(OneEGLD, big.NewInt(2500))
-var OneEGLD = big.NewInt(1000000000000000000)
-
+// GetNonce will return the nonce of the provided address
 func GetNonce(t *testing.T, cs chainSimulatorIntegrationTests.ChainSimulator, address dtos.WalletAddress) uint64 {
 	account, err := cs.GetAccount(address)
 	require.Nil(t, err)
@@ -46,6 +49,7 @@ func GetNonce(t *testing.T, cs chainSimulatorIntegrationTests.ChainSimulator, ad
 	return account.Nonce
 }
 
+// GenerateTransaction will generate a transaction based on input data
 func GenerateTransaction(sender []byte, nonce uint64, receiver []byte, value *big.Int, data string, gasLimit uint64) *transaction.Transaction {
 	return &transaction.Transaction{
 		Nonce:     nonce,
@@ -61,6 +65,7 @@ func GenerateTransaction(sender []byte, nonce uint64, receiver []byte, value *bi
 	}
 }
 
+// GetBLSKeyStatus will return the bls key status
 func GetBLSKeyStatus(t *testing.T, metachainNode chainSimulatorProcess.NodeHandler, blsKey []byte) string {
 	scQuery := &process.SCQuery{
 		ScAddress:  vm.StakingSCAddress,
@@ -76,6 +81,7 @@ func GetBLSKeyStatus(t *testing.T, metachainNode chainSimulatorProcess.NodeHandl
 	return string(result.ReturnData[0])
 }
 
+// GetAllNodeStates will return the status of all the nodes that belong to the provided address
 func GetAllNodeStates(t *testing.T, metachainNode chainSimulatorProcess.NodeHandler, address []byte) map[string]string {
 	scQuery := &process.SCQuery{
 		ScAddress:  address,
@@ -102,6 +108,7 @@ func GetAllNodeStates(t *testing.T, metachainNode chainSimulatorProcess.NodeHand
 	return m
 }
 
+// CheckValidatorStatus will compare the status of the provided bls key with the provided expected status
 func CheckValidatorStatus(t *testing.T, cs chainSimulatorIntegrationTests.ChainSimulator, blsKey string, expectedStatus string) {
 	err := cs.ForceResetValidatorStatisticsCache()
 	require.Nil(t, err)
