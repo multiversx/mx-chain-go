@@ -18,7 +18,6 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
 	"github.com/multiversx/mx-chain-go/factory"
 	bootstrapComp "github.com/multiversx/mx-chain-go/factory/bootstrap"
@@ -649,12 +648,11 @@ func GetProcessArgs(
 				},
 			},
 		},
-		GenesisBlockCreatorFactory:            process.NewGenesisBlockCreatorFactory(),
-		GenesisMetaBlockChecker:               processComp.NewGenesisMetaBlockChecker(),
-		ShardResolversContainerFactoryCreator: resolverscontainer.NewShardResolversContainerFactoryCreator(),
-		TxPreProcessorCreator:                 preprocess.NewTxPreProcessorCreator(),
-		ExtraHeaderSigVerifierHolder:          &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
-		RunTypeComponents:                     GetRunTypeComponents(),
+		GenesisBlockCreatorFactory:   process.NewGenesisBlockCreatorFactory(),
+		GenesisMetaBlockChecker:      processComp.NewGenesisMetaBlockChecker(),
+		TxPreProcessorCreator:        preprocess.NewTxPreProcessorCreator(),
+		ExtraHeaderSigVerifierHolder: &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
+		RunTypeComponents:            GetRunTypeComponents(),
 	}
 }
 
@@ -748,7 +746,6 @@ func GetSovereignProcessArgs(
 	processArgs.StatusCoreComponents = statusCoreComponents
 	processArgs.GenesisBlockCreatorFactory = process.NewSovereignGenesisBlockCreatorFactory()
 	processArgs.GenesisMetaBlockChecker = processComp.NewSovereignGenesisMetaBlockChecker()
-	processArgs.ShardResolversContainerFactoryCreator = resolverscontainer.NewSovereignShardResolversContainerFactoryCreator()
 	processArgs.ExtraHeaderSigVerifierHolder = extraHeaderSigVerifierHolder
 	processArgs.IncomingHeaderSubscriber = &sovereign.IncomingHeaderSubscriberStub{}
 	processArgs.RunTypeComponents = GetSovereignRunTypeComponents()

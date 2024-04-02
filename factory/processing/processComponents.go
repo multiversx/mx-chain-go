@@ -168,12 +168,11 @@ type ProcessComponentsFactoryArgs struct {
 	GenesisNonce uint64
 	GenesisRound uint64
 
-	GenesisBlockCreatorFactory            processGenesis.GenesisBlockCreatorFactory
-	GenesisMetaBlockChecker               GenesisMetaBlockChecker
-	IncomingHeaderSubscriber              process.IncomingHeaderSubscriber
-	ShardResolversContainerFactoryCreator resolverscontainer.ShardResolversContainerFactoryCreator
-	TxPreProcessorCreator                 preprocess.TxPreProcessorCreator
-	ExtraHeaderSigVerifierHolder          headerCheck.ExtraHeaderSigVerifierHolder
+	GenesisBlockCreatorFactory   processGenesis.GenesisBlockCreatorFactory
+	GenesisMetaBlockChecker      GenesisMetaBlockChecker
+	IncomingHeaderSubscriber     process.IncomingHeaderSubscriber
+	TxPreProcessorCreator        preprocess.TxPreProcessorCreator
+	ExtraHeaderSigVerifierHolder headerCheck.ExtraHeaderSigVerifierHolder
 }
 
 type processComponentsFactory struct {
@@ -216,12 +215,11 @@ type processComponentsFactory struct {
 	genesisNonce uint64
 	genesisRound uint64
 
-	genesisBlockCreatorFactory            processGenesis.GenesisBlockCreatorFactory
-	genesisMetaBlockChecker               GenesisMetaBlockChecker
-	incomingHeaderSubscriber              process.IncomingHeaderSubscriber
-	shardResolversContainerFactoryCreator resolverscontainer.ShardResolversContainerFactoryCreator
-	txPreprocessorCreator                 preprocess.TxPreProcessorCreator
-	extraHeaderSigVerifierHolder          headerCheck.ExtraHeaderSigVerifierHolder
+	genesisBlockCreatorFactory   processGenesis.GenesisBlockCreatorFactory
+	genesisMetaBlockChecker      GenesisMetaBlockChecker
+	incomingHeaderSubscriber     process.IncomingHeaderSubscriber
+	txPreprocessorCreator        preprocess.TxPreProcessorCreator
+	extraHeaderSigVerifierHolder headerCheck.ExtraHeaderSigVerifierHolder
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -232,43 +230,42 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 	}
 
 	return &processComponentsFactory{
-		config:                                args.Config,
-		epochConfig:                           args.EpochConfig,
-		prefConfigs:                           args.PrefConfigs,
-		importDBConfig:                        args.ImportDBConfig,
-		economicsConfig:                       args.EconomicsConfig,
-		accountsParser:                        args.AccountsParser,
-		smartContractParser:                   args.SmartContractParser,
-		gasSchedule:                           args.GasSchedule,
-		nodesCoordinator:                      args.NodesCoordinator,
-		data:                                  args.Data,
-		coreData:                              args.CoreData,
-		crypto:                                args.Crypto,
-		state:                                 args.State,
-		network:                               args.Network,
-		bootstrapComponents:                   args.BootstrapComponents,
-		statusComponents:                      args.StatusComponents,
-		requestedItemsHandler:                 args.RequestedItemsHandler,
-		whiteListHandler:                      args.WhiteListHandler,
-		whiteListerVerifiedTxs:                args.WhiteListerVerifiedTxs,
-		maxRating:                             args.MaxRating,
-		systemSCConfig:                        args.SystemSCConfig,
-		importStartHandler:                    args.ImportStartHandler,
-		historyRepo:                           args.HistoryRepo,
-		epochNotifier:                         args.CoreData.EpochNotifier(),
-		statusCoreComponents:                  args.StatusCoreComponents,
-		flagsConfig:                           args.FlagsConfig,
-		txExecutionOrderHandler:               args.TxExecutionOrderHandler,
-		genesisNonce:                          args.GenesisNonce,
-		genesisRound:                          args.GenesisRound,
-		roundConfig:                           args.RoundConfig,
-		runTypeComponents:                     args.RunTypeComponents,
-		genesisBlockCreatorFactory:            args.GenesisBlockCreatorFactory,
-		genesisMetaBlockChecker:               args.GenesisMetaBlockChecker,
-		incomingHeaderSubscriber:              args.IncomingHeaderSubscriber,
-		shardResolversContainerFactoryCreator: args.ShardResolversContainerFactoryCreator,
-		txPreprocessorCreator:                 args.TxPreProcessorCreator,
-		extraHeaderSigVerifierHolder:          args.ExtraHeaderSigVerifierHolder,
+		config:                       args.Config,
+		epochConfig:                  args.EpochConfig,
+		prefConfigs:                  args.PrefConfigs,
+		importDBConfig:               args.ImportDBConfig,
+		economicsConfig:              args.EconomicsConfig,
+		accountsParser:               args.AccountsParser,
+		smartContractParser:          args.SmartContractParser,
+		gasSchedule:                  args.GasSchedule,
+		nodesCoordinator:             args.NodesCoordinator,
+		data:                         args.Data,
+		coreData:                     args.CoreData,
+		crypto:                       args.Crypto,
+		state:                        args.State,
+		network:                      args.Network,
+		bootstrapComponents:          args.BootstrapComponents,
+		statusComponents:             args.StatusComponents,
+		requestedItemsHandler:        args.RequestedItemsHandler,
+		whiteListHandler:             args.WhiteListHandler,
+		whiteListerVerifiedTxs:       args.WhiteListerVerifiedTxs,
+		maxRating:                    args.MaxRating,
+		systemSCConfig:               args.SystemSCConfig,
+		importStartHandler:           args.ImportStartHandler,
+		historyRepo:                  args.HistoryRepo,
+		epochNotifier:                args.CoreData.EpochNotifier(),
+		statusCoreComponents:         args.StatusCoreComponents,
+		flagsConfig:                  args.FlagsConfig,
+		txExecutionOrderHandler:      args.TxExecutionOrderHandler,
+		genesisNonce:                 args.GenesisNonce,
+		genesisRound:                 args.GenesisRound,
+		roundConfig:                  args.RoundConfig,
+		runTypeComponents:            args.RunTypeComponents,
+		genesisBlockCreatorFactory:   args.GenesisBlockCreatorFactory,
+		genesisMetaBlockChecker:      args.GenesisMetaBlockChecker,
+		incomingHeaderSubscriber:     args.IncomingHeaderSubscriber,
+		txPreprocessorCreator:        args.TxPreProcessorCreator,
+		extraHeaderSigVerifierHolder: args.ExtraHeaderSigVerifierHolder,
 	}, nil
 }
 
@@ -1437,7 +1434,7 @@ func (pcf *processComponentsFactory) newShardResolverContainerFactory(
 		FullArchivePreferredPeersHolder:     pcf.network.FullArchivePreferredPeersHolderHandler(),
 		PayloadValidator:                    payloadValidator,
 	}
-	resolversContainerFactory, err := pcf.shardResolversContainerFactoryCreator.CreateShardResolversContainerFactory(resolversContainerFactoryArgs)
+	resolversContainerFactory, err := pcf.runTypeComponents.ShardResolversContainerFactoryCreator().CreateShardResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -2057,9 +2054,6 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	if check.IfNil(args.GenesisMetaBlockChecker) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilGenesisMetaBlockChecker)
 	}
-	if check.IfNil(args.ShardResolversContainerFactoryCreator) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilShardResolversContainerFactoryCreator)
-	}
 	if check.IfNil(args.TxPreProcessorCreator) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilTxPreProcessorCreator)
 	}
@@ -2143,6 +2137,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.RunTypeComponents.InterceptorsContainerFactoryCreator()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilInterceptorsContainerFactoryCreator)
+	}
+	if check.IfNil(args.RunTypeComponents.ShardResolversContainerFactoryCreator()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilShardResolversContainerFactoryCreator)
 	}
 
 	return nil

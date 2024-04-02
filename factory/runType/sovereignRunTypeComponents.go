@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus"
 	sovereignFactory "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
+	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/errors"
@@ -175,31 +176,34 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 
 	interceptorsContainerFactoryCreator := interceptorscontainer.NewSovereignShardInterceptorsContainerFactoryCreator()
 
+	shardResolversContainerFactoryCreator := resolverscontainer.NewSovereignShardResolversContainerFactoryCreator()
+
 	return &runTypeComponents{
-		blockChainHookHandlerCreator:        blockChainHookHandlerFactory,
-		epochStartBootstrapperCreator:       epochStartBootstrapperFactory,
-		bootstrapperFromStorageCreator:      bootstrapperFromStorageFactory,
-		bootstrapperCreator:                 bootstrapperFactory,
-		blockProcessorCreator:               blockProcessorFactory,
-		forkDetectorCreator:                 forkDetectorFactory,
-		blockTrackerCreator:                 blockTrackerFactory,
-		requestHandlerCreator:               requestHandlerFactory,
-		headerValidatorCreator:              headerValidatorFactory,
-		scheduledTxsExecutionCreator:        scheduledTxsExecutionFactory,
-		transactionCoordinatorCreator:       transactionCoordinatorFactory,
-		validatorStatisticsProcessorCreator: validatorStatisticsProcessorFactory,
-		additionalStorageServiceCreator:     additionalStorageServiceCreator,
-		scProcessorCreator:                  scProcessorCreator,
-		scResultPreProcessorCreator:         scResultPreProcessorCreator,
-		consensusModel:                      consensus.ConsensusModelV2,
-		vmContainerMetaFactory:              rtc.vmContainerMetaFactory,
-		vmContainerShardFactory:             vmContainerShardCreator,
-		accountsCreator:                     accountsCreator,
-		outGoingOperationsPoolHandler:       outGoingOperationsPoolCreator,
-		dataCodecHandler:                    dataCodec,
-		topicsCheckerHandler:                topicsChecker,
-		shardCoordinatorCreator:             shardCoordinatorCreator,
-		requestersContainerFactoryCreator:   requestersContainerFactoryCreator,
-		interceptorsContainerFactoryCreator: interceptorsContainerFactoryCreator,
+		blockChainHookHandlerCreator:          blockChainHookHandlerFactory,
+		epochStartBootstrapperCreator:         epochStartBootstrapperFactory,
+		bootstrapperFromStorageCreator:        bootstrapperFromStorageFactory,
+		bootstrapperCreator:                   bootstrapperFactory,
+		blockProcessorCreator:                 blockProcessorFactory,
+		forkDetectorCreator:                   forkDetectorFactory,
+		blockTrackerCreator:                   blockTrackerFactory,
+		requestHandlerCreator:                 requestHandlerFactory,
+		headerValidatorCreator:                headerValidatorFactory,
+		scheduledTxsExecutionCreator:          scheduledTxsExecutionFactory,
+		transactionCoordinatorCreator:         transactionCoordinatorFactory,
+		validatorStatisticsProcessorCreator:   validatorStatisticsProcessorFactory,
+		additionalStorageServiceCreator:       additionalStorageServiceCreator,
+		scProcessorCreator:                    scProcessorCreator,
+		scResultPreProcessorCreator:           scResultPreProcessorCreator,
+		consensusModel:                        consensus.ConsensusModelV2,
+		vmContainerMetaFactory:                rtc.vmContainerMetaFactory,
+		vmContainerShardFactory:               vmContainerShardCreator,
+		accountsCreator:                       accountsCreator,
+		outGoingOperationsPoolHandler:         outGoingOperationsPoolCreator,
+		dataCodecHandler:                      dataCodec,
+		topicsCheckerHandler:                  topicsChecker,
+		shardCoordinatorCreator:               shardCoordinatorCreator,
+		requestersContainerFactoryCreator:     requestersContainerFactoryCreator,
+		interceptorsContainerFactoryCreator:   interceptorsContainerFactoryCreator,
+		shardResolversContainerFactoryCreator: shardResolversContainerFactoryCreator,
 	}, nil
 }
