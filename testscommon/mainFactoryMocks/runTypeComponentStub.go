@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
+	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
@@ -56,6 +57,7 @@ type RunTypeComponentsStub struct {
 	InterceptorsContainerFactory        interceptorscontainer.InterceptorsContainerFactoryCreator
 	ShardResolversContainerFactory      resolverscontainer.ShardResolversContainerFactoryCreator
 	TxPreProcessorFactory               preprocess.TxPreProcessorCreator
+	ExtraHeaderSigVerifier              headerCheck.ExtraHeaderSigVerifierHolder
 }
 
 // NewRunTypeComponentsStub -
@@ -88,6 +90,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		InterceptorsContainerFactory:        interceptorscontainer.NewShardInterceptorsContainerFactoryCreator(),
 		ShardResolversContainerFactory:      resolverscontainer.NewShardResolversContainerFactoryCreator(),
 		TxPreProcessorFactory:               preprocess.NewTxPreProcessorCreator(),
+		ExtraHeaderSigVerifier:              headerCheck.NewExtraHeaderSigVerifierHolder(),
 	}
 }
 
@@ -244,6 +247,11 @@ func (r *RunTypeComponentsStub) ShardResolversContainerFactoryCreator() resolver
 // TxPreProcessorCreator -
 func (r *RunTypeComponentsStub) TxPreProcessorCreator() preprocess.TxPreProcessorCreator {
 	return r.TxPreProcessorFactory
+}
+
+// ExtraHeaderSigVerifierHandler -
+func (r *RunTypeComponentsStub) ExtraHeaderSigVerifierHandler() headerCheck.ExtraHeaderSigVerifierHolder {
+	return r.ExtraHeaderSigVerifier
 }
 
 // IsInterfaceNil -

@@ -10,6 +10,8 @@ import (
 	"math/big"
 	"testing"
 
+	mclSig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/singlesig"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
@@ -18,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis/mock"
 	nodeMock "github.com/multiversx/mx-chain-go/node/mock"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	stateAcc "github.com/multiversx/mx-chain-go/state"
@@ -88,17 +91,19 @@ func createSovRunTypeComps(t *testing.T) runTypeComponentsHandler {
 	})
 	require.Nil(t, err)
 
-	sovRunTypeFactory, err := factoryRunType.NewSovereignRunTypeComponentsFactory(runTypeFactory,
-		factoryRunType.ArgsSovereignRunTypeComponents{
-			Config: config.SovereignConfig{
-				GenesisConfig: config.GenesisConfig{
-					NativeESDT: sovereignNativeToken,
-				},
+	sovHeaderSigVerifier, _ := headerCheck.NewSovereignHeaderSigVerifier(&mclSig.BlsSingleSigner{})
+	runTypeArgs := factoryRunType.ArgsSovereignRunTypeComponents{
+		Config: config.SovereignConfig{
+			GenesisConfig: config.GenesisConfig{
+				NativeESDT: sovereignNativeToken,
 			},
-			DataCodec:     &sovereign.DataCodecMock{},
-			TopicsChecker: &sovereign.TopicsCheckerMock{},
 		},
-	)
+		DataCodec:     &sovereign.DataCodecMock{},
+		TopicsChecker: &sovereign.TopicsCheckerMock{},
+		ExtraVerifier: sovHeaderSigVerifier,
+	}
+
+	sovRunTypeFactory, err := factoryRunType.NewSovereignRunTypeComponentsFactory(runTypeFactory, runTypeArgs)
 	require.Nil(t, err)
 	sovRunTypeComp, err := factoryRunType.NewManagedRunTypeComponents(sovRunTypeFactory)
 	require.Nil(t, err)

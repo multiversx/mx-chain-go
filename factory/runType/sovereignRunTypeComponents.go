@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/errors"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/block/sovereign"
@@ -35,6 +36,7 @@ type ArgsSovereignRunTypeComponents struct {
 	Config        config.SovereignConfig
 	DataCodec     sovereign.DataDecoderHandler
 	TopicsChecker sovereign.TopicsCheckerHandler
+	ExtraVerifier process.ExtraHeaderSigVerifierHandler
 }
 
 type sovereignRunTypeComponentsFactory struct {
@@ -42,6 +44,7 @@ type sovereignRunTypeComponentsFactory struct {
 	cfg           config.SovereignConfig
 	dataCodec     sovereign.DataDecoderHandler
 	topicsChecker sovereign.TopicsCheckerHandler
+	extraVerifier process.ExtraHeaderSigVerifierHandler
 }
 
 // NewSovereignRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
@@ -55,12 +58,16 @@ func NewSovereignRunTypeComponentsFactory(fact *runTypeComponentsFactory, args A
 	if check.IfNil(args.TopicsChecker) {
 		return nil, errors.ErrNilTopicsChecker
 	}
+	if check.IfNil(args.ExtraVerifier) {
+		return nil, errors.ErrNilExtraSubRoundSigner
+	}
 
 	return &sovereignRunTypeComponentsFactory{
 		runTypeComponentsFactory: fact,
 		cfg:                      args.Config,
 		dataCodec:                args.DataCodec,
 		topicsChecker:            args.TopicsChecker,
+		extraVerifier:            args.ExtraVerifier,
 	}, nil
 }
 
@@ -180,6 +187,11 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 
 	txPreProcessorCreator := preprocess.NewSovereignTxPreProcessorCreator()
 
+	err = rtc.extraHeaderSigVerifierHandler.RegisterExtraHeaderSigVerifier(rcf.extraVerifier)
+	if err != nil {
+		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - RegisterExtraHeaderSigVerifier failed: %w", err)
+	}
+
 	return &runTypeComponents{
 		blockChainHookHandlerCreator:          blockChainHookHandlerFactory,
 		epochStartBootstrapperCreator:         epochStartBootstrapperFactory,
@@ -208,5 +220,6 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		interceptorsContainerFactoryCreator:   interceptorsContainerFactoryCreator,
 		shardResolversContainerFactoryCreator: shardResolversContainerFactoryCreator,
 		txPreProcessorCreator:                 txPreProcessorCreator,
+		extraHeaderSigVerifierHandler:         rtc.extraHeaderSigVerifierHandler,
 	}, nil
 }

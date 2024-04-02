@@ -171,8 +171,6 @@ type ProcessComponentsFactoryArgs struct {
 	GenesisBlockCreatorFactory processGenesis.GenesisBlockCreatorFactory
 	GenesisMetaBlockChecker    GenesisMetaBlockChecker
 	IncomingHeaderSubscriber   process.IncomingHeaderSubscriber
-
-	ExtraHeaderSigVerifierHolder headerCheck.ExtraHeaderSigVerifierHolder
 }
 
 type processComponentsFactory struct {
@@ -215,10 +213,9 @@ type processComponentsFactory struct {
 	genesisNonce uint64
 	genesisRound uint64
 
-	genesisBlockCreatorFactory   processGenesis.GenesisBlockCreatorFactory
-	genesisMetaBlockChecker      GenesisMetaBlockChecker
-	incomingHeaderSubscriber     process.IncomingHeaderSubscriber
-	extraHeaderSigVerifierHolder headerCheck.ExtraHeaderSigVerifierHolder
+	genesisBlockCreatorFactory processGenesis.GenesisBlockCreatorFactory
+	genesisMetaBlockChecker    GenesisMetaBlockChecker
+	incomingHeaderSubscriber   process.IncomingHeaderSubscriber
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -229,41 +226,40 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 	}
 
 	return &processComponentsFactory{
-		config:                       args.Config,
-		epochConfig:                  args.EpochConfig,
-		prefConfigs:                  args.PrefConfigs,
-		importDBConfig:               args.ImportDBConfig,
-		economicsConfig:              args.EconomicsConfig,
-		accountsParser:               args.AccountsParser,
-		smartContractParser:          args.SmartContractParser,
-		gasSchedule:                  args.GasSchedule,
-		nodesCoordinator:             args.NodesCoordinator,
-		data:                         args.Data,
-		coreData:                     args.CoreData,
-		crypto:                       args.Crypto,
-		state:                        args.State,
-		network:                      args.Network,
-		bootstrapComponents:          args.BootstrapComponents,
-		statusComponents:             args.StatusComponents,
-		requestedItemsHandler:        args.RequestedItemsHandler,
-		whiteListHandler:             args.WhiteListHandler,
-		whiteListerVerifiedTxs:       args.WhiteListerVerifiedTxs,
-		maxRating:                    args.MaxRating,
-		systemSCConfig:               args.SystemSCConfig,
-		importStartHandler:           args.ImportStartHandler,
-		historyRepo:                  args.HistoryRepo,
-		epochNotifier:                args.CoreData.EpochNotifier(),
-		statusCoreComponents:         args.StatusCoreComponents,
-		flagsConfig:                  args.FlagsConfig,
-		txExecutionOrderHandler:      args.TxExecutionOrderHandler,
-		genesisNonce:                 args.GenesisNonce,
-		genesisRound:                 args.GenesisRound,
-		roundConfig:                  args.RoundConfig,
-		runTypeComponents:            args.RunTypeComponents,
-		genesisBlockCreatorFactory:   args.GenesisBlockCreatorFactory,
-		genesisMetaBlockChecker:      args.GenesisMetaBlockChecker,
-		incomingHeaderSubscriber:     args.IncomingHeaderSubscriber,
-		extraHeaderSigVerifierHolder: args.ExtraHeaderSigVerifierHolder,
+		config:                     args.Config,
+		epochConfig:                args.EpochConfig,
+		prefConfigs:                args.PrefConfigs,
+		importDBConfig:             args.ImportDBConfig,
+		economicsConfig:            args.EconomicsConfig,
+		accountsParser:             args.AccountsParser,
+		smartContractParser:        args.SmartContractParser,
+		gasSchedule:                args.GasSchedule,
+		nodesCoordinator:           args.NodesCoordinator,
+		data:                       args.Data,
+		coreData:                   args.CoreData,
+		crypto:                     args.Crypto,
+		state:                      args.State,
+		network:                    args.Network,
+		bootstrapComponents:        args.BootstrapComponents,
+		statusComponents:           args.StatusComponents,
+		requestedItemsHandler:      args.RequestedItemsHandler,
+		whiteListHandler:           args.WhiteListHandler,
+		whiteListerVerifiedTxs:     args.WhiteListerVerifiedTxs,
+		maxRating:                  args.MaxRating,
+		systemSCConfig:             args.SystemSCConfig,
+		importStartHandler:         args.ImportStartHandler,
+		historyRepo:                args.HistoryRepo,
+		epochNotifier:              args.CoreData.EpochNotifier(),
+		statusCoreComponents:       args.StatusCoreComponents,
+		flagsConfig:                args.FlagsConfig,
+		txExecutionOrderHandler:    args.TxExecutionOrderHandler,
+		genesisNonce:               args.GenesisNonce,
+		genesisRound:               args.GenesisRound,
+		roundConfig:                args.RoundConfig,
+		runTypeComponents:          args.RunTypeComponents,
+		genesisBlockCreatorFactory: args.GenesisBlockCreatorFactory,
+		genesisMetaBlockChecker:    args.GenesisMetaBlockChecker,
+		incomingHeaderSubscriber:   args.IncomingHeaderSubscriber,
 	}, nil
 }
 
@@ -300,7 +296,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		SingleSigVerifier:            pcf.crypto.BlockSigner(),
 		KeyGen:                       pcf.crypto.BlockSignKeyGen(),
 		FallbackHeaderValidator:      fallbackHeaderValidator,
-		ExtraHeaderSigVerifierHolder: pcf.extraHeaderSigVerifierHolder,
+		ExtraHeaderSigVerifierHolder: pcf.runTypeComponents.ExtraHeaderSigVerifierHandler(),
 	}
 	headerSigVerifier, err := headerCheck.NewHeaderSigVerifier(argsHeaderSig)
 	if err != nil {
@@ -2051,9 +2047,6 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	if check.IfNil(args.GenesisMetaBlockChecker) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilGenesisMetaBlockChecker)
 	}
-	if check.IfNil(args.ExtraHeaderSigVerifierHolder) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilExtraHeaderSigVerifierHolder)
-	}
 	if check.IfNil(args.RunTypeComponents) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilRunTypeComponents)
 	}
@@ -2137,6 +2130,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.RunTypeComponents.TxPreProcessorCreator()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilTxPreProcessorCreator)
+	}
+	if check.IfNil(args.RunTypeComponents.ExtraHeaderSigVerifierHandler()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilExtraHeaderSigVerifierHolder)
 	}
 
 	return nil

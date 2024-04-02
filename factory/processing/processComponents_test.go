@@ -40,7 +40,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	nodesSetupMock "github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/headerSigVerifier"
 	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
@@ -268,12 +267,11 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 			AppStatusHandlerField:  &statusHandler.AppStatusHandlerStub{},
 			StateStatsHandlerField: disabledStatistics.NewStateStatistics(),
 		},
-		TxExecutionOrderHandler:      &txExecOrderStub.TxExecutionOrderHandlerStub{},
-		GenesisBlockCreatorFactory:   genesisProcess.NewGenesisBlockCreatorFactory(),
-		GenesisMetaBlockChecker:      processComp.NewGenesisMetaBlockChecker(),
-		ExtraHeaderSigVerifierHolder: &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
-		IncomingHeaderSubscriber:     &sovereign.IncomingHeaderSubscriberStub{},
-		RunTypeComponents:            components.GetRunTypeComponents(),
+		TxExecutionOrderHandler:    &txExecOrderStub.TxExecutionOrderHandlerStub{},
+		GenesisBlockCreatorFactory: genesisProcess.NewGenesisBlockCreatorFactory(),
+		GenesisMetaBlockChecker:    processComp.NewGenesisMetaBlockChecker(),
+		IncomingHeaderSubscriber:   &sovereign.IncomingHeaderSubscriberStub{},
+		RunTypeComponents:          components.GetRunTypeComponents(),
 	}
 
 	args.State = components.GetStateComponents(args.CoreData, args.StatusCoreComponents)
@@ -623,15 +621,6 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		require.True(t, errors.Is(err, errorsMx.ErrNilGenesisMetaBlockChecker))
 		require.Nil(t, pcf)
 	})
-	t.Run("nil extra header sig verifier holder, should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockProcessComponentsFactoryArgs()
-		args.ExtraHeaderSigVerifierHolder = nil
-		pcf, err := processComp.NewProcessComponentsFactory(args)
-		require.True(t, errors.Is(err, errorsMx.ErrNilExtraHeaderSigVerifierHolder))
-		require.Nil(t, pcf)
-	})
 	t.Run("nil RunTypeComponents should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -938,6 +927,17 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		require.True(t, errors.Is(err, errorsMx.ErrNilTxPreProcessorCreator))
 		require.Nil(t, pcf)
 	})
+	t.Run("nil ExtraHeaderSigVerifier should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockProcessComponentsFactoryArgs()
+		rtMock := getRunTypeComponentsMock()
+		rtMock.ExtraHeaderSigVerifier = nil
+		args.RunTypeComponents = rtMock
+		pcf, err := processComp.NewProcessComponentsFactory(args)
+		require.True(t, errors.Is(err, errorsMx.ErrNilExtraHeaderSigVerifierHolder))
+		require.Nil(t, pcf)
+	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -976,6 +976,7 @@ func getRunTypeComponentsMock() *mainFactoryMocks.RunTypeComponentsStub {
 		RequestersContainerFactory:          rt.RequestersContainerFactoryCreator(),
 		InterceptorsContainerFactory:        rt.InterceptorsContainerFactoryCreator(),
 		ShardResolversContainerFactory:      rt.ShardResolversContainerFactoryCreator(),
+		ExtraHeaderSigVerifier:              rt.ExtraHeaderSigVerifierHandler(),
 	}
 }
 

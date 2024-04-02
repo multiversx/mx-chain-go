@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
+	mclSig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/singlesig"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 	"github.com/stretchr/testify/require"
@@ -49,7 +50,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/headerSigVerifier"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/sovereign"
@@ -647,10 +647,9 @@ func GetProcessArgs(
 				},
 			},
 		},
-		GenesisBlockCreatorFactory:   process.NewGenesisBlockCreatorFactory(),
-		GenesisMetaBlockChecker:      processComp.NewGenesisMetaBlockChecker(),
-		ExtraHeaderSigVerifierHolder: &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
-		RunTypeComponents:            GetRunTypeComponents(),
+		GenesisBlockCreatorFactory: process.NewGenesisBlockCreatorFactory(),
+		GenesisMetaBlockChecker:    processComp.NewGenesisMetaBlockChecker(),
+		RunTypeComponents:          GetRunTypeComponents(),
 	}
 }
 
@@ -736,15 +735,10 @@ func GetSovereignProcessArgs(
 
 	statusCoreComponents := GetSovereignStatusCoreComponents()
 
-	extraHeaderSigVerifierHolder := headerCheck.NewExtraHeaderSigVerifierHolder()
-	sovHeaderSigVerifier, _ := headerCheck.NewSovereignHeaderSigVerifier(cryptoComponents.BlockSigner())
-	_ = extraHeaderSigVerifierHolder.RegisterExtraHeaderSigVerifier(sovHeaderSigVerifier)
-
 	processArgs.BootstrapComponents = bootstrapComponents
 	processArgs.StatusCoreComponents = statusCoreComponents
 	processArgs.GenesisBlockCreatorFactory = process.NewSovereignGenesisBlockCreatorFactory()
 	processArgs.GenesisMetaBlockChecker = processComp.NewSovereignGenesisMetaBlockChecker()
-	processArgs.ExtraHeaderSigVerifierHolder = extraHeaderSigVerifierHolder
 	processArgs.IncomingHeaderSubscriber = &sovereign.IncomingHeaderSubscriberStub{}
 	processArgs.RunTypeComponents = GetSovereignRunTypeComponents()
 
@@ -1070,6 +1064,8 @@ func GetSovereignRunTypeComponents() factory.RunTypeComponentsHolder {
 }
 
 func createSovRunTypeArgs() runType.ArgsSovereignRunTypeComponents {
+	sovHeaderSigVerifier, _ := headerCheck.NewSovereignHeaderSigVerifier(&mclSig.BlsSingleSigner{})
+
 	return runType.ArgsSovereignRunTypeComponents{
 		Config: config.SovereignConfig{
 			GenesisConfig: config.GenesisConfig{
@@ -1078,6 +1074,7 @@ func createSovRunTypeArgs() runType.ArgsSovereignRunTypeComponents {
 		},
 		DataCodec:     &sovereign.DataCodecMock{},
 		TopicsChecker: &sovereign.TopicsCheckerMock{},
+		ExtraVerifier: sovHeaderSigVerifier,
 	}
 }
 
