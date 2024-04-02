@@ -1176,7 +1176,7 @@ func testChainSimulatorCreateNewDelegationContract(t *testing.T, cs chainSimulat
 	require.Nil(t, err)
 	require.NotNil(t, addNodesTx)
 
-	output, err = executeQuery(cs, core.MetachainShardId, delegationContractAddressBytes, "GetAllNodeStates", nil)
+	output, err = executeQuery(cs, core.MetachainShardId, delegationContractAddressBytes, "getAllNodeStates", nil)
 	require.Nil(t, err)
 	stakedKeys, notStakedKeys, unStakedKeys := getNodesFromContract(output.ReturnData)
 	require.Equal(t, 0, len(stakedKeys))
@@ -1239,7 +1239,7 @@ func testChainSimulatorCreateNewDelegationContract(t *testing.T, cs chainSimulat
 	expectedTopUp = expectedTopUp.Sub(expectedTopUp, staking.InitialDelegationValue)
 	require.Equal(t, expectedTopUp, getBLSTopUpValue(t, metachainNode, delegationContractAddressBytes))
 
-	output, err = executeQuery(cs, core.MetachainShardId, delegationContractAddressBytes, "GetAllNodeStates", nil)
+	output, err = executeQuery(cs, core.MetachainShardId, delegationContractAddressBytes, "getAllNodeStates", nil)
 	require.Nil(t, err)
 	stakedKeys, notStakedKeys, unStakedKeys = getNodesFromContract(output.ReturnData)
 	require.Equal(t, 1, len(stakedKeys))
@@ -1273,7 +1273,7 @@ func testChainSimulatorCreateNewDelegationContract(t *testing.T, cs chainSimulat
 	require.Nil(t, err)
 	require.Equal(t, staking.ZeroValue, big.NewInt(0).SetBytes(output.ReturnData[0]))
 
-	output, err = executeQuery(cs, core.MetachainShardId, delegationContractAddressBytes, "GetAllNodeStates", nil)
+	output, err = executeQuery(cs, core.MetachainShardId, delegationContractAddressBytes, "getAllNodeStates", nil)
 	require.Nil(t, err)
 	stakedKeys, notStakedKeys, unStakedKeys = getNodesFromContract(output.ReturnData)
 	require.Equal(t, 1, len(stakedKeys))
@@ -1300,7 +1300,7 @@ func testChainSimulatorCreateNewDelegationContract(t *testing.T, cs chainSimulat
 	require.Equal(t, "0", big.NewInt(0).SetBytes(output.ReturnData[0]).String())
 
 	// still staked until epoch change
-	output, err = executeQuery(cs, core.MetachainShardId, delegationContractAddressBytes, "GetAllNodeStates", nil)
+	output, err = executeQuery(cs, core.MetachainShardId, delegationContractAddressBytes, "getAllNodeStates", nil)
 	require.Nil(t, err)
 	stakedKeys, notStakedKeys, unStakedKeys = getNodesFromContract(output.ReturnData)
 	require.Equal(t, 1, len(stakedKeys))
@@ -1311,7 +1311,7 @@ func testChainSimulatorCreateNewDelegationContract(t *testing.T, cs chainSimulat
 	err = cs.GenerateBlocksUntilEpochIsReached(targetEpoch + 1)
 	require.Nil(t, err)
 
-	output, err = executeQuery(cs, core.MetachainShardId, delegationContractAddressBytes, "GetAllNodeStates", nil)
+	output, err = executeQuery(cs, core.MetachainShardId, delegationContractAddressBytes, "getAllNodeStates", nil)
 	require.Nil(t, err)
 	stakedKeys, notStakedKeys, unStakedKeys = getNodesFromContract(output.ReturnData)
 	require.Equal(t, 0, len(stakedKeys))
