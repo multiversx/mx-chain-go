@@ -150,7 +150,7 @@ func TestNewBootstrapComponentsFactory(t *testing.T) {
 		require.Nil(t, bcf)
 		require.Equal(t, errorsMx.ErrNilShardCoordinatorFactory, err)
 	})
-	t.Run("nil nodes coordinator factory, should error", func(t *testing.T) {
+	t.Run("nil NodesCoordinatorWithRaterFactory should error", func(t *testing.T) {
 		t.Parallel()
 
 		argsCopy := args
