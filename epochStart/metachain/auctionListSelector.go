@@ -311,7 +311,7 @@ func (als *auctionListSelector) calcSoftAuctionNodesConfig(
 ) map[string]*OwnerAuctionData {
 	ownersData := copyOwnersData(data)
 	minTopUp, maxTopUp := als.getMinMaxPossibleTopUp(ownersData)
-	log.Debug("auctionListSelector: calc min and max possible top up",
+	log.Info("auctionListSelector: calc min and max possible top up",
 		"min top up per node", getPrettyValue(minTopUp, als.softAuctionConfig.denominator),
 		"max top up per node", getPrettyValue(maxTopUp, als.softAuctionConfig.denominator),
 	)

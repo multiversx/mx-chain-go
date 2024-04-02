@@ -661,8 +661,8 @@ func (t *trigger) updateTriggerFromMeta() {
 			t.epochStartNotifier.NotifyEpochChangeConfirmed(t.metaEpoch)
 
 			msg := fmt.Sprintf("EPOCH %d BEGINS IN ROUND (%d)", t.metaEpoch, t.epochStartRound)
-			log.Debug(display.Headline(msg, "", "#"))
-			log.Debug("trigger.updateTriggerFromMeta", "isEpochStart", t.isEpochStart)
+			log.Info(display.Headline(msg, "", "#"))
+			log.Info("trigger.updateTriggerFromMeta", "isEpochStart", t.isEpochStart)
 			logger.SetCorrelationEpoch(t.metaEpoch)
 			t.clearMissingMiniBlocksMap(t.metaEpoch)
 			t.clearMissingValidatorsInfoMap(t.metaEpoch)
