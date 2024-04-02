@@ -1,8 +1,10 @@
-package staking
+package stakingProvider
 
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/staking"
+
 	"math/big"
 	"testing"
 	"time"
@@ -15,6 +17,10 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/stretchr/testify/require"
+)
+
+const (
+	defaultPathToInitialConfig = "../../../../cmd/node/config/"
 )
 
 func TestStakingProviderWithNodes(t *testing.T) {
@@ -65,7 +71,7 @@ func testStakingProviderWithNodesReStakeUnStaked(t *testing.T, stakingV4Activati
 	require.NotNil(t, cs)
 	defer cs.Close()
 
-	mintValue := big.NewInt(0).Mul(big.NewInt(5000), oneEGLD)
+	mintValue := big.NewInt(0).Mul(big.NewInt(5000), staking.OneEGLD)
 	validatorOwner, err := cs.GenerateAndMintWalletAddress(0, mintValue)
 	require.Nil(t, err)
 	require.Nil(t, err)
@@ -76,8 +82,8 @@ func testStakingProviderWithNodesReStakeUnStaked(t *testing.T, stakingV4Activati
 	// create delegation contract
 	stakeValue, _ := big.NewInt(0).SetString("4250000000000000000000", 10)
 	dataField := "createNewDelegationContract@00@0ea1"
-	txStake := generateTransaction(validatorOwner.Bytes, getNonce(t, cs, validatorOwner), vm.DelegationManagerSCAddress, stakeValue, dataField, 80_000_000)
-	stakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txStake, maxNumOfBlockToGenerateWhenExecutingTx)
+	txStake := staking.GenerateTransaction(validatorOwner.Bytes, staking.GetNonce(t, cs, validatorOwner), vm.DelegationManagerSCAddress, stakeValue, dataField, 80_000_000)
+	stakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txStake, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, stakeTx)
 
@@ -88,53 +94,53 @@ func testStakingProviderWithNodesReStakeUnStaked(t *testing.T, stakingV4Activati
 	_, blsKeys, err := chainSimulator.GenerateBlsPrivateKeys(1)
 	require.Nil(t, err)
 
-	txDataFieldAddNodes := fmt.Sprintf("addNodes@%s@%s", blsKeys[0], mockBLSSignature+"02")
-	ownerNonce := getNonce(t, cs, validatorOwner)
-	txAddNodes := generateTransaction(validatorOwner.Bytes, ownerNonce, delegationAddressBytes, big.NewInt(0), txDataFieldAddNodes, gasLimitForStakeOperation)
-	addNodesTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txAddNodes, maxNumOfBlockToGenerateWhenExecutingTx)
+	txDataFieldAddNodes := fmt.Sprintf("addNodes@%s@%s", blsKeys[0], staking.MockBLSSignature+"02")
+	ownerNonce := staking.GetNonce(t, cs, validatorOwner)
+	txAddNodes := staking.GenerateTransaction(validatorOwner.Bytes, ownerNonce, delegationAddressBytes, big.NewInt(0), txDataFieldAddNodes, staking.GasLimitForStakeOperation)
+	addNodesTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txAddNodes, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, addNodesTx)
 
 	txDataFieldStakeNodes := fmt.Sprintf("stakeNodes@%s", blsKeys[0])
-	ownerNonce = getNonce(t, cs, validatorOwner)
-	txStakeNodes := generateTransaction(validatorOwner.Bytes, ownerNonce, delegationAddressBytes, big.NewInt(0), txDataFieldStakeNodes, gasLimitForStakeOperation)
+	ownerNonce = staking.GetNonce(t, cs, validatorOwner)
+	txStakeNodes := staking.GenerateTransaction(validatorOwner.Bytes, ownerNonce, delegationAddressBytes, big.NewInt(0), txDataFieldStakeNodes, staking.GasLimitForStakeOperation)
 
-	stakeNodesTxs, err := cs.SendTxsAndGenerateBlocksTilAreExecuted([]*transaction.Transaction{txStakeNodes}, maxNumOfBlockToGenerateWhenExecutingTx)
+	stakeNodesTxs, err := cs.SendTxsAndGenerateBlocksTilAreExecuted([]*transaction.Transaction{txStakeNodes}, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.Equal(t, 1, len(stakeNodesTxs))
 
 	metachainNode := cs.GetNodeHandler(core.MetachainShardId)
 	decodedBLSKey0, _ := hex.DecodeString(blsKeys[0])
-	status := getBLSKeyStatus(t, metachainNode, decodedBLSKey0)
+	status := staking.GetBLSKeyStatus(t, metachainNode, decodedBLSKey0)
 	require.Equal(t, "queued", status)
 
 	// activate staking v4
 	err = cs.GenerateBlocksUntilEpochIsReached(int32(stakingV4ActivationEpoch))
 	require.Nil(t, err)
 
-	status = getBLSKeyStatus(t, metachainNode, decodedBLSKey0)
+	status = staking.GetBLSKeyStatus(t, metachainNode, decodedBLSKey0)
 	require.Equal(t, "unStaked", status)
 
-	result := getAllNodeStates(t, metachainNode, delegationAddressBytes)
+	result := staking.GetAllNodeStates(t, metachainNode, delegationAddressBytes)
 	require.NotNil(t, result)
 	require.Equal(t, "unStaked", result[blsKeys[0]])
 
-	ownerNonce = getNonce(t, cs, validatorOwner)
+	ownerNonce = staking.GetNonce(t, cs, validatorOwner)
 	reStakeTxData := fmt.Sprintf("reStakeUnStakedNodes@%s", blsKeys[0])
-	reStakeNodes := generateTransaction(validatorOwner.Bytes, ownerNonce, delegationAddressBytes, big.NewInt(0), reStakeTxData, gasLimitForStakeOperation)
-	reStakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(reStakeNodes, maxNumOfBlockToGenerateWhenExecutingTx)
+	reStakeNodes := staking.GenerateTransaction(validatorOwner.Bytes, ownerNonce, delegationAddressBytes, big.NewInt(0), reStakeTxData, staking.GasLimitForStakeOperation)
+	reStakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(reStakeNodes, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, reStakeTx)
 
-	status = getBLSKeyStatus(t, metachainNode, decodedBLSKey0)
+	status = staking.GetBLSKeyStatus(t, metachainNode, decodedBLSKey0)
 	require.Equal(t, "staked", status)
 
-	result = getAllNodeStates(t, metachainNode, delegationAddressBytes)
+	result = staking.GetAllNodeStates(t, metachainNode, delegationAddressBytes)
 	require.NotNil(t, result)
 	require.Equal(t, "staked", result[blsKeys[0]])
 
 	err = cs.GenerateBlocks(20)
 	require.Nil(t, err)
 
-	checkValidatorStatus(t, cs, blsKeys[0], "auction")
+	staking.CheckValidatorStatus(t, cs, blsKeys[0], "auction")
 }
