@@ -275,10 +275,9 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		FlagsConfig: config.ContextFlagsConfig{
 			ForceStartFromNetwork: false,
 		},
-		TrieSyncStatisticsProvider:       &testscommon.SizeSyncStatisticsHandlerStub{},
-		StateStatsHandler:                disabled.NewStateStatistics(),
-		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
-		RunTypeComponents:                epochStartMocks.NewRunTypeComponentsStub(),
+		TrieSyncStatisticsProvider: &testscommon.SizeSyncStatisticsHandlerStub{},
+		StateStatsHandler:          disabled.NewStateStatistics(),
+		RunTypeComponents:          epochStartMocks.NewRunTypeComponentsStub(),
 	}
 
 	epochStartBootstrap, err := bootstrap.NewEpochStartBootstrap(argsBootstrapHandler)

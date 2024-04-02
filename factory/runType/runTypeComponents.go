@@ -24,6 +24,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
 	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/sharding"
+	nodesCoord "github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/factory"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
@@ -37,29 +38,30 @@ type runTypeComponentsFactory struct {
 
 // runTypeComponents struct holds the components needed for a run type
 type runTypeComponents struct {
-	blockChainHookHandlerCreator        hooks.BlockChainHookHandlerCreator
-	epochStartBootstrapperCreator       bootstrap.EpochStartBootstrapperCreator
-	bootstrapperFromStorageCreator      storageBootstrap.BootstrapperFromStorageCreator
-	bootstrapperCreator                 storageBootstrap.BootstrapperCreator
-	blockProcessorCreator               processBlock.BlockProcessorCreator
-	forkDetectorCreator                 sync.ForkDetectorCreator
-	blockTrackerCreator                 track.BlockTrackerCreator
-	requestHandlerCreator               requestHandlers.RequestHandlerCreator
-	headerValidatorCreator              processBlock.HeaderValidatorCreator
-	scheduledTxsExecutionCreator        preprocess.ScheduledTxsExecutionCreator
-	transactionCoordinatorCreator       coordinator.TransactionCoordinatorCreator
-	validatorStatisticsProcessorCreator peer.ValidatorStatisticsProcessorCreator
-	additionalStorageServiceCreator     process.AdditionalStorageServiceCreator
-	scProcessorCreator                  scrCommon.SCProcessorCreator
-	scResultPreProcessorCreator         preprocess.SmartContractResultPreProcessorCreator
-	consensusModel                      consensus.ConsensusModel
-	vmContainerMetaFactory              factoryVm.VmContainerCreator
-	vmContainerShardFactory             factoryVm.VmContainerCreator
-	accountsCreator                     state.AccountFactory
-	outGoingOperationsPoolHandler       sovereignBlock.OutGoingOperationsPool
-	dataCodecHandler                    sovereign.DataDecoderHandler
-	topicsCheckerHandler                sovereign.TopicsCheckerHandler
-	shardCoordinatorCreator             sharding.ShardCoordinatorFactory
+	blockChainHookHandlerCreator            hooks.BlockChainHookHandlerCreator
+	epochStartBootstrapperCreator           bootstrap.EpochStartBootstrapperCreator
+	bootstrapperFromStorageCreator          storageBootstrap.BootstrapperFromStorageCreator
+	bootstrapperCreator                     storageBootstrap.BootstrapperCreator
+	blockProcessorCreator                   processBlock.BlockProcessorCreator
+	forkDetectorCreator                     sync.ForkDetectorCreator
+	blockTrackerCreator                     track.BlockTrackerCreator
+	requestHandlerCreator                   requestHandlers.RequestHandlerCreator
+	headerValidatorCreator                  processBlock.HeaderValidatorCreator
+	scheduledTxsExecutionCreator            preprocess.ScheduledTxsExecutionCreator
+	transactionCoordinatorCreator           coordinator.TransactionCoordinatorCreator
+	validatorStatisticsProcessorCreator     peer.ValidatorStatisticsProcessorCreator
+	additionalStorageServiceCreator         process.AdditionalStorageServiceCreator
+	scProcessorCreator                      scrCommon.SCProcessorCreator
+	scResultPreProcessorCreator             preprocess.SmartContractResultPreProcessorCreator
+	consensusModel                          consensus.ConsensusModel
+	vmContainerMetaFactory                  factoryVm.VmContainerCreator
+	vmContainerShardFactory                 factoryVm.VmContainerCreator
+	accountsCreator                         state.AccountFactory
+	outGoingOperationsPoolHandler           sovereignBlock.OutGoingOperationsPool
+	dataCodecHandler                        sovereign.DataDecoderHandler
+	topicsCheckerHandler                    sovereign.TopicsCheckerHandler
+	shardCoordinatorCreator                 sharding.ShardCoordinatorFactory
+	nodesCoordinatorWithRaterFactoryCreator nodesCoord.NodesCoordinatorWithRaterFactory
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
@@ -168,30 +170,33 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 
 	shardCoordinatorCreator := sharding.NewMultiShardCoordinatorFactory()
 
+	nodesCoordinatorWithRaterFactoryCreator := nodesCoord.NewIndexHashedNodesCoordinatorWithRaterFactory()
+
 	return &runTypeComponents{
-		blockChainHookHandlerCreator:        blockChainHookHandlerFactory,
-		epochStartBootstrapperCreator:       epochStartBootstrapperFactory,
-		bootstrapperFromStorageCreator:      bootstrapperFromStorageFactory,
-		bootstrapperCreator:                 shardBootstrapFactory,
-		blockProcessorCreator:               blockProcessorFactory,
-		forkDetectorCreator:                 forkDetectorFactory,
-		blockTrackerCreator:                 blockTrackerFactory,
-		requestHandlerCreator:               requestHandlerFactory,
-		headerValidatorCreator:              headerValidatorFactory,
-		scheduledTxsExecutionCreator:        scheduledTxsExecutionFactory,
-		transactionCoordinatorCreator:       transactionCoordinatorFactory,
-		validatorStatisticsProcessorCreator: validatorStatisticsProcessorFactory,
-		additionalStorageServiceCreator:     additionalStorageServiceCreator,
-		scProcessorCreator:                  scProcessorCreator,
-		scResultPreProcessorCreator:         scResultsPreProcessorCreator,
-		consensusModel:                      consensus.ConsensusModelV1,
-		vmContainerMetaFactory:              vmContainerMetaCreator,
-		vmContainerShardFactory:             vmContainerShardCreator,
-		accountsCreator:                     accountsCreator,
-		outGoingOperationsPoolHandler:       outGoingOperationsPool,
-		dataCodecHandler:                    dataCodec,
-		topicsCheckerHandler:                topicsChecker,
-		shardCoordinatorCreator:             shardCoordinatorCreator,
+		blockChainHookHandlerCreator:            blockChainHookHandlerFactory,
+		epochStartBootstrapperCreator:           epochStartBootstrapperFactory,
+		bootstrapperFromStorageCreator:          bootstrapperFromStorageFactory,
+		bootstrapperCreator:                     shardBootstrapFactory,
+		blockProcessorCreator:                   blockProcessorFactory,
+		forkDetectorCreator:                     forkDetectorFactory,
+		blockTrackerCreator:                     blockTrackerFactory,
+		requestHandlerCreator:                   requestHandlerFactory,
+		headerValidatorCreator:                  headerValidatorFactory,
+		scheduledTxsExecutionCreator:            scheduledTxsExecutionFactory,
+		transactionCoordinatorCreator:           transactionCoordinatorFactory,
+		validatorStatisticsProcessorCreator:     validatorStatisticsProcessorFactory,
+		additionalStorageServiceCreator:         additionalStorageServiceCreator,
+		scProcessorCreator:                      scProcessorCreator,
+		scResultPreProcessorCreator:             scResultsPreProcessorCreator,
+		consensusModel:                          consensus.ConsensusModelV1,
+		vmContainerMetaFactory:                  vmContainerMetaCreator,
+		vmContainerShardFactory:                 vmContainerShardCreator,
+		accountsCreator:                         accountsCreator,
+		outGoingOperationsPoolHandler:           outGoingOperationsPool,
+		dataCodecHandler:                        dataCodec,
+		topicsCheckerHandler:                    topicsChecker,
+		shardCoordinatorCreator:                 shardCoordinatorCreator,
+		nodesCoordinatorWithRaterFactoryCreator: nodesCoordinatorWithRaterFactoryCreator,
 	}, nil
 }
 

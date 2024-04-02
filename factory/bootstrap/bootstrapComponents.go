@@ -32,32 +32,30 @@ var log = logger.GetOrCreate("factory")
 
 // BootstrapComponentsFactoryArgs holds the arguments needed to create a bootstrap components factory
 type BootstrapComponentsFactoryArgs struct {
-	Config                           config.Config
-	RoundConfig                      config.RoundConfig
-	PrefConfig                       config.Preferences
-	ImportDbConfig                   config.ImportDbConfig
-	FlagsConfig                      config.ContextFlagsConfig
-	WorkingDir                       string
-	CoreComponents                   factory.CoreComponentsHolder
-	CryptoComponents                 factory.CryptoComponentsHolder
-	NetworkComponents                factory.NetworkComponentsHolder
-	StatusCoreComponents             factory.StatusCoreComponentsHolder
-	NodesCoordinatorWithRaterFactory nodesCoord.NodesCoordinatorWithRaterFactory
-	RunTypeComponents                factory.RunTypeComponentsHolder
+	Config               config.Config
+	RoundConfig          config.RoundConfig
+	PrefConfig           config.Preferences
+	ImportDbConfig       config.ImportDbConfig
+	FlagsConfig          config.ContextFlagsConfig
+	WorkingDir           string
+	CoreComponents       factory.CoreComponentsHolder
+	CryptoComponents     factory.CryptoComponentsHolder
+	NetworkComponents    factory.NetworkComponentsHolder
+	StatusCoreComponents factory.StatusCoreComponentsHolder
+	RunTypeComponents    factory.RunTypeComponentsHolder
 }
 
 type bootstrapComponentsFactory struct {
-	config                           config.Config
-	prefConfig                       config.Preferences
-	importDbConfig                   config.ImportDbConfig
-	flagsConfig                      config.ContextFlagsConfig
-	workingDir                       string
-	coreComponents                   factory.CoreComponentsHolder
-	cryptoComponents                 factory.CryptoComponentsHolder
-	networkComponents                factory.NetworkComponentsHolder
-	statusCoreComponents             factory.StatusCoreComponentsHolder
-	nodesCoordinatorWithRaterFactory nodesCoord.NodesCoordinatorWithRaterFactory
-	runTypeComponents                factory.RunTypeComponentsHolder
+	config               config.Config
+	prefConfig           config.Preferences
+	importDbConfig       config.ImportDbConfig
+	flagsConfig          config.ContextFlagsConfig
+	workingDir           string
+	coreComponents       factory.CoreComponentsHolder
+	cryptoComponents     factory.CryptoComponentsHolder
+	networkComponents    factory.NetworkComponentsHolder
+	statusCoreComponents factory.StatusCoreComponentsHolder
+	runTypeComponents    factory.RunTypeComponentsHolder
 }
 
 type bootstrapComponents struct {
@@ -98,9 +96,6 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 	if check.IfNil(args.StatusCoreComponents.AppStatusHandler()) {
 		return nil, errors.ErrNilAppStatusHandler
 	}
-	if check.IfNil(args.NodesCoordinatorWithRaterFactory) {
-		return nil, errors.ErrNilNodesCoordinatorFactory
-	}
 	if check.IfNil(args.RunTypeComponents) {
 		return nil, errors.ErrNilRunTypeComponents
 	}
@@ -113,19 +108,21 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 	if check.IfNil(args.RunTypeComponents.ShardCoordinatorCreator()) {
 		return nil, errors.ErrNilShardCoordinatorFactory
 	}
+	if check.IfNil(args.RunTypeComponents.NodesCoordinatorWithRaterCreator()) {
+		return nil, errors.ErrNilNodesCoordinatorFactory
+	}
 
 	return &bootstrapComponentsFactory{
-		config:                           args.Config,
-		prefConfig:                       args.PrefConfig,
-		importDbConfig:                   args.ImportDbConfig,
-		flagsConfig:                      args.FlagsConfig,
-		workingDir:                       args.WorkingDir,
-		coreComponents:                   args.CoreComponents,
-		cryptoComponents:                 args.CryptoComponents,
-		networkComponents:                args.NetworkComponents,
-		statusCoreComponents:             args.StatusCoreComponents,
-		runTypeComponents:                args.RunTypeComponents,
-		nodesCoordinatorWithRaterFactory: args.NodesCoordinatorWithRaterFactory,
+		config:               args.Config,
+		prefConfig:           args.PrefConfig,
+		importDbConfig:       args.ImportDbConfig,
+		flagsConfig:          args.FlagsConfig,
+		workingDir:           args.WorkingDir,
+		coreComponents:       args.CoreComponents,
+		cryptoComponents:     args.CryptoComponents,
+		networkComponents:    args.NetworkComponents,
+		statusCoreComponents: args.StatusCoreComponents,
+		runTypeComponents:    args.RunTypeComponents,
 	}, nil
 }
 
@@ -222,33 +219,32 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 	}
 
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
-		CoreComponentsHolder:             bcf.coreComponents,
-		CryptoComponentsHolder:           bcf.cryptoComponents,
-		MainMessenger:                    bcf.networkComponents.NetworkMessenger(),
-		FullArchiveMessenger:             bcf.networkComponents.FullArchiveNetworkMessenger(),
-		GeneralConfig:                    bcf.config,
-		PrefsConfig:                      bcf.prefConfig.Preferences,
-		FlagsConfig:                      bcf.flagsConfig,
-		EconomicsData:                    bcf.coreComponents.EconomicsData(),
-		GenesisNodesConfig:               bcf.coreComponents.GenesisNodesSetup(),
-		GenesisShardCoordinator:          genesisShardCoordinator,
-		StorageUnitOpener:                unitOpener,
-		Rater:                            bcf.coreComponents.Rater(),
-		DestinationShardAsObserver:       destShardIdAsObserver,
-		NodeShuffler:                     bcf.coreComponents.NodesShuffler(),
-		RoundHandler:                     bcf.coreComponents.RoundHandler(),
-		LatestStorageDataProvider:        latestStorageDataProvider,
-		ArgumentsParser:                  smartContract.NewArgumentParser(),
-		StatusHandler:                    bcf.statusCoreComponents.AppStatusHandler(),
-		HeaderIntegrityVerifier:          headerIntegrityVerifier,
-		DataSyncerCreator:                dataSyncerFactory,
-		ScheduledSCRsStorer:              nil, // will be updated after sync from network
-		TrieSyncStatisticsProvider:       tss,
-		NodeProcessingMode:               common.GetNodeProcessingMode(&bcf.importDbConfig),
-		StateStatsHandler:                bcf.statusCoreComponents.StateStatsHandler(),
-		NodesCoordinatorWithRaterFactory: bcf.nodesCoordinatorWithRaterFactory,
-		NodesCoordinatorRegistryFactory:  nodesCoordinatorRegistryFactory,
-		RunTypeComponents:                bcf.runTypeComponents,
+		CoreComponentsHolder:            bcf.coreComponents,
+		CryptoComponentsHolder:          bcf.cryptoComponents,
+		MainMessenger:                   bcf.networkComponents.NetworkMessenger(),
+		FullArchiveMessenger:            bcf.networkComponents.FullArchiveNetworkMessenger(),
+		GeneralConfig:                   bcf.config,
+		PrefsConfig:                     bcf.prefConfig.Preferences,
+		FlagsConfig:                     bcf.flagsConfig,
+		EconomicsData:                   bcf.coreComponents.EconomicsData(),
+		GenesisNodesConfig:              bcf.coreComponents.GenesisNodesSetup(),
+		GenesisShardCoordinator:         genesisShardCoordinator,
+		StorageUnitOpener:               unitOpener,
+		Rater:                           bcf.coreComponents.Rater(),
+		DestinationShardAsObserver:      destShardIdAsObserver,
+		NodeShuffler:                    bcf.coreComponents.NodesShuffler(),
+		RoundHandler:                    bcf.coreComponents.RoundHandler(),
+		LatestStorageDataProvider:       latestStorageDataProvider,
+		ArgumentsParser:                 smartContract.NewArgumentParser(),
+		StatusHandler:                   bcf.statusCoreComponents.AppStatusHandler(),
+		HeaderIntegrityVerifier:         headerIntegrityVerifier,
+		DataSyncerCreator:               dataSyncerFactory,
+		ScheduledSCRsStorer:             nil, // will be updated after sync from network
+		TrieSyncStatisticsProvider:      tss,
+		NodeProcessingMode:              common.GetNodeProcessingMode(&bcf.importDbConfig),
+		StateStatsHandler:               bcf.statusCoreComponents.StateStatsHandler(),
+		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
+		RunTypeComponents:               bcf.runTypeComponents,
 	}
 
 	var epochStartBootstrapper factory.EpochStartBootstrapper
@@ -259,7 +255,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 			ChanGracefullyClose:              bcf.coreComponents.ChanStopNodeProcess(),
 			TimeToWaitForRequestedData:       bootstrap.DefaultTimeToWaitForRequestedData,
 			EpochStartBootstrapperCreator:    bcf.runTypeComponents.EpochStartBootstrapperCreator(),
-			NodesCoordinatorWithRaterFactory: bcf.nodesCoordinatorWithRaterFactory,
+			NodesCoordinatorWithRaterFactory: bcf.runTypeComponents.NodesCoordinatorWithRaterCreator(),
 			ShardCoordinatorFactory:          bcf.runTypeComponents.ShardCoordinatorCreator(),
 			ResolverRequestFactory:           bcf.runTypeComponents.RequestHandlerCreator(),
 		}

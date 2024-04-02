@@ -462,8 +462,7 @@ func GetBootStrapFactoryArgs() bootstrapComp.BootstrapComponentsFactoryArgs {
 		FlagsConfig: config.ContextFlagsConfig{
 			ForceStartFromNetwork: false,
 		},
-		RunTypeComponents:                GetRunTypeComponents(),
-		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
+		RunTypeComponents: GetRunTypeComponents(),
 	}
 }
 
@@ -736,7 +735,6 @@ func GetSovereignProcessArgs(
 
 	bootstrapComponentsFactoryArgs := GetBootStrapFactoryArgs()
 	bootstrapComponentsFactoryArgs.RunTypeComponents = GetSovereignRunTypeComponents()
-	bootstrapComponentsFactoryArgs.NodesCoordinatorWithRaterFactory = nodesCoordinator.NewSovereignIndexHashedNodesCoordinatorWithRaterFactory()
 	bootstrapComponentsFactory, _ := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
 	bootstrapComponents, _ := bootstrapComp.NewTestManagedBootstrapComponents(bootstrapComponentsFactory)
 	_ = bootstrapComponents.Create()

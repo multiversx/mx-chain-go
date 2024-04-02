@@ -22,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
 	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/sharding"
+	nodesCoord "github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state/factory"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 
@@ -169,29 +170,32 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 
 	shardCoordinatorCreator := sharding.NewSovereignShardCoordinatorFactory()
 
+	nodesCoordinatorWithRaterFactoryCreator := nodesCoord.NewSovereignIndexHashedNodesCoordinatorWithRaterFactory()
+
 	return &runTypeComponents{
-		blockChainHookHandlerCreator:        blockChainHookHandlerFactory,
-		epochStartBootstrapperCreator:       epochStartBootstrapperFactory,
-		bootstrapperFromStorageCreator:      bootstrapperFromStorageFactory,
-		bootstrapperCreator:                 bootstrapperFactory,
-		blockProcessorCreator:               blockProcessorFactory,
-		forkDetectorCreator:                 forkDetectorFactory,
-		blockTrackerCreator:                 blockTrackerFactory,
-		requestHandlerCreator:               requestHandlerFactory,
-		headerValidatorCreator:              headerValidatorFactory,
-		scheduledTxsExecutionCreator:        scheduledTxsExecutionFactory,
-		transactionCoordinatorCreator:       transactionCoordinatorFactory,
-		validatorStatisticsProcessorCreator: validatorStatisticsProcessorFactory,
-		additionalStorageServiceCreator:     additionalStorageServiceCreator,
-		scProcessorCreator:                  scProcessorCreator,
-		scResultPreProcessorCreator:         scResultPreProcessorCreator,
-		consensusModel:                      consensus.ConsensusModelV2,
-		vmContainerMetaFactory:              rtc.vmContainerMetaFactory,
-		vmContainerShardFactory:             vmContainerShardCreator,
-		accountsCreator:                     accountsCreator,
-		outGoingOperationsPoolHandler:       outGoingOperationsPoolCreator,
-		dataCodecHandler:                    dataCodec,
-		topicsCheckerHandler:                topicsChecker,
-		shardCoordinatorCreator:             shardCoordinatorCreator,
+		blockChainHookHandlerCreator:            blockChainHookHandlerFactory,
+		epochStartBootstrapperCreator:           epochStartBootstrapperFactory,
+		bootstrapperFromStorageCreator:          bootstrapperFromStorageFactory,
+		bootstrapperCreator:                     bootstrapperFactory,
+		blockProcessorCreator:                   blockProcessorFactory,
+		forkDetectorCreator:                     forkDetectorFactory,
+		blockTrackerCreator:                     blockTrackerFactory,
+		requestHandlerCreator:                   requestHandlerFactory,
+		headerValidatorCreator:                  headerValidatorFactory,
+		scheduledTxsExecutionCreator:            scheduledTxsExecutionFactory,
+		transactionCoordinatorCreator:           transactionCoordinatorFactory,
+		validatorStatisticsProcessorCreator:     validatorStatisticsProcessorFactory,
+		additionalStorageServiceCreator:         additionalStorageServiceCreator,
+		scProcessorCreator:                      scProcessorCreator,
+		scResultPreProcessorCreator:             scResultPreProcessorCreator,
+		consensusModel:                          consensus.ConsensusModelV2,
+		vmContainerMetaFactory:                  rtc.vmContainerMetaFactory,
+		vmContainerShardFactory:                 vmContainerShardCreator,
+		accountsCreator:                         accountsCreator,
+		outGoingOperationsPoolHandler:           outGoingOperationsPoolCreator,
+		dataCodecHandler:                        dataCodec,
+		topicsCheckerHandler:                    topicsChecker,
+		shardCoordinatorCreator:                 shardCoordinatorCreator,
+		nodesCoordinatorWithRaterFactoryCreator: nodesCoordinatorWithRaterFactoryCreator,
 	}, nil
 }

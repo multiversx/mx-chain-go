@@ -241,10 +241,9 @@ func createMockEpochStartBootstrapArgs(
 		FlagsConfig: config.ContextFlagsConfig{
 			ForceStartFromNetwork: false,
 		},
-		TrieSyncStatisticsProvider:       &testscommon.SizeSyncStatisticsHandlerStub{},
-		StateStatsHandler:                disabledStatistics.NewStateStatistics(),
-		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
-		RunTypeComponents:                mock.NewRunTypeComponentsStub(),
+		TrieSyncStatisticsProvider: &testscommon.SizeSyncStatisticsHandlerStub{},
+		StateStatsHandler:          disabledStatistics.NewStateStatistics(),
+		RunTypeComponents:          mock.NewRunTypeComponentsStub(),
 	}
 }
 
@@ -636,17 +635,6 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, statistics.ErrNilStateStatsHandler))
 	})
-	t.Run("nil nodes coordinator factory", func(t *testing.T) {
-		t.Parallel()
-
-		coreComp, cryptoComp := createComponentsForEpochStart()
-		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
-		args.NodesCoordinatorWithRaterFactory = nil
-
-		epochStartProvider, err := NewEpochStartBootstrap(args)
-		require.Nil(t, epochStartProvider)
-		require.True(t, errors.Is(err, errorsMx.ErrNilNodesCoordinatorFactory))
-	})
 	t.Run("nil RunTypeComponents should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -679,6 +667,17 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		epochStartProvider, err := NewEpochStartBootstrap(args)
 		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, errorsMx.ErrNilAdditionalStorageServiceCreator))
+	})
+	t.Run("nil NodesCoordinatorWithRaterFactory should error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComp, cryptoComp := createComponentsForEpochStart()
+		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+		args.RunTypeComponents = &mock.RunTypeComponentsStub{ShardCoordinatorFactory: &testscommon.MultiShardCoordinatorFactoryMock{}, AdditionalStorageServiceFactory: &testscommon.AdditionalStorageServiceFactoryMock{}, NodesCoordinatorWithRaterFactory: nil}
+
+		epochStartProvider, err := NewEpochStartBootstrap(args)
+		require.Nil(t, epochStartProvider)
+		require.True(t, errors.Is(err, errorsMx.ErrNilNodesCoordinatorFactory))
 	})
 }
 

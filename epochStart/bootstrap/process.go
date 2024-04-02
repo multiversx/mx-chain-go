@@ -155,8 +155,7 @@ type epochStartBootstrap struct {
 	shuffledOut         bool
 	getDataToSyncMethod func(epochStartData data.EpochStartShardDataHandler, shardNotarizedHeader data.ShardHeaderHandler) (*dataToSync, error)
 
-	nodesCoordinatorWithRaterFactory nodesCoordinator.NodesCoordinatorWithRaterFactory
-	runTypeComponents                runTypeComponentsHolder
+	runTypeComponents runTypeComponentsHolder
 }
 
 type baseDataInStorage struct {
@@ -170,33 +169,32 @@ type baseDataInStorage struct {
 
 // ArgsEpochStartBootstrap holds the arguments needed for creating an epoch start data provider component
 type ArgsEpochStartBootstrap struct {
-	CoreComponentsHolder             process.CoreComponentsHolder
-	CryptoComponentsHolder           process.CryptoComponentsHolder
-	DestinationShardAsObserver       uint32
-	MainMessenger                    p2p.Messenger
-	FullArchiveMessenger             p2p.Messenger
-	GeneralConfig                    config.Config
-	PrefsConfig                      config.PreferencesConfig
-	FlagsConfig                      config.ContextFlagsConfig
-	EconomicsData                    process.EconomicsDataHandler
-	GenesisNodesConfig               sharding.GenesisNodesSetupHandler
-	GenesisShardCoordinator          sharding.Coordinator
-	StorageUnitOpener                storage.UnitOpenerHandler
-	LatestStorageDataProvider        storage.LatestStorageDataProviderHandler
-	Rater                            nodesCoordinator.ChanceComputer
-	NodeShuffler                     nodesCoordinator.NodesShuffler
-	RoundHandler                     epochStart.RoundHandler
-	ArgumentsParser                  process.ArgumentsParser
-	StatusHandler                    core.AppStatusHandler
-	HeaderIntegrityVerifier          process.HeaderIntegrityVerifier
-	DataSyncerCreator                types.ScheduledDataSyncerCreator
-	ScheduledSCRsStorer              storage.Storer
-	TrieSyncStatisticsProvider       common.SizeSyncStatisticsHandler
-	NodeProcessingMode               common.NodeProcessingMode
-	StateStatsHandler                common.StateStatisticsHandler
-	NodesCoordinatorRegistryFactory  nodesCoordinator.NodesCoordinatorRegistryFactory
-	NodesCoordinatorWithRaterFactory nodesCoordinator.NodesCoordinatorWithRaterFactory
-	RunTypeComponents                runTypeComponentsHolder
+	CoreComponentsHolder            process.CoreComponentsHolder
+	CryptoComponentsHolder          process.CryptoComponentsHolder
+	DestinationShardAsObserver      uint32
+	MainMessenger                   p2p.Messenger
+	FullArchiveMessenger            p2p.Messenger
+	GeneralConfig                   config.Config
+	PrefsConfig                     config.PreferencesConfig
+	FlagsConfig                     config.ContextFlagsConfig
+	EconomicsData                   process.EconomicsDataHandler
+	GenesisNodesConfig              sharding.GenesisNodesSetupHandler
+	GenesisShardCoordinator         sharding.Coordinator
+	StorageUnitOpener               storage.UnitOpenerHandler
+	LatestStorageDataProvider       storage.LatestStorageDataProviderHandler
+	Rater                           nodesCoordinator.ChanceComputer
+	NodeShuffler                    nodesCoordinator.NodesShuffler
+	RoundHandler                    epochStart.RoundHandler
+	ArgumentsParser                 process.ArgumentsParser
+	StatusHandler                   core.AppStatusHandler
+	HeaderIntegrityVerifier         process.HeaderIntegrityVerifier
+	DataSyncerCreator               types.ScheduledDataSyncerCreator
+	ScheduledSCRsStorer             storage.Storer
+	TrieSyncStatisticsProvider      common.SizeSyncStatisticsHandler
+	NodeProcessingMode              common.NodeProcessingMode
+	StateStatsHandler               common.StateStatisticsHandler
+	NodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory
+	RunTypeComponents               runTypeComponentsHolder
 }
 
 type dataToSync struct {
@@ -215,42 +213,41 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 	}
 
 	epochStartProvider := &epochStartBootstrap{
-		coreComponentsHolder:             args.CoreComponentsHolder,
-		cryptoComponentsHolder:           args.CryptoComponentsHolder,
-		mainMessenger:                    args.MainMessenger,
-		fullArchiveMessenger:             args.FullArchiveMessenger,
-		generalConfig:                    args.GeneralConfig,
-		prefsConfig:                      args.PrefsConfig,
-		flagsConfig:                      args.FlagsConfig,
-		economicsData:                    args.EconomicsData,
-		genesisNodesConfig:               args.GenesisNodesConfig,
-		genesisShardCoordinator:          args.GenesisShardCoordinator,
-		rater:                            args.Rater,
-		destinationShardAsObserver:       args.DestinationShardAsObserver,
-		nodeShuffler:                     args.NodeShuffler,
-		roundHandler:                     args.RoundHandler,
-		storageOpenerHandler:             args.StorageUnitOpener,
-		latestStorageDataProvider:        args.LatestStorageDataProvider,
-		shuffledOut:                      false,
-		statusHandler:                    args.StatusHandler,
-		nodeType:                         core.NodeTypeObserver,
-		argumentsParser:                  args.ArgumentsParser,
-		headerIntegrityVerifier:          args.HeaderIntegrityVerifier,
-		numConcurrentTrieSyncers:         args.GeneralConfig.TrieSync.NumConcurrentTrieSyncers,
-		maxHardCapForMissingNodes:        args.GeneralConfig.TrieSync.MaxHardCapForMissingNodes,
-		trieSyncerVersion:                args.GeneralConfig.TrieSync.TrieSyncerVersion,
-		checkNodesOnDisk:                 args.GeneralConfig.TrieSync.CheckNodesOnDisk,
-		dataSyncerFactory:                args.DataSyncerCreator,
-		storerScheduledSCRs:              args.ScheduledSCRsStorer,
-		shardCoordinator:                 args.GenesisShardCoordinator,
-		trieSyncStatisticsProvider:       args.TrieSyncStatisticsProvider,
-		nodeProcessingMode:               args.NodeProcessingMode,
-		nodeOperationMode:                common.NormalOperation,
-		stateStatsHandler:                args.StateStatsHandler,
-		startEpoch:                       args.GeneralConfig.EpochStartConfig.GenesisEpoch,
-		nodesCoordinatorRegistryFactory:  args.NodesCoordinatorRegistryFactory,
-		nodesCoordinatorWithRaterFactory: args.NodesCoordinatorWithRaterFactory,
-		runTypeComponents:                args.RunTypeComponents,
+		coreComponentsHolder:            args.CoreComponentsHolder,
+		cryptoComponentsHolder:          args.CryptoComponentsHolder,
+		mainMessenger:                   args.MainMessenger,
+		fullArchiveMessenger:            args.FullArchiveMessenger,
+		generalConfig:                   args.GeneralConfig,
+		prefsConfig:                     args.PrefsConfig,
+		flagsConfig:                     args.FlagsConfig,
+		economicsData:                   args.EconomicsData,
+		genesisNodesConfig:              args.GenesisNodesConfig,
+		genesisShardCoordinator:         args.GenesisShardCoordinator,
+		rater:                           args.Rater,
+		destinationShardAsObserver:      args.DestinationShardAsObserver,
+		nodeShuffler:                    args.NodeShuffler,
+		roundHandler:                    args.RoundHandler,
+		storageOpenerHandler:            args.StorageUnitOpener,
+		latestStorageDataProvider:       args.LatestStorageDataProvider,
+		shuffledOut:                     false,
+		statusHandler:                   args.StatusHandler,
+		nodeType:                        core.NodeTypeObserver,
+		argumentsParser:                 args.ArgumentsParser,
+		headerIntegrityVerifier:         args.HeaderIntegrityVerifier,
+		numConcurrentTrieSyncers:        args.GeneralConfig.TrieSync.NumConcurrentTrieSyncers,
+		maxHardCapForMissingNodes:       args.GeneralConfig.TrieSync.MaxHardCapForMissingNodes,
+		trieSyncerVersion:               args.GeneralConfig.TrieSync.TrieSyncerVersion,
+		checkNodesOnDisk:                args.GeneralConfig.TrieSync.CheckNodesOnDisk,
+		dataSyncerFactory:               args.DataSyncerCreator,
+		storerScheduledSCRs:             args.ScheduledSCRsStorer,
+		shardCoordinator:                args.GenesisShardCoordinator,
+		trieSyncStatisticsProvider:      args.TrieSyncStatisticsProvider,
+		nodeProcessingMode:              args.NodeProcessingMode,
+		nodeOperationMode:               common.NormalOperation,
+		stateStatsHandler:               args.StateStatsHandler,
+		startEpoch:                      args.GeneralConfig.EpochStartConfig.GenesisEpoch,
+		nodesCoordinatorRegistryFactory: args.NodesCoordinatorRegistryFactory,
+		runTypeComponents:               args.RunTypeComponents,
 	}
 
 	if epochStartProvider.prefsConfig.FullArchive {
@@ -784,7 +781,7 @@ func (e *epochStartBootstrap) processNodesConfig(pubKey []byte) ([]*block.MiniBl
 		IsFullArchive:                    e.prefsConfig.FullArchive,
 		EnableEpochsHandler:              e.coreComponentsHolder.EnableEpochsHandler(),
 		NodesCoordinatorRegistryFactory:  e.nodesCoordinatorRegistryFactory,
-		NodesCoordinatorWithRaterFactory: e.nodesCoordinatorWithRaterFactory,
+		NodesCoordinatorWithRaterFactory: e.runTypeComponents.NodesCoordinatorWithRaterCreator(),
 	}
 
 	e.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)

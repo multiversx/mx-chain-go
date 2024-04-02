@@ -8,7 +8,6 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/types"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
 	"github.com/multiversx/mx-chain-go/sharding"
-	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
@@ -216,10 +215,9 @@ func getDefaultArgs() ArgsEpochStartBootstrap {
 		FlagsConfig: config.ContextFlagsConfig{
 			ForceStartFromNetwork: false,
 		},
-		TrieSyncStatisticsProvider:       &testscommon.SizeSyncStatisticsHandlerStub{},
-		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
-		RunTypeComponents:                mock.NewRunTypeComponentsStub(),
-		StateStatsHandler:                disabled.NewStateStatistics(),
-		NodesCoordinatorRegistryFactory:  &shardingMocks.NodesCoordinatorRegistryFactoryMock{},
+		TrieSyncStatisticsProvider:      &testscommon.SizeSyncStatisticsHandlerStub{},
+		RunTypeComponents:               mock.NewRunTypeComponentsStub(),
+		StateStatsHandler:               disabled.NewStateStatistics(),
+		NodesCoordinatorRegistryFactory: &shardingMocks.NodesCoordinatorRegistryFactoryMock{},
 	}
 }

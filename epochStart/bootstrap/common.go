@@ -125,9 +125,6 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	if check.IfNil(args.NodesCoordinatorRegistryFactory) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, nodesCoordinator.ErrNilNodesCoordinatorRegistryFactory)
 	}
-	if check.IfNil(args.NodesCoordinatorWithRaterFactory) {
-		return fmt.Errorf("%s: %w", baseErrorMessage, errors.ErrNilNodesCoordinatorFactory)
-	}
 	if check.IfNil(args.RunTypeComponents) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, errors.ErrNilRunTypeComponents)
 	}
@@ -136,6 +133,9 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	}
 	if check.IfNil(args.RunTypeComponents.AdditionalStorageServiceCreator()) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, errors.ErrNilAdditionalStorageServiceCreator)
+	}
+	if check.IfNil(args.RunTypeComponents.NodesCoordinatorWithRaterCreator()) {
+		return fmt.Errorf("%s: %w", baseErrorMessage, errors.ErrNilNodesCoordinatorFactory)
 	}
 
 	return nil
