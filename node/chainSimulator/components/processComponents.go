@@ -20,7 +20,6 @@ import (
 	processComp "github.com/multiversx/mx-chain-go/factory/processing"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
-	process2 "github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors/disabled"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -186,38 +185,37 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 	}
 
 	processArgs := processComp.ProcessComponentsFactoryArgs{
-		Config:                     args.Config,
-		EpochConfig:                args.EpochConfig,
-		RoundConfig:                args.RoundConfig,
-		PrefConfigs:                args.PrefsConfig,
-		ImportDBConfig:             args.ImportDBConfig,
-		EconomicsConfig:            args.EconomicsConfig,
-		AccountsParser:             accountsParser,
-		SmartContractParser:        smartContractParser,
-		GasSchedule:                gasScheduleNotifier,
-		NodesCoordinator:           args.NodesCoordinator,
-		RequestedItemsHandler:      requestedItemsHandler,
-		WhiteListHandler:           whiteListRequest,
-		WhiteListerVerifiedTxs:     whiteListerVerifiedTxs,
-		MaxRating:                  50,
-		SystemSCConfig:             &args.SystemSCConfig,
-		ImportStartHandler:         importStartHandler,
-		HistoryRepo:                historyRepository,
-		FlagsConfig:                args.FlagsConfig,
-		Data:                       args.DataComponents,
-		CoreData:                   args.CoreComponents,
-		Crypto:                     args.CryptoComponents,
-		State:                      args.StateComponents,
-		Network:                    args.NetworkComponents,
-		BootstrapComponents:        args.BootstrapComponents,
-		StatusComponents:           args.StatusComponents,
-		StatusCoreComponents:       args.StatusCoreComponents,
-		TxExecutionOrderHandler:    txExecutionOrderHandler,
-		GenesisNonce:               args.GenesisNonce,
-		GenesisRound:               args.GenesisRound,
-		RunTypeComponents:          components.GetRunTypeComponents(),
-		GenesisBlockCreatorFactory: process2.NewGenesisBlockCreatorFactory(),
-		GenesisMetaBlockChecker:    processComp.NewGenesisMetaBlockChecker(),
+		Config:                  args.Config,
+		EpochConfig:             args.EpochConfig,
+		RoundConfig:             args.RoundConfig,
+		PrefConfigs:             args.PrefsConfig,
+		ImportDBConfig:          args.ImportDBConfig,
+		EconomicsConfig:         args.EconomicsConfig,
+		AccountsParser:          accountsParser,
+		SmartContractParser:     smartContractParser,
+		GasSchedule:             gasScheduleNotifier,
+		NodesCoordinator:        args.NodesCoordinator,
+		RequestedItemsHandler:   requestedItemsHandler,
+		WhiteListHandler:        whiteListRequest,
+		WhiteListerVerifiedTxs:  whiteListerVerifiedTxs,
+		MaxRating:               50,
+		SystemSCConfig:          &args.SystemSCConfig,
+		ImportStartHandler:      importStartHandler,
+		HistoryRepo:             historyRepository,
+		FlagsConfig:             args.FlagsConfig,
+		Data:                    args.DataComponents,
+		CoreData:                args.CoreComponents,
+		Crypto:                  args.CryptoComponents,
+		State:                   args.StateComponents,
+		Network:                 args.NetworkComponents,
+		BootstrapComponents:     args.BootstrapComponents,
+		StatusComponents:        args.StatusComponents,
+		StatusCoreComponents:    args.StatusCoreComponents,
+		TxExecutionOrderHandler: txExecutionOrderHandler,
+		GenesisNonce:            args.GenesisNonce,
+		GenesisRound:            args.GenesisRound,
+		RunTypeComponents:       components.GetRunTypeComponents(),
+		GenesisMetaBlockChecker: processComp.NewGenesisMetaBlockChecker(),
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {
