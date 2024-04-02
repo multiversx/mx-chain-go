@@ -976,6 +976,7 @@ func getRunTypeComponentsMock() *mainFactoryMocks.RunTypeComponentsStub {
 		RequestersContainerFactory:          rt.RequestersContainerFactoryCreator(),
 		InterceptorsContainerFactory:        rt.InterceptorsContainerFactoryCreator(),
 		ShardResolversContainerFactory:      rt.ShardResolversContainerFactoryCreator(),
+		TxPreProcessorFactory:               rt.TxPreProcessorCreator(),
 	}
 }
 
