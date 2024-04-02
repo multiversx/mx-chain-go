@@ -755,7 +755,6 @@ func CreateFullGenesisBlocks(
 		HeaderVersionConfigs:    testscommon.GetDefaultHeaderVersionConfig(),
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
-		TxPreprocessorCreator:   preprocess.NewTxPreProcessorCreator(),
 		RunTypeComponents:       runTypeComp,
 	}
 
@@ -872,7 +871,6 @@ func CreateGenesisMetaBlock(
 		HeaderVersionConfigs:    testscommon.GetDefaultHeaderVersionConfig(),
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
-		TxPreprocessorCreator:   preprocess.NewTxPreProcessorCreator(),
 		RunTypeComponents:       &mainFactoryMocks.RunTypeComponentsStub{},
 	}
 
