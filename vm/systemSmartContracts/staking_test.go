@@ -3755,7 +3755,7 @@ func TestStakingSc_UnStakeAllFromQueueWithDelegationContracts(t *testing.T) {
 	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("fourthKey"))
 
 	waitingReturn := doGetWaitingListRegisterNonceAndRewardAddress(t, stakingSmartContract, eei)
-	assert.Equal(t, len(waitingReturn), 9)
+	requireSliceContains(t, waitingReturn, [][]byte{[]byte("secondKey"), []byte("thirdKey "), []byte("fourthKey")})
 
 	dStatus := &DelegationContractStatus{
 		StakedKeys:    make([]*NodesData, 4),
@@ -3801,12 +3801,19 @@ func TestStakingSc_UnStakeAllFromQueueWithDelegationContracts(t *testing.T) {
 	assert.Equal(t, len(dStatus.StakedKeys), 1)
 
 	doGetStatus(t, stakingSmartContract, eei, []byte("secondKey"), "unStaked")
+	doGetStatus(t, stakingSmartContract, eei, []byte("thirdKey "), "unStaked")
+	doGetStatus(t, stakingSmartContract, eei, []byte("fourthKey"), "unStaked")
 
 	// stake them again - as they were deleted from waiting list
 	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("thirdKey "))
 	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, []byte("fourthKey"))
 
-	// surprisingly, the queue works again as we did not activate the staking v4
 	doGetStatus(t, stakingSmartContract, eei, []byte("thirdKey "), "staked")
 	doGetStatus(t, stakingSmartContract, eei, []byte("fourthKey"), "staked")
+}
+
+func requireSliceContains(t *testing.T, s1, s2 [][]byte) {
+	for _, elemInS2 := range s2 {
+		require.Contains(t, s1, elemInS2)
+	}
 }
