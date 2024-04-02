@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
 	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/sharding"
+	nodesCoord "github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	testFactory "github.com/multiversx/mx-chain-go/testscommon/factory"
 	sovereignMocks "github.com/multiversx/mx-chain-go/testscommon/sovereign"
@@ -49,6 +50,7 @@ type RunTypeComponentsStub struct {
 	DataCodec                           sovereign.DataDecoderHandler
 	TopicsChecker                       sovereign.TopicsCheckerHandler
 	ShardCoordinatorFactory             sharding.ShardCoordinatorFactory
+	NodesCoordinatorWithRaterFactory    nodesCoord.NodesCoordinatorWithRaterFactory
 }
 
 // NewRunTypeComponentsStub -
@@ -77,6 +79,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		DataCodec:                           &sovereignMocks.DataCodecMock{},
 		TopicsChecker:                       &sovereignMocks.TopicsCheckerMock{},
 		ShardCoordinatorFactory:             sharding.NewMultiShardCoordinatorFactory(),
+		NodesCoordinatorWithRaterFactory:    nodesCoord.NewIndexHashedNodesCoordinatorWithRaterFactory(),
 	}
 }
 
@@ -213,6 +216,11 @@ func (r *RunTypeComponentsStub) TopicsCheckerHandler() sovereign.TopicsCheckerHa
 // ShardCoordinatorCreator -
 func (r *RunTypeComponentsStub) ShardCoordinatorCreator() sharding.ShardCoordinatorFactory {
 	return r.ShardCoordinatorFactory
+}
+
+// NodesCoordinatorWithRaterCreator -
+func (r *RunTypeComponentsStub) NodesCoordinatorWithRaterCreator() nodesCoord.NodesCoordinatorWithRaterFactory {
+	return r.NodesCoordinatorWithRaterFactory
 }
 
 // IsInterfaceNil -
