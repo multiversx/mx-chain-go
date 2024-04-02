@@ -161,7 +161,7 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	if check.IfNil(mrc.shardCoordinatorCreator) {
 		return errors.ErrNilShardCoordinatorFactory
 	}
-	if check.IfNil(mrc.RequestersContainerFactoryCreator()) {
+	if check.IfNil(mrc.requestersContainerFactoryCreator) {
 		return errors.ErrNilRequesterContainerFactoryCreator
 	}
 	if check.IfNil(mrc.InterceptorsContainerFactoryCreator()) {
