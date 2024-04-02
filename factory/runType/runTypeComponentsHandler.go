@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
@@ -449,6 +450,18 @@ func (mrc *managedRunTypeComponents) RequestersContainerFactoryCreator() request
 	}
 
 	return mrc.runTypeComponents.requestersContainerFactoryCreator
+}
+
+// InterceptorsContainerFactoryCreator returns the shard interceptors container factory
+func (mrc *managedRunTypeComponents) InterceptorsContainerFactoryCreator() interceptorscontainer.InterceptorsContainerFactoryCreator {
+	mrc.mutStateComponents.RLock()
+	defer mrc.mutStateComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.interceptorsContainerFactoryCreator
 }
 
 // IsInterfaceNil returns true if the interface is nil

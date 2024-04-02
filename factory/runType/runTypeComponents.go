@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/processProxy"
@@ -62,6 +63,7 @@ type runTypeComponents struct {
 	topicsCheckerHandler                sovereign.TopicsCheckerHandler
 	shardCoordinatorCreator             sharding.ShardCoordinatorFactory
 	requestersContainerFactoryCreator   requesterscontainer.RequesterContainerFactoryCreator
+	interceptorsContainerFactoryCreator interceptorscontainer.InterceptorsContainerFactoryCreator
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
@@ -172,6 +174,8 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 
 	requestersContainerFactoryCreator := requesterscontainer.NewShardRequestersContainerFactoryCreator()
 
+	interceptorsContainerFactoryCreator := interceptorscontainer.NewShardInterceptorsContainerFactoryCreator()
+
 	return &runTypeComponents{
 		blockChainHookHandlerCreator:        blockChainHookHandlerFactory,
 		epochStartBootstrapperCreator:       epochStartBootstrapperFactory,
@@ -197,6 +201,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		topicsCheckerHandler:                topicsChecker,
 		shardCoordinatorCreator:             shardCoordinatorCreator,
 		requestersContainerFactoryCreator:   requestersContainerFactoryCreator,
+		interceptorsContainerFactoryCreator: interceptorsContainerFactoryCreator,
 	}, nil
 }
 
