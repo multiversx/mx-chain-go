@@ -21,17 +21,27 @@ const (
 	txVersion       = 1
 	mockTxSignature = "sig"
 
-	OkReturnCode                           = "ok"
-	UnStakedStatus                         = "unStaked"
-	MockBLSSignature                       = "010101"
-	GasLimitForStakeOperation              = 50_000_000
-	GasLimitForUnBond                      = 12_000_000
+	// OkReturnCode the const for the ok return code
+	OkReturnCode = "ok"
+	// MockBLSSignature the const for a mocked bls signature
+	MockBLSSignature = "010101"
+	// GasLimitForStakeOperation the const for the gas limit value for the stake operation
+	GasLimitForStakeOperation = 50_000_000
+	// GasLimitForUnBond the const for the gas limit value for the unBond operation
+	GasLimitForUnBond = 12_000_000
+	// MaxNumOfBlockToGenerateWhenExecutingTx the const for the maximum number of block to generate when execute a transaction
 	MaxNumOfBlockToGenerateWhenExecutingTx = 7
 
-	QueuedStatus    = "queued"
-	StakedStatus    = "staked"
+	// QueuedStatus the const for the queued status of a validators
+	QueuedStatus = "queued"
+	// StakedStatus the const for the staked status of a validators
+	StakedStatus = "staked"
+	// NotStakedStatus the const for the notStaked status of a validators
 	NotStakedStatus = "notStaked"
-	AuctionStatus   = "auction"
+	// AuctionStatus the const for the action status of a validators
+	AuctionStatus = "auction"
+	// UnStakedStatus the const for the unStaked status of a validators
+	UnStakedStatus = "unStaked"
 )
 
 var (
