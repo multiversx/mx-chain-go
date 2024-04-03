@@ -333,7 +333,7 @@ func (als *auctionListSelector) calcSoftAuctionNodesConfig(
 		maxNumberOfIterationsReached = iterationNumber >= als.softAuctionConfig.maxNumberOfIterations
 	}
 
-	log.Debug("auctionListSelector: found min required",
+	log.Info("auctionListSelector: found min required",
 		"topUp", getPrettyValue(topUp, als.softAuctionConfig.denominator),
 		"after num of iterations", iterationNumber,
 	)
