@@ -137,6 +137,9 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	if check.IfNil(args.RunTypeComponents.NodesCoordinatorWithRaterCreator()) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, errors.ErrNilNodesCoordinatorFactory)
 	}
+	if check.IfNil(args.RunTypeComponents.RequestHandlerCreator()) {
+		return fmt.Errorf("%s: %w", baseErrorMessage, errors.ErrNilRequestHandlerCreator)
+	}
 
 	return nil
 }

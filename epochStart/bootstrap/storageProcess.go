@@ -38,7 +38,6 @@ type ArgsStorageEpochStartBootstrap struct {
 	ChanGracefullyClose           chan endProcess.ArgEndProcess
 	TimeToWaitForRequestedData    time.Duration
 	EpochStartBootstrapperCreator EpochStartBootstrapperCreator
-	ResolverRequestFactory        requestHandlers.RequestHandlerCreator
 }
 
 type storageEpochStartBootstrap struct {
@@ -49,7 +48,6 @@ type storageEpochStartBootstrap struct {
 	chanGracefullyClose        chan endProcess.ArgEndProcess
 	chainID                    string
 	timeToWaitForRequestedData time.Duration
-	resolverRequestFactory     requestHandlers.RequestHandlerCreator
 }
 
 // NewStorageEpochStartBootstrap will return a new instance of storageEpochStartBootstrap that can bootstrap
@@ -58,9 +56,6 @@ func NewStorageEpochStartBootstrap(args ArgsStorageEpochStartBootstrap) (*storag
 	err := checkArguments(args.ArgsEpochStartBootstrap)
 	if err != nil {
 		return nil, err
-	}
-	if check.IfNil(args.ResolverRequestFactory) {
-		return nil, errors.ErrNilResolverRequestFactoryHandler
 	}
 	if check.IfNil(args.EpochStartBootstrapperCreator) {
 		return nil, errors.ErrNilEpochStartBootstrapperCreator
@@ -86,7 +81,6 @@ func NewStorageEpochStartBootstrap(args ArgsStorageEpochStartBootstrap) (*storag
 		chanGracefullyClose:        args.ChanGracefullyClose,
 		chainID:                    args.CoreComponentsHolder.ChainID(),
 		timeToWaitForRequestedData: args.TimeToWaitForRequestedData,
-		resolverRequestFactory:     args.ResolverRequestFactory,
 	}
 
 	return sesb, nil
@@ -243,7 +237,7 @@ func (sesb *storageEpochStartBootstrap) createStorageRequestHandler() (process.R
 		RequestInterval:       timeBetweenRequests,
 	}
 
-	return sesb.resolverRequestFactory.CreateRequestHandler(args)
+	return sesb.runTypeComponents.RequestHandlerCreator().CreateRequestHandler(args)
 }
 
 func (sesb *storageEpochStartBootstrap) createStorageRequesters() error {

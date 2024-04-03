@@ -255,7 +255,6 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 			ChanGracefullyClose:           bcf.coreComponents.ChanStopNodeProcess(),
 			TimeToWaitForRequestedData:    bootstrap.DefaultTimeToWaitForRequestedData,
 			EpochStartBootstrapperCreator: bcf.runTypeComponents.EpochStartBootstrapperCreator(),
-			ResolverRequestFactory:        bcf.runTypeComponents.RequestHandlerCreator(),
 		}
 
 		epochStartBootstrapper, err = bootstrap.NewStorageEpochStartBootstrap(storageArg)
