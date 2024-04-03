@@ -12,6 +12,7 @@ import (
 	metachainEpochStart "github.com/multiversx/mx-chain-go/epochStart/metachain"
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
 	mainFactory "github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/factory/addressDecoder"
 	factoryDisabled "github.com/multiversx/mx-chain-go/factory/disabled"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/genesis"
@@ -1121,7 +1122,7 @@ func (pcf *processComponentsFactory) createBuiltInFunctionContainer(
 	accounts state.AccountsAdapter,
 	mapDNSAddresses map[string]struct{},
 ) (vmcommon.BuiltInFunctionFactory, error) {
-	convertedAddresses, err := mainFactory.DecodeAddresses(
+	convertedAddresses, err := addressDecoder.DecodeAddresses(
 		pcf.coreData.AddressPubKeyConverter(),
 		pcf.config.BuiltInFunctions.AutomaticCrawlerAddresses,
 	)
@@ -1129,7 +1130,7 @@ func (pcf *processComponentsFactory) createBuiltInFunctionContainer(
 		return nil, err
 	}
 
-	convertedDNSV2Addresses, err := mainFactory.DecodeAddresses(
+	convertedDNSV2Addresses, err := addressDecoder.DecodeAddresses(
 		pcf.coreData.AddressPubKeyConverter(),
 		pcf.config.BuiltInFunctions.DNSV2Addresses,
 	)

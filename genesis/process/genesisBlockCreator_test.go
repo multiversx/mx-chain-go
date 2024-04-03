@@ -14,7 +14,6 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
-	factoryRunType "github.com/multiversx/mx-chain-go/factory/runType"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/mock"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
@@ -30,7 +29,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
-	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
@@ -43,8 +41,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/hashing"
-	"github.com/multiversx/mx-chain-core-go/marshal"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 	"github.com/stretchr/testify/assert"
@@ -61,7 +57,7 @@ func createMockArgument(
 	entireSupply *big.Int,
 ) ArgsGenesisBlockCreator {
 	trieStorageManagers := createTrieStorageManagers()
-	runTypeComp := createRunTypeComponents(t)
+	//runTypeComp := createRunTypeComponents(t)
 	arg := ArgsGenesisBlockCreator{
 		GenesisTime:   0,
 		StartEpochNum: 0,
@@ -189,7 +185,7 @@ func createMockArgument(
 				return &block.Header{}
 			},
 		},
-		RunTypeComponents: runTypeComp,
+		RunTypeComponents: NewRunTypeComponentsStub(),
 	}
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{
@@ -201,7 +197,7 @@ func createMockArgument(
 	arg.Accounts, err = createAccountAdapter(
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
-		runTypeComp.AccountsCreator(),
+		arg.RunTypeComponents.AccountsCreator(),
 		trieStorageManagers[dataRetriever.UserAccountsUnit.String()],
 		&testscommon.PubkeyConverterMock{},
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
@@ -272,28 +268,28 @@ func createTrieStorageManagers() map[string]common.StorageManager {
 	return trieStorageManagers
 }
 
-func createRunTypeComponents(t *testing.T) runTypeComponentsHandler {
-	runTypeFactory, err := factoryRunType.NewRunTypeComponentsFactory(&factory.CoreComponentsHolderMock{
-		HasherCalled: func() hashing.Hasher {
-			return &hashingMocks.HasherMock{}
-		},
-		InternalMarshalizerCalled: func() marshal.Marshalizer {
-			return &mock.MarshalizerMock{}
-		},
-		EnableEpochsHandlerCalled: func() common.EnableEpochsHandler {
-			return &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
-		},
-	})
-	require.Nil(t, err)
-
-	runTypeComp, err := factoryRunType.NewManagedRunTypeComponents(runTypeFactory)
-	require.Nil(t, err)
-
-	err = runTypeComp.Create()
-	require.Nil(t, err)
-
-	return runTypeComp
-}
+//func createRunTypeComponents(t *testing.T) runTypeComponentsHandler {
+//	runTypeFactory, err := factoryRunType.NewRunTypeComponentsFactory(&factory.CoreComponentsHolderMock{
+//		HasherCalled: func() hashing.Hasher {
+//			return &hashingMocks.HasherMock{}
+//		},
+//		InternalMarshalizerCalled: func() marshal.Marshalizer {
+//			return &mock.MarshalizerMock{}
+//		},
+//		EnableEpochsHandlerCalled: func() common.EnableEpochsHandler {
+//			return &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
+//		},
+//	})
+//	require.Nil(t, err)
+//
+//	runTypeComp, err := factoryRunType.NewManagedRunTypeComponents(runTypeFactory)
+//	require.Nil(t, err)
+//
+//	err = runTypeComp.Create()
+//	require.Nil(t, err)
+//
+//	return runTypeComp
+//}
 
 func TestNewGenesisBlockCreator(t *testing.T) {
 	t.Parallel()
@@ -466,7 +462,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		t.Parallel()
 
 		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
-		rtComponents := mock.NewRunTypeComponentsStub()
+		rtComponents := NewRunTypeComponentsStub()
 		rtComponents.BlockChainHookHandlerFactory = nil
 		arg.RunTypeComponents = rtComponents
 
@@ -478,7 +474,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		t.Parallel()
 
 		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
-		rtComponents := mock.NewRunTypeComponentsStub()
+		rtComponents := NewRunTypeComponentsStub()
 		rtComponents.SCResultsPreProcessorFactory = nil
 		arg.RunTypeComponents = rtComponents
 
@@ -490,7 +486,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		t.Parallel()
 
 		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
-		rtComponents := mock.NewRunTypeComponentsStub()
+		rtComponents := NewRunTypeComponentsStub()
 		rtComponents.TransactionCoordinatorFactory = nil
 		arg.RunTypeComponents = rtComponents
 
@@ -502,7 +498,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		t.Parallel()
 
 		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
-		rtComponents := mock.NewRunTypeComponentsStub()
+		rtComponents := NewRunTypeComponentsStub()
 		rtComponents.AccountCreator = nil
 		arg.RunTypeComponents = rtComponents
 
@@ -514,7 +510,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		t.Parallel()
 
 		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
-		rtComponents := mock.NewRunTypeComponentsStub()
+		rtComponents := NewRunTypeComponentsStub()
 		rtComponents.ShardCoordinatorFactory = nil
 		arg.RunTypeComponents = rtComponents
 
@@ -526,7 +522,7 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		t.Parallel()
 
 		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
-		rtComponents := mock.NewRunTypeComponentsStub()
+		rtComponents := NewRunTypeComponentsStub()
 		rtComponents.TxPreProcessorFactory = nil
 		arg.RunTypeComponents = rtComponents
 
