@@ -106,8 +106,8 @@ func (vi *shardValidatorsInfoMap) Replace(old ValidatorInfoHandler, new Validato
 		"with new validator", hex.EncodeToString(new.GetPublicKey()), "shard", new.GetShardId(), "list", new.GetList(),
 	)
 
-	found := vi.ReplaceValidatorByKey(old.GetPublicKey(), new, shardID)
-	if found {
+	replaced := vi.ReplaceValidatorByKey(old.GetPublicKey(), new, shardID)
+	if replaced {
 		return nil
 	}
 
