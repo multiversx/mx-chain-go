@@ -772,7 +772,7 @@ func (s *legacySystemSCProcessor) replaceValidators(
 		return validatorsInfoMap.Replace(old, new)
 	}
 
-	validatorsInfoMap.ReplaceValidatorByKey(old.GetPublicKey(), new, old.GetShardId())
+	_ = validatorsInfoMap.ReplaceValidatorByKey(old.GetPublicKey(), new, old.GetShardId())
 	return nil
 }
 
