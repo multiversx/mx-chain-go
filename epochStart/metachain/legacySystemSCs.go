@@ -14,6 +14,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	vInfo "github.com/multiversx/mx-chain-go/common/validatorInfo"
@@ -24,7 +26,6 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 type legacySystemSCProcessor struct {
@@ -288,9 +289,10 @@ func (s *legacySystemSCProcessor) unStakeNodesWithNotEnoughFunds(
 			continue
 		}
 
+		stakingV4Enabled := s.enableEpochsHandler.IsFlagEnabled(common.StakingV4StartedFlag)
 		validatorLeaving := validatorInfo.ShallowClone()
-		validatorLeaving.SetListAndIndex(string(common.LeavingList), validatorLeaving.GetIndex(), s.enableEpochsHandler.IsFlagEnabled(common.StakingV4StartedFlag))
-		err = validatorsInfoMap.Replace(validatorInfo, validatorLeaving)
+		validatorLeaving.SetListAndIndex(string(common.LeavingList), validatorLeaving.GetIndex(), stakingV4Enabled)
+		err = s.replaceValidators(validatorInfo, validatorLeaving, validatorsInfoMap)
 		if err != nil {
 			return 0, err
 		}
@@ -302,7 +304,9 @@ func (s *legacySystemSCProcessor) unStakeNodesWithNotEnoughFunds(
 	}
 
 	nodesToStakeFromQueue := uint32(len(nodesToUnStake))
-	nodesToStakeFromQueue -= nodesUnStakedFromAdditionalQueue
+	if s.enableEpochsHandler.IsFlagEnabled(common.CorrectLastUnJailedFlag) {
+		nodesToStakeFromQueue -= nodesUnStakedFromAdditionalQueue
+	}
 
 	log.Debug("stake nodes from waiting list", "num", nodesToStakeFromQueue)
 	return nodesToStakeFromQueue, nil
@@ -720,10 +724,8 @@ func (s *legacySystemSCProcessor) stakingToValidatorStatistics(
 	}
 
 	if !isNew {
-		err = validatorsInfoMap.Delete(jailedValidator)
-		if err != nil {
-			return nil, err
-		}
+		// the new validator is deleted from the staking queue, not the jailed validator
+		validatorsInfoMap.DeleteKey(blsPubKey, account.GetShardId())
 	}
 
 	account.SetListAndIndex(jailedValidator.GetShardId(), string(common.NewList), uint32(stakingData.StakedNonce), s.enableEpochsHandler.IsFlagEnabled(common.StakingV4StartedFlag))
@@ -752,12 +754,26 @@ func (s *legacySystemSCProcessor) stakingToValidatorStatistics(
 	}
 
 	newValidatorInfo := s.validatorInfoCreator.PeerAccountToValidatorInfo(account)
-	err = validatorsInfoMap.Replace(jailedValidator, newValidatorInfo)
+	err = s.replaceValidators(jailedValidator, newValidatorInfo, validatorsInfoMap)
 	if err != nil {
 		return nil, err
 	}
 
 	return blsPubKey, nil
+}
+
+func (s *legacySystemSCProcessor) replaceValidators(
+	old state.ValidatorInfoHandler,
+	new state.ValidatorInfoHandler,
+	validatorsInfoMap state.ShardValidatorsInfoMapHandler,
+) error {
+	stakingV4Enabled := s.enableEpochsHandler.IsFlagEnabled(common.StakingV4StartedFlag)
+	if stakingV4Enabled {
+		return validatorsInfoMap.Replace(old, new)
+	}
+
+	validatorsInfoMap.ReplaceValidatorByKey(old.GetPublicKey(), new, old.GetShardId())
+	return nil
 }
 
 func isValidator(validator state.ValidatorInfoHandler) bool {

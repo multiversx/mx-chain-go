@@ -6,8 +6,9 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/api"
-	"github.com/multiversx/mx-chain-go/common"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 // AccountFactory creates an account of different types
@@ -292,7 +293,9 @@ type ShardValidatorsInfoMapHandler interface {
 
 	Add(validator ValidatorInfoHandler) error
 	Delete(validator ValidatorInfoHandler) error
+	DeleteKey(blsKey []byte, shardID uint32)
 	Replace(old ValidatorInfoHandler, new ValidatorInfoHandler) error
+	ReplaceValidatorByKey(oldBlsKey []byte, new ValidatorInfoHandler, shardID uint32)
 	SetValidatorsInShard(shardID uint32, validators []ValidatorInfoHandler) error
 }
 
