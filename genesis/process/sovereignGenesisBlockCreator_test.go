@@ -21,6 +21,7 @@ import (
 	stateAcc "github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/vm"
@@ -50,9 +51,7 @@ func createSovereignGenesisBlockCreator(t *testing.T) (ArgsGenesisBlockCreator, 
 	arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
 	arg.ShardCoordinator = sharding.NewSovereignShardCoordinator(core.SovereignChainShardId)
 	arg.DNSV2Addresses = []string{"00000000000000000500761b8c4a25d3979359223208b412285f635e71300102"}
-
-	//sovRunTypeComps := createSovRunTypeComps(t)
-	arg.RunTypeComponents = NewSovereignRunTypeComponentsStub()
+	arg.RunTypeComponents = genesisMocks.NewSovereignRunTypeComponentsStub()
 
 	trieStorageManagers := createTrieStorageManagers()
 	arg.Accounts, _ = createAccountAdapter(
@@ -68,43 +67,6 @@ func createSovereignGenesisBlockCreator(t *testing.T) (ArgsGenesisBlockCreator, 
 	sgbc, _ := NewSovereignGenesisBlockCreator(gbc)
 	return arg, sgbc
 }
-
-//func createSovRunTypeComps(t *testing.T) runTypeComponentsHandler {
-//	runTypeFactory, err := factoryRunType.NewRunTypeComponentsFactory(&factory.CoreComponentsHolderMock{
-//		HasherCalled: func() hashing.Hasher {
-//			return &hashingMocks.HasherMock{}
-//		},
-//		InternalMarshalizerCalled: func() marshal.Marshalizer {
-//			return &mock.MarshalizerMock{}
-//		},
-//		EnableEpochsHandlerCalled: func() common.EnableEpochsHandler {
-//			return &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
-//		},
-//	})
-//	require.Nil(t, err)
-//
-//	sovHeaderSigVerifier, _ := headerCheck.NewSovereignHeaderSigVerifier(&mclSig.BlsSingleSigner{})
-//	runTypeArgs := factoryRunType.ArgsSovereignRunTypeComponents{
-//		Config: config.SovereignConfig{
-//			GenesisConfig: config.GenesisConfig{
-//				NativeESDT: sovereignNativeToken,
-//			},
-//		},
-//		DataCodec:     &sovereign.DataCodecMock{},
-//		TopicsChecker: &sovereign.TopicsCheckerMock{},
-//		ExtraVerifier: sovHeaderSigVerifier,
-//	}
-//
-//	sovRunTypeFactory, err := factoryRunType.NewSovereignRunTypeComponentsFactory(runTypeFactory, runTypeArgs)
-//	require.Nil(t, err)
-//	sovRunTypeComp, err := factoryRunType.NewManagedRunTypeComponents(sovRunTypeFactory)
-//	require.Nil(t, err)
-//
-//	err = sovRunTypeComp.Create()
-//	require.Nil(t, err)
-//
-//	return sovRunTypeComp
-//}
 
 func requireTokenExists(
 	t *testing.T,

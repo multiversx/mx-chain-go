@@ -1,4 +1,4 @@
-package process
+package genesisMocks
 
 import (
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
