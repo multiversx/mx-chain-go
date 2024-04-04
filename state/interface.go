@@ -295,7 +295,7 @@ type ShardValidatorsInfoMapHandler interface {
 	Delete(validator ValidatorInfoHandler) error
 	DeleteKey(blsKey []byte, shardID uint32)
 	Replace(old ValidatorInfoHandler, new ValidatorInfoHandler) error
-	ReplaceValidatorByKey(oldBlsKey []byte, new ValidatorInfoHandler, shardID uint32)
+	ReplaceValidatorByKey(oldBlsKey []byte, new ValidatorInfoHandler, shardID uint32) bool
 	SetValidatorsInShard(shardID uint32, validators []ValidatorInfoHandler) error
 }
 

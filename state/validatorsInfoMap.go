@@ -106,7 +106,10 @@ func (vi *shardValidatorsInfoMap) Replace(old ValidatorInfoHandler, new Validato
 		"with new validator", hex.EncodeToString(new.GetPublicKey()), "shard", new.GetShardId(), "list", new.GetList(),
 	)
 
-	vi.ReplaceValidatorByKey(old.GetPublicKey(), new, shardID)
+	found := vi.ReplaceValidatorByKey(old.GetPublicKey(), new, shardID)
+	if found {
+		return nil
+	}
 
 	return fmt.Errorf("old %w: %s when trying to replace it with %s",
 		ErrValidatorNotFound,
@@ -116,16 +119,17 @@ func (vi *shardValidatorsInfoMap) Replace(old ValidatorInfoHandler, new Validato
 }
 
 // ReplaceValidatorByKey will replace an existing ValidatorInfoHandler with a new one, based on the provided blsKey for the old record.
-func (vi *shardValidatorsInfoMap) ReplaceValidatorByKey(oldBlsKey []byte, new ValidatorInfoHandler, shardID uint32) {
+func (vi *shardValidatorsInfoMap) ReplaceValidatorByKey(oldBlsKey []byte, new ValidatorInfoHandler, shardID uint32) bool {
 	vi.mutex.Lock()
 	defer vi.mutex.Unlock()
 
 	for idx, validator := range vi.valInfoMap[shardID] {
 		if bytes.Equal(validator.GetPublicKey(), oldBlsKey) {
 			vi.valInfoMap[shardID][idx] = new
-			break
+			return true
 		}
 	}
+	return false
 }
 
 // SetValidatorsInShard resets all validators saved in a specific shard with the provided []ValidatorInfoHandler.
