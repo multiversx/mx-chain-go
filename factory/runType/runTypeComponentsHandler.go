@@ -182,6 +182,9 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	if check.IfNil(mrc.genesisBlockCreatorFactory) {
 		return errors.ErrNilGenesisBlockFactory
 	}
+	if check.IfNil(mrc.genesisMetaBlockCheckerCreator) {
+		return errors.ErrNilGenesisMetaBlockChecker
+	}
 	return nil
 }
 
@@ -531,6 +534,18 @@ func (mrc *managedRunTypeComponents) GenesisBlockCreator() processComp.GenesisBl
 	}
 
 	return mrc.runTypeComponents.genesisBlockCreatorFactory
+}
+
+// GenesisMetaBlockCheckerCreator returns the genesis meta block checker factory
+func (mrc *managedRunTypeComponents) GenesisMetaBlockCheckerCreator() processComp.GenesisMetaBlockChecker {
+	mrc.mutStateComponents.RLock()
+	defer mrc.mutStateComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.genesisMetaBlockCheckerCreator
 }
 
 // IsInterfaceNil returns true if the interface is nil

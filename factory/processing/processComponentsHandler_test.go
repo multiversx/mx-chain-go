@@ -45,8 +45,7 @@ func TestManagedProcessComponents_CreateShouldWork(t *testing.T) {
 
 	testManagedProcessComponentsCreateShouldWork(t, common.MetachainShardId, componentsMock.GetRunTypeComponents())
 	testManagedProcessComponentsCreateShouldWork(t, 0, componentsMock.GetRunTypeComponents())
-	//TODO uncomment after genesis meta block refactor in runType components
-	//testManagedProcessComponentsCreateShouldWork(t, core.SovereignChainShardId, componentsMock.GetSovereignRunTypeComponents())
+	testManagedProcessComponentsCreateShouldWork(t, core.SovereignChainShardId, componentsMock.GetSovereignRunTypeComponents())
 }
 
 func testManagedProcessComponentsCreateShouldWork(t *testing.T, shardID uint32, rtch factory.RunTypeComponentsHolder) {
@@ -212,7 +211,6 @@ func TestManagedProcessComponents_Create(t *testing.T) {
 		t.Parallel()
 
 		args := createMockProcessComponentsFactoryArgs()
-		args.GenesisMetaBlockChecker = processComp.NewSovereignGenesisMetaBlockChecker()
 		args.RunTypeComponents = componentsMock.GetSovereignRunTypeComponents()
 		processComponentsFactory, err := processComp.NewProcessComponentsFactory(args)
 		managedProcessComponents, err := processComp.NewManagedProcessComponents(processComponentsFactory)

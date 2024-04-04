@@ -168,7 +168,6 @@ type ProcessComponentsFactoryArgs struct {
 	GenesisNonce uint64
 	GenesisRound uint64
 
-	GenesisMetaBlockChecker  GenesisMetaBlockChecker
 	IncomingHeaderSubscriber process.IncomingHeaderSubscriber
 }
 
@@ -212,7 +211,6 @@ type processComponentsFactory struct {
 	genesisNonce uint64
 	genesisRound uint64
 
-	genesisMetaBlockChecker  GenesisMetaBlockChecker
 	incomingHeaderSubscriber process.IncomingHeaderSubscriber
 }
 
@@ -255,7 +253,6 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		genesisRound:             args.GenesisRound,
 		roundConfig:              args.RoundConfig,
 		runTypeComponents:        args.RunTypeComponents,
-		genesisMetaBlockChecker:  args.GenesisMetaBlockChecker,
 		incomingHeaderSubscriber: args.IncomingHeaderSubscriber,
 	}, nil
 }
@@ -389,7 +386,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	err = pcf.genesisMetaBlockChecker.SetValidatorRootHashOnGenesisMetaBlock(genesisBlocks[core.MetachainShardId], validatorStatsRootHash)
+	err = pcf.runTypeComponents.GenesisMetaBlockCheckerCreator().SetValidatorRootHashOnGenesisMetaBlock(genesisBlocks[core.MetachainShardId], validatorStatsRootHash)
 	if err != nil {
 		return nil, err
 	}
@@ -2038,9 +2035,6 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	if check.IfNil(args.TxExecutionOrderHandler) {
 		return fmt.Errorf("%s: %w", baseErrMessage, process.ErrNilTxExecutionOrderHandler)
 	}
-	if check.IfNil(args.GenesisMetaBlockChecker) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilGenesisMetaBlockChecker)
-	}
 	if check.IfNil(args.RunTypeComponents) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilRunTypeComponents)
 	}
@@ -2130,6 +2124,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.RunTypeComponents.GenesisBlockCreator()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilGenesisBlockFactory)
+	}
+	if check.IfNil(args.RunTypeComponents.GenesisMetaBlockCheckerCreator()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilGenesisMetaBlockChecker)
 	}
 
 	return nil

@@ -60,6 +60,7 @@ type RunTypeComponentsStub struct {
 	TxPreProcessorFactory               preprocess.TxPreProcessorCreator
 	ExtraHeaderSigVerifier              headerCheck.ExtraHeaderSigVerifierHolder
 	GenesisBlockFactory                 processGenesis.GenesisBlockCreatorFactory
+	GenesisMetaBlockChecker             processGenesis.GenesisMetaBlockChecker
 }
 
 // NewRunTypeComponentsStub -
@@ -94,6 +95,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		TxPreProcessorFactory:               preprocess.NewTxPreProcessorCreator(),
 		ExtraHeaderSigVerifier:              headerCheck.NewExtraHeaderSigVerifierHolder(),
 		GenesisBlockFactory:                 processGenesis.NewGenesisBlockCreatorFactory(),
+		GenesisMetaBlockChecker:             processGenesis.NewGenesisMetaBlockChecker(),
 	}
 }
 
@@ -260,6 +262,11 @@ func (r *RunTypeComponentsStub) ExtraHeaderSigVerifierHandler() headerCheck.Extr
 // GenesisBlockCreator -
 func (r *RunTypeComponentsStub) GenesisBlockCreator() processGenesis.GenesisBlockCreatorFactory {
 	return r.GenesisBlockFactory
+}
+
+// GenesisMetaBlockCheckerCreator -
+func (r *RunTypeComponentsStub) GenesisMetaBlockCheckerCreator() processGenesis.GenesisMetaBlockChecker {
+	return r.GenesisMetaBlockChecker
 }
 
 // IsInterfaceNil -

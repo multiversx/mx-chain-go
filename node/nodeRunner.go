@@ -1289,7 +1289,6 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		HistoryRepo:             historyRepository,
 		FlagsConfig:             *configs.FlagsConfig,
 		TxExecutionOrderHandler: txExecutionOrderHandler,
-		GenesisMetaBlockChecker: processComp.NewGenesisMetaBlockChecker(),
 		RunTypeComponents:       runTypeComponents,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)

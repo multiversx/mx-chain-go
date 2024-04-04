@@ -215,7 +215,6 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		GenesisNonce:            args.GenesisNonce,
 		GenesisRound:            args.GenesisRound,
 		RunTypeComponents:       components.GetRunTypeComponents(),
-		GenesisMetaBlockChecker: processComp.NewGenesisMetaBlockChecker(),
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {

@@ -195,6 +195,8 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 
 	genesisBlockCreator := processComp.NewSovereignGenesisBlockCreatorFactory()
 
+	genesisMetaBlockCheckerCreator := processComp.NewSovereignGenesisMetaBlockChecker()
+
 	return &runTypeComponents{
 		blockChainHookHandlerCreator:          blockChainHookHandlerFactory,
 		epochStartBootstrapperCreator:         epochStartBootstrapperFactory,
@@ -225,5 +227,6 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		txPreProcessorCreator:                 txPreProcessorCreator,
 		extraHeaderSigVerifierHandler:         rtc.extraHeaderSigVerifierHandler,
 		genesisBlockCreatorFactory:            genesisBlockCreator,
+		genesisMetaBlockCheckerCreator:        genesisMetaBlockCheckerCreator,
 	}, nil
 }

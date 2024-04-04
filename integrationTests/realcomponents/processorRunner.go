@@ -462,7 +462,6 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 		StatusComponents:        pr.StatusComponents,
 		StatusCoreComponents:    pr.StatusCoreComponents,
 		TxExecutionOrderHandler: txExecutionOrderHandler,
-		GenesisMetaBlockChecker: factoryProcessing.NewGenesisMetaBlockChecker(),
 		RunTypeComponents:       pr.RunTypeComponents,
 	}
 

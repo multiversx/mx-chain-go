@@ -83,7 +83,6 @@ var (
 )
 
 func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFactoryArgs {
-
 	args := processComp.ProcessComponentsFactoryArgs{
 		Config: testscommon.GetGeneralConfig(),
 		EpochConfig: config.EpochConfig{
@@ -267,7 +266,6 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 			StateStatsHandlerField: disabledStatistics.NewStateStatistics(),
 		},
 		TxExecutionOrderHandler:  &txExecOrderStub.TxExecutionOrderHandlerStub{},
-		GenesisMetaBlockChecker:  processComp.NewGenesisMetaBlockChecker(),
 		IncomingHeaderSubscriber: &sovereign.IncomingHeaderSubscriberStub{},
 		RunTypeComponents:        components.GetRunTypeComponents(),
 	}
@@ -601,15 +599,6 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		require.True(t, errors.Is(err, errorsMx.ErrNilStatusCoreComponents))
 		require.Nil(t, pcf)
 	})
-	t.Run("nil meta genesis block checker, should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockProcessComponentsFactoryArgs()
-		args.GenesisMetaBlockChecker = nil
-		pcf, err := processComp.NewProcessComponentsFactory(args)
-		require.True(t, errors.Is(err, errorsMx.ErrNilGenesisMetaBlockChecker))
-		require.Nil(t, pcf)
-	})
 	t.Run("nil RunTypeComponents should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -938,6 +927,17 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		require.True(t, errors.Is(err, errorsMx.ErrNilGenesisBlockFactory))
 		require.Nil(t, pcf)
 	})
+	t.Run("nil GenesisMetaBlockChecker should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockProcessComponentsFactoryArgs()
+		rtMock := getRunTypeComponentsMock()
+		rtMock.GenesisMetaBlockChecker = nil
+		args.RunTypeComponents = rtMock
+		pcf, err := processComp.NewProcessComponentsFactory(args)
+		require.True(t, errors.Is(err, errorsMx.ErrNilGenesisMetaBlockChecker))
+		require.Nil(t, pcf)
+	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -979,6 +979,7 @@ func getRunTypeComponentsMock() *mainFactoryMocks.RunTypeComponentsStub {
 		TxPreProcessorFactory:               rt.TxPreProcessorCreator(),
 		ExtraHeaderSigVerifier:              rt.ExtraHeaderSigVerifierHandler(),
 		GenesisBlockFactory:                 rt.GenesisBlockCreator(),
+		GenesisMetaBlockChecker:             rt.GenesisMetaBlockCheckerCreator(),
 	}
 }
 

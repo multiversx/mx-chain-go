@@ -611,6 +611,7 @@ type RunTypeComponentsHolder interface {
 	TxPreProcessorCreator() preprocess.TxPreProcessorCreator
 	ExtraHeaderSigVerifierHandler() headerCheck.ExtraHeaderSigVerifierHolder
 	GenesisBlockCreator() processComp.GenesisBlockCreatorFactory
+	GenesisMetaBlockCheckerCreator() processComp.GenesisMetaBlockChecker
 	Create() error
 	Close() error
 	CheckSubcomponents() error
