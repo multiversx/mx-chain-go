@@ -293,14 +293,14 @@
 
     # StakingV4Step1EnableEpoch represents the epoch when staking v4 is initialized. This is the epoch in which
     # all nodes from staking queue are moved in the auction list
-    StakingV4Step1EnableEpoch = 4
+    StakingV4Step1EnableEpoch = 15
 
     # StakingV4Step2EnableEpoch represents the epoch when staking v4 is enabled. Should have a greater value than StakingV4Step1EnableEpoch.
     # From this epoch, all shuffled out nodes are moved to auction nodes. No auction nodes selection is done yet.
-    StakingV4Step2EnableEpoch = 5
+    StakingV4Step2EnableEpoch = 16
 
     # StakingV4Step3EnableEpoch represents the epoch in which selected nodes from auction will be distributed to waiting list
-    StakingV4Step3EnableEpoch = 6
+    StakingV4Step3EnableEpoch = 17
 
     # AlwaysMergeContextsInEEIEnableEpoch represents the epoch in which the EEI will always merge the contexts
     AlwaysMergeContextsInEEIEnableEpoch = 4
@@ -319,7 +319,7 @@
         # - Enable epoch = StakingV4Step3EnableEpoch
         # - NodesToShufflePerShard = same as previous entry in MaxNodesChangeEnableEpoch
         # - MaxNumNodes = (MaxNumNodesFromPreviousEpochEnable - (numOfShards+1)*NodesToShufflePerShard)
-        { EpochEnable = 6, MaxNumNodes = 56, NodesToShufflePerShard = 2 },
+        { EpochEnable = 17, MaxNumNodes = 56, NodesToShufflePerShard = 2 },
     ]
 
 [GasSchedule]
