@@ -106,21 +106,26 @@ func (vi *shardValidatorsInfoMap) Replace(old ValidatorInfoHandler, new Validato
 		"with new validator", hex.EncodeToString(new.GetPublicKey()), "shard", new.GetShardId(), "list", new.GetList(),
 	)
 
-	vi.mutex.Lock()
-	defer vi.mutex.Unlock()
-
-	for idx, validator := range vi.valInfoMap[shardID] {
-		if bytes.Equal(validator.GetPublicKey(), old.GetPublicKey()) {
-			vi.valInfoMap[shardID][idx] = new
-			return nil
-		}
-	}
+	vi.ReplaceValidatorByKey(old.GetPublicKey(), new, shardID)
 
 	return fmt.Errorf("old %w: %s when trying to replace it with %s",
 		ErrValidatorNotFound,
 		hex.EncodeToString(old.GetPublicKey()),
 		hex.EncodeToString(new.GetPublicKey()),
 	)
+}
+
+// ReplaceValidatorByKey will replace an existing ValidatorInfoHandler with a new one, based on the provided blsKey for the old record.
+func (vi *shardValidatorsInfoMap) ReplaceValidatorByKey(oldBlsKey []byte, new ValidatorInfoHandler, shardID uint32) {
+	vi.mutex.Lock()
+	defer vi.mutex.Unlock()
+
+	for idx, validator := range vi.valInfoMap[shardID] {
+		if bytes.Equal(validator.GetPublicKey(), oldBlsKey) {
+			vi.valInfoMap[shardID][idx] = new
+			break
+		}
+	}
 }
 
 // SetValidatorsInShard resets all validators saved in a specific shard with the provided []ValidatorInfoHandler.
@@ -160,11 +165,17 @@ func (vi *shardValidatorsInfoMap) Delete(validator ValidatorInfoHandler) error {
 	}
 
 	shardID := validator.GetShardId()
+	vi.DeleteKey(validator.GetPublicKey(), shardID)
+	return nil
+}
+
+// DeleteKey will delete the provided blsKey from the internally stored map, if found.
+func (vi *shardValidatorsInfoMap) DeleteKey(blsKey []byte, shardID uint32) {
 	vi.mutex.Lock()
 	defer vi.mutex.Unlock()
 
 	for index, validatorInfo := range vi.valInfoMap[shardID] {
-		if bytes.Equal(validatorInfo.GetPublicKey(), validator.GetPublicKey()) {
+		if bytes.Equal(validatorInfo.GetPublicKey(), blsKey) {
 			length := len(vi.valInfoMap[shardID])
 			vi.valInfoMap[shardID][index] = vi.valInfoMap[shardID][length-1]
 			vi.valInfoMap[shardID][length-1] = nil
@@ -172,6 +183,4 @@ func (vi *shardValidatorsInfoMap) Delete(validator ValidatorInfoHandler) error {
 			break
 		}
 	}
-
-	return nil
 }
