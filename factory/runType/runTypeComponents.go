@@ -6,16 +6,21 @@ import (
 	"github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/consensus"
 	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
+	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
+	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/errors"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
+	processGenesis "github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
 	processBlock "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
+	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/processProxy"
@@ -38,30 +43,37 @@ type runTypeComponentsFactory struct {
 
 // runTypeComponents struct holds the components needed for a run type
 type runTypeComponents struct {
-	blockChainHookHandlerCreator            hooks.BlockChainHookHandlerCreator
-	epochStartBootstrapperCreator           bootstrap.EpochStartBootstrapperCreator
-	bootstrapperFromStorageCreator          storageBootstrap.BootstrapperFromStorageCreator
-	bootstrapperCreator                     storageBootstrap.BootstrapperCreator
-	blockProcessorCreator                   processBlock.BlockProcessorCreator
-	forkDetectorCreator                     sync.ForkDetectorCreator
-	blockTrackerCreator                     track.BlockTrackerCreator
-	requestHandlerCreator                   requestHandlers.RequestHandlerCreator
-	headerValidatorCreator                  processBlock.HeaderValidatorCreator
-	scheduledTxsExecutionCreator            preprocess.ScheduledTxsExecutionCreator
-	transactionCoordinatorCreator           coordinator.TransactionCoordinatorCreator
-	validatorStatisticsProcessorCreator     peer.ValidatorStatisticsProcessorCreator
-	additionalStorageServiceCreator         process.AdditionalStorageServiceCreator
-	scProcessorCreator                      scrCommon.SCProcessorCreator
-	scResultPreProcessorCreator             preprocess.SmartContractResultPreProcessorCreator
-	consensusModel                          consensus.ConsensusModel
-	vmContainerMetaFactory                  factoryVm.VmContainerCreator
-	vmContainerShardFactory                 factoryVm.VmContainerCreator
-	accountsCreator                         state.AccountFactory
-	outGoingOperationsPoolHandler           sovereignBlock.OutGoingOperationsPool
-	dataCodecHandler                        sovereign.DataDecoderHandler
-	topicsCheckerHandler                    sovereign.TopicsCheckerHandler
-	shardCoordinatorCreator                 sharding.ShardCoordinatorFactory
+	blockChainHookHandlerCreator        hooks.BlockChainHookHandlerCreator
+	epochStartBootstrapperCreator       bootstrap.EpochStartBootstrapperCreator
+	bootstrapperFromStorageCreator      storageBootstrap.BootstrapperFromStorageCreator
+	bootstrapperCreator                 storageBootstrap.BootstrapperCreator
+	blockProcessorCreator               processBlock.BlockProcessorCreator
+	forkDetectorCreator                 sync.ForkDetectorCreator
+	blockTrackerCreator                 track.BlockTrackerCreator
+	requestHandlerCreator               requestHandlers.RequestHandlerCreator
+	headerValidatorCreator              processBlock.HeaderValidatorCreator
+	scheduledTxsExecutionCreator        preprocess.ScheduledTxsExecutionCreator
+	transactionCoordinatorCreator       coordinator.TransactionCoordinatorCreator
+	validatorStatisticsProcessorCreator peer.ValidatorStatisticsProcessorCreator
+	additionalStorageServiceCreator     process.AdditionalStorageServiceCreator
+	scProcessorCreator                  scrCommon.SCProcessorCreator
+	scResultPreProcessorCreator         preprocess.SmartContractResultPreProcessorCreator
+	consensusModel                      consensus.ConsensusModel
+	vmContainerMetaFactory              factoryVm.VmContainerCreator
+	vmContainerShardFactory             factoryVm.VmContainerCreator
+	accountsCreator                     state.AccountFactory
+	outGoingOperationsPoolHandler       sovereignBlock.OutGoingOperationsPool
+	dataCodecHandler                    sovereign.DataDecoderHandler
+	topicsCheckerHandler                sovereign.TopicsCheckerHandler
+	shardCoordinatorCreator             sharding.ShardCoordinatorFactory
 	nodesCoordinatorWithRaterFactoryCreator nodesCoord.NodesCoordinatorWithRaterFactory
+	requestersContainerFactoryCreator     requesterscontainer.RequesterContainerFactoryCreator
+	interceptorsContainerFactoryCreator   interceptorscontainer.InterceptorsContainerFactoryCreator
+	shardResolversContainerFactoryCreator resolverscontainer.ShardResolversContainerFactoryCreator
+	txPreProcessorCreator                 preprocess.TxPreProcessorCreator
+	extraHeaderSigVerifierHandler         headerCheck.ExtraHeaderSigVerifierHolder
+	genesisBlockCreatorFactory            processGenesis.GenesisBlockCreatorFactory
+	genesisMetaBlockCheckerCreator        processGenesis.GenesisMetaBlockChecker
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
@@ -172,31 +184,52 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 
 	nodesCoordinatorWithRaterFactoryCreator := nodesCoord.NewIndexHashedNodesCoordinatorWithRaterFactory()
 
+	requestersContainerFactoryCreator := requesterscontainer.NewShardRequestersContainerFactoryCreator()
+
+	interceptorsContainerFactoryCreator := interceptorscontainer.NewShardInterceptorsContainerFactoryCreator()
+
+	shardResolversContainerFactoryCreator := resolverscontainer.NewShardResolversContainerFactoryCreator()
+
+	txPreProcessorCreator := preprocess.NewTxPreProcessorCreator()
+
+	extraHeaderSigVerifierHandler := headerCheck.NewExtraHeaderSigVerifierHolder()
+
+	genesisBlockCreator := processGenesis.NewGenesisBlockCreatorFactory()
+
+	genesisMetaBlockCheckerCreator := processGenesis.NewGenesisMetaBlockChecker()
+
 	return &runTypeComponents{
-		blockChainHookHandlerCreator:            blockChainHookHandlerFactory,
-		epochStartBootstrapperCreator:           epochStartBootstrapperFactory,
-		bootstrapperFromStorageCreator:          bootstrapperFromStorageFactory,
-		bootstrapperCreator:                     shardBootstrapFactory,
-		blockProcessorCreator:                   blockProcessorFactory,
-		forkDetectorCreator:                     forkDetectorFactory,
-		blockTrackerCreator:                     blockTrackerFactory,
-		requestHandlerCreator:                   requestHandlerFactory,
-		headerValidatorCreator:                  headerValidatorFactory,
-		scheduledTxsExecutionCreator:            scheduledTxsExecutionFactory,
-		transactionCoordinatorCreator:           transactionCoordinatorFactory,
-		validatorStatisticsProcessorCreator:     validatorStatisticsProcessorFactory,
-		additionalStorageServiceCreator:         additionalStorageServiceCreator,
-		scProcessorCreator:                      scProcessorCreator,
-		scResultPreProcessorCreator:             scResultsPreProcessorCreator,
-		consensusModel:                          consensus.ConsensusModelV1,
-		vmContainerMetaFactory:                  vmContainerMetaCreator,
-		vmContainerShardFactory:                 vmContainerShardCreator,
-		accountsCreator:                         accountsCreator,
-		outGoingOperationsPoolHandler:           outGoingOperationsPool,
-		dataCodecHandler:                        dataCodec,
-		topicsCheckerHandler:                    topicsChecker,
-		shardCoordinatorCreator:                 shardCoordinatorCreator,
+		blockChainHookHandlerCreator:        blockChainHookHandlerFactory,
+		epochStartBootstrapperCreator:       epochStartBootstrapperFactory,
+		bootstrapperFromStorageCreator:      bootstrapperFromStorageFactory,
+		bootstrapperCreator:                 shardBootstrapFactory,
+		blockProcessorCreator:               blockProcessorFactory,
+		forkDetectorCreator:                 forkDetectorFactory,
+		blockTrackerCreator:                 blockTrackerFactory,
+		requestHandlerCreator:               requestHandlerFactory,
+		headerValidatorCreator:              headerValidatorFactory,
+		scheduledTxsExecutionCreator:        scheduledTxsExecutionFactory,
+		transactionCoordinatorCreator:       transactionCoordinatorFactory,
+		validatorStatisticsProcessorCreator: validatorStatisticsProcessorFactory,
+		additionalStorageServiceCreator:     additionalStorageServiceCreator,
+		scProcessorCreator:                  scProcessorCreator,
+		scResultPreProcessorCreator:         scResultsPreProcessorCreator,
+		consensusModel:                      consensus.ConsensusModelV1,
+		vmContainerMetaFactory:              vmContainerMetaCreator,
+		vmContainerShardFactory:             vmContainerShardCreator,
+		accountsCreator:                     accountsCreator,
+		outGoingOperationsPoolHandler:       outGoingOperationsPool,
+		dataCodecHandler:                    dataCodec,
+		topicsCheckerHandler:                topicsChecker,
+		shardCoordinatorCreator:             shardCoordinatorCreator,
 		nodesCoordinatorWithRaterFactoryCreator: nodesCoordinatorWithRaterFactoryCreator,
+		requestersContainerFactoryCreator:     requestersContainerFactoryCreator,
+		interceptorsContainerFactoryCreator:   interceptorsContainerFactoryCreator,
+		shardResolversContainerFactoryCreator: shardResolversContainerFactoryCreator,
+		txPreProcessorCreator:                 txPreProcessorCreator,
+		extraHeaderSigVerifierHandler:         extraHeaderSigVerifierHandler,
+		genesisBlockCreatorFactory:            genesisBlockCreator,
+		genesisMetaBlockCheckerCreator:        genesisMetaBlockCheckerCreator,
 	}, nil
 }
 

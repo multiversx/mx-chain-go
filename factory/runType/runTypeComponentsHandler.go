@@ -6,16 +6,21 @@ import (
 
 	"github.com/multiversx/mx-chain-go/consensus"
 	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
+	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
+	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
+	processComp "github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/process"
 	processBlock "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
+	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
@@ -162,6 +167,27 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	}
 	if check.IfNil(mrc.nodesCoordinatorWithRaterFactoryCreator) {
 		return errors.ErrNilNodesCoordinatorFactory
+	}
+	if check.IfNil(mrc.requestersContainerFactoryCreator) {
+		return errors.ErrNilRequesterContainerFactoryCreator
+	}
+	if check.IfNil(mrc.interceptorsContainerFactoryCreator) {
+		return errors.ErrNilInterceptorsContainerFactoryCreator
+	}
+	if check.IfNil(mrc.shardResolversContainerFactoryCreator) {
+		return errors.ErrNilShardResolversContainerFactoryCreator
+	}
+	if check.IfNil(mrc.txPreProcessorCreator) {
+		return errors.ErrNilTxPreProcessorCreator
+	}
+	if check.IfNil(mrc.extraHeaderSigVerifierHandler) {
+		return errors.ErrNilExtraHeaderSigVerifierHolder
+	}
+	if check.IfNil(mrc.genesisBlockCreatorFactory) {
+		return errors.ErrNilGenesisBlockFactory
+	}
+	if check.IfNil(mrc.genesisMetaBlockCheckerCreator) {
+		return errors.ErrNilGenesisMetaBlockChecker
 	}
 	return nil
 }
@@ -452,6 +478,90 @@ func (mrc *managedRunTypeComponents) NodesCoordinatorWithRaterCreator() nodesCoo
 	}
 
 	return mrc.runTypeComponents.nodesCoordinatorWithRaterFactoryCreator
+}
+
+// RequestersContainerFactoryCreator returns the shard coordinator factory
+func (mrc *managedRunTypeComponents) RequestersContainerFactoryCreator() requesterscontainer.RequesterContainerFactoryCreator {
+	mrc.mutStateComponents.RLock()
+	defer mrc.mutStateComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.requestersContainerFactoryCreator
+}
+
+// InterceptorsContainerFactoryCreator returns the shard interceptors container factory
+func (mrc *managedRunTypeComponents) InterceptorsContainerFactoryCreator() interceptorscontainer.InterceptorsContainerFactoryCreator {
+	mrc.mutStateComponents.RLock()
+	defer mrc.mutStateComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.interceptorsContainerFactoryCreator
+}
+
+// ShardResolversContainerFactoryCreator returns the shard resolvers container factory
+func (mrc *managedRunTypeComponents) ShardResolversContainerFactoryCreator() resolverscontainer.ShardResolversContainerFactoryCreator {
+	mrc.mutStateComponents.RLock()
+	defer mrc.mutStateComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.shardResolversContainerFactoryCreator
+}
+
+// TxPreProcessorCreator returns the tx pre processor factory
+func (mrc *managedRunTypeComponents) TxPreProcessorCreator() preprocess.TxPreProcessorCreator {
+	mrc.mutStateComponents.RLock()
+	defer mrc.mutStateComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.txPreProcessorCreator
+}
+
+// ExtraHeaderSigVerifierHandler returns the extra header sig verifier handler
+func (mrc *managedRunTypeComponents) ExtraHeaderSigVerifierHandler() headerCheck.ExtraHeaderSigVerifierHolder {
+	mrc.mutStateComponents.RLock()
+	defer mrc.mutStateComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.extraHeaderSigVerifierHandler
+}
+
+// GenesisBlockCreator returns the genesis block factory
+func (mrc *managedRunTypeComponents) GenesisBlockCreator() processComp.GenesisBlockCreatorFactory {
+	mrc.mutStateComponents.RLock()
+	defer mrc.mutStateComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.genesisBlockCreatorFactory
+}
+
+// GenesisMetaBlockCheckerCreator returns the genesis meta block checker factory
+func (mrc *managedRunTypeComponents) GenesisMetaBlockCheckerCreator() processComp.GenesisMetaBlockChecker {
+	mrc.mutStateComponents.RLock()
+	defer mrc.mutStateComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.genesisMetaBlockCheckerCreator
 }
 
 // IsInterfaceNil returns true if the interface is nil

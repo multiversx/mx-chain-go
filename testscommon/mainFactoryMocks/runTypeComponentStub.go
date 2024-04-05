@@ -3,14 +3,19 @@ package mainFactoryMocks
 import (
 	"github.com/multiversx/mx-chain-go/consensus"
 	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
+	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
+	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
+	processGenesis "github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
+	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
@@ -51,6 +56,13 @@ type RunTypeComponentsStub struct {
 	TopicsChecker                       sovereign.TopicsCheckerHandler
 	ShardCoordinatorFactory             sharding.ShardCoordinatorFactory
 	NodesCoordinatorWithRaterFactory    nodesCoord.NodesCoordinatorWithRaterFactory
+	RequestersContainerFactory          requesterscontainer.RequesterContainerFactoryCreator
+	InterceptorsContainerFactory        interceptorscontainer.InterceptorsContainerFactoryCreator
+	ShardResolversContainerFactory      resolverscontainer.ShardResolversContainerFactoryCreator
+	TxPreProcessorFactory               preprocess.TxPreProcessorCreator
+	ExtraHeaderSigVerifier              headerCheck.ExtraHeaderSigVerifierHolder
+	GenesisBlockFactory                 processGenesis.GenesisBlockCreatorFactory
+	GenesisMetaBlockChecker             processGenesis.GenesisMetaBlockChecker
 }
 
 // NewRunTypeComponentsStub -
@@ -80,6 +92,13 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		TopicsChecker:                       &sovereignMocks.TopicsCheckerMock{},
 		ShardCoordinatorFactory:             sharding.NewMultiShardCoordinatorFactory(),
 		NodesCoordinatorWithRaterFactory:    nodesCoord.NewIndexHashedNodesCoordinatorWithRaterFactory(),
+		RequestersContainerFactory:          requesterscontainer.NewShardRequestersContainerFactoryCreator(),
+		InterceptorsContainerFactory:        interceptorscontainer.NewShardInterceptorsContainerFactoryCreator(),
+		ShardResolversContainerFactory:      resolverscontainer.NewShardResolversContainerFactoryCreator(),
+		TxPreProcessorFactory:               preprocess.NewTxPreProcessorCreator(),
+		ExtraHeaderSigVerifier:              headerCheck.NewExtraHeaderSigVerifierHolder(),
+		GenesisBlockFactory:                 processGenesis.NewGenesisBlockCreatorFactory(),
+		GenesisMetaBlockChecker:             processGenesis.NewGenesisMetaBlockChecker(),
 	}
 }
 
@@ -221,6 +240,41 @@ func (r *RunTypeComponentsStub) ShardCoordinatorCreator() sharding.ShardCoordina
 // NodesCoordinatorWithRaterCreator -
 func (r *RunTypeComponentsStub) NodesCoordinatorWithRaterCreator() nodesCoord.NodesCoordinatorWithRaterFactory {
 	return r.NodesCoordinatorWithRaterFactory
+}
+
+// RequestersContainerFactoryCreator -
+func (r *RunTypeComponentsStub) RequestersContainerFactoryCreator() requesterscontainer.RequesterContainerFactoryCreator {
+	return r.RequestersContainerFactory
+}
+
+// InterceptorsContainerFactoryCreator -
+func (r *RunTypeComponentsStub) InterceptorsContainerFactoryCreator() interceptorscontainer.InterceptorsContainerFactoryCreator {
+	return r.InterceptorsContainerFactory
+}
+
+// ShardResolversContainerFactoryCreator -
+func (r *RunTypeComponentsStub) ShardResolversContainerFactoryCreator() resolverscontainer.ShardResolversContainerFactoryCreator {
+	return r.ShardResolversContainerFactory
+}
+
+// TxPreProcessorCreator -
+func (r *RunTypeComponentsStub) TxPreProcessorCreator() preprocess.TxPreProcessorCreator {
+	return r.TxPreProcessorFactory
+}
+
+// ExtraHeaderSigVerifierHandler -
+func (r *RunTypeComponentsStub) ExtraHeaderSigVerifierHandler() headerCheck.ExtraHeaderSigVerifierHolder {
+	return r.ExtraHeaderSigVerifier
+}
+
+// GenesisBlockCreator -
+func (r *RunTypeComponentsStub) GenesisBlockCreator() processGenesis.GenesisBlockCreatorFactory {
+	return r.GenesisBlockFactory
+}
+
+// GenesisMetaBlockCheckerCreator -
+func (r *RunTypeComponentsStub) GenesisMetaBlockCheckerCreator() processGenesis.GenesisMetaBlockChecker {
+	return r.GenesisMetaBlockChecker
 }
 
 // IsInterfaceNil -

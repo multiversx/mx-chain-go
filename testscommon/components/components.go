@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
+	mclSig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/singlesig"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 	"github.com/stretchr/testify/require"
@@ -18,8 +19,6 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
-	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
 	"github.com/multiversx/mx-chain-go/factory"
 	bootstrapComp "github.com/multiversx/mx-chain-go/factory/bootstrap"
@@ -36,13 +35,10 @@ import (
 	"github.com/multiversx/mx-chain-go/factory/statusCore"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/data"
-	"github.com/multiversx/mx-chain-go/genesis/process"
 	mockCoreComp "github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/p2p"
 	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
 	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
-	"github.com/multiversx/mx-chain-go/process/block/preprocess"
-	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/rating"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -53,7 +49,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/headerSigVerifier"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/sovereign"
@@ -650,14 +645,7 @@ func GetProcessArgs(
 				},
 			},
 		},
-		GenesisBlockCreatorFactory:            process.NewGenesisBlockCreatorFactory(),
-		GenesisMetaBlockChecker:               processComp.NewGenesisMetaBlockChecker(),
-		RequesterContainerFactoryCreator:      requesterscontainer.NewShardRequestersContainerFactoryCreator(),
-		InterceptorsContainerFactoryCreator:   interceptorscontainer.NewShardInterceptorsContainerFactoryCreator(),
-		ShardResolversContainerFactoryCreator: resolverscontainer.NewShardResolversContainerFactoryCreator(),
-		TxPreProcessorCreator:                 preprocess.NewTxPreProcessorCreator(),
-		ExtraHeaderSigVerifierHolder:          &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
-		RunTypeComponents:                     GetRunTypeComponents(),
+		RunTypeComponents: GetRunTypeComponents(),
 	}
 }
 
@@ -742,18 +730,8 @@ func GetSovereignProcessArgs(
 
 	statusCoreComponents := GetSovereignStatusCoreComponents()
 
-	extraHeaderSigVerifierHolder := headerCheck.NewExtraHeaderSigVerifierHolder()
-	sovHeaderSigVerifier, _ := headerCheck.NewSovereignHeaderSigVerifier(cryptoComponents.BlockSigner())
-	_ = extraHeaderSigVerifierHolder.RegisterExtraHeaderSigVerifier(sovHeaderSigVerifier)
-
 	processArgs.BootstrapComponents = bootstrapComponents
 	processArgs.StatusCoreComponents = statusCoreComponents
-	processArgs.GenesisBlockCreatorFactory = process.NewSovereignGenesisBlockCreatorFactory()
-	processArgs.GenesisMetaBlockChecker = processComp.NewSovereignGenesisMetaBlockChecker()
-	processArgs.RequesterContainerFactoryCreator = requesterscontainer.NewSovereignShardRequestersContainerFactoryCreator()
-	processArgs.InterceptorsContainerFactoryCreator = interceptorscontainer.NewSovereignShardInterceptorsContainerFactoryCreator()
-	processArgs.ShardResolversContainerFactoryCreator = resolverscontainer.NewSovereignShardResolversContainerFactoryCreator()
-	processArgs.ExtraHeaderSigVerifierHolder = extraHeaderSigVerifierHolder
 	processArgs.IncomingHeaderSubscriber = &sovereign.IncomingHeaderSubscriberStub{}
 	processArgs.RunTypeComponents = GetSovereignRunTypeComponents()
 
@@ -1079,6 +1057,8 @@ func GetSovereignRunTypeComponents() factory.RunTypeComponentsHolder {
 }
 
 func createSovRunTypeArgs() runType.ArgsSovereignRunTypeComponents {
+	sovHeaderSigVerifier, _ := headerCheck.NewSovereignHeaderSigVerifier(&mclSig.BlsSingleSigner{})
+
 	return runType.ArgsSovereignRunTypeComponents{
 		Config: config.SovereignConfig{
 			GenesisConfig: config.GenesisConfig{
@@ -1087,6 +1067,7 @@ func createSovRunTypeArgs() runType.ArgsSovereignRunTypeComponents {
 		},
 		DataCodec:     &sovereign.DataCodecMock{},
 		TopicsChecker: &sovereign.TopicsCheckerMock{},
+		ExtraVerifier: sovHeaderSigVerifier,
 	}
 }
 

@@ -7,17 +7,12 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
-
-	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
-	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
 	disabledCommon "github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
 	"github.com/multiversx/mx-chain-go/genesis/process/intermediate"
@@ -40,6 +35,11 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/update"
 	hardForkProcess "github.com/multiversx/mx-chain-go/update/process"
+
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 )
@@ -605,7 +605,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		ScheduledTxsExecutionHandler:           disabledScheduledTxsExecutionHandler,
 		ProcessedMiniBlocksTracker:             disabledProcessedMiniBlocksTracker,
 		TxExecutionOrderHandler:                arg.TxExecutionOrderHandler,
-		TxPreProcessorCreator:                  arg.TxPreprocessorCreator,
+		TxPreProcessorCreator:                  arg.RunTypeComponents.TxPreProcessorCreator(),
 		SmartContractResultPreProcessorCreator: arg.RunTypeComponents.SCResultsPreProcessorCreator(),
 	}
 	preProcFactory, err := shard.NewPreProcessorsContainerFactory(argsPreProc)

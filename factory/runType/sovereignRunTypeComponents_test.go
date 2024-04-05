@@ -3,15 +3,20 @@ package runType_test
 import (
 	"testing"
 
+	mclSig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/singlesig"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory/runType"
+	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/testscommon/sovereign"
 
 	"github.com/stretchr/testify/require"
 )
 
 func createSovRunTypeArgs() runType.ArgsSovereignRunTypeComponents {
+	sovHeaderSigVerifier, _ := headerCheck.NewSovereignHeaderSigVerifier(&mclSig.BlsSingleSigner{})
+
 	return runType.ArgsSovereignRunTypeComponents{
 		Config: config.SovereignConfig{
 			GenesisConfig: config.GenesisConfig{
@@ -20,6 +25,7 @@ func createSovRunTypeArgs() runType.ArgsSovereignRunTypeComponents {
 		},
 		DataCodec:     &sovereign.DataCodecMock{},
 		TopicsChecker: &sovereign.TopicsCheckerMock{},
+		ExtraVerifier: sovHeaderSigVerifier,
 	}
 }
 

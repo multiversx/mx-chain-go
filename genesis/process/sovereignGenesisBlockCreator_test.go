@@ -12,9 +12,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
-	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	factoryRunType "github.com/multiversx/mx-chain-go/factory/runType"
 	"github.com/multiversx/mx-chain-go/genesis/mock"
 	nodeMock "github.com/multiversx/mx-chain-go/node/mock"
 	"github.com/multiversx/mx-chain-go/process"
@@ -23,9 +21,8 @@ import (
 	stateAcc "github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
-	"github.com/multiversx/mx-chain-go/testscommon/factory"
+	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/sovereign"
 	"github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/vm"
 
@@ -34,7 +31,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
@@ -55,15 +51,13 @@ func createSovereignGenesisBlockCreator(t *testing.T) (ArgsGenesisBlockCreator, 
 	arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
 	arg.ShardCoordinator = sharding.NewSovereignShardCoordinator(core.SovereignChainShardId)
 	arg.DNSV2Addresses = []string{"00000000000000000500761b8c4a25d3979359223208b412285f635e71300102"}
-
-	sovRunTypeComps := createSovRunTypeComps(t)
-	arg.RunTypeComponents = sovRunTypeComps
+	arg.RunTypeComponents = genesisMocks.NewSovereignRunTypeComponentsStub()
 
 	trieStorageManagers := createTrieStorageManagers()
 	arg.Accounts, _ = createAccountAdapter(
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
-		sovRunTypeComps.AccountsCreator(),
+		arg.RunTypeComponents.AccountsCreator(),
 		trieStorageManagers[dataRetriever.UserAccountsUnit.String()],
 		&testscommon.PubkeyConverterMock{},
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
@@ -72,41 +66,6 @@ func createSovereignGenesisBlockCreator(t *testing.T) (ArgsGenesisBlockCreator, 
 	gbc, _ := NewGenesisBlockCreator(arg)
 	sgbc, _ := NewSovereignGenesisBlockCreator(gbc)
 	return arg, sgbc
-}
-
-func createSovRunTypeComps(t *testing.T) runTypeComponentsHandler {
-	runTypeFactory, err := factoryRunType.NewRunTypeComponentsFactory(&factory.CoreComponentsHolderMock{
-		HasherCalled: func() hashing.Hasher {
-			return &hashingMocks.HasherMock{}
-		},
-		InternalMarshalizerCalled: func() marshal.Marshalizer {
-			return &mock.MarshalizerMock{}
-		},
-		EnableEpochsHandlerCalled: func() common.EnableEpochsHandler {
-			return &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
-		},
-	})
-	require.Nil(t, err)
-
-	sovRunTypeFactory, err := factoryRunType.NewSovereignRunTypeComponentsFactory(runTypeFactory,
-		factoryRunType.ArgsSovereignRunTypeComponents{
-			Config: config.SovereignConfig{
-				GenesisConfig: config.GenesisConfig{
-					NativeESDT: sovereignNativeToken,
-				},
-			},
-			DataCodec:     &sovereign.DataCodecMock{},
-			TopicsChecker: &sovereign.TopicsCheckerMock{},
-		},
-	)
-	require.Nil(t, err)
-	sovRunTypeComp, err := factoryRunType.NewManagedRunTypeComponents(sovRunTypeFactory)
-	require.Nil(t, err)
-
-	err = sovRunTypeComp.Create()
-	require.Nil(t, err)
-
-	return sovRunTypeComp
 }
 
 func requireTokenExists(

@@ -9,19 +9,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/data/endProcess"
-	"github.com/multiversx/mx-chain-core-go/data/esdt"
-	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/stretchr/testify/require"
-
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/common/ordering"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
-	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
 	dbLookupFactory "github.com/multiversx/mx-chain-go/dblookupext/factory"
 	"github.com/multiversx/mx-chain-go/factory"
 	factoryBootstrap "github.com/multiversx/mx-chain-go/factory/bootstrap"
@@ -36,11 +28,8 @@ import (
 	factoryStatusCore "github.com/multiversx/mx-chain-go/factory/statusCore"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
-	"github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
-	"github.com/multiversx/mx-chain-go/process/block/preprocess"
-	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	"github.com/multiversx/mx-chain-go/process/rating"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -49,8 +38,13 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
-	"github.com/multiversx/mx-chain-go/testscommon/headerSigVerifier"
 	"github.com/multiversx/mx-chain-go/update/trigger"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-core-go/data/esdt"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/stretchr/testify/require"
 )
 
 // ProcessorRunner is a test emulation to the nodeRunner component
@@ -447,34 +441,27 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 			Version:    "test",
 			WorkingDir: pr.Config.FlagsConfig.WorkingDir,
 		},
-		AccountsParser:                        accountsParser,
-		SmartContractParser:                   smartContractParser,
-		GasSchedule:                           gasScheduleNotifier,
-		NodesCoordinator:                      pr.NodesCoordinator,
-		RequestedItemsHandler:                 requestedItemsHandler,
-		WhiteListHandler:                      whiteListRequest,
-		WhiteListerVerifiedTxs:                whiteListerVerifiedTxs,
-		MaxRating:                             pr.Config.RatingsConfig.General.MaxRating,
-		SystemSCConfig:                        pr.Config.SystemSCConfig,
-		ImportStartHandler:                    importStartHandler,
-		HistoryRepo:                           historyRepository,
-		Data:                                  pr.DataComponents,
-		CoreData:                              pr.CoreComponents,
-		Crypto:                                pr.CryptoComponents,
-		State:                                 pr.StateComponents,
-		Network:                               pr.NetworkComponents,
-		BootstrapComponents:                   pr.BootstrapComponents,
-		StatusComponents:                      pr.StatusComponents,
-		StatusCoreComponents:                  pr.StatusCoreComponents,
-		TxExecutionOrderHandler:               txExecutionOrderHandler,
-		GenesisBlockCreatorFactory:            process.NewGenesisBlockCreatorFactory(),
-		GenesisMetaBlockChecker:               factoryProcessing.NewGenesisMetaBlockChecker(),
-		RequesterContainerFactoryCreator:      requesterscontainer.NewShardRequestersContainerFactoryCreator(),
-		InterceptorsContainerFactoryCreator:   interceptorscontainer.NewShardInterceptorsContainerFactoryCreator(),
-		ShardResolversContainerFactoryCreator: resolverscontainer.NewShardResolversContainerFactoryCreator(),
-		TxPreProcessorCreator:                 preprocess.NewTxPreProcessorCreator(),
-		ExtraHeaderSigVerifierHolder:          &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
-		RunTypeComponents:                     pr.RunTypeComponents,
+		AccountsParser:          accountsParser,
+		SmartContractParser:     smartContractParser,
+		GasSchedule:             gasScheduleNotifier,
+		NodesCoordinator:        pr.NodesCoordinator,
+		RequestedItemsHandler:   requestedItemsHandler,
+		WhiteListHandler:        whiteListRequest,
+		WhiteListerVerifiedTxs:  whiteListerVerifiedTxs,
+		MaxRating:               pr.Config.RatingsConfig.General.MaxRating,
+		SystemSCConfig:          pr.Config.SystemSCConfig,
+		ImportStartHandler:      importStartHandler,
+		HistoryRepo:             historyRepository,
+		Data:                    pr.DataComponents,
+		CoreData:                pr.CoreComponents,
+		Crypto:                  pr.CryptoComponents,
+		State:                   pr.StateComponents,
+		Network:                 pr.NetworkComponents,
+		BootstrapComponents:     pr.BootstrapComponents,
+		StatusComponents:        pr.StatusComponents,
+		StatusCoreComponents:    pr.StatusCoreComponents,
+		TxExecutionOrderHandler: txExecutionOrderHandler,
+		RunTypeComponents:       pr.RunTypeComponents,
 	}
 
 	processFactory, err := factoryProcessing.NewProcessComponentsFactory(argsProcess)
