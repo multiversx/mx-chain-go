@@ -111,6 +111,9 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 	if check.IfNil(args.RunTypeComponents.NodesCoordinatorWithRaterCreator()) {
 		return nil, errors.ErrNilNodesCoordinatorFactory
 	}
+	if check.IfNil(args.RunTypeComponents.RequestHandlerCreator()) {
+		return nil, errors.ErrNilRequestHandlerCreator
+	}
 
 	return &bootstrapComponentsFactory{
 		config:               args.Config,

@@ -164,6 +164,21 @@ func TestNewBootstrapComponentsFactory(t *testing.T) {
 		require.Nil(t, bcf)
 		require.Equal(t, errorsMx.ErrNilNodesCoordinatorFactory, err)
 	})
+	t.Run("nil RequestHandlerFactory should error", func(t *testing.T) {
+		t.Parallel()
+
+		argsCopy := args
+		argsCopy.RunTypeComponents = &mainFactoryMocks.RunTypeComponentsStub{
+			EpochStartBootstrapperFactory:    &factory.EpochStartBootstrapperFactoryMock{},
+			AdditionalStorageServiceFactory:  &factory.AdditionalStorageServiceFactoryMock{},
+			ShardCoordinatorFactory:          &testscommon.MultiShardCoordinatorFactoryMock{},
+			NodesCoordinatorWithRaterFactory: &testscommon.NodesCoordinatorFactoryMock{},
+			RequestHandlerFactory:            nil,
+		}
+		bcf, err := bootstrap.NewBootstrapComponentsFactory(argsCopy)
+		require.Nil(t, bcf)
+		require.Equal(t, errorsMx.ErrNilRequestHandlerCreator, err)
+	})
 	t.Run("empty working dir should error", func(t *testing.T) {
 		t.Parallel()
 
