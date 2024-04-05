@@ -662,7 +662,7 @@ func (d *delegation) getWhitelistForMerge(args *vmcommon.ContractCallInput) vmco
 		d.eei.AddReturnMessage(args.Function + " is an unknown function")
 		return vmcommon.UserError
 	}
-	returnCode := d.checkArgumentsForGeneralViewFunc(args)
+	returnCode := d.checkArgumentsForGeneralViewFunc(args, d.gasCost.MetaChainSystemSCsCost.DelegationOps)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
@@ -2347,12 +2347,12 @@ func (d *delegation) unStakeAtEndOfEpoch(args *vmcommon.ContractCallInput) vmcom
 	return vmcommon.Ok
 }
 
-func (d *delegation) checkArgumentsForGeneralViewFunc(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+func (d *delegation) checkArgumentsForGeneralViewFunc(args *vmcommon.ContractCallInput, gasToUse uint64) vmcommon.ReturnCode {
 	if args.CallValue.Cmp(zero) != 0 {
 		d.eei.AddReturnMessage(vm.ErrCallValueMustBeZero.Error())
 		return vmcommon.UserError
 	}
-	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.DelegationOps)
+	err := d.eei.UseGas(gasToUse)
 	if err != nil {
 		d.eei.AddReturnMessage(err.Error())
 		return vmcommon.OutOfGas
@@ -2366,7 +2366,7 @@ func (d *delegation) checkArgumentsForGeneralViewFunc(args *vmcommon.ContractCal
 }
 
 func (d *delegation) getTotalCumulatedRewards(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	returnCode := d.checkArgumentsForGeneralViewFunc(args)
+	returnCode := d.checkArgumentsForGeneralViewFunc(args, d.gasCost.MetaChainSystemSCsCost.DelegationOps)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
@@ -2395,7 +2395,7 @@ func (d *delegation) getTotalCumulatedRewards(args *vmcommon.ContractCallInput) 
 }
 
 func (d *delegation) getNumUsers(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	returnCode := d.checkArgumentsForGeneralViewFunc(args)
+	returnCode := d.checkArgumentsForGeneralViewFunc(args, d.gasCost.MetaChainSystemSCsCost.DelegationOps)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
@@ -2413,7 +2413,7 @@ func (d *delegation) getNumUsers(args *vmcommon.ContractCallInput) vmcommon.Retu
 }
 
 func (d *delegation) getTotalUnStaked(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	returnCode := d.checkArgumentsForGeneralViewFunc(args)
+	returnCode := d.checkArgumentsForGeneralViewFunc(args, d.gasCost.MetaChainSystemSCsCost.DelegationOps)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
@@ -2429,7 +2429,7 @@ func (d *delegation) getTotalUnStaked(args *vmcommon.ContractCallInput) vmcommon
 }
 
 func (d *delegation) getTotalActiveStake(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	returnCode := d.checkArgumentsForGeneralViewFunc(args)
+	returnCode := d.checkArgumentsForGeneralViewFunc(args, d.gasCost.MetaChainSystemSCsCost.DelegationOps)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
@@ -2445,7 +2445,7 @@ func (d *delegation) getTotalActiveStake(args *vmcommon.ContractCallInput) vmcom
 }
 
 func (d *delegation) getNumNodes(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	returnCode := d.checkArgumentsForGeneralViewFunc(args)
+	returnCode := d.checkArgumentsForGeneralViewFunc(args, d.gasCost.MetaChainSystemSCsCost.DelegationOps)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
@@ -2467,7 +2467,7 @@ func (d *delegation) correctNodesStatus(args *vmcommon.ContractCallInput) vmcomm
 		d.eei.AddReturnMessage(args.Function + " is an unknown function")
 		return vmcommon.UserError
 	}
-	returnCode := d.checkArgumentsForGeneralViewFunc(args)
+	returnCode := d.checkArgumentsForGeneralViewFunc(args, d.gasCost.MetaChainSystemSCsCost.DelegationOps)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
@@ -2549,7 +2549,16 @@ func createMergedListWithoutDuplicates(status *DelegationContractStatus, blsKeys
 }
 
 func (d *delegation) getAllNodeStates(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	returnCode := d.checkArgumentsForGeneralViewFunc(args)
+	var gasToUse uint64
+
+	if d.enableEpochsHandler.IsFlagEnabled(common.FixDelegationGetAllNodeStatesViewGasFlag) {
+		gasToUse = d.gasCost.MetaChainSystemSCsCost.GetAllNodeStates
+	} else {
+		gasToUse = d.gasCost.MetaChainSystemSCsCost.DelegationOps
+	}
+
+	returnCode := d.checkArgumentsForGeneralViewFunc(args, gasToUse)
+
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
@@ -2585,7 +2594,7 @@ func (d *delegation) getAllNodeStates(args *vmcommon.ContractCallInput) vmcommon
 }
 
 func (d *delegation) getContractConfig(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	returnCode := d.checkArgumentsForGeneralViewFunc(args)
+	returnCode := d.checkArgumentsForGeneralViewFunc(args, d.gasCost.MetaChainSystemSCsCost.DelegationOps)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
@@ -2891,7 +2900,7 @@ func (d *delegation) setMetaData(args *vmcommon.ContractCallInput) vmcommon.Retu
 }
 
 func (d *delegation) getMetaData(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	returnCode := d.checkArgumentsForGeneralViewFunc(args)
+	returnCode := d.checkArgumentsForGeneralViewFunc(args, d.gasCost.MetaChainSystemSCsCost.DelegationOps)
 	if returnCode != vmcommon.Ok {
 		return returnCode
 	}
