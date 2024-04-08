@@ -297,6 +297,7 @@ type ShardValidatorsInfoMapHandler interface {
 	Replace(old ValidatorInfoHandler, new ValidatorInfoHandler) error
 	ReplaceValidatorByKey(oldBlsKey []byte, new ValidatorInfoHandler, shardID uint32) bool
 	SetValidatorsInShard(shardID uint32, validators []ValidatorInfoHandler) error
+	SetValidatorsInShardUnsafe(shardID uint32, validators []ValidatorInfoHandler)
 }
 
 // ValidatorInfoHandler defines which data shall a validator info hold.
