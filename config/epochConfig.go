@@ -103,6 +103,7 @@ type EnableEpochs struct {
 	MigrateDataTrieEnableEpoch                               uint32
 	ConsistentTokensValuesLengthCheckEnableEpoch             uint32
 	FixDelegationChangeOwnerOnAccountEnableEpoch             uint32
+	FixDelegationGetAllNodeStatesViewEnableEpoch             uint32
 	DynamicGasCostForDataTrieStorageLoadEnableEpoch          uint32
 	NFTStopCreateEnableEpoch                                 uint32
 	ChangeOwnerAddressCrossShardThroughSCEnableEpoch         uint32

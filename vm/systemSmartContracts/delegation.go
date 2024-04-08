@@ -127,6 +127,7 @@ func NewDelegationSystemSC(args ArgsNewDelegation) (*delegation, error) {
 		common.ComputeRewardCheckpointFlag,
 		common.StakingV2FlagAfterEpoch,
 		common.FixDelegationChangeOwnerOnAccountFlag,
+		common.FixDelegationGetAllNodeStatesViewGasFlag,
 		common.MultiClaimOnDelegationFlag,
 	})
 	if err != nil {

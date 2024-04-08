@@ -629,6 +629,12 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.FixDelegationChangeOwnerOnAccountEnableEpoch,
 		},
+		common.FixDelegationGetAllNodeStatesViewGasFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.FixDelegationGetAllNodeStatesViewEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.FixDelegationGetAllNodeStatesViewEnableEpoch,
+		},
 		common.FixOOGReturnCodeFlag: {
 			isActiveInEpoch: func(epoch uint32) bool {
 				return epoch >= handler.enableEpochsConfig.FixOOGReturnCodeEnableEpoch

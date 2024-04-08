@@ -114,6 +114,7 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		StakingV4Step2EnableEpoch:                                97,
 		StakingV4Step3EnableEpoch:                                98,
 		AlwaysMergeContextsInEEIEnableEpoch:                      99,
+		FixDelegationGetAllNodeStatesViewEnableEpoch:             100,
 	}
 }
 
@@ -304,6 +305,7 @@ func TestEnableEpochsHandler_IsFlagEnabled(t *testing.T) {
 	require.True(t, handler.IsFlagEnabled(common.AutoBalanceDataTriesFlag))
 	require.True(t, handler.IsFlagEnabled(common.MigrateDataTrieFlag))
 	require.True(t, handler.IsFlagEnabled(common.FixDelegationChangeOwnerOnAccountFlag))
+	require.True(t, handler.IsFlagEnabled(common.FixDelegationGetAllNodeStatesViewGasFlag))
 	require.True(t, handler.IsFlagEnabled(common.FixOOGReturnCodeFlag))
 	require.True(t, handler.IsFlagEnabled(common.DeterministicSortOnValidatorsInfoFixFlag))
 	require.True(t, handler.IsFlagEnabled(common.DynamicGasCostForDataTrieStorageLoadFlag))
@@ -420,6 +422,7 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.AutoBalanceDataTriesEnableEpoch, handler.GetActivationEpoch(common.AutoBalanceDataTriesFlag))
 	require.Equal(t, cfg.MigrateDataTrieEnableEpoch, handler.GetActivationEpoch(common.MigrateDataTrieFlag))
 	require.Equal(t, cfg.FixDelegationChangeOwnerOnAccountEnableEpoch, handler.GetActivationEpoch(common.FixDelegationChangeOwnerOnAccountFlag))
+	require.Equal(t, cfg.FixDelegationGetAllNodeStatesViewEnableEpoch, handler.GetActivationEpoch(common.FixDelegationGetAllNodeStatesViewGasFlag))
 	require.Equal(t, cfg.FixOOGReturnCodeEnableEpoch, handler.GetActivationEpoch(common.FixOOGReturnCodeFlag))
 	require.Equal(t, cfg.DeterministicSortOnValidatorsInfoEnableEpoch, handler.GetActivationEpoch(common.DeterministicSortOnValidatorsInfoFixFlag))
 	require.Equal(t, cfg.DynamicGasCostForDataTrieStorageLoadEnableEpoch, handler.GetActivationEpoch(common.DynamicGasCostForDataTrieStorageLoadFlag))
