@@ -432,13 +432,26 @@ func (s *legacySystemSCProcessor) fillStakingDataForNonEligible(validatorsInfoMa
 		}
 
 		if deleteCalled {
-			err := validatorsInfoMap.SetValidatorsInShard(shId, newList)
+			err := s.setValidatorsInShard(validatorsInfoMap, shId, newList)
 			if err != nil {
 				return err
 			}
 		}
 	}
 
+	return nil
+}
+
+func (s *legacySystemSCProcessor) setValidatorsInShard(
+	validatorsInfoMap state.ShardValidatorsInfoMapHandler,
+	shardID uint32,
+	validators []state.ValidatorInfoHandler,
+) error {
+	if s.enableEpochsHandler.IsFlagEnabled(common.StakingV4StartedFlag) {
+		return validatorsInfoMap.SetValidatorsInShard(shardID, validators)
+	}
+
+	validatorsInfoMap.SetValidatorsInShardUnsafe(shardID, validators)
 	return nil
 }
 
@@ -587,6 +600,12 @@ func (s *legacySystemSCProcessor) updateMaxNodes(validatorsInfoMap state.ShardVa
 	sw.Stop("setMaxNumberOfNodes")
 	if err != nil {
 		return err
+	}
+
+	if !s.enableEpochsHandler.IsFlagEnabled(common.StakingV4StartedFlag) {
+		if maxNumberOfNodes < prevMaxNumberOfNodes {
+			return epochStart.ErrInvalidMaxNumberOfNodes
+		}
 	}
 
 	if s.enableEpochsHandler.IsFlagEnabled(common.StakingQueueFlag) {
@@ -1223,11 +1242,6 @@ func (s *legacySystemSCProcessor) addNewlyStakedNodesToValidatorTrie(
 			return err
 		}
 
-		err = peerAcc.SetBLSPublicKey(blsKey)
-		if err != nil {
-			return err
-		}
-
 		peerAcc.SetListAndIndex(peerAcc.GetShardId(), string(list), uint32(nonce), s.enableEpochsHandler.IsFlagEnabled(common.StakingV4StartedFlag))
 		peerAcc.SetTempRating(s.startRating)
 		peerAcc.SetUnStakedEpoch(common.DefaultUnstakedEpoch)
@@ -1281,7 +1295,7 @@ func (s *legacySystemSCProcessor) extractConfigFromESDTContract() ([][]byte, err
 			CallerAddr:  s.endOfEpochCallerAddress,
 			Arguments:   [][]byte{},
 			CallValue:   big.NewInt(0),
-			GasProvided: math.MaxUint64,
+			GasProvided: math.MaxInt64,
 		},
 		Function:      "getContractConfig",
 		RecipientAddr: vm.ESDTSCAddress,

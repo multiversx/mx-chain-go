@@ -161,6 +161,14 @@ func (vi *shardValidatorsInfoMap) SetValidatorsInShard(shardID uint32, validator
 	return nil
 }
 
+// SetValidatorsInShardUnsafe resets all validators saved in a specific shard with the provided ones.
+// It does not check that provided validators are in the same shard as provided shard id.
+func (vi *shardValidatorsInfoMap) SetValidatorsInShardUnsafe(shardID uint32, validators []ValidatorInfoHandler) {
+	vi.mutex.Lock()
+	vi.valInfoMap[shardID] = validators
+	vi.mutex.Unlock()
+}
+
 // Delete will delete the provided validator from the internally stored map, if found.
 // The validators slice at the corresponding shardID key will be re-sliced, without reordering
 func (vi *shardValidatorsInfoMap) Delete(validator ValidatorInfoHandler) error {
