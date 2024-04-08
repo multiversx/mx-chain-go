@@ -726,6 +726,59 @@ func TestNodeApiResolver_GetManagedKeys(t *testing.T) {
 	require.Equal(t, expectedKeys, keys)
 }
 
+func TestNodeApiResolver_GetLoadedKeys(t *testing.T) {
+	t.Parallel()
+
+	t.Run("multikey should work", func(t *testing.T) {
+		t.Parallel()
+
+		providedKeys := [][]byte{
+			[]byte("pk1"),
+			[]byte("pk2"),
+		}
+		expectedKeys := []string{
+			"pk1",
+			"pk2",
+		}
+		args := createMockArgs()
+		args.ManagedPeersMonitor = &testscommon.ManagedPeersMonitorStub{
+			GetLoadedKeysCalled: func() [][]byte {
+				return providedKeys
+			},
+		}
+		args.ValidatorPubKeyConverter = &testscommon.PubkeyConverterStub{
+			SilentEncodeCalled: func(pkBytes []byte, log core.Logger) string {
+				return string(pkBytes)
+			},
+		}
+		nar, err := external.NewNodeApiResolver(args)
+		require.NoError(t, err)
+
+		keys := nar.GetLoadedKeys()
+		require.Equal(t, expectedKeys, keys)
+	})
+	t.Run("single key should work", func(t *testing.T) {
+		t.Parallel()
+
+		providedKey := "pk1"
+		expectedKeys := []string{
+			"pk1",
+		}
+		args := createMockArgs()
+		args.PublicKey = providedKey
+		args.ManagedPeersMonitor = &testscommon.ManagedPeersMonitorStub{
+			GetLoadedKeysCalled: func() [][]byte {
+				return [][]byte{}
+			},
+		}
+		nar, err := external.NewNodeApiResolver(args)
+		require.NoError(t, err)
+
+		keys := nar.GetLoadedKeys()
+		require.Equal(t, expectedKeys, keys)
+	})
+}
+
 func TestNodeApiResolver_GetEligibleManagedKeys(t *testing.T) {
 	t.Parallel()
 

@@ -493,10 +493,11 @@ func TestP2pConfig(t *testing.T) {
         [Node.Transports.TCP]
             ListenAddress = "/ip4/0.0.0.0/tcp/%d"
             PreventPortReuse = true
-        [Node.ResourceLimiter]
-            Type = "default autoscale" #available options "default autoscale", "infinite", "default with manual scale".
-            ManualSystemMemoryInMB = 1 # not taken into account if the type is not "default with manual scale"
-            ManualMaximumFD = 2 # not taken into account if the type is not "default with manual scale"
+
+    [Node.ResourceLimiter]
+        Type = "default autoscale" #available options "default autoscale", "infinite", "default with manual scale".
+        ManualSystemMemoryInMB = 1 # not taken into account if the type is not "default with manual scale"
+        ManualMaximumFD = 2 # not taken into account if the type is not "default with manual scale"
 
 [KadDhtPeerDiscovery]
     Enabled = false

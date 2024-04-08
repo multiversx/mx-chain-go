@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"sort"
 	"sync"
 	"time"
 
@@ -273,7 +274,7 @@ func (holder *managedPeersHolder) ResetRoundsWithoutReceivedMessages(pkBytes []b
 	pInfo.resetRoundsWithoutReceivedMessages()
 }
 
-// GetManagedKeysByCurrentNode returns all keys that will be managed by this node
+// GetManagedKeysByCurrentNode returns all keys that should act as validator(main or backup that took over) and will be managed by this node
 func (holder *managedPeersHolder) GetManagedKeysByCurrentNode() map[string]crypto.PrivateKey {
 	holder.mut.RLock()
 	defer holder.mut.RUnlock()
@@ -289,6 +290,23 @@ func (holder *managedPeersHolder) GetManagedKeysByCurrentNode() map[string]crypt
 	}
 
 	return allManagedKeys
+}
+
+// GetLoadedKeysByCurrentNode returns all keys that were loaded and will be managed by this node
+func (holder *managedPeersHolder) GetLoadedKeysByCurrentNode() [][]byte {
+	holder.mut.RLock()
+	defer holder.mut.RUnlock()
+
+	allLoadedKeys := make([][]byte, 0, len(holder.data))
+	for pk := range holder.data {
+		allLoadedKeys = append(allLoadedKeys, []byte(pk))
+	}
+
+	sort.Slice(allLoadedKeys, func(i, j int) bool {
+		return string(allLoadedKeys[i]) < string(allLoadedKeys[j])
+	})
+
+	return allLoadedKeys
 }
 
 // IsKeyManagedByCurrentNode returns true if the key is managed by the current node
