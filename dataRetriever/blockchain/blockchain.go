@@ -69,6 +69,7 @@ func (bc *blockChain) SetCurrentBlockHeaderAndRootHash(header data.HeaderHandler
 
 	bc.appStatusHandler.SetUInt64Value(common.MetricNonce, h.GetNonce())
 	bc.appStatusHandler.SetUInt64Value(common.MetricSynchronizedRound, h.GetRound())
+	bc.appStatusHandler.SetUInt64Value(common.MetricBlockTimestamp, h.GetTimeStamp())
 
 	bc.mut.Lock()
 	bc.currentBlockHeader = h.ShallowClone()
