@@ -84,6 +84,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	hasherFactory "github.com/multiversx/mx-chain-core-go/hashing/factory"
 	marshallerFactory "github.com/multiversx/mx-chain-core-go/marshal/factory"
+	"github.com/multiversx/mx-chain-go/abi"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/multiversx/mx-chain-sovereign-bridge-go/cert"
 	factoryBridge "github.com/multiversx/mx-chain-sovereign-bridge-go/client"
@@ -91,7 +92,6 @@ import (
 	notifierCfg "github.com/multiversx/mx-chain-sovereign-notifier-go/config"
 	"github.com/multiversx/mx-chain-sovereign-notifier-go/factory"
 	notifierProcess "github.com/multiversx/mx-chain-sovereign-notifier-go/process"
-	"github.com/multiversx/mx-sdk-abi-incubator/golang/abi"
 )
 
 var log = logger.GetOrCreate("sovereignNode")
@@ -444,7 +444,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 	timeToWait := time.Second * time.Duration(snr.configs.SovereignExtraConfig.OutgoingSubscribedEvents.TimeToWaitForUnconfirmedOutGoingOperationInSeconds)
 	outGoingOperationsPool := sovereignPool.NewOutGoingOperationPool(timeToWait)
 
-	codec := abi.NewDefaultCodec()
+	codec := abi.NewCodec()
 	argsDataCodec := dataCodec.ArgsDataCodec{
 		Serializer: abi.NewSerializer(codec),
 	}

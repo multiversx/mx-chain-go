@@ -8,7 +8,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
-	"github.com/multiversx/mx-sdk-abi-incubator/golang/abi"
+	"github.com/multiversx/mx-chain-go/abi"
 )
 
 // ArgsDataCodec holds the components needed for serialization/deserialization

@@ -11,7 +11,6 @@ require (
 	github.com/multiversx/mx-chain-logger-go v1.0.14-0.20240129144507-d00e967c890c
 	github.com/multiversx/mx-chain-sovereign-bridge-go v0.0.0-20240116102202-4cf6fbbd95a3
 	github.com/multiversx/mx-chain-sovereign-notifier-go v0.0.0-20230929085947-df9b345f49ac
-	github.com/multiversx/mx-sdk-abi-incubator/golang v0.0.0-20240304123830-5b63f9782aea
 	github.com/stretchr/testify v1.8.4
 	github.com/urfave/cli v1.22.14
 )

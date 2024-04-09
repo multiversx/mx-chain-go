@@ -9,12 +9,12 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
-	"github.com/multiversx/mx-sdk-abi-incubator/golang/abi"
+	"github.com/multiversx/mx-chain-go/abi"
 	"github.com/stretchr/testify/require"
 )
 
 func createDataCodec() SovereignDataDecoder {
-	codec := abi.NewDefaultCodec()
+	codec := abi.NewCodec()
 	args := ArgsDataCodec{
 		Serializer: abi.NewSerializer(codec),
 	}
@@ -29,7 +29,7 @@ func TestNewDataCodec(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		codec := abi.NewDefaultCodec()
+		codec := abi.NewCodec()
 		args := ArgsDataCodec{
 			Serializer: abi.NewSerializer(codec),
 		}
