@@ -1,0 +1,3 @@
+package serializer
+
+const partsSeparator = "@"
