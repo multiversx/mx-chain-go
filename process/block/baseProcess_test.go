@@ -815,6 +815,16 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 			args: func() blproc.ArgBaseProcessor {
 				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 				rtMock := getRunTypeComponentsMock()
+				rtMock.OutGoingOperationsPool = nil
+				args.RunTypeComponents = rtMock
+				return args
+			},
+			expectedErr: errorsMx.ErrNilOutGoingOperationsPool,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				rtMock := getRunTypeComponentsMock()
 				rtMock.DataCodec = nil
 				args.RunTypeComponents = rtMock
 				return args
@@ -848,9 +858,10 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 func getRunTypeComponentsMock() *mock.RunTypeComponentsStub {
 	rt := components.GetRunTypeComponents()
 	return &mock.RunTypeComponentsStub{
-		AccountCreator: rt.AccountsCreator(),
-		DataCodec:      rt.DataCodecHandler(),
-		TopicsChecker:  rt.TopicsCheckerHandler(),
+		AccountCreator:         rt.AccountsCreator(),
+		OutGoingOperationsPool: rt.OutGoingOperationsPoolHandler(),
+		DataCodec:              rt.DataCodecHandler(),
+		TopicsChecker:          rt.TopicsCheckerHandler(),
 	}
 }
 
