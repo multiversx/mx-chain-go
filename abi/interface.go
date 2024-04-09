@@ -1,4 +1,4 @@
-package serializer
+package abi
 
 type valuesCodec interface {
 	EncodeNested(value any) ([]byte, error)

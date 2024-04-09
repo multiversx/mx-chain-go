@@ -1,19 +1,17 @@
-package serializer
+package abi
 
 import (
 	"testing"
 
-	"github.com/multiversx/mx-chain-go/abi/encoding"
-	"github.com/multiversx/mx-chain-go/abi/values"
 	"github.com/stretchr/testify/require"
 )
 
 func TestSerializer_Serialize(t *testing.T) {
-	serializer := NewSerializer(encoding.NewCodec())
+	serializer := NewSerializer(NewCodec())
 
 	t.Run("u8", func(t *testing.T) {
 		data, err := serializer.Serialize([]any{
-			values.U8Value{Value: 0x42},
+			U8Value{Value: 0x42},
 		})
 
 		require.NoError(t, err)
@@ -22,7 +20,7 @@ func TestSerializer_Serialize(t *testing.T) {
 
 	t.Run("u16", func(t *testing.T) {
 		data, err := serializer.Serialize([]any{
-			values.U16Value{Value: 0x4243},
+			U16Value{Value: 0x4243},
 		})
 
 		require.NoError(t, err)
@@ -31,8 +29,8 @@ func TestSerializer_Serialize(t *testing.T) {
 
 	t.Run("u8, u16", func(t *testing.T) {
 		data, err := serializer.Serialize([]any{
-			values.U8Value{Value: 0x42},
-			values.U16Value{Value: 0x4243},
+			U8Value{Value: 0x42},
+			U16Value{Value: 0x4243},
 		})
 
 		require.NoError(t, err)
@@ -41,11 +39,11 @@ func TestSerializer_Serialize(t *testing.T) {
 
 	t.Run("multi<u8, u16, u32>", func(t *testing.T) {
 		data, err := serializer.Serialize([]any{
-			values.InputMultiValue{
+			InputMultiValue{
 				Items: []any{
-					values.U8Value{Value: 0x42},
-					values.U16Value{Value: 0x4243},
-					values.U32Value{Value: 0x42434445},
+					U8Value{Value: 0x42},
+					U16Value{Value: 0x4243},
+					U32Value{Value: 0x42434445},
 				},
 			},
 		})
@@ -56,12 +54,12 @@ func TestSerializer_Serialize(t *testing.T) {
 
 	t.Run("u8, multi<u8, u16, u32>", func(t *testing.T) {
 		data, err := serializer.Serialize([]any{
-			values.U8Value{Value: 0x42},
-			values.InputMultiValue{
+			U8Value{Value: 0x42},
+			InputMultiValue{
 				Items: []any{
-					values.U8Value{Value: 0x42},
-					values.U16Value{Value: 0x4243},
-					values.U32Value{Value: 0x42434445},
+					U8Value{Value: 0x42},
+					U16Value{Value: 0x4243},
+					U32Value{Value: 0x42434445},
 				},
 			},
 		})
@@ -72,18 +70,18 @@ func TestSerializer_Serialize(t *testing.T) {
 
 	t.Run("multi<multi<u8, u16>, multi<u8, u16>>", func(t *testing.T) {
 		data, err := serializer.Serialize([]any{
-			values.InputMultiValue{
+			InputMultiValue{
 				Items: []any{
-					values.InputMultiValue{
+					InputMultiValue{
 						Items: []any{
-							values.U8Value{Value: 0x42},
-							values.U16Value{Value: 0x4243},
+							U8Value{Value: 0x42},
+							U16Value{Value: 0x4243},
 						},
 					},
-					values.InputMultiValue{
+					InputMultiValue{
 						Items: []any{
-							values.U8Value{Value: 0x44},
-							values.U16Value{Value: 0x4445},
+							U8Value{Value: 0x44},
+							U16Value{Value: 0x4445},
 						},
 					},
 				},
@@ -96,10 +94,10 @@ func TestSerializer_Serialize(t *testing.T) {
 
 	t.Run("variadic, of different types", func(t *testing.T) {
 		data, err := serializer.Serialize([]any{
-			values.InputVariadicValues{
+			InputVariadicValues{
 				Items: []any{
-					values.U8Value{Value: 0x42},
-					values.U16Value{Value: 0x4243},
+					U8Value{Value: 0x42},
+					U16Value{Value: 0x4243},
 				},
 			},
 		})
@@ -113,13 +111,13 @@ func TestSerializer_Serialize(t *testing.T) {
 
 	t.Run("variadic<u8>, u8: should err because variadic must be last", func(t *testing.T) {
 		_, err := serializer.Serialize([]any{
-			values.InputVariadicValues{
+			InputVariadicValues{
 				Items: []any{
-					values.U8Value{Value: 0x42},
-					values.U8Value{Value: 0x43},
+					U8Value{Value: 0x42},
+					U8Value{Value: 0x43},
 				},
 			},
-			values.U8Value{Value: 0x44},
+			U8Value{Value: 0x44},
 		})
 
 		require.ErrorContains(t, err, "variadic values must be last among input values")
@@ -127,11 +125,11 @@ func TestSerializer_Serialize(t *testing.T) {
 
 	t.Run("u8, variadic<u8>", func(t *testing.T) {
 		data, err := serializer.Serialize([]any{
-			values.U8Value{Value: 0x41},
-			values.InputVariadicValues{
+			U8Value{Value: 0x41},
+			InputVariadicValues{
 				Items: []any{
-					values.U8Value{Value: 0x42},
-					values.U8Value{Value: 0x43},
+					U8Value{Value: 0x42},
+					U8Value{Value: 0x43},
 				},
 			},
 		})
@@ -142,7 +140,7 @@ func TestSerializer_Serialize(t *testing.T) {
 }
 
 func TestSerializer_Deserialize(t *testing.T) {
-	serializer := NewSerializer(encoding.NewCodec())
+	serializer := NewSerializer(NewCodec())
 
 	t.Run("nil destination", func(t *testing.T) {
 		err := serializer.Deserialize("", []any{nil})
@@ -151,52 +149,52 @@ func TestSerializer_Deserialize(t *testing.T) {
 
 	t.Run("u8", func(t *testing.T) {
 		outputValues := []any{
-			&values.U8Value{},
+			&U8Value{},
 		}
 
 		err := serializer.Deserialize("42", outputValues)
 
 		require.Nil(t, err)
 		require.Equal(t, []any{
-			&values.U8Value{Value: 0x42},
+			&U8Value{Value: 0x42},
 		}, outputValues)
 	})
 
 	t.Run("u16", func(t *testing.T) {
 		outputValues := []any{
-			&values.U16Value{},
+			&U16Value{},
 		}
 
 		err := serializer.Deserialize("4243", outputValues)
 
 		require.Nil(t, err)
 		require.Equal(t, []any{
-			&values.U16Value{Value: 0x4243},
+			&U16Value{Value: 0x4243},
 		}, outputValues)
 	})
 
 	t.Run("u8, u16", func(t *testing.T) {
 		outputValues := []any{
-			&values.U8Value{},
-			&values.U16Value{},
+			&U8Value{},
+			&U16Value{},
 		}
 
 		err := serializer.Deserialize("42@4243", outputValues)
 
 		require.Nil(t, err)
 		require.Equal(t, []any{
-			&values.U8Value{Value: 0x42},
-			&values.U16Value{Value: 0x4243},
+			&U8Value{Value: 0x42},
+			&U16Value{Value: 0x4243},
 		}, outputValues)
 	})
 
 	t.Run("multi<u8, u16, u32>", func(t *testing.T) {
 		outputValues := []any{
-			&values.OutputMultiValue{
+			&OutputMultiValue{
 				Items: []any{
-					&values.U8Value{},
-					&values.U16Value{},
-					&values.U32Value{},
+					&U8Value{},
+					&U16Value{},
+					&U32Value{},
 				},
 			},
 		}
@@ -205,11 +203,11 @@ func TestSerializer_Deserialize(t *testing.T) {
 
 		require.Nil(t, err)
 		require.Equal(t, []any{
-			&values.OutputMultiValue{
+			&OutputMultiValue{
 				Items: []any{
-					&values.U8Value{Value: 0x42},
-					&values.U16Value{Value: 0x4243},
-					&values.U32Value{Value: 0x42434445},
+					&U8Value{Value: 0x42},
+					&U16Value{Value: 0x4243},
+					&U32Value{Value: 0x42434445},
 				},
 			},
 		}, outputValues)
@@ -217,12 +215,12 @@ func TestSerializer_Deserialize(t *testing.T) {
 
 	t.Run("u8, multi<u8, u16, u32>", func(t *testing.T) {
 		outputValues := []any{
-			&values.U8Value{},
-			&values.OutputMultiValue{
+			&U8Value{},
+			&OutputMultiValue{
 				Items: []any{
-					&values.U8Value{},
-					&values.U16Value{},
-					&values.U32Value{},
+					&U8Value{},
+					&U16Value{},
+					&U32Value{},
 				},
 			},
 		}
@@ -231,19 +229,19 @@ func TestSerializer_Deserialize(t *testing.T) {
 
 		require.Nil(t, err)
 		require.Equal(t, []any{
-			&values.U8Value{Value: 0x42},
-			&values.OutputMultiValue{
+			&U8Value{Value: 0x42},
+			&OutputMultiValue{
 				Items: []any{
-					&values.U8Value{Value: 0x42},
-					&values.U16Value{Value: 0x4243},
-					&values.U32Value{Value: 0x42434445},
+					&U8Value{Value: 0x42},
+					&U16Value{Value: 0x4243},
+					&U32Value{Value: 0x42434445},
 				},
 			},
 		}, outputValues)
 	})
 
 	t.Run("variadic, should err because of nil item creator", func(t *testing.T) {
-		destination := &values.OutputVariadicValues{
+		destination := &OutputVariadicValues{
 			Items: []any{},
 		}
 
@@ -252,70 +250,70 @@ func TestSerializer_Deserialize(t *testing.T) {
 	})
 
 	t.Run("empty: u8", func(t *testing.T) {
-		destination := &values.OutputVariadicValues{
+		destination := &OutputVariadicValues{
 			Items:       []any{},
-			ItemCreator: func() any { return &values.U8Value{} },
+			ItemCreator: func() any { return &U8Value{} },
 		}
 
 		err := serializer.Deserialize("", []any{destination})
 		require.NoError(t, err)
-		require.Equal(t, []any{&values.U8Value{Value: 0}}, destination.Items)
+		require.Equal(t, []any{&U8Value{Value: 0}}, destination.Items)
 	})
 
 	t.Run("variadic<u8>", func(t *testing.T) {
-		destination := &values.OutputVariadicValues{
+		destination := &OutputVariadicValues{
 			Items:       []any{},
-			ItemCreator: func() any { return &values.U8Value{} },
+			ItemCreator: func() any { return &U8Value{} },
 		}
 
 		err := serializer.Deserialize("2A@2B@2C", []any{destination})
 		require.NoError(t, err)
 
 		require.Equal(t, []any{
-			&values.U8Value{Value: 42},
-			&values.U8Value{Value: 43},
-			&values.U8Value{Value: 44},
+			&U8Value{Value: 42},
+			&U8Value{Value: 43},
+			&U8Value{Value: 44},
 		}, destination.Items)
 	})
 
 	t.Run("varidic<u8>, with empty items", func(t *testing.T) {
-		destination := &values.OutputVariadicValues{
+		destination := &OutputVariadicValues{
 			Items:       []any{},
-			ItemCreator: func() any { return &values.U8Value{} },
+			ItemCreator: func() any { return &U8Value{} },
 		}
 
 		err := serializer.Deserialize("@01@", []any{destination})
 		require.NoError(t, err)
 
 		require.Equal(t, []any{
-			&values.U8Value{Value: 0},
-			&values.U8Value{Value: 1},
-			&values.U8Value{Value: 0},
+			&U8Value{Value: 0},
+			&U8Value{Value: 1},
+			&U8Value{Value: 0},
 		}, destination.Items)
 	})
 
 	t.Run("varidic<u32>", func(t *testing.T) {
-		destination := &values.OutputVariadicValues{
+		destination := &OutputVariadicValues{
 			Items:       []any{},
-			ItemCreator: func() any { return &values.U32Value{} },
+			ItemCreator: func() any { return &U32Value{} },
 		}
 
 		err := serializer.Deserialize("AABBCCDD@DDCCBBAA", []any{destination})
 		require.NoError(t, err)
 
 		require.Equal(t, []any{
-			&values.U32Value{Value: 0xAABBCCDD},
-			&values.U32Value{Value: 0xDDCCBBAA},
+			&U32Value{Value: 0xAABBCCDD},
+			&U32Value{Value: 0xDDCCBBAA},
 		}, destination.Items)
 	})
 
 	t.Run("varidic<u8>, should err because decoded value is too large", func(t *testing.T) {
-		destination := &values.OutputVariadicValues{
+		destination := &OutputVariadicValues{
 			Items:       []any{},
-			ItemCreator: func() any { return &values.U8Value{} },
+			ItemCreator: func() any { return &U8Value{} },
 		}
 
 		err := serializer.Deserialize("0100", []any{destination})
-		require.ErrorContains(t, err, "cannot decode (top-level) *values.U8Value, because of: decoded value is too large: 256 > 255")
+		require.ErrorContains(t, err, "cannot decode (top-level) *abi.U8Value, because of: decoded value is too large: 256 > 255")
 	})
 }

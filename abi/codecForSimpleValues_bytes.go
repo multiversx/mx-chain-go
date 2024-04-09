@@ -1,12 +1,10 @@
-package encoding
+package abi
 
 import (
 	"io"
-
-	"github.com/multiversx/mx-chain-go/abi/values"
 )
 
-func (c *codec) encodeNestedBytes(writer io.Writer, value values.BytesValue) error {
+func (c *codec) encodeNestedBytes(writer io.Writer, value BytesValue) error {
 	err := encodeLength(writer, uint32(len(value.Value)))
 	if err != nil {
 		return err
@@ -16,7 +14,7 @@ func (c *codec) encodeNestedBytes(writer io.Writer, value values.BytesValue) err
 	return err
 }
 
-func (c *codec) decodeNestedBytes(reader io.Reader, value *values.BytesValue) error {
+func (c *codec) decodeNestedBytes(reader io.Reader, value *BytesValue) error {
 	length, err := decodeLength(reader)
 	if err != nil {
 		return err

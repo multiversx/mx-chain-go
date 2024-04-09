@@ -1,11 +1,9 @@
-package serializer
+package abi
 
 import (
 	"encoding/hex"
 	"errors"
 	"strings"
-
-	"github.com/multiversx/mx-chain-go/abi/values"
 )
 
 type serializer struct {
@@ -47,14 +45,14 @@ func (s *serializer) doSerialize(partsHolder *partsHolder, inputValues []any) er
 		}
 
 		switch value.(type) {
-		case values.InputMultiValue:
-			err = s.serializeInputMultiValue(partsHolder, value.(values.InputMultiValue))
-		case values.InputVariadicValues:
+		case InputMultiValue:
+			err = s.serializeInputMultiValue(partsHolder, value.(InputMultiValue))
+		case InputVariadicValues:
 			if i != len(inputValues)-1 {
 				return errors.New("variadic values must be last among input values")
 			}
 
-			err = s.serializeInputVariadicValues(partsHolder, value.(values.InputVariadicValues))
+			err = s.serializeInputVariadicValues(partsHolder, value.(InputVariadicValues))
 		default:
 			partsHolder.appendEmptyPart()
 			err = s.serializeDirectlyEncodableValue(partsHolder, value)
@@ -97,14 +95,14 @@ func (s *serializer) doDeserialize(partsHolder *partsHolder, outputValues []any)
 		}
 
 		switch value.(type) {
-		case *values.OutputMultiValue:
-			err = s.deserializeOutputMultiValue(partsHolder, value.(*values.OutputMultiValue))
-		case *values.OutputVariadicValues:
+		case *OutputMultiValue:
+			err = s.deserializeOutputMultiValue(partsHolder, value.(*OutputMultiValue))
+		case *OutputVariadicValues:
 			if i != len(outputValues)-1 {
 				return errors.New("variadic values must be last among output values")
 			}
 
-			err = s.deserializeOutputVariadicValues(partsHolder, value.(*values.OutputVariadicValues))
+			err = s.deserializeOutputVariadicValues(partsHolder, value.(*OutputVariadicValues))
 		default:
 			err = s.deserializeDirectlyEncodableValue(partsHolder, value)
 		}
@@ -117,7 +115,7 @@ func (s *serializer) doDeserialize(partsHolder *partsHolder, outputValues []any)
 	return nil
 }
 
-func (s *serializer) serializeInputMultiValue(partsHolder *partsHolder, value values.InputMultiValue) error {
+func (s *serializer) serializeInputMultiValue(partsHolder *partsHolder, value InputMultiValue) error {
 	for _, item := range value.Items {
 		err := s.doSerialize(partsHolder, []any{item})
 		if err != nil {
@@ -128,7 +126,7 @@ func (s *serializer) serializeInputMultiValue(partsHolder *partsHolder, value va
 	return nil
 }
 
-func (s *serializer) serializeInputVariadicValues(partsHolder *partsHolder, value values.InputVariadicValues) error {
+func (s *serializer) serializeInputVariadicValues(partsHolder *partsHolder, value InputVariadicValues) error {
 	for _, item := range value.Items {
 		err := s.doSerialize(partsHolder, []any{item})
 		if err != nil {
@@ -148,7 +146,7 @@ func (s *serializer) serializeDirectlyEncodableValue(partsHolder *partsHolder, v
 	return partsHolder.appendToLastPart(data)
 }
 
-func (s *serializer) deserializeOutputMultiValue(partsHolder *partsHolder, value *values.OutputMultiValue) error {
+func (s *serializer) deserializeOutputMultiValue(partsHolder *partsHolder, value *OutputMultiValue) error {
 	for _, item := range value.Items {
 		err := s.doDeserialize(partsHolder, []any{item})
 		if err != nil {
@@ -159,7 +157,7 @@ func (s *serializer) deserializeOutputMultiValue(partsHolder *partsHolder, value
 	return nil
 }
 
-func (s *serializer) deserializeOutputVariadicValues(partsHolder *partsHolder, value *values.OutputVariadicValues) error {
+func (s *serializer) deserializeOutputVariadicValues(partsHolder *partsHolder, value *OutputVariadicValues) error {
 	if value.ItemCreator == nil {
 		return errors.New("cannot deserialize variadic values: item creator is nil")
 	}

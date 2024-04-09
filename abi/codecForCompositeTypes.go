@@ -1,13 +1,11 @@
-package encoding
+package abi
 
 import (
 	"errors"
 	"io"
-
-	"github.com/multiversx/mx-chain-go/abi/values"
 )
 
-func (c *codec) encodeNestedOption(writer io.Writer, value values.OptionValue) error {
+func (c *codec) encodeNestedOption(writer io.Writer, value OptionValue) error {
 	if value.Value == nil {
 		_, err := writer.Write([]byte{0})
 		return err
@@ -21,7 +19,7 @@ func (c *codec) encodeNestedOption(writer io.Writer, value values.OptionValue) e
 	return c.doEncodeNested(writer, value.Value)
 }
 
-func (c *codec) decodeNestedOption(reader io.Reader, value *values.OptionValue) error {
+func (c *codec) decodeNestedOption(reader io.Reader, value *OptionValue) error {
 	bytes, err := readBytesExactly(reader, 1)
 	if err != nil {
 		return err
@@ -35,7 +33,7 @@ func (c *codec) decodeNestedOption(reader io.Reader, value *values.OptionValue) 
 	return c.doDecodeNested(reader, value.Value)
 }
 
-func (c *codec) encodeNestedList(writer io.Writer, value values.InputListValue) error {
+func (c *codec) encodeNestedList(writer io.Writer, value InputListValue) error {
 	err := encodeLength(writer, uint32(len(value.Items)))
 	if err != nil {
 		return err
@@ -51,7 +49,7 @@ func (c *codec) encodeNestedList(writer io.Writer, value values.InputListValue) 
 	return nil
 }
 
-func (c *codec) decodeNestedList(reader io.Reader, value *values.OutputListValue) error {
+func (c *codec) decodeNestedList(reader io.Reader, value *OutputListValue) error {
 	if value.ItemCreator == nil {
 		return errors.New("cannot deserialize list: item creator is nil")
 	}

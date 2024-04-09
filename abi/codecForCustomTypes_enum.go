@@ -1,15 +1,13 @@
-package encoding
+package abi
 
 import (
 	"bytes"
 	"fmt"
 	"io"
-
-	"github.com/multiversx/mx-chain-go/abi/values"
 )
 
-func (c *codec) encodeNestedEnum(writer io.Writer, value values.EnumValue) error {
-	err := c.doEncodeNested(writer, values.U8Value{Value: value.Discriminant})
+func (c *codec) encodeNestedEnum(writer io.Writer, value EnumValue) error {
+	err := c.doEncodeNested(writer, U8Value{Value: value.Discriminant})
 	if err != nil {
 		return err
 	}
@@ -24,7 +22,7 @@ func (c *codec) encodeNestedEnum(writer io.Writer, value values.EnumValue) error
 	return nil
 }
 
-func (c *codec) encodeTopLevelEnum(writer io.Writer, value values.EnumValue) error {
+func (c *codec) encodeTopLevelEnum(writer io.Writer, value EnumValue) error {
 	if value.Discriminant == 0 && len(value.Fields) == 0 {
 		// Write nothing
 		return nil
@@ -33,8 +31,8 @@ func (c *codec) encodeTopLevelEnum(writer io.Writer, value values.EnumValue) err
 	return c.encodeNestedEnum(writer, value)
 }
 
-func (c *codec) decodeNestedEnum(reader io.Reader, value *values.EnumValue) error {
-	discriminant := &values.U8Value{}
+func (c *codec) decodeNestedEnum(reader io.Reader, value *EnumValue) error {
+	discriminant := &U8Value{}
 	err := c.doDecodeNested(reader, discriminant)
 	if err != nil {
 		return err
@@ -52,7 +50,7 @@ func (c *codec) decodeNestedEnum(reader io.Reader, value *values.EnumValue) erro
 	return nil
 }
 
-func (c *codec) decodeTopLevelEnum(data []byte, value *values.EnumValue) error {
+func (c *codec) decodeTopLevelEnum(data []byte, value *EnumValue) error {
 	if len(data) == 0 {
 		value.Discriminant = 0
 		return nil

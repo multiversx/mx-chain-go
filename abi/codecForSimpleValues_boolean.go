@@ -1,13 +1,11 @@
-package encoding
+package abi
 
 import (
 	"fmt"
 	"io"
-
-	"github.com/multiversx/mx-chain-go/abi/values"
 )
 
-func (c *codec) encodeNestedBool(writer io.Writer, value values.BoolValue) error {
+func (c *codec) encodeNestedBool(writer io.Writer, value BoolValue) error {
 	if value.Value {
 		_, err := writer.Write([]byte{trueAsByte})
 		return err
@@ -17,7 +15,7 @@ func (c *codec) encodeNestedBool(writer io.Writer, value values.BoolValue) error
 	return err
 }
 
-func (c *codec) decodeNestedBool(reader io.Reader, value *values.BoolValue) error {
+func (c *codec) decodeNestedBool(reader io.Reader, value *BoolValue) error {
 	data, err := readBytesExactly(reader, 1)
 	if err != nil {
 		return err
@@ -31,7 +29,7 @@ func (c *codec) decodeNestedBool(reader io.Reader, value *values.BoolValue) erro
 	return nil
 }
 
-func (c *codec) encodeTopLevelBool(writer io.Writer, value values.BoolValue) error {
+func (c *codec) encodeTopLevelBool(writer io.Writer, value BoolValue) error {
 	if !value.Value {
 		// For "false", write nothing.
 		return nil
@@ -41,7 +39,7 @@ func (c *codec) encodeTopLevelBool(writer io.Writer, value values.BoolValue) err
 	return err
 }
 
-func (c *codec) decodeTopLevelBool(data []byte, value *values.BoolValue) error {
+func (c *codec) decodeTopLevelBool(data []byte, value *BoolValue) error {
 	if len(data) == 0 {
 		value.Value = false
 		return nil
