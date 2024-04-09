@@ -107,12 +107,16 @@ func (node *testOnlyProcessingNode) createFacade(configs config.Configs, apiInte
 	if err != nil {
 		return errors.New("error creating node: " + err.Error())
 	}
+	snd, err := nodePack.NewSovereignNode(nd)
+	if err != nil {
+		return errors.New("error creating sovereign node: " + err.Error())
+	}
 
 	shardID := node.GetShardCoordinator().SelfId()
 	restApiInterface := apiInterface.RestApiInterface(shardID)
 
 	argNodeFacade := facade.ArgNodeFacade{
-		Node:                   nd,
+		Node:                   snd,
 		ApiResolver:            apiResolver,
 		RestAPIServerDebugMode: flagsConfig.EnableRestAPIServerDebugMode,
 		WsAntifloodConfig:      configs.GeneralConfig.WebServerAntiflood,

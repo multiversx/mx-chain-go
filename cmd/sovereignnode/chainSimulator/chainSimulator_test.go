@@ -160,30 +160,6 @@ func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	//startTime := time.Now().Unix()
-	//roundDurationInMillis := uint64(6000)
-	//chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
-	//	BypassTxSignatureCheck: false,
-	//	TempDir:                t.TempDir(),
-	//	PathToInitialConfig:    defaultPathToInitialConfig,
-	//	NumOfShards:            3,
-	//	GenesisTimestamp:       startTime,
-	//	RoundDurationInMillis:  roundDurationInMillis,
-	//	RoundsPerEpoch: core.OptionalUint64{
-	//		HasValue: true,
-	//		Value:    20,
-	//	},
-	//	ApiInterface:      api.NewNoApiInterface(),
-	//	MinNodesPerShard:  1,
-	//	MetaChainMinNodes: 1,
-	//	InitialRound:      200000000,
-	//	InitialEpoch:      100,
-	//	InitialNonce:      100,
-	//	GetRunTypeComponents: func(coreComponents factory.CoreComponentsHolder, cryptoComponents factory.CryptoComponentsHolder) (factory.RunTypeComponentsHolder, error) {
-	//		return createRunTypeComponents(coreComponents, cryptoComponents)
-	//	},
-	//})
-
 	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
 	sovereignExtraConfig, err := loadSovereignConfig()
@@ -200,16 +176,10 @@ func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
 		NumOfShards:            1,
 		GenesisTimestamp:       startTime,
 		RoundDurationInMillis:  roundDurationInMillis,
-		RoundsPerEpoch: core.OptionalUint64{
-			HasValue: true,
-			Value:    100,
-		},
-		ApiInterface:      api.NewNoApiInterface(),
-		MinNodesPerShard:  2,
-		MetaChainMinNodes: 0,
-		InitialRound:      1,
-		InitialEpoch:      0,
-		InitialNonce:      0,
+		RoundsPerEpoch:         core.OptionalUint64{},
+		ApiInterface:           api.NewNoApiInterface(),
+		MinNodesPerShard:       2,
+		MetaChainMinNodes:      0,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.EconomicsConfig = economicsConfig
 			cfg.EpochConfig = epochConfig
@@ -253,13 +223,10 @@ func TestChainSimulator_SetState(t *testing.T) {
 		NumOfShards:            1,
 		GenesisTimestamp:       startTime,
 		RoundDurationInMillis:  roundDurationInMillis,
-		RoundsPerEpoch: core.OptionalUint64{
-			HasValue: true,
-			Value:    999999999,
-		},
-		ApiInterface:      api.NewNoApiInterface(),
-		MinNodesPerShard:  2,
-		MetaChainMinNodes: 0,
+		RoundsPerEpoch:         core.OptionalUint64{},
+		ApiInterface:           api.NewNoApiInterface(),
+		MinNodesPerShard:       2,
+		MetaChainMinNodes:      0,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.EconomicsConfig = economicsConfig
 			cfg.EpochConfig = epochConfig
@@ -288,7 +255,7 @@ func TestChainSimulator_SetState(t *testing.T) {
 	err = chainSimulator.GenerateBlocks(1)
 	require.Nil(t, err)
 
-	nodeHandler := chainSimulator.GetNodeHandler(0)
+	nodeHandler := chainSimulator.GetNodeHandler(core.SovereignChainShardId)
 	keyValuePairs, _, err := nodeHandler.GetFacadeHandler().GetKeyValuePairs(address, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
 	require.Equal(t, keyValueMap, keyValuePairs)
@@ -315,13 +282,10 @@ func TestChainSimulator_SetEntireState(t *testing.T) {
 		NumOfShards:            1,
 		GenesisTimestamp:       startTime,
 		RoundDurationInMillis:  roundDurationInMillis,
-		RoundsPerEpoch: core.OptionalUint64{
-			HasValue: true,
-			Value:    999999999,
-		},
-		ApiInterface:      api.NewNoApiInterface(),
-		MinNodesPerShard:  2,
-		MetaChainMinNodes: 0,
+		RoundsPerEpoch:         core.OptionalUint64{},
+		ApiInterface:           api.NewNoApiInterface(),
+		MinNodesPerShard:       2,
+		MetaChainMinNodes:      0,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.EconomicsConfig = economicsConfig
 			cfg.EpochConfig = epochConfig
@@ -358,7 +322,7 @@ func TestChainSimulator_SetEntireState(t *testing.T) {
 	err = chainSimulator.SetStateMultiple([]*dtos.AddressState{accountState})
 	require.Nil(t, err)
 
-	err = chainSimulator.GenerateBlocks(150)
+	err = chainSimulator.GenerateBlocks(200)
 	require.Nil(t, err)
 
 	nodeHandler := chainSimulator.GetNodeHandler(core.SovereignChainShardId)
@@ -408,13 +372,10 @@ func TestChainSimulator_GetAccount(t *testing.T) {
 		NumOfShards:            1,
 		GenesisTimestamp:       startTime,
 		RoundDurationInMillis:  roundDurationInMillis,
-		RoundsPerEpoch: core.OptionalUint64{
-			HasValue: true,
-			Value:    999999999,
-		},
-		ApiInterface:      api.NewNoApiInterface(),
-		MinNodesPerShard:  2,
-		MetaChainMinNodes: 0,
+		RoundsPerEpoch:         core.OptionalUint64{},
+		ApiInterface:           api.NewNoApiInterface(),
+		MinNodesPerShard:       2,
+		MetaChainMinNodes:      0,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.EconomicsConfig = economicsConfig
 			cfg.EpochConfig = epochConfig
@@ -486,13 +447,10 @@ func TestSimulator_SendTransactions(t *testing.T) {
 		NumOfShards:            1,
 		GenesisTimestamp:       startTime,
 		RoundDurationInMillis:  roundDurationInMillis,
-		RoundsPerEpoch: core.OptionalUint64{
-			HasValue: true,
-			Value:    999999999,
-		},
-		ApiInterface:      api.NewNoApiInterface(),
-		MinNodesPerShard:  2,
-		MetaChainMinNodes: 0,
+		RoundsPerEpoch:         core.OptionalUint64{},
+		ApiInterface:           api.NewNoApiInterface(),
+		MinNodesPerShard:       2,
+		MetaChainMinNodes:      0,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.EconomicsConfig = economicsConfig
 			cfg.EpochConfig = epochConfig

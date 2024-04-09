@@ -16,8 +16,6 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos/sposFactory"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
-	dataRetrieverFactory "github.com/multiversx/mx-chain-go/dataRetriever/factory"
 	"github.com/multiversx/mx-chain-go/facade"
 	"github.com/multiversx/mx-chain-go/factory"
 	bootstrapComp "github.com/multiversx/mx-chain-go/factory/bootstrap"
@@ -68,8 +66,6 @@ type testOnlyProcessingNode struct {
 	ChainHandler          chainData.ChainHandler
 	ArgumentsParser       process.ArgumentsParser
 	TransactionFeeHandler process.TransactionFeeHandler
-	StoreService          dataRetriever.StorageService
-	DataPool              dataRetriever.PoolsHolder
 	broadcastMessenger    consensus.BroadcastMessenger
 
 	httpServer    shared.UpgradeableHttpServerHandler
@@ -80,7 +76,6 @@ type testOnlyProcessingNode struct {
 func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProcessingNode, error) {
 	instance := &testOnlyProcessingNode{
 		ArgumentsParser: smartContract.NewArgumentParser(),
-		StoreService:    CreateStore(args.NumShards),
 		closeHandler:    NewCloseHandler(),
 	}
 
@@ -161,25 +156,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		return nil, err
 	}
 
-	//err = instance.createBlockChain(selfShardID)
-	//if err != nil {
-	//	return nil, err
-	//}
-
-	err = instance.createDataPool(args)
-	if err != nil {
-		return nil, err
-	}
-	err = instance.createNodesCoordinator(args.Configs.PreferencesConfig.Preferences, *args.Configs.GeneralConfig, instance.RunTypeComponents)
-	if err != nil {
-		return nil, err
-	}
-
 	instance.DataComponentsHolder, err = CreateDataComponents(ArgsDataComponentsHolder{
-		//Chain:              instance.ChainHandler,
-		//StorageService:     instance.StoreService,
-		//DataPool:           instance.DataPool,
-		//InternalMarshaller: instance.CoreComponentsHolder.InternalMarshalizer(),
 		Configs:              args.Configs,
 		CoreComponents:       instance.CoreComponentsHolder,
 		StatusCoreComponents: instance.StatusCoreComponents,
@@ -190,18 +167,20 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 	if err != nil {
 		return nil, err
 	}
-
 	instance.ChainHandler = instance.DataComponentsHolder.Blockchain()
-	//instance.StoreService = instance.DataComponentsHolder.StorageService()
 
 	instance.StateComponentsHolder, err = CreateStateComponents(ArgsStateComponents{
 		Config:            *args.Configs.GeneralConfig,
 		CoreComponents:    instance.CoreComponentsHolder,
 		StatusCore:        instance.StatusCoreComponents,
-		StoreService:      instance.StoreService,
-		ChainHandler:      instance.ChainHandler,
+		DataComponents:    instance.DataComponentsHolder,
 		RunTypeComponents: instance.RunTypeComponents,
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	err = instance.createNodesCoordinator(args.Configs.PreferencesConfig.Preferences, *args.Configs.GeneralConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -271,34 +250,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 	return instance, nil
 }
 
-func (node *testOnlyProcessingNode) createBlockChain(selfShardID uint32) error {
-	var err error
-	if selfShardID == core.MetachainShardId {
-		node.ChainHandler, err = blockchain.NewMetaChain(node.StatusCoreComponents.AppStatusHandler())
-	} else {
-		node.ChainHandler, err = blockchain.NewBlockChain(node.StatusCoreComponents.AppStatusHandler())
-	}
-
-	return err
-}
-
-func (node *testOnlyProcessingNode) createDataPool(args ArgsTestOnlyProcessingNode) error {
-	var err error
-
-	argsDataPool := dataRetrieverFactory.ArgsDataPool{
-		Config:           args.Configs.GeneralConfig,
-		EconomicsData:    node.CoreComponentsHolder.EconomicsData(),
-		ShardCoordinator: node.BootstrapComponentsHolder.ShardCoordinator(),
-		Marshalizer:      node.CoreComponentsHolder.InternalMarshalizer(),
-		PathManager:      node.CoreComponentsHolder.PathHandler(),
-	}
-
-	node.DataPool, err = dataRetrieverFactory.NewDataPoolFromConfig(argsDataPool)
-
-	return err
-}
-
-func (node *testOnlyProcessingNode) createNodesCoordinator(pref config.PreferencesConfig, generalConfig config.Config, runTypeComponents factory.RunTypeComponentsHolder) error {
+func (node *testOnlyProcessingNode) createNodesCoordinator(pref config.PreferencesConfig, generalConfig config.Config) error {
 	nodesShufflerOut, err := bootstrapComp.CreateNodesShuffleOut(
 		node.CoreComponentsHolder.GenesisNodesSetup(),
 		generalConfig.EpochStartConfig,
@@ -308,7 +260,7 @@ func (node *testOnlyProcessingNode) createNodesCoordinator(pref config.Preferenc
 		return err
 	}
 
-	bootstrapStorer, err := node.StoreService.GetStorer(dataRetriever.BootstrapUnit)
+	bootstrapStorer, err := node.DataComponentsHolder.StorageService().GetStorer(dataRetriever.BootstrapUnit)
 	if err != nil {
 		return err
 	}
@@ -330,9 +282,9 @@ func (node *testOnlyProcessingNode) createNodesCoordinator(pref config.Preferenc
 		node.CoreComponentsHolder.ChanStopNodeProcess(),
 		node.CoreComponentsHolder.NodeTypeProvider(),
 		node.CoreComponentsHolder.EnableEpochsHandler(),
-		node.DataPool.CurrentEpochValidatorInfo(),
+		node.DataComponentsHolder.Datapool().CurrentEpochValidatorInfo(),
 		node.BootstrapComponentsHolder.NodesCoordinatorRegistryFactory(),
-		runTypeComponents.NodesCoordinatorWithRaterCreator(),
+		node.RunTypeComponents.NodesCoordinatorWithRaterCreator(),
 	)
 	if err != nil {
 		return err
@@ -404,6 +356,11 @@ func (node *testOnlyProcessingNode) GetFacadeHandler() shared.FacadeHandler {
 // GetStatusCoreComponents will return the status core components
 func (node *testOnlyProcessingNode) GetStatusCoreComponents() factory.StatusCoreComponentsHolder {
 	return node.StatusCoreComponents
+}
+
+// GetDataComponents will return the data components
+func (node *testOnlyProcessingNode) GetDataComponents() factory.DataComponentsHandler {
+	return node.DataComponentsHolder
 }
 
 func (node *testOnlyProcessingNode) collectClosableComponents(apiInterface APIConfigurator) {

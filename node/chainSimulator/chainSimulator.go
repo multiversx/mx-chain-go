@@ -80,7 +80,7 @@ func NewChainSimulator(args ArgsChainSimulator) (*Simulator, error) {
 	instance := &Simulator{
 		syncedBroadcastNetwork: syncedBroadcastNetwork,
 		nodes:                  make(map[uint32]process.NodeHandler),
-		handlers:               make([]ChainHandler, 0, args.NumOfShards+1),
+		handlers:               make([]ChainHandler, 0, args.NumOfShards),
 		numOfShards:            args.NumOfShards,
 		chanStopNodeProcess:    make(chan endProcess.ArgEndProcess),
 		mutex:                  sync.RWMutex{},
@@ -417,8 +417,7 @@ func (s *Simulator) SetStateMultiple(stateSlice []*dtos.AddressState) error {
 		if bytes.Equal(addressBytes, core.SystemAccountAddress) {
 			err = s.setStateSystemAccount(state)
 		} else {
-			shardID := sharding.ComputeShardID(addressBytes, s.numOfShards)
-			err = s.nodes[shardID].SetStateForAddress(addressBytes, state)
+			err = s.nodes[core.SovereignChainShardId].SetStateForAddress(addressBytes, state)
 		}
 		if err != nil {
 			return err
@@ -488,9 +487,7 @@ func (s *Simulator) computeTransactionsStatus(txsWithResult []*transactionWithRe
 			continue
 		}
 
-		sentTx := resultTx.tx
-		destinationShardID := s.GetNodeHandler(0).GetShardCoordinator().ComputeId(sentTx.RcvAddr)
-		result, errGet := s.GetNodeHandler(destinationShardID).GetFacadeHandler().GetTransaction(resultTx.hexHash, true)
+		result, errGet := s.GetNodeHandler(core.SovereignChainShardId).GetFacadeHandler().GetTransaction(resultTx.hexHash, true)
 		if errGet == nil && result.Status != transaction.TxStatusPending {
 			log.Info("############## transaction was executed ##############", "txHash", resultTx.hexHash)
 			resultTx.result = result
@@ -513,13 +510,12 @@ func getApiTransactionsFromResult(txWithResult []*transactionWithResult) []*tran
 }
 
 func (s *Simulator) sendTx(tx *transaction.Transaction) (string, error) {
-	shardID := s.GetNodeHandler(0).GetShardCoordinator().ComputeId(tx.SndAddr)
-	err := s.GetNodeHandler(shardID).GetFacadeHandler().ValidateTransaction(tx)
+	node := s.GetNodeHandler(core.SovereignChainShardId)
+	err := node.GetFacadeHandler().ValidateTransaction(tx)
 	if err != nil {
 		return "", err
 	}
 
-	node := s.GetNodeHandler(shardID)
 	txHash, err := core.CalculateHash(node.GetCoreComponents().InternalMarshalizer(), node.GetCoreComponents().Hasher(), tx)
 	if err != nil {
 		return "", err
@@ -555,9 +551,7 @@ func (s *Simulator) setStateSystemAccount(state *dtos.AddressState) error {
 
 // GetAccount will fetch the account of the provided address
 func (s *Simulator) GetAccount(address dtos.WalletAddress) (api.AccountResponse, error) {
-	destinationShardID := s.GetNodeHandler(0).GetShardCoordinator().ComputeId(address.Bytes)
-
-	account, _, err := s.GetNodeHandler(destinationShardID).GetFacadeHandler().GetAccount(address.Bech32, api.AccountQueryOptions{})
+	account, _, err := s.GetNodeHandler(core.SovereignChainShardId).GetFacadeHandler().GetAccount(address.Bech32, api.AccountQueryOptions{})
 	return account, err
 }
 
