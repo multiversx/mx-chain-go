@@ -156,10 +156,6 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		return nil, fmt.Errorf("runTypeComponentsFactory - NewAccountCreator failed: %w", err)
 	}
 
-	dataCodec := disabled.NewDisabledDataCodec()
-
-	topicsChecker := disabled.NewDisabledTopicsChecker()
-
 	return &runTypeComponents{
 		blockChainHookHandlerCreator:        blockChainHookHandlerFactory,
 		epochStartBootstrapperCreator:       epochStartBootstrapperFactory,
@@ -180,8 +176,8 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		vmContainerMetaFactory:              vmContainerMetaCreator,
 		vmContainerShardFactory:             vmContainerShardCreator,
 		accountsCreator:                     accountsCreator,
-		dataCodecHandler:                    dataCodec,
-		topicsCheckerHandler:                topicsChecker,
+		dataCodecHandler:                    disabled.NewDisabledDataCodec(),
+		topicsCheckerHandler:                disabled.NewDisabledTopicsChecker(),
 	}, nil
 }
 

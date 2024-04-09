@@ -157,10 +157,6 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignAccountCreator failed: %w", err)
 	}
 
-	dataCodec := rcf.dataCodec
-
-	topicsChecker := rcf.topicsChecker
-
 	return &runTypeComponents{
 		blockChainHookHandlerCreator:        blockChainHookHandlerFactory,
 		epochStartBootstrapperCreator:       epochStartBootstrapperFactory,
@@ -181,7 +177,7 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		vmContainerMetaFactory:              rtc.vmContainerMetaFactory,
 		vmContainerShardFactory:             vmContainerShardCreator,
 		accountsCreator:                     accountsCreator,
-		dataCodecHandler:                    dataCodec,
-		topicsCheckerHandler:                topicsChecker,
+		dataCodecHandler:                    rcf.dataCodec,
+		topicsCheckerHandler:                rcf.topicsChecker,
 	}, nil
 }
