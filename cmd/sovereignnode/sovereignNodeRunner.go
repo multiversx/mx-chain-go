@@ -1656,6 +1656,7 @@ func (snr *sovereignNodeRunner) CreateManagedCryptoComponents(
 	return managedCryptoComponents, nil
 }
 
+// CreateArgsRunTypeComponents creates the arguments for sovereign runType components
 func (snr *sovereignNodeRunner) CreateArgsRunTypeComponents() (*runType.ArgsSovereignRunTypeComponents, error) {
 	sovereignCfg := snr.configs.SovereignExtraConfig
 
