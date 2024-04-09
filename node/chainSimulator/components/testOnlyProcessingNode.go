@@ -80,8 +80,8 @@ type testOnlyProcessingNode struct {
 func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProcessingNode, error) {
 	instance := &testOnlyProcessingNode{
 		ArgumentsParser: smartContract.NewArgumentParser(),
-		//StoreService:    CreateStore(args.NumShards),
-		closeHandler: NewCloseHandler(),
+		StoreService:    CreateStore(args.NumShards),
+		closeHandler:    NewCloseHandler(),
 	}
 
 	var err error
@@ -192,7 +192,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 	}
 
 	instance.ChainHandler = instance.DataComponentsHolder.Blockchain()
-	instance.StoreService = instance.DataComponentsHolder.StorageService()
+	//instance.StoreService = instance.DataComponentsHolder.StorageService()
 
 	instance.StateComponentsHolder, err = CreateStateComponents(ArgsStateComponents{
 		Config:            *args.Configs.GeneralConfig,

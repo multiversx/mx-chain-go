@@ -551,7 +551,7 @@ func TestSimulator_SendTransactions(t *testing.T) {
 	})
 	t.Run("nil transaction in slice should error", func(t *testing.T) {
 		sentTxs, errSend := chainSimulator.SendTxsAndGenerateBlocksTilAreExecuted([]*transaction.Transaction{nil}, 1)
-		assert.ErrorIs(t, errSend, errNilTransaction)
+		require.ErrorContains(t, errSend, errNilTransaction.Error())
 		assert.Nil(t, sentTxs)
 	})
 	t.Run("2 transactions from different shard should call send correctly", func(t *testing.T) {
