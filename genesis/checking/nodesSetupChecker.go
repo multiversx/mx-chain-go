@@ -8,9 +8,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const minimumAcceptedNodePrice = 0
@@ -136,6 +137,8 @@ func (nsc *nodeSetupChecker) subtractStakedValue(
 
 	for _, ia := range initialAccounts {
 		if bytes.Equal(ia.AddressBytes(), addressBytes) {
+			np := nsc.initialNodePrice.String()
+			_ = np
 			ia.GetStakingValue().Sub(ia.GetStakingValue(), nsc.initialNodePrice)
 			if ia.GetStakingValue().Cmp(zero) < 0 {
 				return genesis.ErrStakingValueIsNotEnough

@@ -276,6 +276,9 @@ func setSovereignStakedData(
 			return nil, err
 		}
 
+		add := hex.EncodeToString(nodeInfo.AddressBytes())
+		_ = add
+
 		tx := &transaction.Transaction{
 			Nonce:     senderAcc.GetNonce(),
 			Value:     new(big.Int).Set(stakeValue),

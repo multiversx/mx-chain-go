@@ -6,27 +6,100 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	coreAPI "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-sdk-abi-incubator/golang/abi"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/runType"
+	chainSim "github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/headerCheck"
+	sovereignConfig "github.com/multiversx/mx-chain-go/sovereignnode/config"
+	"github.com/multiversx/mx-chain-go/sovereignnode/dataCodec"
+	"github.com/multiversx/mx-chain-go/sovereignnode/incomingHeader"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/stretchr/testify/require"
 )
 
 const (
-	defaultPathToInitialConfig = "../../cmd/node/config/"
+	defaultPathToInitialConfig = "../../node/config/"
 )
 
-func createRunTypeComponents(coreComponents process.CoreComponentsHolder, _ factory.CryptoComponentsHolder) (factory.RunTypeComponentsHolder, error) {
+func loadEpochConfig() (*config.EpochConfig, error) {
+	epochConfig, err := common.LoadEpochConfig("../config/enableEpochs.toml")
+	if err != nil {
+		return nil, err
+	}
+
+	return epochConfig, nil
+}
+
+func loadEconomicsConfig() (*config.EconomicsConfig, error) {
+	economicsConfig, err := common.LoadEconomicsConfig("../config/economics.toml")
+	if err != nil {
+		return nil, err
+	}
+
+	return economicsConfig, nil
+}
+
+func loadSovereignConfig() (*config.SovereignConfig, error) {
+	sovereignExtraConfig, err := sovereignConfig.LoadSovereignGeneralConfig("../config/sovereignConfig.toml")
+	if err != nil {
+		return nil, err
+	}
+
+	sovereignExtraConfig.OutGoingBridgeCertificate = config.OutGoingBridgeCertificate{
+		CertificatePath:   "/home/ubuntu/MultiversX/testnet/config/certificate.crt",
+		CertificatePkPath: "/home/ubuntu/MultiversX/testnet/config/private_key.pem",
+	}
+
+	return sovereignExtraConfig, nil
+}
+
+func createArgsRunTypeComponents(blockSigner crypto.SingleSigner, sovereignExtraConfig config.SovereignConfig) (*runType.ArgsSovereignRunTypeComponents, error) {
+	codec := abi.NewDefaultCodec()
+	argsDataCodec := dataCodec.ArgsDataCodec{
+		Serializer: abi.NewSerializer(codec),
+	}
+
+	dataCodecHandler, err := dataCodec.NewDataCodec(argsDataCodec)
+	if err != nil {
+		return nil, err
+	}
+
+	topicsCheckerHandler := incomingHeader.NewTopicsChecker()
+
+	sovHeaderSigVerifier, err := headerCheck.NewSovereignHeaderSigVerifier(blockSigner)
+	if err != nil {
+		return nil, err
+	}
+
+	return &runType.ArgsSovereignRunTypeComponents{
+		Config:        sovereignExtraConfig,
+		DataCodec:     dataCodecHandler,
+		TopicsChecker: topicsCheckerHandler,
+		ExtraVerifier: sovHeaderSigVerifier,
+	}, nil
+}
+
+func createRunTypeComponents(coreComponents process.CoreComponentsHolder, cryptoComponents factory.CryptoComponentsHolder, sovereignExtraConfig config.SovereignConfig) (factory.RunTypeComponentsHolder, error) {
 	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory(coreComponents)
-	managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(runTypeComponentsFactory)
+	sovRunTypeArgs, err := createArgsRunTypeComponents(cryptoComponents.BlockSigner(), sovereignExtraConfig)
+	if err != nil {
+		return nil, err
+	}
+	sovereignComponentsFactory, _ := runType.NewSovereignRunTypeComponentsFactory(runTypeComponentsFactory, *sovRunTypeArgs)
+	managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(sovereignComponentsFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -38,26 +111,40 @@ func createRunTypeComponents(coreComponents process.CoreComponentsHolder, _ fact
 	return managedRunTypeComponents, nil
 }
 
-func TestNewChainSimulator(t *testing.T) {
+func TestNewSovereignChainSimulator(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 
 	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
-	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
+	sovereignExtraConfig, err := loadSovereignConfig()
+	require.Nil(t, err)
+	economicsConfig, err := loadEconomicsConfig()
+	require.Nil(t, err)
+	epochConfig, err := loadEpochConfig()
+	require.Nil(t, err)
+
+	chainSimulator, err := NewSovereignChainSimulator(chainSim.ArgsChainSimulator{
 		BypassTxSignatureCheck: false,
 		TempDir:                t.TempDir(),
 		PathToInitialConfig:    defaultPathToInitialConfig,
-		NumOfShards:            3,
+		NumOfShards:            1,
 		GenesisTimestamp:       startTime,
 		RoundDurationInMillis:  roundDurationInMillis,
 		RoundsPerEpoch:         core.OptionalUint64{},
 		ApiInterface:           api.NewNoApiInterface(),
-		MinNodesPerShard:       1,
-		MetaChainMinNodes:      1,
+		MinNodesPerShard:       2,
+		MetaChainMinNodes:      0,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			cfg.EconomicsConfig = economicsConfig
+			cfg.EpochConfig = epochConfig
+			cfg.GeneralConfig.SovereignConfig = *sovereignExtraConfig
+			cfg.GeneralConfig.VirtualMachine.Execution.WasmVMVersions = []config.WasmVMVersionByEpoch{{StartEpoch: 0, Version: "v1.5"}}
+			cfg.GeneralConfig.VirtualMachine.Querying.WasmVMVersions = []config.WasmVMVersionByEpoch{{StartEpoch: 0, Version: "v1.5"}}
+		},
 		GetRunTypeComponents: func(coreComponents factory.CoreComponentsHolder, cryptoComponents factory.CryptoComponentsHolder) (factory.RunTypeComponentsHolder, error) {
-			return createRunTypeComponents(coreComponents, cryptoComponents)
+			return createRunTypeComponents(coreComponents, cryptoComponents, *sovereignExtraConfig)
 		},
 	})
 	require.Nil(t, err)
@@ -73,27 +160,65 @@ func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
+	//startTime := time.Now().Unix()
+	//roundDurationInMillis := uint64(6000)
+	//chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
+	//	BypassTxSignatureCheck: false,
+	//	TempDir:                t.TempDir(),
+	//	PathToInitialConfig:    defaultPathToInitialConfig,
+	//	NumOfShards:            3,
+	//	GenesisTimestamp:       startTime,
+	//	RoundDurationInMillis:  roundDurationInMillis,
+	//	RoundsPerEpoch: core.OptionalUint64{
+	//		HasValue: true,
+	//		Value:    20,
+	//	},
+	//	ApiInterface:      api.NewNoApiInterface(),
+	//	MinNodesPerShard:  1,
+	//	MetaChainMinNodes: 1,
+	//	InitialRound:      200000000,
+	//	InitialEpoch:      100,
+	//	InitialNonce:      100,
+	//	GetRunTypeComponents: func(coreComponents factory.CoreComponentsHolder, cryptoComponents factory.CryptoComponentsHolder) (factory.RunTypeComponentsHolder, error) {
+	//		return createRunTypeComponents(coreComponents, cryptoComponents)
+	//	},
+	//})
+
 	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
-	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
+	sovereignExtraConfig, err := loadSovereignConfig()
+	require.Nil(t, err)
+	economicsConfig, err := loadEconomicsConfig()
+	require.Nil(t, err)
+	epochConfig, err := loadEpochConfig()
+	require.Nil(t, err)
+
+	chainSimulator, err := NewSovereignChainSimulator(chainSim.ArgsChainSimulator{
 		BypassTxSignatureCheck: false,
 		TempDir:                t.TempDir(),
 		PathToInitialConfig:    defaultPathToInitialConfig,
-		NumOfShards:            3,
+		NumOfShards:            1,
 		GenesisTimestamp:       startTime,
 		RoundDurationInMillis:  roundDurationInMillis,
 		RoundsPerEpoch: core.OptionalUint64{
 			HasValue: true,
-			Value:    20,
+			Value:    100,
 		},
 		ApiInterface:      api.NewNoApiInterface(),
-		MinNodesPerShard:  1,
-		MetaChainMinNodes: 1,
-		InitialRound:      200000000,
-		InitialEpoch:      100,
-		InitialNonce:      100,
+		MinNodesPerShard:  2,
+		MetaChainMinNodes: 0,
+		InitialRound:      1,
+		InitialEpoch:      0,
+		InitialNonce:      0,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			cfg.EconomicsConfig = economicsConfig
+			cfg.EpochConfig = epochConfig
+			cfg.GeneralConfig.SovereignConfig = *sovereignExtraConfig
+			cfg.GeneralConfig.VirtualMachine.Execution.WasmVMVersions = []config.WasmVMVersionByEpoch{{StartEpoch: 0, Version: "v1.5"}}
+			cfg.GeneralConfig.VirtualMachine.Querying.WasmVMVersions = []config.WasmVMVersionByEpoch{{StartEpoch: 0, Version: "v1.5"}}
+		},
 		GetRunTypeComponents: func(coreComponents factory.CoreComponentsHolder, cryptoComponents factory.CryptoComponentsHolder) (factory.RunTypeComponentsHolder, error) {
-			return createRunTypeComponents(coreComponents, cryptoComponents)
+			return createRunTypeComponents(coreComponents, cryptoComponents, *sovereignExtraConfig)
 		},
 	})
 	require.Nil(t, err)
@@ -107,66 +232,6 @@ func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
 	require.Nil(t, err)
 }
 
-func TestChainSimulator_GenerateBlocksAndEpochChangeShouldWork(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
-	startTime := time.Now().Unix()
-	roundDurationInMillis := uint64(6000)
-	roundsPerEpoch := core.OptionalUint64{
-		HasValue: true,
-		Value:    20,
-	}
-	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
-		BypassTxSignatureCheck: false,
-		TempDir:                t.TempDir(),
-		PathToInitialConfig:    defaultPathToInitialConfig,
-		NumOfShards:            3,
-		GenesisTimestamp:       startTime,
-		RoundDurationInMillis:  roundDurationInMillis,
-		RoundsPerEpoch:         roundsPerEpoch,
-		ApiInterface:           api.NewNoApiInterface(),
-		MinNodesPerShard:       100,
-		MetaChainMinNodes:      100,
-		GetRunTypeComponents: func(coreComponents factory.CoreComponentsHolder, cryptoComponents factory.CryptoComponentsHolder) (factory.RunTypeComponentsHolder, error) {
-			return createRunTypeComponents(coreComponents, cryptoComponents)
-		},
-	})
-	require.Nil(t, err)
-	require.NotNil(t, chainSimulator)
-
-	defer chainSimulator.Close()
-
-	facade, err := NewChainSimulatorFacade(chainSimulator)
-	require.Nil(t, err)
-
-	genesisBalances := make(map[string]*big.Int)
-	for _, stakeWallet := range chainSimulator.initialWalletKeys.StakeWallets {
-		initialAccount, errGet := facade.GetExistingAccountFromBech32AddressString(stakeWallet.Address.Bech32)
-		require.Nil(t, errGet)
-
-		genesisBalances[stakeWallet.Address.Bech32] = initialAccount.GetBalance()
-	}
-
-	time.Sleep(time.Second)
-
-	err = chainSimulator.GenerateBlocks(80)
-	require.Nil(t, err)
-
-	numAccountsWithIncreasedBalances := 0
-	for _, stakeWallet := range chainSimulator.initialWalletKeys.StakeWallets {
-		account, errGet := facade.GetExistingAccountFromBech32AddressString(stakeWallet.Address.Bech32)
-		require.Nil(t, errGet)
-
-		if account.GetBalance().Cmp(genesisBalances[stakeWallet.Address.Bech32]) > 0 {
-			numAccountsWithIncreasedBalances++
-		}
-	}
-
-	assert.True(t, numAccountsWithIncreasedBalances > 0)
-}
-
 func TestChainSimulator_SetState(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -174,23 +239,36 @@ func TestChainSimulator_SetState(t *testing.T) {
 
 	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
-	roundsPerEpoch := core.OptionalUint64{
-		HasValue: true,
-		Value:    20,
-	}
-	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
+	sovereignExtraConfig, err := loadSovereignConfig()
+	require.Nil(t, err)
+	economicsConfig, err := loadEconomicsConfig()
+	require.Nil(t, err)
+	epochConfig, err := loadEpochConfig()
+	require.Nil(t, err)
+
+	chainSimulator, err := NewSovereignChainSimulator(chainSim.ArgsChainSimulator{
 		BypassTxSignatureCheck: false,
 		TempDir:                t.TempDir(),
 		PathToInitialConfig:    defaultPathToInitialConfig,
-		NumOfShards:            3,
+		NumOfShards:            1,
 		GenesisTimestamp:       startTime,
 		RoundDurationInMillis:  roundDurationInMillis,
-		RoundsPerEpoch:         roundsPerEpoch,
-		ApiInterface:           api.NewNoApiInterface(),
-		MinNodesPerShard:       1,
-		MetaChainMinNodes:      1,
+		RoundsPerEpoch: core.OptionalUint64{
+			HasValue: true,
+			Value:    999999999,
+		},
+		ApiInterface:      api.NewNoApiInterface(),
+		MinNodesPerShard:  2,
+		MetaChainMinNodes: 0,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			cfg.EconomicsConfig = economicsConfig
+			cfg.EpochConfig = epochConfig
+			cfg.GeneralConfig.SovereignConfig = *sovereignExtraConfig
+			cfg.GeneralConfig.VirtualMachine.Execution.WasmVMVersions = []config.WasmVMVersionByEpoch{{StartEpoch: 0, Version: "v1.5"}}
+			cfg.GeneralConfig.VirtualMachine.Querying.WasmVMVersions = []config.WasmVMVersionByEpoch{{StartEpoch: 0, Version: "v1.5"}}
+		},
 		GetRunTypeComponents: func(coreComponents factory.CoreComponentsHolder, cryptoComponents factory.CryptoComponentsHolder) (factory.RunTypeComponentsHolder, error) {
-			return createRunTypeComponents(coreComponents, cryptoComponents)
+			return createRunTypeComponents(coreComponents, cryptoComponents, *sovereignExtraConfig)
 		},
 	})
 	require.Nil(t, err)
@@ -223,23 +301,36 @@ func TestChainSimulator_SetEntireState(t *testing.T) {
 
 	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
-	roundsPerEpoch := core.OptionalUint64{
-		HasValue: true,
-		Value:    20,
-	}
-	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
+	sovereignExtraConfig, err := loadSovereignConfig()
+	require.Nil(t, err)
+	economicsConfig, err := loadEconomicsConfig()
+	require.Nil(t, err)
+	epochConfig, err := loadEpochConfig()
+	require.Nil(t, err)
+
+	chainSimulator, err := NewSovereignChainSimulator(chainSim.ArgsChainSimulator{
 		BypassTxSignatureCheck: false,
 		TempDir:                t.TempDir(),
 		PathToInitialConfig:    defaultPathToInitialConfig,
-		NumOfShards:            3,
+		NumOfShards:            1,
 		GenesisTimestamp:       startTime,
 		RoundDurationInMillis:  roundDurationInMillis,
-		RoundsPerEpoch:         roundsPerEpoch,
-		ApiInterface:           api.NewNoApiInterface(),
-		MinNodesPerShard:       1,
-		MetaChainMinNodes:      1,
+		RoundsPerEpoch: core.OptionalUint64{
+			HasValue: true,
+			Value:    999999999,
+		},
+		ApiInterface:      api.NewNoApiInterface(),
+		MinNodesPerShard:  2,
+		MetaChainMinNodes: 0,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			cfg.EconomicsConfig = economicsConfig
+			cfg.EpochConfig = epochConfig
+			cfg.GeneralConfig.SovereignConfig = *sovereignExtraConfig
+			cfg.GeneralConfig.VirtualMachine.Execution.WasmVMVersions = []config.WasmVMVersionByEpoch{{StartEpoch: 0, Version: "v1.5"}}
+			cfg.GeneralConfig.VirtualMachine.Querying.WasmVMVersions = []config.WasmVMVersionByEpoch{{StartEpoch: 0, Version: "v1.5"}}
+		},
 		GetRunTypeComponents: func(coreComponents factory.CoreComponentsHolder, cryptoComponents factory.CryptoComponentsHolder) (factory.RunTypeComponentsHolder, error) {
-			return createRunTypeComponents(coreComponents, cryptoComponents)
+			return createRunTypeComponents(coreComponents, cryptoComponents, *sovereignExtraConfig)
 		},
 	})
 	require.Nil(t, err)
@@ -267,10 +358,10 @@ func TestChainSimulator_SetEntireState(t *testing.T) {
 	err = chainSimulator.SetStateMultiple([]*dtos.AddressState{accountState})
 	require.Nil(t, err)
 
-	err = chainSimulator.GenerateBlocks(30)
+	err = chainSimulator.GenerateBlocks(150)
 	require.Nil(t, err)
 
-	nodeHandler := chainSimulator.GetNodeHandler(1)
+	nodeHandler := chainSimulator.GetNodeHandler(core.SovereignChainShardId)
 	scAddress, _ := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode(contractAddress)
 	res, _, err := nodeHandler.GetFacadeHandler().ExecuteSCQuery(&process.SCQuery{
 		ScAddress:  scAddress,
@@ -303,23 +394,36 @@ func TestChainSimulator_GetAccount(t *testing.T) {
 
 	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
-	roundsPerEpoch := core.OptionalUint64{
-		HasValue: true,
-		Value:    20,
-	}
-	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
+	sovereignExtraConfig, err := loadSovereignConfig()
+	require.Nil(t, err)
+	economicsConfig, err := loadEconomicsConfig()
+	require.Nil(t, err)
+	epochConfig, err := loadEpochConfig()
+	require.Nil(t, err)
+
+	chainSimulator, err := NewSovereignChainSimulator(chainSim.ArgsChainSimulator{
 		BypassTxSignatureCheck: false,
 		TempDir:                t.TempDir(),
 		PathToInitialConfig:    defaultPathToInitialConfig,
-		NumOfShards:            3,
+		NumOfShards:            1,
 		GenesisTimestamp:       startTime,
 		RoundDurationInMillis:  roundDurationInMillis,
-		RoundsPerEpoch:         roundsPerEpoch,
-		ApiInterface:           api.NewNoApiInterface(),
-		MinNodesPerShard:       1,
-		MetaChainMinNodes:      1,
+		RoundsPerEpoch: core.OptionalUint64{
+			HasValue: true,
+			Value:    999999999,
+		},
+		ApiInterface:      api.NewNoApiInterface(),
+		MinNodesPerShard:  2,
+		MetaChainMinNodes: 0,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			cfg.EconomicsConfig = economicsConfig
+			cfg.EpochConfig = epochConfig
+			cfg.GeneralConfig.SovereignConfig = *sovereignExtraConfig
+			cfg.GeneralConfig.VirtualMachine.Execution.WasmVMVersions = []config.WasmVMVersionByEpoch{{StartEpoch: 0, Version: "v1.5"}}
+			cfg.GeneralConfig.VirtualMachine.Querying.WasmVMVersions = []config.WasmVMVersionByEpoch{{StartEpoch: 0, Version: "v1.5"}}
+		},
 		GetRunTypeComponents: func(coreComponents factory.CoreComponentsHolder, cryptoComponents factory.CryptoComponentsHolder) (factory.RunTypeComponentsHolder, error) {
-			return createRunTypeComponents(coreComponents, cryptoComponents)
+			return createRunTypeComponents(coreComponents, cryptoComponents, *sovereignExtraConfig)
 		},
 	})
 	require.Nil(t, err)
@@ -368,23 +472,36 @@ func TestSimulator_SendTransactions(t *testing.T) {
 
 	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
-	roundsPerEpoch := core.OptionalUint64{
-		HasValue: true,
-		Value:    20,
-	}
-	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
+	sovereignExtraConfig, err := loadSovereignConfig()
+	require.Nil(t, err)
+	economicsConfig, err := loadEconomicsConfig()
+	require.Nil(t, err)
+	epochConfig, err := loadEpochConfig()
+	require.Nil(t, err)
+
+	chainSimulator, err := NewSovereignChainSimulator(chainSim.ArgsChainSimulator{
 		BypassTxSignatureCheck: false,
 		TempDir:                t.TempDir(),
 		PathToInitialConfig:    defaultPathToInitialConfig,
-		NumOfShards:            3,
+		NumOfShards:            1,
 		GenesisTimestamp:       startTime,
 		RoundDurationInMillis:  roundDurationInMillis,
-		RoundsPerEpoch:         roundsPerEpoch,
-		ApiInterface:           api.NewNoApiInterface(),
-		MinNodesPerShard:       1,
-		MetaChainMinNodes:      1,
+		RoundsPerEpoch: core.OptionalUint64{
+			HasValue: true,
+			Value:    999999999,
+		},
+		ApiInterface:      api.NewNoApiInterface(),
+		MinNodesPerShard:  2,
+		MetaChainMinNodes: 0,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			cfg.EconomicsConfig = economicsConfig
+			cfg.EpochConfig = epochConfig
+			cfg.GeneralConfig.SovereignConfig = *sovereignExtraConfig
+			cfg.GeneralConfig.VirtualMachine.Execution.WasmVMVersions = []config.WasmVMVersionByEpoch{{StartEpoch: 0, Version: "v1.5"}}
+			cfg.GeneralConfig.VirtualMachine.Querying.WasmVMVersions = []config.WasmVMVersionByEpoch{{StartEpoch: 0, Version: "v1.5"}}
+		},
 		GetRunTypeComponents: func(coreComponents factory.CoreComponentsHolder, cryptoComponents factory.CryptoComponentsHolder) (factory.RunTypeComponentsHolder, error) {
-			return createRunTypeComponents(coreComponents, cryptoComponents)
+			return createRunTypeComponents(coreComponents, cryptoComponents, *sovereignExtraConfig)
 		},
 	})
 	require.Nil(t, err)
@@ -396,19 +513,19 @@ func TestSimulator_SendTransactions(t *testing.T) {
 	initialMinting := big.NewInt(0).Mul(oneEgld, big.NewInt(100))
 	transferValue := big.NewInt(0).Mul(oneEgld, big.NewInt(5))
 
-	wallet0, err := chainSimulator.GenerateAndMintWalletAddress(0, initialMinting)
+	wallet0, err := chainSimulator.GenerateAndMintWalletAddress(core.SovereignChainShardId, initialMinting)
 	require.Nil(t, err)
 
-	wallet1, err := chainSimulator.GenerateAndMintWalletAddress(1, initialMinting)
+	wallet1, err := chainSimulator.GenerateAndMintWalletAddress(core.SovereignChainShardId, initialMinting)
 	require.Nil(t, err)
 
-	wallet2, err := chainSimulator.GenerateAndMintWalletAddress(2, initialMinting)
+	wallet2, err := chainSimulator.GenerateAndMintWalletAddress(core.SovereignChainShardId, initialMinting)
 	require.Nil(t, err)
 
-	wallet3, err := chainSimulator.GenerateAndMintWalletAddress(2, initialMinting)
+	wallet3, err := chainSimulator.GenerateAndMintWalletAddress(core.SovereignChainShardId, initialMinting)
 	require.Nil(t, err)
 
-	wallet4, err := chainSimulator.GenerateAndMintWalletAddress(2, initialMinting)
+	wallet4, err := chainSimulator.GenerateAndMintWalletAddress(core.SovereignChainShardId, initialMinting)
 	require.Nil(t, err)
 
 	gasLimit := uint64(50000)
@@ -440,7 +557,7 @@ func TestSimulator_SendTransactions(t *testing.T) {
 	t.Run("2 transactions from different shard should call send correctly", func(t *testing.T) {
 		sentTxs, errSend := chainSimulator.SendTxsAndGenerateBlocksTilAreExecuted([]*transaction.Transaction{tx0, tx1}, maxNumOfBlockToGenerateWhenExecutingTx)
 		assert.Equal(t, 2, len(sentTxs))
-		assert.Nil(t, errSend)
+		require.Nil(t, errSend)
 
 		account, errGet := chainSimulator.GetAccount(wallet2)
 		assert.Nil(t, errGet)
@@ -450,7 +567,7 @@ func TestSimulator_SendTransactions(t *testing.T) {
 	})
 	t.Run("1 transaction should be sent correctly", func(t *testing.T) {
 		_, errSend := chainSimulator.SendTxAndGenerateBlockTilTxIsExecuted(tx3, maxNumOfBlockToGenerateWhenExecutingTx)
-		assert.Nil(t, errSend)
+		require.Nil(t, errSend)
 
 		account, errGet := chainSimulator.GetAccount(wallet4)
 		assert.Nil(t, errGet)

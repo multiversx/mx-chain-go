@@ -4,6 +4,9 @@ import (
 	"errors"
 	"testing"
 
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/factory"
 	factoryMock "github.com/multiversx/mx-chain-go/factory/mock"
@@ -15,8 +18,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/chainSimulator"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/vmcommonMocks"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/stretchr/testify/require"
 )
 
 var expectedErr = errors.New("expected error")
@@ -35,14 +36,14 @@ func TestNewChainSimulatorFacade(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, facade)
 	})
-	t.Run("nil chain simulator should error", func(t *testing.T) {
+	t.Run("nil chain Simulator should error", func(t *testing.T) {
 		t.Parallel()
 
 		facade, err := NewChainSimulatorFacade(nil)
 		require.Equal(t, errNilChainSimulator, err)
 		require.Nil(t, facade)
 	})
-	t.Run("nil node handler returned by chain simulator should error", func(t *testing.T) {
+	t.Run("nil node handler returned by chain Simulator should error", func(t *testing.T) {
 		t.Parallel()
 
 		facade, err := NewChainSimulatorFacade(&chainSimulator.ChainSimulatorMock{

@@ -4,9 +4,10 @@ import (
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 type chainSimulatorFacade struct {
@@ -14,7 +15,7 @@ type chainSimulatorFacade struct {
 	metaNode       process.NodeHandler
 }
 
-// NewChainSimulatorFacade returns the chain simulator facade
+// NewChainSimulatorFacade returns the chain Simulator facade
 func NewChainSimulatorFacade(chainSimulator ChainSimulator) (*chainSimulatorFacade, error) {
 	if check.IfNil(chainSimulator) {
 		return nil, errNilChainSimulator

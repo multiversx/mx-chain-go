@@ -16,6 +16,7 @@ import (
 	hashingFactory "github.com/multiversx/mx-chain-core-go/hashing/factory"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	marshalFactory "github.com/multiversx/mx-chain-core-go/marshal/factory"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	factoryPubKey "github.com/multiversx/mx-chain-go/common/factory"
@@ -145,7 +146,12 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 	instance.alarmScheduler = &mock.AlarmSchedulerStub{}
 	instance.syncTimer = &testscommon.SyncTimerStub{}
 
-	instance.genesisNodesSetup, err = sharding.NewNodesSetup(args.NodesSetupPath, instance.addressPubKeyConverter, instance.validatorPubKeyConverter, args.NumShards)
+	//instance.genesisNodesSetup, err = sharding.NewNodesSetup(args.NodesSetupPath, instance.addressPubKeyConverter, instance.validatorPubKeyConverter, args.NumShards)
+	instance.genesisNodesSetup, err = sharding.NewSovereignNodesSetup(&sharding.SovereignNodesSetupArgs{
+		NodesFilePath:            args.NodesSetupPath,
+		AddressPubKeyConverter:   instance.addressPubKeyConverter,
+		ValidatorPubKeyConverter: instance.validatorPubKeyConverter,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -179,10 +185,18 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 	instance.apiEconomicsData = instance.economicsData
 
 	// TODO fix this min nodes per shard to be configurable
-	instance.ratingsData, err = rating.NewRatingsData(rating.RatingsDataArg{
+	//instance.ratingsData, err = rating.NewRatingsData(rating.RatingsDataArg{
+	//	Config:                   args.RatingConfig,
+	//	ShardConsensusSize:       1,
+	//	MetaConsensusSize:        1,
+	//	ShardMinNodes:            args.MinNodesPerShard,
+	//	MetaMinNodes:             args.MinNodesMeta,
+	//	RoundDurationMiliseconds: args.RoundDurationInMs,
+	//})
+	instance.ratingsData, err = rating.NewSovereignRatingsData(rating.RatingsDataArg{
 		Config:                   args.RatingConfig,
 		ShardConsensusSize:       1,
-		MetaConsensusSize:        1,
+		MetaConsensusSize:        0,
 		ShardMinNodes:            args.MinNodesPerShard,
 		MetaMinNodes:             args.MinNodesMeta,
 		RoundDurationMiliseconds: args.RoundDurationInMs,
