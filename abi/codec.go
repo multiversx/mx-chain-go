@@ -32,41 +32,41 @@ func (c *codec) EncodeNested(value any) ([]byte, error) {
 }
 
 func (c *codec) doEncodeNested(writer io.Writer, value any) error {
-	switch value.(type) {
+	switch value := value.(type) {
 	case BoolValue:
-		return c.encodeNestedBool(writer, value.(BoolValue))
+		return c.encodeNestedBool(writer, value)
 	case U8Value:
-		return c.encodeNestedNumber(writer, value.(U8Value).Value, 1)
+		return c.encodeNestedNumber(writer, value.Value, 1)
 	case U16Value:
-		return c.encodeNestedNumber(writer, value.(U16Value).Value, 2)
+		return c.encodeNestedNumber(writer, value.Value, 2)
 	case U32Value:
-		return c.encodeNestedNumber(writer, value.(U32Value).Value, 4)
+		return c.encodeNestedNumber(writer, value.Value, 4)
 	case U64Value:
-		return c.encodeNestedNumber(writer, value.(U64Value).Value, 8)
+		return c.encodeNestedNumber(writer, value.Value, 8)
 	case I8Value:
-		return c.encodeNestedNumber(writer, value.(I8Value).Value, 1)
+		return c.encodeNestedNumber(writer, value.Value, 1)
 	case I16Value:
-		return c.encodeNestedNumber(writer, value.(I16Value).Value, 2)
+		return c.encodeNestedNumber(writer, value.Value, 2)
 	case I32Value:
-		return c.encodeNestedNumber(writer, value.(I32Value).Value, 4)
+		return c.encodeNestedNumber(writer, value.Value, 4)
 	case I64Value:
-		return c.encodeNestedNumber(writer, value.(I64Value).Value, 8)
+		return c.encodeNestedNumber(writer, value.Value, 8)
 	case BigIntValue:
-		return c.encodeNestedBigNumber(writer, value.(BigIntValue).Value)
+		return c.encodeNestedBigNumber(writer, value.Value)
 	case AddressValue:
-		return c.encodeNestedAddress(writer, value.(AddressValue))
+		return c.encodeNestedAddress(writer, value)
 	case StringValue:
-		return c.encodeNestedString(writer, value.(StringValue))
+		return c.encodeNestedString(writer, value)
 	case BytesValue:
-		return c.encodeNestedBytes(writer, value.(BytesValue))
+		return c.encodeNestedBytes(writer, value)
 	case StructValue:
-		return c.encodeNestedStruct(writer, value.(StructValue))
+		return c.encodeNestedStruct(writer, value)
 	case EnumValue:
-		return c.encodeNestedEnum(writer, value.(EnumValue))
+		return c.encodeNestedEnum(writer, value)
 	case OptionValue:
-		return c.encodeNestedOption(writer, value.(OptionValue))
+		return c.encodeNestedOption(writer, value)
 	case InputListValue:
-		return c.encodeNestedList(writer, value.(InputListValue))
+		return c.encodeNestedList(writer, value)
 	default:
 		return fmt.Errorf("unsupported type for nested encoding: %T", value)
 	}
@@ -83,33 +83,33 @@ func (c *codec) EncodeTopLevel(value any) ([]byte, error) {
 }
 
 func (c *codec) doEncodeTopLevel(writer io.Writer, value any) error {
-	switch value.(type) {
+	switch value := value.(type) {
 	case BoolValue:
-		return c.encodeTopLevelBool(writer, value.(BoolValue))
+		return c.encodeTopLevelBool(writer, value)
 	case U8Value:
-		return c.encodeTopLevelUnsignedNumber(writer, uint64(value.(U8Value).Value))
+		return c.encodeTopLevelUnsignedNumber(writer, uint64(value.Value))
 	case U16Value:
-		return c.encodeTopLevelUnsignedNumber(writer, uint64(value.(U16Value).Value))
+		return c.encodeTopLevelUnsignedNumber(writer, uint64(value.Value))
 	case U32Value:
-		return c.encodeTopLevelUnsignedNumber(writer, uint64(value.(U32Value).Value))
+		return c.encodeTopLevelUnsignedNumber(writer, uint64(value.Value))
 	case U64Value:
-		return c.encodeTopLevelUnsignedNumber(writer, value.(U64Value).Value)
+		return c.encodeTopLevelUnsignedNumber(writer, value.Value)
 	case I8Value:
-		return c.encodeTopLevelSignedNumber(writer, int64(value.(I8Value).Value))
+		return c.encodeTopLevelSignedNumber(writer, int64(value.Value))
 	case I16Value:
-		return c.encodeTopLevelSignedNumber(writer, int64(value.(I16Value).Value))
+		return c.encodeTopLevelSignedNumber(writer, int64(value.Value))
 	case I32Value:
-		return c.encodeTopLevelSignedNumber(writer, int64(value.(I32Value).Value))
+		return c.encodeTopLevelSignedNumber(writer, int64(value.Value))
 	case I64Value:
-		return c.encodeTopLevelSignedNumber(writer, value.(I64Value).Value)
+		return c.encodeTopLevelSignedNumber(writer, value.Value)
 	case BigIntValue:
-		return c.encodeTopLevelBigNumber(writer, value.(BigIntValue).Value)
+		return c.encodeTopLevelBigNumber(writer, value.Value)
 	case AddressValue:
-		return c.encodeTopLevelAddress(writer, value.(AddressValue))
+		return c.encodeTopLevelAddress(writer, value)
 	case StructValue:
-		return c.encodeTopLevelStruct(writer, value.(StructValue))
+		return c.encodeTopLevelStruct(writer, value)
 	case EnumValue:
-		return c.encodeTopLevelEnum(writer, value.(EnumValue))
+		return c.encodeTopLevelEnum(writer, value)
 	default:
 		return fmt.Errorf("unsupported type for top-level encoding: %T", value)
 	}
@@ -126,47 +126,47 @@ func (c *codec) DecodeNested(data []byte, value any) error {
 }
 
 func (c *codec) doDecodeNested(reader io.Reader, value any) error {
-	switch value.(type) {
+	switch value := value.(type) {
 	case *BoolValue:
-		return c.decodeNestedBool(reader, value.(*BoolValue))
+		return c.decodeNestedBool(reader, value)
 	case *U8Value:
-		return c.decodeNestedNumber(reader, &value.(*U8Value).Value, 1)
+		return c.decodeNestedNumber(reader, &value.Value, 1)
 	case *U16Value:
-		return c.decodeNestedNumber(reader, &value.(*U16Value).Value, 2)
+		return c.decodeNestedNumber(reader, &value.Value, 2)
 	case *U32Value:
-		return c.decodeNestedNumber(reader, &value.(*U32Value).Value, 4)
+		return c.decodeNestedNumber(reader, &value.Value, 4)
 	case *U64Value:
-		return c.decodeNestedNumber(reader, &value.(*U64Value).Value, 8)
+		return c.decodeNestedNumber(reader, &value.Value, 8)
 	case *I8Value:
-		return c.decodeNestedNumber(reader, &value.(*I8Value).Value, 1)
+		return c.decodeNestedNumber(reader, &value.Value, 1)
 	case *I16Value:
-		return c.decodeNestedNumber(reader, &value.(*I16Value).Value, 2)
+		return c.decodeNestedNumber(reader, &value.Value, 2)
 	case *I32Value:
-		return c.decodeNestedNumber(reader, &value.(*I32Value).Value, 4)
+		return c.decodeNestedNumber(reader, &value.Value, 4)
 	case *I64Value:
-		return c.decodeNestedNumber(reader, &value.(*I64Value).Value, 8)
+		return c.decodeNestedNumber(reader, &value.Value, 8)
 	case *BigIntValue:
 		n, err := c.decodeNestedBigNumber(reader)
 		if err != nil {
 			return err
 		}
 
-		value.(*BigIntValue).Value = n
+		value.Value = n
 		return nil
 	case *AddressValue:
-		return c.decodeNestedAddress(reader, value.(*AddressValue))
+		return c.decodeNestedAddress(reader, value)
 	case *StringValue:
-		return c.decodeNestedString(reader, value.(*StringValue))
+		return c.decodeNestedString(reader, value)
 	case *BytesValue:
-		return c.decodeNestedBytes(reader, value.(*BytesValue))
+		return c.decodeNestedBytes(reader, value)
 	case *StructValue:
-		return c.decodeNestedStruct(reader, value.(*StructValue))
+		return c.decodeNestedStruct(reader, value)
 	case *EnumValue:
-		return c.decodeNestedEnum(reader, value.(*EnumValue))
+		return c.decodeNestedEnum(reader, value)
 	case *OptionValue:
-		return c.decodeNestedOption(reader, value.(*OptionValue))
+		return c.decodeNestedOption(reader, value)
 	case *OutputListValue:
-		return c.decodeNestedList(reader, value.(*OutputListValue))
+		return c.decodeNestedList(reader, value)
 	default:
 		return fmt.Errorf("unsupported type for nested decoding: %T", value)
 	}
@@ -182,58 +182,58 @@ func (c *codec) DecodeTopLevel(data []byte, value any) error {
 }
 
 func (c *codec) doDecodeTopLevel(data []byte, value any) error {
-	switch value.(type) {
+	switch value := value.(type) {
 	case *BoolValue:
-		return c.decodeTopLevelBool(data, value.(*BoolValue))
+		return c.decodeTopLevelBool(data, value)
 	case *U8Value:
 		n, err := c.decodeTopLevelUnsignedNumber(data, math.MaxUint8)
 		if err != nil {
 			return err
 		}
 
-		value.(*U8Value).Value = uint8(n)
+		value.Value = uint8(n)
 	case *U16Value:
 		n, err := c.decodeTopLevelUnsignedNumber(data, math.MaxUint16)
 		if err != nil {
 			return err
 		}
 
-		value.(*U16Value).Value = uint16(n)
+		value.Value = uint16(n)
 	case *U32Value:
 		n, err := c.decodeTopLevelUnsignedNumber(data, math.MaxUint32)
 		if err != nil {
 			return err
 		}
 
-		value.(*U32Value).Value = uint32(n)
+		value.Value = uint32(n)
 	case *U64Value:
 		n, err := c.decodeTopLevelUnsignedNumber(data, math.MaxUint64)
 		if err != nil {
 			return err
 		}
 
-		value.(*U64Value).Value = uint64(n)
+		value.Value = uint64(n)
 	case *I8Value:
 		n, err := c.decodeTopLevelSignedNumber(data, math.MaxInt8)
 		if err != nil {
 			return err
 		}
 
-		value.(*I8Value).Value = int8(n)
+		value.Value = int8(n)
 	case *I16Value:
 		n, err := c.decodeTopLevelSignedNumber(data, math.MaxInt16)
 		if err != nil {
 			return err
 		}
 
-		value.(*I16Value).Value = int16(n)
+		value.Value = int16(n)
 	case *I32Value:
 		n, err := c.decodeTopLevelSignedNumber(data, math.MaxInt32)
 		if err != nil {
 			return err
 		}
 
-		value.(*I32Value).Value = int32(n)
+		value.Value = int32(n)
 
 	case *I64Value:
 		n, err := c.decodeTopLevelSignedNumber(data, math.MaxInt64)
@@ -241,16 +241,16 @@ func (c *codec) doDecodeTopLevel(data []byte, value any) error {
 			return err
 		}
 
-		value.(*I64Value).Value = int64(n)
+		value.Value = int64(n)
 	case *BigIntValue:
 		n := c.decodeTopLevelBigNumber(data)
-		value.(*BigIntValue).Value = n
+		value.Value = n
 	case *AddressValue:
-		return c.decodeTopLevelAddress(data, value.(*AddressValue))
+		return c.decodeTopLevelAddress(data, value)
 	case *StructValue:
-		return c.decodeTopLevelStruct(data, value.(*StructValue))
+		return c.decodeTopLevelStruct(data, value)
 	case *EnumValue:
-		return c.decodeTopLevelEnum(data, value.(*EnumValue))
+		return c.decodeTopLevelEnum(data, value)
 	default:
 		return fmt.Errorf("unsupported type for top-level decoding: %T", value)
 	}

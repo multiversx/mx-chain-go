@@ -44,15 +44,15 @@ func (s *serializer) doSerialize(partsHolder *partsHolder, inputValues []any) er
 			return errors.New("cannot serialize nil value")
 		}
 
-		switch value.(type) {
+		switch value := value.(type) {
 		case InputMultiValue:
-			err = s.serializeInputMultiValue(partsHolder, value.(InputMultiValue))
+			err = s.serializeInputMultiValue(partsHolder, value)
 		case InputVariadicValues:
 			if i != len(inputValues)-1 {
 				return errors.New("variadic values must be last among input values")
 			}
 
-			err = s.serializeInputVariadicValues(partsHolder, value.(InputVariadicValues))
+			err = s.serializeInputVariadicValues(partsHolder, value)
 		default:
 			partsHolder.appendEmptyPart()
 			err = s.serializeDirectlyEncodableValue(partsHolder, value)
@@ -94,15 +94,15 @@ func (s *serializer) doDeserialize(partsHolder *partsHolder, outputValues []any)
 			return errors.New("cannot deserialize into nil value")
 		}
 
-		switch value.(type) {
+		switch value := value.(type) {
 		case *OutputMultiValue:
-			err = s.deserializeOutputMultiValue(partsHolder, value.(*OutputMultiValue))
+			err = s.deserializeOutputMultiValue(partsHolder, value)
 		case *OutputVariadicValues:
 			if i != len(outputValues)-1 {
 				return errors.New("variadic values must be last among output values")
 			}
 
-			err = s.deserializeOutputVariadicValues(partsHolder, value.(*OutputVariadicValues))
+			err = s.deserializeOutputVariadicValues(partsHolder, value)
 		default:
 			err = s.deserializeDirectlyEncodableValue(partsHolder, value)
 		}
