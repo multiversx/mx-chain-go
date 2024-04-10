@@ -54,8 +54,7 @@ func (c *codec) encodeTopLevelUnsignedNumber(writer io.Writer, value uint64) err
 }
 
 func (c *codec) encodeTopLevelSignedNumber(writer io.Writer, value int64) error {
-	b := big.NewInt(0).SetInt64(value)
-	data := b.Bytes()
+	data := twos.ToBytes(big.NewInt(value))
 	_, err := writer.Write(data)
 	return err
 }
