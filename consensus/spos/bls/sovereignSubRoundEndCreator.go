@@ -4,18 +4,17 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 
 	"github.com/multiversx/mx-chain-go/consensus/spos"
-	"github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	"github.com/multiversx/mx-chain-go/errors"
 )
 
 type sovereignSubRoundEndCreator struct {
-	outGoingOperationsPool sovereign.OutGoingOperationsPool
+	outGoingOperationsPool OutGoingOperationsPool
 	bridgeOpHandler        BridgeOperationsHandler
 }
 
 // NewSovereignSubRoundEndCreator creates a new sovereign subround end factory
 func NewSovereignSubRoundEndCreator(
-	outGoingOperationsPool sovereign.OutGoingOperationsPool,
+	outGoingOperationsPool OutGoingOperationsPool,
 	bridgeOpHandler BridgeOperationsHandler,
 ) (*sovereignSubRoundEndCreator, error) {
 	if check.IfNil(outGoingOperationsPool) {

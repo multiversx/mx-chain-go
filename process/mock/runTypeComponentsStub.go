@@ -26,21 +26,22 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 	}
 }
 
-// AccountsCreator  -
+// AccountsCreator -
 func (r *RunTypeComponentsStub) AccountsCreator() state.AccountFactory {
 	return r.AccountCreator
 }
 
+// OutGoingOperationsPoolHandler -
 func (r *RunTypeComponentsStub) OutGoingOperationsPoolHandler() sovereignBlock.OutGoingOperationsPool {
 	return r.OutGoingOperationsPool
 }
 
-// DataCodecHandler  -
+// DataCodecHandler -
 func (r *RunTypeComponentsStub) DataCodecHandler() sovereign.DataDecoderHandler {
 	return r.DataCodec
 }
 
-// TopicsCheckerHandler  -
+// TopicsCheckerHandler -
 func (r *RunTypeComponentsStub) TopicsCheckerHandler() sovereign.TopicsCheckerHandler {
 	return r.TopicsChecker
 }

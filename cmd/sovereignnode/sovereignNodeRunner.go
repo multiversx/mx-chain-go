@@ -307,13 +307,13 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 	}
 
 	log.Debug("creating args for runType components")
-	argsSovereignRunTypeComponents, err := snr.CreateArgsRunTypeComponents()
+	argsSovereignRunTypeComponents, err := snr.CreateArgsRunTypeComponents(managedCoreComponents)
 	if err != nil {
 		return true, err
 	}
 
 	log.Debug("creating runType components")
-	managedRunTypeComponents, err := snr.CreateManagedRunTypeComponents(managedCoreComponents, *argsSovereignRunTypeComponents)
+	managedRunTypeComponents, err := snr.CreateManagedRunTypeComponents(*argsSovereignRunTypeComponents)
 	if err != nil {
 		return true, err
 	}
@@ -1653,7 +1653,8 @@ func (snr *sovereignNodeRunner) CreateManagedCryptoComponents(
 	return managedCryptoComponents, nil
 }
 
-func (snr *sovereignNodeRunner) CreateArgsRunTypeComponents() (*runType.ArgsSovereignRunTypeComponents, error) {
+// CreateArgsRunTypeComponents creates the arguments for sovereign runType components
+func (snr *sovereignNodeRunner) CreateArgsRunTypeComponents(coreComp mainFactory.CoreComponentsHandler) (*runType.ArgsSovereignRunTypeComponents, error) {
 	sovereignCfg := snr.configs.SovereignExtraConfig
 
 	codec := abi.NewDefaultCodec()
@@ -1668,24 +1669,22 @@ func (snr *sovereignNodeRunner) CreateArgsRunTypeComponents() (*runType.ArgsSove
 
 	topicsCheckerHandler := incomingHeader.NewTopicsChecker()
 
-	return &runType.ArgsSovereignRunTypeComponents{
-		Config:        *sovereignCfg,
-		DataCodec:     dataCodecHandler,
-		TopicsChecker: topicsCheckerHandler,
-	}, nil
-}
-
-// CreateManagedRunTypeComponents creates the managed runType components
-func (snr *sovereignNodeRunner) CreateManagedRunTypeComponents(coreComp mainFactory.CoreComponentsHandler, args runType.ArgsSovereignRunTypeComponents) (mainFactory.RunTypeComponentsHandler, error) {
 	runTypeComponentsFactory, err := runType.NewRunTypeComponentsFactory(coreComp)
 	if err != nil {
 		return nil, fmt.Errorf("NewRunTypeComponentsFactory failed: %w", err)
 	}
 
-	sovereignRunTypeComponentsFactory, err := runType.NewSovereignRunTypeComponentsFactory(
-		runTypeComponentsFactory,
-		args,
-	)
+	return &runType.ArgsSovereignRunTypeComponents{
+		RunTypeComponentsFactory: runTypeComponentsFactory,
+		Config:                   *sovereignCfg,
+		DataCodec:                dataCodecHandler,
+		TopicsChecker:            topicsCheckerHandler,
+	}, nil
+}
+
+// CreateManagedRunTypeComponents creates the managed runType components
+func (snr *sovereignNodeRunner) CreateManagedRunTypeComponents(args runType.ArgsSovereignRunTypeComponents) (mainFactory.RunTypeComponentsHandler, error) {
+	sovereignRunTypeComponentsFactory, err := runType.NewSovereignRunTypeComponentsFactory(args)
 	if err != nil {
 		return nil, fmt.Errorf("NewSovereignRunTypeComponentsFactory failed: %w", err)
 	}
