@@ -29,7 +29,7 @@ func (r *RunTypeComponentsStub) AccountsCreator() state.AccountFactory {
 }
 
 // DataCodecHandler  -
-func (r *RunTypeComponentsStub) DataCodecHandler() sovereign.DataDecoderHandler {
+func (r *RunTypeComponentsStub) DataDecoderHandler() sovereign.DataDecoderHandler {
 	return r.DataCodec
 }
 

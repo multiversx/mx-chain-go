@@ -849,7 +849,7 @@ func getRunTypeComponentsMock() *mock.RunTypeComponentsStub {
 	rt := components.GetRunTypeComponents()
 	return &mock.RunTypeComponentsStub{
 		AccountCreator: rt.AccountsCreator(),
-		DataCodec:      rt.DataCodecHandler(),
+		DataCodec:      rt.DataDecoderHandler(),
 		TopicsChecker:  rt.TopicsCheckerHandler(),
 	}
 }

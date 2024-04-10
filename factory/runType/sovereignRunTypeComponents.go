@@ -178,7 +178,7 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		vmContainerMetaFactory:              rtc.vmContainerMetaFactory,
 		vmContainerShardFactory:             vmContainerShardCreator,
 		accountsCreator:                     accountsCreator,
-		dataCodecHandler:                    rcf.dataCodec,
+		dataDecoderHandler:                  rcf.dataCodec,
 		topicsCheckerHandler:                rcf.topicsChecker,
 	}, nil
 }

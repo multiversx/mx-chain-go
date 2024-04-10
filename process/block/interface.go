@@ -69,7 +69,7 @@ type HeaderValidatorCreator interface {
 
 type runTypeComponentsHolder interface {
 	AccountsCreator() state.AccountFactory
-	DataCodecHandler() sovereign.DataDecoderHandler
+	DataDecoderHandler() sovereign.DataDecoderHandler
 	TopicsCheckerHandler() sovereign.TopicsCheckerHandler
 	IsInterfaceNil() bool
 }

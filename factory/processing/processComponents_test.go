@@ -958,7 +958,7 @@ func getRunTypeComponentsMock() *mainFactoryMocks.RunTypeComponentsStub {
 		VmContainerMetaFactory:              rt.VmContainerMetaFactoryCreator(),
 		VmContainerShardFactory:             rt.VmContainerShardFactoryCreator(),
 		AccountCreator:                      rt.AccountsCreator(),
-		DataCodec:                           rt.DataCodecHandler(),
+		DataCodec:                           rt.DataDecoderHandler(),
 		TopicsChecker:                       rt.TopicsCheckerHandler(),
 	}
 }

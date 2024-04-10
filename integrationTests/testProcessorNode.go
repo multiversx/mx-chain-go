@@ -3318,7 +3318,7 @@ func GetDefaultRunTypeComponents(consensusModel consensus.ConsensusModel) *mainF
 		SCResultsPreProcessorFactory:        rt.SCResultsPreProcessorCreator(),
 		AccountCreator:                      rt.AccountsCreator(),
 		ConsensusModelType:                  consensusModel,
-		DataCodec:                           rt.DataCodecHandler(),
+		DataCodec:                           rt.DataDecoderHandler(),
 		TopicsChecker:                       rt.TopicsCheckerHandler(),
 	}
 }
