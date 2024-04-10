@@ -28,9 +28,10 @@ import (
 )
 
 type ArgsSovereignRunTypeComponents struct {
-	Config        config.SovereignConfig
-	DataCodec     sovereign.DataDecoderHandler
-	TopicsChecker sovereign.TopicsCheckerHandler
+	RunTypeComponentsFactory *runTypeComponentsFactory
+	Config                   config.SovereignConfig
+	DataCodec                sovereign.DataDecoderHandler
+	TopicsChecker            sovereign.TopicsCheckerHandler
 }
 
 type sovereignRunTypeComponentsFactory struct {
@@ -41,8 +42,8 @@ type sovereignRunTypeComponentsFactory struct {
 }
 
 // NewSovereignRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
-func NewSovereignRunTypeComponentsFactory(fact *runTypeComponentsFactory, args ArgsSovereignRunTypeComponents) (*sovereignRunTypeComponentsFactory, error) {
-	if check.IfNil(fact) {
+func NewSovereignRunTypeComponentsFactory(args ArgsSovereignRunTypeComponents) (*sovereignRunTypeComponentsFactory, error) {
+	if check.IfNil(args.RunTypeComponentsFactory) {
 		return nil, errors.ErrNilRunTypeComponentsFactory
 	}
 	if check.IfNil(args.DataCodec) {
@@ -53,7 +54,7 @@ func NewSovereignRunTypeComponentsFactory(fact *runTypeComponentsFactory, args A
 	}
 
 	return &sovereignRunTypeComponentsFactory{
-		runTypeComponentsFactory: fact,
+		runTypeComponentsFactory: args.RunTypeComponentsFactory,
 		cfg:                      args.Config,
 		dataCodec:                args.DataCodec,
 		topicsChecker:            args.TopicsChecker,
