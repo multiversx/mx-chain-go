@@ -146,7 +146,6 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 	instance.alarmScheduler = &mock.AlarmSchedulerStub{}
 	instance.syncTimer = &testscommon.SyncTimerStub{}
 
-	//instance.genesisNodesSetup, err = sharding.NewNodesSetup(args.NodesSetupPath, instance.addressPubKeyConverter, instance.validatorPubKeyConverter, args.NumShards)
 	instance.genesisNodesSetup, err = sharding.NewSovereignNodesSetup(&sharding.SovereignNodesSetupArgs{
 		NodesFilePath:            args.NodesSetupPath,
 		AddressPubKeyConverter:   instance.addressPubKeyConverter,
@@ -185,14 +184,6 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 	instance.apiEconomicsData = instance.economicsData
 
 	// TODO fix this min nodes per shard to be configurable
-	//instance.ratingsData, err = rating.NewRatingsData(rating.RatingsDataArg{
-	//	Config:                   args.RatingConfig,
-	//	ShardConsensusSize:       1,
-	//	MetaConsensusSize:        1,
-	//	ShardMinNodes:            args.MinNodesPerShard,
-	//	MetaMinNodes:             args.MinNodesMeta,
-	//	RoundDurationMiliseconds: args.RoundDurationInMs,
-	//})
 	instance.ratingsData, err = rating.NewSovereignRatingsData(rating.RatingsDataArg{
 		Config:                   args.RatingConfig,
 		ShardConsensusSize:       1,

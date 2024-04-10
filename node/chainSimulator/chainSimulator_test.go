@@ -12,8 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/multiversx/mx-chain-go/factory"
-	"github.com/multiversx/mx-chain-go/factory/runType"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
@@ -23,20 +21,6 @@ import (
 const (
 	defaultPathToInitialConfig = "../../cmd/node/config/"
 )
-
-func createRunTypeComponents(coreComponents process.CoreComponentsHolder, _ factory.CryptoComponentsHolder) (factory.RunTypeComponentsHolder, error) {
-	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory(coreComponents)
-	managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(runTypeComponentsFactory)
-	if err != nil {
-		return nil, err
-	}
-	err = managedRunTypeComponents.Create()
-	if err != nil {
-		return nil, err
-	}
-
-	return managedRunTypeComponents, nil
-}
 
 func TestNewChainSimulator(t *testing.T) {
 	if testing.Short() {
@@ -56,9 +40,6 @@ func TestNewChainSimulator(t *testing.T) {
 		ApiInterface:           api.NewNoApiInterface(),
 		MinNodesPerShard:       1,
 		MetaChainMinNodes:      1,
-		GetRunTypeComponents: func(coreComponents factory.CoreComponentsHolder, cryptoComponents factory.CryptoComponentsHolder) (factory.RunTypeComponentsHolder, error) {
-			return createRunTypeComponents(coreComponents, cryptoComponents)
-		},
 	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
@@ -92,9 +73,6 @@ func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
 		InitialRound:      200000000,
 		InitialEpoch:      100,
 		InitialNonce:      100,
-		GetRunTypeComponents: func(coreComponents factory.CoreComponentsHolder, cryptoComponents factory.CryptoComponentsHolder) (factory.RunTypeComponentsHolder, error) {
-			return createRunTypeComponents(coreComponents, cryptoComponents)
-		},
 	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
@@ -129,9 +107,6 @@ func TestChainSimulator_GenerateBlocksAndEpochChangeShouldWork(t *testing.T) {
 		ApiInterface:           api.NewNoApiInterface(),
 		MinNodesPerShard:       100,
 		MetaChainMinNodes:      100,
-		GetRunTypeComponents: func(coreComponents factory.CoreComponentsHolder, cryptoComponents factory.CryptoComponentsHolder) (factory.RunTypeComponentsHolder, error) {
-			return createRunTypeComponents(coreComponents, cryptoComponents)
-		},
 	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
@@ -189,9 +164,6 @@ func TestChainSimulator_SetState(t *testing.T) {
 		ApiInterface:           api.NewNoApiInterface(),
 		MinNodesPerShard:       1,
 		MetaChainMinNodes:      1,
-		GetRunTypeComponents: func(coreComponents factory.CoreComponentsHolder, cryptoComponents factory.CryptoComponentsHolder) (factory.RunTypeComponentsHolder, error) {
-			return createRunTypeComponents(coreComponents, cryptoComponents)
-		},
 	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
@@ -238,9 +210,6 @@ func TestChainSimulator_SetEntireState(t *testing.T) {
 		ApiInterface:           api.NewNoApiInterface(),
 		MinNodesPerShard:       1,
 		MetaChainMinNodes:      1,
-		GetRunTypeComponents: func(coreComponents factory.CoreComponentsHolder, cryptoComponents factory.CryptoComponentsHolder) (factory.RunTypeComponentsHolder, error) {
-			return createRunTypeComponents(coreComponents, cryptoComponents)
-		},
 	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
@@ -318,9 +287,6 @@ func TestChainSimulator_GetAccount(t *testing.T) {
 		ApiInterface:           api.NewNoApiInterface(),
 		MinNodesPerShard:       1,
 		MetaChainMinNodes:      1,
-		GetRunTypeComponents: func(coreComponents factory.CoreComponentsHolder, cryptoComponents factory.CryptoComponentsHolder) (factory.RunTypeComponentsHolder, error) {
-			return createRunTypeComponents(coreComponents, cryptoComponents)
-		},
 	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
@@ -383,9 +349,6 @@ func TestSimulator_SendTransactions(t *testing.T) {
 		ApiInterface:           api.NewNoApiInterface(),
 		MinNodesPerShard:       1,
 		MetaChainMinNodes:      1,
-		GetRunTypeComponents: func(coreComponents factory.CoreComponentsHolder, cryptoComponents factory.CryptoComponentsHolder) (factory.RunTypeComponentsHolder, error) {
-			return createRunTypeComponents(coreComponents, cryptoComponents)
-		},
 	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)

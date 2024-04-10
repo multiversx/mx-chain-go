@@ -26,14 +26,14 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/testscommon/sovereign"
 )
 
 // ArgsTestOnlyProcessingNode represents the DTO struct for the NewTestOnlyProcessingNode constructor function
 type ArgsTestOnlyProcessingNode struct {
-	Configs              config.Configs
-	APIInterface         APIConfigurator
-	GetRunTypeComponents func(coreComponents factory.CoreComponentsHolder, cryptoComponents factory.CryptoComponentsHolder) (factory.RunTypeComponentsHolder, error)
+	Configs                     config.Configs
+	APIInterface                APIConfigurator
+	CreateIncomingHeaderHandler func(config *config.NotifierConfig, dataPool dataRetriever.PoolsHolder, mainChainNotarizationStartRound uint64, runTypeComponents factory.RunTypeComponentsHolder) (process.IncomingHeaderSubscriber, error)
+	GetRunTypeComponents        func(coreComponents factory.CoreComponentsHolder, cryptoComponents factory.CryptoComponentsHolder) (factory.RunTypeComponentsHolder, error)
 
 	ChanStopNodeProcess    chan endProcess.ArgEndProcess
 	SyncedBroadcastNetwork SyncedBroadcastNetworkHandler
@@ -185,12 +185,12 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		return nil, err
 	}
 
-	//incomingHeaderHandler, err := createIncomingHeaderProcessor(
-	//	&configs.SovereignExtraConfig.NotifierConfig,
-	//	managedDataComponents.Datapool(),
-	//	configs.SovereignExtraConfig.MainChainNotarization.MainChainNotarizationStartRound,
-	//	managedRunTypeComponents,
-	//)
+	incomingHeaderHandler, err := args.CreateIncomingHeaderHandler(
+		&args.Configs.GeneralConfig.SovereignConfig.NotifierConfig,
+		instance.DataComponentsHolder.Datapool(),
+		args.Configs.GeneralConfig.SovereignConfig.MainChainNotarization.MainChainNotarizationStartRound,
+		instance.RunTypeComponents,
+	)
 
 	instance.ProcessComponentsHolder, err = CreateProcessComponents(ArgsProcessComponentsHolder{
 		CoreComponents:           instance.CoreComponentsHolder,
@@ -214,7 +214,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		GenesisNonce:             args.InitialNonce,
 		GenesisRound:             uint64(args.InitialRound),
 		RunTypeComponents:        instance.RunTypeComponents,
-		IncomingHeaderHandler:    &sovereign.IncomingHeaderSubscriberStub{},
+		IncomingHeaderHandler:    incomingHeaderHandler,
 	})
 	if err != nil {
 		return nil, err

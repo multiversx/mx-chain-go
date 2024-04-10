@@ -190,13 +190,12 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 	}
 
 	processArgs := processComp.ProcessComponentsFactoryArgs{
-		Config:          args.Config,
-		EpochConfig:     args.EpochConfig,
-		RoundConfig:     args.RoundConfig,
-		PrefConfigs:     args.PrefsConfig,
-		ImportDBConfig:  args.ImportDBConfig,
-		EconomicsConfig: args.EconomicsConfig,
-		//AccountsParser:  accountsParser,
+		Config:                   args.Config,
+		EpochConfig:              args.EpochConfig,
+		RoundConfig:              args.RoundConfig,
+		PrefConfigs:              args.PrefsConfig,
+		ImportDBConfig:           args.ImportDBConfig,
+		EconomicsConfig:          args.EconomicsConfig,
 		AccountsParser:           sovereignAccountsParser,
 		SmartContractParser:      smartContractParser,
 		GasSchedule:              gasScheduleNotifier,

@@ -22,11 +22,14 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/factory/runType"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
+	processSov "github.com/multiversx/mx-chain-go/process"
 	mxChainSharding "github.com/multiversx/mx-chain-go/sharding"
 )
 
@@ -42,23 +45,24 @@ type transactionWithResult struct {
 
 // ArgsChainSimulator holds the arguments needed to create a new instance of Simulator
 type ArgsChainSimulator struct {
-	BypassTxSignatureCheck   bool
-	TempDir                  string
-	PathToInitialConfig      string
-	NumOfShards              uint32
-	MinNodesPerShard         uint32
-	MetaChainMinNodes        uint32
-	NumNodesWaitingListShard uint32
-	NumNodesWaitingListMeta  uint32
-	GenesisTimestamp         int64
-	InitialRound             int64
-	InitialEpoch             uint32
-	InitialNonce             uint64
-	RoundDurationInMillis    uint64
-	RoundsPerEpoch           core.OptionalUint64
-	ApiInterface             components.APIConfigurator
-	AlterConfigsFunction     func(cfg *config.Configs)
-	GetRunTypeComponents     func(coreComponents factory.CoreComponentsHolder, cryptoComponents factory.CryptoComponentsHolder) (factory.RunTypeComponentsHolder, error)
+	BypassTxSignatureCheck      bool
+	TempDir                     string
+	PathToInitialConfig         string
+	NumOfShards                 uint32
+	MinNodesPerShard            uint32
+	MetaChainMinNodes           uint32
+	NumNodesWaitingListShard    uint32
+	NumNodesWaitingListMeta     uint32
+	GenesisTimestamp            int64
+	InitialRound                int64
+	InitialEpoch                uint32
+	InitialNonce                uint64
+	RoundDurationInMillis       uint64
+	RoundsPerEpoch              core.OptionalUint64
+	ApiInterface                components.APIConfigurator
+	AlterConfigsFunction        func(cfg *config.Configs)
+	CreateIncomingHeaderHandler func(config *config.NotifierConfig, dataPool dataRetriever.PoolsHolder, mainChainNotarizationStartRound uint64, runTypeComponents factory.RunTypeComponentsHolder) (processSov.IncomingHeaderSubscriber, error)
+	GetRunTypeComponents        func(coreComponents factory.CoreComponentsHolder, cryptoComponents factory.CryptoComponentsHolder) (factory.RunTypeComponentsHolder, error)
 }
 
 type Simulator struct {
@@ -76,6 +80,17 @@ type Simulator struct {
 // NewChainSimulator will create a new instance of Simulator
 func NewChainSimulator(args ArgsChainSimulator) (*Simulator, error) {
 	syncedBroadcastNetwork := components.NewSyncedBroadcastNetwork()
+
+	if args.CreateIncomingHeaderHandler == nil {
+		args.CreateIncomingHeaderHandler = func(_ *config.NotifierConfig, _ dataRetriever.PoolsHolder, _ uint64, _ factory.RunTypeComponentsHolder) (processSov.IncomingHeaderSubscriber, error) {
+			return nil, nil
+		}
+	}
+	if args.GetRunTypeComponents == nil {
+		args.GetRunTypeComponents = func(coreComponents factory.CoreComponentsHolder, cryptoComponents factory.CryptoComponentsHolder) (factory.RunTypeComponentsHolder, error) {
+			return createRunTypeComponents(coreComponents, cryptoComponents)
+		}
+	}
 
 	instance := &Simulator{
 		syncedBroadcastNetwork: syncedBroadcastNetwork,
@@ -114,13 +129,8 @@ func (s *Simulator) createChainHandlers(args ArgsChainSimulator) error {
 		return err
 	}
 
-	//for idx := 0; idx < int(args.NumOfShards)+1; idx++ {
 	for idx := 0; idx < int(args.NumOfShards); idx++ {
-		//shardIDStr := fmt.Sprintf("%d", idx-1)
 		shardIDStr := fmt.Sprintf("%d", idx)
-		//if idx == 0 {
-		//	shardIDStr = "metachain"
-		//}
 
 		node, errCreate := s.createTestNode(*outputConfigs, args, shardIDStr)
 		if errCreate != nil {
@@ -151,6 +161,20 @@ func (s *Simulator) createChainHandlers(args ArgsChainSimulator) error {
 	return nil
 }
 
+func createRunTypeComponents(coreComponents factory.CoreComponentsHolder, _ factory.CryptoComponentsHolder) (factory.RunTypeComponentsHolder, error) {
+	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory(coreComponents)
+	managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(runTypeComponentsFactory)
+	if err != nil {
+		return nil, err
+	}
+	err = managedRunTypeComponents.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	return managedRunTypeComponents, nil
+}
+
 func computeStartTimeBaseOnInitialRound(args ArgsChainSimulator) int64 {
 	return args.GenesisTimestamp + int64(args.RoundDurationInMillis/1000)*args.InitialRound
 }
@@ -159,20 +183,21 @@ func (s *Simulator) createTestNode(
 	outputConfigs configs.ArgsConfigsSimulator, args ArgsChainSimulator, shardIDStr string,
 ) (process.NodeHandler, error) {
 	argsTestOnlyProcessorNode := components.ArgsTestOnlyProcessingNode{
-		Configs:                outputConfigs.Configs,
-		ChanStopNodeProcess:    s.chanStopNodeProcess,
-		SyncedBroadcastNetwork: s.syncedBroadcastNetwork,
-		NumShards:              s.numOfShards,
-		GasScheduleFilename:    outputConfigs.GasScheduleFilename,
-		ShardIDStr:             shardIDStr,
-		APIInterface:           args.ApiInterface,
-		BypassTxSignatureCheck: args.BypassTxSignatureCheck,
-		InitialRound:           args.InitialRound,
-		InitialNonce:           args.InitialNonce,
-		MinNodesPerShard:       args.MinNodesPerShard,
-		MinNodesMeta:           args.MetaChainMinNodes,
-		RoundDurationInMillis:  args.RoundDurationInMillis,
-		GetRunTypeComponents:   args.GetRunTypeComponents,
+		Configs:                     outputConfigs.Configs,
+		ChanStopNodeProcess:         s.chanStopNodeProcess,
+		SyncedBroadcastNetwork:      s.syncedBroadcastNetwork,
+		NumShards:                   s.numOfShards,
+		GasScheduleFilename:         outputConfigs.GasScheduleFilename,
+		ShardIDStr:                  shardIDStr,
+		APIInterface:                args.ApiInterface,
+		BypassTxSignatureCheck:      args.BypassTxSignatureCheck,
+		InitialRound:                args.InitialRound,
+		InitialNonce:                args.InitialNonce,
+		MinNodesPerShard:            args.MinNodesPerShard,
+		MinNodesMeta:                args.MetaChainMinNodes,
+		RoundDurationInMillis:       args.RoundDurationInMillis,
+		CreateIncomingHeaderHandler: args.CreateIncomingHeaderHandler,
+		GetRunTypeComponents:        args.GetRunTypeComponents,
 	}
 
 	return components.NewTestOnlyProcessingNode(argsTestOnlyProcessorNode)
@@ -407,7 +432,6 @@ func (s *Simulator) SetStateMultiple(stateSlice []*dtos.AddressState) error {
 	defer s.mutex.Unlock()
 
 	addressConverter := s.nodes[core.SovereignChainShardId].GetCoreComponents().AddressPubKeyConverter()
-	//addressConverter := s.nodes[core.MetachainShardId].GetCoreComponents().AddressPubKeyConverter()
 	for _, state := range stateSlice {
 		addressBytes, err := addressConverter.Decode(state.Address)
 		if err != nil {
