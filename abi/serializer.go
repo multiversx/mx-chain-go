@@ -10,14 +10,18 @@ type serializer struct {
 	codec valuesCodec
 }
 
+// NewSerializer creates a new serializer with the given codec.
+// The serializer follows the rules of the MultiversX Serialization format:
+// https://docs.multiversx.com/developers/data/serialization-overview
 func NewSerializer(codec valuesCodec) *serializer {
 	return &serializer{
 		codec: codec,
 	}
 }
 
+// Serialize serializes the given input values into a string
 func (s *serializer) Serialize(inputValues []any) (string, error) {
-	parts, err := s.SerializeToParts(inputValues)
+	parts, err := s.serializeToParts(inputValues)
 	if err != nil {
 		return "", err
 	}
@@ -25,7 +29,7 @@ func (s *serializer) Serialize(inputValues []any) (string, error) {
 	return s.encodeParts(parts), nil
 }
 
-func (s *serializer) SerializeToParts(inputValues []any) ([][]byte, error) {
+func (s *serializer) serializeToParts(inputValues []any) ([][]byte, error) {
 	partsHolder := newEmptyPartsHolder()
 
 	err := s.doSerialize(partsHolder, inputValues)
@@ -66,16 +70,17 @@ func (s *serializer) doSerialize(partsHolder *partsHolder, inputValues []any) er
 	return nil
 }
 
+// Deserialize deserializes the given data into the output values
 func (s *serializer) Deserialize(data string, outputValues []any) error {
 	parts, err := s.decodeIntoParts(data)
 	if err != nil {
 		return err
 	}
 
-	return s.DeserializeParts(parts, outputValues)
+	return s.deserializeParts(parts, outputValues)
 }
 
-func (s *serializer) DeserializeParts(parts [][]byte, outputValues []any) error {
+func (s *serializer) deserializeParts(parts [][]byte, outputValues []any) error {
 	partsHolder := newPartsHolder(parts)
 
 	err := s.doDeserialize(partsHolder, outputValues)

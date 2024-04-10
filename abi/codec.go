@@ -7,20 +7,16 @@ import (
 	"math"
 )
 
-// codec is the default codec for encoding and decoding
-//
-// See:
-// - https://docs.multiversx.com/developers/data/simple-values
-// - https://docs.multiversx.com/developers/data/composite-values
-// - https://docs.multiversx.com/developers/data/custom-types
 type codec struct {
 }
 
-// NewCodec creates a new default codec.
+// NewCodec creates a new default codec which follows the rules of the MultiversX Serialization format:
+// https://docs.multiversx.com/developers/data/serialization-overview
 func NewCodec() *codec {
 	return &codec{}
 }
 
+// EncodeNested encodes the given value following the nested encoding rules
 func (c *codec) EncodeNested(value any) ([]byte, error) {
 	buffer := bytes.NewBuffer(nil)
 	err := c.doEncodeNested(buffer, value)
@@ -72,6 +68,7 @@ func (c *codec) doEncodeNested(writer io.Writer, value any) error {
 	}
 }
 
+// EncodeTopLevel encodes the given value following the top-level encoding rules
 func (c *codec) EncodeTopLevel(value any) ([]byte, error) {
 	buffer := bytes.NewBuffer(nil)
 	err := c.doEncodeTopLevel(buffer, value)
@@ -115,6 +112,7 @@ func (c *codec) doEncodeTopLevel(writer io.Writer, value any) error {
 	}
 }
 
+// DecodeNested decodes the given data into the provided object following the nested decoding rules
 func (c *codec) DecodeNested(data []byte, value any) error {
 	reader := bytes.NewReader(data)
 	err := c.doDecodeNested(reader, value)
@@ -172,6 +170,7 @@ func (c *codec) doDecodeNested(reader io.Reader, value any) error {
 	}
 }
 
+// DecodeTopLevel decodes the given data into the provided object following the top-level decoding rules
 func (c *codec) DecodeTopLevel(data []byte, value any) error {
 	err := c.doDecodeTopLevel(data, value)
 	if err != nil {
