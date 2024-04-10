@@ -47,12 +47,9 @@ import (
 	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
 	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/block/preprocess"
-	"github.com/multiversx/mx-chain-go/process/coordinator"
 	procFactory "github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
-	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	txProc "github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -76,7 +73,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
@@ -608,6 +604,7 @@ func CreateGenesisBlocks(
 	dataPool dataRetriever.PoolsHolder,
 	economics process.EconomicsDataHandler,
 	enableEpochsConfig config.EnableEpochs,
+	runTypeComp mainFactory.RunTypeComponentsHolder,
 ) map[uint32]data.HeaderHandler {
 
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
@@ -630,6 +627,7 @@ func CreateGenesisBlocks(
 		dataPool,
 		economics,
 		enableEpochsConfig,
+		runTypeComp,
 	)
 
 	return genesisBlocks
@@ -671,12 +669,6 @@ func CreateFullGenesisBlocks(
 	dataComponents.Store = store
 	dataComponents.DataPool = dataPool
 	dataComponents.BlockChain = blkc
-
-	runTypeComponents := mainFactoryMocks.NewRunTypeComponentsStub()
-	runTypeComponents.BlockChainHookHandlerFactory, _ = hooks.NewBlockChainHookFactory()
-	runTypeComponents.TransactionCoordinatorFactory, _ = coordinator.NewShardTransactionCoordinatorFactory()
-	runTypeComponents.SCResultsPreProcessorFactory, _ = preprocess.NewSmartContractResultPreProcessorFactory()
-	runTypeComponents.ShardCoordinatorFactory = sharding.NewSovereignShardCoordinatorFactory()
 
 	argsGenesis := genesisProcess.ArgsGenesisBlockCreator{
 		Core:              coreComponents,
@@ -780,6 +772,7 @@ func CreateGenesisMetaBlock(
 	dataPool dataRetriever.PoolsHolder,
 	economics process.EconomicsDataHandler,
 	enableEpochsConfig config.EnableEpochs,
+	runTypeComp mainFactory.RunTypeComponentsHolder,
 ) data.MetaHeaderHandler {
 	gasSchedule := wasmConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)
@@ -871,7 +864,7 @@ func CreateGenesisMetaBlock(
 		HeaderVersionConfigs:    testscommon.GetDefaultHeaderVersionConfig(),
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
-		RunTypeComponents:       &mainFactoryMocks.RunTypeComponentsStub{},
+		RunTypeComponents:       runTypeComp,
 	}
 
 	if shardCoordinator.SelfId() != core.MetachainShardId {
