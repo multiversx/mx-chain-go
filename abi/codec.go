@@ -10,9 +10,9 @@ import (
 type codec struct {
 }
 
-// NewCodec creates a new default codec which follows the rules of the MultiversX Serialization format:
+// newCodec creates a new default codec which follows the rules of the MultiversX Serialization format:
 // https://docs.multiversx.com/developers/data/serialization-overview
-func NewCodec() *codec {
+func newCodec() *codec {
 	return &codec{}
 }
 

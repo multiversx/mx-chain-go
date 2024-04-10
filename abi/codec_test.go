@@ -9,7 +9,7 @@ import (
 )
 
 func TestCodec_EncodeNested(t *testing.T) {
-	codec := NewCodec()
+	codec := newCodec()
 
 	doTest := func(t *testing.T, value any, expected string) {
 		encoded, err := codec.EncodeNested(value)
@@ -168,7 +168,7 @@ func TestCodec_EncodeNested(t *testing.T) {
 }
 
 func TestCodec_EncodeTopLevel(t *testing.T) {
-	codec := NewCodec()
+	codec := newCodec()
 
 	doTest := func(t *testing.T, value any, expected string) {
 		encoded, err := codec.EncodeTopLevel(value)
@@ -264,7 +264,7 @@ func TestCodec_EncodeTopLevel(t *testing.T) {
 }
 
 func TestCodec_DecodeNested(t *testing.T) {
-	codec := NewCodec()
+	codec := newCodec()
 
 	t.Run("bool (true)", func(t *testing.T) {
 		data, _ := hex.DecodeString("01")
@@ -536,7 +536,7 @@ func TestCodec_DecodeNested(t *testing.T) {
 }
 
 func TestCodec_DecodeTopLevel(t *testing.T) {
-	codec := NewCodec()
+	codec := newCodec()
 
 	t.Run("bool (true)", func(t *testing.T) {
 		data, _ := hex.DecodeString("01")

@@ -7,7 +7,9 @@ import (
 )
 
 func TestSerializer_Serialize(t *testing.T) {
-	serializer := NewSerializer(NewCodec())
+	serializer := NewSerializer(ArgsNewSerializer{
+		PartsSeparator: "@",
+	})
 
 	t.Run("u8", func(t *testing.T) {
 		data, err := serializer.Serialize([]any{
@@ -140,7 +142,9 @@ func TestSerializer_Serialize(t *testing.T) {
 }
 
 func TestSerializer_Deserialize(t *testing.T) {
-	serializer := NewSerializer(NewCodec())
+	serializer := NewSerializer(ArgsNewSerializer{
+		PartsSeparator: "@",
+	})
 
 	t.Run("nil destination", func(t *testing.T) {
 		err := serializer.Deserialize("", []any{nil})

@@ -7,15 +7,22 @@ import (
 )
 
 type serializer struct {
-	codec valuesCodec
+	codec          *codec
+	partsSeparator string
 }
 
-// NewSerializer creates a new serializer with the given codec.
+// ArgsNewSerializer defines the arguments needed for a new serializer
+type ArgsNewSerializer struct {
+	PartsSeparator string
+}
+
+// NewSerializer creates a new serializer.
 // The serializer follows the rules of the MultiversX Serialization format:
 // https://docs.multiversx.com/developers/data/serialization-overview
-func NewSerializer(codec valuesCodec) *serializer {
+func NewSerializer(args ArgsNewSerializer) *serializer {
 	return &serializer{
-		codec: codec,
+		codec:          newCodec(),
+		partsSeparator: args.PartsSeparator,
 	}
 }
 
@@ -207,11 +214,11 @@ func (s *serializer) encodeParts(parts [][]byte) string {
 		partsHex[i] = hex.EncodeToString(part)
 	}
 
-	return strings.Join(partsHex, partsSeparator)
+	return strings.Join(partsHex, s.partsSeparator)
 }
 
 func (s *serializer) decodeIntoParts(encoded string) ([][]byte, error) {
-	partsHex := strings.Split(encoded, partsSeparator)
+	partsHex := strings.Split(encoded, s.partsSeparator)
 	parts := make([][]byte, len(partsHex))
 
 	for i, partHex := range partsHex {
