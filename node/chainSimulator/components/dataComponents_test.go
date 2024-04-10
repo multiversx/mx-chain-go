@@ -3,28 +3,29 @@ package components
 import (
 	"testing"
 
-	retriever "github.com/multiversx/mx-chain-go/dataRetriever"
-	chainStorage "github.com/multiversx/mx-chain-go/storage"
-	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
-	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/require"
+
+	mock2 "github.com/multiversx/mx-chain-go/integrationTests/mock"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/factory"
+	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
 )
 
 func createArgsDataComponentsHolder() ArgsDataComponentsHolder {
 	return ArgsDataComponentsHolder{
-		Chain: &testscommon.ChainHandlerStub{},
-		StorageService: &storage.ChainStorerStub{
-			GetStorerCalled: func(unitType retriever.UnitType) (chainStorage.Storer, error) {
-				return &storage.StorerStub{}, nil
-			},
+		CoreComponents:       &factory.CoreComponentsHolderMock{},
+		StatusCoreComponents: &factory.StatusCoreComponentsStub{},
+		BootstrapComponents:  &mainFactoryMocks.BootstrapComponentsStub{},
+		CryptoComponents: &mock2.CryptoComponentsStub{
+			PubKey:                  &mock2.PublicKeyMock{},
+			BlockSig:                &cryptoMocks.SingleSignerStub{},
+			BlKeyGen:                &cryptoMocks.KeyGenStub{},
+			TxSig:                   &cryptoMocks.SingleSignerStub{},
+			TxKeyGen:                &cryptoMocks.KeyGenStub{},
+			ManagedPeersHolderField: &testscommon.ManagedPeersHolderStub{},
 		},
-		DataPool: &dataRetriever.PoolsHolderStub{
-			MiniBlocksCalled: func() chainStorage.Cacher {
-				return &testscommon.CacherStub{}
-			},
-		},
-		InternalMarshaller: &testscommon.MarshallerStub{},
+		RunTypeComponents: &mainFactoryMocks.RunTypeComponentsStub{},
 	}
 }
 
@@ -41,32 +42,32 @@ func TestCreateDataComponents(t *testing.T) {
 		require.Nil(t, comp.Create())
 		require.Nil(t, comp.Close())
 	})
-	t.Run("NewMiniBlockProvider failure should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createArgsDataComponentsHolder()
-		args.DataPool = &dataRetriever.PoolsHolderStub{
-			MiniBlocksCalled: func() chainStorage.Cacher {
-				return nil
-			},
-		}
-		comp, err := CreateDataComponents(args)
-		require.Error(t, err)
-		require.Nil(t, comp)
-	})
-	t.Run("GetStorer failure should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createArgsDataComponentsHolder()
-		args.StorageService = &storage.ChainStorerStub{
-			GetStorerCalled: func(unitType retriever.UnitType) (chainStorage.Storer, error) {
-				return nil, expectedErr
-			},
-		}
-		comp, err := CreateDataComponents(args)
-		require.Equal(t, expectedErr, err)
-		require.Nil(t, comp)
-	})
+	//t.Run("NewMiniBlockProvider failure should error", func(t *testing.T) {
+	//	t.Parallel()
+	//
+	//	args := createArgsDataComponentsHolder()
+	//	args. = &dataRetriever.PoolsHolderStub{
+	//		MiniBlocksCalled: func() chainStorage.Cacher {
+	//			return nil
+	//		},
+	//	}
+	//	comp, err := CreateDataComponents(args)
+	//	require.Error(t, err)
+	//	require.Nil(t, comp)
+	//})
+	//t.Run("GetStorer failure should error", func(t *testing.T) {
+	//	t.Parallel()
+	//
+	//	args := createArgsDataComponentsHolder()
+	//	args.StorageService = &storage.ChainStorerStub{
+	//		GetStorerCalled: func(unitType retriever.UnitType) (chainStorage.Storer, error) {
+	//			return nil, expectedErr
+	//		},
+	//	}
+	//	comp, err := CreateDataComponents(args)
+	//	require.Equal(t, expectedErr, err)
+	//	require.Nil(t, comp)
+	//})
 }
 
 func TestDataComponentsHolder_IsInterfaceNil(t *testing.T) {

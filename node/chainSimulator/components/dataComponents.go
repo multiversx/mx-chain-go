@@ -14,13 +14,7 @@ import (
 
 // ArgsDataComponentsHolder will hold the components needed for data components
 type ArgsDataComponentsHolder struct {
-	//Chain              data.ChainHandler
-	//StorageService     dataRetriever.StorageService
-	//DataPool           dataRetriever.PoolsHolder
-	//InternalMarshaller marshal.Marshalizer
-
-	Configs config.Configs
-
+	Configs              config.Configs
 	CoreComponents       factory.CoreComponentsHolder
 	StatusCoreComponents factory.StatusCoreComponentsHolder
 	BootstrapComponents  factory.BootstrapComponentsHolder
@@ -82,24 +76,6 @@ func CreateDataComponents(args ArgsDataComponentsHolder) (*dataComponentsHolder,
 		return nil, err
 	}
 
-	//return managedDataComponents, nil
-
-	//miniBlockStorer, err := args.StorageService.GetStorer(dataRetriever.MiniBlockUnit)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//arg := provider.ArgMiniBlockProvider{
-	//	MiniBlockPool:    args.DataPool.MiniBlocks(),
-	//	MiniBlockStorage: miniBlockStorer,
-	//	Marshalizer:      args.InternalMarshaller,
-	//}
-	//
-	//miniBlocksProvider, err := provider.NewMiniBlockProvider(arg)
-	//if err != nil {
-	//	return nil, err
-	//}
-
 	instance := &dataComponentsHolder{
 		closeHandler:      NewCloseHandler(),
 		chain:             managedDataComponents.Blockchain(),
@@ -108,7 +84,7 @@ func CreateDataComponents(args ArgsDataComponentsHolder) (*dataComponentsHolder,
 		miniBlockProvider: managedDataComponents.MiniBlocksProvider(),
 	}
 
-	//instance.collectClosableComponents()
+	instance.collectClosableComponents()
 
 	return instance, nil
 }

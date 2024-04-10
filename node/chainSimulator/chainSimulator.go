@@ -51,6 +51,7 @@ type ArgsChainSimulator struct {
 	NumOfShards                 uint32
 	MinNodesPerShard            uint32
 	MetaChainMinNodes           uint32
+	MetaChainConsensusGroupSize uint32
 	NumNodesWaitingListShard    uint32
 	NumNodesWaitingListMeta     uint32
 	GenesisTimestamp            int64
@@ -112,25 +113,29 @@ func NewChainSimulator(args ArgsChainSimulator) (*Simulator, error) {
 
 func (s *Simulator) createChainHandlers(args ArgsChainSimulator) error {
 	outputConfigs, err := configs.CreateChainSimulatorConfigs(configs.ArgsChainSimulatorConfigs{
-		NumOfShards:              args.NumOfShards,
-		OriginalConfigsPath:      args.PathToInitialConfig,
-		GenesisTimeStamp:         computeStartTimeBaseOnInitialRound(args),
-		RoundDurationInMillis:    args.RoundDurationInMillis,
-		TempDir:                  args.TempDir,
-		MinNodesPerShard:         args.MinNodesPerShard,
-		MetaChainMinNodes:        args.MetaChainMinNodes,
-		RoundsPerEpoch:           args.RoundsPerEpoch,
-		InitialEpoch:             args.InitialEpoch,
-		AlterConfigsFunction:     args.AlterConfigsFunction,
-		NumNodesWaitingListShard: args.NumNodesWaitingListShard,
-		NumNodesWaitingListMeta:  args.NumNodesWaitingListMeta,
+		NumOfShards:                 args.NumOfShards,
+		OriginalConfigsPath:         args.PathToInitialConfig,
+		GenesisTimeStamp:            computeStartTimeBaseOnInitialRound(args),
+		RoundDurationInMillis:       args.RoundDurationInMillis,
+		TempDir:                     args.TempDir,
+		MinNodesPerShard:            args.MinNodesPerShard,
+		MetaChainMinNodes:           args.MetaChainMinNodes,
+		MetaChainConsensusGroupSize: args.MetaChainConsensusGroupSize,
+		RoundsPerEpoch:              args.RoundsPerEpoch,
+		InitialEpoch:                args.InitialEpoch,
+		AlterConfigsFunction:        args.AlterConfigsFunction,
+		NumNodesWaitingListShard:    args.NumNodesWaitingListShard,
+		NumNodesWaitingListMeta:     args.NumNodesWaitingListMeta,
 	})
 	if err != nil {
 		return err
 	}
 
-	for idx := 0; idx < int(args.NumOfShards); idx++ {
-		shardIDStr := fmt.Sprintf("%d", idx)
+	for idx := 1; idx < int(args.NumOfShards)+1; idx++ {
+		shardIDStr := fmt.Sprintf("%d", idx-1)
+		if idx == -1 {
+			shardIDStr = "metachain"
+		}
 
 		node, errCreate := s.createTestNode(*outputConfigs, args, shardIDStr)
 		if errCreate != nil {
@@ -150,7 +155,7 @@ func (s *Simulator) createChainHandlers(args ArgsChainSimulator) error {
 	s.initialWalletKeys = outputConfigs.InitialWallets
 	s.validatorsPrivateKeys = outputConfigs.ValidatorsPrivateKeys
 
-	log.Info("running the chain Simulator with the following parameters",
+	log.Info("running the chain simulator with the following parameters",
 		"number of shards (including meta)", args.NumOfShards+1,
 		"round per epoch", outputConfigs.Configs.GeneralConfig.EpochStartConfig.RoundsPerEpoch,
 		"round duration", time.Millisecond*time.Duration(args.RoundDurationInMillis),
@@ -325,7 +330,7 @@ func (s *Simulator) AddValidatorKeys(validatorsPrivateKeys [][]byte) error {
 }
 
 // GenerateAndMintWalletAddress will generate an address in the provided shard and will mint that address with the provided value
-// if the target shard ID value does not correspond to a node handled by the chain Simulator, the address will be generated in a random shard ID
+// if the target shard ID value does not correspond to a node handled by the chain simulator, the address will be generated in a random shard ID
 func (s *Simulator) GenerateAndMintWalletAddress(targetShardID uint32, value *big.Int) (dtos.WalletAddress, error) {
 	addressConverter := s.nodes[core.SovereignChainShardId].GetCoreComponents().AddressPubKeyConverter()
 	nodeHandler := s.GetNodeHandler(targetShardID)
@@ -579,7 +584,7 @@ func (s *Simulator) GetAccount(address dtos.WalletAddress) (api.AccountResponse,
 	return account, err
 }
 
-// Close will stop and close the Simulator
+// Close will stop and close the simulator
 func (s *Simulator) Close() {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
@@ -593,7 +598,7 @@ func (s *Simulator) Close() {
 	}
 
 	if len(errorStrings) != 0 {
-		log.Error("error closing chain Simulator", "error", components.AggregateErrors(errorStrings, components.ErrClose))
+		log.Error("error closing chain simulator", "error", components.AggregateErrors(errorStrings, components.ErrClose))
 	}
 }
 
