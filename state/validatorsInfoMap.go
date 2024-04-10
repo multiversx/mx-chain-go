@@ -169,12 +169,12 @@ func (vi *shardValidatorsInfoMap) Delete(validator ValidatorInfoHandler) error {
 	}
 
 	shardID := validator.GetShardId()
-	vi.DeleteKey(validator.GetPublicKey(), shardID)
+	vi.DeleteByKey(validator.GetPublicKey(), shardID)
 	return nil
 }
 
-// DeleteKey will delete the provided blsKey from the internally stored map, if found.
-func (vi *shardValidatorsInfoMap) DeleteKey(blsKey []byte, shardID uint32) {
+// DeleteByKey will delete the provided blsKey from the internally stored map, if found.
+func (vi *shardValidatorsInfoMap) DeleteByKey(blsKey []byte, shardID uint32) {
 	vi.mutex.Lock()
 	defer vi.mutex.Unlock()
 

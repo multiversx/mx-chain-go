@@ -293,9 +293,7 @@ func (s *legacySystemSCProcessor) unStakeNodesWithNotEnoughFunds(
 		validatorLeaving := validatorInfo.ShallowClone()
 		validatorLeaving.SetListAndIndex(string(common.LeavingList), validatorLeaving.GetIndex(), stakingV4Enabled)
 		err = s.replaceValidators(validatorInfo, validatorLeaving, validatorsInfoMap)
-		if err != nil {
-			return 0, err
-		}
+		log.LogIfError(err)
 	}
 
 	err = s.updateDelegationContracts(mapOwnersKeys)
@@ -725,7 +723,7 @@ func (s *legacySystemSCProcessor) stakingToValidatorStatistics(
 
 	if !isNew {
 		// the new validator is deleted from the staking queue, not the jailed validator
-		validatorsInfoMap.DeleteKey(blsPubKey, account.GetShardId())
+		validatorsInfoMap.DeleteByKey(blsPubKey, account.GetShardId())
 	}
 
 	account.SetListAndIndex(jailedValidator.GetShardId(), string(common.NewList), uint32(stakingData.StakedNonce), s.enableEpochsHandler.IsFlagEnabled(common.StakingV4StartedFlag))
@@ -755,9 +753,7 @@ func (s *legacySystemSCProcessor) stakingToValidatorStatistics(
 
 	newValidatorInfo := s.validatorInfoCreator.PeerAccountToValidatorInfo(account)
 	err = s.replaceValidators(jailedValidator, newValidatorInfo, validatorsInfoMap)
-	if err != nil {
-		return nil, err
-	}
+	log.LogIfError(err)
 
 	return blsPubKey, nil
 }
