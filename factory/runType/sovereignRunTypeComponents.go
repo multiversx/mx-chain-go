@@ -162,11 +162,7 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 	}
 
 	expiryTime := time.Second * time.Duration(rcf.cfg.OutgoingSubscribedEvents.TimeToWaitForUnconfirmedOutGoingOperationInSeconds)
-	outGoingOperationsPoolCreator := sovereignFactory.NewOutGoingOperationPool(expiryTime)
-
-	dataCodec := rcf.dataCodec
-
-	topicsChecker := rcf.topicsChecker
+	outGoingOperationsPool := sovereignFactory.NewOutGoingOperationPool(expiryTime)
 
 	shardCoordinatorCreator := sharding.NewSovereignShardCoordinatorFactory()
 
@@ -190,9 +186,9 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		vmContainerMetaFactory:              rtc.vmContainerMetaFactory,
 		vmContainerShardFactory:             vmContainerShardCreator,
 		accountsCreator:                     accountsCreator,
-		outGoingOperationsPoolHandler:       outGoingOperationsPoolCreator,
-		dataCodecHandler:                    dataCodec,
-		topicsCheckerHandler:                topicsChecker,
+		outGoingOperationsPoolHandler:       outGoingOperationsPool,
+		dataCodecHandler:                    rcf.dataCodec,
+		topicsCheckerHandler:                rcf.topicsChecker,
 		shardCoordinatorCreator:             shardCoordinatorCreator,
 	}, nil
 }

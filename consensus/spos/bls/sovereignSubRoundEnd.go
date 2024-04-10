@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/multiversx/mx-chain-go/consensus/spos"
-	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	"github.com/multiversx/mx-chain-go/errors"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -16,14 +15,14 @@ import (
 
 type sovereignSubRoundEnd struct {
 	*subroundEndRoundV2
-	outGoingOperationsPool sovereignBlock.OutGoingOperationsPool
+	outGoingOperationsPool OutGoingOperationsPool
 	bridgeOpHandler        BridgeOperationsHandler
 }
 
 // NewSovereignSubRoundEndRound creates a new sovereign end subround
 func NewSovereignSubRoundEndRound(
 	subRoundEnd *subroundEndRoundV2,
-	outGoingOperationsPool sovereignBlock.OutGoingOperationsPool,
+	outGoingOperationsPool OutGoingOperationsPool,
 	bridgeOpHandler BridgeOperationsHandler,
 ) (*sovereignSubRoundEnd, error) {
 	if check.IfNil(subRoundEnd) {

@@ -88,8 +88,9 @@ func createSovRunTypeComps(t *testing.T) runTypeComponentsHandler {
 	})
 	require.Nil(t, err)
 
-	sovRunTypeFactory, err := factoryRunType.NewSovereignRunTypeComponentsFactory(runTypeFactory,
+	sovRunTypeFactory, err := factoryRunType.NewSovereignRunTypeComponentsFactory(
 		factoryRunType.ArgsSovereignRunTypeComponents{
+			RunTypeComponentsFactory: runTypeFactory,
 			Config: config.SovereignConfig{
 				GenesisConfig: config.GenesisConfig{
 					NativeESDT: sovereignNativeToken,
