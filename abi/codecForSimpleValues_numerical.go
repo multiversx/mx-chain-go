@@ -74,7 +74,8 @@ func (c *codec) decodeTopLevelUnsignedNumber(data []byte, maxValue uint64) (uint
 }
 
 func (c *codec) decodeTopLevelSignedNumber(data []byte, maxValue int64) (int64, error) {
-	b := big.NewInt(0).SetBytes(data)
+	b := twos.FromBytes(data)
+
 	if !b.IsInt64() {
 		return 0, fmt.Errorf("decoded value is too large (does not fit an int64): %s", b)
 	}

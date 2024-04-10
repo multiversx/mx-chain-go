@@ -329,6 +329,15 @@ func TestCodec_DecodeNested(t *testing.T) {
 		require.Equal(t, &U8Value{Value: 0x01}, destination)
 	})
 
+	t.Run("i8", func(t *testing.T) {
+		data, _ := hex.DecodeString("ff")
+		destination := &I8Value{}
+
+		err := codec.DecodeNested(data, destination)
+		require.NoError(t, err)
+		require.Equal(t, &I8Value{Value: -1}, destination)
+	})
+
 	t.Run("u16", func(t *testing.T) {
 		data, _ := hex.DecodeString("4142")
 		destination := &U16Value{}
@@ -336,6 +345,15 @@ func TestCodec_DecodeNested(t *testing.T) {
 		err := codec.DecodeNested(data, destination)
 		require.NoError(t, err)
 		require.Equal(t, &U16Value{Value: 0x4142}, destination)
+	})
+
+	t.Run("i16", func(t *testing.T) {
+		data, _ := hex.DecodeString("ffff")
+		destination := &I16Value{}
+
+		err := codec.DecodeNested(data, destination)
+		require.NoError(t, err)
+		require.Equal(t, &I16Value{Value: -1}, destination)
 	})
 
 	t.Run("u32", func(t *testing.T) {
@@ -347,6 +365,15 @@ func TestCodec_DecodeNested(t *testing.T) {
 		require.Equal(t, &U32Value{Value: 0x41424344}, destination)
 	})
 
+	t.Run("i32", func(t *testing.T) {
+		data, _ := hex.DecodeString("ffffffff")
+		destination := &I32Value{}
+
+		err := codec.DecodeNested(data, destination)
+		require.NoError(t, err)
+		require.Equal(t, &I32Value{Value: -1}, destination)
+	})
+
 	t.Run("u64", func(t *testing.T) {
 		data, _ := hex.DecodeString("4142434445464748")
 		destination := &U64Value{}
@@ -354,6 +381,15 @@ func TestCodec_DecodeNested(t *testing.T) {
 		err := codec.DecodeNested(data, destination)
 		require.NoError(t, err)
 		require.Equal(t, &U64Value{Value: 0x4142434445464748}, destination)
+	})
+
+	t.Run("i64", func(t *testing.T) {
+		data, _ := hex.DecodeString("ffffffffffffffff")
+		destination := &I32Value{}
+
+		err := codec.DecodeNested(data, destination)
+		require.NoError(t, err)
+		require.Equal(t, &I32Value{Value: -1}, destination)
 	})
 
 	t.Run("u16, should err because it cannot read 2 bytes", func(t *testing.T) {
@@ -603,6 +639,15 @@ func TestCodec_DecodeTopLevel(t *testing.T) {
 		require.Equal(t, &U8Value{Value: 0x01}, destination)
 	})
 
+	t.Run("i8", func(t *testing.T) {
+		data, _ := hex.DecodeString("ff")
+		destination := &I8Value{}
+
+		err := codec.DecodeTopLevel(data, destination)
+		require.NoError(t, err)
+		require.Equal(t, &I8Value{Value: -1}, destination)
+	})
+
 	t.Run("u16", func(t *testing.T) {
 		data, _ := hex.DecodeString("02")
 		destination := &U16Value{}
@@ -610,6 +655,15 @@ func TestCodec_DecodeTopLevel(t *testing.T) {
 		err := codec.DecodeTopLevel(data, destination)
 		require.NoError(t, err)
 		require.Equal(t, &U16Value{Value: 0x0002}, destination)
+	})
+
+	t.Run("i16", func(t *testing.T) {
+		data, _ := hex.DecodeString("ffff")
+		destination := &I8Value{}
+
+		err := codec.DecodeTopLevel(data, destination)
+		require.NoError(t, err)
+		require.Equal(t, &I8Value{Value: -1}, destination)
 	})
 
 	t.Run("u32", func(t *testing.T) {
@@ -621,6 +675,15 @@ func TestCodec_DecodeTopLevel(t *testing.T) {
 		require.Equal(t, &U32Value{Value: 0x00000003}, destination)
 	})
 
+	t.Run("i32", func(t *testing.T) {
+		data, _ := hex.DecodeString("ffffffff")
+		destination := &I8Value{}
+
+		err := codec.DecodeTopLevel(data, destination)
+		require.NoError(t, err)
+		require.Equal(t, &I8Value{Value: -1}, destination)
+	})
+
 	t.Run("u64", func(t *testing.T) {
 		data, _ := hex.DecodeString("04")
 		destination := &U64Value{}
@@ -628,6 +691,15 @@ func TestCodec_DecodeTopLevel(t *testing.T) {
 		err := codec.DecodeTopLevel(data, destination)
 		require.NoError(t, err)
 		require.Equal(t, &U64Value{Value: 0x0000000000000004}, destination)
+	})
+
+	t.Run("i64", func(t *testing.T) {
+		data, _ := hex.DecodeString("ffffffffffffffff")
+		destination := &I8Value{}
+
+		err := codec.DecodeTopLevel(data, destination)
+		require.NoError(t, err)
+		require.Equal(t, &I8Value{Value: -1}, destination)
 	})
 
 	t.Run("u8, should err because decoded value is too large", func(t *testing.T) {
