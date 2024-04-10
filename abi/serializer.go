@@ -14,14 +14,19 @@ type serializer struct {
 // ArgsNewSerializer defines the arguments needed for a new serializer
 type ArgsNewSerializer struct {
 	PartsSeparator string
+	PubKeyLength   int
 }
 
 // NewSerializer creates a new serializer.
 // The serializer follows the rules of the MultiversX Serialization format:
 // https://docs.multiversx.com/developers/data/serialization-overview
 func NewSerializer(args ArgsNewSerializer) *serializer {
+	codec := newCodec(argsNewCodec{
+		pubKeyLength: args.PubKeyLength,
+	})
+
 	return &serializer{
-		codec:          newCodec(),
+		codec:          codec,
 		partsSeparator: args.PartsSeparator,
 	}
 }

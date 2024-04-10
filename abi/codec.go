@@ -8,12 +8,20 @@ import (
 )
 
 type codec struct {
+	pubKeyLength int
+}
+
+// argsNewCodec defines the arguments needed for a new codec
+type argsNewCodec struct {
+	pubKeyLength int
 }
 
 // newCodec creates a new default codec which follows the rules of the MultiversX Serialization format:
 // https://docs.multiversx.com/developers/data/serialization-overview
-func newCodec() *codec {
-	return &codec{}
+func newCodec(args argsNewCodec) *codec {
+	return &codec{
+		pubKeyLength: args.pubKeyLength,
+	}
 }
 
 // EncodeNested encodes the given value following the nested encoding rules
