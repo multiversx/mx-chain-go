@@ -30,9 +30,10 @@ import (
 )
 
 type ArgsSovereignRunTypeComponents struct {
-	Config        config.SovereignConfig
-	DataCodec     sovereign.DataDecoderHandler
-	TopicsChecker sovereign.TopicsCheckerHandler
+	RunTypeComponentsFactory *runTypeComponentsFactory
+	Config                   config.SovereignConfig
+	DataCodec                sovereign.DataDecoderHandler
+	TopicsChecker            sovereign.TopicsCheckerHandler
 }
 
 type sovereignRunTypeComponentsFactory struct {
@@ -43,8 +44,8 @@ type sovereignRunTypeComponentsFactory struct {
 }
 
 // NewSovereignRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
-func NewSovereignRunTypeComponentsFactory(fact *runTypeComponentsFactory, args ArgsSovereignRunTypeComponents) (*sovereignRunTypeComponentsFactory, error) {
-	if check.IfNil(fact) {
+func NewSovereignRunTypeComponentsFactory(args ArgsSovereignRunTypeComponents) (*sovereignRunTypeComponentsFactory, error) {
+	if check.IfNil(args.RunTypeComponentsFactory) {
 		return nil, errors.ErrNilRunTypeComponentsFactory
 	}
 	if check.IfNil(args.DataCodec) {
@@ -55,7 +56,7 @@ func NewSovereignRunTypeComponentsFactory(fact *runTypeComponentsFactory, args A
 	}
 
 	return &sovereignRunTypeComponentsFactory{
-		runTypeComponentsFactory: fact,
+		runTypeComponentsFactory: args.RunTypeComponentsFactory,
 		cfg:                      args.Config,
 		dataCodec:                args.DataCodec,
 		topicsChecker:            args.TopicsChecker,
@@ -162,11 +163,7 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 	}
 
 	expiryTime := time.Second * time.Duration(rcf.cfg.OutgoingSubscribedEvents.TimeToWaitForUnconfirmedOutGoingOperationInSeconds)
-	outGoingOperationsPoolCreator := sovereignFactory.NewOutGoingOperationPool(expiryTime)
-
-	dataCodec := rcf.dataCodec
-
-	topicsChecker := rcf.topicsChecker
+	outGoingOperationsPool := sovereignFactory.NewOutGoingOperationPool(expiryTime)
 
 	shardCoordinatorCreator := sharding.NewSovereignShardCoordinatorFactory()
 
@@ -192,9 +189,9 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		vmContainerMetaFactory:                  rtc.vmContainerMetaFactory,
 		vmContainerShardFactory:                 vmContainerShardCreator,
 		accountsCreator:                         accountsCreator,
-		outGoingOperationsPoolHandler:           outGoingOperationsPoolCreator,
-		dataCodecHandler:                        dataCodec,
-		topicsCheckerHandler:                    topicsChecker,
+		outGoingOperationsPoolHandler:           outGoingOperationsPool,
+		dataCodecHandler:                        rcf.dataCodec,
+		topicsCheckerHandler:                    rcf.topicsChecker,
 		shardCoordinatorCreator:                 shardCoordinatorCreator,
 		nodesCoordinatorWithRaterFactoryCreator: nodesCoordinatorWithRaterFactoryCreator,
 	}, nil

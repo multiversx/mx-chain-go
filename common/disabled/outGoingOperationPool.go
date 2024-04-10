@@ -12,23 +12,23 @@ func NewDisabledOutGoingOperationPool() *outGoingOperationsPool {
 	return &outGoingOperationsPool{}
 }
 
-// Add returns nothing
+// Add -
 func (op *outGoingOperationsPool) Add(_ *sovereign.BridgeOutGoingData) {}
 
-// Get returns nothing
+// Get -
 func (op *outGoingOperationsPool) Get(_ []byte) *sovereign.BridgeOutGoingData {
 	return &sovereign.BridgeOutGoingData{}
 }
 
-// Delete returns nothing
+// Delete -
 func (op *outGoingOperationsPool) Delete(_ []byte) {}
 
-// ConfirmOperation returns nothing
+// ConfirmOperation -
 func (op *outGoingOperationsPool) ConfirmOperation(_ []byte, _ []byte) error {
 	return nil
 }
 
-// GetUnconfirmedOperations  returns nothing
+// GetUnconfirmedOperations -
 func (op *outGoingOperationsPool) GetUnconfirmedOperations() []*sovereign.BridgeOutGoingData {
 	return make([]*sovereign.BridgeOutGoingData, 0)
 }
