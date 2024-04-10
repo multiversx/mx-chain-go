@@ -160,12 +160,6 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		return nil, fmt.Errorf("runTypeComponentsFactory - NewAccountCreator failed: %w", err)
 	}
 
-	outGoingOperationsPool := disabled.NewDisabledOutGoingOperationPool()
-
-	dataCodec := disabled.NewDisabledDataCodec()
-
-	topicsChecker := disabled.NewDisabledTopicsChecker()
-
 	shardCoordinatorCreator := sharding.NewMultiShardCoordinatorFactory()
 
 	return &runTypeComponents{
@@ -188,9 +182,9 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		vmContainerMetaFactory:              vmContainerMetaCreator,
 		vmContainerShardFactory:             vmContainerShardCreator,
 		accountsCreator:                     accountsCreator,
-		outGoingOperationsPoolHandler:       outGoingOperationsPool,
-		dataCodecHandler:                    dataCodec,
-		topicsCheckerHandler:                topicsChecker,
+		outGoingOperationsPoolHandler:       disabled.NewDisabledOutGoingOperationPool(),
+		dataCodecHandler:                    disabled.NewDisabledDataCodec(),
+		topicsCheckerHandler:                disabled.NewDisabledTopicsChecker(),
 		shardCoordinatorCreator:             shardCoordinatorCreator,
 	}, nil
 }
