@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
@@ -22,7 +23,18 @@ type leavesRetriever struct {
 }
 
 // NewLeavesRetriever creates a new leaves retriever
-func NewLeavesRetriever(db common.TrieStorageInteractor, marshaller marshal.Marshalizer, hasher hashing.Hasher, maxSize uint64) *leavesRetriever {
+func NewLeavesRetriever(db common.TrieStorageInteractor, marshaller marshal.Marshalizer, hasher hashing.Hasher, maxSize uint64) (*leavesRetriever, error) {
+	if check.IfNil(db) {
+		return nil, ErrNilDB
+	}
+	if check.IfNil(marshaller) {
+		return nil, ErrNilMarshaller
+
+	}
+	if check.IfNil(hasher) {
+		return nil, ErrNilHasher
+	}
+
 	return &leavesRetriever{
 		iterators:      make(map[string]common.DfsIterator),
 		lruIteratorIDs: make([][]byte, 0),
@@ -31,16 +43,20 @@ func NewLeavesRetriever(db common.TrieStorageInteractor, marshaller marshal.Mars
 		hasher:         hasher,
 		size:           0,
 		maxSize:        maxSize,
-	}
+	}, nil
 }
 
 // GetLeaves retrieves the leaves from the trie. If there is a saved checkpoint for the iterator id, it will continue to iterate from the checkpoint.
 func (lr *leavesRetriever) GetLeaves(numLeaves int, rootHash []byte, iteratorID []byte, ctx context.Context) (map[string]string, []byte, error) {
+	if len(iteratorID) == 0 {
+		return lr.getLeavesFromNewInstance(numLeaves, rootHash, ctx)
+	}
+
 	lr.mutex.RLock()
 	iterator, ok := lr.iterators[string(iteratorID)]
 	lr.mutex.RUnlock()
 	if !ok {
-		return lr.getLeavesFromNewInstance(numLeaves, rootHash, ctx)
+		return nil, nil, ErrIteratorNotFound
 	}
 
 	return lr.getLeavesFromCheckpoint(numLeaves, iterator, iteratorID, ctx)
@@ -52,6 +68,17 @@ func (lr *leavesRetriever) getLeavesFromNewInstance(numLeaves int, rootHash []by
 		return nil, nil, err
 	}
 
+	return lr.getLeavesFromIterator(iterator, numLeaves, ctx)
+}
+
+func (lr *leavesRetriever) getLeavesFromCheckpoint(numLeaves int, iterator common.DfsIterator, iteratorID []byte, ctx context.Context) (map[string]string, []byte, error) {
+	lr.markIteratorAsRecentlyUsed(iteratorID)
+	clonedIterator := iterator.Clone()
+
+	return lr.getLeavesFromIterator(clonedIterator, numLeaves, ctx)
+}
+
+func (lr *leavesRetriever) getLeavesFromIterator(iterator common.DfsIterator, numLeaves int, ctx context.Context) (map[string]string, []byte, error) {
 	leaves, err := iterator.GetLeaves(numLeaves, ctx)
 	if err != nil {
 		return nil, nil, err
@@ -70,27 +97,6 @@ func (lr *leavesRetriever) getLeavesFromNewInstance(numLeaves int, rootHash []by
 	return leaves, iteratorId, nil
 }
 
-func (lr *leavesRetriever) getLeavesFromCheckpoint(numLeaves int, iterator common.DfsIterator, iteratorID []byte, ctx context.Context) (map[string]string, []byte, error) {
-	lr.markIteratorAsRecentlyUsed(iteratorID)
-	clonedIterator := iterator.Clone()
-	leaves, err := clonedIterator.GetLeaves(numLeaves, ctx)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if clonedIterator.FinishedIteration() {
-		return leaves, nil, nil
-	}
-
-	newIteratorId := clonedIterator.GetIteratorId()
-	if len(newIteratorId) == 0 {
-		return leaves, nil, nil
-	}
-
-	lr.manageIterators(newIteratorId, clonedIterator)
-	return leaves, newIteratorId, nil
-}
-
 func (lr *leavesRetriever) manageIterators(iteratorId []byte, iterator common.DfsIterator) {
 	lr.mutex.Lock()
 	defer lr.mutex.Unlock()
@@ -100,6 +106,11 @@ func (lr *leavesRetriever) manageIterators(iteratorId []byte, iterator common.Df
 }
 
 func (lr *leavesRetriever) saveIterator(iteratorId []byte, iterator common.DfsIterator) {
+	_, isPresent := lr.iterators[string(iteratorId)]
+	if isPresent {
+		return
+	}
+
 	lr.lruIteratorIDs = append(lr.lruIteratorIDs, iteratorId)
 	lr.iterators[string(iteratorId)] = iterator
 	lr.size += iterator.Size() + uint64(len(iteratorId))
@@ -134,4 +145,9 @@ func (lr *leavesRetriever) removeIteratorsIfMaxSizeIsExceeded() {
 			break
 		}
 	}
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (lr *leavesRetriever) IsInterfaceNil() bool {
+	return lr == nil
 }

@@ -4,10 +4,11 @@ import "github.com/multiversx/mx-chain-go/common"
 
 // KeyBuilderStub -
 type KeyBuilderStub struct {
-	BuildKeyCalled func(keyPart []byte)
-	GetKeyCalled   func() ([]byte, error)
-	CloneCalled    func() common.KeyBuilder
-	SizeCalled     func() uint
+	BuildKeyCalled     func(keyPart []byte)
+	GetKeyCalled       func() ([]byte, error)
+	ShallowCloneCalled func() common.KeyBuilder
+	DeepCloneCalled    func() common.KeyBuilder
+	SizeCalled         func() uint
 }
 
 // BuildKey -
@@ -26,10 +27,19 @@ func (stub *KeyBuilderStub) GetKey() ([]byte, error) {
 	return []byte{}, nil
 }
 
-// Clone -
-func (stub *KeyBuilderStub) Clone() common.KeyBuilder {
-	if stub.CloneCalled != nil {
-		return stub.CloneCalled()
+// ShallowClone -
+func (stub *KeyBuilderStub) ShallowClone() common.KeyBuilder {
+	if stub.ShallowCloneCalled != nil {
+		return stub.ShallowCloneCalled()
+	}
+
+	return &KeyBuilderStub{}
+}
+
+// DeepClone -
+func (stub *KeyBuilderStub) DeepClone() common.KeyBuilder {
+	if stub.DeepCloneCalled != nil {
+		return stub.DeepCloneCalled()
 	}
 
 	return &KeyBuilderStub{}

@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"github.com/multiversx/mx-chain-go/trie/leavesRetriever/trieNodeData"
 	"io"
 	"math"
 	"sync"
@@ -16,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/trie/leavesRetriever/trieNodeData"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
@@ -569,8 +569,13 @@ func (ln *leafNode) getNodeData(keyBuilder common.KeyBuilder) ([]common.TrieNode
 	}
 
 	data := make([]common.TrieNodeData, 1)
-	keyBuilder.BuildKey(ln.Key)
-	data[0] = trieNodeData.NewLeafNodeData(keyBuilder.Clone(), ln.Value)
+	clonedKeyBuilder := keyBuilder.DeepClone()
+	clonedKeyBuilder.BuildKey(ln.Key)
+	nodeData, err := trieNodeData.NewLeafNodeData(clonedKeyBuilder, ln.Value)
+	if err != nil {
+		return nil, err
+	}
+	data[0] = nodeData
 
 	return data, nil
 }

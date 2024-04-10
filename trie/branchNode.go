@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"github.com/multiversx/mx-chain-go/trie/leavesRetriever/trieNodeData"
 	"io"
 	"sync"
 
@@ -13,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/trie/leavesRetriever/trieNodeData"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
@@ -805,7 +805,7 @@ func (bn *branchNode) getAllLeavesOnChannel(
 				continue
 			}
 
-			clonedKeyBuilder := keyBuilder.Clone()
+			clonedKeyBuilder := keyBuilder.ShallowClone()
 			clonedKeyBuilder.BuildKey([]byte{byte(i)})
 			err = bn.children[i].getAllLeavesOnChannel(leavesChannel, clonedKeyBuilder, trieLeafParser, db, marshalizer, chanClose, ctx)
 			if err != nil {
@@ -981,7 +981,7 @@ func (bn *branchNode) collectLeavesForMigration(
 			return false, err
 		}
 
-		clonedKeyBuilder := keyBuilder.Clone()
+		clonedKeyBuilder := keyBuilder.ShallowClone()
 		clonedKeyBuilder.BuildKey([]byte{byte(i)})
 		shouldContinueMigrating, err := bn.children[i].collectLeavesForMigration(migrationArgs, db, clonedKeyBuilder)
 		if err != nil {
@@ -1008,9 +1008,12 @@ func (bn *branchNode) getNodeData(keyBuilder common.KeyBuilder) ([]common.TrieNo
 			continue
 		}
 
-		clonedKeyBuilder := keyBuilder.Clone()
+		clonedKeyBuilder := keyBuilder.DeepClone()
 		clonedKeyBuilder.BuildKey([]byte{byte(i)})
-		childData := trieNodeData.NewIntermediaryNodeData(clonedKeyBuilder, bn.EncodedChildren[i])
+		childData, err := trieNodeData.NewIntermediaryNodeData(clonedKeyBuilder, bn.EncodedChildren[i])
+		if err != nil {
+			return nil, err
+		}
 		data = append(data, childData)
 	}
 

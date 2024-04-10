@@ -34,10 +34,20 @@ func (kb *keyBuilder) GetKey() ([]byte, error) {
 	return hexToTrieKeyBytes(kb.key)
 }
 
-// Clone returns a new KeyBuilder with the same key
-func (kb *keyBuilder) Clone() common.KeyBuilder {
+// ShallowClone returns a new KeyBuilder with the same key. The key slice points to the same memory location.
+func (kb *keyBuilder) ShallowClone() common.KeyBuilder {
 	return &keyBuilder{
 		key: kb.key,
+	}
+}
+
+// DeepClone returns a new KeyBuilder with the same key. This allocates a new memory location for the key slice.
+func (kb *keyBuilder) DeepClone() common.KeyBuilder {
+	clonedKey := make([]byte, len(kb.key))
+	copy(clonedKey, kb.key)
+
+	return &keyBuilder{
+		key: clonedKey,
 	}
 }
 

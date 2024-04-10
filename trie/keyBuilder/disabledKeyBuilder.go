@@ -22,8 +22,13 @@ func (dkb *disabledKeyBuilder) GetKey() ([]byte, error) {
 	return []byte{}, nil
 }
 
-// Clone returns a new disabled key builder
-func (dkb *disabledKeyBuilder) Clone() common.KeyBuilder {
+// ShallowClone returns a new disabled key builder
+func (dkb *disabledKeyBuilder) ShallowClone() common.KeyBuilder {
+	return &disabledKeyBuilder{}
+}
+
+// DeepClone returns a new disabled key builder
+func (dkb *disabledKeyBuilder) DeepClone() common.KeyBuilder {
 	return &disabledKeyBuilder{}
 }
 
