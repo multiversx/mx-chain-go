@@ -9,7 +9,7 @@ import (
 )
 
 func TestCodec_EncodeNested(t *testing.T) {
-	codec := newCodec(argsNewCodec{
+	codec, _ := newCodec(argsNewCodec{
 		pubKeyLength: 32,
 	})
 
@@ -184,7 +184,7 @@ func TestCodec_EncodeNested(t *testing.T) {
 }
 
 func TestCodec_EncodeTopLevel(t *testing.T) {
-	codec := newCodec(argsNewCodec{
+	codec, _ := newCodec(argsNewCodec{
 		pubKeyLength: 32,
 	})
 
@@ -298,7 +298,7 @@ func TestCodec_EncodeTopLevel(t *testing.T) {
 }
 
 func TestCodec_DecodeNested(t *testing.T) {
-	codec := newCodec(argsNewCodec{
+	codec, _ := newCodec(argsNewCodec{
 		pubKeyLength: 32,
 	})
 
@@ -608,7 +608,7 @@ func TestCodec_DecodeNested(t *testing.T) {
 }
 
 func TestCodec_DecodeTopLevel(t *testing.T) {
-	codec := newCodec(argsNewCodec{
+	codec, _ := newCodec(argsNewCodec{
 		pubKeyLength: 32,
 	})
 

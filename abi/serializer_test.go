@@ -7,9 +7,11 @@ import (
 )
 
 func TestSerializer_Serialize(t *testing.T) {
-	serializer := NewSerializer(ArgsNewSerializer{
+	serializer, err := NewSerializer(ArgsNewSerializer{
 		PartsSeparator: "@",
+		PubKeyLength:   32,
 	})
+	require.NoError(t, err)
 
 	t.Run("u8", func(t *testing.T) {
 		data, err := serializer.Serialize([]any{
@@ -142,9 +144,11 @@ func TestSerializer_Serialize(t *testing.T) {
 }
 
 func TestSerializer_Deserialize(t *testing.T) {
-	serializer := NewSerializer(ArgsNewSerializer{
+	serializer, err := NewSerializer(ArgsNewSerializer{
 		PartsSeparator: "@",
+		PubKeyLength:   32,
 	})
+	require.NoError(t, err)
 
 	t.Run("nil destination", func(t *testing.T) {
 		err := serializer.Deserialize("", []any{nil})

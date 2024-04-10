@@ -2,6 +2,7 @@ package abi
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -18,10 +19,14 @@ type argsNewCodec struct {
 
 // newCodec creates a new default codec which follows the rules of the MultiversX Serialization format:
 // https://docs.multiversx.com/developers/data/serialization-overview
-func newCodec(args argsNewCodec) *codec {
+func newCodec(args argsNewCodec) (*codec, error) {
+	if args.pubKeyLength <= 0 {
+		return nil, errors.New("cannot create codec: bad public key length")
+	}
+
 	return &codec{
 		pubKeyLength: args.pubKeyLength,
-	}
+	}, nil
 }
 
 // EncodeNested encodes the given value following the nested encoding rules

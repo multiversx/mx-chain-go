@@ -20,15 +20,22 @@ type ArgsNewSerializer struct {
 // NewSerializer creates a new serializer.
 // The serializer follows the rules of the MultiversX Serialization format:
 // https://docs.multiversx.com/developers/data/serialization-overview
-func NewSerializer(args ArgsNewSerializer) *serializer {
-	codec := newCodec(argsNewCodec{
+func NewSerializer(args ArgsNewSerializer) (*serializer, error) {
+	if args.PartsSeparator == "" {
+		return nil, errors.New("cannot create serializer: parts separator must not be empty")
+	}
+
+	codec, err := newCodec(argsNewCodec{
 		pubKeyLength: args.PubKeyLength,
 	})
+	if err != nil {
+		return nil, err
+	}
 
 	return &serializer{
 		codec:          codec,
 		partsSeparator: args.PartsSeparator,
-	}
+	}, nil
 }
 
 // Serialize serializes the given input values into a string
