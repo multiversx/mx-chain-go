@@ -8,6 +8,25 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestNewCodec(t *testing.T) {
+	t.Run("should work", func(t *testing.T) {
+		codec, err := newCodec(argsNewCodec{
+			pubKeyLength: 32,
+		})
+
+		require.NoError(t, err)
+		require.NotNil(t, codec)
+	})
+
+	t.Run("should err if bad public key length", func(t *testing.T) {
+		_, err := newCodec(argsNewCodec{
+			pubKeyLength: 0,
+		})
+
+		require.ErrorContains(t, err, "bad public key length")
+	})
+}
+
 func TestCodec_EncodeNested(t *testing.T) {
 	codec, _ := newCodec(argsNewCodec{
 		pubKeyLength: 32,
@@ -181,6 +200,16 @@ func TestCodec_EncodeNested(t *testing.T) {
 
 		doTest(t, fooList, "00000003000100020003")
 	})
+
+	t.Run("should err when unknown type", func(t *testing.T) {
+		type dummy struct {
+			foobar string
+		}
+
+		encoded, err := codec.EncodeNested(&dummy{foobar: "hello"})
+		require.ErrorContains(t, err, "unsupported type for nested encoding: *abi.dummy")
+		require.Nil(t, encoded)
+	})
 }
 
 func TestCodec_EncodeTopLevel(t *testing.T) {
@@ -295,6 +324,16 @@ func TestCodec_EncodeTopLevel(t *testing.T) {
 
 		doTest(t, fooEnum, "2a014142")
 	})
+
+	t.Run("should err when unknown type", func(t *testing.T) {
+		type dummy struct {
+			foobar string
+		}
+
+		encoded, err := codec.EncodeTopLevel(&dummy{foobar: "hello"})
+		require.ErrorContains(t, err, "unsupported type for top-level encoding: *abi.dummy")
+		require.Nil(t, encoded)
+	})
 }
 
 func TestCodec_DecodeNested(t *testing.T) {
@@ -385,11 +424,11 @@ func TestCodec_DecodeNested(t *testing.T) {
 
 	t.Run("i64", func(t *testing.T) {
 		data, _ := hex.DecodeString("ffffffffffffffff")
-		destination := &I32Value{}
+		destination := &I64Value{}
 
 		err := codec.DecodeNested(data, destination)
 		require.NoError(t, err)
-		require.Equal(t, &I32Value{Value: -1}, destination)
+		require.Equal(t, &I64Value{Value: -1}, destination)
 	})
 
 	t.Run("u16, should err because it cannot read 2 bytes", func(t *testing.T) {
@@ -434,6 +473,13 @@ func TestCodec_DecodeNested(t *testing.T) {
 		err = codec.DecodeNested(data, destination)
 		require.NoError(t, err)
 		require.Equal(t, &BigIntValue{Value: big.NewInt(-1)}, destination)
+	})
+
+	t.Run("bigInt: should err when bad data", func(t *testing.T) {
+		data, _ := hex.DecodeString("0000000301")
+		destination := &BigIntValue{}
+		err := codec.DecodeNested(data, destination)
+		require.ErrorContains(t, err, "cannot decode (nested) *abi.BigIntValue, because of: cannot read exactly 3 bytes")
 	})
 
 	t.Run("address", func(t *testing.T) {
@@ -605,6 +651,15 @@ func TestCodec_DecodeNested(t *testing.T) {
 				&U16Value{Value: 3},
 			}, destination.Items)
 	})
+
+	t.Run("should err when unknown type", func(t *testing.T) {
+		type dummy struct {
+			foobar string
+		}
+
+		err := codec.DecodeNested([]byte{0x00}, &dummy{foobar: "hello"})
+		require.ErrorContains(t, err, "unsupported type for nested decoding: *abi.dummy")
+	})
 }
 
 func TestCodec_DecodeTopLevel(t *testing.T) {
@@ -659,11 +714,11 @@ func TestCodec_DecodeTopLevel(t *testing.T) {
 
 	t.Run("i16", func(t *testing.T) {
 		data, _ := hex.DecodeString("ffff")
-		destination := &I8Value{}
+		destination := &I16Value{}
 
 		err := codec.DecodeTopLevel(data, destination)
 		require.NoError(t, err)
-		require.Equal(t, &I8Value{Value: -1}, destination)
+		require.Equal(t, &I16Value{Value: -1}, destination)
 	})
 
 	t.Run("u32", func(t *testing.T) {
@@ -677,11 +732,11 @@ func TestCodec_DecodeTopLevel(t *testing.T) {
 
 	t.Run("i32", func(t *testing.T) {
 		data, _ := hex.DecodeString("ffffffff")
-		destination := &I8Value{}
+		destination := &I32Value{}
 
 		err := codec.DecodeTopLevel(data, destination)
 		require.NoError(t, err)
-		require.Equal(t, &I8Value{Value: -1}, destination)
+		require.Equal(t, &I32Value{Value: -1}, destination)
 	})
 
 	t.Run("u64", func(t *testing.T) {
@@ -695,42 +750,50 @@ func TestCodec_DecodeTopLevel(t *testing.T) {
 
 	t.Run("i64", func(t *testing.T) {
 		data, _ := hex.DecodeString("ffffffffffffffff")
-		destination := &I8Value{}
+		destination := &I64Value{}
 
 		err := codec.DecodeTopLevel(data, destination)
 		require.NoError(t, err)
-		require.Equal(t, &I8Value{Value: -1}, destination)
+		require.Equal(t, &I64Value{Value: -1}, destination)
 	})
 
-	t.Run("u8, should err because decoded value is too large", func(t *testing.T) {
+	t.Run("u8, i8: should err because decoded value is too large", func(t *testing.T) {
 		data, _ := hex.DecodeString("4142")
-		destination := &U8Value{}
 
-		err := codec.DecodeTopLevel(data, destination)
+		err := codec.DecodeTopLevel(data, &U8Value{})
+		require.ErrorContains(t, err, "decoded value is too large")
+
+		err = codec.DecodeTopLevel(data, &I8Value{})
 		require.ErrorContains(t, err, "decoded value is too large")
 	})
 
-	t.Run("u16, should err because decoded value is too large", func(t *testing.T) {
+	t.Run("u16, i16: should err because decoded value is too large", func(t *testing.T) {
 		data, _ := hex.DecodeString("41424344")
-		destination := &U16Value{}
 
-		err := codec.DecodeTopLevel(data, destination)
+		err := codec.DecodeTopLevel(data, &U16Value{})
+		require.ErrorContains(t, err, "decoded value is too large")
+
+		err = codec.DecodeTopLevel(data, &I16Value{})
 		require.ErrorContains(t, err, "decoded value is too large")
 	})
 
-	t.Run("u32, should err because decoded value is too large", func(t *testing.T) {
+	t.Run("u32, i32: should err because decoded value is too large", func(t *testing.T) {
 		data, _ := hex.DecodeString("4142434445464748")
-		destination := &U32Value{}
 
-		err := codec.DecodeTopLevel(data, destination)
+		err := codec.DecodeTopLevel(data, &U32Value{})
+		require.ErrorContains(t, err, "decoded value is too large")
+
+		err = codec.DecodeTopLevel(data, &I32Value{})
 		require.ErrorContains(t, err, "decoded value is too large")
 	})
 
-	t.Run("u64, should err because decoded value is too large", func(t *testing.T) {
+	t.Run("u64, i64: should err because decoded value is too large", func(t *testing.T) {
 		data, _ := hex.DecodeString("41424344454647489876")
-		destination := &U64Value{}
 
-		err := codec.DecodeTopLevel(data, destination)
+		err := codec.DecodeTopLevel(data, &U64Value{})
+		require.ErrorContains(t, err, "decoded value is too large")
+
+		err = codec.DecodeTopLevel(data, &I64Value{})
 		require.ErrorContains(t, err, "decoded value is too large")
 	})
 
@@ -831,5 +894,14 @@ func TestCodec_DecodeTopLevel(t *testing.T) {
 				},
 			},
 		}, destination)
+	})
+
+	t.Run("should err when unknown type", func(t *testing.T) {
+		type dummy struct {
+			foobar string
+		}
+
+		err := codec.DecodeTopLevel([]byte{0x00}, &dummy{foobar: "hello"})
+		require.ErrorContains(t, err, "unsupported type for top-level decoding: *abi.dummy")
 	})
 }
