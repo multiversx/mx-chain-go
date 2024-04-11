@@ -198,7 +198,7 @@ func (als *auctionListSelector) SelectNodesFromAuctionList(
 
 	currNodesConfig := als.nodesConfigProvider.GetCurrentNodesConfig()
 	currNumOfValidators := als.stakingDataProvider.GetNumOfValidatorsInCurrentEpoch()
-	numOfShuffledNodes := currNodesConfig.NodesToShufflePerShard * (als.shardCoordinator.NumberOfShards() + 1)
+	numOfShuffledNodes := als.computeNumShuffledNodes(currNodesConfig)
 	numOfValidatorsAfterShuffling, err := safeSub(currNumOfValidators, numOfShuffledNodes)
 	if err != nil {
 		log.Warn(fmt.Sprintf("auctionListSelector.SelectNodesFromAuctionList: %v when trying to compute numOfValidatorsAfterShuffling = %v - %v (currNumOfValidators - numOfShuffledNodes)",
@@ -270,6 +270,41 @@ func (als *auctionListSelector) getAuctionData() (map[string]*OwnerAuctionData, 
 
 func isInAuction(validator state.ValidatorInfoHandler) bool {
 	return validator.GetList() == string(common.AuctionList)
+}
+
+func (als *auctionListSelector) computeNumShuffledNodes(currNodesConfig config.MaxNodesChangeConfig) uint32 {
+	numNodesToShufflePerShard := currNodesConfig.NodesToShufflePerShard
+	numShuffledOut := numNodesToShufflePerShard * (als.shardCoordinator.NumberOfShards() + 1)
+	epochStats := als.stakingDataProvider.GetCurrentEpochValidatorStats()
+
+	actuallyNumLeaving := uint32(0)
+	for shardID := uint32(0); shardID < als.shardCoordinator.NumberOfShards(); shardID++ {
+		actuallyNumLeaving += computeActuallyNumLeaving(shardID, epochStats, numNodesToShufflePerShard)
+	}
+
+	actuallyNumLeaving += computeActuallyNumLeaving(core.MetachainShardId, epochStats, numNodesToShufflePerShard)
+
+	finalShuffledOut, err := safeSub(numShuffledOut, actuallyNumLeaving)
+	if err != nil {
+		log.Error("auctionListSelector.computeNumShuffledNodes", "error", err)
+		return numShuffledOut
+	}
+
+	return finalShuffledOut
+}
+
+func computeActuallyNumLeaving(shardID uint32, epochStats epochStart.ValidatorStatsInEpoch, numNodesToShuffledPerShard uint32) uint32 {
+	numLeavingInShard := uint32(epochStats.Leaving[shardID])
+	numActiveInShard := uint32(epochStats.Waiting[shardID] + epochStats.Eligible[shardID])
+
+	log.Debug("auctionListSelector.computeActuallyNumLeaving",
+		"shardID", shardID, "numLeavingInShard", numLeavingInShard, "numActiveInShard", numActiveInShard)
+
+	if numLeavingInShard < numNodesToShuffledPerShard && numActiveInShard > numLeavingInShard {
+		return numLeavingInShard
+	}
+
+	return 0
 }
 
 // TODO: Move this in elrond-go-core
