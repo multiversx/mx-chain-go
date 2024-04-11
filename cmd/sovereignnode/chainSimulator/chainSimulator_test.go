@@ -23,36 +23,18 @@ import (
 
 const (
 	defaultPathToInitialConfig = "../../node/config/"
+	sovereignConfigPath        = "../config/"
 )
-
-func loadSovereignConfigs() (*config.EpochConfig, *config.EconomicsConfig, *config.SovereignConfig, error) {
-	epochConfig, err := loadEpochConfig()
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	economicsConfig, err := loadEconomicsConfig()
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	sovereignExtraConfig, err := loadSovereignConfig()
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	return epochConfig, economicsConfig, sovereignExtraConfig, nil
-}
 
 func TestNewSovereignChainSimulator(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 
-	epochConfig, economicsConfig, sovereignExtraConfig, err := loadSovereignConfigs()
+	epochConfig, economicsConfig, sovereignExtraConfig, err := LoadSovereignConfigs(sovereignConfigPath)
 	require.Nil(t, err)
 
-	chainSimulator, err := NewSovereignChainSimulator(chainSim.ArgsChainSimulator{
+	chainSimulator, err := NewSovereignChainSimulator(sovereignExtraConfig, chainSim.ArgsChainSimulator{
 		BypassTxSignatureCheck: false,
 		TempDir:                t.TempDir(),
 		PathToInitialConfig:    defaultPathToInitialConfig,
@@ -84,10 +66,10 @@ func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	epochConfig, economicsConfig, sovereignExtraConfig, err := loadSovereignConfigs()
+	epochConfig, economicsConfig, sovereignExtraConfig, err := LoadSovereignConfigs(sovereignConfigPath)
 	require.Nil(t, err)
 
-	chainSimulator, err := NewSovereignChainSimulator(chainSim.ArgsChainSimulator{
+	chainSimulator, err := NewSovereignChainSimulator(sovereignExtraConfig, chainSim.ArgsChainSimulator{
 		BypassTxSignatureCheck: false,
 		TempDir:                t.TempDir(),
 		PathToInitialConfig:    defaultPathToInitialConfig,
@@ -122,10 +104,10 @@ func TestChainSimulator_SetState(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	epochConfig, economicsConfig, sovereignExtraConfig, err := loadSovereignConfigs()
+	epochConfig, economicsConfig, sovereignExtraConfig, err := LoadSovereignConfigs(sovereignConfigPath)
 	require.Nil(t, err)
 
-	chainSimulator, err := NewSovereignChainSimulator(chainSim.ArgsChainSimulator{
+	chainSimulator, err := NewSovereignChainSimulator(sovereignExtraConfig, chainSim.ArgsChainSimulator{
 		BypassTxSignatureCheck: false,
 		TempDir:                t.TempDir(),
 		PathToInitialConfig:    defaultPathToInitialConfig,
@@ -172,10 +154,10 @@ func TestChainSimulator_SetEntireState(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	epochConfig, economicsConfig, sovereignExtraConfig, err := loadSovereignConfigs()
+	epochConfig, economicsConfig, sovereignExtraConfig, err := LoadSovereignConfigs(sovereignConfigPath)
 	require.Nil(t, err)
 
-	chainSimulator, err := NewSovereignChainSimulator(chainSim.ArgsChainSimulator{
+	chainSimulator, err := NewSovereignChainSimulator(sovereignExtraConfig, chainSim.ArgsChainSimulator{
 		BypassTxSignatureCheck: false,
 		TempDir:                t.TempDir(),
 		PathToInitialConfig:    defaultPathToInitialConfig,
@@ -253,10 +235,10 @@ func TestChainSimulator_GetAccount(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	epochConfig, economicsConfig, sovereignExtraConfig, err := loadSovereignConfigs()
+	epochConfig, economicsConfig, sovereignExtraConfig, err := LoadSovereignConfigs(sovereignConfigPath)
 	require.Nil(t, err)
 
-	chainSimulator, err := NewSovereignChainSimulator(chainSim.ArgsChainSimulator{
+	chainSimulator, err := NewSovereignChainSimulator(sovereignExtraConfig, chainSim.ArgsChainSimulator{
 		BypassTxSignatureCheck: false,
 		TempDir:                t.TempDir(),
 		PathToInitialConfig:    defaultPathToInitialConfig,
@@ -319,10 +301,10 @@ func TestSimulator_SendTransactions(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	epochConfig, economicsConfig, sovereignExtraConfig, err := loadSovereignConfigs()
+	epochConfig, economicsConfig, sovereignExtraConfig, err := LoadSovereignConfigs(sovereignConfigPath)
 	require.Nil(t, err)
 
-	chainSimulator, err := NewSovereignChainSimulator(chainSim.ArgsChainSimulator{
+	chainSimulator, err := NewSovereignChainSimulator(sovereignExtraConfig, chainSim.ArgsChainSimulator{
 		BypassTxSignatureCheck: false,
 		TempDir:                t.TempDir(),
 		PathToInitialConfig:    defaultPathToInitialConfig,

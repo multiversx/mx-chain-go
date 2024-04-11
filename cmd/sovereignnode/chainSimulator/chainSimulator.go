@@ -1,6 +1,8 @@
 package chainSimulator
 
 import (
+	"path"
+
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-sdk-abi-incubator/golang/abi"
 
@@ -17,8 +19,8 @@ import (
 	"github.com/multiversx/mx-chain-go/sovereignnode/incomingHeader"
 )
 
-func loadEpochConfig() (*config.EpochConfig, error) {
-	epochConfig, err := common.LoadEpochConfig("../config/enableEpochs.toml")
+func loadEpochConfig(configsPath string) (*config.EpochConfig, error) {
+	epochConfig, err := common.LoadEpochConfig(path.Join(configsPath, "enableEpochs.toml"))
 	if err != nil {
 		return nil, err
 	}
@@ -26,8 +28,8 @@ func loadEpochConfig() (*config.EpochConfig, error) {
 	return epochConfig, nil
 }
 
-func loadEconomicsConfig() (*config.EconomicsConfig, error) {
-	economicsConfig, err := common.LoadEconomicsConfig("../config/economics.toml")
+func loadEconomicsConfig(configsPath string) (*config.EconomicsConfig, error) {
+	economicsConfig, err := common.LoadEconomicsConfig(path.Join(configsPath, "economics.toml"))
 	if err != nil {
 		return nil, err
 	}
@@ -35,8 +37,8 @@ func loadEconomicsConfig() (*config.EconomicsConfig, error) {
 	return economicsConfig, nil
 }
 
-func loadSovereignConfig() (*config.SovereignConfig, error) {
-	sovereignExtraConfig, err := sovereignConfig.LoadSovereignGeneralConfig("../config/sovereignConfig.toml")
+func loadSovereignConfig(configsPath string) (*config.SovereignConfig, error) {
+	sovereignExtraConfig, err := sovereignConfig.LoadSovereignGeneralConfig(path.Join(configsPath, "sovereignConfig.toml"))
 	if err != nil {
 		return nil, err
 	}
@@ -47,6 +49,25 @@ func loadSovereignConfig() (*config.SovereignConfig, error) {
 	}
 
 	return sovereignExtraConfig, nil
+}
+
+func LoadSovereignConfigs(configsPath string) (*config.EpochConfig, *config.EconomicsConfig, *config.SovereignConfig, error) {
+	epochConfig, err := loadEpochConfig(configsPath)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	economicsConfig, err := loadEconomicsConfig(configsPath)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	sovereignExtraConfig, err := loadSovereignConfig(configsPath)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	return epochConfig, economicsConfig, sovereignExtraConfig, nil
 }
 
 func createArgsRunTypeComponents(blockSigner crypto.SingleSigner, sovereignExtraConfig config.SovereignConfig) (*runType.ArgsSovereignRunTypeComponents, error) {
@@ -95,12 +116,7 @@ func createRunTypeComponents(coreComponents process.CoreComponentsHolder, crypto
 }
 
 // NewSovereignChainSimulator will create a new instance of sovereign chain simulator
-func NewSovereignChainSimulator(args chainSimulator.ArgsChainSimulator) (*chainSimulator.Simulator, error) {
-	sovereignExtraConfig, err := loadSovereignConfig()
-	if err != nil {
-		return nil, err
-	}
-
+func NewSovereignChainSimulator(sovereignExtraConfig *config.SovereignConfig, args chainSimulator.ArgsChainSimulator) (*chainSimulator.Simulator, error) {
 	args.CreateIncomingHeaderHandler = func(config *config.NotifierConfig, dataPool dataRetriever.PoolsHolder, mainChainNotarizationStartRound uint64, runTypeComponents factory.RunTypeComponentsHolder) (process.IncomingHeaderSubscriber, error) {
 		return incomingHeader.CreateIncomingHeaderProcessor(config, dataPool, mainChainNotarizationStartRound, runTypeComponents)
 	}
