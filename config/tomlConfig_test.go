@@ -850,6 +850,9 @@ func TestEnableEpochConfig(t *testing.T) {
     # AlwaysMergeContextsInEEIEnableEpoch represents the epoch in which the EEI will always merge the contexts
     AlwaysMergeContextsInEEIEnableEpoch = 94
 
+    # DynamicESDTEnableEpoch represents the epoch when dynamic NFT feature is enabled
+    DynamicESDTEnableEpoch = 95
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -962,6 +965,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			MigrateDataTrieEnableEpoch:                               92,
 			CurrentRandomnessOnSortingEnableEpoch:                    93,
 			AlwaysMergeContextsInEEIEnableEpoch:                      94,
+			DynamicESDTEnableEpoch:                                   95,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,

@@ -1011,5 +1011,6 @@ const (
 	StakingQueueFlag                                   core.EnableEpochFlag = "StakingQueueFlag"
 	StakingV4StartedFlag                               core.EnableEpochFlag = "StakingV4StartedFlag"
 	AlwaysMergeContextsInEEIFlag                       core.EnableEpochFlag = "AlwaysMergeContextsInEEIFlag"
+	DynamicESDTFlag                                    core.EnableEpochFlag = "DynamicEsdtFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )
