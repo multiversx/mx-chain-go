@@ -20,20 +20,20 @@ import (
 )
 
 type ArgsSovereignChainSimulator struct {
-	sovereignExtraConfig config.SovereignConfig
-	chainSimulatorArgs   chainSimulator.ArgsChainSimulator
+	SovereignExtraConfig config.SovereignConfig
+	ChainSimulatorArgs   chainSimulator.ArgsChainSimulator
 }
 
 // NewSovereignChainSimulator will create a new instance of sovereign chain simulator
 func NewSovereignChainSimulator(args ArgsSovereignChainSimulator) (*chainSimulator.Simulator, error) {
-	args.chainSimulatorArgs.CreateIncomingHeaderHandler = func(config *config.NotifierConfig, dataPool dataRetriever.PoolsHolder, mainChainNotarizationStartRound uint64, runTypeComponents factory.RunTypeComponentsHolder) (process.IncomingHeaderSubscriber, error) {
+	args.ChainSimulatorArgs.CreateIncomingHeaderHandler = func(config *config.NotifierConfig, dataPool dataRetriever.PoolsHolder, mainChainNotarizationStartRound uint64, runTypeComponents factory.RunTypeComponentsHolder) (process.IncomingHeaderSubscriber, error) {
 		return incomingHeader.CreateIncomingHeaderProcessor(config, dataPool, mainChainNotarizationStartRound, runTypeComponents)
 	}
-	args.chainSimulatorArgs.GetRunTypeComponents = func(coreComponents factory.CoreComponentsHolder, cryptoComponents factory.CryptoComponentsHolder) (factory.RunTypeComponentsHolder, error) {
-		return createSovereignRunTypeComponents(coreComponents, cryptoComponents, args.sovereignExtraConfig)
+	args.ChainSimulatorArgs.GetRunTypeComponents = func(coreComponents factory.CoreComponentsHolder, cryptoComponents factory.CryptoComponentsHolder) (factory.RunTypeComponentsHolder, error) {
+		return createSovereignRunTypeComponents(coreComponents, cryptoComponents, args.SovereignExtraConfig)
 	}
 
-	return chainSimulator.NewChainSimulator(args.chainSimulatorArgs)
+	return chainSimulator.NewChainSimulator(args.ChainSimulatorArgs)
 }
 
 // LoadSovereignConfigs - load sovereign configs

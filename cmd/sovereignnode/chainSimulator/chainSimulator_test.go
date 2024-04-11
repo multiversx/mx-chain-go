@@ -34,8 +34,8 @@ func TestNewSovereignChainSimulator(t *testing.T) {
 	require.Nil(t, err)
 
 	chainSimulator, err := NewSovereignChainSimulator(ArgsSovereignChainSimulator{
-		sovereignExtraConfig: *sovereignExtraConfig,
-		chainSimulatorArgs: chainSim.ArgsChainSimulator{
+		SovereignExtraConfig: *sovereignExtraConfig,
+		ChainSimulatorArgs: chainSim.ArgsChainSimulator{
 			BypassTxSignatureCheck: false,
 			TempDir:                t.TempDir(),
 			PathToInitialConfig:    defaultPathToInitialConfig,
@@ -72,8 +72,8 @@ func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
 	require.Nil(t, err)
 
 	chainSimulator, err := NewSovereignChainSimulator(ArgsSovereignChainSimulator{
-		sovereignExtraConfig: *sovereignExtraConfig,
-		chainSimulatorArgs: chainSim.ArgsChainSimulator{
+		SovereignExtraConfig: *sovereignExtraConfig,
+		ChainSimulatorArgs: chainSim.ArgsChainSimulator{
 			BypassTxSignatureCheck: false,
 			TempDir:                t.TempDir(),
 			PathToInitialConfig:    defaultPathToInitialConfig,
@@ -113,8 +113,8 @@ func TestChainSimulator_SetState(t *testing.T) {
 	require.Nil(t, err)
 
 	chainSimulator, err := NewSovereignChainSimulator(ArgsSovereignChainSimulator{
-		sovereignExtraConfig: *sovereignExtraConfig,
-		chainSimulatorArgs: chainSim.ArgsChainSimulator{
+		SovereignExtraConfig: *sovereignExtraConfig,
+		ChainSimulatorArgs: chainSim.ArgsChainSimulator{
 			BypassTxSignatureCheck: false,
 			TempDir:                t.TempDir(),
 			PathToInitialConfig:    defaultPathToInitialConfig,
@@ -166,8 +166,8 @@ func TestChainSimulator_SetEntireState(t *testing.T) {
 	require.Nil(t, err)
 
 	chainSimulator, err := NewSovereignChainSimulator(ArgsSovereignChainSimulator{
-		sovereignExtraConfig: *sovereignExtraConfig,
-		chainSimulatorArgs: chainSim.ArgsChainSimulator{
+		SovereignExtraConfig: *sovereignExtraConfig,
+		ChainSimulatorArgs: chainSim.ArgsChainSimulator{
 			BypassTxSignatureCheck: false,
 			TempDir:                t.TempDir(),
 			PathToInitialConfig:    defaultPathToInitialConfig,
@@ -250,8 +250,8 @@ func TestChainSimulator_GetAccount(t *testing.T) {
 	require.Nil(t, err)
 
 	chainSimulator, err := NewSovereignChainSimulator(ArgsSovereignChainSimulator{
-		sovereignExtraConfig: *sovereignExtraConfig,
-		chainSimulatorArgs: chainSim.ArgsChainSimulator{
+		SovereignExtraConfig: *sovereignExtraConfig,
+		ChainSimulatorArgs: chainSim.ArgsChainSimulator{
 			BypassTxSignatureCheck: false,
 			TempDir:                t.TempDir(),
 			PathToInitialConfig:    defaultPathToInitialConfig,
@@ -319,8 +319,8 @@ func TestSimulator_SendTransactions(t *testing.T) {
 	require.Nil(t, err)
 
 	chainSimulator, err := NewSovereignChainSimulator(ArgsSovereignChainSimulator{
-		sovereignExtraConfig: *sovereignExtraConfig,
-		chainSimulatorArgs: chainSim.ArgsChainSimulator{
+		SovereignExtraConfig: *sovereignExtraConfig,
+		ChainSimulatorArgs: chainSim.ArgsChainSimulator{
 			BypassTxSignatureCheck: false,
 			TempDir:                t.TempDir(),
 			PathToInitialConfig:    defaultPathToInitialConfig,
