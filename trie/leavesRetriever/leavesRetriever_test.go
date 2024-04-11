@@ -2,14 +2,20 @@ package leavesRetriever_test
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
+	"fmt"
+	"sync"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	trieTest "github.com/multiversx/mx-chain-go/testscommon/state"
+	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/trie/leavesRetriever"
 	"github.com/stretchr/testify/assert"
 )
@@ -196,4 +202,70 @@ func TestLeavesRetriever_GetLeaves(t *testing.T) {
 		assert.Equal(t, 0, len(id))
 		assert.Equal(t, leavesRetriever.ErrIteratorNotFound, err)
 	})
+}
+
+func TestLeavesRetriever_Concurrency(t *testing.T) {
+	t.Parallel()
+
+	numTries := 10
+	numLeaves := 1000
+	tries := buildTries(numTries, numLeaves)
+
+	rootHashes := make([][]byte, 0)
+	for _, tr := range tries {
+		rootHash, _ := tr.RootHash()
+		rootHashes = append(rootHashes, rootHash)
+
+	}
+
+	maxSize := uint64(1000000)
+	lr, _ := leavesRetriever.NewLeavesRetriever(tries[0].GetStorageManager(), &marshallerMock.MarshalizerMock{}, &hashingMocks.HasherMock{}, maxSize)
+
+	wg := &sync.WaitGroup{}
+	wg.Add(numTries)
+	for i := 0; i < numTries; i++ {
+		go retrieveTrieLeaves(t, lr, rootHashes[i], numLeaves, wg)
+	}
+	wg.Wait()
+}
+
+func retrieveTrieLeaves(t *testing.T, lr common.TrieLeavesRetriever, rootHash []byte, numLeaves int, wg *sync.WaitGroup) {
+	iteratorId := []byte("")
+	numRetrievedLeaves := 0
+	for {
+		leaves, newId, err := lr.GetLeaves(100, rootHash, iteratorId, context.Background())
+		assert.Nil(t, err)
+		iteratorId = newId
+		numRetrievedLeaves += len(leaves)
+		fmt.Println("Retrieved leaves: ", numRetrievedLeaves, " for root hash: ", hex.EncodeToString(rootHash))
+		if len(iteratorId) == 0 {
+			break
+		}
+	}
+	assert.Equal(t, numLeaves, numRetrievedLeaves)
+	wg.Done()
+}
+
+func buildTries(numTries int, numLeaves int) []common.Trie {
+	tries := make([]common.Trie, 0)
+	tsm, marshaller, hasher := trieTest.GetDefaultTrieParameters()
+	for i := 0; i < numTries; i++ {
+		tr, _ := trie.NewTrie(tsm, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 5)
+		addDataToTrie(tr, numLeaves)
+		tries = append(tries, tr)
+	}
+	return tries
+}
+
+func addDataToTrie(tr common.Trie, numLeaves int) {
+	for i := 0; i < numLeaves; i++ {
+		_ = tr.Update(generateRandomByteArray(32), generateRandomByteArray(32))
+	}
+	_ = tr.Commit()
+}
+
+func generateRandomByteArray(size int) []byte {
+	r := make([]byte, size)
+	_, _ = rand.Read(r)
+	return r
 }
