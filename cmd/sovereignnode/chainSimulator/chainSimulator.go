@@ -1,6 +1,8 @@
 package chainSimulator
 
 import (
+	"path"
+
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-sdk-abi-incubator/golang/abi"
 
@@ -17,36 +19,45 @@ import (
 	"github.com/multiversx/mx-chain-go/sovereignnode/incomingHeader"
 )
 
-func loadEpochConfig() (*config.EpochConfig, error) {
-	epochConfig, err := common.LoadEpochConfig("../config/enableEpochs.toml")
-	if err != nil {
-		return nil, err
-	}
-
-	return epochConfig, nil
+type ArgsSovereignChainSimulator struct {
+	sovereignExtraConfig config.SovereignConfig
+	chainSimulatorArgs   chainSimulator.ArgsChainSimulator
 }
 
-func loadEconomicsConfig() (*config.EconomicsConfig, error) {
-	economicsConfig, err := common.LoadEconomicsConfig("../config/economics.toml")
-	if err != nil {
-		return nil, err
+// NewSovereignChainSimulator will create a new instance of sovereign chain simulator
+func NewSovereignChainSimulator(args ArgsSovereignChainSimulator) (*chainSimulator.Simulator, error) {
+	args.chainSimulatorArgs.CreateIncomingHeaderHandler = func(config *config.NotifierConfig, dataPool dataRetriever.PoolsHolder, mainChainNotarizationStartRound uint64, runTypeComponents factory.RunTypeComponentsHolder) (process.IncomingHeaderSubscriber, error) {
+		return incomingHeader.CreateIncomingHeaderProcessor(config, dataPool, mainChainNotarizationStartRound, runTypeComponents)
+	}
+	args.chainSimulatorArgs.GetRunTypeComponents = func(coreComponents factory.CoreComponentsHolder, cryptoComponents factory.CryptoComponentsHolder) (factory.RunTypeComponentsHolder, error) {
+		return createSovereignRunTypeComponents(coreComponents, cryptoComponents, args.sovereignExtraConfig)
 	}
 
-	return economicsConfig, nil
+	return chainSimulator.NewChainSimulator(args.chainSimulatorArgs)
 }
 
-func loadSovereignConfig() (*config.SovereignConfig, error) {
-	sovereignExtraConfig, err := sovereignConfig.LoadSovereignGeneralConfig("../config/sovereignConfig.toml")
+// LoadSovereignConfigs - load sovereign configs
+func LoadSovereignConfigs(configsPath string) (*config.EpochConfig, *config.EconomicsConfig, *config.SovereignConfig, error) {
+	epochConfig, err := common.LoadEpochConfig(path.Join(configsPath, "enableEpochs.toml"))
 	if err != nil {
-		return nil, err
+		return nil, nil, nil, err
 	}
 
+	economicsConfig, err := common.LoadEconomicsConfig(path.Join(configsPath, "economics.toml"))
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	sovereignExtraConfig, err := sovereignConfig.LoadSovereignGeneralConfig(path.Join(configsPath, "sovereignConfig.toml"))
 	sovereignExtraConfig.OutGoingBridgeCertificate = config.OutGoingBridgeCertificate{
 		CertificatePath:   "/home/ubuntu/MultiversX/testnet/config/certificate.crt",
 		CertificatePkPath: "/home/ubuntu/MultiversX/testnet/config/private_key.pem",
 	}
+	if err != nil {
+		return nil, nil, nil, err
+	}
 
-	return sovereignExtraConfig, nil
+	return epochConfig, economicsConfig, sovereignExtraConfig, nil
 }
 
 func createArgsRunTypeComponents(blockSigner crypto.SingleSigner, sovereignExtraConfig config.SovereignConfig) (*runType.ArgsSovereignRunTypeComponents, error) {
@@ -75,7 +86,7 @@ func createArgsRunTypeComponents(blockSigner crypto.SingleSigner, sovereignExtra
 	}, nil
 }
 
-func createRunTypeComponents(coreComponents process.CoreComponentsHolder, cryptoComponents factory.CryptoComponentsHolder, sovereignExtraConfig config.SovereignConfig) (factory.RunTypeComponentsHolder, error) {
+func createSovereignRunTypeComponents(coreComponents process.CoreComponentsHolder, cryptoComponents factory.CryptoComponentsHolder, sovereignExtraConfig config.SovereignConfig) (factory.RunTypeComponentsHolder, error) {
 	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory(coreComponents)
 	sovRunTypeArgs, err := createArgsRunTypeComponents(cryptoComponents.BlockSigner(), sovereignExtraConfig)
 	if err != nil {
@@ -92,21 +103,4 @@ func createRunTypeComponents(coreComponents process.CoreComponentsHolder, crypto
 	}
 
 	return managedRunTypeComponents, nil
-}
-
-// NewSovereignChainSimulator will create a new instance of sovereign chain simulator
-func NewSovereignChainSimulator(args chainSimulator.ArgsChainSimulator) (*chainSimulator.Simulator, error) {
-	sovereignExtraConfig, err := loadSovereignConfig()
-	if err != nil {
-		return nil, err
-	}
-
-	args.CreateIncomingHeaderHandler = func(config *config.NotifierConfig, dataPool dataRetriever.PoolsHolder, mainChainNotarizationStartRound uint64, runTypeComponents factory.RunTypeComponentsHolder) (process.IncomingHeaderSubscriber, error) {
-		return incomingHeader.CreateIncomingHeaderProcessor(config, dataPool, mainChainNotarizationStartRound, runTypeComponents)
-	}
-	args.GetRunTypeComponents = func(coreComponents factory.CoreComponentsHolder, cryptoComponents factory.CryptoComponentsHolder) (factory.RunTypeComponentsHolder, error) {
-		return createRunTypeComponents(coreComponents, cryptoComponents, *sovereignExtraConfig)
-	}
-
-	return chainSimulator.NewChainSimulator(args)
 }

@@ -633,3 +633,23 @@ func GenerateBlsPrivateKeys(numOfKeys int) ([][]byte, []string, error) {
 
 	return secretKeysBytes, blsKeysHex, nil
 }
+
+func GenerateTransaction(sender []byte, nonce uint64, receiver []byte, value *big.Int, data string, gasLimit uint64) *transaction.Transaction {
+	minGasPrice := uint64(1000000000)
+	txVersion := uint32(1)
+	mockTxSignature := "sig"
+
+	transferValue := big.NewInt(0).Set(value)
+	return &transaction.Transaction{
+		Nonce:     nonce,
+		Value:     transferValue,
+		SndAddr:   sender,
+		RcvAddr:   receiver,
+		Data:      []byte(data),
+		GasLimit:  gasLimit,
+		GasPrice:  minGasPrice,
+		ChainID:   []byte(configs.ChainID),
+		Version:   txVersion,
+		Signature: []byte(mockTxSignature),
+	}
+}
