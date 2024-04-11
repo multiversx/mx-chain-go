@@ -30,6 +30,7 @@ func InitBaseMetrics(appStatusHandler core.AppStatusHandler) error {
 
 	appStatusHandler.SetUInt64Value(common.MetricSynchronizedRound, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricNonce, initUint)
+	appStatusHandler.SetUInt64Value(common.MetricBlockTimestamp, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricCountConsensus, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricCountLeader, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricCountAcceptedBlocks, initUint)
