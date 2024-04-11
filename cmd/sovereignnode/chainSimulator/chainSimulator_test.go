@@ -6,11 +6,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	coreAPI "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/config"
@@ -363,6 +362,12 @@ func TestSimulator_SendTransactions(t *testing.T) {
 
 	wallet4, err := chainSimulator.GenerateAndMintWalletAddress(core.SovereignChainShardId, initialMinting)
 	require.Nil(t, err)
+
+	addr := dtos.WalletAddress{
+		Bech32: wallet0.Bech32,
+	}
+	acc, err := chainSimulator.GetAccount(addr)
+	require.NotNil(t, acc)
 
 	gasLimit := uint64(50000)
 	tx0 := chainSim.GenerateTransaction(wallet0.Bytes, 0, wallet2.Bytes, transferValue, "", gasLimit)
