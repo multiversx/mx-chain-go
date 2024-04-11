@@ -2136,6 +2136,7 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	if check.IfNil(args.RunTypeComponents.SCProcessorCreator()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilSCProcessorCreator)
 	}
+	// TODO make sure consensus model is correct on higher level
 	if args.RunTypeComponents.ConsensusModel() == consensus.ConsensusModelInvalid {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrInvalidConsensusModel)
 	}
