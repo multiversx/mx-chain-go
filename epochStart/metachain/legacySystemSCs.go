@@ -292,8 +292,7 @@ func (s *legacySystemSCProcessor) unStakeNodesWithNotEnoughFunds(
 		stakingV4Enabled := s.enableEpochsHandler.IsFlagEnabled(common.StakingV4StartedFlag)
 		validatorLeaving := validatorInfo.ShallowClone()
 		validatorLeaving.SetListAndIndex(string(common.LeavingList), validatorLeaving.GetIndex(), stakingV4Enabled)
-		err = s.replaceValidators(validatorInfo, validatorLeaving, validatorsInfoMap)
-		log.LogIfError(err)
+		s.replaceValidators(validatorInfo, validatorLeaving, validatorsInfoMap)
 	}
 
 	err = s.updateDelegationContracts(mapOwnersKeys)
@@ -430,10 +429,7 @@ func (s *legacySystemSCProcessor) fillStakingDataForNonEligible(validatorsInfoMa
 		}
 
 		if deleteCalled {
-			err := s.setValidatorsInShard(validatorsInfoMap, shId, newList)
-			if err != nil {
-				return err
-			}
+			s.setValidatorsInShard(validatorsInfoMap, shId, newList)
 		}
 	}
 
@@ -444,13 +440,15 @@ func (s *legacySystemSCProcessor) setValidatorsInShard(
 	validatorsInfoMap state.ShardValidatorsInfoMapHandler,
 	shardID uint32,
 	validators []state.ValidatorInfoHandler,
-) error {
-	if s.enableEpochsHandler.IsFlagEnabled(common.StakingV4StartedFlag) {
-		return validatorsInfoMap.SetValidatorsInShard(shardID, validators)
+) {
+	err := validatorsInfoMap.SetValidatorsInShard(shardID, validators)
+	if err == nil {
+		return
 	}
 
+	// this should never happen, but replace them anyway, as in old legacy code
+	log.Error("legacySystemSCProcessor.setValidatorsInShard", "error", err)
 	validatorsInfoMap.SetValidatorsInShardUnsafe(shardID, validators)
-	return nil
 }
 
 func (s *legacySystemSCProcessor) prepareStakingDataForEligibleNodes(validatorsInfoMap state.ShardValidatorsInfoMapHandler) error {
@@ -771,8 +769,7 @@ func (s *legacySystemSCProcessor) stakingToValidatorStatistics(
 	}
 
 	newValidatorInfo := s.validatorInfoCreator.PeerAccountToValidatorInfo(account)
-	err = s.replaceValidators(jailedValidator, newValidatorInfo, validatorsInfoMap)
-	log.LogIfError(err)
+	s.replaceValidators(jailedValidator, newValidatorInfo, validatorsInfoMap)
 
 	return blsPubKey, nil
 }
@@ -781,14 +778,21 @@ func (s *legacySystemSCProcessor) replaceValidators(
 	old state.ValidatorInfoHandler,
 	new state.ValidatorInfoHandler,
 	validatorsInfoMap state.ShardValidatorsInfoMapHandler,
-) error {
-	stakingV4Enabled := s.enableEpochsHandler.IsFlagEnabled(common.StakingV4StartedFlag)
-	if stakingV4Enabled {
-		return validatorsInfoMap.Replace(old, new)
+) {
+	// legacy code
+	if !s.enableEpochsHandler.IsFlagEnabled(common.StakingV4StartedFlag) {
+		_ = validatorsInfoMap.ReplaceValidatorByKey(old.GetPublicKey(), new, old.GetShardId())
+		return
 	}
 
-	_ = validatorsInfoMap.ReplaceValidatorByKey(old.GetPublicKey(), new, old.GetShardId())
-	return nil
+	// try with new code which does extra validity checks.
+	// if this also fails, do legacy code
+	if err := validatorsInfoMap.Replace(old, new); err != nil {
+		log.Error("legacySystemSCProcessor.replaceValidators", "error", err)
+
+		replaced := validatorsInfoMap.ReplaceValidatorByKey(old.GetPublicKey(), new, old.GetShardId())
+		log.Debug("legacySystemSCProcessor.replaceValidators", "old", old.GetPublicKey(), "new", new.GetPublicKey(), "was replace successful", replaced)
+	}
 }
 
 func isValidator(validator state.ValidatorInfoHandler) bool {
