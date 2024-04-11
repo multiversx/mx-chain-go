@@ -3,14 +3,19 @@ package components
 import (
 	"testing"
 
+	coreData "github.com/multiversx/mx-chain-core-go/data"
+	"github.com/stretchr/testify/require"
+
 	disabledStatistics "github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	mockFactory "github.com/multiversx/mx-chain-go/factory/mock"
+	"github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-	"github.com/stretchr/testify/require"
 )
 
 func createArgsStateComponents() ArgsStateComponents {
@@ -28,8 +33,20 @@ func createArgsStateComponents() ArgsStateComponents {
 			AppStatusHandlerField:  &statusHandler.AppStatusHandlerStub{},
 			StateStatsHandlerField: disabledStatistics.NewStateStatistics(),
 		},
-		StoreService: genericMocks.NewChainStorerMock(0),
-		ChainHandler: &testscommon.ChainHandlerStub{},
+		DataComponents: &mock.DataComponentsStub{
+			DataPool: dataRetriever.NewPoolsHolderMock(),
+			BlockChain: &testscommon.ChainHandlerStub{
+				GetGenesisHeaderHashCalled: func() []byte {
+					return []byte("genesis hash")
+				},
+				GetGenesisHeaderCalled: func() coreData.HeaderHandler {
+					return &testscommon.HeaderHandlerStub{}
+				},
+			},
+			MbProvider: &mock.MiniBlocksProviderStub{},
+			Store:      genericMocks.NewChainStorerMock(0),
+		},
+		RunTypeComponents: mainFactoryMocks.NewRunTypeComponentsStub(),
 	}
 }
 

@@ -5,27 +5,48 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	mock2 "github.com/multiversx/mx-chain-go/integrationTests/mock"
+	disabledStatistics "github.com/multiversx/mx-chain-go/common/statistics/disabled"
+	"github.com/multiversx/mx-chain-go/config"
+	mocks "github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
+	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
 
 func createArgsDataComponentsHolder() ArgsDataComponentsHolder {
+	generalCfg := testscommon.GetGeneralConfig()
 	return ArgsDataComponentsHolder{
-		CoreComponents:       &factory.CoreComponentsHolderMock{},
-		StatusCoreComponents: &factory.StatusCoreComponentsStub{},
-		BootstrapComponents:  &mainFactoryMocks.BootstrapComponentsStub{},
-		CryptoComponents: &mock2.CryptoComponentsStub{
-			PubKey:                  &mock2.PublicKeyMock{},
+		Configs: config.Configs{
+			GeneralConfig:     &generalCfg,
+			ImportDbConfig:    &config.ImportDbConfig{},
+			PreferencesConfig: &config.Preferences{},
+			FlagsConfig:       &config.ContextFlagsConfig{},
+		},
+		CoreComponents: &factory.CoreComponentsHolderMock{},
+		StatusCoreComponents: &factory.StatusCoreComponentsStub{
+			AppStatusHandlerField:  &statusHandler.AppStatusHandlerStub{},
+			StateStatsHandlerField: disabledStatistics.NewStateStatistics(),
+		},
+		BootstrapComponents: &mainFactoryMocks.BootstrapComponentsStub{
+			ShCoordinator:              testscommon.NewMultiShardsCoordinatorMock(2),
+			BootstrapParams:            &bootstrapMocks.BootstrapParamsHandlerMock{},
+			HdrIntegrityVerifier:       &mocks.HeaderIntegrityVerifierStub{},
+			GuardedAccountHandlerField: &guardianMocks.GuardedAccountHandlerStub{},
+			VersionedHdrFactory:        &testscommon.VersionedHeaderFactoryStub{},
+		},
+		CryptoComponents: &mocks.CryptoComponentsStub{
+			PubKey:                  &mocks.PublicKeyMock{},
 			BlockSig:                &cryptoMocks.SingleSignerStub{},
 			BlKeyGen:                &cryptoMocks.KeyGenStub{},
 			TxSig:                   &cryptoMocks.SingleSignerStub{},
 			TxKeyGen:                &cryptoMocks.KeyGenStub{},
 			ManagedPeersHolderField: &testscommon.ManagedPeersHolderStub{},
 		},
-		RunTypeComponents: &mainFactoryMocks.RunTypeComponentsStub{},
+		RunTypeComponents: mainFactoryMocks.NewRunTypeComponentsStub(),
 	}
 }
 
@@ -46,7 +67,7 @@ func TestCreateDataComponents(t *testing.T) {
 	//	t.Parallel()
 	//
 	//	args := createArgsDataComponentsHolder()
-	//	args. = &dataRetriever.PoolsHolderStub{
+	//	args = &dataRetriever.PoolsHolderStub{
 	//		MiniBlocksCalled: func() chainStorage.Cacher {
 	//			return nil
 	//		},
