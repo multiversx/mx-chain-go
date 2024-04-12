@@ -1262,22 +1262,32 @@ func (s *legacySystemSCProcessor) addNewlyStakedNodesToValidatorTrie(
 			AccumulatedFees: big.NewInt(0),
 		}
 
-		existingValidator := validatorsInfoMap.GetValidator(validatorInfo.GetPublicKey())
-		// This fix is not be backwards incompatible
-		if !check.IfNil(existingValidator) && s.enableEpochsHandler.IsFlagEnabled(common.StakingV4StartedFlag) {
-			err = validatorsInfoMap.Delete(existingValidator)
-			if err != nil {
-				return err
-			}
-		}
-
-		err = validatorsInfoMap.Add(validatorInfo)
+		err = s.addNewValidator(validatorsInfoMap, validatorInfo)
 		if err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+func (s *legacySystemSCProcessor) addNewValidator(
+	validatorsInfoMap state.ShardValidatorsInfoMapHandler,
+	validatorInfo state.ValidatorInfoHandler,
+) error {
+	if !s.enableEpochsHandler.IsFlagEnabled(common.StakingV4StartedFlag) {
+		return validatorsInfoMap.Add(validatorInfo)
+	}
+
+	existingValidator := validatorsInfoMap.GetValidator(validatorInfo.GetPublicKey())
+	if !check.IfNil(existingValidator) {
+		err := validatorsInfoMap.Delete(existingValidator)
+		if err != nil {
+			return err
+		}
+	}
+
+	return validatorsInfoMap.Add(validatorInfo)
 }
 
 func (s *legacySystemSCProcessor) initESDT() error {
