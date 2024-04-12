@@ -115,7 +115,7 @@ func (tmp *TestMetaProcessor) doStake(
 			CallerAddr:  owner,
 			Arguments:   createStakeArgs(registerData.BLSKeys),
 			CallValue:   registerData.TotalStake,
-			GasProvided: 10,
+			GasProvided: 400,
 		},
 		RecipientAddr: vm.ValidatorSCAddress,
 		Function:      "stake",

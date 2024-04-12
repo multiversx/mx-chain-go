@@ -311,7 +311,7 @@ func computeActuallyNumLeaving(shardID uint32, epochStats epochStart.ValidatorSt
 
 	actuallyLeaving := uint32(0)
 	forcedToStay := uint32(0)
-	if numLeavingInShard < numNodesToShuffledPerShard && numActiveInShard > numLeavingInShard {
+	if numLeavingInShard <= numNodesToShuffledPerShard && numActiveInShard > numLeavingInShard {
 		actuallyLeaving = numLeavingInShard
 	}
 

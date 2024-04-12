@@ -186,6 +186,22 @@ func checkStakingV4EpochChangeFlow(
 	requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesConfig.waiting), prevNodesConfig.auction, numOfSelectedNodesFromAuction)
 }
 
+func getAllOwnerNodesMap(nodeGroups ...[][]byte) map[string][][]byte {
+	ret := make(map[string][][]byte)
+
+	for _, nodes := range nodeGroups {
+		addNodesToMap(nodes, ret)
+	}
+
+	return ret
+}
+
+func addNodesToMap(nodes [][]byte, allOwnerNodes map[string][][]byte) {
+	for _, node := range nodes {
+		allOwnerNodes[string(node)] = [][]byte{node}
+	}
+}
+
 func TestStakingV4(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -1581,14 +1597,14 @@ func TestStakingV4LeavingNodesShouldDistributeToWaitingOnlyNecessaryNodes(t *tes
 	nodesConfigStakingV4Step1 = node.NodesConfig
 	requireSameSliceDifferentOrder(t, initialNodes.queue, nodesConfigStakingV4Step1.auction)
 
+	// Reach step 3 and check normal flow
 	node.Process(t, 10)
-
 	epochs := 0
 	prevConfig := node.NodesConfig
 	numOfSelectedNodesFromAuction := 320  // 320, since we will always fill shuffled out nodes with this config
 	numOfUnselectedNodesFromAuction := 80 // 80 = 400 from queue - 320
 	numOfShuffledOut := 80 * 4            // 80 per shard + meta
-	for epochs < 4 {
+	for epochs < 3 {
 		node.Process(t, 5)
 		newNodeConfig := node.NodesConfig
 
@@ -1608,20 +1624,20 @@ func TestStakingV4LeavingNodesShouldDistributeToWaitingOnlyNecessaryNodes(t *tes
 	// - 46 from waiting + eligible ( 13 waiting + 36 eligible)
 	// - 11 from auction
 	currNodesCfg := node.NodesConfig
-	nodesToUnstakeFromAuction := currNodesCfg.auction[:11]
+	nodesToUnStakeFromAuction := currNodesCfg.auction[:11]
 
-	nodesToUnstakeFromWaiting := append(currNodesCfg.waiting[0][:3], currNodesCfg.waiting[1][:3]...)
-	nodesToUnstakeFromWaiting = append(nodesToUnstakeFromWaiting, currNodesCfg.waiting[2][:3]...)
-	nodesToUnstakeFromWaiting = append(nodesToUnstakeFromWaiting, currNodesCfg.waiting[core.MetachainShardId][:4]...)
+	nodesToUnStakeFromWaiting := append(currNodesCfg.waiting[0][:3], currNodesCfg.waiting[1][:3]...)
+	nodesToUnStakeFromWaiting = append(nodesToUnStakeFromWaiting, currNodesCfg.waiting[2][:3]...)
+	nodesToUnStakeFromWaiting = append(nodesToUnStakeFromWaiting, currNodesCfg.waiting[core.MetachainShardId][:4]...)
 
-	nodesToUnstakeFromEligible := append(currNodesCfg.eligible[0][:8], currNodesCfg.eligible[1][:8]...)
-	nodesToUnstakeFromEligible = append(nodesToUnstakeFromEligible, currNodesCfg.eligible[2][:8]...)
-	nodesToUnstakeFromEligible = append(nodesToUnstakeFromEligible, currNodesCfg.eligible[core.MetachainShardId][:9]...)
+	nodesToUnStakeFromEligible := append(currNodesCfg.eligible[0][:8], currNodesCfg.eligible[1][:8]...)
+	nodesToUnStakeFromEligible = append(nodesToUnStakeFromEligible, currNodesCfg.eligible[2][:8]...)
+	nodesToUnStakeFromEligible = append(nodesToUnStakeFromEligible, currNodesCfg.eligible[core.MetachainShardId][:9]...)
 
-	nodesToUnstake := getAllNodesToUnStake(nodesToUnstakeFromAuction, nodesToUnstakeFromWaiting, nodesToUnstakeFromEligible)
+	nodesToUnStake := getAllOwnerNodesMap(nodesToUnStakeFromAuction, nodesToUnStakeFromWaiting, nodesToUnStakeFromEligible)
 
 	prevConfig = currNodesCfg
-	node.ProcessUnStake(t, nodesToUnstake)
+	node.ProcessUnStake(t, nodesToUnStake)
 	node.Process(t, 5)
 	currNodesCfg = node.NodesConfig
 
@@ -1631,28 +1647,28 @@ func TestStakingV4LeavingNodesShouldDistributeToWaitingOnlyNecessaryNodes(t *tes
 	requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesCfg.waiting), prevConfig.auction, 320) // 320 selected
 	requireSliceContainsNumOfElements(t, currNodesCfg.auction, prevConfig.auction, 69)                 // 69 unselected
 
-	nodesToUnstakeFromAuction = make([][]byte, 0)
-	nodesToUnstakeFromWaiting = make([][]byte, 0)
-	nodesToUnstakeFromEligible = make([][]byte, 0)
+	nodesToUnStakeFromAuction = make([][]byte, 0)
+	nodesToUnStakeFromWaiting = make([][]byte, 0)
+	nodesToUnStakeFromEligible = make([][]byte, 0)
 
 	prevConfig = currNodesCfg
 	// UnStake:
 	// - 224 from waiting + eligible ( 13 waiting + 36 eligible), but unbalanced:
-	//    -> unStake 100 from waiting shard=meta => will force to stay = 100 from meta
-	//	  -> unStake 90 from eligible shard=2 => will force to stay = 90 from shard 2
+	//    -> unStake 100 from waiting shard=meta
+	//	  -> unStake 90 from eligible shard=2
 	// - 11 from auction
-	nodesToUnstakeFromAuction = currNodesCfg.auction[:11]
-	nodesToUnstakeFromWaiting = append(currNodesCfg.waiting[0][:3], currNodesCfg.waiting[1][:3]...)
-	nodesToUnstakeFromWaiting = append(nodesToUnstakeFromWaiting, currNodesCfg.waiting[2][:3]...)
-	nodesToUnstakeFromWaiting = append(nodesToUnstakeFromWaiting, currNodesCfg.waiting[core.MetachainShardId][:100]...)
+	nodesToUnStakeFromAuction = currNodesCfg.auction[:11]
+	nodesToUnStakeFromWaiting = append(currNodesCfg.waiting[0][:3], currNodesCfg.waiting[1][:3]...)
+	nodesToUnStakeFromWaiting = append(nodesToUnStakeFromWaiting, currNodesCfg.waiting[2][:3]...)
+	nodesToUnStakeFromWaiting = append(nodesToUnStakeFromWaiting, currNodesCfg.waiting[core.MetachainShardId][:100]...)
 
-	nodesToUnstakeFromEligible = append(currNodesCfg.eligible[0][:8], currNodesCfg.eligible[1][:8]...)
-	nodesToUnstakeFromEligible = append(nodesToUnstakeFromEligible, currNodesCfg.eligible[2][:90]...)
-	nodesToUnstakeFromEligible = append(nodesToUnstakeFromEligible, currNodesCfg.eligible[core.MetachainShardId][:9]...)
+	nodesToUnStakeFromEligible = append(currNodesCfg.eligible[0][:8], currNodesCfg.eligible[1][:8]...)
+	nodesToUnStakeFromEligible = append(nodesToUnStakeFromEligible, currNodesCfg.eligible[2][:90]...)
+	nodesToUnStakeFromEligible = append(nodesToUnStakeFromEligible, currNodesCfg.eligible[core.MetachainShardId][:9]...)
 
-	nodesToUnstake = getAllNodesToUnStake(nodesToUnstakeFromAuction, nodesToUnstakeFromWaiting, nodesToUnstakeFromEligible)
-	node.ProcessUnStake(t, nodesToUnstake)
-	node.Process(t, 5)
+	nodesToUnStake = getAllOwnerNodesMap(nodesToUnStakeFromAuction, nodesToUnStakeFromWaiting, nodesToUnStakeFromEligible)
+	node.ProcessUnStake(t, nodesToUnStake)
+	node.Process(t, 4)
 	currNodesCfg = node.NodesConfig
 
 	// Leaving:
@@ -1671,20 +1687,106 @@ func TestStakingV4LeavingNodesShouldDistributeToWaitingOnlyNecessaryNodes(t *tes
 	requireSliceContainsNumOfElements(t, currNodesCfg.auction, prevConfig.auction, 12)                 // 12 unselected
 }
 
-func getAllNodesToUnStake(nodesToUnStakeFromAuction, nodesToUnStakeFromWaiting, nodesToUnStakeFromEligible [][]byte) map[string][][]byte {
-	ret := make(map[string][][]byte)
-
-	for _, nodeToUnstake := range nodesToUnStakeFromAuction {
-		ret[string(nodeToUnstake)] = [][]byte{nodeToUnstake}
+func TestStakingV4MoreLeavingNodesThanToShufflePerShard(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
 	}
 
-	for _, nodeToUnstake := range nodesToUnStakeFromWaiting {
-		ret[string(nodeToUnstake)] = [][]byte{nodeToUnstake}
-	}
+	numOfMetaNodes := uint32(400)
+	numOfShards := uint32(3)
+	numOfEligibleNodesPerShard := uint32(400)
+	numOfWaitingNodesPerShard := uint32(400)
+	numOfNodesToShufflePerShard := uint32(80)
+	shardConsensusGroupSize := 266
+	metaConsensusGroupSize := 266
+	numOfNodesInStakingQueue := uint32(80)
 
-	for _, nodeToUnstake := range nodesToUnStakeFromEligible {
-		ret[string(nodeToUnstake)] = [][]byte{nodeToUnstake}
-	}
+	totalEligible := int(numOfEligibleNodesPerShard*numOfShards) + int(numOfMetaNodes) // 1600
+	totalWaiting := int(numOfWaitingNodesPerShard*numOfShards) + int(numOfMetaNodes)   // 1600
 
-	return ret
+	node := NewTestMetaProcessor(
+		numOfMetaNodes,
+		numOfShards,
+		numOfEligibleNodesPerShard,
+		numOfWaitingNodesPerShard,
+		numOfNodesToShufflePerShard,
+		shardConsensusGroupSize,
+		metaConsensusGroupSize,
+		numOfNodesInStakingQueue,
+	)
+	node.EpochStartTrigger.SetRoundsPerEpoch(4)
+
+	// 1. Check initial config is correct
+	initialNodes := node.NodesConfig
+	require.Len(t, getAllPubKeys(initialNodes.eligible), totalEligible)
+	require.Len(t, getAllPubKeys(initialNodes.waiting), totalWaiting)
+	require.Len(t, initialNodes.queue, int(numOfNodesInStakingQueue))
+	require.Empty(t, initialNodes.shuffledOut)
+	require.Empty(t, initialNodes.auction)
+
+	// 2. Check config after staking v4 initialization
+	node.Process(t, 5)
+	nodesConfigStakingV4Step1 := node.NodesConfig
+	require.Len(t, getAllPubKeys(nodesConfigStakingV4Step1.eligible), totalEligible)
+	require.Len(t, getAllPubKeys(nodesConfigStakingV4Step1.waiting), totalWaiting)
+	require.Empty(t, nodesConfigStakingV4Step1.queue)
+	require.Empty(t, nodesConfigStakingV4Step1.shuffledOut)
+	require.Empty(t, nodesConfigStakingV4Step1.auction) // the queue should be empty
+
+	// 3. re-stake the node nodes that were in the queue
+	node.ProcessReStake(t, initialNodes.queue)
+	nodesConfigStakingV4Step1 = node.NodesConfig
+	requireSameSliceDifferentOrder(t, initialNodes.queue, nodesConfigStakingV4Step1.auction)
+
+	// Reach step 3
+	node.Process(t, 10)
+
+	// UnStake 100 nodes from each shard:
+	// - shard 0: 100 waiting
+	// - shard 1: 50 waiting + 50 eligible
+	// - shard 2: 20 waiting + 80 eligible
+	// - shard meta: 100 eligible
+	currNodesCfg := node.NodesConfig
+
+	nodesToUnStakeFromWaiting := currNodesCfg.waiting[0][:100]
+	nodesToUnStakeFromWaiting = append(nodesToUnStakeFromWaiting, currNodesCfg.waiting[1][:50]...)
+	nodesToUnStakeFromWaiting = append(nodesToUnStakeFromWaiting, currNodesCfg.waiting[2][:20]...)
+
+	nodesToUnStakeFromEligible := currNodesCfg.eligible[1][:50]
+	nodesToUnStakeFromEligible = append(nodesToUnStakeFromEligible, currNodesCfg.eligible[2][:80]...)
+	nodesToUnStakeFromEligible = append(nodesToUnStakeFromEligible, currNodesCfg.eligible[core.MetachainShardId][:100]...)
+
+	nodesToUnStake := getAllOwnerNodesMap(nodesToUnStakeFromWaiting, nodesToUnStakeFromEligible)
+
+	prevConfig := currNodesCfg
+	node.ProcessUnStake(t, nodesToUnStake)
+	node.Process(t, 4)
+	currNodesCfg = node.NodesConfig
+
+	require.Len(t, getAllPubKeys(currNodesCfg.leaving), 320)                                           // we unStaked 400, but only allowed 320 to leave
+	require.Len(t, getAllPubKeys(currNodesCfg.shuffledOut), 0)                                         // no shuffled out, since 80 per shard were leaving
+	require.Len(t, currNodesCfg.auction, 80)                                                           // 400 initial - 320 selected
+	requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesCfg.waiting), prevConfig.auction, 320) // 320 selected
+	requireSliceContainsNumOfElements(t, currNodesCfg.auction, prevConfig.auction, 80)                 // 80 unselected
+
+	// Add 400 new nodes in the system and fast-forward
+	node.ProcessStake(t, map[string]*NodesRegisterData{
+		"ownerX": {
+			BLSKeys:    generateAddresses(99999, 400),
+			TotalStake: big.NewInt(nodePrice * 400),
+		},
+	})
+	node.Process(t, 10)
+
+	// UnStake exactly 80 nodes
+	prevConfig = node.NodesConfig
+	nodesToUnStake = getAllOwnerNodesMap(node.NodesConfig.eligible[1][:80])
+	node.ProcessUnStake(t, nodesToUnStake)
+	node.Process(t, 4)
+
+	currNodesCfg = node.NodesConfig
+	require.Len(t, getAllPubKeys(currNodesCfg.leaving), 80)                                            // 320 - 80 leaving
+	require.Len(t, getAllPubKeys(currNodesCfg.shuffledOut), 240)                                       // 240 shuffled out
+	requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesCfg.waiting), prevConfig.auction, 320) // 320 selected
+	requireSliceContainsNumOfElements(t, currNodesCfg.auction, prevConfig.auction, 80)                 // 80 unselected
 }

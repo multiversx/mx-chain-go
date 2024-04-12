@@ -570,15 +570,12 @@ func (sdp *stakingDataProvider) isValidatorLeaving(validatorCurrentList, validat
 	}
 
 	// If no previous list is set, means that staking v4 is not activated or node is leaving right before activation
-	// and this node will be considered as eligible by the nodes coordinator with legacy bug.
+	// and this node will be considered as eligible by the nodes coordinator with old code.
 	// Otherwise, it will have it set, and we should check its previous list in the current epoch
-	if len(validatorPreviousList) == 0 || validatorPreviousList == common.EligibleList || validatorPreviousList == common.WaitingList {
-		return true
-	}
-
-	return false
+	return len(validatorPreviousList) == 0 || validatorPreviousList == common.EligibleList || validatorPreviousList == common.WaitingList
 }
 
+// GetCurrentEpochValidatorStats returns the current epoch validator stats
 func (sdp *stakingDataProvider) GetCurrentEpochValidatorStats() epochStart.ValidatorStatsInEpoch {
 	sdp.mutStakingData.RLock()
 	defer sdp.mutStakingData.RUnlock()
