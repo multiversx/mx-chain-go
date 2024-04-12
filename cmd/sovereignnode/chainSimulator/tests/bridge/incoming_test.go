@@ -1,28 +1,29 @@
 package bridge
 
 import (
+	"crypto/rand"
 	"encoding/hex"
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
+	sovereignChainSimulator "github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator"
+
+	"github.com/multiversx/mx-chain-core-go/core"
 	coreAPI "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	logger "github.com/multiversx/mx-chain-logger-go"
-
-	"github.com/multiversx/mx-chain-go/config"
-	"github.com/multiversx/mx-chain-go/node/chainSimulator"
-	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
-	sovereignChainSimulator "github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator"
-
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/stretchr/testify/require"
 )
 
 const (
 	eventIDDepositIncomingTransfer = "deposit"
 	topicIDDepositIncomingTransfer = "deposit"
+	hashSize                       = 32
 )
 
 func TestIncomingOperations(t *testing.T) {
@@ -63,53 +64,29 @@ func TestIncomingOperations(t *testing.T) {
 
 	nodeHandler := cs.GetNodeHandler(core.SovereignChainShardId)
 
-	addressBytes, _ := hex.DecodeString("c0c0739e0cf6232a934d2e56cfcd10881eb1c7336f128fc155a4a84292cfe7f6")
-	tokenId, _ := hex.DecodeString("53564e2d373330613336")
-	tokenData, _ := hex.DecodeString("000000000906aaf7c8516d0c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
-	eventData, _ := hex.DecodeString("0000000000000001c0c0739e0cf6232a934d2e56cfcd10881eb1c7336f128fc155a4a84292cfe7f600")
+	//logger.SetLogLevel("*:DEBUG,process:TRACE")
 
-	logger.SetLogLevel("*:DEBUG,process:TRACE")
-
+	nonce := uint64(9999999)
 	incomingHeader := &sovereign.IncomingHeader{
-		Header: &block.HeaderV2{
-			Header: &block.Header{
-				Round: 9999999,
-				Nonce: 9999999,
-			},
-		},
-		IncomingEvents: []*transaction.Event{
-			{
-				Identifier: []byte(eventIDDepositIncomingTransfer),
-				Topics:     [][]byte{[]byte(topicIDDepositIncomingTransfer), addressBytes, tokenId, []byte(""), tokenData},
-				Data:       eventData,
-			},
-		},
+		Header:         createHeaderV2(nonce, generateRandomHash(), generateRandomHash()),
+		IncomingEvents: []*transaction.Event{createTransactionEvent()},
 	}
-	prevhash, _ := core.CalculateHash(nodeHandler.GetCoreComponents().InternalMarshalizer(), nodeHandler.GetCoreComponents().Hasher(), incomingHeader.Header)
+	firstHeaderHash, _ := core.CalculateHash(nodeHandler.GetCoreComponents().InternalMarshalizer(), nodeHandler.GetCoreComponents().Hasher(), incomingHeader.Header)
 	err = nodeHandler.GetIncomingHeaderHandler().AddHeader([]byte("hash"), incomingHeader)
 	require.Nil(t, err)
 
-	incomingHeader2 := &sovereign.IncomingHeader{
-		Header: &block.HeaderV2{
-			Header: &block.Header{
-				Round:    9999999 + 1,
-				Nonce:    9999999 + 1,
-				PrevHash: prevhash,
-			},
-		},
-		IncomingEvents: []*transaction.Event{
-			{
-				Identifier: []byte(eventIDDepositIncomingTransfer),
-				Topics:     [][]byte{[]byte(topicIDDepositIncomingTransfer), addressBytes, tokenId, []byte(""), tokenData},
-				Data:       eventData,
-			},
-		},
-	}
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
 
+	nonce++
+	incomingHeader2 := &sovereign.IncomingHeader{
+		Header:         createHeaderV2(nonce, firstHeaderHash, incomingHeader.Header.GetRandSeed()),
+		IncomingEvents: []*transaction.Event{createTransactionEvent()},
+	}
 	err = nodeHandler.GetIncomingHeaderHandler().AddHeader([]byte("hash2"), incomingHeader2)
 	require.Nil(t, err)
 
-	err = cs.GenerateBlocks(20)
+	err = cs.GenerateBlocks(10)
 	require.Nil(t, err)
 
 	address := "erd1crq888sv7c3j4y6d9etvlngs3q0tr3endufgls245j5y9yk0ulmqlsuute"
@@ -120,14 +97,37 @@ func TestIncomingOperations(t *testing.T) {
 	esdts, _, err := nodeHandler.GetFacadeHandler().GetAllESDTTokens(address, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
 	require.NotNil(t, esdts)
+	require.True(t, len(esdts) > 0)
+}
 
-	//oneEgld := big.NewInt(1000000000000000000)
-	//initialMinting := big.NewInt(0).Mul(oneEgld, big.NewInt(100))
-	//wallet0, err := cs.GenerateAndMintWalletAddress(core.SovereignChainShardId, initialMinting)
-	//require.Nil(t, err)
-	//
-	//err = cs.GenerateBlocks(10)
-	//
-	//w, _, err := nodeHandler.GetFacadeHandler().GetAccount(wallet0.Bech32, coreAPI.AccountQueryOptions{})
-	//require.NotNil(t, w)
+func createTransactionEvent() *transaction.Event {
+	addressBytes, _ := hex.DecodeString("c0c0739e0cf6232a934d2e56cfcd10881eb1c7336f128fc155a4a84292cfe7f6")
+	tokenId, _ := hex.DecodeString("53564e2d373330613336")
+	tokenData, _ := hex.DecodeString("000000000906aaf7c8516d0c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
+	eventData, _ := hex.DecodeString("0000000000000001c0c0739e0cf6232a934d2e56cfcd10881eb1c7336f128fc155a4a84292cfe7f600")
+
+	return &transaction.Event{
+		Identifier: []byte(eventIDDepositIncomingTransfer),
+		Topics:     [][]byte{[]byte(topicIDDepositIncomingTransfer), addressBytes, tokenId, []byte(""), tokenData},
+		Data:       eventData,
+	}
+}
+
+func createHeaderV2(nonce uint64, prevHash []byte, prevRandSeed []byte) *block.HeaderV2 {
+	return &block.HeaderV2{
+		Header: &block.Header{
+			PrevHash:     prevHash,
+			Nonce:        nonce,
+			Round:        nonce,
+			RandSeed:     generateRandomHash(),
+			PrevRandSeed: prevRandSeed,
+			ChainID:      []byte(configs.ChainID),
+		},
+	}
+}
+
+func generateRandomHash() []byte {
+	randomBytes := make([]byte, hashSize)
+	_, _ = rand.Read(randomBytes)
+	return randomBytes
 }
