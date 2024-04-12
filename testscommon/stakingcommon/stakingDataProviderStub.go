@@ -88,6 +88,7 @@ func (sdps *StakingDataProviderStub) GetNumOfValidatorsInCurrentEpoch() uint32 {
 	return 0
 }
 
+// GetCurrentEpochValidatorStats -
 func (sdps *StakingDataProviderStub) GetCurrentEpochValidatorStats() epochStart.ValidatorStatsInEpoch {
 	return epochStart.ValidatorStatsInEpoch{
 		Eligible: map[uint32]int{},
