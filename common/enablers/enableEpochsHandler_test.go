@@ -193,13 +193,6 @@ func TestEnableEpochsHandler_IsFlagEnabled(t *testing.T) {
 	require.True(t, handler.IsFlagEnabled(common.SetGuardianFlag))
 
 	handler.EpochConfirmed(cfg.StakingV4Step1EnableEpoch-1, 0)
-	require.True(t, handler.IsFlagEnabled(common.StakingQueueFlag))
-	handler.EpochConfirmed(cfg.StakingV4Step1EnableEpoch, 0)
-	require.False(t, handler.IsFlagEnabled(common.StakingQueueFlag))
-	handler.EpochConfirmed(cfg.StakingV4Step1EnableEpoch+1, 0)
-	require.False(t, handler.IsFlagEnabled(common.StakingQueueFlag))
-
-	handler.EpochConfirmed(cfg.StakingV4Step1EnableEpoch-1, 0)
 	require.False(t, handler.IsFlagEnabled(common.StakingV4StartedFlag))
 	handler.EpochConfirmed(cfg.StakingV4Step1EnableEpoch, 0)
 	require.True(t, handler.IsFlagEnabled(common.StakingV4StartedFlag))
@@ -318,7 +311,6 @@ func TestEnableEpochsHandler_IsFlagEnabled(t *testing.T) {
 	require.False(t, handler.IsFlagEnabled(common.StakingV4Step1Flag))
 	require.True(t, handler.IsFlagEnabled(common.StakingV4Step2Flag))
 	require.True(t, handler.IsFlagEnabled(common.StakingV4Step3Flag))
-	require.False(t, handler.IsFlagEnabled(common.StakingQueueFlag))
 	require.True(t, handler.IsFlagEnabled(common.StakingV4StartedFlag))
 	require.True(t, handler.IsFlagEnabled(common.AlwaysMergeContextsInEEIFlag))
 }
@@ -434,7 +426,6 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.StakingV4Step1EnableEpoch, handler.GetActivationEpoch(common.StakingV4Step1Flag))
 	require.Equal(t, cfg.StakingV4Step2EnableEpoch, handler.GetActivationEpoch(common.StakingV4Step2Flag))
 	require.Equal(t, cfg.StakingV4Step3EnableEpoch, handler.GetActivationEpoch(common.StakingV4Step3Flag))
-	require.Equal(t, cfg.StakingV4Step1EnableEpoch, handler.GetActivationEpoch(common.StakingQueueFlag))
 	require.Equal(t, cfg.StakingV4Step1EnableEpoch, handler.GetActivationEpoch(common.StakingV4StartedFlag))
 	require.Equal(t, cfg.AlwaysMergeContextsInEEIEnableEpoch, handler.GetActivationEpoch(common.AlwaysMergeContextsInEEIFlag))
 }

@@ -1011,7 +1011,6 @@ const (
 	StakingV4Step1Flag                                 core.EnableEpochFlag = "StakingV4Step1Flag"
 	StakingV4Step2Flag                                 core.EnableEpochFlag = "StakingV4Step2Flag"
 	StakingV4Step3Flag                                 core.EnableEpochFlag = "StakingV4Step3Flag"
-	StakingQueueFlag                                   core.EnableEpochFlag = "StakingQueueFlag"
 	StakingV4StartedFlag                               core.EnableEpochFlag = "StakingV4StartedFlag"
 	AlwaysMergeContextsInEEIFlag                       core.EnableEpochFlag = "AlwaysMergeContextsInEEIFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
