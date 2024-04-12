@@ -207,7 +207,7 @@ func (s *legacySystemSCProcessor) processLegacy(
 			return err
 		}
 
-		if s.enableEpochsHandler.IsFlagEnabled(common.StakingQueueFlag) {
+		if !s.enableEpochsHandler.IsFlagEnabled(common.StakingV4StartedFlag) {
 			err = s.stakeNodesFromQueue(validatorsInfoMap, numUnStaked, nonce, common.NewList)
 			if err != nil {
 				return err
@@ -598,20 +598,21 @@ func (s *legacySystemSCProcessor) updateMaxNodes(validatorsInfoMap state.ShardVa
 		return err
 	}
 
-	if !s.enableEpochsHandler.IsFlagEnabled(common.StakingV4StartedFlag) {
-		if maxNumberOfNodes < prevMaxNumberOfNodes {
-			return epochStart.ErrInvalidMaxNumberOfNodes
-		}
+	if s.enableEpochsHandler.IsFlagEnabled(common.StakingV4StartedFlag) {
+		return nil
 	}
 
-	if s.enableEpochsHandler.IsFlagEnabled(common.StakingQueueFlag) {
-		sw.Start("stakeNodesFromQueue")
-		err = s.stakeNodesFromQueue(validatorsInfoMap, maxNumberOfNodes-prevMaxNumberOfNodes, nonce, common.NewList)
-		sw.Stop("stakeNodesFromQueue")
-		if err != nil {
-			return err
-		}
+	if maxNumberOfNodes < prevMaxNumberOfNodes {
+		return epochStart.ErrInvalidMaxNumberOfNodes
 	}
+
+	sw.Start("stakeNodesFromQueue")
+	err = s.stakeNodesFromQueue(validatorsInfoMap, maxNumberOfNodes-prevMaxNumberOfNodes, nonce, common.NewList)
+	sw.Stop("stakeNodesFromQueue")
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -1262,22 +1263,32 @@ func (s *legacySystemSCProcessor) addNewlyStakedNodesToValidatorTrie(
 			AccumulatedFees: big.NewInt(0),
 		}
 
-		existingValidator := validatorsInfoMap.GetValidator(validatorInfo.GetPublicKey())
-		// This fix is not be backwards incompatible
-		if !check.IfNil(existingValidator) && s.enableEpochsHandler.IsFlagEnabled(common.StakingV4StartedFlag) {
-			err = validatorsInfoMap.Delete(existingValidator)
-			if err != nil {
-				return err
-			}
-		}
-
-		err = validatorsInfoMap.Add(validatorInfo)
+		err = s.addNewValidator(validatorsInfoMap, validatorInfo)
 		if err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+func (s *legacySystemSCProcessor) addNewValidator(
+	validatorsInfoMap state.ShardValidatorsInfoMapHandler,
+	validatorInfo state.ValidatorInfoHandler,
+) error {
+	if !s.enableEpochsHandler.IsFlagEnabled(common.StakingV4StartedFlag) {
+		return validatorsInfoMap.Add(validatorInfo)
+	}
+
+	existingValidator := validatorsInfoMap.GetValidator(validatorInfo.GetPublicKey())
+	if !check.IfNil(existingValidator) {
+		err := validatorsInfoMap.Delete(existingValidator)
+		if err != nil {
+			return err
+		}
+	}
+
+	return validatorsInfoMap.Add(validatorInfo)
 }
 
 func (s *legacySystemSCProcessor) initESDT() error {
