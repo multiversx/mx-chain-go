@@ -1541,11 +1541,6 @@ func TestStakingV4_LeavingNodesEdgeCases(t *testing.T) {
 	require.Zero(t, len(owner1LeftNodes))
 }
 
-// TODO if necessary:
-// - test with limit (unstake exactly 80 per shard)
-// - unstake more nodes when waiting lists are pretty empty
-// - chain simulator api calls
-
 func TestStakingV4LeavingNodesShouldDistributeToWaitingOnlyNecessaryNodes(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
