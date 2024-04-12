@@ -12,6 +12,7 @@ type HeaderHandlerStub struct {
 	EpochField                             uint32
 	RoundField                             uint64
 	TimestampField                         uint64
+	BlockBodyTypeInt32Field                int32
 	GetMiniBlockHeadersWithDstCalled       func(destId uint32) map[string]uint32
 	GetOrderedCrossMiniblocksWithDstCalled func(destId uint32) []*data.MiniBlockInfo
 	GetPubKeysBitmapCalled                 func() []byte
@@ -28,6 +29,15 @@ type HeaderHandlerStub struct {
 	HasScheduledMiniBlocksCalled           func() bool
 	GetNonceCalled                         func() uint64
 	CheckFieldsForNilCalled                func() error
+	SetShardIDCalled                       func(shardID uint32) error
+	SetPrevHashCalled                      func(hash []byte) error
+	SetPrevRandSeedCalled                  func(seed []byte) error
+	SetPubKeysBitmapCalled                 func(bitmap []byte) error
+	SetChainIDCalled                       func(chainID []byte) error
+	SetTimeStampCalled                     func(timestamp uint64) error
+	SetRandSeedCalled                      func(seed []byte) error
+	SetSignatureCalled                     func(signature []byte) error
+	SetLeaderSignatureCalled               func(signature []byte) error
 }
 
 // GetAccumulatedFees -
@@ -56,7 +66,10 @@ func (hhs *HeaderHandlerStub) GetReceiptsHash() []byte {
 }
 
 // SetShardID -
-func (hhs *HeaderHandlerStub) SetShardID(_ uint32) error {
+func (hhs *HeaderHandlerStub) SetShardID(shardID uint32) error {
+	if hhs.SetShardIDCalled != nil {
+		return hhs.SetShardIDCalled(shardID)
+	}
 	return nil
 }
 
@@ -114,7 +127,10 @@ func (hhs *HeaderHandlerStub) GetPrevHash() []byte {
 
 // GetPrevRandSeed -
 func (hhs *HeaderHandlerStub) GetPrevRandSeed() []byte {
-	return hhs.GetPrevRandSeedCalled()
+	if hhs.GetPrevRandSeedCalled != nil {
+		return hhs.GetPrevRandSeedCalled()
+	}
+	return make([]byte, 0)
 }
 
 // GetRandSeed -
@@ -124,7 +140,10 @@ func (hhs *HeaderHandlerStub) GetRandSeed() []byte {
 
 // GetPubKeysBitmap -
 func (hhs *HeaderHandlerStub) GetPubKeysBitmap() []byte {
-	return hhs.GetPubKeysBitmapCalled()
+	if hhs.GetPubKeysBitmapCalled != nil {
+		return hhs.GetPubKeysBitmapCalled()
+	}
+	return make([]byte, 0)
 }
 
 // GetSignature -
@@ -172,8 +191,11 @@ func (hhs *HeaderHandlerStub) SetRound(_ uint64) error {
 }
 
 // SetTimeStamp -
-func (hhs *HeaderHandlerStub) SetTimeStamp(_ uint64) error {
-	panic("implement me")
+func (hhs *HeaderHandlerStub) SetTimeStamp(timestamp uint64) error {
+	if hhs.SetTimeStampCalled != nil {
+		return hhs.SetTimeStampCalled(timestamp)
+	}
+	return nil
 }
 
 // SetRootHash -
@@ -182,38 +204,59 @@ func (hhs *HeaderHandlerStub) SetRootHash(_ []byte) error {
 }
 
 // SetPrevHash -
-func (hhs *HeaderHandlerStub) SetPrevHash(_ []byte) error {
-	panic("implement me")
+func (hhs *HeaderHandlerStub) SetPrevHash(hash []byte) error {
+	if hhs.SetPrevHashCalled != nil {
+		return hhs.SetPrevHashCalled(hash)
+	}
+	return nil
 }
 
 // SetPrevRandSeed -
-func (hhs *HeaderHandlerStub) SetPrevRandSeed(_ []byte) error {
-	panic("implement me")
+func (hhs *HeaderHandlerStub) SetPrevRandSeed(seed []byte) error {
+	if hhs.SetPrevRandSeedCalled != nil {
+		return hhs.SetPrevRandSeedCalled(seed)
+	}
+	return nil
 }
 
 // SetRandSeed -
-func (hhs *HeaderHandlerStub) SetRandSeed(_ []byte) error {
-	panic("implement me")
+func (hhs *HeaderHandlerStub) SetRandSeed(seed []byte) error {
+	if hhs.SetRandSeedCalled != nil {
+		return hhs.SetRandSeedCalled(seed)
+	}
+	return nil
 }
 
 // SetPubKeysBitmap -
-func (hhs *HeaderHandlerStub) SetPubKeysBitmap(_ []byte) error {
-	panic("implement me")
+func (hhs *HeaderHandlerStub) SetPubKeysBitmap(bitmap []byte) error {
+	if hhs.SetPubKeysBitmapCalled != nil {
+		return hhs.SetPubKeysBitmapCalled(bitmap)
+	}
+	return nil
 }
 
 // SetSignature -
-func (hhs *HeaderHandlerStub) SetSignature(_ []byte) error {
-	panic("implement me")
+func (hhs *HeaderHandlerStub) SetSignature(signature []byte) error {
+	if hhs.SetSignatureCalled != nil {
+		return hhs.SetSignatureCalled(signature)
+	}
+	return nil
 }
 
 // SetLeaderSignature -
-func (hhs *HeaderHandlerStub) SetLeaderSignature(_ []byte) error {
-	panic("implement me")
+func (hhs *HeaderHandlerStub) SetLeaderSignature(signature []byte) error {
+	if hhs.SetLeaderSignatureCalled != nil {
+		return hhs.SetLeaderSignatureCalled(signature)
+	}
+	return nil
 }
 
 // SetChainID -
-func (hhs *HeaderHandlerStub) SetChainID(_ []byte) error {
-	panic("implement me")
+func (hhs *HeaderHandlerStub) SetChainID(chainID []byte) error {
+	if hhs.SetChainIDCalled != nil {
+		return hhs.SetChainIDCalled(chainID)
+	}
+	return nil
 }
 
 // SetTxCount -
@@ -248,7 +291,7 @@ func (hhs *HeaderHandlerStub) GetMetaBlockHashes() [][]byte {
 
 // GetBlockBodyTypeInt32 -
 func (hhs *HeaderHandlerStub) GetBlockBodyTypeInt32() int32 {
-	panic("implement me")
+	return hhs.BlockBodyTypeInt32Field
 }
 
 // GetValidatorStatsRootHash -
@@ -376,4 +419,11 @@ func (hhs *HeaderHandlerStub) HasScheduledMiniBlocks() bool {
 		return hhs.HasScheduledMiniBlocksCalled()
 	}
 	return false
+}
+
+// SetBlockBodyTypeInt32 -
+func (hhs *HeaderHandlerStub) SetBlockBodyTypeInt32(blockBodyType int32) error {
+	hhs.BlockBodyTypeInt32Field = blockBodyType
+
+	return nil
 }

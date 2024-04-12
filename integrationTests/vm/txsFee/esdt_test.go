@@ -18,6 +18,10 @@ import (
 )
 
 func TestESDTTransferShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -54,6 +58,10 @@ func TestESDTTransferShouldWork(t *testing.T) {
 }
 
 func TestESDTTransferShouldWorkToMuchGasShouldConsumeAllGas(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -90,6 +98,10 @@ func TestESDTTransferShouldWorkToMuchGasShouldConsumeAllGas(t *testing.T) {
 }
 
 func TestESDTTransferInvalidESDTValueShouldConsumeGas(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -126,6 +138,10 @@ func TestESDTTransferInvalidESDTValueShouldConsumeGas(t *testing.T) {
 }
 
 func TestESDTTransferCallBackOnErrorShouldNotGenerateSCRsFurther(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	shardC, _ := sharding.NewMultiShardCoordinator(2, 0)
 	testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinator(config.EnableEpochs{}, shardC)
 	require.Nil(t, err)

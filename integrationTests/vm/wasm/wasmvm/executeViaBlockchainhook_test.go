@@ -1,5 +1,3 @@
-//go:build !race
-
 package wasmvm
 
 import (
@@ -17,6 +15,9 @@ import (
 )
 
 func TestExecuteOnDestCtx_BlockchainHook(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	net := integrationTests.NewTestNetworkSized(t, 1, 1, 1)
 	net.Start()

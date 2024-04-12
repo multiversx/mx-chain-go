@@ -2,21 +2,64 @@ package bootstrap
 
 import (
 	"encoding/hex"
-	"encoding/json"
 	"strings"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/storage"
 )
+
+// StorageHandlerArgs is a struct placeholder for all arguments required to create either a shard or a meta storage handler
+type StorageHandlerArgs struct {
+	GeneralConfig                   config.Config
+	PreferencesConfig               config.PreferencesConfig
+	ShardCoordinator                sharding.Coordinator
+	PathManagerHandler              storage.PathManagerHandler
+	Marshaller                      marshal.Marshalizer
+	Hasher                          hashing.Hasher
+	CurrentEpoch                    uint32
+	Uint64Converter                 typeConverters.Uint64ByteSliceConverter
+	NodeTypeProvider                NodeTypeProviderHandler
+	NodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory
+	SnapshotsEnabled                bool
+	ManagedPeersHolder              common.ManagedPeersHolder
+	NodeProcessingMode              common.NodeProcessingMode
+	RepopulateTokensSupplies        bool
+	StateStatsHandler               common.StateStatisticsHandler
+}
+
+func checkNilArgs(args StorageHandlerArgs) error {
+	if check.IfNil(args.ShardCoordinator) {
+		return core.ErrNilShardCoordinator
+	}
+	if check.IfNil(args.PathManagerHandler) {
+		return dataRetriever.ErrNilPathManager
+	}
+	if check.IfNil(args.Marshaller) {
+		return core.ErrNilMarshalizer
+	}
+	if check.IfNil(args.Hasher) {
+		return core.ErrNilHasher
+	}
+	if check.IfNil(args.Uint64Converter) {
+		return dataRetriever.ErrNilUint64ByteSliceConverter
+	}
+	if check.IfNil(args.NodesCoordinatorRegistryFactory) {
+		return nodesCoordinator.ErrNilNodesCoordinatorRegistryFactory
+	}
+	return nil
+}
 
 type miniBlocksInfo struct {
 	miniBlockHashes              [][]byte
@@ -33,12 +76,13 @@ type processedIndexes struct {
 
 // baseStorageHandler handles the storage functions for saving bootstrap data
 type baseStorageHandler struct {
-	storageService   dataRetriever.StorageService
-	shardCoordinator sharding.Coordinator
-	marshalizer      marshal.Marshalizer
-	hasher           hashing.Hasher
-	currentEpoch     uint32
-	uint64Converter  typeConverters.Uint64ByteSliceConverter
+	storageService                  dataRetriever.StorageService
+	shardCoordinator                sharding.Coordinator
+	marshalizer                     marshal.Marshalizer
+	hasher                          hashing.Hasher
+	currentEpoch                    uint32
+	uint64Converter                 typeConverters.Uint64ByteSliceConverter
+	nodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory
 }
 
 func (bsh *baseStorageHandler) groupMiniBlocksByShard(miniBlocks map[string]*block.MiniBlock) ([]bootstrapStorage.PendingMiniBlocksInfo, error) {
@@ -61,12 +105,11 @@ func (bsh *baseStorageHandler) groupMiniBlocksByShard(miniBlocks map[string]*blo
 
 func (bsh *baseStorageHandler) saveNodesCoordinatorRegistry(
 	metaBlock data.HeaderHandler,
-	nodesConfig *nodesCoordinator.NodesCoordinatorRegistry,
+	nodesConfig nodesCoordinator.NodesCoordinatorRegistryHandler,
 ) ([]byte, error) {
 	key := append([]byte(common.NodesCoordinatorRegistryKeyPrefix), metaBlock.GetPrevRandSeed()...)
 
-	// TODO: replace hardcoded json - although it is hardcoded in nodesCoordinator as well.
-	registryBytes, err := json.Marshal(nodesConfig)
+	registryBytes, err := bsh.nodesCoordinatorRegistryFactory.GetRegistryData(nodesConfig, metaBlock.GetEpoch())
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +124,7 @@ func (bsh *baseStorageHandler) saveNodesCoordinatorRegistry(
 		return nil, err
 	}
 
-	log.Debug("saving nodes coordinator config", "key", key)
+	log.Debug("saving nodes coordinator config", "key", key, "epoch", metaBlock.GetEpoch())
 
 	return metaBlock.GetPrevRandSeed(), nil
 }
