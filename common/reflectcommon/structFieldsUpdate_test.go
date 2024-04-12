@@ -5,9 +5,10 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/testscommon/toml"
+
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/stretchr/testify/require"
 )
 
@@ -447,10 +448,10 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		expectedNewValue["first"] = 1
 		expectedNewValue["second"] = 2
 
-		path := "TestMap.Value"
+		path := "TestInterface.Value"
 
 		err = AdaptStructureValueBasedOnPath(testConfig, path, expectedNewValue)
-		require.Equal(t, "unsupported type <map> when trying to set the value 'map[first:1 second:2]' of type <map[string]int>", err.Error())
+		require.Equal(t, "unsupported type <interface> when trying to set the value 'map[first:1 second:2]' of type <map[string]int>", err.Error())
 	})
 
 	t.Run("should error fit signed for target type not int", func(t *testing.T) {
@@ -1191,6 +1192,54 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		err = AdaptStructureValueBasedOnPath(testConfig, path, expectedNewValue)
 		require.NoError(t, err)
 		require.Equal(t, expectedNewValue, testConfig.TestConfigNestedStruct.ConfigNestedStruct.Message.MessageDescription)
+	})
+
+	t.Run("should work on map and override existing value in map", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		expectedNewValue := make(map[string]int)
+		expectedNewValue["key"] = 100
+
+		path := "TestMap.Value"
+
+		err = AdaptStructureValueBasedOnPath(testConfig, path, expectedNewValue)
+		require.NoError(t, err)
+		require.Equal(t, 1, len(testConfig.TestMap.Value))
+		require.Equal(t, testConfig.TestMap.Value["key"], 100)
+	})
+
+	t.Run("should work on map and insert values in map", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		expectedNewValue := make(map[string]int)
+		expectedNewValue["first"] = 1
+		expectedNewValue["second"] = 2
+
+		path := "TestMap.Value"
+
+		err = AdaptStructureValueBasedOnPath(testConfig, path, expectedNewValue)
+		require.NoError(t, err)
+		require.Equal(t, 3, len(testConfig.TestMap.Value))
+	})
+
+	t.Run("should error on map when override anything else other than map", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		expectedNewValue := 1
+
+		path := "TestMap.Value"
+
+		err = AdaptStructureValueBasedOnPath(testConfig, path, expectedNewValue)
+		require.Equal(t, "unsupported type <int> when trying to add value in type <map>", err.Error())
 	})
 
 }

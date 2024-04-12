@@ -15,6 +15,7 @@ type Config struct {
 	TestConfigStruct
 	TestConfigNestedStruct
 	TestMap
+	TestInterface
 }
 
 // TestConfigI8 will hold an int8 value for testing
@@ -168,4 +169,9 @@ type MessageDescriptionOtherName struct {
 // TestMap will hold a map for testing
 type TestMap struct {
 	Value map[string]int
+}
+
+// TestInterface will hold an interface for testing
+type TestInterface struct {
+	Value interface{}
 }

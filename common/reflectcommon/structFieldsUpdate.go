@@ -123,6 +123,10 @@ func trySetTheNewValue(value *reflect.Value, newValue interface{}) error {
 		structVal := reflect.ValueOf(newValue)
 
 		return trySetStructValue(value, structVal)
+	case reflect.Map:
+		mapValue := reflect.ValueOf(newValue)
+
+		return tryUpdateMapValue(value, mapValue)
 	default:
 		return fmt.Errorf("unsupported type <%s> when trying to set the value '%v' of type <%s>", valueKind, newValue, reflect.TypeOf(newValue))
 	}
@@ -161,6 +165,23 @@ func trySetStructValue(value *reflect.Value, newValue reflect.Value) error {
 	default:
 		return fmt.Errorf("unsupported type <%s> when trying to set the value of type <%s>", newValue.Kind(), value.Kind())
 	}
+}
+
+func tryUpdateMapValue(value *reflect.Value, newValue reflect.Value) error {
+	if value.IsNil() {
+		value.Set(reflect.MakeMap(value.Type()))
+	}
+
+	switch newValue.Kind() {
+	case reflect.Map:
+		for _, key := range newValue.MapKeys() {
+			value.SetMapIndex(key, newValue.MapIndex(key))
+		}
+	default:
+		return fmt.Errorf("unsupported type <%s> when trying to add value in type <%s>", newValue.Kind(), value.Kind())
+	}
+
+	return nil
 }
 
 func updateStructFromMap(value *reflect.Value, newValue reflect.Value) error {
