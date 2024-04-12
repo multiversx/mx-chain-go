@@ -5,6 +5,8 @@ on:
       - master
   pull_request:
     branches: [ master, feat/*, rc/* ]
+  workflow_dispatch:
+    branches: [ master, feat/*, rc/* ]
 
 permissions:
   contents: read
