@@ -88,7 +88,7 @@ func TestOverrideConfigValues(t *testing.T) {
 
 		configs := &config.Configs{ApiRoutesConfig: &config.ApiRoutesConfig{}}
 
-		err := OverrideConfigValues([]config.OverridableConfig{{Path: "Logging.LoggingEnabled", Value: "true", File: "api.toml"}}, configs)
+		err := OverrideConfigValues([]config.OverridableConfig{{Path: "Logging.LoggingEnabled", Value: true, File: "api.toml"}}, configs)
 		require.NoError(t, err)
 		require.True(t, configs.ApiRoutesConfig.Logging.LoggingEnabled)
 	})
@@ -121,7 +121,7 @@ func TestOverrideConfigValues(t *testing.T) {
 
 		configs := &config.Configs{RatingsConfig: &config.RatingsConfig{}}
 
-		err := OverrideConfigValues([]config.OverridableConfig{{Path: "General.StartRating", Value: "37", File: "ratings.toml"}}, configs)
+		err := OverrideConfigValues([]config.OverridableConfig{{Path: "General.StartRating", Value: 37, File: "ratings.toml"}}, configs)
 		require.NoError(t, err)
 		require.Equal(t, uint32(37), configs.RatingsConfig.General.StartRating)
 	})
@@ -131,7 +131,7 @@ func TestOverrideConfigValues(t *testing.T) {
 
 		configs := &config.Configs{SystemSCConfig: &config.SystemSmartContractsConfig{}}
 
-		err := OverrideConfigValues([]config.OverridableConfig{{Path: "StakingSystemSCConfig.UnBondPeriod", Value: "37", File: "systemSmartContractsConfig.toml"}}, configs)
+		err := OverrideConfigValues([]config.OverridableConfig{{Path: "StakingSystemSCConfig.UnBondPeriod", Value: 37, File: "systemSmartContractsConfig.toml"}}, configs)
 		require.NoError(t, err)
 		require.Equal(t, uint64(37), configs.SystemSCConfig.StakingSystemSCConfig.UnBondPeriod)
 	})
