@@ -155,7 +155,7 @@ type epochStartBootstrap struct {
 	shuffledOut         bool
 	getDataToSyncMethod func(epochStartData data.EpochStartShardDataHandler, shardNotarizedHeader data.ShardHeaderHandler) (*dataToSync, error)
 
-	runTypeComponents runTypeComponentsHolder
+	runTypeComponents RunTypeComponentsHolder
 }
 
 type baseDataInStorage struct {
@@ -194,7 +194,7 @@ type ArgsEpochStartBootstrap struct {
 	NodeProcessingMode              common.NodeProcessingMode
 	StateStatsHandler               common.StateStatisticsHandler
 	NodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory
-	RunTypeComponents               runTypeComponentsHolder
+	RunTypeComponents               RunTypeComponentsHolder
 }
 
 type dataToSync struct {
