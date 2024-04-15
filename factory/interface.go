@@ -597,7 +597,7 @@ type RunTypeComponentsHolder interface {
 	VmContainerShardFactoryCreator() factoryVm.VmContainerCreator
 	AccountsCreator() state.AccountFactory
 	OutGoingOperationsPoolHandler() sovereignBlock.OutGoingOperationsPool
-	DataCodecHandler() sovereign.DataDecoderHandler
+	DataDecoderHandler() sovereign.DataDecoderHandler
 	TopicsCheckerHandler() sovereign.TopicsCheckerHandler
 	Create() error
 	Close() error

@@ -161,7 +161,6 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 	}
 
 	expiryTime := time.Second * time.Duration(rcf.cfg.OutgoingSubscribedEvents.TimeToWaitForUnconfirmedOutGoingOperationInSeconds)
-	outGoingOperationsPool := sovereignFactory.NewOutGoingOperationPool(expiryTime)
 
 	return &runTypeComponents{
 		blockChainHookHandlerCreator:        blockChainHookHandlerFactory,
@@ -183,8 +182,8 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		vmContainerMetaFactory:              rtc.vmContainerMetaFactory,
 		vmContainerShardFactory:             vmContainerShardCreator,
 		accountsCreator:                     accountsCreator,
-		outGoingOperationsPoolHandler:       outGoingOperationsPool,
-		dataCodecHandler:                    rcf.dataCodec,
+		outGoingOperationsPoolHandler:       sovereignFactory.NewOutGoingOperationPool(expiryTime),
+		dataDecoderHandler:                  rcf.dataCodec,
 		topicsCheckerHandler:                rcf.topicsChecker,
 	}, nil
 }

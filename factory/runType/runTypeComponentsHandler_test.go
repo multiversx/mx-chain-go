@@ -66,7 +66,7 @@ func TestManagedRunTypeComponents_Create(t *testing.T) {
 		require.Nil(t, managedRunTypeComponents.VmContainerShardFactoryCreator())
 		require.Nil(t, managedRunTypeComponents.AccountsCreator())
 		require.Nil(t, managedRunTypeComponents.OutGoingOperationsPoolHandler())
-		require.Nil(t, managedRunTypeComponents.DataCodecHandler())
+		require.Nil(t, managedRunTypeComponents.DataDecoderHandler())
 		require.Nil(t, managedRunTypeComponents.TopicsCheckerHandler())
 
 		err = managedRunTypeComponents.Create()
@@ -86,12 +86,12 @@ func TestManagedRunTypeComponents_Create(t *testing.T) {
 		require.NotNil(t, managedRunTypeComponents.AdditionalStorageServiceCreator())
 		require.NotNil(t, managedRunTypeComponents.SCProcessorCreator())
 		require.NotNil(t, managedRunTypeComponents.SCResultsPreProcessorCreator())
-		require.NotEqual(t, consensus.ConsensusModelInvalid, managedRunTypeComponents.ConsensusModel())
+		require.Equal(t, consensus.ConsensusModelV1, managedRunTypeComponents.ConsensusModel())
 		require.NotNil(t, managedRunTypeComponents.VmContainerMetaFactoryCreator())
 		require.NotNil(t, managedRunTypeComponents.VmContainerShardFactoryCreator())
 		require.NotNil(t, managedRunTypeComponents.AccountsCreator())
 		require.NotNil(t, managedRunTypeComponents.OutGoingOperationsPoolHandler())
-		require.NotNil(t, managedRunTypeComponents.DataCodecHandler())
+		require.NotNil(t, managedRunTypeComponents.DataDecoderHandler())
 		require.NotNil(t, managedRunTypeComponents.TopicsCheckerHandler())
 
 		require.Equal(t, factory.RunTypeComponentsName, managedRunTypeComponents.String())

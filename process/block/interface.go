@@ -60,7 +60,7 @@ type HeaderValidatorCreator interface {
 type runTypeComponentsHolder interface {
 	AccountsCreator() state.AccountFactory
 	OutGoingOperationsPoolHandler() sovereignBlock.OutGoingOperationsPool
-	DataCodecHandler() sovereign.DataDecoderHandler
+	DataDecoderHandler() sovereign.DataDecoderHandler
 	TopicsCheckerHandler() sovereign.TopicsCheckerHandler
 	IsInterfaceNil() bool
 }

@@ -3319,7 +3319,7 @@ func GetDefaultRunTypeComponents(consensusModel consensus.ConsensusModel) *mainF
 		AccountCreator:                      rt.AccountsCreator(),
 		ConsensusModelType:                  consensusModel,
 		OutGoingOperationsPool:              rt.OutGoingOperationsPoolHandler(),
-		DataCodec:                           rt.DataCodecHandler(),
+		DataCodec:                           rt.DataDecoderHandler(),
 		TopicsChecker:                       rt.TopicsCheckerHandler(),
 	}
 }

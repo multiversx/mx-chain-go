@@ -969,7 +969,7 @@ func getRunTypeComponentsMock() *mainFactoryMocks.RunTypeComponentsStub {
 		VmContainerShardFactory:             rt.VmContainerShardFactoryCreator(),
 		AccountCreator:                      rt.AccountsCreator(),
 		OutGoingOperationsPool:              rt.OutGoingOperationsPoolHandler(),
-		DataCodec:                           rt.DataCodecHandler(),
+		DataCodec:                           rt.DataDecoderHandler(),
 		TopicsChecker:                       rt.TopicsCheckerHandler(),
 	}
 }
