@@ -212,6 +212,16 @@ func (s *simulator) GenerateBlocksUntilEpochIsReached(targetEpoch int32) error {
 	return fmt.Errorf("exceeded rounds to generate blocks")
 }
 
+// ForceResetValidatorStatisticsCache will force the reset of the cache used for the validators statistics endpoint
+func (s *simulator) ForceResetValidatorStatisticsCache() error {
+	metachainNode := s.GetNodeHandler(core.MetachainShardId)
+	if check.IfNil(metachainNode) {
+		return errNilMetachainNode
+	}
+
+	return metachainNode.GetProcessComponents().ValidatorsProvider().ForceUpdate()
+}
+
 func (s *simulator) isTargetEpochReached(targetEpoch int32) (bool, error) {
 	metachainNode := s.nodes[core.MetachainShardId]
 	metachainEpoch := metachainNode.GetCoreComponents().EnableEpochsHandler().GetCurrentEpoch()

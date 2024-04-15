@@ -1,5 +1,22 @@
 # These paths must be absolute
 
+########################################################################
+# Docker network configuration
+
+# Don't change the subnet, unless you know what you are doing. Prone to errors.
+export DOCKER_NETWORK_SUBNET="172.18.0.0/24"
+export DOCKER_NETWORK_NAME="local-testnet"
+
+# By default ports won't be published. If set to 1, all containers will port-forward to host network.
+export DOCKER_PUBLISH_PORTS=1
+
+if [[ "$DOCKER_PUBLISH_PORTS" -gt 0 ]]; then
+  export DOCKER_PUBLISH_PORT_RANGE=30000
+fi
+
+########################################################################
+
+
 # METASHARD_ID will be used to identify a shard ID as metachain
 export METASHARD_ID=4294967295
 
@@ -21,6 +38,7 @@ export TESTNETDIR="$HOME/MultiversX/testnet"
 
 # Path to mx-chain-deploy-go, branch: master. Default: near mx-chain-go.
 export CONFIGGENERATORDIR="$(dirname $MULTIVERSXDIR)/mx-chain-deploy-go/cmd/filegen"
+
 export CONFIGGENERATOR="$CONFIGGENERATORDIR/filegen"    # Leave unchanged.
 export CONFIGGENERATOROUTPUTDIR="output"
 
@@ -62,8 +80,6 @@ export META_VALIDATORCOUNT=3
 export META_OBSERVERCOUNT=1
 export META_CONSENSUS_SIZE=$META_VALIDATORCOUNT
 
-export ROUND_DURATION_IN_MS=6000
-
 # MULTI_KEY_NODES if set to 1, one observer will be generated on each shard that will handle all generated keys
 export MULTI_KEY_NODES=0
 
@@ -87,8 +103,9 @@ export ALWAYS_NEW_APP_VERSION=0
 # each time.
 export ALWAYS_UPDATE_CONFIGS=1
 
-# IP of the seednode
-export SEEDNODE_IP="127.0.0.1"
+# IP of the seednode. This should be the first IP allocated in the local testnet network. If you modify the default
+# DOCKER_NETWORK_SUBNET, you will need to edit this one accordingly too.
+export SEEDNODE_IP="$(echo "$DOCKER_NETWORK_SUBNET" | rev | cut -d. -f2- | rev).2"
 
 # Ports used by the Nodes
 export PORT_SEEDNODE="9999"
@@ -96,25 +113,6 @@ export PORT_ORIGIN_OBSERVER="21100"
 export PORT_ORIGIN_OBSERVER_REST="10000"
 export PORT_ORIGIN_VALIDATOR="21500"
 export PORT_ORIGIN_VALIDATOR_REST="9500"
-
-# UI configuration profiles
-
-# Use tmux or not. If set to 1, only 2 terminal windows will be opened, and
-# tmux will be used to display the running executables using split windows.
-# Recommended. Tmux needs to be installed.
-export USETMUX=1
-
-# Log level for the logger in the Node.
-export LOGLEVEL="*:INFO"
-
-
-if [ "$TESTNETMODE" == "debug" ]; then
-  LOGLEVEL="*:DEBUG,api:INFO"
-fi
-
-if [ "$TESTNETMODE" == "trace" ]; then
-  LOGLEVEL="*:TRACE"
-fi
 
 ########################################################################
 # Proxy configuration
@@ -125,8 +123,6 @@ export PROXY=$PROXYDIR/proxy    # Leave unchanged.
 
 export PORT_PROXY="7950"
 export PROXY_DELAY=10
-
-
 
 ########################################################################
 # TxGen configuration
@@ -171,6 +167,10 @@ export TOTAL_OBSERVERCOUNT=$total_observer_count
 
 # to enable the full archive feature on the observers, please use the --full-archive flag
 export EXTRA_OBSERVERS_FLAGS="-operation-mode db-lookup-extension"
+
+if [[ $MULTI_KEY_NODES -eq 1 ]]; then
+  EXTRA_OBSERVERS_FLAGS="--no-key"
+fi
 
 # Leave unchanged.
 let "total_node_count = $SHARD_VALIDATORCOUNT * $SHARDCOUNT + $META_VALIDATORCOUNT + $TOTAL_OBSERVERCOUNT"
