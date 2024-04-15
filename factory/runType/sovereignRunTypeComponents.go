@@ -32,14 +32,14 @@ import (
 type ArgsSovereignRunTypeComponents struct {
 	RunTypeComponentsFactory *runTypeComponentsFactory
 	Config                   config.SovereignConfig
-	DataCodec                sovereign.DataDecoderHandler
+	DataCodec                sovereign.DataCodecHandler
 	TopicsChecker            sovereign.TopicsCheckerHandler
 }
 
 type sovereignRunTypeComponentsFactory struct {
 	*runTypeComponentsFactory
 	cfg           config.SovereignConfig
-	dataCodec     sovereign.DataDecoderHandler
+	dataCodec     sovereign.DataCodecHandler
 	topicsChecker sovereign.TopicsCheckerHandler
 }
 
@@ -185,7 +185,7 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		vmContainerShardFactory:                 vmContainerShardCreator,
 		accountsCreator:                         accountsCreator,
 		outGoingOperationsPoolHandler:           sovereignFactory.NewOutGoingOperationPool(expiryTime),
-		dataDecoderHandler:                        rcf.dataCodec,
+		dataCodecHandler:                        rcf.dataCodec,
 		topicsCheckerHandler:                    rcf.topicsChecker,
 		shardCoordinatorCreator:                 sharding.NewSovereignShardCoordinatorFactory(),
 		nodesCoordinatorWithRaterFactoryCreator: nodesCoord.NewSovereignIndexHashedNodesCoordinatorWithRaterFactory(),

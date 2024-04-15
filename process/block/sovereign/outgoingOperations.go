@@ -29,13 +29,13 @@ type SubscribedEvent struct {
 
 type ArgsOutgoingOperations struct {
 	SubscribedEvents []SubscribedEvent
-	DataCodec        DataDecoderHandler
+	DataCodec        DataCodecHandler
 	TopicsChecker    TopicsCheckerHandler
 }
 
 type outgoingOperations struct {
 	subscribedEvents []SubscribedEvent
-	dataCodec        DataDecoderHandler
+	dataCodec        DataCodecHandler
 	topicsChecker    TopicsCheckerHandler
 }
 
