@@ -1215,20 +1215,6 @@ func (txProc *txProcessor) processInnerTxsFeesAfterSnapshot(tx *transaction.Tran
 		sendersBalancesSnapshot[senderAcnt] = prevBalanceForSender
 	}
 
-	// if one error occurred, revert all transfers that succeeded and return error
-	//if lastTransferErr != nil {
-	//	for i := 0; i < lastIdx; i++ {
-	//		uniqueSender := uniqueSendersSlice[i]
-	//		totalFessSentForSender := uniqueSendersMap[uniqueSender]
-	//		_, _, err = txProc.addFeesToDest([]byte(uniqueSender), big.NewInt(0).Neg(totalFessSentForSender))
-	//		if err != nil {
-	//			log.Warn("could not revert the fees transferred from relayer to sender",
-	//				"sender", txProc.pubkeyConv.SilentEncode([]byte(uniqueSender), log),
-	//				"relayer", txProc.pubkeyConv.SilentEncode(relayerAcnt.AddressBytes(), log))
-	//		}
-	//	}
-	//}
-
 	return sendersBalancesSnapshot, lastTransferErr
 }
 
