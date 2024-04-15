@@ -156,7 +156,7 @@ type epochStartBootstrap struct {
 	getDataToSyncMethod func(epochStartData data.EpochStartShardDataHandler, shardNotarizedHeader data.ShardHeaderHandler) (*dataToSync, error)
 
 	nodesCoordinatorWithRaterFactory nodesCoordinator.NodesCoordinatorWithRaterFactory
-	runTypeComponents                runTypeComponentsHolder
+	runTypeComponents                RunTypeComponentsHolder
 }
 
 type baseDataInStorage struct {
@@ -196,7 +196,7 @@ type ArgsEpochStartBootstrap struct {
 	StateStatsHandler                common.StateStatisticsHandler
 	NodesCoordinatorRegistryFactory  nodesCoordinator.NodesCoordinatorRegistryFactory
 	NodesCoordinatorWithRaterFactory nodesCoordinator.NodesCoordinatorWithRaterFactory
-	RunTypeComponents                runTypeComponentsHolder
+	RunTypeComponents                RunTypeComponentsHolder
 }
 
 type dataToSync struct {
