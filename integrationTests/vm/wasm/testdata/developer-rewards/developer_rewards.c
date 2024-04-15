@@ -33,12 +33,6 @@ static const i32 ADDRESS_LENGTH = 32;
 
 byte zero32_red[32] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 byte zero32_green[32] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-byte zero32_blue[32] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-
-// E.g. can hold up to 64 addresses.
-byte zero2048_red[2048] = {0};
-byte zero2048_green[2048] = {0};
-byte zero2048_blue[2048] = {0};
 
 byte zeroEGLD[] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -48,7 +42,6 @@ byte codeMetadataUpgradeableReadable[2] = {5, 0};
 byte emptyArguments[0] = {};
 int emptyArgumentsLengths[0] = {};
 int gasLimitDeploySelf = 20000000;
-int gasLimitUpgradeChild = 20000000;
 int gasLimitClaimDeveloperRewards = 6000000;
 
 byte functionNameClaimDeveloperRewards[] = "ClaimDeveloperRewards";
@@ -72,7 +65,7 @@ void doSomething()
 void deployChild()
 {
     byte *selfAddress = zero32_red;
-    byte *newAddress = zero32_blue;
+    byte *newAddress = zero32_green;
 
     getSCAddress(selfAddress);
 
@@ -94,24 +87,6 @@ void getChildAddress()
     byte *childAddress = zero32_red;
     storageLoad(storageKeyChildAddress, sizeof(storageKeyChildAddress) - 1, childAddress);
     finish(childAddress, ADDRESS_LENGTH);
-}
-
-void callChild()
-{
-    byte *childAddress = zero32_red;
-    storageLoad(storageKeyChildAddress, sizeof(storageKeyChildAddress) - 1, childAddress);
-
-    createAsyncCall(
-        childAddress,
-        zeroEGLD,
-        functionNameDoSomething,
-        sizeof(functionNameDoSomething) - 1,
-        0,
-        0,
-        0,
-        0,
-        15000000,
-        0);
 }
 
 void claimDeveloperRewardsOnChild()

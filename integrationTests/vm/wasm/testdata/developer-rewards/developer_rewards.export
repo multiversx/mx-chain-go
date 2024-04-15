@@ -3,5 +3,4 @@ upgrade
 doSomething
 deployChild
 getChildAddress
-callChild
 claimDeveloperRewardsOnChild
