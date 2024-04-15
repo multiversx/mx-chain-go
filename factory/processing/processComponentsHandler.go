@@ -177,6 +177,9 @@ func (m *managedProcessComponents) CheckSubcomponents() error {
 	if check.IfNil(m.processComponents.sentSignaturesTracker) {
 		return errors.ErrNilSentSignatureTracker
 	}
+	if check.IfNil(m.processComponents.relayedTxV3Processor) {
+		return errors.ErrNilRelayedTxV3Processor
+	}
 
 	return nil
 }
@@ -671,6 +674,18 @@ func (m *managedProcessComponents) SentSignaturesTracker() process.SentSignature
 	}
 
 	return m.processComponents.sentSignaturesTracker
+}
+
+// RelayedTxV3Processor returns the relayed tx v3 processor
+func (m *managedProcessComponents) RelayedTxV3Processor() process.RelayedTxV3Processor {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.relayedTxV3Processor
 }
 
 // IsInterfaceNil returns true if the interface is nil

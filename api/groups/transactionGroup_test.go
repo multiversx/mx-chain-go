@@ -1155,7 +1155,7 @@ func testRecursiveRelayedV3(url string) func(t *testing.T) {
 			value,
 			signature,
 		)
-		userTx2 := fmt.Sprintf(`{"nonce": %d, "sender":"%s", "receiver":"%s", "value":"%s", "signature":"%s", "innerTransaction":%s}`,
+		userTx2 := fmt.Sprintf(`{"nonce": %d, "sender":"%s", "receiver":"%s", "value":"%s", "signature":"%s", "innerTransactions":[%s]}`,
 			nonce,
 			sender,
 			receiver,
@@ -1163,7 +1163,7 @@ func testRecursiveRelayedV3(url string) func(t *testing.T) {
 			signature,
 			userTx1,
 		)
-		tx := fmt.Sprintf(`{"nonce": %d, "sender":"%s", "receiver":"%s", "value":"%s", "signature":"%s", "innerTransaction":%s}`,
+		tx := fmt.Sprintf(`{"nonce": %d, "sender":"%s", "receiver":"%s", "value":"%s", "signature":"%s", "innerTransactions":[%s]}`,
 			nonce,
 			sender,
 			receiver,

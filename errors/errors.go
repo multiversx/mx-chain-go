@@ -595,3 +595,6 @@ var ErrInvalidNodeOperationMode = errors.New("invalid node operation mode")
 
 // ErrNilSentSignatureTracker defines the error for setting a nil SentSignatureTracker
 var ErrNilSentSignatureTracker = errors.New("nil sent signature tracker")
+
+// ErrNilRelayedTxV3Processor signals that a nil relayed tx v3 processor has been provided
+var ErrNilRelayedTxV3Processor = errors.New("nil relayed tx v3 processor")

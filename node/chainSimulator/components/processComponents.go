@@ -98,6 +98,7 @@ type processComponentsHolder struct {
 	esdtDataStorageHandlerForAPI     vmcommon.ESDTNFTStorageHandler
 	accountsParser                   genesis.AccountsParser
 	sentSignatureTracker             process.SentSignaturesTracker
+	relayedTxV3Processor             process.RelayedTxV3Processor
 	managedProcessComponentsCloser   io.Closer
 }
 
@@ -270,6 +271,7 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		esdtDataStorageHandlerForAPI:     managedProcessComponents.ESDTDataStorageHandlerForAPI(),
 		accountsParser:                   managedProcessComponents.AccountsParser(),
 		sentSignatureTracker:             managedProcessComponents.SentSignaturesTracker(),
+		relayedTxV3Processor:             managedProcessComponents.RelayedTxV3Processor(),
 		managedProcessComponentsCloser:   managedProcessComponents,
 	}
 
@@ -479,6 +481,11 @@ func (p *processComponentsHolder) AccountsParser() genesis.AccountsParser {
 // ReceiptsRepository returns the receipts repository
 func (p *processComponentsHolder) ReceiptsRepository() factory.ReceiptsRepository {
 	return p.receiptsRepository
+}
+
+// RelayedTxV3Processor returns the relayed tx v3 processor
+func (p *processComponentsHolder) RelayedTxV3Processor() process.RelayedTxV3Processor {
+	return p.relayedTxV3Processor
 }
 
 // Close will call the Close methods on all inner components

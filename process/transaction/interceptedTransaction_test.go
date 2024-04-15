@@ -26,6 +26,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -117,6 +118,7 @@ func createInterceptedTxWithTxFeeHandlerAndVersionChecker(tx *dataTransaction.Tr
 		&hashingMocks.HasherMock{},
 		txVerChecker,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 }
 
@@ -161,6 +163,7 @@ func createInterceptedTxFromPlainTx(tx *dataTransaction.Transaction, txFeeHandle
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(minTxVersion),
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 }
 
@@ -205,6 +208,7 @@ func createInterceptedTxFromPlainTxWithArgParser(tx *dataTransaction.Transaction
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(tx.Version),
 		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.RelayedTransactionsV3Flag),
+		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 }
 
@@ -230,6 +234,7 @@ func TestNewInterceptedTransaction_NilBufferShouldErr(t *testing.T) {
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(1),
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -256,6 +261,7 @@ func TestNewInterceptedTransaction_NilArgsParser(t *testing.T) {
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(1),
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -282,6 +288,7 @@ func TestNewInterceptedTransaction_NilVersionChecker(t *testing.T) {
 		&hashingMocks.HasherMock{},
 		nil,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -308,6 +315,7 @@ func TestNewInterceptedTransaction_NilMarshalizerShouldErr(t *testing.T) {
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(1),
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -334,6 +342,7 @@ func TestNewInterceptedTransaction_NilSignMarshalizerShouldErr(t *testing.T) {
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(1),
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -360,6 +369,7 @@ func TestNewInterceptedTransaction_NilHasherShouldErr(t *testing.T) {
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(1),
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -386,6 +396,7 @@ func TestNewInterceptedTransaction_NilKeyGenShouldErr(t *testing.T) {
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(1),
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -412,6 +423,7 @@ func TestNewInterceptedTransaction_NilSignerShouldErr(t *testing.T) {
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(1),
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -438,6 +450,7 @@ func TestNewInterceptedTransaction_NilPubkeyConverterShouldErr(t *testing.T) {
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(1),
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -464,6 +477,7 @@ func TestNewInterceptedTransaction_NilCoordinatorShouldErr(t *testing.T) {
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(1),
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -490,6 +504,7 @@ func TestNewInterceptedTransaction_NilFeeHandlerShouldErr(t *testing.T) {
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(1),
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -516,6 +531,7 @@ func TestNewInterceptedTransaction_NilWhiteListerVerifiedTxsShouldErr(t *testing
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(1),
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -542,6 +558,7 @@ func TestNewInterceptedTransaction_InvalidChainIDShouldErr(t *testing.T) {
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(1),
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -568,6 +585,7 @@ func TestNewInterceptedTransaction_NilTxSignHasherShouldErr(t *testing.T) {
 		nil,
 		versioning.NewTxVersionChecker(1),
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -594,10 +612,38 @@ func TestNewInterceptedTransaction_NilEnableEpochsHandlerShouldErr(t *testing.T)
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(1),
 		nil,
+		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 
 	assert.Nil(t, txi)
 	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
+}
+
+func TestNewInterceptedTransaction_NilRelayedV3ProcessorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	txi, err := transaction.NewInterceptedTransaction(
+		make([]byte, 0),
+		&mock.MarshalizerMock{},
+		&mock.MarshalizerMock{},
+		&hashingMocks.HasherMock{},
+		&mock.SingleSignKeyGenMock{},
+		&mock.SignerMock{},
+		createMockPubKeyConverter(),
+		mock.NewOneShardCoordinatorMock(),
+		&economicsmocks.EconomicsHandlerStub{},
+		&testscommon.WhiteListHandlerStub{},
+		&mock.ArgumentParserMock{},
+		[]byte("chainID"),
+		false,
+		&hashingMocks.HasherMock{},
+		versioning.NewTxVersionChecker(1),
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		nil,
+	)
+
+	assert.Nil(t, txi)
+	assert.Equal(t, process.ErrNilRelayedTxV3Processor, err)
 }
 
 func TestNewInterceptedTransaction_UnmarshalingTxFailsShouldErr(t *testing.T) {
@@ -626,6 +672,7 @@ func TestNewInterceptedTransaction_UnmarshalingTxFailsShouldErr(t *testing.T) {
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(1),
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 
 	assert.Nil(t, txi)
@@ -1123,6 +1170,7 @@ func TestInterceptedTransaction_CheckValiditySignedWithHashButNotEnabled(t *test
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(minTxVersion),
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 
 	err := txi.CheckValidity()
@@ -1184,6 +1232,7 @@ func TestInterceptedTransaction_CheckValiditySignedWithHashShouldWork(t *testing
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(minTxVersion),
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 
 	err := txi.CheckValidity()
@@ -1270,6 +1319,7 @@ func TestInterceptedTransaction_ScTxDeployRecvShardIdShouldBeSendersShardId(t *t
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(minTxVersion),
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 
 	assert.Nil(t, err)
@@ -1435,6 +1485,7 @@ func TestInterceptedTransaction_CheckValiditySecondTimeDoesNotVerifySig(t *testi
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(minTxVersion),
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 	require.Nil(t, err)
 
@@ -1621,16 +1672,16 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTxV3(t *testing.T) {
 	}
 
 	tx := &dataTransaction.Transaction{
-		Nonce:            1,
-		Value:            big.NewInt(0),
-		GasLimit:         10,
-		GasPrice:         4,
-		RcvAddr:          recvAddress,
-		SndAddr:          senderAddress,
-		Signature:        sigOk,
-		ChainID:          chainID,
-		Version:          minTxVersion,
-		InnerTransaction: innerTx,
+		Nonce:             1,
+		Value:             big.NewInt(0),
+		GasLimit:          10,
+		GasPrice:          4,
+		RcvAddr:           senderAddress,
+		SndAddr:           senderAddress,
+		Signature:         sigOk,
+		ChainID:           chainID,
+		Version:           minTxVersion,
+		InnerTransactions: []*dataTransaction.Transaction{innerTx},
 	}
 
 	t.Run("should work", func(t *testing.T) {
@@ -1647,7 +1698,7 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTxV3(t *testing.T) {
 		txCopy := *tx
 		innerTxCopy := *innerTx
 		innerTxCopy.RelayerAddr = nil
-		txCopy.InnerTransaction = &innerTxCopy
+		txCopy.InnerTransactions = []*dataTransaction.Transaction{&innerTxCopy}
 
 		txi, _ := createInterceptedTxFromPlainTxWithArgParser(&txCopy)
 		err := txi.CheckValidity()
@@ -1659,22 +1710,22 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTxV3(t *testing.T) {
 		txCopy := *tx
 		innerTxCopy := *innerTx
 		innerTxCopy.RelayerAddr = []byte("34567890123456789012345678901234")
-		txCopy.InnerTransaction = &innerTxCopy
+		txCopy.InnerTransactions = []*dataTransaction.Transaction{&innerTxCopy}
 
 		txi, _ := createInterceptedTxFromPlainTxWithArgParser(&txCopy)
 		err := txi.CheckValidity()
 		assert.Equal(t, process.ErrRelayedTxV3RelayerMismatch, err)
 	})
-	t.Run("different sender on inner tx should error", func(t *testing.T) {
+	t.Run("different sender than receiver should error", func(t *testing.T) {
 		t.Parallel()
 
 		txCopy := *tx
 		innerTxCopy := *innerTx
-		innerTxCopy.SndAddr = []byte("34567890123456789012345678901234")
-		txCopy.InnerTransaction = &innerTxCopy
+		txCopy.RcvAddr = []byte("34567890123456789012345678901234")
+		txCopy.InnerTransactions = []*dataTransaction.Transaction{&innerTxCopy}
 		txi, _ := createInterceptedTxFromPlainTxWithArgParser(&txCopy)
 		err := txi.CheckValidity()
-		assert.Equal(t, process.ErrRelayedTxV3BeneficiaryDoesNotMatchReceiver, err)
+		assert.Equal(t, process.ErrRelayedTxV3SenderDoesNotMatchReceiver, err)
 	})
 	t.Run("empty signature on inner tx should error", func(t *testing.T) {
 		t.Parallel()
@@ -1682,7 +1733,7 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTxV3(t *testing.T) {
 		txCopy := *tx
 		innerTxCopy := *innerTx
 		innerTxCopy.Signature = nil
-		txCopy.InnerTransaction = &innerTxCopy
+		txCopy.InnerTransactions = []*dataTransaction.Transaction{&innerTxCopy}
 		txi, _ := createInterceptedTxFromPlainTxWithArgParser(&txCopy)
 		err := txi.CheckValidity()
 		assert.NotNil(t, err)
@@ -1693,7 +1744,7 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTxV3(t *testing.T) {
 		txCopy := *tx
 		innerTxCopy := *innerTx
 		innerTxCopy.Signature = sigBad
-		txCopy.InnerTransaction = &innerTxCopy
+		txCopy.InnerTransactions = []*dataTransaction.Transaction{&innerTxCopy}
 		txi, _ := createInterceptedTxFromPlainTxWithArgParser(&txCopy)
 		err := txi.CheckValidity()
 		assert.NotNil(t, err)
@@ -1703,7 +1754,7 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTxV3(t *testing.T) {
 
 		txCopy := *tx
 		innerTxCopy := *innerTx
-		txCopy.InnerTransaction = &innerTxCopy
+		txCopy.InnerTransactions = []*dataTransaction.Transaction{&innerTxCopy}
 		innerTx2 := &dataTransaction.Transaction{
 			Nonce:     2,
 			Value:     big.NewInt(3),
@@ -1716,7 +1767,7 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTxV3(t *testing.T) {
 			ChainID:   chainID,
 			Version:   minTxVersion,
 		}
-		innerTxCopy.InnerTransaction = innerTx2
+		innerTxCopy.InnerTransactions = []*dataTransaction.Transaction{innerTx2}
 		txi, _ := createInterceptedTxFromPlainTxWithArgParser(&txCopy)
 		err := txi.CheckValidity()
 		assert.NotNil(t, err)
@@ -1727,7 +1778,7 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTxV3(t *testing.T) {
 
 		txCopy := *tx
 		innerTxCopy := *innerTx
-		txCopy.InnerTransaction = &innerTxCopy
+		txCopy.InnerTransactions = []*dataTransaction.Transaction{&innerTxCopy}
 		marshalizer := &mock.MarshalizerMock{}
 		txBuff, _ := marshalizer.Marshal(&txCopy)
 		txi, _ := transaction.NewInterceptedTransaction(
@@ -1751,6 +1802,7 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTxV3(t *testing.T) {
 			&hashingMocks.HasherMock{},
 			versioning.NewTxVersionChecker(0),
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+			&processMocks.RelayedTxV3ProcessorMock{},
 		)
 
 		assert.NotNil(t, txi)
@@ -1889,6 +1941,7 @@ func TestInterceptedTransaction_Fee(t *testing.T) {
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(0),
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 
 	assert.Equal(t, big.NewInt(0), txin.Fee())
@@ -1933,6 +1986,7 @@ func TestInterceptedTransaction_String(t *testing.T) {
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(0),
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&processMocks.RelayedTxV3ProcessorMock{},
 	)
 
 	expectedFormat := fmt.Sprintf(

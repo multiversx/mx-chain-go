@@ -57,6 +57,7 @@ type ProcessComponentsMock struct {
 	AccountsParserInternal               genesis.AccountsParser
 	ReceiptsRepositoryInternal           factory.ReceiptsRepository
 	SentSignaturesTrackerInternal        process.SentSignaturesTracker
+	RelayedTxV3ProcessorField            process.RelayedTxV3Processor
 }
 
 // Create -
@@ -282,6 +283,11 @@ func (pcm *ProcessComponentsMock) ReceiptsRepository() factory.ReceiptsRepositor
 // SentSignaturesTracker -
 func (pcm *ProcessComponentsMock) SentSignaturesTracker() process.SentSignaturesTracker {
 	return pcm.SentSignaturesTrackerInternal
+}
+
+// RelayedTxV3Processor -
+func (pcm *ProcessComponentsMock) RelayedTxV3Processor() process.RelayedTxV3Processor {
+	return pcm.RelayedTxV3ProcessorField
 }
 
 // IsInterfaceNil -

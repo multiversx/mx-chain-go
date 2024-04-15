@@ -62,6 +62,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
@@ -476,25 +477,26 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 	}
 
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
-		Accounts:            accnts,
-		Hasher:              integrationtests.TestHasher,
-		PubkeyConv:          pubkeyConv,
-		Marshalizer:         integrationtests.TestMarshalizer,
-		SignMarshalizer:     integrationtests.TestMarshalizer,
-		ShardCoordinator:    mock.NewMultiShardsCoordinatorMock(2),
-		ScProcessor:         scProcessor,
-		TxFeeHandler:        &testscommon.UnsignedTxHandlerStub{},
-		TxTypeHandler:       txTypeHandler,
-		EconomicsFee:        economicsData,
-		ReceiptForwarder:    &mock.IntermediateTransactionHandlerMock{},
-		BadTxForwarder:      &mock.IntermediateTransactionHandlerMock{},
-		ArgsParser:          smartContract.NewArgumentParser(),
-		ScrForwarder:        &mock.IntermediateTransactionHandlerMock{},
-		EnableRoundsHandler: enableRoundsHandler,
-		EnableEpochsHandler: enableEpochsHandler,
-		TxVersionChecker:    versioning.NewTxVersionChecker(minTransactionVersion),
-		GuardianChecker:     guardedAccountHandler,
-		TxLogsProcessor:     &mock.TxLogsProcessorStub{},
+		Accounts:             accnts,
+		Hasher:               integrationtests.TestHasher,
+		PubkeyConv:           pubkeyConv,
+		Marshalizer:          integrationtests.TestMarshalizer,
+		SignMarshalizer:      integrationtests.TestMarshalizer,
+		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(2),
+		ScProcessor:          scProcessor,
+		TxFeeHandler:         &testscommon.UnsignedTxHandlerStub{},
+		TxTypeHandler:        txTypeHandler,
+		EconomicsFee:         economicsData,
+		ReceiptForwarder:     &mock.IntermediateTransactionHandlerMock{},
+		BadTxForwarder:       &mock.IntermediateTransactionHandlerMock{},
+		ArgsParser:           smartContract.NewArgumentParser(),
+		ScrForwarder:         &mock.IntermediateTransactionHandlerMock{},
+		EnableRoundsHandler:  enableRoundsHandler,
+		EnableEpochsHandler:  enableEpochsHandler,
+		TxVersionChecker:     versioning.NewTxVersionChecker(minTransactionVersion),
+		GuardianChecker:      guardedAccountHandler,
+		TxLogsProcessor:      &mock.TxLogsProcessorStub{},
+		RelayedTxV3Processor: &processMocks.RelayedTxV3ProcessorMock{},
 	}
 
 	return transaction.NewTxProcessor(argsNewTxProcessor)
@@ -889,25 +891,26 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	scProcessorProxy, _ := processProxy.NewTestSmartContractProcessorProxy(argsNewSCProcessor, epochNotifierInstance)
 
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
-		Accounts:            accnts,
-		Hasher:              integrationtests.TestHasher,
-		PubkeyConv:          pubkeyConv,
-		Marshalizer:         integrationtests.TestMarshalizer,
-		SignMarshalizer:     integrationtests.TestMarshalizer,
-		ShardCoordinator:    shardCoordinator,
-		ScProcessor:         scProcessorProxy,
-		TxFeeHandler:        feeAccumulator,
-		TxTypeHandler:       txTypeHandler,
-		EconomicsFee:        economicsData,
-		ReceiptForwarder:    intermediateTxHandler,
-		BadTxForwarder:      intermediateTxHandler,
-		ArgsParser:          smartContract.NewArgumentParser(),
-		ScrForwarder:        intermediateTxHandler,
-		EnableRoundsHandler: enableRoundsHandler,
-		EnableEpochsHandler: enableEpochsHandler,
-		TxVersionChecker:    versioning.NewTxVersionChecker(minTransactionVersion),
-		GuardianChecker:     guardianChecker,
-		TxLogsProcessor:     logProc,
+		Accounts:             accnts,
+		Hasher:               integrationtests.TestHasher,
+		PubkeyConv:           pubkeyConv,
+		Marshalizer:          integrationtests.TestMarshalizer,
+		SignMarshalizer:      integrationtests.TestMarshalizer,
+		ShardCoordinator:     shardCoordinator,
+		ScProcessor:          scProcessorProxy,
+		TxFeeHandler:         feeAccumulator,
+		TxTypeHandler:        txTypeHandler,
+		EconomicsFee:         economicsData,
+		ReceiptForwarder:     intermediateTxHandler,
+		BadTxForwarder:       intermediateTxHandler,
+		ArgsParser:           smartContract.NewArgumentParser(),
+		ScrForwarder:         intermediateTxHandler,
+		EnableRoundsHandler:  enableRoundsHandler,
+		EnableEpochsHandler:  enableEpochsHandler,
+		TxVersionChecker:     versioning.NewTxVersionChecker(minTransactionVersion),
+		GuardianChecker:      guardianChecker,
+		TxLogsProcessor:      logProc,
+		RelayedTxV3Processor: &processMocks.RelayedTxV3ProcessorMock{},
 	}
 	txProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
 	if err != nil {

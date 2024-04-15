@@ -785,6 +785,7 @@ func (n *Node) commonTransactionValidation(
 		n.coreComponents.TxSignHasher(),
 		n.coreComponents.TxVersionChecker(),
 		n.coreComponents.EnableEpochsHandler(),
+		n.processComponents.RelayedTxV3Processor(),
 	)
 	if err != nil {
 		return nil, nil, err
@@ -878,20 +879,20 @@ func (n *Node) CreateTransaction(txArgs *external.ArgsCreateTransaction) (*trans
 	}
 
 	tx := &transaction.Transaction{
-		Nonce:       txArgs.Nonce,
-		Value:       valAsBigInt,
-		RcvAddr:     receiverAddress,
-		RcvUserName: txArgs.ReceiverUsername,
-		SndAddr:     senderAddress,
-		SndUserName: txArgs.SenderUsername,
-		GasPrice:    txArgs.GasPrice,
-		GasLimit:    txArgs.GasLimit,
-		Data:        txArgs.DataField,
-		Signature:   signatureBytes,
-		ChainID:     []byte(txArgs.ChainID),
-		Version:     txArgs.Version,
-		Options:     txArgs.Options,
-		InnerTransaction: txArgs.InnerTransaction,
+		Nonce:             txArgs.Nonce,
+		Value:             valAsBigInt,
+		RcvAddr:           receiverAddress,
+		RcvUserName:       txArgs.ReceiverUsername,
+		SndAddr:           senderAddress,
+		SndUserName:       txArgs.SenderUsername,
+		GasPrice:          txArgs.GasPrice,
+		GasLimit:          txArgs.GasLimit,
+		Data:              txArgs.DataField,
+		Signature:         signatureBytes,
+		ChainID:           []byte(txArgs.ChainID),
+		Version:           txArgs.Version,
+		Options:           txArgs.Options,
+		InnerTransactions: txArgs.InnerTransactions,
 	}
 
 	if len(txArgs.Guardian) > 0 {

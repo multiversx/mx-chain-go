@@ -55,9 +55,8 @@ func (txProc *txProcessor) ProcessUserTx(
 	userTx *transaction.Transaction,
 	relayedTxValue *big.Int,
 	relayedNonce uint64,
-	txHash []byte,
 ) (vmcommon.ReturnCode, error) {
-	return txProc.processUserTx(originalTx, userTx, relayedTxValue, relayedNonce, txHash)
+	return txProc.processUserTx(originalTx, userTx, relayedTxValue, relayedNonce)
 }
 
 // ProcessMoveBalanceCostRelayedUserTx calls the un-exported method processMoveBalanceCostRelayedUserTx

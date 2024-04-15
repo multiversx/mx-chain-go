@@ -214,15 +214,15 @@ func createRelayedTxV3(
 	userTx *transaction.Transaction,
 ) *transaction.Transaction {
 	tx := &transaction.Transaction{
-		Nonce:            relayer.Nonce,
-		Value:            big.NewInt(0),
-		RcvAddr:          userTx.SndAddr,
-		SndAddr:          relayer.Address,
-		GasPrice:         integrationTests.MinTxGasPrice,
-		Data:             []byte(""),
-		ChainID:          userTx.ChainID,
-		Version:          userTx.Version,
-		InnerTransaction: userTx,
+		Nonce:             relayer.Nonce,
+		Value:             big.NewInt(0),
+		RcvAddr:           relayer.Address,
+		SndAddr:           relayer.Address,
+		GasPrice:          integrationTests.MinTxGasPrice,
+		Data:              []byte(""),
+		ChainID:           userTx.ChainID,
+		Version:           userTx.Version,
+		InnerTransactions: []*transaction.Transaction{userTx},
 	}
 	gasLimit := economicsFee.ComputeGasLimit(tx)
 	tx.GasLimit = userTx.GasLimit + gasLimit

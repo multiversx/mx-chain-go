@@ -1230,8 +1230,8 @@ var ErrNilSentSignatureTracker = errors.New("nil sent signature tracker")
 // ErrRelayedV3GasPriceMismatch signals that relayed v3 gas price is not equal with inner tx
 var ErrRelayedV3GasPriceMismatch = errors.New("relayed tx v3 gas price mismatch")
 
-// ErrRelayedTxV3BeneficiaryDoesNotMatchReceiver signals that an invalid address was provided in the relayed tx v3
-var ErrRelayedTxV3BeneficiaryDoesNotMatchReceiver = errors.New("invalid address in relayed tx v3")
+// ErrRelayedTxV3SenderDoesNotMatchReceiver signals that the sender of relayed tx v3 does not match the receiver
+var ErrRelayedTxV3SenderDoesNotMatchReceiver = errors.New("relayed tx v3 sender does not match receiver")
 
 // ErrRelayedTxV3Disabled signals that the v3 version of relayed tx is disabled
 var ErrRelayedTxV3Disabled = errors.New("relayed tx v3 is disabled")
@@ -1247,3 +1247,18 @@ var ErrRelayedTxV3RelayerMismatch = errors.New("relayed tx v3 relayer mismatch")
 
 // ErrRelayedTxV3GasLimitMismatch signals that relayed tx v3 gas limit is higher than user tx gas limit
 var ErrRelayedTxV3GasLimitMismatch = errors.New("relayed tx v3 gas limit mismatch")
+
+// ErrSubsequentInnerTransactionFailed signals that one of the following inner transactions failed
+var ErrSubsequentInnerTransactionFailed = errors.New("subsequent inner transaction failed")
+
+// ErrInvalidInnerTransactions signals that one or more inner transactions were invalid
+var ErrInvalidInnerTransactions = errors.New("invalid inner transactions")
+
+// ErrNilRelayedTxV3Processor signals that a nil relayed tx v3 processor has been provided
+var ErrNilRelayedTxV3Processor = errors.New("nil relayed tx v3 processor")
+
+// ErrRelayedTxV3SenderShardMismatch signals that the sender from inner transaction is from a different shard than relayer
+var ErrRelayedTxV3SenderShardMismatch = errors.New("sender shard mismatch")
+
+// ErrNilRelayerAccount signals that a nil relayer accouont has been provided
+var ErrNilRelayerAccount = errors.New("nil relayer account")

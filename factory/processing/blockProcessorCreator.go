@@ -68,6 +68,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 	blockCutoffProcessingHandler cutoff.BlockProcessingCutoffHandler,
 	missingTrieNodesNotifier common.MissingTrieNodesNotifier,
 	sentSignaturesTracker process.SentSignaturesTracker,
+	relayedTxV3Processor process.RelayedTxV3Processor,
 ) (*blockProcessorAndVmFactories, error) {
 	shardCoordinator := pcf.bootstrapComponents.ShardCoordinator()
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
@@ -86,6 +87,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 			blockCutoffProcessingHandler,
 			missingTrieNodesNotifier,
 			sentSignaturesTracker,
+			relayedTxV3Processor,
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -127,6 +129,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	blockProcessingCutoffHandler cutoff.BlockProcessingCutoffHandler,
 	missingTrieNodesNotifier common.MissingTrieNodesNotifier,
 	sentSignaturesTracker process.SentSignaturesTracker,
+	relayedTxV3Processor process.RelayedTxV3Processor,
 ) (*blockProcessorAndVmFactories, error) {
 	argsParser := smartContract.NewArgumentParser()
 
@@ -273,25 +276,26 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}
 
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
-		Accounts:            pcf.state.AccountsAdapter(),
-		Hasher:              pcf.coreData.Hasher(),
-		PubkeyConv:          pcf.coreData.AddressPubKeyConverter(),
-		Marshalizer:         pcf.coreData.InternalMarshalizer(),
-		SignMarshalizer:     pcf.coreData.TxMarshalizer(),
-		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
-		ScProcessor:         scProcessorProxy,
-		TxFeeHandler:        txFeeHandler,
-		TxTypeHandler:       txTypeHandler,
-		EconomicsFee:        pcf.coreData.EconomicsData(),
-		ReceiptForwarder:    receiptTxInterim,
-		BadTxForwarder:      badTxInterim,
-		ArgsParser:          argsParser,
-		ScrForwarder:        scForwarder,
-		EnableRoundsHandler: pcf.coreData.EnableRoundsHandler(),
-		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
-		GuardianChecker:     pcf.bootstrapComponents.GuardedAccountHandler(),
-		TxVersionChecker:    pcf.coreData.TxVersionChecker(),
-		TxLogsProcessor:     pcf.txLogsProcessor,
+		Accounts:             pcf.state.AccountsAdapter(),
+		Hasher:               pcf.coreData.Hasher(),
+		PubkeyConv:           pcf.coreData.AddressPubKeyConverter(),
+		Marshalizer:          pcf.coreData.InternalMarshalizer(),
+		SignMarshalizer:      pcf.coreData.TxMarshalizer(),
+		ShardCoordinator:     pcf.bootstrapComponents.ShardCoordinator(),
+		ScProcessor:          scProcessorProxy,
+		TxFeeHandler:         txFeeHandler,
+		TxTypeHandler:        txTypeHandler,
+		EconomicsFee:         pcf.coreData.EconomicsData(),
+		ReceiptForwarder:     receiptTxInterim,
+		BadTxForwarder:       badTxInterim,
+		ArgsParser:           argsParser,
+		ScrForwarder:         scForwarder,
+		EnableRoundsHandler:  pcf.coreData.EnableRoundsHandler(),
+		EnableEpochsHandler:  pcf.coreData.EnableEpochsHandler(),
+		GuardianChecker:      pcf.bootstrapComponents.GuardedAccountHandler(),
+		TxVersionChecker:     pcf.coreData.TxVersionChecker(),
+		TxLogsProcessor:      pcf.txLogsProcessor,
+		RelayedTxV3Processor: relayedTxV3Processor,
 	}
 	transactionProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
 	if err != nil {

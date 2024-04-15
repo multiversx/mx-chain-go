@@ -196,7 +196,7 @@ func (tth *txTypeHandler) isRelayedTransactionV2(functionName string) bool {
 }
 
 func (tth *txTypeHandler) isRelayedTransactionV3(tx data.TransactionHandler) bool {
-	return !check.IfNil(tx.GetUserTransaction())
+	return len(tx.GetUserTransactions()) != 0
 }
 
 func (tth *txTypeHandler) isDestAddressEmpty(tx data.TransactionHandler) bool {

@@ -1358,3 +1358,11 @@ type SentSignaturesTracker interface {
 	ResetCountersForManagedBlockSigner(signerPk []byte)
 	IsInterfaceNil() bool
 }
+
+// RelayedTxV3Processor defines a component able to check and process relayed transactions v3
+type RelayedTxV3Processor interface {
+	CheckRelayedTx(tx *transaction.Transaction) error
+	ComputeRelayedTxFees(tx *transaction.Transaction) (*big.Int, *big.Int)
+	GetUniqueSendersRequiredFeesMap(innerTxs []*transaction.Transaction) map[string]*big.Int
+	IsInterfaceNil() bool
+}

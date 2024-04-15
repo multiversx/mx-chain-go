@@ -310,6 +310,7 @@ type ProcessComponentsHolder interface {
 	AccountsParser() genesis.AccountsParser
 	ReceiptsRepository() ReceiptsRepository
 	SentSignaturesTracker() process.SentSignaturesTracker
+	RelayedTxV3Processor() process.RelayedTxV3Processor
 	IsInterfaceNil() bool
 }
 

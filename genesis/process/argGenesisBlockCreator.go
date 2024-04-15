@@ -70,6 +70,7 @@ type ArgsGenesisBlockCreator struct {
 	BlockSignKeyGen         crypto.KeyGenerator
 	HistoryRepository       dblookupext.HistoryRepository
 	TxExecutionOrderHandler common.TxExecutionOrderHandler
+	RelayedTxV3Processor    process.RelayedTxV3Processor
 
 	GenesisNodePrice *big.Int
 	GenesisString    string

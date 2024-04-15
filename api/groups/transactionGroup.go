@@ -182,35 +182,42 @@ func (tg *transactionGroup) simulateTransaction(c *gin.Context) {
 		return
 	}
 
-	var innerTx *transaction.Transaction
-	if ftx.InnerTransaction != nil {
-		if ftx.InnerTransaction.InnerTransaction != nil {
-			c.JSON(
-				http.StatusBadRequest,
-				shared.GenericAPIResponse{
-					Data:  nil,
-					Error: fmt.Sprintf("%s: %s", errors.ErrTxGenerationFailed.Error(), errors.ErrRecursiveRelayedTxIsNotAllowed.Error()),
-					Code:  shared.ReturnCodeRequestError,
-				},
-			)
-			return
-		}
+	innerTxs := make([]*transaction.Transaction, 0, len(ftx.InnerTransactions))
+	if len(ftx.InnerTransactions) != 0 {
+		for _, innerTx := range ftx.InnerTransactions {
+			if len(innerTx.InnerTransactions) != 0 {
+				c.JSON(
+					http.StatusBadRequest,
+					shared.GenericAPIResponse{
+						Data:  nil,
+						Error: fmt.Sprintf("%s: %s", errors.ErrTxGenerationFailed.Error(), errors.ErrRecursiveRelayedTxIsNotAllowed.Error()),
+						Code:  shared.ReturnCodeRequestError,
+					},
+				)
+				return
+			}
 
-		innerTx, _, err = tg.createTransaction(ftx.InnerTransaction, nil)
-		if err != nil {
-			c.JSON(
-				http.StatusBadRequest,
-				shared.GenericAPIResponse{
-					Data:  nil,
-					Error: fmt.Sprintf("%s: %s", errors.ErrTxGenerationFailed.Error(), err.Error()),
-					Code:  shared.ReturnCodeRequestError,
-				},
-			)
-			return
+			newInnerTx, _, err := tg.createTransaction(innerTx, nil)
+			if err != nil {
+				c.JSON(
+					http.StatusBadRequest,
+					shared.GenericAPIResponse{
+						Data:  nil,
+						Error: fmt.Sprintf("%s: %s", errors.ErrTxGenerationFailed.Error(), err.Error()),
+						Code:  shared.ReturnCodeRequestError,
+					},
+				)
+				return
+			}
+
+			innerTxs = append(innerTxs, newInnerTx)
 		}
 	}
 
-	tx, txHash, err := tg.createTransaction(&ftx, innerTx)
+	if len(innerTxs) == 0 {
+		innerTxs = nil
+	}
+	tx, txHash, err := tg.createTransaction(&ftx, innerTxs)
 	if err != nil {
 		c.JSON(
 			http.StatusBadRequest,
@@ -280,35 +287,42 @@ func (tg *transactionGroup) sendTransaction(c *gin.Context) {
 		return
 	}
 
-	var innerTx *transaction.Transaction
-	if ftx.InnerTransaction != nil {
-		if ftx.InnerTransaction.InnerTransaction != nil {
-			c.JSON(
-				http.StatusBadRequest,
-				shared.GenericAPIResponse{
-					Data:  nil,
-					Error: fmt.Sprintf("%s: %s", errors.ErrTxGenerationFailed.Error(), errors.ErrRecursiveRelayedTxIsNotAllowed.Error()),
-					Code:  shared.ReturnCodeRequestError,
-				},
-			)
-			return
-		}
+	innerTxs := make([]*transaction.Transaction, 0, len(ftx.InnerTransactions))
+	if len(ftx.InnerTransactions) != 0 {
+		for _, innerTx := range ftx.InnerTransactions {
+			if len(innerTx.InnerTransactions) != 0 {
+				c.JSON(
+					http.StatusBadRequest,
+					shared.GenericAPIResponse{
+						Data:  nil,
+						Error: fmt.Sprintf("%s: %s", errors.ErrTxGenerationFailed.Error(), errors.ErrRecursiveRelayedTxIsNotAllowed.Error()),
+						Code:  shared.ReturnCodeRequestError,
+					},
+				)
+				return
+			}
 
-		innerTx, _, err = tg.createTransaction(ftx.InnerTransaction, nil)
-		if err != nil {
-			c.JSON(
-				http.StatusBadRequest,
-				shared.GenericAPIResponse{
-					Data:  nil,
-					Error: fmt.Sprintf("%s: %s", errors.ErrTxGenerationFailed.Error(), err.Error()),
-					Code:  shared.ReturnCodeRequestError,
-				},
-			)
-			return
+			newInnerTx, _, err := tg.createTransaction(innerTx, nil)
+			if err != nil {
+				c.JSON(
+					http.StatusBadRequest,
+					shared.GenericAPIResponse{
+						Data:  nil,
+						Error: fmt.Sprintf("%s: %s", errors.ErrTxGenerationFailed.Error(), err.Error()),
+						Code:  shared.ReturnCodeRequestError,
+					},
+				)
+				return
+			}
+
+			innerTxs = append(innerTxs, newInnerTx)
 		}
 	}
 
-	tx, txHash, err := tg.createTransaction(&ftx, innerTx)
+	if len(innerTxs) == 0 {
+		innerTxs = nil
+	}
+	tx, txHash, err := tg.createTransaction(&ftx, innerTxs)
 	if err != nil {
 		c.JSON(
 			http.StatusBadRequest,
@@ -387,23 +401,28 @@ func (tg *transactionGroup) sendMultipleTransactions(c *gin.Context) {
 	var start time.Time
 	txsHashes := make(map[int]string)
 	for idx, receivedTx := range ftxs {
-		var innerTx *transaction.Transaction
-		if receivedTx.InnerTransaction != nil {
-			innerTx, _, err = tg.createTransaction(receivedTx.InnerTransaction, nil)
-			if err != nil {
-				c.JSON(
-					http.StatusBadRequest,
-					shared.GenericAPIResponse{
-						Data:  nil,
-						Error: fmt.Sprintf("%s: %s", errors.ErrTxGenerationFailed.Error(), err.Error()),
-						Code:  shared.ReturnCodeRequestError,
-					},
-				)
-				return
+		innerTxs := make([]*transaction.Transaction, 0, len(receivedTx.InnerTransactions))
+		if len(receivedTx.InnerTransactions) != 0 {
+			for _, innerTx := range receivedTx.InnerTransactions {
+				if len(innerTx.InnerTransactions) != 0 {
+					// if one of the inner txs is invalid, break the loop and move to the next transaction received
+					break
+				}
+
+				newInnerTx, _, err := tg.createTransaction(innerTx, nil)
+				if err != nil {
+					// if one of the inner txs is invalid, break the loop and move to the next transaction received
+					break
+				}
+
+				innerTxs = append(innerTxs, newInnerTx)
 			}
 		}
 
-		tx, txHash, err = tg.createTransaction(&receivedTx, innerTx)
+		if len(innerTxs) == 0 {
+			innerTxs = nil
+		}
+		tx, txHash, err = tg.createTransaction(&receivedTx, innerTxs)
 		if err != nil {
 			continue
 		}
@@ -514,35 +533,42 @@ func (tg *transactionGroup) computeTransactionGasLimit(c *gin.Context) {
 		return
 	}
 
-	var innerTx *transaction.Transaction
-	if ftx.InnerTransaction != nil {
-		if ftx.InnerTransaction.InnerTransaction != nil {
-			c.JSON(
-				http.StatusBadRequest,
-				shared.GenericAPIResponse{
-					Data:  nil,
-					Error: fmt.Sprintf("%s: %s", errors.ErrTxGenerationFailed.Error(), errors.ErrRecursiveRelayedTxIsNotAllowed.Error()),
-					Code:  shared.ReturnCodeRequestError,
-				},
-			)
-			return
-		}
+	innerTxs := make([]*transaction.Transaction, 0, len(ftx.InnerTransactions))
+	if len(ftx.InnerTransactions) != 0 {
+		for _, innerTx := range ftx.InnerTransactions {
+			if len(innerTx.InnerTransactions) != 0 {
+				c.JSON(
+					http.StatusBadRequest,
+					shared.GenericAPIResponse{
+						Data:  nil,
+						Error: fmt.Sprintf("%s: %s", errors.ErrTxGenerationFailed.Error(), errors.ErrRecursiveRelayedTxIsNotAllowed.Error()),
+						Code:  shared.ReturnCodeRequestError,
+					},
+				)
+				return
+			}
 
-		innerTx, _, err = tg.createTransaction(ftx.InnerTransaction, nil)
-		if err != nil {
-			c.JSON(
-				http.StatusInternalServerError,
-				shared.GenericAPIResponse{
-					Data:  nil,
-					Error: err.Error(),
-					Code:  shared.ReturnCodeInternalError,
-				},
-			)
-			return
+			newInnerTx, _, err := tg.createTransaction(innerTx, nil)
+			if err != nil {
+				c.JSON(
+					http.StatusBadRequest,
+					shared.GenericAPIResponse{
+						Data:  nil,
+						Error: fmt.Sprintf("%s: %s", errors.ErrTxGenerationFailed.Error(), err.Error()),
+						Code:  shared.ReturnCodeRequestError,
+					},
+				)
+				return
+			}
+
+			innerTxs = append(innerTxs, newInnerTx)
 		}
 	}
 
-	tx, _, err := tg.createTransaction(&ftx, innerTx)
+	if len(innerTxs) == 0 {
+		innerTxs = nil
+	}
+	tx, _, err := tg.createTransaction(&ftx, innerTxs)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -752,25 +778,25 @@ func (tg *transactionGroup) getTransactionsPoolNonceGapsForSender(sender string,
 	)
 }
 
-func (tg *transactionGroup) createTransaction(receivedTx *transaction.FrontendTransaction, innerTx *transaction.Transaction) (*transaction.Transaction, []byte, error) {
+func (tg *transactionGroup) createTransaction(receivedTx *transaction.FrontendTransaction, innerTxs []*transaction.Transaction) (*transaction.Transaction, []byte, error) {
 	txArgs := &external.ArgsCreateTransaction{
-		Nonce:            receivedTx.Nonce,
-		Value:            receivedTx.Value,
-		Receiver:         receivedTx.Receiver,
-		ReceiverUsername: receivedTx.ReceiverUsername,
-		Sender:           receivedTx.Sender,
-		SenderUsername:   receivedTx.SenderUsername,
-		GasPrice:         receivedTx.GasPrice,
-		GasLimit:         receivedTx.GasLimit,
-		DataField:        receivedTx.Data,
-		SignatureHex:     receivedTx.Signature,
-		ChainID:          receivedTx.ChainID,
-		Version:          receivedTx.Version,
-		Options:          receivedTx.Options,
-		Guardian:         receivedTx.GuardianAddr,
-		GuardianSigHex:   receivedTx.GuardianSignature,
-		Relayer:          receivedTx.Relayer,
-		InnerTransaction: innerTx,
+		Nonce:             receivedTx.Nonce,
+		Value:             receivedTx.Value,
+		Receiver:          receivedTx.Receiver,
+		ReceiverUsername:  receivedTx.ReceiverUsername,
+		Sender:            receivedTx.Sender,
+		SenderUsername:    receivedTx.SenderUsername,
+		GasPrice:          receivedTx.GasPrice,
+		GasLimit:          receivedTx.GasLimit,
+		DataField:         receivedTx.Data,
+		SignatureHex:      receivedTx.Signature,
+		ChainID:           receivedTx.ChainID,
+		Version:           receivedTx.Version,
+		Options:           receivedTx.Options,
+		Guardian:          receivedTx.GuardianAddr,
+		GuardianSigHex:    receivedTx.GuardianSignature,
+		Relayer:           receivedTx.Relayer,
+		InnerTransactions: innerTxs,
 	}
 	start := time.Now()
 	tx, txHash, err := tg.getFacade().CreateTransaction(txArgs)
