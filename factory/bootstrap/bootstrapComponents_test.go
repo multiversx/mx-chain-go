@@ -162,7 +162,7 @@ func TestNewBootstrapComponentsFactory(t *testing.T) {
 		t.Parallel()
 
 		argsCopy := args
-		rtMock := getRunTypeComponentsMock()
+		rtMock := mainFactoryMocks.NewRunTypeComponentsStub()
 		rtMock.RequestHandlerFactory = nil
 		argsCopy.RunTypeComponents = rtMock
 		bcf, err := bootstrap.NewBootstrapComponentsFactory(argsCopy)
