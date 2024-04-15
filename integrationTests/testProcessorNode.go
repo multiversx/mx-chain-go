@@ -3321,7 +3321,7 @@ func GetDefaultRunTypeComponents(consensusModel consensus.ConsensusModel) *mainF
 		VmContainerMetaFactory:              rt.VmContainerMetaFactoryCreator(),
 		VmContainerShardFactory:             rt.VmContainerShardFactoryCreator(),
 		OutGoingOperationsPool:              rt.OutGoingOperationsPoolHandler(),
-		DataCodec:                           rt.DataDecoderHandler(),
+		DataCodec:                           rt.DataCodecHandler(),
 		TopicsChecker:                       rt.TopicsCheckerHandler(),
 		ShardCoordinatorFactory:             rt.ShardCoordinatorCreator(),
 	}
