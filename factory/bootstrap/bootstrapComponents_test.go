@@ -151,12 +151,9 @@ func TestNewBootstrapComponentsFactory(t *testing.T) {
 		t.Parallel()
 
 		argsCopy := args
-		argsCopy.RunTypeComponents = &mainFactoryMocks.RunTypeComponentsStub{
-			EpochStartBootstrapperFactory:    &factory.EpochStartBootstrapperFactoryMock{},
-			AdditionalStorageServiceFactory:  &factory.AdditionalStorageServiceFactoryMock{},
-			ShardCoordinatorFactory:          &testscommon.MultiShardCoordinatorFactoryMock{},
-			NodesCoordinatorWithRaterFactory: nil,
-		}
+		rtMock := getRunTypeComponentsMock()
+		rtMock.NodesCoordinatorWithRaterFactory = nil
+		argsCopy.RunTypeComponents = rtMock
 		bcf, err := bootstrap.NewBootstrapComponentsFactory(argsCopy)
 		require.Nil(t, bcf)
 		require.Equal(t, errorsMx.ErrNilNodesCoordinatorFactory, err)

@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	nodesCoord "github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	testFactory "github.com/multiversx/mx-chain-go/testscommon/factory"
 	sovereignMocks "github.com/multiversx/mx-chain-go/testscommon/sovereign"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
@@ -79,7 +80,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		DataCodec:                           &sovereignMocks.DataCodecMock{},
 		TopicsChecker:                       &sovereignMocks.TopicsCheckerMock{},
 		ShardCoordinatorFactory:             sharding.NewMultiShardCoordinatorFactory(),
-		NodesCoordinatorWithRaterFactory:    nodesCoord.NewIndexHashedNodesCoordinatorWithRaterFactory(),
+		NodesCoordinatorWithRaterFactory:    &testscommon.NodesCoordinatorFactoryMock{},
 	}
 }
 
