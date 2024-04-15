@@ -2126,6 +2126,7 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	if check.IfNil(args.RunTypeComponents.SCProcessorCreator()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilSCProcessorCreator)
 	}
+	// TODO make sure consensus model is correct on higher level - task MX-15366
 	if args.RunTypeComponents.ConsensusModel() == consensus.ConsensusModelInvalid {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrInvalidConsensusModel)
 	}
@@ -2141,7 +2142,7 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	if check.IfNil(args.RunTypeComponents.OutGoingOperationsPoolHandler()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilOutGoingOperationsPool)
 	}
-	if check.IfNil(args.RunTypeComponents.DataCodecHandler()) {
+	if check.IfNil(args.RunTypeComponents.DataDecoderHandler()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilDataCodec)
 	}
 	if check.IfNil(args.RunTypeComponents.TopicsCheckerHandler()) {
