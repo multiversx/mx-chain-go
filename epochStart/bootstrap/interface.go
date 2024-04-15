@@ -76,7 +76,7 @@ type EpochStartBootstrapper interface {
 	IsInterfaceNil() bool
 }
 
-type runTypeComponentsHolder interface {
+type RunTypeComponentsHolder interface {
 	AdditionalStorageServiceCreator() process.AdditionalStorageServiceCreator
 	ShardCoordinatorCreator() sharding.ShardCoordinatorFactory
 	NodesCoordinatorWithRaterCreator() nodesCoordinator.NodesCoordinatorWithRaterFactory
