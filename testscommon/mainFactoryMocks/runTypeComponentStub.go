@@ -204,8 +204,8 @@ func (r *RunTypeComponentsStub) OutGoingOperationsPoolHandler() sovereignBlock.O
 	return r.OutGoingOperationsPool
 }
 
-// DataCodecHandler -
-func (r *RunTypeComponentsStub) DataCodecHandler() sovereign.DataDecoderHandler {
+// DataDecoderHandler -
+func (r *RunTypeComponentsStub) DataDecoderHandler() sovereign.DataDecoderHandler {
 	return r.DataCodec
 }
 
