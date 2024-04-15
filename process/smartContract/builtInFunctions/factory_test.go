@@ -88,6 +88,11 @@ func fillGasMapBuiltInCosts(value uint64) map[string]uint64 {
 	gasMap["ESDTNFTAddUri"] = value
 	gasMap["ESDTNFTUpdateAttributes"] = value
 	gasMap["ESDTNFTMultiTransfer"] = value
+	gasMap["ESDTModifyRoyalties"] = value
+	gasMap["ESDTModifyCreator"] = value
+	gasMap["ESDTNFTRecreate"] = value
+	gasMap["ESDTNFTUpdate"] = value
+	gasMap["ESDTNFTSetNewURIs"] = value
 	gasMap["SetGuardian"] = value
 	gasMap["GuardAccount"] = value
 	gasMap["TrieLoadPerNode"] = value
@@ -168,7 +173,7 @@ func TestCreateBuiltInFunctionContainer(t *testing.T) {
 		args := createMockArguments()
 		builtInFuncFactory, err := CreateBuiltInFunctionsFactory(args)
 		assert.Nil(t, err)
-		assert.Equal(t, 36, len(builtInFuncFactory.BuiltInFunctionContainer().Keys()))
+		assert.Equal(t, 42, len(builtInFuncFactory.BuiltInFunctionContainer().Keys()))
 
 		err = builtInFuncFactory.SetPayableHandler(&testscommon.BlockChainHookStub{})
 		assert.Nil(t, err)
