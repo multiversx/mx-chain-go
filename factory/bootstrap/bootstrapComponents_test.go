@@ -151,7 +151,7 @@ func TestNewBootstrapComponentsFactory(t *testing.T) {
 		t.Parallel()
 
 		argsCopy := args
-		rtMock := getRunTypeComponentsMock()
+		rtMock := mainFactoryMocks.NewRunTypeComponentsStub()
 		rtMock.NodesCoordinatorWithRaterFactory = nil
 		argsCopy.RunTypeComponents = rtMock
 		bcf, err := bootstrap.NewBootstrapComponentsFactory(argsCopy)
