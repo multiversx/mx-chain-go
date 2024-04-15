@@ -444,8 +444,8 @@ func (mrc *managedRunTypeComponents) ShardCoordinatorCreator() sharding.ShardCoo
 
 // NodesCoordinatorWithRaterCreator returns the nodes coordinator factory
 func (mrc *managedRunTypeComponents) NodesCoordinatorWithRaterCreator() nodesCoordinator.NodesCoordinatorWithRaterFactory {
-	mrc.mutStateComponents.RLock()
-	defer mrc.mutStateComponents.RUnlock()
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
 
 	if check.IfNil(mrc.runTypeComponents) {
 		return nil
