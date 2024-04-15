@@ -600,7 +600,7 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.RunTypeComponents.OutGoingOperationsPoolHandler()) {
 		return errors.ErrNilOutGoingOperationsPool
 	}
-	if check.IfNil(arguments.RunTypeComponents.DataDecoderHandler()) {
+	if check.IfNil(arguments.RunTypeComponents.DataCodecHandler()) {
 		return errors.ErrNilDataCodec
 	}
 	if check.IfNil(arguments.RunTypeComponents.TopicsCheckerHandler()) {
