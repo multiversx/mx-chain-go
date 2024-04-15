@@ -12,7 +12,7 @@ import (
 type RunTypeComponentsStub struct {
 	AccountCreator         state.AccountFactory
 	OutGoingOperationsPool sovereignBlock.OutGoingOperationsPool
-	DataCodec              sovereign.DataDecoderHandler
+	DataCodec              sovereign.DataCodecHandler
 	TopicsChecker          sovereign.TopicsCheckerHandler
 }
 
@@ -37,7 +37,7 @@ func (r *RunTypeComponentsStub) OutGoingOperationsPoolHandler() sovereignBlock.O
 }
 
 // DataDecoderHandler -
-func (r *RunTypeComponentsStub) DataDecoderHandler() sovereign.DataDecoderHandler {
+func (r *RunTypeComponentsStub) DataCodecHandler() sovereign.DataCodecHandler {
 	return r.DataCodec
 }
 

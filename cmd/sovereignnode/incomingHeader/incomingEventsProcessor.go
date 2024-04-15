@@ -58,7 +58,7 @@ type eventsResult struct {
 type incomingEventsProcessor struct {
 	marshaller    marshal.Marshalizer
 	hasher        hashing.Hasher
-	dataCodec     dataCodec.SovereignDataDecoder
+	dataCodec     dataCodec.SovereignDataCodec
 	topicsChecker TopicsChecker
 }
 

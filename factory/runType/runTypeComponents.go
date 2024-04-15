@@ -56,7 +56,7 @@ type runTypeComponents struct {
 	vmContainerShardFactory             factoryVm.VmContainerCreator
 	accountsCreator                     state.AccountFactory
 	outGoingOperationsPoolHandler       sovereignBlock.OutGoingOperationsPool
-	dataDecoderHandler                  sovereign.DataDecoderHandler
+	dataCodecHandler                    sovereign.DataCodecHandler
 	topicsCheckerHandler                sovereign.TopicsCheckerHandler
 }
 
@@ -179,7 +179,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		vmContainerShardFactory:             vmContainerShardCreator,
 		accountsCreator:                     accountsCreator,
 		outGoingOperationsPoolHandler:       disabled.NewDisabledOutGoingOperationPool(),
-		dataDecoderHandler:                  disabled.NewDisabledDataCodec(),
+		dataCodecHandler:                    disabled.NewDisabledDataCodec(),
 		topicsCheckerHandler:                disabled.NewDisabledTopicsChecker(),
 	}, nil
 }

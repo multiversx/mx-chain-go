@@ -45,7 +45,7 @@ type RunTypeComponentsStub struct {
 	VmContainerShardFactory             factoryVm.VmContainerCreator
 	AccountCreator                      state.AccountFactory
 	OutGoingOperationsPool              sovereignBlock.OutGoingOperationsPool
-	DataCodec                           sovereign.DataDecoderHandler
+	DataCodec                           sovereign.DataCodecHandler
 	TopicsChecker                       sovereign.TopicsCheckerHandler
 }
 
@@ -197,8 +197,8 @@ func (r *RunTypeComponentsStub) OutGoingOperationsPoolHandler() sovereignBlock.O
 	return r.OutGoingOperationsPool
 }
 
-// DataDecoderHandler -
-func (r *RunTypeComponentsStub) DataDecoderHandler() sovereign.DataDecoderHandler {
+// DataCodecHandler -
+func (r *RunTypeComponentsStub) DataCodecHandler() sovereign.DataCodecHandler {
 	return r.DataCodec
 }
 

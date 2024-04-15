@@ -12,7 +12,7 @@ import (
 func CreateOutgoingOperationsFormatter(
 	events []config.SubscribedEvent,
 	pubKeyConverter core.PubkeyConverter,
-	dataCodec DataDecoderHandler,
+	dataCodec DataCodecHandler,
 	topicsChecker TopicsCheckerHandler,
 ) (OutgoingOperationsFormatter, error) {
 	subscribedEvents, err := getSubscribedEvents(events, pubKeyConverter)
