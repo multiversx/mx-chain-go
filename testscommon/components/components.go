@@ -264,7 +264,7 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 			Enabled:                          false,
 			Type:                             "optimized",
 			RefreshIntervalInSec:             10,
-			ProtocolID:                       "erd/kad/1.0.0",
+			ProtocolIDs:                      []string{"erd/kad/1.0.0"},
 			InitialPeerList:                  []string{"peer0", "peer1"},
 			BucketSize:                       10,
 			RoutingTableRefreshIntervalInSec: 5,

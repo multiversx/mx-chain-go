@@ -38,18 +38,22 @@
    # so that certain config values need to remain the same during upgrades.
    # (for example, an Elasticsearch user wants external.toml->ElasticSearchConnector.Enabled to remain true all the time during upgrades, while the default
    # configuration of the node has the false value)
-   # The Path indicates what value to change, while Value represents the new value in string format. The node operator must make sure
-   # to follow the same type of the original value (ex: uint32: "37", float32: "37.0", bool: "true")
+   # The Path indicates what value to change, while Value represents the new value. The node operator must make sure
+   # to follow the same type of the original value (ex: uint32: 37, float32: 37.0, bool: true)
+   # Also, the Value can be a struct (ex: { StartEpoch = 0, Version = "1.5" }) or an array (ex: [{ StartEpoch = 0, Version = "1.4" }, { StartEpoch = 1, Version = "1.5" }])
    # File represents the file name that holds the configuration. Currently, the supported files are:
    # api.toml, config.toml, economics.toml, enableEpochs.toml, enableRounds.toml, external.toml, fullArchiveP2P.toml, p2p.toml, ratings.toml, systemSmartContractsConfig.toml
    # -------------------------------
    # Un-comment and update the following section in order to enable config values overloading
    # -------------------------------
    # OverridableConfigTomlValues = [
-   #    { File = "config.toml", Path = "StoragePruning.NumEpochsToKeep", Value = "4" },
-   #    { File = "config.toml", Path = "MiniBlocksStorage.Cache.Name", Value = "MiniBlocksStorage" },
-   #    { File = "external.toml", Path = "ElasticSearchConnector.Enabled", Value = "true" }
-   #]
+      # { File = "config.toml", Path = "StoragePruning.NumEpochsToKeep", Value = 4 },
+      # { File = "config.toml", Path = "MiniBlocksStorage.Cache.Name", Value = "MiniBlocksStorage" },
+      # { File = "external.toml", Path = "ElasticSearchConnector.Enabled", Value = true },
+      # { File = "external.toml", Path = "HostDriversConfig", Value = [
+      #    { Enabled = false, URL = "127.0.0.1:22111" },
+      # ] },
+   # ]
 
 # BlockProcessingCutoff can be used to stop processing blocks at a certain round, nonce or epoch.
 # This can be useful for snapshotting different stuff and also for debugging purposes.

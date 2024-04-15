@@ -31,7 +31,7 @@ func createDefaultConfig() p2pConfig.P2PConfig {
 			Type:                             "optimized",
 			RefreshIntervalInSec:             1,
 			RoutingTableRefreshIntervalInSec: 1,
-			ProtocolID:                       "/erd/kad/1.0.0",
+			ProtocolIDs:                      []string{"/erd/kad/1.0.0"},
 			InitialPeerList:                  nil,
 			BucketSize:                       100,
 		},
