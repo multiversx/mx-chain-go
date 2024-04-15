@@ -459,6 +459,18 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		require.ErrorIs(t, err, errorsMx.ErrNilSCResultsPreProcessorCreator)
 		require.Nil(t, gbc)
 	})
+	t.Run("nil SCProcessorCreator should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
+		rtComponents := genesisMocks.NewRunTypeComponentsStub()
+		rtComponents.SCProcessorFactory = nil
+		arg.RunTypeComponents = rtComponents
+
+		gbc, err := NewGenesisBlockCreator(arg)
+		require.ErrorIs(t, err, errorsMx.ErrNilSCProcessorCreator)
+		require.Nil(t, gbc)
+	})
 	t.Run("nil TransactionCoordinatorCreator should error", func(t *testing.T) {
 		t.Parallel()
 
