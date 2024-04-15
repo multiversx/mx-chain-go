@@ -71,6 +71,7 @@ func (mc *metaChain) SetCurrentBlockHeaderAndRootHash(header data.HeaderHandler,
 
 	mc.appStatusHandler.SetUInt64Value(common.MetricNonce, currHead.Nonce)
 	mc.appStatusHandler.SetUInt64Value(common.MetricSynchronizedRound, currHead.Round)
+	mc.appStatusHandler.SetUInt64Value(common.MetricBlockTimestamp, currHead.GetTimeStamp())
 
 	mc.mut.Lock()
 	mc.currentBlockHeader = currHead.ShallowClone()
