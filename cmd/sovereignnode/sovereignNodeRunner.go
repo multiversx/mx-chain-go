@@ -1663,12 +1663,10 @@ func (snr *sovereignNodeRunner) CreateArgsRunTypeComponents(coreComp mainFactory
 		Serializer: abi.NewSerializer(codec),
 	}
 
-	dataCodecHandler, err := dataCodec.NewDataCodec(argsDataCodec)
+	dataDecoderHandler, err := dataCodec.NewDataCodec(argsDataCodec)
 	if err != nil {
 		return nil, err
 	}
-
-	topicsCheckerHandler := incomingHeader.NewTopicsChecker()
 
 	runTypeComponentsFactory, err := runType.NewRunTypeComponentsFactory(coreComp)
 	if err != nil {
@@ -1678,8 +1676,8 @@ func (snr *sovereignNodeRunner) CreateArgsRunTypeComponents(coreComp mainFactory
 	return &runType.ArgsSovereignRunTypeComponents{
 		RunTypeComponentsFactory: runTypeComponentsFactory,
 		Config:                   *sovereignCfg,
-		DataCodec:                dataCodecHandler,
-		TopicsChecker:            topicsCheckerHandler,
+		DataCodec:                dataDecoderHandler,
+		TopicsChecker:            incomingHeader.NewTopicsChecker(),
 	}, nil
 }
 
@@ -1880,7 +1878,7 @@ func createIncomingHeaderProcessor(
 		Hasher:                          hasher,
 		MainChainNotarizationStartRound: mainChainNotarizationStartRound,
 		OutGoingOperationsPool:          runTypeComponents.OutGoingOperationsPoolHandler(),
-		DataCodec:                       runTypeComponents.DataCodecHandler(),
+		DataCodec:                       runTypeComponents.DataDecoderHandler(),
 		TopicsChecker:                   runTypeComponents.TopicsCheckerHandler(),
 	}
 
