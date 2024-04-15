@@ -846,7 +846,7 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 }
 
 func getRunTypeComponentsMock() *mock.RunTypeComponentsStub {
-	rt := components.GetRunTypeComponents()
+	rt := mock.NewRunTypeComponentsStub()
 	return &mock.RunTypeComponentsStub{
 		AccountCreator: rt.AccountsCreator(),
 		DataCodec:      rt.DataDecoderHandler(),

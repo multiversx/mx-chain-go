@@ -1681,8 +1681,6 @@ func (snr *sovereignNodeRunner) CreateArgsRunTypeComponents(coreComp mainFactory
 		return nil, err
 	}
 
-	topicsCheckerHandler := incomingHeader.NewTopicsChecker()
-
 	runTypeComponentsFactory, err := runType.NewRunTypeComponentsFactory(coreComp)
 	if err != nil {
 		return nil, fmt.Errorf("NewRunTypeComponentsFactory failed: %w", err)
@@ -1692,7 +1690,7 @@ func (snr *sovereignNodeRunner) CreateArgsRunTypeComponents(coreComp mainFactory
 		RunTypeComponentsFactory: runTypeComponentsFactory,
 		Config:                   *sovereignCfg,
 		DataCodec:                dataDecoderHandler,
-		TopicsChecker:            topicsCheckerHandler,
+		TopicsChecker:            incomingHeader.NewTopicsChecker(),
 	}, nil
 }
 

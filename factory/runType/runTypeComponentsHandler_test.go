@@ -85,7 +85,7 @@ func TestManagedRunTypeComponents_Create(t *testing.T) {
 		require.NotNil(t, managedRunTypeComponents.AdditionalStorageServiceCreator())
 		require.NotNil(t, managedRunTypeComponents.SCProcessorCreator())
 		require.NotNil(t, managedRunTypeComponents.SCResultsPreProcessorCreator())
-		require.NotEqual(t, consensus.ConsensusModelInvalid, managedRunTypeComponents.ConsensusModel())
+		require.Equal(t, consensus.ConsensusModelV1, managedRunTypeComponents.ConsensusModel())
 		require.NotNil(t, managedRunTypeComponents.VmContainerMetaFactoryCreator())
 		require.NotNil(t, managedRunTypeComponents.VmContainerShardFactoryCreator())
 		require.NotNil(t, managedRunTypeComponents.AccountsCreator())
