@@ -428,8 +428,8 @@ func (mrc *managedRunTypeComponents) TopicsCheckerHandler() sovereign.TopicsChec
 
 // ShardCoordinatorCreator returns the shard coordinator factory
 func (mrc *managedRunTypeComponents) ShardCoordinatorCreator() sharding.ShardCoordinatorFactory {
-	mrc.mutStateComponents.RLock()
-	defer mrc.mutStateComponents.RUnlock()
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
 
 	if check.IfNil(mrc.runTypeComponents) {
 		return nil
