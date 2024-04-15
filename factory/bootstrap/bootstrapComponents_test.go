@@ -118,9 +118,9 @@ func TestNewBootstrapComponentsFactory(t *testing.T) {
 		t.Parallel()
 
 		argsCopy := args
-		argsCopy.RunTypeComponents = &mainFactoryMocks.RunTypeComponentsStub{
-			EpochStartBootstrapperFactory: nil,
-		}
+		rtMock := getRunTypeComponentsMock()
+		rtMock.EpochStartBootstrapperFactory = nil
+		argsCopy.RunTypeComponents = rtMock
 		bcf, err := bootstrap.NewBootstrapComponentsFactory(argsCopy)
 		require.Nil(t, bcf)
 		require.Equal(t, errorsMx.ErrNilEpochStartBootstrapperCreator, err)
@@ -129,10 +129,9 @@ func TestNewBootstrapComponentsFactory(t *testing.T) {
 		t.Parallel()
 
 		argsCopy := args
-		argsCopy.RunTypeComponents = &mainFactoryMocks.RunTypeComponentsStub{
-			EpochStartBootstrapperFactory:   &factory.EpochStartBootstrapperFactoryMock{},
-			AdditionalStorageServiceFactory: nil,
-		}
+		rtMock := getRunTypeComponentsMock()
+		rtMock.AdditionalStorageServiceFactory = nil
+		argsCopy.RunTypeComponents = rtMock
 		bcf, err := bootstrap.NewBootstrapComponentsFactory(argsCopy)
 		require.Nil(t, bcf)
 		require.Equal(t, errorsMx.ErrNilAdditionalStorageServiceCreator, err)
@@ -141,11 +140,9 @@ func TestNewBootstrapComponentsFactory(t *testing.T) {
 		t.Parallel()
 
 		argsCopy := args
-		argsCopy.RunTypeComponents = &mainFactoryMocks.RunTypeComponentsStub{
-			EpochStartBootstrapperFactory:   &factory.EpochStartBootstrapperFactoryMock{},
-			AdditionalStorageServiceFactory: &factory.AdditionalStorageServiceFactoryMock{},
-			ShardCoordinatorFactory:         nil,
-		}
+		rtMock := getRunTypeComponentsMock()
+		rtMock.ShardCoordinatorFactory = nil
+		argsCopy.RunTypeComponents = rtMock
 		bcf, err := bootstrap.NewBootstrapComponentsFactory(argsCopy)
 		require.Nil(t, bcf)
 		require.Equal(t, errorsMx.ErrNilShardCoordinatorFactory, err)
@@ -173,6 +170,35 @@ func TestNewBootstrapComponentsFactory(t *testing.T) {
 		require.Nil(t, bcf)
 		require.Equal(t, errorsMx.ErrInvalidWorkingDir, err)
 	})
+}
+
+func getRunTypeComponentsMock() *mainFactoryMocks.RunTypeComponentsStub {
+	rt := componentsMock.GetRunTypeComponents()
+	return &mainFactoryMocks.RunTypeComponentsStub{
+		BlockChainHookHandlerFactory:        rt.BlockChainHookHandlerCreator(),
+		BlockProcessorFactory:               rt.BlockProcessorCreator(),
+		BlockTrackerFactory:                 rt.BlockTrackerCreator(),
+		BootstrapperFromStorageFactory:      rt.BootstrapperFromStorageCreator(),
+		EpochStartBootstrapperFactory:       rt.EpochStartBootstrapperCreator(),
+		ForkDetectorFactory:                 rt.ForkDetectorCreator(),
+		HeaderValidatorFactory:              rt.HeaderValidatorCreator(),
+		RequestHandlerFactory:               rt.RequestHandlerCreator(),
+		ScheduledTxsExecutionFactory:        rt.ScheduledTxsExecutionCreator(),
+		TransactionCoordinatorFactory:       rt.TransactionCoordinatorCreator(),
+		ValidatorStatisticsProcessorFactory: rt.ValidatorStatisticsProcessorCreator(),
+		AdditionalStorageServiceFactory:     rt.AdditionalStorageServiceCreator(),
+		SCProcessorFactory:                  rt.SCProcessorCreator(),
+		ConsensusModelType:                  rt.ConsensusModel(),
+		BootstrapperFactory:                 rt.BootstrapperCreator(),
+		SCResultsPreProcessorFactory:        rt.SCResultsPreProcessorCreator(),
+		VmContainerMetaFactory:              rt.VmContainerMetaFactoryCreator(),
+		VmContainerShardFactory:             rt.VmContainerShardFactoryCreator(),
+		AccountCreator:                      rt.AccountsCreator(),
+		OutGoingOperationsPool:              rt.OutGoingOperationsPoolHandler(),
+		DataCodec:                           rt.DataCodecHandler(),
+		TopicsChecker:                       rt.TopicsCheckerHandler(),
+		ShardCoordinatorFactory:             rt.ShardCoordinatorCreator(),
+	}
 }
 
 func TestBootstrapComponentsFactory_Create(t *testing.T) {

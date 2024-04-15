@@ -162,10 +162,6 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		return nil, fmt.Errorf("runTypeComponentsFactory - NewAccountCreator failed: %w", err)
 	}
 
-	shardCoordinatorCreator := sharding.NewMultiShardCoordinatorFactory()
-
-	nodesCoordinatorWithRaterFactoryCreator := nodesCoord.NewIndexHashedNodesCoordinatorWithRaterFactory()
-
 	return &runTypeComponents{
 		blockChainHookHandlerCreator:            blockChainHookHandlerFactory,
 		epochStartBootstrapperCreator:           epochStartBootstrapperFactory,
@@ -189,8 +185,8 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		outGoingOperationsPoolHandler:           disabled.NewDisabledOutGoingOperationPool(),
 		dataCodecHandler:                        disabled.NewDisabledDataCodec(),
 		topicsCheckerHandler:                    disabled.NewDisabledTopicsChecker(),
-		shardCoordinatorCreator:                 shardCoordinatorCreator,
-		nodesCoordinatorWithRaterFactoryCreator: nodesCoordinatorWithRaterFactoryCreator,
+		shardCoordinatorCreator:                 sharding.NewMultiShardCoordinatorFactory(),
+		nodesCoordinatorWithRaterFactoryCreator: nodesCoord.NewIndexHashedNodesCoordinatorWithRaterFactory(),
 	}, nil
 }
 
