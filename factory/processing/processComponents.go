@@ -2149,7 +2149,7 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	if check.IfNil(args.RunTypeComponents.AccountsCreator()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilAccountsCreator)
 	}
-	if check.IfNil(args.RunTypeComponents.DataDecoderHandler()) {
+	if check.IfNil(args.RunTypeComponents.DataCodecHandler()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilDataCodec)
 	}
 	if check.IfNil(args.RunTypeComponents.TopicsCheckerHandler()) {

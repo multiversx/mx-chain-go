@@ -145,7 +145,7 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	if check.IfNil(mrc.accountsCreator) {
 		return errors.ErrNilAccountsCreator
 	}
-	if check.IfNil(mrc.dataDecoderHandler) {
+	if check.IfNil(mrc.dataCodecHandler) {
 		return errors.ErrNilDataCodec
 	}
 	if check.IfNil(mrc.topicsCheckerHandler) {
@@ -382,8 +382,8 @@ func (mrc *managedRunTypeComponents) AccountsCreator() state.AccountFactory {
 	return mrc.runTypeComponents.accountsCreator
 }
 
-// DataDecoderHandler returns the data codec factory
-func (mrc *managedRunTypeComponents) DataDecoderHandler() sovereign.DataDecoderHandler {
+// DataCodecHandler returns the data codec factory
+func (mrc *managedRunTypeComponents) DataCodecHandler() sovereign.DataCodecHandler {
 	mrc.mutRunTypeComponents.RLock()
 	defer mrc.mutRunTypeComponents.RUnlock()
 
@@ -391,7 +391,7 @@ func (mrc *managedRunTypeComponents) DataDecoderHandler() sovereign.DataDecoderH
 		return nil
 	}
 
-	return mrc.runTypeComponents.dataDecoderHandler
+	return mrc.runTypeComponents.dataCodecHandler
 }
 
 // TopicsCheckerHandler returns the topics checker factory

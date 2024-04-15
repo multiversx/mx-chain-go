@@ -804,7 +804,7 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 		{
 			args: func() blproc.ArgBaseProcessor {
 				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-				rtMock := getRunTypeComponentsMock()
+				rtMock := mock.NewRunTypeComponentsStub()
 				rtMock.AccountCreator = nil
 				args.RunTypeComponents = rtMock
 				return args
@@ -814,7 +814,7 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 		{
 			args: func() blproc.ArgBaseProcessor {
 				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-				rtMock := getRunTypeComponentsMock()
+				rtMock := mock.NewRunTypeComponentsStub()
 				rtMock.DataCodec = nil
 				args.RunTypeComponents = rtMock
 				return args
@@ -824,7 +824,7 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 		{
 			args: func() blproc.ArgBaseProcessor {
 				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-				rtMock := getRunTypeComponentsMock()
+				rtMock := mock.NewRunTypeComponentsStub()
 				rtMock.TopicsChecker = nil
 				args.RunTypeComponents = rtMock
 				return args
@@ -843,15 +843,6 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 	args := createArgBaseProcessor(&coreCompCopy, dataComponents, bootstrapComponents, statusComponents)
 	err := blproc.CheckProcessorNilParameters(args)
 	require.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
-}
-
-func getRunTypeComponentsMock() *mock.RunTypeComponentsStub {
-	rt := mock.NewRunTypeComponentsStub()
-	return &mock.RunTypeComponentsStub{
-		AccountCreator: rt.AccountsCreator(),
-		DataCodec:      rt.DataDecoderHandler(),
-		TopicsChecker:  rt.TopicsCheckerHandler(),
-	}
 }
 
 func TestBlockProcessor_CheckBlockValidity(t *testing.T) {

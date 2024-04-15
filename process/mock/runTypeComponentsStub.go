@@ -10,7 +10,7 @@ import (
 // RunTypeComponentsStub -
 type RunTypeComponentsStub struct {
 	AccountCreator state.AccountFactory
-	DataCodec      sovereign.DataDecoderHandler
+	DataCodec      sovereign.DataCodecHandler
 	TopicsChecker  sovereign.TopicsCheckerHandler
 }
 
@@ -29,7 +29,7 @@ func (r *RunTypeComponentsStub) AccountsCreator() state.AccountFactory {
 }
 
 // DataCodecHandler  -
-func (r *RunTypeComponentsStub) DataDecoderHandler() sovereign.DataDecoderHandler {
+func (r *RunTypeComponentsStub) DataCodecHandler() sovereign.DataCodecHandler {
 	return r.DataCodec
 }
 
