@@ -651,8 +651,9 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 
 		coreComp, cryptoComp := createComponentsForEpochStart()
 		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
-		args.RunTypeComponents = &mock.RunTypeComponentsStub{ShardCoordinatorFactory: nil}
-
+		rtMock := getRunTypeComponentsMock()
+		rtMock.ShardCoordinatorFactory = nil
+		args.RunTypeComponents = rtMock
 		epochStartProvider, err := NewEpochStartBootstrap(args)
 		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, errorsMx.ErrNilShardCoordinatorFactory))
@@ -662,8 +663,9 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 
 		coreComp, cryptoComp := createComponentsForEpochStart()
 		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
-		args.RunTypeComponents = &mock.RunTypeComponentsStub{ShardCoordinatorFactory: &testscommon.MultiShardCoordinatorFactoryMock{}, AdditionalStorageServiceFactory: nil}
-
+		rtMock := getRunTypeComponentsMock()
+		rtMock.AdditionalStorageServiceFactory = nil
+		args.RunTypeComponents = rtMock
 		epochStartProvider, err := NewEpochStartBootstrap(args)
 		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, errorsMx.ErrNilAdditionalStorageServiceCreator))
@@ -679,6 +681,14 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, errorsMx.ErrNilNodesCoordinatorFactory))
 	})
+}
+
+func getRunTypeComponentsMock() *mock.RunTypeComponentsStub {
+	rt := mock.NewRunTypeComponentsStub()
+	return &mock.RunTypeComponentsStub{
+		AdditionalStorageServiceFactory: rt.AdditionalStorageServiceCreator(),
+		ShardCoordinatorFactory:         rt.ShardCoordinatorCreator(),
+	}
 }
 
 func TestNewEpochStartBootstrap(t *testing.T) {
