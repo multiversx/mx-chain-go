@@ -22,6 +22,7 @@ import (
 	processSync "github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
 	"github.com/multiversx/mx-chain-go/process/track"
+	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -154,6 +155,9 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	}
 	if check.IfNil(mrc.topicsCheckerHandler) {
 		return errors.ErrNilTopicsChecker
+	}
+	if check.IfNil(mrc.shardCoordinatorCreator) {
+		return errors.ErrNilShardCoordinatorFactory
 	}
 	return nil
 }
@@ -420,6 +424,18 @@ func (mrc *managedRunTypeComponents) TopicsCheckerHandler() sovereign.TopicsChec
 	}
 
 	return mrc.runTypeComponents.topicsCheckerHandler
+}
+
+// ShardCoordinatorCreator returns the shard coordinator factory
+func (mrc *managedRunTypeComponents) ShardCoordinatorCreator() sharding.ShardCoordinatorFactory {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.shardCoordinatorCreator
 }
 
 // IsInterfaceNil returns true if the interface is nil

@@ -221,7 +221,6 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		GenesisNonce:                          args.GenesisNonce,
 		GenesisRound:                          args.GenesisRound,
 		RunTypeComponents:                     components.GetRunTypeComponents(),
-		ShardCoordinatorFactory:               sharding.NewMultiShardCoordinatorFactory(),
 		GenesisBlockCreatorFactory:            process2.NewGenesisBlockCreatorFactory(),
 		GenesisMetaBlockChecker:               processComp.NewGenesisMetaBlockChecker(),
 		ExtraHeaderSigVerifierHolder:          headerCheck.NewExtraHeaderSigVerifierHolder(),

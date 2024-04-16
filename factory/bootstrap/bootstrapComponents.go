@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
@@ -24,6 +22,9 @@ import (
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/latestData"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -42,7 +43,6 @@ type BootstrapComponentsFactoryArgs struct {
 	NetworkComponents                factory.NetworkComponentsHolder
 	StatusCoreComponents             factory.StatusCoreComponentsHolder
 	NodesCoordinatorWithRaterFactory nodesCoord.NodesCoordinatorWithRaterFactory
-	ShardCoordinatorFactory          sharding.ShardCoordinatorFactory
 	RunTypeComponents                factory.RunTypeComponentsHolder
 }
 
@@ -57,7 +57,6 @@ type bootstrapComponentsFactory struct {
 	networkComponents                factory.NetworkComponentsHolder
 	statusCoreComponents             factory.StatusCoreComponentsHolder
 	nodesCoordinatorWithRaterFactory nodesCoord.NodesCoordinatorWithRaterFactory
-	shardCoordinatorFactory          sharding.ShardCoordinatorFactory
 	runTypeComponents                factory.RunTypeComponentsHolder
 }
 
@@ -102,9 +101,6 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 	if check.IfNil(args.NodesCoordinatorWithRaterFactory) {
 		return nil, errors.ErrNilNodesCoordinatorFactory
 	}
-	if check.IfNil(args.ShardCoordinatorFactory) {
-		return nil, errors.ErrNilShardCoordinatorFactory
-	}
 	if check.IfNil(args.RunTypeComponents) {
 		return nil, errors.ErrNilRunTypeComponents
 	}
@@ -113,6 +109,9 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 	}
 	if check.IfNil(args.RunTypeComponents.AdditionalStorageServiceCreator()) {
 		return nil, errors.ErrNilAdditionalStorageServiceCreator
+	}
+	if check.IfNil(args.RunTypeComponents.ShardCoordinatorCreator()) {
+		return nil, errors.ErrNilShardCoordinatorFactory
 	}
 
 	return &bootstrapComponentsFactory{
@@ -127,7 +126,6 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 		statusCoreComponents:             args.StatusCoreComponents,
 		runTypeComponents:                args.RunTypeComponents,
 		nodesCoordinatorWithRaterFactory: args.NodesCoordinatorWithRaterFactory,
-		shardCoordinatorFactory:          args.ShardCoordinatorFactory,
 	}, nil
 }
 
@@ -165,7 +163,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		bcf.cryptoComponents.PublicKey(),
 		bcf.prefConfig.Preferences,
 		log,
-		bcf.shardCoordinatorFactory,
+		bcf.runTypeComponents.ShardCoordinatorCreator(),
 	)
 	if err != nil {
 		return nil, err
@@ -250,7 +248,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		StateStatsHandler:                bcf.statusCoreComponents.StateStatsHandler(),
 		NodesCoordinatorWithRaterFactory: bcf.nodesCoordinatorWithRaterFactory,
 		NodesCoordinatorRegistryFactory:  nodesCoordinatorRegistryFactory,
-		ShardCoordinatorFactory:          bcf.shardCoordinatorFactory,
+		ShardCoordinatorFactory:          bcf.runTypeComponents.ShardCoordinatorCreator(),
 		AdditionalStorageServiceCreator:  bcf.runTypeComponents.AdditionalStorageServiceCreator(),
 	}
 
@@ -263,7 +261,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 			TimeToWaitForRequestedData:       bootstrap.DefaultTimeToWaitForRequestedData,
 			EpochStartBootstrapperCreator:    bcf.runTypeComponents.EpochStartBootstrapperCreator(),
 			NodesCoordinatorWithRaterFactory: bcf.nodesCoordinatorWithRaterFactory,
-			ShardCoordinatorFactory:          bcf.shardCoordinatorFactory,
+			ShardCoordinatorFactory:          bcf.runTypeComponents.ShardCoordinatorCreator(),
 			ResolverRequestFactory:           bcf.runTypeComponents.RequestHandlerCreator(),
 		}
 
@@ -290,7 +288,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		"numShards", bootstrapParameters.NumOfShards,
 	)
 
-	shardCoordinator, err := bcf.shardCoordinatorFactory.CreateShardCoordinator(
+	shardCoordinator, err := bcf.runTypeComponents.ShardCoordinatorCreator().CreateShardCoordinator(
 		bootstrapParameters.NumOfShards,
 		bootstrapParameters.SelfShardId)
 	if err != nil {

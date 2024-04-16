@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -51,6 +52,7 @@ type runTypeComponentsHandler interface {
 	SCResultsPreProcessorCreator() preprocess.SmartContractResultPreProcessorCreator
 	SCProcessorCreator() scrCommon.SCProcessorCreator
 	AccountsCreator() state.AccountFactory
+	ShardCoordinatorCreator() sharding.ShardCoordinatorFactory
 	IsInterfaceNil() bool
 }
 
@@ -94,6 +96,5 @@ type ArgsGenesisBlockCreator struct {
 	importHandler          update.ImportHandler
 	versionedHeaderFactory genesis.VersionedHeaderFactory
 
-	ShardCoordinatorFactory sharding.ShardCoordinatorFactory
-	DNSV2Addresses          []string
+	DNSV2Addresses []string
 }
