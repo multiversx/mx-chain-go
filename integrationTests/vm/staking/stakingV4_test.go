@@ -1641,10 +1641,8 @@ func TestStakingV4LeavingNodesShouldDistributeToWaitingOnlyNecessaryNodes(t *tes
 	require.Len(t, currNodesCfg.auction, 343)                                                          // 400 initial - 57 leaving
 	requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesCfg.waiting), prevConfig.auction, 320) // 320 selected
 	requireSliceContainsNumOfElements(t, currNodesCfg.auction, prevConfig.auction, 69)                 // 69 unselected
-
-	nodesToUnStakeFromAuction = make([][]byte, 0)
-	nodesToUnStakeFromWaiting = make([][]byte, 0)
-	nodesToUnStakeFromEligible = make([][]byte, 0)
+	require.Len(t, getAllPubKeys(currNodesCfg.eligible), 1600)
+	require.Len(t, getAllPubKeys(currNodesCfg.waiting), 1280)
 
 	prevConfig = currNodesCfg
 	// UnStake:
@@ -1680,6 +1678,8 @@ func TestStakingV4LeavingNodesShouldDistributeToWaitingOnlyNecessaryNodes(t *tes
 	require.Len(t, currNodesCfg.auction, 150)                                                          // 138 shuffled out + 12 unselected
 	requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesCfg.waiting), prevConfig.auction, 320) // 320 selected
 	requireSliceContainsNumOfElements(t, currNodesCfg.auction, prevConfig.auction, 12)                 // 12 unselected
+	require.Len(t, getAllPubKeys(currNodesCfg.eligible), 1600)
+	require.Len(t, getAllPubKeys(currNodesCfg.waiting), 1280)
 }
 
 func TestStakingV4MoreLeavingNodesThanToShufflePerShard(t *testing.T) {
@@ -1763,6 +1763,8 @@ func TestStakingV4MoreLeavingNodesThanToShufflePerShard(t *testing.T) {
 	require.Len(t, currNodesCfg.auction, 80)                                                           // 400 initial - 320 selected
 	requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesCfg.waiting), prevConfig.auction, 320) // 320 selected
 	requireSliceContainsNumOfElements(t, currNodesCfg.auction, prevConfig.auction, 80)                 // 80 unselected
+	require.Len(t, getAllPubKeys(currNodesCfg.eligible), 1600)
+	require.Len(t, getAllPubKeys(currNodesCfg.waiting), 1280)
 
 	// Add 400 new nodes in the system and fast-forward
 	node.ProcessStake(t, map[string]*NodesRegisterData{
@@ -1784,4 +1786,6 @@ func TestStakingV4MoreLeavingNodesThanToShufflePerShard(t *testing.T) {
 	require.Len(t, getAllPubKeys(currNodesCfg.shuffledOut), 240)                                       // 240 shuffled out
 	requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesCfg.waiting), prevConfig.auction, 320) // 320 selected
 	requireSliceContainsNumOfElements(t, currNodesCfg.auction, prevConfig.auction, 80)                 // 80 unselected
+	require.Len(t, getAllPubKeys(currNodesCfg.eligible), 1600)
+	require.Len(t, getAllPubKeys(currNodesCfg.waiting), 1280)
 }
