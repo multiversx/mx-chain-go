@@ -120,6 +120,7 @@ func TestManagedRunTypeComponents_CheckSubcomponents(t *testing.T) {
 	err = managedRunTypeComponents.Create()
 	require.NoError(t, err)
 
+	//TODO check for nil each subcomponent - MX-15371
 	err = managedRunTypeComponents.CheckSubcomponents()
 	require.NoError(t, err)
 
