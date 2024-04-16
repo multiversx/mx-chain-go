@@ -9,6 +9,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	api2 "github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
@@ -20,8 +21,7 @@ import (
 )
 
 const (
-	defaultPathToInitialConfig             = "../../../cmd/node/config/"
-	maxNumOfBlockToGenerateWhenExecutingTx = 7
+	defaultPathToInitialConfig = "../../../cmd/node/config/"
 )
 
 func TestChainSimulator_IssueESDTWithPrefix(t *testing.T) {
@@ -75,13 +75,6 @@ func TestChainSimulator_IssueESDTWithPrefix(t *testing.T) {
 	require.Nil(t, err)
 
 	rcvAddrBytes, _ := cs.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Decode("erd1l6xt0rqlyzw56a3k8xwwshq2dcjwy3q9cppucvqsmdyw8r98dz3sae0kxl")
-	//keyValueMap := map[string]string{
-	//	"01": "01",
-	//	"02": "02",
-	//}
-	//err = cs.SetKeyValueForAddress("erd1lllllllllllllllllllllllllllllllllllllllllllllllllllsckry7t", keyValueMap)
-	//require.Nil(t, err)
-
 	// Step 3 --- generate and send a stake transaction with the BLS key of the validator key that was added at step 1
 	stakeValue, _ := big.NewInt(0).SetString("5000000000000000000", 10)
 	tx := &transaction.Transaction{
@@ -125,5 +118,9 @@ func TestChainSimulator_IssueESDTWithPrefix(t *testing.T) {
 
 	tokens, _, err := cs.GetNodeHandler(0).GetFacadeHandler().GetAllESDTTokens("erd1spyavw0956vq68xj8y4tenjpq2wd5a9p2c6j8gsz7ztyrnpxrruqzu66jx", api2.AccountQueryOptions{})
 	require.Nil(t, err)
-	require.NotEmpty(t, tokens)
+	require.Equal(t, map[string]*esdt.ESDigitalToken{
+		issuedTokens[0]: {
+			Value: big.NewInt(11),
+		},
+	}, tokens)
 }

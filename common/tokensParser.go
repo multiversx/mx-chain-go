@@ -17,6 +17,8 @@ const (
 
 	// maxLengthForTickerName represents the maximum number of characters a token's ticker can have
 	maxLengthForTickerName = 10
+
+	esdtMinPrefixLen = 4
 )
 
 // TODO: move this to core
@@ -33,20 +35,13 @@ func ExtractTokenIDAndNonceFromTokenStorageKey(tokenKey []byte) ([]byte, uint64)
 		return tokenKey, 0
 	}
 
-	if strings.Count(token, separatorChar) == 2 && string(token[len(token)-1]) != separatorChar {
-		token = token[indexOfFirstHyphen+1:]
-	}
-
+	token = getUnPrefixedToken(token)
 	tokenTicker := token[:indexOfFirstHyphen]
 	randomSequencePlusNonce := token[indexOfFirstHyphen+1:]
 
 	tokenTickerLen := len(tokenTicker)
 
-	areTickerAndRandomSequenceInvalid := tokenTickerLen == 0 ||
-		tokenTickerLen < minLengthForTickerName ||
-		tokenTickerLen > maxLengthForTickerName ||
-		len(randomSequencePlusNonce) == 0
-
+	areTickerAndRandomSequenceInvalid := !isTokenTickerLenCorrect(tokenTickerLen) || len(randomSequencePlusNonce) == 0
 	if areTickerAndRandomSequenceInvalid {
 		return tokenKey, 0
 	}
@@ -63,4 +58,48 @@ func ExtractTokenIDAndNonceFromTokenStorageKey(tokenKey []byte) ([]byte, uint64)
 	tokenID := token[:numCharsSinceNonce]
 
 	return []byte(tokenID), nonceBigInt.Uint64()
+}
+
+func getUnPrefixedToken(token string) string {
+	tokenSplit := strings.Split(token, separatorChar)
+	if len(tokenSplit) < 2 {
+		return token
+	}
+
+	prefix := tokenSplit[0]
+	if !isValidPrefix(prefix) {
+		return token
+	}
+
+	tokenTicker := tokenSplit[1]
+	tokenRandSeq := tokenSplit[2]
+	if !(isTokenTickerLenCorrect(len(tokenTicker)) && len(tokenRandSeq) == esdtTickerNumRandChars) {
+		return token
+	}
+
+	indexOfFirstHyphen := strings.Index(token, separatorChar)
+	return token[indexOfFirstHyphen+1:]
+}
+
+func isValidPrefix(prefix string) bool {
+	if len(prefix) > esdtMinPrefixLen {
+		return false
+	}
+
+	for _, ch := range prefix {
+		isLowerCaseCharacter := ch >= 'a' && ch <= 'z'
+		isNumber := ch >= '0' && ch <= '9'
+		isAllowedPrefix := isLowerCaseCharacter || isNumber
+		if !isAllowedPrefix {
+			return false
+		}
+	}
+
+	return true
+}
+
+func isTokenTickerLenCorrect(tokenTickerLen int) bool {
+	return !(tokenTickerLen == 0 ||
+		tokenTickerLen < minLengthForTickerName ||
+		tokenTickerLen > maxLengthForTickerName)
 }
