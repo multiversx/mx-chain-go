@@ -2,12 +2,15 @@ package bootstrap
 
 import (
 	"context"
+
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/dataRetriever"
-	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
 
 // StartOfEpochNodesConfigHandler defines the methods to process nodesConfig from epoch start metablocks
@@ -70,5 +73,11 @@ type EpochStartBootstrapperCreator interface {
 type EpochStartBootstrapper interface {
 	Bootstrap() (Parameters, error)
 	Close() error
+	IsInterfaceNil() bool
+}
+
+type RunTypeComponentsHolder interface {
+	AdditionalStorageServiceCreator() process.AdditionalStorageServiceCreator
+	ShardCoordinatorCreator() sharding.ShardCoordinatorFactory
 	IsInterfaceNil() bool
 }

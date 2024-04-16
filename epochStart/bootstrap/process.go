@@ -7,13 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/core/partitioning"
-	"github.com/multiversx/mx-chain-core-go/core/throttler"
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
 	"github.com/multiversx/mx-chain-go/common"
 	disabledCommon "github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/common/ordering"
@@ -52,6 +45,14 @@ import (
 	"github.com/multiversx/mx-chain-go/trie/storageMarker"
 	"github.com/multiversx/mx-chain-go/update"
 	updateSync "github.com/multiversx/mx-chain-go/update/sync"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/partitioning"
+	"github.com/multiversx/mx-chain-core-go/core/throttler"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -155,8 +156,7 @@ type epochStartBootstrap struct {
 	getDataToSyncMethod func(epochStartData data.EpochStartShardDataHandler, shardNotarizedHeader data.ShardHeaderHandler) (*dataToSync, error)
 
 	nodesCoordinatorWithRaterFactory nodesCoordinator.NodesCoordinatorWithRaterFactory
-	shardCoordinatorFactory          sharding.ShardCoordinatorFactory
-	additionalStorageServiceCreator  process.AdditionalStorageServiceCreator
+	runTypeComponents                RunTypeComponentsHolder
 }
 
 type baseDataInStorage struct {
@@ -196,8 +196,7 @@ type ArgsEpochStartBootstrap struct {
 	StateStatsHandler                common.StateStatisticsHandler
 	NodesCoordinatorRegistryFactory  nodesCoordinator.NodesCoordinatorRegistryFactory
 	NodesCoordinatorWithRaterFactory nodesCoordinator.NodesCoordinatorWithRaterFactory
-	ShardCoordinatorFactory          sharding.ShardCoordinatorFactory
-	AdditionalStorageServiceCreator  process.AdditionalStorageServiceCreator
+	RunTypeComponents                RunTypeComponentsHolder
 }
 
 type dataToSync struct {
@@ -251,8 +250,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		startEpoch:                       args.GeneralConfig.EpochStartConfig.GenesisEpoch,
 		nodesCoordinatorRegistryFactory:  args.NodesCoordinatorRegistryFactory,
 		nodesCoordinatorWithRaterFactory: args.NodesCoordinatorWithRaterFactory,
-		shardCoordinatorFactory:          args.ShardCoordinatorFactory,
-		additionalStorageServiceCreator:  args.AdditionalStorageServiceCreator,
+		runTypeComponents:                args.RunTypeComponents,
 	}
 
 	if epochStartProvider.prefsConfig.FullArchive {
@@ -360,7 +358,7 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 	defer e.cleanupOnBootstrapFinish()
 
 	var err error
-	e.shardCoordinator, err = e.shardCoordinatorFactory.CreateShardCoordinator(e.genesisShardCoordinator.NumberOfShards(), core.MetachainShardId)
+	e.shardCoordinator, err = e.runTypeComponents.ShardCoordinatorCreator().CreateShardCoordinator(e.genesisShardCoordinator.NumberOfShards(), core.MetachainShardId)
 	if err != nil {
 		return Parameters{}, err
 	}
@@ -710,7 +708,7 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 	log.Debug("start in epoch bootstrap: processNodesConfig")
 
 	e.saveSelfShardId()
-	e.shardCoordinator, err = e.shardCoordinatorFactory.CreateShardCoordinator(e.baseData.numberOfShards, e.baseData.shardId)
+	e.shardCoordinator, err = e.runTypeComponents.ShardCoordinatorCreator().CreateShardCoordinator(e.baseData.numberOfShards, e.baseData.shardId)
 	if err != nil {
 		return Parameters{}, fmt.Errorf("%w numberOfShards=%v shardId=%v", err, e.baseData.numberOfShards, e.baseData.shardId)
 	}
@@ -818,7 +816,7 @@ func (e *epochStartBootstrap) requestAndProcessForMeta(peerMiniBlocks []*block.M
 		ManagedPeersHolder:              e.cryptoComponentsHolder.ManagedPeersHolder(),
 		NodeProcessingMode:              e.nodeProcessingMode,
 		StateStatsHandler:               e.stateStatsHandler,
-		AdditionalStorageServiceCreator: e.additionalStorageServiceCreator,
+		AdditionalStorageServiceCreator: e.runTypeComponents.AdditionalStorageServiceCreator(),
 	}
 	storageHandlerComponent, err := NewMetaStorageHandler(argsStorageHandler)
 	if err != nil {
@@ -991,7 +989,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 		ManagedPeersHolder:              e.cryptoComponentsHolder.ManagedPeersHolder(),
 		NodeProcessingMode:              e.nodeProcessingMode,
 		StateStatsHandler:               e.stateStatsHandler,
-		AdditionalStorageServiceCreator: e.additionalStorageServiceCreator,
+		AdditionalStorageServiceCreator: e.runTypeComponents.AdditionalStorageServiceCreator(),
 	}
 	storageHandlerComponent, err := NewShardStorageHandler(argsStorageHandler)
 	if err != nil {
@@ -1182,7 +1180,7 @@ func (e *epochStartBootstrap) createStorageServiceForImportDB(
 			RepopulateTokensSupplies:        e.flagsConfig.RepopulateTokensSupplies,
 			ManagedPeersHolder:              e.cryptoComponentsHolder.ManagedPeersHolder(),
 			StateStatsHandler:               e.stateStatsHandler,
-			AdditionalStorageServiceCreator: e.additionalStorageServiceCreator,
+			AdditionalStorageServiceCreator: e.runTypeComponents.AdditionalStorageServiceCreator(),
 		})
 	if err != nil {
 		return nil, err
