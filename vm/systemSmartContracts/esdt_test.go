@@ -4497,7 +4497,7 @@ func TestEsdt_SetNFTCreateRoleAfterStopNFTCreateShouldNotWork(t *testing.T) {
 	assert.Equal(t, vmcommon.Ok, output)
 }
 
-func TestEsdt_createNewTokenIdentifierWithPrefix(t *testing.T) {
+func TestEsdt_CreateNewTokenIdentifierWithPrefix(t *testing.T) {
 	t.Parallel()
 
 	caller := []byte("caller")
@@ -4525,11 +4525,6 @@ func TestEsdt_createNewTokenIdentifierWithPrefix(t *testing.T) {
 	}
 	args.Eei = eei
 
-	esdtSC, _ := NewESDTSmartContract(args)
-	tokenID, err := esdtSC.createNewTokenIdentifier(caller, tokenName)
-	require.Nil(t, err)
-	require.Equal(t, []byte(fmt.Sprintf("%s-%s-%s", prefix, string(tokenName), suffix)), tokenID)
-
 	vmInput := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{
 			CallerAddr:  caller,
@@ -4544,8 +4539,10 @@ func TestEsdt_createNewTokenIdentifierWithPrefix(t *testing.T) {
 	vmInput.GasProvided = args.GasCost.MetaChainSystemSCsCost.ESDTIssue
 	vmInput.Arguments = [][]byte{caller, tokenName}
 
+	esdtSC, _ := NewESDTSmartContract(args)
 	output := esdtSC.Execute(vmInput)
-	assert.Equal(t, vmcommon.Ok, output)
-	//lastOutput := eei.output[len(eei.output)-1]
-	//assert.Equal(t, len(lastOutput), len(tokenName)+1+6)
+	require.Equal(t, vmcommon.Ok, output)
+	lastOutput := eei.output[len(eei.output)-1]
+	tokenID := []byte(fmt.Sprintf("%s-%s-%s", prefix, string(tokenName), suffix))
+	require.Equal(t, lastOutput, tokenID)
 }
