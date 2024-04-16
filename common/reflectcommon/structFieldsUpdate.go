@@ -175,7 +175,15 @@ func tryUpdateMapValue(value *reflect.Value, newValue reflect.Value) error {
 	switch newValue.Kind() {
 	case reflect.Map:
 		for _, key := range newValue.MapKeys() {
-			value.SetMapIndex(key, newValue.MapIndex(key))
+			item := newValue.MapIndex(key)
+			newItem := reflect.New(value.Type().Elem()).Elem()
+
+			err := trySetTheNewValue(&newItem, item.Interface())
+			if err != nil {
+				return err
+			}
+
+			value.SetMapIndex(key, newItem)
 		}
 	default:
 		return fmt.Errorf("unsupported type <%s> when trying to add value in type <%s>", newValue.Kind(), value.Kind())

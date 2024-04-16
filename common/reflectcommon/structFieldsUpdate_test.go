@@ -518,11 +518,9 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
 		require.NoError(t, err)
 
-		path := "TestConfigI8.Int8.Value"
-
-		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[0].Value)
+		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[0].Path, overrideConfig.OverridableConfigTomlValues[0].Value)
 		require.NoError(t, err)
-		require.Equal(t, overrideConfig.OverridableConfigTomlValues[0].Value, int64(testConfig.Int8.Value))
+		require.Equal(t, overrideConfig.OverridableConfigTomlValues[0].Value, int64(testConfig.Int8.Number))
 	})
 
 	t.Run("should error int8 value", func(t *testing.T) {
@@ -534,9 +532,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
 		require.NoError(t, err)
 
-		path := "TestConfigI8.Int8.Value"
-
-		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[1].Value)
+		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[1].Path, overrideConfig.OverridableConfigTomlValues[1].Value)
 		require.NotNil(t, err)
 		require.Equal(t, "unable to cast value '128' of type <int64> to type <int8>", err.Error())
 	})
@@ -550,11 +546,9 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
 		require.NoError(t, err)
 
-		path := "TestConfigI8.Int8.Value"
-
-		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[2].Value)
+		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[2].Path, overrideConfig.OverridableConfigTomlValues[2].Value)
 		require.NoError(t, err)
-		require.Equal(t, overrideConfig.OverridableConfigTomlValues[2].Value, int64(testConfig.Int8.Value))
+		require.Equal(t, overrideConfig.OverridableConfigTomlValues[2].Value, int64(testConfig.Int8.Number))
 	})
 
 	t.Run("should error int8 negative value", func(t *testing.T) {
@@ -566,9 +560,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
 		require.NoError(t, err)
 
-		path := "TestConfigI8.Int8.Value"
-
-		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[3].Value)
+		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[3].Path, overrideConfig.OverridableConfigTomlValues[3].Value)
 		require.NotNil(t, err)
 		require.Equal(t, "unable to cast value '-129' of type <int64> to type <int8>", err.Error())
 	})
@@ -582,11 +574,9 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
 		require.NoError(t, err)
 
-		path := "TestConfigI16.Int16.Value"
-
-		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[4].Value)
+		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[4].Path, overrideConfig.OverridableConfigTomlValues[4].Value)
 		require.NoError(t, err)
-		require.Equal(t, overrideConfig.OverridableConfigTomlValues[4].Value, int64(testConfig.Int16.Value))
+		require.Equal(t, overrideConfig.OverridableConfigTomlValues[4].Value, int64(testConfig.Int16.Number))
 	})
 
 	t.Run("should error int16 value", func(t *testing.T) {
@@ -598,9 +588,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
 		require.NoError(t, err)
 
-		path := "TestConfigI16.Int16.Value"
-
-		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[5].Value)
+		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[5].Path, overrideConfig.OverridableConfigTomlValues[5].Value)
 		require.NotNil(t, err)
 		require.Equal(t, "unable to cast value '32768' of type <int64> to type <int16>", err.Error())
 	})
@@ -614,11 +602,9 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
 		require.NoError(t, err)
 
-		path := "TestConfigI16.Int16.Value"
-
-		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[6].Value)
+		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[6].Path, overrideConfig.OverridableConfigTomlValues[6].Value)
 		require.NoError(t, err)
-		require.Equal(t, overrideConfig.OverridableConfigTomlValues[6].Value, int64(testConfig.Int16.Value))
+		require.Equal(t, overrideConfig.OverridableConfigTomlValues[6].Value, int64(testConfig.Int16.Number))
 	})
 
 	t.Run("should error int16 negative value", func(t *testing.T) {
@@ -630,9 +616,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
 		require.NoError(t, err)
 
-		path := "TestConfigI16.Int16.Value"
-
-		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[7].Value)
+		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[7].Path, overrideConfig.OverridableConfigTomlValues[7].Value)
 		require.NotNil(t, err)
 		require.Equal(t, "unable to cast value '-32769' of type <int64> to type <int16>", err.Error())
 	})
@@ -646,11 +630,9 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
 		require.NoError(t, err)
 
-		path := "TestConfigI32.Int32.Value"
-
-		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[17].Value)
+		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[8].Path, overrideConfig.OverridableConfigTomlValues[8].Value)
 		require.NoError(t, err)
-		require.Equal(t, overrideConfig.OverridableConfigTomlValues[17].Value, int64(testConfig.Int32.Value))
+		require.Equal(t, overrideConfig.OverridableConfigTomlValues[8].Value, int64(testConfig.Int32.Number))
 	})
 
 	t.Run("should work and override int32 value with uint16", func(t *testing.T) {
@@ -661,11 +643,11 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		expectedNewValue := uint16(10)
 
-		path := "TestConfigI32.Int32.Value"
+		path := "TestConfigI32.Int32.Number"
 
 		err = AdaptStructureValueBasedOnPath(testConfig, path, expectedNewValue)
 		require.NoError(t, err)
-		require.Equal(t, int32(expectedNewValue), testConfig.Int32.Value)
+		require.Equal(t, int32(expectedNewValue), testConfig.Int32.Number)
 	})
 
 	t.Run("should error int32 value", func(t *testing.T) {
@@ -677,9 +659,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
 		require.NoError(t, err)
 
-		path := "TestConfigI32.Int32.Value"
-
-		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[9].Value)
+		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[9].Path, overrideConfig.OverridableConfigTomlValues[9].Value)
 		require.NotNil(t, err)
 		require.Equal(t, "unable to cast value '2147483648' of type <int64> to type <int32>", err.Error())
 	})
@@ -693,11 +673,9 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
 		require.NoError(t, err)
 
-		path := "TestConfigI32.Int32.Value"
-
-		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[10].Value)
+		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[10].Path, overrideConfig.OverridableConfigTomlValues[10].Value)
 		require.NoError(t, err)
-		require.Equal(t, overrideConfig.OverridableConfigTomlValues[10].Value, int64(testConfig.Int32.Value))
+		require.Equal(t, overrideConfig.OverridableConfigTomlValues[10].Value, int64(testConfig.Int32.Number))
 	})
 
 	t.Run("should error int32 negative value", func(t *testing.T) {
@@ -709,9 +687,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
 		require.NoError(t, err)
 
-		path := "TestConfigI32.Int32.Value"
-
-		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[11].Value)
+		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[11].Path, overrideConfig.OverridableConfigTomlValues[11].Value)
 		require.NotNil(t, err)
 		require.Equal(t, "unable to cast value '-2147483649' of type <int64> to type <int32>", err.Error())
 	})
@@ -725,11 +701,9 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
 		require.NoError(t, err)
 
-		path := "TestConfigI64.Int64.Value"
-
-		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[12].Value)
+		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[12].Path, overrideConfig.OverridableConfigTomlValues[12].Value)
 		require.NoError(t, err)
-		require.Equal(t, overrideConfig.OverridableConfigTomlValues[12].Value, int64(testConfig.Int64.Value))
+		require.Equal(t, overrideConfig.OverridableConfigTomlValues[12].Value, int64(testConfig.Int64.Number))
 	})
 
 	t.Run("should work and override int64 negative value", func(t *testing.T) {
@@ -741,11 +715,9 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
 		require.NoError(t, err)
 
-		path := "TestConfigI64.Int64.Value"
-
-		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[13].Value)
+		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[13].Path, overrideConfig.OverridableConfigTomlValues[13].Value)
 		require.NoError(t, err)
-		require.Equal(t, overrideConfig.OverridableConfigTomlValues[13].Value, int64(testConfig.Int64.Value))
+		require.Equal(t, overrideConfig.OverridableConfigTomlValues[13].Value, int64(testConfig.Int64.Number))
 	})
 
 	t.Run("should work and override uint8 value", func(t *testing.T) {
@@ -757,11 +729,9 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
 		require.NoError(t, err)
 
-		path := "TestConfigU8.Uint8.Value"
-
-		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[14].Value)
+		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[14].Path, overrideConfig.OverridableConfigTomlValues[14].Value)
 		require.NoError(t, err)
-		require.Equal(t, overrideConfig.OverridableConfigTomlValues[14].Value, int64(testConfig.Uint8.Value))
+		require.Equal(t, overrideConfig.OverridableConfigTomlValues[14].Value, int64(testConfig.Uint8.Number))
 	})
 
 	t.Run("should error uint8 value", func(t *testing.T) {
@@ -773,9 +743,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
 		require.NoError(t, err)
 
-		path := "TestConfigU8.Uint8.Value"
-
-		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[15].Value)
+		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[15].Path, overrideConfig.OverridableConfigTomlValues[15].Value)
 		require.NotNil(t, err)
 		require.Equal(t, "unable to cast value '256' of type <int64> to type <uint8>", err.Error())
 	})
@@ -789,9 +757,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
 		require.NoError(t, err)
 
-		path := "TestConfigU8.Uint8.Value"
-
-		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[16].Value)
+		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[16].Path, overrideConfig.OverridableConfigTomlValues[16].Value)
 		require.NotNil(t, err)
 		require.Equal(t, "unable to cast value '-256' of type <int64> to type <uint8>", err.Error())
 	})
@@ -805,11 +771,9 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
 		require.NoError(t, err)
 
-		path := "TestConfigU16.Uint16.Value"
-
-		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[17].Value)
+		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[17].Path, overrideConfig.OverridableConfigTomlValues[17].Value)
 		require.NoError(t, err)
-		require.Equal(t, overrideConfig.OverridableConfigTomlValues[17].Value, int64(testConfig.Uint16.Value))
+		require.Equal(t, overrideConfig.OverridableConfigTomlValues[17].Value, int64(testConfig.Uint16.Number))
 	})
 
 	t.Run("should error uint16 value", func(t *testing.T) {
@@ -821,9 +785,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
 		require.NoError(t, err)
 
-		path := "TestConfigU16.Uint16.Value"
-
-		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[18].Value)
+		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[18].Path, overrideConfig.OverridableConfigTomlValues[18].Value)
 		require.NotNil(t, err)
 		require.Equal(t, "unable to cast value '65536' of type <int64> to type <uint16>", err.Error())
 	})
@@ -837,9 +799,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
 		require.NoError(t, err)
 
-		path := "TestConfigU16.Uint16.Value"
-
-		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[19].Value)
+		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[19].Path, overrideConfig.OverridableConfigTomlValues[19].Value)
 		require.NotNil(t, err)
 		require.Equal(t, "unable to cast value '-65536' of type <int64> to type <uint16>", err.Error())
 	})
@@ -853,11 +813,9 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
 		require.NoError(t, err)
 
-		path := "TestConfigU32.Uint32.Value"
-
-		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[20].Value)
+		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[20].Path, overrideConfig.OverridableConfigTomlValues[20].Value)
 		require.NoError(t, err)
-		require.Equal(t, overrideConfig.OverridableConfigTomlValues[20].Value, int64(testConfig.Uint32.Value))
+		require.Equal(t, overrideConfig.OverridableConfigTomlValues[20].Value, int64(testConfig.Uint32.Number))
 	})
 
 	t.Run("should error uint32 value", func(t *testing.T) {
@@ -869,9 +827,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
 		require.NoError(t, err)
 
-		path := "TestConfigU32.Uint32.Value"
-
-		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[21].Value)
+		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[21].Path, overrideConfig.OverridableConfigTomlValues[21].Value)
 		require.NotNil(t, err)
 		require.Equal(t, "unable to cast value '4294967296' of type <int64> to type <uint32>", err.Error())
 	})
@@ -885,9 +841,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
 		require.NoError(t, err)
 
-		path := "TestConfigU32.Uint32.Value"
-
-		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[22].Value)
+		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[22].Path, overrideConfig.OverridableConfigTomlValues[22].Value)
 		require.NotNil(t, err)
 		require.Equal(t, "unable to cast value '-4294967296' of type <int64> to type <uint32>", err.Error())
 	})
@@ -901,11 +855,9 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
 		require.NoError(t, err)
 
-		path := "TestConfigU64.Uint64.Value"
-
-		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[23].Value)
+		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[23].Path, overrideConfig.OverridableConfigTomlValues[23].Value)
 		require.NoError(t, err)
-		require.Equal(t, overrideConfig.OverridableConfigTomlValues[23].Value, int64(testConfig.Uint64.Value))
+		require.Equal(t, overrideConfig.OverridableConfigTomlValues[23].Value, int64(testConfig.Uint64.Number))
 	})
 
 	t.Run("should error uint64 negative value", func(t *testing.T) {
@@ -917,9 +869,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
 		require.NoError(t, err)
 
-		path := "TestConfigU64.Uint64.Value"
-
-		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[24].Value)
+		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[24].Path, overrideConfig.OverridableConfigTomlValues[24].Value)
 		require.Equal(t, "unable to cast value '-9223372036854775808' of type <int64> to type <uint64>", err.Error())
 	})
 
@@ -932,11 +882,9 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
 		require.NoError(t, err)
 
-		path := "TestConfigF32.Float32.Value"
-
-		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[25].Value)
+		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[25].Path, overrideConfig.OverridableConfigTomlValues[25].Value)
 		require.NoError(t, err)
-		require.Equal(t, float32(3.4), testConfig.Float32.Value)
+		require.Equal(t, float32(3.4), testConfig.Float32.Number)
 	})
 
 	t.Run("should error float32 value", func(t *testing.T) {
@@ -948,9 +896,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
 		require.NoError(t, err)
 
-		path := "TestConfigF32.Float32.Value"
-
-		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[26].Value)
+		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[26].Path, overrideConfig.OverridableConfigTomlValues[26].Value)
 		require.NotNil(t, err)
 		require.Equal(t, "unable to cast value '3.4e+39' of type <float64> to type <float32>", err.Error())
 	})
@@ -964,11 +910,9 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
 		require.NoError(t, err)
 
-		path := "TestConfigF32.Float32.Value"
-
-		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[27].Value)
+		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[27].Path, overrideConfig.OverridableConfigTomlValues[27].Value)
 		require.NoError(t, err)
-		require.Equal(t, float32(-3.4), testConfig.Float32.Value)
+		require.Equal(t, float32(-3.4), testConfig.Float32.Number)
 	})
 
 	t.Run("should error float32 negative value", func(t *testing.T) {
@@ -980,9 +924,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
 		require.NoError(t, err)
 
-		path := "TestConfigF32.Float32.Value"
-
-		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[28].Value)
+		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[28].Path, overrideConfig.OverridableConfigTomlValues[28].Value)
 		require.NotNil(t, err)
 		require.Equal(t, "unable to cast value '-3.4e+40' of type <float64> to type <float32>", err.Error())
 	})
@@ -996,11 +938,9 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
 		require.NoError(t, err)
 
-		path := "TestConfigF64.Float64.Value"
-
-		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[29].Value)
+		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[29].Path, overrideConfig.OverridableConfigTomlValues[29].Value)
 		require.NoError(t, err)
-		require.Equal(t, overrideConfig.OverridableConfigTomlValues[29].Value, testConfig.Float64.Value)
+		require.Equal(t, overrideConfig.OverridableConfigTomlValues[29].Value, testConfig.Float64.Number)
 	})
 
 	t.Run("should work and override float64 negative value", func(t *testing.T) {
@@ -1012,11 +952,9 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
 		require.NoError(t, err)
 
-		path := "TestConfigF64.Float64.Value"
-
-		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[30].Value)
+		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[30].Path, overrideConfig.OverridableConfigTomlValues[30].Value)
 		require.NoError(t, err)
-		require.Equal(t, overrideConfig.OverridableConfigTomlValues[30].Value, testConfig.Float64.Value)
+		require.Equal(t, overrideConfig.OverridableConfigTomlValues[30].Value, testConfig.Float64.Number)
 	})
 
 	t.Run("should work and override struct", func(t *testing.T) {
@@ -1028,13 +966,11 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
 		require.NoError(t, err)
 
-		path := "TestConfigStruct.ConfigStruct.Description"
-
 		expectedNewValue := toml.Description{
 			Number: 11,
 		}
 
-		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[31].Value)
+		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[31].Path, overrideConfig.OverridableConfigTomlValues[31].Value)
 		require.NoError(t, err)
 		require.Equal(t, expectedNewValue, testConfig.TestConfigStruct.ConfigStruct.Description)
 	})
@@ -1048,9 +984,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
 		require.NoError(t, err)
 
-		path := "TestConfigStruct.ConfigStruct.Description"
-
-		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[32].Value)
+		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[32].Path, overrideConfig.OverridableConfigTomlValues[32].Value)
 		require.Equal(t, "field <Nr> not found or cannot be set", err.Error())
 	})
 
@@ -1063,9 +997,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
 		require.NoError(t, err)
 
-		path := "TestConfigStruct.ConfigStruct.Description"
-
-		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[33].Value)
+		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[33].Path, overrideConfig.OverridableConfigTomlValues[33].Value)
 		require.Equal(t, "unable to cast value '11' of type <string> to type <uint32>", err.Error())
 	})
 
@@ -1078,8 +1010,6 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
 		require.NoError(t, err)
 
-		path := "TestConfigNestedStruct.ConfigNestedStruct"
-
 		expectedNewValue := toml.ConfigNestedStruct{
 			Text: "Overwritten text",
 			Message: toml.Message{
@@ -1090,7 +1020,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 			},
 		}
 
-		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[34].Value)
+		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[34].Path, overrideConfig.OverridableConfigTomlValues[34].Value)
 		require.NoError(t, err)
 		require.Equal(t, expectedNewValue, testConfig.TestConfigNestedStruct.ConfigNestedStruct)
 	})
@@ -1104,14 +1034,12 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
 		require.NoError(t, err)
 
-		path := "TestConfigNestedStruct.ConfigNestedStruct.Message.MessageDescription"
-
 		expectedNewValue := []toml.MessageDescription{
 			{Text: "Overwritten Text1"},
 			{Text: "Overwritten Text2"},
 		}
 
-		err = AdaptStructureValueBasedOnPath(testConfig, path, overrideConfig.OverridableConfigTomlValues[35].Value)
+		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[35].Path, overrideConfig.OverridableConfigTomlValues[35].Value)
 		require.NoError(t, err)
 		require.Equal(t, expectedNewValue, testConfig.TestConfigNestedStruct.ConfigNestedStruct.Message.MessageDescription)
 	})
@@ -1194,38 +1122,72 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		require.Equal(t, expectedNewValue, testConfig.TestConfigNestedStruct.ConfigNestedStruct.Message.MessageDescription)
 	})
 
-	t.Run("should work on map and override existing value in map", func(t *testing.T) {
+	t.Run("should work on map, override and insert from config", func(t *testing.T) {
 		t.Parallel()
 
 		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
 		require.NoError(t, err)
 
-		expectedNewValue := make(map[string]int)
-		expectedNewValue["key"] = 100
-
-		path := "TestMap.Value"
-
-		err = AdaptStructureValueBasedOnPath(testConfig, path, expectedNewValue)
+		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
 		require.NoError(t, err)
-		require.Equal(t, 1, len(testConfig.TestMap.Value))
-		require.Equal(t, testConfig.TestMap.Value["key"], 100)
+
+		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[36].Path, overrideConfig.OverridableConfigTomlValues[36].Value)
+		require.NoError(t, err)
+		require.Equal(t, 2, len(testConfig.TestMap.Map))
+		require.Equal(t, 10, testConfig.TestMap.Map["Key1"].Number)
+		require.Equal(t, 11, testConfig.TestMap.Map["Key2"].Number)
 	})
 
-	t.Run("should work on map and insert values in map", func(t *testing.T) {
+	t.Run("should work on map and insert from config", func(t *testing.T) {
 		t.Parallel()
 
 		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
 		require.NoError(t, err)
 
-		expectedNewValue := make(map[string]int)
-		expectedNewValue["first"] = 1
-		expectedNewValue["second"] = 2
+		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
+		require.NoError(t, err)
 
-		path := "TestMap.Value"
+		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[37].Path, overrideConfig.OverridableConfigTomlValues[37].Value)
+		require.NoError(t, err)
+		require.Equal(t, 3, len(testConfig.TestMap.Map))
+		require.Equal(t, 999, testConfig.TestMap.Map["Key1"].Number)
+		require.Equal(t, 2, testConfig.TestMap.Map["Key2"].Number)
+		require.Equal(t, 3, testConfig.TestMap.Map["Key3"].Number)
+	})
+
+	t.Run("should work on map, override and insert values in map", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		expectedNewValue := make(map[string]toml.MapValues)
+		expectedNewValue["Key1"] = toml.MapValues{Number: 100}
+		expectedNewValue["Key2"] = toml.MapValues{Number: 200}
+
+		path := "TestMap.Map"
 
 		err = AdaptStructureValueBasedOnPath(testConfig, path, expectedNewValue)
 		require.NoError(t, err)
-		require.Equal(t, 3, len(testConfig.TestMap.Value))
+		require.Equal(t, 2, len(testConfig.TestMap.Map))
+		require.Equal(t, 100, testConfig.TestMap.Map["Key1"].Number)
+		require.Equal(t, 200, testConfig.TestMap.Map["Key2"].Number)
+	})
+
+	t.Run("should error on map when override different map", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		expectedNewValue := make(map[string]toml.MessageDescription)
+		expectedNewValue["Key1"] = toml.MessageDescription{Text: "A"}
+		expectedNewValue["Key2"] = toml.MessageDescription{Text: "B"}
+
+		path := "TestMap.Map"
+
+		err = AdaptStructureValueBasedOnPath(testConfig, path, expectedNewValue)
+		require.Equal(t, "field <Text> not found or cannot be set", err.Error())
 	})
 
 	t.Run("should error on map when override anything else other than map", func(t *testing.T) {
@@ -1236,7 +1198,7 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 
 		expectedNewValue := 1
 
-		path := "TestMap.Value"
+		path := "TestMap.Map"
 
 		err = AdaptStructureValueBasedOnPath(testConfig, path, expectedNewValue)
 		require.Equal(t, "unsupported type <int> when trying to add value in type <map>", err.Error())
