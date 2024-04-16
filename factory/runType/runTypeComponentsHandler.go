@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-go/consensus"
+	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/errors"
@@ -144,6 +145,9 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	}
 	if check.IfNil(mrc.accountsCreator) {
 		return errors.ErrNilAccountsCreator
+	}
+	if check.IfNil(mrc.outGoingOperationsPoolHandler) {
+		return errors.ErrNilOutGoingOperationsPool
 	}
 	if check.IfNil(mrc.dataCodecHandler) {
 		return errors.ErrNilDataCodec
@@ -380,6 +384,18 @@ func (mrc *managedRunTypeComponents) AccountsCreator() state.AccountFactory {
 	}
 
 	return mrc.runTypeComponents.accountsCreator
+}
+
+// OutGoingOperationsPoolHandler return the outgoing operations pool factory
+func (mrc *managedRunTypeComponents) OutGoingOperationsPoolHandler() sovereignBlock.OutGoingOperationsPool {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.outGoingOperationsPoolHandler
 }
 
 // DataCodecHandler returns the data codec factory

@@ -2,6 +2,7 @@ package mainFactoryMocks
 
 import (
 	"github.com/multiversx/mx-chain-go/consensus"
+	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
@@ -43,6 +44,7 @@ type RunTypeComponentsStub struct {
 	VmContainerMetaFactory              factoryVm.VmContainerCreator
 	VmContainerShardFactory             factoryVm.VmContainerCreator
 	AccountCreator                      state.AccountFactory
+	OutGoingOperationsPool              sovereignBlock.OutGoingOperationsPool
 	DataCodec                           sovereign.DataCodecHandler
 	TopicsChecker                       sovereign.TopicsCheckerHandler
 }
@@ -69,6 +71,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		VmContainerMetaFactory:              &testFactory.VMContainerMetaFactoryMock{},
 		VmContainerShardFactory:             &testFactory.VMContainerShardFactoryMock{},
 		AccountCreator:                      &stateMock.AccountsFactoryStub{},
+		OutGoingOperationsPool:              &sovereignMocks.OutGoingOperationsPoolMock{},
 		DataCodec:                           &sovereignMocks.DataCodecMock{},
 		TopicsChecker:                       &sovereignMocks.TopicsCheckerMock{},
 	}
@@ -187,6 +190,11 @@ func (r *RunTypeComponentsStub) VmContainerShardFactoryCreator() factoryVm.VmCon
 // AccountsCreator -
 func (r *RunTypeComponentsStub) AccountsCreator() state.AccountFactory {
 	return r.AccountCreator
+}
+
+// OutGoingOperationsPoolHandler -
+func (r *RunTypeComponentsStub) OutGoingOperationsPoolHandler() sovereignBlock.OutGoingOperationsPool {
+	return r.OutGoingOperationsPool
 }
 
 // DataCodecHandler -

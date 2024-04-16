@@ -5,24 +5,24 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/errors"
+
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
-	"github.com/multiversx/mx-chain-go/consensus/spos"
-	"github.com/multiversx/mx-chain-go/errors"
-	"github.com/multiversx/mx-chain-go/process/block"
 )
 
 type sovereignSubRoundEnd struct {
 	*subroundEndRoundV2
-	outGoingOperationsPool block.OutGoingOperationsPool
+	outGoingOperationsPool OutGoingOperationsPool
 	bridgeOpHandler        BridgeOperationsHandler
 }
 
 // NewSovereignSubRoundEndRound creates a new sovereign end subround
 func NewSovereignSubRoundEndRound(
 	subRoundEnd *subroundEndRoundV2,
-	outGoingOperationsPool block.OutGoingOperationsPool,
+	outGoingOperationsPool OutGoingOperationsPool,
 	bridgeOpHandler BridgeOperationsHandler,
 ) (*sovereignSubRoundEnd, error) {
 	if check.IfNil(subRoundEnd) {

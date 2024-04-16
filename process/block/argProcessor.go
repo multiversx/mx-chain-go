@@ -98,7 +98,6 @@ type ArgBaseProcessor struct {
 	ManagedPeersHolder             common.ManagedPeersHolder
 	SentSignaturesTracker          process.SentSignaturesTracker
 	ValidatorStatisticsProcessor   process.ValidatorStatisticsProcessor
-	OutGoingOperationsPool         OutGoingOperationsPool
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create

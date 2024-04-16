@@ -815,6 +815,16 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 			args: func() blproc.ArgBaseProcessor {
 				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 				rtMock := mock.NewRunTypeComponentsStub()
+				rtMock.OutGoingOperationsPool = nil
+				args.RunTypeComponents = rtMock
+				return args
+			},
+			expectedErr: errorsMx.ErrNilOutGoingOperationsPool,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				rtMock := mock.NewRunTypeComponentsStub()
 				rtMock.DataCodec = nil
 				args.RunTypeComponents = rtMock
 				return args
@@ -844,7 +854,6 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 	err := blproc.CheckProcessorNilParameters(args)
 	require.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
 }
-
 func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 	t.Parallel()
 

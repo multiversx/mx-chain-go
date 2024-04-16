@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/consensus"
+	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/errors"
@@ -54,6 +55,7 @@ type runTypeComponents struct {
 	vmContainerMetaFactory              factoryVm.VmContainerCreator
 	vmContainerShardFactory             factoryVm.VmContainerCreator
 	accountsCreator                     state.AccountFactory
+	outGoingOperationsPoolHandler       sovereignBlock.OutGoingOperationsPool
 	dataCodecHandler                    sovereign.DataCodecHandler
 	topicsCheckerHandler                sovereign.TopicsCheckerHandler
 }
@@ -176,6 +178,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		vmContainerMetaFactory:              vmContainerMetaCreator,
 		vmContainerShardFactory:             vmContainerShardCreator,
 		accountsCreator:                     accountsCreator,
+		outGoingOperationsPoolHandler:       disabled.NewDisabledOutGoingOperationPool(),
 		dataCodecHandler:                    disabled.NewDisabledDataCodec(),
 		topicsCheckerHandler:                disabled.NewDisabledTopicsChecker(),
 	}, nil

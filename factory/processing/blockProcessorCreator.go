@@ -480,7 +480,6 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		ManagedPeersHolder:           pcf.crypto.ManagedPeersHolder(),
 		SentSignaturesTracker:        sentSignaturesTracker,
 		ValidatorStatisticsProcessor: validatorStatisticsProcessor,
-		OutGoingOperationsPool:       pcf.outGoingOperationsPool,
 	}
 	blockProcessor, err := pcf.createBlockProcessor(argumentsBaseProcessor)
 	if err != nil {

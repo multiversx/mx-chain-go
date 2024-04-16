@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/dblookupext"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -595,6 +596,7 @@ type RunTypeComponentsHolder interface {
 	VmContainerMetaFactoryCreator() factoryVm.VmContainerCreator
 	VmContainerShardFactoryCreator() factoryVm.VmContainerCreator
 	AccountsCreator() state.AccountFactory
+	OutGoingOperationsPoolHandler() sovereignBlock.OutGoingOperationsPool
 	DataCodecHandler() sovereign.DataCodecHandler
 	TopicsCheckerHandler() sovereign.TopicsCheckerHandler
 	Create() error

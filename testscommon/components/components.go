@@ -627,7 +627,6 @@ func GetProcessArgs(
 		ShardResolversContainerFactoryCreator: resolverscontainer.NewShardResolversContainerFactoryCreator(),
 		TxPreProcessorCreator:                 preprocess.NewTxPreProcessorCreator(),
 		ExtraHeaderSigVerifierHolder:          &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
-		OutGoingOperationsPool:                &sovereign.OutGoingOperationsPoolMock{},
 		RunTypeComponents:                     GetRunTypeComponents(),
 	}
 }
