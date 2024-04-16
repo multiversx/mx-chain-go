@@ -4104,7 +4104,7 @@ func TestEsdt_ExecuteChangeSFTToMetaESDT(t *testing.T) {
 
 	token, _ := e.getExistingToken(vmInput.Arguments[0])
 	assert.Equal(t, token.NumDecimals, uint32(10))
-	assert.Equal(t, token.TokenType, []byte(metaESDT))
+	assert.Equal(t, token.TokenType, []byte(core.MetaESDT))
 }
 
 func TestEsdt_ExecuteIssueSFTAndChangeSFTToMetaESDT(t *testing.T) {
@@ -4138,7 +4138,7 @@ func TestEsdt_ExecuteIssueSFTAndChangeSFTToMetaESDT(t *testing.T) {
 
 	token, _ = e.getExistingToken(fullTicker)
 	assert.Equal(t, token.NumDecimals, uint32(10))
-	assert.Equal(t, token.TokenType, []byte(metaESDT))
+	assert.Equal(t, token.TokenType, []byte(core.MetaESDT))
 
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
@@ -4272,7 +4272,7 @@ func TestEsdt_ExecuteRegisterAndSetMetaESDTShouldSetType(t *testing.T) {
 
 	registerAndSetAllRolesWithTypeCheck(t, []byte("NFT"), []byte(core.NonFungibleESDT))
 	registerAndSetAllRolesWithTypeCheck(t, []byte("SFT"), []byte(core.SemiFungibleESDT))
-	registerAndSetAllRolesWithTypeCheck(t, []byte("META"), []byte(metaESDT))
+	registerAndSetAllRolesWithTypeCheck(t, []byte("META"), []byte(core.MetaESDT))
 	registerAndSetAllRolesWithTypeCheck(t, []byte("FNG"), []byte(core.FungibleESDT))
 }
 
@@ -4442,11 +4442,11 @@ func TestEsdt_CheckRolesOnMetaESDT(t *testing.T) {
 	args.Eei = eei
 	e, _ := NewESDTSmartContract(args)
 
-	err := e.checkSpecialRolesAccordingToTokenType([][]byte{[]byte("random")}, &ESDTDataV2{TokenType: []byte(metaESDT)})
+	err := e.checkSpecialRolesAccordingToTokenType([][]byte{[]byte("random")}, &ESDTDataV2{TokenType: []byte(core.MetaESDT)})
 	assert.Nil(t, err)
 
 	enableEpochsHandler.AddActiveFlags(common.ManagedCryptoAPIsFlag)
-	err = e.checkSpecialRolesAccordingToTokenType([][]byte{[]byte("random")}, &ESDTDataV2{TokenType: []byte(metaESDT)})
+	err = e.checkSpecialRolesAccordingToTokenType([][]byte{[]byte("random")}, &ESDTDataV2{TokenType: []byte(core.MetaESDT)})
 	assert.Equal(t, err, vm.ErrInvalidArgument)
 }
 
@@ -4495,6 +4495,335 @@ func TestEsdt_SetNFTCreateRoleAfterStopNFTCreateShouldNotWork(t *testing.T) {
 	eei.returnMessage = ""
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.Ok, output)
+}
+
+func TestEsdt_UpdateTokenType(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
+	eei := createDefaultEei()
+	args.Eei = eei
+
+	owner := bytes.Repeat([]byte{1}, 32)
+	tokenName := []byte("TOKEN-ABABAB")
+	tokensMap := map[string][]byte{}
+	marshalizedData, _ := args.Marshalizer.Marshal(ESDTDataV2{
+		TokenName:          tokenName,
+		OwnerAddress:       owner,
+		CanPause:           true,
+		IsPaused:           true,
+		TokenType:          []byte(core.NonFungibleESDT),
+		CanAddSpecialRoles: true,
+	})
+	tokensMap[string(tokenName)] = marshalizedData
+	eei.storageUpdate[string(eei.scAddress)] = tokensMap
+
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := getDefaultVmInputForFunc("setSpecialRole", [][]byte{tokenName, owner, []byte(core.ESDTRoleNFTCreate)})
+	vmInput.CallerAddr = owner
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	vmInput = getDefaultVmInputForFunc("stopNFTCreate", [][]byte{tokenName})
+	vmInput.CallerAddr = owner
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	vmInput = getDefaultVmInputForFunc("setSpecialRole", [][]byte{tokenName, owner, []byte(core.ESDTRoleNFTCreate)})
+	vmInput.CallerAddr = owner
+	enableEpochsHandler.AddActiveFlags(common.NFTStopCreateFlag)
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "cannot add NFT create role as NFT creation was stopped"))
+
+	enableEpochsHandler.RemoveActiveFlags(common.NFTStopCreateFlag)
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+}
+
+func TestEsdt_ExecuteChangeToMultiShardCreate(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei := createDefaultEei()
+	args.Eei = eei
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := getDefaultVmInputForFunc("changeToMultiShardCreate", nil)
+
+	eei.returnMessage = ""
+	eei.gasRemaining = 9999
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.Equal(t, eei.returnMessage, "invalid number of arguments")
+
+	vmInput.Arguments = [][]byte{[]byte("tokenName")}
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "no ticker with given name"))
+
+	esdtData := &ESDTDataV2{TokenType: []byte(core.NonFungibleESDT), OwnerAddress: vmInput.CallerAddr}
+	_ = e.saveToken(vmInput.Arguments[0], esdtData)
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "cannot add special roles"))
+
+	esdtData.CanAddSpecialRoles = true
+	esdtData.CanCreateMultiShard = true
+	_ = e.saveToken(vmInput.Arguments[0], esdtData)
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "it is already multi shard create"))
+
+	esdtData.CanCreateMultiShard = false
+	_ = e.saveToken(vmInput.Arguments[0], esdtData)
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "element was not found"))
+
+	esdtData.SpecialRoles = append(esdtData.SpecialRoles, &ESDTRoles{Address: vmInput.CallerAddr, Roles: [][]byte{[]byte(core.ESDTRoleNFTCreate)}})
+	_ = e.saveToken(vmInput.Arguments[0], esdtData)
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+}
+
+func TestEsdt_UpdateTokenID(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei := createDefaultEei()
+	args.Eei = eei
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := getDefaultVmInputForFunc("updateTokenID", nil)
+
+	enableEpochsHandler.RemoveActiveFlags(common.DynamicESDTFlag)
+	eei.returnMessage = ""
+	eei.gasRemaining = 9999
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.FunctionNotFound, output)
+	assert.Equal(t, eei.returnMessage, "invalid method to call")
+
+	eei.returnMessage = ""
+	eei.gasRemaining = 9999
+	enableEpochsHandler.AddActiveFlags(common.DynamicESDTFlag)
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.FunctionWrongSignature, output)
+	assert.Equal(t, eei.returnMessage, "invalid number of arguments, wanted 1")
+
+	vmInput.Arguments = [][]byte{[]byte("tokenName")}
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "no ticker with given name"))
+
+	esdtData := &ESDTDataV2{TokenType: []byte(core.NonFungibleESDT), OwnerAddress: vmInput.CallerAddr}
+	_ = e.saveToken(vmInput.Arguments[0], esdtData)
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	esdtData, _ = e.getExistingToken(vmInput.Arguments[0])
+	assert.Equal(t, esdtData.TokenType, []byte(core.NonFungibleESDTv2))
+}
+
+func TestEsdt_RegisterDynamic(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei := createDefaultEei()
+	args.Eei = eei
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := getDefaultVmInputForFunc("registerDynamic", nil)
+
+	enableEpochsHandler.RemoveActiveFlags(common.DynamicESDTFlag)
+	eei.returnMessage = ""
+	eei.gasRemaining = 9999
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.FunctionNotFound, output)
+	assert.Equal(t, eei.returnMessage, "invalid method to call")
+
+	eei.returnMessage = ""
+	eei.gasRemaining = 9999
+	enableEpochsHandler.AddActiveFlags(common.DynamicESDTFlag)
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.Equal(t, eei.returnMessage, "not enough arguments")
+
+	vmInput.Arguments = [][]byte{[]byte("tokenName")}
+	vmInput.CallValue = big.NewInt(0).Set(e.baseIssuingCost)
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "not enough arguments"))
+
+	vmInput.Arguments = [][]byte{[]byte("tokenName"), []byte("ABABAB"), []byte("WRONGTYPE")}
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "invalid argument"))
+
+	vmInput.Arguments = [][]byte{[]byte("tokenName"), []byte("ABABAB"), []byte("META")}
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "not enough arguments"))
+
+	decimals := big.NewInt(20)
+	vmInput.Arguments = [][]byte{[]byte("tokenName"), []byte("ABABAB"), []byte("META"), decimals.Bytes()}
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+
+	decimals = big.NewInt(10)
+	vmInput.Arguments = [][]byte{[]byte("tokenName"), []byte("ABABAB"), []byte("META"), decimals.Bytes(), []byte("wrongextra")}
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+
+	vmInput.Arguments = [][]byte{[]byte("tokenName"), []byte("ABABAB"), []byte("META"), decimals.Bytes()}
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+}
+
+func TestEsdt_RegisterAndSetAllRolesDynamic(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei := createDefaultEei()
+	args.Eei = eei
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := getDefaultVmInputForFunc("registerAndSetAllRolesDynamic", nil)
+
+	enableEpochsHandler.RemoveActiveFlags(common.DynamicESDTFlag)
+	eei.returnMessage = ""
+	eei.gasRemaining = 9999
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.FunctionNotFound, output)
+	assert.Equal(t, eei.returnMessage, "invalid method to call")
+
+	eei.returnMessage = ""
+	eei.gasRemaining = 9999
+	enableEpochsHandler.AddActiveFlags(common.DynamicESDTFlag)
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.Equal(t, eei.returnMessage, "not enough arguments")
+
+	vmInput.Arguments = [][]byte{[]byte("tokenName")}
+	vmInput.CallValue = big.NewInt(0).Set(e.baseIssuingCost)
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "not enough arguments"))
+
+	vmInput.Arguments = [][]byte{[]byte("tokenName"), []byte("ABABAB"), []byte("WRONGTYPE")}
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "invalid argument"))
+
+	vmInput.Arguments = [][]byte{[]byte("tokenName"), []byte("ABABAB"), []byte("META")}
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "not enough arguments"))
+
+	decimals := big.NewInt(20)
+	vmInput.Arguments = [][]byte{[]byte("tokenName"), []byte("ABABAB"), []byte("META"), decimals.Bytes()}
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+
+	decimals = big.NewInt(10)
+	vmInput.Arguments = [][]byte{[]byte("tokenName"), []byte("ABABAB"), []byte("META"), decimals.Bytes(), []byte("wrongextra")}
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+
+	vmInput.Arguments = [][]byte{[]byte("tokenName"), []byte("ABABAB"), []byte("META"), decimals.Bytes()}
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+}
+
+func TestEsdt_ChangeToDynamic(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	eei := createDefaultEei()
+	args.Eei = eei
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
+	e, _ := NewESDTSmartContract(args)
+
+	vmInput := getDefaultVmInputForFunc("changeToDynamic", nil)
+
+	enableEpochsHandler.RemoveActiveFlags(common.DynamicESDTFlag)
+	eei.returnMessage = ""
+	eei.gasRemaining = 9999
+	output := e.Execute(vmInput)
+	assert.Equal(t, vmcommon.FunctionNotFound, output)
+	assert.Equal(t, eei.returnMessage, "invalid method to call")
+
+	eei.returnMessage = ""
+	eei.gasRemaining = 9999
+	enableEpochsHandler.AddActiveFlags(common.DynamicESDTFlag)
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.Equal(t, eei.returnMessage, "not enough arguments")
+
+	vmInput.Arguments = [][]byte{[]byte("tokenName")}
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "no ticker with given name"))
+
+	esdtData := &ESDTDataV2{TokenType: []byte(core.FungibleESDT), OwnerAddress: vmInput.CallerAddr}
+	_ = e.saveToken(vmInput.Arguments[0], esdtData)
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "cannot change fungible tokens to dynamic"))
+
+	esdtData.TokenType = []byte(core.DynamicMetaESDT)
+	_ = e.saveToken(vmInput.Arguments[0], esdtData)
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	assert.True(t, strings.Contains(eei.returnMessage, "tokenID is already dynamic"))
+
+	esdtData.TokenType = []byte(core.MetaESDT)
+	esdtData.SpecialRoles = append(esdtData.SpecialRoles, &ESDTRoles{Address: vmInput.CallerAddr, Roles: [][]byte{[]byte(core.ESDTRoleNFTCreate), []byte(core.ESDTRoleNFTUpdateAttributes)}})
+	esdtData.SpecialRoles = append(esdtData.SpecialRoles, &ESDTRoles{Address: bytes.Repeat([]byte{2}, 32), Roles: [][]byte{[]byte(core.ESDTRoleNFTUpdateAttributes)}})
+
+	_ = e.saveToken(vmInput.Arguments[0], esdtData)
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.UserError, output)
+	fmt.Println(eei.returnMessage)
+	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrCannotChangeToDynamic.Error()))
+
+	esdtData.SpecialRoles[1] = &ESDTRoles{Address: bytes.Repeat([]byte{2}, 32), Roles: [][]byte{[]byte(core.ESDTRoleNFTRecreate)}}
+	_ = e.saveToken(vmInput.Arguments[0], esdtData)
+	eei.returnMessage = ""
+	output = e.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+
+	esdtData, _ = e.getExistingToken(vmInput.Arguments[0])
+	assert.True(t, strings.Contains(string(esdtData.TokenType), core.Dynamic))
 }
 
 func TestEsdt_CreateNewTokenIdentifierWithPrefix(t *testing.T) {

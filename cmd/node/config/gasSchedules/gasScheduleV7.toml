@@ -16,6 +16,11 @@
     ESDTNFTUpdateAttributes  = 50000
     ESDTNFTMultiTransfer     = 200000
     MultiESDTNFTTransfer     = 200000 # should be the same value with the ESDTNFTMultiTransfer
+    ESDTModifyRoyalties      = 500000
+    ESDTModifyCreator        = 500000
+    ESDTNFTRecreate          = 1000000
+    ESDTNFTUpdate            = 1000000
+    ESDTNFTSetNewURIs        = 500000
     SetGuardian              = 250000
     GuardAccount             = 250000
     UnGuardAccount           = 250000

@@ -294,7 +294,7 @@ func TestSimpleNFTStorage(t *testing.T) {
 	require.Equal(t, &esdt.ESDigitalToken{Value: big.NewInt(0)}, token)
 	require.True(t, ok)
 	require.Nil(t, err)
-	require.Nil(t, handler.SaveNFTMetaDataToSystemAccount(nil))
+	require.Nil(t, handler.SaveNFTMetaData(nil))
 	require.False(t, handler.IsInterfaceNil())
 }
 
