@@ -23,6 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
+	processMocks "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -244,7 +245,7 @@ func createMockEpochStartBootstrapArgs(
 		},
 		TrieSyncStatisticsProvider: &testscommon.SizeSyncStatisticsHandlerStub{},
 		StateStatsHandler:          disabledStatistics.NewStateStatistics(),
-		RunTypeComponents:          mock.NewRunTypeComponentsStub(),
+		RunTypeComponents:          processMocks.NewRunTypeComponentsStub(),
 	}
 }
 
@@ -652,7 +653,7 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 
 		coreComp, cryptoComp := createComponentsForEpochStart()
 		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
-		rtMock := mock.NewRunTypeComponentsStub()
+		rtMock := processMocks.NewRunTypeComponentsStub()
 		rtMock.ShardCoordinatorFactory = nil
 		args.RunTypeComponents = rtMock
 		epochStartProvider, err := NewEpochStartBootstrap(args)
@@ -664,7 +665,7 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 
 		coreComp, cryptoComp := createComponentsForEpochStart()
 		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
-		rtMock := mock.NewRunTypeComponentsStub()
+		rtMock := processMocks.NewRunTypeComponentsStub()
 		rtMock.AdditionalStorageServiceFactory = nil
 		args.RunTypeComponents = rtMock
 		epochStartProvider, err := NewEpochStartBootstrap(args)
@@ -676,7 +677,7 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 
 		coreComp, cryptoComp := createComponentsForEpochStart()
 		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
-		rtMock := mock.NewRunTypeComponentsStub()
+		rtMock := processMocks.NewRunTypeComponentsStub()
 		rtMock.NodesCoordinatorWithRaterFactory = nil
 		args.RunTypeComponents = rtMock
 		epochStartProvider, err := NewEpochStartBootstrap(args)
