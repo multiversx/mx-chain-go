@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
+	processMocks "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -566,13 +567,13 @@ func TestCreateStorageRequestHandler_ShouldWork(t *testing.T) {
 		coreComp, cryptoComp := createComponentsForEpochStart()
 
 		args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
-		args.RunTypeComponents = mock.NewSovereignRunTypeComponentsStub()
+		args.RunTypeComponents = processMocks.NewSovereignRunTypeComponentsStub()
 		sesb, _ := NewStorageEpochStartBootstrap(args)
 
 		requestHandler, err := sesb.createStorageRequestHandler()
 
 		require.NotNil(t, requestHandler)
-		assert.Equal(t, "*requestHandlers.sovereignResolverRequestHandler", fmt.Sprintf("%T", requestHandler))
+		assert.Equal(t, "*testscommon.ExtendedShardHeaderRequestHandlerStub", fmt.Sprintf("%T", requestHandler))
 		assert.Nil(t, err)
 	})
 

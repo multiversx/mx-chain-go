@@ -689,7 +689,7 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 
 		coreComp, cryptoComp := createComponentsForEpochStart()
 		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
-		rtMock := mock.NewRunTypeComponentsStub()
+		rtMock := processMocks.NewRunTypeComponentsStub()
 		rtMock.RequestHandlerFactory = nil
 		args.RunTypeComponents = rtMock
 		epochStartProvider, err := NewEpochStartBootstrap(args)
