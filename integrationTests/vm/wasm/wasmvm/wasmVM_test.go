@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
@@ -824,7 +825,7 @@ func TestAndCatchTrieError(t *testing.T) {
 		log.Info("finished a set - commit and recreate trie", "index", i)
 		if i%10 == 5 {
 			testContext.Accounts.PruneTrie(extraNewRootHash, state.NewRoot, state.NewPruningHandler(state.EnableDataRemoval))
-			_ = testContext.Accounts.RecreateTrie(rootHash)
+			_ = testContext.Accounts.RecreateTrie(holders.NewDefaultRootHashesHolder(rootHash))
 			continue
 		}
 

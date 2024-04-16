@@ -15,6 +15,7 @@ import (
 	disabledCommon "github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/forking"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	"github.com/multiversx/mx-chain-go/genesis"
@@ -242,7 +243,8 @@ func createShardGenesisBlockAfterHardFork(
 		return nil, nil, nil, err
 	}
 
-	err = arg.Accounts.RecreateTrie(hdrHandler.GetRootHash())
+	rootHashHolder := holders.NewDefaultRootHashesHolder(hdrHandler.GetRootHash())
+	err = arg.Accounts.RecreateTrie(rootHashHolder)
 	if err != nil {
 		return nil, nil, nil, err
 	}

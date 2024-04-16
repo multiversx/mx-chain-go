@@ -10,6 +10,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
@@ -733,7 +734,7 @@ func TestExtensionNode_reduceNodeCollapsedNode(t *testing.T) {
 	tr := initTrie()
 	_ = tr.Commit()
 	rootHash, _ := tr.RootHash()
-	collapsedTrie, _ := tr.Recreate(rootHash)
+	collapsedTrie, _ := tr.Recreate(holders.NewDefaultRootHashesHolder(rootHash))
 
 	err := collapsedTrie.Delete([]byte("doe"))
 	assert.Nil(t, err)
