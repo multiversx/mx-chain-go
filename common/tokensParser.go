@@ -35,9 +35,9 @@ func ExtractTokenIDAndNonceFromTokenStorageKey(tokenKey []byte) ([]byte, uint64)
 		return tokenKey, 0
 	}
 
-	token = getUnPrefixedToken(token)
-	tokenTicker := token[:indexOfFirstHyphen]
-	randomSequencePlusNonce := token[indexOfFirstHyphen+1:]
+	indexOfTokenHyphen := getIndexOfTokenHyphen(token, indexOfFirstHyphen)
+	tokenTicker := token[:indexOfTokenHyphen]
+	randomSequencePlusNonce := token[indexOfTokenHyphen+1:]
 
 	tokenTickerLen := len(tokenTicker)
 
@@ -60,25 +60,37 @@ func ExtractTokenIDAndNonceFromTokenStorageKey(tokenKey []byte) ([]byte, uint64)
 	return []byte(tokenID), nonceBigInt.Uint64()
 }
 
-func getUnPrefixedToken(token string) string {
+func getIndexOfTokenHyphen(token string, indexOfFirstHyphen int) int {
+	if !isValidPrefixedToken(token) {
+		return indexOfFirstHyphen
+	}
+
+	indexOfSecondHyphen := strings.Index(token[indexOfFirstHyphen+1:], separatorChar)
+	return indexOfSecondHyphen + indexOfFirstHyphen + 1
+}
+
+func isValidPrefixedToken(token string) bool {
 	tokenSplit := strings.Split(token, separatorChar)
-	if len(tokenSplit) < 2 {
-		return token
+	if len(tokenSplit) < 3 {
+		return false
 	}
 
 	prefix := tokenSplit[0]
 	if !isValidPrefix(prefix) {
-		return token
+		return false
 	}
 
 	tokenTicker := tokenSplit[1]
-	tokenRandSeq := tokenSplit[2]
-	if !(isTokenTickerLenCorrect(len(tokenTicker)) && len(tokenRandSeq) == esdtTickerNumRandChars) {
-		return token
+	if !isValidTicker(tokenTicker) {
+		return false
 	}
 
-	indexOfFirstHyphen := strings.Index(token, separatorChar)
-	return token[indexOfFirstHyphen+1:]
+	tokenRandSeq := tokenSplit[2]
+	if len(tokenRandSeq) < esdtTickerNumRandChars {
+		return false
+	}
+
+	return true
 }
 
 func isValidPrefix(prefix string) bool {
@@ -91,6 +103,23 @@ func isValidPrefix(prefix string) bool {
 		isNumber := ch >= '0' && ch <= '9'
 		isAllowedPrefix := isLowerCaseCharacter || isNumber
 		if !isAllowedPrefix {
+			return false
+		}
+	}
+
+	return true
+}
+
+func isValidTicker(ticker string) bool {
+	if !isTokenTickerLenCorrect(len(ticker)) {
+		return false
+	}
+
+	for _, ch := range ticker {
+		isLowerCaseCharacter := ch >= 'A' && ch <= 'Z'
+		isNumber := ch >= '0' && ch <= '9'
+		isAllowedChar := isLowerCaseCharacter || isNumber
+		if !isAllowedChar {
 			return false
 		}
 	}
