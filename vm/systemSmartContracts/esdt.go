@@ -14,7 +14,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/tokens"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/vm"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -72,7 +74,6 @@ type ArgsNewESDTSmartContract struct {
 	EndOfEpochSCAddress    []byte
 	AddressPubKeyConverter core.PubkeyConverter
 	EnableEpochsHandler    common.EnableEpochsHandler
-	ESDTPrefix             string
 }
 
 // NewESDTSmartContract creates the esdt smart contract, which controls the issuing of tokens
@@ -118,6 +119,11 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 		return nil, vm.ErrInvalidBaseIssuingCost
 	}
 
+	esdtPrefix, err := createESDTPrefixWithSeparator(args.ESDTSCConfig.ESDTPrefix)
+	if err != nil {
+		return nil, err
+	}
+
 	return &esdt{
 		eei:             args.Eei,
 		gasCost:         args.GasCost,
@@ -131,16 +137,20 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 		endOfEpochSCAddress:    args.EndOfEpochSCAddress,
 		addressPubKeyConverter: args.AddressPubKeyConverter,
 		enableEpochsHandler:    args.EnableEpochsHandler,
-		esdtPrefix:             createESDTPrefixWithSeparator(args.ESDTPrefix),
+		esdtPrefix:             esdtPrefix,
 	}, nil
 }
 
-func createESDTPrefixWithSeparator(esdtPrefix string) []byte {
+func createESDTPrefixWithSeparator(esdtPrefix string) ([]byte, error) {
 	if len(esdtPrefix) == 0 {
-		return nil
+		return nil, nil
 	}
 
-	return append([]byte(esdtPrefix), []byte(tickerSeparator)...)
+	if !tokens.IsValidTokenPrefix(esdtPrefix) {
+		return nil, fmt.Errorf("%w: %s", errors.ErrInvalidTokenPrefix, esdtPrefix)
+	}
+
+	return append([]byte(esdtPrefix), []byte(tickerSeparator)...), nil
 }
 
 // Execute calls one of the functions from the esdt smart contract and runs the code according to the input
@@ -629,7 +639,7 @@ func (e *esdt) createNewToken(
 	if !isTokenNameHumanReadable(tokenName) {
 		return nil, nil, vm.ErrTokenNameNotHumanReadable
 	}
-	if !isTickerValid(tickerName) {
+	if !tokens.IsTickerValid(string(tickerName)) {
 		return nil, nil, vm.ErrTickerNameNotValid
 	}
 
@@ -661,23 +671,6 @@ func (e *esdt) createNewToken(
 	}
 
 	return tokenIdentifier, newESDTToken, nil
-}
-
-func isTickerValid(tickerName []byte) bool {
-	if len(tickerName) < minLengthForTickerName || len(tickerName) > maxLengthForTickerName {
-		return false
-	}
-
-	for _, ch := range tickerName {
-		isBigCharacter := ch >= 'A' && ch <= 'Z'
-		isNumber := ch >= '0' && ch <= '9'
-		isReadable := isBigCharacter || isNumber
-		if !isReadable {
-			return false
-		}
-	}
-
-	return true
 }
 
 func isTokenNameHumanReadable(tokenName []byte) bool {

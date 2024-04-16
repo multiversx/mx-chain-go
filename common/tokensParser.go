@@ -3,6 +3,8 @@ package common
 import (
 	"math/big"
 	"strings"
+
+	"github.com/multiversx/mx-chain-go/common/tokens"
 )
 
 const (
@@ -11,14 +13,6 @@ const (
 
 	// separatorChar represents the character that separated the token ticker by the random sequence
 	separatorChar = "-"
-
-	// minLengthForTickerName represents the minimum number of characters a token's ticker can have
-	minLengthForTickerName = 3
-
-	// maxLengthForTickerName represents the maximum number of characters a token's ticker can have
-	maxLengthForTickerName = 10
-
-	esdtMinPrefixLen = 4
 )
 
 // TODO: move this to core
@@ -41,7 +35,7 @@ func ExtractTokenIDAndNonceFromTokenStorageKey(tokenKey []byte) ([]byte, uint64)
 
 	tokenTickerLen := len(tokenTicker)
 
-	areTickerAndRandomSequenceInvalid := !isTokenTickerLenCorrect(tokenTickerLen) || len(randomSequencePlusNonce) == 0
+	areTickerAndRandomSequenceInvalid := !tokens.IsTokenTickerLenCorrect(tokenTickerLen) || len(randomSequencePlusNonce) == 0
 	if areTickerAndRandomSequenceInvalid {
 		return tokenKey, 0
 	}
@@ -76,12 +70,12 @@ func isValidPrefixedToken(token string) bool {
 	}
 
 	prefix := tokenSplit[0]
-	if !isValidPrefix(prefix) {
+	if !tokens.IsValidTokenPrefix(prefix) {
 		return false
 	}
 
 	tokenTicker := tokenSplit[1]
-	if !isValidTicker(tokenTicker) {
+	if !tokens.IsTickerValid(tokenTicker) {
 		return false
 	}
 
@@ -91,44 +85,4 @@ func isValidPrefixedToken(token string) bool {
 	}
 
 	return true
-}
-
-func isValidPrefix(prefix string) bool {
-	if len(prefix) > esdtMinPrefixLen {
-		return false
-	}
-
-	for _, ch := range prefix {
-		isLowerCaseCharacter := ch >= 'a' && ch <= 'z'
-		isNumber := ch >= '0' && ch <= '9'
-		isAllowedPrefix := isLowerCaseCharacter || isNumber
-		if !isAllowedPrefix {
-			return false
-		}
-	}
-
-	return true
-}
-
-func isValidTicker(ticker string) bool {
-	if !isTokenTickerLenCorrect(len(ticker)) {
-		return false
-	}
-
-	for _, ch := range ticker {
-		isLowerCaseCharacter := ch >= 'A' && ch <= 'Z'
-		isNumber := ch >= '0' && ch <= '9'
-		isAllowedChar := isLowerCaseCharacter || isNumber
-		if !isAllowedChar {
-			return false
-		}
-	}
-
-	return true
-}
-
-func isTokenTickerLenCorrect(tokenTickerLen int) bool {
-	return !(tokenTickerLen == 0 ||
-		tokenTickerLen < minLengthForTickerName ||
-		tokenTickerLen > maxLengthForTickerName)
 }

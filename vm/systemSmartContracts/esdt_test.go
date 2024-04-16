@@ -14,6 +14,7 @@ import (
 	vmData "github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	errorsCommon "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
@@ -146,6 +147,17 @@ func TestNewESDTSmartContract_InvalidBaseIssuingCostShouldErr(t *testing.T) {
 	e, err := NewESDTSmartContract(args)
 	assert.Nil(t, e)
 	assert.Equal(t, vm.ErrInvalidBaseIssuingCost, err)
+}
+
+func TestNewESDTSmartContract_InvalidTokenPrefixShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForESDT()
+	args.ESDTSCConfig.ESDTPrefix = "Prefix"
+
+	e, err := NewESDTSmartContract(args)
+	require.Nil(t, e)
+	require.Equal(t, fmt.Errorf("%w: %s", errorsCommon.ErrInvalidTokenPrefix, "Prefix"), err)
 }
 
 func TestEsdt_ExecuteIssueAlways6charactersForRandom(t *testing.T) {
@@ -4491,14 +4503,14 @@ func TestEsdt_createNewTokenIdentifierWithPrefix(t *testing.T) {
 	caller := []byte("caller")
 	tokenName := []byte("TICKER")
 
-	prefix := "prefix"
+	prefix := "pref"
 	randomness := []byte("randomness")
 	randomTicker := []byte("75f")
 	randomSuffixBigInt := big.NewInt(0).SetBytes(randomTicker)
 	suffix := fmt.Sprintf("%06x", randomSuffixBigInt)
 
 	args := createMockArgumentsForESDT()
-	args.ESDTPrefix = prefix
+	args.ESDTSCConfig.ESDTPrefix = prefix
 	args.Hasher = &testscommon.HasherStub{
 		ComputeCalled: func(s string) []byte {
 			require.Equal(t, string(append(caller, randomness...)), s)
