@@ -65,7 +65,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		EpochStartBootstrapperFactory:       &testFactory.EpochStartBootstrapperFactoryMock{},
 		ForkDetectorFactory:                 &testFactory.ForkDetectorFactoryMock{},
 		HeaderValidatorFactory:              &testFactory.HeaderValidatorFactoryMock{},
-		RequestHandlerFactory:               &testscommon.RequestHandlerFactoryMock{},
+		RequestHandlerFactory:               &testFactory.RequestHandlerFactoryMock{},
 		ScheduledTxsExecutionFactory:        &testFactory.ScheduledTxsExecutionFactoryMock{},
 		TransactionCoordinatorFactory:       &testFactory.TransactionCoordinatorFactoryMock{},
 		ValidatorStatisticsProcessorFactory: &testFactory.ValidatorStatisticsProcessorFactoryMock{},

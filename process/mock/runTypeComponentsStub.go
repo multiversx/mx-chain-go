@@ -31,7 +31,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		AdditionalStorageServiceFactory:  &testscommon.AdditionalStorageServiceFactoryMock{},
 		ShardCoordinatorFactory:          sharding.NewMultiShardCoordinatorFactory(),
 		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
-		RequestHandlerFactory:            &testscommon.RequestHandlerFactoryMock{},
+		RequestHandlerFactory:            requestHandlers.NewResolverRequestHandlerFactory(),
 		AccountCreator:                   &stateMock.AccountsFactoryStub{},
 		OutGoingOperationsPool:           &sovereignMocks.OutGoingOperationsPoolMock{},
 		DataCodec:                        &sovereignMocks.DataCodecMock{},
@@ -41,11 +41,14 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 
 // NewSovereignRunTypeComponentsStub -
 func NewSovereignRunTypeComponentsStub() *RunTypeComponentsStub {
+	rt := NewRunTypeComponentsStub()
+	requestHandlerFactory, _ := requestHandlers.NewSovereignResolverRequestHandlerFactory(rt.RequestHandlerFactory)
+
 	return &RunTypeComponentsStub{
 		AdditionalStorageServiceFactory:  &testscommon.AdditionalStorageServiceFactoryMock{},
 		ShardCoordinatorFactory:          sharding.NewSovereignShardCoordinatorFactory(),
 		NodesCoordinatorWithRaterFactory: &testscommon.NodesCoordinatorFactoryMock{},
-		RequestHandlerFactory:            &testscommon.RequestHandlerFactoryMock{},
+		RequestHandlerFactory:            requestHandlerFactory,
 		AccountCreator:                   &stateMock.AccountsFactoryStub{},
 		OutGoingOperationsPool:           &sovereignMocks.OutGoingOperationsPoolMock{},
 		DataCodec:                        &sovereignMocks.DataCodecMock{},
