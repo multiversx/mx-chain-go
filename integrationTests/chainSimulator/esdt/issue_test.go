@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	api2 "github.com/multiversx/mx-chain-core-go/data/api"
+	dataApi "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/config"
@@ -175,7 +175,7 @@ func requireAccountHasToken(
 	address string,
 	value *big.Int,
 ) {
-	tokens, _, err := cs.GetNodeHandler(0).GetFacadeHandler().GetAllESDTTokens(address, api2.AccountQueryOptions{})
+	tokens, _, err := cs.GetNodeHandler(0).GetFacadeHandler().GetAllESDTTokens(address, dataApi.AccountQueryOptions{})
 	require.Nil(t, err)
 
 	tokenData, found := tokens[token]
