@@ -3,6 +3,7 @@ package trie
 import (
 	"context"
 	"errors"
+	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"math"
 	"testing"
 
@@ -771,5 +772,34 @@ func TestLeafNode_getVersion(t *testing.T) {
 		version, err := ln.getVersion()
 		assert.Equal(t, core.AutoBalanceEnabled, version)
 		assert.Nil(t, err)
+	})
+}
+
+func TestLeafNode_getNodeData(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil node", func(t *testing.T) {
+		t.Parallel()
+
+		var ln *leafNode
+		nodeData, err := ln.getNodeData(keyBuilder.NewDisabledKeyBuilder())
+		assert.Nil(t, nodeData)
+		assert.True(t, errors.Is(err, ErrNilLeafNode))
+	})
+	t.Run("gets data from child", func(t *testing.T) {
+		t.Parallel()
+
+		ln := getLn(getTestMarshalizerAndHasher())
+		val := []byte("dog")
+
+		kb := keyBuilder.NewKeyBuilder()
+		nodeData, err := ln.getNodeData(kb)
+		assert.Nil(t, err)
+		assert.Equal(t, 1, len(nodeData))
+
+		assert.Equal(t, uint(3), nodeData[0].GetKeyBuilder().Size())
+		assert.Equal(t, val, nodeData[0].GetData())
+		assert.Equal(t, uint64(len(val)+len(val)), nodeData[0].Size())
+		assert.True(t, nodeData[0].IsLeaf())
 	})
 }
