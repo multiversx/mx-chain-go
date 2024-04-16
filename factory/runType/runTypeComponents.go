@@ -3,7 +3,7 @@ package runType
 import (
 	"fmt"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block"
 	processBlock "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
+	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
@@ -24,6 +25,8 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/factory"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
+
+	"github.com/multiversx/mx-chain-core-go/core/check"
 )
 
 type runTypeComponentsFactory struct {
@@ -51,6 +54,8 @@ type runTypeComponents struct {
 	vmContainerMetaFactory              factoryVm.VmContainerCreator
 	vmContainerShardFactory             factoryVm.VmContainerCreator
 	accountsCreator                     state.AccountFactory
+	dataCodecHandler                    sovereign.DataCodecHandler
+	topicsCheckerHandler                sovereign.TopicsCheckerHandler
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
@@ -72,9 +77,6 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 	}
 
 	epochStartBootstrapperFactory := bootstrap.NewEpochStartBootstrapperFactory()
-	if err != nil {
-		return nil, fmt.Errorf("runTypeComponentsFactory - NewEpochStartBootstrapperFactory failed: %w", err)
-	}
 
 	bootstrapperFromStorageFactory, err := storageBootstrap.NewShardStorageBootstrapperFactory()
 	if err != nil {
@@ -102,9 +104,6 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 	}
 
 	requestHandlerFactory := requestHandlers.NewResolverRequestHandlerFactory()
-	if err != nil {
-		return nil, fmt.Errorf("runTypeComponentsFactory - NewResolverRequestHandlerFactory failed: %w", err)
-	}
 
 	headerValidatorFactory, err := block.NewShardHeaderValidatorFactory()
 	if err != nil {
@@ -137,9 +136,6 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 	}
 
 	scProcessorCreator := processProxy.NewSCProcessProxyFactory()
-	if err != nil {
-		return nil, fmt.Errorf("runTypeComponentsFactory - NewSCProcessProxyFactory failed: %w", err)
-	}
 
 	vmContainerMetaCreator, err := factoryVm.NewVmContainerMetaFactory(blockChainHookHandlerFactory)
 	if err != nil {
@@ -180,6 +176,8 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		vmContainerMetaFactory:              vmContainerMetaCreator,
 		vmContainerShardFactory:             vmContainerShardCreator,
 		accountsCreator:                     accountsCreator,
+		dataCodecHandler:                    disabled.NewDisabledDataCodec(),
+		topicsCheckerHandler:                disabled.NewDisabledTopicsChecker(),
 	}, nil
 }
 

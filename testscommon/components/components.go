@@ -628,8 +628,6 @@ func GetProcessArgs(
 		TxPreProcessorCreator:                 preprocess.NewTxPreProcessorCreator(),
 		ExtraHeaderSigVerifierHolder:          &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
 		OutGoingOperationsPool:                &sovereign.OutGoingOperationsPoolMock{},
-		DataCodec:                             &sovereign.DataCodecMock{},
-		TopicsChecker:                         &sovereign.TopicsCheckerMock{},
 		RunTypeComponents:                     GetRunTypeComponents(),
 	}
 }
@@ -899,12 +897,7 @@ func GetRunTypeComponentsWithCoreComp(coreComponents factory.CoreComponentsHandl
 
 // GetSovereignRunTypeComponents -
 func GetSovereignRunTypeComponents() factory.RunTypeComponentsHolder {
-	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory(&mockCoreComp.CoreComponentsStub{
-		HasherField:              &hashingMocks.HasherMock{},
-		InternalMarshalizerField: &marshallerMock.MarshalizerMock{},
-		EnableEpochsHandlerField: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-	})
-	sovereignComponentsFactory, _ := runType.NewSovereignRunTypeComponentsFactory(runTypeComponentsFactory, getSovConfig())
+	sovereignComponentsFactory, _ := runType.NewSovereignRunTypeComponentsFactory(createSovRunTypeArgs())
 	managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(sovereignComponentsFactory)
 	if err != nil {
 		log.Error("getRunTypeComponents NewManagedRunTypeComponents", "error", err.Error())
@@ -918,11 +911,22 @@ func GetSovereignRunTypeComponents() factory.RunTypeComponentsHolder {
 	return managedRunTypeComponents
 }
 
-func getSovConfig() config.SovereignConfig {
-	return config.SovereignConfig{
-		GenesisConfig: config.GenesisConfig{
-			NativeESDT: "WEGLD-ab47da",
+func createSovRunTypeArgs() runType.ArgsSovereignRunTypeComponents {
+	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory(&mockCoreComp.CoreComponentsStub{
+		HasherField:              &hashingMocks.HasherMock{},
+		InternalMarshalizerField: &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandlerField: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+	})
+
+	return runType.ArgsSovereignRunTypeComponents{
+		RunTypeComponentsFactory: runTypeComponentsFactory,
+		Config: config.SovereignConfig{
+			GenesisConfig: config.GenesisConfig{
+				NativeESDT: "WEGLD-ab47da",
+			},
 		},
+		DataCodec:     &sovereign.DataCodecMock{},
+		TopicsChecker: &sovereign.TopicsCheckerMock{},
 	}
 }
 

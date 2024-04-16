@@ -3,9 +3,8 @@ package runType_test
 import (
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/hashing"
-	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/runType"
@@ -13,6 +12,9 @@ import (
 	factoryMock "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/stretchr/testify/require"
 )
 
@@ -47,6 +49,7 @@ func TestManagedRunTypeComponents_Create(t *testing.T) {
 		require.Nil(t, managedRunTypeComponents.BlockChainHookHandlerCreator())
 		require.Nil(t, managedRunTypeComponents.EpochStartBootstrapperCreator())
 		require.Nil(t, managedRunTypeComponents.BootstrapperFromStorageCreator())
+		require.Nil(t, managedRunTypeComponents.BootstrapperCreator())
 		require.Nil(t, managedRunTypeComponents.BlockProcessorCreator())
 		require.Nil(t, managedRunTypeComponents.ForkDetectorCreator())
 		require.Nil(t, managedRunTypeComponents.BlockTrackerCreator())
@@ -55,12 +58,22 @@ func TestManagedRunTypeComponents_Create(t *testing.T) {
 		require.Nil(t, managedRunTypeComponents.ScheduledTxsExecutionCreator())
 		require.Nil(t, managedRunTypeComponents.TransactionCoordinatorCreator())
 		require.Nil(t, managedRunTypeComponents.ValidatorStatisticsProcessorCreator())
+		require.Nil(t, managedRunTypeComponents.AdditionalStorageServiceCreator())
+		require.Nil(t, managedRunTypeComponents.SCProcessorCreator())
+		require.Nil(t, managedRunTypeComponents.SCResultsPreProcessorCreator())
+		require.Equal(t, consensus.ConsensusModelInvalid, managedRunTypeComponents.ConsensusModel())
+		require.Nil(t, managedRunTypeComponents.VmContainerMetaFactoryCreator())
+		require.Nil(t, managedRunTypeComponents.VmContainerShardFactoryCreator())
+		require.Nil(t, managedRunTypeComponents.AccountsCreator())
+		require.Nil(t, managedRunTypeComponents.DataCodecHandler())
+		require.Nil(t, managedRunTypeComponents.TopicsCheckerHandler())
 
 		err = managedRunTypeComponents.Create()
 		require.NoError(t, err)
 		require.NotNil(t, managedRunTypeComponents.BlockChainHookHandlerCreator())
 		require.NotNil(t, managedRunTypeComponents.EpochStartBootstrapperCreator())
 		require.NotNil(t, managedRunTypeComponents.BootstrapperFromStorageCreator())
+		require.NotNil(t, managedRunTypeComponents.BootstrapperCreator())
 		require.NotNil(t, managedRunTypeComponents.BlockProcessorCreator())
 		require.NotNil(t, managedRunTypeComponents.ForkDetectorCreator())
 		require.NotNil(t, managedRunTypeComponents.BlockTrackerCreator())
@@ -69,6 +82,15 @@ func TestManagedRunTypeComponents_Create(t *testing.T) {
 		require.NotNil(t, managedRunTypeComponents.ScheduledTxsExecutionCreator())
 		require.NotNil(t, managedRunTypeComponents.TransactionCoordinatorCreator())
 		require.NotNil(t, managedRunTypeComponents.ValidatorStatisticsProcessorCreator())
+		require.NotNil(t, managedRunTypeComponents.AdditionalStorageServiceCreator())
+		require.NotNil(t, managedRunTypeComponents.SCProcessorCreator())
+		require.NotNil(t, managedRunTypeComponents.SCResultsPreProcessorCreator())
+		require.Equal(t, consensus.ConsensusModelV1, managedRunTypeComponents.ConsensusModel())
+		require.NotNil(t, managedRunTypeComponents.VmContainerMetaFactoryCreator())
+		require.NotNil(t, managedRunTypeComponents.VmContainerShardFactoryCreator())
+		require.NotNil(t, managedRunTypeComponents.AccountsCreator())
+		require.NotNil(t, managedRunTypeComponents.DataCodecHandler())
+		require.NotNil(t, managedRunTypeComponents.TopicsCheckerHandler())
 
 		require.Equal(t, factory.RunTypeComponentsName, managedRunTypeComponents.String())
 		require.NoError(t, managedRunTypeComponents.Close())
@@ -98,6 +120,7 @@ func TestManagedRunTypeComponents_CheckSubcomponents(t *testing.T) {
 	err = managedRunTypeComponents.Create()
 	require.NoError(t, err)
 
+	//TODO check for nil each subcomponent - MX-15371
 	err = managedRunTypeComponents.CheckSubcomponents()
 	require.NoError(t, err)
 

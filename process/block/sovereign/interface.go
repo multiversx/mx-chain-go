@@ -12,8 +12,8 @@ type OutgoingOperationsFormatter interface {
 	IsInterfaceNil() bool
 }
 
-// DataCodecProcessor is the interface for serializing/deserializing data
-type DataCodecProcessor interface {
+// DataCodecHandler is the interface for serializing/deserializing data
+type DataCodecHandler interface {
 	SerializeEventData(eventData sovereign.EventData) ([]byte, error)
 	DeserializeEventData(data []byte) (*sovereign.EventData, error)
 	SerializeTokenData(tokenData sovereign.EsdtTokenData) ([]byte, error)
@@ -22,8 +22,8 @@ type DataCodecProcessor interface {
 	IsInterfaceNil() bool
 }
 
-// TopicsChecker should be able to check the topics validity
-type TopicsChecker interface {
+// TopicsCheckerHandler should be able to check the topics validity
+type TopicsCheckerHandler interface {
 	CheckValidity(topics [][]byte) error
 	IsInterfaceNil() bool
 }

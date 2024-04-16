@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/errors"
+
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	logger "github.com/multiversx/mx-chain-logger-go"
-
-	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/errors"
 )
 
 var log = logger.GetOrCreate("outgoing-operations")
@@ -29,14 +29,14 @@ type SubscribedEvent struct {
 
 type ArgsOutgoingOperations struct {
 	SubscribedEvents []SubscribedEvent
-	DataCodec        DataCodecProcessor
-	TopicsChecker    TopicsChecker
+	DataCodec        DataCodecHandler
+	TopicsChecker    TopicsCheckerHandler
 }
 
 type outgoingOperations struct {
 	subscribedEvents []SubscribedEvent
-	dataCodec        DataCodecProcessor
-	topicsChecker    TopicsChecker
+	dataCodec        DataCodecHandler
+	topicsChecker    TopicsCheckerHandler
 }
 
 // TODO: We should create a common base functionality from this component. Similar behavior is also found in

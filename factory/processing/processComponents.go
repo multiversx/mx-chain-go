@@ -8,14 +8,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/core/partitioning"
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
-	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/data/outport"
-	"github.com/multiversx/mx-chain-core-go/data/receipt"
 	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
@@ -50,7 +42,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/poolsCleaner"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
-	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/heartbeat/validator"
@@ -76,6 +67,15 @@ import (
 	updateDisabled "github.com/multiversx/mx-chain-go/update/disabled"
 	updateFactory "github.com/multiversx/mx-chain-go/update/factory"
 	"github.com/multiversx/mx-chain-go/update/trigger"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/partitioning"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
+	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-core-go/data/receipt"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
 )
@@ -178,8 +178,6 @@ type ProcessComponentsFactoryArgs struct {
 	TxPreProcessorCreator                 preprocess.TxPreProcessorCreator
 	ExtraHeaderSigVerifierHolder          headerCheck.ExtraHeaderSigVerifierHolder
 	OutGoingOperationsPool                block.OutGoingOperationsPool
-	DataCodec                             sovereign.DataCodecProcessor
-	TopicsChecker                         sovereign.TopicsChecker
 }
 
 type processComponentsFactory struct {
@@ -232,8 +230,6 @@ type processComponentsFactory struct {
 	txPreprocessorCreator                 preprocess.TxPreProcessorCreator
 	extraHeaderSigVerifierHolder          headerCheck.ExtraHeaderSigVerifierHolder
 	outGoingOperationsPool                block.OutGoingOperationsPool
-	dataCodec                             sovereign.DataCodecProcessor
-	topicsChecker                         sovereign.TopicsChecker
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -285,8 +281,6 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		txPreprocessorCreator:                 args.TxPreProcessorCreator,
 		extraHeaderSigVerifierHolder:          args.ExtraHeaderSigVerifierHolder,
 		outGoingOperationsPool:                args.OutGoingOperationsPool,
-		dataCodec:                             args.DataCodec,
-		topicsChecker:                         args.TopicsChecker,
 	}, nil
 }
 
@@ -2097,8 +2091,29 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	if check.IfNil(args.RunTypeComponents) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilRunTypeComponents)
 	}
+	if check.IfNil(args.RunTypeComponents.BlockChainHookHandlerCreator()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilBlockChainHookHandlerCreator)
+	}
 	if check.IfNil(args.RunTypeComponents.BlockProcessorCreator()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilBlockProcessorCreator)
+	}
+	if check.IfNil(args.RunTypeComponents.BlockTrackerCreator()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilBlockTrackerCreator)
+	}
+	if check.IfNil(args.RunTypeComponents.BootstrapperFromStorageCreator()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilBootstrapperFromStorageCreator)
+	}
+	if check.IfNil(args.RunTypeComponents.BootstrapperCreator()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilBootstrapperCreator)
+	}
+	if check.IfNil(args.RunTypeComponents.EpochStartBootstrapperCreator()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilEpochStartBootstrapperCreator)
+	}
+	if check.IfNil(args.RunTypeComponents.ForkDetectorCreator()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilForkDetectorCreator)
+	}
+	if check.IfNil(args.RunTypeComponents.HeaderValidatorCreator()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilHeaderValidatorCreator)
 	}
 	if check.IfNil(args.RunTypeComponents.RequestHandlerCreator()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilRequestHandlerCreator)
@@ -2106,31 +2121,38 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	if check.IfNil(args.RunTypeComponents.ScheduledTxsExecutionCreator()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilScheduledTxsExecutionCreator)
 	}
-	if check.IfNil(args.RunTypeComponents.BlockTrackerCreator()) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilBlockTrackerCreator)
-	}
 	if check.IfNil(args.RunTypeComponents.TransactionCoordinatorCreator()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilTransactionCoordinatorCreator)
-	}
-	if check.IfNil(args.RunTypeComponents.HeaderValidatorCreator()) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilHeaderValidatorCreator)
-	}
-	if check.IfNil(args.RunTypeComponents.ForkDetectorCreator()) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilForkDetectorCreator)
 	}
 	if check.IfNil(args.RunTypeComponents.ValidatorStatisticsProcessorCreator()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilValidatorStatisticsProcessorCreator)
 	}
-	if check.IfNil(args.RunTypeComponents.SCProcessorCreator()) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilSCProcessorCreator)
+	if check.IfNil(args.RunTypeComponents.AdditionalStorageServiceCreator()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilAdditionalStorageServiceCreator)
 	}
 	if check.IfNil(args.RunTypeComponents.SCResultsPreProcessorCreator()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilSCResultsPreProcessorCreator)
 	}
-	if check.IfNil(args.DataCodec) {
+	if check.IfNil(args.RunTypeComponents.SCProcessorCreator()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilSCProcessorCreator)
+	}
+	// TODO make sure consensus model is correct on higher level - task MX-15366
+	if args.RunTypeComponents.ConsensusModel() == consensus.ConsensusModelInvalid {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrInvalidConsensusModel)
+	}
+	if check.IfNil(args.RunTypeComponents.VmContainerMetaFactoryCreator()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilVmContainerMetaFactoryCreator)
+	}
+	if check.IfNil(args.RunTypeComponents.VmContainerShardFactoryCreator()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilVmContainerShardFactoryCreator)
+	}
+	if check.IfNil(args.RunTypeComponents.AccountsCreator()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilAccountsCreator)
+	}
+	if check.IfNil(args.RunTypeComponents.DataCodecHandler()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilDataCodec)
 	}
-	if check.IfNil(args.TopicsChecker) {
+	if check.IfNil(args.RunTypeComponents.TopicsCheckerHandler()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilTopicsChecker)
 	}
 
