@@ -57,8 +57,6 @@ func TestChainSimulator_IssueESDTWithPrefix(t *testing.T) {
 		NumNodesWaitingListMeta:  0,
 		NumNodesWaitingListShard: 0,
 		AlterConfigsFunction: func(cfg *config.Configs) {
-			newNumNodes := cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake + 8 // 8 nodes until new nodes will be placed on queue
-			configs.SetMaxNumberOfNodesInConfigs(cfg, newNumNodes, numOfShards)
 			cfg.SystemSCConfig.ESDTSystemSCConfig.ESDTPrefix = "sov1"
 			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = issuePrice
 		},
