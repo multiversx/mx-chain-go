@@ -1,6 +1,7 @@
 package holders
 
 import (
+	"encoding/hex"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -32,7 +33,8 @@ func TestNewRootHashHolder_String(t *testing.T) {
 			HasValue: true,
 		},
 	)
-	expectedString := "root hash rootHash, epoch 5, has value true"
+	hexRootHash := hex.EncodeToString([]byte("rootHash"))
+	expectedString := "root hash " + hexRootHash + ", epoch 5, has value true"
 	assert.Equal(t, expectedString, holder.String())
 }
 
