@@ -7,11 +7,14 @@ const (
 	maxLengthForTickerName = 10
 	// maxLengthESDTPrefix represents the maximum number of characters a token's prefix can have
 	maxLengthESDTPrefix = 4
+	// minLengthESDTPrefix represents the minimum number of characters a token's prefix can have
+	minLengthESDTPrefix = 1
 )
 
 // IsValidTokenPrefix checks if the token prefix is valid
 func IsValidTokenPrefix(prefix string) bool {
-	if len(prefix) > maxLengthESDTPrefix {
+	prefixLen := len(prefix)
+	if prefixLen > maxLengthESDTPrefix || prefixLen < minLengthESDTPrefix {
 		return false
 	}
 

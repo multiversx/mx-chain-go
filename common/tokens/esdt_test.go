@@ -7,6 +7,8 @@ import (
 )
 
 func TestIsValidTokenPrefix(t *testing.T) {
+	require.False(t, IsValidTokenPrefix(""))
+	require.False(t, IsValidTokenPrefix("-"))
 	require.False(t, IsValidTokenPrefix("prefix"))
 	require.False(t, IsValidTokenPrefix("prefi"))
 	require.False(t, IsValidTokenPrefix("Prfx"))
