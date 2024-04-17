@@ -5,12 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/core/partitioning"
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -24,43 +18,44 @@ import (
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
-	nodesCoord "github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/partitioning"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 )
 
 // ArgsStorageEpochStartBootstrap holds the arguments needed for creating an epoch start data provider component
 // from storage
 type ArgsStorageEpochStartBootstrap struct {
 	ArgsEpochStartBootstrap
-	ImportDbConfig                   config.ImportDbConfig
-	ChanGracefullyClose              chan endProcess.ArgEndProcess
-	TimeToWaitForRequestedData       time.Duration
-	NodesCoordinatorWithRaterFactory nodesCoord.NodesCoordinatorWithRaterFactory
-	ShardCoordinatorFactory          sharding.ShardCoordinatorFactory
-	EpochStartBootstrapperCreator    EpochStartBootstrapperCreator
-	ResolverRequestFactory           requestHandlers.RequestHandlerCreator
+	ImportDbConfig                config.ImportDbConfig
+	ChanGracefullyClose           chan endProcess.ArgEndProcess
+	TimeToWaitForRequestedData    time.Duration
+	EpochStartBootstrapperCreator EpochStartBootstrapperCreator
 }
 
 type storageEpochStartBootstrap struct {
 	*epochStartBootstrap
-	container                        dataRetriever.RequestersContainer
-	store                            dataRetriever.StorageService
-	importDbConfig                   config.ImportDbConfig
-	chanGracefullyClose              chan endProcess.ArgEndProcess
-	chainID                          string
-	timeToWaitForRequestedData       time.Duration
-	nodesCoordinatorWithRaterFactory nodesCoord.NodesCoordinatorWithRaterFactory
-	shardCoordinatorFactory          sharding.ShardCoordinatorFactory
-	resolverRequestFactory           requestHandlers.RequestHandlerCreator
+	container                  dataRetriever.RequestersContainer
+	store                      dataRetriever.StorageService
+	importDbConfig             config.ImportDbConfig
+	chanGracefullyClose        chan endProcess.ArgEndProcess
+	chainID                    string
+	timeToWaitForRequestedData time.Duration
 }
 
 // NewStorageEpochStartBootstrap will return a new instance of storageEpochStartBootstrap that can bootstrap
 // the node with the help of storage requesters through the import-db process
 func NewStorageEpochStartBootstrap(args ArgsStorageEpochStartBootstrap) (*storageEpochStartBootstrap, error) {
-	if check.IfNil(args.ResolverRequestFactory) {
-		return nil, errors.ErrNilResolverRequestFactoryHandler
+	err := checkArguments(args.ArgsEpochStartBootstrap)
+	if err != nil {
+		return nil, err
 	}
 	if check.IfNil(args.EpochStartBootstrapperCreator) {
 		return nil, errors.ErrNilEpochStartBootstrapperCreator
@@ -81,14 +76,11 @@ func NewStorageEpochStartBootstrap(args ArgsStorageEpochStartBootstrap) (*storag
 	}
 
 	sesb := &storageEpochStartBootstrap{
-		epochStartBootstrap:              esbConverted,
-		importDbConfig:                   args.ImportDbConfig,
-		chanGracefullyClose:              args.ChanGracefullyClose,
-		chainID:                          args.CoreComponentsHolder.ChainID(),
-		timeToWaitForRequestedData:       args.TimeToWaitForRequestedData,
-		resolverRequestFactory:           args.ResolverRequestFactory,
-		nodesCoordinatorWithRaterFactory: args.NodesCoordinatorWithRaterFactory,
-		shardCoordinatorFactory:          args.ShardCoordinatorFactory,
+		epochStartBootstrap:        esbConverted,
+		importDbConfig:             args.ImportDbConfig,
+		chanGracefullyClose:        args.ChanGracefullyClose,
+		chainID:                    args.CoreComponentsHolder.ChainID(),
+		timeToWaitForRequestedData: args.TimeToWaitForRequestedData,
 	}
 
 	return sesb, nil
@@ -122,7 +114,7 @@ func (sesb *storageEpochStartBootstrap) Bootstrap() (Parameters, error) {
 	}()
 
 	var err error
-	sesb.shardCoordinator, err = sesb.shardCoordinatorFactory.CreateShardCoordinator(sesb.genesisShardCoordinator.NumberOfShards(), core.MetachainShardId)
+	sesb.shardCoordinator, err = sesb.runTypeComponents.ShardCoordinatorCreator().CreateShardCoordinator(sesb.genesisShardCoordinator.NumberOfShards(), core.MetachainShardId)
 	if err != nil {
 		return Parameters{}, err
 	}
@@ -245,7 +237,7 @@ func (sesb *storageEpochStartBootstrap) createStorageRequestHandler() (process.R
 		RequestInterval:       timeBetweenRequests,
 	}
 
-	return sesb.resolverRequestFactory.CreateRequestHandler(args)
+	return sesb.runTypeComponents.RequestHandlerCreator().CreateRequestHandler(args)
 }
 
 func (sesb *storageEpochStartBootstrap) createStorageRequesters() error {
@@ -254,7 +246,7 @@ func (sesb *storageEpochStartBootstrap) createStorageRequesters() error {
 		return err
 	}
 
-	shardCoordinator, err := sesb.shardCoordinatorFactory.CreateShardCoordinator(sesb.genesisShardCoordinator.NumberOfShards(), sesb.genesisShardCoordinator.SelfId())
+	shardCoordinator, err := sesb.runTypeComponents.ShardCoordinatorCreator().CreateShardCoordinator(sesb.genesisShardCoordinator.NumberOfShards(), sesb.genesisShardCoordinator.SelfId())
 	if err != nil {
 		return err
 	}
@@ -351,7 +343,7 @@ func (sesb *storageEpochStartBootstrap) requestAndProcessFromStorage() (Paramete
 	log.Debug("start in epoch bootstrap: processNodesConfig")
 
 	sesb.saveSelfShardId()
-	sesb.shardCoordinator, err = sesb.shardCoordinatorFactory.CreateShardCoordinator(sesb.baseData.numberOfShards, sesb.baseData.shardId)
+	sesb.shardCoordinator, err = sesb.runTypeComponents.ShardCoordinatorCreator().CreateShardCoordinator(sesb.baseData.numberOfShards, sesb.baseData.shardId)
 	if err != nil {
 		return Parameters{}, fmt.Errorf("%w numberOfShards=%v shardId=%v", err, sesb.baseData.numberOfShards, sesb.baseData.shardId)
 	}
@@ -446,7 +438,7 @@ func (sesb *storageEpochStartBootstrap) processNodesConfig(pubKey []byte) error 
 		IsFullArchive:                    sesb.prefsConfig.FullArchive,
 		EnableEpochsHandler:              sesb.coreComponentsHolder.EnableEpochsHandler(),
 		NodesCoordinatorRegistryFactory:  sesb.nodesCoordinatorRegistryFactory,
-		NodesCoordinatorWithRaterFactory: sesb.nodesCoordinatorWithRaterFactory,
+		NodesCoordinatorWithRaterFactory: sesb.runTypeComponents.NodesCoordinatorWithRaterCreator(),
 	}
 	sesb.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)
 	if err != nil {

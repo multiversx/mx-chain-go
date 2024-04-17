@@ -25,6 +25,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
 	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/sharding"
+	nodesCoord "github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state/factory"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 
@@ -32,21 +33,22 @@ import (
 )
 
 type ArgsSovereignRunTypeComponents struct {
-	Config        config.SovereignConfig
-	DataCodec     sovereign.DataDecoderHandler
-	TopicsChecker sovereign.TopicsCheckerHandler
+	RunTypeComponentsFactory *runTypeComponentsFactory
+	Config                   config.SovereignConfig
+	DataCodec                sovereign.DataCodecHandler
+	TopicsChecker            sovereign.TopicsCheckerHandler
 }
 
 type sovereignRunTypeComponentsFactory struct {
 	*runTypeComponentsFactory
 	cfg           config.SovereignConfig
-	dataCodec     sovereign.DataDecoderHandler
+	dataCodec     sovereign.DataCodecHandler
 	topicsChecker sovereign.TopicsCheckerHandler
 }
 
 // NewSovereignRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
-func NewSovereignRunTypeComponentsFactory(fact *runTypeComponentsFactory, args ArgsSovereignRunTypeComponents) (*sovereignRunTypeComponentsFactory, error) {
-	if check.IfNil(fact) {
+func NewSovereignRunTypeComponentsFactory(args ArgsSovereignRunTypeComponents) (*sovereignRunTypeComponentsFactory, error) {
+	if check.IfNil(args.RunTypeComponentsFactory) {
 		return nil, errors.ErrNilRunTypeComponentsFactory
 	}
 	if check.IfNil(args.DataCodec) {
@@ -57,7 +59,7 @@ func NewSovereignRunTypeComponentsFactory(fact *runTypeComponentsFactory, args A
 	}
 
 	return &sovereignRunTypeComponentsFactory{
-		runTypeComponentsFactory: fact,
+		runTypeComponentsFactory: args.RunTypeComponentsFactory,
 		cfg:                      args.Config,
 		dataCodec:                args.DataCodec,
 		topicsChecker:            args.TopicsChecker,
@@ -164,13 +166,6 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 	}
 
 	expiryTime := time.Second * time.Duration(rcf.cfg.OutgoingSubscribedEvents.TimeToWaitForUnconfirmedOutGoingOperationInSeconds)
-	outGoingOperationsPoolCreator := sovereignFactory.NewOutGoingOperationPool(expiryTime)
-
-	dataCodec := rcf.dataCodec
-
-	topicsChecker := rcf.topicsChecker
-
-	shardCoordinatorCreator := sharding.NewSovereignShardCoordinatorFactory()
 
 	requestersContainerFactoryCreator := requesterscontainer.NewSovereignShardRequestersContainerFactoryCreator()
 
@@ -198,10 +193,11 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		vmContainerMetaFactory:                rtc.vmContainerMetaFactory,
 		vmContainerShardFactory:               vmContainerShardCreator,
 		accountsCreator:                       accountsCreator,
-		outGoingOperationsPoolHandler:         outGoingOperationsPoolCreator,
-		dataCodecHandler:                      dataCodec,
-		topicsCheckerHandler:                  topicsChecker,
-		shardCoordinatorCreator:               shardCoordinatorCreator,
+		outGoingOperationsPoolHandler:         sovereignFactory.NewOutGoingOperationPool(expiryTime),
+		dataCodecHandler:                      rcf.dataCodec,
+		topicsCheckerHandler:                  rcf.topicsChecker,
+		shardCoordinatorCreator:               sharding.NewSovereignShardCoordinatorFactory(),
+		nodesCoordinatorWithRaterFactoryCreator: nodesCoord.NewSovereignIndexHashedNodesCoordinatorWithRaterFactory(),
 		requestersContainerFactoryCreator:     requestersContainerFactoryCreator,
 		interceptorsContainerFactoryCreator:   interceptorsContainerFactoryCreator,
 		shardResolversContainerFactoryCreator: shardResolversContainerFactoryCreator,

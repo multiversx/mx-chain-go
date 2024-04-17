@@ -43,7 +43,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/sovereign"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -805,7 +804,9 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 		{
 			args: func() blproc.ArgBaseProcessor {
 				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-				args.RunTypeComponents = &mock.RunTypeComponentsStub{AccountCreator: nil}
+				rtMock := mock.NewRunTypeComponentsStub()
+				rtMock.AccountCreator = nil
+				args.RunTypeComponents = rtMock
 				return args
 			},
 			expectedErr: state.ErrNilAccountFactory,
@@ -813,7 +814,9 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 		{
 			args: func() blproc.ArgBaseProcessor {
 				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-				args.RunTypeComponents = &mock.RunTypeComponentsStub{AccountCreator: &stateMock.AccountsFactoryStub{}, OutGoingOperationsPool: nil}
+				rtMock := mock.NewRunTypeComponentsStub()
+				rtMock.OutGoingOperationsPool = nil
+				args.RunTypeComponents = rtMock
 				return args
 			},
 			expectedErr: errorsMx.ErrNilOutGoingOperationsPool,
@@ -821,7 +824,9 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 		{
 			args: func() blproc.ArgBaseProcessor {
 				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-				args.RunTypeComponents = &mock.RunTypeComponentsStub{AccountCreator: &stateMock.AccountsFactoryStub{}, OutGoingOperationsPool: &sovereign.OutGoingOperationsPoolMock{}, DataCodec: nil}
+				rtMock := mock.NewRunTypeComponentsStub()
+				rtMock.DataCodec = nil
+				args.RunTypeComponents = rtMock
 				return args
 			},
 			expectedErr: errorsMx.ErrNilDataCodec,
@@ -829,7 +834,9 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 		{
 			args: func() blproc.ArgBaseProcessor {
 				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-				args.RunTypeComponents = &mock.RunTypeComponentsStub{AccountCreator: &stateMock.AccountsFactoryStub{}, OutGoingOperationsPool: &sovereign.OutGoingOperationsPoolMock{}, DataCodec: &sovereign.DataCodecMock{}, TopicsChecker: nil}
+				rtMock := mock.NewRunTypeComponentsStub()
+				rtMock.TopicsChecker = nil
+				args.RunTypeComponents = rtMock
 				return args
 			},
 			expectedErr: errorsMx.ErrNilTopicsChecker,
@@ -847,7 +854,6 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 	err := blproc.CheckProcessorNilParameters(args)
 	require.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
 }
-
 func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 	t.Parallel()
 

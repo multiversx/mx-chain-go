@@ -872,7 +872,7 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		require.True(t, errors.Is(err, errorsMx.ErrNilOutGoingOperationsPool))
 		require.Nil(t, pcf)
 	})
-	t.Run("nil DataDecoderCreator should error", func(t *testing.T) {
+	t.Run("nil DataCodecHandler should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockProcessComponentsFactoryArgs()

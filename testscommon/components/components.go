@@ -459,8 +459,7 @@ func GetBootStrapFactoryArgs() bootstrapComp.BootstrapComponentsFactoryArgs {
 		FlagsConfig: config.ContextFlagsConfig{
 			ForceStartFromNetwork: false,
 		},
-		RunTypeComponents:                GetRunTypeComponents(),
-		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
+		RunTypeComponents: GetRunTypeComponents(),
 	}
 }
 
@@ -730,7 +729,6 @@ func GetSovereignProcessArgs(
 
 	bootstrapComponentsFactoryArgs := GetBootStrapFactoryArgs()
 	bootstrapComponentsFactoryArgs.RunTypeComponents = GetSovereignRunTypeComponents()
-	bootstrapComponentsFactoryArgs.NodesCoordinatorWithRaterFactory = nodesCoordinator.NewSovereignIndexHashedNodesCoordinatorWithRaterFactory()
 	bootstrapComponentsFactory, _ := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
 	bootstrapComponents, _ := bootstrapComp.NewTestManagedBootstrapComponents(bootstrapComponentsFactory)
 	_ = bootstrapComponents.Create()
@@ -1052,12 +1050,7 @@ func GetRunTypeComponentsWithCoreComp(coreComponents factory.CoreComponentsHandl
 
 // GetSovereignRunTypeComponents -
 func GetSovereignRunTypeComponents() factory.RunTypeComponentsHolder {
-	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory(&mockCoreComp.CoreComponentsStub{
-		HasherField:              &hashingMocks.HasherMock{},
-		InternalMarshalizerField: &marshallerMock.MarshalizerMock{},
-		EnableEpochsHandlerField: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-	})
-	sovereignComponentsFactory, _ := runType.NewSovereignRunTypeComponentsFactory(runTypeComponentsFactory, createSovRunTypeArgs())
+	sovereignComponentsFactory, _ := runType.NewSovereignRunTypeComponentsFactory(createSovRunTypeArgs())
 	managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(sovereignComponentsFactory)
 	if err != nil {
 		log.Error("getRunTypeComponents NewManagedRunTypeComponents", "error", err.Error())
@@ -1072,7 +1065,14 @@ func GetSovereignRunTypeComponents() factory.RunTypeComponentsHolder {
 }
 
 func createSovRunTypeArgs() runType.ArgsSovereignRunTypeComponents {
+	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory(&mockCoreComp.CoreComponentsStub{
+		HasherField:              &hashingMocks.HasherMock{},
+		InternalMarshalizerField: &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandlerField: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+	})
+
 	return runType.ArgsSovereignRunTypeComponents{
+		RunTypeComponentsFactory: runTypeComponentsFactory,
 		Config: config.SovereignConfig{
 			GenesisConfig: config.GenesisConfig{
 				NativeESDT: "WEGLD-ab47da",
