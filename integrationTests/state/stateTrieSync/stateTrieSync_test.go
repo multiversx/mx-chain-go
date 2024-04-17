@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
 	"github.com/multiversx/mx-chain-go/integrationTests"
@@ -139,7 +140,7 @@ func testNodeRequestInterceptTrieNodesWithMessenger(t *testing.T, version int) {
 	assert.Nil(t, err)
 	cancel()
 
-	requesterTrie, err = requesterTrie.Recreate(rootHash)
+	requesterTrie, err = requesterTrie.Recreate(holders.NewDefaultRootHashesHolder(rootHash))
 	require.Nil(t, err)
 
 	newRootHash, _ := requesterTrie.RootHash()
@@ -359,7 +360,7 @@ func testMultipleDataTriesSync(t *testing.T, numAccounts int, numDataTrieLeaves 
 	err = userAccSyncer.SyncAccounts(rootHash, storageMarker.NewDisabledStorageMarker())
 	assert.Nil(t, err)
 
-	_ = nRequester.AccntState.RecreateTrie(rootHash)
+	_ = nRequester.AccntState.RecreateTrie(holders.NewDefaultRootHashesHolder(rootHash))
 
 	newRootHash, _ := nRequester.AccntState.RootHash()
 	assert.NotEqual(t, nilRootHash, newRootHash)
@@ -509,7 +510,7 @@ func testSyncMissingSnapshotNodes(t *testing.T, version int) {
 	for sw.IsSnapshotInProgress() {
 		time.Sleep(time.Millisecond * 100)
 	}
-	_ = nRequester.AccntState.RecreateTrie(rootHash)
+	_ = nRequester.AccntState.RecreateTrie(holders.NewDefaultRootHashesHolder(rootHash))
 
 	newRootHash, _ := nRequester.AccntState.RootHash()
 	assert.NotEqual(t, nilRootHash, newRootHash)
@@ -545,7 +546,7 @@ func copyPartialState(t *testing.T, sourceNode, destinationNode *integrationTest
 func getDataTriesHashes(t *testing.T, tr common.Trie, dataTriesRootHashes [][]byte) [][]byte {
 	hashes := make([][]byte, 0)
 	for _, rh := range dataTriesRootHashes {
-		dt, err := tr.Recreate(rh)
+		dt, err := tr.Recreate(holders.NewDefaultRootHashesHolder(rh))
 		assert.Nil(t, err)
 
 		dtHashes, err := dt.GetAllHashes()
