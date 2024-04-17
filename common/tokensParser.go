@@ -80,9 +80,5 @@ func isValidPrefixedToken(token string) bool {
 	}
 
 	tokenRandSeq := tokenSplit[2]
-	if len(tokenRandSeq) < esdtTickerNumRandChars {
-		return false
-	}
-
-	return true
+	return len(tokenRandSeq) >= esdtTickerNumRandChars
 }
