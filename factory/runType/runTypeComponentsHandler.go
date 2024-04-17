@@ -492,8 +492,8 @@ func (mrc *managedRunTypeComponents) InterceptorsContainerFactoryCreator() inter
 
 // ShardResolversContainerFactoryCreator returns the shard resolvers container factory
 func (mrc *managedRunTypeComponents) ShardResolversContainerFactoryCreator() resolverscontainer.ShardResolversContainerFactoryCreator {
-	mrc.mutStateComponents.RLock()
-	defer mrc.mutStateComponents.RUnlock()
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
 
 	if check.IfNil(mrc.runTypeComponents) {
 		return nil
