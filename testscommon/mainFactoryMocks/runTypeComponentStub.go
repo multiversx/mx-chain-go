@@ -83,7 +83,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		TopicsChecker:                       &sovereignMocks.TopicsCheckerMock{},
 		ShardCoordinatorFactory:             &testscommon.MultiShardCoordinatorFactoryMock{},
 		NodesCoordinatorWithRaterFactory:    &testscommon.NodesCoordinatorFactoryMock{},
-		RequestersContainerFactory:          requesterscontainer.NewShardRequestersContainerFactoryCreator(),
+		RequestersContainerFactory:          &testFactory.RequestersContainerFactoryMock{},
 	}
 }
 
