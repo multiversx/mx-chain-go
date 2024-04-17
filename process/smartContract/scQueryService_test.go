@@ -40,7 +40,7 @@ func createMockArgumentsForSCQuery() ArgsNewSCQueryService {
 		BlockChainHook: &testscommon.BlockChainHookStub{
 			GetAccountsAdapterCalled: func() state.AccountsAdapter {
 				return &stateMocks.AccountsStub{
-					RecreateTrieFromEpochCalled: func(options common.RootHashHolder) error {
+					RecreateTrieCalled: func(options common.RootHashHolder) error {
 						return nil
 					},
 				}
@@ -438,13 +438,13 @@ func TestExecuteQuery_ShouldReceiveQueryCorrectly(t *testing.T) {
 		recreateTrieFromEpochWasCalled := false
 
 		providedAccountsAdapter := &stateMocks.AccountsStub{
-			RecreateTrieCalled: func(rootHash []byte) error {
+			RecreateTrieCalled: func(options common.RootHashHolder) error {
+				if options.GetEpoch().HasValue {
+					recreateTrieFromEpochWasCalled = true
+					assert.Equal(t, providedRootHash, options.GetRootHash())
+					return nil
+				}
 				recreateTrieWasCalled = true
-				return nil
-			},
-			RecreateTrieFromEpochCalled: func(options common.RootHashHolder) error {
-				recreateTrieFromEpochWasCalled = true
-				assert.Equal(t, providedRootHash, options.GetRootHash())
 				return nil
 			},
 		}
@@ -534,13 +534,13 @@ func TestExecuteQuery_ShouldReceiveQueryCorrectly(t *testing.T) {
 		recreateTrieFromEpochWasCalled := false
 
 		providedAccountsAdapter := &stateMocks.AccountsStub{
-			RecreateTrieCalled: func(rootHash []byte) error {
+			RecreateTrieCalled: func(options common.RootHashHolder) error {
+				if options.GetEpoch().HasValue {
+					recreateTrieFromEpochWasCalled = true
+					assert.Equal(t, providedRootHash, options.GetRootHash())
+					return nil
+				}
 				recreateTrieWasCalled = true
-				assert.Equal(t, providedRootHash, rootHash)
-				return nil
-			},
-			RecreateTrieFromEpochCalled: func(options common.RootHashHolder) error {
-				recreateTrieFromEpochWasCalled = true
 				return nil
 			},
 		}
@@ -583,7 +583,7 @@ func TestSCQueryService_RecreateTrie(t *testing.T) {
 		argsNewSCQuery.BlockChainHook = &testscommon.BlockChainHookStub{
 			GetAccountsAdapterCalled: func() state.AccountsAdapter {
 				return &stateMocks.AccountsStub{
-					RecreateTrieCalled: func(rootHash []byte) error {
+					RecreateTrieCalled: func(rootHash common.RootHashHolder) error {
 						require.Fail(t, "should not be called")
 						return nil
 					},
@@ -611,16 +611,16 @@ func TestSCQueryService_RecreateTrie(t *testing.T) {
 		argsNewSCQuery.BlockChainHook = &testscommon.BlockChainHookStub{
 			GetAccountsAdapterCalled: func() state.AccountsAdapter {
 				return &stateMocks.AccountsStub{
-					RecreateTrieCalled: func(rootHash []byte) error {
+					RecreateTrieCalled: func(options common.RootHashHolder) error {
+						if options.GetEpoch().HasValue {
+							recreateTrieWasCalled = false
+							recreateTrieFromEpochWasCalled = true
+
+							assert.Equal(t, testRootHash, options.GetRootHash())
+							return nil
+						}
 						recreateTrieWasCalled = true
 						recreateTrieFromEpochWasCalled = false
-
-						assert.Equal(t, testRootHash, rootHash)
-						return nil
-					},
-					RecreateTrieFromEpochCalled: func(options common.RootHashHolder) error {
-						recreateTrieWasCalled = false
-						recreateTrieFromEpochWasCalled = true
 
 						assert.Equal(t, testRootHash, options.GetRootHash())
 						return nil
@@ -653,16 +653,16 @@ func TestSCQueryService_RecreateTrie(t *testing.T) {
 		argsNewSCQuery.BlockChainHook = &testscommon.BlockChainHookStub{
 			GetAccountsAdapterCalled: func() state.AccountsAdapter {
 				return &stateMocks.AccountsStub{
-					RecreateTrieCalled: func(rootHash []byte) error {
+					RecreateTrieCalled: func(options common.RootHashHolder) error {
+						if options.GetEpoch().HasValue {
+							recreateTrieWasCalled = false
+							recreateTrieFromEpochWasCalled = true
+
+							assert.Equal(t, testRootHash, options.GetRootHash())
+							return nil
+						}
 						recreateTrieWasCalled = true
 						recreateTrieFromEpochWasCalled = false
-
-						assert.Equal(t, testRootHash, rootHash)
-						return nil
-					},
-					RecreateTrieFromEpochCalled: func(options common.RootHashHolder) error {
-						recreateTrieWasCalled = false
-						recreateTrieFromEpochWasCalled = true
 
 						assert.Equal(t, testRootHash, options.GetRootHash())
 						return nil
