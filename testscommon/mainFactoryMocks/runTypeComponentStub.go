@@ -19,7 +19,9 @@ import (
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
 	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/sharding"
+	nodesCoord "github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	testFactory "github.com/multiversx/mx-chain-go/testscommon/factory"
 	sovereignMocks "github.com/multiversx/mx-chain-go/testscommon/sovereign"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
@@ -47,9 +49,10 @@ type RunTypeComponentsStub struct {
 	VmContainerShardFactory             factoryVm.VmContainerCreator
 	AccountCreator                      state.AccountFactory
 	OutGoingOperationsPool              sovereignBlock.OutGoingOperationsPool
-	DataCodec                           sovereign.DataDecoderHandler
+	DataCodec                           sovereign.DataCodecHandler
 	TopicsChecker                       sovereign.TopicsCheckerHandler
 	ShardCoordinatorFactory             sharding.ShardCoordinatorFactory
+	NodesCoordinatorWithRaterFactory    nodesCoord.NodesCoordinatorWithRaterFactory
 	RequestersContainerFactory          requesterscontainer.RequesterContainerFactoryCreator
 }
 
@@ -78,7 +81,8 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		OutGoingOperationsPool:              &sovereignMocks.OutGoingOperationsPoolMock{},
 		DataCodec:                           &sovereignMocks.DataCodecMock{},
 		TopicsChecker:                       &sovereignMocks.TopicsCheckerMock{},
-		ShardCoordinatorFactory:             sharding.NewMultiShardCoordinatorFactory(),
+		ShardCoordinatorFactory:             &testscommon.MultiShardCoordinatorFactoryMock{},
+		NodesCoordinatorWithRaterFactory:    &testscommon.NodesCoordinatorFactoryMock{},
 		RequestersContainerFactory:          requesterscontainer.NewShardRequestersContainerFactoryCreator(),
 	}
 }
@@ -204,7 +208,7 @@ func (r *RunTypeComponentsStub) OutGoingOperationsPoolHandler() sovereignBlock.O
 }
 
 // DataCodecHandler -
-func (r *RunTypeComponentsStub) DataCodecHandler() sovereign.DataDecoderHandler {
+func (r *RunTypeComponentsStub) DataCodecHandler() sovereign.DataCodecHandler {
 	return r.DataCodec
 }
 
@@ -216,6 +220,11 @@ func (r *RunTypeComponentsStub) TopicsCheckerHandler() sovereign.TopicsCheckerHa
 // ShardCoordinatorCreator -
 func (r *RunTypeComponentsStub) ShardCoordinatorCreator() sharding.ShardCoordinatorFactory {
 	return r.ShardCoordinatorFactory
+}
+
+// NodesCoordinatorWithRaterCreator -
+func (r *RunTypeComponentsStub) NodesCoordinatorWithRaterCreator() nodesCoord.NodesCoordinatorWithRaterFactory {
+	return r.NodesCoordinatorWithRaterFactory
 }
 
 // RequestersContainerFactoryCreator -
