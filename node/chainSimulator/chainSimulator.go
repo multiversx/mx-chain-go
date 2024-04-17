@@ -25,15 +25,20 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/runType"
+	"github.com/multiversx/mx-chain-go/genesis"
+	"github.com/multiversx/mx-chain-go/genesis/parsing"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
-	processSov "github.com/multiversx/mx-chain-go/process"
+	processing "github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/rating"
 	mxChainSharding "github.com/multiversx/mx-chain-go/sharding"
 )
 
-const delaySendTxs = time.Millisecond
+const (
+	delaySendTxs = time.Millisecond
+)
 
 var log = logger.GetOrCreate("chainSimulator")
 
@@ -62,7 +67,10 @@ type ArgsChainSimulator struct {
 	RoundsPerEpoch              core.OptionalUint64
 	ApiInterface                components.APIConfigurator
 	AlterConfigsFunction        func(cfg *config.Configs)
-	CreateIncomingHeaderHandler func(config *config.NotifierConfig, dataPool dataRetriever.PoolsHolder, mainChainNotarizationStartRound uint64, runTypeComponents factory.RunTypeComponentsHolder) (processSov.IncomingHeaderSubscriber, error)
+	CreateGenesisNodesSetup     func(nodesFilePath string, addressPubkeyConverter core.PubkeyConverter, validatorPubkeyConverter core.PubkeyConverter, genesisMaxNumShards uint32) (mxChainSharding.GenesisNodesSetupHandler, error)
+	CreateRatingsData           func(arg rating.RatingsDataArg) (processing.RatingsInfoHandler, error)
+	CreateAccountsParser        func(arg genesis.AccountsParserArgs) (genesis.AccountsParser, error)
+	CreateIncomingHeaderHandler func(config *config.NotifierConfig, dataPool dataRetriever.PoolsHolder, mainChainNotarizationStartRound uint64, runTypeComponents factory.RunTypeComponentsHolder) (processing.IncomingHeaderSubscriber, error)
 	GetRunTypeComponents        func(coreComponents factory.CoreComponentsHolder, cryptoComponents factory.CryptoComponentsHolder) (factory.RunTypeComponentsHolder, error)
 }
 
@@ -82,8 +90,23 @@ type Simulator struct {
 func NewChainSimulator(args ArgsChainSimulator) (*Simulator, error) {
 	syncedBroadcastNetwork := components.NewSyncedBroadcastNetwork()
 
+	if args.CreateGenesisNodesSetup == nil {
+		args.CreateGenesisNodesSetup = func(nodesFilePath string, addressPubkeyConverter core.PubkeyConverter, validatorPubkeyConverter core.PubkeyConverter, genesisMaxNumShards uint32) (mxChainSharding.GenesisNodesSetupHandler, error) {
+			return mxChainSharding.NewNodesSetup(nodesFilePath, addressPubkeyConverter, validatorPubkeyConverter, genesisMaxNumShards)
+		}
+	}
+	if args.CreateRatingsData == nil {
+		args.CreateRatingsData = func(arg rating.RatingsDataArg) (processing.RatingsInfoHandler, error) {
+			return rating.NewRatingsData(arg)
+		}
+	}
+	if args.CreateAccountsParser == nil {
+		args.CreateAccountsParser = func(arg genesis.AccountsParserArgs) (genesis.AccountsParser, error) {
+			return parsing.NewAccountsParser(arg)
+		}
+	}
 	if args.CreateIncomingHeaderHandler == nil {
-		args.CreateIncomingHeaderHandler = func(_ *config.NotifierConfig, _ dataRetriever.PoolsHolder, _ uint64, _ factory.RunTypeComponentsHolder) (processSov.IncomingHeaderSubscriber, error) {
+		args.CreateIncomingHeaderHandler = func(_ *config.NotifierConfig, _ dataRetriever.PoolsHolder, _ uint64, _ factory.RunTypeComponentsHolder) (processing.IncomingHeaderSubscriber, error) {
 			return nil, nil
 		}
 	}
@@ -200,7 +223,11 @@ func (s *Simulator) createTestNode(
 		InitialNonce:                args.InitialNonce,
 		MinNodesPerShard:            args.MinNodesPerShard,
 		MinNodesMeta:                args.MetaChainMinNodes,
+		MetaConsensusSize:           args.MetaChainConsensusGroupSize,
 		RoundDurationInMillis:       args.RoundDurationInMillis,
+		CreateGenesisNodesSetup:     args.CreateGenesisNodesSetup,
+		CreateRatingsData:           args.CreateRatingsData,
+		CreateAccountsParser:        args.CreateAccountsParser,
 		CreateIncomingHeaderHandler: args.CreateIncomingHeaderHandler,
 		GetRunTypeComponents:        args.GetRunTypeComponents,
 	}

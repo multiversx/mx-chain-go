@@ -1,10 +1,7 @@
 package vm
 
 import (
-	"encoding/hex"
 	"math/big"
-	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -13,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/process"
 	sovereignChainSimulator "github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator"
+	"github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator/utils"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/stretchr/testify/require"
@@ -69,7 +67,7 @@ func TestSmartContract_IssueToken(t *testing.T) {
 	wallet, err := cs.GenerateAndMintWalletAddress(core.SovereignChainShardId, initialMinting)
 	require.Nil(t, err)
 
-	data := getSCCode("../testdata/adder.wasm") + "@0500@0500@10000000"
+	data := utils.GetSCCode("../testdata/adder.wasm") + "@0500@0500@10000000"
 	tx0 := chainSimulator.GenerateTransaction(wallet.Bytes, 0, systemScAddress, big.NewInt(0), data, uint64(60000000))
 	txRes, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx0, 100)
 	require.Nil(t, err)
@@ -92,14 +90,4 @@ func TestSmartContract_IssueToken(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, txRes)
 	require.False(t, string(txRes.Logs.Events[0].Topics[1]) == "sending value to non payable contract")
-}
-
-func getSCCode(fileName string) string {
-	code, err := os.ReadFile(filepath.Clean(fileName))
-	if err != nil {
-		panic("Could not get SC code.")
-	}
-
-	codeEncoded := hex.EncodeToString(code)
-	return codeEncoded
 }

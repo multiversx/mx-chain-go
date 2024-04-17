@@ -137,8 +137,6 @@ func (nsc *nodeSetupChecker) subtractStakedValue(
 
 	for _, ia := range initialAccounts {
 		if bytes.Equal(ia.AddressBytes(), addressBytes) {
-			np := nsc.initialNodePrice.String()
-			_ = np
 			ia.GetStakingValue().Sub(ia.GetStakingValue(), nsc.initialNodePrice)
 			if ia.GetStakingValue().Cmp(zero) < 0 {
 				return genesis.ErrStakingValueIsNotEnough

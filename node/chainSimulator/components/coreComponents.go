@@ -93,6 +93,10 @@ type ArgsCoreComponentsHolder struct {
 	MinNodesPerShard  uint32
 	MinNodesMeta      uint32
 	RoundDurationInMs uint64
+	MetaConsensusSize uint32
+
+	CreateGenesisNodesSetup func(nodesFilePath string, addressPubkeyConverter core.PubkeyConverter, validatorPubkeyConverter core.PubkeyConverter, genesisMaxNumShards uint32) (sharding.GenesisNodesSetupHandler, error)
+	CreateRatingsData       func(arg rating.RatingsDataArg) (process.RatingsInfoHandler, error)
 }
 
 // CreateCoreComponents will create a new instance of factory.CoreComponentsHolder
@@ -146,11 +150,12 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 	instance.alarmScheduler = &mock.AlarmSchedulerStub{}
 	instance.syncTimer = &testscommon.SyncTimerStub{}
 
-	instance.genesisNodesSetup, err = sharding.NewSovereignNodesSetup(&sharding.SovereignNodesSetupArgs{
-		NodesFilePath:            args.NodesSetupPath,
-		AddressPubKeyConverter:   instance.addressPubKeyConverter,
-		ValidatorPubKeyConverter: instance.validatorPubKeyConverter,
-	})
+	instance.genesisNodesSetup, err = args.CreateGenesisNodesSetup(
+		args.NodesSetupPath,
+		instance.addressPubKeyConverter,
+		instance.validatorPubKeyConverter,
+		args.NumShards,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -184,10 +189,10 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 	instance.apiEconomicsData = instance.economicsData
 
 	// TODO fix this min nodes per shard to be configurable
-	instance.ratingsData, err = rating.NewSovereignRatingsData(rating.RatingsDataArg{
+	instance.ratingsData, err = args.CreateRatingsData(rating.RatingsDataArg{
 		Config:                   args.RatingConfig,
 		ShardConsensusSize:       1,
-		MetaConsensusSize:        0,
+		MetaConsensusSize:        args.MetaConsensusSize,
 		ShardMinNodes:            args.MinNodesPerShard,
 		MetaMinNodes:             args.MinNodesMeta,
 		RoundDurationMiliseconds: args.RoundDurationInMs,

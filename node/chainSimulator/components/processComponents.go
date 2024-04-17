@@ -57,6 +57,8 @@ type ArgsProcessComponentsHolder struct {
 
 	GenesisNonce uint64
 	GenesisRound uint64
+
+	CreateAccountsParser func(arg genesis.AccountsParserArgs) (genesis.AccountsParser, error)
 }
 
 type processComponentsHolder struct {
@@ -127,14 +129,15 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		Marshalizer:     args.CoreComponents.InternalMarshalizer(),
 	}
 
-	accountsParser, err := parsing.NewAccountsParser(argsAccountsParser)
+	accountsParser, err := args.CreateAccountsParser(argsAccountsParser)
 	if err != nil {
 		return nil, err
 	}
-	sovereignAccountsParser, err := parsing.NewSovereignAccountsParser(accountsParser)
-	if err != nil {
-		return nil, err
-	}
+	//accountsParser, err := parsing.NewAccountsParser(argsAccountsParser)
+	//sovereignAccountsParser, err := parsing.NewSovereignAccountsParser(accountsParser)
+	//if err != nil {
+	//	return nil, err
+	//}
 
 	smartContractParser, err := parsing.NewSmartContractsParser(
 		args.ConfigurationPathsHolder.SmartContracts,
@@ -196,7 +199,7 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		PrefConfigs:              args.PrefsConfig,
 		ImportDBConfig:           args.ImportDBConfig,
 		EconomicsConfig:          args.EconomicsConfig,
-		AccountsParser:           sovereignAccountsParser,
+		AccountsParser:           accountsParser,
 		SmartContractParser:      smartContractParser,
 		GasSchedule:              gasScheduleNotifier,
 		NodesCoordinator:         args.NodesCoordinator,

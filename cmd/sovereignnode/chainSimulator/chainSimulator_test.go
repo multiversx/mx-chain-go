@@ -44,7 +44,6 @@ func TestNewSovereignChainSimulator(t *testing.T) {
 			RoundsPerEpoch:         core.OptionalUint64{},
 			ApiInterface:           api.NewNoApiInterface(),
 			MinNodesPerShard:       2,
-			MetaChainMinNodes:      0,
 			AlterConfigsFunction: func(cfg *config.Configs) {
 				cfg.EconomicsConfig = economicsConfig
 				cfg.EpochConfig = epochConfig

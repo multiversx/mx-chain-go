@@ -3,6 +3,7 @@ package chainSimulator
 import (
 	"path"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-sdk-abi-incubator/golang/abi"
 
@@ -11,9 +12,13 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/runType"
+	"github.com/multiversx/mx-chain-go/genesis"
+	"github.com/multiversx/mx-chain-go/genesis/parsing"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
+	"github.com/multiversx/mx-chain-go/process/rating"
+	"github.com/multiversx/mx-chain-go/sharding"
 	sovereignConfig "github.com/multiversx/mx-chain-go/sovereignnode/config"
 	"github.com/multiversx/mx-chain-go/sovereignnode/dataCodec"
 	"github.com/multiversx/mx-chain-go/sovereignnode/incomingHeader"
@@ -26,6 +31,23 @@ type ArgsSovereignChainSimulator struct {
 
 // NewSovereignChainSimulator will create a new instance of sovereign chain simulator
 func NewSovereignChainSimulator(args ArgsSovereignChainSimulator) (*chainSimulator.Simulator, error) {
+	args.ChainSimulatorArgs.CreateGenesisNodesSetup = func(nodesFilePath string, addressPubkeyConverter core.PubkeyConverter, validatorPubkeyConverter core.PubkeyConverter, _ uint32) (sharding.GenesisNodesSetupHandler, error) {
+		return sharding.NewSovereignNodesSetup(&sharding.SovereignNodesSetupArgs{
+			NodesFilePath:            nodesFilePath,
+			AddressPubKeyConverter:   addressPubkeyConverter,
+			ValidatorPubKeyConverter: validatorPubkeyConverter,
+		})
+	}
+	args.ChainSimulatorArgs.CreateRatingsData = func(arg rating.RatingsDataArg) (process.RatingsInfoHandler, error) {
+		return rating.NewSovereignRatingsData(arg)
+	}
+	args.ChainSimulatorArgs.CreateAccountsParser = func(arg genesis.AccountsParserArgs) (genesis.AccountsParser, error) {
+		accountsParser, err := parsing.NewAccountsParser(arg)
+		if err != nil {
+			return nil, err
+		}
+		return parsing.NewSovereignAccountsParser(accountsParser)
+	}
 	args.ChainSimulatorArgs.CreateIncomingHeaderHandler = func(config *config.NotifierConfig, dataPool dataRetriever.PoolsHolder, mainChainNotarizationStartRound uint64, runTypeComponents factory.RunTypeComponentsHolder) (process.IncomingHeaderSubscriber, error) {
 		return incomingHeader.CreateIncomingHeaderProcessor(config, dataPool, mainChainNotarizationStartRound, runTypeComponents)
 	}

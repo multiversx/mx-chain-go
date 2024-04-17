@@ -19,9 +19,11 @@ import (
 	"github.com/multiversx/mx-chain-go/facade"
 	"github.com/multiversx/mx-chain-go/factory"
 	bootstrapComp "github.com/multiversx/mx-chain-go/factory/bootstrap"
+	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/postprocess"
+	"github.com/multiversx/mx-chain-go/process/rating"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -32,6 +34,9 @@ import (
 type ArgsTestOnlyProcessingNode struct {
 	Configs                     config.Configs
 	APIInterface                APIConfigurator
+	CreateGenesisNodesSetup     func(nodesFilePath string, addressPubkeyConverter core.PubkeyConverter, validatorPubkeyConverter core.PubkeyConverter, genesisMaxNumShards uint32) (sharding.GenesisNodesSetupHandler, error)
+	CreateRatingsData           func(arg rating.RatingsDataArg) (process.RatingsInfoHandler, error)
+	CreateAccountsParser        func(arg genesis.AccountsParserArgs) (genesis.AccountsParser, error)
 	CreateIncomingHeaderHandler func(config *config.NotifierConfig, dataPool dataRetriever.PoolsHolder, mainChainNotarizationStartRound uint64, runTypeComponents factory.RunTypeComponentsHolder) (process.IncomingHeaderSubscriber, error)
 	GetRunTypeComponents        func(coreComponents factory.CoreComponentsHolder, cryptoComponents factory.CryptoComponentsHolder) (factory.RunTypeComponentsHolder, error)
 
@@ -46,6 +51,7 @@ type ArgsTestOnlyProcessingNode struct {
 	BypassTxSignatureCheck bool
 	MinNodesPerShard       uint32
 	MinNodesMeta           uint32
+	MetaConsensusSize      uint32
 	RoundDurationInMillis  uint64
 }
 
@@ -84,20 +90,23 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 	instance.TransactionFeeHandler = postprocess.NewFeeAccumulator()
 
 	instance.CoreComponentsHolder, err = CreateCoreComponents(ArgsCoreComponentsHolder{
-		Config:              *args.Configs.GeneralConfig,
-		EnableEpochsConfig:  args.Configs.EpochConfig.EnableEpochs,
-		RoundsConfig:        *args.Configs.RoundConfig,
-		EconomicsConfig:     *args.Configs.EconomicsConfig,
-		ChanStopNodeProcess: args.ChanStopNodeProcess,
-		NumShards:           args.NumShards,
-		WorkingDir:          args.Configs.FlagsConfig.WorkingDir,
-		GasScheduleFilename: args.GasScheduleFilename,
-		NodesSetupPath:      args.Configs.ConfigurationPathsHolder.Nodes,
-		InitialRound:        args.InitialRound,
-		MinNodesPerShard:    args.MinNodesPerShard,
-		MinNodesMeta:        args.MinNodesMeta,
-		RoundDurationInMs:   args.RoundDurationInMillis,
-		RatingConfig:        *args.Configs.RatingsConfig,
+		Config:                  *args.Configs.GeneralConfig,
+		EnableEpochsConfig:      args.Configs.EpochConfig.EnableEpochs,
+		RoundsConfig:            *args.Configs.RoundConfig,
+		EconomicsConfig:         *args.Configs.EconomicsConfig,
+		ChanStopNodeProcess:     args.ChanStopNodeProcess,
+		NumShards:               args.NumShards,
+		WorkingDir:              args.Configs.FlagsConfig.WorkingDir,
+		GasScheduleFilename:     args.GasScheduleFilename,
+		NodesSetupPath:          args.Configs.ConfigurationPathsHolder.Nodes,
+		InitialRound:            args.InitialRound,
+		MinNodesPerShard:        args.MinNodesPerShard,
+		MinNodesMeta:            args.MinNodesMeta,
+		MetaConsensusSize:       args.MetaConsensusSize,
+		RoundDurationInMs:       args.RoundDurationInMillis,
+		RatingConfig:            *args.Configs.RatingsConfig,
+		CreateGenesisNodesSetup: args.CreateGenesisNodesSetup,
+		CreateRatingsData:       args.CreateRatingsData,
 	})
 	if err != nil {
 		return nil, err
@@ -192,6 +201,9 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		args.Configs.GeneralConfig.SovereignConfig.MainChainNotarization.MainChainNotarizationStartRound,
 		instance.RunTypeComponents,
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	instance.ProcessComponentsHolder, err = CreateProcessComponents(ArgsProcessComponentsHolder{
 		CoreComponents:           instance.CoreComponentsHolder,
@@ -214,6 +226,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		DataComponents:           instance.DataComponentsHolder,
 		GenesisNonce:             args.InitialNonce,
 		GenesisRound:             uint64(args.InitialRound),
+		CreateAccountsParser:     args.CreateAccountsParser,
 		RunTypeComponents:        instance.RunTypeComponents,
 		IncomingHeaderHandler:    instance.IncomingHeaderHandler,
 	})
