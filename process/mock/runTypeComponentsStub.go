@@ -2,6 +2,7 @@ package mock
 
 import (
 	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
+	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -17,6 +18,7 @@ type RunTypeComponentsStub struct {
 	AdditionalStorageServiceFactory  process.AdditionalStorageServiceCreator
 	ShardCoordinatorFactory          sharding.ShardCoordinatorFactory
 	NodesCoordinatorWithRaterFactory nodesCoordinator.NodesCoordinatorWithRaterFactory
+	RequestHandlerFactory            requestHandlers.RequestHandlerCreator
 	AccountCreator                   state.AccountFactory
 	OutGoingOperationsPool           sovereignBlock.OutGoingOperationsPool
 	DataCodec                        sovereign.DataCodecHandler
@@ -29,6 +31,24 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		AdditionalStorageServiceFactory:  &testscommon.AdditionalStorageServiceFactoryMock{},
 		ShardCoordinatorFactory:          sharding.NewMultiShardCoordinatorFactory(),
 		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
+		RequestHandlerFactory:            requestHandlers.NewResolverRequestHandlerFactory(),
+		AccountCreator:                   &stateMock.AccountsFactoryStub{},
+		OutGoingOperationsPool:           &sovereignMocks.OutGoingOperationsPoolMock{},
+		DataCodec:                        &sovereignMocks.DataCodecMock{},
+		TopicsChecker:                    &sovereignMocks.TopicsCheckerMock{},
+	}
+}
+
+// NewSovereignRunTypeComponentsStub -
+func NewSovereignRunTypeComponentsStub() *RunTypeComponentsStub {
+	rt := NewRunTypeComponentsStub()
+	requestHandlerFactory, _ := requestHandlers.NewSovereignResolverRequestHandlerFactory(rt.RequestHandlerFactory)
+
+	return &RunTypeComponentsStub{
+		AdditionalStorageServiceFactory:  &testscommon.AdditionalStorageServiceFactoryMock{},
+		ShardCoordinatorFactory:          sharding.NewSovereignShardCoordinatorFactory(),
+		NodesCoordinatorWithRaterFactory: &testscommon.NodesCoordinatorFactoryMock{},
+		RequestHandlerFactory:            requestHandlerFactory,
 		AccountCreator:                   &stateMock.AccountsFactoryStub{},
 		OutGoingOperationsPool:           &sovereignMocks.OutGoingOperationsPoolMock{},
 		DataCodec:                        &sovereignMocks.DataCodecMock{},
@@ -49,6 +69,11 @@ func (r *RunTypeComponentsStub) ShardCoordinatorCreator() sharding.ShardCoordina
 // NodesCoordinatorWithRaterCreator -
 func (r *RunTypeComponentsStub) NodesCoordinatorWithRaterCreator() nodesCoordinator.NodesCoordinatorWithRaterFactory {
 	return r.NodesCoordinatorWithRaterFactory
+}
+
+// RequestHandlerCreator -
+func (r *RunTypeComponentsStub) RequestHandlerCreator() requestHandlers.RequestHandlerCreator {
+	return r.RequestHandlerFactory
 }
 
 // AccountsCreator -

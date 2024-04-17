@@ -111,6 +111,9 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 	if check.IfNil(args.RunTypeComponents.NodesCoordinatorWithRaterCreator()) {
 		return nil, errors.ErrNilNodesCoordinatorFactory
 	}
+	if check.IfNil(args.RunTypeComponents.RequestHandlerCreator()) {
+		return nil, errors.ErrNilRequestHandlerCreator
+	}
 
 	return &bootstrapComponentsFactory{
 		config:               args.Config,
@@ -250,14 +253,11 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 	var epochStartBootstrapper factory.EpochStartBootstrapper
 	if bcf.importDbConfig.IsImportDBMode {
 		storageArg := bootstrap.ArgsStorageEpochStartBootstrap{
-			ArgsEpochStartBootstrap:          epochStartBootstrapArgs,
-			ImportDbConfig:                   bcf.importDbConfig,
-			ChanGracefullyClose:              bcf.coreComponents.ChanStopNodeProcess(),
-			TimeToWaitForRequestedData:       bootstrap.DefaultTimeToWaitForRequestedData,
-			EpochStartBootstrapperCreator:    bcf.runTypeComponents.EpochStartBootstrapperCreator(),
-			NodesCoordinatorWithRaterFactory: bcf.runTypeComponents.NodesCoordinatorWithRaterCreator(),
-			ShardCoordinatorFactory:          bcf.runTypeComponents.ShardCoordinatorCreator(),
-			ResolverRequestFactory:           bcf.runTypeComponents.RequestHandlerCreator(),
+			ArgsEpochStartBootstrap:       epochStartBootstrapArgs,
+			ImportDbConfig:                bcf.importDbConfig,
+			ChanGracefullyClose:           bcf.coreComponents.ChanStopNodeProcess(),
+			TimeToWaitForRequestedData:    bootstrap.DefaultTimeToWaitForRequestedData,
+			EpochStartBootstrapperCreator: bcf.runTypeComponents.EpochStartBootstrapperCreator(),
 		}
 
 		epochStartBootstrapper, err = bootstrap.NewStorageEpochStartBootstrap(storageArg)

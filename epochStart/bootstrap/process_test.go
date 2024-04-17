@@ -209,7 +209,8 @@ func createMockEpochStartBootstrapArgs(
 				Capacity: 10,
 				Shards:   10,
 			},
-			Requesters: generalCfg.Requesters,
+			Requesters:      generalCfg.Requesters,
+			SovereignConfig: generalCfg.SovereignConfig,
 		},
 		EconomicsData: &economicsmocks.EconomicsHandlerStub{
 			MinGasPriceCalled: func() uint64 {
@@ -682,6 +683,18 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		epochStartProvider, err := NewEpochStartBootstrap(args)
 		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, errorsMx.ErrNilNodesCoordinatorFactory))
+	})
+	t.Run("nil RequestHandlerFactory should error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComp, cryptoComp := createComponentsForEpochStart()
+		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+		rtMock := processMocks.NewRunTypeComponentsStub()
+		rtMock.RequestHandlerFactory = nil
+		args.RunTypeComponents = rtMock
+		epochStartProvider, err := NewEpochStartBootstrap(args)
+		require.Nil(t, epochStartProvider)
+		require.True(t, errors.Is(err, errorsMx.ErrNilRequestHandlerCreator))
 	})
 }
 

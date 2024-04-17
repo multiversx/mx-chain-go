@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -80,5 +81,6 @@ type RunTypeComponentsHolder interface {
 	AdditionalStorageServiceCreator() process.AdditionalStorageServiceCreator
 	ShardCoordinatorCreator() sharding.ShardCoordinatorFactory
 	NodesCoordinatorWithRaterCreator() nodesCoordinator.NodesCoordinatorWithRaterFactory
+	RequestHandlerCreator() requestHandlers.RequestHandlerCreator
 	IsInterfaceNil() bool
 }
