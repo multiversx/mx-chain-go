@@ -1,8 +1,7 @@
-package mock
+package dataRetriever
 
 import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	dataRetriever2 "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 )
 
 type ShardRequestersContainerFactoryMock struct {
@@ -13,7 +12,7 @@ func (s *ShardRequestersContainerFactoryMock) Create() (dataRetriever.Requesters
 	if s.CreateCalled != nil {
 		return s.Create()
 	}
-	return &dataRetriever2.RequestersContainerStub{}, nil
+	return &RequestersContainerStub{}, nil
 }
 
 func (s *ShardRequestersContainerFactoryMock) IsInterfaceNil() bool {
