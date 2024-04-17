@@ -599,9 +599,10 @@ type RunTypeComponentsHolder interface {
 	VmContainerShardFactoryCreator() factoryVm.VmContainerCreator
 	AccountsCreator() state.AccountFactory
 	OutGoingOperationsPoolHandler() sovereignBlock.OutGoingOperationsPool
-	DataCodecHandler() sovereign.DataDecoderHandler
+	DataCodecHandler() sovereign.DataCodecHandler
 	TopicsCheckerHandler() sovereign.TopicsCheckerHandler
 	ShardCoordinatorCreator() sharding.ShardCoordinatorFactory
+	NodesCoordinatorWithRaterCreator() nodesCoordinator.NodesCoordinatorWithRaterFactory
 	RequestersContainerFactoryCreator() requesterscontainer.RequesterContainerFactoryCreator
 	InterceptorsContainerFactoryCreator() interceptorscontainer.InterceptorsContainerFactoryCreator
 	Create() error

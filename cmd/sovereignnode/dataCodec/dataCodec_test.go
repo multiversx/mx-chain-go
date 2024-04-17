@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createDataCodec() SovereignDataDecoder {
+func createDataCodec() SovereignDataCodec {
 	codec := abi.NewDefaultCodec()
 	args := ArgsDataCodec{
 		Serializer: abi.NewSerializer(codec),

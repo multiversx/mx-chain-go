@@ -1,4 +1,4 @@
-package factory
+package testscommon
 
 import (
 	"github.com/multiversx/mx-chain-go/sharding"
