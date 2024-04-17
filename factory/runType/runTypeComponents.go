@@ -41,32 +41,33 @@ type runTypeComponentsFactory struct {
 
 // runTypeComponents struct holds the components needed for a run type
 type runTypeComponents struct {
-	blockChainHookHandlerCreator        hooks.BlockChainHookHandlerCreator
-	epochStartBootstrapperCreator       bootstrap.EpochStartBootstrapperCreator
-	bootstrapperFromStorageCreator      storageBootstrap.BootstrapperFromStorageCreator
-	bootstrapperCreator                 storageBootstrap.BootstrapperCreator
-	blockProcessorCreator               processBlock.BlockProcessorCreator
-	forkDetectorCreator                 sync.ForkDetectorCreator
-	blockTrackerCreator                 track.BlockTrackerCreator
-	requestHandlerCreator               requestHandlers.RequestHandlerCreator
-	headerValidatorCreator              processBlock.HeaderValidatorCreator
-	scheduledTxsExecutionCreator        preprocess.ScheduledTxsExecutionCreator
-	transactionCoordinatorCreator       coordinator.TransactionCoordinatorCreator
-	validatorStatisticsProcessorCreator peer.ValidatorStatisticsProcessorCreator
-	additionalStorageServiceCreator     process.AdditionalStorageServiceCreator
-	scProcessorCreator                  scrCommon.SCProcessorCreator
-	scResultPreProcessorCreator         preprocess.SmartContractResultPreProcessorCreator
-	consensusModel                      consensus.ConsensusModel
-	vmContainerMetaFactory              factoryVm.VmContainerCreator
-	vmContainerShardFactory             factoryVm.VmContainerCreator
-	accountsCreator                     state.AccountFactory
-	outGoingOperationsPoolHandler       sovereignBlock.OutGoingOperationsPool
-	dataCodecHandler                    sovereign.DataCodecHandler
-	topicsCheckerHandler                sovereign.TopicsCheckerHandler
-	shardCoordinatorCreator             sharding.ShardCoordinatorFactorynodesCoordinatorWithRaterFactoryCreator nodesCoord.NodesCoordinatorWithRaterFactory
-	requestersContainerFactoryCreator     requesterscontainer.RequesterContainerFactoryCreator
-	interceptorsContainerFactoryCreator   interceptorscontainer.InterceptorsContainerFactoryCreator
-	shardResolversContainerFactoryCreator resolverscontainer.ShardResolversContainerFactoryCreator
+	blockChainHookHandlerCreator            hooks.BlockChainHookHandlerCreator
+	epochStartBootstrapperCreator           bootstrap.EpochStartBootstrapperCreator
+	bootstrapperFromStorageCreator          storageBootstrap.BootstrapperFromStorageCreator
+	bootstrapperCreator                     storageBootstrap.BootstrapperCreator
+	blockProcessorCreator                   processBlock.BlockProcessorCreator
+	forkDetectorCreator                     sync.ForkDetectorCreator
+	blockTrackerCreator                     track.BlockTrackerCreator
+	requestHandlerCreator                   requestHandlers.RequestHandlerCreator
+	headerValidatorCreator                  processBlock.HeaderValidatorCreator
+	scheduledTxsExecutionCreator            preprocess.ScheduledTxsExecutionCreator
+	transactionCoordinatorCreator           coordinator.TransactionCoordinatorCreator
+	validatorStatisticsProcessorCreator     peer.ValidatorStatisticsProcessorCreator
+	additionalStorageServiceCreator         process.AdditionalStorageServiceCreator
+	scProcessorCreator                      scrCommon.SCProcessorCreator
+	scResultPreProcessorCreator             preprocess.SmartContractResultPreProcessorCreator
+	consensusModel                          consensus.ConsensusModel
+	vmContainerMetaFactory                  factoryVm.VmContainerCreator
+	vmContainerShardFactory                 factoryVm.VmContainerCreator
+	accountsCreator                         state.AccountFactory
+	outGoingOperationsPoolHandler           sovereignBlock.OutGoingOperationsPool
+	dataCodecHandler                        sovereign.DataCodecHandler
+	topicsCheckerHandler                    sovereign.TopicsCheckerHandler
+	shardCoordinatorCreator                 sharding.ShardCoordinatorFactory
+	nodesCoordinatorWithRaterFactoryCreator nodesCoord.NodesCoordinatorWithRaterFactory
+	requestersContainerFactoryCreator       requesterscontainer.RequesterContainerFactoryCreator
+	interceptorsContainerFactoryCreator     interceptorscontainer.InterceptorsContainerFactoryCreator
+	shardResolversContainerFactoryCreator   resolverscontainer.ShardResolversContainerFactoryCreator
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
