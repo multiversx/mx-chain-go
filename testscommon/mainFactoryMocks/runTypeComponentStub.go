@@ -91,7 +91,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		RequestersContainerFactory:          &testFactory.RequestersContainerFactoryMock{},
 		InterceptorsContainerFactory:        &testFactory.InterceptorsContainerFactoryMock{},
 		ShardResolversContainerFactory:      &testFactory.ResolversContainerFactoryMock{},
-		TxPreProcessorFactory:               preprocess.NewTxPreProcessorCreator(),
+		TxPreProcessorFactory:               &testFactory.TxPreProcessorFactoryMock{},
 	}
 }
 

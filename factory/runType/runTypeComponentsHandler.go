@@ -507,8 +507,8 @@ func (mrc *managedRunTypeComponents) ShardResolversContainerFactoryCreator() res
 
 // TxPreProcessorCreator returns the tx pre processor factory
 func (mrc *managedRunTypeComponents) TxPreProcessorCreator() preprocess.TxPreProcessorCreator {
-	mrc.mutStateComponents.RLock()
-	defer mrc.mutStateComponents.RUnlock()
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
 
 	if check.IfNil(mrc.runTypeComponents) {
 		return nil
