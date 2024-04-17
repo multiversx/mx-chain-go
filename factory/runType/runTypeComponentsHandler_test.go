@@ -69,8 +69,10 @@ func TestManagedRunTypeComponents_Create(t *testing.T) {
 		require.Nil(t, managedRunTypeComponents.DataCodecHandler())
 		require.Nil(t, managedRunTypeComponents.TopicsCheckerHandler())
 		require.Nil(t, managedRunTypeComponents.ShardCoordinatorCreator())
+		require.Nil(t, managedRunTypeComponents.NodesCoordinatorWithRaterCreator())
 		require.Nil(t, managedRunTypeComponents.RequestersContainerFactoryCreator())
 		require.Nil(t, managedRunTypeComponents.InterceptorsContainerFactoryCreator())
+		require.Nil(t, managedRunTypeComponents.ShardResolversContainerFactoryCreator())
 		require.Nil(t, managedRunTypeComponents.TxPreProcessorCreator())
 
 		err = managedRunTypeComponents.Create()
@@ -90,7 +92,7 @@ func TestManagedRunTypeComponents_Create(t *testing.T) {
 		require.NotNil(t, managedRunTypeComponents.AdditionalStorageServiceCreator())
 		require.NotNil(t, managedRunTypeComponents.SCProcessorCreator())
 		require.NotNil(t, managedRunTypeComponents.SCResultsPreProcessorCreator())
-		require.NotEqual(t, consensus.ConsensusModelInvalid, managedRunTypeComponents.ConsensusModel())
+		require.Equal(t, consensus.ConsensusModelV1, managedRunTypeComponents.ConsensusModel())
 		require.NotNil(t, managedRunTypeComponents.VmContainerMetaFactoryCreator())
 		require.NotNil(t, managedRunTypeComponents.VmContainerShardFactoryCreator())
 		require.NotNil(t, managedRunTypeComponents.AccountsCreator())
@@ -98,8 +100,10 @@ func TestManagedRunTypeComponents_Create(t *testing.T) {
 		require.NotNil(t, managedRunTypeComponents.DataCodecHandler())
 		require.NotNil(t, managedRunTypeComponents.TopicsCheckerHandler())
 		require.NotNil(t, managedRunTypeComponents.ShardCoordinatorCreator())
+		require.NotNil(t, managedRunTypeComponents.NodesCoordinatorWithRaterCreator())
 		require.NotNil(t, managedRunTypeComponents.RequestersContainerFactoryCreator())
 		require.NotNil(t, managedRunTypeComponents.InterceptorsContainerFactoryCreator())
+		require.NotNil(t, managedRunTypeComponents.ShardResolversContainerFactoryCreator())
 		require.NotNil(t, managedRunTypeComponents.TxPreProcessorCreator())
 
 		require.Equal(t, factory.RunTypeComponentsName, managedRunTypeComponents.String())
@@ -130,6 +134,7 @@ func TestManagedRunTypeComponents_CheckSubcomponents(t *testing.T) {
 	err = managedRunTypeComponents.Create()
 	require.NoError(t, err)
 
+	//TODO check for nil each subcomponent - MX-15371
 	err = managedRunTypeComponents.CheckSubcomponents()
 	require.NoError(t, err)
 

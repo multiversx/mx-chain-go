@@ -12,8 +12,8 @@ type OutgoingOperationsFormatter interface {
 	IsInterfaceNil() bool
 }
 
-// DataDecoderHandler is the interface for serializing/deserializing data
-type DataDecoderHandler interface {
+// DataCodecHandler is the interface for serializing/deserializing data
+type DataCodecHandler interface {
 	SerializeEventData(eventData sovereign.EventData) ([]byte, error)
 	DeserializeEventData(data []byte) (*sovereign.EventData, error)
 	SerializeTokenData(tokenData sovereign.EsdtTokenData) ([]byte, error)

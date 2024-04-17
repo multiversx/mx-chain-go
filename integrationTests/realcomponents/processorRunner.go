@@ -221,18 +221,17 @@ func (pr *ProcessorRunner) createNetworkComponents(tb testing.TB) {
 
 func (pr *ProcessorRunner) createBootstrapComponents(tb testing.TB) {
 	argsBootstrap := factoryBootstrap.BootstrapComponentsFactoryArgs{
-		Config:                           *pr.Config.GeneralConfig,
-		RoundConfig:                      *pr.Config.RoundConfig,
-		PrefConfig:                       *pr.Config.PreferencesConfig,
-		ImportDbConfig:                   *pr.Config.ImportDbConfig,
-		FlagsConfig:                      *pr.Config.FlagsConfig,
-		WorkingDir:                       pr.Config.FlagsConfig.WorkingDir,
-		CoreComponents:                   pr.CoreComponents,
-		CryptoComponents:                 pr.CryptoComponents,
-		NetworkComponents:                pr.NetworkComponents,
-		StatusCoreComponents:             pr.StatusCoreComponents,
-		RunTypeComponents:                pr.RunTypeComponents,
-		NodesCoordinatorWithRaterFactory: nodesCoord.NewIndexHashedNodesCoordinatorWithRaterFactory(),
+		Config:               *pr.Config.GeneralConfig,
+		RoundConfig:          *pr.Config.RoundConfig,
+		PrefConfig:           *pr.Config.PreferencesConfig,
+		ImportDbConfig:       *pr.Config.ImportDbConfig,
+		FlagsConfig:          *pr.Config.FlagsConfig,
+		WorkingDir:           pr.Config.FlagsConfig.WorkingDir,
+		CoreComponents:       pr.CoreComponents,
+		CryptoComponents:     pr.CryptoComponents,
+		NetworkComponents:    pr.NetworkComponents,
+		StatusCoreComponents: pr.StatusCoreComponents,
+		RunTypeComponents:    pr.RunTypeComponents,
 	}
 
 	bootstrapFactory, err := factoryBootstrap.NewBootstrapComponentsFactory(argsBootstrap)
@@ -334,7 +333,7 @@ func (pr *ProcessorRunner) createStatusComponents(tb testing.TB) {
 		pr.CoreComponents.EnableEpochsHandler(),
 		pr.DataComponents.Datapool().CurrentEpochValidatorInfo(),
 		pr.BootstrapComponents.NodesCoordinatorRegistryFactory(),
-		nodesCoord.NewIndexHashedNodesCoordinatorWithRaterFactory(),
+		pr.RunTypeComponents.NodesCoordinatorWithRaterCreator(),
 	)
 	require.Nil(tb, err)
 
