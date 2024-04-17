@@ -105,15 +105,6 @@ func TestNewBootstrapComponentsFactory(t *testing.T) {
 		require.Nil(t, bcf)
 		require.Equal(t, errorsMx.ErrNilAppStatusHandler, err)
 	})
-	t.Run("nil nodes coordinator factory, should error", func(t *testing.T) {
-		t.Parallel()
-
-		argsCopy := args
-		argsCopy.NodesCoordinatorWithRaterFactory = nil
-		bcf, err := bootstrap.NewBootstrapComponentsFactory(argsCopy)
-		require.Nil(t, bcf)
-		require.Equal(t, errorsMx.ErrNilNodesCoordinatorFactory, err)
-	})
 	t.Run("nil RunTypeComponents should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -155,6 +146,17 @@ func TestNewBootstrapComponentsFactory(t *testing.T) {
 		bcf, err := bootstrap.NewBootstrapComponentsFactory(argsCopy)
 		require.Nil(t, bcf)
 		require.Equal(t, errorsMx.ErrNilShardCoordinatorFactory, err)
+	})
+	t.Run("nil NodesCoordinatorWithRaterFactory should error", func(t *testing.T) {
+		t.Parallel()
+
+		argsCopy := args
+		rtMock := mainFactoryMocks.NewRunTypeComponentsStub()
+		rtMock.NodesCoordinatorWithRaterFactory = nil
+		argsCopy.RunTypeComponents = rtMock
+		bcf, err := bootstrap.NewBootstrapComponentsFactory(argsCopy)
+		require.Nil(t, bcf)
+		require.Equal(t, errorsMx.ErrNilNodesCoordinatorFactory, err)
 	})
 	t.Run("empty working dir should error", func(t *testing.T) {
 		t.Parallel()
