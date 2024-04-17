@@ -476,8 +476,8 @@ func (mrc *managedRunTypeComponents) RequestersContainerFactoryCreator() request
 
 // InterceptorsContainerFactoryCreator returns the shard interceptors container factory
 func (mrc *managedRunTypeComponents) InterceptorsContainerFactoryCreator() interceptorscontainer.InterceptorsContainerFactoryCreator {
-	mrc.mutStateComponents.RLock()
-	defer mrc.mutStateComponents.RUnlock()
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
 
 	if check.IfNil(mrc.runTypeComponents) {
 		return nil
