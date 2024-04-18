@@ -1057,6 +1057,11 @@ func GetSovereignRunTypeComponents() factory.RunTypeComponentsHolder {
 }
 
 func createSovRunTypeArgs() runType.ArgsSovereignRunTypeComponents {
+	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory(&mockCoreComp.CoreComponentsStub{
+		HasherField:              &hashingMocks.HasherMock{},
+		InternalMarshalizerField: &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandlerField: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+	})
 	sovHeaderSigVerifier, _ := headerCheck.NewSovereignHeaderSigVerifier(&mclSig.BlsSingleSigner{})
 
 	return runType.ArgsSovereignRunTypeComponents{

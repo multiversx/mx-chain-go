@@ -93,6 +93,7 @@ func createSovRunTypeComps(t *testing.T) runTypeComponentsHandler {
 
 	sovHeaderSigVerifier, _ := headerCheck.NewSovereignHeaderSigVerifier(&mclSig.BlsSingleSigner{})
 	runTypeArgs := factoryRunType.ArgsSovereignRunTypeComponents{
+		RunTypeComponentsFactory: runTypeFactory,
 		Config: config.SovereignConfig{
 			GenesisConfig: config.GenesisConfig{
 				NativeESDT: sovereignNativeToken,
@@ -103,7 +104,7 @@ func createSovRunTypeComps(t *testing.T) runTypeComponentsHandler {
 		ExtraVerifier: sovHeaderSigVerifier,
 	}
 
-	sovRunTypeFactory, err := factoryRunType.NewSovereignRunTypeComponentsFactory(runTypeFactory, runTypeArgs)
+	sovRunTypeFactory, err := factoryRunType.NewSovereignRunTypeComponentsFactory(runTypeArgs)
 	require.Nil(t, err)
 	sovRunTypeComp, err := factoryRunType.NewManagedRunTypeComponents(sovRunTypeFactory)
 	require.Nil(t, err)
