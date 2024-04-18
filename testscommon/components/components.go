@@ -8,7 +8,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
-	mclSig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/singlesig"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 	"github.com/stretchr/testify/require"
@@ -40,7 +39,6 @@ import (
 	"github.com/multiversx/mx-chain-go/p2p"
 	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
 	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
-	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/rating"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -50,6 +48,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/headerSigVerifier"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/sovereign"
@@ -1062,7 +1061,6 @@ func createSovRunTypeArgs() runType.ArgsSovereignRunTypeComponents {
 		InternalMarshalizerField: &marshallerMock.MarshalizerMock{},
 		EnableEpochsHandlerField: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	})
-	sovHeaderSigVerifier, _ := headerCheck.NewSovereignHeaderSigVerifier(&mclSig.BlsSingleSigner{})
 
 	return runType.ArgsSovereignRunTypeComponents{
 		RunTypeComponentsFactory: runTypeComponentsFactory,
@@ -1073,7 +1071,7 @@ func createSovRunTypeArgs() runType.ArgsSovereignRunTypeComponents {
 		},
 		DataCodec:     &sovereign.DataCodecMock{},
 		TopicsChecker: &sovereign.TopicsCheckerMock{},
-		ExtraVerifier: sovHeaderSigVerifier,
+		ExtraVerifier: &headerSigVerifier.ExtraHeaderSigVerifierHandlerMock{},
 	}
 }
 

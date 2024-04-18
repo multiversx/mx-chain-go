@@ -26,6 +26,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	testFactory "github.com/multiversx/mx-chain-go/testscommon/factory"
+	"github.com/multiversx/mx-chain-go/testscommon/headerSigVerifier"
 	sovereignMocks "github.com/multiversx/mx-chain-go/testscommon/sovereign"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 )
@@ -94,7 +95,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		InterceptorsContainerFactory:        &testFactory.InterceptorsContainerFactoryMock{},
 		ShardResolversContainerFactory:      &testFactory.ResolversContainerFactoryMock{},
 		TxPreProcessorFactory:               &testFactory.TxPreProcessorFactoryMock{},
-		ExtraHeaderSigVerifier:              headerCheck.NewExtraHeaderSigVerifierHolder(),
+		ExtraHeaderSigVerifier:              &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
 	}
 }
 
