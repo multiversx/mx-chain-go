@@ -17,8 +17,6 @@ import (
 	"syscall"
 	"time"
 
-	crypto "github.com/multiversx/mx-chain-crypto-go"
-
 	"github.com/multiversx/mx-chain-go/api/gin"
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/common"
@@ -317,13 +315,13 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 	}
 
 	log.Debug("creating args for runType components")
-	argsSovereignRunTypeComponents, err := snr.CreateArgsRunTypeComponents(managedCryptoComponents.BlockSigner())
+	argsSovereignRunTypeComponents, err := snr.CreateArgsRunTypeComponents(managedCoreComponents, managedCryptoComponents)
 	if err != nil {
 		return true, err
 	}
 
 	log.Debug("creating runType components")
-	managedRunTypeComponents, err := snr.CreateManagedRunTypeComponents(managedCoreComponents, *argsSovereignRunTypeComponents)
+	managedRunTypeComponents, err := snr.CreateManagedRunTypeComponents(*argsSovereignRunTypeComponents)
 	if err != nil {
 		return true, err
 	}
@@ -1636,7 +1634,7 @@ func (snr *sovereignNodeRunner) CreateManagedCryptoComponents(
 }
 
 // CreateArgsRunTypeComponents creates the arguments for sovereign runType components
-func (snr *sovereignNodeRunner) CreateArgsRunTypeComponents(coreComp mainFactory.CoreComponentsHandler) (*runType.ArgsSovereignRunTypeComponents, error) {
+func (snr *sovereignNodeRunner) CreateArgsRunTypeComponents(coreComp mainFactory.CoreComponentsHandler, cryptoComp mainFactory.CryptoComponentsHandler) (*runType.ArgsSovereignRunTypeComponents, error) {
 	sovereignCfg := snr.configs.SovereignExtraConfig
 
 	codec := abi.NewDefaultCodec()
@@ -1654,7 +1652,7 @@ func (snr *sovereignNodeRunner) CreateArgsRunTypeComponents(coreComp mainFactory
 		return nil, fmt.Errorf("NewRunTypeComponentsFactory failed: %w", err)
 	}
 
-	sovHeaderSigVerifier, err := headerCheck.NewSovereignHeaderSigVerifier(blockSigner)
+	sovHeaderSigVerifier, err := headerCheck.NewSovereignHeaderSigVerifier(cryptoComp.BlockSigner())
 	if err != nil {
 		return nil, err
 	}
@@ -1664,7 +1662,7 @@ func (snr *sovereignNodeRunner) CreateArgsRunTypeComponents(coreComp mainFactory
 		Config:                   *sovereignCfg,
 		DataCodec:                dataCodecHandler,
 		TopicsChecker:            incomingHeader.NewTopicsChecker(),
-		ExtraVerifier: sovHeaderSigVerifier,
+		ExtraVerifier:            sovHeaderSigVerifier,
 	}, nil
 }
 
