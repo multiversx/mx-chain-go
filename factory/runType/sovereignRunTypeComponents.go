@@ -26,6 +26,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
 	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/sharding"
+	nodesCoord "github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state/factory"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 
@@ -33,23 +34,24 @@ import (
 )
 
 type ArgsSovereignRunTypeComponents struct {
-	Config        config.SovereignConfig
-	DataCodec     sovereign.DataDecoderHandler
-	TopicsChecker sovereign.TopicsCheckerHandler
-	ExtraVerifier process.ExtraHeaderSigVerifierHandler
+	RunTypeComponentsFactory *runTypeComponentsFactory
+	Config                   config.SovereignConfig
+	DataCodec                sovereign.DataCodecHandler
+	TopicsChecker            sovereign.TopicsCheckerHandler
+	ExtraVerifier            process.ExtraHeaderSigVerifierHandler
 }
 
 type sovereignRunTypeComponentsFactory struct {
 	*runTypeComponentsFactory
 	cfg           config.SovereignConfig
-	dataCodec     sovereign.DataDecoderHandler
+	dataCodec     sovereign.DataCodecHandler
 	topicsChecker sovereign.TopicsCheckerHandler
 	extraVerifier process.ExtraHeaderSigVerifierHandler
 }
 
 // NewSovereignRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
-func NewSovereignRunTypeComponentsFactory(fact *runTypeComponentsFactory, args ArgsSovereignRunTypeComponents) (*sovereignRunTypeComponentsFactory, error) {
-	if check.IfNil(fact) {
+func NewSovereignRunTypeComponentsFactory(args ArgsSovereignRunTypeComponents) (*sovereignRunTypeComponentsFactory, error) {
+	if check.IfNil(args.RunTypeComponentsFactory) {
 		return nil, errors.ErrNilRunTypeComponentsFactory
 	}
 	if check.IfNil(args.DataCodec) {
@@ -63,7 +65,7 @@ func NewSovereignRunTypeComponentsFactory(fact *runTypeComponentsFactory, args A
 	}
 
 	return &sovereignRunTypeComponentsFactory{
-		runTypeComponentsFactory: fact,
+		runTypeComponentsFactory: args.RunTypeComponentsFactory,
 		cfg:                      args.Config,
 		dataCodec:                args.DataCodec,
 		topicsChecker:            args.TopicsChecker,
@@ -171,19 +173,6 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 	}
 
 	expiryTime := time.Second * time.Duration(rcf.cfg.OutgoingSubscribedEvents.TimeToWaitForUnconfirmedOutGoingOperationInSeconds)
-	outGoingOperationsPoolCreator := sovereignFactory.NewOutGoingOperationPool(expiryTime)
-
-	dataCodec := rcf.dataCodec
-
-	topicsChecker := rcf.topicsChecker
-
-	shardCoordinatorCreator := sharding.NewSovereignShardCoordinatorFactory()
-
-	requestersContainerFactoryCreator := requesterscontainer.NewSovereignShardRequestersContainerFactoryCreator()
-
-	interceptorsContainerFactoryCreator := interceptorscontainer.NewSovereignShardInterceptorsContainerFactoryCreator()
-
-	shardResolversContainerFactoryCreator := resolverscontainer.NewSovereignShardResolversContainerFactoryCreator()
 
 	txPreProcessorCreator := preprocess.NewSovereignTxPreProcessorCreator()
 
@@ -193,33 +182,34 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 	}
 
 	return &runTypeComponents{
-		blockChainHookHandlerCreator:          blockChainHookHandlerFactory,
-		epochStartBootstrapperCreator:         epochStartBootstrapperFactory,
-		bootstrapperFromStorageCreator:        bootstrapperFromStorageFactory,
-		bootstrapperCreator:                   bootstrapperFactory,
-		blockProcessorCreator:                 blockProcessorFactory,
-		forkDetectorCreator:                   forkDetectorFactory,
-		blockTrackerCreator:                   blockTrackerFactory,
-		requestHandlerCreator:                 requestHandlerFactory,
-		headerValidatorCreator:                headerValidatorFactory,
-		scheduledTxsExecutionCreator:          scheduledTxsExecutionFactory,
-		transactionCoordinatorCreator:         transactionCoordinatorFactory,
-		validatorStatisticsProcessorCreator:   validatorStatisticsProcessorFactory,
-		additionalStorageServiceCreator:       additionalStorageServiceCreator,
-		scProcessorCreator:                    scProcessorCreator,
-		scResultPreProcessorCreator:           scResultPreProcessorCreator,
-		consensusModel:                        consensus.ConsensusModelV2,
-		vmContainerMetaFactory:                rtc.vmContainerMetaFactory,
-		vmContainerShardFactory:               vmContainerShardCreator,
-		accountsCreator:                       accountsCreator,
-		outGoingOperationsPoolHandler:         outGoingOperationsPoolCreator,
-		dataCodecHandler:                      dataCodec,
-		topicsCheckerHandler:                  topicsChecker,
-		shardCoordinatorCreator:               shardCoordinatorCreator,
-		requestersContainerFactoryCreator:     requestersContainerFactoryCreator,
-		interceptorsContainerFactoryCreator:   interceptorsContainerFactoryCreator,
-		shardResolversContainerFactoryCreator: shardResolversContainerFactoryCreator,
-		txPreProcessorCreator:                 txPreProcessorCreator,
-		extraHeaderSigVerifierHandler:         rtc.extraHeaderSigVerifierHandler,
+		blockChainHookHandlerCreator:            blockChainHookHandlerFactory,
+		epochStartBootstrapperCreator:           epochStartBootstrapperFactory,
+		bootstrapperFromStorageCreator:          bootstrapperFromStorageFactory,
+		bootstrapperCreator:                     bootstrapperFactory,
+		blockProcessorCreator:                   blockProcessorFactory,
+		forkDetectorCreator:                     forkDetectorFactory,
+		blockTrackerCreator:                     blockTrackerFactory,
+		requestHandlerCreator:                   requestHandlerFactory,
+		headerValidatorCreator:                  headerValidatorFactory,
+		scheduledTxsExecutionCreator:            scheduledTxsExecutionFactory,
+		transactionCoordinatorCreator:           transactionCoordinatorFactory,
+		validatorStatisticsProcessorCreator:     validatorStatisticsProcessorFactory,
+		additionalStorageServiceCreator:         additionalStorageServiceCreator,
+		scProcessorCreator:                      scProcessorCreator,
+		scResultPreProcessorCreator:             scResultPreProcessorCreator,
+		consensusModel:                          consensus.ConsensusModelV2,
+		vmContainerMetaFactory:                  rtc.vmContainerMetaFactory,
+		vmContainerShardFactory:                 vmContainerShardCreator,
+		accountsCreator:                         accountsCreator,
+		outGoingOperationsPoolHandler:           sovereignFactory.NewOutGoingOperationPool(expiryTime),
+		dataCodecHandler:                        rcf.dataCodec,
+		topicsCheckerHandler:                    rcf.topicsChecker,
+		shardCoordinatorCreator:                 sharding.NewSovereignShardCoordinatorFactory(),
+		nodesCoordinatorWithRaterFactoryCreator: nodesCoord.NewSovereignIndexHashedNodesCoordinatorWithRaterFactory(),
+		requestersContainerFactoryCreator:       requesterscontainer.NewSovereignShardRequestersContainerFactoryCreator(),
+		interceptorsContainerFactoryCreator:     interceptorscontainer.NewSovereignShardInterceptorsContainerFactoryCreator(),
+		shardResolversContainerFactoryCreator:   resolverscontainer.NewSovereignShardResolversContainerFactoryCreator(),
+		txPreProcessorCreator:                   txPreProcessorCreator,
+		extraHeaderSigVerifierHandler:           rtc.extraHeaderSigVerifierHandler,
 	}, nil
 }

@@ -409,7 +409,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		managedCoreComponents.EnableEpochsHandler(),
 		managedDataComponents.Datapool().CurrentEpochValidatorInfo(),
 		managedBootstrapComponents.NodesCoordinatorRegistryFactory(),
-		nodesCoordinator.NewSovereignIndexHashedNodesCoordinatorWithRaterFactory(),
+		managedRunTypeComponents.NodesCoordinatorWithRaterCreator(),
 	)
 	if err != nil {
 		return true, err
@@ -1455,17 +1455,16 @@ func (snr *sovereignNodeRunner) CreateManagedBootstrapComponents(
 ) (mainFactory.BootstrapComponentsHandler, error) {
 
 	bootstrapComponentsFactoryArgs := bootstrapComp.BootstrapComponentsFactoryArgs{
-		Config:                           *snr.configs.GeneralConfig,
-		PrefConfig:                       *snr.configs.PreferencesConfig,
-		ImportDbConfig:                   *snr.configs.ImportDbConfig,
-		FlagsConfig:                      *snr.configs.FlagsConfig,
-		WorkingDir:                       snr.configs.FlagsConfig.DbDir,
-		CoreComponents:                   coreComponents,
-		CryptoComponents:                 cryptoComponents,
-		NetworkComponents:                networkComponents,
-		StatusCoreComponents:             statusCoreComponents,
-		RunTypeComponents:                runTypeComponents,
-		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewSovereignIndexHashedNodesCoordinatorWithRaterFactory(),
+		Config:               *snr.configs.GeneralConfig,
+		PrefConfig:           *snr.configs.PreferencesConfig,
+		ImportDbConfig:       *snr.configs.ImportDbConfig,
+		FlagsConfig:          *snr.configs.FlagsConfig,
+		WorkingDir:           snr.configs.FlagsConfig.DbDir,
+		CoreComponents:       coreComponents,
+		CryptoComponents:     cryptoComponents,
+		NetworkComponents:    networkComponents,
+		StatusCoreComponents: statusCoreComponents,
+		RunTypeComponents:    runTypeComponents,
 	}
 
 	bootstrapComponentsFactory, err := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
@@ -1636,7 +1635,8 @@ func (snr *sovereignNodeRunner) CreateManagedCryptoComponents(
 	return managedCryptoComponents, nil
 }
 
-func (snr *sovereignNodeRunner) CreateArgsRunTypeComponents(blockSigner crypto.SingleSigner) (*runType.ArgsSovereignRunTypeComponents, error) {
+// CreateArgsRunTypeComponents creates the arguments for sovereign runType components
+func (snr *sovereignNodeRunner) CreateArgsRunTypeComponents(coreComp mainFactory.CoreComponentsHandler) (*runType.ArgsSovereignRunTypeComponents, error) {
 	sovereignCfg := snr.configs.SovereignExtraConfig
 
 	codec := abi.NewDefaultCodec()
@@ -1649,7 +1649,10 @@ func (snr *sovereignNodeRunner) CreateArgsRunTypeComponents(blockSigner crypto.S
 		return nil, err
 	}
 
-	topicsCheckerHandler := incomingHeader.NewTopicsChecker()
+	runTypeComponentsFactory, err := runType.NewRunTypeComponentsFactory(coreComp)
+	if err != nil {
+		return nil, fmt.Errorf("NewRunTypeComponentsFactory failed: %w", err)
+	}
 
 	sovHeaderSigVerifier, err := headerCheck.NewSovereignHeaderSigVerifier(blockSigner)
 	if err != nil {
@@ -1657,24 +1660,17 @@ func (snr *sovereignNodeRunner) CreateArgsRunTypeComponents(blockSigner crypto.S
 	}
 
 	return &runType.ArgsSovereignRunTypeComponents{
-		Config:        *sovereignCfg,
-		DataCodec:     dataCodecHandler,
-		TopicsChecker: topicsCheckerHandler,
+		RunTypeComponentsFactory: runTypeComponentsFactory,
+		Config:                   *sovereignCfg,
+		DataCodec:                dataCodecHandler,
+		TopicsChecker:            incomingHeader.NewTopicsChecker(),
 		ExtraVerifier: sovHeaderSigVerifier,
 	}, nil
 }
 
 // CreateManagedRunTypeComponents creates the managed runType components
-func (snr *sovereignNodeRunner) CreateManagedRunTypeComponents(coreComp mainFactory.CoreComponentsHandler, args runType.ArgsSovereignRunTypeComponents) (mainFactory.RunTypeComponentsHandler, error) {
-	runTypeComponentsFactory, err := runType.NewRunTypeComponentsFactory(coreComp)
-	if err != nil {
-		return nil, fmt.Errorf("NewRunTypeComponentsFactory failed: %w", err)
-	}
-
-	sovereignRunTypeComponentsFactory, err := runType.NewSovereignRunTypeComponentsFactory(
-		runTypeComponentsFactory,
-		args,
-	)
+func (snr *sovereignNodeRunner) CreateManagedRunTypeComponents(args runType.ArgsSovereignRunTypeComponents) (mainFactory.RunTypeComponentsHandler, error) {
+	sovereignRunTypeComponentsFactory, err := runType.NewSovereignRunTypeComponentsFactory(args)
 	if err != nil {
 		return nil, fmt.Errorf("NewSovereignRunTypeComponentsFactory failed: %w", err)
 	}
