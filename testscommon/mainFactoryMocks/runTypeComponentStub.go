@@ -99,7 +99,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		ShardResolversContainerFactory:      &testFactory.ResolversContainerFactoryMock{},
 		TxPreProcessorFactory:               &testFactory.TxPreProcessorFactoryMock{},
 		ExtraHeaderSigVerifier:              &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
-		GenesisBlockFactory:                 processGenesis.NewGenesisBlockCreatorFactory(),
+		GenesisBlockFactory:                 &testFactory.GenesisBlockCreatorFactoryMock{},
 		GenesisMetaBlockChecker:             processGenesis.NewGenesisMetaBlockChecker(),
 	}
 }
