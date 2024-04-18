@@ -556,7 +556,11 @@ func (bh *BlockChainHookImpl) IsPayable(sndAddress []byte, recvAddress []byte) (
 		return true, nil
 	}
 
-	userAcc, err := bh.GetUserAccount(recvAddress)
+	return bh.baseIsPayable(sndAddress, recvAddress)
+}
+
+func (bh *BlockChainHookImpl) baseIsPayable(sndAddress []byte, rcvAddress []byte) (bool, error) {
+	userAcc, err := bh.GetUserAccount(rcvAddress)
 	if err == state.ErrAccNotFound {
 		return false, nil
 	}

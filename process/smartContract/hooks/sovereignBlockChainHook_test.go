@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	"github.com/multiversx/mx-chain-go/vm"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
 	"github.com/stretchr/testify/require"
@@ -127,4 +128,20 @@ func TestSovereignBlockChainHook_ProcessBuiltInFunction(t *testing.T) {
 		require.True(t, getReceiverAccountCalled.IsSet())
 		require.Equal(t, int64(1), ctSaveAccount.Get())
 	})
+}
+
+func TestSovereignBlockChainHook_isCrossShardForPayableCheck(t *testing.T) {
+	t.Parallel()
+
+	args := createMockBlockChainHookArgs()
+	bh, _ := hooks.NewBlockChainHookImpl(args)
+	sbh, _ := hooks.NewSovereignBlockChainHook(bh)
+
+	userAddr := make([]byte, 32)
+
+	require.True(t, sbh.IsCrossShardForPayableCheck(userAddr, vm.ESDTSCAddress))
+	require.True(t, sbh.IsCrossShardForPayableCheck(vm.StakingSCAddress, userAddr))
+
+	require.False(t, sbh.IsCrossShardForPayableCheck(userAddr, userAddr))
+	require.False(t, sbh.IsCrossShardForPayableCheck(vm.StakingSCAddress, vm.ESDTSCAddress))
 }
