@@ -17,8 +17,6 @@ import (
 	"syscall"
 	"time"
 
-	crypto "github.com/multiversx/mx-chain-crypto-go"
-
 	"github.com/multiversx/mx-chain-go/api/gin"
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/common"
@@ -316,13 +314,13 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 	}
 
 	log.Debug("creating args for runType components")
-	argsSovereignRunTypeComponents, err := snr.CreateArgsRunTypeComponents(managedCryptoComponents.BlockSigner())
+	argsSovereignRunTypeComponents, err := snr.CreateArgsRunTypeComponents(managedCoreComponents, managedCryptoComponents)
 	if err != nil {
 		return true, err
 	}
 
 	log.Debug("creating runType components")
-	managedRunTypeComponents, err := snr.CreateManagedRunTypeComponents(managedCoreComponents, *argsSovereignRunTypeComponents)
+	managedRunTypeComponents, err := snr.CreateManagedRunTypeComponents(*argsSovereignRunTypeComponents)
 	if err != nil {
 		return true, err
 	}
@@ -408,7 +406,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		managedCoreComponents.EnableEpochsHandler(),
 		managedDataComponents.Datapool().CurrentEpochValidatorInfo(),
 		managedBootstrapComponents.NodesCoordinatorRegistryFactory(),
-		nodesCoordinator.NewSovereignIndexHashedNodesCoordinatorWithRaterFactory(),
+		managedRunTypeComponents.NodesCoordinatorWithRaterCreator(),
 	)
 	if err != nil {
 		return true, err
@@ -1452,17 +1450,16 @@ func (snr *sovereignNodeRunner) CreateManagedBootstrapComponents(
 ) (mainFactory.BootstrapComponentsHandler, error) {
 
 	bootstrapComponentsFactoryArgs := bootstrapComp.BootstrapComponentsFactoryArgs{
-		Config:                           *snr.configs.GeneralConfig,
-		PrefConfig:                       *snr.configs.PreferencesConfig,
-		ImportDbConfig:                   *snr.configs.ImportDbConfig,
-		FlagsConfig:                      *snr.configs.FlagsConfig,
-		WorkingDir:                       snr.configs.FlagsConfig.DbDir,
-		CoreComponents:                   coreComponents,
-		CryptoComponents:                 cryptoComponents,
-		NetworkComponents:                networkComponents,
-		StatusCoreComponents:             statusCoreComponents,
-		RunTypeComponents:                runTypeComponents,
-		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewSovereignIndexHashedNodesCoordinatorWithRaterFactory(),
+		Config:               *snr.configs.GeneralConfig,
+		PrefConfig:           *snr.configs.PreferencesConfig,
+		ImportDbConfig:       *snr.configs.ImportDbConfig,
+		FlagsConfig:          *snr.configs.FlagsConfig,
+		WorkingDir:           snr.configs.FlagsConfig.DbDir,
+		CoreComponents:       coreComponents,
+		CryptoComponents:     cryptoComponents,
+		NetworkComponents:    networkComponents,
+		StatusCoreComponents: statusCoreComponents,
+		RunTypeComponents:    runTypeComponents,
 	}
 
 	bootstrapComponentsFactory, err := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
@@ -1633,7 +1630,8 @@ func (snr *sovereignNodeRunner) CreateManagedCryptoComponents(
 	return managedCryptoComponents, nil
 }
 
-func (snr *sovereignNodeRunner) CreateArgsRunTypeComponents(blockSigner crypto.SingleSigner) (*runType.ArgsSovereignRunTypeComponents, error) {
+// CreateArgsRunTypeComponents creates the arguments for sovereign runType components
+func (snr *sovereignNodeRunner) CreateArgsRunTypeComponents(coreComp mainFactory.CoreComponentsHandler, cryptoComp mainFactory.CryptoComponentsHandler) (*runType.ArgsSovereignRunTypeComponents, error) {
 	sovereignCfg := snr.configs.SovereignExtraConfig
 
 	codec := abi.NewDefaultCodec()
@@ -1646,32 +1644,28 @@ func (snr *sovereignNodeRunner) CreateArgsRunTypeComponents(blockSigner crypto.S
 		return nil, err
 	}
 
-	topicsCheckerHandler := incomingHeader.NewTopicsChecker()
-
-	sovHeaderSigVerifier, err := headerCheck.NewSovereignHeaderSigVerifier(blockSigner)
-	if err != nil {
-		return nil, err
-	}
-
-	return &runType.ArgsSovereignRunTypeComponents{
-		Config:        *sovereignCfg,
-		DataCodec:     dataCodecHandler,
-		TopicsChecker: topicsCheckerHandler,
-		ExtraVerifier: sovHeaderSigVerifier,
-	}, nil
-}
-
-// CreateManagedRunTypeComponents creates the managed runType components
-func (snr *sovereignNodeRunner) CreateManagedRunTypeComponents(coreComp mainFactory.CoreComponentsHandler, args runType.ArgsSovereignRunTypeComponents) (mainFactory.RunTypeComponentsHandler, error) {
 	runTypeComponentsFactory, err := runType.NewRunTypeComponentsFactory(coreComp)
 	if err != nil {
 		return nil, fmt.Errorf("NewRunTypeComponentsFactory failed: %w", err)
 	}
 
-	sovereignRunTypeComponentsFactory, err := runType.NewSovereignRunTypeComponentsFactory(
-		runTypeComponentsFactory,
-		args,
-	)
+	sovHeaderSigVerifier, err := headerCheck.NewSovereignHeaderSigVerifier(cryptoComp.BlockSigner())
+	if err != nil {
+		return nil, err
+	}
+
+	return &runType.ArgsSovereignRunTypeComponents{
+		RunTypeComponentsFactory: runTypeComponentsFactory,
+		Config:                   *sovereignCfg,
+		DataCodec:                dataCodecHandler,
+		TopicsChecker:            incomingHeader.NewTopicsChecker(),
+		ExtraVerifier:            sovHeaderSigVerifier,
+	}, nil
+}
+
+// CreateManagedRunTypeComponents creates the managed runType components
+func (snr *sovereignNodeRunner) CreateManagedRunTypeComponents(args runType.ArgsSovereignRunTypeComponents) (mainFactory.RunTypeComponentsHandler, error) {
+	sovereignRunTypeComponentsFactory, err := runType.NewSovereignRunTypeComponentsFactory(args)
 	if err != nil {
 		return nil, fmt.Errorf("NewSovereignRunTypeComponentsFactory failed: %w", err)
 	}

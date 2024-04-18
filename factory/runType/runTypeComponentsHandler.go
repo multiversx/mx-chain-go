@@ -28,6 +28,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
 	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -39,8 +40,8 @@ var _ factory.RunTypeComponentsHolder = (*managedRunTypeComponents)(nil)
 
 type managedRunTypeComponents struct {
 	*runTypeComponents
-	factory            runTypeComponentsCreator
-	mutStateComponents sync.RWMutex
+	factory              runTypeComponentsCreator
+	mutRunTypeComponents sync.RWMutex
 }
 
 // NewManagedRunTypeComponents returns a news instance of managedRunTypeComponents
@@ -62,17 +63,17 @@ func (mrc *managedRunTypeComponents) Create() error {
 		return fmt.Errorf("%w: %v", errors.ErrRunTypeComponentsFactoryCreate, err)
 	}
 
-	mrc.mutStateComponents.Lock()
+	mrc.mutRunTypeComponents.Lock()
 	mrc.runTypeComponents = rtc
-	mrc.mutStateComponents.Unlock()
+	mrc.mutRunTypeComponents.Unlock()
 
 	return nil
 }
 
 // Close will close all underlying subcomponents
 func (mrc *managedRunTypeComponents) Close() error {
-	mrc.mutStateComponents.Lock()
-	defer mrc.mutStateComponents.Unlock()
+	mrc.mutRunTypeComponents.Lock()
+	defer mrc.mutRunTypeComponents.Unlock()
 
 	if check.IfNil(mrc.runTypeComponents) {
 		return nil
@@ -89,8 +90,8 @@ func (mrc *managedRunTypeComponents) Close() error {
 
 // CheckSubcomponents verifies all subcomponents
 func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
-	mrc.mutStateComponents.RLock()
-	defer mrc.mutStateComponents.RUnlock()
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
 
 	if check.IfNil(mrc.runTypeComponents) {
 		return errors.ErrNilRunTypeComponents
@@ -164,6 +165,9 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	if check.IfNil(mrc.shardCoordinatorCreator) {
 		return errors.ErrNilShardCoordinatorFactory
 	}
+	if check.IfNil(mrc.nodesCoordinatorWithRaterFactoryCreator) {
+		return errors.ErrNilNodesCoordinatorFactory
+	}
 	if check.IfNil(mrc.requestersContainerFactoryCreator) {
 		return errors.ErrNilRequesterContainerFactoryCreator
 	}
@@ -190,8 +194,8 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 
 // AdditionalStorageServiceCreator returns the additional storage service creator
 func (mrc *managedRunTypeComponents) AdditionalStorageServiceCreator() process.AdditionalStorageServiceCreator {
-	mrc.mutStateComponents.RLock()
-	defer mrc.mutStateComponents.RUnlock()
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
 
 	if check.IfNil(mrc.runTypeComponents) {
 		return nil
@@ -202,8 +206,8 @@ func (mrc *managedRunTypeComponents) AdditionalStorageServiceCreator() process.A
 
 // BlockProcessorCreator returns the block processor creator
 func (mrc *managedRunTypeComponents) BlockProcessorCreator() processBlock.BlockProcessorCreator {
-	mrc.mutStateComponents.RLock()
-	defer mrc.mutStateComponents.RUnlock()
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
 
 	if check.IfNil(mrc.runTypeComponents) {
 		return nil
@@ -214,8 +218,8 @@ func (mrc *managedRunTypeComponents) BlockProcessorCreator() processBlock.BlockP
 
 // BlockChainHookHandlerCreator returns the blockchain hook handler creator
 func (mrc *managedRunTypeComponents) BlockChainHookHandlerCreator() hooks.BlockChainHookHandlerCreator {
-	mrc.mutStateComponents.RLock()
-	defer mrc.mutStateComponents.RUnlock()
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
 
 	if check.IfNil(mrc.runTypeComponents) {
 		return nil
@@ -226,8 +230,8 @@ func (mrc *managedRunTypeComponents) BlockChainHookHandlerCreator() hooks.BlockC
 
 // BootstrapperFromStorageCreator returns the bootstrapper from storage creator
 func (mrc *managedRunTypeComponents) BootstrapperFromStorageCreator() storageBootstrap.BootstrapperFromStorageCreator {
-	mrc.mutStateComponents.RLock()
-	defer mrc.mutStateComponents.RUnlock()
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
 
 	if check.IfNil(mrc.runTypeComponents) {
 		return nil
@@ -238,8 +242,8 @@ func (mrc *managedRunTypeComponents) BootstrapperFromStorageCreator() storageBoo
 
 // BootstrapperCreator returns the bootstrapper creator
 func (mrc *managedRunTypeComponents) BootstrapperCreator() storageBootstrap.BootstrapperCreator {
-	mrc.mutStateComponents.RLock()
-	defer mrc.mutStateComponents.RUnlock()
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
 
 	if check.IfNil(mrc.runTypeComponents) {
 		return nil
@@ -250,8 +254,8 @@ func (mrc *managedRunTypeComponents) BootstrapperCreator() storageBootstrap.Boot
 
 // BlockTrackerCreator returns the block tracker creator
 func (mrc *managedRunTypeComponents) BlockTrackerCreator() track.BlockTrackerCreator {
-	mrc.mutStateComponents.RLock()
-	defer mrc.mutStateComponents.RUnlock()
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
 
 	if check.IfNil(mrc.runTypeComponents) {
 		return nil
@@ -262,8 +266,8 @@ func (mrc *managedRunTypeComponents) BlockTrackerCreator() track.BlockTrackerCre
 
 // EpochStartBootstrapperCreator returns the epoch start bootstrapper creator
 func (mrc *managedRunTypeComponents) EpochStartBootstrapperCreator() bootstrap.EpochStartBootstrapperCreator {
-	mrc.mutStateComponents.RLock()
-	defer mrc.mutStateComponents.RUnlock()
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
 
 	if check.IfNil(mrc.runTypeComponents) {
 		return nil
@@ -274,8 +278,8 @@ func (mrc *managedRunTypeComponents) EpochStartBootstrapperCreator() bootstrap.E
 
 // ForkDetectorCreator returns the fork detector creator
 func (mrc *managedRunTypeComponents) ForkDetectorCreator() processSync.ForkDetectorCreator {
-	mrc.mutStateComponents.RLock()
-	defer mrc.mutStateComponents.RUnlock()
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
 
 	if check.IfNil(mrc.runTypeComponents) {
 		return nil
@@ -286,8 +290,8 @@ func (mrc *managedRunTypeComponents) ForkDetectorCreator() processSync.ForkDetec
 
 // HeaderValidatorCreator returns the header validator creator
 func (mrc *managedRunTypeComponents) HeaderValidatorCreator() processBlock.HeaderValidatorCreator {
-	mrc.mutStateComponents.RLock()
-	defer mrc.mutStateComponents.RUnlock()
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
 
 	if check.IfNil(mrc.runTypeComponents) {
 		return nil
@@ -298,8 +302,8 @@ func (mrc *managedRunTypeComponents) HeaderValidatorCreator() processBlock.Heade
 
 // RequestHandlerCreator returns the request handler creator
 func (mrc *managedRunTypeComponents) RequestHandlerCreator() requestHandlers.RequestHandlerCreator {
-	mrc.mutStateComponents.RLock()
-	defer mrc.mutStateComponents.RUnlock()
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
 
 	if check.IfNil(mrc.runTypeComponents) {
 		return nil
@@ -310,8 +314,8 @@ func (mrc *managedRunTypeComponents) RequestHandlerCreator() requestHandlers.Req
 
 // ScheduledTxsExecutionCreator returns the scheduled transactions execution creator
 func (mrc *managedRunTypeComponents) ScheduledTxsExecutionCreator() preprocess.ScheduledTxsExecutionCreator {
-	mrc.mutStateComponents.RLock()
-	defer mrc.mutStateComponents.RUnlock()
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
 
 	if check.IfNil(mrc.runTypeComponents) {
 		return nil
@@ -322,8 +326,8 @@ func (mrc *managedRunTypeComponents) ScheduledTxsExecutionCreator() preprocess.S
 
 // TransactionCoordinatorCreator returns the transaction coordinator creator
 func (mrc *managedRunTypeComponents) TransactionCoordinatorCreator() coordinator.TransactionCoordinatorCreator {
-	mrc.mutStateComponents.RLock()
-	defer mrc.mutStateComponents.RUnlock()
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
 
 	if check.IfNil(mrc.runTypeComponents) {
 		return nil
@@ -334,8 +338,8 @@ func (mrc *managedRunTypeComponents) TransactionCoordinatorCreator() coordinator
 
 // ValidatorStatisticsProcessorCreator returns the validator statistics processor creator
 func (mrc *managedRunTypeComponents) ValidatorStatisticsProcessorCreator() peer.ValidatorStatisticsProcessorCreator {
-	mrc.mutStateComponents.RLock()
-	defer mrc.mutStateComponents.RUnlock()
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
 
 	if check.IfNil(mrc.runTypeComponents) {
 		return nil
@@ -346,8 +350,8 @@ func (mrc *managedRunTypeComponents) ValidatorStatisticsProcessorCreator() peer.
 
 // SCProcessorCreator returns the smart contract processor creator
 func (mrc *managedRunTypeComponents) SCProcessorCreator() scrCommon.SCProcessorCreator {
-	mrc.mutStateComponents.RLock()
-	defer mrc.mutStateComponents.RUnlock()
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
 
 	if check.IfNil(mrc.runTypeComponents) {
 		return nil
@@ -358,8 +362,8 @@ func (mrc *managedRunTypeComponents) SCProcessorCreator() scrCommon.SCProcessorC
 
 // SCResultsPreProcessorCreator returns the smart contract result pre-processor creator
 func (mrc *managedRunTypeComponents) SCResultsPreProcessorCreator() preprocess.SmartContractResultPreProcessorCreator {
-	mrc.mutStateComponents.RLock()
-	defer mrc.mutStateComponents.RUnlock()
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
 
 	if check.IfNil(mrc.runTypeComponents) {
 		return nil
@@ -370,8 +374,8 @@ func (mrc *managedRunTypeComponents) SCResultsPreProcessorCreator() preprocess.S
 
 // ConsensusModel returns the consensus model
 func (mrc *managedRunTypeComponents) ConsensusModel() consensus.ConsensusModel {
-	mrc.mutStateComponents.RLock()
-	defer mrc.mutStateComponents.RUnlock()
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
 
 	if check.IfNil(mrc.runTypeComponents) {
 		return consensus.ConsensusModelInvalid
@@ -382,8 +386,8 @@ func (mrc *managedRunTypeComponents) ConsensusModel() consensus.ConsensusModel {
 
 // VmContainerMetaFactoryCreator returns the vm container meta factory creator
 func (mrc *managedRunTypeComponents) VmContainerMetaFactoryCreator() factoryVm.VmContainerCreator {
-	mrc.mutStateComponents.RLock()
-	defer mrc.mutStateComponents.RUnlock()
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
 
 	if check.IfNil(mrc.runTypeComponents) {
 		return nil
@@ -394,8 +398,8 @@ func (mrc *managedRunTypeComponents) VmContainerMetaFactoryCreator() factoryVm.V
 
 // VmContainerShardFactoryCreator returns the vm container shard factory creator
 func (mrc *managedRunTypeComponents) VmContainerShardFactoryCreator() factoryVm.VmContainerCreator {
-	mrc.mutStateComponents.RLock()
-	defer mrc.mutStateComponents.RUnlock()
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
 
 	if check.IfNil(mrc.runTypeComponents) {
 		return nil
@@ -406,8 +410,8 @@ func (mrc *managedRunTypeComponents) VmContainerShardFactoryCreator() factoryVm.
 
 // AccountsCreator returns the accounts factory
 func (mrc *managedRunTypeComponents) AccountsCreator() state.AccountFactory {
-	mrc.mutStateComponents.RLock()
-	defer mrc.mutStateComponents.RUnlock()
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
 
 	if check.IfNil(mrc.runTypeComponents) {
 		return nil
@@ -418,8 +422,8 @@ func (mrc *managedRunTypeComponents) AccountsCreator() state.AccountFactory {
 
 // OutGoingOperationsPoolHandler return the outgoing operations pool factory
 func (mrc *managedRunTypeComponents) OutGoingOperationsPoolHandler() sovereignBlock.OutGoingOperationsPool {
-	mrc.mutStateComponents.RLock()
-	defer mrc.mutStateComponents.RUnlock()
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
 
 	if check.IfNil(mrc.runTypeComponents) {
 		return nil
@@ -429,9 +433,9 @@ func (mrc *managedRunTypeComponents) OutGoingOperationsPoolHandler() sovereignBl
 }
 
 // DataCodecHandler returns the data codec factory
-func (mrc *managedRunTypeComponents) DataCodecHandler() sovereign.DataDecoderHandler {
-	mrc.mutStateComponents.RLock()
-	defer mrc.mutStateComponents.RUnlock()
+func (mrc *managedRunTypeComponents) DataCodecHandler() sovereign.DataCodecHandler {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
 
 	if check.IfNil(mrc.runTypeComponents) {
 		return nil
@@ -442,8 +446,8 @@ func (mrc *managedRunTypeComponents) DataCodecHandler() sovereign.DataDecoderHan
 
 // TopicsCheckerHandler returns the topics checker factory
 func (mrc *managedRunTypeComponents) TopicsCheckerHandler() sovereign.TopicsCheckerHandler {
-	mrc.mutStateComponents.RLock()
-	defer mrc.mutStateComponents.RUnlock()
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
 
 	if check.IfNil(mrc.runTypeComponents) {
 		return nil
@@ -454,8 +458,8 @@ func (mrc *managedRunTypeComponents) TopicsCheckerHandler() sovereign.TopicsChec
 
 // ShardCoordinatorCreator returns the shard coordinator factory
 func (mrc *managedRunTypeComponents) ShardCoordinatorCreator() sharding.ShardCoordinatorFactory {
-	mrc.mutStateComponents.RLock()
-	defer mrc.mutStateComponents.RUnlock()
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
 
 	if check.IfNil(mrc.runTypeComponents) {
 		return nil
@@ -464,10 +468,22 @@ func (mrc *managedRunTypeComponents) ShardCoordinatorCreator() sharding.ShardCoo
 	return mrc.runTypeComponents.shardCoordinatorCreator
 }
 
+// NodesCoordinatorWithRaterCreator returns the nodes coordinator factory
+func (mrc *managedRunTypeComponents) NodesCoordinatorWithRaterCreator() nodesCoordinator.NodesCoordinatorWithRaterFactory {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.nodesCoordinatorWithRaterFactoryCreator
+}
+
 // RequestersContainerFactoryCreator returns the shard coordinator factory
 func (mrc *managedRunTypeComponents) RequestersContainerFactoryCreator() requesterscontainer.RequesterContainerFactoryCreator {
-	mrc.mutStateComponents.RLock()
-	defer mrc.mutStateComponents.RUnlock()
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
 
 	if check.IfNil(mrc.runTypeComponents) {
 		return nil
@@ -478,8 +494,8 @@ func (mrc *managedRunTypeComponents) RequestersContainerFactoryCreator() request
 
 // InterceptorsContainerFactoryCreator returns the shard interceptors container factory
 func (mrc *managedRunTypeComponents) InterceptorsContainerFactoryCreator() interceptorscontainer.InterceptorsContainerFactoryCreator {
-	mrc.mutStateComponents.RLock()
-	defer mrc.mutStateComponents.RUnlock()
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
 
 	if check.IfNil(mrc.runTypeComponents) {
 		return nil
@@ -490,8 +506,8 @@ func (mrc *managedRunTypeComponents) InterceptorsContainerFactoryCreator() inter
 
 // ShardResolversContainerFactoryCreator returns the shard resolvers container factory
 func (mrc *managedRunTypeComponents) ShardResolversContainerFactoryCreator() resolverscontainer.ShardResolversContainerFactoryCreator {
-	mrc.mutStateComponents.RLock()
-	defer mrc.mutStateComponents.RUnlock()
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
 
 	if check.IfNil(mrc.runTypeComponents) {
 		return nil
@@ -502,8 +518,8 @@ func (mrc *managedRunTypeComponents) ShardResolversContainerFactoryCreator() res
 
 // TxPreProcessorCreator returns the tx pre processor factory
 func (mrc *managedRunTypeComponents) TxPreProcessorCreator() preprocess.TxPreProcessorCreator {
-	mrc.mutStateComponents.RLock()
-	defer mrc.mutStateComponents.RUnlock()
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
 
 	if check.IfNil(mrc.runTypeComponents) {
 		return nil
@@ -514,8 +530,8 @@ func (mrc *managedRunTypeComponents) TxPreProcessorCreator() preprocess.TxPrePro
 
 // ExtraHeaderSigVerifierHandler returns the extra header sig verifier handler
 func (mrc *managedRunTypeComponents) ExtraHeaderSigVerifierHandler() headerCheck.ExtraHeaderSigVerifierHolder {
-	mrc.mutStateComponents.RLock()
-	defer mrc.mutStateComponents.RUnlock()
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
 
 	if check.IfNil(mrc.runTypeComponents) {
 		return nil
@@ -526,8 +542,8 @@ func (mrc *managedRunTypeComponents) ExtraHeaderSigVerifierHandler() headerCheck
 
 // GenesisBlockCreator returns the genesis block factory
 func (mrc *managedRunTypeComponents) GenesisBlockCreator() processComp.GenesisBlockCreatorFactory {
-	mrc.mutStateComponents.RLock()
-	defer mrc.mutStateComponents.RUnlock()
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
 
 	if check.IfNil(mrc.runTypeComponents) {
 		return nil

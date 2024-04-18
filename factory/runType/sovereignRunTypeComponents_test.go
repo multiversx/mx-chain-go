@@ -3,21 +3,20 @@ package runType_test
 import (
 	"testing"
 
-	mclSig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/singlesig"
-
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory/runType"
-	"github.com/multiversx/mx-chain-go/process/headerCheck"
+	"github.com/multiversx/mx-chain-go/testscommon/headerSigVerifier"
 	"github.com/multiversx/mx-chain-go/testscommon/sovereign"
 
 	"github.com/stretchr/testify/require"
 )
 
 func createSovRunTypeArgs() runType.ArgsSovereignRunTypeComponents {
-	sovHeaderSigVerifier, _ := headerCheck.NewSovereignHeaderSigVerifier(&mclSig.BlsSingleSigner{})
+	rcf, _ := runType.NewRunTypeComponentsFactory(createCoreComponents())
 
 	return runType.ArgsSovereignRunTypeComponents{
+		RunTypeComponentsFactory: rcf,
 		Config: config.SovereignConfig{
 			GenesisConfig: config.GenesisConfig{
 				NativeESDT: "WEGLD",
@@ -25,7 +24,7 @@ func createSovRunTypeArgs() runType.ArgsSovereignRunTypeComponents {
 		},
 		DataCodec:     &sovereign.DataCodecMock{},
 		TopicsChecker: &sovereign.TopicsCheckerMock{},
-		ExtraVerifier: sovHeaderSigVerifier,
+		ExtraVerifier: &headerSigVerifier.ExtraHeaderSigVerifierHandlerMock{},
 	}
 }
 
@@ -33,29 +32,28 @@ func TestNewSovereignRunTypeComponentsFactory(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil runType components factory", func(t *testing.T) {
-		srcf, err := runType.NewSovereignRunTypeComponentsFactory(nil, createSovRunTypeArgs())
+		sovArgs := createSovRunTypeArgs()
+		sovArgs.RunTypeComponentsFactory = nil
+		srcf, err := runType.NewSovereignRunTypeComponentsFactory(sovArgs)
 		require.Nil(t, srcf)
 		require.ErrorIs(t, errors.ErrNilRunTypeComponentsFactory, err)
 	})
 	t.Run("nil data codec", func(t *testing.T) {
-		rcf, _ := runType.NewRunTypeComponentsFactory(createCoreComponents())
 		sovArgs := createSovRunTypeArgs()
 		sovArgs.DataCodec = nil
-		srcf, err := runType.NewSovereignRunTypeComponentsFactory(rcf, sovArgs)
+		srcf, err := runType.NewSovereignRunTypeComponentsFactory(sovArgs)
 		require.Nil(t, srcf)
 		require.ErrorIs(t, errors.ErrNilDataCodec, err)
 	})
 	t.Run("nil topics checker", func(t *testing.T) {
-		rcf, _ := runType.NewRunTypeComponentsFactory(createCoreComponents())
 		sovArgs := createSovRunTypeArgs()
 		sovArgs.TopicsChecker = nil
-		srcf, err := runType.NewSovereignRunTypeComponentsFactory(rcf, sovArgs)
+		srcf, err := runType.NewSovereignRunTypeComponentsFactory(sovArgs)
 		require.Nil(t, srcf)
 		require.ErrorIs(t, errors.ErrNilTopicsChecker, err)
 	})
 	t.Run("should work", func(t *testing.T) {
-		rcf, _ := runType.NewRunTypeComponentsFactory(createCoreComponents())
-		srcf, err := runType.NewSovereignRunTypeComponentsFactory(rcf, createSovRunTypeArgs())
+		srcf, err := runType.NewSovereignRunTypeComponentsFactory(createSovRunTypeArgs())
 		require.NotNil(t, srcf)
 		require.NoError(t, err)
 	})
@@ -64,8 +62,7 @@ func TestNewSovereignRunTypeComponentsFactory(t *testing.T) {
 func TestSovereignRunTypeComponentsFactory_Create(t *testing.T) {
 	t.Parallel()
 
-	rcf, _ := runType.NewRunTypeComponentsFactory(createCoreComponents())
-	srcf, _ := runType.NewSovereignRunTypeComponentsFactory(rcf, createSovRunTypeArgs())
+	srcf, _ := runType.NewSovereignRunTypeComponentsFactory(createSovRunTypeArgs())
 
 	rc, err := srcf.Create()
 	require.NoError(t, err)
@@ -75,8 +72,7 @@ func TestSovereignRunTypeComponentsFactory_Create(t *testing.T) {
 func TestSovereignRunTypeComponentsFactory_Close(t *testing.T) {
 	t.Parallel()
 
-	rcf, _ := runType.NewRunTypeComponentsFactory(createCoreComponents())
-	srcf, _ := runType.NewSovereignRunTypeComponentsFactory(rcf, createSovRunTypeArgs())
+	srcf, _ := runType.NewSovereignRunTypeComponentsFactory(createSovRunTypeArgs())
 
 	rc, err := srcf.Create()
 	require.NoError(t, err)
