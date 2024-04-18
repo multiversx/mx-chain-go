@@ -130,6 +130,65 @@ func TestSovereignBlockChainHook_ProcessBuiltInFunction(t *testing.T) {
 	})
 }
 
+func TestSovereignBlockChainHook_IsPayable(t *testing.T) {
+	t.Parallel()
+
+	args := createMockBlockChainHookArgs()
+	bh, _ := hooks.NewBlockChainHookImpl(args)
+	sbh, _ := hooks.NewSovereignBlockChainHook(bh)
+
+	t.Run("receiver is sys acc address, should not be payable", func(t *testing.T) {
+		sender := []byte("addr1")
+
+		payable, err := sbh.IsPayable(sender, core.SystemAccountAddress)
+		require.Nil(t, err)
+		require.False(t, payable)
+	})
+
+	t.Run("receiver is user address, should be payable", func(t *testing.T) {
+		sender := []byte("addr1")
+		receiver := []byte("addr2")
+
+		payable, err := sbh.IsPayable(sender, receiver)
+		require.Nil(t, err)
+		require.True(t, payable)
+	})
+
+	t.Run("sender is sc, receiver is sys acc address, should be cross payable", func(t *testing.T) {
+		sender := []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 255, 255}
+		receiver := vm.ESDTSCAddress
+
+		payable, err := sbh.IsPayable(sender, receiver)
+		require.Nil(t, err)
+		require.True(t, payable)
+	})
+
+	t.Run("sender is user, receiver is sc, should be payable by code meta data", func(t *testing.T) {
+		receiver := []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 255, 255}
+		wasGetAccCalled := false
+		argsBlockHook := createMockBlockChainHookArgs()
+		argsBlockHook.Accounts = &stateMock.AccountsStub{
+			GetExistingAccountCalled: func(address []byte) (handler vmcommon.AccountHandler, e error) {
+				require.Equal(t, receiver, address)
+
+				acc := &stateMock.AccountWrapMock{}
+				acc.SetCodeMetadata([]byte{0, vmcommon.MetadataPayable})
+				wasGetAccCalled = true
+				return acc, nil
+			},
+		}
+
+		chainHook, _ := hooks.NewBlockChainHookImpl(argsBlockHook)
+		sovChainHook, _ := hooks.NewSovereignBlockChainHook(chainHook)
+
+		sender := []byte("sender")
+		payable, err := sovChainHook.IsPayable(sender, receiver)
+		require.Nil(t, err)
+		require.True(t, payable)
+		require.True(t, wasGetAccCalled)
+	})
+}
+
 func TestSovereignBlockChainHook_isCrossShardForPayableCheck(t *testing.T) {
 	t.Parallel()
 

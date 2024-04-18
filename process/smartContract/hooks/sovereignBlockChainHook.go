@@ -78,15 +78,11 @@ func (sbh *sovereignBlockChainHook) IsPayable(sndAddress []byte, rcvAddress []by
 		return true, nil
 	}
 
-	if sbh.isNotSystemAccountAndCrossShardInSovereign(sndAddress, rcvAddress) {
+	if sbh.isCrossShardForPayableCheck(sndAddress, rcvAddress) {
 		return true, nil
 	}
 
 	return sbh.baseIsPayable(sndAddress, rcvAddress)
-}
-
-func (sbh *sovereignBlockChainHook) isNotSystemAccountAndCrossShardInSovereign(sndAddress []byte, rcvAddress []byte) bool {
-	return !core.IsSystemAccountAddress(rcvAddress) && sbh.isCrossShardForPayableCheck(sndAddress, rcvAddress)
 }
 
 func (sbh *sovereignBlockChainHook) isCrossShardForPayableCheck(sndAddress []byte, rcvAddress []byte) bool {
