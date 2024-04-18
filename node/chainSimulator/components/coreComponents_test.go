@@ -4,8 +4,9 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-go/config"
+
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/stretchr/testify/require"
 )
 
@@ -132,6 +133,8 @@ func createArgsCoreComponentsHolder() ArgsCoreComponentsHolder {
 		WorkingDir:          ".",
 		MinNodesPerShard:    1,
 		MinNodesMeta:        1,
+		ShardConsensusSize:  1,
+		MetaConsensusSize:   1,
 		RoundDurationInMs:   6000,
 	}
 }

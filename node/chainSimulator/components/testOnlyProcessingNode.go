@@ -7,9 +7,6 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	chainData "github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -27,6 +24,10 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	chainData "github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 )
 
 // ArgsTestOnlyProcessingNode represents the DTO struct for the NewTestOnlyProcessingNode constructor function
@@ -46,6 +47,8 @@ type ArgsTestOnlyProcessingNode struct {
 	MinNodesPerShard       uint32
 	MinNodesMeta           uint32
 	RoundDurationInMillis  uint64
+	ShardConsensusSize     uint32
+	MetaConsensusSize      uint32
 }
 
 type testOnlyProcessingNode struct {
@@ -96,6 +99,8 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		InitialRound:        args.InitialRound,
 		MinNodesPerShard:    args.MinNodesPerShard,
 		MinNodesMeta:        args.MinNodesMeta,
+		ShardConsensusSize:  args.ShardConsensusSize,
+		MetaConsensusSize:   args.MetaConsensusSize,
 		RoundDurationInMs:   args.RoundDurationInMillis,
 		RatingConfig:        *args.Configs.RatingsConfig,
 	})
@@ -177,14 +182,16 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 	}
 
 	instance.DataComponentsHolder, err = CreateDataComponents(ArgsDataComponentsHolder{
-		Chain:              instance.ChainHandler,
-		StorageService:     instance.StoreService,
-		DataPool:           instance.DataPool,
-		InternalMarshaller: instance.CoreComponentsHolder.InternalMarshalizer(),
+		Configs:              args.Configs,
+		CoreComponents:       instance.CoreComponentsHolder,
+		StatusCoreComponents: instance.StatusCoreComponents,
+		BootstrapComponents:  instance.BootstrapComponentsHolder,
+		CryptoComponents:     instance.CryptoComponentsHolder,
 	})
 	if err != nil {
 		return nil, err
 	}
+	instance.ChainHandler = instance.DataComponentsHolder.Blockchain()
 
 	instance.ProcessComponentsHolder, err = CreateProcessComponents(ArgsProcessComponentsHolder{
 		CoreComponents:           instance.CoreComponentsHolder,

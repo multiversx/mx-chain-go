@@ -10,6 +10,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/components"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
+	mxChainSharding "github.com/multiversx/mx-chain-go/sharding"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/sharding"
@@ -19,12 +26,6 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-crypto-go/signing"
 	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
-	"github.com/multiversx/mx-chain-go/config"
-	"github.com/multiversx/mx-chain-go/node/chainSimulator/components"
-	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
-	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
-	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
-	mxChainSharding "github.com/multiversx/mx-chain-go/sharding"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -46,6 +47,8 @@ type ArgsChainSimulator struct {
 	NumOfShards              uint32
 	MinNodesPerShard         uint32
 	MetaChainMinNodes        uint32
+	ShardConsensusSize       uint32
+	MetaConsensusSize        uint32
 	NumNodesWaitingListShard uint32
 	NumNodesWaitingListMeta  uint32
 	GenesisTimestamp         int64
@@ -166,6 +169,8 @@ func (s *simulator) createTestNode(
 		InitialNonce:           args.InitialNonce,
 		MinNodesPerShard:       args.MinNodesPerShard,
 		MinNodesMeta:           args.MetaChainMinNodes,
+		ShardConsensusSize:     args.ShardConsensusSize,
+		MetaConsensusSize:      args.MetaConsensusSize,
 		RoundDurationInMillis:  args.RoundDurationInMillis,
 	}
 

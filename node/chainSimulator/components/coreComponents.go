@@ -5,17 +5,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/nodetype"
-	"github.com/multiversx/mx-chain-core-go/core/versioning"
-	"github.com/multiversx/mx-chain-core-go/core/watchdog"
-	"github.com/multiversx/mx-chain-core-go/data/endProcess"
-	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
-	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
-	"github.com/multiversx/mx-chain-core-go/hashing"
-	hashingFactory "github.com/multiversx/mx-chain-core-go/hashing/factory"
-	"github.com/multiversx/mx-chain-core-go/marshal"
-	marshalFactory "github.com/multiversx/mx-chain-core-go/marshal/factory"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	factoryPubKey "github.com/multiversx/mx-chain-go/common/factory"
@@ -35,6 +24,18 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/testscommon"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/nodetype"
+	"github.com/multiversx/mx-chain-core-go/core/versioning"
+	"github.com/multiversx/mx-chain-core-go/core/watchdog"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	hashingFactory "github.com/multiversx/mx-chain-core-go/hashing/factory"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	marshalFactory "github.com/multiversx/mx-chain-core-go/marshal/factory"
 )
 
 type coreComponentsHolder struct {
@@ -89,9 +90,11 @@ type ArgsCoreComponentsHolder struct {
 	NumShards           uint32
 	WorkingDir          string
 
-	MinNodesPerShard  uint32
-	MinNodesMeta      uint32
-	RoundDurationInMs uint64
+	MinNodesPerShard   uint32
+	MinNodesMeta       uint32
+	RoundDurationInMs  uint64
+	ShardConsensusSize uint32
+	MetaConsensusSize  uint32
 }
 
 // CreateCoreComponents will create a new instance of factory.CoreComponentsHolder
@@ -181,8 +184,8 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 	// TODO fix this min nodes per shard to be configurable
 	instance.ratingsData, err = rating.NewRatingsData(rating.RatingsDataArg{
 		Config:                   args.RatingConfig,
-		ShardConsensusSize:       1,
-		MetaConsensusSize:        1,
+		ShardConsensusSize:       args.ShardConsensusSize,
+		MetaConsensusSize:        args.MetaConsensusSize,
 		ShardMinNodes:            args.MinNodesPerShard,
 		MetaMinNodes:             args.MinNodesMeta,
 		RoundDurationMiliseconds: args.RoundDurationInMs,

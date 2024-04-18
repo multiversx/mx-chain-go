@@ -7,8 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
@@ -16,6 +14,9 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 	"github.com/multiversx/mx-chain-go/vm"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/stretchr/testify/require"
 )
 
@@ -73,6 +74,8 @@ func testChainSimulatorSimpleStake(t *testing.T, targetEpoch int32, nodesStatus 
 		ApiInterface:             api.NewNoApiInterface(),
 		MinNodesPerShard:         3,
 		MetaChainMinNodes:        3,
+		ShardConsensusSize:       1,
+		MetaConsensusSize:        1,
 		NumNodesWaitingListMeta:  3,
 		NumNodesWaitingListShard: 3,
 		AlterConfigsFunction: func(cfg *config.Configs) {
@@ -169,6 +172,8 @@ func TestChainSimulator_StakingV4Step2APICalls(t *testing.T) {
 		ApiInterface:             api.NewNoApiInterface(),
 		MinNodesPerShard:         4,
 		MetaChainMinNodes:        4,
+		ShardConsensusSize:       1,
+		MetaConsensusSize:        1,
 		NumNodesWaitingListMeta:  4,
 		NumNodesWaitingListShard: 4,
 		AlterConfigsFunction: func(cfg *config.Configs) {

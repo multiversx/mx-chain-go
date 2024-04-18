@@ -9,13 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-core-go/data/validator"
-	dataVm "github.com/multiversx/mx-chain-core-go/data/vm"
-	"github.com/multiversx/mx-chain-crypto-go/signing"
-	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
-	mclsig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/singlesig"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	chainSimulatorIntegrationTests "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
@@ -26,6 +19,14 @@ import (
 	chainSimulatorProcess "github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/vm"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/data/validator"
+	dataVm "github.com/multiversx/mx-chain-core-go/data/vm"
+	"github.com/multiversx/mx-chain-crypto-go/signing"
+	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
+	mclsig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/singlesig"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -93,6 +94,8 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
@@ -130,6 +133,8 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
@@ -167,6 +172,8 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
@@ -204,6 +211,8 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
@@ -447,6 +456,8 @@ func TestChainSimulator_MakeNewContractFromValidatorDataWith2StakingContracts(t 
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
@@ -476,6 +487,8 @@ func TestChainSimulator_MakeNewContractFromValidatorDataWith2StakingContracts(t 
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
@@ -505,6 +518,8 @@ func TestChainSimulator_MakeNewContractFromValidatorDataWith2StakingContracts(t 
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
@@ -534,6 +549,8 @@ func TestChainSimulator_MakeNewContractFromValidatorDataWith2StakingContracts(t 
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
@@ -672,6 +689,8 @@ func TestChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnsta
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
@@ -703,6 +722,8 @@ func TestChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnsta
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
@@ -735,6 +756,8 @@ func TestChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnsta
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
@@ -767,6 +790,8 @@ func TestChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnsta
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
@@ -1025,6 +1050,8 @@ func TestChainSimulator_CreateNewDelegationContract(t *testing.T) {
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
@@ -1064,6 +1091,8 @@ func TestChainSimulator_CreateNewDelegationContract(t *testing.T) {
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
@@ -1103,6 +1132,8 @@ func TestChainSimulator_CreateNewDelegationContract(t *testing.T) {
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
@@ -1142,6 +1173,8 @@ func TestChainSimulator_CreateNewDelegationContract(t *testing.T) {
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
@@ -1504,6 +1537,8 @@ func TestChainSimulator_MergeDelegation(t *testing.T) {
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
@@ -1535,6 +1570,8 @@ func TestChainSimulator_MergeDelegation(t *testing.T) {
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
@@ -1567,6 +1604,8 @@ func TestChainSimulator_MergeDelegation(t *testing.T) {
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
@@ -1599,6 +1638,8 @@ func TestChainSimulator_MergeDelegation(t *testing.T) {
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {

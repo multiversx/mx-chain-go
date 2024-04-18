@@ -6,13 +6,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	coreAPI "github.com/multiversx/mx-chain-core-go/data/api"
-	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/process"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	coreAPI "github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -39,6 +40,8 @@ func TestNewChainSimulator(t *testing.T) {
 		ApiInterface:           api.NewNoApiInterface(),
 		MinNodesPerShard:       1,
 		MetaChainMinNodes:      1,
+		ShardConsensusSize:     1,
+		MetaConsensusSize:      1,
 	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
@@ -66,12 +69,14 @@ func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
 			HasValue: true,
 			Value:    20,
 		},
-		ApiInterface:      api.NewNoApiInterface(),
-		MinNodesPerShard:  1,
-		MetaChainMinNodes: 1,
-		InitialRound:      200000000,
-		InitialEpoch:      100,
-		InitialNonce:      100,
+		ApiInterface:       api.NewNoApiInterface(),
+		MinNodesPerShard:   1,
+		MetaChainMinNodes:  1,
+		ShardConsensusSize: 1,
+		MetaConsensusSize:  1,
+		InitialRound:       200000000,
+		InitialEpoch:       100,
+		InitialNonce:       100,
 	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
@@ -106,6 +111,8 @@ func TestChainSimulator_GenerateBlocksAndEpochChangeShouldWork(t *testing.T) {
 		ApiInterface:           api.NewNoApiInterface(),
 		MinNodesPerShard:       100,
 		MetaChainMinNodes:      100,
+		ShardConsensusSize:     1,
+		MetaConsensusSize:      1,
 	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
@@ -163,6 +170,8 @@ func TestChainSimulator_SetState(t *testing.T) {
 		ApiInterface:           api.NewNoApiInterface(),
 		MinNodesPerShard:       1,
 		MetaChainMinNodes:      1,
+		ShardConsensusSize:     1,
+		MetaConsensusSize:      1,
 	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
@@ -209,6 +218,8 @@ func TestChainSimulator_SetEntireState(t *testing.T) {
 		ApiInterface:           api.NewNoApiInterface(),
 		MinNodesPerShard:       1,
 		MetaChainMinNodes:      1,
+		ShardConsensusSize:     1,
+		MetaConsensusSize:      1,
 	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
@@ -286,6 +297,8 @@ func TestChainSimulator_GetAccount(t *testing.T) {
 		ApiInterface:           api.NewNoApiInterface(),
 		MinNodesPerShard:       1,
 		MetaChainMinNodes:      1,
+		ShardConsensusSize:     1,
+		MetaConsensusSize:      1,
 	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
@@ -348,6 +361,8 @@ func TestSimulator_SendTransactions(t *testing.T) {
 		ApiInterface:           api.NewNoApiInterface(),
 		MinNodesPerShard:       1,
 		MetaChainMinNodes:      1,
+		ShardConsensusSize:     1,
+		MetaConsensusSize:      1,
 	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
@@ -374,9 +389,9 @@ func TestSimulator_SendTransactions(t *testing.T) {
 	require.Nil(t, err)
 
 	gasLimit := uint64(50000)
-	tx0 := generateTransaction(wallet0.Bytes, 0, wallet2.Bytes, transferValue, "", gasLimit)
-	tx1 := generateTransaction(wallet1.Bytes, 0, wallet2.Bytes, transferValue, "", gasLimit)
-	tx3 := generateTransaction(wallet3.Bytes, 0, wallet4.Bytes, transferValue, "", gasLimit)
+	tx0 := GenerateTransaction(wallet0.Bytes, 0, wallet2.Bytes, transferValue, "", gasLimit)
+	tx1 := GenerateTransaction(wallet1.Bytes, 0, wallet2.Bytes, transferValue, "", gasLimit)
+	tx3 := GenerateTransaction(wallet3.Bytes, 0, wallet4.Bytes, transferValue, "", gasLimit)
 
 	maxNumOfBlockToGenerateWhenExecutingTx := 15
 
@@ -421,7 +436,7 @@ func TestSimulator_SendTransactions(t *testing.T) {
 	})
 }
 
-func generateTransaction(sender []byte, nonce uint64, receiver []byte, value *big.Int, data string, gasLimit uint64) *transaction.Transaction {
+func GenerateTransaction(sender []byte, nonce uint64, receiver []byte, value *big.Int, data string, gasLimit uint64) *transaction.Transaction {
 	minGasPrice := uint64(1000000000)
 	txVersion := uint32(1)
 	mockTxSignature := "sig"

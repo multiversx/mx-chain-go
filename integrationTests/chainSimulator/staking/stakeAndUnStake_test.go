@@ -7,10 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	coreAPI "github.com/multiversx/mx-chain-core-go/data/api"
-	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-core-go/data/validator"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	chainSimulatorIntegrationTests "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
@@ -21,6 +17,11 @@ import (
 	chainSimulatorProcess "github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/vm"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	coreAPI "github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/data/validator"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 )
@@ -65,6 +66,8 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 		ApiInterface:             api.NewNoApiInterface(),
 		MinNodesPerShard:         3,
 		MetaChainMinNodes:        3,
+		ShardConsensusSize:       1,
+		MetaConsensusSize:        1,
 		NumNodesWaitingListMeta:  0,
 		NumNodesWaitingListShard: 0,
 		AlterConfigsFunction: func(cfg *config.Configs) {
@@ -197,6 +200,8 @@ func TestChainSimulator_AddANewValidatorAfterStakingV4(t *testing.T) {
 		ApiInterface:           api.NewNoApiInterface(),
 		MinNodesPerShard:       100,
 		MetaChainMinNodes:      100,
+		ShardConsensusSize:     1,
+		MetaConsensusSize:      1,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.SystemSCConfig.StakingSystemSCConfig.NodeLimitPercentage = 1
 			cfg.GeneralConfig.ValidatorStatistics.CacheRefreshIntervalInSec = 1
@@ -324,6 +329,8 @@ func testStakeUnStakeUnBond(t *testing.T, targetEpoch int32) {
 		ApiInterface:           api.NewNoApiInterface(),
 		MinNodesPerShard:       3,
 		MetaChainMinNodes:      3,
+		ShardConsensusSize:     1,
+		MetaConsensusSize:      1,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.SystemSCConfig.StakingSystemSCConfig.UnBondPeriod = 1
 			cfg.SystemSCConfig.StakingSystemSCConfig.UnBondPeriodInEpochs = 1
@@ -452,6 +459,8 @@ func TestChainSimulator_DirectStakingNodes_StakeFunds(t *testing.T) {
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
@@ -482,6 +491,8 @@ func TestChainSimulator_DirectStakingNodes_StakeFunds(t *testing.T) {
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
@@ -512,6 +523,8 @@ func TestChainSimulator_DirectStakingNodes_StakeFunds(t *testing.T) {
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
@@ -542,6 +555,8 @@ func TestChainSimulator_DirectStakingNodes_StakeFunds(t *testing.T) {
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
@@ -674,6 +689,8 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation(t *testi
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
@@ -705,6 +722,8 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation(t *testi
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
@@ -737,6 +756,8 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation(t *testi
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
@@ -769,6 +790,8 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation(t *testi
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
@@ -955,6 +978,8 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation_WithReac
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
@@ -986,6 +1011,8 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation_WithReac
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
@@ -1018,6 +1045,8 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation_WithReac
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
@@ -1050,6 +1079,8 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation_WithReac
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
@@ -1192,6 +1223,8 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedFundsBeforeUnbonding(
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
@@ -1222,6 +1255,8 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedFundsBeforeUnbonding(
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
@@ -1252,6 +1287,8 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedFundsBeforeUnbonding(
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
@@ -1282,6 +1319,8 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedFundsBeforeUnbonding(
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
@@ -1426,6 +1465,8 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInWithdrawEpoch(t *te
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
@@ -1456,6 +1497,8 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInWithdrawEpoch(t *te
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
@@ -1486,6 +1529,8 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInWithdrawEpoch(t *te
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
@@ -1516,6 +1561,8 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInWithdrawEpoch(t *te
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
@@ -1689,6 +1736,8 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInBatches(t *testing.
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
@@ -1721,6 +1770,8 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInBatches(t *testing.
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
@@ -1753,6 +1804,8 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInBatches(t *testing.
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
@@ -1785,6 +1838,8 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInBatches(t *testing.
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
@@ -2045,6 +2100,8 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInEpoch(t *testing.T)
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
@@ -2077,6 +2134,8 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInEpoch(t *testing.T)
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
@@ -2109,6 +2168,8 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInEpoch(t *testing.T)
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
@@ -2141,6 +2202,8 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInEpoch(t *testing.T)
 			ApiInterface:             api.NewNoApiInterface(),
 			MinNodesPerShard:         3,
 			MetaChainMinNodes:        3,
+			ShardConsensusSize:       1,
+			MetaConsensusSize:        1,
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
