@@ -2344,7 +2344,7 @@ func TestSmartContract_IssueToken(t *testing.T) {
 
 	defer cs.Close()
 
-	err = cs.GenerateBlocksUntilEpochIsReached(5)
+	err = cs.GenerateBlocksUntilEpochIsReached(3)
 	require.Nil(t, err)
 
 	nodeHandler := cs.GetNodeHandler(core.SovereignChainShardId)
