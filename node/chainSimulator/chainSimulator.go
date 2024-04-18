@@ -11,10 +11,15 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/factory/runType"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
+	processing "github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/rating"
 	mxChainSharding "github.com/multiversx/mx-chain-go/sharding"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -41,24 +46,28 @@ type transactionWithResult struct {
 
 // ArgsChainSimulator holds the arguments needed to create a new instance of simulator
 type ArgsChainSimulator struct {
-	BypassTxSignatureCheck   bool
-	TempDir                  string
-	PathToInitialConfig      string
-	NumOfShards              uint32
-	MinNodesPerShard         uint32
-	MetaChainMinNodes        uint32
-	ShardConsensusSize       uint32
-	MetaConsensusSize        uint32
-	NumNodesWaitingListShard uint32
-	NumNodesWaitingListMeta  uint32
-	GenesisTimestamp         int64
-	InitialRound             int64
-	InitialEpoch             uint32
-	InitialNonce             uint64
-	RoundDurationInMillis    uint64
-	RoundsPerEpoch           core.OptionalUint64
-	ApiInterface             components.APIConfigurator
-	AlterConfigsFunction     func(cfg *config.Configs)
+	BypassTxSignatureCheck      bool
+	TempDir                     string
+	PathToInitialConfig         string
+	NumOfShards                 uint32
+	MinNodesPerShard            uint32
+	MetaChainMinNodes           uint32
+	ShardConsensusSize          uint32
+	MetaConsensusSize           uint32
+	NumNodesWaitingListShard    uint32
+	NumNodesWaitingListMeta     uint32
+	GenesisTimestamp            int64
+	InitialRound                int64
+	InitialEpoch                uint32
+	InitialNonce                uint64
+	RoundDurationInMillis       uint64
+	RoundsPerEpoch              core.OptionalUint64
+	ApiInterface                components.APIConfigurator
+	AlterConfigsFunction        func(cfg *config.Configs)
+	CreateGenesisNodesSetup     func(nodesFilePath string, addressPubkeyConverter core.PubkeyConverter, validatorPubkeyConverter core.PubkeyConverter, genesisMaxNumShards uint32) (mxChainSharding.GenesisNodesSetupHandler, error)
+	CreateRatingsData           func(arg rating.RatingsDataArg) (processing.RatingsInfoHandler, error)
+	CreateIncomingHeaderHandler func(config *config.NotifierConfig, dataPool dataRetriever.PoolsHolder, mainChainNotarizationStartRound uint64, runTypeComponents factory.RunTypeComponentsHolder) (processing.IncomingHeaderSubscriber, error)
+	GetRunTypeComponents        func(coreComponents factory.CoreComponentsHolder, cryptoComponents factory.CryptoComponentsHolder) (factory.RunTypeComponentsHolder, error)
 }
 
 type simulator struct {
@@ -75,10 +84,29 @@ type simulator struct {
 
 // NewChainSimulator will create a new instance of simulator
 func NewChainSimulator(args ArgsChainSimulator) (*simulator, error) {
-	syncedBroadcastNetwork := components.NewSyncedBroadcastNetwork()
+	if args.CreateGenesisNodesSetup == nil {
+		args.CreateGenesisNodesSetup = func(nodesFilePath string, addressPubkeyConverter core.PubkeyConverter, validatorPubkeyConverter core.PubkeyConverter, genesisMaxNumShards uint32) (mxChainSharding.GenesisNodesSetupHandler, error) {
+			return mxChainSharding.NewNodesSetup(nodesFilePath, addressPubkeyConverter, validatorPubkeyConverter, genesisMaxNumShards)
+		}
+	}
+	if args.CreateRatingsData == nil {
+		args.CreateRatingsData = func(arg rating.RatingsDataArg) (processing.RatingsInfoHandler, error) {
+			return rating.NewRatingsData(arg)
+		}
+	}
+	if args.CreateIncomingHeaderHandler == nil {
+		args.CreateIncomingHeaderHandler = func(_ *config.NotifierConfig, _ dataRetriever.PoolsHolder, _ uint64, _ factory.RunTypeComponentsHolder) (processing.IncomingHeaderSubscriber, error) {
+			return nil, nil
+		}
+	}
+	if args.GetRunTypeComponents == nil {
+		args.GetRunTypeComponents = func(coreComponents factory.CoreComponentsHolder, cryptoComponents factory.CryptoComponentsHolder) (factory.RunTypeComponentsHolder, error) {
+			return createRunTypeComponents(coreComponents, cryptoComponents)
+		}
+	}
 
 	instance := &simulator{
-		syncedBroadcastNetwork: syncedBroadcastNetwork,
+		syncedBroadcastNetwork: components.NewSyncedBroadcastNetwork(),
 		nodes:                  make(map[uint32]process.NodeHandler),
 		handlers:               make([]ChainHandler, 0, args.NumOfShards+1),
 		numOfShards:            args.NumOfShards,
@@ -93,6 +121,20 @@ func NewChainSimulator(args ArgsChainSimulator) (*simulator, error) {
 	}
 
 	return instance, nil
+}
+
+func createRunTypeComponents(coreComponents factory.CoreComponentsHolder, _ factory.CryptoComponentsHolder) (factory.RunTypeComponentsHolder, error) {
+	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory(coreComponents)
+	managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(runTypeComponentsFactory)
+	if err != nil {
+		return nil, err
+	}
+	err = managedRunTypeComponents.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	return managedRunTypeComponents, nil
 }
 
 func (s *simulator) createChainHandlers(args ArgsChainSimulator) error {
@@ -115,8 +157,8 @@ func (s *simulator) createChainHandlers(args ArgsChainSimulator) error {
 	}
 
 	for idx := 0; idx < int(args.NumOfShards)+1; idx++ {
-		shardIDStr := fmt.Sprintf("%d", idx-1)
-		if idx == 0 {
+		shardIDStr := fmt.Sprintf("%d", idx)
+		if idx == int(args.NumOfShards) {
 			shardIDStr = "metachain"
 		}
 
@@ -157,21 +199,25 @@ func (s *simulator) createTestNode(
 	outputConfigs configs.ArgsConfigsSimulator, args ArgsChainSimulator, shardIDStr string,
 ) (process.NodeHandler, error) {
 	argsTestOnlyProcessorNode := components.ArgsTestOnlyProcessingNode{
-		Configs:                outputConfigs.Configs,
-		ChanStopNodeProcess:    s.chanStopNodeProcess,
-		SyncedBroadcastNetwork: s.syncedBroadcastNetwork,
-		NumShards:              s.numOfShards,
-		GasScheduleFilename:    outputConfigs.GasScheduleFilename,
-		ShardIDStr:             shardIDStr,
-		APIInterface:           args.ApiInterface,
-		BypassTxSignatureCheck: args.BypassTxSignatureCheck,
-		InitialRound:           args.InitialRound,
-		InitialNonce:           args.InitialNonce,
-		MinNodesPerShard:       args.MinNodesPerShard,
-		MinNodesMeta:           args.MetaChainMinNodes,
-		ShardConsensusSize:     args.ShardConsensusSize,
-		MetaConsensusSize:      args.MetaConsensusSize,
-		RoundDurationInMillis:  args.RoundDurationInMillis,
+		Configs:                     outputConfigs.Configs,
+		ChanStopNodeProcess:         s.chanStopNodeProcess,
+		SyncedBroadcastNetwork:      s.syncedBroadcastNetwork,
+		NumShards:                   s.numOfShards,
+		GasScheduleFilename:         outputConfigs.GasScheduleFilename,
+		ShardIDStr:                  shardIDStr,
+		APIInterface:                args.ApiInterface,
+		BypassTxSignatureCheck:      args.BypassTxSignatureCheck,
+		InitialRound:                args.InitialRound,
+		InitialNonce:                args.InitialNonce,
+		MinNodesPerShard:            args.MinNodesPerShard,
+		MinNodesMeta:                args.MetaChainMinNodes,
+		ShardConsensusSize:          args.ShardConsensusSize,
+		MetaConsensusSize:           args.MetaConsensusSize,
+		RoundDurationInMillis:       args.RoundDurationInMillis,
+		CreateGenesisNodesSetup:     args.CreateGenesisNodesSetup,
+		CreateRatingsData:           args.CreateRatingsData,
+		CreateIncomingHeaderHandler: args.CreateIncomingHeaderHandler,
+		GetRunTypeComponents:        args.GetRunTypeComponents,
 	}
 
 	return components.NewTestOnlyProcessingNode(argsTestOnlyProcessorNode)
@@ -301,7 +347,7 @@ func (s *simulator) AddValidatorKeys(validatorsPrivateKeys [][]byte) error {
 // GenerateAndMintWalletAddress will generate an address in the provided shard and will mint that address with the provided value
 // if the target shard ID value does not correspond to a node handled by the chain simulator, the address will be generated in a random shard ID
 func (s *simulator) GenerateAndMintWalletAddress(targetShardID uint32, value *big.Int) (dtos.WalletAddress, error) {
-	addressConverter := s.nodes[core.MetachainShardId].GetCoreComponents().AddressPubKeyConverter()
+	addressConverter := s.nodes[0].GetCoreComponents().AddressPubKeyConverter()
 	nodeHandler := s.GetNodeHandler(targetShardID)
 	var buff []byte
 	if check.IfNil(nodeHandler) {
@@ -370,7 +416,7 @@ func (s *simulator) SetKeyValueForAddress(address string, keyValueMap map[string
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	addressConverter := s.nodes[core.MetachainShardId].GetCoreComponents().AddressPubKeyConverter()
+	addressConverter := s.nodes[0].GetCoreComponents().AddressPubKeyConverter()
 	addressBytes, err := addressConverter.Decode(address)
 	if err != nil {
 		return err
@@ -405,7 +451,7 @@ func (s *simulator) SetStateMultiple(stateSlice []*dtos.AddressState) error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	addressConverter := s.nodes[core.MetachainShardId].GetCoreComponents().AddressPubKeyConverter()
+	addressConverter := s.nodes[0].GetCoreComponents().AddressPubKeyConverter()
 	for _, state := range stateSlice {
 		addressBytes, err := addressConverter.Decode(state.Address)
 		if err != nil {

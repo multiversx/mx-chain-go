@@ -13,9 +13,11 @@ import (
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/statusHandler/persister"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -38,6 +40,7 @@ import (
 
 func createArgsDataComponentsHolder() ArgsDataComponentsHolder {
 	generalCfg := testscommon.GetGeneralConfig()
+	persistentStatusHandler, _ := persister.NewPersistentStatus(&testscommon.MarshallerStub{}, &mock.Uint64ByteSliceConverterMock{})
 	return ArgsDataComponentsHolder{
 		Configs: config.Configs{
 			GeneralConfig:     &generalCfg,
@@ -103,8 +106,9 @@ func createArgsDataComponentsHolder() ArgsDataComponentsHolder {
 			},
 		},
 		StatusCoreComponents: &factory.StatusCoreComponentsStub{
-			AppStatusHandlerField:  &statusHandler.AppStatusHandlerStub{},
-			StateStatsHandlerField: disabledStatistics.NewStateStatistics(),
+			AppStatusHandlerField:        &statusHandler.AppStatusHandlerStub{},
+			StateStatsHandlerField:       disabledStatistics.NewStateStatistics(),
+			PersistentStatusHandlerField: persistentStatusHandler,
 		},
 		BootstrapComponents: &mainFactoryMocks.BootstrapComponentsStub{
 			ShCoordinator:              testscommon.NewMultiShardsCoordinatorMock(2),
@@ -121,7 +125,7 @@ func createArgsDataComponentsHolder() ArgsDataComponentsHolder {
 			TxKeyGen:                &cryptoMocks.KeyGenStub{},
 			ManagedPeersHolderField: &testscommon.ManagedPeersHolderStub{},
 		},
-		RunTypeComponents: mainFactoryMocks.NewRunTypeComponentsStub(),
+		RunTypeComponents: components.GetRunTypeComponents(),
 	}
 }
 

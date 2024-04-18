@@ -9,7 +9,6 @@ import (
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	dataComp "github.com/multiversx/mx-chain-go/factory/data"
-	"github.com/multiversx/mx-chain-go/testscommon/components"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -38,6 +37,9 @@ func CreateDataComponents(args ArgsDataComponentsHolder) (*dataComponentsHolder,
 	if check.IfNil(args.BootstrapComponents) {
 		return nil, errors.ErrNilBootstrapComponents
 	}
+	if check.IfNil(args.RunTypeComponents) {
+		return nil, errors.ErrNilRunTypeComponents
+	}
 
 	storerEpoch := args.BootstrapComponents.EpochBootstrapParams().Epoch()
 	if !args.Configs.GeneralConfig.StoragePruning.Enabled {
@@ -57,7 +59,7 @@ func CreateDataComponents(args ArgsDataComponentsHolder) (*dataComponentsHolder,
 		CreateTrieEpochRootHashStorer:   args.Configs.ImportDbConfig.ImportDbSaveTrieEpochRootHash,
 		FlagsConfigs:                    *args.Configs.FlagsConfig,
 		NodeProcessingMode:              common.GetNodeProcessingMode(args.Configs.ImportDbConfig),
-		AdditionalStorageServiceCreator: components.GetRunTypeComponents().AdditionalStorageServiceCreator(),
+		AdditionalStorageServiceCreator: args.RunTypeComponents.AdditionalStorageServiceCreator(),
 	}
 
 	dataComponentsFactory, err := dataComp.NewDataComponentsFactory(dataArgs)

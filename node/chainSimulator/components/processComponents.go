@@ -25,7 +25,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage/cache"
-	"github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/update"
 	"github.com/multiversx/mx-chain-go/update/trigger"
 
@@ -34,15 +33,17 @@ import (
 
 // ArgsProcessComponentsHolder will hold the components needed for process components
 type ArgsProcessComponentsHolder struct {
-	CoreComponents       factory.CoreComponentsHolder
-	CryptoComponents     factory.CryptoComponentsHolder
-	NetworkComponents    factory.NetworkComponentsHolder
-	BootstrapComponents  factory.BootstrapComponentsHolder
-	StateComponents      factory.StateComponentsHolder
-	DataComponents       factory.DataComponentsHolder
-	StatusComponents     factory.StatusComponentsHolder
-	StatusCoreComponents factory.StatusCoreComponentsHolder
-	NodesCoordinator     nodesCoordinator.NodesCoordinator
+	CoreComponents        factory.CoreComponentsHolder
+	CryptoComponents      factory.CryptoComponentsHolder
+	NetworkComponents     factory.NetworkComponentsHolder
+	BootstrapComponents   factory.BootstrapComponentsHolder
+	StateComponents       factory.StateComponentsHolder
+	DataComponents        factory.DataComponentsHolder
+	StatusComponents      factory.StatusComponentsHolder
+	StatusCoreComponents  factory.StatusCoreComponentsHolder
+	NodesCoordinator      nodesCoordinator.NodesCoordinator
+	RunTypeComponents     factory.RunTypeComponentsHolder
+	IncomingHeaderHandler process.IncomingHeaderSubscriber
 
 	EpochConfig              config.EpochConfig
 	RoundConfig              config.RoundConfig
@@ -185,36 +186,37 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 	}
 
 	processArgs := processComp.ProcessComponentsFactoryArgs{
-		Config:                  args.Config,
-		EpochConfig:             args.EpochConfig,
-		RoundConfig:             args.RoundConfig,
-		PrefConfigs:             args.PrefsConfig,
-		ImportDBConfig:          args.ImportDBConfig,
-		EconomicsConfig:         args.EconomicsConfig,
-		AccountsParser:          accountsParser,
-		SmartContractParser:     smartContractParser,
-		GasSchedule:             gasScheduleNotifier,
-		NodesCoordinator:        args.NodesCoordinator,
-		RequestedItemsHandler:   requestedItemsHandler,
-		WhiteListHandler:        whiteListRequest,
-		WhiteListerVerifiedTxs:  whiteListerVerifiedTxs,
-		MaxRating:               50,
-		SystemSCConfig:          &args.SystemSCConfig,
-		ImportStartHandler:      importStartHandler,
-		HistoryRepo:             historyRepository,
-		FlagsConfig:             args.FlagsConfig,
-		Data:                    args.DataComponents,
-		CoreData:                args.CoreComponents,
-		Crypto:                  args.CryptoComponents,
-		State:                   args.StateComponents,
-		Network:                 args.NetworkComponents,
-		BootstrapComponents:     args.BootstrapComponents,
-		StatusComponents:        args.StatusComponents,
-		StatusCoreComponents:    args.StatusCoreComponents,
-		TxExecutionOrderHandler: txExecutionOrderHandler,
-		GenesisNonce:            args.GenesisNonce,
-		GenesisRound:            args.GenesisRound,
-		RunTypeComponents:       components.GetRunTypeComponents(),
+		Config:                   args.Config,
+		EpochConfig:              args.EpochConfig,
+		RoundConfig:              args.RoundConfig,
+		PrefConfigs:              args.PrefsConfig,
+		ImportDBConfig:           args.ImportDBConfig,
+		EconomicsConfig:          args.EconomicsConfig,
+		AccountsParser:           accountsParser,
+		SmartContractParser:      smartContractParser,
+		GasSchedule:              gasScheduleNotifier,
+		NodesCoordinator:         args.NodesCoordinator,
+		RequestedItemsHandler:    requestedItemsHandler,
+		WhiteListHandler:         whiteListRequest,
+		WhiteListerVerifiedTxs:   whiteListerVerifiedTxs,
+		MaxRating:                50,
+		SystemSCConfig:           &args.SystemSCConfig,
+		ImportStartHandler:       importStartHandler,
+		HistoryRepo:              historyRepository,
+		FlagsConfig:              args.FlagsConfig,
+		Data:                     args.DataComponents,
+		CoreData:                 args.CoreComponents,
+		Crypto:                   args.CryptoComponents,
+		State:                    args.StateComponents,
+		Network:                  args.NetworkComponents,
+		BootstrapComponents:      args.BootstrapComponents,
+		StatusComponents:         args.StatusComponents,
+		StatusCoreComponents:     args.StatusCoreComponents,
+		TxExecutionOrderHandler:  txExecutionOrderHandler,
+		GenesisNonce:             args.GenesisNonce,
+		GenesisRound:             args.GenesisRound,
+		RunTypeComponents:        args.RunTypeComponents,
+		IncomingHeaderSubscriber: args.IncomingHeaderHandler,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {

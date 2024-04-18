@@ -5,11 +5,6 @@ import (
 	"sync"
 	"testing"
 
-	coreData "github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/endProcess"
-	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
-	"github.com/multiversx/mx-chain-core-go/hashing/keccak"
-	"github.com/multiversx/mx-chain-core-go/marshal"
 	commonFactory "github.com/multiversx/mx-chain-go/common/factory"
 	disabledStatistics "github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
@@ -34,9 +29,16 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/sovereign"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	updateMocks "github.com/multiversx/mx-chain-go/update/mock"
+
+	coreData "github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
+	"github.com/multiversx/mx-chain-core-go/hashing/keccak"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/stretchr/testify/require"
 )
 
@@ -229,6 +231,8 @@ func createArgsProcessComponentsHolder() ArgsProcessComponentsHolder {
 			SmartContracts: "../../../integrationTests/factory/testdata/genesisSmartContracts.json",
 			Nodes:          "../../../integrationTests/factory/testdata/genesis.json",
 		},
+		IncomingHeaderHandler: &sovereign.IncomingHeaderSubscriberStub{},
+		RunTypeComponents:     components.GetRunTypeComponents(),
 	}
 
 	args.StateComponents = components.GetStateComponents(args.CoreComponents, args.StatusCoreComponents)

@@ -8,12 +8,21 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	mainFactory "github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/factory/runType"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/rating"
+	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
+	"github.com/multiversx/mx-chain-go/testscommon/sovereign"
 	"github.com/multiversx/mx-chain-go/testscommon/state"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
@@ -48,7 +57,33 @@ func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNo
 		MinNodesPerShard:       1,
 		ShardConsensusSize:     1,
 		MetaConsensusSize:      1,
+		CreateGenesisNodesSetup: func(nodesFilePath string, addressPubkeyConverter core.PubkeyConverter, validatorPubkeyConverter core.PubkeyConverter, genesisMaxNumShards uint32) (sharding.GenesisNodesSetupHandler, error) {
+			return sharding.NewNodesSetup(nodesFilePath, addressPubkeyConverter, validatorPubkeyConverter, genesisMaxNumShards)
+		},
+		CreateRatingsData: func(arg rating.RatingsDataArg) (process.RatingsInfoHandler, error) {
+			return rating.NewRatingsData(arg)
+		},
+		CreateIncomingHeaderHandler: func(config *config.NotifierConfig, dataPool dataRetriever.PoolsHolder, mainChainNotarizationStartRound uint64, runTypeComponents mainFactory.RunTypeComponentsHolder) (process.IncomingHeaderSubscriber, error) {
+			return &sovereign.IncomingHeaderSubscriberStub{}, nil
+		},
+		GetRunTypeComponents: func(coreComponents mainFactory.CoreComponentsHolder, cryptoComponents mainFactory.CryptoComponentsHolder) (mainFactory.RunTypeComponentsHolder, error) {
+			return createRunTypeComponents(coreComponents, cryptoComponents)
+		},
 	}
+}
+
+func createRunTypeComponents(coreComponents mainFactory.CoreComponentsHolder, _ mainFactory.CryptoComponentsHolder) (mainFactory.RunTypeComponentsHolder, error) {
+	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory(coreComponents)
+	managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(runTypeComponentsFactory)
+	if err != nil {
+		return nil, err
+	}
+	err = managedRunTypeComponents.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	return managedRunTypeComponents, nil
 }
 
 func TestNewTestOnlyProcessingNode(t *testing.T) {
@@ -71,7 +106,7 @@ func TestNewTestOnlyProcessingNode(t *testing.T) {
 		newHeader, err := node.ProcessComponentsHolder.BlockProcessor().CreateNewHeader(1, 1)
 		assert.Nil(t, err)
 
-		err = newHeader.SetPrevHash(node.ChainHandler.GetGenesisHeaderHash())
+		err = newHeader.SetPrevHash(node.GetChainHandler().GetGenesisHeaderHash())
 		assert.Nil(t, err)
 
 		header, block, err := node.ProcessComponentsHolder.BlockProcessor().CreateBlock(newHeader, func() bool {
