@@ -15,7 +15,6 @@ import (
 func createSovRunTypeArgs() runType.ArgsSovereignRunTypeComponents {
 	rcf, _ := runType.NewRunTypeComponentsFactory(createCoreComponents())
 
-	//sovHeaderSigVerifier, _ := headerCheck.NewSovereignHeaderSigVerifier(&mclSig.BlsSingleSigner{})
 	return runType.ArgsSovereignRunTypeComponents{
 		RunTypeComponentsFactory: rcf,
 		Config: config.SovereignConfig{

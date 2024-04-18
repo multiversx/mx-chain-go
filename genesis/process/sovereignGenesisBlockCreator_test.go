@@ -10,8 +10,6 @@ import (
 	"math/big"
 	"testing"
 
-	mclSig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/singlesig"
-
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
@@ -20,7 +18,6 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis/mock"
 	nodeMock "github.com/multiversx/mx-chain-go/node/mock"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	stateAcc "github.com/multiversx/mx-chain-go/state"
@@ -28,6 +25,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/headerSigVerifier"
 	"github.com/multiversx/mx-chain-go/testscommon/sovereign"
 	"github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/vm"
@@ -91,7 +89,6 @@ func createSovRunTypeComps(t *testing.T) runTypeComponentsHandler {
 	})
 	require.Nil(t, err)
 
-	sovHeaderSigVerifier, _ := headerCheck.NewSovereignHeaderSigVerifier(&mclSig.BlsSingleSigner{})
 	runTypeArgs := factoryRunType.ArgsSovereignRunTypeComponents{
 		RunTypeComponentsFactory: runTypeFactory,
 		Config: config.SovereignConfig{
@@ -101,7 +98,7 @@ func createSovRunTypeComps(t *testing.T) runTypeComponentsHandler {
 		},
 		DataCodec:     &sovereign.DataCodecMock{},
 		TopicsChecker: &sovereign.TopicsCheckerMock{},
-		ExtraVerifier: sovHeaderSigVerifier,
+		ExtraVerifier: &headerSigVerifier.ExtraHeaderSigVerifierHandlerMock{},
 	}
 
 	sovRunTypeFactory, err := factoryRunType.NewSovereignRunTypeComponentsFactory(runTypeArgs)
