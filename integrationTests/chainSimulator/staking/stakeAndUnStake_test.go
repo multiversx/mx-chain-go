@@ -4,6 +4,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -20,8 +22,10 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	chainSimulatorProcess "github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/vm"
 	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 )
 
@@ -2299,4 +2303,124 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInEpoch(t *testing.T, cs
 	balanceAfterUnbonding.Add(balanceAfterUnbonding, txsFee)
 
 	require.Equal(t, 1, balanceAfterUnbonding.Cmp(balanceBeforeUnbonding))
+}
+
+func TestSmartContract_IssueToken(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	roundDurationInMillis := uint64(6000)
+	roundsPerEpoch := core.OptionalUint64{
+		HasValue: true,
+		Value:    30,
+	}
+
+	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+		BypassTxSignatureCheck:   false,
+		TempDir:                  t.TempDir(),
+		PathToInitialConfig:      defaultPathToInitialConfig,
+		NumOfShards:              3,
+		GenesisTimestamp:         time.Now().Unix(),
+		RoundDurationInMillis:    roundDurationInMillis,
+		RoundsPerEpoch:           roundsPerEpoch,
+		ApiInterface:             api.NewNoApiInterface(),
+		MinNodesPerShard:         3,
+		MetaChainMinNodes:        3,
+		NumNodesWaitingListMeta:  3,
+		NumNodesWaitingListShard: 3,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
+			cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
+			cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
+
+			cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+
+			cfg.SystemSCConfig.StakingSystemSCConfig.UnBondPeriodInEpochs = 3
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, cs)
+
+	defer cs.Close()
+
+	err = cs.GenerateBlocksUntilEpochIsReached(5)
+	require.Nil(t, err)
+
+	nodeHandler := cs.GetNodeHandler(core.SovereignChainShardId)
+	systemScAddress, _ := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode("erd1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq6gq4hu")
+
+	oneEgld := big.NewInt(1000000000000000000)
+	initialMinting := big.NewInt(0).Mul(oneEgld, big.NewInt(10))
+	wallet, err := cs.GenerateAndMintWalletAddress(core.SovereignChainShardId, initialMinting)
+	require.Nil(t, err)
+
+	data := getSCCode("adder.wasm") + "@0500@0500@10000000"
+	tx0 := generateTransaction(wallet.Bytes, 0, systemScAddress, big.NewInt(0), data, uint64(60000000))
+	txRes, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx0, 100)
+	require.Nil(t, err)
+	require.NotNil(t, txRes)
+	deployedContractAddress := txRes.Logs.Events[0].Topics[0]
+
+	res, _, err := nodeHandler.GetFacadeHandler().ExecuteSCQuery(&process.SCQuery{
+		ScAddress:  deployedContractAddress,
+		FuncName:   "getSum",
+		CallerAddr: nil,
+		BlockNonce: core.OptionalUint64{},
+	})
+	require.Nil(t, err)
+	sum := big.NewInt(0).SetBytes(res.ReturnData[0]).Int64()
+	require.Equal(t, 268435456, int(sum))
+
+	acc, _ := cs.GetNodeHandler(0).GetStateComponents().AccountsAdapter().LoadAccount(vm.ESDTSCAddress)
+
+	stAcc, _ := acc.(state.UserAccountHandler)
+
+	codeMetaData := &vmcommon.CodeMetadata{
+		Upgradeable: false,
+		Payable:     false,
+		Readable:    true,
+	}
+	stAcc.SetCodeMetadata(codeMetaData.ToBytes())
+
+	cs.GetNodeHandler(0).GetStateComponents().AccountsAdapter().SaveAccount(stAcc)
+
+	cs.GetNodeHandler(0).GetStateComponents().AccountsAdapter().Commit()
+
+	issueCost := big.NewInt(50000000000000000)
+	tx1 := generateTransaction2(wallet.Bytes, 1, deployedContractAddress, issueCost, "issue", uint64(60000000))
+	txRes, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx1, 100)
+	require.Nil(t, err)
+	require.NotNil(t, txRes)
+	require.False(t, string(txRes.Logs.Events[0].Topics[1]) == "sending value to non payable contract")
+}
+
+func getSCCode(fileName string) string {
+	code, err := os.ReadFile(filepath.Clean(fileName))
+	if err != nil {
+		panic("Could not get SC code.")
+	}
+
+	codeEncoded := hex.EncodeToString(code)
+	return codeEncoded
+}
+
+func generateTransaction2(sender []byte, nonce uint64, receiver []byte, value *big.Int, data string, gasLimit uint64) *transaction.Transaction {
+	minGasPrice := uint64(1000000000)
+	txVersion := uint32(1)
+	mockTxSignature := "sig"
+
+	transferValue := big.NewInt(0).Set(value)
+	return &transaction.Transaction{
+		Nonce:     nonce,
+		Value:     transferValue,
+		SndAddr:   sender,
+		RcvAddr:   receiver,
+		Data:      []byte(data),
+		GasLimit:  gasLimit,
+		GasPrice:  minGasPrice,
+		ChainID:   []byte(configs.ChainID),
+		Version:   txVersion,
+		Signature: []byte(mockTxSignature),
+	}
 }
