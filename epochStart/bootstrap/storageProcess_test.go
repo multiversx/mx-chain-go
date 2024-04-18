@@ -7,19 +7,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/sharding"
+	processMocks "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -27,6 +21,12 @@ import (
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -42,13 +42,6 @@ func createMockStorageEpochStartBootstrapArgs(
 		ChanGracefullyClose:           make(chan endProcess.ArgEndProcess, 1),
 		TimeToWaitForRequestedData:    time.Second,
 		EpochStartBootstrapperCreator: esbc,
-		ResolverRequestFactory: &RequestHandlerFactoryStub{
-			CreateRequestHandlerCalled: func(args requestHandlers.RequestHandlerArgs) (process.RequestHandler, error) {
-				return &testscommon.RequestHandlerStub{}, nil
-			},
-		},
-		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
-		ShardCoordinatorFactory:          sharding.NewMultiShardCoordinatorFactory(),
 	}
 }
 
@@ -64,7 +57,16 @@ func TestNewStorageEpochStartBootstrap_InvalidArgumentsShouldErr(t *testing.T) {
 		sesb, err := NewStorageEpochStartBootstrap(args)
 		assert.True(t, check.IfNil(sesb))
 		assert.True(t, errors.Is(err, epochStart.ErrNilHasher))
+	})
+	t.Run("nil RunTypeComponents should err", func(t *testing.T) {
+		t.Parallel()
 
+		coreComp, cryptoComp := createComponentsForEpochStart()
+		args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
+		args.RunTypeComponents = nil
+		sesb, err := NewStorageEpochStartBootstrap(args)
+		assert.True(t, check.IfNil(sesb))
+		require.True(t, errors.Is(err, errorsMx.ErrNilRunTypeComponents))
 	})
 	t.Run("nil ChanGracefullyClose should err", func(t *testing.T) {
 		t.Parallel()
@@ -85,16 +87,6 @@ func TestNewStorageEpochStartBootstrap_InvalidArgumentsShouldErr(t *testing.T) {
 		sesb, err := NewStorageEpochStartBootstrap(args)
 		assert.True(t, check.IfNil(sesb))
 		assert.Equal(t, errorsMx.ErrNilEpochStartBootstrapperCreator, err)
-	})
-	t.Run("nil ResolverRequestFactory should err", func(t *testing.T) {
-		t.Parallel()
-
-		coreComp, cryptoComp := createComponentsForEpochStart()
-		args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
-		args.ResolverRequestFactory = nil
-		sesb, err := NewStorageEpochStartBootstrap(args)
-		assert.True(t, check.IfNil(sesb))
-		assert.Equal(t, errorsMx.ErrNilResolverRequestFactoryHandler, err)
 	})
 }
 
@@ -561,7 +553,6 @@ func TestCreateStorageRequestHandler_ShouldWork(t *testing.T) {
 		coreComp, cryptoComp := createComponentsForEpochStart()
 
 		args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
-		args.ResolverRequestFactory = requestHandlers.NewResolverRequestHandlerFactory()
 		sesb, _ := NewStorageEpochStartBootstrap(args)
 
 		requestHandler, err := sesb.createStorageRequestHandler()
@@ -576,8 +567,7 @@ func TestCreateStorageRequestHandler_ShouldWork(t *testing.T) {
 		coreComp, cryptoComp := createComponentsForEpochStart()
 
 		args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
-		rrhf := requestHandlers.NewResolverRequestHandlerFactory()
-		args.ResolverRequestFactory, _ = requestHandlers.NewSovereignResolverRequestHandlerFactory(rrhf)
+		args.RunTypeComponents = processMocks.NewSovereignRunTypeComponentsStub()
 		sesb, _ := NewStorageEpochStartBootstrap(args)
 
 		requestHandler, err := sesb.createStorageRequestHandler()
