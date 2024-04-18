@@ -100,7 +100,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		TxPreProcessorFactory:               &testFactory.TxPreProcessorFactoryMock{},
 		ExtraHeaderSigVerifier:              &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
 		GenesisBlockFactory:                 &testFactory.GenesisBlockCreatorFactoryMock{},
-		GenesisMetaBlockChecker:             processGenesis.NewGenesisMetaBlockChecker(),
+		GenesisMetaBlockChecker:             &testFactory.GenesisMetaBlockCheckerMock{},
 	}
 }
 
