@@ -17,6 +17,7 @@ type NodeHandlerMock struct {
 	GetShardCoordinatorCalled     func() sharding.Coordinator
 	GetCryptoComponentsCalled     func() factory.CryptoComponentsHolder
 	GetCoreComponentsCalled       func() factory.CoreComponentsHolder
+	GetDataComponentsCalled       func() factory.DataComponentsHandler
 	GetStateComponentsCalled      func() factory.StateComponentsHolder
 	GetFacadeHandlerCalled        func() shared.FacadeHandler
 	GetStatusCoreComponentsCalled func() factory.StatusCoreComponentsHolder
@@ -69,6 +70,14 @@ func (mock *NodeHandlerMock) GetCryptoComponents() factory.CryptoComponentsHolde
 func (mock *NodeHandlerMock) GetCoreComponents() factory.CoreComponentsHolder {
 	if mock.GetCoreComponentsCalled != nil {
 		return mock.GetCoreComponentsCalled()
+	}
+	return nil
+}
+
+// GetDataComponents -
+func (mock *NodeHandlerMock) GetDataComponents() factory.DataComponentsHolder {
+	if mock.GetDataComponentsCalled != nil {
+		return mock.GetDataComponentsCalled()
 	}
 	return nil
 }

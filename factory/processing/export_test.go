@@ -25,7 +25,7 @@ func (pcf *processComponentsFactory) NewBlockProcessor(
 	blockProcessingCutoff cutoff.BlockProcessingCutoffHandler,
 	missingTrieNodesNotifier common.MissingTrieNodesNotifier,
 	sentSignaturesTracker process.SentSignaturesTracker,
-) (process.BlockProcessor, error) {
+) (process.BlockProcessor, process.EpochStartSystemSCProcessor, error) {
 	blockProcessorComponents, err := pcf.newBlockProcessor(
 		requestHandler,
 		forkDetector,
@@ -44,10 +44,10 @@ func (pcf *processComponentsFactory) NewBlockProcessor(
 		sentSignaturesTracker,
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return blockProcessorComponents.blockProcessor, nil
+	return blockProcessorComponents.blockProcessor, blockProcessorComponents.epochSystemSCProcessor, nil
 }
 
 // CreateAPITransactionEvaluator -
