@@ -214,7 +214,7 @@ func (rc *runTypeComponents) Close() error {
 	return nil
 }
 
-// IsInterfaceNil returns true if there is no value under the interfacee
+// IsInterfaceNil returns true if there is no value under the interface
 func (rc *runTypeComponents) IsInterfaceNil() bool {
 	return rc == nil
 }
