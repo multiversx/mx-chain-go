@@ -291,21 +291,7 @@ func (n *Node) GetKeyValuePairs(address string, options api.AccountQueryOptions,
 		return map[string]string{}, api.BlockInfo{}, nil
 	}
 
-	chLeaves := &common.TrieIteratorChannels{
-		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
-		ErrChan:    errChan.NewErrChanWrapper(),
-	}
-	err = userAccount.GetAllLeaves(chLeaves, ctx)
-	if err != nil {
-		return nil, api.BlockInfo{}, err
-	}
-
-	mapToReturn := make(map[string]string)
-	for leaf := range chLeaves.LeavesChan {
-		mapToReturn[hex.EncodeToString(leaf.Key())] = hex.EncodeToString(leaf.Value())
-	}
-
-	err = chLeaves.ErrChan.ReadFromChanNonBlocking()
+	mapToReturn, err := n.getKeys(userAccount, ctx)
 	if err != nil {
 		return nil, api.BlockInfo{}, err
 	}
@@ -315,6 +301,28 @@ func (n *Node) GetKeyValuePairs(address string, options api.AccountQueryOptions,
 	}
 
 	return mapToReturn, blockInfo, nil
+}
+
+func (n *Node) getKeys(userAccount state.UserAccountHandler, ctx context.Context) (map[string]string, error) {
+	chLeaves := &common.TrieIteratorChannels{
+		LeavesChan: make(chan core.KeyValueHolder, common.TrieLeavesChannelDefaultCapacity),
+		ErrChan:    errChan.NewErrChanWrapper(),
+	}
+	err := userAccount.GetAllLeaves(chLeaves, ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	mapToReturn := make(map[string]string)
+	for leaf := range chLeaves.LeavesChan {
+		mapToReturn[hex.EncodeToString(leaf.Key())] = hex.EncodeToString(leaf.Value())
+	}
+
+	err = chLeaves.ErrChan.ReadFromChanNonBlocking()
+	if err != nil {
+		return nil, err
+	}
+	return mapToReturn, nil
 }
 
 // GetValueForKey will return the value for a key from a given account
@@ -930,7 +938,7 @@ func (n *Node) setTxGuardianData(guardian string, guardianSigHex string, tx *tra
 }
 
 // GetAccount will return account details for a given address
-func (n *Node) GetAccount(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
+func (n *Node) GetAccount(address string, options api.AccountQueryOptions, ctx context.Context) (api.AccountResponse, api.BlockInfo, error) {
 	account, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
 	if err != nil {
 		adaptedBlockInfo, isEmptyAccount := extractBlockInfoIfNewAccount(err)
@@ -954,6 +962,11 @@ func (n *Node) GetAccount(address string, options api.AccountQueryOptions) (api.
 		}
 	}
 
+	var keys map[string]string
+	if options.WithKeys {
+		keys, _ = n.getKeys(account, ctx)
+	}
+
 	return api.AccountResponse{
 		Address:         address,
 		Nonce:           account.GetNonce(),
@@ -964,6 +977,7 @@ func (n *Node) GetAccount(address string, options api.AccountQueryOptions) (api.
 		CodeMetadata:    account.GetCodeMetadata(),
 		DeveloperReward: account.GetDeveloperReward().String(),
 		OwnerAddress:    ownerAddress,
+		Pairs:           keys,
 	}, blockInfo, nil
 }
 

@@ -338,7 +338,7 @@ func TestNodeFacade_GetAccount(t *testing.T) {
 
 		arg := createMockArguments()
 		arg.Node = &mock.NodeStub{
-			GetAccountCalled: func(_ string, _ api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
+			GetAccountCalled: func(_ string, _ api.AccountQueryOptions, _ context.Context) (api.AccountResponse, api.BlockInfo, error) {
 				return api.AccountResponse{}, api.BlockInfo{}, expectedErr
 			},
 		}
@@ -352,7 +352,7 @@ func TestNodeFacade_GetAccount(t *testing.T) {
 
 		getAccountCalled := false
 		node := &mock.NodeStub{}
-		node.GetAccountCalled = func(address string, _ api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
+		node.GetAccountCalled = func(address string, _ api.AccountQueryOptions, _ context.Context) (api.AccountResponse, api.BlockInfo, error) {
 			getAccountCalled = true
 			return api.AccountResponse{}, api.BlockInfo{}, nil
 		}
@@ -387,7 +387,7 @@ func TestNodeFacade_GetAccounts(t *testing.T) {
 		t.Parallel()
 
 		node := &mock.NodeStub{}
-		node.GetAccountCalled = func(address string, _ api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
+		node.GetAccountCalled = func(address string, _ api.AccountQueryOptions, _ context.Context) (api.AccountResponse, api.BlockInfo, error) {
 			return api.AccountResponse{}, api.BlockInfo{}, expectedErr
 		}
 
@@ -407,7 +407,7 @@ func TestNodeFacade_GetAccounts(t *testing.T) {
 
 		expectedAcount := api.AccountResponse{Address: "test"}
 		node := &mock.NodeStub{}
-		node.GetAccountCalled = func(address string, _ api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
+		node.GetAccountCalled = func(address string, _ api.AccountQueryOptions, _ context.Context) (api.AccountResponse, api.BlockInfo, error) {
 			return expectedAcount, api.BlockInfo{}, nil
 		}
 
@@ -2008,7 +2008,7 @@ func TestNodeFacade_GetTransactionsPoolNonceGapsForSender(t *testing.T) {
 
 		arg := createMockArguments()
 		arg.Node = &mock.NodeStub{
-			GetAccountCalled: func(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
+			GetAccountCalled: func(address string, options api.AccountQueryOptions, _ context.Context) (api.AccountResponse, api.BlockInfo, error) {
 				return api.AccountResponse{}, api.BlockInfo{}, expectedErr
 			},
 		}
@@ -2030,7 +2030,7 @@ func TestNodeFacade_GetTransactionsPoolNonceGapsForSender(t *testing.T) {
 
 		arg := createMockArguments()
 		arg.Node = &mock.NodeStub{
-			GetAccountCalled: func(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
+			GetAccountCalled: func(address string, options api.AccountQueryOptions, _ context.Context) (api.AccountResponse, api.BlockInfo, error) {
 				return api.AccountResponse{}, api.BlockInfo{}, nil
 			},
 		}
@@ -2062,7 +2062,7 @@ func TestNodeFacade_GetTransactionsPoolNonceGapsForSender(t *testing.T) {
 		}
 		providedNonce := uint64(10)
 		arg.Node = &mock.NodeStub{
-			GetAccountCalled: func(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
+			GetAccountCalled: func(address string, options api.AccountQueryOptions, _ context.Context) (api.AccountResponse, api.BlockInfo, error) {
 				return api.AccountResponse{Nonce: providedNonce}, api.BlockInfo{}, nil
 			},
 		}
