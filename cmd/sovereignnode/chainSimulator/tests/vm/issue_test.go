@@ -8,15 +8,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/config"
 	chainSim "github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/process"
 	sovChainSimulator "github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator"
-
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/vm"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 )
 
@@ -91,6 +93,14 @@ func TestSmartContract_IssueToken(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, txRes)
 	require.False(t, string(txRes.Logs.Events[0].Topics[1]) == "sending value to non payable contract")
+
+	esdtSC, err := cs.GetNodeHandler(0).GetStateComponents().AccountsAdapter().LoadAccount(vm.ESDTSCAddress)
+	require.Nil(t, err)
+	esdtSCAcc, ok := esdtSC.(state.UserAccountHandler)
+	require.True(t, ok)
+
+	existingCode := vmcommon.CodeMetadataFromBytes(esdtSCAcc.GetCodeMetadata())
+	require.True(t, existingCode.Readable)
 }
 
 func getSCCode(fileName string) string {
