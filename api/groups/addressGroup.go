@@ -38,6 +38,7 @@ const (
 	urlParamBlockHash              = "blockHash"
 	urlParamBlockRootHash          = "blockRootHash"
 	urlParamHintEpoch              = "hintEpoch"
+	urlParamWithKeys               = "withKeys"
 )
 
 // addressFacadeHandler defines the methods to be implemented by a facade for handling address requests

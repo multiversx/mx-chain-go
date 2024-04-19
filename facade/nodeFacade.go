@@ -321,7 +321,10 @@ func (nf *nodeFacade) GetLastPoolNonceForSender(sender string) (uint64, error) {
 
 // GetTransactionsPoolNonceGapsForSender will return the nonce gaps from pool for sender, if exists, that is to be returned on API calls
 func (nf *nodeFacade) GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
-	accountResponse, _, err := nf.node.GetAccount(sender, apiData.AccountQueryOptions{})
+	ctx, cancel := nf.getContextForApiTrieRangeOperations()
+	defer cancel()
+
+	accountResponse, _, err := nf.node.GetAccount(sender, apiData.AccountQueryOptions{}, ctx)
 	if err != nil {
 		return &common.TransactionsPoolNonceGapsForSenderApiResponse{}, err
 	}
@@ -336,7 +339,10 @@ func (nf *nodeFacade) ComputeTransactionGasLimit(tx *transaction.Transaction) (*
 
 // GetAccount returns a response containing information about the account correlated with provided address
 func (nf *nodeFacade) GetAccount(address string, options apiData.AccountQueryOptions) (apiData.AccountResponse, apiData.BlockInfo, error) {
-	accountResponse, blockInfo, err := nf.node.GetAccount(address, options)
+	ctx, cancel := nf.getContextForApiTrieRangeOperations()
+	defer cancel()
+
+	accountResponse, blockInfo, err := nf.node.GetAccount(address, options, ctx)
 	if err != nil {
 		return apiData.AccountResponse{}, apiData.BlockInfo{}, err
 	}
@@ -358,9 +364,11 @@ func (nf *nodeFacade) GetAccounts(addresses []string, options apiData.AccountQue
 
 	response := make(map[string]*apiData.AccountResponse)
 	var blockInfo apiData.BlockInfo
+	ctx, cancel := nf.getContextForApiTrieRangeOperations()
+	defer cancel()
 
 	for _, address := range addresses {
-		accountResponse, blockInfoForAccount, err := nf.node.GetAccount(address, options)
+		accountResponse, blockInfoForAccount, err := nf.node.GetAccount(address, options, ctx)
 		if err != nil {
 			return nil, apiData.BlockInfo{}, err
 		}
