@@ -2,8 +2,10 @@ package runType
 
 import (
 	"fmt"
+	"math/big"
 
 	"github.com/multiversx/mx-chain-go/common/disabled"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
 	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
@@ -12,6 +14,8 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/errors"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
+	"github.com/multiversx/mx-chain-go/genesis"
+	"github.com/multiversx/mx-chain-go/genesis/parsing"
 	processGenesis "github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
@@ -37,8 +41,18 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 )
 
+type ArgsRunTypeComponents struct {
+	CoreComponents   process.CoreComponentsHolder
+	CryptoComponents process.CryptoComponentsHolder
+	Configs          config.Configs
+	InitialAccounts  []genesis.InitialAccountHandler
+}
+
 type runTypeComponentsFactory struct {
-	coreComponents process.CoreComponentsHolder
+	coreComponents   process.CoreComponentsHolder
+	cryptoComponents process.CryptoComponentsHolder
+	configs          config.Configs
+	initialAccounts  []genesis.InitialAccountHandler
 }
 
 // runTypeComponents struct holds the components needed for a run type
@@ -61,6 +75,7 @@ type runTypeComponents struct {
 	consensusModel                          consensus.ConsensusModel
 	vmContainerMetaFactory                  factoryVm.VmContainerCreator
 	vmContainerShardFactory                 factoryVm.VmContainerCreator
+	accountsParser                          genesis.AccountsParser
 	accountsCreator                         state.AccountFactory
 	outGoingOperationsPoolHandler           sovereignBlock.OutGoingOperationsPool
 	dataCodecHandler                        sovereign.DataCodecHandler
@@ -77,13 +92,22 @@ type runTypeComponents struct {
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
-func NewRunTypeComponentsFactory(coreComponents process.CoreComponentsHolder) (*runTypeComponentsFactory, error) {
-	if check.IfNil(coreComponents) {
+func NewRunTypeComponentsFactory(args ArgsRunTypeComponents) (*runTypeComponentsFactory, error) {
+	if check.IfNil(args.CoreComponents) {
 		return nil, errors.ErrNilCoreComponents
+	}
+	if check.IfNil(args.CryptoComponents) {
+		return nil, errors.ErrNilCryptoComponents
+	}
+	if args.InitialAccounts == nil {
+		return nil, errors.ErrNilInitialAccounts
 	}
 
 	return &runTypeComponentsFactory{
-		coreComponents: coreComponents,
+		coreComponents:   args.CoreComponents,
+		cryptoComponents: args.CryptoComponents,
+		configs:          args.Configs,
+		initialAccounts:  args.InitialAccounts,
 	}, nil
 }
 
@@ -165,6 +189,26 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		return nil, fmt.Errorf("runTypeComponentsFactory - NewVmContainerShardFactory failed: %w", err)
 	}
 
+	totalSupply, ok := big.NewInt(0).SetString(rcf.configs.EconomicsConfig.GlobalSettings.GenesisTotalSupply, 10)
+	if !ok {
+		return nil, fmt.Errorf("can not parse total suply from economics.toml, %s is not a valid value",
+			rcf.configs.EconomicsConfig.GlobalSettings.GenesisTotalSupply)
+	}
+
+	accountsParserArgs := genesis.AccountsParserArgs{
+		InitialAccounts: rcf.initialAccounts,
+		EntireSupply:    totalSupply,
+		MinterAddress:   rcf.configs.EconomicsConfig.GlobalSettings.GenesisMintingSenderAddress,
+		PubkeyConverter: rcf.coreComponents.AddressPubKeyConverter(),
+		KeyGenerator:    rcf.cryptoComponents.TxSignKeyGen(),
+		Hasher:          rcf.coreComponents.Hasher(),
+		Marshalizer:     rcf.coreComponents.InternalMarshalizer(),
+	}
+	accountsParser, err := parsing.NewAccountsParser(accountsParserArgs)
+	if err != nil {
+		return nil, fmt.Errorf("runTypeComponentsFactory - NewAccountsParser failed: %w", err)
+	}
+
 	accountsCreator, err := factory.NewAccountCreator(factory.ArgsAccountCreator{
 		Hasher:              rcf.coreComponents.Hasher(),
 		Marshaller:          rcf.coreComponents.InternalMarshalizer(),
@@ -206,6 +250,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		extraHeaderSigVerifierHandler:           headerCheck.NewExtraHeaderSigVerifierHolder(),
 		genesisBlockCreatorFactory:              processGenesis.NewGenesisBlockCreatorFactory(),
 		genesisMetaBlockCheckerCreator:          processGenesis.NewGenesisMetaBlockChecker(),
+		accountsParser:                          accountsParser,
 	}, nil
 }
 

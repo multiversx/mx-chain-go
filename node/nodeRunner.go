@@ -3,7 +3,6 @@ package node
 import (
 	"fmt"
 	"io"
-	"math/big"
 	"os"
 	"os/signal"
 	"path"
@@ -43,6 +42,7 @@ import (
 	statusComp "github.com/multiversx/mx-chain-go/factory/status"
 	"github.com/multiversx/mx-chain-go/factory/statusCore"
 	"github.com/multiversx/mx-chain-go/genesis"
+	"github.com/multiversx/mx-chain-go/genesis/data"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
 	"github.com/multiversx/mx-chain-go/health"
 	"github.com/multiversx/mx-chain-go/node/metrics"
@@ -302,12 +302,6 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
-	log.Debug("creating runType components")
-	managedRunTypeComponents, err := nr.CreateManagedRunTypeComponents(managedCoreComponents)
-	if err != nil {
-		return true, err
-	}
-
 	log.Debug("creating status core components")
 	managedStatusCoreComponents, err := nr.CreateManagedStatusCoreComponents(managedCoreComponents)
 	if err != nil {
@@ -316,6 +310,12 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 
 	log.Debug("creating crypto components")
 	managedCryptoComponents, err := nr.CreateManagedCryptoComponents(managedCoreComponents)
+	if err != nil {
+		return true, err
+	}
+
+	log.Debug("creating runType components")
+	managedRunTypeComponents, err := nr.CreateManagedRunTypeComponents(managedCoreComponents, managedCryptoComponents)
 	if err != nil {
 		return true, err
 	}
@@ -1190,29 +1190,6 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		return nil, err
 	}
 
-	totalSupply, ok := big.NewInt(0).SetString(configs.EconomicsConfig.GlobalSettings.GenesisTotalSupply, 10)
-	if !ok {
-		return nil, fmt.Errorf("can not parse total suply from economics.toml, %s is not a valid value",
-			configs.EconomicsConfig.GlobalSettings.GenesisTotalSupply)
-	}
-
-	mintingSenderAddress := configs.EconomicsConfig.GlobalSettings.GenesisMintingSenderAddress
-
-	args := genesis.AccountsParserArgs{
-		GenesisFilePath: configurationPaths.Genesis,
-		EntireSupply:    totalSupply,
-		MinterAddress:   mintingSenderAddress,
-		PubkeyConverter: coreComponents.AddressPubKeyConverter(),
-		KeyGenerator:    cryptoComponents.TxSignKeyGen(),
-		Hasher:          coreComponents.Hasher(),
-		Marshalizer:     coreComponents.InternalMarshalizer(),
-	}
-
-	accountsParser, err := parsing.NewAccountsParser(args)
-	if err != nil {
-		return nil, err
-	}
-
 	smartContractParser, err := parsing.NewSmartContractsParser(
 		configurationPaths.SmartContracts,
 		coreComponents.AddressPubKeyConverter(),
@@ -1268,7 +1245,6 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		PrefConfigs:             *configs.PreferencesConfig,
 		ImportDBConfig:          *configs.ImportDbConfig,
 		EconomicsConfig:         *configs.EconomicsConfig,
-		AccountsParser:          accountsParser,
 		SmartContractParser:     smartContractParser,
 		GasSchedule:             gasScheduleNotifier,
 		NodesCoordinator:        nodesCoordinator,
@@ -1591,9 +1567,35 @@ func (nr *nodeRunner) CreateManagedCryptoComponents(
 	return managedCryptoComponents, nil
 }
 
+// CreateArgsRunTypeComponents - creates the args for runType components
+func (nr *nodeRunner) CreateArgsRunTypeComponents(coreComponents mainFactory.CoreComponentsHandler, cryptoComponents mainFactory.CryptoComponentsHandler) (*runType.ArgsRunTypeComponents, error) {
+	initialAccounts := make([]*data.InitialAccount, 0)
+	err := core.LoadJsonFile(&initialAccounts, nr.configs.ConfigurationPathsHolder.Genesis)
+	if err != nil {
+		return nil, err
+	}
+
+	var accounts []genesis.InitialAccountHandler
+	for _, ia := range initialAccounts {
+		accounts = append(accounts, ia)
+	}
+
+	return &runType.ArgsRunTypeComponents{
+		CoreComponents:   coreComponents,
+		CryptoComponents: cryptoComponents,
+		Configs:          *nr.configs,
+		InitialAccounts:  accounts,
+	}, nil
+}
+
 // CreateManagedRunTypeComponents creates the managed run type components
-func (nr *nodeRunner) CreateManagedRunTypeComponents(coreComponents mainFactory.CoreComponentsHandler) (mainFactory.RunTypeComponentsHandler, error) {
-	runTypeComponentsFactory, err := runType.NewRunTypeComponentsFactory(coreComponents)
+func (nr *nodeRunner) CreateManagedRunTypeComponents(coreComponents mainFactory.CoreComponentsHandler, cryptoComponents mainFactory.CryptoComponentsHandler) (mainFactory.RunTypeComponentsHandler, error) {
+	args, err := nr.CreateArgsRunTypeComponents(coreComponents, cryptoComponents)
+	if err != nil {
+		return nil, err
+	}
+
+	runTypeComponentsFactory, err := runType.NewRunTypeComponentsFactory(*args)
 	if err != nil {
 		return nil, fmt.Errorf("newRunTypeComponentsFactory failed: %w", err)
 	}

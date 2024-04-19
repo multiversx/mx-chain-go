@@ -3,20 +3,21 @@ package parsing
 import (
 	"math/big"
 
+	"github.com/multiversx/mx-chain-go/genesis"
+	"github.com/multiversx/mx-chain-go/genesis/data"
+	"github.com/multiversx/mx-chain-go/genesis/mock"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	coreData "github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	transactionData "github.com/multiversx/mx-chain-core-go/data/transaction"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
-	"github.com/multiversx/mx-chain-go/genesis"
-	"github.com/multiversx/mx-chain-go/genesis/data"
-	"github.com/multiversx/mx-chain-go/genesis/mock"
-	"github.com/multiversx/mx-chain-go/sharding"
-	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 )
 
-func (ap *accountsParser) SetInitialAccounts(initialAccounts []*data.InitialAccount) {
+func (ap *accountsParser) SetInitialAccounts(initialAccounts []genesis.InitialAccountHandler) {
 	ap.initialAccounts = initialAccounts
 }
 
@@ -56,7 +57,7 @@ func NewTestAccountsParser(pubkeyConverter core.PubkeyConverter) *accountsParser
 	addrBytes, _ := pubkeyConverter.Decode("erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3")
 	return &accountsParser{
 		pubkeyConverter:    pubkeyConverter,
-		initialAccounts:    make([]*data.InitialAccount, 0),
+		initialAccounts:    make([]genesis.InitialAccountHandler, 0),
 		minterAddressBytes: addrBytes,
 		keyGenerator:       &mock.KeyGeneratorStub{},
 		hasher:             &hashingMocks.HasherMock{},

@@ -83,6 +83,7 @@ var (
 )
 
 func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFactoryArgs {
+	runTypeComponents := getRunTypeComponentsMock()
 	args := processComp.ProcessComponentsFactoryArgs{
 		Config: testscommon.GetGeneralConfig(),
 		EpochConfig: config.EpochConfig{
@@ -101,16 +102,6 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 		ImportDBConfig: config.ImportDbConfig{},
 		FlagsConfig: config.ContextFlagsConfig{
 			Version: "v1.0.0",
-		},
-		AccountsParser: &mock.AccountsParserStub{
-			GenerateInitialTransactionsCalled: func(shardCoordinator sharding.Coordinator, initialIndexingData map[uint32]*genesis.IndexingData) ([]*dataBlock.MiniBlock, map[uint32]*outportCore.TransactionPool, error) {
-				return []*dataBlock.MiniBlock{
-						{},
-					},
-					map[uint32]*outportCore.TransactionPool{
-						0: {},
-					}, nil
-			},
 		},
 		SmartContractParser: &mock.SmartContractParserStub{},
 		GasSchedule: &testscommon.GasScheduleNotifierMock{
@@ -267,26 +258,26 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 		},
 		TxExecutionOrderHandler:  &txExecOrderStub.TxExecutionOrderHandlerStub{},
 		IncomingHeaderSubscriber: &sovereign.IncomingHeaderSubscriberStub{},
-		RunTypeComponents:        components.GetRunTypeComponents(),
 	}
 
 	args.State = components.GetStateComponents(args.CoreData, args.StatusCoreComponents)
-
+	runTypeComponents.AccountParser = &mock.AccountsParserStub{
+		GenerateInitialTransactionsCalled: func(shardCoordinator sharding.Coordinator, initialIndexingData map[uint32]*genesis.IndexingData) ([]*dataBlock.MiniBlock, map[uint32]*outportCore.TransactionPool, error) {
+			return []*dataBlock.MiniBlock{
+					{},
+				},
+				map[uint32]*outportCore.TransactionPool{
+					0: {},
+				}, nil
+		},
+	}
+	args.RunTypeComponents = runTypeComponents
 	return args
 }
 
 func TestNewProcessComponentsFactory(t *testing.T) {
 	t.Parallel()
 
-	t.Run("nil AccountsParser should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockProcessComponentsFactoryArgs()
-		args.AccountsParser = nil
-		pcf, err := processComp.NewProcessComponentsFactory(args)
-		require.True(t, errors.Is(err, errorsMx.ErrNilAccountsParser))
-		require.Nil(t, pcf)
-	})
 	t.Run("nil GasSchedule should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -806,6 +797,17 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		require.True(t, errors.Is(err, errorsMx.ErrNilVmContainerShardFactoryCreator))
 		require.Nil(t, pcf)
 	})
+	t.Run("nil AccountsParser should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockProcessComponentsFactoryArgs()
+		rtMock := getRunTypeComponentsMock()
+		rtMock.AccountParser = nil
+		args.RunTypeComponents = rtMock
+		pcf, err := processComp.NewProcessComponentsFactory(args)
+		require.True(t, errors.Is(err, errorsMx.ErrNilAccountsParser))
+		require.Nil(t, pcf)
+	})
 	t.Run("nil AccountCreator should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -968,6 +970,7 @@ func getRunTypeComponentsMock() *mainFactoryMocks.RunTypeComponentsStub {
 		SCResultsPreProcessorFactory:        rt.SCResultsPreProcessorCreator(),
 		VmContainerMetaFactory:              rt.VmContainerMetaFactoryCreator(),
 		VmContainerShardFactory:             rt.VmContainerShardFactoryCreator(),
+		AccountParser:                       rt.AccountsParser(),
 		AccountCreator:                      rt.AccountsCreator(),
 		OutGoingOperationsPool:              rt.OutGoingOperationsPoolHandler(),
 		DataCodec:                           rt.DataCodecHandler(),
@@ -1084,11 +1087,13 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		t.Parallel()
 
 		args := createMockProcessComponentsFactoryArgs()
-		args.AccountsParser = &mock.AccountsParserStub{
+		rtMock := getRunTypeComponentsMock()
+		rtMock.AccountParser = &mock.AccountsParserStub{
 			GenerateInitialTransactionsCalled: func(shardCoordinator sharding.Coordinator, initialIndexingData map[uint32]*genesis.IndexingData) ([]*dataBlock.MiniBlock, map[uint32]*outportCore.TransactionPool, error) {
 				return nil, nil, expectedErr
 			},
 		}
+		args.RunTypeComponents = rtMock
 		testCreateWithArgs(t, args, expectedErr.Error())
 	})
 	t.Run("NewMiniBlocksPoolsCleaner fails should error", func(t *testing.T) {

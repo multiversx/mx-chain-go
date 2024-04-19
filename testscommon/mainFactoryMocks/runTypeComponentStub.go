@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
+	"github.com/multiversx/mx-chain-go/genesis"
 	processGenesis "github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
@@ -27,6 +28,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	testFactory "github.com/multiversx/mx-chain-go/testscommon/factory"
+	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/headerSigVerifier"
 	sovereignMocks "github.com/multiversx/mx-chain-go/testscommon/sovereign"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
@@ -52,6 +54,7 @@ type RunTypeComponentsStub struct {
 	ConsensusModelType                  consensus.ConsensusModel
 	VmContainerMetaFactory              factoryVm.VmContainerCreator
 	VmContainerShardFactory             factoryVm.VmContainerCreator
+	AccountParser                       genesis.AccountsParser
 	AccountCreator                      state.AccountFactory
 	OutGoingOperationsPool              sovereignBlock.OutGoingOperationsPool
 	DataCodec                           sovereign.DataCodecHandler
@@ -88,6 +91,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		ConsensusModelType:                  consensus.ConsensusModelV1,
 		VmContainerMetaFactory:              &testFactory.VMContainerMetaFactoryMock{},
 		VmContainerShardFactory:             &testFactory.VMContainerShardFactoryMock{},
+		AccountParser:                       &genesisMocks.AccountsParserStub{},
 		AccountCreator:                      &stateMock.AccountsFactoryStub{},
 		OutGoingOperationsPool:              &sovereignMocks.OutGoingOperationsPoolMock{},
 		DataCodec:                           &sovereignMocks.DataCodecMock{},
@@ -212,6 +216,11 @@ func (r *RunTypeComponentsStub) VmContainerMetaFactoryCreator() factoryVm.VmCont
 // VmContainerShardFactoryCreator -
 func (r *RunTypeComponentsStub) VmContainerShardFactoryCreator() factoryVm.VmContainerCreator {
 	return r.VmContainerShardFactory
+}
+
+// AccountsParser -
+func (r *RunTypeComponentsStub) AccountsParser() genesis.AccountsParser {
+	return r.AccountParser
 }
 
 // AccountsCreator -

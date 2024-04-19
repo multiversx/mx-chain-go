@@ -6,15 +6,12 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
-	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
 	commonFactory "github.com/multiversx/mx-chain-go/common/factory"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -48,6 +45,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/headerSigVerifier"
+	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/sovereign"
@@ -55,6 +53,11 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/subRoundsHolder"
 	"github.com/multiversx/mx-chain-go/trie"
+
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
+	"github.com/stretchr/testify/require"
 )
 
 var log = logger.GetOrCreate("componentsMock")
@@ -469,7 +472,6 @@ func GetProcessArgs(
 	stateComponents factory.StateComponentsHolder,
 	networkComponents factory.NetworkComponentsHolder,
 ) processComp.ProcessComponentsFactoryArgs {
-
 	gasSchedule := wasmConfig.MakeGasMapForTests()
 	// TODO: check if these could be initialized by MakeGasMapForTests()
 	gasSchedule["BuiltInCost"]["SaveUserName"] = 1
@@ -497,67 +499,8 @@ func GetProcessArgs(
 	_ = bootstrapComponents.Create()
 	_ = bootstrapComponents.SetShardCoordinator(shardCoordinator)
 
-	return processComp.ProcessComponentsFactoryArgs{
-		Config: testscommon.GetGeneralConfig(),
-		AccountsParser: &mock.AccountsParserStub{
-			InitialAccountsCalled: func() []genesis.InitialAccountHandler {
-				addrConverter, _ := commonFactory.NewPubkeyConverter(config.PubkeyConfig{
-					Length:          32,
-					Type:            "bech32",
-					SignatureLength: 0,
-					Hrp:             "erd",
-				})
-				balance := big.NewInt(0)
-				acc1 := data.InitialAccount{
-					Address:      "erd1ulhw20j7jvgfgak5p05kv667k5k9f320sgef5ayxkt9784ql0zssrzyhjp",
-					Supply:       big.NewInt(0).Mul(big.NewInt(2500000000), big.NewInt(1000000000000)),
-					Balance:      balance,
-					StakingValue: big.NewInt(0).Mul(big.NewInt(2500000000), big.NewInt(1000000000000)),
-					Delegation: &data.DelegationData{
-						Address: "",
-						Value:   big.NewInt(0),
-					},
-				}
-				acc2 := data.InitialAccount{
-					Address:      "erd17c4fs6mz2aa2hcvva2jfxdsrdknu4220496jmswer9njznt22eds0rxlr4",
-					Supply:       big.NewInt(0).Mul(big.NewInt(2500000000), big.NewInt(1000000000000)),
-					Balance:      balance,
-					StakingValue: big.NewInt(0).Mul(big.NewInt(2500000000), big.NewInt(1000000000000)),
-					Delegation: &data.DelegationData{
-						Address: "",
-						Value:   big.NewInt(0),
-					},
-				}
-				acc3 := data.InitialAccount{
-					Address:      "erd10d2gufxesrp8g409tzxljlaefhs0rsgjle3l7nq38de59txxt8csj54cd3",
-					Supply:       big.NewInt(0).Mul(big.NewInt(2500000000), big.NewInt(1000000000000)),
-					Balance:      balance,
-					StakingValue: big.NewInt(0).Mul(big.NewInt(2500000000), big.NewInt(1000000000000)),
-					Delegation: &data.DelegationData{
-						Address: "",
-						Value:   big.NewInt(0),
-					},
-				}
-
-				acc1Bytes, _ := addrConverter.Decode(acc1.Address)
-				acc1.SetAddressBytes(acc1Bytes)
-				acc2Bytes, _ := addrConverter.Decode(acc2.Address)
-				acc2.SetAddressBytes(acc2Bytes)
-				acc3Bytes, _ := addrConverter.Decode(acc3.Address)
-				acc3.SetAddressBytes(acc3Bytes)
-				initialAccounts := []genesis.InitialAccountHandler{&acc1, &acc2, &acc3}
-
-				return initialAccounts
-			},
-			GenerateInitialTransactionsCalled: func(shardCoordinator sharding.Coordinator, initialIndexingData map[uint32]*genesis.IndexingData) ([]*block.MiniBlock, map[uint32]*outport.TransactionPool, error) {
-				txsPool := make(map[uint32]*outport.TransactionPool)
-				for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
-					txsPool[i] = &outport.TransactionPool{}
-				}
-
-				return make([]*block.MiniBlock, 4), txsPool, nil
-			},
-		},
+	args := processComp.ProcessComponentsFactoryArgs{
+		Config:                 testscommon.GetGeneralConfig(),
 		SmartContractParser:    &mock.SmartContractParserStub{},
 		GasSchedule:            gasScheduleNotifier,
 		NodesCoordinator:       nc,
@@ -644,8 +587,71 @@ func GetProcessArgs(
 				},
 			},
 		},
-		RunTypeComponents: GetRunTypeComponents(),
 	}
+
+	runTypeComponents := GetRunTypeComponentsStub(consensus.ConsensusModelV1)
+	runTypeComponents.AccountParser = &mock.AccountsParserStub{
+		InitialAccountsCalled: func() []genesis.InitialAccountHandler {
+			addrConverter, _ := commonFactory.NewPubkeyConverter(config.PubkeyConfig{
+				Length:          32,
+				Type:            "bech32",
+				SignatureLength: 0,
+				Hrp:             "erd",
+			})
+			balance := big.NewInt(0)
+			acc1 := data.InitialAccount{
+				Address:      "erd1ulhw20j7jvgfgak5p05kv667k5k9f320sgef5ayxkt9784ql0zssrzyhjp",
+				Supply:       big.NewInt(0).Mul(big.NewInt(2500000000), big.NewInt(1000000000000)),
+				Balance:      balance,
+				StakingValue: big.NewInt(0).Mul(big.NewInt(2500000000), big.NewInt(1000000000000)),
+				Delegation: &data.DelegationData{
+					Address: "",
+					Value:   big.NewInt(0),
+				},
+			}
+			acc2 := data.InitialAccount{
+				Address:      "erd17c4fs6mz2aa2hcvva2jfxdsrdknu4220496jmswer9njznt22eds0rxlr4",
+				Supply:       big.NewInt(0).Mul(big.NewInt(2500000000), big.NewInt(1000000000000)),
+				Balance:      balance,
+				StakingValue: big.NewInt(0).Mul(big.NewInt(2500000000), big.NewInt(1000000000000)),
+				Delegation: &data.DelegationData{
+					Address: "",
+					Value:   big.NewInt(0),
+				},
+			}
+			acc3 := data.InitialAccount{
+				Address:      "erd10d2gufxesrp8g409tzxljlaefhs0rsgjle3l7nq38de59txxt8csj54cd3",
+				Supply:       big.NewInt(0).Mul(big.NewInt(2500000000), big.NewInt(1000000000000)),
+				Balance:      balance,
+				StakingValue: big.NewInt(0).Mul(big.NewInt(2500000000), big.NewInt(1000000000000)),
+				Delegation: &data.DelegationData{
+					Address: "",
+					Value:   big.NewInt(0),
+				},
+			}
+
+			acc1Bytes, _ := addrConverter.Decode(acc1.Address)
+			acc1.SetAddressBytes(acc1Bytes)
+			acc2Bytes, _ := addrConverter.Decode(acc2.Address)
+			acc2.SetAddressBytes(acc2Bytes)
+			acc3Bytes, _ := addrConverter.Decode(acc3.Address)
+			acc3.SetAddressBytes(acc3Bytes)
+			initialAccounts := []genesis.InitialAccountHandler{&acc1, &acc2, &acc3}
+
+			return initialAccounts
+		},
+		GenerateInitialTransactionsCalled: func(shardCoordinator sharding.Coordinator, initialIndexingData map[uint32]*genesis.IndexingData) ([]*block.MiniBlock, map[uint32]*outport.TransactionPool, error) {
+			txsPool := make(map[uint32]*outport.TransactionPool)
+			for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
+				txsPool[i] = &outport.TransactionPool{}
+			}
+
+			return make([]*block.MiniBlock, 4), txsPool, nil
+		},
+	}
+
+	args.RunTypeComponents = runTypeComponents
+	return args
 }
 
 func GetSovereignProcessArgs(
@@ -665,60 +671,60 @@ func GetSovereignProcessArgs(
 		networkComponents,
 	)
 
-	addrConverter, _ := commonFactory.NewPubkeyConverter(config.PubkeyConfig{
-		Length:          32,
-		Type:            "bech32",
-		SignatureLength: 0,
-		Hrp:             "erd",
-	})
-	balance := new(big.Int)
-	balance.SetString("6000000000000000000000", 10)
-	acc1 := data.InitialAccount{
-		Address:      "erd1whq0zspt6ktnv37gqj303da0vygyqwf5q52m7erftd0rl7laygfs6rhpct",
-		Supply:       big.NewInt(0).Mul(big.NewInt(2500000000), big.NewInt(1000000000000)),
-		Balance:      balance,
-		StakingValue: big.NewInt(0).Mul(big.NewInt(2500000000), big.NewInt(1000000000000)),
-		Delegation: &data.DelegationData{
-			Address: "",
-			Value:   big.NewInt(0),
-		},
-	}
-	acc2 := data.InitialAccount{
-		Address:      "erd129ppuuvtylghsx7muf29xnzw5lm9v2v8h4942ynymjpu2ftycgtq0rgq3h",
-		Supply:       big.NewInt(0).Mul(big.NewInt(2500000000), big.NewInt(1000000000000)),
-		Balance:      balance,
-		StakingValue: big.NewInt(0).Mul(big.NewInt(2500000000), big.NewInt(1000000000000)),
-		Delegation: &data.DelegationData{
-			Address: "",
-			Value:   big.NewInt(0),
-		},
-	}
+	//addrConverter, _ := commonFactory.NewPubkeyConverter(config.PubkeyConfig{
+	//	Length:          32,
+	//	Type:            "bech32",
+	//	SignatureLength: 0,
+	//	Hrp:             "erd",
+	//})
+	//balance := new(big.Int)
+	//balance.SetString("6000000000000000000000", 10)
+	//acc1 := data.InitialAccount{
+	//	Address:      "erd1whq0zspt6ktnv37gqj303da0vygyqwf5q52m7erftd0rl7laygfs6rhpct",
+	//	Supply:       big.NewInt(0).Mul(big.NewInt(2500000000), big.NewInt(1000000000000)),
+	//	Balance:      balance,
+	//	StakingValue: big.NewInt(0).Mul(big.NewInt(2500000000), big.NewInt(1000000000000)),
+	//	Delegation: &data.DelegationData{
+	//		Address: "",
+	//		Value:   big.NewInt(0),
+	//	},
+	//}
+	//acc2 := data.InitialAccount{
+	//	Address:      "erd129ppuuvtylghsx7muf29xnzw5lm9v2v8h4942ynymjpu2ftycgtq0rgq3h",
+	//	Supply:       big.NewInt(0).Mul(big.NewInt(2500000000), big.NewInt(1000000000000)),
+	//	Balance:      balance,
+	//	StakingValue: big.NewInt(0).Mul(big.NewInt(2500000000), big.NewInt(1000000000000)),
+	//	Delegation: &data.DelegationData{
+	//		Address: "",
+	//		Value:   big.NewInt(0),
+	//	},
+	//}
+	//
+	//acc1Bytes, _ := addrConverter.Decode(acc1.Address)
+	//acc1.SetAddressBytes(acc1Bytes)
+	//
+	//acc2Bytes, _ := addrConverter.Decode(acc2.Address)
+	//acc2.SetAddressBytes(acc2Bytes)
+	//initialAccounts := []genesis.InitialAccountHandler{&acc1, &acc2}
 
-	acc1Bytes, _ := addrConverter.Decode(acc1.Address)
-	acc1.SetAddressBytes(acc1Bytes)
-
-	acc2Bytes, _ := addrConverter.Decode(acc2.Address)
-	acc2.SetAddressBytes(acc2Bytes)
-	initialAccounts := []genesis.InitialAccountHandler{&acc1, &acc2}
-
-	processArgs.AccountsParser = &mock.AccountsParserStub{
-		InitialAccountsCalled: func() []genesis.InitialAccountHandler {
-			return initialAccounts
-		},
-		GenerateInitialTransactionsCalled: func(shardCoordinator sharding.Coordinator, initialIndexingData map[uint32]*genesis.IndexingData) ([]*block.MiniBlock, map[uint32]*outport.TransactionPool, error) {
-			txsPool := make(map[uint32]*outport.TransactionPool)
-			for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
-				txsPool[i] = &outport.TransactionPool{}
-			}
-
-			return make([]*block.MiniBlock, 4), txsPool, nil
-		},
-		InitialAccountsSplitOnAddressesShardsCalled: func(shardCoordinator sharding.Coordinator) (map[uint32][]genesis.InitialAccountHandler, error) {
-			return map[uint32][]genesis.InitialAccountHandler{
-				0: {initialAccounts[0], initialAccounts[1]},
-			}, nil
-		},
-	}
+	//processArgs.AccountsParser = &mock.AccountsParserStub{
+	//	InitialAccountsCalled: func() []genesis.InitialAccountHandler {
+	//		return initialAccounts
+	//	},
+	//	GenerateInitialTransactionsCalled: func(shardCoordinator sharding.Coordinator, initialIndexingData map[uint32]*genesis.IndexingData) ([]*block.MiniBlock, map[uint32]*outport.TransactionPool, error) {
+	//		txsPool := make(map[uint32]*outport.TransactionPool)
+	//		for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
+	//			txsPool[i] = &outport.TransactionPool{}
+	//		}
+	//
+	//		return make([]*block.MiniBlock, 4), txsPool, nil
+	//	},
+	//	InitialAccountsSplitOnAddressesShardsCalled: func(shardCoordinator sharding.Coordinator) (map[uint32][]genesis.InitialAccountHandler, error) {
+	//		return map[uint32][]genesis.InitialAccountHandler{
+	//			0: {initialAccounts[0], initialAccounts[1]},
+	//		}, nil
+	//	},
+	//}
 
 	bootstrapComponentsFactoryArgs := GetBootStrapFactoryArgs()
 	bootstrapComponentsFactoryArgs.RunTypeComponents = GetSovereignRunTypeComponents()
@@ -998,13 +1004,118 @@ func GetProcessComponents(
 	return managedProcessComponents
 }
 
+func createAccounts() []genesis.InitialAccountHandler {
+	addrConverter, _ := commonFactory.NewPubkeyConverter(config.PubkeyConfig{
+		Length:          32,
+		Type:            "bech32",
+		SignatureLength: 0,
+		Hrp:             "erd",
+	})
+	acc1 := data.InitialAccount{
+		Address:      "erd1ulhw20j7jvgfgak5p05kv667k5k9f320sgef5ayxkt9784ql0zssrzyhjp",
+		Supply:       big.NewInt(0).Mul(big.NewInt(5000000), big.NewInt(1000000000000000000)),
+		Balance:      big.NewInt(0).Mul(big.NewInt(4997500), big.NewInt(1000000000000000000)),
+		StakingValue: big.NewInt(0).Mul(big.NewInt(2500), big.NewInt(1000000000000000000)),
+		Delegation: &data.DelegationData{
+			Address: "",
+			Value:   big.NewInt(0),
+		},
+	}
+	acc2 := data.InitialAccount{
+		Address:      "erd17c4fs6mz2aa2hcvva2jfxdsrdknu4220496jmswer9njznt22eds0rxlr4",
+		Supply:       big.NewInt(0).Mul(big.NewInt(5000000), big.NewInt(1000000000000000000)),
+		Balance:      big.NewInt(0).Mul(big.NewInt(4995000), big.NewInt(1000000000000000000)),
+		StakingValue: big.NewInt(0).Mul(big.NewInt(5000), big.NewInt(1000000000000000000)),
+		Delegation: &data.DelegationData{
+			Address: "",
+			Value:   big.NewInt(0),
+		},
+	}
+	acc3 := data.InitialAccount{
+		Address:      "erd10d2gufxesrp8g409tzxljlaefhs0rsgjle3l7nq38de59txxt8csj54cd3",
+		Supply:       big.NewInt(0).Mul(big.NewInt(10000000), big.NewInt(1000000000000000000)),
+		Balance:      big.NewInt(0).Mul(big.NewInt(9997500), big.NewInt(1000000000000000000)),
+		StakingValue: big.NewInt(0).Mul(big.NewInt(2500), big.NewInt(1000000000000000000)),
+		Delegation: &data.DelegationData{
+			Address: "",
+			Value:   big.NewInt(0),
+		},
+	}
+
+	acc1Bytes, _ := addrConverter.Decode(acc1.Address)
+	acc1.SetAddressBytes(acc1Bytes)
+	acc2Bytes, _ := addrConverter.Decode(acc2.Address)
+	acc2.SetAddressBytes(acc2Bytes)
+	acc3Bytes, _ := addrConverter.Decode(acc3.Address)
+	acc3.SetAddressBytes(acc3Bytes)
+
+	return []genesis.InitialAccountHandler{&acc1, &acc2, &acc3}
+}
+
+func createArgsRunTypeComponents() runType.ArgsRunTypeComponents {
+	return runType.ArgsRunTypeComponents{
+		CoreComponents: &mockCoreComp.CoreComponentsStub{
+			HasherField:                 &hashingMocks.HasherMock{},
+			InternalMarshalizerField:    &marshallerMock.MarshalizerMock{},
+			EnableEpochsHandlerField:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+			AddressPubKeyConverterField: &testscommon.PubkeyConverterStub{},
+		},
+		CryptoComponents: &mockCoreComp.CryptoComponentsStub{
+			TxKeyGen: &mockCoreComp.KeyGenMock{},
+		},
+		Configs: config.Configs{
+			EconomicsConfig: &config.EconomicsConfig{
+				GlobalSettings: config.GlobalSettings{
+					GenesisTotalSupply:          "20000000000000000000000000",
+					GenesisMintingSenderAddress: "erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3",
+				},
+			},
+		},
+		InitialAccounts: createAccounts(),
+	}
+}
+
+func GetRunTypeComponentsStub(consensusModel consensus.ConsensusModel) *mainFactoryMocks.RunTypeComponentsStub {
+	rt := GetRunTypeComponents()
+	return &mainFactoryMocks.RunTypeComponentsStub{
+		BlockChainHookHandlerFactory:        rt.BlockChainHookHandlerCreator(),
+		BlockProcessorFactory:               rt.BlockProcessorCreator(),
+		BlockTrackerFactory:                 rt.BlockTrackerCreator(),
+		BootstrapperFromStorageFactory:      rt.BootstrapperFromStorageCreator(),
+		EpochStartBootstrapperFactory:       rt.EpochStartBootstrapperCreator(),
+		ForkDetectorFactory:                 rt.ForkDetectorCreator(),
+		HeaderValidatorFactory:              rt.HeaderValidatorCreator(),
+		RequestHandlerFactory:               rt.RequestHandlerCreator(),
+		ScheduledTxsExecutionFactory:        rt.ScheduledTxsExecutionCreator(),
+		TransactionCoordinatorFactory:       rt.TransactionCoordinatorCreator(),
+		ValidatorStatisticsProcessorFactory: rt.ValidatorStatisticsProcessorCreator(),
+		AdditionalStorageServiceFactory:     rt.AdditionalStorageServiceCreator(),
+		SCProcessorFactory:                  rt.SCProcessorCreator(),
+		BootstrapperFactory:                 rt.BootstrapperCreator(),
+		SCResultsPreProcessorFactory:        rt.SCResultsPreProcessorCreator(),
+		AccountParser:                       rt.AccountsParser(),
+		AccountCreator:                      rt.AccountsCreator(),
+		ConsensusModelType:                  consensusModel,
+		VmContainerMetaFactory:              rt.VmContainerMetaFactoryCreator(),
+		VmContainerShardFactory:             rt.VmContainerShardFactoryCreator(),
+		OutGoingOperationsPool:              rt.OutGoingOperationsPoolHandler(),
+		DataCodec:                           rt.DataCodecHandler(),
+		TopicsChecker:                       rt.TopicsCheckerHandler(),
+		ShardCoordinatorFactory:             rt.ShardCoordinatorCreator(),
+		NodesCoordinatorWithRaterFactory:    rt.NodesCoordinatorWithRaterCreator(),
+		RequestersContainerFactory:          rt.RequestersContainerFactoryCreator(),
+		InterceptorsContainerFactory:        rt.InterceptorsContainerFactoryCreator(),
+		ShardResolversContainerFactory:      rt.ShardResolversContainerFactoryCreator(),
+		TxPreProcessorFactory:               rt.TxPreProcessorCreator(),
+		ExtraHeaderSigVerifier:              rt.ExtraHeaderSigVerifierHandler(),
+		GenesisBlockFactory:                 rt.GenesisBlockCreator(),
+		GenesisMetaBlockChecker:             rt.GenesisMetaBlockCheckerCreator(),
+	}
+}
+
 // GetRunTypeComponents -
 func GetRunTypeComponents() factory.RunTypeComponentsHolder {
-	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory(&mockCoreComp.CoreComponentsStub{
-		HasherField:              &hashingMocks.HasherMock{},
-		InternalMarshalizerField: &marshallerMock.MarshalizerMock{},
-		EnableEpochsHandlerField: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-	})
+	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory(createArgsRunTypeComponents())
 	managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(runTypeComponentsFactory)
 	if err != nil {
 		log.Error("getRunTypeComponents NewManagedRunTypeComponents", "error", err.Error())
@@ -1020,7 +1131,7 @@ func GetRunTypeComponents() factory.RunTypeComponentsHolder {
 
 // GetRunTypeComponentsWithCoreComp -
 func GetRunTypeComponentsWithCoreComp(coreComponents factory.CoreComponentsHandler) factory.RunTypeComponentsHolder {
-	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory(coreComponents)
+	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory(createArgsRunTypeComponents())
 	managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(runTypeComponentsFactory)
 	if err != nil {
 		log.Error("getRunTypeComponents NewManagedRunTypeComponents", "error", err.Error())
@@ -1051,11 +1162,7 @@ func GetSovereignRunTypeComponents() factory.RunTypeComponentsHolder {
 }
 
 func createSovRunTypeArgs() runType.ArgsSovereignRunTypeComponents {
-	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory(&mockCoreComp.CoreComponentsStub{
-		HasherField:              &hashingMocks.HasherMock{},
-		InternalMarshalizerField: &marshallerMock.MarshalizerMock{},
-		EnableEpochsHandlerField: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-	})
+	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory(createArgsRunTypeComponents())
 
 	return runType.ArgsSovereignRunTypeComponents{
 		RunTypeComponentsFactory: runTypeComponentsFactory,

@@ -3,7 +3,6 @@ package components
 import (
 	"fmt"
 	"io"
-	"math/big"
 	"path/filepath"
 	"time"
 
@@ -109,27 +108,6 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 	if err != nil {
 		return nil, err
 	}
-	totalSupply, ok := big.NewInt(0).SetString(args.EconomicsConfig.GlobalSettings.GenesisTotalSupply, 10)
-	if !ok {
-		return nil, fmt.Errorf("can not parse total suply from economics.toml, %s is not a valid value",
-			args.EconomicsConfig.GlobalSettings.GenesisTotalSupply)
-	}
-
-	mintingSenderAddress := args.EconomicsConfig.GlobalSettings.GenesisMintingSenderAddress
-	argsAccountsParser := genesis.AccountsParserArgs{
-		GenesisFilePath: args.ConfigurationPathsHolder.Genesis,
-		EntireSupply:    totalSupply,
-		MinterAddress:   mintingSenderAddress,
-		PubkeyConverter: args.CoreComponents.AddressPubKeyConverter(),
-		KeyGenerator:    args.CryptoComponents.TxSignKeyGen(),
-		Hasher:          args.CoreComponents.Hasher(),
-		Marshalizer:     args.CoreComponents.InternalMarshalizer(),
-	}
-
-	accountsParser, err := parsing.NewAccountsParser(argsAccountsParser)
-	if err != nil {
-		return nil, err
-	}
 
 	smartContractParser, err := parsing.NewSmartContractsParser(
 		args.ConfigurationPathsHolder.SmartContracts,
@@ -191,7 +169,6 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		PrefConfigs:             args.PrefsConfig,
 		ImportDBConfig:          args.ImportDBConfig,
 		EconomicsConfig:         args.EconomicsConfig,
-		AccountsParser:          accountsParser,
 		SmartContractParser:     smartContractParser,
 		GasSchedule:             gasScheduleNotifier,
 		NodesCoordinator:        args.NodesCoordinator,

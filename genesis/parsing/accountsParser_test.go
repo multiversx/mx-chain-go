@@ -8,6 +8,15 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/multiversx/mx-chain-go/common"
+	errorsMx "github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/genesis"
+	"github.com/multiversx/mx-chain-go/genesis/data"
+	"github.com/multiversx/mx-chain-go/genesis/mock"
+	"github.com/multiversx/mx-chain-go/genesis/parsing"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
@@ -16,13 +25,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	scrData "github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	transactionData "github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/genesis"
-	"github.com/multiversx/mx-chain-go/genesis/data"
-	"github.com/multiversx/mx-chain-go/genesis/mock"
-	"github.com/multiversx/mx-chain-go/genesis/parsing"
-	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -52,8 +54,10 @@ func createMockHexPubkeyConverter() *testscommon.PubkeyConverterStub {
 }
 
 func createMockAccountsParserArgs() genesis.AccountsParserArgs {
+	initialAccounts, _ := testscommon.ReadInitialAccounts("testdata/genesis_ok.json")
+
 	return genesis.AccountsParserArgs{
-		GenesisFilePath: "./testdata/genesis_ok.json",
+		InitialAccounts: initialAccounts,
 		EntireSupply:    big.NewInt(1),
 		MinterAddress:   "",
 		PubkeyConverter: createMockHexPubkeyConverter(),
@@ -92,6 +96,18 @@ func createDelegatedInitialAccount(address string, delegatedBytes []byte, delega
 	return ia
 }
 
+func TestNewAccountsParser_NilInitialAccountsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockAccountsParserArgs()
+	args.InitialAccounts = nil
+
+	ap, err := parsing.NewAccountsParser(args)
+
+	assert.True(t, check.IfNil(ap))
+	assert.True(t, errors.Is(err, errorsMx.ErrNilInitialAccounts))
+}
+
 func TestNewAccountsParser_NilEntireBalanceShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -116,23 +132,10 @@ func TestNewAccountsParser_ZeroEntireBalanceShouldErr(t *testing.T) {
 	assert.True(t, errors.Is(err, genesis.ErrInvalidEntireSupply))
 }
 
-func TestNewAccountsParser_BadFilenameShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := createMockAccountsParserArgs()
-	args.GenesisFilePath = "inexistent file"
-
-	ap, err := parsing.NewAccountsParser(args)
-
-	assert.True(t, check.IfNil(ap))
-	assert.NotNil(t, err)
-}
-
 func TestNewAccountsParser_NilPubkeyConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockAccountsParserArgs()
-	args.GenesisFilePath = "inexistent file"
 	args.PubkeyConverter = nil
 
 	ap, err := parsing.NewAccountsParser(args)
@@ -145,7 +148,6 @@ func TestNewAccountsParser_NilKeyGeneratorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockAccountsParserArgs()
-	args.GenesisFilePath = "inexistent file"
 	args.KeyGenerator = nil
 
 	ap, err := parsing.NewAccountsParser(args)
@@ -158,7 +160,6 @@ func TestNewAccountsParser_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockAccountsParserArgs()
-	args.GenesisFilePath = "inexistent file"
 	args.Hasher = nil
 
 	ap, err := parsing.NewAccountsParser(args)
@@ -171,7 +172,6 @@ func TestNewAccountsParser_NilMarshalizerShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockAccountsParserArgs()
-	args.GenesisFilePath = "inexistent file"
 	args.Marshalizer = nil
 
 	ap, err := parsing.NewAccountsParser(args)
@@ -196,7 +196,8 @@ func TestNewAccountsParser_BadJsonShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockAccountsParserArgs()
-	args.GenesisFilePath = "testdata/genesis_bad.json"
+	initialAccounts, _ := testscommon.ReadInitialAccounts("testdata/genesis_bad.json")
+	args.InitialAccounts = initialAccounts
 
 	ap, err := parsing.NewAccountsParser(args)
 
@@ -225,7 +226,7 @@ func TestAccountsParser_ProcessEmptyAddressShouldErr(t *testing.T) {
 	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
 	ib := createMockInitialAccount()
 	ib.Address = ""
-	ap.SetInitialAccounts([]*data.InitialAccount{ib})
+	ap.SetInitialAccounts([]genesis.InitialAccountHandler{ib})
 
 	err := ap.Process()
 
@@ -238,7 +239,7 @@ func TestAccountsParser_ProcessInvalidAddressShouldErr(t *testing.T) {
 	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
 	ib := createMockInitialAccount()
 	ib.Address = "invalid address"
-	ap.SetInitialAccounts([]*data.InitialAccount{ib})
+	ap.SetInitialAccounts([]genesis.InitialAccountHandler{ib})
 
 	err := ap.Process()
 
@@ -257,7 +258,7 @@ func TestAccountsParser_ProcessInvalidPublicKeyShouldErr(t *testing.T) {
 	})
 	ib := createMockInitialAccount()
 	ib.Address = "00"
-	ap.SetInitialAccounts([]*data.InitialAccount{ib})
+	ap.SetInitialAccounts([]genesis.InitialAccountHandler{ib})
 
 	err := ap.Process()
 
@@ -270,7 +271,7 @@ func TestAccountsParser_ProcessEmptyDelegationAddressButWithBalanceShouldErr(t *
 	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
 	ib := createMockInitialAccount()
 	ib.Delegation.Address = ""
-	ap.SetInitialAccounts([]*data.InitialAccount{ib})
+	ap.SetInitialAccounts([]genesis.InitialAccountHandler{ib})
 
 	err := ap.Process()
 
@@ -283,7 +284,7 @@ func TestAccountsParser_ProcessInvalidDelegationAddressShouldErr(t *testing.T) {
 	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
 	ib := createMockInitialAccount()
 	ib.Delegation.Address = "invalid address"
-	ap.SetInitialAccounts([]*data.InitialAccount{ib})
+	ap.SetInitialAccounts([]genesis.InitialAccountHandler{ib})
 
 	err := ap.Process()
 
@@ -296,7 +297,7 @@ func TestAccountsParser_ProcessInvalidSupplyShouldErr(t *testing.T) {
 	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
 	ib := createMockInitialAccount()
 	ib.Supply = big.NewInt(-1)
-	ap.SetInitialAccounts([]*data.InitialAccount{ib})
+	ap.SetInitialAccounts([]genesis.InitialAccountHandler{ib})
 
 	err := ap.Process()
 	assert.True(t, errors.Is(err, genesis.ErrInvalidSupply))
@@ -313,7 +314,7 @@ func TestAccountsParser_ProcessInvalidBalanceShouldErr(t *testing.T) {
 	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
 	ib := createMockInitialAccount()
 	ib.Balance = big.NewInt(-1)
-	ap.SetInitialAccounts([]*data.InitialAccount{ib})
+	ap.SetInitialAccounts([]genesis.InitialAccountHandler{ib})
 
 	err := ap.Process()
 	assert.True(t, errors.Is(err, genesis.ErrInvalidBalance))
@@ -325,7 +326,7 @@ func TestAccountsParser_ProcessInvalidStakingBalanceShouldErr(t *testing.T) {
 	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
 	ib := createMockInitialAccount()
 	ib.StakingValue = big.NewInt(-1)
-	ap.SetInitialAccounts([]*data.InitialAccount{ib})
+	ap.SetInitialAccounts([]genesis.InitialAccountHandler{ib})
 
 	err := ap.Process()
 	assert.True(t, errors.Is(err, genesis.ErrInvalidStakingBalance))
@@ -337,7 +338,7 @@ func TestAccountsParser_ProcessInvalidDelegationValueShouldErr(t *testing.T) {
 	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
 	ib := createMockInitialAccount()
 	ib.Delegation.Value = big.NewInt(-1)
-	ap.SetInitialAccounts([]*data.InitialAccount{ib})
+	ap.SetInitialAccounts([]genesis.InitialAccountHandler{ib})
 
 	err := ap.Process()
 	assert.True(t, errors.Is(err, genesis.ErrInvalidDelegationValue))
@@ -349,7 +350,7 @@ func TestAccountsParser_ProcessSupplyMismatchShouldErr(t *testing.T) {
 	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
 	ib := createMockInitialAccount()
 	ib.Supply = big.NewInt(4)
-	ap.SetInitialAccounts([]*data.InitialAccount{ib})
+	ap.SetInitialAccounts([]genesis.InitialAccountHandler{ib})
 
 	err := ap.Process()
 	assert.True(t, errors.Is(err, genesis.ErrSupplyMismatch))
@@ -361,7 +362,7 @@ func TestAccountsParser_ProcessDuplicatesShouldErr(t *testing.T) {
 	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
 	ib1 := createMockInitialAccount()
 	ib2 := createMockInitialAccount()
-	ap.SetInitialAccounts([]*data.InitialAccount{ib1, ib2})
+	ap.SetInitialAccounts([]genesis.InitialAccountHandler{ib1, ib2})
 
 	err := ap.Process()
 	assert.True(t, errors.Is(err, genesis.ErrDuplicateAddress))
@@ -372,7 +373,7 @@ func TestAccountsParser_ProcessEntireSupplyMismatchShouldErr(t *testing.T) {
 
 	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
 	ib := createMockInitialAccount()
-	ap.SetInitialAccounts([]*data.InitialAccount{ib})
+	ap.SetInitialAccounts([]genesis.InitialAccountHandler{ib})
 	ap.SetEntireSupply(big.NewInt(4))
 
 	err := ap.Process()
@@ -386,7 +387,7 @@ func TestAccountsParser_AddressIsSmartContractShouldErr(t *testing.T) {
 	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
 	ib := createMockInitialAccount()
 	ib.Address = addr
-	ap.SetInitialAccounts([]*data.InitialAccount{ib})
+	ap.SetInitialAccounts([]genesis.InitialAccountHandler{ib})
 	ap.SetEntireSupply(big.NewInt(4))
 
 	err := ap.Process()
@@ -398,7 +399,7 @@ func TestAccountsParser_ProcessShouldWork(t *testing.T) {
 
 	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
 	ib := createMockInitialAccount()
-	ap.SetInitialAccounts([]*data.InitialAccount{ib})
+	ap.SetInitialAccounts([]genesis.InitialAccountHandler{ib})
 	ap.SetEntireSupply(big.NewInt(5))
 
 	err := ap.Process()
@@ -424,7 +425,7 @@ func TestAccountsParser_InitialAccountsSplitOnAddressesShards(t *testing.T) {
 
 	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
 	balance := int64(1)
-	ibs := []*data.InitialAccount{
+	ibs := []genesis.InitialAccountHandler{
 		createSimpleInitialAccount("0001", balance),
 		createSimpleInitialAccount("0002", balance),
 		createSimpleInitialAccount("0000", balance),
@@ -462,7 +463,7 @@ func TestAccountsParser_GetInitialAccountsForDelegated(t *testing.T) {
 	ib3 := createDelegatedInitialAccount("0003", []byte(addr2), delegatedUpon)
 
 	ap.SetEntireSupply(big.NewInt(3 * delegatedUpon))
-	ap.SetInitialAccounts([]*data.InitialAccount{ib1, ib2, ib3})
+	ap.SetInitialAccounts([]genesis.InitialAccountHandler{ib1, ib2, ib3})
 
 	err := ap.Process()
 	require.Nil(t, err)
@@ -520,7 +521,7 @@ func TestAccountsParser_createMintTransaction(t *testing.T) {
 	expectedAddr, _ := pkConv.Decode("erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3")
 	ap := parsing.NewTestAccountsParser(pkConv)
 	balance := int64(1)
-	ibs := []*data.InitialAccount{
+	ibs := []genesis.InitialAccountHandler{
 		createSimpleInitialAccount("erd1spyavw0956vq68xj8y4tenjpq2wd5a9p2c6j8gsz7ztyrnpxrruqzu66jx", balance),
 	}
 
@@ -545,7 +546,7 @@ func TestAccountsParser_createMintTransaction(t *testing.T) {
 func TestAccountsParser_createMintTransactions(t *testing.T) {
 	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
 	balance := int64(1)
-	ibs := []*data.InitialAccount{
+	ibs := []genesis.InitialAccountHandler{
 		createSimpleInitialAccount("0001", balance),
 		createSimpleInitialAccount("0002", balance),
 		createSimpleInitialAccount("0000", balance),
@@ -617,7 +618,7 @@ func TestAccountsParser_GenerateInitialTransactionsTxsPool(t *testing.T) {
 
 	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
 	balance := int64(1)
-	ibs := []*data.InitialAccount{
+	ibs := []genesis.InitialAccountHandler{
 		createSimpleInitialAccount("0001", balance),
 		createSimpleInitialAccount("0002", balance),
 	}
@@ -675,7 +676,7 @@ func TestAccountsParser_GenerateInitialTransactionsZeroGasLimitShouldWork(t *tes
 
 	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
 	balance := int64(1)
-	ibs := []*data.InitialAccount{
+	ibs := []genesis.InitialAccountHandler{
 		createSimpleInitialAccount("0001", balance),
 		createSimpleInitialAccount("0002", balance),
 		createSimpleInitialAccount("0000", balance),
@@ -709,7 +710,7 @@ func TestAccountsParser_GenerateInitialTransactionsVerifyTxsHashes(t *testing.T)
 
 	ap := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
 	balance := int64(1)
-	ibs := make([]*data.InitialAccount, 0)
+	ibs := make([]genesis.InitialAccountHandler, 0)
 
 	ap.SetEntireSupply(big.NewInt(int64(len(ibs)) * balance))
 	ap.SetInitialAccounts(ibs)

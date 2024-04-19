@@ -6,6 +6,11 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/genesis"
+	"github.com/multiversx/mx-chain-go/sharding"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	coreData "github.com/multiversx/mx-chain-core-go/data"
@@ -16,10 +21,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
-	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/genesis"
-	"github.com/multiversx/mx-chain-go/genesis/data"
-	"github.com/multiversx/mx-chain-go/sharding"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -27,7 +28,7 @@ var log = logger.GetOrCreate("genesis/parsing")
 
 // accountsParser hold data for initial accounts decoded data from json file
 type accountsParser struct {
-	initialAccounts    []*data.InitialAccount
+	initialAccounts    []genesis.InitialAccountHandler
 	entireSupply       *big.Int
 	minterAddressBytes []byte
 	pubkeyConverter    core.PubkeyConverter
@@ -38,6 +39,9 @@ type accountsParser struct {
 
 // NewAccountsParser creates a new decoded accounts genesis structure from json config file
 func NewAccountsParser(args genesis.AccountsParserArgs) (*accountsParser, error) {
+	if args.InitialAccounts == nil {
+		return nil, errors.ErrNilInitialAccounts
+	}
 	if args.EntireSupply == nil {
 		return nil, genesis.ErrNilEntireSupply
 	}
@@ -62,14 +66,8 @@ func NewAccountsParser(args genesis.AccountsParserArgs) (*accountsParser, error)
 		return nil, fmt.Errorf("%w while decoding minter address. error: %s", genesis.ErrInvalidAddress, err.Error())
 	}
 
-	initialAccounts := make([]*data.InitialAccount, 0)
-	err = core.LoadJsonFile(&initialAccounts, args.GenesisFilePath)
-	if err != nil {
-		return nil, err
-	}
-
 	gp := &accountsParser{
-		initialAccounts:    initialAccounts,
+		initialAccounts:    args.InitialAccounts,
 		entireSupply:       args.EntireSupply,
 		minterAddressBytes: minterAddressBytes,
 		pubkeyConverter:    args.PubkeyConverter,
@@ -99,7 +97,7 @@ func (ap *accountsParser) process() error {
 			return err
 		}
 
-		totalSupply.Add(totalSupply, initialAccount.Supply)
+		totalSupply.Add(totalSupply, initialAccount.GetSupply())
 	}
 
 	err := ap.checkForDuplicates()
@@ -118,20 +116,20 @@ func (ap *accountsParser) process() error {
 	return nil
 }
 
-func (ap *accountsParser) parseElement(initialAccount *data.InitialAccount) error {
-	if len(initialAccount.Address) == 0 {
+func (ap *accountsParser) parseElement(initialAccount genesis.InitialAccountHandler) error {
+	if len(initialAccount.GetAddress()) == 0 {
 		return genesis.ErrEmptyAddress
 	}
-	addressBytes, err := ap.pubkeyConverter.Decode(initialAccount.Address)
+	addressBytes, err := ap.pubkeyConverter.Decode(initialAccount.GetAddress())
 	if err != nil {
-		return fmt.Errorf("%w for `%s`", genesis.ErrInvalidAddress, initialAccount.Address)
+		return fmt.Errorf("%w for `%s`", genesis.ErrInvalidAddress, initialAccount.GetAddress())
 	}
 
 	err = ap.keyGenerator.CheckPublicKeyValid(addressBytes)
 	if err != nil {
 		return fmt.Errorf("%w for `%s`, error: %s",
 			genesis.ErrInvalidPubKey,
-			initialAccount.Address,
+			initialAccount.GetAddress(),
 			err.Error(),
 		)
 	}
@@ -141,23 +139,23 @@ func (ap *accountsParser) parseElement(initialAccount *data.InitialAccount) erro
 	return ap.parseDelegationElement(initialAccount)
 }
 
-func (ap *accountsParser) parseDelegationElement(initialAccount *data.InitialAccount) error {
-	delegationData := initialAccount.Delegation
+func (ap *accountsParser) parseDelegationElement(initialAccount genesis.InitialAccountHandler) error {
+	delegationData := initialAccount.GetDelegationHandler()
 
-	if big.NewInt(0).Cmp(delegationData.Value) == 0 {
+	if big.NewInt(0).Cmp(delegationData.GetValue()) == 0 {
 		return nil
 	}
 
-	if len(delegationData.Address) == 0 {
+	if len(delegationData.GetAddress()) == 0 {
 		return fmt.Errorf("%w for address '%s'",
-			genesis.ErrEmptyDelegationAddress, initialAccount.Address)
+			genesis.ErrEmptyDelegationAddress, initialAccount.GetAddress())
 	}
-	addressBytes, err := ap.pubkeyConverter.Decode(delegationData.Address)
+	addressBytes, err := ap.pubkeyConverter.Decode(delegationData.GetAddress())
 	if err != nil {
 		return fmt.Errorf("%w for `%s`, address %s, error %s",
 			genesis.ErrInvalidDelegationAddress,
-			delegationData.Address,
-			initialAccount.Address,
+			delegationData.GetAddress(),
+			initialAccount.GetAddress(),
 			err.Error(),
 		)
 	}
@@ -167,58 +165,58 @@ func (ap *accountsParser) parseDelegationElement(initialAccount *data.InitialAcc
 	return nil
 }
 
-func (ap *accountsParser) checkInitialAccount(initialAccount *data.InitialAccount) error {
+func (ap *accountsParser) checkInitialAccount(initialAccount genesis.InitialAccountHandler) error {
 	isSmartContract := core.IsSmartContractAddress(initialAccount.AddressBytes())
 	if isSmartContract {
 		return fmt.Errorf("%w for address %s",
 			genesis.ErrAddressIsSmartContract,
-			initialAccount.Address,
+			initialAccount.GetAddress(),
 		)
 	}
 
-	if big.NewInt(0).Cmp(initialAccount.Supply) >= 0 {
+	if big.NewInt(0).Cmp(initialAccount.GetSupply()) >= 0 {
 		return fmt.Errorf("%w for '%s', address %s",
 			genesis.ErrInvalidSupply,
-			initialAccount.Supply,
-			initialAccount.Address,
+			initialAccount.GetSupply(),
+			initialAccount.GetAddress(),
 		)
 	}
 
-	if big.NewInt(0).Cmp(initialAccount.Balance) > 0 {
+	if big.NewInt(0).Cmp(initialAccount.GetBalanceValue()) > 0 {
 		return fmt.Errorf("%w for '%s', address %s",
 			genesis.ErrInvalidBalance,
-			initialAccount.Balance,
-			initialAccount.Address,
+			initialAccount.GetBalanceValue(),
+			initialAccount.GetAddress(),
 		)
 	}
 
-	if big.NewInt(0).Cmp(initialAccount.StakingValue) > 0 {
+	if big.NewInt(0).Cmp(initialAccount.GetStakingValue()) > 0 {
 		return fmt.Errorf("%w for '%s', address %s",
 			genesis.ErrInvalidStakingBalance,
-			initialAccount.Balance,
-			initialAccount.Address,
+			initialAccount.GetBalanceValue(),
+			initialAccount.GetAddress(),
 		)
 	}
 
-	if big.NewInt(0).Cmp(initialAccount.Delegation.Value) > 0 {
+	if big.NewInt(0).Cmp(initialAccount.GetDelegationHandler().GetValue()) > 0 {
 		return fmt.Errorf("%w for '%s', address %s",
 			genesis.ErrInvalidDelegationValue,
-			initialAccount.Delegation.Value,
-			initialAccount.Address,
+			initialAccount.GetDelegationHandler().GetValue(),
+			initialAccount.GetAddress(),
 		)
 	}
 
 	sum := big.NewInt(0)
-	sum.Add(sum, initialAccount.Balance)
-	sum.Add(sum, initialAccount.StakingValue)
-	sum.Add(sum, initialAccount.Delegation.Value)
+	sum.Add(sum, initialAccount.GetBalanceValue())
+	sum.Add(sum, initialAccount.GetStakingValue())
+	sum.Add(sum, initialAccount.GetDelegationHandler().GetValue())
 
-	isSupplyCorrect := big.NewInt(0).Cmp(initialAccount.Supply) < 0 && initialAccount.Supply.Cmp(sum) == 0
+	isSupplyCorrect := big.NewInt(0).Cmp(initialAccount.GetSupply()) < 0 && initialAccount.GetSupply().Cmp(sum) == 0
 	if !isSupplyCorrect {
 		return fmt.Errorf("%w for address %s, provided %s, computed %s",
 			genesis.ErrSupplyMismatch,
-			initialAccount.Address,
-			initialAccount.Supply.String(),
+			initialAccount.GetAddress(),
+			initialAccount.GetSupply().String(),
 			sum.String(),
 		)
 	}
@@ -231,10 +229,10 @@ func (ap *accountsParser) checkForDuplicates() error {
 		ia1 := ap.initialAccounts[idx1]
 		for idx2 := idx1 + 1; idx2 < len(ap.initialAccounts); idx2++ {
 			ia2 := ap.initialAccounts[idx2]
-			if ia1.Address == ia2.Address {
+			if ia1.GetAddress() == ia2.GetAddress() {
 				return fmt.Errorf("%w found for '%s'",
 					genesis.ErrDuplicateAddress,
-					ia1.Address,
+					ia1.GetAddress(),
 				)
 			}
 		}
@@ -283,8 +281,8 @@ func (ap *accountsParser) GetTotalStakedForDelegationAddress(delegationAddress s
 	sum := big.NewInt(0)
 
 	for _, in := range ap.initialAccounts {
-		if in.Delegation.Address == delegationAddress {
-			sum.Add(sum, in.Delegation.Value)
+		if in.GetDelegationHandler().GetAddress() == delegationAddress {
+			sum.Add(sum, in.GetDelegationHandler().GetValue())
 		}
 	}
 
@@ -295,7 +293,7 @@ func (ap *accountsParser) GetTotalStakedForDelegationAddress(delegationAddress s
 func (ap *accountsParser) GetInitialAccountsForDelegated(addressBytes []byte) []genesis.InitialAccountHandler {
 	list := make([]genesis.InitialAccountHandler, 0)
 	for _, ia := range ap.initialAccounts {
-		if bytes.Equal(ia.Delegation.AddressBytes(), addressBytes) {
+		if bytes.Equal(ia.GetDelegationHandler().AddressBytes(), addressBytes) {
 			list = append(list, ia)
 		}
 	}
@@ -462,17 +460,17 @@ func (ap *accountsParser) setTxPoolAndMiniBlock(
 
 	txsPoolPerShard[senderShardID].Transactions[hex.EncodeToString(txHash)] = &outportcore.TxInfo{
 		Transaction: tx,
-		FeeInfo:     &outportcore.FeeInfo{Fee: big.NewInt(0),
-	InitialPaidFee: big.NewInt(0),
-			},
-		}
+		FeeInfo: &outportcore.FeeInfo{Fee: big.NewInt(0),
+			InitialPaidFee: big.NewInt(0),
+		},
+	}
 
 	txsPoolPerShard[receiverShardID].Transactions[hex.EncodeToString(txHash)] = &outportcore.TxInfo{
 		Transaction: tx,
-		FeeInfo:     &outportcore.FeeInfo{Fee: big.NewInt(0),
-	InitialPaidFee: big.NewInt(0),
-			},
-		}
+		FeeInfo: &outportcore.FeeInfo{Fee: big.NewInt(0),
+			InitialPaidFee: big.NewInt(0),
+		},
+	}
 
 	for _, miniBlock := range miniBlocks {
 		if senderShardID == miniBlock.GetSenderShardID() &&
