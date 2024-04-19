@@ -154,7 +154,7 @@ func TestSovereignBlockChainHook_IsPayable(t *testing.T) {
 		require.True(t, payable)
 	})
 
-	t.Run("sender is sc, receiver is sys acc address, should be cross payable", func(t *testing.T) {
+	t.Run("sender is sc, receiver is esdt sc address, should be cross payable", func(t *testing.T) {
 		sender := []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 255, 255}
 		receiver := vm.ESDTSCAddress
 
