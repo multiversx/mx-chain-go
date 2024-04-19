@@ -3,6 +3,7 @@ package shard
 import (
 	"fmt"
 	"io"
+	"reflect"
 	"sort"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -14,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/factory/containers"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
+	"github.com/multiversx/mx-chain-go/vm"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-go/vmhost"
@@ -353,6 +355,21 @@ func (vmf *vmContainerFactory) createInProcessWasmVMV15() (vmcommon.VMExecutionH
 		Hasher:                              vmf.hasher,
 	}
 
+	acc, _ := vmf.blockChainHook.GetUserAccount(vm.ESDTSCAddress)
+	fmt.Println("^^^^^^^^^^^^^^^^^^^^^^^^^^^^ CODE HASH", acc)
+	fmt.Println("^^^^^^^^^^^^^^^^^^^^^^^^^^^^SHARD", vmf.blockChainHook.GetShardOfAddress(vm.ESDTSCAddress))
+	fmt.Println("^^^^^^^^^^^^^^^^^^^^^^^^^^^^ blockChainHook", reflect.TypeOf(vmf.blockChainHook))
+	fmt.Println("^^^^^^^^^^^^^^^^^^^^^^^^^^^^ ACC ADAPTER", reflect.TypeOf(vmf.blockChainHook.GetAccountsAdapter()))
+	//
+	//var sovBh process.BlockChainHookHandler
+	//switch vmf.blockChainHook.(type) {
+	//case *hooks.BlockChainHookImpl:
+	//	sovBh, _ = hooks.NewSovereignBlockChainHook(vmf.blockChainHook.(*hooks.BlockChainHookImpl))
+	//default:
+	//	sovBh = vmf.blockChainHook
+	//}
+
+	//return wasmVMHost15.NewVMHost(sovBh, hostParameters)
 	return wasmVMHost15.NewVMHost(vmf.blockChainHook, hostParameters)
 }
 

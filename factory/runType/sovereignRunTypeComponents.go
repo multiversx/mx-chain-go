@@ -80,7 +80,7 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		return nil, err
 	}
 
-	blockChainHookHandlerFactory, err := hooks.NewSovereignBlockChainHookFactory(rtc.blockChainHookHandlerCreator)
+	sovBlockChainHookHandlerFactory, err := hooks.NewSovereignBlockChainHookFactory(rtc.blockChainHookHandlerCreator)
 	if err != nil {
 		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignBlockChainHookFactory failed: %w", err)
 	}
@@ -155,7 +155,17 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignSmartContractResultPreProcessorFactory failed: %w", err)
 	}
 
-	vmContainerShardCreator, err := factoryVm.NewSovereignVmContainerShardFactory(blockChainHookHandlerFactory, rtc.vmContainerMetaFactory, rtc.vmContainerShardFactory)
+	rtc.vmContainerMetaFactory, err = factoryVm.NewVmContainerMetaFactory(sovBlockChainHookHandlerFactory)
+	if err != nil {
+		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignSmartContractResultPreProcessorFactory failed: %w", err)
+	}
+
+	rtc.vmContainerShardFactory, err = factoryVm.NewVmContainerShardFactory(sovBlockChainHookHandlerFactory)
+	if err != nil {
+		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignSmartContractResultPreProcessorFactory failed: %w", err)
+	}
+
+	vmContainerShardCreator, err := factoryVm.NewSovereignVmContainerShardFactory(sovBlockChainHookHandlerFactory, rtc.vmContainerMetaFactory, rtc.vmContainerShardFactory)
 	if err != nil {
 		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignVmContainerShardFactory failed: %w", err)
 	}
@@ -201,7 +211,7 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 	genesisMetaBlockCheckerCreator := processComp.NewSovereignGenesisMetaBlockChecker()
 
 	return &runTypeComponents{
-		blockChainHookHandlerCreator:            blockChainHookHandlerFactory,
+		blockChainHookHandlerCreator:            sovBlockChainHookHandlerFactory,
 		epochStartBootstrapperCreator:           epochStartBootstrapperFactory,
 		bootstrapperFromStorageCreator:          bootstrapperFromStorageFactory,
 		bootstrapperCreator:                     bootstrapperFactory,

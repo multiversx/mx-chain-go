@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
 	"github.com/multiversx/mx-chain-go/config"
@@ -78,7 +79,53 @@ func (gbc *sovereignGenesisBlockCreator) initGenesisAccounts() error {
 		return err
 	}
 
-	return gbc.arg.Accounts.SaveAccount(acc)
+	err = gbc.updateSystemSCContractsCode()
+	if err != nil {
+		return err
+	}
+	return nil
+
+	//return gbc.arg.Accounts.SaveAccount(acc)
+}
+
+func (s *sovereignGenesisBlockCreator) updateSystemSCContractsCode() error {
+	contractMetadata2 := &vmcommon.CodeMetadata{
+		Upgradeable: false,
+		Payable:     false,
+		Readable:    true,
+	}
+	contractMetadata := contractMetadata2.ToBytes()
+
+	contractsToUpdate := make([][]byte, 0)
+	contractsToUpdate = append(contractsToUpdate, vm.StakingSCAddress)
+	contractsToUpdate = append(contractsToUpdate, vm.ValidatorSCAddress)
+	contractsToUpdate = append(contractsToUpdate, vm.GovernanceSCAddress)
+	contractsToUpdate = append(contractsToUpdate, vm.ESDTSCAddress)
+	contractsToUpdate = append(contractsToUpdate, vm.DelegationManagerSCAddress)
+	contractsToUpdate = append(contractsToUpdate, vm.FirstDelegationSCAddress)
+
+	for _, address := range contractsToUpdate {
+		userAcc, err := s.arg.Accounts.LoadAccount(address)
+		if err != nil {
+			return err
+		}
+
+		stAcc, ok := userAcc.(state.UserAccountHandler)
+		if !ok {
+			return process.ErrWrongTypeAssertion
+		}
+
+		stAcc.SetOwnerAddress(address)
+		stAcc.SetCodeMetadata(contractMetadata)
+		stAcc.SetCode(address)
+
+		err = s.arg.Accounts.SaveAccount(userAcc)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (gbc *sovereignGenesisBlockCreator) createSovereignEmptyGenesisBlocks() (map[uint32]data.HeaderHandler, error) {
