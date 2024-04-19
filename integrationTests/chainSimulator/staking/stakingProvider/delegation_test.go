@@ -83,6 +83,13 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
+				maxNodesChangeEnableEpoch := cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch
+				blsMultiSignerEnableEpoch := cfg.EpochConfig.EnableEpochs.BLSMultiSignerEnableEpoch
+
+				cfg.EpochConfig.EnableEpochs = config.EnableEpochs{}
+				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch = maxNodesChangeEnableEpoch
+				cfg.EpochConfig.EnableEpochs.BLSMultiSignerEnableEpoch = blsMultiSignerEnableEpoch
+
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 100
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 101
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 102
@@ -96,6 +103,57 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 		defer cs.Close()
 
 		testChainSimulatorMakeNewContractFromValidatorData(t, cs, 1)
+	})
+
+	// Test scenario done in staking 3.5 phase (staking v4 is not active)
+	// 1. Add a new validator private key in the multi key handler
+	// 2. Set the initial state for the owner and the 2 delegators
+	// 3. Do a stake transaction for the validator key and test that the new key is on queue and topup is 500
+	// 4. Execute the MakeNewContractFromValidatorData transaction and test that the key is on queue and topup is 500
+	// 5. Execute 2 delegation operations of 100 EGLD each, check the topup is 700
+	// 6. Execute 2 unDelegate operations of 100 EGLD each, check the topup is back to 500
+	t.Run("staking ph 4 is not active and all is done in epoch 0", func(t *testing.T) {
+		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+			BypassTxSignatureCheck:   false,
+			TempDir:                  t.TempDir(),
+			PathToInitialConfig:      defaultPathToInitialConfig,
+			NumOfShards:              3,
+			GenesisTimestamp:         time.Now().Unix(),
+			RoundDurationInMillis:    roundDurationInMillis,
+			RoundsPerEpoch:           roundsPerEpoch,
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         3,
+			MetaChainMinNodes:        3,
+			NumNodesWaitingListMeta:  3,
+			NumNodesWaitingListShard: 3,
+			AlterConfigsFunction: func(cfg *config.Configs) {
+				maxNodesChangeEnableEpoch := cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch
+				blsMultiSignerEnableEpoch := cfg.EpochConfig.EnableEpochs.BLSMultiSignerEnableEpoch
+
+				// set all activation epoch values on 0
+				cfg.EpochConfig.EnableEpochs = config.EnableEpochs{}
+				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch = maxNodesChangeEnableEpoch
+				cfg.EpochConfig.EnableEpochs.BLSMultiSignerEnableEpoch = blsMultiSignerEnableEpoch
+
+				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 100
+				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 101
+				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 102
+
+				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 102
+			},
+		})
+		require.Nil(t, err)
+		require.NotNil(t, cs)
+
+		defer cs.Close()
+
+		// we need a little time to enable the VM queries on the http server
+		time.Sleep(time.Second)
+		// also, propose a couple of blocks
+		err = cs.GenerateBlocks(3)
+		require.Nil(t, err)
+
+		testChainSimulatorMakeNewContractFromValidatorData(t, cs, 0)
 	})
 
 	// Test scenario done in staking v4 phase step 1

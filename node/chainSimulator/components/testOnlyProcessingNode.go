@@ -370,6 +370,11 @@ func (node *testOnlyProcessingNode) GetCoreComponents() factory.CoreComponentsHo
 	return node.CoreComponentsHolder
 }
 
+// GetDataComponents will return the data components
+func (node *testOnlyProcessingNode) GetDataComponents() factory.DataComponentsHolder {
+	return node.DataComponentsHolder
+}
+
 // GetStateComponents will return the state components
 func (node *testOnlyProcessingNode) GetStateComponents() factory.StateComponentsHolder {
 	return node.StateComponentsHolder

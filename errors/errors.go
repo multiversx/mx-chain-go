@@ -595,3 +595,6 @@ var ErrInvalidNodeOperationMode = errors.New("invalid node operation mode")
 
 // ErrNilSentSignatureTracker defines the error for setting a nil SentSignatureTracker
 var ErrNilSentSignatureTracker = errors.New("nil sent signature tracker")
+
+// ErrNilEpochSystemSCProcessor defines the error for setting a nil EpochSystemSCProcessor
+var ErrNilEpochSystemSCProcessor = errors.New("nil epoch system SC processor")

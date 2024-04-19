@@ -17,6 +17,7 @@ type NodeHandler interface {
 	GetShardCoordinator() sharding.Coordinator
 	GetCryptoComponents() factory.CryptoComponentsHolder
 	GetCoreComponents() factory.CoreComponentsHolder
+	GetDataComponents() factory.DataComponentsHolder
 	GetStateComponents() factory.StateComponentsHolder
 	GetFacadeHandler() shared.FacadeHandler
 	GetStatusCoreComponents() factory.StatusCoreComponentsHolder
