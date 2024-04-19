@@ -239,7 +239,7 @@ func TestTransactionsGroup_getTransaction(t *testing.T) {
 func TestTransactionGroup_sendTransaction(t *testing.T) {
 	t.Parallel()
 
-	t.Run("number of go routines exceeded", testExceededNumGoRoutines("/transaction/send", &groups.SendTxRequest{}))
+	t.Run("number of go routines exceeded", testExceededNumGoRoutines("/transaction/send", &dataTx.FrontendTransaction{}))
 	t.Run("invalid params should error", testTransactionGroupErrorScenario("/transaction/send", "POST", jsonTxStr, http.StatusBadRequest, apiErrors.ErrValidation))
 	t.Run("CreateTransaction error should error", func(t *testing.T) {
 		t.Parallel()
@@ -258,7 +258,7 @@ func TestTransactionGroup_sendTransaction(t *testing.T) {
 			facade,
 			"/transaction/send",
 			"POST",
-			&groups.SendTxRequest{},
+			&dataTx.FrontendTransaction{},
 			http.StatusBadRequest,
 			expectedErr,
 		)
@@ -283,7 +283,7 @@ func TestTransactionGroup_sendTransaction(t *testing.T) {
 			facade,
 			"/transaction/send",
 			"POST",
-			&groups.SendTxRequest{},
+			&dataTx.FrontendTransaction{},
 			http.StatusBadRequest,
 			expectedErr,
 		)
@@ -307,7 +307,7 @@ func TestTransactionGroup_sendTransaction(t *testing.T) {
 			facade,
 			"/transaction/send",
 			"POST",
-			&groups.SendTxRequest{},
+			&dataTx.FrontendTransaction{},
 			http.StatusInternalServerError,
 			expectedErr,
 		)
@@ -345,7 +345,7 @@ func TestTransactionGroup_sendTransaction(t *testing.T) {
 func TestTransactionGroup_sendMultipleTransactions(t *testing.T) {
 	t.Parallel()
 
-	t.Run("number of go routines exceeded", testExceededNumGoRoutines("/transaction/send-multiple", &groups.SendTxRequest{}))
+	t.Run("number of go routines exceeded", testExceededNumGoRoutines("/transaction/send-multiple", &dataTx.FrontendTransaction{}))
 	t.Run("invalid params should error", testTransactionGroupErrorScenario("/transaction/send-multiple", "POST", jsonTxStr, http.StatusBadRequest, apiErrors.ErrValidation))
 	t.Run("CreateTransaction error should continue, error on SendBulkTransactions", func(t *testing.T) {
 		t.Parallel()
@@ -368,7 +368,7 @@ func TestTransactionGroup_sendMultipleTransactions(t *testing.T) {
 			facade,
 			"/transaction/send-multiple",
 			"POST",
-			[]*groups.SendTxRequest{{}},
+			[]*dataTx.FrontendTransaction{{}},
 			http.StatusInternalServerError,
 			expectedErr,
 		)
@@ -393,7 +393,7 @@ func TestTransactionGroup_sendMultipleTransactions(t *testing.T) {
 			facade,
 			"/transaction/send-multiple",
 			"POST",
-			[]*groups.SendTxRequest{{}},
+			[]*dataTx.FrontendTransaction{{}},
 			http.StatusInternalServerError,
 			expectedErr,
 		)
@@ -418,7 +418,7 @@ func TestTransactionGroup_sendMultipleTransactions(t *testing.T) {
 			facade,
 			"/transaction/send-multiple",
 			"POST",
-			[]*groups.SendTxRequest{{}},
+			[]*dataTx.FrontendTransaction{{}},
 			http.StatusInternalServerError,
 			expectedErr,
 		)
@@ -443,7 +443,7 @@ func TestTransactionGroup_sendMultipleTransactions(t *testing.T) {
 			},
 		}
 
-		tx0 := groups.SendTxRequest{
+		tx0 := dataTx.FrontendTransaction{
 			Sender:    "sender1",
 			Receiver:  "receiver1",
 			Value:     "100",
@@ -455,7 +455,7 @@ func TestTransactionGroup_sendMultipleTransactions(t *testing.T) {
 		}
 		tx1 := tx0
 		tx1.Sender = "sender2"
-		txs := []*groups.SendTxRequest{&tx0, &tx1}
+		txs := []*dataTx.FrontendTransaction{&tx0, &tx1}
 
 		jsonBytes, _ := json.Marshal(txs)
 
@@ -494,7 +494,7 @@ func TestTransactionGroup_computeTransactionGasLimit(t *testing.T) {
 			facade,
 			"/transaction/cost",
 			"POST",
-			&groups.SendTxRequest{},
+			&dataTx.FrontendTransaction{},
 			http.StatusInternalServerError,
 			expectedErr,
 		)
@@ -515,7 +515,7 @@ func TestTransactionGroup_computeTransactionGasLimit(t *testing.T) {
 			facade,
 			"/transaction/cost",
 			"POST",
-			&groups.SendTxRequest{},
+			&dataTx.FrontendTransaction{},
 			http.StatusInternalServerError,
 			expectedErr,
 		)
@@ -537,7 +537,7 @@ func TestTransactionGroup_computeTransactionGasLimit(t *testing.T) {
 			},
 		}
 
-		tx0 := groups.SendTxRequest{
+		tx0 := dataTx.FrontendTransaction{
 			Sender:    "sender1",
 			Receiver:  "receiver1",
 			Value:     "100",
@@ -566,9 +566,9 @@ func TestTransactionGroup_computeTransactionGasLimit(t *testing.T) {
 func TestTransactionGroup_simulateTransaction(t *testing.T) {
 	t.Parallel()
 
-	t.Run("number of go routines exceeded", testExceededNumGoRoutines("/transaction/simulate", &groups.SendTxRequest{}))
+	t.Run("number of go routines exceeded", testExceededNumGoRoutines("/transaction/simulate", &dataTx.FrontendTransaction{}))
 	t.Run("invalid param transaction should error", testTransactionGroupErrorScenario("/transaction/simulate", "POST", jsonTxStr, http.StatusBadRequest, apiErrors.ErrValidation))
-	t.Run("invalid param checkSignature should error", testTransactionGroupErrorScenario("/transaction/simulate?checkSignature=not-bool", "POST", &groups.SendTxRequest{}, http.StatusBadRequest, apiErrors.ErrValidation))
+	t.Run("invalid param checkSignature should error", testTransactionGroupErrorScenario("/transaction/simulate?checkSignature=not-bool", "POST", &dataTx.FrontendTransaction{}, http.StatusBadRequest, apiErrors.ErrValidation))
 	t.Run("CreateTransaction error should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -586,7 +586,7 @@ func TestTransactionGroup_simulateTransaction(t *testing.T) {
 			facade,
 			"/transaction/simulate",
 			"POST",
-			&groups.SendTxRequest{},
+			&dataTx.FrontendTransaction{},
 			http.StatusBadRequest,
 			expectedErr,
 		)
@@ -611,7 +611,7 @@ func TestTransactionGroup_simulateTransaction(t *testing.T) {
 			facade,
 			"/transaction/simulate",
 			"POST",
-			&groups.SendTxRequest{},
+			&dataTx.FrontendTransaction{},
 			http.StatusBadRequest,
 			expectedErr,
 		)
@@ -635,7 +635,7 @@ func TestTransactionGroup_simulateTransaction(t *testing.T) {
 			facade,
 			"/transaction/simulate",
 			"POST",
-			&groups.SendTxRequest{},
+			&dataTx.FrontendTransaction{},
 			http.StatusInternalServerError,
 			expectedErr,
 		)
@@ -666,7 +666,7 @@ func TestTransactionGroup_simulateTransaction(t *testing.T) {
 			},
 		}
 
-		tx := groups.SendTxRequest{
+		tx := dataTx.FrontendTransaction{
 			Sender:    "sender1",
 			Receiver:  "receiver1",
 			Value:     "100",

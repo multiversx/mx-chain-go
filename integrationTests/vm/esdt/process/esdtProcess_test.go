@@ -1,5 +1,3 @@
-//go:build !race
-
 package process
 
 import (
@@ -42,7 +40,6 @@ func TestESDTIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 
 	enableEpochs := config.EnableEpochs{
 		GlobalMintBurnDisableEpoch:                  integrationTests.UnreachableEpoch,
-		BuiltInFunctionOnMetaEnableEpoch:            integrationTests.UnreachableEpoch,
 		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: integrationTests.UnreachableEpoch,
 		ScheduledMiniBlocksEnableEpoch:              integrationTests.UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch:        integrationTests.UnreachableEpoch,
@@ -174,7 +171,6 @@ func TestESDTCallBurnOnANonBurnableToken(t *testing.T) {
 
 	enableEpochs := config.EnableEpochs{
 		GlobalMintBurnDisableEpoch:                  integrationTests.UnreachableEpoch,
-		BuiltInFunctionOnMetaEnableEpoch:            integrationTests.UnreachableEpoch,
 		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: integrationTests.UnreachableEpoch,
 		ScheduledMiniBlocksEnableEpoch:              integrationTests.UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch:        integrationTests.UnreachableEpoch,
@@ -333,6 +329,10 @@ func TestESDTIssueAndSelfTransferShouldNotChangeBalance(t *testing.T) {
 }
 
 func TestESDTIssueFromASmartContractSimulated(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	metaNode := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
 		MaxShards:            1,
 		NodeShardId:          core.MetachainShardId,
@@ -878,133 +878,6 @@ func TestCallbackPaymentEgld(t *testing.T) {
 	})
 }
 
-func TestScCallsScWithEsdtCrossShard(t *testing.T) {
-	t.Skip("test is not ready yet")
-
-	numOfShards := 2
-	nodesPerShard := 2
-	numMetachainNodes := 2
-
-	nodes := integrationTests.CreateNodes(
-		numOfShards,
-		nodesPerShard,
-		numMetachainNodes,
-	)
-
-	idxProposers := make([]int, numOfShards+1)
-	for i := 0; i < numOfShards; i++ {
-		idxProposers[i] = i * nodesPerShard
-	}
-	idxProposers[numOfShards] = numOfShards * nodesPerShard
-
-	integrationTests.DisplayAndStartNodes(nodes)
-
-	defer func() {
-		for _, n := range nodes {
-			n.Close()
-		}
-	}()
-
-	initialVal := big.NewInt(10000000000)
-	integrationTests.MintAllNodes(nodes, initialVal)
-
-	round := uint64(0)
-	nonce := uint64(0)
-	round = integrationTests.IncrementAndPrintRound(round)
-	nonce++
-
-	// send token issue
-
-	initialSupply := int64(10000000000)
-	ticker := "TCK"
-	esdtCommon.IssueTestToken(nodes, initialSupply, ticker)
-	tokenIssuer := nodes[0]
-
-	time.Sleep(time.Second)
-	nrRoundsToPropagateMultiShard := 12
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
-	time.Sleep(time.Second)
-
-	tokenIdentifier := string(integrationTests.GetTokenIdentifier(nodes, []byte(ticker)))
-	esdtCommon.CheckAddressHasTokens(t, tokenIssuer.OwnAccount.Address, nodes, []byte(tokenIdentifier), 0, initialSupply)
-
-	// deploy the smart contracts
-
-	vaultCode := wasm.GetSCCode("../testdata/vault.wasm")
-	secondScAddress, _ := tokenIssuer.BlockchainHook.NewAddress(tokenIssuer.OwnAccount.Address, tokenIssuer.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
-
-	integrationTests.CreateAndSendTransaction(
-		nodes[0],
-		nodes,
-		big.NewInt(0),
-		testVm.CreateEmptyAddress(),
-		wasm.CreateDeployTxData(vaultCode),
-		integrationTests.AdditionalGasLimit,
-	)
-
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 4, nonce, round, idxProposers)
-	_, err := nodes[0].AccntState.GetExistingAccount(secondScAddress)
-	require.Nil(t, err)
-
-	forwarderCode := wasm.GetSCCode("../testdata/forwarder-raw.wasm")
-	forwarder, _ := nodes[2].BlockchainHook.NewAddress(nodes[2].OwnAccount.Address, nodes[2].OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
-	integrationTests.CreateAndSendTransaction(
-		nodes[2],
-		nodes,
-		big.NewInt(0),
-		testVm.CreateEmptyAddress(),
-		wasm.CreateDeployTxData(forwarderCode),
-		integrationTests.AdditionalGasLimit,
-	)
-
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 4, nonce, round, idxProposers)
-	_, err = nodes[2].AccntState.GetExistingAccount(forwarder)
-	require.Nil(t, err)
-
-	txData := txDataBuilder.NewBuilder()
-
-	// call forwarder with esdt, and the forwarder automatically calls second sc
-	valueToSendToSc := int64(1000)
-	txData.Clear().TransferESDT(tokenIdentifier, valueToSendToSc)
-	txData.Str("forward_async_call_half_payment").Bytes(secondScAddress).Str("accept_funds")
-	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), forwarder, txData.ToString(), integrationTests.AdditionalGasLimit)
-
-	time.Sleep(time.Second)
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
-	time.Sleep(time.Second)
-
-	esdtCommon.CheckAddressHasTokens(t, tokenIssuer.OwnAccount.Address, nodes, []byte(tokenIdentifier), 0, initialSupply-valueToSendToSc)
-	esdtCommon.CheckAddressHasTokens(t, forwarder, nodes, []byte(tokenIdentifier), 0, valueToSendToSc/2)
-	esdtCommon.CheckAddressHasTokens(t, secondScAddress, nodes, []byte(tokenIdentifier), 0, valueToSendToSc/2)
-
-	esdtCommon.CheckNumCallBacks(t, forwarder, nodes, 1)
-	esdtCommon.CheckForwarderRawSavedCallbackArgs(t, forwarder, nodes, 1, vmcommon.Ok, [][]byte{})
-	esdtCommon.CheckForwarderRawSavedCallbackPayments(t, forwarder, nodes, []*esdtCommon.ForwarderRawSavedPaymentInfo{})
-
-	// call forwarder to ask the second one to send it back some esdt
-	valueToRequest := valueToSendToSc / 4
-	txData.Clear().Func("forward_async_call").Bytes(secondScAddress)
-	txData.Str("retrieve_funds").Str(tokenIdentifier).Int64(0).Int64(valueToRequest)
-	integrationTests.CreateAndSendTransaction(tokenIssuer, nodes, big.NewInt(0), forwarder, txData.ToString(), integrationTests.AdditionalGasLimit)
-
-	time.Sleep(time.Second)
-	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
-	time.Sleep(time.Second)
-
-	esdtCommon.CheckAddressHasTokens(t, forwarder, nodes, []byte(tokenIdentifier), 0, valueToSendToSc*3/4)
-	esdtCommon.CheckAddressHasTokens(t, secondScAddress, nodes, []byte(tokenIdentifier), 0, valueToSendToSc/4)
-
-	esdtCommon.CheckNumCallBacks(t, forwarder, nodes, 2)
-	esdtCommon.CheckForwarderRawSavedCallbackArgs(t, forwarder, nodes, 2, vmcommon.Ok, [][]byte{})
-	esdtCommon.CheckForwarderRawSavedCallbackPayments(t, forwarder, nodes, []*esdtCommon.ForwarderRawSavedPaymentInfo{
-		{
-			TokenId: "EGLD",
-			Nonce:   0,
-			Payment: big.NewInt(valueToSendToSc),
-		},
-	})
-}
-
 func TestScCallsScWithEsdtIntraShard_SecondScRefusesPayment(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -1293,7 +1166,7 @@ func TestScACallsScBWithExecOnDestScAPerformsAsyncCall_NoCallbackInScB(t *testin
 	}()
 
 	for _, n := range nodes {
-		n.EconomicsData.SetMaxGasLimitPerBlock(1500000000)
+		n.EconomicsData.SetMaxGasLimitPerBlock(1500000000, 0)
 	}
 
 	initialVal := big.NewInt(10000000000)
@@ -1410,7 +1283,6 @@ func TestExecOnDestWithTokenTransferFromScAtoScBWithIntermediaryExecOnDest_NotEn
 
 	enableEpochs := config.EnableEpochs{
 		GlobalMintBurnDisableEpoch:              integrationTests.UnreachableEpoch,
-		BuiltInFunctionOnMetaEnableEpoch:        integrationTests.UnreachableEpoch,
 		SCProcessorV2EnableEpoch:                integrationTests.UnreachableEpoch,
 		FailExecutionOnEveryAPIErrorEnableEpoch: integrationTests.UnreachableEpoch,
 	}
@@ -2047,7 +1919,7 @@ func TestIssueESDT_FromSCWithNotEnoughGas(t *testing.T) {
 
 	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV3.toml")
 	for _, n := range nodes {
-		n.EconomicsData.SetMaxGasLimitPerBlock(1500000000)
+		n.EconomicsData.SetMaxGasLimitPerBlock(1500000000, 0)
 		if check.IfNil(n.SystemSCFactory) {
 			continue
 		}
@@ -2106,7 +1978,6 @@ func TestIssueAndBurnESDT_MaxGasPerBlockExceeded(t *testing.T) {
 
 	enableEpochs := config.EnableEpochs{
 		GlobalMintBurnDisableEpoch:           integrationTests.UnreachableEpoch,
-		BuiltInFunctionOnMetaEnableEpoch:     integrationTests.UnreachableEpoch,
 		MaxBlockchainHookCountersEnableEpoch: integrationTests.UnreachableEpoch,
 	}
 	nodes := integrationTests.CreateNodesWithEnableEpochs(
@@ -2132,11 +2003,11 @@ func TestIssueAndBurnESDT_MaxGasPerBlockExceeded(t *testing.T) {
 
 	gasSchedule, _ := common.LoadGasScheduleConfig("../../../../cmd/node/config/gasSchedules/gasScheduleV3.toml")
 	for _, n := range nodes {
-		n.EconomicsData.SetMaxGasLimitPerBlock(1500000000)
+		n.EconomicsData.SetMaxGasLimitPerBlock(1500000000, 0)
 		if check.IfNil(n.SystemSCFactory) {
 			continue
 		}
-		n.EconomicsData.SetMaxGasLimitPerBlock(15000000000)
+		n.EconomicsData.SetMaxGasLimitPerBlock(15000000000, 0)
 		gasScheduleHandler := n.SystemSCFactory.(core.GasScheduleSubscribeHandler)
 		gasScheduleHandler.GasScheduleChange(gasSchedule)
 	}

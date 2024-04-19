@@ -8,6 +8,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory/bootstrap"
@@ -37,6 +38,19 @@ func TestNewBootstrapComponentsFactory(t *testing.T) {
 		bcf, err := bootstrap.NewBootstrapComponentsFactory(argsCopy)
 		require.Nil(t, bcf)
 		require.Equal(t, errorsMx.ErrNilCoreComponentsHolder, err)
+	})
+	t.Run("nil enable epochs handler should error", func(t *testing.T) {
+		t.Parallel()
+
+		argsCopy := args
+		argsCopy.CoreComponents = &factory.CoreComponentsHolderStub{
+			EnableEpochsHandlerCalled: func() common.EnableEpochsHandler {
+				return nil
+			},
+		}
+		bcf, err := bootstrap.NewBootstrapComponentsFactory(argsCopy)
+		require.Nil(t, bcf)
+		require.Equal(t, errorsMx.ErrNilEnableEpochsHandler, err)
 	})
 	t.Run("nil crypto components should error", func(t *testing.T) {
 		t.Parallel()
@@ -218,7 +232,8 @@ func TestBootstrapComponentsFactory_Create(t *testing.T) {
 		coreComponents := componentsMock.GetDefaultCoreComponents()
 		args.CoreComponents = coreComponents
 		coreComponents.RatingHandler = nil
-		bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
+		bcf, err := bootstrap.NewBootstrapComponentsFactory(args)
+		require.Nil(t, err)
 		require.NotNil(t, bcf)
 
 		bc, err := bcf.Create()

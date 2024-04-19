@@ -49,6 +49,11 @@ func (n *nodesCoordinator) GetAllWaitingValidatorsPublicKeys(_ uint32) (map[uint
 	return nil, nil
 }
 
+// GetAllShuffledOutValidatorsPublicKeys -
+func (n *nodesCoordinator) GetAllShuffledOutValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
+	return nil, nil
+}
+
 // GetConsensusValidatorsPublicKeys -
 func (n *nodesCoordinator) GetConsensusValidatorsPublicKeys(_ []byte, _ uint64, _ uint32, _ uint32) ([]string, error) {
 	return nil, nil
@@ -101,6 +106,11 @@ func (n *nodesCoordinator) ConsensusGroupSize(uint32) int {
 // GetNumTotalEligible -
 func (n *nodesCoordinator) GetNumTotalEligible() uint64 {
 	return 0
+}
+
+// GetWaitingEpochsLeftForPublicKey returns 0
+func (n *nodesCoordinator) GetWaitingEpochsLeftForPublicKey(_ []byte) (uint32, error) {
+	return 0, nil
 }
 
 // IsInterfaceNil -

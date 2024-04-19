@@ -157,7 +157,7 @@ func SetupTestContextWithGasSchedule(t *testing.T, gasSchedule map[string]map[st
 		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
 	}, context.EpochNotifier)
 	context.RoundNotifier = &epochNotifier.RoundNotifierStub{}
-	context.EnableRoundsHandler, _ = enablers.NewEnableRoundsHandler(integrationTests.GetDefaultRoundsConfig(), context.RoundNotifier)
+	context.EnableRoundsHandler, _ = enablers.NewEnableRoundsHandler(testscommon.GetDefaultRoundsConfig(), context.RoundNotifier)
 	context.WasmVMChangeLocker = &sync.RWMutex{}
 
 	context.initAccounts()
@@ -250,10 +250,9 @@ func (context *TestContext) initFeeHandlers() {
 				MaxGasPriceSetGuardian: "2000000000",
 			},
 		},
-		EpochNotifier:               context.EpochNotifier,
-		EnableEpochsHandler:         context.EnableEpochsHandler,
-		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
-		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
+		EpochNotifier:       context.EpochNotifier,
+		EnableEpochsHandler: context.EnableEpochsHandler,
+		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
 

@@ -7,12 +7,13 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/data/validator"
 	apiErrors "github.com/multiversx/mx-chain-go/api/errors"
 	"github.com/multiversx/mx-chain-go/api/groups"
 	"github.com/multiversx/mx-chain-go/api/mock"
 	"github.com/multiversx/mx-chain-go/api/shared"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
-	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -34,9 +35,16 @@ func TestNewValidatorGroup(t *testing.T) {
 }
 
 // ValidatorStatisticsResponse is the response for the validator statistics endpoint.
-type ValidatorStatisticsResponse struct {
-	Result map[string]*accounts.ValidatorApiResponse `json:"statistics"`
+type validatorStatisticsResponse struct {
+	Result map[string]*validator.ValidatorStatistics `json:"statistics"`
 	Error  string                                    `json:"error"`
+}
+
+type auctionListResponse struct {
+	Data struct {
+		Result []*common.AuctionListValidatorAPIResponse `json:"auctionList"`
+	} `json:"data"`
+	Error string
 }
 
 func TestValidatorStatistics_ErrorWhenFacadeFails(t *testing.T) {
@@ -45,7 +53,7 @@ func TestValidatorStatistics_ErrorWhenFacadeFails(t *testing.T) {
 	errStr := "error in facade"
 
 	facade := mock.FacadeStub{
-		ValidatorStatisticsHandler: func() (map[string]*accounts.ValidatorApiResponse, error) {
+		ValidatorStatisticsHandler: func() (map[string]*validator.ValidatorStatistics, error) {
 			return nil, errors.New(errStr)
 		},
 	}
@@ -60,7 +68,7 @@ func TestValidatorStatistics_ErrorWhenFacadeFails(t *testing.T) {
 	resp := httptest.NewRecorder()
 	ws.ServeHTTP(resp, req)
 
-	response := ValidatorStatisticsResponse{}
+	response := validatorStatisticsResponse{}
 	loadResponse(resp.Body, &response)
 
 	assert.Equal(t, http.StatusBadRequest, resp.Code)
@@ -70,8 +78,8 @@ func TestValidatorStatistics_ErrorWhenFacadeFails(t *testing.T) {
 func TestValidatorStatistics_ReturnsSuccessfully(t *testing.T) {
 	t.Parallel()
 
-	mapToReturn := make(map[string]*accounts.ValidatorApiResponse)
-	mapToReturn["test"] = &accounts.ValidatorApiResponse{
+	mapToReturn := make(map[string]*validator.ValidatorStatistics)
+	mapToReturn["test"] = &validator.ValidatorStatistics{
 		NumLeaderSuccess:    5,
 		NumLeaderFailure:    2,
 		NumValidatorSuccess: 7,
@@ -79,7 +87,7 @@ func TestValidatorStatistics_ReturnsSuccessfully(t *testing.T) {
 	}
 
 	facade := mock.FacadeStub{
-		ValidatorStatisticsHandler: func() (map[string]*accounts.ValidatorApiResponse, error) {
+		ValidatorStatisticsHandler: func() (map[string]*validator.ValidatorStatistics, error) {
 			return mapToReturn, nil
 		},
 	}
@@ -97,7 +105,7 @@ func TestValidatorStatistics_ReturnsSuccessfully(t *testing.T) {
 	response := shared.GenericAPIResponse{}
 	loadResponse(resp.Body, &response)
 
-	validatorStatistics := ValidatorStatisticsResponse{}
+	validatorStatistics := validatorStatisticsResponse{}
 	mapResponseData := response.Data.(map[string]interface{})
 	mapResponseDataBytes, _ := json.Marshal(mapResponseData)
 	_ = json.Unmarshal(mapResponseDataBytes, &validatorStatistics)
@@ -131,15 +139,15 @@ func TestValidatorGroup_UpdateFacade(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		mapToReturn := make(map[string]*accounts.ValidatorApiResponse)
-		mapToReturn["test"] = &accounts.ValidatorApiResponse{
+		mapToReturn := make(map[string]*validator.ValidatorStatistics)
+		mapToReturn["test"] = &validator.ValidatorStatistics{
 			NumLeaderSuccess:    5,
 			NumLeaderFailure:    2,
 			NumValidatorSuccess: 7,
 			NumValidatorFailure: 3,
 		}
 		facade := mock.FacadeStub{
-			ValidatorStatisticsHandler: func() (map[string]*accounts.ValidatorApiResponse, error) {
+			ValidatorStatisticsHandler: func() (map[string]*validator.ValidatorStatistics, error) {
 				return mapToReturn, nil
 			},
 		}
@@ -147,14 +155,13 @@ func TestValidatorGroup_UpdateFacade(t *testing.T) {
 		require.NoError(t, err)
 
 		ws := startWebServer(validatorGroup, "validator", getValidatorRoutesConfig())
-
 		req, _ := http.NewRequest("GET", "/validator/statistics", nil)
 		resp := httptest.NewRecorder()
 		ws.ServeHTTP(resp, req)
 
 		response := shared.GenericAPIResponse{}
 		loadResponse(resp.Body, &response)
-		validatorStatistics := ValidatorStatisticsResponse{}
+		validatorStatistics := validatorStatisticsResponse{}
 		mapResponseData := response.Data.(map[string]interface{})
 		mapResponseDataBytes, _ := json.Marshal(mapResponseData)
 		_ = json.Unmarshal(mapResponseDataBytes, &validatorStatistics)
@@ -163,7 +170,7 @@ func TestValidatorGroup_UpdateFacade(t *testing.T) {
 
 		expectedErr := errors.New("expected error")
 		newFacade := mock.FacadeStub{
-			ValidatorStatisticsHandler: func() (map[string]*accounts.ValidatorApiResponse, error) {
+			ValidatorStatisticsHandler: func() (map[string]*validator.ValidatorStatistics, error) {
 				return nil, expectedErr
 			},
 		}
@@ -191,12 +198,71 @@ func TestValidatorGroup_IsInterfaceNil(t *testing.T) {
 	require.False(t, validatorGroup.IsInterfaceNil())
 }
 
+func TestAuctionList_ErrorWhenFacadeFails(t *testing.T) {
+	t.Parallel()
+
+	errStr := "error in facade"
+	facade := mock.FacadeStub{
+		AuctionListHandler: func() ([]*common.AuctionListValidatorAPIResponse, error) {
+			return nil, errors.New(errStr)
+		},
+	}
+
+	validatorGroup, err := groups.NewValidatorGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(validatorGroup, "validator", getValidatorRoutesConfig())
+	req, _ := http.NewRequest("GET", "/validator/auction", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := auctionListResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, http.StatusBadRequest, resp.Code)
+	assert.Contains(t, response.Error, errStr)
+}
+
+func TestAuctionList_ReturnsSuccessfully(t *testing.T) {
+	t.Parallel()
+
+	auctionListToReturn := []*common.AuctionListValidatorAPIResponse{
+		{
+			Owner:          "owner",
+			NumStakedNodes: 4,
+			TotalTopUp:     "1234",
+			TopUpPerNode:   "4321",
+			QualifiedTopUp: "4444",
+		},
+	}
+	facade := mock.FacadeStub{
+		AuctionListHandler: func() ([]*common.AuctionListValidatorAPIResponse, error) {
+			return auctionListToReturn, nil
+		},
+	}
+
+	validatorGroup, err := groups.NewValidatorGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(validatorGroup, "validator", getValidatorRoutesConfig())
+	req, _ := http.NewRequest("GET", "/validator/auction", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	response := auctionListResponse{}
+	loadResponse(resp.Body, &response)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Equal(t, response.Data.Result, auctionListToReturn)
+}
+
 func getValidatorRoutesConfig() config.ApiRoutesConfig {
 	return config.ApiRoutesConfig{
 		APIPackages: map[string]config.APIPackageConfig{
 			"validator": {
 				Routes: []config.RouteConfig{
 					{Name: "/statistics", Open: true},
+					{Name: "/auction", Open: true},
 				},
 			},
 		},

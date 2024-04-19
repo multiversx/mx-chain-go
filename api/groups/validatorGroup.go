@@ -7,16 +7,21 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/validator"
 	"github.com/multiversx/mx-chain-go/api/errors"
 	"github.com/multiversx/mx-chain-go/api/shared"
-	"github.com/multiversx/mx-chain-go/state/accounts"
+	"github.com/multiversx/mx-chain-go/common"
 )
 
-const statisticsPath = "/statistics"
+const (
+	statisticsPath = "/statistics"
+	auctionPath    = "/auction"
+)
 
 // validatorFacadeHandler defines the methods to be implemented by a facade for validator requests
 type validatorFacadeHandler interface {
-	ValidatorStatisticsApi() (map[string]*accounts.ValidatorApiResponse, error)
+	ValidatorStatisticsApi() (map[string]*validator.ValidatorStatistics, error)
+	AuctionListApi() ([]*common.AuctionListValidatorAPIResponse, error)
 	IsInterfaceNil() bool
 }
 
@@ -43,6 +48,11 @@ func NewValidatorGroup(facade validatorFacadeHandler) (*validatorGroup, error) {
 			Method:  http.MethodGet,
 			Handler: ng.statistics,
 		},
+		{
+			Path:    auctionPath,
+			Method:  http.MethodGet,
+			Handler: ng.auction,
+		},
 	}
 	ng.endpoints = endpoints
 
@@ -68,6 +78,31 @@ func (vg *validatorGroup) statistics(c *gin.Context) {
 		http.StatusOK,
 		shared.GenericAPIResponse{
 			Data:  gin.H{"statistics": valStats},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
+// auction will return the list of the validators in the auction list
+func (vg *validatorGroup) auction(c *gin.Context) {
+	valStats, err := vg.getFacade().AuctionListApi()
+	if err != nil {
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: err.Error(),
+				Code:  shared.ReturnCodeRequestError,
+			},
+		)
+		return
+	}
+
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"auctionList": valStats},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},

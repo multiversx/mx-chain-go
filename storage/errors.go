@@ -88,6 +88,9 @@ var ErrEpochKeepIsLowerThanNumActive = errors.New("num epochs to keep is lower t
 // ErrNilPersistersTracker signals that a nil persisters tracker has been provided
 var ErrNilPersistersTracker = errors.New("nil persisters tracker provided")
 
+// ErrNilStatsCollector signals that a nil stats collector has been provided
+var ErrNilStatsCollector = errors.New("nil stats collector provided")
+
 // ErrNilShardIDProvider signals that a nil shard id provider has been provided
 var ErrNilShardIDProvider = errors.New("nil shard id provider")
 
