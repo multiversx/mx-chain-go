@@ -50,15 +50,33 @@ import (
 
 var nodePrice = big.NewInt(5000)
 
-// TODO improve code coverage of this package
 func createMockArgument(
 	t *testing.T,
 	genesisFilename string,
 	initialNodes genesis.InitialNodesHandler,
 	entireSupply *big.Int,
 ) ArgsGenesisBlockCreator {
+	return createArgument(t, genesisFilename, initialNodes, entireSupply, genesisMocks.NewRunTypeComponentsStub())
+}
+
+func createSovereignMockArgument(
+	t *testing.T,
+	genesisFilename string,
+	initialNodes genesis.InitialNodesHandler,
+	entireSupply *big.Int,
+) ArgsGenesisBlockCreator {
+	return createArgument(t, genesisFilename, initialNodes, entireSupply, genesisMocks.NewSovereignRunTypeComponentsStub())
+}
+
+// TODO improve code coverage of this package
+func createArgument(
+	t *testing.T,
+	genesisFilename string,
+	initialNodes genesis.InitialNodesHandler,
+	entireSupply *big.Int,
+	runTypeComponents *genesisMocks.RunTypeComponentsStub,
+) ArgsGenesisBlockCreator {
 	trieStorageManagers := createTrieStorageManagers()
-	runTypeComponents := genesisMocks.NewRunTypeComponentsStub()
 
 	arg := ArgsGenesisBlockCreator{
 		GenesisTime:   0,

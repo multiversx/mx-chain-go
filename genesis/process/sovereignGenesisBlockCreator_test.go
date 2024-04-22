@@ -21,7 +21,6 @@ import (
 	stateAcc "github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
-	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/vm"
@@ -48,10 +47,9 @@ func createGenesisBlockCreator(t *testing.T) *genesisBlockCreator {
 }
 
 func createSovereignGenesisBlockCreator(t *testing.T) (ArgsGenesisBlockCreator, *sovereignGenesisBlockCreator) {
-	arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
+	arg := createSovereignMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
 	arg.ShardCoordinator = sharding.NewSovereignShardCoordinator(core.SovereignChainShardId)
 	arg.DNSV2Addresses = []string{"00000000000000000500761b8c4a25d3979359223208b412285f635e71300102"}
-	arg.RunTypeComponents = genesisMocks.NewSovereignRunTypeComponentsStub()
 
 	trieStorageManagers := createTrieStorageManagers()
 	arg.Accounts, _ = createAccountAdapter(
