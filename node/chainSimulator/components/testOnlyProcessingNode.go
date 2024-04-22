@@ -26,6 +26,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	chainData "github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 )
@@ -329,6 +330,9 @@ func (node *testOnlyProcessingNode) GetProcessComponents() factory.ProcessCompon
 
 // GetChainHandler will return the chain handler
 func (node *testOnlyProcessingNode) GetChainHandler() chainData.ChainHandler {
+	if check.IfNil(node.DataComponentsHolder) {
+		return nil
+	}
 	return node.DataComponentsHolder.Blockchain()
 }
 

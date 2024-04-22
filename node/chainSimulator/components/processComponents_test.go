@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	retriever "github.com/multiversx/mx-chain-go/dataRetriever"
 	mockFactory "github.com/multiversx/mx-chain-go/factory/mock"
+	"github.com/multiversx/mx-chain-go/factory/runType"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/sharding"
 	chainStorage "github.com/multiversx/mx-chain-go/storage"
@@ -235,10 +236,19 @@ func createArgsProcessComponentsHolder() ArgsProcessComponentsHolder {
 			StateStatsHandlerField: disabledStatistics.NewStateStatistics(),
 		},
 		IncomingHeaderHandler: &sovereign.IncomingHeaderSubscriberStub{},
-		RunTypeComponents:     components.GetRunTypeComponents(),
 	}
 
+	initialAccounts, _ := testscommon.ReadInitialAccounts(args.Configs.ConfigurationPathsHolder.Genesis)
+	argsRunType := runType.ArgsRunTypeComponents{
+		CoreComponents:   args.CoreComponents,
+		CryptoComponents: args.CryptoComponents,
+		Configs:          args.Configs,
+		InitialAccounts:  initialAccounts,
+	}
+	runTypeComponents, _ := createRunTypeComponents(argsRunType)
+
 	args.StateComponents = components.GetStateComponents(args.CoreComponents, args.StatusCoreComponents)
+	args.RunTypeComponents = runTypeComponents
 	return args
 }
 
@@ -260,24 +270,6 @@ func TestCreateProcessComponents(t *testing.T) {
 
 		args := createArgsProcessComponentsHolder()
 		args.Configs.FlagsConfig.Version = ""
-		comp, err := CreateProcessComponents(args)
-		require.Error(t, err)
-		require.Nil(t, comp)
-	})
-	t.Run("total supply conversion failure should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createArgsProcessComponentsHolder()
-		args.Configs.EconomicsConfig.GlobalSettings.GenesisTotalSupply = "invalid number"
-		comp, err := CreateProcessComponents(args)
-		require.Error(t, err)
-		require.Nil(t, comp)
-	})
-	t.Run("NewAccountsParser failure should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createArgsProcessComponentsHolder()
-		args.Configs.ConfigurationPathsHolder.Genesis = ""
 		comp, err := CreateProcessComponents(args)
 		require.Error(t, err)
 		require.Nil(t, comp)

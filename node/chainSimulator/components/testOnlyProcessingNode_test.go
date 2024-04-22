@@ -66,14 +66,14 @@ func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNo
 		CreateIncomingHeaderHandler: func(config *config.NotifierConfig, dataPool dataRetriever.PoolsHolder, mainChainNotarizationStartRound uint64, runTypeComponents mainFactory.RunTypeComponentsHolder) (process.IncomingHeaderSubscriber, error) {
 			return &sovereign.IncomingHeaderSubscriberStub{}, nil
 		},
-		GetRunTypeComponents: func(coreComponents mainFactory.CoreComponentsHolder, cryptoComponents mainFactory.CryptoComponentsHolder) (mainFactory.RunTypeComponentsHolder, error) {
-			return createRunTypeComponents(coreComponents, cryptoComponents)
+		GetRunTypeComponents: func(args runType.ArgsRunTypeComponents) (mainFactory.RunTypeComponentsHolder, error) {
+			return createRunTypeComponents(args)
 		},
 	}
 }
 
-func createRunTypeComponents(coreComponents mainFactory.CoreComponentsHolder, _ mainFactory.CryptoComponentsHolder) (mainFactory.RunTypeComponentsHolder, error) {
-	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory(coreComponents)
+func createRunTypeComponents(args runType.ArgsRunTypeComponents) (mainFactory.RunTypeComponentsHolder, error) {
+	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory(args)
 	managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(runTypeComponentsFactory)
 	if err != nil {
 		return nil, err
