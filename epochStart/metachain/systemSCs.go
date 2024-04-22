@@ -78,7 +78,6 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 		common.SaveJailedAlwaysFlag,
 		common.StakingV4Step1Flag,
 		common.StakingV4Step2Flag,
-		common.StakingQueueFlag,
 		common.StakingV4StartedFlag,
 		common.DelegationSmartContractFlagInSpecificEpochOnly,
 		common.GovernanceFlagInSpecificEpochOnly,
