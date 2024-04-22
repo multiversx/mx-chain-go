@@ -260,7 +260,7 @@ func TestSovereignGenesisBlockCreator_initGenesisAccountsErrorCases(t *testing.T
 				if bytes.Equal(container, core.ESDTSCAddress) {
 					return nil, localErr
 				}
-				return nil, nil
+				return &mock.UserAccountMock{}, nil
 			},
 		}
 
