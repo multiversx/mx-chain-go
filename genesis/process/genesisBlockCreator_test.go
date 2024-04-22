@@ -50,14 +50,34 @@ import (
 
 var nodePrice = big.NewInt(5000)
 
-// TODO improve code coverage of this package
 func createMockArgument(
 	t *testing.T,
 	genesisFilename string,
 	initialNodes genesis.InitialNodesHandler,
 	entireSupply *big.Int,
 ) ArgsGenesisBlockCreator {
+	return createArgument(t, genesisFilename, initialNodes, entireSupply, genesisMocks.NewRunTypeComponentsStub())
+}
+
+func createSovereignMockArgument(
+	t *testing.T,
+	genesisFilename string,
+	initialNodes genesis.InitialNodesHandler,
+	entireSupply *big.Int,
+) ArgsGenesisBlockCreator {
+	return createArgument(t, genesisFilename, initialNodes, entireSupply, genesisMocks.NewSovereignRunTypeComponentsStub())
+}
+
+// TODO improve code coverage of this package
+func createArgument(
+	t *testing.T,
+	genesisFilename string,
+	initialNodes genesis.InitialNodesHandler,
+	entireSupply *big.Int,
+	runTypeComponents *genesisMocks.RunTypeComponentsStub,
+) ArgsGenesisBlockCreator {
 	trieStorageManagers := createTrieStorageManagers()
+
 	arg := ArgsGenesisBlockCreator{
 		GenesisTime:   0,
 		StartEpochNum: 0,
@@ -185,7 +205,6 @@ func createMockArgument(
 				return &block.Header{}
 			},
 		},
-		RunTypeComponents: genesisMocks.NewRunTypeComponentsStub(),
 	}
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{
@@ -197,7 +216,7 @@ func createMockArgument(
 	arg.Accounts, err = createAccountAdapter(
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
-		arg.RunTypeComponents.AccountsCreator(),
+		runTypeComponents.AccountsCreator(),
 		trieStorageManagers[dataRetriever.UserAccountsUnit.String()],
 		&testscommon.PubkeyConverterMock{},
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
@@ -232,8 +251,11 @@ func createMockArgument(
 	}
 	arg.Economics = ted
 
+	initialAccounts, err := testscommon.ReadInitialAccounts(genesisFilename)
+	require.Nil(t, err)
+
 	args := genesis.AccountsParserArgs{
-		GenesisFilePath: genesisFilename,
+		InitialAccounts: initialAccounts,
 		EntireSupply:    arg.Economics.GenesisTotalSupply(),
 		MinterAddress:   "",
 		PubkeyConverter: arg.Core.AddressPubKeyConverter(),
@@ -242,7 +264,7 @@ func createMockArgument(
 		Marshalizer:     &mock.MarshalizerMock{},
 	}
 
-	arg.AccountsParser, err = parsing.NewAccountsParser(args)
+	runTypeComponents.AccountParser, err = parsing.NewAccountsParser(args)
 	require.Nil(t, err)
 
 	arg.SmartContractParser, err = parsing.NewSmartContractsParser(
@@ -253,6 +275,7 @@ func createMockArgument(
 	require.Nil(t, err)
 
 	arg.InitialNodesSetup = initialNodes
+	arg.RunTypeComponents = runTypeComponents
 
 	return arg
 }
@@ -395,16 +418,6 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		require.ErrorIs(t, err, process.ErrNilPoolsHolder)
 		require.Nil(t, gbc)
 	})
-	t.Run("nil AccountsParser should error", func(t *testing.T) {
-		t.Parallel()
-
-		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
-		arg.AccountsParser = nil
-
-		gbc, err := NewGenesisBlockCreator(arg)
-		require.ErrorIs(t, err, genesis.ErrNilAccountsParser)
-		require.Nil(t, gbc)
-	})
 	t.Run("nil GasSchedule should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -481,6 +494,18 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 
 		gbc, err := NewGenesisBlockCreator(arg)
 		require.ErrorIs(t, err, errorsMx.ErrNilTransactionCoordinatorCreator)
+		require.Nil(t, gbc)
+	})
+	t.Run("nil AccountsParser should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
+		rtComponents := genesisMocks.NewRunTypeComponentsStub()
+		rtComponents.AccountParser = nil
+		arg.RunTypeComponents = rtComponents
+
+		gbc, err := NewGenesisBlockCreator(arg)
+		require.ErrorContains(t, err, genesis.ErrNilAccountsParser.Error())
 		require.Nil(t, gbc)
 	})
 	t.Run("nil AccountCreator should error", func(t *testing.T) {

@@ -4,9 +4,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/multiversx/mx-chain-go/genesis"
+	"github.com/multiversx/mx-chain-go/genesis/data"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/database"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
+
+	"github.com/multiversx/mx-chain-core-go/core"
 )
 
 // HashSize holds the size of a typical hash used by the protocol
@@ -27,4 +31,19 @@ func CreateMemUnit() storage.Storer {
 	persist, _ := database.NewlruDB(100000)
 	unit, _ := storageunit.NewStorageUnit(cache, persist)
 	return unit
+}
+
+func ReadInitialAccounts(filePath string) ([]genesis.InitialAccountHandler, error) {
+	initialAccounts := make([]*data.InitialAccount, 0)
+	err := core.LoadJsonFile(&initialAccounts, filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	var accounts []genesis.InitialAccountHandler
+	for _, ia := range initialAccounts {
+		accounts = append(accounts, ia)
+	}
+
+	return accounts, nil
 }

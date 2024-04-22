@@ -600,6 +600,7 @@ type RunTypeComponentsHolder interface {
 	ConsensusModel() consensus.ConsensusModel
 	VmContainerMetaFactoryCreator() factoryVm.VmContainerCreator
 	VmContainerShardFactoryCreator() factoryVm.VmContainerCreator
+	AccountsParser() genesis.AccountsParser
 	AccountsCreator() state.AccountFactory
 	OutGoingOperationsPoolHandler() sovereignBlock.OutGoingOperationsPool
 	DataCodecHandler() sovereign.DataCodecHandler

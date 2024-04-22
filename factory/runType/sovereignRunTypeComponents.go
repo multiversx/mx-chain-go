@@ -2,6 +2,7 @@ package runType
 
 import (
 	"fmt"
+	"math/big"
 	"time"
 
 	"github.com/multiversx/mx-chain-go/config"
@@ -13,6 +14,8 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/errors"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
+	"github.com/multiversx/mx-chain-go/genesis"
+	"github.com/multiversx/mx-chain-go/genesis/parsing"
 	processComp "github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
@@ -44,7 +47,7 @@ type ArgsSovereignRunTypeComponents struct {
 
 type sovereignRunTypeComponentsFactory struct {
 	*runTypeComponentsFactory
-	cfg           config.SovereignConfig
+	sovConfig     config.SovereignConfig
 	dataCodec     sovereign.DataCodecHandler
 	topicsChecker sovereign.TopicsCheckerHandler
 	extraVerifier process.ExtraHeaderSigVerifierHandler
@@ -67,7 +70,7 @@ func NewSovereignRunTypeComponentsFactory(args ArgsSovereignRunTypeComponents) (
 
 	return &sovereignRunTypeComponentsFactory{
 		runTypeComponentsFactory: args.RunTypeComponentsFactory,
-		cfg:                      args.Config,
+		sovConfig:                args.Config,
 		dataCodec:                args.DataCodec,
 		topicsChecker:            args.TopicsChecker,
 		extraVerifier:            args.ExtraVerifier,
@@ -161,19 +164,43 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignVmContainerShardFactory failed: %w", err)
 	}
 
+	totalSupply, ok := big.NewInt(0).SetString(rcf.configs.EconomicsConfig.GlobalSettings.GenesisTotalSupply, 10)
+	if !ok {
+		return nil, fmt.Errorf("can not parse total suply from economics.toml, %s is not a valid value",
+			rcf.configs.EconomicsConfig.GlobalSettings.GenesisTotalSupply)
+	}
+
+	accountsParserArgs := genesis.AccountsParserArgs{
+		InitialAccounts: rcf.initialAccounts,
+		EntireSupply:    totalSupply,
+		MinterAddress:   rcf.configs.EconomicsConfig.GlobalSettings.GenesisMintingSenderAddress,
+		PubkeyConverter: rcf.coreComponents.AddressPubKeyConverter(),
+		KeyGenerator:    rcf.cryptoComponents.TxSignKeyGen(),
+		Hasher:          rcf.coreComponents.Hasher(),
+		Marshalizer:     rcf.coreComponents.InternalMarshalizer(),
+	}
+	accountsParser, err := parsing.NewAccountsParser(accountsParserArgs)
+	if err != nil {
+		return nil, fmt.Errorf("runTypeComponentsFactory - NewAccountsParser failed: %w", err)
+	}
+	sovereignAccountsParser, err := parsing.NewSovereignAccountsParser(accountsParser)
+	if err != nil {
+		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignAccountsParser failed: %w", err)
+	}
+
 	accountsCreator, err := factory.NewSovereignAccountCreator(factory.ArgsSovereignAccountCreator{
 		ArgsAccountCreator: factory.ArgsAccountCreator{
 			Hasher:              rcf.coreComponents.Hasher(),
 			Marshaller:          rcf.coreComponents.InternalMarshalizer(),
 			EnableEpochsHandler: rcf.coreComponents.EnableEpochsHandler(),
 		},
-		BaseTokenID: rcf.cfg.GenesisConfig.NativeESDT,
+		BaseTokenID: rcf.sovConfig.GenesisConfig.NativeESDT,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignAccountCreator failed: %w", err)
 	}
 
-	expiryTime := time.Second * time.Duration(rcf.cfg.OutgoingSubscribedEvents.TimeToWaitForUnconfirmedOutGoingOperationInSeconds)
+	expiryTime := time.Second * time.Duration(rcf.sovConfig.OutgoingSubscribedEvents.TimeToWaitForUnconfirmedOutGoingOperationInSeconds)
 
 	txPreProcessorCreator := preprocess.NewSovereignTxPreProcessorCreator()
 
@@ -201,6 +228,7 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		consensusModel:                          consensus.ConsensusModelV2,
 		vmContainerMetaFactory:                  rtc.vmContainerMetaFactory,
 		vmContainerShardFactory:                 vmContainerShardCreator,
+		accountsParser:                          sovereignAccountsParser,
 		accountsCreator:                         accountsCreator,
 		outGoingOperationsPoolHandler:           sovereignFactory.NewOutGoingOperationPool(expiryTime),
 		dataCodecHandler:                        rcf.dataCodec,

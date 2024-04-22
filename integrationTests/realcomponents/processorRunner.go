@@ -26,7 +26,6 @@ import (
 	factoryState "github.com/multiversx/mx-chain-go/factory/state"
 	factoryStatus "github.com/multiversx/mx-chain-go/factory/status"
 	factoryStatusCore "github.com/multiversx/mx-chain-go/factory/statusCore"
-	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
@@ -38,6 +37,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/update/trigger"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -78,8 +78,8 @@ func NewProcessorRunner(tb testing.TB, config config.Configs) *ProcessorRunner {
 
 func (pr *ProcessorRunner) createComponents(tb testing.TB) {
 	pr.createCoreComponents(tb)
-	pr.createRunTypeComponents(tb)
 	pr.createCryptoComponents(tb)
+	pr.createRunTypeComponents(tb)
 	pr.createStatusCoreComponents(tb)
 	pr.createNetworkComponents(tb)
 	pr.createBootstrapComponents(tb)
@@ -90,7 +90,14 @@ func (pr *ProcessorRunner) createComponents(tb testing.TB) {
 }
 
 func (pr *ProcessorRunner) createRunTypeComponents(tb testing.TB) {
-	rtFactory, err := runType.NewRunTypeComponentsFactory(pr.CoreComponents)
+	initialAccounts, err := testscommon.ReadInitialAccounts(pr.Config.ConfigurationPathsHolder.Genesis)
+
+	rtFactory, err := runType.NewRunTypeComponentsFactory(runType.ArgsRunTypeComponents{
+		CoreComponents:   pr.CoreComponents,
+		CryptoComponents: pr.CryptoComponents,
+		Configs:          pr.Config,
+		InitialAccounts:  initialAccounts,
+	})
 	require.Nil(tb, err)
 
 	rtComp, err := runType.NewManagedRunTypeComponents(rtFactory)
@@ -365,22 +372,6 @@ func (pr *ProcessorRunner) createStatusComponents(tb testing.TB) {
 }
 
 func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
-	totalSupply, ok := big.NewInt(0).SetString(pr.Config.EconomicsConfig.GlobalSettings.GenesisTotalSupply, 10)
-	require.True(tb, ok)
-
-	args := genesis.AccountsParserArgs{
-		GenesisFilePath: pr.Config.ConfigurationPathsHolder.Genesis,
-		EntireSupply:    totalSupply,
-		MinterAddress:   pr.Config.EconomicsConfig.GlobalSettings.GenesisMintingSenderAddress,
-		PubkeyConverter: pr.CoreComponents.AddressPubKeyConverter(),
-		KeyGenerator:    pr.CryptoComponents.TxSignKeyGen(),
-		Hasher:          pr.CoreComponents.Hasher(),
-		Marshalizer:     pr.CoreComponents.InternalMarshalizer(),
-	}
-
-	accountsParser, err := parsing.NewAccountsParser(args)
-	require.Nil(tb, err)
-
 	whiteListCache, err := storageunit.NewCache(storageFactory.GetCacherFromConfig(pr.Config.GeneralConfig.WhiteListPool))
 	require.Nil(tb, err)
 
@@ -441,7 +432,6 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 			Version:    "test",
 			WorkingDir: pr.Config.FlagsConfig.WorkingDir,
 		},
-		AccountsParser:          accountsParser,
 		SmartContractParser:     smartContractParser,
 		GasSchedule:             gasScheduleNotifier,
 		NodesCoordinator:        pr.NodesCoordinator,

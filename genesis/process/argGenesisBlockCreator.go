@@ -51,6 +51,7 @@ type runTypeComponentsHandler interface {
 	TransactionCoordinatorCreator() coordinator.TransactionCoordinatorCreator
 	SCResultsPreProcessorCreator() preprocess.SmartContractResultPreProcessorCreator
 	SCProcessorCreator() scrCommon.SCProcessorCreator
+	AccountsParser() genesis.AccountsParser
 	AccountsCreator() state.AccountFactory
 	ShardCoordinatorCreator() sharding.ShardCoordinatorFactory
 	TxPreProcessorCreator() preprocess.TxPreProcessorCreator
@@ -71,7 +72,6 @@ type ArgsGenesisBlockCreator struct {
 	InitialNodesSetup       genesis.InitialNodesHandler
 	Economics               process.EconomicsDataHandler
 	ShardCoordinator        sharding.Coordinator
-	AccountsParser          genesis.AccountsParser
 	SmartContractParser     genesis.InitialSmartContractParser
 	GasSchedule             core.GasScheduleNotifier
 	TxLogsProcessor         process.TransactionLogProcessor

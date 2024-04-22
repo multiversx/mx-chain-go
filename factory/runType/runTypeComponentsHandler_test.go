@@ -1,18 +1,25 @@
 package runType_test
 
 import (
+	"math/big"
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/runType"
+	"github.com/multiversx/mx-chain-go/genesis"
+	"github.com/multiversx/mx-chain-go/genesis/data"
+	mockCoreComp "github.com/multiversx/mx-chain-go/integrationTests/mock"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	factoryMock "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/stretchr/testify/require"
@@ -64,6 +71,7 @@ func TestManagedRunTypeComponents_Create(t *testing.T) {
 		require.Equal(t, consensus.ConsensusModelInvalid, managedRunTypeComponents.ConsensusModel())
 		require.Nil(t, managedRunTypeComponents.VmContainerMetaFactoryCreator())
 		require.Nil(t, managedRunTypeComponents.VmContainerShardFactoryCreator())
+		require.Nil(t, managedRunTypeComponents.AccountsParser())
 		require.Nil(t, managedRunTypeComponents.AccountsCreator())
 		require.Nil(t, managedRunTypeComponents.OutGoingOperationsPoolHandler())
 		require.Nil(t, managedRunTypeComponents.DataCodecHandler())
@@ -98,6 +106,7 @@ func TestManagedRunTypeComponents_Create(t *testing.T) {
 		require.Equal(t, consensus.ConsensusModelV1, managedRunTypeComponents.ConsensusModel())
 		require.NotNil(t, managedRunTypeComponents.VmContainerMetaFactoryCreator())
 		require.NotNil(t, managedRunTypeComponents.VmContainerShardFactoryCreator())
+		require.NotNil(t, managedRunTypeComponents.AccountsParser())
 		require.NotNil(t, managedRunTypeComponents.AccountsCreator())
 		require.NotNil(t, managedRunTypeComponents.OutGoingOperationsPoolHandler())
 		require.NotNil(t, managedRunTypeComponents.DataCodecHandler())
@@ -159,20 +168,49 @@ func TestManagedRunTypeComponents_IsInterfaceNil(t *testing.T) {
 }
 
 func createComponents() (factory.RunTypeComponentsHandler, error) {
-	rcf, _ := runType.NewRunTypeComponentsFactory(createCoreComponents())
+	rcf, _ := runType.NewRunTypeComponentsFactory(createArgsRunTypeComponents())
 	return runType.NewManagedRunTypeComponents(rcf)
 }
 
-func createCoreComponents() factory.CoreComponentsHolder {
-	return &factoryMock.CoreComponentsHolderMock{
-		InternalMarshalizerCalled: func() marshal.Marshalizer {
-			return &marshallerMock.MarshalizerMock{}
+func createArgsRunTypeComponents() runType.ArgsRunTypeComponents {
+	acc1 := data.InitialAccount{
+		Address:      "erd1whq0zspt6ktnv37gqj303da0vygyqwf5q52m7erftd0rl7laygfs6rhpct",
+		Supply:       big.NewInt(2),
+		Balance:      big.NewInt(1),
+		StakingValue: big.NewInt(1),
+		Delegation: &data.DelegationData{
+			Address: "",
+			Value:   big.NewInt(0),
 		},
-		HasherCalled: func() hashing.Hasher {
-			return &hashingMocks.HasherMock{}
+	}
+	initialAccounts := []genesis.InitialAccountHandler{&acc1}
+
+	return runType.ArgsRunTypeComponents{
+		CoreComponents: &factoryMock.CoreComponentsHolderMock{
+			InternalMarshalizerCalled: func() marshal.Marshalizer {
+				return &marshallerMock.MarshalizerMock{}
+			},
+			HasherCalled: func() hashing.Hasher {
+				return &hashingMocks.HasherMock{}
+			},
+			EnableEpochsHandlerCalled: func() common.EnableEpochsHandler {
+				return &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
+			},
+			AddressPubKeyConverterCalled: func() core.PubkeyConverter {
+				return &testscommon.PubkeyConverterStub{}
+			},
 		},
-		EnableEpochsHandlerCalled: func() common.EnableEpochsHandler {
-			return &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
+		CryptoComponents: &mockCoreComp.CryptoComponentsStub{
+			TxKeyGen: &mockCoreComp.KeyGenMock{},
 		},
+		Configs: config.Configs{
+			EconomicsConfig: &config.EconomicsConfig{
+				GlobalSettings: config.GlobalSettings{
+					GenesisTotalSupply:          "2",
+					GenesisMintingSenderAddress: "erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3",
+				},
+			},
+		},
+		InitialAccounts: initialAccounts,
 	}
 }

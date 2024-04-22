@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
+	"github.com/multiversx/mx-chain-go/genesis"
 	processComp "github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/process"
 	processBlock "github.com/multiversx/mx-chain-go/process/block"
@@ -149,6 +150,9 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	}
 	if check.IfNil(mrc.vmContainerShardFactory) {
 		return errors.ErrNilVmContainerShardFactoryCreator
+	}
+	if check.IfNil(mrc.accountsParser) {
+		return errors.ErrNilAccountsParser
 	}
 	if check.IfNil(mrc.accountsCreator) {
 		return errors.ErrNilAccountsCreator
@@ -406,6 +410,18 @@ func (mrc *managedRunTypeComponents) VmContainerShardFactoryCreator() factoryVm.
 	}
 
 	return mrc.runTypeComponents.vmContainerShardFactory
+}
+
+// AccountsParser returns the accounts parser
+func (mrc *managedRunTypeComponents) AccountsParser() genesis.AccountsParser {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.accountsParser
 }
 
 // AccountsCreator returns the accounts factory

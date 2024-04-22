@@ -316,7 +316,7 @@ func createArgsShardBlockCreatorAfterHardFork(
 
 // setBalancesToTrie adds balances to trie
 func setBalancesToTrie(arg ArgsGenesisBlockCreator) (int, error) {
-	initialAccounts, err := arg.AccountsParser.InitialAccountsSplitOnAddressesShards(arg.ShardCoordinator)
+	initialAccounts, err := arg.RunTypeComponents.AccountsParser().InitialAccountsSplitOnAddressesShards(arg.ShardCoordinator)
 	if err != nil {
 		return 0, err
 	}
@@ -776,7 +776,7 @@ func increaseStakersNonces(processors *genesisProcessors, arg ArgsGenesisBlockCr
 		return 0, err
 	}
 
-	initialAddresses, err := arg.AccountsParser.InitialAccountsSplitOnAddressesShards(arg.ShardCoordinator)
+	initialAddresses, err := arg.RunTypeComponents.AccountsParser().InitialAccountsSplitOnAddressesShards(arg.ShardCoordinator)
 	if err != nil {
 		return 0, err
 	}
@@ -814,7 +814,7 @@ func executeDelegation(
 	argDP := intermediate.ArgStandardDelegationProcessor{
 		Executor:            txExecutor,
 		ShardCoordinator:    arg.ShardCoordinator,
-		AccountsParser:      arg.AccountsParser,
+		AccountsParser:      arg.RunTypeComponents.AccountsParser(),
 		SmartContractParser: arg.SmartContractParser,
 		NodesListSplitter:   nodesListSplitter,
 		QueryService:        processors.queryService,
@@ -835,7 +835,7 @@ func incrementNoncesForCrossShardDelegations(processors *genesisProcessors, arg 
 		return 0, err
 	}
 
-	initialAddresses, err := arg.AccountsParser.InitialAccountsSplitOnAddressesShards(arg.ShardCoordinator)
+	initialAddresses, err := arg.RunTypeComponents.AccountsParser().InitialAccountsSplitOnAddressesShards(arg.ShardCoordinator)
 	if err != nil {
 		return 0, err
 	}

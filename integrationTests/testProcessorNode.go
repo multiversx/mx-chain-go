@@ -516,11 +516,15 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 
 	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
 
-	args.RunTypeComponents = components.GetRunTypeComponentsWithCoreComp(&mock.CoreComponentsStub{
-		HasherField:              TestHasher,
-		InternalMarshalizerField: TestMarshalizer,
-		EnableEpochsHandlerField: enableEpochsHandler,
+	rtc := components.GetRunTypeComponentsWithCoreComp(&mock.CoreComponentsStub{
+		HasherField:                 TestHasher,
+		InternalMarshalizerField:    TestMarshalizer,
+		EnableEpochsHandlerField:    enableEpochsHandler,
+		AddressPubKeyConverterField: &testscommon.PubkeyConverterStub{},
 	})
+	runTypeComponents := components.GetRunTypeComponentsStub(rtc)
+	runTypeComponents.AccountParser = &genesisMocks.AccountsParserStub{}
+	args.RunTypeComponents = runTypeComponents
 
 	tpn := &TestProcessorNode{
 		ShardCoordinator:           shardCoordinator,
@@ -733,7 +737,6 @@ func (tpn *TestProcessorNode) initGenesisBlocks(args ArgTestProcessorNode) {
 			tpn.BlockChain,
 			tpn.DataPool,
 			tpn.EconomicsData,
-			&genesisMocks.AccountsParserStub{},
 			tpn.SmartContractParser,
 			tpn.EnableEpochs,
 			tpn.RunTypeComponents,
@@ -3317,6 +3320,7 @@ func GetDefaultRunTypeComponents(consensusModel consensus.ConsensusModel) *mainF
 		SCProcessorFactory:                  rt.SCProcessorCreator(),
 		BootstrapperFactory:                 rt.BootstrapperCreator(),
 		SCResultsPreProcessorFactory:        rt.SCResultsPreProcessorCreator(),
+		AccountParser:                       rt.AccountsParser(),
 		AccountCreator:                      rt.AccountsCreator(),
 		ConsensusModelType:                  consensusModel,
 		VmContainerMetaFactory:              rt.VmContainerMetaFactoryCreator(),
@@ -3326,6 +3330,13 @@ func GetDefaultRunTypeComponents(consensusModel consensus.ConsensusModel) *mainF
 		TopicsChecker:                       rt.TopicsCheckerHandler(),
 		ShardCoordinatorFactory:             rt.ShardCoordinatorCreator(),
 		NodesCoordinatorWithRaterFactory:    rt.NodesCoordinatorWithRaterCreator(),
+		RequestersContainerFactory:          rt.RequestersContainerFactoryCreator(),
+		InterceptorsContainerFactory:        rt.InterceptorsContainerFactoryCreator(),
+		ShardResolversContainerFactory:      rt.ShardResolversContainerFactoryCreator(),
+		TxPreProcessorFactory:               rt.TxPreProcessorCreator(),
+		ExtraHeaderSigVerifier:              rt.ExtraHeaderSigVerifierHandler(),
+		GenesisBlockFactory:                 rt.GenesisBlockCreator(),
+		GenesisMetaBlockChecker:             rt.GenesisMetaBlockCheckerCreator(),
 	}
 }
 
