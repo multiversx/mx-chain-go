@@ -20,7 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 )
 
-func (node *testOnlyProcessingNode) createFacade(configs config.Configs, apiInterface APIConfigurator) error {
+func (node *testOnlyProcessingNode) createFacade(configs config.Configs, apiInterface APIConfigurator, nodeFactory nodePack.NodeFactory) error {
 	log.Debug("creating api resolver structure")
 
 	err := node.createMetrics(configs)
@@ -79,7 +79,7 @@ func (node *testOnlyProcessingNode) createFacade(configs config.Configs, apiInte
 
 	flagsConfig := configs.FlagsConfig
 
-	nd, err := nodePack.NewNode(
+	nd, err := nodeFactory.CreateNewNode(
 		nodePack.WithRunTypeComponents(node.RunTypeComponents),
 		nodePack.WithStatusCoreComponents(node.StatusCoreComponents),
 		nodePack.WithCoreComponents(node.CoreComponentsHolder),

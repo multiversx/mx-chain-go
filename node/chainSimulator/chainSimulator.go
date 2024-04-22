@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/runType"
+	"github.com/multiversx/mx-chain-go/node"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
@@ -68,6 +69,7 @@ type ArgsChainSimulator struct {
 	CreateRatingsData           func(arg rating.RatingsDataArg) (processing.RatingsInfoHandler, error)
 	CreateIncomingHeaderHandler func(config *config.NotifierConfig, dataPool dataRetriever.PoolsHolder, mainChainNotarizationStartRound uint64, runTypeComponents factory.RunTypeComponentsHolder) (processing.IncomingHeaderSubscriber, error)
 	GetRunTypeComponents        func(args runType.ArgsRunTypeComponents) (factory.RunTypeComponentsHolder, error)
+	NodeFactory                 node.NodeFactory
 }
 
 type simulator struct {
@@ -103,6 +105,9 @@ func NewChainSimulator(args ArgsChainSimulator) (*simulator, error) {
 		args.GetRunTypeComponents = func(args runType.ArgsRunTypeComponents) (factory.RunTypeComponentsHolder, error) {
 			return createRunTypeComponents(args)
 		}
+	}
+	if args.NodeFactory == nil {
+		args.NodeFactory = node.NewNodeFactory()
 	}
 
 	instance := &simulator{
@@ -218,6 +223,7 @@ func (s *simulator) createTestNode(
 		CreateRatingsData:           args.CreateRatingsData,
 		CreateIncomingHeaderHandler: args.CreateIncomingHeaderHandler,
 		GetRunTypeComponents:        args.GetRunTypeComponents,
+		NodeFactory:                 args.NodeFactory,
 	}
 
 	return components.NewTestOnlyProcessingNode(argsTestOnlyProcessorNode)
