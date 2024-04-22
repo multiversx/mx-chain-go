@@ -37,9 +37,9 @@ func IsTickerValid(ticker string) bool {
 	}
 
 	for _, ch := range ticker {
-		isLowerCaseCharacter := ch >= 'A' && ch <= 'Z'
+		isUpperCaseCharacter := ch >= 'A' && ch <= 'Z'
 		isNumber := ch >= '0' && ch <= '9'
-		isAllowedChar := isLowerCaseCharacter || isNumber
+		isAllowedChar := isUpperCaseCharacter || isNumber
 		if !isAllowedChar {
 			return false
 		}
