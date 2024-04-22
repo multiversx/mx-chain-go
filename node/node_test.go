@@ -3293,7 +3293,7 @@ func TestNode_GetAccountPubkeyConverterFailsShouldErr(t *testing.T) {
 		node.WithCoreComponents(coreComponents),
 	)
 
-	recovAccnt, _, err := n.GetAccount(createDummyHexAddress(64), api.AccountQueryOptions{}, context.Background())
+	recovAccnt, _, err := n.GetAccount(createDummyHexAddress(64), api.AccountQueryOptions{})
 
 	assert.Empty(t, recovAccnt)
 	assert.ErrorIs(t, err, errExpected)
@@ -3320,7 +3320,7 @@ func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
 		node.WithStateComponents(stateComponents),
 	)
 
-	account, blockInfo, err := n.GetAccount(testscommon.TestAddressAlice, api.AccountQueryOptions{}, context.Background())
+	account, blockInfo, err := n.GetAccount(testscommon.TestAddressAlice, api.AccountQueryOptions{})
 
 	require.Nil(t, err)
 	require.Equal(t, uint64(0), account.Nonce)
@@ -3355,7 +3355,7 @@ func TestNode_GetAccountAccountsRepositoryFailsShouldErr(t *testing.T) {
 		node.WithStateComponents(stateComponents),
 	)
 
-	recovAccnt, _, err := n.GetAccount(testscommon.TestAddressAlice, api.AccountQueryOptions{}, context.Background())
+	recovAccnt, _, err := n.GetAccount(testscommon.TestAddressAlice, api.AccountQueryOptions{})
 
 	assert.Empty(t, recovAccnt)
 	assert.NotNil(t, err)
@@ -3394,7 +3394,7 @@ func TestNode_GetAccountAccNotFoundShouldReturnEmpty(t *testing.T) {
 		node.WithStateComponents(stateComponents),
 	)
 
-	acc, bInfo, err := n.GetAccount(testscommon.TestAddressAlice, api.AccountQueryOptions{}, context.Background())
+	acc, bInfo, err := n.GetAccount(testscommon.TestAddressAlice, api.AccountQueryOptions{})
 	require.Nil(t, err)
 	require.Equal(t, dummyBlockInfo.apiResult(), bInfo)
 	require.Equal(t, api.AccountResponse{Address: testscommon.TestAddressAlice, Balance: "0", DeveloperReward: "0"}, acc)
@@ -3436,7 +3436,7 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 		node.WithStateComponents(stateComponents),
 	)
 
-	recovAccnt, _, err := n.GetAccount(testscommon.TestAddressBob, api.AccountQueryOptions{}, context.Background())
+	recovAccnt, _, err := n.GetAccount(testscommon.TestAddressBob, api.AccountQueryOptions{})
 
 	require.Nil(t, err)
 	require.Equal(t, uint64(2), recovAccnt.Nonce)
@@ -3503,11 +3503,11 @@ func TestNode_GetAccountAccountWithKeysShouldReturn(t *testing.T) {
 		node.WithStateComponents(stateComponents),
 	)
 
-	recovAccnt, _, err := n.GetAccount(testscommon.TestAddressBob, api.AccountQueryOptions{WithKeys: false}, context.Background())
+	recovAccnt, _, err := n.GetAccountWithKeys(testscommon.TestAddressBob, api.AccountQueryOptions{WithKeys: false}, context.Background())
 	require.Nil(t, err)
 	require.Nil(t, recovAccnt.Pairs)
 
-	recovAccnt, _, err = n.GetAccount(testscommon.TestAddressBob, api.AccountQueryOptions{WithKeys: true}, context.Background())
+	recovAccnt, _, err = n.GetAccountWithKeys(testscommon.TestAddressBob, api.AccountQueryOptions{WithKeys: true}, context.Background())
 
 	require.Nil(t, err)
 	require.NotNil(t, recovAccnt.Pairs)

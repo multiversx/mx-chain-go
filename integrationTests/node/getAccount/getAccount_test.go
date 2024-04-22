@@ -1,7 +1,6 @@
 package getAccount
 
 import (
-	"context"
 	"math/big"
 	"testing"
 
@@ -58,7 +57,7 @@ func TestNode_GetAccountAccountDoesNotExistsShouldRetEmpty(t *testing.T) {
 
 	encodedAddress, err := integrationTests.TestAddressPubkeyConverter.Encode(integrationTests.CreateRandomBytes(32))
 	require.Nil(t, err)
-	recovAccnt, _, err := n.GetAccount(encodedAddress, api.AccountQueryOptions{}, context.Background())
+	recovAccnt, _, err := n.GetAccount(encodedAddress, api.AccountQueryOptions{})
 
 	require.Nil(t, err)
 	assert.Equal(t, uint64(0), recovAccnt.Nonce)
@@ -100,7 +99,7 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 
 	testAddress, err := coreComponents.AddressPubKeyConverter().Encode(testPubkey)
 	require.Nil(t, err)
-	recovAccnt, _, err := n.GetAccount(testAddress, api.AccountQueryOptions{}, context.Background())
+	recovAccnt, _, err := n.GetAccount(testAddress, api.AccountQueryOptions{})
 
 	require.Nil(t, err)
 	require.Equal(t, testNonce, recovAccnt.Nonce)

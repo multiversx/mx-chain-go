@@ -54,11 +54,6 @@ func parseAccountQueryOptions(c *gin.Context) (api.AccountQueryOptions, error) {
 		return api.AccountQueryOptions{}, err
 	}
 
-	withKeys, err := parseBoolUrlParam(c, urlParamWithKeys)
-	if err != nil {
-		return api.AccountQueryOptions{}, err
-	}
-
 	options := api.AccountQueryOptions{
 		OnFinalBlock:   onFinalBlock,
 		OnStartOfEpoch: onStartOfEpoch,
@@ -66,7 +61,7 @@ func parseAccountQueryOptions(c *gin.Context) (api.AccountQueryOptions, error) {
 		BlockHash:      blockHash,
 		BlockRootHash:  blockRootHash,
 		HintEpoch:      hintEpoch,
-		WithKeys:       withKeys,
+		WithKeys:       false,
 	}
 	return options, nil
 }
