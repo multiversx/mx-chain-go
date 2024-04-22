@@ -221,7 +221,7 @@ func TestSovereignGenesisBlockCreator_CreateGenesisBaseProcess(t *testing.T) {
 	requireTokenExists(t, acc3, []byte(sovereignNativeToken), balance3, args.Core.InternalMarshalizer())
 }
 
-func TestSovereignGenesisBlockCreator_initGenesisAccountsErrorCases(t *testing.T) {
+func TestSovereignGenesisBlockCreator_initGenesisAccounts(t *testing.T) {
 	t.Parallel()
 
 	localErr := errors.New("local error")
@@ -280,6 +280,51 @@ func TestSovereignGenesisBlockCreator_initGenesisAccountsErrorCases(t *testing.T
 
 		err := sgbc.initGenesisAccounts()
 		require.Equal(t, localErr, err)
+	})
+	t.Run("should work", func(t *testing.T) {
+		_, sgbc := createSovereignGenesisBlockCreator(t)
+		contractsToUpdate := map[string]struct{}{
+			string(vm.StakingSCAddress):           {},
+			string(vm.ValidatorSCAddress):         {},
+			string(vm.GovernanceSCAddress):        {},
+			string(vm.ESDTSCAddress):              {},
+			string(vm.DelegationManagerSCAddress): {},
+			string(vm.FirstDelegationSCAddress):   {},
+		}
+
+		expectedCodeMetaData := &vmcommon.CodeMetadata{
+			Readable: true,
+		}
+
+		sgbc.arg.Accounts = &state.AccountsStub{
+			SaveAccountCalled: func(account vmcommon.AccountHandler) error {
+				if bytes.Equal(account.AddressBytes(), core.SystemAccountAddress) {
+					return nil
+				}
+
+				addrStr := string(account.AddressBytes())
+				_, found := contractsToUpdate[addrStr]
+				require.True(t, found)
+
+				userAcc := account.(*state.AccountWrapMock)
+				require.NotEmpty(t, userAcc.GetCode())
+				require.NotEmpty(t, userAcc.GetOwnerAddress())
+				require.Equal(t, expectedCodeMetaData.ToBytes(), userAcc.GetCodeMetadata())
+
+				delete(contractsToUpdate, addrStr)
+
+				return nil
+			},
+			LoadAccountCalled: func(container []byte) (vmcommon.AccountHandler, error) {
+				return &state.AccountWrapMock{
+					Address: container,
+				}, nil
+			},
+		}
+
+		err := sgbc.initGenesisAccounts()
+		require.Nil(t, err)
+		require.Empty(t, contractsToUpdate)
 	})
 }
 
