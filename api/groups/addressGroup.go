@@ -186,6 +186,14 @@ func (ag *addressGroup) getAccount(c *gin.Context) {
 		return
 	}
 
+	withKeys, err := parseBoolUrlParam(c, urlParamWithKeys)
+	if err != nil {
+		shared.RespondWithValidationError(c, errors.ErrCouldNotGetAccount, err)
+		return
+	}
+
+	options.WithKeys = withKeys
+
 	accountResponse, blockInfo, err := ag.getFacade().GetAccount(addr, options)
 	if err != nil {
 		shared.RespondWithInternalError(c, errors.ErrCouldNotGetAccount, err)

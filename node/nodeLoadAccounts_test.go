@@ -2,7 +2,6 @@ package node_test
 
 import (
 	"bytes"
-	"context"
 	"errors"
 	"math/big"
 	"testing"
@@ -46,7 +45,7 @@ func TestNode_GetAccountWithOptionsShouldWork(t *testing.T) {
 		node.WithStateComponents(stateComponents),
 	)
 
-	account, blockInfo, err := n.GetAccount(testscommon.TestAddressAlice, api.AccountQueryOptions{}, context.Background())
+	account, blockInfo, err := n.GetAccount(testscommon.TestAddressAlice, api.AccountQueryOptions{})
 	require.Nil(t, err)
 	require.Equal(t, "100", account.Balance)
 	require.Equal(t, uint64(1), blockInfo.Nonce)

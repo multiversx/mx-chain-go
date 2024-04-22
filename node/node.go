@@ -938,7 +938,45 @@ func (n *Node) setTxGuardianData(guardian string, guardianSigHex string, tx *tra
 }
 
 // GetAccount will return account details for a given address
-func (n *Node) GetAccount(address string, options api.AccountQueryOptions, ctx context.Context) (api.AccountResponse, api.BlockInfo, error) {
+func (n *Node) GetAccount(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
+	account, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
+	if err != nil {
+		adaptedBlockInfo, isEmptyAccount := extractBlockInfoIfNewAccount(err)
+		if isEmptyAccount {
+			return api.AccountResponse{
+				Address:         address,
+				Balance:         "0",
+				DeveloperReward: "0",
+			}, adaptedBlockInfo, nil
+		}
+
+		return api.AccountResponse{}, api.BlockInfo{}, err
+	}
+
+	ownerAddress := ""
+	if len(account.GetOwnerAddress()) > 0 {
+		addressPubkeyConverter := n.coreComponents.AddressPubKeyConverter()
+		ownerAddress, err = addressPubkeyConverter.Encode(account.GetOwnerAddress())
+		if err != nil {
+			return api.AccountResponse{}, api.BlockInfo{}, err
+		}
+	}
+
+	return api.AccountResponse{
+		Address:         address,
+		Nonce:           account.GetNonce(),
+		Balance:         account.GetBalance().String(),
+		Username:        string(account.GetUserName()),
+		CodeHash:        account.GetCodeHash(),
+		RootHash:        account.GetRootHash(),
+		CodeMetadata:    account.GetCodeMetadata(),
+		DeveloperReward: account.GetDeveloperReward().String(),
+		OwnerAddress:    ownerAddress,
+	}, blockInfo, nil
+}
+
+// GetAccountWithKeys will return account details for a given address including the keys
+func (n *Node) GetAccountWithKeys(address string, options api.AccountQueryOptions, ctx context.Context) (api.AccountResponse, api.BlockInfo, error) {
 	account, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
 	if err != nil {
 		adaptedBlockInfo, isEmptyAccount := extractBlockInfoIfNewAccount(err)
@@ -964,7 +1002,10 @@ func (n *Node) GetAccount(address string, options api.AccountQueryOptions, ctx c
 
 	var keys map[string]string
 	if options.WithKeys {
-		keys, _ = n.getKeys(account, ctx)
+		keys, err = n.getKeys(account, ctx)
+		if err != nil {
+			return api.AccountResponse{}, api.BlockInfo{}, err
+		}
 	}
 
 	return api.AccountResponse{
