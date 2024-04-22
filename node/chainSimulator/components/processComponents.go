@@ -154,7 +154,10 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		return nil, err
 	}
 
-	initialAccounts, _ := testscommon.ReadInitialAccounts(args.Configs.ConfigurationPathsHolder.Genesis)
+	initialAccounts, err := testscommon.ReadInitialAccounts(args.Configs.ConfigurationPathsHolder.Genesis)
+	if err != nil {
+		return nil, err
+	}
 
 	argsRunTypeComponents := runType.ArgsRunTypeComponents{
 		CoreComponents:   args.CoreComponents,

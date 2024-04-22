@@ -5,11 +5,6 @@ import (
 	"sync"
 	"testing"
 
-	coreData "github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/endProcess"
-	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
-	"github.com/multiversx/mx-chain-core-go/hashing/keccak"
-	"github.com/multiversx/mx-chain-core-go/marshal"
 	commonFactory "github.com/multiversx/mx-chain-go/common/factory"
 	disabledStatistics "github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
@@ -37,6 +32,12 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	updateMocks "github.com/multiversx/mx-chain-go/update/mock"
+
+	coreData "github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
+	"github.com/multiversx/mx-chain-core-go/hashing/keccak"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/stretchr/testify/require"
 )
 
@@ -58,73 +59,94 @@ var (
 
 func createArgsProcessComponentsHolder() ArgsProcessComponentsHolder {
 	nodesSetup, _ := sharding.NewNodesSetup("../../../integrationTests/factory/testdata/nodesSetup.json", addrPubKeyConv, valPubKeyConv, 3)
-
+	generalConfig := testscommon.GetGeneralConfig()
+	roundConfig := testscommon.GetDefaultRoundsConfig()
 	args := ArgsProcessComponentsHolder{
-		Config: testscommon.GetGeneralConfig(),
-		EpochConfig: config.EpochConfig{
-			GasSchedule: config.GasScheduleConfig{
-				GasScheduleByEpochs: []config.GasScheduleByEpochs{
-					{
-						StartEpoch: 0,
-						FileName:   "../../../cmd/node/config/gasSchedules/gasScheduleV7.toml",
+		Configs: config.Configs{
+			GeneralConfig: &generalConfig,
+			EpochConfig: &config.EpochConfig{
+				GasSchedule: config.GasScheduleConfig{
+					GasScheduleByEpochs: []config.GasScheduleByEpochs{
+						{
+							StartEpoch: 0,
+							FileName:   "../../../cmd/node/config/gasSchedules/gasScheduleV7.toml",
+						},
 					},
 				},
 			},
-		},
-		RoundConfig:    testscommon.GetDefaultRoundsConfig(),
-		PrefsConfig:    config.Preferences{},
-		ImportDBConfig: config.ImportDbConfig{},
-		FlagsConfig: config.ContextFlagsConfig{
-			Version: "v1.0.0",
+			RoundConfig:       &roundConfig,
+			PreferencesConfig: &config.Preferences{},
+			ImportDbConfig:    &config.ImportDbConfig{},
+			FlagsConfig: &config.ContextFlagsConfig{
+				Version: "v1.0.0",
+			},
+			SystemSCConfig: &config.SystemSmartContractsConfig{
+				ESDTSystemSCConfig: config.ESDTSystemSCConfig{
+					BaseIssuingCost: "1000",
+					OwnerAddress:    "erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c",
+				},
+				GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
+					V1: config.GovernanceSystemSCConfigV1{
+						ProposalCost:     "500",
+						NumNodes:         100,
+						MinQuorum:        50,
+						MinPassThreshold: 50,
+						MinVetoThreshold: 50,
+					},
+					Active: config.GovernanceSystemSCConfigActive{
+						ProposalCost:     "500",
+						MinQuorum:        0.5,
+						MinPassThreshold: 0.5,
+						MinVetoThreshold: 0.5,
+					},
+					OwnerAddress: "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80",
+				},
+				StakingSystemSCConfig: config.StakingSystemSCConfig{
+					GenesisNodePrice:                     "2500000000000000000000",
+					MinStakeValue:                        "1",
+					UnJailValue:                          "1",
+					MinStepValue:                         "1",
+					UnBondPeriod:                         0,
+					NumRoundsWithoutBleed:                0,
+					MaximumPercentageToBleed:             0,
+					BleedPercentagePerRound:              0,
+					MaxNumberOfNodesForStake:             10,
+					ActivateBLSPubKeyMessageVerification: false,
+					MinUnstakeTokensValue:                "1",
+					NodeLimitPercentage:                  0.1,
+					StakeLimitPercentage:                 1,
+					UnBondPeriodInEpochs:                 10,
+				},
+				DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
+					MinCreationDeposit:  "100",
+					MinStakeAmount:      "100",
+					ConfigChangeAddress: "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80",
+				},
+				DelegationSystemSCConfig: config.DelegationSystemSCConfig{
+					MinServiceFee: 0,
+					MaxServiceFee: 100,
+				},
+			},
+			EconomicsConfig: &config.EconomicsConfig{
+				GlobalSettings: config.GlobalSettings{
+					GenesisTotalSupply:          "20000000000000000000000000",
+					MinimumInflation:            0,
+					GenesisMintingSenderAddress: "erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3",
+					YearSettings: []*config.YearSetting{
+						{
+							Year:             0,
+							MaximumInflation: 0.01,
+						},
+					},
+				},
+			},
+			ConfigurationPathsHolder: &config.ConfigurationPathsHolder{
+				Genesis:        "../../../integrationTests/factory/testdata/genesis.json",
+				SmartContracts: "../../../integrationTests/factory/testdata/genesisSmartContracts.json",
+				Nodes:          "../../../integrationTests/factory/testdata/genesis.json",
+			},
 		},
 		NodesCoordinator: &shardingMocks.NodesCoordinatorStub{},
-		SystemSCConfig: config.SystemSmartContractsConfig{
-			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
-				BaseIssuingCost: "1000",
-				OwnerAddress:    "erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c",
-			},
-			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
-				V1: config.GovernanceSystemSCConfigV1{
-					ProposalCost:     "500",
-					NumNodes:         100,
-					MinQuorum:        50,
-					MinPassThreshold: 50,
-					MinVetoThreshold: 50,
-				},
-				Active: config.GovernanceSystemSCConfigActive{
-					ProposalCost:     "500",
-					MinQuorum:        0.5,
-					MinPassThreshold: 0.5,
-					MinVetoThreshold: 0.5,
-				},
-				OwnerAddress: "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80",
-			},
-			StakingSystemSCConfig: config.StakingSystemSCConfig{
-				GenesisNodePrice:                     "2500000000000000000000",
-				MinStakeValue:                        "1",
-				UnJailValue:                          "1",
-				MinStepValue:                         "1",
-				UnBondPeriod:                         0,
-				NumRoundsWithoutBleed:                0,
-				MaximumPercentageToBleed:             0,
-				BleedPercentagePerRound:              0,
-				MaxNumberOfNodesForStake:             10,
-				ActivateBLSPubKeyMessageVerification: false,
-				MinUnstakeTokensValue:                "1",
-				NodeLimitPercentage:                  0.1,
-				StakeLimitPercentage:                 1,
-				UnBondPeriodInEpochs:                 10,
-			},
-			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
-				MinCreationDeposit:  "100",
-				MinStakeAmount:      "100",
-				ConfigChangeAddress: "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80",
-			},
-			DelegationSystemSCConfig: config.DelegationSystemSCConfig{
-				MinServiceFee: 0,
-				MaxServiceFee: 100,
-			},
-		},
 		DataComponents: &mock.DataComponentsStub{
 			DataPool: dataRetriever.NewPoolsHolderMock(),
 			BlockChain: &testscommon.ChainHandlerStub{
@@ -211,24 +233,6 @@ func createArgsProcessComponentsHolder() ArgsProcessComponentsHolder {
 			AppStatusHandlerField:  &statusHandler.AppStatusHandlerStub{},
 			StateStatsHandlerField: disabledStatistics.NewStateStatistics(),
 		},
-		EconomicsConfig: config.EconomicsConfig{
-			GlobalSettings: config.GlobalSettings{
-				GenesisTotalSupply:          "20000000000000000000000000",
-				MinimumInflation:            0,
-				GenesisMintingSenderAddress: "erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3",
-				YearSettings: []*config.YearSetting{
-					{
-						Year:             0,
-						MaximumInflation: 0.01,
-					},
-				},
-			},
-		},
-		ConfigurationPathsHolder: config.ConfigurationPathsHolder{
-			Genesis:        "../../../integrationTests/factory/testdata/genesis.json",
-			SmartContracts: "../../../integrationTests/factory/testdata/genesisSmartContracts.json",
-			Nodes:          "../../../integrationTests/factory/testdata/genesis.json",
-		},
 	}
 
 	args.StateComponents = components.GetStateComponents(args.CoreComponents, args.StatusCoreComponents)
@@ -252,7 +256,7 @@ func TestCreateProcessComponents(t *testing.T) {
 		t.Parallel()
 
 		args := createArgsProcessComponentsHolder()
-		args.FlagsConfig.Version = ""
+		args.Configs.FlagsConfig.Version = ""
 		comp, err := CreateProcessComponents(args)
 		require.Error(t, err)
 		require.Nil(t, comp)
@@ -261,7 +265,7 @@ func TestCreateProcessComponents(t *testing.T) {
 		t.Parallel()
 
 		args := createArgsProcessComponentsHolder()
-		args.EconomicsConfig.GlobalSettings.GenesisTotalSupply = "invalid number"
+		args.Configs.EconomicsConfig.GlobalSettings.GenesisTotalSupply = "invalid number"
 		comp, err := CreateProcessComponents(args)
 		require.Error(t, err)
 		require.Nil(t, comp)
@@ -270,7 +274,7 @@ func TestCreateProcessComponents(t *testing.T) {
 		t.Parallel()
 
 		args := createArgsProcessComponentsHolder()
-		args.ConfigurationPathsHolder.Genesis = ""
+		args.Configs.ConfigurationPathsHolder.Genesis = ""
 		comp, err := CreateProcessComponents(args)
 		require.Error(t, err)
 		require.Nil(t, comp)
@@ -279,7 +283,7 @@ func TestCreateProcessComponents(t *testing.T) {
 		t.Parallel()
 
 		args := createArgsProcessComponentsHolder()
-		args.ConfigurationPathsHolder.SmartContracts = ""
+		args.Configs.ConfigurationPathsHolder.SmartContracts = ""
 		comp, err := CreateProcessComponents(args)
 		require.Error(t, err)
 		require.Nil(t, comp)
@@ -299,7 +303,7 @@ func TestCreateProcessComponents(t *testing.T) {
 		t.Parallel()
 
 		args := createArgsProcessComponentsHolder()
-		args.Config.DbLookupExtensions.Enabled = true
+		args.Configs.GeneralConfig.DbLookupExtensions.Enabled = true
 		dataMock, ok := args.DataComponents.(*mock.DataComponentsStub)
 		require.True(t, ok)
 		dataMock.Store = &storage.ChainStorerStub{
@@ -318,7 +322,7 @@ func TestCreateProcessComponents(t *testing.T) {
 		t.Parallel()
 
 		args := createArgsProcessComponentsHolder()
-		args.EpochConfig.GasSchedule = config.GasScheduleConfig{}
+		args.Configs.EpochConfig.GasSchedule = config.GasScheduleConfig{}
 		comp, err := CreateProcessComponents(args)
 		require.Error(t, err)
 		require.Nil(t, comp)
