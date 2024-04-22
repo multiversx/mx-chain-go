@@ -605,6 +605,8 @@ var ErrEmptyAddress = errors.New("empty Address")
 // ErrInvalidNodeOperationMode signals that an invalid node operation mode has been provided
 var ErrInvalidNodeOperationMode = errors.New("invalid node operation mode")
 
+// ErrNilSentSignatureTracker defines the error for setting a nil SentSignatureTracker
+var ErrNilSentSignatureTracker = errors.New("nil sent signature tracker")
 // ErrNilNodesCoordinatorFactory signals that a nil nodes coordinator factory has been provided
 var ErrNilNodesCoordinatorFactory = errors.New("nil nodes coordinator factory provided")
 
@@ -667,6 +669,9 @@ var ErrNilOutgoingOperationsFormatter = errors.New("nil outgoing operations form
 
 // ErrNilOutGoingOperationsPool signals that a nil outgoing operations pool has been provided
 var ErrNilOutGoingOperationsPool = errors.New("nil outgoing operations pool has been provided")
+
+// ErrNilDataCodec signals that a nil outgoing operations pool has been provided
+var ErrNilDataCodec = errors.New("nil data codec has been provided")
 
 // ErrNilExtraSubRoundSigner signals that a nil extra subround signer has been provided
 var ErrNilExtraSubRoundSigner = errors.New("nil extra subround signer has been provided")
@@ -769,3 +774,18 @@ var ErrNilSCResultsPreProcessorCreator = errors.New("nil sc results pre processo
 
 // ErrNilFunction signals that a nil function has been provided
 var ErrNilFunction = errors.New("nil function")
+
+// ErrEmptyBaseToken signals that an empty base token has been provided
+var ErrEmptyBaseToken = errors.New("empty base token")
+
+// ErrNilESDTAsBalanceHandler signals that a nil esdt as balance handler was provided
+var ErrNilESDTAsBalanceHandler = errors.New("nil esdt as balance handler provided")
+
+// ErrNilSerializer signals that a nil codec serializer has been provided
+var ErrNilSerializer = errors.New("nil codec serializer")
+
+// ErrNilTopicsChecker signals that a nil topics checker has been provided
+var ErrNilTopicsChecker = errors.New("nil topics checker")
+
+// ErrNilOperationsHasher signals that a nil outgoing operations hasher has been provided
+var ErrNilOperationsHasher = errors.New("nil outgoing operations hasher")

@@ -13,3 +13,9 @@ type TransactionPool interface {
 	AddData(key []byte, data interface{}, sizeInBytes int, cacheId string)
 	IsInterfaceNil() bool
 }
+
+// TopicsChecker should be able to check the topics validity
+type TopicsChecker interface {
+	CheckValidity(topics [][]byte) error
+	IsInterfaceNil() bool
+}

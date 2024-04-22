@@ -17,14 +17,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/google/gops/agent"
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/core/closing"
-	"github.com/multiversx/mx-chain-core-go/core/throttler"
-	"github.com/multiversx/mx-chain-core-go/data/endProcess"
-	hasherFactory "github.com/multiversx/mx-chain-core-go/hashing/factory"
-	marshallerFactory "github.com/multiversx/mx-chain-core-go/marshal/factory"
 	"github.com/multiversx/mx-chain-go/api/gin"
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/common"
@@ -75,6 +67,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	sovereignConfig "github.com/multiversx/mx-chain-go/sovereignnode/config"
+	"github.com/multiversx/mx-chain-go/sovereignnode/dataCodec"
 	"github.com/multiversx/mx-chain-go/sovereignnode/incomingHeader"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/storage/cache"
@@ -83,6 +76,15 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
 	trieStatistics "github.com/multiversx/mx-chain-go/trie/statistics"
 	"github.com/multiversx/mx-chain-go/update/trigger"
+
+	"github.com/google/gops/agent"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/closing"
+	"github.com/multiversx/mx-chain-core-go/core/throttler"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	hasherFactory "github.com/multiversx/mx-chain-core-go/hashing/factory"
+	marshallerFactory "github.com/multiversx/mx-chain-core-go/marshal/factory"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/multiversx/mx-chain-sovereign-bridge-go/cert"
 	factoryBridge "github.com/multiversx/mx-chain-sovereign-bridge-go/client"
@@ -90,6 +92,7 @@ import (
 	notifierCfg "github.com/multiversx/mx-chain-sovereign-notifier-go/config"
 	"github.com/multiversx/mx-chain-sovereign-notifier-go/factory"
 	notifierProcess "github.com/multiversx/mx-chain-sovereign-notifier-go/process"
+	"github.com/multiversx/mx-sdk-abi-incubator/golang/abi"
 )
 
 var log = logger.GetOrCreate("sovereignNode")
@@ -191,12 +194,10 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("save jailed always"), "epoch", enableEpochs.SaveJailedAlwaysEnableEpoch)
 	log.Debug(readEpochFor("validator to delegation"), "epoch", enableEpochs.ValidatorToDelegationEnableEpoch)
 	log.Debug(readEpochFor("re-delegate below minimum check"), "epoch", enableEpochs.ReDelegateBelowMinCheckEnableEpoch)
-	log.Debug(readEpochFor("waiting waiting list"), "epoch", enableEpochs.WaitingListFixEnableEpoch)
 	log.Debug(readEpochFor("increment SCR nonce in multi transfer"), "epoch", enableEpochs.IncrementSCRNonceInMultiTransferEnableEpoch)
 	log.Debug(readEpochFor("esdt and NFT multi transfer"), "epoch", enableEpochs.ESDTMultiTransferEnableEpoch)
 	log.Debug(readEpochFor("contract global mint and burn"), "epoch", enableEpochs.GlobalMintBurnDisableEpoch)
 	log.Debug(readEpochFor("contract transfer role"), "epoch", enableEpochs.ESDTTransferRoleEnableEpoch)
-	log.Debug(readEpochFor("built in functions on metachain"), "epoch", enableEpochs.BuiltInFunctionOnMetaEnableEpoch)
 	log.Debug(readEpochFor("compute rewards checkpoint on delegation"), "epoch", enableEpochs.ComputeRewardCheckpointEnableEpoch)
 	log.Debug(readEpochFor("esdt NFT create on multiple shards"), "epoch", enableEpochs.ESDTNFTCreateOnMultiShardEnableEpoch)
 	log.Debug(readEpochFor("SCR size invariant check"), "epoch", enableEpochs.SCRSizeInvariantCheckEnableEpoch)
@@ -300,16 +301,16 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 	log.Debug("creating healthService")
 	healthService := snr.createHealthService(flagsConfig)
 
-	log.Debug("creating runType components")
-	managedRunTypeComponents, err := snr.CreateManagedRunTypeComponents()
-	if err != nil {
-		return true, err
-	}
-
 	log.Debug("creating core components")
 	managedCoreComponents, err := snr.CreateManagedCoreComponents(
 		chanStopNodeProcess,
 	)
+	if err != nil {
+		return true, err
+	}
+
+	log.Debug("creating runType components")
+	managedRunTypeComponents, err := snr.CreateManagedRunTypeComponents(managedCoreComponents, *configs.SovereignExtraConfig)
 	if err != nil {
 		return true, err
 	}
@@ -357,6 +358,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		managedCoreComponents,
 		managedDataComponents,
 		managedStatusCoreComponents,
+		managedRunTypeComponents,
 	)
 	if err != nil {
 		return true, err
@@ -405,6 +407,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		managedCoreComponents.NodeTypeProvider(),
 		managedCoreComponents.EnableEpochsHandler(),
 		managedDataComponents.Datapool().CurrentEpochValidatorInfo(),
+		managedBootstrapComponents.NodesCoordinatorRegistryFactory(),
 		nodesCoordinator.NewSovereignIndexHashedNodesCoordinatorWithRaterFactory(),
 	)
 	if err != nil {
@@ -442,11 +445,25 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 	timeToWait := time.Second * time.Duration(snr.configs.SovereignExtraConfig.OutgoingSubscribedEvents.TimeToWaitForUnconfirmedOutGoingOperationInSeconds)
 	outGoingOperationsPool := sovereignPool.NewOutGoingOperationPool(timeToWait)
 
+	codec := abi.NewDefaultCodec()
+	argsDataCodec := dataCodec.ArgsDataCodec{
+		Serializer: abi.NewSerializer(codec),
+	}
+
+	dataCodecProcessor, err := dataCodec.NewDataCodec(argsDataCodec)
+	if err != nil {
+		return true, err
+	}
+
+	topicsChecker := incomingHeader.NewTopicsChecker()
+
 	incomingHeaderHandler, err := createIncomingHeaderProcessor(
 		&configs.SovereignExtraConfig.NotifierConfig,
 		managedDataComponents.Datapool(),
 		configs.SovereignExtraConfig.MainChainNotarization.MainChainNotarizationStartRound,
 		outGoingOperationsPool,
+		dataCodecProcessor,
+		topicsChecker,
 	)
 
 	managedProcessComponents, err := snr.CreateManagedProcessComponents(
@@ -463,6 +480,8 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		nodesCoordinatorInstance,
 		incomingHeaderHandler,
 		outGoingOperationsPool,
+		dataCodecProcessor,
+		topicsChecker,
 	)
 	if err != nil {
 		return true, err
@@ -1096,7 +1115,7 @@ func (snr *sovereignNodeRunner) logInformation(
 	log.Info("Bootstrap", "epoch", bootstrapComponents.EpochBootstrapParams().Epoch())
 	if bootstrapComponents.EpochBootstrapParams().NodesConfig() != nil {
 		log.Info("the epoch from nodesConfig is",
-			"epoch", bootstrapComponents.EpochBootstrapParams().NodesConfig().CurrentEpoch)
+			"epoch", bootstrapComponents.EpochBootstrapParams().NodesConfig().GetCurrentEpoch())
 	}
 
 	var shardIdString = core.GetShardIDString(bootstrapComponents.ShardCoordinator().SelfId())
@@ -1225,6 +1244,8 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	incomingHeaderHandler process.IncomingHeaderSubscriber,
 	outGoingOperationsPool block.OutGoingOperationsPool,
+	dataCodec dataCodec.SovereignDataDecoder,
+	topicsChecker incomingHeader.TopicsChecker,
 ) (mainFactory.ProcessComponentsHandler, error) {
 	configs := snr.configs
 	configurationPaths := snr.configs.ConfigurationPathsHolder
@@ -1320,6 +1341,7 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 	processArgs := processComp.ProcessComponentsFactoryArgs{
 		Config:                                *configs.GeneralConfig,
 		EpochConfig:                           *configs.EpochConfig,
+		RoundConfig:                           *configs.RoundConfig,
 		PrefConfigs:                           *configs.PreferencesConfig,
 		ImportDBConfig:                        *configs.ImportDbConfig,
 		AccountsParser:                        sovereignAccountsParser,
@@ -1354,6 +1376,8 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 		TxPreProcessorCreator:                 preprocess.NewSovereignTxPreProcessorCreator(),
 		ExtraHeaderSigVerifierHolder:          extraHeaderSigVerifierHolder,
 		OutGoingOperationsPool:                outGoingOperationsPool,
+		DataCodec:                             dataCodec,
+		TopicsChecker:                         topicsChecker,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1435,6 +1459,7 @@ func (snr *sovereignNodeRunner) CreateManagedStateComponents(
 	coreComponents mainFactory.CoreComponentsHolder,
 	dataComponents mainFactory.DataComponentsHandler,
 	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
+	runTypeComponents mainFactory.RunTypeComponentsHolder,
 ) (mainFactory.StateComponentsHandler, error) {
 	stateArgs := stateComp.StateComponentsFactoryArgs{
 		Config:                   *snr.configs.GeneralConfig,
@@ -1444,6 +1469,7 @@ func (snr *sovereignNodeRunner) CreateManagedStateComponents(
 		ProcessingMode:           common.GetNodeProcessingMode(snr.configs.ImportDbConfig),
 		ShouldSerializeSnapshots: snr.configs.FlagsConfig.SerializeSnapshots,
 		ChainHandler:             dataComponents.Blockchain(),
+		AccountsCreator:          runTypeComponents.AccountsCreator(),
 	}
 
 	stateComponentsFactory, err := stateComp.NewStateComponentsFactory(stateArgs)
@@ -1656,14 +1682,15 @@ func (snr *sovereignNodeRunner) CreateManagedCryptoComponents(
 }
 
 // CreateManagedRunTypeComponents creates the managed runType components
-func (snr *sovereignNodeRunner) CreateManagedRunTypeComponents() (mainFactory.RunTypeComponentsHandler, error) {
-	runTypeComponentsFactory, err := runType.NewRunTypeComponentsFactory()
+func (snr *sovereignNodeRunner) CreateManagedRunTypeComponents(coreComp mainFactory.CoreComponentsHandler, cfg config.SovereignConfig) (mainFactory.RunTypeComponentsHandler, error) {
+	runTypeComponentsFactory, err := runType.NewRunTypeComponentsFactory(coreComp)
 	if err != nil {
 		return nil, fmt.Errorf("NewRunTypeComponentsFactory failed: %w", err)
 	}
 
 	sovereignRunTypeComponentsFactory, err := runType.NewSovereignRunTypeComponentsFactory(
 		runTypeComponentsFactory,
+		cfg,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("NewSovereignRunTypeComponentsFactory failed: %w", err)
@@ -1842,6 +1869,8 @@ func createIncomingHeaderProcessor(
 	dataPool dataRetriever.PoolsHolder,
 	mainChainNotarizationStartRound uint64,
 	outGoingOperationsPool block.OutGoingOperationsPool,
+	dataCodec dataCodec.SovereignDataDecoder,
+	topicsChecker incomingHeader.TopicsChecker,
 ) (process.IncomingHeaderSubscriber, error) {
 	marshaller, err := marshallerFactory.NewMarshalizer(config.WebSocketConfig.MarshallerType)
 	if err != nil {
@@ -1859,6 +1888,8 @@ func createIncomingHeaderProcessor(
 		Hasher:                          hasher,
 		MainChainNotarizationStartRound: mainChainNotarizationStartRound,
 		OutGoingOperationsPool:          outGoingOperationsPool,
+		DataCodec:                       dataCodec,
+		TopicsChecker:                   topicsChecker,
 	}
 
 	return incomingHeader.NewIncomingHeaderProcessor(argsIncomingHeaderHandler)

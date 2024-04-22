@@ -82,6 +82,7 @@ func NewVMContext(args VMContextArgs) (*vmContext, error) {
 	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
 		common.MultiClaimOnDelegationFlag,
 		common.SetSenderInEeiOutputTransferFlag,
+		common.AlwaysMergeContextsInEEIFlag,
 	})
 	if err != nil {
 		return nil, err
@@ -225,6 +226,17 @@ func (host *vmContext) SendGlobalSettingToAll(_ []byte, input []byte) {
 	}
 }
 
+func (host *vmContext) transferValueOnly(
+	destination []byte,
+	sender []byte,
+	value *big.Int,
+) {
+	senderAcc, destAcc := host.getSenderDestination(sender, destination)
+
+	_ = senderAcc.BalanceDelta.Sub(senderAcc.BalanceDelta, value)
+	_ = destAcc.BalanceDelta.Add(destAcc.BalanceDelta, value)
+}
+
 func (host *vmContext) getSenderDestination(sender, destination []byte) (*vmcommon.OutputAccount, *vmcommon.OutputAccount) {
 	senderAcc, exists := host.outputAccounts[string(sender)]
 	if !exists {
@@ -249,17 +261,6 @@ func (host *vmContext) getSenderDestination(sender, destination []byte) (*vmcomm
 	return senderAcc, destAcc
 }
 
-func (host *vmContext) transferValueOnly(
-	destination []byte,
-	sender []byte,
-	value *big.Int,
-) {
-	senderAcc, destAcc := host.getSenderDestination(sender, destination)
-
-	_ = senderAcc.BalanceDelta.Sub(senderAcc.BalanceDelta, value)
-	_ = destAcc.BalanceDelta.Add(destAcc.BalanceDelta, value)
-}
-
 // Transfer handles any necessary value transfer required and takes
 // the necessary steps to create accounts
 func (host *vmContext) Transfer(
@@ -268,7 +269,7 @@ func (host *vmContext) Transfer(
 	value *big.Int,
 	input []byte,
 	gasLimit uint64,
-) error {
+) {
 	host.transferValueOnly(destination, sender, value)
 	senderAcc, destAcc := host.getSenderDestination(sender, destination)
 	outputTransfer := vmcommon.OutputTransfer{
@@ -283,8 +284,6 @@ func (host *vmContext) Transfer(
 		outputTransfer.SenderAddress = senderAcc.Address
 	}
 	destAcc.OutputTransfers = append(destAcc.OutputTransfers, outputTransfer)
-
-	return nil
 }
 
 // ProcessBuiltInFunction will execute process if sender and destination is same shard/sovereign
@@ -297,7 +296,8 @@ func (host *vmContext) ProcessBuiltInFunction(
 ) error {
 	vmInput := host.createVMInputIfIsIntraShardBuiltInCall(destination, sender, value, input, gasLimit)
 	if vmInput == nil {
-		return host.Transfer(destination, sender, value, input, gasLimit)
+		host.Transfer(destination, sender, value, input, gasLimit)
+		return nil
 	}
 
 	vmOutput, err := host.blockChainHook.ProcessBuiltInFunction(vmInput)
@@ -314,7 +314,8 @@ func (host *vmContext) ProcessBuiltInFunction(
 	}
 
 	// add the SCR for the builtin function
-	return host.Transfer(destination, sender, value, input, gasLimit)
+	host.Transfer(destination, sender, value, input, gasLimit)
+	return nil
 }
 
 func (host *vmContext) createVMInputIfIsIntraShardBuiltInCall(destination []byte,
@@ -410,8 +411,11 @@ func (host *vmContext) properMergeContexts(parentContext *vmContext, returnCode 
 
 	host.scAddress = parentContext.scAddress
 	host.AddReturnMessage(parentContext.returnMessage)
-	if returnCode != vmcommon.Ok {
-		// no need to merge - revert was done - transaction will fail
+
+	// merge contexts if the return code is OK or the fix flag is activated because it was wrong not to merge them if the call failed
+	shouldMergeContexts := returnCode == vmcommon.Ok || host.enableEpochsHandler.IsFlagEnabled(common.AlwaysMergeContextsInEEIFlag)
+	if !shouldMergeContexts {
+		// backwards compatibility
 		return
 	}
 
@@ -502,7 +506,8 @@ func createDirectCallInput(
 
 func (host *vmContext) transferBeforeInternalExec(callInput *vmcommon.ContractCallInput, sender []byte, callType string) error {
 	if !host.enableEpochsHandler.IsFlagEnabled(common.MultiClaimOnDelegationFlag) {
-		return host.Transfer(callInput.RecipientAddr, sender, callInput.CallValue, nil, 0)
+		host.Transfer(callInput.RecipientAddr, sender, callInput.CallValue, nil, 0)
+		return nil
 	}
 	host.transferValueOnly(callInput.RecipientAddr, sender, callInput.CallValue)
 
@@ -600,6 +605,8 @@ func (host *vmContext) ExecuteOnDestContext(destination []byte, sender []byte, v
 	vmOutput := &vmcommon.VMOutput{ReturnCode: vmcommon.UserError}
 	currContext := host.copyToNewContext()
 	defer func() {
+		// we need to reset here the output since it was already transferred in the vmOutput (host.CreateVMOutput() function)
+		// and we do not want to duplicate them
 		host.output = make([][]byte, 0)
 		host.properMergeContexts(currContext, vmOutput.ReturnCode)
 	}()

@@ -320,6 +320,7 @@ type ProcessComponentsHolder interface {
 	ESDTDataStorageHandlerForAPI() vmcommon.ESDTNFTStorageHandler
 	AccountsParser() genesis.AccountsParser
 	ReceiptsRepository() ReceiptsRepository
+	SentSignaturesTracker() process.SentSignaturesTracker
 	IsInterfaceNil() bool
 }
 
@@ -446,7 +447,7 @@ type BootstrapParamsHolder interface {
 	Epoch() uint32
 	SelfShardID() uint32
 	NumOfShards() uint32
-	NodesConfig() *nodesCoordinator.NodesCoordinatorRegistry
+	NodesConfig() nodesCoordinator.NodesCoordinatorRegistryHandler
 	IsInterfaceNil() bool
 }
 
@@ -467,6 +468,7 @@ type BootstrapComponentsHolder interface {
 	HeaderVersionHandler() factory.HeaderVersionHandler
 	HeaderIntegrityVerifier() factory.HeaderIntegrityVerifierHandler
 	GuardedAccountHandler() process.GuardedAccountHandler
+	NodesCoordinatorRegistryFactory() nodesCoordinator.NodesCoordinatorRegistryFactory
 	IsInterfaceNil() bool
 }
 
@@ -590,6 +592,7 @@ type RunTypeComponentsHolder interface {
 	ConsensusModel() consensus.ConsensusModel
 	VmContainerMetaFactoryCreator() factoryVm.VmContainerCreator
 	VmContainerShardFactoryCreator() factoryVm.VmContainerCreator
+	AccountsCreator() state.AccountFactory
 	Create() error
 	Close() error
 	CheckSubcomponents() error

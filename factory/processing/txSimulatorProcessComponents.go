@@ -82,6 +82,7 @@ func (pcf *processComponentsFactory) createAPITransactionEvaluator() (factory.Tr
 		Accounts:            simulationAccountsDB,
 		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+		BlockChain:          pcf.data.Blockchain(),
 	})
 
 	return apiTransactionEvaluator, vmContainerFactory, err
@@ -144,7 +145,7 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorForMeta(
 		BuiltInFunctions:         builtInFuncFactory.BuiltInFunctionContainer(),
 		DataPool:                 pcf.data.Datapool(),
 		CompiledSCPool:           pcf.data.Datapool().SmartContracts(),
-		ConfigSCStorage:          pcf.config.SmartContractsStorage,
+		ConfigSCStorage:          pcf.config.SmartContractsStorageSimulate,
 		WorkingDir:               pcf.flagsConfig.WorkingDir,
 		NFTStorageHandler:        builtInFuncFactory.NFTStorageHandler(),
 		GlobalSettingsHandler:    builtInFuncFactory.ESDTGlobalSettingsHandler(),
@@ -170,12 +171,20 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorForMeta(
 		ChanceComputer:      pcf.coreData.Rater(),
 		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+		NodesCoordinator:    pcf.nodesCoordinator,
 	}
 
 	vmContainer, vmFactory, err := pcf.runTypeComponents.VmContainerMetaFactoryCreator().CreateVmContainerFactory(argsHook, argsNewVmContainerFactory)
 	if err != nil {
 		return args, nil, nil, err
 	}
+
+	err = builtInFuncFactory.SetPayableHandler(vmFactory.BlockChainHookImpl())
+	if err != nil {
+		return args, nil, nil, err
+	}
+
+	args.BlockChainHook = vmFactory.BlockChainHookImpl()
 
 	txTypeHandler, err := pcf.createTxTypeHandler(builtInFuncFactory)
 	if err != nil {
@@ -366,12 +375,15 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorShard(
 		ChanceComputer:      pcf.coreData.Rater(),
 		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+		NodesCoordinator:    pcf.nodesCoordinator,
 	}
 
 	vmContainer, vmFactory, err := pcf.runTypeComponents.VmContainerShardFactoryCreator().CreateVmContainerFactory(argsHook, argsNewVmContainerFactory)
 	if err != nil {
 		return args, nil, nil, err
 	}
+
+	args.BlockChainHook = vmFactory.BlockChainHookImpl()
 
 	err = builtInFuncFactory.SetPayableHandler(vmFactory.BlockChainHookImpl())
 	if err != nil {

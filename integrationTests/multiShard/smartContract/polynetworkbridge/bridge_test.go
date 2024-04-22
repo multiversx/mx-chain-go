@@ -29,7 +29,6 @@ func TestBridgeSetupAndBurn(t *testing.T) {
 
 	enableEpochs := config.EnableEpochs{
 		GlobalMintBurnDisableEpoch:          integrationTests.UnreachableEpoch,
-		BuiltInFunctionOnMetaEnableEpoch:    integrationTests.UnreachableEpoch,
 		SCProcessorV2EnableEpoch:            integrationTests.UnreachableEpoch,
 		FixAsyncCallBackArgsListEnableEpoch: integrationTests.UnreachableEpoch,
 	}

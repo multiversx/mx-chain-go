@@ -3,9 +3,16 @@ package runType_test
 import (
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/runType"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	factoryMock "github.com/multiversx/mx-chain-go/testscommon/factory"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/stretchr/testify/require"
 )
 
@@ -109,6 +116,20 @@ func TestManagedRunTypeComponents_IsInterfaceNil(t *testing.T) {
 }
 
 func createComponents() (factory.RunTypeComponentsHandler, error) {
-	rcf, _ := runType.NewRunTypeComponentsFactory()
+	rcf, _ := runType.NewRunTypeComponentsFactory(createCoreComponents())
 	return runType.NewManagedRunTypeComponents(rcf)
+}
+
+func createCoreComponents() factory.CoreComponentsHolder {
+	return &factoryMock.CoreComponentsHolderMock{
+		InternalMarshalizerCalled: func() marshal.Marshalizer {
+			return &marshallerMock.MarshalizerMock{}
+		},
+		HasherCalled: func() hashing.Hasher {
+			return &hashingMocks.HasherMock{}
+		},
+		EnableEpochsHandlerCalled: func() common.EnableEpochsHandler {
+			return &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
+		},
+	}
 }

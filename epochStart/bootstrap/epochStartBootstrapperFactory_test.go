@@ -1,18 +1,18 @@
 package bootstrap
 
 import (
-	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
-	"github.com/multiversx/mx-chain-go/sharding"
-	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/versioning"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/types"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
@@ -189,7 +189,7 @@ func getDefaultArgs() ArgsEpochStartBootstrap {
 				return 1
 			},
 		},
-		GenesisNodesConfig:         &testscommon.NodesSetupStub{},
+		GenesisNodesConfig:         &sharding.NodesSetup{},
 		GenesisShardCoordinator:    mock.NewMultipleShardsCoordinatorMock(),
 		Rater:                      &mock.RaterStub{},
 		DestinationShardAsObserver: 0,
@@ -220,5 +220,6 @@ func getDefaultArgs() ArgsEpochStartBootstrap {
 		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
 		ShardCoordinatorFactory:          sharding.NewMultiShardCoordinatorFactory(),
 		StateStatsHandler:                disabled.NewStateStatistics(),
+		NodesCoordinatorRegistryFactory:  &shardingMocks.NodesCoordinatorRegistryFactoryMock{},
 	}
 }

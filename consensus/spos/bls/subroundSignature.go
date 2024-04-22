@@ -44,7 +44,7 @@ func NewSubroundSignature(
 		return nil, errors.ErrNilSignatureRoundExtraSignersHolder
 	}
 	if check.IfNil(sentSignatureTracker) {
-		return nil, spos.ErrNilSentSignatureTracker
+		return nil, ErrNilSentSignatureTracker
 	}
 	if check.IfNil(appStatusHandler) {
 		return nil, spos.ErrNilAppStatusHandler

@@ -6,13 +6,20 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	logger "github.com/multiversx/mx-chain-logger-go"
+
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/errors"
 )
 
-const bridgeOpPrefix = "bridgeOps"
-
 var log = logger.GetOrCreate("outgoing-operations")
+
+const (
+	numTransferTopics = 3
+	tokensIndex       = 2
+	receiverIndex     = 1
+)
 
 // SubscribedEvent contains a subscribed event from the sovereign chain needed to be transferred to the main chain
 type SubscribedEvent struct {
@@ -20,9 +27,16 @@ type SubscribedEvent struct {
 	Addresses  map[string]string
 }
 
+type ArgsOutgoingOperations struct {
+	SubscribedEvents []SubscribedEvent
+	DataCodec        DataCodecProcessor
+	TopicsChecker    TopicsChecker
+}
+
 type outgoingOperations struct {
 	subscribedEvents []SubscribedEvent
-	roundHandler     RoundHandler
+	dataCodec        DataCodecProcessor
+	topicsChecker    TopicsChecker
 }
 
 // TODO: We should create a common base functionality from this component. Similar behavior is also found in
@@ -30,18 +44,22 @@ type outgoingOperations struct {
 // Task: MX-14721
 
 // NewOutgoingOperationsFormatter creates an outgoing operations formatter
-func NewOutgoingOperationsFormatter(subscribedEvents []SubscribedEvent, roundHandler RoundHandler) (*outgoingOperations, error) {
-	err := checkEvents(subscribedEvents)
+func NewOutgoingOperationsFormatter(args ArgsOutgoingOperations) (*outgoingOperations, error) {
+	err := checkEvents(args.SubscribedEvents)
 	if err != nil {
 		return nil, err
 	}
-	if check.IfNil(roundHandler) {
-		return nil, errors.ErrNilRoundHandler
+	if check.IfNil(args.DataCodec) {
+		return nil, errors.ErrNilDataCodec
+	}
+	if check.IfNil(args.TopicsChecker) {
+		return nil, errors.ErrNilTopicsChecker
 	}
 
 	return &outgoingOperations{
-		subscribedEvents: subscribedEvents,
-		roundHandler:     roundHandler,
+		subscribedEvents: args.SubscribedEvents,
+		dataCodec:        args.DataCodec,
+		topicsChecker:    args.TopicsChecker,
 	}, nil
 }
 
@@ -85,23 +103,30 @@ func checkEmptyAddresses(addresses map[string]string) error {
 
 // CreateOutgoingTxsData collects relevant outgoing events(based on subscribed addresses and topics) for bridge from the
 // logs and creates outgoing data that needs to be signed by validators to bridge tokens
-func (op *outgoingOperations) CreateOutgoingTxsData(logs []*data.LogData) [][]byte {
+func (op *outgoingOperations) CreateOutgoingTxsData(logs []*data.LogData) ([][]byte, error) {
 	outgoingEvents := op.createOutgoingEvents(logs)
 	if len(outgoingEvents) == 0 {
-		return make([][]byte, 0)
+		return make([][]byte, 0), nil
 	}
 
-	txData := []byte(bridgeOpPrefix + "@" + fmt.Sprintf("%d", op.roundHandler.Index()))
-	for _, ev := range outgoingEvents {
-		txData = append(txData, byte('@'))
-		txData = append(txData, createSCRData(ev.GetTopics())...)
-		txData = append(txData, byte('@'))
-		txData = append(txData, ev.GetData()...)
+	txsData := make([][]byte, 0)
+	for i, event := range outgoingEvents {
+		operation, err := op.getOperationData(event)
+		if err != nil {
+			log.Error("outgoingOperations.CreateOutgoingTxsData error",
+				"tx hash", logs[i].TxHash,
+				"event", string(event.GetIdentifier()),
+				"error", err)
+
+			return nil, err
+		}
+
+		txsData = append(txsData, operation)
 	}
 
 	// TODO: Check gas limit here and split tx data in multiple batches if required
 	// Task: MX-14720
-	return [][]byte{txData}
+	return txsData, nil
 }
 
 func (op *outgoingOperations) createOutgoingEvents(logs []*data.LogData) []data.EventHandler {
@@ -148,16 +173,57 @@ func (op *outgoingOperations) isSubscribed(event data.EventHandler, txHash strin
 	return false
 }
 
-func createSCRData(topics [][]byte) []byte {
-	ret := topics[0]
-	for idx := 1; idx < len(topics[1:]); idx += 1 {
-		transfer := []byte("@")
-		transfer = append(transfer, topics[idx]...)
-
-		ret = append(ret, transfer...)
+func (op *outgoingOperations) getOperationData(event data.EventHandler) ([]byte, error) {
+	operation, err := op.createOperationData(event.GetTopics())
+	if err != nil {
+		return nil, err
 	}
 
-	return ret
+	evData, err := op.dataCodec.DeserializeEventData(event.GetData())
+	if err != nil {
+		return nil, err
+	}
+
+	operation.Data = evData
+
+	operationBytes, err := op.dataCodec.SerializeOperation(*operation)
+	if err != nil {
+		return nil, err
+	}
+
+	return operationBytes, nil
+}
+
+func (op *outgoingOperations) createOperationData(topics [][]byte) (*sovereign.Operation, error) {
+	err := op.topicsChecker.CheckValidity(topics)
+	if err != nil {
+		return nil, err
+	}
+
+	tokens := make([]sovereign.EsdtToken, 0)
+	for i := tokensIndex; i < len(topics); i += numTransferTopics {
+		tokenIdentifier := topics[i]
+		tokenNonce, err := common.ByteSliceToUint64(topics[i+1])
+		if err != nil {
+			return nil, err
+		}
+		tokenData, err := op.dataCodec.DeserializeTokenData(topics[i+2])
+		if err != nil {
+			return nil, err
+		}
+
+		payment := sovereign.EsdtToken{
+			Identifier: tokenIdentifier,
+			Nonce:      tokenNonce,
+			Data:       *tokenData,
+		}
+		tokens = append(tokens, payment)
+	}
+
+	return &sovereign.Operation{
+		Address: topics[receiverIndex],
+		Tokens:  tokens,
+	}, nil
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil

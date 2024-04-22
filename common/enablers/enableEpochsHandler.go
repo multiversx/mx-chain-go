@@ -275,18 +275,6 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.ESDTTransferRoleEnableEpoch,
 		},
-		common.BuiltInFunctionOnMetaFlag: {
-			isActiveInEpoch: func(epoch uint32) bool {
-				return epoch >= handler.enableEpochsConfig.BuiltInFunctionOnMetaEnableEpoch
-			},
-			activationEpoch: handler.enableEpochsConfig.BuiltInFunctionOnMetaEnableEpoch,
-		},
-		common.TransferToMetaFlag: {
-			isActiveInEpoch: func(epoch uint32) bool {
-				return epoch >= handler.enableEpochsConfig.BuiltInFunctionOnMetaEnableEpoch
-			},
-			activationEpoch: handler.enableEpochsConfig.BuiltInFunctionOnMetaEnableEpoch,
-		},
 		common.ComputeRewardCheckpointFlag: {
 			isActiveInEpoch: func(epoch uint32) bool {
 				return epoch >= handler.enableEpochsConfig.ComputeRewardCheckpointEnableEpoch
@@ -629,6 +617,12 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.AutoBalanceDataTriesEnableEpoch,
 		},
+		common.MigrateDataTrieFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.MigrateDataTrieEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.MigrateDataTrieEnableEpoch,
+		},
 		common.FixDelegationChangeOwnerOnAccountFlag: {
 			isActiveInEpoch: func(epoch uint32) bool {
 				return epoch >= handler.enableEpochsConfig.FixDelegationChangeOwnerOnAccountEnableEpoch
@@ -671,12 +665,6 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.BalanceWaitingListsEnableEpoch,
 		},
-		common.WaitingListFixFlag: {
-			isActiveInEpoch: func(epoch uint32) bool {
-				return epoch >= handler.enableEpochsConfig.WaitingListFixEnableEpoch
-			},
-			activationEpoch: handler.enableEpochsConfig.WaitingListFixEnableEpoch,
-		},
 		common.NFTStopCreateFlag: {
 			isActiveInEpoch: func(epoch uint32) bool {
 				return epoch >= handler.enableEpochsConfig.NFTStopCreateEnableEpoch
@@ -700,6 +688,48 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 				return epoch >= handler.enableEpochsConfig.CurrentRandomnessOnSortingEnableEpoch
 			},
 			activationEpoch: handler.enableEpochsConfig.CurrentRandomnessOnSortingEnableEpoch,
+		},
+		common.StakeLimitsFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.StakeLimitsEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.StakeLimitsEnableEpoch,
+		},
+		common.StakingV4Step1Flag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch == handler.enableEpochsConfig.StakingV4Step1EnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.StakingV4Step1EnableEpoch,
+		},
+		common.StakingV4Step2Flag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.StakingV4Step2EnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.StakingV4Step2EnableEpoch,
+		},
+		common.StakingV4Step3Flag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.StakingV4Step3EnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.StakingV4Step3EnableEpoch,
+		},
+		common.StakingQueueFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch < handler.enableEpochsConfig.StakingV4Step1EnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.StakingV4Step1EnableEpoch,
+		},
+		common.StakingV4StartedFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.StakingV4Step1EnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.StakingV4Step1EnableEpoch,
+		},
+		common.AlwaysMergeContextsInEEIFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.AlwaysMergeContextsInEEIEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.AlwaysMergeContextsInEEIEnableEpoch,
 		},
 		common.ConsensusModelV2Flag: {
 			isActiveInEpoch: func(epoch uint32) bool {
@@ -773,6 +803,16 @@ func (handler *enableEpochsHandler) GetCurrentEpoch() uint32 {
 	handler.epochMut.RUnlock()
 
 	return currentEpoch
+}
+
+// StakingV4Step2EnableEpoch returns the epoch when stakingV4 becomes active
+func (handler *enableEpochsHandler) StakingV4Step2EnableEpoch() uint32 {
+	return handler.enableEpochsConfig.StakingV4Step2EnableEpoch
+}
+
+// StakingV4Step1EnableEpoch returns the epoch when stakingV4 phase1 becomes active
+func (handler *enableEpochsHandler) StakingV4Step1EnableEpoch() uint32 {
+	return handler.enableEpochsConfig.StakingV4Step1EnableEpoch
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

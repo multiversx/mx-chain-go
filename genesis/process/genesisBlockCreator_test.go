@@ -1,21 +1,23 @@
 //go:build !race
 
-// TODO reinstate test after Wasm VM pointer fix
-
 package process
 
 import (
 	"bytes"
 	"encoding/hex"
 	"errors"
-	"github.com/multiversx/mx-chain-go/process/coordinator"
-	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
-	"github.com/multiversx/mx-chain-go/process/smartContract/processorV2"
 	"math"
 	"math/big"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	factoryRunType "github.com/multiversx/mx-chain-go/factory/runType"
+	"github.com/multiversx/mx-chain-go/testscommon/factory"
+
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -29,7 +31,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
-	factoryState "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
@@ -61,20 +62,8 @@ func createMockArgument(
 	initialNodes genesis.InitialNodesHandler,
 	entireSupply *big.Int,
 ) ArgsGenesisBlockCreator {
-
-	storageManagerArgs := storageCommon.GetStorageManagerArgs()
-	storageManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, storageCommon.GetStorageManagerOptions())
-
-	trieStorageManagers := make(map[string]common.StorageManager)
-	trieStorageManagers[dataRetriever.UserAccountsUnit.String()] = storageManager
-	trieStorageManagers[dataRetriever.PeerAccountsUnit.String()] = storageManager
-
-	runType := mainFactoryMocks.NewRunTypeComponentsStub()
-	runType.BlockChainHookHandlerFactory, _ = hooks.NewBlockChainHookFactory()
-	runType.TransactionCoordinatorFactory, _ = coordinator.NewShardTransactionCoordinatorFactory()
-	runType.SCResultsPreProcessorFactory, _ = preprocess.NewSmartContractResultPreProcessorFactory()
-	runType.SCProcessorFactory, _ = processorV2.NewSCProcessFactory()
-
+	trieStorageManagers := createTrieStorageManagers()
+	runTypeComp := createRunTypeComponents(t)
 	arg := ArgsGenesisBlockCreator{
 		GenesisTime:   0,
 		StartEpochNum: 0,
@@ -163,6 +152,8 @@ func createMockArgument(
 				MaxNumberOfNodesForStake:             10,
 				ActivateBLSPubKeyMessageVerification: false,
 				MinUnstakeTokensValue:                "1",
+				StakeLimitPercentage:                 100.0,
+				NodeLimitPercentage:                  100.0,
 			},
 			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
 				MinCreationDeposit:  "100",
@@ -173,30 +164,36 @@ func createMockArgument(
 				MinServiceFee: 0,
 				MaxServiceFee: 100,
 			},
+			SoftAuctionConfig: config.SoftAuctionConfig{
+				TopUpStep:             "10",
+				MinTopUp:              "1",
+				MaxTopUp:              "32000000",
+				MaxNumberOfIterations: 100000,
+			},
 		},
 		TrieStorageManagers: trieStorageManagers,
 		BlockSignKeyGen:     &mock.KeyGenMock{},
 		GenesisNodePrice:    nodePrice,
-		EpochConfig: &config.EpochConfig{
+		EpochConfig: config.EpochConfig{
 			EnableEpochs: config.EnableEpochs{
-				BuiltInFunctionsEnableEpoch:    0,
-				SCDeployEnableEpoch:            0,
-				RelayedTransactionsEnableEpoch: 0,
-				PenalizedTooMuchGasEnableEpoch: 0,
+				SCDeployEnableEpoch:               unreachableEpoch,
+				CleanUpInformativeSCRsEnableEpoch: unreachableEpoch,
+				SCProcessorV2EnableEpoch:          unreachableEpoch,
+				StakeLimitsEnableEpoch:            10,
 			},
 		},
-		RoundConfig: &config.RoundConfig{
-			RoundActivations: map[string]config.ActivationRoundByName{
-				"DisableAsyncCallV1": {
-					Round: "18446744073709551615",
-				},
-			},
-		},
+		RoundConfig:             testscommon.GetDefaultRoundsConfig(),
+		HeaderVersionConfigs:    testscommon.GetDefaultHeaderVersionConfig(),
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
+		versionedHeaderFactory: &testscommon.VersionedHeaderFactoryStub{
+			CreateCalled: func(epoch uint32) data.HeaderHandler {
+				return &block.Header{}
+			},
+		},
 		ShardCoordinatorFactory: sharding.NewMultiShardCoordinatorFactory(),
 		TxPreprocessorCreator:   preprocess.NewTxPreProcessorCreator(),
-		RunTypeComponents:       runType,
+		RunTypeComponents:       runTypeComp,
 	}
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{
@@ -204,18 +201,11 @@ func createMockArgument(
 		SelfShardId: 0,
 	}
 
-	argsAccCreator := factoryState.ArgsAccountCreator{
-		Hasher:              &hashingMocks.HasherMock{},
-		Marshaller:          &mock.MarshalizerMock{},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-	}
-	accCreator, err := factoryState.NewAccountCreator(argsAccCreator)
-	require.Nil(t, err)
-
+	var err error
 	arg.Accounts, err = createAccountAdapter(
 		&mock.MarshalizerMock{},
 		&hashingMocks.HasherMock{},
-		accCreator,
+		runTypeComp.AccountsCreator(),
 		trieStorageManagers[dataRetriever.UserAccountsUnit.String()],
 		&testscommon.PubkeyConverterMock{},
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
@@ -273,6 +263,40 @@ func createMockArgument(
 	arg.InitialNodesSetup = initialNodes
 
 	return arg
+}
+
+func createTrieStorageManagers() map[string]common.StorageManager {
+	storageManagerArgs := storageCommon.GetStorageManagerArgs()
+	storageManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, storageCommon.GetStorageManagerOptions())
+
+	trieStorageManagers := make(map[string]common.StorageManager)
+	trieStorageManagers[dataRetriever.UserAccountsUnit.String()] = storageManager
+	trieStorageManagers[dataRetriever.PeerAccountsUnit.String()] = storageManager
+
+	return trieStorageManagers
+}
+
+func createRunTypeComponents(t *testing.T) runTypeComponentsHandler {
+	runTypeFactory, err := factoryRunType.NewRunTypeComponentsFactory(&factory.CoreComponentsHolderMock{
+		HasherCalled: func() hashing.Hasher {
+			return &hashingMocks.HasherMock{}
+		},
+		InternalMarshalizerCalled: func() marshal.Marshalizer {
+			return &mock.MarshalizerMock{}
+		},
+		EnableEpochsHandlerCalled: func() common.EnableEpochsHandler {
+			return &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
+		},
+	})
+	require.Nil(t, err)
+
+	runTypeComp, err := factoryRunType.NewManagedRunTypeComponents(runTypeFactory)
+	require.Nil(t, err)
+
+	err = runTypeComp.Create()
+	require.Nil(t, err)
+
+	return runTypeComp
 }
 
 func TestNewGenesisBlockCreator(t *testing.T) {
@@ -478,6 +502,18 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		require.ErrorIs(t, err, errorsMx.ErrNilTransactionCoordinatorCreator)
 		require.Nil(t, gbc)
 	})
+	t.Run("nil AccountCreator should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
+		rtComponents := mainFactoryMocks.NewRunTypeComponentsStub()
+		rtComponents.AccountCreator = nil
+		arg.RunTypeComponents = rtComponents
+
+		gbc, err := NewGenesisBlockCreator(arg)
+		require.ErrorIs(t, err, state.ErrNilAccountFactory)
+		require.Nil(t, gbc)
+	})
 	t.Run("nil TrieStorageManagers should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -486,16 +522,6 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 
 		gbc, err := NewGenesisBlockCreator(arg)
 		require.ErrorIs(t, err, genesis.ErrNilTrieStorageManager)
-		require.Nil(t, gbc)
-	})
-	t.Run("nil EpochConfig should error", func(t *testing.T) {
-		t.Parallel()
-
-		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
-		arg.EpochConfig = nil
-
-		gbc, err := NewGenesisBlockCreator(arg)
-		require.ErrorIs(t, err, genesis.ErrNilEpochConfig)
 		require.Nil(t, gbc)
 	})
 	t.Run("nil shard coordinator factory, should error", func(t *testing.T) {
@@ -968,9 +994,9 @@ func TestCreateArgsGenesisBlockCreator_ShouldWorkAndCreateEmpty(t *testing.T) {
 	blocks, err := gbc.CreateGenesisBlocks()
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(blocks))
-	for _, block := range blocks {
-		assert.Zero(t, block.GetNonce())
-		assert.Zero(t, block.GetRound())
-		assert.Zero(t, block.GetEpoch())
+	for _, blockInstance := range blocks {
+		assert.Zero(t, blockInstance.GetNonce())
+		assert.Zero(t, blockInstance.GetRound())
+		assert.Zero(t, blockInstance.GetEpoch())
 	}
 }

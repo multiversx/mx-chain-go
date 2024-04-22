@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
@@ -18,21 +19,24 @@ import (
 	"github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
 	"github.com/multiversx/mx-chain-go/process/track"
+	"github.com/multiversx/mx-chain-go/state/factory"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 )
 
 type sovereignRunTypeComponentsFactory struct {
 	*runTypeComponentsFactory
+	cfg config.SovereignConfig
 }
 
 // NewSovereignRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
-func NewSovereignRunTypeComponentsFactory(fact *runTypeComponentsFactory) (*sovereignRunTypeComponentsFactory, error) {
+func NewSovereignRunTypeComponentsFactory(fact *runTypeComponentsFactory, cfg config.SovereignConfig) (*sovereignRunTypeComponentsFactory, error) {
 	if check.IfNil(fact) {
 		return nil, errors.ErrNilRunTypeComponentsFactory
 	}
 
 	return &sovereignRunTypeComponentsFactory{
 		runTypeComponentsFactory: fact,
+		cfg:                      cfg,
 	}, nil
 }
 
@@ -90,7 +94,7 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 
 	scheduledTxsExecutionFactory, err := preprocess.NewSovereignScheduledTxsExecutionFactory()
 	if err != nil {
-		return nil, fmt.Errorf("createManagedRunTypeComponents - NewSovereignScheduledTxsExecutionFactory failed: %w", err)
+		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignScheduledTxsExecutionFactory failed: %w", err)
 	}
 
 	transactionCoordinatorFactory, err := coordinator.NewSovereignTransactionCoordinatorFactory(rtc.transactionCoordinatorCreator)
@@ -105,22 +109,34 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 
 	additionalStorageServiceCreator, err := storageFactory.NewSovereignAdditionalStorageServiceFactory()
 	if err != nil {
-		return nil, fmt.Errorf("runTypeComponentsFactory - NewSovereignAdditionalStorageServiceFactory failed: %w", err)
+		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignAdditionalStorageServiceFactory failed: %w", err)
 	}
 
 	scProcessorCreator, err := processorV2.NewSovereignSCProcessFactory(rtc.scProcessorCreator)
 	if err != nil {
-		return nil, fmt.Errorf("runTypeComponentsFactory - NewSCProcessProxyFactory failed: %w", err)
+		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignSCProcessFactory failed: %w", err)
 	}
 
 	scResultPreProcessorCreator, err := preprocess.NewSovereignSmartContractResultPreProcessorFactory(rtc.scResultPreProcessorCreator)
 	if err != nil {
-		return nil, fmt.Errorf("runTypeComponentsFactory - NewSovereignSmartContractResultPreProcessorFactory failed: %w", err)
+		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignSmartContractResultPreProcessorFactory failed: %w", err)
 	}
 
 	vmContainerShardCreator, err := factoryVm.NewSovereignVmContainerShardFactory(blockChainHookHandlerFactory, rtc.vmContainerMetaFactory, rtc.vmContainerShardFactory)
 	if err != nil {
-		return nil, fmt.Errorf("runTypeComponentsFactory - NewVmContainerShardFactory failed: %w", err)
+		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignVmContainerShardFactory failed: %w", err)
+	}
+
+	accountsCreator, err := factory.NewSovereignAccountCreator(factory.ArgsSovereignAccountCreator{
+		ArgsAccountCreator: factory.ArgsAccountCreator{
+			Hasher:              rcf.coreComponents.Hasher(),
+			Marshaller:          rcf.coreComponents.InternalMarshalizer(),
+			EnableEpochsHandler: rcf.coreComponents.EnableEpochsHandler(),
+		},
+		BaseTokenID: rcf.cfg.GenesisConfig.NativeESDT,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignAccountCreator failed: %w", err)
 	}
 
 	return &runTypeComponents{
@@ -142,5 +158,6 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		consensusModel:                      consensus.ConsensusModelV2,
 		vmContainerMetaFactory:              rtc.vmContainerMetaFactory,
 		vmContainerShardFactory:             vmContainerShardCreator,
+		accountsCreator:                     accountsCreator,
 	}, nil
 }
