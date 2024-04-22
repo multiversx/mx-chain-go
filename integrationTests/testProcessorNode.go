@@ -3326,6 +3326,13 @@ func GetDefaultRunTypeComponents(consensusModel consensus.ConsensusModel) *mainF
 		TopicsChecker:                       rt.TopicsCheckerHandler(),
 		ShardCoordinatorFactory:             rt.ShardCoordinatorCreator(),
 		NodesCoordinatorWithRaterFactory:    rt.NodesCoordinatorWithRaterCreator(),
+		RequestersContainerFactory:          rt.RequestersContainerFactoryCreator(),
+		InterceptorsContainerFactory:        rt.InterceptorsContainerFactoryCreator(),
+		ShardResolversContainerFactory:      rt.ShardResolversContainerFactoryCreator(),
+		TxPreProcessorFactory:               rt.TxPreProcessorCreator(),
+		ExtraHeaderSigVerifier:              rt.ExtraHeaderSigVerifierHandler(),
+		GenesisBlockFactory:                 rt.GenesisBlockCreator(),
+		GenesisMetaBlockChecker:             rt.GenesisMetaBlockCheckerCreator(),
 	}
 }
 
