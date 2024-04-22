@@ -1,28 +1,31 @@
 package chainSimulator
 
 import (
-	chainData "github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
+
+	chainData "github.com/multiversx/mx-chain-core-go/data"
 )
 
 // NodeHandlerMock -
 type NodeHandlerMock struct {
-	GetProcessComponentsCalled    func() factory.ProcessComponentsHolder
-	GetChainHandlerCalled         func() chainData.ChainHandler
-	GetBroadcastMessengerCalled   func() consensus.BroadcastMessenger
-	GetShardCoordinatorCalled     func() sharding.Coordinator
-	GetCryptoComponentsCalled     func() factory.CryptoComponentsHolder
-	GetCoreComponentsCalled       func() factory.CoreComponentsHolder
-	GetStateComponentsCalled      func() factory.StateComponentsHolder
-	GetFacadeHandlerCalled        func() shared.FacadeHandler
-	GetStatusCoreComponentsCalled func() factory.StatusCoreComponentsHolder
-	SetKeyValueForAddressCalled   func(addressBytes []byte, state map[string]string) error
-	SetStateForAddressCalled      func(address []byte, state *dtos.AddressState) error
-	CloseCalled                   func() error
+	GetProcessComponentsCalled     func() factory.ProcessComponentsHolder
+	GetChainHandlerCalled          func() chainData.ChainHandler
+	GetBroadcastMessengerCalled    func() consensus.BroadcastMessenger
+	GetShardCoordinatorCalled      func() sharding.Coordinator
+	GetCryptoComponentsCalled      func() factory.CryptoComponentsHolder
+	GetCoreComponentsCalled        func() factory.CoreComponentsHolder
+	GetStateComponentsCalled       func() factory.StateComponentsHolder
+	GetFacadeHandlerCalled         func() shared.FacadeHandler
+	GetStatusCoreComponentsCalled  func() factory.StatusCoreComponentsHolder
+	SetKeyValueForAddressCalled    func(addressBytes []byte, state map[string]string) error
+	SetStateForAddressCalled       func(address []byte, state *dtos.AddressState) error
+	GetIncomingHeaderHandlerCalled func() process.IncomingHeaderSubscriber
+	CloseCalled                    func() error
 }
 
 // GetProcessComponents -
@@ -109,6 +112,13 @@ func (mock *NodeHandlerMock) SetKeyValueForAddress(addressBytes []byte, state ma
 func (mock *NodeHandlerMock) SetStateForAddress(address []byte, state *dtos.AddressState) error {
 	if mock.SetStateForAddressCalled != nil {
 		return mock.SetStateForAddressCalled(address, state)
+	}
+	return nil
+}
+
+func (mock *NodeHandlerMock) GetIncomingHeaderHandler() process.IncomingHeaderSubscriber {
+	if mock.GetIncomingHeaderHandlerCalled != nil {
+		return mock.GetIncomingHeaderHandler()
 	}
 	return nil
 }

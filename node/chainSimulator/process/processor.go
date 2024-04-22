@@ -1,11 +1,14 @@
 package process
 
 import (
-	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/data"
+	"time"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
+
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -114,6 +117,13 @@ func (creator *blocksCreator) CreateNewBlock() error {
 	}
 
 	err = creator.setHeaderSignatures(header, blsKey.PubKey())
+	if err != nil {
+		return err
+	}
+
+	header, block, err = bp.ProcessBlock(header, block, func() time.Duration {
+		return time.Second
+	})
 	if err != nil {
 		return err
 	}
