@@ -75,8 +75,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/closing"
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
-	hasherFactory "github.com/multiversx/mx-chain-core-go/hashing/factory"
-	marshallerFactory "github.com/multiversx/mx-chain-core-go/marshal/factory"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/multiversx/mx-chain-sovereign-bridge-go/cert"
 	factoryBridge "github.com/multiversx/mx-chain-sovereign-bridge-go/client"
@@ -434,7 +432,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 
 	log.Debug("creating process components")
 
-	incomingHeaderHandler, err := createIncomingHeaderProcessor(
+	incomingHeaderHandler, err := incomingHeader.CreateIncomingHeaderProcessor(
 		&configs.SovereignExtraConfig.NotifierConfig,
 		managedDataComponents.Datapool(),
 		configs.SovereignExtraConfig.MainChainNotarization.MainChainNotarizationStartRound,
@@ -1831,35 +1829,6 @@ func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteLi
 		return nil, err
 	}
 	return interceptors.NewWhiteListDataVerifier(whiteListCacheVerified)
-}
-
-func createIncomingHeaderProcessor(
-	config *config.NotifierConfig,
-	dataPool dataRetriever.PoolsHolder,
-	mainChainNotarizationStartRound uint64,
-	runTypeComponents mainFactory.RunTypeComponentsHolder,
-) (process.IncomingHeaderSubscriber, error) {
-	marshaller, err := marshallerFactory.NewMarshalizer(config.WebSocketConfig.MarshallerType)
-	if err != nil {
-		return nil, err
-	}
-	hasher, err := hasherFactory.NewHasher(config.WebSocketConfig.HasherType)
-	if err != nil {
-		return nil, err
-	}
-
-	argsIncomingHeaderHandler := incomingHeader.ArgsIncomingHeaderProcessor{
-		HeadersPool:                     dataPool.Headers(),
-		TxPool:                          dataPool.UnsignedTransactions(),
-		Marshaller:                      marshaller,
-		Hasher:                          hasher,
-		MainChainNotarizationStartRound: mainChainNotarizationStartRound,
-		OutGoingOperationsPool:          runTypeComponents.OutGoingOperationsPoolHandler(),
-		DataCodec:                       runTypeComponents.DataCodecHandler(),
-		TopicsChecker:                   runTypeComponents.TopicsCheckerHandler(),
-	}
-
-	return incomingHeader.NewIncomingHeaderProcessor(argsIncomingHeaderHandler)
 }
 
 func createSovereignWsReceiver(

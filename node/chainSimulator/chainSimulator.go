@@ -67,7 +67,7 @@ type ArgsChainSimulator struct {
 	CreateGenesisNodesSetup     func(nodesFilePath string, addressPubkeyConverter core.PubkeyConverter, validatorPubkeyConverter core.PubkeyConverter, genesisMaxNumShards uint32) (mxChainSharding.GenesisNodesSetupHandler, error)
 	CreateRatingsData           func(arg rating.RatingsDataArg) (processing.RatingsInfoHandler, error)
 	CreateIncomingHeaderHandler func(config *config.NotifierConfig, dataPool dataRetriever.PoolsHolder, mainChainNotarizationStartRound uint64, runTypeComponents factory.RunTypeComponentsHolder) (processing.IncomingHeaderSubscriber, error)
-	GetRunTypeComponents        func(coreComponents factory.CoreComponentsHolder, cryptoComponents factory.CryptoComponentsHolder) (factory.RunTypeComponentsHolder, error)
+	GetRunTypeComponents        func(args runType.ArgsRunTypeComponents) (factory.RunTypeComponentsHolder, error)
 }
 
 type simulator struct {
@@ -100,8 +100,8 @@ func NewChainSimulator(args ArgsChainSimulator) (*simulator, error) {
 		}
 	}
 	if args.GetRunTypeComponents == nil {
-		args.GetRunTypeComponents = func(coreComponents factory.CoreComponentsHolder, cryptoComponents factory.CryptoComponentsHolder) (factory.RunTypeComponentsHolder, error) {
-			return createRunTypeComponents(coreComponents, cryptoComponents)
+		args.GetRunTypeComponents = func(args runType.ArgsRunTypeComponents) (factory.RunTypeComponentsHolder, error) {
+			return createRunTypeComponents(args)
 		}
 	}
 
@@ -123,8 +123,8 @@ func NewChainSimulator(args ArgsChainSimulator) (*simulator, error) {
 	return instance, nil
 }
 
-func createRunTypeComponents(coreComponents factory.CoreComponentsHolder, _ factory.CryptoComponentsHolder) (factory.RunTypeComponentsHolder, error) {
-	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory(coreComponents)
+func createRunTypeComponents(args runType.ArgsRunTypeComponents) (factory.RunTypeComponentsHolder, error) {
+	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory(args)
 	managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(runTypeComponentsFactory)
 	if err != nil {
 		return nil, err
