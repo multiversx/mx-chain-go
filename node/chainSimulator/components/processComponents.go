@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/factory"
 	processComp "github.com/multiversx/mx-chain-go/factory/processing"
+	"github.com/multiversx/mx-chain-go/factory/runType"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
 	"github.com/multiversx/mx-chain-go/process"
@@ -24,7 +25,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage/cache"
-	"github.com/multiversx/mx-chain-go/testscommon/components"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/update"
 	"github.com/multiversx/mx-chain-go/update/trigger"
 
@@ -42,16 +43,7 @@ type ArgsProcessComponentsHolder struct {
 	StatusComponents     factory.StatusComponentsHolder
 	StatusCoreComponents factory.StatusCoreComponentsHolder
 	NodesCoordinator     nodesCoordinator.NodesCoordinator
-
-	EpochConfig              config.EpochConfig
-	RoundConfig              config.RoundConfig
-	ConfigurationPathsHolder config.ConfigurationPathsHolder
-	FlagsConfig              config.ContextFlagsConfig
-	ImportDBConfig           config.ImportDbConfig
-	PrefsConfig              config.Preferences
-	Config                   config.Config
-	EconomicsConfig          config.EconomicsConfig
-	SystemSCConfig           config.SystemSmartContractsConfig
+	Configs              config.Configs
 
 	GenesisNonce uint64
 	GenesisRound uint64
@@ -104,13 +96,13 @@ type processComponentsHolder struct {
 
 // CreateProcessComponents will create the process components holder
 func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponentsHolder, error) {
-	importStartHandler, err := trigger.NewImportStartHandler(filepath.Join(args.FlagsConfig.DbDir, common.DefaultDBPath), args.FlagsConfig.Version)
+	importStartHandler, err := trigger.NewImportStartHandler(filepath.Join(args.Configs.FlagsConfig.DbDir, common.DefaultDBPath), args.Configs.FlagsConfig.Version)
 	if err != nil {
 		return nil, err
 	}
 
 	smartContractParser, err := parsing.NewSmartContractsParser(
-		args.ConfigurationPathsHolder.SmartContracts,
+		args.Configs.ConfigurationPathsHolder.SmartContracts,
 		args.CoreComponents.AddressPubKeyConverter(),
 		args.CryptoComponents.TxSignKeyGen(),
 	)
@@ -120,7 +112,7 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 
 	historyRepoFactoryArgs := &dbLookupFactory.ArgsHistoryRepositoryFactory{
 		SelfShardID:              args.BootstrapComponents.ShardCoordinator().SelfId(),
-		Config:                   args.Config.DbLookupExtensions,
+		Config:                   args.Configs.GeneralConfig.DbLookupExtensions,
 		Hasher:                   args.CoreComponents.Hasher(),
 		Marshalizer:              args.CoreComponents.InternalMarshalizer(),
 		Store:                    args.DataComponents.StorageService(),
@@ -152,8 +144,8 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 	txExecutionOrderHandler := ordering.NewOrderedCollection()
 
 	argsGasScheduleNotifier := forking.ArgsNewGasScheduleNotifier{
-		GasScheduleConfig:  args.EpochConfig.GasSchedule,
-		ConfigDir:          args.ConfigurationPathsHolder.GasScheduleDirectoryName,
+		GasScheduleConfig:  args.Configs.EpochConfig.GasSchedule,
+		ConfigDir:          args.Configs.ConfigurationPathsHolder.GasScheduleDirectoryName,
 		EpochNotifier:      args.CoreComponents.EpochNotifier(),
 		WasmVMChangeLocker: args.CoreComponents.WasmVMChangeLocker(),
 	}
@@ -162,13 +154,26 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		return nil, err
 	}
 
+	initialAccounts, _ := testscommon.ReadInitialAccounts(args.Configs.ConfigurationPathsHolder.Genesis)
+
+	argsRunTypeComponents := runType.ArgsRunTypeComponents{
+		CoreComponents:   args.CoreComponents,
+		CryptoComponents: args.CryptoComponents,
+		Configs:          args.Configs,
+		InitialAccounts:  initialAccounts,
+	}
+	runTypeComponents, err := createRunTypeComponents(argsRunTypeComponents)
+	if err != nil {
+		return nil, err
+	}
+
 	processArgs := processComp.ProcessComponentsFactoryArgs{
-		Config:                  args.Config,
-		EpochConfig:             args.EpochConfig,
-		RoundConfig:             args.RoundConfig,
-		PrefConfigs:             args.PrefsConfig,
-		ImportDBConfig:          args.ImportDBConfig,
-		EconomicsConfig:         args.EconomicsConfig,
+		Config:                  *args.Configs.GeneralConfig,
+		EpochConfig:             *args.Configs.EpochConfig,
+		RoundConfig:             *args.Configs.RoundConfig,
+		PrefConfigs:             *args.Configs.PreferencesConfig,
+		ImportDBConfig:          *args.Configs.ImportDbConfig,
+		EconomicsConfig:         *args.Configs.EconomicsConfig,
 		SmartContractParser:     smartContractParser,
 		GasSchedule:             gasScheduleNotifier,
 		NodesCoordinator:        args.NodesCoordinator,
@@ -176,10 +181,10 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		WhiteListHandler:        whiteListRequest,
 		WhiteListerVerifiedTxs:  whiteListerVerifiedTxs,
 		MaxRating:               50,
-		SystemSCConfig:          &args.SystemSCConfig,
+		SystemSCConfig:          args.Configs.SystemSCConfig,
 		ImportStartHandler:      importStartHandler,
 		HistoryRepo:             historyRepository,
-		FlagsConfig:             args.FlagsConfig,
+		FlagsConfig:             *args.Configs.FlagsConfig,
 		Data:                    args.DataComponents,
 		CoreData:                args.CoreComponents,
 		Crypto:                  args.CryptoComponents,
@@ -191,7 +196,7 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		TxExecutionOrderHandler: txExecutionOrderHandler,
 		GenesisNonce:            args.GenesisNonce,
 		GenesisRound:            args.GenesisRound,
-		RunTypeComponents:       components.GetRunTypeComponents(),
+		RunTypeComponents:       runTypeComponents,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -254,6 +259,20 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 	}
 
 	return instance, nil
+}
+
+func createRunTypeComponents(args runType.ArgsRunTypeComponents) (factory.RunTypeComponentsHolder, error) {
+	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory(args)
+	managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(runTypeComponentsFactory)
+	if err != nil {
+		return nil, err
+	}
+	err = managedRunTypeComponents.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	return managedRunTypeComponents, nil
 }
 
 // SentSignaturesTracker will return the sent signature tracker
