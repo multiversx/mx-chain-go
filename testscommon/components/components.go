@@ -1091,7 +1091,23 @@ func GetRunTypeComponents() factory.RunTypeComponentsHolder {
 
 // GetRunTypeComponentsWithCoreComp -
 func GetRunTypeComponentsWithCoreComp(coreComponents factory.CoreComponentsHandler) factory.RunTypeComponentsHolder {
-	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory(createArgsRunTypeComponents())
+	args := runType.ArgsRunTypeComponents{
+		CoreComponents: coreComponents,
+		CryptoComponents: &mockCoreComp.CryptoComponentsStub{
+			TxKeyGen: &mockCoreComp.KeyGenMock{},
+		},
+		Configs: config.Configs{
+			EconomicsConfig: &config.EconomicsConfig{
+				GlobalSettings: config.GlobalSettings{
+					GenesisTotalSupply:          "20000000000000000000000000",
+					GenesisMintingSenderAddress: "erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3",
+				},
+			},
+		},
+		InitialAccounts: createAccounts(),
+	}
+
+	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory(args)
 	managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(runTypeComponentsFactory)
 	if err != nil {
 		log.Error("getRunTypeComponents NewManagedRunTypeComponents", "error", err.Error())
