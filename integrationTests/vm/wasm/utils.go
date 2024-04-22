@@ -224,7 +224,7 @@ func (context *TestContext) initFeeHandlers() {
 				RewardsConfigByEpoch: []config.EpochRewardSettings{
 					{
 						LeaderPercentage:                 0.1,
-						DeveloperPercentage:              0.0,
+						DeveloperPercentage:              0.3,
 						ProtocolSustainabilityPercentage: 0,
 						ProtocolSustainabilityAddress:    testProtocolSustainabilityAddress,
 						TopUpGradientPoint:               "1000000",
@@ -493,12 +493,18 @@ func (context *TestContext) TakeAccountBalanceSnapshot(participant *testParticip
 	participant.BalanceSnapshot = context.GetAccountBalance(participant)
 }
 
-// GetAccountBalance -
-func (context *TestContext) GetAccountBalance(participant *testParticipant) *big.Int {
-	account, err := context.Accounts.GetExistingAccount(participant.Address)
+// GetAccount -
+func (context *TestContext) GetAccount(address []byte) state.UserAccountHandler {
+	account, err := context.Accounts.GetExistingAccount(address)
 	require.Nil(context.T, err)
 	accountAsUser := account.(state.UserAccountHandler)
-	return accountAsUser.GetBalance()
+	return accountAsUser
+}
+
+// GetAccountBalance -
+func (context *TestContext) GetAccountBalance(participant *testParticipant) *big.Int {
+	account := context.GetAccount(participant.Address)
+	return account.GetBalance()
 }
 
 // GetAccountBalanceDelta -
