@@ -241,7 +241,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 
 	tcn.initAccountsDB()
 
-	runTypeComponents := componentsMock.GetRunTypeComponentsStub(args.ConsensusModel)
+	runTypeComponents := componentsMock.GetRunTypeComponents()
 
 	coreComponents := GetDefaultCoreComponents(CreateEnableEpochsConfig())
 	coreComponents.SyncTimerField = syncer

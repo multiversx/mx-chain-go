@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
+	runType "github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	processComp "github.com/multiversx/mx-chain-go/factory/processing"
 	"github.com/multiversx/mx-chain-go/genesis"
@@ -83,7 +84,14 @@ var (
 )
 
 func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFactoryArgs {
-	runTypeComponents := getRunTypeComponentsMock()
+	return createProcessComponentsFactoryArgs(getRunTypeComponentsMock())
+}
+
+func createMockSovereignProcessComponentsFactoryArgs() processComp.ProcessComponentsFactoryArgs {
+	return createProcessComponentsFactoryArgs(getSovereignRunTypeComponentsMock())
+}
+
+func createProcessComponentsFactoryArgs(runTypeComponents *mainFactoryMocks.RunTypeComponentsStub) processComp.ProcessComponentsFactoryArgs {
 	args := processComp.ProcessComponentsFactoryArgs{
 		Config: testscommon.GetGeneralConfig(),
 		EpochConfig: config.EpochConfig{
@@ -950,7 +958,14 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 }
 
 func getRunTypeComponentsMock() *mainFactoryMocks.RunTypeComponentsStub {
-	rt := components.GetRunTypeComponents()
+	return getRunTypeComponents(components.GetRunTypeComponents())
+}
+
+func getSovereignRunTypeComponentsMock() *mainFactoryMocks.RunTypeComponentsStub {
+	return getRunTypeComponents(components.GetSovereignRunTypeComponents())
+}
+
+func getRunTypeComponents(rt runType.RunTypeComponentsHolder) *mainFactoryMocks.RunTypeComponentsStub {
 	return &mainFactoryMocks.RunTypeComponentsStub{
 		BlockChainHookHandlerFactory:        rt.BlockChainHookHandlerCreator(),
 		BlockProcessorFactory:               rt.BlockProcessorCreator(),
@@ -1453,7 +1468,6 @@ func TestProcessComponentsFactory_CreateShouldWork(t *testing.T) {
 
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 		processArgs := components.GetProcessComponentsFactoryArgs(shardCoordinator)
-		processArgs.RunTypeComponents = components.GetRunTypeComponents()
 		pcf, _ := processComp.NewProcessComponentsFactory(processArgs)
 
 		require.NotNil(t, pcf)
