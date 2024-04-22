@@ -1,8 +1,6 @@
 package process
 
 import (
-	"time"
-
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
@@ -117,13 +115,6 @@ func (creator *blocksCreator) CreateNewBlock() error {
 	}
 
 	err = creator.setHeaderSignatures(header, blsKey.PubKey())
-	if err != nil {
-		return err
-	}
-
-	header, block, err = bp.ProcessBlock(header, block, func() time.Duration {
-		return time.Second
-	})
 	if err != nil {
 		return err
 	}
