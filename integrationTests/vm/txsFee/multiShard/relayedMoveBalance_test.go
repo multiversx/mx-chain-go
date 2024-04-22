@@ -14,6 +14,10 @@ import (
 )
 
 func TestRelayedMoveBalanceRelayerShard0InnerTxSenderAndReceiverShard1ShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -58,6 +62,10 @@ func TestRelayedMoveBalanceRelayerShard0InnerTxSenderAndReceiverShard1ShouldWork
 }
 
 func TestRelayedMoveBalanceRelayerAndInnerTxSenderShard0ReceiverShard1(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -103,6 +111,10 @@ func TestRelayedMoveBalanceRelayerAndInnerTxSenderShard0ReceiverShard1(t *testin
 }
 
 func TestRelayedMoveBalanceExecuteOnSourceAndDestination(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContextSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContextSource.Close()
@@ -167,6 +179,10 @@ func TestRelayedMoveBalanceExecuteOnSourceAndDestination(t *testing.T) {
 }
 
 func TestRelayedMoveBalanceExecuteOnSourceAndDestinationRelayerAndInnerTxSenderShard0InnerTxReceiverShard1ShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContextSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContextSource.Close()
@@ -227,6 +243,10 @@ func TestRelayedMoveBalanceExecuteOnSourceAndDestinationRelayerAndInnerTxSenderS
 }
 
 func TestRelayedMoveBalanceRelayerAndInnerTxReceiverShard0SenderShard1(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContextSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContextSource.Close()
@@ -299,6 +319,10 @@ func TestRelayedMoveBalanceRelayerAndInnerTxReceiverShard0SenderShard1(t *testin
 }
 
 func TestMoveBalanceRelayerShard0InnerTxSenderShard1InnerTxReceiverShard2ShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContextRelayer, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContextRelayer.Close()

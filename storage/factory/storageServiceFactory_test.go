@@ -6,11 +6,11 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	disabledStatistics "github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -80,11 +80,12 @@ func createMockArgument(t *testing.T) StorageServiceFactoryArgs {
 				return core.NodeTypeObserver
 			},
 		},
-		StorageType:                   ProcessStorageService,
-		CurrentEpoch:                  0,
-		CreateTrieEpochRootHashStorer: true,
-		ManagedPeersHolder:            &testscommon.ManagedPeersHolderStub{},
-		StateStatsHandler:             disabledStatistics.NewStateStatistics(),
+		StorageType:                     ProcessStorageService,
+		CurrentEpoch:                    0,
+		CreateTrieEpochRootHashStorer:   true,
+		ManagedPeersHolder:              &testscommon.ManagedPeersHolderStub{},
+		StateStatsHandler:               disabledStatistics.NewStateStatistics(),
+		AdditionalStorageServiceCreator: &testscommon.AdditionalStorageServiceFactoryMock{},
 	}
 }
 
@@ -159,6 +160,15 @@ func TestNewStorageServiceFactory(t *testing.T) {
 		args.Config.StoragePruning.NumEpochsToKeep = 1
 		storageServiceFactory, err := NewStorageServiceFactory(args)
 		assert.Equal(t, storage.ErrInvalidNumberOfEpochsToSave, err)
+		assert.Nil(t, storageServiceFactory)
+	})
+	t.Run("nil additional storage service creator should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgument(t)
+		args.AdditionalStorageServiceCreator = nil
+		storageServiceFactory, err := NewStorageServiceFactory(args)
+		assert.Equal(t, errors.ErrNilAdditionalStorageServiceCreator, err)
 		assert.Nil(t, storageServiceFactory)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -486,7 +496,9 @@ func TestStorageServiceFactory_CreateForSovereign(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgument(t)
-		args.ChainRunType = common.ChainRunTypeSovereign
+		args.AdditionalStorageServiceCreator = &testscommon.AdditionalStorageServiceFactoryMock{
+			WorkAsSovereign: true,
+		}
 		args.Config.SovereignConfig.ExtendedShardHeaderStorage.Cache.Type = ""
 
 		storageServiceFactory, _ := NewStorageServiceFactory(args)
@@ -499,7 +511,9 @@ func TestStorageServiceFactory_CreateForSovereign(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgument(t)
-		args.ChainRunType = common.ChainRunTypeSovereign
+		args.AdditionalStorageServiceCreator = &testscommon.AdditionalStorageServiceFactoryMock{
+			WorkAsSovereign: true,
+		}
 		args.Config.SovereignConfig.ExtendedShardHdrNonceHashStorage.Cache.Type = ""
 
 		storageServiceFactory, _ := NewStorageServiceFactory(args)
@@ -512,7 +526,9 @@ func TestStorageServiceFactory_CreateForSovereign(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgument(t)
-		args.ChainRunType = common.ChainRunTypeSovereign
+		args.AdditionalStorageServiceCreator = &testscommon.AdditionalStorageServiceFactoryMock{
+			WorkAsSovereign: true,
+		}
 		storageServiceFactory, _ := NewStorageServiceFactory(args)
 
 		storageService, err := storageServiceFactory.CreateForShard()

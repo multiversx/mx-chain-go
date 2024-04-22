@@ -2,7 +2,6 @@ package processing_test
 
 import (
 	"fmt"
-	"strings"
 	"sync"
 	"testing"
 
@@ -11,7 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	customErrors "github.com/multiversx/mx-chain-go/errors"
 	dataComp "github.com/multiversx/mx-chain-go/factory/data"
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	processComp "github.com/multiversx/mx-chain-go/factory/processing"
@@ -23,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	storageManager "github.com/multiversx/mx-chain-go/testscommon/storage"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
@@ -38,21 +37,20 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 		t.Parallel()
 
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-		pcf, err := processComp.NewProcessComponentsFactory(componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator))
+		processArgs := componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator)
+		pcf, err := processComp.NewProcessComponentsFactory(processArgs)
 		require.NoError(t, err)
 		require.NotNil(t, pcf)
-
-		pcf.SetChainRunType(common.ChainRunTypeRegular)
 
 		_, err = pcf.Create()
 		require.NoError(t, err)
 
 		bp, err := pcf.NewBlockProcessor(
 			&testscommon.RequestHandlerStub{},
-			&mock.ForkDetectorStub{},
+			&processMocks.ForkDetectorStub{},
 			&mock.EpochStartTriggerStub{},
 			&mock.BoostrapStorerStub{},
-			&mock.ValidatorStatisticsProcessorStub{},
+			&testscommon.ValidatorStatisticsProcessorStub{},
 			&mock.HeaderValidatorStub{},
 			&mock.BlockTrackerStub{},
 			&mock.PendingMiniBlocksHandlerStub{},
@@ -61,7 +59,9 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 			&testscommon.ProcessedMiniBlocksTrackerStub{},
 			&testscommon.ReceiptsRepositoryStub{},
 			&testscommon.BlockProcessingCutoffStub{},
-			&testscommon.MissingTrieNodesNotifierStub{})
+			&testscommon.MissingTrieNodesNotifierStub{},
+			&testscommon.SentSignatureTrackerStub{},
+		)
 
 		require.NoError(t, err)
 		require.Equal(t, "*block.shardProcessor", fmt.Sprintf("%T", bp))
@@ -72,22 +72,20 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 		args := componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator)
-		args.ChainRunType = common.ChainRunTypeSovereign
+		args.RunTypeComponents = componentsMock.GetSovereignRunTypeComponents()
 		pcf, err := processComp.NewProcessComponentsFactory(args)
 		require.NoError(t, err)
 		require.NotNil(t, pcf)
-
-		pcf.SetChainRunType(common.ChainRunTypeSovereign)
 
 		_, err = pcf.Create()
 		require.NoError(t, err)
 
 		bp, err := pcf.NewBlockProcessor(
 			&testscommon.ExtendedShardHeaderRequestHandlerStub{},
-			&mock.ForkDetectorStub{},
+			&processMocks.ForkDetectorStub{},
 			&mock.EpochStartTriggerStub{},
 			&mock.BoostrapStorerStub{},
-			&mock.ValidatorStatisticsProcessorStub{},
+			&testscommon.ValidatorStatisticsProcessorStub{},
 			&mock.HeaderValidatorStub{},
 			&mock.ExtendedShardHeaderTrackerStub{},
 			&mock.PendingMiniBlocksHandlerStub{},
@@ -96,47 +94,12 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 			&testscommon.ProcessedMiniBlocksTrackerStub{},
 			&testscommon.ReceiptsRepositoryStub{},
 			&testscommon.BlockProcessingCutoffStub{},
-			&testscommon.MissingTrieNodesNotifierStub{})
+			&testscommon.MissingTrieNodesNotifierStub{},
+			&testscommon.SentSignatureTrackerStub{},
+		)
 
 		require.NoError(t, err)
 		require.Equal(t, "*block.sovereignChainBlockProcessor", fmt.Sprintf("%T", bp))
-	})
-
-	t.Run("invalid chain id, should return error", func(t *testing.T) {
-		t.Parallel()
-
-		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-		args := componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator)
-		args.ChainRunType = common.ChainRunTypeSovereign
-		pcf, err := processComp.NewProcessComponentsFactory(args)
-		require.NoError(t, err)
-		require.NotNil(t, pcf)
-
-		_, err = pcf.Create()
-		require.NoError(t, err)
-
-		pcf.SetChainRunType("invalid")
-
-		bp, err := pcf.NewBlockProcessor(
-			&testscommon.ExtendedShardHeaderRequestHandlerStub{},
-			&mock.ForkDetectorStub{},
-			&mock.EpochStartTriggerStub{},
-			&mock.BoostrapStorerStub{},
-			&mock.ValidatorStatisticsProcessorStub{},
-			&mock.HeaderValidatorStub{},
-			&mock.ExtendedShardHeaderTrackerStub{},
-			&mock.PendingMiniBlocksHandlerStub{},
-			&sync.RWMutex{},
-			&testscommon.ScheduledTxsExecutionStub{},
-			&testscommon.ProcessedMiniBlocksTrackerStub{},
-			&testscommon.ReceiptsRepositoryStub{},
-			&testscommon.BlockProcessingCutoffStub{},
-			&testscommon.MissingTrieNodesNotifierStub{})
-
-		require.NotNil(t, err)
-		require.Nil(t, bp)
-		require.True(t, strings.Contains(err.Error(), customErrors.ErrUnimplementedChainRunType.Error()))
-		require.True(t, strings.Contains(err.Error(), "invalid"))
 	})
 }
 
@@ -246,10 +209,10 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 
 	bp, err := pcf.NewBlockProcessor(
 		&testscommon.RequestHandlerStub{},
-		&mock.ForkDetectorStub{},
+		&processMocks.ForkDetectorStub{},
 		&mock.EpochStartTriggerStub{},
 		&mock.BoostrapStorerStub{},
-		&mock.ValidatorStatisticsProcessorStub{},
+		&testscommon.ValidatorStatisticsProcessorStub{},
 		&mock.HeaderValidatorStub{},
 		&mock.BlockTrackerStub{},
 		&mock.PendingMiniBlocksHandlerStub{},
@@ -259,6 +222,7 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 		&testscommon.ReceiptsRepositoryStub{},
 		&testscommon.BlockProcessingCutoffStub{},
 		&testscommon.MissingTrieNodesNotifierStub{},
+		&testscommon.SentSignatureTrackerStub{},
 	)
 
 	require.NoError(t, err)

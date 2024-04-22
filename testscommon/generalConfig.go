@@ -363,7 +363,8 @@ func GetGeneralConfig() config.Config {
 			CheckNodesOnDisk:          false,
 		},
 		Antiflood: config.AntifloodConfig{
-			NumConcurrentResolverJobs: 2,
+			NumConcurrentResolverJobs:           2,
+			NumConcurrentResolvingTrieNodesJobs: 1,
 			TxAccumulator: config.TxAccumulatorConfig{
 				MaxAllowedTimeInMilliseconds:   10,
 				MaxDeviationTimeInMilliseconds: 1,
@@ -415,6 +416,9 @@ func GetGeneralConfig() config.Config {
 				"erd1najnxxweyw6plhg8efql330nttrj6l5cf87wqsuym85s9ha0hmdqnqgenp", //shard 2
 			},
 		},
+		ResourceStats: config.ResourceStatsConfig{
+			RefreshIntervalInSec: 1,
+		},
 		SovereignConfig: config.SovereignConfig{
 			NotifierConfig: config.NotifierConfig{
 				SubscribedEvents: []config.SubscribedEvent{
@@ -431,6 +435,9 @@ func GetGeneralConfig() config.Config {
 						Addresses:  []string{"erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th"},
 					},
 				},
+			},
+			OutGoingBridge: config.OutGoingBridge{
+				Hasher: "sha256",
 			},
 		},
 	}

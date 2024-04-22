@@ -20,9 +20,11 @@ import (
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/dblookupext"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
+	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/genesis"
 	heartbeatData "github.com/multiversx/mx-chain-go/heartbeat/data"
 	"github.com/multiversx/mx-chain-go/node/external"
@@ -30,6 +32,15 @@ import (
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
+	processBlock "github.com/multiversx/mx-chain-go/process/block"
+	"github.com/multiversx/mx-chain-go/process/block/preprocess"
+	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/peer"
+	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
+	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
+	"github.com/multiversx/mx-chain-go/process/sync"
+	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
+	"github.com/multiversx/mx-chain-go/process/track"
 	txSimData "github.com/multiversx/mx-chain-go/process/transactionEvaluator/data"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -309,6 +320,7 @@ type ProcessComponentsHolder interface {
 	ESDTDataStorageHandlerForAPI() vmcommon.ESDTNFTStorageHandler
 	AccountsParser() genesis.AccountsParser
 	ReceiptsRepository() ReceiptsRepository
+	SentSignaturesTracker() process.SentSignaturesTracker
 	IsInterfaceNil() bool
 }
 
@@ -435,7 +447,7 @@ type BootstrapParamsHolder interface {
 	Epoch() uint32
 	SelfShardID() uint32
 	NumOfShards() uint32
-	NodesConfig() *nodesCoordinator.NodesCoordinatorRegistry
+	NodesConfig() nodesCoordinator.NodesCoordinatorRegistryHandler
 	IsInterfaceNil() bool
 }
 
@@ -456,6 +468,7 @@ type BootstrapComponentsHolder interface {
 	HeaderVersionHandler() factory.HeaderVersionHandler
 	HeaderIntegrityVerifier() factory.HeaderIntegrityVerifierHandler
 	GuardedAccountHandler() process.GuardedAccountHandler
+	NodesCoordinatorRegistryFactory() nodesCoordinator.NodesCoordinatorRegistryFactory
 	IsInterfaceNil() bool
 }
 
@@ -551,4 +564,38 @@ type TrieSyncStatisticsProvider interface {
 type PersistentStatusHandler interface {
 	core.AppStatusHandler
 	SetStorage(store storage.Storer) error
+}
+
+// RunTypeComponentsHandler defines the run type components handler actions
+type RunTypeComponentsHandler interface {
+	ComponentHandler
+	RunTypeComponentsHolder
+}
+
+// RunTypeComponentsHolder holds the run type components
+type RunTypeComponentsHolder interface {
+	BlockChainHookHandlerCreator() hooks.BlockChainHookHandlerCreator
+	BlockProcessorCreator() processBlock.BlockProcessorCreator
+	BlockTrackerCreator() track.BlockTrackerCreator
+	BootstrapperFromStorageCreator() storageBootstrap.BootstrapperFromStorageCreator
+	BootstrapperCreator() storageBootstrap.BootstrapperCreator
+	EpochStartBootstrapperCreator() bootstrap.EpochStartBootstrapperCreator
+	ForkDetectorCreator() sync.ForkDetectorCreator
+	HeaderValidatorCreator() processBlock.HeaderValidatorCreator
+	RequestHandlerCreator() requestHandlers.RequestHandlerCreator
+	ScheduledTxsExecutionCreator() preprocess.ScheduledTxsExecutionCreator
+	TransactionCoordinatorCreator() coordinator.TransactionCoordinatorCreator
+	ValidatorStatisticsProcessorCreator() peer.ValidatorStatisticsProcessorCreator
+	AdditionalStorageServiceCreator() process.AdditionalStorageServiceCreator
+	SCProcessorCreator() scrCommon.SCProcessorCreator
+	SCResultsPreProcessorCreator() preprocess.SmartContractResultPreProcessorCreator
+	ConsensusModel() consensus.ConsensusModel
+	VmContainerMetaFactoryCreator() factoryVm.VmContainerCreator
+	VmContainerShardFactoryCreator() factoryVm.VmContainerCreator
+	AccountsCreator() state.AccountFactory
+	Create() error
+	Close() error
+	CheckSubcomponents() error
+	String() string
+	IsInterfaceNil() bool
 }

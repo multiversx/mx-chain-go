@@ -17,6 +17,7 @@ import (
 	mclMultiSig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/multisig"
 	"github.com/multiversx/mx-chain-crypto-go/signing/multisig"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/round"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart/metachain"
@@ -43,6 +44,7 @@ import (
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	testFactory "github.com/multiversx/mx-chain-go/testscommon/factory"
+	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
@@ -62,17 +64,18 @@ var testPubkeyConverter, _ = pubkeyConverter.NewHexPubkeyConverter(32)
 
 // ArgsTestConsensusNode represents the arguments for the test consensus node constructor(s)
 type ArgsTestConsensusNode struct {
-	ShardID       uint32
-	ConsensusSize int
-	RoundTime     uint64
-	ConsensusType string
-	NodeKeys      *TestNodeKeys
-	EligibleMap   map[uint32][]nodesCoordinator.Validator
-	WaitingMap    map[uint32][]nodesCoordinator.Validator
-	KeyGen        crypto.KeyGenerator
-	P2PKeyGen     crypto.KeyGenerator
-	MultiSigner   *cryptoMocks.MultisignerMock
-	StartTime     int64
+	ShardID        uint32
+	ConsensusSize  int
+	RoundTime      uint64
+	ConsensusType  string
+	NodeKeys       *TestNodeKeys
+	EligibleMap    map[uint32][]nodesCoordinator.Validator
+	WaitingMap     map[uint32][]nodesCoordinator.Validator
+	KeyGen         crypto.KeyGenerator
+	P2PKeyGen      crypto.KeyGenerator
+	MultiSigner    *cryptoMocks.MultisignerMock
+	StartTime      int64
+	ConsensusModel consensus.ConsensusModel
 }
 
 // TestConsensusNode represents a structure used in integration tests used for consensus tests
@@ -113,6 +116,7 @@ func CreateNodesWithTestConsensusNode(
 	roundTime uint64,
 	consensusType string,
 	numKeysOnEachNode int,
+	consensusModel consensus.ConsensusModel,
 ) map[uint32][]*TestConsensusNode {
 
 	nodes := make(map[uint32][]*TestConsensusNode, nodesPerShard)
@@ -132,17 +136,18 @@ func CreateNodesWithTestConsensusNode(
 			multiSignerMock := createCustomMultiSignerMock(multiSigner)
 
 			args := ArgsTestConsensusNode{
-				ShardID:       shardID,
-				ConsensusSize: consensusSize,
-				RoundTime:     roundTime,
-				ConsensusType: consensusType,
-				NodeKeys:      keysPair,
-				EligibleMap:   eligibleMap,
-				WaitingMap:    waitingMap,
-				KeyGen:        cp.KeyGen,
-				P2PKeyGen:     cp.P2PKeyGen,
-				MultiSigner:   multiSignerMock,
-				StartTime:     startTime,
+				ShardID:        shardID,
+				ConsensusSize:  consensusSize,
+				RoundTime:      roundTime,
+				ConsensusType:  consensusType,
+				NodeKeys:       keysPair,
+				EligibleMap:    eligibleMap,
+				WaitingMap:     waitingMap,
+				KeyGen:         cp.KeyGen,
+				P2PKeyGen:      cp.P2PKeyGen,
+				MultiSigner:    multiSignerMock,
+				StartTime:      startTime,
+				ConsensusModel: consensusModel,
 			}
 
 			tcn := NewTestConsensusNode(args)
@@ -234,7 +239,9 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 
 	tcn.initAccountsDB()
 
-	coreComponents := GetDefaultCoreComponents()
+	runTypeComponents := GetDefaultRunTypeComponents(args.ConsensusModel)
+
+	coreComponents := GetDefaultCoreComponents(CreateEnableEpochsConfig())
 	coreComponents.SyncTimerField = syncer
 	coreComponents.RoundHandlerField = roundHandler
 	coreComponents.InternalMarshalizerField = TestMarshalizer
@@ -244,7 +251,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 		return string(ChainID)
 	}
 	coreComponents.GenesisTimeField = time.Unix(args.StartTime, 0)
-	coreComponents.GenesisNodesSetupField = &testscommon.NodesSetupStub{
+	coreComponents.GenesisNodesSetupField = &genesisMocks.NodesSetupStub{
 		GetShardConsensusGroupSizeCalled: func() uint32 {
 			return uint32(args.ConsensusSize)
 		},
@@ -320,6 +327,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	processComponents.RoundHandlerField = roundHandler
 	processComponents.ScheduledTxsExecutionHandlerInternal = &testscommon.ScheduledTxsExecutionStub{}
 	processComponents.ProcessedMiniBlocksTrackerInternal = &testscommon.ProcessedMiniBlocksTrackerStub{}
+	processComponents.SentSignaturesTrackerInternal = &testscommon.SentSignatureTrackerStub{}
 
 	dataComponents := GetDefaultDataComponents()
 	dataComponents.BlockChain = tcn.ChainHandler
@@ -336,6 +344,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 
 	var err error
 	tcn.Node, err = node.NewNode(
+		node.WithRunTypeComponents(runTypeComponents),
 		node.WithCoreComponents(coreComponents),
 		node.WithStatusCoreComponents(statusCoreComponents),
 		node.WithCryptoComponents(cryptoComponents),
@@ -366,26 +375,27 @@ func (tcn *TestConsensusNode) initNodesCoordinator(
 	cache storage.Cacher,
 ) {
 	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-		ShardConsensusGroupSize:  consensusSize,
-		MetaConsensusGroupSize:   consensusSize,
-		Marshalizer:              TestMarshalizer,
-		Hasher:                   hasher,
-		Shuffler:                 &shardingMocks.NodeShufflerMock{},
-		EpochStartNotifier:       epochStartRegistrationHandler,
-		BootStorer:               CreateMemUnit(),
-		NbShards:                 maxShards,
-		EligibleNodes:            eligibleMap,
-		WaitingNodes:             waitingMap,
-		SelfPublicKey:            pkBytes,
-		ConsensusGroupCache:      cache,
-		ShuffledOutHandler:       &chainShardingMocks.ShuffledOutHandlerStub{},
-		ChanStopNode:             endProcess.GetDummyEndProcessChannel(),
-		NodeTypeProvider:         &nodeTypeProviderMock.NodeTypeProviderStub{},
-		IsFullArchive:            false,
-		EnableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
-		ShardIDAsObserver:        tcn.ShardCoordinator.SelfId(),
-		GenesisNodesSetupHandler: &testscommon.NodesSetupStub{},
+		ShardConsensusGroupSize:         consensusSize,
+		MetaConsensusGroupSize:          consensusSize,
+		Marshalizer:                     TestMarshalizer,
+		Hasher:                          hasher,
+		Shuffler:                        &shardingMocks.NodeShufflerMock{},
+		EpochStartNotifier:              epochStartRegistrationHandler,
+		BootStorer:                      CreateMemUnit(),
+		NbShards:                        maxShards,
+		EligibleNodes:                   eligibleMap,
+		WaitingNodes:                    waitingMap,
+		SelfPublicKey:                   pkBytes,
+		ConsensusGroupCache:             cache,
+		ShuffledOutHandler:              &chainShardingMocks.ShuffledOutHandlerStub{},
+		ChanStopNode:                    endProcess.GetDummyEndProcessChannel(),
+		NodeTypeProvider:                &nodeTypeProviderMock.NodeTypeProviderStub{},
+		IsFullArchive:                   false,
+		EnableEpochsHandler:             &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		ValidatorInfoCacher:             &vic.ValidatorInfoCacherStub{},
+		ShardIDAsObserver:               tcn.ShardCoordinator.SelfId(),
+		GenesisNodesSetupHandler:        &genesisMocks.NodesSetupStub{},
+		NodesCoordinatorRegistryFactory: &shardingMocks.NodesCoordinatorRegistryFactoryMock{},
 	}
 
 	tcn.NodesCoordinator, _ = nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)

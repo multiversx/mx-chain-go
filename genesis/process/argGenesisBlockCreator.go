@@ -16,6 +16,9 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
+	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
+	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/update"
@@ -42,10 +45,22 @@ type dataComponentsHandler interface {
 	IsInterfaceNil() bool
 }
 
+type runTypeComponentsHandler interface {
+	BlockChainHookHandlerCreator() hooks.BlockChainHookHandlerCreator
+	TransactionCoordinatorCreator() coordinator.TransactionCoordinatorCreator
+	SCResultsPreProcessorCreator() preprocess.SmartContractResultPreProcessorCreator
+	SCProcessorCreator() scrCommon.SCProcessorCreator
+	AccountsCreator() state.AccountFactory
+	IsInterfaceNil() bool
+}
+
 // ArgsGenesisBlockCreator holds the arguments which are needed to create a genesis block
 type ArgsGenesisBlockCreator struct {
 	GenesisTime             uint64
+	GenesisNonce            uint64
+	GenesisRound            uint64
 	StartEpochNum           uint32
+	GenesisEpoch            uint32
 	Data                    dataComponentsHandler
 	Core                    coreComponentsHandler
 	Accounts                state.AccountsAdapter
@@ -61,19 +76,23 @@ type ArgsGenesisBlockCreator struct {
 	HardForkConfig          config.HardforkConfig
 	TrieStorageManagers     map[string]common.StorageManager
 	SystemSCConfig          config.SystemSmartContractsConfig
-	RoundConfig             *config.RoundConfig
-	EpochConfig             *config.EpochConfig
+	RoundConfig             config.RoundConfig
+	EpochConfig             config.EpochConfig
+	HeaderVersionConfigs    config.VersionsConfig
 	WorkingDir              string
 	BlockSignKeyGen         crypto.KeyGenerator
 	HistoryRepository       dblookupext.HistoryRepository
 	TxExecutionOrderHandler common.TxExecutionOrderHandler
 	TxPreprocessorCreator   preprocess.TxPreProcessorCreator
-	ChainRunType            common.ChainRunType
+	RunTypeComponents       runTypeComponentsHandler
+	Config                  config.Config
 
 	GenesisNodePrice *big.Int
 	GenesisString    string
+
 	// created components
-	importHandler update.ImportHandler
+	importHandler          update.ImportHandler
+	versionedHeaderFactory genesis.VersionedHeaderFactory
 
 	ShardCoordinatorFactory sharding.ShardCoordinatorFactory
 	DNSV2Addresses          []string

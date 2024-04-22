@@ -7,15 +7,15 @@ type StorageBootstrapperMock struct {
 
 // LoadFromStorage -
 func (sbm *StorageBootstrapperMock) LoadFromStorage() error {
-	if sbm.LoadFromStorageCalled == nil {
-		return nil
+	if sbm.LoadFromStorageCalled != nil {
+		return sbm.LoadFromStorageCalled()
 	}
-	return sbm.LoadFromStorageCalled()
+	return nil
 }
 
 // IsInterfaceNil -
 func (sbm *StorageBootstrapperMock) IsInterfaceNil() bool {
-	return false
+	return sbm == nil
 }
 
 // GetHighestBlockNonce -

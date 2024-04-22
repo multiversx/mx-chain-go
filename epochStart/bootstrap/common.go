@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
 
 const baseErrorMessage = "error with epoch start bootstrapper arguments"
@@ -120,11 +121,17 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	if check.IfNil(args.StateStatsHandler) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, statistics.ErrNilStateStatsHandler)
 	}
+	if check.IfNil(args.NodesCoordinatorRegistryFactory) {
+		return fmt.Errorf("%s: %w", baseErrorMessage, nodesCoordinator.ErrNilNodesCoordinatorRegistryFactory)
+	}
 	if check.IfNil(args.NodesCoordinatorWithRaterFactory) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, errors.ErrNilNodesCoordinatorFactory)
 	}
 	if check.IfNil(args.ShardCoordinatorFactory) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, errors.ErrNilShardCoordinatorFactory)
+	}
+	if check.IfNil(args.AdditionalStorageServiceCreator) {
+		return fmt.Errorf("%s: %w", baseErrorMessage, errors.ErrNilAdditionalStorageServiceCreator)
 	}
 
 	return nil

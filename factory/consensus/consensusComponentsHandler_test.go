@@ -4,9 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/consensus"
-	"github.com/multiversx/mx-chain-go/errors"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	mxFactory "github.com/multiversx/mx-chain-go/factory"
 
@@ -135,7 +132,9 @@ func TestManagedConsensusComponents_Create(t *testing.T) {
 func TestManagedConsensusComponents_ConsensusGroupSize(t *testing.T) {
 	t.Parallel()
 
-	consensusComponentsFactory, _ := consensusComp.NewConsensusComponentsFactory(createMockConsensusComponentsFactoryArgs())
+	ccfArgs := createMockConsensusComponentsFactoryArgs()
+	ccfArgs.RunTypeComponents = componentsMock.GetRunTypeComponents()
+	consensusComponentsFactory, _ := consensusComp.NewConsensusComponentsFactory(ccfArgs)
 	managedConsensusComponents, _ := consensusComp.NewManagedConsensusComponents(consensusComponentsFactory)
 	require.NotNil(t, managedConsensusComponents)
 
@@ -159,8 +158,7 @@ func TestManagedConsensusComponents_CreateShouldWorkForSovereign(t *testing.T) {
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 	args := componentsMock.GetConsensusArgs(shardCoordinator)
-	args.ChainRunType = common.ChainRunTypeSovereign
-	args.ConsensusModel = consensus.ConsensusModelV2
+	args.RunTypeComponents = componentsMock.GetSovereignRunTypeComponents()
 
 	consensusComponentsFactory, _ := consensusComp.NewConsensusComponentsFactory(args)
 	managedConsensusComponents, err := consensusComp.NewManagedConsensusComponents(consensusComponentsFactory)
@@ -178,24 +176,6 @@ func TestManagedConsensusComponents_CreateShouldWorkForSovereign(t *testing.T) {
 	require.NotNil(t, managedConsensusComponents.ConsensusWorker())
 	require.NoError(t, managedConsensusComponents.CheckSubcomponents())
 	assert.Equal(t, "*sync.SovereignChainShardBootstrap", fmt.Sprintf("%T", managedConsensusComponents.Bootstrapper()))
-}
-
-func TestManagedConsensusComponents_CreateShouldFailForInvalidChainType(t *testing.T) {
-	t.Parallel()
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	args := componentsMock.GetConsensusArgs(shardCoordinator)
-	args.ChainRunType = "invalid"
-
-	consensusComponentsFactory, _ := consensusComp.NewConsensusComponentsFactory(args)
-	managedConsensusComponents, err := consensusComp.NewManagedConsensusComponents(consensusComponentsFactory)
-	require.NoError(t, err)
-
-	err = managedConsensusComponents.Create()
-	assert.Contains(t, err.Error(), errors.ErrUnimplementedChainRunType.Error())
 }
 
 func TestManagedConsensusComponents_CheckSubcomponents(t *testing.T) {

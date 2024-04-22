@@ -23,6 +23,7 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -291,12 +292,13 @@ type ScheduledBlockProcessor interface {
 // ValidatorStatisticsProcessor is the main interface for validators' consensus participation statistics
 type ValidatorStatisticsProcessor interface {
 	UpdatePeerState(header data.CommonHeaderHandler, cache map[string]data.CommonHeaderHandler) ([]byte, error)
+	RevertPeerState(header data.MetaHeaderHandler) error
 	Process(shardValidatorInfo data.ShardValidatorInfoHandler) error
 	IsInterfaceNil() bool
 	RootHash() ([]byte, error)
-	ResetValidatorStatisticsAtNewEpoch(vInfos map[uint32][]*state.ValidatorInfo) error
-	GetValidatorInfoForRootHash(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error)
-	ProcessRatingsEndOfEpoch(validatorInfos map[uint32][]*state.ValidatorInfo, epoch uint32) error
+	ResetValidatorStatisticsAtNewEpoch(vInfos state.ShardValidatorsInfoMapHandler) error
+	GetValidatorInfoForRootHash(rootHash []byte) (state.ShardValidatorsInfoMapHandler, error)
+	ProcessRatingsEndOfEpoch(validatorInfos state.ShardValidatorsInfoMapHandler, epoch uint32) error
 	Commit() ([]byte, error)
 	DisplayRatings(epoch uint32)
 	SetLastFinalizedRootHash([]byte)
@@ -325,6 +327,8 @@ type TransactionLogProcessorDatabase interface {
 // ValidatorsProvider is the main interface for validators' provider
 type ValidatorsProvider interface {
 	GetLatestValidators() map[string]*validator.ValidatorStatistics
+	GetAuctionList() ([]*common.AuctionListValidatorAPIResponse, error)
+	ForceUpdate() error
 	IsInterfaceNil() bool
 	Close() error
 }
@@ -952,10 +956,10 @@ type EpochStartDataCreator interface {
 // RewardsCreator defines the functionality for the metachain to create rewards at end of epoch
 type RewardsCreator interface {
 	CreateRewardsMiniBlocks(
-		metaBlock data.MetaHeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+		metaBlock data.MetaHeaderHandler, validatorsInfo state.ShardValidatorsInfoMapHandler, computedEconomics *block.Economics,
 	) (block.MiniBlockSlice, error)
 	VerifyRewardsMiniBlocks(
-		metaBlock data.MetaHeaderHandler, validatorsInfo map[uint32][]*state.ValidatorInfo, computedEconomics *block.Economics,
+		metaBlock data.MetaHeaderHandler, validatorsInfo state.ShardValidatorsInfoMapHandler, computedEconomics *block.Economics,
 	) error
 	GetProtocolSustainabilityRewards() *big.Int
 	GetLocalTxCache() epochStart.TransactionCacher
@@ -969,8 +973,8 @@ type RewardsCreator interface {
 
 // EpochStartValidatorInfoCreator defines the functionality for the metachain to create validator statistics at end of epoch
 type EpochStartValidatorInfoCreator interface {
-	CreateValidatorInfoMiniBlocks(validatorInfo map[uint32][]*state.ValidatorInfo) (block.MiniBlockSlice, error)
-	VerifyValidatorInfoMiniBlocks(miniBlocks []*block.MiniBlock, validatorsInfo map[uint32][]*state.ValidatorInfo) error
+	CreateValidatorInfoMiniBlocks(validatorInfo state.ShardValidatorsInfoMapHandler) (block.MiniBlockSlice, error)
+	VerifyValidatorInfoMiniBlocks(miniBlocks []*block.MiniBlock, validatorsInfo state.ShardValidatorsInfoMapHandler) error
 	GetLocalValidatorInfoCache() epochStart.ValidatorInfoCacher
 	CreateMarshalledData(body *block.Body) map[string][][]byte
 	GetValidatorInfoTxs(body *block.Body) map[string]*state.ShardValidatorInfo
@@ -982,7 +986,10 @@ type EpochStartValidatorInfoCreator interface {
 
 // EpochStartSystemSCProcessor defines the functionality for the metachain to process system smart contract and end of epoch
 type EpochStartSystemSCProcessor interface {
-	ProcessSystemSmartContract(validatorInfos map[uint32][]*state.ValidatorInfo, nonce uint64, epoch uint32) error
+	ProcessSystemSmartContract(
+		validatorsInfoMap state.ShardValidatorsInfoMapHandler,
+		header data.HeaderHandler,
+	) error
 	ProcessDelegationRewards(
 		miniBlocks block.MiniBlockSlice,
 		rewardTxs epochStart.TransactionCacher,
@@ -1354,6 +1361,14 @@ type Debugger interface {
 	IsInterfaceNil() bool
 }
 
+// SentSignaturesTracker defines a component able to handle sent signature from self
+type SentSignaturesTracker interface {
+	StartRound()
+	SignatureSent(pkBytes []byte)
+	ResetCountersForManagedBlockSigner(signerPk []byte)
+	IsInterfaceNil() bool
+}
+
 // IncomingHeaderSubscriber defines a subscriber to incoming headers
 type IncomingHeaderSubscriber interface {
 	AddHeader(headerHash []byte, header sovereign.IncomingHeaderHandler) error
@@ -1368,5 +1383,37 @@ type ExtraHeaderSigVerifierHandler interface {
 	RemoveLeaderSignature(header data.HeaderHandler) error
 	RemoveAllSignatures(header data.HeaderHandler) error
 	Identifier() string
+	IsInterfaceNil() bool
+}
+
+// ProcessDebuggerSetter allows setting a debugger on the process component
+type ProcessDebuggerSetter interface {
+	SetProcessDebugger(debugger Debugger) error
+}
+
+// DebuggerBlockProcessor is the interface for block execution engine with debugger
+type DebuggerBlockProcessor interface {
+	BlockProcessor
+	ProcessDebuggerSetter
+}
+
+// AdditionalStorageServiceCreator defines the actions needed for a component that can create additional storage services
+type AdditionalStorageServiceCreator interface {
+	CreateAdditionalStorageUnits(func(store dataRetriever.StorageService, shardID string) error, dataRetriever.StorageService, string) error
+	IsInterfaceNil() bool
+}
+
+// ScrProcessingDataHandler is an interface for scr data to be processed after validation checks
+type ScrProcessingDataHandler interface {
+	GetHash() []byte
+	GetSnapshot() int
+	GetSender() state.UserAccountHandler
+	GetDestination() state.UserAccountHandler
+}
+
+// SCProcessorHelperHandler is an interface for smart contract processor helper
+type SCProcessorHelperHandler interface {
+	GetAccountFromAddress(address []byte) (state.UserAccountHandler, error)
+	CheckSCRBeforeProcessing(scr *smartContractResult.SmartContractResult) (ScrProcessingDataHandler, error)
 	IsInterfaceNil() bool
 }

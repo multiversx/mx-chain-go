@@ -44,6 +44,10 @@ func (stub *EnableEpochsHandlerStub) AddActiveFlags(flags ...core.EnableEpochFla
 	stub.Lock()
 	defer stub.Unlock()
 
+	if len(stub.activeFlags) == 0 {
+		stub.activeFlags = make(map[core.EnableEpochFlag]struct{})
+	}
+
 	for _, flag := range flags {
 		stub.activeFlags[flag] = struct{}{}
 	}

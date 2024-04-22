@@ -37,9 +37,10 @@ type ArgsStorageEpochStartBootstrap struct {
 	ImportDbConfig                   config.ImportDbConfig
 	ChanGracefullyClose              chan endProcess.ArgEndProcess
 	TimeToWaitForRequestedData       time.Duration
-	ChainRunType                     common.ChainRunType
 	NodesCoordinatorWithRaterFactory nodesCoord.NodesCoordinatorWithRaterFactory
 	ShardCoordinatorFactory          sharding.ShardCoordinatorFactory
+	EpochStartBootstrapperCreator    EpochStartBootstrapperCreator
+	ResolverRequestFactory           requestHandlers.RequestHandlerCreator
 }
 
 type storageEpochStartBootstrap struct {
@@ -50,15 +51,22 @@ type storageEpochStartBootstrap struct {
 	chanGracefullyClose              chan endProcess.ArgEndProcess
 	chainID                          string
 	timeToWaitForRequestedData       time.Duration
-	chainRunType                     common.ChainRunType
 	nodesCoordinatorWithRaterFactory nodesCoord.NodesCoordinatorWithRaterFactory
 	shardCoordinatorFactory          sharding.ShardCoordinatorFactory
+	resolverRequestFactory           requestHandlers.RequestHandlerCreator
 }
 
 // NewStorageEpochStartBootstrap will return a new instance of storageEpochStartBootstrap that can bootstrap
 // the node with the help of storage requesters through the import-db process
 func NewStorageEpochStartBootstrap(args ArgsStorageEpochStartBootstrap) (*storageEpochStartBootstrap, error) {
-	esb, err := createEpochStartBootstrapper(args)
+	if check.IfNil(args.ResolverRequestFactory) {
+		return nil, errors.ErrNilResolverRequestFactoryHandler
+	}
+	if check.IfNil(args.EpochStartBootstrapperCreator) {
+		return nil, errors.ErrNilEpochStartBootstrapperCreator
+	}
+
+	esb, err := args.EpochStartBootstrapperCreator.CreateEpochStartBootstrapper(args.ArgsEpochStartBootstrap)
 	if err != nil {
 		return nil, err
 	}
@@ -67,38 +75,23 @@ func NewStorageEpochStartBootstrap(args ArgsStorageEpochStartBootstrap) (*storag
 		return nil, dataRetriever.ErrNilGracefullyCloseChannel
 	}
 
+	esbConverted, ok := esb.(*epochStartBootstrap)
+	if !ok {
+		return nil, errors.ErrInvalidTypeConversion
+	}
+
 	sesb := &storageEpochStartBootstrap{
-		epochStartBootstrap:              esb,
+		epochStartBootstrap:              esbConverted,
 		importDbConfig:                   args.ImportDbConfig,
 		chanGracefullyClose:              args.ChanGracefullyClose,
 		chainID:                          args.CoreComponentsHolder.ChainID(),
 		timeToWaitForRequestedData:       args.TimeToWaitForRequestedData,
-		chainRunType:                     args.ChainRunType,
+		resolverRequestFactory:           args.ResolverRequestFactory,
 		nodesCoordinatorWithRaterFactory: args.NodesCoordinatorWithRaterFactory,
 		shardCoordinatorFactory:          args.ShardCoordinatorFactory,
 	}
 
 	return sesb, nil
-}
-
-func createEpochStartBootstrapper(args ArgsStorageEpochStartBootstrap) (*epochStartBootstrap, error) {
-	esb, err := NewEpochStartBootstrap(args.ArgsEpochStartBootstrap)
-	if err != nil {
-		return nil, err
-	}
-
-	switch args.ChainRunType {
-	case common.ChainRunTypeRegular:
-		return esb, nil
-	case common.ChainRunTypeSovereign:
-		scesb, err := NewSovereignChainEpochStartBootstrap(esb)
-		if err != nil {
-			return nil, err
-		}
-		return scesb.epochStartBootstrap, nil
-	default:
-		return nil, fmt.Errorf("%w type %v", errors.ErrUnimplementedChainRunType, args.ChainRunType)
-	}
 }
 
 // Bootstrap runs the fast bootstrap method from local storage or from import-db directory
@@ -243,26 +236,16 @@ func (sesb *storageEpochStartBootstrap) createStorageRequestHandler() (process.R
 	}
 
 	requestedItemsHandler := cache.NewTimeCache(timeBetweenRequests)
-	requestHandler, err := requestHandlers.NewResolverRequestHandler(
-		finder,
-		requestedItemsHandler,
-		sesb.whiteListHandler,
-		maxToRequest,
-		core.MetachainShardId,
-		timeBetweenRequests,
-	)
-	if err != nil {
-		return nil, err
+	args := requestHandlers.RequestHandlerArgs{
+		RequestersFinder:      finder,
+		RequestedItemsHandler: requestedItemsHandler,
+		WhiteListHandler:      sesb.whiteListHandler,
+		MaxTxsToRequest:       maxToRequest,
+		ShardID:               core.MetachainShardId,
+		RequestInterval:       timeBetweenRequests,
 	}
 
-	switch sesb.chainRunType {
-	case common.ChainRunTypeRegular:
-		return requestHandler, nil
-	case common.ChainRunTypeSovereign:
-		return requestHandlers.NewSovereignResolverRequestHandler(requestHandler)
-	default:
-		return nil, fmt.Errorf("%w type %v", errors.ErrUnimplementedChainRunType, sesb.chainRunType)
-	}
+	return sesb.resolverRequestFactory.CreateRequestHandler(args)
 }
 
 func (sesb *storageEpochStartBootstrap) createStorageRequesters() error {
@@ -462,6 +445,7 @@ func (sesb *storageEpochStartBootstrap) processNodesConfig(pubKey []byte) error 
 		NodeTypeProvider:                 sesb.coreComponentsHolder.NodeTypeProvider(),
 		IsFullArchive:                    sesb.prefsConfig.FullArchive,
 		EnableEpochsHandler:              sesb.coreComponentsHolder.EnableEpochsHandler(),
+		NodesCoordinatorRegistryFactory:  sesb.nodesCoordinatorRegistryFactory,
 		NodesCoordinatorWithRaterFactory: sesb.nodesCoordinatorWithRaterFactory,
 	}
 	sesb.nodesConfigHandler, err = NewSyncValidatorStatus(argsNewValidatorStatusSyncers)

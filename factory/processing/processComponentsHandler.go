@@ -55,7 +55,7 @@ func (mpc *managedProcessComponents) Create() error {
 	return nil
 }
 
-// Close will close all underlying sub-components
+// Close will close all underlying subcomponents
 func (mpc *managedProcessComponents) Close() error {
 	mpc.mutProcessComponents.Lock()
 	defer mpc.mutProcessComponents.Unlock()
@@ -173,6 +173,9 @@ func (mpc *managedProcessComponents) CheckSubcomponents() error {
 	}
 	if check.IfNil(mpc.processComponents.esdtDataStorageForApi) {
 		return errors.ErrNilESDTDataStorage
+	}
+	if check.IfNil(mpc.processComponents.sentSignaturesTracker) {
+		return errors.ErrNilSentSignatureTracker
 	}
 
 	return nil
@@ -656,6 +659,18 @@ func (mpc *managedProcessComponents) ReceiptsRepository() factory.ReceiptsReposi
 	}
 
 	return mpc.processComponents.receiptsRepository
+}
+
+// SentSignaturesTracker returns the signature tracker
+func (m *managedProcessComponents) SentSignaturesTracker() process.SentSignaturesTracker {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.sentSignaturesTracker
 }
 
 // IsInterfaceNil returns true if the interface is nil
