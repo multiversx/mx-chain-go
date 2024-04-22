@@ -14,6 +14,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	vInfo "github.com/multiversx/mx-chain-go/common/validatorInfo"
@@ -24,7 +26,6 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 type legacySystemSCProcessor struct {
@@ -206,7 +207,7 @@ func (s *legacySystemSCProcessor) processLegacy(
 			return err
 		}
 
-		if s.enableEpochsHandler.IsFlagEnabled(common.StakingQueueFlag) {
+		if !s.enableEpochsHandler.IsFlagEnabled(common.StakingV4StartedFlag) {
 			err = s.stakeNodesFromQueue(validatorsInfoMap, numUnStaked, nonce, common.NewList)
 			if err != nil {
 				return err
@@ -288,12 +289,10 @@ func (s *legacySystemSCProcessor) unStakeNodesWithNotEnoughFunds(
 			continue
 		}
 
+		stakingV4Enabled := s.enableEpochsHandler.IsFlagEnabled(common.StakingV4StartedFlag)
 		validatorLeaving := validatorInfo.ShallowClone()
-		validatorLeaving.SetListAndIndex(string(common.LeavingList), validatorLeaving.GetIndex(), s.enableEpochsHandler.IsFlagEnabled(common.StakingV4StartedFlag))
-		err = validatorsInfoMap.Replace(validatorInfo, validatorLeaving)
-		if err != nil {
-			return 0, err
-		}
+		validatorLeaving.SetListAndIndex(string(common.LeavingList), validatorLeaving.GetIndex(), stakingV4Enabled)
+		s.replaceValidators(validatorInfo, validatorLeaving, validatorsInfoMap)
 	}
 
 	err = s.updateDelegationContracts(mapOwnersKeys)
@@ -302,7 +301,9 @@ func (s *legacySystemSCProcessor) unStakeNodesWithNotEnoughFunds(
 	}
 
 	nodesToStakeFromQueue := uint32(len(nodesToUnStake))
-	nodesToStakeFromQueue -= nodesUnStakedFromAdditionalQueue
+	if s.enableEpochsHandler.IsFlagEnabled(common.CorrectLastUnJailedFlag) {
+		nodesToStakeFromQueue -= nodesUnStakedFromAdditionalQueue
+	}
 
 	log.Debug("stake nodes from waiting list", "num", nodesToStakeFromQueue)
 	return nodesToStakeFromQueue, nil
@@ -428,14 +429,26 @@ func (s *legacySystemSCProcessor) fillStakingDataForNonEligible(validatorsInfoMa
 		}
 
 		if deleteCalled {
-			err := validatorsInfoMap.SetValidatorsInShard(shId, newList)
-			if err != nil {
-				return err
-			}
+			s.setValidatorsInShard(validatorsInfoMap, shId, newList)
 		}
 	}
 
 	return nil
+}
+
+func (s *legacySystemSCProcessor) setValidatorsInShard(
+	validatorsInfoMap state.ShardValidatorsInfoMapHandler,
+	shardID uint32,
+	validators []state.ValidatorInfoHandler,
+) {
+	err := validatorsInfoMap.SetValidatorsInShard(shardID, validators)
+	if err == nil {
+		return
+	}
+
+	// this should never happen, but replace them anyway, as in old legacy code
+	log.Error("legacySystemSCProcessor.setValidatorsInShard", "error", err)
+	validatorsInfoMap.SetValidatorsInShardUnsafe(shardID, validators)
 }
 
 func (s *legacySystemSCProcessor) prepareStakingDataForEligibleNodes(validatorsInfoMap state.ShardValidatorsInfoMapHandler) error {
@@ -585,14 +598,21 @@ func (s *legacySystemSCProcessor) updateMaxNodes(validatorsInfoMap state.ShardVa
 		return err
 	}
 
-	if s.enableEpochsHandler.IsFlagEnabled(common.StakingQueueFlag) {
-		sw.Start("stakeNodesFromQueue")
-		err = s.stakeNodesFromQueue(validatorsInfoMap, maxNumberOfNodes-prevMaxNumberOfNodes, nonce, common.NewList)
-		sw.Stop("stakeNodesFromQueue")
-		if err != nil {
-			return err
-		}
+	if s.enableEpochsHandler.IsFlagEnabled(common.StakingV4StartedFlag) {
+		return nil
 	}
+
+	if maxNumberOfNodes < prevMaxNumberOfNodes {
+		return epochStart.ErrInvalidMaxNumberOfNodes
+	}
+
+	sw.Start("stakeNodesFromQueue")
+	err = s.stakeNodesFromQueue(validatorsInfoMap, maxNumberOfNodes-prevMaxNumberOfNodes, nonce, common.NewList)
+	sw.Stop("stakeNodesFromQueue")
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -720,10 +740,8 @@ func (s *legacySystemSCProcessor) stakingToValidatorStatistics(
 	}
 
 	if !isNew {
-		err = validatorsInfoMap.Delete(jailedValidator)
-		if err != nil {
-			return nil, err
-		}
+		// the new validator is deleted from the staking queue, not the jailed validator
+		validatorsInfoMap.DeleteByKey(blsPubKey, account.GetShardId())
 	}
 
 	account.SetListAndIndex(jailedValidator.GetShardId(), string(common.NewList), uint32(stakingData.StakedNonce), s.enableEpochsHandler.IsFlagEnabled(common.StakingV4StartedFlag))
@@ -752,12 +770,30 @@ func (s *legacySystemSCProcessor) stakingToValidatorStatistics(
 	}
 
 	newValidatorInfo := s.validatorInfoCreator.PeerAccountToValidatorInfo(account)
-	err = validatorsInfoMap.Replace(jailedValidator, newValidatorInfo)
-	if err != nil {
-		return nil, err
-	}
+	s.replaceValidators(jailedValidator, newValidatorInfo, validatorsInfoMap)
 
 	return blsPubKey, nil
+}
+
+func (s *legacySystemSCProcessor) replaceValidators(
+	old state.ValidatorInfoHandler,
+	new state.ValidatorInfoHandler,
+	validatorsInfoMap state.ShardValidatorsInfoMapHandler,
+) {
+	// legacy code
+	if !s.enableEpochsHandler.IsFlagEnabled(common.StakingV4StartedFlag) {
+		_ = validatorsInfoMap.ReplaceValidatorByKey(old.GetPublicKey(), new, old.GetShardId())
+		return
+	}
+
+	// try with new code which does extra validity checks.
+	// if this also fails, do legacy code
+	if err := validatorsInfoMap.Replace(old, new); err != nil {
+		log.Error("legacySystemSCProcessor.replaceValidators", "error", err)
+
+		replaced := validatorsInfoMap.ReplaceValidatorByKey(old.GetPublicKey(), new, old.GetShardId())
+		log.Debug("legacySystemSCProcessor.replaceValidators", "old", old.GetPublicKey(), "new", new.GetPublicKey(), "was replace successful", replaced)
+	}
 }
 
 func isValidator(validator state.ValidatorInfoHandler) bool {
@@ -1207,11 +1243,6 @@ func (s *legacySystemSCProcessor) addNewlyStakedNodesToValidatorTrie(
 			return err
 		}
 
-		err = peerAcc.SetBLSPublicKey(blsKey)
-		if err != nil {
-			return err
-		}
-
 		peerAcc.SetListAndIndex(peerAcc.GetShardId(), string(list), uint32(nonce), s.enableEpochsHandler.IsFlagEnabled(common.StakingV4StartedFlag))
 		peerAcc.SetTempRating(s.startRating)
 		peerAcc.SetUnStakedEpoch(common.DefaultUnstakedEpoch)
@@ -1232,22 +1263,32 @@ func (s *legacySystemSCProcessor) addNewlyStakedNodesToValidatorTrie(
 			AccumulatedFees: big.NewInt(0),
 		}
 
-		existingValidator := validatorsInfoMap.GetValidator(validatorInfo.GetPublicKey())
-		// This fix is not be backwards incompatible
-		if !check.IfNil(existingValidator) && s.enableEpochsHandler.IsFlagEnabled(common.StakingV4StartedFlag) {
-			err = validatorsInfoMap.Delete(existingValidator)
-			if err != nil {
-				return err
-			}
-		}
-
-		err = validatorsInfoMap.Add(validatorInfo)
+		err = s.addNewValidator(validatorsInfoMap, validatorInfo)
 		if err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+func (s *legacySystemSCProcessor) addNewValidator(
+	validatorsInfoMap state.ShardValidatorsInfoMapHandler,
+	validatorInfo state.ValidatorInfoHandler,
+) error {
+	if !s.enableEpochsHandler.IsFlagEnabled(common.StakingV4StartedFlag) {
+		return validatorsInfoMap.Add(validatorInfo)
+	}
+
+	existingValidator := validatorsInfoMap.GetValidator(validatorInfo.GetPublicKey())
+	if !check.IfNil(existingValidator) {
+		err := validatorsInfoMap.Delete(existingValidator)
+		if err != nil {
+			return err
+		}
+	}
+
+	return validatorsInfoMap.Add(validatorInfo)
 }
 
 func (s *legacySystemSCProcessor) initESDT() error {
@@ -1265,7 +1306,7 @@ func (s *legacySystemSCProcessor) extractConfigFromESDTContract() ([][]byte, err
 			CallerAddr:  s.endOfEpochCallerAddress,
 			Arguments:   [][]byte{},
 			CallValue:   big.NewInt(0),
-			GasProvided: math.MaxUint64,
+			GasProvided: math.MaxInt64,
 		},
 		Function:      "getContractConfig",
 		RecipientAddr: vm.ESDTSCAddress,

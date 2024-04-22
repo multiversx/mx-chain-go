@@ -2326,6 +2326,10 @@ func TestSystemSCProcessor_LegacyEpochConfirmedCorrectMaxNumNodesAfterNodeRestar
 	args.EpochNotifier.CheckEpoch(&block.Header{Epoch: 6, Nonce: 6})
 	require.True(t, s.flagChangeMaxNodesEnabled.IsSet())
 	err = s.processLegacy(validatorsInfoMap, 6, 6)
+	require.Equal(t, epochStart.ErrInvalidMaxNumberOfNodes, err)
+
+	args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub).AddActiveFlags(common.StakingV4StartedFlag)
+	err = s.processLegacy(validatorsInfoMap, 6, 6)
 	require.Nil(t, err)
 	require.Equal(t, nodesConfigEpoch6.MaxNumNodes, s.maxNodes)
 
