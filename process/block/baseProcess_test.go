@@ -28,24 +28,26 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
+	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	blproc "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/database"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
+	"github.com/multiversx/mx-chain-go/testscommon/components"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
-	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
@@ -73,7 +75,7 @@ func createArgBaseProcessor(
 	bootstrapComponents *mock.BootstrapComponentsMock,
 	statusComponents *mock.StatusComponentsMock,
 ) blproc.ArgBaseProcessor {
-	nodesCoordinator := shardingMocks.NewNodesCoordinatorMock()
+	nodesCoordinatorInstance := shardingMocks.NewNodesCoordinatorMock()
 	argsHeaderValidator := blproc.ArgsHeaderValidator{
 		Hasher:      &hashingMocks.HasherMock{},
 		Marshalizer: &mock.MarshalizerMock{},
@@ -89,7 +91,7 @@ func createArgBaseProcessor(
 		},
 	}
 
-	statusCoreComponents := &factory.StatusCoreComponentsStub{
+	statusCoreComponents := &mock.StatusCoreComponentsStub{
 		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
 	}
 
@@ -102,7 +104,7 @@ func createArgBaseProcessor(
 		Config:               config.Config{},
 		AccountsDB:           accountsDb,
 		ForkDetector:         &mock.ForkDetectorMock{},
-		NodesCoordinator:     nodesCoordinator,
+		NodesCoordinator:     nodesCoordinatorInstance,
 		FeeHandler:           &mock.FeeAccumulatorStub{},
 		RequestHandler:       &testscommon.RequestHandlerStub{},
 		BlockChainHook:       &testscommon.BlockChainHookStub{},
@@ -126,6 +128,8 @@ func createArgBaseProcessor(
 		ReceiptsRepository:             &testscommon.ReceiptsRepositoryStub{},
 		BlockProcessingCutoffHandler:   &testscommon.BlockProcessingCutoffStub{},
 		ManagedPeersHolder:             &testscommon.ManagedPeersHolderStub{},
+		SentSignaturesTracker:          &testscommon.SentSignatureTrackerStub{},
+		RunTypeComponents:              components.GetRunTypeComponents(),
 	}
 }
 
@@ -711,7 +715,7 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 		{
 			args: func() blproc.ArgBaseProcessor {
 				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-				args.StatusCoreComponents = &factory.StatusCoreComponentsStub{
+				args.StatusCoreComponents = &mock.StatusCoreComponentsStub{
 					AppStatusHandlerField: nil,
 				}
 				return args
@@ -787,6 +791,22 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				return createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 			},
 			expectedErr: nil,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.RunTypeComponents = nil
+				return args
+			},
+			expectedErr: errorsMx.ErrNilRunTypeComponents,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.RunTypeComponents = &mock.RunTypeComponentsStub{AccountCreator: nil}
+				return args
+			},
+			expectedErr: state.ErrNilAccountFactory,
 		},
 	}
 
@@ -3004,7 +3024,7 @@ func TestBaseProcessor_getPruningHandler(t *testing.T) {
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	arguments.Config = config.Config{}
-	arguments.StatusCoreComponents = &factory.StatusCoreComponentsStub{
+	arguments.StatusCoreComponents = &mock.StatusCoreComponentsStub{
 		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
 	}
 	bp, _ := blproc.NewShardProcessor(arguments)
@@ -3118,4 +3138,55 @@ func TestBaseProcessor_ConcurrentCallsNonceOfFirstCommittedBlock(t *testing.T) {
 
 	assert.True(t, len(values) <= 1) // we can have the situation when all reads are done before the first set
 	assert.Equal(t, numCalls/2, values[lastValRead]+noValues)
+}
+
+func TestBaseProcessor_CheckSentSignaturesAtCommitTime(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("expected error")
+	t.Run("nodes coordinator errors, should return error", func(t *testing.T) {
+		nodesCoordinatorInstance := shardingMocks.NewNodesCoordinatorMock()
+		nodesCoordinatorInstance.ComputeValidatorsGroupCalled = func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
+			return nil, expectedErr
+		}
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.SentSignaturesTracker = &testscommon.SentSignatureTrackerStub{
+			ResetCountersForManagedBlockSignerCalled: func(signerPk []byte) {
+				assert.Fail(t, "should have not called ResetCountersManagedBlockSigners")
+			},
+		}
+		arguments.NodesCoordinator = nodesCoordinatorInstance
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		err := bp.CheckSentSignaturesAtCommitTime(&block.Header{})
+		assert.Equal(t, expectedErr, err)
+	})
+	t.Run("should work with bitmap", func(t *testing.T) {
+		validator0, _ := nodesCoordinator.NewValidator([]byte("pk0"), 0, 0)
+		validator1, _ := nodesCoordinator.NewValidator([]byte("pk1"), 1, 1)
+		validator2, _ := nodesCoordinator.NewValidator([]byte("pk2"), 2, 2)
+
+		nodesCoordinatorInstance := shardingMocks.NewNodesCoordinatorMock()
+		nodesCoordinatorInstance.ComputeValidatorsGroupCalled = func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
+			return []nodesCoordinator.Validator{validator0, validator1, validator2}, nil
+		}
+
+		resetCountersCalled := make([][]byte, 0)
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.SentSignaturesTracker = &testscommon.SentSignatureTrackerStub{
+			ResetCountersForManagedBlockSignerCalled: func(signerPk []byte) {
+				resetCountersCalled = append(resetCountersCalled, signerPk)
+			},
+		}
+		arguments.NodesCoordinator = nodesCoordinatorInstance
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		err := bp.CheckSentSignaturesAtCommitTime(&block.Header{
+			PubKeysBitmap: []byte{0b00000101},
+		})
+		assert.Nil(t, err)
+
+		assert.Equal(t, [][]byte{validator0.PubKey(), validator2.PubKey()}, resetCountersCalled)
+	})
 }

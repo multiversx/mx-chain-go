@@ -3,15 +3,17 @@ package incomingHeader
 import (
 	"encoding/hex"
 
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block"
+	"github.com/multiversx/mx-chain-go/sovereignnode/dataCodec"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/errors"
-	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/block"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -25,6 +27,8 @@ type ArgsIncomingHeaderProcessor struct {
 	Marshaller                      marshal.Marshalizer
 	Hasher                          hashing.Hasher
 	MainChainNotarizationStartRound uint64
+	DataCodec                       dataCodec.SovereignDataDecoder
+	TopicsChecker                   TopicsChecker
 }
 
 type incomingHeaderProcessor struct {
@@ -55,10 +59,18 @@ func NewIncomingHeaderProcessor(args ArgsIncomingHeaderProcessor) (*incomingHead
 	if check.IfNil(args.OutGoingOperationsPool) {
 		return nil, errors.ErrNilOutGoingOperationsPool
 	}
+	if check.IfNil(args.DataCodec) {
+		return nil, errors.ErrNilDataCodec
+	}
+	if check.IfNil(args.TopicsChecker) {
+		return nil, errors.ErrNilTopicsChecker
+	}
 
 	eventsProc := &incomingEventsProcessor{
-		marshaller: args.Marshaller,
-		hasher:     args.Hasher,
+		marshaller:    args.Marshaller,
+		hasher:        args.Hasher,
+		dataCodec:     args.DataCodec,
+		topicsChecker: args.TopicsChecker,
 	}
 
 	extendedHearProc := &extendedHeaderProcessor{

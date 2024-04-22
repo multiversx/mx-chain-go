@@ -41,9 +41,9 @@ type BootstrapComponentsFactoryArgs struct {
 	CryptoComponents                 factory.CryptoComponentsHolder
 	NetworkComponents                factory.NetworkComponentsHolder
 	StatusCoreComponents             factory.StatusCoreComponentsHolder
-	ChainRunType                     common.ChainRunType
 	NodesCoordinatorWithRaterFactory nodesCoord.NodesCoordinatorWithRaterFactory
 	ShardCoordinatorFactory          sharding.ShardCoordinatorFactory
+	RunTypeComponents                factory.RunTypeComponentsHolder
 }
 
 type bootstrapComponentsFactory struct {
@@ -56,26 +56,30 @@ type bootstrapComponentsFactory struct {
 	cryptoComponents                 factory.CryptoComponentsHolder
 	networkComponents                factory.NetworkComponentsHolder
 	statusCoreComponents             factory.StatusCoreComponentsHolder
-	chainRunType                     common.ChainRunType
 	nodesCoordinatorWithRaterFactory nodesCoord.NodesCoordinatorWithRaterFactory
 	shardCoordinatorFactory          sharding.ShardCoordinatorFactory
+	runTypeComponents                factory.RunTypeComponentsHolder
 }
 
 type bootstrapComponents struct {
-	epochStartBootstrapper  factory.EpochStartBootstrapper
-	bootstrapParamsHolder   factory.BootstrapParamsHolder
-	nodeType                core.NodeType
-	shardCoordinator        sharding.Coordinator
-	headerVersionHandler    nodeFactory.HeaderVersionHandler
-	versionedHeaderFactory  nodeFactory.VersionedHeaderFactory
-	headerIntegrityVerifier nodeFactory.HeaderIntegrityVerifierHandler
-	guardedAccountHandler   process.GuardedAccountHandler
+	epochStartBootstrapper          factory.EpochStartBootstrapper
+	bootstrapParamsHolder           factory.BootstrapParamsHolder
+	nodeType                        core.NodeType
+	shardCoordinator                sharding.Coordinator
+	headerVersionHandler            nodeFactory.HeaderVersionHandler
+	versionedHeaderFactory          nodeFactory.VersionedHeaderFactory
+	headerIntegrityVerifier         nodeFactory.HeaderIntegrityVerifierHandler
+	guardedAccountHandler           process.GuardedAccountHandler
+	nodesCoordinatorRegistryFactory nodesCoord.NodesCoordinatorRegistryFactory
 }
 
 // NewBootstrapComponentsFactory creates an instance of bootstrapComponentsFactory
 func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootstrapComponentsFactory, error) {
 	if check.IfNil(args.CoreComponents) {
 		return nil, errors.ErrNilCoreComponentsHolder
+	}
+	if check.IfNil(args.CoreComponents.EnableEpochsHandler()) {
+		return nil, errors.ErrNilEnableEpochsHandler
 	}
 	if check.IfNil(args.CryptoComponents) {
 		return nil, errors.ErrNilCryptoComponentsHolder
@@ -101,6 +105,15 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 	if check.IfNil(args.ShardCoordinatorFactory) {
 		return nil, errors.ErrNilShardCoordinatorFactory
 	}
+	if check.IfNil(args.RunTypeComponents) {
+		return nil, errors.ErrNilRunTypeComponents
+	}
+	if check.IfNil(args.RunTypeComponents.EpochStartBootstrapperCreator()) {
+		return nil, errors.ErrNilEpochStartBootstrapperCreator
+	}
+	if check.IfNil(args.RunTypeComponents.AdditionalStorageServiceCreator()) {
+		return nil, errors.ErrNilAdditionalStorageServiceCreator
+	}
 
 	return &bootstrapComponentsFactory{
 		config:                           args.Config,
@@ -112,7 +125,7 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 		cryptoComponents:                 args.CryptoComponents,
 		networkComponents:                args.NetworkComponents,
 		statusCoreComponents:             args.StatusCoreComponents,
-		chainRunType:                     args.ChainRunType,
+		runTypeComponents:                args.RunTypeComponents,
 		nodesCoordinatorWithRaterFactory: args.NodesCoordinatorWithRaterFactory,
 		shardCoordinatorFactory:          args.ShardCoordinatorFactory,
 	}, nil
@@ -202,6 +215,14 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		return nil, err
 	}
 
+	nodesCoordinatorRegistryFactory, err := nodesCoord.NewNodesCoordinatorRegistryFactory(
+		bcf.coreComponents.InternalMarshalizer(),
+		bcf.coreComponents.EnableEpochsHandler().GetActivationEpoch(common.StakingV4Step2Flag),
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{
 		CoreComponentsHolder:             bcf.coreComponents,
 		CryptoComponentsHolder:           bcf.cryptoComponents,
@@ -228,7 +249,9 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		NodeProcessingMode:               common.GetNodeProcessingMode(&bcf.importDbConfig),
 		StateStatsHandler:                bcf.statusCoreComponents.StateStatsHandler(),
 		NodesCoordinatorWithRaterFactory: bcf.nodesCoordinatorWithRaterFactory,
+		NodesCoordinatorRegistryFactory:  nodesCoordinatorRegistryFactory,
 		ShardCoordinatorFactory:          bcf.shardCoordinatorFactory,
+		AdditionalStorageServiceCreator:  bcf.runTypeComponents.AdditionalStorageServiceCreator(),
 	}
 
 	var epochStartBootstrapper factory.EpochStartBootstrapper
@@ -238,9 +261,10 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 			ImportDbConfig:                   bcf.importDbConfig,
 			ChanGracefullyClose:              bcf.coreComponents.ChanStopNodeProcess(),
 			TimeToWaitForRequestedData:       bootstrap.DefaultTimeToWaitForRequestedData,
-			ChainRunType:                     bcf.chainRunType,
+			EpochStartBootstrapperCreator:    bcf.runTypeComponents.EpochStartBootstrapperCreator(),
 			NodesCoordinatorWithRaterFactory: bcf.nodesCoordinatorWithRaterFactory,
 			ShardCoordinatorFactory:          bcf.shardCoordinatorFactory,
+			ResolverRequestFactory:           bcf.runTypeComponents.RequestHandlerCreator(),
 		}
 
 		epochStartBootstrapper, err = bootstrap.NewStorageEpochStartBootstrap(storageArg)
@@ -248,9 +272,10 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 			return nil, fmt.Errorf("%w: %v", errors.ErrNewStorageEpochStartBootstrap, err)
 		}
 	} else {
-		epochStartBootstrapper, err = bcf.createEpochStartBootstrapper(epochStartBootstrapArgs)
+		esbc := bcf.runTypeComponents.EpochStartBootstrapperCreator()
+		epochStartBootstrapper, err = esbc.CreateEpochStartBootstrapper(epochStartBootstrapArgs)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("%w: %v", errors.ErrNewEpochStartBootstrap, err)
 		}
 	}
 
@@ -282,29 +307,14 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		bootstrapParamsHolder: &bootstrapParams{
 			bootstrapParams: bootstrapParameters,
 		},
-		nodeType:                nodeType,
-		shardCoordinator:        shardCoordinator,
-		headerVersionHandler:    headerVersionHandler,
-		headerIntegrityVerifier: headerIntegrityVerifier,
-		versionedHeaderFactory:  versionedHeaderFactory,
-		guardedAccountHandler:   guardedAccountHandler,
+		nodeType:                        nodeType,
+		shardCoordinator:                shardCoordinator,
+		headerVersionHandler:            headerVersionHandler,
+		headerIntegrityVerifier:         headerIntegrityVerifier,
+		versionedHeaderFactory:          versionedHeaderFactory,
+		guardedAccountHandler:           guardedAccountHandler,
+		nodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
 	}, nil
-}
-
-func (bcf *bootstrapComponentsFactory) createEpochStartBootstrapper(epochStartBootstrapArgs bootstrap.ArgsEpochStartBootstrap) (factory.EpochStartBootstrapper, error) {
-	epochStartBootstrapper, err := bootstrap.NewEpochStartBootstrap(epochStartBootstrapArgs)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %v", errors.ErrNewEpochStartBootstrap, err)
-	}
-
-	switch bcf.chainRunType {
-	case common.ChainRunTypeRegular:
-		return epochStartBootstrapper, nil
-	case common.ChainRunTypeSovereign:
-		return bootstrap.NewSovereignChainEpochStartBootstrap(epochStartBootstrapper)
-	default:
-		return nil, fmt.Errorf("%w type %v", errors.ErrUnimplementedChainRunType, bcf.chainRunType)
-	}
 }
 
 func (bcf *bootstrapComponentsFactory) createHeaderFactory(handler nodeFactory.HeaderVersionHandler, shardID uint32) (nodeFactory.VersionedHeaderFactory, error) {

@@ -7,17 +7,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
-	"github.com/multiversx/mx-chain-core-go/hashing"
-	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
-	"github.com/multiversx/mx-chain-go/sharding"
-	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/factory"
 )
 
@@ -26,36 +20,29 @@ type metaStorageHandler struct {
 }
 
 // NewMetaStorageHandler will return a new instance of metaStorageHandler
-func NewMetaStorageHandler(
-	generalConfig config.Config,
-	prefsConfig config.PreferencesConfig,
-	shardCoordinator sharding.Coordinator,
-	pathManagerHandler storage.PathManagerHandler,
-	marshalizer marshal.Marshalizer,
-	hasher hashing.Hasher,
-	currentEpoch uint32,
-	uint64Converter typeConverters.Uint64ByteSliceConverter,
-	nodeTypeProvider NodeTypeProviderHandler,
-	nodeProcessingMode common.NodeProcessingMode,
-	managedPeersHolder common.ManagedPeersHolder,
-	stateStatsHandler common.StateStatisticsHandler,
-) (*metaStorageHandler, error) {
+func NewMetaStorageHandler(args StorageHandlerArgs) (*metaStorageHandler, error) {
+	err := checkNilArgs(args)
+	if err != nil {
+		return nil, err
+	}
+
 	epochStartNotifier := &disabled.EpochStartNotifier{}
 	storageFactory, err := factory.NewStorageServiceFactory(
 		factory.StorageServiceFactoryArgs{
-			Config:                        generalConfig,
-			PrefsConfig:                   prefsConfig,
-			ShardCoordinator:              shardCoordinator,
-			PathManager:                   pathManagerHandler,
-			EpochStartNotifier:            epochStartNotifier,
-			NodeTypeProvider:              nodeTypeProvider,
-			CurrentEpoch:                  currentEpoch,
-			StorageType:                   factory.BootstrapStorageService,
-			CreateTrieEpochRootHashStorer: false,
-			NodeProcessingMode:            nodeProcessingMode,
-			RepopulateTokensSupplies:      false, // tokens supplies cannot be repopulated at this time
-			ManagedPeersHolder:            managedPeersHolder,
-			StateStatsHandler:             stateStatsHandler,
+			Config:                          args.GeneralConfig,
+			PrefsConfig:                     args.PreferencesConfig,
+			ShardCoordinator:                args.ShardCoordinator,
+			PathManager:                     args.PathManagerHandler,
+			EpochStartNotifier:              epochStartNotifier,
+			NodeTypeProvider:                args.NodeTypeProvider,
+			StorageType:                     factory.BootstrapStorageService,
+			ManagedPeersHolder:              args.ManagedPeersHolder,
+			CurrentEpoch:                    args.CurrentEpoch,
+			CreateTrieEpochRootHashStorer:   false,
+			NodeProcessingMode:              args.NodeProcessingMode,
+			RepopulateTokensSupplies:        false,
+			StateStatsHandler:               args.StateStatsHandler,
+			AdditionalStorageServiceCreator: args.AdditionalStorageServiceCreator,
 		},
 	)
 	if err != nil {
@@ -68,12 +55,13 @@ func NewMetaStorageHandler(
 	}
 
 	base := &baseStorageHandler{
-		storageService:   storageService,
-		shardCoordinator: shardCoordinator,
-		marshalizer:      marshalizer,
-		hasher:           hasher,
-		currentEpoch:     currentEpoch,
-		uint64Converter:  uint64Converter,
+		storageService:                  storageService,
+		shardCoordinator:                args.ShardCoordinator,
+		marshalizer:                     args.Marshaller,
+		hasher:                          args.Hasher,
+		currentEpoch:                    args.CurrentEpoch,
+		uint64Converter:                 args.Uint64Converter,
+		nodesCoordinatorRegistryFactory: args.NodesCoordinatorRegistryFactory,
 	}
 
 	return &metaStorageHandler{baseStorageHandler: base}, nil

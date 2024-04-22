@@ -164,7 +164,7 @@ func (nf *nodeFacade) RestAPIServerDebugMode() bool {
 
 // RestApiInterface returns the interface on which the rest API should start on, based on the config file provided.
 // The API will start on the DefaultRestInterface value unless a correct value is passed or
-// the value is explicitly set to off, in which case it will not start at all
+// //	the value is explicitly set to off, in which case it will not start at all
 func (nf *nodeFacade) RestApiInterface() string {
 	if nf.config.RestApiInterface == "" {
 		return DefaultRestInterface
@@ -283,6 +283,11 @@ func (nf *nodeFacade) ValidateTransactionForSimulation(tx *transaction.Transacti
 // ValidatorStatisticsApi will return the statistics for all validators
 func (nf *nodeFacade) ValidatorStatisticsApi() (map[string]*validator.ValidatorStatistics, error) {
 	return nf.node.ValidatorStatisticsApi()
+}
+
+// AuctionListApi will return the data about the validators in the auction list
+func (nf *nodeFacade) AuctionListApi() ([]*common.AuctionListValidatorAPIResponse, error) {
+	return nf.node.AuctionListApi()
 }
 
 // SendBulkTransactions will send a bulk of transactions on the topic channel
@@ -591,9 +596,14 @@ func (nf *nodeFacade) GetManagedKeysCount() int {
 	return nf.apiResolver.GetManagedKeysCount()
 }
 
-// GetManagedKeys returns all keys managed by the current node when running in multikey mode
+// GetManagedKeys returns all keys that should act as validator(main or backup that took over) and will be managed by this node
 func (nf *nodeFacade) GetManagedKeys() []string {
 	return nf.apiResolver.GetManagedKeys()
+}
+
+// GetLoadedKeys returns all keys that were loaded by this node
+func (nf *nodeFacade) GetLoadedKeys() []string {
+	return nf.apiResolver.GetLoadedKeys()
 }
 
 // GetEligibleManagedKeys returns the eligible managed keys when node is running in multikey mode

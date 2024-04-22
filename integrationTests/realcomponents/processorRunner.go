@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/common/ordering"
 	"github.com/multiversx/mx-chain-go/config"
@@ -28,6 +29,7 @@ import (
 	factoryData "github.com/multiversx/mx-chain-go/factory/data"
 	factoryNetwork "github.com/multiversx/mx-chain-go/factory/network"
 	factoryProcessing "github.com/multiversx/mx-chain-go/factory/processing"
+	"github.com/multiversx/mx-chain-go/factory/runType"
 	factoryState "github.com/multiversx/mx-chain-go/factory/state"
 	factoryStatus "github.com/multiversx/mx-chain-go/factory/status"
 	factoryStatusCore "github.com/multiversx/mx-chain-go/factory/statusCore"
@@ -65,6 +67,7 @@ type ProcessorRunner struct {
 	NodesCoordinator     nodesCoord.NodesCoordinator
 	StatusComponents     factory.StatusComponentsHolder
 	ProcessComponents    factory.ProcessComponentsHolder
+	RunTypeComponents    factory.RunTypeComponentsHolder
 }
 
 // NewProcessorRunner returns a new instance of ProcessorRunner
@@ -81,6 +84,7 @@ func NewProcessorRunner(tb testing.TB, config config.Configs) *ProcessorRunner {
 
 func (pr *ProcessorRunner) createComponents(tb testing.TB) {
 	pr.createCoreComponents(tb)
+	pr.createRunTypeComponents(tb)
 	pr.createCryptoComponents(tb)
 	pr.createStatusCoreComponents(tb)
 	pr.createNetworkComponents(tb)
@@ -89,6 +93,21 @@ func (pr *ProcessorRunner) createComponents(tb testing.TB) {
 	pr.createStateComponents(tb)
 	pr.createStatusComponents(tb)
 	pr.createProcessComponents(tb)
+}
+
+func (pr *ProcessorRunner) createRunTypeComponents(tb testing.TB) {
+	rtFactory, err := runType.NewRunTypeComponentsFactory(pr.CoreComponents)
+	require.Nil(tb, err)
+
+	rtComp, err := runType.NewManagedRunTypeComponents(rtFactory)
+	require.Nil(tb, err)
+
+	err = rtComp.Create()
+	require.Nil(tb, err)
+	require.Nil(tb, rtComp.CheckSubcomponents())
+
+	pr.closers = append(pr.closers, rtComp)
+	pr.RunTypeComponents = rtComp
 }
 
 func (pr *ProcessorRunner) createCoreComponents(tb testing.TB) {
@@ -216,7 +235,7 @@ func (pr *ProcessorRunner) createBootstrapComponents(tb testing.TB) {
 		CryptoComponents:                 pr.CryptoComponents,
 		NetworkComponents:                pr.NetworkComponents,
 		StatusCoreComponents:             pr.StatusCoreComponents,
-		ChainRunType:                     common.ChainRunTypeRegular,
+		RunTypeComponents:                pr.RunTypeComponents,
 		NodesCoordinatorWithRaterFactory: nodesCoord.NewIndexHashedNodesCoordinatorWithRaterFactory(),
 		ShardCoordinatorFactory:          sharding.NewMultiShardCoordinatorFactory(),
 	}
@@ -237,16 +256,17 @@ func (pr *ProcessorRunner) createBootstrapComponents(tb testing.TB) {
 
 func (pr *ProcessorRunner) createDataComponents(tb testing.TB) {
 	argsData := factoryData.DataComponentsFactoryArgs{
-		Config:                        *pr.Config.GeneralConfig,
-		PrefsConfig:                   pr.Config.PreferencesConfig.Preferences,
-		ShardCoordinator:              pr.BootstrapComponents.ShardCoordinator(),
-		Core:                          pr.CoreComponents,
-		StatusCore:                    pr.StatusCoreComponents,
-		Crypto:                        pr.CryptoComponents,
-		CurrentEpoch:                  0,
-		CreateTrieEpochRootHashStorer: false,
-		NodeProcessingMode:            common.Normal,
-		FlagsConfigs:                  config.ContextFlagsConfig{},
+		Config:                          *pr.Config.GeneralConfig,
+		PrefsConfig:                     pr.Config.PreferencesConfig.Preferences,
+		ShardCoordinator:                pr.BootstrapComponents.ShardCoordinator(),
+		Core:                            pr.CoreComponents,
+		StatusCore:                      pr.StatusCoreComponents,
+		Crypto:                          pr.CryptoComponents,
+		CurrentEpoch:                    0,
+		CreateTrieEpochRootHashStorer:   false,
+		NodeProcessingMode:              common.Normal,
+		FlagsConfigs:                    config.ContextFlagsConfig{},
+		AdditionalStorageServiceCreator: pr.RunTypeComponents.AdditionalStorageServiceCreator(),
 	}
 
 	dataFactory, err := factoryData.NewDataComponentsFactory(argsData)
@@ -272,6 +292,7 @@ func (pr *ProcessorRunner) createStateComponents(tb testing.TB) {
 		ProcessingMode:           common.Normal,
 		ShouldSerializeSnapshots: false,
 		ChainHandler:             pr.DataComponents.Blockchain(),
+		AccountsCreator:          pr.RunTypeComponents.AccountsCreator(),
 	}
 
 	stateFactory, err := factoryState.NewStateComponentsFactory(argsState)
@@ -317,6 +338,7 @@ func (pr *ProcessorRunner) createStatusComponents(tb testing.TB) {
 		pr.CoreComponents.NodeTypeProvider(),
 		pr.CoreComponents.EnableEpochsHandler(),
 		pr.DataComponents.Datapool().CurrentEpochValidatorInfo(),
+		pr.BootstrapComponents.NodesCoordinatorRegistryFactory(),
 		nodesCoord.NewIndexHashedNodesCoordinatorWithRaterFactory(),
 	)
 	require.Nil(tb, err)
@@ -420,6 +442,7 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 	argsProcess := factoryProcessing.ProcessComponentsFactoryArgs{
 		Config:         *pr.Config.GeneralConfig,
 		EpochConfig:    *pr.Config.EpochConfig,
+		RoundConfig:    *pr.Config.RoundConfig,
 		PrefConfigs:    *pr.Config.PreferencesConfig,
 		ImportDBConfig: *pr.Config.ImportDbConfig,
 		FlagsConfig: config.ContextFlagsConfig{
@@ -446,7 +469,6 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 		StatusComponents:                      pr.StatusComponents,
 		StatusCoreComponents:                  pr.StatusCoreComponents,
 		TxExecutionOrderHandler:               txExecutionOrderHandler,
-		ChainRunType:                          common.ChainRunTypeRegular,
 		ShardCoordinatorFactory:               sharding.NewMultiShardCoordinatorFactory(),
 		GenesisBlockCreatorFactory:            process.NewGenesisBlockCreatorFactory(),
 		GenesisMetaBlockChecker:               factoryProcessing.NewGenesisMetaBlockChecker(),
@@ -455,6 +477,9 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 		ShardResolversContainerFactoryCreator: resolverscontainer.NewShardResolversContainerFactoryCreator(),
 		TxPreProcessorCreator:                 preprocess.NewTxPreProcessorCreator(),
 		ExtraHeaderSigVerifierHolder:          &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
+		RunTypeComponents:                     pr.RunTypeComponents,
+		TopicsChecker:                         disabled.NewDisabledTopicsChecker(),
+		DataCodec:                             disabled.NewDisabledDataCodec(),
 	}
 
 	processFactory, err := factoryProcessing.NewProcessComponentsFactory(argsProcess)

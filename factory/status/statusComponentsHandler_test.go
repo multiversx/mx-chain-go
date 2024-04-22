@@ -11,23 +11,20 @@ import (
 	"github.com/multiversx/mx-chain-go/p2p"
 	factoryMocks "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/require"
 )
 
 func TestNewManagedStatusComponents(t *testing.T) {
-	t.Parallel()
+	// no t.Parallel for these tests as they create real components
 
 	t.Run("nil factory should error", func(t *testing.T) {
-		t.Parallel()
-
 		managedStatusComponents, err := statusComp.NewManagedStatusComponents(nil)
 		require.Equal(t, errorsMx.ErrNilStatusComponentsFactory, err)
 		require.Nil(t, managedStatusComponents)
 	})
 	t.Run("should work", func(t *testing.T) {
-		t.Parallel()
-
 		scf, err := statusComp.NewStatusComponentsFactory(createMockStatusComponentsFactoryArgs())
 		require.Nil(t, err)
 		managedStatusComponents, err := statusComp.NewManagedStatusComponents(scf)
@@ -37,11 +34,9 @@ func TestNewManagedStatusComponents(t *testing.T) {
 }
 
 func TestManagedStatusComponents_Create(t *testing.T) {
-	t.Parallel()
+	// no t.Parallel for these tests as they create real components
 
 	t.Run("invalid params should error", func(t *testing.T) {
-		t.Parallel()
-
 		args := createMockStatusComponentsFactoryArgs()
 		args.StatusCoreComponents = &factoryMocks.StatusCoreComponentsStub{
 			AppStatusHandlerField: nil,
@@ -56,8 +51,6 @@ func TestManagedStatusComponents_Create(t *testing.T) {
 		require.Error(t, err)
 	})
 	t.Run("should work with getters", func(t *testing.T) {
-		t.Parallel()
-
 		scf, err := statusComp.NewStatusComponentsFactory(createMockStatusComponentsFactoryArgs())
 		require.Nil(t, err)
 		managedStatusComponents, err := statusComp.NewManagedStatusComponents(scf)
@@ -78,7 +71,7 @@ func TestManagedStatusComponents_Create(t *testing.T) {
 }
 
 func TestManagedStatusComponents_Close(t *testing.T) {
-	t.Parallel()
+	// no t.Parallel for these tests as they create real components
 
 	scf, _ := statusComp.NewStatusComponentsFactory(createMockStatusComponentsFactoryArgs())
 	managedStatusComponents, _ := statusComp.NewManagedStatusComponents(scf)
@@ -96,7 +89,7 @@ func TestManagedStatusComponents_Close(t *testing.T) {
 }
 
 func TestManagedStatusComponents_CheckSubcomponents(t *testing.T) {
-	t.Parallel()
+	// no t.Parallel for these tests as they create real components
 
 	scf, _ := statusComp.NewStatusComponentsFactory(createMockStatusComponentsFactoryArgs())
 	managedStatusComponents, _ := statusComp.NewManagedStatusComponents(scf)
@@ -112,7 +105,7 @@ func TestManagedStatusComponents_CheckSubcomponents(t *testing.T) {
 }
 
 func TestManagedStatusComponents_SetForkDetector(t *testing.T) {
-	t.Parallel()
+	// no t.Parallel for these tests as they create real components
 
 	scf, _ := statusComp.NewStatusComponentsFactory(createMockStatusComponentsFactoryArgs())
 	managedStatusComponents, _ := statusComp.NewManagedStatusComponents(scf)
@@ -126,11 +119,9 @@ func TestManagedStatusComponents_SetForkDetector(t *testing.T) {
 }
 
 func TestManagedStatusComponents_StartPolling(t *testing.T) {
-	t.Parallel()
+	// no t.Parallel for these tests as they create real components
 
 	t.Run("NewAppStatusPolling fails should error", func(t *testing.T) {
-		t.Parallel()
-
 		args := createMockStatusComponentsFactoryArgs()
 		args.Config.GeneralSettings.StatusPollingIntervalSec = 0
 		scf, _ := statusComp.NewStatusComponentsFactory(args)
@@ -142,8 +133,6 @@ func TestManagedStatusComponents_StartPolling(t *testing.T) {
 		require.Equal(t, errorsMx.ErrStatusPollingInit, err)
 	})
 	t.Run("RegisterPollingFunc fails should error", func(t *testing.T) {
-		t.Parallel()
-
 		args := createMockStatusComponentsFactoryArgs()
 		args.Config.GeneralSettings.StatusPollingIntervalSec = 0
 		scf, _ := statusComp.NewStatusComponentsFactory(args)
@@ -155,12 +144,11 @@ func TestManagedStatusComponents_StartPolling(t *testing.T) {
 		require.Equal(t, errorsMx.ErrStatusPollingInit, err)
 	})
 	t.Run("should work", func(t *testing.T) {
-		t.Parallel()
-
 		scf, _ := statusComp.NewStatusComponentsFactory(createMockStatusComponentsFactoryArgs())
 		managedStatusComponents, _ := statusComp.NewManagedStatusComponents(scf)
 		err := managedStatusComponents.Create()
 		require.NoError(t, err)
+		require.NoError(t, managedStatusComponents.SetForkDetector(&processMocks.ForkDetectorStub{}))
 
 		err = managedStatusComponents.StartPolling()
 		require.NoError(t, err)
@@ -168,7 +156,7 @@ func TestManagedStatusComponents_StartPolling(t *testing.T) {
 }
 
 func TestComputeNumConnectedPeers(t *testing.T) {
-	t.Parallel()
+	// no t.Parallel for these tests as they create real components
 
 	t.Run("main network", testComputeNumConnectedPeers(""))
 	t.Run("full archive network", testComputeNumConnectedPeers(common.FullArchiveMetricSuffix))
@@ -176,8 +164,6 @@ func TestComputeNumConnectedPeers(t *testing.T) {
 
 func testComputeNumConnectedPeers(suffix string) func(t *testing.T) {
 	return func(t *testing.T) {
-		t.Parallel()
-
 		netMes := &p2pmocks.MessengerStub{
 			ConnectedAddressesCalled: func() []string {
 				return []string{"addr1", "addr2", "addr3"}
@@ -195,7 +181,7 @@ func testComputeNumConnectedPeers(suffix string) func(t *testing.T) {
 }
 
 func TestComputeConnectedPeers(t *testing.T) {
-	t.Parallel()
+	// no t.Parallel for these tests as they create real components
 
 	t.Run("main network", testComputeConnectedPeers(""))
 	t.Run("full archive network", testComputeConnectedPeers(common.FullArchiveMetricSuffix))
@@ -203,8 +189,6 @@ func TestComputeConnectedPeers(t *testing.T) {
 
 func testComputeConnectedPeers(suffix string) func(t *testing.T) {
 	return func(t *testing.T) {
-		t.Parallel()
-
 		netMes := &p2pmocks.MessengerStub{
 			GetConnectedPeersInfoCalled: func() *p2p.ConnectedPeersInfo {
 				return &p2p.ConnectedPeersInfo{
@@ -294,7 +278,7 @@ func testComputeConnectedPeers(suffix string) func(t *testing.T) {
 }
 
 func TestManagedStatusComponents_IsInterfaceNil(t *testing.T) {
-	t.Parallel()
+	// no t.Parallel for these tests as they create real components
 
 	managedStatusComponents, _ := statusComp.NewManagedStatusComponents(nil)
 	require.True(t, managedStatusComponents.IsInterfaceNil())

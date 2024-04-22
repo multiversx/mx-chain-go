@@ -435,6 +435,11 @@ func (cns *ConsensusState) IsMultiKeyJobDone(currentSubroundId int) bool {
 	return true
 }
 
+// GetMultikeyRedundancyStepInReason returns the reason if the current node stepped in as a multikey redundancy node
+func (cns *ConsensusState) GetMultikeyRedundancyStepInReason() string {
+	return cns.keysHandler.GetRedundancyStepInReason()
+}
+
 // ResetRoundsWithoutReceivedMessages will reset the rounds received without a message for a specified public key by
 // providing also the peer ID from the received message
 func (cns *ConsensusState) ResetRoundsWithoutReceivedMessages(pkBytes []byte, pid core.PeerID) {

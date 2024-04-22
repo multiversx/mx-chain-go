@@ -29,7 +29,6 @@ import (
 	"github.com/multiversx/mx-chain-go/common/ordering"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/config"
-	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -48,6 +47,7 @@ import (
 	heartbeatComp "github.com/multiversx/mx-chain-go/factory/heartbeat"
 	networkComp "github.com/multiversx/mx-chain-go/factory/network"
 	processComp "github.com/multiversx/mx-chain-go/factory/processing"
+	"github.com/multiversx/mx-chain-go/factory/runType"
 	stateComp "github.com/multiversx/mx-chain-go/factory/state"
 	statusComp "github.com/multiversx/mx-chain-go/factory/status"
 	"github.com/multiversx/mx-chain-go/factory/statusCore"
@@ -178,12 +178,10 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("save jailed always"), "epoch", enableEpochs.SaveJailedAlwaysEnableEpoch)
 	log.Debug(readEpochFor("validator to delegation"), "epoch", enableEpochs.ValidatorToDelegationEnableEpoch)
 	log.Debug(readEpochFor("re-delegate below minimum check"), "epoch", enableEpochs.ReDelegateBelowMinCheckEnableEpoch)
-	log.Debug(readEpochFor("waiting waiting list"), "epoch", enableEpochs.WaitingListFixEnableEpoch)
 	log.Debug(readEpochFor("increment SCR nonce in multi transfer"), "epoch", enableEpochs.IncrementSCRNonceInMultiTransferEnableEpoch)
 	log.Debug(readEpochFor("esdt and NFT multi transfer"), "epoch", enableEpochs.ESDTMultiTransferEnableEpoch)
 	log.Debug(readEpochFor("contract global mint and burn"), "epoch", enableEpochs.GlobalMintBurnDisableEpoch)
 	log.Debug(readEpochFor("contract transfer role"), "epoch", enableEpochs.ESDTTransferRoleEnableEpoch)
-	log.Debug(readEpochFor("built in functions on metachain"), "epoch", enableEpochs.BuiltInFunctionOnMetaEnableEpoch)
 	log.Debug(readEpochFor("compute rewards checkpoint on delegation"), "epoch", enableEpochs.ComputeRewardCheckpointEnableEpoch)
 	log.Debug(readEpochFor("esdt NFT create on multiple shards"), "epoch", enableEpochs.ESDTNFTCreateOnMultiShardEnableEpoch)
 	log.Debug(readEpochFor("SCR size invariant check"), "epoch", enableEpochs.SCRSizeInvariantCheckEnableEpoch)
@@ -219,6 +217,11 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("refactor peers mini blocks"), "epoch", enableEpochs.RefactorPeersMiniBlocksEnableEpoch)
 	log.Debug(readEpochFor("runtime memstore limit"), "epoch", enableEpochs.RuntimeMemStoreLimitEnableEpoch)
 	log.Debug(readEpochFor("max blockchainhook counters"), "epoch", enableEpochs.MaxBlockchainHookCountersEnableEpoch)
+	log.Debug(readEpochFor("limit validators"), "epoch", enableEpochs.StakeLimitsEnableEpoch)
+	log.Debug(readEpochFor("staking v4 step 1"), "epoch", enableEpochs.StakingV4Step1EnableEpoch)
+	log.Debug(readEpochFor("staking v4 step 2"), "epoch", enableEpochs.StakingV4Step2EnableEpoch)
+	log.Debug(readEpochFor("staking v4 step 3"), "epoch", enableEpochs.StakingV4Step3EnableEpoch)
+
 	gasSchedule := configs.EpochConfig.GasSchedule
 
 	log.Debug(readEpochFor("gas schedule directories paths"), "epoch", gasSchedule.GasScheduleByEpochs)
@@ -280,6 +283,10 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
 ) (bool, error) {
 	goRoutinesNumberStart := runtime.NumGoroutine()
+
+	log.Debug("applying custom configs based on the current architecture")
+	ApplyArchCustomConfigs(nr.configs)
+
 	configs := nr.configs
 	flagsConfig := configs.FlagsConfig
 	configurationPaths := configs.ConfigurationPathsHolder
@@ -291,6 +298,17 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	managedCoreComponents, err := nr.CreateManagedCoreComponents(
 		chanStopNodeProcess,
 	)
+	if err != nil {
+		return true, err
+	}
+
+	err = config.SanityCheckNodesConfig(managedCoreComponents.GenesisNodesSetup(), configs.EpochConfig.EnableEpochs)
+	if err != nil {
+		return true, err
+	}
+
+	log.Debug("creating runType components")
+	managedRunTypeComponents, err := nr.CreateManagedRunTypeComponents(managedCoreComponents)
 	if err != nil {
 		return true, err
 	}
@@ -320,7 +338,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	}
 
 	log.Debug("creating bootstrap components")
-	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedStatusCoreComponents, managedCoreComponents, managedCryptoComponents, managedNetworkComponents)
+	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedStatusCoreComponents, managedCoreComponents, managedCryptoComponents, managedNetworkComponents, managedRunTypeComponents)
 	if err != nil {
 		return true, err
 	}
@@ -328,7 +346,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	nr.logInformation(managedCoreComponents, managedCryptoComponents, managedBootstrapComponents)
 
 	log.Debug("creating data components")
-	managedDataComponents, err := nr.CreateManagedDataComponents(managedStatusCoreComponents, managedCoreComponents, managedBootstrapComponents, managedCryptoComponents)
+	managedDataComponents, err := nr.CreateManagedDataComponents(managedStatusCoreComponents, managedCoreComponents, managedBootstrapComponents, managedCryptoComponents, managedRunTypeComponents)
 	if err != nil {
 		return true, err
 	}
@@ -338,6 +356,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedCoreComponents,
 		managedDataComponents,
 		managedStatusCoreComponents,
+		managedRunTypeComponents,
 	)
 	if err != nil {
 		return true, err
@@ -386,6 +405,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedCoreComponents.NodeTypeProvider(),
 		managedCoreComponents.EnableEpochsHandler(),
 		managedDataComponents.Datapool().CurrentEpochValidatorInfo(),
+		managedBootstrapComponents.NodesCoordinatorRegistryFactory(),
 		nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
 	)
 	if err != nil {
@@ -428,6 +448,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedDataComponents,
 		managedStatusComponents,
 		managedStatusCoreComponents,
+		managedRunTypeComponents,
 		gasScheduleNotifier,
 		nodesCoordinatorInstance,
 	)
@@ -442,7 +463,6 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedStateComponents,
 		managedBootstrapComponents,
 		managedProcessComponents,
-		managedStatusCoreComponents,
 	)
 	if err != nil {
 		return true, err
@@ -475,6 +495,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedStatusComponents,
 		managedProcessComponents,
 		managedStatusCoreComponents,
+		managedRunTypeComponents,
 	)
 	if err != nil {
 		return true, err
@@ -496,6 +517,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	log.Debug("creating node structure")
 	nodeHandler, err := CreateNode(
 		configs.GeneralConfig,
+		managedRunTypeComponents,
 		managedStatusCoreComponents,
 		managedBootstrapComponents,
 		managedCoreComponents,
@@ -571,7 +593,6 @@ func addSyncersToAccountsDB(
 	stateComponents mainFactory.StateComponentsHolder,
 	bootstrapComponents mainFactory.BootstrapComponentsHolder,
 	processComponents mainFactory.ProcessComponentsHolder,
-	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
 ) error {
 	selfId := bootstrapComponents.ShardCoordinator().SelfId()
 	if selfId == core.MetachainShardId {
@@ -581,7 +602,6 @@ func addSyncersToAccountsDB(
 			dataComponents,
 			stateComponents,
 			processComponents,
-			statusCoreComponents,
 		)
 		if err != nil {
 			return err
@@ -605,7 +625,6 @@ func addSyncersToAccountsDB(
 		stateComponents,
 		bootstrapComponents,
 		processComponents,
-		statusCoreComponents,
 	)
 	if err != nil {
 		return err
@@ -625,7 +644,6 @@ func getUserAccountSyncer(
 	stateComponents mainFactory.StateComponentsHolder,
 	bootstrapComponents mainFactory.BootstrapComponentsHolder,
 	processComponents mainFactory.ProcessComponentsHolder,
-	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
 ) (process.AccountsDBSyncer, error) {
 	maxTrieLevelInMemory := config.StateTriesConfig.MaxStateTrieLevelInMemory
 	userTrie := stateComponents.TriesContainer().Get([]byte(dataRetriever.UserAccountsUnit.String()))
@@ -643,7 +661,6 @@ func getUserAccountSyncer(
 			dataComponents,
 			processComponents,
 			storageManager,
-			statusCoreComponents,
 			maxTrieLevelInMemory,
 		),
 		ShardId:                bootstrapComponents.ShardCoordinator().SelfId(),
@@ -660,7 +677,6 @@ func getValidatorAccountSyncer(
 	dataComponents mainFactory.DataComponentsHolder,
 	stateComponents mainFactory.StateComponentsHolder,
 	processComponents mainFactory.ProcessComponentsHolder,
-	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
 ) (process.AccountsDBSyncer, error) {
 	maxTrieLevelInMemory := config.StateTriesConfig.MaxPeerTrieLevelInMemory
 	peerTrie := stateComponents.TriesContainer().Get([]byte(dataRetriever.PeerAccountsUnit.String()))
@@ -673,7 +689,6 @@ func getValidatorAccountSyncer(
 			dataComponents,
 			processComponents,
 			storageManager,
-			statusCoreComponents,
 			maxTrieLevelInMemory,
 		),
 	}
@@ -687,7 +702,6 @@ func getBaseAccountSyncerArgs(
 	dataComponents mainFactory.DataComponentsHolder,
 	processComponents mainFactory.ProcessComponentsHolder,
 	storageManager common.StorageManager,
-	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
 	maxTrieLevelInMemory uint,
 ) syncer.ArgsNewBaseAccountsSyncer {
 	return syncer.ArgsNewBaseAccountsSyncer{
@@ -728,10 +742,10 @@ func (nr *nodeRunner) createApiFacade(
 		StatusCoreComponents:           nodeHandler.GetStatusCoreComponents(),
 		GasScheduleNotifier:            gasScheduleNotifier,
 		Bootstrapper:                   nodeHandler.GetConsensusComponents().Bootstrapper(),
+		RunTypeComponents:              nodeHandler.GetRunTypeComponents(),
 		AllowVMQueriesChan:             allowVMQueriesChan,
 		StatusComponents:               nodeHandler.GetStatusComponents(),
 		ProcessingMode:                 common.GetNodeProcessingMode(nr.configs.ImportDbConfig),
-		ChainRunType:                   common.ChainRunTypeRegular,
 		DelegatedListFactoryHandler:    trieIteratorsFactory.NewDelegatedListProcessorFactory(),
 		DirectStakedListFactoryHandler: trieIteratorsFactory.NewDirectStakedListProcessorFactory(),
 		TotalStakedValueFactoryHandler: trieIteratorsFactory.NewTotalStakedListProcessorFactory(),
@@ -841,6 +855,7 @@ func (nr *nodeRunner) createMetrics(
 	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricNodeDisplayName, nr.configs.PreferencesConfig.Preferences.NodeDisplayName)
 	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricRedundancyLevel, fmt.Sprintf("%d", nr.configs.PreferencesConfig.Preferences.RedundancyLevel))
 	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricRedundancyIsMainActive, common.MetricValueNA)
+	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricRedundancyStepInReason, "")
 	metrics.SaveStringMetric(statusCoreComponents.AppStatusHandler(), common.MetricChainId, coreComponents.ChainID())
 	metrics.SaveUint64Metric(statusCoreComponents.AppStatusHandler(), common.MetricGasPerDataByte, coreComponents.EconomicsData().GasPerDataByte())
 	metrics.SaveUint64Metric(statusCoreComponents.AppStatusHandler(), common.MetricMinGasPrice, coreComponents.EconomicsData().MinGasPrice())
@@ -883,6 +898,7 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 	statusComponents mainFactory.StatusComponentsHolder,
 	processComponents mainFactory.ProcessComponentsHolder,
 	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
+	runTypeComponents mainFactory.RunTypeComponentsHolder,
 ) (mainFactory.ConsensusComponentsHandler, error) {
 	scheduledProcessorArgs := spos.ScheduledProcessorWrapperArgs{
 		SyncTimer:                coreComponents.SyncTimer(),
@@ -910,8 +926,7 @@ func (nr *nodeRunner) CreateManagedConsensusComponents(
 		ScheduledProcessor:    scheduledProcessor,
 		IsInImportMode:        nr.configs.ImportDbConfig.IsImportDBMode,
 		ShouldDisableWatchdog: nr.configs.FlagsConfig.DisableConsensusWatchdog,
-		ConsensusModel:        consensus.ConsensusModelV1,
-		ChainRunType:          common.ChainRunTypeRegular,
+		RunTypeComponents:     runTypeComponents,
 		ExtraSignersHolder:    bls.NewEmptyExtraSignersHolder(),
 		SubRoundEndV2Creator:  bls.NewSubRoundEndV2Creator(),
 	}
@@ -1045,7 +1060,7 @@ func (nr *nodeRunner) logInformation(
 	log.Info("Bootstrap", "epoch", bootstrapComponents.EpochBootstrapParams().Epoch())
 	if bootstrapComponents.EpochBootstrapParams().NodesConfig() != nil {
 		log.Info("the epoch from nodesConfig is",
-			"epoch", bootstrapComponents.EpochBootstrapParams().NodesConfig().CurrentEpoch)
+			"epoch", bootstrapComponents.EpochBootstrapParams().NodesConfig().GetCurrentEpoch())
 	}
 
 	var shardIdString = core.GetShardIDString(bootstrapComponents.ShardCoordinator().SelfId())
@@ -1169,6 +1184,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 	dataComponents mainFactory.DataComponentsHolder,
 	statusComponents mainFactory.StatusComponentsHolder,
 	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
+	runTypeComponents mainFactory.RunTypeComponentsHolder,
 	gasScheduleNotifier core.GasScheduleNotifier,
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
 ) (mainFactory.ProcessComponentsHandler, error) {
@@ -1253,8 +1269,10 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 	processArgs := processComp.ProcessComponentsFactoryArgs{
 		Config:                                *configs.GeneralConfig,
 		EpochConfig:                           *configs.EpochConfig,
+		RoundConfig:                           *configs.RoundConfig,
 		PrefConfigs:                           *configs.PreferencesConfig,
 		ImportDBConfig:                        *configs.ImportDbConfig,
+		EconomicsConfig:                       *configs.EconomicsConfig,
 		AccountsParser:                        accountsParser,
 		SmartContractParser:                   smartContractParser,
 		GasSchedule:                           gasScheduleNotifier,
@@ -1276,7 +1294,6 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		HistoryRepo:                           historyRepository,
 		FlagsConfig:                           *configs.FlagsConfig,
 		TxExecutionOrderHandler:               txExecutionOrderHandler,
-		ChainRunType:                          common.ChainRunTypeRegular,
 		ShardCoordinatorFactory:               sharding.NewMultiShardCoordinatorFactory(),
 		GenesisBlockCreatorFactory:            genesisProcess.NewGenesisBlockCreatorFactory(),
 		GenesisMetaBlockChecker:               processComp.NewGenesisMetaBlockChecker(),
@@ -1285,6 +1302,9 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		ShardResolversContainerFactoryCreator: resolverscontainer.NewShardResolversContainerFactoryCreator(),
 		TxPreProcessorCreator:                 preprocess.NewTxPreProcessorCreator(),
 		ExtraHeaderSigVerifierHolder:          headerCheck.NewExtraHeaderSigVerifierHolder(),
+		RunTypeComponents:                     runTypeComponents,
+		DataCodec:                             disabled.NewDisabledDataCodec(),
+		TopicsChecker:                         disabled.NewDisabledTopicsChecker(),
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1310,6 +1330,7 @@ func (nr *nodeRunner) CreateManagedDataComponents(
 	coreComponents mainFactory.CoreComponentsHolder,
 	bootstrapComponents mainFactory.BootstrapComponentsHolder,
 	crypto mainFactory.CryptoComponentsHolder,
+	runTypeComponents mainFactory.RunTypeComponentsHolder,
 ) (mainFactory.DataComponentsHandler, error) {
 	configs := nr.configs
 	storerEpoch := bootstrapComponents.EpochBootstrapParams().Epoch()
@@ -1320,17 +1341,17 @@ func (nr *nodeRunner) CreateManagedDataComponents(
 	}
 
 	dataArgs := dataComp.DataComponentsFactoryArgs{
-		Config:                        *configs.GeneralConfig,
-		PrefsConfig:                   configs.PreferencesConfig.Preferences,
-		ShardCoordinator:              bootstrapComponents.ShardCoordinator(),
-		Core:                          coreComponents,
-		StatusCore:                    statusCoreComponents,
-		Crypto:                        crypto,
-		CurrentEpoch:                  storerEpoch,
-		CreateTrieEpochRootHashStorer: configs.ImportDbConfig.ImportDbSaveTrieEpochRootHash,
-		FlagsConfigs:                  *configs.FlagsConfig,
-		NodeProcessingMode:            common.GetNodeProcessingMode(nr.configs.ImportDbConfig),
-		ChainRunType:                  common.ChainRunTypeRegular,
+		Config:                          *configs.GeneralConfig,
+		PrefsConfig:                     configs.PreferencesConfig.Preferences,
+		ShardCoordinator:                bootstrapComponents.ShardCoordinator(),
+		Core:                            coreComponents,
+		StatusCore:                      statusCoreComponents,
+		Crypto:                          crypto,
+		CurrentEpoch:                    storerEpoch,
+		CreateTrieEpochRootHashStorer:   configs.ImportDbConfig.ImportDbSaveTrieEpochRootHash,
+		FlagsConfigs:                    *configs.FlagsConfig,
+		NodeProcessingMode:              common.GetNodeProcessingMode(nr.configs.ImportDbConfig),
+		AdditionalStorageServiceCreator: runTypeComponents.AdditionalStorageServiceCreator(),
 	}
 
 	dataComponentsFactory, err := dataComp.NewDataComponentsFactory(dataArgs)
@@ -1365,6 +1386,7 @@ func (nr *nodeRunner) CreateManagedStateComponents(
 	coreComponents mainFactory.CoreComponentsHolder,
 	dataComponents mainFactory.DataComponentsHandler,
 	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
+	runTypeComponents mainFactory.RunTypeComponentsHolder,
 ) (mainFactory.StateComponentsHandler, error) {
 	stateArgs := stateComp.StateComponentsFactoryArgs{
 		Config:                   *nr.configs.GeneralConfig,
@@ -1374,6 +1396,7 @@ func (nr *nodeRunner) CreateManagedStateComponents(
 		ProcessingMode:           common.GetNodeProcessingMode(nr.configs.ImportDbConfig),
 		ShouldSerializeSnapshots: nr.configs.FlagsConfig.SerializeSnapshots,
 		ChainHandler:             dataComponents.Blockchain(),
+		AccountsCreator:          runTypeComponents.AccountsCreator(),
 	}
 
 	stateComponentsFactory, err := stateComp.NewStateComponentsFactory(stateArgs)
@@ -1399,6 +1422,7 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 	coreComponents mainFactory.CoreComponentsHolder,
 	cryptoComponents mainFactory.CryptoComponentsHolder,
 	networkComponents mainFactory.NetworkComponentsHolder,
+	runTypeComponents mainFactory.RunTypeComponentsHolder,
 ) (mainFactory.BootstrapComponentsHandler, error) {
 
 	bootstrapComponentsFactoryArgs := bootstrapComp.BootstrapComponentsFactoryArgs{
@@ -1411,7 +1435,7 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 		CryptoComponents:                 cryptoComponents,
 		NetworkComponents:                networkComponents,
 		StatusCoreComponents:             statusCoreComponents,
-		ChainRunType:                     common.ChainRunTypeRegular,
+		RunTypeComponents:                runTypeComponents,
 		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
 		ShardCoordinatorFactory:          sharding.NewMultiShardCoordinatorFactory(),
 	}
@@ -1582,6 +1606,26 @@ func (nr *nodeRunner) CreateManagedCryptoComponents(
 	}
 
 	return managedCryptoComponents, nil
+}
+
+// CreateManagedRunTypeComponents creates the managed run type components
+func (nr *nodeRunner) CreateManagedRunTypeComponents(coreComponents mainFactory.CoreComponentsHandler) (mainFactory.RunTypeComponentsHandler, error) {
+	runTypeComponentsFactory, err := runType.NewRunTypeComponentsFactory(coreComponents)
+	if err != nil {
+		return nil, fmt.Errorf("newRunTypeComponentsFactory failed: %w", err)
+	}
+
+	managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(runTypeComponentsFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	err = managedRunTypeComponents.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	return managedRunTypeComponents, nil
 }
 
 func closeAllComponents(

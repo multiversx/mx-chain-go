@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
-	"sync"
 	"testing"
 	"time"
 
@@ -14,13 +13,14 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-crypto-go"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
@@ -61,15 +61,15 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 
 	proposerNode := nodes[0]
 
-	//sender shard keys, receivers  keys
+	// sender shard keys, receivers  keys
 	sendersPrivateKeys := make([]crypto.PrivateKey, 3)
 	receiversPublicKeys := make(map[uint32][]crypto.PublicKey)
 	for i := 0; i < txToGenerateInEachMiniBlock; i++ {
 		sendersPrivateKeys[i], _, _ = integrationTests.GenerateSkAndPkInShard(generateCoordinator, senderShard)
-		//receivers in same shard with the sender
+		// receivers in same shard with the sender
 		_, pk, _ := integrationTests.GenerateSkAndPkInShard(generateCoordinator, senderShard)
 		receiversPublicKeys[senderShard] = append(receiversPublicKeys[senderShard], pk)
-		//receivers in other shards
+		// receivers in other shards
 		for _, shardId := range recvShards {
 			_, pk, _ = integrationTests.GenerateSkAndPkInShard(generateCoordinator, shardId)
 			receiversPublicKeys[shardId] = append(receiversPublicKeys[shardId], pk)
@@ -111,13 +111,13 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 			continue
 		}
 
-		//test sender balances
+		// test sender balances
 		for _, sk := range sendersPrivateKeys {
 			valTransferred := big.NewInt(0).Mul(totalValuePerTx, big.NewInt(int64(len(receiversPublicKeys))))
 			valRemaining := big.NewInt(0).Sub(valMinting, valTransferred)
 			integrationTests.TestPrivateKeyHasBalance(t, n, sk, valRemaining)
 		}
-		//test receiver balances from same shard
+		// test receiver balances from same shard
 		for _, pk := range receiversPublicKeys[proposerNode.ShardCoordinator.SelfId()] {
 			integrationTests.TestPublicKeyHasBalance(t, n, pk, valToTransferPerTx)
 		}
@@ -136,7 +136,7 @@ func TestShouldProcessBlocksInMultiShardArchitecture(t *testing.T) {
 			continue
 		}
 
-		//test receiver balances from same shard
+		// test receiver balances from same shard
 		for _, pk := range receiversPublicKeys[n.ShardCoordinator.SelfId()] {
 			integrationTests.TestPublicKeyHasBalance(t, n, pk, valToTransferPerTx)
 		}
@@ -350,87 +350,6 @@ func TestSimpleTransactionsWithMoreValueThanBalanceYieldReceiptsInMultiShardedEn
 		account, _ := accWrp.(state.UserAccountHandler)
 		assert.Equal(t, expectedReceiverValue, account.GetBalance())
 	}
-}
-
-func TestExecuteBlocksWithGapsBetweenBlocks(t *testing.T) {
-	//TODO fix this test
-	t.Skip("TODO fix this test")
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-	nodesPerShard := 2
-	shardConsensusGroupSize := 2
-	nbMetaNodes := 400
-	nbShards := 1
-	consensusGroupSize := 400
-
-	cacheMut := &sync.Mutex{}
-
-	putCounter := 0
-	cacheMap := make(map[string]interface{})
-
-	// create map of shard - testNodeProcessors for metachain and shard chain
-	nodesMap := integrationTests.CreateNodesWithNodesCoordinatorWithCacher(
-		nodesPerShard,
-		nbMetaNodes,
-		nbShards,
-		shardConsensusGroupSize,
-		consensusGroupSize,
-	)
-
-	roundsPerEpoch := uint64(1000)
-	maxGasLimitPerBlock := uint64(100000)
-	gasPrice := uint64(10)
-	gasLimit := uint64(100)
-	for _, nodes := range nodesMap {
-		integrationTests.SetEconomicsParameters(nodes, maxGasLimitPerBlock, gasPrice, gasLimit)
-		integrationTests.DisplayAndStartNodes(nodes[0:1])
-
-		for _, node := range nodes {
-			node.EpochStartTrigger.SetRoundsPerEpoch(roundsPerEpoch)
-		}
-	}
-
-	defer func() {
-		for _, nodes := range nodesMap {
-			for _, n := range nodes {
-				n.Close()
-			}
-		}
-	}()
-
-	round := uint64(1)
-	roundDifference := 10
-	nonce := uint64(1)
-
-	firstNodeOnMeta := nodesMap[core.MetachainShardId][0]
-	body, header, _ := firstNodeOnMeta.ProposeBlock(round, nonce)
-
-	// set bitmap for all consensus nodes signing
-	bitmap := make([]byte, consensusGroupSize/8+1)
-	for i := range bitmap {
-		bitmap[i] = 0xFF
-	}
-
-	bitmap[consensusGroupSize/8] >>= uint8(8 - (consensusGroupSize % 8))
-	err := header.SetPubKeysBitmap(bitmap)
-	assert.Nil(t, err)
-
-	firstNodeOnMeta.CommitBlock(body, header)
-
-	round += uint64(roundDifference)
-	nonce++
-	putCounter = 0
-
-	cacheMut.Lock()
-	for k := range cacheMap {
-		delete(cacheMap, k)
-	}
-	cacheMut.Unlock()
-
-	firstNodeOnMeta.ProposeBlock(round, nonce)
-
-	assert.Equal(t, roundDifference, putCounter)
 }
 
 // TestShouldSubtractTheCorrectTxFee uses the mock VM as it's gas model is predictable

@@ -34,17 +34,19 @@ func TestHeartbeatComponents_Close_ShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	managedCoreComponents, err := nr.CreateManagedCoreComponents(chanStopNodeProcess)
 	require.Nil(t, err)
+	managedRunTypeComponents, err := nr.CreateManagedRunTypeComponents(managedCoreComponents)
+	require.Nil(t, err)
 	managedStatusCoreComponents, err := nr.CreateManagedStatusCoreComponents(managedCoreComponents)
 	require.Nil(t, err)
 	managedCryptoComponents, err := nr.CreateManagedCryptoComponents(managedCoreComponents)
 	require.Nil(t, err)
 	managedNetworkComponents, err := nr.CreateManagedNetworkComponents(managedCoreComponents, managedStatusCoreComponents, managedCryptoComponents)
 	require.Nil(t, err)
-	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedStatusCoreComponents, managedCoreComponents, managedCryptoComponents, managedNetworkComponents)
+	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedStatusCoreComponents, managedCoreComponents, managedCryptoComponents, managedNetworkComponents, managedRunTypeComponents)
 	require.Nil(t, err)
-	managedDataComponents, err := nr.CreateManagedDataComponents(managedStatusCoreComponents, managedCoreComponents, managedBootstrapComponents, managedCryptoComponents)
+	managedDataComponents, err := nr.CreateManagedDataComponents(managedStatusCoreComponents, managedCoreComponents, managedBootstrapComponents, managedCryptoComponents, managedRunTypeComponents)
 	require.Nil(t, err)
-	managedStateComponents, err := nr.CreateManagedStateComponents(managedCoreComponents, managedDataComponents, managedStatusCoreComponents)
+	managedStateComponents, err := nr.CreateManagedStateComponents(managedCoreComponents, managedDataComponents, managedStatusCoreComponents, managedRunTypeComponents)
 	require.Nil(t, err)
 	nodesShufflerOut, err := bootstrapComp.CreateNodesShuffleOut(managedCoreComponents.GenesisNodesSetup(), configs.GeneralConfig.EpochStartConfig, managedCoreComponents.ChanStopNodeProcess())
 	require.Nil(t, err)
@@ -68,6 +70,7 @@ func TestHeartbeatComponents_Close_ShouldWork(t *testing.T) {
 		managedCoreComponents.NodeTypeProvider(),
 		managedCoreComponents.EnableEpochsHandler(),
 		managedDataComponents.Datapool().CurrentEpochValidatorInfo(),
+		managedBootstrapComponents.NodesCoordinatorRegistryFactory(),
 		nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
 	)
 	require.Nil(t, err)
@@ -101,6 +104,7 @@ func TestHeartbeatComponents_Close_ShouldWork(t *testing.T) {
 		managedDataComponents,
 		managedStatusComponents,
 		managedStatusCoreComponents,
+		managedRunTypeComponents,
 		gasScheduleNotifier,
 		nodesCoord,
 	)

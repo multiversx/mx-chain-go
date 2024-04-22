@@ -95,6 +95,7 @@ type Node struct {
 	processComponents     mainFactory.ProcessComponentsHolder
 	stateComponents       mainFactory.StateComponentsHolder
 	statusComponents      mainFactory.StatusComponentsHolder
+	runTypeComponents     mainFactory.RunTypeComponentsHolder
 
 	closableComponents        []mainFactory.Closer
 	mutClosableComponents     syncGo.RWMutex
@@ -1020,6 +1021,11 @@ func (n *Node) ValidatorStatisticsApi() (map[string]*validator.ValidatorStatisti
 	return n.processComponents.ValidatorsProvider().GetLatestValidators(), nil
 }
 
+// AuctionListApi will return the auction list config along with qualified nodes
+func (n *Node) AuctionListApi() ([]*common.AuctionListValidatorAPIResponse, error) {
+	return n.processComponents.ValidatorsProvider().GetAuctionList()
+}
+
 // DirectTrigger will start the hardfork trigger
 func (n *Node) DirectTrigger(epoch uint32, withEarlyEndOfEpoch bool) error {
 	return n.processComponents.HardforkTrigger().Trigger(epoch, withEarlyEndOfEpoch)
@@ -1251,6 +1257,11 @@ func (n *Node) GetStateComponents() mainFactory.StateComponentsHolder {
 // GetStatusComponents returns the status components
 func (n *Node) GetStatusComponents() mainFactory.StatusComponentsHolder {
 	return n.statusComponents
+}
+
+// GetRunTypeComponents returns the run type components
+func (n *Node) GetRunTypeComponents() mainFactory.RunTypeComponentsHolder {
+	return n.runTypeComponents
 }
 
 func (n *Node) createPidInfo(p core.PeerID) (core.QueryP2PPeerInfo, error) {

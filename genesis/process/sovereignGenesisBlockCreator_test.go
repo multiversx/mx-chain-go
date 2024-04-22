@@ -3,7 +3,9 @@
 package process
 
 import (
+	"bytes"
 	"encoding/hex"
+	"errors"
 	"math"
 	"math/big"
 	"testing"
@@ -11,20 +13,34 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	factoryRunType "github.com/multiversx/mx-chain-go/factory/runType"
 	"github.com/multiversx/mx-chain-go/genesis/mock"
 	nodeMock "github.com/multiversx/mx-chain-go/node/mock"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
-	stateErrors "github.com/multiversx/mx-chain-go/state"
+	stateAcc "github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/factory"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/vm"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
+)
+
+var (
+	esdtKeyPrefix        = []byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier)
+	sovereignNativeToken = "WEGLD-bd4d79"
 )
 
 func createGenesisBlockCreator(t *testing.T) *genesisBlockCreator {
@@ -33,13 +49,99 @@ func createGenesisBlockCreator(t *testing.T) *genesisBlockCreator {
 	return gbc
 }
 
-func createSovereignGenesisBlockCreator(t *testing.T) GenesisBlockCreatorHandler {
+func createSovereignGenesisBlockCreator(t *testing.T) (ArgsGenesisBlockCreator, *sovereignGenesisBlockCreator) {
 	arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
 	arg.ShardCoordinator = sharding.NewSovereignShardCoordinator(core.SovereignChainShardId)
 	arg.DNSV2Addresses = []string{"00000000000000000500761b8c4a25d3979359223208b412285f635e71300102"}
+
+	sovRunTypeComps := createSovRunTypeComps(t)
+	arg.RunTypeComponents = sovRunTypeComps
+
+	trieStorageManagers := createTrieStorageManagers()
+	arg.Accounts, _ = createAccountAdapter(
+		&mock.MarshalizerMock{},
+		&hashingMocks.HasherMock{},
+		sovRunTypeComps.AccountsCreator(),
+		trieStorageManagers[dataRetriever.UserAccountsUnit.String()],
+		&testscommon.PubkeyConverterMock{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+	)
+
 	gbc, _ := NewGenesisBlockCreator(arg)
 	sgbc, _ := NewSovereignGenesisBlockCreator(gbc)
-	return sgbc
+	return arg, sgbc
+}
+
+func createSovRunTypeComps(t *testing.T) runTypeComponentsHandler {
+	runTypeFactory, err := factoryRunType.NewRunTypeComponentsFactory(&factory.CoreComponentsHolderMock{
+		HasherCalled: func() hashing.Hasher {
+			return &hashingMocks.HasherMock{}
+		},
+		InternalMarshalizerCalled: func() marshal.Marshalizer {
+			return &mock.MarshalizerMock{}
+		},
+		EnableEpochsHandlerCalled: func() common.EnableEpochsHandler {
+			return &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
+		},
+	})
+	require.Nil(t, err)
+
+	sovRunTypeFactory, err := factoryRunType.NewSovereignRunTypeComponentsFactory(runTypeFactory,
+		config.SovereignConfig{
+			GenesisConfig: config.GenesisConfig{
+				NativeESDT: sovereignNativeToken,
+			},
+		},
+	)
+	require.Nil(t, err)
+	sovRunTypeComp, err := factoryRunType.NewManagedRunTypeComponents(sovRunTypeFactory)
+	require.Nil(t, err)
+
+	err = sovRunTypeComp.Create()
+	require.Nil(t, err)
+
+	return sovRunTypeComp
+}
+
+func requireTokenExists(
+	t *testing.T,
+	account vmcommon.AccountHandler,
+	tokenName []byte,
+	expectedValue *big.Int,
+	marshaller marshal.Marshalizer,
+) {
+	marshaledData := getAccTokenMarshalledData(t, tokenName, account)
+	esdtData := &esdt.ESDigitalToken{}
+	err := marshaller.Unmarshal(esdtData, marshaledData)
+	require.Nil(t, err)
+	require.Equal(t, &esdt.ESDigitalToken{
+		Type:  uint32(core.Fungible),
+		Value: expectedValue,
+	}, esdtData)
+}
+
+func getAccTokenMarshalledData(t *testing.T, tokenName []byte, account vmcommon.AccountHandler) []byte {
+	tokenId := append(esdtKeyPrefix, tokenName...)
+	esdtNFTTokenKey := computeESDTNFTTokenKey(tokenId, 0)
+
+	marshaledData, _, err := account.(vmcommon.UserAccountHandler).AccountDataHandler().RetrieveValue(esdtNFTTokenKey)
+	require.Nil(t, err)
+
+	return marshaledData
+}
+
+func computeESDTNFTTokenKey(esdtTokenKey []byte, nonce uint64) []byte {
+	return append(esdtTokenKey, big.NewInt(0).SetUint64(nonce).Bytes()...)
+}
+
+func getAccount(t *testing.T, accountsDb stateAcc.AccountsAdapter, address string) vmcommon.AccountHandler {
+	addressBytes, err := hex.DecodeString(address)
+	require.Nil(t, err)
+
+	account, err := accountsDb.LoadAccount(addressBytes)
+	require.Nil(t, err)
+
+	return account
 }
 
 func TestNewSovereignGenesisBlockCreator(t *testing.T) {
@@ -81,7 +183,7 @@ func TestSovereignGenesisBlockCreator_CreateGenesisBlocksEmptyBlocks(t *testing.
 }
 
 func TestSovereignGenesisBlockCreator_CreateGenesisBaseProcess(t *testing.T) {
-	sgbc := createSovereignGenesisBlockCreator(t)
+	args, sgbc := createSovereignGenesisBlockCreator(t)
 
 	blocks, err := sgbc.CreateGenesisBlocks()
 	require.Nil(t, err)
@@ -100,7 +202,85 @@ func TestSovereignGenesisBlockCreator_CreateGenesisBaseProcess(t *testing.T) {
 	require.Len(t, sovereignIdxData.DeploySystemScTxs, 4)
 	require.Len(t, sovereignIdxData.DelegationTxs, 3)
 	require.Len(t, sovereignIdxData.StakingTxs, 0)
-	require.Len(t, sovereignIdxData.ScrsTxs, getRequiredNumScrsTxs(indexingData, core.SovereignChainShardId))
+	require.Greater(t, len(sovereignIdxData.ScrsTxs), 3)
+
+	addr1 := "a00102030405060708090001020304050607080900010203040506070809000a"
+	addr2 := "b00102030405060708090001020304050607080900010203040506070809000b"
+	addr3 := "c00102030405060708090001020304050607080900010203040506070809000c"
+
+	accountsDB := args.Accounts
+	acc1 := getAccount(t, accountsDB, addr1)
+	acc2 := getAccount(t, accountsDB, addr2)
+	acc3 := getAccount(t, accountsDB, addr3)
+
+	balance1 := big.NewInt(5000)
+	balance2 := big.NewInt(2000)
+	balance3 := big.NewInt(0)
+	requireTokenExists(t, acc1, []byte(sovereignNativeToken), balance1, args.Core.InternalMarshalizer())
+	requireTokenExists(t, acc2, []byte(sovereignNativeToken), balance2, args.Core.InternalMarshalizer())
+	requireTokenExists(t, acc3, []byte(sovereignNativeToken), balance3, args.Core.InternalMarshalizer())
+}
+
+func TestSovereignGenesisBlockCreator_initGenesisAccountsErrorCases(t *testing.T) {
+	t.Parallel()
+
+	localErr := errors.New("local error")
+	t.Run("cannot load system account, should return error", func(t *testing.T) {
+		_, sgbc := createSovereignGenesisBlockCreator(t)
+		sgbc.arg.Accounts = &state.AccountsStub{
+			LoadAccountCalled: func(container []byte) (vmcommon.AccountHandler, error) {
+				if bytes.Equal(container, core.SystemAccountAddress) {
+					return nil, localErr
+				}
+				return nil, nil
+			},
+		}
+
+		err := sgbc.initGenesisAccounts()
+		require.Equal(t, localErr, err)
+	})
+	t.Run("cannot save system account, should return error", func(t *testing.T) {
+		_, sgbc := createSovereignGenesisBlockCreator(t)
+		sgbc.arg.Accounts = &state.AccountsStub{
+			SaveAccountCalled: func(account vmcommon.AccountHandler) error {
+				if bytes.Equal(account.AddressBytes(), core.SystemAccountAddress) {
+					return localErr
+				}
+				return nil
+			},
+		}
+
+		err := sgbc.initGenesisAccounts()
+		require.Equal(t, localErr, err)
+	})
+	t.Run("cannot load esdt sc account, should return error", func(t *testing.T) {
+		_, sgbc := createSovereignGenesisBlockCreator(t)
+		sgbc.arg.Accounts = &state.AccountsStub{
+			LoadAccountCalled: func(container []byte) (vmcommon.AccountHandler, error) {
+				if bytes.Equal(container, core.ESDTSCAddress) {
+					return nil, localErr
+				}
+				return nil, nil
+			},
+		}
+
+		err := sgbc.initGenesisAccounts()
+		require.Equal(t, localErr, err)
+	})
+	t.Run("cannot save esdt sc account, should return error", func(t *testing.T) {
+		_, sgbc := createSovereignGenesisBlockCreator(t)
+		sgbc.arg.Accounts = &state.AccountsStub{
+			SaveAccountCalled: func(account vmcommon.AccountHandler) error {
+				if bytes.Equal(account.AddressBytes(), core.ESDTSCAddress) {
+					return localErr
+				}
+				return nil
+			},
+		}
+
+		err := sgbc.initGenesisAccounts()
+		require.Equal(t, localErr, err)
+	})
 }
 
 func TestSovereignGenesisBlockCreator_setSovereignStakedData(t *testing.T) {
@@ -173,7 +353,7 @@ func TestSovereignGenesisBlockCreator_InitSystemAccountCalled(t *testing.T) {
 
 	acc, err := arg.Accounts.GetExistingAccount(core.SystemAccountAddress)
 	require.Nil(t, acc)
-	require.Equal(t, err, stateErrors.ErrAccNotFound)
+	require.Equal(t, err, stateAcc.ErrAccNotFound)
 
 	_, err = sgbc.CreateGenesisBlocks()
 	require.Nil(t, err)

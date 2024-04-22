@@ -2094,7 +2094,7 @@ func TestScProcessor_GetAccountFromAddressAccNotFound(t *testing.T) {
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
-	acc, err := sc.getAccountFromAddress([]byte("SRC"))
+	acc, err := sc.scProcessorHelper.GetAccountFromAddress([]byte("SRC"))
 	require.Nil(t, acc)
 	require.Equal(t, state.ErrAccNotFound, err)
 }
@@ -2125,7 +2125,7 @@ func TestScProcessor_GetAccountFromAddrFailedGetExistingAccount(t *testing.T) {
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
-	acc, err := sc.getAccountFromAddress([]byte("DST"))
+	acc, err := sc.scProcessorHelper.GetAccountFromAddress([]byte("DST"))
 	require.Nil(t, acc)
 	require.Equal(t, state.ErrAccNotFound, err)
 	require.Equal(t, 1, getCalled)
@@ -2157,7 +2157,7 @@ func TestScProcessor_GetAccountFromAddrAccNotInShard(t *testing.T) {
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
-	acc, err := sc.getAccountFromAddress([]byte("DST"))
+	acc, err := sc.scProcessorHelper.GetAccountFromAddress([]byte("DST"))
 	require.Nil(t, acc)
 	require.Nil(t, err)
 	require.Equal(t, 0, getCalled)
@@ -2190,7 +2190,7 @@ func TestScProcessor_GetAccountFromAddr(t *testing.T) {
 	require.NotNil(t, sc)
 	require.Nil(t, err)
 
-	acc, err := sc.getAccountFromAddress([]byte("DST"))
+	acc, err := sc.scProcessorHelper.GetAccountFromAddress([]byte("DST"))
 	require.NotNil(t, acc)
 	require.Nil(t, err)
 	require.Equal(t, 1, getCalled)
@@ -3339,12 +3339,6 @@ func TestScProcessor_ProcessSmartContractResultExecuteSCIfMetaAndBuiltIn(t *test
 	_, err = sc.ProcessSmartContractResult(&scr)
 	require.Nil(t, err)
 	require.True(t, executeCalled)
-
-	executeCalled = false
-	enableEpochsHandlerStub.AddActiveFlags(common.BuiltInFunctionsFlag, common.BuiltInFunctionOnMetaFlag)
-	_, err = sc.ProcessSmartContractResult(&scr)
-	require.Nil(t, err)
-	require.False(t, executeCalled)
 }
 
 func TestScProcessor_ProcessRelayedSCRValueBackToRelayer(t *testing.T) {
@@ -3749,7 +3743,7 @@ func TestSmartContractProcessor_computeTotalConsumedFeeAndDevRwdWithDifferentSCC
 	feeHandler, err := economics.NewEconomicsData(*args)
 	require.Nil(t, err)
 	require.NotNil(t, feeHandler)
-	arguments.TxFeeHandler, _ = postprocess.NewFeeAccumulator()
+	arguments.TxFeeHandler = postprocess.NewFeeAccumulator()
 
 	arguments.EconomicsFee = feeHandler
 	arguments.ShardCoordinator = shardCoordinator
@@ -3836,9 +3830,7 @@ func TestSmartContractProcessor_finishSCExecutionV2(t *testing.T) {
 			arguments.EconomicsFee, err = economics.NewEconomicsData(*args)
 			require.Nil(t, err)
 
-			arguments.TxFeeHandler, err = postprocess.NewFeeAccumulator()
-			require.Nil(t, err)
-
+			arguments.TxFeeHandler = postprocess.NewFeeAccumulator()
 			arguments.ShardCoordinator = shardCoordinator
 			arguments.AccountsDB = &stateMock.AccountsStub{
 				RevertToSnapshotCalled: func(snapshot int) error {
@@ -4253,8 +4245,7 @@ func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
 				return flag == common.GasPriceModifierFlag
 			},
 		},
-		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
-		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
+		TxVersionChecker: &testscommon.TxVersionCheckerStub{},
 	}
 }
 

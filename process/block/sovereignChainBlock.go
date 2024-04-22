@@ -6,11 +6,6 @@ import (
 	"sort"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
-	sovCore "github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/logging"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -19,6 +14,13 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/state"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	sovCore "github.com/multiversx/mx-chain-core-go/data/sovereign"
+	"github.com/multiversx/mx-chain-core-go/hashing"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -42,6 +44,7 @@ type sovereignChainBlockProcessor struct {
 	chRcvAllExtendedShardHdrs    chan bool
 	outgoingOperationsFormatter  sovereign.OutgoingOperationsFormatter
 	outGoingOperationsPool       OutGoingOperationsPool
+	operationsHasher             hashing.Hasher
 }
 
 // ArgsSovereignChainBlockProcessor is a struct placeholder for args needed to create a new sovereign chain block processor
@@ -50,6 +53,7 @@ type ArgsSovereignChainBlockProcessor struct {
 	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
 	OutgoingOperationsFormatter  sovereign.OutgoingOperationsFormatter
 	OutGoingOperationsPool       OutGoingOperationsPool
+	OperationsHasher             hashing.Hasher
 }
 
 // NewSovereignChainBlockProcessor creates a new sovereign chain block processor
@@ -66,12 +70,16 @@ func NewSovereignChainBlockProcessor(args ArgsSovereignChainBlockProcessor) (*so
 	if check.IfNil(args.OutGoingOperationsPool) {
 		return nil, errors.ErrNilOutGoingOperationsPool
 	}
+	if check.IfNil(args.OperationsHasher) {
+		return nil, errors.ErrNilOperationsHasher
+	}
 
 	scbp := &sovereignChainBlockProcessor{
 		shardProcessor:               args.ShardProcessor,
 		validatorStatisticsProcessor: args.ValidatorStatisticsProcessor,
 		outgoingOperationsFormatter:  args.OutgoingOperationsFormatter,
 		outGoingOperationsPool:       args.OutGoingOperationsPool,
+		operationsHasher:             args.OperationsHasher,
 	}
 
 	scbp.uncomputedRootHash = scbp.hasher.Compute(rootHash)
@@ -871,7 +879,11 @@ func (scbp *sovereignChainBlockProcessor) processSovereignBlockTransactions(
 
 func (scbp *sovereignChainBlockProcessor) createAndSetOutGoingMiniBlock(headerHandler data.HeaderHandler, createdBlockBody *block.Body) error {
 	logs := scbp.txCoordinator.GetAllCurrentLogs()
-	outGoingOperations := scbp.outgoingOperationsFormatter.CreateOutgoingTxsData(logs)
+	outGoingOperations, err := scbp.outgoingOperationsFormatter.CreateOutgoingTxsData(logs)
+	if err != nil {
+		return err
+	}
+
 	if len(outGoingOperations) == 0 {
 		return nil
 	}
@@ -886,7 +898,7 @@ func (scbp *sovereignChainBlockProcessor) createOutGoingMiniBlockData(outGoingOp
 	outGoingOperationsData := make([]*sovCore.OutGoingOperation, 0)
 
 	for idx, outGoingOp := range outGoingOperations {
-		outGoingOpHash := scbp.hasher.Compute(string(outGoingOp))
+		outGoingOpHash := scbp.operationsHasher.Compute(string(outGoingOp))
 		aggregatedOutGoingOperations = append(aggregatedOutGoingOperations, outGoingOpHash...)
 
 		outGoingOpHashes[idx] = outGoingOpHash
@@ -896,7 +908,7 @@ func (scbp *sovereignChainBlockProcessor) createOutGoingMiniBlockData(outGoingOp
 		})
 	}
 
-	outGoingOperationsHash := scbp.hasher.Compute(string(aggregatedOutGoingOperations))
+	outGoingOperationsHash := scbp.operationsHasher.Compute(string(aggregatedOutGoingOperations))
 	scbp.outGoingOperationsPool.Add(&sovCore.BridgeOutGoingData{
 		Hash:               outGoingOperationsHash,
 		OutGoingOperations: outGoingOperationsData,

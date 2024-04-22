@@ -14,7 +14,6 @@ import (
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/update"
 	"github.com/multiversx/mx-chain-go/vm"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
@@ -29,6 +28,8 @@ func NewSovereignGenesisBlockCreator(gbc *genesisBlockCreator) (*sovereignGenesi
 		return nil, errNilGenesisBlockCreator
 	}
 
+	log.Debug("NewSovereignGenesisBlockCreator", "native esdt token", gbc.arg.Config.SovereignConfig.GenesisConfig.NativeESDT)
+
 	return &sovereignGenesisBlockCreator{
 		genesisBlockCreator: gbc,
 	}, nil
@@ -36,7 +37,7 @@ func NewSovereignGenesisBlockCreator(gbc *genesisBlockCreator) (*sovereignGenesi
 
 // CreateGenesisBlocks will create sovereign genesis blocks
 func (gbc *sovereignGenesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.HeaderHandler, error) {
-	err := gbc.initSystemAccount()
+	err := gbc.initGenesisAccounts()
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +61,7 @@ func (gbc *sovereignGenesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.
 	return gbc.createSovereignHeaders(argsCreateBlock)
 }
 
-func (gbc *sovereignGenesisBlockCreator) initSystemAccount() error {
+func (gbc *sovereignGenesisBlockCreator) initGenesisAccounts() error {
 	acc, err := gbc.arg.Accounts.LoadAccount(core.SystemAccountAddress)
 	if err != nil {
 		return err
@@ -71,11 +72,16 @@ func (gbc *sovereignGenesisBlockCreator) initSystemAccount() error {
 		return err
 	}
 
-	return nil
+	acc, err = gbc.arg.Accounts.LoadAccount(core.ESDTSCAddress)
+	if err != nil {
+		return err
+	}
+
+	return gbc.arg.Accounts.SaveAccount(acc)
 }
 
 func (gbc *sovereignGenesisBlockCreator) createSovereignEmptyGenesisBlocks() (map[uint32]data.HeaderHandler, error) {
-	err := gbc.computeSovereignDNSAddresses(createGenesisConfig())
+	err := gbc.computeSovereignDNSAddresses(createSovereignGenesisConfig(gbc.arg.EpochConfig.EnableEpochs))
 	if err != nil {
 		return nil, err
 	}
@@ -94,6 +100,12 @@ func (gbc *sovereignGenesisBlockCreator) createSovereignEmptyGenesisBlocks() (ma
 	}
 
 	return mapEmptyGenesisBlocks, nil
+}
+
+func createSovereignGenesisConfig(providedEnableEpochs config.EnableEpochs) config.EnableEpochs {
+	cfg := createGenesisConfig(providedEnableEpochs)
+	cfg.ESDTMultiTransferEnableEpoch = 0
+	return cfg
 }
 
 func (gbc *sovereignGenesisBlockCreator) computeSovereignDNSAddresses(enableEpochsConfig config.EnableEpochs) error {
@@ -115,9 +127,7 @@ func (gbc *sovereignGenesisBlockCreator) createSovereignHeaders(args *headerCrea
 
 	genesisBlock, scResults, gbc.initialIndexingData[shardID], err = createSovereignShardGenesisBlock(
 		args.mapArgsGenesisBlockCreator[shardID],
-		args.mapBodies[shardID],
 		args.nodesListSplitter,
-		args.mapHardForkBlockProcessor[shardID],
 	)
 
 	if err != nil {
@@ -151,16 +161,20 @@ func (gbc *sovereignGenesisBlockCreator) createSovereignHeaders(args *headerCrea
 
 func createSovereignShardGenesisBlock(
 	arg ArgsGenesisBlockCreator,
-	body *block.Body,
 	nodesListSplitter genesis.NodesListSplitter,
-	hardForkBlockProcessor update.HardForkBlockProcessor,
 ) (data.HeaderHandler, [][]byte, *genesis.IndexingData, error) {
-	genesisBlock, scAddresses, indexingData, err := CreateShardGenesisBlock(arg, body, nodesListSplitter, hardForkBlockProcessor)
+	sovereignGenesisConfig := createSovereignGenesisConfig(arg.EpochConfig.EnableEpochs)
+	shardProcessors, err := createProcessorsForShardGenesisBlock(arg, sovereignGenesisConfig, createGenesisRoundConfig(arg.RoundConfig))
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	metaProcessor, err := createProcessorsForMetaGenesisBlock(arg, createGenesisConfig(), createGenesisRoundConfig())
+	genesisBlock, scAddresses, indexingData, err := baseCreateShardGenesisBlock(arg, nodesListSplitter, shardProcessors)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	metaProcessor, err := createProcessorsForMetaGenesisBlock(arg, sovereignGenesisConfig, createGenesisRoundConfig(arg.RoundConfig))
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -177,13 +191,13 @@ func createSovereignShardGenesisBlock(
 	}
 	indexingData.StakingTxs = stakingTxs
 
+	metaScrsTxs := metaProcessor.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
+	indexingData.ScrsTxs = mergeScrs(indexingData.ScrsTxs, metaScrsTxs)
+
 	rootHash, err := arg.Accounts.Commit()
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("%w encountered when creating sovereign genesis block while commiting", err)
 	}
-
-	metaScrsTxs := metaProcessor.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
-	indexingData.ScrsTxs = mergeScrs(indexingData.ScrsTxs, metaScrsTxs)
 
 	err = setRootHash(genesisBlock, rootHash)
 	if err != nil {

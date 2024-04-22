@@ -194,6 +194,9 @@ var ErrNilShardCoordinator = errors.New("nil shard coordinator")
 // ErrNilNodesCoordinator signals that an operation has been attempted to or with a nil nodes coordinator
 var ErrNilNodesCoordinator = errors.New("nil nodes coordinator")
 
+// ErrNilStakingDataProvider signals that a nil staking data provider was used
+var ErrNilStakingDataProvider = errors.New("nil staking data provider")
+
 // ErrNilKeyGen signals that an operation has been attempted to or with a nil single sign key generator
 var ErrNilKeyGen = errors.New("nil key generator")
 
@@ -984,12 +987,6 @@ var ErrMaxAccumulatedFeesExceeded = errors.New("max accumulated fees has been ex
 // ErrMaxDeveloperFeesExceeded signals that max developer fees has been exceeded
 var ErrMaxDeveloperFeesExceeded = errors.New("max developer fees has been exceeded")
 
-// ErrNilBuiltInFunctionsCostHandler signals that a nil built-in functions cost handler has been provided
-var ErrNilBuiltInFunctionsCostHandler = errors.New("nil built in functions cost handler")
-
-// ErrNilArgsBuiltInFunctionsConstHandler signals that a nil arguments struct for built-in functions cost handler has been provided
-var ErrNilArgsBuiltInFunctionsConstHandler = errors.New("nil arguments for built in functions cost handler")
-
 // ErrInvalidEpochStartMetaBlockConsensusPercentage signals that a small epoch start meta block consensus percentage has been provided
 var ErrInvalidEpochStartMetaBlockConsensusPercentage = errors.New("invalid epoch start meta block consensus percentage")
 
@@ -1131,6 +1128,9 @@ var ErrIndexDoesNotMatchWithFullyExecutedMiniBlock = errors.New("index does not 
 // ErrNilProcessedMiniBlocksTracker signals that a nil processed mini blocks tracker has been provided
 var ErrNilProcessedMiniBlocksTracker = errors.New("nil processed mini blocks tracker")
 
+// ErrNilSmartContractResultPreProcessorCreator signals that a nil smart contract result pre processor creator has been provided
+var ErrNilSmartContractResultPreProcessorCreator = errors.New("nil smart contract result pre processor creator")
+
 // ErrNilReceiptsRepository signals that a nil receipts repository has been provided
 var ErrNilReceiptsRepository = errors.New("nil receipts repository")
 
@@ -1230,6 +1230,9 @@ var ErrNilStorageService = errors.New("nil storage service")
 // ErrInvalidAsyncArguments signals that invalid arguments were given for async/callBack processing
 var ErrInvalidAsyncArguments = errors.New("invalid arguments to process async/callback function")
 
+// ErrNilSentSignatureTracker defines the error for setting a nil SentSignatureTracker
+var ErrNilSentSignatureTracker = errors.New("nil sent signature tracker")
+
 // ErrNilShardBootstrap signals that a nil shard bootstrap was provided
 var ErrNilShardBootstrap = errors.New("nil shard bootstrap")
 
@@ -1238,3 +1241,27 @@ var ErrNilShardStorageBootstrapper = errors.New("nil shard storage bootstrapper"
 
 // ErrWrongHeaderVersion signals that a wrong header version has been found
 var ErrWrongHeaderVersion = errors.New("wrong header version")
+
+// ErrNilTransactionCoordinatorCreator signals that a nil shard coordinator creator was provided
+var ErrNilTransactionCoordinatorCreator = errors.New("nil transaction coordinator creator")
+
+// ErrNilHeaderValidatorCreator signals that a nil header validator creator was provided
+var ErrNilHeaderValidatorCreator = errors.New("nil header validator creator")
+
+// ErrNilBlockTrackerCreator signals that a nil block tracker creator was provided
+var ErrNilBlockTrackerCreator = errors.New("nil block tracker creator")
+
+// ErrNilForkDetectorCreator signals that a nil fork detector creator was provided
+var ErrNilForkDetectorCreator = errors.New("nil fork detector creator")
+
+// ErrNilValidatorStatisticsProcessorCreator signals that a nil validator statistics processor creator was provided
+var ErrNilValidatorStatisticsProcessorCreator = errors.New("nil validator statistics processor creator")
+
+// ErrNilPreProcessorCreator signals that a nil pre processor creator was provided
+var ErrNilPreProcessorCreator = errors.New("nil pre processor creator")
+
+// ErrNilSCProcessorCreator signals that a nil sc processor creator was provided
+var ErrNilSCProcessorCreator = errors.New("nil sc processor creator")
+
+// ErrNilSCProcessorHelper signals that a nil sc processor helper was provided
+var ErrNilSCProcessorHelper = errors.New("nil sc processor helper")

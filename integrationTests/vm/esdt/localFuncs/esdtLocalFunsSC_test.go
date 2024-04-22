@@ -1,5 +1,3 @@
-//go:build !race
-
 package localFuncs
 
 import (
@@ -265,17 +263,22 @@ func TestESDTSetTransferRoles(t *testing.T) {
 }
 
 func TestESDTSetTransferRolesForwardAsyncCallFailsIntra(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testESDTWithTransferRoleAndForwarder(t, 1)
 }
 
 func TestESDTSetTransferRolesForwardAsyncCallFailsCross(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testESDTWithTransferRoleAndForwarder(t, 2)
 }
 
 func testESDTWithTransferRoleAndForwarder(t *testing.T, numShards int) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
 	nodes, idxProposers := esdtCommon.CreateNodesAndPrepareBalances(numShards)
 
 	defer func() {
@@ -325,18 +328,22 @@ func testESDTWithTransferRoleAndForwarder(t *testing.T, numShards int) {
 }
 
 func TestAsyncCallsAndCallBacksArgumentsIntra(t *testing.T) {
-	testAsyncCallAndCallBacksArguments(t, 1)
-}
-
-func TestAsyncCallsAndCallBacksArgumentsCross(t *testing.T) {
-	testAsyncCallAndCallBacksArguments(t, 2)
-}
-
-func testAsyncCallAndCallBacksArguments(t *testing.T, numShards int) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 
+	testAsyncCallAndCallBacksArguments(t, 1)
+}
+
+func TestAsyncCallsAndCallBacksArgumentsCross(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	testAsyncCallAndCallBacksArguments(t, 2)
+}
+
+func testAsyncCallAndCallBacksArguments(t *testing.T, numShards int) {
 	nodes, idxProposers := esdtCommon.CreateNodesAndPrepareBalances(numShards)
 	defer func() {
 		for _, n := range nodes {

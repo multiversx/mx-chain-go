@@ -102,7 +102,7 @@ func checkNewFactoryParams(
 		return spos.ErrNilAppStatusHandler
 	}
 	if check.IfNil(sentSignaturesTracker) {
-		return spos.ErrNilSentSignatureTracker
+		return ErrNilSentSignatureTracker
 	}
 	if len(chainID) == 0 {
 		return spos.ErrInvalidChainID

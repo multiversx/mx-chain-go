@@ -50,11 +50,11 @@ type ConsensusComponentsFactoryArgs struct {
 	StateComponents       factory.StateComponentsHolder
 	StatusComponents      factory.StatusComponentsHolder
 	StatusCoreComponents  factory.StatusCoreComponentsHolder
+	RunTypeComponents     factory.RunTypeComponentsHolder
 	ScheduledProcessor    consensus.ScheduledProcessor
 	IsInImportMode        bool
 	ShouldDisableWatchdog bool
 	ConsensusModel        consensus.ConsensusModel
-	ChainRunType          common.ChainRunType
 	ExtraSignersHolder    bls.ExtraSignersHolder
 	SubRoundEndV2Creator  bls.SubRoundEndV2Creator
 }
@@ -71,11 +71,10 @@ type consensusComponentsFactory struct {
 	stateComponents       factory.StateComponentsHolder
 	statusComponents      factory.StatusComponentsHolder
 	statusCoreComponents  factory.StatusCoreComponentsHolder
+	runTypeComponents     factory.RunTypeComponentsHolder
 	scheduledProcessor    consensus.ScheduledProcessor
 	isInImportMode        bool
 	shouldDisableWatchdog bool
-	consensusModel        consensus.ConsensusModel
-	chainRunType          common.ChainRunType
 
 	extraSignersHolder   bls.ExtraSignersHolder
 	subRoundEndV2Creator bls.SubRoundEndV2Creator
@@ -98,11 +97,6 @@ func NewConsensusComponentsFactory(args ConsensusComponentsFactoryArgs) (*consen
 		return nil, err
 	}
 
-	err = checkCompatibleArguments(args)
-	if err != nil {
-		return nil, err
-	}
-
 	return &consensusComponentsFactory{
 		config:                args.Config,
 		flagsConfig:           args.FlagsConfig,
@@ -118,23 +112,10 @@ func NewConsensusComponentsFactory(args ConsensusComponentsFactoryArgs) (*consen
 		scheduledProcessor:    args.ScheduledProcessor,
 		isInImportMode:        args.IsInImportMode,
 		shouldDisableWatchdog: args.ShouldDisableWatchdog,
-		consensusModel:        args.ConsensusModel,
-		chainRunType:          args.ChainRunType,
+		runTypeComponents:     args.RunTypeComponents,
 		extraSignersHolder:    args.ExtraSignersHolder,
 		subRoundEndV2Creator:  args.SubRoundEndV2Creator,
 	}, nil
-}
-
-func checkCompatibleArguments(args ConsensusComponentsFactoryArgs) error {
-	if args.ChainRunType == common.ChainRunTypeSovereign && args.ConsensusModel != consensus.ConsensusModelV2 {
-		return fmt.Errorf("%w between %s: %s and %s: %s",
-			errors.ErrIncompatibleArgumentsProvided,
-			"args.ChainRunType", args.ChainRunType,
-			"args.ConsensusModel", args.ConsensusModel,
-		)
-	}
-
-	return nil
 }
 
 // Create will init all the components needed for a new instance of consensusComponents
@@ -293,11 +274,6 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		return nil, err
 	}
 
-	sentSignaturesHandler, err := spos.NewSentSignaturesTracker(ccf.cryptoComponents.KeysHandler())
-	if err != nil {
-		return nil, err
-	}
-
 	fct, err := sposFactory.GetSubroundsFactory(
 		consensusDataContainer,
 		consensusState,
@@ -305,10 +281,10 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		ccf.config.Consensus.Type,
 		ccf.statusCoreComponents.AppStatusHandler(),
 		ccf.statusComponents.OutportHandler(),
-		sentSignaturesHandler,
+		ccf.processComponents.SentSignaturesTracker(),
 		[]byte(ccf.coreComponents.ChainID()),
 		ccf.networkComponents.NetworkMessenger().ID(),
-		ccf.consensusModel,
+		ccf.runTypeComponents.ConsensusModel(),
 		ccf.coreComponents.EnableEpochsHandler(),
 		ccf.extraSignersHolder,
 		ccf.subRoundEndV2Creator,
@@ -477,7 +453,11 @@ func (ccf *consensusComponentsFactory) createShardStorageAndSyncBootstrapper() (
 		AppStatusHandler:             ccf.statusCoreComponents.AppStatusHandler(),
 	}
 
-	shardStorageBootstrapper, err := ccf.createShardStorageBootstrapper(argsBaseStorageBootstrapper)
+	argsShardStorageBootstrapper := storageBootstrap.ArgsShardStorageBootstrapper{
+		ArgsBaseStorageBootstrapper: argsBaseStorageBootstrapper,
+	}
+
+	shardStorageBootstrapper, err := ccf.runTypeComponents.BootstrapperFromStorageCreator().CreateBootstrapperFromStorage(argsShardStorageBootstrapper)
 	if err != nil {
 		return nil, err
 	}
@@ -527,47 +507,10 @@ func (ccf *consensusComponentsFactory) createShardStorageAndSyncBootstrapper() (
 		RepopulateTokensSupplies:     ccf.flagsConfig.RepopulateTokensSupplies,
 	}
 
-	return ccf.createShardSyncBootstrapper(argsBaseBootstrapper)
-}
-
-func (ccf *consensusComponentsFactory) createShardStorageBootstrapper(argsBaseStorageBootstrapper storageBootstrap.ArgsBaseStorageBootstrapper) (process.BootstrapperFromStorage, error) {
-	argsShardStorageBootstrapper := storageBootstrap.ArgsShardStorageBootstrapper{
-		ArgsBaseStorageBootstrapper: argsBaseStorageBootstrapper,
-	}
-
-	shardStorageBootstrapper, err := storageBootstrap.NewShardStorageBootstrapper(argsShardStorageBootstrapper)
-	if err != nil {
-		return nil, err
-	}
-
-	switch ccf.chainRunType {
-	case common.ChainRunTypeRegular:
-		return shardStorageBootstrapper, nil
-	case common.ChainRunTypeSovereign:
-		return storageBootstrap.NewSovereignChainShardStorageBootstrapper(shardStorageBootstrapper)
-	default:
-		return nil, fmt.Errorf("%w type %v", errors.ErrUnimplementedChainRunType, ccf.chainRunType)
-	}
-}
-
-func (ccf *consensusComponentsFactory) createShardSyncBootstrapper(argsBaseBootstrapper sync.ArgBaseBootstrapper) (process.Bootstrapper, error) {
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
 		ArgBaseBootstrapper: argsBaseBootstrapper,
 	}
-
-	bootstrapper, err := sync.NewShardBootstrap(argsShardBootstrapper)
-	if err != nil {
-		return nil, err
-	}
-
-	switch ccf.chainRunType {
-	case common.ChainRunTypeRegular:
-		return bootstrapper, nil
-	case common.ChainRunTypeSovereign:
-		return sync.NewSovereignChainShardBootstrap(bootstrapper)
-	default:
-		return nil, fmt.Errorf("%w type %v", errors.ErrUnimplementedChainRunType, ccf.chainRunType)
-	}
+	return ccf.runTypeComponents.BootstrapperCreator().CreateBootstrapper(argsShardBootstrapper)
 }
 
 func (ccf *consensusComponentsFactory) createArgsBaseAccountsSyncer(trieStorageManager common.StorageManager) syncer.ArgsNewBaseAccountsSyncer {
@@ -828,6 +771,15 @@ func checkArgs(args ConsensusComponentsFactoryArgs) error {
 		return errors.ErrNilSubRoundEndV2Creator
 	}
 
+	if check.IfNil(args.RunTypeComponents) {
+		return errors.ErrNilRunTypeComponents
+	}
+	if check.IfNil(args.RunTypeComponents.BootstrapperCreator()) {
+		return errors.ErrNilBootstrapperCreator
+	}
+	if check.IfNil(args.RunTypeComponents.BootstrapperFromStorageCreator()) {
+		return errors.ErrNilBootstrapperFromStorageCreator
+	}
 	return nil
 }
 
