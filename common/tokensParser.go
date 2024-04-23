@@ -3,6 +3,8 @@ package common
 import (
 	"math/big"
 	"strings"
+
+	"github.com/multiversx/mx-chain-go/common/tokens"
 )
 
 const (
@@ -11,12 +13,6 @@ const (
 
 	// separatorChar represents the character that separated the token ticker by the random sequence
 	separatorChar = "-"
-
-	// minLengthForTickerName represents the minimum number of characters a token's ticker can have
-	minLengthForTickerName = 3
-
-	// maxLengthForTickerName represents the maximum number of characters a token's ticker can have
-	maxLengthForTickerName = 10
 )
 
 // TODO: move this to core
@@ -33,16 +29,13 @@ func ExtractTokenIDAndNonceFromTokenStorageKey(tokenKey []byte) ([]byte, uint64)
 		return tokenKey, 0
 	}
 
-	tokenTicker := token[:indexOfFirstHyphen]
-	randomSequencePlusNonce := token[indexOfFirstHyphen+1:]
+	indexOfTokenHyphen := getIndexOfTokenHyphen(token, indexOfFirstHyphen)
+	tokenTicker := token[:indexOfTokenHyphen]
+	randomSequencePlusNonce := token[indexOfTokenHyphen+1:]
 
 	tokenTickerLen := len(tokenTicker)
 
-	areTickerAndRandomSequenceInvalid := tokenTickerLen == 0 ||
-		tokenTickerLen < minLengthForTickerName ||
-		tokenTickerLen > maxLengthForTickerName ||
-		len(randomSequencePlusNonce) == 0
-
+	areTickerAndRandomSequenceInvalid := !tokens.IsTokenTickerLenCorrect(tokenTickerLen) || len(randomSequencePlusNonce) == 0
 	if areTickerAndRandomSequenceInvalid {
 		return tokenKey, 0
 	}
@@ -59,4 +52,33 @@ func ExtractTokenIDAndNonceFromTokenStorageKey(tokenKey []byte) ([]byte, uint64)
 	tokenID := token[:numCharsSinceNonce]
 
 	return []byte(tokenID), nonceBigInt.Uint64()
+}
+
+func getIndexOfTokenHyphen(token string, indexOfFirstHyphen int) int {
+	if !isValidPrefixedToken(token) {
+		return indexOfFirstHyphen
+	}
+
+	indexOfSecondHyphen := strings.Index(token[indexOfFirstHyphen+1:], separatorChar)
+	return indexOfSecondHyphen + indexOfFirstHyphen + 1
+}
+
+func isValidPrefixedToken(token string) bool {
+	tokenSplit := strings.Split(token, separatorChar)
+	if len(tokenSplit) < 3 {
+		return false
+	}
+
+	prefix := tokenSplit[0]
+	if !tokens.IsValidTokenPrefix(prefix) {
+		return false
+	}
+
+	tokenTicker := tokenSplit[1]
+	if !tokens.IsTickerValid(tokenTicker) {
+		return false
+	}
+
+	tokenRandSeq := tokenSplit[2]
+	return len(tokenRandSeq) >= esdtTickerNumRandChars
 }
