@@ -1001,8 +1001,15 @@ func (n *Node) getAccountInfo(address string, options api.AccountQueryOptions) (
 					Balance:         "0",
 					DeveloperReward: "0",
 				},
-				block: adaptedBlockInfo}, err
+				block:   adaptedBlockInfo,
+				account: account,
+			}, nil
 		}
+		return accountInfo{
+			accountResponse: api.AccountResponse{},
+			block:           api.BlockInfo{},
+			account:         nil,
+		}, err
 	}
 
 	ownerAddress := ""
@@ -1013,6 +1020,7 @@ func (n *Node) getAccountInfo(address string, options api.AccountQueryOptions) (
 			return accountInfo{
 				accountResponse: api.AccountResponse{},
 				block:           api.BlockInfo{},
+				account:         nil,
 			}, err
 		}
 	}
@@ -1028,7 +1036,10 @@ func (n *Node) getAccountInfo(address string, options api.AccountQueryOptions) (
 			CodeMetadata:    account.GetCodeMetadata(),
 			DeveloperReward: account.GetDeveloperReward().String(),
 			OwnerAddress:    ownerAddress,
-		}, block: blockInfo}, nil
+		},
+		block:   blockInfo,
+		account: account,
+	}, nil
 }
 
 // GetCode returns the code for the given code hash
