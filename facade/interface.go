@@ -77,7 +77,7 @@ type NodeHandler interface {
 	GetAccount(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error)
 
 	// GetAccountWithKeys returns an accountResponse containing information
-	//  about the account correlated with provided address and all keys
+	// about the account correlated with provided address and all keys
 	GetAccountWithKeys(address string, options api.AccountQueryOptions, ctx context.Context) (api.AccountResponse, api.BlockInfo, error)
 
 	// GetCode returns the code for the given code hash
