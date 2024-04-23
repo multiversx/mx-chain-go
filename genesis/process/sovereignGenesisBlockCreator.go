@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/genesis"
+	genesisCommon "github.com/multiversx/mx-chain-go/genesis/process/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/vm"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -72,12 +73,13 @@ func (gbc *sovereignGenesisBlockCreator) initGenesisAccounts() error {
 		return err
 	}
 
-	acc, err = gbc.arg.Accounts.LoadAccount(core.ESDTSCAddress)
-	if err != nil {
-		return err
+	codeMetaData := &vmcommon.CodeMetadata{
+		Upgradeable: false,
+		Payable:     false,
+		Readable:    true,
 	}
 
-	return gbc.arg.Accounts.SaveAccount(acc)
+	return genesisCommon.UpdateSystemSCContractsCode(codeMetaData.ToBytes(), gbc.arg.Accounts)
 }
 
 func (gbc *sovereignGenesisBlockCreator) createSovereignEmptyGenesisBlocks() (map[uint32]data.HeaderHandler, error) {
