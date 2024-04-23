@@ -3,9 +3,9 @@ package configs
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/multiversx/mx-chain-go/integrationTests/realcomponents"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewProcessorRunnerChainArguments(t *testing.T) {

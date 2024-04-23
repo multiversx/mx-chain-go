@@ -16,6 +16,9 @@ import (
 	"syscall"
 	"time"
 
+	hasherFactory "github.com/multiversx/mx-chain-core-go/hashing/factory"
+	marshallerFactory "github.com/multiversx/mx-chain-core-go/marshal/factory"
+
 	"github.com/multiversx/mx-chain-go/api/gin"
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/common"
@@ -430,7 +433,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 
 	log.Debug("creating process components")
 
-	incomingHeaderHandler, err := incomingHeader.CreateIncomingHeaderProcessor(
+	incomingHeaderHandler, err := createIncomingHeaderProcessor(
 		&configs.SovereignExtraConfig.NotifierConfig,
 		managedDataComponents.Datapool(),
 		configs.SovereignExtraConfig.MainChainNotarization.MainChainNotarizationStartRound,
@@ -1811,6 +1814,35 @@ func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteLi
 		return nil, err
 	}
 	return interceptors.NewWhiteListDataVerifier(whiteListCacheVerified)
+}
+
+func createIncomingHeaderProcessor(
+	config *config.NotifierConfig,
+	dataPool dataRetriever.PoolsHolder,
+	mainChainNotarizationStartRound uint64,
+	runTypeComponents mainFactory.RunTypeComponentsHolder,
+) (process.IncomingHeaderSubscriber, error) {
+	marshaller, err := marshallerFactory.NewMarshalizer(config.WebSocketConfig.MarshallerType)
+	if err != nil {
+		return nil, err
+	}
+	hasher, err := hasherFactory.NewHasher(config.WebSocketConfig.HasherType)
+	if err != nil {
+		return nil, err
+	}
+
+	argsIncomingHeaderHandler := incomingHeader.ArgsIncomingHeaderProcessor{
+		HeadersPool:                     dataPool.Headers(),
+		TxPool:                          dataPool.UnsignedTransactions(),
+		Marshaller:                      marshaller,
+		Hasher:                          hasher,
+		MainChainNotarizationStartRound: mainChainNotarizationStartRound,
+		OutGoingOperationsPool:          runTypeComponents.OutGoingOperationsPoolHandler(),
+		DataCodec:                       runTypeComponents.DataCodecHandler(),
+		TopicsChecker:                   runTypeComponents.TopicsCheckerHandler(),
+	}
+
+	return incomingHeader.NewIncomingHeaderProcessor(argsIncomingHeaderHandler)
 }
 
 func createSovereignWsReceiver(
