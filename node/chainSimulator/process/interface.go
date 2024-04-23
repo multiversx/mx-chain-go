@@ -23,6 +23,7 @@ type NodeHandler interface {
 	GetStatusCoreComponents() factory.StatusCoreComponentsHolder
 	SetKeyValueForAddress(addressBytes []byte, state map[string]string) error
 	SetStateForAddress(address []byte, state *dtos.AddressState) error
+	RemoveAccount(address []byte) error
 	Close() error
 	IsInterfaceNil() bool
 }
