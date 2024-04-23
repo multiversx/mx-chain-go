@@ -61,7 +61,6 @@ func parseAccountQueryOptions(c *gin.Context) (api.AccountQueryOptions, error) {
 		BlockHash:      blockHash,
 		BlockRootHash:  blockRootHash,
 		HintEpoch:      hintEpoch,
-		WithKeys:       false,
 	}
 	return options, nil
 }
