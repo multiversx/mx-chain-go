@@ -491,6 +491,18 @@ func (node *testOnlyProcessingNode) SetStateForAddress(address []byte, addressSt
 	return err
 }
 
+// RemoveAccount will remove the account for the given address
+func (node *testOnlyProcessingNode) RemoveAccount(address []byte) error {
+	accountsAdapter := node.StateComponentsHolder.AccountsAdapter()
+	err := accountsAdapter.RemoveAccount(address)
+	if err != nil {
+		return err
+	}
+
+	_, err = accountsAdapter.Commit()
+	return err
+}
+
 func setNonceAndBalanceForAccount(userAccount state.UserAccountHandler, nonce *uint64, balance string) error {
 	if nonce != nil {
 		// set nonce to zero

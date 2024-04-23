@@ -456,6 +456,32 @@ func (s *simulator) SetStateMultiple(stateSlice []*dtos.AddressState) error {
 	return nil
 }
 
+// RemoveAccounts will try to remove all accounts data for the addresses provided
+func (s *simulator) RemoveAccounts(addresses []string) error {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	addressConverter := s.nodes[core.MetachainShardId].GetCoreComponents().AddressPubKeyConverter()
+	for _, address := range addresses {
+		addressBytes, err := addressConverter.Decode(address)
+		if err != nil {
+			return err
+		}
+
+		if bytes.Equal(addressBytes, core.SystemAccountAddress) {
+			err = s.removeAllSystemAccounts()
+		} else {
+			shardID := sharding.ComputeShardID(addressBytes, s.numOfShards)
+			err = s.nodes[shardID].RemoveAccount(addressBytes)
+		}
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // SendTxAndGenerateBlockTilTxIsExecuted will send the provided transaction and generate block until the transaction is executed
 func (s *simulator) SendTxAndGenerateBlockTilTxIsExecuted(txToSend *transaction.Transaction, maxNumOfBlocksToGenerateWhenExecutingTx int) (*transaction.ApiTransactionResult, error) {
 	result, err := s.SendTxsAndGenerateBlocksTilAreExecuted([]*transaction.Transaction{txToSend}, maxNumOfBlocksToGenerateWhenExecutingTx)
@@ -573,6 +599,17 @@ func (s *simulator) sendTx(tx *transaction.Transaction) (string, error) {
 func (s *simulator) setStateSystemAccount(state *dtos.AddressState) error {
 	for shard, node := range s.nodes {
 		err := node.SetStateForAddress(core.SystemAccountAddress, state)
+		if err != nil {
+			return fmt.Errorf("%w for shard %d", err, shard)
+		}
+	}
+
+	return nil
+}
+
+func (s *simulator) removeAllSystemAccounts() error {
+	for shard, node := range s.nodes {
+		err := node.RemoveAccount(core.SystemAccountAddress)
 		if err != nil {
 			return fmt.Errorf("%w for shard %d", err, shard)
 		}

@@ -23,6 +23,7 @@ type NodeHandlerMock struct {
 	GetStatusCoreComponentsCalled func() factory.StatusCoreComponentsHolder
 	SetKeyValueForAddressCalled   func(addressBytes []byte, state map[string]string) error
 	SetStateForAddressCalled      func(address []byte, state *dtos.AddressState) error
+	RemoveAccountCalled           func(address []byte) error
 	CloseCalled                   func() error
 }
 
@@ -119,6 +120,15 @@ func (mock *NodeHandlerMock) SetStateForAddress(address []byte, state *dtos.Addr
 	if mock.SetStateForAddressCalled != nil {
 		return mock.SetStateForAddressCalled(address, state)
 	}
+	return nil
+}
+
+// RemoveAccount -
+func (mock *NodeHandlerMock) RemoveAccount(address []byte) error {
+	if mock.RemoveAccountCalled != nil {
+		return mock.RemoveAccountCalled(address)
+	}
+
 	return nil
 }
 
