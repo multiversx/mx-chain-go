@@ -3447,6 +3447,51 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 	require.Equal(t, testscommon.TestAddressAlice, recovAccnt.OwnerAddress)
 }
 
+func TestNode_GetAccountAccountWithKeysErrorShouldErr(t *testing.T) {
+	accnt := createAcc(testscommon.TestPubKeyBob)
+	_ = accnt.AddToBalance(big.NewInt(1))
+	expectedErr := errors.New("expected error")
+	accnt.SetDataTrie(
+		&trieMock.TrieStub{
+			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder, tlp common.TrieLeafParser) error {
+				return expectedErr
+			},
+			RootCalled: func() ([]byte, error) {
+				return nil, nil
+			},
+		})
+
+	accDB := &stateMock.AccountsStub{
+		GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
+			return accnt, nil, nil
+		},
+		RecreateTrieCalled: func(rootHash []byte) error {
+			return nil
+		},
+	}
+
+	coreComponents := getDefaultCoreComponents()
+	dataComponents := getDefaultDataComponents()
+	stateComponents := getDefaultStateComponents()
+	args := state.ArgsAccountsRepository{
+		FinalStateAccountsWrapper:      accDB,
+		CurrentStateAccountsWrapper:    accDB,
+		HistoricalStateAccountsWrapper: accDB,
+	}
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
+	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+		node.WithDataComponents(dataComponents),
+		node.WithStateComponents(stateComponents),
+	)
+
+	recovAccnt, blockInfo, err := n.GetAccountWithKeys(testscommon.TestAddressBob, api.AccountQueryOptions{WithKeys: true}, context.Background())
+
+	require.Equal(t, expectedErr, err)
+	require.Equal(t, api.AccountResponse{}, recovAccnt)
+	require.Equal(t, api.BlockInfo{}, blockInfo)
+}
+
 func TestNode_GetAccountAccountWithKeysShouldReturn(t *testing.T) {
 	t.Parallel()
 
@@ -3504,6 +3549,7 @@ func TestNode_GetAccountAccountWithKeysShouldReturn(t *testing.T) {
 	)
 
 	recovAccnt, _, err := n.GetAccountWithKeys(testscommon.TestAddressBob, api.AccountQueryOptions{WithKeys: false}, context.Background())
+
 	require.Nil(t, err)
 	require.Nil(t, recovAccnt.Pairs)
 
