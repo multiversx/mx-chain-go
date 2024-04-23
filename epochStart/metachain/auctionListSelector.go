@@ -198,7 +198,7 @@ func (als *auctionListSelector) SelectNodesFromAuctionList(
 
 	currNodesConfig := als.nodesConfigProvider.GetCurrentNodesConfig()
 	currNumOfValidators := als.stakingDataProvider.GetNumOfValidatorsInCurrentEpoch()
-	numOfShuffledNodes := currNodesConfig.NodesToShufflePerShard * (als.shardCoordinator.NumberOfShards() + 1)
+	numOfShuffledNodes, numForcedToStay := als.computeNumShuffledNodes(currNodesConfig)
 	numOfValidatorsAfterShuffling, err := safeSub(currNumOfValidators, numOfShuffledNodes)
 	if err != nil {
 		log.Warn(fmt.Sprintf("auctionListSelector.SelectNodesFromAuctionList: %v when trying to compute numOfValidatorsAfterShuffling = %v - %v (currNumOfValidators - numOfShuffledNodes)",
@@ -210,12 +210,13 @@ func (als *auctionListSelector) SelectNodesFromAuctionList(
 	}
 
 	maxNumNodes := currNodesConfig.MaxNumNodes
-	availableSlots, err := safeSub(maxNumNodes, numOfValidatorsAfterShuffling)
+	numValidatorsAfterShufflingWithForcedToStay := numOfValidatorsAfterShuffling + numForcedToStay
+	availableSlots, err := safeSub(maxNumNodes, numValidatorsAfterShufflingWithForcedToStay)
 	if availableSlots == 0 || err != nil {
-		log.Info(fmt.Sprintf("auctionListSelector.SelectNodesFromAuctionList: %v or zero value when trying to compute availableSlots = %v - %v (maxNodes - numOfValidatorsAfterShuffling); skip selecting nodes from auction list",
+		log.Info(fmt.Sprintf("auctionListSelector.SelectNodesFromAuctionList: %v or zero value when trying to compute availableSlots = %v - %v (maxNodes - numOfValidatorsAfterShuffling+numForcedToStay); skip selecting nodes from auction list",
 			err,
 			maxNumNodes,
-			numOfValidatorsAfterShuffling,
+			numValidatorsAfterShufflingWithForcedToStay,
 		))
 		return nil
 	}
@@ -224,9 +225,10 @@ func (als *auctionListSelector) SelectNodesFromAuctionList(
 		"max nodes", maxNumNodes,
 		"current number of validators", currNumOfValidators,
 		"num of nodes which will be shuffled out", numOfShuffledNodes,
-		"num of validators after shuffling", numOfValidatorsAfterShuffling,
+		"num forced to stay", numForcedToStay,
+		"num of validators after shuffling with forced to stay", numValidatorsAfterShufflingWithForcedToStay,
 		"auction list size", auctionListSize,
-		fmt.Sprintf("available slots (%v - %v)", maxNumNodes, numOfValidatorsAfterShuffling), availableSlots,
+		fmt.Sprintf("available slots (%v - %v)", maxNumNodes, numValidatorsAfterShufflingWithForcedToStay), availableSlots,
 	)
 
 	als.auctionListDisplayer.DisplayOwnersData(ownersData)
@@ -270,6 +272,58 @@ func (als *auctionListSelector) getAuctionData() (map[string]*OwnerAuctionData, 
 
 func isInAuction(validator state.ValidatorInfoHandler) bool {
 	return validator.GetList() == string(common.AuctionList)
+}
+
+func (als *auctionListSelector) computeNumShuffledNodes(currNodesConfig config.MaxNodesChangeConfig) (uint32, uint32) {
+	numNodesToShufflePerShard := currNodesConfig.NodesToShufflePerShard
+	numTotalToShuffleOut := numNodesToShufflePerShard * (als.shardCoordinator.NumberOfShards() + 1)
+	epochStats := als.stakingDataProvider.GetCurrentEpochValidatorStats()
+
+	actuallyNumLeaving := uint32(0)
+	forcedToStay := uint32(0)
+
+	for shardID := uint32(0); shardID < als.shardCoordinator.NumberOfShards(); shardID++ {
+		leavingInShard, forcedToStayInShard := computeActuallyNumLeaving(shardID, epochStats, numNodesToShufflePerShard)
+		actuallyNumLeaving += leavingInShard
+		forcedToStay += forcedToStayInShard
+	}
+
+	leavingInMeta, forcedToStayInMeta := computeActuallyNumLeaving(core.MetachainShardId, epochStats, numNodesToShufflePerShard)
+	actuallyNumLeaving += leavingInMeta
+	forcedToStay += forcedToStayInMeta
+
+	finalShuffledOut, err := safeSub(numTotalToShuffleOut, actuallyNumLeaving)
+	if err != nil {
+		log.Error("auctionListSelector.computeNumShuffledNodes error computing finalShuffledOut, returning default values",
+			"error", err, "numTotalToShuffleOut", numTotalToShuffleOut, "actuallyNumLeaving", actuallyNumLeaving)
+		return numTotalToShuffleOut, 0
+	}
+
+	return finalShuffledOut, forcedToStay
+}
+
+func computeActuallyNumLeaving(shardID uint32, epochStats epochStart.ValidatorStatsInEpoch, numNodesToShuffledPerShard uint32) (uint32, uint32) {
+	numLeavingInShard := uint32(epochStats.Leaving[shardID])
+	numActiveInShard := uint32(epochStats.Waiting[shardID] + epochStats.Eligible[shardID])
+
+	log.Debug("auctionListSelector.computeActuallyNumLeaving computing",
+		"shardID", shardID, "numLeavingInShard", numLeavingInShard, "numActiveInShard", numActiveInShard)
+
+	actuallyLeaving := uint32(0)
+	forcedToStay := uint32(0)
+	if numLeavingInShard <= numNodesToShuffledPerShard && numActiveInShard > numLeavingInShard {
+		actuallyLeaving = numLeavingInShard
+	}
+
+	if numLeavingInShard > numNodesToShuffledPerShard {
+		actuallyLeaving = numNodesToShuffledPerShard
+		forcedToStay = numLeavingInShard - numNodesToShuffledPerShard
+	}
+
+	log.Debug("auctionListSelector.computeActuallyNumLeaving computed",
+		"actuallyLeaving", actuallyLeaving, "forcedToStay", forcedToStay)
+
+	return actuallyLeaving, forcedToStay
 }
 
 // TODO: Move this in elrond-go-core
