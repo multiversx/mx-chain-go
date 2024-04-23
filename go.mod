@@ -32,7 +32,7 @@ require (
 	github.com/shirou/gopsutil v3.21.11+incompatible
 	github.com/stretchr/testify v1.8.4
 	github.com/urfave/cli v1.22.10
-	golang.org/x/crypto v0.22.0
+	golang.org/x/crypto v0.21.0
 	gopkg.in/go-playground/validator.v8 v8.18.2
 )
 
