@@ -376,7 +376,6 @@ func TestChainSimulator_SetEntireStateWithRemoval(t *testing.T) {
 	require.Equal(t, accountState.CodeMetadata, base64.StdEncoding.EncodeToString(account.CodeMetadata))
 	require.Equal(t, accountState.Owner, account.OwnerAddress)
 	require.Equal(t, accountState.RootHash, base64.StdEncoding.EncodeToString(account.RootHash))
-
 }
 
 func TestChainSimulator_GetAccount(t *testing.T) {
