@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	vInfo "github.com/multiversx/mx-chain-go/common/validatorInfo"
 	"github.com/multiversx/mx-chain-go/epochStart"
+	genesisCommon "github.com/multiversx/mx-chain-go/genesis/process/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -1051,37 +1052,9 @@ func (s *legacySystemSCProcessor) initDelegationSystemSC() error {
 		return err
 	}
 
-	err = s.updateSystemSCContractsCode(vmInput.ContractCodeMetadata)
+	err = genesisCommon.UpdateSystemSCContractsCode(vmInput.ContractCodeMetadata, s.userAccountsDB)
 	if err != nil {
 		return err
-	}
-
-	return nil
-}
-
-func (s *legacySystemSCProcessor) updateSystemSCContractsCode(contractMetadata []byte) error {
-	contractsToUpdate := make([][]byte, 0)
-	contractsToUpdate = append(contractsToUpdate, vm.StakingSCAddress)
-	contractsToUpdate = append(contractsToUpdate, vm.ValidatorSCAddress)
-	contractsToUpdate = append(contractsToUpdate, vm.GovernanceSCAddress)
-	contractsToUpdate = append(contractsToUpdate, vm.ESDTSCAddress)
-	contractsToUpdate = append(contractsToUpdate, vm.DelegationManagerSCAddress)
-	contractsToUpdate = append(contractsToUpdate, vm.FirstDelegationSCAddress)
-
-	for _, address := range contractsToUpdate {
-		userAcc, err := s.getUserAccount(address)
-		if err != nil {
-			return err
-		}
-
-		userAcc.SetOwnerAddress(address)
-		userAcc.SetCodeMetadata(contractMetadata)
-		userAcc.SetCode(address)
-
-		err = s.userAccountsDB.SaveAccount(userAcc)
-		if err != nil {
-			return err
-		}
 	}
 
 	return nil
