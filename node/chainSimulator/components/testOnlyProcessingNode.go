@@ -45,17 +45,17 @@ type ArgsTestOnlyProcessingNode struct {
 	ChanStopNodeProcess    chan endProcess.ArgEndProcess
 	SyncedBroadcastNetwork SyncedBroadcastNetworkHandler
 
-	InitialRound           int64
-	InitialNonce           uint64
-	GasScheduleFilename    string
-	NumShards              uint32
-	ShardIDStr             string
-	BypassTxSignatureCheck bool
-	MinNodesPerShard       uint32
-	MinNodesMeta           uint32
-	RoundDurationInMillis  uint64
-	ShardConsensusSize     uint32
-	MetaConsensusSize      uint32
+	InitialRound                int64
+	InitialNonce                uint64
+	GasScheduleFilename         string
+	NumShards                   uint32
+	ShardIDStr                  string
+	BypassTxSignatureCheck      bool
+	MinNodesPerShard            uint32
+	ConsensusGroupSize          uint32
+	MinNodesMeta                uint32
+	MetaChainConsensusGroupSize uint32
+	RoundDurationInMillis       uint64
 }
 
 type testOnlyProcessingNode struct {
@@ -73,7 +73,6 @@ type testOnlyProcessingNode struct {
 	IncomingHeaderHandler     process.IncomingHeaderSubscriber
 
 	NodesCoordinator      nodesCoordinator.NodesCoordinator
-	ChainHandler          chainData.ChainHandler
 	ArgumentsParser       process.ArgumentsParser
 	TransactionFeeHandler process.TransactionFeeHandler
 	broadcastMessenger    consensus.BroadcastMessenger
@@ -93,24 +92,24 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 	instance.TransactionFeeHandler = postprocess.NewFeeAccumulator()
 
 	instance.CoreComponentsHolder, err = CreateCoreComponents(ArgsCoreComponentsHolder{
-		Config:                  *args.Configs.GeneralConfig,
-		EnableEpochsConfig:      args.Configs.EpochConfig.EnableEpochs,
-		RoundsConfig:            *args.Configs.RoundConfig,
-		EconomicsConfig:         *args.Configs.EconomicsConfig,
-		ChanStopNodeProcess:     args.ChanStopNodeProcess,
-		NumShards:               args.NumShards,
-		WorkingDir:              args.Configs.FlagsConfig.WorkingDir,
-		GasScheduleFilename:     args.GasScheduleFilename,
-		NodesSetupPath:          args.Configs.ConfigurationPathsHolder.Nodes,
-		InitialRound:            args.InitialRound,
-		MinNodesPerShard:        args.MinNodesPerShard,
-		MinNodesMeta:            args.MinNodesMeta,
-		ShardConsensusSize:      args.ShardConsensusSize,
-		MetaConsensusSize:       args.MetaConsensusSize,
-		RoundDurationInMs:       args.RoundDurationInMillis,
-		RatingConfig:            *args.Configs.RatingsConfig,
-		CreateGenesisNodesSetup: args.CreateGenesisNodesSetup,
-		CreateRatingsData:       args.CreateRatingsData,
+		Config:                      *args.Configs.GeneralConfig,
+		EnableEpochsConfig:          args.Configs.EpochConfig.EnableEpochs,
+		RoundsConfig:                *args.Configs.RoundConfig,
+		EconomicsConfig:             *args.Configs.EconomicsConfig,
+		ChanStopNodeProcess:         args.ChanStopNodeProcess,
+		NumShards:                   args.NumShards,
+		WorkingDir:                  args.Configs.FlagsConfig.WorkingDir,
+		GasScheduleFilename:         args.GasScheduleFilename,
+		NodesSetupPath:              args.Configs.ConfigurationPathsHolder.Nodes,
+		InitialRound:                args.InitialRound,
+		MinNodesPerShard:            args.MinNodesPerShard,
+		MinNodesMeta:                args.MinNodesMeta,
+		ConsensusGroupSize:          args.ConsensusGroupSize,
+		MetaChainConsensusGroupSize: args.MetaChainConsensusGroupSize,
+		RoundDurationInMs:           args.RoundDurationInMillis,
+		RatingConfig:                *args.Configs.RatingsConfig,
+		CreateGenesisNodesSetup:     args.CreateGenesisNodesSetup,
+		CreateRatingsData:           args.CreateRatingsData,
 	})
 	if err != nil {
 		return nil, err

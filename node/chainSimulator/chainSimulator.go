@@ -53,9 +53,9 @@ type ArgsChainSimulator struct {
 	PathToInitialConfig         string
 	NumOfShards                 uint32
 	MinNodesPerShard            uint32
+	ConsensusGroupSize          uint32
 	MetaChainMinNodes           uint32
-	ShardConsensusSize          uint32
-	MetaConsensusSize           uint32
+	MetaChainConsensusGroupSize uint32
 	NumNodesWaitingListShard    uint32
 	NumNodesWaitingListMeta     uint32
 	GenesisTimestamp            int64
@@ -72,6 +72,7 @@ type ArgsChainSimulator struct {
 	CreateIncomingHeaderHandler func(config *config.NotifierConfig, dataPool dataRetriever.PoolsHolder, mainChainNotarizationStartRound uint64, runTypeComponents factory.RunTypeComponentsHolder) (processing.IncomingHeaderSubscriber, error)
 	GetRunTypeComponents        func(args runType.ArgsRunTypeComponents) (factory.RunTypeComponentsHolder, error)
 	NodeFactory                 node.NodeFactory
+	ChainProcessorFactory       ChainProcessorFactory
 }
 
 type Simulator struct {
@@ -88,6 +89,27 @@ type Simulator struct {
 
 // NewChainSimulator will create a new instance of simulator
 func NewChainSimulator(args ArgsChainSimulator) (*Simulator, error) {
+	setSimulatorRunTypeArguments(&args)
+
+	instance := &Simulator{
+		syncedBroadcastNetwork: components.NewSyncedBroadcastNetwork(),
+		nodes:                  make(map[uint32]process.NodeHandler),
+		handlers:               make([]ChainHandler, 0, args.NumOfShards+1),
+		numOfShards:            args.NumOfShards,
+		chanStopNodeProcess:    make(chan endProcess.ArgEndProcess),
+		mutex:                  sync.RWMutex{},
+		initialStakedKeys:      make(map[string]*dtos.BLSKey),
+	}
+
+	err := instance.createChainHandlers(args)
+	if err != nil {
+		return nil, err
+	}
+
+	return instance, nil
+}
+
+func setSimulatorRunTypeArguments(args *ArgsChainSimulator) {
 	if args.CreateGenesisNodesSetup == nil {
 		args.CreateGenesisNodesSetup = func(nodesFilePath string, addressPubkeyConverter core.PubkeyConverter, validatorPubkeyConverter core.PubkeyConverter, genesisMaxNumShards uint32) (mxChainSharding.GenesisNodesSetupHandler, error) {
 			return mxChainSharding.NewNodesSetup(nodesFilePath, addressPubkeyConverter, validatorPubkeyConverter, genesisMaxNumShards)
@@ -111,23 +133,9 @@ func NewChainSimulator(args ArgsChainSimulator) (*Simulator, error) {
 	if args.NodeFactory == nil {
 		args.NodeFactory = node.NewNodeFactory()
 	}
-
-	instance := &Simulator{
-		syncedBroadcastNetwork: components.NewSyncedBroadcastNetwork(),
-		nodes:                  make(map[uint32]process.NodeHandler),
-		handlers:               make([]ChainHandler, 0, args.NumOfShards+1),
-		numOfShards:            args.NumOfShards,
-		chanStopNodeProcess:    make(chan endProcess.ArgEndProcess),
-		mutex:                  sync.RWMutex{},
-		initialStakedKeys:      make(map[string]*dtos.BLSKey),
+	if args.ChainProcessorFactory == nil {
+		args.ChainProcessorFactory = NewProcessorFactory()
 	}
-
-	err := instance.createChainHandlers(args)
-	if err != nil {
-		return nil, err
-	}
-
-	return instance, nil
 }
 
 func createRunTypeComponents(args runType.ArgsRunTypeComponents) (factory.RunTypeComponentsHolder, error) {
@@ -146,18 +154,20 @@ func createRunTypeComponents(args runType.ArgsRunTypeComponents) (factory.RunTyp
 
 func (s *Simulator) createChainHandlers(args ArgsChainSimulator) error {
 	outputConfigs, err := configs.CreateChainSimulatorConfigs(configs.ArgsChainSimulatorConfigs{
-		NumOfShards:              args.NumOfShards,
-		OriginalConfigsPath:      args.PathToInitialConfig,
-		GenesisTimeStamp:         computeStartTimeBaseOnInitialRound(args),
-		RoundDurationInMillis:    args.RoundDurationInMillis,
-		TempDir:                  args.TempDir,
-		MinNodesPerShard:         args.MinNodesPerShard,
-		MetaChainMinNodes:        args.MetaChainMinNodes,
-		RoundsPerEpoch:           args.RoundsPerEpoch,
-		InitialEpoch:             args.InitialEpoch,
-		AlterConfigsFunction:     args.AlterConfigsFunction,
-		NumNodesWaitingListShard: args.NumNodesWaitingListShard,
-		NumNodesWaitingListMeta:  args.NumNodesWaitingListMeta,
+		NumOfShards:                 args.NumOfShards,
+		OriginalConfigsPath:         args.PathToInitialConfig,
+		GenesisTimeStamp:            computeStartTimeBaseOnInitialRound(args),
+		RoundDurationInMillis:       args.RoundDurationInMillis,
+		TempDir:                     args.TempDir,
+		MinNodesPerShard:            args.MinNodesPerShard,
+		ConsensusGroupSize:          args.ConsensusGroupSize,
+		MetaChainMinNodes:           args.MetaChainMinNodes,
+		MetaChainConsensusGroupSize: args.MetaChainConsensusGroupSize,
+		RoundsPerEpoch:              args.RoundsPerEpoch,
+		InitialEpoch:                args.InitialEpoch,
+		AlterConfigsFunction:        args.AlterConfigsFunction,
+		NumNodesWaitingListShard:    args.NumNodesWaitingListShard,
+		NumNodesWaitingListMeta:     args.NumNodesWaitingListMeta,
 	})
 	if err != nil {
 		return err
@@ -177,7 +187,7 @@ func (s *Simulator) createChainHandlers(args ArgsChainSimulator) error {
 			return errCreate
 		}
 
-		chainHandler, errCreate := process.NewBlocksCreator(node)
+		chainHandler, errCreate := args.ChainProcessorFactory.CreateChainHandler(node)
 		if errCreate != nil {
 			return errCreate
 		}
@@ -221,8 +231,8 @@ func (s *Simulator) createTestNode(
 		InitialNonce:                args.InitialNonce,
 		MinNodesPerShard:            args.MinNodesPerShard,
 		MinNodesMeta:                args.MetaChainMinNodes,
-		ShardConsensusSize:          args.ShardConsensusSize,
-		MetaConsensusSize:           args.MetaConsensusSize,
+		ConsensusGroupSize:          args.ConsensusGroupSize,
+		MetaChainConsensusGroupSize: args.MetaChainConsensusGroupSize,
 		RoundDurationInMillis:       args.RoundDurationInMillis,
 		CreateGenesisNodesSetup:     args.CreateGenesisNodesSetup,
 		CreateRatingsData:           args.CreateRatingsData,
@@ -496,16 +506,16 @@ func (s *Simulator) SendTxAndGenerateBlockTilTxIsExecuted(txToSend *transaction.
 // SendTxsAndGenerateBlocksTilAreExecuted will send the provided transactions and generate block until all transactions are executed
 func (s *Simulator) SendTxsAndGenerateBlocksTilAreExecuted(txsToSend []*transaction.Transaction, maxNumOfBlocksToGenerateWhenExecutingTx int) ([]*transaction.ApiTransactionResult, error) {
 	if len(txsToSend) == 0 {
-		return nil, errEmptySliceOfTxs
+		return nil, ErrEmptySliceOfTxs
 	}
 	if maxNumOfBlocksToGenerateWhenExecutingTx == 0 {
-		return nil, errInvalidMaxNumOfBlocks
+		return nil, ErrInvalidMaxNumOfBlocks
 	}
 
 	transactionStatus := make([]*transactionWithResult, 0, len(txsToSend))
 	for idx, tx := range txsToSend {
 		if tx == nil {
-			return nil, fmt.Errorf("%w on position %d", errNilTransaction, idx)
+			return nil, fmt.Errorf("%w on position %d", ErrNilTransaction, idx)
 		}
 
 		txHashHex, err := s.sendTx(tx)

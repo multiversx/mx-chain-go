@@ -1,12 +1,12 @@
 package runType
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core"
+
 	"github.com/multiversx/mx-chain-go/config"
 	mainFactory "github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/data"
-
-	"github.com/multiversx/mx-chain-core-go/core"
 )
 
 func CreateArgsRunTypeComponents(

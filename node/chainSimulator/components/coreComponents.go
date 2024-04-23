@@ -90,13 +90,13 @@ type ArgsCoreComponentsHolder struct {
 	NumShards           uint32
 	WorkingDir          string
 
-	MinNodesPerShard        uint32
-	MinNodesMeta            uint32
-	RoundDurationInMs       uint64
-	ShardConsensusSize      uint32
-	MetaConsensusSize       uint32
-	CreateGenesisNodesSetup func(nodesFilePath string, addressPubkeyConverter core.PubkeyConverter, validatorPubkeyConverter core.PubkeyConverter, genesisMaxNumShards uint32) (sharding.GenesisNodesSetupHandler, error)
-	CreateRatingsData       func(arg rating.RatingsDataArg) (process.RatingsInfoHandler, error)
+	MinNodesPerShard            uint32
+	MinNodesMeta                uint32
+	RoundDurationInMs           uint64
+	ConsensusGroupSize          uint32
+	MetaChainConsensusGroupSize uint32
+	CreateGenesisNodesSetup     func(nodesFilePath string, addressPubkeyConverter core.PubkeyConverter, validatorPubkeyConverter core.PubkeyConverter, genesisMaxNumShards uint32) (sharding.GenesisNodesSetupHandler, error)
+	CreateRatingsData           func(arg rating.RatingsDataArg) (process.RatingsInfoHandler, error)
 }
 
 // CreateCoreComponents will create a new instance of factory.CoreComponentsHolder
@@ -183,11 +183,10 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 	}
 	instance.apiEconomicsData = instance.economicsData
 
-	// TODO fix this min nodes per shard to be configurable
 	instance.ratingsData, err = args.CreateRatingsData(rating.RatingsDataArg{
 		Config:                   args.RatingConfig,
-		ShardConsensusSize:       args.ShardConsensusSize,
-		MetaConsensusSize:        args.MetaConsensusSize,
+		ShardConsensusSize:       args.ConsensusGroupSize,
+		MetaConsensusSize:        args.MetaChainConsensusGroupSize,
 		ShardMinNodes:            args.MinNodesPerShard,
 		MetaMinNodes:             args.MinNodesMeta,
 		RoundDurationMiliseconds: args.RoundDurationInMs,

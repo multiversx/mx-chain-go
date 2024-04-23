@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	mainFactory "github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/runType"
+	"github.com/multiversx/mx-chain-go/node"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
@@ -33,13 +34,15 @@ var expectedErr = errors.New("expected error")
 
 func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNode {
 	outputConfigs, err := configs.CreateChainSimulatorConfigs(configs.ArgsChainSimulatorConfigs{
-		NumOfShards:           3,
-		OriginalConfigsPath:   "../../../cmd/node/config/",
-		GenesisTimeStamp:      0,
-		RoundDurationInMillis: 6000,
-		TempDir:               t.TempDir(),
-		MinNodesPerShard:      1,
-		MetaChainMinNodes:     1,
+		NumOfShards:                 3,
+		OriginalConfigsPath:         "../../../cmd/node/config/",
+		GenesisTimeStamp:            0,
+		RoundDurationInMillis:       6000,
+		TempDir:                     t.TempDir(),
+		MinNodesPerShard:            1,
+		ConsensusGroupSize:          1,
+		MetaChainMinNodes:           1,
+		MetaChainConsensusGroupSize: 1,
 	})
 	require.Nil(t, err)
 
@@ -48,15 +51,15 @@ func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNo
 		GasScheduleFilename: outputConfigs.GasScheduleFilename,
 		NumShards:           3,
 
-		SyncedBroadcastNetwork: NewSyncedBroadcastNetwork(),
-		ChanStopNodeProcess:    make(chan endProcess.ArgEndProcess),
-		APIInterface:           api.NewNoApiInterface(),
-		ShardIDStr:             "0",
-		RoundDurationInMillis:  6000,
-		MinNodesMeta:           1,
-		MinNodesPerShard:       1,
-		ShardConsensusSize:     1,
-		MetaConsensusSize:      1,
+		SyncedBroadcastNetwork:      NewSyncedBroadcastNetwork(),
+		ChanStopNodeProcess:         make(chan endProcess.ArgEndProcess),
+		APIInterface:                api.NewNoApiInterface(),
+		ShardIDStr:                  "0",
+		RoundDurationInMillis:       6000,
+		MinNodesMeta:                1,
+		MinNodesPerShard:            1,
+		ConsensusGroupSize:          1,
+		MetaChainConsensusGroupSize: 1,
 		CreateGenesisNodesSetup: func(nodesFilePath string, addressPubkeyConverter core.PubkeyConverter, validatorPubkeyConverter core.PubkeyConverter, genesisMaxNumShards uint32) (sharding.GenesisNodesSetupHandler, error) {
 			return sharding.NewNodesSetup(nodesFilePath, addressPubkeyConverter, validatorPubkeyConverter, genesisMaxNumShards)
 		},
@@ -69,6 +72,7 @@ func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNo
 		GetRunTypeComponents: func(args runType.ArgsRunTypeComponents) (mainFactory.RunTypeComponentsHolder, error) {
 			return createRunTypeComponents(args)
 		},
+		NodeFactory: node.NewNodeFactory(),
 	}
 }
 
