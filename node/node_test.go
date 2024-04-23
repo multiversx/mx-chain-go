@@ -3447,7 +3447,7 @@ func TestNode_GetAccountAccountExistsShouldReturn(t *testing.T) {
 	require.Equal(t, testscommon.TestAddressAlice, recovAccnt.OwnerAddress)
 }
 
-func TestNode_GetAccountAccountWithKeysErrorShouldErr(t *testing.T) {
+func TestNode_GetAccountAccountWithKeysErrorShouldFail(t *testing.T) {
 	accnt := createAcc(testscommon.TestPubKeyBob)
 	_ = accnt.AddToBalance(big.NewInt(1))
 	expectedErr := errors.New("expected error")
@@ -3470,20 +3470,7 @@ func TestNode_GetAccountAccountWithKeysErrorShouldErr(t *testing.T) {
 		},
 	}
 
-	coreComponents := getDefaultCoreComponents()
-	dataComponents := getDefaultDataComponents()
-	stateComponents := getDefaultStateComponents()
-	args := state.ArgsAccountsRepository{
-		FinalStateAccountsWrapper:      accDB,
-		CurrentStateAccountsWrapper:    accDB,
-		HistoricalStateAccountsWrapper: accDB,
-	}
-	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
-	n, _ := node.NewNode(
-		node.WithCoreComponents(coreComponents),
-		node.WithDataComponents(dataComponents),
-		node.WithStateComponents(stateComponents),
-	)
+	n := getNodeWithAccount(accDB)
 
 	recovAccnt, blockInfo, err := n.GetAccountWithKeys(testscommon.TestAddressBob, api.AccountQueryOptions{WithKeys: true}, context.Background())
 
@@ -3492,7 +3479,7 @@ func TestNode_GetAccountAccountWithKeysErrorShouldErr(t *testing.T) {
 	require.Equal(t, api.BlockInfo{}, blockInfo)
 }
 
-func TestNode_GetAccountAccountWithKeysShouldReturn(t *testing.T) {
+func TestNode_GetAccountAccountWithKeysShouldWork(t *testing.T) {
 	t.Parallel()
 
 	accnt := createAcc(testscommon.TestPubKeyBob)
@@ -3533,6 +3520,23 @@ func TestNode_GetAccountAccountWithKeysShouldReturn(t *testing.T) {
 		},
 	}
 
+	n := getNodeWithAccount(accDB)
+
+	recovAccnt, _, err := n.GetAccountWithKeys(testscommon.TestAddressBob, api.AccountQueryOptions{WithKeys: false}, context.Background())
+
+	require.Nil(t, err)
+	require.Nil(t, recovAccnt.Pairs)
+
+	recovAccnt, _, err = n.GetAccountWithKeys(testscommon.TestAddressBob, api.AccountQueryOptions{WithKeys: true}, context.Background())
+
+	require.Nil(t, err)
+	require.NotNil(t, recovAccnt.Pairs)
+	require.Equal(t, 2, len(recovAccnt.Pairs))
+	require.Equal(t, hex.EncodeToString(v1), recovAccnt.Pairs[hex.EncodeToString(k1)])
+	require.Equal(t, hex.EncodeToString(v2), recovAccnt.Pairs[hex.EncodeToString(k2)])
+}
+
+func getNodeWithAccount(accDB *stateMock.AccountsStub) *node.Node {
 	coreComponents := getDefaultCoreComponents()
 	dataComponents := getDefaultDataComponents()
 	stateComponents := getDefaultStateComponents()
@@ -3547,19 +3551,7 @@ func TestNode_GetAccountAccountWithKeysShouldReturn(t *testing.T) {
 		node.WithDataComponents(dataComponents),
 		node.WithStateComponents(stateComponents),
 	)
-
-	recovAccnt, _, err := n.GetAccountWithKeys(testscommon.TestAddressBob, api.AccountQueryOptions{WithKeys: false}, context.Background())
-
-	require.Nil(t, err)
-	require.Nil(t, recovAccnt.Pairs)
-
-	recovAccnt, _, err = n.GetAccountWithKeys(testscommon.TestAddressBob, api.AccountQueryOptions{WithKeys: true}, context.Background())
-
-	require.Nil(t, err)
-	require.NotNil(t, recovAccnt.Pairs)
-	require.Equal(t, 2, len(recovAccnt.Pairs))
-	require.Equal(t, hex.EncodeToString(v1), recovAccnt.Pairs[hex.EncodeToString(k1)])
-	require.Equal(t, hex.EncodeToString(v2), recovAccnt.Pairs[hex.EncodeToString(k2)])
+	return n
 }
 
 func TestNode_AppStatusHandlersShouldIncrement(t *testing.T) {
