@@ -20,7 +20,8 @@ generateConfig() {
     -num-of-observers-in-metachain $TMP_META_OBSERVERCOUNT    \
     -metachain-consensus-group-size $META_CONSENSUS_SIZE      \
     -stake-type $GENESIS_STAKE_TYPE \
-    -hysteresis $HYSTERESIS
+    -hysteresis $HYSTERESIS \
+    -round-duration $ROUND_DURATION_IN_MS
   popd
 }
 

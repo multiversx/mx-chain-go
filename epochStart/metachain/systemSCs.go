@@ -2,7 +2,6 @@ package metachain
 
 import (
 	"fmt"
-	"math"
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -79,7 +78,6 @@ func NewSystemSCProcessor(args ArgsNewEpochStartSystemSCProcessing) (*systemSCPr
 		common.SaveJailedAlwaysFlag,
 		common.StakingV4Step1Flag,
 		common.StakingV4Step2Flag,
-		common.StakingQueueFlag,
 		common.StakingV4StartedFlag,
 		common.DelegationSmartContractFlagInSpecificEpochOnly,
 		common.GovernanceFlagInSpecificEpochOnly,
@@ -139,7 +137,7 @@ func (s *systemSCProcessor) processWithNewFlags(
 	}
 
 	if s.enableEpochsHandler.IsFlagEnabled(common.StakingV4Step1Flag) {
-		err := s.stakeNodesFromQueue(validatorsInfoMap, math.MaxUint32, header.GetNonce(), common.AuctionList)
+		err := s.unStakeAllNodesFromQueue()
 		if err != nil {
 			return err
 		}
@@ -168,6 +166,27 @@ func (s *systemSCProcessor) processWithNewFlags(
 	}
 
 	return nil
+}
+
+func (s *systemSCProcessor) unStakeAllNodesFromQueue() error {
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr: vm.EndOfEpochAddress,
+			CallValue:  big.NewInt(0),
+			Arguments:  [][]byte{},
+		},
+		RecipientAddr: vm.StakingSCAddress,
+		Function:      "unStakeAllNodesFromQueue",
+	}
+	vmOutput, errRun := s.systemVM.RunSmartContractCall(vmInput)
+	if errRun != nil {
+		return fmt.Errorf("%w when unStaking all nodes from staking queue", errRun)
+	}
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return fmt.Errorf("got return code %s when unStaking all nodes from staking queue", vmOutput.ReturnCode)
+	}
+
+	return s.processSCOutputAccounts(vmOutput)
 }
 
 func (s *systemSCProcessor) unStakeNodesWithNotEnoughFundsWithStakingV4(

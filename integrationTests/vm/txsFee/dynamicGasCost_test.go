@@ -1,7 +1,3 @@
-//go:build !race
-
-// TODO remove build condition above to allow -race -short, after Wasm VM fix
-
 package txsFee
 
 import (
@@ -23,6 +19,10 @@ import (
 )
 
 func TestDynamicGasCostForDataTrieStorageLoad(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	enableEpochs := config.EnableEpochs{
 		DynamicGasCostForDataTrieStorageLoadEnableEpoch: 0,
 	}

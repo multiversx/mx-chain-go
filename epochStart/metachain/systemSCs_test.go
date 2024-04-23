@@ -2053,14 +2053,6 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Init(t *testing.T)
 		0: {
 			createValidatorInfo(owner1ListPubKeysStaked[0], common.EligibleList, "", 0, owner1),
 			createValidatorInfo(owner1ListPubKeysStaked[1], common.WaitingList, "", 0, owner1),
-			createValidatorInfo(owner1ListPubKeysWaiting[0], common.AuctionList, "", 0, owner1),
-			createValidatorInfo(owner1ListPubKeysWaiting[1], common.AuctionList, "", 0, owner1),
-			createValidatorInfo(owner1ListPubKeysWaiting[2], common.AuctionList, "", 0, owner1),
-
-			createValidatorInfo(owner2ListPubKeysWaiting[0], common.AuctionList, "", 0, owner2),
-
-			createValidatorInfo(owner3ListPubKeysWaiting[0], common.AuctionList, "", 0, owner3),
-			createValidatorInfo(owner3ListPubKeysWaiting[1], common.AuctionList, "", 0, owner3),
 		},
 		1: {
 			createValidatorInfo(owner2ListPubKeysStaked[0], common.EligibleList, "", 1, owner2),
@@ -2333,6 +2325,10 @@ func TestSystemSCProcessor_LegacyEpochConfirmedCorrectMaxNumNodesAfterNodeRestar
 
 	args.EpochNotifier.CheckEpoch(&block.Header{Epoch: 6, Nonce: 6})
 	require.True(t, s.flagChangeMaxNodesEnabled.IsSet())
+	err = s.processLegacy(validatorsInfoMap, 6, 6)
+	require.Equal(t, epochStart.ErrInvalidMaxNumberOfNodes, err)
+
+	args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub).AddActiveFlags(common.StakingV4StartedFlag)
 	err = s.processLegacy(validatorsInfoMap, 6, 6)
 	require.Nil(t, err)
 	require.Equal(t, nodesConfigEpoch6.MaxNumNodes, s.maxNodes)

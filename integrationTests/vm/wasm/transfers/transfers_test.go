@@ -1,5 +1,3 @@
-//go:build !race
-
 package transfers
 
 import (
@@ -13,6 +11,10 @@ import (
 )
 
 func TestTransfers_DuplicatedTransferValueEvents(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	context := wasm.SetupTestContext(t)
 	defer context.Close()
 

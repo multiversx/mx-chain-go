@@ -1,14 +1,9 @@
-//go:build !race
-
-// TODO remove build condition above to allow -race -short, after Wasm VM fix
-
 package txsFee
 
 import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
-	"runtime"
 	"strings"
 	"testing"
 
@@ -34,6 +29,10 @@ import (
 const upgradeContractFunction = "upgradeContract"
 
 func TestAsyncCallShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -86,6 +85,10 @@ func TestAsyncCallShouldWork(t *testing.T) {
 }
 
 func TestMinterContractWithAsyncCalls(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMsAndCustomGasSchedule(config.EnableEpochs{}, func(gasMap wasmConfig.GasScheduleMap) {
 		// if `MaxBuiltInCallsPerTx` is 200 test will fail
 		gasMap[common.MaxPerTransaction]["MaxBuiltInCallsPerTx"] = 199
@@ -142,8 +145,8 @@ func TestMinterContractWithAsyncCalls(t *testing.T) {
 }
 
 func TestAsyncCallsOnInitFunctionOnUpgrade(t *testing.T) {
-	if runtime.GOARCH == "arm64" {
-		t.Skip("skipping test on arm64")
+	if testing.Short() {
+		t.Skip("this is not a short test")
 	}
 
 	firstContractCode := wasm.GetSCCode("./testdata/first/output/first.wasm")
@@ -281,8 +284,8 @@ func testAsyncCallsOnInitFunctionOnUpgrade(
 }
 
 func TestAsyncCallsOnInitFunctionOnDeploy(t *testing.T) {
-	if runtime.GOARCH == "arm64" {
-		t.Skip("skipping test on arm64")
+	if testing.Short() {
+		t.Skip("this is not a short test")
 	}
 
 	firstSCCode := wasm.GetSCCode("./testdata/first/output/first.wasm")

@@ -1,7 +1,3 @@
-//go:build !race
-
-// TODO remove build condition above to allow -race -short, after Wasm VM fix
-
 package txsFee
 
 import (
@@ -350,6 +346,10 @@ func setNewEpochOnContext(testContext *vm.VMTestContext, epoch uint32) {
 }
 
 func TestGuardAccount_ShouldErrorIfInstantSetIsDoneOnANotProtectedAccount(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext := prepareTestContextForGuardedAccounts(t)
 	defer testContext.Close()
 
@@ -367,6 +367,10 @@ func TestGuardAccount_ShouldErrorIfInstantSetIsDoneOnANotProtectedAccount(t *tes
 }
 
 func TestGuardAccount_ShouldSetGuardianOnANotProtectedAccount(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext := prepareTestContextForGuardedAccounts(t)
 	defer testContext.Close()
 
@@ -467,6 +471,10 @@ func TestGuardAccount_ShouldSetGuardianOnANotProtectedAccount(t *testing.T) {
 }
 
 func TestGuardAccount_SendingFundsWhileProtectedAndNotProtected(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext := prepareTestContextForGuardedAccounts(t)
 	defer testContext.Close()
 
@@ -592,6 +600,10 @@ func TestGuardAccount_SendingFundsWhileProtectedAndNotProtected(t *testing.T) {
 //  14. alice un-guards the accounts immediately using a cosigned transaction and then sends a guarded transaction -> should error
 //     14.1 alice sends unguarded transaction -> should work
 func TestGuardAccount_Scenario1(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext := prepareTestContextForGuardedAccounts(t)
 	defer testContext.Close()
 
@@ -916,6 +928,10 @@ func TestGuardAccount_Scenario1(t *testing.T) {
 //     3.1 cosigned transaction should work
 //     3.2 single signed transaction should not work
 func TestGuardAccounts_RelayedTransactionV1(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext := prepareTestContextForGuardedAccounts(t)
 	defer testContext.Close()
 
@@ -1036,6 +1052,10 @@ func TestGuardAccounts_RelayedTransactionV1(t *testing.T) {
 //     3.1 cosigned transaction should not work
 //     3.2 single signed transaction should not work
 func TestGuardAccounts_RelayedTransactionV2(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext := prepareTestContextForGuardedAccounts(t)
 	defer testContext.Close()
 

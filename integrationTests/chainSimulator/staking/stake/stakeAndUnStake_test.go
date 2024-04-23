@@ -1,4 +1,4 @@
-package staking
+package stake
 
 import (
 	"encoding/hex"
@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	chainSimulatorIntegrationTests "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
+	"github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/staking"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
@@ -26,8 +27,7 @@ import (
 )
 
 const (
-	defaultPathToInitialConfig             = "../../../cmd/node/config/"
-	maxNumOfBlockToGenerateWhenExecutingTx = 7
+	defaultPathToInitialConfig = "../../../../cmd/node/config/"
 )
 
 var log = logger.GetOrCreate("integrationTests/chainSimulator")
@@ -69,7 +69,7 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 		NumNodesWaitingListShard: 0,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			newNumNodes := cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake + 8 // 8 nodes until new nodes will be placed on queue
-			configs.SetMaxNumberOfNodesInConfigs(cfg, newNumNodes, numOfShards)
+			configs.SetMaxNumberOfNodesInConfigs(cfg, uint32(newNumNodes), 0, numOfShards)
 		},
 	})
 	require.Nil(t, err)
@@ -115,7 +115,7 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 		ChainID:   []byte(configs.ChainID),
 		Version:   1,
 	}
-	stakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	stakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, stakeTx)
 
@@ -144,7 +144,7 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 		ChainID:   []byte(configs.ChainID),
 		Version:   1,
 	}
-	_, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	_, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 
 	// Step 6 --- generate 8 epochs to get rewards
@@ -152,7 +152,7 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 	require.Nil(t, err)
 
 	metachainNode := cs.GetNodeHandler(core.MetachainShardId)
-	err = metachainNode.GetProcessComponents().ValidatorsProvider().ForceUpdate()
+	err = cs.ForceResetValidatorStatisticsCache()
 	require.Nil(t, err)
 	validatorStatistics, err := metachainNode.GetFacadeHandler().ValidatorStatisticsApi()
 	require.Nil(t, err)
@@ -200,8 +200,10 @@ func TestChainSimulator_AddANewValidatorAfterStakingV4(t *testing.T) {
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.SystemSCConfig.StakingSystemSCConfig.NodeLimitPercentage = 1
 			cfg.GeneralConfig.ValidatorStatistics.CacheRefreshIntervalInSec = 1
-			newNumNodes := cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake + 8 // 8 nodes until new nodes will be placed on queue
-			configs.SetMaxNumberOfNodesInConfigs(cfg, newNumNodes, numOfShards)
+			eligibleNodes := cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake
+			// 8 nodes until new nodes will be placed on queue
+			waitingNodes := uint32(8)
+			configs.SetMaxNumberOfNodesInConfigs(cfg, uint32(eligibleNodes), waitingNodes, numOfShards)
 		},
 	})
 	require.Nil(t, err)
@@ -254,7 +256,7 @@ func TestChainSimulator_AddANewValidatorAfterStakingV4(t *testing.T) {
 		Version:   1,
 	}
 
-	txFromNetwork, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	txFromNetwork, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txFromNetwork)
 
@@ -262,7 +264,7 @@ func TestChainSimulator_AddANewValidatorAfterStakingV4(t *testing.T) {
 	require.Nil(t, err)
 
 	metachainNode := cs.GetNodeHandler(core.MetachainShardId)
-	err = metachainNode.GetProcessComponents().ValidatorsProvider().ForceUpdate()
+	err = cs.ForceResetValidatorStatisticsCache()
 	require.Nil(t, err)
 	results, err := metachainNode.GetFacadeHandler().AuctionListApi()
 	require.Nil(t, err)
@@ -328,7 +330,7 @@ func testStakeUnStakeUnBond(t *testing.T, targetEpoch int32) {
 			cfg.SystemSCConfig.StakingSystemSCConfig.UnBondPeriod = 1
 			cfg.SystemSCConfig.StakingSystemSCConfig.UnBondPeriodInEpochs = 1
 			newNumNodes := cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake + 10
-			configs.SetMaxNumberOfNodesInConfigs(cfg, newNumNodes, numOfShards)
+			configs.SetMaxNumberOfNodesInConfigs(cfg, uint32(newNumNodes), 0, numOfShards)
 		},
 	})
 	require.Nil(t, err)
@@ -344,43 +346,43 @@ func testStakeUnStakeUnBond(t *testing.T, targetEpoch int32) {
 	err = cs.AddValidatorKeys(privateKeys)
 	require.Nil(t, err)
 
-	mintValue := big.NewInt(0).Mul(oneEGLD, big.NewInt(2600))
+	mintValue := big.NewInt(0).Mul(staking.OneEGLD, big.NewInt(2600))
 	walletAddressShardID := uint32(0)
 	walletAddress, err := cs.GenerateAndMintWalletAddress(walletAddressShardID, mintValue)
 	require.Nil(t, err)
 
-	txDataField := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], mockBLSSignature)
-	txStake := generateTransaction(walletAddress.Bytes, 0, vm.ValidatorSCAddress, minimumStakeValue, txDataField, gasLimitForStakeOperation)
-	stakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txStake, maxNumOfBlockToGenerateWhenExecutingTx)
+	txDataField := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], staking.MockBLSSignature)
+	txStake := staking.GenerateTransaction(walletAddress.Bytes, 0, vm.ValidatorSCAddress, staking.MinimumStakeValue, txDataField, staking.GasLimitForStakeOperation)
+	stakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txStake, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, stakeTx)
 
 	metachainNode := cs.GetNodeHandler(core.MetachainShardId)
 	bls0, _ := hex.DecodeString(blsKeys[0])
-	blsKeyStatus := getBLSKeyStatus(t, metachainNode, bls0)
+	blsKeyStatus := staking.GetBLSKeyStatus(t, metachainNode, bls0)
 	require.Equal(t, "staked", blsKeyStatus)
 
 	// do unStake
-	txUnStake := generateTransaction(walletAddress.Bytes, 1, vm.ValidatorSCAddress, zeroValue, fmt.Sprintf("unStake@%s", blsKeys[0]), gasLimitForStakeOperation)
-	unStakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnStake, maxNumOfBlockToGenerateWhenExecutingTx)
+	txUnStake := staking.GenerateTransaction(walletAddress.Bytes, 1, vm.ValidatorSCAddress, staking.ZeroValue, fmt.Sprintf("unStake@%s", blsKeys[0]), staking.GasLimitForStakeOperation)
+	unStakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnStake, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, unStakeTx)
 
-	blsKeyStatus = getBLSKeyStatus(t, metachainNode, bls0)
+	blsKeyStatus = staking.GetBLSKeyStatus(t, metachainNode, bls0)
 	require.Equal(t, "unStaked", blsKeyStatus)
 
 	err = cs.GenerateBlocksUntilEpochIsReached(targetEpoch + 1)
 	require.Nil(t, err)
 
 	// do unBond
-	txUnBond := generateTransaction(walletAddress.Bytes, 2, vm.ValidatorSCAddress, zeroValue, fmt.Sprintf("unBondNodes@%s", blsKeys[0]), gasLimitForStakeOperation)
-	unBondTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnBond, maxNumOfBlockToGenerateWhenExecutingTx)
+	txUnBond := staking.GenerateTransaction(walletAddress.Bytes, 2, vm.ValidatorSCAddress, staking.ZeroValue, fmt.Sprintf("unBondNodes@%s", blsKeys[0]), staking.GasLimitForStakeOperation)
+	unBondTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnBond, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, unBondTx)
 
 	// do claim
-	txClaim := generateTransaction(walletAddress.Bytes, 3, vm.ValidatorSCAddress, zeroValue, "unBondTokens", gasLimitForStakeOperation)
-	claimTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txClaim, maxNumOfBlockToGenerateWhenExecutingTx)
+	txClaim := staking.GenerateTransaction(walletAddress.Bytes, 3, vm.ValidatorSCAddress, staking.ZeroValue, "unBondTokens", staking.GasLimitForStakeOperation)
+	claimTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txClaim, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, claimTx)
 
@@ -391,7 +393,7 @@ func testStakeUnStakeUnBond(t *testing.T, targetEpoch int32) {
 	walletAccount, _, err := cs.GetNodeHandler(walletAddressShardID).GetFacadeHandler().GetAccount(walletAddress.Bech32, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
 	walletBalanceBig, _ := big.NewInt(0).SetString(walletAccount.Balance, 10)
-	require.True(t, walletBalanceBig.Cmp(minimumStakeValue) > 0)
+	require.True(t, walletBalanceBig.Cmp(staking.MinimumStakeValue) > 0)
 }
 
 func checkTotalQualified(t *testing.T, auctionList []*common.AuctionListValidatorAPIResponse, expected int) {
@@ -574,25 +576,25 @@ func testChainSimulatorDirectStakedNodesStakingFunds(t *testing.T, cs chainSimul
 	metachainNode := cs.GetNodeHandler(core.MetachainShardId)
 
 	mintValue := big.NewInt(5010)
-	mintValue = mintValue.Mul(oneEGLD, mintValue)
+	mintValue = mintValue.Mul(staking.OneEGLD, mintValue)
 
 	validatorOwner, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
 	require.Nil(t, err)
 
-	stakeValue := big.NewInt(0).Set(minimumStakeValue)
-	txDataField := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], mockBLSSignature)
-	txStake := generateTransaction(validatorOwner.Bytes, 0, vm.ValidatorSCAddress, stakeValue, txDataField, gasLimitForStakeOperation)
-	stakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txStake, maxNumOfBlockToGenerateWhenExecutingTx)
+	stakeValue := big.NewInt(0).Set(staking.MinimumStakeValue)
+	txDataField := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], staking.MockBLSSignature)
+	txStake := staking.GenerateTransaction(validatorOwner.Bytes, 0, vm.ValidatorSCAddress, stakeValue, txDataField, staking.GasLimitForStakeOperation)
+	stakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txStake, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, stakeTx)
 
 	err = cs.GenerateBlocks(2) // allow the metachain to finalize the block that contains the staking of the node
 	require.Nil(t, err)
 
-	stakeValue = big.NewInt(0).Set(minimumStakeValue)
-	txDataField = fmt.Sprintf("stake@01@%s@%s", blsKeys[1], mockBLSSignature)
-	txStake = generateTransaction(validatorOwner.Bytes, 1, vm.ValidatorSCAddress, stakeValue, txDataField, gasLimitForStakeOperation)
-	stakeTx, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(txStake, maxNumOfBlockToGenerateWhenExecutingTx)
+	stakeValue = big.NewInt(0).Set(staking.MinimumStakeValue)
+	txDataField = fmt.Sprintf("stake@01@%s@%s", blsKeys[1], staking.MockBLSSignature)
+	txStake = staking.GenerateTransaction(validatorOwner.Bytes, 1, vm.ValidatorSCAddress, stakeValue, txDataField, staking.GasLimitForStakeOperation)
+	stakeTx, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(txStake, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, stakeTx)
 
@@ -604,10 +606,10 @@ func testChainSimulatorDirectStakedNodesStakingFunds(t *testing.T, cs chainSimul
 
 	log.Info("Step 2. Create from the owner of the staked nodes a tx to stake 1 EGLD")
 
-	stakeValue = big.NewInt(0).Mul(oneEGLD, big.NewInt(1))
-	txDataField = fmt.Sprintf("stake@01@%s@%s", blsKeys[0], mockBLSSignature)
-	txStake = generateTransaction(validatorOwner.Bytes, 2, vm.ValidatorSCAddress, stakeValue, txDataField, gasLimitForStakeOperation)
-	stakeTx, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(txStake, maxNumOfBlockToGenerateWhenExecutingTx)
+	stakeValue = big.NewInt(0).Mul(staking.OneEGLD, big.NewInt(1))
+	txDataField = fmt.Sprintf("stake@01@%s@%s", blsKeys[0], staking.MockBLSSignature)
+	txStake = staking.GenerateTransaction(validatorOwner.Bytes, 2, vm.ValidatorSCAddress, stakeValue, txDataField, staking.GasLimitForStakeOperation)
+	stakeTx, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(txStake, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, stakeTx)
 
@@ -622,7 +624,7 @@ func checkExpectedStakedValue(t *testing.T, metachainNode chainSimulatorProcess.
 	totalStaked := getTotalStaked(t, metachainNode, blsKey)
 
 	expectedStaked := big.NewInt(expectedValue)
-	expectedStaked = expectedStaked.Mul(oneEGLD, expectedStaked)
+	expectedStaked = expectedStaked.Mul(staking.OneEGLD, expectedStaked)
 	require.Equal(t, expectedStaked.String(), string(totalStaked))
 }
 
@@ -636,7 +638,7 @@ func getTotalStaked(t *testing.T, metachainNode chainSimulatorProcess.NodeHandle
 	}
 	result, _, err := metachainNode.GetFacadeHandler().ExecuteSCQuery(scQuery)
 	require.Nil(t, err)
-	require.Equal(t, okReturnCode, result.ReturnCode)
+	require.Equal(t, staking.OkReturnCode, result.ReturnCode)
 
 	return result.ReturnData[0]
 }
@@ -677,6 +679,7 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation(t *testi
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
+				cfg.EpochConfig.EnableEpochs.StakeLimitsEnableEpoch = 100
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 100
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 101
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 102
@@ -707,11 +710,13 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation(t *testi
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
+				cfg.EpochConfig.EnableEpochs.StakeLimitsEnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+				cfg.SystemSCConfig.StakingSystemSCConfig.NodeLimitPercentage = 1
 			},
 		})
 		require.Nil(t, err)
@@ -737,11 +742,13 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation(t *testi
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
+				cfg.EpochConfig.EnableEpochs.StakeLimitsEnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+				cfg.SystemSCConfig.StakingSystemSCConfig.NodeLimitPercentage = 1
 			},
 		})
 		require.Nil(t, err)
@@ -767,11 +774,13 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation(t *testi
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
+				cfg.EpochConfig.EnableEpochs.StakeLimitsEnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+				cfg.SystemSCConfig.StakingSystemSCConfig.NodeLimitPercentage = 1
 			},
 		})
 		require.Nil(t, err)
@@ -795,34 +804,34 @@ func testChainSimulatorDirectStakedUnstakeFundsWithDeactivation(t *testing.T, cs
 	metachainNode := cs.GetNodeHandler(core.MetachainShardId)
 
 	mintValue := big.NewInt(5010)
-	mintValue = mintValue.Mul(oneEGLD, mintValue)
+	mintValue = mintValue.Mul(staking.OneEGLD, mintValue)
 
 	validatorOwner, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
 	require.Nil(t, err)
 
-	stakeValue := big.NewInt(0).Set(minimumStakeValue)
-	txDataField := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], mockBLSSignature)
-	txStake := generateTransaction(validatorOwner.Bytes, 0, vm.ValidatorSCAddress, stakeValue, txDataField, gasLimitForStakeOperation)
-	stakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txStake, maxNumOfBlockToGenerateWhenExecutingTx)
+	stakeValue := big.NewInt(0).Set(staking.MinimumStakeValue)
+	txDataField := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], staking.MockBLSSignature)
+	txStake := staking.GenerateTransaction(validatorOwner.Bytes, 0, vm.ValidatorSCAddress, stakeValue, txDataField, staking.GasLimitForStakeOperation)
+	stakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txStake, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, stakeTx)
 
 	err = cs.GenerateBlocks(2) // allow the metachain to finalize the block that contains the staking of the node
 	require.Nil(t, err)
 
-	testBLSKeyStaked(t, cs, metachainNode, blsKeys[0], targetEpoch)
+	testBLSKeyStaked(t, metachainNode, blsKeys[0])
 
-	stakeValue = big.NewInt(0).Set(minimumStakeValue)
-	txDataField = fmt.Sprintf("stake@01@%s@%s", blsKeys[1], mockBLSSignature)
-	txStake = generateTransaction(validatorOwner.Bytes, 1, vm.ValidatorSCAddress, stakeValue, txDataField, gasLimitForStakeOperation)
-	stakeTx, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(txStake, maxNumOfBlockToGenerateWhenExecutingTx)
+	stakeValue = big.NewInt(0).Set(staking.MinimumStakeValue)
+	txDataField = fmt.Sprintf("stake@01@%s@%s", blsKeys[1], staking.MockBLSSignature)
+	txStake = staking.GenerateTransaction(validatorOwner.Bytes, 1, vm.ValidatorSCAddress, stakeValue, txDataField, staking.GasLimitForStakeOperation)
+	stakeTx, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(txStake, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, stakeTx)
 
 	err = cs.GenerateBlocks(2) // allow the metachain to finalize the block that contains the staking of the node
 	require.Nil(t, err)
 
-	testBLSKeyStaked(t, cs, metachainNode, blsKeys[1], targetEpoch)
+	testBLSKeyStaked(t, metachainNode, blsKeys[1])
 
 	log.Info("Step 1. Check the stake amount for the owner of the staked nodes")
 	checkExpectedStakedValue(t, metachainNode, validatorOwner.Bytes, 5000)
@@ -830,10 +839,10 @@ func testChainSimulatorDirectStakedUnstakeFundsWithDeactivation(t *testing.T, cs
 	log.Info("Step 2. Create from the owner of staked nodes a transaction to unstake 10 EGLD and send it to the network")
 
 	unStakeValue := big.NewInt(10)
-	unStakeValue = unStakeValue.Mul(oneEGLD, unStakeValue)
+	unStakeValue = unStakeValue.Mul(staking.OneEGLD, unStakeValue)
 	txDataField = fmt.Sprintf("unStakeTokens@%s", hex.EncodeToString(unStakeValue.Bytes()))
-	txUnStake := generateTransaction(validatorOwner.Bytes, 2, vm.ValidatorSCAddress, zeroValue, txDataField, gasLimitForStakeOperation)
-	unStakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnStake, maxNumOfBlockToGenerateWhenExecutingTx)
+	txUnStake := staking.GenerateTransaction(validatorOwner.Bytes, 2, vm.ValidatorSCAddress, staking.ZeroValue, txDataField, staking.GasLimitForStakeOperation)
+	unStakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnStake, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, unStakeTx)
 
@@ -846,7 +855,7 @@ func testChainSimulatorDirectStakedUnstakeFundsWithDeactivation(t *testing.T, cs
 	unStakedTokensAmount := getUnStakedTokensList(t, metachainNode, validatorOwner.Bytes)
 
 	expectedUnStaked := big.NewInt(10)
-	expectedUnStaked = expectedUnStaked.Mul(oneEGLD, expectedUnStaked)
+	expectedUnStaked = expectedUnStaked.Mul(staking.OneEGLD, expectedUnStaked)
 	require.Equal(t, expectedUnStaked.String(), big.NewInt(0).SetBytes(unStakedTokensAmount).String())
 
 	log.Info("Step 4. Wait for change of epoch and check the outcome")
@@ -866,7 +875,7 @@ func getUnStakedTokensList(t *testing.T, metachainNode chainSimulatorProcess.Nod
 	}
 	result, _, err := metachainNode.GetFacadeHandler().ExecuteSCQuery(scQuery)
 	require.Nil(t, err)
-	require.Equal(t, okReturnCode, result.ReturnCode)
+	require.Equal(t, staking.OkReturnCode, result.ReturnCode)
 
 	return result.ReturnData[0]
 }
@@ -876,24 +885,23 @@ func checkOneOfTheNodesIsUnstaked(t *testing.T,
 	blsKeys []string,
 ) {
 	decodedBLSKey0, _ := hex.DecodeString(blsKeys[0])
-	keyStatus0 := getBLSKeyStatus(t, metachainNode, decodedBLSKey0)
+	keyStatus0 := staking.GetBLSKeyStatus(t, metachainNode, decodedBLSKey0)
 	log.Info("Key info", "key", blsKeys[0], "status", keyStatus0)
 
-	isNotStaked0 := keyStatus0 == unStakedStatus
+	isNotStaked0 := keyStatus0 == staking.UnStakedStatus
 
 	decodedBLSKey1, _ := hex.DecodeString(blsKeys[1])
-	keyStatus1 := getBLSKeyStatus(t, metachainNode, decodedBLSKey1)
+	keyStatus1 := staking.GetBLSKeyStatus(t, metachainNode, decodedBLSKey1)
 	log.Info("Key info", "key", blsKeys[1], "status", keyStatus1)
 
-	isNotStaked1 := keyStatus1 == unStakedStatus
+	isNotStaked1 := keyStatus1 == staking.UnStakedStatus
 
 	require.True(t, isNotStaked0 != isNotStaked1)
 }
 
 func testBLSKeyStaked(t *testing.T,
-	cs chainSimulatorIntegrationTests.ChainSimulator,
 	metachainNode chainSimulatorProcess.NodeHandler,
-	blsKey string, targetEpoch int32,
+	blsKey string,
 ) {
 	decodedBLSKey, _ := hex.DecodeString(blsKey)
 	err := metachainNode.GetProcessComponents().ValidatorsProvider().ForceUpdate()
@@ -904,14 +912,14 @@ func testBLSKeyStaked(t *testing.T,
 
 	activationEpoch := metachainNode.GetCoreComponents().EnableEpochsHandler().GetActivationEpoch(common.StakingV4Step1Flag)
 	if activationEpoch <= metachainNode.GetCoreComponents().EnableEpochsHandler().GetCurrentEpoch() {
-		require.Equal(t, stakedStatus, getBLSKeyStatus(t, metachainNode, decodedBLSKey))
+		require.Equal(t, staking.StakedStatus, staking.GetBLSKeyStatus(t, metachainNode, decodedBLSKey))
 		return
 	}
 
 	// in staking ph 2/3.5 we do not find the bls key on the validator statistics
 	_, found := validatorStatistics[blsKey]
 	require.False(t, found)
-	require.Equal(t, queuedStatus, getBLSKeyStatus(t, metachainNode, decodedBLSKey))
+	require.Equal(t, staking.QueuedStatus, staking.GetBLSKeyStatus(t, metachainNode, decodedBLSKey))
 }
 
 // Test description:
@@ -952,6 +960,7 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation_WithReac
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
+				cfg.EpochConfig.EnableEpochs.StakeLimitsEnableEpoch = 100
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 100
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 101
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 102
@@ -982,11 +991,13 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation_WithReac
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
+				cfg.EpochConfig.EnableEpochs.StakeLimitsEnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+				cfg.SystemSCConfig.StakingSystemSCConfig.NodeLimitPercentage = 1
 			},
 		})
 		require.Nil(t, err)
@@ -1012,11 +1023,13 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation_WithReac
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
+				cfg.EpochConfig.EnableEpochs.StakeLimitsEnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+				cfg.SystemSCConfig.StakingSystemSCConfig.NodeLimitPercentage = 1
 			},
 		})
 		require.Nil(t, err)
@@ -1042,11 +1055,13 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation_WithReac
 			NumNodesWaitingListMeta:  3,
 			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
+				cfg.EpochConfig.EnableEpochs.StakeLimitsEnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+				cfg.SystemSCConfig.StakingSystemSCConfig.NodeLimitPercentage = 1
 			},
 		})
 		require.Nil(t, err)
@@ -1070,34 +1085,34 @@ func testChainSimulatorDirectStakedUnstakeFundsWithDeactivationAndReactivation(t
 	metachainNode := cs.GetNodeHandler(core.MetachainShardId)
 
 	mintValue := big.NewInt(6000)
-	mintValue = mintValue.Mul(oneEGLD, mintValue)
+	mintValue = mintValue.Mul(staking.OneEGLD, mintValue)
 
 	validatorOwner, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
 	require.Nil(t, err)
 
-	stakeValue := big.NewInt(0).Set(minimumStakeValue)
-	txDataField := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], mockBLSSignature)
-	txStake := generateTransaction(validatorOwner.Bytes, 0, vm.ValidatorSCAddress, stakeValue, txDataField, gasLimitForStakeOperation)
-	stakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txStake, maxNumOfBlockToGenerateWhenExecutingTx)
+	stakeValue := big.NewInt(0).Set(staking.MinimumStakeValue)
+	txDataField := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], staking.MockBLSSignature)
+	txStake := staking.GenerateTransaction(validatorOwner.Bytes, 0, vm.ValidatorSCAddress, stakeValue, txDataField, staking.GasLimitForStakeOperation)
+	stakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txStake, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, stakeTx)
 
 	err = cs.GenerateBlocks(2) // allow the metachain to finalize the block that contains the staking of the node
 	require.Nil(t, err)
 
-	testBLSKeyStaked(t, cs, metachainNode, blsKeys[0], targetEpoch)
+	testBLSKeyStaked(t, metachainNode, blsKeys[0])
 
-	stakeValue = big.NewInt(0).Set(minimumStakeValue)
-	txDataField = fmt.Sprintf("stake@01@%s@%s", blsKeys[1], mockBLSSignature)
-	txStake = generateTransaction(validatorOwner.Bytes, 1, vm.ValidatorSCAddress, stakeValue, txDataField, gasLimitForStakeOperation)
-	stakeTx, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(txStake, maxNumOfBlockToGenerateWhenExecutingTx)
+	stakeValue = big.NewInt(0).Set(staking.MinimumStakeValue)
+	txDataField = fmt.Sprintf("stake@01@%s@%s", blsKeys[1], staking.MockBLSSignature)
+	txStake = staking.GenerateTransaction(validatorOwner.Bytes, 1, vm.ValidatorSCAddress, stakeValue, txDataField, staking.GasLimitForStakeOperation)
+	stakeTx, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(txStake, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, stakeTx)
 
 	err = cs.GenerateBlocks(2) // allow the metachain to finalize the block that contains the staking of the node
 	require.Nil(t, err)
 
-	testBLSKeyStaked(t, cs, metachainNode, blsKeys[1], targetEpoch)
+	testBLSKeyStaked(t, metachainNode, blsKeys[1])
 
 	log.Info("Step 1. Check the stake amount for the owner of the staked nodes")
 	checkExpectedStakedValue(t, metachainNode, validatorOwner.Bytes, 5000)
@@ -1105,10 +1120,10 @@ func testChainSimulatorDirectStakedUnstakeFundsWithDeactivationAndReactivation(t
 	log.Info("Step 2. Create from the owner of staked nodes a transaction to unstake 10 EGLD and send it to the network")
 
 	unStakeValue := big.NewInt(10)
-	unStakeValue = unStakeValue.Mul(oneEGLD, unStakeValue)
+	unStakeValue = unStakeValue.Mul(staking.OneEGLD, unStakeValue)
 	txDataField = fmt.Sprintf("unStakeTokens@%s", hex.EncodeToString(unStakeValue.Bytes()))
-	txUnStake := generateTransaction(validatorOwner.Bytes, 2, vm.ValidatorSCAddress, zeroValue, txDataField, gasLimitForStakeOperation)
-	unStakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnStake, maxNumOfBlockToGenerateWhenExecutingTx)
+	txUnStake := staking.GenerateTransaction(validatorOwner.Bytes, 2, vm.ValidatorSCAddress, staking.ZeroValue, txDataField, staking.GasLimitForStakeOperation)
+	unStakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnStake, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, unStakeTx)
 
@@ -1121,16 +1136,16 @@ func testChainSimulatorDirectStakedUnstakeFundsWithDeactivationAndReactivation(t
 	unStakedTokensAmount := getUnStakedTokensList(t, metachainNode, validatorOwner.Bytes)
 
 	expectedUnStaked := big.NewInt(10)
-	expectedUnStaked = expectedUnStaked.Mul(oneEGLD, expectedUnStaked)
+	expectedUnStaked = expectedUnStaked.Mul(staking.OneEGLD, expectedUnStaked)
 	require.Equal(t, expectedUnStaked.String(), big.NewInt(0).SetBytes(unStakedTokensAmount).String())
 
 	log.Info("Step 4. Create from the owner of staked nodes a transaction to stake 10 EGLD and send it to the network")
 
 	newStakeValue := big.NewInt(10)
-	newStakeValue = newStakeValue.Mul(oneEGLD, newStakeValue)
-	txDataField = fmt.Sprintf("stake@01@%s@%s", blsKeys[0], mockBLSSignature)
-	txStake = generateTransaction(validatorOwner.Bytes, 3, vm.ValidatorSCAddress, newStakeValue, txDataField, gasLimitForStakeOperation)
-	stakeTx, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(txStake, maxNumOfBlockToGenerateWhenExecutingTx)
+	newStakeValue = newStakeValue.Mul(staking.OneEGLD, newStakeValue)
+	txDataField = fmt.Sprintf("stake@01@%s@%s", blsKeys[0], staking.MockBLSSignature)
+	txStake = staking.GenerateTransaction(validatorOwner.Bytes, 3, vm.ValidatorSCAddress, newStakeValue, txDataField, staking.GasLimitForStakeOperation)
+	stakeTx, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(txStake, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, stakeTx)
 
@@ -1144,8 +1159,8 @@ func testChainSimulatorDirectStakedUnstakeFundsWithDeactivationAndReactivation(t
 	err = cs.GenerateBlocksUntilEpochIsReached(targetEpoch + 1)
 	require.Nil(t, err)
 
-	testBLSKeyStaked(t, cs, metachainNode, blsKeys[0], targetEpoch)
-	testBLSKeyStaked(t, cs, metachainNode, blsKeys[1], targetEpoch)
+	testBLSKeyStaked(t, metachainNode, blsKeys[0])
+	testBLSKeyStaked(t, metachainNode, blsKeys[1])
 }
 
 // Test description:
@@ -1300,22 +1315,22 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsBeforeUnbonding(t *testi
 	metachainNode := cs.GetNodeHandler(core.MetachainShardId)
 
 	mintValue := big.NewInt(10000)
-	mintValue = mintValue.Mul(oneEGLD, mintValue)
+	mintValue = mintValue.Mul(staking.OneEGLD, mintValue)
 
 	validatorOwner, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
 	require.Nil(t, err)
 
-	stakeValue := big.NewInt(0).Mul(oneEGLD, big.NewInt(2600))
-	txDataField := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], mockBLSSignature)
-	txStake := generateTransaction(validatorOwner.Bytes, 0, vm.ValidatorSCAddress, stakeValue, txDataField, gasLimitForStakeOperation)
-	stakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txStake, maxNumOfBlockToGenerateWhenExecutingTx)
+	stakeValue := big.NewInt(0).Mul(staking.OneEGLD, big.NewInt(2600))
+	txDataField := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], staking.MockBLSSignature)
+	txStake := staking.GenerateTransaction(validatorOwner.Bytes, 0, vm.ValidatorSCAddress, stakeValue, txDataField, staking.GasLimitForStakeOperation)
+	stakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txStake, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, stakeTx)
 
 	err = cs.GenerateBlocks(2) // allow the metachain to finalize the block that contains the staking of the node
 	require.Nil(t, err)
 
-	testBLSKeyStaked(t, cs, metachainNode, blsKeys[0], targetEpoch)
+	testBLSKeyStaked(t, metachainNode, blsKeys[0])
 
 	shardIDValidatorOwner := cs.GetNodeHandler(0).GetShardCoordinator().ComputeId(validatorOwner.Bytes)
 	accountValidatorOwner, _, err := cs.GetNodeHandler(shardIDValidatorOwner).GetFacadeHandler().GetAccount(validatorOwner.Bech32, coreAPI.AccountQueryOptions{})
@@ -1325,10 +1340,10 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsBeforeUnbonding(t *testi
 	log.Info("Step 1. Create from the owner of staked nodes a transaction to withdraw the unstaked funds")
 
 	unStakeValue := big.NewInt(10)
-	unStakeValue = unStakeValue.Mul(oneEGLD, unStakeValue)
+	unStakeValue = unStakeValue.Mul(staking.OneEGLD, unStakeValue)
 	txDataField = fmt.Sprintf("unStakeTokens@%s", hex.EncodeToString(unStakeValue.Bytes()))
-	txUnStake := generateTransaction(validatorOwner.Bytes, 1, vm.ValidatorSCAddress, zeroValue, txDataField, gasLimitForStakeOperation)
-	unStakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnStake, maxNumOfBlockToGenerateWhenExecutingTx)
+	txUnStake := staking.GenerateTransaction(validatorOwner.Bytes, 1, vm.ValidatorSCAddress, staking.ZeroValue, txDataField, staking.GasLimitForStakeOperation)
+	unStakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnStake, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, unStakeTx)
 
@@ -1336,11 +1351,11 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsBeforeUnbonding(t *testi
 	require.Nil(t, err)
 
 	// check bls key is still staked
-	testBLSKeyStaked(t, cs, metachainNode, blsKeys[0], targetEpoch)
+	testBLSKeyStaked(t, metachainNode, blsKeys[0])
 
 	txDataField = fmt.Sprintf("unBondTokens@%s", blsKeys[0])
-	txUnBond := generateTransaction(validatorOwner.Bytes, 2, vm.ValidatorSCAddress, zeroValue, txDataField, gasLimitForUnBond)
-	unBondTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnBond, maxNumOfBlockToGenerateWhenExecutingTx)
+	txUnBond := staking.GenerateTransaction(validatorOwner.Bytes, 2, vm.ValidatorSCAddress, staking.ZeroValue, txDataField, staking.GasLimitForUnBond)
+	unBondTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnBond, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, unBondTx)
 
@@ -1358,10 +1373,10 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsBeforeUnbonding(t *testi
 	}
 	result, _, err := metachainNode.GetFacadeHandler().ExecuteSCQuery(scQuery)
 	require.Nil(t, err)
-	require.Equal(t, okReturnCode, result.ReturnCode)
+	require.Equal(t, staking.OkReturnCode, result.ReturnCode)
 
 	expectedUnStaked := big.NewInt(10)
-	expectedUnStaked = expectedUnStaked.Mul(oneEGLD, expectedUnStaked)
+	expectedUnStaked = expectedUnStaked.Mul(staking.OneEGLD, expectedUnStaked)
 	require.Equal(t, expectedUnStaked.String(), big.NewInt(0).SetBytes(result.ReturnData[0]).String())
 
 	// the owner balance should decrease only with the txs fee
@@ -1534,22 +1549,22 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInFirstEpoch(t *testing.
 	metachainNode := cs.GetNodeHandler(core.MetachainShardId)
 
 	mintValue := big.NewInt(10000)
-	mintValue = mintValue.Mul(oneEGLD, mintValue)
+	mintValue = mintValue.Mul(staking.OneEGLD, mintValue)
 
 	validatorOwner, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
 	require.Nil(t, err)
 
-	stakeValue := big.NewInt(0).Mul(oneEGLD, big.NewInt(2600))
-	txDataField := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], mockBLSSignature)
-	txStake := generateTransaction(validatorOwner.Bytes, 0, vm.ValidatorSCAddress, stakeValue, txDataField, gasLimitForStakeOperation)
-	stakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txStake, maxNumOfBlockToGenerateWhenExecutingTx)
+	stakeValue := big.NewInt(0).Mul(staking.OneEGLD, big.NewInt(2600))
+	txDataField := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], staking.MockBLSSignature)
+	txStake := staking.GenerateTransaction(validatorOwner.Bytes, 0, vm.ValidatorSCAddress, stakeValue, txDataField, staking.GasLimitForStakeOperation)
+	stakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txStake, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, stakeTx)
 
 	err = cs.GenerateBlocks(2) // allow the metachain to finalize the block that contains the staking of the node
 	require.Nil(t, err)
 
-	testBLSKeyStaked(t, cs, metachainNode, blsKeys[0], targetEpoch)
+	testBLSKeyStaked(t, metachainNode, blsKeys[0])
 
 	shardIDValidatorOwner := cs.GetNodeHandler(0).GetShardCoordinator().ComputeId(validatorOwner.Bytes)
 	accountValidatorOwner, _, err := cs.GetNodeHandler(shardIDValidatorOwner).GetFacadeHandler().GetAccount(validatorOwner.Bech32, coreAPI.AccountQueryOptions{})
@@ -1557,10 +1572,10 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInFirstEpoch(t *testing.
 	balanceBeforeUnbonding, _ := big.NewInt(0).SetString(accountValidatorOwner.Balance, 10)
 
 	unStakeValue := big.NewInt(10)
-	unStakeValue = unStakeValue.Mul(oneEGLD, unStakeValue)
+	unStakeValue = unStakeValue.Mul(staking.OneEGLD, unStakeValue)
 	txDataField = fmt.Sprintf("unStakeTokens@%s", hex.EncodeToString(unStakeValue.Bytes()))
-	txUnStake := generateTransaction(validatorOwner.Bytes, 1, vm.ValidatorSCAddress, zeroValue, txDataField, gasLimitForStakeOperation)
-	unStakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnStake, maxNumOfBlockToGenerateWhenExecutingTx)
+	txUnStake := staking.GenerateTransaction(validatorOwner.Bytes, 1, vm.ValidatorSCAddress, staking.ZeroValue, txDataField, staking.GasLimitForStakeOperation)
+	unStakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnStake, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, unStakeTx)
 
@@ -1568,7 +1583,7 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInFirstEpoch(t *testing.
 	require.Nil(t, err)
 
 	// check bls key is still staked
-	testBLSKeyStaked(t, cs, metachainNode, blsKeys[0], targetEpoch)
+	testBLSKeyStaked(t, metachainNode, blsKeys[0])
 
 	scQuery := &process.SCQuery{
 		ScAddress:  vm.ValidatorSCAddress,
@@ -1579,10 +1594,10 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInFirstEpoch(t *testing.
 	}
 	result, _, err := metachainNode.GetFacadeHandler().ExecuteSCQuery(scQuery)
 	require.Nil(t, err)
-	require.Equal(t, okReturnCode, result.ReturnCode)
+	require.Equal(t, staking.OkReturnCode, result.ReturnCode)
 
 	expectedUnStaked := big.NewInt(10)
-	expectedUnStaked = expectedUnStaked.Mul(oneEGLD, expectedUnStaked)
+	expectedUnStaked = expectedUnStaked.Mul(staking.OneEGLD, expectedUnStaked)
 	require.Equal(t, expectedUnStaked.String(), big.NewInt(0).SetBytes(result.ReturnData[0]).String())
 
 	log.Info("Step 1. Wait for the unbonding epoch to start")
@@ -1593,8 +1608,8 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInFirstEpoch(t *testing.
 	log.Info("Step 2. Create from the owner of staked nodes a transaction to withdraw the unstaked funds")
 
 	txDataField = fmt.Sprintf("unBondTokens@%s", blsKeys[0])
-	txUnBond := generateTransaction(validatorOwner.Bytes, 2, vm.ValidatorSCAddress, zeroValue, txDataField, gasLimitForUnBond)
-	unBondTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnBond, maxNumOfBlockToGenerateWhenExecutingTx)
+	txUnBond := staking.GenerateTransaction(validatorOwner.Bytes, 2, vm.ValidatorSCAddress, staking.ZeroValue, txDataField, staking.GasLimitForUnBond)
+	unBondTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnBond, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, unBondTx)
 
@@ -1612,10 +1627,10 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInFirstEpoch(t *testing.
 	}
 	result, _, err = metachainNode.GetFacadeHandler().ExecuteSCQuery(scQuery)
 	require.Nil(t, err)
-	require.Equal(t, okReturnCode, result.ReturnCode)
+	require.Equal(t, staking.OkReturnCode, result.ReturnCode)
 
 	expectedStaked := big.NewInt(2590)
-	expectedStaked = expectedStaked.Mul(oneEGLD, expectedStaked)
+	expectedStaked = expectedStaked.Mul(staking.OneEGLD, expectedStaked)
 	require.Equal(t, expectedStaked.String(), string(result.ReturnData[0]))
 
 	// the owner balance should increase with the (10 EGLD - tx fee)
@@ -1805,15 +1820,15 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInBatches(t *testing.T, 
 	metachainNode := cs.GetNodeHandler(core.MetachainShardId)
 
 	mintValue := big.NewInt(2700)
-	mintValue = mintValue.Mul(oneEGLD, mintValue)
+	mintValue = mintValue.Mul(staking.OneEGLD, mintValue)
 
 	validatorOwner, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
 	require.Nil(t, err)
 
-	stakeValue := big.NewInt(0).Mul(oneEGLD, big.NewInt(2600))
-	txDataField := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], mockBLSSignature)
-	txStake := generateTransaction(validatorOwner.Bytes, 0, vm.ValidatorSCAddress, stakeValue, txDataField, gasLimitForStakeOperation)
-	stakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txStake, maxNumOfBlockToGenerateWhenExecutingTx)
+	stakeValue := big.NewInt(0).Mul(staking.OneEGLD, big.NewInt(2600))
+	txDataField := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], staking.MockBLSSignature)
+	txStake := staking.GenerateTransaction(validatorOwner.Bytes, 0, vm.ValidatorSCAddress, stakeValue, txDataField, staking.GasLimitForStakeOperation)
+	stakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txStake, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, stakeTx)
 
@@ -1822,7 +1837,7 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInBatches(t *testing.T, 
 	err = cs.GenerateBlocks(2)
 	require.Nil(t, err)
 
-	testBLSKeyStaked(t, cs, metachainNode, blsKeys[0], targetEpoch)
+	testBLSKeyStaked(t, metachainNode, blsKeys[0])
 
 	shardIDValidatorOwner := cs.GetNodeHandler(0).GetShardCoordinator().ComputeId(validatorOwner.Bytes)
 	accountValidatorOwner, _, err := cs.GetNodeHandler(shardIDValidatorOwner).GetFacadeHandler().GetAccount(validatorOwner.Bech32, coreAPI.AccountQueryOptions{})
@@ -1833,10 +1848,10 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInBatches(t *testing.T, 
 	log.Info("Step 2. Send the transactions in consecutive epochs, one TX in each epoch.")
 
 	unStakeValue1 := big.NewInt(11)
-	unStakeValue1 = unStakeValue1.Mul(oneEGLD, unStakeValue1)
+	unStakeValue1 = unStakeValue1.Mul(staking.OneEGLD, unStakeValue1)
 	txDataField = fmt.Sprintf("unStakeTokens@%s", hex.EncodeToString(unStakeValue1.Bytes()))
-	txUnStake := generateTransaction(validatorOwner.Bytes, 1, vm.ValidatorSCAddress, zeroValue, txDataField, gasLimitForStakeOperation)
-	unStakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnStake, maxNumOfBlockToGenerateWhenExecutingTx)
+	txUnStake := staking.GenerateTransaction(validatorOwner.Bytes, 1, vm.ValidatorSCAddress, staking.ZeroValue, txDataField, staking.GasLimitForStakeOperation)
+	unStakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnStake, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, unStakeTx)
 
@@ -1847,10 +1862,10 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInBatches(t *testing.T, 
 	require.Nil(t, err)
 
 	unStakeValue2 := big.NewInt(12)
-	unStakeValue2 = unStakeValue2.Mul(oneEGLD, unStakeValue2)
+	unStakeValue2 = unStakeValue2.Mul(staking.OneEGLD, unStakeValue2)
 	txDataField = fmt.Sprintf("unStakeTokens@%s", hex.EncodeToString(unStakeValue2.Bytes()))
-	txUnStake = generateTransaction(validatorOwner.Bytes, 2, vm.ValidatorSCAddress, zeroValue, txDataField, gasLimitForStakeOperation)
-	unStakeTx, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnStake, maxNumOfBlockToGenerateWhenExecutingTx)
+	txUnStake = staking.GenerateTransaction(validatorOwner.Bytes, 2, vm.ValidatorSCAddress, staking.ZeroValue, txDataField, staking.GasLimitForStakeOperation)
+	unStakeTx, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnStake, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, unStakeTx)
 
@@ -1859,10 +1874,10 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInBatches(t *testing.T, 
 	require.Nil(t, err)
 
 	unStakeValue3 := big.NewInt(13)
-	unStakeValue3 = unStakeValue3.Mul(oneEGLD, unStakeValue3)
+	unStakeValue3 = unStakeValue3.Mul(staking.OneEGLD, unStakeValue3)
 	txDataField = fmt.Sprintf("unStakeTokens@%s", hex.EncodeToString(unStakeValue3.Bytes()))
-	txUnStake = generateTransaction(validatorOwner.Bytes, 3, vm.ValidatorSCAddress, zeroValue, txDataField, gasLimitForStakeOperation)
-	unStakeTx, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnStake, maxNumOfBlockToGenerateWhenExecutingTx)
+	txUnStake = staking.GenerateTransaction(validatorOwner.Bytes, 3, vm.ValidatorSCAddress, staking.ZeroValue, txDataField, staking.GasLimitForStakeOperation)
+	unStakeTx, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnStake, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, unStakeTx)
 
@@ -1871,7 +1886,7 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInBatches(t *testing.T, 
 	require.Nil(t, err)
 
 	// check bls key is still staked
-	testBLSKeyStaked(t, cs, metachainNode, blsKeys[0], targetEpoch)
+	testBLSKeyStaked(t, metachainNode, blsKeys[0])
 
 	scQuery := &process.SCQuery{
 		ScAddress:  vm.ValidatorSCAddress,
@@ -1882,10 +1897,10 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInBatches(t *testing.T, 
 	}
 	result, _, err := metachainNode.GetFacadeHandler().ExecuteSCQuery(scQuery)
 	require.Nil(t, err)
-	require.Equal(t, okReturnCode, result.ReturnCode)
+	require.Equal(t, staking.OkReturnCode, result.ReturnCode)
 
 	expectedUnStaked := big.NewInt(11)
-	expectedUnStaked = expectedUnStaked.Mul(oneEGLD, expectedUnStaked)
+	expectedUnStaked = expectedUnStaked.Mul(staking.OneEGLD, expectedUnStaked)
 	require.Equal(t, expectedUnStaked.String(), big.NewInt(0).SetBytes(result.ReturnData[0]).String())
 
 	scQuery = &process.SCQuery{
@@ -1897,10 +1912,10 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInBatches(t *testing.T, 
 	}
 	result, _, err = metachainNode.GetFacadeHandler().ExecuteSCQuery(scQuery)
 	require.Nil(t, err)
-	require.Equal(t, okReturnCode, result.ReturnCode)
+	require.Equal(t, staking.OkReturnCode, result.ReturnCode)
 
 	expectedStaked := big.NewInt(2600 - 11 - 12 - 13)
-	expectedStaked = expectedStaked.Mul(oneEGLD, expectedStaked)
+	expectedStaked = expectedStaked.Mul(staking.OneEGLD, expectedStaked)
 	require.Equal(t, expectedStaked.String(), string(result.ReturnData[0]))
 
 	log.Info("Step 3. Wait for the unbonding epoch to start")
@@ -1912,8 +1927,8 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInBatches(t *testing.T, 
 	log.Info("Step 4.1. Create from the owner of staked nodes a transaction to withdraw the unstaked funds")
 
 	txDataField = fmt.Sprintf("unBondTokens@%s", blsKeys[0])
-	txUnBond := generateTransaction(validatorOwner.Bytes, 4, vm.ValidatorSCAddress, zeroValue, txDataField, gasLimitForUnBond)
-	unBondTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnBond, maxNumOfBlockToGenerateWhenExecutingTx)
+	txUnBond := staking.GenerateTransaction(validatorOwner.Bytes, 4, vm.ValidatorSCAddress, staking.ZeroValue, txDataField, staking.GasLimitForUnBond)
+	unBondTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnBond, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, unBondTx)
 
@@ -1948,8 +1963,8 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInBatches(t *testing.T, 
 	require.Nil(t, err)
 
 	txDataField = fmt.Sprintf("unBondTokens@%s", blsKeys[0])
-	txUnBond = generateTransaction(validatorOwner.Bytes, 5, vm.ValidatorSCAddress, zeroValue, txDataField, gasLimitForUnBond)
-	unBondTx, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnBond, maxNumOfBlockToGenerateWhenExecutingTx)
+	txUnBond = staking.GenerateTransaction(validatorOwner.Bytes, 5, vm.ValidatorSCAddress, staking.ZeroValue, txDataField, staking.GasLimitForUnBond)
+	unBondTx, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnBond, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, unBondTx)
 
@@ -1976,8 +1991,8 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInBatches(t *testing.T, 
 	require.Nil(t, err)
 
 	txDataField = fmt.Sprintf("unBondTokens@%s", blsKeys[0])
-	txUnBond = generateTransaction(validatorOwner.Bytes, 6, vm.ValidatorSCAddress, zeroValue, txDataField, gasLimitForUnBond)
-	unBondTx, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnBond, maxNumOfBlockToGenerateWhenExecutingTx)
+	txUnBond = staking.GenerateTransaction(validatorOwner.Bytes, 6, vm.ValidatorSCAddress, staking.ZeroValue, txDataField, staking.GasLimitForUnBond)
+	unBondTx, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnBond, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, unBondTx)
 
@@ -2161,15 +2176,15 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInEpoch(t *testing.T, cs
 	metachainNode := cs.GetNodeHandler(core.MetachainShardId)
 
 	mintValue := big.NewInt(2700)
-	mintValue = mintValue.Mul(oneEGLD, mintValue)
+	mintValue = mintValue.Mul(staking.OneEGLD, mintValue)
 
 	validatorOwner, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
 	require.Nil(t, err)
 
-	stakeValue := big.NewInt(0).Mul(oneEGLD, big.NewInt(2600))
-	txDataField := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], mockBLSSignature)
-	txStake := generateTransaction(validatorOwner.Bytes, 0, vm.ValidatorSCAddress, stakeValue, txDataField, gasLimitForStakeOperation)
-	stakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txStake, maxNumOfBlockToGenerateWhenExecutingTx)
+	stakeValue := big.NewInt(0).Mul(staking.OneEGLD, big.NewInt(2600))
+	txDataField := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], staking.MockBLSSignature)
+	txStake := staking.GenerateTransaction(validatorOwner.Bytes, 0, vm.ValidatorSCAddress, stakeValue, txDataField, staking.GasLimitForStakeOperation)
+	stakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txStake, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, stakeTx)
 
@@ -2178,7 +2193,7 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInEpoch(t *testing.T, cs
 	err = cs.GenerateBlocks(2)
 	require.Nil(t, err)
 
-	testBLSKeyStaked(t, cs, metachainNode, blsKeys[0], targetEpoch)
+	testBLSKeyStaked(t, metachainNode, blsKeys[0])
 
 	shardIDValidatorOwner := cs.GetNodeHandler(0).GetShardCoordinator().ComputeId(validatorOwner.Bytes)
 	accountValidatorOwner, _, err := cs.GetNodeHandler(shardIDValidatorOwner).GetFacadeHandler().GetAccount(validatorOwner.Bech32, coreAPI.AccountQueryOptions{})
@@ -2189,33 +2204,33 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInEpoch(t *testing.T, cs
 	log.Info("Step 2. Send the transactions in consecutively in same epoch.")
 
 	unStakeValue1 := big.NewInt(11)
-	unStakeValue1 = unStakeValue1.Mul(oneEGLD, unStakeValue1)
+	unStakeValue1 = unStakeValue1.Mul(staking.OneEGLD, unStakeValue1)
 	txDataField = fmt.Sprintf("unStakeTokens@%s", hex.EncodeToString(unStakeValue1.Bytes()))
-	txUnStake := generateTransaction(validatorOwner.Bytes, 1, vm.ValidatorSCAddress, zeroValue, txDataField, gasLimitForStakeOperation)
-	unStakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnStake, maxNumOfBlockToGenerateWhenExecutingTx)
+	txUnStake := staking.GenerateTransaction(validatorOwner.Bytes, 1, vm.ValidatorSCAddress, staking.ZeroValue, txDataField, staking.GasLimitForStakeOperation)
+	unStakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnStake, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, unStakeTx)
 
 	unStakeTxFee, _ := big.NewInt(0).SetString(unStakeTx.Fee, 10)
 
 	unStakeValue2 := big.NewInt(12)
-	unStakeValue2 = unStakeValue2.Mul(oneEGLD, unStakeValue2)
+	unStakeValue2 = unStakeValue2.Mul(staking.OneEGLD, unStakeValue2)
 	txDataField = fmt.Sprintf("unStakeTokens@%s", hex.EncodeToString(unStakeValue2.Bytes()))
-	txUnStake = generateTransaction(validatorOwner.Bytes, 2, vm.ValidatorSCAddress, zeroValue, txDataField, gasLimitForStakeOperation)
-	unStakeTx, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnStake, maxNumOfBlockToGenerateWhenExecutingTx)
+	txUnStake = staking.GenerateTransaction(validatorOwner.Bytes, 2, vm.ValidatorSCAddress, staking.ZeroValue, txDataField, staking.GasLimitForStakeOperation)
+	unStakeTx, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnStake, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, unStakeTx)
 
 	unStakeValue3 := big.NewInt(13)
-	unStakeValue3 = unStakeValue3.Mul(oneEGLD, unStakeValue3)
+	unStakeValue3 = unStakeValue3.Mul(staking.OneEGLD, unStakeValue3)
 	txDataField = fmt.Sprintf("unStakeTokens@%s", hex.EncodeToString(unStakeValue3.Bytes()))
-	txUnStake = generateTransaction(validatorOwner.Bytes, 3, vm.ValidatorSCAddress, zeroValue, txDataField, gasLimitForStakeOperation)
-	unStakeTx, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnStake, maxNumOfBlockToGenerateWhenExecutingTx)
+	txUnStake = staking.GenerateTransaction(validatorOwner.Bytes, 3, vm.ValidatorSCAddress, staking.ZeroValue, txDataField, staking.GasLimitForStakeOperation)
+	unStakeTx, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnStake, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, unStakeTx)
 
 	// check bls key is still staked
-	testBLSKeyStaked(t, cs, metachainNode, blsKeys[0], targetEpoch)
+	testBLSKeyStaked(t, metachainNode, blsKeys[0])
 
 	scQuery := &process.SCQuery{
 		ScAddress:  vm.ValidatorSCAddress,
@@ -2226,10 +2241,10 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInEpoch(t *testing.T, cs
 	}
 	result, _, err := metachainNode.GetFacadeHandler().ExecuteSCQuery(scQuery)
 	require.Nil(t, err)
-	require.Equal(t, okReturnCode, result.ReturnCode)
+	require.Equal(t, staking.OkReturnCode, result.ReturnCode)
 
 	expectedUnStaked := big.NewInt(11 + 12 + 13)
-	expectedUnStaked = expectedUnStaked.Mul(oneEGLD, expectedUnStaked)
+	expectedUnStaked = expectedUnStaked.Mul(staking.OneEGLD, expectedUnStaked)
 	require.Equal(t, expectedUnStaked.String(), big.NewInt(0).SetBytes(result.ReturnData[0]).String())
 
 	scQuery = &process.SCQuery{
@@ -2241,10 +2256,10 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInEpoch(t *testing.T, cs
 	}
 	result, _, err = metachainNode.GetFacadeHandler().ExecuteSCQuery(scQuery)
 	require.Nil(t, err)
-	require.Equal(t, okReturnCode, result.ReturnCode)
+	require.Equal(t, staking.OkReturnCode, result.ReturnCode)
 
 	expectedStaked := big.NewInt(2600 - 11 - 12 - 13)
-	expectedStaked = expectedStaked.Mul(oneEGLD, expectedStaked)
+	expectedStaked = expectedStaked.Mul(staking.OneEGLD, expectedStaked)
 	require.Equal(t, expectedStaked.String(), string(result.ReturnData[0]))
 
 	log.Info("Step 3. Wait for the unbonding epoch to start")
@@ -2256,8 +2271,8 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInEpoch(t *testing.T, cs
 	log.Info("Step 4.1. Create from the owner of staked nodes a transaction to withdraw the unstaked funds")
 
 	txDataField = fmt.Sprintf("unBondTokens@%s", blsKeys[0])
-	txUnBond := generateTransaction(validatorOwner.Bytes, 4, vm.ValidatorSCAddress, zeroValue, txDataField, gasLimitForUnBond)
-	unBondTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnBond, maxNumOfBlockToGenerateWhenExecutingTx)
+	txUnBond := staking.GenerateTransaction(validatorOwner.Bytes, 4, vm.ValidatorSCAddress, staking.ZeroValue, txDataField, staking.GasLimitForUnBond)
+	unBondTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnBond, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, unBondTx)
 
