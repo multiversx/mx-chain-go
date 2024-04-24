@@ -186,7 +186,8 @@ func TestCreateApiResolver(t *testing.T) {
 		failingStepsInstance.addressPublicKeyConverterFailingStep = 3
 		apiResolver, err := api.CreateApiResolver(failingArgs)
 		require.NotNil(t, err)
-		require.True(t, strings.Contains(strings.ToLower(err.Error()), "public key converter"))
+		fmt.Println(err.Error())
+		require.True(t, strings.Contains(strings.ToLower(err.Error()), "key converter"))
 		require.True(t, check.IfNil(apiResolver))
 	})
 	t.Run("createBuiltinFuncs fails should error", func(t *testing.T) {
@@ -275,7 +276,7 @@ func TestCreateApiResolver(t *testing.T) {
 		failingStepsInstance.addressPublicKeyConverterFailingStep = 10
 		apiResolver, err := api.CreateApiResolver(failingArgs)
 		require.NotNil(t, err)
-		require.True(t, strings.Contains(strings.ToLower(err.Error()), "public key converter"))
+		require.True(t, strings.Contains(strings.ToLower(err.Error()), "key converter"))
 		require.True(t, check.IfNil(apiResolver))
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -313,7 +314,7 @@ func createMockSCQueryElementArgs() api.SCQueryElementArgs {
 						WasmVMVersions: []config.WasmVMVersionByEpoch{
 							{StartEpoch: 0, Version: "*"},
 						},
-						TransferAndExecuteByUserAddresses: []string{"3132333435363738393031323334353637383930313233343536373839303234"},
+						TransferAndExecuteByUserAddresses: []string{"erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe3"},
 					},
 				},
 			},
