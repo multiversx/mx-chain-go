@@ -537,8 +537,8 @@ func (mrc *managedRunTypeComponents) ExtraHeaderSigVerifierHandler() headerCheck
 	return mrc.runTypeComponents.extraHeaderSigVerifierHandler
 }
 
-// GenesisBlockCreator returns the genesis block factory
-func (mrc *managedRunTypeComponents) GenesisBlockCreator() processComp.GenesisBlockCreatorFactory {
+// GenesisBlockCreatorFactory returns the genesis block factory
+func (mrc *managedRunTypeComponents) GenesisBlockCreatorFactory() processComp.GenesisBlockCreatorFactory {
 	mrc.mutRunTypeComponents.RLock()
 	defer mrc.mutRunTypeComponents.RUnlock()
 

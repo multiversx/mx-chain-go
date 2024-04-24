@@ -267,8 +267,8 @@ func (r *RunTypeComponentsStub) ExtraHeaderSigVerifierHandler() headerCheck.Extr
 	return r.ExtraHeaderSigVerifier
 }
 
-// GenesisBlockCreator -
-func (r *RunTypeComponentsStub) GenesisBlockCreator() processGenesis.GenesisBlockCreatorFactory {
+// GenesisBlockCreatorFactory -
+func (r *RunTypeComponentsStub) GenesisBlockCreatorFactory() processGenesis.GenesisBlockCreatorFactory {
 	return r.GenesisBlockFactory
 }
 
