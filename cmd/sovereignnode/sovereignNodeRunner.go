@@ -57,7 +57,6 @@ import (
 	trieIteratorsFactory "github.com/multiversx/mx-chain-go/node/trieIterators/factory"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
-	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	"github.com/multiversx/mx-chain-go/process/rating"
@@ -1346,7 +1345,6 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 		GenesisBlockCreatorFactory:            genesisProcess.NewSovereignGenesisBlockCreatorFactory(),
 		GenesisMetaBlockChecker:               processComp.NewSovereignGenesisMetaBlockChecker(),
 		IncomingHeaderSubscriber:              incomingHeaderHandler,
-		InterceptorsContainerFactoryCreator:   interceptorscontainer.NewSovereignShardInterceptorsContainerFactoryCreator(),
 		ShardResolversContainerFactoryCreator: resolverscontainer.NewSovereignShardResolversContainerFactoryCreator(),
 		TxPreProcessorCreator:                 preprocess.NewSovereignTxPreProcessorCreator(),
 		ExtraHeaderSigVerifierHolder:          extraHeaderSigVerifierHolder,

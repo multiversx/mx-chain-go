@@ -171,7 +171,6 @@ type ProcessComponentsFactoryArgs struct {
 	GenesisBlockCreatorFactory            processGenesis.GenesisBlockCreatorFactory
 	GenesisMetaBlockChecker               GenesisMetaBlockChecker
 	IncomingHeaderSubscriber              process.IncomingHeaderSubscriber
-	InterceptorsContainerFactoryCreator   interceptorscontainer.InterceptorsContainerFactoryCreator
 	ShardResolversContainerFactoryCreator resolverscontainer.ShardResolversContainerFactoryCreator
 	TxPreProcessorCreator                 preprocess.TxPreProcessorCreator
 	ExtraHeaderSigVerifierHolder          headerCheck.ExtraHeaderSigVerifierHolder
@@ -220,7 +219,6 @@ type processComponentsFactory struct {
 	genesisBlockCreatorFactory            processGenesis.GenesisBlockCreatorFactory
 	genesisMetaBlockChecker               GenesisMetaBlockChecker
 	incomingHeaderSubscriber              process.IncomingHeaderSubscriber
-	interceptorsContainerFactoryCreator   interceptorscontainer.InterceptorsContainerFactoryCreator
 	shardResolversContainerFactoryCreator resolverscontainer.ShardResolversContainerFactoryCreator
 	txPreprocessorCreator                 preprocess.TxPreProcessorCreator
 	extraHeaderSigVerifierHolder          headerCheck.ExtraHeaderSigVerifierHolder
@@ -268,7 +266,6 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		genesisBlockCreatorFactory:            args.GenesisBlockCreatorFactory,
 		genesisMetaBlockChecker:               args.GenesisMetaBlockChecker,
 		incomingHeaderSubscriber:              args.IncomingHeaderSubscriber,
-		interceptorsContainerFactoryCreator:   args.InterceptorsContainerFactoryCreator,
 		shardResolversContainerFactoryCreator: args.ShardResolversContainerFactoryCreator,
 		txPreprocessorCreator:                 args.TxPreProcessorCreator,
 		extraHeaderSigVerifierHolder:          args.ExtraHeaderSigVerifierHolder,
@@ -1732,7 +1729,7 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 		IncomingHeaderSubscriber:     pcf.incomingHeaderSubscriber,
 	}
 
-	interceptorContainerFactory, err := pcf.interceptorsContainerFactoryCreator.CreateInterceptorsContainerFactory(shardInterceptorsContainerFactoryArgs)
+	interceptorContainerFactory, err := pcf.runTypeComponents.InterceptorsContainerFactoryCreator().CreateInterceptorsContainerFactory(shardInterceptorsContainerFactoryArgs)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -2060,9 +2057,6 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	if check.IfNil(args.GenesisMetaBlockChecker) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilGenesisMetaBlockChecker)
 	}
-	if check.IfNil(args.InterceptorsContainerFactoryCreator) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilInterceptorsContainerFactoryCreator)
-	}
 	if check.IfNil(args.ShardResolversContainerFactoryCreator) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilShardResolversContainerFactoryCreator)
 	}
@@ -2147,6 +2141,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.RunTypeComponents.RequestersContainerFactoryCreator()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilRequesterContainerFactoryCreator)
+	}
+	if check.IfNil(args.RunTypeComponents.InterceptorsContainerFactoryCreator()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilInterceptorsContainerFactoryCreator)
 	}
 
 	return nil

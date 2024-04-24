@@ -29,6 +29,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
@@ -603,6 +604,7 @@ type RunTypeComponentsHolder interface {
 	ShardCoordinatorCreator() sharding.ShardCoordinatorFactory
 	NodesCoordinatorWithRaterCreator() nodesCoordinator.NodesCoordinatorWithRaterFactory
 	RequestersContainerFactoryCreator() requesterscontainer.RequesterContainerFactoryCreator
+	InterceptorsContainerFactoryCreator() interceptorscontainer.InterceptorsContainerFactoryCreator
 	Create() error
 	Close() error
 	CheckSubcomponents() error

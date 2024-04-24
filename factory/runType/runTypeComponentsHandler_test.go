@@ -71,6 +71,7 @@ func TestManagedRunTypeComponents_Create(t *testing.T) {
 		require.Nil(t, managedRunTypeComponents.ShardCoordinatorCreator())
 		require.Nil(t, managedRunTypeComponents.NodesCoordinatorWithRaterCreator())
 		require.Nil(t, managedRunTypeComponents.RequestersContainerFactoryCreator())
+		require.Nil(t, managedRunTypeComponents.InterceptorsContainerFactoryCreator())
 
 		err = managedRunTypeComponents.Create()
 		require.NoError(t, err)
@@ -99,6 +100,7 @@ func TestManagedRunTypeComponents_Create(t *testing.T) {
 		require.NotNil(t, managedRunTypeComponents.ShardCoordinatorCreator())
 		require.NotNil(t, managedRunTypeComponents.NodesCoordinatorWithRaterCreator())
 		require.NotNil(t, managedRunTypeComponents.RequestersContainerFactoryCreator())
+		require.NotNil(t, managedRunTypeComponents.InterceptorsContainerFactoryCreator())
 
 		require.Equal(t, factory.RunTypeComponentsName, managedRunTypeComponents.String())
 		require.NoError(t, managedRunTypeComponents.Close())

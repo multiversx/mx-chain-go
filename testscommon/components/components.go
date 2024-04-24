@@ -41,7 +41,6 @@ import (
 	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
 	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
-	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/rating"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -651,7 +650,6 @@ func GetProcessArgs(
 		},
 		GenesisBlockCreatorFactory:            process.NewGenesisBlockCreatorFactory(),
 		GenesisMetaBlockChecker:               processComp.NewGenesisMetaBlockChecker(),
-		InterceptorsContainerFactoryCreator:   interceptorscontainer.NewShardInterceptorsContainerFactoryCreator(),
 		ShardResolversContainerFactoryCreator: resolverscontainer.NewShardResolversContainerFactoryCreator(),
 		TxPreProcessorCreator:                 preprocess.NewTxPreProcessorCreator(),
 		ExtraHeaderSigVerifierHolder:          &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
@@ -748,7 +746,6 @@ func GetSovereignProcessArgs(
 	processArgs.StatusCoreComponents = statusCoreComponents
 	processArgs.GenesisBlockCreatorFactory = process.NewSovereignGenesisBlockCreatorFactory()
 	processArgs.GenesisMetaBlockChecker = processComp.NewSovereignGenesisMetaBlockChecker()
-	processArgs.InterceptorsContainerFactoryCreator = interceptorscontainer.NewSovereignShardInterceptorsContainerFactoryCreator()
 	processArgs.ShardResolversContainerFactoryCreator = resolverscontainer.NewSovereignShardResolversContainerFactoryCreator()
 	processArgs.ExtraHeaderSigVerifierHolder = extraHeaderSigVerifierHolder
 	processArgs.IncomingHeaderSubscriber = &sovereign.IncomingHeaderSubscriberStub{}

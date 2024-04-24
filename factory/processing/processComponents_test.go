@@ -25,7 +25,6 @@ import (
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
-	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -274,7 +273,6 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 		TxExecutionOrderHandler:               &txExecOrderStub.TxExecutionOrderHandlerStub{},
 		GenesisBlockCreatorFactory:            genesisProcess.NewGenesisBlockCreatorFactory(),
 		GenesisMetaBlockChecker:               processComp.NewGenesisMetaBlockChecker(),
-		InterceptorsContainerFactoryCreator:   interceptorscontainer.NewShardInterceptorsContainerFactoryCreator(),
 		ShardResolversContainerFactoryCreator: resolverscontainer.NewShardResolversContainerFactoryCreator(),
 		TxPreProcessorCreator:                 preprocess.NewTxPreProcessorCreator(),
 		ExtraHeaderSigVerifierHolder:          &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
@@ -629,15 +627,6 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		require.True(t, errors.Is(err, errorsMx.ErrNilGenesisMetaBlockChecker))
 		require.Nil(t, pcf)
 	})
-	t.Run("nil interceptors container factory creator, should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockProcessComponentsFactoryArgs()
-		args.InterceptorsContainerFactoryCreator = nil
-		pcf, err := processComp.NewProcessComponentsFactory(args)
-		require.True(t, errors.Is(err, errorsMx.ErrNilInterceptorsContainerFactoryCreator))
-		require.Nil(t, pcf)
-	})
 	t.Run("nil shard resolvers container factory creator, should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -938,6 +927,17 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		require.True(t, errors.Is(err, errorsMx.ErrNilRequesterContainerFactoryCreator))
 		require.Nil(t, pcf)
 	})
+	t.Run("nil InterceptorsContainerFactory should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockProcessComponentsFactoryArgs()
+		rtMock := getRunTypeComponentsMock()
+		rtMock.InterceptorsContainerFactory = nil
+		args.RunTypeComponents = rtMock
+		pcf, err := processComp.NewProcessComponentsFactory(args)
+		require.True(t, errors.Is(err, errorsMx.ErrNilInterceptorsContainerFactoryCreator))
+		require.Nil(t, pcf)
+	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -974,6 +974,7 @@ func getRunTypeComponentsMock() *mainFactoryMocks.RunTypeComponentsStub {
 		TopicsChecker:                       rt.TopicsCheckerHandler(),
 		ShardCoordinatorFactory:             rt.ShardCoordinatorCreator(),
 		RequestersContainerFactory:          rt.RequestersContainerFactoryCreator(),
+		InterceptorsContainerFactory:        rt.InterceptorsContainerFactoryCreator(),
 	}
 }
 

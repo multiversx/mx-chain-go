@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/processProxy"
@@ -64,6 +65,7 @@ type runTypeComponents struct {
 	shardCoordinatorCreator                 sharding.ShardCoordinatorFactory
 	nodesCoordinatorWithRaterFactoryCreator nodesCoord.NodesCoordinatorWithRaterFactory
 	requestersContainerFactoryCreator       requesterscontainer.RequesterContainerFactoryCreator
+	interceptorsContainerFactoryCreator     interceptorscontainer.InterceptorsContainerFactoryCreator
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
@@ -190,6 +192,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		shardCoordinatorCreator:                 sharding.NewMultiShardCoordinatorFactory(),
 		nodesCoordinatorWithRaterFactoryCreator: nodesCoord.NewIndexHashedNodesCoordinatorWithRaterFactory(),
 		requestersContainerFactoryCreator:       requesterscontainer.NewShardRequestersContainerFactoryCreator(),
+		interceptorsContainerFactoryCreator:     interceptorscontainer.NewShardInterceptorsContainerFactoryCreator(),
 	}, nil
 }
 
