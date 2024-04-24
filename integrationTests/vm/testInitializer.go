@@ -609,6 +609,7 @@ func CreateVMAndBlockchainHookAndDataPool(
 		WasmVMChangeLocker:  wasmVMChangeLocker,
 		ESDTTransferParser:  esdtTransferParser,
 		Hasher:              integrationtests.TestHasher,
+		PubKeyConverter:     pubkeyConv,
 	}
 	vmFactory, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	if err != nil {
@@ -796,6 +797,7 @@ func CreateVMConfigWithVersion(version string) *config.VirtualMachineConfig {
 			},
 		},
 		TimeOutForSCExecutionInMilliseconds: 10000, // 10 seconds
+		TransferAndExecuteByUserAddresses:   []string{"3132333435363738393031323334353637383930313233343536373839303234"},
 	}
 }
 

@@ -529,6 +529,7 @@ func createShardVmContainerFactory(args scQueryElementArgs, argsHook hooks.ArgBl
 		WasmVMChangeLocker:  args.coreComponents.WasmVMChangeLocker(),
 		ESDTTransferParser:  esdtTransferParser,
 		Hasher:              args.coreComponents.Hasher(),
+		PubKeyConverter:     args.coreComponents.AddressPubKeyConverter(),
 	}
 
 	log.Debug("apiResolver: enable epoch for sc deploy", "epoch", args.epochConfig.EnableEpochs.SCDeployEnableEpoch)

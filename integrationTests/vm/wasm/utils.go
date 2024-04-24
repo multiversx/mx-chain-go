@@ -334,6 +334,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		WasmVMChangeLocker:  context.WasmVMChangeLocker,
 		ESDTTransferParser:  esdtTransferParser,
 		Hasher:              hasher,
+		PubKeyConverter:     pkConverter,
 	}
 	vmFactory, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	require.Nil(context.T, err)

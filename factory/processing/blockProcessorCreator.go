@@ -1086,6 +1086,7 @@ func (pcf *processComponentsFactory) createVMFactoryShard(
 		WasmVMChangeLocker:  wasmVMChangeLocker,
 		ESDTTransferParser:  esdtTransferParser,
 		Hasher:              pcf.coreData.Hasher(),
+		PubKeyConverter:     pcf.coreData.AddressPubKeyConverter(),
 	}
 
 	return shard.NewVMContainerFactory(argsNewVMFactory)
