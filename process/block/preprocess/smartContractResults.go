@@ -260,7 +260,7 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 		totalGasConsumedInSelfShard:           scr.getTotalGasConsumed(),
 	}
 
-	fileName := fmt.Sprintf("validator-cpu-profile-%d-%d.pprof", time.Now().Unix(), len(body.MiniBlocks))
+	fileName := fmt.Sprintf("logs/validator-cpu-profile-%d-%d.pprof", time.Now().Unix(), len(body.MiniBlocks))
 	f, err := os.Create(fileName)
 	if err != nil {
 		log.Error("could not create CPU profile", "error", err)
@@ -597,7 +597,7 @@ func (scr *smartContractResults) ProcessMiniBlock(
 
 	//TODO: add pprof for leader, when len(miniBlockScrs) > 0
 
-	fileName := fmt.Sprintf("leader-cpu-profile-%d-%d.pprof", time.Now().Unix(), len(miniBlockScrs))
+	fileName := fmt.Sprintf("logs/leader-cpu-profile-%d-%d.pprof", time.Now().Unix(), len(miniBlockScrs))
 	f, err := os.Create(fileName)
 	if err != nil {
 		log.Error("could not create CPU profile", "error", err)
