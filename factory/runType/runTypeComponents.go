@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/consensus"
 	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
+	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/errors"
@@ -62,6 +63,7 @@ type runTypeComponents struct {
 	topicsCheckerHandler                    sovereign.TopicsCheckerHandler
 	shardCoordinatorCreator                 sharding.ShardCoordinatorFactory
 	nodesCoordinatorWithRaterFactoryCreator nodesCoord.NodesCoordinatorWithRaterFactory
+	requestersContainerFactoryCreator       requesterscontainer.RequesterContainerFactoryCreator
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
@@ -187,6 +189,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		topicsCheckerHandler:                    disabled.NewDisabledTopicsChecker(),
 		shardCoordinatorCreator:                 sharding.NewMultiShardCoordinatorFactory(),
 		nodesCoordinatorWithRaterFactoryCreator: nodesCoord.NewIndexHashedNodesCoordinatorWithRaterFactory(),
+		requestersContainerFactoryCreator:       requesterscontainer.NewShardRequestersContainerFactoryCreator(),
 	}, nil
 }
 

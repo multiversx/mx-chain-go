@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/consensus"
 	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
+	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/errors"
@@ -162,6 +163,9 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	}
 	if check.IfNil(mrc.nodesCoordinatorWithRaterFactoryCreator) {
 		return errors.ErrNilNodesCoordinatorFactory
+	}
+	if check.IfNil(mrc.requestersContainerFactoryCreator) {
+		return errors.ErrNilRequesterContainerFactoryCreator
 	}
 	return nil
 }
@@ -452,6 +456,18 @@ func (mrc *managedRunTypeComponents) NodesCoordinatorWithRaterCreator() nodesCoo
 	}
 
 	return mrc.runTypeComponents.nodesCoordinatorWithRaterFactoryCreator
+}
+
+// RequestersContainerFactoryCreator returns the shard coordinator factory
+func (mrc *managedRunTypeComponents) RequestersContainerFactoryCreator() requesterscontainer.RequesterContainerFactoryCreator {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.requestersContainerFactoryCreator
 }
 
 // IsInterfaceNil returns true if the interface is nil
