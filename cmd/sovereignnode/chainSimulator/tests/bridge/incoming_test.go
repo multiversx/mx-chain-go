@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 )
 
@@ -46,7 +47,7 @@ func TestIncomingOperations(t *testing.T) {
 			RoundsPerEpoch:         core.OptionalUint64{},
 			ApiInterface:           api.NewNoApiInterface(),
 			MinNodesPerShard:       2,
-			ConsensusGroupSize:     2,
+			ConsensusGroupSize:     1,
 			InitialRound:           100,
 			AlterConfigsFunction: func(cfg *config.Configs) {
 				cfg.EconomicsConfig = economicsConfig
@@ -62,9 +63,12 @@ func TestIncomingOperations(t *testing.T) {
 
 	defer cs.Close()
 
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
+
 	nodeHandler := cs.GetNodeHandler(core.SovereignChainShardId)
 
-	//logger.SetLogLevel("*:DEBUG,process:TRACE")
+	logger.SetLogLevel("*:DEBUG,process:TRACE")
 
 	nonce := uint64(9999999)
 	incomingHeader := &sovereign.IncomingHeader{
