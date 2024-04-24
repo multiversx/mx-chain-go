@@ -36,6 +36,7 @@ func TestSCExecutionWithVMVersionSwitching(t *testing.T) {
 			{StartEpoch: 15, Version: "v1.2"},
 			{StartEpoch: 16, Version: "v1.4"},
 		},
+		TransferAndExecuteByUserAddresses: []string{"3132333435363738393031323334353637383930313233343536373839303234"},
 	}
 
 	gasSchedule, _ := common.LoadGasScheduleConfig(integrationTests.GasSchedulePath)

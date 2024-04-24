@@ -75,12 +75,14 @@ func GetGeneralConfig() config.Config {
 					WasmVMVersions: []config.WasmVMVersionByEpoch{
 						{StartEpoch: 0, Version: "v0.3"},
 					},
+					TransferAndExecuteByUserAddresses: []string{"3132333435363738393031323334353637383930313233343536373839303234"},
 				},
 			},
 			Execution: config.VirtualMachineConfig{
 				WasmVMVersions: []config.WasmVMVersionByEpoch{
 					{StartEpoch: 0, Version: "v0.3"},
 				},
+				TransferAndExecuteByUserAddresses: []string{"3132333435363738393031323334353637383930313233343536373839303234"},
 			},
 			GasConfig: config.VirtualMachineGasConfig{
 				ShardMaxGasPerVmQuery: 1_500_000_000,

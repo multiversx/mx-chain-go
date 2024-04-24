@@ -313,6 +313,7 @@ func createMockSCQueryElementArgs() api.SCQueryElementArgs {
 						WasmVMVersions: []config.WasmVMVersionByEpoch{
 							{StartEpoch: 0, Version: "*"},
 						},
+						TransferAndExecuteByUserAddresses: []string{"3132333435363738393031323334353637383930313233343536373839303234"},
 					},
 				},
 			},
