@@ -2,6 +2,7 @@ package preprocess
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
 	"runtime/debug"
 	"runtime/pprof"
@@ -260,7 +261,9 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 		totalGasConsumedInSelfShard:           scr.getTotalGasConsumed(),
 	}
 
-	fileName := fmt.Sprintf("logs/validator-cpu-profile-%d-%d.pprof", time.Now().Unix(), len(body.MiniBlocks))
+	// TODO: add validator pprof
+	r := rand.Intn(1000)
+	fileName := fmt.Sprintf("logs/validator-cpu-profile-%d-%d-%d.pprof", time.Now().Unix(), len(body.MiniBlocks), r)
 	f, err := os.Create(fileName)
 	if err != nil {
 		log.Error("could not create CPU profile", "error", err)
@@ -596,8 +599,8 @@ func (scr *smartContractResults) ProcessMiniBlock(
 	}
 
 	//TODO: add pprof for leader, when len(miniBlockScrs) > 0
-
-	fileName := fmt.Sprintf("logs/leader-cpu-profile-%d-%d.pprof", time.Now().Unix(), len(miniBlockScrs))
+	r := rand.Intn(1000)
+	fileName := fmt.Sprintf("logs/leader-cpu-profile-%d-%d-%d.pprof", time.Now().Unix(), len(miniBlockScrs), r)
 	f, err := os.Create(fileName)
 	if err != nil {
 		log.Error("could not create CPU profile", "error", err)
