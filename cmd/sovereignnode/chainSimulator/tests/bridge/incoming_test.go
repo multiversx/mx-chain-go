@@ -68,7 +68,7 @@ func TestIncomingOperations(t *testing.T) {
 
 	nodeHandler := cs.GetNodeHandler(core.SovereignChainShardId)
 
-	logger.SetLogLevel("*:DEBUG,process:TRACE")
+	logger.SetLogLevel("*:DEBUG,process:TRACE,block:TRACE")
 
 	nonce := uint64(9999999)
 	incomingHeader := &sovereign.IncomingHeader{
@@ -88,6 +88,15 @@ func TestIncomingOperations(t *testing.T) {
 		IncomingEvents: []*transaction.Event{createTransactionEvent()},
 	}
 	err = nodeHandler.GetIncomingHeaderHandler().AddHeader(generateRandomHash(), incomingHeader2)
+	require.Nil(t, err)
+
+	firstHeaderHash, _ = core.CalculateHash(nodeHandler.GetCoreComponents().InternalMarshalizer(), nodeHandler.GetCoreComponents().Hasher(), incomingHeader2.Header)
+	nonce++
+	incomingHeader3 := &sovereign.IncomingHeader{
+		Header:         createHeaderV2(nonce, firstHeaderHash, incomingHeader2.Header.GetRandSeed()),
+		IncomingEvents: []*transaction.Event{createTransactionEvent()},
+	}
+	err = nodeHandler.GetIncomingHeaderHandler().AddHeader(generateRandomHash(), incomingHeader3)
 	require.Nil(t, err)
 
 	err = cs.GenerateBlocks(10)
