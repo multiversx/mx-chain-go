@@ -76,7 +76,7 @@ func TestIncomingOperations(t *testing.T) {
 		IncomingEvents: []*transaction.Event{createTransactionEvent()},
 	}
 	firstHeaderHash, _ := core.CalculateHash(nodeHandler.GetCoreComponents().InternalMarshalizer(), nodeHandler.GetCoreComponents().Hasher(), incomingHeader.Header)
-	err = nodeHandler.GetIncomingHeaderHandler().AddHeader([]byte("hash"), incomingHeader)
+	err = nodeHandler.GetIncomingHeaderHandler().AddHeader(generateRandomHash(), incomingHeader)
 	require.Nil(t, err)
 
 	err = cs.GenerateBlocks(1)
@@ -87,7 +87,7 @@ func TestIncomingOperations(t *testing.T) {
 		Header:         createHeaderV2(nonce, firstHeaderHash, incomingHeader.Header.GetRandSeed()),
 		IncomingEvents: []*transaction.Event{createTransactionEvent()},
 	}
-	err = nodeHandler.GetIncomingHeaderHandler().AddHeader([]byte("hash2"), incomingHeader2)
+	err = nodeHandler.GetIncomingHeaderHandler().AddHeader(generateRandomHash(), incomingHeader2)
 	require.Nil(t, err)
 
 	err = cs.GenerateBlocks(10)
