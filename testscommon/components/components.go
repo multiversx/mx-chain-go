@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	commonFactory "github.com/multiversx/mx-chain-go/common/factory"
 	"github.com/multiversx/mx-chain-go/config"
+	mockConsensus "github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -1022,6 +1023,7 @@ func createArgsRunTypeComponents() runType.ArgsRunTypeComponents {
 		},
 		CryptoComponents: &mockCoreComp.CryptoComponentsStub{
 			TxKeyGen: &mockCoreComp.KeyGenMock{},
+			BlockSig: &mockConsensus.SingleSignerMock{},
 		},
 		Configs: config.Configs{
 			EconomicsConfig: &config.EconomicsConfig{
