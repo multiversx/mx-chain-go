@@ -102,6 +102,10 @@ func TestTomlParser(t *testing.T) {
 				WasmVMVersions:                      wasmVMVersions,
 				TimeOutForSCExecutionInMilliseconds: 10000,
 				WasmerSIGSEGVPassthrough:            true,
+				TransferAndExecuteByUserAddresses: []string{
+					"erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe0",
+					"erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe1",
+					"erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe2"},
 			},
 			Querying: QueryVirtualMachineConfig{
 				NumConcurrentVMs:     16,
@@ -199,6 +203,11 @@ func TestTomlParser(t *testing.T) {
             { StartEpoch = 12, Version = "v0.3" },
             { StartEpoch = 88, Version = "v1.2" },
         ]
+		TransferAndExecuteByUserAddresses = [ # TODO: set real contract addresses
+			"erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe0", #shard 0
+			"erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe1", #shard 1
+			"erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe2", #shard 2
+		]
 
     [VirtualMachine.Querying]
         NumConcurrentVMs = 16

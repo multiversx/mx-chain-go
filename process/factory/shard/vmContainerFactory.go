@@ -44,7 +44,12 @@ type vmContainerFactory struct {
 	wasmVMChangeLocker  common.Locker
 	esdtTransferParser  vmcommon.ESDTTransferParser
 	hasher              hashing.Hasher
+	pubKeyConverter     core.PubkeyConverter
+
+	mapOpcodeAddressIsAllowed map[string]map[string]struct{}
 }
+
+const managedMultiTransferESDTNFTExecuteByUser = "managedMultiTransferESDTNFTExecuteByUser"
 
 // ArgVMContainerFactory defines the arguments needed to the new VM factory
 type ArgVMContainerFactory struct {
@@ -58,6 +63,7 @@ type ArgVMContainerFactory struct {
 	BuiltInFunctions    vmcommon.BuiltInFunctionContainer
 	BlockChainHook      process.BlockChainHookWithAccountsAdapter
 	Hasher              hashing.Hasher
+	PubKeyConverter     core.PubkeyConverter
 }
 
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
@@ -86,6 +92,9 @@ func NewVMContainerFactory(args ArgVMContainerFactory) (*vmContainerFactory, err
 	if check.IfNil(args.Hasher) {
 		return nil, process.ErrNilHasher
 	}
+	if check.IfNil(args.PubKeyConverter) {
+		return nil, process.ErrNilPubkeyConverter
+	}
 
 	cryptoHook := hooks.NewVMCryptoHook()
 
@@ -102,6 +111,7 @@ func NewVMContainerFactory(args ArgVMContainerFactory) (*vmContainerFactory, err
 		wasmVMChangeLocker:  args.WasmVMChangeLocker,
 		esdtTransferParser:  args.ESDTTransferParser,
 		hasher:              args.Hasher,
+		pubKeyConverter:     args.PubKeyConverter,
 	}
 
 	vmf.wasmVMVersions = args.Config.WasmVMVersions
@@ -112,6 +122,26 @@ func NewVMContainerFactory(args ArgVMContainerFactory) (*vmContainerFactory, err
 	}
 
 	return vmf, nil
+}
+
+func (vmf *vmContainerFactory) createMapOpCodeAddressIsAllowed() error {
+	vmf.mapOpcodeAddressIsAllowed = make(map[string]map[string]struct{})
+
+	transferAndExecuteByUserAddresses := vmf.config.TransferAndExecuteByUserAddresses
+	if len(transferAndExecuteByUserAddresses) == 0 {
+		return process.ErrTransferAndExecuteByUserAddressesIsNil
+	}
+
+	vmf.mapOpcodeAddressIsAllowed[managedMultiTransferESDTNFTExecuteByUser] = make(map[string]struct{})
+	for _, address := range transferAndExecuteByUserAddresses {
+		decodedAddress, errDecode := vmf.pubKeyConverter.Decode(address)
+		if errDecode != nil {
+			return errDecode
+		}
+		vmf.mapOpcodeAddressIsAllowed[managedMultiTransferESDTNFTExecuteByUser][string(decodedAddress)] = struct{}{}
+	}
+
+	return nil
 }
 
 func (vmf *vmContainerFactory) sortWasmVMVersions() {
@@ -351,6 +381,7 @@ func (vmf *vmContainerFactory) createInProcessWasmVMV15() (vmcommon.VMExecutionH
 		EpochNotifier:                       vmf.epochNotifier,
 		EnableEpochsHandler:                 vmf.enableEpochsHandler,
 		Hasher:                              vmf.hasher,
+		MapOpcodeAddressIsAllowed:           vmf.mapOpcodeAddressIsAllowed,
 	}
 
 	return wasmVMHost15.NewVMHost(vmf.blockChainHook, hostParameters)

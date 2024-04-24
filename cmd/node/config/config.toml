@@ -675,6 +675,11 @@
             { StartEpoch = 0, Version = "v1.4" },
             { StartEpoch = 1, Version = "v1.5" }, # TODO: set also the RoundActivations.DisableAsyncCallV1 accordingly
         ]
+        TransferAndExecuteByUserAddresses = [ # TODO: set real contract addresses
+            "erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe0", #shard 0
+            "erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe1", #shard 1
+            "erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe2", #shard 2
+        ]
 
     [VirtualMachine.Querying]
         NumConcurrentVMs = 1
@@ -683,6 +688,11 @@
         WasmVMVersions = [
             { StartEpoch = 0, Version = "v1.4" },
             { StartEpoch = 1, Version = "v1.5" }, # TODO: set also the RoundActivations.DisableAsyncCallV1 accordingly
+        ]
+        TransferAndExecuteByUserAddresses = [ # TODO: set real contract addresses
+            "erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe0", #shard 0
+            "erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe1", #shard 1
+            "erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe2", #shard 2
         ]
 
     [VirtualMachine.GasConfig]

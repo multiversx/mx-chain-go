@@ -32,6 +32,7 @@ func makeVMConfig() config.VirtualMachineConfig {
 			{StartEpoch: 12, Version: "v1.3"},
 			{StartEpoch: 14, Version: "v1.4"},
 		},
+		TransferAndExecuteByUserAddresses: []string{"erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe3"},
 	}
 }
 
@@ -48,6 +49,7 @@ func createMockVMAccountsArguments() ArgVMContainerFactory {
 		BuiltInFunctions:    vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
 		BlockChainHook:      &testscommon.BlockChainHookStub{},
 		Hasher:              &hashingMocks.HasherMock{},
+		PubKeyConverter:     testscommon.RealWorldBech32PubkeyConverter,
 	}
 }
 
@@ -135,6 +137,33 @@ func TestNewVMContainerFactory_NilHasherShouldErr(t *testing.T) {
 
 	assert.Nil(t, vmf)
 	assert.Equal(t, process.ErrNilHasher, err)
+}
+
+func TestNewVMContainerFactory_NilPubKeyConverterShouldErr(t *testing.T) {
+	args := createMockVMAccountsArguments()
+	args.PubKeyConverter = nil
+	vmf, err := NewVMContainerFactory(args)
+
+	assert.Nil(t, vmf)
+	assert.Equal(t, process.ErrNilPubkeyConverter, err)
+}
+
+func TestNewVMContainerFactory_EmptyOpcodeAddressListErr(t *testing.T) {
+	args := createMockVMAccountsArguments()
+	args.Config.TransferAndExecuteByUserAddresses = nil
+	vmf, err := NewVMContainerFactory(args)
+
+	assert.Nil(t, vmf)
+	assert.Equal(t, process.ErrTransferAndExecuteByUserAddressesIsNil, err)
+}
+
+func TestNewVMContainerFactory_WrongAddressErr(t *testing.T) {
+	args := createMockVMAccountsArguments()
+	args.Config.TransferAndExecuteByUserAddresses = []string{"just"}
+	vmf, err := NewVMContainerFactory(args)
+
+	assert.Nil(t, vmf)
+	assert.Equal(t, process.ErrTransferAndExecuteByUserAddressesIsNil, err)
 }
 
 func TestNewVMContainerFactory_OkValues(t *testing.T) {
