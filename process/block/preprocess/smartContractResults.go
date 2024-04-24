@@ -1,6 +1,10 @@
 package preprocess
 
 import (
+	"fmt"
+	"os"
+	"runtime/debug"
+	"runtime/pprof"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -255,6 +259,20 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 		gasConsumedByMiniBlockInReceiverShard: uint64(0),
 		totalGasConsumedInSelfShard:           scr.getTotalGasConsumed(),
 	}
+
+	fileName := fmt.Sprintf("validator-cpu-profile-%d-%d.pprof", time.Now().Unix(), len(body.MiniBlocks))
+	f, err := os.Create(fileName)
+	if err != nil {
+		log.Error("could not create CPU profile", "error", err)
+	}
+	debug.SetGCPercent(-1)
+	_ = pprof.StartCPUProfile(f)
+
+	defer func() {
+		pprof.StopCPUProfile()
+
+		log.Info("validator-cpu-profile saved", "file", fileName)
+	}()
 
 	log.Debug("smartContractResults.ProcessBlockTransactions: before processing",
 		"totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
@@ -576,6 +594,22 @@ func (scr *smartContractResults) ProcessMiniBlock(
 	} else {
 		maxGasLimitUsedForDestMeTxs = scr.economicsFee.MaxGasLimitPerBlock(scr.shardCoordinator.SelfId()) * maxGasLimitPercentUsedForDestMeTxs / 100
 	}
+
+	//TODO: add pprof for leader, when len(miniBlockScrs) > 0
+
+	fileName := fmt.Sprintf("leader-cpu-profile-%d-%d.pprof", time.Now().Unix(), len(miniBlockScrs))
+	f, err := os.Create(fileName)
+	if err != nil {
+		log.Error("could not create CPU profile", "error", err)
+	}
+	debug.SetGCPercent(-1)
+	_ = pprof.StartCPUProfile(f)
+
+	defer func() {
+		pprof.StopCPUProfile()
+
+		log.Info("leader-cpu-profile saved", "file", fileName)
+	}()
 
 	log.Debug("smartContractResults.ProcessMiniBlock: before processing",
 		"totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
