@@ -308,6 +308,12 @@
     # DynamicESDTEnableEpoch represents the epoch when dynamic NFT feature is enabled
     DynamicESDTEnableEpoch = 4
 
+    # EGLDInMultiTransferEnableEpoch represents the epoch when EGLD in multitransfer is enabled
+    EGLDInMultiTransferEnableEpoch = 4
+
+    # CryptoAPIV2EnableEpoch represents the epoch when BLSMultiSig, Secp256r1 and other opcodes are enabled
+    CryptoAPIV2EnableEpoch = 4
+
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
         { EnableEpoch = 0, Type = "no-KOSK" },

@@ -853,6 +853,12 @@ func TestEnableEpochConfig(t *testing.T) {
     # DynamicESDTEnableEpoch represents the epoch when dynamic NFT feature is enabled
     DynamicESDTEnableEpoch = 95
 
+    # EGLDInMultiTransferEnableEpoch represents the epoch when EGLD in MultiTransfer is enabled
+    EGLDInMultiTransferEnableEpoch = 96
+
+    # CryptoAPIV2EnableEpoch represents the epoch when BLSMultiSig, Secp256r1 and other opcodes are enabled
+    CryptoAPIV2EnableEpoch = 97
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -966,6 +972,8 @@ func TestEnableEpochConfig(t *testing.T) {
 			CurrentRandomnessOnSortingEnableEpoch:                    93,
 			AlwaysMergeContextsInEEIEnableEpoch:                      94,
 			DynamicESDTEnableEpoch:                                   95,
+			EGLDInMultiTransferEnableEpoch:                           96,
+			CryptoAPIV2EnableEpoch:                                   97,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,
