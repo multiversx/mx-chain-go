@@ -33,6 +33,7 @@ func CreateMemUnit() storage.Storer {
 	return unit
 }
 
+// ReadInitialAccounts returns the genesis accounts from a file
 func ReadInitialAccounts(filePath string) ([]genesis.InitialAccountHandler, error) {
 	initialAccounts := make([]*data.InitialAccount, 0)
 	err := core.LoadJsonFile(&initialAccounts, filePath)
