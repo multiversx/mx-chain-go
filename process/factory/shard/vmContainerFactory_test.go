@@ -163,7 +163,7 @@ func TestNewVMContainerFactory_WrongAddressErr(t *testing.T) {
 	vmf, err := NewVMContainerFactory(args)
 
 	assert.Nil(t, vmf)
-	assert.Equal(t, process.ErrTransferAndExecuteByUserAddressesIsNil, err)
+	assert.Equal(t, err.Error(), "invalid bech32 string length 4")
 }
 
 func TestNewVMContainerFactory_OkValues(t *testing.T) {

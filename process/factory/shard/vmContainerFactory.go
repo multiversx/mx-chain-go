@@ -121,6 +121,11 @@ func NewVMContainerFactory(args ArgVMContainerFactory) (*vmContainerFactory, err
 		return nil, err
 	}
 
+	err = vmf.createMapOpCodeAddressIsAllowed()
+	if err != nil {
+		return nil, err
+	}
+
 	return vmf, nil
 }
 
