@@ -151,7 +151,8 @@ func (s *legacySystemSCProcessor) processLegacy(
 		}
 	}
 
-	if s.flagChangeMaxNodesEnabled.IsSet() {
+	// the updateMaxNodes call needs the StakingV2Flag functionality to be enabled. Otherwise, the call will error
+	if s.flagChangeMaxNodesEnabled.IsSet() && s.enableEpochsHandler.IsFlagEnabled(common.StakingV2Flag) {
 		err := s.updateMaxNodes(validatorsInfoMap, nonce)
 		if err != nil {
 			return err
