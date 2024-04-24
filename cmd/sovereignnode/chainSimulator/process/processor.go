@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -117,14 +118,19 @@ func (creator *sovereignBlocksCreator) CreateNewBlock() error {
 		return err
 	}
 
+	header, block, err = bp.ProcessBlock(header, block, func() time.Duration {
+		return time.Second
+	})
+	if err != nil {
+		return err
+	}
+
 	err = creator.setHeaderSignatures(header, blsKey.PubKey())
 	if err != nil {
 		return err
 	}
 
-	header, block, err = bp.ProcessBlock(header, block, func() time.Duration {
-		return time.Second
-	})
+	err = creator.nodeHandler.GetBroadcastMessenger().BroadcastHeader(header, blsKey.PubKey())
 	if err != nil {
 		return err
 	}
@@ -135,11 +141,6 @@ func (creator *sovereignBlocksCreator) CreateNewBlock() error {
 	}
 
 	miniBlocks, transactions, err := bp.MarshalizedDataToBroadcast(header, block)
-	if err != nil {
-		return err
-	}
-
-	err = creator.nodeHandler.GetBroadcastMessenger().BroadcastHeader(header, blsKey.PubKey())
 	if err != nil {
 		return err
 	}
@@ -174,20 +175,13 @@ func (creator *sovereignBlocksCreator) getPreviousHeaderData() (nonce, round uin
 
 func (creator *sovereignBlocksCreator) setHeaderSignatures(header data.HeaderHandler, blsKeyBytes []byte) error {
 	signingHandler := creator.nodeHandler.GetCryptoComponents().ConsensusSigningHandler()
-	headerClone := header.ShallowClone()
-	_ = headerClone.SetPubKeysBitmap(nil)
 
-	marshalizedHdr, err := creator.nodeHandler.GetCoreComponents().InternalMarshalizer().Marshal(headerClone)
+	err := signingHandler.Reset([]string{string(blsKeyBytes)})
 	if err != nil {
 		return err
 	}
 
-	err = signingHandler.Reset([]string{string(blsKeyBytes)})
-	if err != nil {
-		return err
-	}
-
-	headerHash := creator.nodeHandler.GetCoreComponents().Hasher().Compute(string(marshalizedHdr))
+	headerHash, err := core.CalculateHash(creator.nodeHandler.GetCoreComponents().InternalMarshalizer(), creator.nodeHandler.GetCoreComponents().Hasher(), header)
 	_, err = signingHandler.CreateSignatureShareForPublicKey(
 		headerHash,
 		uint16(0),
