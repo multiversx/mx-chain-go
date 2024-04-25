@@ -62,7 +62,7 @@ func TestDeployDNSContract_TestRegisterAndResolveAndSendTxWithSndAndRcvUserName(
 	require.Equal(t, big.NewInt(736770), accumulatedFees)
 
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
-	require.Equal(t, big.NewInt(73677), developerFees)
+	require.Equal(t, big.NewInt(73633), developerFees)
 
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
@@ -77,13 +77,13 @@ func TestDeployDNSContract_TestRegisterAndResolveAndSendTxWithSndAndRcvUserName(
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	vm.TestAccount(t, testContext.Accounts, rcvAddr, 1, big.NewInt(9721810))
+	vm.TestAccount(t, testContext.Accounts, rcvAddr, 1, big.NewInt(9263230))
 	// check accumulated fees
 	accumulatedFees = testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(556380), accumulatedFees)
+	require.Equal(t, big.NewInt(1473540), accumulatedFees)
 
 	developerFees = testContext.TxFeeHandler.GetDeveloperFees()
-	require.Equal(t, big.NewInt(55550), developerFees)
+	require.Equal(t, big.NewInt(147266), developerFees)
 
 	ret := vm.GetVmOutput(nil, testContext.Accounts, scAddress, "resolve", userName)
 	dnsUserNameAddr := ret.ReturnData[0]
@@ -200,15 +200,11 @@ func TestDeployDNSContract_TestGasWhenSaveUsernameAfterDNSv2IsActivated(t *testi
 		t.Skip("this is not a short test")
 	}
 
-	testContextForDNSContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{
-		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
-	})
+	testContextForDNSContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContextForDNSContract.Close()
 
-	testContextForRelayerAndUser, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{
-		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
-	})
+	testContextForRelayerAndUser, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContextForRelayerAndUser.Close()
 	scAddress, _ := utils.DoDeployDNS(t, testContextForDNSContract, "../../multiShard/smartContract/dns/dns.wasm")
@@ -274,7 +270,7 @@ func processRegisterThroughRelayedTxs(tb testing.TB, args argsProcessRegister) (
 
 	// generate the user transaction
 	userTxData := []byte("register@" + hex.EncodeToString(args.username))
-	userTxGasLimit := uint64(200000)
+	userTxGasLimit := uint64(2000000)
 	userTx := vm.CreateTransaction(
 		getNonce(args.testContextForRelayerAndUser, args.userAddress),
 		big.NewInt(0),
