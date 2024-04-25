@@ -34,6 +34,7 @@ import (
 	factoryStatus "github.com/multiversx/mx-chain-go/factory/status"
 	factoryStatusCore "github.com/multiversx/mx-chain-go/factory/statusCore"
 	"github.com/multiversx/mx-chain-go/genesis"
+	"github.com/multiversx/mx-chain-go/genesis/checking"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
 	"github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
@@ -480,6 +481,7 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 		RunTypeComponents:                     pr.RunTypeComponents,
 		TopicsChecker:                         disabled.NewDisabledTopicsChecker(),
 		DataCodec:                             disabled.NewDisabledDataCodec(),
+		NodesSetupCheckerFactory:              checking.NewNodesSetupCheckerFactory(),
 	}
 
 	processFactory, err := factoryProcessing.NewProcessComponentsFactory(argsProcess)

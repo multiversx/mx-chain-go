@@ -180,6 +180,7 @@ type ProcessComponentsFactoryArgs struct {
 	OutGoingOperationsPool                block.OutGoingOperationsPool
 	DataCodec                             sovereign.DataCodecProcessor
 	TopicsChecker                         sovereign.TopicsChecker
+	NodesSetupCheckerFactory              checking.NodeSetupCheckerFactory
 }
 
 type processComponentsFactory struct {
@@ -234,6 +235,7 @@ type processComponentsFactory struct {
 	outGoingOperationsPool                block.OutGoingOperationsPool
 	dataCodec                             sovereign.DataCodecProcessor
 	topicsChecker                         sovereign.TopicsChecker
+	nodesSetupCheckerFactory              checking.NodeSetupCheckerFactory
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -287,6 +289,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		outGoingOperationsPool:                args.OutGoingOperationsPool,
 		dataCodec:                             args.DataCodec,
 		topicsChecker:                         args.TopicsChecker,
+		nodesSetupCheckerFactory:              args.NodesSetupCheckerFactory,
 	}, nil
 }
 
@@ -668,7 +671,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, errors.New("invalid genesis node price")
 	}
 
-	nodesSetupChecker, err := checking.NewNodesSetupChecker(
+	nodesSetupChecker, err := pcf.nodesSetupCheckerFactory.Create(
 		pcf.accountsParser,
 		genesisNodePrice,
 		pcf.coreData.ValidatorPubKeyConverter(),

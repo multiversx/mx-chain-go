@@ -35,6 +35,7 @@ import (
 	statusComp "github.com/multiversx/mx-chain-go/factory/status"
 	"github.com/multiversx/mx-chain-go/factory/statusCore"
 	"github.com/multiversx/mx-chain-go/genesis"
+	"github.com/multiversx/mx-chain-go/genesis/checking"
 	"github.com/multiversx/mx-chain-go/genesis/data"
 	"github.com/multiversx/mx-chain-go/genesis/process"
 	mockCoreComp "github.com/multiversx/mx-chain-go/integrationTests/mock"
@@ -631,6 +632,7 @@ func GetProcessArgs(
 		DataCodec:                             &sovereign.DataCodecMock{},
 		TopicsChecker:                         &sovereign.TopicsCheckerMock{},
 		RunTypeComponents:                     GetRunTypeComponents(),
+		NodesSetupCheckerFactory:              checking.NewNodesSetupCheckerFactory(),
 	}
 }
 

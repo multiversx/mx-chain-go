@@ -31,6 +31,7 @@ import (
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	processComp "github.com/multiversx/mx-chain-go/factory/processing"
 	"github.com/multiversx/mx-chain-go/genesis"
+	"github.com/multiversx/mx-chain-go/genesis/checking"
 	genesisMocks "github.com/multiversx/mx-chain-go/genesis/mock"
 	genesisProcess "github.com/multiversx/mx-chain-go/genesis/process"
 	testsMocks "github.com/multiversx/mx-chain-go/integrationTests/mock"
@@ -285,6 +286,7 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 		DataCodec:                             &sovereign.DataCodecMock{},
 		TopicsChecker:                         &sovereign.TopicsCheckerMock{},
 		RunTypeComponents:                     components.GetRunTypeComponents(),
+		NodesSetupCheckerFactory:              checking.NewNodesSetupCheckerFactory(),
 	}
 
 	args.State = components.GetStateComponents(args.CoreData, args.StatusCoreComponents)

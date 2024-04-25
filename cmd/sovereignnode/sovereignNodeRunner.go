@@ -51,6 +51,7 @@ import (
 	statusComp "github.com/multiversx/mx-chain-go/factory/status"
 	"github.com/multiversx/mx-chain-go/factory/statusCore"
 	"github.com/multiversx/mx-chain-go/genesis"
+	"github.com/multiversx/mx-chain-go/genesis/checking"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
 	genesisProcess "github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/health"
@@ -1377,6 +1378,7 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 		OutGoingOperationsPool:                outGoingOperationsPool,
 		DataCodec:                             dataCodec,
 		TopicsChecker:                         topicsChecker,
+		NodesSetupCheckerFactory:              checking.NewNodesSetupCheckerFactory(),
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {

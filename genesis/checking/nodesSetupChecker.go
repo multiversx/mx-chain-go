@@ -31,38 +31,6 @@ type delegationAddress struct {
 	address string
 }
 
-// NewNodesSetupChecker will create a node setup checker able to check the initial nodes against the provided genesis values
-func NewNodesSetupChecker(
-	accountsParser genesis.AccountsParser,
-	initialNodePrice *big.Int,
-	validatorPubkeyConverter core.PubkeyConverter,
-	keyGenerator crypto.KeyGenerator,
-) (*nodeSetupChecker, error) {
-	if check.IfNil(accountsParser) {
-		return nil, genesis.ErrNilAccountsParser
-	}
-	if initialNodePrice == nil {
-		return nil, genesis.ErrNilInitialNodePrice
-	}
-	if initialNodePrice.Cmp(big.NewInt(minimumAcceptedNodePrice)) < 0 {
-		return nil, fmt.Errorf("%w, minimum accepted is %d",
-			genesis.ErrInvalidInitialNodePrice, minimumAcceptedNodePrice)
-	}
-	if check.IfNil(validatorPubkeyConverter) {
-		return nil, genesis.ErrNilPubkeyConverter
-	}
-	if check.IfNil(keyGenerator) {
-		return nil, genesis.ErrNilKeyGenerator
-	}
-
-	return &nodeSetupChecker{
-		accountsParser:           accountsParser,
-		initialNodePrice:         initialNodePrice,
-		validatorPubkeyConverter: validatorPubkeyConverter,
-		keyGenerator:             keyGenerator,
-	}, nil
-}
-
 // Check will check that each and every initial node has a backed staking address
 // also, it checks that the amount staked (either directly or delegated) matches exactly the total
 // staked value defined in the genesis file
