@@ -6,10 +6,13 @@ import (
 	"testing"
 	"time"
 
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 	sovereignChainSimulator "github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -17,7 +20,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 )
 
@@ -28,10 +30,6 @@ const (
 )
 
 func TestIncomingOperations(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
 	epochConfig, economicsConfig, sovereignExtraConfig, err := sovereignChainSimulator.LoadSovereignConfigs(sovereignConfigPath)
 	require.Nil(t, err)
 
@@ -63,43 +61,35 @@ func TestIncomingOperations(t *testing.T) {
 
 	defer cs.Close()
 
-	err = cs.GenerateBlocks(1)
-	require.Nil(t, err)
-
 	nodeHandler := cs.GetNodeHandler(core.SovereignChainShardId)
 
 	logger.SetLogLevel("*:DEBUG,process:TRACE,block:TRACE")
 
-	nonce := uint64(9999999)
-	incomingHeader := &sovereign.IncomingHeader{
-		Header:         createHeaderV2(nonce, generateRandomHash(), generateRandomHash()),
-		IncomingEvents: []*transaction.Event{createTransactionEvent()},
-	}
-	firstHeaderHash, _ := core.CalculateHash(nodeHandler.GetCoreComponents().InternalMarshalizer(), nodeHandler.GetCoreComponents().Hasher(), incomingHeader.Header)
+	headerNonce := uint64(9999999)
+	randomHeader := createHeaderV2(headerNonce, generateRandomHash(), generateRandomHash())
+
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
+
+	incomingHeader := createIncomingHeader(nodeHandler, &headerNonce, randomHeader, nil)
 	err = nodeHandler.GetIncomingHeaderHandler().AddHeader(generateRandomHash(), incomingHeader)
 	require.Nil(t, err)
 
 	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
-	nonce++
-	incomingHeader2 := &sovereign.IncomingHeader{
-		Header:         createHeaderV2(nonce, firstHeaderHash, incomingHeader.Header.GetRandSeed()),
-		IncomingEvents: []*transaction.Event{createTransactionEvent()},
-	}
-	err = nodeHandler.GetIncomingHeaderHandler().AddHeader(generateRandomHash(), incomingHeader2)
+	incomingHeader = createIncomingHeader(nodeHandler, &headerNonce, incomingHeader.Header, createTransactionsEvent())
+	err = nodeHandler.GetIncomingHeaderHandler().AddHeader(generateRandomHash(), incomingHeader)
 	require.Nil(t, err)
 
-	firstHeaderHash, _ = core.CalculateHash(nodeHandler.GetCoreComponents().InternalMarshalizer(), nodeHandler.GetCoreComponents().Hasher(), incomingHeader2.Header)
-	nonce++
-	incomingHeader3 := &sovereign.IncomingHeader{
-		Header:         createHeaderV2(nonce, firstHeaderHash, incomingHeader2.Header.GetRandSeed()),
-		IncomingEvents: []*transaction.Event{createTransactionEvent()},
-	}
-	err = nodeHandler.GetIncomingHeaderHandler().AddHeader(generateRandomHash(), incomingHeader3)
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
-	err = cs.GenerateBlocks(10)
+	incomingHeader = createIncomingHeader(nodeHandler, &headerNonce, incomingHeader.Header, nil)
+	err = nodeHandler.GetIncomingHeaderHandler().AddHeader(generateRandomHash(), incomingHeader)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	address := "erd1crq888sv7c3j4y6d9etvlngs3q0tr3endufgls245j5y9yk0ulmqlsuute"
@@ -113,17 +103,14 @@ func TestIncomingOperations(t *testing.T) {
 	require.True(t, len(esdts) > 0)
 }
 
-func createTransactionEvent() *transaction.Event {
-	addressBytes, _ := hex.DecodeString("c0c0739e0cf6232a934d2e56cfcd10881eb1c7336f128fc155a4a84292cfe7f6")
-	tokenId, _ := hex.DecodeString("53564e2d373330613336")
-	tokenData, _ := hex.DecodeString("000000000906aaf7c8516d0c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
-	eventData, _ := hex.DecodeString("0000000000000001c0c0739e0cf6232a934d2e56cfcd10881eb1c7336f128fc155a4a84292cfe7f600")
-
-	return &transaction.Event{
-		Identifier: []byte(eventIDDepositIncomingTransfer),
-		Topics:     [][]byte{[]byte(topicIDDepositIncomingTransfer), addressBytes, tokenId, []byte(""), tokenData},
-		Data:       eventData,
+func createIncomingHeader(nodeHandler process.NodeHandler, headerNonce *uint64, prevHeader *block.HeaderV2, txsEvent []*transaction.Event) *sovereign.IncomingHeader {
+	*headerNonce++
+	prevHeaderHash, _ := core.CalculateHash(nodeHandler.GetCoreComponents().InternalMarshalizer(), nodeHandler.GetCoreComponents().Hasher(), prevHeader)
+	incomingHeader := &sovereign.IncomingHeader{
+		Header:         createHeaderV2(*headerNonce, prevHeaderHash, prevHeader.GetRandSeed()),
+		IncomingEvents: txsEvent,
 	}
+	return incomingHeader
 }
 
 func createHeaderV2(nonce uint64, prevHash []byte, prevRandSeed []byte) *block.HeaderV2 {
@@ -137,6 +124,20 @@ func createHeaderV2(nonce uint64, prevHash []byte, prevRandSeed []byte) *block.H
 			ChainID:      []byte(configs.ChainID),
 		},
 	}
+}
+
+func createTransactionsEvent() []*transaction.Event {
+	addressBytes, _ := hex.DecodeString("c0c0739e0cf6232a934d2e56cfcd10881eb1c7336f128fc155a4a84292cfe7f6")
+	tokenId, _ := hex.DecodeString("53564e2d373330613336")
+	tokenData, _ := hex.DecodeString("000000000906aaf7c8516d0c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
+	eventData, _ := hex.DecodeString("0000000000000001c0c0739e0cf6232a934d2e56cfcd10881eb1c7336f128fc155a4a84292cfe7f600")
+
+	events := make([]*transaction.Event, 0)
+	return append(events, &transaction.Event{
+		Identifier: []byte(eventIDDepositIncomingTransfer),
+		Topics:     [][]byte{[]byte(topicIDDepositIncomingTransfer), addressBytes, tokenId, []byte(""), tokenData},
+		Data:       eventData,
+	})
 }
 
 func generateRandomHash() []byte {

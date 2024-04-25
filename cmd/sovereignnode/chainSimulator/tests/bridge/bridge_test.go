@@ -6,8 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/data/transaction"
-
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
@@ -27,14 +25,10 @@ const (
 )
 
 var oneEgld = big.NewInt(1000000000000000000)
-var initialMinting = big.NewInt(0).Mul(oneEgld, big.NewInt(10))
-var issueCost = big.NewInt(50000000000000000)
+var initialMinting = big.NewInt(0).Mul(oneEgld, big.NewInt(100))
+var issueCost = big.NewInt(5000000000000000000)
 
 func TestBridge(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 		BypassTxSignatureCheck:      false,
 		TempDir:                     t.TempDir(),
@@ -93,37 +87,36 @@ func TestBridge(t *testing.T) {
 
 	esdtSafeArgs := "@" + // is_sovereign_chain
 		"@" + // min_valid_signers
-		"@" + hex.EncodeToString(wallet.Bytes) + // initiator_address
-		"@" // signers
-	esdtSafeAddress := deployContract(t, cs, wallet.Bytes, &nonce, systemScAddress, esdtSafeArgs, esdtSafeWasmPath)
+		"@" + hex.EncodeToString(wallet.Bytes) // initiator_address
+	esdtSafeAddress := utils.DeployContract(t, cs, wallet.Bytes, &nonce, systemScAddress, esdtSafeArgs, esdtSafeWasmPath)
 
 	feeMarketArgs := "@" + hex.EncodeToString(esdtSafeAddress) + // esdt_safe_address
 		"@000000000000000005004c13819a7f26de997e7c6720a6efe2d4b85c0609c9ad" + // price_aggregator_address
 		"@555344432d333530633465" + // usdc_token_id
 		"@5745474c442d613238633539" // wegld_token_id
-	feeMarketAddress := deployContract(t, cs, wallet.Bytes, &nonce, systemScAddress, feeMarketArgs, feeMarketWasmPath)
+	feeMarketAddress := utils.DeployContract(t, cs, wallet.Bytes, &nonce, systemScAddress, feeMarketArgs, feeMarketWasmPath)
 
 	setFeeMarketAddressData := "setFeeMarketAddress" +
 		"@" + hex.EncodeToString(feeMarketAddress)
-	sendTransaction(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, setFeeMarketAddressData, uint64(10000000))
+	utils.SendTransaction(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, big.NewInt(0), setFeeMarketAddressData, uint64(10000000))
 
-	sendTransaction(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, "disableFee", uint64(10000000))
+	utils.SendTransaction(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, big.NewInt(0), "disableFee", uint64(10000000))
 
-	sendTransaction(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, "unpause", uint64(10000000))
+	utils.SendTransaction(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, big.NewInt(0), "unpause", uint64(10000000))
 
-	multiSigAddress := deployContract(t, cs, wallet.Bytes, &nonce, systemScAddress, "", multiSigWasmPath)
+	multiSigAddress := utils.DeployContract(t, cs, wallet.Bytes, &nonce, systemScAddress, "", multiSigWasmPath)
 
 	setEsdtSafeAddressData := "setEsdtSafeAddress" +
 		"@" + hex.EncodeToString(esdtSafeAddress)
-	sendTransaction(t, cs, wallet.Bytes, &nonce, multiSigAddress, setEsdtSafeAddressData, uint64(10000000))
+	utils.SendTransaction(t, cs, wallet.Bytes, &nonce, multiSigAddress, big.NewInt(0), setEsdtSafeAddressData, uint64(10000000))
 
 	setMultiSigAddressData := "setMultisigAddress" +
 		"@" + hex.EncodeToString(multiSigAddress)
-	sendTransaction(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, setMultiSigAddressData, uint64(10000000))
+	utils.SendTransaction(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, big.NewInt(0), setMultiSigAddressData, uint64(10000000))
 
 	setSovereignBridgeAddressData := "setSovereignBridgeAddress" +
 		"@" + hex.EncodeToString(multiSigAddress)
-	sendTransaction(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, setSovereignBridgeAddressData, uint64(10000000))
+	utils.SendTransaction(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, big.NewInt(0), setSovereignBridgeAddressData, uint64(10000000))
 
 	// ---------------------------------------------------------------------------------------------------------------
 
@@ -136,46 +129,20 @@ func TestBridge(t *testing.T) {
 
 	esdtSafeSovArgs := "@01" + // is_sovereign_chain
 		"@" + // min_valid_signers
-		"@" + hex.EncodeToString(sovWallet.Bytes) + // initiator_address
-		"@" // signers
-	esdtSafeSovAddress := deployContract(t, scs, sovWallet.Bytes, &sovNonce, sovSystemScAddress, esdtSafeSovArgs, esdtSafeWasmPath)
+		"@" + hex.EncodeToString(sovWallet.Bytes) // initiator_address
+	esdtSafeSovAddress := utils.DeployContract(t, scs, sovWallet.Bytes, &sovNonce, sovSystemScAddress, esdtSafeSovArgs, esdtSafeWasmPath)
 
 	feeMarketSovArgs := "@" + hex.EncodeToString(esdtSafeSovAddress) + // esdt_safe_address
 		"@000000000000000005004c13819a7f26de997e7c6720a6efe2d4b85c0609c9ad" + // price_aggregator_address
 		"@555344432d333530633465" + // usdc_token_id
 		"@5745474c442d613238633539" // wegld_token_id
-	feeMarketSovAddress := deployContract(t, scs, sovWallet.Bytes, &sovNonce, sovSystemScAddress, feeMarketSovArgs, feeMarketWasmPath)
+	feeMarketSovAddress := utils.DeployContract(t, scs, sovWallet.Bytes, &sovNonce, sovSystemScAddress, feeMarketSovArgs, feeMarketWasmPath)
 
 	setSovFeeMarketAddressData := "setFeeMarketAddress" +
 		"@" + hex.EncodeToString(feeMarketSovAddress)
-	sendTransaction(t, scs, sovWallet.Bytes, &sovNonce, esdtSafeSovAddress, setSovFeeMarketAddressData, uint64(10000000))
+	utils.SendTransaction(t, scs, sovWallet.Bytes, &sovNonce, esdtSafeSovAddress, big.NewInt(0), setSovFeeMarketAddressData, uint64(10000000))
 
-	sendTransaction(t, scs, sovWallet.Bytes, &sovNonce, esdtSafeSovAddress, "disableFee", uint64(10000000))
+	utils.SendTransaction(t, scs, sovWallet.Bytes, &sovNonce, esdtSafeSovAddress, big.NewInt(0), "disableFee", uint64(10000000))
 
-	sendTransaction(t, scs, sovWallet.Bytes, &sovNonce, esdtSafeSovAddress, "unpause", uint64(10000000))
-}
-
-func deployContract(t *testing.T, cs *chainSimulator.Simulator, sender []byte, nonce *uint64, receiver []byte, data string, wasmPath string) []byte {
-	data = utils.GetSCCode(wasmPath) + "@0500@0500" + data
-
-	tx := utils.GenerateTransaction(sender, *nonce, receiver, big.NewInt(0), data, uint64(200000000))
-	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, 1)
-	*nonce++
-
-	require.Nil(t, err)
-	require.NotNil(t, txResult)
-	require.Equal(t, transaction.TxStatusSuccess, txResult.Status)
-
-	address := txResult.Logs.Events[0].Topics[0]
-	require.NotNil(t, address)
-	return address
-}
-
-func sendTransaction(t *testing.T, cs *chainSimulator.Simulator, sender []byte, nonce *uint64, receiver []byte, data string, gasLimit uint64) {
-	tx := utils.GenerateTransaction(sender, *nonce, receiver, big.NewInt(0), data, gasLimit)
-	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, 1)
-	*nonce++
-	require.Nil(t, err)
-	require.NotNil(t, txResult)
-	require.Equal(t, transaction.TxStatusSuccess, txResult.Status)
+	utils.SendTransaction(t, scs, sovWallet.Bytes, &sovNonce, esdtSafeSovAddress, big.NewInt(0), "unpause", uint64(10000000))
 }

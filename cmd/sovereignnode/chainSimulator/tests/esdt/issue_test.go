@@ -1,10 +1,11 @@
 package esdt
 
 import (
-	"encoding/hex"
 	"math/big"
 	"testing"
 	"time"
+
+	coreAPI "github.com/multiversx/mx-chain-core-go/data/api"
 
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
@@ -16,7 +17,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestEsdt_IssueSft(t *testing.T) {
+const (
+	defaultPathToInitialConfig = "../../../../node/config/"
+	sovereignConfigPath        = "../../../config/"
+)
+
+var oneEgld = big.NewInt(1000000000000000000)
+var initialMinting = big.NewInt(0).Mul(oneEgld, big.NewInt(100))
+var issueCost = big.NewInt(5000000000000000000)
+
+func TestEsdt_Issue(t *testing.T) {
 	epochConfig, economicsConfig, sovereignExtraConfig, err := sovereignChainSimulator.LoadSovereignConfigs(sovereignConfigPath)
 	require.Nil(t, err)
 
@@ -42,62 +52,28 @@ func TestEsdt_IssueSft(t *testing.T) {
 			},
 		},
 	})
-	//cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-	//	BypassTxSignatureCheck: false,
-	//	TempDir:                t.TempDir(),
-	//	PathToInitialConfig:    defaultPathToInitialConfig,
-	//	NumOfShards:            3,
-	//	GenesisTimestamp:       time.Now().Unix(),
-	//	RoundDurationInMillis:  uint64(6000),
-	//	RoundsPerEpoch: core.OptionalUint64{
-	//		HasValue: true,
-	//		Value:    30,
-	//	},
-	//	InitialEpoch:                3,
-	//	ApiInterface:                api.NewNoApiInterface(),
-	//	MinNodesPerShard:            1,
-	//	MetaChainMinNodes:           1,
-	//	ConsensusGroupSize:          1,
-	//	MetaChainConsensusGroupSize: 1,
-	//})
 	require.Nil(t, err)
 	require.NotNil(t, cs)
 
 	defer cs.Close()
 
-	err = cs.GenerateBlocks(3)
-	require.Nil(t, err)
-
 	nodeHandler := cs.GetNodeHandler(core.SovereignChainShardId)
 	systemEsdtAddress, _ := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode("erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzllls8a5w6u")
 
+	nonce := uint64(0)
 	wallet, err := cs.GenerateAndMintWalletAddress(core.SovereignChainShardId, initialMinting)
 	require.Nil(t, err)
-	nonce := uint64(0)
 
-	data := "registerAndSetAllRoles@4f4354534654@4f4354534654@534654@"
-	txResult := utils.SendTransaction(t, cs, wallet.Bytes, &nonce, systemEsdtAddress, issueCost, data, uint64(60000000))
+	issueArgs := "issue@536f7665726569676e546b6e@53564e@5c003ec0dd34509ad40000@12@63616e4164645370656369616c526f6c6573@74727565"
+	txResult := utils.SendTransaction(t, cs, wallet.Bytes, &nonce, systemEsdtAddress, issueCost, issueArgs, uint64(60000000))
 	tokenIdentifier := txResult.Logs.Events[0].Topics[0]
+	require.True(t, len(tokenIdentifier) > 7)
 
-	err = cs.GenerateBlocks(10)
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
-	//esdts, _, err := nodeHandler.GetFacadeHandler().GetESDTsWithRole(wallet.Bech32, "ESDTRoleNFTCreate", coreAPI.AccountQueryOptions{})
-	//require.Nil(t, err)
-	//require.Equal(t, string(tokenIdentifier), esdts[0])
-	//
-	//tokens, _, err := nodeHandler.GetFacadeHandler().GetAllESDTTokens(wallet.Bech32, coreAPI.AccountQueryOptions{})
-	//require.Nil(t, err)
-	//require.NotNil(t, tokens)
-	//
-	//keys, _, err := nodeHandler.GetFacadeHandler().GetKeyValuePairs(wallet.Bech32, coreAPI.AccountQueryOptions{})
-	//require.Nil(t, err)
-	//require.NotNil(t, keys)
-
-	data = "ESDTNFTCreate@" + hex.EncodeToString(tokenIdentifier) + "@04d2@4f4354534654202331@09c4@@746167733a746167312c746167323b77686174657665724b65793a776861746576657256616c7565@68747470733a2f2f6d656469612e72656d61726b61626c652e746f6f6c732f4465764e65742f52656d61726b61626c65546f6f6c732e706e67"
-	tx := utils.GenerateTransaction(wallet.Bytes, 1, wallet.Bytes, big.NewInt(0), data, uint64(60000000))
-	txRes, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, 10)
+	tokens, _, err := nodeHandler.GetFacadeHandler().GetAllESDTTokens(wallet.Bech32, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
-	require.NotNil(t, txRes)
-	require.False(t, "action is not allowed" == string(txRes.Logs.Events[0].Topics[1]))
+	require.NotNil(t, tokens)
+	require.True(t, len(tokens) == 2)
 }
