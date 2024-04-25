@@ -14,7 +14,6 @@ import (
 	disabledStatistics "github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
-	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	processComp "github.com/multiversx/mx-chain-go/factory/processing"
@@ -270,14 +269,13 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 			AppStatusHandlerField:  &statusHandler.AppStatusHandlerStub{},
 			StateStatsHandlerField: disabledStatistics.NewStateStatistics(),
 		},
-		TxExecutionOrderHandler:               &txExecOrderStub.TxExecutionOrderHandlerStub{},
-		GenesisBlockCreatorFactory:            genesisProcess.NewGenesisBlockCreatorFactory(),
-		GenesisMetaBlockChecker:               processComp.NewGenesisMetaBlockChecker(),
-		ShardResolversContainerFactoryCreator: resolverscontainer.NewShardResolversContainerFactoryCreator(),
-		TxPreProcessorCreator:                 preprocess.NewTxPreProcessorCreator(),
-		ExtraHeaderSigVerifierHolder:          &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
-		IncomingHeaderSubscriber:              &sovereign.IncomingHeaderSubscriberStub{},
-		RunTypeComponents:                     components.GetRunTypeComponents(),
+		TxExecutionOrderHandler:      &txExecOrderStub.TxExecutionOrderHandlerStub{},
+		GenesisBlockCreatorFactory:   genesisProcess.NewGenesisBlockCreatorFactory(),
+		GenesisMetaBlockChecker:      processComp.NewGenesisMetaBlockChecker(),
+		TxPreProcessorCreator:        preprocess.NewTxPreProcessorCreator(),
+		ExtraHeaderSigVerifierHolder: &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
+		IncomingHeaderSubscriber:     &sovereign.IncomingHeaderSubscriberStub{},
+		RunTypeComponents:            components.GetRunTypeComponents(),
 	}
 
 	args.State = components.GetStateComponents(args.CoreData, args.StatusCoreComponents)
@@ -627,15 +625,6 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		require.True(t, errors.Is(err, errorsMx.ErrNilGenesisMetaBlockChecker))
 		require.Nil(t, pcf)
 	})
-	t.Run("nil shard resolvers container factory creator, should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockProcessComponentsFactoryArgs()
-		args.ShardResolversContainerFactoryCreator = nil
-		pcf, err := processComp.NewProcessComponentsFactory(args)
-		require.True(t, errors.Is(err, errorsMx.ErrNilShardResolversContainerFactoryCreator))
-		require.Nil(t, pcf)
-	})
 	t.Run("nil tx pre processor creator, should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -938,6 +927,17 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		require.True(t, errors.Is(err, errorsMx.ErrNilInterceptorsContainerFactoryCreator))
 		require.Nil(t, pcf)
 	})
+	t.Run("nil ShardResolversContainerFactory should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockProcessComponentsFactoryArgs()
+		rtMock := getRunTypeComponentsMock()
+		rtMock.ShardResolversContainerFactory = nil
+		args.RunTypeComponents = rtMock
+		pcf, err := processComp.NewProcessComponentsFactory(args)
+		require.True(t, errors.Is(err, errorsMx.ErrNilShardResolversContainerFactoryCreator))
+		require.Nil(t, pcf)
+	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -975,6 +975,7 @@ func getRunTypeComponentsMock() *mainFactoryMocks.RunTypeComponentsStub {
 		ShardCoordinatorFactory:             rt.ShardCoordinatorCreator(),
 		RequestersContainerFactory:          rt.RequestersContainerFactoryCreator(),
 		InterceptorsContainerFactory:        rt.InterceptorsContainerFactoryCreator(),
+		ShardResolversContainerFactory:      rt.ShardResolversContainerFactoryCreator(),
 	}
 }
 

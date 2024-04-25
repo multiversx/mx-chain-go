@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus"
 	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
+	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/errors"
@@ -66,6 +67,7 @@ type runTypeComponents struct {
 	nodesCoordinatorWithRaterFactoryCreator nodesCoord.NodesCoordinatorWithRaterFactory
 	requestersContainerFactoryCreator       requesterscontainer.RequesterContainerFactoryCreator
 	interceptorsContainerFactoryCreator     interceptorscontainer.InterceptorsContainerFactoryCreator
+	shardResolversContainerFactoryCreator   resolverscontainer.ShardResolversContainerFactoryCreator
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
@@ -193,6 +195,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		nodesCoordinatorWithRaterFactoryCreator: nodesCoord.NewIndexHashedNodesCoordinatorWithRaterFactory(),
 		requestersContainerFactoryCreator:       requesterscontainer.NewShardRequestersContainerFactoryCreator(),
 		interceptorsContainerFactoryCreator:     interceptorscontainer.NewShardInterceptorsContainerFactoryCreator(),
+		shardResolversContainerFactoryCreator:   resolverscontainer.NewShardResolversContainerFactoryCreator(),
 	}, nil
 }
 

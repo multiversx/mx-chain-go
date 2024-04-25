@@ -4,6 +4,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus"
 	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
+	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
@@ -56,6 +57,7 @@ type RunTypeComponentsStub struct {
 	NodesCoordinatorWithRaterFactory    nodesCoord.NodesCoordinatorWithRaterFactory
 	RequestersContainerFactory          requesterscontainer.RequesterContainerFactoryCreator
 	InterceptorsContainerFactory        interceptorscontainer.InterceptorsContainerFactoryCreator
+	ShardResolversContainerFactory      resolverscontainer.ShardResolversContainerFactoryCreator
 }
 
 // NewRunTypeComponentsStub -
@@ -87,6 +89,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		NodesCoordinatorWithRaterFactory:    &testscommon.NodesCoordinatorFactoryMock{},
 		RequestersContainerFactory:          &testFactory.RequestersContainerFactoryMock{},
 		InterceptorsContainerFactory:        &testFactory.InterceptorsContainerFactoryMock{},
+		ShardResolversContainerFactory:      &testFactory.ResolversContainerFactoryMock{},
 	}
 }
 
@@ -238,6 +241,11 @@ func (r *RunTypeComponentsStub) RequestersContainerFactoryCreator() requestersco
 // InterceptorsContainerFactoryCreator -
 func (r *RunTypeComponentsStub) InterceptorsContainerFactoryCreator() interceptorscontainer.InterceptorsContainerFactoryCreator {
 	return r.InterceptorsContainerFactory
+}
+
+// ShardResolversContainerFactoryCreator -
+func (r *RunTypeComponentsStub) ShardResolversContainerFactoryCreator() resolverscontainer.ShardResolversContainerFactoryCreator {
+	return r.ShardResolversContainerFactory
 }
 
 // IsInterfaceNil -

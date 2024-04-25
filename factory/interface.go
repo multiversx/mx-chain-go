@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
+	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/dblookupext"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -605,6 +606,7 @@ type RunTypeComponentsHolder interface {
 	NodesCoordinatorWithRaterCreator() nodesCoordinator.NodesCoordinatorWithRaterFactory
 	RequestersContainerFactoryCreator() requesterscontainer.RequesterContainerFactoryCreator
 	InterceptorsContainerFactoryCreator() interceptorscontainer.InterceptorsContainerFactoryCreator
+	ShardResolversContainerFactoryCreator() resolverscontainer.ShardResolversContainerFactoryCreator
 	Create() error
 	Close() error
 	CheckSubcomponents() error
