@@ -72,6 +72,11 @@ func TestEsdt_Issue(t *testing.T) {
 	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
+	esdts, err := nodeHandler.GetFacadeHandler().GetAllIssuedESDTs("FungibleESDT")
+	require.Nil(t, err)
+	require.NotNil(t, esdts)
+	require.True(t, string(tokenIdentifier) == esdts[0])
+
 	tokens, _, err := nodeHandler.GetFacadeHandler().GetAllESDTTokens(wallet.Bech32, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
 	require.NotNil(t, tokens)
