@@ -198,7 +198,7 @@ func (bpp *basePostProcessor) InitProcessedResults(key []byte) {
 	defer bpp.mutInterResultsForBlock.Unlock()
 
 	bpp.processedResult.mapProcessedResult[string(key)] = make([][]byte, 0, defaultCapacity)
-	bpp.processedResult.keys = make([]string, 0, defaultCapacity)
+	bpp.processedResult.keys = append(bpp.processedResult.keys, string(key))
 }
 
 func (bpp *basePostProcessor) splitMiniBlocksIfNeeded(miniBlocks []*block.MiniBlock) []*block.MiniBlock {
