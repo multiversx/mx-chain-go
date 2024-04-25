@@ -775,6 +775,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	require.True(t, bytes.Contains(vmOutputVersion.ReturnData[0], []byte("0.3.")))
 	log.Info("SC deployed", "version", string(vmOutputVersion.ReturnData[0]))
 
+	logger.SetLogLevel("process/smartcontract:TRACE")
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
 
 	// set stake per node
@@ -850,6 +851,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 		FuncName:  "getUserActiveStake",
 		Arguments: [][]byte{delegateSCOwner},
 	}
+
 	vmOutput4, _, _ := shardNode.SCQueryService.ExecuteQuery(scQuery4)
 	require.NotNil(t, vmOutput4)
 	require.Equal(t, len(vmOutput4.ReturnData), 1)
