@@ -42,19 +42,19 @@ func TestRelayedTransactionV2InMultiShardEnvironmentWithSmartContractTX(t *testi
 	integrationTests.CreateAndSendTransactionWithGasLimit(
 		nodes[0],
 		big.NewInt(0),
-		20000,
+		2000000,
 		make([]byte, 32),
 		[]byte(wasm.CreateDeployTxData(scCode)+"@"+initialSupply),
 		integrationTests.ChainID,
 		integrationTests.MinTransactionVersion,
 	)
 
-	transferTokenVMGas := uint64(7200)
+	transferTokenVMGas := uint64(720000)
 	transferTokenBaseGas := ownerNode.EconomicsData.ComputeGasLimit(&transaction.Transaction{Data: []byte("transferToken@" + hex.EncodeToString(receiverAddress1) + "@00" + hex.EncodeToString(sendValue.Bytes()))})
 	transferTokenFullGas := transferTokenBaseGas + transferTokenVMGas
 
 	initialTokenSupply := big.NewInt(1000000000)
-	initialPlusForGas := uint64(1000)
+	initialPlusForGas := uint64(100000)
 	for _, player := range players {
 		integrationTests.CreateAndSendTransactionWithGasLimit(
 			ownerNode,

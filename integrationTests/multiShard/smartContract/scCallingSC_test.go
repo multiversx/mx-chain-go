@@ -800,7 +800,7 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 
 	// activate the delegation, this involves an async call to validatorSC
 	stakeAllAvailableTxData := "stakeAllAvailable"
-	integrationTests.CreateAndSendTransaction(shardNode, nodes, big.NewInt(0), delegateSCAddress, stakeAllAvailableTxData, integrationTests.AdditionalGasLimit)
+	integrationTests.CreateAndSendTransaction(shardNode, nodes, big.NewInt(0), delegateSCAddress, stakeAllAvailableTxData, 2*integrationTests.AdditionalGasLimit)
 
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
 
