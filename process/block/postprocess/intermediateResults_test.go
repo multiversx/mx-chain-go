@@ -12,6 +12,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
@@ -21,8 +24,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 const maxGasLimitPerBlock = uint64(1500000000)
@@ -387,19 +388,19 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddAndRevert(t 
 	err = irp.AddIntermediateTransactions(txs)
 	assert.Nil(t, err)
 	irp.mutInterResultsForBlock.Lock()
-	assert.Equal(t, len(irp.mapProcessedResult[string(key)]), len(txs))
+	assert.Equal(t, len(irp.processedResult.mapProcessedResult[string(key)]), len(txs))
 	assert.Equal(t, len(txs), calledCount)
 	irp.mutInterResultsForBlock.Unlock()
 
 	irp.RemoveProcessedResults(key)
 	irp.mutInterResultsForBlock.Lock()
 	assert.Equal(t, len(irp.interResultsForBlock), 0)
-	assert.Equal(t, len(irp.mapProcessedResult[string(key)]), len(txs))
+	assert.Equal(t, len(irp.processedResult.mapProcessedResult[string(key)]), len(txs))
 	irp.mutInterResultsForBlock.Unlock()
 
 	irp.InitProcessedResults(key)
 	irp.mutInterResultsForBlock.Lock()
-	assert.Equal(t, len(irp.mapProcessedResult[string(key)]), 0)
+	assert.Equal(t, len(irp.processedResult.mapProcessedResult[string(key)]), 0)
 	irp.mutInterResultsForBlock.Unlock()
 }
 
@@ -954,7 +955,7 @@ func TestIntermediateResultsProcessor_addIntermediateTxToResultsForBlock(t *test
 	irp.addIntermediateTxToResultsForBlock(tx, txHash, sndShardID, rcvShardID)
 
 	require.Equal(t, 1, len(irp.interResultsForBlock))
-	require.Equal(t, 1, len(irp.mapProcessedResult))
+	require.Equal(t, 1, len(irp.processedResult.mapProcessedResult))
 
 	scrInfo, ok := irp.interResultsForBlock[string(txHash)]
 	require.True(t, ok)
@@ -962,7 +963,7 @@ func TestIntermediateResultsProcessor_addIntermediateTxToResultsForBlock(t *test
 	assert.Equal(t, sndShardID, scrInfo.senderShardID)
 	assert.Equal(t, rcvShardID, scrInfo.receiverShardID)
 
-	intermediateResultsHashes, ok := irp.mapProcessedResult[string(key)]
+	intermediateResultsHashes, ok := irp.processedResult.mapProcessedResult[string(key)]
 	require.True(t, ok)
 	require.Equal(t, 1, len(intermediateResultsHashes))
 	assert.Equal(t, txHash, intermediateResultsHashes[0])

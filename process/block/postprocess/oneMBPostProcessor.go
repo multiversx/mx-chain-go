@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -49,13 +50,16 @@ func NewOneMiniBlockPostProcessor(
 	}
 
 	base := &basePostProcessor{
-		hasher:             hasher,
-		marshalizer:        marshalizer,
-		shardCoordinator:   coordinator,
-		store:              store,
-		storageType:        storageType,
-		mapProcessedResult: make(map[string][][]byte),
-		economicsFee:       economicsFee,
+		hasher:           hasher,
+		marshalizer:      marshalizer,
+		shardCoordinator: coordinator,
+		store:            store,
+		storageType:      storageType,
+		processedResult: processedResult{
+			mapProcessedResult: make(map[string][][]byte),
+			keys:               make([]string, 0, defaultCapacity),
+		},
+		economicsFee: economicsFee,
 	}
 
 	opp := &oneMBPostProcessor{

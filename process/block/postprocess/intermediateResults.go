@@ -12,11 +12,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ process.IntermediateTransactionHandler = (*intermediateResultsProcessor)(nil)
@@ -78,13 +79,16 @@ func NewIntermediateResultsProcessor(
 	}
 
 	base := &basePostProcessor{
-		hasher:             args.Hasher,
-		marshalizer:        args.Marshalizer,
-		shardCoordinator:   args.Coordinator,
-		store:              args.Store,
-		storageType:        dataRetriever.UnsignedTransactionUnit,
-		mapProcessedResult: make(map[string][][]byte),
-		economicsFee:       args.EconomicsFee,
+		hasher:           args.Hasher,
+		marshalizer:      args.Marshalizer,
+		shardCoordinator: args.Coordinator,
+		store:            args.Store,
+		storageType:      dataRetriever.UnsignedTransactionUnit,
+		processedResult: processedResult{
+			mapProcessedResult: make(map[string][][]byte),
+			keys:               make([]string, 0, defaultCapacity),
+		},
+		economicsFee: args.EconomicsFee,
 	}
 
 	irp := &intermediateResultsProcessor{
@@ -255,7 +259,7 @@ func (irp *intermediateResultsProcessor) AddIntermediateTransactions(txs []data.
 		}
 
 		if log.GetLevel() == logger.LogTrace {
-			//spew.Sdump is very useful when debugging errors like `receipts hash mismatch`
+			// spew.Sdump is very useful when debugging errors like `receipts hash mismatch`
 			log.Trace("scr added", "txHash", addScr.PrevTxHash, "hash", scrHash, "nonce", addScr.Nonce, "gasLimit", addScr.GasLimit, "value", addScr.Value,
 				"dump", spew.Sdump(addScr))
 		}

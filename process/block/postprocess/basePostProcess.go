@@ -29,7 +29,15 @@ type txInfo struct {
 	*txShardInfo
 }
 
+// TODO: maybe give the capacity as argument to InitProcessedResults
+const defaultCapacity = 10000
+
 var log = logger.GetOrCreate("process/block/postprocess")
+
+type processedResult struct {
+	mapProcessedResult map[string][][]byte
+	keys               []string
+}
 
 type basePostProcessor struct {
 	hasher           hashing.Hasher
@@ -40,7 +48,7 @@ type basePostProcessor struct {
 
 	mutInterResultsForBlock sync.Mutex
 	interResultsForBlock    map[string]*txInfo
-	mapProcessedResult      map[string][][]byte
+	processedResult         processedResult
 	intraShardMiniBlock     *block.MiniBlock
 	economicsFee            process.FeeHandler
 	index                   uint32
@@ -79,7 +87,8 @@ func (bpp *basePostProcessor) CreateBlockStarted() {
 	bpp.mutInterResultsForBlock.Lock()
 	bpp.interResultsForBlock = make(map[string]*txInfo)
 	bpp.intraShardMiniBlock = nil
-	bpp.mapProcessedResult = make(map[string][][]byte)
+	bpp.processedResult.mapProcessedResult = make(map[string][][]byte)
+	bpp.processedResult.keys = make([]string, 0)
 	bpp.index = 0
 	bpp.mutInterResultsForBlock.Unlock()
 }
@@ -171,7 +180,7 @@ func (bpp *basePostProcessor) RemoveProcessedResults(key []byte) [][]byte {
 	bpp.mutInterResultsForBlock.Lock()
 	defer bpp.mutInterResultsForBlock.Unlock()
 
-	txHashes, ok := bpp.mapProcessedResult[string(key)]
+	txHashes, ok := bpp.processedResult.mapProcessedResult[string(key)]
 	if !ok {
 		return nil
 	}
@@ -183,15 +192,13 @@ func (bpp *basePostProcessor) RemoveProcessedResults(key []byte) [][]byte {
 	return txHashes
 }
 
-// TODO: maybe give the capacity as argument to InitProcessedResults
-const defaultCapacity = 10000
-
 // InitProcessedResults will initialize the processed results
 func (bpp *basePostProcessor) InitProcessedResults(key []byte) {
 	bpp.mutInterResultsForBlock.Lock()
 	defer bpp.mutInterResultsForBlock.Unlock()
 
-	bpp.mapProcessedResult[string(key)] = make([][]byte, 0, defaultCapacity)
+	bpp.processedResult.mapProcessedResult[string(key)] = make([][]byte, 0, defaultCapacity)
+	bpp.processedResult.keys = make([]string, 0, defaultCapacity)
 }
 
 func (bpp *basePostProcessor) splitMiniBlocksIfNeeded(miniBlocks []*block.MiniBlock) []*block.MiniBlock {
@@ -285,7 +292,9 @@ func (bpp *basePostProcessor) addIntermediateTxToResultsForBlock(
 	bpp.index++
 	bpp.interResultsForBlock[string(txHash)] = scrInfo
 
-	for key := range bpp.mapProcessedResult {
-		bpp.mapProcessedResult[key] = append(bpp.mapProcessedResult[key], txHash)
+	var mapValue [][]byte
+	for _, key := range bpp.processedResult.keys {
+		mapValue = bpp.processedResult.mapProcessedResult[key]
+		bpp.processedResult.mapProcessedResult[key] = append(mapValue, txHash)
 	}
 }
