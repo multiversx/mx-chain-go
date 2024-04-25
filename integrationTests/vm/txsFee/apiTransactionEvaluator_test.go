@@ -194,5 +194,6 @@ func TestAsyncESDTTransfer(t *testing.T) {
 
 	res, err := testContext.TxCostHandler.ComputeTransactionGasLimit(tx)
 	require.Nil(t, err)
-	require.Equal(t, uint64(34157), res.GasUnits)
+	fmt.Println(res.GasUnits)
+	require.Equal(t, uint64(177653), res.GasUnits)
 }

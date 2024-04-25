@@ -296,7 +296,7 @@ func TestScCallAndGasChangeShouldWork(t *testing.T) {
 
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance := big.NewInt(10000000)
-	gasLimit := uint64(1000)
+	gasLimit := uint64(100000)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
 	numIterations := uint64(10)

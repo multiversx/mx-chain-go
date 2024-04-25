@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/config"
-	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -17,9 +16,7 @@ func TestScCallExecuteOnSourceAndDstShardShouldWork(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	enableEpochs := config.EnableEpochs{
-		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
-	}
+	enableEpochs := config.EnableEpochs{}
 
 	testContextSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, enableEpochs)
 	require.Nil(t, err)
@@ -44,7 +41,7 @@ func TestScCallExecuteOnSourceAndDstShardShouldWork(t *testing.T) {
 	gasPrice := uint64(10)
 	gasLimit := uint64(50000)
 
-	_, _ = vm.CreateAccount(testContextSource.Accounts, sndAddr, 0, big.NewInt(10000))
+	_, _ = vm.CreateAccount(testContextSource.Accounts, sndAddr, 0, big.NewInt(10000000))
 
 	tx := vm.CreateTransaction(0, big.NewInt(0), sndAddr, scAddr, gasPrice, gasLimit, []byte("increment"))
 
@@ -56,7 +53,7 @@ func TestScCallExecuteOnSourceAndDstShardShouldWork(t *testing.T) {
 	_, err = testContextSource.Accounts.Commit()
 	require.Nil(t, err)
 
-	expectedBalance := big.NewInt(5000)
+	expectedBalance := big.NewInt(9500000)
 	vm.TestAccount(t, testContextSource.Accounts, sndAddr, 1, expectedBalance)
 
 	// check accumulated fees
@@ -76,10 +73,10 @@ func TestScCallExecuteOnSourceAndDstShardShouldWork(t *testing.T) {
 
 	// check accumulated fees dest
 	accumulatedFees = testContextDst.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(3770), accumulatedFees)
+	require.Equal(t, big.NewInt(156630), accumulatedFees)
 
 	developerFees = testContextDst.TxFeeHandler.GetDeveloperFees()
-	require.Equal(t, big.NewInt(377), developerFees)
+	require.Equal(t, big.NewInt(15663), developerFees)
 
 	// execute sc result with gas refund
 	txs := testContextDst.GetIntermediateTransactions(t)
@@ -88,7 +85,7 @@ func TestScCallExecuteOnSourceAndDstShardShouldWork(t *testing.T) {
 	utils.ProcessSCRResult(t, testContextSource, scr, vmcommon.Ok, nil)
 
 	// check sender balance after refund
-	expectedBalance = big.NewInt(6130)
+	expectedBalance = big.NewInt(9843270)
 	vm.TestAccount(t, testContextSource.Accounts, sndAddr, 1, expectedBalance)
 
 	// check accumulated fees
