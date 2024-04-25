@@ -30,10 +30,6 @@ const (
 )
 
 func TestIncomingOperations(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
 	epochConfig, economicsConfig, sovereignExtraConfig, err := sovereignChainSimulator.LoadSovereignConfigs(sovereignConfigPath)
 	require.Nil(t, err)
 

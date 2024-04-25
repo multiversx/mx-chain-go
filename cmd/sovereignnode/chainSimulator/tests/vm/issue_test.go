@@ -13,19 +13,17 @@ import (
 	"github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator/utils"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	coreAPI "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/stretchr/testify/require"
 )
 
 const (
 	defaultPathToInitialConfig = "../../../../node/config/"
 	sovereignConfigPath        = "../../../config/"
+	adderWasmPath              = "../testdata/adder.wasm"
 )
 
 func TestSmartContract_IssueToken(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
 	epochConfig, economicsConfig, sovereignExtraConfig, err := sovereignChainSimulator.LoadSovereignConfigs(sovereignConfigPath)
 	require.Nil(t, err)
 
@@ -66,13 +64,9 @@ func TestSmartContract_IssueToken(t *testing.T) {
 	initialMinting := big.NewInt(0).Mul(oneEgld, big.NewInt(10))
 	wallet, err := cs.GenerateAndMintWalletAddress(core.SovereignChainShardId, initialMinting)
 	require.Nil(t, err)
+	nonce := uint64(0)
 
-	data := utils.GetSCCode("../testdata/adder.wasm") + "@0500@0500@10000000"
-	tx0 := utils.GenerateTransaction(wallet.Bytes, 0, systemScAddress, big.NewInt(0), data, uint64(60000000))
-	txRes, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx0, 100)
-	require.Nil(t, err)
-	require.NotNil(t, txRes)
-	deployedContractAddress := txRes.Logs.Events[0].Topics[0]
+	deployedContractAddress := utils.DeployContract(t, cs, wallet.Bytes, &nonce, systemScAddress, "@10000000", adderWasmPath)
 
 	res, _, err := nodeHandler.GetFacadeHandler().ExecuteSCQuery(&process.SCQuery{
 		ScAddress:  deployedContractAddress,
@@ -85,9 +79,11 @@ func TestSmartContract_IssueToken(t *testing.T) {
 	require.Equal(t, 268435456, int(sum))
 
 	issueCost := big.NewInt(50000000000000000)
-	tx1 := utils.GenerateTransaction(wallet.Bytes, 1, deployedContractAddress, issueCost, "issue", uint64(60000000))
-	txRes, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx1, 100)
+	tx1 := utils.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, issueCost, "issue", uint64(60000000))
+	require.False(t, string(tx1.Logs.Events[0].Topics[1]) == "sending value to non payable contract")
+
+	tokens, _, err := nodeHandler.GetFacadeHandler().GetAllESDTTokens(wallet.Bech32, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
-	require.NotNil(t, txRes)
-	require.False(t, string(txRes.Logs.Events[0].Topics[1]) == "sending value to non payable contract")
+	require.NotNil(t, tokens)
+	require.True(t, len(tokens) == 2)
 }
