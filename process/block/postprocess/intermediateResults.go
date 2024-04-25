@@ -86,7 +86,7 @@ func NewIntermediateResultsProcessor(
 		storageType:      dataRetriever.UnsignedTransactionUnit,
 		processedResult: processedResult{
 			mapProcessedResult: make(map[string][][]byte),
-			keys:               make([]string, 0, defaultCapacity),
+			keys:               make([]string, 0),
 		},
 		economicsFee: args.EconomicsFee,
 	}
