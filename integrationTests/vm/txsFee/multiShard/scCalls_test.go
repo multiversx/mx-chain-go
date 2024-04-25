@@ -42,7 +42,7 @@ func TestScCallExecuteOnSourceAndDstShardShouldWork(t *testing.T) {
 	require.Equal(t, uint32(0), shardID)
 
 	gasPrice := uint64(10)
-	gasLimit := uint64(500)
+	gasLimit := uint64(50000)
 
 	_, _ = vm.CreateAccount(testContextSource.Accounts, sndAddr, 0, big.NewInt(10000))
 
