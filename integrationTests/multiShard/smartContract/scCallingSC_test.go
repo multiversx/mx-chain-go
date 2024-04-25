@@ -775,7 +775,6 @@ func TestSCCallingInCrossShardDelegation(t *testing.T) {
 	require.True(t, bytes.Contains(vmOutputVersion.ReturnData[0], []byte("0.3.")))
 	log.Info("SC deployed", "version", string(vmOutputVersion.ReturnData[0]))
 
-	logger.SetLogLevel("process/smartcontract:TRACE")
 	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 1, nonce, round, idxProposers)
 
 	// set stake per node
