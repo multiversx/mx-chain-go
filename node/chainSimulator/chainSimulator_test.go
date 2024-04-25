@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	coreAPI "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
@@ -72,6 +73,12 @@ func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
 		InitialRound:      200000000,
 		InitialEpoch:      100,
 		InitialNonce:      100,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			// we need to enable this as this test skips a lot of epoch activations events, and it will fail otherwise
+			// because the owner of a BLS key coming from genesis is not set
+			// (the owner is not set at genesis anymore because we do not enable the staking v2 in that phase)
+			cfg.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
+		},
 	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
