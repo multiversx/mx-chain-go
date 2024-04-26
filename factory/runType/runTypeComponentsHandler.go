@@ -552,7 +552,7 @@ func (mrc *managedRunTypeComponents) GenesisBlockCreatorFactory() processComp.Ge
 	return mrc.runTypeComponents.genesisBlockCreatorFactory
 }
 
-// GenesisMetaBlockCheckerCreator returns the genesis meta block checker factory
+// GenesisMetaBlockCheckerCreator returns the genesis meta block checker creator
 func (mrc *managedRunTypeComponents) GenesisMetaBlockCheckerCreator() processComp.GenesisMetaBlockChecker {
 	mrc.mutRunTypeComponents.RLock()
 	defer mrc.mutRunTypeComponents.RUnlock()
