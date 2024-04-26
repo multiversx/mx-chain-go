@@ -203,6 +203,9 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 	if check.IfNil(arg.RunTypeComponents.SCResultsPreProcessorCreator()) {
 		return errors.ErrNilSCResultsPreProcessorCreator
 	}
+	if check.IfNil(arg.RunTypeComponents.SCProcessorCreator()) {
+		return errors.ErrNilSCProcessorCreator
+	}
 	if check.IfNil(arg.RunTypeComponents.TransactionCoordinatorCreator()) {
 		return errors.ErrNilTransactionCoordinatorCreator
 	}

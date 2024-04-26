@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/errors"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
+	processComp "github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
@@ -209,5 +210,6 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		shardResolversContainerFactoryCreator:   resolverscontainer.NewSovereignShardResolversContainerFactoryCreator(),
 		txPreProcessorCreator:                   preprocess.NewSovereignTxPreProcessorCreator(),
 		extraHeaderSigVerifierHandler:           rtc.extraHeaderSigVerifierHandler,
+		genesisBlockCreatorFactory:              processComp.NewSovereignGenesisBlockCreatorFactory(),
 	}, nil
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/errors"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
+	processGenesis "github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
 	processBlock "github.com/multiversx/mx-chain-go/process/block"
@@ -71,6 +72,7 @@ type runTypeComponents struct {
 	shardResolversContainerFactoryCreator   resolverscontainer.ShardResolversContainerFactoryCreator
 	txPreProcessorCreator                   preprocess.TxPreProcessorCreator
 	extraHeaderSigVerifierHandler           headerCheck.ExtraHeaderSigVerifierHolder
+	genesisBlockCreatorFactory              processGenesis.GenesisBlockCreatorFactory
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
@@ -84,6 +86,7 @@ func NewRunTypeComponentsFactory(coreComponents process.CoreComponentsHolder) (*
 	}, nil
 }
 
+// TODO remove the error from the factories where it's possible - MX-15415
 // Create creates the runType components
 func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 	blockChainHookHandlerFactory, err := hooks.NewBlockChainHookFactory()
@@ -201,6 +204,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		shardResolversContainerFactoryCreator:   resolverscontainer.NewShardResolversContainerFactoryCreator(),
 		txPreProcessorCreator:                   preprocess.NewTxPreProcessorCreator(),
 		extraHeaderSigVerifierHandler:           headerCheck.NewExtraHeaderSigVerifierHolder(),
+		genesisBlockCreatorFactory:              processGenesis.NewGenesisBlockCreatorFactory(),
 	}, nil
 }
 

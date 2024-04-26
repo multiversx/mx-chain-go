@@ -34,7 +34,6 @@ import (
 	"github.com/multiversx/mx-chain-go/factory/statusCore"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/data"
-	"github.com/multiversx/mx-chain-go/genesis/process"
 	mockCoreComp "github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/p2p"
 	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
@@ -645,9 +644,8 @@ func GetProcessArgs(
 				},
 			},
 		},
-		GenesisBlockCreatorFactory: process.NewGenesisBlockCreatorFactory(),
-		GenesisMetaBlockChecker:    processComp.NewGenesisMetaBlockChecker(),
-		RunTypeComponents:          GetRunTypeComponents(),
+		GenesisMetaBlockChecker: processComp.NewGenesisMetaBlockChecker(),
+		RunTypeComponents:       GetRunTypeComponents(),
 	}
 }
 
@@ -734,7 +732,6 @@ func GetSovereignProcessArgs(
 
 	processArgs.BootstrapComponents = bootstrapComponents
 	processArgs.StatusCoreComponents = statusCoreComponents
-	processArgs.GenesisBlockCreatorFactory = process.NewSovereignGenesisBlockCreatorFactory()
 	processArgs.GenesisMetaBlockChecker = processComp.NewSovereignGenesisMetaBlockChecker()
 	processArgs.IncomingHeaderSubscriber = &sovereign.IncomingHeaderSubscriberStub{}
 	processArgs.RunTypeComponents = GetSovereignRunTypeComponents()

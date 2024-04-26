@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/genesis"
+	processComp "github.com/multiversx/mx-chain-go/genesis/process"
 	heartbeatData "github.com/multiversx/mx-chain-go/heartbeat/data"
 	"github.com/multiversx/mx-chain-go/node/external"
 	"github.com/multiversx/mx-chain-go/ntp"
@@ -610,6 +611,7 @@ type RunTypeComponentsHolder interface {
 	ShardResolversContainerFactoryCreator() resolverscontainer.ShardResolversContainerFactoryCreator
 	TxPreProcessorCreator() preprocess.TxPreProcessorCreator
 	ExtraHeaderSigVerifierHandler() headerCheck.ExtraHeaderSigVerifierHolder
+	GenesisBlockCreatorFactory() processComp.GenesisBlockCreatorFactory
 	Create() error
 	Close() error
 	CheckSubcomponents() error
