@@ -978,7 +978,7 @@ func getRunTypeComponentsMock() *mainFactoryMocks.RunTypeComponentsStub {
 		ShardResolversContainerFactory:      rt.ShardResolversContainerFactoryCreator(),
 		TxPreProcessorFactory:               rt.TxPreProcessorCreator(),
 		ExtraHeaderSigVerifier:              rt.ExtraHeaderSigVerifierHandler(),
-		GenesisBlockFactory:                 rt.GenesisBlockCreator(),
+		GenesisBlockFactory:                 rt.GenesisBlockCreatorFactory(),
 		GenesisMetaBlockChecker:             rt.GenesisMetaBlockCheckerCreator(),
 	}
 }

@@ -611,7 +611,7 @@ type RunTypeComponentsHolder interface {
 	ShardResolversContainerFactoryCreator() resolverscontainer.ShardResolversContainerFactoryCreator
 	TxPreProcessorCreator() preprocess.TxPreProcessorCreator
 	ExtraHeaderSigVerifierHandler() headerCheck.ExtraHeaderSigVerifierHolder
-	GenesisBlockCreator() processComp.GenesisBlockCreatorFactory
+	GenesisBlockCreatorFactory() processComp.GenesisBlockCreatorFactory
 	GenesisMetaBlockCheckerCreator() processComp.GenesisMetaBlockChecker
 	Create() error
 	Close() error
