@@ -23,7 +23,7 @@ func (tb *tableDisplayer) DisplayTable(tableHeader []string, lines []*display.Li
 	}
 
 	msg := fmt.Sprintf("%s\n%s", message, table)
-	log.Debug(msg)
+	log.Info(msg)
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil

@@ -190,7 +190,7 @@ func (als *auctionListSelector) SelectNodesFromAuctionList(
 		return process.ErrNilRandSeed
 	}
 
-	ownersData, auctionListSize := als.getAuctionData()
+	ownersData, extraOwnersData, auctionListSize := als.getAuctionData()
 	if auctionListSize == 0 {
 		log.Info("auctionListSelector.SelectNodesFromAuctionList: empty auction list; skip selection")
 		return nil
@@ -232,6 +232,7 @@ func (als *auctionListSelector) SelectNodesFromAuctionList(
 	)
 
 	als.auctionListDisplayer.DisplayOwnersData(ownersData)
+	als.auctionListDisplayer.(*auctionListDisplayer).DisplayExtraOwnersData(extraOwnersData)
 	numOfAvailableNodeSlots := core.MinUint32(auctionListSize, availableSlots)
 
 	sw := core.NewStopWatch()
@@ -244,8 +245,9 @@ func (als *auctionListSelector) SelectNodesFromAuctionList(
 	return als.sortAuctionList(ownersData, numOfAvailableNodeSlots, validatorsInfoMap, randomness)
 }
 
-func (als *auctionListSelector) getAuctionData() (map[string]*OwnerAuctionData, uint32) {
+func (als *auctionListSelector) getAuctionData() (map[string]*OwnerAuctionData, map[string]*OwnerAuctionData, uint32) {
 	ownersData := make(map[string]*OwnerAuctionData)
+	extraOwnersData := make(map[string]*OwnerAuctionData)
 	numOfNodesInAuction := uint32(0)
 
 	for owner, ownerData := range als.stakingDataProvider.GetOwnersData() {
@@ -265,9 +267,21 @@ func (als *auctionListSelector) getAuctionData() (map[string]*OwnerAuctionData, 
 			copy(ownersData[owner].auctionList, ownerData.AuctionList)
 			numOfNodesInAuction += uint32(numAuctionNodes)
 		}
+		numAuctionNodes := len(ownerData.AuctionList)
+		extraOwnersData[owner] = &OwnerAuctionData{
+			numActiveNodes:           ownerData.NumActiveNodes,
+			numAuctionNodes:          int64(numAuctionNodes),
+			numQualifiedAuctionNodes: int64(numAuctionNodes),
+			numStakedNodes:           ownerData.NumStakedNodes,
+			totalTopUp:               ownerData.TotalTopUp,
+			topUpPerNode:             ownerData.TopUpPerNode,
+			qualifiedTopUpPerNode:    ownerData.TopUpPerNode,
+			auctionList:              make([]state.ValidatorInfoHandler, numAuctionNodes),
+		}
+		copy(extraOwnersData[owner].auctionList, ownerData.AuctionList)
 	}
 
-	return ownersData, numOfNodesInAuction
+	return ownersData, extraOwnersData, numOfNodesInAuction
 }
 
 func isInAuction(validator state.ValidatorInfoHandler) bool {
@@ -351,7 +365,7 @@ func (als *auctionListSelector) calcSoftAuctionNodesConfig(
 ) map[string]*OwnerAuctionData {
 	ownersData := copyOwnersData(data)
 	minTopUp, maxTopUp := als.getMinMaxPossibleTopUp(ownersData)
-	log.Debug("auctionListSelector: calc min and max possible top up",
+	log.Info("auctionListSelector: calc min and max possible top up",
 		"min top up per node", getPrettyValue(minTopUp, als.softAuctionConfig.denominator),
 		"max top up per node", getPrettyValue(maxTopUp, als.softAuctionConfig.denominator),
 	)
@@ -373,7 +387,7 @@ func (als *auctionListSelector) calcSoftAuctionNodesConfig(
 		maxNumberOfIterationsReached = iterationNumber >= als.softAuctionConfig.maxNumberOfIterations
 	}
 
-	log.Debug("auctionListSelector: found min required",
+	log.Info("auctionListSelector: found min required",
 		"topUp", getPrettyValue(topUp, als.softAuctionConfig.denominator),
 		"after num of iterations", iterationNumber,
 	)
