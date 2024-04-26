@@ -35,7 +35,6 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
-const SovereignSimulatorType = "sovereign"
 const delaySendTxs = time.Millisecond
 
 var log = logger.GetOrCreate("chainSimulator")
