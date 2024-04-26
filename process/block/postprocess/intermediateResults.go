@@ -84,9 +84,10 @@ func NewIntermediateResultsProcessor(
 		shardCoordinator: args.Coordinator,
 		store:            args.Store,
 		storageType:      dataRetriever.UnsignedTransactionUnit,
-		processedResult: processedResult{
+		processedResult: aggProcessedResults{
+			lastInitializedKey: nil,
+			initializedKeys:    nil,
 			mapProcessedResult: make(map[string][][]byte),
-			keys:               make([]string, 0),
 		},
 		economicsFee: args.EconomicsFee,
 	}

@@ -388,19 +388,19 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddAndRevert(t 
 	err = irp.AddIntermediateTransactions(txs)
 	assert.Nil(t, err)
 	irp.mutInterResultsForBlock.Lock()
-	assert.Equal(t, len(irp.processedResult.mapProcessedResult[string(key)]), len(txs))
-	assert.Equal(t, len(txs), calledCount)
+	assert.Equal(t, len(txs), len(irp.processedResult.mapProcessedResult[string(key)]))
+	assert.Equal(t, calledCount, len(txs))
 	irp.mutInterResultsForBlock.Unlock()
 
 	irp.RemoveProcessedResults(key)
 	irp.mutInterResultsForBlock.Lock()
-	assert.Equal(t, len(irp.interResultsForBlock), 0)
-	assert.Equal(t, len(irp.processedResult.mapProcessedResult[string(key)]), len(txs))
+	assert.Equal(t, 0, len(irp.interResultsForBlock))
+	assert.Equal(t, 0, len(irp.processedResult.mapProcessedResult[string(key)]))
 	irp.mutInterResultsForBlock.Unlock()
 
 	irp.InitProcessedResults(key)
 	irp.mutInterResultsForBlock.Lock()
-	assert.Equal(t, len(irp.processedResult.mapProcessedResult[string(key)]), 0)
+	assert.Equal(t, 0, len(irp.processedResult.mapProcessedResult[string(key)]))
 	irp.mutInterResultsForBlock.Unlock()
 }
 

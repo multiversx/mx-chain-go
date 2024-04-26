@@ -55,9 +55,10 @@ func NewOneMiniBlockPostProcessor(
 		shardCoordinator: coordinator,
 		store:            store,
 		storageType:      storageType,
-		processedResult: processedResult{
+		processedResult: aggProcessedResults{
+			lastInitializedKey: nil,
+			initializedKeys:    nil,
 			mapProcessedResult: make(map[string][][]byte),
-			keys:               make([]string, 0),
 		},
 		economicsFee: economicsFee,
 	}
