@@ -86,6 +86,7 @@ func NewRunTypeComponentsFactory(coreComponents process.CoreComponentsHolder) (*
 	}, nil
 }
 
+// TODO remove the error from the factories where it's possible - MX-15415
 // Create creates the runType components
 func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 	blockChainHookHandlerFactory, err := hooks.NewBlockChainHookFactory()
