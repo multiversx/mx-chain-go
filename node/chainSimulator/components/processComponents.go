@@ -25,7 +25,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage/cache"
-	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/update"
 	"github.com/multiversx/mx-chain-go/update/trigger"
 
@@ -154,7 +153,7 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		return nil, err
 	}
 
-	initialAccounts, err := testscommon.ReadInitialAccounts(args.Configs.ConfigurationPathsHolder.Genesis)
+	initialAccounts, err := runType.ReadInitialAccounts(args.Configs.ConfigurationPathsHolder.Genesis)
 	if err != nil {
 		return nil, err
 	}
@@ -265,7 +264,10 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 }
 
 func createRunTypeComponents(args runType.ArgsRunTypeComponents) (factory.RunTypeComponentsHolder, error) {
-	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory(args)
+	runTypeComponentsFactory, err := runType.NewRunTypeComponentsFactory(args)
+	if err != nil {
+		return nil, err
+	}
 	managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(runTypeComponentsFactory)
 	if err != nil {
 		return nil, err

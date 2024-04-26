@@ -10,6 +10,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/factory/runType"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/data"
 	"github.com/multiversx/mx-chain-go/genesis/mock"
@@ -54,7 +55,7 @@ func createMockHexPubkeyConverter() *testscommon.PubkeyConverterStub {
 }
 
 func createMockAccountsParserArgs() genesis.AccountsParserArgs {
-	initialAccounts, _ := testscommon.ReadInitialAccounts("testdata/genesis_ok.json")
+	initialAccounts, _ := runType.ReadInitialAccounts("testdata/genesis_ok.json")
 
 	return genesis.AccountsParserArgs{
 		InitialAccounts: initialAccounts,
@@ -196,7 +197,7 @@ func TestNewAccountsParser_BadJsonShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockAccountsParserArgs()
-	initialAccounts, _ := testscommon.ReadInitialAccounts("testdata/genesis_bad.json")
+	initialAccounts, _ := runType.ReadInitialAccounts("testdata/genesis_bad.json")
 	args.InitialAccounts = initialAccounts
 
 	ap, err := parsing.NewAccountsParser(args)
