@@ -997,6 +997,7 @@ const (
 	AutoBalanceDataTriesFlag                           core.EnableEpochFlag = "AutoBalanceDataTriesFlag"
 	MigrateDataTrieFlag                                core.EnableEpochFlag = "MigrateDataTrieFlag"
 	FixDelegationChangeOwnerOnAccountFlag              core.EnableEpochFlag = "FixDelegationChangeOwnerOnAccountFlag"
+	FixDelegationGetAllNodeStatesViewGasFlag           core.EnableEpochFlag = "FixDelegationGetAllNodeStatesViewGasFlag"
 	FixOOGReturnCodeFlag                               core.EnableEpochFlag = "FixOOGReturnCodeFlag"
 	DeterministicSortOnValidatorsInfoFixFlag           core.EnableEpochFlag = "DeterministicSortOnValidatorsInfoFixFlag"
 	DynamicGasCostForDataTrieStorageLoadFlag           core.EnableEpochFlag = "DynamicGasCostForDataTrieStorageLoadFlag"

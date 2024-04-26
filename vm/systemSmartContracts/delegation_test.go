@@ -3452,6 +3452,71 @@ func TestDelegation_ExecuteGetAllNodeStates(t *testing.T) {
 	assert.Equal(t, blsKey4, eei.output[6])
 }
 
+func TestDelegation_ExecuteGetAllNodeStatesBeforeGasFix(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForDelegation()
+	eei := createDefaultEei()
+
+	eei.gasRemaining = 100
+
+	args.Eei = eei
+
+	vmInput := getDefaultVmInputForFunc("getAllNodeStates", [][]byte{})
+	d, _ := NewDelegationSystemSC(args)
+
+	d.gasCost.MetaChainSystemSCsCost.DelegationOps = 10
+	d.gasCost.MetaChainSystemSCsCost.GetAllNodeStates = 15
+
+	blsKey1 := []byte("blsKey1")
+	blsKey2 := []byte("blsKey2")
+	blsKey3 := []byte("blsKey3")
+	blsKey4 := []byte("blsKey4")
+	_ = d.saveDelegationStatus(&DelegationContractStatus{
+		StakedKeys:    []*NodesData{{BLSKey: blsKey1}},
+		NotStakedKeys: []*NodesData{{BLSKey: blsKey2}, {BLSKey: blsKey3}},
+		UnStakedKeys:  []*NodesData{{BLSKey: blsKey4}},
+	})
+
+	output := d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+	assert.Equal(t, uint64(90), eei.gasRemaining)
+}
+
+func TestDelegation_ExecuteGetAllNodeStatesAfterGasFix(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgumentsForDelegation()
+	eei := createDefaultEei()
+
+	eei.gasRemaining = 100
+
+	args.Eei = eei
+
+	vmInput := getDefaultVmInputForFunc("getAllNodeStates", [][]byte{})
+	d, _ := NewDelegationSystemSC(args)
+
+	enableEpochsHandler, _ := args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
+	enableEpochsHandler.AddActiveFlags(common.FixDelegationGetAllNodeStatesViewGasFlag)
+
+	d.gasCost.MetaChainSystemSCsCost.DelegationOps = 10
+	d.gasCost.MetaChainSystemSCsCost.GetAllNodeStates = 15
+
+	blsKey1 := []byte("blsKey1")
+	blsKey2 := []byte("blsKey2")
+	blsKey3 := []byte("blsKey3")
+	blsKey4 := []byte("blsKey4")
+	_ = d.saveDelegationStatus(&DelegationContractStatus{
+		StakedKeys:    []*NodesData{{BLSKey: blsKey1}},
+		NotStakedKeys: []*NodesData{{BLSKey: blsKey2}, {BLSKey: blsKey3}},
+		UnStakedKeys:  []*NodesData{{BLSKey: blsKey4}},
+	})
+
+	output := d.Execute(vmInput)
+	assert.Equal(t, vmcommon.Ok, output)
+	assert.Equal(t, uint64(85), eei.gasRemaining)
+}
+
 func TestDelegation_ExecuteGetContractConfigUserErrors(t *testing.T) {
 	t.Parallel()
 
