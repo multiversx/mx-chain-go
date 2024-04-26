@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
+	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
@@ -25,6 +26,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	testFactory "github.com/multiversx/mx-chain-go/testscommon/factory"
+	"github.com/multiversx/mx-chain-go/testscommon/headerSigVerifier"
 	sovereignMocks "github.com/multiversx/mx-chain-go/testscommon/sovereign"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 )
@@ -59,6 +61,7 @@ type RunTypeComponentsStub struct {
 	InterceptorsContainerFactory        interceptorscontainer.InterceptorsContainerFactoryCreator
 	ShardResolversContainerFactory      resolverscontainer.ShardResolversContainerFactoryCreator
 	TxPreProcessorFactory               preprocess.TxPreProcessorCreator
+	ExtraHeaderSigVerifier              headerCheck.ExtraHeaderSigVerifierHolder
 }
 
 // NewRunTypeComponentsStub -
@@ -92,6 +95,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		InterceptorsContainerFactory:        &testFactory.InterceptorsContainerFactoryMock{},
 		ShardResolversContainerFactory:      &testFactory.ResolversContainerFactoryMock{},
 		TxPreProcessorFactory:               &testFactory.TxPreProcessorFactoryMock{},
+		ExtraHeaderSigVerifier:              &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
 	}
 }
 
@@ -253,6 +257,11 @@ func (r *RunTypeComponentsStub) ShardResolversContainerFactoryCreator() resolver
 // TxPreProcessorCreator -
 func (r *RunTypeComponentsStub) TxPreProcessorCreator() preprocess.TxPreProcessorCreator {
 	return r.TxPreProcessorFactory
+}
+
+// ExtraHeaderSigVerifierHandler -
+func (r *RunTypeComponentsStub) ExtraHeaderSigVerifierHandler() headerCheck.ExtraHeaderSigVerifierHolder {
+	return r.ExtraHeaderSigVerifier
 }
 
 // IsInterfaceNil -

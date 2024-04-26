@@ -50,7 +50,6 @@ import (
 	trieIteratorsFactory "github.com/multiversx/mx-chain-go/node/trieIterators/factory"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	"github.com/multiversx/mx-chain-go/process/rating"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -1264,37 +1263,36 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 	txExecutionOrderHandler := ordering.NewOrderedCollection()
 
 	processArgs := processComp.ProcessComponentsFactoryArgs{
-		Config:                       *configs.GeneralConfig,
-		EpochConfig:                  *configs.EpochConfig,
-		RoundConfig:                  *configs.RoundConfig,
-		PrefConfigs:                  *configs.PreferencesConfig,
-		ImportDBConfig:               *configs.ImportDbConfig,
-		EconomicsConfig:              *configs.EconomicsConfig,
-		AccountsParser:               accountsParser,
-		SmartContractParser:          smartContractParser,
-		GasSchedule:                  gasScheduleNotifier,
-		NodesCoordinator:             nodesCoordinator,
-		Data:                         dataComponents,
-		CoreData:                     coreComponents,
-		Crypto:                       cryptoComponents,
-		State:                        stateComponents,
-		Network:                      networkComponents,
-		BootstrapComponents:          bootstrapComponents,
-		StatusComponents:             statusComponents,
-		StatusCoreComponents:         statusCoreComponents,
-		RequestedItemsHandler:        requestedItemsHandler,
-		WhiteListHandler:             whiteListRequest,
-		WhiteListerVerifiedTxs:       whiteListerVerifiedTxs,
-		MaxRating:                    configs.RatingsConfig.General.MaxRating,
-		SystemSCConfig:               configs.SystemSCConfig,
-		ImportStartHandler:           importStartHandler,
-		HistoryRepo:                  historyRepository,
-		FlagsConfig:                  *configs.FlagsConfig,
-		TxExecutionOrderHandler:      txExecutionOrderHandler,
-		GenesisBlockCreatorFactory:   genesisProcess.NewGenesisBlockCreatorFactory(),
-		GenesisMetaBlockChecker:      processComp.NewGenesisMetaBlockChecker(),
-		ExtraHeaderSigVerifierHolder: headerCheck.NewExtraHeaderSigVerifierHolder(),
-		RunTypeComponents:            runTypeComponents,
+		Config:                     *configs.GeneralConfig,
+		EpochConfig:                *configs.EpochConfig,
+		RoundConfig:                *configs.RoundConfig,
+		PrefConfigs:                *configs.PreferencesConfig,
+		ImportDBConfig:             *configs.ImportDbConfig,
+		EconomicsConfig:            *configs.EconomicsConfig,
+		AccountsParser:             accountsParser,
+		SmartContractParser:        smartContractParser,
+		GasSchedule:                gasScheduleNotifier,
+		NodesCoordinator:           nodesCoordinator,
+		Data:                       dataComponents,
+		CoreData:                   coreComponents,
+		Crypto:                     cryptoComponents,
+		State:                      stateComponents,
+		Network:                    networkComponents,
+		BootstrapComponents:        bootstrapComponents,
+		StatusComponents:           statusComponents,
+		StatusCoreComponents:       statusCoreComponents,
+		RequestedItemsHandler:      requestedItemsHandler,
+		WhiteListHandler:           whiteListRequest,
+		WhiteListerVerifiedTxs:     whiteListerVerifiedTxs,
+		MaxRating:                  configs.RatingsConfig.General.MaxRating,
+		SystemSCConfig:             configs.SystemSCConfig,
+		ImportStartHandler:         importStartHandler,
+		HistoryRepo:                historyRepository,
+		FlagsConfig:                *configs.FlagsConfig,
+		TxExecutionOrderHandler:    txExecutionOrderHandler,
+		GenesisBlockCreatorFactory: genesisProcess.NewGenesisBlockCreatorFactory(),
+		GenesisMetaBlockChecker:    processComp.NewGenesisMetaBlockChecker(),
+		RunTypeComponents:          runTypeComponents,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {

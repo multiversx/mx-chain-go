@@ -25,6 +25,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/headerSigVerifier"
 	"github.com/multiversx/mx-chain-go/testscommon/sovereign"
 	"github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/vm"
@@ -88,18 +89,19 @@ func createSovRunTypeComps(t *testing.T) runTypeComponentsHandler {
 	})
 	require.Nil(t, err)
 
-	sovRunTypeFactory, err := factoryRunType.NewSovereignRunTypeComponentsFactory(
-		factoryRunType.ArgsSovereignRunTypeComponents{
-			RunTypeComponentsFactory: runTypeFactory,
-			Config: config.SovereignConfig{
-				GenesisConfig: config.GenesisConfig{
-					NativeESDT: sovereignNativeToken,
-				},
+	runTypeArgs := factoryRunType.ArgsSovereignRunTypeComponents{
+		RunTypeComponentsFactory: runTypeFactory,
+		Config: config.SovereignConfig{
+			GenesisConfig: config.GenesisConfig{
+				NativeESDT: sovereignNativeToken,
 			},
-			DataCodec:     &sovereign.DataCodecMock{},
-			TopicsChecker: &sovereign.TopicsCheckerMock{},
 		},
-	)
+		DataCodec:     &sovereign.DataCodecMock{},
+		TopicsChecker: &sovereign.TopicsCheckerMock{},
+		ExtraVerifier: &headerSigVerifier.ExtraHeaderSigVerifierHandlerMock{},
+	}
+
+	sovRunTypeFactory, err := factoryRunType.NewSovereignRunTypeComponentsFactory(runTypeArgs)
 	require.Nil(t, err)
 	sovRunTypeComp, err := factoryRunType.NewManagedRunTypeComponents(sovRunTypeFactory)
 	require.Nil(t, err)

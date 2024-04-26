@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
+	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
@@ -177,6 +178,9 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	}
 	if check.IfNil(mrc.txPreProcessorCreator) {
 		return errors.ErrNilTxPreProcessorCreator
+	}
+	if check.IfNil(mrc.extraHeaderSigVerifierHandler) {
+		return errors.ErrNilExtraHeaderSigVerifierHolder
 	}
 	return nil
 }
@@ -515,6 +519,18 @@ func (mrc *managedRunTypeComponents) TxPreProcessorCreator() preprocess.TxPrePro
 	}
 
 	return mrc.runTypeComponents.txPreProcessorCreator
+}
+
+// ExtraHeaderSigVerifierHandler returns the extra header sig verifier handler
+func (mrc *managedRunTypeComponents) ExtraHeaderSigVerifierHandler() headerCheck.ExtraHeaderSigVerifierHolder {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.extraHeaderSigVerifierHandler
 }
 
 // IsInterfaceNil returns true if the interface is nil

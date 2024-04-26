@@ -39,7 +39,6 @@ import (
 	"github.com/multiversx/mx-chain-go/p2p"
 	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
 	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
-	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/rating"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -646,10 +645,9 @@ func GetProcessArgs(
 				},
 			},
 		},
-		GenesisBlockCreatorFactory:   process.NewGenesisBlockCreatorFactory(),
-		GenesisMetaBlockChecker:      processComp.NewGenesisMetaBlockChecker(),
-		ExtraHeaderSigVerifierHolder: &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
-		RunTypeComponents:            GetRunTypeComponents(),
+		GenesisBlockCreatorFactory: process.NewGenesisBlockCreatorFactory(),
+		GenesisMetaBlockChecker:    processComp.NewGenesisMetaBlockChecker(),
+		RunTypeComponents:          GetRunTypeComponents(),
 	}
 }
 
@@ -734,15 +732,10 @@ func GetSovereignProcessArgs(
 
 	statusCoreComponents := GetSovereignStatusCoreComponents()
 
-	extraHeaderSigVerifierHolder := headerCheck.NewExtraHeaderSigVerifierHolder()
-	sovHeaderSigVerifier, _ := headerCheck.NewSovereignHeaderSigVerifier(cryptoComponents.BlockSigner())
-	_ = extraHeaderSigVerifierHolder.RegisterExtraHeaderSigVerifier(sovHeaderSigVerifier)
-
 	processArgs.BootstrapComponents = bootstrapComponents
 	processArgs.StatusCoreComponents = statusCoreComponents
 	processArgs.GenesisBlockCreatorFactory = process.NewSovereignGenesisBlockCreatorFactory()
 	processArgs.GenesisMetaBlockChecker = processComp.NewSovereignGenesisMetaBlockChecker()
-	processArgs.ExtraHeaderSigVerifierHolder = extraHeaderSigVerifierHolder
 	processArgs.IncomingHeaderSubscriber = &sovereign.IncomingHeaderSubscriberStub{}
 	processArgs.RunTypeComponents = GetSovereignRunTypeComponents()
 
@@ -1078,6 +1071,7 @@ func createSovRunTypeArgs() runType.ArgsSovereignRunTypeComponents {
 		},
 		DataCodec:     &sovereign.DataCodecMock{},
 		TopicsChecker: &sovereign.TopicsCheckerMock{},
+		ExtraVerifier: &headerSigVerifier.ExtraHeaderSigVerifierHandlerMock{},
 	}
 }
 
