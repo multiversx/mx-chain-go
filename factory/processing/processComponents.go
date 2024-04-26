@@ -919,7 +919,7 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		Config: pcf.config,
 	}
 
-	gbc, err := pcf.runTypeComponents.GenesisBlockCreator().CreateGenesisBlockCreator(arg)
+	gbc, err := pcf.runTypeComponents.GenesisBlockCreatorFactory().CreateGenesisBlockCreator(arg)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -2116,7 +2116,7 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	if check.IfNil(args.RunTypeComponents.ExtraHeaderSigVerifierHandler()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilExtraHeaderSigVerifierHolder)
 	}
-	if check.IfNil(args.RunTypeComponents.GenesisBlockCreator()) {
+	if check.IfNil(args.RunTypeComponents.GenesisBlockCreatorFactory()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilGenesisBlockFactory)
 	}
 	if check.IfNil(args.RunTypeComponents.GenesisMetaBlockCheckerCreator()) {
