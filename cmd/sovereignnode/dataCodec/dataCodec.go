@@ -8,7 +8,14 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
-	"github.com/multiversx/mx-sdk-abi-incubator/golang/abi"
+	"github.com/multiversx/mx-sdk-abi-go/abi"
+)
+
+const (
+	// AbiPartsSeparator is the separator for the arguments
+	AbiPartsSeparator = "@"
+	// AbiPubKeyLength is the length of the pub key needed for encoding/decoding an address
+	AbiPubKeyLength = 32
 )
 
 // ArgsDataCodec holds the components needed for serialization/deserialization

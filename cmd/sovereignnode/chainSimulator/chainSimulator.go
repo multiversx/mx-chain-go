@@ -19,7 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sovereignnode/incomingHeader"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-sdk-abi-incubator/golang/abi"
+	"github.com/multiversx/mx-sdk-abi-go/abi"
 )
 
 type ArgsSovereignChainSimulator struct {
@@ -101,9 +101,13 @@ func createSovereignRunTypeComponents(args runType.ArgsRunTypeComponents, sovere
 func createArgsRunTypeComponents(args runType.ArgsRunTypeComponents, sovereignExtraConfig config.SovereignConfig) (*runType.ArgsSovereignRunTypeComponents, error) {
 	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory(args)
 
-	codec := abi.NewDefaultCodec()
+	abiSerializer, _ := abi.NewSerializer(abi.ArgsNewSerializer{
+		PartsSeparator: dataCodec.AbiPartsSeparator,
+		PubKeyLength:   dataCodec.AbiPubKeyLength,
+	})
+
 	argsDataCodec := dataCodec.ArgsDataCodec{
-		Serializer: abi.NewSerializer(codec),
+		Serializer: abiSerializer,
 	}
 
 	dataCodecHandler, err := dataCodec.NewDataCodec(argsDataCodec)

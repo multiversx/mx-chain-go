@@ -80,7 +80,7 @@ import (
 	notifierCfg "github.com/multiversx/mx-chain-sovereign-notifier-go/config"
 	"github.com/multiversx/mx-chain-sovereign-notifier-go/factory"
 	notifierProcess "github.com/multiversx/mx-chain-sovereign-notifier-go/process"
-	"github.com/multiversx/mx-sdk-abi-incubator/golang/abi"
+	"github.com/multiversx/mx-sdk-abi-go/abi"
 )
 
 var log = logger.GetOrCreate("sovereignNode")
@@ -1609,9 +1609,16 @@ func (snr *sovereignNodeRunner) CreateSovereignArgsRunTypeComponents(coreCompone
 		return nil, fmt.Errorf("NewRunTypeComponentsFactory failed: %w", err)
 	}
 
-	codec := abi.NewDefaultCodec()
+	abiSerializer, err := abi.NewSerializer(abi.ArgsNewSerializer{
+		PartsSeparator: dataCodec.AbiPartsSeparator,
+		PubKeyLength:   dataCodec.AbiPubKeyLength,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	argsDataCodec := dataCodec.ArgsDataCodec{
-		Serializer: abi.NewSerializer(codec),
+		Serializer: abiSerializer,
 	}
 
 	dataCodecHandler, err := dataCodec.NewDataCodec(argsDataCodec)
