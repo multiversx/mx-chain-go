@@ -1068,7 +1068,7 @@ func GetRunTypeComponentsStub(rt factory.RunTypeComponentsHandler) *mainFactoryM
 		ShardResolversContainerFactory:      rt.ShardResolversContainerFactoryCreator(),
 		TxPreProcessorFactory:               rt.TxPreProcessorCreator(),
 		ExtraHeaderSigVerifier:              rt.ExtraHeaderSigVerifierHandler(),
-		GenesisBlockFactory:                 rt.GenesisBlockCreator(),
+		GenesisBlockFactory:                 rt.GenesisBlockCreatorFactory(),
 		GenesisMetaBlockChecker:             rt.GenesisMetaBlockCheckerCreator(),
 	}
 }

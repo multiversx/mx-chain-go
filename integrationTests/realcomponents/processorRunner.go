@@ -37,7 +37,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
-	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/update/trigger"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -90,7 +89,7 @@ func (pr *ProcessorRunner) createComponents(tb testing.TB) {
 }
 
 func (pr *ProcessorRunner) createRunTypeComponents(tb testing.TB) {
-	initialAccounts, err := testscommon.ReadInitialAccounts(pr.Config.ConfigurationPathsHolder.Genesis)
+	initialAccounts, err := runType.ReadInitialAccounts(pr.Config.ConfigurationPathsHolder.Genesis)
 
 	rtFactory, err := runType.NewRunTypeComponentsFactory(runType.ArgsRunTypeComponents{
 		CoreComponents:   pr.CoreComponents,

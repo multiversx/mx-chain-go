@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/factory/runType"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/mock"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
@@ -251,7 +252,7 @@ func createArgument(
 	}
 	arg.Economics = ted
 
-	initialAccounts, err := testscommon.ReadInitialAccounts(genesisFilename)
+	initialAccounts, err := runType.ReadInitialAccounts(genesisFilename)
 	require.Nil(t, err)
 
 	args := genesis.AccountsParserArgs{
