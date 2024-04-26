@@ -3024,9 +3024,10 @@ func TestEsdt_SetSpecialRoleTransferNotEnabledShouldErr(t *testing.T) {
 			tokenBytes, _ := args.Marshalizer.Marshal(token)
 			return tokenBytes
 		},
-		SendGlobalSettingToAllCalled: func(sender []byte, input []byte) {
+		SendGlobalSettingToAllCalled: func(sender []byte, input []byte) error {
 			assert.Equal(t, input, []byte(esdtTransferData))
 			called = true
+			return nil
 		},
 	}
 	args.Eei = eei
@@ -3129,13 +3130,14 @@ func TestEsdt_SetSpecialRoleTransferWithTransferRoleEnhancement(t *testing.T) {
 	enableEpochsHandler.AddActiveFlags(common.ESDTTransferRoleFlag)
 	called = 0
 	token.TokenType = []byte(core.NonFungibleESDT)
-	eei.SendGlobalSettingToAllCalled = func(sender []byte, input []byte) {
+	eei.SendGlobalSettingToAllCalled = func(sender []byte, input []byte) error {
 		if called == 0 {
 			assert.Equal(t, core.BuiltInFunctionESDTSetLimitedTransfer+"@"+hex.EncodeToString([]byte("myToken")), string(input))
 		} else {
 			assert.Equal(t, vmcommon.BuiltInFunctionESDTTransferRoleAddAddress+"@"+hex.EncodeToString([]byte("myToken"))+"@"+hex.EncodeToString([]byte("myAddress")), string(input))
 		}
 		called++
+		return nil
 	}
 
 	retCode := e.Execute(vmInput)
@@ -3149,9 +3151,10 @@ func TestEsdt_SetSpecialRoleTransferWithTransferRoleEnhancement(t *testing.T) {
 	}
 	token.SpecialRoles = append(token.SpecialRoles, newAddressRole)
 	token.TokenType = []byte(core.SemiFungibleESDT)
-	eei.SendGlobalSettingToAllCalled = func(sender []byte, input []byte) {
+	eei.SendGlobalSettingToAllCalled = func(sender []byte, input []byte) error {
 		assert.Equal(t, vmcommon.BuiltInFunctionESDTTransferRoleAddAddress+"@"+hex.EncodeToString([]byte("myToken"))+"@"+hex.EncodeToString([]byte("myAddress")), string(input))
 		called++
+		return nil
 	}
 	retCode = e.Execute(vmInput)
 	require.Equal(t, vmcommon.Ok, retCode)
@@ -3160,16 +3163,17 @@ func TestEsdt_SetSpecialRoleTransferWithTransferRoleEnhancement(t *testing.T) {
 	token.SpecialRoles[0].Roles = append(token.SpecialRoles[0].Roles, []byte(core.ESDTRoleTransfer))
 	vmInput.Function = "unSetSpecialRole"
 	called = 0
-	eei.SendGlobalSettingToAllCalled = func(sender []byte, input []byte) {
+	eei.SendGlobalSettingToAllCalled = func(sender []byte, input []byte) error {
 		assert.Equal(t, vmcommon.BuiltInFunctionESDTTransferRoleDeleteAddress+"@"+hex.EncodeToString([]byte("myToken"))+"@"+hex.EncodeToString([]byte("myAddress")), string(input))
 		called++
+		return nil
 	}
 	retCode = e.Execute(vmInput)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Equal(t, called, 1)
 
 	called = 0
-	eei.SendGlobalSettingToAllCalled = func(sender []byte, input []byte) {
+	eei.SendGlobalSettingToAllCalled = func(sender []byte, input []byte) error {
 		if called == 0 {
 			assert.Equal(t, core.BuiltInFunctionESDTUnSetLimitedTransfer+"@"+hex.EncodeToString([]byte("myToken")), string(input))
 		} else {
@@ -3177,6 +3181,7 @@ func TestEsdt_SetSpecialRoleTransferWithTransferRoleEnhancement(t *testing.T) {
 		}
 
 		called++
+		return nil
 	}
 	token.SpecialRoles = token.SpecialRoles[:1]
 	retCode = e.Execute(vmInput)
@@ -3238,9 +3243,10 @@ func TestEsdt_SendAllTransferRoleAddresses(t *testing.T) {
 
 	called = 0
 	token.TokenType = []byte(core.NonFungibleESDT)
-	eei.SendGlobalSettingToAllCalled = func(sender []byte, input []byte) {
+	eei.SendGlobalSettingToAllCalled = func(sender []byte, input []byte) error {
 		assert.Equal(t, vmcommon.BuiltInFunctionESDTTransferRoleAddAddress+"@"+hex.EncodeToString([]byte("myToken"))+"@"+hex.EncodeToString([]byte("myAddress1"))+"@"+hex.EncodeToString([]byte("myAddress2"))+"@"+hex.EncodeToString([]byte("myAddress3")), string(input))
 		called++
+		return nil
 	}
 	vmInput.Arguments = [][]byte{[]byte("myToken")}
 	retCode = e.Execute(vmInput)
