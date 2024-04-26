@@ -329,6 +329,7 @@ type ProcessComponentsHolder interface {
 	AccountsParser() genesis.AccountsParser
 	ReceiptsRepository() ReceiptsRepository
 	SentSignaturesTracker() process.SentSignaturesTracker
+	IncomingHeaderHandler() process.IncomingHeaderSubscriber
 	IsInterfaceNil() bool
 }
 
