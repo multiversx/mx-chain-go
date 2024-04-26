@@ -167,8 +167,6 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 
 	expiryTime := time.Second * time.Duration(rcf.cfg.OutgoingSubscribedEvents.TimeToWaitForUnconfirmedOutGoingOperationInSeconds)
 
-	txPreProcessorCreator := preprocess.NewSovereignTxPreProcessorCreator()
-
 	return &runTypeComponents{
 		blockChainHookHandlerCreator:            blockChainHookHandlerFactory,
 		epochStartBootstrapperCreator:           epochStartBootstrapperFactory,
@@ -197,6 +195,6 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		requestersContainerFactoryCreator:       requesterscontainer.NewSovereignShardRequestersContainerFactoryCreator(),
 		interceptorsContainerFactoryCreator:     interceptorscontainer.NewSovereignShardInterceptorsContainerFactoryCreator(),
 		shardResolversContainerFactoryCreator:   resolverscontainer.NewSovereignShardResolversContainerFactoryCreator(),
-		txPreProcessorCreator:                 txPreProcessorCreator,
+		txPreProcessorCreator:                   preprocess.NewSovereignTxPreProcessorCreator(),
 	}, nil
 }
