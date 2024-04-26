@@ -6,18 +6,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-go/config"
-	chainSim "github.com/multiversx/mx-chain-go/node/chainSimulator"
-	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
-	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
-	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator/utils"
-
 	"github.com/multiversx/mx-chain-core-go/core"
 	coreAPI "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/config"
+	chainSim "github.com/multiversx/mx-chain-go/node/chainSimulator"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 const (
@@ -371,9 +371,9 @@ func TestSimulator_SendTransactions(t *testing.T) {
 	require.NotNil(t, acc)
 
 	gasLimit := uint64(50000)
-	tx0 := utils.GenerateTransaction(wallet0.Bytes, 0, wallet2.Bytes, transferValue, "", gasLimit)
-	tx1 := utils.GenerateTransaction(wallet1.Bytes, 0, wallet2.Bytes, transferValue, "", gasLimit)
-	tx3 := utils.GenerateTransaction(wallet3.Bytes, 0, wallet4.Bytes, transferValue, "", gasLimit)
+	tx0 := generateTransaction(wallet0.Bytes, 0, wallet2.Bytes, transferValue, "", gasLimit)
+	tx1 := generateTransaction(wallet1.Bytes, 0, wallet2.Bytes, transferValue, "", gasLimit)
+	tx3 := generateTransaction(wallet3.Bytes, 0, wallet4.Bytes, transferValue, "", gasLimit)
 
 	maxNumOfBlockToGenerateWhenExecutingTx := 15
 
@@ -416,4 +416,24 @@ func TestSimulator_SendTransactions(t *testing.T) {
 		expectedBalance := big.NewInt(0).Add(initialMinting, transferValue)
 		assert.Equal(t, expectedBalance.String(), account.Balance)
 	})
+}
+
+func generateTransaction(sender []byte, nonce uint64, receiver []byte, value *big.Int, data string, gasLimit uint64) *transaction.Transaction {
+	minGasPrice := uint64(1000000000)
+	txVersion := uint32(1)
+	mockTxSignature := "sig"
+
+	transferValue := big.NewInt(0).Set(value)
+	return &transaction.Transaction{
+		Nonce:     nonce,
+		Value:     transferValue,
+		SndAddr:   sender,
+		RcvAddr:   receiver,
+		Data:      []byte(data),
+		GasLimit:  gasLimit,
+		GasPrice:  minGasPrice,
+		ChainID:   []byte(configs.ChainID),
+		Version:   txVersion,
+		Signature: []byte(mockTxSignature),
+	}
 }
