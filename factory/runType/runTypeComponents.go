@@ -41,6 +41,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 )
 
+// ArgsRunTypeComponents struct holds the arguments for run type component
 type ArgsRunTypeComponents struct {
 	CoreComponents   process.CoreComponentsHolder
 	CryptoComponents process.CryptoComponentsHolder
