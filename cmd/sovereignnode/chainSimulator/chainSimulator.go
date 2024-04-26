@@ -29,7 +29,6 @@ type ArgsSovereignChainSimulator struct {
 
 // NewSovereignChainSimulator will create a new instance of sovereign chain simulator
 func NewSovereignChainSimulator(args ArgsSovereignChainSimulator) (*chainSimulator.Simulator, error) {
-	args.ChainSimulatorArgs.SimulatorType = chainSimulator.SovereignSimulatorType
 	args.ChainSimulatorArgs.CreateGenesisNodesSetup = func(nodesFilePath string, addressPubkeyConverter core.PubkeyConverter, validatorPubkeyConverter core.PubkeyConverter, _ uint32) (sharding.GenesisNodesSetupHandler, error) {
 		return sharding.NewSovereignNodesSetup(&sharding.SovereignNodesSetupArgs{
 			NodesFilePath:            nodesFilePath,
