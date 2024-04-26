@@ -212,6 +212,9 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 	if check.IfNil(arg.RunTypeComponents.ShardCoordinatorCreator()) {
 		return errors.ErrNilShardCoordinatorFactory
 	}
+	if check.IfNil(arg.RunTypeComponents.TxPreProcessorCreator()) {
+		return errors.ErrNilTxPreProcessorCreator
+	}
 	if arg.TrieStorageManagers == nil {
 		return genesis.ErrNilTrieStorageManager
 	}

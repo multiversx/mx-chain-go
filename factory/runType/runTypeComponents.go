@@ -68,6 +68,7 @@ type runTypeComponents struct {
 	requestersContainerFactoryCreator       requesterscontainer.RequesterContainerFactoryCreator
 	interceptorsContainerFactoryCreator     interceptorscontainer.InterceptorsContainerFactoryCreator
 	shardResolversContainerFactoryCreator   resolverscontainer.ShardResolversContainerFactoryCreator
+	txPreProcessorCreator                   preprocess.TxPreProcessorCreator
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
@@ -196,6 +197,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		requestersContainerFactoryCreator:       requesterscontainer.NewShardRequestersContainerFactoryCreator(),
 		interceptorsContainerFactoryCreator:     interceptorscontainer.NewShardInterceptorsContainerFactoryCreator(),
 		shardResolversContainerFactoryCreator:   resolverscontainer.NewShardResolversContainerFactoryCreator(),
+		txPreProcessorCreator:                   preprocess.NewTxPreProcessorCreator(),
 	}, nil
 }
 

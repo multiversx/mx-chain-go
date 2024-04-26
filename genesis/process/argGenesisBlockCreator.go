@@ -53,6 +53,7 @@ type runTypeComponentsHandler interface {
 	SCProcessorCreator() scrCommon.SCProcessorCreator
 	AccountsCreator() state.AccountFactory
 	ShardCoordinatorCreator() sharding.ShardCoordinatorFactory
+	TxPreProcessorCreator() preprocess.TxPreProcessorCreator
 	IsInterfaceNil() bool
 }
 
@@ -85,7 +86,6 @@ type ArgsGenesisBlockCreator struct {
 	BlockSignKeyGen         crypto.KeyGenerator
 	HistoryRepository       dblookupext.HistoryRepository
 	TxExecutionOrderHandler common.TxExecutionOrderHandler
-	TxPreprocessorCreator   preprocess.TxPreProcessorCreator
 	RunTypeComponents       runTypeComponentsHandler
 	Config                  config.Config
 

@@ -58,6 +58,7 @@ type RunTypeComponentsStub struct {
 	RequestersContainerFactory          requesterscontainer.RequesterContainerFactoryCreator
 	InterceptorsContainerFactory        interceptorscontainer.InterceptorsContainerFactoryCreator
 	ShardResolversContainerFactory      resolverscontainer.ShardResolversContainerFactoryCreator
+	TxPreProcessorFactory               preprocess.TxPreProcessorCreator
 }
 
 // NewRunTypeComponentsStub -
@@ -90,6 +91,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		RequestersContainerFactory:          &testFactory.RequestersContainerFactoryMock{},
 		InterceptorsContainerFactory:        &testFactory.InterceptorsContainerFactoryMock{},
 		ShardResolversContainerFactory:      &testFactory.ResolversContainerFactoryMock{},
+		TxPreProcessorFactory:               &testFactory.TxPreProcessorFactoryMock{},
 	}
 }
 
@@ -246,6 +248,11 @@ func (r *RunTypeComponentsStub) InterceptorsContainerFactoryCreator() intercepto
 // ShardResolversContainerFactoryCreator -
 func (r *RunTypeComponentsStub) ShardResolversContainerFactoryCreator() resolverscontainer.ShardResolversContainerFactoryCreator {
 	return r.ShardResolversContainerFactory
+}
+
+// TxPreProcessorCreator -
+func (r *RunTypeComponentsStub) TxPreProcessorCreator() preprocess.TxPreProcessorCreator {
+	return r.TxPreProcessorFactory
 }
 
 // IsInterfaceNil -

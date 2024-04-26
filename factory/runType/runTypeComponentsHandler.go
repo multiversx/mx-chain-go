@@ -175,6 +175,9 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	if check.IfNil(mrc.shardResolversContainerFactoryCreator) {
 		return errors.ErrNilShardResolversContainerFactoryCreator
 	}
+	if check.IfNil(mrc.txPreProcessorCreator) {
+		return errors.ErrNilTxPreProcessorCreator
+	}
 	return nil
 }
 
@@ -500,6 +503,18 @@ func (mrc *managedRunTypeComponents) ShardResolversContainerFactoryCreator() res
 	}
 
 	return mrc.runTypeComponents.shardResolversContainerFactoryCreator
+}
+
+// TxPreProcessorCreator returns the tx pre processor factory
+func (mrc *managedRunTypeComponents) TxPreProcessorCreator() preprocess.TxPreProcessorCreator {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.txPreProcessorCreator
 }
 
 // IsInterfaceNil returns true if the interface is nil
