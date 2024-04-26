@@ -1,6 +1,8 @@
 package mock
 
 import (
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext"
@@ -11,7 +13,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/update"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // ProcessComponentsMock -
@@ -57,6 +58,7 @@ type ProcessComponentsMock struct {
 	AccountsParserInternal               genesis.AccountsParser
 	ReceiptsRepositoryInternal           factory.ReceiptsRepository
 	SentSignaturesTrackerInternal        process.SentSignaturesTracker
+	IncomingHeadersHandler               process.IncomingHeaderSubscriber
 }
 
 // Create -
@@ -282,6 +284,11 @@ func (pcm *ProcessComponentsMock) ReceiptsRepository() factory.ReceiptsRepositor
 // SentSignaturesTracker -
 func (pcm *ProcessComponentsMock) SentSignaturesTracker() process.SentSignaturesTracker {
 	return pcm.SentSignaturesTrackerInternal
+}
+
+// IncomingHeaderHandler -
+func (pcs *ProcessComponentsMock) IncomingHeaderHandler() process.IncomingHeaderSubscriber {
+	return pcs.IncomingHeadersHandler
 }
 
 // IsInterfaceNil -

@@ -35,7 +35,6 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
-const SovereignSimulatorType = "sovereign"
 const delaySendTxs = time.Millisecond
 
 var log = logger.GetOrCreate("chainSimulator")
@@ -66,7 +65,6 @@ type ArgsChainSimulator struct {
 	RoundsPerEpoch              core.OptionalUint64
 	ApiInterface                components.APIConfigurator
 	AlterConfigsFunction        func(cfg *config.Configs)
-	SimulatorType               string
 	CreateGenesisNodesSetup     func(nodesFilePath string, addressPubkeyConverter core.PubkeyConverter, validatorPubkeyConverter core.PubkeyConverter, genesisMaxNumShards uint32) (mxChainSharding.GenesisNodesSetupHandler, error)
 	CreateRatingsData           func(arg rating.RatingsDataArg) (processing.RatingsInfoHandler, error)
 	CreateIncomingHeaderHandler func(config *config.NotifierConfig, dataPool dataRetriever.PoolsHolder, mainChainNotarizationStartRound uint64, runTypeComponents factory.RunTypeComponentsHolder) (processing.IncomingHeaderSubscriber, error)
@@ -180,7 +178,7 @@ func (s *Simulator) createChainHandlers(args ArgsChainSimulator) error {
 		shardIDStr := fmt.Sprintf("%d", idx)
 		if idx == int(args.NumOfShards) {
 			shardIDStr = "metachain"
-			if args.SimulatorType == SovereignSimulatorType {
+			if args.MetaChainMinNodes == 0 {
 				continue
 			}
 		}
