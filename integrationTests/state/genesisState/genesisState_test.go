@@ -11,12 +11,12 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/factory/runType"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 
@@ -38,7 +38,7 @@ func TestCreationOfTheGenesisState(t *testing.T) {
 	}
 	t.Parallel()
 
-	initialAccounts, err := testscommon.ReadInitialAccounts("genesisEdgeCase.json")
+	initialAccounts, err := runType.ReadInitialAccounts("genesisEdgeCase.json")
 	require.Nil(t, err)
 
 	args := genesis.AccountsParserArgs{

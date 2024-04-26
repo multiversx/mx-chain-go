@@ -183,7 +183,6 @@ func createArgsRunTypeComponents() runType.ArgsRunTypeComponents {
 			Value:   big.NewInt(0),
 		},
 	}
-	initialAccounts := []genesis.InitialAccountHandler{&acc1}
 
 	return runType.ArgsRunTypeComponents{
 		CoreComponents: &factoryMock.CoreComponentsHolderMock{
@@ -211,6 +210,6 @@ func createArgsRunTypeComponents() runType.ArgsRunTypeComponents {
 				},
 			},
 		},
-		InitialAccounts: initialAccounts,
+		InitialAccounts: []genesis.InitialAccountHandler{&acc1},
 	}
 }
