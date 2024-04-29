@@ -77,7 +77,7 @@ func (uas *UserAccountStub) AddToBalance(value *big.Int) error {
 
 // SubFromBalance -
 func (uas *UserAccountStub) SubFromBalance(value *big.Int) error {
-	if uas.AddToBalanceCalled != nil {
+	if uas.SubFromBalanceCalled != nil {
 		return uas.SubFromBalanceCalled(value)
 	}
 	return nil

@@ -204,6 +204,9 @@ func TestVmContainerFactory_Create(t *testing.T) {
 
 	acc := vmf.BlockChainHookImpl()
 	assert.NotNil(t, acc)
+
+	assert.Equal(t, len(vmf.mapOpcodeAddressIsAllowed), 1)
+	assert.Equal(t, len(vmf.mapOpcodeAddressIsAllowed[managedMultiTransferESDTNFTExecuteByUser]), 1)
 }
 
 func TestVmContainerFactory_ResolveWasmVMVersion(t *testing.T) {
