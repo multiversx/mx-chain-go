@@ -86,7 +86,6 @@ func NewIntermediateResultsProcessor(
 		storageType:      dataRetriever.UnsignedTransactionUnit,
 		processedResult: aggProcessedResults{
 			lastInitializedKey: nil,
-			initializedKeys:    nil,
 			mapProcessedResult: make(map[string][][]byte),
 		},
 		economicsFee: args.EconomicsFee,
