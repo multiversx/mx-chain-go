@@ -115,7 +115,7 @@ type EnableEpochs struct {
 	AlwaysMergeContextsInEEIEnableEpoch                      uint32
 	DynamicESDTEnableEpoch                                   uint32
 	EGLDInMultiTransferEnableEpoch                           uint32
-	CryptoAPIV2EnableEpoch                                   uint32
+	CryptoOpcodesV2EnableEpoch                               uint32
 	BLSMultiSignerEnableEpoch                                []MultiSignerConfig
 }
 

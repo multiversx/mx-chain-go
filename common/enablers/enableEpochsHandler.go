@@ -743,11 +743,11 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.EGLDInMultiTransferEnableEpoch,
 		},
-		common.CryptoAPIV2Flag: {
+		common.CryptoOpcodesV2Flag: {
 			isActiveInEpoch: func(epoch uint32) bool {
-				return epoch >= handler.enableEpochsConfig.CryptoAPIV2EnableEpoch
+				return epoch >= handler.enableEpochsConfig.CryptoOpcodesV2EnableEpoch
 			},
-			activationEpoch: handler.enableEpochsConfig.CryptoAPIV2EnableEpoch,
+			activationEpoch: handler.enableEpochsConfig.CryptoOpcodesV2EnableEpoch,
 		},
 	}
 }

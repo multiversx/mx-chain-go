@@ -116,7 +116,7 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		AlwaysMergeContextsInEEIEnableEpoch:                      100,
 		DynamicESDTEnableEpoch:                                   101,
 		EGLDInMultiTransferEnableEpoch:                           102,
-		CryptoAPIV2EnableEpoch:                                   103,
+		CryptoOpcodesV2EnableEpoch:                               103,
 	}
 }
 
@@ -443,7 +443,7 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.AlwaysMergeContextsInEEIEnableEpoch, handler.GetActivationEpoch(common.AlwaysMergeContextsInEEIFlag))
 	require.Equal(t, cfg.DynamicESDTEnableEpoch, handler.GetActivationEpoch(common.DynamicESDTFlag))
 	require.Equal(t, cfg.EGLDInMultiTransferEnableEpoch, handler.GetActivationEpoch(common.EGLDInESDTMultiTransferFlag))
-	require.Equal(t, cfg.CryptoAPIV2EnableEpoch, handler.GetActivationEpoch(common.CryptoAPIV2Flag))
+	require.Equal(t, cfg.CryptoOpcodesV2EnableEpoch, handler.GetActivationEpoch(common.CryptoOpcodesV2Flag))
 }
 
 func TestEnableEpochsHandler_IsInterfaceNil(t *testing.T) {

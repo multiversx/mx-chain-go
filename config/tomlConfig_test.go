@@ -203,7 +203,7 @@ func TestTomlParser(t *testing.T) {
             { StartEpoch = 12, Version = "v0.3" },
             { StartEpoch = 88, Version = "v1.2" },
         ]
-		TransferAndExecuteByUserAddresses = [ # TODO: set real contract addresses
+		TransferAndExecuteByUserAddresses = [
 			"erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe0", #shard 0
 			"erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe1", #shard 1
 			"erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe2", #shard 2
@@ -865,8 +865,8 @@ func TestEnableEpochConfig(t *testing.T) {
     # EGLDInMultiTransferEnableEpoch represents the epoch when EGLD in MultiTransfer is enabled
     EGLDInMultiTransferEnableEpoch = 96
 
-    # CryptoAPIV2EnableEpoch represents the epoch when BLSMultiSig, Secp256r1 and other opcodes are enabled
-    CryptoAPIV2EnableEpoch = 97
+    # CryptoOpcodesV2EnableEpoch represents the epoch when BLSMultiSig, Secp256r1 and other opcodes are enabled
+    CryptoOpcodesV2EnableEpoch = 97
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
@@ -982,7 +982,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			AlwaysMergeContextsInEEIEnableEpoch:                      94,
 			DynamicESDTEnableEpoch:                                   95,
 			EGLDInMultiTransferEnableEpoch:                           96,
-			CryptoAPIV2EnableEpoch:                                   97,
+			CryptoOpcodesV2EnableEpoch:                               97,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,

@@ -2,7 +2,6 @@ package txsFee
 
 import (
 	"encoding/hex"
-	"fmt"
 	"math/big"
 	"testing"
 
@@ -48,7 +47,6 @@ func TestSCCallCostTransactionCost(t *testing.T) {
 
 	res, err := testContext.TxCostHandler.ComputeTransactionGasLimit(tx)
 	require.Nil(t, err)
-	fmt.Println(res.GasUnits)
 	require.Equal(t, uint64(15704), res.GasUnits)
 }
 
@@ -194,6 +192,5 @@ func TestAsyncESDTTransfer(t *testing.T) {
 
 	res, err := testContext.TxCostHandler.ComputeTransactionGasLimit(tx)
 	require.Nil(t, err)
-	fmt.Println(res.GasUnits)
 	require.Equal(t, uint64(177653), res.GasUnits)
 }

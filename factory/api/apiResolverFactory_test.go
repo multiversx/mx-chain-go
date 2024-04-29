@@ -186,7 +186,6 @@ func TestCreateApiResolver(t *testing.T) {
 		failingStepsInstance.addressPublicKeyConverterFailingStep = 3
 		apiResolver, err := api.CreateApiResolver(failingArgs)
 		require.NotNil(t, err)
-		fmt.Println(err.Error())
 		require.True(t, strings.Contains(strings.ToLower(err.Error()), "key converter"))
 		require.True(t, check.IfNil(apiResolver))
 	})

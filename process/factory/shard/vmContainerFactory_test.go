@@ -154,7 +154,7 @@ func TestNewVMContainerFactory_EmptyOpcodeAddressListErr(t *testing.T) {
 	vmf, err := NewVMContainerFactory(args)
 
 	assert.Nil(t, vmf)
-	assert.Equal(t, process.ErrTransferAndExecuteByUserAddressesIsNil, err)
+	assert.Equal(t, process.ErrTransferAndExecuteByUserAddressesAreNil, err)
 }
 
 func TestNewVMContainerFactory_WrongAddressErr(t *testing.T) {

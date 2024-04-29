@@ -134,7 +134,7 @@ func (vmf *vmContainerFactory) createMapOpCodeAddressIsAllowed() error {
 
 	transferAndExecuteByUserAddresses := vmf.config.TransferAndExecuteByUserAddresses
 	if len(transferAndExecuteByUserAddresses) == 0 {
-		return process.ErrTransferAndExecuteByUserAddressesIsNil
+		return process.ErrTransferAndExecuteByUserAddressesAreNil
 	}
 
 	vmf.mapOpcodeAddressIsAllowed[managedMultiTransferESDTNFTExecuteByUser] = make(map[string]struct{})
