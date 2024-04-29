@@ -1,11 +1,6 @@
 package preprocess
 
 import (
-	"fmt"
-	"math/rand"
-	"os"
-	"runtime/debug"
-	"runtime/pprof"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -16,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
@@ -260,22 +256,6 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 		gasConsumedByMiniBlockInReceiverShard: uint64(0),
 		totalGasConsumedInSelfShard:           scr.getTotalGasConsumed(),
 	}
-
-	// TODO: add validator pprof
-	r := rand.Intn(1000)
-	fileName := fmt.Sprintf("logs/validator-cpu-profile-%d-%d-%d.pprof", time.Now().Unix(), len(body.MiniBlocks), r)
-	f, err := os.Create(fileName)
-	if err != nil {
-		log.Error("could not create CPU profile", "error", err)
-	}
-	debug.SetGCPercent(-1)
-	_ = pprof.StartCPUProfile(f)
-
-	defer func() {
-		pprof.StopCPUProfile()
-
-		log.Info("validator-cpu-profile saved", "file", fileName)
-	}()
 
 	log.Debug("smartContractResults.ProcessBlockTransactions: before processing",
 		"totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
@@ -597,22 +577,6 @@ func (scr *smartContractResults) ProcessMiniBlock(
 	} else {
 		maxGasLimitUsedForDestMeTxs = scr.economicsFee.MaxGasLimitPerBlock(scr.shardCoordinator.SelfId()) * maxGasLimitPercentUsedForDestMeTxs / 100
 	}
-
-	//TODO: add pprof for leader, when len(miniBlockScrs) > 0
-	r := rand.Intn(1000)
-	fileName := fmt.Sprintf("logs/leader-cpu-profile-%d-%d-%d.pprof", time.Now().Unix(), len(miniBlockScrs), r)
-	f, err := os.Create(fileName)
-	if err != nil {
-		log.Error("could not create CPU profile", "error", err)
-	}
-	debug.SetGCPercent(-1)
-	_ = pprof.StartCPUProfile(f)
-
-	defer func() {
-		pprof.StopCPUProfile()
-
-		log.Info("leader-cpu-profile saved", "file", fileName)
-	}()
 
 	log.Debug("smartContractResults.ProcessMiniBlock: before processing",
 		"totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
