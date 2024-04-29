@@ -1328,7 +1328,6 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 		FlagsConfig:              *configs.FlagsConfig,
 		TxExecutionOrderHandler:  ordering.NewOrderedCollection(),
 		RunTypeComponents:        runTypeComponents,
-		GenesisMetaBlockChecker:  processComp.NewSovereignGenesisMetaBlockChecker(),
 		IncomingHeaderSubscriber: incomingHeaderHandler,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)

@@ -644,8 +644,7 @@ func GetProcessArgs(
 				},
 			},
 		},
-		GenesisMetaBlockChecker: processComp.NewGenesisMetaBlockChecker(),
-		RunTypeComponents:       GetRunTypeComponents(),
+		RunTypeComponents: GetRunTypeComponents(),
 	}
 }
 
@@ -732,7 +731,6 @@ func GetSovereignProcessArgs(
 
 	processArgs.BootstrapComponents = bootstrapComponents
 	processArgs.StatusCoreComponents = statusCoreComponents
-	processArgs.GenesisMetaBlockChecker = processComp.NewSovereignGenesisMetaBlockChecker()
 	processArgs.IncomingHeaderSubscriber = &sovereign.IncomingHeaderSubscriberStub{}
 	processArgs.RunTypeComponents = GetSovereignRunTypeComponents()
 

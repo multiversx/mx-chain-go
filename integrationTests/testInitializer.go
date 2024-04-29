@@ -73,7 +73,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
@@ -605,6 +604,7 @@ func CreateGenesisBlocks(
 	dataPool dataRetriever.PoolsHolder,
 	economics process.EconomicsDataHandler,
 	enableEpochsConfig config.EnableEpochs,
+	runTypeComp mainFactory.RunTypeComponentsHolder,
 ) map[uint32]data.HeaderHandler {
 
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
@@ -627,6 +627,7 @@ func CreateGenesisBlocks(
 		dataPool,
 		economics,
 		enableEpochsConfig,
+		runTypeComp,
 	)
 
 	return genesisBlocks
@@ -771,6 +772,7 @@ func CreateGenesisMetaBlock(
 	dataPool dataRetriever.PoolsHolder,
 	economics process.EconomicsDataHandler,
 	enableEpochsConfig config.EnableEpochs,
+	runTypeComp mainFactory.RunTypeComponentsHolder,
 ) data.MetaHeaderHandler {
 	gasSchedule := wasmConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)
@@ -862,7 +864,7 @@ func CreateGenesisMetaBlock(
 		HeaderVersionConfigs:    testscommon.GetDefaultHeaderVersionConfig(),
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
-		RunTypeComponents:       &mainFactoryMocks.RunTypeComponentsStub{},
+		RunTypeComponents:       runTypeComp,
 	}
 
 	if shardCoordinator.SelfId() != core.MetachainShardId {

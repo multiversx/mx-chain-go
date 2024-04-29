@@ -73,6 +73,7 @@ type runTypeComponents struct {
 	txPreProcessorCreator                   preprocess.TxPreProcessorCreator
 	extraHeaderSigVerifierHandler           headerCheck.ExtraHeaderSigVerifierHolder
 	genesisBlockCreatorFactory              processGenesis.GenesisBlockCreatorFactory
+	genesisMetaBlockCheckerCreator          processGenesis.GenesisMetaBlockChecker
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
@@ -205,6 +206,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		txPreProcessorCreator:                   preprocess.NewTxPreProcessorCreator(),
 		extraHeaderSigVerifierHandler:           headerCheck.NewExtraHeaderSigVerifierHolder(),
 		genesisBlockCreatorFactory:              processGenesis.NewGenesisBlockCreatorFactory(),
+		genesisMetaBlockCheckerCreator:          processGenesis.NewGenesisMetaBlockChecker(),
 	}, nil
 }
 

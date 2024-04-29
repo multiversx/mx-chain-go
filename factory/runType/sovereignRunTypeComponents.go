@@ -211,5 +211,6 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		txPreProcessorCreator:                   preprocess.NewSovereignTxPreProcessorCreator(),
 		extraHeaderSigVerifierHandler:           rtc.extraHeaderSigVerifierHandler,
 		genesisBlockCreatorFactory:              processComp.NewSovereignGenesisBlockCreatorFactory(),
+		genesisMetaBlockCheckerCreator:          processComp.NewSovereignGenesisMetaBlockChecker(),
 	}, nil
 }
