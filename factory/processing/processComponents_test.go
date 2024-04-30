@@ -996,7 +996,7 @@ func getRunTypeComponents(rt runType.RunTypeComponentsHolder) *mainFactoryMocks.
 		ShardResolversContainerFactory:      rt.ShardResolversContainerFactoryCreator(),
 		TxPreProcessorFactory:               rt.TxPreProcessorCreator(),
 		ExtraHeaderSigVerifier:              rt.ExtraHeaderSigVerifierHandler(),
-		GenesisBlockFactory:                 rt.GenesisBlockCreator(),
+		GenesisBlockFactory:                 rt.GenesisBlockCreatorFactory(),
 		GenesisMetaBlockChecker:             rt.GenesisMetaBlockCheckerCreator(),
 	}
 }

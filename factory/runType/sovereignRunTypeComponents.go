@@ -212,8 +212,6 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 
 	expiryTime := time.Second * time.Duration(rcf.sovConfig.OutgoingSubscribedEvents.TimeToWaitForUnconfirmedOutGoingOperationInSeconds)
 
-	txPreProcessorCreator := preprocess.NewSovereignTxPreProcessorCreator()
-
 	err = rtc.extraHeaderSigVerifierHandler.RegisterExtraHeaderSigVerifier(rcf.extraVerifier)
 	if err != nil {
 		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - RegisterExtraHeaderSigVerifier failed: %w", err)
@@ -248,7 +246,7 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		requestersContainerFactoryCreator:       requesterscontainer.NewSovereignShardRequestersContainerFactoryCreator(),
 		interceptorsContainerFactoryCreator:     interceptorscontainer.NewSovereignShardInterceptorsContainerFactoryCreator(),
 		shardResolversContainerFactoryCreator:   resolverscontainer.NewSovereignShardResolversContainerFactoryCreator(),
-		txPreProcessorCreator:                   txPreProcessorCreator,
+		txPreProcessorCreator:                   preprocess.NewSovereignTxPreProcessorCreator(),
 		extraHeaderSigVerifierHandler:           rtc.extraHeaderSigVerifierHandler,
 		genesisBlockCreatorFactory:              processComp.NewSovereignGenesisBlockCreatorFactory(),
 		genesisMetaBlockCheckerCreator:          processComp.NewSovereignGenesisMetaBlockChecker(),

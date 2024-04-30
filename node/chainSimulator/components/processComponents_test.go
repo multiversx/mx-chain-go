@@ -238,7 +238,7 @@ func createArgsProcessComponentsHolder() ArgsProcessComponentsHolder {
 		IncomingHeaderHandler: &sovereign.IncomingHeaderSubscriberStub{},
 	}
 
-	initialAccounts, _ := testscommon.ReadInitialAccounts(args.Configs.ConfigurationPathsHolder.Genesis)
+	initialAccounts, _ := runType.ReadInitialAccounts(args.Configs.ConfigurationPathsHolder.Genesis)
 	argsRunType := runType.ArgsRunTypeComponents{
 		CoreComponents:   args.CoreComponents,
 		CryptoComponents: args.CryptoComponents,

@@ -6,18 +6,18 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
+	coreAPI "github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/config"
 	chainSim "github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator/utils"
-
-	"github.com/multiversx/mx-chain-core-go/core"
-	coreAPI "github.com/multiversx/mx-chain-core-go/data/api"
-	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -373,7 +373,7 @@ func TestSimulator_SendTransactions(t *testing.T) {
 	gasLimit := uint64(50000)
 	tx0 := utils.GenerateTransaction(wallet0.Bytes, 0, wallet2.Bytes, transferValue, "", gasLimit)
 	tx1 := utils.GenerateTransaction(wallet1.Bytes, 0, wallet2.Bytes, transferValue, "", gasLimit)
-	tx3 := utils.GenerateTransaction(wallet3.Bytes, 0, wallet4.Bytes, transferValue, "", gasLimit)
+	tx2 := utils.GenerateTransaction(wallet3.Bytes, 0, wallet4.Bytes, transferValue, "", gasLimit)
 
 	maxNumOfBlockToGenerateWhenExecutingTx := 15
 
@@ -408,7 +408,7 @@ func TestSimulator_SendTransactions(t *testing.T) {
 		assert.Equal(t, expectedBalance.String(), account.Balance)
 	})
 	t.Run("1 transaction should be sent correctly", func(t *testing.T) {
-		_, errSend := chainSimulator.SendTxAndGenerateBlockTilTxIsExecuted(tx3, maxNumOfBlockToGenerateWhenExecutingTx)
+		_, errSend := chainSimulator.SendTxAndGenerateBlockTilTxIsExecuted(tx2, maxNumOfBlockToGenerateWhenExecutingTx)
 		require.Nil(t, errSend)
 
 		account, errGet := chainSimulator.GetAccount(wallet4)
