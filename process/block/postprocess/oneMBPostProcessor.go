@@ -57,7 +57,6 @@ func NewOneMiniBlockPostProcessor(
 		storageType:      storageType,
 		processedResult: aggProcessedResults{
 			lastInitializedKey: nil,
-			initializedKeys:    nil,
 			mapProcessedResult: make(map[string][][]byte),
 		},
 		economicsFee: economicsFee,

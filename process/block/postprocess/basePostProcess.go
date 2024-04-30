@@ -30,13 +30,12 @@ type txInfo struct {
 }
 
 // TODO: maybe give the capacity as argument to InitProcessedResults
-const defaultCapacity = 10000
+const defaultCapacity = 32
 
 var log = logger.GetOrCreate("process/block/postprocess")
 
 type aggProcessedResults struct {
 	lastInitializedKey []byte
-	initializedKeys    [][]byte
 	mapProcessedResult map[string][][]byte
 }
 
@@ -95,7 +94,6 @@ func (bpp *basePostProcessor) CreateBlockStarted() {
 
 func (bpp *basePostProcessor) initProcessedResults() {
 	bpp.processedResult.mapProcessedResult = make(map[string][][]byte)
-	bpp.processedResult.initializedKeys = make([][]byte, 0, defaultCapacity)
 	bpp.processedResult.lastInitializedKey = nil
 }
 
@@ -206,7 +204,6 @@ func (bpp *basePostProcessor) InitProcessedResults(key []byte) {
 	defer bpp.mutInterResultsForBlock.Unlock()
 
 	bpp.processedResult.mapProcessedResult[string(key)] = make([][]byte, 0, defaultCapacity)
-	bpp.processedResult.initializedKeys = append(bpp.processedResult.initializedKeys, key)
 	bpp.processedResult.lastInitializedKey = key
 }
 
