@@ -4,8 +4,6 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/multiversx/mx-chain-communication-go/websocket/data"
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/config"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory/mock"
@@ -18,6 +16,9 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+
+	"github.com/multiversx/mx-chain-communication-go/websocket/data"
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/stretchr/testify/require"
 )
 
@@ -64,6 +65,19 @@ func createMockStatusComponentsFactoryArgs() statusComp.StatusComponentsFactoryA
 		},
 		IsInImportMode: false,
 	}
+}
+
+func createStatusFactoryArgs() statusComp.StatusComponentsFactoryArgs {
+	coreComp := componentsMock.GetCoreComponents()
+	statusCoreComp := componentsMock.GetStatusCoreComponents(coreComp)
+	cryptoComp := componentsMock.GetCryptoComponents(coreComp)
+	networkComp := componentsMock.GetNetworkComponents(cryptoComp)
+	runTypeComp := componentsMock.GetRunTypeComponents(coreComp, cryptoComp)
+	bootstrapComp := componentsMock.GetBootstrapComponents(statusCoreComp, coreComp, cryptoComp, networkComp, runTypeComp)
+	dataComp := componentsMock.GetDataComponents(statusCoreComp, coreComp, bootstrapComp, cryptoComp, runTypeComp)
+	stateComp := componentsMock.GetStateComponents(coreComp, dataComp, statusCoreComp, runTypeComp)
+
+	return componentsMock.GetStatusFactoryArgs(statusCoreComp, coreComp, networkComp, bootstrapComp, stateComp, &shardingMocks.NodesCoordinatorMock{}, cryptoComp)
 }
 
 func TestNewStatusComponentsFactory(t *testing.T) {
@@ -193,7 +207,8 @@ func TestStatusComponentsFactory_Create(t *testing.T) {
 		shardCoordinator.SelfIDCalled = func() uint32 {
 			return core.MetachainShardId // coverage
 		}
-		args, _ := componentsMock.GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator)
+		args := createStatusFactoryArgs()
+		args.ShardCoordinator = shardCoordinator
 		args.ExternalConfig.HostDriversConfig[0].Enabled = true // coverage
 		scf, err := statusComp.NewStatusComponentsFactory(args)
 		require.Nil(t, err)

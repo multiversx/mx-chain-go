@@ -6,13 +6,10 @@ import (
 
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	mxFactory "github.com/multiversx/mx-chain-go/factory"
-
 	consensusComp "github.com/multiversx/mx-chain-go/factory/consensus"
-	"github.com/multiversx/mx-chain-go/process/mock"
-	"github.com/multiversx/mx-chain-go/testscommon"
-	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	factoryMocks "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -24,8 +21,7 @@ func TestManagedConsensusComponents_CreateWithInvalidArgsShouldErr(t *testing.T)
 		t.Skip("this is not a short test")
 	}
 
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	args := componentsMock.GetConsensusArgs(shardCoordinator)
+	args := createConsensusFactoryArgs()
 	statusCoreComponents := &factoryMocks.StatusCoreComponentsStub{
 		AppStatusHandlerField: &statusHandler.AppStatusHandlerStub{},
 	}
@@ -46,8 +42,7 @@ func TestManagedConsensusComponents_CreateShouldWorkForShard(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	args := componentsMock.GetConsensusArgs(shardCoordinator)
+	args := createConsensusFactoryArgs()
 
 	consensusComponentsFactory, _ := consensusComp.NewConsensusComponentsFactory(args)
 	managedConsensusComponents, err := consensusComp.NewManagedConsensusComponents(consensusComponentsFactory)
@@ -107,8 +102,7 @@ func TestManagedConsensusComponents_Create(t *testing.T) {
 	t.Run("should work with getters", func(t *testing.T) {
 		t.Parallel()
 
-		shardCoordinator := testscommon.NewMultiShardsCoordinatorMock(2)
-		args := componentsMock.GetConsensusArgs(shardCoordinator)
+		args := createConsensusFactoryArgs()
 		consensusComponentsFactory, _ := consensusComp.NewConsensusComponentsFactory(args)
 		managedConsensusComponents, _ := consensusComp.NewManagedConsensusComponents(consensusComponentsFactory)
 		require.NotNil(t, managedConsensusComponents)
@@ -132,8 +126,9 @@ func TestManagedConsensusComponents_Create(t *testing.T) {
 func TestManagedConsensusComponents_ConsensusGroupSize(t *testing.T) {
 	t.Parallel()
 
+	args := createConsensusFactoryArgs()
 	ccfArgs := createMockConsensusComponentsFactoryArgs()
-	ccfArgs.RunTypeComponents = componentsMock.GetRunTypeComponents()
+	ccfArgs.RunTypeComponents = args.RunTypeComponents
 	consensusComponentsFactory, _ := consensusComp.NewConsensusComponentsFactory(ccfArgs)
 	managedConsensusComponents, _ := consensusComp.NewManagedConsensusComponents(consensusComponentsFactory)
 	require.NotNil(t, managedConsensusComponents)
@@ -156,9 +151,7 @@ func TestManagedConsensusComponents_CreateShouldWorkForSovereign(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	args := componentsMock.GetConsensusArgs(shardCoordinator)
-	args.RunTypeComponents = componentsMock.GetSovereignRunTypeComponents()
+	args := createSovereignConsensusFactoryArgs()
 
 	consensusComponentsFactory, _ := consensusComp.NewConsensusComponentsFactory(args)
 	managedConsensusComponents, err := consensusComp.NewManagedConsensusComponents(consensusComponentsFactory)

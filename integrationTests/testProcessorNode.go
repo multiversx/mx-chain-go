@@ -516,12 +516,15 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 
 	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
 
-	args.RunTypeComponents = components.GetRunTypeComponentsWithCoreComp(&mock.CoreComponentsStub{
-		HasherField:                 TestHasher,
-		InternalMarshalizerField:    TestMarshalizer,
-		EnableEpochsHandlerField:    enableEpochsHandler,
-		AddressPubKeyConverterField: &testscommon.PubkeyConverterStub{},
-	})
+	args.RunTypeComponents = components.GetRunTypeComponents(
+		&mock.CoreComponentsStub{
+			HasherField:                 TestHasher,
+			InternalMarshalizerField:    TestMarshalizer,
+			EnableEpochsHandlerField:    enableEpochsHandler,
+			AddressPubKeyConverterField: &testscommon.PubkeyConverterStub{},
+		},
+		GetDefaultCryptoComponents(),
+	)
 
 	tpn := &TestProcessorNode{
 		ShardCoordinator:           shardCoordinator,
@@ -3300,7 +3303,9 @@ func CreateEnableEpochsConfig() config.EnableEpochs {
 
 // GetDefaultRunTypeComponents -
 func GetDefaultRunTypeComponents(consensusModel consensus.ConsensusModel) *mainFactoryMocks.RunTypeComponentsStub {
-	rt := components.GetRunTypeComponents()
+	coreComp := components.GetCoreComponents()
+	cryptoComp := components.GetCryptoComponents(coreComp)
+	rt := components.GetRunTypeComponents(coreComp, cryptoComp)
 	return &mainFactoryMocks.RunTypeComponentsStub{
 		BlockChainHookHandlerFactory:        rt.BlockChainHookHandlerCreator(),
 		BlockProcessorFactory:               rt.BlockProcessorCreator(),
