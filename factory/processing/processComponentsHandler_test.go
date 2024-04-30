@@ -93,6 +93,7 @@ func TestManagedProcessComponents_Create(t *testing.T) {
 		require.True(t, check.IfNil(managedProcessComponents.FullArchivePeerShardMapper()))
 		require.True(t, check.IfNil(managedProcessComponents.FullArchiveInterceptorsContainer()))
 		require.True(t, check.IfNil(managedProcessComponents.SentSignaturesTracker()))
+		require.True(t, check.IfNil(managedProcessComponents.RelayedTxV3Processor()))
 
 		err := managedProcessComponents.Create()
 		require.NoError(t, err)
@@ -137,6 +138,7 @@ func TestManagedProcessComponents_Create(t *testing.T) {
 		require.False(t, check.IfNil(managedProcessComponents.FullArchivePeerShardMapper()))
 		require.False(t, check.IfNil(managedProcessComponents.FullArchiveInterceptorsContainer()))
 		require.False(t, check.IfNil(managedProcessComponents.SentSignaturesTracker()))
+		require.False(t, check.IfNil(managedProcessComponents.RelayedTxV3Processor()))
 
 		require.Equal(t, factory.ProcessComponentsName, managedProcessComponents.String())
 	})
