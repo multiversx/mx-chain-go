@@ -82,8 +82,9 @@ func TestRelayedTransactionV2InMultiShardEnvironmentWithSmartContractTX(t *testi
 
 		time.Sleep(integrationTests.StepDelay)
 	}
+	time.Sleep(time.Second)
 
-	roundToPropagateMultiShard := int64(20)
+	roundToPropagateMultiShard := int64(25)
 	for i := int64(0); i <= roundToPropagateMultiShard; i++ {
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
