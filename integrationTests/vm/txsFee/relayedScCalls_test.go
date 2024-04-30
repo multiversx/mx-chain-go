@@ -179,7 +179,7 @@ func TestRelayedScCallInsufficientGasLimitShouldConsumeGas(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	t.Run("before relayed fix", testRelayedScCallInsufficientGasLimitShouldConsumeGas(integrationTests.UnreachableEpoch, big.NewInt(28100), big.NewInt(13800)))
+	t.Run("before relayed fix", testRelayedScCallInsufficientGasLimitShouldConsumeGas(integrationTests.UnreachableEpoch, big.NewInt(28050), big.NewInt(13850)))
 	t.Run("after relayed fix", testRelayedScCallInsufficientGasLimitShouldConsumeGas(0, big.NewInt(28050), big.NewInt(13850)))
 }
 
@@ -196,12 +196,13 @@ func testRelayedScCallInsufficientGasLimitShouldConsumeGas(relayedFixActivationE
 
 		relayerAddr := []byte("12345678901234567890123456789033")
 		sndAddr := []byte("12345678901234567890123456789112")
-		gasLimit := uint64(5)
+		data := "increment"
+		gasLimit := minGasLimit + uint64(len(data))
 
 		_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, big.NewInt(0))
 		_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, big.NewInt(30000))
 
-		userTx := vm.CreateTransaction(0, big.NewInt(100), sndAddr, scAddress, gasPrice, gasLimit, []byte("increment"))
+		userTx := vm.CreateTransaction(0, big.NewInt(100), sndAddr, scAddress, gasPrice, gasLimit, []byte(data))
 
 		rtxData := integrationTests.PrepareRelayedTxDataV1(userTx)
 		rTxGasLimit := minGasLimit + gasLimit + uint64(len(rtxData))

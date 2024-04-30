@@ -37,8 +37,10 @@ var errSignerMockVerifySigFails = errors.New("errSignerMockVerifySigFails")
 
 var senderShard = uint32(2)
 var recvShard = uint32(3)
+var relayerShard = senderShard
 var senderAddress = []byte("12345678901234567890123456789012")
 var recvAddress = []byte("23456789012345678901234567890123")
+var relayerAddress = []byte("34567890123456789012345678901234")
 var sigBad = []byte("bad-signature")
 var sigOk = []byte("signature")
 
@@ -93,6 +95,9 @@ func createInterceptedTxWithTxFeeHandlerAndVersionChecker(tx *dataTransaction.Tr
 		if bytes.Equal(address, recvAddress) {
 			return recvShard
 		}
+		if bytes.Equal(address, relayerAddress) {
+			return relayerShard
+		}
 
 		return shardCoordinator.CurrentShard
 	}
@@ -137,6 +142,9 @@ func createInterceptedTxFromPlainTx(tx *dataTransaction.Transaction, txFeeHandle
 		}
 		if bytes.Equal(address, recvAddress) {
 			return recvShard
+		}
+		if bytes.Equal(address, relayerAddress) {
+			return relayerShard
 		}
 
 		return shardCoordinator.CurrentShard
@@ -183,8 +191,17 @@ func createInterceptedTxFromPlainTxWithArgParser(tx *dataTransaction.Transaction
 		if bytes.Equal(address, recvAddress) {
 			return recvShard
 		}
+		if bytes.Equal(address, relayerAddress) {
+			return relayerShard
+		}
 
 		return shardCoordinator.CurrentShard
+	}
+
+	txFeeHandler := createFreeTxFeeHandler()
+	relayedTxV3Processor, err := transaction.NewRelayedTxV3Processor(txFeeHandler, shardCoordinator)
+	if err != nil {
+		return nil, err
 	}
 
 	return transaction.NewInterceptedTransaction(
@@ -200,7 +217,7 @@ func createInterceptedTxFromPlainTxWithArgParser(tx *dataTransaction.Transaction
 			},
 		},
 		shardCoordinator,
-		createFreeTxFeeHandler(),
+		txFeeHandler,
 		&testscommon.WhiteListHandlerStub{},
 		smartContract.NewArgumentParser(),
 		tx.ChainID,
@@ -208,7 +225,7 @@ func createInterceptedTxFromPlainTxWithArgParser(tx *dataTransaction.Transaction
 		&hashingMocks.HasherMock{},
 		versioning.NewTxVersionChecker(tx.Version),
 		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.RelayedTransactionsV3Flag),
-		&processMocks.RelayedTxV3ProcessorMock{},
+		relayedTxV3Processor,
 	)
 }
 
@@ -1663,12 +1680,12 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTxV3(t *testing.T) {
 		Data:        []byte("data inner tx 1"),
 		GasLimit:    3,
 		GasPrice:    4,
-		RcvAddr:     []byte("34567890123456789012345678901234"),
-		SndAddr:     recvAddress,
+		RcvAddr:     recvAddress,
+		SndAddr:     senderAddress,
 		Signature:   sigOk,
 		ChainID:     chainID,
 		Version:     minTxVersion,
-		RelayerAddr: senderAddress,
+		RelayerAddr: relayerAddress,
 	}
 
 	tx := &dataTransaction.Transaction{
@@ -1676,8 +1693,8 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTxV3(t *testing.T) {
 		Value:             big.NewInt(0),
 		GasLimit:          10,
 		GasPrice:          4,
-		RcvAddr:           senderAddress,
-		SndAddr:           senderAddress,
+		RcvAddr:           relayerAddress,
+		SndAddr:           relayerAddress,
 		Signature:         sigOk,
 		ChainID:           chainID,
 		Version:           minTxVersion,
@@ -1709,7 +1726,7 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTxV3(t *testing.T) {
 
 		txCopy := *tx
 		innerTxCopy := *innerTx
-		innerTxCopy.RelayerAddr = []byte("34567890123456789012345678901234")
+		innerTxCopy.RelayerAddr = recvAddress
 		txCopy.InnerTransactions = []*dataTransaction.Transaction{&innerTxCopy}
 
 		txi, _ := createInterceptedTxFromPlainTxWithArgParser(&txCopy)
@@ -1721,7 +1738,7 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTxV3(t *testing.T) {
 
 		txCopy := *tx
 		innerTxCopy := *innerTx
-		txCopy.RcvAddr = []byte("34567890123456789012345678901234")
+		txCopy.RcvAddr = recvAddress
 		txCopy.InnerTransactions = []*dataTransaction.Transaction{&innerTxCopy}
 		txi, _ := createInterceptedTxFromPlainTxWithArgParser(&txCopy)
 		err := txi.CheckValidity()

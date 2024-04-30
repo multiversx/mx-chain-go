@@ -47,7 +47,7 @@ type createAndSendRelayedAndUserTxFuncType = func(
 	txData []byte,
 ) (*transaction.Transaction, *transaction.Transaction)
 
-func TestRelayedTransactionInMultiShardEnvironmanetWithChainSimulator(t *testing.T) {
+func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulator(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -106,11 +106,17 @@ func TestRelayedTransactionInMultiShardEnvironmanetWithChainSimulator(t *testing
 	innerTx2 := generateTransaction(sender2.Bytes, 0, receiver2.Bytes, oneEGLD, "", minGasLimit)
 	innerTx2.RelayerAddr = relayer.Bytes
 
+	// innerTx3Failure should fail due to less gas limit
+	data := "gas limit is not enough"
+	innerTx3Failure := generateTransaction(sender.Bytes, 1, receiver2.Bytes, oneEGLD, data, minGasLimit)
+	innerTx3Failure.RelayerAddr = relayer.Bytes
+
 	innerTx3 := generateTransaction(sender.Bytes, 1, receiver2.Bytes, oneEGLD, "", minGasLimit)
 	innerTx3.RelayerAddr = relayer.Bytes
 
 	innerTxs := []*transaction.Transaction{innerTx, innerTx2, innerTx3}
 
+	// relayer will consume gas for 2 move balances for 2 different senders + the gas for each transaction that succeeds
 	relayedTxGasLimit := minGasLimit * 5
 	relayedTx := generateTransaction(relayer.Bytes, 0, relayer.Bytes, big.NewInt(0), "", uint64(relayedTxGasLimit))
 	relayedTx.InnerTransactions = innerTxs
@@ -118,13 +124,14 @@ func TestRelayedTransactionInMultiShardEnvironmanetWithChainSimulator(t *testing
 	_, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
 	require.NoError(t, err)
 
-	// generate few more blocks for the cross shard scr to be done
+	// generate few more blocks for the cross shard scrs to be done
 	err = cs.GenerateBlocks(numOfBlocksToWaitForCrossShardSCR)
 	require.NoError(t, err)
 
 	relayerAccount, err := cs.GetAccount(relayer)
 	require.NoError(t, err)
-	expectedRelayerFee := big.NewInt(int64(minGasPrice * relayedTxGasLimit))
+	gasLimitForSucceededTxs := minGasLimit * 5
+	expectedRelayerFee := big.NewInt(int64(minGasPrice * gasLimitForSucceededTxs))
 	assert.Equal(t, big.NewInt(0).Sub(initialBalance, expectedRelayerFee).String(), relayerAccount.Balance)
 
 	senderAccount, err := cs.GetAccount(sender)
@@ -160,36 +167,37 @@ func generateTransaction(sender []byte, nonce uint64, receiver []byte, value *bi
 }
 
 func TestRelayedTransactionInMultiShardEnvironmentWithNormalTx(t *testing.T) {
-	t.Run("relayed v1", testRelayedTransactionInMultiShardEnvironmentWithNormalTx(CreateAndSendRelayedAndUserTx))
-	t.Run("relayed v3", testRelayedTransactionInMultiShardEnvironmentWithNormalTx(CreateAndSendRelayedAndUserTxV3))
+	t.Run("relayed v1", testRelayedTransactionInMultiShardEnvironmentWithNormalTx(CreateAndSendRelayedAndUserTx, false))
+	t.Run("relayed v3", testRelayedTransactionInMultiShardEnvironmentWithNormalTx(CreateAndSendRelayedAndUserTxV3, true))
 }
 
 func TestRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(t *testing.T) {
-	t.Run("relayed v1", testRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(CreateAndSendRelayedAndUserTx))
-	t.Run("relayed v2", testRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(CreateAndSendRelayedAndUserTxV2))
-	t.Run("relayed v3", testRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(CreateAndSendRelayedAndUserTxV3))
+	t.Run("relayed v1", testRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(CreateAndSendRelayedAndUserTx, false))
+	t.Run("relayed v2", testRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(CreateAndSendRelayedAndUserTxV2, false))
+	t.Run("relayed v3", testRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(CreateAndSendRelayedAndUserTxV3, true))
 }
 
 func TestRelayedTransactionInMultiShardEnvironmentWithESDTTX(t *testing.T) {
-	t.Run("relayed v1", testRelayedTransactionInMultiShardEnvironmentWithESDTTX(CreateAndSendRelayedAndUserTx))
-	t.Run("relayed v2", testRelayedTransactionInMultiShardEnvironmentWithESDTTX(CreateAndSendRelayedAndUserTxV2))
-	t.Run("relayed v3", testRelayedTransactionInMultiShardEnvironmentWithESDTTX(CreateAndSendRelayedAndUserTxV3))
+	t.Run("relayed v1", testRelayedTransactionInMultiShardEnvironmentWithESDTTX(CreateAndSendRelayedAndUserTx, false))
+	t.Run("relayed v2", testRelayedTransactionInMultiShardEnvironmentWithESDTTX(CreateAndSendRelayedAndUserTxV2, false))
+	t.Run("relayed v3", testRelayedTransactionInMultiShardEnvironmentWithESDTTX(CreateAndSendRelayedAndUserTxV3, true))
 }
 
 func TestRelayedTransactionInMultiShardEnvironmentWithAttestationContract(t *testing.T) {
-	t.Run("relayed v1", testRelayedTransactionInMultiShardEnvironmentWithAttestationContract(CreateAndSendRelayedAndUserTx))
-	t.Run("relayed v3", testRelayedTransactionInMultiShardEnvironmentWithAttestationContract(CreateAndSendRelayedAndUserTxV3))
+	t.Run("relayed v1", testRelayedTransactionInMultiShardEnvironmentWithAttestationContract(CreateAndSendRelayedAndUserTx, false))
+	t.Run("relayed v3", testRelayedTransactionInMultiShardEnvironmentWithAttestationContract(CreateAndSendRelayedAndUserTxV3, true))
 }
 
 func testRelayedTransactionInMultiShardEnvironmentWithNormalTx(
 	createAndSendRelayedAndUserTxFunc createAndSendRelayedAndUserTxFuncType,
+	relayedV3Test bool,
 ) func(t *testing.T) {
 	return func(t *testing.T) {
 		if testing.Short() {
 			t.Skip("this is not a short test")
 		}
 
-		nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest()
+		nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest(relayedV3Test)
 		defer func() {
 			for _, n := range nodes {
 				n.Close()
@@ -246,13 +254,14 @@ func testRelayedTransactionInMultiShardEnvironmentWithNormalTx(
 
 func testRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(
 	createAndSendRelayedAndUserTxFunc createAndSendRelayedAndUserTxFuncType,
+	relayedV3Test bool,
 ) func(t *testing.T) {
 	return func(t *testing.T) {
 		if testing.Short() {
 			t.Skip("this is not a short test")
 		}
 
-		nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest()
+		nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest(relayedV3Test)
 		defer func() {
 			for _, n := range nodes {
 				n.Close()
@@ -340,13 +349,14 @@ func testRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(
 
 func testRelayedTransactionInMultiShardEnvironmentWithESDTTX(
 	createAndSendRelayedAndUserTxFunc createAndSendRelayedAndUserTxFuncType,
+	relayedV3Test bool,
 ) func(t *testing.T) {
 	return func(t *testing.T) {
 		if testing.Short() {
 			t.Skip("this is not a short test")
 		}
 
-		nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest()
+		nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest(relayedV3Test)
 		defer func() {
 			for _, n := range nodes {
 				n.Close()
@@ -436,6 +446,7 @@ func testRelayedTransactionInMultiShardEnvironmentWithESDTTX(
 
 func testRelayedTransactionInMultiShardEnvironmentWithAttestationContract(
 	createAndSendRelayedAndUserTxFunc createAndSendRelayedAndUserTxFuncType,
+	relayedV3Test bool,
 ) func(t *testing.T) {
 	return func(t *testing.T) {
 
@@ -443,7 +454,7 @@ func testRelayedTransactionInMultiShardEnvironmentWithAttestationContract(
 			t.Skip("this is not a short test")
 		}
 
-		nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest()
+		nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest(relayedV3Test)
 		defer func() {
 			for _, n := range nodes {
 				n.Close()

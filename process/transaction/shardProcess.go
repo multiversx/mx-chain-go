@@ -678,72 +678,18 @@ func (txProc *txProcessor) processRelayedTxV3(
 	for _, innerTx := range innerTxs {
 		innerTxRetCode, innerTxErr = txProc.finishExecutionOfInnerTx(tx, innerTx)
 		if innerTxErr != nil || innerTxRetCode != vmcommon.Ok {
-			break
+			continue
 		}
 
 		executedUserTxs = append(executedUserTxs, innerTx)
 	}
 
 	allUserTxsSucceeded := len(executedUserTxs) == len(innerTxs) && innerTxErr == nil && innerTxRetCode == vmcommon.Ok
-	// if all user transactions were executed, return success
-	if allUserTxsSucceeded {
-		return vmcommon.Ok, nil
+	if !allUserTxsSucceeded {
+		log.Debug("failed to execute all inner transactions", "total", len(innerTxs), "executed transactions", len(executedUserTxs))
 	}
 
-	defer func() {
-		// reset all senders to the snapshot took before starting the execution
-		txProc.resetBalancesToSnapshot(sendersBalancesSnapshot)
-	}()
-
-	// if the first one failed, return last error
-	// the current transaction should have been already reverted
-	if len(executedUserTxs) == 0 {
-		return innerTxRetCode, innerTxErr
-	}
-
-	originalTxHash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
-	if err != nil {
-		return vmcommon.UserError, err
-	}
-
-	defer func() {
-		executedHashed := make([][]byte, 0)
-		for _, executedUserTx := range executedUserTxs {
-			txHash, errHash := core.CalculateHash(txProc.marshalizer, txProc.hasher, executedUserTx)
-			if errHash != nil {
-				continue
-			}
-			executedHashed = append(executedHashed, txHash)
-		}
-
-		txProc.txFeeHandler.RevertFees(executedHashed)
-	}()
-
-	// if one or more user transactions were executed before one of them failed, revert all, including the fees transferred
-	// the current transaction should have been already reverted
-	var lastErr error
-	revertedTxsCnt := 0
-	for _, executedUserTx := range executedUserTxs {
-		errRemove := txProc.removeValueAndConsumedFeeFromUser(executedUserTx, tx.Value, originalTxHash, tx, process.ErrSubsequentInnerTransactionFailed)
-		if errRemove != nil {
-			lastErr = errRemove
-			continue
-		}
-
-		revertedTxsCnt++
-	}
-
-	if lastErr != nil {
-		log.Warn("failed to revert all previous executed inner transactions, last error = %w, "+
-			"total transactions = %d, num of transactions reverted = %d",
-			lastErr,
-			len(executedUserTxs),
-			revertedTxsCnt)
-
-		return vmcommon.UserError, lastErr
-	}
-
-	return vmcommon.UserError, process.ErrInvalidInnerTransactions
+	return vmcommon.Ok, nil
 }
 
 func (txProc *txProcessor) finishExecutionOfInnerTx(
@@ -923,10 +869,7 @@ func (txProc *txProcessor) processMoveBalanceCostRelayedUserTx(
 	moveBalanceGasLimit := txProc.economicsFee.ComputeGasLimit(userTx)
 	moveBalanceUserFee := txProc.economicsFee.ComputeFeeForProcessing(userTx, moveBalanceGasLimit)
 	if txProc.enableEpochsHandler.IsFlagEnabled(common.FixRelayedMoveBalanceFlag) {
-		gasToUse := userTx.GetGasLimit() - moveBalanceGasLimit
 		moveBalanceUserFee = txProc.economicsFee.ComputeMoveBalanceFee(userTx)
-		processingUserFee := txProc.economicsFee.ComputeFeeForProcessing(userTx, gasToUse)
-		moveBalanceUserFee = moveBalanceUserFee.Add(moveBalanceUserFee, processingUserFee)
 	}
 
 	userScrHash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, userScr)

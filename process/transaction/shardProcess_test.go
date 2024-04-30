@@ -1460,9 +1460,6 @@ func TestTxProcessor_ProcessTxFeeMoveBalanceUserTx(t *testing.T) {
 		ComputeFeeForProcessingCalled: func(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
 			return processingFee
 		},
-		ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
-			return moveBalanceFee
-		},
 	}
 	execTx, _ := txproc.NewTxProcessor(args)
 
@@ -1480,8 +1477,8 @@ func TestTxProcessor_ProcessTxFeeMoveBalanceUserTx(t *testing.T) {
 
 	cost, totalCost, err := execTx.ProcessTxFee(tx, acntSnd, nil, process.MoveBalance, true)
 	assert.Nil(t, err)
-	assert.True(t, cost.Cmp(moveBalanceFee) == 0)
-	assert.True(t, totalCost.Cmp(moveBalanceFee) == 0)
+	assert.True(t, cost.Cmp(big.NewInt(0).Add(moveBalanceFee, processingFee)) == 0)
+	assert.True(t, totalCost.Cmp(big.NewInt(0).Add(moveBalanceFee, processingFee)) == 0)
 }
 
 func TestTxProcessor_ProcessTxFeeSCInvokeUserTx(t *testing.T) {
@@ -1619,7 +1616,7 @@ func TestTxProcessor_ProcessTransactionShouldTreatAsInvalidTxIfTxTypeIsWrong(t *
 	_, err := execTx.ProcessTransaction(&tx)
 	assert.Equal(t, err, process.ErrFailedTransaction)
 	assert.Equal(t, uint64(1), acntSrc.GetNonce())
-	assert.Equal(t, uint64(45), acntSrc.GetBalance().Uint64())
+	assert.Equal(t, uint64(46), acntSrc.GetBalance().Uint64())
 }
 
 func TestTxProcessor_ProcessRelayedTransactionV2NotActiveShouldErr(t *testing.T) {
