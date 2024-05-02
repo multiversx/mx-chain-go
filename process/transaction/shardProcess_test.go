@@ -2230,7 +2230,11 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 				return big.NewInt(int64(tx.GetGasPrice() * tx.GetGasLimit()))
 			},
 		}
-		args.RelayedTxV3Processor, _ = txproc.NewRelayedTxV3Processor(args.EconomicsFee, args.ShardCoordinator)
+		args.RelayedTxV3Processor, _ = txproc.NewRelayedTxV3Processor(txproc.ArgRelayedTxV3Processor{
+			EconomicsFee:           args.EconomicsFee,
+			ShardCoordinator:       args.ShardCoordinator,
+			MaxTransactionsAllowed: 10,
+		})
 		execTx, _ := txproc.NewTxProcessor(args)
 
 		txCopy := *tx
@@ -2319,7 +2323,11 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 				return big.NewInt(int64(tx.GetGasPrice() * tx.GetGasLimit()))
 			},
 		}
-		args.RelayedTxV3Processor, _ = txproc.NewRelayedTxV3Processor(args.EconomicsFee, args.ShardCoordinator)
+		args.RelayedTxV3Processor, _ = txproc.NewRelayedTxV3Processor(txproc.ArgRelayedTxV3Processor{
+			EconomicsFee:           args.EconomicsFee,
+			ShardCoordinator:       args.ShardCoordinator,
+			MaxTransactionsAllowed: 10,
+		})
 		execTx, _ := txproc.NewTxProcessor(args)
 
 		txCopy := *tx
@@ -2406,7 +2414,11 @@ func testProcessRelayedTransactionV3(
 			return 4
 		},
 	}
-	args.RelayedTxV3Processor, _ = txproc.NewRelayedTxV3Processor(args.EconomicsFee, args.ShardCoordinator)
+	args.RelayedTxV3Processor, _ = txproc.NewRelayedTxV3Processor(txproc.ArgRelayedTxV3Processor{
+		EconomicsFee:           args.EconomicsFee,
+		ShardCoordinator:       args.ShardCoordinator,
+		MaxTransactionsAllowed: 10,
+	})
 
 	execTx, _ := txproc.NewTxProcessor(args)
 

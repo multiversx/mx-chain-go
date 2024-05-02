@@ -199,7 +199,11 @@ func createInterceptedTxFromPlainTxWithArgParser(tx *dataTransaction.Transaction
 	}
 
 	txFeeHandler := createFreeTxFeeHandler()
-	relayedTxV3Processor, err := transaction.NewRelayedTxV3Processor(txFeeHandler, shardCoordinator)
+	relayedTxV3Processor, err := transaction.NewRelayedTxV3Processor(transaction.ArgRelayedTxV3Processor{
+		EconomicsFee:           txFeeHandler,
+		ShardCoordinator:       shardCoordinator,
+		MaxTransactionsAllowed: 10,
+	})
 	if err != nil {
 		return nil, err
 	}

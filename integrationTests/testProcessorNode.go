@@ -1287,7 +1287,11 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 	cryptoComponents.BlKeyGen = tpn.OwnAccount.KeygenBlockSign
 	cryptoComponents.TxKeyGen = tpn.OwnAccount.KeygenTxSign
 
-	relayedV3TxProcessor, _ := transaction.NewRelayedTxV3Processor(tpn.EconomicsData, tpn.ShardCoordinator)
+	relayedV3TxProcessor, _ := transaction.NewRelayedTxV3Processor(transaction.ArgRelayedTxV3Processor{
+		EconomicsFee:           tpn.EconomicsData,
+		ShardCoordinator:       tpn.ShardCoordinator,
+		MaxTransactionsAllowed: 10,
+	})
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		argsEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
@@ -1719,7 +1723,11 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 
 	tpn.ScProcessor, _ = processProxy.NewTestSmartContractProcessorProxy(argsNewScProcessor, tpn.EpochNotifier)
 
-	relayedV3TxProcessor, _ := transaction.NewRelayedTxV3Processor(tpn.EconomicsData, tpn.ShardCoordinator)
+	relayedV3TxProcessor, _ := transaction.NewRelayedTxV3Processor(transaction.ArgRelayedTxV3Processor{
+		EconomicsFee:           tpn.EconomicsData,
+		ShardCoordinator:       tpn.ShardCoordinator,
+		MaxTransactionsAllowed: 10,
+	})
 
 	receiptsHandler, _ := tpn.InterimProcContainer.Get(dataBlock.ReceiptBlock)
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{

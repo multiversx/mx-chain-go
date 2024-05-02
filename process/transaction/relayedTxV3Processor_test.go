@@ -2,7 +2,9 @@ package transaction_test
 
 import (
 	"bytes"
+	"errors"
 	"math/big"
+	"strings"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -47,27 +49,49 @@ func getDefaultTx() *coreTransaction.Transaction {
 	}
 }
 
+func createMockArgRelayedTxV3Processor() transaction.ArgRelayedTxV3Processor {
+	return transaction.ArgRelayedTxV3Processor{
+		EconomicsFee:           &economicsmocks.EconomicsHandlerStub{},
+		ShardCoordinator:       &testscommon.ShardsCoordinatorMock{},
+		MaxTransactionsAllowed: 10,
+	}
+}
+
 func TestNewRelayedTxV3Processor(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil economics fee should error", func(t *testing.T) {
 		t.Parallel()
 
-		proc, err := transaction.NewRelayedTxV3Processor(nil, nil)
+		args := createMockArgRelayedTxV3Processor()
+		args.EconomicsFee = nil
+		proc, err := transaction.NewRelayedTxV3Processor(args)
 		require.Nil(t, proc)
 		require.Equal(t, process.ErrNilEconomicsFeeHandler, err)
 	})
 	t.Run("nil shard coordinator should error", func(t *testing.T) {
 		t.Parallel()
 
-		proc, err := transaction.NewRelayedTxV3Processor(&economicsmocks.EconomicsHandlerStub{}, nil)
+		args := createMockArgRelayedTxV3Processor()
+		args.ShardCoordinator = nil
+		proc, err := transaction.NewRelayedTxV3Processor(args)
 		require.Nil(t, proc)
 		require.Equal(t, process.ErrNilShardCoordinator, err)
+	})
+	t.Run("invalid max transactions allowed should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgRelayedTxV3Processor()
+		args.MaxTransactionsAllowed = 0
+		proc, err := transaction.NewRelayedTxV3Processor(args)
+		require.Nil(t, proc)
+		require.True(t, errors.Is(err, process.ErrInvalidValue))
+		require.True(t, strings.Contains(err.Error(), "MaxTransactionsAllowed"))
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		proc, err := transaction.NewRelayedTxV3Processor(&economicsmocks.EconomicsHandlerStub{}, &testscommon.ShardsCoordinatorMock{})
+		proc, err := transaction.NewRelayedTxV3Processor(createMockArgRelayedTxV3Processor())
 		require.NoError(t, err)
 		require.NotNil(t, proc)
 	})
@@ -76,20 +100,36 @@ func TestNewRelayedTxV3Processor(t *testing.T) {
 func TestRelayedTxV3Processor_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
-	proc, _ := transaction.NewRelayedTxV3Processor(nil, nil)
+	args := createMockArgRelayedTxV3Processor()
+	args.EconomicsFee = nil
+	proc, _ := transaction.NewRelayedTxV3Processor(args)
 	require.True(t, proc.IsInterfaceNil())
 
-	proc, _ = transaction.NewRelayedTxV3Processor(&economicsmocks.EconomicsHandlerStub{}, &testscommon.ShardsCoordinatorMock{})
+	proc, _ = transaction.NewRelayedTxV3Processor(createMockArgRelayedTxV3Processor())
 	require.False(t, proc.IsInterfaceNil())
 }
 
 func TestRelayedTxV3Processor_CheckRelayedTx(t *testing.T) {
 	t.Parallel()
 
+	t.Run("invalid num of inner txs should error", func(t *testing.T) {
+		t.Parallel()
+
+		tx := getDefaultTx()
+		args := createMockArgRelayedTxV3Processor()
+		args.MaxTransactionsAllowed = len(tx.InnerTransactions) - 1
+		proc, err := transaction.NewRelayedTxV3Processor(args)
+		require.NoError(t, err)
+
+		tx.Value = big.NewInt(1)
+
+		err = proc.CheckRelayedTx(tx)
+		require.Equal(t, process.ErrRelayedTxV3TooManyInnerTransactions, err)
+	})
 	t.Run("value on relayed tx should error", func(t *testing.T) {
 		t.Parallel()
 
-		proc, err := transaction.NewRelayedTxV3Processor(&economicsmocks.EconomicsHandlerStub{}, &testscommon.ShardsCoordinatorMock{})
+		proc, err := transaction.NewRelayedTxV3Processor(createMockArgRelayedTxV3Processor())
 		require.NoError(t, err)
 
 		tx := getDefaultTx()
@@ -101,7 +141,7 @@ func TestRelayedTxV3Processor_CheckRelayedTx(t *testing.T) {
 	t.Run("relayed tx not to self should error", func(t *testing.T) {
 		t.Parallel()
 
-		proc, err := transaction.NewRelayedTxV3Processor(&economicsmocks.EconomicsHandlerStub{}, &testscommon.ShardsCoordinatorMock{})
+		proc, err := transaction.NewRelayedTxV3Processor(createMockArgRelayedTxV3Processor())
 		require.NoError(t, err)
 
 		tx := getDefaultTx()
@@ -113,12 +153,13 @@ func TestRelayedTxV3Processor_CheckRelayedTx(t *testing.T) {
 	t.Run("invalid gas limit should error", func(t *testing.T) {
 		t.Parallel()
 
-		economicsFeeHandler := &economicsmocks.EconomicsHandlerStub{
+		args := createMockArgRelayedTxV3Processor()
+		args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 			ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 				return minGasLimit
 			},
 		}
-		proc, err := transaction.NewRelayedTxV3Processor(economicsFeeHandler, &testscommon.ShardsCoordinatorMock{})
+		proc, err := transaction.NewRelayedTxV3Processor(args)
 		require.NoError(t, err)
 
 		tx := getDefaultTx()
@@ -130,7 +171,7 @@ func TestRelayedTxV3Processor_CheckRelayedTx(t *testing.T) {
 	t.Run("empty relayer on inner should error", func(t *testing.T) {
 		t.Parallel()
 
-		proc, err := transaction.NewRelayedTxV3Processor(&economicsmocks.EconomicsHandlerStub{}, &testscommon.ShardsCoordinatorMock{})
+		proc, err := transaction.NewRelayedTxV3Processor(createMockArgRelayedTxV3Processor())
 		require.NoError(t, err)
 
 		tx := getDefaultTx()
@@ -142,7 +183,7 @@ func TestRelayedTxV3Processor_CheckRelayedTx(t *testing.T) {
 	t.Run("relayer mismatch on inner should error", func(t *testing.T) {
 		t.Parallel()
 
-		proc, err := transaction.NewRelayedTxV3Processor(&economicsmocks.EconomicsHandlerStub{}, &testscommon.ShardsCoordinatorMock{})
+		proc, err := transaction.NewRelayedTxV3Processor(createMockArgRelayedTxV3Processor())
 		require.NoError(t, err)
 
 		tx := getDefaultTx()
@@ -154,7 +195,7 @@ func TestRelayedTxV3Processor_CheckRelayedTx(t *testing.T) {
 	t.Run("gas price mismatch on inner should error", func(t *testing.T) {
 		t.Parallel()
 
-		proc, err := transaction.NewRelayedTxV3Processor(&economicsmocks.EconomicsHandlerStub{}, &testscommon.ShardsCoordinatorMock{})
+		proc, err := transaction.NewRelayedTxV3Processor(createMockArgRelayedTxV3Processor())
 		require.NoError(t, err)
 
 		tx := getDefaultTx()
@@ -167,7 +208,8 @@ func TestRelayedTxV3Processor_CheckRelayedTx(t *testing.T) {
 		t.Parallel()
 
 		tx := getDefaultTx()
-		shardC := &testscommon.ShardsCoordinatorMock{
+		args := createMockArgRelayedTxV3Processor()
+		args.ShardCoordinator = &testscommon.ShardsCoordinatorMock{
 			ComputeIdCalled: func(address []byte) uint32 {
 				if bytes.Equal(address, tx.SndAddr) {
 					return 0
@@ -176,7 +218,7 @@ func TestRelayedTxV3Processor_CheckRelayedTx(t *testing.T) {
 				return 1
 			},
 		}
-		proc, err := transaction.NewRelayedTxV3Processor(&economicsmocks.EconomicsHandlerStub{}, shardC)
+		proc, err := transaction.NewRelayedTxV3Processor(args)
 		require.NoError(t, err)
 
 		err = proc.CheckRelayedTx(tx)
@@ -185,7 +227,7 @@ func TestRelayedTxV3Processor_CheckRelayedTx(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		proc, err := transaction.NewRelayedTxV3Processor(&economicsmocks.EconomicsHandlerStub{}, &testscommon.ShardsCoordinatorMock{})
+		proc, err := transaction.NewRelayedTxV3Processor(createMockArgRelayedTxV3Processor())
 		require.NoError(t, err)
 
 		tx := getDefaultTx()
@@ -197,12 +239,13 @@ func TestRelayedTxV3Processor_CheckRelayedTx(t *testing.T) {
 func TestRelayedTxV3Processor_ComputeRelayedTxFees(t *testing.T) {
 	t.Parallel()
 
-	economicsFeeHandler := &economicsmocks.EconomicsHandlerStub{
+	args := createMockArgRelayedTxV3Processor()
+	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 		ComputeMoveBalanceFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return big.NewInt(int64(minGasLimit * tx.GetGasPrice()))
 		},
 	}
-	proc, err := transaction.NewRelayedTxV3Processor(economicsFeeHandler, &testscommon.ShardsCoordinatorMock{})
+	proc, err := transaction.NewRelayedTxV3Processor(args)
 	require.NoError(t, err)
 
 	tx := getDefaultTx()

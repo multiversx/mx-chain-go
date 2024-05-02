@@ -1248,12 +1248,6 @@ var ErrRelayedTxV3RelayerMismatch = errors.New("relayed tx v3 relayer mismatch")
 // ErrRelayedTxV3GasLimitMismatch signals that relayed tx v3 gas limit is higher than user tx gas limit
 var ErrRelayedTxV3GasLimitMismatch = errors.New("relayed tx v3 gas limit mismatch")
 
-// ErrSubsequentInnerTransactionFailed signals that one of the following inner transactions failed
-var ErrSubsequentInnerTransactionFailed = errors.New("subsequent inner transaction failed")
-
-// ErrInvalidInnerTransactions signals that one or more inner transactions were invalid
-var ErrInvalidInnerTransactions = errors.New("invalid inner transactions")
-
 // ErrNilRelayedTxV3Processor signals that a nil relayed tx v3 processor has been provided
 var ErrNilRelayedTxV3Processor = errors.New("nil relayed tx v3 processor")
 
@@ -1262,3 +1256,6 @@ var ErrRelayedTxV3SenderShardMismatch = errors.New("sender shard mismatch")
 
 // ErrNilRelayerAccount signals that a nil relayer accouont has been provided
 var ErrNilRelayerAccount = errors.New("nil relayer account")
+
+// ErrRelayedTxV3TooManyInnerTransactions signals that too many inner transactions were provided
+var ErrRelayedTxV3TooManyInnerTransactions = errors.New("too many inner transactions")

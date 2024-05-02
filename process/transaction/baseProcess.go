@@ -146,11 +146,7 @@ func (txProc *baseTxProcessor) checkTxValues(
 			return process.ErrNotEnoughGasInUserTx
 		}
 		if txProc.enableEpochsHandler.IsFlagEnabled(common.FixRelayedMoveBalanceFlag) {
-			moveBalanceGasLimit := txProc.economicsFee.ComputeGasLimit(tx)
-			gasToUse := tx.GetGasLimit() - moveBalanceGasLimit
-			moveBalanceUserFee := txProc.economicsFee.ComputeMoveBalanceFee(tx)
-			processingUserFee := txProc.economicsFee.ComputeFeeForProcessing(tx, gasToUse)
-			txFee = big.NewInt(0).Add(moveBalanceUserFee, processingUserFee)
+			txFee = txProc.computeTxFeeAfterMoveBalanceFix(tx)
 		} else {
 			txFee = txProc.economicsFee.ComputeFeeForProcessing(tx, tx.GasLimit)
 		}
@@ -178,6 +174,16 @@ func (txProc *baseTxProcessor) checkTxValues(
 	}
 
 	return nil
+}
+
+func (txProc *baseTxProcessor) computeTxFeeAfterMoveBalanceFix(tx *transaction.Transaction) *big.Int {
+	moveBalanceGasLimit := txProc.economicsFee.ComputeGasLimit(tx)
+	gasToUse := tx.GetGasLimit() - moveBalanceGasLimit
+	moveBalanceUserFee := txProc.economicsFee.ComputeMoveBalanceFee(tx)
+	processingUserFee := txProc.economicsFee.ComputeFeeForProcessing(tx, gasToUse)
+	txFee := big.NewInt(0).Add(moveBalanceUserFee, processingUserFee)
+
+	return txFee
 }
 
 func (txProc *baseTxProcessor) checkUserNames(tx *transaction.Transaction, acntSnd, acntDst state.UserAccountHandler) error {

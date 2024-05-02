@@ -378,7 +378,12 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	relayedTxV3Processor, err := transaction.NewRelayedTxV3Processor(pcf.coreData.EconomicsData(), pcf.bootstrapComponents.ShardCoordinator())
+	argsRelayedTxV3Processor := transaction.ArgRelayedTxV3Processor{
+		EconomicsFee:           pcf.coreData.EconomicsData(),
+		ShardCoordinator:       pcf.bootstrapComponents.ShardCoordinator(),
+		MaxTransactionsAllowed: pcf.config.RelayedTransactionConfig.MaxTransactionsAllowed,
+	}
+	relayedTxV3Processor, err := transaction.NewRelayedTxV3Processor(argsRelayedTxV3Processor)
 	if err != nil {
 		return nil, err
 	}

@@ -14,7 +14,26 @@ import (
 )
 
 // CreateGeneralSetupForRelayTxTest will create the general setup for relayed transactions
-func CreateGeneralSetupForRelayTxTest(relayedV3Test bool) ([]*integrationTests.TestProcessorNode, []int, []*integrationTests.TestWalletAccount, *integrationTests.TestWalletAccount) {
+func CreateGeneralSetupForRelayTxTest() ([]*integrationTests.TestProcessorNode, []int, []*integrationTests.TestWalletAccount, *integrationTests.TestWalletAccount) {
+	initialVal := big.NewInt(1000000000)
+	nodes, idxProposers := createAndMintNodes(initialVal)
+
+	players, relayerAccount := createAndMintPlayers(false, nodes, initialVal)
+
+	return nodes, idxProposers, players, relayerAccount
+}
+
+// CreateGeneralSetupForRelayedV3TxTest will create the general setup for relayed transactions v3
+func CreateGeneralSetupForRelayedV3TxTest() ([]*integrationTests.TestProcessorNode, []int, []*integrationTests.TestWalletAccount, *integrationTests.TestWalletAccount) {
+	initialVal := big.NewInt(1000000000)
+	nodes, idxProposers := createAndMintNodes(initialVal)
+
+	players, relayerAccount := createAndMintPlayers(true, nodes, initialVal)
+
+	return nodes, idxProposers, players, relayerAccount
+}
+
+func createAndMintNodes(initialVal *big.Int) ([]*integrationTests.TestProcessorNode, []int) {
 	numOfShards := 2
 	nodesPerShard := 2
 	numMetachainNodes := 1
@@ -33,17 +52,23 @@ func CreateGeneralSetupForRelayTxTest(relayedV3Test bool) ([]*integrationTests.T
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
-	initialVal := big.NewInt(1000000000)
 	integrationTests.MintAllNodes(nodes, initialVal)
 
+	return nodes, idxProposers
+}
+
+func createAndMintPlayers(
+	intraShard bool,
+	nodes []*integrationTests.TestProcessorNode,
+	initialVal *big.Int,
+) ([]*integrationTests.TestWalletAccount, *integrationTests.TestWalletAccount) {
 	relayerShard := uint32(0)
 	numPlayers := 5
 	numShards := nodes[0].ShardCoordinator.NumberOfShards()
 	players := make([]*integrationTests.TestWalletAccount, numPlayers)
 	for i := 0; i < numPlayers; i++ {
 		shardId := uint32(i) % numShards
-		// if the test is for relayed v3, force all senders to be in the same shard with the relayer
-		if relayedV3Test {
+		if intraShard {
 			shardId = relayerShard
 		}
 		players[i] = integrationTests.CreateTestWalletAccount(nodes[0].ShardCoordinator, shardId)
@@ -52,7 +77,7 @@ func CreateGeneralSetupForRelayTxTest(relayedV3Test bool) ([]*integrationTests.T
 	relayerAccount := integrationTests.CreateTestWalletAccount(nodes[0].ShardCoordinator, relayerShard)
 	integrationTests.MintAllPlayers(nodes, []*integrationTests.TestWalletAccount{relayerAccount}, initialVal)
 
-	return nodes, idxProposers, players, relayerAccount
+	return players, relayerAccount
 }
 
 // CreateAndSendRelayedAndUserTx will create and send a relayed user transaction
