@@ -16,6 +16,9 @@ import (
 	"syscall"
 	"time"
 
+	hasherFactory "github.com/multiversx/mx-chain-core-go/hashing/factory"
+	marshallerFactory "github.com/multiversx/mx-chain-core-go/marshal/factory"
+
 	"github.com/multiversx/mx-chain-go/api/gin"
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/common"
@@ -46,8 +49,6 @@ import (
 	stateComp "github.com/multiversx/mx-chain-go/factory/state"
 	statusComp "github.com/multiversx/mx-chain-go/factory/status"
 	"github.com/multiversx/mx-chain-go/factory/statusCore"
-	"github.com/multiversx/mx-chain-go/genesis"
-	"github.com/multiversx/mx-chain-go/genesis/data"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
 	"github.com/multiversx/mx-chain-go/health"
 	"github.com/multiversx/mx-chain-go/node"
@@ -74,8 +75,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/closing"
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
-	hasherFactory "github.com/multiversx/mx-chain-core-go/hashing/factory"
-	marshallerFactory "github.com/multiversx/mx-chain-core-go/marshal/factory"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/multiversx/mx-chain-sovereign-bridge-go/cert"
 	factoryBridge "github.com/multiversx/mx-chain-sovereign-bridge-go/client"
@@ -1595,30 +1594,9 @@ func (snr *sovereignNodeRunner) CreateManagedCryptoComponents(
 	return managedCryptoComponents, nil
 }
 
-// CreateArgsRunTypeComponents - creates the arguments for runType components
-func (snr *sovereignNodeRunner) CreateArgsRunTypeComponents(coreComponents mainFactory.CoreComponentsHandler, cryptoComponents mainFactory.CryptoComponentsHandler) (*runType.ArgsRunTypeComponents, error) {
-	initialAccounts := make([]*data.InitialAccount, 0)
-	err := core.LoadJsonFile(&initialAccounts, snr.configs.ConfigurationPathsHolder.Genesis)
-	if err != nil {
-		return nil, err
-	}
-
-	var accounts []genesis.InitialAccountHandler
-	for _, ia := range initialAccounts {
-		accounts = append(accounts, ia)
-	}
-
-	return &runType.ArgsRunTypeComponents{
-		CoreComponents:   coreComponents,
-		CryptoComponents: cryptoComponents,
-		Configs:          *snr.configs.Configs,
-		InitialAccounts:  accounts,
-	}, nil
-}
-
 // CreateSovereignArgsRunTypeComponents creates the arguments for sovereign runType components
 func (snr *sovereignNodeRunner) CreateSovereignArgsRunTypeComponents(coreComponents mainFactory.CoreComponentsHandler, cryptoComponents mainFactory.CryptoComponentsHandler) (*runType.ArgsSovereignRunTypeComponents, error) {
-	args, err := snr.CreateArgsRunTypeComponents(coreComponents, cryptoComponents)
+	args, err := runType.CreateArgsRunTypeComponents(coreComponents, cryptoComponents, *snr.configs.Configs)
 	if err != nil {
 		return nil, err
 	}

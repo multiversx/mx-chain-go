@@ -17,7 +17,6 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/factory"
 	processComp "github.com/multiversx/mx-chain-go/factory/processing"
-	"github.com/multiversx/mx-chain-go/factory/runType"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
 	"github.com/multiversx/mx-chain-go/process"
@@ -33,16 +32,18 @@ import (
 
 // ArgsProcessComponentsHolder will hold the components needed for process components
 type ArgsProcessComponentsHolder struct {
-	CoreComponents       factory.CoreComponentsHolder
-	CryptoComponents     factory.CryptoComponentsHolder
-	NetworkComponents    factory.NetworkComponentsHolder
-	BootstrapComponents  factory.BootstrapComponentsHolder
-	StateComponents      factory.StateComponentsHolder
-	DataComponents       factory.DataComponentsHolder
-	StatusComponents     factory.StatusComponentsHolder
-	StatusCoreComponents factory.StatusCoreComponentsHolder
-	NodesCoordinator     nodesCoordinator.NodesCoordinator
-	Configs              config.Configs
+	CoreComponents        factory.CoreComponentsHolder
+	CryptoComponents      factory.CryptoComponentsHolder
+	NetworkComponents     factory.NetworkComponentsHolder
+	BootstrapComponents   factory.BootstrapComponentsHolder
+	StateComponents       factory.StateComponentsHolder
+	DataComponents        factory.DataComponentsHolder
+	StatusComponents      factory.StatusComponentsHolder
+	StatusCoreComponents  factory.StatusCoreComponentsHolder
+	NodesCoordinator      nodesCoordinator.NodesCoordinator
+	RunTypeComponents     factory.RunTypeComponentsHolder
+	IncomingHeaderHandler process.IncomingHeaderSubscriber
+	Configs               config.Configs
 
 	GenesisNonce uint64
 	GenesisRound uint64
@@ -91,6 +92,7 @@ type processComponentsHolder struct {
 	accountsParser                   genesis.AccountsParser
 	sentSignatureTracker             process.SentSignaturesTracker
 	managedProcessComponentsCloser   io.Closer
+	incomingHeaderHandler            process.IncomingHeaderSubscriber
 }
 
 // CreateProcessComponents will create the process components holder
@@ -153,52 +155,37 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		return nil, err
 	}
 
-	initialAccounts, err := runType.ReadInitialAccounts(args.Configs.ConfigurationPathsHolder.Genesis)
-	if err != nil {
-		return nil, err
-	}
-
-	argsRunTypeComponents := runType.ArgsRunTypeComponents{
-		CoreComponents:   args.CoreComponents,
-		CryptoComponents: args.CryptoComponents,
-		Configs:          args.Configs,
-		InitialAccounts:  initialAccounts,
-	}
-	runTypeComponents, err := createRunTypeComponents(argsRunTypeComponents)
-	if err != nil {
-		return nil, err
-	}
-
 	processArgs := processComp.ProcessComponentsFactoryArgs{
-		Config:                  *args.Configs.GeneralConfig,
-		EpochConfig:             *args.Configs.EpochConfig,
-		RoundConfig:             *args.Configs.RoundConfig,
-		PrefConfigs:             *args.Configs.PreferencesConfig,
-		ImportDBConfig:          *args.Configs.ImportDbConfig,
-		EconomicsConfig:         *args.Configs.EconomicsConfig,
-		SmartContractParser:     smartContractParser,
-		GasSchedule:             gasScheduleNotifier,
-		NodesCoordinator:        args.NodesCoordinator,
-		RequestedItemsHandler:   requestedItemsHandler,
-		WhiteListHandler:        whiteListRequest,
-		WhiteListerVerifiedTxs:  whiteListerVerifiedTxs,
-		MaxRating:               50,
-		SystemSCConfig:          args.Configs.SystemSCConfig,
-		ImportStartHandler:      importStartHandler,
-		HistoryRepo:             historyRepository,
-		FlagsConfig:             *args.Configs.FlagsConfig,
-		Data:                    args.DataComponents,
-		CoreData:                args.CoreComponents,
-		Crypto:                  args.CryptoComponents,
-		State:                   args.StateComponents,
-		Network:                 args.NetworkComponents,
-		BootstrapComponents:     args.BootstrapComponents,
-		StatusComponents:        args.StatusComponents,
-		StatusCoreComponents:    args.StatusCoreComponents,
-		TxExecutionOrderHandler: txExecutionOrderHandler,
-		GenesisNonce:            args.GenesisNonce,
-		GenesisRound:            args.GenesisRound,
-		RunTypeComponents:       runTypeComponents,
+		Config:                   *args.Configs.GeneralConfig,
+		EpochConfig:              *args.Configs.EpochConfig,
+		RoundConfig:              *args.Configs.RoundConfig,
+		PrefConfigs:              *args.Configs.PreferencesConfig,
+		ImportDBConfig:           *args.Configs.ImportDbConfig,
+		EconomicsConfig:          *args.Configs.EconomicsConfig,
+		SmartContractParser:      smartContractParser,
+		GasSchedule:              gasScheduleNotifier,
+		NodesCoordinator:         args.NodesCoordinator,
+		RequestedItemsHandler:    requestedItemsHandler,
+		WhiteListHandler:         whiteListRequest,
+		WhiteListerVerifiedTxs:   whiteListerVerifiedTxs,
+		MaxRating:                50,
+		SystemSCConfig:           args.Configs.SystemSCConfig,
+		ImportStartHandler:       importStartHandler,
+		HistoryRepo:              historyRepository,
+		FlagsConfig:              *args.Configs.FlagsConfig,
+		Data:                     args.DataComponents,
+		CoreData:                 args.CoreComponents,
+		Crypto:                   args.CryptoComponents,
+		State:                    args.StateComponents,
+		Network:                  args.NetworkComponents,
+		BootstrapComponents:      args.BootstrapComponents,
+		StatusComponents:         args.StatusComponents,
+		StatusCoreComponents:     args.StatusCoreComponents,
+		TxExecutionOrderHandler:  txExecutionOrderHandler,
+		GenesisNonce:             args.GenesisNonce,
+		GenesisRound:             args.GenesisRound,
+		RunTypeComponents:        args.RunTypeComponents,
+		IncomingHeaderSubscriber: args.IncomingHeaderHandler,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -257,27 +244,11 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		esdtDataStorageHandlerForAPI:     managedProcessComponents.ESDTDataStorageHandlerForAPI(),
 		accountsParser:                   managedProcessComponents.AccountsParser(),
 		sentSignatureTracker:             managedProcessComponents.SentSignaturesTracker(),
+		incomingHeaderHandler:            managedProcessComponents.IncomingHeaderHandler(),
 		managedProcessComponentsCloser:   managedProcessComponents,
 	}
 
 	return instance, nil
-}
-
-func createRunTypeComponents(args runType.ArgsRunTypeComponents) (factory.RunTypeComponentsHolder, error) {
-	runTypeComponentsFactory, err := runType.NewRunTypeComponentsFactory(args)
-	if err != nil {
-		return nil, err
-	}
-	managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(runTypeComponentsFactory)
-	if err != nil {
-		return nil, err
-	}
-	err = managedRunTypeComponents.Create()
-	if err != nil {
-		return nil, err
-	}
-
-	return managedRunTypeComponents, nil
 }
 
 // SentSignaturesTracker will return the sent signature tracker
@@ -483,6 +454,10 @@ func (p *processComponentsHolder) AccountsParser() genesis.AccountsParser {
 // ReceiptsRepository returns the receipts repository
 func (p *processComponentsHolder) ReceiptsRepository() factory.ReceiptsRepository {
 	return p.receiptsRepository
+}
+
+func (p *processComponentsHolder) IncomingHeaderHandler() process.IncomingHeaderSubscriber {
+	return p.incomingHeaderHandler
 }
 
 // Close will call the Close methods on all inner components

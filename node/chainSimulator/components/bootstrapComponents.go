@@ -11,7 +11,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
-	"github.com/multiversx/mx-chain-go/testscommon/components"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 )
@@ -28,6 +27,7 @@ type ArgsBootstrapComponentsHolder struct {
 	PrefsConfig          config.Preferences
 	Config               config.Config
 	ShardIDStr           string
+	RunTypeComponents    factory.RunTypeComponentsHolder
 }
 
 type bootstrapComponentsHolder struct {
@@ -59,7 +59,7 @@ func CreateBootstrapComponents(args ArgsBootstrapComponentsHolder) (*bootstrapCo
 		CryptoComponents:     args.CryptoComponents,
 		NetworkComponents:    args.NetworkComponents,
 		StatusCoreComponents: args.StatusCoreComponents,
-		RunTypeComponents:    components.GetRunTypeComponents(),
+		RunTypeComponents:    args.RunTypeComponents,
 	}
 
 	bootstrapComponentsFactory, err := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)

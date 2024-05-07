@@ -1,19 +1,27 @@
 package components
 
 import (
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/marshal"
+	"fmt"
+
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	"github.com/multiversx/mx-chain-go/dataRetriever/provider"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
+	dataComp "github.com/multiversx/mx-chain-go/factory/data"
+
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
 )
 
 // ArgsDataComponentsHolder will hold the components needed for data components
 type ArgsDataComponentsHolder struct {
-	Chain              data.ChainHandler
-	StorageService     dataRetriever.StorageService
-	DataPool           dataRetriever.PoolsHolder
-	InternalMarshaller marshal.Marshalizer
+	Configs              config.Configs
+	CoreComponents       factory.CoreComponentsHolder
+	StatusCoreComponents factory.StatusCoreComponentsHolder
+	BootstrapComponents  factory.BootstrapComponentsHolder
+	CryptoComponents     factory.CryptoComponentsHolder
+	RunTypeComponents    factory.RunTypeComponentsHolder
 }
 
 type dataComponentsHolder struct {
@@ -26,28 +34,63 @@ type dataComponentsHolder struct {
 
 // CreateDataComponents will create the data components holder
 func CreateDataComponents(args ArgsDataComponentsHolder) (*dataComponentsHolder, error) {
-	miniBlockStorer, err := args.StorageService.GetStorer(dataRetriever.MiniBlockUnit)
+	if check.IfNil(args.BootstrapComponents) {
+		return nil, errors.ErrNilBootstrapComponents
+	}
+	if check.IfNil(args.RunTypeComponents) {
+		return nil, errors.ErrNilRunTypeComponents
+	}
+
+	storerEpoch := args.BootstrapComponents.EpochBootstrapParams().Epoch()
+	if !args.Configs.GeneralConfig.StoragePruning.Enabled {
+		// TODO: refactor this as when the pruning storer is disabled, the default directory path is Epoch_0
+		// and it should be Epoch_ALL or something similar
+		storerEpoch = 0
+	}
+
+	dataArgs := dataComp.DataComponentsFactoryArgs{
+		Config:                          *args.Configs.GeneralConfig,
+		PrefsConfig:                     args.Configs.PreferencesConfig.Preferences,
+		ShardCoordinator:                args.BootstrapComponents.ShardCoordinator(),
+		Core:                            args.CoreComponents,
+		StatusCore:                      args.StatusCoreComponents,
+		Crypto:                          args.CryptoComponents,
+		CurrentEpoch:                    storerEpoch,
+		CreateTrieEpochRootHashStorer:   args.Configs.ImportDbConfig.ImportDbSaveTrieEpochRootHash,
+		FlagsConfigs:                    *args.Configs.FlagsConfig,
+		NodeProcessingMode:              common.GetNodeProcessingMode(args.Configs.ImportDbConfig),
+		AdditionalStorageServiceCreator: args.RunTypeComponents.AdditionalStorageServiceCreator(),
+	}
+
+	dataComponentsFactory, err := dataComp.NewDataComponentsFactory(dataArgs)
+	if err != nil {
+		return nil, fmt.Errorf("NewDataComponentsFactory failed: %w", err)
+	}
+	managedDataComponents, err := dataComp.NewManagedDataComponents(dataComponentsFactory)
+	if err != nil {
+		return nil, err
+	}
+	err = managedDataComponents.Create()
 	if err != nil {
 		return nil, err
 	}
 
-	arg := provider.ArgMiniBlockProvider{
-		MiniBlockPool:    args.DataPool.MiniBlocks(),
-		MiniBlockStorage: miniBlockStorer,
-		Marshalizer:      args.InternalMarshaller,
+	statusMetricsStorer, err := managedDataComponents.StorageService().GetStorer(dataRetriever.StatusMetricsUnit)
+	if err != nil {
+		return nil, err
 	}
 
-	miniBlocksProvider, err := provider.NewMiniBlockProvider(arg)
+	err = args.StatusCoreComponents.PersistentStatusHandler().SetStorage(statusMetricsStorer)
 	if err != nil {
 		return nil, err
 	}
 
 	instance := &dataComponentsHolder{
 		closeHandler:      NewCloseHandler(),
-		chain:             args.Chain,
-		storageService:    args.StorageService,
-		dataPool:          args.DataPool,
-		miniBlockProvider: miniBlocksProvider,
+		chain:             managedDataComponents.Blockchain(),
+		storageService:    managedDataComponents.StorageService(),
+		dataPool:          managedDataComponents.Datapool(),
+		miniBlockProvider: managedDataComponents.MiniBlocksProvider(),
 	}
 
 	instance.collectClosableComponents()

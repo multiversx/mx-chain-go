@@ -5,6 +5,8 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext"
@@ -16,7 +18,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/update"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var _ factory.ComponentHandler = (*managedProcessComponents)(nil)
@@ -671,6 +672,18 @@ func (m *managedProcessComponents) SentSignaturesTracker() process.SentSignature
 	}
 
 	return m.processComponents.sentSignaturesTracker
+}
+
+// IncomingHeaderHandler returns the incoming header handler
+func (m *managedProcessComponents) IncomingHeaderHandler() process.IncomingHeaderSubscriber {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.incomingHeaderHandler
 }
 
 // IsInterfaceNil returns true if the interface is nil
