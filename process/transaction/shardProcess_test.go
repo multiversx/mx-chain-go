@@ -2278,8 +2278,7 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 				continue // relayer
 			case "sDST":
 				expectedBalance = big.NewInt(120) // 2 successful txs received
-			case "sender inner tx 1":
-			case "sender inner tx 2":
+			case "sender inner tx 1", "sender inner tx 2":
 				expectedBalance = big.NewInt(90) // one successful tx sent from each
 			default:
 				assert.Fail(t, "should not be other participants")
