@@ -10,8 +10,8 @@ import (
 
 // SimpleNFTStorageHandlerStub -
 type SimpleNFTStorageHandlerStub struct {
-	GetESDTNFTTokenOnDestinationCalled   func(accnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64) (*esdt.ESDigitalToken, bool, error)
-	SaveNFTMetaDataToSystemAccountCalled func(tx data.TransactionHandler) error
+	GetESDTNFTTokenOnDestinationCalled func(accnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64) (*esdt.ESDigitalToken, bool, error)
+	SaveNFTMetaDataCalled              func(tx data.TransactionHandler) error
 }
 
 // GetESDTNFTTokenOnDestination -
@@ -23,9 +23,9 @@ func (s *SimpleNFTStorageHandlerStub) GetESDTNFTTokenOnDestination(accnt vmcommo
 }
 
 // SaveNFTMetaDataToSystemAccount -
-func (s *SimpleNFTStorageHandlerStub) SaveNFTMetaDataToSystemAccount(tx data.TransactionHandler) error {
-	if s.SaveNFTMetaDataToSystemAccountCalled != nil {
-		return s.SaveNFTMetaDataToSystemAccountCalled(tx)
+func (s *SimpleNFTStorageHandlerStub) SaveNFTMetaData(tx data.TransactionHandler) error {
+	if s.SaveNFTMetaDataCalled != nil {
+		return s.SaveNFTMetaDataCalled(tx)
 	}
 	return nil
 }

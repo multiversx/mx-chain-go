@@ -15,6 +15,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
+	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -33,12 +40,6 @@ import (
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/trie"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
-	"github.com/multiversx/mx-chain-vm-common-go/parsers"
-	"github.com/pkg/errors"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func createMockBlockChainHookArgs() hooks.ArgBlockChainHook {
@@ -1049,13 +1050,13 @@ func TestBlockChainHookImpl_SaveNFTMetaDataToSystemAccount(t *testing.T) {
 
 	args := createMockBlockChainHookArgs()
 	args.NFTStorageHandler = &testscommon.SimpleNFTStorageHandlerStub{
-		SaveNFTMetaDataToSystemAccountCalled: func(tx data.TransactionHandler) error {
+		SaveNFTMetaDataCalled: func(tx data.TransactionHandler) error {
 			require.Equal(t, expectedTx, tx)
 			return nil
 		},
 	}
 	bh, _ := hooks.NewBlockChainHookImpl(args)
-	err := bh.SaveNFTMetaDataToSystemAccount(expectedTx)
+	err := bh.SaveNFTMetaData(expectedTx)
 	require.Nil(t, err)
 }
 

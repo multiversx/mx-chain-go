@@ -528,8 +528,8 @@ func (bh *BlockChainHookImpl) processMaxBuiltInCounters(input *vmcommon.Contract
 	return bh.counter.ProcessMaxBuiltInCounters(input)
 }
 
-// SaveNFTMetaDataToSystemAccount will save NFT meta-data to system account for the given transaction
-func (bh *BlockChainHookImpl) SaveNFTMetaDataToSystemAccount(tx data.TransactionHandler) error {
+// SaveNFTMetaData will save NFT meta-data to system account for the given transaction
+func (bh *BlockChainHookImpl) SaveNFTMetaData(tx data.TransactionHandler) error {
 	return bh.nftStorageHandler.SaveNFTMetaData(tx)
 }
 

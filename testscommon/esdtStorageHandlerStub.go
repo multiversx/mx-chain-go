@@ -15,7 +15,7 @@ type EsdtStorageHandlerStub struct {
 	GetESDTNFTTokenOnDestinationCalled                        func(acnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64) (*esdt.ESDigitalToken, bool, error)
 	GetESDTNFTTokenOnDestinationWithCustomSystemAccountCalled func(accnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64, systemAccount vmcommon.UserAccountHandler) (*esdt.ESDigitalToken, bool, error)
 	WasAlreadySentToDestinationShardAndUpdateStateCalled      func(tickerID []byte, nonce uint64, dstAddress []byte) (bool, error)
-	SaveNFTMetaDataToSystemAccountCalled                      func(tx data.TransactionHandler) error
+	SaveNFTMetaDataCalled                                     func(tx data.TransactionHandler) error
 	AddToLiquiditySystemAccCalled                             func(esdtTokenKey []byte, nonce uint64, transferValue *big.Int) error
 }
 
@@ -65,9 +65,9 @@ func (e *EsdtStorageHandlerStub) WasAlreadySentToDestinationShardAndUpdateState(
 }
 
 // SaveNFTMetaDataToSystemAccount -
-func (e *EsdtStorageHandlerStub) SaveNFTMetaDataToSystemAccount(tx data.TransactionHandler) error {
-	if e.SaveNFTMetaDataToSystemAccountCalled != nil {
-		return e.SaveNFTMetaDataToSystemAccountCalled(tx)
+func (e *EsdtStorageHandlerStub) SaveNFTMetaData(tx data.TransactionHandler) error {
+	if e.SaveNFTMetaDataCalled != nil {
+		return e.SaveNFTMetaDataCalled(tx)
 	}
 
 	return nil

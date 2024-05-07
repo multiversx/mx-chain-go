@@ -11,8 +11,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/scheduled"
-	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/genesis"
 )
 
 func TestBalanceComputationHandler(t *testing.T) {
@@ -295,7 +296,7 @@ func TestSimpleNFTStorage(t *testing.T) {
 	require.Equal(t, &esdt.ESDigitalToken{Value: big.NewInt(0)}, token)
 	require.True(t, ok)
 	require.Nil(t, err)
-	require.Nil(t, handler.SaveNFTMetaDataToSystemAccount(nil))
+	require.Nil(t, handler.SaveNFTMetaData(nil))
 	require.False(t, handler.IsInterfaceNil())
 }
 

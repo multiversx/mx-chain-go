@@ -21,6 +21,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
+
 	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -32,8 +35,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 )
 
 // TransactionProcessor is the main interface for transaction execution engine
@@ -522,7 +523,7 @@ type BlockChainHookHandler interface {
 	CurrentEpoch() uint32
 	NewAddress(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error)
 	ProcessBuiltInFunction(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
-	SaveNFTMetaDataToSystemAccount(tx data.TransactionHandler) error
+	SaveNFTMetaData(tx data.TransactionHandler) error
 	GetShardOfAddress(address []byte) uint32
 	IsSmartContract(address []byte) bool
 	GetBuiltinFunctionNames() vmcommon.FunctionNames
