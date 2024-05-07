@@ -8,9 +8,8 @@ import (
 
 // RelayedTxV3ProcessorMock -
 type RelayedTxV3ProcessorMock struct {
-	ComputeRelayedTxFeesCalled            func(tx *transaction.Transaction) (*big.Int, *big.Int)
-	GetUniqueSendersRequiredFeesMapCalled func(innerTxs []*transaction.Transaction) map[string]*big.Int
-	CheckRelayedTxCalled                  func(tx *transaction.Transaction) error
+	ComputeRelayedTxFeesCalled func(tx *transaction.Transaction) (*big.Int, *big.Int)
+	CheckRelayedTxCalled       func(tx *transaction.Transaction) error
 }
 
 // ComputeRelayedTxFees -
@@ -19,14 +18,6 @@ func (mock *RelayedTxV3ProcessorMock) ComputeRelayedTxFees(tx *transaction.Trans
 		return mock.ComputeRelayedTxFeesCalled(tx)
 	}
 	return nil, nil
-}
-
-// GetUniqueSendersRequiredFeesMap -
-func (mock *RelayedTxV3ProcessorMock) GetUniqueSendersRequiredFeesMap(innerTxs []*transaction.Transaction) map[string]*big.Int {
-	if mock.GetUniqueSendersRequiredFeesMapCalled != nil {
-		return mock.GetUniqueSendersRequiredFeesMapCalled(innerTxs)
-	}
-	return nil
 }
 
 // CheckRelayedTx -

@@ -1363,6 +1363,5 @@ type SentSignaturesTracker interface {
 type RelayedTxV3Processor interface {
 	CheckRelayedTx(tx *transaction.Transaction) error
 	ComputeRelayedTxFees(tx *transaction.Transaction) (*big.Int, *big.Int)
-	GetUniqueSendersRequiredFeesMap(innerTxs []*transaction.Transaction) map[string]*big.Int
 	IsInterfaceNil() bool
 }

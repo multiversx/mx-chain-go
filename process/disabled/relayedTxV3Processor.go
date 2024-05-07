@@ -24,11 +24,6 @@ func (proc *relayedTxV3Processor) ComputeRelayedTxFees(_ *transaction.Transactio
 	return big.NewInt(0), big.NewInt(0)
 }
 
-// GetUniqueSendersRequiredFeesMap returns an empty map as it is disabled
-func (proc *relayedTxV3Processor) GetUniqueSendersRequiredFeesMap(_ []*transaction.Transaction) map[string]*big.Int {
-	return make(map[string]*big.Int)
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (proc *relayedTxV3Processor) IsInterfaceNil() bool {
 	return proc == nil

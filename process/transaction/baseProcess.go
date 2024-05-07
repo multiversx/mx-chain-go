@@ -145,11 +145,7 @@ func (txProc *baseTxProcessor) checkTxValues(
 		if tx.GasLimit < txProc.economicsFee.ComputeGasLimit(tx) {
 			return process.ErrNotEnoughGasInUserTx
 		}
-		if txProc.enableEpochsHandler.IsFlagEnabled(common.FixRelayedMoveBalanceFlag) {
-			txFee = txProc.computeTxFeeAfterMoveBalanceFix(tx)
-		} else {
-			txFee = txProc.economicsFee.ComputeFeeForProcessing(tx, tx.GasLimit)
-		}
+		txFee = txProc.computeTxFee(tx)
 	} else {
 		txFee = txProc.economicsFee.ComputeTxFee(tx)
 	}
@@ -174,6 +170,14 @@ func (txProc *baseTxProcessor) checkTxValues(
 	}
 
 	return nil
+}
+
+func (txProc *baseTxProcessor) computeTxFee(tx *transaction.Transaction) *big.Int {
+	if txProc.enableEpochsHandler.IsFlagEnabled(common.FixRelayedMoveBalanceFlag) {
+		return txProc.computeTxFeeAfterMoveBalanceFix(tx)
+	}
+
+	return txProc.economicsFee.ComputeFeeForProcessing(tx, tx.GasLimit)
 }
 
 func (txProc *baseTxProcessor) computeTxFeeAfterMoveBalanceFix(tx *transaction.Transaction) *big.Int {

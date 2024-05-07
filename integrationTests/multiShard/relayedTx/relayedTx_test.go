@@ -116,8 +116,8 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulator(t *testing.
 
 	innerTxs := []*transaction.Transaction{innerTx, innerTx2, innerTx3}
 
-	// relayer will consume gas for 2 move balances for 2 different senders + the gas for each transaction that succeeds
-	relayedTxGasLimit := minGasLimit * 5
+	// relayer will consume first a move balance for each inner tx, then the specific gas for each inner tx
+	relayedTxGasLimit := minGasLimit * (len(innerTxs) * 2)
 	relayedTx := generateTransaction(relayer.Bytes, 0, relayer.Bytes, big.NewInt(0), "", uint64(relayedTxGasLimit))
 	relayedTx.InnerTransactions = innerTxs
 
@@ -130,8 +130,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulator(t *testing.
 
 	relayerAccount, err := cs.GetAccount(relayer)
 	require.NoError(t, err)
-	gasLimitForSucceededTxs := minGasLimit * 5
-	expectedRelayerFee := big.NewInt(int64(minGasPrice * gasLimitForSucceededTxs))
+	expectedRelayerFee := big.NewInt(int64(minGasPrice * relayedTxGasLimit))
 	assert.Equal(t, big.NewInt(0).Sub(initialBalance, expectedRelayerFee).String(), relayerAccount.Balance)
 
 	senderAccount, err := cs.GetAccount(sender)

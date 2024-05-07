@@ -411,8 +411,16 @@ func (tg *transactionGroup) sendMultipleTransactions(c *gin.Context) {
 
 				newInnerTx, _, err := tg.createTransaction(innerTx, nil)
 				if err != nil {
-					// if one of the inner txs is invalid, break the loop and move to the next transaction received
-					break
+					// if one of the inner txs is invalid, return bad request
+					c.JSON(
+						http.StatusBadRequest,
+						shared.GenericAPIResponse{
+							Data:  nil,
+							Error: fmt.Sprintf("%s: %s", errors.ErrTxGenerationFailed.Error(), err.Error()),
+							Code:  shared.ReturnCodeInternalError,
+						},
+					)
+					return
 				}
 
 				innerTxs = append(innerTxs, newInnerTx)

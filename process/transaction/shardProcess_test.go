@@ -2176,7 +2176,7 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 		txCopy.GasLimit = userTx.GasLimit - 1
 		testProcessRelayedTransactionV3(t, &txCopy, userTx.SndAddr, userTx.RcvAddr, process.ErrFailedTransaction, vmcommon.UserError)
 	})
-	t.Run("failure to add fees on destination should revert to snapshot and should error", func(t *testing.T) {
+	t.Run("failure to add fees on destination should skip transaction and continue", func(t *testing.T) {
 		t.Parallel()
 
 		providedAddrFail := []byte("fail addr")
@@ -2248,7 +2248,7 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 			RelayerAddr: txCopy.SndAddr,
 		}
 		innerTx2 := &transaction.Transaction{
-			Nonce:       1,
+			Nonce:       0,
 			Value:       big.NewInt(10),
 			RcvAddr:     []byte("sDST"),
 			SndAddr:     []byte("sender inner tx 2"),
@@ -2266,16 +2266,26 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 			RelayerAddr: txCopy.SndAddr,
 		}
 
-		txCopy.InnerTransactions = append(txCopy.InnerTransactions, innerTx1, innerTx2, innerTx3)
+		txCopy.InnerTransactions = []*transaction.Transaction{innerTx1, innerTx2, innerTx3}
 		returnCode, err := execTx.ProcessTransaction(&txCopy)
-		assert.Equal(t, process.ErrFailedTransaction, err)
-		assert.Equal(t, vmcommon.UserError, returnCode)
+		assert.NoError(t, err)
+		assert.Equal(t, vmcommon.Ok, returnCode)
 
+		expectedBalance := providedInitialBalance
 		for _, acnt := range accounts {
-			if string(acnt.AddressBytes()) == "sSRC" {
-				continue
+			switch string(acnt.AddressBytes()) {
+			case "sSRC":
+				continue // relayer
+			case "sDST":
+				expectedBalance = big.NewInt(120) // 2 successful txs received
+			case "sender inner tx 1":
+			case "sender inner tx 2":
+				expectedBalance = big.NewInt(90) // one successful tx sent from each
+			default:
+				assert.Fail(t, "should not be other participants")
 			}
-			assert.Equal(t, providedInitialBalance, acnt.GetBalance())
+
+			assert.Equal(t, expectedBalance, acnt.GetBalance(), fmt.Sprintf("checks failed for address: %s", string(acnt.AddressBytes())))
 		}
 	})
 	t.Run("one inner fails should return success on relayed", func(t *testing.T) {
