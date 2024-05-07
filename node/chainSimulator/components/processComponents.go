@@ -92,6 +92,7 @@ type processComponentsHolder struct {
 	accountsParser                   genesis.AccountsParser
 	sentSignatureTracker             process.SentSignaturesTracker
 	managedProcessComponentsCloser   io.Closer
+	incomingHeaderHandler            process.IncomingHeaderSubscriber
 }
 
 // CreateProcessComponents will create the process components holder
@@ -243,6 +244,7 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		esdtDataStorageHandlerForAPI:     managedProcessComponents.ESDTDataStorageHandlerForAPI(),
 		accountsParser:                   managedProcessComponents.AccountsParser(),
 		sentSignatureTracker:             managedProcessComponents.SentSignaturesTracker(),
+		incomingHeaderHandler:            managedProcessComponents.IncomingHeaderHandler(),
 		managedProcessComponentsCloser:   managedProcessComponents,
 	}
 
@@ -452,6 +454,10 @@ func (p *processComponentsHolder) AccountsParser() genesis.AccountsParser {
 // ReceiptsRepository returns the receipts repository
 func (p *processComponentsHolder) ReceiptsRepository() factory.ReceiptsRepository {
 	return p.receiptsRepository
+}
+
+func (p *processComponentsHolder) IncomingHeaderHandler() process.IncomingHeaderSubscriber {
+	return p.incomingHeaderHandler
 }
 
 // Close will call the Close methods on all inner components

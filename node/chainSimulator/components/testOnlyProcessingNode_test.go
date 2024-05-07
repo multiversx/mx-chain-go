@@ -494,6 +494,7 @@ func TestTestOnlyProcessingNode_Getters(t *testing.T) {
 	require.Nil(t, node.GetStateComponents())
 	require.Nil(t, node.GetFacadeHandler())
 	require.Nil(t, node.GetStatusCoreComponents())
+	require.Nil(t, node.GetIncomingHeaderHandler())
 
 	node, err := NewTestOnlyProcessingNode(createMockArgsTestOnlyProcessingNode(t))
 	require.Nil(t, err)
@@ -507,4 +508,5 @@ func TestTestOnlyProcessingNode_Getters(t *testing.T) {
 	require.NotNil(t, node.GetStateComponents())
 	require.NotNil(t, node.GetFacadeHandler())
 	require.NotNil(t, node.GetStatusCoreComponents())
+	require.NotNil(t, node.GetIncomingHeaderHandler())
 }
