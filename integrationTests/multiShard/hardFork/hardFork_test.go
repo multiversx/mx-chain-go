@@ -404,6 +404,12 @@ func hardForkImport(
 			return integrationTests.MinTransactionVersion
 		}
 
+		coreArgs := componentsMock.GetCoreArgs()
+		coreArgs.NodesFilename = "../../../factory/mock/testdata/nodesSetupMock.json"
+		coreComp := componentsMock.GetNewCoreComponents(coreArgs)
+		cryptoComp := componentsMock.GetCryptoComponents(coreComp)
+		runTypeComponents := componentsMock.GetRunTypeComponents(coreComp, cryptoComp)
+
 		dataComponents := integrationTests.GetDefaultDataComponents()
 		dataComponents.Store = node.Storage
 		dataComponents.DataPool = node.DataPool
@@ -503,7 +509,7 @@ func hardForkImport(
 			HeaderVersionConfigs:    testscommon.GetDefaultHeaderVersionConfig(),
 			HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 			TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
-			RunTypeComponents:       componentsMock.GetRunTypeComponents(),
+			RunTypeComponents:       runTypeComponents,
 		}
 
 		genesisProcessor, err := process.NewGenesisBlockCreator(argsGenesis)
