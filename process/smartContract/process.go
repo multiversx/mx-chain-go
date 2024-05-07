@@ -18,6 +18,10 @@ import (
 	vmData "github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
@@ -25,9 +29,6 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/vm"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 )
 
 var _ process.SmartContractResultProcessor = (*scProcessor)(nil)
@@ -1502,7 +1503,7 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(
 	sc.txFeeHandler.ProcessTransactionFee(consumedFee, big.NewInt(0), txHash)
 
 	if sc.enableEpochsHandler.IsFlagEnabled(common.OptimizeNFTStoreFlag) {
-		err = sc.blockChainHook.SaveNFTMetaDataToSystemAccount(tx)
+		err = sc.blockChainHook.SaveNFTMetaData(tx)
 		if err != nil {
 			return err
 		}

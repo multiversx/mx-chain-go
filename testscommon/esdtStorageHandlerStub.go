@@ -64,7 +64,7 @@ func (e *EsdtStorageHandlerStub) WasAlreadySentToDestinationShardAndUpdateState(
 	return false, nil
 }
 
-// SaveNFTMetaDataToSystemAccount -
+// SaveNFTMetaData -
 func (e *EsdtStorageHandlerStub) SaveNFTMetaData(tx data.TransactionHandler) error {
 	if e.SaveNFTMetaDataCalled != nil {
 		return e.SaveNFTMetaDataCalled(tx)

@@ -22,7 +22,7 @@ func (s *SimpleNFTStorageHandlerStub) GetESDTNFTTokenOnDestination(accnt vmcommo
 	return &esdt.ESDigitalToken{Value: big.NewInt(0)}, true, nil
 }
 
-// SaveNFTMetaDataToSystemAccount -
+// SaveNFTMetaData -
 func (s *SimpleNFTStorageHandlerStub) SaveNFTMetaData(tx data.TransactionHandler) error {
 	if s.SaveNFTMetaDataCalled != nil {
 		return s.SaveNFTMetaDataCalled(tx)

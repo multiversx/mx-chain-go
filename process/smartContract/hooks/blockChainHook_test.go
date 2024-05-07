@@ -1043,7 +1043,7 @@ func TestBlockChainHookImpl_GettersFromCurrentHeader(t *testing.T) {
 	assert.Equal(t, randSeed, bh.CurrentRandomSeed())
 }
 
-func TestBlockChainHookImpl_SaveNFTMetaDataToSystemAccount(t *testing.T) {
+func TestBlockChainHookImpl_SaveNFTMetaData(t *testing.T) {
 	t.Parallel()
 
 	expectedTx := &transaction.Transaction{Nonce: 1}

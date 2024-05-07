@@ -3,9 +3,10 @@ package testscommon
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // BlockChainHookStub -
@@ -42,7 +43,7 @@ type BlockChainHookStub struct {
 	RevertToSnapshotCalled                  func(snapshot int) error
 	SetCurrentHeaderCalled                  func(hdr data.HeaderHandler)
 	DeleteCompiledCodeCalled                func(codeHash []byte)
-	SaveNFTMetaDataToSystemAccountCalled    func(tx data.TransactionHandler) error
+	SaveNFTMetaDataCalled                   func(tx data.TransactionHandler) error
 	CloseCalled                             func() error
 	FilterCodeMetadataForUpgradeCalled      func(input []byte) ([]byte, error)
 	ApplyFiltersOnCodeMetadataCalled        func(codeMetadata vmcommon.CodeMetadata) vmcommon.CodeMetadata
@@ -209,10 +210,10 @@ func (stub *BlockChainHookStub) ProcessBuiltInFunction(input *vmcommon.ContractC
 	return &vmcommon.VMOutput{ReturnCode: vmcommon.Ok}, nil
 }
 
-// SaveNFTMetaDataToSystemAccount -
-func (stub *BlockChainHookStub) SaveNFTMetaDataToSystemAccount(tx data.TransactionHandler) error {
-	if stub.SaveNFTMetaDataToSystemAccountCalled != nil {
-		return stub.SaveNFTMetaDataToSystemAccountCalled(tx)
+// SaveNFTMetaData -
+func (stub *BlockChainHookStub) SaveNFTMetaData(tx data.TransactionHandler) error {
+	if stub.SaveNFTMetaDataCalled != nil {
+		return stub.SaveNFTMetaDataCalled(tx)
 	}
 
 	return nil
