@@ -268,7 +268,7 @@ func createProcessComponentsFactoryArgs(runTypeComponents *mainFactoryMocks.RunT
 		IncomingHeaderSubscriber: &sovereign.IncomingHeaderSubscriberStub{},
 	}
 
-	args.State = components.GetStateComponents(args.CoreData, args.StatusCoreComponents)
+	args.State = createStateComponents()
 	runTypeComponents.AccountParser = &mock.AccountsParserStub{
 		GenerateInitialTransactionsCalled: func(shardCoordinator sharding.Coordinator, initialIndexingData map[uint32]*genesis.IndexingData) ([]*dataBlock.MiniBlock, map[uint32]*outportCore.TransactionPool, error) {
 			return []*dataBlock.MiniBlock{
@@ -281,6 +281,48 @@ func createProcessComponentsFactoryArgs(runTypeComponents *mainFactoryMocks.RunT
 	}
 	args.RunTypeComponents = runTypeComponents
 	return args
+}
+
+func createProcessFactoryArgs(t *testing.T, shardCoordinator sharding.Coordinator) processComp.ProcessComponentsFactoryArgs {
+	coreComp := components.GetCoreComponents()
+	statusCoreComp := components.GetStatusCoreComponents(coreComp)
+	cryptoComp := components.GetCryptoComponents(coreComp)
+	networkComp := components.GetNetworkComponents(cryptoComp)
+	runTypeComp := components.GetRunTypeComponents(coreComp, cryptoComp)
+	bootstrapComp := components.GetBootstrapComponents(statusCoreComp, coreComp, cryptoComp, networkComp, runTypeComp)
+	components.SetShardCoordinator(t, bootstrapComp, shardCoordinator)
+	dataComp := components.GetDataComponents(statusCoreComp, coreComp, bootstrapComp, cryptoComp, runTypeComp)
+	stateComp := components.GetStateComponents(coreComp, dataComp, statusCoreComp, runTypeComp)
+	statusComp := components.GetStatusComponents(statusCoreComp, coreComp, networkComp, bootstrapComp, stateComp, &shardingMocks.NodesCoordinatorMock{}, cryptoComp)
+
+	return components.GetProcessFactoryArgs(runTypeComp, coreComp, cryptoComp, networkComp, bootstrapComp, stateComp, dataComp, statusComp, statusCoreComp)
+}
+
+func createSovereignProcessFactoryArgs(t *testing.T, shardCoordinator sharding.Coordinator) processComp.ProcessComponentsFactoryArgs {
+	coreComp := components.GetSovereignCoreComponents()
+	statusCoreComp := components.GetStatusCoreComponents(coreComp)
+	cryptoComp := components.GetCryptoComponents(coreComp)
+	networkComp := components.GetNetworkComponents(cryptoComp)
+	runTypeComp := components.GetSovereignRunTypeComponents(coreComp, cryptoComp)
+	bootstrapComp := components.GetBootstrapComponents(statusCoreComp, coreComp, cryptoComp, networkComp, runTypeComp)
+	components.SetShardCoordinator(t, bootstrapComp, shardCoordinator)
+	dataComp := components.GetDataComponents(statusCoreComp, coreComp, bootstrapComp, cryptoComp, runTypeComp)
+	stateComp := components.GetStateComponents(coreComp, dataComp, statusCoreComp, runTypeComp)
+	statusComp := components.GetStatusComponents(statusCoreComp, coreComp, networkComp, bootstrapComp, stateComp, &shardingMocks.NodesCoordinatorMock{}, cryptoComp)
+
+	return components.GetProcessFactoryArgs(runTypeComp, coreComp, cryptoComp, networkComp, bootstrapComp, stateComp, dataComp, statusComp, statusCoreComp)
+}
+
+func createStateComponents() runType.StateComponentsHolder {
+	coreComp := components.GetCoreComponents()
+	statusCoreComp := components.GetStatusCoreComponents(coreComp)
+	cryptoComp := components.GetCryptoComponents(coreComp)
+	networkComp := components.GetNetworkComponents(cryptoComp)
+	runTypeComp := components.GetRunTypeComponents(coreComp, cryptoComp)
+	bootstrapComp := components.GetBootstrapComponents(statusCoreComp, coreComp, cryptoComp, networkComp, runTypeComp)
+	dataComp := components.GetDataComponents(statusCoreComp, coreComp, bootstrapComp, cryptoComp, runTypeComp)
+
+	return components.GetStateComponents(coreComp, dataComp, statusCoreComp, runTypeComp)
 }
 
 func TestNewProcessComponentsFactory(t *testing.T) {
@@ -958,11 +1000,15 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 }
 
 func getRunTypeComponentsMock() *mainFactoryMocks.RunTypeComponentsStub {
-	return getRunTypeComponents(components.GetRunTypeComponents())
+	coreComp := components.GetCoreComponents()
+	cryptoComp := components.GetCryptoComponents(coreComp)
+	return getRunTypeComponents(components.GetRunTypeComponents(coreComp, cryptoComp))
 }
 
 func getSovereignRunTypeComponentsMock() *mainFactoryMocks.RunTypeComponentsStub {
-	return getRunTypeComponents(components.GetSovereignRunTypeComponents())
+	coreComp := components.GetSovereignCoreComponents()
+	cryptoComp := components.GetCryptoComponents(coreComp)
+	return getRunTypeComponents(components.GetSovereignRunTypeComponents(coreComp, cryptoComp))
 }
 
 func getRunTypeComponents(rt runType.RunTypeComponentsHolder) *mainFactoryMocks.RunTypeComponentsStub {
@@ -1386,7 +1432,7 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 	})
 	t.Run("should work - shard", func(t *testing.T) {
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-		processArgs := components.GetProcessComponentsFactoryArgs(shardCoordinator)
+		processArgs := createProcessFactoryArgs(t, shardCoordinator)
 		pcf, _ := processComp.NewProcessComponentsFactory(processArgs)
 		require.NotNil(t, pcf)
 
@@ -1401,8 +1447,7 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 	t.Run("should work - meta", func(t *testing.T) {
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
 		shardCoordinator.CurrentShard = common.MetachainShardId
-		processArgs := components.GetProcessComponentsFactoryArgs(shardCoordinator)
-
+		processArgs := createProcessFactoryArgs(t, shardCoordinator)
 		shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
 			protocolSustainabilityAddr, err := processArgs.CoreData.AddressPubKeyConverter().Decode(testingProtocolSustainabilityAddress)
 			require.NoError(t, err)
@@ -1411,8 +1456,8 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 			}
 			return shardCoordinator.CurrentShard
 		}
-		fundGenesisWallets(t, processArgs)
 
+		fundGenesisWallets(t, processArgs)
 		pcf, _ := processComp.NewProcessComponentsFactory(processArgs)
 		require.NotNil(t, pcf)
 
@@ -1467,7 +1512,7 @@ func TestProcessComponentsFactory_CreateShouldWork(t *testing.T) {
 		t.Parallel()
 
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-		processArgs := components.GetProcessComponentsFactoryArgs(shardCoordinator)
+		processArgs := createProcessFactoryArgs(t, shardCoordinator)
 		pcf, _ := processComp.NewProcessComponentsFactory(processArgs)
 
 		require.NotNil(t, pcf)
@@ -1482,7 +1527,7 @@ func TestProcessComponentsFactory_CreateShouldWork(t *testing.T) {
 		t.Parallel()
 
 		shardCoordinator := sharding.NewSovereignShardCoordinator(core.SovereignChainShardId)
-		processArgs := components.GetSovereignProcessComponentsFactoryArgs(shardCoordinator)
+		processArgs := createSovereignProcessFactoryArgs(t, shardCoordinator)
 		pcf, _ := processComp.NewProcessComponentsFactory(processArgs)
 
 		require.NotNil(t, pcf)

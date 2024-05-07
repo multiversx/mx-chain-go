@@ -17,12 +17,12 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
 	processComp "github.com/multiversx/mx-chain-go/genesis/process"
-	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
+	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/processorV2"
@@ -42,7 +42,6 @@ type ArgsSovereignRunTypeComponents struct {
 	Config                   config.SovereignConfig
 	DataCodec                sovereign.DataCodecHandler
 	TopicsChecker            sovereign.TopicsCheckerHandler
-	ExtraVerifier            process.ExtraHeaderSigVerifierHandler
 }
 
 type sovereignRunTypeComponentsFactory struct {
@@ -50,7 +49,6 @@ type sovereignRunTypeComponentsFactory struct {
 	sovConfig     config.SovereignConfig
 	dataCodec     sovereign.DataCodecHandler
 	topicsChecker sovereign.TopicsCheckerHandler
-	extraVerifier process.ExtraHeaderSigVerifierHandler
 }
 
 // NewSovereignRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
@@ -64,16 +62,12 @@ func NewSovereignRunTypeComponentsFactory(args ArgsSovereignRunTypeComponents) (
 	if check.IfNil(args.TopicsChecker) {
 		return nil, errors.ErrNilTopicsChecker
 	}
-	if check.IfNil(args.ExtraVerifier) {
-		return nil, errors.ErrNilExtraSubRoundSigner
-	}
 
 	return &sovereignRunTypeComponentsFactory{
 		runTypeComponentsFactory: args.RunTypeComponentsFactory,
 		sovConfig:                args.Config,
 		dataCodec:                args.DataCodec,
 		topicsChecker:            args.TopicsChecker,
-		extraVerifier:            args.ExtraVerifier,
 	}, nil
 }
 
@@ -212,7 +206,11 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 
 	expiryTime := time.Second * time.Duration(rcf.sovConfig.OutgoingSubscribedEvents.TimeToWaitForUnconfirmedOutGoingOperationInSeconds)
 
-	err = rtc.extraHeaderSigVerifierHandler.RegisterExtraHeaderSigVerifier(rcf.extraVerifier)
+	sovHeaderSigVerifier, err := headerCheck.NewSovereignHeaderSigVerifier(rcf.cryptoComponents.BlockSigner())
+	if err != nil {
+		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignHeaderSigVerifier failed: %w", err)
+	}
+	err = rtc.extraHeaderSigVerifierHandler.RegisterExtraHeaderSigVerifier(sovHeaderSigVerifier)
 	if err != nil {
 		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - RegisterExtraHeaderSigVerifier failed: %w", err)
 	}
