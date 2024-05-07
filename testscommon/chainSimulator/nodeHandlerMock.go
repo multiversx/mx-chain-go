@@ -116,6 +116,7 @@ func (mock *NodeHandlerMock) SetStateForAddress(address []byte, state *dtos.Addr
 	return nil
 }
 
+// GetIncomingHeaderHandler -
 func (mock *NodeHandlerMock) GetIncomingHeaderHandler() process.IncomingHeaderSubscriber {
 	if mock.GetIncomingHeaderHandlerCalled != nil {
 		return mock.GetIncomingHeaderHandler()

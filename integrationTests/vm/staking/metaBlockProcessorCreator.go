@@ -3,9 +3,6 @@ package staking
 import (
 	"math/big"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/metachain"
@@ -29,6 +26,10 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 )
 
 func createMetaBlockProcessor(
@@ -72,6 +73,12 @@ func createMetaBlockProcessor(
 	valInfoCreator := createValidatorInfoCreator(coreComponents, dataComponents, bootstrapComponents.ShardCoordinator())
 	stakingToPeer := createSCToProtocol(coreComponents, stateComponents, dataComponents.Datapool().CurrentBlockTxs())
 
+	coreArgs := components.GetCoreArgs()
+	coreArgs.NodesFilename = "../../../factory/mock/testdata/nodesSetupMock.json"
+	coreComp := components.GetNewCoreComponents(coreArgs)
+	cryptoComp := components.GetCryptoComponents(coreComp)
+	runTypeComponents := components.GetRunTypeComponents(coreComp, cryptoComp)
+
 	args := blproc.ArgMetaProcessor{
 		ArgBaseProcessor: blproc.ArgBaseProcessor{
 			CoreComponents:      coreComponents,
@@ -105,7 +112,7 @@ func createMetaBlockProcessor(
 			ManagedPeersHolder:             &testscommon.ManagedPeersHolderStub{},
 			BlockProcessingCutoffHandler:   &testscommon.BlockProcessingCutoffStub{},
 			SentSignaturesTracker:          &testscommon.SentSignatureTrackerStub{},
-			RunTypeComponents:              components.GetRunTypeComponents(),
+			RunTypeComponents:              runTypeComponents,
 		},
 		SCToProtocol:             stakingToPeer,
 		PendingMiniBlocksHandler: &mock.PendingMiniBlocksHandlerStub{},

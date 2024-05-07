@@ -3,44 +3,36 @@ package components
 import (
 	"testing"
 
-	"github.com/multiversx/mx-chain-go/common"
 	disabledStatistics "github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
-	"github.com/multiversx/mx-chain-go/consensus"
-	factoryErrors "github.com/multiversx/mx-chain-go/factory"
-	integrationTestsMock "github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
-	"github.com/multiversx/mx-chain-go/sharding"
-	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/statusHandler/persister"
-	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/components"
-	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
-	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
-	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
-	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
-	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-	updateMocks "github.com/multiversx/mx-chain-go/update/mock"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
-	"github.com/multiversx/mx-chain-core-go/hashing"
-	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/stretchr/testify/require"
 )
 
 func createArgsDataComponentsHolder() ArgsDataComponentsHolder {
 	generalCfg := testscommon.GetGeneralConfig()
 	persistentStatusHandler, _ := persister.NewPersistentStatus(&testscommon.MarshallerStub{}, &mock.Uint64ByteSliceConverterMock{})
+	coreComp := createCoreComponents()
+	coreComp.EconomicsDataCalled = func() process.EconomicsDataHandler {
+		return &economicsmocks.EconomicsHandlerMock{
+			MinGasPriceCalled: func() uint64 {
+				return 1000000
+			},
+		}
+	}
+	cryptoComp := createCryptoComponents()
+
 	return ArgsDataComponentsHolder{
 		Configs: config.Configs{
 			GeneralConfig:     &generalCfg,
@@ -48,63 +40,7 @@ func createArgsDataComponentsHolder() ArgsDataComponentsHolder {
 			PreferencesConfig: &config.Preferences{},
 			FlagsConfig:       &config.ContextFlagsConfig{},
 		},
-		CoreComponents: &factory.CoreComponentsHolderMock{
-			ChainIDCalled: func() string {
-				return "T"
-			},
-			GenesisNodesSetupCalled: func() sharding.GenesisNodesSetupHandler {
-				return &genesisMocks.NodesSetupStub{}
-			},
-			InternalMarshalizerCalled: func() marshal.Marshalizer {
-				return &testscommon.MarshallerStub{}
-			},
-			EpochNotifierCalled: func() process.EpochNotifier {
-				return &epochNotifier.EpochNotifierStub{}
-			},
-			EconomicsDataCalled: func() process.EconomicsDataHandler {
-				return &economicsmocks.EconomicsHandlerMock{
-					MinGasPriceCalled: func() uint64 {
-						return 1000000
-					},
-				}
-			},
-			EpochStartNotifierWithConfirmCalled: func() factoryErrors.EpochStartNotifierWithConfirm {
-				return &updateMocks.EpochStartNotifierStub{}
-			},
-			RaterCalled: func() sharding.PeerAccountListAndRatingHandler {
-				return &testscommon.RaterMock{}
-			},
-			NodesShufflerCalled: func() nodesCoordinator.NodesShuffler {
-				return &shardingMocks.NodeShufflerMock{}
-			},
-			RoundHandlerCalled: func() consensus.RoundHandler {
-				return &testscommon.RoundHandlerMock{}
-			},
-			HasherCalled: func() hashing.Hasher {
-				return &testscommon.HasherStub{}
-			},
-			PathHandlerCalled: func() storage.PathManagerHandler {
-				return &testscommon.PathManagerStub{}
-			},
-			TxMarshalizerCalled: func() marshal.Marshalizer {
-				return &testscommon.MarshallerStub{}
-			},
-			AddressPubKeyConverterCalled: func() core.PubkeyConverter {
-				return &testscommon.PubkeyConverterStub{}
-			},
-			Uint64ByteSliceConverterCalled: func() typeConverters.Uint64ByteSliceConverter {
-				return &mock.Uint64ByteSliceConverterMock{}
-			},
-			TxSignHasherCalled: func() hashing.Hasher {
-				return &testscommon.HasherStub{}
-			},
-			EnableEpochsHandlerCalled: func() common.EnableEpochsHandler {
-				return &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
-			},
-			NodeTypeProviderCalled: func() core.NodeTypeProviderHandler {
-				return &nodeTypeProviderMock.NodeTypeProviderStub{}
-			},
-		},
+		CoreComponents: coreComp,
 		StatusCoreComponents: &factory.StatusCoreComponentsStub{
 			AppStatusHandlerField:        &statusHandler.AppStatusHandlerStub{},
 			StateStatsHandlerField:       disabledStatistics.NewStateStatistics(),
@@ -117,15 +53,8 @@ func createArgsDataComponentsHolder() ArgsDataComponentsHolder {
 			GuardedAccountHandlerField: &guardianMocks.GuardedAccountHandlerStub{},
 			VersionedHdrFactory:        &testscommon.VersionedHeaderFactoryStub{},
 		},
-		CryptoComponents: &integrationTestsMock.CryptoComponentsStub{
-			PubKey:                  &integrationTestsMock.PublicKeyMock{},
-			BlockSig:                &cryptoMocks.SingleSignerStub{},
-			BlKeyGen:                &cryptoMocks.KeyGenStub{},
-			TxSig:                   &cryptoMocks.SingleSignerStub{},
-			TxKeyGen:                &cryptoMocks.KeyGenStub{},
-			ManagedPeersHolderField: &testscommon.ManagedPeersHolderStub{},
-		},
-		RunTypeComponents: components.GetRunTypeComponents(),
+		CryptoComponents:  cryptoComp,
+		RunTypeComponents: components.GetRunTypeComponents(coreComp, cryptoComp),
 	}
 }
 

@@ -117,6 +117,11 @@ func GetCoreComponents() factory.CoreComponentsHolder {
 	return createCoreComponents(coreArgs)
 }
 
+// GetNewCoreComponents -
+func GetNewCoreComponents(args coreComp.CoreComponentsFactoryArgs) factory.CoreComponentsHolder {
+	return createCoreComponents(args)
+}
+
 // GetSovereignCoreComponents -
 func GetSovereignCoreComponents() factory.CoreComponentsHolder {
 	coreArgs := GetCoreArgs()

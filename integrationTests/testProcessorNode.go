@@ -516,7 +516,7 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 
 	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
 
-	args.RunTypeComponents = components.GetRunTypeComponents(
+	rtc := components.GetRunTypeComponents(
 		&mock.CoreComponentsStub{
 			HasherField:                 TestHasher,
 			InternalMarshalizerField:    TestMarshalizer,
@@ -525,6 +525,9 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 		},
 		GetDefaultCryptoComponents(),
 	)
+	runTypeComponents := components.GetRunTypeComponentsStub(rtc)
+	runTypeComponents.AccountParser = &genesisMocks.AccountsParserStub{}
+	args.RunTypeComponents = runTypeComponents
 
 	tpn := &TestProcessorNode{
 		ShardCoordinator:           shardCoordinator,

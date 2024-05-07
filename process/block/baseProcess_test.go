@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
+	runType "github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/process"
 	blproc "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -130,8 +131,16 @@ func createArgBaseProcessor(
 		BlockProcessingCutoffHandler:   &testscommon.BlockProcessingCutoffStub{},
 		ManagedPeersHolder:             &testscommon.ManagedPeersHolderStub{},
 		SentSignaturesTracker:          &testscommon.SentSignatureTrackerStub{},
-		RunTypeComponents:              components.GetRunTypeComponents(),
+		RunTypeComponents:              createRunTypeComponents(),
 	}
+}
+
+func createRunTypeComponents() runType.RunTypeComponentsHolder {
+	coreArgs := components.GetCoreArgs()
+	coreArgs.NodesFilename = "../../factory/mock/testdata/nodesSetupMock.json"
+	coreComp := components.GetNewCoreComponents(coreArgs)
+	cryptoComp := components.GetCryptoComponents(coreComp)
+	return components.GetRunTypeComponents(coreComp, cryptoComp)
 }
 
 func createTestBlockchain() *testscommon.ChainHandlerStub {

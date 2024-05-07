@@ -1,6 +1,8 @@
 package mock
 
 import (
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext"
@@ -11,7 +13,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/update"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // ProcessComponentsStub -
@@ -60,6 +61,7 @@ type ProcessComponentsStub struct {
 	ReceiptsRepositoryInternal           factory.ReceiptsRepository
 	ESDTDataStorageHandlerForAPIInternal vmcommon.ESDTNFTStorageHandler
 	SentSignaturesTrackerInternal        process.SentSignaturesTracker
+	IncomingHeadersHandler               process.IncomingHeaderSubscriber
 }
 
 // Create -
@@ -294,6 +296,11 @@ func (pcs *ProcessComponentsStub) ESDTDataStorageHandlerForAPI() vmcommon.ESDTNF
 // SentSignaturesTracker -
 func (pcs *ProcessComponentsStub) SentSignaturesTracker() process.SentSignaturesTracker {
 	return pcs.SentSignaturesTrackerInternal
+}
+
+// IncomingHeaderHandler -
+func (pcs *ProcessComponentsStub) IncomingHeaderHandler() process.IncomingHeaderSubscriber {
+	return pcs.IncomingHeadersHandler
 }
 
 // IsInterfaceNil -

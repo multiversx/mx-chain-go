@@ -1591,14 +1591,9 @@ func (snr *sovereignNodeRunner) CreateManagedCryptoComponents(
 	return managedCryptoComponents, nil
 }
 
-// CreateArgsRunTypeComponents - creates the arguments for runType components
-func (snr *sovereignNodeRunner) CreateArgsRunTypeComponents(coreComponents mainFactory.CoreComponentsHandler, cryptoComponents mainFactory.CryptoComponentsHandler) (*runType.ArgsRunTypeComponents, error) {
-	return runType.CreateArgsRunTypeComponents(coreComponents, cryptoComponents, *snr.configs.Configs)
-}
-
 // CreateSovereignArgsRunTypeComponents creates the arguments for sovereign runType components
 func (snr *sovereignNodeRunner) CreateSovereignArgsRunTypeComponents(coreComponents mainFactory.CoreComponentsHandler, cryptoComponents mainFactory.CryptoComponentsHandler) (*runType.ArgsSovereignRunTypeComponents, error) {
-	args, err := snr.CreateArgsRunTypeComponents(coreComponents, cryptoComponents)
+	args, err := runType.CreateArgsRunTypeComponents(coreComponents, cryptoComponents, *snr.configs.Configs)
 	if err != nil {
 		return nil, err
 	}
