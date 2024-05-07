@@ -21,7 +21,6 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/multiversx/mx-chain-go/testscommon/components"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -158,7 +157,7 @@ func createMockMetaArguments(
 			ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
 			SentSignaturesTracker:        &testscommon.SentSignatureTrackerStub{},
 			ValidatorStatisticsProcessor: &testscommon.ValidatorStatisticsProcessorStub{},
-			RunTypeComponents:            components.GetRunTypeComponents(),
+			RunTypeComponents:            createRunTypeComponents(),
 		},
 		SCToProtocol:                 &mock.SCToProtocolStub{},
 		PendingMiniBlocksHandler:     &mock.PendingMiniBlocksHandlerStub{},

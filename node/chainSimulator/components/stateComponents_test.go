@@ -19,16 +19,17 @@ import (
 )
 
 func createArgsStateComponents() ArgsStateComponents {
+	coreComp := &mockFactory.CoreComponentsMock{
+		IntMarsh:                     &testscommon.MarshallerStub{},
+		Hash:                         &testscommon.HasherStub{},
+		PathHdl:                      &testscommon.PathManagerStub{},
+		ProcessStatusHandlerInternal: &testscommon.ProcessStatusHandlerStub{},
+		EnableEpochsHandlerField:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		AddrPubKeyConv:               &testscommon.PubkeyConverterStub{},
+	}
 	return ArgsStateComponents{
-		Config: testscommon.GetGeneralConfig(),
-		CoreComponents: &mockFactory.CoreComponentsMock{
-			IntMarsh:                     &testscommon.MarshallerStub{},
-			Hash:                         &testscommon.HasherStub{},
-			PathHdl:                      &testscommon.PathManagerStub{},
-			ProcessStatusHandlerInternal: &testscommon.ProcessStatusHandlerStub{},
-			EnableEpochsHandlerField:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-			AddrPubKeyConv:               &testscommon.PubkeyConverterStub{},
-		},
+		Config:         testscommon.GetGeneralConfig(),
+		CoreComponents: coreComp,
 		StatusCore: &factory.StatusCoreComponentsStub{
 			AppStatusHandlerField:  &statusHandler.AppStatusHandlerStub{},
 			StateStatsHandlerField: disabledStatistics.NewStateStatistics(),
@@ -46,7 +47,7 @@ func createArgsStateComponents() ArgsStateComponents {
 			MbProvider: &mock.MiniBlocksProviderStub{},
 			Store:      genericMocks.NewChainStorerMock(0),
 		},
-		RunTypeComponents: components.GetRunTypeComponents(),
+		RunTypeComponents: components.GetRunTypeComponents(coreComp, createCryptoComponents()),
 	}
 }
 
