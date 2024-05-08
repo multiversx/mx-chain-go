@@ -26,6 +26,7 @@ type NodeStub struct {
 	ValidateTransactionForSimulationCalled         func(tx *transaction.Transaction, bypassSignature bool) error
 	SendBulkTransactionsHandler                    func(txs []*transaction.Transaction) (uint64, error)
 	GetAccountCalled                               func(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error)
+	GetAccountWithKeysCalled                       func(address string, options api.AccountQueryOptions, ctx context.Context) (api.AccountResponse, api.BlockInfo, error)
 	GetCodeCalled                                  func(codeHash []byte, options api.AccountQueryOptions) ([]byte, api.BlockInfo)
 	GetCurrentPublicKeyHandler                     func() string
 	GenerateAndSendBulkTransactionsHandler         func(destination string, value *big.Int, nrTransactions uint64) error
@@ -184,6 +185,15 @@ func (ns *NodeStub) SendBulkTransactions(txs []*transaction.Transaction) (uint64
 func (ns *NodeStub) GetAccount(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
 	if ns.GetAccountCalled != nil {
 		return ns.GetAccountCalled(address, options)
+	}
+
+	return api.AccountResponse{}, api.BlockInfo{}, nil
+}
+
+// GetAccountWithKeys -
+func (ns *NodeStub) GetAccountWithKeys(address string, options api.AccountQueryOptions, ctx context.Context) (api.AccountResponse, api.BlockInfo, error) {
+	if ns.GetAccountWithKeysCalled != nil {
+		return ns.GetAccountWithKeysCalled(address, options, ctx)
 	}
 
 	return api.AccountResponse{}, api.BlockInfo{}, nil
