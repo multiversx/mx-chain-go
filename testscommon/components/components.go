@@ -86,7 +86,7 @@ func GetCoreArgs() coreComp.CoreComponentsFactoryArgs {
 		},
 		RatingsConfig:       CreateDummyRatingsConfig(),
 		EconomicsConfig:     CreateDummyEconomicsConfig(),
-		NodesFilename:       "../mock/testdata/nodesSetupMock.json",
+		NodesFilename:       "../../factory/mock/testdata/nodesSetupMock.json",
 		WorkingDirectory:    "home",
 		ChanStopNodeProcess: make(chan endProcess.ArgEndProcess),
 		EpochConfig: config.EpochConfig{
