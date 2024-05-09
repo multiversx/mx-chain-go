@@ -114,9 +114,9 @@ func (s *simulator) createChainHandlers(args ArgsChainSimulator) error {
 		return err
 	}
 
-	for idx := 0; idx < int(args.NumOfShards)+1; idx++ {
+	for idx := -1; idx < int(args.NumOfShards); idx++ {
 		shardIDStr := fmt.Sprintf("%d", idx)
-		if idx == int(args.NumOfShards) {
+		if idx == -1 {
 			shardIDStr = "metachain"
 		}
 
