@@ -73,7 +73,7 @@ func createMetaBlockProcessor(
 	valInfoCreator := createValidatorInfoCreator(coreComponents, dataComponents, bootstrapComponents.ShardCoordinator())
 	stakingToPeer := createSCToProtocol(coreComponents, stateComponents, dataComponents.Datapool().CurrentBlockTxs())
 
-	coreArgs := components.GetCoreArgs()
+	coreArgs := components.GetCoreArgs(testscommon.GetGeneralConfig())
 	coreArgs.NodesFilename = "../../../factory/mock/testdata/nodesSetupMock.json"
 	coreComp := components.GetNewCoreComponents(coreArgs)
 	cryptoComp := components.GetCryptoComponents(coreComp)

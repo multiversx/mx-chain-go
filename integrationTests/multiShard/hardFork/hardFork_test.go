@@ -404,7 +404,7 @@ func hardForkImport(
 			return integrationTests.MinTransactionVersion
 		}
 
-		coreArgs := componentsMock.GetCoreArgs()
+		coreArgs := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig())
 		coreArgs.NodesFilename = "../../../factory/mock/testdata/nodesSetupMock.json"
 		coreComp := componentsMock.GetNewCoreComponents(coreArgs)
 		cryptoComp := componentsMock.GetCryptoComponents(coreComp)

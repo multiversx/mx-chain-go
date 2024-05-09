@@ -3306,7 +3306,7 @@ func CreateEnableEpochsConfig() config.EnableEpochs {
 
 // GetDefaultRunTypeComponents -
 func GetDefaultRunTypeComponents(consensusModel consensus.ConsensusModel) *mainFactoryMocks.RunTypeComponentsStub {
-	coreComp := components.GetCoreComponents()
+	coreComp := components.GetCoreComponents(testscommon.GetGeneralConfig())
 	cryptoComp := components.GetCryptoComponents(coreComp)
 	rt := components.GetRunTypeComponents(coreComp, cryptoComp)
 	return &mainFactoryMocks.RunTypeComponentsStub{

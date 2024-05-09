@@ -68,16 +68,17 @@ func createMockStatusComponentsFactoryArgs() statusComp.StatusComponentsFactoryA
 }
 
 func createStatusFactoryArgs() statusComp.StatusComponentsFactoryArgs {
-	coreComp := componentsMock.GetCoreComponents()
-	statusCoreComp := componentsMock.GetStatusCoreComponents(coreComp)
+	cfg := testscommon.GetGeneralConfig()
+	coreComp := componentsMock.GetCoreComponents(cfg)
+	statusCoreComp := componentsMock.GetStatusCoreComponents(cfg, coreComp)
 	cryptoComp := componentsMock.GetCryptoComponents(coreComp)
 	networkComp := componentsMock.GetNetworkComponents(cryptoComp)
 	runTypeComp := componentsMock.GetRunTypeComponents(coreComp, cryptoComp)
-	bootstrapComp := componentsMock.GetBootstrapComponents(statusCoreComp, coreComp, cryptoComp, networkComp, runTypeComp)
-	dataComp := componentsMock.GetDataComponents(statusCoreComp, coreComp, bootstrapComp, cryptoComp, runTypeComp)
-	stateComp := componentsMock.GetStateComponents(coreComp, dataComp, statusCoreComp, runTypeComp)
+	bootstrapComp := componentsMock.GetBootstrapComponents(cfg, statusCoreComp, coreComp, cryptoComp, networkComp, runTypeComp)
+	dataComp := componentsMock.GetDataComponents(cfg, statusCoreComp, coreComp, bootstrapComp, cryptoComp, runTypeComp)
+	stateComp := componentsMock.GetStateComponents(cfg, coreComp, dataComp, statusCoreComp, runTypeComp)
 
-	return componentsMock.GetStatusFactoryArgs(statusCoreComp, coreComp, networkComp, bootstrapComp, stateComp, &shardingMocks.NodesCoordinatorMock{}, cryptoComp)
+	return componentsMock.GetStatusFactoryArgs(cfg, statusCoreComp, coreComp, networkComp, bootstrapComp, stateComp, &shardingMocks.NodesCoordinatorMock{}, cryptoComp)
 }
 
 func TestNewStatusComponentsFactory(t *testing.T) {

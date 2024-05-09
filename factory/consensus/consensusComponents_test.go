@@ -1047,33 +1047,35 @@ func TestConsensusComponentsFactory_Create(t *testing.T) {
 }
 
 func createConsensusFactoryArgs() consensusComp.ConsensusComponentsFactoryArgs {
-	coreComp := componentsMock.GetCoreComponents()
-	statusCoreComp := componentsMock.GetStatusCoreComponents(coreComp)
+	cfg := testscommon.GetGeneralConfig()
+	coreComp := componentsMock.GetCoreComponents(cfg)
+	statusCoreComp := componentsMock.GetStatusCoreComponents(cfg, coreComp)
 	cryptoComp := componentsMock.GetCryptoComponents(coreComp)
 	networkComp := componentsMock.GetNetworkComponents(cryptoComp)
 	runTypeComp := componentsMock.GetRunTypeComponents(coreComp, cryptoComp)
-	bootstrapComp := componentsMock.GetBootstrapComponents(statusCoreComp, coreComp, cryptoComp, networkComp, runTypeComp)
-	dataComp := componentsMock.GetDataComponents(statusCoreComp, coreComp, bootstrapComp, cryptoComp, runTypeComp)
-	stateComp := componentsMock.GetStateComponents(coreComp, dataComp, statusCoreComp, runTypeComp)
-	statusComp := componentsMock.GetStatusComponents(statusCoreComp, coreComp, networkComp, bootstrapComp, stateComp, &shardingMocks.NodesCoordinatorMock{}, cryptoComp)
-	processComp := componentsMock.GetProcessComponents(runTypeComp, coreComp, cryptoComp, networkComp, bootstrapComp, stateComp, dataComp, statusComp, statusCoreComp)
+	bootstrapComp := componentsMock.GetBootstrapComponents(cfg, statusCoreComp, coreComp, cryptoComp, networkComp, runTypeComp)
+	dataComp := componentsMock.GetDataComponents(cfg, statusCoreComp, coreComp, bootstrapComp, cryptoComp, runTypeComp)
+	stateComp := componentsMock.GetStateComponents(cfg, coreComp, dataComp, statusCoreComp, runTypeComp)
+	statusComp := componentsMock.GetStatusComponents(cfg, statusCoreComp, coreComp, networkComp, bootstrapComp, stateComp, &shardingMocks.NodesCoordinatorMock{}, cryptoComp)
+	processComp := componentsMock.GetProcessComponents(cfg, runTypeComp, coreComp, cryptoComp, networkComp, bootstrapComp, stateComp, dataComp, statusComp, statusCoreComp)
 
-	return componentsMock.GetConsensusFactoryArgs(runTypeComp, coreComp, cryptoComp, networkComp, stateComp, dataComp, statusComp, statusCoreComp, processComp)
+	return componentsMock.GetConsensusFactoryArgs(cfg, runTypeComp, coreComp, cryptoComp, networkComp, stateComp, dataComp, statusComp, statusCoreComp, processComp)
 }
 
 func createSovereignConsensusFactoryArgs() consensusComp.ConsensusComponentsFactoryArgs {
-	coreComp := componentsMock.GetSovereignCoreComponents()
-	statusCoreComp := componentsMock.GetStatusCoreComponents(coreComp)
+	cfg := testscommon.GetGeneralConfig()
+	coreComp := componentsMock.GetSovereignCoreComponents(cfg)
+	statusCoreComp := componentsMock.GetStatusCoreComponents(cfg, coreComp)
 	cryptoComp := componentsMock.GetCryptoComponents(coreComp)
 	networkComp := componentsMock.GetNetworkComponents(cryptoComp)
 	runTypeComp := componentsMock.GetSovereignRunTypeComponents(coreComp, cryptoComp)
-	bootstrapComp := componentsMock.GetBootstrapComponents(statusCoreComp, coreComp, cryptoComp, networkComp, runTypeComp)
-	dataComp := componentsMock.GetDataComponents(statusCoreComp, coreComp, bootstrapComp, cryptoComp, runTypeComp)
-	stateComp := componentsMock.GetStateComponents(coreComp, dataComp, statusCoreComp, runTypeComp)
-	statusComp := componentsMock.GetStatusComponents(statusCoreComp, coreComp, networkComp, bootstrapComp, stateComp, &shardingMocks.NodesCoordinatorMock{}, cryptoComp)
-	processComp := componentsMock.GetProcessComponents(runTypeComp, coreComp, cryptoComp, networkComp, bootstrapComp, stateComp, dataComp, statusComp, statusCoreComp)
+	bootstrapComp := componentsMock.GetBootstrapComponents(cfg, statusCoreComp, coreComp, cryptoComp, networkComp, runTypeComp)
+	dataComp := componentsMock.GetDataComponents(cfg, statusCoreComp, coreComp, bootstrapComp, cryptoComp, runTypeComp)
+	stateComp := componentsMock.GetStateComponents(cfg, coreComp, dataComp, statusCoreComp, runTypeComp)
+	statusComp := componentsMock.GetStatusComponents(cfg, statusCoreComp, coreComp, networkComp, bootstrapComp, stateComp, &shardingMocks.NodesCoordinatorMock{}, cryptoComp)
+	processComp := componentsMock.GetProcessComponents(cfg, runTypeComp, coreComp, cryptoComp, networkComp, bootstrapComp, stateComp, dataComp, statusComp, statusCoreComp)
 
-	return componentsMock.GetConsensusFactoryArgs(runTypeComp, coreComp, cryptoComp, networkComp, stateComp, dataComp, statusComp, statusCoreComp, processComp)
+	return componentsMock.GetConsensusFactoryArgs(cfg, runTypeComp, coreComp, cryptoComp, networkComp, stateComp, dataComp, statusComp, statusCoreComp, processComp)
 }
 
 func TestConsensusComponentsFactory_CreateShardStorageAndSyncBootstrapperShouldWork(t *testing.T) {

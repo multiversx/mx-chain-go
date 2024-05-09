@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/process"
 	processFactory "github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
 
@@ -15,7 +16,7 @@ import (
 )
 
 func createRunTypeComponents() runType.RunTypeComponentsHolder {
-	coreComp := componentsMock.GetCoreComponents()
+	coreComp := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig())
 	cryptoComp := componentsMock.GetCryptoComponents(coreComp)
 
 	return componentsMock.GetRunTypeComponents(coreComp, cryptoComp)

@@ -77,22 +77,22 @@ func (fs *failingSteps) reset() {
 }
 
 func createMockArgs(t *testing.T) *api.ApiResolverArgs {
-	coreComponents := componentsMock.GetCoreComponents()
-	statusCoreComponents := componentsMock.GetStatusCoreComponents(coreComponents)
+	cfg := testscommon.GetGeneralConfig()
+	coreComponents := componentsMock.GetCoreComponents(cfg)
+	statusCoreComponents := componentsMock.GetStatusCoreComponents(cfg, coreComponents)
 	cryptoComponents := componentsMock.GetCryptoComponents(coreComponents)
 	networkComponents := componentsMock.GetNetworkComponents(cryptoComponents)
 	runTypeComponents := componentsMock.GetRunTypeComponents(coreComponents, cryptoComponents)
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
-	bootstrapComponents := componentsMock.GetBootstrapComponents(statusCoreComponents, coreComponents, cryptoComponents, networkComponents, runTypeComponents)
+	bootstrapComponents := componentsMock.GetBootstrapComponents(cfg, statusCoreComponents, coreComponents, cryptoComponents, networkComponents, runTypeComponents)
 	componentsMock.SetShardCoordinator(t, bootstrapComponents, shardCoordinator)
-	dataComponents := componentsMock.GetDataComponents(statusCoreComponents, coreComponents, bootstrapComponents, cryptoComponents, runTypeComponents)
-	stateComponents := componentsMock.GetStateComponents(coreComponents, dataComponents, statusCoreComponents, runTypeComponents)
-	statusComponents := componentsMock.GetStatusComponents(statusCoreComponents, coreComponents, networkComponents, bootstrapComponents, stateComponents, &shardingMocks.NodesCoordinatorMock{}, cryptoComponents)
-	processComponents := componentsMock.GetProcessComponents(runTypeComponents, coreComponents, cryptoComponents, networkComponents, bootstrapComponents, stateComponents, dataComponents, statusComponents, statusCoreComponents)
+	dataComponents := componentsMock.GetDataComponents(cfg, statusCoreComponents, coreComponents, bootstrapComponents, cryptoComponents, runTypeComponents)
+	stateComponents := componentsMock.GetStateComponents(cfg, coreComponents, dataComponents, statusCoreComponents, runTypeComponents)
+	statusComponents := componentsMock.GetStatusComponents(cfg, statusCoreComponents, coreComponents, networkComponents, bootstrapComponents, stateComponents, &shardingMocks.NodesCoordinatorMock{}, cryptoComponents)
+	processComponents := componentsMock.GetProcessComponents(cfg, runTypeComponents, coreComponents, cryptoComponents, networkComponents, bootstrapComponents, stateComponents, dataComponents, statusComponents, statusCoreComponents)
 
 	gasSchedule, _ := common.LoadGasScheduleConfig("../../cmd/node/config/gasSchedules/gasScheduleV1.toml")
 	economicsConfig := testscommon.GetEconomicsConfig()
-	cfg := componentsMock.GetGeneralConfig()
 
 	return &api.ApiResolverArgs{
 		Configs: &config.Configs{
@@ -342,7 +342,7 @@ func TestCreateApiResolver(t *testing.T) {
 }
 
 func createMockSCQueryElementArgs(shardId uint32) api.SCQueryElementArgs {
-	coreComp := componentsMock.GetCoreComponents()
+	coreComp := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig())
 	cryptoComp := componentsMock.GetCryptoComponents(coreComp)
 	return api.SCQueryElementArgs{
 		GeneralConfig: &config.Config{
@@ -591,7 +591,7 @@ func TestCreateApiResolver_createArgsSCQueryService(t *testing.T) {
 	t.Run("sovereign chain should add systemVM", func(t *testing.T) {
 		t.Parallel()
 
-		coreComp := componentsMock.GetSovereignCoreComponents()
+		coreComp := componentsMock.GetSovereignCoreComponents(testscommon.GetGeneralConfig())
 		cryptoComp := componentsMock.GetCryptoComponents(coreComp)
 		args := createMockSCQueryElementArgs(0)
 		args.RunTypeComponents = componentsMock.GetSovereignRunTypeComponents(coreComp, cryptoComp)

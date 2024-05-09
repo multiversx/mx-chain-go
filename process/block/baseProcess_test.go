@@ -136,9 +136,7 @@ func createArgBaseProcessor(
 }
 
 func createRunTypeComponents() runType.RunTypeComponentsHolder {
-	coreArgs := components.GetCoreArgs()
-	coreArgs.NodesFilename = "../../factory/mock/testdata/nodesSetupMock.json"
-	coreComp := components.GetNewCoreComponents(coreArgs)
+	coreComp := components.GetCoreComponents(testscommon.GetGeneralConfig())
 	cryptoComp := components.GetCryptoComponents(coreComp)
 	return components.GetRunTypeComponents(coreComp, cryptoComp)
 }

@@ -6,13 +6,15 @@ import (
 
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	networkComp "github.com/multiversx/mx-chain-go/factory/network"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 
 	"github.com/stretchr/testify/require"
 )
 
 func createNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
-	coreComp := componentsMock.GetCoreComponents()
+	cfg := testscommon.GetGeneralConfig()
+	coreComp := componentsMock.GetCoreComponents(cfg)
 	cryptoComp := componentsMock.GetCryptoComponents(coreComp)
 
 	return componentsMock.GetNetworkFactoryArgs(cryptoComp)

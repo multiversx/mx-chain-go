@@ -78,9 +78,9 @@ const DummySk = "cea01c0bf060187d90394802ff223078e47527dc8aa33a922744fb1d06029c4
 type LoadKeysFunc func(string, int) ([]byte, string, error)
 
 // GetCoreArgs -
-func GetCoreArgs() coreComp.CoreComponentsFactoryArgs {
+func GetCoreArgs(cfg config.Config) coreComp.CoreComponentsFactoryArgs {
 	return coreComp.CoreComponentsFactoryArgs{
-		Config: GetGeneralConfig(),
+		Config: cfg,
 		ConfigPathsHolder: config.ConfigurationPathsHolder{
 			GasScheduleDirectoryName: "../../cmd/node/config/gasSchedules",
 		},
@@ -112,8 +112,8 @@ func GetCoreArgs() coreComp.CoreComponentsFactoryArgs {
 }
 
 // GetCoreComponents -
-func GetCoreComponents() factory.CoreComponentsHolder {
-	coreArgs := GetCoreArgs()
+func GetCoreComponents(cfg config.Config) factory.CoreComponentsHolder {
+	coreArgs := GetCoreArgs(cfg)
 	return createCoreComponents(coreArgs)
 }
 
@@ -123,8 +123,8 @@ func GetNewCoreComponents(args coreComp.CoreComponentsFactoryArgs) factory.CoreC
 }
 
 // GetSovereignCoreComponents -
-func GetSovereignCoreComponents() factory.CoreComponentsHolder {
-	coreArgs := GetCoreArgs()
+func GetSovereignCoreComponents(cfg config.Config) factory.CoreComponentsHolder {
+	coreArgs := GetCoreArgs(cfg)
 	coreArgs.NodesFilename = "../mock/testdata/sovereignNodesSetupMock.json"
 	coreArgs.GenesisNodesSetupFactory = sharding.NewSovereignGenesisNodesSetupFactory()
 	coreArgs.RatingsDataFactory = rating.NewSovereignRatingsDataFactory()
@@ -146,9 +146,12 @@ func createCoreComponents(coreArgs coreComp.CoreComponentsFactoryArgs) factory.C
 }
 
 // GetStatusCoreArgs -
-func GetStatusCoreArgs(coreComponents factory.CoreComponentsHolder) statusCore.StatusCoreComponentsFactoryArgs {
+func GetStatusCoreArgs(
+	cfg config.Config,
+	coreComponents factory.CoreComponentsHolder,
+) statusCore.StatusCoreComponentsFactoryArgs {
 	return statusCore.StatusCoreComponentsFactoryArgs{
-		Config: GetGeneralConfig(),
+		Config: cfg,
 		EpochConfig: config.EpochConfig{
 			GasSchedule: config.GasScheduleConfig{
 				GasScheduleByEpochs: []config.GasScheduleByEpochs{
@@ -173,8 +176,11 @@ func GetStatusCoreArgs(coreComponents factory.CoreComponentsHolder) statusCore.S
 }
 
 // GetStatusCoreComponents -
-func GetStatusCoreComponents(coreComponents factory.CoreComponentsHolder) factory.StatusCoreComponentsHolder {
-	statusCoreArgs := GetStatusCoreArgs(coreComponents)
+func GetStatusCoreComponents(
+	cfg config.Config,
+	coreComponents factory.CoreComponentsHolder,
+) factory.StatusCoreComponentsHolder {
+	statusCoreArgs := GetStatusCoreArgs(cfg, coreComponents)
 	statusCoreFactory, err := statusCore.NewStatusCoreComponentsFactory(statusCoreArgs)
 	if err != nil {
 		log.Error("GetStatusCoreComponents NewStatusCoreComponentsFactory", "error", err.Error())
@@ -497,6 +503,7 @@ func GetNetworkComponents(cryptoComponents factory.CryptoComponentsHolder) facto
 
 // GetBootStrapFactoryArgs -
 func GetBootStrapFactoryArgs(
+	cfg config.Config,
 	statusCoreComponents factory.StatusCoreComponentsHolder,
 	coreComponents factory.CoreComponentsHolder,
 	cryptoComponents factory.CryptoComponentsHolder,
@@ -504,7 +511,7 @@ func GetBootStrapFactoryArgs(
 	runTypeComponents factory.RunTypeComponentsHolder,
 ) bootstrapComp.BootstrapComponentsFactoryArgs {
 	return bootstrapComp.BootstrapComponentsFactoryArgs{
-		Config:               testscommon.GetGeneralConfig(),
+		Config:               cfg,
 		WorkingDir:           "home",
 		CoreComponents:       coreComponents,
 		CryptoComponents:     cryptoComponents,
@@ -528,13 +535,14 @@ func GetBootStrapFactoryArgs(
 }
 
 func GetBootstrapComponents(
+	cfg config.Config,
 	statusCoreComponents factory.StatusCoreComponentsHolder,
 	coreComponents factory.CoreComponentsHolder,
 	cryptoComponents factory.CryptoComponentsHolder,
 	networkComponents factory.NetworkComponentsHolder,
 	runTypeComponents factory.RunTypeComponentsHolder,
 ) factory.BootstrapComponentsHolder {
-	bootstrapComponentsFactoryArgs := GetBootStrapFactoryArgs(statusCoreComponents, coreComponents, cryptoComponents, networkComponents, runTypeComponents)
+	bootstrapComponentsFactoryArgs := GetBootStrapFactoryArgs(cfg, statusCoreComponents, coreComponents, cryptoComponents, networkComponents, runTypeComponents)
 	bootstrapComponentsFactory, _ := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
 
 	bootstrapComponents, err := bootstrapComp.NewTestManagedBootstrapComponents(bootstrapComponentsFactory)
@@ -554,6 +562,7 @@ func GetBootstrapComponents(
 
 // GetDataArgs -
 func GetDataArgs(
+	cfg config.Config,
 	statusCoreComponents factory.StatusCoreComponentsHolder,
 	coreComponents factory.CoreComponentsHolder,
 	bootstrapComponents factory.BootstrapComponentsHolder,
@@ -561,7 +570,7 @@ func GetDataArgs(
 	runTypeComponents factory.RunTypeComponentsHolder,
 ) dataComp.DataComponentsFactoryArgs {
 	return dataComp.DataComponentsFactoryArgs{
-		Config: testscommon.GetGeneralConfig(),
+		Config: cfg,
 		PrefsConfig: config.PreferencesConfig{
 			FullArchive: false,
 		},
@@ -579,13 +588,14 @@ func GetDataArgs(
 
 // GetDataComponents -
 func GetDataComponents(
+	cfg config.Config,
 	statusCoreComponents factory.StatusCoreComponentsHolder,
 	coreComponents factory.CoreComponentsHolder,
 	bootstrapComponents factory.BootstrapComponentsHolder,
 	cryptoComponents factory.CryptoComponentsHolder,
 	runTypeComponents factory.RunTypeComponentsHolder,
 ) factory.DataComponentsHolder {
-	dataArgs := GetDataArgs(statusCoreComponents, coreComponents, bootstrapComponents, cryptoComponents, runTypeComponents)
+	dataArgs := GetDataArgs(cfg, statusCoreComponents, coreComponents, bootstrapComponents, cryptoComponents, runTypeComponents)
 	dataComponentsFactory, _ := dataComp.NewDataComponentsFactory(dataArgs)
 
 	dataComponents, err := dataComp.NewManagedDataComponents(dataComponentsFactory)
@@ -604,6 +614,7 @@ func GetDataComponents(
 
 // GetStateFactoryArgs -
 func GetStateFactoryArgs(
+	cfg config.Config,
 	coreComponents factory.CoreComponentsHolder,
 	dataComponents factory.DataComponentsHolder,
 	statusCoreComponents factory.StatusCoreComponentsHolder,
@@ -625,7 +636,7 @@ func GetStateFactoryArgs(
 	triesHolder.Put([]byte(dataRetriever.PeerAccountsUnit.String()), triePeers)
 
 	stateComponentsFactoryArgs := stateComp.StateComponentsFactoryArgs{
-		Config:          GetGeneralConfig(),
+		Config:          cfg,
 		Core:            coreComponents,
 		StatusCore:      statusCoreComponents,
 		StorageService:  disabled.NewChainStorer(),
@@ -639,12 +650,13 @@ func GetStateFactoryArgs(
 
 // GetStateComponents -
 func GetStateComponents(
+	cfg config.Config,
 	coreComponents factory.CoreComponentsHolder,
 	dataComponents factory.DataComponentsHolder,
 	statusCoreComponents factory.StatusCoreComponentsHolder,
 	runTypeComponents factory.RunTypeComponentsHolder,
 ) factory.StateComponentsHolder {
-	stateArgs := GetStateFactoryArgs(coreComponents, dataComponents, statusCoreComponents, runTypeComponents)
+	stateArgs := GetStateFactoryArgs(cfg, coreComponents, dataComponents, statusCoreComponents, runTypeComponents)
 	stateComponentsFactory, err := stateComp.NewStateComponentsFactory(stateArgs)
 	if err != nil {
 		log.Error("GetStateComponents NewStateComponentsFactory", "error", err.Error())
@@ -665,6 +677,7 @@ func GetStateComponents(
 }
 
 func GetStatusFactoryArgs(
+	cfg config.Config,
 	statusCoreComponents factory.StatusCoreComponentsHolder,
 	coreComponents factory.CoreComponentsHolder,
 	networkComponents factory.NetworkComponentsHolder,
@@ -677,7 +690,7 @@ func GetStatusFactoryArgs(
 	elasticUsername := "user"
 	elasticPassword := "pass"
 	return statusComp.StatusComponentsFactoryArgs{
-		Config: testscommon.GetGeneralConfig(),
+		Config: cfg,
 		ExternalConfig: config.ExternalConfig{
 			ElasticSearchConnector: config.ElasticSearchConfig{
 				Enabled:        false,
@@ -716,6 +729,7 @@ func GetStatusFactoryArgs(
 
 // GetStatusComponents -
 func GetStatusComponents(
+	cfg config.Config,
 	statusCoreComponents factory.StatusCoreComponentsHolder,
 	coreComponents factory.CoreComponentsHolder,
 	networkComponents factory.NetworkComponentsHolder,
@@ -724,7 +738,7 @@ func GetStatusComponents(
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	cryptoComponents factory.CryptoComponentsHolder,
 ) factory.StatusComponentsHandler {
-	statusArgs := GetStatusFactoryArgs(statusCoreComponents, coreComponents, networkComponents, bootstrapComponents, stateComponents, nodesCoordinator, cryptoComponents)
+	statusArgs := GetStatusFactoryArgs(cfg, statusCoreComponents, coreComponents, networkComponents, bootstrapComponents, stateComponents, nodesCoordinator, cryptoComponents)
 	statusComponentsFactory, _ := statusComp.NewStatusComponentsFactory(statusArgs)
 
 	managedStatusComponents, err := statusComp.NewManagedStatusComponents(statusComponentsFactory)
@@ -743,6 +757,7 @@ func GetStatusComponents(
 
 // GetProcessFactoryArgs -
 func GetProcessFactoryArgs(
+	cfg config.Config,
 	runTypeComponents factory.RunTypeComponentsHolder,
 	coreComponents factory.CoreComponentsHolder,
 	cryptoComponents factory.CryptoComponentsHolder,
@@ -766,7 +781,7 @@ func GetProcessFactoryArgs(
 	}
 
 	args := processComp.ProcessComponentsFactoryArgs{
-		Config:                 testscommon.GetGeneralConfig(),
+		Config:                 cfg,
 		SmartContractParser:    &mock.SmartContractParserStub{},
 		GasSchedule:            gasScheduleNotifier,
 		NodesCoordinator:       &shardingMocks.NodesCoordinatorMock{},
@@ -883,6 +898,7 @@ func GetProcessFactoryArgs(
 
 // GetProcessComponents -
 func GetProcessComponents(
+	cfg config.Config,
 	runTypeComponents factory.RunTypeComponentsHolder,
 	coreComponents factory.CoreComponentsHolder,
 	cryptoComponents factory.CryptoComponentsHolder,
@@ -893,7 +909,7 @@ func GetProcessComponents(
 	statusComponents factory.StatusComponentsHolder,
 	statusCoreComponents factory.StatusCoreComponentsHolder,
 ) factory.ProcessComponentsHolder {
-	processArgs := GetProcessFactoryArgs(runTypeComponents, coreComponents, cryptoComponents, networkComponents, bootstrapComponents, stateComponents, dataComponents, statusComponents, statusCoreComponents)
+	processArgs := GetProcessFactoryArgs(cfg, runTypeComponents, coreComponents, cryptoComponents, networkComponents, bootstrapComponents, stateComponents, dataComponents, statusComponents, statusCoreComponents)
 	processComponentsFactory, _ := processComp.NewProcessComponentsFactory(processArgs)
 	managedProcessComponents, err := processComp.NewManagedProcessComponents(processComponentsFactory)
 	if err != nil {
@@ -909,6 +925,7 @@ func GetProcessComponents(
 }
 
 func GetConsensusFactoryArgs(
+	cfg config.Config,
 	runTypeComponents factory.RunTypeComponentsHolder,
 	coreComponents factory.CoreComponentsHolder,
 	cryptoComponents factory.CryptoComponentsHolder,
@@ -927,7 +944,7 @@ func GetConsensusFactoryArgs(
 	scheduledProcessor, _ := spos.NewScheduledProcessorWrapper(args)
 
 	return consensusComp.ConsensusComponentsFactoryArgs{
-		Config:               testscommon.GetGeneralConfig(),
+		Config:               cfg,
 		FlagsConfig:          config.ContextFlagsConfig{},
 		BootstrapRoundIndex:  0,
 		CoreComponents:       coreComponents,
@@ -946,6 +963,7 @@ func GetConsensusFactoryArgs(
 }
 
 func GetConsensusComponents(
+	cfg config.Config,
 	runTypeComponents factory.RunTypeComponentsHolder,
 	coreComponents factory.CoreComponentsHolder,
 	cryptoComponents factory.CryptoComponentsHolder,
@@ -956,7 +974,7 @@ func GetConsensusComponents(
 	statusCoreComponents factory.StatusCoreComponentsHolder,
 	processComponents factory.ProcessComponentsHolder,
 ) factory.ConsensusComponentsHolder {
-	consensusArgs := GetConsensusFactoryArgs(runTypeComponents, coreComponents, cryptoComponents, networkComponents, stateComponents, dataComponents, statusComponents, statusCoreComponents, processComponents)
+	consensusArgs := GetConsensusFactoryArgs(cfg, runTypeComponents, coreComponents, cryptoComponents, networkComponents, stateComponents, dataComponents, statusComponents, statusCoreComponents, processComponents)
 	consensusFactory, _ := consensusComp.NewConsensusComponentsFactory(consensusArgs)
 
 	consensusComponents, err := consensusComp.NewManagedConsensusComponents(consensusFactory)
