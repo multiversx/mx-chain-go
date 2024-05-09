@@ -370,6 +370,11 @@ func (node *testOnlyProcessingNode) GetCoreComponents() factory.CoreComponentsHo
 	return node.CoreComponentsHolder
 }
 
+// GetDataComponents will return the data components
+func (node *testOnlyProcessingNode) GetDataComponents() factory.DataComponentsHolder {
+	return node.DataComponentsHolder
+}
+
 // GetStateComponents will return the state components
 func (node *testOnlyProcessingNode) GetStateComponents() factory.StateComponentsHolder {
 	return node.StateComponentsHolder
@@ -478,6 +483,18 @@ func (node *testOnlyProcessingNode) SetStateForAddress(address []byte, addressSt
 
 	accountsAdapter := node.StateComponentsHolder.AccountsAdapter()
 	err = accountsAdapter.SaveAccount(userAccount)
+	if err != nil {
+		return err
+	}
+
+	_, err = accountsAdapter.Commit()
+	return err
+}
+
+// RemoveAccount will remove the account for the given address
+func (node *testOnlyProcessingNode) RemoveAccount(address []byte) error {
+	accountsAdapter := node.StateComponentsHolder.AccountsAdapter()
+	err := accountsAdapter.RemoveAccount(address)
 	if err != nil {
 		return err
 	}
