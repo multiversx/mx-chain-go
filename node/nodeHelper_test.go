@@ -8,6 +8,7 @@ import (
 	runType "github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	"github.com/multiversx/mx-chain-go/node"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus/factoryMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
@@ -17,7 +18,7 @@ import (
 )
 
 func createRunTypeComponents() runType.RunTypeComponentsHolder {
-	coreArgs := componentsMock.GetCoreArgs()
+	coreArgs := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig())
 	coreArgs.NodesFilename = "../factory/mock/testdata/nodesSetupMock.json"
 	coreComp := componentsMock.GetNewCoreComponents(coreArgs)
 	cryptoComp := componentsMock.GetCryptoComponents(coreComp)
