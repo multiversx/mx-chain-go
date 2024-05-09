@@ -3,8 +3,9 @@ package components
 import (
 	"testing"
 
-	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 )
 
 func TestCreateStore(t *testing.T) {
@@ -37,6 +38,8 @@ func TestCreateStore(t *testing.T) {
 		dataRetriever.ResultsHashesByTxHashUnit,
 		dataRetriever.TrieEpochRootHashUnit,
 		dataRetriever.ShardHdrNonceHashDataUnit,
+		dataRetriever.ExtendedShardHeadersUnit,
+		dataRetriever.ExtendedShardHeadersNonceHashDataUnit,
 		dataRetriever.UnitType(101), // shard 2
 	}
 
