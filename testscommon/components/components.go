@@ -117,8 +117,8 @@ func GetCoreComponents(cfg config.Config) factory.CoreComponentsHolder {
 	return createCoreComponents(coreArgs)
 }
 
-// GetNewCoreComponents -
-func GetNewCoreComponents(args coreComp.CoreComponentsFactoryArgs) factory.CoreComponentsHolder {
+// GetCoreComponentsWithArgs -
+func GetCoreComponentsWithArgs(args coreComp.CoreComponentsFactoryArgs) factory.CoreComponentsHolder {
 	return createCoreComponents(args)
 }
 

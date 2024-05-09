@@ -406,7 +406,7 @@ func hardForkImport(
 
 		coreArgs := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig())
 		coreArgs.NodesFilename = "../../../factory/mock/testdata/nodesSetupMock.json"
-		coreComp := componentsMock.GetNewCoreComponents(coreArgs)
+		coreComp := componentsMock.GetCoreComponentsWithArgs(coreArgs)
 		cryptoComp := componentsMock.GetCryptoComponents(coreComp)
 		runTypeComponents := componentsMock.GetRunTypeComponents(coreComp, cryptoComp)
 

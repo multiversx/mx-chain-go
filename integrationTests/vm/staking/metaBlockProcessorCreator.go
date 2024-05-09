@@ -75,7 +75,7 @@ func createMetaBlockProcessor(
 
 	coreArgs := components.GetCoreArgs(testscommon.GetGeneralConfig())
 	coreArgs.NodesFilename = "../../../factory/mock/testdata/nodesSetupMock.json"
-	coreComp := components.GetNewCoreComponents(coreArgs)
+	coreComp := components.GetCoreComponentsWithArgs(coreArgs)
 	cryptoComp := components.GetCryptoComponents(coreComp)
 	runTypeComponents := components.GetRunTypeComponents(coreComp, cryptoComp)
 

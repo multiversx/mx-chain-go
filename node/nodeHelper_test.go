@@ -20,7 +20,7 @@ import (
 func createRunTypeComponents() runType.RunTypeComponentsHolder {
 	coreArgs := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig())
 	coreArgs.NodesFilename = "../factory/mock/testdata/nodesSetupMock.json"
-	coreComp := componentsMock.GetNewCoreComponents(coreArgs)
+	coreComp := componentsMock.GetCoreComponentsWithArgs(coreArgs)
 	cryptoComp := componentsMock.GetCryptoComponents(coreComp)
 	return componentsMock.GetRunTypeComponents(coreComp, cryptoComp)
 }
