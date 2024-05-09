@@ -3465,7 +3465,7 @@ func TestNode_GetAccountAccountWithKeysErrorShouldFail(t *testing.T) {
 		GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
 			return accnt, nil, nil
 		},
-		RecreateTrieCalled: func(rootHash []byte) error {
+		RecreateTrieCalled: func(options common.RootHashHolder) error {
 			return nil
 		},
 	}
@@ -3515,7 +3515,7 @@ func TestNode_GetAccountAccountWithKeysShouldWork(t *testing.T) {
 		GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
 			return accnt, nil, nil
 		},
-		RecreateTrieCalled: func(rootHash []byte) error {
+		RecreateTrieCalled: func(options common.RootHashHolder) error {
 			return nil
 		},
 	}
