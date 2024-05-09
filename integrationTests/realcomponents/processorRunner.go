@@ -90,6 +90,7 @@ func (pr *ProcessorRunner) createComponents(tb testing.TB) {
 
 func (pr *ProcessorRunner) createRunTypeComponents(tb testing.TB) {
 	initialAccounts, err := runType.ReadInitialAccounts(pr.Config.ConfigurationPathsHolder.Genesis)
+	require.Nil(tb, err)
 
 	rtFactory, err := runType.NewRunTypeComponentsFactory(runType.ArgsRunTypeComponents{
 		CoreComponents:   pr.CoreComponents,
