@@ -14,8 +14,8 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
-	"github.com/multiversx/mx-chain-go/factory/runType"
 	"github.com/multiversx/mx-chain-go/genesis"
+	genesisData "github.com/multiversx/mx-chain-go/genesis/data"
 	"github.com/multiversx/mx-chain-go/genesis/mock"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
 	"github.com/multiversx/mx-chain-go/process"
@@ -252,7 +252,7 @@ func createArgument(
 	}
 	arg.Economics = ted
 
-	initialAccounts, err := runType.ReadInitialAccounts(genesisFilename)
+	initialAccounts, err := readInitialAccounts(genesisFilename)
 	require.Nil(t, err)
 
 	args := genesis.AccountsParserArgs{
@@ -279,6 +279,21 @@ func createArgument(
 	arg.RunTypeComponents = runTypeComponents
 
 	return arg
+}
+
+func readInitialAccounts(filePath string) ([]genesis.InitialAccountHandler, error) {
+	initialAccounts := make([]*genesisData.InitialAccount, 0)
+	err := core.LoadJsonFile(&initialAccounts, filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	var accounts []genesis.InitialAccountHandler
+	for _, ia := range initialAccounts {
+		accounts = append(accounts, ia)
+	}
+
+	return accounts, nil
 }
 
 func createTrieStorageManagers() map[string]common.StorageManager {
