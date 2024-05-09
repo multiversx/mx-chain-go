@@ -174,13 +174,13 @@ func (s *Simulator) createChainHandlers(args ArgsChainSimulator) error {
 		return err
 	}
 
-	for idx := 0; idx < int(args.NumOfShards)+1; idx++ {
+	for idx := -1; idx < int(args.NumOfShards); idx++ {
 		shardIDStr := fmt.Sprintf("%d", idx)
-		if idx == int(args.NumOfShards) {
-			shardIDStr = "metachain"
+		if idx == -1 {
 			if args.MetaChainMinNodes == 0 {
 				continue
 			}
+			shardIDStr = "metachain"
 		}
 
 		node, errCreate := s.createTestNode(*outputConfigs, args, shardIDStr)
