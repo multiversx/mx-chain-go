@@ -12,6 +12,8 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos/sposFactory"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
+	dataRetrieverFactory "github.com/multiversx/mx-chain-go/dataRetriever/factory"
 	"github.com/multiversx/mx-chain-go/facade"
 	"github.com/multiversx/mx-chain-go/factory"
 	bootstrapComp "github.com/multiversx/mx-chain-go/factory/bootstrap"
@@ -72,8 +74,11 @@ type testOnlyProcessingNode struct {
 	RunTypeComponents         factory.RunTypeComponentsHolder
 
 	NodesCoordinator      nodesCoordinator.NodesCoordinator
+	ChainHandler          chainData.ChainHandler
 	ArgumentsParser       process.ArgumentsParser
 	TransactionFeeHandler process.TransactionFeeHandler
+	StoreService          dataRetriever.StorageService
+	DataPool              dataRetriever.PoolsHolder
 	broadcastMessenger    consensus.BroadcastMessenger
 
 	httpServer    shared.UpgradeableHttpServerHandler
@@ -84,6 +89,7 @@ type testOnlyProcessingNode struct {
 func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProcessingNode, error) {
 	instance := &testOnlyProcessingNode{
 		ArgumentsParser: smartContract.NewArgumentParser(),
+		StoreService:    CreateStore(args.NumShards),
 		closeHandler:    NewCloseHandler(),
 	}
 
@@ -172,17 +178,22 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		return nil, err
 	}
 
-	instance.DataComponentsHolder, err = CreateDataComponents(ArgsDataComponentsHolder{
-		Configs:              args.Configs,
-		CoreComponents:       instance.CoreComponentsHolder,
-		StatusCoreComponents: instance.StatusCoreComponents,
-		BootstrapComponents:  instance.BootstrapComponentsHolder,
-		CryptoComponents:     instance.CryptoComponentsHolder,
-		RunTypeComponents:    instance.RunTypeComponents,
-	})
+	err = instance.createBlockChain(selfShardID)
 	if err != nil {
 		return nil, err
 	}
+
+	err = instance.createDataPool(args)
+	if err != nil {
+		return nil, err
+	}
+
+	instance.DataComponentsHolder, err = CreateDataComponents(ArgsDataComponentsHolder{
+		Chain:              instance.ChainHandler,
+		StorageService:     instance.StoreService,
+		DataPool:           instance.DataPool,
+		InternalMarshaller: instance.CoreComponentsHolder.InternalMarshalizer(),
+	})
 
 	instance.StateComponentsHolder, err = CreateStateComponents(ArgsStateComponents{
 		Config:            *args.Configs.GeneralConfig,
@@ -258,6 +269,33 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 	instance.collectClosableComponents(args.APIInterface)
 
 	return instance, nil
+}
+
+func (node *testOnlyProcessingNode) createBlockChain(selfShardID uint32) error {
+	var err error
+	if selfShardID == core.MetachainShardId {
+		node.ChainHandler, err = blockchain.NewMetaChain(node.StatusCoreComponents.AppStatusHandler())
+	} else {
+		node.ChainHandler, err = blockchain.NewBlockChain(node.StatusCoreComponents.AppStatusHandler())
+	}
+
+	return err
+}
+
+func (node *testOnlyProcessingNode) createDataPool(args ArgsTestOnlyProcessingNode) error {
+	var err error
+
+	argsDataPool := dataRetrieverFactory.ArgsDataPool{
+		Config:           args.Configs.GeneralConfig,
+		EconomicsData:    node.CoreComponentsHolder.EconomicsData(),
+		ShardCoordinator: node.BootstrapComponentsHolder.ShardCoordinator(),
+		Marshalizer:      node.CoreComponentsHolder.InternalMarshalizer(),
+		PathManager:      node.CoreComponentsHolder.PathHandler(),
+	}
+
+	node.DataPool, err = dataRetrieverFactory.NewDataPoolFromConfig(argsDataPool)
+
+	return err
 }
 
 func (node *testOnlyProcessingNode) createNodesCoordinator(pref config.PreferencesConfig, generalConfig config.Config) error {
