@@ -6,7 +6,6 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory/runType"
-	"github.com/multiversx/mx-chain-go/testscommon/headerSigVerifier"
 	"github.com/multiversx/mx-chain-go/testscommon/sovereign"
 
 	"github.com/stretchr/testify/require"
@@ -24,7 +23,6 @@ func createSovRunTypeArgs() runType.ArgsSovereignRunTypeComponents {
 		},
 		DataCodec:     &sovereign.DataCodecMock{},
 		TopicsChecker: &sovereign.TopicsCheckerMock{},
-		ExtraVerifier: &headerSigVerifier.ExtraHeaderSigVerifierHandlerMock{},
 	}
 }
 

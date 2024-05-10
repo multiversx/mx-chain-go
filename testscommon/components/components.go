@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	commonFactory "github.com/multiversx/mx-chain-go/common/factory"
 	"github.com/multiversx/mx-chain-go/config"
+	mockConsensus "github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -43,7 +44,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/headerSigVerifier"
 	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
@@ -1023,6 +1023,7 @@ func createArgsRunTypeComponents() runType.ArgsRunTypeComponents {
 		},
 		CryptoComponents: &mockCoreComp.CryptoComponentsStub{
 			TxKeyGen: &mockCoreComp.KeyGenMock{},
+			BlockSig: &mockConsensus.SingleSignerMock{},
 		},
 		Configs: config.Configs{
 			EconomicsConfig: &config.EconomicsConfig{
@@ -1149,7 +1150,6 @@ func createSovRunTypeArgs() runType.ArgsSovereignRunTypeComponents {
 		},
 		DataCodec:     &sovereign.DataCodecMock{},
 		TopicsChecker: &sovereign.TopicsCheckerMock{},
-		ExtraVerifier: &headerSigVerifier.ExtraHeaderSigVerifierHandlerMock{},
 	}
 }
 
