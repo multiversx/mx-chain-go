@@ -7,6 +7,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
@@ -46,8 +47,13 @@ func (oap *VMOutputAccountsProcessor) Run() (bool, []data.TransactionHandler, er
 	sumOfAllDiff := big.NewInt(0)
 	sumOfAllDiff.Sub(sumOfAllDiff, oap.tx.GetValue())
 
+	converterPubKey, _ := pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
+
 	createdAsyncCallback := false
 	for _, outAcc := range outputAccounts {
+		log.Error("output acc", "address", converterPubKey.SilentEncode(outAcc.Address, log), "balance delta",
+			outAcc.BalanceDelta.String())
+
 		acc, err := oap.sc.scProcessorHelper.GetAccountFromAddress(outAcc.Address)
 		if err != nil {
 			return false, nil, err

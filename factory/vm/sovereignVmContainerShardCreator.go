@@ -60,6 +60,11 @@ func (svcsf *sovereignVmContainerShardFactory) CreateVmContainerFactory(argsHook
 		return nil, nil, err
 	}
 
+	err = vmFactory.BlockChainHookImpl().SetVMContainer(vmContainer)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	return vmContainer, vmFactory, nil
 }
 
