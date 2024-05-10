@@ -13,7 +13,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator/utils"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	coreAPI "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/stretchr/testify/require"
 )
 
@@ -82,8 +81,8 @@ func TestSmartContract_IssueToken(t *testing.T) {
 	tx1 := utils.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, issueCost, "issue", uint64(60000000))
 	require.False(t, string(tx1.Logs.Events[0].Topics[1]) == "sending value to non payable contract")
 
-	tokens, _, err := nodeHandler.GetFacadeHandler().GetAllESDTTokens(wallet.Bech32, coreAPI.AccountQueryOptions{})
+	esdts, err := nodeHandler.GetFacadeHandler().GetAllIssuedESDTs("FungibleESDT")
 	require.Nil(t, err)
-	require.NotNil(t, tokens)
-	require.True(t, len(tokens) == 2)
+	require.NotNil(t, esdts)
+	require.True(t, len(esdts) == 1)
 }
