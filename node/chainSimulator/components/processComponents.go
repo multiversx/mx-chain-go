@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/common/ordering"
+	commonRunType "github.com/multiversx/mx-chain-go/common/runType"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -153,7 +154,7 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		return nil, err
 	}
 
-	initialAccounts, err := runType.ReadInitialAccounts(args.Configs.ConfigurationPathsHolder.Genesis)
+	initialAccounts, err := commonRunType.ReadInitialAccounts(args.Configs.ConfigurationPathsHolder.Genesis)
 	if err != nil {
 		return nil, err
 	}
