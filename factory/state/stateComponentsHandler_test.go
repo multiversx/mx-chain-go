@@ -7,9 +7,9 @@ import (
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	stateComp "github.com/multiversx/mx-chain-go/factory/state"
-	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -26,8 +26,7 @@ func TestNewManagedStateComponents(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		coreComponents := componentsMock.GetCoreComponents()
-		args := componentsMock.GetStateFactoryArgs(coreComponents, componentsMock.GetStatusCoreComponents())
+		args := createStateFactoryArgs()
 		stateComponentsFactory, _ := stateComp.NewStateComponentsFactory(args)
 		managedStateComponents, err := stateComp.NewManagedStateComponents(stateComponentsFactory)
 		require.NoError(t, err)
@@ -41,8 +40,7 @@ func TestManagedStateComponents_Create(t *testing.T) {
 	t.Run("invalid config should error", func(t *testing.T) {
 		t.Parallel()
 
-		coreComponents := componentsMock.GetCoreComponents()
-		args := componentsMock.GetStateFactoryArgs(coreComponents, componentsMock.GetStatusCoreComponents())
+		args := createStateFactoryArgs()
 		stateComponentsFactory, _ := stateComp.NewStateComponentsFactory(args)
 		managedStateComponents, err := stateComp.NewManagedStateComponents(stateComponentsFactory)
 		require.NoError(t, err)
@@ -55,8 +53,7 @@ func TestManagedStateComponents_Create(t *testing.T) {
 	t.Run("should work with getters", func(t *testing.T) {
 		t.Parallel()
 
-		coreComponents := componentsMock.GetCoreComponents()
-		args := componentsMock.GetStateFactoryArgs(coreComponents, componentsMock.GetStatusCoreComponents())
+		args := createStateFactoryArgs()
 		stateComponentsFactory, _ := stateComp.NewStateComponentsFactory(args)
 		managedStateComponents, err := stateComp.NewManagedStateComponents(stateComponentsFactory)
 		require.NoError(t, err)
@@ -86,8 +83,7 @@ func TestManagedStateComponents_Create(t *testing.T) {
 func TestManagedStateComponents_Close(t *testing.T) {
 	t.Parallel()
 
-	coreComponents := componentsMock.GetCoreComponents()
-	args := componentsMock.GetStateFactoryArgs(coreComponents, componentsMock.GetStatusCoreComponents())
+	args := createStateFactoryArgs()
 	stateComponentsFactory, _ := stateComp.NewStateComponentsFactory(args)
 	managedStateComponents, _ := stateComp.NewManagedStateComponents(stateComponentsFactory)
 	require.NoError(t, managedStateComponents.Close())
@@ -101,8 +97,7 @@ func TestManagedStateComponents_Close(t *testing.T) {
 func TestManagedStateComponents_CheckSubcomponents(t *testing.T) {
 	t.Parallel()
 
-	coreComponents := componentsMock.GetCoreComponents()
-	args := componentsMock.GetStateFactoryArgs(coreComponents, componentsMock.GetStatusCoreComponents())
+	args := createStateFactoryArgs()
 	stateComponentsFactory, _ := stateComp.NewStateComponentsFactory(args)
 	managedStateComponents, _ := stateComp.NewManagedStateComponents(stateComponentsFactory)
 	err := managedStateComponents.CheckSubcomponents()
@@ -120,8 +115,7 @@ func TestManagedStateComponents_CheckSubcomponents(t *testing.T) {
 func TestManagedStateComponents_Setters(t *testing.T) {
 	t.Parallel()
 
-	coreComponents := componentsMock.GetCoreComponents()
-	args := componentsMock.GetStateFactoryArgs(coreComponents, componentsMock.GetStatusCoreComponents())
+	args := createStateFactoryArgs()
 	stateComponentsFactory, _ := stateComp.NewStateComponentsFactory(args)
 	managedStateComponents, _ := stateComp.NewManagedStateComponents(stateComponentsFactory)
 	err := managedStateComponents.Create()
@@ -152,8 +146,7 @@ func TestManagedStateComponents_IsInterfaceNil(t *testing.T) {
 	managedStateComponents, _ := stateComp.NewManagedStateComponents(nil)
 	require.True(t, managedStateComponents.IsInterfaceNil())
 
-	coreComponents := componentsMock.GetCoreComponents()
-	args := componentsMock.GetStateFactoryArgs(coreComponents, componentsMock.GetStatusCoreComponents())
+	args := createStateFactoryArgs()
 	stateComponentsFactory, _ := stateComp.NewStateComponentsFactory(args)
 	managedStateComponents, _ = stateComp.NewManagedStateComponents(stateComponentsFactory)
 	require.False(t, managedStateComponents.IsInterfaceNil())

@@ -5,13 +5,9 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/data/outport"
-
 	"github.com/multiversx/mx-chain-go/common"
 	commonFactory "github.com/multiversx/mx-chain-go/common/factory"
 	"github.com/multiversx/mx-chain-go/config"
-	mockConsensus "github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -31,7 +27,6 @@ import (
 	"github.com/multiversx/mx-chain-go/factory/statusCore"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/data"
-	mockCoreComp "github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/p2p"
 	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
 	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
@@ -42,10 +37,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
-	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
-	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/sovereign"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -53,7 +45,9 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/subRoundsHolder"
 	"github.com/multiversx/mx-chain-go/trie"
 
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-core-go/data/outport"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 	"github.com/stretchr/testify/require"
@@ -84,15 +78,15 @@ const DummySk = "cea01c0bf060187d90394802ff223078e47527dc8aa33a922744fb1d06029c4
 type LoadKeysFunc func(string, int) ([]byte, string, error)
 
 // GetCoreArgs -
-func GetCoreArgs() coreComp.CoreComponentsFactoryArgs {
+func GetCoreArgs(cfg config.Config) coreComp.CoreComponentsFactoryArgs {
 	return coreComp.CoreComponentsFactoryArgs{
-		Config: GetGeneralConfig(),
+		Config: cfg,
 		ConfigPathsHolder: config.ConfigurationPathsHolder{
 			GasScheduleDirectoryName: "../../cmd/node/config/gasSchedules",
 		},
 		RatingsConfig:       CreateDummyRatingsConfig(),
 		EconomicsConfig:     CreateDummyEconomicsConfig(),
-		NodesFilename:       "../mock/testdata/nodesSetupMock.json",
+		NodesFilename:       "../../factory/mock/testdata/nodesSetupMock.json",
 		WorkingDirectory:    "home",
 		ChanStopNodeProcess: make(chan endProcess.ArgEndProcess),
 		EpochConfig: config.EpochConfig{
@@ -117,10 +111,47 @@ func GetCoreArgs() coreComp.CoreComponentsFactoryArgs {
 	}
 }
 
+// GetCoreComponents -
+func GetCoreComponents(cfg config.Config) factory.CoreComponentsHolder {
+	coreArgs := GetCoreArgs(cfg)
+	return createCoreComponents(coreArgs)
+}
+
+// GetCoreComponentsWithArgs -
+func GetCoreComponentsWithArgs(args coreComp.CoreComponentsFactoryArgs) factory.CoreComponentsHolder {
+	return createCoreComponents(args)
+}
+
+// GetSovereignCoreComponents -
+func GetSovereignCoreComponents(cfg config.Config) factory.CoreComponentsHolder {
+	coreArgs := GetCoreArgs(cfg)
+	coreArgs.NodesFilename = "../mock/testdata/sovereignNodesSetupMock.json"
+	coreArgs.GenesisNodesSetupFactory = sharding.NewSovereignGenesisNodesSetupFactory()
+	coreArgs.RatingsDataFactory = rating.NewSovereignRatingsDataFactory()
+	return createCoreComponents(coreArgs)
+}
+
+func createCoreComponents(coreArgs coreComp.CoreComponentsFactoryArgs) factory.CoreComponentsHolder {
+	coreComponentsFactory, _ := coreComp.NewCoreComponentsFactory(coreArgs)
+	coreComponents, err := coreComp.NewManagedCoreComponents(coreComponentsFactory)
+	if err != nil {
+		fmt.Println("getCoreComponents NewManagedCoreComponents", "error", err.Error())
+		return nil
+	}
+	err = coreComponents.Create()
+	if err != nil {
+		fmt.Println("getCoreComponents Create", "error", err.Error())
+	}
+	return coreComponents
+}
+
 // GetStatusCoreArgs -
-func GetStatusCoreArgs(coreComponents factory.CoreComponentsHolder) statusCore.StatusCoreComponentsFactoryArgs {
+func GetStatusCoreArgs(
+	cfg config.Config,
+	coreComponents factory.CoreComponentsHolder,
+) statusCore.StatusCoreComponentsFactoryArgs {
 	return statusCore.StatusCoreComponentsFactoryArgs{
-		Config: GetGeneralConfig(),
+		Config: cfg,
 		EpochConfig: config.EpochConfig{
 			GasSchedule: config.GasScheduleConfig{
 				GasScheduleByEpochs: []config.GasScheduleByEpochs{
@@ -144,53 +175,31 @@ func GetStatusCoreArgs(coreComponents factory.CoreComponentsHolder) statusCore.S
 	}
 }
 
-// GetConsensusArgs -
-func GetConsensusArgs(shardCoordinator sharding.Coordinator) consensusComp.ConsensusComponentsFactoryArgs {
-	coreComponents := GetCoreComponents()
-	cryptoComponents := GetCryptoComponents(coreComponents)
-	networkComponents := GetNetworkComponents(cryptoComponents)
-	stateComponents := GetStateComponents(coreComponents, GetStatusCoreComponents())
-	dataComponents := GetDataComponents(coreComponents, shardCoordinator)
-	processComponents := GetProcessComponents(
-		shardCoordinator,
-		coreComponents,
-		networkComponents,
-		dataComponents,
-		cryptoComponents,
-		stateComponents,
-	)
-	statusComponents := GetStatusComponents(
-		coreComponents,
-		networkComponents,
-		stateComponents,
-		shardCoordinator,
-		processComponents.NodesCoordinator(),
-	)
-
-	args := spos.ScheduledProcessorWrapperArgs{
-		SyncTimer:                coreComponents.SyncTimer(),
-		Processor:                processComponents.BlockProcessor(),
-		RoundTimeDurationHandler: coreComponents.RoundHandler(),
+// GetStatusCoreComponents -
+func GetStatusCoreComponents(
+	cfg config.Config,
+	coreComponents factory.CoreComponentsHolder,
+) factory.StatusCoreComponentsHolder {
+	statusCoreArgs := GetStatusCoreArgs(cfg, coreComponents)
+	statusCoreFactory, err := statusCore.NewStatusCoreComponentsFactory(statusCoreArgs)
+	if err != nil {
+		log.Error("GetStatusCoreComponents NewStatusCoreComponentsFactory", "error", err.Error())
+		return nil
 	}
-	scheduledProcessor, _ := spos.NewScheduledProcessorWrapper(args)
 
-	return consensusComp.ConsensusComponentsFactoryArgs{
-		Config:               testscommon.GetGeneralConfig(),
-		FlagsConfig:          config.ContextFlagsConfig{},
-		BootstrapRoundIndex:  0,
-		CoreComponents:       coreComponents,
-		NetworkComponents:    networkComponents,
-		CryptoComponents:     cryptoComponents,
-		DataComponents:       dataComponents,
-		ProcessComponents:    processComponents,
-		StateComponents:      stateComponents,
-		StatusComponents:     statusComponents,
-		StatusCoreComponents: GetStatusCoreComponents(),
-		ScheduledProcessor:   scheduledProcessor,
-		RunTypeComponents:    GetRunTypeComponents(),
-		ExtraSignersHolder:   &subRoundsHolder.ExtraSignersHolderMock{},
-		SubRoundEndV2Creator: bls.NewSubRoundEndV2Creator(),
+	statusCoreComponents, err := statusCore.NewManagedStatusCoreComponents(statusCoreFactory)
+	if err != nil {
+		log.Error("GetStatusCoreComponents NewManagedStatusCoreComponents", "error", err.Error())
+		return nil
 	}
+
+	err = statusCoreComponents.Create()
+	if err != nil {
+		log.Error("GetStatusCoreComponents Create", "error", err.Error())
+		return nil
+	}
+
+	return statusCoreComponents
 }
 
 // GetCryptoArgs -
@@ -230,123 +239,231 @@ func GetCryptoArgs(coreComponents factory.CoreComponentsHolder) cryptoComp.Crypt
 	return args
 }
 
-// GetDataArgs -
-func GetDataArgs(coreComponents factory.CoreComponentsHolder, shardCoordinator sharding.Coordinator) dataComp.DataComponentsFactoryArgs {
-	runTypeComponents := GetRunTypeComponents()
-
-	return dataComp.DataComponentsFactoryArgs{
-		Config: testscommon.GetGeneralConfig(),
-		PrefsConfig: config.PreferencesConfig{
-			FullArchive: false,
-		},
-		ShardCoordinator:                shardCoordinator,
-		Core:                            coreComponents,
-		StatusCore:                      GetStatusCoreComponents(),
-		Crypto:                          GetCryptoComponents(coreComponents),
-		CurrentEpoch:                    0,
-		CreateTrieEpochRootHashStorer:   false,
-		NodeProcessingMode:              common.Normal,
-		FlagsConfigs:                    config.ContextFlagsConfig{},
-		AdditionalStorageServiceCreator: runTypeComponents.AdditionalStorageServiceCreator(),
-	}
-}
-
-// GetCoreComponents -
-func GetCoreComponents() factory.CoreComponentsHolder {
-	coreArgs := GetCoreArgs()
-	return createCoreComponents(coreArgs)
-}
-
-// GetSovereignCoreComponents -
-func GetSovereignCoreComponents() factory.CoreComponentsHolder {
-	coreArgs := GetCoreArgs()
-	coreArgs.NodesFilename = "../mock/testdata/sovereignNodesSetupMock.json"
-	coreArgs.GenesisNodesSetupFactory = sharding.NewSovereignGenesisNodesSetupFactory()
-	coreArgs.RatingsDataFactory = rating.NewSovereignRatingsDataFactory()
-	return createCoreComponents(coreArgs)
-}
-
-func createCoreComponents(coreArgs coreComp.CoreComponentsFactoryArgs) factory.CoreComponentsHolder {
-	coreComponentsFactory, _ := coreComp.NewCoreComponentsFactory(coreArgs)
-	coreComponents, err := coreComp.NewManagedCoreComponents(coreComponentsFactory)
+// GetCryptoComponents -
+func GetCryptoComponents(coreComponents factory.CoreComponentsHolder) factory.CryptoComponentsHolder {
+	cryptoArgs := GetCryptoArgs(coreComponents)
+	cryptoComponentsFactory, _ := cryptoComp.NewCryptoComponentsFactory(cryptoArgs)
+	cryptoComponents, err := cryptoComp.NewManagedCryptoComponents(cryptoComponentsFactory)
 	if err != nil {
-		fmt.Println("getCoreComponents NewManagedCoreComponents", "error", err.Error())
+		log.Error("getCryptoComponents NewManagedCryptoComponents", "error", err.Error())
 		return nil
 	}
-	err = coreComponents.Create()
+
+	err = cryptoComponents.Create()
 	if err != nil {
-		fmt.Println("getCoreComponents Create", "error", err.Error())
+		log.Error("getCryptoComponents Create", "error", err.Error())
+		return nil
 	}
-	return coreComponents
+	return cryptoComponents
+}
+
+func createAccounts() []genesis.InitialAccountHandler {
+	addrConverter, _ := commonFactory.NewPubkeyConverter(config.PubkeyConfig{
+		Length:          32,
+		Type:            "bech32",
+		SignatureLength: 0,
+		Hrp:             "erd",
+	})
+	acc1 := data.InitialAccount{
+		Address:      "erd1ulhw20j7jvgfgak5p05kv667k5k9f320sgef5ayxkt9784ql0zssrzyhjp",
+		Supply:       big.NewInt(0).Mul(big.NewInt(5000000), big.NewInt(1000000000000000000)),
+		Balance:      big.NewInt(0).Mul(big.NewInt(4997500), big.NewInt(1000000000000000000)),
+		StakingValue: big.NewInt(0).Mul(big.NewInt(2500), big.NewInt(1000000000000000000)),
+		Delegation: &data.DelegationData{
+			Address: "",
+			Value:   big.NewInt(0),
+		},
+	}
+	acc2 := data.InitialAccount{
+		Address:      "erd17c4fs6mz2aa2hcvva2jfxdsrdknu4220496jmswer9njznt22eds0rxlr4",
+		Supply:       big.NewInt(0).Mul(big.NewInt(5000000), big.NewInt(1000000000000000000)),
+		Balance:      big.NewInt(0).Mul(big.NewInt(4997500), big.NewInt(1000000000000000000)),
+		StakingValue: big.NewInt(0).Mul(big.NewInt(2500), big.NewInt(1000000000000000000)),
+		Delegation: &data.DelegationData{
+			Address: "",
+			Value:   big.NewInt(0),
+		},
+	}
+	acc3 := data.InitialAccount{
+		Address:      "erd10d2gufxesrp8g409tzxljlaefhs0rsgjle3l7nq38de59txxt8csj54cd3",
+		Supply:       big.NewInt(0).Mul(big.NewInt(10000000), big.NewInt(1000000000000000000)),
+		Balance:      big.NewInt(0).Mul(big.NewInt(9997500), big.NewInt(1000000000000000000)),
+		StakingValue: big.NewInt(0).Mul(big.NewInt(2500), big.NewInt(1000000000000000000)),
+		Delegation: &data.DelegationData{
+			Address: "",
+			Value:   big.NewInt(0),
+		},
+	}
+
+	acc1Bytes, _ := addrConverter.Decode(acc1.Address)
+	acc1.SetAddressBytes(acc1Bytes)
+	acc2Bytes, _ := addrConverter.Decode(acc2.Address)
+	acc2.SetAddressBytes(acc2Bytes)
+	acc3Bytes, _ := addrConverter.Decode(acc3.Address)
+	acc3.SetAddressBytes(acc3Bytes)
+
+	return []genesis.InitialAccountHandler{&acc1, &acc2, &acc3}
+}
+
+func createArgsRunTypeComponents(coreComponents factory.CoreComponentsHolder, cryptoComponents factory.CryptoComponentsHolder) runType.ArgsRunTypeComponents {
+	return runType.ArgsRunTypeComponents{
+		CoreComponents:   coreComponents,
+		CryptoComponents: cryptoComponents,
+		Configs: config.Configs{
+			EconomicsConfig: &config.EconomicsConfig{
+				GlobalSettings: config.GlobalSettings{
+					GenesisTotalSupply:          "20000000000000000000000000",
+					GenesisMintingSenderAddress: "erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3",
+				},
+			},
+		},
+		InitialAccounts: createAccounts(),
+	}
+}
+
+// GetRunTypeComponents -
+func GetRunTypeComponents(coreComponents factory.CoreComponentsHolder, cryptoComponents factory.CryptoComponentsHolder) factory.RunTypeComponentsHolder {
+	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory(createArgsRunTypeComponents(coreComponents, cryptoComponents))
+	managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(runTypeComponentsFactory)
+	if err != nil {
+		log.Error("getRunTypeComponents NewManagedRunTypeComponents", "error", err.Error())
+		return nil
+	}
+	err = managedRunTypeComponents.Create()
+	if err != nil {
+		log.Error("getRunTypeComponents Create", "error", err.Error())
+		return nil
+	}
+	return managedRunTypeComponents
+}
+
+func createSovRunTypeArgs(coreComponents factory.CoreComponentsHolder, cryptoComponents factory.CryptoComponentsHolder) runType.ArgsSovereignRunTypeComponents {
+	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory(createArgsRunTypeComponents(coreComponents, cryptoComponents))
+
+	return runType.ArgsSovereignRunTypeComponents{
+		RunTypeComponentsFactory: runTypeComponentsFactory,
+		Config: config.SovereignConfig{
+			GenesisConfig: config.GenesisConfig{
+				NativeESDT: "WEGLD-ab47da",
+			},
+		},
+		DataCodec:     &sovereign.DataCodecMock{},
+		TopicsChecker: &sovereign.TopicsCheckerMock{},
+	}
+}
+
+// GetSovereignRunTypeComponents -
+func GetSovereignRunTypeComponents(coreComponents factory.CoreComponentsHolder, cryptoComponents factory.CryptoComponentsHolder) factory.RunTypeComponentsHolder {
+	sovereignComponentsFactory, _ := runType.NewSovereignRunTypeComponentsFactory(createSovRunTypeArgs(coreComponents, cryptoComponents))
+	managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(sovereignComponentsFactory)
+	if err != nil {
+		log.Error("getRunTypeComponents NewManagedRunTypeComponents", "error", err.Error())
+		return nil
+	}
+	err = managedRunTypeComponents.Create()
+	if err != nil {
+		log.Error("getRunTypeComponents Create", "error", err.Error())
+		return nil
+	}
+	return managedRunTypeComponents
+}
+
+func GetRunTypeComponentsStub(rt factory.RunTypeComponentsHandler) *mainFactoryMocks.RunTypeComponentsStub {
+	return &mainFactoryMocks.RunTypeComponentsStub{
+		BlockChainHookHandlerFactory:        rt.BlockChainHookHandlerCreator(),
+		BlockProcessorFactory:               rt.BlockProcessorCreator(),
+		BlockTrackerFactory:                 rt.BlockTrackerCreator(),
+		BootstrapperFromStorageFactory:      rt.BootstrapperFromStorageCreator(),
+		EpochStartBootstrapperFactory:       rt.EpochStartBootstrapperCreator(),
+		ForkDetectorFactory:                 rt.ForkDetectorCreator(),
+		HeaderValidatorFactory:              rt.HeaderValidatorCreator(),
+		RequestHandlerFactory:               rt.RequestHandlerCreator(),
+		ScheduledTxsExecutionFactory:        rt.ScheduledTxsExecutionCreator(),
+		TransactionCoordinatorFactory:       rt.TransactionCoordinatorCreator(),
+		ValidatorStatisticsProcessorFactory: rt.ValidatorStatisticsProcessorCreator(),
+		AdditionalStorageServiceFactory:     rt.AdditionalStorageServiceCreator(),
+		SCProcessorFactory:                  rt.SCProcessorCreator(),
+		BootstrapperFactory:                 rt.BootstrapperCreator(),
+		SCResultsPreProcessorFactory:        rt.SCResultsPreProcessorCreator(),
+		AccountParser:                       rt.AccountsParser(),
+		AccountCreator:                      rt.AccountsCreator(),
+		ConsensusModelType:                  rt.ConsensusModel(),
+		VmContainerMetaFactory:              rt.VmContainerMetaFactoryCreator(),
+		VmContainerShardFactory:             rt.VmContainerShardFactoryCreator(),
+		OutGoingOperationsPool:              rt.OutGoingOperationsPoolHandler(),
+		DataCodec:                           rt.DataCodecHandler(),
+		TopicsChecker:                       rt.TopicsCheckerHandler(),
+		ShardCoordinatorFactory:             rt.ShardCoordinatorCreator(),
+		NodesCoordinatorWithRaterFactory:    rt.NodesCoordinatorWithRaterCreator(),
+		RequestersContainerFactory:          rt.RequestersContainerFactoryCreator(),
+		InterceptorsContainerFactory:        rt.InterceptorsContainerFactoryCreator(),
+		ShardResolversContainerFactory:      rt.ShardResolversContainerFactoryCreator(),
+		TxPreProcessorFactory:               rt.TxPreProcessorCreator(),
+		ExtraHeaderSigVerifier:              rt.ExtraHeaderSigVerifierHandler(),
+		GenesisBlockFactory:                 rt.GenesisBlockCreatorFactory(),
+		GenesisMetaBlockChecker:             rt.GenesisMetaBlockCheckerCreator(),
+	}
 }
 
 // GetNetworkFactoryArgs -
-func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
-	p2pCfg := p2pConfig.P2PConfig{
-		Node: p2pConfig.NodeConfig{
-			Port: "0",
-			Transports: p2pConfig.P2PTransportConfig{
-				TCP: p2pConfig.P2PTCPTransport{
-					ListenAddress: p2p.LocalHostListenAddrWithIp4AndTcp,
+func GetNetworkFactoryArgs(cryptoComponents factory.CryptoComponentsHolder) networkComp.NetworkComponentsFactoryArgs {
+	return networkComp.NetworkComponentsFactoryArgs{
+		MainP2pConfig: p2pConfig.P2PConfig{
+			Node: p2pConfig.NodeConfig{
+				Port: "0",
+				Transports: p2pConfig.P2PTransportConfig{
+					TCP: p2pConfig.P2PTCPTransport{
+						ListenAddress: p2p.LocalHostListenAddrWithIp4AndTcp,
+					},
+				},
+				ResourceLimiter: p2pConfig.P2PResourceLimiterConfig{
+					Type: p2p.DefaultWithScaleResourceLimiter,
 				},
 			},
-			ResourceLimiter: p2pConfig.P2PResourceLimiterConfig{
-				Type: p2p.DefaultWithScaleResourceLimiter,
+			KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{
+				Enabled:                          false,
+				Type:                             "optimized",
+				RefreshIntervalInSec:             10,
+				ProtocolIDs:                      []string{"erd/kad/1.0.0"},
+				InitialPeerList:                  []string{"peer0", "peer1"},
+				BucketSize:                       10,
+				RoutingTableRefreshIntervalInSec: 5,
+			},
+			Sharding: p2pConfig.ShardingConfig{
+				TargetPeerCount:         10,
+				MaxIntraShardValidators: 10,
+				MaxCrossShardValidators: 10,
+				MaxIntraShardObservers:  10,
+				MaxCrossShardObservers:  10,
+				MaxSeeders:              2,
+				Type:                    "NilListSharder",
 			},
 		},
-		KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{
-			Enabled:                          false,
-			Type:                             "optimized",
-			RefreshIntervalInSec:             10,
-			ProtocolIDs:                      []string{"erd/kad/1.0.0"},
-			InitialPeerList:                  []string{"peer0", "peer1"},
-			BucketSize:                       10,
-			RoutingTableRefreshIntervalInSec: 5,
-		},
-		Sharding: p2pConfig.ShardingConfig{
-			TargetPeerCount:         10,
-			MaxIntraShardValidators: 10,
-			MaxCrossShardValidators: 10,
-			MaxIntraShardObservers:  10,
-			MaxCrossShardObservers:  10,
-			MaxSeeders:              2,
-			Type:                    "NilListSharder",
-		},
-	}
-
-	mainConfig := config.Config{
-		PeerHonesty: config.CacheConfig{
-			Type:     "LRU",
-			Capacity: 5000,
-			Shards:   16,
-		},
-		Debug: config.DebugConfig{
-			Antiflood: config.AntifloodDebugConfig{
-				Enabled:                    true,
-				CacheSize:                  100,
-				IntervalAutoPrintInSeconds: 1,
-			},
-		},
-		PeersRatingConfig: config.PeersRatingConfig{
-			TopRatedCacheCapacity: 1000,
-			BadRatedCacheCapacity: 1000,
-		},
-		PoolsCleanersConfig: config.PoolsCleanersConfig{
-			MaxRoundsToKeepUnprocessedMiniBlocks:   50,
-			MaxRoundsToKeepUnprocessedTransactions: 50,
-		},
-	}
-
-	appStatusHandler := statusHandlerMock.NewAppStatusHandlerMock()
-
-	cryptoCompMock := GetDefaultCryptoComponents()
-
-	return networkComp.NetworkComponentsFactoryArgs{
-		MainP2pConfig:     p2pCfg,
 		NodeOperationMode: common.NormalOperation,
-		MainConfig:        mainConfig,
-		StatusHandler:     appStatusHandler,
-		Marshalizer:       &mock.MarshalizerMock{},
+		MainConfig: config.Config{
+			PeerHonesty: config.CacheConfig{
+				Type:     "LRU",
+				Capacity: 5000,
+				Shards:   16,
+			},
+			Debug: config.DebugConfig{
+				Antiflood: config.AntifloodDebugConfig{
+					Enabled:                    true,
+					CacheSize:                  100,
+					IntervalAutoPrintInSeconds: 1,
+				},
+			},
+			PeersRatingConfig: config.PeersRatingConfig{
+				TopRatedCacheCapacity: 1000,
+				BadRatedCacheCapacity: 1000,
+			},
+			PoolsCleanersConfig: config.PoolsCleanersConfig{
+				MaxRoundsToKeepUnprocessedMiniBlocks:   50,
+				MaxRoundsToKeepUnprocessedTransactions: 50,
+			},
+		},
+		StatusHandler: statusHandlerMock.NewAppStatusHandlerMock(),
+		Marshalizer:   &mock.MarshalizerMock{},
 		RatingsConfig: config.RatingsConfig{
 			General:    config.General{},
 			ShardChain: config.ShardChain{},
@@ -361,85 +478,40 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 			},
 		},
 		Syncer:           &p2pFactory.LocalSyncTimer{},
-		CryptoComponents: cryptoCompMock,
+		CryptoComponents: cryptoComponents,
 	}
 }
 
-// GetStateFactoryArgs -
-func GetStateFactoryArgs(coreComponents factory.CoreComponentsHolder, statusCoreComp factory.StatusCoreComponentsHolder) stateComp.StateComponentsFactoryArgs {
-	tsm, _ := trie.NewTrieStorageManager(storage.GetStorageManagerArgs())
-	storageManagerUser, _ := trie.NewTrieStorageManagerWithoutPruning(tsm)
-	tsm, _ = trie.NewTrieStorageManager(storage.GetStorageManagerArgs())
-	storageManagerPeer, _ := trie.NewTrieStorageManagerWithoutPruning(tsm)
-
-	trieStorageManagers := make(map[string]common.StorageManager)
-	trieStorageManagers[dataRetriever.UserAccountsUnit.String()] = storageManagerUser
-	trieStorageManagers[dataRetriever.PeerAccountsUnit.String()] = storageManagerPeer
-
-	triesHolder := state.NewDataTriesHolder()
-	trieUsers, _ := trie.NewTrie(storageManagerUser, coreComponents.InternalMarshalizer(), coreComponents.Hasher(), coreComponents.EnableEpochsHandler(), 5)
-	triePeers, _ := trie.NewTrie(storageManagerPeer, coreComponents.InternalMarshalizer(), coreComponents.Hasher(), coreComponents.EnableEpochsHandler(), 5)
-	triesHolder.Put([]byte(dataRetriever.UserAccountsUnit.String()), trieUsers)
-	triesHolder.Put([]byte(dataRetriever.PeerAccountsUnit.String()), triePeers)
-
-	stateComponentsFactoryArgs := stateComp.StateComponentsFactoryArgs{
-		Config:          GetGeneralConfig(),
-		Core:            coreComponents,
-		StatusCore:      statusCoreComp,
-		StorageService:  disabled.NewChainStorer(),
-		ProcessingMode:  common.Normal,
-		ChainHandler:    &testscommon.ChainHandlerStub{},
-		AccountsCreator: GetRunTypeComponents().AccountsCreator(),
+// GetNetworkComponents -
+func GetNetworkComponents(cryptoComponents factory.CryptoComponentsHolder) factory.NetworkComponentsHolder {
+	networkArgs := GetNetworkFactoryArgs(cryptoComponents)
+	networkComponentsFactory, _ := networkComp.NewNetworkComponentsFactory(networkArgs)
+	networkComponents, err := networkComp.NewManagedNetworkComponents(networkComponentsFactory)
+	if err != nil {
+		log.Error("GetNetworkComponents NewManagedNetworkComponents", "error", err.Error())
+		return nil
 	}
 
-	return stateComponentsFactoryArgs
-}
+	err = networkComponents.Create()
+	if err != nil {
+		log.Error("GetNetworkComponents Create", "error", err.Error())
+		return nil
+	}
 
-// GetProcessComponentsFactoryArgs -
-func GetProcessComponentsFactoryArgs(shardCoordinator sharding.Coordinator) processComp.ProcessComponentsFactoryArgs {
-	coreComponents := GetCoreComponents()
-	cryptoComponents := GetCryptoComponents(coreComponents)
-	networkComponents := GetNetworkComponents(cryptoComponents)
-	dataComponents := GetDataComponents(coreComponents, shardCoordinator)
-	stateComponents := GetStateComponents(coreComponents, GetStatusCoreComponents())
-	processArgs := GetProcessArgs(
-		shardCoordinator,
-		coreComponents,
-		dataComponents,
-		cryptoComponents,
-		stateComponents,
-		networkComponents,
-	)
-	return processArgs
-}
-
-// GetSovereignProcessComponentsFactoryArgs -
-func GetSovereignProcessComponentsFactoryArgs(shardCoordinator sharding.Coordinator) processComp.ProcessComponentsFactoryArgs {
-	coreComponents := GetSovereignCoreComponents()
-	cryptoComponents := GetCryptoComponents(coreComponents)
-	networkComponents := GetNetworkComponents(cryptoComponents)
-	dataComponents := GetSovereignDataComponents(coreComponents, shardCoordinator)
-	stateComponents := GetSovereignStateComponents(coreComponents, GetSovereignStatusCoreComponents())
-	processArgs := GetSovereignProcessArgs(
-		shardCoordinator,
-		coreComponents,
-		dataComponents,
-		cryptoComponents,
-		stateComponents,
-		networkComponents,
-	)
-
-	return processArgs
+	return networkComponents
 }
 
 // GetBootStrapFactoryArgs -
-func GetBootStrapFactoryArgs() bootstrapComp.BootstrapComponentsFactoryArgs {
-	coreComponents := GetCoreComponents()
-	cryptoComponents := GetCryptoComponents(coreComponents)
-	networkComponents := GetNetworkComponents(cryptoComponents)
-	statusCoreComponents := GetStatusCoreComponents()
+func GetBootStrapFactoryArgs(
+	cfg config.Config,
+	statusCoreComponents factory.StatusCoreComponentsHolder,
+	coreComponents factory.CoreComponentsHolder,
+	cryptoComponents factory.CryptoComponentsHolder,
+	networkComponents factory.NetworkComponentsHolder,
+	runTypeComponents factory.RunTypeComponentsHolder,
+) bootstrapComp.BootstrapComponentsFactoryArgs {
 	return bootstrapComp.BootstrapComponentsFactoryArgs{
-		Config:               testscommon.GetGeneralConfig(),
+		Config:               cfg,
 		WorkingDir:           "home",
 		CoreComponents:       coreComponents,
 		CryptoComponents:     cryptoComponents,
@@ -458,18 +530,243 @@ func GetBootStrapFactoryArgs() bootstrapComp.BootstrapComponentsFactoryArgs {
 		FlagsConfig: config.ContextFlagsConfig{
 			ForceStartFromNetwork: false,
 		},
-		RunTypeComponents: GetRunTypeComponents(),
+		RunTypeComponents: runTypeComponents,
 	}
 }
 
-// GetProcessArgs -
-func GetProcessArgs(
-	shardCoordinator sharding.Coordinator,
+func GetBootstrapComponents(
+	cfg config.Config,
+	statusCoreComponents factory.StatusCoreComponentsHolder,
+	coreComponents factory.CoreComponentsHolder,
+	cryptoComponents factory.CryptoComponentsHolder,
+	networkComponents factory.NetworkComponentsHolder,
+	runTypeComponents factory.RunTypeComponentsHolder,
+) factory.BootstrapComponentsHolder {
+	bootstrapComponentsFactoryArgs := GetBootStrapFactoryArgs(cfg, statusCoreComponents, coreComponents, cryptoComponents, networkComponents, runTypeComponents)
+	bootstrapComponentsFactory, _ := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
+
+	bootstrapComponents, err := bootstrapComp.NewTestManagedBootstrapComponents(bootstrapComponentsFactory)
+	if err != nil {
+		log.Error("GetBootstrapComponents NewTestManagedBootstrapComponents", "error", err.Error())
+		return nil
+	}
+
+	err = bootstrapComponents.Create()
+	if err != nil {
+		log.Error("GetBootstrapComponents Create", "error", err.Error())
+		return nil
+	}
+
+	return bootstrapComponents
+}
+
+// GetDataArgs -
+func GetDataArgs(
+	cfg config.Config,
+	statusCoreComponents factory.StatusCoreComponentsHolder,
+	coreComponents factory.CoreComponentsHolder,
+	bootstrapComponents factory.BootstrapComponentsHolder,
+	cryptoComponents factory.CryptoComponentsHolder,
+	runTypeComponents factory.RunTypeComponentsHolder,
+) dataComp.DataComponentsFactoryArgs {
+	return dataComp.DataComponentsFactoryArgs{
+		Config: cfg,
+		PrefsConfig: config.PreferencesConfig{
+			FullArchive: false,
+		},
+		ShardCoordinator:                bootstrapComponents.ShardCoordinator(),
+		Core:                            coreComponents,
+		StatusCore:                      statusCoreComponents,
+		Crypto:                          cryptoComponents,
+		CurrentEpoch:                    0,
+		CreateTrieEpochRootHashStorer:   false,
+		NodeProcessingMode:              common.Normal,
+		FlagsConfigs:                    config.ContextFlagsConfig{},
+		AdditionalStorageServiceCreator: runTypeComponents.AdditionalStorageServiceCreator(),
+	}
+}
+
+// GetDataComponents -
+func GetDataComponents(
+	cfg config.Config,
+	statusCoreComponents factory.StatusCoreComponentsHolder,
+	coreComponents factory.CoreComponentsHolder,
+	bootstrapComponents factory.BootstrapComponentsHolder,
+	cryptoComponents factory.CryptoComponentsHolder,
+	runTypeComponents factory.RunTypeComponentsHolder,
+) factory.DataComponentsHolder {
+	dataArgs := GetDataArgs(cfg, statusCoreComponents, coreComponents, bootstrapComponents, cryptoComponents, runTypeComponents)
+	dataComponentsFactory, _ := dataComp.NewDataComponentsFactory(dataArgs)
+
+	dataComponents, err := dataComp.NewManagedDataComponents(dataComponentsFactory)
+	if err != nil {
+		log.Error("GetDataComponents NewManagedDataComponents", "error", err.Error())
+		return nil
+	}
+
+	err = dataComponents.Create()
+	if err != nil {
+		log.Error("GetDataComponents Create", "error", err.Error())
+		return nil
+	}
+	return dataComponents
+}
+
+// GetStateFactoryArgs -
+func GetStateFactoryArgs(
+	cfg config.Config,
 	coreComponents factory.CoreComponentsHolder,
 	dataComponents factory.DataComponentsHolder,
-	cryptoComponents factory.CryptoComponentsHolder,
-	stateComponents factory.StateComponentsHolder,
+	statusCoreComponents factory.StatusCoreComponentsHolder,
+	runTypeComponents factory.RunTypeComponentsHolder,
+) stateComp.StateComponentsFactoryArgs {
+	tsm, _ := trie.NewTrieStorageManager(storage.GetStorageManagerArgs())
+	storageManagerUser, _ := trie.NewTrieStorageManagerWithoutPruning(tsm)
+	tsm, _ = trie.NewTrieStorageManager(storage.GetStorageManagerArgs())
+	storageManagerPeer, _ := trie.NewTrieStorageManagerWithoutPruning(tsm)
+
+	trieStorageManagers := make(map[string]common.StorageManager)
+	trieStorageManagers[dataRetriever.UserAccountsUnit.String()] = storageManagerUser
+	trieStorageManagers[dataRetriever.PeerAccountsUnit.String()] = storageManagerPeer
+
+	triesHolder := state.NewDataTriesHolder()
+	trieUsers, _ := trie.NewTrie(storageManagerUser, coreComponents.InternalMarshalizer(), coreComponents.Hasher(), coreComponents.EnableEpochsHandler(), 5)
+	triePeers, _ := trie.NewTrie(storageManagerPeer, coreComponents.InternalMarshalizer(), coreComponents.Hasher(), coreComponents.EnableEpochsHandler(), 5)
+	triesHolder.Put([]byte(dataRetriever.UserAccountsUnit.String()), trieUsers)
+	triesHolder.Put([]byte(dataRetriever.PeerAccountsUnit.String()), triePeers)
+
+	stateComponentsFactoryArgs := stateComp.StateComponentsFactoryArgs{
+		Config:          cfg,
+		Core:            coreComponents,
+		StatusCore:      statusCoreComponents,
+		StorageService:  disabled.NewChainStorer(),
+		ProcessingMode:  common.Normal,
+		ChainHandler:    dataComponents.Blockchain(),
+		AccountsCreator: runTypeComponents.AccountsCreator(),
+	}
+
+	return stateComponentsFactoryArgs
+}
+
+// GetStateComponents -
+func GetStateComponents(
+	cfg config.Config,
+	coreComponents factory.CoreComponentsHolder,
+	dataComponents factory.DataComponentsHolder,
+	statusCoreComponents factory.StatusCoreComponentsHolder,
+	runTypeComponents factory.RunTypeComponentsHolder,
+) factory.StateComponentsHolder {
+	stateArgs := GetStateFactoryArgs(cfg, coreComponents, dataComponents, statusCoreComponents, runTypeComponents)
+	stateComponentsFactory, err := stateComp.NewStateComponentsFactory(stateArgs)
+	if err != nil {
+		log.Error("GetStateComponents NewStateComponentsFactory", "error", err.Error())
+		return nil
+	}
+
+	stateComponents, err := stateComp.NewManagedStateComponents(stateComponentsFactory)
+	if err != nil {
+		log.Error("GetStateComponents NewManagedStateComponents", "error", err.Error())
+		return nil
+	}
+	err = stateComponents.Create()
+	if err != nil {
+		log.Error("GetStateComponents Create", "error", err.Error())
+		return nil
+	}
+	return stateComponents
+}
+
+func GetStatusFactoryArgs(
+	cfg config.Config,
+	statusCoreComponents factory.StatusCoreComponentsHolder,
+	coreComponents factory.CoreComponentsHolder,
 	networkComponents factory.NetworkComponentsHolder,
+	bootstrapComponents factory.BootstrapComponentsHolder,
+	stateComponents factory.StateComponentsHolder,
+	nodesCoordinator nodesCoordinator.NodesCoordinator,
+	cryptoComponents factory.CryptoComponentsHolder,
+) statusComp.StatusComponentsFactoryArgs {
+	indexerURL := "url"
+	elasticUsername := "user"
+	elasticPassword := "pass"
+	return statusComp.StatusComponentsFactoryArgs{
+		Config: cfg,
+		ExternalConfig: config.ExternalConfig{
+			ElasticSearchConnector: config.ElasticSearchConfig{
+				Enabled:        false,
+				URL:            indexerURL,
+				Username:       elasticUsername,
+				Password:       elasticPassword,
+				EnabledIndexes: []string{"transactions", "blocks"},
+			},
+			EventNotifierConnector: config.EventNotifierConfig{
+				Enabled:           false,
+				ProxyUrl:          "http://localhost:5000",
+				RequestTimeoutSec: 30,
+				MarshallerType:    "json",
+			},
+			HostDriversConfig: []config.HostDriversConfig{
+				{
+					MarshallerType:     "json",
+					Mode:               "client",
+					URL:                "localhost:12345",
+					RetryDurationInSec: 1,
+				},
+			},
+		},
+		EconomicsConfig:      config.EconomicsConfig{},
+		ShardCoordinator:     bootstrapComponents.ShardCoordinator(),
+		NodesCoordinator:     nodesCoordinator,
+		EpochStartNotifier:   coreComponents.EpochStartNotifierWithConfirm(),
+		CoreComponents:       coreComponents,
+		NetworkComponents:    networkComponents,
+		StateComponents:      stateComponents,
+		IsInImportMode:       false,
+		StatusCoreComponents: statusCoreComponents,
+		CryptoComponents:     cryptoComponents,
+	}
+}
+
+// GetStatusComponents -
+func GetStatusComponents(
+	cfg config.Config,
+	statusCoreComponents factory.StatusCoreComponentsHolder,
+	coreComponents factory.CoreComponentsHolder,
+	networkComponents factory.NetworkComponentsHolder,
+	bootstrapComponents factory.BootstrapComponentsHolder,
+	stateComponents factory.StateComponentsHolder,
+	nodesCoordinator nodesCoordinator.NodesCoordinator,
+	cryptoComponents factory.CryptoComponentsHolder,
+) factory.StatusComponentsHandler {
+	statusArgs := GetStatusFactoryArgs(cfg, statusCoreComponents, coreComponents, networkComponents, bootstrapComponents, stateComponents, nodesCoordinator, cryptoComponents)
+	statusComponentsFactory, _ := statusComp.NewStatusComponentsFactory(statusArgs)
+
+	managedStatusComponents, err := statusComp.NewManagedStatusComponents(statusComponentsFactory)
+	if err != nil {
+		log.Error("getStatusComponents NewManagedStatusComponents", "error", err.Error())
+		return nil
+	}
+
+	err = managedStatusComponents.Create()
+	if err != nil {
+		log.Error("getStatusComponents Create", "error", err.Error())
+		return nil
+	}
+	return managedStatusComponents
+}
+
+// GetProcessFactoryArgs -
+func GetProcessFactoryArgs(
+	cfg config.Config,
+	runTypeComponents factory.RunTypeComponentsHolder,
+	coreComponents factory.CoreComponentsHolder,
+	cryptoComponents factory.CryptoComponentsHolder,
+	networkComponents factory.NetworkComponentsHolder,
+	bootstrapComponents factory.BootstrapComponentsHolder,
+	stateComponents factory.StateComponentsHolder,
+	dataComponents factory.DataComponentsHolder,
+	statusComponents factory.StatusComponentsHolder,
+	statusCoreComponents factory.StatusCoreComponentsHolder,
 ) processComp.ProcessComponentsFactoryArgs {
 	gasSchedule := wasmConfig.MakeGasMapForTests()
 	// TODO: check if these could be initialized by MakeGasMapForTests()
@@ -483,26 +780,11 @@ func GetProcessArgs(
 		GasSchedule: gasSchedule,
 	}
 
-	nc := &shardingMocks.NodesCoordinatorMock{}
-	statusComponents := GetStatusComponents(
-		coreComponents,
-		networkComponents,
-		stateComponents,
-		shardCoordinator,
-		nc,
-	)
-
-	bootstrapComponentsFactoryArgs := GetBootStrapFactoryArgs()
-	bootstrapComponentsFactory, _ := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
-	bootstrapComponents, _ := bootstrapComp.NewTestManagedBootstrapComponents(bootstrapComponentsFactory)
-	_ = bootstrapComponents.Create()
-	_ = bootstrapComponents.SetShardCoordinator(shardCoordinator)
-
 	args := processComp.ProcessComponentsFactoryArgs{
-		Config:                 testscommon.GetGeneralConfig(),
+		Config:                 cfg,
 		SmartContractParser:    &mock.SmartContractParserStub{},
 		GasSchedule:            gasScheduleNotifier,
-		NodesCoordinator:       nc,
+		NodesCoordinator:       &shardingMocks.NodesCoordinatorMock{},
 		Data:                   dataComponents,
 		CoreData:               coreComponents,
 		Crypto:                 cryptoComponents,
@@ -510,7 +792,7 @@ func GetProcessArgs(
 		Network:                networkComponents,
 		StatusComponents:       statusComponents,
 		BootstrapComponents:    bootstrapComponents,
-		StatusCoreComponents:   GetStatusCoreComponents(),
+		StatusCoreComponents:   statusCoreComponents,
 		RequestedItemsHandler:  &testscommon.RequestedItemsHandlerStub{},
 		WhiteListHandler:       &testscommon.WhiteListHandlerStub{},
 		WhiteListerVerifiedTxs: &testscommon.WhiteListHandlerStub{},
@@ -586,11 +868,12 @@ func GetProcessArgs(
 				},
 			},
 		},
+		IncomingHeaderSubscriber: &sovereign.IncomingHeaderSubscriberStub{},
 	}
 
 	initialAccounts := createAccounts()
-	runTypeComponents := GetRunTypeComponentsStub(GetRunTypeComponents())
-	runTypeComponents.AccountParser = &mock.AccountsParserStub{
+	runTypeComp := GetRunTypeComponentsStub(runTypeComponents)
+	runTypeComp.AccountParser = &mock.AccountsParserStub{
 		InitialAccountsCalled: func() []genesis.InitialAccountHandler {
 			return initialAccounts
 		},
@@ -609,312 +892,24 @@ func GetProcessArgs(
 		},
 	}
 
-	args.RunTypeComponents = runTypeComponents
+	args.RunTypeComponents = runTypeComp
 	return args
-}
-
-func GetSovereignProcessArgs(
-	shardCoordinator sharding.Coordinator,
-	coreComponents factory.CoreComponentsHolder,
-	dataComponents factory.DataComponentsHolder,
-	cryptoComponents factory.CryptoComponentsHolder,
-	stateComponents factory.StateComponentsHolder,
-	networkComponents factory.NetworkComponentsHolder,
-) processComp.ProcessComponentsFactoryArgs {
-	processArgs := GetProcessArgs(
-		shardCoordinator,
-		coreComponents,
-		dataComponents,
-		cryptoComponents,
-		stateComponents,
-		networkComponents,
-	)
-
-	initialAccounts := createSovereignAccounts()
-	runTypeComponents := GetRunTypeComponentsStub(GetSovereignRunTypeComponents())
-	runTypeComponents.AccountParser = &mock.AccountsParserStub{
-		InitialAccountsCalled: func() []genesis.InitialAccountHandler {
-			return initialAccounts
-		},
-		GenerateInitialTransactionsCalled: func(shardCoordinator sharding.Coordinator, initialIndexingData map[uint32]*genesis.IndexingData) ([]*block.MiniBlock, map[uint32]*outport.TransactionPool, error) {
-			txsPool := make(map[uint32]*outport.TransactionPool)
-			for i := uint32(0); i < shardCoordinator.NumberOfShards(); i++ {
-				txsPool[i] = &outport.TransactionPool{}
-			}
-
-			return make([]*block.MiniBlock, 4), txsPool, nil
-		},
-		InitialAccountsSplitOnAddressesShardsCalled: func(shardCoordinator sharding.Coordinator) (map[uint32][]genesis.InitialAccountHandler, error) {
-			return map[uint32][]genesis.InitialAccountHandler{
-				0: initialAccounts,
-			}, nil
-		},
-	}
-
-	bootstrapComponentsFactoryArgs := GetBootStrapFactoryArgs()
-	bootstrapComponentsFactoryArgs.RunTypeComponents = runTypeComponents
-	bootstrapComponentsFactory, _ := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
-	bootstrapComponents, _ := bootstrapComp.NewTestManagedBootstrapComponents(bootstrapComponentsFactory)
-	_ = bootstrapComponents.Create()
-	_ = bootstrapComponents.SetShardCoordinator(shardCoordinator)
-
-	statusCoreComponents := GetSovereignStatusCoreComponents()
-
-	processArgs.BootstrapComponents = bootstrapComponents
-	processArgs.StatusCoreComponents = statusCoreComponents
-	processArgs.IncomingHeaderSubscriber = &sovereign.IncomingHeaderSubscriberStub{}
-	processArgs.RunTypeComponents = runTypeComponents
-
-	return processArgs
-}
-
-// GetStatusComponents -
-func GetStatusComponents(
-	coreComponents factory.CoreComponentsHolder,
-	networkComponents factory.NetworkComponentsHolder,
-	stateComponents factory.StateComponentsHolder,
-	shardCoordinator sharding.Coordinator,
-	nodesCoordinator nodesCoordinator.NodesCoordinator,
-) factory.StatusComponentsHandler {
-	indexerURL := "url"
-	elasticUsername := "user"
-	elasticPassword := "pass"
-	statusArgs := statusComp.StatusComponentsFactoryArgs{
-		Config: testscommon.GetGeneralConfig(),
-		ExternalConfig: config.ExternalConfig{
-			ElasticSearchConnector: config.ElasticSearchConfig{
-				Enabled:        false,
-				URL:            indexerURL,
-				Username:       elasticUsername,
-				Password:       elasticPassword,
-				EnabledIndexes: []string{"transactions", "blocks"},
-			},
-			EventNotifierConnector: config.EventNotifierConfig{
-				Enabled:        false,
-				ProxyUrl:       "https://localhost:5000",
-				MarshallerType: "json",
-			},
-		},
-		EconomicsConfig:      config.EconomicsConfig{},
-		ShardCoordinator:     shardCoordinator,
-		NodesCoordinator:     nodesCoordinator,
-		EpochStartNotifier:   coreComponents.EpochStartNotifierWithConfirm(),
-		CoreComponents:       coreComponents,
-		NetworkComponents:    networkComponents,
-		StateComponents:      stateComponents,
-		IsInImportMode:       false,
-		StatusCoreComponents: GetStatusCoreComponents(),
-		CryptoComponents:     GetDefaultCryptoComponents(),
-	}
-
-	statusComponentsFactory, _ := statusComp.NewStatusComponentsFactory(statusArgs)
-	managedStatusComponents, err := statusComp.NewManagedStatusComponents(statusComponentsFactory)
-	if err != nil {
-		log.Error("getStatusComponents NewManagedStatusComponents", "error", err.Error())
-		return nil
-	}
-	err = managedStatusComponents.Create()
-	if err != nil {
-		log.Error("getStatusComponents Create", "error", err.Error())
-		return nil
-	}
-	return managedStatusComponents
-}
-
-// GetStatusComponentsFactoryArgsAndProcessComponents -
-func GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator sharding.Coordinator) (statusComp.StatusComponentsFactoryArgs, factory.ProcessComponentsHolder) {
-	coreComponents := GetCoreComponents()
-	cryptoComponents := GetCryptoComponents(coreComponents)
-	networkComponents := GetNetworkComponents(cryptoComponents)
-	dataComponents := GetDataComponents(coreComponents, shardCoordinator)
-	stateComponents := GetStateComponents(coreComponents, GetStatusCoreComponents())
-	processComponents := GetProcessComponents(
-		shardCoordinator,
-		coreComponents,
-		networkComponents,
-		dataComponents,
-		cryptoComponents,
-		stateComponents,
-	)
-	statusCoreComponents := GetStatusCoreComponents()
-
-	indexerURL := "url"
-	elasticUsername := "user"
-	elasticPassword := "pass"
-	return statusComp.StatusComponentsFactoryArgs{
-		Config: testscommon.GetGeneralConfig(),
-		ExternalConfig: config.ExternalConfig{
-			ElasticSearchConnector: config.ElasticSearchConfig{
-				Enabled:        false,
-				URL:            indexerURL,
-				Username:       elasticUsername,
-				Password:       elasticPassword,
-				EnabledIndexes: []string{"transactions", "blocks"},
-			},
-			EventNotifierConnector: config.EventNotifierConfig{
-				Enabled:           false,
-				ProxyUrl:          "http://localhost:5000",
-				RequestTimeoutSec: 30,
-				MarshallerType:    "json",
-			},
-			HostDriversConfig: []config.HostDriversConfig{
-				{
-					MarshallerType:     "json",
-					Mode:               "client",
-					URL:                "localhost:12345",
-					RetryDurationInSec: 1,
-				},
-			},
-		},
-		EconomicsConfig:      config.EconomicsConfig{},
-		ShardCoordinator:     mock.NewMultiShardsCoordinatorMock(2),
-		NodesCoordinator:     &shardingMocks.NodesCoordinatorMock{},
-		EpochStartNotifier:   &mock.EpochStartNotifierStub{},
-		CoreComponents:       coreComponents,
-		NetworkComponents:    networkComponents,
-		StateComponents:      stateComponents,
-		StatusCoreComponents: statusCoreComponents,
-		IsInImportMode:       false,
-		CryptoComponents:     cryptoComponents,
-	}, processComponents
-}
-
-// GetNetworkComponents -
-func GetNetworkComponents(cryptoComp factory.CryptoComponentsHolder) factory.NetworkComponentsHolder {
-	networkArgs := GetNetworkFactoryArgs()
-	networkArgs.CryptoComponents = cryptoComp
-	networkComponentsFactory, _ := networkComp.NewNetworkComponentsFactory(networkArgs)
-	networkComponents, _ := networkComp.NewManagedNetworkComponents(networkComponentsFactory)
-
-	_ = networkComponents.Create()
-
-	return networkComponents
-}
-
-// GetDataComponents -
-func GetDataComponents(coreComponents factory.CoreComponentsHolder, shardCoordinator sharding.Coordinator) factory.DataComponentsHolder {
-	dataArgs := GetDataArgs(coreComponents, shardCoordinator)
-	return createDataComponents(dataArgs)
-}
-
-// GetSovereignDataComponents -
-func GetSovereignDataComponents(coreComponents factory.CoreComponentsHolder, shardCoordinator sharding.Coordinator) factory.DataComponentsHolder {
-	dataArgs := GetDataArgs(coreComponents, shardCoordinator)
-	dataArgs.Crypto = GetCryptoComponents(coreComponents)
-	dataArgs.StatusCore = GetSovereignStatusCoreComponents()
-	dataArgs.AdditionalStorageServiceCreator = GetSovereignRunTypeComponents().AdditionalStorageServiceCreator()
-	return createDataComponents(dataArgs)
-}
-
-func createDataComponents(dataArgs dataComp.DataComponentsFactoryArgs) factory.DataComponentsHolder {
-	dataComponentsFactory, _ := dataComp.NewDataComponentsFactory(dataArgs)
-	dataComponents, _ := dataComp.NewManagedDataComponents(dataComponentsFactory)
-	_ = dataComponents.Create()
-	return dataComponents
-}
-
-// GetCryptoComponents -
-func GetCryptoComponents(coreComponents factory.CoreComponentsHolder) factory.CryptoComponentsHolder {
-	cryptoArgs := GetCryptoArgs(coreComponents)
-	cryptoComponentsFactory, _ := cryptoComp.NewCryptoComponentsFactory(cryptoArgs)
-	cryptoComponents, err := cryptoComp.NewManagedCryptoComponents(cryptoComponentsFactory)
-	if err != nil {
-		log.Error("getCryptoComponents NewManagedCryptoComponents", "error", err.Error())
-		return nil
-	}
-
-	err = cryptoComponents.Create()
-	if err != nil {
-		log.Error("getCryptoComponents Create", "error", err.Error())
-		return nil
-	}
-	return cryptoComponents
-}
-
-// GetStateComponents -
-func GetStateComponents(coreComponents factory.CoreComponentsHolder, statusCoreComponents factory.StatusCoreComponentsHolder) factory.StateComponentsHolder {
-	stateArgs := GetStateFactoryArgs(coreComponents, statusCoreComponents)
-	return createStateComponents(stateArgs)
-}
-
-// GetSovereignStateComponents -
-func GetSovereignStateComponents(coreComponents factory.CoreComponentsHolder, statusCoreComponents factory.StatusCoreComponentsHolder) factory.StateComponentsHolder {
-	stateArgs := GetStateFactoryArgs(coreComponents, statusCoreComponents)
-	stateArgs.AccountsCreator = GetSovereignRunTypeComponents().AccountsCreator()
-	return createStateComponents(stateArgs)
-}
-
-func createStateComponents(stateArgs stateComp.StateComponentsFactoryArgs) factory.StateComponentsHolder {
-	stateComponentsFactory, err := stateComp.NewStateComponentsFactory(stateArgs)
-	if err != nil {
-		log.Error("GetStateComponents NewStateComponentsFactory", "error", err.Error())
-		return nil
-	}
-
-	stateComponents, err := stateComp.NewManagedStateComponents(stateComponentsFactory)
-	if err != nil {
-		log.Error("GetStateComponents NewManagedStateComponents", "error", err.Error())
-		return nil
-	}
-	err = stateComponents.Create()
-	if err != nil {
-		log.Error("GetStateComponents Create", "error", err.Error())
-		return nil
-	}
-	return stateComponents
-}
-
-// GetStatusCoreComponents -
-func GetStatusCoreComponents() factory.StatusCoreComponentsHolder {
-	args := GetStatusCoreArgs(GetCoreComponents())
-	return createStatusCoreComponents(args)
-}
-
-// GetSovereignStatusCoreComponents -
-func GetSovereignStatusCoreComponents() factory.StatusCoreComponentsHolder {
-	args := GetStatusCoreArgs(GetSovereignCoreComponents())
-	return createStatusCoreComponents(args)
-}
-
-func createStatusCoreComponents(args statusCore.StatusCoreComponentsFactoryArgs) factory.StatusCoreComponentsHolder {
-	statusCoreFactory, err := statusCore.NewStatusCoreComponentsFactory(args)
-	if err != nil {
-		log.Error("GetStatusCoreComponents NewStatusCoreComponentsFactory", "error", err.Error())
-		return nil
-	}
-
-	statusCoreComponents, err := statusCore.NewManagedStatusCoreComponents(statusCoreFactory)
-	if err != nil {
-		log.Error("GetStatusCoreComponents NewManagedStatusCoreComponents", "error", err.Error())
-		return nil
-	}
-
-	err = statusCoreComponents.Create()
-	if err != nil {
-		log.Error("GetStatusCoreComponents Create", "error", err.Error())
-		return nil
-	}
-
-	return statusCoreComponents
 }
 
 // GetProcessComponents -
 func GetProcessComponents(
-	shardCoordinator sharding.Coordinator,
+	cfg config.Config,
+	runTypeComponents factory.RunTypeComponentsHolder,
 	coreComponents factory.CoreComponentsHolder,
-	networkComponents factory.NetworkComponentsHolder,
-	dataComponents factory.DataComponentsHolder,
 	cryptoComponents factory.CryptoComponentsHolder,
+	networkComponents factory.NetworkComponentsHolder,
+	bootstrapComponents factory.BootstrapComponentsHolder,
 	stateComponents factory.StateComponentsHolder,
+	dataComponents factory.DataComponentsHolder,
+	statusComponents factory.StatusComponentsHolder,
+	statusCoreComponents factory.StatusCoreComponentsHolder,
 ) factory.ProcessComponentsHolder {
-	processArgs := GetProcessArgs(
-		shardCoordinator,
-		coreComponents,
-		dataComponents,
-		cryptoComponents,
-		stateComponents,
-		networkComponents,
-	)
+	processArgs := GetProcessFactoryArgs(cfg, runTypeComponents, coreComponents, cryptoComponents, networkComponents, bootstrapComponents, stateComponents, dataComponents, statusComponents, statusCoreComponents)
 	processComponentsFactory, _ := processComp.NewProcessComponentsFactory(processArgs)
 	managedProcessComponents, err := processComp.NewManagedProcessComponents(processComponentsFactory)
 	if err != nil {
@@ -929,228 +924,72 @@ func GetProcessComponents(
 	return managedProcessComponents
 }
 
-func createAccounts() []genesis.InitialAccountHandler {
-	addrConverter, _ := commonFactory.NewPubkeyConverter(config.PubkeyConfig{
-		Length:          32,
-		Type:            "bech32",
-		SignatureLength: 0,
-		Hrp:             "erd",
-	})
-	acc1 := data.InitialAccount{
-		Address:      "erd1ulhw20j7jvgfgak5p05kv667k5k9f320sgef5ayxkt9784ql0zssrzyhjp",
-		Supply:       big.NewInt(0).Mul(big.NewInt(5000000), big.NewInt(1000000000000000000)),
-		Balance:      big.NewInt(0).Mul(big.NewInt(4997500), big.NewInt(1000000000000000000)),
-		StakingValue: big.NewInt(0).Mul(big.NewInt(2500), big.NewInt(1000000000000000000)),
-		Delegation: &data.DelegationData{
-			Address: "",
-			Value:   big.NewInt(0),
-		},
+func GetConsensusFactoryArgs(
+	cfg config.Config,
+	runTypeComponents factory.RunTypeComponentsHolder,
+	coreComponents factory.CoreComponentsHolder,
+	cryptoComponents factory.CryptoComponentsHolder,
+	networkComponents factory.NetworkComponentsHolder,
+	stateComponents factory.StateComponentsHolder,
+	dataComponents factory.DataComponentsHolder,
+	statusComponents factory.StatusComponentsHolder,
+	statusCoreComponents factory.StatusCoreComponentsHolder,
+	processComponents factory.ProcessComponentsHolder,
+) consensusComp.ConsensusComponentsFactoryArgs {
+	args := spos.ScheduledProcessorWrapperArgs{
+		SyncTimer:                coreComponents.SyncTimer(),
+		Processor:                processComponents.BlockProcessor(),
+		RoundTimeDurationHandler: coreComponents.RoundHandler(),
 	}
-	acc2 := data.InitialAccount{
-		Address:      "erd17c4fs6mz2aa2hcvva2jfxdsrdknu4220496jmswer9njznt22eds0rxlr4",
-		Supply:       big.NewInt(0).Mul(big.NewInt(5000000), big.NewInt(1000000000000000000)),
-		Balance:      big.NewInt(0).Mul(big.NewInt(4997500), big.NewInt(1000000000000000000)),
-		StakingValue: big.NewInt(0).Mul(big.NewInt(2500), big.NewInt(1000000000000000000)),
-		Delegation: &data.DelegationData{
-			Address: "",
-			Value:   big.NewInt(0),
-		},
-	}
-	acc3 := data.InitialAccount{
-		Address:      "erd10d2gufxesrp8g409tzxljlaefhs0rsgjle3l7nq38de59txxt8csj54cd3",
-		Supply:       big.NewInt(0).Mul(big.NewInt(10000000), big.NewInt(1000000000000000000)),
-		Balance:      big.NewInt(0).Mul(big.NewInt(9997500), big.NewInt(1000000000000000000)),
-		StakingValue: big.NewInt(0).Mul(big.NewInt(2500), big.NewInt(1000000000000000000)),
-		Delegation: &data.DelegationData{
-			Address: "",
-			Value:   big.NewInt(0),
-		},
-	}
+	scheduledProcessor, _ := spos.NewScheduledProcessorWrapper(args)
 
-	acc1Bytes, _ := addrConverter.Decode(acc1.Address)
-	acc1.SetAddressBytes(acc1Bytes)
-	acc2Bytes, _ := addrConverter.Decode(acc2.Address)
-	acc2.SetAddressBytes(acc2Bytes)
-	acc3Bytes, _ := addrConverter.Decode(acc3.Address)
-	acc3.SetAddressBytes(acc3Bytes)
-
-	return []genesis.InitialAccountHandler{&acc1, &acc2, &acc3}
-}
-
-func createSovereignAccounts() []genesis.InitialAccountHandler {
-	addrConverter, _ := commonFactory.NewPubkeyConverter(config.PubkeyConfig{
-		Length:          32,
-		Type:            "bech32",
-		SignatureLength: 0,
-		Hrp:             "erd",
-	})
-	acc1 := data.InitialAccount{
-		Address:      "erd1whq0zspt6ktnv37gqj303da0vygyqwf5q52m7erftd0rl7laygfs6rhpct",
-		Supply:       big.NewInt(0).Mul(big.NewInt(10000000), big.NewInt(1000000000000000000)),
-		Balance:      big.NewInt(0).Mul(big.NewInt(9997500), big.NewInt(1000000000000000000)),
-		StakingValue: big.NewInt(0).Mul(big.NewInt(2500), big.NewInt(1000000000000000000)),
-		Delegation: &data.DelegationData{
-			Address: "",
-			Value:   big.NewInt(0),
-		},
-	}
-	acc2 := data.InitialAccount{
-		Address:      "erd129ppuuvtylghsx7muf29xnzw5lm9v2v8h4942ynymjpu2ftycgtq0rgq3h",
-		Supply:       big.NewInt(0).Mul(big.NewInt(10000000), big.NewInt(1000000000000000000)),
-		Balance:      big.NewInt(0).Mul(big.NewInt(9997500), big.NewInt(1000000000000000000)),
-		StakingValue: big.NewInt(0).Mul(big.NewInt(2500), big.NewInt(1000000000000000000)),
-		Delegation: &data.DelegationData{
-			Address: "",
-			Value:   big.NewInt(0),
-		},
-	}
-
-	acc1Bytes, _ := addrConverter.Decode(acc1.Address)
-	acc1.SetAddressBytes(acc1Bytes)
-
-	acc2Bytes, _ := addrConverter.Decode(acc2.Address)
-	acc2.SetAddressBytes(acc2Bytes)
-	return []genesis.InitialAccountHandler{&acc1, &acc2}
-}
-
-func createArgsRunTypeComponents() runType.ArgsRunTypeComponents {
-	return runType.ArgsRunTypeComponents{
-		CoreComponents: &mockCoreComp.CoreComponentsStub{
-			HasherField:                 &hashingMocks.HasherMock{},
-			InternalMarshalizerField:    &marshallerMock.MarshalizerMock{},
-			EnableEpochsHandlerField:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-			AddressPubKeyConverterField: &testscommon.PubkeyConverterStub{},
-		},
-		CryptoComponents: &mockCoreComp.CryptoComponentsStub{
-			TxKeyGen: &mockCoreComp.KeyGenMock{},
-			BlockSig: &mockConsensus.SingleSignerMock{},
-		},
-		Configs: config.Configs{
-			EconomicsConfig: &config.EconomicsConfig{
-				GlobalSettings: config.GlobalSettings{
-					GenesisTotalSupply:          "20000000000000000000000000",
-					GenesisMintingSenderAddress: "erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3",
-				},
-			},
-		},
-		InitialAccounts: createAccounts(),
+	return consensusComp.ConsensusComponentsFactoryArgs{
+		Config:               cfg,
+		FlagsConfig:          config.ContextFlagsConfig{},
+		BootstrapRoundIndex:  0,
+		CoreComponents:       coreComponents,
+		NetworkComponents:    networkComponents,
+		CryptoComponents:     cryptoComponents,
+		DataComponents:       dataComponents,
+		ProcessComponents:    processComponents,
+		StateComponents:      stateComponents,
+		StatusComponents:     statusComponents,
+		StatusCoreComponents: statusCoreComponents,
+		ScheduledProcessor:   scheduledProcessor,
+		RunTypeComponents:    runTypeComponents,
+		ExtraSignersHolder:   &subRoundsHolder.ExtraSignersHolderMock{},
+		SubRoundEndV2Creator: bls.NewSubRoundEndV2Creator(),
 	}
 }
 
-func GetRunTypeComponentsStub(rt factory.RunTypeComponentsHandler) *mainFactoryMocks.RunTypeComponentsStub {
-	return &mainFactoryMocks.RunTypeComponentsStub{
-		BlockChainHookHandlerFactory:        rt.BlockChainHookHandlerCreator(),
-		BlockProcessorFactory:               rt.BlockProcessorCreator(),
-		BlockTrackerFactory:                 rt.BlockTrackerCreator(),
-		BootstrapperFromStorageFactory:      rt.BootstrapperFromStorageCreator(),
-		EpochStartBootstrapperFactory:       rt.EpochStartBootstrapperCreator(),
-		ForkDetectorFactory:                 rt.ForkDetectorCreator(),
-		HeaderValidatorFactory:              rt.HeaderValidatorCreator(),
-		RequestHandlerFactory:               rt.RequestHandlerCreator(),
-		ScheduledTxsExecutionFactory:        rt.ScheduledTxsExecutionCreator(),
-		TransactionCoordinatorFactory:       rt.TransactionCoordinatorCreator(),
-		ValidatorStatisticsProcessorFactory: rt.ValidatorStatisticsProcessorCreator(),
-		AdditionalStorageServiceFactory:     rt.AdditionalStorageServiceCreator(),
-		SCProcessorFactory:                  rt.SCProcessorCreator(),
-		BootstrapperFactory:                 rt.BootstrapperCreator(),
-		SCResultsPreProcessorFactory:        rt.SCResultsPreProcessorCreator(),
-		AccountParser:                       rt.AccountsParser(),
-		AccountCreator:                      rt.AccountsCreator(),
-		ConsensusModelType:                  rt.ConsensusModel(),
-		VmContainerMetaFactory:              rt.VmContainerMetaFactoryCreator(),
-		VmContainerShardFactory:             rt.VmContainerShardFactoryCreator(),
-		OutGoingOperationsPool:              rt.OutGoingOperationsPoolHandler(),
-		DataCodec:                           rt.DataCodecHandler(),
-		TopicsChecker:                       rt.TopicsCheckerHandler(),
-		ShardCoordinatorFactory:             rt.ShardCoordinatorCreator(),
-		NodesCoordinatorWithRaterFactory:    rt.NodesCoordinatorWithRaterCreator(),
-		RequestersContainerFactory:          rt.RequestersContainerFactoryCreator(),
-		InterceptorsContainerFactory:        rt.InterceptorsContainerFactoryCreator(),
-		ShardResolversContainerFactory:      rt.ShardResolversContainerFactoryCreator(),
-		TxPreProcessorFactory:               rt.TxPreProcessorCreator(),
-		ExtraHeaderSigVerifier:              rt.ExtraHeaderSigVerifierHandler(),
-		GenesisBlockFactory:                 rt.GenesisBlockCreatorFactory(),
-		GenesisMetaBlockChecker:             rt.GenesisMetaBlockCheckerCreator(),
-	}
-}
+func GetConsensusComponents(
+	cfg config.Config,
+	runTypeComponents factory.RunTypeComponentsHolder,
+	coreComponents factory.CoreComponentsHolder,
+	cryptoComponents factory.CryptoComponentsHolder,
+	networkComponents factory.NetworkComponentsHolder,
+	stateComponents factory.StateComponentsHolder,
+	dataComponents factory.DataComponentsHolder,
+	statusComponents factory.StatusComponentsHolder,
+	statusCoreComponents factory.StatusCoreComponentsHolder,
+	processComponents factory.ProcessComponentsHolder,
+) factory.ConsensusComponentsHolder {
+	consensusArgs := GetConsensusFactoryArgs(cfg, runTypeComponents, coreComponents, cryptoComponents, networkComponents, stateComponents, dataComponents, statusComponents, statusCoreComponents, processComponents)
+	consensusFactory, _ := consensusComp.NewConsensusComponentsFactory(consensusArgs)
 
-// GetRunTypeComponents -
-func GetRunTypeComponents() factory.RunTypeComponentsHolder {
-	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory(createArgsRunTypeComponents())
-	managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(runTypeComponentsFactory)
+	consensusComponents, err := consensusComp.NewManagedConsensusComponents(consensusFactory)
 	if err != nil {
-		log.Error("getRunTypeComponents NewManagedRunTypeComponents", "error", err.Error())
+		log.Error("GetConsensusComponents NewManagedConsensusComponents", "error", err.Error())
 		return nil
 	}
-	err = managedRunTypeComponents.Create()
+
+	err = consensusComponents.Create()
 	if err != nil {
-		log.Error("getRunTypeComponents Create", "error", err.Error())
+		log.Error("GetConsensusComponents Create", "error", err.Error())
 		return nil
 	}
-	return managedRunTypeComponents
-}
 
-// GetRunTypeComponentsWithCoreComp -
-func GetRunTypeComponentsWithCoreComp(coreComponents factory.CoreComponentsHandler) factory.RunTypeComponentsHolder {
-	args := runType.ArgsRunTypeComponents{
-		CoreComponents: coreComponents,
-		CryptoComponents: &mockCoreComp.CryptoComponentsStub{
-			TxKeyGen: &mockCoreComp.KeyGenMock{},
-		},
-		Configs: config.Configs{
-			EconomicsConfig: &config.EconomicsConfig{
-				GlobalSettings: config.GlobalSettings{
-					GenesisTotalSupply:          "20000000000000000000000000",
-					GenesisMintingSenderAddress: "erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3",
-				},
-			},
-		},
-		InitialAccounts: createAccounts(),
-	}
-
-	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory(args)
-	managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(runTypeComponentsFactory)
-	if err != nil {
-		log.Error("getRunTypeComponents NewManagedRunTypeComponents", "error", err.Error())
-		return nil
-	}
-	err = managedRunTypeComponents.Create()
-	if err != nil {
-		log.Error("getRunTypeComponents Create", "error", err.Error())
-		return nil
-	}
-	return managedRunTypeComponents
-}
-
-// GetSovereignRunTypeComponents -
-func GetSovereignRunTypeComponents() factory.RunTypeComponentsHolder {
-	sovereignComponentsFactory, _ := runType.NewSovereignRunTypeComponentsFactory(createSovRunTypeArgs())
-	managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(sovereignComponentsFactory)
-	if err != nil {
-		log.Error("getRunTypeComponents NewManagedRunTypeComponents", "error", err.Error())
-		return nil
-	}
-	err = managedRunTypeComponents.Create()
-	if err != nil {
-		log.Error("getRunTypeComponents Create", "error", err.Error())
-		return nil
-	}
-	return managedRunTypeComponents
-}
-
-func createSovRunTypeArgs() runType.ArgsSovereignRunTypeComponents {
-	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory(createArgsRunTypeComponents())
-
-	return runType.ArgsSovereignRunTypeComponents{
-		RunTypeComponentsFactory: runTypeComponentsFactory,
-		Config: config.SovereignConfig{
-			GenesisConfig: config.GenesisConfig{
-				NativeESDT: "WEGLD-ab47da",
-			},
-		},
-		DataCodec:     &sovereign.DataCodecMock{},
-		TopicsChecker: &sovereign.TopicsCheckerMock{},
-	}
+	return consensusComponents
 }
 
 // DummyLoadSkPkFromPemFile -

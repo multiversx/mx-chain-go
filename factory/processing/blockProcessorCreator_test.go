@@ -7,7 +7,6 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	dataComp "github.com/multiversx/mx-chain-go/factory/data"
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	processComp "github.com/multiversx/mx-chain-go/factory/processing"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -20,6 +19,7 @@ import (
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	storageManager "github.com/multiversx/mx-chain-go/testscommon/storage"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
@@ -39,7 +39,7 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 		t.Parallel()
 
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-		processArgs := componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator)
+		processArgs := createProcessFactoryArgs(t, shardCoordinator)
 		pcf, err := processComp.NewProcessComponentsFactory(processArgs)
 		require.NoError(t, err)
 		require.NotNil(t, pcf)
@@ -73,8 +73,8 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 		t.Parallel()
 
 		shardCoordinator := sharding.NewSovereignShardCoordinator(core.SovereignChainShardId)
-		args := componentsMock.GetSovereignProcessComponentsFactoryArgs(shardCoordinator)
-		pcf, err := processComp.NewProcessComponentsFactory(args)
+		processArgs := createSovereignProcessFactoryArgs(t, shardCoordinator)
+		pcf, err := processComp.NewProcessComponentsFactory(processArgs)
 		require.NoError(t, err)
 		require.NotNil(t, pcf)
 
@@ -107,27 +107,12 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 	t.Parallel()
 
-	coreComponents := componentsMock.GetCoreComponents()
-	shardC := mock.NewMultiShardsCoordinatorMock(1)
-	shardC.SelfIDCalled = func() uint32 {
-		return core.MetachainShardId
-	}
-	shardC.ComputeIdCalled = func(address []byte) uint32 {
-		if core.IsSmartContractOnMetachain(address[len(address)-1:], address) {
-			return core.MetachainShardId
-		}
-
-		return 0
-	}
-	shardC.CurrentShard = core.MetachainShardId
-
-	dataArgs := componentsMock.GetDataArgs(coreComponents, shardC)
-	dataComponentsFactory, _ := dataComp.NewDataComponentsFactory(dataArgs)
-	dataComponents, _ := dataComp.NewManagedDataComponents(dataComponentsFactory)
-	_ = dataComponents.Create()
-
+	cfg := testscommon.GetGeneralConfig()
+	coreComponents := componentsMock.GetCoreComponents(cfg)
 	cryptoComponents := componentsMock.GetCryptoComponents(coreComponents)
+	runTypeComponents := componentsMock.GetRunTypeComponents(coreComponents, cryptoComponents)
 	networkComponents := componentsMock.GetNetworkComponents(cryptoComponents)
+	statusCoreComponents := componentsMock.GetStatusCoreComponents(cfg, coreComponents)
 
 	storageManagerArgs := storageManager.GetStorageManagerArgs()
 	storageManagerArgs.Marshalizer = coreComponents.InternalMarshalizer()
@@ -156,8 +141,7 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 		coreComponents.EnableEpochsHandler(),
 	)
 	require.Nil(t, err)
-
-	stateComp := &mock.StateComponentsHolderStub{
+	stateComponents := &mock.StateComponentsHolderStub{
 		PeerAccountsCalled: func() state.AccountsAdapter {
 			return &stateMock.AccountsStub{
 				RootHashCalled: func() ([]byte, error) {
@@ -191,18 +175,27 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 			return trieStorageManagers
 		},
 	}
-	args := componentsMock.GetProcessArgs(
-		shardC,
-		coreComponents,
-		dataComponents,
-		cryptoComponents,
-		stateComp,
-		networkComponents,
-	)
 
-	componentsMock.SetShardCoordinator(t, args.BootstrapComponents, shardC)
+	shardC := mock.NewMultiShardsCoordinatorMock(1)
+	shardC.SelfIDCalled = func() uint32 {
+		return core.MetachainShardId
+	}
+	shardC.ComputeIdCalled = func(address []byte) uint32 {
+		if core.IsSmartContractOnMetachain(address[len(address)-1:], address) {
+			return core.MetachainShardId
+		}
 
-	pcf, _ := processComp.NewProcessComponentsFactory(args)
+		return 0
+	}
+	shardC.CurrentShard = core.MetachainShardId
+
+	bootstrapComponents := componentsMock.GetBootstrapComponents(cfg, statusCoreComponents, coreComponents, cryptoComponents, networkComponents, runTypeComponents)
+	componentsMock.SetShardCoordinator(t, bootstrapComponents, shardC)
+	statusComponents := componentsMock.GetStatusComponents(cfg, statusCoreComponents, coreComponents, networkComponents, bootstrapComponents, stateComponents, &shardingMocks.NodesCoordinatorMock{}, cryptoComponents)
+	dataComponents := componentsMock.GetDataComponents(cfg, statusCoreComponents, coreComponents, bootstrapComponents, cryptoComponents, runTypeComponents)
+
+	processArgs := componentsMock.GetProcessFactoryArgs(cfg, runTypeComponents, coreComponents, cryptoComponents, networkComponents, bootstrapComponents, stateComponents, dataComponents, statusComponents, statusCoreComponents)
+	pcf, _ := processComp.NewProcessComponentsFactory(processArgs)
 	require.NotNil(t, pcf)
 
 	_, err = pcf.Create()

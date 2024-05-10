@@ -22,10 +22,32 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func createBootstrapFactoryArgs() bootstrap.BootstrapComponentsFactoryArgs {
+	cfg := testscommon.GetGeneralConfig()
+	coreComp := componentsMock.GetCoreComponents(cfg)
+	statusCoreComp := componentsMock.GetStatusCoreComponents(cfg, coreComp)
+	cryptoComp := componentsMock.GetCryptoComponents(coreComp)
+	networkComp := componentsMock.GetNetworkComponents(cryptoComp)
+	runTypeComp := componentsMock.GetRunTypeComponents(coreComp, cryptoComp)
+
+	return componentsMock.GetBootStrapFactoryArgs(cfg, statusCoreComp, coreComp, cryptoComp, networkComp, runTypeComp)
+}
+
+func createSovereignBootstrapFactoryArgs() bootstrap.BootstrapComponentsFactoryArgs {
+	cfg := testscommon.GetGeneralConfig()
+	coreComp := componentsMock.GetSovereignCoreComponents(cfg)
+	statusCoreComp := componentsMock.GetStatusCoreComponents(cfg, coreComp)
+	cryptoComp := componentsMock.GetCryptoComponents(coreComp)
+	networkComp := componentsMock.GetNetworkComponents(cryptoComp)
+	runTypeComp := componentsMock.GetSovereignRunTypeComponents(coreComp, cryptoComp)
+
+	return componentsMock.GetBootStrapFactoryArgs(cfg, statusCoreComp, coreComp, cryptoComp, networkComp, runTypeComp)
+}
+
 func TestNewBootstrapComponentsFactory(t *testing.T) {
 	t.Parallel()
 
-	args := componentsMock.GetBootStrapFactoryArgs()
+	args := createBootstrapFactoryArgs()
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -186,7 +208,7 @@ func TestBootstrapComponentsFactory_Create(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		args := componentsMock.GetBootStrapFactoryArgs()
+		args := createBootstrapFactoryArgs()
 		bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
 		require.NotNil(t, bcf)
 
@@ -197,7 +219,7 @@ func TestBootstrapComponentsFactory_Create(t *testing.T) {
 	t.Run("ProcessDestinationShardAsObserver fails should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := componentsMock.GetBootStrapFactoryArgs()
+		args := createBootstrapFactoryArgs()
 		args.PrefConfig.Preferences.DestinationShardAsObserver = ""
 		bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
 		require.NotNil(t, bcf)
@@ -209,7 +231,7 @@ func TestBootstrapComponentsFactory_Create(t *testing.T) {
 	t.Run("NewCache fails should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := componentsMock.GetBootStrapFactoryArgs()
+		args := createBootstrapFactoryArgs()
 		args.Config.Versions.Cache = config.CacheConfig{
 			Type:        "LRU",
 			SizeInBytes: 1,
@@ -224,7 +246,7 @@ func TestBootstrapComponentsFactory_Create(t *testing.T) {
 	t.Run("NewHeaderVersionHandler fails should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := componentsMock.GetBootStrapFactoryArgs()
+		args := createBootstrapFactoryArgs()
 		args.Config.Versions.DefaultVersion = string(bytes.Repeat([]byte("a"), 20))
 		bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
 		require.NotNil(t, bcf)
@@ -236,7 +258,7 @@ func TestBootstrapComponentsFactory_Create(t *testing.T) {
 	t.Run("NewHeaderIntegrityVerifier fails should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := componentsMock.GetBootStrapFactoryArgs()
+		args := createBootstrapFactoryArgs()
 		coreComponents := componentsMock.GetDefaultCoreComponents()
 		coreComponents.ChainIdCalled = func() string {
 			return ""
@@ -252,7 +274,7 @@ func TestBootstrapComponentsFactory_Create(t *testing.T) {
 	t.Run("CreateShardCoordinator fails should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := componentsMock.GetBootStrapFactoryArgs()
+		args := createBootstrapFactoryArgs()
 		coreComponents := componentsMock.GetDefaultCoreComponents()
 		coreComponents.NodesConfig = nil
 		args.CoreComponents = coreComponents
@@ -266,7 +288,7 @@ func TestBootstrapComponentsFactory_Create(t *testing.T) {
 	t.Run("NewBootstrapDataProvider fails should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := componentsMock.GetBootStrapFactoryArgs()
+		args := createBootstrapFactoryArgs()
 		coreComponents := componentsMock.GetDefaultCoreComponents()
 		args.CoreComponents = coreComponents
 		coreComponents.IntMarsh = nil
@@ -280,7 +302,7 @@ func TestBootstrapComponentsFactory_Create(t *testing.T) {
 	t.Run("import db mode - NewStorageEpochStartBootstrap fails should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := componentsMock.GetBootStrapFactoryArgs()
+		args := createBootstrapFactoryArgs()
 		coreComponents := componentsMock.GetDefaultCoreComponents()
 		args.CoreComponents = coreComponents
 		coreComponents.RatingHandler = nil
@@ -295,7 +317,7 @@ func TestBootstrapComponentsFactory_Create(t *testing.T) {
 	t.Run("NewStorageEpochStartBootstrap fails should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := componentsMock.GetBootStrapFactoryArgs()
+		args := createBootstrapFactoryArgs()
 		coreComponents := componentsMock.GetDefaultCoreComponents()
 		args.CoreComponents = coreComponents
 		coreComponents.RatingHandler = nil
@@ -311,7 +333,7 @@ func TestBootstrapComponentsFactory_Create(t *testing.T) {
 func TestBootstrapComponents(t *testing.T) {
 	t.Parallel()
 
-	args := componentsMock.GetBootStrapFactoryArgs()
+	args := createBootstrapFactoryArgs()
 	bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
 	require.NotNil(t, bcf)
 
@@ -334,9 +356,7 @@ func TestBootstrapComponentsFactory_CreateEpochStartBootstrapperShouldWork(t *te
 	t.Run("should create a epoch start bootstrapper main chain instance", func(t *testing.T) {
 		t.Parallel()
 
-		args := componentsMock.GetBootStrapFactoryArgs()
-		args.RunTypeComponents = componentsMock.GetRunTypeComponents()
-
+		args := createBootstrapFactoryArgs()
 		bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
 		bc, err := bcf.Create()
 
@@ -349,9 +369,7 @@ func TestBootstrapComponentsFactory_CreateEpochStartBootstrapperShouldWork(t *te
 	t.Run("should create a epoch start bootstrapper sovereign chain instance", func(t *testing.T) {
 		t.Parallel()
 
-		args := componentsMock.GetBootStrapFactoryArgs()
-		args.RunTypeComponents = componentsMock.GetSovereignRunTypeComponents()
-
+		args := createSovereignBootstrapFactoryArgs()
 		bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
 		bc, err := bcf.Create()
 

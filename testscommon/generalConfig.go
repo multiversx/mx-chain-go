@@ -5,11 +5,18 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 )
 
+const (
+	testHasher      = "blake2b"
+	testMarshalizer = "json"
+	dummyPk         = "629e1245577afb7717ccb46b6ff3649bdd6a1311514ad4a7695da13f801cc277ee24e730a7fa8aa6c612159b4328db17" +
+		"35692d0bded3a2264ba621d6bda47a981d60e17dd306d608e0875a0ba19639fb0844661f519472a175ca9ed2f33fbe16"
+)
+
 // GetGeneralConfig returns the common configuration used for testing
 func GetGeneralConfig() config.Config {
 	return config.Config{
 		Hardfork: config.HardforkConfig{
-			PublicKeyToListenFrom:     "153dae6cb3963260f309959bf285537b77ae16d82e9933147be7827f7394de8dc97d9d9af41e970bc72aecb44b77e819621081658c37f7000d21e2d0e8963df83233407bde9f46369ba4fcd03b57f40b80b06c191a428cfb5c447ec510e79307",
+			PublicKeyToListenFrom:     dummyPk,
 			CloseAfterExportInMinutes: 2,
 		},
 		PublicKeyPeerId: config.CacheConfig{
@@ -43,6 +50,22 @@ func GetGeneralConfig() config.Config {
 			Type:            "hex",
 			SignatureLength: 48,
 		},
+		Marshalizer: config.MarshalizerConfig{
+			Type:           testMarshalizer,
+			SizeCheckDelta: 0,
+		},
+		Hasher: config.TypeConfig{
+			Type: testHasher,
+		},
+		VmMarshalizer: config.TypeConfig{
+			Type: testMarshalizer,
+		},
+		TxSignMarshalizer: config.TypeConfig{
+			Type: testMarshalizer,
+		},
+		TxSignHasher: config.TypeConfig{
+			Type: testHasher,
+		},
 		Consensus: config.ConsensusConfig{
 			Type: "bls",
 		},
@@ -57,6 +80,8 @@ func GetGeneralConfig() config.Config {
 			SyncProcessTimeInMillis:              6000,
 			SetGuardianEpochsDelay:               20,
 			StatusPollingIntervalSec:             10,
+			ChainID:                              "undefined",
+			MinTransactionVersion:                1,
 		},
 		EpochStartConfig: config.EpochStartConfig{
 			MinRoundsBetweenEpochs:            5,
@@ -448,8 +473,8 @@ func GetGeneralConfig() config.Config {
 					Capacity: 1000,
 				},
 				DB: config.DBConfig{
-					FilePath:          "ExtendedShardHeaderStorage",
-					Type:              "LvlDBSerial",
+					FilePath:          AddTimestampSuffix("ExtendedShardHeaderStorage"),
+					Type:              string(storageunit.MemoryDB),
 					BatchDelaySeconds: 5,
 					MaxBatchSize:      100,
 					MaxOpenFiles:      10,
@@ -461,8 +486,8 @@ func GetGeneralConfig() config.Config {
 					Capacity: 1000,
 				},
 				DB: config.DBConfig{
-					FilePath:          "ExtendedShardHdrNonceHashStorage",
-					Type:              "LvlDBSerial",
+					FilePath:          AddTimestampSuffix("ExtendedShardHdrNonceHashStorage"),
+					Type:              string(storageunit.MemoryDB),
 					BatchDelaySeconds: 5,
 					MaxBatchSize:      100,
 					MaxOpenFiles:      10,
