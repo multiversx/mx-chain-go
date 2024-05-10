@@ -239,6 +239,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		consensusModel:                          consensus.ConsensusModelV1,
 		vmContainerMetaFactory:                  vmContainerMetaCreator,
 		vmContainerShardFactory:                 vmContainerShardCreator,
+		accountsParser:                          accountsParser,
 		accountsCreator:                         accountsCreator,
 		outGoingOperationsPoolHandler:           disabled.NewDisabledOutGoingOperationPool(),
 		dataCodecHandler:                        disabled.NewDisabledDataCodec(),
@@ -252,7 +253,6 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		extraHeaderSigVerifierHandler:           headerCheck.NewExtraHeaderSigVerifierHolder(),
 		genesisBlockCreatorFactory:              processGenesis.NewGenesisBlockCreatorFactory(),
 		genesisMetaBlockCheckerCreator:          processGenesis.NewGenesisMetaBlockChecker(),
-		accountsParser:                          accountsParser,
 	}, nil
 }
 
