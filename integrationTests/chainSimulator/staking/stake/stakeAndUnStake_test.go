@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"strings"
 	"testing"
 	"time"
 
@@ -2301,4 +2302,166 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInEpoch(t *testing.T, cs
 	balanceAfterUnbonding.Add(balanceAfterUnbonding, txsFee)
 
 	require.Equal(t, 1, balanceAfterUnbonding.Cmp(balanceBeforeUnbonding))
+}
+
+// Test that if we unStake one active node(waiting/eligible), the number of qualified nodes will remain the same
+// Nodes configuration at genesis consisting of a total of 32 nodes, distributed on 3 shards + meta:
+// - 4 eligible nodes/shard
+// - 4 waiting nodes/shard
+// - 2 nodes to shuffle per shard
+// - max num nodes config for stakingV4 step3 = 24 (being downsized from previously 32 nodes)
+// - with this config, we should always select 8 nodes from auction list
+// We will add one extra node, so auction list size = 9, but will always select 8. Even if we unStake one active node,
+// we should still only select 8 nodes.
+func TestChainSimulator_UnStakeOneActiveNodeAndCheckAPIAuctionList(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	startTime := time.Now().Unix()
+	roundDurationInMillis := uint64(6000)
+	roundsPerEpoch := core.OptionalUint64{
+		HasValue: true,
+		Value:    30,
+	}
+
+	stakingV4Step1Epoch := uint32(2)
+	stakingV4Step2Epoch := uint32(3)
+	stakingV4Step3Epoch := uint32(4)
+
+	numOfShards := uint32(3)
+	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+		BypassTxSignatureCheck:   false,
+		TempDir:                  t.TempDir(),
+		PathToInitialConfig:      defaultPathToInitialConfig,
+		NumOfShards:              numOfShards,
+		GenesisTimestamp:         startTime,
+		RoundDurationInMillis:    roundDurationInMillis,
+		RoundsPerEpoch:           roundsPerEpoch,
+		ApiInterface:             api.NewNoApiInterface(),
+		MinNodesPerShard:         4,
+		MetaChainMinNodes:        4,
+		NumNodesWaitingListMeta:  4,
+		NumNodesWaitingListShard: 4,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = stakingV4Step1Epoch
+			cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = stakingV4Step2Epoch
+			cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = stakingV4Step3Epoch
+
+			cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[1].MaxNumNodes = 32
+			cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[1].NodesToShufflePerShard = 2
+
+			cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = stakingV4Step3Epoch
+			cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].MaxNumNodes = 24
+			cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].NodesToShufflePerShard = 2
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, cs)
+
+	defer cs.Close()
+
+	err = cs.GenerateBlocksUntilEpochIsReached(int32(stakingV4Step3Epoch + 1))
+	require.Nil(t, err)
+
+	metachainNode := cs.GetNodeHandler(core.MetachainShardId)
+
+	numQualified, numUnQualified := getNumQualifiedAndUnqualified(t, metachainNode)
+	require.Equal(t, 8, numQualified)
+	require.Equal(t, 0, numUnQualified)
+
+	stakeOneNode(t, cs)
+
+	numQualified, numUnQualified = getNumQualifiedAndUnqualified(t, metachainNode)
+	require.Equal(t, 8, numQualified)
+	require.Equal(t, 1, numUnQualified)
+
+	unStakeOneActiveNode(t, cs)
+
+	numQualified, numUnQualified = getNumQualifiedAndUnqualified(t, metachainNode)
+	require.Equal(t, 8, numQualified)
+	require.Equal(t, 1, numUnQualified)
+}
+
+func stakeOneNode(t *testing.T, cs chainSimulatorIntegrationTests.ChainSimulator) {
+	privateKey, blsKeys, err := chainSimulator.GenerateBlsPrivateKeys(1)
+	require.Nil(t, err)
+	err = cs.AddValidatorKeys(privateKey)
+	require.Nil(t, err)
+
+	mintValue := big.NewInt(0).Add(staking.MinimumStakeValue, staking.OneEGLD)
+	validatorOwner, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	require.Nil(t, err)
+
+	txDataField := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], staking.MockBLSSignature)
+	txStake := staking.GenerateTransaction(validatorOwner.Bytes, 0, vm.ValidatorSCAddress, staking.MinimumStakeValue, txDataField, staking.GasLimitForStakeOperation)
+	stakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txStake, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, stakeTx)
+
+	require.Nil(t, cs.GenerateBlocks(1))
+}
+
+func unStakeOneActiveNode(t *testing.T, cs chainSimulatorIntegrationTests.ChainSimulator) {
+	err := cs.ForceResetValidatorStatisticsCache()
+	require.Nil(t, err)
+
+	validators, err := cs.GetNodeHandler(core.MetachainShardId).GetFacadeHandler().ValidatorStatisticsApi()
+	require.Nil(t, err)
+
+	idx := 0
+	keyToUnStake := make([]byte, 0)
+	numKeys := len(cs.GetValidatorPrivateKeys())
+	for idx = 0; idx < numKeys; idx++ {
+		keyToUnStake, err = cs.GetValidatorPrivateKeys()[idx].GeneratePublic().ToByteArray()
+		require.Nil(t, err)
+
+		apiValidator, found := validators[hex.EncodeToString(keyToUnStake)]
+		require.True(t, found)
+
+		validatorStatus := apiValidator.ValidatorStatus
+		if validatorStatus == "waiting" || validatorStatus == "eligible" {
+			log.Info("found active key to unStake", "index", idx, "bls key", keyToUnStake, "list", validatorStatus)
+			break
+		}
+
+		if idx == numKeys-1 {
+			require.Fail(t, "did not find key to unStake")
+		}
+	}
+
+	rcv := "erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqplllst77y4l"
+	rcvAddrBytes, _ := cs.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Decode(rcv)
+
+	validatorWallet := cs.GetInitialWalletKeys().StakeWallets[idx].Address
+	shardID := cs.GetNodeHandler(0).GetShardCoordinator().ComputeId(validatorWallet.Bytes)
+	initialAccount, _, err := cs.GetNodeHandler(shardID).GetFacadeHandler().GetAccount(validatorWallet.Bech32, coreAPI.AccountQueryOptions{})
+
+	require.Nil(t, err)
+	tx := &transaction.Transaction{
+		Nonce:     initialAccount.Nonce,
+		Value:     big.NewInt(0),
+		SndAddr:   validatorWallet.Bytes,
+		RcvAddr:   rcvAddrBytes,
+		Data:      []byte(fmt.Sprintf("unStake@%s", hex.EncodeToString(keyToUnStake))),
+		GasLimit:  50_000_000,
+		GasPrice:  1000000000,
+		Signature: []byte("dummy"),
+		ChainID:   []byte(configs.ChainID),
+		Version:   1,
+	}
+	_, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
+
+	err = cs.ForceResetValidatorStatisticsCache()
+	require.Nil(t, err)
+	validators, err = cs.GetNodeHandler(core.MetachainShardId).GetFacadeHandler().ValidatorStatisticsApi()
+	require.Nil(t, err)
+
+	apiValidator, found := validators[hex.EncodeToString(keyToUnStake)]
+	require.True(t, found)
+	require.True(t, strings.Contains(apiValidator.ValidatorStatus, "leaving"))
 }
