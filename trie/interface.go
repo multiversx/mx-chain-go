@@ -47,7 +47,6 @@ type node interface {
 	collectLeavesForMigration(migrationArgs vmcommon.ArgsMigrateDataTrieLeaves, db common.TrieStorageInteractor, keyBuilder common.KeyBuilder) (bool, error)
 
 	commitDirty(level byte, maxTrieLevelInMemory uint, originDb common.TrieStorageInteractor, targetDb common.BaseStorer) error
-	commitCheckpoint(originDb common.TrieStorageInteractor, targetDb common.BaseStorer, checkpointHashes CheckpointHashesHolder, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.TrieStatisticsHandler, idleProvider IdleNodeProvider, depthLevel int) error
 	commitSnapshot(originDb common.TrieStorageInteractor, leavesChan chan core.KeyValueHolder, missingNodesChan chan []byte, ctx context.Context, stats common.TrieStatisticsHandler, idleProvider IdleNodeProvider, depthLevel int) error
 
 	getMarshalizer() marshal.Marshalizer
@@ -65,7 +64,6 @@ type dbWithGetFromEpoch interface {
 }
 
 type snapshotNode interface {
-	commitCheckpoint(originDb common.TrieStorageInteractor, targetDb common.BaseStorer, checkpointHashes CheckpointHashesHolder, leavesChan chan core.KeyValueHolder, ctx context.Context, stats common.TrieStatisticsHandler, idleProvider IdleNodeProvider, depthLevel int) error
 	commitSnapshot(originDb common.TrieStorageInteractor, leavesChan chan core.KeyValueHolder, missingNodesChan chan []byte, ctx context.Context, stats common.TrieStatisticsHandler, idleProvider IdleNodeProvider, depthLevel int) error
 }
 
@@ -73,15 +71,6 @@ type snapshotNode interface {
 type RequestHandler interface {
 	RequestTrieNodes(destShardID uint32, hashes [][]byte, topic string)
 	RequestInterval() time.Duration
-	IsInterfaceNil() bool
-}
-
-// CheckpointHashesHolder is used to hold the hashes that need to be committed in the future state checkpoint
-type CheckpointHashesHolder interface {
-	Put(rootHash []byte, hashes common.ModifiedHashes) bool
-	RemoveCommitted(lastCommittedRootHash []byte)
-	Remove(hash []byte)
-	ShouldCommit(hash []byte) bool
 	IsInterfaceNil() bool
 }
 
@@ -120,8 +109,4 @@ type EpochNotifier interface {
 type IdleNodeProvider interface {
 	IsIdle() bool
 	IsInterfaceNil() bool
-}
-
-type storageManagerExtension interface {
-	RemoveFromCheckpointHashesHolder(hash []byte)
 }

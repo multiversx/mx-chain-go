@@ -1,6 +1,7 @@
 package processing_test
 
 import (
+	"fmt"
 	"sync"
 	"testing"
 
@@ -14,13 +15,14 @@ import (
 	processComp "github.com/multiversx/mx-chain-go/factory/processing"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
+	disabledState "github.com/multiversx/mx-chain-go/state/disabled"
 	factoryState "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/disabled"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
-	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageManager "github.com/multiversx/mx-chain-go/testscommon/storage"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie"
@@ -39,12 +41,12 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 	_, err = pcf.Create()
 	require.NoError(t, err)
 
-	bp, err := pcf.NewBlockProcessor(
+	bp, epochStartSCProc, err := pcf.NewBlockProcessor(
 		&testscommon.RequestHandlerStub{},
-		&mock.ForkDetectorStub{},
+		&processMocks.ForkDetectorStub{},
 		&mock.EpochStartTriggerStub{},
 		&mock.BoostrapStorerStub{},
-		&mock.ValidatorStatisticsProcessorStub{},
+		&testscommon.ValidatorStatisticsProcessorStub{},
 		&mock.HeaderValidatorStub{},
 		&mock.BlockTrackerStub{},
 		&mock.PendingMiniBlocksHandlerStub{},
@@ -59,6 +61,7 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotNil(t, bp)
+	require.Equal(t, "*disabled.epochStartSystemSCProcessor", fmt.Sprintf("%T", epochStartSCProc))
 }
 
 func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
@@ -92,7 +95,6 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 	storageManagerUser, _ := trie.CreateTrieStorageManager(storageManagerArgs, storageManager.GetStorageManagerOptions())
 
 	storageManagerArgs.MainStorer = mock.NewMemDbMock()
-	storageManagerArgs.CheckpointsStorer = mock.NewMemDbMock()
 	storageManagerPeer, _ := trie.CreateTrieStorageManager(storageManagerArgs, storageManager.GetStorageManagerOptions())
 
 	trieStorageManagers := make(map[string]common.StorageManager)
@@ -166,12 +168,12 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 	_, err = pcf.Create()
 	require.NoError(t, err)
 
-	bp, err := pcf.NewBlockProcessor(
+	bp, epochStartSCProc, err := pcf.NewBlockProcessor(
 		&testscommon.RequestHandlerStub{},
-		&mock.ForkDetectorStub{},
+		&processMocks.ForkDetectorStub{},
 		&mock.EpochStartTriggerStub{},
 		&mock.BoostrapStorerStub{},
-		&mock.ValidatorStatisticsProcessorStub{},
+		&testscommon.ValidatorStatisticsProcessorStub{},
 		&mock.HeaderValidatorStub{},
 		&mock.BlockTrackerStub{},
 		&mock.PendingMiniBlocksHandlerStub{},
@@ -186,6 +188,7 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotNil(t, bp)
+	require.Equal(t, "*metachain.systemSCProcessor", fmt.Sprintf("%T", epochStartSCProc))
 }
 
 func createAccountAdapter(
@@ -206,10 +209,8 @@ func createAccountAdapter(
 		Marshaller:            marshaller,
 		AccountFactory:        accountFactory,
 		StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
-		ProcessingMode:        common.Normal,
-		ProcessStatusHandler:  &testscommon.ProcessStatusHandlerStub{},
-		AppStatusHandler:      &statusHandler.AppStatusHandlerStub{},
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
+		SnapshotsManager:      disabledState.NewDisabledSnapshotsManager(),
 	}
 	adb, err := state.NewAccountsDB(args)
 	if err != nil {

@@ -91,9 +91,6 @@ var ErrInvalidMaxHardCapForMissingNodes = errors.New("invalid max hardcap for mi
 // ErrInvalidTrieSyncerVersion signals that an invalid trie syncer version was provided
 var ErrInvalidTrieSyncerVersion = errors.New("invalid trie syncer version")
 
-// ErrNilCheckpointHashesHolder signals that a nil checkpoint hashes holder was provided
-var ErrNilCheckpointHashesHolder = errors.New("nil checkpoint hashes holder")
-
 // ErrTrieSyncTimeout signals that a timeout occurred while syncing the trie
 var ErrTrieSyncTimeout = errors.New("trie sync timeout")
 

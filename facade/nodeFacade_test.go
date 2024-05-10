@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/data/validator"
 	"github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
@@ -28,7 +29,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	txSimData "github.com/multiversx/mx-chain-go/process/transactionEvaluator/data"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -50,8 +50,9 @@ func createMockArguments() ArgNodeFacade {
 			TrieOperationsDeadlineMilliseconds: 1,
 		},
 		FacadeConfig: config.FacadeConfig{
-			RestApiInterface: "127.0.0.1:8080",
-			PprofEnabled:     false,
+			RestApiInterface:            "127.0.0.1:8080",
+			PprofEnabled:                false,
+			P2PPrometheusMetricsEnabled: false,
 		},
 		ApiRoutesConfig: config.ApiRoutesConfig{APIPackages: map[string]config.APIPackageConfig{
 			"node": {
@@ -549,10 +550,10 @@ func TestNodeFacade_RestInterface(t *testing.T) {
 func TestNodeFacade_ValidatorStatisticsApi(t *testing.T) {
 	t.Parallel()
 
-	mapToRet := make(map[string]*accounts.ValidatorApiResponse)
-	mapToRet["test"] = &accounts.ValidatorApiResponse{NumLeaderFailure: 5}
+	mapToRet := make(map[string]*validator.ValidatorStatistics)
+	mapToRet["test"] = &validator.ValidatorStatistics{NumLeaderFailure: 5}
 	node := &mock.NodeStub{
-		ValidatorStatisticsApiCalled: func() (map[string]*accounts.ValidatorApiResponse, error) {
+		ValidatorStatisticsApiCalled: func() (map[string]*validator.ValidatorStatistics, error) {
 			return mapToRet, nil
 		},
 	}
@@ -618,6 +619,16 @@ func TestNodeFacade_PprofEnabled(t *testing.T) {
 	nf, _ := NewNodeFacade(arg)
 
 	require.True(t, nf.PprofEnabled())
+}
+
+func TestNodeFacade_P2PPrometheusMetricsEnabled(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArguments()
+	arg.FacadeConfig.P2PPrometheusMetricsEnabled = true
+	nf, _ := NewNodeFacade(arg)
+
+	require.True(t, nf.P2PPrometheusMetricsEnabled())
 }
 
 func TestNodeFacade_RestAPIServerDebugMode(t *testing.T) {
@@ -1230,6 +1241,117 @@ func TestNodeFacade_IsDataTrieMigrated(t *testing.T) {
 		assert.Equal(t, expectedErr, err)
 		assert.False(t, isMigrated)
 	})
+}
+
+func TestNodeFacade_GetManagedKeysCount(t *testing.T) {
+	t.Parallel()
+
+	expectedResult := 10
+	arg := createMockArguments()
+	arg.ApiResolver = &mock.ApiResolverStub{
+		GetManagedKeysCountCalled: func() int {
+			return expectedResult
+		},
+	}
+
+	nf, _ := NewNodeFacade(arg)
+	assert.NotNil(t, nf)
+
+	result := nf.GetManagedKeysCount()
+	assert.Equal(t, expectedResult, result)
+}
+
+func TestNodeFacade_GetManagedKeys(t *testing.T) {
+	t.Parallel()
+
+	expectedResult := []string{"key1, key2"}
+	arg := createMockArguments()
+	arg.ApiResolver = &mock.ApiResolverStub{
+		GetManagedKeysCalled: func() []string {
+			return expectedResult
+		},
+	}
+
+	nf, _ := NewNodeFacade(arg)
+	assert.NotNil(t, nf)
+
+	result := nf.GetManagedKeys()
+	assert.Equal(t, expectedResult, result)
+}
+
+func TestNodeFacade_GetWaitingManagedKeys(t *testing.T) {
+	t.Parallel()
+
+	expectedResult := []string{"key1, key2"}
+	arg := createMockArguments()
+	arg.ApiResolver = &mock.ApiResolverStub{
+		GetWaitingManagedKeysCalled: func() ([]string, error) {
+			return expectedResult, nil
+		},
+	}
+
+	nf, _ := NewNodeFacade(arg)
+	assert.NotNil(t, nf)
+
+	result, err := nf.GetWaitingManagedKeys()
+	assert.NoError(t, err)
+	assert.Equal(t, expectedResult, result)
+}
+
+func TestNodeFacade_GetEligibleManagedKeys(t *testing.T) {
+	t.Parallel()
+
+	expectedResult := []string{"key1, key2"}
+	arg := createMockArguments()
+	arg.ApiResolver = &mock.ApiResolverStub{
+		GetEligibleManagedKeysCalled: func() ([]string, error) {
+			return expectedResult, nil
+		},
+	}
+
+	nf, _ := NewNodeFacade(arg)
+	assert.NotNil(t, nf)
+
+	result, err := nf.GetEligibleManagedKeys()
+	assert.NoError(t, err)
+	assert.Equal(t, expectedResult, result)
+}
+
+func TestNodeFacade_GetLoadedKeys(t *testing.T) {
+	t.Parallel()
+
+	providedLoadedKeys := []string{"pk1", "pk2"}
+	arg := createMockArguments()
+	arg.ApiResolver = &mock.ApiResolverStub{
+		GetLoadedKeysCalled: func() []string {
+			return providedLoadedKeys
+		},
+	}
+	nf, _ := NewNodeFacade(arg)
+
+	keys := nf.GetLoadedKeys()
+	require.Equal(t, providedLoadedKeys, keys)
+}
+
+func TestNodeFacade_GetWaitingEpochsLeftForPublicKey(t *testing.T) {
+	t.Parallel()
+
+	providedPubKey := "public key"
+	expectedResult := uint32(10)
+	arg := createMockArguments()
+	arg.ApiResolver = &mock.ApiResolverStub{
+		GetWaitingEpochsLeftForPublicKeyCalled: func(publicKey string) (uint32, error) {
+			assert.Equal(t, providedPubKey, publicKey)
+			return expectedResult, nil
+		},
+	}
+
+	nf, _ := NewNodeFacade(arg)
+	assert.NotNil(t, nf)
+
+	epochsLeft, err := nf.GetWaitingEpochsLeftForPublicKey(providedPubKey)
+	assert.NoError(t, err)
+	assert.Equal(t, expectedResult, epochsLeft)
 }
 
 func TestNodeFacade_ExecuteSCQuery(t *testing.T) {
@@ -2223,52 +2345,6 @@ func TestNodeFacade_GetInternalStartOfEpochMetaBlock(t *testing.T) {
 	response, err := nf.GetInternalStartOfEpochMetaBlock(0, 0)
 	require.NoError(t, err)
 	require.Equal(t, providedResponse, response)
-}
-
-func TestNodeFacade_GetManagedKeys(t *testing.T) {
-	t.Parallel()
-
-	providedCount := 100
-	providedManagedKeys := []string{"pk1", "pk2"}
-	providedLoadedKeys := []string{"pk3", "pk4"}
-	providedEligibleKeys := []string{"pk5", "pk6"}
-	providedWaitingKeys := []string{"pk7", "pk8"}
-	arg := createMockArguments()
-	arg.ApiResolver = &mock.ApiResolverStub{
-		GetManagedKeysCountCalled: func() int {
-			return providedCount
-		},
-		GetManagedKeysCalled: func() []string {
-			return providedManagedKeys
-		},
-		GetLoadedKeysCalled: func() []string {
-			return providedLoadedKeys
-		},
-		GetEligibleManagedKeysCalled: func() ([]string, error) {
-			return providedEligibleKeys, nil
-		},
-		GetWaitingManagedKeysCalled: func() ([]string, error) {
-			return providedWaitingKeys, nil
-		},
-	}
-	nf, _ := NewNodeFacade(arg)
-
-	count := nf.GetManagedKeysCount()
-	require.Equal(t, providedCount, count)
-
-	keys := nf.GetManagedKeys()
-	require.Equal(t, providedManagedKeys, keys)
-
-	keys = nf.GetLoadedKeys()
-	require.Equal(t, providedLoadedKeys, keys)
-
-	keys, err := nf.GetEligibleManagedKeys()
-	require.Equal(t, providedEligibleKeys, keys)
-	require.Nil(t, err)
-
-	keys, err = nf.GetWaitingManagedKeys()
-	require.Equal(t, providedWaitingKeys, keys)
-	require.Nil(t, err)
 }
 
 func TestNodeFacade_Close(t *testing.T) {

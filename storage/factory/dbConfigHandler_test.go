@@ -51,7 +51,7 @@ func TestDBConfigHandler_GetDBConfig(t *testing.T) {
 		require.Nil(t, err)
 		require.Equal(t, &expectedDBConfig, conf)
 	})
-	t.Run("not empty dir, load default db config", func(t *testing.T) {
+	t.Run("not empty dir, load default provided config", func(t *testing.T) {
 		t.Parallel()
 
 		testConfig := createDefaultDBConfig()

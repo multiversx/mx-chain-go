@@ -1,5 +1,3 @@
-//go:build !race
-
 package node
 
 import (
@@ -22,7 +20,9 @@ import (
 const originalConfigsPath = "../cmd/node/config"
 
 func TestNewNodeRunner(t *testing.T) {
-	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	t.Run("nil configs should error", func(t *testing.T) {
 		t.Parallel()
@@ -35,7 +35,9 @@ func TestNewNodeRunner(t *testing.T) {
 	t.Run("with valid configs should work", func(t *testing.T) {
 		t.Parallel()
 
-		configs := testscommon.CreateTestConfigs(t, originalConfigsPath)
+		configs, err := testscommon.CreateTestConfigs(t.TempDir(), originalConfigsPath)
+		require.Nil(t, err)
+
 		runner, err := NewNodeRunner(configs)
 		assert.NotNil(t, runner)
 		assert.Nil(t, err)
@@ -43,13 +45,17 @@ func TestNewNodeRunner(t *testing.T) {
 }
 
 func TestNodeRunner_StartAndCloseNodeUsingSIGINT(t *testing.T) {
-	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
-	configs := testscommon.CreateTestConfigs(t, originalConfigsPath)
+	configs, err := testscommon.CreateTestConfigs(t.TempDir(), originalConfigsPath)
+	require.Nil(t, err)
+
 	runner, _ := NewNodeRunner(configs)
 
 	trigger := mock.NewApplicationRunningTrigger()
-	err := logger.AddLogObserver(trigger, &logger.PlainFormatter{})
+	err = logger.AddLogObserver(trigger, &logger.PlainFormatter{})
 	require.Nil(t, err)
 
 	// start a go routine that will send the SIGINT message after 1 second after the node has started
@@ -72,7 +78,9 @@ func TestNodeRunner_StartAndCloseNodeUsingSIGINT(t *testing.T) {
 }
 
 func TestCopyDirectory(t *testing.T) {
-	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	file1Name := "file1.toml"
 	file1Contents := []byte("file1")
@@ -130,7 +138,9 @@ func TestCopyDirectory(t *testing.T) {
 }
 
 func TestWaitForSignal(t *testing.T) {
-	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	closedCalled := make(map[string]struct{})
 	healthServiceClosableComponent := &mock.CloserStub{

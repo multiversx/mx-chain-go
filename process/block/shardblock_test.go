@@ -22,6 +22,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
@@ -45,9 +49,6 @@ import (
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 const MaxGasLimitPerBlock = uint64(100000)
@@ -1675,21 +1676,6 @@ func TestShardProcessor_CheckAndRequestIfMetaHeadersMissingShouldErr(t *testing.
 	time.Sleep(100 * time.Millisecond)
 	assert.Equal(t, int32(1), atomic.LoadInt32(&hdrNoncesRequestCalled))
 	assert.Equal(t, err, process.ErrTimeIsOut)
-}
-
-// -------- requestMissingFinalityAttestingHeaders
-func TestShardProcessor_RequestMissingFinalityAttestingHeaders(t *testing.T) {
-	t.Parallel()
-
-	tdp := dataRetrieverMock.NewPoolsHolderMock()
-	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	dataComponents.DataPool = tdp
-	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	sp, _ := blproc.NewShardProcessor(arguments)
-
-	sp.SetHighestHdrNonceForCurrentBlock(core.MetachainShardId, 1)
-	res := sp.RequestMissingFinalityAttestingHeaders()
-	assert.Equal(t, res > 0, true)
 }
 
 // --------- verifyIncludedMetaBlocksFinality
@@ -4506,7 +4492,6 @@ func TestShardProcessor_updateStateStorage(t *testing.T) {
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
 	arguments.BlockTracker = &mock.BlockTrackerMock{}
-	arguments.Config.StateTriesConfig.CheckpointRoundsModulus = 2
 	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
 		IsPruningEnabledCalled: func() bool {
 			return true
@@ -5054,9 +5039,7 @@ func TestShardProcessor_createMiniBlocks(t *testing.T) {
 	tx2 := &transaction.Transaction{Nonce: 1}
 	txs := []data.TransactionHandler{tx1, tx2}
 
-	coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsScheduledMiniBlocksFlagEnabledField: true,
-	}
+	coreComponents.EnableEpochsHandlerField = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ScheduledMiniBlocksFlag)
 	arguments := CreateMockArgumentsMultiShard(coreComponents, dataComponents, boostrapComponents, statusComponents)
 	arguments.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{
 		GetScheduledMiniBlocksCalled: func() block.MiniBlockSlice {

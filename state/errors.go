@@ -147,3 +147,21 @@ var ErrNilChannelsProvider = errors.New("nil channels provider")
 
 // ErrNilRootHashHolder signals that a nil root hash holder was provided
 var ErrNilRootHashHolder = errors.New("nil root hash holder provided")
+
+// ErrNilStatsHandler signals that a nil stats handler provider has been given
+var ErrNilStatsHandler = errors.New("nil stats handler")
+
+// ErrNilLastSnapshotMarker signals that a nil last snapshot marker has been given
+var ErrNilLastSnapshotMarker = errors.New("nil last snapshot marker")
+
+// ErrNilSnapshotsManager signals that a nil snapshots manager has been given
+var ErrNilSnapshotsManager = errors.New("nil snapshots manager")
+
+// ErrNilValidatorInfo signals that a nil value for the validator info has been provided
+var ErrNilValidatorInfo = errors.New("validator info is nil")
+
+// ErrValidatorsDifferentShards signals that validators are not in the same shard
+var ErrValidatorsDifferentShards = errors.New("validators are not in the same shard")
+
+// ErrValidatorNotFound signals that a validator was not found
+var ErrValidatorNotFound = errors.New("validator not found")

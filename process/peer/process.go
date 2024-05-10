@@ -80,7 +80,8 @@ type validatorStatistics struct {
 }
 
 // NewValidatorStatisticsProcessor instantiates a new validatorStatistics structure responsible for keeping account of
-//  each validator actions in the consensus process
+//
+//	each validator actions in the consensus process
 func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) (*validatorStatistics, error) {
 	if check.IfNil(arguments.PeerAdapter) {
 		return nil, process.ErrNilPeerAccountsAdapter
@@ -121,6 +122,15 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 	if check.IfNil(arguments.EnableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(arguments.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.StopDecreasingValidatorRatingWhenStuckFlag,
+		common.SwitchJailWaitingFlag,
+		common.StakingV2FlagAfterEpoch,
+		common.BelowSignedThresholdFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	vs := &validatorStatistics{
 		peerAdapter:                          arguments.PeerAdapter,
@@ -139,7 +149,7 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 		enableEpochsHandler:                  arguments.EnableEpochsHandler,
 	}
 
-	err := vs.saveInitialState(arguments.NodesSetup)
+	err = vs.saveInitialState(arguments.NodesSetup)
 	if err != nil {
 		return nil, err
 	}
@@ -186,6 +196,18 @@ func (vs *validatorStatistics) saveNodesCoordinatorUpdates(epoch uint32) (bool, 
 	}
 	nodeForcedToRemain = nodeForcedToRemain || tmpNodeForcedToRemain
 
+	if vs.enableEpochsHandler.IsFlagEnabled(common.StakingV4Step2Flag) {
+		nodesMap, err = vs.nodesCoordinator.GetAllShuffledOutValidatorsPublicKeys(epoch)
+		if err != nil {
+			return false, err
+		}
+
+		_, err = vs.saveUpdatesForNodesMap(nodesMap, common.AuctionList)
+		if err != nil {
+			return false, err
+		}
+	}
+
 	return nodeForcedToRemain, nil
 }
 
@@ -227,13 +249,17 @@ func (vs *validatorStatistics) saveUpdatesForList(
 
 		isNodeLeaving := (peerType == common.WaitingList || peerType == common.EligibleList) && peerAcc.GetList() == string(common.LeavingList)
 		isNodeWithLowRating := vs.isValidatorWithLowRating(peerAcc)
-		isNodeJailed := vs.enableEpochsHandler.IsSwitchJailWaitingFlagEnabled() && peerType == common.InactiveList && isNodeWithLowRating
+		isNodeJailed := vs.enableEpochsHandler.IsFlagEnabled(common.SwitchJailWaitingFlag) && peerType == common.InactiveList && isNodeWithLowRating
+		isStakingV4Started := vs.enableEpochsHandler.IsFlagEnabled(common.StakingV4StartedFlag)
 		if isNodeJailed {
-			peerAcc.SetListAndIndex(shardID, string(common.JailedList), uint32(index))
+			peerAcc.SetListAndIndex(shardID, string(common.JailedList), uint32(index), isStakingV4Started)
 		} else if isNodeLeaving {
-			peerAcc.SetListAndIndex(shardID, string(common.LeavingList), uint32(index))
+			peerAcc.SetListAndIndex(shardID, string(common.LeavingList), uint32(index), isStakingV4Started)
+			if isStakingV4Started {
+				peerAcc.SetPreviousList(string(peerType))
+			}
 		} else {
-			peerAcc.SetListAndIndex(shardID, string(peerType), uint32(index))
+			peerAcc.SetListAndIndex(shardID, string(peerType), uint32(index), isStakingV4Started)
 		}
 
 		err = vs.peerAdapter.SaveAccount(peerAcc)
@@ -434,23 +460,19 @@ func (vs *validatorStatistics) RootHash() ([]byte, error) {
 
 func (vs *validatorStatistics) getValidatorDataFromLeaves(
 	leavesChannels *common.TrieIteratorChannels,
-) (map[uint32][]*state.ValidatorInfo, error) {
-
-	validators := make(map[uint32][]*state.ValidatorInfo, vs.shardCoordinator.NumberOfShards()+1)
-	for i := uint32(0); i < vs.shardCoordinator.NumberOfShards(); i++ {
-		validators[i] = make([]*state.ValidatorInfo, 0)
-	}
-	validators[core.MetachainShardId] = make([]*state.ValidatorInfo, 0)
-
+) (state.ShardValidatorsInfoMapHandler, error) {
+	validators := state.NewShardValidatorsInfoMap()
 	for pa := range leavesChannels.LeavesChan {
 		peerAccount, err := vs.unmarshalPeer(pa)
 		if err != nil {
 			return nil, err
 		}
 
-		currentShardId := peerAccount.GetShardId()
 		validatorInfoData := vs.PeerAccountToValidatorInfo(peerAccount)
-		validators[currentShardId] = append(validators[currentShardId], validatorInfoData)
+		err = validators.Add(validatorInfoData)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	err := leavesChannels.ErrChan.ReadFromChanNonBlocking()
@@ -483,7 +505,7 @@ func (vs *validatorStatistics) PeerAccountToValidatorInfo(peerAccount state.Peer
 	ratingModifier := float32(chance) / float32(startRatingChance)
 
 	list := ""
-	if vs.enableEpochsHandler.IsSwitchJailWaitingFlagEnabled() {
+	if vs.enableEpochsHandler.IsFlagEnabled(common.SwitchJailWaitingFlag) {
 		list = peerAccount.GetList()
 	} else {
 		list = getActualList(peerAccount)
@@ -493,7 +515,9 @@ func (vs *validatorStatistics) PeerAccountToValidatorInfo(peerAccount state.Peer
 		PublicKey:                       peerAccount.AddressBytes(),
 		ShardId:                         peerAccount.GetShardId(),
 		List:                            list,
+		PreviousList:                    peerAccount.GetPreviousList(),
 		Index:                           peerAccount.GetIndexInList(),
+		PreviousIndex:                   peerAccount.GetPreviousIndexInList(),
 		TempRating:                      peerAccount.GetTempRating(),
 		Rating:                          peerAccount.GetRating(),
 		RatingModifier:                  ratingModifier,
@@ -534,7 +558,7 @@ func (vs *validatorStatistics) isValidatorWithLowRating(validatorAccount state.P
 }
 
 func (vs *validatorStatistics) jailValidatorIfBadRatingAndInactive(validatorAccount state.PeerAccountHandler) {
-	if !vs.enableEpochsHandler.IsSwitchJailWaitingFlagEnabled() {
+	if !vs.enableEpochsHandler.IsFlagEnabled(common.SwitchJailWaitingFlag) {
 		return
 	}
 
@@ -545,7 +569,7 @@ func (vs *validatorStatistics) jailValidatorIfBadRatingAndInactive(validatorAcco
 		return
 	}
 
-	validatorAccount.SetListAndIndex(validatorAccount.GetShardId(), string(common.JailedList), validatorAccount.GetIndexInList())
+	validatorAccount.SetListAndIndex(validatorAccount.GetShardId(), string(common.JailedList), validatorAccount.GetIndexInList(), vs.enableEpochsHandler.IsFlagEnabled(common.StakingV4StartedFlag))
 }
 
 func (vs *validatorStatistics) unmarshalPeer(peerAccountData core.KeyValueHolder) (state.PeerAccountHandler, error) {
@@ -561,7 +585,7 @@ func (vs *validatorStatistics) unmarshalPeer(peerAccountData core.KeyValueHolder
 }
 
 // GetValidatorInfoForRootHash returns all the peer accounts from the trie with the given rootHash
-func (vs *validatorStatistics) GetValidatorInfoForRootHash(rootHash []byte) (map[uint32][]*state.ValidatorInfo, error) {
+func (vs *validatorStatistics) GetValidatorInfoForRootHash(rootHash []byte) (state.ShardValidatorsInfoMapHandler, error) {
 	sw := core.NewStopWatch()
 	sw.Start("GetValidatorInfoForRootHash")
 	defer func() {
@@ -588,10 +612,10 @@ func (vs *validatorStatistics) GetValidatorInfoForRootHash(rootHash []byte) (map
 
 // ProcessRatingsEndOfEpoch makes end of epoch process on the rating
 func (vs *validatorStatistics) ProcessRatingsEndOfEpoch(
-	validatorInfos map[uint32][]*state.ValidatorInfo,
+	validatorInfos state.ShardValidatorsInfoMapHandler,
 	epoch uint32,
 ) error {
-	if len(validatorInfos) == 0 {
+	if validatorInfos == nil || len(validatorInfos.GetAllValidatorsInfo()) == 0 {
 		return process.ErrNilValidatorInfos
 	}
 
@@ -600,14 +624,14 @@ func (vs *validatorStatistics) ProcessRatingsEndOfEpoch(
 	}
 
 	signedThreshold := vs.rater.GetSignedBlocksThreshold()
-	for shardId, validators := range validatorInfos {
+	for shardId, validators := range validatorInfos.GetShardValidatorsInfoMap() {
 		for _, validator := range validators {
-			if !vs.enableEpochsHandler.IsStakingV2FlagEnabledForActivationEpochCompleted() {
-				if validator.List != string(common.EligibleList) {
+			if !vs.enableEpochsHandler.IsFlagEnabled(common.StakingV2FlagAfterEpoch) {
+				if validator.GetList() != string(common.EligibleList) {
 					continue
 				}
 			} else {
-				if validator.List != string(common.EligibleList) && !validatorInfo.WasLeavingEligibleInCurrentEpoch(validator) {
+				if validator.GetList() != string(common.EligibleList) && !validatorInfo.WasLeavingEligibleInCurrentEpoch(validator) {
 					continue
 				}
 			}
@@ -623,7 +647,7 @@ func (vs *validatorStatistics) ProcessRatingsEndOfEpoch(
 }
 
 func (vs *validatorStatistics) verifySignaturesBelowSignedThreshold(
-	validator *state.ValidatorInfo,
+	validator state.ValidatorInfoHandler,
 	signedThreshold float32,
 	shardId uint32,
 	epoch uint32,
@@ -632,19 +656,19 @@ func (vs *validatorStatistics) verifySignaturesBelowSignedThreshold(
 		return nil
 	}
 
-	validatorOccurrences := core.MaxUint32(1, validator.ValidatorSuccess+validator.ValidatorFailure+validator.ValidatorIgnoredSignatures)
-	computedThreshold := float32(validator.ValidatorSuccess) / float32(validatorOccurrences)
+	validatorOccurrences := core.MaxUint32(1, validator.GetValidatorSuccess()+validator.GetValidatorFailure()+validator.GetValidatorIgnoredSignatures())
+	computedThreshold := float32(validator.GetValidatorSuccess()) / float32(validatorOccurrences)
 
 	if computedThreshold <= signedThreshold {
 		increasedRatingTimes := uint32(0)
-		if !vs.enableEpochsHandler.IsBelowSignedThresholdFlagEnabled() {
-			increasedRatingTimes = validator.ValidatorFailure
+		if !vs.enableEpochsHandler.IsFlagEnabled(common.BelowSignedThresholdFlag) {
+			increasedRatingTimes = validator.GetValidatorFailure()
 		} else {
-			increasedRatingTimes = validator.ValidatorSuccess + validator.ValidatorIgnoredSignatures
+			increasedRatingTimes = validator.GetValidatorSuccess() + validator.GetValidatorIgnoredSignatures()
 		}
 
-		newTempRating := vs.rater.RevertIncreaseValidator(shardId, validator.TempRating, increasedRatingTimes)
-		pa, err := vs.loadPeerAccount(validator.PublicKey)
+		newTempRating := vs.rater.RevertIncreaseValidator(shardId, validator.GetTempRating(), increasedRatingTimes)
+		pa, err := vs.loadPeerAccount(validator.GetPublicKey())
 		if err != nil {
 			return err
 		}
@@ -657,23 +681,23 @@ func (vs *validatorStatistics) verifySignaturesBelowSignedThreshold(
 		}
 
 		log.Debug("below signed blocks threshold",
-			"pk", validator.PublicKey,
+			"pk", validator.GetPublicKey(),
 			"signed %", computedThreshold,
-			"validatorSuccess", validator.ValidatorSuccess,
-			"validatorFailure", validator.ValidatorFailure,
-			"validatorIgnored", validator.ValidatorIgnoredSignatures,
+			"validatorSuccess", validator.GetValidatorSuccess(),
+			"validatorFailure", validator.GetValidatorFailure(),
+			"validatorIgnored", validator.GetValidatorIgnoredSignatures(),
 			"new tempRating", newTempRating,
-			"old tempRating", validator.TempRating,
+			"old tempRating", validator.GetTempRating(),
 		)
 
-		validator.TempRating = newTempRating
+		validator.SetTempRating(newTempRating)
 	}
 
 	return nil
 }
 
 // ResetValidatorStatisticsAtNewEpoch resets the validator info at the start of a new epoch
-func (vs *validatorStatistics) ResetValidatorStatisticsAtNewEpoch(vInfos map[uint32][]*state.ValidatorInfo) error {
+func (vs *validatorStatistics) ResetValidatorStatisticsAtNewEpoch(vInfos state.ShardValidatorsInfoMapHandler) error {
 	sw := core.NewStopWatch()
 	sw.Start("ResetValidatorStatisticsAtNewEpoch")
 	defer func() {
@@ -681,24 +705,22 @@ func (vs *validatorStatistics) ResetValidatorStatisticsAtNewEpoch(vInfos map[uin
 		log.Debug("ResetValidatorStatisticsAtNewEpoch", sw.GetMeasurements()...)
 	}()
 
-	for _, validators := range vInfos {
-		for _, validator := range validators {
-			account, err := vs.peerAdapter.LoadAccount(validator.GetPublicKey())
-			if err != nil {
-				return err
-			}
+	for _, validator := range vInfos.GetAllValidatorsInfo() {
+		account, err := vs.peerAdapter.LoadAccount(validator.GetPublicKey())
+		if err != nil {
+			return err
+		}
 
-			peerAccount, ok := account.(state.PeerAccountHandler)
-			if !ok {
-				return process.ErrWrongTypeAssertion
-			}
-			peerAccount.ResetAtNewEpoch()
-			vs.setToJailedIfNeeded(peerAccount, validator)
+		peerAccount, ok := account.(state.PeerAccountHandler)
+		if !ok {
+			return process.ErrWrongTypeAssertion
+		}
+		peerAccount.ResetAtNewEpoch()
+		vs.setToJailedIfNeeded(peerAccount, validator)
 
-			err = vs.peerAdapter.SaveAccount(peerAccount)
-			if err != nil {
-				return err
-			}
+		err = vs.peerAdapter.SaveAccount(peerAccount)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -707,23 +729,23 @@ func (vs *validatorStatistics) ResetValidatorStatisticsAtNewEpoch(vInfos map[uin
 
 func (vs *validatorStatistics) setToJailedIfNeeded(
 	peerAccount state.PeerAccountHandler,
-	validator *state.ValidatorInfo,
+	validator state.ValidatorInfoHandler,
 ) {
-	if !vs.enableEpochsHandler.IsSwitchJailWaitingFlagEnabled() {
+	if !vs.enableEpochsHandler.IsFlagEnabled(common.SwitchJailWaitingFlag) {
 		return
 	}
 
-	if validator.List == string(common.WaitingList) || validator.List == string(common.EligibleList) {
+	if validator.GetList() == string(common.WaitingList) || validator.GetList() == string(common.EligibleList) {
 		return
 	}
 
-	if validator.List == string(common.JailedList) && peerAccount.GetList() != string(common.JailedList) {
-		peerAccount.SetListAndIndex(validator.ShardId, string(common.JailedList), validator.Index)
+	if validator.GetList() == string(common.JailedList) && peerAccount.GetList() != string(common.JailedList) {
+		peerAccount.SetListAndIndex(validator.GetShardId(), string(common.JailedList), validator.GetIndex(), vs.enableEpochsHandler.IsFlagEnabled(common.StakingV4StartedFlag))
 		return
 	}
 
 	if vs.isValidatorWithLowRating(peerAccount) {
-		peerAccount.SetListAndIndex(validator.ShardId, string(common.JailedList), validator.Index)
+		peerAccount.SetListAndIndex(validator.GetShardId(), string(common.JailedList), validator.GetIndex(), vs.enableEpochsHandler.IsFlagEnabled(common.StakingV4StartedFlag))
 	}
 }
 
@@ -738,7 +760,7 @@ func (vs *validatorStatistics) checkForMissedBlocks(
 	if missedRounds <= 1 {
 		return nil
 	}
-	if vs.enableEpochsHandler.IsStopDecreasingValidatorRatingWhenStuckFlagEnabled() {
+	if vs.enableEpochsHandler.IsFlagEnabled(common.StopDecreasingValidatorRatingWhenStuckFlag) {
 		if missedRounds > vs.maxConsecutiveRoundsOfRatingDecrease {
 			return nil
 		}
@@ -864,7 +886,8 @@ func (vs *validatorStatistics) decreaseForConsensusValidators(
 }
 
 // RevertPeerState takes the current and previous headers and undos the peer state
-//  for all of the consensus members
+//
+//	for all of the consensus members
 func (vs *validatorStatistics) RevertPeerState(header data.MetaHeaderHandler) error {
 	return vs.peerAdapter.RecreateTrie(header.GetValidatorStatsRootHash())
 }
@@ -983,7 +1006,7 @@ func (vs *validatorStatistics) savePeerAccountData(
 
 	peerAccount.SetRating(startRating)
 	peerAccount.SetTempRating(startRating)
-	peerAccount.SetListAndIndex(shardID, string(peerType), index)
+	peerAccount.SetListAndIndex(shardID, string(peerType), index, vs.enableEpochsHandler.IsFlagEnabled(common.StakingV4StartedFlag))
 
 	return vs.peerAdapter.SaveAccount(peerAccount)
 }
@@ -1018,7 +1041,7 @@ func (vs *validatorStatistics) updateValidatorInfoOnSuccessfulBlock(
 			peerAcc.SetConsecutiveProposerMisses(0)
 			newRating = vs.rater.ComputeIncreaseProposer(shardId, peerAcc.GetTempRating())
 			var leaderAccumulatedFees *big.Int
-			if vs.enableEpochsHandler.IsStakingV2FlagEnabledForActivationEpochCompleted() {
+			if vs.enableEpochsHandler.IsFlagEnabled(common.StakingV2FlagAfterEpoch) {
 				leaderAccumulatedFees = core.GetIntTrimmedPercentageOfValue(accumulatedFees, vs.rewardsHandler.LeaderPercentage())
 			} else {
 				leaderAccumulatedFees = core.GetApproximatePercentageOfValue(accumulatedFees, vs.rewardsHandler.LeaderPercentage())

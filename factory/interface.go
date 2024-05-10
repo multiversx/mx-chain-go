@@ -151,6 +151,7 @@ type StatusCoreComponentsHolder interface {
 	AppStatusHandler() core.AppStatusHandler
 	StatusMetrics() external.StatusMetricsHandler
 	PersistentStatusHandler() PersistentStatusHandler
+	StateStatsHandler() common.StateStatisticsHandler
 	IsInterfaceNil() bool
 }
 
@@ -309,6 +310,7 @@ type ProcessComponentsHolder interface {
 	AccountsParser() genesis.AccountsParser
 	ReceiptsRepository() ReceiptsRepository
 	SentSignaturesTracker() process.SentSignaturesTracker
+	EpochSystemSCProcessor() process.EpochStartSystemSCProcessor
 	IsInterfaceNil() bool
 }
 
@@ -435,7 +437,7 @@ type BootstrapParamsHolder interface {
 	Epoch() uint32
 	SelfShardID() uint32
 	NumOfShards() uint32
-	NodesConfig() *nodesCoordinator.NodesCoordinatorRegistry
+	NodesConfig() nodesCoordinator.NodesCoordinatorRegistryHandler
 	IsInterfaceNil() bool
 }
 
@@ -456,6 +458,7 @@ type BootstrapComponentsHolder interface {
 	HeaderVersionHandler() factory.HeaderVersionHandler
 	HeaderIntegrityVerifier() factory.HeaderIntegrityVerifierHandler
 	GuardedAccountHandler() process.GuardedAccountHandler
+	NodesCoordinatorRegistryFactory() nodesCoordinator.NodesCoordinatorRegistryFactory
 	IsInterfaceNil() bool
 }
 

@@ -1,12 +1,9 @@
 package storagerequesterscontainer
 
 import (
-	"fmt"
-
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/containers"
-	"github.com/multiversx/mx-chain-go/dataRetriever/storageRequesters"
+	storagerequesters "github.com/multiversx/mx-chain-go/dataRetriever/storageRequesters"
 	"github.com/multiversx/mx-chain-go/process/factory"
 )
 
@@ -38,6 +35,7 @@ func NewMetaRequestersContainerFactory(
 		workingDir:               args.WorkingDirectory,
 		snapshotsEnabled:         args.GeneralConfig.StateTriesConfig.SnapshotsEnabled,
 		enableEpochsHandler:      args.EnableEpochsHandler,
+		stateStatsHandler:        args.StateStatsHandler,
 	}
 
 	err := base.checkParams()
@@ -71,11 +69,6 @@ func (mrcf *metaRequestersContainerFactory) Create() (dataRetriever.RequestersCo
 		factory.RewardsTransactionTopic,
 		dataRetriever.RewardTransactionUnit,
 	)
-	if err != nil {
-		return nil, err
-	}
-
-	err = mrcf.generateTrieNodesRequesters()
 	if err != nil {
 		return nil, err
 	}
@@ -175,90 +168,6 @@ func (mrcf *metaRequestersContainerFactory) createMetaChainHeaderRequester() (da
 	}
 
 	return requester, nil
-}
-
-func (mrcf *metaRequestersContainerFactory) generateTrieNodesRequesters() error {
-	keys := make([]string, 0)
-	requestersSlice := make([]dataRetriever.Requester, 0)
-
-	userAccountsStorer, err := mrcf.store.GetStorer(dataRetriever.UserAccountsUnit)
-	if err != nil {
-		return err
-	}
-
-	userAccountsCheckpointStorer, err := mrcf.store.GetStorer(dataRetriever.UserAccountsCheckpointsUnit)
-	if err != nil {
-		return err
-	}
-
-	identifierTrieNodes := factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
-	storageManager, userAccountsDataTrie, err := mrcf.newImportDBTrieStorage(
-		userAccountsStorer,
-		userAccountsCheckpointStorer,
-		dataRetriever.UserAccountsUnit,
-		mrcf.enableEpochsHandler,
-	)
-	if err != nil {
-		return fmt.Errorf("%w while creating user accounts data trie storage getter", err)
-	}
-	arg := storagerequesters.ArgTrieRequester{
-		Messenger:                mrcf.messenger,
-		ResponseTopicName:        identifierTrieNodes,
-		Marshalizer:              mrcf.marshalizer,
-		TrieDataGetter:           userAccountsDataTrie,
-		TrieStorageManager:       storageManager,
-		ManualEpochStartNotifier: mrcf.manualEpochStartNotifier,
-		ChanGracefullyClose:      mrcf.chanGracefullyClose,
-		DelayBeforeGracefulClose: defaultBeforeGracefulClose,
-	}
-	requester, err := storagerequesters.NewTrieNodeRequester(arg)
-	if err != nil {
-		return fmt.Errorf("%w while creating user accounts trie node requester", err)
-	}
-
-	requestersSlice = append(requestersSlice, requester)
-	keys = append(keys, identifierTrieNodes)
-
-	peerAccountsStorer, err := mrcf.store.GetStorer(dataRetriever.PeerAccountsUnit)
-	if err != nil {
-		return err
-	}
-
-	peerAccountsCheckpointStorer, err := mrcf.store.GetStorer(dataRetriever.PeerAccountsCheckpointsUnit)
-	if err != nil {
-		return err
-	}
-
-	identifierTrieNodes = factory.ValidatorTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
-	storageManager, peerAccountsDataTrie, err := mrcf.newImportDBTrieStorage(
-		peerAccountsStorer,
-		peerAccountsCheckpointStorer,
-		dataRetriever.PeerAccountsUnit,
-		mrcf.enableEpochsHandler,
-	)
-	if err != nil {
-		return fmt.Errorf("%w while creating peer accounts data trie storage getter", err)
-	}
-	arg = storagerequesters.ArgTrieRequester{
-		Messenger:                mrcf.messenger,
-		ResponseTopicName:        identifierTrieNodes,
-		Marshalizer:              mrcf.marshalizer,
-		TrieDataGetter:           peerAccountsDataTrie,
-		TrieStorageManager:       storageManager,
-		ManualEpochStartNotifier: mrcf.manualEpochStartNotifier,
-		ChanGracefullyClose:      mrcf.chanGracefullyClose,
-		DelayBeforeGracefulClose: defaultBeforeGracefulClose,
-	}
-
-	requester, err = storagerequesters.NewTrieNodeRequester(arg)
-	if err != nil {
-		return fmt.Errorf("%w while creating peer accounts trie node requester", err)
-	}
-
-	requestersSlice = append(requestersSlice, requester)
-	keys = append(keys, identifierTrieNodes)
-
-	return mrcf.container.AddMultiple(keys, requestersSlice)
 }
 
 func (mrcf *metaRequestersContainerFactory) generateRewardsRequesters(

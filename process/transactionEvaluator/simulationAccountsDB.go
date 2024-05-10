@@ -142,10 +142,6 @@ func (r *simulationAccountsDB) CancelPrune(_ []byte, _ state.TriePruningIdentifi
 func (r *simulationAccountsDB) SnapshotState(_ []byte, _ uint32) {
 }
 
-// SetStateCheckpoint won't do anything as write operations are disabled on this component
-func (r *simulationAccountsDB) SetStateCheckpoint(_ []byte) {
-}
-
 // IsPruningEnabled will call the original accounts' function with the same name
 func (r *simulationAccountsDB) IsPruningEnabled() bool {
 	return r.originalAccounts.IsPruningEnabled()

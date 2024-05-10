@@ -190,6 +190,11 @@ func (netMes *networkMessenger) SetDebugger(_ p2p.Debugger) error {
 	return nil
 }
 
+// HasCompatibleProtocolID returns false as it is disabled
+func (netMes *networkMessenger) HasCompatibleProtocolID(_ string) bool {
+	return false
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (netMes *networkMessenger) IsInterfaceNil() bool {
 	return netMes == nil

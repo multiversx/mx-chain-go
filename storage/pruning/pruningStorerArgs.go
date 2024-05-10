@@ -1,6 +1,7 @@
 package pruning
 
 import (
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/clean"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
@@ -22,6 +23,7 @@ type StorerArgs struct {
 	PruningEnabled            bool
 	EnabledDbLookupExtensions bool
 	PersistersTracker         PersistersTracker
+	StateStatsHandler         common.StateStatisticsHandler
 }
 
 // EpochArgs will hold the arguments needed for persistersTracker

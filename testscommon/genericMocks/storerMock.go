@@ -8,8 +8,8 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/container"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	storageCore "github.com/multiversx/mx-chain-core-go/storage"
 	"github.com/multiversx/mx-chain-go/storage"
 )
 
@@ -61,21 +61,21 @@ func (sm *StorerMock) GetEpochData(epoch uint32) *container.MutexMap {
 	sm.mutex.Lock()
 	defer sm.mutex.Unlock()
 
-	data, ok := sm.DataByEpoch[epoch]
+	value, ok := sm.DataByEpoch[epoch]
 	if ok {
-		return data
+		return value
 	}
 
-	data = container.NewMutexMap()
-	sm.DataByEpoch[epoch] = data
+	value = container.NewMutexMap()
+	sm.DataByEpoch[epoch] = value
 
-	return data
+	return value
 }
 
 // GetFromEpoch -
 func (sm *StorerMock) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) {
-	data := sm.GetEpochData(epoch)
-	value, ok := data.Get(string(key))
+	epochData := sm.GetEpochData(epoch)
+	value, ok := epochData.Get(string(key))
 	if !ok {
 		return nil, sm.newErrNotFound(key, epoch)
 	}
@@ -84,14 +84,14 @@ func (sm *StorerMock) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) {
 }
 
 // GetBulkFromEpoch -
-func (sm *StorerMock) GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]storageCore.KeyValuePair, error) {
-	data := sm.GetEpochData(epoch)
-	results := make([]storageCore.KeyValuePair, 0, len(keys))
+func (sm *StorerMock) GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]data.KeyValuePair, error) {
+	epochData := sm.GetEpochData(epoch)
+	results := make([]data.KeyValuePair, 0, len(keys))
 
 	for _, key := range keys {
-		value, ok := data.Get(string(key))
+		value, ok := epochData.Get(string(key))
 		if ok {
-			keyValue := storageCore.KeyValuePair{Key: key, Value: value.([]byte)}
+			keyValue := data.KeyValuePair{Key: key, Value: value.([]byte)}
 			results = append(results, keyValue)
 		}
 	}
@@ -101,9 +101,9 @@ func (sm *StorerMock) GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]storageCo
 
 // hasInEpoch -
 func (sm *StorerMock) hasInEpoch(key []byte, epoch uint32) error {
-	data := sm.GetEpochData(epoch)
+	epochData := sm.GetEpochData(epoch)
 
-	_, ok := data.Get(string(key))
+	_, ok := epochData.Get(string(key))
 	if ok {
 		return nil
 	}
@@ -113,32 +113,32 @@ func (sm *StorerMock) hasInEpoch(key []byte, epoch uint32) error {
 
 // Put -
 func (sm *StorerMock) Put(key, value []byte) error {
-	data := sm.GetCurrentEpochData()
-	data.Set(string(key), value)
+	epochData := sm.GetCurrentEpochData()
+	epochData.Set(string(key), value)
 	return nil
 }
 
 // PutInEpoch -
 func (sm *StorerMock) PutInEpoch(key, value []byte, epoch uint32) error {
-	data := sm.GetEpochData(epoch)
-	data.Set(string(key), value)
+	epochData := sm.GetEpochData(epoch)
+	epochData.Set(string(key), value)
 	return nil
 }
 
 // PutWithMarshalizer -
 func (sm *StorerMock) PutWithMarshalizer(key []byte, obj interface{}, marshalizer marshal.Marshalizer) error {
-	data, err := marshalizer.Marshal(obj)
+	value, err := marshalizer.Marshal(obj)
 	if err != nil {
 		return err
 	}
 
-	return sm.Put(key, data)
+	return sm.Put(key, value)
 }
 
 // Get -
 func (sm *StorerMock) Get(key []byte) ([]byte, error) {
-	data := sm.GetCurrentEpochData()
-	value, ok := data.Get(string(key))
+	epochData := sm.GetCurrentEpochData()
+	value, ok := epochData.Get(string(key))
 	if !ok {
 		return nil, sm.newErrNotFound(key, sm.currentEpoch.Get())
 	}
@@ -148,12 +148,12 @@ func (sm *StorerMock) Get(key []byte) ([]byte, error) {
 
 // GetFromEpochWithMarshalizer -
 func (sm *StorerMock) GetFromEpochWithMarshalizer(key []byte, epoch uint32, obj interface{}, marshalizer marshal.Marshalizer) error {
-	data, err := sm.GetFromEpoch(key, epoch)
+	value, err := sm.GetFromEpoch(key, epoch)
 	if err != nil {
 		return err
 	}
 
-	err = marshalizer.Unmarshal(obj, data)
+	err = marshalizer.Unmarshal(obj, value)
 	if err != nil {
 		return err
 	}
@@ -206,10 +206,10 @@ func (sm *StorerMock) RangeKeys(handler func(key []byte, value []byte) bool) {
 		return
 	}
 
-	data := sm.GetCurrentEpochData()
+	epochData := sm.GetCurrentEpochData()
 
-	for _, key := range data.Keys() {
-		value, ok := data.Get(key)
+	for _, key := range epochData.Keys() {
+		value, ok := epochData.Get(key)
 		if !ok {
 			continue
 		}

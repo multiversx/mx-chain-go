@@ -6,6 +6,9 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -73,13 +76,23 @@ func validatorsEqualSerializableValidators(validators []Validator, sValidators [
 }
 
 func TestIndexHashedNodesCoordinator_LoadStateAfterSave(t *testing.T) {
+	t.Parallel()
+
 	args := createArguments()
+	args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
+			if flag == common.StakingV4Step2Flag {
+				return stakingV4Epoch
+			}
+			return 0
+		},
+	}
 	nodesCoordinator, _ := NewIndexHashedNodesCoordinator(args)
 
 	expectedConfig := nodesCoordinator.nodesConfig[0]
 
 	key := []byte("config")
-	err := nodesCoordinator.saveState(key)
+	err := nodesCoordinator.saveState(key, 0)
 	assert.Nil(t, err)
 
 	delete(nodesCoordinator.nodesConfig, 0)
@@ -94,26 +107,77 @@ func TestIndexHashedNodesCoordinator_LoadStateAfterSave(t *testing.T) {
 	assert.True(t, sameValidatorsMaps(expectedConfig.waitingMap, actualConfig.waitingMap))
 }
 
-func TestIndexHashedNodesCooridinator_nodesCoordinatorToRegistry(t *testing.T) {
+func TestIndexHashedNodesCoordinator_LoadStateAfterSaveWithStakingV4(t *testing.T) {
+	t.Parallel()
+
+	args := createArguments()
+	args.Epoch = stakingV4Epoch
+	nodesCoordinator, _ := NewIndexHashedNodesCoordinator(args)
+
+	nodesCoordinator.nodesConfig[stakingV4Epoch].leavingMap = createDummyNodesMap(3, 0, string(common.LeavingList))
+	nodesCoordinator.nodesConfig[stakingV4Epoch].shuffledOutMap = createDummyNodesMap(3, 0, string(common.SelectedFromAuctionList))
+	expectedConfig := nodesCoordinator.nodesConfig[stakingV4Epoch]
+
+	key := []byte("config")
+	err := nodesCoordinator.saveState(key, stakingV4Epoch)
+	assert.Nil(t, err)
+
+	delete(nodesCoordinator.nodesConfig, 0)
+	err = nodesCoordinator.LoadState(key)
+	assert.Nil(t, err)
+
+	actualConfig := nodesCoordinator.nodesConfig[stakingV4Epoch]
+	assert.Equal(t, expectedConfig.shardID, actualConfig.shardID)
+	assert.Equal(t, expectedConfig.nbShards, actualConfig.nbShards)
+	assert.True(t, sameValidatorsMaps(expectedConfig.eligibleMap, actualConfig.eligibleMap))
+	assert.True(t, sameValidatorsMaps(expectedConfig.waitingMap, actualConfig.waitingMap))
+	assert.True(t, sameValidatorsMaps(expectedConfig.shuffledOutMap, actualConfig.shuffledOutMap))
+	assert.True(t, sameValidatorsMaps(expectedConfig.leavingMap, actualConfig.leavingMap))
+}
+
+func TestIndexHashedNodesCoordinator_nodesCoordinatorToRegistryWithStakingV4(t *testing.T) {
+	args := createArguments()
+	args.Epoch = stakingV4Epoch
+	nodesCoordinator, _ := NewIndexHashedNodesCoordinator(args)
+
+	nodesCoordinator.nodesConfig[stakingV4Epoch].leavingMap = createDummyNodesMap(3, 0, string(common.LeavingList))
+	nodesCoordinator.nodesConfig[stakingV4Epoch].shuffledOutMap = createDummyNodesMap(3, 0, string(common.SelectedFromAuctionList))
+
+	ncr := nodesCoordinator.NodesCoordinatorToRegistry(stakingV4Epoch)
+	nc := nodesCoordinator.nodesConfig
+
+	assert.Equal(t, nodesCoordinator.currentEpoch, ncr.GetCurrentEpoch())
+	assert.Equal(t, len(nodesCoordinator.nodesConfig), len(ncr.GetEpochsConfig()))
+
+	for epoch, config := range nc {
+		ncrWithAuction := ncr.GetEpochsConfig()[fmt.Sprint(epoch)].(EpochValidatorsHandlerWithAuction)
+		assert.True(t, sameValidatorsDifferentMapTypes(config.waitingMap, ncrWithAuction.GetWaitingValidators()))
+		assert.True(t, sameValidatorsDifferentMapTypes(config.leavingMap, ncrWithAuction.GetLeavingValidators()))
+		assert.True(t, sameValidatorsDifferentMapTypes(config.eligibleMap, ncrWithAuction.GetEligibleValidators()))
+		assert.True(t, sameValidatorsDifferentMapTypes(config.shuffledOutMap, ncrWithAuction.GetShuffledOutValidators()))
+	}
+}
+
+func TestIndexHashedNodesCoordinator_nodesCoordinatorToRegistry(t *testing.T) {
 	args := createArguments()
 	nodesCoordinator, _ := NewIndexHashedNodesCoordinator(args)
 
-	ncr := nodesCoordinator.NodesCoordinatorToRegistry()
+	ncr := nodesCoordinator.NodesCoordinatorToRegistry(args.Epoch)
 	nc := nodesCoordinator.nodesConfig
 
-	assert.Equal(t, nodesCoordinator.currentEpoch, ncr.CurrentEpoch)
-	assert.Equal(t, len(nodesCoordinator.nodesConfig), len(ncr.EpochsConfig))
+	assert.Equal(t, nodesCoordinator.currentEpoch, ncr.GetCurrentEpoch())
+	assert.Equal(t, len(nodesCoordinator.nodesConfig), len(ncr.GetEpochsConfig()))
 
 	for epoch, config := range nc {
-		assert.True(t, sameValidatorsDifferentMapTypes(config.eligibleMap, ncr.EpochsConfig[fmt.Sprint(epoch)].EligibleValidators))
-		assert.True(t, sameValidatorsDifferentMapTypes(config.waitingMap, ncr.EpochsConfig[fmt.Sprint(epoch)].WaitingValidators))
+		assert.True(t, sameValidatorsDifferentMapTypes(config.eligibleMap, ncr.GetEpochsConfig()[fmt.Sprint(epoch)].GetEligibleValidators()))
+		assert.True(t, sameValidatorsDifferentMapTypes(config.waitingMap, ncr.GetEpochsConfig()[fmt.Sprint(epoch)].GetWaitingValidators()))
 	}
 }
 
 func TestIndexHashedNodesCoordinator_registryToNodesCoordinator(t *testing.T) {
 	args := createArguments()
 	nodesCoordinator1, _ := NewIndexHashedNodesCoordinator(args)
-	ncr := nodesCoordinator1.NodesCoordinatorToRegistry()
+	ncr := nodesCoordinator1.NodesCoordinatorToRegistry(args.Epoch)
 
 	args = createArguments()
 	nodesCoordinator2, _ := NewIndexHashedNodesCoordinator(args)
@@ -147,17 +211,17 @@ func TestIndexHashedNodesCooridinator_nodesCoordinatorToRegistryLimitNumEpochsIn
 		}
 	}
 
-	ncr := nodesCoordinator.NodesCoordinatorToRegistry()
+	ncr := nodesCoordinator.NodesCoordinatorToRegistry(args.Epoch)
 	nc := nodesCoordinator.nodesConfig
 
-	require.Equal(t, nodesCoordinator.currentEpoch, ncr.CurrentEpoch)
-	require.Equal(t, nodesCoordinatorStoredEpochs, len(ncr.EpochsConfig))
+	require.Equal(t, nodesCoordinator.currentEpoch, ncr.GetCurrentEpoch())
+	require.Equal(t, nodesCoordinatorStoredEpochs, len(ncr.GetEpochsConfig()))
 
-	for epochStr := range ncr.EpochsConfig {
+	for epochStr := range ncr.GetEpochsConfig() {
 		epoch, err := strconv.Atoi(epochStr)
 		require.Nil(t, err)
-		require.True(t, sameValidatorsDifferentMapTypes(nc[uint32(epoch)].eligibleMap, ncr.EpochsConfig[epochStr].EligibleValidators))
-		require.True(t, sameValidatorsDifferentMapTypes(nc[uint32(epoch)].waitingMap, ncr.EpochsConfig[epochStr].WaitingValidators))
+		require.True(t, sameValidatorsDifferentMapTypes(nc[uint32(epoch)].eligibleMap, ncr.GetEpochsConfig()[epochStr].GetEligibleValidators()))
+		require.True(t, sameValidatorsDifferentMapTypes(nc[uint32(epoch)].waitingMap, ncr.GetEpochsConfig()[epochStr].GetWaitingValidators()))
 	}
 }
 

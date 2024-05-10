@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	vmFactory "github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
 	"github.com/multiversx/mx-chain-go/vm"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -170,7 +171,7 @@ func CreateNodesAndPrepareBalances(numOfShards int) ([]*integrationTests.TestPro
 		ScheduledMiniBlocksEnableEpoch:              integrationTests.UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch:        integrationTests.UnreachableEpoch,
 	}
-	roundsConfig := integrationTests.GetDefaultRoundsConfig()
+	roundsConfig := testscommon.GetDefaultRoundsConfig()
 	return CreateNodesAndPrepareBalancesWithEpochsAndRoundsConfig(
 		numOfShards,
 		enableEpochs,
@@ -178,7 +179,7 @@ func CreateNodesAndPrepareBalances(numOfShards int) ([]*integrationTests.TestPro
 	)
 }
 
-// CreateNodesAndPrepareBalances -
+// CreateNodesAndPrepareBalancesWithEpochsAndRoundsConfig -
 func CreateNodesAndPrepareBalancesWithEpochsAndRoundsConfig(numOfShards int, enableEpochs config.EnableEpochs, roundsConfig config.RoundConfig) ([]*integrationTests.TestProcessorNode, []int) {
 	nodesPerShard := 1
 	numMetachainNodes := 1
@@ -230,6 +231,7 @@ func IssueTestToken(nodes []*integrationTests.TestProcessorNode, initialSupply i
 	issueTestToken(nodes, initialSupply, ticker, core.MinMetaTxExtraGasCost)
 }
 
+// IssueTestTokenWithIssuerAccount -
 func IssueTestTokenWithIssuerAccount(nodes []*integrationTests.TestProcessorNode, issuerAccount *integrationTests.TestWalletAccount, initialSupply int64, ticker string) {
 	issueTestTokenWithIssuerAccount(nodes, issuerAccount, initialSupply, ticker, core.MinMetaTxExtraGasCost)
 }
@@ -302,6 +304,7 @@ func CheckNumCallBacks(
 	}
 }
 
+// CheckForwarderRawSavedCallbackArgs -
 func CheckForwarderRawSavedCallbackArgs(
 	t *testing.T,
 	address []byte,
@@ -338,13 +341,14 @@ func CheckForwarderRawSavedCallbackArgs(
 	}
 }
 
-/// ForwarderRawSavedPaymentInfo contains token data to be checked in the forwarder-raw contract.
+// ForwarderRawSavedPaymentInfo contains token data to be checked in the forwarder-raw contract.
 type ForwarderRawSavedPaymentInfo struct {
 	TokenId string
 	Nonce   uint64
 	Payment *big.Int
 }
 
+// CheckForwarderRawSavedCallbackPayments -
 func CheckForwarderRawSavedCallbackPayments(
 	t *testing.T,
 	address []byte,

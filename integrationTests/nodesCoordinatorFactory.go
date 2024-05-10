@@ -3,13 +3,16 @@ package integrationTests
 import (
 	"fmt"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
 )
@@ -51,7 +54,12 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 		MaxNodesEnableConfig: nil,
 		EnableEpochsHandler:  &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
+
 	nodeShuffler, _ := nodesCoordinator.NewHashValidatorsShuffler(nodeShufflerArgs)
+	nodesCoordinatorRegistryFactory, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
+		TestMarshalizer,
+		StakingV4Step2EnableEpoch,
+	)
 	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 		ShardConsensusGroupSize: arg.shardConsensusGroupSize,
 		MetaConsensusGroupSize:  arg.metaConsensusGroupSize,
@@ -71,9 +79,16 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 		IsFullArchive:           false,
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			RefactorPeersMiniBlocksEnableEpochField: UnreachableEpoch,
+			GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
+				if flag == common.RefactorPeersMiniBlocksFlag || flag == common.StakingV4Step2Flag {
+					return UnreachableEpoch
+				}
+				return 0
+			},
 		},
-		ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
+		ValidatorInfoCacher:             &vic.ValidatorInfoCacherStub{},
+		GenesisNodesSetupHandler:        &genesisMocks.NodesSetupStub{},
+		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
 	}
 	nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 	if err != nil {
@@ -103,12 +118,14 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 		Adaptivity:           adaptivity,
 		ShuffleBetweenShards: shuffleBetweenShards,
 		MaxNodesEnableConfig: nil,
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsWaitingListFixFlagEnabledField:      true,
-			IsBalanceWaitingListsFlagEnabledField: true,
-		},
+		EnableEpochsHandler:  &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
+
 	nodeShuffler, _ := nodesCoordinator.NewHashValidatorsShuffler(shufflerArgs)
+	nodesCoordinatorRegistryFactory, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
+		TestMarshalizer,
+		StakingV4Step2EnableEpoch,
+	)
 	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
 		ShardConsensusGroupSize: arg.shardConsensusGroupSize,
 		MetaConsensusGroupSize:  arg.metaConsensusGroupSize,
@@ -128,10 +145,16 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 		NodeTypeProvider:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 		IsFullArchive:           false,
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsWaitingListFixFlagEnabledField:        true,
-			RefactorPeersMiniBlocksEnableEpochField: UnreachableEpoch,
+			GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
+				if flag == common.RefactorPeersMiniBlocksFlag {
+					return UnreachableEpoch
+				}
+				return 0
+			},
 		},
-		ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
+		ValidatorInfoCacher:             &vic.ValidatorInfoCacherStub{},
+		GenesisNodesSetupHandler:        &genesisMocks.NodesSetupStub{},
+		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
 	}
 
 	baseCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)

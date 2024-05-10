@@ -17,28 +17,49 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/vm"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewStakingDataProvider_NilSystemVMShouldErr(t *testing.T) {
-	t.Parallel()
+const stakingV4Step1EnableEpoch = 444
+const stakingV4Step2EnableEpoch = 445
 
-	sdp, err := NewStakingDataProvider(nil, "100000")
-
-	assert.True(t, check.IfNil(sdp))
-	assert.Equal(t, epochStart.ErrNilSystemVmInstance, err)
+func createStakingDataProviderArgs() StakingDataProviderArgs {
+	return StakingDataProviderArgs{
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		SystemVM:            &mock.VMExecutionHandlerStub{},
+		MinNodePrice:        "2500",
+	}
 }
 
-func TestNewStakingDataProvider_ShouldWork(t *testing.T) {
+func TestNewStakingDataProvider_NilInputPointersShouldErr(t *testing.T) {
 	t.Parallel()
 
-	sdp, err := NewStakingDataProvider(&mock.VMExecutionHandlerStub{}, "100000")
+	t.Run("nil system vm", func(t *testing.T) {
+		args := createStakingDataProviderArgs()
+		args.SystemVM = nil
+		sdp, err := NewStakingDataProvider(args)
+		assert.True(t, check.IfNil(sdp))
+		assert.Equal(t, epochStart.ErrNilSystemVmInstance, err)
+	})
 
-	assert.False(t, check.IfNil(sdp))
-	assert.Nil(t, err)
+	t.Run("nil epoch notifier", func(t *testing.T) {
+		args := createStakingDataProviderArgs()
+		args.EnableEpochsHandler = nil
+		sdp, err := NewStakingDataProvider(args)
+		assert.True(t, check.IfNil(sdp))
+		assert.Equal(t, vm.ErrNilEnableEpochsHandler, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		args := createStakingDataProviderArgs()
+		sdp, err := NewStakingDataProvider(args)
+		assert.False(t, check.IfNil(sdp))
+		assert.Nil(t, err)
+	})
 }
 
 func TestStakingDataProvider_PrepareDataForBlsKeyGetBlsKeyOwnerErrorsShouldErr(t *testing.T) {
@@ -46,7 +67,8 @@ func TestStakingDataProvider_PrepareDataForBlsKeyGetBlsKeyOwnerErrorsShouldErr(t
 
 	numCall := 0
 	expectedErr := errors.New("expected error")
-	sdp, _ := NewStakingDataProvider(&mock.VMExecutionHandlerStub{
+	args := createStakingDataProviderArgs()
+	args.SystemVM = &mock.VMExecutionHandlerStub{
 		RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
 			numCall++
 			if numCall == 1 {
@@ -65,17 +87,18 @@ func TestStakingDataProvider_PrepareDataForBlsKeyGetBlsKeyOwnerErrorsShouldErr(t
 
 			return nil, nil
 		},
-	}, "100000")
+	}
+	sdp, _ := NewStakingDataProvider(args)
 
-	err := sdp.loadDataForBlsKey([]byte("bls key"))
+	err := sdp.loadDataForBlsKey(&state.ValidatorInfo{PublicKey: []byte("bls key")})
 	assert.Equal(t, expectedErr, err)
 
-	err = sdp.loadDataForBlsKey([]byte("bls key"))
+	err = sdp.loadDataForBlsKey(&state.ValidatorInfo{PublicKey: []byte("bls key")})
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), epochStart.ErrExecutingSystemScCode.Error()))
 	assert.True(t, strings.Contains(err.Error(), vmcommon.UserError.String()))
 
-	err = sdp.loadDataForBlsKey([]byte("bls key"))
+	err = sdp.loadDataForBlsKey(&state.ValidatorInfo{PublicKey: []byte("bls key")})
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), epochStart.ErrExecutingSystemScCode.Error()))
 	assert.True(t, strings.Contains(err.Error(), "returned exactly one value: the owner address"))
@@ -87,7 +110,8 @@ func TestStakingDataProvider_PrepareDataForBlsKeyLoadOwnerDataErrorsShouldErr(t 
 	numCall := 0
 	owner := []byte("owner")
 	expectedErr := errors.New("expected error")
-	sdp, _ := NewStakingDataProvider(&mock.VMExecutionHandlerStub{
+	args := createStakingDataProviderArgs()
+	args.SystemVM = &mock.VMExecutionHandlerStub{
 		RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
 			if input.Function == "getOwner" {
 				return &vmcommon.VMOutput{
@@ -111,17 +135,18 @@ func TestStakingDataProvider_PrepareDataForBlsKeyLoadOwnerDataErrorsShouldErr(t 
 			}
 			return nil, nil
 		},
-	}, "100000")
+	}
+	sdp, _ := NewStakingDataProvider(args)
 
-	err := sdp.loadDataForBlsKey([]byte("bls key"))
+	err := sdp.loadDataForBlsKey(&state.ValidatorInfo{PublicKey: []byte("bls key")})
 	assert.Equal(t, expectedErr, err)
 
-	err = sdp.loadDataForBlsKey([]byte("bls key"))
+	err = sdp.loadDataForBlsKey(&state.ValidatorInfo{PublicKey: []byte("bls key")})
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), epochStart.ErrExecutingSystemScCode.Error()))
 	assert.True(t, strings.Contains(err.Error(), vmcommon.UserError.String()))
 
-	err = sdp.loadDataForBlsKey([]byte("bls key"))
+	err = sdp.loadDataForBlsKey(&state.ValidatorInfo{PublicKey: []byte("bls key")})
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), epochStart.ErrExecutingSystemScCode.Error()))
 	assert.True(t, strings.Contains(err.Error(), "getTotalStakedTopUpStakedBlsKeys function should have at least three values"))
@@ -138,12 +163,12 @@ func TestStakingDataProvider_PrepareDataForBlsKeyFromSCShouldWork(t *testing.T) 
 
 	sdp := createStakingDataProviderWithMockArgs(t, owner, topUpVal, stakeVal, &numRunContractCalls)
 
-	err := sdp.loadDataForBlsKey([]byte("bls key"))
+	err := sdp.loadDataForBlsKey(&state.ValidatorInfo{PublicKey: []byte("bls key")})
 	assert.Nil(t, err)
 	assert.Equal(t, 2, numRunContractCalls)
 	ownerData := sdp.GetFromCache(owner)
 	require.NotNil(t, ownerData)
-	assert.Equal(t, topUpVal, ownerData.topUpValue)
+	assert.Equal(t, topUpVal, ownerData.totalTopUp)
 	assert.Equal(t, 1, ownerData.numEligible)
 }
 
@@ -158,16 +183,16 @@ func TestStakingDataProvider_PrepareDataForBlsKeyCachedResponseShouldWork(t *tes
 
 	sdp := createStakingDataProviderWithMockArgs(t, owner, topUpVal, stakeVal, &numRunContractCalls)
 
-	err := sdp.loadDataForBlsKey([]byte("bls key"))
+	err := sdp.loadDataForBlsKey(&state.ValidatorInfo{PublicKey: []byte("bls key")})
 	assert.Nil(t, err)
 
-	err = sdp.loadDataForBlsKey([]byte("bls key2"))
+	err = sdp.loadDataForBlsKey(&state.ValidatorInfo{PublicKey: []byte("bls key2")})
 	assert.Nil(t, err)
 
 	assert.Equal(t, 3, numRunContractCalls)
 	ownerData := sdp.GetFromCache(owner)
 	require.NotNil(t, ownerData)
-	assert.Equal(t, topUpVal, ownerData.topUpValue)
+	assert.Equal(t, topUpVal, ownerData.totalTopUp)
 	assert.Equal(t, 2, ownerData.numEligible)
 }
 
@@ -179,11 +204,11 @@ func TestStakingDataProvider_PrepareDataForBlsKeyWithRealSystemVmShouldWork(t *t
 	blsKey := []byte("bls key")
 
 	sdp := createStakingDataProviderWithRealArgs(t, owner, blsKey, topUpVal)
-	err := sdp.loadDataForBlsKey(blsKey)
+	err := sdp.loadDataForBlsKey(&state.ValidatorInfo{PublicKey: blsKey})
 	assert.Nil(t, err)
 	ownerData := sdp.GetFromCache(owner)
 	require.NotNil(t, ownerData)
-	assert.Equal(t, topUpVal, ownerData.topUpValue)
+	assert.Equal(t, topUpVal, ownerData.totalTopUp)
 	assert.Equal(t, 1, ownerData.numEligible)
 }
 
@@ -224,6 +249,39 @@ func TestStakingDataProvider_ComputeUnQualifiedNodes(t *testing.T) {
 	require.Zero(t, len(ownersWithNotEnoughFunds))
 }
 
+func TestStakingDataProvider_ComputeUnQualifiedNodesWithStakingV4ReceivedNewListNode(t *testing.T) {
+	v0 := &state.ValidatorInfo{
+		PublicKey:     []byte("blsKey0"),
+		List:          string(common.EligibleList),
+		RewardAddress: []byte("address0"),
+	}
+	v1 := &state.ValidatorInfo{
+		PublicKey:     []byte("blsKey1"),
+		List:          string(common.NewList),
+		RewardAddress: []byte("address0"),
+	}
+	v2 := &state.ValidatorInfo{
+		PublicKey:     []byte("blsKey2"),
+		List:          string(common.AuctionList),
+		RewardAddress: []byte("address1"),
+	}
+
+	valInfo := state.NewShardValidatorsInfoMap()
+	_ = valInfo.Add(v0)
+	_ = valInfo.Add(v1)
+	_ = valInfo.Add(v2)
+
+	sdp := createStakingDataProviderAndUpdateCache(t, valInfo, big.NewInt(0))
+	sdp.enableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.StakingV4Step2Flag)
+
+	keysToUnStake, ownersWithNotEnoughFunds, err := sdp.ComputeUnQualifiedNodes(valInfo)
+	require.Error(t, err)
+	require.True(t, strings.Contains(err.Error(), epochStart.ErrReceivedNewListNodeInStakingV4.Error()))
+	require.True(t, strings.Contains(err.Error(), hex.EncodeToString(v1.PublicKey)))
+	require.Empty(t, keysToUnStake)
+	require.Empty(t, ownersWithNotEnoughFunds)
+}
+
 func TestStakingDataProvider_ComputeUnQualifiedNodesWithOwnerNotEnoughFunds(t *testing.T) {
 	nbShards := uint32(3)
 	nbEligible := make(map[uint32]uint32)
@@ -257,6 +315,39 @@ func TestStakingDataProvider_ComputeUnQualifiedNodesWithOwnerNotEnoughFunds(t *t
 	require.Nil(t, err)
 	require.Equal(t, 1, len(keysToUnStake))
 	require.Equal(t, 1, len(ownersWithNotEnoughFunds))
+}
+
+func TestStakingDataProvider_ComputeUnQualifiedNodesWithOwnerNotEnoughFundsWithStakingV4(t *testing.T) {
+	owner := "address0"
+	v0 := &state.ValidatorInfo{
+		PublicKey:     []byte("blsKey0"),
+		List:          string(common.EligibleList),
+		RewardAddress: []byte(owner),
+	}
+	v1 := &state.ValidatorInfo{
+		PublicKey:     []byte("blsKey1"),
+		List:          string(common.AuctionList),
+		RewardAddress: []byte(owner),
+	}
+
+	valInfo := state.NewShardValidatorsInfoMap()
+	_ = valInfo.Add(v0)
+	_ = valInfo.Add(v1)
+
+	sdp := createStakingDataProviderAndUpdateCache(t, valInfo, big.NewInt(0))
+	sdp.enableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.StakingV4Step2Flag)
+
+	sdp.cache[owner].blsKeys = append(sdp.cache[owner].blsKeys, []byte("newKey"))
+	sdp.cache[owner].totalStaked = big.NewInt(2500)
+	sdp.cache[owner].numStakedNodes++
+
+	keysToUnStake, ownersWithNotEnoughFunds, err := sdp.ComputeUnQualifiedNodes(valInfo)
+	require.Nil(t, err)
+
+	expectedUnStakedKeys := [][]byte{[]byte("blsKey1"), []byte("newKey")}
+	expectedOwnerWithNotEnoughFunds := map[string][][]byte{owner: expectedUnStakedKeys}
+	require.Equal(t, expectedUnStakedKeys, keysToUnStake)
+	require.Equal(t, expectedOwnerWithNotEnoughFunds, ownersWithNotEnoughFunds)
 }
 
 func TestStakingDataProvider_GetTotalStakeEligibleNodes(t *testing.T) {
@@ -345,13 +436,13 @@ func TestStakingDataProvider_GetNodeStakedTopUpShouldWork(t *testing.T) {
 	sdp := createStakingDataProviderWithMockArgs(t, owner, topUpVal, stakeVal, &numRunContractCalls)
 
 	expectedOwnerStats := &ownerStats{
-		topUpPerNode: big.NewInt(37),
+		eligibleTopUpPerNode: big.NewInt(37),
 	}
 	sdp.SetInCache(owner, expectedOwnerStats)
 
 	res, err := sdp.GetNodeStakedTopUp(owner)
 	require.NoError(t, err)
-	require.Equal(t, expectedOwnerStats.topUpPerNode, res)
+	require.Equal(t, expectedOwnerStats.eligibleTopUpPerNode, res)
 }
 
 func TestStakingDataProvider_PrepareStakingDataForRewards(t *testing.T) {
@@ -365,9 +456,9 @@ func TestStakingDataProvider_PrepareStakingDataForRewards(t *testing.T) {
 
 	sdp := createStakingDataProviderWithMockArgs(t, owner, topUpVal, stakeVal, &numRunContractCalls)
 
-	keys := make(map[uint32][][]byte)
-	keys[0] = append(keys[0], []byte("owner"))
-	err := sdp.PrepareStakingDataForRewards(keys)
+	validatorsMap := state.NewShardValidatorsInfoMap()
+	_ = validatorsMap.Add(&state.ValidatorInfo{PublicKey: owner, ShardId: 0})
+	err := sdp.PrepareStakingData(validatorsMap)
 	require.NoError(t, err)
 }
 
@@ -382,8 +473,142 @@ func TestStakingDataProvider_FillValidatorInfo(t *testing.T) {
 
 	sdp := createStakingDataProviderWithMockArgs(t, owner, topUpVal, stakeVal, &numRunContractCalls)
 
-	err := sdp.FillValidatorInfo([]byte("owner"))
+	err := sdp.FillValidatorInfo(&state.ValidatorInfo{PublicKey: []byte("bls key")})
 	require.NoError(t, err)
+}
+
+func TestCheckAndFillOwnerValidatorAuctionData(t *testing.T) {
+	t.Parallel()
+
+	t.Run("validator not in auction, expect no error, no owner data update", func(t *testing.T) {
+		t.Parallel()
+		args := createStakingDataProviderArgs()
+		sdp, _ := NewStakingDataProvider(args)
+
+		ownerData := &ownerStats{}
+		err := sdp.checkAndFillOwnerValidatorAuctionData([]byte("owner"), ownerData, &state.ValidatorInfo{List: string(common.NewList)})
+		require.Nil(t, err)
+		require.Equal(t, &ownerStats{}, ownerData)
+	})
+
+	t.Run("validator in auction, but no staked node, expect error", func(t *testing.T) {
+		t.Parallel()
+		args := createStakingDataProviderArgs()
+		sdp, _ := NewStakingDataProvider(args)
+
+		owner := []byte("owner")
+		ownerData := &ownerStats{numStakedNodes: 0}
+		validator := &state.ValidatorInfo{PublicKey: []byte("validatorPubKey"), List: string(common.AuctionList)}
+
+		err := sdp.checkAndFillOwnerValidatorAuctionData(owner, ownerData, validator)
+		require.Error(t, err)
+		require.True(t, strings.Contains(err.Error(), epochStart.ErrOwnerHasNoStakedNode.Error()))
+		require.True(t, strings.Contains(err.Error(), hex.EncodeToString(owner)))
+		require.True(t, strings.Contains(err.Error(), hex.EncodeToString(validator.PublicKey)))
+		require.Equal(t, &ownerStats{numStakedNodes: 0}, ownerData)
+	})
+
+	t.Run("validator in auction, staking v4 not enabled yet, expect error", func(t *testing.T) {
+		t.Parallel()
+		args := createStakingDataProviderArgs()
+		sdp, _ := NewStakingDataProvider(args)
+
+		owner := []byte("owner")
+		ownerData := &ownerStats{numStakedNodes: 1}
+		validator := &state.ValidatorInfo{PublicKey: []byte("validatorPubKey"), List: string(common.AuctionList)}
+
+		err := sdp.checkAndFillOwnerValidatorAuctionData(owner, ownerData, validator)
+		require.Error(t, err)
+		require.True(t, strings.Contains(err.Error(), epochStart.ErrReceivedAuctionValidatorsBeforeStakingV4.Error()))
+		require.True(t, strings.Contains(err.Error(), hex.EncodeToString(owner)))
+		require.True(t, strings.Contains(err.Error(), hex.EncodeToString(validator.PublicKey)))
+		require.Equal(t, &ownerStats{numStakedNodes: 1}, ownerData)
+	})
+
+	t.Run("should update owner's data", func(t *testing.T) {
+		t.Parallel()
+		args := createStakingDataProviderArgs()
+		sdp, _ := NewStakingDataProvider(args)
+		sdp.enableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.StakingV4StartedFlag)
+
+		owner := []byte("owner")
+		ownerData := &ownerStats{numStakedNodes: 3, numActiveNodes: 3}
+		validator := &state.ValidatorInfo{PublicKey: []byte("validatorPubKey"), List: string(common.AuctionList)}
+
+		err := sdp.checkAndFillOwnerValidatorAuctionData(owner, ownerData, validator)
+		require.Nil(t, err)
+		require.Equal(t, &ownerStats{
+			numStakedNodes: 3,
+			numActiveNodes: 2,
+			auctionList:    []state.ValidatorInfoHandler{validator},
+		}, ownerData)
+	})
+}
+
+func TestSelectKeysToUnStake(t *testing.T) {
+	t.Parallel()
+
+	t.Run("no validator removed", func(t *testing.T) {
+		t.Parallel()
+		args := createStakingDataProviderArgs()
+		sdp, _ := NewStakingDataProvider(args)
+		sdp.enableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.StakingV4Step2Flag)
+
+		sortedKeys := map[string][][]byte{
+			string(common.AuctionList): {[]byte("pk0")},
+		}
+		unStakedKeys, removedValidators := sdp.selectKeysToUnStake(sortedKeys, 2)
+		require.Equal(t, [][]byte{[]byte("pk0")}, unStakedKeys)
+		require.Equal(t, 0, removedValidators)
+	})
+
+	t.Run("overflow from waiting", func(t *testing.T) {
+		t.Parallel()
+		args := createStakingDataProviderArgs()
+		sdp, _ := NewStakingDataProvider(args)
+		sdp.enableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.StakingV4Step2Flag)
+
+		sortedKeys := map[string][][]byte{
+			string(common.AuctionList):  {[]byte("pk0")},
+			string(common.EligibleList): {[]byte("pk2")},
+			string(common.WaitingList):  {[]byte("pk3"), []byte("pk4"), []byte("pk5")},
+		}
+		unStakedKeys, removedValidators := sdp.selectKeysToUnStake(sortedKeys, 2)
+		require.Equal(t, [][]byte{[]byte("pk0"), []byte("pk3")}, unStakedKeys)
+		require.Equal(t, 1, removedValidators)
+	})
+
+	t.Run("overflow from eligible", func(t *testing.T) {
+		t.Parallel()
+		args := createStakingDataProviderArgs()
+		sdp, _ := NewStakingDataProvider(args)
+		sdp.enableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.StakingV4Step2Flag)
+
+		sortedKeys := map[string][][]byte{
+			string(common.AuctionList):  {[]byte("pk0")},
+			string(common.EligibleList): {[]byte("pk1"), []byte("pk2")},
+			string(common.WaitingList):  {[]byte("pk4"), []byte("pk5")},
+		}
+		unStakedKeys, removedValidators := sdp.selectKeysToUnStake(sortedKeys, 4)
+		require.Equal(t, [][]byte{[]byte("pk0"), []byte("pk4"), []byte("pk5"), []byte("pk1")}, unStakedKeys)
+		require.Equal(t, 3, removedValidators)
+	})
+
+	t.Run("no overflow", func(t *testing.T) {
+		t.Parallel()
+		args := createStakingDataProviderArgs()
+		sdp, _ := NewStakingDataProvider(args)
+		sdp.enableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.StakingV4Step2Flag)
+
+		sortedKeys := map[string][][]byte{
+			string(common.AuctionList):  {[]byte("pk0")},
+			string(common.EligibleList): {[]byte("pk1")},
+			string(common.WaitingList):  {[]byte("pk2")},
+		}
+		unStakedKeys, removedValidators := sdp.selectKeysToUnStake(sortedKeys, 3)
+		require.Equal(t, [][]byte{[]byte("pk0"), []byte("pk2"), []byte("pk1")}, unStakedKeys)
+		require.Equal(t, 2, removedValidators)
+	})
 }
 
 func createStakingDataProviderWithMockArgs(
@@ -393,7 +618,8 @@ func createStakingDataProviderWithMockArgs(
 	stakingVal *big.Int,
 	numRunContractCalls *int,
 ) *stakingDataProvider {
-	sdp, err := NewStakingDataProvider(&mock.VMExecutionHandlerStub{
+	args := createStakingDataProviderArgs()
+	args.SystemVM = &mock.VMExecutionHandlerStub{
 		RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
 			*numRunContractCalls++
 			switch input.Function {
@@ -417,7 +643,8 @@ func createStakingDataProviderWithMockArgs(
 
 			return nil, errors.New("unexpected call")
 		},
-	}, "100000")
+	}
+	sdp, err := NewStakingDataProvider(args)
 	require.Nil(t, err)
 
 	return sdp
@@ -426,7 +653,7 @@ func createStakingDataProviderWithMockArgs(
 func createStakingDataProviderWithRealArgs(t *testing.T, owner []byte, blsKey []byte, topUpVal *big.Int) *stakingDataProvider {
 	args, _ := createFullArgumentsForSystemSCProcessing(config.EnableEpochs{
 		StakingV2EnableEpoch: 1000,
-	}, createMemUnit())
+	}, testscommon.CreateMemUnit())
 	args.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
 		EpochField: 1000000,
 	})
@@ -435,7 +662,9 @@ func createStakingDataProviderWithRealArgs(t *testing.T, owner []byte, blsKey []
 
 	doStake(t, s.systemVM, s.userAccountsDB, owner, big.NewInt(0).Add(big.NewInt(1000), topUpVal), blsKey)
 
-	sdp, _ := NewStakingDataProvider(s.systemVM, "100000")
+	argsStakingDataProvider := createStakingDataProviderArgs()
+	argsStakingDataProvider.SystemVM = s.systemVM
+	sdp, _ := NewStakingDataProvider(argsStakingDataProvider)
 
 	return sdp
 }
@@ -464,27 +693,28 @@ func saveOutputAccounts(t *testing.T, accountsDB state.AccountsAdapter, vmOutput
 	require.Nil(t, err)
 }
 
-func createStakingDataProviderAndUpdateCache(t *testing.T, validatorsInfo map[uint32][]*state.ValidatorInfo, topUpValue *big.Int) *stakingDataProvider {
-
+func createStakingDataProviderAndUpdateCache(t *testing.T, validatorsInfo state.ShardValidatorsInfoMapHandler, topUpValue *big.Int) *stakingDataProvider {
 	args, _ := createFullArgumentsForSystemSCProcessing(config.EnableEpochs{
 		StakingV2EnableEpoch: 1,
-	}, createMemUnit())
+	}, testscommon.CreateMemUnit())
 	args.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
 		EpochField: 1,
 	})
-	sdp, _ := NewStakingDataProvider(args.SystemVM, "2500")
+
+	argsStakingDataProvider := createStakingDataProviderArgs()
+	argsStakingDataProvider.SystemVM = args.SystemVM
+	sdp, _ := NewStakingDataProvider(argsStakingDataProvider)
 	args.StakingDataProvider = sdp
 	s, _ := NewSystemSCProcessor(args)
 	require.NotNil(t, s)
 
-	for _, valsList := range validatorsInfo {
-		for _, valInfo := range valsList {
-			stake := big.NewInt(0).Add(big.NewInt(2500), topUpValue)
-			if valInfo.List != string(common.LeavingList) && valInfo.List != string(common.InactiveList) {
-				doStake(t, s.systemVM, s.userAccountsDB, valInfo.RewardAddress, stake, valInfo.PublicKey)
-			}
-			updateCache(sdp, valInfo.RewardAddress, valInfo.PublicKey, valInfo.List, stake)
+	for _, valInfo := range validatorsInfo.GetAllValidatorsInfo() {
+		stake := big.NewInt(0).Add(big.NewInt(2500), topUpValue)
+		if valInfo.GetList() != string(common.LeavingList) && valInfo.GetList() != string(common.InactiveList) {
+			doStake(t, s.systemVM, s.userAccountsDB, valInfo.GetRewardAddress(), stake, valInfo.GetPublicKey())
 		}
+		updateCache(sdp, valInfo.GetRewardAddress(), valInfo.GetPublicKey(), valInfo.GetList(), stake)
+
 	}
 
 	return sdp
@@ -495,14 +725,14 @@ func updateCache(sdp *stakingDataProvider, ownerAddress []byte, blsKey []byte, l
 
 	if owner == nil {
 		owner = &ownerStats{
-			numEligible:        0,
-			numStakedNodes:     0,
-			topUpValue:         big.NewInt(0),
-			totalStaked:        big.NewInt(0),
-			eligibleBaseStake:  big.NewInt(0),
-			eligibleTopUpStake: big.NewInt(0),
-			topUpPerNode:       big.NewInt(0),
-			blsKeys:            nil,
+			numEligible:          0,
+			numStakedNodes:       0,
+			totalTopUp:           big.NewInt(0),
+			totalStaked:          big.NewInt(0),
+			eligibleBaseStake:    big.NewInt(0),
+			eligibleTopUpStake:   big.NewInt(0),
+			eligibleTopUpPerNode: big.NewInt(0),
+			blsKeys:              nil,
 		}
 	}
 
@@ -518,12 +748,12 @@ func updateCache(sdp *stakingDataProvider, ownerAddress []byte, blsKey []byte, l
 	sdp.cache[string(ownerAddress)] = owner
 }
 
-func createValidatorsInfo(nbShards uint32, nbEligible, nbWaiting, nbLeaving, nbInactive map[uint32]uint32) map[uint32][]*state.ValidatorInfo {
-	validatorsInfo := make(map[uint32][]*state.ValidatorInfo)
+func createValidatorsInfo(nbShards uint32, nbEligible, nbWaiting, nbLeaving, nbInactive map[uint32]uint32) state.ShardValidatorsInfoMapHandler {
+	validatorsInfo := state.NewShardValidatorsInfoMap()
 	shardMap := shardsMap(nbShards)
 
 	for shardID := range shardMap {
-		valInfoList := make([]*state.ValidatorInfo, 0)
+		valInfoList := make([]state.ValidatorInfoHandler, 0)
 		for eligible := uint32(0); eligible < nbEligible[shardID]; eligible++ {
 			vInfo := &state.ValidatorInfo{
 				PublicKey:     []byte(fmt.Sprintf("blsKey%s%d%d", common.EligibleList, shardID, eligible)),
@@ -561,7 +791,7 @@ func createValidatorsInfo(nbShards uint32, nbEligible, nbWaiting, nbLeaving, nbI
 			}
 			valInfoList = append(valInfoList, vInfo)
 		}
-		validatorsInfo[shardID] = valInfoList
+		_ = validatorsInfo.SetValidatorsInShard(shardID, valInfoList)
 	}
 	return validatorsInfo
 }

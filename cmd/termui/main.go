@@ -10,7 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-go/cmd/termui/presenter"
 	"github.com/multiversx/mx-chain-go/cmd/termui/provider"
 	"github.com/multiversx/mx-chain-go/cmd/termui/view/termuic"
-	"github.com/multiversx/mx-chain-logger-go"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/urfave/cli"
 )
 

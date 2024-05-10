@@ -2,6 +2,7 @@ package postprocess
 
 import (
 	"bytes"
+	"errors"
 	"math/big"
 	"sort"
 	"strconv"
@@ -12,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
@@ -41,7 +43,7 @@ func createMockArgsNewIntermediateResultsProcessor() ArgsNewIntermediateResultsP
 		BlockType:               block.SmartContractResultBlock,
 		CurrTxs:                 &mock.TxForCurrentBlockStub{},
 		EconomicsFee:            &economicsmocks.EconomicsHandlerStub{},
-		EnableEpochsHandler:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{IsKeepExecOrderOnCreatedSCRsEnabledField: true},
+		EnableEpochsHandler:     enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.KeepExecOrderOnCreatedSCRsFlag),
 		TxExecutionOrderHandler: &txExecOrderStub.TxExecutionOrderHandlerStub{},
 	}
 
@@ -134,6 +136,17 @@ func TestNewIntermediateResultsProcessor_NilEpochHandler(t *testing.T) {
 
 	assert.Nil(t, irp)
 	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
+}
+
+func TestNewIntermediateResultsProcessor_InvalidEpochHandler(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgsNewIntermediateResultsProcessor()
+	args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
+	irp, err := NewIntermediateResultsProcessor(args)
+
+	assert.Nil(t, irp)
+	assert.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
 }
 
 func TestNewIntermediateResultsProcessor_NilTxExecutionOrderHandler(t *testing.T) {
@@ -653,7 +666,7 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyShouldPass(t *tes
 			return maxGasLimitPerBlock
 		},
 	}
-	enableEpochHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{IsKeepExecOrderOnCreatedSCRsEnabledField: false}
+	enableEpochHandler := enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
 	args.EnableEpochsHandler = enableEpochHandler
 	irp, err := NewIntermediateResultsProcessor(args)
 
@@ -699,7 +712,7 @@ func TestIntermediateResultsProcessor_VerifyInterMiniBlocksBodyShouldPass(t *tes
 	err = irp.VerifyInterMiniBlocks(body)
 	assert.Nil(t, err)
 
-	enableEpochHandler.IsKeepExecOrderOnCreatedSCRsEnabledField = true
+	enableEpochHandler.AddActiveFlags(common.KeepExecOrderOnCreatedSCRsFlag)
 	err = irp.VerifyInterMiniBlocks(body)
 	assert.Equal(t, err, process.ErrMiniBlockHashMismatch)
 

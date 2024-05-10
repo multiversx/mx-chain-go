@@ -6,7 +6,7 @@ import (
 
 // SetNodesConfigFromValidatorsInfo sets epoch config based on validators list configuration
 func (ihnc *indexHashedNodesCoordinator) SetNodesConfigFromValidatorsInfo(epoch uint32, randomness []byte, validatorsInfo []*state.ShardValidatorInfo) error {
-	newNodesConfig, err := ihnc.computeNodesConfigFromList(&epochNodesConfig{}, validatorsInfo)
+	newNodesConfig, err := ihnc.computeNodesConfigFromList(validatorsInfo)
 	if err != nil {
 		return err
 	}
@@ -41,7 +41,7 @@ func (ihnc *indexHashedNodesCoordinator) SetNodesConfigFromValidatorsInfo(epoch 
 		resUpdateNodes.Leaving,
 	)
 
-	err = ihnc.setNodesPerShards(resUpdateNodes.Eligible, resUpdateNodes.Waiting, leavingNodesMap, epoch)
+	err = ihnc.setNodesPerShards(resUpdateNodes.Eligible, resUpdateNodes.Waiting, leavingNodesMap, resUpdateNodes.ShuffledOut, epoch)
 	if err != nil {
 		return err
 	}

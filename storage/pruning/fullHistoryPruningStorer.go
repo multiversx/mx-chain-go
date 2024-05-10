@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"math"
 
-	storageCore "github.com/multiversx/mx-chain-core-go/storage"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 )
@@ -70,9 +70,9 @@ func initFullHistoryPruningStorer(args FullHistoryStorerArgs, shardId string) (*
 
 // GetFromEpoch will search a key only in the persister for the given epoch
 func (fhps *FullHistoryPruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]byte, error) {
-	data, err := fhps.searchInEpoch(key, epoch)
-	if err == nil && data != nil {
-		return data, nil
+	value, err := fhps.searchInEpoch(key, epoch)
+	if err == nil && value != nil {
+		return value, nil
 	}
 
 	return fhps.searchInEpoch(key, epoch+1)
@@ -80,23 +80,23 @@ func (fhps *FullHistoryPruningStorer) GetFromEpoch(key []byte, epoch uint32) ([]
 
 // GetBulkFromEpoch will search a bulk of keys in the persister for the given epoch
 // doesn't return an error if a key or any isn't found
-func (fhps *FullHistoryPruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]storageCore.KeyValuePair, error) {
+func (fhps *FullHistoryPruningStorer) GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]data.KeyValuePair, error) {
 	persister, err := fhps.getOrOpenPersister(epoch)
 	if err != nil {
 		return nil, err
 	}
 
-	results := make([]storageCore.KeyValuePair, 0, len(keys))
+	results := make([]data.KeyValuePair, 0, len(keys))
 	for _, key := range keys {
 		dataInCache, found := fhps.cacher.Get(key)
 		if found {
-			keyValue := storageCore.KeyValuePair{Key: key, Value: dataInCache.([]byte)}
+			keyValue := data.KeyValuePair{Key: key, Value: dataInCache.([]byte)}
 			results = append(results, keyValue)
 			continue
 		}
-		data, errGet := persister.Get(key)
-		if errGet == nil && data != nil {
-			keyValue := storageCore.KeyValuePair{Key: key, Value: data}
+		value, errGet := persister.Get(key)
+		if errGet == nil && value != nil {
+			keyValue := data.KeyValuePair{Key: key, Value: value}
 			results = append(results, keyValue)
 		}
 	}
@@ -121,12 +121,12 @@ func (fhps *FullHistoryPruningStorer) searchInEpoch(key []byte, epoch uint32) ([
 		return fhps.PruningStorer.SearchFirst(key)
 	}
 
-	data, err := fhps.getFromOldEpoch(key, epoch)
+	value, err := fhps.getFromOldEpoch(key, epoch)
 	if err != nil {
 		return nil, err
 	}
 
-	return data, nil
+	return value, nil
 }
 
 func (fhps *FullHistoryPruningStorer) isEpochActive(epoch uint32) bool {
