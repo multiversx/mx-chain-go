@@ -287,7 +287,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		SingleSigVerifier:            pcf.crypto.BlockSigner(),
 		KeyGen:                       pcf.crypto.BlockSignKeyGen(),
 		FallbackHeaderValidator:      fallbackHeaderValidator,
-		ExtraHeaderSigVerifierHolder: pcf.runTypeComponents.ExtraHeaderSigVerifierHandler(),
+		ExtraHeaderSigVerifierHolder: pcf.runTypeComponents.ExtraHeaderSigVerifierHolder(),
 	}
 	headerSigVerifier, err := headerCheck.NewHeaderSigVerifier(argsHeaderSig)
 	if err != nil {
@@ -2113,7 +2113,7 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	if check.IfNil(args.RunTypeComponents.TxPreProcessorCreator()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilTxPreProcessorCreator)
 	}
-	if check.IfNil(args.RunTypeComponents.ExtraHeaderSigVerifierHandler()) {
+	if check.IfNil(args.RunTypeComponents.ExtraHeaderSigVerifierHolder()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilExtraHeaderSigVerifierHolder)
 	}
 	if check.IfNil(args.RunTypeComponents.GenesisBlockCreatorFactory()) {

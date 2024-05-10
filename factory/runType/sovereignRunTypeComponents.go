@@ -210,7 +210,7 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 	if err != nil {
 		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignHeaderSigVerifier failed: %w", err)
 	}
-	err = rtc.extraHeaderSigVerifierHandler.RegisterExtraHeaderSigVerifier(sovHeaderSigVerifier)
+	err = rtc.extraHeaderSigVerifierHolder.RegisterExtraHeaderSigVerifier(sovHeaderSigVerifier)
 	if err != nil {
 		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - RegisterExtraHeaderSigVerifier failed: %w", err)
 	}
@@ -245,7 +245,7 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		interceptorsContainerFactoryCreator:     interceptorscontainer.NewSovereignShardInterceptorsContainerFactoryCreator(),
 		shardResolversContainerFactoryCreator:   resolverscontainer.NewSovereignShardResolversContainerFactoryCreator(),
 		txPreProcessorCreator:                   preprocess.NewSovereignTxPreProcessorCreator(),
-		extraHeaderSigVerifierHandler:           rtc.extraHeaderSigVerifierHandler,
+		extraHeaderSigVerifierHolder:            rtc.extraHeaderSigVerifierHolder,
 		genesisBlockCreatorFactory:              processComp.NewSovereignGenesisBlockCreatorFactory(),
 		genesisMetaBlockCheckerCreator:          processComp.NewSovereignGenesisMetaBlockChecker(),
 	}, nil

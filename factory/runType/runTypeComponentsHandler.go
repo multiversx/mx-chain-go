@@ -184,7 +184,7 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	if check.IfNil(mrc.txPreProcessorCreator) {
 		return errors.ErrNilTxPreProcessorCreator
 	}
-	if check.IfNil(mrc.extraHeaderSigVerifierHandler) {
+	if check.IfNil(mrc.extraHeaderSigVerifierHolder) {
 		return errors.ErrNilExtraHeaderSigVerifierHolder
 	}
 	if check.IfNil(mrc.genesisBlockCreatorFactory) {
@@ -544,8 +544,8 @@ func (mrc *managedRunTypeComponents) TxPreProcessorCreator() preprocess.TxPrePro
 	return mrc.runTypeComponents.txPreProcessorCreator
 }
 
-// ExtraHeaderSigVerifierHandler returns the extra header sig verifier handler
-func (mrc *managedRunTypeComponents) ExtraHeaderSigVerifierHandler() headerCheck.ExtraHeaderSigVerifierHolder {
+// ExtraHeaderSigVerifierHolder returns the extra header sig verifier handler
+func (mrc *managedRunTypeComponents) ExtraHeaderSigVerifierHolder() headerCheck.ExtraHeaderSigVerifierHolder {
 	mrc.mutRunTypeComponents.RLock()
 	defer mrc.mutRunTypeComponents.RUnlock()
 
@@ -553,7 +553,7 @@ func (mrc *managedRunTypeComponents) ExtraHeaderSigVerifierHandler() headerCheck
 		return nil
 	}
 
-	return mrc.runTypeComponents.extraHeaderSigVerifierHandler
+	return mrc.runTypeComponents.extraHeaderSigVerifierHolder
 }
 
 // GenesisBlockCreatorFactory returns the genesis block factory

@@ -87,7 +87,7 @@ type runTypeComponents struct {
 	interceptorsContainerFactoryCreator     interceptorscontainer.InterceptorsContainerFactoryCreator
 	shardResolversContainerFactoryCreator   resolverscontainer.ShardResolversContainerFactoryCreator
 	txPreProcessorCreator                   preprocess.TxPreProcessorCreator
-	extraHeaderSigVerifierHandler           headerCheck.ExtraHeaderSigVerifierHolder
+	extraHeaderSigVerifierHolder            headerCheck.ExtraHeaderSigVerifierHolder
 	genesisBlockCreatorFactory              processGenesis.GenesisBlockCreatorFactory
 	genesisMetaBlockCheckerCreator          processGenesis.GenesisMetaBlockChecker
 }
@@ -250,7 +250,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		interceptorsContainerFactoryCreator:     interceptorscontainer.NewShardInterceptorsContainerFactoryCreator(),
 		shardResolversContainerFactoryCreator:   resolverscontainer.NewShardResolversContainerFactoryCreator(),
 		txPreProcessorCreator:                   preprocess.NewTxPreProcessorCreator(),
-		extraHeaderSigVerifierHandler:           headerCheck.NewExtraHeaderSigVerifierHolder(),
+		extraHeaderSigVerifierHolder:            headerCheck.NewExtraHeaderSigVerifierHolder(),
 		genesisBlockCreatorFactory:              processGenesis.NewGenesisBlockCreatorFactory(),
 		genesisMetaBlockCheckerCreator:          processGenesis.NewGenesisMetaBlockChecker(),
 	}, nil

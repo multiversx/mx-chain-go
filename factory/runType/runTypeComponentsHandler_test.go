@@ -83,7 +83,7 @@ func TestManagedRunTypeComponents_Create(t *testing.T) {
 		require.Nil(t, managedRunTypeComponents.InterceptorsContainerFactoryCreator())
 		require.Nil(t, managedRunTypeComponents.ShardResolversContainerFactoryCreator())
 		require.Nil(t, managedRunTypeComponents.TxPreProcessorCreator())
-		require.Nil(t, managedRunTypeComponents.ExtraHeaderSigVerifierHandler())
+		require.Nil(t, managedRunTypeComponents.ExtraHeaderSigVerifierHolder())
 		require.Nil(t, managedRunTypeComponents.GenesisBlockCreatorFactory())
 		require.Nil(t, managedRunTypeComponents.GenesisMetaBlockCheckerCreator())
 
@@ -118,7 +118,7 @@ func TestManagedRunTypeComponents_Create(t *testing.T) {
 		require.NotNil(t, managedRunTypeComponents.InterceptorsContainerFactoryCreator())
 		require.NotNil(t, managedRunTypeComponents.ShardResolversContainerFactoryCreator())
 		require.NotNil(t, managedRunTypeComponents.TxPreProcessorCreator())
-		require.NotNil(t, managedRunTypeComponents.ExtraHeaderSigVerifierHandler())
+		require.NotNil(t, managedRunTypeComponents.ExtraHeaderSigVerifierHolder())
 		require.NotNil(t, managedRunTypeComponents.GenesisBlockCreatorFactory())
 		require.NotNil(t, managedRunTypeComponents.GenesisMetaBlockCheckerCreator())
 
