@@ -21,11 +21,11 @@ require (
 	github.com/multiversx/mx-chain-logger-go v1.0.14-0.20240129144507-d00e967c890c
 	github.com/multiversx/mx-chain-scenario-go v1.4.3-0.20240212160120-cc32d1580157
 	github.com/multiversx/mx-chain-storage-go v1.0.15-0.20240321150623-3974ec1d6474
-	github.com/multiversx/mx-chain-vm-common-go v1.5.12-0.20240411132244-adf842b5e09e
-	github.com/multiversx/mx-chain-vm-go v1.5.28-0.20240328092329-b5f2c7c059eb
-	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.66-0.20240321152247-79521988c8e6
-	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.67-0.20240321152532-45da5eabdc38
-	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.96-0.20240321152756-16110ce9d968
+	github.com/multiversx/mx-chain-vm-common-go v1.5.12-0.20240424111748-6dfa8aa14813
+	github.com/multiversx/mx-chain-vm-go v1.5.28-0.20240429094120-31dea4df3221
+	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.66-0.20240424112443-1a66307bc44e
+	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.67-0.20240424112610-ab7b9e5829bd
+	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.96-0.20240424113019-3a7d2b215137
 	github.com/pelletier/go-toml v1.9.3
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.14.0

@@ -319,6 +319,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		WasmVMVersions: []config.WasmVMVersionByEpoch{
 			{StartEpoch: 0, Version: "*"},
 		},
+		TransferAndExecuteByUserAddresses: []string{"3132333435363738393031323334353637383930313233343536373839303234"},
 	}
 
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(marshalizer)
@@ -334,6 +335,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		WasmVMChangeLocker:  context.WasmVMChangeLocker,
 		ESDTTransferParser:  esdtTransferParser,
 		Hasher:              hasher,
+		PubKeyConverter:     pkConverter,
 	}
 	vmFactory, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	require.Nil(context.T, err)
