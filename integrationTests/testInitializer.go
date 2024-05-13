@@ -865,7 +865,7 @@ func CreateGenesisMetaBlock(
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 		TxPreprocessorCreator:   preprocess.NewTxPreProcessorCreator(),
-		RunTypeComponents:       &mainFactoryMocks.RunTypeComponentsStub{},
+		RunTypeComponents:       mainFactoryMocks.NewRunTypeComponentsStub(),
 	}
 
 	if shardCoordinator.SelfId() != core.MetachainShardId {
