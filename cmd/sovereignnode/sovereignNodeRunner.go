@@ -54,7 +54,6 @@ import (
 	"github.com/multiversx/mx-chain-go/node/metrics"
 	trieIteratorsFactory "github.com/multiversx/mx-chain-go/node/trieIterators/factory"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	"github.com/multiversx/mx-chain-go/process/rating"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -1639,17 +1638,11 @@ func (snr *sovereignNodeRunner) CreateSovereignArgsRunTypeComponents(coreCompone
 		return nil, err
 	}
 
-	sovHeaderSigVerifier, err := headerCheck.NewSovereignHeaderSigVerifier(cryptoComponents.BlockSigner())
-	if err != nil {
-		return nil, err
-	}
-
 	return &runType.ArgsSovereignRunTypeComponents{
 		RunTypeComponentsFactory: runTypeComponentsFactory,
 		Config:                   *snr.configs.SovereignExtraConfig,
 		DataCodec:                dataCodecHandler,
 		TopicsChecker:            incomingHeader.NewTopicsChecker(),
-		ExtraVerifier:            sovHeaderSigVerifier,
 	}, nil
 }
 
