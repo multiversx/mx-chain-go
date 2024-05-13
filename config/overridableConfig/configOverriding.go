@@ -6,19 +6,21 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common/reflectcommon"
 	"github.com/multiversx/mx-chain-go/config"
+
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const (
-	configTomlFile         = "config.toml"
-	enableEpochsTomlFile   = "enableEpochs.toml"
-	p2pTomlFile            = "p2p.toml"
-	fullArchiveP2PTomlFile = "fullArchiveP2P.toml"
-	externalTomlFile       = "external.toml"
+	configTomlFile               = "config.toml"
+	enableEpochsTomlFile         = "enableEpochs.toml"
+	p2pTomlFile                  = "p2p.toml"
+	fullArchiveP2PTomlFile       = "fullArchiveP2P.toml"
+	externalTomlFile             = "external.toml"
+	systemSmartContractsTomlFile = "systemSmartContractsConfig.toml"
 )
 
 var (
-	availableConfigFilesForOverriding = []string{configTomlFile, enableEpochsTomlFile, p2pTomlFile, externalTomlFile}
+	availableConfigFilesForOverriding = []string{configTomlFile, enableEpochsTomlFile, p2pTomlFile, externalTomlFile, systemSmartContractsTomlFile}
 	log                               = logger.GetOrCreate("config")
 )
 
@@ -37,6 +39,8 @@ func OverrideConfigValues(newConfigs []config.OverridableConfig, configs *config
 			err = reflectcommon.AdaptStructureValueBasedOnPath(configs.FullArchiveP2pConfig, newConfig.Path, newConfig.Value)
 		case externalTomlFile:
 			err = reflectcommon.AdaptStructureValueBasedOnPath(configs.ExternalConfig, newConfig.Path, newConfig.Value)
+		case systemSmartContractsTomlFile:
+			err = reflectcommon.AdaptStructureValueBasedOnPath(configs.SystemSCConfig, newConfig.Path, newConfig.Value)
 		default:
 			err = fmt.Errorf("invalid config file <%s>. Available options are %s", newConfig.File, strings.Join(availableConfigFilesForOverriding, ","))
 		}
