@@ -55,6 +55,7 @@ func TestManagedRunTypeComponents_Create(t *testing.T) {
 		require.Nil(t, managedRunTypeComponents.ScheduledTxsExecutionCreator())
 		require.Nil(t, managedRunTypeComponents.TransactionCoordinatorCreator())
 		require.Nil(t, managedRunTypeComponents.ValidatorStatisticsProcessorCreator())
+		require.Nil(t, managedRunTypeComponents.VMContextCreator())
 
 		err = managedRunTypeComponents.Create()
 		require.NoError(t, err)
@@ -69,6 +70,7 @@ func TestManagedRunTypeComponents_Create(t *testing.T) {
 		require.NotNil(t, managedRunTypeComponents.ScheduledTxsExecutionCreator())
 		require.NotNil(t, managedRunTypeComponents.TransactionCoordinatorCreator())
 		require.NotNil(t, managedRunTypeComponents.ValidatorStatisticsProcessorCreator())
+		require.NotNil(t, managedRunTypeComponents.VMContextCreator())
 
 		require.Equal(t, factory.RunTypeComponentsName, managedRunTypeComponents.String())
 		require.NoError(t, managedRunTypeComponents.Close())
