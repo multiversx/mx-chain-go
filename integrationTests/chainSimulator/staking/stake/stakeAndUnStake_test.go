@@ -2394,18 +2394,20 @@ func TestChainSimulator_UnStakeOneActiveNodeAndCheckAPIAuctionList(t *testing.T)
 
 	numOfShards := uint32(3)
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:   false,
-		TempDir:                  t.TempDir(),
-		PathToInitialConfig:      defaultPathToInitialConfig,
-		NumOfShards:              numOfShards,
-		GenesisTimestamp:         startTime,
-		RoundDurationInMillis:    roundDurationInMillis,
-		RoundsPerEpoch:           roundsPerEpoch,
-		ApiInterface:             api.NewNoApiInterface(),
-		MinNodesPerShard:         4,
-		MetaChainMinNodes:        4,
-		NumNodesWaitingListMeta:  4,
-		NumNodesWaitingListShard: 4,
+		BypassTxSignatureCheck:      false,
+		TempDir:                     t.TempDir(),
+		PathToInitialConfig:         defaultPathToInitialConfig,
+		NumOfShards:                 numOfShards,
+		GenesisTimestamp:            startTime,
+		RoundDurationInMillis:       roundDurationInMillis,
+		RoundsPerEpoch:              roundsPerEpoch,
+		ApiInterface:                api.NewNoApiInterface(),
+		MinNodesPerShard:            4,
+		MetaChainMinNodes:           4,
+		ConsensusGroupSize:          1,
+		MetaChainConsensusGroupSize: 1,
+		NumNodesWaitingListMeta:     4,
+		NumNodesWaitingListShard:    4,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = stakingV4Step1Epoch
 			cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = stakingV4Step2Epoch
