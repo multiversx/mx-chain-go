@@ -544,7 +544,7 @@ func (mrc *managedRunTypeComponents) TxPreProcessorCreator() preprocess.TxPrePro
 	return mrc.runTypeComponents.txPreProcessorCreator
 }
 
-// ExtraHeaderSigVerifierHolder returns the extra header sig verifier handler
+// ExtraHeaderSigVerifierHolder returns the extra header sig verifier holder
 func (mrc *managedRunTypeComponents) ExtraHeaderSigVerifierHolder() headerCheck.ExtraHeaderSigVerifierHolder {
 	mrc.mutRunTypeComponents.RLock()
 	defer mrc.mutRunTypeComponents.RUnlock()
