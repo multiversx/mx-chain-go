@@ -827,17 +827,25 @@ func (host *vmContext) AddCode(address []byte, code []byte) {
 }
 
 // AddTxValueToSmartContract adds the input transaction value to the smart contract address
-func (host *vmContext) AddTxValueToSmartContract(value *big.Int, scAddress []byte) {
-	destAcc, exists := host.outputAccounts[string(scAddress)]
+func (host *vmContext) AddTxValueToSmartContract(input *vmcommon.ContractCallInput) {
+	destAcc, exists := host.outputAccounts[string(input.RecipientAddr)]
 	if !exists {
 		destAcc = &vmcommon.OutputAccount{
-			Address:      scAddress,
+			Address:      input.RecipientAddr,
 			BalanceDelta: big.NewInt(0),
 		}
 		host.outputAccounts[string(destAcc.Address)] = destAcc
 	}
 
-	destAcc.BalanceDelta = big.NewInt(0).Add(destAcc.BalanceDelta, value)
+	if host.isSovereignSCToSCCall(input) {
+		return
+	}
+
+	destAcc.BalanceDelta = big.NewInt(0).Add(destAcc.BalanceDelta, input.CallValue)
+}
+
+func (host *vmContext) isSovereignSCToSCCall(input *vmcommon.ContractCallInput) bool {
+	return host.shardCoordinator.SameShard(input.CallerAddr, input.RecipientAddr) && core.IsSmartContractAddress(input.CallerAddr)
 }
 
 // SetOwnerOperatingOnAccount will set the new owner, operating on the user account directly as the normal flow through

@@ -20,7 +20,7 @@ type SystemEIStub struct {
 	CleanCacheCalled                    func()
 	FinishCalled                        func(value []byte)
 	AddCodeCalled                       func(addr []byte, code []byte)
-	AddTxValueToSmartContractCalled     func(value *big.Int, scAddress []byte)
+	AddTxValueToSmartContractCalled     func(input *vmcommon.ContractCallInput)
 	BlockChainHookCalled                func() vm.BlockchainHook
 	CryptoHookCalled                    func() vmcommon.CryptoHook
 	UseGasCalled                        func(gas uint64) error
@@ -179,9 +179,9 @@ func (s *SystemEIStub) AddCode(addr []byte, code []byte) {
 }
 
 // AddTxValueToSmartContract -
-func (s *SystemEIStub) AddTxValueToSmartContract(value *big.Int, scAddress []byte) {
+func (s *SystemEIStub) AddTxValueToSmartContract(input *vmcommon.ContractCallInput) {
 	if s.AddTxValueToSmartContractCalled != nil {
-		s.AddTxValueToSmartContractCalled(value, scAddress)
+		s.AddTxValueToSmartContractCalled(input)
 	}
 }
 
