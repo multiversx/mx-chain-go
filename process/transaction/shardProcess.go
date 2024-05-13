@@ -685,7 +685,7 @@ func (txProc *txProcessor) processRelayedTxV3(
 
 	var innerTxRetCode vmcommon.ReturnCode
 	var innerTxErr error
-	innerTxFee := big.NewInt(0)
+	var innerTxFee *big.Int
 	innerTxsTotalFees := big.NewInt(0)
 	executedUserTxs := make([]*transaction.Transaction, 0)
 	for _, innerTx := range innerTxs {
