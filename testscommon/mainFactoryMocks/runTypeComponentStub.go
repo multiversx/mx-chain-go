@@ -18,6 +18,8 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	testFactory "github.com/multiversx/mx-chain-go/testscommon/factory"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	"github.com/multiversx/mx-chain-go/testscommon/vmContext"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 )
 
 // RunTypeComponentsStub -
@@ -41,6 +43,7 @@ type RunTypeComponentsStub struct {
 	VmContainerMetaFactory              factoryVm.VmContainerCreator
 	VmContainerShardFactory             factoryVm.VmContainerCreator
 	AccountCreator                      state.AccountFactory
+	VMContextCreatorHandler             systemSmartContracts.VMContextCreatorHandler
 }
 
 // NewRunTypeComponentsStub -
@@ -65,6 +68,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		VmContainerMetaFactory:              &testFactory.VMContainerMetaFactoryMock{},
 		VmContainerShardFactory:             &testFactory.VMContainerShardFactoryMock{},
 		AccountCreator:                      &stateMock.AccountsFactoryStub{},
+		VMContextCreatorHandler:             &vmContext.VMContextCreatorStub{},
 	}
 }
 
@@ -181,6 +185,11 @@ func (r *RunTypeComponentsStub) VmContainerShardFactoryCreator() factoryVm.VmCon
 // AccountsCreator -
 func (r *RunTypeComponentsStub) AccountsCreator() state.AccountFactory {
 	return r.AccountCreator
+}
+
+// VMContextCreator -
+func (r *RunTypeComponentsStub) VMContextCreator() systemSmartContracts.VMContextCreatorHandler {
+	return r.VMContextCreatorHandler
 }
 
 // IsInterfaceNil -

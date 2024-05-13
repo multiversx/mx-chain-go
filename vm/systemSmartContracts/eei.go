@@ -200,12 +200,7 @@ func (host *vmContext) GetBalance(addr []byte) *big.Int {
 }
 
 // SendGlobalSettingToAll handles sending the information to all the shards
-func (host *vmContext) SendGlobalSettingToAll(sender []byte, input []byte) error {
-	if host.shardCoordinator.SameShard(sender, core.SystemAccountAddress) {
-		// Sovereign process - execute here as built in function
-		return host.ProcessBuiltInFunction(core.SystemAccountAddress, sender, big.NewInt(0), input, 0)
-	}
-
+func (host *vmContext) SendGlobalSettingToAll(_ []byte, input []byte) error {
 	outputTransfer := vmcommon.OutputTransfer{
 		Value:    big.NewInt(0),
 		Data:     input,

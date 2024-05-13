@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/state/factory"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 )
 
 type sovereignRunTypeComponentsFactory struct {
@@ -122,7 +123,8 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignSmartContractResultPreProcessorFactory failed: %w", err)
 	}
 
-	rtc.vmContainerMetaFactory, err = factoryVm.NewVmContainerMetaFactory(sovBlockChainHookHandlerFactory)
+	sovVMContextCreator := systemSmartContracts.NewSovereignVMContextCreator()
+	rtc.vmContainerMetaFactory, err = factoryVm.NewVmContainerMetaFactory(sovBlockChainHookHandlerFactory, sovVMContextCreator)
 	if err != nil {
 		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewVmContainerMetaFactory failed: %w", err)
 	}
@@ -169,5 +171,6 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		vmContainerMetaFactory:              rtc.vmContainerMetaFactory,
 		vmContainerShardFactory:             sovereignVmContainerShardCreator,
 		accountsCreator:                     accountsCreator,
+		vmContextCreator:                    sovVMContextCreator,
 	}, nil
 }

@@ -347,21 +347,22 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 	}
 
 	argsNewVMContainerFactory := metachain.ArgsNewVMContainerFactory{
-		BlockChainHook:      blockChainHookImpl,
-		PubkeyConv:          argsHook.PubkeyConv,
-		Economics:           arg.Economics,
-		MessageSignVerifier: pubKeyVerifier,
-		GasSchedule:         arg.GasSchedule,
-		NodesConfigProvider: arg.InitialNodesSetup,
-		Hasher:              arg.Core.Hasher(),
-		Marshalizer:         arg.Core.InternalMarshalizer(),
-		SystemSCConfig:      &arg.SystemSCConfig,
-		ValidatorAccountsDB: arg.ValidatorAccounts,
-		UserAccountsDB:      arg.Accounts,
-		ChanceComputer:      &disabled.Rater{},
-		ShardCoordinator:    arg.ShardCoordinator,
-		EnableEpochsHandler: enableEpochsHandler,
-		NodesCoordinator:    &disabled.NodesCoordinator{},
+		BlockChainHook:          blockChainHookImpl,
+		PubkeyConv:              argsHook.PubkeyConv,
+		Economics:               arg.Economics,
+		MessageSignVerifier:     pubKeyVerifier,
+		GasSchedule:             arg.GasSchedule,
+		NodesConfigProvider:     arg.InitialNodesSetup,
+		Hasher:                  arg.Core.Hasher(),
+		Marshalizer:             arg.Core.InternalMarshalizer(),
+		SystemSCConfig:          &arg.SystemSCConfig,
+		ValidatorAccountsDB:     arg.ValidatorAccounts,
+		UserAccountsDB:          arg.Accounts,
+		ChanceComputer:          &disabled.Rater{},
+		ShardCoordinator:        arg.ShardCoordinator,
+		EnableEpochsHandler:     enableEpochsHandler,
+		NodesCoordinator:        &disabled.NodesCoordinator{},
+		VMContextCreatorHandler: arg.RunTypeComponents.VMContextCreator(),
 	}
 	virtualMachineFactory, err := metachain.NewVMContainerFactory(argsNewVMContainerFactory)
 	if err != nil {

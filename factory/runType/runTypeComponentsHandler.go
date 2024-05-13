@@ -22,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
 	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 )
 
 var _ factory.ComponentHandler = (*managedRunTypeComponents)(nil)
@@ -131,6 +132,10 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	if check.IfNil(mrc.scResultPreProcessorCreator) {
 		return errors.ErrNilSCResultsPreProcessorCreator
 	}
+	if check.IfNil(mrc.vmContextCreator) {
+		return errors.ErrNilVMContextCreator
+	}
+
 	return nil
 }
 
@@ -360,6 +365,18 @@ func (mrc *managedRunTypeComponents) AccountsCreator() state.AccountFactory {
 	}
 
 	return mrc.runTypeComponents.accountsCreator
+}
+
+// VMContextCreator returns the vm context creator
+func (mrc *managedRunTypeComponents) VMContextCreator() systemSmartContracts.VMContextCreatorHandler {
+	mrc.mutStateComponents.RLock()
+	defer mrc.mutStateComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.vmContextCreator
 }
 
 // IsInterfaceNil returns true if the interface is nil
