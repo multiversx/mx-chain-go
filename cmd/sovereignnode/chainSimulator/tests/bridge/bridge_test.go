@@ -100,7 +100,7 @@ func TestBridge(t *testing.T) {
 		"@" + hex.EncodeToString(feeMarketAddress)
 	utils.SendTransaction(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, big.NewInt(0), setFeeMarketAddressData, uint64(10000000))
 
-	utils.SendTransaction(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, big.NewInt(0), "disableFee", uint64(10000000))
+	utils.SendTransaction(t, cs, wallet.Bytes, &nonce, feeMarketAddress, big.NewInt(0), "disableFee", uint64(10000000))
 
 	utils.SendTransaction(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, big.NewInt(0), "unpause", uint64(10000000))
 
@@ -142,7 +142,84 @@ func TestBridge(t *testing.T) {
 		"@" + hex.EncodeToString(feeMarketSovAddress)
 	utils.SendTransaction(t, scs, sovWallet.Bytes, &sovNonce, esdtSafeSovAddress, big.NewInt(0), setSovFeeMarketAddressData, uint64(10000000))
 
-	utils.SendTransaction(t, scs, sovWallet.Bytes, &sovNonce, esdtSafeSovAddress, big.NewInt(0), "disableFee", uint64(10000000))
+	utils.SendTransaction(t, scs, sovWallet.Bytes, &sovNonce, feeMarketSovAddress, big.NewInt(0), "disableFee", uint64(10000000))
 
 	utils.SendTransaction(t, scs, sovWallet.Bytes, &sovNonce, esdtSafeSovAddress, big.NewInt(0), "unpause", uint64(10000000))
+}
+
+func Test_ESDTRoleBurnForAll(t *testing.T) {
+	epochConfig, economicsConfig, sovereignExtraConfig, err := sovereignChainSimulator.LoadSovereignConfigs(sovereignConfigPath)
+	require.Nil(t, err)
+
+	cs, err := sovereignChainSimulator.NewSovereignChainSimulator(sovereignChainSimulator.ArgsSovereignChainSimulator{
+		SovereignExtraConfig: *sovereignExtraConfig,
+		ChainSimulatorArgs: chainSimulator.ArgsChainSimulator{
+			BypassTxSignatureCheck: false,
+			TempDir:                t.TempDir(),
+			PathToInitialConfig:    defaultPathToInitialConfig,
+			NumOfShards:            1,
+			GenesisTimestamp:       time.Now().Unix(),
+			RoundDurationInMillis:  uint64(6000),
+			RoundsPerEpoch:         core.OptionalUint64{},
+			ApiInterface:           api.NewNoApiInterface(),
+			MinNodesPerShard:       2,
+			ConsensusGroupSize:     2,
+			AlterConfigsFunction: func(cfg *config.Configs) {
+				cfg.EconomicsConfig = economicsConfig
+				cfg.EpochConfig = epochConfig
+				cfg.GeneralConfig.SovereignConfig = *sovereignExtraConfig
+				cfg.GeneralConfig.VirtualMachine.Execution.WasmVMVersions = []config.WasmVMVersionByEpoch{{StartEpoch: 0, Version: "v1.5"}}
+				cfg.GeneralConfig.VirtualMachine.Querying.WasmVMVersions = []config.WasmVMVersionByEpoch{{StartEpoch: 0, Version: "v1.5"}}
+			},
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, cs)
+
+	defer cs.Close()
+
+	nodeHandler := cs.GetNodeHandler(core.SovereignChainShardId)
+	systemScAddress, _ := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode("erd1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq6gq4hu")
+	systemEsdtScAddress, _ := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode("erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzllls8a5w6u")
+	nonce := uint64(0)
+
+	wallet, err := cs.GenerateAndMintWalletAddress(core.SovereignChainShardId, initialMinting)
+	require.Nil(t, err)
+
+	esdtSafeArgs := "@01" + // is_sovereign_chain
+		"@" + // min_valid_signers
+		"@" + hex.EncodeToString(wallet.Bytes) // initiator_address
+	esdtSafeAddress := utils.DeployContract(t, cs, wallet.Bytes, &nonce, systemScAddress, esdtSafeArgs, esdtSafeWasmPath)
+
+	feeMarketArgs := "@" + hex.EncodeToString(esdtSafeAddress) + // esdt_safe_address
+		"@000000000000000005004c13819a7f26de997e7c6720a6efe2d4b85c0609c9ad" + // price_aggregator_address
+		"@555344432d333530633465" + // usdc_token_id
+		"@5745474c442d613238633539" // wegld_token_id
+	feeMarketAddress := utils.DeployContract(t, cs, wallet.Bytes, &nonce, systemScAddress, feeMarketArgs, feeMarketWasmPath)
+
+	setFeeMarketAddressData := "setFeeMarketAddress" +
+		"@" + hex.EncodeToString(feeMarketAddress)
+	utils.SendTransaction(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, big.NewInt(0), setFeeMarketAddressData, uint64(10000000))
+
+	utils.SendTransaction(t, cs, wallet.Bytes, &nonce, feeMarketAddress, big.NewInt(0), "disableFee", uint64(10000000))
+
+	utils.SendTransaction(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, big.NewInt(0), "unpause", uint64(10000000))
+
+	issueArgs := "issue@536f7665726569676e546b6e@53564e@5c003ec0dd34509ad40000@12@63616e4164645370656369616c526f6c6573@74727565"
+	txResult := utils.SendTransaction(t, cs, wallet.Bytes, &nonce, systemEsdtScAddress, issueCost, issueArgs, uint64(60000000))
+	tokenIdentifier := txResult.Logs.Events[0].Topics[0]
+	require.True(t, len(tokenIdentifier) > 7)
+
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
+	depositArgs := "MultiESDTNFTTransfer" +
+		"@" + hex.EncodeToString(esdtSafeAddress) +
+		"@01" +
+		"@" + hex.EncodeToString(tokenIdentifier) +
+		"@" + //nonce
+		"@06aaf7c8516d0c0000" + //amount
+		"@6465706f736974" + //deposit func
+		"@" + hex.EncodeToString(wallet.Bytes) //receiver from other side
+	txResult = utils.SendTransaction(t, cs, wallet.Bytes, &nonce, wallet.Bytes, big.NewInt(0), depositArgs, uint64(20000000))
+	require.False(t, string(txResult.Logs.Events[0].Topics[1]) == "action is not allowed")
 }
