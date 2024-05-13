@@ -2804,6 +2804,9 @@ func TestEsdt_SetSpecialRoleNewSendRoleChangeDataErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
+
+	wasTransferCalled := false
+	wasProcessBuiltInCalled := false
 	eei := &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
 			token := &ESDTDataV2{
@@ -2812,8 +2815,12 @@ func TestEsdt_SetSpecialRoleNewSendRoleChangeDataErr(t *testing.T) {
 			tokenBytes, _ := args.Marshalizer.Marshal(token)
 			return tokenBytes
 		},
-		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, _ uint64) {
-			require.Equal(t, []byte("ESDTSetRole@6d79546f6b656e@45534454526f6c654c6f63616c4275726e"), input)
+		ProcessBuiltInFunctionCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, _ uint64) error {
+			wasTransferCalled = true
+			return nil
+		},
+		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) {
+			wasProcessBuiltInCalled = true
 		},
 	}
 	args.Eei = eei
@@ -2828,12 +2835,17 @@ func TestEsdt_SetSpecialRoleNewSendRoleChangeDataErr(t *testing.T) {
 
 	retCode := e.Execute(vmInput)
 	require.Equal(t, vmcommon.UserError, retCode)
+	require.False(t, wasTransferCalled)
+	require.False(t, wasProcessBuiltInCalled)
 }
 
 func TestEsdt_SetSpecialRoleAlreadyExists(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
+
+	wasTransferCalled := false
+	wasProcessBuiltInCalled := false
 	eei := &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
 			token := &ESDTDataV2{
@@ -2848,8 +2860,12 @@ func TestEsdt_SetSpecialRoleAlreadyExists(t *testing.T) {
 			tokenBytes, _ := args.Marshalizer.Marshal(token)
 			return tokenBytes
 		},
-		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, _ uint64) {
-			require.Equal(t, []byte("ESDTSetRole@6d79546f6b656e@45534454526f6c654c6f63616c4275726e"), input)
+		ProcessBuiltInFunctionCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, _ uint64) error {
+			wasTransferCalled = true
+			return nil
+		},
+		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64) {
+			wasProcessBuiltInCalled = true
 		},
 	}
 	args.Eei = eei
@@ -2864,6 +2880,8 @@ func TestEsdt_SetSpecialRoleAlreadyExists(t *testing.T) {
 
 	retCode := e.Execute(vmInput)
 	require.Equal(t, vmcommon.UserError, retCode)
+	require.False(t, wasTransferCalled)
+	require.False(t, wasProcessBuiltInCalled)
 }
 
 func TestEsdt_SetSpecialRoleCannotSaveToken(t *testing.T) {
@@ -2911,6 +2929,8 @@ func TestEsdt_SetSpecialRoleShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
+
+	wasProcessBuiltInCalled := false
 	eei := &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
 			token := &ESDTDataV2{
@@ -2927,8 +2947,10 @@ func TestEsdt_SetSpecialRoleShouldWork(t *testing.T) {
 			tokenBytes, _ := args.Marshalizer.Marshal(token)
 			return tokenBytes
 		},
-		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, _ uint64) {
+		ProcessBuiltInFunctionCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, _ uint64) error {
 			require.Equal(t, []byte("ESDTSetRole@6d79546f6b656e@45534454526f6c654c6f63616c4275726e"), input)
+			wasProcessBuiltInCalled = true
+			return nil
 		},
 		SetStorageCalled: func(key []byte, value []byte) {
 			token := &ESDTDataV2{}
@@ -2948,12 +2970,15 @@ func TestEsdt_SetSpecialRoleShouldWork(t *testing.T) {
 
 	retCode := e.Execute(vmInput)
 	require.Equal(t, vmcommon.Ok, retCode)
+	require.True(t, wasProcessBuiltInCalled)
 }
 
 func TestEsdt_SetSpecialRoleNFTShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
+
+	wasProcessBuiltInCalled := false
 	eei := &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
 			token := &ESDTDataV2{
@@ -2970,8 +2995,10 @@ func TestEsdt_SetSpecialRoleNFTShouldErr(t *testing.T) {
 			tokenBytes, _ := args.Marshalizer.Marshal(token)
 			return tokenBytes
 		},
-		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, _ uint64) {
+		ProcessBuiltInFunctionCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, _ uint64) error {
 			require.Equal(t, []byte("ESDTSetRole@6d79546f6b656e@45534454526f6c654e4654437265617465"), input)
+			wasProcessBuiltInCalled = true
+			return nil
 		},
 		SetStorageCalled: func(key []byte, value []byte) {
 			token := &ESDTDataV2{}
@@ -2999,6 +3026,7 @@ func TestEsdt_SetSpecialRoleNFTShouldErr(t *testing.T) {
 	vmInput.Arguments[2] = []byte(core.ESDTRoleNFTCreate)
 	retCode = e.Execute(vmInput)
 	require.Equal(t, vmcommon.Ok, retCode)
+	require.True(t, wasProcessBuiltInCalled)
 }
 
 func TestEsdt_SetSpecialRoleTransferNotEnabledShouldErr(t *testing.T) {
@@ -3266,6 +3294,8 @@ func TestEsdt_SetSpecialRoleSFTShouldErr(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
+
+	wasProcessBuiltInCalled := false
 	eei := &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
 			token := &ESDTDataV2{
@@ -3282,8 +3312,10 @@ func TestEsdt_SetSpecialRoleSFTShouldErr(t *testing.T) {
 			tokenBytes, _ := args.Marshalizer.Marshal(token)
 			return tokenBytes
 		},
-		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, _ uint64) {
+		ProcessBuiltInFunctionCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, _ uint64) error {
 			require.Equal(t, []byte("ESDTSetRole@6d79546f6b656e@45534454526f6c654e46544164645175616e74697479"), input)
+			wasProcessBuiltInCalled = true
+			return nil
 		},
 		SetStorageCalled: func(key []byte, value []byte) {
 			token := &ESDTDataV2{}
@@ -3307,6 +3339,7 @@ func TestEsdt_SetSpecialRoleSFTShouldErr(t *testing.T) {
 	vmInput.Arguments[2] = []byte(core.ESDTRoleNFTAddQuantity)
 	retCode = e.Execute(vmInput)
 	require.Equal(t, vmcommon.Ok, retCode)
+	require.True(t, wasProcessBuiltInCalled)
 }
 
 func TestEsdt_SetSpecialRoleCreateNFTTwoTimesShouldError(t *testing.T) {
@@ -3556,6 +3589,8 @@ func TestEsdt_UnsetSpecialRoleRemoveRoleTransfer(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
+
+	wasProcessBuiltInCalled := false
 	eei := &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
 			token := &ESDTDataV2{
@@ -3570,8 +3605,10 @@ func TestEsdt_UnsetSpecialRoleRemoveRoleTransfer(t *testing.T) {
 			tokenBytes, _ := args.Marshalizer.Marshal(token)
 			return tokenBytes
 		},
-		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, _ uint64) {
+		ProcessBuiltInFunctionCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, _ uint64) error {
 			require.Equal(t, []byte("ESDTUnSetRole@6d79546f6b656e@45534454526f6c654c6f63616c4d696e74"), input)
+			wasProcessBuiltInCalled = true
+			return nil
 		},
 	}
 	args.Eei = eei
@@ -3586,6 +3623,7 @@ func TestEsdt_UnsetSpecialRoleRemoveRoleTransfer(t *testing.T) {
 
 	retCode := e.Execute(vmInput)
 	require.Equal(t, vmcommon.Ok, retCode)
+	require.True(t, wasProcessBuiltInCalled)
 }
 
 func TestEsdt_UnsetSpecialRoleRemoveRoleSaveTokenErr(t *testing.T) {
@@ -3631,6 +3669,8 @@ func TestEsdt_UnsetSpecialRoleRemoveRoleShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
+
+	wasProcessBuiltInCalled := false
 	eei := &mock.SystemEIStub{
 		GetStorageCalled: func(key []byte) []byte {
 			token := &ESDTDataV2{
@@ -3645,8 +3685,10 @@ func TestEsdt_UnsetSpecialRoleRemoveRoleShouldWork(t *testing.T) {
 			tokenBytes, _ := args.Marshalizer.Marshal(token)
 			return tokenBytes
 		},
-		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, _ uint64) {
+		ProcessBuiltInFunctionCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, _ uint64) error {
 			require.Equal(t, []byte("ESDTUnSetRole@6d79546f6b656e@45534454526f6c654c6f63616c4d696e74"), input)
+			wasProcessBuiltInCalled = true
+			return nil
 		},
 		SetStorageCalled: func(key []byte, value []byte) {
 			token := &ESDTDataV2{}
@@ -3666,6 +3708,7 @@ func TestEsdt_UnsetSpecialRoleRemoveRoleShouldWork(t *testing.T) {
 
 	retCode := e.Execute(vmInput)
 	require.Equal(t, vmcommon.Ok, retCode)
+	require.True(t, wasProcessBuiltInCalled)
 }
 
 func TestEsdt_StopNFTCreateForeverCheckArgumentsErr(t *testing.T) {
@@ -3739,6 +3782,8 @@ func TestEsdt_StopNFTCreateForeverCallShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
+
+	wasProcessBuiltInCalled := false
 	token := &ESDTDataV2{
 		OwnerAddress: []byte("caller1"),
 		SpecialRoles: []*ESDTRoles{
@@ -3753,8 +3798,10 @@ func TestEsdt_StopNFTCreateForeverCallShouldWork(t *testing.T) {
 			tokenBytes, _ := args.Marshalizer.Marshal(token)
 			return tokenBytes
 		},
-		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, _ uint64) {
+		ProcessBuiltInFunctionCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, _ uint64) error {
 			require.Equal(t, []byte("ESDTUnSetRole@746f6b656e4944@45534454526f6c654e4654437265617465"), input)
+			wasProcessBuiltInCalled = true
+			return nil
 		},
 	}
 	args.Eei = eei
@@ -3769,6 +3816,7 @@ func TestEsdt_StopNFTCreateForeverCallShouldWork(t *testing.T) {
 	token.NFTCreateStopped = false
 	retCode := e.Execute(vmInput)
 	require.Equal(t, vmcommon.Ok, retCode)
+	require.True(t, wasProcessBuiltInCalled)
 }
 
 func TestEsdt_TransferNFTCreateCheckArgumentsErr(t *testing.T) {
@@ -3850,6 +3898,8 @@ func TestEsdt_TransferNFTCreateCallShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args := createMockArgumentsForESDT()
+
+	wasProcessBuiltInCalled := false
 	token := &ESDTDataV2{
 		OwnerAddress: []byte("caller1"),
 		SpecialRoles: []*ESDTRoles{
@@ -3864,9 +3914,11 @@ func TestEsdt_TransferNFTCreateCallShouldWork(t *testing.T) {
 			tokenBytes, _ := args.Marshalizer.Marshal(token)
 			return tokenBytes
 		},
-		TransferCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, _ uint64) {
+		ProcessBuiltInFunctionCalled: func(destination []byte, sender []byte, value *big.Int, input []byte, _ uint64) error {
 			require.Equal(t, []byte("ESDTNFTCreateRoleTransfer@746f6b656e4944@63616c6c657232"), input)
 			require.Equal(t, destination, []byte("caller3"))
+			wasProcessBuiltInCalled = true
+			return nil
 		},
 	}
 	args.Eei = eei
@@ -3881,6 +3933,7 @@ func TestEsdt_TransferNFTCreateCallShouldWork(t *testing.T) {
 	token.CanTransferNFTCreateRole = true
 	retCode := e.Execute(vmInput)
 	require.Equal(t, vmcommon.Ok, retCode)
+	require.True(t, wasProcessBuiltInCalled)
 }
 
 func TestEsdt_TransferNFTCreateCallMultiShardShouldWork(t *testing.T) {
