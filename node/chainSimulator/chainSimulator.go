@@ -133,6 +133,31 @@ func (s *simulator) createChainHandlers(args ArgsChainSimulator) error {
 		shardID := node.GetShardCoordinator().SelfId()
 		s.nodes[shardID] = node
 		s.handlers = append(s.handlers, chainHandler)
+
+		if node.GetShardCoordinator().SelfId() == core.MetachainShardId {
+			currentRootHash, errRootHash := node.GetProcessComponents().ValidatorsStatistics().RootHash()
+			if errRootHash != nil {
+				return errRootHash
+			}
+
+			allValidatorsInfo, errGet := node.GetProcessComponents().ValidatorsStatistics().GetValidatorInfoForRootHash(currentRootHash)
+			if errRootHash != nil {
+				return errGet
+			}
+
+			err = node.GetProcessComponents().EpochSystemSCProcessor().ProcessSystemSmartContract(
+				allValidatorsInfo,
+				node.GetDataComponents().Blockchain().GetGenesisHeader(),
+			)
+			if err != nil {
+				return err
+			}
+
+			_, err = node.GetStateComponents().AccountsAdapter().Commit()
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	s.initialWalletKeys = outputConfigs.InitialWallets
@@ -416,17 +441,43 @@ func (s *simulator) SetStateMultiple(stateSlice []*dtos.AddressState) error {
 	defer s.mutex.Unlock()
 
 	addressConverter := s.nodes[core.MetachainShardId].GetCoreComponents().AddressPubKeyConverter()
-	for _, state := range stateSlice {
-		addressBytes, err := addressConverter.Decode(state.Address)
+	for _, stateValue := range stateSlice {
+		addressBytes, err := addressConverter.Decode(stateValue.Address)
 		if err != nil {
 			return err
 		}
 
 		if bytes.Equal(addressBytes, core.SystemAccountAddress) {
-			err = s.setStateSystemAccount(state)
+			err = s.setStateSystemAccount(stateValue)
 		} else {
 			shardID := sharding.ComputeShardID(addressBytes, s.numOfShards)
-			err = s.nodes[shardID].SetStateForAddress(addressBytes, state)
+			err = s.nodes[shardID].SetStateForAddress(addressBytes, stateValue)
+		}
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// RemoveAccounts will try to remove all accounts data for the addresses provided
+func (s *simulator) RemoveAccounts(addresses []string) error {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	addressConverter := s.nodes[core.MetachainShardId].GetCoreComponents().AddressPubKeyConverter()
+	for _, address := range addresses {
+		addressBytes, err := addressConverter.Decode(address)
+		if err != nil {
+			return err
+		}
+
+		if bytes.Equal(addressBytes, core.SystemAccountAddress) {
+			err = s.removeAllSystemAccounts()
+		} else {
+			shardID := sharding.ComputeShardID(addressBytes, s.numOfShards)
+			err = s.nodes[shardID].RemoveAccount(addressBytes)
 		}
 		if err != nil {
 			return err
@@ -553,6 +604,17 @@ func (s *simulator) sendTx(tx *transaction.Transaction) (string, error) {
 func (s *simulator) setStateSystemAccount(state *dtos.AddressState) error {
 	for shard, node := range s.nodes {
 		err := node.SetStateForAddress(core.SystemAccountAddress, state)
+		if err != nil {
+			return fmt.Errorf("%w for shard %d", err, shard)
+		}
+	}
+
+	return nil
+}
+
+func (s *simulator) removeAllSystemAccounts() error {
+	for shard, node := range s.nodes {
+		err := node.RemoveAccount(core.SystemAccountAddress)
 		if err != nil {
 			return fmt.Errorf("%w for shard %d", err, shard)
 		}
