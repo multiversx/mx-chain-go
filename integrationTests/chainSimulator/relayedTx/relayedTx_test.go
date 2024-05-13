@@ -1,13 +1,16 @@
 package relayedTx
 
 import (
+	"encoding/hex"
 	"math/big"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
@@ -22,7 +25,6 @@ const (
 	txVersion                               = 2
 	mockTxSignature                         = "sig"
 	maxNumOfBlocksToGenerateWhenExecutingTx = 10
-	numOfBlocksToWaitForCrossShardSCR       = 5
 )
 
 var oneEGLD = big.NewInt(1000000000000000000)
@@ -64,7 +66,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulator(t *testing.
 	err = cs.GenerateBlocksUntilEpochIsReached(1)
 	require.NoError(t, err)
 
-	initialBalance := big.NewInt(0).Mul(oneEGLD, big.NewInt(10))
+	initialBalance := big.NewInt(0).Mul(oneEGLD, big.NewInt(30000))
 	relayer, err := cs.GenerateAndMintWalletAddress(0, initialBalance)
 	require.NoError(t, err)
 
@@ -86,31 +88,58 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulator(t *testing.
 	innerTx2 := generateTransaction(sender2.Bytes, 0, receiver2.Bytes, oneEGLD, "", minGasLimit)
 	innerTx2.RelayerAddr = relayer.Bytes
 
+	pkConv := cs.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter()
+
 	// innerTx3Failure should fail due to less gas limit
-	data := "gas limit is not enough"
-	innerTx3Failure := generateTransaction(sender.Bytes, 1, receiver2.Bytes, oneEGLD, data, minGasLimit)
+	// deploy a wrapper contract
+	owner, err := cs.GenerateAndMintWalletAddress(0, initialBalance)
+	require.NoError(t, err)
+
+	scCode := wasm.GetSCCode("testData/egld-esdt-swap.wasm")
+	params := []string{scCode, wasm.VMTypeHex, wasm.DummyCodeMetadataHex, hex.EncodeToString([]byte("WEGLD"))}
+	txDataDeploy := strings.Join(params, "@")
+	deployTx := generateTransaction(owner.Bytes, 0, make([]byte, 32), big.NewInt(0), txDataDeploy, 600000000)
+
+	result, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(deployTx, maxNumOfBlocksToGenerateWhenExecutingTx)
+	require.NoError(t, err)
+
+	scAddress := result.Logs.Events[0].Address
+	scAddressBytes, _ := pkConv.Decode(scAddress)
+
+	// try a wrap transaction which will fail as the contract is paused
+	txDataWrap := "wrapEgld"
+	gasLimit := 2300000
+	innerTx3Failure := generateTransaction(owner.Bytes, 1, scAddressBytes, big.NewInt(1), txDataWrap, uint64(gasLimit))
 	innerTx3Failure.RelayerAddr = relayer.Bytes
 
 	innerTx3 := generateTransaction(sender.Bytes, 1, receiver2.Bytes, oneEGLD, "", minGasLimit)
 	innerTx3.RelayerAddr = relayer.Bytes
 
-	innerTxs := []*transaction.Transaction{innerTx, innerTx2, innerTx3}
+	innerTxs := []*transaction.Transaction{innerTx, innerTx2, innerTx3Failure, innerTx3}
 
 	// relayer will consume first a move balance for each inner tx, then the specific gas for each inner tx
-	relayedTxGasLimit := minGasLimit * (len(innerTxs) * 2)
-	relayedTx := generateTransaction(relayer.Bytes, 0, relayer.Bytes, big.NewInt(0), "", uint64(relayedTxGasLimit))
+	relayedTxGasLimit := uint64(minGasLimit)
+	for _, tx := range innerTxs {
+		relayedTxGasLimit += minGasLimit + tx.GasLimit
+	}
+	relayedTx := generateTransaction(relayer.Bytes, 0, relayer.Bytes, big.NewInt(0), "", relayedTxGasLimit)
 	relayedTx.InnerTransactions = innerTxs
 
-	_, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
+	result, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
 	require.NoError(t, err)
 
 	// generate few more blocks for the cross shard scrs to be done
-	err = cs.GenerateBlocks(numOfBlocksToWaitForCrossShardSCR)
+	err = cs.GenerateBlocks(maxNumOfBlocksToGenerateWhenExecutingTx)
 	require.NoError(t, err)
 
 	relayerAccount, err := cs.GetAccount(relayer)
 	require.NoError(t, err)
-	expectedRelayerFee := big.NewInt(int64(minGasPrice * relayedTxGasLimit))
+	economicsData := cs.GetNodeHandler(0).GetCoreComponents().EconomicsData()
+	relayerMoveBalanceFee := economicsData.ComputeMoveBalanceFee(relayedTx)
+	expectedRelayerFee := big.NewInt(0).Mul(relayerMoveBalanceFee, big.NewInt(int64(len(relayedTx.InnerTransactions))))
+	for _, tx := range innerTxs {
+		expectedRelayerFee.Add(expectedRelayerFee, economicsData.ComputeTxFee(tx))
+	}
 	assert.Equal(t, big.NewInt(0).Sub(initialBalance, expectedRelayerFee).String(), relayerAccount.Balance)
 
 	senderAccount, err := cs.GetAccount(sender)
@@ -128,6 +157,22 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulator(t *testing.
 	receiver2Account, err := cs.GetAccount(receiver2)
 	require.NoError(t, err)
 	assert.Equal(t, big.NewInt(0).Mul(oneEGLD, big.NewInt(2)).String(), receiver2Account.Balance)
+
+	// check SCRs
+	shardC := cs.GetNodeHandler(0).GetShardCoordinator()
+	for _, scr := range result.SmartContractResults {
+		addr, err := pkConv.Decode(scr.RcvAddr)
+		require.NoError(t, err)
+
+		senderShard := shardC.ComputeId(addr)
+		tx, err := cs.GetNodeHandler(senderShard).GetFacadeHandler().GetTransaction(scr.Hash, true)
+		require.NoError(t, err)
+		assert.Equal(t, transaction.TxStatusSuccess, tx.Status)
+	}
+
+	// check log events
+	require.Equal(t, 3, len(result.Logs.Events))
+	require.True(t, strings.Contains(string(result.Logs.Events[2].Data), "contract is paused"))
 }
 
 func generateTransaction(sender []byte, nonce uint64, receiver []byte, value *big.Int, data string, gasLimit uint64) *transaction.Transaction {
