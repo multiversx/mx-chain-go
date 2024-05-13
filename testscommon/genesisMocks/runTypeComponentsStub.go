@@ -1,6 +1,7 @@
 package genesisMocks
 
 import (
+	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
@@ -21,6 +22,7 @@ type RunTypeComponentsStub struct {
 	TransactionCoordinatorFactory coordinator.TransactionCoordinatorCreator
 	SCResultsPreProcessorFactory  preprocess.SmartContractResultPreProcessorCreator
 	SCProcessorFactory            scrCommon.SCProcessorCreator
+	AccountParser                 genesis.AccountsParser
 	AccountCreator                state.AccountFactory
 	ShardCoordinatorFactory       sharding.ShardCoordinatorFactory
 	TxPreProcessorFactory         preprocess.TxPreProcessorCreator
@@ -43,6 +45,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		TransactionCoordinatorFactory: transactionCoordinatorFactory,
 		SCResultsPreProcessorFactory:  scResultsPreProcessorCreator,
 		SCProcessorFactory:            scProcessorCreator,
+		AccountParser:                 &AccountsParserStub{},
 		AccountCreator:                accountsCreator,
 		ShardCoordinatorFactory:       sharding.NewMultiShardCoordinatorFactory(),
 		TxPreProcessorFactory:         preprocess.NewTxPreProcessorCreator(),
@@ -71,6 +74,7 @@ func NewSovereignRunTypeComponentsStub() *RunTypeComponentsStub {
 		TransactionCoordinatorFactory: transactionCoordinatorFactory,
 		SCResultsPreProcessorFactory:  scResultsPreProcessorCreator,
 		SCProcessorFactory:            scProcessorCreator,
+		AccountParser:                 &AccountsParserStub{},
 		AccountCreator:                accountsCreator,
 		ShardCoordinatorFactory:       sharding.NewSovereignShardCoordinatorFactory(),
 		TxPreProcessorFactory:         preprocess.NewSovereignTxPreProcessorCreator(),
@@ -95,6 +99,11 @@ func (r *RunTypeComponentsStub) SCProcessorCreator() scrCommon.SCProcessorCreato
 // SCResultsPreProcessorCreator -
 func (r *RunTypeComponentsStub) SCResultsPreProcessorCreator() preprocess.SmartContractResultPreProcessorCreator {
 	return r.SCResultsPreProcessorFactory
+}
+
+// AccountsParser -
+func (r *RunTypeComponentsStub) AccountsParser() genesis.AccountsParser {
+	return r.AccountParser
 }
 
 // AccountsCreator -

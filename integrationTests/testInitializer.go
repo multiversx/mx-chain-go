@@ -644,7 +644,6 @@ func CreateFullGenesisBlocks(
 	blkc data.ChainHandler,
 	dataPool dataRetriever.PoolsHolder,
 	economics process.EconomicsDataHandler,
-	accountsParser genesis.AccountsParser,
 	smartContractParser genesis.InitialSmartContractParser,
 	enableEpochsConfig config.EnableEpochs,
 	runTypeComp mainFactory.RunTypeComponentsHolder,
@@ -737,7 +736,6 @@ func CreateFullGenesisBlocks(
 				MaxNumberOfIterations: 100000,
 			},
 		},
-		AccountsParser:      accountsParser,
 		SmartContractParser: smartContractParser,
 		BlockSignKeyGen:     &mock.KeyGenMock{},
 		EpochConfig: config.EpochConfig{

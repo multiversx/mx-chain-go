@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"math/big"
 	"os"
 	"os/signal"
 	"path"
@@ -48,6 +47,7 @@ import (
 	statusComp "github.com/multiversx/mx-chain-go/factory/status"
 	"github.com/multiversx/mx-chain-go/factory/statusCore"
 	"github.com/multiversx/mx-chain-go/genesis"
+	"github.com/multiversx/mx-chain-go/genesis/data"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
 	"github.com/multiversx/mx-chain-go/health"
 	"github.com/multiversx/mx-chain-go/node"
@@ -313,14 +313,8 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
-	log.Debug("creating args for runType components")
-	argsSovereignRunTypeComponents, err := snr.CreateArgsRunTypeComponents(managedCoreComponents, managedCryptoComponents)
-	if err != nil {
-		return true, err
-	}
-
 	log.Debug("creating runType components")
-	managedRunTypeComponents, err := snr.CreateManagedRunTypeComponents(*argsSovereignRunTypeComponents)
+	managedRunTypeComponents, err := snr.CreateManagedRunTypeComponents(managedCoreComponents, managedCryptoComponents)
 	if err != nil {
 		return true, err
 	}
@@ -1227,33 +1221,6 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 		return nil, err
 	}
 
-	totalSupply, ok := big.NewInt(0).SetString(configs.EconomicsConfig.GlobalSettings.GenesisTotalSupply, 10)
-	if !ok {
-		return nil, fmt.Errorf("can not parse total suply from economics.toml, %s is not a valid value",
-			configs.EconomicsConfig.GlobalSettings.GenesisTotalSupply)
-	}
-
-	mintingSenderAddress := configs.EconomicsConfig.GlobalSettings.GenesisMintingSenderAddress
-
-	args := genesis.AccountsParserArgs{
-		GenesisFilePath: configurationPaths.Genesis,
-		EntireSupply:    totalSupply,
-		MinterAddress:   mintingSenderAddress,
-		PubkeyConverter: coreComponents.AddressPubKeyConverter(),
-		KeyGenerator:    cryptoComponents.TxSignKeyGen(),
-		Hasher:          coreComponents.Hasher(),
-		Marshalizer:     coreComponents.InternalMarshalizer(),
-	}
-
-	accountsParser, err := parsing.NewAccountsParser(args)
-	if err != nil {
-		return nil, err
-	}
-	sovereignAccountsParser, err := parsing.NewSovereignAccountsParser(accountsParser)
-	if err != nil {
-		return nil, err
-	}
-
 	smartContractParser, err := parsing.NewSmartContractsParser(
 		configurationPaths.SmartContracts,
 		coreComponents.AddressPubKeyConverter(),
@@ -1306,7 +1273,6 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 		RoundConfig:              *configs.RoundConfig,
 		PrefConfigs:              *configs.PreferencesConfig,
 		ImportDBConfig:           *configs.ImportDbConfig,
-		AccountsParser:           sovereignAccountsParser,
 		SmartContractParser:      smartContractParser,
 		GasSchedule:              gasScheduleNotifier,
 		NodesCoordinator:         nodesCoordinator,
@@ -1630,9 +1596,38 @@ func (snr *sovereignNodeRunner) CreateManagedCryptoComponents(
 	return managedCryptoComponents, nil
 }
 
-// CreateArgsRunTypeComponents creates the arguments for sovereign runType components
-func (snr *sovereignNodeRunner) CreateArgsRunTypeComponents(coreComp mainFactory.CoreComponentsHandler, cryptoComp mainFactory.CryptoComponentsHandler) (*runType.ArgsSovereignRunTypeComponents, error) {
-	sovereignCfg := snr.configs.SovereignExtraConfig
+// CreateArgsRunTypeComponents - creates the arguments for runType components
+func (snr *sovereignNodeRunner) CreateArgsRunTypeComponents(coreComponents mainFactory.CoreComponentsHandler, cryptoComponents mainFactory.CryptoComponentsHandler) (*runType.ArgsRunTypeComponents, error) {
+	initialAccounts := make([]*data.InitialAccount, 0)
+	err := core.LoadJsonFile(&initialAccounts, snr.configs.ConfigurationPathsHolder.Genesis)
+	if err != nil {
+		return nil, err
+	}
+
+	var accounts []genesis.InitialAccountHandler
+	for _, ia := range initialAccounts {
+		accounts = append(accounts, ia)
+	}
+
+	return &runType.ArgsRunTypeComponents{
+		CoreComponents:   coreComponents,
+		CryptoComponents: cryptoComponents,
+		Configs:          *snr.configs.Configs,
+		InitialAccounts:  accounts,
+	}, nil
+}
+
+// CreateSovereignArgsRunTypeComponents creates the arguments for sovereign runType components
+func (snr *sovereignNodeRunner) CreateSovereignArgsRunTypeComponents(coreComponents mainFactory.CoreComponentsHandler, cryptoComponents mainFactory.CryptoComponentsHandler) (*runType.ArgsSovereignRunTypeComponents, error) {
+	args, err := snr.CreateArgsRunTypeComponents(coreComponents, cryptoComponents)
+	if err != nil {
+		return nil, err
+	}
+
+	runTypeComponentsFactory, err := runType.NewRunTypeComponentsFactory(*args)
+	if err != nil {
+		return nil, fmt.Errorf("NewRunTypeComponentsFactory failed: %w", err)
+	}
 
 	codec := abi.NewDefaultCodec()
 	argsDataCodec := dataCodec.ArgsDataCodec{
@@ -1644,19 +1639,14 @@ func (snr *sovereignNodeRunner) CreateArgsRunTypeComponents(coreComp mainFactory
 		return nil, err
 	}
 
-	runTypeComponentsFactory, err := runType.NewRunTypeComponentsFactory(coreComp)
-	if err != nil {
-		return nil, fmt.Errorf("NewRunTypeComponentsFactory failed: %w", err)
-	}
-
-	sovHeaderSigVerifier, err := headerCheck.NewSovereignHeaderSigVerifier(cryptoComp.BlockSigner())
+	sovHeaderSigVerifier, err := headerCheck.NewSovereignHeaderSigVerifier(cryptoComponents.BlockSigner())
 	if err != nil {
 		return nil, err
 	}
 
 	return &runType.ArgsSovereignRunTypeComponents{
 		RunTypeComponentsFactory: runTypeComponentsFactory,
-		Config:                   *sovereignCfg,
+		Config:                   *snr.configs.SovereignExtraConfig,
 		DataCodec:                dataCodecHandler,
 		TopicsChecker:            incomingHeader.NewTopicsChecker(),
 		ExtraVerifier:            sovHeaderSigVerifier,
@@ -1664,8 +1654,13 @@ func (snr *sovereignNodeRunner) CreateArgsRunTypeComponents(coreComp mainFactory
 }
 
 // CreateManagedRunTypeComponents creates the managed runType components
-func (snr *sovereignNodeRunner) CreateManagedRunTypeComponents(args runType.ArgsSovereignRunTypeComponents) (mainFactory.RunTypeComponentsHandler, error) {
-	sovereignRunTypeComponentsFactory, err := runType.NewSovereignRunTypeComponentsFactory(args)
+func (snr *sovereignNodeRunner) CreateManagedRunTypeComponents(coreComponents mainFactory.CoreComponentsHandler, cryptoComponents mainFactory.CryptoComponentsHandler) (mainFactory.RunTypeComponentsHandler, error) {
+	args, err := snr.CreateSovereignArgsRunTypeComponents(coreComponents, cryptoComponents)
+	if err != nil {
+		return nil, err
+	}
+
+	sovereignRunTypeComponentsFactory, err := runType.NewSovereignRunTypeComponentsFactory(*args)
 	if err != nil {
 		return nil, fmt.Errorf("NewSovereignRunTypeComponentsFactory failed: %w", err)
 	}

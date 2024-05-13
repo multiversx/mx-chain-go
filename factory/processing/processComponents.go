@@ -141,7 +141,6 @@ type ProcessComponentsFactoryArgs struct {
 	PrefConfigs            config.Preferences
 	ImportDBConfig         config.ImportDbConfig
 	EconomicsConfig        config.EconomicsConfig
-	AccountsParser         genesis.AccountsParser
 	SmartContractParser    genesis.InitialSmartContractParser
 	GasSchedule            core.GasScheduleNotifier
 	NodesCoordinator       nodesCoordinator.NodesCoordinator
@@ -178,7 +177,6 @@ type processComponentsFactory struct {
 	prefConfigs            config.Preferences
 	importDBConfig         config.ImportDbConfig
 	economicsConfig        config.EconomicsConfig
-	accountsParser         genesis.AccountsParser
 	smartContractParser    genesis.InitialSmartContractParser
 	gasSchedule            core.GasScheduleNotifier
 	nodesCoordinator       nodesCoordinator.NodesCoordinator
@@ -227,7 +225,6 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		prefConfigs:              args.PrefConfigs,
 		importDBConfig:           args.ImportDBConfig,
 		economicsConfig:          args.EconomicsConfig,
-		accountsParser:           args.AccountsParser,
 		smartContractParser:      args.SmartContractParser,
 		gasSchedule:              args.GasSchedule,
 		nodesCoordinator:         args.NodesCoordinator,
@@ -636,7 +633,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 
 	nodesSetupChecker, err := checking.NewNodesSetupChecker(
-		pcf.accountsParser,
+		pcf.runTypeComponents.AccountsParser(),
 		genesisNodePrice,
 		pcf.coreData.ValidatorPubKeyConverter(),
 		pcf.crypto.BlockSignKeyGen(),
@@ -735,7 +732,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		hardforkTrigger:                  hardforkTrigger,
 		processedMiniBlocksTracker:       processedMiniBlocksTracker,
 		esdtDataStorageForApi:            pcf.esdtNftStorage,
-		accountsParser:                   pcf.accountsParser,
+		accountsParser:                   pcf.runTypeComponents.AccountsParser(),
 		receiptsRepository:               receiptsRepository,
 		sentSignaturesTracker:            sentSignaturesTracker,
 	}, nil
@@ -893,19 +890,15 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 	}
 
 	arg := processGenesis.ArgsGenesisBlockCreator{
-
 		GenesisTime:   uint64(pcf.coreData.GenesisNodesSetup().GetStartTime()),
 		StartEpochNum: pcf.bootstrapComponents.EpochBootstrapParams().Epoch(), Data: pcf.data,
 		Core:              pcf.coreData,
 		Accounts:          pcf.state.AccountsAdapter(),
 		ValidatorAccounts: pcf.state.PeerAccounts(), InitialNodesSetup: pcf.coreData.GenesisNodesSetup(),
-		Economics:           pcf.coreData.EconomicsData(),
-		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
-		AccountsParser:      pcf.accountsParser,
-		SmartContractParser: pcf.smartContractParser,
-
-		GasSchedule: pcf.gasSchedule,
-
+		Economics:            pcf.coreData.EconomicsData(),
+		ShardCoordinator:     pcf.bootstrapComponents.ShardCoordinator(),
+		SmartContractParser:  pcf.smartContractParser,
+		GasSchedule:          pcf.gasSchedule,
 		TxLogsProcessor:      pcf.txLogsProcessor,
 		VirtualMachineConfig: genesisVmConfig, HardForkConfig: pcf.config.Hardfork,
 		TrieStorageManagers: pcf.state.TrieStorageManagers(),
@@ -1161,7 +1154,7 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(
 		return err
 	}
 
-	miniBlocks, txsPoolPerShard, errGenerate := pcf.accountsParser.GenerateInitialTransactions(pcf.bootstrapComponents.ShardCoordinator(), initialIndexingData)
+	miniBlocks, txsPoolPerShard, errGenerate := pcf.runTypeComponents.AccountsParser().GenerateInitialTransactions(pcf.bootstrapComponents.ShardCoordinator(), initialIndexingData)
 	if errGenerate != nil {
 		return errGenerate
 	}
@@ -1173,7 +1166,7 @@ func (pcf *processComponentsFactory) indexGenesisBlocks(
 		log.Info("indexGenesisBlocks(): indexer.SaveBlock", "hash", genesisBlockHash)
 
 		// manually add the genesis minting address as it is not exist in the trie
-		genesisAddress := pcf.accountsParser.GenesisMintingAddress()
+		genesisAddress := pcf.runTypeComponents.AccountsParser().GenesisMintingAddress()
 
 		alteredAccounts[genesisAddress] = &alteredAccount.AlteredAccount{
 			Address: genesisAddress,
@@ -1945,9 +1938,6 @@ func createCache(cacheConfig config.CacheConfig) (storage.Cacher, error) {
 
 func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	baseErrMessage := "error creating process components"
-	if check.IfNil(args.AccountsParser) {
-		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilAccountsParser)
-	}
 	if check.IfNil(args.GasSchedule) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilGasSchedule)
 	}
@@ -2092,6 +2082,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.RunTypeComponents.VmContainerShardFactoryCreator()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilVmContainerShardFactoryCreator)
+	}
+	if check.IfNil(args.RunTypeComponents.AccountsParser()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilAccountsParser)
 	}
 	if check.IfNil(args.RunTypeComponents.AccountsCreator()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilAccountsCreator)

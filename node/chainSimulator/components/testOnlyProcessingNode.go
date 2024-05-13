@@ -7,9 +7,6 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	chainData "github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -27,6 +24,10 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	chainData "github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 )
 
 // ArgsTestOnlyProcessingNode represents the DTO struct for the NewTestOnlyProcessingNode constructor function
@@ -187,26 +188,18 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 	}
 
 	instance.ProcessComponentsHolder, err = CreateProcessComponents(ArgsProcessComponentsHolder{
-		CoreComponents:           instance.CoreComponentsHolder,
-		CryptoComponents:         instance.CryptoComponentsHolder,
-		NetworkComponents:        instance.NetworkComponentsHolder,
-		BootstrapComponents:      instance.BootstrapComponentsHolder,
-		StateComponents:          instance.StateComponentsHolder,
-		StatusComponents:         instance.StatusComponentsHolder,
-		StatusCoreComponents:     instance.StatusCoreComponents,
-		FlagsConfig:              *args.Configs.FlagsConfig,
-		ImportDBConfig:           *args.Configs.ImportDbConfig,
-		PrefsConfig:              *args.Configs.PreferencesConfig,
-		Config:                   *args.Configs.GeneralConfig,
-		EconomicsConfig:          *args.Configs.EconomicsConfig,
-		SystemSCConfig:           *args.Configs.SystemSCConfig,
-		EpochConfig:              *args.Configs.EpochConfig,
-		RoundConfig:              *args.Configs.RoundConfig,
-		ConfigurationPathsHolder: *args.Configs.ConfigurationPathsHolder,
-		NodesCoordinator:         instance.NodesCoordinator,
-		DataComponents:           instance.DataComponentsHolder,
-		GenesisNonce:             args.InitialNonce,
-		GenesisRound:             uint64(args.InitialRound),
+		CoreComponents:       instance.CoreComponentsHolder,
+		CryptoComponents:     instance.CryptoComponentsHolder,
+		NetworkComponents:    instance.NetworkComponentsHolder,
+		BootstrapComponents:  instance.BootstrapComponentsHolder,
+		StateComponents:      instance.StateComponentsHolder,
+		StatusComponents:     instance.StatusComponentsHolder,
+		StatusCoreComponents: instance.StatusCoreComponents,
+		Configs:              args.Configs,
+		NodesCoordinator:     instance.NodesCoordinator,
+		DataComponents:       instance.DataComponentsHolder,
+		GenesisNonce:         args.InitialNonce,
+		GenesisRound:         uint64(args.InitialRound),
 	})
 	if err != nil {
 		return nil, err

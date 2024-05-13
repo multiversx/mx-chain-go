@@ -34,7 +34,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	factoryTests "github.com/multiversx/mx-chain-go/testscommon/factory"
-	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/multiversx/mx-chain-go/update/factory"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
@@ -486,7 +485,6 @@ func hardForkImport(
 					MaxNumberOfIterations: 100000,
 				},
 			},
-			AccountsParser:      &genesisMocks.AccountsParserStub{},
 			SmartContractParser: &mock.SmartContractParserStub{},
 			BlockSignKeyGen:     &mock.KeyGenMock{},
 			EpochConfig: config.EpochConfig{

@@ -13,7 +13,7 @@ import (
 )
 
 func createSovRunTypeArgs() runType.ArgsSovereignRunTypeComponents {
-	rcf, _ := runType.NewRunTypeComponentsFactory(createCoreComponents())
+	rcf, _ := runType.NewRunTypeComponentsFactory(createArgsRunTypeComponents())
 
 	return runType.ArgsSovereignRunTypeComponents{
 		RunTypeComponentsFactory: rcf,

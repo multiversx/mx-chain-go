@@ -185,9 +185,6 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 	if check.IfNil(arg.Data.Datapool()) {
 		return process.ErrNilPoolsHolder
 	}
-	if check.IfNil(arg.AccountsParser) {
-		return genesis.ErrNilAccountsParser
-	}
 	if check.IfNil(arg.GasSchedule) {
 		return process.ErrNilGasSchedule
 	}
@@ -208,6 +205,9 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 	}
 	if check.IfNil(arg.RunTypeComponents.TransactionCoordinatorCreator()) {
 		return errors.ErrNilTransactionCoordinatorCreator
+	}
+	if check.IfNil(arg.RunTypeComponents.AccountsParser()) {
+		return errors.ErrNilAccountsParser
 	}
 	if check.IfNil(arg.RunTypeComponents.AccountsCreator()) {
 		return state.ErrNilAccountFactory
@@ -348,7 +348,7 @@ func (gbc *genesisBlockCreator) createGenesisBlocksArgs(shardIDs []uint32) (*hea
 		}
 	}
 
-	nodesListSplitter, err := intermediate.NewNodesListSplitter(gbc.arg.InitialNodesSetup, gbc.arg.AccountsParser)
+	nodesListSplitter, err := intermediate.NewNodesListSplitter(gbc.arg.InitialNodesSetup, gbc.arg.RunTypeComponents.AccountsParser())
 	if err != nil {
 		return nil, err
 	}
@@ -596,7 +596,7 @@ func (gbc *genesisBlockCreator) checkDelegationsAgainstDeployedSC(
 		return nil
 	}
 
-	initialAccounts := arg.AccountsParser.InitialAccounts()
+	initialAccounts := arg.RunTypeComponents.AccountsParser().InitialAccounts()
 	for _, ia := range initialAccounts {
 		dh := ia.GetDelegationHandler()
 		if check.IfNil(dh) {
