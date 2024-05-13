@@ -1259,3 +1259,6 @@ var ErrNilRelayerAccount = errors.New("nil relayer account")
 
 // ErrRelayedTxV3TooManyInnerTransactions signals that too many inner transactions were provided
 var ErrRelayedTxV3TooManyInnerTransactions = errors.New("too many inner transactions")
+
+// ErrConsumedFeesMismatch signals that the fees consumed from relayer do not match the inner transactions fees
+var ErrConsumedFeesMismatch = errors.New("consumed fees mismatch")

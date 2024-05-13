@@ -579,12 +579,29 @@ func (txProc *txProcessor) finishExecutionOfRelayedTx(
 		return vmcommon.Ok, nil
 	}
 
-	err = txProc.addFeeAndValueToDest(acntDst, tx, computedFees.remainingFee)
+	err = txProc.addFeeAndValueToDest(acntDst, tx.Value, computedFees.remainingFee)
 	if err != nil {
 		return 0, err
 	}
 
-	return txProc.processUserTx(tx, userTx, tx.Value, tx.Nonce)
+	originalTxHash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
+	if err != nil {
+		errRemove := txProc.removeValueAndConsumedFeeFromUser(userTx, tx.Value, originalTxHash, tx, err)
+		if errRemove != nil {
+			return vmcommon.UserError, errRemove
+		}
+
+		return vmcommon.UserError, txProc.executeFailedRelayedUserTx(
+			userTx,
+			tx.SndAddr,
+			tx.Value,
+			tx.Nonce,
+			tx,
+			originalTxHash,
+			err.Error())
+	}
+
+	return txProc.processUserTx(tx, userTx, tx.Value, tx.Nonce, originalTxHash)
 }
 
 func (txProc *txProcessor) processTxAtRelayer(
@@ -621,8 +638,8 @@ func (txProc *txProcessor) processTxAtRelayer(
 	return nil
 }
 
-func (txProc *txProcessor) addFeeAndValueToDest(acntDst state.UserAccountHandler, tx *transaction.Transaction, remainingFee *big.Int) error {
-	err := acntDst.AddToBalance(tx.GetValue())
+func (txProc *txProcessor) addFeeAndValueToDest(acntDst state.UserAccountHandler, txValue *big.Int, remainingFee *big.Int) error {
+	err := acntDst.AddToBalance(txValue)
 	if err != nil {
 		return err
 	}
@@ -650,6 +667,8 @@ func (txProc *txProcessor) processRelayedTxV3(
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, err)
 	}
 
+	snapshot := txProc.accounts.JournalLen()
+
 	// process fees on both relayer and sender
 	relayerFee, totalFee := txProc.relayedTxV3Processor.ComputeRelayedTxFees(tx)
 	err = txProc.processTxAtRelayer(relayerAcnt, totalFee, relayerFee, tx)
@@ -659,11 +678,19 @@ func (txProc *txProcessor) processRelayedTxV3(
 
 	innerTxs := tx.GetInnerTransactions()
 
+	originalTxHash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
+	if err != nil {
+		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, err)
+	}
+
 	var innerTxRetCode vmcommon.ReturnCode
 	var innerTxErr error
+	innerTxFee := big.NewInt(0)
+	innerTxsTotalFees := big.NewInt(0)
 	executedUserTxs := make([]*transaction.Transaction, 0)
 	for _, innerTx := range innerTxs {
-		innerTxRetCode, innerTxErr = txProc.finishExecutionOfInnerTx(tx, innerTx)
+		innerTxFee, innerTxRetCode, innerTxErr = txProc.processInnerTx(tx, innerTx, originalTxHash)
+		innerTxsTotalFees.Add(innerTxsTotalFees, innerTxFee)
 		if innerTxErr != nil || innerTxRetCode != vmcommon.Ok {
 			continue
 		}
@@ -676,29 +703,68 @@ func (txProc *txProcessor) processRelayedTxV3(
 		log.Trace("failed to execute all inner transactions", "total", len(innerTxs), "executed transactions", len(executedUserTxs))
 	}
 
+	expectedInnerTxsTotalFees := big.NewInt(0).Sub(totalFee, relayerFee)
+	if innerTxsTotalFees.Cmp(expectedInnerTxsTotalFees) != 0 {
+		log.Debug("reverting relayed transaction, total inner transactions fees mismatch",
+			"computed fee at relayer", expectedInnerTxsTotalFees.Uint64(),
+			"total inner fees", innerTxsTotalFees.Uint64())
+
+		errRevert := txProc.accounts.RevertToSnapshot(snapshot)
+		if errRevert != nil {
+			return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, errRevert)
+		}
+
+		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrConsumedFeesMismatch)
+	}
+
 	return vmcommon.Ok, nil
 }
 
-func (txProc *txProcessor) finishExecutionOfInnerTx(
+func (txProc *txProcessor) processInnerTx(
 	tx *transaction.Transaction,
 	innerTx *transaction.Transaction,
-) (vmcommon.ReturnCode, error) {
+	originalTxHash []byte,
+) (*big.Int, vmcommon.ReturnCode, error) {
+
+	txFee := txProc.computeTxFee(innerTx)
+
 	acntSnd, err := txProc.getAccountFromAddress(innerTx.SndAddr)
 	if err != nil {
-		return vmcommon.UserError, err
+		return txFee, vmcommon.UserError, txProc.executeFailedRelayedUserTx(
+			innerTx,
+			innerTx.RelayerAddr,
+			big.NewInt(0),
+			tx.Nonce,
+			tx,
+			originalTxHash,
+			err.Error())
 	}
 
 	if check.IfNil(acntSnd) {
-		return vmcommon.UserError, process.ErrRelayedTxV3SenderShardMismatch
+		return txFee, vmcommon.UserError, txProc.executeFailedRelayedUserTx(
+			innerTx,
+			innerTx.RelayerAddr,
+			big.NewInt(0),
+			tx.Nonce,
+			tx,
+			originalTxHash,
+			process.ErrRelayedTxV3SenderShardMismatch.Error())
 	}
 
-	txFee := txProc.computeTxFee(innerTx)
-	err = txProc.addFeeAndValueToDest(acntSnd, tx, txFee)
+	err = txProc.addFeeAndValueToDest(acntSnd, big.NewInt(0), txFee)
 	if err != nil {
-		return vmcommon.UserError, err
+		return txFee, vmcommon.UserError, txProc.executeFailedRelayedUserTx(
+			innerTx,
+			innerTx.RelayerAddr,
+			big.NewInt(0),
+			tx.Nonce,
+			tx,
+			originalTxHash,
+			err.Error())
 	}
 
-	return txProc.processUserTx(tx, innerTx, tx.Value, tx.Nonce)
+	result, err := txProc.processUserTx(tx, innerTx, tx.Value, tx.Nonce, originalTxHash)
+	return txFee, result, err
 }
 
 func (txProc *txProcessor) processRelayedTxV2(
@@ -869,15 +935,10 @@ func (txProc *txProcessor) processUserTx(
 	userTx *transaction.Transaction,
 	relayedTxValue *big.Int,
 	relayedNonce uint64,
+	originalTxHash []byte,
 ) (vmcommon.ReturnCode, error) {
 
 	acntSnd, acntDst, err := txProc.getAccounts(userTx.SndAddr, userTx.RcvAddr)
-	if err != nil {
-		return 0, err
-	}
-
-	var originalTxHash []byte
-	originalTxHash, err = core.CalculateHash(txProc.marshalizer, txProc.hasher, originalTx)
 	if err != nil {
 		return 0, err
 	}
