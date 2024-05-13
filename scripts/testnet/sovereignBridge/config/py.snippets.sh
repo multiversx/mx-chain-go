@@ -44,7 +44,3 @@ setGenesisContract() {
 updateSovereignConfig() {
     python3 $SCRIPT_PATH/pyScripts/update_toml.py $ESDT_SAFE_ADDRESS $ESDT_SAFE_ADDRESS_SOVEREIGN
 }
-
-copyContracts() {
-    python3 $SCRIPT_PATH/pyScripts/copy_contracts.py $ESDT_SAFE_WASM $FEE_MARKET_WASM $MULTISIG_VERIFIER_WASM
-}

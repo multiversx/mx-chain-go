@@ -158,16 +158,20 @@ setAnyTokenFeeMarketContractCall() {
         local URL=$2
         local CHAIN=$3
 
-        mxpy --verbose contract call ${ADDRESS} \
-            --pem=${WALLET} \
-            --proxy=${URL} \
-            --chain=${CHAIN} \
-            --gas-limit=10000000 \
-            --function="addFee" \
-            --arguments \
-                str:SVN-cb685a \
-                0x020000000c5745474c442d64643834373100000008de0b6b3a7640000000000008ebec21ee1da40000 \
-            --recall-nonce \
-            --wait-result \
-            --send || return
+        echo "NOT IMPLEMENTED YET"
+}
+
+distributeFees() {
+    mxpy --verbose contract call ${FEE_MARKET_ADDRESS} \
+        --pem=${WALLET} \
+        --proxy=${PROXY} \
+        --chain=${CHAIN_ID} \
+        --gas-limit=20000000 \
+        --function="distributeFees" \
+        --arguments \
+           ${WALLET} \
+           0x2710 \
+        --recall-nonce \
+        --wait-result \
+        --send || return
 }

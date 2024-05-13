@@ -9,23 +9,11 @@ deployAll() {
 
     unpauseEsdtSafeContract
 
-    issueToken
-
     setGenesisContract
 
     updateSovereignConfig
 
     prepareObserver
-}
-
-upgradeContracts() {
-    copyContracts
-
-    upgradeEsdtSafeContract
-
-    upgradeFeeMarketContract
-
-    setGenesisContract
 }
 
 sovereignInit() {
@@ -54,14 +42,6 @@ sovereignInit() {
     disableFeeMarketContractSovereign
 
     unpauseEsdtSafeContractSovereign
-
-    issueTokenSovereign
-}
-
-upgradeContractsAndStartSovereign() {
-    upgradeContracts
-
-    sovereignInit
 }
 
 stopSovereign() {
