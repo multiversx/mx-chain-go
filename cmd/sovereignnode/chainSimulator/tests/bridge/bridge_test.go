@@ -19,8 +19,8 @@ import (
 const (
 	defaultPathToInitialConfig = "../../../../node/config/"
 	sovereignConfigPath        = "../../../config/"
-	esdtSafeWasmPath           = "../../../../node/config/genesisContracts/esdt-safe.wasm"
-	feeMarketWasmPath          = "../../../../node/config/genesisContracts/fee-market.wasm"
+	esdtSafeWasmPath           = "../testdata/esdt-safe.wasm"
+	feeMarketWasmPath          = "../testdata/fee-market.wasm"
 	multiSigWasmPath           = "../testdata/multisigverifier.wasm"
 )
 
