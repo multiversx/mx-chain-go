@@ -14,7 +14,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/headerVersionData"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	processOutport "github.com/multiversx/mx-chain-go/outport/process"
 	"github.com/multiversx/mx-chain-go/process"
@@ -1598,8 +1597,7 @@ func (mp *metaProcessor) commitEpochStart(header *block.MetaBlock, body *block.B
 
 // RevertStateToBlock recreates the state tries to the root hashes indicated by the provided root hash and header
 func (mp *metaProcessor) RevertStateToBlock(header data.HeaderHandler, rootHash []byte) error {
-	rootHashHolder := holders.NewDefaultRootHashesHolder(rootHash)
-	err := mp.accountsDB[state.UserAccountsState].RecreateTrie(rootHashHolder)
+	err := mp.revertAccountsStates(header, rootHash)
 	if err != nil {
 		return err
 	}

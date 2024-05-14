@@ -27,6 +27,7 @@ func makeVMConfig() config.VirtualMachineConfig {
 			{StartEpoch: 0, Version: "v1.4"},
 			{StartEpoch: 10, Version: "v1.5"},
 		},
+		TransferAndExecuteByUserAddresses: []string{"3132333435363738393031323334353637383930313233343536373839303234"},
 	}
 }
 
@@ -43,6 +44,7 @@ func createMockVMAccountsArguments() shard.ArgVMContainerFactory {
 		BuiltInFunctions:    vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
 		BlockChainHook:      &testscommon.BlockChainHookStub{},
 		Hasher:              &hashingMocks.HasherMock{},
+		PubKeyConverter:     &testscommon.PubkeyConverterMock{},
 	}
 }
 
@@ -87,6 +89,7 @@ func TestNewVmContainerShardFactory_CreateVmContainerFactoryShard(t *testing.T) 
 		ESDTTransferParser:  argsShard.ESDTTransferParser,
 		BuiltInFunctions:    argsShard.BuiltInFunctions,
 		Hasher:              argsShard.Hasher,
+		PubkeyConv:          argsShard.PubKeyConverter,
 	}
 
 	vmContainer, vmFactory, err := vmContainerShardFactory.CreateVmContainerFactory(argsBlockchain, args)

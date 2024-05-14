@@ -177,7 +177,7 @@ func (mpc *managedProcessComponents) CheckSubcomponents() error {
 	if check.IfNil(mpc.processComponents.sentSignaturesTracker) {
 		return errors.ErrNilSentSignatureTracker
 	}
-	if check.IfNil(m.processComponents.epochSystemSCProcessor) {
+	if check.IfNil(mpc.processComponents.epochSystemSCProcessor) {
 		return errors.ErrNilEpochSystemSCProcessor
 	}
 
