@@ -15,11 +15,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ NodesCoordinator = (*indexHashedNodesCoordinator)(nil)
@@ -68,6 +69,7 @@ type epochNodesConfig struct {
 	newList        []Validator
 	auctionList    []Validator
 	mutNodesMaps   sync.RWMutex
+	lowWaitingList bool
 }
 
 type indexHashedNodesCoordinator struct {
@@ -122,6 +124,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		shuffledOutMap: make(map[uint32][]Validator),
 		newList:        make([]Validator, 0),
 		auctionList:    make([]Validator, 0),
+		lowWaitingList: false,
 	}
 
 	// todo: if not genesis, use previous randomness from start of epoch meta block
@@ -544,6 +547,26 @@ func (ihnc *indexHashedNodesCoordinator) GetAllShuffledOutValidatorsPublicKeys(e
 	}
 
 	return validatorsPubKeys, nil
+}
+
+// GetShuffledOutToAuctionValidatorsPublicKeys will return shuffled out to auction validators public keys
+func (ihnc *indexHashedNodesCoordinator) GetShuffledOutToAuctionValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error) {
+	validatorsPubKeys := make(map[uint32][][]byte)
+
+	ihnc.mutNodesConfig.RLock()
+	nodesConfig, ok := ihnc.nodesConfig[epoch]
+	ihnc.mutNodesConfig.RUnlock()
+
+	if !ok {
+		return nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, epoch)
+	}
+
+	if nodesConfig.lowWaitingList {
+		// in case of low waiting list the nodes do not go through auction but directly to waiting
+		return validatorsPubKeys, nil
+	}
+
+	return ihnc.GetAllShuffledOutValidatorsPublicKeys(epoch)
 }
 
 // GetValidatorsIndexes will return validators indexes for a block

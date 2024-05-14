@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -350,6 +351,7 @@ func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 		ShuffledOut:    shuffledOutMap,
 		Leaving:        actualLeaving,
 		StillRemaining: stillRemainingInLeaving,
+		LowWaitingList: lowWaitingList,
 	}, nil
 }
 
