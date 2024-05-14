@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	commonFactory "github.com/multiversx/mx-chain-go/common/factory"
+	commonRunType "github.com/multiversx/mx-chain-go/common/runType"
 	disabledStatistics "github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	retriever "github.com/multiversx/mx-chain-go/dataRetriever"
@@ -238,7 +239,7 @@ func createArgsProcessComponentsHolder() ArgsProcessComponentsHolder {
 		IncomingHeaderHandler: &sovereign.IncomingHeaderSubscriberStub{},
 	}
 
-	initialAccounts, _ := runType.ReadInitialAccounts(args.Configs.ConfigurationPathsHolder.Genesis)
+	initialAccounts, _ := commonRunType.ReadInitialAccounts(args.Configs.ConfigurationPathsHolder.Genesis)
 	argsRunType := runType.ArgsRunTypeComponents{
 		CoreComponents:   args.CoreComponents,
 		CryptoComponents: args.CryptoComponents,

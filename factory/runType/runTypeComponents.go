@@ -87,7 +87,7 @@ type runTypeComponents struct {
 	interceptorsContainerFactoryCreator     interceptorscontainer.InterceptorsContainerFactoryCreator
 	shardResolversContainerFactoryCreator   resolverscontainer.ShardResolversContainerFactoryCreator
 	txPreProcessorCreator                   preprocess.TxPreProcessorCreator
-	extraHeaderSigVerifierHandler           headerCheck.ExtraHeaderSigVerifierHolder
+	extraHeaderSigVerifierHolder            headerCheck.ExtraHeaderSigVerifierHolder
 	genesisBlockCreatorFactory              processGenesis.GenesisBlockCreatorFactory
 	genesisMetaBlockCheckerCreator          processGenesis.GenesisMetaBlockChecker
 }
@@ -239,6 +239,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		consensusModel:                          consensus.ConsensusModelV1,
 		vmContainerMetaFactory:                  vmContainerMetaCreator,
 		vmContainerShardFactory:                 vmContainerShardCreator,
+		accountsParser:                          accountsParser,
 		accountsCreator:                         accountsCreator,
 		outGoingOperationsPoolHandler:           disabled.NewDisabledOutGoingOperationPool(),
 		dataCodecHandler:                        disabled.NewDisabledDataCodec(),
@@ -249,10 +250,9 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		interceptorsContainerFactoryCreator:     interceptorscontainer.NewShardInterceptorsContainerFactoryCreator(),
 		shardResolversContainerFactoryCreator:   resolverscontainer.NewShardResolversContainerFactoryCreator(),
 		txPreProcessorCreator:                   preprocess.NewTxPreProcessorCreator(),
-		extraHeaderSigVerifierHandler:           headerCheck.NewExtraHeaderSigVerifierHolder(),
+		extraHeaderSigVerifierHolder:            headerCheck.NewExtraHeaderSigVerifierHolder(),
 		genesisBlockCreatorFactory:              processGenesis.NewGenesisBlockCreatorFactory(),
 		genesisMetaBlockCheckerCreator:          processGenesis.NewGenesisMetaBlockChecker(),
-		accountsParser:                          accountsParser,
 	}, nil
 }
 

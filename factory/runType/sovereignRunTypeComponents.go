@@ -78,7 +78,7 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		return nil, err
 	}
 
-	blockChainHookHandlerFactory, err := hooks.NewSovereignBlockChainHookFactory(rtc.blockChainHookHandlerCreator)
+	sovBlockChainHookHandlerFactory, err := hooks.NewSovereignBlockChainHookFactory(rtc.blockChainHookHandlerCreator)
 	if err != nil {
 		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignBlockChainHookFactory failed: %w", err)
 	}
@@ -153,7 +153,17 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignSmartContractResultPreProcessorFactory failed: %w", err)
 	}
 
-	vmContainerShardCreator, err := factoryVm.NewSovereignVmContainerShardFactory(blockChainHookHandlerFactory, rtc.vmContainerMetaFactory, rtc.vmContainerShardFactory)
+	rtc.vmContainerMetaFactory, err = factoryVm.NewVmContainerMetaFactory(sovBlockChainHookHandlerFactory)
+	if err != nil {
+		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewVmContainerMetaFactory failed: %w", err)
+	}
+
+	rtc.vmContainerShardFactory, err = factoryVm.NewVmContainerShardFactory(sovBlockChainHookHandlerFactory)
+	if err != nil {
+		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewVmContainerShardFactory failed: %w", err)
+	}
+
+	sovereignVmContainerShardCreator, err := factoryVm.NewSovereignVmContainerShardFactory(sovBlockChainHookHandlerFactory, rtc.vmContainerMetaFactory, rtc.vmContainerShardFactory)
 	if err != nil {
 		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignVmContainerShardFactory failed: %w", err)
 	}
@@ -200,13 +210,13 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 	if err != nil {
 		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignHeaderSigVerifier failed: %w", err)
 	}
-	err = rtc.extraHeaderSigVerifierHandler.RegisterExtraHeaderSigVerifier(sovHeaderSigVerifier)
+	err = rtc.extraHeaderSigVerifierHolder.RegisterExtraHeaderSigVerifier(sovHeaderSigVerifier)
 	if err != nil {
 		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - RegisterExtraHeaderSigVerifier failed: %w", err)
 	}
 
 	return &runTypeComponents{
-		blockChainHookHandlerCreator:            blockChainHookHandlerFactory,
+		blockChainHookHandlerCreator:            sovBlockChainHookHandlerFactory,
 		epochStartBootstrapperCreator:           epochStartBootstrapperFactory,
 		bootstrapperFromStorageCreator:          bootstrapperFromStorageFactory,
 		bootstrapperCreator:                     bootstrapperFactory,
@@ -223,7 +233,7 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		scResultPreProcessorCreator:             scResultPreProcessorCreator,
 		consensusModel:                          consensus.ConsensusModelV2,
 		vmContainerMetaFactory:                  rtc.vmContainerMetaFactory,
-		vmContainerShardFactory:                 vmContainerShardCreator,
+		vmContainerShardFactory:                 sovereignVmContainerShardCreator,
 		accountsParser:                          sovereignAccountsParser,
 		accountsCreator:                         accountsCreator,
 		outGoingOperationsPoolHandler:           sovereignFactory.NewOutGoingOperationPool(expiryTime),
@@ -235,7 +245,7 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		interceptorsContainerFactoryCreator:     interceptorscontainer.NewSovereignShardInterceptorsContainerFactoryCreator(),
 		shardResolversContainerFactoryCreator:   resolverscontainer.NewSovereignShardResolversContainerFactoryCreator(),
 		txPreProcessorCreator:                   preprocess.NewSovereignTxPreProcessorCreator(),
-		extraHeaderSigVerifierHandler:           rtc.extraHeaderSigVerifierHandler,
+		extraHeaderSigVerifierHolder:            rtc.extraHeaderSigVerifierHolder,
 		genesisBlockCreatorFactory:              processComp.NewSovereignGenesisBlockCreatorFactory(),
 		genesisMetaBlockCheckerCreator:          processComp.NewSovereignGenesisMetaBlockChecker(),
 	}, nil

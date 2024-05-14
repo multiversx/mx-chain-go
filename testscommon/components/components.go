@@ -962,36 +962,6 @@ func GetConsensusFactoryArgs(
 	}
 }
 
-func GetConsensusComponents(
-	cfg config.Config,
-	runTypeComponents factory.RunTypeComponentsHolder,
-	coreComponents factory.CoreComponentsHolder,
-	cryptoComponents factory.CryptoComponentsHolder,
-	networkComponents factory.NetworkComponentsHolder,
-	stateComponents factory.StateComponentsHolder,
-	dataComponents factory.DataComponentsHolder,
-	statusComponents factory.StatusComponentsHolder,
-	statusCoreComponents factory.StatusCoreComponentsHolder,
-	processComponents factory.ProcessComponentsHolder,
-) factory.ConsensusComponentsHolder {
-	consensusArgs := GetConsensusFactoryArgs(cfg, runTypeComponents, coreComponents, cryptoComponents, networkComponents, stateComponents, dataComponents, statusComponents, statusCoreComponents, processComponents)
-	consensusFactory, _ := consensusComp.NewConsensusComponentsFactory(consensusArgs)
-
-	consensusComponents, err := consensusComp.NewManagedConsensusComponents(consensusFactory)
-	if err != nil {
-		log.Error("GetConsensusComponents NewManagedConsensusComponents", "error", err.Error())
-		return nil
-	}
-
-	err = consensusComponents.Create()
-	if err != nil {
-		log.Error("GetConsensusComponents Create", "error", err.Error())
-		return nil
-	}
-
-	return consensusComponents
-}
-
 // DummyLoadSkPkFromPemFile -
 func DummyLoadSkPkFromPemFile(sk []byte, pk string, err error) LoadKeysFunc {
 	return func(_ string, _ int) ([]byte, string, error) {
