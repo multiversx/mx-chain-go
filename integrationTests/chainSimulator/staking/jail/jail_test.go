@@ -3,13 +3,10 @@ package jail
 import (
 	"encoding/hex"
 	"fmt"
-
 	"math/big"
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/staking"
@@ -17,6 +14,9 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/vm"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/stretchr/testify/require"
 )
 
@@ -66,16 +66,18 @@ func testChainSimulatorJailAndUnJail(t *testing.T, targetEpoch int32, nodeStatus
 	numOfShards := uint32(3)
 
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck: false,
-		TempDir:                t.TempDir(),
-		PathToInitialConfig:    defaultPathToInitialConfig,
-		NumOfShards:            numOfShards,
-		GenesisTimestamp:       startTime,
-		RoundDurationInMillis:  roundDurationInMillis,
-		RoundsPerEpoch:         roundsPerEpoch,
-		ApiInterface:           api.NewNoApiInterface(),
-		MinNodesPerShard:       2,
-		MetaChainMinNodes:      2,
+		BypassTxSignatureCheck:      false,
+		TempDir:                     t.TempDir(),
+		PathToInitialConfig:         defaultPathToInitialConfig,
+		NumOfShards:                 numOfShards,
+		GenesisTimestamp:            startTime,
+		RoundDurationInMillis:       roundDurationInMillis,
+		RoundsPerEpoch:              roundsPerEpoch,
+		ApiInterface:                api.NewNoApiInterface(),
+		MinNodesPerShard:            2,
+		MetaChainMinNodes:           2,
+		ConsensusGroupSize:          1,
+		MetaChainConsensusGroupSize: 1,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			configs.SetStakingV4ActivationEpochs(cfg, stakingV4JailUnJailStep1EnableEpoch)
 			newNumNodes := cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake + 8 // 8 nodes until new nodes will be placed on queue
@@ -166,16 +168,18 @@ func TestChainSimulator_FromQueueToAuctionList(t *testing.T) {
 	numOfShards := uint32(3)
 
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck: false,
-		TempDir:                t.TempDir(),
-		PathToInitialConfig:    defaultPathToInitialConfig,
-		NumOfShards:            numOfShards,
-		GenesisTimestamp:       startTime,
-		RoundDurationInMillis:  roundDurationInMillis,
-		RoundsPerEpoch:         roundsPerEpoch,
-		ApiInterface:           api.NewNoApiInterface(),
-		MinNodesPerShard:       3,
-		MetaChainMinNodes:      3,
+		BypassTxSignatureCheck:      false,
+		TempDir:                     t.TempDir(),
+		PathToInitialConfig:         defaultPathToInitialConfig,
+		NumOfShards:                 numOfShards,
+		GenesisTimestamp:            startTime,
+		RoundDurationInMillis:       roundDurationInMillis,
+		RoundsPerEpoch:              roundsPerEpoch,
+		ApiInterface:                api.NewNoApiInterface(),
+		MinNodesPerShard:            3,
+		MetaChainMinNodes:           3,
+		ConsensusGroupSize:          1,
+		MetaChainConsensusGroupSize: 1,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			configs.SetStakingV4ActivationEpochs(cfg, stakingV4JailUnJailStep1EnableEpoch)
 			configs.SetQuickJailRatingConfig(cfg)
