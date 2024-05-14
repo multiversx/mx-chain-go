@@ -19,7 +19,6 @@ import (
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/common/goroutines"
 	"github.com/multiversx/mx-chain-go/common/ordering"
-	commonRunType "github.com/multiversx/mx-chain-go/common/runType"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -1568,7 +1567,7 @@ func (nr *nodeRunner) CreateManagedCryptoComponents(
 
 // CreateManagedRunTypeComponents creates the managed run type components
 func (nr *nodeRunner) CreateManagedRunTypeComponents(coreComponents mainFactory.CoreComponentsHandler, cryptoComponents mainFactory.CryptoComponentsHandler) (mainFactory.RunTypeComponentsHandler, error) {
-	args, err := commonRunType.CreateArgsRunTypeComponents(coreComponents, cryptoComponents, *nr.configs)
+	args, err := runType.CreateArgsRunTypeComponents(coreComponents, cryptoComponents, *nr.configs)
 	if err != nil {
 		return nil, err
 	}

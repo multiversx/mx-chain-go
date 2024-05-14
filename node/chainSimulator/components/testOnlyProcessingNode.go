@@ -8,7 +8,6 @@ import (
 	"math/big"
 
 	"github.com/multiversx/mx-chain-go/api/shared"
-	commonRunType "github.com/multiversx/mx-chain-go/common/runType"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos/sposFactory"
@@ -143,7 +142,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		return nil, err
 	}
 
-	argsRunType, err := commonRunType.CreateArgsRunTypeComponents(instance.CoreComponentsHolder, instance.CryptoComponentsHolder, args.Configs)
+	argsRunType, err := runType.CreateArgsRunTypeComponents(instance.CoreComponentsHolder, instance.CryptoComponentsHolder, args.Configs)
 	if err != nil {
 		return nil, err
 	}
