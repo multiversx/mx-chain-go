@@ -836,14 +836,14 @@ func (host *vmContext) AddTxValueToSmartContract(input *vmcommon.ContractCallInp
 		host.outputAccounts[string(destAcc.Address)] = destAcc
 	}
 
-	if host.isSovereignSCToSCCall(input) {
+	if host.isInShardSCToSCCall(input) {
 		return
 	}
 
 	destAcc.BalanceDelta = big.NewInt(0).Add(destAcc.BalanceDelta, input.CallValue)
 }
 
-func (host *vmContext) isSovereignSCToSCCall(input *vmcommon.ContractCallInput) bool {
+func (host *vmContext) isInShardSCToSCCall(input *vmcommon.ContractCallInput) bool {
 	return host.shardCoordinator.SameShard(input.CallerAddr, input.RecipientAddr) && core.IsSmartContractAddress(input.CallerAddr)
 }
 
