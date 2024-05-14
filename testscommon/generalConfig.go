@@ -448,8 +448,8 @@ func GetGeneralConfig() config.Config {
 					Capacity: 1000,
 				},
 				DB: config.DBConfig{
-					FilePath:          "ExtendedShardHeaderStorage",
-					Type:              "LvlDBSerial",
+					FilePath:          AddTimestampSuffix("ExtendedShardHeaderStorage"),
+					Type:              string(storageunit.MemoryDB),
 					BatchDelaySeconds: 5,
 					MaxBatchSize:      100,
 					MaxOpenFiles:      10,
@@ -461,8 +461,8 @@ func GetGeneralConfig() config.Config {
 					Capacity: 1000,
 				},
 				DB: config.DBConfig{
-					FilePath:          "ExtendedShardHdrNonceHashStorage",
-					Type:              "LvlDBSerial",
+					FilePath:          AddTimestampSuffix("ExtendedShardHdrNonceHashStorage"),
+					Type:              string(storageunit.MemoryDB),
 					BatchDelaySeconds: 5,
 					MaxBatchSize:      100,
 					MaxOpenFiles:      10,
