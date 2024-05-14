@@ -2,6 +2,7 @@ package shardingMocks
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 )
@@ -79,6 +80,11 @@ func (ncm *NodesCoordinatorStub) GetAllWaitingValidatorsPublicKeys(epoch uint32)
 
 // GetAllShuffledOutValidatorsPublicKeys -
 func (ncm *NodesCoordinatorStub) GetAllShuffledOutValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
+	return nil, nil
+}
+
+// GetShuffledOutToAuctionValidatorsPublicKeys -
+func (ncm *NodesCoordinatorStub) GetShuffledOutToAuctionValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
 	return nil, nil
 }
 
