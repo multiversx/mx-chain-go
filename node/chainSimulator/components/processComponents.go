@@ -32,9 +32,9 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage/cache"
-	"github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/update"
 	"github.com/multiversx/mx-chain-go/update/trigger"
+
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
@@ -49,6 +49,7 @@ type ArgsProcessComponentsHolder struct {
 	StatusComponents     factory.StatusComponentsHolder
 	StatusCoreComponents factory.StatusCoreComponentsHolder
 	NodesCoordinator     nodesCoordinator.NodesCoordinator
+	RunTypeComponents    factory.RunTypeComponentsHolder
 
 	EpochConfig              config.EpochConfig
 	RoundConfig              config.RoundConfig
@@ -221,7 +222,7 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		TxExecutionOrderHandler:               txExecutionOrderHandler,
 		GenesisNonce:                          args.GenesisNonce,
 		GenesisRound:                          args.GenesisRound,
-		RunTypeComponents:                     components.GetRunTypeComponents(),
+		RunTypeComponents:                     args.RunTypeComponents,
 		ShardCoordinatorFactory:               sharding.NewMultiShardCoordinatorFactory(),
 		GenesisBlockCreatorFactory:            process2.NewGenesisBlockCreatorFactory(),
 		GenesisMetaBlockChecker:               processComp.NewGenesisMetaBlockChecker(),

@@ -24,6 +24,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon/components"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	chainData "github.com/multiversx/mx-chain-core-go/data"
@@ -62,6 +63,7 @@ type testOnlyProcessingNode struct {
 	BootstrapComponentsHolder factory.BootstrapComponentsHandler
 	ProcessComponentsHolder   factory.ProcessComponentsHandler
 	DataComponentsHolder      factory.DataComponentsHandler
+	RunTypeComponents         factory.RunTypeComponentsHolder
 
 	NodesCoordinator      nodesCoordinator.NodesCoordinator
 	ChainHandler          chainData.ChainHandler
@@ -130,6 +132,8 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		return nil, err
 	}
 
+	instance.RunTypeComponents = components.GetRunTypeComponentsWithCoreComp(instance.CoreComponentsHolder)
+
 	instance.BootstrapComponentsHolder, err = CreateBootstrapComponents(ArgsBootstrapComponentsHolder{
 		CoreComponents:       instance.CoreComponentsHolder,
 		CryptoComponents:     instance.CryptoComponentsHolder,
@@ -141,6 +145,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		PrefsConfig:          *args.Configs.PreferencesConfig,
 		Config:               *args.Configs.GeneralConfig,
 		ShardIDStr:           args.ShardIDStr,
+		RunTypeComponents:    instance.RunTypeComponents,
 	})
 	if err != nil {
 		return nil, err
@@ -163,11 +168,12 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 	}
 
 	instance.StateComponentsHolder, err = CreateStateComponents(ArgsStateComponents{
-		Config:         *args.Configs.GeneralConfig,
-		CoreComponents: instance.CoreComponentsHolder,
-		StatusCore:     instance.StatusCoreComponents,
-		StoreService:   instance.StoreService,
-		ChainHandler:   instance.ChainHandler,
+		Config:            *args.Configs.GeneralConfig,
+		CoreComponents:    instance.CoreComponentsHolder,
+		StatusCore:        instance.StatusCoreComponents,
+		StoreService:      instance.StoreService,
+		ChainHandler:      instance.ChainHandler,
+		RunTypeComponents: instance.RunTypeComponents,
 	})
 	if err != nil {
 		return nil, err
@@ -213,6 +219,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		DataComponents:           instance.DataComponentsHolder,
 		GenesisNonce:             args.InitialNonce,
 		GenesisRound:             uint64(args.InitialRound),
+		RunTypeComponents:        instance.RunTypeComponents,
 	})
 	if err != nil {
 		return nil, err
