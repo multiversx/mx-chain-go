@@ -20,7 +20,6 @@ const (
 	fullArchiveP2PTomlFile       = "fullArchiveP2P.toml"
 	p2pTomlFile                  = "p2p.toml"
 	ratingsTomlFile              = "ratings.toml"
-	systemSCTomlFile             = "systemSmartContractsConfig.toml"
 	systemSmartContractsTomlFile = "systemSmartContractsConfig.toml"
 )
 
@@ -35,7 +34,7 @@ var (
 		fullArchiveP2PTomlFile,
 		p2pTomlFile,
 		ratingsTomlFile,
-		systemSCTomlFile,
+		systemSmartContractsTomlFile,
 	}
 	log = logger.GetOrCreate("config")
 )
@@ -65,8 +64,6 @@ func OverrideConfigValues(newConfigs []config.OverridableConfig, configs *config
 			err = reflectcommon.AdaptStructureValueBasedOnPath(configs.MainP2pConfig, newConfig.Path, newConfig.Value)
 		case ratingsTomlFile:
 			err = reflectcommon.AdaptStructureValueBasedOnPath(configs.RatingsConfig, newConfig.Path, newConfig.Value)
-		case systemSCTomlFile:
-			err = reflectcommon.AdaptStructureValueBasedOnPath(configs.SystemSCConfig, newConfig.Path, newConfig.Value)
 
 		default:
 			err = fmt.Errorf("invalid config file <%s>. Available options are %s", newConfig.File, strings.Join(availableConfigFilesForOverriding, ","))
