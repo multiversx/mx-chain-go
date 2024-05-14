@@ -273,8 +273,8 @@ func (r *RunTypeComponentsStub) TxPreProcessorCreator() preprocess.TxPreProcesso
 	return r.TxPreProcessorFactory
 }
 
-// ExtraHeaderSigVerifierHandler -
-func (r *RunTypeComponentsStub) ExtraHeaderSigVerifierHandler() headerCheck.ExtraHeaderSigVerifierHolder {
+// ExtraHeaderSigVerifierHolder -
+func (r *RunTypeComponentsStub) ExtraHeaderSigVerifierHolder() headerCheck.ExtraHeaderSigVerifierHolder {
 	return r.ExtraHeaderSigVerifier
 }
 

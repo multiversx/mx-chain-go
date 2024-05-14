@@ -194,6 +194,9 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		DataPool:           instance.DataPool,
 		InternalMarshaller: instance.CoreComponentsHolder.InternalMarshalizer(),
 	})
+	if err != nil {
+		return nil, err
+	}
 
 	instance.StateComponentsHolder, err = CreateStateComponents(ArgsStateComponents{
 		Config:            *args.Configs.GeneralConfig,
