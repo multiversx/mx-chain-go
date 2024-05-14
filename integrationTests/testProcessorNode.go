@@ -1025,6 +1025,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 			WasmVMChangeLocker:  tpn.WasmVMChangeLocker,
 			ESDTTransferParser:  esdtTransferParser,
 			Hasher:              TestHasher,
+			PubKeyConverter:     TestAddressPubkeyConverter,
 		}
 		vmFactory, _ = shard.NewVMContainerFactory(argsNewVMFactory)
 	}
@@ -1683,6 +1684,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		WasmVMChangeLocker:  tpn.WasmVMChangeLocker,
 		ESDTTransferParser:  esdtTransferParser,
 		Hasher:              TestHasher,
+		PubKeyConverter:     TestAddressPubkeyConverter,
 	}
 	vmFactory, _ := shard.NewVMContainerFactory(argsNewVMFactory)
 
@@ -3562,6 +3564,7 @@ func getDefaultVMConfig() *config.VirtualMachineConfig {
 		WasmVMVersions: []config.WasmVMVersionByEpoch{
 			{StartEpoch: 0, Version: "*"},
 		},
+		TransferAndExecuteByUserAddresses: []string{"erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe3"},
 	}
 }
 
