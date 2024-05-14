@@ -6,20 +6,22 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common/reflectcommon"
 	"github.com/multiversx/mx-chain-go/config"
+
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const (
-	apiTomlFile            = "api.toml"
-	configTomlFile         = "config.toml"
-	economicsTomlFile      = "economics.toml"
-	enableEpochsTomlFile   = "enableEpochs.toml"
-	enableRoundsTomlFile   = "enableRounds.toml"
-	externalTomlFile       = "external.toml"
-	fullArchiveP2PTomlFile = "fullArchiveP2P.toml"
-	p2pTomlFile            = "p2p.toml"
-	ratingsTomlFile        = "ratings.toml"
-	systemSCTomlFile       = "systemSmartContractsConfig.toml"
+	apiTomlFile                  = "api.toml"
+	configTomlFile               = "config.toml"
+	economicsTomlFile            = "economics.toml"
+	enableEpochsTomlFile         = "enableEpochs.toml"
+	enableRoundsTomlFile         = "enableRounds.toml"
+	externalTomlFile             = "external.toml"
+	fullArchiveP2PTomlFile       = "fullArchiveP2P.toml"
+	p2pTomlFile                  = "p2p.toml"
+	ratingsTomlFile              = "ratings.toml"
+	systemSCTomlFile             = "systemSmartContractsConfig.toml"
+	systemSmartContractsTomlFile = "systemSmartContractsConfig.toml"
 )
 
 var (
@@ -55,6 +57,8 @@ func OverrideConfigValues(newConfigs []config.OverridableConfig, configs *config
 			err = reflectcommon.AdaptStructureValueBasedOnPath(configs.RoundConfig, newConfig.Path, newConfig.Value)
 		case externalTomlFile:
 			err = reflectcommon.AdaptStructureValueBasedOnPath(configs.ExternalConfig, newConfig.Path, newConfig.Value)
+		case systemSmartContractsTomlFile:
+			err = reflectcommon.AdaptStructureValueBasedOnPath(configs.SystemSCConfig, newConfig.Path, newConfig.Value)
 		case fullArchiveP2PTomlFile:
 			err = reflectcommon.AdaptStructureValueBasedOnPath(configs.FullArchiveP2pConfig, newConfig.Path, newConfig.Value)
 		case p2pTomlFile:
