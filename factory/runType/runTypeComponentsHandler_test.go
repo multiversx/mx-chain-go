@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/runType"
@@ -82,7 +83,7 @@ func TestManagedRunTypeComponents_Create(t *testing.T) {
 		require.Nil(t, managedRunTypeComponents.InterceptorsContainerFactoryCreator())
 		require.Nil(t, managedRunTypeComponents.ShardResolversContainerFactoryCreator())
 		require.Nil(t, managedRunTypeComponents.TxPreProcessorCreator())
-		require.Nil(t, managedRunTypeComponents.ExtraHeaderSigVerifierHandler())
+		require.Nil(t, managedRunTypeComponents.ExtraHeaderSigVerifierHolder())
 		require.Nil(t, managedRunTypeComponents.GenesisBlockCreatorFactory())
 		require.Nil(t, managedRunTypeComponents.GenesisMetaBlockCheckerCreator())
 
@@ -117,7 +118,7 @@ func TestManagedRunTypeComponents_Create(t *testing.T) {
 		require.NotNil(t, managedRunTypeComponents.InterceptorsContainerFactoryCreator())
 		require.NotNil(t, managedRunTypeComponents.ShardResolversContainerFactoryCreator())
 		require.NotNil(t, managedRunTypeComponents.TxPreProcessorCreator())
-		require.NotNil(t, managedRunTypeComponents.ExtraHeaderSigVerifierHandler())
+		require.NotNil(t, managedRunTypeComponents.ExtraHeaderSigVerifierHolder())
 		require.NotNil(t, managedRunTypeComponents.GenesisBlockCreatorFactory())
 		require.NotNil(t, managedRunTypeComponents.GenesisMetaBlockCheckerCreator())
 
@@ -201,6 +202,7 @@ func createArgsRunTypeComponents() runType.ArgsRunTypeComponents {
 		},
 		CryptoComponents: &mockCoreComp.CryptoComponentsStub{
 			TxKeyGen: &mockCoreComp.KeyGenMock{},
+			BlockSig: &mock.SingleSignerMock{},
 		},
 		Configs: config.Configs{
 			EconomicsConfig: &config.EconomicsConfig{
