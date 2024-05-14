@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/config"
 	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -22,7 +23,7 @@ func TestOverrideConfigValues(t *testing.T) {
 		t.Parallel()
 
 		err := OverrideConfigValues([]config.OverridableConfig{{File: "invalid.toml"}}, &config.Configs{})
-		require.Equal(t, "invalid config file <invalid.toml>. Available options are config.toml,enableEpochs.toml,p2p.toml,external.toml", err.Error())
+		require.Equal(t, "invalid config file <invalid.toml>. Available options are config.toml,enableEpochs.toml,p2p.toml,external.toml,systemSmartContractsConfig.toml", err.Error())
 	})
 
 	t.Run("nil config, should error", func(t *testing.T) {
@@ -70,6 +71,17 @@ func TestOverrideConfigValues(t *testing.T) {
 		err := OverrideConfigValues([]config.OverridableConfig{{Path: "ElasticSearchConnector.Password", Value: "new pass", File: "external.toml"}}, configs)
 		require.NoError(t, err)
 		require.Equal(t, "new pass", configs.ExternalConfig.ElasticSearchConnector.Password)
+	})
+
+	t.Run("should work for systemSmartContractsConfig.toml", func(t *testing.T) {
+		t.Parallel()
+
+		configs := &config.Configs{SystemSCConfig: &config.SystemSmartContractsConfig{ESDTSystemSCConfig: config.ESDTSystemSCConfig{BaseIssuingCost: "100"}}}
+
+		expectedNewValue := "222"
+		err := OverrideConfigValues([]config.OverridableConfig{{Path: "ESDTSystemSCConfig.BaseIssuingCost", Value: expectedNewValue, File: "systemSmartContractsConfig.toml"}}, configs)
+		require.NoError(t, err)
+		require.Equal(t, expectedNewValue, configs.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost)
 	})
 
 	t.Run("should work for enableEpochs.toml", func(t *testing.T) {
