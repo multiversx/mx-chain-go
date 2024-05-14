@@ -58,7 +58,7 @@ depositTokenInSC() {
 issueTokenSovereign() {
     manualUpdateConfigFile #update config file
 
-    local TOKENS_TO_MINT=$(echo "scale=0; $INITIAL_SUPPLY*10^$NR_DECIMALS/1" | bc)
+    local TOKENS_TO_MINT=$(echo "scale=0; $INITIAL_SUPPLY_SOVEREIGN*10^$NR_DECIMALS_SOVEREIGN/1" | bc)
 
     mxpy --verbose contract call ${ESDT_SYSTEM_SC_ADDRESS} \
         --pem=${WALLET} \
@@ -68,10 +68,10 @@ issueTokenSovereign() {
         --value=50000000000000000 \
         --function="issue" \
         --arguments \
-            str:${TOKEN_DISPLAY_NAME} \
-            str:${TOKEN_TICKER} \
+            str:${TOKEN_DISPLAY_NAME_SOVEREIGN} \
+            str:${TOKEN_TICKER_SOVEREIGN} \
             ${TOKENS_TO_MINT} \
-            ${NR_DECIMALS} \
+            ${NR_DECIMALS_SOVEREIGN} \
             str:canAddSpecialRoles str:true \
         --outfile="${SCRIPT_PATH}/issue-sovereign-token.interaction.json" \
         --recall-nonce \
@@ -123,9 +123,9 @@ setLocalBurnRoleSovereign() {
 }
 
 depositTokenInSCSovereign() {
-    CHECK_VARIABLES DEPOSIT_TOKEN_IDENTIFIER_SOVEREIGN DEPOSIT_TOKEN_NR_DECIMALS DEPOSIT_TOKEN_AMOUNT_TO_TRANSFER || return
+    CHECK_VARIABLES DEPOSIT_TOKEN_IDENTIFIER_SOVEREIGN DEPOSIT_TOKEN_NR_DECIMALS_SOVEREIGN DEPOSIT_TOKEN_AMOUNT_TO_TRANSFER_SOVEREIGN || return
 
-    local AMOUNT_TO_TRANSFER=$(echo "scale=0; $DEPOSIT_TOKEN_AMOUNT_TO_TRANSFER*10^$DEPOSIT_TOKEN_NR_DECIMALS/1" | bc)
+    local AMOUNT_TO_TRANSFER=$(echo "scale=0; $DEPOSIT_TOKEN_AMOUNT_TO_TRANSFER_SOVEREIGN*10^$DEPOSIT_TOKEN_NR_DECIMALS_SOVEREIGN/1" | bc)
 
     mxpy --verbose contract call ${WALLET_ADDRESS} \
         --pem=${WALLET} \
