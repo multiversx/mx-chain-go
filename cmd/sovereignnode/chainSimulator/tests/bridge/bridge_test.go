@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator/utils"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	coreAPI "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/stretchr/testify/require"
 )
 
@@ -222,4 +223,10 @@ func Test_ESDTRoleBurnForAll(t *testing.T) {
 		"@" + hex.EncodeToString(wallet.Bytes) //receiver from other side
 	txResult = utils.SendTransaction(t, cs, wallet.Bytes, &nonce, wallet.Bytes, big.NewInt(0), depositArgs, uint64(20000000))
 	require.False(t, string(txResult.Logs.Events[0].Topics[1]) == "action is not allowed")
+
+	tokens, _, err := nodeHandler.GetFacadeHandler().GetAllESDTTokens(wallet.Bech32, coreAPI.AccountQueryOptions{})
+	require.Nil(t, err)
+	require.NotNil(t, tokens)
+	require.True(t, len(tokens) == 2)
+	require.True(t, tokens[string(tokenIdentifier)].GetValue().String() == "111222210000000000000000000")
 }
