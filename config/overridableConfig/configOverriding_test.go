@@ -78,9 +78,10 @@ func TestOverrideConfigValues(t *testing.T) {
 
 		configs := &config.Configs{SystemSCConfig: &config.SystemSmartContractsConfig{ESDTSystemSCConfig: config.ESDTSystemSCConfig{BaseIssuingCost: "100"}}}
 
-		err := OverrideConfigValues([]config.OverridableConfig{{Path: "ESDTSystemSCConfig.BaseIssuingCost", Value: "222", File: "systemSmartContractsConfig.toml"}}, configs)
+		expectedNewValue := "222"
+		err := OverrideConfigValues([]config.OverridableConfig{{Path: "ESDTSystemSCConfig.BaseIssuingCost", Value: expectedNewValue, File: "systemSmartContractsConfig.toml"}}, configs)
 		require.NoError(t, err)
-		require.Equal(t, "222", configs.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost)
+		require.Equal(t, expectedNewValue, configs.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost)
 	})
 
 	t.Run("should work for enableEpochs.toml", func(t *testing.T) {
