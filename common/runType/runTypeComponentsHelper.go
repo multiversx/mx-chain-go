@@ -3,6 +3,7 @@ package runType
 import (
 	"github.com/multiversx/mx-chain-go/config"
 	mainFactory "github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/factory/runType"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/data"
 
@@ -14,7 +15,7 @@ func CreateArgsRunTypeComponents(
 	coreComponents mainFactory.CoreComponentsHandler,
 	cryptoComponents mainFactory.CryptoComponentsHandler,
 	configs config.Configs,
-) (*ArgsRunTypeComponents, error) {
+) (*runType.ArgsRunTypeComponents, error) {
 	initialAccounts := make([]*data.InitialAccount, 0)
 	err := core.LoadJsonFile(&initialAccounts, configs.ConfigurationPathsHolder.Genesis)
 	if err != nil {
@@ -26,7 +27,7 @@ func CreateArgsRunTypeComponents(
 		accounts = append(accounts, ia)
 	}
 
-	return &ArgsRunTypeComponents{
+	return &runType.ArgsRunTypeComponents{
 		CoreComponents:   coreComponents,
 		CryptoComponents: cryptoComponents,
 		Configs:          configs,
