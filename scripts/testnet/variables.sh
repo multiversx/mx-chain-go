@@ -3,6 +3,9 @@
 # METASHARD_ID will be used to identify a shard ID as metachain
 export METASHARD_ID=4294967295
 
+# ROUND_DURATION is the duration in milliseconds for one round
+export ROUND_DURATION=6000
+
 # Path to mx-chain-go. Determined automatically. Do not change.
 export MULTIVERSXDIR=$(dirname $(dirname $MULTIVERSXTESTNETSCRIPTSDIR))
 
@@ -65,6 +68,9 @@ export OBSERVERS_ANTIFLOOD_DISABLE=0
 # For now, make sure that you checkout feat/sovereign branch from mx-chain-deploy repo when using these scripts
 export SOVEREIGN_DEPLOY=1
 
+# ROUND_DURATION is the duration in milliseconds for one round
+export ROUND_DURATION=6000
+
 # Shard structure
 export SHARDCOUNT=1
 export SHARD_VALIDATORCOUNT=2
@@ -117,7 +123,7 @@ export PORT_ORIGIN_VALIDATOR_REST="9500"
 export USETMUX=1
 
 # Log level for the logger in the Node.
-export LOGLEVEL="*:INFO"
+export LOGLEVEL="*:DEBUG"
 
 
 if [ "$TESTNETMODE" == "debug" ]; then
