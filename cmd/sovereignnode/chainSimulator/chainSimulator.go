@@ -11,7 +11,6 @@ import (
 	"github.com/multiversx/mx-chain-go/node"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/rating"
 	"github.com/multiversx/mx-chain-go/sharding"
 	sovereignConfig "github.com/multiversx/mx-chain-go/sovereignnode/config"
@@ -112,16 +111,10 @@ func createArgsRunTypeComponents(args runType.ArgsRunTypeComponents, sovereignEx
 
 	topicsCheckerHandler := incomingHeader.NewTopicsChecker()
 
-	sovHeaderSigVerifier, err := headerCheck.NewSovereignHeaderSigVerifier(args.CryptoComponents.BlockSigner())
-	if err != nil {
-		return nil, err
-	}
-
 	return &runType.ArgsSovereignRunTypeComponents{
 		RunTypeComponentsFactory: runTypeComponentsFactory,
 		Config:                   sovereignExtraConfig,
 		DataCodec:                dataCodecHandler,
 		TopicsChecker:            topicsCheckerHandler,
-		ExtraVerifier:            sovHeaderSigVerifier,
 	}, nil
 }
