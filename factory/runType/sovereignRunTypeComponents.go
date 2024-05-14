@@ -123,7 +123,7 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewSovereignSmartContractResultPreProcessorFactory failed: %w", err)
 	}
 
-	sovVMContextCreator := systemSmartContracts.NewSovereignVMContextCreator()
+	sovVMContextCreator := systemSmartContracts.NewSystemVMEEICreator()
 	rtc.vmContainerMetaFactory, err = factoryVm.NewVmContainerMetaFactory(sovBlockChainHookHandlerFactory, sovVMContextCreator)
 	if err != nil {
 		return nil, fmt.Errorf("sovereignRunTypeComponentsFactory - NewVmContainerMetaFactory failed: %w", err)
