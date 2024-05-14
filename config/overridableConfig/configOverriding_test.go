@@ -23,7 +23,7 @@ func TestOverrideConfigValues(t *testing.T) {
 		t.Parallel()
 
 		err := OverrideConfigValues([]config.OverridableConfig{{File: "invalid.toml"}}, &config.Configs{})
-		require.Equal(t, "invalid config file <invalid.toml>. Available options are config.toml,enableEpochs.toml,p2p.toml,external.toml", err.Error())
+		require.Equal(t, "invalid config file <invalid.toml>. Available options are config.toml,enableEpochs.toml,p2p.toml,external.toml,systemSmartContractsConfig.toml", err.Error())
 	})
 
 	t.Run("nil config, should error", func(t *testing.T) {
