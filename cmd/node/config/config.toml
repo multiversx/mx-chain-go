@@ -656,7 +656,7 @@
     Version = 0  # Setting 0 means 'use default value'
 
 [StateTriesConfig]
-    SnapshotsEnabled = true
+    SnapshotsEnabled = false
     AccountsStatePruningEnabled = false
     PeerStatePruningEnabled = true
     MaxStateTrieLevelInMemory = 5
