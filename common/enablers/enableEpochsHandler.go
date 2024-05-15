@@ -713,12 +713,6 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.StakingV4Step3EnableEpoch,
 		},
-		common.StakingQueueFlag: {
-			isActiveInEpoch: func(epoch uint32) bool {
-				return epoch < handler.enableEpochsConfig.StakingV4Step1EnableEpoch
-			},
-			activationEpoch: handler.enableEpochsConfig.StakingV4Step1EnableEpoch,
-		},
 		common.StakingV4StartedFlag: {
 			isActiveInEpoch: func(epoch uint32) bool {
 				return epoch >= handler.enableEpochsConfig.StakingV4Step1EnableEpoch
@@ -736,6 +730,18 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 				return epoch >= handler.enableEpochsConfig.DynamicESDTEnableEpoch
 			},
 			activationEpoch: handler.enableEpochsConfig.DynamicESDTEnableEpoch,
+		},
+		common.EGLDInESDTMultiTransferFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.EGLDInMultiTransferEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.EGLDInMultiTransferEnableEpoch,
+		},
+		common.CryptoOpcodesV2Flag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.CryptoOpcodesV2EnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.CryptoOpcodesV2EnableEpoch,
 		},
 	}
 }

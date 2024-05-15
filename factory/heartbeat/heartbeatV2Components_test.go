@@ -11,7 +11,6 @@ import (
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	heartbeatComp "github.com/multiversx/mx-chain-go/factory/heartbeat"
 	testsMocks "github.com/multiversx/mx-chain-go/integrationTests/mock"
-	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks"
@@ -465,36 +464,6 @@ func TestHeartbeatV2Components_Create(t *testing.T) {
 
 		args := createMockHeartbeatV2ComponentsFactoryArgs()
 		args.Config.HeartbeatV2.TimeToReadDirectConnectionsInSec = 0
-		hcf, err := heartbeatComp.NewHeartbeatV2ComponentsFactory(args)
-		assert.NotNil(t, hcf)
-		assert.NoError(t, err)
-
-		hc, err := hcf.Create()
-		assert.Nil(t, hc)
-		assert.Error(t, err)
-	})
-	t.Run("NewCrossShardPeerTopicNotifier fails should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockHeartbeatV2ComponentsFactoryArgs()
-		processComp := args.ProcessComponents
-		cnt := 0
-		args.ProcessComponents = &testsMocks.ProcessComponentsStub{
-			NodesCoord:                    processComp.NodesCoordinator(),
-			EpochTrigger:                  processComp.EpochStartTrigger(),
-			EpochNotifier:                 processComp.EpochStartNotifier(),
-			NodeRedundancyHandlerInternal: processComp.NodeRedundancyHandler(),
-			HardforkTriggerField:          processComp.HardforkTrigger(),
-			MainPeerMapper:                processComp.PeerShardMapper(),
-			FullArchivePeerMapper:         processComp.FullArchivePeerShardMapper(),
-			ShardCoordinatorCalled: func() sharding.Coordinator {
-				cnt++
-				if cnt > 3 {
-					return nil
-				}
-				return processComp.ShardCoordinator()
-			},
-		}
 		hcf, err := heartbeatComp.NewHeartbeatV2ComponentsFactory(args)
 		assert.NotNil(t, hcf)
 		assert.NoError(t, err)
