@@ -14,25 +14,25 @@ require (
 	github.com/gorilla/websocket v1.5.0
 	github.com/klauspost/cpuid/v2 v2.2.5
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/multiversx/mx-chain-communication-go v1.0.14
-	github.com/multiversx/mx-chain-core-go v1.2.20
-	github.com/multiversx/mx-chain-crypto-go v1.2.11
-	github.com/multiversx/mx-chain-es-indexer-go v1.4.21
-	github.com/multiversx/mx-chain-logger-go v1.0.14
-	github.com/multiversx/mx-chain-scenario-go v1.4.3
-	github.com/multiversx/mx-chain-storage-go v1.0.15
-	github.com/multiversx/mx-chain-vm-common-go v1.5.12
-	github.com/multiversx/mx-chain-vm-go v1.5.29
-	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.67
-	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.68
-	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.97
+	github.com/multiversx/mx-chain-communication-go v1.0.15-0.20240508074652-e128a1c05c8e
+	github.com/multiversx/mx-chain-core-go v1.2.21-0.20240508071047-fefea5737840
+	github.com/multiversx/mx-chain-crypto-go v1.2.12-0.20240508074452-cc21c1b505df
+	github.com/multiversx/mx-chain-es-indexer-go v1.7.1-0.20240509104512-25512675833d
+	github.com/multiversx/mx-chain-logger-go v1.0.15-0.20240508072523-3f00a726af57
+	github.com/multiversx/mx-chain-scenario-go v1.4.4-0.20240509103754-9e8129721f00
+	github.com/multiversx/mx-chain-storage-go v1.0.16-0.20240508073549-dcb8e6e0370f
+	github.com/multiversx/mx-chain-vm-common-go v1.5.13-0.20240509103544-247ce5639c7a
+	github.com/multiversx/mx-chain-vm-go v1.5.30-0.20240509104139-8b0eaa8a85d1
+	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.68-0.20240509103859-89de3c5da36b
+	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.69-0.20240509104009-598a37ff36b9
+	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.98-0.20240509104102-2a6a709b4041
 	github.com/pelletier/go-toml v1.9.3
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.14.0
 	github.com/shirou/gopsutil v3.21.11+incompatible
 	github.com/stretchr/testify v1.8.4
 	github.com/urfave/cli v1.22.10
-	golang.org/x/crypto v0.21.0
+	golang.org/x/crypto v0.10.0
 	gopkg.in/go-playground/validator.v8 v8.18.2
 )
 
@@ -175,10 +175,10 @@ require (
 	golang.org/x/arch v0.3.0 // indirect
 	golang.org/x/exp v0.0.0-20230321023759-10a507213a29 // indirect
 	golang.org/x/mod v0.10.0 // indirect
-	golang.org/x/net v0.21.0 // indirect
+	golang.org/x/net v0.11.0 // indirect
 	golang.org/x/sync v0.2.0 // indirect
-	golang.org/x/sys v0.19.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
+	golang.org/x/sys v0.10.0 // indirect
+	golang.org/x/text v0.10.0 // indirect
 	golang.org/x/tools v0.9.1 // indirect
 	gonum.org/v1/gonum v0.11.0 // indirect
 	google.golang.org/protobuf v1.30.0 // indirect

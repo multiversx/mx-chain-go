@@ -725,6 +725,24 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.AlwaysMergeContextsInEEIEnableEpoch,
 		},
+		common.DynamicESDTFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.DynamicESDTEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.DynamicESDTEnableEpoch,
+		},
+		common.EGLDInESDTMultiTransferFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.EGLDInMultiTransferEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.EGLDInMultiTransferEnableEpoch,
+		},
+		common.CryptoOpcodesV2Flag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.CryptoOpcodesV2EnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.CryptoOpcodesV2EnableEpoch,
+		},
 	}
 }
 
