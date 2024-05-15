@@ -42,8 +42,7 @@ type Trie interface {
 	Delete(key []byte) error
 	RootHash() ([]byte, error)
 	Commit() error
-	Recreate(root []byte) (Trie, error)
-	RecreateFromEpoch(options RootHashHolder) (Trie, error)
+	Recreate(options RootHashHolder) (Trie, error)
 	String() string
 	GetObsoleteHashes() [][]byte
 	GetDirtyHashes() (ModifiedHashes, error)
