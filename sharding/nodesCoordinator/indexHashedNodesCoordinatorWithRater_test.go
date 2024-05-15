@@ -13,6 +13,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/sharding/mock"
 	"github.com/multiversx/mx-chain-go/state"
@@ -20,8 +23,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewIndexHashedNodesCoordinatorWithRater_NilRaterShouldErr(t *testing.T) {
@@ -48,14 +49,14 @@ func TestNewIndexHashedGroupSelectorWithRater_OkValsShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//------- LoadEligibleList
+// ------- LoadEligibleList
 
 func TestIndexHashedGroupSelectorWithRater_SetNilEligibleMapShouldErr(t *testing.T) {
 	t.Parallel()
 	waiting := createDummyNodesMap(2, 1, "waiting")
 	nc, _ := NewIndexHashedNodesCoordinator(createArguments())
 	ihnc, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
-	assert.Equal(t, ErrNilInputNodesMap, ihnc.setNodesPerShards(nil, waiting, nil, nil, 0))
+	assert.Equal(t, ErrNilInputNodesMap, ihnc.setNodesPerShards(nil, waiting, nil, nil, 0, false))
 }
 
 func TestIndexHashedGroupSelectorWithRater_OkValShouldWork(t *testing.T) {
@@ -113,7 +114,7 @@ func TestIndexHashedGroupSelectorWithRater_OkValShouldWork(t *testing.T) {
 	assert.Equal(t, eligibleMap[0], readEligible)
 }
 
-//------- functionality tests
+// ------- functionality tests
 
 func TestIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup1ValidatorShouldNotCallGetRating(t *testing.T) {
 	t.Parallel()
@@ -149,7 +150,7 @@ func BenchmarkIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup63of400(b 
 	consensusGroupSize := 63
 	list := make([]Validator, 0)
 
-	//generate 400 validators
+	// generate 400 validators
 	for i := 0; i < 400; i++ {
 		list = append(list, newValidatorMock([]byte("pk"+strconv.Itoa(i)), 1, defaultSelectionChances))
 	}
@@ -219,7 +220,7 @@ func Test_ComputeValidatorsGroup63of400(t *testing.T) {
 	shardSize := uint32(400)
 	list := make([]Validator, 0)
 
-	//generate 400 validators
+	// generate 400 validators
 	for i := uint32(0); i < shardSize; i++ {
 		list = append(list, newValidatorMock([]byte(fmt.Sprintf("pk%v", i)), 1, defaultSelectionChances))
 	}
@@ -785,7 +786,7 @@ func BenchmarkIndexHashedGroupSelectorWithRater_TestExpandList(b *testing.B) {
 		}
 	}
 
-	//a := []int{1, 2, 3, 4, 5, 6, 7, 8}
+	// a := []int{1, 2, 3, 4, 5, 6, 7, 8}
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
 	rnd.Shuffle(len(array), func(i, j int) { array[i], array[j] = array[j], array[i] })
 	m2 := runtime.MemStats{}
@@ -820,7 +821,7 @@ func BenchmarkIndexHashedWithRaterGroupSelector_ComputeValidatorsGroup21of400(b 
 	consensusGroupSize := 21
 	list := make([]Validator, 0)
 
-	//generate 400 validators
+	// generate 400 validators
 	for i := 0; i < 400; i++ {
 		list = append(list, newValidatorMock([]byte("pk"+strconv.Itoa(i)), 1, defaultSelectionChances))
 	}
