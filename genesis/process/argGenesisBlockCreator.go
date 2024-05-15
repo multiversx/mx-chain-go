@@ -23,6 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/update"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 )
 
 type coreComponentsHandler interface {
@@ -53,6 +54,7 @@ type runTypeComponentsHandler interface {
 	SCProcessorCreator() scrCommon.SCProcessorCreator
 	AccountsParser() genesis.AccountsParser
 	AccountsCreator() state.AccountFactory
+	VMContextCreator() systemSmartContracts.VMContextCreatorHandler
 	ShardCoordinatorCreator() sharding.ShardCoordinatorFactory
 	TxPreProcessorCreator() preprocess.TxPreProcessorCreator
 	IsInterfaceNil() bool

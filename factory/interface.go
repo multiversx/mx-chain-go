@@ -46,6 +46,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/update"
 	"github.com/multiversx/mx-chain-go/vm"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -329,6 +330,7 @@ type ProcessComponentsHolder interface {
 	AccountsParser() genesis.AccountsParser
 	ReceiptsRepository() ReceiptsRepository
 	SentSignaturesTracker() process.SentSignaturesTracker
+	EpochSystemSCProcessor() process.EpochStartSystemSCProcessor
 	IncomingHeaderHandler() process.IncomingHeaderSubscriber
 	IsInterfaceNil() bool
 }
@@ -603,6 +605,7 @@ type RunTypeComponentsHolder interface {
 	VmContainerShardFactoryCreator() factoryVm.VmContainerCreator
 	AccountsParser() genesis.AccountsParser
 	AccountsCreator() state.AccountFactory
+	VMContextCreator() systemSmartContracts.VMContextCreatorHandler
 	OutGoingOperationsPoolHandler() sovereignBlock.OutGoingOperationsPool
 	DataCodecHandler() sovereign.DataCodecHandler
 	TopicsCheckerHandler() sovereign.TopicsCheckerHandler

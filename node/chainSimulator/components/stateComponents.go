@@ -8,6 +8,8 @@ import (
 	"github.com/multiversx/mx-chain-go/factory"
 	factoryState "github.com/multiversx/mx-chain-go/factory/state"
 	"github.com/multiversx/mx-chain-go/state"
+
+	chainData "github.com/multiversx/mx-chain-core-go/data"
 )
 
 // ArgsStateComponents will hold the components needed for state components
@@ -16,6 +18,12 @@ type ArgsStateComponents struct {
 	CoreComponents    factory.CoreComponentsHolder
 	StatusCore        factory.StatusCoreComponentsHolder
 	DataComponents    factory.DataComponentsHolder
+	RunTypeComponents factory.RunTypeComponentsHolder
+	Config            config.Config
+	CoreComponents    factory.CoreComponentsHolder
+	StatusCore        factory.StatusCoreComponentsHolder
+	StoreService      dataRetriever.StorageService
+	ChainHandler      chainData.ChainHandler
 	RunTypeComponents factory.RunTypeComponentsHolder
 }
 

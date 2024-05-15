@@ -340,6 +340,7 @@ func (sm *statusMetrics) saveUint64NetworkMetricsInMap(networkMetrics map[string
 	currentNonce := sm.uint64Metrics[common.MetricNonce]
 	nonceAtEpochStart := sm.uint64Metrics[common.MetricNonceAtEpochStart]
 	networkMetrics[common.MetricNonce] = currentNonce
+	networkMetrics[common.MetricBlockTimestamp] = sm.uint64Metrics[common.MetricBlockTimestamp]
 	networkMetrics[common.MetricHighestFinalBlock] = sm.uint64Metrics[common.MetricHighestFinalBlock]
 	networkMetrics[common.MetricCurrentRound] = currentRound
 	networkMetrics[common.MetricRoundAtEpochStart] = roundNumberAtEpochStart

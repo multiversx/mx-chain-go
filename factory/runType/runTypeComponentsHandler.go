@@ -31,6 +31,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 )
@@ -141,6 +142,9 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	}
 	if check.IfNil(mrc.scResultPreProcessorCreator) {
 		return errors.ErrNilSCResultsPreProcessorCreator
+	}
+	if check.IfNil(mrc.vmContextCreator) {
+		return errors.ErrNilVMContextCreator
 	}
 	if mrc.consensusModel == consensus.ConsensusModelInvalid {
 		return errors.ErrInvalidConsensusModel
@@ -434,6 +438,18 @@ func (mrc *managedRunTypeComponents) AccountsCreator() state.AccountFactory {
 	}
 
 	return mrc.runTypeComponents.accountsCreator
+}
+
+// VMContextCreator returns the vm context creator
+func (mrc *managedRunTypeComponents) VMContextCreator() systemSmartContracts.VMContextCreatorHandler {
+	mrc.mutStateComponents.RLock()
+	defer mrc.mutStateComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.vmContextCreator
 }
 
 // OutGoingOperationsPoolHandler return the outgoing operations pool factory

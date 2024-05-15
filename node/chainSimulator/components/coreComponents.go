@@ -91,7 +91,8 @@ type ArgsCoreComponentsHolder struct {
 	WorkingDir          string
 
 	MinNodesPerShard            uint32
-	MinNodesMeta                uint32
+	ConsensusGroupSize          uint32MinNodesMeta                uint32
+	MetaChainConsensusGroupSizeuint32
 	RoundDurationInMs           uint64
 	ConsensusGroupSize          uint32
 	MetaChainConsensusGroupSize uint32
