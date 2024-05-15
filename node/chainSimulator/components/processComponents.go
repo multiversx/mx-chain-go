@@ -32,9 +32,9 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage/cache"
-	"github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/update"
 	"github.com/multiversx/mx-chain-go/update/trigger"
+
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
@@ -49,6 +49,7 @@ type ArgsProcessComponentsHolder struct {
 	StatusComponents     factory.StatusComponentsHolder
 	StatusCoreComponents factory.StatusCoreComponentsHolder
 	NodesCoordinator     nodesCoordinator.NodesCoordinator
+	RunTypeComponents    factory.RunTypeComponentsHolder
 
 	EpochConfig              config.EpochConfig
 	RoundConfig              config.RoundConfig
@@ -106,6 +107,7 @@ type processComponentsHolder struct {
 	esdtDataStorageHandlerForAPI     vmcommon.ESDTNFTStorageHandler
 	accountsParser                   genesis.AccountsParser
 	sentSignatureTracker             process.SentSignaturesTracker
+	epochStartSystemSCProcessor      process.EpochStartSystemSCProcessor
 	managedProcessComponentsCloser   io.Closer
 }
 
@@ -220,7 +222,7 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		TxExecutionOrderHandler:               txExecutionOrderHandler,
 		GenesisNonce:                          args.GenesisNonce,
 		GenesisRound:                          args.GenesisRound,
-		RunTypeComponents:                     components.GetRunTypeComponents(),
+		RunTypeComponents:                     args.RunTypeComponents,
 		ShardCoordinatorFactory:               sharding.NewMultiShardCoordinatorFactory(),
 		GenesisBlockCreatorFactory:            process2.NewGenesisBlockCreatorFactory(),
 		GenesisMetaBlockChecker:               processComp.NewGenesisMetaBlockChecker(),
@@ -289,6 +291,7 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		esdtDataStorageHandlerForAPI:     managedProcessComponents.ESDTDataStorageHandlerForAPI(),
 		accountsParser:                   managedProcessComponents.AccountsParser(),
 		sentSignatureTracker:             managedProcessComponents.SentSignaturesTracker(),
+		epochStartSystemSCProcessor:      managedProcessComponents.EpochSystemSCProcessor(),
 		managedProcessComponentsCloser:   managedProcessComponents,
 	}
 
@@ -498,6 +501,11 @@ func (p *processComponentsHolder) AccountsParser() genesis.AccountsParser {
 // ReceiptsRepository returns the receipts repository
 func (p *processComponentsHolder) ReceiptsRepository() factory.ReceiptsRepository {
 	return p.receiptsRepository
+}
+
+// EpochSystemSCProcessor returns the epoch start system SC processor
+func (p *processComponentsHolder) EpochSystemSCProcessor() process.EpochStartSystemSCProcessor {
+	return p.epochStartSystemSCProcessor
 }
 
 // Close will call the Close methods on all inner components

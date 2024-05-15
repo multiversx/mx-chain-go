@@ -2092,7 +2092,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing
 	t.Parallel()
 
 	args, _ := createFullArgumentsForSystemSCProcessing(config.EnableEpochs{}, testscommon.CreateMemUnit())
-	nodesConfigProvider, _ := notifier.NewNodesConfigProvider(args.EpochNotifier, []config.MaxNodesChangeConfig{{MaxNumNodes: 8}})
+	nodesConfigProvider, _ := notifier.NewNodesConfigProvider(args.EpochNotifier, []config.MaxNodesChangeConfig{{MaxNumNodes: 9}})
 
 	auctionCfg := config.SoftAuctionConfig{
 		TopUpStep:             "10",
@@ -2178,7 +2178,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing
 		      will not participate in auction selection
 		    - owner6 does not have enough stake for 2 nodes => one of his auction nodes(pubKey14) will be unStaked at the end of the epoch =>
 		      his other auction node(pubKey15) will not participate in auction selection
-			- MaxNumNodes = 8
+			- MaxNumNodes = 9
 			- EligibleBlsKeys = 5 (pubKey0, pubKey1, pubKey3, pubKe13, pubKey17)
 			- QualifiedAuctionBlsKeys = 7 (pubKey2, pubKey4, pubKey5, pubKey7, pubKey9, pubKey10, pubKey11)
 			We can only select (MaxNumNodes - EligibleBlsKeys = 3) bls keys from AuctionList to be added to NewList
@@ -2324,6 +2324,10 @@ func TestSystemSCProcessor_LegacyEpochConfirmedCorrectMaxNumNodesAfterNodeRestar
 
 	args.EpochNotifier.CheckEpoch(&block.Header{Epoch: 6, Nonce: 6})
 	require.True(t, s.flagChangeMaxNodesEnabled.IsSet())
+	err = s.processLegacy(validatorsInfoMap, 6, 6)
+	require.Equal(t, epochStart.ErrInvalidMaxNumberOfNodes, err)
+
+	args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub).AddActiveFlags(common.StakingV4StartedFlag)
 	err = s.processLegacy(validatorsInfoMap, 6, 6)
 	require.Nil(t, err)
 	require.Equal(t, nodesConfigEpoch6.MaxNumNodes, s.maxNodes)
