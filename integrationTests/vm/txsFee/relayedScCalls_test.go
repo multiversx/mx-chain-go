@@ -37,7 +37,7 @@ func testRelayedScCallShouldWork(relayedFixActivationEpoch uint32) func(t *testi
 
 		relayerAddr := []byte("12345678901234567890123456789033")
 		sndAddr := []byte("12345678901234567890123456789112")
-		gasLimit := uint64(9988100)
+		gasLimit := uint64(100000)
 
 		_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, big.NewInt(0))
 		_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, big.NewInt(30000000))
