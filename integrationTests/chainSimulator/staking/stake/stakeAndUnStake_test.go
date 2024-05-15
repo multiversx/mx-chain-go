@@ -12,6 +12,9 @@ import (
 	coreAPI "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/validator"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	chainSimulatorIntegrationTests "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
@@ -23,8 +26,6 @@ import (
 	chainSimulatorProcess "github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/vm"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -2381,6 +2382,114 @@ func TestChainSimulator_UnStakeOneActiveNodeAndCheckAPIAuctionList(t *testing.T)
 	numQualified, numUnQualified = getNumQualifiedAndUnqualified(t, metachainNode)
 	require.Equal(t, 8, numQualified)
 	require.Equal(t, 1, numUnQualified)
+}
+
+// Nodes configuration at genesis consisting of a total of 40 nodes, distributed on 3 shards + meta:
+// - 4 eligible nodes/shard
+// - 4 waiting nodes/shard
+// - 2 nodes to shuffle per shard
+// - max num nodes config for stakingV4 step3 = 32 (being downsized from previously 40 nodes)
+// - with this config, we should always select max 8 nodes from auction list if there are > 40 nodes in the network
+// This test will run with only 32 nodes and check that there are no nodes in the auction list,
+// because of the lowWaitingList condition being triggered when in staking v4
+func TestChainSimulator_EdgeCaseLowWaitingList(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	startTime := time.Now().Unix()
+	roundDurationInMillis := uint64(6000)
+	roundsPerEpoch := core.OptionalUint64{
+		HasValue: true,
+		Value:    20,
+	}
+
+	stakingV4Step1Epoch := uint32(2)
+	stakingV4Step2Epoch := uint32(3)
+	stakingV4Step3Epoch := uint32(4)
+
+	numOfShards := uint32(3)
+	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+		BypassTxSignatureCheck:   false,
+		TempDir:                  t.TempDir(),
+		PathToInitialConfig:      defaultPathToInitialConfig,
+		NumOfShards:              numOfShards,
+		GenesisTimestamp:         startTime,
+		RoundDurationInMillis:    roundDurationInMillis,
+		RoundsPerEpoch:           roundsPerEpoch,
+		ApiInterface:             api.NewNoApiInterface(),
+		MinNodesPerShard:         4,
+		MetaChainMinNodes:        4,
+		NumNodesWaitingListMeta:  2,
+		NumNodesWaitingListShard: 2,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = stakingV4Step1Epoch
+			cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = stakingV4Step2Epoch
+			cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = stakingV4Step3Epoch
+
+			cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[1].MaxNumNodes = 40
+			cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[1].NodesToShufflePerShard = 2
+
+			cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = stakingV4Step3Epoch
+			cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].MaxNumNodes = 32
+			cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].NodesToShufflePerShard = 2
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, cs)
+
+	defer cs.Close()
+
+	epochToCheck := int32(stakingV4Step3Epoch + 1)
+	err = cs.GenerateBlocksUntilEpochIsReached(epochToCheck)
+	require.Nil(t, err)
+
+	metachainNode := cs.GetNodeHandler(core.MetachainShardId)
+	numQualified, numUnQualified := getNumQualifiedAndUnqualified(t, metachainNode)
+	require.Equal(t, 0, numQualified)
+	require.Equal(t, 0, numUnQualified)
+
+	// we always have 0 in auction list because of the lowWaitingList condition
+	epochToCheck += 1
+	err = cs.GenerateBlocksUntilEpochIsReached(epochToCheck)
+	numQualified, numUnQualified = getNumQualifiedAndUnqualified(t, metachainNode)
+	require.Equal(t, 0, numQualified)
+	require.Equal(t, 0, numUnQualified)
+
+	// stake 16 mode nodes, these will go to auction list
+	stakeNodes(t, cs, 16)
+
+	epochToCheck += 1
+	err = cs.GenerateBlocksUntilEpochIsReached(epochToCheck)
+	numQualified, numUnQualified = getNumQualifiedAndUnqualified(t, metachainNode)
+	// all the previously registered will be selected, as we have 24 nodes in eligible+waiting, 8 will shuffle out,
+	// but this time there will be not be lowWaitingList, as there are enough in auction, so we will end up with
+	// 24-8 = 16 nodes remaining + 16 from auction, to fill up all 32 positions
+	require.Equal(t, 16, numQualified)
+	require.Equal(t, 0, numUnQualified)
+}
+
+func stakeNodes(t *testing.T, cs chainSimulatorIntegrationTests.ChainSimulator, numTxs int) {
+	txs := make([]*transaction.Transaction, numTxs)
+	for i := 0; i < numTxs; i++ {
+		privateKey, blsKeys, err := chainSimulator.GenerateBlsPrivateKeys(1)
+		require.Nil(t, err)
+		err = cs.AddValidatorKeys(privateKey)
+		require.Nil(t, err)
+
+		mintValue := big.NewInt(0).Add(staking.MinimumStakeValue, staking.OneEGLD)
+		validatorOwner, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+		require.Nil(t, err)
+
+		txDataField := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], staking.MockBLSSignature)
+		txs[i] = staking.GenerateTransaction(validatorOwner.Bytes, 0, vm.ValidatorSCAddress, staking.MinimumStakeValue, txDataField, staking.GasLimitForStakeOperation)
+	}
+	stakeTxs, err := cs.SendTxsAndGenerateBlocksTilAreExecuted(txs, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, stakeTxs)
+	require.Len(t, stakeTxs, numTxs)
+
+	require.Nil(t, cs.GenerateBlocks(1))
 }
 
 func stakeOneNode(t *testing.T, cs chainSimulatorIntegrationTests.ChainSimulator) {
