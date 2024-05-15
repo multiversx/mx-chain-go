@@ -233,6 +233,25 @@ func createArgsProcessComponentsHolder() ArgsProcessComponentsHolder {
 			AppStatusHandlerField:  &statusHandler.AppStatusHandlerStub{},
 			StateStatsHandlerField: disabledStatistics.NewStateStatistics(),
 		},
+		EconomicsConfig: config.EconomicsConfig{
+			GlobalSettings: config.GlobalSettings{
+				GenesisTotalSupply:          "20000000000000000000000000",
+				MinimumInflation:            0,
+				GenesisMintingSenderAddress: "erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3",
+				YearSettings: []*config.YearSetting{
+					{
+						Year:             0,
+						MaximumInflation: 0.01,
+					},
+				},
+			},
+		},
+		ConfigurationPathsHolder: config.ConfigurationPathsHolder{
+			Genesis:        "../../../integrationTests/factory/testdata/genesis.json",
+			SmartContracts: "../../../integrationTests/factory/testdata/genesisSmartContracts.json",
+			Nodes:          "../../../integrationTests/factory/testdata/genesis.json",
+		},
+		RunTypeComponents: components.GetRunTypeComponents(),
 	}
 
 	args.StateComponents = components.GetStateComponents(args.CoreComponents, args.StatusCoreComponents)
@@ -411,6 +430,7 @@ func TestProcessComponentsHolder_Getters(t *testing.T) {
 	require.NotNil(t, comp.ESDTDataStorageHandlerForAPI())
 	require.NotNil(t, comp.AccountsParser())
 	require.NotNil(t, comp.ReceiptsRepository())
+	require.NotNil(t, comp.EpochSystemSCProcessor())
 	require.Nil(t, comp.CheckSubcomponents())
 	require.Empty(t, comp.String())
 

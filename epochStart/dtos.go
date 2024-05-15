@@ -15,3 +15,10 @@ type OwnerData struct {
 	AuctionList    []state.ValidatorInfoHandler
 	Qualified      bool
 }
+
+// ValidatorStatsInEpoch holds validator stats in an epoch
+type ValidatorStatsInEpoch struct {
+	Eligible map[uint32]int
+	Waiting  map[uint32]int
+	Leaving  map[uint32]int
+}

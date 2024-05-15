@@ -5,9 +5,6 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/data/outport"
-
 	"github.com/multiversx/mx-chain-go/common"
 	commonFactory "github.com/multiversx/mx-chain-go/common/factory"
 	"github.com/multiversx/mx-chain-go/config"
@@ -53,7 +50,9 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/subRoundsHolder"
 	"github.com/multiversx/mx-chain-go/trie"
 
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-core-go/data/outport"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 	"github.com/stretchr/testify/require"
@@ -1056,6 +1055,7 @@ func GetRunTypeComponentsStub(rt factory.RunTypeComponentsHandler) *mainFactoryM
 		SCResultsPreProcessorFactory:        rt.SCResultsPreProcessorCreator(),
 		AccountParser:                       rt.AccountsParser(),
 		AccountCreator:                      rt.AccountsCreator(),
+		VMContextCreatorHandler:             rt.VMContextCreator(),
 		ConsensusModelType:                  rt.ConsensusModel(),
 		VmContainerMetaFactory:              rt.VmContainerMetaFactoryCreator(),
 		VmContainerShardFactory:             rt.VmContainerShardFactoryCreator(),
@@ -1091,7 +1091,7 @@ func GetRunTypeComponents() factory.RunTypeComponentsHolder {
 }
 
 // GetRunTypeComponentsWithCoreComp -
-func GetRunTypeComponentsWithCoreComp(coreComponents factory.CoreComponentsHandler) factory.RunTypeComponentsHolder {
+func GetRunTypeComponentsWithCoreComp(coreComponents factory.CoreComponentsHolder) factory.RunTypeComponentsHolder {
 	args := runType.ArgsRunTypeComponents{
 		CoreComponents: coreComponents,
 		CryptoComponents: &mockCoreComp.CryptoComponentsStub{

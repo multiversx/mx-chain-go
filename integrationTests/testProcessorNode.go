@@ -109,6 +109,7 @@ import (
 	"github.com/multiversx/mx-chain-go/update/trigger"
 	"github.com/multiversx/mx-chain-go/vm"
 	vmProcess "github.com/multiversx/mx-chain-go/vm/process"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -1002,12 +1003,13 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 					MaxNumberOfIterations: 100000,
 				},
 			},
-			ValidatorAccountsDB: tpn.PeerState,
-			UserAccountsDB:      tpn.AccntState,
-			ChanceComputer:      tpn.NodesCoordinator,
-			ShardCoordinator:    tpn.ShardCoordinator,
-			EnableEpochsHandler: tpn.EnableEpochsHandler,
-			NodesCoordinator:    tpn.NodesCoordinator,
+			ValidatorAccountsDB:     tpn.PeerState,
+			UserAccountsDB:          tpn.AccntState,
+			ChanceComputer:          tpn.NodesCoordinator,
+			ShardCoordinator:        tpn.ShardCoordinator,
+			EnableEpochsHandler:     tpn.EnableEpochsHandler,
+			NodesCoordinator:        tpn.NodesCoordinator,
+			VMContextCreatorHandler: tpn.RunTypeComponents.VMContextCreator(),
 		}
 		tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
 			EpochField: tpn.EnableEpochs.DelegationSmartContractEnableEpoch,
@@ -1030,6 +1032,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 			WasmVMChangeLocker:  tpn.WasmVMChangeLocker,
 			ESDTTransferParser:  esdtTransferParser,
 			Hasher:              TestHasher,
+			PubKeyConverter:     TestAddressPubkeyConverter,
 		}
 		vmFactory, _ = shard.NewVMContainerFactory(argsNewVMFactory)
 	}
@@ -1688,6 +1691,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		WasmVMChangeLocker:  tpn.WasmVMChangeLocker,
 		ESDTTransferParser:  esdtTransferParser,
 		Hasher:              TestHasher,
+		PubKeyConverter:     TestAddressPubkeyConverter,
 	}
 	vmFactory, _ := shard.NewVMContainerFactory(argsNewVMFactory)
 
@@ -1980,12 +1984,13 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 				MaxNumberOfIterations: 100000,
 			},
 		},
-		ValidatorAccountsDB: tpn.PeerState,
-		UserAccountsDB:      tpn.AccntState,
-		ChanceComputer:      &mock.RaterMock{},
-		ShardCoordinator:    tpn.ShardCoordinator,
-		EnableEpochsHandler: tpn.EnableEpochsHandler,
-		NodesCoordinator:    tpn.NodesCoordinator,
+		ValidatorAccountsDB:     tpn.PeerState,
+		UserAccountsDB:          tpn.AccntState,
+		ChanceComputer:          &mock.RaterMock{},
+		ShardCoordinator:        tpn.ShardCoordinator,
+		EnableEpochsHandler:     tpn.EnableEpochsHandler,
+		NodesCoordinator:        tpn.NodesCoordinator,
+		VMContextCreatorHandler: tpn.RunTypeComponents.VMContextCreator(),
 	}
 	vmFactory, _ := metaProcess.NewVMContainerFactory(argsVMContainerFactory)
 
@@ -3322,6 +3327,7 @@ func GetDefaultRunTypeComponents(consensusModel consensus.ConsensusModel) *mainF
 		SCResultsPreProcessorFactory:        rt.SCResultsPreProcessorCreator(),
 		AccountParser:                       rt.AccountsParser(),
 		AccountCreator:                      rt.AccountsCreator(),
+		VMContextCreatorHandler:             systemSmartContracts.NewVMContextCreator(),
 		ConsensusModelType:                  consensusModel,
 		VmContainerMetaFactory:              rt.VmContainerMetaFactoryCreator(),
 		VmContainerShardFactory:             rt.VmContainerShardFactoryCreator(),
@@ -3582,6 +3588,7 @@ func getDefaultVMConfig() *config.VirtualMachineConfig {
 		WasmVMVersions: []config.WasmVMVersionByEpoch{
 			{StartEpoch: 0, Version: "*"},
 		},
+		TransferAndExecuteByUserAddresses: []string{"erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe3"},
 	}
 }
 
