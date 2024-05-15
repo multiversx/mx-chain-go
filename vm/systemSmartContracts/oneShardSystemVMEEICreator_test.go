@@ -9,7 +9,7 @@ import (
 )
 
 func TestSovereignVMContextCreator_CreateVmContext(t *testing.T) {
-	sovCtxCreator := NewSystemVMEEICreator()
+	sovCtxCreator := NewOneShardSystemVMEEICreator()
 	require.False(t, sovCtxCreator.IsInterfaceNil())
 	require.Implements(t, new(VMContextCreatorHandler), sovCtxCreator)
 
@@ -17,7 +17,7 @@ func TestSovereignVMContextCreator_CreateVmContext(t *testing.T) {
 		args := createArgsVMContext()
 		sovCtx, err := sovCtxCreator.CreateVmContext(args)
 		require.Nil(t, err)
-		require.Equal(t, "*systemSmartContracts.systemVMEEI", fmt.Sprintf("%T", sovCtx))
+		require.Equal(t, "*systemSmartContracts.oneShardSystemVMEEI", fmt.Sprintf("%T", sovCtx))
 	})
 
 	t.Run("invalid args, should return error", func(t *testing.T) {

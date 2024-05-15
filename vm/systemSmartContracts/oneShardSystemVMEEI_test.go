@@ -14,12 +14,12 @@ func TestNewSovereignVMContext(t *testing.T) {
 	t.Parallel()
 
 	t.Run("should work", func(t *testing.T) {
-		sovVM, err := NewSystemVMEEI(&mock.SystemEIStub{})
+		sovVM, err := NewOneShardSystemVMEEI(&mock.SystemEIStub{})
 		require.Nil(t, err)
 		require.False(t, sovVM.IsInterfaceNil())
 	})
 	t.Run("nil vm context input, should return error", func(t *testing.T) {
-		sovVM, err := NewSystemVMEEI(nil)
+		sovVM, err := NewOneShardSystemVMEEI(nil)
 		require.Equal(t, vm.ErrNilSystemEnvironmentInterface, err)
 		require.Nil(t, sovVM)
 	})
@@ -44,7 +44,7 @@ func TestSovereignVMContext_SendGlobalSettingToAll(t *testing.T) {
 		},
 	}
 
-	sovVM, _ := NewSystemVMEEI(vmCtx)
+	sovVM, _ := NewOneShardSystemVMEEI(vmCtx)
 	err := sovVM.SendGlobalSettingToAll(expectedSender, expectedInput)
 	require.Nil(t, err)
 	require.True(t, wasProcessBuiltInCalled)
