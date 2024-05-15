@@ -400,23 +400,15 @@ func testBLSKeyIsInAuction(
 	require.Nil(t, err)
 
 	currentEpoch := metachainNode.GetCoreComponents().EnableEpochsHandler().GetCurrentEpoch()
-	if metachainNode.GetCoreComponents().EnableEpochsHandler().GetActivationEpoch(common.StakingV4Step2Flag) == currentEpoch {
+
+	shuffledToAuctionValPubKeys, err := metachainNode.GetProcessComponents().NodesCoordinator().GetShuffledOutToAuctionValidatorsPublicKeys(currentEpoch)
+	require.Nil(t, err)
+
+	stakingV4Step2Epoch := metachainNode.GetCoreComponents().EnableEpochsHandler().GetActivationEpoch(common.StakingV4Step2Flag)
+	stakingV4Step3Epoch := metachainNode.GetCoreComponents().EnableEpochsHandler().GetActivationEpoch(common.StakingV4Step3Flag)
+	if stakingV4Step2Epoch == currentEpoch || stakingV4Step3Epoch == currentEpoch {
 		// starting from phase 2, we have the shuffled out nodes from the previous epoch in the action list
 		// if there is no lowWaitingList condition
-		shuffledToAuctionValPubKeys, err := metachainNode.GetProcessComponents().NodesCoordinator().GetShuffledOutToAuctionValidatorsPublicKeys(currentEpoch)
-		require.Nil(t, err)
-
-		if len(shuffledToAuctionValPubKeys) > 0 {
-			// there are 2 nodes per shard shuffled out so 2 * 4 = 8
-			actionListSize += 8
-		}
-	}
-	if metachainNode.GetCoreComponents().EnableEpochsHandler().GetActivationEpoch(common.StakingV4Step3Flag) <= currentEpoch {
-		// starting from phase 3, we have the shuffled out nodes from the previous epoch in the action list
-		// if there is no lowWaitingList condition
-		shuffledToAuctionValPubKeys, err := metachainNode.GetProcessComponents().NodesCoordinator().GetShuffledOutToAuctionValidatorsPublicKeys(currentEpoch)
-		require.Nil(t, err)
-
 		if len(shuffledToAuctionValPubKeys) > 0 {
 			// there are 2 nodes per shard shuffled out so 2 * 4 = 8
 			actionListSize += 8
