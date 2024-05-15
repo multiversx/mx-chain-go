@@ -11,10 +11,10 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	esdtCore "github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/common/tokens"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/vm"
@@ -146,7 +146,7 @@ func createESDTPrefixWithSeparator(esdtPrefix string) ([]byte, error) {
 		return nil, nil
 	}
 
-	if !tokens.IsValidTokenPrefix(esdtPrefix) {
+	if !esdtCore.IsValidTokenPrefix(esdtPrefix) {
 		return nil, fmt.Errorf("%w: %s", errors.ErrInvalidTokenPrefix, esdtPrefix)
 	}
 
@@ -667,7 +667,7 @@ func (e *esdt) createNewToken(
 	if !isTokenNameHumanReadable(tokenName) {
 		return nil, nil, vm.ErrTokenNameNotHumanReadable
 	}
-	if !tokens.IsTickerValid(string(tickerName)) {
+	if !esdtCore.IsTickerValid(string(tickerName)) {
 		return nil, nil, vm.ErrTickerNameNotValid
 	}
 

@@ -4,7 +4,7 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/multiversx/mx-chain-go/common/tokens"
+	"github.com/multiversx/mx-chain-core-go/data/esdt"
 )
 
 const (
@@ -35,7 +35,7 @@ func ExtractTokenIDAndNonceFromTokenStorageKey(tokenKey []byte) ([]byte, uint64)
 
 	tokenTickerLen := len(tokenTicker)
 
-	areTickerAndRandomSequenceInvalid := !tokens.IsTokenTickerLenCorrect(tokenTickerLen) || len(randomSequencePlusNonce) == 0
+	areTickerAndRandomSequenceInvalid := !esdt.IsTokenTickerLenCorrect(tokenTickerLen) || len(randomSequencePlusNonce) == 0
 	if areTickerAndRandomSequenceInvalid {
 		return tokenKey, 0
 	}
@@ -70,12 +70,12 @@ func isValidPrefixedToken(token string) bool {
 	}
 
 	prefix := tokenSplit[0]
-	if !tokens.IsValidTokenPrefix(prefix) {
+	if !esdt.IsValidTokenPrefix(prefix) {
 		return false
 	}
 
 	tokenTicker := tokenSplit[1]
-	if !tokens.IsTickerValid(tokenTicker) {
+	if !esdt.IsTickerValid(tokenTicker) {
 		return false
 	}
 
