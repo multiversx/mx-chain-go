@@ -128,6 +128,7 @@ import (
 	"github.com/multiversx/mx-chain-go/update/trigger"
 	"github.com/multiversx/mx-chain-go/vm"
 	vmProcess "github.com/multiversx/mx-chain-go/vm/process"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
@@ -997,12 +998,13 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 					MaxNumberOfIterations: 100000,
 				},
 			},
-			ValidatorAccountsDB: tpn.PeerState,
-			UserAccountsDB:      tpn.AccntState,
-			ChanceComputer:      tpn.NodesCoordinator,
-			ShardCoordinator:    tpn.ShardCoordinator,
-			EnableEpochsHandler: tpn.EnableEpochsHandler,
-			NodesCoordinator:    tpn.NodesCoordinator,
+			ValidatorAccountsDB:     tpn.PeerState,
+			UserAccountsDB:          tpn.AccntState,
+			ChanceComputer:          tpn.NodesCoordinator,
+			ShardCoordinator:        tpn.ShardCoordinator,
+			EnableEpochsHandler:     tpn.EnableEpochsHandler,
+			NodesCoordinator:        tpn.NodesCoordinator,
+			VMContextCreatorHandler: tpn.RunTypeComponents.VMContextCreator(),
 		}
 		tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
 			EpochField: tpn.EnableEpochs.DelegationSmartContractEnableEpoch,
@@ -1977,12 +1979,13 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 				MaxNumberOfIterations: 100000,
 			},
 		},
-		ValidatorAccountsDB: tpn.PeerState,
-		UserAccountsDB:      tpn.AccntState,
-		ChanceComputer:      &mock.RaterMock{},
-		ShardCoordinator:    tpn.ShardCoordinator,
-		EnableEpochsHandler: tpn.EnableEpochsHandler,
-		NodesCoordinator:    tpn.NodesCoordinator,
+		ValidatorAccountsDB:     tpn.PeerState,
+		UserAccountsDB:          tpn.AccntState,
+		ChanceComputer:          &mock.RaterMock{},
+		ShardCoordinator:        tpn.ShardCoordinator,
+		EnableEpochsHandler:     tpn.EnableEpochsHandler,
+		NodesCoordinator:        tpn.NodesCoordinator,
+		VMContextCreatorHandler: tpn.RunTypeComponents.VMContextCreator(),
 	}
 	vmFactory, _ := metaProcess.NewVMContainerFactory(argsVMContainerFactory)
 
@@ -3318,6 +3321,7 @@ func GetDefaultRunTypeComponents(consensusModel consensus.ConsensusModel) *mainF
 		BootstrapperFactory:                 rt.BootstrapperCreator(),
 		SCResultsPreProcessorFactory:        rt.SCResultsPreProcessorCreator(),
 		AccountCreator:                      rt.AccountsCreator(),
+		VMContextCreatorHandler:             systemSmartContracts.NewVMContextCreator(),
 		ConsensusModelType:                  consensusModel,
 	}
 }

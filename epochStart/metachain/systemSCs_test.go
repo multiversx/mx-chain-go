@@ -903,13 +903,14 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 				MaxNumberOfIterations: 100000,
 			},
 		},
-		ValidatorAccountsDB: peerAccountsDB,
-		UserAccountsDB:      userAccountsDB,
-		ChanceComputer:      &mock.ChanceComputerStub{},
-		ShardCoordinator:    &mock.ShardCoordinatorStub{},
-		EnableEpochsHandler: enableEpochsHandler,
-		NodesCoordinator:    &shardingMocks.NodesCoordinatorStub{},
-		ArgBlockChainHook:   argsHook,
+		ValidatorAccountsDB:     peerAccountsDB,
+		UserAccountsDB:          userAccountsDB,
+		ChanceComputer:          &mock.ChanceComputerStub{},
+		ShardCoordinator:        &mock.ShardCoordinatorStub{},
+		EnableEpochsHandler:     enableEpochsHandler,
+		NodesCoordinator:        &shardingMocks.NodesCoordinatorStub{},
+		ArgBlockChainHook:       argsHook,
+		VMContextCreatorHandler: systemSmartContracts.NewVMContextCreator(),
 	}
 	metaVmFactory, _ := metaProcess.NewVMContainerFactory(argsNewVMContainerFactory)
 

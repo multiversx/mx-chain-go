@@ -607,6 +607,7 @@ var ErrInvalidNodeOperationMode = errors.New("invalid node operation mode")
 
 // ErrNilSentSignatureTracker defines the error for setting a nil SentSignatureTracker
 var ErrNilSentSignatureTracker = errors.New("nil sent signature tracker")
+
 // ErrNilNodesCoordinatorFactory signals that a nil nodes coordinator factory has been provided
 var ErrNilNodesCoordinatorFactory = errors.New("nil nodes coordinator factory provided")
 
@@ -792,3 +793,9 @@ var ErrNilOperationsHasher = errors.New("nil outgoing operations hasher")
 
 // ErrNilEpochSystemSCProcessor defines the error for setting a nil EpochSystemSCProcessor
 var ErrNilEpochSystemSCProcessor = errors.New("nil epoch system SC processor")
+
+// ErrNilBlockChainHookCreator signals that a nil blockchain hook creator has been provided
+var ErrNilBlockChainHookCreator = errors.New("nil blockchain hook creator has been provided")
+
+// ErrNilVMContextCreator signals that a nil vm context creator has been provided
+var ErrNilVMContextCreator = errors.New("nil vm context creator has been provided")

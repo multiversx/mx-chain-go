@@ -24,6 +24,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/factory"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 )
 
 type runTypeComponentsFactory struct {
@@ -51,6 +52,7 @@ type runTypeComponents struct {
 	vmContainerMetaFactory              factoryVm.VmContainerCreator
 	vmContainerShardFactory             factoryVm.VmContainerCreator
 	accountsCreator                     state.AccountFactory
+	vmContextCreator                    systemSmartContracts.VMContextCreatorHandler
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
@@ -141,7 +143,8 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		return nil, fmt.Errorf("runTypeComponentsFactory - NewSCProcessProxyFactory failed: %w", err)
 	}
 
-	vmContainerMetaCreator, err := factoryVm.NewVmContainerMetaFactory(blockChainHookHandlerFactory)
+	vmContextCreator := systemSmartContracts.NewVMContextCreator()
+	vmContainerMetaCreator, err := factoryVm.NewVmContainerMetaFactory(blockChainHookHandlerFactory, vmContextCreator)
 	if err != nil {
 		return nil, fmt.Errorf("runTypeComponentsFactory - NewVmContainerMetaFactory failed: %w", err)
 	}
@@ -180,6 +183,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		vmContainerMetaFactory:              vmContainerMetaCreator,
 		vmContainerShardFactory:             vmContainerShardCreator,
 		accountsCreator:                     accountsCreator,
+		vmContextCreator:                    vmContextCreator,
 	}, nil
 }
 

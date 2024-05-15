@@ -48,6 +48,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/update"
 	"github.com/multiversx/mx-chain-go/vm"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
@@ -594,6 +595,7 @@ type RunTypeComponentsHolder interface {
 	VmContainerMetaFactoryCreator() factoryVm.VmContainerCreator
 	VmContainerShardFactoryCreator() factoryVm.VmContainerCreator
 	AccountsCreator() state.AccountFactory
+	VMContextCreator() systemSmartContracts.VMContextCreatorHandler
 	Create() error
 	Close() error
 	CheckSubcomponents() error

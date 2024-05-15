@@ -38,7 +38,7 @@ type SystemEI interface {
 	ExecuteOnDestContext(destination []byte, sender []byte, value *big.Int, input []byte) (*vmcommon.VMOutput, error)
 	DeploySystemSC(baseContract []byte, newAddress []byte, ownerAddress []byte, initFunction string, value *big.Int, input [][]byte) (vmcommon.ReturnCode, error)
 	Transfer(destination []byte, sender []byte, value *big.Int, input []byte, gasLimit uint64)
-	SendGlobalSettingToAll(sender []byte, input []byte)
+	SendGlobalSettingToAll(sender []byte, input []byte) error
 	GetBalance(addr []byte) *big.Int
 	SetStorage(key []byte, value []byte)
 	SetStorageForAddress(address []byte, key []byte, value []byte)
@@ -87,7 +87,7 @@ type ContextHandler interface {
 	CleanCache()
 	SetSCAddress(addr []byte)
 	AddCode(addr []byte, code []byte)
-	AddTxValueToSmartContract(value *big.Int, scAddress []byte)
+	AddTxValueToSmartContract(input *vmcommon.ContractCallInput)
 	SetGasProvided(gasProvided uint64)
 	GetReturnMessage() string
 }
