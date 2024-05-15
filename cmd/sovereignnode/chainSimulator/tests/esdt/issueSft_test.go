@@ -3,6 +3,7 @@ package esdt
 import (
 	"encoding/hex"
 	"math/big"
+	"strings"
 	"testing"
 	"time"
 
@@ -101,6 +102,12 @@ func TestEsdt_IssueSft(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, txRes)
 	require.False(t, "action is not allowed" == string(txRes.Logs.Events[0].Topics[1]))
+	require.False(t, strings.Contains(string(txRes.Logs.Events[0].Topics[1]), "trie was not found for hash"))
+
+	tokens, _, err := nodeHandler.GetFacadeHandler().GetAllESDTTokens(wallet.Bech32, coreAPI.AccountQueryOptions{})
+	require.Nil(t, err)
+	require.NotNil(t, tokens)
+	require.True(t, len(tokens) == 2)
 }
 
 func TestEsdt_RegisterSft(t *testing.T) {
@@ -148,7 +155,7 @@ func TestEsdt_RegisterSft(t *testing.T) {
 	txResult := utils.SendTransaction(t, cs, wallet.Bytes, &nonce, systemEsdtAddress, issueCost, data, uint64(60000000))
 	tokenIdentifier := txResult.Logs.Events[0].Topics[0]
 
-	err = cs.GenerateBlocks(1)
+	err = cs.GenerateBlocks(10)
 	require.Nil(t, err)
 
 	data = "ESDTNFTCreate@" + hex.EncodeToString(tokenIdentifier) + "@04d2@4f4354534654202331@09c4@@746167733a746167312c746167323b77686174657665724b65793a776861746576657256616c7565@68747470733a2f2f6d656469612e72656d61726b61626c652e746f6f6c732f4465764e65742f52656d61726b61626c65546f6f6c732e706e67"

@@ -7,6 +7,11 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	chainData "github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -27,11 +32,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
-
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
-	chainData "github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 )
 
 // ArgsTestOnlyProcessingNode represents the DTO struct for the NewTestOnlyProcessingNode constructor function
@@ -108,9 +108,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		NodesSetupPath:              args.Configs.ConfigurationPathsHolder.Nodes,
 		InitialRound:                args.InitialRound,
 		MinNodesPerShard:            args.MinNodesPerShard,
-		ConsensusGroupSize:          args.ConsensusGroupSize,
 		MinNodesMeta:                args.MinNodesMeta,
-		MetaChainConsensusGroupSize: args.MetaChainConsensusGroupSize,
 		ConsensusGroupSize:          args.ConsensusGroupSize,
 		MetaChainConsensusGroupSize: args.MetaChainConsensusGroupSize,
 		RoundDurationInMs:           args.RoundDurationInMillis,
@@ -152,8 +150,6 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 	if err != nil {
 		return nil, err
 	}
-
-	instance.RunTypeComponents = components.GetRunTypeComponentsWithCoreComp(instance.CoreComponentsHolder)
 
 	instance.BootstrapComponentsHolder, err = CreateBootstrapComponents(ArgsBootstrapComponentsHolder{
 		CoreComponents:       instance.CoreComponentsHolder,
@@ -208,7 +204,6 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		CoreComponents:    instance.CoreComponentsHolder,
 		StatusCore:        instance.StatusCoreComponents,
 		DataComponents:    instance.DataComponentsHolder,
-		RunTypeComponents: instance.RunTypeComponents,
 		RunTypeComponents: instance.RunTypeComponents,
 	})
 	if err != nil {

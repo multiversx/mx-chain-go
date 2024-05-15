@@ -47,7 +47,6 @@ func createArgsStateComponents() ArgsStateComponents {
 			Store:      genericMocks.NewChainStorerMock(0),
 		},
 		RunTypeComponents: components.GetRunTypeComponents(),
-		RunTypeComponents: components.GetRunTypeComponents(),
 	}
 }
 

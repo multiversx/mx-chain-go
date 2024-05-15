@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/factory"
 	factoryState "github.com/multiversx/mx-chain-go/factory/state"
 	"github.com/multiversx/mx-chain-go/state"
@@ -19,12 +20,8 @@ type ArgsStateComponents struct {
 	StatusCore        factory.StatusCoreComponentsHolder
 	DataComponents    factory.DataComponentsHolder
 	RunTypeComponents factory.RunTypeComponentsHolder
-	Config            config.Config
-	CoreComponents    factory.CoreComponentsHolder
-	StatusCore        factory.StatusCoreComponentsHolder
 	StoreService      dataRetriever.StorageService
 	ChainHandler      chainData.ChainHandler
-	RunTypeComponents factory.RunTypeComponentsHolder
 }
 
 type stateComponentsHolder struct {

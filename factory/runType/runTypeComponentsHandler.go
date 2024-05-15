@@ -442,8 +442,8 @@ func (mrc *managedRunTypeComponents) AccountsCreator() state.AccountFactory {
 
 // VMContextCreator returns the vm context creator
 func (mrc *managedRunTypeComponents) VMContextCreator() systemSmartContracts.VMContextCreatorHandler {
-	mrc.mutStateComponents.RLock()
-	defer mrc.mutStateComponents.RUnlock()
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
 
 	if check.IfNil(mrc.runTypeComponents) {
 		return nil
