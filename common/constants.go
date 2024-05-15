@@ -100,6 +100,9 @@ const MetricCurrentRound = "erd_current_round"
 // MetricNonce is the metric for monitoring the nonce of a node
 const MetricNonce = "erd_nonce"
 
+// MetricBlockTimestamp is the metric for monitoring the timestamp of the last synchronized block
+const MetricBlockTimestamp = "erd_block_timestamp"
+
 // MetricProbableHighestNonce is the metric for monitoring the max speculative nonce received by the node by listening on the network
 const MetricProbableHighestNonce = "erd_probable_highest_nonce"
 
@@ -1014,9 +1017,11 @@ const (
 	StakingV4Step1Flag                                 core.EnableEpochFlag = "StakingV4Step1Flag"
 	StakingV4Step2Flag                                 core.EnableEpochFlag = "StakingV4Step2Flag"
 	StakingV4Step3Flag                                 core.EnableEpochFlag = "StakingV4Step3Flag"
-	StakingQueueFlag                                   core.EnableEpochFlag = "StakingQueueFlag"
 	StakingV4StartedFlag                               core.EnableEpochFlag = "StakingV4StartedFlag"
 	AlwaysMergeContextsInEEIFlag                       core.EnableEpochFlag = "AlwaysMergeContextsInEEIFlag"
+	DynamicESDTFlag                                    core.EnableEpochFlag = "DynamicEsdtFlag"
+	EGLDInESDTMultiTransferFlag                        core.EnableEpochFlag = "EGLDInESDTMultiTransferFlag"
+	CryptoOpcodesV2Flag                                core.EnableEpochFlag = "CryptoOpcodesV2Flag"
 	RelayedTransactionsV3Flag                          core.EnableEpochFlag = "RelayedTransactionsV3Flag"
 	FixRelayedMoveBalanceFlag                          core.EnableEpochFlag = "FixRelayedMoveBalanceFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined

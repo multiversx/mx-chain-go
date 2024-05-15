@@ -44,7 +44,6 @@ const canCreateMultiShard = "canCreateMultiShard"
 const upgradeProperties = "upgradeProperties"
 
 const conversionBase = 10
-const metaESDT = "MetaESDT"
 
 type esdt struct {
 	eei                    vm.SystemEI
@@ -101,6 +100,7 @@ func NewESDTSmartContract(args ArgsNewESDTSmartContract) (*esdt, error) {
 		common.MetaESDTSetFlag,
 		common.ESDTNFTCreateOnMultiShardFlag,
 		common.NFTStopCreateFlag,
+		common.DynamicESDTFlag,
 	})
 	if err != nil {
 		return nil, err
@@ -215,6 +215,14 @@ func (e *esdt) Execute(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 		return e.unsetBurnRoleGlobally(args)
 	case "sendAllTransferRoleAddresses":
 		return e.sendAllTransferRoleAddresses(args)
+	case "updateTokenID":
+		return e.updateTokenID(args)
+	case "registerDynamic":
+		return e.registerDynamic(args)
+	case "registerAndSetAllRolesDynamic":
+		return e.registerAndSetAllRolesDynamic(args)
+	case "changeToDynamic":
+		return e.changeToDynamic(args)
 	}
 
 	e.eei.AddReturnMessage("invalid method to call")
@@ -342,6 +350,11 @@ func (e *esdt) registerNonFungible(args *vmcommon.ContractCallInput) vmcommon.Re
 		return vmcommon.UserError
 	}
 
+	tokenType := []byte(core.NonFungibleESDT)
+	if e.enableEpochsHandler.IsFlagEnabled(common.DynamicESDTFlag) {
+		tokenType = []byte(core.NonFungibleESDTv2)
+	}
+
 	tokenIdentifier, _, err := e.createNewToken(
 		args.CallerAddr,
 		args.Arguments[0],
@@ -349,7 +362,7 @@ func (e *esdt) registerNonFungible(args *vmcommon.ContractCallInput) vmcommon.Re
 		big.NewInt(0),
 		0,
 		args.Arguments[2:],
-		[]byte(core.NonFungibleESDT))
+		tokenType)
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -359,7 +372,7 @@ func (e *esdt) registerNonFungible(args *vmcommon.ContractCallInput) vmcommon.Re
 	logEntry := &vmcommon.LogEntry{
 		Identifier: []byte(args.Function),
 		Address:    args.CallerAddr,
-		Topics:     [][]byte{tokenIdentifier, args.Arguments[0], args.Arguments[1], []byte(core.NonFungibleESDT), big.NewInt(0).Bytes()},
+		Topics:     [][]byte{tokenIdentifier, args.Arguments[0], args.Arguments[1], tokenType, big.NewInt(0).Bytes()},
 	}
 	e.eei.AddLogEntry(logEntry)
 
@@ -432,7 +445,7 @@ func (e *esdt) registerMetaESDT(args *vmcommon.ContractCallInput) vmcommon.Retur
 		big.NewInt(0),
 		numOfDecimals,
 		args.Arguments[3:],
-		[]byte(metaESDT))
+		[]byte(core.MetaESDT))
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -443,14 +456,14 @@ func (e *esdt) registerMetaESDT(args *vmcommon.ContractCallInput) vmcommon.Retur
 	logEntry := &vmcommon.LogEntry{
 		Identifier: []byte(args.Function),
 		Address:    args.CallerAddr,
-		Topics:     [][]byte{tokenIdentifier, args.Arguments[0], args.Arguments[1], []byte(metaESDT), big.NewInt(int64(numOfDecimals)).Bytes()},
+		Topics:     [][]byte{tokenIdentifier, args.Arguments[0], args.Arguments[1], []byte(core.MetaESDT), big.NewInt(int64(numOfDecimals)).Bytes()},
 	}
 	e.eei.AddLogEntry(logEntry)
 
 	return vmcommon.Ok
 }
 
-// arguments list: tokenName, tickerID prefix, type of token, numDecimals, numGlobalSettings, listGlobalSettings, list(address, special roles)
+// arguments list: tokenName, tickerID prefix, type of token, numDecimals, numGlobalSettings, listGlobalSettings
 func (e *esdt) registerAndSetRoles(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if !e.enableEpochsHandler.IsFlagEnabled(common.ESDTRegisterAndSetAllRolesFlag) {
 		e.eei.AddReturnMessage("invalid method to call")
@@ -465,7 +478,7 @@ func (e *esdt) registerAndSetRoles(args *vmcommon.ContractCallInput) vmcommon.Re
 		e.eei.AddReturnMessage("arguments length mismatch")
 		return vmcommon.UserError
 	}
-	isWithDecimals, tokenType, err := getTokenType(args.Arguments[2])
+	isWithDecimals, tokenType, err := e.getTokenType(args.Arguments[2])
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -498,7 +511,7 @@ func (e *esdt) registerAndSetRoles(args *vmcommon.ContractCallInput) vmcommon.Re
 		return vmcommon.UserError
 	}
 
-	allRoles, err := getAllRolesForTokenType(string(tokenType))
+	allRoles, err := e.getAllRolesForTokenType(string(tokenType))
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
 		return vmcommon.UserError
@@ -531,28 +544,41 @@ func (e *esdt) registerAndSetRoles(args *vmcommon.ContractCallInput) vmcommon.Re
 	return vmcommon.Ok
 }
 
-func getAllRolesForTokenType(tokenType string) ([][]byte, error) {
+func (e *esdt) getAllRolesForTokenType(tokenType string) ([][]byte, error) {
 	switch tokenType {
-	case core.NonFungibleESDT:
-		return [][]byte{[]byte(core.ESDTRoleNFTCreate), []byte(core.ESDTRoleNFTBurn), []byte(core.ESDTRoleNFTUpdateAttributes), []byte(core.ESDTRoleNFTAddURI)}, nil
-	case core.SemiFungibleESDT, metaESDT:
+	case core.NonFungibleESDT, core.NonFungibleESDTv2, core.DynamicNFTESDT:
+		nftRoles := [][]byte{[]byte(core.ESDTRoleNFTCreate), []byte(core.ESDTRoleNFTBurn), []byte(core.ESDTRoleNFTUpdateAttributes), []byte(core.ESDTRoleNFTAddURI)}
+		if e.enableEpochsHandler.IsFlagEnabled(common.DynamicESDTFlag) {
+			nftRoles = append(nftRoles, [][]byte{[]byte(core.ESDTRoleNFTRecreate), []byte(core.ESDTRoleModifyCreator), []byte(core.ESDTRoleModifyRoyalties), []byte(core.ESDTRoleSetNewURI)}...)
+		}
+
+		return nftRoles, nil
+	case core.SemiFungibleESDT, core.MetaESDT:
 		return [][]byte{[]byte(core.ESDTRoleNFTCreate), []byte(core.ESDTRoleNFTBurn), []byte(core.ESDTRoleNFTAddQuantity)}, nil
 	case core.FungibleESDT:
 		return [][]byte{[]byte(core.ESDTRoleLocalMint), []byte(core.ESDTRoleLocalBurn)}, nil
+	case core.DynamicSFTESDT, core.DynamicMetaESDT:
+		dynamicRoles := [][]byte{[]byte(core.ESDTRoleNFTCreate), []byte(core.ESDTRoleNFTBurn), []byte(core.ESDTRoleNFTAddQuantity), []byte(core.ESDTRoleNFTUpdateAttributes), []byte(core.ESDTRoleNFTAddURI)}
+		dynamicRoles = append(dynamicRoles, [][]byte{[]byte(core.ESDTRoleNFTRecreate), []byte(core.ESDTRoleModifyCreator), []byte(core.ESDTRoleModifyRoyalties), []byte(core.ESDTRoleSetNewURI)}...)
+
+		return dynamicRoles, nil
 	}
 
 	return nil, vm.ErrInvalidArgument
 }
 
-func getTokenType(compressed []byte) (bool, []byte, error) {
+func (e *esdt) getTokenType(compressed []byte) (bool, []byte, error) {
 	// TODO: might extract the compressed constants to core, alongside metaESDT
 	switch string(compressed) {
 	case "NFT":
+		if e.enableEpochsHandler.IsFlagEnabled(common.DynamicESDTFlag) {
+			return false, []byte(core.NonFungibleESDTv2), nil
+		}
 		return false, []byte(core.NonFungibleESDT), nil
 	case "SFT":
 		return false, []byte(core.SemiFungibleESDT), nil
 	case "META":
-		return true, []byte(metaESDT), nil
+		return true, []byte(core.MetaESDT), nil
 	case "FNG":
 		return true, []byte(core.FungibleESDT), nil
 	}
@@ -588,7 +614,7 @@ func (e *esdt) changeSFTToMetaESDT(args *vmcommon.ContractCallInput) vmcommon.Re
 		return vmcommon.UserError
 	}
 
-	token.TokenType = []byte(metaESDT)
+	token.TokenType = []byte(core.MetaESDT)
 	token.NumDecimals = numOfDecimals
 	err := e.saveToken(args.Arguments[0], token)
 	if err != nil {
@@ -599,9 +625,11 @@ func (e *esdt) changeSFTToMetaESDT(args *vmcommon.ContractCallInput) vmcommon.Re
 	logEntry := &vmcommon.LogEntry{
 		Identifier: []byte(args.Function),
 		Address:    args.CallerAddr,
-		Topics:     [][]byte{args.Arguments[0], token.TokenName, token.TickerName, []byte(metaESDT), args.Arguments[1]},
+		Topics:     [][]byte{args.Arguments[0], token.TokenName, token.TickerName, []byte(core.MetaESDT), args.Arguments[1]},
 	}
 	e.eei.AddLogEntry(logEntry)
+
+	e.sendTokenTypeToSystemAccounts(args.CallerAddr, args.Arguments[0], token)
 
 	return vmcommon.Ok
 }
@@ -638,6 +666,7 @@ func (e *esdt) createNewToken(
 		Upgradable:         true,
 		CanAddSpecialRoles: true,
 	}
+
 	err = e.upgradeProperties(tokenIdentifier, newESDTToken, properties, true, owner)
 	if err != nil {
 		return nil, nil, err
@@ -648,6 +677,8 @@ func (e *esdt) createNewToken(
 	if err != nil {
 		return nil, nil, err
 	}
+
+	e.sendTokenTypeToSystemAccounts(owner, tokenIdentifier, newESDTToken)
 
 	return tokenIdentifier, newESDTToken, nil
 }
@@ -1365,7 +1396,7 @@ func (e *esdt) treatEncodeErrorForGetSpecialRoles(err error, roles []string, add
 		"error", err)
 }
 
-func (e *esdt) basicOwnershipChecks(args *vmcommon.ContractCallInput) (*ESDTDataV2, vmcommon.ReturnCode) {
+func (e *esdt) getTokenInfoAfterInputChecks(args *vmcommon.ContractCallInput) (*ESDTDataV2, vmcommon.ReturnCode) {
 	if args.CallValue.Cmp(zero) != 0 {
 		e.eei.AddReturnMessage("callValue must be 0")
 		return nil, vmcommon.OutOfFunds
@@ -1383,6 +1414,15 @@ func (e *esdt) basicOwnershipChecks(args *vmcommon.ContractCallInput) (*ESDTData
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
 		return nil, vmcommon.UserError
+	}
+
+	return token, vmcommon.Ok
+}
+
+func (e *esdt) basicOwnershipChecks(args *vmcommon.ContractCallInput) (*ESDTDataV2, vmcommon.ReturnCode) {
+	token, returnCode := e.getTokenInfoAfterInputChecks(args)
+	if returnCode != vmcommon.Ok {
+		return nil, returnCode
 	}
 	if !bytes.Equal(token.OwnerAddress, args.CallerAddr) {
 		e.eei.AddReturnMessage("can be called by owner only")
@@ -1566,24 +1606,86 @@ func (e *esdt) isSpecialRoleValidForNonFungible(argument string) error {
 			return nil
 		}
 		return vm.ErrInvalidArgument
+	case core.ESDTRoleSetNewURI:
+		if e.enableEpochsHandler.IsFlagEnabled(common.DynamicESDTFlag) {
+			return nil
+		}
+		return vm.ErrInvalidArgument
+	case core.ESDTRoleModifyCreator:
+		if e.enableEpochsHandler.IsFlagEnabled(common.DynamicESDTFlag) {
+			return nil
+		}
+		return vm.ErrInvalidArgument
+	case core.ESDTRoleModifyRoyalties:
+		if e.enableEpochsHandler.IsFlagEnabled(common.DynamicESDTFlag) {
+			return nil
+		}
+		return vm.ErrInvalidArgument
+	case core.ESDTRoleNFTRecreate:
+		if e.enableEpochsHandler.IsFlagEnabled(common.DynamicESDTFlag) {
+			return nil
+		}
+		return vm.ErrInvalidArgument
 	default:
 		return vm.ErrInvalidArgument
 	}
+}
+
+func (e *esdt) isSpecialRoleValidForDynamicNFT(argument string) error {
+	switch argument {
+	case core.ESDTRoleNFTBurn:
+		return nil
+	case core.ESDTRoleNFTCreate:
+		return nil
+	case core.ESDTRoleTransfer:
+		return nil
+	case core.ESDTRoleNFTUpdateAttributes:
+		return nil
+	case core.ESDTRoleNFTAddURI:
+		return nil
+	case core.ESDTRoleSetNewURI:
+		return nil
+	case core.ESDTRoleModifyCreator:
+		return nil
+	case core.ESDTRoleModifyRoyalties:
+		return nil
+	case core.ESDTRoleNFTRecreate:
+		return nil
+	default:
+		return vm.ErrInvalidArgument
+	}
+}
+
+func (e *esdt) isSpecialRoleValidForDynamicSFT(argument string) error {
+	err := e.isSpecialRoleValidForDynamicNFT(argument)
+	if err == nil {
+		return nil
+	}
+
+	if argument == core.ESDTRoleNFTAddQuantity {
+		return nil
+	}
+
+	return vm.ErrInvalidArgument
 }
 
 func (e *esdt) checkSpecialRolesAccordingToTokenType(args [][]byte, token *ESDTDataV2) error {
 	switch string(token.TokenType) {
 	case core.FungibleESDT:
 		return validateRoles(args, e.isSpecialRoleValidForFungible)
-	case core.NonFungibleESDT:
+	case core.NonFungibleESDT, core.NonFungibleESDTv2:
 		return validateRoles(args, e.isSpecialRoleValidForNonFungible)
 	case core.SemiFungibleESDT:
 		return validateRoles(args, e.isSpecialRoleValidForSemiFungible)
-	case metaESDT:
+	case core.MetaESDT:
 		isCheckMetaESDTOnRolesFlagEnabled := e.enableEpochsHandler.IsFlagEnabled(common.ManagedCryptoAPIsFlag)
 		if isCheckMetaESDTOnRolesFlagEnabled {
 			return validateRoles(args, e.isSpecialRoleValidForSemiFungible)
 		}
+	case core.DynamicNFTESDT:
+		return validateRoles(args, e.isSpecialRoleValidForDynamicNFT)
+	case core.DynamicSFTESDT, core.DynamicMetaESDT:
+		return validateRoles(args, e.isSpecialRoleValidForDynamicSFT)
 	}
 	return nil
 }
@@ -1645,6 +1747,39 @@ func (e *esdt) changeToMultiShardCreate(args *vmcommon.ContractCallInput) vmcomm
 	return vmcommon.Ok
 }
 
+func isDynamicTokenType(tokenType []byte) bool {
+	prefixLength := len(core.Dynamic)
+	if len(tokenType) < prefixLength {
+		return false
+	}
+
+	return bytes.Equal(tokenType[:prefixLength], []byte(core.Dynamic))
+}
+
+func rolesForDynamicWhichHasToBeSingular() []string {
+	return []string{core.ESDTRoleNFTCreate, core.ESDTRoleNFTUpdateAttributes, core.ESDTRoleNFTAddURI,
+		core.ESDTRoleSetNewURI, core.ESDTRoleModifyCreator, core.ESDTRoleModifyRoyalties, core.ESDTRoleNFTRecreate}
+}
+
+func (e *esdt) checkRolesForDynamicTokens(
+	token *ESDTDataV2,
+	roles [][]byte,
+) vmcommon.ReturnCode {
+	if !isDynamicTokenType(token.TokenType) {
+		return vmcommon.Ok
+	}
+
+	rolesWhichHasToBeSingular := rolesForDynamicWhichHasToBeSingular()
+	for _, role := range rolesWhichHasToBeSingular {
+		if checkIfDefinedRoleExistsInArgsAndToken(roles, token, []byte(role)) {
+			e.eei.AddReturnMessage(role + " already exists")
+			return vmcommon.UserError
+		}
+	}
+
+	return vmcommon.Ok
+}
+
 func (e *esdt) setRolesForTokenAndAddress(
 	token *ESDTDataV2,
 	address []byte,
@@ -1670,6 +1805,11 @@ func (e *esdt) setRolesForTokenAndAddress(
 	if err != nil {
 		e.eei.AddReturnMessage(err.Error())
 		return nil, vmcommon.UserError
+	}
+
+	returnCode := e.checkRolesForDynamicTokens(token, roles)
+	if returnCode != vmcommon.Ok {
+		return nil, returnCode
 	}
 
 	transferRoleExists := checkIfDefinedRoleExistsInArgsAndToken(roles, token, []byte(core.ESDTRoleTransfer))
@@ -2044,6 +2184,222 @@ func (e *esdt) stopNFTCreateForever(args *vmcommon.ContractCallInput) vmcommon.R
 	}
 
 	return vmcommon.Ok
+}
+
+func (e *esdt) updateTokenID(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !e.enableEpochsHandler.IsFlagEnabled(common.DynamicESDTFlag) {
+		e.eei.AddReturnMessage("invalid method to call")
+		return vmcommon.FunctionNotFound
+	}
+	if len(args.Arguments) != 1 {
+		e.eei.AddReturnMessage("invalid number of arguments, wanted 1")
+		return vmcommon.FunctionWrongSignature
+	}
+	token, returnCode := e.getTokenInfoAfterInputChecks(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	tokenID := args.Arguments[0]
+	if bytes.Equal(token.TokenType, []byte(core.NonFungibleESDT)) {
+		token.TokenType = []byte(core.NonFungibleESDTv2)
+		err := e.saveToken(tokenID, token)
+		if err != nil {
+			e.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
+	}
+
+	// TODO allow this to be called only once
+	e.sendTokenTypeToSystemAccounts(args.CallerAddr, args.Arguments[0], token)
+
+	return vmcommon.Ok
+}
+
+func (e *esdt) createDynamicToken(args *vmcommon.ContractCallInput) ([]byte, *ESDTDataV2, vmcommon.ReturnCode) {
+	if !e.enableEpochsHandler.IsFlagEnabled(common.DynamicESDTFlag) {
+		e.eei.AddReturnMessage("invalid method to call")
+		return nil, nil, vmcommon.FunctionNotFound
+	}
+	returnCode := e.checkBasicCreateArguments(args)
+	if returnCode != vmcommon.Ok {
+		return nil, nil, returnCode
+	}
+	if len(args.Arguments) < 3 {
+		e.eei.AddReturnMessage("not enough arguments")
+		return nil, nil, vmcommon.UserError
+	}
+
+	isWithDecimals, tokenType, err := e.getTokenType(args.Arguments[2])
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return nil, nil, vmcommon.UserError
+	}
+
+	propertiesStart := 3
+	numOfDecimals := uint32(0)
+	if isWithDecimals {
+		propertiesStart++
+		if len(args.Arguments) < propertiesStart {
+			e.eei.AddReturnMessage("not enough arguments")
+			return nil, nil, vmcommon.UserError
+		}
+
+		numOfDecimals = uint32(big.NewInt(0).SetBytes(args.Arguments[3]).Uint64())
+		if numOfDecimals < minNumberOfDecimals || numOfDecimals > maxNumberOfDecimals {
+			e.eei.AddReturnMessage(fmt.Errorf("%w, minimum: %d, maximum: %d, provided: %d",
+				vm.ErrInvalidNumberOfDecimals,
+				minNumberOfDecimals,
+				maxNumberOfDecimals,
+				numOfDecimals,
+			).Error())
+			return nil, nil, vmcommon.UserError
+		}
+	}
+
+	dynamicTokenType := append([]byte(core.Dynamic), tokenType...)
+
+	tokenIdentifier, token, err := e.createNewToken(
+		args.CallerAddr,
+		args.Arguments[0],
+		args.Arguments[1],
+		big.NewInt(0),
+		numOfDecimals,
+		args.Arguments[propertiesStart:],
+		dynamicTokenType)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return nil, nil, vmcommon.UserError
+	}
+
+	logEntry := &vmcommon.LogEntry{
+		Identifier: []byte(args.Function),
+		Address:    args.CallerAddr,
+		Topics:     [][]byte{tokenIdentifier, args.Arguments[0], args.Arguments[1], dynamicTokenType, big.NewInt(int64(numOfDecimals)).Bytes()},
+	}
+	e.eei.Finish(tokenIdentifier)
+	e.eei.AddLogEntry(logEntry)
+
+	return tokenIdentifier, token, vmcommon.Ok
+}
+
+func (e *esdt) registerDynamic(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	_, _, returnCode := e.createDynamicToken(args)
+	return returnCode
+}
+
+func (e *esdt) registerAndSetAllRolesDynamic(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	tokenIdentifier, token, returnCode := e.createDynamicToken(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	allRoles, err := e.getAllRolesForTokenType(string(token.TokenType))
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	properties, returnCode := e.setRolesForTokenAndAddress(token, args.CallerAddr, allRoles)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	returnCode = e.prepareAndSendRoleChangeData(tokenIdentifier, args.CallerAddr, allRoles, properties)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	err = e.saveToken(tokenIdentifier, token)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	return vmcommon.Ok
+}
+
+func (e *esdt) checkRolesAreCompatibleToChangeToDynamic(token *ESDTDataV2) error {
+	mapOfRoles := make(map[string]uint32)
+
+	for _, esdtRole := range token.SpecialRoles {
+		for _, role := range esdtRole.Roles {
+			mapOfRoles[string(role)]++
+		}
+	}
+
+	rolesWithHaveToBeSingular := rolesForDynamicWhichHasToBeSingular()
+	for _, role := range rolesWithHaveToBeSingular {
+		if mapOfRoles[role] > 1 {
+			return fmt.Errorf("%w, role %s was found multiple times", vm.ErrCannotChangeToDynamic, role)
+		}
+	}
+
+	return nil
+}
+
+func (e *esdt) changeToDynamic(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !e.enableEpochsHandler.IsFlagEnabled(common.DynamicESDTFlag) {
+		e.eei.AddReturnMessage("invalid method to call")
+		return vmcommon.FunctionNotFound
+	}
+
+	token, returnCode := e.basicOwnershipChecks(args)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+
+	if bytes.Equal(token.TokenType, []byte(core.FungibleESDT)) {
+		e.eei.AddReturnMessage("cannot change fungible tokens to dynamic")
+		return vmcommon.UserError
+	}
+	if isDynamicTokenType(token.TokenType) {
+		e.eei.AddReturnMessage("tokenID is already dynamic")
+		return vmcommon.UserError
+	}
+
+	err := e.checkRolesAreCompatibleToChangeToDynamic(token)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	token.TokenType = append([]byte(core.Dynamic), token.TokenType...)
+
+	err = e.saveToken(args.Arguments[0], token)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	logEntry := &vmcommon.LogEntry{
+		Identifier: []byte(args.Function),
+		Address:    args.CallerAddr,
+		Topics:     [][]byte{args.Arguments[0], token.TokenName, token.TickerName, token.TokenType},
+	}
+	e.eei.AddLogEntry(logEntry)
+
+	e.sendTokenTypeToSystemAccounts(args.CallerAddr, args.Arguments[0], token)
+
+	return vmcommon.Ok
+}
+
+func (e *esdt) sendTokenTypeToSystemAccounts(caller []byte, tokenID []byte, token *ESDTDataV2) {
+	if !e.enableEpochsHandler.IsFlagEnabled(common.DynamicESDTFlag) {
+		return
+	}
+
+	builtInFunc := core.ESDTSetTokenType
+	esdtTransferData := builtInFunc + "@" + hex.EncodeToString(tokenID) + "@" + hex.EncodeToString(token.TokenType)
+	e.eei.SendGlobalSettingToAll(e.esdtSCAddress, []byte(esdtTransferData))
+
+	logEntry := &vmcommon.LogEntry{
+		Identifier: []byte(builtInFunc),
+		Address:    caller,
+		Topics:     [][]byte{tokenID, token.TokenType},
+		Data:       nil,
+	}
+	e.eei.AddLogEntry(logEntry)
 }
 
 func (e *esdt) sendRoleChangeData(tokenID []byte, destination []byte, roles [][]byte, builtInFunc string) {
