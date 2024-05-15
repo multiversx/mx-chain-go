@@ -66,6 +66,7 @@ func createGenesisConfig(providedEnableEpochs config.EnableEpochs) config.Enable
 			NodesToShufflePerShard: 0,
 		},
 	}
+	clonedConfig.StakeEnableEpoch = unreachableEpoch // we need to specifically disable this, we have exceptions in the staking system SC
 	clonedConfig.DoubleKeyProtectionEnableEpoch = 0
 
 	return clonedConfig
@@ -420,6 +421,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		ESDTTransferParser:  esdtTransferParser,
 		BuiltInFunctions:    argsHook.BuiltInFunctions,
 		Hasher:              arg.Core.Hasher(),
+		PubKeyConverter:     arg.Core.AddressPubKeyConverter(),
 	}
 	vmFactoryImpl, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	if err != nil {

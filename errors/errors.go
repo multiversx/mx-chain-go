@@ -596,5 +596,8 @@ var ErrInvalidNodeOperationMode = errors.New("invalid node operation mode")
 // ErrNilSentSignatureTracker defines the error for setting a nil SentSignatureTracker
 var ErrNilSentSignatureTracker = errors.New("nil sent signature tracker")
 
+// ErrNilEpochSystemSCProcessor defines the error for setting a nil EpochSystemSCProcessor
+var ErrNilEpochSystemSCProcessor = errors.New("nil epoch system SC processor")
+
 // ErrInvalidTokenPrefix signals that an invalid token prefix has been provided
 var ErrInvalidTokenPrefix = errors.New("invalid token prefix, should have max 4 (lowercase/alphanumeric) characters")
