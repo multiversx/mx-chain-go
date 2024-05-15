@@ -2452,6 +2452,8 @@ func TestChainSimulator_EdgeCaseLowWaitingList(t *testing.T) {
 	// we always have 0 in auction list because of the lowWaitingList condition
 	epochToCheck += 1
 	err = cs.GenerateBlocksUntilEpochIsReached(epochToCheck)
+	require.Nil(t, err)
+
 	numQualified, numUnQualified = getNumQualifiedAndUnqualified(t, metachainNode)
 	require.Equal(t, 0, numQualified)
 	require.Equal(t, 0, numUnQualified)
@@ -2461,6 +2463,8 @@ func TestChainSimulator_EdgeCaseLowWaitingList(t *testing.T) {
 
 	epochToCheck += 1
 	err = cs.GenerateBlocksUntilEpochIsReached(epochToCheck)
+	require.Nil(t, err)
+
 	numQualified, numUnQualified = getNumQualifiedAndUnqualified(t, metachainNode)
 	// all the previously registered will be selected, as we have 24 nodes in eligible+waiting, 8 will shuffle out,
 	// but this time there will be not be lowWaitingList, as there are enough in auction, so we will end up with
