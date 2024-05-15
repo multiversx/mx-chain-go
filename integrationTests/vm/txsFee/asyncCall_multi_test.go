@@ -7,7 +7,6 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data/scheduled"
 	"github.com/multiversx/mx-chain-go/config"
-	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
 	"github.com/multiversx/mx-chain-go/state"
@@ -480,21 +479,15 @@ func TestAsyncCallTransferESDTAndExecute_CrossShard_Success(t *testing.T) {
 }
 
 func transferESDTAndExecuteCrossShard(t *testing.T, numberOfCallsFromParent int, numberOfBackTransfers int) {
-	vaultShard, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{
-		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
-	})
+	vaultShard, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
 	require.Nil(t, err)
 	defer vaultShard.Close()
 
-	forwarderShard, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{
-		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
-	})
+	forwarderShard, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
 	require.Nil(t, err)
 	defer forwarderShard.Close()
 
-	testContextSender, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{
-		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
-	})
+	testContextSender, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContextSender.Close()
 
@@ -539,7 +532,7 @@ func transferESDTAndExecuteCrossShard(t *testing.T, numberOfCallsFromParent int,
 		Clear().
 		Func("add_queued_call_transfer_esdt").
 		Bytes(vaultSCAddress).
-		Int64(50000).
+		Int64(500000).
 		Bytes([]byte("retrieve_funds_promises")).
 		Bytes(esdtToken).
 		Int64(esdtToTransferFromParent).
@@ -558,7 +551,7 @@ func transferESDTAndExecuteCrossShard(t *testing.T, numberOfCallsFromParent int,
 		Clear().
 		Func("forward_queued_calls")
 
-	gasLimit = uint64(50000000)
+	gasLimit = uint64(100000000)
 	sendTx(nonce, senderAddr, forwarderSCAddress, gasPrice, gasLimit, txBuilderRunQueue, forwarderShard, t)
 
 	intermediateTxs := forwarderShard.GetIntermediateTransactions(t)

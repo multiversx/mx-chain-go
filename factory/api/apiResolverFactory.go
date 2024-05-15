@@ -507,7 +507,7 @@ func createArgsSCQueryService(args *scQueryElementArgs) (*smartContract.ArgsNewS
 			WasmVMChangeLocker:  args.coreComponents.WasmVMChangeLocker(),
 			ESDTTransferParser:  esdtTransferParser,
 			Hasher:              args.coreComponents.Hasher(),
-			PubkeyConv:          argsHook.PubkeyConv,
+			PubkeyConv:          args.coreComponents.AddressPubKeyConverter(),
 			Economics:           args.coreComponents.EconomicsData(),
 			MessageSignVerifier: args.messageSigVerifier,
 			NodesConfigProvider: args.coreComponents.GenesisNodesSetup(),

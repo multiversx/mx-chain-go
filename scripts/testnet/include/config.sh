@@ -26,8 +26,9 @@ generateConfig() {
     -metachain-consensus-group-size $META_CONSENSUS_SIZE      \
     -stake-type $GENESIS_STAKE_TYPE \
     -hysteresis $HYSTERESIS \
-    -round-duration $ROUND_DURATION \
+    -round-duration $ROUND_DURATION_IN_MS \
     -sovereign=$SOVEREIGN_BOOL
+
   popd
 }
 

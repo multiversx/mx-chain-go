@@ -1701,7 +1701,8 @@ func (bp *baseProcessor) getRootHashes(currHeader data.HeaderHandler, prevHeader
 }
 
 func (bp *baseProcessor) revertAccountsStates(header data.HeaderHandler, rootHash []byte) error {
-	err := bp.accountsDB[state.UserAccountsState].RecreateTrie(rootHash)
+	rootHashHolder := holders.NewDefaultRootHashesHolder(rootHash)
+	err := bp.accountsDB[state.UserAccountsState].RecreateTrie(rootHashHolder)
 	if err != nil {
 		log.Debug("recreate trie with error for header",
 			"nonce", header.GetNonce(),
