@@ -44,7 +44,6 @@ type ArgsProcessComponentsHolder struct {
 	RunTypeComponents     factory.RunTypeComponentsHolder
 	IncomingHeaderHandler process.IncomingHeaderSubscriber
 	Configs               config.Configs
-	RunTypeComponents    factory.RunTypeComponentsHolder
 
 	EpochConfig              config.EpochConfig
 	RoundConfig              config.RoundConfig

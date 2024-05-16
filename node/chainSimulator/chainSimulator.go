@@ -55,7 +55,6 @@ type ArgsChainSimulator struct {
 	ConsensusGroupSize          uint32
 	MetaChainMinNodes           uint32
 	MetaChainConsensusGroupSize uint32
-	MetaChainConsensusGroupSize uint32
 	NumNodesWaitingListShard    uint32
 	NumNodesWaitingListMeta     uint32
 	GenesisTimestamp            int64
@@ -260,8 +259,6 @@ func (s *Simulator) createTestNode(
 		ConsensusGroupSize:          args.ConsensusGroupSize,
 		MinNodesMeta:                args.MetaChainMinNodes,
 		MetaChainConsensusGroupSize: args.MetaChainConsensusGroupSize,
-		ConsensusGroupSize:          args.ConsensusGroupSize,
-		MetaChainConsensusGroupSize: args.MetaChainConsensusGroupSize,
 		RoundDurationInMillis:       args.RoundDurationInMillis,
 		CreateGenesisNodesSetup:     args.CreateGenesisNodesSetup,
 		CreateRatingsData:           args.CreateRatingsData,
@@ -314,7 +311,7 @@ func (s *Simulator) GenerateBlocksUntilEpochIsReached(targetEpoch int32) error {
 }
 
 // ForceResetValidatorStatisticsCache will force the reset of the cache used for the validators statistics endpoint
-func (s *simulator) ForceResetValidatorStatisticsCache() error {
+func (s *Simulator) ForceResetValidatorStatisticsCache() error {
 	metachainNode := s.GetNodeHandler(core.MetachainShardId)
 	if check.IfNil(metachainNode) {
 		return errNilMetachainNode
@@ -533,11 +530,11 @@ func (s *Simulator) SetStateMultiple(stateSlice []*dtos.AddressState) error {
 }
 
 // RemoveAccounts will try to remove all accounts data for the addresses provided
-func (s *simulator) RemoveAccounts(addresses []string) error {
+func (s *Simulator) RemoveAccounts(addresses []string) error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
-	addressConverter := s.nodes[core.MetachainShardId].GetCoreComponents().AddressPubKeyConverter()
+	addressConverter := s.nodes[0].GetCoreComponents().AddressPubKeyConverter()
 	for _, address := range addresses {
 		addressBytes, err := addressConverter.Decode(address)
 		if err != nil {
@@ -683,7 +680,7 @@ func (s *Simulator) setStateSystemAccount(state *dtos.AddressState) error {
 	return nil
 }
 
-func (s *simulator) removeAllSystemAccounts() error {
+func (s *Simulator) removeAllSystemAccounts() error {
 	for shard, node := range s.nodes {
 		err := node.RemoveAccount(core.SystemAccountAddress)
 		if err != nil {
