@@ -148,6 +148,49 @@ func TestChainSimulator_GenerateBlocksAndEpochChangeShouldWork(t *testing.T) {
 	assert.True(t, numAccountsWithIncreasedBalances > 0)
 }
 
+func TestSimulator_TriggerChangeOfEpoch(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	startTime := time.Now().Unix()
+	roundDurationInMillis := uint64(6000)
+	roundsPerEpoch := core.OptionalUint64{
+		HasValue: true,
+		Value:    15000,
+	}
+	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
+		BypassTxSignatureCheck:      false,
+		TempDir:                     t.TempDir(),
+		PathToInitialConfig:         defaultPathToInitialConfig,
+		NumOfShards:                 3,
+		GenesisTimestamp:            startTime,
+		RoundDurationInMillis:       roundDurationInMillis,
+		RoundsPerEpoch:              roundsPerEpoch,
+		ApiInterface:                api.NewNoApiInterface(),
+		MinNodesPerShard:            100,
+		MetaChainMinNodes:           100,
+		ConsensusGroupSize:          1,
+		MetaChainConsensusGroupSize: 1,
+	})
+	require.Nil(t, err)
+	require.NotNil(t, chainSimulator)
+
+	defer chainSimulator.Close()
+
+	err = chainSimulator.ForceChangeOfEpoch()
+	require.Nil(t, err)
+
+	err = chainSimulator.ForceChangeOfEpoch()
+	require.Nil(t, err)
+
+	err = chainSimulator.ForceChangeOfEpoch()
+	require.Nil(t, err)
+
+	err = chainSimulator.ForceChangeOfEpoch()
+	require.Nil(t, err)
+}
+
 func TestChainSimulator_SetState(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
