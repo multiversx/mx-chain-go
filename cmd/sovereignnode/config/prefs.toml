@@ -48,6 +48,7 @@
    OverridableConfigTomlValues = [
       { File = "config.toml", Path = "VirtualMachine.Execution.WasmVMVersions", Value = [{ StartEpoch = 0, Version = "v1.5" }] },
       { File = "config.toml", Path = "VirtualMachine.Querying.WasmVMVersions", Value = [{ StartEpoch = 0, Version = "v1.5" }] },
+      { File = "systemSmartContractsConfig.toml", Path = "ESDTSystemSCConfig.BaseIssuingCost", Value = "50000000000000000" },
    ]
 
 # BlockProcessingCutoff can be used to stop processing blocks at a certain round, nonce or epoch.

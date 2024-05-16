@@ -7,17 +7,13 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
-
-	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
-	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
 	disabledCommon "github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/forking"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
 	"github.com/multiversx/mx-chain-go/genesis/process/intermediate"
@@ -40,6 +36,11 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/update"
 	hardForkProcess "github.com/multiversx/mx-chain-go/update/process"
+
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 )
@@ -65,6 +66,7 @@ func createGenesisConfig(providedEnableEpochs config.EnableEpochs) config.Enable
 			NodesToShufflePerShard: 0,
 		},
 	}
+	clonedConfig.StakeEnableEpoch = unreachableEpoch // we need to specifically disable this, we have exceptions in the staking system SC
 	clonedConfig.DoubleKeyProtectionEnableEpoch = 0
 
 	return clonedConfig
@@ -250,7 +252,8 @@ func createShardGenesisBlockAfterHardFork(
 		return nil, nil, nil, err
 	}
 
-	err = arg.Accounts.RecreateTrie(hdrHandler.GetRootHash())
+	rootHashHolder := holders.NewDefaultRootHashesHolder(hdrHandler.GetRootHash())
+	err = arg.Accounts.RecreateTrie(rootHashHolder)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -316,7 +319,7 @@ func createArgsShardBlockCreatorAfterHardFork(
 
 // setBalancesToTrie adds balances to trie
 func setBalancesToTrie(arg ArgsGenesisBlockCreator) (int, error) {
-	initialAccounts, err := arg.AccountsParser.InitialAccountsSplitOnAddressesShards(arg.ShardCoordinator)
+	initialAccounts, err := arg.RunTypeComponents.AccountsParser().InitialAccountsSplitOnAddressesShards(arg.ShardCoordinator)
 	if err != nil {
 		return 0, err
 	}
@@ -426,6 +429,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		ESDTTransferParser:  esdtTransferParser,
 		BuiltInFunctions:    argsHook.BuiltInFunctions,
 		Hasher:              arg.Core.Hasher(),
+		PubKeyConverter:     arg.Core.AddressPubKeyConverter(),
 	}
 	vmFactoryImpl, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	if err != nil {
@@ -605,7 +609,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		ScheduledTxsExecutionHandler:           disabledScheduledTxsExecutionHandler,
 		ProcessedMiniBlocksTracker:             disabledProcessedMiniBlocksTracker,
 		TxExecutionOrderHandler:                arg.TxExecutionOrderHandler,
-		TxPreProcessorCreator:                  arg.TxPreprocessorCreator,
+		TxPreProcessorCreator:                  arg.RunTypeComponents.TxPreProcessorCreator(),
 		SmartContractResultPreProcessorCreator: arg.RunTypeComponents.SCResultsPreProcessorCreator(),
 	}
 	preProcFactory, err := shard.NewPreProcessorsContainerFactory(argsPreProc)
@@ -776,7 +780,7 @@ func increaseStakersNonces(processors *genesisProcessors, arg ArgsGenesisBlockCr
 		return 0, err
 	}
 
-	initialAddresses, err := arg.AccountsParser.InitialAccountsSplitOnAddressesShards(arg.ShardCoordinator)
+	initialAddresses, err := arg.RunTypeComponents.AccountsParser().InitialAccountsSplitOnAddressesShards(arg.ShardCoordinator)
 	if err != nil {
 		return 0, err
 	}
@@ -814,7 +818,7 @@ func executeDelegation(
 	argDP := intermediate.ArgStandardDelegationProcessor{
 		Executor:            txExecutor,
 		ShardCoordinator:    arg.ShardCoordinator,
-		AccountsParser:      arg.AccountsParser,
+		AccountsParser:      arg.RunTypeComponents.AccountsParser(),
 		SmartContractParser: arg.SmartContractParser,
 		NodesListSplitter:   nodesListSplitter,
 		QueryService:        processors.queryService,
@@ -835,7 +839,7 @@ func incrementNoncesForCrossShardDelegations(processors *genesisProcessors, arg 
 		return 0, err
 	}
 
-	initialAddresses, err := arg.AccountsParser.InitialAccountsSplitOnAddressesShards(arg.ShardCoordinator)
+	initialAddresses, err := arg.RunTypeComponents.AccountsParser().InitialAccountsSplitOnAddressesShards(arg.ShardCoordinator)
 	if err != nil {
 		return 0, err
 	}

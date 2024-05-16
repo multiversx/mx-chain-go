@@ -9,16 +9,11 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	disabledCommon "github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/forking"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
@@ -43,6 +38,13 @@ import (
 	"github.com/multiversx/mx-chain-go/update"
 	hardForkProcess "github.com/multiversx/mx-chain-go/update/process"
 	"github.com/multiversx/mx-chain-go/vm"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
@@ -190,7 +192,8 @@ func createMetaGenesisBlockAfterHardFork(
 		return nil, nil, nil, process.ErrWrongTypeAssertion
 	}
 
-	err = arg.Accounts.RecreateTrie(hdrHandler.GetRootHash())
+	rootHashHolder := holders.NewDefaultRootHashesHolder(hdrHandler.GetRootHash())
+	err = arg.Accounts.RecreateTrie(rootHashHolder)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -347,21 +350,22 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 	}
 
 	argsNewVMContainerFactory := metachain.ArgsNewVMContainerFactory{
-		BlockChainHook:      blockChainHookImpl,
-		PubkeyConv:          argsHook.PubkeyConv,
-		Economics:           arg.Economics,
-		MessageSignVerifier: pubKeyVerifier,
-		GasSchedule:         arg.GasSchedule,
-		NodesConfigProvider: arg.InitialNodesSetup,
-		Hasher:              arg.Core.Hasher(),
-		Marshalizer:         arg.Core.InternalMarshalizer(),
-		SystemSCConfig:      &arg.SystemSCConfig,
-		ValidatorAccountsDB: arg.ValidatorAccounts,
-		UserAccountsDB:      arg.Accounts,
-		ChanceComputer:      &disabled.Rater{},
-		ShardCoordinator:    arg.ShardCoordinator,
-		EnableEpochsHandler: enableEpochsHandler,
-		NodesCoordinator:    &disabled.NodesCoordinator{},
+		BlockChainHook:          blockChainHookImpl,
+		PubkeyConv:              argsHook.PubkeyConv,
+		Economics:               arg.Economics,
+		MessageSignVerifier:     pubKeyVerifier,
+		GasSchedule:             arg.GasSchedule,
+		NodesConfigProvider:     arg.InitialNodesSetup,
+		Hasher:                  arg.Core.Hasher(),
+		Marshalizer:             arg.Core.InternalMarshalizer(),
+		SystemSCConfig:          &arg.SystemSCConfig,
+		ValidatorAccountsDB:     arg.ValidatorAccounts,
+		UserAccountsDB:          arg.Accounts,
+		ChanceComputer:          &disabled.Rater{},
+		ShardCoordinator:        arg.ShardCoordinator,
+		EnableEpochsHandler:     enableEpochsHandler,
+		NodesCoordinator:        &disabled.NodesCoordinator{},
+		VMContextCreatorHandler: arg.RunTypeComponents.VMContextCreator(),
 	}
 	virtualMachineFactory, err := metachain.NewVMContainerFactory(argsNewVMContainerFactory)
 	if err != nil {
@@ -511,7 +515,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		ScheduledTxsExecutionHandler: disabledScheduledTxsExecutionHandler,
 		ProcessedMiniBlocksTracker:   disabledProcessedMiniBlocksTracker,
 		TxExecutionOrderHandler:      arg.TxExecutionOrderHandler,
-		TxPreProcessorCreator:        arg.TxPreprocessorCreator,
+		TxPreProcessorCreator:        arg.RunTypeComponents.TxPreProcessorCreator(),
 	}
 	preProcFactory, err := metachain.NewPreProcessorsContainerFactory(argsPreProc)
 	if err != nil {

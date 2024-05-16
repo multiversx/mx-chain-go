@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/runType"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
 	"github.com/multiversx/mx-chain-go/integrationTests"
@@ -18,7 +19,9 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type testPair struct {
@@ -35,10 +38,11 @@ func TestCreationOfTheGenesisState(t *testing.T) {
 	}
 	t.Parallel()
 
-	genesisFile := "genesisEdgeCase.json"
+	initialAccounts, err := runType.ReadInitialAccounts("genesisEdgeCase.json")
+	require.Nil(t, err)
 
 	args := genesis.AccountsParserArgs{
-		GenesisFilePath: genesisFile,
+		InitialAccounts: initialAccounts,
 		EntireSupply:    big.NewInt(6000000000),
 		MinterAddress:   "erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3",
 		PubkeyConverter: integrationTests.TestAddressPubkeyConverter,

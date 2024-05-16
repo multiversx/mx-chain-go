@@ -11,13 +11,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
-	shardingCore "github.com/multiversx/mx-chain-core-go/core/sharding"
-	crypto "github.com/multiversx/mx-chain-crypto-go"
-	"github.com/multiversx/mx-chain-crypto-go/signing"
-	"github.com/multiversx/mx-chain-crypto-go/signing/ed25519"
-	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
 	"github.com/multiversx/mx-chain-go/common/factory"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/genesis/data"
@@ -26,6 +19,14 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
+	shardingCore "github.com/multiversx/mx-chain-core-go/core/sharding"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-crypto-go/signing"
+	"github.com/multiversx/mx-chain-crypto-go/signing/ed25519"
+	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
 )
 
 var oneEgld = big.NewInt(1000000000000000000)
@@ -40,18 +41,20 @@ const (
 
 // ArgsChainSimulatorConfigs holds all the components needed to create the chain simulator configs
 type ArgsChainSimulatorConfigs struct {
-	NumOfShards              uint32
-	OriginalConfigsPath      string
-	GenesisTimeStamp         int64
-	RoundDurationInMillis    uint64
-	TempDir                  string
-	MinNodesPerShard         uint32
-	MetaChainMinNodes        uint32
-	InitialEpoch             uint32
-	RoundsPerEpoch           core.OptionalUint64
-	NumNodesWaitingListShard uint32
-	NumNodesWaitingListMeta  uint32
-	AlterConfigsFunction     func(cfg *config.Configs)
+	NumOfShards                 uint32
+	OriginalConfigsPath         string
+	GenesisTimeStamp            int64
+	RoundDurationInMillis       uint64
+	TempDir                     string
+	MinNodesPerShard            uint32
+	ConsensusGroupSize          uint32
+	MetaChainMinNodes           uint32
+	MetaChainConsensusGroupSize uint32
+	InitialEpoch                uint32
+	RoundsPerEpoch              core.OptionalUint64
+	NumNodesWaitingListShard    uint32
+	NumNodesWaitingListMeta     uint32
+	AlterConfigsFunction        func(cfg *config.Configs)
 }
 
 // ArgsConfigsSimulator holds the configs for the chain simulator
@@ -103,10 +106,10 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 	configs.GeneralConfig.SmartContractsStorageForSCQuery.DB.Type = string(storageunit.MemoryDB)
 	configs.GeneralConfig.SmartContractsStorageSimulate.DB.Type = string(storageunit.MemoryDB)
 
-	maxNumNodes := uint64((args.MinNodesPerShard+args.NumNodesWaitingListShard)*args.NumOfShards) +
-		uint64(args.MetaChainMinNodes+args.NumNodesWaitingListMeta)
+	eligibleNodes := args.MinNodesPerShard*args.NumOfShards + args.MetaChainMinNodes
+	waitingNodes := args.NumNodesWaitingListShard*args.NumOfShards + args.NumNodesWaitingListMeta
 
-	SetMaxNumberOfNodesInConfigs(configs, maxNumNodes, args.NumOfShards)
+	SetMaxNumberOfNodesInConfigs(configs, eligibleNodes, waitingNodes, args.NumOfShards)
 
 	// set compatible trie configs
 	configs.GeneralConfig.StateTriesConfig.SnapshotsEnabled = false
@@ -141,17 +144,23 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 }
 
 // SetMaxNumberOfNodesInConfigs will correctly set the max number of nodes in configs
-func SetMaxNumberOfNodesInConfigs(cfg *config.Configs, maxNumNodes uint64, numOfShards uint32) {
-	cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake = maxNumNodes
+func SetMaxNumberOfNodesInConfigs(cfg *config.Configs, eligibleNodes uint32, waitingNodes uint32, numOfShards uint32) {
+	cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake = uint64(eligibleNodes + waitingNodes)
 	numMaxNumNodesEnableEpochs := len(cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch)
 	for idx := 0; idx < numMaxNumNodesEnableEpochs-1; idx++ {
-		cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[idx].MaxNumNodes = uint32(maxNumNodes)
+		cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[idx].MaxNumNodes = eligibleNodes + waitingNodes
 	}
 
 	cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[numMaxNumNodesEnableEpochs-1].EpochEnable = cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch
 	prevEntry := cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[numMaxNumNodesEnableEpochs-2]
 	cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[numMaxNumNodesEnableEpochs-1].NodesToShufflePerShard = prevEntry.NodesToShufflePerShard
-	cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[numMaxNumNodesEnableEpochs-1].MaxNumNodes = prevEntry.MaxNumNodes - (numOfShards+1)*prevEntry.NodesToShufflePerShard
+
+	stakingV4NumNodes := eligibleNodes + waitingNodes
+	if stakingV4NumNodes-(numOfShards+1)*prevEntry.NodesToShufflePerShard >= eligibleNodes {
+		// prevent the case in which we are decreasing the eligible number of nodes because we are working with 0 waiting list size
+		stakingV4NumNodes -= (numOfShards + 1) * prevEntry.NodesToShufflePerShard
+	}
+	cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[numMaxNumNodesEnableEpochs-1].MaxNumNodes = stakingV4NumNodes
 }
 
 // SetQuickJailRatingConfig will set the rating config in a way that leads to rapid jailing of a node
@@ -268,9 +277,8 @@ func generateValidatorsKeyAndUpdateFiles(
 	nodes.RoundDuration = args.RoundDurationInMillis
 	nodes.StartTime = args.GenesisTimeStamp
 
-	// TODO fix this to can be configurable
-	nodes.ConsensusGroupSize = 1
-	nodes.MetaChainConsensusGroupSize = 1
+	nodes.ConsensusGroupSize = args.ConsensusGroupSize
+	nodes.MetaChainConsensusGroupSize = args.MetaChainConsensusGroupSize
 	nodes.Hysteresis = 0
 
 	nodes.MinNodesPerShard = args.MinNodesPerShard

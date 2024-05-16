@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -22,6 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/update"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 )
 
 type coreComponentsHandler interface {
@@ -50,7 +52,11 @@ type runTypeComponentsHandler interface {
 	TransactionCoordinatorCreator() coordinator.TransactionCoordinatorCreator
 	SCResultsPreProcessorCreator() preprocess.SmartContractResultPreProcessorCreator
 	SCProcessorCreator() scrCommon.SCProcessorCreator
+	AccountsParser() genesis.AccountsParser
 	AccountsCreator() state.AccountFactory
+	ShardCoordinatorCreator() sharding.ShardCoordinatorFactory
+	TxPreProcessorCreator() preprocess.TxPreProcessorCreator
+	VMContextCreator() systemSmartContracts.VMContextCreatorHandler
 	IsInterfaceNil() bool
 }
 
@@ -68,7 +74,6 @@ type ArgsGenesisBlockCreator struct {
 	InitialNodesSetup       genesis.InitialNodesHandler
 	Economics               process.EconomicsDataHandler
 	ShardCoordinator        sharding.Coordinator
-	AccountsParser          genesis.AccountsParser
 	SmartContractParser     genesis.InitialSmartContractParser
 	GasSchedule             core.GasScheduleNotifier
 	TxLogsProcessor         process.TransactionLogProcessor
@@ -83,7 +88,6 @@ type ArgsGenesisBlockCreator struct {
 	BlockSignKeyGen         crypto.KeyGenerator
 	HistoryRepository       dblookupext.HistoryRepository
 	TxExecutionOrderHandler common.TxExecutionOrderHandler
-	TxPreprocessorCreator   preprocess.TxPreProcessorCreator
 	RunTypeComponents       runTypeComponentsHandler
 	Config                  config.Config
 
@@ -94,6 +98,5 @@ type ArgsGenesisBlockCreator struct {
 	importHandler          update.ImportHandler
 	versionedHeaderFactory genesis.VersionedHeaderFactory
 
-	ShardCoordinatorFactory sharding.ShardCoordinatorFactory
-	DNSV2Addresses          []string
+	DNSV2Addresses []string
 }

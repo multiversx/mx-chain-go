@@ -11,6 +11,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
+
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/config"
@@ -34,7 +36,6 @@ import (
 	hardfork "github.com/multiversx/mx-chain-go/update/genesis"
 	hardForkProcess "github.com/multiversx/mx-chain-go/update/process"
 	"github.com/multiversx/mx-chain-go/update/storing"
-	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
 )
 
 const accountStartNonce = uint64(0)
@@ -184,17 +185,11 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 	if check.IfNil(arg.Data.Datapool()) {
 		return process.ErrNilPoolsHolder
 	}
-	if check.IfNil(arg.AccountsParser) {
-		return genesis.ErrNilAccountsParser
-	}
 	if check.IfNil(arg.GasSchedule) {
 		return process.ErrNilGasSchedule
 	}
 	if check.IfNil(arg.SmartContractParser) {
 		return genesis.ErrNilSmartContractParser
-	}
-	if check.IfNil(arg.ShardCoordinatorFactory) {
-		return errors.ErrNilShardCoordinatorFactory
 	}
 	if check.IfNil(arg.RunTypeComponents) {
 		return errors.ErrNilRunTypeComponents
@@ -205,11 +200,23 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 	if check.IfNil(arg.RunTypeComponents.SCResultsPreProcessorCreator()) {
 		return errors.ErrNilSCResultsPreProcessorCreator
 	}
+	if check.IfNil(arg.RunTypeComponents.SCProcessorCreator()) {
+		return errors.ErrNilSCProcessorCreator
+	}
 	if check.IfNil(arg.RunTypeComponents.TransactionCoordinatorCreator()) {
 		return errors.ErrNilTransactionCoordinatorCreator
 	}
+	if check.IfNil(arg.RunTypeComponents.AccountsParser()) {
+		return errors.ErrNilAccountsParser
+	}
 	if check.IfNil(arg.RunTypeComponents.AccountsCreator()) {
 		return state.ErrNilAccountFactory
+	}
+	if check.IfNil(arg.RunTypeComponents.ShardCoordinatorCreator()) {
+		return errors.ErrNilShardCoordinatorFactory
+	}
+	if check.IfNil(arg.RunTypeComponents.TxPreProcessorCreator()) {
+		return errors.ErrNilTxPreProcessorCreator
 	}
 	if arg.TrieStorageManagers == nil {
 		return genesis.ErrNilTrieStorageManager
@@ -341,7 +348,7 @@ func (gbc *genesisBlockCreator) createGenesisBlocksArgs(shardIDs []uint32) (*hea
 		}
 	}
 
-	nodesListSplitter, err := intermediate.NewNodesListSplitter(gbc.arg.InitialNodesSetup, gbc.arg.AccountsParser)
+	nodesListSplitter, err := intermediate.NewNodesListSplitter(gbc.arg.InitialNodesSetup, gbc.arg.RunTypeComponents.AccountsParser())
 	if err != nil {
 		return nil, err
 	}
@@ -533,7 +540,7 @@ func (gbc *genesisBlockCreator) getNewArgForShard(shardID uint32) (ArgsGenesisBl
 			err, shardID)
 	}
 
-	newArgument.ShardCoordinator, err = gbc.arg.ShardCoordinatorFactory.CreateShardCoordinator(
+	newArgument.ShardCoordinator, err = gbc.arg.RunTypeComponents.ShardCoordinatorCreator().CreateShardCoordinator(
 		newArgument.ShardCoordinator.NumberOfShards(),
 		shardID,
 	)
@@ -589,7 +596,7 @@ func (gbc *genesisBlockCreator) checkDelegationsAgainstDeployedSC(
 		return nil
 	}
 
-	initialAccounts := arg.AccountsParser.InitialAccounts()
+	initialAccounts := arg.RunTypeComponents.AccountsParser().InitialAccounts()
 	for _, ia := range initialAccounts {
 		dh := ia.GetDelegationHandler()
 		if check.IfNil(dh) {
