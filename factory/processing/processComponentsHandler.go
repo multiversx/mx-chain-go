@@ -689,18 +689,6 @@ func (m *managedProcessComponents) EpochSystemSCProcessor() process.EpochStartSy
 	return m.processComponents.epochSystemSCProcessor
 }
 
-// IncomingHeaderHandler returns the incoming header handler
-func (m *managedProcessComponents) IncomingHeaderHandler() process.IncomingHeaderSubscriber {
-	m.mutProcessComponents.RLock()
-	defer m.mutProcessComponents.RUnlock()
-
-	if m.processComponents == nil {
-		return nil
-	}
-
-	return m.processComponents.incomingHeaderHandler
-}
-
 // IsInterfaceNil returns true if the interface is nil
 func (mpc *managedProcessComponents) IsInterfaceNil() bool {
 	return mpc == nil

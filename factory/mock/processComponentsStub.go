@@ -59,7 +59,6 @@ type ProcessComponentsMock struct {
 	ReceiptsRepositoryInternal           factory.ReceiptsRepository
 	SentSignaturesTrackerInternal        process.SentSignaturesTracker
 	EpochSystemSCProcessorInternal       process.EpochStartSystemSCProcessor
-	IncomingHeadersHandler               process.IncomingHeaderSubscriber
 }
 
 // Create -
@@ -290,11 +289,6 @@ func (pcm *ProcessComponentsMock) SentSignaturesTracker() process.SentSignatures
 // EpochSystemSCProcessor -
 func (pcm *ProcessComponentsMock) EpochSystemSCProcessor() process.EpochStartSystemSCProcessor {
 	return pcm.EpochSystemSCProcessorInternal
-}
-
-// IncomingHeaderHandler -
-func (pcs *ProcessComponentsMock) IncomingHeaderHandler() process.IncomingHeaderSubscriber {
-	return pcs.IncomingHeadersHandler
 }
 
 // IsInterfaceNil -
