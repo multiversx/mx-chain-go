@@ -24,4 +24,5 @@ type ChainSimulator interface {
 	GetAccount(address dtos.WalletAddress) (api.AccountResponse, error)
 	ForceResetValidatorStatisticsCache() error
 	GetValidatorPrivateKeys() []crypto.PrivateKey
+	Close()
 }

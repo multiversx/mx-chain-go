@@ -36,7 +36,8 @@ type txLogProcessor struct {
 }
 
 // NewTxLogProcessor creates a transaction log processor capable of parsing logs from the VM
-//  and saving them into the injected storage
+//
+//	and saving them into the injected storage
 func NewTxLogProcessor(args ArgTxLogProcessor) (*txLogProcessor, error) {
 	storer := args.Storer
 	if check.IfNil(storer) && args.SaveInStorageEnabled {
@@ -161,25 +162,54 @@ func (tlp *txLogProcessor) SaveLog(txHash []byte, tx data.TransactionHandler, lo
 		})
 	}
 
+	tlp.mut.Lock()
+	defer tlp.mut.Unlock()
+
 	tlp.saveLogToCache(txHash, txLog)
 
-	buff, err := tlp.marshalizer.Marshal(txLog)
+	return tlp.appendLogToStorer(txHash, txLog)
+}
+
+func (tlp *txLogProcessor) appendLogToStorer(txHash []byte, newLog *transaction.Log) error {
+	oldLogsBuff, errGet := tlp.storer.Get(txHash)
+	nilStorerResponse := errGet == nil && len(oldLogsBuff) == 0
+	if errGet == storage.ErrKeyNotFound || nilStorerResponse {
+		allLogsBuff, err := tlp.marshalizer.Marshal(newLog)
+		if err != nil {
+			return err
+		}
+
+		return tlp.storer.Put(txHash, allLogsBuff)
+	}
+	if errGet != nil {
+		return errGet
+	}
+
+	oldLogs := &transaction.Log{}
+	err := tlp.marshalizer.Unmarshal(oldLogs, oldLogsBuff)
 	if err != nil {
 		return err
 	}
 
-	return tlp.storer.Put(txHash, buff)
+	if oldLogs.Address == nil {
+		oldLogs.Address = newLog.Address
+	}
+	oldLogs.Events = append(oldLogs.Events, newLog.Events...)
+
+	allLogsBuff, err := tlp.marshalizer.Marshal(oldLogs)
+	if err != nil {
+		return err
+	}
+
+	return tlp.storer.Put(txHash, allLogsBuff)
 }
 
 func (tlp *txLogProcessor) saveLogToCache(txHash []byte, log *transaction.Log) {
-	tlp.mut.Lock()
 	tlp.logs = append(tlp.logs, &data.LogData{
 		TxHash:     string(txHash),
 		LogHandler: log,
 	})
 	tlp.logsIndices[string(txHash)] = len(tlp.logs) - 1
-	tlp.mut.Unlock()
-
 }
 
 // For SC deployment transactions, we use the sender address
