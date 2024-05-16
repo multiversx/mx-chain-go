@@ -29,7 +29,7 @@ deployEsdtSafeContract() {
     ESDT_SAFE_ADDRESS=$(mxpy data load --partition=${CHAIN_ID} --key=address-esdt-safe-contract)
     echo -e "ESDT Safe contract: ${ADDRESS}"
 
-    local SOVEREIGN_CONTRACT_ADDRESS=$(firstSovereignContractAddress)
+    local SOVEREIGN_CONTRACT_ADDRESS=$(computeFirstSovereignContractAddress)
     mxpy data store --partition=sovereign --key=address-esdt-safe-contract --value=${SOVEREIGN_CONTRACT_ADDRESS}
     ESDT_SAFE_ADDRESS_SOVEREIGN=$(mxpy data load --partition=sovereign --key=address-esdt-safe-contract)
     echo -e "ESDT Safe sovereign contract: ${SOVEREIGN_CONTRACT_ADDRESS}"
@@ -138,7 +138,7 @@ setFeeMarketAddressCall() {
 }
 
 setMultisigAddress() {
-    CHECK_VARIABLES ESDT_SAFE_ADDRESS MULTISIG_VERIFIER_ADDRESS || return
+    checkVariables ESDT_SAFE_ADDRESS MULTISIG_VERIFIER_ADDRESS || return
 
     mxpy --verbose contract call ${ESDT_SAFE_ADDRESS} \
         --pem=${WALLET} \
@@ -153,7 +153,7 @@ setMultisigAddress() {
 }
 
 setSovereignBridgeAddress() {
-    CHECK_VARIABLES ESDT_SAFE_ADDRESS ESDT_SAFE_ADDRESS_SOVEREIGN || return
+    checkVariables ESDT_SAFE_ADDRESS ESDT_SAFE_ADDRESS_SOVEREIGN || return
 
     mxpy --verbose contract call ${ESDT_SAFE_ADDRESS} \
         --pem=${WALLET} \

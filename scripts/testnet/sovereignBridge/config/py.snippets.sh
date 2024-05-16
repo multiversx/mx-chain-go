@@ -1,9 +1,9 @@
-firstSovereignContractAddress() {
-    echo $(python3 $SCRIPT_PATH/pyScripts/next_contract.py $WALLET_ADDRESS 0)
+computeFirstSovereignContractAddress() {
+    echo $(python3 $SCRIPT_PATH/pyScripts/compute_contract_address.py $WALLET_ADDRESS 0)
 }
 
-secondSovereignContractAddress() {
-    echo $(python3 $SCRIPT_PATH/pyScripts/next_contract.py $WALLET_ADDRESS 1)
+computeSecondSovereignContractAddress() {
+    echo $(python3 $SCRIPT_PATH/pyScripts/compute_contract_address.py $WALLET_ADDRESS 1)
 }
 
 getShardOfAddress() {

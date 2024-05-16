@@ -23,13 +23,13 @@ issueToken() {
 
     local HEX_TOKEN_IDENTIFIER=$(mxpy data parse --file="${SCRIPT_PATH}/issue-token.interaction.json"  --expression="data['transactionOnNetwork']['logs']['events'][2]['topics'][0]")
     local TOKEN_IDENTIFIER=$(echo "$HEX_TOKEN_IDENTIFIER" | xxd -r -p)
-    update-config DEPOSIT_TOKEN_IDENTIFIER $TOKEN_IDENTIFIER
+    updateConfig DEPOSIT_TOKEN_IDENTIFIER $TOKEN_IDENTIFIER
 }
 
 depositTokenInSC() {
     manualUpdateConfigFile #update config file
 
-    CHECK_VARIABLES DEPOSIT_TOKEN_IDENTIFIER DEPOSIT_TOKEN_NR_DECIMALS DEPOSIT_TOKEN_AMOUNT_TO_TRANSFER || return
+    checkVariables DEPOSIT_TOKEN_IDENTIFIER DEPOSIT_TOKEN_NR_DECIMALS DEPOSIT_TOKEN_AMOUNT_TO_TRANSFER || return
 
     local AMOUNT_TO_TRANSFER=$(echo "scale=0; $DEPOSIT_TOKEN_AMOUNT_TO_TRANSFER*10^$DEPOSIT_TOKEN_NR_DECIMALS/1" | bc)
 
@@ -80,11 +80,11 @@ issueTokenSovereign() {
 
     local HEX_TOKEN_IDENTIFIER=$(mxpy data parse --file="${SCRIPT_PATH}/issue-sovereign-token.interaction.json"  --expression="data['transactionOnNetwork']['logs']['events'][2]['topics'][0]")
     local TOKEN_IDENTIFIER=$(echo "$HEX_TOKEN_IDENTIFIER" | xxd -r -p)
-    update-config DEPOSIT_TOKEN_IDENTIFIER_SOVEREIGN $TOKEN_IDENTIFIER
+    updateConfig DEPOSIT_TOKEN_IDENTIFIER_SOVEREIGN $TOKEN_IDENTIFIER
 }
 
 registerToken() {
-    CHECK_VARIABLES DEPOSIT_TOKEN_IDENTIFIER_SOVEREIGN || return
+    checkVariables DEPOSIT_TOKEN_IDENTIFIER_SOVEREIGN || return
 
     mxpy --verbose contract call ${ESDT_SAFE_ADDRESS} \
         --pem=${WALLET} \
@@ -105,7 +105,7 @@ registerToken() {
 }
 
 setLocalBurnRoleSovereign() {
-    CHECK_VARIABLES DEPOSIT_TOKEN_IDENTIFIER_SOVEREIGN ESDT_SAFE_ADDRESS_SOVEREIGN || return
+    checkVariables DEPOSIT_TOKEN_IDENTIFIER_SOVEREIGN ESDT_SAFE_ADDRESS_SOVEREIGN || return
 
     mxpy --verbose contract call ${ESDT_SYSTEM_SC_ADDRESS} \
         --pem=${WALLET} \
@@ -123,7 +123,7 @@ setLocalBurnRoleSovereign() {
 }
 
 depositTokenInSCSovereign() {
-    CHECK_VARIABLES DEPOSIT_TOKEN_IDENTIFIER_SOVEREIGN DEPOSIT_TOKEN_NR_DECIMALS_SOVEREIGN DEPOSIT_TOKEN_AMOUNT_TO_TRANSFER_SOVEREIGN || return
+    checkVariables DEPOSIT_TOKEN_IDENTIFIER_SOVEREIGN DEPOSIT_TOKEN_NR_DECIMALS_SOVEREIGN DEPOSIT_TOKEN_AMOUNT_TO_TRANSFER_SOVEREIGN || return
 
     local AMOUNT_TO_TRANSFER=$(echo "scale=0; $DEPOSIT_TOKEN_AMOUNT_TO_TRANSFER_SOVEREIGN*10^$DEPOSIT_TOKEN_NR_DECIMALS_SOVEREIGN/1" | bc)
 

@@ -2,7 +2,7 @@ FEE_MARKET_ADDRESS=$(mxpy data load --partition=${CHAIN_ID} --key=address-fee-ma
 FEE_MARKET_ADDRESS_SOVEREIGN=$(mxpy data load --partition=sovereign --key=address-fee-market-contract)
 
 deployFeeMarketContract() {
-    CHECK_VARIABLES ESDT_SAFE_ADDRESS || return
+    checkVariables ESDT_SAFE_ADDRESS || return
 
     mxpy --verbose contract deploy \
         --bytecode=$(eval echo ${FEE_MARKET_WASM}) \
@@ -13,8 +13,8 @@ deployFeeMarketContract() {
         --arguments \
             ${ESDT_SAFE_ADDRESS} \
             ${PRICE_AGGREGATOR_ADDRESS} \
-            str:USDC-350c4e \
-            str:WEGLD-a28c59 \
+            str:${USDC_TOKEN_ID} \
+            str:${WEGLD_TOKEN_ID} \
         --outfile="${SCRIPT_PATH}/deploy-fee-market.interaction.json" \
         --recall-nonce \
         --wait-result \
@@ -31,14 +31,14 @@ deployFeeMarketContract() {
     FEE_MARKET_ADDRESS=$(mxpy data load --partition=${CHAIN_ID} --key=address-fee-market-contract)
     echo -e "Fee Market contract: ${ADDRESS}"
 
-    local SOVEREIGN_CONTRACT_ADDRESS=$(secondSovereignContractAddress)
+    local SOVEREIGN_CONTRACT_ADDRESS=$(computeSecondSovereignContractAddress)
     mxpy data store --partition=sovereign --key=address-fee-market-contract --value=${SOVEREIGN_CONTRACT_ADDRESS}
     FEE_MARKET_ADDRESS_SOVEREIGN=$(mxpy data load --partition=sovereign --key=address-fee-market-contract)
     echo -e "Fee Market sovereign contract: ${SOVEREIGN_CONTRACT_ADDRESS}"
 }
 
 upgradeFeeMarketContract() {
-    CHECK_VARIABLES ESDT_SAFE_ADDRESS || return
+    checkVariables ESDT_SAFE_ADDRESS || return
 
     mxpy --verbose contract upgrade ${FEE_MARKET_ADDRESS} \
         --bytecode=$(eval echo ${FEE_MARKET_WASM}) \
@@ -161,6 +161,7 @@ setAnyTokenFeeMarketContractCall() {
         echo "NOT IMPLEMENTED YET"
 }
 
+# distribute all the fees to wallet
 distributeFees() {
     mxpy --verbose contract call ${FEE_MARKET_ADDRESS} \
         --pem=${WALLET} \

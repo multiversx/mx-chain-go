@@ -61,7 +61,7 @@ def main():
         lines = file.readlines()
 
     updated_lines = update_notarization_round(lines, "MainChainNotarization", "MainChainNotarizationStartRound",
-                                              current_round)
+                                              current_round + 5)
 
     with open(toml_path, 'w') as file:
         file.writelines(updated_lines)
