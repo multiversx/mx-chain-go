@@ -9,10 +9,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
-	"github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ process.DataMarshalizer = (*basePostProcessor)(nil)
@@ -275,13 +276,17 @@ func (bpp *basePostProcessor) addIntermediateTxToResultsForBlock(
 	txHash []byte,
 	sndShardID uint32,
 	rcvShardID uint32,
+	key []byte,
 ) {
 	addScrShardInfo := &txShardInfo{receiverShardID: rcvShardID, senderShardID: sndShardID}
 	scrInfo := &txInfo{tx: txHandler, txShardInfo: addScrShardInfo, index: bpp.index}
 	bpp.index++
 	bpp.interResultsForBlock[string(txHash)] = scrInfo
 
-	for key := range bpp.mapProcessedResult {
-		bpp.mapProcessedResult[key] = append(bpp.mapProcessedResult[key], txHash)
+	value, ok := bpp.mapProcessedResult[string(key)]
+	if !ok {
+		return
 	}
+
+	bpp.mapProcessedResult[string(key)] = append(value, txHash)
 }

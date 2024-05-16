@@ -15,6 +15,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
@@ -24,7 +26,6 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/cache"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ process.TransactionCoordinator = (*transactionCoordinator)(nil)
@@ -1831,14 +1832,14 @@ func checkTransactionCoordinatorNilParameters(arguments ArgTransactionCoordinato
 }
 
 // AddIntermediateTransactions adds the given intermediate transactions
-func (tc *transactionCoordinator) AddIntermediateTransactions(mapSCRs map[block.Type][]data.TransactionHandler) error {
+func (tc *transactionCoordinator) AddIntermediateTransactions(mapSCRs map[block.Type][]data.TransactionHandler, key []byte) error {
 	for blockType, scrs := range mapSCRs {
 		interimProc := tc.getInterimProcessor(blockType)
 		if check.IfNil(interimProc) {
 			return process.ErrNilIntermediateProcessor
 		}
 
-		err := interimProc.AddIntermediateTransactions(scrs)
+		err := interimProc.AddIntermediateTransactions(scrs, key)
 		if err != nil {
 			return err
 		}
