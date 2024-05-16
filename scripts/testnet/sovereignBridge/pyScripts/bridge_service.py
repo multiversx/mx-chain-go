@@ -17,11 +17,11 @@ def update_env(lines, identifier, value) -> []:
     return updated_lines
 
 
-def build_and_run_server(server_path):
+def build_and_run_bridge_server(server_path):
     os.chdir(server_path)
 
     build_command = "go build"
-    run_service = "screen -L -Logfile sovereignBridgeService.txt -d -m -S sovereignBridgeService ./server"
+    run_service = "screen -L -Logfile sovereignBridgeService.log -d -m -S sovereignBridgeService ./server"
 
     build_process = subprocess.run(build_command, shell=True, capture_output=True, text=True)
     if build_process.returncode == 0:
@@ -67,7 +67,7 @@ def main():
     with open(env_path, 'w') as file:
         file.writelines(updated_lines)
 
-    build_and_run_server(server_path)
+    build_and_run_bridge_server(server_path)
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-deployAll() {
+deployMainChainContractsAndSetupObserver() {
     deployEsdtSafeContract
 
     deployFeeMarketContract
@@ -16,7 +16,7 @@ deployAll() {
     prepareObserver
 }
 
-sovereignInit() {
+sovereignDeploy() {
     updateNotifierNotarizationRound
 
     ../config.sh
@@ -44,7 +44,7 @@ sovereignInit() {
     unpauseEsdtSafeContractSovereign
 }
 
-stopSovereign() {
+stopAndCleanSovereign() {
     ../stop.sh
 
     screen -S sovereignBridgeService -X kill

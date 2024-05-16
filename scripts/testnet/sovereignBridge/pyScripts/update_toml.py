@@ -3,7 +3,7 @@ import sys
 import re
 
 
-def update_toml(lines, section, identifier, main_chain_address) -> []:
+def update_subscribed_addresses(lines, section, identifier, main_chain_address) -> []:
     updated_lines = []
     section_found = False
 
@@ -32,9 +32,9 @@ def main():
     with open(toml_path, 'r') as file:
         lines = file.readlines()
 
-    updated_lines = update_toml(lines, "OutgoingSubscribedEvents", "deposit", sovereign_chain_address)
-    updated_lines = update_toml(updated_lines, "NotifierConfig", "deposit", main_chain_address)
-    updated_lines = update_toml(updated_lines, "NotifierConfig", "execute", main_chain_address)
+    updated_lines = update_subscribed_addresses(lines, "OutgoingSubscribedEvents", "deposit", sovereign_chain_address)
+    updated_lines = update_subscribed_addresses(updated_lines, "NotifierConfig", "deposit", main_chain_address)
+    updated_lines = update_subscribed_addresses(updated_lines, "NotifierConfig", "execute", main_chain_address)
 
     with open(toml_path, 'w') as file:
         file.writelines(updated_lines)

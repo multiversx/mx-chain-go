@@ -169,7 +169,7 @@ distributeFees() {
         --gas-limit=20000000 \
         --function="distributeFees" \
         --arguments \
-           ${WALLET} \
+           ${WALLET_ADDRESS} \
            0x2710 \
         --recall-nonce \
         --wait-result \

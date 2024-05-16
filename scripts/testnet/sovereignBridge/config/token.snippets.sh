@@ -65,7 +65,7 @@ issueTokenSovereign() {
         --proxy=${PROXY_SOVEREIGN} \
         --chain=${CHAIN_ID_SOVEREIGN} \
         --gas-limit=60000000 \
-        --value=50000000000000000 \
+        --value=${ESDT_ISSUE_COST} \
         --function="issue" \
         --arguments \
             str:${TOKEN_DISPLAY_NAME_SOVEREIGN} \
@@ -86,22 +86,22 @@ issueTokenSovereign() {
 registerToken() {
     CHECK_VARIABLES DEPOSIT_TOKEN_IDENTIFIER_SOVEREIGN || return
 
-     mxpy --verbose contract call ${ESDT_SAFE_ADDRESS} \
-            --pem=${WALLET} \
-            --proxy=${PROXY} \
-            --chain=${CHAIN_ID} \
-            --gas-limit=100000000 \
-            --function="registerToken" \
-            --value=50000000000000000 \
-            --arguments \
-               str:${DEPOSIT_TOKEN_IDENTIFIER_SOVEREIGN} \
-               0 \
-               str:SovToken \
-               str:SOVT \
-               0x12 \
-            --recall-nonce \
-            --wait-result \
-            --send || return
+    mxpy --verbose contract call ${ESDT_SAFE_ADDRESS} \
+        --pem=${WALLET} \
+        --proxy=${PROXY} \
+        --chain=${CHAIN_ID} \
+        --gas-limit=100000000 \
+        --function="registerToken" \
+        --value=${ESDT_ISSUE_COST} \
+        --arguments \
+            str:${DEPOSIT_TOKEN_IDENTIFIER_SOVEREIGN} \
+            0 \
+            str:${TOKEN_DISPLAY_NAME_SOVEREIGN} \
+            str:${TOKEN_TICKER_SOVEREIGN} \
+            ${NR_DECIMALS_SOVEREIGN} \
+        --recall-nonce \
+        --wait-result \
+        --send || return
 }
 
 setLocalBurnRoleSovereign() {
@@ -114,9 +114,9 @@ setLocalBurnRoleSovereign() {
         --gas-limit=60000000 \
         --function="setSpecialRole" \
         --arguments \
-           str:${DEPOSIT_TOKEN_IDENTIFIER_SOVEREIGN} \
-           ${ESDT_SAFE_ADDRESS_SOVEREIGN} \
-           str:ESDTRoleLocalBurn \
+            str:${DEPOSIT_TOKEN_IDENTIFIER_SOVEREIGN} \
+            ${ESDT_SAFE_ADDRESS_SOVEREIGN} \
+            str:ESDTRoleLocalBurn \
         --recall-nonce \
         --wait-result \
         --send || return
