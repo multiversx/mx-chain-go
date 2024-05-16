@@ -57,6 +57,7 @@ type ProcessComponentsMock struct {
 	AccountsParserInternal               genesis.AccountsParser
 	ReceiptsRepositoryInternal           factory.ReceiptsRepository
 	SentSignaturesTrackerInternal        process.SentSignaturesTracker
+	EpochSystemSCProcessorInternal       process.EpochStartSystemSCProcessor
 }
 
 // Create -
@@ -282,6 +283,11 @@ func (pcm *ProcessComponentsMock) ReceiptsRepository() factory.ReceiptsRepositor
 // SentSignaturesTracker -
 func (pcm *ProcessComponentsMock) SentSignaturesTracker() process.SentSignaturesTracker {
 	return pcm.SentSignaturesTrackerInternal
+}
+
+// EpochSystemSCProcessor -
+func (pcm *ProcessComponentsMock) EpochSystemSCProcessor() process.EpochStartSystemSCProcessor {
+	return pcm.EpochSystemSCProcessorInternal
 }
 
 // IsInterfaceNil -

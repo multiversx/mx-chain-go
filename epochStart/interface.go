@@ -159,6 +159,7 @@ type StakingDataProvider interface {
 	ComputeUnQualifiedNodes(validatorInfos state.ShardValidatorsInfoMapHandler) ([][]byte, map[string][][]byte, error)
 	GetBlsKeyOwner(blsKey []byte) (string, error)
 	GetNumOfValidatorsInCurrentEpoch() uint32
+	GetCurrentEpochValidatorStats() ValidatorStatsInEpoch
 	GetOwnersData() map[string]*OwnerData
 	Clean()
 	IsInterfaceNil() bool

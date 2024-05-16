@@ -41,8 +41,8 @@ func (s *sovereignBlockProcessorFactory) CreateBlockProcessor(argumentsBaseProce
 	outgoingOpFormatter, err := sovereign.CreateOutgoingOperationsFormatter(
 		argumentsBaseProcessor.Config.SovereignConfig.OutgoingSubscribedEvents.SubscribedEvents,
 		argumentsBaseProcessor.CoreComponents.AddressPubKeyConverter(),
-		argumentsBaseProcessor.DataCodec,
-		argumentsBaseProcessor.TopicsChecker)
+		argumentsBaseProcessor.RunTypeComponents.DataCodecHandler(),
+		argumentsBaseProcessor.RunTypeComponents.TopicsCheckerHandler())
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +56,7 @@ func (s *sovereignBlockProcessorFactory) CreateBlockProcessor(argumentsBaseProce
 		ShardProcessor:               shardProc,
 		ValidatorStatisticsProcessor: argumentsBaseProcessor.ValidatorStatisticsProcessor,
 		OutgoingOperationsFormatter:  outgoingOpFormatter,
-		OutGoingOperationsPool:       argumentsBaseProcessor.OutGoingOperationsPool,
+		OutGoingOperationsPool:       argumentsBaseProcessor.RunTypeComponents.OutGoingOperationsPoolHandler(),
 		OperationsHasher:             operationsHasher,
 	}
 

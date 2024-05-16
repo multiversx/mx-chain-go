@@ -5,14 +5,12 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/hashing"
-	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	dataComp "github.com/multiversx/mx-chain-go/factory/data"
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	processComp "github.com/multiversx/mx-chain-go/factory/processing"
+	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
 	disabledState "github.com/multiversx/mx-chain-go/state/disabled"
@@ -26,6 +24,10 @@ import (
 	storageManager "github.com/multiversx/mx-chain-go/testscommon/storage"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 )
@@ -45,7 +47,7 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 		_, err = pcf.Create()
 		require.NoError(t, err)
 
-		bp, err := pcf.NewBlockProcessor(
+		bp, epochStartSCProc, err := pcf.NewBlockProcessor(
 			&testscommon.RequestHandlerStub{},
 			&processMocks.ForkDetectorStub{},
 			&mock.EpochStartTriggerStub{},
@@ -65,14 +67,14 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 
 		require.NoError(t, err)
 		require.Equal(t, "*block.shardProcessor", fmt.Sprintf("%T", bp))
+		require.Equal(t, "*disabled.epochStartSystemSCProcessor", fmt.Sprintf("%T", epochStartSCProc))
 	})
 
 	t.Run("new block processor creator for shard in sovereign chain should work", func(t *testing.T) {
 		t.Parallel()
 
-		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-		args := componentsMock.GetProcessComponentsFactoryArgs(shardCoordinator)
-		args.RunTypeComponents = componentsMock.GetSovereignRunTypeComponents()
+		shardCoordinator := sharding.NewSovereignShardCoordinator(core.SovereignChainShardId)
+		args := componentsMock.GetSovereignProcessComponentsFactoryArgs(shardCoordinator)
 		pcf, err := processComp.NewProcessComponentsFactory(args)
 		require.NoError(t, err)
 		require.NotNil(t, pcf)
@@ -80,7 +82,7 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 		_, err = pcf.Create()
 		require.NoError(t, err)
 
-		bp, err := pcf.NewBlockProcessor(
+		bp, epochStartSCProc, err := pcf.NewBlockProcessor(
 			&testscommon.ExtendedShardHeaderRequestHandlerStub{},
 			&processMocks.ForkDetectorStub{},
 			&mock.EpochStartTriggerStub{},
@@ -100,6 +102,7 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 
 		require.NoError(t, err)
 		require.Equal(t, "*block.sovereignChainBlockProcessor", fmt.Sprintf("%T", bp))
+		require.Equal(t, "*disabled.epochStartSystemSCProcessor", fmt.Sprintf("%T", epochStartSCProc))
 	})
 }
 
@@ -207,7 +210,7 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 	_, err = pcf.Create()
 	require.NoError(t, err)
 
-	bp, err := pcf.NewBlockProcessor(
+	bp, epochStartSCProc, err := pcf.NewBlockProcessor(
 		&testscommon.RequestHandlerStub{},
 		&processMocks.ForkDetectorStub{},
 		&mock.EpochStartTriggerStub{},
@@ -227,6 +230,7 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotNil(t, bp)
+	require.Equal(t, "*metachain.systemSCProcessor", fmt.Sprintf("%T", epochStartSCProc))
 }
 
 func createAccountAdapter(

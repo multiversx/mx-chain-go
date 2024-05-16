@@ -6,10 +6,12 @@ import (
 	disabledStatistics "github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	mockFactory "github.com/multiversx/mx-chain-go/factory/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -28,8 +30,9 @@ func createArgsStateComponents() ArgsStateComponents {
 			AppStatusHandlerField:  &statusHandler.AppStatusHandlerStub{},
 			StateStatsHandlerField: disabledStatistics.NewStateStatistics(),
 		},
-		StoreService: genericMocks.NewChainStorerMock(0),
-		ChainHandler: &testscommon.ChainHandlerStub{},
+		StoreService:      genericMocks.NewChainStorerMock(0),
+		ChainHandler:      &testscommon.ChainHandlerStub{},
+		RunTypeComponents: components.GetRunTypeComponents(),
 	}
 }
 

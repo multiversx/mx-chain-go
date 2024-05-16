@@ -65,6 +65,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -609,6 +610,7 @@ func CreateVMAndBlockchainHookAndDataPool(
 		WasmVMChangeLocker:  wasmVMChangeLocker,
 		ESDTTransferParser:  esdtTransferParser,
 		Hasher:              integrationtests.TestHasher,
+		PubKeyConverter:     pubkeyConv,
 	}
 	vmFactory, err := shard.NewVMContainerFactory(argsNewVMFactory)
 	if err != nil {
@@ -692,22 +694,23 @@ func CreateVMAndBlockchainHookMeta(
 
 	blockChainHookImpl, _ := hooks.NewBlockChainHookImpl(args)
 	argVMContainer := metachain.ArgsNewVMContainerFactory{
-		BlockChainHook:      blockChainHookImpl,
-		PubkeyConv:          args.PubkeyConv,
-		Economics:           economicsData,
-		MessageSignVerifier: &mock.MessageSignVerifierMock{},
-		GasSchedule:         gasSchedule,
-		ArgBlockChainHook:   args,
-		NodesConfigProvider: &genesisMocks.NodesSetupStub{},
-		Hasher:              integrationtests.TestHasher,
-		Marshalizer:         integrationtests.TestMarshalizer,
-		SystemSCConfig:      createSystemSCConfig(),
-		ValidatorAccountsDB: validatorAccounts,
-		UserAccountsDB:      userAccounts,
-		ChanceComputer:      &shardingMocks.NodesCoordinatorMock{},
-		ShardCoordinator:    shardCoordinator,
-		EnableEpochsHandler: enableEpochsHandler,
-		NodesCoordinator:    &shardingMocks.NodesCoordinatorMock{},
+		BlockChainHook:          blockChainHookImpl,
+		PubkeyConv:              args.PubkeyConv,
+		Economics:               economicsData,
+		MessageSignVerifier:     &mock.MessageSignVerifierMock{},
+		GasSchedule:             gasSchedule,
+		ArgBlockChainHook:       args,
+		NodesConfigProvider:     &genesisMocks.NodesSetupStub{},
+		Hasher:                  integrationtests.TestHasher,
+		Marshalizer:             integrationtests.TestMarshalizer,
+		SystemSCConfig:          createSystemSCConfig(),
+		ValidatorAccountsDB:     validatorAccounts,
+		UserAccountsDB:          userAccounts,
+		ChanceComputer:          &shardingMocks.NodesCoordinatorMock{},
+		ShardCoordinator:        shardCoordinator,
+		EnableEpochsHandler:     enableEpochsHandler,
+		NodesCoordinator:        &shardingMocks.NodesCoordinatorMock{},
+		VMContextCreatorHandler: systemSmartContracts.NewVMContextCreator(),
 	}
 	vmFactory, err := metachain.NewVMContainerFactory(argVMContainer)
 	if err != nil {
@@ -796,6 +799,7 @@ func CreateVMConfigWithVersion(version string) *config.VirtualMachineConfig {
 			},
 		},
 		TimeOutForSCExecutionInMilliseconds: 10000, // 10 seconds
+		TransferAndExecuteByUserAddresses:   []string{"3132333435363738393031323334353637383930313233343536373839303234"},
 	}
 }
 

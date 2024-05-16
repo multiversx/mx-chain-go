@@ -1,12 +1,14 @@
 package block
 
 import (
-	"github.com/multiversx/mx-chain-core-go/data"
-	sovereignCore "github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-go/common"
+	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
+	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/state"
+
+	"github.com/multiversx/mx-chain-core-go/data"
 )
 
 type blockProcessor interface {
@@ -43,16 +45,6 @@ type crossNotarizer interface {
 	getLastCrossNotarizedHeaders() []bootstrapStorage.BootstrapHeaderInfo
 }
 
-// OutGoingOperationsPool defines the behavior of a timed cache for outgoing operations
-type OutGoingOperationsPool interface {
-	Add(data *sovereignCore.BridgeOutGoingData)
-	Get(hash []byte) *sovereignCore.BridgeOutGoingData
-	Delete(hash []byte)
-	GetUnconfirmedOperations() []*sovereignCore.BridgeOutGoingData
-	ConfirmOperation(hashOfHashes []byte, hash []byte) error
-	IsInterfaceNil() bool
-}
-
 // BlockProcessorCreator defines the block processor factory handler
 type BlockProcessorCreator interface {
 	CreateBlockProcessor(argumentsBaseProcessor ArgBaseProcessor) (process.DebuggerBlockProcessor, error)
@@ -67,5 +59,8 @@ type HeaderValidatorCreator interface {
 
 type runTypeComponentsHolder interface {
 	AccountsCreator() state.AccountFactory
+	OutGoingOperationsPoolHandler() sovereignBlock.OutGoingOperationsPool
+	DataCodecHandler() sovereign.DataCodecHandler
+	TopicsCheckerHandler() sovereign.TopicsCheckerHandler
 	IsInterfaceNil() bool
 }

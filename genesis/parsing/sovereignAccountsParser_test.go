@@ -5,13 +5,13 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/multiversx/mx-chain-go/genesis"
+	"github.com/multiversx/mx-chain-go/genesis/parsing"
+	"github.com/multiversx/mx-chain-go/sharding"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	coreData "github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
-	"github.com/multiversx/mx-chain-go/genesis"
-	"github.com/multiversx/mx-chain-go/genesis/data"
-	"github.com/multiversx/mx-chain-go/genesis/parsing"
-	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/stretchr/testify/require"
 )
 
@@ -32,7 +32,7 @@ func TestNewSovereignAccountsParser(t *testing.T) {
 	})
 }
 
-func txFoundForInitialAccount(tx *outport.TxInfo, accounts []*data.InitialAccount) bool {
+func txFoundForInitialAccount(tx *outport.TxInfo, accounts []genesis.InitialAccountHandler) bool {
 	for _, acc := range accounts {
 		if bytes.Equal(tx.GetTransaction().GetRcvAddr(), acc.AddressBytes()) &&
 			tx.GetTransaction().GetValue().Cmp(acc.GetSupply()) == 0 {
@@ -43,7 +43,7 @@ func txFoundForInitialAccount(tx *outport.TxInfo, accounts []*data.InitialAccoun
 	return false
 }
 
-func requireInitialTxMapContainsAccounts(t *testing.T, txMap map[string]*outport.TxInfo, accounts []*data.InitialAccount) {
+func requireInitialTxMapContainsAccounts(t *testing.T, txMap map[string]*outport.TxInfo, accounts []genesis.InitialAccountHandler) {
 	for _, tx := range txMap {
 		if !txFoundForInitialAccount(tx, accounts) {
 			require.Fail(t, "initial tx not found for accounts")
@@ -57,7 +57,7 @@ func TestSovereignAccountsParser_GenerateInitialTransactions(t *testing.T) {
 	accParser := parsing.NewTestAccountsParser(createMockHexPubkeyConverter())
 	sovAccParser, _ := parsing.NewSovereignAccountsParser(accParser)
 	balance := int64(1)
-	accounts := []*data.InitialAccount{
+	accounts := []genesis.InitialAccountHandler{
 		createSimpleInitialAccount("0001", balance),
 		createSimpleInitialAccount("0002", balance),
 	}

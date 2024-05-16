@@ -103,7 +103,7 @@ func (s *systemVM) RunSmartContractCreate(input *vmcommon.ContractCreateInput) (
 func (s *systemVM) RunSmartContractCall(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
 	s.systemEI.CleanCache()
 	s.systemEI.SetSCAddress(input.RecipientAddr)
-	s.systemEI.AddTxValueToSmartContract(input.CallValue, input.RecipientAddr)
+	s.systemEI.AddTxValueToSmartContract(input)
 	s.systemEI.SetGasProvided(input.GasProvided)
 
 	contract, err := s.systemEI.GetContract(input.RecipientAddr)

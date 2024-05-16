@@ -88,6 +88,15 @@ func (sdps *StakingDataProviderStub) GetNumOfValidatorsInCurrentEpoch() uint32 {
 	return 0
 }
 
+// GetCurrentEpochValidatorStats -
+func (sdps *StakingDataProviderStub) GetCurrentEpochValidatorStats() epochStart.ValidatorStatsInEpoch {
+	return epochStart.ValidatorStatsInEpoch{
+		Eligible: map[uint32]int{},
+		Waiting:  map[uint32]int{},
+		Leaving:  map[uint32]int{},
+	}
+}
+
 // GetOwnersData -
 func (sdps *StakingDataProviderStub) GetOwnersData() map[string]*epochStart.OwnerData {
 	if sdps.GetOwnersDataCalled != nil {

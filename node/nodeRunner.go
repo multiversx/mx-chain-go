@@ -3,7 +3,6 @@ package node
 import (
 	"fmt"
 	"io"
-	"math/big"
 	"os"
 	"os/signal"
 	"path"
@@ -13,13 +12,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/google/gops/agent"
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/core/closing"
-	"github.com/multiversx/mx-chain-core-go/core/throttler"
-	"github.com/multiversx/mx-chain-core-go/data/endProcess"
-	outportCore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-go/api/gin"
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/common"
@@ -32,8 +24,6 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
-	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
 	dbLookupFactory "github.com/multiversx/mx-chain-go/dblookupext/factory"
 	"github.com/multiversx/mx-chain-go/facade"
 	"github.com/multiversx/mx-chain-go/facade/initial"
@@ -52,16 +42,13 @@ import (
 	statusComp "github.com/multiversx/mx-chain-go/factory/status"
 	"github.com/multiversx/mx-chain-go/factory/statusCore"
 	"github.com/multiversx/mx-chain-go/genesis"
+	"github.com/multiversx/mx-chain-go/genesis/data"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
-	genesisProcess "github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/health"
 	"github.com/multiversx/mx-chain-go/node/metrics"
 	trieIteratorsFactory "github.com/multiversx/mx-chain-go/node/trieIterators/factory"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/block/preprocess"
-	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
-	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	"github.com/multiversx/mx-chain-go/process/rating"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -72,6 +59,14 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	trieStatistics "github.com/multiversx/mx-chain-go/trie/statistics"
 	"github.com/multiversx/mx-chain-go/update/trigger"
+
+	"github.com/google/gops/agent"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/closing"
+	"github.com/multiversx/mx-chain-core-go/core/throttler"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	outportCore "github.com/multiversx/mx-chain-core-go/data/outport"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -307,12 +302,6 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
-	log.Debug("creating runType components")
-	managedRunTypeComponents, err := nr.CreateManagedRunTypeComponents(managedCoreComponents)
-	if err != nil {
-		return true, err
-	}
-
 	log.Debug("creating status core components")
 	managedStatusCoreComponents, err := nr.CreateManagedStatusCoreComponents(managedCoreComponents)
 	if err != nil {
@@ -321,6 +310,12 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 
 	log.Debug("creating crypto components")
 	managedCryptoComponents, err := nr.CreateManagedCryptoComponents(managedCoreComponents)
+	if err != nil {
+		return true, err
+	}
+
+	log.Debug("creating runType components")
+	managedRunTypeComponents, err := nr.CreateManagedRunTypeComponents(managedCoreComponents, managedCryptoComponents)
 	if err != nil {
 		return true, err
 	}
@@ -406,7 +401,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedCoreComponents.EnableEpochsHandler(),
 		managedDataComponents.Datapool().CurrentEpochValidatorInfo(),
 		managedBootstrapComponents.NodesCoordinatorRegistryFactory(),
-		nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
+		managedRunTypeComponents.NodesCoordinatorWithRaterCreator(),
 	)
 	if err != nil {
 		return true, err
@@ -1195,29 +1190,6 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		return nil, err
 	}
 
-	totalSupply, ok := big.NewInt(0).SetString(configs.EconomicsConfig.GlobalSettings.GenesisTotalSupply, 10)
-	if !ok {
-		return nil, fmt.Errorf("can not parse total suply from economics.toml, %s is not a valid value",
-			configs.EconomicsConfig.GlobalSettings.GenesisTotalSupply)
-	}
-
-	mintingSenderAddress := configs.EconomicsConfig.GlobalSettings.GenesisMintingSenderAddress
-
-	args := genesis.AccountsParserArgs{
-		GenesisFilePath: configurationPaths.Genesis,
-		EntireSupply:    totalSupply,
-		MinterAddress:   mintingSenderAddress,
-		PubkeyConverter: coreComponents.AddressPubKeyConverter(),
-		KeyGenerator:    cryptoComponents.TxSignKeyGen(),
-		Hasher:          coreComponents.Hasher(),
-		Marshalizer:     coreComponents.InternalMarshalizer(),
-	}
-
-	accountsParser, err := parsing.NewAccountsParser(args)
-	if err != nil {
-		return nil, err
-	}
-
 	smartContractParser, err := parsing.NewSmartContractsParser(
 		configurationPaths.SmartContracts,
 		coreComponents.AddressPubKeyConverter(),
@@ -1267,44 +1239,33 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 	txExecutionOrderHandler := ordering.NewOrderedCollection()
 
 	processArgs := processComp.ProcessComponentsFactoryArgs{
-		Config:                                *configs.GeneralConfig,
-		EpochConfig:                           *configs.EpochConfig,
-		RoundConfig:                           *configs.RoundConfig,
-		PrefConfigs:                           *configs.PreferencesConfig,
-		ImportDBConfig:                        *configs.ImportDbConfig,
-		EconomicsConfig:                       *configs.EconomicsConfig,
-		AccountsParser:                        accountsParser,
-		SmartContractParser:                   smartContractParser,
-		GasSchedule:                           gasScheduleNotifier,
-		NodesCoordinator:                      nodesCoordinator,
-		Data:                                  dataComponents,
-		CoreData:                              coreComponents,
-		Crypto:                                cryptoComponents,
-		State:                                 stateComponents,
-		Network:                               networkComponents,
-		BootstrapComponents:                   bootstrapComponents,
-		StatusComponents:                      statusComponents,
-		StatusCoreComponents:                  statusCoreComponents,
-		RequestedItemsHandler:                 requestedItemsHandler,
-		WhiteListHandler:                      whiteListRequest,
-		WhiteListerVerifiedTxs:                whiteListerVerifiedTxs,
-		MaxRating:                             configs.RatingsConfig.General.MaxRating,
-		SystemSCConfig:                        configs.SystemSCConfig,
-		ImportStartHandler:                    importStartHandler,
-		HistoryRepo:                           historyRepository,
-		FlagsConfig:                           *configs.FlagsConfig,
-		TxExecutionOrderHandler:               txExecutionOrderHandler,
-		ShardCoordinatorFactory:               sharding.NewMultiShardCoordinatorFactory(),
-		GenesisBlockCreatorFactory:            genesisProcess.NewGenesisBlockCreatorFactory(),
-		GenesisMetaBlockChecker:               processComp.NewGenesisMetaBlockChecker(),
-		RequesterContainerFactoryCreator:      requesterscontainer.NewShardRequestersContainerFactoryCreator(),
-		InterceptorsContainerFactoryCreator:   interceptorscontainer.NewShardInterceptorsContainerFactoryCreator(),
-		ShardResolversContainerFactoryCreator: resolverscontainer.NewShardResolversContainerFactoryCreator(),
-		TxPreProcessorCreator:                 preprocess.NewTxPreProcessorCreator(),
-		ExtraHeaderSigVerifierHolder:          headerCheck.NewExtraHeaderSigVerifierHolder(),
-		RunTypeComponents:                     runTypeComponents,
-		DataCodec:                             disabled.NewDisabledDataCodec(),
-		TopicsChecker:                         disabled.NewDisabledTopicsChecker(),
+		Config:                  *configs.GeneralConfig,
+		EpochConfig:             *configs.EpochConfig,
+		RoundConfig:             *configs.RoundConfig,
+		PrefConfigs:             *configs.PreferencesConfig,
+		ImportDBConfig:          *configs.ImportDbConfig,
+		EconomicsConfig:         *configs.EconomicsConfig,
+		SmartContractParser:     smartContractParser,
+		GasSchedule:             gasScheduleNotifier,
+		NodesCoordinator:        nodesCoordinator,
+		Data:                    dataComponents,
+		CoreData:                coreComponents,
+		Crypto:                  cryptoComponents,
+		State:                   stateComponents,
+		Network:                 networkComponents,
+		BootstrapComponents:     bootstrapComponents,
+		StatusComponents:        statusComponents,
+		StatusCoreComponents:    statusCoreComponents,
+		RequestedItemsHandler:   requestedItemsHandler,
+		WhiteListHandler:        whiteListRequest,
+		WhiteListerVerifiedTxs:  whiteListerVerifiedTxs,
+		MaxRating:               configs.RatingsConfig.General.MaxRating,
+		SystemSCConfig:          configs.SystemSCConfig,
+		ImportStartHandler:      importStartHandler,
+		HistoryRepo:             historyRepository,
+		FlagsConfig:             *configs.FlagsConfig,
+		TxExecutionOrderHandler: txExecutionOrderHandler,
+		RunTypeComponents:       runTypeComponents,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1426,18 +1387,16 @@ func (nr *nodeRunner) CreateManagedBootstrapComponents(
 ) (mainFactory.BootstrapComponentsHandler, error) {
 
 	bootstrapComponentsFactoryArgs := bootstrapComp.BootstrapComponentsFactoryArgs{
-		Config:                           *nr.configs.GeneralConfig,
-		PrefConfig:                       *nr.configs.PreferencesConfig,
-		ImportDbConfig:                   *nr.configs.ImportDbConfig,
-		FlagsConfig:                      *nr.configs.FlagsConfig,
-		WorkingDir:                       nr.configs.FlagsConfig.DbDir,
-		CoreComponents:                   coreComponents,
-		CryptoComponents:                 cryptoComponents,
-		NetworkComponents:                networkComponents,
-		StatusCoreComponents:             statusCoreComponents,
-		RunTypeComponents:                runTypeComponents,
-		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
-		ShardCoordinatorFactory:          sharding.NewMultiShardCoordinatorFactory(),
+		Config:               *nr.configs.GeneralConfig,
+		PrefConfig:           *nr.configs.PreferencesConfig,
+		ImportDbConfig:       *nr.configs.ImportDbConfig,
+		FlagsConfig:          *nr.configs.FlagsConfig,
+		WorkingDir:           nr.configs.FlagsConfig.DbDir,
+		CoreComponents:       coreComponents,
+		CryptoComponents:     cryptoComponents,
+		NetworkComponents:    networkComponents,
+		StatusCoreComponents: statusCoreComponents,
+		RunTypeComponents:    runTypeComponents,
 	}
 
 	bootstrapComponentsFactory, err := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
@@ -1608,9 +1567,35 @@ func (nr *nodeRunner) CreateManagedCryptoComponents(
 	return managedCryptoComponents, nil
 }
 
+// CreateArgsRunTypeComponents - creates the args for runType components
+func (nr *nodeRunner) CreateArgsRunTypeComponents(coreComponents mainFactory.CoreComponentsHandler, cryptoComponents mainFactory.CryptoComponentsHandler) (*runType.ArgsRunTypeComponents, error) {
+	initialAccounts := make([]*data.InitialAccount, 0)
+	err := core.LoadJsonFile(&initialAccounts, nr.configs.ConfigurationPathsHolder.Genesis)
+	if err != nil {
+		return nil, err
+	}
+
+	var accounts []genesis.InitialAccountHandler
+	for _, ia := range initialAccounts {
+		accounts = append(accounts, ia)
+	}
+
+	return &runType.ArgsRunTypeComponents{
+		CoreComponents:   coreComponents,
+		CryptoComponents: cryptoComponents,
+		Configs:          *nr.configs,
+		InitialAccounts:  accounts,
+	}, nil
+}
+
 // CreateManagedRunTypeComponents creates the managed run type components
-func (nr *nodeRunner) CreateManagedRunTypeComponents(coreComponents mainFactory.CoreComponentsHandler) (mainFactory.RunTypeComponentsHandler, error) {
-	runTypeComponentsFactory, err := runType.NewRunTypeComponentsFactory(coreComponents)
+func (nr *nodeRunner) CreateManagedRunTypeComponents(coreComponents mainFactory.CoreComponentsHandler, cryptoComponents mainFactory.CryptoComponentsHandler) (mainFactory.RunTypeComponentsHandler, error) {
+	args, err := nr.CreateArgsRunTypeComponents(coreComponents, cryptoComponents)
+	if err != nil {
+		return nil, err
+	}
+
+	runTypeComponentsFactory, err := runType.NewRunTypeComponentsFactory(*args)
 	if err != nil {
 		return nil, fmt.Errorf("newRunTypeComponentsFactory failed: %w", err)
 	}
