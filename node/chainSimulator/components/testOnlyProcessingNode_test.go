@@ -40,8 +40,8 @@ func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNo
 		RoundDurationInMillis:       6000,
 		TempDir:                     t.TempDir(),
 		MinNodesPerShard:            1,
-		ConsensusGroupSize:          1,
 		MetaChainMinNodes:           1,
+		ConsensusGroupSize:          1,
 		MetaChainConsensusGroupSize: 1,
 	})
 	require.Nil(t, err)

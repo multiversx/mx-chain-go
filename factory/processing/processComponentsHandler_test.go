@@ -107,6 +107,7 @@ func testManagedProcessComponentsCreateShouldWork(t *testing.T, shardID uint32, 
 	require.True(t, check.IfNil(managedProcessComponents.FullArchivePeerShardMapper()))
 	require.True(t, check.IfNil(managedProcessComponents.FullArchiveInterceptorsContainer()))
 	require.True(t, check.IfNil(managedProcessComponents.SentSignaturesTracker()))
+	require.True(t, check.IfNil(managedProcessComponents.EpochSystemSCProcessor()))
 	require.True(t, check.IfNil(managedProcessComponents.IncomingHeaderHandler()))
 
 	err := managedProcessComponents.Create()
@@ -152,6 +153,7 @@ func testManagedProcessComponentsCreateShouldWork(t *testing.T, shardID uint32, 
 	require.False(t, check.IfNil(managedProcessComponents.FullArchivePeerShardMapper()))
 	require.False(t, check.IfNil(managedProcessComponents.FullArchiveInterceptorsContainer()))
 	require.False(t, check.IfNil(managedProcessComponents.SentSignaturesTracker()))
+	require.False(t, check.IfNil(managedProcessComponents.EpochSystemSCProcessor()))
 	require.False(t, check.IfNil(managedProcessComponents.IncomingHeaderHandler()))
 
 }

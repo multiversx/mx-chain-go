@@ -27,6 +27,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon/components"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -108,7 +109,9 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		NodesSetupPath:              args.Configs.ConfigurationPathsHolder.Nodes,
 		InitialRound:                args.InitialRound,
 		MinNodesPerShard:            args.MinNodesPerShard,
+		ConsensusGroupSize:          args.ConsensusGroupSize,
 		MinNodesMeta:                args.MinNodesMeta,
+		MetaChainConsensusGroupSize: args.MetaChainConsensusGroupSize,
 		ConsensusGroupSize:          args.ConsensusGroupSize,
 		MetaChainConsensusGroupSize: args.MetaChainConsensusGroupSize,
 		RoundDurationInMs:           args.RoundDurationInMillis,
@@ -151,6 +154,8 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		return nil, err
 	}
 
+	instance.RunTypeComponents = components.GetRunTypeComponentsWithCoreComp(instance.CoreComponentsHolder)
+
 	instance.BootstrapComponentsHolder, err = CreateBootstrapComponents(ArgsBootstrapComponentsHolder{
 		CoreComponents:       instance.CoreComponentsHolder,
 		CryptoComponents:     instance.CryptoComponentsHolder,
@@ -173,6 +178,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		selfShardID,
 		instance.StatusCoreComponents.AppStatusHandler(),
 		args.Configs.GeneralConfig.GeneralSettings.StatusPollingIntervalSec,
+		*args.Configs.ExternalConfig,
 	)
 	if err != nil {
 		return nil, err
@@ -203,6 +209,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		CoreComponents:    instance.CoreComponentsHolder,
 		StatusCore:        instance.StatusCoreComponents,
 		DataComponents:    instance.DataComponentsHolder,
+		RunTypeComponents: instance.RunTypeComponents,
 		RunTypeComponents: instance.RunTypeComponents,
 	})
 	if err != nil {
@@ -316,6 +323,14 @@ func (node *testOnlyProcessingNode) createNodesCoordinator(pref config.Preferenc
 		return err
 	}
 
+	shardID := node.BootstrapComponentsHolder.ShardCoordinator().SelfId()
+	shardIDStr := fmt.Sprintf("%d", shardID)
+	if shardID == core.MetachainShardId {
+		shardIDStr = "metachain"
+	}
+
+	pref.DestinationShardAsObserver = shardIDStr
+
 	node.NodesCoordinator, err = bootstrapComp.CreateNodesCoordinator(
 		nodesShufflerOut,
 		node.CoreComponentsHolder.GenesisNodesSetup(),
@@ -395,6 +410,11 @@ func (node *testOnlyProcessingNode) GetCryptoComponents() factory.CryptoComponen
 // GetCoreComponents will return the core components
 func (node *testOnlyProcessingNode) GetCoreComponents() factory.CoreComponentsHolder {
 	return node.CoreComponentsHolder
+}
+
+// GetDataComponents will return the data components
+func (node *testOnlyProcessingNode) GetDataComponents() factory.DataComponentsHolder {
+	return node.DataComponentsHolder
 }
 
 // GetStateComponents will return the state components
@@ -513,6 +533,18 @@ func (node *testOnlyProcessingNode) SetStateForAddress(address []byte, addressSt
 
 	accountsAdapter := node.StateComponentsHolder.AccountsAdapter()
 	err = accountsAdapter.SaveAccount(userAccount)
+	if err != nil {
+		return err
+	}
+
+	_, err = accountsAdapter.Commit()
+	return err
+}
+
+// RemoveAccount will remove the account for the given address
+func (node *testOnlyProcessingNode) RemoveAccount(address []byte) error {
+	accountsAdapter := node.StateComponentsHolder.AccountsAdapter()
+	err := accountsAdapter.RemoveAccount(address)
 	if err != nil {
 		return err
 	}

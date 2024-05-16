@@ -178,6 +178,9 @@ func (mpc *managedProcessComponents) CheckSubcomponents() error {
 	if check.IfNil(mpc.processComponents.sentSignaturesTracker) {
 		return errors.ErrNilSentSignatureTracker
 	}
+	if check.IfNil(mpc.processComponents.epochSystemSCProcessor) {
+		return errors.ErrNilEpochSystemSCProcessor
+	}
 
 	return nil
 }
@@ -672,6 +675,18 @@ func (m *managedProcessComponents) SentSignaturesTracker() process.SentSignature
 	}
 
 	return m.processComponents.sentSignaturesTracker
+}
+
+// EpochSystemSCProcessor returns the epoch start system SC processor
+func (m *managedProcessComponents) EpochSystemSCProcessor() process.EpochStartSystemSCProcessor {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.epochSystemSCProcessor
 }
 
 // IncomingHeaderHandler returns the incoming header handler

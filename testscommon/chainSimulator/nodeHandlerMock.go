@@ -19,11 +19,13 @@ type NodeHandlerMock struct {
 	GetShardCoordinatorCalled      func() sharding.Coordinator
 	GetCryptoComponentsCalled      func() factory.CryptoComponentsHolder
 	GetCoreComponentsCalled        func() factory.CoreComponentsHolder
+	GetDataComponentsCalled       func() factory.DataComponentsHandler
 	GetStateComponentsCalled       func() factory.StateComponentsHolder
 	GetFacadeHandlerCalled         func() shared.FacadeHandler
 	GetStatusCoreComponentsCalled  func() factory.StatusCoreComponentsHolder
 	SetKeyValueForAddressCalled    func(addressBytes []byte, state map[string]string) error
 	SetStateForAddressCalled       func(address []byte, state *dtos.AddressState) error
+	RemoveAccountCalled           func(address []byte) error
 	GetIncomingHeaderHandlerCalled func() process.IncomingHeaderSubscriber
 	CloseCalled                    func() error
 }
@@ -76,6 +78,14 @@ func (mock *NodeHandlerMock) GetCoreComponents() factory.CoreComponentsHolder {
 	return nil
 }
 
+// GetDataComponents -
+func (mock *NodeHandlerMock) GetDataComponents() factory.DataComponentsHolder {
+	if mock.GetDataComponentsCalled != nil {
+		return mock.GetDataComponentsCalled()
+	}
+	return nil
+}
+
 // GetStateComponents -
 func (mock *NodeHandlerMock) GetStateComponents() factory.StateComponentsHolder {
 	if mock.GetStateComponentsCalled != nil {
@@ -113,6 +123,15 @@ func (mock *NodeHandlerMock) SetStateForAddress(address []byte, state *dtos.Addr
 	if mock.SetStateForAddressCalled != nil {
 		return mock.SetStateForAddressCalled(address, state)
 	}
+	return nil
+}
+
+// RemoveAccount -
+func (mock *NodeHandlerMock) RemoveAccount(address []byte) error {
+	if mock.RemoveAccountCalled != nil {
+		return mock.RemoveAccountCalled(address)
+	}
+
 	return nil
 }
 

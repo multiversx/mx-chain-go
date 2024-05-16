@@ -61,6 +61,7 @@ type ProcessComponentsStub struct {
 	ReceiptsRepositoryInternal           factory.ReceiptsRepository
 	ESDTDataStorageHandlerForAPIInternal vmcommon.ESDTNFTStorageHandler
 	SentSignaturesTrackerInternal        process.SentSignaturesTracker
+	EpochSystemSCProcessorInternal       process.EpochStartSystemSCProcessor
 	IncomingHeadersHandler               process.IncomingHeaderSubscriber
 }
 
@@ -296,6 +297,11 @@ func (pcs *ProcessComponentsStub) ESDTDataStorageHandlerForAPI() vmcommon.ESDTNF
 // SentSignaturesTracker -
 func (pcs *ProcessComponentsStub) SentSignaturesTracker() process.SentSignaturesTracker {
 	return pcs.SentSignaturesTrackerInternal
+}
+
+// EpochSystemSCProcessor -
+func (pcs *ProcessComponentsStub) EpochSystemSCProcessor() process.EpochStartSystemSCProcessor {
+	return pcs.EpochSystemSCProcessorInternal
 }
 
 // IncomingHeaderHandler -

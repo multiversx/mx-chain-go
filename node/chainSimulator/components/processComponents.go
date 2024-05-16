@@ -44,6 +44,17 @@ type ArgsProcessComponentsHolder struct {
 	RunTypeComponents     factory.RunTypeComponentsHolder
 	IncomingHeaderHandler process.IncomingHeaderSubscriber
 	Configs               config.Configs
+	RunTypeComponents    factory.RunTypeComponentsHolder
+
+	EpochConfig              config.EpochConfig
+	RoundConfig              config.RoundConfig
+	ConfigurationPathsHolder config.ConfigurationPathsHolder
+	FlagsConfig              config.ContextFlagsConfig
+	ImportDBConfig           config.ImportDbConfig
+	PrefsConfig              config.Preferences
+	Config                   config.Config
+	EconomicsConfig          config.EconomicsConfig
+	SystemSCConfig           config.SystemSmartContractsConfig
 
 	GenesisNonce uint64
 	GenesisRound uint64
@@ -91,6 +102,7 @@ type processComponentsHolder struct {
 	esdtDataStorageHandlerForAPI     vmcommon.ESDTNFTStorageHandler
 	accountsParser                   genesis.AccountsParser
 	sentSignatureTracker             process.SentSignaturesTracker
+	epochStartSystemSCProcessor      process.EpochStartSystemSCProcessor
 	managedProcessComponentsCloser   io.Closer
 	incomingHeaderHandler            process.IncomingHeaderSubscriber
 }
@@ -244,6 +256,7 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		esdtDataStorageHandlerForAPI:     managedProcessComponents.ESDTDataStorageHandlerForAPI(),
 		accountsParser:                   managedProcessComponents.AccountsParser(),
 		sentSignatureTracker:             managedProcessComponents.SentSignaturesTracker(),
+		epochStartSystemSCProcessor:      managedProcessComponents.EpochSystemSCProcessor(),
 		incomingHeaderHandler:            managedProcessComponents.IncomingHeaderHandler(),
 		managedProcessComponentsCloser:   managedProcessComponents,
 	}
@@ -454,6 +467,11 @@ func (p *processComponentsHolder) AccountsParser() genesis.AccountsParser {
 // ReceiptsRepository returns the receipts repository
 func (p *processComponentsHolder) ReceiptsRepository() factory.ReceiptsRepository {
 	return p.receiptsRepository
+}
+
+// EpochSystemSCProcessor returns the epoch start system SC processor
+func (p *processComponentsHolder) EpochSystemSCProcessor() process.EpochStartSystemSCProcessor {
+	return p.epochStartSystemSCProcessor
 }
 
 func (p *processComponentsHolder) IncomingHeaderHandler() process.IncomingHeaderSubscriber {
