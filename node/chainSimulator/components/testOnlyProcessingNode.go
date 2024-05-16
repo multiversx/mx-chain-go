@@ -426,14 +426,6 @@ func (node *testOnlyProcessingNode) GetStatusCoreComponents() factory.StatusCore
 	return node.StatusCoreComponents
 }
 
-// GetIncomingHeaderHandler will return the incoming header handler
-func (node *testOnlyProcessingNode) GetIncomingHeaderHandler() process.IncomingHeaderSubscriber {
-	if check.IfNil(node.ProcessComponentsHolder) {
-		return nil
-	}
-	return node.ProcessComponentsHolder.IncomingHeaderHandler()
-}
-
 func (node *testOnlyProcessingNode) collectClosableComponents(apiInterface APIConfigurator) {
 	node.closeHandler.AddComponent(node.ProcessComponentsHolder)
 	node.closeHandler.AddComponent(node.DataComponentsHolder)

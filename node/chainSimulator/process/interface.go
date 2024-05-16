@@ -5,7 +5,6 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
-	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 
 	chainData "github.com/multiversx/mx-chain-core-go/data"
@@ -26,7 +25,6 @@ type NodeHandler interface {
 	SetKeyValueForAddress(addressBytes []byte, state map[string]string) error
 	SetStateForAddress(address []byte, state *dtos.AddressState) error
 	RemoveAccount(address []byte) error
-	GetIncomingHeaderHandler() process.IncomingHeaderSubscriber
 	Close() error
 	IsInterfaceNil() bool
 }

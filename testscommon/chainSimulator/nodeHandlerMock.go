@@ -135,14 +135,6 @@ func (mock *NodeHandlerMock) RemoveAccount(address []byte) error {
 	return nil
 }
 
-// GetIncomingHeaderHandler -
-func (mock *NodeHandlerMock) GetIncomingHeaderHandler() process.IncomingHeaderSubscriber {
-	if mock.GetIncomingHeaderHandlerCalled != nil {
-		return mock.GetIncomingHeaderHandler()
-	}
-	return nil
-}
-
 // Close -
 func (mock *NodeHandlerMock) Close() error {
 	if mock.CloseCalled != nil {
