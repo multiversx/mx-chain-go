@@ -8,7 +8,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
-
 	"github.com/stretchr/testify/require"
 )
 
