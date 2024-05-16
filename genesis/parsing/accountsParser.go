@@ -245,9 +245,7 @@ func (ap *accountsParser) checkForDuplicates() error {
 func (ap *accountsParser) InitialAccounts() []genesis.InitialAccountHandler {
 	accounts := make([]genesis.InitialAccountHandler, len(ap.initialAccounts))
 
-	for idx, ia := range ap.initialAccounts {
-		accounts[idx] = ia
-	}
+	copy(accounts, ap.initialAccounts)
 
 	return accounts
 }
