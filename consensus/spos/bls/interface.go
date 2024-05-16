@@ -3,10 +3,11 @@ package bls
 import (
 	"context"
 
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
+
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 )
 
 // SubRoundStartExtraSignersHolder manages extra signers during start subround in a consensus process
@@ -58,5 +59,14 @@ type SubRoundEndV2Creator interface {
 // BridgeOperationsHandler handles sending outgoing txs from sovereign to main chain
 type BridgeOperationsHandler interface {
 	Send(ctx context.Context, data *sovereign.BridgeOperations) (*sovereign.BridgeOperationsResponse, error)
+	IsInterfaceNil() bool
+}
+
+// OutGoingOperationsPool defines the behavior of a timed cache for outgoing operations
+type OutGoingOperationsPool interface {
+	Add(data *sovereign.BridgeOutGoingData)
+	Get(hash []byte) *sovereign.BridgeOutGoingData
+	Delete(hash []byte)
+	GetUnconfirmedOperations() []*sovereign.BridgeOutGoingData
 	IsInterfaceNil() bool
 }

@@ -1,10 +1,11 @@
-package processing
+package process
 
 import (
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/errors"
+
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/stretchr/testify/require"
 )
 

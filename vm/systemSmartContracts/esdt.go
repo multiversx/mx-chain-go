@@ -9,13 +9,14 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/vm"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/config"
-	"github.com/multiversx/mx-chain-go/vm"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
@@ -633,7 +634,11 @@ func (e *esdt) changeSFTToMetaESDT(args *vmcommon.ContractCallInput) vmcommon.Re
 	}
 	e.eei.AddLogEntry(logEntry)
 
-	e.sendTokenTypeToSystemAccounts(args.CallerAddr, args.Arguments[0], token)
+	err = e.sendTokenTypeToSystemAccounts(args.CallerAddr, args.Arguments[0], token)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
 
 	return vmcommon.Ok
 }
@@ -685,7 +690,10 @@ func (e *esdt) createNewToken(
 		return nil, nil, err
 	}
 
-	e.sendTokenTypeToSystemAccounts(owner, tokenIdentifier, newESDTToken)
+	err = e.sendTokenTypeToSystemAccounts(owner, tokenIdentifier, newESDTToken)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	return tokenIdentifier, newESDTToken, nil
 }
@@ -2284,7 +2292,11 @@ func (e *esdt) updateTokenID(args *vmcommon.ContractCallInput) vmcommon.ReturnCo
 	}
 
 	// TODO allow this to be called only once
-	e.sendTokenTypeToSystemAccounts(args.CallerAddr, args.Arguments[0], token)
+	err := e.sendTokenTypeToSystemAccounts(args.CallerAddr, args.Arguments[0], token)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
 
 	return vmcommon.Ok
 }
@@ -2452,19 +2464,26 @@ func (e *esdt) changeToDynamic(args *vmcommon.ContractCallInput) vmcommon.Return
 	}
 	e.eei.AddLogEntry(logEntry)
 
-	e.sendTokenTypeToSystemAccounts(args.CallerAddr, args.Arguments[0], token)
+	err = e.sendTokenTypeToSystemAccounts(args.CallerAddr, args.Arguments[0], token)
+	if err != nil {
+		e.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
 
 	return vmcommon.Ok
 }
 
-func (e *esdt) sendTokenTypeToSystemAccounts(caller []byte, tokenID []byte, token *ESDTDataV2) {
+func (e *esdt) sendTokenTypeToSystemAccounts(caller []byte, tokenID []byte, token *ESDTDataV2) error {
 	if !e.enableEpochsHandler.IsFlagEnabled(common.DynamicESDTFlag) {
-		return
+		return nil
 	}
 
 	builtInFunc := core.ESDTSetTokenType
 	esdtTransferData := builtInFunc + "@" + hex.EncodeToString(tokenID) + "@" + hex.EncodeToString(token.TokenType)
-	e.eei.SendGlobalSettingToAll(e.esdtSCAddress, []byte(esdtTransferData))
+	err := e.eei.SendGlobalSettingToAll(e.esdtSCAddress, []byte(esdtTransferData))
+	if err != nil {
+		return err
+	}
 
 	logEntry := &vmcommon.LogEntry{
 		Identifier: []byte(builtInFunc),
@@ -2473,6 +2492,8 @@ func (e *esdt) sendTokenTypeToSystemAccounts(caller []byte, tokenID []byte, toke
 		Data:       nil,
 	}
 	e.eei.AddLogEntry(logEntry)
+
+	return nil
 }
 
 func (e *esdt) sendRoleChangeData(tokenID []byte, destination []byte, roles [][]byte, builtInFunc string) error {

@@ -50,18 +50,16 @@ func CreateBootstrapComponents(args ArgsBootstrapComponentsHolder) (*bootstrapCo
 	args.PrefsConfig.Preferences.DestinationShardAsObserver = args.ShardIDStr
 
 	bootstrapComponentsFactoryArgs := bootstrapComp.BootstrapComponentsFactoryArgs{
-		Config:                           args.Config,
-		PrefConfig:                       args.PrefsConfig,
-		ImportDbConfig:                   args.ImportDBConfig,
-		FlagsConfig:                      args.FlagsConfig,
-		WorkingDir:                       args.WorkingDir,
-		CoreComponents:                   args.CoreComponents,
-		CryptoComponents:                 args.CryptoComponents,
-		NetworkComponents:                args.NetworkComponents,
-		StatusCoreComponents:             args.StatusCoreComponents,
-		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewIndexHashedNodesCoordinatorWithRaterFactory(),
-		ShardCoordinatorFactory:          sharding.NewMultiShardCoordinatorFactory(),
-		RunTypeComponents:                args.RunTypeComponents,
+		Config:               args.Config,
+		PrefConfig:           args.PrefsConfig,
+		ImportDbConfig:       args.ImportDBConfig,
+		FlagsConfig:          args.FlagsConfig,
+		WorkingDir:           args.WorkingDir,
+		CoreComponents:       args.CoreComponents,
+		CryptoComponents:     args.CryptoComponents,
+		NetworkComponents:    args.NetworkComponents,
+		StatusCoreComponents: args.StatusCoreComponents,
+		RunTypeComponents:    args.RunTypeComponents,
 	}
 
 	bootstrapComponentsFactory, err := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)

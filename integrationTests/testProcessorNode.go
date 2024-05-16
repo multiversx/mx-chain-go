@@ -12,25 +12,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/core/partitioning"
-	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
-	"github.com/multiversx/mx-chain-core-go/core/versioning"
-	"github.com/multiversx/mx-chain-core-go/data"
-	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/data/endProcess"
-	dataTransaction "github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
-	"github.com/multiversx/mx-chain-core-go/hashing/keccak"
-	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
-	"github.com/multiversx/mx-chain-core-go/marshal"
-	crypto "github.com/multiversx/mx-chain-crypto-go"
-	"github.com/multiversx/mx-chain-crypto-go/signing"
-	"github.com/multiversx/mx-chain-crypto-go/signing/ed25519"
-	ed25519SingleSig "github.com/multiversx/mx-chain-crypto-go/signing/ed25519/singlesig"
-	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
-	mclsig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/singlesig"
 	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/enablers"
@@ -130,6 +111,26 @@ import (
 	vmProcess "github.com/multiversx/mx-chain-go/vm/process"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/partitioning"
+	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
+	"github.com/multiversx/mx-chain-core-go/core/versioning"
+	"github.com/multiversx/mx-chain-core-go/data"
+	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	dataTransaction "github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
+	"github.com/multiversx/mx-chain-core-go/hashing/keccak"
+	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-crypto-go/signing"
+	"github.com/multiversx/mx-chain-crypto-go/signing/ed25519"
+	ed25519SingleSig "github.com/multiversx/mx-chain-crypto-go/signing/ed25519/singlesig"
+	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
+	mclsig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/singlesig"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
@@ -516,11 +517,15 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 
 	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
 
-	args.RunTypeComponents = components.GetRunTypeComponentsWithCoreComp(&mock.CoreComponentsStub{
-		HasherField:              TestHasher,
-		InternalMarshalizerField: TestMarshalizer,
-		EnableEpochsHandlerField: enableEpochsHandler,
+	rtc := components.GetRunTypeComponentsWithCoreComp(&mock.CoreComponentsStub{
+		HasherField:                 TestHasher,
+		InternalMarshalizerField:    TestMarshalizer,
+		EnableEpochsHandlerField:    enableEpochsHandler,
+		AddressPubKeyConverterField: &testscommon.PubkeyConverterStub{},
 	})
+	runTypeComponents := components.GetRunTypeComponentsStub(rtc)
+	runTypeComponents.AccountParser = &genesisMocks.AccountsParserStub{}
+	args.RunTypeComponents = runTypeComponents
 
 	tpn := &TestProcessorNode{
 		ShardCoordinator:           shardCoordinator,
@@ -733,7 +738,6 @@ func (tpn *TestProcessorNode) initGenesisBlocks(args ArgTestProcessorNode) {
 			tpn.BlockChain,
 			tpn.DataPool,
 			tpn.EconomicsData,
-			&genesisMocks.AccountsParserStub{},
 			tpn.SmartContractParser,
 			tpn.EnableEpochs,
 			tpn.RunTypeComponents,
@@ -761,6 +765,7 @@ func (tpn *TestProcessorNode) initGenesisBlocks(args ArgTestProcessorNode) {
 		tpn.DataPool,
 		tpn.EconomicsData,
 		tpn.EnableEpochs,
+		tpn.RunTypeComponents,
 	)
 }
 
@@ -3320,9 +3325,24 @@ func GetDefaultRunTypeComponents(consensusModel consensus.ConsensusModel) *mainF
 		SCProcessorFactory:                  rt.SCProcessorCreator(),
 		BootstrapperFactory:                 rt.BootstrapperCreator(),
 		SCResultsPreProcessorFactory:        rt.SCResultsPreProcessorCreator(),
+		AccountParser:                       rt.AccountsParser(),
 		AccountCreator:                      rt.AccountsCreator(),
 		VMContextCreatorHandler:             systemSmartContracts.NewVMContextCreator(),
 		ConsensusModelType:                  consensusModel,
+		VmContainerMetaFactory:              rt.VmContainerMetaFactoryCreator(),
+		VmContainerShardFactory:             rt.VmContainerShardFactoryCreator(),
+		OutGoingOperationsPool:              rt.OutGoingOperationsPoolHandler(),
+		DataCodec:                           rt.DataCodecHandler(),
+		TopicsChecker:                       rt.TopicsCheckerHandler(),
+		ShardCoordinatorFactory:             rt.ShardCoordinatorCreator(),
+		NodesCoordinatorWithRaterFactory:    rt.NodesCoordinatorWithRaterCreator(),
+		RequestersContainerFactory:          rt.RequestersContainerFactoryCreator(),
+		InterceptorsContainerFactory:        rt.InterceptorsContainerFactoryCreator(),
+		ShardResolversContainerFactory:      rt.ShardResolversContainerFactoryCreator(),
+		TxPreProcessorFactory:               rt.TxPreProcessorCreator(),
+		ExtraHeaderSigVerifier:              rt.ExtraHeaderSigVerifierHolder(),
+		GenesisBlockFactory:                 rt.GenesisBlockCreatorFactory(),
+		GenesisMetaBlockChecker:             rt.GenesisMetaBlockCheckerCreator(),
 	}
 }
 

@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"math/big"
 	"os"
 	"os/signal"
 	"path"
@@ -30,9 +29,6 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	sovereignPool "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
-	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
-	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
 	dbLookupFactory "github.com/multiversx/mx-chain-go/dblookupext/factory"
 	"github.com/multiversx/mx-chain-go/facade"
 	"github.com/multiversx/mx-chain-go/facade/initial"
@@ -51,17 +47,13 @@ import (
 	statusComp "github.com/multiversx/mx-chain-go/factory/status"
 	"github.com/multiversx/mx-chain-go/factory/statusCore"
 	"github.com/multiversx/mx-chain-go/genesis"
+	"github.com/multiversx/mx-chain-go/genesis/data"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
-	genesisProcess "github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/health"
 	"github.com/multiversx/mx-chain-go/node"
 	"github.com/multiversx/mx-chain-go/node/metrics"
 	trieIteratorsFactory "github.com/multiversx/mx-chain-go/node/trieIterators/factory"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/block"
-	"github.com/multiversx/mx-chain-go/process/block/preprocess"
-	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
-	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	"github.com/multiversx/mx-chain-go/process/rating"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -308,12 +300,6 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
-	log.Debug("creating runType components")
-	managedRunTypeComponents, err := snr.CreateManagedRunTypeComponents(managedCoreComponents, *configs.SovereignExtraConfig)
-	if err != nil {
-		return true, err
-	}
-
 	log.Debug("creating status core components")
 	managedStatusCoreComponents, err := snr.CreateManagedStatusCoreComponents(managedCoreComponents)
 	if err != nil {
@@ -322,6 +308,12 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 
 	log.Debug("creating crypto components")
 	managedCryptoComponents, err := snr.CreateManagedCryptoComponents(managedCoreComponents)
+	if err != nil {
+		return true, err
+	}
+
+	log.Debug("creating runType components")
+	managedRunTypeComponents, err := snr.CreateManagedRunTypeComponents(managedCoreComponents, managedCryptoComponents)
 	if err != nil {
 		return true, err
 	}
@@ -407,7 +399,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		managedCoreComponents.EnableEpochsHandler(),
 		managedDataComponents.Datapool().CurrentEpochValidatorInfo(),
 		managedBootstrapComponents.NodesCoordinatorRegistryFactory(),
-		nodesCoordinator.NewSovereignIndexHashedNodesCoordinatorWithRaterFactory(),
+		managedRunTypeComponents.NodesCoordinatorWithRaterCreator(),
 	)
 	if err != nil {
 		return true, err
@@ -441,28 +433,11 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 
 	log.Debug("creating process components")
 
-	timeToWait := time.Second * time.Duration(snr.configs.SovereignExtraConfig.OutgoingSubscribedEvents.TimeToWaitForUnconfirmedOutGoingOperationInSeconds)
-	outGoingOperationsPool := sovereignPool.NewOutGoingOperationPool(timeToWait)
-
-	codec := abi.NewDefaultCodec()
-	argsDataCodec := dataCodec.ArgsDataCodec{
-		Serializer: abi.NewSerializer(codec),
-	}
-
-	dataCodecProcessor, err := dataCodec.NewDataCodec(argsDataCodec)
-	if err != nil {
-		return true, err
-	}
-
-	topicsChecker := incomingHeader.NewTopicsChecker()
-
 	incomingHeaderHandler, err := createIncomingHeaderProcessor(
 		&configs.SovereignExtraConfig.NotifierConfig,
 		managedDataComponents.Datapool(),
 		configs.SovereignExtraConfig.MainChainNotarization.MainChainNotarizationStartRound,
-		outGoingOperationsPool,
-		dataCodecProcessor,
-		topicsChecker,
+		managedRunTypeComponents,
 	)
 
 	managedProcessComponents, err := snr.CreateManagedProcessComponents(
@@ -478,9 +453,6 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		gasScheduleNotifier,
 		nodesCoordinatorInstance,
 		incomingHeaderHandler,
-		outGoingOperationsPool,
-		dataCodecProcessor,
-		topicsChecker,
 	)
 	if err != nil {
 		return true, err
@@ -537,7 +509,6 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		managedStatusComponents,
 		managedProcessComponents,
 		managedStatusCoreComponents,
-		outGoingOperationsPool,
 		outGoingBridgeOpHandler,
 		managedRunTypeComponents,
 	)
@@ -903,7 +874,6 @@ func (snr *sovereignNodeRunner) CreateManagedConsensusComponents(
 	statusComponents mainFactory.StatusComponentsHolder,
 	processComponents mainFactory.ProcessComponentsHolder,
 	statusCoreComponents mainFactory.StatusCoreComponentsHolder,
-	outGoingOperationsPool block.OutGoingOperationsPool,
 	outGoingBridgeOpHandler bls.BridgeOperationsHandler,
 	runTypeComponents mainFactory.RunTypeComponentsHolder,
 ) (mainFactory.ConsensusComponentsHandler, error) {
@@ -923,7 +893,7 @@ func (snr *sovereignNodeRunner) CreateManagedConsensusComponents(
 		return nil, err
 	}
 
-	sovSubRoundEndCreator, err := bls.NewSovereignSubRoundEndCreator(outGoingOperationsPool, outGoingBridgeOpHandler)
+	sovSubRoundEndCreator, err := bls.NewSovereignSubRoundEndCreator(runTypeComponents.OutGoingOperationsPoolHandler(), outGoingBridgeOpHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -1242,40 +1212,10 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 	gasScheduleNotifier core.GasScheduleNotifier,
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	incomingHeaderHandler process.IncomingHeaderSubscriber,
-	outGoingOperationsPool block.OutGoingOperationsPool,
-	dataCodec dataCodec.SovereignDataDecoder,
-	topicsChecker incomingHeader.TopicsChecker,
 ) (mainFactory.ProcessComponentsHandler, error) {
 	configs := snr.configs
 	configurationPaths := snr.configs.ConfigurationPathsHolder
 	importStartHandler, err := trigger.NewImportStartHandler(filepath.Join(configs.FlagsConfig.DbDir, common.DefaultDBPath), configs.FlagsConfig.Version)
-	if err != nil {
-		return nil, err
-	}
-
-	totalSupply, ok := big.NewInt(0).SetString(configs.EconomicsConfig.GlobalSettings.GenesisTotalSupply, 10)
-	if !ok {
-		return nil, fmt.Errorf("can not parse total suply from economics.toml, %s is not a valid value",
-			configs.EconomicsConfig.GlobalSettings.GenesisTotalSupply)
-	}
-
-	mintingSenderAddress := configs.EconomicsConfig.GlobalSettings.GenesisMintingSenderAddress
-
-	args := genesis.AccountsParserArgs{
-		GenesisFilePath: configurationPaths.Genesis,
-		EntireSupply:    totalSupply,
-		MinterAddress:   mintingSenderAddress,
-		PubkeyConverter: coreComponents.AddressPubKeyConverter(),
-		KeyGenerator:    cryptoComponents.TxSignKeyGen(),
-		Hasher:          coreComponents.Hasher(),
-		Marshalizer:     coreComponents.InternalMarshalizer(),
-	}
-
-	accountsParser, err := parsing.NewAccountsParser(args)
-	if err != nil {
-		return nil, err
-	}
-	sovereignAccountsParser, err := parsing.NewSovereignAccountsParser(accountsParser)
 	if err != nil {
 		return nil, err
 	}
@@ -1326,57 +1266,34 @@ func (snr *sovereignNodeRunner) CreateManagedProcessComponents(
 	requestedItemsHandler := cache.NewTimeCache(
 		time.Duration(uint64(time.Millisecond) * coreComponents.GenesisNodesSetup().GetRoundDuration()))
 
-	extraHeaderSigVerifierHolder := headerCheck.NewExtraHeaderSigVerifierHolder()
-	sovHeaderSigVerifier, err := headerCheck.NewSovereignHeaderSigVerifier(cryptoComponents.BlockSigner())
-	if err != nil {
-		return nil, err
-	}
-
-	err = extraHeaderSigVerifierHolder.RegisterExtraHeaderSigVerifier(sovHeaderSigVerifier)
-	if err != nil {
-		return nil, err
-	}
-
 	processArgs := processComp.ProcessComponentsFactoryArgs{
-		Config:                                *configs.GeneralConfig,
-		EpochConfig:                           *configs.EpochConfig,
-		RoundConfig:                           *configs.RoundConfig,
-		PrefConfigs:                           *configs.PreferencesConfig,
-		ImportDBConfig:                        *configs.ImportDbConfig,
-		AccountsParser:                        sovereignAccountsParser,
-		SmartContractParser:                   smartContractParser,
-		GasSchedule:                           gasScheduleNotifier,
-		NodesCoordinator:                      nodesCoordinator,
-		Data:                                  dataComponents,
-		CoreData:                              coreComponents,
-		Crypto:                                cryptoComponents,
-		State:                                 stateComponents,
-		Network:                               networkComponents,
-		BootstrapComponents:                   bootstrapComponents,
-		StatusComponents:                      statusComponents,
-		StatusCoreComponents:                  statusCoreComponents,
-		RequestedItemsHandler:                 requestedItemsHandler,
-		WhiteListHandler:                      whiteListRequest,
-		WhiteListerVerifiedTxs:                whiteListerVerifiedTxs,
-		MaxRating:                             configs.RatingsConfig.General.MaxRating,
-		SystemSCConfig:                        configs.SystemSCConfig,
-		ImportStartHandler:                    importStartHandler,
-		HistoryRepo:                           historyRepository,
-		FlagsConfig:                           *configs.FlagsConfig,
-		TxExecutionOrderHandler:               ordering.NewOrderedCollection(),
-		RunTypeComponents:                     runTypeComponents,
-		ShardCoordinatorFactory:               sharding.NewSovereignShardCoordinatorFactory(),
-		GenesisBlockCreatorFactory:            genesisProcess.NewSovereignGenesisBlockCreatorFactory(),
-		GenesisMetaBlockChecker:               processComp.NewSovereignGenesisMetaBlockChecker(),
-		RequesterContainerFactoryCreator:      requesterscontainer.NewSovereignShardRequestersContainerFactoryCreator(),
-		IncomingHeaderSubscriber:              incomingHeaderHandler,
-		InterceptorsContainerFactoryCreator:   interceptorscontainer.NewSovereignShardInterceptorsContainerFactoryCreator(),
-		ShardResolversContainerFactoryCreator: resolverscontainer.NewSovereignShardResolversContainerFactoryCreator(),
-		TxPreProcessorCreator:                 preprocess.NewSovereignTxPreProcessorCreator(),
-		ExtraHeaderSigVerifierHolder:          extraHeaderSigVerifierHolder,
-		OutGoingOperationsPool:                outGoingOperationsPool,
-		DataCodec:                             dataCodec,
-		TopicsChecker:                         topicsChecker,
+		Config:                   *configs.GeneralConfig,
+		EpochConfig:              *configs.EpochConfig,
+		RoundConfig:              *configs.RoundConfig,
+		PrefConfigs:              *configs.PreferencesConfig,
+		ImportDBConfig:           *configs.ImportDbConfig,
+		SmartContractParser:      smartContractParser,
+		GasSchedule:              gasScheduleNotifier,
+		NodesCoordinator:         nodesCoordinator,
+		Data:                     dataComponents,
+		CoreData:                 coreComponents,
+		Crypto:                   cryptoComponents,
+		State:                    stateComponents,
+		Network:                  networkComponents,
+		BootstrapComponents:      bootstrapComponents,
+		StatusComponents:         statusComponents,
+		StatusCoreComponents:     statusCoreComponents,
+		RequestedItemsHandler:    requestedItemsHandler,
+		WhiteListHandler:         whiteListRequest,
+		WhiteListerVerifiedTxs:   whiteListerVerifiedTxs,
+		MaxRating:                configs.RatingsConfig.General.MaxRating,
+		SystemSCConfig:           configs.SystemSCConfig,
+		ImportStartHandler:       importStartHandler,
+		HistoryRepo:              historyRepository,
+		FlagsConfig:              *configs.FlagsConfig,
+		TxExecutionOrderHandler:  ordering.NewOrderedCollection(),
+		RunTypeComponents:        runTypeComponents,
+		IncomingHeaderSubscriber: incomingHeaderHandler,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {
@@ -1498,18 +1415,16 @@ func (snr *sovereignNodeRunner) CreateManagedBootstrapComponents(
 ) (mainFactory.BootstrapComponentsHandler, error) {
 
 	bootstrapComponentsFactoryArgs := bootstrapComp.BootstrapComponentsFactoryArgs{
-		Config:                           *snr.configs.GeneralConfig,
-		PrefConfig:                       *snr.configs.PreferencesConfig,
-		ImportDbConfig:                   *snr.configs.ImportDbConfig,
-		FlagsConfig:                      *snr.configs.FlagsConfig,
-		WorkingDir:                       snr.configs.FlagsConfig.DbDir,
-		CoreComponents:                   coreComponents,
-		CryptoComponents:                 cryptoComponents,
-		NetworkComponents:                networkComponents,
-		StatusCoreComponents:             statusCoreComponents,
-		RunTypeComponents:                runTypeComponents,
-		NodesCoordinatorWithRaterFactory: nodesCoordinator.NewSovereignIndexHashedNodesCoordinatorWithRaterFactory(),
-		ShardCoordinatorFactory:          sharding.NewSovereignShardCoordinatorFactory(),
+		Config:               *snr.configs.GeneralConfig,
+		PrefConfig:           *snr.configs.PreferencesConfig,
+		ImportDbConfig:       *snr.configs.ImportDbConfig,
+		FlagsConfig:          *snr.configs.FlagsConfig,
+		WorkingDir:           snr.configs.FlagsConfig.DbDir,
+		CoreComponents:       coreComponents,
+		CryptoComponents:     cryptoComponents,
+		NetworkComponents:    networkComponents,
+		StatusCoreComponents: statusCoreComponents,
+		RunTypeComponents:    runTypeComponents,
 	}
 
 	bootstrapComponentsFactory, err := bootstrapComp.NewBootstrapComponentsFactory(bootstrapComponentsFactoryArgs)
@@ -1680,17 +1595,65 @@ func (snr *sovereignNodeRunner) CreateManagedCryptoComponents(
 	return managedCryptoComponents, nil
 }
 
-// CreateManagedRunTypeComponents creates the managed runType components
-func (snr *sovereignNodeRunner) CreateManagedRunTypeComponents(coreComp mainFactory.CoreComponentsHandler, cfg config.SovereignConfig) (mainFactory.RunTypeComponentsHandler, error) {
-	runTypeComponentsFactory, err := runType.NewRunTypeComponentsFactory(coreComp)
+// CreateArgsRunTypeComponents - creates the arguments for runType components
+func (snr *sovereignNodeRunner) CreateArgsRunTypeComponents(coreComponents mainFactory.CoreComponentsHandler, cryptoComponents mainFactory.CryptoComponentsHandler) (*runType.ArgsRunTypeComponents, error) {
+	initialAccounts := make([]*data.InitialAccount, 0)
+	err := core.LoadJsonFile(&initialAccounts, snr.configs.ConfigurationPathsHolder.Genesis)
+	if err != nil {
+		return nil, err
+	}
+
+	var accounts []genesis.InitialAccountHandler
+	for _, ia := range initialAccounts {
+		accounts = append(accounts, ia)
+	}
+
+	return &runType.ArgsRunTypeComponents{
+		CoreComponents:   coreComponents,
+		CryptoComponents: cryptoComponents,
+		Configs:          *snr.configs.Configs,
+		InitialAccounts:  accounts,
+	}, nil
+}
+
+// CreateSovereignArgsRunTypeComponents creates the arguments for sovereign runType components
+func (snr *sovereignNodeRunner) CreateSovereignArgsRunTypeComponents(coreComponents mainFactory.CoreComponentsHandler, cryptoComponents mainFactory.CryptoComponentsHandler) (*runType.ArgsSovereignRunTypeComponents, error) {
+	args, err := snr.CreateArgsRunTypeComponents(coreComponents, cryptoComponents)
+	if err != nil {
+		return nil, err
+	}
+
+	runTypeComponentsFactory, err := runType.NewRunTypeComponentsFactory(*args)
 	if err != nil {
 		return nil, fmt.Errorf("NewRunTypeComponentsFactory failed: %w", err)
 	}
 
-	sovereignRunTypeComponentsFactory, err := runType.NewSovereignRunTypeComponentsFactory(
-		runTypeComponentsFactory,
-		cfg,
-	)
+	codec := abi.NewDefaultCodec()
+	argsDataCodec := dataCodec.ArgsDataCodec{
+		Serializer: abi.NewSerializer(codec),
+	}
+
+	dataCodecHandler, err := dataCodec.NewDataCodec(argsDataCodec)
+	if err != nil {
+		return nil, err
+	}
+
+	return &runType.ArgsSovereignRunTypeComponents{
+		RunTypeComponentsFactory: runTypeComponentsFactory,
+		Config:                   *snr.configs.SovereignExtraConfig,
+		DataCodec:                dataCodecHandler,
+		TopicsChecker:            incomingHeader.NewTopicsChecker(),
+	}, nil
+}
+
+// CreateManagedRunTypeComponents creates the managed runType components
+func (snr *sovereignNodeRunner) CreateManagedRunTypeComponents(coreComponents mainFactory.CoreComponentsHandler, cryptoComponents mainFactory.CryptoComponentsHandler) (mainFactory.RunTypeComponentsHandler, error) {
+	args, err := snr.CreateSovereignArgsRunTypeComponents(coreComponents, cryptoComponents)
+	if err != nil {
+		return nil, err
+	}
+
+	sovereignRunTypeComponentsFactory, err := runType.NewSovereignRunTypeComponentsFactory(*args)
 	if err != nil {
 		return nil, fmt.Errorf("NewSovereignRunTypeComponentsFactory failed: %w", err)
 	}
@@ -1867,9 +1830,7 @@ func createIncomingHeaderProcessor(
 	config *config.NotifierConfig,
 	dataPool dataRetriever.PoolsHolder,
 	mainChainNotarizationStartRound uint64,
-	outGoingOperationsPool block.OutGoingOperationsPool,
-	dataCodec dataCodec.SovereignDataDecoder,
-	topicsChecker incomingHeader.TopicsChecker,
+	runTypeComponents mainFactory.RunTypeComponentsHolder,
 ) (process.IncomingHeaderSubscriber, error) {
 	marshaller, err := marshallerFactory.NewMarshalizer(config.WebSocketConfig.MarshallerType)
 	if err != nil {
@@ -1886,9 +1847,9 @@ func createIncomingHeaderProcessor(
 		Marshaller:                      marshaller,
 		Hasher:                          hasher,
 		MainChainNotarizationStartRound: mainChainNotarizationStartRound,
-		OutGoingOperationsPool:          outGoingOperationsPool,
-		DataCodec:                       dataCodec,
-		TopicsChecker:                   topicsChecker,
+		OutGoingOperationsPool:          runTypeComponents.OutGoingOperationsPoolHandler(),
+		DataCodec:                       runTypeComponents.DataCodecHandler(),
+		TopicsChecker:                   runTypeComponents.TopicsCheckerHandler(),
 	}
 
 	return incomingHeader.NewIncomingHeaderProcessor(argsIncomingHeaderHandler)

@@ -449,6 +449,35 @@ func GetGeneralConfig() config.Config {
 			OutGoingBridge: config.OutGoingBridge{
 				Hasher: "sha256",
 			},
+			GenesisConfig: config.GenesisConfig{
+				NativeESDT: "WEGLD-ab47da",
+			},
+			ExtendedShardHeaderStorage: config.StorageConfig{
+				Cache: config.CacheConfig{
+					Type:     "LRU",
+					Capacity: 1000,
+				},
+				DB: config.DBConfig{
+					FilePath:          AddTimestampSuffix("ExtendedShardHeaderStorage"),
+					Type:              string(storageunit.MemoryDB),
+					BatchDelaySeconds: 5,
+					MaxBatchSize:      100,
+					MaxOpenFiles:      10,
+				},
+			},
+			ExtendedShardHdrNonceHashStorage: config.StorageConfig{
+				Cache: config.CacheConfig{
+					Type:     "LRU",
+					Capacity: 1000,
+				},
+				DB: config.DBConfig{
+					FilePath:          AddTimestampSuffix("ExtendedShardHdrNonceHashStorage"),
+					Type:              string(storageunit.MemoryDB),
+					BatchDelaySeconds: 5,
+					MaxBatchSize:      100,
+					MaxOpenFiles:      10,
+				},
+			},
 		},
 	}
 }

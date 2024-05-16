@@ -4,14 +4,15 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
-	"github.com/multiversx/mx-chain-go/factory"
 	processComp "github.com/multiversx/mx-chain-go/factory/processing"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
+	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -42,12 +43,12 @@ func TestManagedProcessComponents_CreateShouldWork(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testManagedProcessComponentsCreateShouldWork(t, common.MetachainShardId, componentsMock.GetRunTypeComponents())
-	testManagedProcessComponentsCreateShouldWork(t, 0, componentsMock.GetRunTypeComponents())
-	testManagedProcessComponentsCreateShouldWork(t, 0, componentsMock.GetSovereignRunTypeComponents())
+	testManagedProcessComponentsCreateShouldWork(t, common.MetachainShardId, getRunTypeComponentsMock())
+	testManagedProcessComponentsCreateShouldWork(t, 0, getRunTypeComponentsMock())
+	testManagedProcessComponentsCreateShouldWork(t, core.SovereignChainShardId, getSovereignRunTypeComponentsMock())
 }
 
-func testManagedProcessComponentsCreateShouldWork(t *testing.T, shardID uint32, rtch factory.RunTypeComponentsHolder) {
+func testManagedProcessComponentsCreateShouldWork(t *testing.T, shardID uint32, rtch *mainFactoryMocks.RunTypeComponentsStub) {
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
 	shardCoordinator.CurrentShard = shardID
@@ -59,8 +60,7 @@ func testManagedProcessComponentsCreateShouldWork(t *testing.T, shardID uint32, 
 		return 0
 	}
 
-	args := createMockProcessComponentsFactoryArgs()
-	args.RunTypeComponents = rtch
+	args := createProcessComponentsFactoryArgs(rtch)
 	componentsMock.SetShardCoordinator(t, args.BootstrapComponents, shardCoordinator)
 	processComponentsFactory, _ := processComp.NewProcessComponentsFactory(args)
 	managedProcessComponents, _ := processComp.NewManagedProcessComponents(processComponentsFactory)
@@ -106,8 +106,8 @@ func testManagedProcessComponentsCreateShouldWork(t *testing.T, shardID uint32, 
 	require.True(t, check.IfNil(managedProcessComponents.ReceiptsRepository()))
 	require.True(t, check.IfNil(managedProcessComponents.FullArchivePeerShardMapper()))
 	require.True(t, check.IfNil(managedProcessComponents.FullArchiveInterceptorsContainer()))
-		require.True(t, check.IfNil(managedProcessComponents.SentSignaturesTracker()))
-		require.True(t, check.IfNil(managedProcessComponents.EpochSystemSCProcessor()))
+	require.True(t, check.IfNil(managedProcessComponents.SentSignaturesTracker()))
+	require.True(t, check.IfNil(managedProcessComponents.EpochSystemSCProcessor()))
 
 	err := managedProcessComponents.Create()
 	require.NoError(t, err)
@@ -151,8 +151,8 @@ func testManagedProcessComponentsCreateShouldWork(t *testing.T, shardID uint32, 
 	require.False(t, check.IfNil(managedProcessComponents.ReceiptsRepository()))
 	require.False(t, check.IfNil(managedProcessComponents.FullArchivePeerShardMapper()))
 	require.False(t, check.IfNil(managedProcessComponents.FullArchiveInterceptorsContainer()))
-		require.False(t, check.IfNil(managedProcessComponents.SentSignaturesTracker()))
-		require.False(t, check.IfNil(managedProcessComponents.EpochSystemSCProcessor()))
+	require.False(t, check.IfNil(managedProcessComponents.SentSignaturesTracker()))
+	require.False(t, check.IfNil(managedProcessComponents.EpochSystemSCProcessor()))
 
 }
 
@@ -185,7 +185,6 @@ func TestManagedProcessComponents_Create(t *testing.T) {
 
 		args := createMockProcessComponentsFactoryArgs()
 		componentsMock.SetShardCoordinator(t, args.BootstrapComponents, shardCoordinator)
-		args.RunTypeComponents = componentsMock.GetRunTypeComponents()
 		processComponentsFactory, _ := processComp.NewProcessComponentsFactory(args)
 		managedProcessComponents, _ := processComp.NewManagedProcessComponents(processComponentsFactory)
 		_ = managedProcessComponents.Create()
@@ -200,7 +199,6 @@ func TestManagedProcessComponents_Create(t *testing.T) {
 		shardCoordinator.CurrentShard = 0
 		args := createMockProcessComponentsFactoryArgs()
 		componentsMock.SetShardCoordinator(t, args.BootstrapComponents, shardCoordinator)
-		args.RunTypeComponents = componentsMock.GetRunTypeComponents()
 		processComponentsFactory, _ := processComp.NewProcessComponentsFactory(args)
 		managedProcessComponents, _ := processComp.NewManagedProcessComponents(processComponentsFactory)
 		_ = managedProcessComponents.Create()
@@ -211,12 +209,10 @@ func TestManagedProcessComponents_Create(t *testing.T) {
 	t.Run("sovereign should create sovereign components", func(t *testing.T) {
 		t.Parallel()
 
-		args := createMockProcessComponentsFactoryArgs()
-		args.RunTypeComponents = componentsMock.GetSovereignRunTypeComponents()
+		args := createMockSovereignProcessComponentsFactoryArgs()
 		processComponentsFactory, _ := processComp.NewProcessComponentsFactory(args)
 		managedProcessComponents, _ := processComp.NewManagedProcessComponents(processComponentsFactory)
 		_ = managedProcessComponents.Create()
-
 		assert.Equal(t, "*sync.sovereignChainShardForkDetector", fmt.Sprintf("%T", managedProcessComponents.ForkDetector()))
 		assert.Equal(t, "*track.sovereignChainShardBlockTrack", fmt.Sprintf("%T", managedProcessComponents.BlockTracker()))
 	})

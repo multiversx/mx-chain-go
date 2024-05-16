@@ -2,21 +2,35 @@ package mainFactoryMocks
 
 import (
 	"github.com/multiversx/mx-chain-go/consensus"
+	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
+	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
+	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
+	"github.com/multiversx/mx-chain-go/genesis"
+	processGenesis "github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
+	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
+	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 	"github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
 	"github.com/multiversx/mx-chain-go/process/track"
+	"github.com/multiversx/mx-chain-go/sharding"
+	nodesCoord "github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	testFactory "github.com/multiversx/mx-chain-go/testscommon/factory"
+	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/headerSigVerifier"
+	sovereignMocks "github.com/multiversx/mx-chain-go/testscommon/sovereign"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/vmContext"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
@@ -42,8 +56,21 @@ type RunTypeComponentsStub struct {
 	ConsensusModelType                  consensus.ConsensusModel
 	VmContainerMetaFactory              factoryVm.VmContainerCreator
 	VmContainerShardFactory             factoryVm.VmContainerCreator
+	AccountParser                       genesis.AccountsParser
 	AccountCreator                      state.AccountFactory
 	VMContextCreatorHandler             systemSmartContracts.VMContextCreatorHandler
+	OutGoingOperationsPool              sovereignBlock.OutGoingOperationsPool
+	DataCodec                           sovereign.DataCodecHandler
+	TopicsChecker                       sovereign.TopicsCheckerHandler
+	ShardCoordinatorFactory             sharding.ShardCoordinatorFactory
+	NodesCoordinatorWithRaterFactory    nodesCoord.NodesCoordinatorWithRaterFactory
+	RequestersContainerFactory          requesterscontainer.RequesterContainerFactoryCreator
+	InterceptorsContainerFactory        interceptorscontainer.InterceptorsContainerFactoryCreator
+	ShardResolversContainerFactory      resolverscontainer.ShardResolversContainerFactoryCreator
+	TxPreProcessorFactory               preprocess.TxPreProcessorCreator
+	ExtraHeaderSigVerifier              headerCheck.ExtraHeaderSigVerifierHolder
+	GenesisBlockFactory                 processGenesis.GenesisBlockCreatorFactory
+	GenesisMetaBlockChecker             processGenesis.GenesisMetaBlockChecker
 }
 
 // NewRunTypeComponentsStub -
@@ -67,8 +94,21 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		ConsensusModelType:                  consensus.ConsensusModelV1,
 		VmContainerMetaFactory:              &testFactory.VMContainerMetaFactoryMock{},
 		VmContainerShardFactory:             &testFactory.VMContainerShardFactoryMock{},
+		AccountParser:                       &genesisMocks.AccountsParserStub{},
 		AccountCreator:                      &stateMock.AccountsFactoryStub{},
 		VMContextCreatorHandler:             &vmContext.VMContextCreatorStub{},
+		OutGoingOperationsPool:              &sovereignMocks.OutGoingOperationsPoolMock{},
+		DataCodec:                           &sovereignMocks.DataCodecMock{},
+		TopicsChecker:                       &sovereignMocks.TopicsCheckerMock{},
+		ShardCoordinatorFactory:             &testscommon.MultiShardCoordinatorFactoryMock{},
+		NodesCoordinatorWithRaterFactory:    &testscommon.NodesCoordinatorFactoryMock{},
+		RequestersContainerFactory:          &testFactory.RequestersContainerFactoryMock{},
+		InterceptorsContainerFactory:        &testFactory.InterceptorsContainerFactoryMock{},
+		ShardResolversContainerFactory:      &testFactory.ResolversContainerFactoryMock{},
+		TxPreProcessorFactory:               &testFactory.TxPreProcessorFactoryMock{},
+		ExtraHeaderSigVerifier:              &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
+		GenesisBlockFactory:                 &testFactory.GenesisBlockCreatorFactoryMock{},
+		GenesisMetaBlockChecker:             &testFactory.GenesisMetaBlockCheckerMock{},
 	}
 }
 
@@ -182,6 +222,11 @@ func (r *RunTypeComponentsStub) VmContainerShardFactoryCreator() factoryVm.VmCon
 	return r.VmContainerShardFactory
 }
 
+// AccountsParser -
+func (r *RunTypeComponentsStub) AccountsParser() genesis.AccountsParser {
+	return r.AccountParser
+}
+
 // AccountsCreator -
 func (r *RunTypeComponentsStub) AccountsCreator() state.AccountFactory {
 	return r.AccountCreator
@@ -190,6 +235,66 @@ func (r *RunTypeComponentsStub) AccountsCreator() state.AccountFactory {
 // VMContextCreator -
 func (r *RunTypeComponentsStub) VMContextCreator() systemSmartContracts.VMContextCreatorHandler {
 	return r.VMContextCreatorHandler
+}
+
+// OutGoingOperationsPoolHandler -
+func (r *RunTypeComponentsStub) OutGoingOperationsPoolHandler() sovereignBlock.OutGoingOperationsPool {
+	return r.OutGoingOperationsPool
+}
+
+// DataCodecHandler -
+func (r *RunTypeComponentsStub) DataCodecHandler() sovereign.DataCodecHandler {
+	return r.DataCodec
+}
+
+// TopicsCheckerHandler -
+func (r *RunTypeComponentsStub) TopicsCheckerHandler() sovereign.TopicsCheckerHandler {
+	return r.TopicsChecker
+}
+
+// ShardCoordinatorCreator -
+func (r *RunTypeComponentsStub) ShardCoordinatorCreator() sharding.ShardCoordinatorFactory {
+	return r.ShardCoordinatorFactory
+}
+
+// NodesCoordinatorWithRaterCreator -
+func (r *RunTypeComponentsStub) NodesCoordinatorWithRaterCreator() nodesCoord.NodesCoordinatorWithRaterFactory {
+	return r.NodesCoordinatorWithRaterFactory
+}
+
+// RequestersContainerFactoryCreator -
+func (r *RunTypeComponentsStub) RequestersContainerFactoryCreator() requesterscontainer.RequesterContainerFactoryCreator {
+	return r.RequestersContainerFactory
+}
+
+// InterceptorsContainerFactoryCreator -
+func (r *RunTypeComponentsStub) InterceptorsContainerFactoryCreator() interceptorscontainer.InterceptorsContainerFactoryCreator {
+	return r.InterceptorsContainerFactory
+}
+
+// ShardResolversContainerFactoryCreator -
+func (r *RunTypeComponentsStub) ShardResolversContainerFactoryCreator() resolverscontainer.ShardResolversContainerFactoryCreator {
+	return r.ShardResolversContainerFactory
+}
+
+// TxPreProcessorCreator -
+func (r *RunTypeComponentsStub) TxPreProcessorCreator() preprocess.TxPreProcessorCreator {
+	return r.TxPreProcessorFactory
+}
+
+// ExtraHeaderSigVerifierHolder -
+func (r *RunTypeComponentsStub) ExtraHeaderSigVerifierHolder() headerCheck.ExtraHeaderSigVerifierHolder {
+	return r.ExtraHeaderSigVerifier
+}
+
+// GenesisBlockCreatorFactory -
+func (r *RunTypeComponentsStub) GenesisBlockCreatorFactory() processGenesis.GenesisBlockCreatorFactory {
+	return r.GenesisBlockFactory
+}
+
+// GenesisMetaBlockCheckerCreator -
+func (r *RunTypeComponentsStub) GenesisMetaBlockCheckerCreator() processGenesis.GenesisMetaBlockChecker {
+	return r.GenesisMetaBlockChecker
 }
 
 // IsInterfaceNil -

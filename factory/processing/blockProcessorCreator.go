@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -14,6 +12,7 @@ import (
 	metachainEpochStart "github.com/multiversx/mx-chain-go/epochStart/metachain"
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
 	mainFactory "github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/factory/addressDecoder"
 	factoryDisabled "github.com/multiversx/mx-chain-go/factory/disabled"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/genesis"
@@ -42,6 +41,9 @@ import (
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/vm"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
@@ -386,7 +388,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		ProcessedMiniBlocksTracker:             processedMiniBlocksTracker,
 		SmartContractResultPreProcessorCreator: pcf.runTypeComponents.SCResultsPreProcessorCreator(),
 		TxExecutionOrderHandler:                pcf.txExecutionOrderHandler,
-		TxPreProcessorCreator:                  pcf.txPreprocessorCreator,
+		TxPreProcessorCreator:                  pcf.runTypeComponents.TxPreProcessorCreator(),
 	}
 	preProcFactory, err := shard.NewPreProcessorsContainerFactory(argsPreProc)
 	if err != nil {
@@ -480,9 +482,6 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		ManagedPeersHolder:           pcf.crypto.ManagedPeersHolder(),
 		SentSignaturesTracker:        sentSignaturesTracker,
 		ValidatorStatisticsProcessor: validatorStatisticsProcessor,
-		OutGoingOperationsPool:       pcf.outGoingOperationsPool,
-		DataCodec:                    pcf.dataCodec,
-		TopicsChecker:                pcf.topicsChecker,
 	}
 	blockProcessor, err := pcf.createBlockProcessor(argumentsBaseProcessor)
 	if err != nil {
@@ -738,7 +737,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
 		TxExecutionOrderHandler:      pcf.txExecutionOrderHandler,
-		TxPreProcessorCreator:        pcf.txPreprocessorCreator,
+		TxPreProcessorCreator:        pcf.runTypeComponents.TxPreProcessorCreator(),
 	}
 	preProcFactory, err := metachain.NewPreProcessorsContainerFactory(argsPreProc)
 	if err != nil {
@@ -1126,7 +1125,7 @@ func (pcf *processComponentsFactory) createBuiltInFunctionContainer(
 	accounts state.AccountsAdapter,
 	mapDNSAddresses map[string]struct{},
 ) (vmcommon.BuiltInFunctionFactory, error) {
-	convertedAddresses, err := mainFactory.DecodeAddresses(
+	convertedAddresses, err := addressDecoder.DecodeAddresses(
 		pcf.coreData.AddressPubKeyConverter(),
 		pcf.config.BuiltInFunctions.AutomaticCrawlerAddresses,
 	)
@@ -1134,7 +1133,7 @@ func (pcf *processComponentsFactory) createBuiltInFunctionContainer(
 		return nil, err
 	}
 
-	convertedDNSV2Addresses, err := mainFactory.DecodeAddresses(
+	convertedDNSV2Addresses, err := addressDecoder.DecodeAddresses(
 		pcf.coreData.AddressPubKeyConverter(),
 		pcf.config.BuiltInFunctions.DNSV2Addresses,
 	)
