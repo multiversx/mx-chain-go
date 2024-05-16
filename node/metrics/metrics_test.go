@@ -23,6 +23,7 @@ func TestInitBaseMetrics(t *testing.T) {
 	expectedKeys := []string{
 		common.MetricSynchronizedRound,
 		common.MetricNonce,
+		common.MetricBlockTimestamp,
 		common.MetricCountConsensus,
 		common.MetricCountLeader,
 		common.MetricCountAcceptedBlocks,

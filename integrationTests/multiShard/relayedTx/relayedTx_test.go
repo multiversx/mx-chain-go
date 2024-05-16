@@ -150,19 +150,19 @@ func testRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(
 		integrationTests.CreateAndSendTransactionWithGasLimit(
 			nodes[0],
 			big.NewInt(0),
-			20000,
+			200000,
 			make([]byte, 32),
 			[]byte(wasm.CreateDeployTxData(scCode)+"@"+initialSupply),
 			integrationTests.ChainID,
 			integrationTests.MinTransactionVersion,
 		)
 
-		transferTokenVMGas := uint64(7200)
+		transferTokenVMGas := uint64(720000)
 		transferTokenBaseGas := ownerNode.EconomicsData.ComputeGasLimit(&transaction.Transaction{Data: []byte("transferToken@" + hex.EncodeToString(receiverAddress1) + "@00" + hex.EncodeToString(sendValue.Bytes()))})
 		transferTokenFullGas := transferTokenBaseGas + transferTokenVMGas
 
 		initialTokenSupply := big.NewInt(1000000000)
-		initialPlusForGas := uint64(1000)
+		initialPlusForGas := uint64(100000)
 		for _, player := range players {
 			integrationTests.CreateAndSendTransactionWithGasLimit(
 				ownerNode,
@@ -190,8 +190,9 @@ func testRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(
 
 			time.Sleep(integrationTests.StepDelay)
 		}
+		time.Sleep(time.Second)
 
-		roundToPropagateMultiShard := int64(20)
+		roundToPropagateMultiShard := int64(25)
 		for i := int64(0); i <= roundToPropagateMultiShard; i++ {
 			round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 			integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)
@@ -343,7 +344,7 @@ func testRelayedTransactionInMultiShardEnvironmentWithAttestationContract(
 		integrationTests.CreateAndSendTransactionWithGasLimit(
 			nodes[0],
 			big.NewInt(0),
-			200000,
+			2000000,
 			make([]byte, 32),
 			[]byte(wasm.CreateDeployTxData(scCode)+"@"+hex.EncodeToString(registerValue.Bytes())+"@"+hex.EncodeToString(relayer.Address)+"@"+"ababab"),
 			integrationTests.ChainID,
@@ -351,9 +352,9 @@ func testRelayedTransactionInMultiShardEnvironmentWithAttestationContract(
 		)
 		time.Sleep(time.Second)
 
-		registerVMGas := uint64(100000)
-		savePublicInfoVMGas := uint64(100000)
-		attestVMGas := uint64(100000)
+		registerVMGas := uint64(10000000)
+		savePublicInfoVMGas := uint64(10000000)
+		attestVMGas := uint64(10000000)
 
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
 		integrationTests.AddSelfNotarizedHeaderByMetachain(nodes)

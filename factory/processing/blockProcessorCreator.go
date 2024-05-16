@@ -50,6 +50,7 @@ import (
 type blockProcessorAndVmFactories struct {
 	blockProcessor         process.BlockProcessor
 	vmFactoryForProcessing process.VirtualMachinesContainerFactory
+	epochSystemSCProcessor process.EpochStartSystemSCProcessor
 }
 
 func (pcf *processComponentsFactory) newBlockProcessor(
@@ -457,6 +458,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	blockProcessorComponents := &blockProcessorAndVmFactories{
 		blockProcessor:         blockProcessor,
 		vmFactoryForProcessing: vmFactory,
+		epochSystemSCProcessor: factoryDisabled.NewDisabledEpochStartSystemSC(),
 	}
 
 	pcf.stakingDataProviderAPI = factoryDisabled.NewDisabledStakingDataProvider()
@@ -986,6 +988,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	blockProcessorComponents := &blockProcessorAndVmFactories{
 		blockProcessor:         metaProcessor,
 		vmFactoryForProcessing: vmFactory,
+		epochSystemSCProcessor: epochStartSystemSCProcessor,
 	}
 
 	return blockProcessorComponents, nil
@@ -1090,6 +1093,7 @@ func (pcf *processComponentsFactory) createVMFactoryShard(
 		WasmVMChangeLocker:  wasmVMChangeLocker,
 		ESDTTransferParser:  esdtTransferParser,
 		Hasher:              pcf.coreData.Hasher(),
+		PubKeyConverter:     pcf.coreData.AddressPubKeyConverter(),
 	}
 
 	return shard.NewVMContainerFactory(argsNewVMFactory)
