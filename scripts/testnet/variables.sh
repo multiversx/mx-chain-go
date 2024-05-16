@@ -62,6 +62,8 @@ export META_VALIDATORCOUNT=3
 export META_OBSERVERCOUNT=1
 export META_CONSENSUS_SIZE=$META_VALIDATORCOUNT
 
+export ROUND_DURATION_IN_MS=6000
+
 # MULTI_KEY_NODES if set to 1, one observer will be generated on each shard that will handle all generated keys
 export MULTI_KEY_NODES=0
 

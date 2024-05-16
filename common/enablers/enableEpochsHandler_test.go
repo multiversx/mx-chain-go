@@ -109,13 +109,16 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch: 93,
 		ChangeOwnerAddressCrossShardThroughSCEnableEpoch:         94,
 		CurrentRandomnessOnSortingEnableEpoch:                    95,
-		StakeLimitsEnableEpoch:                                   95,
-		StakingV4Step1EnableEpoch:                                96,
-		StakingV4Step2EnableEpoch:                                97,
-		StakingV4Step3EnableEpoch:                                98,
-		AlwaysMergeContextsInEEIEnableEpoch:                      99,
-		RelayedTransactionsV3EnableEpoch:                         100,
-		FixRelayedMoveBalanceEnableEpoch:                         101,
+		StakeLimitsEnableEpoch:                                   96,
+		StakingV4Step1EnableEpoch:                                97,
+		StakingV4Step2EnableEpoch:                                98,
+		StakingV4Step3EnableEpoch:                                99,
+		AlwaysMergeContextsInEEIEnableEpoch:                      100,
+		DynamicESDTEnableEpoch:                                   101,
+		EGLDInMultiTransferEnableEpoch:                           102,
+		CryptoOpcodesV2EnableEpoch:                               103,
+		RelayedTransactionsV3EnableEpoch:                         104,
+		FixRelayedMoveBalanceEnableEpoch:                         105,
 	}
 }
 
@@ -193,13 +196,6 @@ func TestEnableEpochsHandler_IsFlagEnabled(t *testing.T) {
 	require.True(t, handler.IsFlagEnabled(common.SetGuardianFlag))
 	handler.EpochConfirmed(cfg.SetGuardianEnableEpoch+1, 0)
 	require.True(t, handler.IsFlagEnabled(common.SetGuardianFlag))
-
-	handler.EpochConfirmed(cfg.StakingV4Step1EnableEpoch-1, 0)
-	require.True(t, handler.IsFlagEnabled(common.StakingQueueFlag))
-	handler.EpochConfirmed(cfg.StakingV4Step1EnableEpoch, 0)
-	require.False(t, handler.IsFlagEnabled(common.StakingQueueFlag))
-	handler.EpochConfirmed(cfg.StakingV4Step1EnableEpoch+1, 0)
-	require.False(t, handler.IsFlagEnabled(common.StakingQueueFlag))
 
 	handler.EpochConfirmed(cfg.StakingV4Step1EnableEpoch-1, 0)
 	require.False(t, handler.IsFlagEnabled(common.StakingV4StartedFlag))
@@ -320,9 +316,9 @@ func TestEnableEpochsHandler_IsFlagEnabled(t *testing.T) {
 	require.False(t, handler.IsFlagEnabled(common.StakingV4Step1Flag))
 	require.True(t, handler.IsFlagEnabled(common.StakingV4Step2Flag))
 	require.True(t, handler.IsFlagEnabled(common.StakingV4Step3Flag))
-	require.False(t, handler.IsFlagEnabled(common.StakingQueueFlag))
 	require.True(t, handler.IsFlagEnabled(common.StakingV4StartedFlag))
 	require.True(t, handler.IsFlagEnabled(common.AlwaysMergeContextsInEEIFlag))
+	require.True(t, handler.IsFlagEnabled(common.DynamicESDTFlag))
 	require.True(t, handler.IsFlagEnabled(common.RelayedTransactionsV3Flag))
 	require.True(t, handler.IsFlagEnabled(common.FixRelayedMoveBalanceFlag))
 }
@@ -438,9 +434,11 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.StakingV4Step1EnableEpoch, handler.GetActivationEpoch(common.StakingV4Step1Flag))
 	require.Equal(t, cfg.StakingV4Step2EnableEpoch, handler.GetActivationEpoch(common.StakingV4Step2Flag))
 	require.Equal(t, cfg.StakingV4Step3EnableEpoch, handler.GetActivationEpoch(common.StakingV4Step3Flag))
-	require.Equal(t, cfg.StakingV4Step1EnableEpoch, handler.GetActivationEpoch(common.StakingQueueFlag))
 	require.Equal(t, cfg.StakingV4Step1EnableEpoch, handler.GetActivationEpoch(common.StakingV4StartedFlag))
 	require.Equal(t, cfg.AlwaysMergeContextsInEEIEnableEpoch, handler.GetActivationEpoch(common.AlwaysMergeContextsInEEIFlag))
+	require.Equal(t, cfg.DynamicESDTEnableEpoch, handler.GetActivationEpoch(common.DynamicESDTFlag))
+	require.Equal(t, cfg.EGLDInMultiTransferEnableEpoch, handler.GetActivationEpoch(common.EGLDInESDTMultiTransferFlag))
+	require.Equal(t, cfg.CryptoOpcodesV2EnableEpoch, handler.GetActivationEpoch(common.CryptoOpcodesV2Flag))
 	require.Equal(t, cfg.RelayedTransactionsV3EnableEpoch, handler.GetActivationEpoch(common.RelayedTransactionsV3Flag))
 	require.Equal(t, cfg.FixRelayedMoveBalanceEnableEpoch, handler.GetActivationEpoch(common.FixRelayedMoveBalanceFlag))
 }

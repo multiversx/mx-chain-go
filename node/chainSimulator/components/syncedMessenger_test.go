@@ -50,7 +50,6 @@ func TestSyncedMessenger_DisabledMethodsShouldNotPanic(t *testing.T) {
 	messenger, _ := NewSyncedMessenger(NewSyncedBroadcastNetwork())
 
 	assert.Nil(t, messenger.Close())
-	assert.Nil(t, messenger.AddPeerTopicNotifier(nil))
 	assert.Zero(t, messenger.Port())
 	assert.Nil(t, messenger.SetPeerDenialEvaluator(nil))
 	assert.Nil(t, messenger.SetThresholdMinConnectedPeers(0))
