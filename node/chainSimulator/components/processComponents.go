@@ -45,16 +45,6 @@ type ArgsProcessComponentsHolder struct {
 	IncomingHeaderHandler process.IncomingHeaderSubscriber
 	Configs               config.Configs
 
-	EpochConfig              config.EpochConfig
-	RoundConfig              config.RoundConfig
-	ConfigurationPathsHolder config.ConfigurationPathsHolder
-	FlagsConfig              config.ContextFlagsConfig
-	ImportDBConfig           config.ImportDbConfig
-	PrefsConfig              config.Preferences
-	Config                   config.Config
-	EconomicsConfig          config.EconomicsConfig
-	SystemSCConfig           config.SystemSmartContractsConfig
-
 	GenesisNonce uint64
 	GenesisRound uint64
 }

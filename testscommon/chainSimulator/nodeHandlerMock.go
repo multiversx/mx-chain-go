@@ -19,13 +19,13 @@ type NodeHandlerMock struct {
 	GetShardCoordinatorCalled      func() sharding.Coordinator
 	GetCryptoComponentsCalled      func() factory.CryptoComponentsHolder
 	GetCoreComponentsCalled        func() factory.CoreComponentsHolder
-	GetDataComponentsCalled       func() factory.DataComponentsHandler
+	GetDataComponentsCalled        func() factory.DataComponentsHandler
 	GetStateComponentsCalled       func() factory.StateComponentsHolder
 	GetFacadeHandlerCalled         func() shared.FacadeHandler
 	GetStatusCoreComponentsCalled  func() factory.StatusCoreComponentsHolder
 	SetKeyValueForAddressCalled    func(addressBytes []byte, state map[string]string) error
 	SetStateForAddressCalled       func(address []byte, state *dtos.AddressState) error
-	RemoveAccountCalled           func(address []byte) error
+	RemoveAccountCalled            func(address []byte) error
 	GetIncomingHeaderHandlerCalled func() process.IncomingHeaderSubscriber
 	CloseCalled                    func() error
 }

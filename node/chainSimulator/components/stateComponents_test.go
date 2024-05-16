@@ -8,13 +8,11 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/components"
-	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 
-	coreData "github.com/multiversx/mx-chain-core-go/data"
 	"github.com/stretchr/testify/require"
 )
 
@@ -34,16 +32,7 @@ func createArgsStateComponents() ArgsStateComponents {
 			StateStatsHandlerField: disabledStatistics.NewStateStatistics(),
 		},
 		DataComponents: &mock.DataComponentsStub{
-			DataPool: dataRetriever.NewPoolsHolderMock(),
-			BlockChain: &testscommon.ChainHandlerStub{
-				GetGenesisHeaderHashCalled: func() []byte {
-					return []byte("genesis hash")
-				},
-				GetGenesisHeaderCalled: func() coreData.HeaderHandler {
-					return &testscommon.HeaderHandlerStub{}
-				},
-			},
-			MbProvider: &mock.MiniBlocksProviderStub{},
+			BlockChain: &testscommon.ChainHandlerStub{},
 			Store:      genericMocks.NewChainStorerMock(0),
 		},
 		RunTypeComponents: components.GetRunTypeComponents(),
