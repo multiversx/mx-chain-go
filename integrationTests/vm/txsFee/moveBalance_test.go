@@ -16,8 +16,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const gasPrice = uint64(10)
-
 // minGasPrice = 1, gasPerDataByte = 1, minGasLimit = 1
 func TestMoveBalanceSelfShouldWorkAndConsumeTxFee(t *testing.T) {
 	if testing.Short() {

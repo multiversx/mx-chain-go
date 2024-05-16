@@ -7,8 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
@@ -17,6 +15,9 @@ import (
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -104,24 +105,6 @@ func TestNewBootstrapComponentsFactory(t *testing.T) {
 		require.Nil(t, bcf)
 		require.Equal(t, errorsMx.ErrNilAppStatusHandler, err)
 	})
-	t.Run("nil nodes coordinator factory, should error", func(t *testing.T) {
-		t.Parallel()
-
-		argsCopy := args
-		argsCopy.NodesCoordinatorWithRaterFactory = nil
-		bcf, err := bootstrap.NewBootstrapComponentsFactory(argsCopy)
-		require.Nil(t, bcf)
-		require.Equal(t, errorsMx.ErrNilNodesCoordinatorFactory, err)
-	})
-	t.Run("nil shard coordinator factory, should error", func(t *testing.T) {
-		t.Parallel()
-
-		argsCopy := args
-		argsCopy.ShardCoordinatorFactory = nil
-		bcf, err := bootstrap.NewBootstrapComponentsFactory(argsCopy)
-		require.Nil(t, bcf)
-		require.Equal(t, errorsMx.ErrNilShardCoordinatorFactory, err)
-	})
 	t.Run("nil RunTypeComponents should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -135,9 +118,9 @@ func TestNewBootstrapComponentsFactory(t *testing.T) {
 		t.Parallel()
 
 		argsCopy := args
-		argsCopy.RunTypeComponents = &mainFactoryMocks.RunTypeComponentsStub{
-			EpochStartBootstrapperFactory: nil,
-		}
+		rtMock := mainFactoryMocks.NewRunTypeComponentsStub()
+		rtMock.EpochStartBootstrapperFactory = nil
+		argsCopy.RunTypeComponents = rtMock
 		bcf, err := bootstrap.NewBootstrapComponentsFactory(argsCopy)
 		require.Nil(t, bcf)
 		require.Equal(t, errorsMx.ErrNilEpochStartBootstrapperCreator, err)
@@ -146,13 +129,45 @@ func TestNewBootstrapComponentsFactory(t *testing.T) {
 		t.Parallel()
 
 		argsCopy := args
-		argsCopy.RunTypeComponents = &mainFactoryMocks.RunTypeComponentsStub{
-			EpochStartBootstrapperFactory:   &factory.EpochStartBootstrapperFactoryMock{},
-			AdditionalStorageServiceFactory: nil,
-		}
+		rtMock := mainFactoryMocks.NewRunTypeComponentsStub()
+		rtMock.AdditionalStorageServiceFactory = nil
+		argsCopy.RunTypeComponents = rtMock
 		bcf, err := bootstrap.NewBootstrapComponentsFactory(argsCopy)
 		require.Nil(t, bcf)
 		require.Equal(t, errorsMx.ErrNilAdditionalStorageServiceCreator, err)
+	})
+	t.Run("nil ShardCoordinatorFactory, should error", func(t *testing.T) {
+		t.Parallel()
+
+		argsCopy := args
+		rtMock := mainFactoryMocks.NewRunTypeComponentsStub()
+		rtMock.ShardCoordinatorFactory = nil
+		argsCopy.RunTypeComponents = rtMock
+		bcf, err := bootstrap.NewBootstrapComponentsFactory(argsCopy)
+		require.Nil(t, bcf)
+		require.Equal(t, errorsMx.ErrNilShardCoordinatorFactory, err)
+	})
+	t.Run("nil NodesCoordinatorWithRaterFactory should error", func(t *testing.T) {
+		t.Parallel()
+
+		argsCopy := args
+		rtMock := mainFactoryMocks.NewRunTypeComponentsStub()
+		rtMock.NodesCoordinatorWithRaterFactory = nil
+		argsCopy.RunTypeComponents = rtMock
+		bcf, err := bootstrap.NewBootstrapComponentsFactory(argsCopy)
+		require.Nil(t, bcf)
+		require.Equal(t, errorsMx.ErrNilNodesCoordinatorFactory, err)
+	})
+	t.Run("nil RequestHandlerFactory should error", func(t *testing.T) {
+		t.Parallel()
+
+		argsCopy := args
+		rtMock := mainFactoryMocks.NewRunTypeComponentsStub()
+		rtMock.RequestHandlerFactory = nil
+		argsCopy.RunTypeComponents = rtMock
+		bcf, err := bootstrap.NewBootstrapComponentsFactory(argsCopy)
+		require.Nil(t, bcf)
+		require.Equal(t, errorsMx.ErrNilRequestHandlerCreator, err)
 	})
 	t.Run("empty working dir should error", func(t *testing.T) {
 		t.Parallel()

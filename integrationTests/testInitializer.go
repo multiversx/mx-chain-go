@@ -28,6 +28,11 @@ import (
 	"github.com/multiversx/mx-chain-crypto-go/signing/ed25519"
 	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
 	"github.com/multiversx/mx-chain-crypto-go/signing/secp256k1"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
+	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/config"
@@ -42,7 +47,6 @@ import (
 	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
 	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	procFactory "github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
@@ -69,7 +73,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
@@ -81,10 +84,6 @@ import (
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
-	"github.com/pkg/errors"
-	"github.com/stretchr/testify/assert"
 )
 
 // StepDelay is used so that transactions can disseminate properly
@@ -605,6 +604,7 @@ func CreateGenesisBlocks(
 	dataPool dataRetriever.PoolsHolder,
 	economics process.EconomicsDataHandler,
 	enableEpochsConfig config.EnableEpochs,
+	runTypeComp mainFactory.RunTypeComponentsHolder,
 ) map[uint32]data.HeaderHandler {
 
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
@@ -627,6 +627,7 @@ func CreateGenesisBlocks(
 		dataPool,
 		economics,
 		enableEpochsConfig,
+		runTypeComp,
 	)
 
 	return genesisBlocks
@@ -643,7 +644,6 @@ func CreateFullGenesisBlocks(
 	blkc data.ChainHandler,
 	dataPool dataRetriever.PoolsHolder,
 	economics process.EconomicsDataHandler,
-	accountsParser genesis.AccountsParser,
 	smartContractParser genesis.InitialSmartContractParser,
 	enableEpochsConfig config.EnableEpochs,
 	runTypeComp mainFactory.RunTypeComponentsHolder,
@@ -685,6 +685,7 @@ func CreateFullGenesisBlocks(
 			WasmVMVersions: []config.WasmVMVersionByEpoch{
 				{StartEpoch: 0, Version: "*"},
 			},
+			TransferAndExecuteByUserAddresses: []string{"erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c"},
 		},
 		TrieStorageManagers: trieStorageManagers,
 		SystemSCConfig: config.SystemSmartContractsConfig{
@@ -736,7 +737,6 @@ func CreateFullGenesisBlocks(
 				MaxNumberOfIterations: 100000,
 			},
 		},
-		AccountsParser:      accountsParser,
 		SmartContractParser: smartContractParser,
 		BlockSignKeyGen:     &mock.KeyGenMock{},
 		EpochConfig: config.EpochConfig{
@@ -746,8 +746,6 @@ func CreateFullGenesisBlocks(
 		HeaderVersionConfigs:    testscommon.GetDefaultHeaderVersionConfig(),
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
-		ShardCoordinatorFactory: sharding.NewMultiShardCoordinatorFactory(),
-		TxPreprocessorCreator:   preprocess.NewTxPreProcessorCreator(),
 		RunTypeComponents:       runTypeComp,
 	}
 
@@ -773,6 +771,7 @@ func CreateGenesisMetaBlock(
 	dataPool dataRetriever.PoolsHolder,
 	economics process.EconomicsDataHandler,
 	enableEpochsConfig config.EnableEpochs,
+	runTypeComp mainFactory.RunTypeComponentsHolder,
 ) data.MetaHeaderHandler {
 	gasSchedule := wasmConfig.MakeGasMapForTests()
 	defaults.FillGasMapInternal(gasSchedule, 1)
@@ -804,6 +803,7 @@ func CreateGenesisMetaBlock(
 			WasmVMVersions: []config.WasmVMVersionByEpoch{
 				{StartEpoch: 0, Version: "*"},
 			},
+			TransferAndExecuteByUserAddresses: []string{"erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe3"},
 		},
 		HardForkConfig: config.HardforkConfig{},
 		SystemSCConfig: config.SystemSmartContractsConfig{
@@ -864,8 +864,7 @@ func CreateGenesisMetaBlock(
 		HeaderVersionConfigs:    testscommon.GetDefaultHeaderVersionConfig(),
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
-		TxPreprocessorCreator:   preprocess.NewTxPreProcessorCreator(),
-		RunTypeComponents:       &mainFactoryMocks.RunTypeComponentsStub{},
+		RunTypeComponents:       runTypeComp,
 	}
 
 	if shardCoordinator.SelfId() != core.MetachainShardId {
