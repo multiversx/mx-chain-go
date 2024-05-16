@@ -196,6 +196,10 @@ func TestSimulator_TriggerChangeOfEpoch(t *testing.T) {
 
 	err = chainSimulator.ForceChangeOfEpoch()
 	require.Nil(t, err)
+
+	metaNode := chainSimulator.GetNodeHandler(core.MetachainShardId)
+	currentEpoch := metaNode.GetProcessComponents().EpochStartTrigger().Epoch()
+	require.Equal(t, uint32(4), currentEpoch)
 }
 
 func TestChainSimulator_SetState(t *testing.T) {
