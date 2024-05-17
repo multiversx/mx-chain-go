@@ -14,12 +14,10 @@ import (
 	"github.com/multiversx/mx-chain-go/process/rating"
 	"github.com/multiversx/mx-chain-go/sharding"
 	sovereignConfig "github.com/multiversx/mx-chain-go/sovereignnode/config"
-	"github.com/multiversx/mx-chain-go/sovereignnode/dataCodec"
 	"github.com/multiversx/mx-chain-go/sovereignnode/incomingHeader"
 	sovRunType "github.com/multiversx/mx-chain-go/sovereignnode/runType"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-sdk-abi-incubator/golang/abi"
 )
 
 type ArgsSovereignChainSimulator struct {
@@ -96,25 +94,4 @@ func createSovereignRunTypeComponents(args runType.ArgsRunTypeComponents, sovere
 	}
 
 	return managedRunTypeComponents, nil
-}
-
-func createArgsRunTypeComponents(args runType.ArgsRunTypeComponents, sovereignExtraConfig config.SovereignConfig) (*runType.ArgsSovereignRunTypeComponents, error) {
-	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory(args)
-
-	codec := abi.NewDefaultCodec()
-	argsDataCodec := dataCodec.ArgsDataCodec{
-		Serializer: abi.NewSerializer(codec),
-	}
-
-	dataCodecHandler, err := dataCodec.NewDataCodec(argsDataCodec)
-	if err != nil {
-		return nil, err
-	}
-
-	return &runType.ArgsSovereignRunTypeComponents{
-		RunTypeComponentsFactory: runTypeComponentsFactory,
-		Config:                   sovereignExtraConfig,
-		DataCodec:                dataCodecHandler,
-		TopicsChecker:            incomingHeader.NewTopicsChecker(),
-	}, nil
 }
