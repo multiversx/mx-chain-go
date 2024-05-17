@@ -151,6 +151,27 @@ func TestChainSimulator_ExecuteBridgeOpsWithPrefix(t *testing.T) {
 	require.Nil(t, err)
 	require.Contains(t, esdts, "sov1-SOVT-5d8f56")
 	require.Equal(t, esdts["sov1-SOVT-5d8f56"].Value, expectedMintValue)
+
+	amountToBurn, _ := big.NewInt(0).SetString("120000000000000000000", 10)
+	depositTxData := "MultiESDTNFTTransfer" +
+		"@" + hex.EncodeToString(esdtSafeAddress) +
+		"@01" +
+		"@736f76312d534f56542d356438663536" + // token
+		"@" + // nonce
+		"@" + hex.EncodeToString(amountToBurn.Bytes()) + // amount
+		"@6465706f736974" + //deposit
+		"@" + hex.EncodeToString(wallet.Bytes) // receiver on the other chain
+	tx = generateTransaction(wallet.Bytes, 6, wallet.Bytes, big.NewInt(0), depositTxData, uint64(50000000))
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, 10)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+	require.Equal(t, transaction.TxStatusSuccess, txResult.Status)
+
+	expectedRemainingValue := expectedMintValue.Sub(expectedMintValue, amountToBurn)
+	esdts, _, err = cs.GetNodeHandler(0).GetFacadeHandler().GetAllESDTTokens(wallet.Bech32, coreAPI.AccountQueryOptions{})
+	require.Nil(t, err)
+	require.Contains(t, esdts, "sov1-SOVT-5d8f56")
+	require.Equal(t, esdts["sov1-SOVT-5d8f56"].Value, expectedRemainingValue)
 }
 
 func getSCCode(fileName string) string {
