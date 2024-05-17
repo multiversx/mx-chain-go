@@ -63,9 +63,6 @@ func TestChainSimulator_ExecuteBridgeOpsWithPrefix(t *testing.T) {
 
 	defer cs.Close()
 
-	err = cs.GenerateBlocksUntilEpochIsReached(3)
-	require.Nil(t, err)
-
 	nodeHandler := cs.GetNodeHandler(core.MetachainShardId)
 	systemScAddress, _ := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode("erd1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq6gq4hu")
 
@@ -77,10 +74,16 @@ func TestChainSimulator_ExecuteBridgeOpsWithPrefix(t *testing.T) {
 			Address: initialAddress,
 			Balance: "10000000000000000000000",
 		},
+		{
+			Address: "erd1lllllllllllllllllllllllllllllllllllllllllllllllllllsckry7t", // init sys account
+		},
 	})
 	require.Nil(t, err)
-	wallet := dtos.WalletAddress{Bech32: initialAddress, Bytes: initialAddrBytes}
 
+	err = cs.GenerateBlocksUntilEpochIsReached(3)
+	require.Nil(t, err)
+
+	wallet := dtos.WalletAddress{Bech32: initialAddress, Bytes: initialAddrBytes}
 	esdtSafeCode := getSCCode("testdata/esdt-safe.wasm")
 	esdtSafeArgs := "@0500@0500" +
 		"@" + // is_sovereign_chain
@@ -143,9 +146,11 @@ func TestChainSimulator_ExecuteBridgeOpsWithPrefix(t *testing.T) {
 	require.NotNil(t, txResult)
 	require.Equal(t, transaction.TxStatusSuccess, txResult.Status)
 
-	esdts, _, err := nodeHandler.GetFacadeHandler().GetAllESDTTokens(wallet.Bech32, coreAPI.AccountQueryOptions{})
+	expectedMintValue, _ := big.NewInt(0).SetString("123000000000000000000", 10)
+	esdts, _, err := cs.GetNodeHandler(0).GetFacadeHandler().GetAllESDTTokens(wallet.Bech32, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
-	require.NotNil(t, esdts)
+	require.Contains(t, esdts, "sov1-SOVT-5d8f56")
+	require.Equal(t, esdts["sov1-SOVT-5d8f56"].Value, expectedMintValue)
 }
 
 func getSCCode(fileName string) string {
