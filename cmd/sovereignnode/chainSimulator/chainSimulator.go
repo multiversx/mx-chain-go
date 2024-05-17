@@ -37,10 +37,10 @@ func NewSovereignChainSimulator(args ArgsSovereignChainSimulator) (*chainSimulat
 	args.ChainSimulatorArgs.CreateRatingsData = func(arg rating.RatingsDataArg) (process.RatingsInfoHandler, error) {
 		return rating.NewSovereignRatingsData(arg)
 	}
-	args.ChainSimulatorArgs.CreateIncomingHeaderHandler = func(config *config.NotifierConfig, dataPool dataRetriever.PoolsHolder, mainChainNotarizationStartRound uint64, runTypeComponents factory.RunTypeComponentsHolder) (process.IncomingHeaderSubscriber, error) {
+	args.ChainSimulatorArgs.CreateIncomingHeaderSubscriber = func(config *config.NotifierConfig, dataPool dataRetriever.PoolsHolder, mainChainNotarizationStartRound uint64, runTypeComponents factory.RunTypeComponentsHolder) (process.IncomingHeaderSubscriber, error) {
 		return incomingHeader.CreateIncomingHeaderProcessor(config, dataPool, mainChainNotarizationStartRound, runTypeComponents)
 	}
-	args.ChainSimulatorArgs.GetRunTypeComponents = func(argsRunType runType.ArgsRunTypeComponents) (factory.RunTypeComponentsHolder, error) {
+	args.ChainSimulatorArgs.CreateRunTypeComponents = func(argsRunType runType.ArgsRunTypeComponents) (factory.RunTypeComponentsHolder, error) {
 		return createSovereignRunTypeComponents(argsRunType, args.SovereignExtraConfig)
 	}
 	args.ChainSimulatorArgs.NodeFactory = node.NewSovereignNodeFactory()
