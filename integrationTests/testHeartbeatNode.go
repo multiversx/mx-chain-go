@@ -29,7 +29,6 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
-	"github.com/multiversx/mx-chain-go/heartbeat/monitor"
 	"github.com/multiversx/mx-chain-go/heartbeat/processor"
 	"github.com/multiversx/mx-chain-go/heartbeat/sender"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
@@ -52,10 +51,10 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/shardingmock"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
 	"github.com/multiversx/mx-chain-go/update"
@@ -350,7 +349,7 @@ func CreateNodesWithTestHeartbeatNode(
 	suCache, _ := storageunit.NewCache(cacherCfg)
 	for shardId, validatorList := range validatorsMap {
 		argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-			ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{
+			ChainParametersHandler: &shardingMocks.ChainParametersHandlerStub{
 				ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
 					return config.ChainParametersByEpochConfig{
 						ShardConsensusGroupSize:     uint32(shardConsensusGroupSize),
@@ -376,7 +375,8 @@ func CreateNodesWithTestHeartbeatNode(
 			IsFullArchive:            false,
 			EnableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
-			GenesisNodesSetupHandler: &testscommon.NodesSetupStub{},
+			GenesisNodesSetupHandler:        &genesisMocks.NodesSetupStub{},
+			NodesCoordinatorRegistryFactory: &shardingMocks.NodesCoordinatorRegistryFactoryMock{},
 		}
 		nodesCoordinatorInstance, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 		log.LogIfError(err)
@@ -403,7 +403,7 @@ func CreateNodesWithTestHeartbeatNode(
 			}
 
 			argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-				ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{
+				ChainParametersHandler: &shardingMocks.ChainParametersHandlerStub{
 					ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
 						return config.ChainParametersByEpochConfig{
 							ShardConsensusGroupSize:     uint32(shardConsensusGroupSize),
@@ -429,7 +429,8 @@ func CreateNodesWithTestHeartbeatNode(
 				IsFullArchive:            false,
 				EnableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 				ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
-				GenesisNodesSetupHandler: &mock.NodesSetupStub{},
+				GenesisNodesSetupHandler:        &genesisMocks.NodesSetupStub{},
+				NodesCoordinatorRegistryFactory: &shardingMocks.NodesCoordinatorRegistryFactoryMock{},
 			}
 			nodesCoordinatorInstance, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 			log.LogIfError(err)
@@ -460,7 +461,6 @@ func (thn *TestHeartbeatNode) InitTestHeartbeatNode(tb testing.TB, minPeersWaiti
 	thn.initResolversAndRequesters()
 	thn.initInterceptors()
 	thn.initShardSender(tb)
-	thn.initCrossShardPeerTopicNotifier(tb)
 	thn.initDirectConnectionProcessor(tb)
 
 	for len(thn.MainMessenger.Peers()) < minPeersWaiting {
@@ -540,13 +540,14 @@ func (thn *TestHeartbeatNode) initResolversAndRequesters() {
 				return &trieMock.TrieStub{}
 			},
 		},
-		SizeCheckDelta:                  100,
-		InputAntifloodHandler:           &mock.NilAntifloodHandler{},
-		OutputAntifloodHandler:          &mock.NilAntifloodHandler{},
-		NumConcurrentResolvingJobs:      10,
-		MainPreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
-		FullArchivePreferredPeersHolder: &p2pmocks.PeersHolderStub{},
-		PayloadValidator:                payloadValidator,
+		SizeCheckDelta:                      100,
+		InputAntifloodHandler:               &mock.NilAntifloodHandler{},
+		OutputAntifloodHandler:              &mock.NilAntifloodHandler{},
+		NumConcurrentResolvingJobs:          10,
+		NumConcurrentResolvingTrieNodesJobs: 3,
+		MainPreferredPeersHolder:            &p2pmocks.PeersHolderStub{},
+		FullArchivePreferredPeersHolder:     &p2pmocks.PeersHolderStub{},
+		PayloadValidator:                    payloadValidator,
 	}
 
 	requestersContainerFactoryArgs := requesterscontainer.FactoryArgs{
@@ -806,29 +807,6 @@ func (thn *TestHeartbeatNode) initDirectConnectionProcessor(tb testing.TB) {
 	require.Nil(tb, err)
 }
 
-func (thn *TestHeartbeatNode) initCrossShardPeerTopicNotifier(tb testing.TB) {
-	argsCrossShardPeerTopicNotifier := monitor.ArgsCrossShardPeerTopicNotifier{
-		ShardCoordinator: thn.ShardCoordinator,
-		PeerShardMapper:  thn.MainPeerShardMapper,
-	}
-	crossShardPeerTopicNotifier, err := monitor.NewCrossShardPeerTopicNotifier(argsCrossShardPeerTopicNotifier)
-	require.Nil(tb, err)
-
-	err = thn.MainMessenger.AddPeerTopicNotifier(crossShardPeerTopicNotifier)
-	require.Nil(tb, err)
-
-	argsCrossShardPeerTopicNotifier = monitor.ArgsCrossShardPeerTopicNotifier{
-		ShardCoordinator: thn.ShardCoordinator,
-		PeerShardMapper:  thn.FullArchivePeerShardMapper,
-	}
-	fullArchiveCrossShardPeerTopicNotifier, err := monitor.NewCrossShardPeerTopicNotifier(argsCrossShardPeerTopicNotifier)
-	require.Nil(tb, err)
-
-	err = thn.FullArchiveMessenger.AddPeerTopicNotifier(fullArchiveCrossShardPeerTopicNotifier)
-	require.Nil(tb, err)
-
-}
-
 // ConnectOnMain will try to initiate a connection to the provided parameter on the main messenger
 func (thn *TestHeartbeatNode) ConnectOnMain(connectable Connectable) error {
 	if check.IfNil(connectable) {
@@ -874,13 +852,19 @@ func MakeDisplayTableForHeartbeatNodes(nodes map[uint32][]*TestHeartbeatNode) st
 		for _, n := range nodesList {
 			buffPk, _ := n.NodeKeys.MainKey.Pk.ToByteArray()
 
+			validatorMarker := ""
+			v, _, _ := n.NodesCoordinator.GetValidatorWithPublicKey(buffPk)
+			if v != nil {
+				validatorMarker = "*"
+			}
+
 			peerInfo := n.MainMessenger.GetConnectedPeersInfo()
 
 			pid := n.MainMessenger.ID().Pretty()
 			lineData := display.NewLineData(
 				false,
 				[]string{
-					core.GetTrimmedPk(hex.EncodeToString(buffPk)),
+					core.GetTrimmedPk(hex.EncodeToString(buffPk)) + validatorMarker,
 					pid[len(pid)-6:],
 					fmt.Sprintf("%d", shardId),
 					fmt.Sprintf("%d", n.CountGlobalMessages()),

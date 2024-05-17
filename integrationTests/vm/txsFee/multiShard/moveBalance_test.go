@@ -14,6 +14,10 @@ import (
 )
 
 func TestMoveBalanceShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -49,7 +53,9 @@ func TestMoveBalanceShouldWork(t *testing.T) {
 }
 
 func TestMoveBalanceContractAddressDataFieldNilShouldConsumeGas(t *testing.T) {
-	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
 	require.Nil(t, err)
@@ -89,7 +95,9 @@ func TestMoveBalanceContractAddressDataFieldNilShouldConsumeGas(t *testing.T) {
 }
 
 func TestMoveBalanceContractAddressDataFieldNotNilShouldConsumeGas(t *testing.T) {
-	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
 	require.Nil(t, err)
@@ -129,6 +137,10 @@ func TestMoveBalanceContractAddressDataFieldNotNilShouldConsumeGas(t *testing.T)
 }
 
 func TestMoveBalanceExecuteOneSourceAndDestinationShard(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContextSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContextSource.Close()

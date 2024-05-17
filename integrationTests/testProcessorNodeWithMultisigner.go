@@ -31,9 +31,10 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/shardingmock"
 	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
 )
 
@@ -90,7 +91,7 @@ func CreateNodesWithNodesCoordinatorAndTxKeys(
 	}
 	waitingMapForNodesCoordinator[core.MetachainShardId] = make([]nodesCoordinator.Validator, 0)
 
-	nodesSetup := &mock.NodesSetupStub{InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
+	nodesSetup := &genesisMocks.NodesSetupStub{InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
 		return validatorsMap, waitingMap
 	}}
 
@@ -222,7 +223,7 @@ func CreateNodesWithNodesCoordinatorFactory(
 
 	numNodes := nbShards*nodesPerShard + nbMetaNodes
 
-	nodesSetup := &mock.NodesSetupStub{
+	nodesSetup := &genesisMocks.NodesSetupStub{
 		InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
 			return validatorsMap, waitingMap
 		},
@@ -237,6 +238,9 @@ func CreateNodesWithNodesCoordinatorFactory(
 		MiniBlockPartialExecutionEnableEpoch:            UnreachableEpoch,
 		RefactorPeersMiniBlocksEnableEpoch:              UnreachableEpoch,
 		DynamicGasCostForDataTrieStorageLoadEnableEpoch: UnreachableEpoch,
+		StakingV4Step1EnableEpoch:                       UnreachableEpoch,
+		StakingV4Step2EnableEpoch:                       UnreachableEpoch,
+		StakingV4Step3EnableEpoch:                       UnreachableEpoch,
 	}
 
 	nodesMap := make(map[uint32][]*TestProcessorNode)
@@ -403,15 +407,19 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 	epochStartSubscriber := notifier.NewEpochStartSubscriptionHandler()
 	bootStorer := CreateMemUnit()
 
-	nodesSetup := &mock.NodesSetupStub{InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
+	nodesSetup := &genesisMocks.NodesSetupStub{InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
 		return validatorsMap, nil
 	}}
 
+	nodesCoordinatorRegistryFactory, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
+		&marshallerMock.MarshalizerMock{},
+		StakingV4Step2EnableEpoch,
+	)
 	completeNodesList := make([]Connectable, 0)
 	for shardId, validatorList := range validatorsMap {
 		consensusCache, _ := cache.NewLRUCache(10000)
 		argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-			ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{
+			ChainParametersHandler: &shardingMocks.ChainParametersHandlerStub{
 				ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
 					return config.ChainParametersByEpochConfig{
 						ShardConsensusGroupSize:     uint32(shardConsensusGroupSize),
@@ -440,7 +448,8 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 			IsFullArchive:       false,
 			EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
-			GenesisNodesSetupHandler: &testscommon.NodesSetupStub{},
+			GenesisNodesSetupHandler:        &genesisMocks.NodesSetupStub{},
+			NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
 		}
 		nodesCoordinatorInstance, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 
@@ -526,18 +535,22 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 	epochStartSubscriber := notifier.NewEpochStartSubscriptionHandler()
 	nodeShuffler := &shardingMocks.NodeShufflerMock{}
 
-	nodesSetup := &mock.NodesSetupStub{
+	nodesSetup := &genesisMocks.NodesSetupStub{
 		InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
 			return validatorsMap, waitingMap
 		},
 	}
 
+	nodesCoordinatorRegistryFactory, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
+		&marshallerMock.MarshalizerMock{},
+		StakingV4Step2EnableEpoch,
+	)
 	completeNodesList := make([]Connectable, 0)
 	for shardId, validatorList := range validatorsMap {
 		bootStorer := CreateMemUnit()
 		lruCache, _ := cache.NewLRUCache(10000)
 		argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-			ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{
+			ChainParametersHandler: &shardingMocks.ChainParametersHandlerStub{
 				ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
 					return config.ChainParametersByEpochConfig{
 						ShardConsensusGroupSize:     uint32(shardConsensusGroupSize),
@@ -562,7 +575,8 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 			IsFullArchive:       false,
 			EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
-			GenesisNodesSetupHandler: &testscommon.NodesSetupStub{},
+			GenesisNodesSetupHandler:        &genesisMocks.NodesSetupStub{},
+			NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
 		}
 		nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 

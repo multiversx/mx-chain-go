@@ -1,5 +1,3 @@
-//go:build !race
-
 package multisign
 
 import (
@@ -189,7 +187,7 @@ func deployMultisig(t *testing.T, nodes []*integrationTests.TestProcessorNode, o
 	require.Nil(t, err)
 
 	log.Info("multisign contract", "address", encodedMultisigContractAddress)
-	integrationTests.CreateAndSendTransaction(nodes[ownerIdx], nodes, big.NewInt(0), emptyAddress, txData, 100000)
+	integrationTests.CreateAndSendTransaction(nodes[ownerIdx], nodes, big.NewInt(0), emptyAddress, txData, 1000000)
 
 	return multisigContractAddress
 }
@@ -235,8 +233,8 @@ func proposeIssueTokenAndTransferFunds(
 	params = append(params, tokenPropertiesParams...)
 	txData := strings.Join(params, "@")
 
-	integrationTests.CreateAndSendTransaction(nodes[ownerIdx], nodes, big.NewInt(1000000), multisignContractAddress, "deposit", 100000)
-	integrationTests.CreateAndSendTransaction(nodes[ownerIdx], nodes, big.NewInt(0), multisignContractAddress, txData, 100000)
+	integrationTests.CreateAndSendTransaction(nodes[ownerIdx], nodes, big.NewInt(1000000), multisignContractAddress, "deposit", 1000000)
+	integrationTests.CreateAndSendTransaction(nodes[ownerIdx], nodes, big.NewInt(0), multisignContractAddress, txData, 1000000)
 }
 
 func getActionID(t *testing.T, nodes []*integrationTests.TestProcessorNode, multisignContractAddress []byte) []byte {
@@ -286,7 +284,7 @@ func boardMembersSignActionID(
 		}
 
 		txData := strings.Join(params, "@")
-		integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), multisignContractAddress, txData, 100000)
+		integrationTests.CreateAndSendTransaction(node, nodes, big.NewInt(0), multisignContractAddress, txData, 1000000)
 	}
 }
 
@@ -329,5 +327,5 @@ func proposeTransferToken(
 	params := append(multisigParams, esdtParams...)
 	txData := strings.Join(params, "@")
 
-	integrationTests.CreateAndSendTransaction(nodes[ownerIdx], nodes, big.NewInt(0), multisignContractAddress, txData, 100000)
+	integrationTests.CreateAndSendTransaction(nodes[ownerIdx], nodes, big.NewInt(0), multisignContractAddress, txData, 1000000)
 }

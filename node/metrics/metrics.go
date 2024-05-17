@@ -30,6 +30,7 @@ func InitBaseMetrics(appStatusHandler core.AppStatusHandler) error {
 
 	appStatusHandler.SetUInt64Value(common.MetricSynchronizedRound, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricNonce, initUint)
+	appStatusHandler.SetUInt64Value(common.MetricBlockTimestamp, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricCountConsensus, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricCountLeader, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricCountAcceptedBlocks, initUint)
@@ -53,6 +54,8 @@ func InitBaseMetrics(appStatusHandler core.AppStatusHandler) error {
 	appStatusHandler.SetUInt64Value(common.MetricTrieSyncNumReceivedBytes, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricAccountsSnapshotInProgress, initUint)
 	appStatusHandler.SetUInt64Value(common.MetricPeersSnapshotInProgress, initUint)
+	appStatusHandler.SetUInt64Value(common.MetricNonceAtEpochStart, initUint)
+	appStatusHandler.SetUInt64Value(common.MetricRoundAtEpochStart, initUint)
 
 	appStatusHandler.SetInt64Value(common.MetricLastAccountsSnapshotDurationSec, initInt)
 	appStatusHandler.SetInt64Value(common.MetricLastPeersSnapshotDurationSec, initInt)
@@ -125,9 +128,7 @@ func InitConfigMetrics(
 	appStatusHandler.SetUInt64Value(common.MetricESDTMultiTransferEnableEpoch, uint64(enableEpochs.ESDTMultiTransferEnableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricGlobalMintBurnDisableEpoch, uint64(enableEpochs.GlobalMintBurnDisableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricESDTTransferRoleEnableEpoch, uint64(enableEpochs.ESDTTransferRoleEnableEpoch))
-	appStatusHandler.SetUInt64Value(common.MetricBuiltInFunctionOnMetaEnableEpoch, uint64(enableEpochs.BuiltInFunctionOnMetaEnableEpoch))
 	appStatusHandler.SetStringValue(common.MetricTotalSupply, economicsConfig.GlobalSettings.GenesisTotalSupply)
-	appStatusHandler.SetUInt64Value(common.MetricWaitingListFixEnableEpoch, uint64(enableEpochs.WaitingListFixEnableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricSetGuardianEnableEpoch, uint64(enableEpochs.SetGuardianEnableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricSetScToScLogEventEnableEpoch, uint64(enableEpochs.ScToScLogEventEnableEpoch))
 

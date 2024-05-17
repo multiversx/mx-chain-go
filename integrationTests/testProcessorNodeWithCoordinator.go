@@ -14,9 +14,9 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage/cache"
-	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
-	"github.com/multiversx/mx-chain-go/testscommon/shardingmock"
+	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
 )
 
@@ -50,7 +50,7 @@ func CreateProcessorNodesWithNodesCoordinator(
 	waitingMap := GenValidatorsFromPubKeys(pubKeysWaiting, nbShards)
 	waitingMapForNodesCoordinator, _ := nodesCoordinator.NodesInfoToValidators(waitingMap)
 
-	nodesSetup := &mock.NodesSetupStub{InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
+	nodesSetup := &genesisMocks.NodesSetupStub{InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
 		return validatorsMap, waitingMap
 	}}
 
@@ -63,7 +63,7 @@ func CreateProcessorNodesWithNodesCoordinator(
 		for i, v := range validatorList {
 			lruCache, _ := cache.NewLRUCache(10000)
 			argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-				ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{
+				ChainParametersHandler: &shardingMocks.ChainParametersHandlerStub{
 					ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
 						return config.ChainParametersByEpochConfig{
 							ShardConsensusGroupSize:     uint32(shardConsensusGroupSize),
@@ -84,7 +84,7 @@ func CreateProcessorNodesWithNodesCoordinator(
 				IsFullArchive:       false,
 				EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 				ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
-				GenesisNodesSetupHandler: &testscommon.NodesSetupStub{},
+				GenesisNodesSetupHandler: &genesisMocks.NodesSetupStub{},
 			}
 
 			nodesCoordinatorInstance, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)

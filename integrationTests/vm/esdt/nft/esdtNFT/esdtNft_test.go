@@ -1,5 +1,3 @@
-//go:build !race
-
 package esdtNFT
 
 import (
@@ -908,6 +906,10 @@ func testESDTSemiFungibleTokenTransferRole(t *testing.T, numOfShards int) {
 }
 
 func TestESDTSFTWithEnhancedTransferRole(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	nodesPerShard := 2
 	numMetachainNodes := 2
 	numOfShards := 3

@@ -21,7 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
-	"github.com/multiversx/mx-chain-go/testscommon/shardingmock"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -58,7 +58,7 @@ func TestIndexHashedGroupSelectorWithRater_SetNilEligibleMapShouldErr(t *testing
 	waiting := createDummyNodesMap(2, 1, "waiting")
 	nc, _ := NewIndexHashedNodesCoordinator(createArguments())
 	ihnc, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
-	assert.Equal(t, ErrNilInputNodesMap, ihnc.setNodesPerShards(nil, waiting, nil, 0))
+	assert.Equal(t, ErrNilInputNodesMap, ihnc.setNodesPerShards(nil, waiting, nil, nil, 0))
 }
 
 func TestIndexHashedGroupSelectorWithRater_OkValShouldWork(t *testing.T) {
@@ -78,7 +78,7 @@ func TestIndexHashedGroupSelectorWithRater_OkValShouldWork(t *testing.T) {
 	bootStorer := genericMocks.NewStorerMock()
 
 	arguments := ArgNodesCoordinator{
-		ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{
+		ChainParametersHandler: &shardingMocks.ChainParametersHandlerStub{
 			CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
 				return config.ChainParametersByEpochConfig{
 					ShardConsensusGroupSize:     2,
@@ -103,6 +103,7 @@ func TestIndexHashedGroupSelectorWithRater_OkValShouldWork(t *testing.T) {
 		EnableEpochsHandler:      &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
 		GenesisNodesSetupHandler: &mock.NodesSetupMock{},
+		NodesCoordinatorRegistryFactory: createNodesCoordinatorRegistryFactory(),
 	}
 	nc, err := NewIndexHashedNodesCoordinator(arguments)
 	assert.Nil(t, err)
@@ -178,7 +179,7 @@ func BenchmarkIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup63of400(b 
 	bootStorer := genericMocks.NewStorerMock()
 
 	arguments := ArgNodesCoordinator{
-		ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{
+		ChainParametersHandler: &shardingMocks.ChainParametersHandlerStub{
 			CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
 				return config.ChainParametersByEpochConfig{
 					ShardConsensusGroupSize:     uint32(consensusGroupSize),
@@ -257,7 +258,7 @@ func Test_ComputeValidatorsGroup63of400(t *testing.T) {
 	bootStorer := genericMocks.NewStorerMock()
 
 	arguments := ArgNodesCoordinator{
-		ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{
+		ChainParametersHandler: &shardingMocks.ChainParametersHandlerStub{
 			CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
 				return config.ChainParametersByEpochConfig{
 					ShardConsensusGroupSize:     uint32(consensusGroupSize),
@@ -333,7 +334,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 	bootStorer := genericMocks.NewStorerMock()
 
 	arguments := ArgNodesCoordinator{
-		ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{
+		ChainParametersHandler: &shardingMocks.ChainParametersHandlerStub{
 			CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
 				return config.ChainParametersByEpochConfig{
 					ShardConsensusGroupSize:     1,
@@ -358,6 +359,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 		EnableEpochsHandler:      &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
 		GenesisNodesSetupHandler: &mock.NodesSetupMock{},
+		NodesCoordinatorRegistryFactory: createNodesCoordinatorRegistryFactory(),
 	}
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
 	ihnc, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
@@ -390,7 +392,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 	bootStorer := genericMocks.NewStorerMock()
 
 	arguments := ArgNodesCoordinator{
-		ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{
+		ChainParametersHandler: &shardingMocks.ChainParametersHandlerStub{
 			CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
 				return config.ChainParametersByEpochConfig{
 					ShardConsensusGroupSize:     1,
@@ -415,6 +417,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 		EnableEpochsHandler:      &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
 		GenesisNodesSetupHandler: &mock.NodesSetupMock{},
+		NodesCoordinatorRegistryFactory: createNodesCoordinatorRegistryFactory(),
 	}
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
 	ihnc, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
@@ -461,7 +464,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldWork(t
 	eligibleMap[1] = listShard1
 
 	arguments := ArgNodesCoordinator{
-		ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{
+		ChainParametersHandler: &shardingMocks.ChainParametersHandlerStub{
 			CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
 				return config.ChainParametersByEpochConfig{
 					ShardConsensusGroupSize:     1,
@@ -486,6 +489,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldWork(t
 		EnableEpochsHandler:      &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
 		GenesisNodesSetupHandler: &mock.NodesSetupMock{},
+		NodesCoordinatorRegistryFactory: createNodesCoordinatorRegistryFactory(),
 	}
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
 	ihnc, _ := NewIndexHashedNodesCoordinatorWithRater(nc, &mock.RaterMock{})
@@ -548,7 +552,7 @@ func TestIndexHashedGroupSelectorWithRater_GetAllEligibleValidatorsPublicKeys(t 
 	eligibleMap[shardOneId] = listShard1
 
 	arguments := ArgNodesCoordinator{
-		ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{
+		ChainParametersHandler: &shardingMocks.ChainParametersHandlerStub{
 			CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
 				return config.ChainParametersByEpochConfig{
 					ShardConsensusGroupSize:     1,
@@ -574,6 +578,7 @@ func TestIndexHashedGroupSelectorWithRater_GetAllEligibleValidatorsPublicKeys(t 
 		EnableEpochsHandler:      &mock.EnableEpochsHandlerMock{},
 		ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
 		GenesisNodesSetupHandler: &mock.NodesSetupMock{},
+		NodesCoordinatorRegistryFactory: createNodesCoordinatorRegistryFactory(),
 	}
 
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
@@ -798,8 +803,8 @@ func BenchmarkIndexHashedGroupSelectorWithRater_TestExpandList(b *testing.B) {
 	}
 
 	//a := []int{1, 2, 3, 4, 5, 6, 7, 8}
-	rand.NewSource(time.Now().UnixNano())
-	rand.Shuffle(len(array), func(i, j int) { array[i], array[j] = array[j], array[i] })
+	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+	rnd.Shuffle(len(array), func(i, j int) { array[i], array[j] = array[j], array[i] })
 	m2 := runtime.MemStats{}
 
 	runtime.ReadMemStats(&m2)
@@ -858,7 +863,7 @@ func BenchmarkIndexHashedWithRaterGroupSelector_ComputeValidatorsGroup21of400(b 
 	bootStorer := genericMocks.NewStorerMock()
 
 	arguments := ArgNodesCoordinator{
-		ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{
+		ChainParametersHandler: &shardingMocks.ChainParametersHandlerStub{
 			CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
 				return config.ChainParametersByEpochConfig{
 					ShardConsensusGroupSize:     uint32(consensusGroupSize),
