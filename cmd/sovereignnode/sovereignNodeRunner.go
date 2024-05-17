@@ -57,8 +57,8 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	sovereignConfig "github.com/multiversx/mx-chain-go/sovereignnode/config"
-	"github.com/multiversx/mx-chain-go/sovereignnode/dataCodec"
 	"github.com/multiversx/mx-chain-go/sovereignnode/incomingHeader"
+	sovRunType "github.com/multiversx/mx-chain-go/sovereignnode/runType"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
@@ -79,7 +79,6 @@ import (
 	notifierCfg "github.com/multiversx/mx-chain-sovereign-notifier-go/config"
 	"github.com/multiversx/mx-chain-sovereign-notifier-go/factory"
 	notifierProcess "github.com/multiversx/mx-chain-sovereign-notifier-go/process"
-	"github.com/multiversx/mx-sdk-abi-incubator/golang/abi"
 )
 
 var log = logger.GetOrCreate("sovereignNode")
@@ -1593,42 +1592,22 @@ func (snr *sovereignNodeRunner) CreateManagedCryptoComponents(
 
 // CreateSovereignArgsRunTypeComponents creates the arguments for sovereign runType components
 func (snr *sovereignNodeRunner) CreateSovereignArgsRunTypeComponents(coreComponents mainFactory.CoreComponentsHandler, cryptoComponents mainFactory.CryptoComponentsHandler) (*runType.ArgsSovereignRunTypeComponents, error) {
-	args, err := runType.CreateArgsRunTypeComponents(coreComponents, cryptoComponents, *snr.configs.Configs)
+	argsRunType, err := runType.CreateArgsRunTypeComponents(coreComponents, cryptoComponents, *snr.configs.Configs)
 	if err != nil {
 		return nil, err
 	}
 
-	runTypeComponentsFactory, err := runType.NewRunTypeComponentsFactory(*args)
-	if err != nil {
-		return nil, fmt.Errorf("NewRunTypeComponentsFactory failed: %w", err)
-	}
-
-	codec := abi.NewDefaultCodec()
-	argsDataCodec := dataCodec.ArgsDataCodec{
-		Serializer: abi.NewSerializer(codec),
-	}
-
-	dataCodecHandler, err := dataCodec.NewDataCodec(argsDataCodec)
-	if err != nil {
-		return nil, err
-	}
-
-	return &runType.ArgsSovereignRunTypeComponents{
-		RunTypeComponentsFactory: runTypeComponentsFactory,
-		Config:                   *snr.configs.SovereignExtraConfig,
-		DataCodec:                dataCodecHandler,
-		TopicsChecker:            incomingHeader.NewTopicsChecker(),
-	}, nil
+	return sovRunType.CreateSovereignArgsRunTypeComponents(*argsRunType, *snr.configs.SovereignExtraConfig)
 }
 
 // CreateManagedRunTypeComponents creates the managed runType components
 func (snr *sovereignNodeRunner) CreateManagedRunTypeComponents(coreComponents mainFactory.CoreComponentsHandler, cryptoComponents mainFactory.CryptoComponentsHandler) (mainFactory.RunTypeComponentsHandler, error) {
-	args, err := snr.CreateSovereignArgsRunTypeComponents(coreComponents, cryptoComponents)
+	argsSovRunType, err := snr.CreateSovereignArgsRunTypeComponents(coreComponents, cryptoComponents)
 	if err != nil {
 		return nil, err
 	}
 
-	sovereignRunTypeComponentsFactory, err := runType.NewSovereignRunTypeComponentsFactory(*args)
+	sovereignRunTypeComponentsFactory, err := runType.NewSovereignRunTypeComponentsFactory(*argsSovRunType)
 	if err != nil {
 		return nil, fmt.Errorf("NewSovereignRunTypeComponentsFactory failed: %w", err)
 	}

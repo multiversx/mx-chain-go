@@ -46,6 +46,7 @@ type stakingDataProvider struct {
 	minNodePrice               *big.Int
 	numOfValidatorsInCurrEpoch uint32
 	enableEpochsHandler        common.EnableEpochsHandler
+	validatorStatsInEpoch      epochStart.ValidatorStatsInEpoch
 }
 
 // StakingDataProviderArgs is a struct placeholder for all arguments required to create a NewStakingDataProvider
@@ -77,6 +78,11 @@ func NewStakingDataProvider(args StakingDataProviderArgs) (*stakingDataProvider,
 		totalEligibleStake:      big.NewInt(0),
 		totalEligibleTopUpStake: big.NewInt(0),
 		enableEpochsHandler:     args.EnableEpochsHandler,
+		validatorStatsInEpoch: epochStart.ValidatorStatsInEpoch{
+			Eligible: make(map[uint32]int),
+			Waiting:  make(map[uint32]int),
+			Leaving:  make(map[uint32]int),
+		},
 	}
 
 	return sdp, nil
@@ -89,6 +95,11 @@ func (sdp *stakingDataProvider) Clean() {
 	sdp.totalEligibleStake.SetInt64(0)
 	sdp.totalEligibleTopUpStake.SetInt64(0)
 	sdp.numOfValidatorsInCurrEpoch = 0
+	sdp.validatorStatsInEpoch = epochStart.ValidatorStatsInEpoch{
+		Eligible: make(map[uint32]int),
+		Waiting:  make(map[uint32]int),
+		Leaving:  make(map[uint32]int),
+	}
 	sdp.mutStakingData.Unlock()
 }
 
@@ -200,6 +211,7 @@ func (sdp *stakingDataProvider) getAndFillOwnerStats(validator state.ValidatorIn
 		sdp.numOfValidatorsInCurrEpoch++
 	}
 
+	sdp.updateEpochStats(validator)
 	return ownerData, nil
 }
 
@@ -530,6 +542,45 @@ func (sdp *stakingDataProvider) GetNumOfValidatorsInCurrentEpoch() uint32 {
 	defer sdp.mutStakingData.RUnlock()
 
 	return sdp.numOfValidatorsInCurrEpoch
+}
+
+func (sdp *stakingDataProvider) updateEpochStats(validator state.ValidatorInfoHandler) {
+	validatorCurrentList := common.PeerType(validator.GetList())
+	shardID := validator.GetShardId()
+
+	if validatorCurrentList == common.EligibleList {
+		sdp.validatorStatsInEpoch.Eligible[shardID]++
+		return
+	}
+
+	if validatorCurrentList == common.WaitingList {
+		sdp.validatorStatsInEpoch.Waiting[shardID]++
+		return
+	}
+
+	validatorPreviousList := common.PeerType(validator.GetPreviousList())
+	if sdp.isValidatorLeaving(validatorCurrentList, validatorPreviousList) {
+		sdp.validatorStatsInEpoch.Leaving[shardID]++
+	}
+}
+
+func (sdp *stakingDataProvider) isValidatorLeaving(validatorCurrentList, validatorPreviousList common.PeerType) bool {
+	if validatorCurrentList != common.LeavingList {
+		return false
+	}
+
+	// If no previous list is set, means that staking v4 is not activated or node is leaving right before activation
+	// and this node will be considered as eligible by the nodes coordinator with old code.
+	// Otherwise, it will have it set, and we should check its previous list in the current epoch
+	return len(validatorPreviousList) == 0 || validatorPreviousList == common.EligibleList || validatorPreviousList == common.WaitingList
+}
+
+// GetCurrentEpochValidatorStats returns the current epoch validator stats
+func (sdp *stakingDataProvider) GetCurrentEpochValidatorStats() epochStart.ValidatorStatsInEpoch {
+	sdp.mutStakingData.RLock()
+	defer sdp.mutStakingData.RUnlock()
+
+	return sdp.validatorStatsInEpoch
 }
 
 // IsInterfaceNil return true if underlying object is nil

@@ -40,6 +40,7 @@ func (vcsf *vmContainerShardFactory) CreateVmContainerFactory(argsHook hooks.Arg
 		WasmVMChangeLocker:  args.WasmVMChangeLocker,
 		ESDTTransferParser:  args.ESDTTransferParser,
 		Hasher:              args.Hasher,
+		PubKeyConverter:     args.PubkeyConv,
 	}
 	vmFactory, err := shard.NewVMContainerFactory(argsNewVmFactory)
 	if err != nil {

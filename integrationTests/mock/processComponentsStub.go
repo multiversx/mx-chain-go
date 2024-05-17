@@ -1,8 +1,6 @@
 package mock
 
 import (
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext"
@@ -13,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/update"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // ProcessComponentsStub -
@@ -61,7 +60,7 @@ type ProcessComponentsStub struct {
 	ReceiptsRepositoryInternal           factory.ReceiptsRepository
 	ESDTDataStorageHandlerForAPIInternal vmcommon.ESDTNFTStorageHandler
 	SentSignaturesTrackerInternal        process.SentSignaturesTracker
-	IncomingHeadersHandler               process.IncomingHeaderSubscriber
+	EpochSystemSCProcessorInternal       process.EpochStartSystemSCProcessor
 }
 
 // Create -
@@ -298,9 +297,9 @@ func (pcs *ProcessComponentsStub) SentSignaturesTracker() process.SentSignatures
 	return pcs.SentSignaturesTrackerInternal
 }
 
-// IncomingHeaderHandler -
-func (pcs *ProcessComponentsStub) IncomingHeaderHandler() process.IncomingHeaderSubscriber {
-	return pcs.IncomingHeadersHandler
+// EpochSystemSCProcessor -
+func (pcs *ProcessComponentsStub) EpochSystemSCProcessor() process.EpochStartSystemSCProcessor {
+	return pcs.EpochSystemSCProcessorInternal
 }
 
 // IsInterfaceNil -

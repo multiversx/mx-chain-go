@@ -3,9 +3,9 @@ package components
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestCreateStore(t *testing.T) {

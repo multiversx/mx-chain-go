@@ -91,10 +91,10 @@ type ArgsCoreComponentsHolder struct {
 	WorkingDir          string
 
 	MinNodesPerShard            uint32
-	MinNodesMeta                uint32
-	RoundDurationInMs           uint64
 	ConsensusGroupSize          uint32
+	MinNodesMeta                uint32
 	MetaChainConsensusGroupSize uint32
+	RoundDurationInMs           uint64
 	CreateGenesisNodesSetup     func(nodesFilePath string, addressPubkeyConverter core.PubkeyConverter, validatorPubkeyConverter core.PubkeyConverter, genesisMaxNumShards uint32) (sharding.GenesisNodesSetupHandler, error)
 	CreateRatingsData           func(arg rating.RatingsDataArg) (process.RatingsInfoHandler, error)
 }

@@ -202,7 +202,6 @@ func (host *vmContext) GetBalance(addr []byte) *big.Int {
 // SendGlobalSettingToAll handles sending the information to all the shards
 func (host *vmContext) SendGlobalSettingToAll(sender []byte, input []byte) error {
 	if host.shardCoordinator.SameShard(sender, core.SystemAccountAddress) {
-		// Sovereign process - execute here as built in function
 		return host.ProcessBuiltInFunction(core.SystemAccountAddress, sender, big.NewInt(0), input, 0)
 	}
 
@@ -837,14 +836,14 @@ func (host *vmContext) AddTxValueToSmartContract(input *vmcommon.ContractCallInp
 		host.outputAccounts[string(destAcc.Address)] = destAcc
 	}
 
-	if host.isSovereignSCToSCCall(input) {
+	if host.isInShardSCToSCCall(input) {
 		return
 	}
 
 	destAcc.BalanceDelta = big.NewInt(0).Add(destAcc.BalanceDelta, input.CallValue)
 }
 
-func (host *vmContext) isSovereignSCToSCCall(input *vmcommon.ContractCallInput) bool {
+func (host *vmContext) isInShardSCToSCCall(input *vmcommon.ContractCallInput) bool {
 	return host.shardCoordinator.SameShard(input.CallerAddr, input.RecipientAddr) && core.IsSmartContractAddress(input.CallerAddr)
 }
 

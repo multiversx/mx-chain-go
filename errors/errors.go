@@ -791,6 +791,15 @@ var ErrNilTopicsChecker = errors.New("nil topics checker")
 // ErrNilOperationsHasher signals that a nil outgoing operations hasher has been provided
 var ErrNilOperationsHasher = errors.New("nil outgoing operations hasher")
 
+// ErrNilEpochSystemSCProcessor defines the error for setting a nil EpochSystemSCProcessor
+var ErrNilEpochSystemSCProcessor = errors.New("nil epoch system SC processor")
+
+// ErrNilBlockChainHookCreator signals that a nil blockchain hook creator has been provided
+var ErrNilBlockChainHookCreator = errors.New("nil blockchain hook creator has been provided")
+
+// ErrNilVMContextCreator signals that a nil vm context creator has been provided
+var ErrNilVMContextCreator = errors.New("nil vm context creator has been provided")
+
 // ErrInvalidConsensusModel signals that an invalid consensus model has been provided
 var ErrInvalidConsensusModel = errors.New("invalid consensus model")
 
