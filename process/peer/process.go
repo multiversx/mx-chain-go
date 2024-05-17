@@ -13,6 +13,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/common/validatorInfo"
@@ -23,7 +25,6 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/state/parsers"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("process/peer")
@@ -197,7 +198,7 @@ func (vs *validatorStatistics) saveNodesCoordinatorUpdates(epoch uint32) (bool, 
 	nodeForcedToRemain = nodeForcedToRemain || tmpNodeForcedToRemain
 
 	if vs.enableEpochsHandler.IsFlagEnabled(common.StakingV4Step2Flag) {
-		nodesMap, err = vs.nodesCoordinator.GetAllShuffledOutValidatorsPublicKeys(epoch)
+		nodesMap, err = vs.nodesCoordinator.GetShuffledOutToAuctionValidatorsPublicKeys(epoch)
 		if err != nil {
 			return false, err
 		}
