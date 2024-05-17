@@ -154,6 +154,7 @@ type EpochValidatorsHandler interface {
 type EpochValidatorsHandlerWithAuction interface {
 	EpochValidatorsHandler
 	GetShuffledOutValidators() map[string][]*SerializableValidator
+	GetLowWaitingList() bool
 }
 
 // NodesCoordinatorRegistryHandler defines what is used to initialize nodes coordinator
