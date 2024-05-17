@@ -44,18 +44,20 @@ func TestChainSimulator_IssueESDTWithPrefix(t *testing.T) {
 
 	numOfShards := uint32(1)
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:   false,
-		TempDir:                  t.TempDir(),
-		PathToInitialConfig:      defaultPathToInitialConfig,
-		NumOfShards:              numOfShards,
-		GenesisTimestamp:         startTime,
-		RoundDurationInMillis:    roundDurationInMillis,
-		RoundsPerEpoch:           roundsPerEpoch,
-		ApiInterface:             api.NewNoApiInterface(),
-		MinNodesPerShard:         3,
-		MetaChainMinNodes:        3,
-		NumNodesWaitingListMeta:  0,
-		NumNodesWaitingListShard: 0,
+		BypassTxSignatureCheck:      false,
+		TempDir:                     t.TempDir(),
+		PathToInitialConfig:         defaultPathToInitialConfig,
+		NumOfShards:                 numOfShards,
+		GenesisTimestamp:            startTime,
+		RoundDurationInMillis:       roundDurationInMillis,
+		RoundsPerEpoch:              roundsPerEpoch,
+		ApiInterface:                api.NewNoApiInterface(),
+		MinNodesPerShard:            3,
+		MetaChainMinNodes:           3,
+		NumNodesWaitingListMeta:     0,
+		NumNodesWaitingListShard:    0,
+		ConsensusGroupSize:          1,
+		MetaChainConsensusGroupSize: 1,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.SystemSCConfig.ESDTSystemSCConfig.ESDTPrefix = "sov1"
 			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = issuePrice
