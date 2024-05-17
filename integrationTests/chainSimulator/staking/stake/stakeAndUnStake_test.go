@@ -2348,6 +2348,7 @@ func TestChainSimulator_UnStakeOneActiveNodeAndCheckAPIAuctionList(t *testing.T)
 			cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = stakingV4Step1Epoch
 			cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = stakingV4Step2Epoch
 			cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = stakingV4Step3Epoch
+			cfg.EpochConfig.EnableEpochs.CleanupAuctionOnLowWaitingListEnableEpoch = stakingV4Step1Epoch
 
 			cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[1].MaxNumNodes = 32
 			cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[1].NodesToShufflePerShard = 2
