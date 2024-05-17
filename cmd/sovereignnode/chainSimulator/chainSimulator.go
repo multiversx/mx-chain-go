@@ -11,12 +11,12 @@ import (
 	"github.com/multiversx/mx-chain-go/node"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/rating"
 	"github.com/multiversx/mx-chain-go/sharding"
 	sovereignConfig "github.com/multiversx/mx-chain-go/sovereignnode/config"
 	"github.com/multiversx/mx-chain-go/sovereignnode/dataCodec"
 	"github.com/multiversx/mx-chain-go/sovereignnode/incomingHeader"
+	sovRunType "github.com/multiversx/mx-chain-go/sovereignnode/runType"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-sdk-abi-incubator/golang/abi"
@@ -76,11 +76,12 @@ func LoadSovereignConfigs(configsPath string) (*config.EpochConfig, *config.Econ
 }
 
 func createSovereignRunTypeComponents(args runType.ArgsRunTypeComponents, sovereignExtraConfig config.SovereignConfig) (factory.RunTypeComponentsHolder, error) {
-	sovRunTypeArgs, err := createArgsRunTypeComponents(args, sovereignExtraConfig)
+	argsSovRunType, err := sovRunType.CreateSovereignArgsRunTypeComponents(args, sovereignExtraConfig)
 	if err != nil {
 		return nil, err
 	}
-	sovereignComponentsFactory, err := runType.NewSovereignRunTypeComponentsFactory(*sovRunTypeArgs)
+
+	sovereignComponentsFactory, err := runType.NewSovereignRunTypeComponentsFactory(*argsSovRunType)
 	if err != nil {
 		return nil, err
 	}
@@ -110,18 +111,10 @@ func createArgsRunTypeComponents(args runType.ArgsRunTypeComponents, sovereignEx
 		return nil, err
 	}
 
-	topicsCheckerHandler := incomingHeader.NewTopicsChecker()
-
-	sovHeaderSigVerifier, err := headerCheck.NewSovereignHeaderSigVerifier(args.CryptoComponents.BlockSigner())
-	if err != nil {
-		return nil, err
-	}
-
 	return &runType.ArgsSovereignRunTypeComponents{
 		RunTypeComponentsFactory: runTypeComponentsFactory,
 		Config:                   sovereignExtraConfig,
 		DataCodec:                dataCodecHandler,
-		TopicsChecker:            topicsCheckerHandler,
-		ExtraVerifier:            sovHeaderSigVerifier,
+		TopicsChecker:            incomingHeader.NewTopicsChecker(),
 	}, nil
 }
