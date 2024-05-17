@@ -12,7 +12,6 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	nodeFacade "github.com/multiversx/mx-chain-go/facade"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
-	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	"github.com/multiversx/mx-chain-go/node/external"
 	"github.com/multiversx/mx-chain-go/node/external/blockAPI"
 	"github.com/multiversx/mx-chain-go/node/external/transactionAPI"
@@ -148,7 +147,7 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 		EnableEpochsHandler:                   tpn.EnableEpochsHandler,
 		MaxNumNodesInTransferRole:             100,
 		GuardedAccountHandler:                 tpn.GuardedAccountHandler,
-		MapWhiteListedCrossChainMintAddresses: wasm.CrossChainAddresses,
+		MapWhiteListedCrossChainMintAddresses: CrossChainAddresses,
 	}
 	argsBuiltIn.AutomaticCrawlerAddresses = GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
