@@ -331,6 +331,7 @@ type ProcessComponentsHolder interface {
 	ReceiptsRepository() ReceiptsRepository
 	SentSignaturesTracker() process.SentSignaturesTracker
 	EpochSystemSCProcessor() process.EpochStartSystemSCProcessor
+	IncomingHeaderSubscriber() process.IncomingHeaderSubscriber
 	IsInterfaceNil() bool
 }
 

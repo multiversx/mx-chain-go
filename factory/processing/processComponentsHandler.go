@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext"
@@ -16,6 +15,8 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/update"
+
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
@@ -179,6 +180,9 @@ func (mpc *managedProcessComponents) CheckSubcomponents() error {
 	}
 	if check.IfNil(mpc.processComponents.epochSystemSCProcessor) {
 		return errors.ErrNilEpochSystemSCProcessor
+	}
+	if check.IfNil(mpc.processComponents.incomingHeaderSubscriber) {
+		return errors.ErrNilIncomingHeaderSubscriber
 	}
 
 	return nil
@@ -686,6 +690,18 @@ func (m *managedProcessComponents) EpochSystemSCProcessor() process.EpochStartSy
 	}
 
 	return m.processComponents.epochSystemSCProcessor
+}
+
+// IncomingHeaderSubscriber returns the incoming header subscriber
+func (m *managedProcessComponents) IncomingHeaderSubscriber() process.IncomingHeaderSubscriber {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.incomingHeaderSubscriber
 }
 
 // IsInterfaceNil returns true if the interface is nil

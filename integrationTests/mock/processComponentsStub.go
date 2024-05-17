@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/update"
+
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
@@ -61,6 +62,7 @@ type ProcessComponentsStub struct {
 	ESDTDataStorageHandlerForAPIInternal vmcommon.ESDTNFTStorageHandler
 	SentSignaturesTrackerInternal        process.SentSignaturesTracker
 	EpochSystemSCProcessorInternal       process.EpochStartSystemSCProcessor
+	IncomingHeaderSubscriberInternal     process.IncomingHeaderSubscriber
 }
 
 // Create -
@@ -300,6 +302,11 @@ func (pcs *ProcessComponentsStub) SentSignaturesTracker() process.SentSignatures
 // EpochSystemSCProcessor -
 func (pcs *ProcessComponentsStub) EpochSystemSCProcessor() process.EpochStartSystemSCProcessor {
 	return pcs.EpochSystemSCProcessorInternal
+}
+
+// IncomingHeaderSubscriber -
+func (pcs *ProcessComponentsStub) IncomingHeaderSubscriber() process.IncomingHeaderSubscriber {
+	return pcs.IncomingHeaderSubscriberInternal
 }
 
 // IsInterfaceNil -

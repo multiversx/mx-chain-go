@@ -132,6 +132,7 @@ type processComponents struct {
 	receiptsRepository               factory.ReceiptsRepository
 	sentSignaturesTracker            process.SentSignaturesTracker
 	epochSystemSCProcessor           process.EpochStartSystemSCProcessor
+	incomingHeaderSubscriber         process.IncomingHeaderSubscriber
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -737,6 +738,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		accountsParser:                   pcf.runTypeComponents.AccountsParser(),
 		receiptsRepository:               receiptsRepository,
 		sentSignaturesTracker:            sentSignaturesTracker,
+		incomingHeaderSubscriber:         pcf.incomingHeaderSubscriber,
 	}, nil
 }
 

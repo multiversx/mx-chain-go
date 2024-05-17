@@ -72,21 +72,21 @@ func TestIncomingOperations(t *testing.T) {
 	require.Nil(t, err)
 
 	incomingHeader := createIncomingHeader(nodeHandler, &headerNonce, randomHeader, nil)
-	err = nodeHandler.GetIncomingHeaderHandler().AddHeader(generateRandomHash(), incomingHeader)
+	err = nodeHandler.GetProcessComponents().IncomingHeaderSubscriber().AddHeader(generateRandomHash(), incomingHeader)
 	require.Nil(t, err)
 
 	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	incomingHeader = createIncomingHeader(nodeHandler, &headerNonce, incomingHeader.Header, createTransactionsEvent())
-	err = nodeHandler.GetIncomingHeaderHandler().AddHeader(generateRandomHash(), incomingHeader)
+	err = nodeHandler.GetProcessComponents().IncomingHeaderSubscriber().AddHeader(generateRandomHash(), incomingHeader)
 	require.Nil(t, err)
 
 	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	incomingHeader = createIncomingHeader(nodeHandler, &headerNonce, incomingHeader.Header, nil)
-	err = nodeHandler.GetIncomingHeaderHandler().AddHeader(generateRandomHash(), incomingHeader)
+	err = nodeHandler.GetProcessComponents().IncomingHeaderSubscriber().AddHeader(generateRandomHash(), incomingHeader)
 	require.Nil(t, err)
 
 	err = cs.GenerateBlocks(1)
