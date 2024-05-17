@@ -131,7 +131,7 @@ type processComponents struct {
 	accountsParser                   genesis.AccountsParser
 	receiptsRepository               factory.ReceiptsRepository
 	sentSignaturesTracker            process.SentSignaturesTracker
-	incomingHeaderHandler            process.IncomingHeaderSubscriber
+	epochSystemSCProcessor           process.EpochStartSystemSCProcessor
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -728,6 +728,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		currentEpochProvider:             currentEpochProvider,
 		vmFactoryForTxSimulator:          vmFactoryForTxSimulate,
 		vmFactoryForProcessing:           blockProcessorComponents.vmFactoryForProcessing,
+		epochSystemSCProcessor:           blockProcessorComponents.epochSystemSCProcessor,
 		scheduledTxsExecutionHandler:     scheduledTxsExecutionHandler,
 		txsSender:                        txsSenderWithAccumulator,
 		hardforkTrigger:                  hardforkTrigger,
@@ -736,7 +737,6 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		accountsParser:                   pcf.runTypeComponents.AccountsParser(),
 		receiptsRepository:               receiptsRepository,
 		sentSignaturesTracker:            sentSignaturesTracker,
-		incomingHeaderHandler:            pcf.incomingHeaderSubscriber,
 	}, nil
 }
 

@@ -200,7 +200,11 @@ func (host *vmContext) GetBalance(addr []byte) *big.Int {
 }
 
 // SendGlobalSettingToAll handles sending the information to all the shards
-func (host *vmContext) SendGlobalSettingToAll(_ []byte, input []byte) {
+func (host *vmContext) SendGlobalSettingToAll(sender []byte, input []byte) error {
+	if host.shardCoordinator.SameShard(sender, core.SystemAccountAddress) {
+		return host.ProcessBuiltInFunction(core.SystemAccountAddress, sender, big.NewInt(0), input, 0)
+	}
+
 	outputTransfer := vmcommon.OutputTransfer{
 		Value:    big.NewInt(0),
 		Data:     input,
@@ -224,6 +228,8 @@ func (host *vmContext) SendGlobalSettingToAll(_ []byte, input []byte) {
 		globalOutAcc.OutputTransfers = append(globalOutAcc.OutputTransfers, outputTransfer)
 		host.outputAccounts[string(systemAddress)] = globalOutAcc
 	}
+
+	return nil
 }
 
 func (host *vmContext) transferValueOnly(
@@ -294,10 +300,14 @@ func (host *vmContext) ProcessBuiltInFunction(
 	input []byte,
 	gasLimit uint64,
 ) error {
-	vmInput := host.createVMInputIfIsIntraShardBuiltInCall(destination, sender, value, input, gasLimit)
-	if vmInput == nil {
-		host.Transfer(destination, sender, value, input, gasLimit)
+	host.Transfer(destination, sender, value, input, gasLimit)
+	if !host.shardCoordinator.SameShard(sender, destination) {
 		return nil
+	}
+
+	vmInput, err := host.createVMInputForBuiltInFunctionCall(destination, sender, value, input, gasLimit)
+	if err != nil {
+		return err
 	}
 
 	vmOutput, err := host.blockChainHook.ProcessBuiltInFunction(vmInput)
@@ -308,31 +318,26 @@ func (host *vmContext) ProcessBuiltInFunction(
 		return errors.New(vmOutput.ReturnMessage)
 	}
 
-	//TODO: should only work for sovereign - move to sovereignEei?
 	for _, logEntry := range vmOutput.Logs {
 		host.AddLogEntry(logEntry)
 	}
 
-	// add the SCR for the builtin function
-	host.Transfer(destination, sender, value, input, gasLimit)
 	return nil
 }
 
-func (host *vmContext) createVMInputIfIsIntraShardBuiltInCall(destination []byte,
+func (host *vmContext) createVMInputForBuiltInFunctionCall(
+	destination []byte,
 	sender []byte,
 	value *big.Int,
 	input []byte,
 	gasLimit uint64,
-) *vmcommon.ContractCallInput {
-	if !host.shardCoordinator.SameShard(sender, destination) {
-		return nil
-	}
+) (*vmcommon.ContractCallInput, error) {
 	function, arguments, err := host.inputParser.ParseData(string(input))
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	if !host.blockChainHook.IsBuiltinFunctionName(function) {
-		return nil
+		return nil, err
 	}
 
 	vmInput := &vmcommon.ContractCallInput{
@@ -347,7 +352,7 @@ func (host *vmContext) createVMInputIfIsIntraShardBuiltInCall(destination []byte
 		Function:      function,
 	}
 
-	return vmInput
+	return vmInput, nil
 }
 
 // GetLogs returns the logs
@@ -821,17 +826,25 @@ func (host *vmContext) AddCode(address []byte, code []byte) {
 }
 
 // AddTxValueToSmartContract adds the input transaction value to the smart contract address
-func (host *vmContext) AddTxValueToSmartContract(value *big.Int, scAddress []byte) {
-	destAcc, exists := host.outputAccounts[string(scAddress)]
+func (host *vmContext) AddTxValueToSmartContract(input *vmcommon.ContractCallInput) {
+	destAcc, exists := host.outputAccounts[string(input.RecipientAddr)]
 	if !exists {
 		destAcc = &vmcommon.OutputAccount{
-			Address:      scAddress,
+			Address:      input.RecipientAddr,
 			BalanceDelta: big.NewInt(0),
 		}
 		host.outputAccounts[string(destAcc.Address)] = destAcc
 	}
 
-	destAcc.BalanceDelta = big.NewInt(0).Add(destAcc.BalanceDelta, value)
+	if host.isInShardSCToSCCall(input) {
+		return
+	}
+
+	destAcc.BalanceDelta = big.NewInt(0).Add(destAcc.BalanceDelta, input.CallValue)
+}
+
+func (host *vmContext) isInShardSCToSCCall(input *vmcommon.ContractCallInput) bool {
+	return host.shardCoordinator.SameShard(input.CallerAddr, input.RecipientAddr) && core.IsSmartContractAddress(input.CallerAddr)
 }
 
 // SetOwnerOperatingOnAccount will set the new owner, operating on the user account directly as the normal flow through

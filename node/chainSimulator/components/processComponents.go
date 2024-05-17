@@ -91,8 +91,8 @@ type processComponentsHolder struct {
 	esdtDataStorageHandlerForAPI     vmcommon.ESDTNFTStorageHandler
 	accountsParser                   genesis.AccountsParser
 	sentSignatureTracker             process.SentSignaturesTracker
+	epochStartSystemSCProcessor      process.EpochStartSystemSCProcessor
 	managedProcessComponentsCloser   io.Closer
-	incomingHeaderHandler            process.IncomingHeaderSubscriber
 }
 
 // CreateProcessComponents will create the process components holder
@@ -244,7 +244,7 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		esdtDataStorageHandlerForAPI:     managedProcessComponents.ESDTDataStorageHandlerForAPI(),
 		accountsParser:                   managedProcessComponents.AccountsParser(),
 		sentSignatureTracker:             managedProcessComponents.SentSignaturesTracker(),
-		incomingHeaderHandler:            managedProcessComponents.IncomingHeaderHandler(),
+		epochStartSystemSCProcessor:      managedProcessComponents.EpochSystemSCProcessor(),
 		managedProcessComponentsCloser:   managedProcessComponents,
 	}
 
@@ -456,8 +456,9 @@ func (p *processComponentsHolder) ReceiptsRepository() factory.ReceiptsRepositor
 	return p.receiptsRepository
 }
 
-func (p *processComponentsHolder) IncomingHeaderHandler() process.IncomingHeaderSubscriber {
-	return p.incomingHeaderHandler
+// EpochSystemSCProcessor returns the epoch start system SC processor
+func (p *processComponentsHolder) EpochSystemSCProcessor() process.EpochStartSystemSCProcessor {
+	return p.epochStartSystemSCProcessor
 }
 
 // Close will call the Close methods on all inner components

@@ -5,8 +5,6 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext"
@@ -18,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/update"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var _ factory.ComponentHandler = (*managedProcessComponents)(nil)
@@ -177,6 +176,9 @@ func (mpc *managedProcessComponents) CheckSubcomponents() error {
 	}
 	if check.IfNil(mpc.processComponents.sentSignaturesTracker) {
 		return errors.ErrNilSentSignatureTracker
+	}
+	if check.IfNil(mpc.processComponents.epochSystemSCProcessor) {
+		return errors.ErrNilEpochSystemSCProcessor
 	}
 
 	return nil
@@ -674,8 +676,8 @@ func (m *managedProcessComponents) SentSignaturesTracker() process.SentSignature
 	return m.processComponents.sentSignaturesTracker
 }
 
-// IncomingHeaderHandler returns the incoming header handler
-func (m *managedProcessComponents) IncomingHeaderHandler() process.IncomingHeaderSubscriber {
+// EpochSystemSCProcessor returns the epoch start system SC processor
+func (m *managedProcessComponents) EpochSystemSCProcessor() process.EpochStartSystemSCProcessor {
 	m.mutProcessComponents.RLock()
 	defer m.mutProcessComponents.RUnlock()
 
@@ -683,7 +685,7 @@ func (m *managedProcessComponents) IncomingHeaderHandler() process.IncomingHeade
 		return nil
 	}
 
-	return m.processComponents.incomingHeaderHandler
+	return m.processComponents.epochSystemSCProcessor
 }
 
 // IsInterfaceNil returns true if the interface is nil
