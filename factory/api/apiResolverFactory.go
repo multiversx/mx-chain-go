@@ -151,6 +151,12 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		return nil, errDecode
 	}
 
+	crossChainWhiteListedAddressesStrings := args.Configs.SystemSCConfig.ESDTSystemSCConfig.WhiteListedCrossChainMintAddresses
+	convertedCrossChainWhiteListedAddresses, errDecode := factory.DecodeAddresses(pkConverter, crossChainWhiteListedAddressesStrings)
+	if errDecode != nil {
+		return nil, errDecode
+	}
+
 	builtInFuncFactory, err := createBuiltinFuncs(
 		args.GasScheduleNotifier,
 		args.CoreComponents.InternalMarshalizer(),
@@ -162,6 +168,8 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		convertedAddresses,
 		args.Configs.GeneralConfig.BuiltInFunctions.MaxNumAddressesInTransferRole,
 		convertedDNSV2Addresses,
+		convertedCrossChainWhiteListedAddresses,
+		[]byte(args.Configs.SystemSCConfig.ESDTSystemSCConfig.ESDTPrefix),
 	)
 	if err != nil {
 		return nil, err
@@ -356,6 +364,12 @@ func createScQueryElement(
 		return nil, nil, errDecode
 	}
 
+	crossChainWhiteListedAddressesStrings := args.systemSCConfig.ESDTSystemSCConfig.WhiteListedCrossChainMintAddresses
+	convertedCrossChainWhiteListedAddresses, errDecode := factory.DecodeAddresses(pkConverter, crossChainWhiteListedAddressesStrings)
+	if errDecode != nil {
+		return nil, nil, errDecode
+	}
+
 	apiBlockchain, err := createBlockchainForScQuery(selfShardID)
 	if err != nil {
 		return nil, nil, err
@@ -377,6 +391,8 @@ func createScQueryElement(
 		convertedAddresses,
 		args.generalConfig.BuiltInFunctions.MaxNumAddressesInTransferRole,
 		convertedDNSV2Addresses,
+		convertedCrossChainWhiteListedAddresses,
+		[]byte(args.systemSCConfig.ESDTSystemSCConfig.ESDTPrefix),
 	)
 	if err != nil {
 		return nil, nil, err
@@ -648,24 +664,34 @@ func createBuiltinFuncs(
 	automaticCrawlerAddresses [][]byte,
 	maxNumAddressesInTransferRole uint32,
 	dnsV2Addresses [][]byte,
+	mapWhiteListedCrossChainMintAddresses [][]byte,
+	selfESDTPrefix []byte,
 ) (vmcommon.BuiltInFunctionFactory, error) {
 	mapDNSV2Addresses := make(map[string]struct{})
 	for _, address := range dnsV2Addresses {
 		mapDNSV2Addresses[string(address)] = struct{}{}
 	}
 
+	mapWhiteListedCrossChain := make(map[string]struct{})
+	for _, address := range mapWhiteListedCrossChainMintAddresses {
+		mapWhiteListedCrossChain[string(address)] = struct{}{}
+	}
+
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:               gasScheduleNotifier,
-		MapDNSAddresses:           make(map[string]struct{}),
-		MapDNSV2Addresses:         mapDNSV2Addresses,
-		Marshalizer:               marshalizer,
-		Accounts:                  accnts,
-		ShardCoordinator:          shardCoordinator,
-		EpochNotifier:             epochNotifier,
-		EnableEpochsHandler:       enableEpochsHandler,
-		GuardedAccountHandler:     guardedAccountHandler,
-		AutomaticCrawlerAddresses: automaticCrawlerAddresses,
-		MaxNumNodesInTransferRole: maxNumAddressesInTransferRole,
+		GasSchedule:                           gasScheduleNotifier,
+		MapDNSAddresses:                       make(map[string]struct{}),
+		MapDNSV2Addresses:                     mapDNSV2Addresses,
+		MapWhiteListedCrossChainMintAddresses: mapWhiteListedCrossChain,
+		EnableUserNameChange:                  false,
+		Marshalizer:                           marshalizer,
+		Accounts:                              accnts,
+		ShardCoordinator:                      shardCoordinator,
+		EpochNotifier:                         epochNotifier,
+		EnableEpochsHandler:                   enableEpochsHandler,
+		GuardedAccountHandler:                 guardedAccountHandler,
+		AutomaticCrawlerAddresses:             automaticCrawlerAddresses,
+		MaxNumNodesInTransferRole:             maxNumAddressesInTransferRole,
+		SelfESDTPrefix:                        selfESDTPrefix,
 	}
 	return builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 }

@@ -76,6 +76,11 @@ var pkConverter, _ = pubkeyConverter.NewHexPubkeyConverter(32)
 // DNSAddresses --
 var DNSAddresses = make(map[string]struct{})
 
+// CrossChainAddresses -
+var CrossChainAddresses = map[string]struct{}{
+	"whiteListedAddress": {},
+}
+
 // TestContext -
 type TestContext struct {
 	T *testing.T
@@ -262,16 +267,17 @@ func (context *TestContext) initFeeHandlers() {
 func (context *TestContext) initVMAndBlockchainHook() {
 	gasSchedule := mock.NewGasScheduleNotifierMock(context.GasSchedule)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:               gasSchedule,
-		MapDNSAddresses:           DNSAddresses,
-		MapDNSV2Addresses:         DNSAddresses,
-		Marshalizer:               marshalizer,
-		Accounts:                  context.Accounts,
-		ShardCoordinator:          oneShardCoordinator,
-		EpochNotifier:             context.EpochNotifier,
-		EnableEpochsHandler:       context.EnableEpochsHandler,
-		MaxNumNodesInTransferRole: 100,
-		GuardedAccountHandler:     &guardianMocks.GuardedAccountHandlerStub{},
+		GasSchedule:                           gasSchedule,
+		MapDNSAddresses:                       DNSAddresses,
+		MapDNSV2Addresses:                     DNSAddresses,
+		Marshalizer:                           marshalizer,
+		Accounts:                              context.Accounts,
+		ShardCoordinator:                      oneShardCoordinator,
+		EpochNotifier:                         context.EpochNotifier,
+		EnableEpochsHandler:                   context.EnableEpochsHandler,
+		MaxNumNodesInTransferRole:             100,
+		GuardedAccountHandler:                 &guardianMocks.GuardedAccountHandlerStub{},
+		MapWhiteListedCrossChainMintAddresses: CrossChainAddresses,
 	}
 	argsBuiltIn.AutomaticCrawlerAddresses = integrationTests.GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 

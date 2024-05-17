@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	"github.com/multiversx/mx-chain-go/process"
 	metaProcess "github.com/multiversx/mx-chain-go/process/factory/metachain"
 	"github.com/multiversx/mx-chain-go/process/peer"
@@ -141,17 +142,18 @@ func createBlockChainHook(
 	gasScheduleNotifier core.GasScheduleNotifier,
 ) (hooks.ArgBlockChainHook, process.BlockChainHookWithAccountsAdapter) {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:               gasScheduleNotifier,
-		MapDNSAddresses:           make(map[string]struct{}),
-		Marshalizer:               coreComponents.InternalMarshalizer(),
-		Accounts:                  accountsAdapter,
-		ShardCoordinator:          shardCoordinator,
-		EpochNotifier:             coreComponents.EpochNotifier(),
-		EnableEpochsHandler:       coreComponents.EnableEpochsHandler(),
-		AutomaticCrawlerAddresses: [][]byte{core.SystemAccountAddress},
-		MaxNumNodesInTransferRole: 1,
-		GuardedAccountHandler:     &guardianMocks.GuardedAccountHandlerStub{},
-		MapDNSV2Addresses:         make(map[string]struct{}),
+		GasSchedule:                           gasScheduleNotifier,
+		MapDNSAddresses:                       make(map[string]struct{}),
+		Marshalizer:                           coreComponents.InternalMarshalizer(),
+		Accounts:                              accountsAdapter,
+		ShardCoordinator:                      shardCoordinator,
+		EpochNotifier:                         coreComponents.EpochNotifier(),
+		EnableEpochsHandler:                   coreComponents.EnableEpochsHandler(),
+		AutomaticCrawlerAddresses:             [][]byte{core.SystemAccountAddress},
+		MaxNumNodesInTransferRole:             1,
+		GuardedAccountHandler:                 &guardianMocks.GuardedAccountHandlerStub{},
+		MapDNSV2Addresses:                     make(map[string]struct{}),
+		MapWhiteListedCrossChainMintAddresses: wasm.CrossChainAddresses,
 	}
 
 	builtInFunctionsContainer, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)

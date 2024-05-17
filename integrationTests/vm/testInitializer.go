@@ -29,6 +29,7 @@ import (
 	processDisabled "github.com/multiversx/mx-chain-go/genesis/process/disabled"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	"github.com/multiversx/mx-chain-go/node/external"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/postprocess"
@@ -559,13 +560,14 @@ func CreateVMAndBlockchainHookAndDataPool(
 			string(dnsV2Decoded): {},
 			string(dnsAddr):      {},
 		},
-		Marshalizer:               integrationtests.TestMarshalizer,
-		Accounts:                  accnts,
-		ShardCoordinator:          shardCoordinator,
-		EpochNotifier:             epochNotifierInstance,
-		EnableEpochsHandler:       enableEpochsHandler,
-		MaxNumNodesInTransferRole: 100,
-		GuardedAccountHandler:     guardedAccountHandler,
+		Marshalizer:                           integrationtests.TestMarshalizer,
+		Accounts:                              accnts,
+		ShardCoordinator:                      shardCoordinator,
+		EpochNotifier:                         epochNotifierInstance,
+		EnableEpochsHandler:                   enableEpochsHandler,
+		MaxNumNodesInTransferRole:             100,
+		GuardedAccountHandler:                 guardedAccountHandler,
+		MapWhiteListedCrossChainMintAddresses: wasm.CrossChainAddresses,
 	}
 	argsBuiltIn.AutomaticCrawlerAddresses = integrationTests.GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
@@ -653,13 +655,14 @@ func CreateVMAndBlockchainHookMeta(
 		MapDNSV2Addresses: map[string]struct{}{
 			string(dnsV2Decoded): {},
 		},
-		Marshalizer:               integrationtests.TestMarshalizer,
-		Accounts:                  validatorAccounts,
-		ShardCoordinator:          shardCoordinator,
-		EpochNotifier:             globalEpochNotifier,
-		EnableEpochsHandler:       enableEpochsHandler,
-		MaxNumNodesInTransferRole: 100,
-		GuardedAccountHandler:     guardedAccountHandler,
+		Marshalizer:                           integrationtests.TestMarshalizer,
+		Accounts:                              validatorAccounts,
+		ShardCoordinator:                      shardCoordinator,
+		EpochNotifier:                         globalEpochNotifier,
+		EnableEpochsHandler:                   enableEpochsHandler,
+		MaxNumNodesInTransferRole:             100,
+		GuardedAccountHandler:                 guardedAccountHandler,
+		MapWhiteListedCrossChainMintAddresses: wasm.CrossChainAddresses,
 	}
 	argsBuiltIn.AutomaticCrawlerAddresses = integrationTests.GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)

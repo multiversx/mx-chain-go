@@ -57,6 +57,7 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	"github.com/multiversx/mx-chain-go/node"
 	"github.com/multiversx/mx-chain-go/node/external"
 	"github.com/multiversx/mx-chain-go/node/nodeDebugFactory"
@@ -866,16 +867,17 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 
 	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:               gasSchedule,
-		MapDNSAddresses:           make(map[string]struct{}),
-		MapDNSV2Addresses:         make(map[string]struct{}),
-		Marshalizer:               TestMarshalizer,
-		Accounts:                  tpn.AccntState,
-		ShardCoordinator:          tpn.ShardCoordinator,
-		EpochNotifier:             tpn.EpochNotifier,
-		EnableEpochsHandler:       tpn.EnableEpochsHandler,
-		MaxNumNodesInTransferRole: 100,
-		GuardedAccountHandler:     tpn.GuardedAccountHandler,
+		GasSchedule:                           gasSchedule,
+		MapDNSAddresses:                       make(map[string]struct{}),
+		MapDNSV2Addresses:                     make(map[string]struct{}),
+		Marshalizer:                           TestMarshalizer,
+		Accounts:                              tpn.AccntState,
+		ShardCoordinator:                      tpn.ShardCoordinator,
+		EpochNotifier:                         tpn.EpochNotifier,
+		EnableEpochsHandler:                   tpn.EnableEpochsHandler,
+		MaxNumNodesInTransferRole:             100,
+		GuardedAccountHandler:                 tpn.GuardedAccountHandler,
+		MapWhiteListedCrossChainMintAddresses: wasm.CrossChainAddresses,
 	}
 	argsBuiltIn.AutomaticCrawlerAddresses = GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
@@ -1600,16 +1602,17 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 
 	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:               gasSchedule,
-		MapDNSAddresses:           mapDNSAddresses,
-		MapDNSV2Addresses:         mapDNSAddresses,
-		Marshalizer:               TestMarshalizer,
-		Accounts:                  tpn.AccntState,
-		ShardCoordinator:          tpn.ShardCoordinator,
-		EpochNotifier:             tpn.EpochNotifier,
-		EnableEpochsHandler:       tpn.EnableEpochsHandler,
-		MaxNumNodesInTransferRole: 100,
-		GuardedAccountHandler:     tpn.GuardedAccountHandler,
+		GasSchedule:                           gasSchedule,
+		MapDNSAddresses:                       mapDNSAddresses,
+		MapDNSV2Addresses:                     mapDNSAddresses,
+		Marshalizer:                           TestMarshalizer,
+		Accounts:                              tpn.AccntState,
+		ShardCoordinator:                      tpn.ShardCoordinator,
+		EpochNotifier:                         tpn.EpochNotifier,
+		EnableEpochsHandler:                   tpn.EnableEpochsHandler,
+		MaxNumNodesInTransferRole:             100,
+		GuardedAccountHandler:                 tpn.GuardedAccountHandler,
+		MapWhiteListedCrossChainMintAddresses: wasm.CrossChainAddresses,
 	}
 	argsBuiltIn.AutomaticCrawlerAddresses = GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
@@ -1837,16 +1840,17 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 
 	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:               gasSchedule,
-		MapDNSAddresses:           make(map[string]struct{}),
-		MapDNSV2Addresses:         make(map[string]struct{}),
-		Marshalizer:               TestMarshalizer,
-		Accounts:                  tpn.AccntState,
-		ShardCoordinator:          tpn.ShardCoordinator,
-		EpochNotifier:             tpn.EpochNotifier,
-		EnableEpochsHandler:       tpn.EnableEpochsHandler,
-		MaxNumNodesInTransferRole: 100,
-		GuardedAccountHandler:     tpn.GuardedAccountHandler,
+		GasSchedule:                           gasSchedule,
+		MapDNSAddresses:                       make(map[string]struct{}),
+		MapDNSV2Addresses:                     make(map[string]struct{}),
+		Marshalizer:                           TestMarshalizer,
+		Accounts:                              tpn.AccntState,
+		ShardCoordinator:                      tpn.ShardCoordinator,
+		EpochNotifier:                         tpn.EpochNotifier,
+		EnableEpochsHandler:                   tpn.EnableEpochsHandler,
+		MaxNumNodesInTransferRole:             100,
+		GuardedAccountHandler:                 tpn.GuardedAccountHandler,
+		MapWhiteListedCrossChainMintAddresses: wasm.CrossChainAddresses,
 	}
 	argsBuiltIn.AutomaticCrawlerAddresses = GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)

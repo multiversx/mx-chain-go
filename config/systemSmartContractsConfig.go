@@ -30,9 +30,10 @@ type StakingSystemSCConfig struct {
 
 // ESDTSystemSCConfig defines a set of constant to initialize the esdt system smart contract
 type ESDTSystemSCConfig struct {
-	BaseIssuingCost string
-	OwnerAddress    string
-	ESDTPrefix      string
+	BaseIssuingCost                    string
+	OwnerAddress                       string
+	ESDTPrefix                         string
+	WhiteListedCrossChainMintAddresses []string
 }
 
 // GovernanceSystemSCConfigV1 holds the initial set of values that were used to initialise the

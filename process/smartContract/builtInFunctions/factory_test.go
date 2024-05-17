@@ -40,6 +40,9 @@ func createMockArguments() ArgsCreateBuiltInFunctionContainer {
 		},
 		MaxNumNodesInTransferRole: 100,
 		GuardedAccountHandler:     &guardianMocks.GuardedAccountHandlerStub{},
+		MapWhiteListedCrossChainMintAddresses: map[string]struct{}{
+			"addr": {},
+		},
 	}
 
 	return args

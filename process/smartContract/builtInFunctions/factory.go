@@ -18,18 +18,20 @@ var log = logger.GetOrCreate("process/smartcontract/builtInFunctions")
 
 // ArgsCreateBuiltInFunctionContainer defines the argument structure to create new built in function container
 type ArgsCreateBuiltInFunctionContainer struct {
-	GasSchedule               core.GasScheduleNotifier
-	MapDNSAddresses           map[string]struct{}
-	MapDNSV2Addresses         map[string]struct{}
-	EnableUserNameChange      bool
-	Marshalizer               marshal.Marshalizer
-	Accounts                  state.AccountsAdapter
-	ShardCoordinator          sharding.Coordinator
-	EpochNotifier             vmcommon.EpochNotifier
-	EnableEpochsHandler       vmcommon.EnableEpochsHandler
-	GuardedAccountHandler     vmcommon.GuardedAccountHandler
-	AutomaticCrawlerAddresses [][]byte
-	MaxNumNodesInTransferRole uint32
+	GasSchedule                           core.GasScheduleNotifier
+	MapDNSAddresses                       map[string]struct{}
+	MapDNSV2Addresses                     map[string]struct{}
+	MapWhiteListedCrossChainMintAddresses map[string]struct{}
+	EnableUserNameChange                  bool
+	Marshalizer                           marshal.Marshalizer
+	Accounts                              state.AccountsAdapter
+	ShardCoordinator                      sharding.Coordinator
+	EpochNotifier                         vmcommon.EpochNotifier
+	EnableEpochsHandler                   vmcommon.EnableEpochsHandler
+	GuardedAccountHandler                 vmcommon.GuardedAccountHandler
+	AutomaticCrawlerAddresses             [][]byte
+	MaxNumNodesInTransferRole             uint32
+	SelfESDTPrefix                        []byte
 }
 
 // CreateBuiltInFunctionsFactory creates a container that will hold all the available built in functions
@@ -77,17 +79,19 @@ func CreateBuiltInFunctionsFactory(args ArgsCreateBuiltInFunctionContainer) (vmc
 	)
 
 	modifiedArgs := vmcommonBuiltInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasMap:                           args.GasSchedule.LatestGasSchedule(),
-		MapDNSAddresses:                  args.MapDNSAddresses,
-		MapDNSV2Addresses:                args.MapDNSV2Addresses,
-		EnableUserNameChange:             args.EnableUserNameChange,
-		Marshalizer:                      args.Marshalizer,
-		Accounts:                         vmcommonAccounts,
-		ShardCoordinator:                 args.ShardCoordinator,
-		EnableEpochsHandler:              args.EnableEpochsHandler,
-		GuardedAccountHandler:            args.GuardedAccountHandler,
-		ConfigAddress:                    crawlerAllowedAddress,
-		MaxNumOfAddressesForTransferRole: args.MaxNumNodesInTransferRole,
+		GasMap:                                args.GasSchedule.LatestGasSchedule(),
+		MapDNSAddresses:                       args.MapDNSAddresses,
+		MapDNSV2Addresses:                     args.MapDNSV2Addresses,
+		MapWhiteListedCrossChainMintAddresses: args.MapWhiteListedCrossChainMintAddresses,
+		EnableUserNameChange:                  args.EnableUserNameChange,
+		Marshalizer:                           args.Marshalizer,
+		Accounts:                              vmcommonAccounts,
+		ShardCoordinator:                      args.ShardCoordinator,
+		EnableEpochsHandler:                   args.EnableEpochsHandler,
+		GuardedAccountHandler:                 args.GuardedAccountHandler,
+		MaxNumOfAddressesForTransferRole:      args.MaxNumNodesInTransferRole,
+		ConfigAddress:                         crawlerAllowedAddress,
+		SelfESDTPrefix:                        args.SelfESDTPrefix,
 	}
 
 	bContainerFactory, err := vmcommonBuiltInFunctions.NewBuiltInFunctionsCreator(modifiedArgs)

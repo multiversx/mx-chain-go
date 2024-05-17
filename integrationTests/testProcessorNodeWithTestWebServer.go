@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	nodeFacade "github.com/multiversx/mx-chain-go/facade"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	"github.com/multiversx/mx-chain-go/node/external"
 	"github.com/multiversx/mx-chain-go/node/external/blockAPI"
 	"github.com/multiversx/mx-chain-go/node/external/transactionAPI"
@@ -137,16 +138,17 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 	defaults.FillGasMapInternal(gasMap, 1)
 	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:               gasScheduleNotifier,
-		MapDNSAddresses:           make(map[string]struct{}),
-		MapDNSV2Addresses:         make(map[string]struct{}),
-		Marshalizer:               TestMarshalizer,
-		Accounts:                  tpn.AccntState,
-		ShardCoordinator:          tpn.ShardCoordinator,
-		EpochNotifier:             tpn.EpochNotifier,
-		EnableEpochsHandler:       tpn.EnableEpochsHandler,
-		MaxNumNodesInTransferRole: 100,
-		GuardedAccountHandler:     tpn.GuardedAccountHandler,
+		GasSchedule:                           gasScheduleNotifier,
+		MapDNSAddresses:                       make(map[string]struct{}),
+		MapDNSV2Addresses:                     make(map[string]struct{}),
+		Marshalizer:                           TestMarshalizer,
+		Accounts:                              tpn.AccntState,
+		ShardCoordinator:                      tpn.ShardCoordinator,
+		EpochNotifier:                         tpn.EpochNotifier,
+		EnableEpochsHandler:                   tpn.EnableEpochsHandler,
+		MaxNumNodesInTransferRole:             100,
+		GuardedAccountHandler:                 tpn.GuardedAccountHandler,
+		MapWhiteListedCrossChainMintAddresses: wasm.CrossChainAddresses,
 	}
 	argsBuiltIn.AutomaticCrawlerAddresses = GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
