@@ -385,10 +385,10 @@
 
 [TxDataPool]
     Name = "TxDataPool"
-    Capacity = 600000
-    SizePerSender = 20000
-    SizeInBytes = 419430400 #400MB
-    SizeInBytesPerSender = 12288000
+    Capacity = 900000
+    SizePerSender = 500000
+    SizeInBytes = 819430400 #400MB
+    SizeInBytesPerSender = 32288000
     Type = "TxCache"
     Shards = 16
 
@@ -629,8 +629,8 @@
     MinShuffledOutRestartThreshold = 0.05
     MaxShuffledOutRestartThreshold = 0.25
 
-    MinNumConnectedPeersToStart       = 2
-    MinNumOfPeersToConsiderBlockValid = 2
+    MinNumConnectedPeersToStart       = 1
+    MinNumOfPeersToConsiderBlockValid = 1
     ExtraDelayForRequestBlockInfoInMilliseconds = 3000
 
 # ResourceStats, if enabled, will output in a folder called "stats"

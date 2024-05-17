@@ -2,6 +2,7 @@ package preprocess
 
 import (
 	"errors"
+	"math"
 	"math/big"
 	"time"
 
@@ -15,6 +16,9 @@ import (
 
 type sovereignChainTransactions struct {
 	*transactions
+	lastSortedTxsCount int
+	notProcessedTimes  int
+	previousLenth      int
 }
 
 // NewSovereignChainTransactionPreprocessor creates a new sovereign chain transaction preprocessor object
@@ -27,6 +31,9 @@ func NewSovereignChainTransactionPreprocessor(
 
 	sct := &sovereignChainTransactions{
 		transactions,
+		0,
+		0,
+		0,
 	}
 
 	sct.scheduledTXContinueFunc = sct.shouldContinueProcessingScheduledTx
@@ -111,6 +118,39 @@ func (sct *sovereignChainTransactions) computeSortedTxs(
 
 	sortedTransactionsProvider := createSortedTransactionsProvider(txShardPool)
 	sortedTxs := sortedTransactionsProvider.GetSortedTransactions()
+
+	log.Debug("computeSortedTxs.GetSortedTransactions computeSortedTxs", "num txs", len(sortedTxs))
+
+	if len(sortedTxs) == 0 {
+		return make([]*txcache.WrappedTransaction, 0), nil
+	}
+
+	shouldProcess := false
+
+	for _, tx := range sortedTxs {
+		if string(tx.Tx.GetData()) == "pleaseProcess" {
+			shouldProcess = true
+			log.Info("computeSortedTxs: should process", "lastSortedTxs", sct.lastSortedTxsCount, "num txs", len(sortedTxs))
+			if sct.lastSortedTxsCount == len(sortedTxs) {
+				sct.notProcessedTimes++
+				sct.previousLenth = int(math.Pow(0.9, float64(sct.notProcessedTimes-1)) * float64(len(sortedTxs)))
+			} else {
+				// sct.previousLenth = int(math.Pow(0.9, float64(sct.notProcessedTimes-1)) * float64(len(sortedTxs)))
+			}
+			sct.lastSortedTxsCount = len(sortedTxs)
+			break
+		}
+	}
+
+	if !shouldProcess {
+		log.Info("computeSortedTxs: should not process yet")
+		return make([]*txcache.WrappedTransaction, 0), nil
+	}
+
+	newSortedLength := int(math.Min(float64(len(sortedTxs)), float64(sct.previousLenth)))
+	log.Debug("computeSortedTxs.GetSortedTransactions computeSortedTxs", "num txs", len(sortedTxs), "new sorted length", newSortedLength)
+	sortedTxs = sortedTxs[0:newSortedLength]
+
 	sct.sortTransactionsBySenderAndNonce(sortedTxs, randomness)
 
 	return sortedTxs, nil

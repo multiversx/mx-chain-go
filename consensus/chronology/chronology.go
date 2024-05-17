@@ -24,7 +24,7 @@ var log = logger.GetOrCreate("consensus/chronology")
 // srBeforeStartRound defines the state which exist before the start of the round
 const srBeforeStartRound = -1
 
-const numRoundsToWaitBeforeSignalingChronologyStuck = 10
+const numRoundsToWaitBeforeSignalingChronologyStuck = 1000
 const chronologyAlarmID = "chronology"
 
 // chronology defines the data needed by the chronology
