@@ -36,13 +36,13 @@ import (
 
 // ArgsTestOnlyProcessingNode represents the DTO struct for the NewTestOnlyProcessingNode constructor function
 type ArgsTestOnlyProcessingNode struct {
-	Configs                     config.Configs
-	APIInterface                APIConfigurator
-	CreateGenesisNodesSetup     func(nodesFilePath string, addressPubkeyConverter core.PubkeyConverter, validatorPubkeyConverter core.PubkeyConverter, genesisMaxNumShards uint32) (sharding.GenesisNodesSetupHandler, error)
-	CreateRatingsData           func(arg rating.RatingsDataArg) (process.RatingsInfoHandler, error)
-	CreateIncomingHeaderHandler func(config *config.NotifierConfig, dataPool dataRetriever.PoolsHolder, mainChainNotarizationStartRound uint64, runTypeComponents factory.RunTypeComponentsHolder) (process.IncomingHeaderSubscriber, error)
-	GetRunTypeComponents        func(args runType.ArgsRunTypeComponents) (factory.RunTypeComponentsHolder, error)
-	NodeFactory                 node.NodeFactory
+	Configs                        config.Configs
+	APIInterface                   APIConfigurator
+	CreateGenesisNodesSetup        func(nodesFilePath string, addressPubkeyConverter core.PubkeyConverter, validatorPubkeyConverter core.PubkeyConverter, genesisMaxNumShards uint32) (sharding.GenesisNodesSetupHandler, error)
+	CreateRatingsData              func(arg rating.RatingsDataArg) (process.RatingsInfoHandler, error)
+	CreateIncomingHeaderSubscriber func(config *config.NotifierConfig, dataPool dataRetriever.PoolsHolder, mainChainNotarizationStartRound uint64, runTypeComponents factory.RunTypeComponentsHolder) (process.IncomingHeaderSubscriber, error)
+	CreateRunTypeComponents        func(args runType.ArgsRunTypeComponents) (factory.RunTypeComponentsHolder, error)
+	NodeFactory                    node.NodeFactory
 
 	ChanStopNodeProcess    chan endProcess.ArgEndProcess
 	SyncedBroadcastNetwork SyncedBroadcastNetworkHandler
@@ -146,7 +146,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 	if err != nil {
 		return nil, err
 	}
-	instance.RunTypeComponents, err = args.GetRunTypeComponents(*argsRunType)
+	instance.RunTypeComponents, err = args.CreateRunTypeComponents(*argsRunType)
 	if err != nil {
 		return nil, err
 	}
@@ -215,7 +215,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		return nil, err
 	}
 
-	incomingHeaderHandler, err := args.CreateIncomingHeaderHandler(
+	incomingHeaderHandler, err := args.CreateIncomingHeaderSubscriber(
 		&args.Configs.GeneralConfig.SovereignConfig.NotifierConfig,
 		instance.DataComponentsHolder.Datapool(),
 		args.Configs.GeneralConfig.SovereignConfig.MainChainNotarization.MainChainNotarizationStartRound,
@@ -226,20 +226,20 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 	}
 
 	instance.ProcessComponentsHolder, err = CreateProcessComponents(ArgsProcessComponentsHolder{
-		CoreComponents:        instance.CoreComponentsHolder,
-		CryptoComponents:      instance.CryptoComponentsHolder,
-		NetworkComponents:     instance.NetworkComponentsHolder,
-		BootstrapComponents:   instance.BootstrapComponentsHolder,
-		StateComponents:       instance.StateComponentsHolder,
-		StatusComponents:      instance.StatusComponentsHolder,
-		StatusCoreComponents:  instance.StatusCoreComponents,
-		Configs:               args.Configs,
-		NodesCoordinator:      instance.NodesCoordinator,
-		DataComponents:        instance.DataComponentsHolder,
-		GenesisNonce:          args.InitialNonce,
-		GenesisRound:          uint64(args.InitialRound),
-		RunTypeComponents:     instance.RunTypeComponents,
-		IncomingHeaderHandler: incomingHeaderHandler,
+		CoreComponents:           instance.CoreComponentsHolder,
+		CryptoComponents:         instance.CryptoComponentsHolder,
+		NetworkComponents:        instance.NetworkComponentsHolder,
+		BootstrapComponents:      instance.BootstrapComponentsHolder,
+		StateComponents:          instance.StateComponentsHolder,
+		StatusComponents:         instance.StatusComponentsHolder,
+		StatusCoreComponents:     instance.StatusCoreComponents,
+		Configs:                  args.Configs,
+		NodesCoordinator:         instance.NodesCoordinator,
+		DataComponents:           instance.DataComponentsHolder,
+		GenesisNonce:             args.InitialNonce,
+		GenesisRound:             uint64(args.InitialRound),
+		RunTypeComponents:        instance.RunTypeComponents,
+		IncomingHeaderSubscriber: incomingHeaderHandler,
 	})
 	if err != nil {
 		return nil, err

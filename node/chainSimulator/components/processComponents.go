@@ -32,18 +32,18 @@ import (
 
 // ArgsProcessComponentsHolder will hold the components needed for process components
 type ArgsProcessComponentsHolder struct {
-	CoreComponents        factory.CoreComponentsHolder
-	CryptoComponents      factory.CryptoComponentsHolder
-	NetworkComponents     factory.NetworkComponentsHolder
-	BootstrapComponents   factory.BootstrapComponentsHolder
-	StateComponents       factory.StateComponentsHolder
-	DataComponents        factory.DataComponentsHolder
-	StatusComponents      factory.StatusComponentsHolder
-	StatusCoreComponents  factory.StatusCoreComponentsHolder
-	NodesCoordinator      nodesCoordinator.NodesCoordinator
-	RunTypeComponents     factory.RunTypeComponentsHolder
-	IncomingHeaderHandler process.IncomingHeaderSubscriber
-	Configs               config.Configs
+	CoreComponents           factory.CoreComponentsHolder
+	CryptoComponents         factory.CryptoComponentsHolder
+	NetworkComponents        factory.NetworkComponentsHolder
+	BootstrapComponents      factory.BootstrapComponentsHolder
+	StateComponents          factory.StateComponentsHolder
+	DataComponents           factory.DataComponentsHolder
+	StatusComponents         factory.StatusComponentsHolder
+	StatusCoreComponents     factory.StatusCoreComponentsHolder
+	NodesCoordinator         nodesCoordinator.NodesCoordinator
+	RunTypeComponents        factory.RunTypeComponentsHolder
+	IncomingHeaderSubscriber process.IncomingHeaderSubscriber
+	Configs                  config.Configs
 
 	GenesisNonce uint64
 	GenesisRound uint64
@@ -185,7 +185,7 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		GenesisNonce:             args.GenesisNonce,
 		GenesisRound:             args.GenesisRound,
 		RunTypeComponents:        args.RunTypeComponents,
-		IncomingHeaderSubscriber: args.IncomingHeaderHandler,
+		IncomingHeaderSubscriber: args.IncomingHeaderSubscriber,
 	}
 	processComponentsFactory, err := processComp.NewProcessComponentsFactory(processArgs)
 	if err != nil {
