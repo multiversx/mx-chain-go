@@ -47,30 +47,30 @@ type transactionWithResult struct {
 
 // ArgsChainSimulator holds the arguments needed to create a new instance of simulator
 type ArgsChainSimulator struct {
-	BypassTxSignatureCheck      bool
-	TempDir                     string
-	PathToInitialConfig         string
-	NumOfShards                 uint32
-	MinNodesPerShard            uint32
-	ConsensusGroupSize          uint32
-	MetaChainMinNodes           uint32
-	MetaChainConsensusGroupSize uint32
-	NumNodesWaitingListShard    uint32
-	NumNodesWaitingListMeta     uint32
-	GenesisTimestamp            int64
-	InitialRound                int64
-	InitialEpoch                uint32
-	InitialNonce                uint64
-	RoundDurationInMillis       uint64
-	RoundsPerEpoch              core.OptionalUint64
-	ApiInterface                components.APIConfigurator
-	AlterConfigsFunction        func(cfg *config.Configs)
-	CreateGenesisNodesSetup     func(nodesFilePath string, addressPubkeyConverter core.PubkeyConverter, validatorPubkeyConverter core.PubkeyConverter, genesisMaxNumShards uint32) (mxChainSharding.GenesisNodesSetupHandler, error)
-	CreateRatingsData           func(arg rating.RatingsDataArg) (processing.RatingsInfoHandler, error)
-	CreateIncomingHeaderHandler func(config *config.NotifierConfig, dataPool dataRetriever.PoolsHolder, mainChainNotarizationStartRound uint64, runTypeComponents factory.RunTypeComponentsHolder) (processing.IncomingHeaderSubscriber, error)
-	GetRunTypeComponents        func(args runType.ArgsRunTypeComponents) (factory.RunTypeComponentsHolder, error)
-	NodeFactory                 node.NodeFactory
-	ChainProcessorFactory       ChainProcessorFactory
+	BypassTxSignatureCheck         bool
+	TempDir                        string
+	PathToInitialConfig            string
+	NumOfShards                    uint32
+	MinNodesPerShard               uint32
+	ConsensusGroupSize             uint32
+	MetaChainMinNodes              uint32
+	MetaChainConsensusGroupSize    uint32
+	NumNodesWaitingListShard       uint32
+	NumNodesWaitingListMeta        uint32
+	GenesisTimestamp               int64
+	InitialRound                   int64
+	InitialEpoch                   uint32
+	InitialNonce                   uint64
+	RoundDurationInMillis          uint64
+	RoundsPerEpoch                 core.OptionalUint64
+	ApiInterface                   components.APIConfigurator
+	AlterConfigsFunction           func(cfg *config.Configs)
+	CreateGenesisNodesSetup        func(nodesFilePath string, addressPubkeyConverter core.PubkeyConverter, validatorPubkeyConverter core.PubkeyConverter, genesisMaxNumShards uint32) (mxChainSharding.GenesisNodesSetupHandler, error)
+	CreateRatingsData              func(arg rating.RatingsDataArg) (processing.RatingsInfoHandler, error)
+	CreateIncomingHeaderSubscriber func(config *config.NotifierConfig, dataPool dataRetriever.PoolsHolder, mainChainNotarizationStartRound uint64, runTypeComponents factory.RunTypeComponentsHolder) (processing.IncomingHeaderSubscriber, error)
+	CreateRunTypeComponents        func(args runType.ArgsRunTypeComponents) (factory.RunTypeComponentsHolder, error)
+	NodeFactory                    node.NodeFactory
+	ChainProcessorFactory          ChainProcessorFactory
 }
 
 type Simulator struct {
@@ -118,13 +118,13 @@ func setSimulatorRunTypeArguments(args *ArgsChainSimulator) {
 			return rating.NewRatingsData(arg)
 		}
 	}
-	if args.CreateIncomingHeaderHandler == nil {
-		args.CreateIncomingHeaderHandler = func(_ *config.NotifierConfig, _ dataRetriever.PoolsHolder, _ uint64, _ factory.RunTypeComponentsHolder) (processing.IncomingHeaderSubscriber, error) {
+	if args.CreateIncomingHeaderSubscriber == nil {
+		args.CreateIncomingHeaderSubscriber = func(_ *config.NotifierConfig, _ dataRetriever.PoolsHolder, _ uint64, _ factory.RunTypeComponentsHolder) (processing.IncomingHeaderSubscriber, error) {
 			return nil, nil
 		}
 	}
-	if args.GetRunTypeComponents == nil {
-		args.GetRunTypeComponents = func(args runType.ArgsRunTypeComponents) (factory.RunTypeComponentsHolder, error) {
+	if args.CreateRunTypeComponents == nil {
+		args.CreateRunTypeComponents = func(args runType.ArgsRunTypeComponents) (factory.RunTypeComponentsHolder, error) {
 			return createRunTypeComponents(args)
 		}
 	}
@@ -245,26 +245,26 @@ func (s *Simulator) createTestNode(
 	outputConfigs configs.ArgsConfigsSimulator, args ArgsChainSimulator, shardIDStr string,
 ) (process.NodeHandler, error) {
 	argsTestOnlyProcessorNode := components.ArgsTestOnlyProcessingNode{
-		Configs:                     outputConfigs.Configs,
-		ChanStopNodeProcess:         s.chanStopNodeProcess,
-		SyncedBroadcastNetwork:      s.syncedBroadcastNetwork,
-		NumShards:                   s.numOfShards,
-		GasScheduleFilename:         outputConfigs.GasScheduleFilename,
-		ShardIDStr:                  shardIDStr,
-		APIInterface:                args.ApiInterface,
-		BypassTxSignatureCheck:      args.BypassTxSignatureCheck,
-		InitialRound:                args.InitialRound,
-		InitialNonce:                args.InitialNonce,
-		MinNodesPerShard:            args.MinNodesPerShard,
-		ConsensusGroupSize:          args.ConsensusGroupSize,
-		MinNodesMeta:                args.MetaChainMinNodes,
-		MetaChainConsensusGroupSize: args.MetaChainConsensusGroupSize,
-		RoundDurationInMillis:       args.RoundDurationInMillis,
-		CreateGenesisNodesSetup:     args.CreateGenesisNodesSetup,
-		CreateRatingsData:           args.CreateRatingsData,
-		CreateIncomingHeaderHandler: args.CreateIncomingHeaderHandler,
-		GetRunTypeComponents:        args.GetRunTypeComponents,
-		NodeFactory:                 args.NodeFactory,
+		Configs:                        outputConfigs.Configs,
+		ChanStopNodeProcess:            s.chanStopNodeProcess,
+		SyncedBroadcastNetwork:         s.syncedBroadcastNetwork,
+		NumShards:                      s.numOfShards,
+		GasScheduleFilename:            outputConfigs.GasScheduleFilename,
+		ShardIDStr:                     shardIDStr,
+		APIInterface:                   args.ApiInterface,
+		BypassTxSignatureCheck:         args.BypassTxSignatureCheck,
+		InitialRound:                   args.InitialRound,
+		InitialNonce:                   args.InitialNonce,
+		MinNodesPerShard:               args.MinNodesPerShard,
+		ConsensusGroupSize:             args.ConsensusGroupSize,
+		MinNodesMeta:                   args.MetaChainMinNodes,
+		MetaChainConsensusGroupSize:    args.MetaChainConsensusGroupSize,
+		RoundDurationInMillis:          args.RoundDurationInMillis,
+		CreateGenesisNodesSetup:        args.CreateGenesisNodesSetup,
+		CreateRatingsData:              args.CreateRatingsData,
+		CreateIncomingHeaderSubscriber: args.CreateIncomingHeaderSubscriber,
+		CreateRunTypeComponents:        args.CreateRunTypeComponents,
+		NodeFactory:                    args.NodeFactory,
 	}
 
 	return components.NewTestOnlyProcessingNode(argsTestOnlyProcessorNode)

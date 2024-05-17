@@ -236,7 +236,7 @@ func createArgsProcessComponentsHolder() ArgsProcessComponentsHolder {
 			AppStatusHandlerField:  &statusHandler.AppStatusHandlerStub{},
 			StateStatsHandlerField: disabledStatistics.NewStateStatistics(),
 		},
-		IncomingHeaderHandler: &sovereign.IncomingHeaderSubscriberStub{},
+		IncomingHeaderSubscriber: &sovereign.IncomingHeaderSubscriberStub{},
 	}
 
 	initialAccounts, _ := commonRunType.ReadInitialAccounts(args.Configs.ConfigurationPathsHolder.Genesis)
