@@ -72,6 +72,7 @@ type testOnlyProcessingNode struct {
 	ProcessComponentsHolder   factory.ProcessComponentsHandler
 	DataComponentsHolder      factory.DataComponentsHandler
 	RunTypeComponents         factory.RunTypeComponentsHolder
+	IncomingHeaderSubscriber  process.IncomingHeaderSubscriber
 
 	NodesCoordinator      nodesCoordinator.NodesCoordinator
 	ChainHandler          chainData.ChainHandler
@@ -215,7 +216,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		return nil, err
 	}
 
-	incomingHeaderHandler, err := args.CreateIncomingHeaderSubscriber(
+	instance.IncomingHeaderSubscriber, err = args.CreateIncomingHeaderSubscriber(
 		&args.Configs.GeneralConfig.SovereignConfig.NotifierConfig,
 		instance.DataComponentsHolder.Datapool(),
 		args.Configs.GeneralConfig.SovereignConfig.MainChainNotarization.MainChainNotarizationStartRound,
@@ -239,7 +240,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		GenesisNonce:             args.InitialNonce,
 		GenesisRound:             uint64(args.InitialRound),
 		RunTypeComponents:        instance.RunTypeComponents,
-		IncomingHeaderSubscriber: incomingHeaderHandler,
+		IncomingHeaderSubscriber: instance.IncomingHeaderSubscriber,
 	})
 	if err != nil {
 		return nil, err
@@ -424,6 +425,11 @@ func (node *testOnlyProcessingNode) GetFacadeHandler() shared.FacadeHandler {
 // GetStatusCoreComponents will return the status core components
 func (node *testOnlyProcessingNode) GetStatusCoreComponents() factory.StatusCoreComponentsHolder {
 	return node.StatusCoreComponents
+}
+
+// GetIncomingHeaderSubscriber  will return the incoming header subscriber
+func (node *testOnlyProcessingNode) GetIncomingHeaderSubscriber() process.IncomingHeaderSubscriber {
+	return node.IncomingHeaderSubscriber
 }
 
 func (node *testOnlyProcessingNode) collectClosableComponents(apiInterface APIConfigurator) {
