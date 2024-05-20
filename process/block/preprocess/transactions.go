@@ -1486,10 +1486,12 @@ func (txs *transactions) computeSortedTxs(
 
 	// TODO: this could be moved to SortedTransactionsProvider
 	// TODO: for benchmark, do not re-sort! "sortedTxs" is already sorted.
-	selectedTxs, remainingTxs := txs.preFilterTransactionsWithMoveBalancePriority(sortedTxs, gasBandwidth)
-	txs.sortTransactionsBySenderAndNonce(selectedTxs, randomness)
+	//selectedTxs, remainingTxs := txs.preFilterTransactionsWithMoveBalancePriority(sortedTxs, gasBandwidth)
+	//txs.sortTransactionsBySenderAndNonce(selectedTxs, randomness)
 
-	return selectedTxs, remainingTxs, nil
+	return sortedTxs, make([]*txcache.WrappedTransaction, 0), nil
+
+	//return selectedTxs, remainingTxs, nil
 }
 
 // ProcessMiniBlock processes all the transactions from the given miniblock and saves the processed ones in a local cache

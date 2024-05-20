@@ -128,7 +128,7 @@ func (sct *sovereignChainTransactions) computeSortedTxs(
 		return make([]*txcache.WrappedTransaction, 0), nil
 	}
 
-	sct.sortTransactionsBySenderAndNonce(sortedTxs, randomness)
+	//sct.sortTransactionsBySenderAndNonce(sortedTxs, randomness)
 
 	return sortedTxs, nil
 }
