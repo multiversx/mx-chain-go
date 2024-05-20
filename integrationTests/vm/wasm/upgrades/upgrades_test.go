@@ -207,7 +207,7 @@ func TestUpgrades_HelloTrialAndError(t *testing.T) {
 		make([]byte, 32),
 		big.NewInt(0),
 		deployTxData,
-		1000,
+		100000,
 	)
 	require.Nil(t, err)
 
@@ -221,7 +221,7 @@ func TestUpgrades_HelloTrialAndError(t *testing.T) {
 		scAddress,
 		big.NewInt(0),
 		upgradeTxData,
-		1000,
+		100000,
 	)
 	require.Nil(t, err)
 
@@ -234,7 +234,7 @@ func TestUpgrades_HelloTrialAndError(t *testing.T) {
 		scAddress,
 		big.NewInt(0),
 		upgradeTxData,
-		1000,
+		100000,
 	)
 	require.Nil(t, err)
 
@@ -264,7 +264,7 @@ func TestUpgrades_CounterTrialAndError(t *testing.T) {
 		make([]byte, 32),
 		big.NewInt(0),
 		deployTxData,
-		1000,
+		100000,
 	)
 	require.Nil(t, err)
 
@@ -278,7 +278,7 @@ func TestUpgrades_CounterTrialAndError(t *testing.T) {
 		scAddress,
 		big.NewInt(0),
 		"increment",
-		1000,
+		100000,
 	)
 	require.Nil(t, err)
 
@@ -291,7 +291,7 @@ func TestUpgrades_CounterTrialAndError(t *testing.T) {
 		scAddress,
 		big.NewInt(0),
 		upgradeTxData,
-		1000,
+		100000,
 	)
 	require.Nil(t, err)
 
@@ -304,7 +304,7 @@ func TestUpgrades_CounterTrialAndError(t *testing.T) {
 		scAddress,
 		big.NewInt(0),
 		upgradeTxData,
-		1000,
+		100000,
 	)
 	require.Nil(t, err)
 

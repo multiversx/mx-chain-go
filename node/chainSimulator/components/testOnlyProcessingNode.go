@@ -36,13 +36,13 @@ import (
 
 // ArgsTestOnlyProcessingNode represents the DTO struct for the NewTestOnlyProcessingNode constructor function
 type ArgsTestOnlyProcessingNode struct {
-	Configs                     config.Configs
-	APIInterface                APIConfigurator
-	CreateGenesisNodesSetup     func(nodesFilePath string, addressPubkeyConverter core.PubkeyConverter, validatorPubkeyConverter core.PubkeyConverter, genesisMaxNumShards uint32) (sharding.GenesisNodesSetupHandler, error)
-	CreateRatingsData           func(arg rating.RatingsDataArg) (process.RatingsInfoHandler, error)
-	CreateIncomingHeaderHandler func(config *config.NotifierConfig, dataPool dataRetriever.PoolsHolder, mainChainNotarizationStartRound uint64, runTypeComponents factory.RunTypeComponentsHolder) (process.IncomingHeaderSubscriber, error)
-	GetRunTypeComponents        func(args runType.ArgsRunTypeComponents) (factory.RunTypeComponentsHolder, error)
-	NodeFactory                 node.NodeFactory
+	Configs                        config.Configs
+	APIInterface                   APIConfigurator
+	CreateGenesisNodesSetup        func(nodesFilePath string, addressPubkeyConverter core.PubkeyConverter, validatorPubkeyConverter core.PubkeyConverter, genesisMaxNumShards uint32) (sharding.GenesisNodesSetupHandler, error)
+	CreateRatingsData              func(arg rating.RatingsDataArg) (process.RatingsInfoHandler, error)
+	CreateIncomingHeaderSubscriber func(config *config.NotifierConfig, dataPool dataRetriever.PoolsHolder, mainChainNotarizationStartRound uint64, runTypeComponents factory.RunTypeComponentsHolder) (process.IncomingHeaderSubscriber, error)
+	CreateRunTypeComponents        func(args runType.ArgsRunTypeComponents) (factory.RunTypeComponentsHolder, error)
+	NodeFactory                    node.NodeFactory
 
 	ChanStopNodeProcess    chan endProcess.ArgEndProcess
 	SyncedBroadcastNetwork SyncedBroadcastNetworkHandler
@@ -108,8 +108,8 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		NodesSetupPath:              args.Configs.ConfigurationPathsHolder.Nodes,
 		InitialRound:                args.InitialRound,
 		MinNodesPerShard:            args.MinNodesPerShard,
-		MinNodesMeta:                args.MinNodesMeta,
 		ConsensusGroupSize:          args.ConsensusGroupSize,
+		MinNodesMeta:                args.MinNodesMeta,
 		MetaChainConsensusGroupSize: args.MetaChainConsensusGroupSize,
 		RoundDurationInMs:           args.RoundDurationInMillis,
 		RatingConfig:                *args.Configs.RatingsConfig,
@@ -146,7 +146,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 	if err != nil {
 		return nil, err
 	}
-	instance.RunTypeComponents, err = args.GetRunTypeComponents(*argsRunType)
+	instance.RunTypeComponents, err = args.CreateRunTypeComponents(*argsRunType)
 	if err != nil {
 		return nil, err
 	}
@@ -173,6 +173,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		selfShardID,
 		instance.StatusCoreComponents.AppStatusHandler(),
 		args.Configs.GeneralConfig.GeneralSettings.StatusPollingIntervalSec,
+		*args.Configs.ExternalConfig,
 	)
 	if err != nil {
 		return nil, err
@@ -214,7 +215,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		return nil, err
 	}
 
-	incomingHeaderHandler, err := args.CreateIncomingHeaderHandler(
+	incomingHeaderHandler, err := args.CreateIncomingHeaderSubscriber(
 		&args.Configs.GeneralConfig.SovereignConfig.NotifierConfig,
 		instance.DataComponentsHolder.Datapool(),
 		args.Configs.GeneralConfig.SovereignConfig.MainChainNotarization.MainChainNotarizationStartRound,
@@ -225,20 +226,20 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 	}
 
 	instance.ProcessComponentsHolder, err = CreateProcessComponents(ArgsProcessComponentsHolder{
-		CoreComponents:        instance.CoreComponentsHolder,
-		CryptoComponents:      instance.CryptoComponentsHolder,
-		NetworkComponents:     instance.NetworkComponentsHolder,
-		BootstrapComponents:   instance.BootstrapComponentsHolder,
-		StateComponents:       instance.StateComponentsHolder,
-		StatusComponents:      instance.StatusComponentsHolder,
-		StatusCoreComponents:  instance.StatusCoreComponents,
-		Configs:               args.Configs,
-		NodesCoordinator:      instance.NodesCoordinator,
-		DataComponents:        instance.DataComponentsHolder,
-		GenesisNonce:          args.InitialNonce,
-		GenesisRound:          uint64(args.InitialRound),
-		RunTypeComponents:     instance.RunTypeComponents,
-		IncomingHeaderHandler: incomingHeaderHandler,
+		CoreComponents:           instance.CoreComponentsHolder,
+		CryptoComponents:         instance.CryptoComponentsHolder,
+		NetworkComponents:        instance.NetworkComponentsHolder,
+		BootstrapComponents:      instance.BootstrapComponentsHolder,
+		StateComponents:          instance.StateComponentsHolder,
+		StatusComponents:         instance.StatusComponentsHolder,
+		StatusCoreComponents:     instance.StatusCoreComponents,
+		Configs:                  args.Configs,
+		NodesCoordinator:         instance.NodesCoordinator,
+		DataComponents:           instance.DataComponentsHolder,
+		GenesisNonce:             args.InitialNonce,
+		GenesisRound:             uint64(args.InitialRound),
+		RunTypeComponents:        instance.RunTypeComponents,
+		IncomingHeaderSubscriber: incomingHeaderHandler,
 	})
 	if err != nil {
 		return nil, err
@@ -315,6 +316,14 @@ func (node *testOnlyProcessingNode) createNodesCoordinator(pref config.Preferenc
 	if err != nil {
 		return err
 	}
+
+	shardID := node.BootstrapComponentsHolder.ShardCoordinator().SelfId()
+	shardIDStr := fmt.Sprintf("%d", shardID)
+	if shardID == core.MetachainShardId {
+		shardIDStr = "metachain"
+	}
+
+	pref.DestinationShardAsObserver = shardIDStr
 
 	node.NodesCoordinator, err = bootstrapComp.CreateNodesCoordinator(
 		nodesShufflerOut,
@@ -397,6 +406,11 @@ func (node *testOnlyProcessingNode) GetCoreComponents() factory.CoreComponentsHo
 	return node.CoreComponentsHolder
 }
 
+// GetDataComponents will return the data components
+func (node *testOnlyProcessingNode) GetDataComponents() factory.DataComponentsHolder {
+	return node.DataComponentsHolder
+}
+
 // GetStateComponents will return the state components
 func (node *testOnlyProcessingNode) GetStateComponents() factory.StateComponentsHolder {
 	return node.StateComponentsHolder
@@ -410,14 +424,6 @@ func (node *testOnlyProcessingNode) GetFacadeHandler() shared.FacadeHandler {
 // GetStatusCoreComponents will return the status core components
 func (node *testOnlyProcessingNode) GetStatusCoreComponents() factory.StatusCoreComponentsHolder {
 	return node.StatusCoreComponents
-}
-
-// GetIncomingHeaderHandler will return the incoming header handler
-func (node *testOnlyProcessingNode) GetIncomingHeaderHandler() process.IncomingHeaderSubscriber {
-	if check.IfNil(node.ProcessComponentsHolder) {
-		return nil
-	}
-	return node.ProcessComponentsHolder.IncomingHeaderHandler()
 }
 
 func (node *testOnlyProcessingNode) collectClosableComponents(apiInterface APIConfigurator) {
@@ -513,6 +519,18 @@ func (node *testOnlyProcessingNode) SetStateForAddress(address []byte, addressSt
 
 	accountsAdapter := node.StateComponentsHolder.AccountsAdapter()
 	err = accountsAdapter.SaveAccount(userAccount)
+	if err != nil {
+		return err
+	}
+
+	_, err = accountsAdapter.Commit()
+	return err
+}
+
+// RemoveAccount will remove the account for the given address
+func (node *testOnlyProcessingNode) RemoveAccount(address []byte) error {
+	accountsAdapter := node.StateComponentsHolder.AccountsAdapter()
+	err := accountsAdapter.RemoveAccount(address)
 	if err != nil {
 		return err
 	}

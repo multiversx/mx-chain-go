@@ -370,6 +370,7 @@ func createMockSCQueryElementArgs(shardId uint32) api.SCQueryElementArgs {
 						WasmVMVersions: []config.WasmVMVersionByEpoch{
 							{StartEpoch: 0, Version: "*"},
 						},
+						TransferAndExecuteByUserAddresses: []string{"erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe3"},
 					},
 				},
 			},

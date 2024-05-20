@@ -37,6 +37,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/factory"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 )
@@ -78,6 +79,7 @@ type runTypeComponents struct {
 	vmContainerShardFactory                 factoryVm.VmContainerCreator
 	accountsParser                          genesis.AccountsParser
 	accountsCreator                         state.AccountFactory
+	vmContextCreator                        systemSmartContracts.VMContextCreatorHandler
 	outGoingOperationsPoolHandler           sovereignBlock.OutGoingOperationsPool
 	dataCodecHandler                        sovereign.DataCodecHandler
 	topicsCheckerHandler                    sovereign.TopicsCheckerHandler
@@ -181,7 +183,8 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 
 	scProcessorCreator := processProxy.NewSCProcessProxyFactory()
 
-	vmContainerMetaCreator, err := factoryVm.NewVmContainerMetaFactory(blockChainHookHandlerFactory)
+	vmContextCreator := systemSmartContracts.NewVMContextCreator()
+	vmContainerMetaCreator, err := factoryVm.NewVmContainerMetaFactory(blockChainHookHandlerFactory, vmContextCreator)
 	if err != nil {
 		return nil, fmt.Errorf("runTypeComponentsFactory - NewVmContainerMetaFactory failed: %w", err)
 	}
@@ -241,6 +244,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		vmContainerShardFactory:                 vmContainerShardCreator,
 		accountsParser:                          accountsParser,
 		accountsCreator:                         accountsCreator,
+		vmContextCreator:                        vmContextCreator,
 		outGoingOperationsPoolHandler:           disabled.NewDisabledOutGoingOperationPool(),
 		dataCodecHandler:                        disabled.NewDisabledDataCodec(),
 		topicsCheckerHandler:                    disabled.NewDisabledTopicsChecker(),

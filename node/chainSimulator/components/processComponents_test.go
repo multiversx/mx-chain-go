@@ -236,7 +236,7 @@ func createArgsProcessComponentsHolder() ArgsProcessComponentsHolder {
 			AppStatusHandlerField:  &statusHandler.AppStatusHandlerStub{},
 			StateStatsHandlerField: disabledStatistics.NewStateStatistics(),
 		},
-		IncomingHeaderHandler: &sovereign.IncomingHeaderSubscriberStub{},
+		IncomingHeaderSubscriber: &sovereign.IncomingHeaderSubscriberStub{},
 	}
 
 	initialAccounts, _ := commonRunType.ReadInitialAccounts(args.Configs.ConfigurationPathsHolder.Genesis)
@@ -407,6 +407,7 @@ func TestProcessComponentsHolder_Getters(t *testing.T) {
 	require.NotNil(t, comp.ESDTDataStorageHandlerForAPI())
 	require.NotNil(t, comp.AccountsParser())
 	require.NotNil(t, comp.ReceiptsRepository())
+	require.NotNil(t, comp.EpochSystemSCProcessor())
 	require.Nil(t, comp.CheckSubcomponents())
 	require.Empty(t, comp.String())
 

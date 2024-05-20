@@ -47,7 +47,7 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 		_, err = pcf.Create()
 		require.NoError(t, err)
 
-		bp, err := pcf.NewBlockProcessor(
+		bp, epochStartSCProc, err := pcf.NewBlockProcessor(
 			&testscommon.RequestHandlerStub{},
 			&processMocks.ForkDetectorStub{},
 			&mock.EpochStartTriggerStub{},
@@ -67,6 +67,7 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 
 		require.NoError(t, err)
 		require.Equal(t, "*block.shardProcessor", fmt.Sprintf("%T", bp))
+		require.Equal(t, "*disabled.epochStartSystemSCProcessor", fmt.Sprintf("%T", epochStartSCProc))
 	})
 
 	t.Run("new block processor creator for shard in sovereign chain should work", func(t *testing.T) {
@@ -81,7 +82,7 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 		_, err = pcf.Create()
 		require.NoError(t, err)
 
-		bp, err := pcf.NewBlockProcessor(
+		bp, epochStartSCProc, err := pcf.NewBlockProcessor(
 			&testscommon.ExtendedShardHeaderRequestHandlerStub{},
 			&processMocks.ForkDetectorStub{},
 			&mock.EpochStartTriggerStub{},
@@ -101,6 +102,7 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 
 		require.NoError(t, err)
 		require.Equal(t, "*block.sovereignChainBlockProcessor", fmt.Sprintf("%T", bp))
+		require.Equal(t, "*disabled.epochStartSystemSCProcessor", fmt.Sprintf("%T", epochStartSCProc))
 	})
 }
 
@@ -201,7 +203,7 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 	_, err = pcf.Create()
 	require.NoError(t, err)
 
-	bp, err := pcf.NewBlockProcessor(
+	bp, epochStartSCProc, err := pcf.NewBlockProcessor(
 		&testscommon.RequestHandlerStub{},
 		&processMocks.ForkDetectorStub{},
 		&mock.EpochStartTriggerStub{},
@@ -221,6 +223,7 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotNil(t, bp)
+	require.Equal(t, "*metachain.systemSCProcessor", fmt.Sprintf("%T", epochStartSCProc))
 }
 
 func createAccountAdapter(

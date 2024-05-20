@@ -40,8 +40,8 @@ func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNo
 		RoundDurationInMillis:       6000,
 		TempDir:                     t.TempDir(),
 		MinNodesPerShard:            1,
-		ConsensusGroupSize:          1,
 		MetaChainMinNodes:           1,
+		ConsensusGroupSize:          1,
 		MetaChainConsensusGroupSize: 1,
 	})
 	require.Nil(t, err)
@@ -66,10 +66,10 @@ func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNo
 		CreateRatingsData: func(arg rating.RatingsDataArg) (process.RatingsInfoHandler, error) {
 			return rating.NewRatingsData(arg)
 		},
-		CreateIncomingHeaderHandler: func(config *config.NotifierConfig, dataPool dataRetriever.PoolsHolder, mainChainNotarizationStartRound uint64, runTypeComponents mainFactory.RunTypeComponentsHolder) (process.IncomingHeaderSubscriber, error) {
+		CreateIncomingHeaderSubscriber: func(config *config.NotifierConfig, dataPool dataRetriever.PoolsHolder, mainChainNotarizationStartRound uint64, runTypeComponents mainFactory.RunTypeComponentsHolder) (process.IncomingHeaderSubscriber, error) {
 			return &sovereign.IncomingHeaderSubscriberStub{}, nil
 		},
-		GetRunTypeComponents: func(args runType.ArgsRunTypeComponents) (mainFactory.RunTypeComponentsHolder, error) {
+		CreateRunTypeComponents: func(args runType.ArgsRunTypeComponents) (mainFactory.RunTypeComponentsHolder, error) {
 			return createRunTypeComponents(args)
 		},
 		NodeFactory: node.NewNodeFactory(),
@@ -494,7 +494,6 @@ func TestTestOnlyProcessingNode_Getters(t *testing.T) {
 	require.Nil(t, node.GetStateComponents())
 	require.Nil(t, node.GetFacadeHandler())
 	require.Nil(t, node.GetStatusCoreComponents())
-	require.Nil(t, node.GetIncomingHeaderHandler())
 
 	node, err := NewTestOnlyProcessingNode(createMockArgsTestOnlyProcessingNode(t))
 	require.Nil(t, err)
@@ -508,5 +507,4 @@ func TestTestOnlyProcessingNode_Getters(t *testing.T) {
 	require.NotNil(t, node.GetStateComponents())
 	require.NotNil(t, node.GetFacadeHandler())
 	require.NotNil(t, node.GetStatusCoreComponents())
-	require.NotNil(t, node.GetIncomingHeaderHandler())
 }

@@ -7,8 +7,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory/vm"
-	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory/metachain"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
@@ -22,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
+	"github.com/multiversx/mx-chain-go/testscommon/vmContext"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
 	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
@@ -127,19 +128,20 @@ func TestNewVmContainerMetaCreatorFactory(t *testing.T) {
 	t.Parallel()
 
 	t.Run("should work", func(t *testing.T) {
-		t.Parallel()
-
-		bhhc := &factory.BlockChainHookHandlerFactoryMock{}
-		vmContainerMetaFactory, err := vm.NewVmContainerMetaFactory(bhhc)
+		vmContainerMetaFactory, err := vm.NewVmContainerMetaFactory(&factory.BlockChainHookHandlerFactoryMock{}, &vmContext.VMContextCreatorStub{})
 		require.Nil(t, err)
 		require.False(t, vmContainerMetaFactory.IsInterfaceNil())
 	})
 
-	t.Run("should error", func(t *testing.T) {
-		t.Parallel()
+	t.Run("nil blockchain hook creator", func(t *testing.T) {
+		vmContainerMetaFactory, err := vm.NewVmContainerMetaFactory(nil, &vmContext.VMContextCreatorStub{})
+		require.ErrorIs(t, err, errors.ErrNilBlockChainHookCreator)
+		require.True(t, vmContainerMetaFactory.IsInterfaceNil())
+	})
 
-		vmContainerMetaFactory, err := vm.NewVmContainerMetaFactory(nil)
-		require.ErrorIs(t, err, process.ErrNilBlockChainHook)
+	t.Run("nil vm context creator", func(t *testing.T) {
+		vmContainerMetaFactory, err := vm.NewVmContainerMetaFactory(&factory.BlockChainHookHandlerFactoryMock{}, nil)
+		require.ErrorIs(t, err, errors.ErrNilVMContextCreator)
 		require.True(t, vmContainerMetaFactory.IsInterfaceNil())
 	})
 }
@@ -147,8 +149,7 @@ func TestNewVmContainerMetaCreatorFactory(t *testing.T) {
 func TestVmContainerMetaFactory_CreateVmContainerFactoryMeta(t *testing.T) {
 	t.Parallel()
 
-	bhhc := &factory.BlockChainHookHandlerFactoryMock{}
-	vmContainerMetaFactory, err := vm.NewVmContainerMetaFactory(bhhc)
+	vmContainerMetaFactory, err := vm.NewVmContainerMetaFactory(&factory.BlockChainHookHandlerFactoryMock{}, &vmContext.VMContextCreatorStub{})
 	require.Nil(t, err)
 	require.False(t, vmContainerMetaFactory.IsInterfaceNil())
 

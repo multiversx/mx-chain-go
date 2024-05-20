@@ -16,9 +16,6 @@ import (
 	"syscall"
 	"time"
 
-	hasherFactory "github.com/multiversx/mx-chain-core-go/hashing/factory"
-	marshallerFactory "github.com/multiversx/mx-chain-core-go/marshal/factory"
-
 	"github.com/multiversx/mx-chain-go/api/gin"
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/common"
@@ -75,6 +72,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/closing"
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	hasherFactory "github.com/multiversx/mx-chain-core-go/hashing/factory"
+	marshallerFactory "github.com/multiversx/mx-chain-core-go/marshal/factory"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/multiversx/mx-chain-sovereign-bridge-go/cert"
 	factoryBridge "github.com/multiversx/mx-chain-sovereign-bridge-go/client"
