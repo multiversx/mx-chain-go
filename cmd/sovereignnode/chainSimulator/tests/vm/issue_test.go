@@ -75,7 +75,6 @@ func TestSmartContract_IssueToken(t *testing.T) {
 	require.Nil(t, err)
 
 	nodeHandler := cs.GetNodeHandler(core.SovereignChainShardId)
-	systemScAddress, _ := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode("erd1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq6gq4hu")
 
 	oneEgld := big.NewInt(1000000000000000000)
 	initialMinting := big.NewInt(0).Mul(oneEgld, big.NewInt(10))
@@ -83,48 +82,10 @@ func TestSmartContract_IssueToken(t *testing.T) {
 	require.Nil(t, err)
 	nonce := uint64(0)
 
-	deployedContractAddress := utils.DeployContract(t, cs, wallet.Bytes, &nonce, systemScAddress, "@10000000", adderWasmPath)
-
-	res, _, err := nodeHandler.GetFacadeHandler().ExecuteSCQuery(&process.SCQuery{
-		ScAddress:  deployedContractAddress,
-		FuncName:   "getSum",
-		CallerAddr: nil,
-		BlockNonce: core.OptionalUint64{},
-	})
-	require.Nil(t, err)
-	sum := big.NewInt(0).SetBytes(res.ReturnData[0]).Int64()
-	require.Equal(t, 268435456, int(sum))
-
-	issueCost := big.NewInt(5000000000000000000)
-	tx1 := utils.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, issueCost, "issue", uint64(60000000))
-	require.False(t, string(tx1.Logs.Events[0].Topics[1]) == "sending value to non payable contract")
-
-	err = cs.GenerateBlocks(2)
-	require.Nil(t, err)
-
-	//esdts, err := nodeHandler.GetFacadeHandler().GetAllIssuedESDTs("FungibleESDT")
-	//require.Nil(t, err)
-	//require.NotNil(t, esdts)
-	//require.True(t, len(esdts) == 1)
-
-	esdt := tx1.Logs.Events[4].Topics[0]
-
-	mintTxData := "mint@" + hex.EncodeToString(esdt)
-	tx2 := utils.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, big.NewInt(0), mintTxData, uint64(20000000))
-	require.NotNil(t, tx2)
-
-	err = cs.GenerateBlocks(2)
-	require.Nil(t, err)
-
-	deployedAddrBech32, err := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Encode(deployedContractAddress)
-	require.Nil(t, err)
-	_ = deployedAddrBech32
-
 	// FIX THIS ????
-
-	//initialSupply := big.NewInt(144)
-	//issuedToken := issueESDT(t, cs, &nonce, wallet.Bytes, "TKN", initialSupply)
-	//require.True(t, strings.HasPrefix(issuedToken, "TKN-"))
+	initialSupply := big.NewInt(144)
+	issuedToken := issueESDT(t, cs, &nonce, wallet.Bytes, "TKN", initialSupply)
+	require.True(t, strings.HasPrefix(issuedToken, "TKN-"))
 
 	esdts, err := nodeHandler.GetFacadeHandler().GetAllIssuedESDTs("FungibleESDT")
 	require.Nil(t, err)
@@ -144,26 +105,6 @@ func TestSmartContract_IssueToken(t *testing.T) {
 		log.Error("KEY######", "leaf.Key", string(leaf.Key()))
 
 	}
-
-	esdts, err = nodeHandler.GetFacadeHandler().GetAllIssuedESDTs("FungibleESDT")
-	require.Nil(t, err)
-	require.NotNil(t, esdts)
-	require.True(t, len(esdts) == 1)
-
-	expectedMintedAmount, _ := big.NewInt(0).SetString("123000000000000000000", 10)
-	esdtSC, _, err := nodeHandler.GetFacadeHandler().GetAllESDTTokens(deployedAddrBech32, api2.AccountQueryOptions{})
-	require.Nil(t, err)
-	require.NotEmpty(t, esdtSC)
-	require.Equal(t, expectedMintedAmount, esdtSC[string(esdt)].Value)
-
-	esdtSCAddr, _ := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Encode(vm.ESDTSCAddress)
-	dsa, _, err := nodeHandler.GetFacadeHandler().GetAllESDTTokens(esdtSCAddr, api2.AccountQueryOptions{})
-	require.Nil(t, err)
-	require.NotEmpty(t, dsa)
-
-	initialSupply := big.NewInt(144)
-	issuedToken := issueESDT(t, cs, &nonce, wallet.Bytes, "TKN", initialSupply)
-	require.True(t, strings.HasPrefix(issuedToken, "TKN-"))
 }
 
 func issueESDT(

@@ -168,6 +168,7 @@ func (host *vmContext) GetStorage(key []byte) []byte {
 
 // SetStorageForAddress saves the key value storage under the address
 func (host *vmContext) SetStorageForAddress(address []byte, key []byte, value []byte) {
+	log.Warn("setstorageforaddress", "addr", address, "key", key, "value", value)
 	strAdr := string(address)
 	_, exists := host.storageUpdate[strAdr]
 	if !exists {
