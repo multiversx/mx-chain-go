@@ -118,7 +118,7 @@ require (
 	github.com/multiformats/go-multistream v0.4.1 // indirect
 	github.com/multiformats/go-varint v0.0.7 // indirect
 	github.com/multiversx/concurrent-map v0.1.4 // indirect
-	github.com/multiversx/mx-chain-communication-go v1.0.15-0.20240508074652-e128a1c05c8e // indirect
+	github.com/multiversx/mx-chain-communication-go v1.0.15-0.20240520095539-dee2c01274ba // indirect
 	github.com/multiversx/mx-chain-crypto-go v1.2.12-0.20240508074452-cc21c1b505df // indirect
 	github.com/multiversx/mx-chain-es-indexer-go v1.7.2-0.20240514123403-92975ee00840 // indirect
 	github.com/multiversx/mx-chain-scenario-go v1.4.4-0.20240509103754-9e8129721f00 // indirect
