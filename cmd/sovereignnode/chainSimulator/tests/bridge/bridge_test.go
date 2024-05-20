@@ -29,15 +29,18 @@ var oneEgld = big.NewInt(1000000000000000000)
 var initialMinting = big.NewInt(0).Mul(oneEgld, big.NewInt(100))
 var issueCost = big.NewInt(5000000000000000000)
 
-func TestBridge(t *testing.T) {
+func TestBridge_DeployOnMainChain(t *testing.T) {
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:      false,
-		TempDir:                     t.TempDir(),
-		PathToInitialConfig:         defaultPathToInitialConfig,
-		NumOfShards:                 3,
-		GenesisTimestamp:            time.Now().Unix(),
-		RoundDurationInMillis:       uint64(6000),
-		RoundsPerEpoch:              core.OptionalUint64{},
+		BypassTxSignatureCheck: false,
+		TempDir:                t.TempDir(),
+		PathToInitialConfig:    defaultPathToInitialConfig,
+		NumOfShards:            3,
+		GenesisTimestamp:       time.Now().Unix(),
+		RoundDurationInMillis:  uint64(6000),
+		RoundsPerEpoch: core.OptionalUint64{
+			HasValue: true,
+			Value:    20,
+		},
 		ApiInterface:                api.NewNoApiInterface(),
 		MinNodesPerShard:            1,
 		MetaChainMinNodes:           1,
@@ -49,35 +52,8 @@ func TestBridge(t *testing.T) {
 
 	defer cs.Close()
 
-	epochConfig, economicsConfig, sovereignExtraConfig, err := sovereignChainSimulator.LoadSovereignConfigs(sovereignConfigPath)
+	err = cs.GenerateBlocksUntilEpochIsReached(3)
 	require.Nil(t, err)
-
-	scs, err := sovereignChainSimulator.NewSovereignChainSimulator(sovereignChainSimulator.ArgsSovereignChainSimulator{
-		SovereignExtraConfig: *sovereignExtraConfig,
-		ChainSimulatorArgs: chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck: false,
-			TempDir:                t.TempDir(),
-			PathToInitialConfig:    defaultPathToInitialConfig,
-			NumOfShards:            1,
-			GenesisTimestamp:       time.Now().Unix(),
-			RoundDurationInMillis:  uint64(6000),
-			RoundsPerEpoch:         core.OptionalUint64{},
-			ApiInterface:           api.NewNoApiInterface(),
-			MinNodesPerShard:       2,
-			ConsensusGroupSize:     2,
-			AlterConfigsFunction: func(cfg *config.Configs) {
-				cfg.EconomicsConfig = economicsConfig
-				cfg.EpochConfig = epochConfig
-				cfg.GeneralConfig.SovereignConfig = *sovereignExtraConfig
-				cfg.GeneralConfig.VirtualMachine.Execution.WasmVMVersions = []config.WasmVMVersionByEpoch{{StartEpoch: 0, Version: "v1.5"}}
-				cfg.GeneralConfig.VirtualMachine.Querying.WasmVMVersions = []config.WasmVMVersionByEpoch{{StartEpoch: 0, Version: "v1.5"}}
-			},
-		},
-	})
-	require.Nil(t, err)
-	require.NotNil(t, scs)
-
-	defer scs.Close()
 
 	nodeHandler := cs.GetNodeHandler(core.MetachainShardId)
 	systemScAddress, _ := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode("erd1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq6gq4hu")
@@ -118,8 +94,41 @@ func TestBridge(t *testing.T) {
 	setSovereignBridgeAddressData := "setSovereignBridgeAddress" +
 		"@" + hex.EncodeToString(multiSigAddress)
 	utils.SendTransaction(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, big.NewInt(0), setSovereignBridgeAddressData, uint64(10000000))
+}
 
-	// ---------------------------------------------------------------------------------------------------------------
+func TestBridge_DeployOnSovereignChain(t *testing.T) {
+	epochConfig, economicsConfig, sovereignExtraConfig, err := sovereignChainSimulator.LoadSovereignConfigs(sovereignConfigPath)
+	require.Nil(t, err)
+
+	scs, err := sovereignChainSimulator.NewSovereignChainSimulator(sovereignChainSimulator.ArgsSovereignChainSimulator{
+		SovereignExtraConfig: *sovereignExtraConfig,
+		ChainSimulatorArgs: chainSimulator.ArgsChainSimulator{
+			BypassTxSignatureCheck: false,
+			TempDir:                t.TempDir(),
+			PathToInitialConfig:    defaultPathToInitialConfig,
+			NumOfShards:            1,
+			GenesisTimestamp:       time.Now().Unix(),
+			RoundDurationInMillis:  uint64(6000),
+			RoundsPerEpoch:         core.OptionalUint64{},
+			ApiInterface:           api.NewNoApiInterface(),
+			MinNodesPerShard:       2,
+			ConsensusGroupSize:     2,
+			AlterConfigsFunction: func(cfg *config.Configs) {
+				cfg.EconomicsConfig = economicsConfig
+				cfg.EpochConfig = epochConfig
+				cfg.GeneralConfig.SovereignConfig = *sovereignExtraConfig
+				cfg.GeneralConfig.VirtualMachine.Execution.WasmVMVersions = []config.WasmVMVersionByEpoch{{StartEpoch: 0, Version: "v1.5"}}
+				cfg.GeneralConfig.VirtualMachine.Querying.WasmVMVersions = []config.WasmVMVersionByEpoch{{StartEpoch: 0, Version: "v1.5"}}
+			},
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, scs)
+
+	defer scs.Close()
+
+	err = scs.GenerateBlocks(200)
+	require.Nil(t, err)
 
 	sovNodeHandler := scs.GetNodeHandler(core.SovereignChainShardId)
 	sovSystemScAddress, _ := sovNodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode("erd1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq6gq4hu")
