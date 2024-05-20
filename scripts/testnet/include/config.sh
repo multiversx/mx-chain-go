@@ -87,6 +87,7 @@ updateSeednodeConfig() {
 }
 
 prepareElasticsearch() {
+  echo "Preparing Elasticsearch... (do nothing)"
 }
 
 copyNodeConfig() {
