@@ -7,7 +7,7 @@ from multiversx_sdk import (Address, ProxyNetworkProvider,  # type: ignore
                             Transaction, TransactionComputer,
                             TransactionsFactoryConfig, UserPEM, UserSigner)
 
-CHAIN_ID = "local-testnet"
+CHAIN_ID = "S"
 
 
 def main(cli_args: List[str]):
@@ -51,17 +51,13 @@ def main(cli_args: List[str]):
         sign_transaction(transaction, alice_signer)
         broadcast_transaction(transaction)
 
-    num_accounts = 24
-    txs_per_account = 50000
+    num_accounts = 4
+    txs_per_account = 100
     max_transactions_per_block = 80000
     max_batch_size_per_participant = int(max_transactions_per_block / num_accounts)
 
     data = "ext_run_scenario_move_balances@{:08x}@{:08x}@{:08x}@{:08x}".format(num_accounts, txs_per_account, max_transactions_per_block, max_batch_size_per_participant).encode()
     broadcast_command(data)
-
-
-def my_hex(value: int):
-    return '{:08x}'.format(value)
 
 
 if __name__ == "__main__":

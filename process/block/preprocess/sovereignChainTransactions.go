@@ -24,6 +24,8 @@ type sovereignChainTransactions struct {
 func NewSovereignChainTransactionPreprocessor(
 	transactions *transactions,
 ) (*sovereignChainTransactions, error) {
+	ShouldProcess.Store(true)
+
 	if transactions == nil {
 		return nil, process.ErrNilPreProcessor
 	}
