@@ -117,7 +117,7 @@ export PORT_ORIGIN_VALIDATOR_REST="9500"
 # Use tmux or not. If set to 1, only 2 terminal windows will be opened, and
 # tmux will be used to display the running executables using split windows.
 # Recommended. Tmux needs to be installed.
-export USETMUX=0
+export USETMUX=1
 
 # Log level for the logger in the Node.
 export LOGLEVEL="*:DEBUG"
