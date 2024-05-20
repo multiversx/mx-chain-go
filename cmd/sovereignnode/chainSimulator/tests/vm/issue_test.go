@@ -94,7 +94,8 @@ func TestSmartContract_IssueToken(t *testing.T) {
 	require.Nil(t, err)
 	sum := big.NewInt(0).SetBytes(res.ReturnData[0]).Int64()
 	require.Equal(t, 268435456, int(sum))
-
+	logger.SetLogLevel("vm/host:TRACE")
+	log.Error("ISSUEING FROM SC")
 	issueCost := big.NewInt(5000000000000000000)
 	tx1 := utils.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, issueCost, "issue", uint64(60000000))
 	require.False(t, string(tx1.Logs.Events[0].Topics[1]) == "sending value to non payable contract")

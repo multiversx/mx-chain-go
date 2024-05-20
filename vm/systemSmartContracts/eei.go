@@ -168,6 +168,7 @@ func (host *vmContext) GetStorage(key []byte) []byte {
 
 // SetStorageForAddress saves the key value storage under the address
 func (host *vmContext) SetStorageForAddress(address []byte, key []byte, value []byte) {
+	log.Error("setstorageforaddress", "addrress", address, "key", key, "value", value)
 	strAdr := string(address)
 	_, exists := host.storageUpdate[strAdr]
 	if !exists {
@@ -750,8 +751,9 @@ func (host *vmContext) CreateVMOutput() *vmcommon.VMOutput {
 
 		for key, value := range updates {
 			storageUpdate := &vmcommon.StorageUpdate{
-				Offset: []byte(key),
-				Data:   value,
+				Offset:  []byte(key),
+				Data:    value,
+				Written: true,
 			}
 
 			outAccs[addr].StorageUpdates[key] = storageUpdate
