@@ -157,13 +157,18 @@ func TestSmartContract_IssueToken_MainChain(t *testing.T) {
 	tx1 := utils.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, issueCost, "issue", uint64(60000000))
 	require.False(t, string(tx1.Logs.Events[0].Topics[1]) == "sending value to non payable contract")
 
-	err = cs.GenerateBlocks(1)
+	err = cs.GenerateBlocks(2)
 	require.Nil(t, err)
+
+	esdts, err := cs.GetNodeHandler(core.MetachainShardId).GetFacadeHandler().GetAllIssuedESDTs("FungibleESDT")
+	require.Nil(t, err)
+	require.NotNil(t, esdts)
+	require.True(t, len(esdts) == 1)
 
 	tx2 := utils.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, big.NewInt(0), "mint", uint64(20000000))
 	require.NotNil(t, tx2)
 
-	err = cs.GenerateBlocks(1)
+	err = cs.GenerateBlocks(2)
 	require.Nil(t, err)
 
 	deployedAddrBech32, err := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Encode(deployedContractAddress)
@@ -171,7 +176,7 @@ func TestSmartContract_IssueToken_MainChain(t *testing.T) {
 
 	_ = deployedAddrBech32
 
-	esdts, err := cs.GetNodeHandler(core.MetachainShardId).GetFacadeHandler().GetAllIssuedESDTs("FungibleESDT")
+	esdts, err = cs.GetNodeHandler(core.MetachainShardId).GetFacadeHandler().GetAllIssuedESDTs("FungibleESDT")
 	require.Nil(t, err)
 	require.NotNil(t, esdts)
 	require.True(t, len(esdts) == 1)
