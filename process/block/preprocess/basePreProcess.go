@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
@@ -497,9 +498,9 @@ func (bpp *basePreProcess) updateGasConsumedWithGasRefundedAndGasPenalized(
 	gasInfo.totalGasConsumedInSelfShard -= gasToBeSubtracted
 }
 
-func (bpp *basePreProcess) handleProcessTransactionInit(preProcessorExecutionInfoHandler process.PreProcessorExecutionInfoHandler, txHash []byte) int {
+func (bpp *basePreProcess) handleProcessTransactionInit(preProcessorExecutionInfoHandler process.PreProcessorExecutionInfoHandler, txHash []byte, mbHash []byte) int {
 	snapshot := bpp.accounts.JournalLen()
-	preProcessorExecutionInfoHandler.InitProcessedTxsResults(txHash)
+	preProcessorExecutionInfoHandler.InitProcessedTxsResults(txHash, mbHash)
 	return snapshot
 }
 

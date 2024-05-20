@@ -395,25 +395,26 @@ func TestIntermediateResultsProcessor_AddIntermediateTransactionsAddAndRevert(t 
 	txs = append(txs, &smartContractResult.SmartContractResult{RcvAddr: []byte("rcv"), SndAddr: []byte("snd"), Value: big.NewInt(0), PrevTxHash: txHash, Nonce: 3})
 	txs = append(txs, &smartContractResult.SmartContractResult{RcvAddr: []byte("rcv"), SndAddr: []byte("snd"), Value: big.NewInt(0), PrevTxHash: txHash, Nonce: 4})
 
+	parentKey := []byte("parentKey")
 	key := []byte("key")
-	irp.InitProcessedResults(key)
+	irp.InitProcessedResults(key, parentKey)
 
 	err = irp.AddIntermediateTransactions(txs, key)
 	assert.Nil(t, err)
 	irp.mutInterResultsForBlock.Lock()
-	assert.Equal(t, len(irp.mapProcessedResult[string(key)]), len(txs))
+	assert.Equal(t, len(irp.mapProcessedResult[string(key)].results), len(txs))
 	assert.Equal(t, len(txs), calledCount)
 	irp.mutInterResultsForBlock.Unlock()
 
 	irp.RemoveProcessedResults(key)
 	irp.mutInterResultsForBlock.Lock()
 	assert.Equal(t, len(irp.interResultsForBlock), 0)
-	assert.Equal(t, len(irp.mapProcessedResult[string(key)]), len(txs))
+	require.Nil(t, irp.mapProcessedResult[string(key)])
 	irp.mutInterResultsForBlock.Unlock()
 
-	irp.InitProcessedResults(key)
+	irp.InitProcessedResults(key, parentKey)
 	irp.mutInterResultsForBlock.Lock()
-	assert.Equal(t, len(irp.mapProcessedResult[string(key)]), 0)
+	assert.Equal(t, len(irp.mapProcessedResult[string(key)].results), 0)
 	irp.mutInterResultsForBlock.Unlock()
 }
 
@@ -959,7 +960,7 @@ func TestIntermediateResultsProcessor_addIntermediateTxToResultsForBlock(t *test
 	irp, _ := NewIntermediateResultsProcessor(createMockArgsNewIntermediateResultsProcessor())
 
 	key := []byte("key")
-	irp.InitProcessedResults(key)
+	irp.InitProcessedResults(key, nil)
 
 	tx := &transaction.Transaction{}
 	txHash := []byte("txHash")
@@ -978,6 +979,6 @@ func TestIntermediateResultsProcessor_addIntermediateTxToResultsForBlock(t *test
 
 	intermediateResultsHashes, ok := irp.mapProcessedResult[string(key)]
 	require.True(t, ok)
-	require.Equal(t, 1, len(intermediateResultsHashes))
-	assert.Equal(t, txHash, intermediateResultsHashes[0])
+	require.Equal(t, 1, len(intermediateResultsHashes.results))
+	assert.Equal(t, txHash, intermediateResultsHashes.results[0])
 }

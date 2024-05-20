@@ -1021,6 +1021,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsWithSki
 }
 
 func TestTransactionCoordinator_HandleProcessMiniBlockInit(t *testing.T) {
+	headerHash := []byte("header hash")
 	mbHash := []byte("miniblock hash")
 	numResetGasHandler := 0
 	numInitInterimProc := 0
@@ -1036,7 +1037,8 @@ func TestTransactionCoordinator_HandleProcessMiniBlockInit(t *testing.T) {
 		keysInterimProcs: []block.Type{block.SmartContractResultBlock},
 		interimProcessors: map[block.Type]process.IntermediateTransactionHandler{
 			block.SmartContractResultBlock: &mock.IntermediateTransactionHandlerStub{
-				InitProcessedResultsCalled: func(key []byte) {
+				InitProcessedResultsCalled: func(key []byte, parentKey []byte) {
+					assert.Equal(t, headerHash, parentKey)
 					assert.Equal(t, mbHash, key)
 					numInitInterimProc++
 				},
@@ -1050,7 +1052,7 @@ func TestTransactionCoordinator_HandleProcessMiniBlockInit(t *testing.T) {
 		numInitInterimProc = 0
 		shardCoord.CurrentShard = 0
 
-		tc.handleProcessMiniBlockInit(mbHash)
+		tc.handleProcessMiniBlockInit(mbHash, headerHash)
 		assert.Equal(t, 1, numResetGasHandler)
 		assert.Equal(t, 1, numInitInterimProc)
 	})
@@ -1059,7 +1061,7 @@ func TestTransactionCoordinator_HandleProcessMiniBlockInit(t *testing.T) {
 		numInitInterimProc = 0
 		shardCoord.CurrentShard = core.MetachainShardId
 
-		tc.handleProcessMiniBlockInit(mbHash)
+		tc.handleProcessMiniBlockInit(mbHash, headerHash)
 		assert.Equal(t, 1, numResetGasHandler)
 		assert.Equal(t, 1, numInitInterimProc)
 	})
@@ -1927,6 +1929,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 	// all txs will be in datapool and none of them will return err when processed
 	// so, tx processor will return nil on processing tx
 
+	headerHash := []byte("header hash")
 	txHash1 := []byte("tx hash 1")
 	txHash2 := []byte("tx hash 2")
 	txHash3 := []byte("tx hash 3")
@@ -2055,7 +2058,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		IndexOfLastTxProcessed: -1,
 		FullyProcessed:         false,
 	}
-	err = tc.processCompleteMiniBlock(preproc, &miniBlock, []byte("hash"), haveTime, haveAdditionalTime, false, processedMbInfo)
+	err = tc.processCompleteMiniBlock(preproc, &miniBlock, []byte("hash"), haveTime, haveAdditionalTime, false, processedMbInfo, headerHash)
 
 	assert.Nil(t, err)
 	assert.Equal(t, tx1Nonce, tx1ExecutionResult)
@@ -2087,6 +2090,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		TxHashes:        [][]byte{txHash1, txHash2, txHash3},
 	}
 
+	headerHash := []byte("header hash")
 	tx1Nonce := uint64(45)
 	tx2Nonce := uint64(46)
 	tx3Nonce := uint64(47)
@@ -2200,7 +2204,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		IndexOfLastTxProcessed: -1,
 		FullyProcessed:         false,
 	}
-	err = tc.processCompleteMiniBlock(preproc, &miniBlock, []byte("hash"), haveTime, haveAdditionalTime, false, processedMbInfo)
+	err = tc.processCompleteMiniBlock(preproc, &miniBlock, []byte("hash"), haveTime, haveAdditionalTime, false, processedMbInfo, headerHash)
 
 	assert.Equal(t, process.ErrHigherNonceInTransaction, err)
 	assert.True(t, revertAccntStateCalled)

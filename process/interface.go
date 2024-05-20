@@ -200,7 +200,7 @@ type IntermediateTransactionHandler interface {
 	CreateBlockStarted()
 	GetCreatedInShardMiniBlock() *block.MiniBlock
 	RemoveProcessedResults(key []byte) [][]byte
-	InitProcessedResults(key []byte)
+	InitProcessedResults(key []byte, parentKey []byte)
 	IsInterfaceNil() bool
 }
 
@@ -1320,7 +1320,7 @@ type TxsSenderHandler interface {
 // PreProcessorExecutionInfoHandler handles pre processor execution info needed by the transactions preprocessors
 type PreProcessorExecutionInfoHandler interface {
 	GetNumOfCrossInterMbsAndTxs() (int, int)
-	InitProcessedTxsResults(key []byte)
+	InitProcessedTxsResults(key []byte, parentKey []byte)
 	RevertProcessedTxsResults(txHashes [][]byte, key []byte)
 }
 

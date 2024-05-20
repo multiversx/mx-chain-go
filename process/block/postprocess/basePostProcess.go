@@ -29,6 +29,14 @@ type txInfo struct {
 	*txShardInfo
 }
 
+type processedResult struct {
+	parent   []byte
+	children map[string]struct{}
+	results  [][]byte
+}
+
+const defaultCapacity = 100
+
 var log = logger.GetOrCreate("process/block/postprocess")
 
 type basePostProcessor struct {
@@ -40,7 +48,7 @@ type basePostProcessor struct {
 
 	mutInterResultsForBlock sync.Mutex
 	interResultsForBlock    map[string]*txInfo
-	mapProcessedResult      map[string][][]byte
+	mapProcessedResult      map[string]*processedResult
 	intraShardMiniBlock     *block.MiniBlock
 	economicsFee            process.FeeHandler
 	index                   uint32
@@ -79,7 +87,7 @@ func (bpp *basePostProcessor) CreateBlockStarted() {
 	bpp.mutInterResultsForBlock.Lock()
 	bpp.interResultsForBlock = make(map[string]*txInfo)
 	bpp.intraShardMiniBlock = nil
-	bpp.mapProcessedResult = make(map[string][][]byte)
+	bpp.mapProcessedResult = make(map[string]*processedResult)
 	bpp.index = 0
 	bpp.mutInterResultsForBlock.Unlock()
 }
@@ -171,24 +179,72 @@ func (bpp *basePostProcessor) RemoveProcessedResults(key []byte) [][]byte {
 	bpp.mutInterResultsForBlock.Lock()
 	defer bpp.mutInterResultsForBlock.Unlock()
 
-	txHashes, ok := bpp.mapProcessedResult[string(key)]
+	removedProcessedResults, ok := bpp.removeProcessedResultsAndLinks(string(key))
 	if !ok {
 		return nil
 	}
 
-	for _, txHash := range txHashes {
-		delete(bpp.interResultsForBlock, string(txHash))
+	for _, result := range removedProcessedResults {
+		delete(bpp.interResultsForBlock, string(result))
 	}
 
-	return txHashes
+	return removedProcessedResults
+}
+
+func (bpp *basePostProcessor) removeProcessedResultsAndLinks(key string) ([][]byte, bool) {
+	processedResults, ok := bpp.mapProcessedResult[key]
+	if !ok {
+		return nil, ok
+	}
+	delete(bpp.mapProcessedResult, key)
+
+	collectedProcessedResultsKeys := make([][]byte, 0, defaultCapacity)
+	collectedProcessedResultsKeys = append(collectedProcessedResultsKeys, processedResults.results...)
+
+	// go through the children and do the same
+	for childKey := range processedResults.children {
+		childProcessedResults, ok := bpp.removeProcessedResultsAndLinks(childKey)
+		if !ok {
+			continue
+		}
+
+		collectedProcessedResultsKeys = append(collectedProcessedResultsKeys, childProcessedResults...)
+	}
+
+	// remove link from parent
+	parent, ok := bpp.mapProcessedResult[string(processedResults.parent)]
+	if ok {
+		delete(parent.children, key)
+	}
+
+	return collectedProcessedResultsKeys, true
 }
 
 // InitProcessedResults will initialize the processed results
-func (bpp *basePostProcessor) InitProcessedResults(key []byte) {
+func (bpp *basePostProcessor) InitProcessedResults(key []byte, parentKey []byte) {
 	bpp.mutInterResultsForBlock.Lock()
 	defer bpp.mutInterResultsForBlock.Unlock()
 
-	bpp.mapProcessedResult[string(key)] = make([][]byte, 0)
+	pr := &processedResult{
+		parent:   parentKey,
+		children: make(map[string]struct{}),
+		results:  make([][]byte, 0),
+	}
+
+	bpp.mapProcessedResult[string(key)] = pr
+
+	if parentKey != nil {
+		parentPr, ok := bpp.mapProcessedResult[string(parentKey)]
+		if !ok {
+			bpp.mapProcessedResult[string(parentKey)] = &processedResult{
+				parent:   nil,
+				children: map[string]struct{}{string(key): {}},
+				results:  make([][]byte, 0),
+			}
+		} else {
+			parentPr.children[string(key)] = struct{}{}
+		}
+	}
 }
 
 func (bpp *basePostProcessor) splitMiniBlocksIfNeeded(miniBlocks []*block.MiniBlock) []*block.MiniBlock {
@@ -283,10 +339,10 @@ func (bpp *basePostProcessor) addIntermediateTxToResultsForBlock(
 	bpp.index++
 	bpp.interResultsForBlock[string(txHash)] = scrInfo
 
-	value, ok := bpp.mapProcessedResult[string(key)]
+	pr, ok := bpp.mapProcessedResult[string(key)]
 	if !ok {
 		return
 	}
 
-	bpp.mapProcessedResult[string(key)] = append(value, txHash)
+	pr.results = append(pr.results, txHash)
 }

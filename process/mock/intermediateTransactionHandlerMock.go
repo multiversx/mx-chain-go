@@ -16,7 +16,7 @@ type IntermediateTransactionHandlerMock struct {
 	CreateMarshalledDataCalled               func(txHashes [][]byte) ([][]byte, error)
 	GetAllCurrentFinishedTxsCalled           func() map[string]data.TransactionHandler
 	RemoveProcessedResultsCalled             func(key []byte) [][]byte
-	InitProcessedResultsCalled               func(key []byte)
+	InitProcessedResultsCalled               func(key []byte, parentKey []byte)
 	GetCreatedInShardMiniBlockCalled         func() *block.MiniBlock
 	intermediateTransactions                 []data.TransactionHandler
 }
@@ -30,9 +30,9 @@ func (ith *IntermediateTransactionHandlerMock) RemoveProcessedResults(key []byte
 }
 
 // InitProcessedResults -
-func (ith *IntermediateTransactionHandlerMock) InitProcessedResults(key []byte) {
+func (ith *IntermediateTransactionHandlerMock) InitProcessedResults(key []byte, parentKey []byte) {
 	if ith.InitProcessedResultsCalled != nil {
-		ith.InitProcessedResultsCalled(key)
+		ith.InitProcessedResultsCalled(key, parentKey)
 	}
 }
 

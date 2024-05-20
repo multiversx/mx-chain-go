@@ -16,7 +16,7 @@ type IntermediateTransactionHandlerStub struct {
 	CreateMarshalledDataCalled               func(txHashes [][]byte) ([][]byte, error)
 	GetAllCurrentFinishedTxsCalled           func() map[string]data.TransactionHandler
 	RemoveProcessedResultsCalled             func(key []byte) [][]byte
-	InitProcessedResultsCalled               func(key []byte)
+	InitProcessedResultsCalled               func(key []byte, parentKey []byte)
 	intermediateTransactions                 []data.TransactionHandler
 }
 
@@ -29,9 +29,9 @@ func (ith *IntermediateTransactionHandlerStub) RemoveProcessedResults(key []byte
 }
 
 // InitProcessedResults -
-func (ith *IntermediateTransactionHandlerStub) InitProcessedResults(key []byte) {
+func (ith *IntermediateTransactionHandlerStub) InitProcessedResults(key []byte, parentKey []byte) {
 	if ith.InitProcessedResultsCalled != nil {
-		ith.InitProcessedResultsCalled(key)
+		ith.InitProcessedResultsCalled(key, parentKey)
 	}
 }
 
