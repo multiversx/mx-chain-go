@@ -160,6 +160,12 @@ func TestSmartContract_IssueToken_MainChain(t *testing.T) {
 	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
+	tx2 := utils.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, big.NewInt(0), "mint", uint64(20000000))
+	require.NotNil(t, tx2)
+
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
+
 	deployedAddrBech32, err := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Encode(deployedContractAddress)
 	require.Nil(t, err)
 
