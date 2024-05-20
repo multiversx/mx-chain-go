@@ -390,6 +390,7 @@ func GetRunTypeComponentsStub(rt factory.RunTypeComponentsHandler) *mainFactoryM
 		ConsensusModelType:                  rt.ConsensusModel(),
 		VmContainerMetaFactory:              rt.VmContainerMetaFactoryCreator(),
 		VmContainerShardFactory:             rt.VmContainerShardFactoryCreator(),
+		VMContextCreatorHandler:             rt.VMContextCreator(),
 		OutGoingOperationsPool:              rt.OutGoingOperationsPoolHandler(),
 		DataCodec:                           rt.DataCodecHandler(),
 		TopicsChecker:                       rt.TopicsCheckerHandler(),
