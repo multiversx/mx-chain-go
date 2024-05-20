@@ -110,6 +110,14 @@ func (mock *NodeHandlerMock) GetStatusCoreComponents() factory.StatusCoreCompone
 	return nil
 }
 
+// GetIncomingHeaderSubscriber -
+func (mock *NodeHandlerMock) GetIncomingHeaderSubscriber() process.IncomingHeaderSubscriber {
+	if mock.GetStatusCoreComponentsCalled != nil {
+		return mock.GetIncomingHeaderHandlerCalled()
+	}
+	return nil
+}
+
 // SetKeyValueForAddress -
 func (mock *NodeHandlerMock) SetKeyValueForAddress(addressBytes []byte, state map[string]string) error {
 	if mock.SetKeyValueForAddressCalled != nil {
