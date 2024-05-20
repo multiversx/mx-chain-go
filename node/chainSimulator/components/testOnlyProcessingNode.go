@@ -468,7 +468,7 @@ func (node *testOnlyProcessingNode) SetStateForAddress(address []byte, addressSt
 		return err
 	}
 
-	err = setKeyValueMap(userAccount, addressState.Keys)
+	err = setKeyValueMap(userAccount, addressState.Pairs)
 	if err != nil {
 		return err
 	}
