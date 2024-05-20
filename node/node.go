@@ -242,6 +242,8 @@ func (n *Node) baseGetAllIssuedESDTs(tokenType string, ctx context.Context) ([]s
 	}
 
 	for leaf := range chLeaves.LeavesChan {
+		log.Error("KEY######", "leaf.Key", string(leaf.Key()))
+
 		tokenName := string(leaf.Key())
 		if !strings.Contains(tokenName, "-") {
 			continue

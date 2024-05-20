@@ -7,6 +7,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
@@ -142,11 +143,17 @@ func (oap *VMOutputAccountsProcessor) computeSumOfAllDiffStep(
 func (oap *VMOutputAccountsProcessor) processStorageUpdatesStep(
 	acc state.UserAccountHandler,
 	outAcc *vmcommon.OutputAccount) error {
+
+	conv, _ := pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
+
 	for _, storeUpdate := range outAcc.StorageUpdates {
 		if !process.IsAllowedToSaveUnderKey(storeUpdate.Offset) {
 			log.Trace("storeUpdate is not allowed", "acc", outAcc.Address, "key", storeUpdate.Offset, "data", storeUpdate.Data)
 			return process.ErrNotAllowedToWriteUnderProtectedKey
 		}
+
+		//storageUpdateOffset, _ := hex.DecodeString(string(storeUpdate.Offset))
+		log.Error("processStorageUpdatesStep", "address", conv.SilentEncode(outAcc.Address, log), "storageUpdateOffset", string(storeUpdate.Offset))
 
 		err := acc.SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
 		if err != nil {
