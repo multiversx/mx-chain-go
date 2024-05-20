@@ -92,7 +92,6 @@ type processComponentsHolder struct {
 	accountsParser                   genesis.AccountsParser
 	sentSignatureTracker             process.SentSignaturesTracker
 	epochStartSystemSCProcessor      process.EpochStartSystemSCProcessor
-	incomingHeaderSubscriber         process.IncomingHeaderSubscriber
 	managedProcessComponentsCloser   io.Closer
 }
 
@@ -246,7 +245,6 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		accountsParser:                   managedProcessComponents.AccountsParser(),
 		sentSignatureTracker:             managedProcessComponents.SentSignaturesTracker(),
 		epochStartSystemSCProcessor:      managedProcessComponents.EpochSystemSCProcessor(),
-		incomingHeaderSubscriber:         managedProcessComponents.IncomingHeaderSubscriber(),
 		managedProcessComponentsCloser:   managedProcessComponents,
 	}
 
@@ -461,11 +459,6 @@ func (p *processComponentsHolder) ReceiptsRepository() factory.ReceiptsRepositor
 // EpochSystemSCProcessor returns the epoch start system SC processor
 func (p *processComponentsHolder) EpochSystemSCProcessor() process.EpochStartSystemSCProcessor {
 	return p.epochStartSystemSCProcessor
-}
-
-// IncomingHeaderSubscriber return the incoming header subscriber
-func (p *processComponentsHolder) IncomingHeaderSubscriber() process.IncomingHeaderSubscriber {
-	return p.incomingHeaderSubscriber
 }
 
 // Close will call the Close methods on all inner components
