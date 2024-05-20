@@ -1,10 +1,11 @@
 package vm
 
 import (
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
+
+	"github.com/multiversx/mx-chain-core-go/core/check"
 )
 
 type sovereignVmContainerShardFactory struct {
