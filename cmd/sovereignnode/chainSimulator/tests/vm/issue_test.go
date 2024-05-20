@@ -1,11 +1,11 @@
 package vm
 
 import (
+	"encoding/hex"
 	"math/big"
 	"testing"
 	"time"
 
-	api2 "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator/utils"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	api2 "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/stretchr/testify/require"
 )
 
@@ -83,19 +84,30 @@ func TestSmartContract_IssueToken(t *testing.T) {
 	tx1 := utils.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, issueCost, "issue", uint64(60000000))
 	require.False(t, string(tx1.Logs.Events[0].Topics[1]) == "sending value to non payable contract")
 
-	err = cs.GenerateBlocks(1)
-	require.Nil(t, err)
-
-	tx2 := utils.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, big.NewInt(0), "mint", uint64(20000000))
-	require.NotNil(t, tx2)
-
-	err = cs.GenerateBlocks(1)
+	err = cs.GenerateBlocks(2)
 	require.Nil(t, err)
 
 	esdts, err := nodeHandler.GetFacadeHandler().GetAllIssuedESDTs("FungibleESDT")
 	require.Nil(t, err)
 	require.NotNil(t, esdts)
 	require.True(t, len(esdts) == 1)
+
+	mintTxData := "mint@" + hex.EncodeToString([]byte(esdts[0]))
+	tx2 := utils.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, big.NewInt(0), mintTxData, uint64(20000000))
+	require.NotNil(t, tx2)
+
+	err = cs.GenerateBlocks(2)
+	require.Nil(t, err)
+
+	deployedAddrBech32, err := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Encode(deployedContractAddress)
+	require.Nil(t, err)
+	_ = deployedAddrBech32
+
+	expectedMintedAmount, _ := big.NewInt(0).SetString("123000000000000000000", 10)
+	esdtSC, _, err := nodeHandler.GetFacadeHandler().GetAllESDTTokens(deployedAddrBech32, api2.AccountQueryOptions{})
+	require.Nil(t, err)
+	require.NotEmpty(t, esdtSC)
+	require.Equal(t, expectedMintedAmount, esdtSC[esdts[0]].Value)
 }
 
 func TestSmartContract_IssueToken_MainChain(t *testing.T) {
@@ -166,7 +178,8 @@ func TestSmartContract_IssueToken_MainChain(t *testing.T) {
 	require.NotNil(t, esdts)
 	require.True(t, len(esdts) == 1)
 
-	tx2 := utils.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, big.NewInt(0), "mint", uint64(20000000))
+	mintTxData := "mint@" + hex.EncodeToString([]byte(esdts[0]))
+	tx2 := utils.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, big.NewInt(0), mintTxData, uint64(20000000))
 	require.NotNil(t, tx2)
 
 	err = cs.GenerateBlocks(2)
@@ -174,15 +187,11 @@ func TestSmartContract_IssueToken_MainChain(t *testing.T) {
 
 	deployedAddrBech32, err := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Encode(deployedContractAddress)
 	require.Nil(t, err)
-
 	_ = deployedAddrBech32
 
+	expectedMintedAmount, _ := big.NewInt(0).SetString("123000000000000000000", 10)
 	esdtSC, _, err := cs.GetNodeHandler(0).GetFacadeHandler().GetAllESDTTokens(deployedAddrBech32, api2.AccountQueryOptions{})
 	require.Nil(t, err)
 	require.NotEmpty(t, esdtSC)
-
-	esdts, err = cs.GetNodeHandler(core.MetachainShardId).GetFacadeHandler().GetAllIssuedESDTs("FungibleESDT")
-	require.Nil(t, err)
-	require.NotNil(t, esdts)
-	require.True(t, len(esdts) == 1)
+	require.Equal(t, expectedMintedAmount, esdtSC[esdts[0]].Value)
 }
