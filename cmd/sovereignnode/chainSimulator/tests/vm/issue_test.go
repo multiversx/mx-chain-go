@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	api2 "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
@@ -175,6 +176,10 @@ func TestSmartContract_IssueToken_MainChain(t *testing.T) {
 	require.Nil(t, err)
 
 	_ = deployedAddrBech32
+
+	esdtSC, _, err := cs.GetNodeHandler(0).GetFacadeHandler().GetAllESDTTokens(deployedAddrBech32, api2.AccountQueryOptions{})
+	require.Nil(t, err)
+	require.NotEmpty(t, esdtSC)
 
 	esdts, err = cs.GetNodeHandler(core.MetachainShardId).GetFacadeHandler().GetAllIssuedESDTs("FungibleESDT")
 	require.Nil(t, err)
