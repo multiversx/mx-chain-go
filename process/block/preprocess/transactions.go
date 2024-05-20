@@ -1104,7 +1104,7 @@ func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool, random
 		return make(block.MiniBlockSlice, 0), nil
 	}
 
-	log.Debug("elapsed time to computeSortedTxs",
+	log.Debug("elapsed time to computeSortedTxs (transactions)",
 		"num txs", len(sortedTxs),
 		"time [s]", elapsedTime,
 	)

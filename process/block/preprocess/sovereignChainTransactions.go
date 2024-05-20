@@ -80,7 +80,7 @@ func (sct *sovereignChainTransactions) CreateAndProcessMiniBlocks(haveTime func(
 		return make(block.MiniBlockSlice, 0), nil
 	}
 
-	log.Debug("elapsed time to computeSortedTxs",
+	log.Debug("elapsed time to computeSortedTxs (sovereignChainTransactions)",
 		"num txs", len(sortedTxs),
 		"time [s]", elapsedTime,
 	)
@@ -180,7 +180,7 @@ func (sct *sovereignChainTransactions) shouldSkipMiniBlock(miniBlock *block.Mini
 
 func (sct *sovereignChainTransactions) isTransactionEligibleForExecution(tx *transaction.Transaction, err error) (error, bool) {
 	if isCriticalError(err) {
-		log.Debug("sovereignChainTransactions.isTransactionEligibleForExecution: isCriticalError", "error", err)
+		log.Debug("sovereignChainTransactions.isTransactionEligibleForExecution: isCriticalError", "error", err, "tx.nonce", tx.GetNonce())
 		return err, false
 	}
 
@@ -206,7 +206,7 @@ func (sct *sovereignChainTransactions) isTransactionEligibleForExecution(tx *tra
 	}
 
 	if accntInfo.nonce > tx.GetNonce() {
-		log.Debug("sovereignChainTransactions.isTransactionEligibleForExecution", "error", process.ErrLowerNonceInTransaction,
+		log.Error("sovereignChainTransactions.isTransactionEligibleForExecution", "error", process.ErrLowerNonceInTransaction,
 			"account nonce", accntInfo.nonce,
 			"tx nonce", tx.GetNonce())
 		return process.ErrLowerNonceInTransaction, false

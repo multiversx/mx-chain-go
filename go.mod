@@ -20,7 +20,7 @@ require (
 	github.com/multiversx/mx-chain-es-indexer-go v1.7.2-0.20240514123403-92975ee00840
 	github.com/multiversx/mx-chain-logger-go v1.0.15-0.20240508072523-3f00a726af57
 	github.com/multiversx/mx-chain-scenario-go v1.4.4-0.20240509103754-9e8129721f00
-	github.com/multiversx/mx-chain-storage-go v1.0.16-0.20240508073549-dcb8e6e0370f
+	github.com/multiversx/mx-chain-storage-go v1.0.16-0.20240517080422-14b913333f9e
 	github.com/multiversx/mx-chain-vm-common-go v1.5.13-0.20240516094756-46c23d07c6e2
 	github.com/multiversx/mx-chain-vm-go v1.5.30-0.20240509104139-8b0eaa8a85d1
 	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.68-0.20240509103859-89de3c5da36b
@@ -190,5 +190,3 @@ require (
 )
 
 replace github.com/gogo/protobuf => github.com/multiversx/protobuf v1.3.2
-
-replace github.com/multiversx/mx-chain-storage-go => /home/radu/GolandProjects/multiversx3/mx-chain-storage-go

@@ -133,6 +133,13 @@ func (txProc *baseTxProcessor) checkTxValues(
 		return process.ErrHigherNonceInTransaction
 	}
 	if acntSnd.GetNonce() > tx.Nonce {
+		senderAddress, _ := txProc.pubkeyConv.Encode(tx.SndAddr)
+
+		log.Error("baseProcess.checkTxValues", "error", process.ErrLowerNonceInTransaction,
+			"account nonce", acntSnd.GetNonce(),
+			"tx nonce", tx.GetNonce(),
+			"sender", senderAddress)
+
 		return process.ErrLowerNonceInTransaction
 	}
 	err = txProc.economicsFee.CheckValidityTxValues(tx)

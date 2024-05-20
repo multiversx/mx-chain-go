@@ -116,6 +116,8 @@ func (ext *MultiDataInterceptorExtension) doProcess(interceptedData process.Inte
 	}
 
 	shouldInit := function == "ext_init"
+	shouldEnablePprof := function == "ext_enable_pprof"
+	shouldDisablePprof := function == "ext_disable_pprof"
 	shouldGenerateMoveBalances := function == "ext_generate_move_balances"
 	shouldStartProcessing := function == "ext_start_processing"
 	shouldEndProcessing := function == "ext_end_processing"
@@ -128,6 +130,16 @@ func (ext *MultiDataInterceptorExtension) doProcess(interceptedData process.Inte
 			log.Error("MultiDataInterceptorExtension: failed to do step: init", "error", err)
 		}
 
+		return
+	}
+
+	if shouldEnablePprof {
+		preprocess.ShouldEnableCPUProfileInCreateAndProcessMiniBlocksFromMeV2.Store(true)
+		return
+	}
+
+	if shouldDisablePprof {
+		preprocess.ShouldEnableCPUProfileInCreateAndProcessMiniBlocksFromMeV2.Store(false)
 		return
 	}
 
@@ -336,7 +348,7 @@ func (ext *MultiDataInterceptorExtension) doStepGenerateMoveBalances(args [][]by
 		wg.Add(1)
 
 		go func(i int) {
-			transfers := ext.createTransfer(ext.participants[i], ext.destinations[i], numTxs, big.NewInt(1), nil, 50000)
+			transfers := ext.createTransfers(ext.participants[i], ext.destinations[i], numTxs, big.NewInt(1), nil, 50000)
 			ext.addTransactionsInTool(transfers)
 			wg.Done()
 		}(i)
@@ -370,7 +382,7 @@ func (ext *MultiDataInterceptorExtension) doStepGenerateESDTTransfer(args [][]by
 		wg.Add(1)
 
 		go func(i int) {
-			transfers := ext.createTransfer(ext.participants[i], ext.destinations[i], numTxs, big.NewInt(0), []byte("ESDTTransfer@5745474c442d626434643739@64"), 500000)
+			transfers := ext.createTransfers(ext.participants[i], ext.destinations[i], numTxs, big.NewInt(0), []byte("ESDTTransfer@5745474c442d626434643739@64"), 500000)
 			ext.addTransactionsInTool(transfers)
 			wg.Done()
 		}(i)
@@ -385,19 +397,23 @@ func (ext *MultiDataInterceptorExtension) doStepGenerateESDTTransfer(args [][]by
 	return nil
 }
 
-func (ext *MultiDataInterceptorExtension) createTransfer(sender *participant, destination *participant, numTxs int, value *big.Int, data []byte, gasLimit uint64) []*transaction.Transaction {
+func (ext *MultiDataInterceptorExtension) createTransfers(sender *participant, destination *participant, numTxs int, value *big.Int, data []byte, gasLimit uint64) []*transaction.Transaction {
 	txs := make([]*transaction.Transaction, 0, numTxs)
 
-	nonce := uint64(0)
+	startNonce := uint64(0)
 
 	account, err := ext.accountsHandler.GetExistingAccount(sender.pubKey)
-	if err == nil {
-		nonce = account.GetNonce()
+	if err != nil {
+		log.Info("MultiDataInterceptorExtension.createTransfers", "error when loading account", "error", err)
+	} else {
+		startNonce = account.GetNonce()
 	}
+
+	log.Info("MultiDataInterceptorExtension.createTransfers", "numTxs", numTxs, "startNonce", startNonce, "sender", sender.address, "destination", destination.address)
 
 	for i := 0; i < numTxs; i++ {
 		tx := &transaction.Transaction{
-			Nonce:    nonce + uint64(i),
+			Nonce:    startNonce + uint64(i),
 			Value:    value,
 			RcvAddr:  destination.pubKey,
 			SndAddr:  sender.pubKey,

@@ -3,7 +3,13 @@ package preprocess
 import (
 	"bytes"
 	"errors"
+	"fmt"
+	"os"
+	"runtime"
+	"runtime/debug"
+	"runtime/pprof"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -14,6 +20,8 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 )
 
+var ShouldEnableCPUProfileInCreateAndProcessMiniBlocksFromMeV2 atomic.Bool = atomic.Bool{}
+
 func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 	haveTime func() bool,
 	isShardStuck func(uint32) bool,
@@ -23,23 +31,22 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 	log.Debug("createAndProcessMiniBlocksFromMeV2 has been started")
 
 	defer func() {
+		log.Debug("createAndProcessMiniBlocksFromMeV2 has been finished", "num txs", len(allSortedTxs))
 		go txs.notifyTransactionProviderIfNeeded()
 	}()
 
-	//var index int
-	if len(allSortedTxs) > 100 {
-		//f, err := os.Create(fmt.Sprintf("cpu-profile-%d-%d.pprof", time.Now().Unix(), len(allSortedTxs)))
-		//if err != nil {
-		//	log.Error("could not create CPU profile", "error", err)
-		//}
-		//debug.SetGCPercent(-1)
-		//pprof.StartCPUProfile(f)
+	if ShouldEnableCPUProfileInCreateAndProcessMiniBlocksFromMeV2.Load() && len(allSortedTxs) > 50000 {
+		f, err := os.Create(fmt.Sprintf("cpu-profile-%d-%d.pprof", time.Now().Unix(), len(allSortedTxs)))
+		if err != nil {
+			log.Error("could not create CPU profile", "error", err)
+		}
+
+		debug.SetGCPercent(-1)
+		pprof.StartCPUProfile(f)
 
 		defer func() {
-			//pprof.StopCPUProfile()
-			//runtime.GC()
-
-			log.Debug("createAndProcessMiniBlocksFromMeV2 has been finished", "num txs", len(allSortedTxs))
+			pprof.StopCPUProfile()
+			runtime.GC()
 		}()
 	}
 
