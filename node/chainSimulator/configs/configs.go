@@ -239,12 +239,6 @@ func generateGenesisFile(args ArgsChainSimulatorConfigs, configs *config.Configs
 		initialWalletKeys.BalanceWallets[uint32(i)] = walletKey
 	}
 
-	remainingSupply := big.NewInt(0).Set(initialSupply)
-	remainingSupply.Sub(remainingSupply, initialBalance)
-	if remainingSupply.Cmp(big.NewInt(0)) > 0 {
-
-	}
-
 	addressesBytes, errM := json.Marshal(addresses)
 	if errM != nil {
 		return nil, errM
