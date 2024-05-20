@@ -29,7 +29,6 @@ import (
 	processDisabled "github.com/multiversx/mx-chain-go/genesis/process/disabled"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
-	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	"github.com/multiversx/mx-chain-go/node/external"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/postprocess"
@@ -88,6 +87,11 @@ const DNSV2Address = "erd1qqqqqqqqqqqqqpgqcy67yanvwpepqmerkq6m8pgav0tlvgwxjmdq4h
 
 // DNSV2DeployerAddress defines the address of the deployer for the DNS v2 contracts
 const DNSV2DeployerAddress = "erd1uzk2g5rhvg8prk9y50d0q7qsxg7tm7f320q0q4qlpmfu395wjmdqqy0n9q"
+
+// CrossChainAddresses -
+var CrossChainAddresses = map[string]struct{}{
+	"whiteListedAddress": {},
+}
 
 // TestAddressPubkeyConverter represents an address public key converter
 var TestAddressPubkeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
@@ -567,7 +571,7 @@ func CreateVMAndBlockchainHookAndDataPool(
 		EnableEpochsHandler:                   enableEpochsHandler,
 		MaxNumNodesInTransferRole:             100,
 		GuardedAccountHandler:                 guardedAccountHandler,
-		MapWhiteListedCrossChainMintAddresses: wasm.CrossChainAddresses,
+		MapWhiteListedCrossChainMintAddresses: CrossChainAddresses,
 	}
 	argsBuiltIn.AutomaticCrawlerAddresses = integrationTests.GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
@@ -662,7 +666,7 @@ func CreateVMAndBlockchainHookMeta(
 		EnableEpochsHandler:                   enableEpochsHandler,
 		MaxNumNodesInTransferRole:             100,
 		GuardedAccountHandler:                 guardedAccountHandler,
-		MapWhiteListedCrossChainMintAddresses: wasm.CrossChainAddresses,
+		MapWhiteListedCrossChainMintAddresses: CrossChainAddresses,
 	}
 	argsBuiltIn.AutomaticCrawlerAddresses = integrationTests.GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)

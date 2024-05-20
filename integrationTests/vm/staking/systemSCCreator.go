@@ -13,7 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
-	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
+	vmConst "github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/process"
 	metaProcess "github.com/multiversx/mx-chain-go/process/factory/metachain"
 	"github.com/multiversx/mx-chain-go/process/peer"
@@ -153,7 +153,7 @@ func createBlockChainHook(
 		MaxNumNodesInTransferRole:             1,
 		GuardedAccountHandler:                 &guardianMocks.GuardedAccountHandlerStub{},
 		MapDNSV2Addresses:                     make(map[string]struct{}),
-		MapWhiteListedCrossChainMintAddresses: wasm.CrossChainAddresses,
+		MapWhiteListedCrossChainMintAddresses: vmConst.CrossChainAddresses,
 	}
 
 	builtInFunctionsContainer, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)

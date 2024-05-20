@@ -124,8 +124,9 @@ func createMockArgument(
 		},
 		SystemSCConfig: config.SystemSmartContractsConfig{
 			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
-				BaseIssuingCost: "5000000000000000000000",
-				OwnerAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
+				BaseIssuingCost:                    "5000000000000000000000",
+				OwnerAddress:                       "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
+				WhiteListedCrossChainMintAddresses: []string{"3132333435363738393031323334353637383930313233343536373839303234"},
 			},
 			GovernanceSystemSCConfig: config.GovernanceSystemSCConfig{
 				V1: config.GovernanceSystemSCConfigV1{

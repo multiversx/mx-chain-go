@@ -57,7 +57,6 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
-	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	"github.com/multiversx/mx-chain-go/node"
 	"github.com/multiversx/mx-chain-go/node/external"
 	"github.com/multiversx/mx-chain-go/node/nodeDebugFactory"
@@ -217,6 +216,11 @@ var testProtocolSustainabilityAddress = "erd1932eft30w753xyvme8d49qejgkjc09n5e49
 // DelegationManagerConfigChangeAddress represents the address that can change the config parameters of the
 // delegation manager system smartcontract
 var DelegationManagerConfigChangeAddress = "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80"
+
+// CrossChainAddresses -
+var CrossChainAddresses = map[string]struct{}{
+	"whiteListedAddress": {},
+}
 
 // sizeCheckDelta the maximum allowed bufer overhead (p2p unmarshalling)
 const sizeCheckDelta = 100
@@ -877,7 +881,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 		EnableEpochsHandler:                   tpn.EnableEpochsHandler,
 		MaxNumNodesInTransferRole:             100,
 		GuardedAccountHandler:                 tpn.GuardedAccountHandler,
-		MapWhiteListedCrossChainMintAddresses: wasm.CrossChainAddresses,
+		MapWhiteListedCrossChainMintAddresses: CrossChainAddresses,
 	}
 	argsBuiltIn.AutomaticCrawlerAddresses = GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
@@ -1612,7 +1616,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		EnableEpochsHandler:                   tpn.EnableEpochsHandler,
 		MaxNumNodesInTransferRole:             100,
 		GuardedAccountHandler:                 tpn.GuardedAccountHandler,
-		MapWhiteListedCrossChainMintAddresses: wasm.CrossChainAddresses,
+		MapWhiteListedCrossChainMintAddresses: CrossChainAddresses,
 	}
 	argsBuiltIn.AutomaticCrawlerAddresses = GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
@@ -1850,7 +1854,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		EnableEpochsHandler:                   tpn.EnableEpochsHandler,
 		MaxNumNodesInTransferRole:             100,
 		GuardedAccountHandler:                 tpn.GuardedAccountHandler,
-		MapWhiteListedCrossChainMintAddresses: wasm.CrossChainAddresses,
+		MapWhiteListedCrossChainMintAddresses: CrossChainAddresses,
 	}
 	argsBuiltIn.AutomaticCrawlerAddresses = GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
