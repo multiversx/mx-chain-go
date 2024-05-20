@@ -87,10 +87,6 @@ updateSeednodeConfig() {
 }
 
 prepareElasticsearch() {
-  echo "Starting Elasticsearch Docker container..."
-  pwd
-  export ES_CONTAINER_ID=$(docker run -d -p 9200:9200 -p 9301:9300 -e "discovery.type=single-node" docker.elastic.co/elasticsearch/elasticsearch:7.10.2)
-  echo $ES_CONTAINER_ID > $TESTNETDIR/es_container_id.txt
 }
 
 copyNodeConfig() {
@@ -148,8 +144,8 @@ updateNodeConfig() {
   updateJSONValue nodesSetup_edit.json "minTransactionVersion" "1"
 
 	if [ $ALWAYS_NEW_CHAINID -eq 1 ]; then
-		updateTOMLValue config_validator.toml "ChainID" "\"local-testnet"\"
-		updateTOMLValue config_observer.toml "ChainID" "\"local-testnet"\"
+		updateTOMLValue config_validator.toml "ChainID" "\"S"\"
+		updateTOMLValue config_observer.toml "ChainID" "\"S"\"
 	fi
 
 	if [ $ROUNDS_PER_EPOCH -ne 0 ]; then
