@@ -7,11 +7,11 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/stretchr/testify/require"
-
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
+
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/stretchr/testify/require"
 )
 
 const (

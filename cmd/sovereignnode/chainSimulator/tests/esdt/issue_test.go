@@ -5,8 +5,6 @@ import (
 	"testing"
 	"time"
 
-	coreAPI "github.com/multiversx/mx-chain-core-go/data/api"
-
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
@@ -14,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator/utils"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	coreAPI "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/stretchr/testify/require"
 )
 
