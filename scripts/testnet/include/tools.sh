@@ -5,7 +5,7 @@ startProxy() {
   setTerminalLayout "even-vertical"
 
   setWorkdirForNextCommands "$TESTNETDIR/proxy"
-  runCommandInTerminal "./proxy" $1
+  runCommandInTerminal "./proxy --log-save" $1
 }
 
 pauseProxy() {
