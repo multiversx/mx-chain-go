@@ -22,6 +22,7 @@ import (
 	processing "github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/rating"
 	mxChainSharding "github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/testscommon/sovereign"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -120,7 +121,7 @@ func setSimulatorRunTypeArguments(args *ArgsChainSimulator) {
 	}
 	if args.CreateIncomingHeaderSubscriber == nil {
 		args.CreateIncomingHeaderSubscriber = func(_ *config.NotifierConfig, _ dataRetriever.PoolsHolder, _ uint64, _ factory.RunTypeComponentsHolder) (processing.IncomingHeaderSubscriber, error) {
-			return nil, nil
+			return &sovereign.IncomingHeaderSubscriberStub{}, nil
 		}
 	}
 	if args.CreateRunTypeComponents == nil {
