@@ -278,6 +278,22 @@ func (s *simulator) incrementRoundOnAllValidators() {
 	}
 }
 
+// ForceChangeOfEpoch will force the change of current epoch
+// This method will call the epoch change trigger and generate block till a new epoch is reached
+func (s *simulator) ForceChangeOfEpoch() error {
+	log.Info("force change of epoch")
+	for shardID, node := range s.nodes {
+		err := node.ForceChangeOfEpoch()
+		if err != nil {
+			return fmt.Errorf("force change of epoch shardID-%d: error-%w", shardID, err)
+		}
+	}
+
+	epoch := s.nodes[core.MetachainShardId].GetProcessComponents().EpochStartTrigger().Epoch()
+
+	return s.GenerateBlocksUntilEpochIsReached(int32(epoch + 1))
+}
+
 func (s *simulator) allNodesCreateBlocks() error {
 	for _, node := range s.handlers {
 		// TODO MX-15150 remove this when we remove all goroutines
