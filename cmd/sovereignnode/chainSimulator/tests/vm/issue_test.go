@@ -84,6 +84,12 @@ func TestSmartContract_IssueToken(t *testing.T) {
 	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
+	tx2 := utils.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, big.NewInt(0), "mint", uint64(20000000))
+	require.NotNil(t, tx2)
+
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
+
 	esdts, err := nodeHandler.GetFacadeHandler().GetAllIssuedESDTs("FungibleESDT")
 	require.Nil(t, err)
 	require.NotNil(t, esdts)
