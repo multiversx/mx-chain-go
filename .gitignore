@@ -15,6 +15,7 @@ opcode.trace
 
 .*
 !/.gitignore
+!/.flake8
 !/.github
 
 /vendor
