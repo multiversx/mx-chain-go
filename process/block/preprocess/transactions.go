@@ -1714,12 +1714,14 @@ func (txs *transactions) IsInterfaceNil() bool {
 
 // sortTransactionsBySenderAndNonce sorts the provided transactions and hashes simultaneously
 func (txs *transactions) sortTransactionsBySenderAndNonce(transactions []*txcache.WrappedTransaction, randomness []byte) {
-	if !txs.enableEpochsHandler.IsFlagEnabled(common.FrontRunningProtectionFlag) {
-		sortTransactionsBySenderAndNonceLegacy(transactions)
-		return
-	}
+	sortTransactionsBySenderAndNonceLegacy(transactions)
 
-	txs.sortTransactionsBySenderAndNonceWithFrontRunningProtection(transactions, randomness)
+	//if !txs.enableEpochsHandler.IsFlagEnabled(common.FrontRunningProtectionFlag) {
+	//	sortTransactionsBySenderAndNonceLegacy(transactions)
+	//	return
+	//}
+	//
+	//txs.sortTransactionsBySenderAndNonceWithFrontRunningProtection(transactions, randomness)
 }
 
 func (txs *transactions) sortTransactionsBySenderAndNonceWithFrontRunningProtection(transactions []*txcache.WrappedTransaction, randomness []byte) {
