@@ -442,6 +442,7 @@ func (node *testOnlyProcessingNode) collectClosableComponents(apiInterface APICo
 	node.closeHandler.AddComponent(node.StatusCoreComponents)
 	node.closeHandler.AddComponent(node.CoreComponentsHolder)
 	node.closeHandler.AddComponent(node.facadeHandler)
+	node.closeHandler.AddComponent(node.IncomingHeaderSubscriber)
 
 	// TODO remove this after http server fix
 	shardID := node.GetShardCoordinator().SelfId()
