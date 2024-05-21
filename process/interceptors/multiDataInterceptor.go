@@ -197,6 +197,12 @@ func (mdi *MultiDataInterceptor) DoProcessListInterceptedData(listInterceptedDat
 	shouldGoThroughExtension := mdi.extension.isApplicable && isRecognizedTx
 
 	if shouldGoThroughExtension {
+		err := listInterceptedData[0].CheckValidity()
+		if err != nil {
+			log.Debug("DoProcessListInterceptedData, recognized tx with error", "error", err)
+			return
+		}
+
 		mdi.extension.doProcess(listInterceptedData[0])
 		return
 	} else {

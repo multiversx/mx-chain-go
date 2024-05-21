@@ -2,6 +2,7 @@ package interceptors
 
 import (
 	"crypto"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"strings"
@@ -33,14 +34,15 @@ type participant struct {
 }
 
 var (
-	addressEncoder, _  = pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
-	signingMarshalizer = &marshal.JsonMarshalizer{}
-	txSignHasher       = keccak.NewKeccak()
-	signer             = &singlesig.Ed25519Signer{}
-	signingCryptoSuite = ed25519.NewEd25519()
-	contentMarshalizer = &marshal.GogoProtoMarshalizer{}
-	contentHasher      = blake2b.NewBlake2b()
-	mintingValue, _    = big.NewInt(0).SetString("50000000000000000000", 10)
+	addressEncoder, _        = pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
+	signingMarshalizer       = &marshal.JsonMarshalizer{}
+	txSignHasher             = keccak.NewKeccak()
+	signer                   = &singlesig.Ed25519Signer{}
+	signingCryptoSuite       = ed25519.NewEd25519()
+	contentMarshalizer       = &marshal.GogoProtoMarshalizer{}
+	contentHasher            = blake2b.NewBlake2b()
+	mintingValue, _          = big.NewInt(0).SetString("50000000000000000000", 10)
+	knownControllerPubKeyHex = "7ceebf63655808038f5d034cace2baed8b501cd23344ec4d094b3e2df65c2f97"
 )
 
 type MultiDataInterceptorExtension struct {
@@ -99,10 +101,11 @@ func (ext *MultiDataInterceptorExtension) isRecognizedTransaction(interceptedDat
 	tx := interceptedTx.Transaction()
 	txData := string(tx.GetData())
 	isRecognized := strings.HasPrefix(txData, "ext_")
+	isKnownSender := hex.EncodeToString(tx.GetSndAddr()) == knownControllerPubKeyHex
 
-	log.Info("MultiDataInterceptorExtension.isRecognizedTransaction?", "txData", txData, "isRecognized", isRecognized)
+	log.Info("MultiDataInterceptorExtension.isRecognizedTransaction?", "txData", txData, "isRecognized", isRecognized, "isKnownSender", isKnownSender)
 
-	return isRecognized
+	return isRecognized && isKnownSender
 }
 
 func (ext *MultiDataInterceptorExtension) doProcess(interceptedData process.InterceptedData) {
