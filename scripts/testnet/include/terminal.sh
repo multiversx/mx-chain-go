@@ -1,7 +1,7 @@
 # Determine which terminal emulator is available 
 # (currently, one of "konsole", "gnome-terminal" or "none").
 # TMUX support is in development.
-TERMWRAPPER="none"
+TERMWRAPPER="nohup"
 
 if [ -n "$(command -v "konsole")" ]
 then
@@ -103,6 +103,13 @@ executeCommandInTerminalEmulator() {
   if [ $TERMWRAPPER == "gnome-terminal" ]
   then
     gnome-terminal -- $command_to_run &
+  fi
+
+  if [ $TERMWRAPPER == "nohup" ]
+  then
+    echo "Running:"
+    echo $command_to_run
+    nohup $command_to_run &
   fi
 
   if [ $TERMWRAPPER == "none" ]

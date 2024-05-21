@@ -46,7 +46,7 @@ export SEEDNODE="$SEEDNODEDIR/seednode"   # Leave unchanged.
 
 # Niceness value of the Seednode, Observer Nodes and Validator Nodes. Leave
 # blank to not adjust niceness.
-export NODE_NICENESS=-20
+export NODE_NICENESS=""
 
 # Start a watcher daemon for each validator node, which restarts the node if it
 # is suffled out of its shard.
@@ -117,7 +117,7 @@ export PORT_ORIGIN_VALIDATOR_REST="9500"
 # Use tmux or not. If set to 1, only 2 terminal windows will be opened, and
 # tmux will be used to display the running executables using split windows.
 # Recommended. Tmux needs to be installed.
-export USETMUX=1
+export USETMUX=0
 
 # Log level for the logger in the Node.
 export LOGLEVEL="*:DEBUG"
