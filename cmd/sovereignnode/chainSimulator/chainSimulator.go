@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/runType"
+	chainSimulatorIntegrationTests "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/process"
@@ -26,7 +27,7 @@ type ArgsSovereignChainSimulator struct {
 }
 
 // NewSovereignChainSimulator will create a new instance of sovereign chain simulator
-func NewSovereignChainSimulator(args ArgsSovereignChainSimulator) (*chainSimulator.Simulator, error) {
+func NewSovereignChainSimulator(args ArgsSovereignChainSimulator) (chainSimulatorIntegrationTests.ChainSimulator, error) {
 	args.ChainSimulatorArgs.CreateGenesisNodesSetup = func(nodesFilePath string, addressPubkeyConverter core.PubkeyConverter, validatorPubkeyConverter core.PubkeyConverter, _ uint32) (sharding.GenesisNodesSetupHandler, error) {
 		return sharding.NewSovereignNodesSetup(&sharding.SovereignNodesSetupArgs{
 			NodesFilePath:            nodesFilePath,
