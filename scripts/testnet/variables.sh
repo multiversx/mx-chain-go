@@ -20,7 +20,7 @@ export USE_TXGEN=0
 # Enable the Elasticsearch data indexing. Will run a Docker image containing an Elasticsearch cluster, on port 9200.
 # It will also change the external.toml files for observers, so they can index data into it.
 # Docker must be managed as a non-root user: https://docs.docker.com/engine/install/linux-postinstall/
-export USE_ELASTICSEARCH=1
+export USE_ELASTICSEARCH=0
 
 # Path where the testnet will be instantiated. This folder is assumed to not
 # exist, but it doesn't matter if it already does. It will be created if not,
@@ -54,7 +54,7 @@ export NODE_WATCHER=0
 
 # Delays after running executables.
 export SEEDNODE_DELAY=2
-export GENESIS_DELAY=10
+export GENESIS_DELAY=15
 export HARDFORK_DELAY=900 #15 minutes enough to take export and gracefully close
 export NODE_DELAY=8
 
@@ -70,9 +70,9 @@ export SOVEREIGN_DEPLOY=1
 
 # Shard structure
 export SHARDCOUNT=1
-export SHARD_VALIDATORCOUNT=1
+export SHARD_VALIDATORCOUNT=20
 export SHARD_OBSERVERCOUNT=1
-export SHARD_CONSENSUS_SIZE=1
+export SHARD_CONSENSUS_SIZE=20
 
 # Metashard structure
 export META_VALIDATORCOUNT=0
@@ -80,7 +80,7 @@ export META_OBSERVERCOUNT=0
 export META_CONSENSUS_SIZE=$META_VALIDATORCOUNT
 
 # MULTI_KEY_NODES if set to 1, one observer will be generated on each shard that will handle all generated keys
-export MULTI_KEY_NODES=0
+export MULTI_KEY_NODES=1
 
 # EXTRA_KEYS if set to 1, extra keys will be added to the generated keys
 export EXTRA_KEYS=1
@@ -89,7 +89,7 @@ export EXTRA_KEYS=1
 export ALWAYS_NEW_CHAINID=1
 
 # ROUNDS_PER_EPOCH represents the number of rounds per epoch. If set to 0, it won't override the node's config
-export ROUNDS_PER_EPOCH=0
+export ROUNDS_PER_EPOCH=1000000
 
 # HYSTERESIS defines the hysteresis value for number of nodes in shard
 export HYSTERESIS=0.0
