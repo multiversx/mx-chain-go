@@ -7,6 +7,10 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
 	disabledCommon "github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/common/enablers"
@@ -14,6 +18,8 @@ import (
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
+	mock2 "github.com/multiversx/mx-chain-go/epochStart/mock"
+	"github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
 	"github.com/multiversx/mx-chain-go/genesis/process/intermediate"
@@ -22,6 +28,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/factory/shard"
 	disabledGuardian "github.com/multiversx/mx-chain-go/process/guardian/disabled"
+	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/receipts"
 	"github.com/multiversx/mx-chain-go/process/rewardTransaction"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
@@ -34,13 +41,11 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/update"
 	hardForkProcess "github.com/multiversx/mx-chain-go/update/process"
-
-	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
-	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 )
@@ -418,28 +423,51 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		return nil, err
 	}
 
-	argsNewVMFactory := shard.ArgVMContainerFactory{
-		Config:              arg.VirtualMachineConfig,
-		BlockGasLimit:       math.MaxUint64,
-		GasSchedule:         arg.GasSchedule,
-		BlockChainHook:      blockChainHookImpl,
-		EpochNotifier:       epochNotifier,
-		EnableEpochsHandler: enableEpochsHandler,
-		WasmVMChangeLocker:  genesisWasmVMLocker,
-		ESDTTransferParser:  esdtTransferParser,
-		BuiltInFunctions:    argsHook.BuiltInFunctions,
-		Hasher:              arg.Core.Hasher(),
-		PubKeyConverter:     arg.Core.AddressPubKeyConverter(),
-	}
-	vmFactoryImpl, err := shard.NewVMContainerFactory(argsNewVMFactory)
+	//argsNewVMFactory := shard.ArgVMContainerFactory{
+	//	Config:              arg.VirtualMachineConfig,
+	//	BlockGasLimit:       math.MaxUint64,
+	//	GasSchedule:         arg.GasSchedule,
+	//	BlockChainHook:      blockChainHookImpl,
+	//	EpochNotifier:       epochNotifier,
+	//	EnableEpochsHandler: enableEpochsHandler,
+	//	WasmVMChangeLocker:  genesisWasmVMLocker,
+	//	ESDTTransferParser:  esdtTransferParser,
+	//	BuiltInFunctions:    argsHook.BuiltInFunctions,
+	//	Hasher:              arg.Core.Hasher(),
+	//	PubKeyConverter:     arg.Core.AddressPubKeyConverter(),
+	//}
+	vmContainer, vmFactoryImpl, err := arg.RunTypeComponents.VmContainerShardFactoryCreator().CreateVmContainerFactory(argsHook, vm.ArgsVmContainerFactory{
+		Config:                     arg.VirtualMachineConfig,
+		BlockGasLimit:              math.MaxUint64,
+		GasSchedule:                arg.GasSchedule,
+		EpochNotifier:              epochNotifier,
+		EnableEpochsHandler:        enableEpochsHandler,
+		WasmVMChangeLocker:         genesisWasmVMLocker,
+		ESDTTransferParser:         esdtTransferParser,
+		BuiltInFunctions:           argsHook.BuiltInFunctions,
+		BlockChainHook:             blockChainHookImpl,
+		Hasher:                     arg.Core.Hasher(),
+		Economics:                  &economicsmocks.EconomicsHandlerStub{},
+		MessageSignVerifier:        &testscommon.MessageSignVerifierMock{},
+		NodesConfigProvider:        &mock.NodesConfigProviderStub{},
+		Marshalizer:                arg.Core.TxMarshalizer(),
+		SystemSCConfig:             &arg.SystemSCConfig,
+		ValidatorAccountsDB:        arg.ValidatorAccounts,
+		UserAccountsDB:             arg.Accounts,
+		ChanceComputer:             &mock2.ChanceComputerStub{},
+		ShardCoordinator:           arg.ShardCoordinator,
+		PubkeyConv:                 arg.Core.AddressPubKeyConverter(),
+		IsInHistoricalBalancesMode: false,
+		NodesCoordinator:           &shardingMocks.NodesCoordinatorStub{},
+	}) // shard.NewVMContainerFactory(argsNewVMFactory)
 	if err != nil {
 		return nil, err
 	}
 
-	vmContainer, err := vmFactoryImpl.Create()
-	if err != nil {
-		return nil, err
-	}
+	//vmContainer, err := vmFactoryImpl.Create()
+	//if err != nil {
+	//	return nil, err
+	//}
 
 	err = blockChainHookImpl.SetVMContainer(vmContainer)
 	if err != nil {

@@ -132,9 +132,6 @@ func NewValidatorSmartContract(
 	if args.StakingSCConfig.NodeLimitPercentage < minPercentage {
 		return nil, fmt.Errorf("%w in validatorSC", vm.ErrInvalidNodeLimitPercentage)
 	}
-	if args.StakingSCConfig.StakeLimitPercentage < minPercentage {
-		return nil, fmt.Errorf("%w in validatorSC", vm.ErrInvalidStakeLimitPercentage)
-	}
 
 	baseConfig := ValidatorConfig{
 		TotalSupply: big.NewInt(0).Set(args.GenesisTotalSupply),
@@ -189,9 +186,6 @@ func NewValidatorSmartContract(
 	}
 
 	reg.totalStakeLimit = core.GetIntTrimmedPercentageOfValue(args.GenesisTotalSupply, args.StakingSCConfig.StakeLimitPercentage)
-	if reg.totalStakeLimit.Cmp(baseConfig.NodePrice) < 0 {
-		return nil, fmt.Errorf("%w, value is %f", vm.ErrInvalidStakeLimitPercentage, args.StakingSCConfig.StakeLimitPercentage)
-	}
 
 	return reg, nil
 }
