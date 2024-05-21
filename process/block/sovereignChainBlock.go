@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"sort"
+	"sync/atomic"
 	"time"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -115,6 +116,8 @@ func NewSovereignChainBlockProcessor(args ArgsSovereignChainBlockProcessor) (*so
 			blockTracker: scbp.blockTracker,
 		},
 	}
+
+	preprocess.Decrease.Store(true)
 
 	return scbp, nil
 }
@@ -569,11 +572,9 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 	if haveTime == nil {
 		return nil, nil, process.ErrNilHaveTimeHandler
 	}
-
-	missedRounds := int(headerHandler.GetRound()) - PreviousCommitBlockRound
+	missedRounds := headerHandler.GetRound() - PreviousCommitBlockRound.Load()
 	if missedRounds > 5 {
-		log.Info("ProcessBlock - Decrease sorted txs = true")
-		preprocess.Decrease = true
+		preprocess.Decrease.Store(true)
 	}
 
 	scbp.processStatusHandler.SetBusy("sovereignChainBlockProcessor.ProcessBlock")
@@ -1035,7 +1036,7 @@ func (scbp *sovereignChainBlockProcessor) verifySovereignPostProcessBlock(
 
 // CommitBlock - will do a lot of verification
 
-var PreviousCommitBlockRound = 0
+var PreviousCommitBlockRound = atomic.Uint64{}
 
 func (scbp *sovereignChainBlockProcessor) CommitBlock(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler) error {
 	scbp.processStatusHandler.SetBusy("sovereignChainBlockProcessor.CommitBlock")
@@ -1144,9 +1145,8 @@ func (scbp *sovereignChainBlockProcessor) CommitBlock(headerHandler data.HeaderH
 		return err
 	}
 
-	log.Info("CommitBlock - Stopping decrease = true")
-	preprocess.Decrease = false
-	PreviousCommitBlockRound = int(headerHandler.GetRound())
+	preprocess.Decrease.Store(false)
+	PreviousCommitBlockRound.Store(headerHandler.GetRound())
 
 	return nil
 }
