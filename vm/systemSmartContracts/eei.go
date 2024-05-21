@@ -8,12 +8,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	vmData "github.com/multiversx/mx-chain-core-go/data/vm"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/vm"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 const transferValueOnly = "transferValueOnly"
@@ -168,7 +169,6 @@ func (host *vmContext) GetStorage(key []byte) []byte {
 
 // SetStorageForAddress saves the key value storage under the address
 func (host *vmContext) SetStorageForAddress(address []byte, key []byte, value []byte) {
-	log.Error("setstorageforaddress", "addrress", address, "key", key, "value", value)
 	strAdr := string(address)
 	_, exists := host.storageUpdate[strAdr]
 	if !exists {
@@ -543,6 +543,7 @@ func (host *vmContext) DeploySystemSC(
 	}
 
 	callInput := createDirectCallInput(newAddress, ownerAddress, value, initFunction, input)
+
 	host.transferBeforeSCToSCExec(callInput, host.scAddress, "DeploySmartContract")
 
 	contract, err := host.systemContracts.Get(baseContract)

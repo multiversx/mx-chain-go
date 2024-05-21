@@ -8,9 +8,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // VMOutputAccountsProcessor will process the VMOutput from a regular of builtin function call
@@ -148,9 +149,6 @@ func (oap *VMOutputAccountsProcessor) processStorageUpdatesStep(
 			log.Trace("storeUpdate is not allowed", "acc", outAcc.Address, "key", storeUpdate.Offset, "data", storeUpdate.Data)
 			return process.ErrNotAllowedToWriteUnderProtectedKey
 		}
-
-		//storageUpdateOffset, _ := hex.DecodeString(string(storeUpdate.Offset))
-		log.Error("processStorageUpdatesStep", "address", outAcc.Address, "storageUpdateOffset", string(storeUpdate.Offset))
 
 		err := acc.SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
 		if err != nil {

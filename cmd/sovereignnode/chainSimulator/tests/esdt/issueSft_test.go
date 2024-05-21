@@ -43,24 +43,7 @@ func TestEsdt_IssueSft(t *testing.T) {
 			},
 		},
 	})
-	//cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-	//	BypassTxSignatureCheck: false,
-	//	TempDir:                t.TempDir(),
-	//	PathToInitialConfig:    defaultPathToInitialConfig,
-	//	NumOfShards:            3,
-	//	GenesisTimestamp:       time.Now().Unix(),
-	//	RoundDurationInMillis:  uint64(6000),
-	//	RoundsPerEpoch: core.OptionalUint64{
-	//		HasValue: true,
-	//		Value:    30,
-	//	},
-	//	InitialEpoch:                3,
-	//	ApiInterface:                api.NewNoApiInterface(),
-	//	MinNodesPerShard:            1,
-	//	MetaChainMinNodes:           1,
-	//	ConsensusGroupSize:          1,
-	//	MetaChainConsensusGroupSize: 1,
-	//})
+
 	require.Nil(t, err)
 	require.NotNil(t, cs)
 
@@ -82,18 +65,6 @@ func TestEsdt_IssueSft(t *testing.T) {
 
 	err = cs.GenerateBlocks(10)
 	require.Nil(t, err)
-
-	//esdts, _, err := nodeHandler.GetFacadeHandler().GetESDTsWithRole(wallet.Bech32, "ESDTRoleNFTCreate", coreAPI.AccountQueryOptions{})
-	//require.Nil(t, err)
-	//require.Equal(t, string(tokenIdentifier), esdts[0])
-	//
-	//tokens, _, err := nodeHandler.GetFacadeHandler().GetAllESDTTokens(wallet.Bech32, coreAPI.AccountQueryOptions{})
-	//require.Nil(t, err)
-	//require.NotNil(t, tokens)
-	//
-	//keys, _, err := nodeHandler.GetFacadeHandler().GetKeyValuePairs(wallet.Bech32, coreAPI.AccountQueryOptions{})
-	//require.Nil(t, err)
-	//require.NotNil(t, keys)
 
 	data = "ESDTNFTCreate@" + hex.EncodeToString(tokenIdentifier) + "@04d2@4f4354534654202331@09c4@@746167733a746167312c746167323b77686174657665724b65793a776861746576657256616c7565@68747470733a2f2f6d656469612e72656d61726b61626c652e746f6f6c732f4465764e65742f52656d61726b61626c65546f6f6c732e706e67"
 	tx := utils.GenerateTransaction(wallet.Bytes, 1, wallet.Bytes, big.NewInt(0), data, uint64(60000000))

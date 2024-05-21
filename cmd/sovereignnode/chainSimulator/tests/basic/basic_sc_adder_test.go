@@ -1,4 +1,4 @@
-package esdt
+package basic
 
 import (
 	"encoding/hex"
@@ -9,24 +9,24 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
+	"github.com/multiversx/mx-chain-go/process"
 	sovereignChainSimulator "github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator"
 	"github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator/utils"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	coreAPI "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/stretchr/testify/require"
 )
 
 const (
 	defaultPathToInitialConfig = "../../../../node/config/"
 	sovereignConfigPath        = "../../../config/"
+	adderWasmPath              = "../testdata/adder.wasm"
 )
 
 var oneEgld = big.NewInt(1000000000000000000)
 var initialMinting = big.NewInt(0).Mul(oneEgld, big.NewInt(100))
-var issueCost = big.NewInt(5000000000000000000)
 
-func TestEsdt_Issue(t *testing.T) {
+func TestSmartContract_Adder(t *testing.T) {
 	epochConfig, economicsConfig, sovereignExtraConfig, err := sovereignChainSimulator.LoadSovereignConfigs(sovereignConfigPath)
 	require.Nil(t, err)
 
@@ -57,39 +57,41 @@ func TestEsdt_Issue(t *testing.T) {
 
 	defer cs.Close()
 
-	nodeHandler := cs.GetNodeHandler(core.SovereignChainShardId)
-	systemEsdtAddress, _ := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode("erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzllls8a5w6u")
+	err = cs.GenerateBlocks(200)
+	require.Nil(t, err)
 
-	nonce := uint64(0)
+	nodeHandler := cs.GetNodeHandler(core.SovereignChainShardId)
+	systemScAddress, _ := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode("erd1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq6gq4hu")
+
 	wallet, err := cs.GenerateAndMintWalletAddress(core.SovereignChainShardId, initialMinting)
 	require.Nil(t, err)
+	nonce := uint64(0)
 
-	tokenName := hex.EncodeToString([]byte("SovereignTkn"))
-	tokenTicker := hex.EncodeToString([]byte("SVN"))
-	supply, _ := big.NewInt(0).SetString("123000000000000000000", 10)
-	initialSupply := hex.EncodeToString(supply.Bytes())
-	nrOfDecimals := "12"
-	issueArgs := "issue" +
-		"@" + tokenName +
-		"@" + tokenTicker +
-		"@" + initialSupply +
-		"@" + nrOfDecimals +
-		"@63616e4164645370656369616c526f6c6573@74727565"
-	txResult := utils.SendTransaction(t, cs, wallet.Bytes, &nonce, systemEsdtAddress, issueCost, issueArgs, uint64(60000000))
-	tokenIdentifier := txResult.Logs.Events[0].Topics[0]
-	require.True(t, len(tokenIdentifier) > 7)
+	initSum := big.NewInt(123)
+	initArgs := "@" + hex.EncodeToString(initSum.Bytes())
+	deployedContractAddress := utils.DeployContract(t, cs, wallet.Bytes, &nonce, systemScAddress, initArgs, adderWasmPath)
 
-	err = cs.GenerateBlocks(1)
+	res, _, err := nodeHandler.GetFacadeHandler().ExecuteSCQuery(&process.SCQuery{
+		ScAddress:  deployedContractAddress,
+		FuncName:   "getSum",
+		CallerAddr: nil,
+		BlockNonce: core.OptionalUint64{},
+	})
 	require.Nil(t, err)
+	sum := big.NewInt(0).SetBytes(res.ReturnData[0])
+	require.Equal(t, initSum, sum)
 
-	esdts, err := nodeHandler.GetFacadeHandler().GetAllIssuedESDTs(core.FungibleESDT)
-	require.Nil(t, err)
-	require.NotNil(t, esdts)
-	require.True(t, string(tokenIdentifier) == esdts[0])
+	addedSum := big.NewInt(10)
+	addTxData := "add@" + hex.EncodeToString(addedSum.Bytes())
+	utils.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, big.NewInt(0), addTxData, uint64(10000000))
 
-	tokens, _, err := nodeHandler.GetFacadeHandler().GetAllESDTTokens(wallet.Bech32, coreAPI.AccountQueryOptions{})
+	res, _, err = nodeHandler.GetFacadeHandler().ExecuteSCQuery(&process.SCQuery{
+		ScAddress:  deployedContractAddress,
+		FuncName:   "getSum",
+		CallerAddr: nil,
+		BlockNonce: core.OptionalUint64{},
+	})
 	require.Nil(t, err)
-	require.NotNil(t, tokens)
-	require.True(t, len(tokens) == 2)
-	require.Equal(t, supply, tokens[string(tokenIdentifier)].Value)
+	sum = big.NewInt(0).SetBytes(res.ReturnData[0])
+	require.Equal(t, initSum.Add(initSum, addedSum), sum)
 }
