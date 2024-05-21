@@ -5,14 +5,15 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
-	vmData "github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/vm"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	vmData "github.com/multiversx/mx-chain-core-go/data/vm"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
@@ -509,10 +510,10 @@ func createDirectCallInput(
 	return input
 }
 
-func (host *vmContext) transferBeforeInternalExec(callInput *vmcommon.ContractCallInput, sender []byte, callType string) error {
+func (host *vmContext) transferBeforeSCToSCExec(callInput *vmcommon.ContractCallInput, sender []byte, callType string) {
 	if !host.enableEpochsHandler.IsFlagEnabled(common.MultiClaimOnDelegationFlag) {
 		host.Transfer(callInput.RecipientAddr, sender, callInput.CallValue, nil, 0)
-		return nil
+		return
 	}
 	host.transferValueOnly(callInput.RecipientAddr, sender, callInput.CallValue)
 
@@ -523,8 +524,6 @@ func (host *vmContext) transferBeforeInternalExec(callInput *vmcommon.ContractCa
 		Data:       vmcommon.FormatLogDataForCall(callType, callInput.Function, callInput.Arguments),
 	}
 	host.AddLogEntry(logEntry)
-
-	return nil
 }
 
 // DeploySystemSC will deploy a smart contract according to the input
@@ -545,10 +544,7 @@ func (host *vmContext) DeploySystemSC(
 
 	callInput := createDirectCallInput(newAddress, ownerAddress, value, initFunction, input)
 
-	err := host.transferBeforeInternalExec(callInput, host.scAddress, "DeploySmartContract")
-	if err != nil {
-		return vmcommon.ExecutionFailed, err
-	}
+	host.transferBeforeSCToSCExec(callInput, host.scAddress, "DeploySmartContract")
 
 	contract, err := host.systemContracts.Get(baseContract)
 	if err != nil {
@@ -602,10 +598,7 @@ func (host *vmContext) ExecuteOnDestContext(destination []byte, sender []byte, v
 		return nil, err
 	}
 
-	err = host.transferBeforeInternalExec(callInput, sender, "ExecuteOnDestContext")
-	if err != nil {
-		return nil, err
-	}
+	host.transferBeforeSCToSCExec(callInput, sender, "ExecuteOnDestContext")
 
 	vmOutput := &vmcommon.VMOutput{ReturnCode: vmcommon.UserError}
 	currContext := host.copyToNewContext()
@@ -750,8 +743,9 @@ func (host *vmContext) CreateVMOutput() *vmcommon.VMOutput {
 
 		for key, value := range updates {
 			storageUpdate := &vmcommon.StorageUpdate{
-				Offset: []byte(key),
-				Data:   value,
+				Offset:  []byte(key),
+				Data:    value,
+				Written: true,
 			}
 
 			outAccs[addr].StorageUpdates[key] = storageUpdate
@@ -827,6 +821,11 @@ func (host *vmContext) AddCode(address []byte, code []byte) {
 
 // AddTxValueToSmartContract adds the input transaction value to the smart contract address
 func (host *vmContext) AddTxValueToSmartContract(input *vmcommon.ContractCallInput) {
+	if host.isInShardSCToSCCall(input) {
+		host.transferBeforeSCToSCExec(input, input.CallerAddr, "ExecuteOnDestContext")
+		return
+	}
+
 	destAcc, exists := host.outputAccounts[string(input.RecipientAddr)]
 	if !exists {
 		destAcc = &vmcommon.OutputAccount{
@@ -834,10 +833,6 @@ func (host *vmContext) AddTxValueToSmartContract(input *vmcommon.ContractCallInp
 			BalanceDelta: big.NewInt(0),
 		}
 		host.outputAccounts[string(destAcc.Address)] = destAcc
-	}
-
-	if host.isInShardSCToSCCall(input) {
-		return
 	}
 
 	destAcc.BalanceDelta = big.NewInt(0).Add(destAcc.BalanceDelta, input.CallValue)
