@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/multiversx/mx-chain-go/node/chainSimulator"
+	chainSimulatorIntegrationTests "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
@@ -28,7 +28,15 @@ func getSCCode(fileName string) string {
 	return codeEncoded
 }
 
-func DeployContract(t *testing.T, cs *chainSimulator.Simulator, sender []byte, nonce *uint64, receiver []byte, data string, wasmPath string) []byte {
+func DeployContract(
+	t *testing.T,
+	cs chainSimulatorIntegrationTests.ChainSimulator,
+	sender []byte,
+	nonce *uint64,
+	receiver []byte,
+	data string,
+	wasmPath string,
+) []byte {
 	data = getSCCode(wasmPath) + "@0500@0500" + data
 
 	tx := GenerateTransaction(sender, *nonce, receiver, big.NewInt(0), data, uint64(200000000))
@@ -72,7 +80,7 @@ func GenerateTransaction(
 
 func SendTransaction(
 	t *testing.T,
-	cs *chainSimulator.Simulator,
+	cs chainSimulatorIntegrationTests.ChainSimulator,
 	sender []byte,
 	nonce *uint64,
 	receiver []byte,
