@@ -5,14 +5,15 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
-	vmData "github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/vm"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	vmData "github.com/multiversx/mx-chain-core-go/data/vm"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
@@ -750,8 +751,9 @@ func (host *vmContext) CreateVMOutput() *vmcommon.VMOutput {
 
 		for key, value := range updates {
 			storageUpdate := &vmcommon.StorageUpdate{
-				Offset: []byte(key),
-				Data:   value,
+				Offset:  []byte(key),
+				Data:    value,
+				Written: true,
 			}
 
 			outAccs[addr].StorageUpdates[key] = storageUpdate
