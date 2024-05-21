@@ -6,10 +6,11 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("common/enablers")
@@ -742,6 +743,12 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 				return epoch >= handler.enableEpochsConfig.CryptoOpcodesV2EnableEpoch
 			},
 			activationEpoch: handler.enableEpochsConfig.CryptoOpcodesV2EnableEpoch,
+		},
+		common.UnJailCleanupFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.UnJailCleanupEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.UnJailCleanupEnableEpoch,
 		},
 	}
 }

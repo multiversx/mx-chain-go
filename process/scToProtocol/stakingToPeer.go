@@ -110,6 +110,7 @@ func checkIfNil(args ArgStakingToPeer) error {
 	return core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
 		common.StakeFlag,
 		common.ValidatorToDelegationFlag,
+		common.UnJailCleanupFlag,
 	})
 }
 
@@ -342,7 +343,9 @@ func (stp *stakingToPeer) updatePeerState(
 		if account.GetTempRating() < stp.unJailRating {
 			log.Debug("node is unJailed, setting temp rating to start rating", "blsKey", blsPubKey)
 			account.SetTempRating(stp.unJailRating)
-			account.SetConsecutiveProposerMisses(0)
+			if stp.enableEpochsHandler.IsFlagEnabled(common.UnJailCleanupFlag) {
+				account.SetConsecutiveProposerMisses(0)
+			}
 		}
 
 		isNewValidator := !isValidator && stakingData.Staked
