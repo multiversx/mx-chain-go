@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"math"
 	"sync"
 	"time"
 
@@ -117,15 +116,15 @@ type baseBootstrap struct {
 	outportHandler   outport.OutportHandler
 	accountsDBSyncer process.AccountsDBSyncer
 
-	chRcvMiniBlocks                     chan bool
-	mutRcvMiniBlocks                    sync.Mutex
-	miniBlocksProvider                  process.MiniBlockProvider
-	poolsHolder                         dataRetriever.PoolsHolder
-	mutRequestHeaders                   sync.Mutex
-	cancelFunc                          func()
-	isInImportMode                      bool
-	scheduledTxsExecutionHandler        process.ScheduledTxsExecutionHandler
-	processWaitTime                     time.Duration
+	chRcvMiniBlocks              chan bool
+	mutRcvMiniBlocks             sync.Mutex
+	miniBlocksProvider           process.MiniBlockProvider
+	poolsHolder                  dataRetriever.PoolsHolder
+	mutRequestHeaders            sync.Mutex
+	cancelFunc                   func()
+	isInImportMode               bool
+	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
+	processWaitTime              time.Duration
 
 	repopulateTokensSupplies bool
 
@@ -967,15 +966,11 @@ func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandle
 }
 
 func (boot *baseBootstrap) isForcedRollBackOneBlock() bool {
-	return boot.forkInfo.IsDetected &&
-		boot.forkInfo.Nonce == math.MaxUint64 &&
-		boot.forkInfo.Hash == nil
+	return false
 }
 
 func (boot *baseBootstrap) isForcedRollBackToNonce() bool {
-	return boot.forkInfo.IsDetected &&
-		boot.forkInfo.Round == math.MaxUint64 &&
-		boot.forkInfo.Hash == nil
+	return false
 }
 
 func (boot *baseBootstrap) rollBackOneBlockForced() {

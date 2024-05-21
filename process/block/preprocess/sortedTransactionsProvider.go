@@ -8,6 +8,7 @@ import (
 
 var NumOfTxsToSelect = process.MaxNumOfTxsToSelect
 var NumTxPerSenderBatch = process.NumTxPerSenderBatchForFillingMiniblock
+var Decrease = true
 
 // TODO: Refactor "transactions.go" to not require the components in this file anymore
 // createSortedTransactionsProvider is a "simple factory" for "SortedTransactionsProvider" objects
@@ -36,6 +37,10 @@ func newAdapterTxCacheToSortedTransactionsProvider(txCache TxCache) *adapterTxCa
 
 // GetSortedTransactions gets the transactions from the cache
 func (adapter *adapterTxCacheToSortedTransactionsProvider) GetSortedTransactions() []*txcache.WrappedTransaction {
+	if Decrease {
+		NumOfTxsToSelect = NumOfTxsToSelect * 95 / 100
+		NumTxPerSenderBatch = NumTxPerSenderBatch * 95 / 100
+	}
 	txs := adapter.txCache.SelectTransactionsWithBandwidth(NumOfTxsToSelect, NumTxPerSenderBatch, process.MaxGasBandwidthPerBatchPerSender)
 	return txs
 }
