@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 )
@@ -24,4 +25,6 @@ type ChainSimulator interface {
 	GetAccount(address dtos.WalletAddress) (api.AccountResponse, error)
 	ForceResetValidatorStatisticsCache() error
 	GetValidatorPrivateKeys() []crypto.PrivateKey
+	SetKeyValueForAddress(address string, keyValueMap map[string]string) error
+	Close()
 }
