@@ -13,3 +13,5 @@ source $SCRIPT_PATH/config/token.snippets.sh
 source $SCRIPT_PATH/config/common.snippets.sh
 source $SCRIPT_PATH/config/py.snippets.sh
 source $SCRIPT_PATH/observer/deployObserver.sh
+
+WALLET_ADDRESS=$(echo "$(head -n 1 $(eval echo ${WALLET}))" | sed -n 's/.* for \([^-]*\)-----.*/\1/p')
