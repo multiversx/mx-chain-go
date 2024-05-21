@@ -192,11 +192,11 @@ func (sr *subroundSignature) completeSignatureSubRound(
 		return false
 	}
 
-	if shouldWaitForAllSigsAsync {
-		if sr.EnableEpochHandler().IsFlagEnabled(common.ConsensusModelV2Flag) {
-			sr.AddProcessedHeadersHashes(processedHeaderHash, index)
-		}
+	if sr.EnableEpochHandler().IsFlagEnabled(common.ConsensusModelV2Flag) {
+		sr.AddProcessedHeadersHashes(processedHeaderHash, index)
+	}
 
+	if shouldWaitForAllSigsAsync {
 		go sr.waitAllSignatures()
 	}
 
