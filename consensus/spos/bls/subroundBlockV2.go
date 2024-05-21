@@ -30,7 +30,9 @@ func NewSubroundBlockV2(subroundBlock *subroundBlock) (*subroundBlockV2, error) 
 
 // doBlockJob method does the job of the subround Block
 func (sr *subroundBlockV2) doBlockJob(ctx context.Context) bool {
-	if !sr.IsSelfLeaderInCurrentRound() { // is NOT self leader in this round?
+	//TODO: check what can be reuese from the normal subrounds so that we do not have duplicate code
+	isSelfLeader := sr.IsSelfLeaderInCurrentRound() && sr.ShouldConsiderSelfKeyInConsensus()
+	if !isSelfLeader && !sr.IsMultiKeyLeaderInCurrentRound() { // is NOT self leader in this round?
 		return false
 	}
 
@@ -38,7 +40,7 @@ func (sr *subroundBlockV2) doBlockJob(ctx context.Context) bool {
 		return false
 	}
 
-	if sr.IsSelfJobDone(sr.Current()) {
+	if sr.IsLeaderJobDone(sr.Current()) {
 		return false
 	}
 
@@ -66,8 +68,14 @@ func (sr *subroundBlockV2) doBlockJob(ctx context.Context) bool {
 		return false
 	}
 
+	leader, errGetLeader := sr.GetLeader()
+	if errGetLeader != nil {
+		log.Debug("doBlockJob.GetLeader", "error", errGetLeader)
+		return false
+	}
+
 	cnsDta := &consensus.Message{
-		PubKey:     []byte(sr.SelfPubKey()),
+		PubKey:     []byte(leader),
 		RoundIndex: sr.RoundHandler().Index(),
 	}
 
