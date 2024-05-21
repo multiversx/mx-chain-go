@@ -12,10 +12,10 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
-	"github.com/multiversx/mx-chain-go/testscommon/shardingmock"
 	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
 )
 
@@ -59,7 +59,7 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 		StakingV4Step2EnableEpoch,
 	)
 	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-		ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{
+		ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
 			ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
 				return config.ChainParametersByEpochConfig{
 					ShardMinNumNodes:            uint32(arg.nodesPerShard),
@@ -131,7 +131,7 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 		StakingV4Step2EnableEpoch,
 	)
 	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-		ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{
+		ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
 			ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
 				return config.ChainParametersByEpochConfig{
 					ShardMinNumNodes:            uint32(arg.nodesPerShard),

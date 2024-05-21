@@ -39,6 +39,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -367,7 +368,7 @@ func (tcn *TestConsensusNode) initNodesCoordinator(
 	cache storage.Cacher,
 ) {
 	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-		ChainParametersHandler: &shardingMocks.ChainParametersHandlerStub{
+		ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
 			ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
 				return config.ChainParametersByEpochConfig{
 					ShardConsensusGroupSize:     uint32(consensusSize),
@@ -375,23 +376,23 @@ func (tcn *TestConsensusNode) initNodesCoordinator(
 				}, nil
 			},
 		},
-		Marshalizer:              TestMarshalizer,
-		Hasher:                   hasher,
-		Shuffler:                 &shardingMocks.NodeShufflerMock{},
-		EpochStartNotifier:       epochStartRegistrationHandler,
-		BootStorer:               CreateMemUnit(),
-		NbShards:                 maxShards,
-		EligibleNodes:            eligibleMap,
-		WaitingNodes:             waitingMap,
-		SelfPublicKey:            pkBytes,
-		ConsensusGroupCache:      cache,
-		ShuffledOutHandler:       &chainShardingMocks.ShuffledOutHandlerStub{},
-		ChanStopNode:             endProcess.GetDummyEndProcessChannel(),
-		NodeTypeProvider:         &nodeTypeProviderMock.NodeTypeProviderStub{},
-		IsFullArchive:            false,
-		EnableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
-		ShardIDAsObserver:        tcn.ShardCoordinator.SelfId(),
+		Marshalizer:                     TestMarshalizer,
+		Hasher:                          hasher,
+		Shuffler:                        &shardingMocks.NodeShufflerMock{},
+		EpochStartNotifier:              epochStartRegistrationHandler,
+		BootStorer:                      CreateMemUnit(),
+		NbShards:                        maxShards,
+		EligibleNodes:                   eligibleMap,
+		WaitingNodes:                    waitingMap,
+		SelfPublicKey:                   pkBytes,
+		ConsensusGroupCache:             cache,
+		ShuffledOutHandler:              &chainShardingMocks.ShuffledOutHandlerStub{},
+		ChanStopNode:                    endProcess.GetDummyEndProcessChannel(),
+		NodeTypeProvider:                &nodeTypeProviderMock.NodeTypeProviderStub{},
+		IsFullArchive:                   false,
+		EnableEpochsHandler:             &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		ValidatorInfoCacher:             &vic.ValidatorInfoCacherStub{},
+		ShardIDAsObserver:               tcn.ShardCoordinator.SelfId(),
 		GenesisNodesSetupHandler:        &genesisMocks.NodesSetupStub{},
 		NodesCoordinatorRegistryFactory: &shardingMocks.NodesCoordinatorRegistryFactoryMock{},
 	}

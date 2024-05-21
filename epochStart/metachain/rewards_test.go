@@ -655,8 +655,8 @@ func TestRewardsCreator_ProtocolRewardsForValidatorFromMultipleShards(t *testing
 	assert.Equal(t, rwdInfo.address, pubkey)
 
 	assert.Equal(t, rwdInfo.accumulatedFees.Cmp(big.NewInt(200)), 0)
-	protocolRewards := uint64(valInfo.GetShardValidatorsInfoMap()[0][0].GetNumSelectedInSuccessBlocks()) * (mb.EpochStart.Economics.RewardsPerBlock.Uint64() / uint64(args.NodesConfigProvider.ConsensusGroupSize(0)))
-	protocolRewards += uint64(valInfo.GetShardValidatorsInfoMap()[core.MetachainShardId][0].GetNumSelectedInSuccessBlocks()) * (mb.EpochStart.Economics.RewardsPerBlock.Uint64() / uint64(args.NodesConfigProvider.ConsensusGroupSize(core.MetachainShardId)))
+	protocolRewards := uint64(valInfo.GetShardValidatorsInfoMap()[0][0].GetNumSelectedInSuccessBlocks()) * (mb.EpochStart.Economics.RewardsPerBlock.Uint64() / uint64(args.NodesConfigProvider.ConsensusGroupSizeForShardAndEpoch(0, 0)))
+	protocolRewards += uint64(valInfo.GetShardValidatorsInfoMap()[core.MetachainShardId][0].GetNumSelectedInSuccessBlocks()) * (mb.EpochStart.Economics.RewardsPerBlock.Uint64() / uint64(args.NodesConfigProvider.ConsensusGroupSizeForShardAndEpoch(core.MetachainShardId, 0)))
 	assert.Equal(t, rwdInfo.rewardsFromProtocol.Uint64(), protocolRewards)
 }
 

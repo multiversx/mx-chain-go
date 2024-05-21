@@ -35,6 +35,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	epochStartMocks "github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks/epochStart"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
@@ -48,7 +49,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/scheduledDataSyncer"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/shardingmock"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageMocks "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/syncer"
@@ -74,7 +74,7 @@ func createPkBytes(numShards uint32) map[uint32][]byte {
 }
 
 func createComponentsForEpochStart() (*mock.CoreComponentsMock, *mock.CryptoComponentsMock) {
-	chainParams := &shardingmock.ChainParametersHandlerStub{
+	chainParams := &chainParameters.ChainParametersHandlerStub{
 		CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
 			return config.ChainParametersByEpochConfig{
 				ShardConsensusGroupSize:     1,
@@ -95,7 +95,7 @@ func createComponentsForEpochStart() (*mock.CoreComponentsMock, *mock.CryptoComp
 			NodeTypeProviderField:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 			ProcessStatusHandlerInstance: &testscommon.ProcessStatusHandlerStub{},
 			HardforkTriggerPubKeyField:   []byte("provided hardfork pub key"),
-			EnableEpochsHandlerField:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			EnableEpochsHandlerField: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 				GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
 					if flag == common.StakingV4Step2Flag {
 						return 99999
@@ -103,7 +103,7 @@ func createComponentsForEpochStart() (*mock.CoreComponentsMock, *mock.CryptoComp
 					return 0
 				},
 			},
-			ChainParametersHandlerField:  chainParams,
+			ChainParametersHandlerField: chainParams,
 		},
 		&mock.CryptoComponentsMock{
 			PubKey:          &cryptoMocks.PublicKeyStub{},

@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
@@ -210,7 +211,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
 			&shardingMocks.NodesCoordinatorRegistryFactoryMock{},
-			&shardingMocks.ChainParametersHandlerStub{},
+			&chainParameters.ChainParametersHandlerStub{},
 		)
 		require.Equal(t, errErd.ErrNilShuffleOutCloser, err)
 		require.True(t, check.IfNil(nodesC))
@@ -237,7 +238,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
 			&shardingMocks.NodesCoordinatorRegistryFactoryMock{},
-			&shardingMocks.ChainParametersHandlerStub{},
+			&chainParameters.ChainParametersHandlerStub{},
 		)
 		require.Equal(t, errErd.ErrNilGenesisNodesSetupHandler, err)
 		require.True(t, check.IfNil(nodesC))
@@ -264,7 +265,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
 			&shardingMocks.NodesCoordinatorRegistryFactoryMock{},
-			&shardingMocks.ChainParametersHandlerStub{},
+			&chainParameters.ChainParametersHandlerStub{},
 		)
 		require.Equal(t, errErd.ErrNilEpochStartNotifier, err)
 		require.True(t, check.IfNil(nodesC))
@@ -291,7 +292,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
 			&shardingMocks.NodesCoordinatorRegistryFactoryMock{},
-			&shardingMocks.ChainParametersHandlerStub{},
+			&chainParameters.ChainParametersHandlerStub{},
 		)
 		require.Equal(t, errErd.ErrNilPublicKey, err)
 		require.True(t, check.IfNil(nodesC))
@@ -318,7 +319,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
 			&shardingMocks.NodesCoordinatorRegistryFactoryMock{},
-			&shardingMocks.ChainParametersHandlerStub{},
+			&chainParameters.ChainParametersHandlerStub{},
 		)
 		require.Equal(t, errErd.ErrNilBootstrapParamsHandler, err)
 		require.True(t, check.IfNil(nodesC))
@@ -345,7 +346,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
 			&shardingMocks.NodesCoordinatorRegistryFactoryMock{},
-			&shardingMocks.ChainParametersHandlerStub{},
+			&chainParameters.ChainParametersHandlerStub{},
 		)
 		require.Equal(t, nodesCoordinator.ErrNilNodeStopChannel, err)
 		require.True(t, check.IfNil(nodesC))
@@ -374,7 +375,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
 			&shardingMocks.NodesCoordinatorRegistryFactoryMock{},
-			&shardingMocks.ChainParametersHandlerStub{},
+			&chainParameters.ChainParametersHandlerStub{},
 		)
 		require.NotNil(t, err)
 		require.True(t, check.IfNil(nodesC))
@@ -407,7 +408,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
 			&shardingMocks.NodesCoordinatorRegistryFactoryMock{},
-			&shardingMocks.ChainParametersHandlerStub{},
+			&chainParameters.ChainParametersHandlerStub{},
 		)
 		require.True(t, errors.Is(err, expectedErr))
 		require.True(t, check.IfNil(nodesC))
@@ -440,7 +441,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
 			&shardingMocks.NodesCoordinatorRegistryFactoryMock{},
-			&shardingMocks.ChainParametersHandlerStub{},
+			&chainParameters.ChainParametersHandlerStub{},
 		)
 		require.True(t, errors.Is(err, expectedErr))
 		require.True(t, check.IfNil(nodesC))
@@ -473,7 +474,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
 			&shardingMocks.NodesCoordinatorRegistryFactoryMock{},
-			&shardingMocks.ChainParametersHandlerStub{},
+			&chainParameters.ChainParametersHandlerStub{},
 		)
 		require.NotNil(t, err)
 		require.True(t, check.IfNil(nodesC))
@@ -506,7 +507,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
 			&shardingMocks.NodesCoordinatorRegistryFactoryMock{},
-			&shardingMocks.ChainParametersHandlerStub{},
+			&chainParameters.ChainParametersHandlerStub{},
 		)
 		require.NotNil(t, err)
 		require.True(t, check.IfNil(nodesC))
@@ -560,7 +561,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
 			&shardingMocks.NodesCoordinatorRegistryFactoryMock{},
-			&shardingMocks.ChainParametersHandlerStub{},
+			&chainParameters.ChainParametersHandlerStub{},
 		)
 		require.NotNil(t, err)
 		require.True(t, check.IfNil(nodesC))
@@ -614,7 +615,7 @@ func TestCreateNodesCoordinator(t *testing.T) {
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			&validatorInfoCacherMocks.ValidatorInfoCacherStub{},
 			&shardingMocks.NodesCoordinatorRegistryFactoryMock{},
-			&shardingMocks.ChainParametersHandlerStub{},
+			&chainParameters.ChainParametersHandlerStub{},
 		)
 		require.Nil(t, err)
 		require.False(t, check.IfNil(nodesC))

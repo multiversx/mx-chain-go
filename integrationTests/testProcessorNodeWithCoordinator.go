@@ -14,9 +14,9 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage/cache"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
 )
 
@@ -63,7 +63,7 @@ func CreateProcessorNodesWithNodesCoordinator(
 		for i, v := range validatorList {
 			lruCache, _ := cache.NewLRUCache(10000)
 			argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-				ChainParametersHandler: &shardingMocks.ChainParametersHandlerStub{
+				ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
 					ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
 						return config.ChainParametersByEpochConfig{
 							ShardConsensusGroupSize:     uint32(shardConsensusGroupSize),
@@ -71,19 +71,19 @@ func CreateProcessorNodesWithNodesCoordinator(
 						}, nil
 					},
 				},
-				Marshalizer:         TestMarshalizer,
-				Hasher:              TestHasher,
-				ShardIDAsObserver:   shardId,
-				NbShards:            numShards,
-				EligibleNodes:       validatorsMapForNodesCoordinator,
-				WaitingNodes:        waitingMapForNodesCoordinator,
-				SelfPublicKey:       v.PubKeyBytes(),
-				ConsensusGroupCache: lruCache,
-				ShuffledOutHandler:  &mock.ShuffledOutHandlerStub{},
-				ChanStopNode:        endProcess.GetDummyEndProcessChannel(),
-				IsFullArchive:       false,
-				EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-				ValidatorInfoCacher: &vic.ValidatorInfoCacherStub{},
+				Marshalizer:              TestMarshalizer,
+				Hasher:                   TestHasher,
+				ShardIDAsObserver:        shardId,
+				NbShards:                 numShards,
+				EligibleNodes:            validatorsMapForNodesCoordinator,
+				WaitingNodes:             waitingMapForNodesCoordinator,
+				SelfPublicKey:            v.PubKeyBytes(),
+				ConsensusGroupCache:      lruCache,
+				ShuffledOutHandler:       &mock.ShuffledOutHandlerStub{},
+				ChanStopNode:             endProcess.GetDummyEndProcessChannel(),
+				IsFullArchive:            false,
+				EnableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+				ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
 				GenesisNodesSetupHandler: &genesisMocks.NodesSetupStub{},
 			}
 

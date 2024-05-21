@@ -129,6 +129,12 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 		return nil, err
 	}
 
+	configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[0].ShardMinNumNodes = args.MinNodesPerShard
+	configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[0].MetachainMinNumNodes = args.MetaChainMinNodes
+	configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[0].MetachainConsensusGroupSize = args.MetaChainConsensusGroupSize
+	configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[0].ShardConsensusGroupSize = args.ConsensusGroupSize
+	configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[0].RoundDuration = args.RoundDurationInMillis
+
 	node.ApplyArchCustomConfigs(configs)
 
 	if args.AlterConfigsFunction != nil {
@@ -277,12 +283,7 @@ func generateValidatorsKeyAndUpdateFiles(
 	nodes.RoundDuration = args.RoundDurationInMillis
 	nodes.StartTime = args.GenesisTimeStamp
 
-	nodes.ConsensusGroupSize = args.ConsensusGroupSize
-	nodes.MetaChainConsensusGroupSize = args.MetaChainConsensusGroupSize
 	nodes.Hysteresis = 0
-
-	nodes.MinNodesPerShard = args.MinNodesPerShard
-	nodes.MetaChainMinNodes = args.MetaChainMinNodes
 
 	nodes.InitialNodes = make([]*sharding.InitialNode, 0)
 	privateKeys := make([]crypto.PrivateKey, 0)

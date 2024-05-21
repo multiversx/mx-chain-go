@@ -71,32 +71,32 @@ type epochNodesConfig struct {
 }
 
 type indexHashedNodesCoordinator struct {
-	shardIDAsObserver             uint32
-	currentEpoch                  uint32
-	chainParametersHandler        ChainParametersHandler
-	numTotalEligible              uint64
-	selfPubKey                    []byte
-	savedStateKey                 []byte
-	marshalizer                   marshal.Marshalizer
-	hasher                        hashing.Hasher
-	shuffler                      NodesShuffler
-	epochStartRegistrationHandler EpochStartEventNotifier
-	bootStorer                    storage.Storer
-	nodesConfig                   map[uint32]*epochNodesConfig
-	mutNodesConfig                sync.RWMutex
-	mutSavedStateKey              sync.RWMutex
-	nodesCoordinatorHelper        NodesCoordinatorHelper
-	consensusGroupCacher          Cacher
-	loadingFromDisk               atomic.Value
-	shuffledOutHandler            ShuffledOutHandler
-	startEpoch                    uint32
-	publicKeyToValidatorMap       map[string]*validatorWithShardID
-	isFullArchive                 bool
-	chanStopNode                  chan endProcess.ArgEndProcess
-	nodeTypeProvider              NodeTypeProviderHandler
-	enableEpochsHandler           common.EnableEpochsHandler
-	validatorInfoCacher           epochStart.ValidatorInfoCacher
-	genesisNodesSetupHandler      GenesisNodesSetupHandler
+	shardIDAsObserver               uint32
+	currentEpoch                    uint32
+	chainParametersHandler          ChainParametersHandler
+	numTotalEligible                uint64
+	selfPubKey                      []byte
+	savedStateKey                   []byte
+	marshalizer                     marshal.Marshalizer
+	hasher                          hashing.Hasher
+	shuffler                        NodesShuffler
+	epochStartRegistrationHandler   EpochStartEventNotifier
+	bootStorer                      storage.Storer
+	nodesConfig                     map[uint32]*epochNodesConfig
+	mutNodesConfig                  sync.RWMutex
+	mutSavedStateKey                sync.RWMutex
+	nodesCoordinatorHelper          NodesCoordinatorHelper
+	consensusGroupCacher            Cacher
+	loadingFromDisk                 atomic.Value
+	shuffledOutHandler              ShuffledOutHandler
+	startEpoch                      uint32
+	publicKeyToValidatorMap         map[string]*validatorWithShardID
+	isFullArchive                   bool
+	chanStopNode                    chan endProcess.ArgEndProcess
+	nodeTypeProvider                NodeTypeProviderHandler
+	enableEpochsHandler             common.EnableEpochsHandler
+	validatorInfoCacher             epochStart.ValidatorInfoCacher
+	genesisNodesSetupHandler        GenesisNodesSetupHandler
 	flagStakingV4Step2              atomicFlags.Flag
 	nodesCoordinatorRegistryFactory NodesCoordinatorRegistryFactory
 	flagStakingV4Started            atomicFlags.Flag
@@ -127,27 +127,27 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 	savedKey := arguments.Hasher.Compute(string(arguments.SelfPublicKey))
 
 	ihnc := &indexHashedNodesCoordinator{
-		marshalizer:                   arguments.Marshalizer,
-		hasher:                        arguments.Hasher,
-		shuffler:                      arguments.Shuffler,
-		epochStartRegistrationHandler: arguments.EpochStartNotifier,
-		bootStorer:                    arguments.BootStorer,
-		selfPubKey:                    arguments.SelfPublicKey,
-		nodesConfig:                   nodesConfig,
-		currentEpoch:                  arguments.Epoch,
-		savedStateKey:                 savedKey,
-		chainParametersHandler:        arguments.ChainParametersHandler,
-		consensusGroupCacher:          arguments.ConsensusGroupCache,
-		shardIDAsObserver:             arguments.ShardIDAsObserver,
-		shuffledOutHandler:            arguments.ShuffledOutHandler,
-		startEpoch:                    arguments.StartEpoch,
-		publicKeyToValidatorMap:       make(map[string]*validatorWithShardID),
-		chanStopNode:                  arguments.ChanStopNode,
-		nodeTypeProvider:              arguments.NodeTypeProvider,
-		isFullArchive:                 arguments.IsFullArchive,
-		enableEpochsHandler:           arguments.EnableEpochsHandler,
-		validatorInfoCacher:           arguments.ValidatorInfoCacher,
-		genesisNodesSetupHandler:      arguments.GenesisNodesSetupHandler,
+		marshalizer:                     arguments.Marshalizer,
+		hasher:                          arguments.Hasher,
+		shuffler:                        arguments.Shuffler,
+		epochStartRegistrationHandler:   arguments.EpochStartNotifier,
+		bootStorer:                      arguments.BootStorer,
+		selfPubKey:                      arguments.SelfPublicKey,
+		nodesConfig:                     nodesConfig,
+		currentEpoch:                    arguments.Epoch,
+		savedStateKey:                   savedKey,
+		chainParametersHandler:          arguments.ChainParametersHandler,
+		consensusGroupCacher:            arguments.ConsensusGroupCache,
+		shardIDAsObserver:               arguments.ShardIDAsObserver,
+		shuffledOutHandler:              arguments.ShuffledOutHandler,
+		startEpoch:                      arguments.StartEpoch,
+		publicKeyToValidatorMap:         make(map[string]*validatorWithShardID),
+		chanStopNode:                    arguments.ChanStopNode,
+		nodeTypeProvider:                arguments.NodeTypeProvider,
+		isFullArchive:                   arguments.IsFullArchive,
+		enableEpochsHandler:             arguments.EnableEpochsHandler,
+		validatorInfoCacher:             arguments.ValidatorInfoCacher,
+		genesisNodesSetupHandler:        arguments.GenesisNodesSetupHandler,
 		nodesCoordinatorRegistryFactory: arguments.NodesCoordinatorRegistryFactory,
 	}
 
@@ -270,6 +270,11 @@ func (ihnc *indexHashedNodesCoordinator) setNodesPerShards(
 
 	if eligible == nil || waiting == nil {
 		return ErrNilInputNodesMap
+	}
+
+	currentChainParameters, err := ihnc.chainParametersHandler.ChainParametersForEpoch(epoch)
+	if err != nil {
+		return err
 	}
 
 	nodesList := eligible[core.MetachainShardId]

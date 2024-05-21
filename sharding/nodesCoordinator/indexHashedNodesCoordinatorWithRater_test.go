@@ -17,11 +17,11 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/sharding/mock"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/epochstartmock"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
-	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -78,7 +78,7 @@ func TestIndexHashedGroupSelectorWithRater_OkValShouldWork(t *testing.T) {
 	bootStorer := genericMocks.NewStorerMock()
 
 	arguments := ArgNodesCoordinator{
-		ChainParametersHandler: &shardingMocks.ChainParametersHandlerStub{
+		ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
 			CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
 				return config.ChainParametersByEpochConfig{
 					ShardConsensusGroupSize:     2,
@@ -86,23 +86,23 @@ func TestIndexHashedGroupSelectorWithRater_OkValShouldWork(t *testing.T) {
 				}
 			},
 		},
-		Marshalizer:              &mock.MarshalizerMock{},
-		Hasher:                   &hashingMocks.HasherMock{},
-		Shuffler:                 nodeShuffler,
-		EpochStartNotifier:       epochStartSubscriber,
-		BootStorer:               bootStorer,
-		NbShards:                 1,
-		EligibleNodes:            eligibleMap,
-		WaitingNodes:             waitingMap,
-		SelfPublicKey:            []byte("test"),
-		ConsensusGroupCache:      &mock.NodesCoordinatorCacheMock{},
-		ShuffledOutHandler:       &mock.ShuffledOutHandlerStub{},
-		ChanStopNode:             make(chan endProcess.ArgEndProcess),
-		NodeTypeProvider:         &nodeTypeProviderMock.NodeTypeProviderStub{},
-		IsFullArchive:            false,
-		EnableEpochsHandler:      &mock.EnableEpochsHandlerMock{},
-		ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
-		GenesisNodesSetupHandler: &mock.NodesSetupMock{},
+		Marshalizer:                     &mock.MarshalizerMock{},
+		Hasher:                          &hashingMocks.HasherMock{},
+		Shuffler:                        nodeShuffler,
+		EpochStartNotifier:              epochStartSubscriber,
+		BootStorer:                      bootStorer,
+		NbShards:                        1,
+		EligibleNodes:                   eligibleMap,
+		WaitingNodes:                    waitingMap,
+		SelfPublicKey:                   []byte("test"),
+		ConsensusGroupCache:             &mock.NodesCoordinatorCacheMock{},
+		ShuffledOutHandler:              &mock.ShuffledOutHandlerStub{},
+		ChanStopNode:                    make(chan endProcess.ArgEndProcess),
+		NodeTypeProvider:                &nodeTypeProviderMock.NodeTypeProviderStub{},
+		IsFullArchive:                   false,
+		EnableEpochsHandler:             &mock.EnableEpochsHandlerMock{},
+		ValidatorInfoCacher:             &vic.ValidatorInfoCacherStub{},
+		GenesisNodesSetupHandler:        &mock.NodesSetupMock{},
 		NodesCoordinatorRegistryFactory: createNodesCoordinatorRegistryFactory(),
 	}
 	nc, err := NewIndexHashedNodesCoordinator(arguments)
@@ -179,7 +179,7 @@ func BenchmarkIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup63of400(b 
 	bootStorer := genericMocks.NewStorerMock()
 
 	arguments := ArgNodesCoordinator{
-		ChainParametersHandler: &shardingMocks.ChainParametersHandlerStub{
+		ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
 			CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
 				return config.ChainParametersByEpochConfig{
 					ShardConsensusGroupSize:     uint32(consensusGroupSize),
@@ -258,7 +258,7 @@ func Test_ComputeValidatorsGroup63of400(t *testing.T) {
 	bootStorer := genericMocks.NewStorerMock()
 
 	arguments := ArgNodesCoordinator{
-		ChainParametersHandler: &shardingMocks.ChainParametersHandlerStub{
+		ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
 			CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
 				return config.ChainParametersByEpochConfig{
 					ShardConsensusGroupSize:     uint32(consensusGroupSize),
@@ -334,7 +334,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 	bootStorer := genericMocks.NewStorerMock()
 
 	arguments := ArgNodesCoordinator{
-		ChainParametersHandler: &shardingMocks.ChainParametersHandlerStub{
+		ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
 			CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
 				return config.ChainParametersByEpochConfig{
 					ShardConsensusGroupSize:     1,
@@ -342,23 +342,23 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 				}
 			},
 		},
-		Marshalizer:              &mock.MarshalizerMock{},
-		Hasher:                   &hashingMocks.HasherMock{},
-		Shuffler:                 nodeShuffler,
-		EpochStartNotifier:       epochStartSubscriber,
-		BootStorer:               bootStorer,
-		NbShards:                 1,
-		EligibleNodes:            eligibleMap,
-		WaitingNodes:             waitingMap,
-		SelfPublicKey:            []byte("key"),
-		ConsensusGroupCache:      &mock.NodesCoordinatorCacheMock{},
-		ShuffledOutHandler:       &mock.ShuffledOutHandlerStub{},
-		ChanStopNode:             make(chan endProcess.ArgEndProcess),
-		NodeTypeProvider:         &nodeTypeProviderMock.NodeTypeProviderStub{},
-		IsFullArchive:            false,
-		EnableEpochsHandler:      &mock.EnableEpochsHandlerMock{},
-		ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
-		GenesisNodesSetupHandler: &mock.NodesSetupMock{},
+		Marshalizer:                     &mock.MarshalizerMock{},
+		Hasher:                          &hashingMocks.HasherMock{},
+		Shuffler:                        nodeShuffler,
+		EpochStartNotifier:              epochStartSubscriber,
+		BootStorer:                      bootStorer,
+		NbShards:                        1,
+		EligibleNodes:                   eligibleMap,
+		WaitingNodes:                    waitingMap,
+		SelfPublicKey:                   []byte("key"),
+		ConsensusGroupCache:             &mock.NodesCoordinatorCacheMock{},
+		ShuffledOutHandler:              &mock.ShuffledOutHandlerStub{},
+		ChanStopNode:                    make(chan endProcess.ArgEndProcess),
+		NodeTypeProvider:                &nodeTypeProviderMock.NodeTypeProviderStub{},
+		IsFullArchive:                   false,
+		EnableEpochsHandler:             &mock.EnableEpochsHandlerMock{},
+		ValidatorInfoCacher:             &vic.ValidatorInfoCacherStub{},
+		GenesisNodesSetupHandler:        &mock.NodesSetupMock{},
 		NodesCoordinatorRegistryFactory: createNodesCoordinatorRegistryFactory(),
 	}
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
@@ -392,7 +392,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 	bootStorer := genericMocks.NewStorerMock()
 
 	arguments := ArgNodesCoordinator{
-		ChainParametersHandler: &shardingMocks.ChainParametersHandlerStub{
+		ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
 			CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
 				return config.ChainParametersByEpochConfig{
 					ShardConsensusGroupSize:     1,
@@ -400,23 +400,23 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldReturn
 				}
 			},
 		},
-		Marshalizer:              &mock.MarshalizerMock{},
-		Hasher:                   &hashingMocks.HasherMock{},
-		Shuffler:                 nodeShuffler,
-		EpochStartNotifier:       epochStartSubscriber,
-		BootStorer:               bootStorer,
-		NbShards:                 1,
-		EligibleNodes:            eligibleMap,
-		WaitingNodes:             waitingMap,
-		SelfPublicKey:            []byte("key"),
-		ConsensusGroupCache:      &mock.NodesCoordinatorCacheMock{},
-		ShuffledOutHandler:       &mock.ShuffledOutHandlerStub{},
-		ChanStopNode:             make(chan endProcess.ArgEndProcess),
-		NodeTypeProvider:         &nodeTypeProviderMock.NodeTypeProviderStub{},
-		IsFullArchive:            false,
-		EnableEpochsHandler:      &mock.EnableEpochsHandlerMock{},
-		ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
-		GenesisNodesSetupHandler: &mock.NodesSetupMock{},
+		Marshalizer:                     &mock.MarshalizerMock{},
+		Hasher:                          &hashingMocks.HasherMock{},
+		Shuffler:                        nodeShuffler,
+		EpochStartNotifier:              epochStartSubscriber,
+		BootStorer:                      bootStorer,
+		NbShards:                        1,
+		EligibleNodes:                   eligibleMap,
+		WaitingNodes:                    waitingMap,
+		SelfPublicKey:                   []byte("key"),
+		ConsensusGroupCache:             &mock.NodesCoordinatorCacheMock{},
+		ShuffledOutHandler:              &mock.ShuffledOutHandlerStub{},
+		ChanStopNode:                    make(chan endProcess.ArgEndProcess),
+		NodeTypeProvider:                &nodeTypeProviderMock.NodeTypeProviderStub{},
+		IsFullArchive:                   false,
+		EnableEpochsHandler:             &mock.EnableEpochsHandlerMock{},
+		ValidatorInfoCacher:             &vic.ValidatorInfoCacherStub{},
+		GenesisNodesSetupHandler:        &mock.NodesSetupMock{},
 		NodesCoordinatorRegistryFactory: createNodesCoordinatorRegistryFactory(),
 	}
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
@@ -464,7 +464,7 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldWork(t
 	eligibleMap[1] = listShard1
 
 	arguments := ArgNodesCoordinator{
-		ChainParametersHandler: &shardingMocks.ChainParametersHandlerStub{
+		ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
 			CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
 				return config.ChainParametersByEpochConfig{
 					ShardConsensusGroupSize:     1,
@@ -472,23 +472,23 @@ func TestIndexHashedGroupSelectorWithRater_GetValidatorWithPublicKeyShouldWork(t
 				}
 			},
 		},
-		Marshalizer:              &mock.MarshalizerMock{},
-		Hasher:                   &hashingMocks.HasherMock{},
-		Shuffler:                 nodeShuffler,
-		EpochStartNotifier:       epochStartSubscriber,
-		BootStorer:               bootStorer,
-		NbShards:                 2,
-		EligibleNodes:            eligibleMap,
-		WaitingNodes:             waitingMap,
-		SelfPublicKey:            []byte("key"),
-		ConsensusGroupCache:      &mock.NodesCoordinatorCacheMock{},
-		ShuffledOutHandler:       &mock.ShuffledOutHandlerStub{},
-		ChanStopNode:             make(chan endProcess.ArgEndProcess),
-		NodeTypeProvider:         &nodeTypeProviderMock.NodeTypeProviderStub{},
-		IsFullArchive:            false,
-		EnableEpochsHandler:      &mock.EnableEpochsHandlerMock{},
-		ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
-		GenesisNodesSetupHandler: &mock.NodesSetupMock{},
+		Marshalizer:                     &mock.MarshalizerMock{},
+		Hasher:                          &hashingMocks.HasherMock{},
+		Shuffler:                        nodeShuffler,
+		EpochStartNotifier:              epochStartSubscriber,
+		BootStorer:                      bootStorer,
+		NbShards:                        2,
+		EligibleNodes:                   eligibleMap,
+		WaitingNodes:                    waitingMap,
+		SelfPublicKey:                   []byte("key"),
+		ConsensusGroupCache:             &mock.NodesCoordinatorCacheMock{},
+		ShuffledOutHandler:              &mock.ShuffledOutHandlerStub{},
+		ChanStopNode:                    make(chan endProcess.ArgEndProcess),
+		NodeTypeProvider:                &nodeTypeProviderMock.NodeTypeProviderStub{},
+		IsFullArchive:                   false,
+		EnableEpochsHandler:             &mock.EnableEpochsHandlerMock{},
+		ValidatorInfoCacher:             &vic.ValidatorInfoCacherStub{},
+		GenesisNodesSetupHandler:        &mock.NodesSetupMock{},
 		NodesCoordinatorRegistryFactory: createNodesCoordinatorRegistryFactory(),
 	}
 	nc, _ := NewIndexHashedNodesCoordinator(arguments)
@@ -552,7 +552,7 @@ func TestIndexHashedGroupSelectorWithRater_GetAllEligibleValidatorsPublicKeys(t 
 	eligibleMap[shardOneId] = listShard1
 
 	arguments := ArgNodesCoordinator{
-		ChainParametersHandler: &shardingMocks.ChainParametersHandlerStub{
+		ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
 			CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
 				return config.ChainParametersByEpochConfig{
 					ShardConsensusGroupSize:     1,
@@ -560,24 +560,24 @@ func TestIndexHashedGroupSelectorWithRater_GetAllEligibleValidatorsPublicKeys(t 
 				}
 			},
 		},
-		Marshalizer:              &mock.MarshalizerMock{},
-		Hasher:                   &hashingMocks.HasherMock{},
-		Shuffler:                 nodeShuffler,
-		EpochStartNotifier:       epochStartSubscriber,
-		BootStorer:               bootStorer,
-		ShardIDAsObserver:        shardZeroId,
-		NbShards:                 2,
-		EligibleNodes:            eligibleMap,
-		WaitingNodes:             waitingMap,
-		SelfPublicKey:            []byte("key"),
-		ConsensusGroupCache:      &mock.NodesCoordinatorCacheMock{},
-		ShuffledOutHandler:       &mock.ShuffledOutHandlerStub{},
-		ChanStopNode:             make(chan endProcess.ArgEndProcess),
-		NodeTypeProvider:         &nodeTypeProviderMock.NodeTypeProviderStub{},
-		IsFullArchive:            false,
-		EnableEpochsHandler:      &mock.EnableEpochsHandlerMock{},
-		ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
-		GenesisNodesSetupHandler: &mock.NodesSetupMock{},
+		Marshalizer:                     &mock.MarshalizerMock{},
+		Hasher:                          &hashingMocks.HasherMock{},
+		Shuffler:                        nodeShuffler,
+		EpochStartNotifier:              epochStartSubscriber,
+		BootStorer:                      bootStorer,
+		ShardIDAsObserver:               shardZeroId,
+		NbShards:                        2,
+		EligibleNodes:                   eligibleMap,
+		WaitingNodes:                    waitingMap,
+		SelfPublicKey:                   []byte("key"),
+		ConsensusGroupCache:             &mock.NodesCoordinatorCacheMock{},
+		ShuffledOutHandler:              &mock.ShuffledOutHandlerStub{},
+		ChanStopNode:                    make(chan endProcess.ArgEndProcess),
+		NodeTypeProvider:                &nodeTypeProviderMock.NodeTypeProviderStub{},
+		IsFullArchive:                   false,
+		EnableEpochsHandler:             &mock.EnableEpochsHandlerMock{},
+		ValidatorInfoCacher:             &vic.ValidatorInfoCacherStub{},
+		GenesisNodesSetupHandler:        &mock.NodesSetupMock{},
 		NodesCoordinatorRegistryFactory: createNodesCoordinatorRegistryFactory(),
 	}
 
@@ -863,7 +863,7 @@ func BenchmarkIndexHashedWithRaterGroupSelector_ComputeValidatorsGroup21of400(b 
 	bootStorer := genericMocks.NewStorerMock()
 
 	arguments := ArgNodesCoordinator{
-		ChainParametersHandler: &shardingMocks.ChainParametersHandlerStub{
+		ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
 			CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
 				return config.ChainParametersByEpochConfig{
 					ShardConsensusGroupSize:     uint32(consensusGroupSize),

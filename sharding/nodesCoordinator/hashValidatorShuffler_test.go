@@ -16,7 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/sharding/mock"
-	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -37,7 +37,7 @@ type testChainParametersCreator struct {
 }
 
 func (t testChainParametersCreator) build() ChainParametersHandler {
-	return &shardingMocks.ChainParametersHandlerStub{
+	return &chainParameters.ChainParametersHandlerStub{
 		CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
 			return config.ChainParametersByEpochConfig{
 				EnableEpoch:                 0,

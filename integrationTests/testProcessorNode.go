@@ -104,6 +104,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	dblookupextMock "github.com/multiversx/mx-chain-go/testscommon/dblookupext"
@@ -1245,7 +1246,7 @@ func CreateRatingsData() *rating.RatingsData {
 
 	ratingDataArgs := rating.RatingsDataArg{
 		Config:                    ratingsConfig,
-		ChainParametersHolder:     &shardingMocks.ChainParametersHolderMock{},
+		ChainParametersHolder:     &chainParameters.ChainParametersHolderMock{},
 		EpochNotifier:             &epochNotifier.EpochNotifierStub{},
 		RoundDurationMilliseconds: 6000,
 	}

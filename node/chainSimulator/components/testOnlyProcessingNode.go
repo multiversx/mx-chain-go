@@ -317,6 +317,7 @@ func (node *testOnlyProcessingNode) createNodesCoordinator(pref config.Preferenc
 		node.CoreComponentsHolder.EnableEpochsHandler(),
 		node.DataPool.CurrentEpochValidatorInfo(),
 		node.BootstrapComponentsHolder.NodesCoordinatorRegistryFactory(),
+		node.CoreComponentsHolder.ChainParametersHandler(),
 	)
 	if err != nil {
 		return err

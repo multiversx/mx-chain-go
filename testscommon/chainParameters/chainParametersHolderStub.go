@@ -1,4 +1,4 @@
-package shardingmock
+package chainParameters
 
 import "github.com/multiversx/mx-chain-go/config"
 

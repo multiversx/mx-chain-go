@@ -1,17 +1,17 @@
-package shardingmock
+package chainParameters
 
 import (
 	"github.com/multiversx/mx-chain-go/config"
 )
 
 var testChainParams = config.ChainParametersByEpochConfig{
-	RoundDuration:               4000,
+	RoundDuration:               6000,
 	Hysteresis:                  0,
 	EnableEpoch:                 0,
-	ShardConsensusGroupSize:     5,
-	ShardMinNumNodes:            7,
-	MetachainConsensusGroupSize: 5,
-	MetachainMinNumNodes:        5,
+	ShardConsensusGroupSize:     1,
+	ShardMinNumNodes:            1,
+	MetachainConsensusGroupSize: 1,
+	MetachainMinNumNodes:        1,
 	Adaptivity:                  false,
 }
 

@@ -31,6 +31,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
@@ -39,7 +40,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/scheduledDataSyncer"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/shardingmock"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
@@ -235,7 +235,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 	coreComponents.NodeTypeProviderField = &nodeTypeProviderMock.NodeTypeProviderStub{}
 	coreComponents.ChanStopNodeProcessField = endProcess.GetDummyEndProcessChannel()
 	coreComponents.HardforkTriggerPubKeyField = []byte("provided hardfork pub key")
-	coreComponents.ChainParametersHandlerField = &shardingmock.ChainParametersHandlerStub{}
+	coreComponents.ChainParametersHandlerField = &chainParameters.ChainParametersHandlerStub{}
 
 	nodesCoordinatorRegistryFactory, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
 		&marshallerMock.MarshalizerMock{},
