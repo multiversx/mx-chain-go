@@ -46,7 +46,7 @@ export SEEDNODE="$SEEDNODEDIR/seednode"   # Leave unchanged.
 
 # Niceness value of the Seednode, Observer Nodes and Validator Nodes. Leave
 # blank to not adjust niceness.
-export NODE_NICENESS=10
+export NODE_NICENESS=-20
 
 # Start a watcher daemon for each validator node, which restarts the node if it
 # is suffled out of its shard.
