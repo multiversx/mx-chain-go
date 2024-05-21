@@ -41,7 +41,7 @@ var (
 	signingCryptoSuite       = ed25519.NewEd25519()
 	contentMarshalizer       = &marshal.GogoProtoMarshalizer{}
 	contentHasher            = blake2b.NewBlake2b()
-	mintingValue, _          = big.NewInt(0).SetString("50000000000000000000", 10)
+	mintingValue, _          = big.NewInt(0).SetString("500000000000000000000", 10)
 	knownControllerPubKeyHex = "7ceebf63655808038f5d034cace2baed8b501cd23344ec4d094b3e2df65c2f97"
 )
 
