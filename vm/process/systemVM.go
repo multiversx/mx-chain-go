@@ -70,6 +70,9 @@ func NewSystemVM(args ArgsNewSystemVM) (*systemVM, error) {
 
 // RunSmartContractCreate creates and saves a new smart contract to the trie
 func (s *systemVM) RunSmartContractCreate(input *vmcommon.ContractCreateInput) (*vmcommon.VMOutput, error) {
+	s.criticalSection.Lock()
+	defer s.criticalSection.Unlock()
+
 	if input == nil {
 		return nil, vm.ErrInputArgsIsNil
 	}
