@@ -46,25 +46,25 @@ const processingThresholdPercent = 85
 const srStartStartTime = 0.0
 
 // srEndStartTime specifies the end time, from the total time of the round, of Subround Start
-const srStartEndTime = 0.05
+const srStartEndTime = 0.01
 
 // srBlockStartTime specifies the start time, from the total time of the round, of Subround Block
-const srBlockStartTime = 0.05
+const srBlockStartTime = 0.01
 
 // srBlockEndTime specifies the end time, from the total time of the round, of Subround Block
-const srBlockEndTime = 0.25
+const srBlockEndTime = 0.27
 
 // srSignatureStartTime specifies the start time, from the total time of the round, of Subround Signature
-const srSignatureStartTime = 0.25
+const srSignatureStartTime = 0.27
 
 // srSignatureEndTime specifies the end time, from the total time of the round, of Subround Signature
-const srSignatureEndTime = 0.85
+const srSignatureEndTime = 0.98
 
 // srEndStartTime specifies the start time, from the total time of the round, of Subround End
-const srEndStartTime = 0.85
+const srEndStartTime = 0.98
 
 // srEndEndTime specifies the end time, from the total time of the round, of Subround End
-const srEndEndTime = 0.95
+const srEndEndTime = 0.99
 
 const (
 	// BlockBodyAndHeaderStringValue represents the string to be used to identify a block body and a block header

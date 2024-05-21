@@ -235,13 +235,21 @@ func (ed *economicsData) ComputeMoveBalanceFee(tx data.TransactionWithFeeHandler
 	return ed.ComputeMoveBalanceFeeInEpoch(tx, currentEpoch)
 }
 
+var mulMap = make(map[string]*big.Int)
+
 // ComputeMoveBalanceFeeInEpoch computes the provided transaction's fee in a specific epoch
 func (ed *economicsData) ComputeMoveBalanceFeeInEpoch(tx data.TransactionWithFeeHandler, epoch uint32) *big.Int {
 	if isSmartContractResult(tx) {
 		return big.NewInt(0)
 	}
 
-	return core.SafeMul(ed.GasPriceForMove(tx), ed.ComputeGasLimitInEpoch(tx, epoch))
+	key := fmt.Sprintf("%d_%d", ed.GasPriceForMove(tx), ed.ComputeGasLimitInEpoch(tx, epoch))
+	v, ok := mulMap[key]
+	if !ok {
+		v = core.SafeMul(ed.GasPriceForMove(tx), ed.ComputeGasLimitInEpoch(tx, epoch))
+		mulMap[key] = v
+	}
+	return v
 }
 
 // ComputeFeeForProcessing will compute the fee using the gas price modifier, the gas to use and the actual gas price
@@ -285,25 +293,25 @@ func (ed *economicsData) ComputeTxFee(tx data.TransactionWithFeeHandler) *big.In
 
 // ComputeTxFeeInEpoch computes the provided transaction's fee in a specific epoch
 func (ed *economicsData) ComputeTxFeeInEpoch(tx data.TransactionWithFeeHandler, epoch uint32) *big.Int {
-	if ed.enableEpochsHandler.IsFlagEnabledInEpoch(common.GasPriceModifierFlag, epoch) {
-		if isSmartContractResult(tx) {
-			return ed.ComputeFeeForProcessingInEpoch(tx, tx.GetGasLimit(), epoch)
-		}
-
-		gasLimitForMoveBalance, difference := ed.SplitTxGasInCategoriesInEpoch(tx, epoch)
-		moveBalanceFee := core.SafeMul(ed.GasPriceForMove(tx), gasLimitForMoveBalance)
-		if tx.GetGasLimit() <= gasLimitForMoveBalance {
-			return moveBalanceFee
-		}
-
-		extraFee := ed.ComputeFeeForProcessingInEpoch(tx, difference, epoch)
-		moveBalanceFee.Add(moveBalanceFee, extraFee)
-		return moveBalanceFee
-	}
-
-	if ed.enableEpochsHandler.IsFlagEnabledInEpoch(common.PenalizedTooMuchGasFlag, epoch) {
-		return core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
-	}
+	//if ed.enableEpochsHandler.IsFlagEnabledInEpoch(common.GasPriceModifierFlag, epoch) {
+	//	if isSmartContractResult(tx) {
+	//		return ed.ComputeFeeForProcessingInEpoch(tx, tx.GetGasLimit(), epoch)
+	//	}
+	//
+	//	gasLimitForMoveBalance, difference := ed.SplitTxGasInCategoriesInEpoch(tx, epoch)
+	//	moveBalanceFee := core.SafeMul(ed.GasPriceForMove(tx), gasLimitForMoveBalance)
+	//	if tx.GetGasLimit() <= gasLimitForMoveBalance {
+	//		return moveBalanceFee
+	//	}
+	//
+	//	extraFee := ed.ComputeFeeForProcessingInEpoch(tx, difference, epoch)
+	//	moveBalanceFee.Add(moveBalanceFee, extraFee)
+	//	return moveBalanceFee
+	//}
+	//
+	//if ed.enableEpochsHandler.IsFlagEnabledInEpoch(common.PenalizedTooMuchGasFlag, epoch) {
+	//	return core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
+	//}
 
 	return ed.ComputeMoveBalanceFeeInEpoch(tx, epoch)
 }

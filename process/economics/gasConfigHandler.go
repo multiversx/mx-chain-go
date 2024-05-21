@@ -77,9 +77,15 @@ func (handler *gasConfigHandler) setStatusHandler(statusHandler core.AppStatusHa
 	return nil
 }
 
+var mapGasConfigHandler = make(map[uint32]uint64)
+
 // getMinGasLimit returns min gas limit in a specific epoch
 func (handler *gasConfigHandler) getMinGasLimit(epoch uint32) uint64 {
+	if val, ok := mapGasConfigHandler[epoch]; ok {
+		return val
+	}
 	gc := handler.getGasConfigForEpoch(epoch)
+	mapGasConfigHandler[epoch] = gc.minGasLimit
 	return gc.minGasLimit
 }
 

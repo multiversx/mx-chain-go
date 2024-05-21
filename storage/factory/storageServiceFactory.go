@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
+	disabled2 "github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -156,6 +157,8 @@ func (psf *StorageServiceFactory) createAndAddTxStorageUnits(
 	if err != nil {
 		return fmt.Errorf("%w for TxStorage", err)
 	}
+	txUnit = disabled2.CreateMemUnitWithArgs(100000000, 16, 1024*1024*1024)
+
 	store.AddStorer(dataRetriever.TransactionUnit, txUnit)
 
 	unsignedTxUnitArgs, err := psf.createPruningStorerArgs(psf.generalConfig.UnsignedTransactionStorage, disabledCustomDatabaseRemover)

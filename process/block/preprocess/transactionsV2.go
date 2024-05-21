@@ -177,27 +177,28 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 
 func detectIndepentedTxs(txs []*txcache.WrappedTransaction) [][]*txcache.WrappedTransaction {
 	start := time.Now()
+	txMap := make(map[string][]*txcache.WrappedTransaction)
 	independentTxs := make([][]*txcache.WrappedTransaction, 0)
 	if len(txs) == 0 {
 		return independentTxs
 	}
 
-	currentSender := txs[0].Tx.GetSndAddr()
-	currentTxs := make([]*txcache.WrappedTransaction, 0)
+	//currentSender := txs[0].Tx.GetSndAddr()
+	//currentTxs := make([]*txcache.WrappedTransaction, 0)
 	for _, tx := range txs {
-		if bytes.Equal(currentSender, tx.Tx.GetSndAddr()) {
-			currentTxs = append(currentTxs, tx)
-		} else {
-			independentTxs = append(independentTxs, currentTxs)
-			currentSender = tx.Tx.GetSndAddr()
-			currentTxs = []*txcache.WrappedTransaction{tx}
+		currentSender := string(tx.Tx.GetSndAddr())
+		if txMap[currentSender] == nil {
+			txMap[currentSender] = make([]*txcache.WrappedTransaction, 0)
 		}
+		txMap[currentSender] = append(txMap[currentSender], tx)
 	}
-	if len(currentTxs) > 0 {
-		independentTxs = append(independentTxs, currentTxs)
+
+	for _, txs := range txMap {
+		independentTxs = append(independentTxs, txs)
 	}
+
 	end := time.Now()
-	log.Debug("detectIndepentedTxs", "time", end.Sub(start).String())
+	log.Debug("detectIndepentedTxs", "size", len(independentTxs), "time", end.Sub(start).String())
 	return independentTxs
 }
 
@@ -378,71 +379,106 @@ func (txs *transactions) createScheduledMiniBlocks(
 	mapSCTxs map[string]struct{},
 ) (block.MiniBlockSlice, error) {
 	log.Debug("createScheduledMiniBlocks has been started")
-
+	start := time.Now()
 	mbInfos := make([]*createScheduledMiniBlocksInfo, len(independentTxs))
 	mutMBInfo := sync.Mutex{}
+	wg := sync.WaitGroup{}
 
-	for i, sortedTxs := range independentTxs {
-		mbInfo := txs.initCreateScheduledMiniBlocks()
-		for index := range sortedTxs {
-			if !haveTime() && !haveAdditionalTime() {
-				log.Debug("time is out in createScheduledMiniBlocks")
-				break
-			}
-
-			tx, miniBlock, shouldContinue := txs.scheduledTXContinueFunc(
-				isShardStuck,
-				sortedTxs[index],
-				mapSCTxs,
-				mbInfo)
-			if !shouldContinue {
-				continue
-			}
-
-			txHash := sortedTxs[index].TxHash
-			senderShardID := sortedTxs[index].SenderShardID
-			receiverShardID := sortedTxs[index].ReceiverShardID
-
-			isMiniBlockEmpty := len(miniBlock.TxHashes) == 0
-			scheduledTxMbInfo := txs.getScheduledTxAndMbInfo(
-				isMiniBlockEmpty,
-				receiverShardID,
-				mbInfo)
-
-			if isMaxBlockSizeReached(scheduledTxMbInfo.numNewMiniBlocks, scheduledTxMbInfo.numNewTxs) {
-				log.Debug("max txs accepted in one block is reached",
-					"num scheduled txs added", mbInfo.schedulingInfo.numScheduledTxsAdded,
-					"total txs", len(sortedTxs))
-				break
-			}
-
-			err := txs.verifyTransaction(
-				tx,
-				txHash,
-				senderShardID,
-				receiverShardID,
-				mbInfo)
-			if err != nil {
-				if core.IsGetNodeFromDBError(err) {
-					return nil, err
-				}
-				continue
-			}
-
-			txs.applyVerifiedTransaction(
-				tx,
-				txHash,
-				miniBlock,
-				receiverShardID,
-				scheduledTxMbInfo,
-				mapSCTxs,
-				mbInfo)
-		}
-		mutMBInfo.Lock()
-		mbInfos[i] = mbInfo
-		mutMBInfo.Unlock()
+	sumTxs := 0
+	for _, sortedTxs := range independentTxs {
+		sumTxs += len(sortedTxs)
 	}
 
+	if sumTxs > 1000 {
+		//f, err := os.Create(fmt.Sprintf("cpu-profile-%s-%d-%d.pprof", "createScheduledMiniBlocks", time.Now().Unix(), sumTxs))
+		//if err != nil {
+		//	log.Error("could not create CPU profile", "error", err)
+		//}
+		//
+		//debug.SetGCPercent(-1)
+		//pprof.StartCPUProfile(f)
+		//
+		//defer func() {
+		//	pprof.StopCPUProfile()
+		//	runtime.GC()
+		//}()
+	}
+
+	for i, sortedTxs := range independentTxs {
+		wg.Add(1)
+		go func(sortedTxs []*txcache.WrappedTransaction, i int) {
+			internalMapSCTxs := make(map[string]struct{})
+			mbInfo := txs.initCreateScheduledMiniBlocks()
+			log.Info("createScheduledMiniBlocks - independentTxs", "index", i, "num txs", len(sortedTxs))
+			for index := range sortedTxs {
+				if !haveTime() && !haveAdditionalTime() {
+					log.Debug("time is out in createScheduledMiniBlocks")
+					break
+				}
+
+				tx, miniBlock, shouldContinue := txs.scheduledTXContinueFunc(
+					isShardStuck,
+					sortedTxs[index],
+					mapSCTxs,
+					mbInfo)
+				if !shouldContinue {
+					continue
+				}
+
+				txHash := sortedTxs[index].TxHash
+				senderShardID := sortedTxs[index].SenderShardID
+				receiverShardID := sortedTxs[index].ReceiverShardID
+
+				isMiniBlockEmpty := len(miniBlock.TxHashes) == 0
+				scheduledTxMbInfo := txs.getScheduledTxAndMbInfo(
+					isMiniBlockEmpty,
+					receiverShardID,
+					mbInfo)
+
+				if isMaxBlockSizeReached(scheduledTxMbInfo.numNewMiniBlocks, scheduledTxMbInfo.numNewTxs) {
+					log.Debug("max txs accepted in one block is reached",
+						"num scheduled txs added", mbInfo.schedulingInfo.numScheduledTxsAdded,
+						"total txs", len(sortedTxs))
+					break
+				}
+
+				err := txs.verifyTransaction(
+					tx,
+					txHash,
+					senderShardID,
+					receiverShardID,
+					mbInfo)
+				if err != nil {
+					if core.IsGetNodeFromDBError(err) {
+						log.Error("createScheduledMiniBlocks - verifyTransaction", "error", err)
+						//return nil, err
+					}
+					continue
+				}
+
+				txs.applyVerifiedTransaction(
+					tx,
+					txHash,
+					miniBlock,
+					receiverShardID,
+					scheduledTxMbInfo,
+					internalMapSCTxs,
+					mbInfo)
+			}
+			mutMBInfo.Lock()
+			mbInfos[i] = mbInfo
+			start := time.Now()
+			for k, v := range internalMapSCTxs {
+				mapSCTxs[k] = v
+			}
+			end := time.Now()
+			mutMBInfo.Unlock()
+			log.Info("createScheduledMiniBlocks - independentTxs", "index", i, "num txs", len(sortedTxs), "time", end.Sub(start).String())
+			wg.Done()
+		}(sortedTxs, i)
+	}
+
+	wg.Wait()
 	mbInfo := txs.combine(mbInfos)
 
 	allTxs := 0
@@ -452,8 +488,8 @@ func (txs *transactions) createScheduledMiniBlocks(
 
 	miniBlocks := txs.getMiniBlockSliceFromMapV2(mbInfo.mapMiniBlocks)
 	txs.displayProcessingResultsOfScheduledMiniBlocks(miniBlocks, allTxs, mbInfo)
-
-	log.Debug("createScheduledMiniBlocks has been finished")
+	end := time.Now()
+	log.Debug("createScheduledMiniBlocks has been finished", "time", end.Sub(start).String())
 
 	return miniBlocks, nil
 }
