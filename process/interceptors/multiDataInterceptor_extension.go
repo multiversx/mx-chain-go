@@ -123,7 +123,6 @@ func (ext *MultiDataInterceptorExtension) doProcess(interceptedData process.Inte
 	shouldStartProcessing := function == "ext_start_processing"
 	shouldEndProcessing := function == "ext_end_processing"
 	shouldRunScenarioMoveBalances := function == "ext_run_scenario_move_balances"
-	shouldRunScenarioESDTTransfer := function == "ext_run_scenario_esdt_transfer"
 
 	if shouldInit {
 		err := ext.doStepInit(tx.GetSndAddr(), args)
@@ -167,15 +166,6 @@ func (ext *MultiDataInterceptorExtension) doProcess(interceptedData process.Inte
 		err := ext.runScenarioMoveBalances(tx.GetSndAddr(), args)
 		if err != nil {
 			log.Error("MultiDataInterceptorExtension: failed to run scenario: move balances", "error", err)
-		}
-
-		return
-	}
-
-	if shouldRunScenarioESDTTransfer {
-		err := ext.runScenarioESDTTransfer(tx.GetSndAddr(), args)
-		if err != nil {
-			log.Error("MultiDataInterceptorExtension: failed to run scenario: esdt transfer", "error", err)
 		}
 
 		return
@@ -285,21 +275,6 @@ func (ext *MultiDataInterceptorExtension) createMintingTransactions() []*transac
 		txs = append(txs, tx)
 	}
 
-	for i := 0; i < len(ext.participants); i++ {
-		tx := &transaction.Transaction{
-			Nonce:    sponsorAccount.GetNonce() + uint64(i) + uint64(len(ext.participants)),
-			Value:    big.NewInt(0),
-			RcvAddr:  ext.participants[i].pubKey,
-			SndAddr:  ext.sponsor.pubKey,
-			GasPrice: 1000000000,
-			GasLimit: 500000,
-			Data:     []byte("ESDTTransfer@5745474c442d626434643739@3635c9adc5dea00000"),
-			Version:  1,
-		}
-
-		txs = append(txs, tx)
-	}
-
 	return txs
 }
 
@@ -363,41 +338,6 @@ func (ext *MultiDataInterceptorExtension) doStepGenerateMoveBalances(args [][]by
 	return nil
 }
 
-func (ext *MultiDataInterceptorExtension) doStepGenerateESDTTransfer(args [][]byte) error {
-	if len(args) != 1 {
-		return fmt.Errorf("doStepGenerateESDTTransfer: invalid number of arguments")
-	}
-
-	preprocess.ShouldProcess.Store(false)
-
-	numTxsBytes := args[0]
-	numTxs := int(big.NewInt(0).SetBytes(numTxsBytes).Int64())
-
-	log.Info("MultiDataInterceptorExtension.doStepGenerateESDTTransfer", "numTxs", numTxs)
-
-	preprocess.ShouldProcess.Store(false)
-
-	wg := sync.WaitGroup{}
-
-	for i := 0; i < len(ext.participants); i++ {
-		wg.Add(1)
-
-		go func(i int) {
-			transfers := ext.createTransfers(ext.participants[i], ext.destinations[i], numTxs, big.NewInt(0), []byte("ESDTTransfer@5745474c442d626434643739@64"), 500000)
-			ext.addTransactionsInTool(transfers)
-			wg.Done()
-		}(i)
-	}
-
-	wg.Wait()
-
-	time.Sleep(5 * time.Second)
-
-	preprocess.ShouldProcess.Store(true)
-
-	return nil
-}
-
 func (ext *MultiDataInterceptorExtension) createTransfers(sender *participant, destination *participant, numTxs int, value *big.Int, data []byte, gasLimit uint64) []*transaction.Transaction {
 	txs := make([]*transaction.Transaction, 0, numTxs)
 
@@ -455,39 +395,6 @@ func (ext *MultiDataInterceptorExtension) runScenarioMoveBalances(sponsorPubKey 
 	time.Sleep(15 * time.Second)
 
 	err = ext.doStepGenerateMoveBalances([][]byte{numTransactionsBytes})
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (ext *MultiDataInterceptorExtension) runScenarioESDTTransfer(sponsorPubKey []byte, args [][]byte) error {
-	if len(args) != 2 && len(args) != 4 {
-		return fmt.Errorf("MultiDataInterceptorExtension.runScenarioESDTTransfer: invalid number of arguments")
-	}
-
-	log.Info("MultiDataInterceptorExtension.runScenarioESDTTransfer")
-
-	numParticipantsBytes := args[0]
-	numTransactionsBytes := args[1]
-
-	if len(args) == 4 {
-		maxTransactionsToTakeBytes := args[2]
-		maxTransactionsPerParticipant := args[3]
-
-		preprocess.NumOfTxsToSelect = int(big.NewInt(0).SetBytes(maxTransactionsToTakeBytes).Int64())
-		preprocess.NumTxPerSenderBatch = int(big.NewInt(0).SetBytes(maxTransactionsPerParticipant).Int64())
-	}
-
-	err := ext.doStepInit(sponsorPubKey, [][]byte{numParticipantsBytes})
-	if err != nil {
-		return err
-	}
-
-	time.Sleep(15 * time.Second)
-
-	err = ext.doStepGenerateESDTTransfer([][]byte{numTransactionsBytes})
 	if err != nil {
 		return err
 	}
