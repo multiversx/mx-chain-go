@@ -3,14 +3,6 @@
 # TMUX support is in development.
 TERMWRAPPER="nohup"
 
-if [ -n "$(command -v "konsole")" ]
-then
-  export TERMWRAPPER="konsole"
-elif [ -n "$(command -v "gnome-terminal")" ]
-then
-  export TERMWRAPPER="gnome-terminal"
-fi
-
 export CURRENT_TMUX_SESSION=""
 export CURRENT_TMUX_LAYOUT="tiled"
 declare -A TMUX_SESSION_PANES
