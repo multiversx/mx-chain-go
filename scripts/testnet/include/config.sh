@@ -344,26 +344,18 @@ generateProxyObserverList() {
 generateSovereignProxyObserverList() {
   OBSERVER_INDEX=0
   OUTPUTFILE=$!
+
   # Start Shard Observers
-  (( max_shard_id=$SHARDCOUNT - 1 ))
-  for SHARD in $(seq 0 1 $max_shard_id); do
-    for _ in $(seq $SHARD_OBSERVERCOUNT); do
-      (( PORT=$PORT_ORIGIN_OBSERVER_REST+$OBSERVER_INDEX))
+  echo "[[Observers]]" >> config_edit.toml
+  echo "   ShardId = 0" >> config_edit.toml
+  echo "   Address = \"http://127.0.0.1:$PORT_ORIGIN_VALIDATOR_REST\"" >> config_edit.toml
+  echo ""$'\n' >> config_edit.toml
 
-      echo "[[Observers]]" >> config_edit.toml
-      echo "   ShardId = $SHARD" >> config_edit.toml
-      echo "   Address = \"http://127.0.0.1:$PORT\"" >> config_edit.toml
-      echo ""$'\n' >> config_edit.toml
-
-      # for sovereign shards, shard observers are also able to respond to Metachain related endpoints - useful so we can reuse the Proxy without changes
-      echo "[[Observers]]" >> config_edit.toml
-      echo "   ShardId = $METASHARD_ID" >> config_edit.toml
-      echo "   Address = \"http://127.0.0.1:$PORT\"" >> config_edit.toml
-      echo ""$'\n' >> config_edit.toml
-
-      (( OBSERVER_INDEX++ ))
-    done
-  done
+  # for sovereign shards, shard observers are also able to respond to Metachain related endpoints - useful so we can reuse the Proxy without changes
+  echo "[[Observers]]" >> config_edit.toml
+  echo "   ShardId = $METASHARD_ID" >> config_edit.toml
+  echo "   Address = \"http://127.0.0.1:$PORT_ORIGIN_VALIDATOR_REST\"" >> config_edit.toml
+  echo ""$'\n' >> config_edit.toml
 }
 
 updateTOMLValue() {
