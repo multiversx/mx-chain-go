@@ -1092,23 +1092,37 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 		vp, _ := NewValidatorsProvider(args)
 		time.Sleep(args.CacheRefreshIntervalDurationInSec)
 
-		numCalls := 100
+		numCalls := 99
 		wg := sync.WaitGroup{}
 		wg.Add(numCalls)
 
 		for i := 0; i < numCalls; i++ {
-			go func() {
-				list, err := vp.GetAuctionList()
-				require.NoError(t, err)
-				require.Empty(t, list)
+			go func(idx int) {
+				switch idx % 3 {
+				case 0:
+					list, err := vp.GetAuctionList()
+					require.NoError(t, err)
+					require.Empty(t, list)
+				case 1:
+					err := vp.ForceUpdate()
+					require.NoError(t, err)
+				case 2:
+					_ = vp.GetLatestValidators()
+				}
 
 				wg.Done()
-			}()
+			}(i)
 		}
 
 		wg.Wait()
 
-		require.LessOrEqual(t, ctRootHashCalled, uint32(2)) // another call might be from constructor in startRefreshProcess.updateCache
+		// expectedMaxNumCalls is:
+		// 	- 1 from constructor
+		//	- 1 from GetAuctionList, should not update second time
+		// 	- 1 from GetLatestValidators, should not update second time
+		//	- 33 calls * 2 from ForceUpdate, calling it twice/call
+		expectedMaxNumCalls := uint32(1 + 1 + 1 + 66)
+		require.LessOrEqual(t, ctRootHashCalled, expectedMaxNumCalls)
 
 		require.NoError(t, vp.Close())
 	})
