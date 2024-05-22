@@ -3,7 +3,6 @@ package outport
 import (
 	"fmt"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -13,34 +12,21 @@ import (
 
 var log = logger.GetOrCreate("outport")
 
-const maxTimeForDriverCall = time.Second * 30
-const minimumRetrialInterval = time.Millisecond * 10
-
 type outport struct {
-	mutex             sync.RWMutex
-	drivers           []Driver
-	retrialInterval   time.Duration
-	chanClose         chan struct{}
-	logHandler        func(logLevel logger.LogLevel, message string, args ...interface{})
-	timeForDriverCall time.Duration
-	messageCounter    uint64
-	config            outportcore.OutportConfig
+	mutex          sync.RWMutex
+	drivers        []Driver
+	chanClose      chan struct{}
+	messageCounter uint64
+	config         outportcore.OutportConfig
 }
 
 // NewOutport will create a new instance of proxy
 func NewOutport(retrialInterval time.Duration, cfg outportcore.OutportConfig) (*outport, error) {
-	if retrialInterval < minimumRetrialInterval {
-		return nil, fmt.Errorf("%w, provided: %d, minimum: %d", ErrInvalidRetrialInterval, retrialInterval, minimumRetrialInterval)
-	}
-
 	return &outport{
-		drivers:           make([]Driver, 0),
-		mutex:             sync.RWMutex{},
-		retrialInterval:   retrialInterval,
-		chanClose:         make(chan struct{}),
-		logHandler:        log.Log,
-		timeForDriverCall: maxTimeForDriverCall,
-		config:            cfg,
+		drivers:   make([]Driver, 0),
+		mutex:     sync.RWMutex{},
+		chanClose: make(chan struct{}),
+		config:    cfg,
 	}, nil
 }
 
@@ -54,13 +40,16 @@ func (o *outport) SaveBlock(args *outportcore.OutportBlockWithHeaderAndBody) err
 	}
 
 	for _, driver := range o.drivers {
-		blockData, err := prepareBlockData(args.HeaderDataWithBody, driver)
-		if err != nil {
-			return err
-		}
+		go func(driver Driver) {
+			blockData, err := prepareBlockData(args.HeaderDataWithBody, driver)
+			if err != nil {
+				log.Error("error preparing block data for SaveBlock", "error", err)
+				return
+			}
 
-		args.OutportBlock.BlockData = blockData
-		go o.doSaveBlock(args.OutportBlock, driver)
+			args.OutportBlock.BlockData = blockData
+			o.doSaveBlock(args.OutportBlock, driver)
+		}(driver)
 	}
 
 	return nil
@@ -94,46 +83,12 @@ func prepareBlockData(
 	}, nil
 }
 
-func (o *outport) monitorCompletionOnDriver(function string, driver Driver) chan struct{} {
-	counter := atomic.AddUint64(&o.messageCounter, 1)
-
-	o.logHandler(logger.LogDebug, "outport.monitorCompletionOnDriver starting",
-		"function", function, "driver", driverString(driver), "message counter", counter)
-	ch := make(chan struct{})
-	go func(startTime time.Time) {
-		timer := time.NewTimer(o.timeForDriverCall)
-
-		select {
-		case <-ch:
-			o.logHandler(logger.LogDebug, "outport.monitorCompletionOnDriver ended",
-				"function", function, "driver", driverString(driver), "message counter", counter, "time", time.Since(startTime))
-		case <-timer.C:
-			o.logHandler(logger.LogWarning, "outport.monitorCompletionOnDriver took too long",
-				"function", function, "driver", driverString(driver), "message counter", counter, "time", o.timeForDriverCall)
-		}
-
-		timer.Stop()
-	}(time.Now())
-
-	return ch
-}
-
 func (o *outport) doSaveBlock(args *outportcore.OutportBlock, driver Driver) {
 	err := driver.SaveBlock(args)
 	if err != nil {
 		log.Error("error calling SaveBlock, will retry",
 			"driver", driverString(driver),
-			"retrial in", o.retrialInterval,
 			"error", err)
-	}
-}
-
-func (o *outport) shouldTerminate() bool {
-	select {
-	case <-o.chanClose:
-		return true
-	case <-time.After(o.retrialInterval):
-		return false
 	}
 }
 
@@ -143,35 +98,27 @@ func (o *outport) RevertIndexedBlock(headerDataWithBody *outportcore.HeaderDataW
 	defer o.mutex.RUnlock()
 
 	for _, driver := range o.drivers {
-		blockData, err := prepareBlockData(headerDataWithBody, driver)
-		if err != nil {
-			return err
-		}
+		go func(driver Driver) {
+			blockData, err := prepareBlockData(headerDataWithBody, driver)
+			if err != nil {
+				log.Error("error preparing block data for RevertIndexedBlock", "error", err)
+				return
+			}
 
-		o.revertIndexedBlockBlocking(blockData, driver)
+			o.doRevertIndexedBlock(blockData, driver)
+		}(driver)
+
 	}
 
 	return nil
 }
 
-func (o *outport) revertIndexedBlockBlocking(blockData *outportcore.BlockData, driver Driver) {
-	ch := o.monitorCompletionOnDriver("revertIndexedBlockBlocking", driver)
-	defer close(ch)
-
-	for {
-		err := driver.RevertIndexedBlock(blockData)
-		if err == nil {
-			return
-		}
-
+func (o *outport) doRevertIndexedBlock(blockData *outportcore.BlockData, driver Driver) {
+	err := driver.RevertIndexedBlock(blockData)
+	if err != nil {
 		log.Error("error calling RevertIndexedBlock, will retry",
 			"driver", driverString(driver),
-			"retrial in", o.retrialInterval,
 			"error", err)
-
-		if o.shouldTerminate() {
-			return
-		}
 	}
 }
 
@@ -181,28 +128,16 @@ func (o *outport) SaveRoundsInfo(roundsInfo *outportcore.RoundsInfo) {
 	defer o.mutex.RUnlock()
 
 	for _, driver := range o.drivers {
-		o.saveRoundsInfoBlocking(roundsInfo, driver)
+		go o.doSaveRoundsInfo(roundsInfo, driver)
 	}
 }
 
-func (o *outport) saveRoundsInfoBlocking(roundsInfo *outportcore.RoundsInfo, driver Driver) {
-	ch := o.monitorCompletionOnDriver("saveRoundsInfoBlocking", driver)
-	defer close(ch)
-
-	for {
-		err := driver.SaveRoundsInfo(roundsInfo)
-		if err == nil {
-			return
-		}
-
+func (o *outport) doSaveRoundsInfo(roundsInfo *outportcore.RoundsInfo, driver Driver) {
+	err := driver.SaveRoundsInfo(roundsInfo)
+	if err != nil {
 		log.Error("error calling SaveRoundsInfo, will retry",
 			"driver", driverString(driver),
-			"retrial in", o.retrialInterval,
 			"error", err)
-
-		if o.shouldTerminate() {
-			return
-		}
 	}
 }
 
@@ -212,28 +147,16 @@ func (o *outport) SaveValidatorsPubKeys(validatorsPubKeys *outportcore.Validator
 	defer o.mutex.RUnlock()
 
 	for _, driver := range o.drivers {
-		o.saveValidatorsPubKeysBlocking(validatorsPubKeys, driver)
+		go o.doSaveValidatorsPubKeys(validatorsPubKeys, driver)
 	}
 }
 
-func (o *outport) saveValidatorsPubKeysBlocking(validatorsPubKeys *outportcore.ValidatorsPubKeys, driver Driver) {
-	ch := o.monitorCompletionOnDriver("saveValidatorsPubKeysBlocking", driver)
-	defer close(ch)
-
-	for {
-		err := driver.SaveValidatorsPubKeys(validatorsPubKeys)
-		if err == nil {
-			return
-		}
-
+func (o *outport) doSaveValidatorsPubKeys(validatorsPubKeys *outportcore.ValidatorsPubKeys, driver Driver) {
+	err := driver.SaveValidatorsPubKeys(validatorsPubKeys)
+	if err != nil {
 		log.Error("error calling SaveValidatorsPubKeys, will retry",
 			"driver", driverString(driver),
-			"retrial in", o.retrialInterval,
 			"error", err)
-
-		if o.shouldTerminate() {
-			return
-		}
 	}
 }
 
@@ -243,28 +166,16 @@ func (o *outport) SaveValidatorsRating(validatorsRating *outportcore.ValidatorsR
 	defer o.mutex.RUnlock()
 
 	for _, driver := range o.drivers {
-		o.saveValidatorsRatingBlocking(validatorsRating, driver)
+		go o.doSaveValidatorsRating(validatorsRating, driver)
 	}
 }
 
-func (o *outport) saveValidatorsRatingBlocking(validatorsRating *outportcore.ValidatorsRating, driver Driver) {
-	ch := o.monitorCompletionOnDriver("saveValidatorsRatingBlocking", driver)
-	defer close(ch)
-
-	for {
-		err := driver.SaveValidatorsRating(validatorsRating)
-		if err == nil {
-			return
-		}
-
+func (o *outport) doSaveValidatorsRating(validatorsRating *outportcore.ValidatorsRating, driver Driver) {
+	err := driver.SaveValidatorsRating(validatorsRating)
+	if err != nil {
 		log.Error("error calling SaveValidatorsRating, will retry",
 			"driver", driverString(driver),
-			"retrial in", o.retrialInterval,
 			"error", err)
-
-		if o.shouldTerminate() {
-			return
-		}
 	}
 }
 
@@ -274,28 +185,16 @@ func (o *outport) SaveAccounts(accounts *outportcore.Accounts) {
 	defer o.mutex.RUnlock()
 
 	for _, driver := range o.drivers {
-		o.saveAccountsBlocking(accounts, driver)
+		go o.saveAccounts(accounts, driver)
 	}
 }
 
-func (o *outport) saveAccountsBlocking(accounts *outportcore.Accounts, driver Driver) {
-	ch := o.monitorCompletionOnDriver("saveAccountsBlocking", driver)
-	defer close(ch)
-
-	for {
-		err := driver.SaveAccounts(accounts)
-		if err == nil {
-			return
-		}
-
+func (o *outport) saveAccounts(accounts *outportcore.Accounts, driver Driver) {
+	err := driver.SaveAccounts(accounts)
+	if err != nil {
 		log.Error("error calling SaveAccounts, will retry",
 			"driver", driverString(driver),
-			"retrial in", o.retrialInterval,
 			"error", err)
-
-		if o.shouldTerminate() {
-			return
-		}
 	}
 }
 
@@ -314,7 +213,6 @@ func (o *outport) doFinalizedBlock(finalizedBlock *outportcore.FinalizedBlock, d
 	if err != nil {
 		log.Error("error calling FinalizedBlock, will retry",
 			"driver", driverString(driver),
-			"retrial in", o.retrialInterval,
 			"error", err)
 	}
 }
