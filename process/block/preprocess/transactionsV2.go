@@ -55,7 +55,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 
 	mutIndependent := sync.Mutex{}
 	allRemainingTxs := make([]*txcache.WrappedTransaction, 0)
-	mbInfos := make([]*createAndProcessMiniBlocksInfo, 0)
+	mbInfos := make([]*createAndProcessMiniBlocksInfo, len(independentTxs))
 
 	wg := sync.WaitGroup{}
 	for i, st := range independentTxs {
@@ -132,7 +132,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 			}
 			mutIndependent.Lock()
 			allRemainingTxs = append(allRemainingTxs, remainingTxs...)
-			mbInfos = append(mbInfos, mbInfo)
+			mbInfos[thread] = mbInfo
 			mutIndependent.Unlock()
 			wg.Done()
 		}(st, i)
