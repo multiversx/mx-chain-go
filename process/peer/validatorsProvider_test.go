@@ -1044,6 +1044,75 @@ func TestValidatorsProvider_GetAuctionList(t *testing.T) {
 		require.Equal(t, expectedList, list)
 	})
 
+	t.Run("concurrent calls should only update cache once", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultValidatorsProviderArg()
+
+		args.CacheRefreshIntervalDurationInSec = time.Second * 5
+
+		expectedRootHash := []byte("root hash")
+		ctRootHashCalled := uint32(0)
+		ctSelectNodesFromAuctionList := uint32(0)
+		ctFillValidatorInfoCalled := uint32(0)
+		ctGetOwnersDataCalled := uint32(0)
+		ctComputeUnqualifiedNodes := uint32(0)
+
+		args.ValidatorStatistics = &testscommon.ValidatorStatisticsProcessorStub{
+			LastFinalizedRootHashCalled: func() []byte {
+				atomic.AddUint32(&ctRootHashCalled, 1)
+				return expectedRootHash
+			},
+			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (state.ShardValidatorsInfoMapHandler, error) {
+				require.Equal(t, expectedRootHash, rootHash)
+				return state.NewShardValidatorsInfoMap(), nil
+			},
+		}
+		args.AuctionListSelector = &stakingcommon.AuctionListSelectorStub{
+			SelectNodesFromAuctionListCalled: func(validatorsInfoMap state.ShardValidatorsInfoMapHandler, randomness []byte) error {
+				atomic.AddUint32(&ctSelectNodesFromAuctionList, 1)
+				require.Equal(t, expectedRootHash, randomness)
+				return nil
+			},
+		}
+		args.StakingDataProvider = &stakingcommon.StakingDataProviderStub{
+			FillValidatorInfoCalled: func(validator state.ValidatorInfoHandler) error {
+				atomic.AddUint32(&ctFillValidatorInfoCalled, 1)
+				return nil
+			},
+			GetOwnersDataCalled: func() map[string]*epochStart.OwnerData {
+				atomic.AddUint32(&ctGetOwnersDataCalled, 1)
+				return nil
+			},
+			ComputeUnQualifiedNodesCalled: func(validatorInfos state.ShardValidatorsInfoMapHandler) ([][]byte, map[string][][]byte, error) {
+				atomic.AddUint32(&ctComputeUnqualifiedNodes, 1)
+				return nil, nil, nil
+			},
+		}
+		vp, _ := NewValidatorsProvider(args)
+		time.Sleep(args.CacheRefreshIntervalDurationInSec)
+
+		numCalls := 100
+		wg := sync.WaitGroup{}
+		wg.Add(numCalls)
+
+		for i := 0; i < numCalls; i++ {
+			go func() {
+				list, err := vp.GetAuctionList()
+				require.NoError(t, err)
+				require.Empty(t, list)
+
+				wg.Done()
+			}()
+		}
+
+		wg.Wait()
+
+		require.LessOrEqual(t, ctRootHashCalled, uint32(2)) // another call might be from constructor in startRefreshProcess.updateCache
+
+		require.NoError(t, vp.Close())
+	})
+
 }
 
 func createMockValidatorInfo() *state.ValidatorInfo {
