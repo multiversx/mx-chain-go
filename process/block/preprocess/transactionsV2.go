@@ -412,18 +412,18 @@ func (txs *transactions) createScheduledMiniBlocks(
 	}
 
 	if sumTxs > 1000 {
-		//f, err := os.Create(fmt.Sprintf("cpu-profile-%s-%d-%d.pprof", "createScheduledMiniBlocks", time.Now().Unix(), sumTxs))
-		//if err != nil {
-		//	log.Error("could not create CPU profile", "error", err)
-		//}
-		//
-		//debug.SetGCPercent(-1)
-		//pprof.StartCPUProfile(f)
-		//
-		//defer func() {
-		//	pprof.StopCPUProfile()
-		//	runtime.GC()
-		//}()
+		f, err := os.Create(fmt.Sprintf("cpu-profile-%s-%d-%d.pprof", "createScheduledMiniBlocks", time.Now().Unix(), sumTxs))
+		if err != nil {
+			log.Error("could not create CPU profile", "error", err)
+		}
+
+		debug.SetGCPercent(-1)
+		pprof.StartCPUProfile(f)
+
+		defer func() {
+			pprof.StopCPUProfile()
+			runtime.GC()
+		}()
 	}
 
 	for i, sortedTxs := range independentTxs {

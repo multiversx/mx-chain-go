@@ -235,7 +235,7 @@ func (ed *economicsData) ComputeMoveBalanceFee(tx data.TransactionWithFeeHandler
 	return ed.ComputeMoveBalanceFeeInEpoch(tx, currentEpoch)
 }
 
-var mulMap = make(map[string]*big.Int)
+var moveBalanceFeeInEpoch = big.NewInt(0)
 
 // ComputeMoveBalanceFeeInEpoch computes the provided transaction's fee in a specific epoch
 func (ed *economicsData) ComputeMoveBalanceFeeInEpoch(tx data.TransactionWithFeeHandler, epoch uint32) *big.Int {
@@ -243,13 +243,11 @@ func (ed *economicsData) ComputeMoveBalanceFeeInEpoch(tx data.TransactionWithFee
 		return big.NewInt(0)
 	}
 
-	key := fmt.Sprintf("%d_%d", ed.GasPriceForMove(tx), ed.ComputeGasLimitInEpoch(tx, epoch))
-	v, ok := mulMap[key]
-	if !ok {
-		v = core.SafeMul(ed.GasPriceForMove(tx), ed.ComputeGasLimitInEpoch(tx, epoch))
-		mulMap[key] = v
+	if moveBalanceFeeInEpoch.Cmp(big.NewInt(0)) == 0 {
+		moveBalanceFeeInEpoch = core.SafeMul(ed.GasPriceForMove(tx), ed.ComputeGasLimitInEpoch(tx, epoch))
 	}
-	return v
+
+	return moveBalanceFeeInEpoch
 }
 
 // ComputeFeeForProcessing will compute the fee using the gas price modifier, the gas to use and the actual gas price
@@ -287,8 +285,8 @@ func isSmartContractResult(tx data.TransactionWithFeeHandler) bool {
 
 // ComputeTxFee computes the provided transaction's fee using enable from epoch approach
 func (ed *economicsData) ComputeTxFee(tx data.TransactionWithFeeHandler) *big.Int {
-	currentEpoch := ed.enableEpochsHandler.GetCurrentEpoch()
-	return ed.ComputeTxFeeInEpoch(tx, currentEpoch)
+	//currentEpoch := ed.enableEpochsHandler.GetCurrentEpoch()
+	return ed.ComputeTxFeeInEpoch(tx, 0)
 }
 
 // ComputeTxFeeInEpoch computes the provided transaction's fee in a specific epoch

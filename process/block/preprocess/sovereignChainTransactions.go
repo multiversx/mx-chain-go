@@ -186,14 +186,14 @@ func (sct *sovereignChainTransactions) isTransactionEligibleForExecution(tx *tra
 		return err, false
 	}
 
-	senderAccount, _, errGetAccounts := sct.txProcessor.GetSenderAndReceiverAccounts(tx)
-	if check.IfNil(senderAccount) {
-		log.Debug("sovereignChainTransactions.isTransactionEligibleForExecution: GetSenderAndReceiverAccounts", "error", errGetAccounts)
-		return errGetAccounts, false
-	}
-
 	accntInfo, found := sct.accntsTracker.getAccountInfo(tx.GetSndAddr())
 	if !found {
+		senderAccount, _, errGetAccounts := sct.txProcessor.GetSenderAndReceiverAccounts(tx)
+		if check.IfNil(senderAccount) {
+			log.Debug("sovereignChainTransactions.isTransactionEligibleForExecution: GetSenderAndReceiverAccounts", "error", errGetAccounts)
+			return errGetAccounts, false
+		}
+
 		accntInfo = accountInfo{
 			nonce:   senderAccount.GetNonce(),
 			balance: big.NewInt(0).Set(senderAccount.GetBalance()),

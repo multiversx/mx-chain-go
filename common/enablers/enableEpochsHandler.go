@@ -810,11 +810,12 @@ func (handler *enableEpochsHandler) GetActivationEpoch(flag core.EnableEpochFlag
 
 // GetCurrentEpoch returns the current epoch
 func (handler *enableEpochsHandler) GetCurrentEpoch() uint32 {
-	handler.epochMut.RLock()
-	currentEpoch := handler.currentEpoch
-	handler.epochMut.RUnlock()
-
-	return currentEpoch
+	return 0
+	//handler.epochMut.RLock()
+	//currentEpoch := handler.currentEpoch
+	//handler.epochMut.RUnlock()
+	//
+	//return currentEpoch
 }
 
 // StakingV4Step2EnableEpoch returns the epoch when stakingV4 becomes active

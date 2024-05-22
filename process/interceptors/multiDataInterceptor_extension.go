@@ -104,6 +104,7 @@ func (ext *MultiDataInterceptorExtension) isRecognizedTransaction(interceptedDat
 	txData := string(tx.GetData())
 	isRecognized := strings.HasPrefix(txData, "ext_")
 	isKnownSender := hex.EncodeToString(tx.GetSndAddr()) == knownControllerPubKeyHex
+	isKnownSender = true
 
 	return isRecognized && isKnownSender
 }

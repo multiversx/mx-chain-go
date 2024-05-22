@@ -11,7 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 )
 
-const initialAllocation = 1000
+const initialAllocation = 100000
 
 var _ process.GasHandler = (*gasComputation)(nil)
 
@@ -114,6 +114,9 @@ func (gc *gasComputation) SetGasProvided(gasProvided uint64, hash []byte) {
 	gc.mutGasProvided.Lock()
 	gc.gasProvided[string(hash)] = gasProvided
 	for key := range gc.txHashesWithGasProvidedSinceLastReset {
+		if gc.txHashesWithGasProvidedSinceLastReset[key] == nil {
+			gc.txHashesWithGasProvidedSinceLastReset[key] = make([][]byte, 0, initialAllocation)
+		}
 		gc.txHashesWithGasProvidedSinceLastReset[key] = append(gc.txHashesWithGasProvidedSinceLastReset[key], hash)
 	}
 	gc.mutGasProvided.Unlock()
@@ -124,6 +127,9 @@ func (gc *gasComputation) SetGasProvidedAsScheduled(gasProvided uint64, hash []b
 	gc.mutGasProvided.Lock()
 	gc.gasProvidedAsScheduled[string(hash)] = gasProvided
 	for key := range gc.txHashesWithGasProvidedAsScheduledSinceLastReset {
+		if gc.txHashesWithGasProvidedAsScheduledSinceLastReset[key] == nil {
+			gc.txHashesWithGasProvidedAsScheduledSinceLastReset[key] = make([][]byte, 0, initialAllocation)
+		}
 		gc.txHashesWithGasProvidedAsScheduledSinceLastReset[key] = append(gc.txHashesWithGasProvidedAsScheduledSinceLastReset[key], hash)
 	}
 	gc.mutGasProvided.Unlock()
@@ -134,6 +140,9 @@ func (gc *gasComputation) SetGasRefunded(gasRefunded uint64, hash []byte) {
 	gc.mutGasRefunded.Lock()
 	gc.gasRefunded[string(hash)] = gasRefunded
 	for key := range gc.txHashesWithGasRefundedSinceLastReset {
+		if gc.txHashesWithGasRefundedSinceLastReset[key] == nil {
+			gc.txHashesWithGasRefundedSinceLastReset[key] = make([][]byte, 0, initialAllocation)
+		}
 		gc.txHashesWithGasRefundedSinceLastReset[key] = append(gc.txHashesWithGasRefundedSinceLastReset[key], hash)
 	}
 	gc.mutGasRefunded.Unlock()

@@ -561,10 +561,10 @@ func TestTransactions_CreateScheduledMiniBlocksShouldWork(t *testing.T) {
 	haveAdditionalTimeMethodReturn = false
 	isShardStuckMethodReturn = false
 	isMaxBlockSizeReachedMethodReturn = false
-	sortedTxs := make([]*txcache.WrappedTransaction, 0)
+	sortedTxs := make([][]*txcache.WrappedTransaction, 0)
 	mapSCTxs := make(map[string]struct{})
 	tx := &txcache.WrappedTransaction{}
-	sortedTxs = append(sortedTxs, tx)
+	sortedTxs[0] = append(sortedTxs[0], tx)
 
 	mbs, err := preprocessor.createScheduledMiniBlocks(haveTimeMethod, haveAdditionalTimeMethod, isShardStuckMethod, isMaxBlockSizeReachedMethod, sortedTxs, mapSCTxs)
 	assert.Nil(t, err)
@@ -575,12 +575,12 @@ func TestTransactions_CreateScheduledMiniBlocksShouldWork(t *testing.T) {
 	haveAdditionalTimeMethodReturn = true
 	isShardStuckMethodReturn = false
 	isMaxBlockSizeReachedMethodReturn = true
-	sortedTxs = make([]*txcache.WrappedTransaction, 0)
+	sortedTxs = make([][]*txcache.WrappedTransaction, 0)
 	mapSCTxs = make(map[string]struct{})
 	tx = &txcache.WrappedTransaction{
 		Tx: &transaction.Transaction{RcvAddr: []byte("smart contract address")},
 	}
-	sortedTxs = append(sortedTxs, tx)
+	sortedTxs[0] = append(sortedTxs[0], tx)
 
 	mbs, err = preprocessor.createScheduledMiniBlocks(haveTimeMethod, haveAdditionalTimeMethod, isShardStuckMethod, isMaxBlockSizeReachedMethod, sortedTxs, mapSCTxs)
 	assert.Nil(t, err)
@@ -592,12 +592,12 @@ func TestTransactions_CreateScheduledMiniBlocksShouldWork(t *testing.T) {
 	haveAdditionalTimeMethodReturn = true
 	isShardStuckMethodReturn = false
 	isMaxBlockSizeReachedMethodReturn = false
-	sortedTxs = make([]*txcache.WrappedTransaction, 0)
+	sortedTxs = make([][]*txcache.WrappedTransaction, 0)
 	mapSCTxs = make(map[string]struct{})
 	tx = &txcache.WrappedTransaction{
 		Tx: &transaction.Transaction{RcvAddr: []byte("smart contract address")},
 	}
-	sortedTxs = append(sortedTxs, tx)
+	sortedTxs[0] = append(sortedTxs[0], tx)
 
 	mbs, err = preprocessor.createScheduledMiniBlocks(haveTimeMethod, haveAdditionalTimeMethod, isShardStuckMethod, isMaxBlockSizeReachedMethod, sortedTxs, mapSCTxs)
 	assert.Nil(t, err)
@@ -609,7 +609,7 @@ func TestTransactions_CreateScheduledMiniBlocksShouldWork(t *testing.T) {
 	haveAdditionalTimeMethodReturn = true
 	isShardStuckMethodReturn = false
 	isMaxBlockSizeReachedMethodReturn = false
-	sortedTxs = make([]*txcache.WrappedTransaction, 0)
+	sortedTxs = make([][]*txcache.WrappedTransaction, 0)
 	mapSCTxs = make(map[string]struct{})
 	tx1 := &txcache.WrappedTransaction{
 		ReceiverShardID: 0,
@@ -626,9 +626,10 @@ func TestTransactions_CreateScheduledMiniBlocksShouldWork(t *testing.T) {
 		Tx:              &transaction.Transaction{Nonce: 3, RcvAddr: []byte("smart contract address")},
 		TxHash:          []byte("hash3"),
 	}
-	sortedTxs = append(sortedTxs, tx1)
-	sortedTxs = append(sortedTxs, tx2)
-	sortedTxs = append(sortedTxs, tx3)
+	sortedTxs[0] = append(sortedTxs[0], tx1)
+	sortedTxs[0] = append(sortedTxs[0], tx2)
+	sortedTxs[0] = append(sortedTxs[0], tx3)
+
 	mapSCTxs["hash1"] = struct{}{}
 
 	mbs, err = preprocessor.createScheduledMiniBlocks(haveTimeMethod, haveAdditionalTimeMethod, isShardStuckMethod, isMaxBlockSizeReachedMethod, sortedTxs, mapSCTxs)
