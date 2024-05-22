@@ -387,6 +387,10 @@ func (ext *MultiDataInterceptorExtension) runScenarioMoveBalances(sponsorPubKey 
 		preprocess.NumTxPerSenderBatch = int(big.NewInt(0).SetBytes(maxTransactionsPerParticipant).Int64())
 	}
 
+	numParticipants := big.NewInt(0).SetBytes(numParticipantsBytes).Uint64()
+	preprocess.NumOfParallelProcesses.Store(numParticipants)
+	preprocess.NumOfParallelProcesses.Store(10)
+
 	err := ext.doStepInit(sponsorPubKey, [][]byte{numParticipantsBytes})
 	if err != nil {
 		return err

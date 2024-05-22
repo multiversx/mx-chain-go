@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"runtime/debug"
 	"runtime/pprof"
+	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -175,10 +176,16 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 	return miniBlocks, allRemainingTxs, mbInfo.mapSCTxs, nil
 }
 
+type SenderTxs struct {
+	Transactions []*txcache.WrappedTransaction
+	TotalTxs     int
+}
+
 func detectIndepentedTxs(txs []*txcache.WrappedTransaction) [][]*txcache.WrappedTransaction {
 	start := time.Now()
-	txMap := make(map[string][]*txcache.WrappedTransaction)
-	independentTxs := make([][]*txcache.WrappedTransaction, 0)
+	txMap := make(map[string]*SenderTxs)
+	maxParallelProcesses := int(NumOfParallelProcesses.Load())
+	independentTxs := make([][]*txcache.WrappedTransaction, maxParallelProcesses)
 	if len(txs) == 0 {
 		return independentTxs
 	}
@@ -188,17 +195,32 @@ func detectIndepentedTxs(txs []*txcache.WrappedTransaction) [][]*txcache.Wrapped
 	for _, tx := range txs {
 		currentSender := string(tx.Tx.GetSndAddr())
 		if txMap[currentSender] == nil {
-			txMap[currentSender] = make([]*txcache.WrappedTransaction, 0)
+			txMap[currentSender] = &SenderTxs{
+				Transactions: make([]*txcache.WrappedTransaction, 0, 10000),
+				TotalTxs:     0,
+			}
 		}
-		txMap[currentSender] = append(txMap[currentSender], tx)
+		txMap[currentSender].Transactions = append(txMap[currentSender].Transactions, tx)
+		txMap[currentSender].TotalTxs++
+	}
+	senders := make([]SenderTxs, len(txMap))
+	i := 0
+	for _, senderTxs := range txMap {
+		senders[i] = *senderTxs
+		i++
 	}
 
-	for _, txs := range txMap {
-		independentTxs = append(independentTxs, txs)
+	sort.Slice(senders, func(i, j int) bool {
+		return senders[i].TotalTxs > senders[j].TotalTxs
+	})
+
+	for index, senderTxs := range senders {
+		processIndex := index % maxParallelProcesses
+		independentTxs[processIndex] = append(independentTxs[processIndex], senderTxs.Transactions...)
 	}
 
 	end := time.Now()
-	log.Debug("detectIndepentedTxs", "size", len(independentTxs), "time", end.Sub(start).String())
+	log.Debug("detectIndependentTxs", "size", len(independentTxs), "time", end.Sub(start).String())
 	return independentTxs
 }
 

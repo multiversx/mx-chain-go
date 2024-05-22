@@ -10,6 +10,7 @@ import (
 
 var NumOfTxsToSelect = process.MaxNumOfTxsToSelect
 var NumTxPerSenderBatch = process.NumTxPerSenderBatchForFillingMiniblock
+var NumOfParallelProcesses = atomic.Uint64{}
 var Decrease atomic.Bool
 
 // TODO: Refactor "transactions.go" to not require the components in this file anymore

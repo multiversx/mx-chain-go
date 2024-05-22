@@ -118,7 +118,7 @@ func NewSovereignChainBlockProcessor(args ArgsSovereignChainBlockProcessor) (*so
 	}
 
 	preprocess.Decrease.Store(true)
-
+	preprocess.NumOfParallelProcesses.Store(10)
 	return scbp, nil
 }
 
