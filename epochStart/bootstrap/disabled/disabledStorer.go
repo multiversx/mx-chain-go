@@ -24,19 +24,3 @@ func CreateMemUnit() storage.Storer {
 
 	return unit
 }
-
-// CreateMemUnitWithArgs creates an in-memory storer unit using maps
-func CreateMemUnitWithArgs(defaultCapacity uint32, defaultNumShards uint32, sizeInBytes uint64) storage.Storer {
-	cache, err := storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: defaultCapacity, Shards: defaultNumShards, SizeInBytes: zeroSize})
-	if err != nil {
-		log.Error("Error creating cache", "error", err)
-		return nil
-	}
-
-	unit, err := storageunit.NewStorageUnit(cache, database.NewMemDB())
-	if err != nil {
-		log.Error("Error creating unit", "error", err)
-		return nil
-	}
-	return unit
-}
