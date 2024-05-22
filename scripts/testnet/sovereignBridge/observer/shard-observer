@@ -1,4 +1,4 @@
-FROM multiversx/chain-testnet:T1.7.10.1
+FROM multiversx/chain-testnet:T1.7.11.0
 
 WORKDIR /go/mx-chain-go/cmd/node/
 RUN sed -i '/\[DbLookupExtensions\]/!b;n;c\\tEnabled = true' ./config/config.toml
