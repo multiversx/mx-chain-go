@@ -211,10 +211,16 @@ func detectIndepentedTxs(txs []*txcache.WrappedTransaction) [][]*txcache.Wrapped
 	}
 
 	sort.Slice(senders, func(i, j int) bool {
+		if senders[i].TotalTxs == senders[j].TotalTxs {
+			return bytes.Compare([]byte(senders[i].Transactions[0].Tx.GetSndAddr()), []byte(senders[j].Transactions[0].Tx.GetSndAddr())) < 0
+		}
 		return senders[i].TotalTxs > senders[j].TotalTxs
 	})
 
 	for index, senderTxs := range senders {
+		if len(senderTxs.Transactions) > 0 {
+			log.Info("detectIndependentTxs", "index", index, "sender", string(senderTxs.Transactions[0].Tx.GetSndAddr()), "num txs", senderTxs.TotalTxs)
+		}
 		processIndex := index % maxParallelProcesses
 		independentTxs[processIndex] = append(independentTxs[processIndex], senderTxs.Transactions...)
 	}
@@ -412,18 +418,18 @@ func (txs *transactions) createScheduledMiniBlocks(
 	}
 
 	if sumTxs > 1000 {
-		f, err := os.Create(fmt.Sprintf("cpu-profile-%s-%d-%d.pprof", "createScheduledMiniBlocks", time.Now().Unix(), sumTxs))
-		if err != nil {
-			log.Error("could not create CPU profile", "error", err)
-		}
-
-		debug.SetGCPercent(-1)
-		pprof.StartCPUProfile(f)
-
-		defer func() {
-			pprof.StopCPUProfile()
-			runtime.GC()
-		}()
+		//f, err := os.Create(fmt.Sprintf("cpu-profile-%s-%d-%d.pprof", "createScheduledMiniBlocks", time.Now().Unix(), sumTxs))
+		//if err != nil {
+		//	log.Error("could not create CPU profile", "error", err)
+		//}
+		//
+		//debug.SetGCPercent(-1)
+		//pprof.StartCPUProfile(f)
+		//
+		//defer func() {
+		//	pprof.StopCPUProfile()
+		//	runtime.GC()
+		//}()
 	}
 
 	for i, sortedTxs := range independentTxs {
@@ -533,6 +539,9 @@ func (txs *transactions) combine(infos []*createScheduledMiniBlocksInfo) *create
 			if mbInfo.mapMiniBlocks[receiverShardId] == nil {
 				mbInfo.mapMiniBlocks[receiverShardId] = mb
 			} else {
+				if len(mb.TxHashes) > 0 {
+					log.Info("combine - receiverShardId", "firstTxHash", mb.TxHashes[0], "lastTxHash", mb.TxHashes[len(mb.TxHashes)-1], "numTxHashes", len(mb.TxHashes))
+				}
 				mbInfo.mapMiniBlocks[receiverShardId].TxHashes = append(mbInfo.mapMiniBlocks[receiverShardId].TxHashes, mb.TxHashes...)
 			}
 		}

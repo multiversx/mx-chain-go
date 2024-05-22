@@ -71,7 +71,7 @@ export SOVEREIGN_DEPLOY=1
 # Shard structure
 export SHARDCOUNT=1
 export SHARD_VALIDATORCOUNT=20
-export SHARD_OBSERVERCOUNT=0
+export SHARD_OBSERVERCOUNT=1
 export SHARD_CONSENSUS_SIZE=20
 
 # Metashard structure

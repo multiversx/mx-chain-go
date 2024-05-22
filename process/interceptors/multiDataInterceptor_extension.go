@@ -2,7 +2,6 @@ package interceptors
 
 import (
 	"bytes"
-	"crypto"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
@@ -17,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
 	"github.com/multiversx/mx-chain-core-go/hashing/keccak"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-crypto-go/signing"
 	"github.com/multiversx/mx-chain-crypto-go/signing/ed25519"
 	"github.com/multiversx/mx-chain-crypto-go/signing/ed25519/singlesig"
