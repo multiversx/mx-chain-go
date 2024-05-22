@@ -6,10 +6,11 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("common/enablers")
@@ -712,6 +713,12 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 				return epoch >= handler.enableEpochsConfig.StakingV4Step3EnableEpoch
 			},
 			activationEpoch: handler.enableEpochsConfig.StakingV4Step3EnableEpoch,
+		},
+		common.CleanupAuctionOnLowWaitingListFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.CleanupAuctionOnLowWaitingListEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.CleanupAuctionOnLowWaitingListEnableEpoch,
 		},
 		common.StakingV4StartedFlag: {
 			isActiveInEpoch: func(epoch uint32) bool {
