@@ -1,7 +1,7 @@
 package txcache
 
 import (
-	"github.com/multiversx/mx-chain-storage-go/txcache"
+	txcache "github.com/multiversx/mx-chain-go/storage/txcache/impl"
 )
 
 // WrappedTransaction contains a transaction, its hash and extra information
