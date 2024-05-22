@@ -1,7 +1,9 @@
 package interceptors
 
 import (
+	"bytes"
 	"crypto"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -218,7 +220,16 @@ func createParticipants(numParticipants int, startIndex int) []*participant {
 
 	for i := startIndex; i < numParticipants+startIndex; i++ {
 		seed := make([]byte, 32)
-		seed[0] = byte(i)
+
+		// Alter first bytes of the seed to create different keys
+		buffer := new(bytes.Buffer)
+		err := binary.Write(buffer, binary.BigEndian, uint32(i))
+		if err != nil {
+			panic(err)
+		}
+
+		copy(seed, buffer.Bytes())
+
 		secretKey, err := keyGenerator.PrivateKeyFromByteArray(seed)
 		if err != nil {
 			panic(err)

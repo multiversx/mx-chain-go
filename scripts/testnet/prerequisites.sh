@@ -60,7 +60,7 @@ git clone https://github.com/multiversx/mx-chain-proxy-go.git
 if [ "$SOVEREIGN_DEPLOY" -eq 1 ]; then
     pushd .
     cd mx-chain-deploy-go
-    git checkout feat/sovereign
+    git checkout sovereign-demo
     popd
 
     pushd .
