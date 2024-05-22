@@ -5,12 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/hashing"
-	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/stretchr/testify/require"
-
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	mockConsensus "github.com/multiversx/mx-chain-go/consensus/mock"
@@ -20,12 +14,19 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	sovereignChainSimulatorProcess "github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/chainSimulator"
 	testsConsensus "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	testsFactory "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/stretchr/testify/require"
 )
 
 var expectedErr = errors.New("expected error")
@@ -36,14 +37,14 @@ func TestNewBlocksCreator(t *testing.T) {
 	t.Run("nil node handler should error", func(t *testing.T) {
 		t.Parallel()
 
-		creator, err := chainSimulatorProcess.NewBlocksCreator(nil)
+		creator, err := sovereignChainSimulatorProcess.NewSovereignBlocksCreator(nil)
 		require.Equal(t, chainSimulatorProcess.ErrNilNodeHandler, err)
 		require.Nil(t, creator)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		creator, err := chainSimulatorProcess.NewBlocksCreator(&chainSimulator.NodeHandlerMock{})
+		creator, err := sovereignChainSimulatorProcess.NewSovereignBlocksCreator(&chainSimulator.NodeHandlerMock{})
 		require.NoError(t, err)
 		require.NotNil(t, creator)
 	})
@@ -52,10 +53,10 @@ func TestNewBlocksCreator(t *testing.T) {
 func TestBlocksCreator_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
-	creator, _ := chainSimulatorProcess.NewBlocksCreator(nil)
+	creator, _ := sovereignChainSimulatorProcess.NewSovereignBlocksCreator(nil)
 	require.True(t, creator.IsInterfaceNil())
 
-	creator, _ = chainSimulatorProcess.NewBlocksCreator(&chainSimulator.NodeHandlerMock{})
+	creator, _ = sovereignChainSimulatorProcess.NewSovereignBlocksCreator(&chainSimulator.NodeHandlerMock{})
 	require.False(t, creator.IsInterfaceNil())
 }
 
@@ -87,7 +88,7 @@ func TestBlocksCreator_IncrementRound(t *testing.T) {
 			}
 		},
 	}
-	creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler)
+	creator, err := sovereignChainSimulatorProcess.NewSovereignBlocksCreator(nodeHandler)
 	require.NoError(t, err)
 
 	creator.IncrementRound()
@@ -120,7 +121,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 			}
 		}
 
-		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler)
+		creator, err := sovereignChainSimulatorProcess.NewSovereignBlocksCreator(nodeHandler)
 		require.NoError(t, err)
 
 		err = creator.CreateNewBlock()
@@ -228,7 +229,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 				},
 			}
 		}
-		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler)
+		creator, err := sovereignChainSimulatorProcess.NewSovereignBlocksCreator(nodeHandler)
 		require.NoError(t, err)
 
 		err = creator.CreateNewBlock()
@@ -247,7 +248,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 				},
 			}
 		}
-		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler)
+		creator, err := sovereignChainSimulatorProcess.NewSovereignBlocksCreator(nodeHandler)
 		require.NoError(t, err)
 
 		err = creator.CreateNewBlock()
@@ -268,7 +269,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 				},
 			}
 		}
-		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler)
+		creator, err := sovereignChainSimulatorProcess.NewSovereignBlocksCreator(nodeHandler)
 		require.NoError(t, err)
 
 		err = creator.CreateNewBlock()
@@ -320,7 +321,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 				},
 			}
 		}
-		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler)
+		creator, err := sovereignChainSimulatorProcess.NewSovereignBlocksCreator(nodeHandler)
 		require.NoError(t, err)
 
 		err = creator.CreateNewBlock()
@@ -341,7 +342,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 				},
 			}
 		}
-		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler)
+		creator, err := sovereignChainSimulatorProcess.NewSovereignBlocksCreator(nodeHandler)
 		require.NoError(t, err)
 
 		err = creator.CreateNewBlock()
@@ -362,7 +363,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 				},
 			}
 		}
-		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler)
+		creator, err := sovereignChainSimulatorProcess.NewSovereignBlocksCreator(nodeHandler)
 		require.NoError(t, err)
 
 		err = creator.CreateNewBlock()
@@ -383,7 +384,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 				},
 			}
 		}
-		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler)
+		creator, err := sovereignChainSimulatorProcess.NewSovereignBlocksCreator(nodeHandler)
 		require.NoError(t, err)
 
 		err = creator.CreateNewBlock()
@@ -522,7 +523,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 				},
 			}
 		}
-		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler)
+		creator, err := sovereignChainSimulatorProcess.NewSovereignBlocksCreator(nodeHandler)
 		require.NoError(t, err)
 
 		err = creator.CreateNewBlock()
@@ -531,7 +532,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		creator, err := chainSimulatorProcess.NewBlocksCreator(getNodeHandler())
+		creator, err := sovereignChainSimulatorProcess.NewSovereignBlocksCreator(getNodeHandler())
 		require.NoError(t, err)
 
 		err = creator.CreateNewBlock()
@@ -548,7 +549,7 @@ func testCreateNewBlock(t *testing.T, blockProcess process.BlockProcessor, expec
 			NodesCoord:   nc,
 		}
 	}
-	creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler)
+	creator, err := sovereignChainSimulatorProcess.NewSovereignBlocksCreator(nodeHandler)
 	require.NoError(t, err)
 
 	err = creator.CreateNewBlock()
