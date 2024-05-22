@@ -3,7 +3,6 @@ package vm
 import (
 	"bytes"
 	"encoding/hex"
-	"fmt"
 	"math/big"
 	"testing"
 	"time"
@@ -14,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	testsChainSimulator "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/staking"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
@@ -46,6 +46,8 @@ func TestChainSimulator_CheckNFTMetadata(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
+	// logger.SetLogLevel("*:TRACE")
+
 	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
 	roundsPerEpoch := core.OptionalUint64{
@@ -53,7 +55,7 @@ func TestChainSimulator_CheckNFTMetadata(t *testing.T) {
 		Value:    20,
 	}
 
-	activationEpoch := uint32(4)
+	activationEpoch := uint32(2)
 
 	numOfShards := uint32(3)
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
@@ -156,34 +158,48 @@ func TestChainSimulator_CheckNFTMetadata(t *testing.T) {
 	err = cs.GenerateBlocksUntilEpochIsReached(int32(activationEpoch))
 	require.Nil(t, err)
 
+	err = cs.GenerateBlocks(10)
+	require.Nil(t, err)
+
 	log.Info("Step 3. transfer the NFT and the SFT to another account")
 
-	nonceArg := hex.EncodeToString(big.NewInt(0).SetUint64(2).Bytes())
-	quantityToTransfer := int64(1)
-	quantityToTransferArg := hex.EncodeToString(big.NewInt(quantityToTransfer).Bytes())
-	txDataField = []byte(core.BuiltInFunctionESDTNFTTransfer + "@" + hex.EncodeToString([]byte(tokenID)) +
-		"@" + nonceArg + "@" + quantityToTransferArg + "@" + hex.EncodeToString(address.Bytes))
+	address2, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	require.Nil(t, err)
 
-	tx = &transaction.Transaction{
-		Nonce:     1,
-		SndAddr:   address.Bytes,
-		RcvAddr:   address.Bytes,
-		GasLimit:  10_000_000,
-		GasPrice:  minGasPrice,
-		Signature: []byte("dummySig"),
-		Data:      txDataField,
-		Value:     big.NewInt(0),
-		ChainID:   []byte(configs.ChainID),
-		Version:   1,
-	}
+	tx = utils.CreateESDTNFTTransferTx(
+		1,
+		address.Bytes,
+		address2.Bytes,
+		tokenID,
+		1,
+		big.NewInt(1),
+		minGasPrice,
+		10_000_000,
+		"",
+	)
+	tx.Version = 1
+	tx.Signature = []byte("dummySig")
+	tx.ChainID = []byte(configs.ChainID)
 
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
 
-	fmt.Println(txResult)
-
 	require.Equal(t, "success", txResult.Status.String())
+
+	log.Info("Step 4. check that the metadata for nft is saved to the receiver account")
+
+	shardID2 := cs.GetNodeHandler(0).GetShardCoordinator().ComputeId(address2.Bytes)
+
+	retrievedMetaData = getMetaDataFromAcc(t, cs, address2.Bytes, tokenID, shardID2)
+
+	require.Equal(t, nonce, []byte(hex.EncodeToString(big.NewInt(int64(retrievedMetaData.Nonce)).Bytes())))
+	require.Equal(t, name, []byte(hex.EncodeToString(retrievedMetaData.Name)))
+	require.Equal(t, hash, []byte(hex.EncodeToString(retrievedMetaData.Hash)))
+	for i, uri := range expUris {
+		require.Equal(t, uri, []byte(hex.EncodeToString(retrievedMetaData.URIs[i])))
+	}
+	require.Equal(t, attributes, []byte(hex.EncodeToString(retrievedMetaData.Attributes)))
 }
 
 func getMetaDataFromAcc(
@@ -225,6 +241,7 @@ func setAddressEsdtRoles(
 		[]byte(core.ESDTMetaDataRecreate),
 		[]byte(core.ESDTRoleNFTCreate),
 		[]byte(core.ESDTRoleNFTBurn),
+		[]byte(core.ESDTRoleTransfer),
 	}
 	rolesKey := append([]byte(core.ProtectedKeyPrefix), append([]byte(core.ESDTRoleIdentifier), []byte(core.ESDTKeyIdentifier)...)...)
 	rolesKey = append(rolesKey, token...)
