@@ -2,6 +2,7 @@ package trackableDataTrie
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -32,6 +33,7 @@ type trackableDataTrie struct {
 	marshaller          marshal.Marshalizer
 	enableEpochsHandler common.EnableEpochsHandler
 	identifier          []byte
+	mutex               sync.RWMutex
 }
 
 // NewTrackableDataTrie returns an instance of trackableDataTrie
@@ -64,6 +66,7 @@ func NewTrackableDataTrie(
 		dirtyData:           make(map[string]dirtyData),
 		identifier:          identifier,
 		enableEpochsHandler: enableEpochsHandler,
+		mutex:               sync.RWMutex{},
 	}, nil
 }
 
@@ -72,7 +75,11 @@ func NewTrackableDataTrie(
 // Data must have been retrieved from its trie
 func (tdt *trackableDataTrie) RetrieveValue(key []byte) ([]byte, uint32, error) {
 	// search in dirty data cache
-	if dataEntry, found := tdt.dirtyData[string(key)]; found {
+	tdt.mutex.RLock()
+	dataEntry, found := tdt.dirtyData[string(key)]
+	tdt.mutex.RUnlock()
+
+	if found {
 		log.Trace("retrieve value from dirty data", "key", key, "value", dataEntry.value, "account", tdt.identifier)
 		return dataEntry.value, 0, nil
 	}
@@ -108,7 +115,9 @@ func (tdt *trackableDataTrie) SaveKeyValue(key []byte, value []byte) error {
 		newVersion: core.GetVersionForNewData(tdt.enableEpochsHandler),
 	}
 
+	tdt.mutex.Lock()
 	tdt.dirtyData[string(key)] = dataEntry
+	tdt.mutex.Unlock()
 	return nil
 }
 
@@ -149,7 +158,9 @@ func (tdt *trackableDataTrie) MigrateDataTrieLeaves(args vmcommon.ArgsMigrateDat
 			return err
 		}
 
+		tdt.mutex.Lock()
 		tdt.dirtyData[string(originalKey)] = dataEntry
+		tdt.mutex.Unlock()
 	}
 
 	return nil
@@ -210,6 +221,9 @@ func (tdt *trackableDataTrie) DataTrie() common.DataTrieHandler {
 
 // SaveDirtyData saved the dirty data to the trie
 func (tdt *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) ([]core.TrieData, error) {
+	tdt.mutex.Lock()
+	defer tdt.mutex.Unlock()
+
 	if len(tdt.dirtyData) == 0 {
 		return make([]core.TrieData, 0), nil
 	}
