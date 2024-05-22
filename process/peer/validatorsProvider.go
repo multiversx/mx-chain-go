@@ -320,6 +320,10 @@ func shouldCombine(triePeerType common.PeerType, currentPeerType common.PeerType
 // ForceUpdate will trigger the update process of all caches
 func (vp *validatorsProvider) ForceUpdate() error {
 	vp.updateCache()
+
+	vp.auctionMutex.Lock()
+	defer vp.auctionMutex.Unlock()
+
 	return vp.updateAuctionListCache()
 }
 
