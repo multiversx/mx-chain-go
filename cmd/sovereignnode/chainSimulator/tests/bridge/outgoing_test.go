@@ -72,7 +72,7 @@ func TestOutgoingOperations(t *testing.T) {
 		"@" + hex.EncodeToString(feeMarketSovAddress)
 	utils.SendTransaction(t, cs, wallet.Bytes, &walletNonce, esdtSafeSovAddress, big.NewInt(0), setSovFeeMarketAddressData, uint64(10000000))
 
-	utils.SendTransaction(t, cs, wallet.Bytes, &walletNonce, esdtSafeSovAddress, big.NewInt(0), "disableFee", uint64(10000000))
+	utils.SendTransaction(t, cs, wallet.Bytes, &walletNonce, feeMarketSovAddress, big.NewInt(0), "disableFee", uint64(10000000))
 
 	utils.SendTransaction(t, cs, wallet.Bytes, &walletNonce, esdtSafeSovAddress, big.NewInt(0), "unpause", uint64(10000000))
 

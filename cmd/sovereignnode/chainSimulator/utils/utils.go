@@ -16,6 +16,7 @@ import (
 
 const (
 	maxNumOfBlocksToGenerateWhenExecutingTx = 1
+	signalError                             = "signalError"
 )
 
 func getSCCode(fileName string) string {
@@ -94,6 +95,9 @@ func SendTransaction(
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
 	require.Equal(t, transaction.TxStatusSuccess, txResult.Status)
+	if txResult.Logs != nil && txResult.Logs.Events != nil && len(txResult.Logs.Events) > 0 {
+		require.NotEqual(t, signalError, txResult.Logs.Events[0].Identifier)
+	}
 
 	return txResult
 }

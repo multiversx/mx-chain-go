@@ -8,10 +8,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // VMOutputAccountsProcessor will process the VMOutput from a regular of builtin function call
@@ -143,7 +142,6 @@ func (oap *VMOutputAccountsProcessor) computeSumOfAllDiffStep(
 func (oap *VMOutputAccountsProcessor) processStorageUpdatesStep(
 	acc state.UserAccountHandler,
 	outAcc *vmcommon.OutputAccount) error {
-
 	for _, storeUpdate := range outAcc.StorageUpdates {
 		if !process.IsAllowedToSaveUnderKey(storeUpdate.Offset) {
 			log.Trace("storeUpdate is not allowed", "acc", outAcc.Address, "key", storeUpdate.Offset, "data", storeUpdate.Data)
