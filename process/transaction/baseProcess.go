@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/demo"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
@@ -37,9 +38,9 @@ func (txProc *baseTxProcessor) getAccounts(
 
 	var acntSrc, acntDst state.UserAccountHandler
 
-	shardForCurrentNode := txProc.shardCoordinator.SelfId()
-	shardForSrc := txProc.shardCoordinator.ComputeId(adrSrc)
-	shardForDst := txProc.shardCoordinator.ComputeId(adrDst)
+	shardForCurrentNode := demo.Shard
+	shardForSrc := demo.Shard
+	shardForDst := demo.Shard
 
 	srcInShard := shardForSrc == shardForCurrentNode
 	dstInShard := shardForDst == shardForCurrentNode
@@ -94,8 +95,8 @@ func (txProc *baseTxProcessor) getAccounts(
 }
 
 func (txProc *baseTxProcessor) getAccountFromAddress(adrSrc []byte) (state.UserAccountHandler, error) {
-	shardForCurrentNode := txProc.shardCoordinator.SelfId()
-	shardForSrc := txProc.shardCoordinator.ComputeId(adrSrc)
+	shardForCurrentNode := demo.Shard
+	shardForSrc := demo.Shard
 	if shardForCurrentNode != shardForSrc {
 		return nil, nil
 	}
@@ -118,14 +119,6 @@ func (txProc *baseTxProcessor) checkTxValues(
 	acntSnd, acntDst state.UserAccountHandler,
 	isUserTxOfRelayed bool,
 ) error {
-	err := txProc.verifyGuardian(tx, acntSnd)
-	if err != nil {
-		return err
-	}
-	err = txProc.checkUserNames(tx, acntSnd, acntDst)
-	if err != nil {
-		return err
-	}
 	if check.IfNil(acntSnd) {
 		return nil
 	}
@@ -142,20 +135,12 @@ func (txProc *baseTxProcessor) checkTxValues(
 
 		return process.ErrLowerNonceInTransaction
 	}
-	err = txProc.economicsFee.CheckValidityTxValues(tx)
+	err := txProc.economicsFee.CheckValidityTxValues(tx)
 	if err != nil {
 		return err
 	}
 
-	var txFee *big.Int
-	if isUserTxOfRelayed {
-		if tx.GasLimit < txProc.economicsFee.ComputeGasLimit(tx) {
-			return process.ErrNotEnoughGasInUserTx
-		}
-		txFee = txProc.economicsFee.ComputeFeeForProcessing(tx, tx.GasLimit)
-	} else {
-		txFee = txProc.economicsFee.ComputeTxFee(tx)
-	}
+	txFee := txProc.economicsFee.ComputeTxFee(tx)
 
 	if acntSnd.GetBalance().Cmp(txFee) < 0 {
 		return fmt.Errorf("%w, has: %s, wanted: %s",
@@ -163,12 +148,6 @@ func (txProc *baseTxProcessor) checkTxValues(
 			acntSnd.GetBalance().String(),
 			txFee.String(),
 		)
-	}
-
-	if !txProc.enableEpochsHandler.IsFlagEnabled(common.PenalizedTooMuchGasFlag) {
-		// backwards compatibility issue when provided gas limit and gas price exceeds the available balance before the
-		// activation of the "penalize too much gas" flag
-		txFee = core.SafeMul(tx.GasLimit, tx.GasPrice)
 	}
 
 	cost := big.NewInt(0).Add(txFee, tx.Value)
