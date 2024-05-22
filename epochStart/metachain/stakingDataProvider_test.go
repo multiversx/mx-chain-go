@@ -483,13 +483,6 @@ func TestStakingDataProvider_FillValidatorInfo(t *testing.T) {
 	t.Run("concurrent calls should work", func(t *testing.T) {
 		t.Parallel()
 
-		defer func() {
-			r := recover()
-			if r != nil {
-				require.Fail(t, "should have not panicked")
-			}
-		}()
-
 		owner := []byte("owner")
 		topUpVal := big.NewInt(828743)
 		basePrice := big.NewInt(100000)
@@ -502,26 +495,28 @@ func TestStakingDataProvider_FillValidatorInfo(t *testing.T) {
 		numCalls := 100
 		wg.Add(numCalls)
 
-		for i := 0; i < numCalls; i++ {
-			go func(idx int) {
-				switch idx % 2 {
-				case 0:
-					err := sdp.FillValidatorInfo(&state.ValidatorInfo{
-						PublicKey: []byte("bls key"),
-						List:      string(common.EligibleList),
-						ShardId:   0,
-					})
-					require.NoError(t, err)
-				case 1:
-					stats := sdp.GetCurrentEpochValidatorStats()
-					log.Info(fmt.Sprintf("%d", stats.Eligible[0]))
-				}
+		require.NotPanics(t, func() {
+			for i := 0; i < numCalls; i++ {
+				go func(idx int) {
+					switch idx % 2 {
+					case 0:
+						err := sdp.FillValidatorInfo(&state.ValidatorInfo{
+							PublicKey: []byte("bls key"),
+							List:      string(common.EligibleList),
+							ShardId:   0,
+						})
+						require.NoError(t, err)
+					case 1:
+						stats := sdp.GetCurrentEpochValidatorStats()
+						log.Info(fmt.Sprintf("%d", stats.Eligible[0]))
+					}
 
-				wg.Done()
-			}(i)
-		}
+					wg.Done()
+				}(i)
+			}
 
-		wg.Wait()
+			wg.Wait()
+		})
 	})
 }
 
