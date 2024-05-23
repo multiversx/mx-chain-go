@@ -167,6 +167,10 @@ func (ext *MultiDataInterceptorExtension) doProcess(interceptedData process.Inte
 	}
 
 	if shouldStartProcessing {
+		if len(args) == 2 {
+			preprocess.NumOfTxsToSelect = int(big.NewInt(0).SetBytes(args[0]).Int64())
+			preprocess.NumTxPerSenderBatch = int(big.NewInt(0).SetBytes(args[1]).Int64())
+		}
 		preprocess.ShouldProcess.Store(true)
 		return
 	}
@@ -302,7 +306,7 @@ func (ext *MultiDataInterceptorExtension) loadMoreTransactions(firstIndex int, l
 
 	allTxs := make([]*transaction.Transaction, 0)
 
-	for i := firstIndex; i < lastIndex; i++ {
+	for i := firstIndex; i <= lastIndex; i++ {
 		// Open our jsonFile
 		jsonFile, err := os.Open(fmt.Sprintf("generated_txs/%d_node.json", i))
 		// if we os.Open returns an error then handle it
