@@ -5,6 +5,8 @@ package main
 
 import (
 	"fmt"
+	outportCore "github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-go/outport"
 	"io"
 	"io/ioutil"
 	"os"
@@ -572,6 +574,13 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
+	indexValidatorsListIfNeeded(
+		managedProcessComponents.ShardCoordinator().SelfId(),
+		managedStatusComponents.OutportHandler(),
+		nodesCoordinatorInstance,
+		managedProcessComponents.EpochStartTrigger().Epoch(),
+	)
+
 	// this channel will trigger the moment when the sc query service should be able to process VM Query requests
 	allowExternalVMQueriesChan := make(chan struct{})
 
@@ -639,6 +648,30 @@ func addSyncersToAccountsDB(
 	}
 
 	return stateComponents.AccountsAdapter().StartSnapshotIfNeeded()
+}
+
+func indexValidatorsListIfNeeded(
+	shardID uint32,
+	outportHandler outport.OutportHandler,
+	coordinator nodesCoordinator.NodesCoordinator,
+	epoch uint32,
+) {
+	if !outportHandler.HasDrivers() {
+		return
+	}
+
+	validatorsPubKeys, err := coordinator.GetAllEligibleValidatorsPublicKeys(epoch)
+	if err != nil {
+		log.Warn("GetAllEligibleValidatorPublicKeys for epoch 0 failed", "error", err)
+	}
+
+	if len(validatorsPubKeys) > 0 {
+		outportHandler.SaveValidatorsPubKeys(&outportCore.ValidatorsPubKeys{
+			ShardID:                shardID,
+			ShardValidatorsPubKeys: outportCore.ConvertPubKeys(validatorsPubKeys),
+			Epoch:                  epoch,
+		})
+	}
 }
 
 func getUserAccountSyncer(
