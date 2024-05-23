@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"math"
 	"sync"
 	"time"
 
@@ -966,11 +967,15 @@ func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandle
 }
 
 func (boot *baseBootstrap) isForcedRollBackOneBlock() bool {
-	return false
+	return boot.forkInfo.IsDetected &&
+		boot.forkInfo.Nonce == math.MaxUint64 &&
+		boot.forkInfo.Hash == nil
 }
 
 func (boot *baseBootstrap) isForcedRollBackToNonce() bool {
-	return false
+	return boot.forkInfo.IsDetected &&
+		boot.forkInfo.Round == math.MaxUint64 &&
+		boot.forkInfo.Hash == nil
 }
 
 func (boot *baseBootstrap) rollBackOneBlockForced() {
