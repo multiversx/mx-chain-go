@@ -357,25 +357,25 @@
         MaxOpenFiles = 10
 
 [TrieStorageManagerConfig]
-    PruningBufferLen = 100000
-    SnapshotsBufferLen = 1000000
+    PruningBufferLen = 1000000
+    SnapshotsBufferLen = 10000000
     SnapshotsGoroutineNum = 200
 
 [HeadersPoolConfig]
-    MaxHeadersPerShard = 1000
-    NumElementsToRemoveOnEviction = 200
+    MaxHeadersPerShard = 10000
+    NumElementsToRemoveOnEviction = 2000
 
 [BadBlocksCache]
     Name = "BadBlocksCache"
-    Capacity = 1000
+    Capacity = 10000
     Type = "SizeLRU"
-    SizeInBytes = 3145728 #3MB
+    SizeInBytes = 31457280 #3MB
 
 [TxBlockBodyDataPool]
     Name = "TxBlockBodyDataPool"
-    Capacity = 100000
+    Capacity = 1000000
     Type = "SizeLRU"
-    SizeInBytes = 314572800 #300MB
+    SizeInBytes = 3145728000 #300MB
 
 [PeerBlockBodyDataPool]
     Name = "PeerBlockBodyDataPool"
