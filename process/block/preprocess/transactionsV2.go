@@ -214,7 +214,7 @@ func detectIndepentedTxs(txs []*txcache.WrappedTransaction) [][]*txcache.Wrapped
 		if senders[i].TotalTxs == senders[j].TotalTxs {
 			return bytes.Compare([]byte(senders[i].Transactions[0].Tx.GetSndAddr()), []byte(senders[j].Transactions[0].Tx.GetSndAddr())) < 0
 		}
-		return senders[i].TotalTxs > senders[j].TotalTxs
+		return senders[i].TotalTxs < senders[j].TotalTxs
 	})
 
 	for index, senderTxs := range senders {

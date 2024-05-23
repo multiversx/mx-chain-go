@@ -184,9 +184,10 @@ func (ext *MultiDataInterceptorExtension) doProcess(interceptedData process.Inte
 	}
 
 	if shouldStartProcessing {
-		if len(args) == 2 {
+		if len(args) == 3 {
 			preprocess.NumOfTxsToSelect = int(big.NewInt(0).SetBytes(args[0]).Int64())
 			preprocess.NumTxPerSenderBatch = int(big.NewInt(0).SetBytes(args[1]).Int64())
+			preprocess.NumOfParallelProcesses.Store(big.NewInt(0).SetBytes(args[2]).Uint64())
 		}
 		preprocess.ShouldProcess.Store(true)
 		return
