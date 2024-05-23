@@ -304,7 +304,7 @@ func (ext *MultiDataInterceptorExtension) loadMoreTransactions(firstIndex int, l
 
 	for i := firstIndex; i < lastIndex; i++ {
 		// Open our jsonFile
-		jsonFile, err := os.Open(fmt.Sprintf("generated_txs/%d.json", i))
+		jsonFile, err := os.Open(fmt.Sprintf("generated_txs/%d_node.json", i))
 		// if we os.Open returns an error then handle it
 		if err != nil {
 			log.Error("MultiDataInterceptorExtension.loadMoreTransactions - openFile", "error", err, "index", i)

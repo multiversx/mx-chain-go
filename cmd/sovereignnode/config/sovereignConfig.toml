@@ -70,4 +70,4 @@
 
 [GenesisConfig]
     # NativeESDT specifies the sovereign shard's native esdt currency
-    NativeESDT = "WSBUCK-abcdef"
+    NativeESDT = "SPC-abcdef"
