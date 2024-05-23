@@ -247,7 +247,7 @@ func (ext *MultiDataInterceptorExtension) doClearPool() error {
 }
 
 func (ext *MultiDataInterceptorExtension) doStepLoad(args [][]byte) error {
-	if len(args) != 2 {
+	if len(args) != 3 {
 		return fmt.Errorf("MultiDataInterceptorExtension.doStepLoad: invalid number of arguments")
 	}
 
@@ -257,10 +257,11 @@ func (ext *MultiDataInterceptorExtension) doStepLoad(args [][]byte) error {
 
 	firstIndexToLoad := args[0]
 	lastIndexToLoad := args[1]
-	firstIndex := int(big.NewInt(0).SetBytes(firstIndexToLoad).Int64())
-	lastIndex := int(big.NewInt(0).SetBytes(lastIndexToLoad).Int64())
-
-	loadedTransactions := ext.loadMoreTransactions(firstIndex, lastIndex)
+	nrTxsToSelect := args[2]
+	firstFileIndex := int(big.NewInt(0).SetBytes(firstIndexToLoad).Int64())
+	lastFileIndex := int(big.NewInt(0).SetBytes(lastIndexToLoad).Int64())
+	nrTxs := int(big.NewInt(0).SetBytes(nrTxsToSelect).Int64())
+	loadedTransactions := ext.loadMoreTransactions(firstFileIndex, lastFileIndex, nrTxs)
 	ext.addTransactionsInTool(loadedTransactions)
 
 	//preprocess.ShouldProcess.Store(true)
@@ -330,8 +331,8 @@ func createParticipants(numParticipants int, startIndex int) []*participant {
 	return participants
 }
 
-func (ext *MultiDataInterceptorExtension) loadMoreTransactions(firstIndex int, lastIndex int) []*transaction.Transaction {
-	log.Info("MultiDataInterceptorExtension.loadMoreTransactions", "firstIndex", firstIndex, "lastIndex", lastIndex)
+func (ext *MultiDataInterceptorExtension) loadMoreTransactions(firstIndex int, lastIndex int, nrTxs int) []*transaction.Transaction {
+	log.Info("MultiDataInterceptorExtension.loadMoreTransactions", "firstIndex", firstIndex, "lastIndex", lastIndex, "nrTxs", nrTxs)
 
 	allTxs := make([]*transaction.Transaction, 0)
 	currentUser, _ := user.Current()
@@ -358,6 +359,29 @@ func (ext *MultiDataInterceptorExtension) loadMoreTransactions(firstIndex int, l
 		err = json.Unmarshal(byteValue, &txs)
 		if err != nil {
 			log.Error("MultiDataInterceptorExtension.loadMoreTransactions - unmarshal", "error", err)
+		}
+
+		if len(txs) == 0 {
+			log.Error("MultiDataInterceptorExtension.loadMoreTransactions - no transactions", "index", i)
+			continue
+		}
+		startNonce := uint64(0)
+		account, err := ext.accountsHandler.GetExistingAccount(txs[0].SndAddr)
+		if err != nil {
+			log.Info("MultiDataInterceptorExtension.loadMoreTransactions", "error when loading account", "error", err)
+		} else {
+			startNonce = account.GetNonce()
+		}
+
+		log.Info("MultiDataInterceptorExtension.loadMoreTransactions", "account", account.AddressBytes(), "account nonce", startNonce)
+		if uint64(len(txs)) > startNonce {
+			if startNonce+uint64(nrTxs) >= uint64(len(txs)) {
+				txs = txs[startNonce:]
+			} else {
+				txs = txs[startNonce : startNonce+uint64(nrTxs)]
+			}
+		} else {
+			log.Error("MultiDataInterceptorExtension.loadMoreTransactions - not enough transactions", "index", i, "startNonce", startNonce, "nrTxs", nrTxs, "numTxs", len(txs))
 		}
 
 		allTxs = append(allTxs, txs...)
