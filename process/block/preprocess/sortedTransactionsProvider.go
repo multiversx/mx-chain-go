@@ -45,7 +45,7 @@ func (adapter *adapterTxCacheToSortedTransactionsProvider) GetSortedTransactions
 		NumOfTxsToSelect = NumOfTxsToSelect * 95 / 100
 		NumTxPerSenderBatch = NumTxPerSenderBatch * 95 / 100
 	}
-	randVal := rand.Intn(200)
+	randVal := rand.Intn(1000)
 	txs := adapter.txCache.SelectTransactionsWithBandwidth(NumOfTxsToSelect+randVal, NumTxPerSenderBatch, process.MaxGasBandwidthPerBatchPerSender)
 	return txs
 }
