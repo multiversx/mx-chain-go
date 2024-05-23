@@ -1,6 +1,7 @@
 package preprocess
 
 import (
+	"math/rand"
 	"sync/atomic"
 
 	"github.com/multiversx/mx-chain-go/process"
@@ -44,7 +45,8 @@ func (adapter *adapterTxCacheToSortedTransactionsProvider) GetSortedTransactions
 		NumOfTxsToSelect = NumOfTxsToSelect * 95 / 100
 		NumTxPerSenderBatch = NumTxPerSenderBatch * 95 / 100
 	}
-	txs := adapter.txCache.SelectTransactionsWithBandwidth(NumOfTxsToSelect, NumTxPerSenderBatch, process.MaxGasBandwidthPerBatchPerSender)
+	randVal := rand.Intn(200)
+	txs := adapter.txCache.SelectTransactionsWithBandwidth(NumOfTxsToSelect+randVal, NumTxPerSenderBatch, process.MaxGasBandwidthPerBatchPerSender)
 	return txs
 }
 
