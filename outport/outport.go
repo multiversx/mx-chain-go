@@ -2,6 +2,10 @@ package outport
 
 import (
 	"fmt"
+	"os"
+	"runtime"
+	"runtime/debug"
+	"runtime/pprof"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -48,6 +52,19 @@ func NewOutport(retrialInterval time.Duration, cfg outportcore.OutportConfig) (*
 func (o *outport) SaveBlock(args *outportcore.OutportBlockWithHeaderAndBody) error {
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
+
+	f, err := os.Create(fmt.Sprintf("cpu-profile-%d.pprof", args.HeaderDataWithBody.Header.GetNonce()))
+	if err != nil {
+		log.Error("could not create CPU profile", "error", err)
+	}
+
+	debug.SetGCPercent(-1)
+	pprof.StartCPUProfile(f)
+
+	defer func() {
+		pprof.StopCPUProfile()
+		runtime.GC()
+	}()
 
 	if args == nil {
 		return fmt.Errorf("outport.SaveBlock error: %w", errNilSaveBlockArgs)
