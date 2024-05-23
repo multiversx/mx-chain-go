@@ -2,11 +2,13 @@ package interceptors
 
 import (
 	"bytes"
-	"crypto"
 	"encoding/binary"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"io"
 	"math/big"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -17,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
 	"github.com/multiversx/mx-chain-core-go/hashing/keccak"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-crypto-go/signing"
 	"github.com/multiversx/mx-chain-crypto-go/signing/ed25519"
 	"github.com/multiversx/mx-chain-crypto-go/signing/ed25519/singlesig"
@@ -119,6 +122,7 @@ func (ext *MultiDataInterceptorExtension) doProcess(interceptedData process.Inte
 	}
 
 	shouldInit := function == "ext_init"
+	shouldLoad := function == "ext_load"
 	shouldEnablePprof := function == "ext_enable_pprof"
 	shouldDisablePprof := function == "ext_disable_pprof"
 	shouldGenerateMoveBalances := function == "ext_generate_move_balances"
@@ -133,6 +137,14 @@ func (ext *MultiDataInterceptorExtension) doProcess(interceptedData process.Inte
 		}
 
 		return
+	}
+
+	if shouldLoad {
+		err := ext.doStepLoad(args)
+		if err != nil {
+			log.Error("MultiDataInterceptorExtension: failed to do step: load", "error", err)
+		}
+
 	}
 
 	if shouldEnablePprof {
@@ -201,6 +213,29 @@ func (ext *MultiDataInterceptorExtension) doStepInit(sponsorPubKey []byte, args 
 	return nil
 }
 
+func (ext *MultiDataInterceptorExtension) doStepLoad(args [][]byte) error {
+	if len(args) != 2 {
+		return fmt.Errorf("MultiDataInterceptorExtension.doStepLoad: invalid number of arguments")
+	}
+
+	log.Info("MultiDataInterceptorExtension.doStepLoad", "args", args)
+
+	preprocess.ShouldProcess.Store(false)
+
+	firstIndexToLoad := args[0]
+	lastIndexToLoad := args[1]
+	firstIndex := int(big.NewInt(0).SetBytes(firstIndexToLoad).Int64())
+	lastIndex := int(big.NewInt(0).SetBytes(lastIndexToLoad).Int64())
+
+	loadedTransactions := ext.loadMoreTransactions(firstIndex, lastIndex)
+	ext.addTransactionsInTool(loadedTransactions)
+
+	//preprocess.ShouldProcess.Store(true)
+	log.Info("MultiDataInterceptorExtension.doStepLoad - done", "loadedTransactions", len(loadedTransactions))
+
+	return nil
+}
+
 func parseCall(txData string) (string, [][]byte, error) {
 	parser := smartContract.NewArgumentParser()
 	function, args, err := parser.ParseCallData(txData)
@@ -260,6 +295,40 @@ func createParticipants(numParticipants int, startIndex int) []*participant {
 	}
 
 	return participants
+}
+
+func (ext *MultiDataInterceptorExtension) loadMoreTransactions(firstIndex int, lastIndex int) []*transaction.Transaction {
+	log.Info("MultiDataInterceptorExtension.loadMoreTransactions", "firstIndex", firstIndex, "lastIndex", lastIndex)
+
+	allTxs := make([]*transaction.Transaction, 0)
+
+	for i := firstIndex; i < lastIndex; i++ {
+		// Open our jsonFile
+		jsonFile, err := os.Open(fmt.Sprintf("generated_txs/%d.json", i))
+		// if we os.Open returns an error then handle it
+		if err != nil {
+			log.Error("MultiDataInterceptorExtension.loadMoreTransactions - openFile", "error", err, "index", i)
+		}
+		// defer the closing of our jsonFile so that we can parse it later on
+		defer func() {
+			err = jsonFile.Close()
+			if err != nil {
+				log.Error("MultiDataInterceptorExtension.loadMoreTransactions - closeFile", "error", err)
+			}
+		}()
+
+		byteValue, _ := io.ReadAll(jsonFile)
+
+		txs := make([]*transaction.Transaction, 0)
+		err = json.Unmarshal(byteValue, &txs)
+		if err != nil {
+			log.Error("MultiDataInterceptorExtension.loadMoreTransactions - unmarshal", "error", err)
+		}
+
+		allTxs = append(allTxs, txs...)
+	}
+
+	return allTxs
 }
 
 func (ext *MultiDataInterceptorExtension) createMintingTransactions() []*transaction.Transaction {
@@ -397,6 +466,10 @@ func (ext *MultiDataInterceptorExtension) runScenarioMoveBalances(sponsorPubKey 
 		preprocess.NumOfTxsToSelect = int(big.NewInt(0).SetBytes(maxTransactionsToTakeBytes).Int64())
 		preprocess.NumTxPerSenderBatch = int(big.NewInt(0).SetBytes(maxTransactionsPerParticipant).Int64())
 	}
+
+	numParticipants := big.NewInt(0).SetBytes(numParticipantsBytes).Uint64()
+	preprocess.NumOfParallelProcesses.Store(numParticipants)
+	preprocess.NumOfParallelProcesses.Store(10)
 
 	err := ext.doStepInit(sponsorPubKey, [][]byte{numParticipantsBytes})
 	if err != nil {

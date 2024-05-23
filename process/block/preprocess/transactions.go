@@ -51,23 +51,23 @@ var haveAdditionalTimeFalse = func() bool { return false }
 
 type transactions struct {
 	*basePreProcess
-	chRcvAllTxs                  chan bool
-	onRequestTransaction         func(shardID uint32, txHashes [][]byte)
-	txsForCurrBlock              txsForBlock
-	txPool                       dataRetriever.ShardedDataCacherNotifier
-	storage                      dataRetriever.StorageService
-	txProcessor                  process.TransactionProcessor
-	orderedTxs                   map[string][]data.TransactionHandler
-	orderedTxHashes              map[string][][]byte
-	mutOrderedTxs                sync.RWMutex
-	blockTracker                 BlockTracker
-	blockType                    block.Type
-	accountTxsShards             accountTxsShards
-	emptyAddress                 []byte
-	txTypeHandler                process.TxTypeHandler
-	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
-	accntsTracker                *accountsTracker
-
+	chRcvAllTxs                           chan bool
+	onRequestTransaction                  func(shardID uint32, txHashes [][]byte)
+	txsForCurrBlock                       txsForBlock
+	txPool                                dataRetriever.ShardedDataCacherNotifier
+	storage                               dataRetriever.StorageService
+	txProcessor                           process.TransactionProcessor
+	orderedTxs                            map[string][]data.TransactionHandler
+	orderedTxHashes                       map[string][][]byte
+	mutOrderedTxs                         sync.RWMutex
+	blockTracker                          BlockTracker
+	blockType                             block.Type
+	accountTxsShards                      accountTxsShards
+	emptyAddress                          []byte
+	txTypeHandler                         process.TxTypeHandler
+	scheduledTxsExecutionHandler          process.ScheduledTxsExecutionHandler
+	accntsTracker                         *accountsTracker
+	AccntsTrackers                        []*accountsTracker
 	scheduledTXContinueFunc               func(isShardStuck func(uint32) bool, wrappedTx *txcache.WrappedTransaction, mapSCTxs map[string]struct{}, mbInfo *createScheduledMiniBlocksInfo) (*transaction.Transaction, *block.MiniBlock, bool)
 	shouldSkipMiniBlockFunc               func(miniBlock *block.MiniBlock) bool
 	isTransactionEligibleForExecutionFunc func(tx *transaction.Transaction, err error) (error, bool)
@@ -206,6 +206,10 @@ func NewTransactionPreprocessor(
 	txs.orderedTxHashes = make(map[string][][]byte)
 	txs.accountTxsShards.accountsInfo = make(map[string]*txShardInfo)
 	txs.accntsTracker = newAccountsTracker()
+
+	for i := 0; i < 50; i++ {
+		txs.AccntsTrackers = append(txs.AccntsTrackers, newAccountsTracker())
+	}
 
 	txs.emptyAddress = make([]byte, txs.pubkeyConverter.Len())
 	txs.scheduledTXContinueFunc = txs.shouldContinueProcessingScheduledTx

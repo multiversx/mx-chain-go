@@ -103,7 +103,7 @@
         SizeInBytes = 104857600 #100MB
     [MiniBlocksStorage.DB]
         FilePath = "MiniBlocks"
-        Type = "MemoryDB"
+        Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
@@ -116,7 +116,7 @@
         SizeInBytes = 10485760 #10MB
     [ReceiptsStorage.DB]
         FilePath = "Receipts"
-        Type = "MemoryDB"
+        Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
@@ -129,7 +129,7 @@
         SizeInBytes = 10485760 #10MB
     [ScheduledSCRsStorage.DB]
         FilePath = "ScheduledSCRs"
-        Type = "MemoryDB"
+        Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
@@ -142,7 +142,7 @@
         SizeInBytes = 104857600 #100MB
     [PeerBlockBodyStorage.DB]
         FilePath = "PeerBlocks"
-        Type = "MemoryDB"
+        Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
@@ -155,7 +155,7 @@
         SizeInBytes = 3145728 #3MB
     [BlockHeaderStorage.DB]
         FilePath = "BlockHeaders"
-        Type = "MemoryDB"
+        Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
@@ -168,7 +168,7 @@
         SizeInBytes = 104857600 #100MB
     [BootstrapStorage.DB]
         FilePath = "BootstrapData"
-        Type = "MemoryDB"
+        Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
@@ -181,7 +181,7 @@
         SizeInBytes = 20971520 #20MB
     [MetaBlockStorage.DB]
         FilePath = "MetaBlock"
-        Type = "MemoryDB"
+        Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
@@ -194,7 +194,7 @@
         SizeInBytes = 209715200 #200MB
     [TxStorage.DB]
         FilePath = "Transactions"
-        Type = "MemoryDB"
+        Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 30000
         MaxOpenFiles = 10
@@ -207,7 +207,7 @@
         SizeInBytes = 104857600 #100MB
     [UnsignedTransactionStorage.DB]
         FilePath = "UnsignedTransactions"
-        Type = "MemoryDB"
+        Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 20000
         MaxOpenFiles = 10
@@ -220,7 +220,7 @@
         SizeInBytes = 52428800 #50MB
     [RewardTxStorage.DB]
         FilePath = "RewardTransactions"
-        Type = "MemoryDB"
+        Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 20000
         MaxOpenFiles = 10
@@ -233,7 +233,7 @@
         SizeInBytes = 52428800 #50MB
     [SmartContractsStorage.DB]
         FilePath = "SmartContractsStorage"
-        Type = "MemoryDB"
+        Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
@@ -246,7 +246,7 @@
         SizeInBytes = 52428800 #50MB
     [SmartContractsStorageSimulate.DB]
         FilePath = "SmartContractsStorageSimulate"
-        Type = "MemoryDB"
+        Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
@@ -259,7 +259,7 @@
         SizeInBytes = 52428800 #50MB
     [SmartContractsStorageForSCQuery.DB]
         FilePath = "SmartContractsStorageForSCQuery"
-        Type = "MemoryDB"
+        Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
@@ -271,7 +271,7 @@
         Type = "LRU"
     [StatusMetricsStorage.DB]
         FilePath = "StatusMetricsStorageDB"
-        Type = "MemoryDB"
+        Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
@@ -284,7 +284,7 @@
         SizeInBytes = 314572800 #300MB
     [TrieEpochRootHashStorage.DB]
         FilePath = "TrieEpochRootHashStorageDB"
-        Type = "MemoryDB"
+        Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 500
         MaxOpenFiles = 10
@@ -297,7 +297,7 @@
         SizeInBytes = 3145728 #3MB
     [ShardHdrNonceHashStorage.DB]
         FilePath = "ShardHdrHashNonce"
-        Type = "MemoryDB"
+        Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
@@ -310,7 +310,7 @@
         SizeInBytes = 3145728 #3MB
     [MetaHdrNonceHashStorage.DB]
         FilePath = "MetaHdrHashNonce"
-        Type = "MemoryDB"
+        Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
@@ -323,7 +323,7 @@
         SizeInBytes = 314572800 #300MB
     [AccountsTrieStorage.DB]
         FilePath = "AccountsTrie"
-        Type = "MemoryDB"
+        Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 45000
         MaxOpenFiles = 10
@@ -338,7 +338,7 @@
         SizeInBytes = 104857600 #100MB
     [PeerAccountsTrieStorage.DB]
         FilePath = "PeerAccountsTrie"
-        Type = "MemoryDB"
+        Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 1000
         MaxOpenFiles = 10
@@ -351,7 +351,7 @@
     HashesSize = 100000
     [EvictionWaitingList.DB]
         FilePath = "EvictionWaitingList"
-        Type = "MemoryDB"
+        Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
@@ -483,14 +483,14 @@
     EnableDB = false
     [TrieSyncStorage.DB]
         FilePath = "TrieSyncStorageDB"
-        Type = "MemoryDB"
+        Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 45000
         MaxOpenFiles = 10
         UseTmpAsFilePath = true
 
 [Antiflood]
-    Enabled = true
+    Enabled = false
     NumConcurrentResolverJobs = 50
     NumConcurrentResolvingTrieNodesJobs = 3
     [Antiflood.FastReacting]
@@ -561,7 +561,7 @@
         MaxDeviationTimeInMilliseconds = 25
 
 [WebServerAntiflood]
-    WebServerAntifloodEnabled = true
+    WebServerAntifloodEnabled = false
     # SimultaneousRequests represents the number of concurrent requests accepted by the web server
     # this is a global throttler that acts on all http connections regardless of the originating source
     SimultaneousRequests = 100
@@ -728,7 +728,7 @@
             Type = "LRU"
         [Hardfork.ExportStateStorageConfig.DB]
             FilePath = "ExportStateStorage/MainDB"
-            Type = "MemoryDB"
+            Type = "LvlDBSerial"
             BatchDelaySeconds = 2
             MaxBatchSize = 1000
             MaxOpenFiles = 10
@@ -739,7 +739,7 @@
             Type = "LRU"
         [Hardfork.ExportKeysStorageConfig.DB]
             FilePath = "ExportKeysStorageConfig/MainDB"
-            Type = "MemoryDB"
+            Type = "LvlDBSerial"
             BatchDelaySeconds = 2
             MaxBatchSize = 1000
             MaxOpenFiles = 10
@@ -750,7 +750,7 @@
             Type = "LRU"
         [Hardfork.ExportTriesStorageConfig.DB]
             FilePath = "ExportTrieStorage/MainTrie"
-            Type = "MemoryDB"
+            Type = "LvlDBSerial"
             BatchDelaySeconds = 2
             MaxBatchSize = 1000
             MaxOpenFiles = 10
@@ -761,7 +761,7 @@
             Type = "LRU"
         [Hardfork.ImportStateStorageConfig.DB]
             FilePath = "ExportStateStorage/MainDB"
-            Type = "MemoryDB"
+            Type = "LvlDBSerial"
             BatchDelaySeconds = 2
             MaxBatchSize = 1000
             MaxOpenFiles = 10
@@ -772,7 +772,7 @@
             Type = "LRU"
         [Hardfork.ImportKeysStorageConfig.DB]
             FilePath = "ExportKeysStorageConfig/MainDB"
-            Type = "MemoryDB"
+            Type = "LvlDBSerial"
             BatchDelaySeconds = 2
             MaxBatchSize = 1000
             MaxOpenFiles = 10
@@ -830,7 +830,7 @@
         SizeInBytes = 20971520 #20MB
     [LogsAndEvents.TxLogsStorage.DB]
         FilePath = "Logs"
-        Type = "MemoryDB"
+        Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
@@ -844,7 +844,7 @@
         Type = "LRU"
     [DbLookupExtensions.MiniblocksMetadataStorageConfig.DB]
         FilePath = "DbLookupExtensions/MiniblocksMetadata"
-        Type = "MemoryDB"
+        Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 20000
         MaxOpenFiles = 10
@@ -854,7 +854,7 @@
         Type = "LRU"
     [DbLookupExtensions.MiniblockHashByTxHashStorageConfig.DB]
         FilePath = "DbLookupExtensions_MiniblockHashByTxHash"
-        Type = "MemoryDB"
+        Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 20000
         MaxOpenFiles = 10
@@ -864,7 +864,7 @@
         Type = "LRU"
     [DbLookupExtensions.EpochByHashStorageConfig.DB]
         FilePath = "DbLookupExtensions_EpochByHash"
-        Type = "MemoryDB"
+        Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 20000
         MaxOpenFiles = 10
@@ -874,7 +874,7 @@
         Type = "LRU"
     [DbLookupExtensions.ResultsHashesByTxHashStorageConfig.DB]
         FilePath = "DbLookupExtensions_ResultsHashesByTx"
-        Type = "MemoryDB"
+        Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 20000
         MaxOpenFiles = 10
@@ -884,7 +884,7 @@
         Type = "LRU"
     [DbLookupExtensions.ESDTSuppliesStorageConfig.DB]
         FilePath = "DbLookupExtensions_ESDTSupplies"
-        Type = "MemoryDB"
+        Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 20000
         MaxOpenFiles = 10
@@ -894,7 +894,7 @@
         Type = "LRU"
     [DbLookupExtensions.RoundHashStorageConfig.DB]
         FilePath = "DbLookupExtensions_RoundHash"
-        Type = "MemoryDB"
+        Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 20000
         MaxOpenFiles = 10
