@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/demo"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/statusHandler"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -235,13 +236,19 @@ func (ed *economicsData) ComputeMoveBalanceFee(tx data.TransactionWithFeeHandler
 	return ed.ComputeMoveBalanceFeeInEpoch(tx, currentEpoch)
 }
 
+var moveBalanceFeeInEpoch = big.NewInt(0)
+
 // ComputeMoveBalanceFeeInEpoch computes the provided transaction's fee in a specific epoch
 func (ed *economicsData) ComputeMoveBalanceFeeInEpoch(tx data.TransactionWithFeeHandler, epoch uint32) *big.Int {
 	if isSmartContractResult(tx) {
 		return big.NewInt(0)
 	}
 
-	return core.SafeMul(ed.GasPriceForMove(tx), ed.ComputeGasLimitInEpoch(tx, epoch))
+	if moveBalanceFeeInEpoch.Cmp(big.NewInt(0)) == 0 {
+		moveBalanceFeeInEpoch = core.SafeMul(ed.GasPriceForMove(tx), ed.ComputeGasLimitInEpoch(tx, epoch))
+	}
+
+	return moveBalanceFeeInEpoch
 }
 
 // ComputeFeeForProcessing will compute the fee using the gas price modifier, the gas to use and the actual gas price
@@ -279,33 +286,13 @@ func isSmartContractResult(tx data.TransactionWithFeeHandler) bool {
 
 // ComputeTxFee computes the provided transaction's fee using enable from epoch approach
 func (ed *economicsData) ComputeTxFee(tx data.TransactionWithFeeHandler) *big.Int {
-	currentEpoch := ed.enableEpochsHandler.GetCurrentEpoch()
-	return ed.ComputeTxFeeInEpoch(tx, currentEpoch)
+	//currentEpoch := ed.enableEpochsHandler.GetCurrentEpoch()
+	return ed.ComputeTxFeeInEpoch(tx, 0)
 }
 
 // ComputeTxFeeInEpoch computes the provided transaction's fee in a specific epoch
 func (ed *economicsData) ComputeTxFeeInEpoch(tx data.TransactionWithFeeHandler, epoch uint32) *big.Int {
-	if ed.enableEpochsHandler.IsFlagEnabledInEpoch(common.GasPriceModifierFlag, epoch) {
-		if isSmartContractResult(tx) {
-			return ed.ComputeFeeForProcessingInEpoch(tx, tx.GetGasLimit(), epoch)
-		}
-
-		gasLimitForMoveBalance, difference := ed.SplitTxGasInCategoriesInEpoch(tx, epoch)
-		moveBalanceFee := core.SafeMul(ed.GasPriceForMove(tx), gasLimitForMoveBalance)
-		if tx.GetGasLimit() <= gasLimitForMoveBalance {
-			return moveBalanceFee
-		}
-
-		extraFee := ed.ComputeFeeForProcessingInEpoch(tx, difference, epoch)
-		moveBalanceFee.Add(moveBalanceFee, extraFee)
-		return moveBalanceFee
-	}
-
-	if ed.enableEpochsHandler.IsFlagEnabledInEpoch(common.PenalizedTooMuchGasFlag, epoch) {
-		return core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
-	}
-
-	return ed.ComputeMoveBalanceFeeInEpoch(tx, epoch)
+	return core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
 }
 
 // SplitTxGasInCategories returns the gas split per categories
@@ -368,16 +355,12 @@ func (ed *economicsData) CheckValidityTxValuesInEpoch(tx data.TransactionWithFee
 
 // MaxGasLimitPerBlock returns maximum gas limit allowed per block
 func (ed *economicsData) MaxGasLimitPerBlock(shardID uint32) uint64 {
-	currentEpoch := ed.enableEpochsHandler.GetCurrentEpoch()
-	return ed.MaxGasLimitPerBlockInEpoch(shardID, currentEpoch)
+	return demo.MaxGasLimitPerMiniBlock
 }
 
 // MaxGasLimitPerBlockInEpoch returns maximum gas limit allowed per block in a specific epoch
 func (ed *economicsData) MaxGasLimitPerBlockInEpoch(shardID uint32, epoch uint32) uint64 {
-	if shardID == core.MetachainShardId {
-		return ed.getMaxGasLimitPerMetaBlock(epoch)
-	}
-	return ed.getMaxGasLimitPerBlock(epoch)
+	return demo.MaxGasLimitPerMiniBlock
 }
 
 // MaxGasLimitPerMiniBlock returns maximum gas limit allowed per mini block

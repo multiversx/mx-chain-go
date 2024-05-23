@@ -115,7 +115,7 @@ assembleCommand_startObserverNode() {
   fi
 
   local nodeCommand="./node \
-        -port $PORT --profile-mode -log-save -log-level $LOGLEVEL --log-logger-name --log-correlation --use-health-service -rest-api-interface localhost:$RESTAPIPORT \
+        -port $PORT -log-save -log-level $LOGLEVEL --log-logger-name --log-correlation -rest-api-interface localhost:$RESTAPIPORT \
         -destination-shard-as-observer $SHARD \
         --sk-index $KEY_INDEX \
         $KEYS_FLAGS \

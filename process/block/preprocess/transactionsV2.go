@@ -3,7 +3,14 @@ package preprocess
 import (
 	"bytes"
 	"errors"
+	"fmt"
+	"os"
+	"runtime"
+	"runtime/debug"
+	"runtime/pprof"
+	"sort"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -14,6 +21,8 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 )
 
+var ShouldEnableCPUProfileInCreateAndProcessMiniBlocksFromMeV2 atomic.Bool = atomic.Bool{}
+
 func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 	haveTime func() bool,
 	isShardStuck func(uint32) bool,
@@ -23,23 +32,22 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 	log.Debug("createAndProcessMiniBlocksFromMeV2 has been started")
 
 	defer func() {
+		log.Debug("createAndProcessMiniBlocksFromMeV2 has been finished", "num txs", len(allSortedTxs))
 		go txs.notifyTransactionProviderIfNeeded()
 	}()
 
-	//var index int
-	if len(allSortedTxs) > 100 {
-		//f, err := os.Create(fmt.Sprintf("cpu-profile-%d-%d.pprof", time.Now().Unix(), len(allSortedTxs)))
-		//if err != nil {
-		//	log.Error("could not create CPU profile", "error", err)
-		//}
-		//debug.SetGCPercent(-1)
-		//pprof.StartCPUProfile(f)
+	if ShouldEnableCPUProfileInCreateAndProcessMiniBlocksFromMeV2.Load() && len(allSortedTxs) > 50000 {
+		f, err := os.Create(fmt.Sprintf("cpu-profile-%d-%d.pprof", time.Now().Unix(), len(allSortedTxs)))
+		if err != nil {
+			log.Error("could not create CPU profile", "error", err)
+		}
+
+		debug.SetGCPercent(-1)
+		pprof.StartCPUProfile(f)
 
 		defer func() {
-			//pprof.StopCPUProfile()
-			//runtime.GC()
-
-			log.Debug("createAndProcessMiniBlocksFromMeV2 has been finished", "num txs", len(allSortedTxs))
+			pprof.StopCPUProfile()
+			runtime.GC()
 		}()
 	}
 
@@ -47,7 +55,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 
 	mutIndependent := sync.Mutex{}
 	allRemainingTxs := make([]*txcache.WrappedTransaction, 0)
-	mbInfos := make([]*createAndProcessMiniBlocksInfo, 0)
+	mbInfos := make([]*createAndProcessMiniBlocksInfo, len(independentTxs))
 
 	wg := sync.WaitGroup{}
 	for i, st := range independentTxs {
@@ -124,7 +132,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 			}
 			mutIndependent.Lock()
 			allRemainingTxs = append(allRemainingTxs, remainingTxs...)
-			mbInfos = append(mbInfos, mbInfo)
+			mbInfos[thread] = mbInfo
 			mutIndependent.Unlock()
 			wg.Done()
 		}(st, i)
@@ -168,29 +176,57 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 	return miniBlocks, allRemainingTxs, mbInfo.mapSCTxs, nil
 }
 
+type SenderTxs struct {
+	Transactions []*txcache.WrappedTransaction
+	TotalTxs     int
+}
+
 func detectIndepentedTxs(txs []*txcache.WrappedTransaction) [][]*txcache.WrappedTransaction {
 	start := time.Now()
-	independentTxs := make([][]*txcache.WrappedTransaction, 0)
+	txMap := make(map[string]*SenderTxs)
+	maxParallelProcesses := int(NumOfParallelProcesses.Load())
+	independentTxs := make([][]*txcache.WrappedTransaction, maxParallelProcesses)
 	if len(txs) == 0 {
 		return independentTxs
 	}
 
-	currentSender := txs[0].Tx.GetSndAddr()
-	currentTxs := make([]*txcache.WrappedTransaction, 0)
+	//currentSender := txs[0].Tx.GetSndAddr()
+	//currentTxs := make([]*txcache.WrappedTransaction, 0)
 	for _, tx := range txs {
-		if bytes.Equal(currentSender, tx.Tx.GetSndAddr()) {
-			currentTxs = append(currentTxs, tx)
-		} else {
-			independentTxs = append(independentTxs, currentTxs)
-			currentSender = tx.Tx.GetSndAddr()
-			currentTxs = []*txcache.WrappedTransaction{tx}
+		currentSender := string(tx.Tx.GetSndAddr())
+		if txMap[currentSender] == nil {
+			txMap[currentSender] = &SenderTxs{
+				Transactions: make([]*txcache.WrappedTransaction, 0, 10000),
+				TotalTxs:     0,
+			}
 		}
+		txMap[currentSender].Transactions = append(txMap[currentSender].Transactions, tx)
+		txMap[currentSender].TotalTxs++
 	}
-	if len(currentTxs) > 0 {
-		independentTxs = append(independentTxs, currentTxs)
+	senders := make([]SenderTxs, len(txMap))
+	i := 0
+	for _, senderTxs := range txMap {
+		senders[i] = *senderTxs
+		i++
 	}
+
+	sort.Slice(senders, func(i, j int) bool {
+		if senders[i].TotalTxs == senders[j].TotalTxs {
+			return bytes.Compare([]byte(senders[i].Transactions[0].Tx.GetSndAddr()), []byte(senders[j].Transactions[0].Tx.GetSndAddr())) < 0
+		}
+		return senders[i].TotalTxs < senders[j].TotalTxs
+	})
+
+	for index, senderTxs := range senders {
+		if len(senderTxs.Transactions) > 0 {
+			log.Info("detectIndependentTxs", "index", index, "sender", string(senderTxs.Transactions[0].Tx.GetSndAddr()), "num txs", senderTxs.TotalTxs)
+		}
+		processIndex := index % maxParallelProcesses
+		independentTxs[processIndex] = append(independentTxs[processIndex], senderTxs.Transactions...)
+	}
+
 	end := time.Now()
-	log.Debug("detectIndepentedTxs", "time", end.Sub(start).String())
+	log.Debug("detectIndependentTxs", "size", len(independentTxs), "time", end.Sub(start).String())
 	return independentTxs
 }
 
@@ -371,71 +407,106 @@ func (txs *transactions) createScheduledMiniBlocks(
 	mapSCTxs map[string]struct{},
 ) (block.MiniBlockSlice, error) {
 	log.Debug("createScheduledMiniBlocks has been started")
-
+	start := time.Now()
 	mbInfos := make([]*createScheduledMiniBlocksInfo, len(independentTxs))
 	mutMBInfo := sync.Mutex{}
+	wg := sync.WaitGroup{}
 
-	for i, sortedTxs := range independentTxs {
-		mbInfo := txs.initCreateScheduledMiniBlocks()
-		for index := range sortedTxs {
-			if !haveTime() && !haveAdditionalTime() {
-				log.Debug("time is out in createScheduledMiniBlocks")
-				break
-			}
-
-			tx, miniBlock, shouldContinue := txs.scheduledTXContinueFunc(
-				isShardStuck,
-				sortedTxs[index],
-				mapSCTxs,
-				mbInfo)
-			if !shouldContinue {
-				continue
-			}
-
-			txHash := sortedTxs[index].TxHash
-			senderShardID := sortedTxs[index].SenderShardID
-			receiverShardID := sortedTxs[index].ReceiverShardID
-
-			isMiniBlockEmpty := len(miniBlock.TxHashes) == 0
-			scheduledTxMbInfo := txs.getScheduledTxAndMbInfo(
-				isMiniBlockEmpty,
-				receiverShardID,
-				mbInfo)
-
-			if isMaxBlockSizeReached(scheduledTxMbInfo.numNewMiniBlocks, scheduledTxMbInfo.numNewTxs) {
-				log.Debug("max txs accepted in one block is reached",
-					"num scheduled txs added", mbInfo.schedulingInfo.numScheduledTxsAdded,
-					"total txs", len(sortedTxs))
-				break
-			}
-
-			err := txs.verifyTransaction(
-				tx,
-				txHash,
-				senderShardID,
-				receiverShardID,
-				mbInfo)
-			if err != nil {
-				if core.IsGetNodeFromDBError(err) {
-					return nil, err
-				}
-				continue
-			}
-
-			txs.applyVerifiedTransaction(
-				tx,
-				txHash,
-				miniBlock,
-				receiverShardID,
-				scheduledTxMbInfo,
-				mapSCTxs,
-				mbInfo)
-		}
-		mutMBInfo.Lock()
-		mbInfos[i] = mbInfo
-		mutMBInfo.Unlock()
+	sumTxs := 0
+	for _, sortedTxs := range independentTxs {
+		sumTxs += len(sortedTxs)
 	}
 
+	if sumTxs > 1000 {
+		//f, err := os.Create(fmt.Sprintf("cpu-profile-%s-%d-%d.pprof", "createScheduledMiniBlocks", time.Now().Unix(), sumTxs))
+		//if err != nil {
+		//	log.Error("could not create CPU profile", "error", err)
+		//}
+		//
+		//debug.SetGCPercent(-1)
+		//pprof.StartCPUProfile(f)
+		//
+		//defer func() {
+		//	pprof.StopCPUProfile()
+		//	runtime.GC()
+		//}()
+	}
+
+	for i, sortedTxs := range independentTxs {
+		wg.Add(1)
+		go func(sortedTxs []*txcache.WrappedTransaction, i int) {
+			internalMapSCTxs := make(map[string]struct{})
+			mbInfo := txs.initCreateScheduledMiniBlocks()
+			log.Info("createScheduledMiniBlocks - independentTxs", "index", i, "num txs", len(sortedTxs))
+			for index := range sortedTxs {
+				if !haveTime() && !haveAdditionalTime() {
+					log.Debug("time is out in createScheduledMiniBlocks")
+					break
+				}
+
+				tx, miniBlock, shouldContinue := txs.scheduledTXContinueFunc(
+					isShardStuck,
+					sortedTxs[index],
+					mapSCTxs,
+					mbInfo)
+				if !shouldContinue {
+					continue
+				}
+
+				txHash := sortedTxs[index].TxHash
+				senderShardID := sortedTxs[index].SenderShardID
+				receiverShardID := sortedTxs[index].ReceiverShardID
+
+				isMiniBlockEmpty := len(miniBlock.TxHashes) == 0
+				scheduledTxMbInfo := txs.getScheduledTxAndMbInfo(
+					isMiniBlockEmpty,
+					receiverShardID,
+					mbInfo)
+
+				if isMaxBlockSizeReached(scheduledTxMbInfo.numNewMiniBlocks, scheduledTxMbInfo.numNewTxs) {
+					log.Debug("max txs accepted in one block is reached",
+						"num scheduled txs added", mbInfo.schedulingInfo.numScheduledTxsAdded,
+						"total txs", len(sortedTxs))
+					break
+				}
+
+				err := txs.verifyTransaction(
+					tx,
+					txHash,
+					senderShardID,
+					receiverShardID,
+					mbInfo)
+				if err != nil {
+					if core.IsGetNodeFromDBError(err) {
+						log.Error("createScheduledMiniBlocks - verifyTransaction", "error", err)
+						//return nil, err
+					}
+					continue
+				}
+
+				txs.applyVerifiedTransaction(
+					tx,
+					txHash,
+					miniBlock,
+					receiverShardID,
+					scheduledTxMbInfo,
+					internalMapSCTxs,
+					mbInfo)
+			}
+			mutMBInfo.Lock()
+			mbInfos[i] = mbInfo
+			start := time.Now()
+			for k, v := range internalMapSCTxs {
+				mapSCTxs[k] = v
+			}
+			end := time.Now()
+			mutMBInfo.Unlock()
+			log.Info("createScheduledMiniBlocks - independentTxs", "index", i, "num txs", len(sortedTxs), "time", end.Sub(start).String())
+			wg.Done()
+		}(sortedTxs, i)
+	}
+
+	wg.Wait()
 	mbInfo := txs.combine(mbInfos)
 
 	allTxs := 0
@@ -445,8 +516,8 @@ func (txs *transactions) createScheduledMiniBlocks(
 
 	miniBlocks := txs.getMiniBlockSliceFromMapV2(mbInfo.mapMiniBlocks)
 	txs.displayProcessingResultsOfScheduledMiniBlocks(miniBlocks, allTxs, mbInfo)
-
-	log.Debug("createScheduledMiniBlocks has been finished")
+	end := time.Now()
+	log.Debug("createScheduledMiniBlocks has been finished", "time", end.Sub(start).String())
 
 	return miniBlocks, nil
 }
@@ -468,6 +539,9 @@ func (txs *transactions) combine(infos []*createScheduledMiniBlocksInfo) *create
 			if mbInfo.mapMiniBlocks[receiverShardId] == nil {
 				mbInfo.mapMiniBlocks[receiverShardId] = mb
 			} else {
+				if len(mb.TxHashes) > 0 {
+					log.Info("combine - receiverShardId", "firstTxHash", mb.TxHashes[0], "lastTxHash", mb.TxHashes[len(mb.TxHashes)-1], "numTxHashes", len(mb.TxHashes))
+				}
 				mbInfo.mapMiniBlocks[receiverShardId].TxHashes = append(mbInfo.mapMiniBlocks[receiverShardId].TxHashes, mb.TxHashes...)
 			}
 		}

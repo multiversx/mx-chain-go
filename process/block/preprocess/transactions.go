@@ -51,23 +51,23 @@ var haveAdditionalTimeFalse = func() bool { return false }
 
 type transactions struct {
 	*basePreProcess
-	chRcvAllTxs                  chan bool
-	onRequestTransaction         func(shardID uint32, txHashes [][]byte)
-	txsForCurrBlock              txsForBlock
-	txPool                       dataRetriever.ShardedDataCacherNotifier
-	storage                      dataRetriever.StorageService
-	txProcessor                  process.TransactionProcessor
-	orderedTxs                   map[string][]data.TransactionHandler
-	orderedTxHashes              map[string][][]byte
-	mutOrderedTxs                sync.RWMutex
-	blockTracker                 BlockTracker
-	blockType                    block.Type
-	accountTxsShards             accountTxsShards
-	emptyAddress                 []byte
-	txTypeHandler                process.TxTypeHandler
-	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
-	accntsTracker                *accountsTracker
-
+	chRcvAllTxs                           chan bool
+	onRequestTransaction                  func(shardID uint32, txHashes [][]byte)
+	txsForCurrBlock                       txsForBlock
+	txPool                                dataRetriever.ShardedDataCacherNotifier
+	storage                               dataRetriever.StorageService
+	txProcessor                           process.TransactionProcessor
+	orderedTxs                            map[string][]data.TransactionHandler
+	orderedTxHashes                       map[string][][]byte
+	mutOrderedTxs                         sync.RWMutex
+	blockTracker                          BlockTracker
+	blockType                             block.Type
+	accountTxsShards                      accountTxsShards
+	emptyAddress                          []byte
+	txTypeHandler                         process.TxTypeHandler
+	scheduledTxsExecutionHandler          process.ScheduledTxsExecutionHandler
+	accntsTracker                         *accountsTracker
+	AccntsTrackers                        []*accountsTracker
 	scheduledTXContinueFunc               func(isShardStuck func(uint32) bool, wrappedTx *txcache.WrappedTransaction, mapSCTxs map[string]struct{}, mbInfo *createScheduledMiniBlocksInfo) (*transaction.Transaction, *block.MiniBlock, bool)
 	shouldSkipMiniBlockFunc               func(miniBlock *block.MiniBlock) bool
 	isTransactionEligibleForExecutionFunc func(tx *transaction.Transaction, err error) (error, bool)
@@ -206,6 +206,10 @@ func NewTransactionPreprocessor(
 	txs.orderedTxHashes = make(map[string][][]byte)
 	txs.accountTxsShards.accountsInfo = make(map[string]*txShardInfo)
 	txs.accntsTracker = newAccountsTracker()
+
+	for i := 0; i < 50; i++ {
+		txs.AccntsTrackers = append(txs.AccntsTrackers, newAccountsTracker())
+	}
 
 	txs.emptyAddress = make([]byte, txs.pubkeyConverter.Len())
 	txs.scheduledTXContinueFunc = txs.shouldContinueProcessingScheduledTx
@@ -1104,7 +1108,7 @@ func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool, random
 		return make(block.MiniBlockSlice, 0), nil
 	}
 
-	log.Debug("elapsed time to computeSortedTxs",
+	log.Debug("elapsed time to computeSortedTxs (transactions)",
 		"num txs", len(sortedTxs),
 		"time [s]", elapsedTime,
 	)
@@ -1486,10 +1490,12 @@ func (txs *transactions) computeSortedTxs(
 
 	// TODO: this could be moved to SortedTransactionsProvider
 	// TODO: for benchmark, do not re-sort! "sortedTxs" is already sorted.
-	selectedTxs, remainingTxs := txs.preFilterTransactionsWithMoveBalancePriority(sortedTxs, gasBandwidth)
-	txs.sortTransactionsBySenderAndNonce(selectedTxs, randomness)
+	//selectedTxs, remainingTxs := txs.preFilterTransactionsWithMoveBalancePriority(sortedTxs, gasBandwidth)
+	//txs.sortTransactionsBySenderAndNonce(selectedTxs, randomness)
 
-	return selectedTxs, remainingTxs, nil
+	return sortedTxs, make([]*txcache.WrappedTransaction, 0), nil
+
+	//return selectedTxs, remainingTxs, nil
 }
 
 // ProcessMiniBlock processes all the transactions from the given miniblock and saves the processed ones in a local cache
@@ -1714,12 +1720,14 @@ func (txs *transactions) IsInterfaceNil() bool {
 
 // sortTransactionsBySenderAndNonce sorts the provided transactions and hashes simultaneously
 func (txs *transactions) sortTransactionsBySenderAndNonce(transactions []*txcache.WrappedTransaction, randomness []byte) {
-	if !txs.enableEpochsHandler.IsFlagEnabled(common.FrontRunningProtectionFlag) {
-		sortTransactionsBySenderAndNonceLegacy(transactions)
-		return
-	}
+	sortTransactionsBySenderAndNonceLegacy(transactions)
 
-	txs.sortTransactionsBySenderAndNonceWithFrontRunningProtection(transactions, randomness)
+	//if !txs.enableEpochsHandler.IsFlagEnabled(common.FrontRunningProtectionFlag) {
+	//	sortTransactionsBySenderAndNonceLegacy(transactions)
+	//	return
+	//}
+	//
+	//txs.sortTransactionsBySenderAndNonceWithFrontRunningProtection(transactions, randomness)
 }
 
 func (txs *transactions) sortTransactionsBySenderAndNonceWithFrontRunningProtection(transactions []*txcache.WrappedTransaction, randomness []byte) {

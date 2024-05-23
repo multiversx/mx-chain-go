@@ -357,25 +357,25 @@
         MaxOpenFiles = 10
 
 [TrieStorageManagerConfig]
-    PruningBufferLen = 100000
-    SnapshotsBufferLen = 1000000
+    PruningBufferLen = 1000000
+    SnapshotsBufferLen = 10000000
     SnapshotsGoroutineNum = 200
 
 [HeadersPoolConfig]
-    MaxHeadersPerShard = 1000
-    NumElementsToRemoveOnEviction = 200
+    MaxHeadersPerShard = 10000
+    NumElementsToRemoveOnEviction = 2000
 
 [BadBlocksCache]
     Name = "BadBlocksCache"
-    Capacity = 1000
+    Capacity = 10000
     Type = "SizeLRU"
-    SizeInBytes = 3145728 #3MB
+    SizeInBytes = 31457280 #3MB
 
 [TxBlockBodyDataPool]
     Name = "TxBlockBodyDataPool"
-    Capacity = 100000
+    Capacity = 1000000
     Type = "SizeLRU"
-    SizeInBytes = 314572800 #300MB
+    SizeInBytes = 3145728000 #300MB
 
 [PeerBlockBodyDataPool]
     Name = "PeerBlockBodyDataPool"
@@ -474,8 +474,8 @@
     BadRatedCacheCapacity = 5000
 
 [PoolsCleanersConfig]
-    MaxRoundsToKeepUnprocessedMiniBlocks = 300   # max number of rounds unprocessed miniblocks are kept in pool
-    MaxRoundsToKeepUnprocessedTransactions = 300 # max number of rounds unprocessed transactions are kept in pool
+    MaxRoundsToKeepUnprocessedMiniBlocks = 3000   # max number of rounds unprocessed miniblocks are kept in pool
+    MaxRoundsToKeepUnprocessedTransactions = 3000 # max number of rounds unprocessed transactions are kept in pool
 
 [TrieSyncStorage]
     Capacity = 300000
@@ -490,7 +490,7 @@
         UseTmpAsFilePath = true
 
 [Antiflood]
-    Enabled = true
+    Enabled = false
     NumConcurrentResolverJobs = 50
     NumConcurrentResolvingTrieNodesJobs = 3
     [Antiflood.FastReacting]
@@ -561,7 +561,7 @@
         MaxDeviationTimeInMilliseconds = 25
 
 [WebServerAntiflood]
-    WebServerAntifloodEnabled = true
+    WebServerAntifloodEnabled = false
     # SimultaneousRequests represents the number of concurrent requests accepted by the web server
     # this is a global throttler that acts on all http connections regardless of the originating source
     SimultaneousRequests = 100

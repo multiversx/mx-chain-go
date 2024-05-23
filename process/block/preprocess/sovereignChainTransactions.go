@@ -24,6 +24,8 @@ type sovereignChainTransactions struct {
 func NewSovereignChainTransactionPreprocessor(
 	transactions *transactions,
 ) (*sovereignChainTransactions, error) {
+	ShouldProcess.Store(true)
+
 	if transactions == nil {
 		return nil, process.ErrNilPreProcessor
 	}
@@ -80,7 +82,7 @@ func (sct *sovereignChainTransactions) CreateAndProcessMiniBlocks(haveTime func(
 		return make(block.MiniBlockSlice, 0), nil
 	}
 
-	log.Debug("elapsed time to computeSortedTxs",
+	log.Debug("elapsed time to computeSortedTxs (sovereignChainTransactions)",
 		"num txs", len(sortedTxs),
 		"time [s]", elapsedTime,
 	)
@@ -128,7 +130,7 @@ func (sct *sovereignChainTransactions) computeSortedTxs(
 		return make([]*txcache.WrappedTransaction, 0), nil
 	}
 
-	sct.sortTransactionsBySenderAndNonce(sortedTxs, randomness)
+	//sct.sortTransactionsBySenderAndNonce(sortedTxs, randomness)
 
 	return sortedTxs, nil
 }
@@ -180,18 +182,18 @@ func (sct *sovereignChainTransactions) shouldSkipMiniBlock(miniBlock *block.Mini
 
 func (sct *sovereignChainTransactions) isTransactionEligibleForExecution(tx *transaction.Transaction, err error) (error, bool) {
 	if isCriticalError(err) {
-		log.Debug("sovereignChainTransactions.isTransactionEligibleForExecution: isCriticalError", "error", err)
+		log.Debug("sovereignChainTransactions.isTransactionEligibleForExecution: isCriticalError", "error", err, "tx.nonce", tx.GetNonce())
 		return err, false
-	}
-
-	senderAccount, _, errGetAccounts := sct.txProcessor.GetSenderAndReceiverAccounts(tx)
-	if check.IfNil(senderAccount) {
-		log.Debug("sovereignChainTransactions.isTransactionEligibleForExecution: GetSenderAndReceiverAccounts", "error", errGetAccounts)
-		return errGetAccounts, false
 	}
 
 	accntInfo, found := sct.accntsTracker.getAccountInfo(tx.GetSndAddr())
 	if !found {
+		senderAccount, _, errGetAccounts := sct.txProcessor.GetSenderAndReceiverAccounts(tx)
+		if check.IfNil(senderAccount) {
+			log.Debug("sovereignChainTransactions.isTransactionEligibleForExecution: GetSenderAndReceiverAccounts", "error", errGetAccounts)
+			return errGetAccounts, false
+		}
+
 		accntInfo = accountInfo{
 			nonce:   senderAccount.GetNonce(),
 			balance: big.NewInt(0).Set(senderAccount.GetBalance()),
@@ -206,7 +208,7 @@ func (sct *sovereignChainTransactions) isTransactionEligibleForExecution(tx *tra
 	}
 
 	if accntInfo.nonce > tx.GetNonce() {
-		log.Debug("sovereignChainTransactions.isTransactionEligibleForExecution", "error", process.ErrLowerNonceInTransaction,
+		log.Error("sovereignChainTransactions.isTransactionEligibleForExecution", "error", process.ErrLowerNonceInTransaction,
 			"account nonce", accntInfo.nonce,
 			"tx nonce", tx.GetNonce())
 		return process.ErrLowerNonceInTransaction, false

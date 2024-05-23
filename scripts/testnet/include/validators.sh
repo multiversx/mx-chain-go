@@ -15,7 +15,11 @@ startSovereignValidators() {
   setTerminalSession "multiversx-nodes"
   setTerminalLayout "tiled"
   setWorkdirForNextCommands "$TESTNETDIR/node"
-  iterateOverSovereignValidators startSingleValidator
+    if [[ $MULTI_KEY_NODES -eq 1 ]]; then
+      iterateOverSovereignValidatorsMultiKey startSingleValidator
+    else
+      iterateOverSovereignValidators startSingleValidator
+    fi
 }
 
 pauseValidators() {
@@ -97,6 +101,21 @@ iterateOverValidatorsMultiKey() {
    (( VALIDATOR_INDEX++ ))
 }
 
+iterateOverSovereignValidatorsMultiKey() {
+  local callback=$1
+  local VALIDATOR_INDEX=$META_VALIDATORCOUNT
+
+  # Iterate over shards and start validators
+  (( max_shard_id=$SHARDCOUNT - 1 ))
+  for SHARD in $(seq 0 1 $max_shard_id); do
+    if [ $VALIDATOR_INDEX -ne $SKIP_VALIDATOR_IDX ]; then
+      $callback $SHARD $VALIDATOR_INDEX
+      sleep 0.5
+    fi
+    (( VALIDATOR_INDEX++ ))
+  done
+}
+
 startSingleValidator() {
   local SHARD=$1
   local VALIDATOR_INDEX=$2
@@ -175,7 +194,7 @@ assembleCommand_startValidatorNode() {
   WORKING_DIR=$TESTNETDIR/node_working_dirs/$DIR_NAME$VALIDATOR_INDEX
 
   local node_command="./node \
-        --port $PORT --profile-mode --log-save --log-level $LOGLEVEL --log-logger-name --log-correlation --use-health-service --rest-api-interface localhost:$RESTAPIPORT \
+        --port $PORT --log-save --log-level $LOGLEVEL --log-logger-name --log-correlation --rest-api-interface localhost:$RESTAPIPORT \
         --sk-index $KEY_INDEX \
         --working-directory $WORKING_DIR --config-external ./config/external_validator.toml --config ./config/config_validator.toml"
 

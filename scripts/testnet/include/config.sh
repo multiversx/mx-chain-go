@@ -27,7 +27,8 @@ generateConfig() {
     -stake-type $GENESIS_STAKE_TYPE \
     -hysteresis $HYSTERESIS \
     -round-duration $ROUND_DURATION_IN_MS \
-    -sovereign=$SOVEREIGN_BOOL
+    -sovereign=$SOVEREIGN_BOOL \
+    -num-aditional-accounts=4
 
   popd
 }
@@ -87,10 +88,7 @@ updateSeednodeConfig() {
 }
 
 prepareElasticsearch() {
-  echo "Starting Elasticsearch Docker container..."
-  pwd
-  export ES_CONTAINER_ID=$(docker run -d -p 9200:9200 -p 9301:9300 -e "discovery.type=single-node" docker.elastic.co/elasticsearch/elasticsearch:7.10.2)
-  echo $ES_CONTAINER_ID > $TESTNETDIR/es_container_id.txt
+  echo "Preparing Elasticsearch... (do nothing)"
 }
 
 copyNodeConfig() {
@@ -148,8 +146,8 @@ updateNodeConfig() {
   updateJSONValue nodesSetup_edit.json "minTransactionVersion" "1"
 
 	if [ $ALWAYS_NEW_CHAINID -eq 1 ]; then
-		updateTOMLValue config_validator.toml "ChainID" "\"local-testnet"\"
-		updateTOMLValue config_observer.toml "ChainID" "\"local-testnet"\"
+		updateTOMLValue config_validator.toml "ChainID" "\"S"\"
+		updateTOMLValue config_observer.toml "ChainID" "\"S"\"
 	fi
 
 	if [ $ROUNDS_PER_EPOCH -ne 0 ]; then
@@ -347,26 +345,18 @@ generateProxyObserverList() {
 generateSovereignProxyObserverList() {
   OBSERVER_INDEX=0
   OUTPUTFILE=$!
+
   # Start Shard Observers
-  (( max_shard_id=$SHARDCOUNT - 1 ))
-  for SHARD in $(seq 0 1 $max_shard_id); do
-    for _ in $(seq $SHARD_OBSERVERCOUNT); do
-      (( PORT=$PORT_ORIGIN_OBSERVER_REST+$OBSERVER_INDEX))
+  echo "[[Observers]]" >> config_edit.toml
+  echo "   ShardId = 0" >> config_edit.toml
+  echo "   Address = \"http://127.0.0.1:$PORT_ORIGIN_OBSERVER_REST\"" >> config_edit.toml
+  echo ""$'\n' >> config_edit.toml
 
-      echo "[[Observers]]" >> config_edit.toml
-      echo "   ShardId = $SHARD" >> config_edit.toml
-      echo "   Address = \"http://127.0.0.1:$PORT\"" >> config_edit.toml
-      echo ""$'\n' >> config_edit.toml
-
-      # for sovereign shards, shard observers are also able to respond to Metachain related endpoints - useful so we can reuse the Proxy without changes
-      echo "[[Observers]]" >> config_edit.toml
-      echo "   ShardId = $METASHARD_ID" >> config_edit.toml
-      echo "   Address = \"http://127.0.0.1:$PORT\"" >> config_edit.toml
-      echo ""$'\n' >> config_edit.toml
-
-      (( OBSERVER_INDEX++ ))
-    done
-  done
+  # for sovereign shards, shard observers are also able to respond to Metachain related endpoints - useful so we can reuse the Proxy without changes
+  echo "[[Observers]]" >> config_edit.toml
+  echo "   ShardId = $METASHARD_ID" >> config_edit.toml
+  echo "   Address = \"http://127.0.0.1:$PORT_ORIGIN_OBSERVER_REST\"" >> config_edit.toml
+  echo ""$'\n' >> config_edit.toml
 }
 
 updateTOMLValue() {

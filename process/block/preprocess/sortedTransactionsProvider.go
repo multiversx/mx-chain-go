@@ -1,6 +1,9 @@
 package preprocess
 
 import (
+	"math/rand"
+	"sync/atomic"
+
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
@@ -8,6 +11,8 @@ import (
 
 var NumOfTxsToSelect = process.MaxNumOfTxsToSelect
 var NumTxPerSenderBatch = process.NumTxPerSenderBatchForFillingMiniblock
+var NumOfParallelProcesses = atomic.Uint64{}
+var Decrease atomic.Bool
 
 // TODO: Refactor "transactions.go" to not require the components in this file anymore
 // createSortedTransactionsProvider is a "simple factory" for "SortedTransactionsProvider" objects
@@ -36,7 +41,12 @@ func newAdapterTxCacheToSortedTransactionsProvider(txCache TxCache) *adapterTxCa
 
 // GetSortedTransactions gets the transactions from the cache
 func (adapter *adapterTxCacheToSortedTransactionsProvider) GetSortedTransactions() []*txcache.WrappedTransaction {
-	txs := adapter.txCache.SelectTransactionsWithBandwidth(NumOfTxsToSelect, NumTxPerSenderBatch, process.MaxGasBandwidthPerBatchPerSender)
+	if Decrease.Load() {
+		NumOfTxsToSelect = NumOfTxsToSelect * 95 / 100
+		NumTxPerSenderBatch = NumTxPerSenderBatch * 95 / 100
+	}
+	randVal := rand.Intn(1000)
+	txs := adapter.txCache.SelectTransactionsWithBandwidth(NumOfTxsToSelect+randVal, NumTxPerSenderBatch, process.MaxGasBandwidthPerBatchPerSender)
 	return txs
 }
 

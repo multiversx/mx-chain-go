@@ -3,10 +3,10 @@ module github.com/multiversx/mx-chain-go/cmd/sovereignnode/sovereignChecker
 go 1.20
 
 require (
-	github.com/multiversx/mx-chain-communication-go v1.0.8
-	github.com/multiversx/mx-chain-core-go v1.2.17-0.20231204120455-9672e1a91430
-	github.com/multiversx/mx-chain-crypto-go v1.2.8
-	github.com/multiversx/mx-chain-logger-go v1.0.13
+	github.com/multiversx/mx-chain-communication-go v1.0.15-0.20240516213559-414a4522e9c2
+	github.com/multiversx/mx-chain-core-go v1.2.21-0.20240508071047-fefea5737840
+	github.com/multiversx/mx-chain-crypto-go v1.2.12-0.20240508074452-cc21c1b505df
+	github.com/multiversx/mx-chain-logger-go v1.0.15-0.20240508072523-3f00a726af57
 	github.com/multiversx/mx-chain-sovereign-bridge-go v0.0.0-20231218134309-eb39c56a1539
 	github.com/multiversx/mx-sdk-go v1.3.8
 	github.com/urfave/cli v1.22.14
@@ -27,7 +27,7 @@ require (
 	github.com/mr-tron/base58 v1.2.0 // indirect
 	github.com/multiversx/concurrent-map v0.1.4 // indirect
 	github.com/multiversx/mx-chain-go v1.6.3 // indirect
-	github.com/multiversx/mx-chain-storage-go v1.0.13 // indirect
+	github.com/multiversx/mx-chain-storage-go v1.0.16-0.20240508073549-dcb8e6e0370f // indirect
 	github.com/multiversx/mx-chain-vm-common-go v1.5.5 // indirect
 	github.com/pborman/uuid v1.2.1 // indirect
 	github.com/pelletier/go-toml v1.9.3 // indirect

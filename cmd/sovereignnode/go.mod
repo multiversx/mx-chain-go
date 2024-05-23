@@ -118,13 +118,13 @@ require (
 	github.com/multiformats/go-multistream v0.4.1 // indirect
 	github.com/multiformats/go-varint v0.0.7 // indirect
 	github.com/multiversx/concurrent-map v0.1.4 // indirect
-	github.com/multiversx/mx-chain-communication-go v1.0.15-0.20240508074652-e128a1c05c8e // indirect
+	github.com/multiversx/mx-chain-communication-go v1.0.15-0.20240520095539-dee2c01274ba // indirect
 	github.com/multiversx/mx-chain-crypto-go v1.2.12-0.20240508074452-cc21c1b505df // indirect
 	github.com/multiversx/mx-chain-es-indexer-go v1.7.2-0.20240514123403-92975ee00840 // indirect
 	github.com/multiversx/mx-chain-scenario-go v1.4.4-0.20240509103754-9e8129721f00 // indirect
-	github.com/multiversx/mx-chain-storage-go v1.0.16-0.20240508073549-dcb8e6e0370f // indirect
+	github.com/multiversx/mx-chain-storage-go v1.0.16-0.20240520121048-9494b9935229 // indirect
 	github.com/multiversx/mx-chain-vm-common-go v1.5.13-0.20240516094756-46c23d07c6e2 // indirect
-	github.com/multiversx/mx-chain-vm-go v1.5.30-0.20240509104139-8b0eaa8a85d1 // indirect
+	github.com/multiversx/mx-chain-vm-go v1.5.30-0.20240520161801-d5467292e454 // indirect
 	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.68-0.20240509103859-89de3c5da36b // indirect
 	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.69-0.20240509104009-598a37ff36b9 // indirect
 	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.98-0.20240509104102-2a6a709b4041 // indirect
@@ -187,5 +187,3 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.2.1 // indirect
 )
-
-replace github.com/multiversx/mx-chain-storage-go => /home/radu/GolandProjects/multiversx3/mx-chain-storage-go

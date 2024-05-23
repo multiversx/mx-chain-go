@@ -13,7 +13,7 @@
     Password          = ""
     # EnabledIndexes represents a slice of indexes that will be enabled for indexing. Full list is:
     # ["rating", "transactions", "blocks", "validators", "miniblocks", "rounds", "accounts", "accountshistory", "receipts", "scresults", "accountsesdt", "accountsesdthistory", "epochinfo", "scdeploys", "tokens", "tags", "logs", "delegators", "operations", "esdts"]
-    EnabledIndexes    = ["rating", "transactions", "blocks", "validators", "miniblocks", "rounds", "accounts", "accountshistory", "receipts", "scresults", "accountsesdt", "accountsesdthistory", "epochinfo", "scdeploys", "tokens", "tags", "logs", "delegators", "operations", "esdts"]
+    EnabledIndexes    = ["rating", "blocks", "validators", "miniblocks", "rounds", "accounts", "receipts", "accountsesdt", "epochinfo", "scdeploys", "tokens", "tags", "logs", "delegators", "operations", "esdts"]
 
 # EventNotifierConnector defines settings needed to configure and launch the event notifier component
 # HTTP event notifier connector integration will be DEPRECATED in the following iterations

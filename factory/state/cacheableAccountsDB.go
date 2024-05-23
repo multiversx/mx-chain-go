@@ -142,3 +142,13 @@ func (cadb *CacheableAccountsDB) Commit() ([]byte, error) {
 	cadb.mutCaches = make(map[string]*sync.RWMutex)
 	return cadb.AccountsAdapter.Commit()
 }
+
+func (cadb *CacheableAccountsDB) RevertToSnapshot(snapshot int) error {
+	cadb.mutCache.Lock()
+	defer cadb.mutCache.Unlock()
+
+	cadb.Cache = make(map[string]map[string]vmcommon.AccountHandler)
+	cadb.mutCaches = make(map[string]*sync.RWMutex)
+
+	return cadb.AccountsAdapter.RevertToSnapshot(snapshot)
+}

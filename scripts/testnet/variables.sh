@@ -4,7 +4,7 @@
 export METASHARD_ID=4294967295
 
 # ROUND_DURATION_IN_MS is the duration in milliseconds for one round
-export ROUND_DURATION_IN_MS=6000
+export ROUND_DURATION_IN_MS=1000
 
 # Path to mx-chain-go. Determined automatically. Do not change.
 export MULTIVERSXDIR=$(dirname $(dirname $MULTIVERSXTESTNETSCRIPTSDIR))
@@ -20,7 +20,7 @@ export USE_TXGEN=0
 # Enable the Elasticsearch data indexing. Will run a Docker image containing an Elasticsearch cluster, on port 9200.
 # It will also change the external.toml files for observers, so they can index data into it.
 # Docker must be managed as a non-root user: https://docs.docker.com/engine/install/linux-postinstall/
-export USE_ELASTICSEARCH=0
+export USE_ELASTICSEARCH=1
 
 # Path where the testnet will be instantiated. This folder is assumed to not
 # exist, but it doesn't matter if it already does. It will be created if not,
@@ -46,7 +46,7 @@ export SEEDNODE="$SEEDNODEDIR/seednode"   # Leave unchanged.
 
 # Niceness value of the Seednode, Observer Nodes and Validator Nodes. Leave
 # blank to not adjust niceness.
-export NODE_NICENESS=10
+export NODE_NICENESS=""
 
 # Start a watcher daemon for each validator node, which restarts the node if it
 # is suffled out of its shard.
@@ -54,14 +54,14 @@ export NODE_WATCHER=0
 
 # Delays after running executables.
 export SEEDNODE_DELAY=2
-export GENESIS_DELAY=10
+export GENESIS_DELAY=15
 export HARDFORK_DELAY=900 #15 minutes enough to take export and gracefully close
 export NODE_DELAY=8
 
 export GENESIS_STAKE_TYPE="direct" #'delegated' or 'direct' as in direct stake
 
 #if set to 1, each observer will turn off the antiflooding capability, allowing spam in our network
-export OBSERVERS_ANTIFLOOD_DISABLE=0
+export OBSERVERS_ANTIFLOOD_DISABLE=1
 
 # If set to 1, this will deploy nodes in a sovereign shard.
 # All variables from metashard structure(validators, observers, consensus) should be set to zero and SHARDCOUNT to 1
@@ -70,19 +70,17 @@ export SOVEREIGN_DEPLOY=1
 
 # Shard structure
 export SHARDCOUNT=1
-export SHARD_VALIDATORCOUNT=1
-export SHARD_OBSERVERCOUNT=0
-export SHARD_CONSENSUS_SIZE=1
+export SHARD_VALIDATORCOUNT=20
+export SHARD_OBSERVERCOUNT=1
+export SHARD_CONSENSUS_SIZE=20
 
 # Metashard structure
 export META_VALIDATORCOUNT=0
 export META_OBSERVERCOUNT=0
 export META_CONSENSUS_SIZE=$META_VALIDATORCOUNT
 
-export ROUND_DURATION_IN_MS=6000
-
 # MULTI_KEY_NODES if set to 1, one observer will be generated on each shard that will handle all generated keys
-export MULTI_KEY_NODES=0
+export MULTI_KEY_NODES=1
 
 # EXTRA_KEYS if set to 1, extra keys will be added to the generated keys
 export EXTRA_KEYS=1
@@ -91,7 +89,7 @@ export EXTRA_KEYS=1
 export ALWAYS_NEW_CHAINID=1
 
 # ROUNDS_PER_EPOCH represents the number of rounds per epoch. If set to 0, it won't override the node's config
-export ROUNDS_PER_EPOCH=0
+export ROUNDS_PER_EPOCH=1000000
 
 # HYSTERESIS defines the hysteresis value for number of nodes in shard
 export HYSTERESIS=0.0
@@ -102,7 +100,7 @@ export ALWAYS_NEW_APP_VERSION=0
 # ALWAYS_UPDATE_CONFIGS will re-generate configs (toml + json) each time ./start.sh
 # Set this variable to 0 when testing bootstrap from storage or other edge cases where you do not want a fresh new config
 # each time.
-export ALWAYS_UPDATE_CONFIGS=1
+export ALWAYS_UPDATE_CONFIGS=0
 
 # IP of the seednode
 export SEEDNODE_IP="127.0.0.1"
@@ -119,7 +117,7 @@ export PORT_ORIGIN_VALIDATOR_REST="9500"
 # Use tmux or not. If set to 1, only 2 terminal windows will be opened, and
 # tmux will be used to display the running executables using split windows.
 # Recommended. Tmux needs to be installed.
-export USETMUX=1
+export USETMUX=0
 
 # Log level for the logger in the Node.
 export LOGLEVEL="*:DEBUG"

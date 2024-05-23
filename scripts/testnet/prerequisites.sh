@@ -54,13 +54,13 @@ fi
 
 
 cd $(dirname $MULTIVERSXDIR)
-git clone git@github.com:multiversx/mx-chain-deploy-go.git
-git clone git@github.com:multiversx/mx-chain-proxy-go.git
+git clone https://github.com/multiversx/mx-chain-deploy-go.git
+git clone https://github.com/multiversx/mx-chain-proxy-go.git
 
 if [ "$SOVEREIGN_DEPLOY" -eq 1 ]; then
     pushd .
     cd mx-chain-deploy-go
-    git checkout feat/sovereign
+    git checkout sovereign-demo
     popd
 
     pushd .

@@ -117,15 +117,15 @@ type baseBootstrap struct {
 	outportHandler   outport.OutportHandler
 	accountsDBSyncer process.AccountsDBSyncer
 
-	chRcvMiniBlocks                     chan bool
-	mutRcvMiniBlocks                    sync.Mutex
-	miniBlocksProvider                  process.MiniBlockProvider
-	poolsHolder                         dataRetriever.PoolsHolder
-	mutRequestHeaders                   sync.Mutex
-	cancelFunc                          func()
-	isInImportMode                      bool
-	scheduledTxsExecutionHandler        process.ScheduledTxsExecutionHandler
-	processWaitTime                     time.Duration
+	chRcvMiniBlocks              chan bool
+	mutRcvMiniBlocks             sync.Mutex
+	miniBlocksProvider           process.MiniBlockProvider
+	poolsHolder                  dataRetriever.PoolsHolder
+	mutRequestHeaders            sync.Mutex
+	cancelFunc                   func()
+	isInImportMode               bool
+	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
+	processWaitTime              time.Duration
 
 	repopulateTokensSupplies bool
 

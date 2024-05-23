@@ -5,7 +5,7 @@ startProxy() {
   setTerminalLayout "even-vertical"
 
   setWorkdirForNextCommands "$TESTNETDIR/proxy"
-  runCommandInTerminal "./proxy" $1
+  runCommandInTerminal "./proxy --log-save" $1
 }
 
 pauseProxy() {
@@ -79,6 +79,5 @@ stopSeednode() {
 }
 
 stopElasticsearch() {
-  ES_CONTAINER_ID=$(cat $TESTNETDIR/es_container_id.txt)
-  sudo docker stop $ES_CONTAINER_ID
+  echo "Stopping Elasticsearch... (do nothing)"
 }
