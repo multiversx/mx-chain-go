@@ -65,6 +65,10 @@ type MultiDataInterceptorExtension struct {
 	pool                   process.ShardedPool
 }
 
+type clearablePool interface {
+	ClearShardStore(cacheID string)
+}
+
 func NewMultiDataInterceptorExtension(mdi *MultiDataInterceptor) *MultiDataInterceptorExtension {
 	ext := &MultiDataInterceptorExtension{
 		sponsor:      &participant{},
@@ -131,11 +135,21 @@ func (ext *MultiDataInterceptorExtension) doProcess(interceptedData process.Inte
 	shouldStartProcessing := function == "ext_start_processing"
 	shouldEndProcessing := function == "ext_end_processing"
 	shouldRunScenarioMoveBalances := function == "ext_run_scenario_move_balances"
+	shouldClearPool := function == "ext_clear_pool"
 
 	if shouldInit {
 		err := ext.doStepInit(tx.GetSndAddr(), args)
 		if err != nil {
 			log.Error("MultiDataInterceptorExtension: failed to do step: init", "error", err)
+		}
+
+		return
+	}
+
+	if shouldClearPool {
+		err := ext.doClearPool()
+		if err != nil {
+			log.Error("MultiDataInterceptorExtension: failed clear pool", "error", err)
 		}
 
 		return
@@ -216,6 +230,17 @@ func (ext *MultiDataInterceptorExtension) doStepInit(sponsorPubKey []byte, args 
 
 	preprocess.ShouldProcess.Store(true)
 
+	return nil
+}
+
+func (ext *MultiDataInterceptorExtension) doClearPool() error {
+	cacherIdentifier := process.ShardCacherIdentifier(0, 0)
+	clearablePool, ok := ext.pool.(clearablePool)
+	if !ok {
+		return fmt.Errorf("MultiDataInterceptorExtension.doClearPool: pool does not implement clearablePool")
+	}
+
+	clearablePool.ClearShardStore(cacherIdentifier)
 	return nil
 }
 
