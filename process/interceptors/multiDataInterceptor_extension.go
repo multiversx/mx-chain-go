@@ -161,6 +161,7 @@ func (ext *MultiDataInterceptorExtension) doProcess(interceptedData process.Inte
 			log.Error("MultiDataInterceptorExtension: failed to do step: load", "error", err)
 		}
 
+		return
 	}
 
 	if shouldEnablePprof {
