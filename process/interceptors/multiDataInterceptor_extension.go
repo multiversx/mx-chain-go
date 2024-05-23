@@ -9,6 +9,8 @@ import (
 	"io"
 	"math/big"
 	"os"
+	"os/user"
+	"path"
 	"strings"
 	"sync"
 	"time"
@@ -302,9 +304,13 @@ func (ext *MultiDataInterceptorExtension) loadMoreTransactions(firstIndex int, l
 
 	allTxs := make([]*transaction.Transaction, 0)
 
+	currentUser, _ := user.Current()
+
 	for i := firstIndex; i < lastIndex; i++ {
+		jsonFilePath := path.Join(currentUser.HomeDir, "data", fmt.Sprintf("%d_node.json", i))
+
 		// Open our jsonFile
-		jsonFile, err := os.Open(fmt.Sprintf("generated_txs/%d_node.json", i))
+		jsonFile, err := os.Open(jsonFilePath)
 		// if we os.Open returns an error then handle it
 		if err != nil {
 			log.Error("MultiDataInterceptorExtension.loadMoreTransactions - openFile", "error", err, "index", i)
