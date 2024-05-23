@@ -17,7 +17,7 @@ require (
 	github.com/multiversx/mx-chain-communication-go v1.0.15-0.20240520095539-dee2c01274ba
 	github.com/multiversx/mx-chain-core-go v1.2.21-0.20240514102932-72b1cac83784
 	github.com/multiversx/mx-chain-crypto-go v1.2.12-0.20240508074452-cc21c1b505df
-	github.com/multiversx/mx-chain-es-indexer-go v1.7.2-0.20240514123403-92975ee00840
+	github.com/multiversx/mx-chain-es-indexer-go v1.7.2-0.20240523060508-070b381936fd
 	github.com/multiversx/mx-chain-logger-go v1.0.15-0.20240508072523-3f00a726af57
 	github.com/multiversx/mx-chain-scenario-go v1.4.4-0.20240509103754-9e8129721f00
 	github.com/multiversx/mx-chain-storage-go v1.0.16-0.20240520121048-9494b9935229
@@ -67,7 +67,7 @@ require (
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.14.0 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
-	github.com/goccy/go-json v0.10.2 // indirect
+	github.com/goccy/go-json v0.10.3 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	github.com/golang/mock v1.6.0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
