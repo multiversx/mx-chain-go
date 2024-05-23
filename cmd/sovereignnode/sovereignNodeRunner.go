@@ -16,6 +16,7 @@ import (
 	"syscall"
 	"time"
 
+	outportCore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-go/api/gin"
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/common"
@@ -53,6 +54,7 @@ import (
 	"github.com/multiversx/mx-chain-go/node"
 	"github.com/multiversx/mx-chain-go/node/metrics"
 	trieIteratorsFactory "github.com/multiversx/mx-chain-go/node/trieIterators/factory"
+	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	"github.com/multiversx/mx-chain-go/process/rating"
@@ -65,7 +67,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
-	"github.com/multiversx/mx-chain-go/testscommon/outport"
+	testOuport "github.com/multiversx/mx-chain-go/testscommon/outport"
 	trieStatistics "github.com/multiversx/mx-chain-go/trie/statistics"
 	"github.com/multiversx/mx-chain-go/update/trigger"
 
@@ -573,6 +575,13 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
+	indexValidatorsListIfNeeded(
+		managedProcessComponents.ShardCoordinator().SelfId(),
+		managedStatusComponents.OutportHandler(),
+		nodesCoordinatorInstance,
+		managedProcessComponents.EpochStartTrigger().Epoch(),
+	)
+
 	// this channel will trigger the moment when the sc query service should be able to process VM Query requests
 	allowExternalVMQueriesChan := make(chan struct{})
 
@@ -640,6 +649,30 @@ func addSyncersToAccountsDB(
 	}
 
 	return stateComponents.AccountsAdapter().StartSnapshotIfNeeded()
+}
+
+func indexValidatorsListIfNeeded(
+	shardID uint32,
+	outportHandler outport.OutportHandler,
+	coordinator nodesCoordinator.NodesCoordinator,
+	epoch uint32,
+) {
+	if !outportHandler.HasDrivers() {
+		return
+	}
+
+	validatorsPubKeys, err := coordinator.GetAllEligibleValidatorsPublicKeys(epoch)
+	if err != nil {
+		log.Warn("GetAllEligibleValidatorPublicKeys for epoch 0 failed", "error", err)
+	}
+
+	if len(validatorsPubKeys) > 0 {
+		outportHandler.SaveValidatorsPubKeys(&outportCore.ValidatorsPubKeys{
+			ShardID:                shardID,
+			ShardValidatorsPubKeys: outportCore.ConvertPubKeys(validatorsPubKeys),
+			Epoch:                  epoch,
+		})
+	}
 }
 
 func getUserAccountSyncer(
@@ -1891,7 +1924,7 @@ func createSovereignWsReceiver(
 	//}
 
 	//return factory.CreateWsClientReceiverNotifier(argsWsReceiver)
-	return &outport.SenderHostStub{}, nil
+	return &testOuport.SenderHostStub{}, nil
 }
 
 func getNotifierSubscribedEvents(events []config.SubscribedEvent) []notifierCfg.SubscribedEvent {
