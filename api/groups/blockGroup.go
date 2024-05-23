@@ -209,17 +209,18 @@ func (bg *blockGroup) getAlteredAccountsByHash(c *gin.Context) {
 }
 
 func parseBlockQueryOptions(c *gin.Context) (api.BlockQueryOptions, error) {
-	withTxs, err := parseBoolUrlParam(c, urlParamWithTxs)
-	if err != nil {
-		return api.BlockQueryOptions{}, err
-	}
+	// withTxs, err := parseBoolUrlParam(c, urlParamWithTxs)
+	// if err != nil {
+	// 	return api.BlockQueryOptions{}, err
+	// }
 
-	withLogs, err := parseBoolUrlParam(c, urlParamWithLogs)
-	if err != nil {
-		return api.BlockQueryOptions{}, err
-	}
+	// withLogs, err := parseBoolUrlParam(c, urlParamWithLogs)
+	// if err != nil {
+	// 	return api.BlockQueryOptions{}, err
+	// }
 
-	options := api.BlockQueryOptions{WithTransactions: withTxs, WithLogs: withLogs}
+	//options := api.BlockQueryOptions{WithTransactions: withTxs, WithLogs: withLogs}
+	options := api.BlockQueryOptions{}
 	return options, nil
 }
 
