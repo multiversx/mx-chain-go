@@ -169,6 +169,10 @@ func (ext *MultiDataInterceptorExtension) doProcess(interceptedData process.Inte
 	}
 
 	if shouldStartProcessing {
+		if len(args) == 2 {
+			preprocess.NumOfTxsToSelect = int(big.NewInt(0).SetBytes(args[0]).Int64())
+			preprocess.NumTxPerSenderBatch = int(big.NewInt(0).SetBytes(args[1]).Int64())
+		}
 		preprocess.ShouldProcess.Store(true)
 		return
 	}
@@ -303,13 +307,11 @@ func (ext *MultiDataInterceptorExtension) loadMoreTransactions(firstIndex int, l
 	log.Info("MultiDataInterceptorExtension.loadMoreTransactions", "firstIndex", firstIndex, "lastIndex", lastIndex)
 
 	allTxs := make([]*transaction.Transaction, 0)
-
 	currentUser, _ := user.Current()
 
-	for i := firstIndex; i < lastIndex; i++ {
-		jsonFilePath := path.Join(currentUser.HomeDir, "data", fmt.Sprintf("%d_node.json", i))
-
+	for i := firstIndex; i <= lastIndex; i++ {
 		// Open our jsonFile
+		jsonFilePath := path.Join(currentUser.HomeDir, "data", fmt.Sprintf("%d_node.json", i))
 		jsonFile, err := os.Open(jsonFilePath)
 		// if we os.Open returns an error then handle it
 		if err != nil {
