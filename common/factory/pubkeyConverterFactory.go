@@ -21,12 +21,13 @@ func NewPubkeyConverter(config config.PubkeyConfig) (core.PubkeyConverter, error
 	case HexFormat:
 		return pubkeyConverter.NewHexPubkeyConverter(config.Length)
 	case Bech32Format:
-		backingConverter, err := pubkeyConverter.NewBech32PubkeyConverter(config.Length, config.Hrp)
-		if err != nil {
-			return nil, err
-		}
+		// backingConverter, err := pubkeyConverter.NewBech32PubkeyConverter(config.Length, config.Hrp)
+		// if err != nil {
+		// 	return nil, err
+		// }
 
-		return newPubkeyConverterWithMemory(backingConverter), nil
+		// return newPubkeyConverterWithMemory(backingConverter), nil
+		return pubkeyConverter.NewBech32PubkeyConverter(config.Length, config.Hrp)
 	default:
 		return nil, fmt.Errorf("%w unrecognized type %s", state.ErrInvalidPubkeyConverterType, config.Type)
 	}
