@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/demo"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/statusHandler"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -291,27 +292,7 @@ func (ed *economicsData) ComputeTxFee(tx data.TransactionWithFeeHandler) *big.In
 
 // ComputeTxFeeInEpoch computes the provided transaction's fee in a specific epoch
 func (ed *economicsData) ComputeTxFeeInEpoch(tx data.TransactionWithFeeHandler, epoch uint32) *big.Int {
-	//if ed.enableEpochsHandler.IsFlagEnabledInEpoch(common.GasPriceModifierFlag, epoch) {
-	//	if isSmartContractResult(tx) {
-	//		return ed.ComputeFeeForProcessingInEpoch(tx, tx.GetGasLimit(), epoch)
-	//	}
-	//
-	//	gasLimitForMoveBalance, difference := ed.SplitTxGasInCategoriesInEpoch(tx, epoch)
-	//	moveBalanceFee := core.SafeMul(ed.GasPriceForMove(tx), gasLimitForMoveBalance)
-	//	if tx.GetGasLimit() <= gasLimitForMoveBalance {
-	//		return moveBalanceFee
-	//	}
-	//
-	//	extraFee := ed.ComputeFeeForProcessingInEpoch(tx, difference, epoch)
-	//	moveBalanceFee.Add(moveBalanceFee, extraFee)
-	//	return moveBalanceFee
-	//}
-	//
-	//if ed.enableEpochsHandler.IsFlagEnabledInEpoch(common.PenalizedTooMuchGasFlag, epoch) {
-	//	return core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
-	//}
-
-	return ed.ComputeMoveBalanceFeeInEpoch(tx, epoch)
+	return core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
 }
 
 // SplitTxGasInCategories returns the gas split per categories
@@ -374,16 +355,12 @@ func (ed *economicsData) CheckValidityTxValuesInEpoch(tx data.TransactionWithFee
 
 // MaxGasLimitPerBlock returns maximum gas limit allowed per block
 func (ed *economicsData) MaxGasLimitPerBlock(shardID uint32) uint64 {
-	currentEpoch := ed.enableEpochsHandler.GetCurrentEpoch()
-	return ed.MaxGasLimitPerBlockInEpoch(shardID, currentEpoch)
+	return demo.MaxGasLimitPerMiniBlock
 }
 
 // MaxGasLimitPerBlockInEpoch returns maximum gas limit allowed per block in a specific epoch
 func (ed *economicsData) MaxGasLimitPerBlockInEpoch(shardID uint32, epoch uint32) uint64 {
-	if shardID == core.MetachainShardId {
-		return ed.getMaxGasLimitPerMetaBlock(epoch)
-	}
-	return ed.getMaxGasLimitPerBlock(epoch)
+	return demo.MaxGasLimitPerMiniBlock
 }
 
 // MaxGasLimitPerMiniBlock returns maximum gas limit allowed per mini block

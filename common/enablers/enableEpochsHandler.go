@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/demo"
 	"github.com/multiversx/mx-chain-go/process"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
@@ -810,12 +811,7 @@ func (handler *enableEpochsHandler) GetActivationEpoch(flag core.EnableEpochFlag
 
 // GetCurrentEpoch returns the current epoch
 func (handler *enableEpochsHandler) GetCurrentEpoch() uint32 {
-	return 0
-	//handler.epochMut.RLock()
-	//currentEpoch := handler.currentEpoch
-	//handler.epochMut.RUnlock()
-	//
-	//return currentEpoch
+	return demo.CurrentEpoch
 }
 
 // StakingV4Step2EnableEpoch returns the epoch when stakingV4 becomes active

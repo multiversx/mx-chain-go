@@ -84,13 +84,6 @@ func (txMap *txListBySenderMap) addSender(sender string) *txListForSender {
 	return listForSender
 }
 
-// // This function should only be called in a critical section managed by a "txListForSender"
-// func (txMap *txListBySenderMap) notifyScoreChange(txList *txListForSender, scoreParams senderScoreParams) {
-// 	score := uint32(0)
-// 	txList.setLastComputedScore(score)
-// 	txMap.backingMap.NotifyScoreChange(txList, score)
-// }
-
 // removeTx removes a transaction from the map
 func (txMap *txListBySenderMap) removeTx(tx *WrappedTransaction) bool {
 	sender := string(tx.Tx.GetSndAddr())

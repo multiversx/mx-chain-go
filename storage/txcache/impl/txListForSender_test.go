@@ -432,12 +432,12 @@ func newUnconstrainedListToTest() *txListForSender {
 	return newTxListForSender(".", &senderConstraints{
 		maxNumBytes: math.MaxUint32,
 		maxNumTxs:   math.MaxUint32,
-	}, func(_ *txListForSender, _ senderScoreParams) {})
+	})
 }
 
 func newListToTest(maxNumBytes uint32, maxNumTxs uint32) *txListForSender {
 	return newTxListForSender(".", &senderConstraints{
 		maxNumBytes: maxNumBytes,
 		maxNumTxs:   maxNumTxs,
-	}, func(_ *txListForSender, _ senderScoreParams) {})
+	})
 }
