@@ -6,6 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	sovCore "github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -15,16 +18,14 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/sovereign"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
-	sovCore "github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/stretchr/testify/require"
 )
 
 type sovEndRoundHandler interface {
 	consensus.SubroundHandler
 	DoSovereignEndRoundJob(ctx context.Context) bool
+	ReceivedBlockHeaderFinalInfo(cnsDta *consensus.Message) bool
+	GetInternalHeader() data.HeaderHandler
 }
 
 func createSovSubRoundEndWithSelfLeader(
@@ -393,6 +394,98 @@ func TestSovereignSubRoundEnd_DoEndJobByLeader(t *testing.T) {
 		require.True(t, success)
 		require.True(t, wasDataSent)
 	})
+
+	t.Run("scenario X", func(t *testing.T) {
+		t.Parallel()
+
+		unconfirmedBridgeOutGoingData := &sovCore.BridgeOutGoingData{
+			Hash: []byte("hashOfHashes"),
+			OutGoingOperations: []*sovCore.OutGoingOperation{
+				{
+					Hash: []byte("hashOp1"),
+					Data: []byte("bridgeOp1"),
+				},
+			},
+		}
+
+		pool := sovereignBlock.NewOutGoingOperationPool(time.Second)
+		pool.Add(unconfirmedBridgeOutGoingData)
+
+		wasDataSent := false
+		currCtx := context.Background()
+		wg := sync.WaitGroup{}
+		wg.Add(1)
+		bridgeHandler := &sovereign.BridgeOperationsHandlerMock{
+			SendCalled: func(ctx context.Context, data *sovCore.BridgeOperations) (*sovCore.BridgeOperationsResponse, error) {
+				defer func() {
+					wg.Done()
+				}()
+
+				require.Equal(t, currCtx, ctx)
+				require.Equal(t, &sovCore.BridgeOperations{
+					Data: []*sovCore.BridgeOutGoingData{
+						&sovCore.BridgeOutGoingData{
+							Hash: []byte("hashOfHashes"),
+							OutGoingOperations: []*sovCore.OutGoingOperation{
+								{
+									Hash: []byte("hashOp1"),
+									Data: []byte("bridgeOp1"),
+								},
+							},
+							AggregatedSignature: []byte("aggregatedSig"),
+							LeaderSignature:     []byte("leaderSig"),
+						},
+					},
+				}, data)
+
+				wasDataSent = true
+				return &sovCore.BridgeOperationsResponse{}, nil
+			},
+		}
+
+		sovHdr := &block.SovereignChainHeader{
+			Header: &block.Header{
+				Nonce: 4,
+			},
+			OutGoingMiniBlockHeader: &block.OutGoingMiniBlockHeader{
+				Hash:                                  []byte("hashOfHashes"),
+				OutGoingOperationsHash:                []byte("hashOfHashes"),
+				AggregatedSignatureOutGoingOperations: []byte("aggregatedSig"),
+				LeaderSignatureOutGoingOperations:     []byte("leaderSig"),
+			},
+		}
+		sovEndRound := createSovSubRoundEndWithSelfLeader(pool, bridgeHandler, sovHdr)
+		success := sovEndRound.DoSovereignEndRoundJob(currCtx)
+
+		wg.Wait()
+		require.True(t, success)
+		require.True(t, wasDataSent)
+
+		success = false
+		wasDataSent = false
+
+		time.Sleep(time.Second)
+
+		sovHdr.OutGoingMiniBlockHeader = nil
+		success = sovEndRound.DoSovereignEndRoundJob(currCtx)
+
+		wg.Add(1)
+
+		wg.Wait()
+		require.True(t, success)
+		require.True(t, wasDataSent)
+
+		time.Sleep(time.Second)
+
+		sovHdr.OutGoingMiniBlockHeader = nil
+		success = sovEndRound.DoSovereignEndRoundJob(currCtx)
+
+		wg.Add(1)
+
+		wg.Wait()
+		require.True(t, success)
+		require.True(t, wasDataSent)
+	})
 }
 
 func TestSovereignSubRoundEnd_DoEndJobByParticipant(t *testing.T) {
@@ -549,4 +642,77 @@ func TestSovereignSubRoundEnd_DoEndJobByParticipant(t *testing.T) {
 		require.False(t, wasDataSent)
 		require.Zero(t, getUnconfirmedCalled)
 	})
+}
+
+func TestSovereignSubRoundEndCreator_ReceivedInvalidSignersInfo(t *testing.T) {
+	t.Parallel()
+
+	outGoingData := &sovCore.BridgeOutGoingData{
+		Hash: []byte("hashOfHashes"),
+		OutGoingOperations: []*sovCore.OutGoingOperation{
+			{
+				Hash: []byte("hashOp1"),
+				Data: []byte("bridgeOp1"),
+			},
+		},
+	}
+
+	pool := sovereignBlock.NewOutGoingOperationPool(time.Second)
+	pool.Add(outGoingData)
+
+	wasDataSent := false
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	bridgeHandler := &sovereign.BridgeOperationsHandlerMock{
+		SendCalled: func(ctx context.Context, data *sovCore.BridgeOperations) (*sovCore.BridgeOperationsResponse, error) {
+			defer func() {
+				wg.Done()
+			}()
+
+			wasDataSent = true
+			return &sovCore.BridgeOperationsResponse{}, nil
+		},
+	}
+	sovHdr := &block.SovereignChainHeader{
+		Header: &block.Header{
+			Nonce: 4,
+		},
+		OutGoingMiniBlockHeader: &block.OutGoingMiniBlockHeader{
+			Hash:                   []byte("hashOfHashes"),
+			OutGoingOperationsHash: []byte("hashOfHashes"),
+		},
+	}
+
+	sovEndRound := createSovSubRoundEndWithParticipant(pool, bridgeHandler, sovHdr)
+
+	aggregatedSig := []byte("aggregatedSigOutGoing")
+	leaderSig := []byte("leaderSigOutGoing")
+	cnsData := consensus.Message{
+		HeaderHash:                        []byte("X"),
+		PubKey:                            []byte("A"),
+		InvalidSigners:                    []byte("invalidSignersData"),
+		AggregatedSignatureOutGoingTxData: aggregatedSig,
+		LeaderSignatureOutGoingTxData:     leaderSig,
+	}
+
+	res := sovEndRound.ReceivedBlockHeaderFinalInfo(&cnsData)
+	require.True(t, res)
+	require.False(t, wasDataSent)
+
+	outGoingMb := sovEndRound.GetInternalHeader().(data.SovereignChainHeaderHandler).GetOutGoingMiniBlockHeaderHandler()
+	require.Equal(t, leaderSig, outGoingMb.GetLeaderSignatureOutGoingOperations())
+	require.Equal(t, aggregatedSig, outGoingMb.GetAggregatedSignatureOutGoingOperations())
+
+	updatedPoolData := pool.Get([]byte("hashOfHashes"))
+	require.Equal(t, &sovCore.BridgeOutGoingData{
+		Hash: []byte("hashOfHashes"),
+		OutGoingOperations: []*sovCore.OutGoingOperation{
+			{
+				Hash: []byte("hashOp1"),
+				Data: []byte("bridgeOp1"),
+			},
+		},
+		AggregatedSignature: aggregatedSig,
+		LeaderSignature:     leaderSig,
+	}, updatedPoolData)
 }

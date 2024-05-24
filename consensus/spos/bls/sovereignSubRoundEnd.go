@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/errors"
 
@@ -42,8 +43,51 @@ func NewSovereignSubRoundEndRound(
 	}
 
 	sr.Job = sr.doSovereignEndRoundJob
-
 	return sr, nil
+}
+
+func (sr *sovereignSubRoundEnd) receivedBlockHeaderFinalInfo(ctx context.Context, cnsDta *consensus.Message) bool {
+	success := sr.subroundEndRoundV2.receivedBlockHeaderFinalInfo(ctx, cnsDta)
+	if !success {
+		return false
+	}
+
+	return sr.updateOutGoingPoolIfNeeded(cnsDta) == nil
+}
+
+func (sr *sovereignSubRoundEnd) updateOutGoingPoolIfNeeded(cnsDta *consensus.Message) error {
+	sovHeader, castOk := sr.Header.(data.SovereignChainHeaderHandler)
+	if !castOk {
+		log.Error("sovereignSubRoundEnd.updateOutGoingPoolIfNeeded", "error", errors.ErrWrongTypeAssertion)
+		return errors.ErrWrongTypeAssertion
+	}
+
+	log.Error("doSovereignEndRoundJob", "isLeader", sr.isSelfLeader(), "HAS OUTGOING", sovHeader.GetOutGoingMiniBlockHeaderHandler())
+
+	outGoingMBHeader := sovHeader.GetOutGoingMiniBlockHeaderHandler()
+	if check.IfNil(outGoingMBHeader) {
+		return nil
+	}
+
+	err := outGoingMBHeader.SetAggregatedSignatureOutGoingOperations(cnsDta.AggregatedSignatureOutGoingTxData)
+	if err != nil {
+		log.Error("sovereignSubRoundEnd.updateOutGoingPoolIfNeeded.SetAggregatedSignatureOutGoingOperations", "error", err)
+		return err
+	}
+
+	err = outGoingMBHeader.SetLeaderSignatureOutGoingOperations(cnsDta.LeaderSignatureOutGoingTxData)
+	if err != nil {
+		log.Error("sovereignSubRoundEnd.updateOutGoingPoolIfNeeded.SetLeaderSignatureOutGoingOperations", "error", err)
+		return err
+	}
+
+	_, err = sr.updateBridgeDataWithSignatures(outGoingMBHeader)
+	if err != nil {
+		log.Error("sovereignSubRoundEnd.updateOutGoingPoolIfNeeded.updateBridgeDataWithSignatures", "error", err)
+		return err
+	}
+
+	return nil
 }
 
 func (sr *sovereignSubRoundEnd) doSovereignEndRoundJob(ctx context.Context) bool {
@@ -57,6 +101,8 @@ func (sr *sovereignSubRoundEnd) doSovereignEndRoundJob(ctx context.Context) bool
 		log.Error("sovereignSubRoundEnd.doSovereignEndRoundJob", "error", errors.ErrWrongTypeAssertion)
 		return false
 	}
+
+	log.Error("doSovereignEndRoundJob", "isLeader", sr.isSelfLeader(), "HAS OUTGOING", sovHeader.GetOutGoingMiniBlockHeaderHandler())
 
 	outGoingMBHeader := sovHeader.GetOutGoingMiniBlockHeaderHandler()
 	if check.IfNil(outGoingMBHeader) {
@@ -93,6 +139,10 @@ func (sr *sovereignSubRoundEnd) sendUnconfirmedOperationsIfFound(ctx context.Con
 	log.Debug("found unconfirmed operations", "num unconfirmed operations", len(unconfirmedOperations))
 	go sr.sendOutGoingOperations(ctx, unconfirmedOperations)
 }
+
+// TODO:
+// 1. If resend +> reset timer
+// 2. If send outgoing unconfirmed operations, check signatures if exist
 
 func (sr *sovereignSubRoundEnd) updateBridgeDataWithSignatures(
 	outGoingMBHeader data.OutGoingMiniBlockHeaderHandler,
