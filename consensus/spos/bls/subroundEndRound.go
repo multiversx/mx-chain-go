@@ -133,21 +133,10 @@ func (sr *subroundEndRound) receivedBlockHeaderFinalInfo(_ context.Context, cnsD
 		return false
 	}
 
-	sovHdr := sr.Header.(data.SovereignChainHeaderHandler)
-	if sovHdr.GetOutGoingMiniBlockHeaderHandler() != nil {
-		log.Debug("step 3: block header final info has been received",
-			" GetOutGoingMiniBlockHeaderHandler.GetLeaderSignatureOutGoingOperations", sovHdr.GetOutGoingMiniBlockHeaderHandler().GetLeaderSignatureOutGoingOperations(),
-		)
-	}
-
 	log.Debug("step 3: block header final info has been received",
 		"PubKeysBitmap", cnsDta.PubKeysBitmap,
 		"AggregateSignature", cnsDta.AggregateSignature,
-		"LeaderSignature", cnsDta.LeaderSignature,
-		"LeaderSignatureOutGoingTxData", cnsDta.LeaderSignatureOutGoingTxData,
-		"AggregatedSignatureOutGoingTxData", cnsDta.AggregatedSignatureOutGoingTxData,
-		"IS NIL GetOutGoingMiniBlockHeaderHandler", check.IfNil(sovHdr.GetOutGoingMiniBlockHeaderHandler()),
-	)
+		"LeaderSignature", cnsDta.LeaderSignature)
 
 	sr.PeerHonestyHandler().ChangeScore(
 		node,
@@ -674,13 +663,6 @@ func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo() {
 	if err != nil {
 		log.Debug("doEndRoundJob.BroadcastConsensusMessage", "error", err.Error())
 		return
-	}
-
-	sovHdr := sr.Header.(data.SovereignChainHeaderHandler)
-	if sovHdr.GetOutGoingMiniBlockHeaderHandler() != nil {
-		log.Debug("step 3: block header final info has been sent",
-			" GetOutGoingMiniBlockHeaderHandler.GetLeaderSignatureOutGoingOperations", sovHdr.GetOutGoingMiniBlockHeaderHandler().GetLeaderSignatureOutGoingOperations(),
-		)
 	}
 
 	log.Debug("step 3: block header final info has been sent",

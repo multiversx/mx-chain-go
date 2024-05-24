@@ -62,8 +62,6 @@ func (sr *sovereignSubRoundEnd) updateOutGoingPoolIfNeeded(cnsDta *consensus.Mes
 		return errors.ErrWrongTypeAssertion
 	}
 
-	log.Error("doSovereignEndRoundJob", "isLeader", sr.isSelfLeader(), "HAS OUTGOING", sovHeader.GetOutGoingMiniBlockHeaderHandler())
-
 	outGoingMBHeader := sovHeader.GetOutGoingMiniBlockHeaderHandler()
 	if check.IfNil(outGoingMBHeader) {
 		return nil
@@ -80,6 +78,11 @@ func (sr *sovereignSubRoundEnd) updateOutGoingPoolIfNeeded(cnsDta *consensus.Mes
 		log.Error("sovereignSubRoundEnd.updateOutGoingPoolIfNeeded.SetLeaderSignatureOutGoingOperations", "error", err)
 		return err
 	}
+
+	log.Debug("step 3.1: block header final info has been received with outgoing mb",
+		"LeaderSignatureOutGoingTxData", cnsDta.LeaderSignatureOutGoingTxData,
+		"AggregatedSignatureOutGoingTxData", cnsDta.AggregatedSignatureOutGoingTxData,
+	)
 
 	_, err = sr.updateBridgeDataWithSignatures(outGoingMBHeader)
 	if err != nil {
@@ -101,8 +104,6 @@ func (sr *sovereignSubRoundEnd) doSovereignEndRoundJob(ctx context.Context) bool
 		log.Error("sovereignSubRoundEnd.doSovereignEndRoundJob", "error", errors.ErrWrongTypeAssertion)
 		return false
 	}
-
-	log.Error("doSovereignEndRoundJob", "isLeader", sr.isSelfLeader(), "HAS OUTGOING", sovHeader.GetOutGoingMiniBlockHeaderHandler())
 
 	outGoingMBHeader := sovHeader.GetOutGoingMiniBlockHeaderHandler()
 	if check.IfNil(outGoingMBHeader) {
