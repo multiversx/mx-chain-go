@@ -141,10 +141,6 @@ func (sr *sovereignSubRoundEnd) sendUnconfirmedOperationsIfFound(ctx context.Con
 	go sr.sendOutGoingOperations(ctx, unconfirmedOperations)
 }
 
-// TODO:
-// 1. If resend +> reset timer
-// 2. If send outgoing unconfirmed operations, check signatures if exist
-
 func (sr *sovereignSubRoundEnd) updateBridgeDataWithSignatures(
 	outGoingMBHeader data.OutGoingMiniBlockHeaderHandler,
 ) (*sovereign.BridgeOutGoingData, error) {

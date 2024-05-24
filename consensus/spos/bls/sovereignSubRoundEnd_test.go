@@ -642,7 +642,7 @@ func TestSovereignSubRoundEnd_DoEndJobByParticipant(t *testing.T) {
 	})
 }
 
-func TestSovereignSubRoundEndCreator_ReceivedInvalidSignersInfo(t *testing.T) {
+func TestSovereignSubRoundEnd_ReceivedBlockHeaderFinalInfo(t *testing.T) {
 	t.Parallel()
 
 	outGoingData := &sovCore.BridgeOutGoingData{
