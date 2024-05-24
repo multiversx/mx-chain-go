@@ -3,6 +3,7 @@ package preprocess
 import (
 	"errors"
 	"math/big"
+	"sync/atomic"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -12,6 +13,8 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 )
+
+var ShouldProcess atomic.Bool = atomic.Bool{}
 
 type sovereignChainTransactions struct {
 	*transactions
@@ -84,10 +87,12 @@ func (sct *sovereignChainTransactions) CreateAndProcessMiniBlocks(haveTime func(
 
 	selectedTxs, _, _ := sct.addTxsWithinBandwidth(nil, sortedTxs, 0, gasBandwidth)
 
+	independentTxs := detectIndepentedTxs(selectedTxs)
+
 	scheduledMiniBlocks, err := sct.createScheduledMiniBlocksFromMeAsProposer(
 		haveTime,
 		haveAdditionalTimeFalse,
-		selectedTxs,
+		independentTxs,
 		make(map[string]struct{}),
 	)
 	if err != nil {
@@ -111,6 +116,18 @@ func (sct *sovereignChainTransactions) computeSortedTxs(
 
 	sortedTransactionsProvider := createSortedTransactionsProvider(txShardPool)
 	sortedTxs := sortedTransactionsProvider.GetSortedTransactions()
+
+	log.Debug("computeSortedTxs.GetSortedTransactions computeSortedTxs", "num txs", len(sortedTxs))
+
+	if len(sortedTxs) == 0 {
+		return make([]*txcache.WrappedTransaction, 0), nil
+	}
+
+	if !ShouldProcess.Load() {
+		log.Info("computeSortedTxs: should not process yet")
+		return make([]*txcache.WrappedTransaction, 0), nil
+	}
+
 	sct.sortTransactionsBySenderAndNonce(sortedTxs, randomness)
 
 	return sortedTxs, nil

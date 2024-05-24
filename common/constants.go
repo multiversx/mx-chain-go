@@ -64,7 +64,7 @@ const DisabledShardIDAsObserver = uint32(0xFFFFFFFF) - 7
 
 // MaxTxNonceDeltaAllowed specifies the maximum difference between an account's nonce and a received transaction's nonce
 // in order to mark the transaction as valid.
-const MaxTxNonceDeltaAllowed = 100
+const MaxTxNonceDeltaAllowed = 1000000
 
 // MaxBulkTransactionSize specifies the maximum size of one bulk with txs which can be send over the network
 // TODO convert this const into a var and read it from config when this code moves to another binary
@@ -718,7 +718,7 @@ const MetachainShardName = "metachain"
 const TemporaryPath = "temp"
 
 // TimeToWaitForP2PBootstrap is the wait time for the P2P to bootstrap
-const TimeToWaitForP2PBootstrap = 20 * time.Second
+const TimeToWaitForP2PBootstrap = 2 * time.Second
 
 // MaxSoftwareVersionLengthInBytes represents the maximum length for the software version to be saved in block header
 const MaxSoftwareVersionLengthInBytes = 10

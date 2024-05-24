@@ -3,6 +3,7 @@ package preprocess
 import (
 	"bytes"
 	"errors"
+	"sync"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -17,83 +18,180 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 	haveTime func() bool,
 	isShardStuck func(uint32) bool,
 	isMaxBlockSizeReached func(int, int) bool,
-	sortedTxs []*txcache.WrappedTransaction,
+	allSortedTxs []*txcache.WrappedTransaction,
 ) (block.MiniBlockSlice, []*txcache.WrappedTransaction, map[string]struct{}, error) {
 	log.Debug("createAndProcessMiniBlocksFromMeV2 has been started")
-
-	mbInfo := txs.initCreateAndProcessMiniBlocks()
-
-	log.Debug("createAndProcessMiniBlocksFromMeV2", "totalGasConsumedInSelfShard", mbInfo.gasInfo.totalGasConsumedInSelfShard)
 
 	defer func() {
 		go txs.notifyTransactionProviderIfNeeded()
 	}()
 
-	remainingTxs := make([]*txcache.WrappedTransaction, 0)
-	for index := range sortedTxs {
-		if !haveTime() {
-			log.Debug("time is out in createAndProcessMiniBlocksFromMeV2")
-			remainingTxs = append(remainingTxs, sortedTxs[index:]...)
-			break
-		}
+	//var index int
+	if len(allSortedTxs) > 100 {
+		//f, err := os.Create(fmt.Sprintf("cpu-profile-%d-%d.pprof", time.Now().Unix(), len(allSortedTxs)))
+		//if err != nil {
+		//	log.Error("could not create CPU profile", "error", err)
+		//}
+		//debug.SetGCPercent(-1)
+		//pprof.StartCPUProfile(f)
 
-		tx, miniBlock, shouldContinue := txs.shouldContinueProcessingTx(
-			isShardStuck,
-			sortedTxs[index],
-			mbInfo)
-		if !shouldContinue {
-			continue
-		}
+		defer func() {
+			//pprof.StopCPUProfile()
+			//runtime.GC()
 
-		txHash := sortedTxs[index].TxHash
-		senderShardID := sortedTxs[index].SenderShardID
-		receiverShardID := sortedTxs[index].ReceiverShardID
-
-		isMiniBlockEmpty := len(miniBlock.TxHashes) == 0
-		txMbInfo := txs.getTxAndMbInfo(
-			tx,
-			isMiniBlockEmpty,
-			receiverShardID,
-			mbInfo)
-
-		if isMaxBlockSizeReached(txMbInfo.numNewMiniBlocks, txMbInfo.numNewTxs) {
-			log.Debug("max txs accepted in one block is reached",
-				"num txs added", mbInfo.processingInfo.numTxsAdded,
-				"total txs", len(sortedTxs))
-			break
-		}
-
-		shouldAddToRemaining, err := txs.processTransaction(
-			tx,
-			txHash,
-			senderShardID,
-			receiverShardID,
-			mbInfo)
-		if err != nil {
-			if core.IsGetNodeFromDBError(err) {
-				return nil, nil, nil, err
-			}
-			if shouldAddToRemaining {
-				remainingTxs = append(remainingTxs, sortedTxs[index])
-			}
-			continue
-		}
-
-		txs.applyExecutedTransaction(
-			tx,
-			txHash,
-			miniBlock,
-			receiverShardID,
-			txMbInfo,
-			mbInfo)
+			log.Debug("createAndProcessMiniBlocksFromMeV2 has been finished", "num txs", len(allSortedTxs))
+		}()
 	}
 
+	independentTxs := detectIndepentedTxs(allSortedTxs)
+
+	mutIndependent := sync.Mutex{}
+	allRemainingTxs := make([]*txcache.WrappedTransaction, 0)
+	mbInfos := make([]*createAndProcessMiniBlocksInfo, 0)
+
+	wg := sync.WaitGroup{}
+	for i, st := range independentTxs {
+		wg.Add(1)
+		sender := ""
+		if len(st) > 0 {
+			sender = string(st[0].Tx.GetSndAddr())
+		}
+		log.Info("createAndProcessMiniBlocksFromMeV2 - independentTxs", "index", i, "num txs", len(st), "sender", sender)
+		go func(sortedTxs []*txcache.WrappedTransaction, thread int) {
+			remainingTxs := make([]*txcache.WrappedTransaction, 0)
+			mbInfo := txs.initCreateAndProcessMiniBlocks()
+
+			for index := range sortedTxs {
+				currentTx := sortedTxs[index]
+				if !haveTime() {
+					log.Debug("time is out in createAndProcessMiniBlocksFromMeV2", "num txs", len(sortedTxs), "last index", index, "thread", thread)
+					remainingTxs = append(remainingTxs, sortedTxs[index:]...)
+					break
+				}
+
+				tx, miniBlock, shouldContinue := txs.shouldContinueProcessingTx(
+					isShardStuck,
+					currentTx,
+					mbInfo)
+				if !shouldContinue {
+					log.Debug("should not continue createAndProcessMiniBlocksFromMeV2", "num txs", len(sortedTxs), "last index", index)
+					break
+				}
+
+				txHash := currentTx.TxHash
+				senderShardID := currentTx.SenderShardID
+				receiverShardID := currentTx.ReceiverShardID
+
+				isMiniBlockEmpty := len(miniBlock.TxHashes) == 0
+				txMbInfo := txs.getTxAndMbInfo(
+					tx,
+					isMiniBlockEmpty,
+					receiverShardID,
+					mbInfo)
+
+				if isMaxBlockSizeReached(txMbInfo.numNewMiniBlocks, txMbInfo.numNewTxs) {
+					log.Debug("max txs accepted in one block is reached",
+						"num txs added", mbInfo.processingInfo.numTxsAdded,
+						"total txs", len(sortedTxs),
+						"last index", index)
+					break
+				}
+
+				shouldAddToRemaining, err := txs.processTransaction(
+					tx,
+					txHash,
+					senderShardID,
+					receiverShardID,
+					mbInfo)
+				if err != nil {
+					log.Info("createAndProcessMiniBlocksFromMeV2 - processing tx", "thread", thread, "nonce", tx.GetNonce(), "sender", string(tx.GetSndAddr()), "error", err.Error())
+					if core.IsGetNodeFromDBError(err) {
+						return
+					}
+					if shouldAddToRemaining {
+						remainingTxs = append(remainingTxs, currentTx)
+					}
+					continue
+				}
+
+				txs.applyExecutedTransaction(
+					tx,
+					txHash,
+					miniBlock,
+					receiverShardID,
+					txMbInfo,
+					mbInfo)
+			}
+			mutIndependent.Lock()
+			allRemainingTxs = append(allRemainingTxs, remainingTxs...)
+			mbInfos = append(mbInfos, mbInfo)
+			mutIndependent.Unlock()
+			wg.Done()
+		}(st, i)
+	}
+
+	wg.Wait()
+
+	mbInfo := txs.initCreateAndProcessMiniBlocks()
+	for _, mbi := range mbInfos {
+		mbInfo.processingInfo.numTxsAdded += mbi.processingInfo.numTxsAdded
+		mbInfo.processingInfo.numBadTxs += mbi.processingInfo.numBadTxs
+		mbInfo.processingInfo.numTxsFailed += mbi.processingInfo.numTxsFailed
+		mbInfo.processingInfo.numTxsSkipped += mbi.processingInfo.numTxsSkipped
+		mbInfo.processingInfo.numTxsWithInitialBalanceConsumed += mbi.processingInfo.numTxsWithInitialBalanceConsumed
+		mbInfo.processingInfo.numCrossShardScCallsOrSpecialTxs += mbi.processingInfo.numCrossShardScCallsOrSpecialTxs
+		mbInfo.processingInfo.numCrossShardTxsWithTooMuchGas += mbi.processingInfo.numCrossShardTxsWithTooMuchGas
+		mbInfo.processingInfo.totalTimeUsedForComputeGasProvided += mbi.processingInfo.totalTimeUsedForComputeGasProvided
+		mbInfo.processingInfo.totalTimeUsedForProcess += mbi.processingInfo.totalTimeUsedForProcess
+		for shardID, gas := range mbi.mapGasConsumedByMiniBlockInReceiverShard {
+			mbInfo.mapGasConsumedByMiniBlockInReceiverShard[shardID] += gas
+		}
+		for k, v := range mbi.mapSCTxs {
+			mbInfo.mapSCTxs[k] = v
+		}
+		for receiverShardId, mb := range mbi.mapMiniBlocks {
+			if mbInfo.mapMiniBlocks[receiverShardId] == nil {
+				mbInfo.mapMiniBlocks[receiverShardId] = mb
+			} else {
+				mbInfo.mapMiniBlocks[receiverShardId].TxHashes = append(mbInfo.mapMiniBlocks[receiverShardId].TxHashes, mb.TxHashes...)
+			}
+		}
+	}
+
+	log.Debug("createAndProcessMiniBlocksFromMeV2", "totalGasConsumedInSelfShard", mbInfo.gasInfo.totalGasConsumedInSelfShard)
+
 	miniBlocks := txs.getMiniBlockSliceFromMapV2(mbInfo.mapMiniBlocks)
-	txs.displayProcessingResults(miniBlocks, len(sortedTxs), mbInfo)
+	txs.displayProcessingResults(miniBlocks, len(allSortedTxs), mbInfo)
 
-	log.Debug("createAndProcessMiniBlocksFromMeV2 has been finished")
+	log.Debug("createAndProcessMiniBlocksFromMeV2 has been finished - before return")
 
-	return miniBlocks, remainingTxs, mbInfo.mapSCTxs, nil
+	return miniBlocks, allRemainingTxs, mbInfo.mapSCTxs, nil
+}
+
+func detectIndepentedTxs(txs []*txcache.WrappedTransaction) [][]*txcache.WrappedTransaction {
+	start := time.Now()
+	independentTxs := make([][]*txcache.WrappedTransaction, 0)
+	if len(txs) == 0 {
+		return independentTxs
+	}
+
+	currentSender := txs[0].Tx.GetSndAddr()
+	currentTxs := make([]*txcache.WrappedTransaction, 0)
+	for _, tx := range txs {
+		if bytes.Equal(currentSender, tx.Tx.GetSndAddr()) {
+			currentTxs = append(currentTxs, tx)
+		} else {
+			independentTxs = append(independentTxs, currentTxs)
+			currentSender = tx.Tx.GetSndAddr()
+			currentTxs = []*txcache.WrappedTransaction{tx}
+		}
+	}
+	if len(currentTxs) > 0 {
+		independentTxs = append(independentTxs, currentTxs)
+	}
+	end := time.Now()
+	log.Debug("detectIndepentedTxs", "time", end.Sub(start).String())
+	return independentTxs
 }
 
 func (txs *transactions) initGasConsumed() map[uint32]uint64 {
@@ -185,7 +283,6 @@ func (txs *transactions) processTransaction(
 		}
 
 		mbInfo.processingInfo.numBadTxs++
-		log.Trace("bad tx", "error", err.Error(), "hash", txHash)
 
 		errRevert := txs.accounts.RevertToSnapshot(snapshot)
 		if errRevert != nil && !core.IsClosingError(errRevert) {
@@ -270,73 +367,113 @@ func (txs *transactions) createScheduledMiniBlocks(
 	haveAdditionalTime func() bool,
 	isShardStuck func(uint32) bool,
 	isMaxBlockSizeReached func(int, int) bool,
-	sortedTxs []*txcache.WrappedTransaction,
+	independentTxs [][]*txcache.WrappedTransaction,
 	mapSCTxs map[string]struct{},
 ) (block.MiniBlockSlice, error) {
 	log.Debug("createScheduledMiniBlocks has been started")
 
-	mbInfo := txs.initCreateScheduledMiniBlocks()
-	for index := range sortedTxs {
-		if !haveTime() && !haveAdditionalTime() {
-			log.Debug("time is out in createScheduledMiniBlocks")
-			break
-		}
+	mbInfos := make([]*createScheduledMiniBlocksInfo, len(independentTxs))
+	mutMBInfo := sync.Mutex{}
 
-		tx, miniBlock, shouldContinue := txs.scheduledTXContinueFunc(
-			isShardStuck,
-			sortedTxs[index],
-			mapSCTxs,
-			mbInfo)
-		if !shouldContinue {
-			continue
-		}
-
-		txHash := sortedTxs[index].TxHash
-		senderShardID := sortedTxs[index].SenderShardID
-		receiverShardID := sortedTxs[index].ReceiverShardID
-
-		isMiniBlockEmpty := len(miniBlock.TxHashes) == 0
-		scheduledTxMbInfo := txs.getScheduledTxAndMbInfo(
-			isMiniBlockEmpty,
-			receiverShardID,
-			mbInfo)
-
-		if isMaxBlockSizeReached(scheduledTxMbInfo.numNewMiniBlocks, scheduledTxMbInfo.numNewTxs) {
-			log.Debug("max txs accepted in one block is reached",
-				"num scheduled txs added", mbInfo.schedulingInfo.numScheduledTxsAdded,
-				"total txs", len(sortedTxs))
-			break
-		}
-
-		err := txs.verifyTransaction(
-			tx,
-			txHash,
-			senderShardID,
-			receiverShardID,
-			mbInfo)
-		if err != nil {
-			if core.IsGetNodeFromDBError(err) {
-				return nil, err
+	for i, sortedTxs := range independentTxs {
+		mbInfo := txs.initCreateScheduledMiniBlocks()
+		for index := range sortedTxs {
+			if !haveTime() && !haveAdditionalTime() {
+				log.Debug("time is out in createScheduledMiniBlocks")
+				break
 			}
-			continue
-		}
 
-		txs.applyVerifiedTransaction(
-			tx,
-			txHash,
-			miniBlock,
-			receiverShardID,
-			scheduledTxMbInfo,
-			mapSCTxs,
-			mbInfo)
+			tx, miniBlock, shouldContinue := txs.scheduledTXContinueFunc(
+				isShardStuck,
+				sortedTxs[index],
+				mapSCTxs,
+				mbInfo)
+			if !shouldContinue {
+				continue
+			}
+
+			txHash := sortedTxs[index].TxHash
+			senderShardID := sortedTxs[index].SenderShardID
+			receiverShardID := sortedTxs[index].ReceiverShardID
+
+			isMiniBlockEmpty := len(miniBlock.TxHashes) == 0
+			scheduledTxMbInfo := txs.getScheduledTxAndMbInfo(
+				isMiniBlockEmpty,
+				receiverShardID,
+				mbInfo)
+
+			if isMaxBlockSizeReached(scheduledTxMbInfo.numNewMiniBlocks, scheduledTxMbInfo.numNewTxs) {
+				log.Debug("max txs accepted in one block is reached",
+					"num scheduled txs added", mbInfo.schedulingInfo.numScheduledTxsAdded,
+					"total txs", len(sortedTxs))
+				break
+			}
+
+			err := txs.verifyTransaction(
+				tx,
+				txHash,
+				senderShardID,
+				receiverShardID,
+				mbInfo)
+			if err != nil {
+				if core.IsGetNodeFromDBError(err) {
+					return nil, err
+				}
+				continue
+			}
+
+			txs.applyVerifiedTransaction(
+				tx,
+				txHash,
+				miniBlock,
+				receiverShardID,
+				scheduledTxMbInfo,
+				mapSCTxs,
+				mbInfo)
+		}
+		mutMBInfo.Lock()
+		mbInfos[i] = mbInfo
+		mutMBInfo.Unlock()
+	}
+
+	mbInfo := txs.combine(mbInfos)
+
+	allTxs := 0
+	for _, st := range independentTxs {
+		allTxs += len(st)
 	}
 
 	miniBlocks := txs.getMiniBlockSliceFromMapV2(mbInfo.mapMiniBlocks)
-	txs.displayProcessingResultsOfScheduledMiniBlocks(miniBlocks, len(sortedTxs), mbInfo)
+	txs.displayProcessingResultsOfScheduledMiniBlocks(miniBlocks, allTxs, mbInfo)
 
 	log.Debug("createScheduledMiniBlocks has been finished")
 
 	return miniBlocks, nil
+}
+
+func (txs *transactions) combine(infos []*createScheduledMiniBlocksInfo) *createScheduledMiniBlocksInfo {
+	mbInfo := txs.initCreateScheduledMiniBlocks()
+	for _, info := range infos {
+		mbInfo.schedulingInfo.numScheduledTxsAdded += info.schedulingInfo.numScheduledTxsAdded
+		mbInfo.schedulingInfo.numScheduledBadTxs += info.schedulingInfo.numScheduledBadTxs
+		mbInfo.schedulingInfo.numCrossShardTxsWithTooMuchGas += info.schedulingInfo.numCrossShardTxsWithTooMuchGas
+		mbInfo.schedulingInfo.totalTimeUsedForScheduledComputeGasProvided += info.schedulingInfo.totalTimeUsedForScheduledComputeGasProvided
+		mbInfo.schedulingInfo.totalTimeUsedForScheduledVerify += info.schedulingInfo.totalTimeUsedForScheduledVerify
+		mbInfo.gasInfo.gasConsumedByMiniBlocksInSenderShard += info.gasInfo.gasConsumedByMiniBlocksInSenderShard
+		mbInfo.gasInfo.totalGasConsumedInSelfShard += info.gasInfo.totalGasConsumedInSelfShard
+		for shardID, gas := range info.mapGasConsumedByMiniBlockInReceiverShard {
+			mbInfo.mapGasConsumedByMiniBlockInReceiverShard[shardID] += gas
+		}
+		for receiverShardId, mb := range info.mapMiniBlocks {
+			if mbInfo.mapMiniBlocks[receiverShardId] == nil {
+				mbInfo.mapMiniBlocks[receiverShardId] = mb
+			} else {
+				mbInfo.mapMiniBlocks[receiverShardId].TxHashes = append(mbInfo.mapMiniBlocks[receiverShardId].TxHashes, mb.TxHashes...)
+			}
+		}
+	}
+
+	return mbInfo
 }
 
 func (txs *transactions) verifyTransaction(
@@ -519,7 +656,7 @@ func (txs *transactions) shouldContinueProcessingTx(
 	receiverShardID := wrappedTx.ReceiverShardID
 
 	if senderShardID != receiverShardID && isShardStuck != nil && isShardStuck(receiverShardID) {
-		log.Trace("shard is stuck", "shard", receiverShardID)
+		log.Debug("shard is stuck", "shard", receiverShardID)
 		return nil, nil, false
 	}
 
@@ -535,6 +672,10 @@ func (txs *transactions) shouldContinueProcessingTx(
 	if len(mbInfo.senderAddressToSkip) > 0 {
 		if bytes.Equal(mbInfo.senderAddressToSkip, tx.GetSndAddr()) {
 			mbInfo.processingInfo.numTxsSkipped++
+			log.Debug("mbInfo.senderAddressToSkip is set and the tx is skipped",
+				"hash", txHash,
+				"sender shard", senderShardID,
+				"receiver shard", receiverShardID)
 			return nil, nil, false
 		}
 	}
@@ -548,6 +689,7 @@ func (txs *transactions) shouldContinueProcessingTx(
 	addressHasEnoughBalance := txs.hasAddressEnoughInitialBalance(tx)
 	if !addressHasEnoughBalance {
 		mbInfo.processingInfo.numTxsWithInitialBalanceConsumed++
+		log.Debug("addressHasEnoughBalance", "shard", receiverShardID)
 		return nil, nil, false
 	}
 

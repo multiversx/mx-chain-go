@@ -108,6 +108,7 @@ func (gbc *sovereignGenesisBlockCreator) createSovereignEmptyGenesisBlocks() (ma
 func createSovereignGenesisConfig(providedEnableEpochs config.EnableEpochs) config.EnableEpochs {
 	cfg := createGenesisConfig(providedEnableEpochs)
 	cfg.ESDTMultiTransferEnableEpoch = 0
+	cfg.IsPayableBySCEnableEpoch = 0
 	return cfg
 }
 

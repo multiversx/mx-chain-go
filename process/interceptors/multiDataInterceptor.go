@@ -1,6 +1,7 @@
 package interceptors
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -38,6 +39,7 @@ type MultiDataInterceptor struct {
 	whiteListRequest   process.WhiteListHandler
 	mutChunksProcessor sync.RWMutex
 	chunksProcessor    process.InterceptedChunksProcessor
+	extension          *MultiDataInterceptorExtension
 }
 
 // NewMultiDataInterceptor hooks a new interceptor for packed multi data
@@ -86,6 +88,7 @@ func NewMultiDataInterceptor(arg ArgMultiDataInterceptor) (*MultiDataInterceptor
 		chunksProcessor:  disabled.NewDisabledInterceptedChunksProcessor(),
 	}
 
+	multiDataIntercept.extension = NewMultiDataInterceptorExtension(multiDataIntercept)
 	return multiDataIntercept, nil
 }
 
@@ -162,7 +165,7 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 		if !isWhiteListed && errOriginator != nil {
 			mdi.throttler.EndProcessing()
 			log.Trace("got message from peer on topic only for validators", "originator",
-				p2p.PeerIdToShortString(message.Peer()),
+				"placeholder",
 				"topic", mdi.topic,
 				"err", errOriginator)
 			return errOriginator
@@ -184,14 +187,28 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 		}
 	}
 
-	go func() {
+	mdi.DoProcessListInterceptedData(listInterceptedData, message)
+
+	return nil
+}
+
+func (mdi *MultiDataInterceptor) DoProcessListInterceptedData(listInterceptedData []process.InterceptedData, message p2p.MessageP2P) {
+	isRecognizedTx := len(listInterceptedData) == 1 && mdi.extension.isRecognizedTransaction(listInterceptedData[0])
+	shouldGoThroughExtension := mdi.extension.isApplicable && isRecognizedTx
+
+	if shouldGoThroughExtension {
+		mdi.extension.doProcess(listInterceptedData[0])
+		return
+	} else {
+		log.Warn("processor is not a TxInterceptorProcessor, do default thing", "type", fmt.Sprintf("%T", mdi.processor))
+
 		for _, interceptedData := range listInterceptedData {
 			mdi.processInterceptedData(interceptedData, message)
 		}
-		mdi.throttler.EndProcessing()
-	}()
+	}
 
-	return nil
+	mdi.throttler.EndProcessing()
+	return
 }
 
 func (mdi *MultiDataInterceptor) interceptedData(dataBuff []byte, originator core.PeerID, fromConnectedPeer core.PeerID) (process.InterceptedData, error) {

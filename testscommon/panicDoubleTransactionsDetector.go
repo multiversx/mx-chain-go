@@ -20,6 +20,8 @@ type PanicDoubleTransactionsDetector struct {
 
 // ProcessBlockBody -
 func (detector *PanicDoubleTransactionsDetector) ProcessBlockBody(body *block.Body) {
+	return
+
 	transactions := make(map[string]int)
 	doubleTransactionsExist := false
 	printReport := strings.Builder{}

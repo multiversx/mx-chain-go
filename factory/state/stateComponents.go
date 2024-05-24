@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	chainData "github.com/multiversx/mx-chain-core-go/data"
@@ -20,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/evictionWaitingList"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // TODO: merge this with data components
@@ -173,7 +175,15 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 		AddressConverter:      scf.core.AddressPubKeyConverter(),
 		SnapshotsManager:      snapshotsManager,
 	}
-	accountsAdapter, err := state.NewAccountsDB(argsProcessingAccountsDB)
+	oldAccountsAdapter, err := state.NewAccountsDB(argsProcessingAccountsDB)
+
+	caDB := &CacheableAccountsDB{
+		oldAccountsAdapter,
+		make(map[string]map[string]vmcommon.AccountHandler),
+		make(map[string]*sync.RWMutex),
+		sync.RWMutex{},
+	}
+
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("%w: %s", errors.ErrAccountsAdapterCreation, err.Error())
 	}
@@ -214,7 +224,7 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 		return nil, nil, nil, fmt.Errorf("accountsRepository: %w", err)
 	}
 
-	return accountsAdapter, accountsRepository.GetCurrentStateAccountsWrapper(), accountsRepository, nil
+	return caDB, accountsRepository.GetCurrentStateAccountsWrapper(), accountsRepository, nil
 }
 
 func (scf *stateComponentsFactory) createPeerAdapter(triesContainer common.TriesHolder) (state.AccountsAdapter, error) {

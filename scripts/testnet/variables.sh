@@ -53,10 +53,10 @@ export NODE_NICENESS=10
 export NODE_WATCHER=0
 
 # Delays after running executables.
-export SEEDNODE_DELAY=5
-export GENESIS_DELAY=30
+export SEEDNODE_DELAY=2
+export GENESIS_DELAY=10
 export HARDFORK_DELAY=900 #15 minutes enough to take export and gracefully close
-export NODE_DELAY=60
+export NODE_DELAY=8
 
 export GENESIS_STAKE_TYPE="direct" #'delegated' or 'direct' as in direct stake
 
@@ -70,9 +70,9 @@ export SOVEREIGN_DEPLOY=1
 
 # Shard structure
 export SHARDCOUNT=1
-export SHARD_VALIDATORCOUNT=2
-export SHARD_OBSERVERCOUNT=1
-export SHARD_CONSENSUS_SIZE=2
+export SHARD_VALIDATORCOUNT=1
+export SHARD_OBSERVERCOUNT=0
+export SHARD_CONSENSUS_SIZE=1
 
 # Metashard structure
 export META_VALIDATORCOUNT=0
@@ -122,7 +122,7 @@ export PORT_ORIGIN_VALIDATOR_REST="9500"
 export USETMUX=1
 
 # Log level for the logger in the Node.
-export LOGLEVEL="*:INFO"
+export LOGLEVEL="*:DEBUG"
 
 
 if [ "$TESTNETMODE" == "debug" ]; then

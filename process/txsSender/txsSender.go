@@ -167,7 +167,7 @@ func (ts *txsSender) sendBulkTransactionsFromShard(transactions [][]byte, sender
 	// the topic identifier is made of the current shard id and sender's shard id
 	identifier := factory.TransactionTopic + ts.shardCoordinator.CommunicationIdentifier(senderShardId)
 
-	packets, err := ts.dataPacker.PackDataInChunks(transactions, common.MaxBulkTransactionSize)
+	packets, err := ts.dataPacker.PackDataInChunks(transactions, common.MaxBulkTransactionSize*32)
 	if err != nil {
 		return err
 	}

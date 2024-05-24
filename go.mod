@@ -190,3 +190,5 @@ require (
 )
 
 replace github.com/gogo/protobuf => github.com/multiversx/protobuf v1.3.2
+
+replace github.com/multiversx/mx-chain-storage-go => /home/radu/GolandProjects/multiversx3/mx-chain-storage-go

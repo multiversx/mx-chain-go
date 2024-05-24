@@ -7,12 +7,12 @@ import (
 )
 
 // LoadCode -
-func (adb *AccountsDB) LoadCode(accountHandler baseAccountHandler) error {
+func (adb *AccountsDB) LoadCode(accountHandler BaseAccountHandler) error {
 	return adb.loadCode(accountHandler)
 }
 
 // LoadDataTrieConcurrentSafe -
-func (adb *AccountsDB) LoadDataTrieConcurrentSafe(accountHandler baseAccountHandler) error {
+func (adb *AccountsDB) LoadDataTrieConcurrentSafe(accountHandler BaseAccountHandler) error {
 	return adb.loadDataTrieConcurrentSafe(accountHandler, adb.getMainTrie())
 }
 
@@ -27,7 +27,7 @@ func (adb *AccountsDB) GetObsoleteHashes() map[string][][]byte {
 }
 
 // GetCode -
-func GetCode(account baseAccountHandler) []byte {
+func GetCode(account BaseAccountHandler) []byte {
 	return account.GetCodeHash()
 }
 

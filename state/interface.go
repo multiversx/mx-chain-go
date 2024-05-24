@@ -144,7 +144,7 @@ type JournalEntry interface {
 	IsInterfaceNil() bool
 }
 
-type baseAccountHandler interface {
+type BaseAccountHandler interface {
 	AddressBytes() []byte
 	IncreaseNonce(nonce uint64)
 	GetNonce() uint64
