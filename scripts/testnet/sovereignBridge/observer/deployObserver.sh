@@ -41,7 +41,7 @@ stopObserver() {
 
     if [ -z "$CONTAINER_IDS" ]; then
         echo "No containers running based on image ${IMAGE_NAME}"
-        exit 1
+        return
     fi
 
     for CONTAINER_ID in $CONTAINER_IDS; do

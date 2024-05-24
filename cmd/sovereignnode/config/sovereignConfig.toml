@@ -32,7 +32,7 @@
 [OutgoingSubscribedEvents]
     # Time to wait in seconds for outgoing operations that need to be bridged from sovereign chain to main chain.
     # If no confirmation of bridged data is received after this time, next leader should retry sending data.
-    TimeToWaitForUnconfirmedOutGoingOperationInSeconds = 30
+    TimeToWaitForUnconfirmedOutGoingOperationInSeconds = 90
     
     SubscribedEvents = [
         { Identifier = "deposit", Addresses = ["erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th"] }
@@ -47,7 +47,7 @@
 [NotifierConfig]
     SubscribedEvents = [
         { Identifier = "deposit", Addresses = ["erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th"] },
-        { Identifier = "executed", Addresses = ["erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th"] }
+        { Identifier = "execute", Addresses = ["erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th"] }
     ]
     [NotifierConfig.WebSocket]
         Url = "localhost:22111"
