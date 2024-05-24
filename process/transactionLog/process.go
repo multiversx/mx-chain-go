@@ -36,8 +36,7 @@ type txLogProcessor struct {
 }
 
 // NewTxLogProcessor creates a transaction log processor capable of parsing logs from the VM
-//
-//	and saving them into the injected storage
+// and saving them into the injected storage
 func NewTxLogProcessor(args ArgTxLogProcessor) (*txLogProcessor, error) {
 	storer := args.Storer
 	if check.IfNil(storer) && args.SaveInStorageEnabled {
