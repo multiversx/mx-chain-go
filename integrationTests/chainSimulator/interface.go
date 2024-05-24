@@ -17,6 +17,7 @@ type ChainSimulator interface {
 	GenerateBlocksUntilEpochIsReached(targetEpoch int32) error
 	AddValidatorKeys(validatorsPrivateKeys [][]byte) error
 	GetNodeHandler(shardID uint32) process.NodeHandler
+	RemoveAccounts(addresses []string) error
 	SendTxAndGenerateBlockTilTxIsExecuted(txToSend *transaction.Transaction, maxNumOfBlockToGenerateWhenExecutingTx int) (*transaction.ApiTransactionResult, error)
 	SendTxsAndGenerateBlocksTilAreExecuted(txsToSend []*transaction.Transaction, maxNumOfBlocksToGenerateWhenExecutingTx int) ([]*transaction.ApiTransactionResult, error)
 	SetStateMultiple(stateSlice []*dtos.AddressState) error
