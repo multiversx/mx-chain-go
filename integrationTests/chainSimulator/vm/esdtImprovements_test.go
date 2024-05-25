@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	dataVm "github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-go/config"
 	testsChainSimulator "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/staking"
@@ -18,8 +19,11 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/vm"
 	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 )
 
@@ -35,13 +39,17 @@ var log = logger.GetOrCreate("integrationTests/chainSimulator/vm")
 //
 // Initial setup: Create an NFT and an SFT (before the activation of DynamicEsdtFlag)
 //
-// 1. check that the metadata for nft and sfts are saved on the system account
+// 1.check that the metadata for all tokens is saved on the system account
 // 2. wait for DynamicEsdtFlag activation
-// 3. transfer the NFT and the SFT to another account
-// 4. check that the metadata for nft is saved to the receiver account
-// 5. check that the metadata for the sft is saved on the system account
-// 6. repeat 3-5 for both intra and cross shard
-func TestChainSimulator_CheckNFTMetadata(t *testing.T) {
+// 3. transfer the tokens to another account
+// 4. check that the metadata for all tokens is saved on the system account
+// 5. make an updateTokenID@tokenID function call on the ESDTSystem SC for all token types
+// 6. check that the metadata for all tokens is saved on the system account
+// 7. transfer the tokens to another account
+// 8. check that the metaData for the NFT was removed from the system account and moved to the user account
+// 9. check that the metaData for the rest of the tokens is still present on the system account and not on the userAccount
+// 10. do the test for both intra and cross shard txs
+func TestChainSimulator_CheckNFTandSFTMetadata(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -141,7 +149,7 @@ func TestChainSimulator_CheckNFTMetadata(t *testing.T) {
 
 	shardID := cs.GetNodeHandler(0).GetShardCoordinator().ComputeId(address.Bytes)
 
-	log.Info("Step 1. check that the metadata for nft and sfts are saved on the system account")
+	log.Info("Step 1. check that the metadata for all tokens is saved on the system account")
 
 	retrievedMetaData := getMetaDataFromAcc(t, cs, core.SystemAccountAddress, tokenID, shardID)
 
@@ -161,7 +169,7 @@ func TestChainSimulator_CheckNFTMetadata(t *testing.T) {
 	err = cs.GenerateBlocks(10)
 	require.Nil(t, err)
 
-	log.Info("Step 3. transfer the NFT and the SFT to another account")
+	log.Info("Step 3. transfer the tokens to another account")
 
 	address2, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
 	require.Nil(t, err)
@@ -187,7 +195,61 @@ func TestChainSimulator_CheckNFTMetadata(t *testing.T) {
 
 	require.Equal(t, "success", txResult.Status.String())
 
-	log.Info("Step 4. check that the metadata for nft is saved to the receiver account")
+	log.Info("Step 4. check that the metadata for all tokens is saved on the system account")
+
+	retrievedMetaData = getMetaDataFromAcc(t, cs, core.SystemAccountAddress, tokenID, shardID)
+
+	require.Equal(t, nonce, []byte(hex.EncodeToString(big.NewInt(int64(retrievedMetaData.Nonce)).Bytes())))
+	require.Equal(t, name, []byte(hex.EncodeToString(retrievedMetaData.Name)))
+	require.Equal(t, hash, []byte(hex.EncodeToString(retrievedMetaData.Hash)))
+	for i, uri := range expUris {
+		require.Equal(t, uri, []byte(hex.EncodeToString(retrievedMetaData.URIs[i])))
+	}
+	require.Equal(t, attributes, []byte(hex.EncodeToString(retrievedMetaData.Attributes)))
+
+	log.Info("Step 5. make an updateTokenID@tokenID function call on the ESDTSystem SC for all token types")
+
+	output, err := executeQuery(cs, core.MetachainShardId, vm.ESDTSCAddress, "updateTokenID", [][]byte{tokenID})
+	require.Nil(t, err)
+	require.Equal(t, "", output.ReturnMessage)
+	require.Equal(t, vmcommon.Ok, output.ReturnCode)
+
+	log.Info("Step 6. check that the metadata for all tokens is saved on the system account")
+
+	retrievedMetaData = getMetaDataFromAcc(t, cs, core.SystemAccountAddress, tokenID, shardID)
+
+	require.Equal(t, nonce, []byte(hex.EncodeToString(big.NewInt(int64(retrievedMetaData.Nonce)).Bytes())))
+	require.Equal(t, name, []byte(hex.EncodeToString(retrievedMetaData.Name)))
+	require.Equal(t, hash, []byte(hex.EncodeToString(retrievedMetaData.Hash)))
+	for i, uri := range expUris {
+		require.Equal(t, uri, []byte(hex.EncodeToString(retrievedMetaData.URIs[i])))
+	}
+	require.Equal(t, attributes, []byte(hex.EncodeToString(retrievedMetaData.Attributes)))
+
+	log.Info("Step 7. transfer the tokens to another account")
+
+	tx = utils.CreateESDTNFTTransferTx(
+		1,
+		address.Bytes,
+		address2.Bytes,
+		tokenID,
+		1,
+		big.NewInt(1),
+		minGasPrice,
+		10_000_000,
+		"",
+	)
+	tx.Version = 1
+	tx.Signature = []byte("dummySig")
+	tx.ChainID = []byte(configs.ChainID)
+
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+
+	require.Equal(t, "success", txResult.Status.String())
+
+	log.Info("Step 8. check that the metaData for the NFT was removed from the system account and moved to the user account")
 
 	shardID2 := cs.GetNodeHandler(0).GetShardCoordinator().ComputeId(address2.Bytes)
 
@@ -200,6 +262,15 @@ func TestChainSimulator_CheckNFTMetadata(t *testing.T) {
 		require.Equal(t, uri, []byte(hex.EncodeToString(retrievedMetaData.URIs[i])))
 	}
 	require.Equal(t, attributes, []byte(hex.EncodeToString(retrievedMetaData.Attributes)))
+}
+
+func executeQuery(cs testsChainSimulator.ChainSimulator, shardID uint32, scAddress []byte, funcName string, args [][]byte) (*dataVm.VMOutputApi, error) {
+	output, _, err := cs.GetNodeHandler(shardID).GetFacadeHandler().ExecuteSCQuery(&process.SCQuery{
+		ScAddress: scAddress,
+		FuncName:  funcName,
+		Arguments: args,
+	})
+	return output, err
 }
 
 func getMetaDataFromAcc(
@@ -242,6 +313,8 @@ func setAddressEsdtRoles(
 		[]byte(core.ESDTRoleNFTCreate),
 		[]byte(core.ESDTRoleNFTBurn),
 		[]byte(core.ESDTRoleTransfer),
+		[]byte(core.ESDTRoleNFTUpdateAttributes),
+		[]byte(core.ESDTRoleNFTAddURI),
 	}
 	rolesKey := append([]byte(core.ProtectedKeyPrefix), append([]byte(core.ESDTRoleIdentifier), []byte(core.ESDTKeyIdentifier)...)...)
 	rolesKey = append(rolesKey, token...)
