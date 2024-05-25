@@ -103,7 +103,15 @@ func TestChainSimulator_CheckNFTandSFTMetadata(t *testing.T) {
 
 	tokenID := []byte("ASD-d31313")
 
-	setAddressEsdtRoles(t, cs, address, tokenID)
+	roles := [][]byte{
+		[]byte(core.ESDTMetaDataRecreate),
+		[]byte(core.ESDTRoleNFTCreate),
+		[]byte(core.ESDTRoleNFTBurn),
+		[]byte(core.ESDTRoleTransfer),
+		[]byte(core.ESDTRoleNFTUpdateAttributes),
+		[]byte(core.ESDTRoleNFTAddURI),
+	}
+	setAddressEsdtRoles(t, cs, address, tokenID, roles)
 
 	nonce := []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
 	name := []byte(hex.EncodeToString([]byte("name")))
@@ -305,17 +313,10 @@ func setAddressEsdtRoles(
 	cs testsChainSimulator.ChainSimulator,
 	address dtos.WalletAddress,
 	token []byte,
+	roles [][]byte,
 ) {
 	marshaller := cs.GetNodeHandler(0).GetCoreComponents().InternalMarshalizer()
 
-	roles := [][]byte{
-		[]byte(core.ESDTMetaDataRecreate),
-		[]byte(core.ESDTRoleNFTCreate),
-		[]byte(core.ESDTRoleNFTBurn),
-		[]byte(core.ESDTRoleTransfer),
-		[]byte(core.ESDTRoleNFTUpdateAttributes),
-		[]byte(core.ESDTRoleNFTAddURI),
-	}
 	rolesKey := append([]byte(core.ProtectedKeyPrefix), append([]byte(core.ESDTRoleIdentifier), []byte(core.ESDTKeyIdentifier)...)...)
 	rolesKey = append(rolesKey, token...)
 
@@ -337,4 +338,605 @@ func setAddressEsdtRoles(
 		},
 	})
 	require.Nil(t, err)
+}
+
+// Test scenario
+//
+// Initial setup: Create fungible, NFT,  SFT and metaESDT tokens
+// (after the activation of DynamicEsdtFlag)
+//
+// 1. check that the metaData for the NFT was saved in the user account and not on the system account
+// 2. check that the metaData for the other token types is saved on the system account and not at the user account level
+func TestChainSimulator_CreateTokensAfterActivation(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	// logger.SetLogLevel("*:TRACE")
+
+	startTime := time.Now().Unix()
+	roundDurationInMillis := uint64(6000)
+	roundsPerEpoch := core.OptionalUint64{
+		HasValue: true,
+		Value:    20,
+	}
+
+	activationEpoch := uint32(2)
+
+	numOfShards := uint32(3)
+	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+		BypassTxSignatureCheck:      false,
+		TempDir:                     t.TempDir(),
+		PathToInitialConfig:         defaultPathToInitialConfig,
+		NumOfShards:                 numOfShards,
+		GenesisTimestamp:            startTime,
+		RoundDurationInMillis:       roundDurationInMillis,
+		RoundsPerEpoch:              roundsPerEpoch,
+		ApiInterface:                api.NewNoApiInterface(),
+		MinNodesPerShard:            3,
+		MetaChainMinNodes:           3,
+		ConsensusGroupSize:          1,
+		MetaChainConsensusGroupSize: 1,
+		NumNodesWaitingListMeta:     0,
+		NumNodesWaitingListShard:    0,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpoch
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, cs)
+
+	defer cs.Close()
+
+	mintValue := big.NewInt(10)
+	mintValue = mintValue.Mul(staking.OneEGLD, mintValue)
+
+	address, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocksUntilEpochIsReached(int32(activationEpoch))
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(10)
+	require.Nil(t, err)
+
+	log.Info("Initial setup: Create fungible, NFT,  SFT and metaESDT tokens (after the activation of DynamicEsdtFlag)")
+
+	tokenID := []byte("ASD-d31313")
+
+	roles := [][]byte{
+		[]byte(core.ESDTMetaDataRecreate),
+		[]byte(core.ESDTRoleNFTCreate),
+		[]byte(core.ESDTRoleNFTBurn),
+		[]byte(core.ESDTRoleTransfer),
+		[]byte(core.ESDTRoleNFTUpdateAttributes),
+		[]byte(core.ESDTRoleNFTAddURI),
+	}
+	setAddressEsdtRoles(t, cs, address, tokenID, roles)
+
+	nonce := []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
+	name := []byte(hex.EncodeToString([]byte("name")))
+	hash := []byte(hex.EncodeToString([]byte("hash")))
+	attributes := []byte(hex.EncodeToString([]byte("attributes")))
+	uris := []byte(hex.EncodeToString([]byte("uri")))
+
+	expUris := [][]byte{[]byte(hex.EncodeToString([]byte("uri")))}
+
+	txDataField := bytes.Join(
+		[][]byte{
+			[]byte(core.BuiltInFunctionESDTNFTCreate),
+			[]byte(hex.EncodeToString(tokenID)),
+			[]byte(hex.EncodeToString(big.NewInt(1).Bytes())), // quantity
+			name,
+			[]byte(hex.EncodeToString(big.NewInt(10).Bytes())),
+			hash,
+			attributes,
+			uris,
+		},
+		[]byte("@"),
+	)
+
+	tx := &transaction.Transaction{
+		Nonce:     0,
+		SndAddr:   address.Bytes,
+		RcvAddr:   address.Bytes,
+		GasLimit:  10_000_000,
+		GasPrice:  minGasPrice,
+		Signature: []byte("dummySig"),
+		Data:      txDataField,
+		Value:     big.NewInt(0),
+		ChainID:   []byte(configs.ChainID),
+		Version:   1,
+	}
+
+	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+	require.Equal(t, "success", txResult.Status.String())
+
+	err = cs.GenerateBlocks(10)
+
+	shardID := cs.GetNodeHandler(0).GetShardCoordinator().ComputeId(address.Bytes)
+
+	log.Info("Step 1. check that the metaData for the NFT was saved in the user account and not on the system account")
+
+	retrievedMetaData := getMetaDataFromAcc(t, cs, address.Bytes, tokenID, shardID)
+
+	require.Equal(t, nonce, []byte(hex.EncodeToString(big.NewInt(int64(retrievedMetaData.Nonce)).Bytes())))
+	require.Equal(t, name, []byte(hex.EncodeToString(retrievedMetaData.Name)))
+	require.Equal(t, hash, []byte(hex.EncodeToString(retrievedMetaData.Hash)))
+	for i, uri := range expUris {
+		require.Equal(t, uri, []byte(hex.EncodeToString(retrievedMetaData.URIs[i])))
+	}
+	require.Equal(t, attributes, []byte(hex.EncodeToString(retrievedMetaData.Attributes)))
+}
+
+// Test scenario
+//
+// Initial setup: Create NFT
+//
+// Call ESDTMetaDataRecreate to rewrite the meta data for the nft
+// (The sender must have the ESDTMetaDataRecreate role)
+func TestChainSimulator_NFT_ESDTMetaDataRecreate(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	startTime := time.Now().Unix()
+	roundDurationInMillis := uint64(6000)
+	roundsPerEpoch := core.OptionalUint64{
+		HasValue: true,
+		Value:    20,
+	}
+
+	activationEpoch := uint32(2)
+
+	numOfShards := uint32(3)
+	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+		BypassTxSignatureCheck:      false,
+		TempDir:                     t.TempDir(),
+		PathToInitialConfig:         defaultPathToInitialConfig,
+		NumOfShards:                 numOfShards,
+		GenesisTimestamp:            startTime,
+		RoundDurationInMillis:       roundDurationInMillis,
+		RoundsPerEpoch:              roundsPerEpoch,
+		ApiInterface:                api.NewNoApiInterface(),
+		MinNodesPerShard:            3,
+		MetaChainMinNodes:           3,
+		ConsensusGroupSize:          1,
+		MetaChainConsensusGroupSize: 1,
+		NumNodesWaitingListMeta:     0,
+		NumNodesWaitingListShard:    0,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpoch
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, cs)
+
+	defer cs.Close()
+
+	mintValue := big.NewInt(10)
+	mintValue = mintValue.Mul(staking.OneEGLD, mintValue)
+
+	address, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocksUntilEpochIsReached(int32(activationEpoch))
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(10)
+	require.Nil(t, err)
+
+	log.Info("Initial setup: Create NFT")
+
+	tokenID := []byte("ASD-d31313")
+
+	roles := [][]byte{
+		[]byte(core.ESDTRoleNFTCreate),
+		[]byte(core.ESDTMetaDataRecreate),
+	}
+	setAddressEsdtRoles(t, cs, address, tokenID, roles)
+
+	name := []byte(hex.EncodeToString([]byte("name")))
+	hash := []byte(hex.EncodeToString([]byte("hash")))
+	attributes := []byte(hex.EncodeToString([]byte("attributes")))
+	uris := [][]byte{[]byte(hex.EncodeToString([]byte("uri")))}
+
+	txDataField := bytes.Join(
+		[][]byte{
+			[]byte(core.BuiltInFunctionESDTNFTCreate),
+			[]byte(hex.EncodeToString(tokenID)),
+			[]byte(hex.EncodeToString(big.NewInt(1).Bytes())), // quantity
+			name,
+			[]byte(hex.EncodeToString(big.NewInt(10).Bytes())),
+			hash,
+			attributes,
+			uris[0],
+		},
+		[]byte("@"),
+	)
+
+	tx := &transaction.Transaction{
+		Nonce:     0,
+		SndAddr:   address.Bytes,
+		RcvAddr:   address.Bytes,
+		GasLimit:  10_000_000,
+		GasPrice:  minGasPrice,
+		Signature: []byte("dummySig"),
+		Data:      txDataField,
+		Value:     big.NewInt(0),
+		ChainID:   []byte(configs.ChainID),
+		Version:   1,
+	}
+
+	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+	require.Equal(t, "success", txResult.Status.String())
+
+	err = cs.GenerateBlocks(10)
+
+	shardID := cs.GetNodeHandler(0).GetShardCoordinator().ComputeId(address.Bytes)
+
+	log.Info("Call ESDTMetaDataRecreate to rewrite the meta data for the nft")
+
+	nonce := []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
+	name = []byte(hex.EncodeToString([]byte("name2")))
+	hash = []byte(hex.EncodeToString([]byte("hash2")))
+	attributes = []byte(hex.EncodeToString([]byte("attributes2")))
+
+	txDataField = bytes.Join(
+		[][]byte{
+			[]byte(core.ESDTMetaDataRecreate),
+			[]byte(hex.EncodeToString(tokenID)),
+			nonce,
+			name,
+			[]byte(hex.EncodeToString(big.NewInt(10).Bytes())),
+			hash,
+			attributes,
+			uris[0],
+		},
+		[]byte("@"),
+	)
+
+	tx = &transaction.Transaction{
+		Nonce:     1,
+		SndAddr:   address.Bytes,
+		RcvAddr:   address.Bytes,
+		GasLimit:  10_000_000,
+		GasPrice:  minGasPrice,
+		Signature: []byte("dummySig"),
+		Data:      txDataField,
+		Value:     big.NewInt(0),
+		ChainID:   []byte(configs.ChainID),
+		Version:   1,
+	}
+
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+
+	require.Equal(t, "success", txResult.Status.String())
+
+	retrievedMetaData := getMetaDataFromAcc(t, cs, core.SystemAccountAddress, tokenID, shardID)
+
+	require.Equal(t, nonce, []byte(hex.EncodeToString(big.NewInt(int64(retrievedMetaData.Nonce)).Bytes())))
+	require.Equal(t, name, []byte(hex.EncodeToString(retrievedMetaData.Name)))
+	require.Equal(t, hash, []byte(hex.EncodeToString(retrievedMetaData.Hash)))
+	for i, uri := range uris {
+		require.Equal(t, uri, []byte(hex.EncodeToString(retrievedMetaData.URIs[i])))
+	}
+	require.Equal(t, attributes, []byte(hex.EncodeToString(retrievedMetaData.Attributes)))
+}
+
+// Test scenario
+//
+// Initial setup: Create NFT
+//
+// Call ESDTMetaDataUpdate to update some of the meta data parameters
+// (The sender must have the ESDTRoleNFTUpdate role)
+func TestChainSimulator_NFT_ESDTMetaDataUpdate(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	startTime := time.Now().Unix()
+	roundDurationInMillis := uint64(6000)
+	roundsPerEpoch := core.OptionalUint64{
+		HasValue: true,
+		Value:    20,
+	}
+
+	activationEpoch := uint32(2)
+
+	numOfShards := uint32(3)
+	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+		BypassTxSignatureCheck:      false,
+		TempDir:                     t.TempDir(),
+		PathToInitialConfig:         defaultPathToInitialConfig,
+		NumOfShards:                 numOfShards,
+		GenesisTimestamp:            startTime,
+		RoundDurationInMillis:       roundDurationInMillis,
+		RoundsPerEpoch:              roundsPerEpoch,
+		ApiInterface:                api.NewNoApiInterface(),
+		MinNodesPerShard:            3,
+		MetaChainMinNodes:           3,
+		ConsensusGroupSize:          1,
+		MetaChainConsensusGroupSize: 1,
+		NumNodesWaitingListMeta:     0,
+		NumNodesWaitingListShard:    0,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpoch
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, cs)
+
+	defer cs.Close()
+
+	mintValue := big.NewInt(10)
+	mintValue = mintValue.Mul(staking.OneEGLD, mintValue)
+
+	address, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocksUntilEpochIsReached(int32(activationEpoch))
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(10)
+	require.Nil(t, err)
+
+	log.Info("Initial setup: Create  NFT")
+
+	tokenID := []byte("ASD-d31313")
+
+	roles := [][]byte{
+		[]byte(core.ESDTRoleNFTCreate),
+		[]byte(core.ESDTRoleNFTUpdate),
+	}
+	setAddressEsdtRoles(t, cs, address, tokenID, roles)
+
+	name := []byte(hex.EncodeToString([]byte("name")))
+	hash := []byte(hex.EncodeToString([]byte("hash")))
+	attributes := []byte(hex.EncodeToString([]byte("attributes")))
+	uris := [][]byte{[]byte(hex.EncodeToString([]byte("uri")))}
+
+	txDataField := bytes.Join(
+		[][]byte{
+			[]byte(core.BuiltInFunctionESDTNFTCreate),
+			[]byte(hex.EncodeToString(tokenID)),
+			[]byte(hex.EncodeToString(big.NewInt(1).Bytes())), // quantity
+			name,
+			[]byte(hex.EncodeToString(big.NewInt(10).Bytes())),
+			hash,
+			attributes,
+			uris[0],
+		},
+		[]byte("@"),
+	)
+
+	tx := &transaction.Transaction{
+		Nonce:     0,
+		SndAddr:   address.Bytes,
+		RcvAddr:   address.Bytes,
+		GasLimit:  10_000_000,
+		GasPrice:  minGasPrice,
+		Signature: []byte("dummySig"),
+		Data:      txDataField,
+		Value:     big.NewInt(0),
+		ChainID:   []byte(configs.ChainID),
+		Version:   1,
+	}
+
+	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+	require.Equal(t, "success", txResult.Status.String())
+
+	err = cs.GenerateBlocks(10)
+
+	shardID := cs.GetNodeHandler(0).GetShardCoordinator().ComputeId(address.Bytes)
+
+	log.Info("Call ESDTMetaDataRecreate to rewrite the meta data for the nft")
+
+	nonce := []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
+	name = []byte(hex.EncodeToString([]byte("name2")))
+	hash = []byte(hex.EncodeToString([]byte("hash2")))
+	attributes = []byte(hex.EncodeToString([]byte("attributes2")))
+
+	txDataField = bytes.Join(
+		[][]byte{
+			[]byte(core.ESDTMetaDataUpdate),
+			[]byte(hex.EncodeToString(tokenID)),
+			nonce,
+			name,
+			[]byte(hex.EncodeToString(big.NewInt(10).Bytes())),
+			hash,
+			attributes,
+			uris[0],
+		},
+		[]byte("@"),
+	)
+
+	tx = &transaction.Transaction{
+		Nonce:     1,
+		SndAddr:   address.Bytes,
+		RcvAddr:   address.Bytes,
+		GasLimit:  10_000_000,
+		GasPrice:  minGasPrice,
+		Signature: []byte("dummySig"),
+		Data:      txDataField,
+		Value:     big.NewInt(0),
+		ChainID:   []byte(configs.ChainID),
+		Version:   1,
+	}
+
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+
+	require.Equal(t, "success", txResult.Status.String())
+
+	retrievedMetaData := getMetaDataFromAcc(t, cs, core.SystemAccountAddress, tokenID, shardID)
+
+	require.Equal(t, nonce, []byte(hex.EncodeToString(big.NewInt(int64(retrievedMetaData.Nonce)).Bytes())))
+	require.Equal(t, name, []byte(hex.EncodeToString(retrievedMetaData.Name)))
+	require.Equal(t, hash, []byte(hex.EncodeToString(retrievedMetaData.Hash)))
+	for i, uri := range uris {
+		require.Equal(t, uri, []byte(hex.EncodeToString(retrievedMetaData.URIs[i])))
+	}
+	require.Equal(t, attributes, []byte(hex.EncodeToString(retrievedMetaData.Attributes)))
+}
+
+// Test scenario
+//
+// Initial setup: Create NFT
+//
+// Call ESDTModifyCreator and check that the creator was modified
+// (The sender must have the ESDTRoleModifyCreator role)
+func TestChainSimulator_NFT_ESDTModifyCreator(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	startTime := time.Now().Unix()
+	roundDurationInMillis := uint64(6000)
+	roundsPerEpoch := core.OptionalUint64{
+		HasValue: true,
+		Value:    20,
+	}
+
+	activationEpoch := uint32(2)
+
+	numOfShards := uint32(3)
+	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+		BypassTxSignatureCheck:      false,
+		TempDir:                     t.TempDir(),
+		PathToInitialConfig:         defaultPathToInitialConfig,
+		NumOfShards:                 numOfShards,
+		GenesisTimestamp:            startTime,
+		RoundDurationInMillis:       roundDurationInMillis,
+		RoundsPerEpoch:              roundsPerEpoch,
+		ApiInterface:                api.NewNoApiInterface(),
+		MinNodesPerShard:            3,
+		MetaChainMinNodes:           3,
+		ConsensusGroupSize:          1,
+		MetaChainConsensusGroupSize: 1,
+		NumNodesWaitingListMeta:     0,
+		NumNodesWaitingListShard:    0,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpoch
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, cs)
+
+	defer cs.Close()
+
+	mintValue := big.NewInt(10)
+	mintValue = mintValue.Mul(staking.OneEGLD, mintValue)
+
+	address, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocksUntilEpochIsReached(int32(activationEpoch))
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(10)
+	require.Nil(t, err)
+
+	log.Info("Initial setup: Create NFT")
+
+	tokenID := []byte("ASD-d31313")
+
+	roles := [][]byte{
+		[]byte(core.ESDTRoleNFTCreate),
+	}
+	setAddressEsdtRoles(t, cs, address, tokenID, roles)
+
+	name := []byte(hex.EncodeToString([]byte("name")))
+	hash := []byte(hex.EncodeToString([]byte("hash")))
+	attributes := []byte(hex.EncodeToString([]byte("attributes")))
+	uris := [][]byte{[]byte(hex.EncodeToString([]byte("uri")))}
+
+	txDataField := bytes.Join(
+		[][]byte{
+			[]byte(core.BuiltInFunctionESDTNFTCreate),
+			[]byte(hex.EncodeToString(tokenID)),
+			[]byte(hex.EncodeToString(big.NewInt(1).Bytes())), // quantity
+			name,
+			[]byte(hex.EncodeToString(big.NewInt(10).Bytes())),
+			hash,
+			attributes,
+			uris[0],
+		},
+		[]byte("@"),
+	)
+
+	tx := &transaction.Transaction{
+		Nonce:     0,
+		SndAddr:   address.Bytes,
+		RcvAddr:   address.Bytes,
+		GasLimit:  10_000_000,
+		GasPrice:  minGasPrice,
+		Signature: []byte("dummySig"),
+		Data:      txDataField,
+		Value:     big.NewInt(0),
+		ChainID:   []byte(configs.ChainID),
+		Version:   1,
+	}
+
+	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+	require.Equal(t, "success", txResult.Status.String())
+
+	err = cs.GenerateBlocks(10)
+
+	shardID := cs.GetNodeHandler(0).GetShardCoordinator().ComputeId(address.Bytes)
+
+	log.Info("Call ESDTModifyCreator and check that the creator was modified")
+
+	newCreatorAddress, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	require.Nil(t, err)
+
+	roles = [][]byte{
+		[]byte(core.ESDTRoleModifyCreator),
+	}
+	setAddressEsdtRoles(t, cs, newCreatorAddress, tokenID, roles)
+
+	nonce := []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
+
+	txDataField = bytes.Join(
+		[][]byte{
+			[]byte(core.ESDTModifyCreator),
+			[]byte(hex.EncodeToString(tokenID)),
+			nonce,
+		},
+		[]byte("@"),
+	)
+
+	tx = &transaction.Transaction{
+		Nonce:     0,
+		SndAddr:   newCreatorAddress.Bytes,
+		RcvAddr:   newCreatorAddress.Bytes,
+		GasLimit:  10_000_000,
+		GasPrice:  minGasPrice,
+		Signature: []byte("dummySig"),
+		Data:      txDataField,
+		Value:     big.NewInt(0),
+		ChainID:   []byte(configs.ChainID),
+		Version:   1,
+	}
+
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+
+	require.Equal(t, "success", txResult.Status.String())
+
+	retrievedMetaData := getMetaDataFromAcc(t, cs, core.SystemAccountAddress, tokenID, shardID)
+
+	require.Equal(t, newCreatorAddress.Bytes, retrievedMetaData.Creator)
 }
