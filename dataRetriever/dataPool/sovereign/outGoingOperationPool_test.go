@@ -69,6 +69,9 @@ func TestOutGoingOperationsPool_Add_Get_Delete(t *testing.T) {
 		},
 	}
 
+	pool.Add(nil)
+	require.Empty(t, pool.cache)
+
 	pool.Add(bridgeData1)
 	require.Equal(t, bridgeData1, pool.Get(outGoingOperationsHash1))
 	require.Empty(t, pool.Get(outGoingOperationsHash2))

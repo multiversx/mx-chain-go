@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// CheckSetState -
 func CheckSetState(t *testing.T, chainSimulator ChainSimulator, nodeHandler chainSimulatorProcess.NodeHandler) {
 	keyValueMap := map[string]string{
 		"01": "01",
@@ -33,6 +34,7 @@ func CheckSetState(t *testing.T, chainSimulator ChainSimulator, nodeHandler chai
 	require.Equal(t, keyValueMap, keyValuePairs)
 }
 
+// CheckSetEntireState -
 func CheckSetEntireState(t *testing.T, chainSimulator ChainSimulator, nodeHandler chainSimulatorProcess.NodeHandler, accountState *dtos.AddressState) {
 	err := chainSimulator.SetStateMultiple([]*dtos.AddressState{accountState})
 	require.Nil(t, err)
@@ -65,6 +67,7 @@ func CheckSetEntireState(t *testing.T, chainSimulator ChainSimulator, nodeHandle
 	require.Equal(t, accountState.RootHash, base64.StdEncoding.EncodeToString(account.RootHash))
 }
 
+// CheckSetEntireState -
 func CheckSetEntireStateWithRemoval(t *testing.T, chainSimulator ChainSimulator, nodeHandler chainSimulatorProcess.NodeHandler, accountState *dtos.AddressState) {
 	// activate the auto balancing tries so the results will be the same
 	err := chainSimulator.GenerateBlocks(30)
@@ -134,6 +137,7 @@ func CheckSetEntireStateWithRemoval(t *testing.T, chainSimulator ChainSimulator,
 	require.Equal(t, accountState.RootHash, base64.StdEncoding.EncodeToString(account.RootHash))
 }
 
+// CheckSetEntireState -
 func CheckGetAccount(t *testing.T, chainSimulator ChainSimulator) {
 	// the facade's GetAccount method requires that at least one block was produced over the genesis block
 	err := chainSimulator.GenerateBlocks(1)

@@ -21,7 +21,7 @@ require (
 	github.com/multiversx/mx-chain-logger-go v1.0.15-0.20240508072523-3f00a726af57
 	github.com/multiversx/mx-chain-scenario-go v1.4.4-0.20240509103754-9e8129721f00
 	github.com/multiversx/mx-chain-storage-go v1.0.16-0.20240508073549-dcb8e6e0370f
-	github.com/multiversx/mx-chain-vm-common-go v1.5.13-0.20240516094756-46c23d07c6e2
+	github.com/multiversx/mx-chain-vm-common-go v1.5.13-0.20240527104157-5334721a9be8
 	github.com/multiversx/mx-chain-vm-go v1.5.30-0.20240520161801-d5467292e454
 	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.68-0.20240509103859-89de3c5da36b
 	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.69-0.20240509104009-598a37ff36b9
