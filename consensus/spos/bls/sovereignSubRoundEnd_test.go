@@ -6,6 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	sovCore "github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -15,16 +18,14 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/sovereign"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
-	sovCore "github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/stretchr/testify/require"
 )
 
 type sovEndRoundHandler interface {
 	consensus.SubroundHandler
 	DoSovereignEndRoundJob(ctx context.Context) bool
+	ReceivedBlockHeaderFinalInfo(cnsDta *consensus.Message) bool
+	GetInternalHeader() data.HeaderHandler
 }
 
 func createSovSubRoundEndWithSelfLeader(
@@ -393,6 +394,96 @@ func TestSovereignSubRoundEnd_DoEndJobByLeader(t *testing.T) {
 		require.True(t, success)
 		require.True(t, wasDataSent)
 	})
+
+	t.Run("leader keeps resending previous unconfirmed operations, should keep signatures in pool", func(t *testing.T) {
+		t.Parallel()
+
+		unconfirmedBridgeOutGoingData := &sovCore.BridgeOutGoingData{
+			Hash: []byte("hashOfHashes"),
+			OutGoingOperations: []*sovCore.OutGoingOperation{
+				{
+					Hash: []byte("hashOp1"),
+					Data: []byte("bridgeOp1"),
+				},
+			},
+		}
+
+		expiryTime := time.Millisecond * 100
+		pool := sovereignBlock.NewOutGoingOperationPool(expiryTime)
+		pool.Add(unconfirmedBridgeOutGoingData)
+
+		sendDataCalledCt := 0
+		wasDataSent := false
+		currCtx := context.Background()
+		wg := sync.WaitGroup{}
+		wg.Add(1)
+		bridgeData := &sovCore.BridgeOperations{
+			Data: []*sovCore.BridgeOutGoingData{
+				{
+					Hash: []byte("hashOfHashes"),
+					OutGoingOperations: []*sovCore.OutGoingOperation{
+						{
+							Hash: []byte("hashOp1"),
+							Data: []byte("bridgeOp1"),
+						},
+					},
+					AggregatedSignature: []byte("aggregatedSig"),
+					LeaderSignature:     []byte("leaderSig"),
+				},
+			},
+		}
+		bridgeHandler := &sovereign.BridgeOperationsHandlerMock{
+			SendCalled: func(ctx context.Context, data *sovCore.BridgeOperations) (*sovCore.BridgeOperationsResponse, error) {
+				defer func() {
+					wg.Done()
+				}()
+
+				require.Equal(t, currCtx, ctx)
+				require.Equal(t, bridgeData, data)
+
+				wasDataSent = true
+				sendDataCalledCt++
+				return &sovCore.BridgeOperationsResponse{}, nil
+			},
+		}
+
+		sovHdr := &block.SovereignChainHeader{
+			Header: &block.Header{
+				Nonce: 4,
+			},
+			OutGoingMiniBlockHeader: &block.OutGoingMiniBlockHeader{
+				Hash:                                  []byte("hashOfHashes"),
+				OutGoingOperationsHash:                []byte("hashOfHashes"),
+				AggregatedSignatureOutGoingOperations: []byte("aggregatedSig"),
+				LeaderSignatureOutGoingOperations:     []byte("leaderSig"),
+			},
+		}
+		sovEndRound := createSovSubRoundEndWithSelfLeader(pool, bridgeHandler, sovHdr)
+		time.Sleep(expiryTime)
+
+		// Before having confirmed signed header, we have in pool data with no signatures
+		require.Equal(t, []*sovCore.BridgeOutGoingData{unconfirmedBridgeOutGoingData}, pool.GetUnconfirmedOperations())
+
+		for i := 1; i <= 3; i++ {
+			success := false
+			wasDataSent = false
+
+			success = sovEndRound.DoSovereignEndRoundJob(currCtx)
+			wg.Wait()
+			require.True(t, success)
+			require.True(t, wasDataSent)
+			require.Equal(t, i, sendDataCalledCt)
+
+			time.Sleep(expiryTime)
+
+			// Simulate next rounds with no further outgoing operations
+			sovHdr.OutGoingMiniBlockHeader = nil
+			wg.Add(1)
+
+			// After first trying to send it, we should always keep in pool data with signatures
+			require.Equal(t, []*sovCore.BridgeOutGoingData{bridgeData.Data[0]}, pool.GetUnconfirmedOperations())
+		}
+	})
 }
 
 func TestSovereignSubRoundEnd_DoEndJobByParticipant(t *testing.T) {
@@ -549,4 +640,80 @@ func TestSovereignSubRoundEnd_DoEndJobByParticipant(t *testing.T) {
 		require.False(t, wasDataSent)
 		require.Zero(t, getUnconfirmedCalled)
 	})
+}
+
+func TestSovereignSubRoundEnd_ReceivedBlockHeaderFinalInfo(t *testing.T) {
+	t.Parallel()
+
+	outGoingData := &sovCore.BridgeOutGoingData{
+		Hash: []byte("hashOfHashes"),
+		OutGoingOperations: []*sovCore.OutGoingOperation{
+			{
+				Hash: []byte("hashOp1"),
+				Data: []byte("bridgeOp1"),
+			},
+		},
+	}
+
+	pool := sovereignBlock.NewOutGoingOperationPool(time.Second)
+	pool.Add(outGoingData)
+
+	wasDataSent := false
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	bridgeHandler := &sovereign.BridgeOperationsHandlerMock{
+		SendCalled: func(ctx context.Context, data *sovCore.BridgeOperations) (*sovCore.BridgeOperationsResponse, error) {
+			defer func() {
+				wg.Done()
+			}()
+
+			wasDataSent = true
+			return &sovCore.BridgeOperationsResponse{}, nil
+		},
+	}
+	sovHdr := &block.SovereignChainHeader{
+		Header: &block.Header{
+			Nonce: 4,
+		},
+		OutGoingMiniBlockHeader: &block.OutGoingMiniBlockHeader{
+			Hash:                   []byte("hashOfHashes"),
+			OutGoingOperationsHash: []byte("hashOfHashes"),
+		},
+	}
+
+	sovEndRound := createSovSubRoundEndWithParticipant(pool, bridgeHandler, sovHdr)
+
+	aggregatedSig := []byte("aggregatedSigOutGoing")
+	leaderSig := []byte("leaderSigOutGoing")
+	cnsData := consensus.Message{
+		HeaderHash:                        []byte("X"),
+		PubKey:                            []byte("A"),
+		InvalidSigners:                    []byte("invalidSignersData"),
+		AggregatedSignatureOutGoingTxData: aggregatedSig,
+		LeaderSignatureOutGoingTxData:     leaderSig,
+	}
+
+	// Participant should not send any data
+	res := sovEndRound.ReceivedBlockHeaderFinalInfo(&cnsData)
+	require.True(t, res)
+	require.False(t, wasDataSent)
+
+	// Header's outgoing mb is updated with signatures from consensus message
+	outGoingMb := sovEndRound.GetInternalHeader().(data.SovereignChainHeaderHandler).GetOutGoingMiniBlockHeaderHandler()
+	require.Equal(t, leaderSig, outGoingMb.GetLeaderSignatureOutGoingOperations())
+	require.Equal(t, aggregatedSig, outGoingMb.GetAggregatedSignatureOutGoingOperations())
+
+	// Internal outgoing pool is updated with signatures as well
+	updatedPoolData := pool.Get([]byte("hashOfHashes"))
+	require.Equal(t, &sovCore.BridgeOutGoingData{
+		Hash: []byte("hashOfHashes"),
+		OutGoingOperations: []*sovCore.OutGoingOperation{
+			{
+				Hash: []byte("hashOp1"),
+				Data: []byte("bridgeOp1"),
+			},
+		},
+		AggregatedSignature: aggregatedSig,
+		LeaderSignature:     leaderSig,
+	}, updatedPoolData)
 }
