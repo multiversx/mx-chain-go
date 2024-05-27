@@ -52,6 +52,8 @@ func (sr *sovereignSubRoundEnd) receivedBlockHeaderFinalInfo(ctx context.Context
 		return false
 	}
 
+	// TODO: MX-15502 once we have ZKProofs included in blocks for leaders which have resent the unconfirmed
+	// outgoing operation we should also call resetOutGoingOpTimer here for consensus participants
 	return sr.updateOutGoingPoolIfNeeded(cnsDta) == nil
 }
 
