@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-go/config"
+	chainSimulatorIntegrationTests "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/process"
 	sovereignChainSimulator "github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator"
-	"github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator/utils"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/stretchr/testify/require"
@@ -69,7 +69,7 @@ func TestSmartContract_Adder(t *testing.T) {
 
 	initSum := big.NewInt(123)
 	initArgs := "@" + hex.EncodeToString(initSum.Bytes())
-	deployedContractAddress := utils.DeployContract(t, cs, wallet.Bytes, &nonce, systemScAddress, initArgs, adderWasmPath)
+	deployedContractAddress := chainSimulatorIntegrationTests.DeployContract(t, cs, wallet.Bytes, &nonce, systemScAddress, initArgs, adderWasmPath)
 
 	res, _, err := nodeHandler.GetFacadeHandler().ExecuteSCQuery(&process.SCQuery{
 		ScAddress:  deployedContractAddress,
@@ -83,7 +83,7 @@ func TestSmartContract_Adder(t *testing.T) {
 
 	addedSum := big.NewInt(10)
 	addTxData := "add@" + hex.EncodeToString(addedSum.Bytes())
-	utils.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, big.NewInt(0), addTxData, uint64(10000000))
+	chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, big.NewInt(0), addTxData, uint64(10000000))
 
 	res, _, err = nodeHandler.GetFacadeHandler().ExecuteSCQuery(&process.SCQuery{
 		ScAddress:  deployedContractAddress,

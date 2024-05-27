@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-go/config"
+	chainSimulatorIntegrationTests "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	sovereignChainSimulator "github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator"
-	"github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator/utils"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	coreAPI "github.com/multiversx/mx-chain-core-go/data/api"
@@ -70,12 +70,12 @@ func TestSmartContract_IssueToken(t *testing.T) {
 	require.Nil(t, err)
 	nonce := uint64(0)
 
-	deployedContractAddress := utils.DeployContract(t, cs, wallet.Bytes, &nonce, systemScAddress, "", issueWasmPath)
+	deployedContractAddress := chainSimulatorIntegrationTests.DeployContract(t, cs, wallet.Bytes, &nonce, systemScAddress, "", issueWasmPath)
 	deployedContractAddressBech32, err := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Encode(deployedContractAddress)
 	require.Nil(t, err)
 
 	issueCost, _ := big.NewInt(0).SetString(issuePrice, 10)
-	issueTx := utils.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, issueCost, "issue", uint64(60000000))
+	issueTx := chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, issueCost, "issue", uint64(60000000))
 	require.False(t, string(issueTx.Logs.Events[0].Topics[1]) == "sending value to non payable contract")
 
 	err = cs.GenerateBlocks(1)
@@ -91,7 +91,7 @@ func TestSmartContract_IssueToken(t *testing.T) {
 	require.True(t, len(esdts) == 1)
 
 	tokenIdentifier := esdts[0]
-	setRolesTx := utils.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, big.NewInt(0), "setRoles@"+hex.EncodeToString([]byte(tokenIdentifier)), uint64(60000000))
+	setRolesTx := chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, big.NewInt(0), "setRoles@"+hex.EncodeToString([]byte(tokenIdentifier)), uint64(60000000))
 	require.NotNil(t, setRolesTx)
 
 	err = cs.GenerateBlocks(2)
@@ -107,7 +107,7 @@ func TestSmartContract_IssueToken(t *testing.T) {
 
 	expectedMintedAmount, _ := big.NewInt(0).SetString("123000000000000000000", 10)
 	mintTxArgs := "mint@" + hex.EncodeToString([]byte(tokenIdentifier)) + "@" + hex.EncodeToString(expectedMintedAmount.Bytes())
-	mintTx := utils.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, big.NewInt(0), mintTxArgs, uint64(20000000))
+	mintTx := chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, big.NewInt(0), mintTxArgs, uint64(20000000))
 	require.NotNil(t, mintTx)
 
 	err = cs.GenerateBlocks(2)
@@ -168,12 +168,12 @@ func TestSmartContract_IssueToken_MainChain(t *testing.T) {
 	require.Nil(t, err)
 	nonce := uint64(0)
 
-	deployedContractAddress := utils.DeployContract(t, cs, wallet.Bytes, &nonce, systemScAddress, "", issueWasmPath)
+	deployedContractAddress := chainSimulatorIntegrationTests.DeployContract(t, cs, wallet.Bytes, &nonce, systemScAddress, "", issueWasmPath)
 	deployedContractAddressBech32, err := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Encode(deployedContractAddress)
 	require.Nil(t, err)
 
 	issueCost, _ := big.NewInt(0).SetString(issuePrice, 10)
-	issueTx := utils.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, issueCost, "issue", uint64(60000000))
+	issueTx := chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, issueCost, "issue", uint64(60000000))
 	require.False(t, string(issueTx.Logs.Events[0].Topics[1]) == "sending value to non payable contract")
 
 	err = cs.GenerateBlocks(2)
@@ -189,7 +189,7 @@ func TestSmartContract_IssueToken_MainChain(t *testing.T) {
 	require.True(t, len(esdts) == 1)
 
 	tokenIdentifier := esdts[0]
-	setRolesTx := utils.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, big.NewInt(0), "setRoles@"+hex.EncodeToString([]byte(tokenIdentifier)), uint64(60000000))
+	setRolesTx := chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, big.NewInt(0), "setRoles@"+hex.EncodeToString([]byte(tokenIdentifier)), uint64(60000000))
 	require.NotNil(t, setRolesTx)
 
 	err = cs.GenerateBlocks(2)
@@ -205,7 +205,7 @@ func TestSmartContract_IssueToken_MainChain(t *testing.T) {
 
 	expectedMintedAmount, _ := big.NewInt(0).SetString("123000000000000000000", 10)
 	mintTxArgs := "mint@" + hex.EncodeToString([]byte(tokenIdentifier)) + "@" + hex.EncodeToString(expectedMintedAmount.Bytes())
-	mintTx := utils.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, big.NewInt(0), mintTxArgs, uint64(20000000))
+	mintTx := chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, big.NewInt(0), mintTxArgs, uint64(20000000))
 	require.NotNil(t, mintTx)
 
 	err = cs.GenerateBlocks(2)

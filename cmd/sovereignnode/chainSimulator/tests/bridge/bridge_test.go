@@ -7,10 +7,10 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-go/config"
+	chainSimulatorIntegrationTests "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	sovereignChainSimulator "github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator"
-	"github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator/utils"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	coreAPI "github.com/multiversx/mx-chain-core-go/data/api"
@@ -65,35 +65,35 @@ func TestBridge_DeployOnMainChain(t *testing.T) {
 	esdtSafeArgs := "@" + // is_sovereign_chain
 		"@" + // min_valid_signers
 		"@" + hex.EncodeToString(wallet.Bytes) // initiator_address
-	esdtSafeAddress := utils.DeployContract(t, cs, wallet.Bytes, &nonce, systemScAddress, esdtSafeArgs, esdtSafeWasmPath)
+	esdtSafeAddress := chainSimulatorIntegrationTests.DeployContract(t, cs, wallet.Bytes, &nonce, systemScAddress, esdtSafeArgs, esdtSafeWasmPath)
 
 	feeMarketArgs := "@" + hex.EncodeToString(esdtSafeAddress) + // esdt_safe_address
 		"@000000000000000005004c13819a7f26de997e7c6720a6efe2d4b85c0609c9ad" + // price_aggregator_address
 		"@555344432d333530633465" + // usdc_token_id
 		"@5745474c442d613238633539" // wegld_token_id
-	feeMarketAddress := utils.DeployContract(t, cs, wallet.Bytes, &nonce, systemScAddress, feeMarketArgs, feeMarketWasmPath)
+	feeMarketAddress := chainSimulatorIntegrationTests.DeployContract(t, cs, wallet.Bytes, &nonce, systemScAddress, feeMarketArgs, feeMarketWasmPath)
 
 	setFeeMarketAddressData := "setFeeMarketAddress" +
 		"@" + hex.EncodeToString(feeMarketAddress)
-	utils.SendTransaction(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, big.NewInt(0), setFeeMarketAddressData, uint64(10000000))
+	chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, big.NewInt(0), setFeeMarketAddressData, uint64(10000000))
 
-	utils.SendTransaction(t, cs, wallet.Bytes, &nonce, feeMarketAddress, big.NewInt(0), "disableFee", uint64(10000000))
+	chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, feeMarketAddress, big.NewInt(0), "disableFee", uint64(10000000))
 
-	utils.SendTransaction(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, big.NewInt(0), "unpause", uint64(10000000))
+	chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, big.NewInt(0), "unpause", uint64(10000000))
 
-	multiSigAddress := utils.DeployContract(t, cs, wallet.Bytes, &nonce, systemScAddress, "", multiSigWasmPath)
+	multiSigAddress := chainSimulatorIntegrationTests.DeployContract(t, cs, wallet.Bytes, &nonce, systemScAddress, "", multiSigWasmPath)
 
 	setEsdtSafeAddressData := "setEsdtSafeAddress" +
 		"@" + hex.EncodeToString(esdtSafeAddress)
-	utils.SendTransaction(t, cs, wallet.Bytes, &nonce, multiSigAddress, big.NewInt(0), setEsdtSafeAddressData, uint64(10000000))
+	chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, multiSigAddress, big.NewInt(0), setEsdtSafeAddressData, uint64(10000000))
 
 	setMultiSigAddressData := "setMultisigAddress" +
 		"@" + hex.EncodeToString(multiSigAddress)
-	utils.SendTransaction(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, big.NewInt(0), setMultiSigAddressData, uint64(10000000))
+	chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, big.NewInt(0), setMultiSigAddressData, uint64(10000000))
 
 	setSovereignBridgeAddressData := "setSovereignBridgeAddress" +
 		"@" + hex.EncodeToString(multiSigAddress)
-	utils.SendTransaction(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, big.NewInt(0), setSovereignBridgeAddressData, uint64(10000000))
+	chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, big.NewInt(0), setSovereignBridgeAddressData, uint64(10000000))
 }
 
 func TestBridge_DeployOnSovereignChain(t *testing.T) {
@@ -140,21 +140,21 @@ func TestBridge_DeployOnSovereignChain(t *testing.T) {
 	esdtSafeSovArgs := "@01" + // is_sovereign_chain
 		"@" + // min_valid_signers
 		"@" + hex.EncodeToString(sovWallet.Bytes) // initiator_address
-	esdtSafeSovAddress := utils.DeployContract(t, scs, sovWallet.Bytes, &sovNonce, sovSystemScAddress, esdtSafeSovArgs, esdtSafeWasmPath)
+	esdtSafeSovAddress := chainSimulatorIntegrationTests.DeployContract(t, scs, sovWallet.Bytes, &sovNonce, sovSystemScAddress, esdtSafeSovArgs, esdtSafeWasmPath)
 
 	feeMarketSovArgs := "@" + hex.EncodeToString(esdtSafeSovAddress) + // esdt_safe_address
 		"@000000000000000005004c13819a7f26de997e7c6720a6efe2d4b85c0609c9ad" + // price_aggregator_address
 		"@555344432d333530633465" + // usdc_token_id
 		"@5745474c442d613238633539" // wegld_token_id
-	feeMarketSovAddress := utils.DeployContract(t, scs, sovWallet.Bytes, &sovNonce, sovSystemScAddress, feeMarketSovArgs, feeMarketWasmPath)
+	feeMarketSovAddress := chainSimulatorIntegrationTests.DeployContract(t, scs, sovWallet.Bytes, &sovNonce, sovSystemScAddress, feeMarketSovArgs, feeMarketWasmPath)
 
 	setSovFeeMarketAddressData := "setFeeMarketAddress" +
 		"@" + hex.EncodeToString(feeMarketSovAddress)
-	utils.SendTransaction(t, scs, sovWallet.Bytes, &sovNonce, esdtSafeSovAddress, big.NewInt(0), setSovFeeMarketAddressData, uint64(10000000))
+	chainSimulatorIntegrationTests.SendTransaction(t, scs, sovWallet.Bytes, &sovNonce, esdtSafeSovAddress, big.NewInt(0), setSovFeeMarketAddressData, uint64(10000000))
 
-	utils.SendTransaction(t, scs, sovWallet.Bytes, &sovNonce, feeMarketSovAddress, big.NewInt(0), "disableFee", uint64(10000000))
+	chainSimulatorIntegrationTests.SendTransaction(t, scs, sovWallet.Bytes, &sovNonce, feeMarketSovAddress, big.NewInt(0), "disableFee", uint64(10000000))
 
-	utils.SendTransaction(t, scs, sovWallet.Bytes, &sovNonce, esdtSafeSovAddress, big.NewInt(0), "unpause", uint64(10000000))
+	chainSimulatorIntegrationTests.SendTransaction(t, scs, sovWallet.Bytes, &sovNonce, esdtSafeSovAddress, big.NewInt(0), "unpause", uint64(10000000))
 }
 
 func Test_ESDTRoleBurnForAll(t *testing.T) {
@@ -199,24 +199,24 @@ func Test_ESDTRoleBurnForAll(t *testing.T) {
 	esdtSafeArgs := "@01" + // is_sovereign_chain
 		"@" + // min_valid_signers
 		"@" + hex.EncodeToString(wallet.Bytes) // initiator_address
-	esdtSafeAddress := utils.DeployContract(t, cs, wallet.Bytes, &nonce, systemScAddress, esdtSafeArgs, esdtSafeWasmPath)
+	esdtSafeAddress := chainSimulatorIntegrationTests.DeployContract(t, cs, wallet.Bytes, &nonce, systemScAddress, esdtSafeArgs, esdtSafeWasmPath)
 
 	feeMarketArgs := "@" + hex.EncodeToString(esdtSafeAddress) + // esdt_safe_address
 		"@000000000000000005004c13819a7f26de997e7c6720a6efe2d4b85c0609c9ad" + // price_aggregator_address
 		"@555344432d333530633465" + // usdc_token_id
 		"@5745474c442d613238633539" // wegld_token_id
-	feeMarketAddress := utils.DeployContract(t, cs, wallet.Bytes, &nonce, systemScAddress, feeMarketArgs, feeMarketWasmPath)
+	feeMarketAddress := chainSimulatorIntegrationTests.DeployContract(t, cs, wallet.Bytes, &nonce, systemScAddress, feeMarketArgs, feeMarketWasmPath)
 
 	setFeeMarketAddressData := "setFeeMarketAddress" +
 		"@" + hex.EncodeToString(feeMarketAddress)
-	utils.SendTransaction(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, big.NewInt(0), setFeeMarketAddressData, uint64(10000000))
+	chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, big.NewInt(0), setFeeMarketAddressData, uint64(10000000))
 
-	utils.SendTransaction(t, cs, wallet.Bytes, &nonce, feeMarketAddress, big.NewInt(0), "disableFee", uint64(10000000))
+	chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, feeMarketAddress, big.NewInt(0), "disableFee", uint64(10000000))
 
-	utils.SendTransaction(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, big.NewInt(0), "unpause", uint64(10000000))
+	chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, big.NewInt(0), "unpause", uint64(10000000))
 
 	issueArgs := "issue@536f7665726569676e546b6e@53564e@5c003ec0dd34509ad40000@12@63616e4164645370656369616c526f6c6573@74727565"
-	txResult := utils.SendTransaction(t, cs, wallet.Bytes, &nonce, systemEsdtScAddress, issueCost, issueArgs, uint64(60000000))
+	txResult := chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, systemEsdtScAddress, issueCost, issueArgs, uint64(60000000))
 	tokenIdentifier := txResult.Logs.Events[0].Topics[0]
 	require.True(t, len(tokenIdentifier) > 7)
 
@@ -230,7 +230,7 @@ func Test_ESDTRoleBurnForAll(t *testing.T) {
 		"@06aaf7c8516d0c0000" + //amount
 		"@6465706f736974" + //deposit func
 		"@" + hex.EncodeToString(wallet.Bytes) //receiver from other side
-	txResult = utils.SendTransaction(t, cs, wallet.Bytes, &nonce, wallet.Bytes, big.NewInt(0), depositArgs, uint64(20000000))
+	txResult = chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, wallet.Bytes, big.NewInt(0), depositArgs, uint64(20000000))
 	require.False(t, string(txResult.Logs.Events[0].Topics[1]) == "action is not allowed")
 
 	tokens, _, err := nodeHandler.GetFacadeHandler().GetAllESDTTokens(wallet.Bech32, coreAPI.AccountQueryOptions{})

@@ -7,11 +7,10 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-go/config"
-	chainSimulatorUtils "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
+	chainSimulatorIntegrationTests "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	sovereignChainSimulator "github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator"
-	"github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator/utils"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	coreAPI "github.com/multiversx/mx-chain-core-go/data/api"
@@ -61,14 +60,14 @@ func TestEsdt_IssueSft(t *testing.T) {
 	nonce := uint64(0)
 
 	data := "registerAndSetAllRoles@4f4354534654@4f4354534654@534654@"
-	txResult := utils.SendTransaction(t, cs, wallet.Bytes, &nonce, systemEsdtAddress, issueCost, data, uint64(60000000))
+	txResult := chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, systemEsdtAddress, issueCost, data, uint64(60000000))
 	tokenIdentifier := txResult.Logs.Events[0].Topics[0]
 
 	err = cs.GenerateBlocks(10)
 	require.Nil(t, err)
 
 	data = "ESDTNFTCreate@" + hex.EncodeToString(tokenIdentifier) + "@04d2@4f4354534654202331@09c4@@746167733a746167312c746167323b77686174657665724b65793a776861746576657256616c7565@68747470733a2f2f6d656469612e72656d61726b61626c652e746f6f6c732f4465764e65742f52656d61726b61626c65546f6f6c732e706e67"
-	tx := chainSimulatorUtils.GenerateTransaction(wallet.Bytes, 1, wallet.Bytes, big.NewInt(0), data, uint64(60000000))
+	tx := chainSimulatorIntegrationTests.GenerateTransaction(wallet.Bytes, 1, wallet.Bytes, big.NewInt(0), data, uint64(60000000))
 	txRes, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, 10)
 	require.Nil(t, err)
 	require.NotNil(t, txRes)
@@ -117,14 +116,14 @@ func TestEsdt_RegisterSft(t *testing.T) {
 	nonce := uint64(0)
 
 	data := "registerAndSetAllRoles@4f4354534654@4f4354534654@534654@"
-	txResult := utils.SendTransaction(t, cs, wallet.Bytes, &nonce, systemEsdtAddress, issueCost, data, uint64(60000000))
+	txResult := chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, systemEsdtAddress, issueCost, data, uint64(60000000))
 	tokenIdentifier := txResult.Logs.Events[0].Topics[0]
 
 	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	data = "ESDTNFTCreate@" + hex.EncodeToString(tokenIdentifier) + "@04d2@4f4354534654202331@09c4@@746167733a746167312c746167323b77686174657665724b65793a776861746576657256616c7565@68747470733a2f2f6d656469612e72656d61726b61626c652e746f6f6c732f4465764e65742f52656d61726b61626c65546f6f6c732e706e67"
-	utils.SendTransaction(t, cs, wallet.Bytes, &nonce, wallet.Bytes, big.NewInt(0), data, uint64(60000000))
+	chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, wallet.Bytes, big.NewInt(0), data, uint64(60000000))
 
 	tokens, _, err := nodeHandler.GetFacadeHandler().GetAllESDTTokens(wallet.Bech32, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
@@ -135,14 +134,14 @@ func TestEsdt_RegisterSft(t *testing.T) {
 	require.Nil(t, err)
 
 	data2 := "registerAndSetAllRoles@5346544e32@5346544e32@534654@"
-	txResult2 := utils.SendTransaction(t, cs, wallet.Bytes, &nonce, systemEsdtAddress, issueCost, data2, uint64(60000000))
+	txResult2 := chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, systemEsdtAddress, issueCost, data2, uint64(60000000))
 	tokenIdentifier2 := txResult2.Logs.Events[0].Topics[0]
 
 	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	data2 = "ESDTNFTCreate@" + hex.EncodeToString(tokenIdentifier2) + "@04d2@5346544e32202332@09c4@@746167733a746167312c746167323b77686174657665724b65793a776861746576657256616c7565@68747470733a2f2f6d656469612e72656d61726b61626c652e746f6f6c732f4465764e65742f52656d61726b61626c65546f6f6c732e706e67"
-	utils.SendTransaction(t, cs, wallet.Bytes, &nonce, wallet.Bytes, big.NewInt(0), data2, uint64(60000000))
+	chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, wallet.Bytes, big.NewInt(0), data2, uint64(60000000))
 
 	tokens, _, err = nodeHandler.GetFacadeHandler().GetAllESDTTokens(wallet.Bech32, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
@@ -192,20 +191,20 @@ func TestEsdt_IssueTwoSfts(t *testing.T) {
 	nonce := uint64(0)
 
 	data := "issueSemiFungible@4f4354534654@4f4354534654"
-	txResult := utils.SendTransaction(t, cs, wallet.Bytes, &nonce, systemEsdtAddress, issueCost, data, uint64(60000000))
+	txResult := chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, systemEsdtAddress, issueCost, data, uint64(60000000))
 	tokenIdentifier := txResult.Logs.Events[0].Topics[0]
 
 	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	data = "setSpecialRole@" + hex.EncodeToString(tokenIdentifier) + "@" + hex.EncodeToString(wallet.Bytes) + "@45534454526f6c654e4654437265617465@45534454526f6c654e46544164645175616e74697479"
-	utils.SendTransaction(t, cs, wallet.Bytes, &nonce, systemEsdtAddress, big.NewInt(0), data, uint64(60000000))
+	chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, systemEsdtAddress, big.NewInt(0), data, uint64(60000000))
 
 	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	data = "ESDTNFTCreate@" + hex.EncodeToString(tokenIdentifier) + "@04d2@4f4354534654202331@09c4@@746167733a746167312c746167323b77686174657665724b65793a776861746576657256616c7565@68747470733a2f2f6d656469612e72656d61726b61626c652e746f6f6c732f4465764e65742f52656d61726b61626c65546f6f6c732e706e67"
-	utils.SendTransaction(t, cs, wallet.Bytes, &nonce, wallet.Bytes, big.NewInt(0), data, uint64(60000000))
+	chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, wallet.Bytes, big.NewInt(0), data, uint64(60000000))
 
 	tokens, _, err := nodeHandler.GetFacadeHandler().GetAllESDTTokens(wallet.Bech32, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
@@ -216,20 +215,20 @@ func TestEsdt_IssueTwoSfts(t *testing.T) {
 	require.Nil(t, err)
 
 	data = "issueSemiFungible@5346544e32@5346544e32"
-	txResult = utils.SendTransaction(t, cs, wallet.Bytes, &nonce, systemEsdtAddress, issueCost, data, uint64(60000000))
+	txResult = chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, systemEsdtAddress, issueCost, data, uint64(60000000))
 	tokenIdentifier2 := txResult.Logs.Events[0].Topics[0]
 
 	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	data = "setSpecialRole@" + hex.EncodeToString(tokenIdentifier2) + "@" + hex.EncodeToString(wallet.Bytes) + "@45534454526f6c654e4654437265617465@45534454526f6c654e46544164645175616e74697479"
-	utils.SendTransaction(t, cs, wallet.Bytes, &nonce, systemEsdtAddress, big.NewInt(0), data, uint64(60000000))
+	chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, systemEsdtAddress, big.NewInt(0), data, uint64(60000000))
 
 	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	data = "ESDTNFTCreate@" + hex.EncodeToString(tokenIdentifier2) + "@04d2@5346544e32202332@09c4@@746167733a746167312c746167323b77686174657665724b65793a776861746576657256616c7565@68747470733a2f2f6d656469612e72656d61726b61626c652e746f6f6c732f4465764e65742f52656d61726b61626c65546f6f6c732e706e67"
-	utils.SendTransaction(t, cs, wallet.Bytes, &nonce, wallet.Bytes, big.NewInt(0), data, uint64(60000000))
+	chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, wallet.Bytes, big.NewInt(0), data, uint64(60000000))
 
 	tokens, _, err = nodeHandler.GetFacadeHandler().GetAllESDTTokens(wallet.Bech32, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)

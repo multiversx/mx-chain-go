@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-go/config"
+	chainSimulatorIntegrationTests "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	sovereignChainSimulator "github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator"
-	"github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator/utils"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	coreAPI "github.com/multiversx/mx-chain-core-go/data/api"
@@ -73,7 +73,7 @@ func TestEsdt_Issue(t *testing.T) {
 		"@" + fmt.Sprintf("%X", 18) +
 		"@" + hex.EncodeToString([]byte("canAddSpecialRoles")) +
 		"@" + hex.EncodeToString([]byte("true"))
-	txResult := utils.SendTransaction(t, cs, wallet.Bytes, &nonce, systemEsdtAddress, issueCost, issueArgs, uint64(60000000))
+	txResult := chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, systemEsdtAddress, issueCost, issueArgs, uint64(60000000))
 	tokenIdentifier := txResult.Logs.Events[0].Topics[0]
 	require.True(t, len(tokenIdentifier) > 7)
 
@@ -97,7 +97,7 @@ func TestEsdt_Issue(t *testing.T) {
 		"@" + hex.EncodeToString([]byte(core.ESDTRoleLocalMint)) +
 		"@" + hex.EncodeToString([]byte(core.ESDTRoleLocalBurn)) +
 		"@" + hex.EncodeToString([]byte(core.ESDTRoleTransfer))
-	txResult = utils.SendTransaction(t, cs, wallet.Bytes, &nonce, systemEsdtAddress, big.NewInt(0), setRolesArgs, uint64(60000000))
+	txResult = chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, systemEsdtAddress, big.NewInt(0), setRolesArgs, uint64(60000000))
 
 	esdtsRoles, _, err := nodeHandler.GetFacadeHandler().GetESDTsRoles(wallet.Bech32, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
