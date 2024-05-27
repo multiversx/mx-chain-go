@@ -2178,6 +2178,15 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 		txCopy.GasLimit = userTx.GasLimit - 1
 		testProcessRelayedTransactionV3(t, &txCopy, userTx.SndAddr, userTx.RcvAddr, process.ErrFailedTransaction, vmcommon.UserError)
 	})
+	t.Run("multiple types of relayed tx should error", func(t *testing.T) {
+		t.Parallel()
+
+		txCopy := *tx
+		userTxCopy := *userTx
+		userTxData, _ := marshaller.Marshal(userTxCopy)
+		txCopy.Data = []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxData))
+		testProcessRelayedTransactionV3(t, &txCopy, userTx.SndAddr, userTx.RcvAddr, process.ErrFailedTransaction, vmcommon.UserError)
+	})
 	t.Run("failure to add fees on destination should skip transaction and continue", func(t *testing.T) {
 		t.Parallel()
 
@@ -2237,6 +2246,13 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 			ShardCoordinator:       args.ShardCoordinator,
 			MaxTransactionsAllowed: 10,
 		})
+		logs := make([]*vmcommon.LogEntry, 0)
+		args.TxLogsProcessor = &mock.TxLogsProcessorStub{
+			SaveLogCalled: func(txHash []byte, tx data.TransactionHandler, vmLogs []*vmcommon.LogEntry) error {
+				logs = append(logs, vmLogs...)
+				return nil
+			},
+		}
 		execTx, _ := txproc.NewTxProcessor(args)
 
 		txCopy := *tx
@@ -2287,6 +2303,11 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 			}
 
 			assert.Equal(t, expectedBalance, acnt.GetBalance(), fmt.Sprintf("checks failed for address: %s", string(acnt.AddressBytes())))
+		}
+
+		require.Equal(t, 2, len(logs))
+		for _, log := range logs {
+			require.Equal(t, core.CompletedTxEventIdentifier, string(log.Identifier))
 		}
 	})
 	t.Run("one inner fails should return success on relayed", func(t *testing.T) {

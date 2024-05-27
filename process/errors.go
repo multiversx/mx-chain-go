@@ -1265,3 +1265,6 @@ var ErrRelayedTxV3TooManyInnerTransactions = errors.New("too many inner transact
 
 // ErrConsumedFeesMismatch signals that the fees consumed from relayer do not match the inner transactions fees
 var ErrConsumedFeesMismatch = errors.New("consumed fees mismatch")
+
+// ErrMultipleRelayedTxTypesIsNotAllowed signals that multiple types of relayed tx is not allowed
+var ErrMultipleRelayedTxTypesIsNotAllowed = errors.New("multiple relayed tx types is not allowed")

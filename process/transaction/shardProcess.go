@@ -662,7 +662,12 @@ func (txProc *txProcessor) processRelayedTxV3(
 	if check.IfNil(relayerAcnt) {
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrNilRelayerAccount)
 	}
-	err := txProc.relayedTxV3Processor.CheckRelayedTx(tx)
+	funcName, _, err := txProc.argsParser.ParseCallData(string(tx.Data))
+	if err == nil && isRelayedTx(funcName) {
+		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrMultipleRelayedTxTypesIsNotAllowed)
+	}
+
+	err = txProc.relayedTxV3Processor.CheckRelayedTx(tx)
 	if err != nil {
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, err)
 	}
@@ -786,6 +791,10 @@ func (txProc *txProcessor) processRelayedTxV2(
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrInvalidArguments)
 	}
 
+	if len(tx.InnerTransactions) > 0 {
+		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrMultipleRelayedTxTypesIsNotAllowed)
+	}
+
 	userTx := makeUserTxFromRelayedTxV2Args(args)
 	userTx.GasPrice = tx.GasPrice
 	userTx.GasLimit = tx.GasLimit - txProc.economicsFee.ComputeGasLimit(tx)
@@ -808,6 +817,9 @@ func (txProc *txProcessor) processRelayedTx(
 	}
 	if !txProc.enableEpochsHandler.IsFlagEnabled(common.RelayedTransactionsFlag) {
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxDisabled)
+	}
+	if len(tx.InnerTransactions) > 0 {
+		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrMultipleRelayedTxTypesIsNotAllowed)
 	}
 
 	userTx := &transaction.Transaction{}
@@ -970,6 +982,10 @@ func (txProc *txProcessor) processUserTx(
 	switch txType {
 	case process.MoveBalance:
 		err = txProc.processMoveBalance(userTx, acntSnd, acntDst, dstShardTxType, originalTxHash, true)
+		isUserTxOfRelayedV3 := len(originalTx.InnerTransactions) > 0
+		if err == nil && isUserTxOfRelayedV3 {
+			txProc.createCompleteEventLog(scrFromTx, originalTxHash)
+		}
 	case process.SCDeployment:
 		err = txProc.processMoveBalanceCostRelayedUserTx(userTx, scrFromTx, acntSnd, originalTxHash)
 		if err != nil {
@@ -1173,6 +1189,19 @@ func isNonExecutableError(executionErr error) bool {
 	return errors.Is(executionErr, process.ErrLowerNonceInTransaction) ||
 		errors.Is(executionErr, process.ErrHigherNonceInTransaction) ||
 		errors.Is(executionErr, process.ErrTransactionNotExecutable)
+}
+
+func (txProc *txProcessor) createCompleteEventLog(scr data.TransactionHandler, originalTxHash []byte) {
+	completedTxLog := &vmcommon.LogEntry{
+		Identifier: []byte(core.CompletedTxEventIdentifier),
+		Address:    scr.GetRcvAddr(),
+		Topics:     [][]byte{originalTxHash},
+	}
+
+	ignorableError := txProc.txLogsProcessor.SaveLog(originalTxHash, scr, []*vmcommon.LogEntry{completedTxLog})
+	if ignorableError != nil {
+		log.Debug("txProcessor.createCompleteEventLog txLogsProcessor.SaveLog()", "error", ignorableError.Error())
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -1602,6 +1602,14 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTx(t *testing.T) {
 	err = txi.CheckValidity()
 	assert.True(t, strings.Contains(err.Error(), process.ErrRecursiveRelayedTxIsNotAllowed.Error()))
 	assert.Contains(t, err.Error(), "inner transaction")
+
+	userTx.Data = []byte("")
+	userTxData, _ = marshalizer.Marshal(userTx)
+	tx.Data = []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxData))
+	tx.InnerTransactions = []*dataTransaction.Transaction{{Nonce: 100}}
+	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
+	err = txi.CheckValidity()
+	assert.True(t, strings.Contains(err.Error(), process.ErrMultipleRelayedTxTypesIsNotAllowed.Error()))
 }
 
 func TestInterceptedTransaction_CheckValidityOfRelayedTxV2(t *testing.T) {
@@ -1665,6 +1673,16 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTxV2(t *testing.T) {
 	assert.True(t, strings.Contains(err.Error(), process.ErrRecursiveRelayedTxIsNotAllowed.Error()))
 	assert.Contains(t, err.Error(), "inner transaction")
 
+	userTx.Data = []byte("")
+	marshalizer := &mock.MarshalizerMock{}
+	userTxData, _ := marshalizer.Marshal(userTx)
+	tx.Data = []byte(core.RelayedTransactionV2 + "@" + hex.EncodeToString(userTxData))
+	tx.InnerTransactions = []*dataTransaction.Transaction{{Nonce: 100}}
+	txi, _ = createInterceptedTxFromPlainTxWithArgParser(tx)
+	err = txi.CheckValidity()
+	assert.True(t, strings.Contains(err.Error(), process.ErrMultipleRelayedTxTypesIsNotAllowed.Error()))
+
+	tx.InnerTransactions = nil
 	userTx.Signature = sigOk
 	userTx.SndAddr = []byte("otherAddress")
 	tx.Data = []byte(core.RelayedTransactionV2 + "@" + hex.EncodeToString(userTx.RcvAddr) + "@" + hex.EncodeToString(big.NewInt(0).SetUint64(userTx.Nonce).Bytes()) + "@" + hex.EncodeToString(userTx.Data) + "@" + hex.EncodeToString(userTx.Signature))
@@ -1793,7 +1811,6 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTxV3(t *testing.T) {
 		err := txi.CheckValidity()
 		assert.NotNil(t, err)
 	})
-
 	t.Run("relayed v3 not enabled yet should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -1829,6 +1846,19 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTxV3(t *testing.T) {
 		assert.NotNil(t, txi)
 		err := txi.CheckValidity()
 		assert.Equal(t, process.ErrRelayedTxV3Disabled, err)
+	})
+	t.Run("inner txs + relayed v2 should error", func(t *testing.T) {
+		t.Parallel()
+
+		txCopy := *tx
+		innerTxCopy := *innerTx
+		txCopy.InnerTransactions = []*dataTransaction.Transaction{&innerTxCopy}
+		marshaller := &marshallerMock.MarshalizerMock{}
+		userTxData, _ := marshaller.Marshal(innerTxCopy)
+		txCopy.Data = []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxData))
+		txi, _ := createInterceptedTxFromPlainTxWithArgParser(&txCopy)
+		err := txi.CheckValidity()
+		assert.Equal(t, process.ErrMultipleRelayedTxTypesIsNotAllowed, err)
 	})
 }
 
