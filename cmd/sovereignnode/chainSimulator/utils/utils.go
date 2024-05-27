@@ -29,6 +29,7 @@ func getSCCode(fileName string) string {
 	return codeEncoded
 }
 
+// DeployContract -
 func DeployContract(
 	t *testing.T,
 	cs chainSimulatorIntegrationTests.ChainSimulator,
@@ -53,6 +54,7 @@ func DeployContract(
 	return address
 }
 
+// GenerateTransaction -
 func GenerateTransaction(
 	sender []byte,
 	nonce uint64,
@@ -79,6 +81,7 @@ func GenerateTransaction(
 	}
 }
 
+// SendTransaction -
 func SendTransaction(
 	t *testing.T,
 	cs chainSimulatorIntegrationTests.ChainSimulator,
