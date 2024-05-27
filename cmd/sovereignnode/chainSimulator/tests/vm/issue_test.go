@@ -91,12 +91,26 @@ func TestSmartContract_IssueToken(t *testing.T) {
 	require.True(t, len(esdts) == 1)
 
 	tokenIdentifier := esdts[0]
+	setRolesTx := utils.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, big.NewInt(0), "setRoles@"+hex.EncodeToString([]byte(tokenIdentifier)), uint64(60000000))
+	require.NotNil(t, setRolesTx)
+
+	err = cs.GenerateBlocks(2)
+	require.Nil(t, err)
+
+	esdtsRoles, _, err := nodeHandler.GetFacadeHandler().GetESDTsRoles(deployedContractAddressBech32, coreAPI.AccountQueryOptions{})
+	require.Nil(t, err)
+	require.NotNil(t, esdtsRoles)
+	require.True(t, len(esdtsRoles[tokenIdentifier]) == 3)
+	require.Equal(t, core.ESDTRoleLocalMint, esdtsRoles[tokenIdentifier][0])
+	require.Equal(t, core.ESDTRoleLocalBurn, esdtsRoles[tokenIdentifier][1])
+	require.Equal(t, core.ESDTRoleTransfer, esdtsRoles[tokenIdentifier][2])
+
 	expectedMintedAmount, _ := big.NewInt(0).SetString("123000000000000000000", 10)
-	mintTxData := "mint@" + hex.EncodeToString([]byte(tokenIdentifier)) + "@" + hex.EncodeToString(expectedMintedAmount.Bytes())
-	mintTx := utils.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, big.NewInt(0), mintTxData, uint64(20000000))
+	mintTxArgs := "mint@" + hex.EncodeToString([]byte(tokenIdentifier)) + "@" + hex.EncodeToString(expectedMintedAmount.Bytes())
+	mintTx := utils.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, big.NewInt(0), mintTxArgs, uint64(20000000))
 	require.NotNil(t, mintTx)
 
-	err = cs.GenerateBlocks(1)
+	err = cs.GenerateBlocks(2)
 	require.Nil(t, err)
 
 	accountSC, _, err = nodeHandler.GetFacadeHandler().GetAccount(deployedContractAddressBech32, coreAPI.AccountQueryOptions{})
@@ -175,10 +189,24 @@ func TestSmartContract_IssueToken_MainChain(t *testing.T) {
 	require.True(t, len(esdts) == 1)
 
 	tokenIdentifier := esdts[0]
+	setRolesTx := utils.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, big.NewInt(0), "setRoles@"+hex.EncodeToString([]byte(tokenIdentifier)), uint64(60000000))
+	require.NotNil(t, setRolesTx)
+
+	err = cs.GenerateBlocks(2)
+	require.Nil(t, err)
+
+	esdtsRoles, _, err := cs.GetNodeHandler(core.MetachainShardId).GetFacadeHandler().GetESDTsRoles(deployedContractAddressBech32, coreAPI.AccountQueryOptions{})
+	require.Nil(t, err)
+	require.NotNil(t, esdtsRoles)
+	require.True(t, len(esdtsRoles[tokenIdentifier]) == 3)
+	require.Equal(t, "ESDTRoleLocalMint", esdtsRoles[tokenIdentifier][0])
+	require.Equal(t, "ESDTRoleLocalBurn", esdtsRoles[tokenIdentifier][1])
+	require.Equal(t, "ESDTTransferRole", esdtsRoles[tokenIdentifier][2])
+
 	expectedMintedAmount, _ := big.NewInt(0).SetString("123000000000000000000", 10)
-	mintTxData := "mint@" + hex.EncodeToString([]byte(tokenIdentifier)) + "@" + hex.EncodeToString(expectedMintedAmount.Bytes())
-	tx2 := utils.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, big.NewInt(0), mintTxData, uint64(20000000))
-	require.NotNil(t, tx2)
+	mintTxArgs := "mint@" + hex.EncodeToString([]byte(tokenIdentifier)) + "@" + hex.EncodeToString(expectedMintedAmount.Bytes())
+	mintTx := utils.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, big.NewInt(0), mintTxArgs, uint64(20000000))
+	require.NotNil(t, mintTx)
 
 	err = cs.GenerateBlocks(2)
 	require.Nil(t, err)

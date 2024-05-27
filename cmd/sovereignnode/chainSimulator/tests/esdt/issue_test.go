@@ -2,6 +2,7 @@ package esdt
 
 import (
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	"testing"
 	"time"
@@ -64,17 +65,14 @@ func TestEsdt_Issue(t *testing.T) {
 	wallet, err := cs.GenerateAndMintWalletAddress(core.SovereignChainShardId, initialMinting)
 	require.Nil(t, err)
 
-	tokenName := hex.EncodeToString([]byte("SovereignTkn"))
-	tokenTicker := hex.EncodeToString([]byte("SVN"))
 	supply, _ := big.NewInt(0).SetString("123000000000000000000", 10)
-	initialSupply := hex.EncodeToString(supply.Bytes())
-	nrOfDecimals := "12"
 	issueArgs := "issue" +
-		"@" + tokenName +
-		"@" + tokenTicker +
-		"@" + initialSupply +
-		"@" + nrOfDecimals +
-		"@63616e4164645370656369616c526f6c6573@74727565"
+		"@" + hex.EncodeToString([]byte("SovereignTkn")) +
+		"@" + hex.EncodeToString([]byte("SVN")) +
+		"@" + hex.EncodeToString(supply.Bytes()) +
+		"@" + fmt.Sprintf("%X", 18) +
+		"@" + hex.EncodeToString([]byte("canAddSpecialRoles")) +
+		"@" + hex.EncodeToString([]byte("true"))
 	txResult := utils.SendTransaction(t, cs, wallet.Bytes, &nonce, systemEsdtAddress, issueCost, issueArgs, uint64(60000000))
 	tokenIdentifier := txResult.Logs.Events[0].Topics[0]
 	require.True(t, len(tokenIdentifier) > 7)
@@ -92,4 +90,20 @@ func TestEsdt_Issue(t *testing.T) {
 	require.NotNil(t, tokens)
 	require.True(t, len(tokens) == 2)
 	require.Equal(t, supply, tokens[string(tokenIdentifier)].Value)
+
+	setRolesArgs := "setSpecialRole" +
+		"@" + hex.EncodeToString(tokenIdentifier) +
+		"@" + hex.EncodeToString(wallet.Bytes) +
+		"@" + hex.EncodeToString([]byte(core.ESDTRoleLocalMint)) +
+		"@" + hex.EncodeToString([]byte(core.ESDTRoleLocalBurn)) +
+		"@" + hex.EncodeToString([]byte(core.ESDTRoleTransfer))
+	txResult = utils.SendTransaction(t, cs, wallet.Bytes, &nonce, systemEsdtAddress, big.NewInt(0), setRolesArgs, uint64(60000000))
+
+	esdtsRoles, _, err := nodeHandler.GetFacadeHandler().GetESDTsRoles(wallet.Bech32, coreAPI.AccountQueryOptions{})
+	require.Nil(t, err)
+	require.NotNil(t, esdtsRoles)
+	require.True(t, len(esdtsRoles[string(tokenIdentifier)]) == 3)
+	require.Equal(t, core.ESDTRoleLocalMint, esdtsRoles[string(tokenIdentifier)][0])
+	require.Equal(t, core.ESDTRoleLocalBurn, esdtsRoles[string(tokenIdentifier)][1])
+	require.Equal(t, core.ESDTRoleTransfer, esdtsRoles[string(tokenIdentifier)][2])
 }
