@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 )
 
+// ArgsSovereignChainSimulator holds the arguments for sovereign chain simulator
 type ArgsSovereignChainSimulator struct {
 	SovereignExtraConfig config.SovereignConfig
 	ChainSimulatorArgs   chainSimulator.ArgsChainSimulator
