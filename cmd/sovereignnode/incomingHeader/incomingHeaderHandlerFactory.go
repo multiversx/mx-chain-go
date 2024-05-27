@@ -10,6 +10,7 @@ import (
 	marshallerFactory "github.com/multiversx/mx-chain-core-go/marshal/factory"
 )
 
+// CreateIncomingHeaderProcessor creates the incoming header processor
 func CreateIncomingHeaderProcessor(
 	config *config.NotifierConfig,
 	dataPool dataRetriever.PoolsHolder,
