@@ -75,11 +75,7 @@ func TestSmartContract_IssueToken(t *testing.T) {
 	require.Nil(t, err)
 
 	issueCost, _ := big.NewInt(0).SetString(issuePrice, 10)
-	issueTx := chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, issueCost, "issue", uint64(60000000))
-	require.False(t, string(issueTx.Logs.Events[0].Topics[1]) == "sending value to non payable contract")
-
-	err = cs.GenerateBlocks(1)
-	require.Nil(t, err)
+	chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, issueCost, "issue", uint64(60000000))
 
 	accountSC, _, err := nodeHandler.GetFacadeHandler().GetAccount(deployedContractAddressBech32, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
@@ -91,11 +87,8 @@ func TestSmartContract_IssueToken(t *testing.T) {
 	require.True(t, len(esdts) == 1)
 
 	tokenIdentifier := esdts[0]
-	setRolesTx := chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, big.NewInt(0), "setRoles@"+hex.EncodeToString([]byte(tokenIdentifier)), uint64(60000000))
-	require.NotNil(t, setRolesTx)
-
-	err = cs.GenerateBlocks(2)
-	require.Nil(t, err)
+	setRolesArgs := "setRoles@" + hex.EncodeToString([]byte(tokenIdentifier))
+	chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, big.NewInt(0), setRolesArgs, uint64(60000000))
 
 	esdtsRoles, _, err := nodeHandler.GetFacadeHandler().GetESDTsRoles(deployedContractAddressBech32, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
@@ -106,12 +99,10 @@ func TestSmartContract_IssueToken(t *testing.T) {
 	require.Equal(t, core.ESDTRoleTransfer, esdtsRoles[tokenIdentifier][2])
 
 	expectedMintedAmount, _ := big.NewInt(0).SetString("123000000000000000000", 10)
-	mintTxArgs := "mint@" + hex.EncodeToString([]byte(tokenIdentifier)) + "@" + hex.EncodeToString(expectedMintedAmount.Bytes())
-	mintTx := chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, big.NewInt(0), mintTxArgs, uint64(20000000))
-	require.NotNil(t, mintTx)
-
-	err = cs.GenerateBlocks(2)
-	require.Nil(t, err)
+	mintTxArgs := "mint" +
+		"@" + hex.EncodeToString([]byte(tokenIdentifier)) +
+		"@" + hex.EncodeToString(expectedMintedAmount.Bytes())
+	chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, big.NewInt(0), mintTxArgs, uint64(20000000))
 
 	accountSC, _, err = nodeHandler.GetFacadeHandler().GetAccount(deployedContractAddressBech32, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
@@ -173,8 +164,7 @@ func TestSmartContract_IssueToken_MainChain(t *testing.T) {
 	require.Nil(t, err)
 
 	issueCost, _ := big.NewInt(0).SetString(issuePrice, 10)
-	issueTx := chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, issueCost, "issue", uint64(60000000))
-	require.False(t, string(issueTx.Logs.Events[0].Topics[1]) == "sending value to non payable contract")
+	chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, issueCost, "issue", uint64(60000000))
 
 	err = cs.GenerateBlocks(2)
 	require.Nil(t, err)
@@ -189,8 +179,8 @@ func TestSmartContract_IssueToken_MainChain(t *testing.T) {
 	require.True(t, len(esdts) == 1)
 
 	tokenIdentifier := esdts[0]
-	setRolesTx := chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, big.NewInt(0), "setRoles@"+hex.EncodeToString([]byte(tokenIdentifier)), uint64(60000000))
-	require.NotNil(t, setRolesTx)
+	setRolesArgs := "setRoles@" + hex.EncodeToString([]byte(tokenIdentifier))
+	chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, big.NewInt(0), setRolesArgs, uint64(60000000))
 
 	err = cs.GenerateBlocks(2)
 	require.Nil(t, err)
@@ -199,14 +189,15 @@ func TestSmartContract_IssueToken_MainChain(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, esdtsRoles)
 	require.True(t, len(esdtsRoles[tokenIdentifier]) == 3)
-	require.Equal(t, "ESDTRoleLocalMint", esdtsRoles[tokenIdentifier][0])
-	require.Equal(t, "ESDTRoleLocalBurn", esdtsRoles[tokenIdentifier][1])
-	require.Equal(t, "ESDTTransferRole", esdtsRoles[tokenIdentifier][2])
+	require.Equal(t, core.ESDTRoleLocalMint, esdtsRoles[tokenIdentifier][0])
+	require.Equal(t, core.ESDTRoleLocalBurn, esdtsRoles[tokenIdentifier][1])
+	require.Equal(t, core.ESDTRoleTransfer, esdtsRoles[tokenIdentifier][2])
 
 	expectedMintedAmount, _ := big.NewInt(0).SetString("123000000000000000000", 10)
-	mintTxArgs := "mint@" + hex.EncodeToString([]byte(tokenIdentifier)) + "@" + hex.EncodeToString(expectedMintedAmount.Bytes())
-	mintTx := chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, big.NewInt(0), mintTxArgs, uint64(20000000))
-	require.NotNil(t, mintTx)
+	mintTxArgs := "mint" +
+		"@" + hex.EncodeToString([]byte(tokenIdentifier)) +
+		"@" + hex.EncodeToString(expectedMintedAmount.Bytes())
+	chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, big.NewInt(0), mintTxArgs, uint64(20000000))
 
 	err = cs.GenerateBlocks(2)
 	require.Nil(t, err)

@@ -70,15 +70,12 @@ func TestEsdt_Issue(t *testing.T) {
 		"@" + hex.EncodeToString([]byte("SovereignTkn")) +
 		"@" + hex.EncodeToString([]byte("SVN")) +
 		"@" + hex.EncodeToString(supply.Bytes()) +
-		"@" + fmt.Sprintf("%X", 18) +
+		"@" + fmt.Sprintf("%X", 18) + // num decimals
 		"@" + hex.EncodeToString([]byte("canAddSpecialRoles")) +
 		"@" + hex.EncodeToString([]byte("true"))
 	txResult := chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, systemEsdtAddress, issueCost, issueArgs, uint64(60000000))
 	tokenIdentifier := txResult.Logs.Events[0].Topics[0]
 	require.True(t, len(tokenIdentifier) > 7)
-
-	err = cs.GenerateBlocks(1)
-	require.Nil(t, err)
 
 	esdts, err := nodeHandler.GetFacadeHandler().GetAllIssuedESDTs(core.FungibleESDT)
 	require.Nil(t, err)
@@ -97,7 +94,7 @@ func TestEsdt_Issue(t *testing.T) {
 		"@" + hex.EncodeToString([]byte(core.ESDTRoleLocalMint)) +
 		"@" + hex.EncodeToString([]byte(core.ESDTRoleLocalBurn)) +
 		"@" + hex.EncodeToString([]byte(core.ESDTRoleTransfer))
-	txResult = chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, systemEsdtAddress, big.NewInt(0), setRolesArgs, uint64(60000000))
+	chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, systemEsdtAddress, big.NewInt(0), setRolesArgs, uint64(60000000))
 
 	esdtsRoles, _, err := nodeHandler.GetFacadeHandler().GetESDTsRoles(wallet.Bech32, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
