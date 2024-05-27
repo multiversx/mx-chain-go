@@ -2,6 +2,7 @@ package testscommon
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
 )
 
@@ -121,7 +122,7 @@ func (vsp *ValidatorStatisticsProcessorStub) SaveNodesCoordinatorUpdates(epoch u
 }
 
 // RevertPeerState -
-func (vsp *ValidatorStatisticsProcessorStub) RevertPeerState(header data.MetaHeaderHandler) error {
+func (vsp *ValidatorStatisticsProcessorStub) RevertPeerState(header process.ValidatorStatsHeader) error {
 	if vsp.RevertPeerStateCalled != nil {
 		return vsp.RevertPeerStateCalled(header)
 	}
