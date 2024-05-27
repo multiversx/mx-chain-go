@@ -177,6 +177,8 @@ func TestSovereignSubRoundEnd_DoEndJobByLeader(t *testing.T) {
 		leaderSig := []byte("leaderSig")
 		getCallCt := 0
 		wasResetTimerCalled := false
+		wg := sync.WaitGroup{}
+		wg.Add(2)
 		pool := &sovereign.OutGoingOperationsPoolMock{
 			GetCalled: func(hash []byte) *sovCore.BridgeOutGoingData {
 				require.Equal(t, outGoingDataHash, hash)
@@ -219,6 +221,10 @@ func TestSovereignSubRoundEnd_DoEndJobByLeader(t *testing.T) {
 				}, data)
 			},
 			ResetTimerCalled: func(hashes [][]byte) {
+				defer func() {
+					wg.Done()
+				}()
+
 				require.Equal(t, [][]byte{outGoingDataHash}, hashes)
 				wasResetTimerCalled = true
 			},
@@ -226,8 +232,6 @@ func TestSovereignSubRoundEnd_DoEndJobByLeader(t *testing.T) {
 
 		wasDataSent := false
 		currCtx := context.Background()
-		wg := sync.WaitGroup{}
-		wg.Add(1)
 		bridgeHandler := &sovereign.BridgeOperationsHandlerMock{
 			SendCalled: func(ctx context.Context, data *sovCore.BridgeOperations) (*sovCore.BridgeOperationsResponse, error) {
 				defer func() {
@@ -282,6 +286,8 @@ func TestSovereignSubRoundEnd_DoEndJobByLeader(t *testing.T) {
 		outGoingOpData := []byte("bridgeOp")
 		aggregatedSig := []byte("aggregatedSig")
 		leaderSig := []byte("leaderSig")
+		wg := sync.WaitGroup{}
+		wg.Add(2)
 		currentBridgeOutGoingData := &sovCore.BridgeOutGoingData{
 			Hash: outGoingDataHash,
 			OutGoingOperations: []*sovCore.OutGoingOperation{
@@ -313,6 +319,10 @@ func TestSovereignSubRoundEnd_DoEndJobByLeader(t *testing.T) {
 				return []*sovCore.BridgeOutGoingData{unconfirmedBridgeOutGoingData}
 			},
 			ResetTimerCalled: func(hashes [][]byte) {
+				defer func() {
+					wg.Done()
+				}()
+
 				require.Equal(t, [][]byte{unconfirmedBridgeOutGoingData.Hash, currentBridgeOutGoingData.Hash}, hashes)
 				wasResetTimerCalled = true
 			},
@@ -320,8 +330,6 @@ func TestSovereignSubRoundEnd_DoEndJobByLeader(t *testing.T) {
 
 		wasDataSent := false
 		currCtx := context.Background()
-		wg := sync.WaitGroup{}
-		wg.Add(1)
 		bridgeHandler := &sovereign.BridgeOperationsHandlerMock{
 			SendCalled: func(ctx context.Context, data *sovCore.BridgeOperations) (*sovCore.BridgeOperationsResponse, error) {
 				defer func() {
@@ -374,11 +382,17 @@ func TestSovereignSubRoundEnd_DoEndJobByLeader(t *testing.T) {
 		}
 
 		wasResetTimerCalled := false
+		wg := sync.WaitGroup{}
+		wg.Add(2)
 		pool := &sovereign.OutGoingOperationsPoolMock{
 			GetUnconfirmedOperationsCalled: func() []*sovCore.BridgeOutGoingData {
 				return []*sovCore.BridgeOutGoingData{unconfirmedBridgeOutGoingData}
 			},
 			ResetTimerCalled: func(hashes [][]byte) {
+				defer func() {
+					wg.Done()
+				}()
+
 				wasResetTimerCalled = true
 				require.Equal(t, [][]byte{unconfirmedBridgeOutGoingData.Hash}, hashes)
 			},
@@ -386,8 +400,6 @@ func TestSovereignSubRoundEnd_DoEndJobByLeader(t *testing.T) {
 
 		wasDataSent := false
 		currCtx := context.Background()
-		wg := sync.WaitGroup{}
-		wg.Add(1)
 		bridgeHandler := &sovereign.BridgeOperationsHandlerMock{
 			SendCalled: func(ctx context.Context, data *sovCore.BridgeOperations) (*sovCore.BridgeOperationsResponse, error) {
 				defer func() {
