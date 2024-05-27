@@ -43,6 +43,16 @@ func NewOutGoingOperationPool(expiryTime time.Duration) *outGoingOperationsPool 
 
 // Add adds the outgoing txs data at the specified hash in the internal cache
 func (op *outGoingOperationsPool) Add(data *sovereign.BridgeOutGoingData) {
+	if data == nil {
+		return
+	}
+
+	log.Debug("outGoingOperationsPool.Add",
+		"hash", data.Hash,
+		"aggregated sig", data.AggregatedSignature,
+		"leader sig", data.LeaderSignature,
+	)
+
 	hashStr := string(data.Hash)
 
 	op.mutex.Lock()
@@ -72,6 +82,8 @@ func (op *outGoingOperationsPool) Get(hash []byte) *sovereign.BridgeOutGoingData
 
 // Delete removes the outgoing tx data at the specified hash
 func (op *outGoingOperationsPool) Delete(hash []byte) {
+	log.Debug("outGoingOperationsPool.Delete", "hash", hash)
+
 	op.mutex.Lock()
 	defer op.mutex.Unlock()
 
