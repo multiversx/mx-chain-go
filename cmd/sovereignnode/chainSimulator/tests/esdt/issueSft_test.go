@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-go/config"
+	chainSimulatorUtils "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	sovereignChainSimulator "github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator"
@@ -67,7 +68,7 @@ func TestEsdt_IssueSft(t *testing.T) {
 	require.Nil(t, err)
 
 	data = "ESDTNFTCreate@" + hex.EncodeToString(tokenIdentifier) + "@04d2@4f4354534654202331@09c4@@746167733a746167312c746167323b77686174657665724b65793a776861746576657256616c7565@68747470733a2f2f6d656469612e72656d61726b61626c652e746f6f6c732f4465764e65742f52656d61726b61626c65546f6f6c732e706e67"
-	tx := utils.GenerateTransaction(wallet.Bytes, 1, wallet.Bytes, big.NewInt(0), data, uint64(60000000))
+	tx := chainSimulatorUtils.GenerateTransaction(wallet.Bytes, 1, wallet.Bytes, big.NewInt(0), data, uint64(60000000))
 	txRes, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, 10)
 	require.Nil(t, err)
 	require.NotNil(t, txRes)
