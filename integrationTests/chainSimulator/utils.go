@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 )
 
+// GenerateTransaction - creates a transaction
 func GenerateTransaction(sender []byte, nonce uint64, receiver []byte, value *big.Int, data string, gasLimit uint64) *transaction.Transaction {
 	minGasPrice := uint64(1000000000)
 	txVersion := uint32(1)

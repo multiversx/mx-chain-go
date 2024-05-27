@@ -71,7 +71,7 @@ type ArgsChainSimulator struct {
 	CreateIncomingHeaderSubscriber func(config *config.NotifierConfig, dataPool dataRetriever.PoolsHolder, mainChainNotarizationStartRound uint64, runTypeComponents factory.RunTypeComponentsHolder) (processing.IncomingHeaderSubscriber, error)
 	CreateRunTypeComponents        func(args runType.ArgsRunTypeComponents) (factory.RunTypeComponentsHolder, error)
 	NodeFactory                    node.NodeFactory
-	ChainProcessorFactory          ChainFactory
+	ChainProcessorFactory          ChainHandlerFactory
 }
 
 type simulator struct {
@@ -133,7 +133,7 @@ func setSimulatorRunTypeArguments(args *ArgsChainSimulator) {
 		args.NodeFactory = node.NewNodeFactory()
 	}
 	if args.ChainProcessorFactory == nil {
-		args.ChainProcessorFactory = NewChainFactory()
+		args.ChainProcessorFactory = NewChainHandlerFactory()
 	}
 }
 
