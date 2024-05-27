@@ -1,21 +1,17 @@
 package chainSimulator
 
 import (
-	"math/big"
 	"testing"
 	"time"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/config"
 	chainSimulatorCommon "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	chainSim "github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
-	"github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator/utils"
-
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -326,75 +322,5 @@ func TestSimulator_SendTransactions(t *testing.T) {
 
 	defer chainSimulator.Close()
 
-	oneEgld := big.NewInt(1000000000000000000)
-	initialMinting := big.NewInt(0).Mul(oneEgld, big.NewInt(100))
-	transferValue := big.NewInt(0).Mul(oneEgld, big.NewInt(5))
-
-	wallet0, err := chainSimulator.GenerateAndMintWalletAddress(core.SovereignChainShardId, initialMinting)
-	require.Nil(t, err)
-
-	wallet1, err := chainSimulator.GenerateAndMintWalletAddress(core.SovereignChainShardId, initialMinting)
-	require.Nil(t, err)
-
-	wallet2, err := chainSimulator.GenerateAndMintWalletAddress(core.SovereignChainShardId, initialMinting)
-	require.Nil(t, err)
-
-	wallet3, err := chainSimulator.GenerateAndMintWalletAddress(core.SovereignChainShardId, initialMinting)
-	require.Nil(t, err)
-
-	wallet4, err := chainSimulator.GenerateAndMintWalletAddress(core.SovereignChainShardId, initialMinting)
-	require.Nil(t, err)
-
-	addr := dtos.WalletAddress{
-		Bech32: wallet0.Bech32,
-	}
-	acc, err := chainSimulator.GetAccount(addr)
-	require.NotNil(t, acc)
-
-	gasLimit := uint64(50000)
-	tx0 := utils.GenerateTransaction(wallet0.Bytes, 0, wallet2.Bytes, transferValue, "", gasLimit)
-	tx1 := utils.GenerateTransaction(wallet1.Bytes, 0, wallet2.Bytes, transferValue, "", gasLimit)
-	tx2 := utils.GenerateTransaction(wallet3.Bytes, 0, wallet4.Bytes, transferValue, "", gasLimit)
-
-	maxNumOfBlockToGenerateWhenExecutingTx := 15
-
-	t.Run("nil or empty slice of transactions should error", func(t *testing.T) {
-		sentTxs, errSend := chainSimulator.SendTxsAndGenerateBlocksTilAreExecuted(nil, 1)
-		assert.Equal(t, chainSim.ErrEmptySliceOfTxs, errSend)
-		assert.Nil(t, sentTxs)
-
-		sentTxs, errSend = chainSimulator.SendTxsAndGenerateBlocksTilAreExecuted(make([]*transaction.Transaction, 0), 1)
-		assert.Equal(t, chainSim.ErrEmptySliceOfTxs, errSend)
-		assert.Nil(t, sentTxs)
-	})
-	t.Run("invalid max number of blocks to generate should error", func(t *testing.T) {
-		sentTxs, errSend := chainSimulator.SendTxsAndGenerateBlocksTilAreExecuted([]*transaction.Transaction{tx0, tx1}, 0)
-		assert.Equal(t, chainSim.ErrInvalidMaxNumOfBlocks, errSend)
-		assert.Nil(t, sentTxs)
-	})
-	t.Run("nil transaction in slice should error", func(t *testing.T) {
-		sentTxs, errSend := chainSimulator.SendTxsAndGenerateBlocksTilAreExecuted([]*transaction.Transaction{nil}, 1)
-		require.ErrorContains(t, errSend, chainSim.ErrNilTransaction.Error())
-		assert.Nil(t, sentTxs)
-	})
-	t.Run("2 transactions should be sent correctly", func(t *testing.T) {
-		sentTxs, errSend := chainSimulator.SendTxsAndGenerateBlocksTilAreExecuted([]*transaction.Transaction{tx0, tx1}, maxNumOfBlockToGenerateWhenExecutingTx)
-		assert.Equal(t, 2, len(sentTxs))
-		require.Nil(t, errSend)
-
-		account, errGet := chainSimulator.GetAccount(wallet2)
-		assert.Nil(t, errGet)
-		expectedBalance := big.NewInt(0).Add(initialMinting, transferValue)
-		expectedBalance.Add(expectedBalance, transferValue)
-		assert.Equal(t, expectedBalance.String(), account.Balance)
-	})
-	t.Run("1 transaction should be sent correctly", func(t *testing.T) {
-		_, errSend := chainSimulator.SendTxAndGenerateBlockTilTxIsExecuted(tx2, maxNumOfBlockToGenerateWhenExecutingTx)
-		require.Nil(t, errSend)
-
-		account, errGet := chainSimulator.GetAccount(wallet4)
-		assert.Nil(t, errGet)
-		expectedBalance := big.NewInt(0).Add(initialMinting, transferValue)
-		assert.Equal(t, expectedBalance.String(), account.Balance)
-	})
+	chainSimulatorCommon.CheckGenerateTransactions(t, chainSimulator)
 }
