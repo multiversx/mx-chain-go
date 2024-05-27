@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 )
 
+// ArgsSovereignChainSimulator holds the arguments for sovereign chain simulator
 type ArgsSovereignChainSimulator struct {
 	SovereignExtraConfig config.SovereignConfig
 	ChainSimulatorArgs   chainSimulator.ArgsChainSimulator
@@ -45,7 +46,7 @@ func NewSovereignChainSimulator(args ArgsSovereignChainSimulator) (chainSimulato
 		return createSovereignRunTypeComponents(argsRunType, args.SovereignExtraConfig)
 	}
 	args.ChainSimulatorArgs.NodeFactory = node.NewSovereignNodeFactory()
-	args.ChainSimulatorArgs.ChainProcessorFactory = NewSovereignProcessorFactory()
+	args.ChainSimulatorArgs.ChainProcessorFactory = NewSovereignChainHandlerFactory()
 
 	return chainSimulator.NewChainSimulator(args.ChainSimulatorArgs)
 }

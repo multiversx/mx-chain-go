@@ -3,20 +3,20 @@ package chainSimulator
 import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
-	sovSimulator "github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator/process"
+	sovProcess "github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator/process"
 )
 
 type sovereignProcessorFactory struct {
 }
 
-// NewSovereignProcessorFactory creates a new processor factory for normal chain simulator
-func NewSovereignProcessorFactory() chainSimulator.ChainProcessorFactory {
+// NewSovereignChainHandlerFactory creates a new chain handler factory for normal chain simulator
+func NewSovereignChainHandlerFactory() chainSimulator.ChainHandlerFactory {
 	return &sovereignProcessorFactory{}
 }
 
 // CreateChainHandler creates a new chain handler for normal chain simulator
 func (spf *sovereignProcessorFactory) CreateChainHandler(nodeHandler process.NodeHandler) (chainSimulator.ChainHandler, error) {
-	return sovSimulator.NewSovereignBlocksCreator(nodeHandler)
+	return process.NewBlocksCreator(nodeHandler, sovProcess.NewSovereignBlockProcessorFactory())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

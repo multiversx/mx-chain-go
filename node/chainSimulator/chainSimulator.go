@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
+	chainSimulatorErrors "github.com/multiversx/mx-chain-go/node/chainSimulator/errors"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 	processing "github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/rating"
@@ -71,7 +72,7 @@ type ArgsChainSimulator struct {
 	CreateIncomingHeaderSubscriber func(config *config.NotifierConfig, dataPool dataRetriever.PoolsHolder, mainChainNotarizationStartRound uint64, runTypeComponents factory.RunTypeComponentsHolder) (processing.IncomingHeaderSubscriber, error)
 	CreateRunTypeComponents        func(args runType.ArgsRunTypeComponents) (factory.RunTypeComponentsHolder, error)
 	NodeFactory                    node.NodeFactory
-	ChainProcessorFactory          ChainProcessorFactory
+	ChainProcessorFactory          ChainHandlerFactory
 }
 
 type simulator struct {
@@ -133,7 +134,7 @@ func setSimulatorRunTypeArguments(args *ArgsChainSimulator) {
 		args.NodeFactory = node.NewNodeFactory()
 	}
 	if args.ChainProcessorFactory == nil {
-		args.ChainProcessorFactory = NewProcessorFactory()
+		args.ChainProcessorFactory = NewChainHandlerFactory()
 	}
 }
 
@@ -569,16 +570,16 @@ func (s *simulator) SendTxAndGenerateBlockTilTxIsExecuted(txToSend *transaction.
 // SendTxsAndGenerateBlocksTilAreExecuted will send the provided transactions and generate block until all transactions are executed
 func (s *simulator) SendTxsAndGenerateBlocksTilAreExecuted(txsToSend []*transaction.Transaction, maxNumOfBlocksToGenerateWhenExecutingTx int) ([]*transaction.ApiTransactionResult, error) {
 	if len(txsToSend) == 0 {
-		return nil, ErrEmptySliceOfTxs
+		return nil, chainSimulatorErrors.ErrEmptySliceOfTxs
 	}
 	if maxNumOfBlocksToGenerateWhenExecutingTx == 0 {
-		return nil, ErrInvalidMaxNumOfBlocks
+		return nil, chainSimulatorErrors.ErrInvalidMaxNumOfBlocks
 	}
 
 	transactionStatus := make([]*transactionWithResult, 0, len(txsToSend))
 	for idx, tx := range txsToSend {
 		if tx == nil {
-			return nil, fmt.Errorf("%w on position %d", ErrNilTransaction, idx)
+			return nil, fmt.Errorf("%w on position %d", chainSimulatorErrors.ErrNilTransaction, idx)
 		}
 
 		txHashHex, err := s.sendTx(tx)

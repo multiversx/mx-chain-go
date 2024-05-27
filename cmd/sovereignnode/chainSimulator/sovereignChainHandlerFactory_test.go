@@ -12,25 +12,22 @@ import (
 func TestNewSovereignProcessorFactory(t *testing.T) {
 	t.Parallel()
 
-	fact := NewProcessorFactory()
-
+	fact := NewSovereignChainHandlerFactory()
 	require.False(t, fact.IsInterfaceNil())
-	require.IsType(t, new(processorFactory), fact)
+	require.IsType(t, new(sovereignProcessorFactory), fact)
 }
 
 func TestNewSovereignProcessorFactory_CreateChainHandler(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil node handler should error", func(t *testing.T) {
-		fact := NewProcessorFactory()
-
+		fact := NewSovereignChainHandlerFactory()
 		chainHandler, err := fact.CreateChainHandler(nil)
 		require.Nil(t, chainHandler)
 		require.ErrorIs(t, err, process.ErrNilNodeHandler)
 	})
 	t.Run("should work", func(t *testing.T) {
-		fact := NewProcessorFactory()
-
+		fact := NewSovereignChainHandlerFactory()
 		chainHandler, err := fact.CreateChainHandler(&chainSimulator.NodeHandlerMock{})
 		require.Nil(t, err)
 		require.NotNil(t, chainHandler)
