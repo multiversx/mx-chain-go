@@ -45,7 +45,7 @@ func NewSovereignChainSimulator(args ArgsSovereignChainSimulator) (chainSimulato
 		return createSovereignRunTypeComponents(argsRunType, args.SovereignExtraConfig)
 	}
 	args.ChainSimulatorArgs.NodeFactory = node.NewSovereignNodeFactory()
-	args.ChainSimulatorArgs.ChainProcessorFactory = NewSovereignChainFactory()
+	args.ChainSimulatorArgs.ChainProcessorFactory = NewSovereignChainHandlerFactory()
 
 	return chainSimulator.NewChainSimulator(args.ChainSimulatorArgs)
 }
