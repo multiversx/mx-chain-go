@@ -168,7 +168,7 @@ func (sr *sovereignSubRoundEnd) getAllOutGoingOperations(currentOperations *sove
 	unconfirmedOperations := sr.outGoingOperationsPool.GetUnconfirmedOperations()
 	if len(unconfirmedOperations) != 0 {
 		log.Debug("found unconfirmed operations", "num unconfirmed operations", len(unconfirmedOperations))
-		outGoingOperations = append(outGoingOperations, unconfirmedOperations...)
+		outGoingOperations = append(unconfirmedOperations, outGoingOperations...)
 	}
 
 	log.Debug("current outgoing operations", "hash", currentOperations.Hash)
@@ -184,7 +184,17 @@ func (sr *sovereignSubRoundEnd) sendOutGoingOperations(ctx context.Context, data
 		return
 	}
 
+	sr.resetOutGoingOpTimer(data)
 	log.Debug("sent outgoing operations", "hashes", resp.TxHashes)
+}
+
+func (sr *sovereignSubRoundEnd) resetOutGoingOpTimer(data []*sovereign.BridgeOutGoingData) {
+	hashes := make([][]byte, len(data))
+	for idx, dta := range data {
+		hashes[idx] = dta.Hash
+	}
+
+	sr.outGoingOperationsPool.ResetTimer(hashes)
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil
