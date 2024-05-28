@@ -265,18 +265,18 @@ func (context *TestContext) initFeeHandlers() {
 func (context *TestContext) initVMAndBlockchainHook() {
 	gasSchedule := mock.NewGasScheduleNotifierMock(context.GasSchedule)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:                           gasSchedule,
-		MapDNSAddresses:                       DNSAddresses,
-		MapDNSV2Addresses:                     []string{},
-		Marshalizer:                           marshalizer,
-		Accounts:                              context.Accounts,
-		ShardCoordinator:                      oneShardCoordinator,
-		EpochNotifier:                         context.EpochNotifier,
-		EnableEpochsHandler:                   context.EnableEpochsHandler,
-		MaxNumNodesInTransferRole:             100,
-		GuardedAccountHandler:                 &guardianMocks.GuardedAccountHandlerStub{},
-		MapWhiteListedCrossChainMintAddresses: CrossChainAddresses,
-		PubKeyConverter:                       pkConverter,
+		GasSchedule:                    gasSchedule,
+		MapDNSAddresses:                DNSAddresses,
+		DNSV2Addresses:                 []string{},
+		Marshalizer:                    marshalizer,
+		Accounts:                       context.Accounts,
+		ShardCoordinator:               oneShardCoordinator,
+		EpochNotifier:                  context.EpochNotifier,
+		EnableEpochsHandler:            context.EnableEpochsHandler,
+		MaxNumNodesInTransferRole:      100,
+		GuardedAccountHandler:          &guardianMocks.GuardedAccountHandlerStub{},
+		WhiteListedCrossChainAddresses: CrossChainAddresses,
+		PubKeyConverter:                pkConverter,
 	}
 	argsBuiltIn.AutomaticCrawlerAddresses = integrationTests.GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 

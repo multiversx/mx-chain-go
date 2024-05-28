@@ -557,16 +557,16 @@ func CreateVMAndBlockchainHookAndDataPool(
 		MapDNSAddresses: map[string]struct{}{
 			string(dnsAddr): {},
 		},
-		MapDNSV2Addresses:                     []string{DNSV2Address, dnsEncoded},
-		Marshalizer:                           integrationtests.TestMarshalizer,
-		Accounts:                              accnts,
-		ShardCoordinator:                      shardCoordinator,
-		EpochNotifier:                         epochNotifierInstance,
-		EnableEpochsHandler:                   enableEpochsHandler,
-		MaxNumNodesInTransferRole:             100,
-		GuardedAccountHandler:                 guardedAccountHandler,
-		MapWhiteListedCrossChainMintAddresses: CrossChainAddresses,
-		PubKeyConverter:                       TestAddressPubkeyConverter,
+		DNSV2Addresses:                 []string{DNSV2Address, dnsEncoded},
+		Marshalizer:                    integrationtests.TestMarshalizer,
+		Accounts:                       accnts,
+		ShardCoordinator:               shardCoordinator,
+		EpochNotifier:                  epochNotifierInstance,
+		EnableEpochsHandler:            enableEpochsHandler,
+		MaxNumNodesInTransferRole:      100,
+		GuardedAccountHandler:          guardedAccountHandler,
+		WhiteListedCrossChainAddresses: CrossChainAddresses,
+		PubKeyConverter:                TestAddressPubkeyConverter,
 	}
 	argsBuiltIn.AutomaticCrawlerAddresses = integrationTests.GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
@@ -649,15 +649,15 @@ func CreateVMAndBlockchainHookMeta(
 		MapDNSAddresses: map[string]struct{}{
 			string(dnsAddr): {},
 		},
-		MapDNSV2Addresses:                     []string{DNSV2Address},
-		Marshalizer:                           integrationtests.TestMarshalizer,
-		Accounts:                              validatorAccounts,
-		ShardCoordinator:                      shardCoordinator,
-		EpochNotifier:                         globalEpochNotifier,
-		EnableEpochsHandler:                   enableEpochsHandler,
-		MaxNumNodesInTransferRole:             100,
-		GuardedAccountHandler:                 guardedAccountHandler,
-		MapWhiteListedCrossChainMintAddresses: CrossChainAddresses,
+		DNSV2Addresses:                 []string{DNSV2Address},
+		Marshalizer:                    integrationtests.TestMarshalizer,
+		Accounts:                       validatorAccounts,
+		ShardCoordinator:               shardCoordinator,
+		EpochNotifier:                  globalEpochNotifier,
+		EnableEpochsHandler:            enableEpochsHandler,
+		MaxNumNodesInTransferRole:      100,
+		GuardedAccountHandler:          guardedAccountHandler,
+		WhiteListedCrossChainAddresses: CrossChainAddresses,
 	}
 	argsBuiltIn.AutomaticCrawlerAddresses = integrationTests.GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)

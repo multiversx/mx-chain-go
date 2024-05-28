@@ -137,18 +137,18 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 	defaults.FillGasMapInternal(gasMap, 1)
 	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:                           gasScheduleNotifier,
-		MapDNSAddresses:                       make(map[string]struct{}),
-		MapDNSV2Addresses:                     []string{},
-		Marshalizer:                           TestMarshalizer,
-		Accounts:                              tpn.AccntState,
-		ShardCoordinator:                      tpn.ShardCoordinator,
-		EpochNotifier:                         tpn.EpochNotifier,
-		EnableEpochsHandler:                   tpn.EnableEpochsHandler,
-		MaxNumNodesInTransferRole:             100,
-		GuardedAccountHandler:                 tpn.GuardedAccountHandler,
-		MapWhiteListedCrossChainMintAddresses: CrossChainAddresses,
-		PubKeyConverter:                       TestAddressPubkeyConverter,
+		GasSchedule:                    gasScheduleNotifier,
+		MapDNSAddresses:                make(map[string]struct{}),
+		DNSV2Addresses:                 []string{},
+		Marshalizer:                    TestMarshalizer,
+		Accounts:                       tpn.AccntState,
+		ShardCoordinator:               tpn.ShardCoordinator,
+		EpochNotifier:                  tpn.EpochNotifier,
+		EnableEpochsHandler:            tpn.EnableEpochsHandler,
+		MaxNumNodesInTransferRole:      100,
+		GuardedAccountHandler:          tpn.GuardedAccountHandler,
+		WhiteListedCrossChainAddresses: CrossChainAddresses,
+		PubKeyConverter:                TestAddressPubkeyConverter,
 	}
 	argsBuiltIn.AutomaticCrawlerAddresses = GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncs, err := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)

@@ -1163,20 +1163,20 @@ func (pcf *processComponentsFactory) createBuiltInFunctionContainer(
 	}
 
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:                           pcf.gasSchedule,
-		MapDNSAddresses:                       mapDNSAddresses,
-		MapDNSV2Addresses:                     pcf.config.BuiltInFunctions.DNSV2Addresses,
-		MapWhiteListedCrossChainMintAddresses: pcf.config.VirtualMachine.Execution.TransferAndExecuteByUserAddresses,
-		Marshalizer:                           pcf.coreData.InternalMarshalizer(),
-		Accounts:                              accounts,
-		ShardCoordinator:                      pcf.bootstrapComponents.ShardCoordinator(),
-		EpochNotifier:                         pcf.coreData.EpochNotifier(),
-		EnableEpochsHandler:                   pcf.coreData.EnableEpochsHandler(),
-		GuardedAccountHandler:                 pcf.bootstrapComponents.GuardedAccountHandler(),
-		AutomaticCrawlerAddresses:             convertedAddresses,
-		MaxNumNodesInTransferRole:             pcf.config.BuiltInFunctions.MaxNumAddressesInTransferRole,
-		SelfESDTPrefix:                        []byte(pcf.systemSCConfig.ESDTSystemSCConfig.ESDTPrefix),
-		PubKeyConverter:                       pcf.coreData.AddressPubKeyConverter(),
+		GasSchedule:                    pcf.gasSchedule,
+		MapDNSAddresses:                mapDNSAddresses,
+		DNSV2Addresses:                 pcf.config.BuiltInFunctions.DNSV2Addresses,
+		WhiteListedCrossChainAddresses: pcf.config.VirtualMachine.Execution.TransferAndExecuteByUserAddresses,
+		Marshalizer:                    pcf.coreData.InternalMarshalizer(),
+		Accounts:                       accounts,
+		ShardCoordinator:               pcf.bootstrapComponents.ShardCoordinator(),
+		EpochNotifier:                  pcf.coreData.EpochNotifier(),
+		EnableEpochsHandler:            pcf.coreData.EnableEpochsHandler(),
+		GuardedAccountHandler:          pcf.bootstrapComponents.GuardedAccountHandler(),
+		AutomaticCrawlerAddresses:      convertedAddresses,
+		MaxNumNodesInTransferRole:      pcf.config.BuiltInFunctions.MaxNumAddressesInTransferRole,
+		SelfESDTPrefix:                 []byte(pcf.systemSCConfig.ESDTSystemSCConfig.ESDTPrefix),
+		PubKeyConverter:                pcf.coreData.AddressPubKeyConverter(),
 	}
 
 	return builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)

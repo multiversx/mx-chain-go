@@ -28,7 +28,7 @@ func createMockArguments() ArgsCreateBuiltInFunctionContainer {
 	args := ArgsCreateBuiltInFunctionContainer{
 		GasSchedule:          gasScheduleNotifier,
 		MapDNSAddresses:      make(map[string]struct{}),
-		MapDNSV2Addresses:    []string{},
+		DNSV2Addresses:       []string{},
 		EnableUserNameChange: false,
 		Marshalizer:          &mock.MarshalizerMock{},
 		Accounts:             &stateMock.AccountsStub{},
@@ -38,10 +38,10 @@ func createMockArguments() ArgsCreateBuiltInFunctionContainer {
 		AutomaticCrawlerAddresses: [][]byte{
 			bytes.Repeat([]byte{1}, 32),
 		},
-		MaxNumNodesInTransferRole:             100,
-		GuardedAccountHandler:                 &guardianMocks.GuardedAccountHandlerStub{},
-		MapWhiteListedCrossChainMintAddresses: []string{"3132333435363738393031323334353637383930313233343536373839303234"},
-		PubKeyConverter:                       &testscommon.PubkeyConverterMock{},
+		MaxNumNodesInTransferRole:      100,
+		GuardedAccountHandler:          &guardianMocks.GuardedAccountHandlerStub{},
+		WhiteListedCrossChainAddresses: []string{"3132333435363738393031323334353637383930313233343536373839303234"},
+		PubKeyConverter:                &testscommon.PubkeyConverterMock{},
 	}
 
 	return args
