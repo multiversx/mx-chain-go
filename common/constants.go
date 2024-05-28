@@ -1011,6 +1011,7 @@ const (
 	StakingV4Step1Flag                                 core.EnableEpochFlag = "StakingV4Step1Flag"
 	StakingV4Step2Flag                                 core.EnableEpochFlag = "StakingV4Step2Flag"
 	StakingV4Step3Flag                                 core.EnableEpochFlag = "StakingV4Step3Flag"
+	CleanupAuctionOnLowWaitingListFlag                 core.EnableEpochFlag = "CleanupAuctionOnLowWaitingListFlag"
 	StakingV4StartedFlag                               core.EnableEpochFlag = "StakingV4StartedFlag"
 	AlwaysMergeContextsInEEIFlag                       core.EnableEpochFlag = "AlwaysMergeContextsInEEIFlag"
 	DynamicESDTFlag                                    core.EnableEpochFlag = "DynamicEsdtFlag"
