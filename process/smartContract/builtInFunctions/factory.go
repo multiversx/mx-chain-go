@@ -97,19 +97,19 @@ func CreateBuiltInFunctionsFactory(args ArgsCreateBuiltInFunctionContainer) (vmc
 	}
 
 	modifiedArgs := vmcommonBuiltInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasMap:                                args.GasSchedule.LatestGasSchedule(),
-		MapDNSAddresses:                       args.MapDNSAddresses,
-		MapDNSV2Addresses:                     mapDNSV2Addresses,
-		MapWhiteListedCrossChainMintAddresses: mapWhiteListedCrossChainAddresses,
-		EnableUserNameChange:                  args.EnableUserNameChange,
-		Marshalizer:                           args.Marshalizer,
-		Accounts:                              vmcommonAccounts,
-		ShardCoordinator:                      args.ShardCoordinator,
-		EnableEpochsHandler:                   args.EnableEpochsHandler,
-		GuardedAccountHandler:                 args.GuardedAccountHandler,
-		MaxNumOfAddressesForTransferRole:      args.MaxNumNodesInTransferRole,
-		ConfigAddress:                         crawlerAllowedAddress,
-		SelfESDTPrefix:                        args.SelfESDTPrefix,
+		GasMap:                            args.GasSchedule.LatestGasSchedule(),
+		MapDNSAddresses:                   args.MapDNSAddresses,
+		MapDNSV2Addresses:                 mapDNSV2Addresses,
+		MapWhiteListedCrossChainAddresses: mapWhiteListedCrossChainAddresses,
+		EnableUserNameChange:              args.EnableUserNameChange,
+		Marshalizer:                       args.Marshalizer,
+		Accounts:                          vmcommonAccounts,
+		ShardCoordinator:                  args.ShardCoordinator,
+		EnableEpochsHandler:               args.EnableEpochsHandler,
+		GuardedAccountHandler:             args.GuardedAccountHandler,
+		MaxNumOfAddressesForTransferRole:  args.MaxNumNodesInTransferRole,
+		ConfigAddress:                     crawlerAllowedAddress,
+		SelfESDTPrefix:                    args.SelfESDTPrefix,
 	}
 
 	bContainerFactory, err := vmcommonBuiltInFunctions.NewBuiltInFunctionsCreator(modifiedArgs)
