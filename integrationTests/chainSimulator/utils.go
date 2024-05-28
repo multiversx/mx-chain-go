@@ -93,8 +93,23 @@ func SendTransaction(
 	data string,
 	gasLimit uint64,
 ) *transaction.ApiTransactionResult {
+	return SendTransactionAndWaitForMaxNrOfBlocks(t, cs, sender, nonce, receiver, value, data, gasLimit, maxNumOfBlocksToGenerateWhenExecutingTx)
+}
+
+// SendTransactionAndWaitForMaxNrOfBlocks -
+func SendTransactionAndWaitForMaxNrOfBlocks(
+	t *testing.T,
+	cs ChainSimulator,
+	sender []byte,
+	nonce *uint64,
+	receiver []byte,
+	value *big.Int,
+	data string,
+	gasLimit uint64,
+	nrOfBlocksToGenerate int,
+) *transaction.ApiTransactionResult {
 	tx := GenerateTransaction(sender, *nonce, receiver, value, data, gasLimit)
-	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlocksToGenerateWhenExecutingTx)
+	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, nrOfBlocksToGenerate)
 	*nonce++
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
