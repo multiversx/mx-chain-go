@@ -111,21 +111,22 @@ func (tu *txUnmarshaller) prepareNormalTx(tx *transaction.Transaction) *transact
 	senderAddress := tu.addressPubKeyConverter.SilentEncode(tx.SndAddr, log)
 
 	apiTx := &transaction.ApiTransactionResult{
-		Tx:               tx,
-		Type:             string(transaction.TxTypeNormal),
-		Nonce:            tx.Nonce,
-		Value:            tx.Value.String(),
-		Receiver:         receiverAddress,
-		ReceiverUsername: tx.RcvUserName,
-		Sender:           senderAddress,
-		SenderUsername:   tx.SndUserName,
-		GasPrice:         tx.GasPrice,
-		GasLimit:         tx.GasLimit,
-		Data:             tx.Data,
-		Signature:        hex.EncodeToString(tx.Signature),
-		Options:          tx.Options,
-		Version:          tx.Version,
-		ChainID:          string(tx.ChainID),
+		Tx:                tx,
+		Type:              string(transaction.TxTypeNormal),
+		Nonce:             tx.Nonce,
+		Value:             tx.Value.String(),
+		Receiver:          receiverAddress,
+		ReceiverUsername:  tx.RcvUserName,
+		Sender:            senderAddress,
+		SenderUsername:    tx.SndUserName,
+		GasPrice:          tx.GasPrice,
+		GasLimit:          tx.GasLimit,
+		Data:              tx.Data,
+		Signature:         hex.EncodeToString(tx.Signature),
+		Options:           tx.Options,
+		Version:           tx.Version,
+		ChainID:           string(tx.ChainID),
+		InnerTransactions: tu.prepareInnerTxs(tx),
 	}
 
 	if len(tx.GuardianAddr) > 0 {
@@ -140,26 +141,65 @@ func (tu *txUnmarshaller) prepareNormalTx(tx *transaction.Transaction) *transact
 	return apiTx
 }
 
+func (tu *txUnmarshaller) prepareInnerTxs(tx *transaction.Transaction) []*transaction.FrontendTransaction {
+	if len(tx.InnerTransactions) == 0 {
+		return nil
+	}
+
+	innerTxs := make([]*transaction.FrontendTransaction, 0, len(tx.InnerTransactions))
+	for _, innerTx := range tx.InnerTransactions {
+		frontEndTx := &transaction.FrontendTransaction{
+			Nonce:            innerTx.Nonce,
+			Value:            innerTx.Value.String(),
+			Receiver:         tu.addressPubKeyConverter.SilentEncode(innerTx.RcvAddr, log),
+			Sender:           tu.addressPubKeyConverter.SilentEncode(innerTx.SndAddr, log),
+			SenderUsername:   innerTx.SndUserName,
+			ReceiverUsername: innerTx.RcvUserName,
+			GasPrice:         innerTx.GasPrice,
+			GasLimit:         innerTx.GasLimit,
+			Data:             innerTx.Data,
+			Signature:        hex.EncodeToString(innerTx.Signature),
+			ChainID:          string(innerTx.ChainID),
+			Version:          innerTx.Version,
+			Options:          innerTx.Options,
+		}
+
+		if len(tx.GuardianAddr) > 0 {
+			frontEndTx.GuardianAddr = tu.addressPubKeyConverter.SilentEncode(innerTx.GuardianAddr, log)
+			frontEndTx.GuardianSignature = hex.EncodeToString(innerTx.GuardianSignature)
+		}
+
+		if len(tx.RelayerAddr) > 0 {
+			frontEndTx.Relayer = tu.addressPubKeyConverter.SilentEncode(innerTx.RelayerAddr, log)
+		}
+
+		innerTxs = append(innerTxs, frontEndTx)
+	}
+
+	return innerTxs
+}
+
 func (tu *txUnmarshaller) prepareInvalidTx(tx *transaction.Transaction) *transaction.ApiTransactionResult {
 	receiverAddress := tu.addressPubKeyConverter.SilentEncode(tx.RcvAddr, log)
 	senderAddress := tu.addressPubKeyConverter.SilentEncode(tx.SndAddr, log)
 
 	apiTx := &transaction.ApiTransactionResult{
-		Tx:               tx,
-		Type:             string(transaction.TxTypeInvalid),
-		Nonce:            tx.Nonce,
-		Value:            tx.Value.String(),
-		Receiver:         receiverAddress,
-		ReceiverUsername: tx.RcvUserName,
-		Sender:           senderAddress,
-		SenderUsername:   tx.SndUserName,
-		GasPrice:         tx.GasPrice,
-		GasLimit:         tx.GasLimit,
-		Data:             tx.Data,
-		Signature:        hex.EncodeToString(tx.Signature),
-		Options:          tx.Options,
-		Version:          tx.Version,
-		ChainID:          string(tx.ChainID),
+		Tx:                tx,
+		Type:              string(transaction.TxTypeInvalid),
+		Nonce:             tx.Nonce,
+		Value:             tx.Value.String(),
+		Receiver:          receiverAddress,
+		ReceiverUsername:  tx.RcvUserName,
+		Sender:            senderAddress,
+		SenderUsername:    tx.SndUserName,
+		GasPrice:          tx.GasPrice,
+		GasLimit:          tx.GasLimit,
+		Data:              tx.Data,
+		Signature:         hex.EncodeToString(tx.Signature),
+		Options:           tx.Options,
+		Version:           tx.Version,
+		ChainID:           string(tx.ChainID),
+		InnerTransactions: tu.prepareInnerTxs(tx),
 	}
 
 	if len(tx.GuardianAddr) > 0 {

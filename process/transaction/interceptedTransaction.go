@@ -265,6 +265,11 @@ func (inTx *InterceptedTransaction) verifyIfRelayedTxV3(tx *transaction.Transact
 		return err
 	}
 
+	funcName, _, err := inTx.argsParser.ParseCallData(string(tx.Data))
+	if err == nil && isRelayedTx(funcName) {
+		return process.ErrMultipleRelayedTxTypesIsNotAllowed
+	}
+
 	return inTx.verifyInnerTransactions(tx)
 }
 
@@ -293,6 +298,10 @@ func (inTx *InterceptedTransaction) verifyIfRelayedTxV2(tx *transaction.Transact
 		return nil
 	}
 
+	if len(tx.InnerTransactions) > 0 {
+		return process.ErrMultipleRelayedTxTypesIsNotAllowed
+	}
+
 	userTx, err := createRelayedV2(tx, userTxArgs)
 	if err != nil {
 		return err
@@ -312,6 +321,10 @@ func (inTx *InterceptedTransaction) verifyIfRelayedTx(tx *transaction.Transactio
 
 	if len(userTxArgs) != 1 {
 		return process.ErrInvalidArguments
+	}
+
+	if len(tx.InnerTransactions) > 0 {
+		return process.ErrMultipleRelayedTxTypesIsNotAllowed
 	}
 
 	userTx, err := createTx(inTx.signMarshalizer, userTxArgs[0])
