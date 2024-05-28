@@ -658,6 +658,7 @@ func CreateVMAndBlockchainHookMeta(
 		MaxNumNodesInTransferRole:      100,
 		GuardedAccountHandler:          guardedAccountHandler,
 		WhiteListedCrossChainAddresses: CrossChainAddresses,
+		PubKeyConverter:                TestAddressPubkeyConverter,
 	}
 	argsBuiltIn.AutomaticCrawlerAddresses = integrationTests.GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)

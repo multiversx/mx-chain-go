@@ -13,7 +13,6 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
-	vmConst "github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/process"
 	metaProcess "github.com/multiversx/mx-chain-go/process/factory/metachain"
 	"github.com/multiversx/mx-chain-go/process/peer"
@@ -153,7 +152,7 @@ func createBlockChainHook(
 		MaxNumNodesInTransferRole:      1,
 		GuardedAccountHandler:          &guardianMocks.GuardedAccountHandlerStub{},
 		DNSV2Addresses:                 []string{},
-		WhiteListedCrossChainAddresses: vmConst.CrossChainAddresses,
+		WhiteListedCrossChainAddresses: []string{"c0ff33"},
 		PubKeyConverter:                coreComponents.AddressPubKeyConverter(),
 	}
 

@@ -264,10 +264,17 @@ func (context *TestContext) initFeeHandlers() {
 
 func (context *TestContext) initVMAndBlockchainHook() {
 	gasSchedule := mock.NewGasScheduleNotifierMock(context.GasSchedule)
+
+	dnsV2Addresses := make([]string, 0)
+	for dnsAddr := range DNSAddresses {
+		dnsAddrEncoded, _ := pkConverter.Encode([]byte(dnsAddr))
+		dnsV2Addresses = append(dnsV2Addresses, dnsAddrEncoded)
+	}
+
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule:                    gasSchedule,
 		MapDNSAddresses:                DNSAddresses,
-		DNSV2Addresses:                 []string{},
+		DNSV2Addresses:                 dnsV2Addresses,
 		Marshalizer:                    marshalizer,
 		Accounts:                       context.Accounts,
 		ShardCoordinator:               oneShardCoordinator,
