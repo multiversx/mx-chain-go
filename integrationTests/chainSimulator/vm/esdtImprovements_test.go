@@ -3,6 +3,7 @@ package vm
 import (
 	"bytes"
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	"testing"
 	"time"
@@ -63,7 +64,9 @@ func TestChainSimulator_CheckNFTandSFTMetadata(t *testing.T) {
 		Value:    20,
 	}
 
-	activationEpoch := uint32(2)
+	activationEpoch := uint32(4)
+
+	baseIssuingCost := "1000"
 
 	numOfShards := uint32(3)
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
@@ -83,6 +86,7 @@ func TestChainSimulator_CheckNFTandSFTMetadata(t *testing.T) {
 		NumNodesWaitingListShard:    0,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpoch
+			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
 		},
 	})
 	require.Nil(t, err)
@@ -101,8 +105,29 @@ func TestChainSimulator_CheckNFTandSFTMetadata(t *testing.T) {
 
 	log.Info("Initial setup: Create an NFT and an SFT (before the activation of DynamicEsdtFlag)")
 
-	tokenID := []byte("ASD-d31313")
-	tokenType := core.DynamicNFTESDT
+	arguments := [][]byte{
+		[]byte("asdname"),
+		[]byte("ASD"),
+		// big.NewInt(0).Bytes(),
+		// big.NewInt(10).Bytes(),
+	}
+
+	callValue, _ := big.NewInt(0).SetString(baseIssuingCost, 10)
+
+	output, _, err := cs.GetNodeHandler(core.MetachainShardId).GetFacadeHandler().ExecuteSCQuery(&process.SCQuery{
+		ScAddress: vm.ESDTSCAddress,
+		FuncName:  "issueNonFungible",
+		Arguments: arguments,
+		CallValue: callValue,
+	})
+	require.Nil(t, err)
+	require.Equal(t, "", output.ReturnMessage)
+	require.Equal(t, "ok", output.ReturnCode)
+
+	require.NotNil(t, output.ReturnData[0])
+	tokenID := output.ReturnData[0]
+
+	fmt.Println(string(tokenID))
 
 	roles := [][]byte{
 		[]byte(core.ESDTMetaDataRecreate),
@@ -113,6 +138,8 @@ func TestChainSimulator_CheckNFTandSFTMetadata(t *testing.T) {
 		[]byte(core.ESDTRoleNFTAddURI),
 	}
 	setAddressEsdtRoles(t, cs, address, tokenID, roles)
+
+	tokenType := core.DynamicNFTESDT
 
 	txDataField := bytes.Join(
 		[][]byte{
@@ -241,7 +268,7 @@ func TestChainSimulator_CheckNFTandSFTMetadata(t *testing.T) {
 
 	log.Info("Step 5. make an updateTokenID@tokenID function call on the ESDTSystem SC for all token types")
 
-	output, err := executeQuery(cs, core.MetachainShardId, vm.ESDTSCAddress, "updateTokenID", [][]byte{tokenID})
+	output, err = executeQuery(cs, core.MetachainShardId, vm.ESDTSCAddress, "updateTokenID", [][]byte{[]byte(hex.EncodeToString(tokenID))})
 	require.Nil(t, err)
 	require.Equal(t, "", output.ReturnMessage)
 	require.Equal(t, vmcommon.Ok, output.ReturnCode)
