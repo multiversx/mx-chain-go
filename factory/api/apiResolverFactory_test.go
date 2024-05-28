@@ -293,6 +293,7 @@ func createMockSCQueryElementArgs() api.SCQueryElementArgs {
 			BuiltInFunctions: config.BuiltInFunctionsConfig{
 				MaxNumAddressesInTransferRole: 1,
 				AutomaticCrawlerAddresses:     []string{"addr1"},
+				DNSV2Addresses:                []string{"erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe3"},
 			},
 			SmartContractDataPool: config.CacheConfig{
 				Type:     "LRU",

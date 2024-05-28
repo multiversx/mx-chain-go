@@ -1162,37 +1162,11 @@ func (pcf *processComponentsFactory) createBuiltInFunctionContainer(
 		return nil, err
 	}
 
-	convertedDNSV2Addresses, err := mainFactory.DecodeAddresses(
-		pcf.coreData.AddressPubKeyConverter(),
-		pcf.config.BuiltInFunctions.DNSV2Addresses,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	mapDNSV2Addresses := make(map[string]struct{})
-	for _, address := range convertedDNSV2Addresses {
-		mapDNSV2Addresses[string(address)] = struct{}{}
-	}
-
-	convertedCrossChainAddresses, err := mainFactory.DecodeAddresses(
-		pcf.coreData.AddressPubKeyConverter(),
-		pcf.config.VirtualMachine.Execution.TransferAndExecuteByUserAddresses,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	mapCrossChainAddresses := make(map[string]struct{})
-	for _, address := range convertedCrossChainAddresses {
-		mapCrossChainAddresses[string(address)] = struct{}{}
-	}
-
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule:                           pcf.gasSchedule,
 		MapDNSAddresses:                       mapDNSAddresses,
-		MapDNSV2Addresses:                     mapDNSV2Addresses,
-		MapWhiteListedCrossChainMintAddresses: mapCrossChainAddresses,
+		MapDNSV2Addresses:                     pcf.config.BuiltInFunctions.DNSV2Addresses,
+		MapWhiteListedCrossChainMintAddresses: pcf.config.VirtualMachine.Execution.TransferAndExecuteByUserAddresses,
 		Marshalizer:                           pcf.coreData.InternalMarshalizer(),
 		Accounts:                              accounts,
 		ShardCoordinator:                      pcf.bootstrapComponents.ShardCoordinator(),
@@ -1202,6 +1176,7 @@ func (pcf *processComponentsFactory) createBuiltInFunctionContainer(
 		AutomaticCrawlerAddresses:             convertedAddresses,
 		MaxNumNodesInTransferRole:             pcf.config.BuiltInFunctions.MaxNumAddressesInTransferRole,
 		SelfESDTPrefix:                        []byte(pcf.systemSCConfig.ESDTSystemSCConfig.ESDTPrefix),
+		PubKeyConverter:                       pcf.coreData.AddressPubKeyConverter(),
 	}
 
 	return builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)

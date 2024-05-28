@@ -218,9 +218,7 @@ var testProtocolSustainabilityAddress = "erd1932eft30w753xyvme8d49qejgkjc09n5e49
 var DelegationManagerConfigChangeAddress = "erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80"
 
 // CrossChainAddresses -
-var CrossChainAddresses = map[string]struct{}{
-	"whiteListedAddress": {},
-}
+var CrossChainAddresses = []string{"erd1vxy22x0fj4zv6hktmydg8vpfh6euv02cz4yg0aaws6rrad5a5awqgqky80"}
 
 // sizeCheckDelta the maximum allowed bufer overhead (p2p unmarshalling)
 const sizeCheckDelta = 100
@@ -873,7 +871,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule:                           gasSchedule,
 		MapDNSAddresses:                       make(map[string]struct{}),
-		MapDNSV2Addresses:                     make(map[string]struct{}),
+		MapDNSV2Addresses:                     []string{},
 		Marshalizer:                           TestMarshalizer,
 		Accounts:                              tpn.AccntState,
 		ShardCoordinator:                      tpn.ShardCoordinator,
@@ -882,6 +880,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 		MaxNumNodesInTransferRole:             100,
 		GuardedAccountHandler:                 tpn.GuardedAccountHandler,
 		MapWhiteListedCrossChainMintAddresses: CrossChainAddresses,
+		PubKeyConverter:                       TestAddressPubkeyConverter,
 	}
 	argsBuiltIn.AutomaticCrawlerAddresses = GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
@@ -1599,16 +1598,21 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		tpn.ShardCoordinator,
 	)
 
+	sliceDNSAddresses := make([]string, 0)
 	mapDNSAddresses := make(map[string]struct{})
 	if !check.IfNil(tpn.SmartContractParser) {
 		mapDNSAddresses, _ = tpn.SmartContractParser.GetDeployedSCAddresses(genesis.DNSType)
+
+		for dnsAddr := range mapDNSAddresses {
+			sliceDNSAddresses = append(sliceDNSAddresses, TestAddressPubkeyConverter.SilentEncode([]byte(dnsAddr), log))
+		}
 	}
 
 	gasSchedule := mock.NewGasScheduleNotifierMock(gasMap)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule:                           gasSchedule,
 		MapDNSAddresses:                       mapDNSAddresses,
-		MapDNSV2Addresses:                     mapDNSAddresses,
+		MapDNSV2Addresses:                     sliceDNSAddresses,
 		Marshalizer:                           TestMarshalizer,
 		Accounts:                              tpn.AccntState,
 		ShardCoordinator:                      tpn.ShardCoordinator,
@@ -1617,6 +1621,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		MaxNumNodesInTransferRole:             100,
 		GuardedAccountHandler:                 tpn.GuardedAccountHandler,
 		MapWhiteListedCrossChainMintAddresses: CrossChainAddresses,
+		PubKeyConverter:                       TestAddressPubkeyConverter,
 	}
 	argsBuiltIn.AutomaticCrawlerAddresses = GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
@@ -1846,7 +1851,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule:                           gasSchedule,
 		MapDNSAddresses:                       make(map[string]struct{}),
-		MapDNSV2Addresses:                     make(map[string]struct{}),
+		MapDNSV2Addresses:                     []string{},
 		Marshalizer:                           TestMarshalizer,
 		Accounts:                              tpn.AccntState,
 		ShardCoordinator:                      tpn.ShardCoordinator,
@@ -1855,6 +1860,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		MaxNumNodesInTransferRole:             100,
 		GuardedAccountHandler:                 tpn.GuardedAccountHandler,
 		MapWhiteListedCrossChainMintAddresses: CrossChainAddresses,
+		PubKeyConverter:                       TestAddressPubkeyConverter,
 	}
 	argsBuiltIn.AutomaticCrawlerAddresses = GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)

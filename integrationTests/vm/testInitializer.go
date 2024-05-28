@@ -89,9 +89,7 @@ const DNSV2Address = "erd1qqqqqqqqqqqqqpgqcy67yanvwpepqmerkq6m8pgav0tlvgwxjmdq4h
 const DNSV2DeployerAddress = "erd1uzk2g5rhvg8prk9y50d0q7qsxg7tm7f320q0q4qlpmfu395wjmdqqy0n9q"
 
 // CrossChainAddresses -
-var CrossChainAddresses = map[string]struct{}{
-	"whiteListedAddress": {},
-}
+var CrossChainAddresses = []string{"erd1qqqqqqqqqqqqqpgqcy67yanvwpepqmerkq6m8pgav0tlvgwxjmdq4hukxw"}
 
 // TestAddressPubkeyConverter represents an address public key converter
 var TestAddressPubkeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
@@ -553,17 +551,13 @@ func CreateVMAndBlockchainHookAndDataPool(
 		gasSchedule = mock.NewGasScheduleNotifierMock(testGasSchedule)
 	}
 
-	dnsV2Decoded, _ := TestAddressPubkeyConverter.Decode(DNSV2Address)
-
+	dnsEncoded := TestAddressPubkeyConverter.SilentEncode(dnsAddr, log)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule: gasSchedule,
 		MapDNSAddresses: map[string]struct{}{
 			string(dnsAddr): {},
 		},
-		MapDNSV2Addresses: map[string]struct{}{
-			string(dnsV2Decoded): {},
-			string(dnsAddr):      {},
-		},
+		MapDNSV2Addresses:                     []string{DNSV2Address, dnsEncoded},
 		Marshalizer:                           integrationtests.TestMarshalizer,
 		Accounts:                              accnts,
 		ShardCoordinator:                      shardCoordinator,
@@ -572,6 +566,7 @@ func CreateVMAndBlockchainHookAndDataPool(
 		MaxNumNodesInTransferRole:             100,
 		GuardedAccountHandler:                 guardedAccountHandler,
 		MapWhiteListedCrossChainMintAddresses: CrossChainAddresses,
+		PubKeyConverter:                       TestAddressPubkeyConverter,
 	}
 	argsBuiltIn.AutomaticCrawlerAddresses = integrationTests.GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
@@ -648,17 +643,13 @@ func CreateVMAndBlockchainHookMeta(
 	}
 
 	guardedAccountHandler, _ := guardian.NewGuardedAccount(integrationtests.TestMarshalizer, globalEpochNotifier, EpochGuardianDelay)
-
-	dnsV2Decoded, _ := TestAddressPubkeyConverter.Decode(DNSV2Address)
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, globalEpochNotifier)
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule: gasSchedule,
 		MapDNSAddresses: map[string]struct{}{
 			string(dnsAddr): {},
 		},
-		MapDNSV2Addresses: map[string]struct{}{
-			string(dnsV2Decoded): {},
-		},
+		MapDNSV2Addresses:                     []string{DNSV2Address},
 		Marshalizer:                           integrationtests.TestMarshalizer,
 		Accounts:                              validatorAccounts,
 		ShardCoordinator:                      shardCoordinator,

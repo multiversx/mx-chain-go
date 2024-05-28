@@ -152,8 +152,9 @@ func createBlockChainHook(
 		AutomaticCrawlerAddresses:             [][]byte{core.SystemAccountAddress},
 		MaxNumNodesInTransferRole:             1,
 		GuardedAccountHandler:                 &guardianMocks.GuardedAccountHandlerStub{},
-		MapDNSV2Addresses:                     make(map[string]struct{}),
+		MapDNSV2Addresses:                     []string{},
 		MapWhiteListedCrossChainMintAddresses: vmConst.CrossChainAddresses,
+		PubKeyConverter:                       coreComponents.AddressPubKeyConverter(),
 	}
 
 	builtInFunctionsContainer, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)

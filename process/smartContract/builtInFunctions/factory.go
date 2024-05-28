@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
@@ -20,8 +21,8 @@ var log = logger.GetOrCreate("process/smartcontract/builtInFunctions")
 type ArgsCreateBuiltInFunctionContainer struct {
 	GasSchedule                           core.GasScheduleNotifier
 	MapDNSAddresses                       map[string]struct{}
-	MapDNSV2Addresses                     map[string]struct{}
-	MapWhiteListedCrossChainMintAddresses map[string]struct{}
+	MapDNSV2Addresses                     []string
+	MapWhiteListedCrossChainMintAddresses []string
 	EnableUserNameChange                  bool
 	Marshalizer                           marshal.Marshalizer
 	Accounts                              state.AccountsAdapter
@@ -29,6 +30,7 @@ type ArgsCreateBuiltInFunctionContainer struct {
 	EpochNotifier                         vmcommon.EpochNotifier
 	EnableEpochsHandler                   vmcommon.EnableEpochsHandler
 	GuardedAccountHandler                 vmcommon.GuardedAccountHandler
+	PubKeyConverter                       core.PubkeyConverter
 	AutomaticCrawlerAddresses             [][]byte
 	MaxNumNodesInTransferRole             uint32
 	SelfESDTPrefix                        []byte
@@ -60,6 +62,9 @@ func CreateBuiltInFunctionsFactory(args ArgsCreateBuiltInFunctionContainer) (vmc
 	if check.IfNil(args.GuardedAccountHandler) {
 		return nil, process.ErrNilGuardedAccountHandler
 	}
+	if check.IfNil(args.PubKeyConverter) {
+		return nil, core.ErrNilPubkeyConverter
+	}
 
 	vmcommonAccounts, ok := args.Accounts.(vmcommon.AccountsAdapter)
 	if !ok {
@@ -78,11 +83,33 @@ func CreateBuiltInFunctionsFactory(args ArgsCreateBuiltInFunctionContainer) (vmc
 		"crawlerAllowedAddress", crawlerAllowedAddress,
 	)
 
+	dnsV2AddressesStrings := args.MapDNSV2Addresses
+	convertedDNSV2Addresses, errDecode := factory.DecodeAddresses(args.PubKeyConverter, dnsV2AddressesStrings)
+	if errDecode != nil {
+		return nil, errDecode
+	}
+
+	crossChainWhiteListedAddressesStrings := args.MapWhiteListedCrossChainMintAddresses
+	convertedCrossChainWhiteListedAddresses, errDecode := factory.DecodeAddresses(args.PubKeyConverter, crossChainWhiteListedAddressesStrings)
+	if errDecode != nil {
+		return nil, errDecode
+	}
+
+	mapDNSV2Addresses := make(map[string]struct{})
+	for _, address := range convertedDNSV2Addresses {
+		mapDNSV2Addresses[string(address)] = struct{}{}
+	}
+
+	mapWhiteListedCrossChain := make(map[string]struct{})
+	for _, address := range convertedCrossChainWhiteListedAddresses {
+		mapWhiteListedCrossChain[string(address)] = struct{}{}
+	}
+
 	modifiedArgs := vmcommonBuiltInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasMap:                                args.GasSchedule.LatestGasSchedule(),
 		MapDNSAddresses:                       args.MapDNSAddresses,
-		MapDNSV2Addresses:                     args.MapDNSV2Addresses,
-		MapWhiteListedCrossChainMintAddresses: args.MapWhiteListedCrossChainMintAddresses,
+		MapDNSV2Addresses:                     mapDNSV2Addresses,
+		MapWhiteListedCrossChainMintAddresses: mapWhiteListedCrossChain,
 		EnableUserNameChange:                  args.EnableUserNameChange,
 		Marshalizer:                           args.Marshalizer,
 		Accounts:                              vmcommonAccounts,

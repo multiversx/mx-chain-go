@@ -77,9 +77,7 @@ var pkConverter, _ = pubkeyConverter.NewHexPubkeyConverter(32)
 var DNSAddresses = make(map[string]struct{})
 
 // CrossChainAddresses -
-var CrossChainAddresses = map[string]struct{}{
-	"whiteListedAddress": {},
-}
+var CrossChainAddresses = []string{"3132333435363738393031323334353637383930313233343536373839303234"}
 
 // TestContext -
 type TestContext struct {
@@ -269,7 +267,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule:                           gasSchedule,
 		MapDNSAddresses:                       DNSAddresses,
-		MapDNSV2Addresses:                     DNSAddresses,
+		MapDNSV2Addresses:                     []string{},
 		Marshalizer:                           marshalizer,
 		Accounts:                              context.Accounts,
 		ShardCoordinator:                      oneShardCoordinator,
@@ -278,6 +276,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		MaxNumNodesInTransferRole:             100,
 		GuardedAccountHandler:                 &guardianMocks.GuardedAccountHandlerStub{},
 		MapWhiteListedCrossChainMintAddresses: CrossChainAddresses,
+		PubKeyConverter:                       pkConverter,
 	}
 	argsBuiltIn.AutomaticCrawlerAddresses = integrationTests.GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 

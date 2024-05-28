@@ -145,18 +145,6 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		return nil, errDecode
 	}
 
-	dnsV2AddressesStrings := args.Configs.GeneralConfig.BuiltInFunctions.DNSV2Addresses
-	convertedDNSV2Addresses, errDecode := factory.DecodeAddresses(pkConverter, dnsV2AddressesStrings)
-	if errDecode != nil {
-		return nil, errDecode
-	}
-
-	crossChainWhiteListedAddressesStrings := args.Configs.GeneralConfig.VirtualMachine.Execution.TransferAndExecuteByUserAddresses
-	convertedCrossChainWhiteListedAddresses, errDecode := factory.DecodeAddresses(pkConverter, crossChainWhiteListedAddressesStrings)
-	if errDecode != nil {
-		return nil, errDecode
-	}
-
 	builtInFuncFactory, err := createBuiltinFuncs(
 		args.GasScheduleNotifier,
 		args.CoreComponents.InternalMarshalizer(),
@@ -167,9 +155,10 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		args.BootstrapComponents.GuardedAccountHandler(),
 		convertedAddresses,
 		args.Configs.GeneralConfig.BuiltInFunctions.MaxNumAddressesInTransferRole,
-		convertedDNSV2Addresses,
-		convertedCrossChainWhiteListedAddresses,
+		args.Configs.GeneralConfig.BuiltInFunctions.DNSV2Addresses,
+		args.Configs.GeneralConfig.VirtualMachine.Querying.TransferAndExecuteByUserAddresses,
 		[]byte(args.Configs.SystemSCConfig.ESDTSystemSCConfig.ESDTPrefix),
+		pkConverter,
 	)
 	if err != nil {
 		return nil, err
@@ -358,18 +347,6 @@ func createScQueryElement(
 		return nil, nil, errDecode
 	}
 
-	dnsV2AddressesStrings := args.generalConfig.BuiltInFunctions.DNSV2Addresses
-	convertedDNSV2Addresses, errDecode := factory.DecodeAddresses(pkConverter, dnsV2AddressesStrings)
-	if errDecode != nil {
-		return nil, nil, errDecode
-	}
-
-	crossChainWhiteListedAddressesStrings := args.generalConfig.VirtualMachine.Execution.TransferAndExecuteByUserAddresses
-	convertedCrossChainWhiteListedAddresses, errDecode := factory.DecodeAddresses(pkConverter, crossChainWhiteListedAddressesStrings)
-	if errDecode != nil {
-		return nil, nil, errDecode
-	}
-
 	apiBlockchain, err := createBlockchainForScQuery(selfShardID)
 	if err != nil {
 		return nil, nil, err
@@ -390,9 +367,10 @@ func createScQueryElement(
 		args.guardedAccountHandler,
 		convertedAddresses,
 		args.generalConfig.BuiltInFunctions.MaxNumAddressesInTransferRole,
-		convertedDNSV2Addresses,
-		convertedCrossChainWhiteListedAddresses,
+		args.generalConfig.BuiltInFunctions.DNSV2Addresses,
+		args.generalConfig.VirtualMachine.Querying.TransferAndExecuteByUserAddresses,
 		[]byte(args.systemSCConfig.ESDTSystemSCConfig.ESDTPrefix),
+		pkConverter,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -663,25 +641,16 @@ func createBuiltinFuncs(
 	guardedAccountHandler vmcommon.GuardedAccountHandler,
 	automaticCrawlerAddresses [][]byte,
 	maxNumAddressesInTransferRole uint32,
-	dnsV2Addresses [][]byte,
-	mapWhiteListedCrossChainMintAddresses [][]byte,
+	dnsV2Addresses []string,
+	mapWhiteListedCrossChainMintAddresses []string,
 	selfESDTPrefix []byte,
+	pubKeyConverter core.PubkeyConverter,
 ) (vmcommon.BuiltInFunctionFactory, error) {
-	mapDNSV2Addresses := make(map[string]struct{})
-	for _, address := range dnsV2Addresses {
-		mapDNSV2Addresses[string(address)] = struct{}{}
-	}
-
-	mapWhiteListedCrossChain := make(map[string]struct{})
-	for _, address := range mapWhiteListedCrossChainMintAddresses {
-		mapWhiteListedCrossChain[string(address)] = struct{}{}
-	}
-
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
 		GasSchedule:                           gasScheduleNotifier,
 		MapDNSAddresses:                       make(map[string]struct{}),
-		MapDNSV2Addresses:                     mapDNSV2Addresses,
-		MapWhiteListedCrossChainMintAddresses: mapWhiteListedCrossChain,
+		MapDNSV2Addresses:                     dnsV2Addresses,
+		MapWhiteListedCrossChainMintAddresses: mapWhiteListedCrossChainMintAddresses,
 		EnableUserNameChange:                  false,
 		Marshalizer:                           marshalizer,
 		Accounts:                              accnts,
@@ -692,6 +661,7 @@ func createBuiltinFuncs(
 		AutomaticCrawlerAddresses:             automaticCrawlerAddresses,
 		MaxNumNodesInTransferRole:             maxNumAddressesInTransferRole,
 		SelfESDTPrefix:                        selfESDTPrefix,
+		PubKeyConverter:                       pubKeyConverter,
 	}
 	return builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 }
