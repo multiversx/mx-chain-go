@@ -364,7 +364,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 
 	convertedCrossChainAddresses, err := mainFactory.DecodeAddresses(
 		arg.Core.AddressPubKeyConverter(),
-		arg.SystemSCConfig.ESDTSystemSCConfig.WhiteListedCrossChainMintAddresses,
+		arg.VirtualMachineConfig.TransferAndExecuteByUserAddresses,
 	)
 	if err != nil {
 		return nil, err

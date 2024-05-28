@@ -151,7 +151,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		return nil, errDecode
 	}
 
-	crossChainWhiteListedAddressesStrings := args.Configs.SystemSCConfig.ESDTSystemSCConfig.WhiteListedCrossChainMintAddresses
+	crossChainWhiteListedAddressesStrings := args.Configs.GeneralConfig.VirtualMachine.Execution.TransferAndExecuteByUserAddresses
 	convertedCrossChainWhiteListedAddresses, errDecode := factory.DecodeAddresses(pkConverter, crossChainWhiteListedAddressesStrings)
 	if errDecode != nil {
 		return nil, errDecode
@@ -364,7 +364,7 @@ func createScQueryElement(
 		return nil, nil, errDecode
 	}
 
-	crossChainWhiteListedAddressesStrings := args.systemSCConfig.ESDTSystemSCConfig.WhiteListedCrossChainMintAddresses
+	crossChainWhiteListedAddressesStrings := args.generalConfig.VirtualMachine.Execution.TransferAndExecuteByUserAddresses
 	convertedCrossChainWhiteListedAddresses, errDecode := factory.DecodeAddresses(pkConverter, crossChainWhiteListedAddressesStrings)
 	if errDecode != nil {
 		return nil, nil, errDecode

@@ -1177,7 +1177,7 @@ func (pcf *processComponentsFactory) createBuiltInFunctionContainer(
 
 	convertedCrossChainAddresses, err := mainFactory.DecodeAddresses(
 		pcf.coreData.AddressPubKeyConverter(),
-		pcf.systemSCConfig.ESDTSystemSCConfig.WhiteListedCrossChainMintAddresses,
+		pcf.config.VirtualMachine.Execution.TransferAndExecuteByUserAddresses,
 	)
 	if err != nil {
 		return nil, err

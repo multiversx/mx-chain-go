@@ -94,11 +94,7 @@ func createMockArgs(t *testing.T) *api.ApiResolverArgs {
 			GeneralConfig:   &cfg,
 			EpochConfig:     &config.EpochConfig{},
 			EconomicsConfig: &economicsConfig,
-			SystemSCConfig: &config.SystemSmartContractsConfig{
-				ESDTSystemSCConfig: config.ESDTSystemSCConfig{
-					WhiteListedCrossChainMintAddresses: []string{"erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c"},
-				},
-			},
+			SystemSCConfig:  &config.SystemSmartContractsConfig{},
 		},
 		CoreComponents:       coreComponents,
 		DataComponents:       dataComponents,
@@ -372,9 +368,7 @@ func createMockSCQueryElementArgs() api.SCQueryElementArgs {
 		},
 		MessageSigVerifier: &testscommon.MessageSignVerifierMock{},
 		SystemSCConfig: &config.SystemSmartContractsConfig{
-			ESDTSystemSCConfig: config.ESDTSystemSCConfig{
-				WhiteListedCrossChainMintAddresses: []string{"erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c"},
-			},
+			ESDTSystemSCConfig: config.ESDTSystemSCConfig{},
 		},
 		Bootstrapper:          testsMocks.NewTestBootstrapperMock(),
 		AllowVMQueriesChan:    make(chan struct{}, 1),
