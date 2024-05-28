@@ -68,5 +68,6 @@ type OutGoingOperationsPool interface {
 	Get(hash []byte) *sovereign.BridgeOutGoingData
 	Delete(hash []byte)
 	GetUnconfirmedOperations() []*sovereign.BridgeOutGoingData
+	ResetTimer(hashes [][]byte)
 	IsInterfaceNil() bool
 }
