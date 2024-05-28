@@ -2,6 +2,7 @@ package transactionLog
 
 import (
 	"encoding/hex"
+	"strings"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -171,8 +172,7 @@ func (tlp *txLogProcessor) SaveLog(txHash []byte, tx data.TransactionHandler, lo
 
 func (tlp *txLogProcessor) appendLogToStorer(txHash []byte, newLog *transaction.Log) error {
 	oldLogsBuff, errGet := tlp.storer.Get(txHash)
-	nilStorerResponse := errGet == nil && len(oldLogsBuff) == 0
-	if errGet == storage.ErrKeyNotFound || nilStorerResponse {
+	if isFirstEntryForHash(oldLogsBuff, errGet) {
 		allLogsBuff, err := tlp.marshalizer.Marshal(newLog)
 		if err != nil {
 			return err
@@ -201,6 +201,18 @@ func (tlp *txLogProcessor) appendLogToStorer(txHash []byte, newLog *transaction.
 	}
 
 	return tlp.storer.Put(txHash, allLogsBuff)
+}
+
+func isFirstEntryForHash(oldLogsBuff []byte, errGet error) bool {
+	if errGet == nil && len(oldLogsBuff) == 0 {
+		return true
+	}
+
+	if errGet == nil {
+		return false
+	}
+
+	return strings.Contains(errGet.Error(), "not found")
 }
 
 func (tlp *txLogProcessor) saveLogToCache(txHash []byte, log *transaction.Log) {
