@@ -7,10 +7,11 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 )
 
 func sameValidatorsMaps(map1, map2 map[uint32][]Validator) bool {
@@ -171,6 +172,35 @@ func TestIndexHashedNodesCoordinator_nodesCoordinatorToRegistry(t *testing.T) {
 	for epoch, config := range nc {
 		assert.True(t, sameValidatorsDifferentMapTypes(config.eligibleMap, ncr.GetEpochsConfig()[fmt.Sprint(epoch)].GetEligibleValidators()))
 		assert.True(t, sameValidatorsDifferentMapTypes(config.waitingMap, ncr.GetEpochsConfig()[fmt.Sprint(epoch)].GetWaitingValidators()))
+	}
+}
+
+func TestIndexHashedNodesCoordinator_nodesCoordinatorWithAuctionToRegistryAndBack(t *testing.T) {
+	args := createArguments()
+	nodesCoordinator, _ := NewIndexHashedNodesCoordinator(args)
+
+	nodesConfigForEpoch := nodesCoordinator.nodesConfig[args.Epoch]
+	nodesConfigForEpoch.shuffledOutMap = createDummyNodesMap(3, 0, string(common.WaitingList))
+	nodesConfigForEpoch.lowWaitingList = true
+	// leave only one epoch config in nc
+	nodesCoordinator.nodesConfig = make(map[uint32]*epochNodesConfig)
+	nodesCoordinator.nodesConfig[args.Epoch] = nodesConfigForEpoch
+
+	ncr := nodesCoordinator.nodesCoordinatorToRegistryWithAuction()
+	require.True(t, sameValidatorsDifferentMapTypes(nodesConfigForEpoch.eligibleMap, ncr.GetEpochsConfig()[fmt.Sprint(args.Epoch)].GetEligibleValidators()))
+	require.True(t, sameValidatorsDifferentMapTypes(nodesConfigForEpoch.waitingMap, ncr.GetEpochsConfig()[fmt.Sprint(args.Epoch)].GetWaitingValidators()))
+	require.True(t, sameValidatorsDifferentMapTypes(nodesConfigForEpoch.shuffledOutMap, ncr.GetEpochsConfigWithAuction()[fmt.Sprint(args.Epoch)].GetShuffledOutValidators()))
+	require.Equal(t, nodesConfigForEpoch.lowWaitingList, ncr.GetEpochsConfigWithAuction()[fmt.Sprint(args.Epoch)].GetLowWaitingList())
+
+	nodesConfig, err := nodesCoordinator.registryToNodesCoordinator(ncr)
+	require.Nil(t, err)
+
+	assert.Equal(t, len(nodesCoordinator.nodesConfig), len(nodesConfig))
+	for epoch, config := range nodesCoordinator.nodesConfig {
+		require.True(t, sameValidatorsMaps(config.eligibleMap, nodesConfig[epoch].eligibleMap))
+		require.True(t, sameValidatorsMaps(config.waitingMap, nodesConfig[epoch].waitingMap))
+		require.True(t, sameValidatorsMaps(config.shuffledOutMap, nodesConfig[epoch].shuffledOutMap))
+		require.Equal(t, config.lowWaitingList, nodesConfig[epoch].lowWaitingList)
 	}
 }
 

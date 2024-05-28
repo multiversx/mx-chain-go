@@ -49,7 +49,7 @@ func (ncf *nodesCoordinatorRegistryFactory) createRegistryWithAuction(buff []byt
 		return nil, err
 	}
 
-	log.Debug("nodesCoordinatorRegistryFactory.CreateNodesCoordinatorRegistry created old registry",
+	log.Debug("nodesCoordinatorRegistryFactory.CreateNodesCoordinatorRegistry created registry with auction",
 		"epoch", registry.CurrentEpoch)
 	return registry, nil
 }
