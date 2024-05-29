@@ -7,7 +7,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/stretchr/testify/require"
 
-	"github.com/multiversx/mx-chain-go/config"
 	chainSimulatorCommon "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	chainSim "github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
@@ -26,7 +25,7 @@ func TestNewSovereignChainSimulator(t *testing.T) {
 
 	chainSimulator, err := NewSovereignChainSimulator(ArgsSovereignChainSimulator{
 		SovereignConfigPath: sovereignConfigPath,
-		ChainSimulatorArgs: &chainSim.ArgsChainSimulator{
+		ArgsChainSimulator: &chainSim.ArgsChainSimulator{
 			BypassTxSignatureCheck: false,
 			TempDir:                t.TempDir(),
 			PathToInitialConfig:    defaultPathToInitialConfig,
@@ -37,9 +36,6 @@ func TestNewSovereignChainSimulator(t *testing.T) {
 			ApiInterface:           api.NewNoApiInterface(),
 			MinNodesPerShard:       2,
 			ConsensusGroupSize:     2,
-			AlterConfigsFunction: func(cfg *config.Configs) {
-				cfg.GeneralConfig.GeneralSettings.ChainID = "S"
-			},
 		},
 	})
 	require.Nil(t, err)
@@ -57,7 +53,7 @@ func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
 
 	chainSimulator, err := NewSovereignChainSimulator(ArgsSovereignChainSimulator{
 		SovereignConfigPath: sovereignConfigPath,
-		ChainSimulatorArgs: &chainSim.ArgsChainSimulator{
+		ArgsChainSimulator: &chainSim.ArgsChainSimulator{
 			BypassTxSignatureCheck: false,
 			TempDir:                t.TempDir(),
 			PathToInitialConfig:    defaultPathToInitialConfig,
@@ -88,7 +84,7 @@ func TestChainSimulator_SetState(t *testing.T) {
 
 	chainSimulator, err := NewSovereignChainSimulator(ArgsSovereignChainSimulator{
 		SovereignConfigPath: sovereignConfigPath,
-		ChainSimulatorArgs: &chainSim.ArgsChainSimulator{
+		ArgsChainSimulator: &chainSim.ArgsChainSimulator{
 			BypassTxSignatureCheck: false,
 			TempDir:                t.TempDir(),
 			PathToInitialConfig:    defaultPathToInitialConfig,
@@ -116,7 +112,7 @@ func TestChainSimulator_SetEntireState(t *testing.T) {
 
 	chainSimulator, err := NewSovereignChainSimulator(ArgsSovereignChainSimulator{
 		SovereignConfigPath: sovereignConfigPath,
-		ChainSimulatorArgs: &chainSim.ArgsChainSimulator{
+		ArgsChainSimulator: &chainSim.ArgsChainSimulator{
 			BypassTxSignatureCheck: false,
 			TempDir:                t.TempDir(),
 			PathToInitialConfig:    defaultPathToInitialConfig,
@@ -163,7 +159,7 @@ func TestChainSimulator_SetEntireStateWithRemoval(t *testing.T) {
 
 	chainSimulator, err := NewSovereignChainSimulator(ArgsSovereignChainSimulator{
 		SovereignConfigPath: sovereignConfigPath,
-		ChainSimulatorArgs: &chainSim.ArgsChainSimulator{
+		ArgsChainSimulator: &chainSim.ArgsChainSimulator{
 			BypassTxSignatureCheck: false,
 			TempDir:                t.TempDir(),
 			PathToInitialConfig:    defaultPathToInitialConfig,
@@ -210,7 +206,7 @@ func TestChainSimulator_GetAccount(t *testing.T) {
 
 	chainSimulator, err := NewSovereignChainSimulator(ArgsSovereignChainSimulator{
 		SovereignConfigPath: sovereignConfigPath,
-		ChainSimulatorArgs: &chainSim.ArgsChainSimulator{
+		ArgsChainSimulator: &chainSim.ArgsChainSimulator{
 			BypassTxSignatureCheck: false,
 			TempDir:                t.TempDir(),
 			PathToInitialConfig:    defaultPathToInitialConfig,
@@ -237,7 +233,7 @@ func TestSimulator_SendTransactions(t *testing.T) {
 
 	chainSimulator, err := NewSovereignChainSimulator(ArgsSovereignChainSimulator{
 		SovereignConfigPath: sovereignConfigPath,
-		ChainSimulatorArgs: &chainSim.ArgsChainSimulator{
+		ArgsChainSimulator: &chainSim.ArgsChainSimulator{
 			BypassTxSignatureCheck: false,
 			TempDir:                t.TempDir(),
 			PathToInitialConfig:    defaultPathToInitialConfig,
