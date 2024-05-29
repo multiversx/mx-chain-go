@@ -1,12 +1,15 @@
 package chainSimulator
 
 import (
+	"encoding/hex"
+	"fmt"
 	"math/big"
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
+	"github.com/multiversx/mx-chain-go/vm"
 
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/stretchr/testify/require"
@@ -101,4 +104,31 @@ func SendTransaction(
 	}
 
 	return txResult
+}
+
+func IssueFungible(
+	t *testing.T,
+	cs ChainSimulator,
+	sender []byte,
+	nonce *uint64,
+	issueCost *big.Int,
+	tokenName string,
+	tokenTicker string,
+	numDecimals int,
+	supply *big.Int,
+) []byte {
+	issueArgs := "issue" +
+		"@" + hex.EncodeToString([]byte(tokenName)) +
+		"@" + hex.EncodeToString([]byte(tokenTicker)) +
+		"@" + hex.EncodeToString(supply.Bytes()) +
+		"@" + fmt.Sprintf("%X", numDecimals) +
+		"@" + hex.EncodeToString([]byte("canAddSpecialRoles")) +
+		"@" + hex.EncodeToString([]byte("true"))
+	txResult := SendTransaction(t, cs, sender, nonce, vm.ESDTSCAddress, issueCost, issueArgs, uint64(60000000))
+	tokenIdentifier := txResult.Logs.Events[0].Topics[0]
+	require.Equal(t, len(tokenTicker)+7, len(tokenIdentifier))
+	require.Equal(t, tokenName, string(txResult.Logs.Events[4].Topics[1]))
+	require.Equal(t, tokenTicker, string(txResult.Logs.Events[4].Topics[2]))
+
+	return tokenIdentifier
 }

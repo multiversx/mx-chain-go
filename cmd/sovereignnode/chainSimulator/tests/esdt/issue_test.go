@@ -1,8 +1,6 @@
 package esdt
 
 import (
-	"encoding/hex"
-	"fmt"
 	"math/big"
 	"testing"
 	"time"
@@ -56,18 +54,8 @@ func TestSovereignChain_Issue(t *testing.T) {
 	supply, _ := big.NewInt(0).SetString("123000000000000000000", 10)
 	tokenName := "SovereignTkn"
 	tokenTicker := "SVN"
-	issueArgs := "issue" +
-		"@" + hex.EncodeToString([]byte(tokenName)) +
-		"@" + hex.EncodeToString([]byte(tokenTicker)) +
-		"@" + hex.EncodeToString(supply.Bytes()) +
-		"@" + fmt.Sprintf("%X", 18) + // num decimals
-		"@" + hex.EncodeToString([]byte("canAddSpecialRoles")) +
-		"@" + hex.EncodeToString([]byte("true"))
-	txResult := chainSim.SendTransaction(t, cs, wallet.Bytes, &nonce, vm.ESDTSCAddress, issueCost, issueArgs, uint64(60000000))
-	tokenIdentifier := txResult.Logs.Events[0].Topics[0]
-	require.Equal(t, len(tokenTicker)+7, len(tokenIdentifier))
-	require.Equal(t, tokenName, string(txResult.Logs.Events[4].Topics[1]))
-	require.Equal(t, tokenTicker, string(txResult.Logs.Events[4].Topics[2]))
+	numDecimals := 18
+	tokenIdentifier := chainSim.IssueFungible(t, cs, wallet.Bytes, &nonce, issueCost, tokenName, tokenTicker, numDecimals, supply)
 
 	esdts, err := nodeHandler.GetFacadeHandler().GetAllIssuedESDTs(core.FungibleESDT)
 	require.Nil(t, err)
