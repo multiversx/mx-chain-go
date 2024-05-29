@@ -18,6 +18,10 @@ import (
 )
 
 func TestEsdt_RegisterSft(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	cs, err := sovereignChainSimulator.NewSovereignChainSimulator(sovereignChainSimulator.ArgsSovereignChainSimulator{
 		SovereignConfigPath: sovereignConfigPath,
 		ChainSimulatorArgs: &chainSimulator.ArgsChainSimulator{
@@ -77,6 +81,10 @@ func TestEsdt_RegisterSft(t *testing.T) {
 }
 
 func TestEsdt_RegisterTwoSfts(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	cs, err := sovereignChainSimulator.NewSovereignChainSimulator(sovereignChainSimulator.ArgsSovereignChainSimulator{
 		SovereignConfigPath: sovereignConfigPath,
 		ChainSimulatorArgs: &chainSimulator.ArgsChainSimulator{
@@ -166,6 +174,10 @@ func TestEsdt_RegisterTwoSfts(t *testing.T) {
 }
 
 func TestEsdt_IssueSft(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	cs, err := sovereignChainSimulator.NewSovereignChainSimulator(sovereignChainSimulator.ArgsSovereignChainSimulator{
 		SovereignConfigPath: sovereignConfigPath,
 		ChainSimulatorArgs: &chainSimulator.ArgsChainSimulator{

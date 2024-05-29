@@ -27,6 +27,10 @@ var initialMinting = big.NewInt(0).Mul(oneEgld, big.NewInt(100))
 var issueCost = big.NewInt(5000000000000000000)
 
 func TestEsdt_Issue(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	cs, err := sovereignChainSimulator.NewSovereignChainSimulator(sovereignChainSimulator.ArgsSovereignChainSimulator{
 		SovereignConfigPath: sovereignConfigPath,
 		ChainSimulatorArgs: &chainSimulator.ArgsChainSimulator{
