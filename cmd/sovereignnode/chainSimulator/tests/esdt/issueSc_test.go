@@ -25,6 +25,12 @@ const (
 	issuePrice                 = "5000000000000000000"
 )
 
+var fungibleRoles = []string{
+	core.ESDTRoleLocalMint,
+	core.ESDTRoleLocalBurn,
+	core.ESDTRoleTransfer,
+}
+
 // The test will deploy issue.wasm contract.
 // The contract contains 3 endpoints (issue, setRoles and mint) which are called in the test
 func TestSovereignChain_SmartContract_IssueToken(t *testing.T) {
@@ -38,7 +44,6 @@ func TestSovereignChain_SmartContract_IssueToken(t *testing.T) {
 			BypassTxSignatureCheck: false,
 			TempDir:                t.TempDir(),
 			PathToInitialConfig:    defaultPathToInitialConfig,
-			NumOfShards:            1,
 			GenesisTimestamp:       time.Now().Unix(),
 			RoundDurationInMillis:  uint64(6000),
 			RoundsPerEpoch:         core.OptionalUint64{},
@@ -86,7 +91,7 @@ func TestSovereignChain_SmartContract_IssueToken(t *testing.T) {
 	setRolesArgs := "setRoles@" + hex.EncodeToString([]byte(tokenIdentifier))
 	chainSim.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, chainSim.ZeroValue, setRolesArgs, uint64(60000000))
 
-	checkAllRoles(t, nodeHandler, deployedContractAddressBech32, tokenIdentifier)
+	checkAllRoles(t, nodeHandler, deployedContractAddressBech32, tokenIdentifier, fungibleRoles)
 
 	expectedMintedAmount, _ := big.NewInt(0).SetString("123000000000000000000", 10)
 	mintTxArgs := "mint" +
@@ -104,12 +109,12 @@ func TestSovereignChain_SmartContract_IssueToken(t *testing.T) {
 	require.Equal(t, expectedMintedAmount, esdts[issuedESDTs[0]].Value)
 }
 
-func checkAllRoles(t *testing.T, nodeHandler process.NodeHandler, address string, tokenIdentifier string) {
+func checkAllRoles(t *testing.T, nodeHandler process.NodeHandler, address string, tokenIdentifier string, roles []string) {
 	esdtsRoles, _, err := nodeHandler.GetFacadeHandler().GetESDTsRoles(address, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
 	require.NotNil(t, esdtsRoles)
-	require.True(t, len(esdtsRoles[tokenIdentifier]) == 3)
-	require.Equal(t, core.ESDTRoleLocalMint, esdtsRoles[tokenIdentifier][0])
-	require.Equal(t, core.ESDTRoleLocalBurn, esdtsRoles[tokenIdentifier][1])
-	require.Equal(t, core.ESDTRoleTransfer, esdtsRoles[tokenIdentifier][2])
+	require.True(t, len(esdtsRoles[tokenIdentifier]) == len(roles))
+	for i, role := range roles {
+		require.Equal(t, role, esdtsRoles[tokenIdentifier][i])
+	}
 }

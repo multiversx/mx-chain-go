@@ -7,43 +7,38 @@ import (
 	"testing"
 	"time"
 
-	chainSimulatorIntegrationTests "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
+	"github.com/multiversx/mx-chain-go/config"
+	chainSim "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	sovereignChainSimulator "github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator"
+	"github.com/multiversx/mx-chain-go/vm"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	coreAPI "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/stretchr/testify/require"
 )
 
-const (
-	defaultPathToInitialConfig = "../../../../node/config/"
-	sovereignConfigPath        = "../../../config/"
-)
-
-var oneEgld = big.NewInt(1000000000000000000)
-var initialMinting = big.NewInt(0).Mul(oneEgld, big.NewInt(100))
-var issueCost = big.NewInt(5000000000000000000)
-
-func TestEsdt_Issue(t *testing.T) {
+func TestSovereignChain_Issue(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 
 	cs, err := sovereignChainSimulator.NewSovereignChainSimulator(sovereignChainSimulator.ArgsSovereignChainSimulator{
 		SovereignConfigPath: sovereignConfigPath,
-		ChainSimulatorArgs: &chainSimulator.ArgsChainSimulator{
+		ArgsChainSimulator: &chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck: false,
 			TempDir:                t.TempDir(),
 			PathToInitialConfig:    defaultPathToInitialConfig,
-			NumOfShards:            1,
 			GenesisTimestamp:       time.Now().Unix(),
 			RoundDurationInMillis:  uint64(6000),
 			RoundsPerEpoch:         core.OptionalUint64{},
 			ApiInterface:           api.NewNoApiInterface(),
 			MinNodesPerShard:       2,
 			ConsensusGroupSize:     2,
+			AlterConfigsFunction: func(cfg *config.Configs) {
+				cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = issuePrice
+			},
 		},
 	})
 	require.Nil(t, err)
@@ -52,23 +47,27 @@ func TestEsdt_Issue(t *testing.T) {
 	defer cs.Close()
 
 	nodeHandler := cs.GetNodeHandler(core.SovereignChainShardId)
-	systemEsdtAddress, _ := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode("erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzllls8a5w6u")
 
 	nonce := uint64(0)
-	wallet, err := cs.GenerateAndMintWalletAddress(core.SovereignChainShardId, initialMinting)
+	wallet, err := cs.GenerateAndMintWalletAddress(core.SovereignChainShardId, chainSim.InitialAmount)
 	require.Nil(t, err)
 
+	issueCost, _ := big.NewInt(0).SetString(issuePrice, 10)
 	supply, _ := big.NewInt(0).SetString("123000000000000000000", 10)
+	tokenName := "SovereignTkn"
+	tokenTicker := "SVN"
 	issueArgs := "issue" +
-		"@" + hex.EncodeToString([]byte("SovereignTkn")) +
-		"@" + hex.EncodeToString([]byte("SVN")) +
+		"@" + hex.EncodeToString([]byte(tokenName)) +
+		"@" + hex.EncodeToString([]byte(tokenTicker)) +
 		"@" + hex.EncodeToString(supply.Bytes()) +
 		"@" + fmt.Sprintf("%X", 18) + // num decimals
 		"@" + hex.EncodeToString([]byte("canAddSpecialRoles")) +
 		"@" + hex.EncodeToString([]byte("true"))
-	txResult := chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, systemEsdtAddress, issueCost, issueArgs, uint64(60000000))
+	txResult := chainSim.SendTransaction(t, cs, wallet.Bytes, &nonce, vm.ESDTSCAddress, issueCost, issueArgs, uint64(60000000))
 	tokenIdentifier := txResult.Logs.Events[0].Topics[0]
-	require.True(t, len(tokenIdentifier) > 7)
+	require.Equal(t, len(tokenTicker)+7, len(tokenIdentifier))
+	require.Equal(t, tokenName, string(txResult.Logs.Events[4].Topics[1]))
+	require.Equal(t, tokenTicker, string(txResult.Logs.Events[4].Topics[2]))
 
 	esdts, err := nodeHandler.GetFacadeHandler().GetAllIssuedESDTs(core.FungibleESDT)
 	require.Nil(t, err)
@@ -81,19 +80,8 @@ func TestEsdt_Issue(t *testing.T) {
 	require.True(t, len(tokens) == 2)
 	require.Equal(t, supply, tokens[string(tokenIdentifier)].Value)
 
-	setRolesArgs := "setSpecialRole" +
-		"@" + hex.EncodeToString(tokenIdentifier) +
-		"@" + hex.EncodeToString(wallet.Bytes) +
-		"@" + hex.EncodeToString([]byte(core.ESDTRoleLocalMint)) +
-		"@" + hex.EncodeToString([]byte(core.ESDTRoleLocalBurn)) +
-		"@" + hex.EncodeToString([]byte(core.ESDTRoleTransfer))
-	chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, systemEsdtAddress, big.NewInt(0), setRolesArgs, uint64(60000000))
+	setRolesArgs := setSpecialRole(tokenIdentifier, wallet.Bytes, fungibleRoles)
+	chainSim.SendTransaction(t, cs, wallet.Bytes, &nonce, vm.ESDTSCAddress, big.NewInt(0), setRolesArgs, uint64(60000000))
 
-	esdtsRoles, _, err := nodeHandler.GetFacadeHandler().GetESDTsRoles(wallet.Bech32, coreAPI.AccountQueryOptions{})
-	require.Nil(t, err)
-	require.NotNil(t, esdtsRoles)
-	require.True(t, len(esdtsRoles[string(tokenIdentifier)]) == 3)
-	require.Equal(t, core.ESDTRoleLocalMint, esdtsRoles[string(tokenIdentifier)][0])
-	require.Equal(t, core.ESDTRoleLocalBurn, esdtsRoles[string(tokenIdentifier)][1])
-	require.Equal(t, core.ESDTRoleTransfer, esdtsRoles[string(tokenIdentifier)][2])
+	checkAllRoles(t, nodeHandler, wallet.Bech32, string(tokenIdentifier), fungibleRoles)
 }
