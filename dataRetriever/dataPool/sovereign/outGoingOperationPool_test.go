@@ -294,7 +294,7 @@ func TestOutGoingOperationsPool_ConcurrentOperations(t *testing.T) {
 	for i := 0; i < numOperations; i++ {
 
 		go func(index int) {
-			id := index % 4
+			id := index % 5
 			hash := []byte(fmt.Sprintf("hash%d", id))
 			data := []byte(fmt.Sprintf("data%d", id))
 
@@ -315,6 +315,8 @@ func TestOutGoingOperationsPool_ConcurrentOperations(t *testing.T) {
 				pool.Delete(hash)
 			case 3:
 				_ = pool.GetUnconfirmedOperations()
+			case 4:
+				pool.ResetTimer([][]byte{hash})
 			default:
 				require.Fail(t, "should not get another operation")
 			}
@@ -325,4 +327,59 @@ func TestOutGoingOperationsPool_ConcurrentOperations(t *testing.T) {
 	}
 
 	wg.Wait()
+}
+
+func TestOutGoingOperationsPool_ResetTimer(t *testing.T) {
+	t.Parallel()
+
+	expiryTime := time.Millisecond * 100
+	pool := NewOutGoingOperationPool(expiryTime)
+
+	hash1 := []byte("h1")
+	hash2 := []byte("h2")
+
+	data1 := []byte("d1")
+	data2 := []byte("d2")
+
+	outGoingOperationsHash1 := []byte("h11h22")
+	bridgeData1 := &sovereign.BridgeOutGoingData{
+		Hash: outGoingOperationsHash1,
+		OutGoingOperations: []*sovereign.OutGoingOperation{
+			{
+				Hash: hash1,
+				Data: data1,
+			},
+		},
+	}
+	outGoingOperationsHash2 := []byte("h33")
+	bridgeData2 := &sovereign.BridgeOutGoingData{
+		Hash: outGoingOperationsHash2,
+		OutGoingOperations: []*sovereign.OutGoingOperation{
+			{
+				Hash: hash2,
+				Data: data2,
+			},
+		},
+	}
+	pool.Add(bridgeData1)
+	pool.Add(bridgeData2)
+	require.Empty(t, pool.GetUnconfirmedOperations())
+
+	time.Sleep(expiryTime)
+	require.Equal(t, []*sovereign.BridgeOutGoingData{bridgeData1, bridgeData2}, pool.GetUnconfirmedOperations())
+
+	pool.ResetTimer([][]byte{outGoingOperationsHash1})
+	require.Equal(t, []*sovereign.BridgeOutGoingData{bridgeData2}, pool.GetUnconfirmedOperations())
+
+	pool.ResetTimer([][]byte{[]byte("hashNotFound")})
+	require.Equal(t, []*sovereign.BridgeOutGoingData{bridgeData2}, pool.GetUnconfirmedOperations())
+
+	pool.ResetTimer([][]byte{outGoingOperationsHash2})
+	require.Empty(t, pool.GetUnconfirmedOperations())
+
+	time.Sleep(expiryTime)
+	require.Equal(t, []*sovereign.BridgeOutGoingData{bridgeData1, bridgeData2}, pool.GetUnconfirmedOperations())
+
+	pool.ResetTimer([][]byte{outGoingOperationsHash1, []byte("hashNotFound"), outGoingOperationsHash2})
+	require.Empty(t, pool.GetUnconfirmedOperations())
 }
