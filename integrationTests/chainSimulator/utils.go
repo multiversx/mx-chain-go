@@ -107,6 +107,7 @@ func SendTransaction(
 	return txResult
 }
 
+// IssueFungible -
 func IssueFungible(
 	t *testing.T,
 	cs ChainSimulator,
