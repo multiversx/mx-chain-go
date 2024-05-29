@@ -37,6 +37,7 @@ var (
 	InitialAmount = big.NewInt(0).Mul(OneEGLD, big.NewInt(100))
 )
 
+// GetSysAccBytesAddress -
 func GetSysAccBytesAddress(nodeHandler process.NodeHandler) ([]byte, error) {
 	return nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode("erd1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq6gq4hu")
 }
