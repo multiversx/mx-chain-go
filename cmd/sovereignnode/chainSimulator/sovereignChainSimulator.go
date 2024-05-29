@@ -23,12 +23,29 @@ import (
 
 // ArgsSovereignChainSimulator holds the arguments for sovereign chain simulator
 type ArgsSovereignChainSimulator struct {
-	SovereignExtraConfig config.SovereignConfig
-	ChainSimulatorArgs   chainSimulator.ArgsChainSimulator
+	SovereignConfigPath string
+	ChainSimulatorArgs  *chainSimulator.ArgsChainSimulator
 }
 
 // NewSovereignChainSimulator will create a new instance of sovereign chain simulator
 func NewSovereignChainSimulator(args ArgsSovereignChainSimulator) (chainSimulatorIntegrationTests.ChainSimulator, error) {
+	alterConfigs := args.ChainSimulatorArgs.AlterConfigsFunction
+	configs, err := loadSovereignConfigs(args.SovereignConfigPath)
+	if err != nil {
+		return nil, err
+	}
+	args.ChainSimulatorArgs.AlterConfigsFunction = func(cfg *config.Configs) {
+		cfg.EconomicsConfig = configs.EconomicsConfig
+		cfg.EpochConfig = configs.EpochConfig
+		cfg.GeneralConfig.SovereignConfig = *configs.SovereignExtraConfig
+		cfg.GeneralConfig.VirtualMachine.Execution.WasmVMVersions = []config.WasmVMVersionByEpoch{{StartEpoch: 0, Version: "v1.5"}}
+		cfg.GeneralConfig.VirtualMachine.Querying.WasmVMVersions = []config.WasmVMVersionByEpoch{{StartEpoch: 0, Version: "v1.5"}}
+
+		if alterConfigs != nil {
+			alterConfigs(cfg)
+		}
+	}
+
 	args.ChainSimulatorArgs.CreateGenesisNodesSetup = func(nodesFilePath string, addressPubkeyConverter core.PubkeyConverter, validatorPubkeyConverter core.PubkeyConverter, _ uint32) (sharding.GenesisNodesSetupHandler, error) {
 		return sharding.NewSovereignNodesSetup(&sharding.SovereignNodesSetupArgs{
 			NodesFilePath:            nodesFilePath,
@@ -43,36 +60,38 @@ func NewSovereignChainSimulator(args ArgsSovereignChainSimulator) (chainSimulato
 		return incomingHeader.CreateIncomingHeaderProcessor(config, dataPool, mainChainNotarizationStartRound, runTypeComponents)
 	}
 	args.ChainSimulatorArgs.CreateRunTypeComponents = func(argsRunType runType.ArgsRunTypeComponents) (factory.RunTypeComponentsHolder, error) {
-		return createSovereignRunTypeComponents(argsRunType, args.SovereignExtraConfig)
+		return createSovereignRunTypeComponents(argsRunType, *configs.SovereignExtraConfig)
 	}
 	args.ChainSimulatorArgs.NodeFactory = node.NewSovereignNodeFactory()
 	args.ChainSimulatorArgs.ChainProcessorFactory = NewSovereignChainHandlerFactory()
 
-	return chainSimulator.NewChainSimulator(args.ChainSimulatorArgs)
+	return chainSimulator.NewChainSimulator(*args.ChainSimulatorArgs)
 }
 
-// LoadSovereignConfigs loads sovereign configs
-func LoadSovereignConfigs(configsPath string) (*config.EpochConfig, *config.EconomicsConfig, *config.SovereignConfig, error) {
+// loadSovereignConfigs loads sovereign configs
+func loadSovereignConfigs(configsPath string) (*sovereignConfig.SovereignConfig, error) {
 	epochConfig, err := common.LoadEpochConfig(path.Join(configsPath, "enableEpochs.toml"))
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
 
 	economicsConfig, err := common.LoadEconomicsConfig(path.Join(configsPath, "economics.toml"))
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
 
 	sovereignExtraConfig, err := sovereignConfig.LoadSovereignGeneralConfig(path.Join(configsPath, "sovereignConfig.toml"))
-	sovereignExtraConfig.OutGoingBridgeCertificate = config.OutGoingBridgeCertificate{
-		CertificatePath:   "/home/ubuntu/MultiversX/testnet/config/certificate.crt",
-		CertificatePkPath: "/home/ubuntu/MultiversX/testnet/config/private_key.pem",
-	}
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
 
-	return epochConfig, economicsConfig, sovereignExtraConfig, nil
+	return &sovereignConfig.SovereignConfig{
+		Configs: &config.Configs{
+			EpochConfig:     epochConfig,
+			EconomicsConfig: economicsConfig,
+		},
+		SovereignExtraConfig: sovereignExtraConfig,
+	}, nil
 }
 
 func createSovereignRunTypeComponents(args runType.ArgsRunTypeComponents, sovereignExtraConfig config.SovereignConfig) (factory.RunTypeComponentsHolder, error) {
