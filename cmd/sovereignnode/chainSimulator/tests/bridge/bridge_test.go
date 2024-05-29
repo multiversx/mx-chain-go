@@ -189,14 +189,10 @@ func TestBridge_DeployOnSovereignChain_IssueAndDeposit(t *testing.T) {
 
 	issueCost, _ := big.NewInt(0).SetString(issuePrice, 10)
 	supply, _ := big.NewInt(0).SetString("123000000000000000000", 10)
-	issueArgs := "issue" +
-		"@" + hex.EncodeToString([]byte("SovToken")) +
-		"@" + hex.EncodeToString([]byte("SVN")) +
-		"@" + hex.EncodeToString(supply.Bytes()) +
-		"@" + fmt.Sprintf("%X", 18) // num decimals
-	txResult := chainSim.SendTransaction(t, cs, wallet.Bytes, &nonce, vm.ESDTSCAddress, issueCost, issueArgs, uint64(60000000))
-	tokenIdentifier := txResult.Logs.Events[0].Topics[0]
-	require.True(t, len(tokenIdentifier) > 7)
+	tokenName := "SovToken"
+	tokenTicker := "SVN"
+	numDecimals := 18
+	tokenIdentifier := chainSim.IssueFungible(t, cs, wallet.Bytes, &nonce, issueCost, tokenName, tokenTicker, numDecimals, supply)
 
 	amountToDeposit, _ := big.NewInt(0).SetString("2000000000000000000", 10)
 	depositArgs := "MultiESDTNFTTransfer" +
