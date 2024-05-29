@@ -143,6 +143,7 @@ func IssueFungible(
 	return tokenIdentifier
 }
 
+// Deposit -
 func Deposit(
 	t *testing.T,
 	cs ChainSimulator,

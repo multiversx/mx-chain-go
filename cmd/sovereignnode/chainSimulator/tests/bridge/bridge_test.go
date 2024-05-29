@@ -20,7 +20,6 @@ const (
 	sovereignConfigPath        = "../../../config/"
 	esdtSafeWasmPath           = "../testdata/esdt-safe.wasm"
 	feeMarketWasmPath          = "../testdata/fee-market.wasm"
-	multiSigWasmPath           = "../testdata/multisigverifier.wasm"
 	issuePrice                 = "5000000000000000000"
 )
 
