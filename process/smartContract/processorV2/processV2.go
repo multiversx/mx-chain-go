@@ -1508,7 +1508,7 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(acntSnd state.UserAccountHand
 	}
 
 	logsTxHash := sc.getOriginalTxHashIfIntraShardRelayedSCR(tx, failureContext.txHash)
-	ignorableError := sc.txLogsProcessor.SaveLog(logsTxHash, tx, processIfErrorLogs)
+	ignorableError := sc.txLogsProcessor.AppendLog(logsTxHash, tx, processIfErrorLogs)
 	if ignorableError != nil {
 		log.Debug("scProcessor.ProcessIfError() txLogsProcessor.SaveLog()", "error", ignorableError.Error())
 	}

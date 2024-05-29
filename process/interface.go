@@ -303,6 +303,7 @@ type TransactionLogProcessor interface {
 	GetAllCurrentLogs() []*data.LogData
 	GetLog(txHash []byte) (data.LogHandler, error)
 	SaveLog(txHash []byte, tx data.TransactionHandler, vmLogs []*vmcommon.LogEntry) error
+	AppendLog(txHash []byte, tx data.TransactionHandler, logEntries []*vmcommon.LogEntry) error
 	Clean()
 	IsInterfaceNil() bool
 }

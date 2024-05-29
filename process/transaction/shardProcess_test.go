@@ -2178,15 +2178,6 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 		txCopy.GasLimit = userTx.GasLimit - 1
 		testProcessRelayedTransactionV3(t, &txCopy, userTx.SndAddr, userTx.RcvAddr, process.ErrFailedTransaction, vmcommon.UserError)
 	})
-	t.Run("multiple types of relayed tx should error", func(t *testing.T) {
-		t.Parallel()
-
-		txCopy := *tx
-		userTxCopy := *userTx
-		userTxData, _ := marshaller.Marshal(userTxCopy)
-		txCopy.Data = []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxData))
-		testProcessRelayedTransactionV3(t, &txCopy, userTx.SndAddr, userTx.RcvAddr, process.ErrFailedTransaction, vmcommon.UserError)
-	})
 	t.Run("failure to add fees on destination should skip transaction and continue", func(t *testing.T) {
 		t.Parallel()
 
@@ -2244,6 +2235,7 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 		args.RelayedTxV3Processor, _ = txproc.NewRelayedTxV3Processor(txproc.ArgRelayedTxV3Processor{
 			EconomicsFee:           args.EconomicsFee,
 			ShardCoordinator:       args.ShardCoordinator,
+			ArgsParser:             &mock.ArgumentParserMock{},
 			MaxTransactionsAllowed: 10,
 		})
 		logs := make([]*vmcommon.LogEntry, 0)
@@ -2358,6 +2350,7 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 		args.RelayedTxV3Processor, _ = txproc.NewRelayedTxV3Processor(txproc.ArgRelayedTxV3Processor{
 			EconomicsFee:           args.EconomicsFee,
 			ShardCoordinator:       args.ShardCoordinator,
+			ArgsParser:             &mock.ArgumentParserMock{},
 			MaxTransactionsAllowed: 10,
 		})
 		execTx, _ := txproc.NewTxProcessor(args)
@@ -2424,6 +2417,7 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 		args.RelayedTxV3Processor, _ = txproc.NewRelayedTxV3Processor(txproc.ArgRelayedTxV3Processor{
 			EconomicsFee:           args.EconomicsFee,
 			ShardCoordinator:       args.ShardCoordinator,
+			ArgsParser:             &mock.ArgumentParserMock{},
 			MaxTransactionsAllowed: 10,
 		})
 		execTx, _ := txproc.NewTxProcessor(args)
@@ -2534,6 +2528,7 @@ func testProcessRelayedTransactionV3(
 	args.RelayedTxV3Processor, _ = txproc.NewRelayedTxV3Processor(txproc.ArgRelayedTxV3Processor{
 		EconomicsFee:           args.EconomicsFee,
 		ShardCoordinator:       args.ShardCoordinator,
+		ArgsParser:             &mock.ArgumentParserMock{},
 		MaxTransactionsAllowed: 10,
 	})
 

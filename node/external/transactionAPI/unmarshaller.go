@@ -13,6 +13,8 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 )
 
+const operationTransfer = "transfer"
+
 type txUnmarshaller struct {
 	shardCoordinator       sharding.Coordinator
 	addressPubKeyConverter core.PubkeyConverter
@@ -90,6 +92,33 @@ func (tu *txUnmarshaller) unmarshalTransaction(txBytes []byte, txType transactio
 		return nil, err
 	}
 
+	isRelayedV3 := len(apiTx.InnerTransactions) > 0
+	if isRelayedV3 {
+		apiTx.Operation = operationTransfer
+
+		rcvsShardIDs := make(map[uint32]struct{})
+		for _, innerTx := range apiTx.InnerTransactions {
+			apiTx.Receivers = append(apiTx.Receivers, innerTx.Receiver)
+
+			rcvBytes, errDecode := tu.addressPubKeyConverter.Decode(innerTx.Receiver)
+			if errDecode != nil {
+				log.Warn("bech32PubkeyConverter.Decode() failed while decoding innerTx.Receiver", "error", errDecode)
+				continue
+			}
+
+			rcvShardID := tu.shardCoordinator.ComputeId(rcvBytes)
+			rcvsShardIDs[rcvShardID] = struct{}{}
+		}
+
+		for rcvShard := range rcvsShardIDs {
+			apiTx.ReceiversShardIDs = append(apiTx.ReceiversShardIDs, rcvShard)
+		}
+
+		apiTx.IsRelayed = true
+
+		return apiTx, nil
+	}
+
 	res := tu.dataFieldParser.Parse(apiTx.Data, apiTx.Tx.GetSndAddr(), apiTx.Tx.GetRcvAddr(), tu.shardCoordinator.NumberOfShards())
 	apiTx.Operation = res.Operation
 	apiTx.Function = res.Function
@@ -164,12 +193,12 @@ func (tu *txUnmarshaller) prepareInnerTxs(tx *transaction.Transaction) []*transa
 			Options:          innerTx.Options,
 		}
 
-		if len(tx.GuardianAddr) > 0 {
+		if len(innerTx.GuardianAddr) > 0 {
 			frontEndTx.GuardianAddr = tu.addressPubKeyConverter.SilentEncode(innerTx.GuardianAddr, log)
 			frontEndTx.GuardianSignature = hex.EncodeToString(innerTx.GuardianSignature)
 		}
 
-		if len(tx.RelayerAddr) > 0 {
+		if len(innerTx.RelayerAddr) > 0 {
 			frontEndTx.Relayer = tu.addressPubKeyConverter.SilentEncode(innerTx.RelayerAddr, log)
 		}
 

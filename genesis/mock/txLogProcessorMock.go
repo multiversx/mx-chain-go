@@ -21,6 +21,12 @@ func (tlpm *TxLogProcessorMock) SaveLog(_ []byte, _ data.TransactionHandler, _ [
 	return nil
 }
 
+// AppendLog -
+func (tlpm *TxLogProcessorMock) AppendLog(_ []byte, _ data.TransactionHandler, _ []*vmcommon.LogEntry) error {
+
+	return nil
+}
+
 // Clean -
 func (tlpm *TxLogProcessorMock) Clean() {
 }

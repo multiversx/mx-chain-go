@@ -130,13 +130,18 @@ func TestTxLogProcessor_SaveLogsStoreErr(t *testing.T) {
 	require.Equal(t, retErr, err)
 }
 
-func TestTxLogProcessor_SaveLogsGetErrShouldError(t *testing.T) {
+func TestTxLogProcessor_AppendLogGetErrSaveLog(t *testing.T) {
 	t.Parallel()
 
+	wasSaved := false
 	txLogProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
 		Storer: &storageStubs.StorerStub{
 			GetCalled: func(key []byte) ([]byte, error) {
 				return nil, expectedErr
+			},
+			PutCalled: func(key, data []byte) error {
+				wasSaved = true
+				return nil
 			},
 		},
 		Marshalizer:          &mock.MarshalizerMock{},
@@ -146,11 +151,12 @@ func TestTxLogProcessor_SaveLogsGetErrShouldError(t *testing.T) {
 	logs := []*vmcommon.LogEntry{
 		{Address: []byte("first log")},
 	}
-	err := txLogProcessor.SaveLog([]byte("txhash"), &transaction.Transaction{}, logs)
-	require.Equal(t, expectedErr, err)
+	err := txLogProcessor.AppendLog([]byte("txhash"), &transaction.Transaction{}, logs)
+	require.NoError(t, err)
+	require.True(t, wasSaved)
 }
 
-func TestTxLogProcessor_SaveLogsUnmarshalErrShouldError(t *testing.T) {
+func TestTxLogProcessor_AppendLogsUnmarshalErrShouldError(t *testing.T) {
 	t.Parallel()
 
 	txLogProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
@@ -170,11 +176,11 @@ func TestTxLogProcessor_SaveLogsUnmarshalErrShouldError(t *testing.T) {
 	logs := []*vmcommon.LogEntry{
 		{Address: []byte("first log")},
 	}
-	err := txLogProcessor.SaveLog([]byte("txhash"), &transaction.Transaction{}, logs)
+	err := txLogProcessor.AppendLog([]byte("txhash"), &transaction.Transaction{}, logs)
 	require.Equal(t, expectedErr, err)
 }
 
-func TestTxLogProcessor_SaveLogsShouldWorkAndAppend(t *testing.T) {
+func TestTxLogProcessor_AppendLogShouldWorkAndAppend(t *testing.T) {
 	t.Parallel()
 
 	providedHash := []byte("txhash")
@@ -198,7 +204,7 @@ func TestTxLogProcessor_SaveLogsShouldWorkAndAppend(t *testing.T) {
 		{Address: []byte("addr 3"), Data: [][]byte{[]byte("new data 1")}},
 	}
 
-	err = txLogProcessor.SaveLog(providedHash, &transaction.Transaction{SndAddr: []byte("sender")}, newLogs)
+	err = txLogProcessor.AppendLog(providedHash, &transaction.Transaction{SndAddr: []byte("sender")}, newLogs)
 	require.NoError(t, err)
 
 	buff, err := storer.Get(providedHash)

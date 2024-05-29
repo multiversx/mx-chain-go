@@ -7,8 +7,9 @@ import (
 
 // TxLogsProcessorStub -
 type TxLogsProcessorStub struct {
-	GetLogCalled  func(txHash []byte) (data.LogHandler, error)
-	SaveLogCalled func(txHash []byte, tx data.TransactionHandler, vmLogs []*vmcommon.LogEntry) error
+	GetLogCalled    func(txHash []byte) (data.LogHandler, error)
+	SaveLogCalled   func(txHash []byte, tx data.TransactionHandler, vmLogs []*vmcommon.LogEntry) error
+	AppendLogCalled func(txHash []byte, tx data.TransactionHandler, logEntries []*vmcommon.LogEntry) error
 }
 
 // GetLog -
@@ -28,6 +29,15 @@ func (txls *TxLogsProcessorStub) Clean() {
 func (txls *TxLogsProcessorStub) SaveLog(txHash []byte, tx data.TransactionHandler, vmLogs []*vmcommon.LogEntry) error {
 	if txls.SaveLogCalled != nil {
 		return txls.SaveLogCalled(txHash, tx, vmLogs)
+	}
+
+	return nil
+}
+
+// AppendLog -
+func (txls *TxLogsProcessorStub) AppendLog(txHash []byte, tx data.TransactionHandler, logEntries []*vmcommon.LogEntry) error {
+	if txls.AppendLogCalled != nil {
+		return txls.AppendLogCalled(txHash, tx, logEntries)
 	}
 
 	return nil
