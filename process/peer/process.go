@@ -887,9 +887,8 @@ func (vs *validatorStatistics) decreaseForConsensusValidators(
 	return nil
 }
 
-// RevertPeerState takes the current and previous headers and undos the peer state
-// for all of the consensus members
-func (vs *validatorStatistics) RevertPeerState(header data.MetaHeaderHandler) error {
+// RevertPeerState takes the current and previous headers and undoes the peer state for all consensus members
+func (vs *validatorStatistics) RevertPeerState(header process.ValidatorStatsHeader) error {
 	rootHashHolder := holders.NewDefaultRootHashesHolder(header.GetValidatorStatsRootHash())
 	return vs.peerAdapter.RecreateTrie(rootHashHolder)
 }
