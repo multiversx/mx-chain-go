@@ -21,20 +21,26 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 )
 
+const (
+	numOfShards = 1
+)
+
 // ArgsSovereignChainSimulator holds the arguments for sovereign chain simulator
 type ArgsSovereignChainSimulator struct {
 	SovereignConfigPath string
-	ChainSimulatorArgs  *chainSimulator.ArgsChainSimulator
+	*chainSimulator.ArgsChainSimulator
 }
 
 // NewSovereignChainSimulator will create a new instance of sovereign chain simulator
 func NewSovereignChainSimulator(args ArgsSovereignChainSimulator) (chainSimulatorIntegrationTests.ChainSimulator, error) {
-	alterConfigs := args.ChainSimulatorArgs.AlterConfigsFunction
+	args.NumOfShards = numOfShards
+
+	alterConfigs := args.AlterConfigsFunction
 	configs, err := loadSovereignConfigs(args.SovereignConfigPath)
 	if err != nil {
 		return nil, err
 	}
-	args.ChainSimulatorArgs.AlterConfigsFunction = func(cfg *config.Configs) {
+	args.AlterConfigsFunction = func(cfg *config.Configs) {
 		cfg.EconomicsConfig = configs.EconomicsConfig
 		cfg.EpochConfig = configs.EpochConfig
 		cfg.GeneralConfig.SovereignConfig = *configs.SovereignExtraConfig
@@ -46,26 +52,26 @@ func NewSovereignChainSimulator(args ArgsSovereignChainSimulator) (chainSimulato
 		}
 	}
 
-	args.ChainSimulatorArgs.CreateGenesisNodesSetup = func(nodesFilePath string, addressPubkeyConverter core.PubkeyConverter, validatorPubkeyConverter core.PubkeyConverter, _ uint32) (sharding.GenesisNodesSetupHandler, error) {
+	args.CreateGenesisNodesSetup = func(nodesFilePath string, addressPubkeyConverter core.PubkeyConverter, validatorPubkeyConverter core.PubkeyConverter, _ uint32) (sharding.GenesisNodesSetupHandler, error) {
 		return sharding.NewSovereignNodesSetup(&sharding.SovereignNodesSetupArgs{
 			NodesFilePath:            nodesFilePath,
 			AddressPubKeyConverter:   addressPubkeyConverter,
 			ValidatorPubKeyConverter: validatorPubkeyConverter,
 		})
 	}
-	args.ChainSimulatorArgs.CreateRatingsData = func(arg rating.RatingsDataArg) (process.RatingsInfoHandler, error) {
+	args.CreateRatingsData = func(arg rating.RatingsDataArg) (process.RatingsInfoHandler, error) {
 		return rating.NewSovereignRatingsData(arg)
 	}
-	args.ChainSimulatorArgs.CreateIncomingHeaderSubscriber = func(config *config.NotifierConfig, dataPool dataRetriever.PoolsHolder, mainChainNotarizationStartRound uint64, runTypeComponents factory.RunTypeComponentsHolder) (process.IncomingHeaderSubscriber, error) {
+	args.CreateIncomingHeaderSubscriber = func(config *config.NotifierConfig, dataPool dataRetriever.PoolsHolder, mainChainNotarizationStartRound uint64, runTypeComponents factory.RunTypeComponentsHolder) (process.IncomingHeaderSubscriber, error) {
 		return incomingHeader.CreateIncomingHeaderProcessor(config, dataPool, mainChainNotarizationStartRound, runTypeComponents)
 	}
-	args.ChainSimulatorArgs.CreateRunTypeComponents = func(argsRunType runType.ArgsRunTypeComponents) (factory.RunTypeComponentsHolder, error) {
+	args.CreateRunTypeComponents = func(argsRunType runType.ArgsRunTypeComponents) (factory.RunTypeComponentsHolder, error) {
 		return createSovereignRunTypeComponents(argsRunType, *configs.SovereignExtraConfig)
 	}
-	args.ChainSimulatorArgs.NodeFactory = node.NewSovereignNodeFactory()
-	args.ChainSimulatorArgs.ChainProcessorFactory = NewSovereignChainHandlerFactory()
+	args.NodeFactory = node.NewSovereignNodeFactory()
+	args.ChainProcessorFactory = NewSovereignChainHandlerFactory()
 
-	return chainSimulator.NewChainSimulator(*args.ChainSimulatorArgs)
+	return chainSimulator.NewChainSimulator(*args.ArgsChainSimulator)
 }
 
 // loadSovereignConfigs loads sovereign configs
