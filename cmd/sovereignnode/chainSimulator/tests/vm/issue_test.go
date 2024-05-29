@@ -35,7 +35,7 @@ func TestSmartContract_IssueToken(t *testing.T) {
 
 	cs, err := sovereignChainSimulator.NewSovereignChainSimulator(sovereignChainSimulator.ArgsSovereignChainSimulator{
 		SovereignConfigPath: sovereignConfigPath,
-		ChainSimulatorArgs: &chainSimulator.ArgsChainSimulator{
+		ArgsChainSimulator: &chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck: false,
 			TempDir:                t.TempDir(),
 			PathToInitialConfig:    defaultPathToInitialConfig,
