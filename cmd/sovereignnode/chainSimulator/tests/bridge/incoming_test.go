@@ -17,7 +17,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 )
 
@@ -34,11 +33,10 @@ func TestIncomingOperations(t *testing.T) {
 
 	cs, err := sovereignChainSimulator.NewSovereignChainSimulator(sovereignChainSimulator.ArgsSovereignChainSimulator{
 		SovereignConfigPath: sovereignConfigPath,
-		ChainSimulatorArgs: &chainSimulator.ArgsChainSimulator{
+		ArgsChainSimulator: &chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck: false,
 			TempDir:                t.TempDir(),
 			PathToInitialConfig:    defaultPathToInitialConfig,
-			NumOfShards:            1,
 			GenesisTimestamp:       time.Now().Unix(),
 			RoundDurationInMillis:  uint64(6000),
 			RoundsPerEpoch:         core.OptionalUint64{},
@@ -53,8 +51,6 @@ func TestIncomingOperations(t *testing.T) {
 	defer cs.Close()
 
 	nodeHandler := cs.GetNodeHandler(core.SovereignChainShardId)
-
-	logger.SetLogLevel("*:DEBUG,process:TRACE,block:TRACE")
 
 	headerNonce := uint64(9999999)
 	randomHeader := createHeaderV2(headerNonce, generateRandomHash(), generateRandomHash())
