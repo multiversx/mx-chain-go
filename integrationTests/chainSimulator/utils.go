@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/stretchr/testify/require"
@@ -14,7 +15,28 @@ import (
 const (
 	maxNumOfBlocksToGenerateWhenExecutingTx = 1
 	signalError                             = "signalError"
+	minGasPrice                             = 1000000000
+	txVersion                               = 1
+	mockTxSignature                         = "sig"
+
+	// OkReturnCode the const for the ok return code
+	OkReturnCode = "ok"
 )
+
+var (
+	// ZeroValue the variable for the zero big int
+	ZeroValue = big.NewInt(0)
+	// OneEGLD the variable for one egld value
+	OneEGLD = big.NewInt(1000000000000000000)
+	// MinimumStakeValue the variable for the minimum stake value
+	MinimumStakeValue = big.NewInt(0).Mul(OneEGLD, big.NewInt(2500))
+	// InitialAmount the variable for initial minting amount in account
+	InitialAmount = big.NewInt(0).Mul(OneEGLD, big.NewInt(100))
+)
+
+func GetSysAccBytesAddress(nodeHandler process.NodeHandler) ([]byte, error) {
+	return nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode("erd1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq6gq4hu")
+}
 
 // DeployContract -
 func DeployContract(
@@ -43,10 +65,6 @@ func DeployContract(
 
 // GenerateTransaction -
 func GenerateTransaction(sender []byte, nonce uint64, receiver []byte, value *big.Int, data string, gasLimit uint64) *transaction.Transaction {
-	minGasPrice := uint64(1000000000)
-	txVersion := uint32(1)
-	mockTxSignature := "sig"
-
 	return &transaction.Transaction{
 		Nonce:     nonce,
 		Value:     value,
