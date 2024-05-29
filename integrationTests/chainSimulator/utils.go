@@ -21,6 +21,8 @@ const (
 	minGasPrice                             = 1000000000
 	txVersion                               = 1
 	mockTxSignature                         = "sig"
+	deposit                                 = "deposit"
+	multiEsdtTransfer                       = "MultiESDTNFTTransfer"
 
 	// OkReturnCode the const for the ok return code
 	OkReturnCode = "ok"
@@ -36,6 +38,12 @@ var (
 	// InitialAmount the variable for initial minting amount in account
 	InitialAmount = big.NewInt(0).Mul(OneEGLD, big.NewInt(100))
 )
+
+type ArgsDepositToken struct {
+	Identifier []byte
+	Nonce      uint64
+	Amount     *big.Int
+}
 
 func GetSysAccBytesAddress(nodeHandler process.NodeHandler) ([]byte, error) {
 	return nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode("erd1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq6gq4hu")
@@ -131,4 +139,40 @@ func IssueFungible(
 	require.Equal(t, tokenTicker, string(txResult.Logs.Events[4].Topics[2]))
 
 	return tokenIdentifier
+}
+
+func Deposit(
+	t *testing.T,
+	cs ChainSimulator,
+	sender []byte,
+	nonce *uint64,
+	contract []byte,
+	tokens []ArgsDepositToken,
+	receiver []byte,
+) {
+	require.True(t, len(tokens) > 0)
+
+	depositArgs := multiEsdtTransfer +
+		"@" + hex.EncodeToString(contract) +
+		"@" + fmt.Sprintf("%02X", len(tokens))
+
+	for _, token := range tokens {
+		depositArgs = depositArgs +
+			"@" + hex.EncodeToString(token.Identifier) +
+			"@" + getTokenNonce(token.Nonce) +
+			"@" + hex.EncodeToString(token.Amount.Bytes())
+	}
+
+	depositArgs = depositArgs +
+		"@" + hex.EncodeToString([]byte(deposit)) +
+		"@" + hex.EncodeToString(receiver)
+
+	SendTransaction(t, cs, sender, nonce, sender, ZeroValue, depositArgs, uint64(20000000))
+}
+
+func getTokenNonce(nonce uint64) string {
+	if nonce == 0 {
+		return ""
+	}
+	return fmt.Sprintf("%02X", nonce)
 }
