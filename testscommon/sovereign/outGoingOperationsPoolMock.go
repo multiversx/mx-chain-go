@@ -9,6 +9,7 @@ type OutGoingOperationsPoolMock struct {
 	DeleteCalled                   func(hash []byte)
 	GetUnconfirmedOperationsCalled func() []*sovereign.BridgeOutGoingData
 	ConfirmOperationCalled         func(hashOfHashes []byte, hash []byte) error
+	ResetTimerCalled               func(hashes [][]byte)
 }
 
 // Add -
@@ -47,6 +48,13 @@ func (mock *OutGoingOperationsPoolMock) ConfirmOperation(hashOfHashes []byte, ha
 		return mock.ConfirmOperationCalled(hashOfHashes, hash)
 	}
 	return nil
+}
+
+// ResetTimer -
+func (mock *OutGoingOperationsPoolMock) ResetTimer(hashes [][]byte) {
+	if mock.ResetTimerCalled != nil {
+		mock.ResetTimerCalled(hashes)
+	}
 }
 
 // IsInterfaceNil -

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/common/logging"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
@@ -1407,7 +1408,31 @@ func (scbp *sovereignChainBlockProcessor) RestoreBlockIntoPools(header data.Head
 
 // RevertStateToBlock reverts state in tries
 func (scbp *sovereignChainBlockProcessor) RevertStateToBlock(header data.HeaderHandler, rootHash []byte) error {
-	return scbp.revertAccountsStates(header, rootHash)
+	rootHashHolder := holders.NewDefaultRootHashesHolder(rootHash)
+	err := scbp.accountsDB[state.UserAccountsState].RecreateTrie(rootHashHolder)
+	if err != nil {
+		log.Debug("recreate trie with error for header",
+			"nonce", header.GetNonce(),
+			"header root hash", header.GetRootHash(),
+			"given root hash", rootHash,
+			"error", err.Error(),
+		)
+
+		return err
+	}
+
+	err = scbp.validatorStatisticsProcessor.RevertPeerState(header)
+	if err != nil {
+		log.Debug("revert peer state with error for header",
+			"nonce", header.GetNonce(),
+			"validators root hash", header.GetValidatorStatsRootHash(),
+			"error", err.Error(),
+		)
+
+		return err
+	}
+
+	return nil
 }
 
 // RevertCurrentBlock reverts the current block for cleanup failed process
