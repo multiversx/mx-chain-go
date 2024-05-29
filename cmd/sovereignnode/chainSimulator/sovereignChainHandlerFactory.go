@@ -9,12 +9,12 @@ import (
 type sovereignProcessorFactory struct {
 }
 
-// NewSovereignChainHandlerFactory creates a new chain handler factory for normal chain simulator
+// NewSovereignChainHandlerFactory creates a new chain handler factory for sovereign chain simulator
 func NewSovereignChainHandlerFactory() chainSimulator.ChainHandlerFactory {
 	return &sovereignProcessorFactory{}
 }
 
-// CreateChainHandler creates a new chain handler for normal chain simulator
+// CreateChainHandler creates a new chain handler for sovereign chain simulator
 func (spf *sovereignProcessorFactory) CreateChainHandler(nodeHandler process.NodeHandler) (chainSimulator.ChainHandler, error) {
 	return process.NewBlocksCreator(nodeHandler, sovProcess.NewSovereignBlockProcessorFactory())
 }

@@ -24,12 +24,9 @@ func TestNewSovereignChainSimulator(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	epochConfig, economicsConfig, sovereignExtraConfig, err := LoadSovereignConfigs(sovereignConfigPath)
-	require.Nil(t, err)
-
 	chainSimulator, err := NewSovereignChainSimulator(ArgsSovereignChainSimulator{
-		SovereignExtraConfig: *sovereignExtraConfig,
-		ChainSimulatorArgs: chainSim.ArgsChainSimulator{
+		SovereignConfigPath: sovereignConfigPath,
+		ChainSimulatorArgs: &chainSim.ArgsChainSimulator{
 			BypassTxSignatureCheck: false,
 			TempDir:                t.TempDir(),
 			PathToInitialConfig:    defaultPathToInitialConfig,
@@ -41,11 +38,7 @@ func TestNewSovereignChainSimulator(t *testing.T) {
 			MinNodesPerShard:       2,
 			ConsensusGroupSize:     2,
 			AlterConfigsFunction: func(cfg *config.Configs) {
-				cfg.EconomicsConfig = economicsConfig
-				cfg.EpochConfig = epochConfig
-				cfg.GeneralConfig.SovereignConfig = *sovereignExtraConfig
-				cfg.GeneralConfig.VirtualMachine.Execution.WasmVMVersions = []config.WasmVMVersionByEpoch{{StartEpoch: 0, Version: "v1.5"}}
-				cfg.GeneralConfig.VirtualMachine.Querying.WasmVMVersions = []config.WasmVMVersionByEpoch{{StartEpoch: 0, Version: "v1.5"}}
+				cfg.GeneralConfig.GeneralSettings.ChainID = "S"
 			},
 		},
 	})
@@ -62,12 +55,9 @@ func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	epochConfig, economicsConfig, sovereignExtraConfig, err := LoadSovereignConfigs(sovereignConfigPath)
-	require.Nil(t, err)
-
 	chainSimulator, err := NewSovereignChainSimulator(ArgsSovereignChainSimulator{
-		SovereignExtraConfig: *sovereignExtraConfig,
-		ChainSimulatorArgs: chainSim.ArgsChainSimulator{
+		SovereignConfigPath: sovereignConfigPath,
+		ChainSimulatorArgs: &chainSim.ArgsChainSimulator{
 			BypassTxSignatureCheck: false,
 			TempDir:                t.TempDir(),
 			PathToInitialConfig:    defaultPathToInitialConfig,
@@ -78,13 +68,6 @@ func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
 			ApiInterface:           api.NewNoApiInterface(),
 			MinNodesPerShard:       2,
 			ConsensusGroupSize:     2,
-			AlterConfigsFunction: func(cfg *config.Configs) {
-				cfg.EconomicsConfig = economicsConfig
-				cfg.EpochConfig = epochConfig
-				cfg.GeneralConfig.SovereignConfig = *sovereignExtraConfig
-				cfg.GeneralConfig.VirtualMachine.Execution.WasmVMVersions = []config.WasmVMVersionByEpoch{{StartEpoch: 0, Version: "v1.5"}}
-				cfg.GeneralConfig.VirtualMachine.Querying.WasmVMVersions = []config.WasmVMVersionByEpoch{{StartEpoch: 0, Version: "v1.5"}}
-			},
 		},
 	})
 	require.Nil(t, err)
@@ -103,12 +86,9 @@ func TestChainSimulator_SetState(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	epochConfig, economicsConfig, sovereignExtraConfig, err := LoadSovereignConfigs(sovereignConfigPath)
-	require.Nil(t, err)
-
 	chainSimulator, err := NewSovereignChainSimulator(ArgsSovereignChainSimulator{
-		SovereignExtraConfig: *sovereignExtraConfig,
-		ChainSimulatorArgs: chainSim.ArgsChainSimulator{
+		SovereignConfigPath: sovereignConfigPath,
+		ChainSimulatorArgs: &chainSim.ArgsChainSimulator{
 			BypassTxSignatureCheck: false,
 			TempDir:                t.TempDir(),
 			PathToInitialConfig:    defaultPathToInitialConfig,
@@ -119,13 +99,6 @@ func TestChainSimulator_SetState(t *testing.T) {
 			ApiInterface:           api.NewNoApiInterface(),
 			MinNodesPerShard:       2,
 			ConsensusGroupSize:     2,
-			AlterConfigsFunction: func(cfg *config.Configs) {
-				cfg.EconomicsConfig = economicsConfig
-				cfg.EpochConfig = epochConfig
-				cfg.GeneralConfig.SovereignConfig = *sovereignExtraConfig
-				cfg.GeneralConfig.VirtualMachine.Execution.WasmVMVersions = []config.WasmVMVersionByEpoch{{StartEpoch: 0, Version: "v1.5"}}
-				cfg.GeneralConfig.VirtualMachine.Querying.WasmVMVersions = []config.WasmVMVersionByEpoch{{StartEpoch: 0, Version: "v1.5"}}
-			},
 		},
 	})
 	require.Nil(t, err)
@@ -141,12 +114,9 @@ func TestChainSimulator_SetEntireState(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	epochConfig, economicsConfig, sovereignExtraConfig, err := LoadSovereignConfigs(sovereignConfigPath)
-	require.Nil(t, err)
-
 	chainSimulator, err := NewSovereignChainSimulator(ArgsSovereignChainSimulator{
-		SovereignExtraConfig: *sovereignExtraConfig,
-		ChainSimulatorArgs: chainSim.ArgsChainSimulator{
+		SovereignConfigPath: sovereignConfigPath,
+		ChainSimulatorArgs: &chainSim.ArgsChainSimulator{
 			BypassTxSignatureCheck: false,
 			TempDir:                t.TempDir(),
 			PathToInitialConfig:    defaultPathToInitialConfig,
@@ -157,13 +127,6 @@ func TestChainSimulator_SetEntireState(t *testing.T) {
 			ApiInterface:           api.NewNoApiInterface(),
 			MinNodesPerShard:       2,
 			ConsensusGroupSize:     2,
-			AlterConfigsFunction: func(cfg *config.Configs) {
-				cfg.EconomicsConfig = economicsConfig
-				cfg.EpochConfig = epochConfig
-				cfg.GeneralConfig.SovereignConfig = *sovereignExtraConfig
-				cfg.GeneralConfig.VirtualMachine.Execution.WasmVMVersions = []config.WasmVMVersionByEpoch{{StartEpoch: 0, Version: "v1.5"}}
-				cfg.GeneralConfig.VirtualMachine.Querying.WasmVMVersions = []config.WasmVMVersionByEpoch{{StartEpoch: 0, Version: "v1.5"}}
-			},
 		},
 	})
 	require.Nil(t, err)
@@ -198,12 +161,9 @@ func TestChainSimulator_SetEntireStateWithRemoval(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	epochConfig, economicsConfig, sovereignExtraConfig, err := LoadSovereignConfigs(sovereignConfigPath)
-	require.Nil(t, err)
-
 	chainSimulator, err := NewSovereignChainSimulator(ArgsSovereignChainSimulator{
-		SovereignExtraConfig: *sovereignExtraConfig,
-		ChainSimulatorArgs: chainSim.ArgsChainSimulator{
+		SovereignConfigPath: sovereignConfigPath,
+		ChainSimulatorArgs: &chainSim.ArgsChainSimulator{
 			BypassTxSignatureCheck: false,
 			TempDir:                t.TempDir(),
 			PathToInitialConfig:    defaultPathToInitialConfig,
@@ -214,13 +174,6 @@ func TestChainSimulator_SetEntireStateWithRemoval(t *testing.T) {
 			ApiInterface:           api.NewNoApiInterface(),
 			MinNodesPerShard:       2,
 			ConsensusGroupSize:     2,
-			AlterConfigsFunction: func(cfg *config.Configs) {
-				cfg.EconomicsConfig = economicsConfig
-				cfg.EpochConfig = epochConfig
-				cfg.GeneralConfig.SovereignConfig = *sovereignExtraConfig
-				cfg.GeneralConfig.VirtualMachine.Execution.WasmVMVersions = []config.WasmVMVersionByEpoch{{StartEpoch: 0, Version: "v1.5"}}
-				cfg.GeneralConfig.VirtualMachine.Querying.WasmVMVersions = []config.WasmVMVersionByEpoch{{StartEpoch: 0, Version: "v1.5"}}
-			},
 		},
 	})
 	require.Nil(t, err)
@@ -255,12 +208,9 @@ func TestChainSimulator_GetAccount(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	epochConfig, economicsConfig, sovereignExtraConfig, err := LoadSovereignConfigs(sovereignConfigPath)
-	require.Nil(t, err)
-
 	chainSimulator, err := NewSovereignChainSimulator(ArgsSovereignChainSimulator{
-		SovereignExtraConfig: *sovereignExtraConfig,
-		ChainSimulatorArgs: chainSim.ArgsChainSimulator{
+		SovereignConfigPath: sovereignConfigPath,
+		ChainSimulatorArgs: &chainSim.ArgsChainSimulator{
 			BypassTxSignatureCheck: false,
 			TempDir:                t.TempDir(),
 			PathToInitialConfig:    defaultPathToInitialConfig,
@@ -271,13 +221,6 @@ func TestChainSimulator_GetAccount(t *testing.T) {
 			ApiInterface:           api.NewNoApiInterface(),
 			MinNodesPerShard:       2,
 			ConsensusGroupSize:     2,
-			AlterConfigsFunction: func(cfg *config.Configs) {
-				cfg.EconomicsConfig = economicsConfig
-				cfg.EpochConfig = epochConfig
-				cfg.GeneralConfig.SovereignConfig = *sovereignExtraConfig
-				cfg.GeneralConfig.VirtualMachine.Execution.WasmVMVersions = []config.WasmVMVersionByEpoch{{StartEpoch: 0, Version: "v1.5"}}
-				cfg.GeneralConfig.VirtualMachine.Querying.WasmVMVersions = []config.WasmVMVersionByEpoch{{StartEpoch: 0, Version: "v1.5"}}
-			},
 		},
 	})
 	require.Nil(t, err)
@@ -292,12 +235,9 @@ func TestSimulator_SendTransactions(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	epochConfig, economicsConfig, sovereignExtraConfig, err := LoadSovereignConfigs(sovereignConfigPath)
-	require.Nil(t, err)
-
 	chainSimulator, err := NewSovereignChainSimulator(ArgsSovereignChainSimulator{
-		SovereignExtraConfig: *sovereignExtraConfig,
-		ChainSimulatorArgs: chainSim.ArgsChainSimulator{
+		SovereignConfigPath: sovereignConfigPath,
+		ChainSimulatorArgs: &chainSim.ArgsChainSimulator{
 			BypassTxSignatureCheck: false,
 			TempDir:                t.TempDir(),
 			PathToInitialConfig:    defaultPathToInitialConfig,
@@ -308,13 +248,6 @@ func TestSimulator_SendTransactions(t *testing.T) {
 			ApiInterface:           api.NewNoApiInterface(),
 			MinNodesPerShard:       2,
 			ConsensusGroupSize:     2,
-			AlterConfigsFunction: func(cfg *config.Configs) {
-				cfg.EconomicsConfig = economicsConfig
-				cfg.EpochConfig = epochConfig
-				cfg.GeneralConfig.SovereignConfig = *sovereignExtraConfig
-				cfg.GeneralConfig.VirtualMachine.Execution.WasmVMVersions = []config.WasmVMVersionByEpoch{{StartEpoch: 0, Version: "v1.5"}}
-				cfg.GeneralConfig.VirtualMachine.Querying.WasmVMVersions = []config.WasmVMVersionByEpoch{{StartEpoch: 0, Version: "v1.5"}}
-			},
 		},
 	})
 	require.Nil(t, err)
