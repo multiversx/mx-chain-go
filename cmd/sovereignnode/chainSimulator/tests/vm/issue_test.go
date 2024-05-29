@@ -29,12 +29,9 @@ var oneEgld = big.NewInt(1000000000000000000)
 var initialMinting = big.NewInt(0).Mul(oneEgld, big.NewInt(100))
 
 func TestSmartContract_IssueToken(t *testing.T) {
-	epochConfig, economicsConfig, sovereignExtraConfig, err := sovereignChainSimulator.LoadSovereignConfigs(sovereignConfigPath)
-	require.Nil(t, err)
-
 	cs, err := sovereignChainSimulator.NewSovereignChainSimulator(sovereignChainSimulator.ArgsSovereignChainSimulator{
-		SovereignExtraConfig: *sovereignExtraConfig,
-		ChainSimulatorArgs: chainSimulator.ArgsChainSimulator{
+		SovereignConfigPath: sovereignConfigPath,
+		ChainSimulatorArgs: &chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck: false,
 			TempDir:                t.TempDir(),
 			PathToInitialConfig:    defaultPathToInitialConfig,
@@ -47,11 +44,6 @@ func TestSmartContract_IssueToken(t *testing.T) {
 			ConsensusGroupSize:     2,
 			AlterConfigsFunction: func(cfg *config.Configs) {
 				cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = issuePrice
-				cfg.EconomicsConfig = economicsConfig
-				cfg.EpochConfig = epochConfig
-				cfg.GeneralConfig.SovereignConfig = *sovereignExtraConfig
-				cfg.GeneralConfig.VirtualMachine.Execution.WasmVMVersions = []config.WasmVMVersionByEpoch{{StartEpoch: 0, Version: "v1.5"}}
-				cfg.GeneralConfig.VirtualMachine.Querying.WasmVMVersions = []config.WasmVMVersionByEpoch{{StartEpoch: 0, Version: "v1.5"}}
 			},
 		},
 	})
