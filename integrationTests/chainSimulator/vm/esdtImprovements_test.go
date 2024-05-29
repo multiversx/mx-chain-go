@@ -96,7 +96,11 @@ func TestChainSimulator_CheckNFTandSFTMetadata(t *testing.T) {
 	mintValue := big.NewInt(10)
 	mintValue = mintValue.Mul(staking.OneEGLD, mintValue)
 
-	address, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	shardID0 := uint32(0)
+	shardID1 := uint32(1)
+	shardID2 := uint32(2)
+
+	address, err := cs.GenerateAndMintWalletAddress(shardID0, mintValue)
 	require.Nil(t, err)
 
 	err = cs.GenerateBlocksUntilEpochIsReached(int32(activationEpoch) - 1)
@@ -136,6 +140,7 @@ func TestChainSimulator_CheckNFTandSFTMetadata(t *testing.T) {
 	fmt.Println(txResult)
 	fmt.Println(txResult.Logs.Events[0])
 	fmt.Println(txResult.Logs.Events[0].Identifier)
+
 	tokenID := txResult.Logs.Events[0].Topics[0]
 
 	log.Info("Issued token id", "tokenID", string(tokenID))
@@ -217,11 +222,9 @@ func TestChainSimulator_CheckNFTandSFTMetadata(t *testing.T) {
 	err = cs.GenerateBlocks(10)
 	require.Nil(t, err)
 
-	shardID := cs.GetNodeHandler(0).GetShardCoordinator().ComputeId(address.Bytes)
-
 	log.Info("Step 1. check that the metadata for all tokens is saved on the system account")
 
-	retrievedMetaData := getMetaDataFromAcc(t, cs, core.SystemAccountAddress, tokenID, shardID)
+	retrievedMetaData := getMetaDataFromAcc(t, cs, core.SystemAccountAddress, tokenID, shardID0)
 
 	require.Equal(t, nonce, []byte(hex.EncodeToString(big.NewInt(int64(retrievedMetaData.Nonce)).Bytes())))
 	require.Equal(t, name, []byte(hex.EncodeToString(retrievedMetaData.Name)))
@@ -241,10 +244,10 @@ func TestChainSimulator_CheckNFTandSFTMetadata(t *testing.T) {
 
 	log.Info("Step 3. transfer the tokens to another account")
 
-	address2, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	address2, err := cs.GenerateAndMintWalletAddress(shardID1, mintValue)
 	require.Nil(t, err)
 
-	address3, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	address3, err := cs.GenerateAndMintWalletAddress(shardID2, mintValue)
 	require.Nil(t, err)
 
 	tx = utils.CreateESDTNFTTransferTx(
@@ -275,7 +278,7 @@ func TestChainSimulator_CheckNFTandSFTMetadata(t *testing.T) {
 
 	log.Info("Step 4. check that the metadata for all tokens is saved on the system account")
 
-	retrievedMetaData = getMetaDataFromAcc(t, cs, core.SystemAccountAddress, tokenID, shardID)
+	retrievedMetaData = getMetaDataFromAcc(t, cs, core.SystemAccountAddress, tokenID, shardID0)
 
 	require.Equal(t, nonce, []byte(hex.EncodeToString(big.NewInt(int64(retrievedMetaData.Nonce)).Bytes())))
 	require.Equal(t, name, []byte(hex.EncodeToString(retrievedMetaData.Name)))
@@ -315,7 +318,7 @@ func TestChainSimulator_CheckNFTandSFTMetadata(t *testing.T) {
 
 	log.Info("Step 6. check that the metadata for all tokens is saved on the system account")
 
-	retrievedMetaData = getMetaDataFromAcc(t, cs, core.SystemAccountAddress, tokenID, shardID)
+	retrievedMetaData = getMetaDataFromAcc(t, cs, core.SystemAccountAddress, tokenID, shardID0)
 
 	require.Equal(t, nonce, []byte(hex.EncodeToString(big.NewInt(int64(retrievedMetaData.Nonce)).Bytes())))
 	require.Equal(t, name, []byte(hex.EncodeToString(retrievedMetaData.Name)))
@@ -354,9 +357,7 @@ func TestChainSimulator_CheckNFTandSFTMetadata(t *testing.T) {
 
 	log.Info("Step 8. check that the metaData for the NFT was removed from the system account and moved to the user account")
 
-	shardID3 := cs.GetNodeHandler(0).GetShardCoordinator().ComputeId(address3.Bytes)
-
-	retrievedMetaData = getMetaDataFromAcc(t, cs, address3.Bytes, tokenID, shardID3)
+	retrievedMetaData = getMetaDataFromAcc(t, cs, address3.Bytes, tokenID, shardID2)
 
 	require.Equal(t, nonce, []byte(hex.EncodeToString(big.NewInt(int64(retrievedMetaData.Nonce)).Bytes())))
 	require.Equal(t, name, []byte(hex.EncodeToString(retrievedMetaData.Name)))
