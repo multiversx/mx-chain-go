@@ -159,6 +159,21 @@ func (op *outGoingOperationsPool) GetUnconfirmedOperations() []*sovereign.Bridge
 	return ret
 }
 
+// ResetTimer will reset the internal expiry timer for the provided outgoing operations hashes
+func (op *outGoingOperationsPool) ResetTimer(hashes [][]byte) {
+	op.mutex.Lock()
+	defer op.mutex.Unlock()
+
+	for _, hash := range hashes {
+		cachedEntry, exists := op.cache[string(hash)]
+		if !exists {
+			log.Error("outGoingOperationsPool.ResetTimer error", "hash not found", hash)
+			continue
+		}
+		cachedEntry.expireAt = time.Now().Add(op.timeout)
+	}
+}
+
 // IsInterfaceNil checks if the underlying pointer is nil
 func (op *outGoingOperationsPool) IsInterfaceNil() bool {
 	return op == nil
