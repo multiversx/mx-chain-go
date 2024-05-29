@@ -28,6 +28,10 @@ const (
 )
 
 func TestIncomingOperations(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	cs, err := sovereignChainSimulator.NewSovereignChainSimulator(sovereignChainSimulator.ArgsSovereignChainSimulator{
 		SovereignConfigPath: sovereignConfigPath,
 		ChainSimulatorArgs: &chainSimulator.ArgsChainSimulator{

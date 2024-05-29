@@ -30,6 +30,10 @@ var initialMinting = big.NewInt(0).Mul(oneEgld, big.NewInt(100))
 var issueCost = big.NewInt(5000000000000000000)
 
 func TestBridge_DeployOnMainChain_IssueAndDeposit(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 		BypassTxSignatureCheck: false,
 		TempDir:                t.TempDir(),
@@ -134,6 +138,10 @@ func TestBridge_DeployOnMainChain_IssueAndDeposit(t *testing.T) {
 }
 
 func TestBridge_DeployOnSovereignChain_IssueAndDeposit(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	scs, err := sovereignChainSimulator.NewSovereignChainSimulator(sovereignChainSimulator.ArgsSovereignChainSimulator{
 		SovereignConfigPath: sovereignConfigPath,
 		ChainSimulatorArgs: &chainSimulator.ArgsChainSimulator{
