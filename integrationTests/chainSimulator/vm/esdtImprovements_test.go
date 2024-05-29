@@ -244,29 +244,32 @@ func TestChainSimulator_CheckNFTandSFTMetadata(t *testing.T) {
 	address2, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
 	require.Nil(t, err)
 
-	// tx = utils.CreateESDTNFTTransferTx(
-	// 	2,
-	// 	address.Bytes,
-	// 	address2.Bytes,
-	// 	tokenID,
-	// 	1,
-	// 	big.NewInt(1),
-	// 	minGasPrice,
-	// 	10_000_000,
-	// 	"",
-	// )
-	// tx.Version = 1
-	// tx.Signature = []byte("dummySig")
-	// tx.ChainID = []byte(configs.ChainID)
+	address3, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	require.Nil(t, err)
 
-	// txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
-	// require.Nil(t, err)
-	// require.NotNil(t, txResult)
+	tx = utils.CreateESDTNFTTransferTx(
+		2,
+		address.Bytes,
+		address2.Bytes,
+		tokenID,
+		1,
+		big.NewInt(1),
+		minGasPrice,
+		10_000_000,
+		"",
+	)
+	tx.Version = 1
+	tx.Signature = []byte("dummySig")
+	tx.ChainID = []byte(configs.ChainID)
 
-	// fmt.Println(txResult.Logs.Events[0])
-	// fmt.Println(txResult.Logs.Events[0].Topics[0])
-	// fmt.Println(txResult.Logs.Events[0].Topics[1])
-	// fmt.Println(string(txResult.Logs.Events[0].Topics[1]))
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+
+	fmt.Println(txResult.Logs.Events[0])
+	fmt.Println(txResult.Logs.Events[0].Topics[0])
+	fmt.Println(txResult.Logs.Events[0].Topics[1])
+	fmt.Println(string(txResult.Logs.Events[0].Topics[1]))
 
 	require.Equal(t, "success", txResult.Status.String())
 
@@ -287,7 +290,7 @@ func TestChainSimulator_CheckNFTandSFTMetadata(t *testing.T) {
 	txDataField = []byte("updateTokenID@" + hex.EncodeToString(tokenID))
 
 	tx = &transaction.Transaction{
-		Nonce:     2,
+		Nonce:     3,
 		SndAddr:   address.Bytes,
 		RcvAddr:   vm.ESDTSCAddress,
 		GasLimit:  100_000_000,
@@ -325,9 +328,9 @@ func TestChainSimulator_CheckNFTandSFTMetadata(t *testing.T) {
 	log.Info("Step 7. transfer the tokens to another account")
 
 	tx = utils.CreateESDTNFTTransferTx(
-		3,
-		address.Bytes,
+		0,
 		address2.Bytes,
+		address3.Bytes,
 		tokenID,
 		1,
 		big.NewInt(1),
@@ -351,9 +354,9 @@ func TestChainSimulator_CheckNFTandSFTMetadata(t *testing.T) {
 
 	log.Info("Step 8. check that the metaData for the NFT was removed from the system account and moved to the user account")
 
-	shardID2 := cs.GetNodeHandler(0).GetShardCoordinator().ComputeId(address2.Bytes)
+	shardID3 := cs.GetNodeHandler(0).GetShardCoordinator().ComputeId(address3.Bytes)
 
-	retrievedMetaData = getMetaDataFromAcc(t, cs, address2.Bytes, tokenID, shardID2)
+	retrievedMetaData = getMetaDataFromAcc(t, cs, address3.Bytes, tokenID, shardID3)
 
 	require.Equal(t, nonce, []byte(hex.EncodeToString(big.NewInt(int64(retrievedMetaData.Nonce)).Bytes())))
 	require.Equal(t, name, []byte(hex.EncodeToString(retrievedMetaData.Name)))
