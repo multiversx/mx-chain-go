@@ -21,6 +21,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 )
 
+const (
+	numOfShards = 1
+)
+
 // ArgsSovereignChainSimulator holds the arguments for sovereign chain simulator
 type ArgsSovereignChainSimulator struct {
 	SovereignConfigPath string
@@ -29,6 +33,8 @@ type ArgsSovereignChainSimulator struct {
 
 // NewSovereignChainSimulator will create a new instance of sovereign chain simulator
 func NewSovereignChainSimulator(args ArgsSovereignChainSimulator) (chainSimulatorIntegrationTests.ChainSimulator, error) {
+	args.NumOfShards = numOfShards
+
 	alterConfigs := args.AlterConfigsFunction
 	configs, err := loadSovereignConfigs(args.SovereignConfigPath)
 	if err != nil {
