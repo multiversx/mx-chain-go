@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-go/config"
 	chainSimulatorIntegrationTests "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
@@ -28,12 +27,9 @@ var initialMinting = big.NewInt(0).Mul(oneEgld, big.NewInt(100))
 var issueCost = big.NewInt(5000000000000000000)
 
 func TestEsdt_Issue(t *testing.T) {
-	epochConfig, economicsConfig, sovereignExtraConfig, err := sovereignChainSimulator.LoadSovereignConfigs(sovereignConfigPath)
-	require.Nil(t, err)
-
 	cs, err := sovereignChainSimulator.NewSovereignChainSimulator(sovereignChainSimulator.ArgsSovereignChainSimulator{
-		SovereignExtraConfig: *sovereignExtraConfig,
-		ChainSimulatorArgs: chainSimulator.ArgsChainSimulator{
+		SovereignConfigPath: sovereignConfigPath,
+		ChainSimulatorArgs: &chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck: false,
 			TempDir:                t.TempDir(),
 			PathToInitialConfig:    defaultPathToInitialConfig,
@@ -44,13 +40,6 @@ func TestEsdt_Issue(t *testing.T) {
 			ApiInterface:           api.NewNoApiInterface(),
 			MinNodesPerShard:       2,
 			ConsensusGroupSize:     2,
-			AlterConfigsFunction: func(cfg *config.Configs) {
-				cfg.EconomicsConfig = economicsConfig
-				cfg.EpochConfig = epochConfig
-				cfg.GeneralConfig.SovereignConfig = *sovereignExtraConfig
-				cfg.GeneralConfig.VirtualMachine.Execution.WasmVMVersions = []config.WasmVMVersionByEpoch{{StartEpoch: 0, Version: "v1.5"}}
-				cfg.GeneralConfig.VirtualMachine.Querying.WasmVMVersions = []config.WasmVMVersionByEpoch{{StartEpoch: 0, Version: "v1.5"}}
-			},
 		},
 	})
 	require.Nil(t, err)
