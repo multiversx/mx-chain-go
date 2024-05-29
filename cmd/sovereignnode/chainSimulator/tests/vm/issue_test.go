@@ -29,6 +29,10 @@ var oneEgld = big.NewInt(1000000000000000000)
 var initialMinting = big.NewInt(0).Mul(oneEgld, big.NewInt(100))
 
 func TestSmartContract_IssueToken(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	cs, err := sovereignChainSimulator.NewSovereignChainSimulator(sovereignChainSimulator.ArgsSovereignChainSimulator{
 		SovereignConfigPath: sovereignConfigPath,
 		ChainSimulatorArgs: &chainSimulator.ArgsChainSimulator{
@@ -107,6 +111,10 @@ func TestSmartContract_IssueToken(t *testing.T) {
 }
 
 func TestSmartContract_IssueToken_MainChain(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
 		Value:    20,

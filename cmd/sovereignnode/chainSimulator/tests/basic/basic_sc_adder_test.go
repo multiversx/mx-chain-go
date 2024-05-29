@@ -26,6 +26,10 @@ var oneEgld = big.NewInt(1000000000000000000)
 var initialMinting = big.NewInt(0).Mul(oneEgld, big.NewInt(100))
 
 func TestSmartContract_Adder(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	cs, err := sovereignChainSimulator.NewSovereignChainSimulator(sovereignChainSimulator.ArgsSovereignChainSimulator{
 		SovereignConfigPath: sovereignConfigPath,
 		ChainSimulatorArgs: &chainSimulator.ArgsChainSimulator{
