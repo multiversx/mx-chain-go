@@ -45,6 +45,7 @@ type ArgsDepositToken struct {
 	Amount     *big.Int
 }
 
+// GetSysAccBytesAddress -
 func GetSysAccBytesAddress(nodeHandler process.NodeHandler) ([]byte, error) {
 	return nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode("erd1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq6gq4hu")
 }
@@ -114,6 +115,7 @@ func SendTransaction(
 	return txResult
 }
 
+// IssueFungible -
 func IssueFungible(
 	t *testing.T,
 	cs ChainSimulator,
