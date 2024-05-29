@@ -179,23 +179,21 @@ func CheckGetAccount(t *testing.T, chainSimulator ChainSimulator) {
 
 // CheckGenerateTransactions -
 func CheckGenerateTransactions(t *testing.T, chainSimulator ChainSimulator) {
-	oneEgld := big.NewInt(1000000000000000000)
-	initialMinting := big.NewInt(0).Mul(oneEgld, big.NewInt(100))
-	transferValue := big.NewInt(0).Mul(oneEgld, big.NewInt(5))
+	transferValue := big.NewInt(0).Mul(OneEGLD, big.NewInt(5))
 
-	wallet0, err := chainSimulator.GenerateAndMintWalletAddress(0, initialMinting)
+	wallet0, err := chainSimulator.GenerateAndMintWalletAddress(0, InitialAmount)
 	require.Nil(t, err)
 
-	wallet1, err := chainSimulator.GenerateAndMintWalletAddress(1, initialMinting)
+	wallet1, err := chainSimulator.GenerateAndMintWalletAddress(1, InitialAmount)
 	require.Nil(t, err)
 
-	wallet2, err := chainSimulator.GenerateAndMintWalletAddress(2, initialMinting)
+	wallet2, err := chainSimulator.GenerateAndMintWalletAddress(2, InitialAmount)
 	require.Nil(t, err)
 
-	wallet3, err := chainSimulator.GenerateAndMintWalletAddress(2, initialMinting)
+	wallet3, err := chainSimulator.GenerateAndMintWalletAddress(2, InitialAmount)
 	require.Nil(t, err)
 
-	wallet4, err := chainSimulator.GenerateAndMintWalletAddress(2, initialMinting)
+	wallet4, err := chainSimulator.GenerateAndMintWalletAddress(2, InitialAmount)
 	require.Nil(t, err)
 
 	gasLimit := uint64(50000)
@@ -231,7 +229,7 @@ func CheckGenerateTransactions(t *testing.T, chainSimulator ChainSimulator) {
 
 		account, errGet := chainSimulator.GetAccount(wallet2)
 		assert.Nil(t, errGet)
-		expectedBalance := big.NewInt(0).Add(initialMinting, transferValue)
+		expectedBalance := big.NewInt(0).Add(InitialAmount, transferValue)
 		expectedBalance.Add(expectedBalance, transferValue)
 		assert.Equal(t, expectedBalance.String(), account.Balance)
 	})
@@ -241,7 +239,7 @@ func CheckGenerateTransactions(t *testing.T, chainSimulator ChainSimulator) {
 
 		account, errGet := chainSimulator.GetAccount(wallet4)
 		assert.Nil(t, errGet)
-		expectedBalance := big.NewInt(0).Add(initialMinting, transferValue)
+		expectedBalance := big.NewInt(0).Add(InitialAmount, transferValue)
 		assert.Equal(t, expectedBalance.String(), account.Balance)
 	})
 }

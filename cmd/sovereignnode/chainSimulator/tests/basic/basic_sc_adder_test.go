@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	chainSimulatorIntegrationTests "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
+	chainSim "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/process"
@@ -22,10 +22,7 @@ const (
 	adderWasmPath              = "../testdata/adder.wasm"
 )
 
-var oneEgld = big.NewInt(1000000000000000000)
-var initialMinting = big.NewInt(0).Mul(oneEgld, big.NewInt(100))
-
-func TestSmartContract_Adder(t *testing.T) {
+func TestSovereignChain_SmartContract_Adder(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -50,19 +47,20 @@ func TestSmartContract_Adder(t *testing.T) {
 
 	defer cs.Close()
 
-	err = cs.GenerateBlocks(200)
-	require.Nil(t, err)
+	time.Sleep(time.Second) // wait for VM to be ready for processing queries
 
 	nodeHandler := cs.GetNodeHandler(core.SovereignChainShardId)
-	systemScAddress, _ := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode("erd1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq6gq4hu")
 
-	wallet, err := cs.GenerateAndMintWalletAddress(core.SovereignChainShardId, initialMinting)
+	systemScAddress, err := chainSim.GetSysAccBytesAddress(nodeHandler)
+	require.Nil(t, err)
+
+	wallet, err := cs.GenerateAndMintWalletAddress(core.SovereignChainShardId, chainSim.InitialAmount)
 	require.Nil(t, err)
 	nonce := uint64(0)
 
 	initSum := big.NewInt(123)
 	initArgs := "@" + hex.EncodeToString(initSum.Bytes())
-	deployedContractAddress := chainSimulatorIntegrationTests.DeployContract(t, cs, wallet.Bytes, &nonce, systemScAddress, initArgs, adderWasmPath)
+	deployedContractAddress := chainSim.DeployContract(t, cs, wallet.Bytes, &nonce, systemScAddress, initArgs, adderWasmPath)
 
 	res, _, err := nodeHandler.GetFacadeHandler().ExecuteSCQuery(&process.SCQuery{
 		ScAddress:  deployedContractAddress,
@@ -71,12 +69,13 @@ func TestSmartContract_Adder(t *testing.T) {
 		BlockNonce: core.OptionalUint64{},
 	})
 	require.Nil(t, err)
+	require.Equal(t, chainSim.OkReturnCode, res.ReturnCode)
 	sum := big.NewInt(0).SetBytes(res.ReturnData[0])
 	require.Equal(t, initSum, sum)
 
 	addedSum := big.NewInt(10)
 	addTxData := "add@" + hex.EncodeToString(addedSum.Bytes())
-	chainSimulatorIntegrationTests.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, big.NewInt(0), addTxData, uint64(10000000))
+	chainSim.SendTransaction(t, cs, wallet.Bytes, &nonce, deployedContractAddress, chainSim.ZeroValue, addTxData, uint64(10000000))
 
 	res, _, err = nodeHandler.GetFacadeHandler().ExecuteSCQuery(&process.SCQuery{
 		ScAddress:  deployedContractAddress,
@@ -85,6 +84,7 @@ func TestSmartContract_Adder(t *testing.T) {
 		BlockNonce: core.OptionalUint64{},
 	})
 	require.Nil(t, err)
+	require.Equal(t, chainSim.OkReturnCode, res.ReturnCode)
 	sum = big.NewInt(0).SetBytes(res.ReturnData[0])
 	require.Equal(t, initSum.Add(initSum, addedSum), sum)
 }
