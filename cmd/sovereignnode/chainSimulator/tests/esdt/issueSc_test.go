@@ -106,7 +106,7 @@ func TestSovereignChain_SmartContract_IssueToken(t *testing.T) {
 	esdts, _, err := nodeHandler.GetFacadeHandler().GetAllESDTTokens(deployedContractAddressBech32, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
 	require.NotEmpty(t, esdts)
-	require.Equal(t, expectedMintedAmount, esdts[issuedESDTs[0]].Value)
+	require.Equal(t, expectedMintedAmount, esdts[tokenIdentifier].Value)
 }
 
 func checkAllRoles(t *testing.T, nodeHandler process.NodeHandler, address string, tokenIdentifier string, roles []string) {
