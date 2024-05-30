@@ -3,6 +3,7 @@ package vm
 import (
 	"bytes"
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	"testing"
 	"time"
@@ -35,7 +36,7 @@ const (
 
 var log = logger.GetOrCreate("integrationTests/chainSimulator/vm")
 
-// Test scenario
+// Test scenario #1
 //
 // Initial setup: Create fungible, NFT,  SFT and metaESDT tokens
 //  (before the activation of DynamicEsdtFlag)
@@ -587,7 +588,7 @@ func setAddressEsdtRoles(
 	require.Nil(t, err)
 }
 
-// Test scenario
+// Test scenario #3
 //
 // Initial setup: Create fungible, NFT,  SFT and metaESDT tokens
 // (after the activation of DynamicEsdtFlag)
@@ -599,8 +600,6 @@ func TestChainSimulator_CreateTokensAfterActivation(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	// logger.SetLogLevel("*:TRACE")
-
 	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
 	roundsPerEpoch := core.OptionalUint64{
@@ -609,6 +608,8 @@ func TestChainSimulator_CreateTokensAfterActivation(t *testing.T) {
 	}
 
 	activationEpoch := uint32(2)
+
+	baseIssuingCost := "1000"
 
 	numOfShards := uint32(3)
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
@@ -628,6 +629,7 @@ func TestChainSimulator_CreateTokensAfterActivation(t *testing.T) {
 		NumNodesWaitingListShard:    0,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpoch
+			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
 		},
 	})
 	require.Nil(t, err)
@@ -635,11 +637,7 @@ func TestChainSimulator_CreateTokensAfterActivation(t *testing.T) {
 
 	defer cs.Close()
 
-	mintValue := big.NewInt(10)
-	mintValue = mintValue.Mul(staking.OneEGLD, mintValue)
-
-	address, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
-	require.Nil(t, err)
+	addrs := createAddresses(t, cs, false)
 
 	err = cs.GenerateBlocksUntilEpochIsReached(int32(activationEpoch))
 	require.Nil(t, err)
@@ -649,36 +647,120 @@ func TestChainSimulator_CreateTokensAfterActivation(t *testing.T) {
 
 	log.Info("Initial setup: Create fungible, NFT,  SFT and metaESDT tokens (after the activation of DynamicEsdtFlag)")
 
-	tokenID := []byte("ASD-d31313")
-
-	roles := [][]byte{
-		[]byte(core.ESDTMetaDataRecreate),
-		[]byte(core.ESDTRoleNFTCreate),
-		[]byte(core.ESDTRoleNFTBurn),
-		[]byte(core.ESDTRoleTransfer),
-		[]byte(core.ESDTRoleNFTUpdateAttributes),
-		[]byte(core.ESDTRoleNFTAddURI),
-	}
-	setAddressEsdtRoles(t, cs, address, tokenID, roles)
-
-	nftMetaData := txsFee.GetDefaultMetaData()
-
-	tx := nftCreateTx(1, address.Bytes, tokenID, nftMetaData)
+	// issue metaESDT
+	metaESDTTicker := []byte("METATTICKER")
+	tx := issueMetaESDTTx(0, addrs[0].Bytes, metaESDTTicker, baseIssuingCost)
 
 	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
 	require.Equal(t, "success", txResult.Status.String())
 
+	metaESDTTokenID := txResult.Logs.Events[0].Topics[0]
+
+	roles := [][]byte{
+		[]byte(core.ESDTRoleNFTCreate),
+		[]byte(core.ESDTRoleTransfer),
+	}
+	setAddressEsdtRoles(t, cs, addrs[0], metaESDTTokenID, roles)
+
+	log.Info("Issued metaESDT token id", "tokenID", string(metaESDTTokenID))
+
+	// issue fungible
+	fungibleTicker := []byte("FUNGIBLETICKER")
+	tx = issueTx(1, addrs[0].Bytes, fungibleTicker, baseIssuingCost)
+
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+	require.Equal(t, "success", txResult.Status.String())
+
+	fungibleTokenID := txResult.Logs.Events[0].Topics[0]
+	setAddressEsdtRoles(t, cs, addrs[0], fungibleTokenID, roles)
+
+	log.Info("Issued fungible token id", "tokenID", string(fungibleTokenID))
+
+	// issue NFT
+	nftTicker := []byte("NFTTICKER")
+	tx = issueNonFungibleTx(2, addrs[0].Bytes, nftTicker, baseIssuingCost)
+
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+	require.Equal(t, "success", txResult.Status.String())
+
+	nftTokenID := txResult.Logs.Events[0].Topics[0]
+	setAddressEsdtRoles(t, cs, addrs[0], nftTokenID, roles)
+
+	log.Info("Issued NFT token id", "tokenID", string(nftTokenID))
+
+	// issue SFT
+	sftTicker := []byte("SFTTICKER")
+	tx = issueSemiFungibleTx(3, addrs[0].Bytes, sftTicker, baseIssuingCost)
+
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+	require.Equal(t, "success", txResult.Status.String())
+
+	sftTokenID := txResult.Logs.Events[0].Topics[0]
+	setAddressEsdtRoles(t, cs, addrs[0], sftTokenID, roles)
+
+	log.Info("Issued SFT token id", "tokenID", string(sftTokenID))
+
+	tokenIDs := [][]byte{
+		nftTokenID,
+		sftTokenID,
+		metaESDTTokenID,
+		// fungibleTokenID,
+	}
+
+	nftMetaData := txsFee.GetDefaultMetaData()
+	nftMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
+
+	sftMetaData := txsFee.GetDefaultMetaData()
+	sftMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
+
+	esdtMetaData := txsFee.GetDefaultMetaData()
+	esdtMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
+
+	fungibleMetaData := txsFee.GetDefaultMetaData()
+	fungibleMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
+
+	tokensMetadata := []*txsFee.MetaData{
+		nftMetaData,
+		sftMetaData,
+		esdtMetaData,
+		// fungibleMetaData,
+	}
+
+	nonce := uint64(4)
+	for i := range tokenIDs {
+		tx = nftCreateTx(nonce, addrs[0].Bytes, tokenIDs[i], tokensMetadata[i])
+
+		txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+		require.Nil(t, err)
+		require.NotNil(t, txResult)
+		require.Equal(t, "success", txResult.Status.String())
+
+		nonce++
+	}
+
 	err = cs.GenerateBlocks(10)
 	require.Nil(t, err)
 
 	log.Info("Step 1. check that the metaData for the NFT was saved in the user account and not on the system account")
 
-	checkMetaData(t, cs, address.Bytes, tokenID, nftMetaData)
+	checkMetaData(t, cs, addrs[0].Bytes, nftTokenID, nftMetaData)
+
+	log.Info("Step 2. check that the metaData for the other token types is saved on the system account and not at the user account level")
+
+	checkMetaData(t, cs, core.SystemAccountAddress, sftTokenID, nftMetaData)
+	checkMetaData(t, cs, core.SystemAccountAddress, metaESDTTokenID, esdtMetaData)
+	checkMetaData(t, cs, core.SystemAccountAddress, fungibleTokenID, fungibleMetaData)
 }
 
-// Test scenario
+// Test scenario #4
 //
 // Initial setup: Create NFT
 //
@@ -698,6 +780,8 @@ func TestChainSimulator_NFT_ESDTMetaDataRecreate(t *testing.T) {
 
 	activationEpoch := uint32(2)
 
+	baseIssuingCost := "1000"
+
 	numOfShards := uint32(3)
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 		BypassTxSignatureCheck:      false,
@@ -716,6 +800,7 @@ func TestChainSimulator_NFT_ESDTMetaDataRecreate(t *testing.T) {
 		NumNodesWaitingListShard:    0,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpoch
+			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
 		},
 	})
 	require.Nil(t, err)
@@ -737,19 +822,30 @@ func TestChainSimulator_NFT_ESDTMetaDataRecreate(t *testing.T) {
 
 	log.Info("Initial setup: Create NFT")
 
-	tokenID := []byte("ASD-d31313")
+	nftTicker := []byte("NFTTICKER")
+	tx := issueNonFungibleTx(0, address.Bytes, nftTicker, baseIssuingCost)
+
+	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+	require.Equal(t, "success", txResult.Status.String())
 
 	roles := [][]byte{
 		[]byte(core.ESDTRoleNFTCreate),
 		[]byte(core.ESDTMetaDataRecreate),
 	}
-	setAddressEsdtRoles(t, cs, address, tokenID, roles)
+
+	nftTokenID := txResult.Logs.Events[0].Topics[0]
+	setAddressEsdtRoles(t, cs, address, nftTokenID, roles)
+
+	log.Info("Issued NFT token id", "tokenID", string(nftTokenID))
 
 	nftMetaData := txsFee.GetDefaultMetaData()
+	nftMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
 
-	tx := nftCreateTx(1, address.Bytes, tokenID, nftMetaData)
+	tx = nftCreateTx(1, address.Bytes, nftTokenID, nftMetaData)
 
-	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
 	require.Equal(t, "success", txResult.Status.String())
@@ -767,19 +863,21 @@ func TestChainSimulator_NFT_ESDTMetaDataRecreate(t *testing.T) {
 	txDataField := bytes.Join(
 		[][]byte{
 			[]byte(core.ESDTMetaDataRecreate),
-			[]byte(hex.EncodeToString(tokenID)),
+			[]byte(hex.EncodeToString(nftTokenID)),
 			nonce,
 			nftMetaData.Name,
 			[]byte(hex.EncodeToString(big.NewInt(10).Bytes())),
 			nftMetaData.Hash,
 			nftMetaData.Attributes,
 			nftMetaData.Uris[0],
+			nftMetaData.Uris[1],
+			nftMetaData.Uris[2],
 		},
 		[]byte("@"),
 	)
 
 	tx = &transaction.Transaction{
-		Nonce:     1,
+		Nonce:     2,
 		SndAddr:   address.Bytes,
 		RcvAddr:   address.Bytes,
 		GasLimit:  10_000_000,
@@ -797,10 +895,10 @@ func TestChainSimulator_NFT_ESDTMetaDataRecreate(t *testing.T) {
 
 	require.Equal(t, "success", txResult.Status.String())
 
-	checkMetaData(t, cs, core.SystemAccountAddress, tokenID, nftMetaData)
+	checkMetaData(t, cs, address.Bytes, nftTokenID, nftMetaData)
 }
 
-// Test scenario
+// Test scenario #5
 //
 // Initial setup: Create NFT
 //
@@ -820,6 +918,8 @@ func TestChainSimulator_NFT_ESDTMetaDataUpdate(t *testing.T) {
 
 	activationEpoch := uint32(2)
 
+	baseIssuingCost := "1000"
+
 	numOfShards := uint32(3)
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 		BypassTxSignatureCheck:      false,
@@ -838,6 +938,7 @@ func TestChainSimulator_NFT_ESDTMetaDataUpdate(t *testing.T) {
 		NumNodesWaitingListShard:    0,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpoch
+			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
 		},
 	})
 	require.Nil(t, err)
@@ -859,79 +960,59 @@ func TestChainSimulator_NFT_ESDTMetaDataUpdate(t *testing.T) {
 
 	log.Info("Initial setup: Create  NFT")
 
-	tokenID := []byte("ASD-d31313")
-
-	roles := [][]byte{
-		[]byte(core.ESDTRoleNFTCreate),
-		[]byte(core.ESDTRoleNFTUpdate),
-	}
-	setAddressEsdtRoles(t, cs, address, tokenID, roles)
-
-	name := []byte(hex.EncodeToString([]byte("name")))
-	hash := []byte(hex.EncodeToString([]byte("hash")))
-	attributes := []byte(hex.EncodeToString([]byte("attributes")))
-	uris := [][]byte{[]byte(hex.EncodeToString([]byte("uri")))}
-
-	txDataField := bytes.Join(
-		[][]byte{
-			[]byte(core.BuiltInFunctionESDTNFTCreate),
-			[]byte(hex.EncodeToString(tokenID)),
-			[]byte(hex.EncodeToString(big.NewInt(1).Bytes())), // quantity
-			name,
-			[]byte(hex.EncodeToString(big.NewInt(10).Bytes())),
-			hash,
-			attributes,
-			uris[0],
-		},
-		[]byte("@"),
-	)
-
-	tx := &transaction.Transaction{
-		Nonce:     0,
-		SndAddr:   address.Bytes,
-		RcvAddr:   address.Bytes,
-		GasLimit:  10_000_000,
-		GasPrice:  minGasPrice,
-		Signature: []byte("dummySig"),
-		Data:      txDataField,
-		Value:     big.NewInt(0),
-		ChainID:   []byte(configs.ChainID),
-		Version:   1,
-	}
+	nftTicker := []byte("NFTTICKER")
+	tx := issueNonFungibleTx(0, address.Bytes, nftTicker, baseIssuingCost)
 
 	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
 	require.Equal(t, "success", txResult.Status.String())
 
-	err = cs.GenerateBlocks(10)
-	require.Nil(t, err)
+	roles := [][]byte{
+		[]byte(core.ESDTRoleNFTCreate),
+		[]byte(core.ESDTRoleNFTUpdate),
+	}
 
-	shardID := cs.GetNodeHandler(0).GetShardCoordinator().ComputeId(address.Bytes)
+	nftTokenID := txResult.Logs.Events[0].Topics[0]
+	setAddressEsdtRoles(t, cs, address, nftTokenID, roles)
+
+	log.Info("Issued NFT token id", "tokenID", string(nftTokenID))
+
+	nftMetaData := txsFee.GetDefaultMetaData()
+	nftMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
+
+	tx = nftCreateTx(1, address.Bytes, nftTokenID, nftMetaData)
+
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+	require.Equal(t, "success", txResult.Status.String())
 
 	log.Info("Call ESDTMetaDataRecreate to rewrite the meta data for the nft")
 
 	nonce := []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
-	name = []byte(hex.EncodeToString([]byte("name2")))
-	hash = []byte(hex.EncodeToString([]byte("hash2")))
-	attributes = []byte(hex.EncodeToString([]byte("attributes2")))
+	nftMetaData.Name = []byte(hex.EncodeToString([]byte("name2")))
+	nftMetaData.Hash = []byte(hex.EncodeToString([]byte("hash2")))
+	nftMetaData.Attributes = []byte(hex.EncodeToString([]byte("attributes2")))
 
-	txDataField = bytes.Join(
+	txDataField := bytes.Join(
 		[][]byte{
 			[]byte(core.ESDTMetaDataUpdate),
-			[]byte(hex.EncodeToString(tokenID)),
+			[]byte(hex.EncodeToString(nftTokenID)),
 			nonce,
-			name,
+			nftMetaData.Name,
 			[]byte(hex.EncodeToString(big.NewInt(10).Bytes())),
-			hash,
-			attributes,
-			uris[0],
+			nftMetaData.Hash,
+			nftMetaData.Attributes,
+			nftMetaData.Uris[0],
+			nftMetaData.Uris[1],
+			nftMetaData.Uris[2],
 		},
 		[]byte("@"),
 	)
 
 	tx = &transaction.Transaction{
-		Nonce:     1,
+		Nonce:     2,
 		SndAddr:   address.Bytes,
 		RcvAddr:   address.Bytes,
 		GasLimit:  10_000_000,
@@ -949,18 +1030,10 @@ func TestChainSimulator_NFT_ESDTMetaDataUpdate(t *testing.T) {
 
 	require.Equal(t, "success", txResult.Status.String())
 
-	retrievedMetaData := getMetaDataFromAcc(t, cs, core.SystemAccountAddress, tokenID, shardID)
-
-	require.Equal(t, nonce, []byte(hex.EncodeToString(big.NewInt(int64(retrievedMetaData.Nonce)).Bytes())))
-	require.Equal(t, name, []byte(hex.EncodeToString(retrievedMetaData.Name)))
-	require.Equal(t, hash, []byte(hex.EncodeToString(retrievedMetaData.Hash)))
-	for i, uri := range uris {
-		require.Equal(t, uri, []byte(hex.EncodeToString(retrievedMetaData.URIs[i])))
-	}
-	require.Equal(t, attributes, []byte(hex.EncodeToString(retrievedMetaData.Attributes)))
+	checkMetaData(t, cs, address.Bytes, nftTokenID, nftMetaData)
 }
 
-// Test scenario
+// Test scenario #6
 //
 // Initial setup: Create NFT
 //
@@ -980,6 +1053,8 @@ func TestChainSimulator_NFT_ESDTModifyCreator(t *testing.T) {
 
 	activationEpoch := uint32(2)
 
+	baseIssuingCost := "1000"
+
 	numOfShards := uint32(3)
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 		BypassTxSignatureCheck:      false,
@@ -998,6 +1073,7 @@ func TestChainSimulator_NFT_ESDTModifyCreator(t *testing.T) {
 		NumNodesWaitingListShard:    0,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpoch
+			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
 		},
 	})
 	require.Nil(t, err)
@@ -1019,51 +1095,33 @@ func TestChainSimulator_NFT_ESDTModifyCreator(t *testing.T) {
 
 	log.Info("Initial setup: Create NFT")
 
-	tokenID := []byte("ASD-d31313")
-
-	roles := [][]byte{
-		[]byte(core.ESDTRoleNFTCreate),
-	}
-	setAddressEsdtRoles(t, cs, address, tokenID, roles)
-
-	name := []byte(hex.EncodeToString([]byte("name")))
-	hash := []byte(hex.EncodeToString([]byte("hash")))
-	attributes := []byte(hex.EncodeToString([]byte("attributes")))
-	uris := [][]byte{[]byte(hex.EncodeToString([]byte("uri")))}
-
-	txDataField := bytes.Join(
-		[][]byte{
-			[]byte(core.BuiltInFunctionESDTNFTCreate),
-			[]byte(hex.EncodeToString(tokenID)),
-			[]byte(hex.EncodeToString(big.NewInt(1).Bytes())), // quantity
-			name,
-			[]byte(hex.EncodeToString(big.NewInt(10).Bytes())),
-			hash,
-			attributes,
-			uris[0],
-		},
-		[]byte("@"),
-	)
-
-	tx := &transaction.Transaction{
-		Nonce:     0,
-		SndAddr:   address.Bytes,
-		RcvAddr:   address.Bytes,
-		GasLimit:  10_000_000,
-		GasPrice:  minGasPrice,
-		Signature: []byte("dummySig"),
-		Data:      txDataField,
-		Value:     big.NewInt(0),
-		ChainID:   []byte(configs.ChainID),
-		Version:   1,
-	}
+	nftTicker := []byte("NFTTICKER")
+	tx := issueNonFungibleTx(0, address.Bytes, nftTicker, baseIssuingCost)
 
 	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
 	require.Equal(t, "success", txResult.Status.String())
 
-	shardID := cs.GetNodeHandler(0).GetShardCoordinator().ComputeId(address.Bytes)
+	roles := [][]byte{
+		[]byte(core.ESDTRoleNFTCreate),
+		[]byte(core.ESDTRoleNFTUpdate),
+	}
+
+	nftTokenID := txResult.Logs.Events[0].Topics[0]
+	setAddressEsdtRoles(t, cs, address, nftTokenID, roles)
+
+	log.Info("Issued NFT token id", "tokenID", string(nftTokenID))
+
+	nftMetaData := txsFee.GetDefaultMetaData()
+	nftMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
+
+	tx = nftCreateTx(1, address.Bytes, nftTokenID, nftMetaData)
+
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+	require.Equal(t, "success", txResult.Status.String())
 
 	log.Info("Call ESDTModifyCreator and check that the creator was modified")
 
@@ -1076,15 +1134,13 @@ func TestChainSimulator_NFT_ESDTModifyCreator(t *testing.T) {
 	roles = [][]byte{
 		[]byte(core.ESDTRoleModifyCreator),
 	}
-	setAddressEsdtRoles(t, cs, newCreatorAddress, tokenID, roles)
+	setAddressEsdtRoles(t, cs, newCreatorAddress, nftTokenID, roles)
 
-	nonce := []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
-
-	txDataField = bytes.Join(
+	txDataField := bytes.Join(
 		[][]byte{
 			[]byte(core.ESDTModifyCreator),
-			[]byte(hex.EncodeToString(tokenID)),
-			nonce,
+			[]byte(hex.EncodeToString(nftTokenID)),
+			nftMetaData.Nonce,
 		},
 		[]byte("@"),
 	)
@@ -1106,14 +1162,20 @@ func TestChainSimulator_NFT_ESDTModifyCreator(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
 
+	fmt.Println(txResult)
+	fmt.Println(txResult.Logs.Events[0])
+	fmt.Println(string(txResult.Logs.Events[0].Topics[0]))
+	fmt.Println(string(txResult.Logs.Events[0].Topics[1]))
+
 	require.Equal(t, "success", txResult.Status.String())
 
-	retrievedMetaData := getMetaDataFromAcc(t, cs, core.SystemAccountAddress, tokenID, shardID)
+	shardID := cs.GetNodeHandler(0).GetProcessComponents().ShardCoordinator().ComputeId(address.Bytes)
+	retrievedMetaData := getMetaDataFromAcc(t, cs, address.Bytes, nftTokenID, shardID)
 
 	require.Equal(t, newCreatorAddress.Bytes, retrievedMetaData.Creator)
 }
 
-// Test scenario
+// Test scenario #7
 //
 // Initial setup: Create NFT
 //
@@ -1133,6 +1195,8 @@ func TestChainSimulator_NFT_ESDTSetNewURIs(t *testing.T) {
 
 	activationEpoch := uint32(2)
 
+	baseIssuingCost := "1000"
+
 	numOfShards := uint32(3)
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 		BypassTxSignatureCheck:      false,
@@ -1151,6 +1215,7 @@ func TestChainSimulator_NFT_ESDTSetNewURIs(t *testing.T) {
 		NumNodesWaitingListShard:    0,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpoch
+			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
 		},
 	})
 	require.Nil(t, err)
@@ -1172,64 +1237,43 @@ func TestChainSimulator_NFT_ESDTSetNewURIs(t *testing.T) {
 
 	log.Info("Initial setup: Create NFT")
 
-	tokenID := []byte("ASD-d31313")
-
-	roles := [][]byte{
-		[]byte(core.ESDTRoleNFTCreate),
-	}
-	setAddressEsdtRoles(t, cs, address, tokenID, roles)
-
-	name := []byte(hex.EncodeToString([]byte("name")))
-	hash := []byte(hex.EncodeToString([]byte("hash")))
-	attributes := []byte(hex.EncodeToString([]byte("attributes")))
-	uris := [][]byte{[]byte(hex.EncodeToString([]byte("uri")))}
-
-	txDataField := bytes.Join(
-		[][]byte{
-			[]byte(core.BuiltInFunctionESDTNFTCreate),
-			[]byte(hex.EncodeToString(tokenID)),
-			[]byte(hex.EncodeToString(big.NewInt(1).Bytes())), // quantity
-			name,
-			[]byte(hex.EncodeToString(big.NewInt(10).Bytes())),
-			hash,
-			attributes,
-			uris[0],
-		},
-		[]byte("@"),
-	)
-
-	tx := &transaction.Transaction{
-		Nonce:     0,
-		SndAddr:   address.Bytes,
-		RcvAddr:   address.Bytes,
-		GasLimit:  10_000_000,
-		GasPrice:  minGasPrice,
-		Signature: []byte("dummySig"),
-		Data:      txDataField,
-		Value:     big.NewInt(0),
-		ChainID:   []byte(configs.ChainID),
-		Version:   1,
-	}
+	nftTicker := []byte("NFTTICKER")
+	tx := issueNonFungibleTx(0, address.Bytes, nftTicker, baseIssuingCost)
 
 	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
 	require.Equal(t, "success", txResult.Status.String())
 
-	err = cs.GenerateBlocks(10)
-	require.Nil(t, err)
+	roles := [][]byte{
+		[]byte(core.ESDTRoleNFTCreate),
+		[]byte(core.ESDTRoleNFTUpdate),
+	}
 
-	shardID := cs.GetNodeHandler(0).GetShardCoordinator().ComputeId(address.Bytes)
+	nftTokenID := txResult.Logs.Events[0].Topics[0]
+	setAddressEsdtRoles(t, cs, address, nftTokenID, roles)
+
+	log.Info("Issued NFT token id", "tokenID", string(nftTokenID))
+
+	nftMetaData := txsFee.GetDefaultMetaData()
+	nftMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
+
+	tx = nftCreateTx(1, address.Bytes, nftTokenID, nftMetaData)
+
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+	require.Equal(t, "success", txResult.Status.String())
 
 	log.Info("Call ESDTSetNewURIs and check that the new URIs were set for the NFT")
 
 	roles = [][]byte{
 		[]byte(core.ESDTRoleSetNewURI),
 	}
-	setAddressEsdtRoles(t, cs, address, tokenID, roles)
+	setAddressEsdtRoles(t, cs, address, nftTokenID, roles)
 
 	nonce := []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
-	uris = [][]byte{
+	uris := [][]byte{
 		[]byte(hex.EncodeToString([]byte("uri0"))),
 		[]byte(hex.EncodeToString([]byte("uri1"))),
 		[]byte(hex.EncodeToString([]byte("uri2"))),
@@ -1241,10 +1285,10 @@ func TestChainSimulator_NFT_ESDTSetNewURIs(t *testing.T) {
 		[]byte("uri2"),
 	}
 
-	txDataField = bytes.Join(
+	txDataField := bytes.Join(
 		[][]byte{
 			[]byte(core.ESDTSetNewURIs),
-			[]byte(hex.EncodeToString(tokenID)),
+			[]byte(hex.EncodeToString(nftTokenID)),
 			nonce,
 			uris[0],
 			uris[1],
@@ -1254,7 +1298,7 @@ func TestChainSimulator_NFT_ESDTSetNewURIs(t *testing.T) {
 	)
 
 	tx = &transaction.Transaction{
-		Nonce:     1,
+		Nonce:     2,
 		SndAddr:   address.Bytes,
 		RcvAddr:   address.Bytes,
 		GasLimit:  10_000_000,
@@ -1272,12 +1316,13 @@ func TestChainSimulator_NFT_ESDTSetNewURIs(t *testing.T) {
 
 	require.Equal(t, "success", txResult.Status.String())
 
-	retrievedMetaData := getMetaDataFromAcc(t, cs, core.SystemAccountAddress, tokenID, shardID)
+	shardID := cs.GetNodeHandler(0).GetProcessComponents().ShardCoordinator().ComputeId(address.Bytes)
+	retrievedMetaData := getMetaDataFromAcc(t, cs, address.Bytes, nftTokenID, shardID)
 
 	require.Equal(t, expUris, retrievedMetaData.URIs)
 }
 
-// Test scenario
+// Test scenario #8
 //
 // Initial setup: Create NFT
 //
@@ -1297,6 +1342,8 @@ func TestChainSimulator_NFT_ESDTModifyRoyalties(t *testing.T) {
 
 	activationEpoch := uint32(2)
 
+	baseIssuingCost := "1000"
+
 	numOfShards := uint32(3)
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 		BypassTxSignatureCheck:      false,
@@ -1315,6 +1362,7 @@ func TestChainSimulator_NFT_ESDTModifyRoyalties(t *testing.T) {
 		NumNodesWaitingListShard:    0,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpoch
+			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
 		},
 	})
 	require.Nil(t, err)
@@ -1336,69 +1384,48 @@ func TestChainSimulator_NFT_ESDTModifyRoyalties(t *testing.T) {
 
 	log.Info("Initial setup: Create NFT")
 
-	tokenID := []byte("ASD-d31313")
-
-	roles := [][]byte{
-		[]byte(core.ESDTRoleNFTCreate),
-	}
-	setAddressEsdtRoles(t, cs, address, tokenID, roles)
-
-	name := []byte(hex.EncodeToString([]byte("name")))
-	hash := []byte(hex.EncodeToString([]byte("hash")))
-	attributes := []byte(hex.EncodeToString([]byte("attributes")))
-	uris := [][]byte{[]byte(hex.EncodeToString([]byte("uri")))}
-
-	txDataField := bytes.Join(
-		[][]byte{
-			[]byte(core.BuiltInFunctionESDTNFTCreate),
-			[]byte(hex.EncodeToString(tokenID)),
-			[]byte(hex.EncodeToString(big.NewInt(1).Bytes())), // quantity
-			name,
-			[]byte(hex.EncodeToString(big.NewInt(10).Bytes())),
-			hash,
-			attributes,
-			uris[0],
-		},
-		[]byte("@"),
-	)
-
-	tx := &transaction.Transaction{
-		Nonce:     0,
-		SndAddr:   address.Bytes,
-		RcvAddr:   address.Bytes,
-		GasLimit:  10_000_000,
-		GasPrice:  minGasPrice,
-		Signature: []byte("dummySig"),
-		Data:      txDataField,
-		Value:     big.NewInt(0),
-		ChainID:   []byte(configs.ChainID),
-		Version:   1,
-	}
+	nftTicker := []byte("NFTTICKER")
+	tx := issueNonFungibleTx(0, address.Bytes, nftTicker, baseIssuingCost)
 
 	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
 	require.Equal(t, "success", txResult.Status.String())
 
-	err = cs.GenerateBlocks(10)
-	require.Nil(t, err)
+	roles := [][]byte{
+		[]byte(core.ESDTRoleNFTCreate),
+		[]byte(core.ESDTRoleNFTUpdate),
+	}
 
-	shardID := cs.GetNodeHandler(0).GetShardCoordinator().ComputeId(address.Bytes)
+	nftTokenID := txResult.Logs.Events[0].Topics[0]
+	setAddressEsdtRoles(t, cs, address, nftTokenID, roles)
+
+	log.Info("Issued NFT token id", "tokenID", string(nftTokenID))
+
+	nftMetaData := txsFee.GetDefaultMetaData()
+	nftMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
+
+	tx = nftCreateTx(1, address.Bytes, nftTokenID, nftMetaData)
+
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+	require.Equal(t, "success", txResult.Status.String())
 
 	log.Info("Call ESDTModifyRoyalties and check that the royalties were changed")
 
 	roles = [][]byte{
 		[]byte(core.ESDTRoleModifyRoyalties),
 	}
-	setAddressEsdtRoles(t, cs, address, tokenID, roles)
+	setAddressEsdtRoles(t, cs, address, nftTokenID, roles)
 
 	nonce := []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
 	royalties := []byte(hex.EncodeToString(big.NewInt(20).Bytes()))
 
-	txDataField = bytes.Join(
+	txDataField := bytes.Join(
 		[][]byte{
 			[]byte(core.ESDTModifyRoyalties),
-			[]byte(hex.EncodeToString(tokenID)),
+			[]byte(hex.EncodeToString(nftTokenID)),
 			nonce,
 			royalties,
 		},
@@ -1406,7 +1433,7 @@ func TestChainSimulator_NFT_ESDTModifyRoyalties(t *testing.T) {
 	)
 
 	tx = &transaction.Transaction{
-		Nonce:     1,
+		Nonce:     2,
 		SndAddr:   address.Bytes,
 		RcvAddr:   address.Bytes,
 		GasLimit:  10_000_000,
@@ -1424,7 +1451,8 @@ func TestChainSimulator_NFT_ESDTModifyRoyalties(t *testing.T) {
 
 	require.Equal(t, "success", txResult.Status.String())
 
-	retrievedMetaData := getMetaDataFromAcc(t, cs, core.SystemAccountAddress, tokenID, shardID)
+	shardID := cs.GetNodeHandler(0).GetShardCoordinator().ComputeId(address.Bytes)
+	retrievedMetaData := getMetaDataFromAcc(t, cs, address.Bytes, nftTokenID, shardID)
 
 	require.Equal(t, uint32(big.NewInt(20).Uint64()), retrievedMetaData.Royalties)
 }
