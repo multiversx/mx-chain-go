@@ -33,7 +33,6 @@ func TestSovereignChain_SmartContract_Adder(t *testing.T) {
 			BypassTxSignatureCheck: false,
 			TempDir:                t.TempDir(),
 			PathToInitialConfig:    defaultPathToInitialConfig,
-			NumOfShards:            1,
 			GenesisTimestamp:       time.Now().Unix(),
 			RoundDurationInMillis:  uint64(6000),
 			RoundsPerEpoch:         core.OptionalUint64{},
