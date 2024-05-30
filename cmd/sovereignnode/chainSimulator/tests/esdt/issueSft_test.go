@@ -2,6 +2,7 @@ package esdt
 
 import (
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	"testing"
 	"time"
@@ -178,9 +179,9 @@ func createIssueSftArgs(name string, ticker string) string {
 func createNftArgs(tokenIdentifier []byte, initialSupply *big.Int, name string) string {
 	return "ESDTNFTCreate" +
 		"@" + hex.EncodeToString(tokenIdentifier) +
-		"@" + hex.EncodeToString(initialSupply.Bytes()) + // initial quantity
-		"@" + hex.EncodeToString([]byte(name)) + // name
-		"@09c4" + // royalties 25%
+		"@" + hex.EncodeToString(initialSupply.Bytes()) +
+		"@" + hex.EncodeToString([]byte(name)) +
+		"@" + fmt.Sprintf("%04X", 2500) + // royalties 25%
 		"@" + // hash
 		"@" + // attributes
 		"@" // uri
