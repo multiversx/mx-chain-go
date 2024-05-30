@@ -1,20 +1,16 @@
 package chainSimulator
 
 import (
-	"encoding/base64"
 	"math/big"
 	"testing"
 	"time"
 
 	"github.com/multiversx/mx-chain-go/config"
+	chainSimulatorCommon "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
-	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
-	"github.com/multiversx/mx-chain-go/process"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	coreAPI "github.com/multiversx/mx-chain-core-go/data/api"
-	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -185,22 +181,7 @@ func TestChainSimulator_SetState(t *testing.T) {
 
 	defer chainSimulator.Close()
 
-	keyValueMap := map[string]string{
-		"01": "01",
-		"02": "02",
-	}
-
-	address := "erd1qtc600lryvytxuy4h7vn7xmsy5tw6vuw3tskr75cwnmv4mnyjgsq6e5zgj"
-	err = chainSimulator.SetKeyValueForAddress(address, keyValueMap)
-	require.Nil(t, err)
-
-	err = chainSimulator.GenerateBlocks(1)
-	require.Nil(t, err)
-
-	nodeHandler := chainSimulator.GetNodeHandler(0)
-	keyValuePairs, _, err := nodeHandler.GetFacadeHandler().GetKeyValuePairs(address, coreAPI.AccountQueryOptions{})
-	require.Nil(t, err)
-	require.Equal(t, keyValueMap, keyValuePairs)
+	chainSimulatorCommon.CheckSetState(t, chainSimulator, chainSimulator.GetNodeHandler(0))
 }
 
 func TestChainSimulator_SetEntireState(t *testing.T) {
@@ -250,36 +231,7 @@ func TestChainSimulator_SetEntireState(t *testing.T) {
 		},
 	}
 
-	err = chainSimulator.SetStateMultiple([]*dtos.AddressState{accountState})
-	require.Nil(t, err)
-
-	err = chainSimulator.GenerateBlocks(30)
-	require.Nil(t, err)
-
-	nodeHandler := chainSimulator.GetNodeHandler(1)
-	scAddress, _ := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode(contractAddress)
-	res, _, err := nodeHandler.GetFacadeHandler().ExecuteSCQuery(&process.SCQuery{
-		ScAddress:  scAddress,
-		FuncName:   "getSum",
-		CallerAddr: nil,
-		BlockNonce: core.OptionalUint64{},
-	})
-	require.Nil(t, err)
-
-	counterValue := big.NewInt(0).SetBytes(res.ReturnData[0]).Int64()
-	require.Equal(t, 10, int(counterValue))
-
-	time.Sleep(time.Second)
-
-	account, _, err := nodeHandler.GetFacadeHandler().GetAccount(contractAddress, coreAPI.AccountQueryOptions{})
-	require.Nil(t, err)
-	require.Equal(t, accountState.Balance, account.Balance)
-	require.Equal(t, accountState.DeveloperRewards, account.DeveloperReward)
-	require.Equal(t, accountState.Code, account.Code)
-	require.Equal(t, accountState.CodeHash, base64.StdEncoding.EncodeToString(account.CodeHash))
-	require.Equal(t, accountState.CodeMetadata, base64.StdEncoding.EncodeToString(account.CodeMetadata))
-	require.Equal(t, accountState.Owner, account.OwnerAddress)
-	require.Equal(t, accountState.RootHash, base64.StdEncoding.EncodeToString(account.RootHash))
+	chainSimulatorCommon.CheckSetEntireState(t, chainSimulator, chainSimulator.GetNodeHandler(1), accountState)
 }
 
 func TestChainSimulator_SetEntireStateWithRemoval(t *testing.T) {
@@ -312,10 +264,6 @@ func TestChainSimulator_SetEntireStateWithRemoval(t *testing.T) {
 
 	defer chainSimulator.Close()
 
-	// activate the auto balancing tries so the results will be the same
-	err = chainSimulator.GenerateBlocks(30)
-	require.Nil(t, err)
-
 	balance := "431271308732096033771131"
 	contractAddress := "erd1qqqqqqqqqqqqqpgqmzzm05jeav6d5qvna0q2pmcllelkz8xddz3syjszx5"
 	accountState := &dtos.AddressState{
@@ -332,70 +280,7 @@ func TestChainSimulator_SetEntireStateWithRemoval(t *testing.T) {
 			"73756d": "0a",
 		},
 	}
-
-	err = chainSimulator.SetStateMultiple([]*dtos.AddressState{accountState})
-	require.Nil(t, err)
-
-	err = chainSimulator.GenerateBlocks(2)
-	require.Nil(t, err)
-
-	nodeHandler := chainSimulator.GetNodeHandler(1)
-	scAddress, _ := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode(contractAddress)
-	res, _, err := nodeHandler.GetFacadeHandler().ExecuteSCQuery(&process.SCQuery{
-		ScAddress:  scAddress,
-		FuncName:   "getSum",
-		CallerAddr: nil,
-		BlockNonce: core.OptionalUint64{},
-	})
-	require.Nil(t, err)
-
-	counterValue := big.NewInt(0).SetBytes(res.ReturnData[0]).Int64()
-	require.Equal(t, 10, int(counterValue))
-
-	account, _, err := nodeHandler.GetFacadeHandler().GetAccount(contractAddress, coreAPI.AccountQueryOptions{})
-	require.Nil(t, err)
-	require.Equal(t, accountState.Balance, account.Balance)
-	require.Equal(t, accountState.DeveloperRewards, account.DeveloperReward)
-	require.Equal(t, accountState.Code, account.Code)
-	require.Equal(t, accountState.CodeHash, base64.StdEncoding.EncodeToString(account.CodeHash))
-	require.Equal(t, accountState.CodeMetadata, base64.StdEncoding.EncodeToString(account.CodeMetadata))
-	require.Equal(t, accountState.Owner, account.OwnerAddress)
-	require.Equal(t, accountState.RootHash, base64.StdEncoding.EncodeToString(account.RootHash))
-
-	// Now we remove the account
-	err = chainSimulator.RemoveAccounts([]string{contractAddress})
-	require.Nil(t, err)
-
-	err = chainSimulator.GenerateBlocks(2)
-	require.Nil(t, err)
-
-	account, _, err = nodeHandler.GetFacadeHandler().GetAccount(contractAddress, coreAPI.AccountQueryOptions{})
-	require.Nil(t, err)
-	require.Equal(t, "0", account.Balance)
-	require.Equal(t, "0", account.DeveloperReward)
-	require.Equal(t, "", account.Code)
-	require.Equal(t, "", base64.StdEncoding.EncodeToString(account.CodeHash))
-	require.Equal(t, "", base64.StdEncoding.EncodeToString(account.CodeMetadata))
-	require.Equal(t, "", account.OwnerAddress)
-	require.Equal(t, "", base64.StdEncoding.EncodeToString(account.RootHash))
-
-	// Set the state again
-	err = chainSimulator.SetStateMultiple([]*dtos.AddressState{accountState})
-	require.Nil(t, err)
-
-	err = chainSimulator.GenerateBlocks(2)
-	require.Nil(t, err)
-
-	account, _, err = nodeHandler.GetFacadeHandler().GetAccount(contractAddress, coreAPI.AccountQueryOptions{})
-	require.Nil(t, err)
-
-	require.Equal(t, accountState.Balance, account.Balance)
-	require.Equal(t, accountState.DeveloperRewards, account.DeveloperReward)
-	require.Equal(t, accountState.Code, account.Code)
-	require.Equal(t, accountState.CodeHash, base64.StdEncoding.EncodeToString(account.CodeHash))
-	require.Equal(t, accountState.CodeMetadata, base64.StdEncoding.EncodeToString(account.CodeMetadata))
-	require.Equal(t, accountState.Owner, account.OwnerAddress)
-	require.Equal(t, accountState.RootHash, base64.StdEncoding.EncodeToString(account.RootHash))
+	chainSimulatorCommon.CheckSetEntireStateWithRemoval(t, chainSimulator, chainSimulator.GetNodeHandler(1), accountState)
 }
 
 func TestChainSimulator_GetAccount(t *testing.T) {
@@ -431,35 +316,7 @@ func TestChainSimulator_GetAccount(t *testing.T) {
 
 	defer chainSimulator.Close()
 
-	address := dtos.WalletAddress{
-		Bech32: "erd1qtc600lryvytxuy4h7vn7xmsy5tw6vuw3tskr75cwnmv4mnyjgsq6e5zgj",
-	}
-	address.Bytes, err = chainSimulator.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Decode(address.Bech32)
-	assert.Nil(t, err)
-
-	account, err := chainSimulator.GetAccount(address)
-	assert.Nil(t, err)
-	assert.Equal(t, uint64(0), account.Nonce)
-	assert.Equal(t, "0", account.Balance)
-
-	nonce := uint64(37)
-	err = chainSimulator.SetStateMultiple([]*dtos.AddressState{
-		{
-			Address: address.Bech32,
-			Nonce:   &nonce,
-			Balance: big.NewInt(38).String(),
-		},
-	})
-	assert.Nil(t, err)
-
-	// without this call the test will fail because the latest produced block points to a state roothash that tells that
-	// the account has the nonce 0
-	_ = chainSimulator.GenerateBlocks(1)
-
-	account, err = chainSimulator.GetAccount(address)
-	assert.Nil(t, err)
-	assert.Equal(t, uint64(37), account.Nonce)
-	assert.Equal(t, "38", account.Balance)
+	chainSimulatorCommon.CheckGetAccount(t, chainSimulator)
 }
 
 func TestSimulator_SendTransactions(t *testing.T) {
@@ -492,89 +349,5 @@ func TestSimulator_SendTransactions(t *testing.T) {
 
 	defer chainSimulator.Close()
 
-	oneEgld := big.NewInt(1000000000000000000)
-	initialMinting := big.NewInt(0).Mul(oneEgld, big.NewInt(100))
-	transferValue := big.NewInt(0).Mul(oneEgld, big.NewInt(5))
-
-	wallet0, err := chainSimulator.GenerateAndMintWalletAddress(0, initialMinting)
-	require.Nil(t, err)
-
-	wallet1, err := chainSimulator.GenerateAndMintWalletAddress(1, initialMinting)
-	require.Nil(t, err)
-
-	wallet2, err := chainSimulator.GenerateAndMintWalletAddress(2, initialMinting)
-	require.Nil(t, err)
-
-	wallet3, err := chainSimulator.GenerateAndMintWalletAddress(2, initialMinting)
-	require.Nil(t, err)
-
-	wallet4, err := chainSimulator.GenerateAndMintWalletAddress(2, initialMinting)
-	require.Nil(t, err)
-
-	gasLimit := uint64(50000)
-	tx0 := generateTransaction(wallet0.Bytes, 0, wallet2.Bytes, transferValue, "", gasLimit)
-	tx1 := generateTransaction(wallet1.Bytes, 0, wallet2.Bytes, transferValue, "", gasLimit)
-	tx3 := generateTransaction(wallet3.Bytes, 0, wallet4.Bytes, transferValue, "", gasLimit)
-
-	maxNumOfBlockToGenerateWhenExecutingTx := 15
-
-	t.Run("nil or empty slice of transactions should error", func(t *testing.T) {
-		sentTxs, errSend := chainSimulator.SendTxsAndGenerateBlocksTilAreExecuted(nil, 1)
-		assert.Equal(t, errEmptySliceOfTxs, errSend)
-		assert.Nil(t, sentTxs)
-
-		sentTxs, errSend = chainSimulator.SendTxsAndGenerateBlocksTilAreExecuted(make([]*transaction.Transaction, 0), 1)
-		assert.Equal(t, errEmptySliceOfTxs, errSend)
-		assert.Nil(t, sentTxs)
-	})
-	t.Run("invalid max number of blocks to generate should error", func(t *testing.T) {
-		sentTxs, errSend := chainSimulator.SendTxsAndGenerateBlocksTilAreExecuted([]*transaction.Transaction{tx0, tx1}, 0)
-		assert.Equal(t, errInvalidMaxNumOfBlocks, errSend)
-		assert.Nil(t, sentTxs)
-	})
-	t.Run("nil transaction in slice should error", func(t *testing.T) {
-		sentTxs, errSend := chainSimulator.SendTxsAndGenerateBlocksTilAreExecuted([]*transaction.Transaction{nil}, 1)
-		assert.ErrorIs(t, errSend, errNilTransaction)
-		assert.Nil(t, sentTxs)
-	})
-	t.Run("2 transactions from different shard should call send correctly", func(t *testing.T) {
-		sentTxs, errSend := chainSimulator.SendTxsAndGenerateBlocksTilAreExecuted([]*transaction.Transaction{tx0, tx1}, maxNumOfBlockToGenerateWhenExecutingTx)
-		assert.Equal(t, 2, len(sentTxs))
-		assert.Nil(t, errSend)
-
-		account, errGet := chainSimulator.GetAccount(wallet2)
-		assert.Nil(t, errGet)
-		expectedBalance := big.NewInt(0).Add(initialMinting, transferValue)
-		expectedBalance.Add(expectedBalance, transferValue)
-		assert.Equal(t, expectedBalance.String(), account.Balance)
-	})
-	t.Run("1 transaction should be sent correctly", func(t *testing.T) {
-		_, errSend := chainSimulator.SendTxAndGenerateBlockTilTxIsExecuted(tx3, maxNumOfBlockToGenerateWhenExecutingTx)
-		assert.Nil(t, errSend)
-
-		account, errGet := chainSimulator.GetAccount(wallet4)
-		assert.Nil(t, errGet)
-		expectedBalance := big.NewInt(0).Add(initialMinting, transferValue)
-		assert.Equal(t, expectedBalance.String(), account.Balance)
-	})
-}
-
-func generateTransaction(sender []byte, nonce uint64, receiver []byte, value *big.Int, data string, gasLimit uint64) *transaction.Transaction {
-	minGasPrice := uint64(1000000000)
-	txVersion := uint32(1)
-	mockTxSignature := "sig"
-
-	transferValue := big.NewInt(0).Set(value)
-	return &transaction.Transaction{
-		Nonce:     nonce,
-		Value:     transferValue,
-		SndAddr:   sender,
-		RcvAddr:   receiver,
-		Data:      []byte(data),
-		GasLimit:  gasLimit,
-		GasPrice:  minGasPrice,
-		ChainID:   []byte(configs.ChainID),
-		Version:   txVersion,
-		Signature: []byte(mockTxSignature),
-	}
+	chainSimulatorCommon.CheckGenerateTransactions(t, chainSimulator)
 }
