@@ -320,6 +320,19 @@ func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 	sm.SetUInt64Value(common.MetricIncrementSCRNonceInMultiTransferEnableEpoch, 3)
 	sm.SetUInt64Value(common.MetricBalanceWaitingListsEnableEpoch, 4)
 	sm.SetUInt64Value(common.MetricSetGuardianEnableEpoch, 3)
+	sm.SetUInt64Value(common.MetricCorrectLastUnjailedEnableEpoch, 4)
+	sm.SetUInt64Value(common.MetricReturnDataToLastTransferEnableEpoch, 4)
+	sm.SetUInt64Value(common.MetricSenderInOutTransferEnableEpoch, 4)
+	sm.SetUInt64Value(common.MetricRelayedTransactionsV2EnableEpoch, 4)
+	sm.SetUInt64Value(common.MetricUnbondTokensV2EnableEpoch, 4)
+	sm.SetUInt64Value(common.MetricSaveJailedAlwaysEnableEpoch, 4)
+	sm.SetUInt64Value(common.MetricValidatorToDelegationEnableEpoch, 4)
+	sm.SetUInt64Value(common.MetricReDelegateBelowMinCheckEnableEpoch, 4)
+	sm.SetUInt64Value(common.MetricESDTMultiTransferEnableEpoch, 4)
+	sm.SetUInt64Value(common.MetricGlobalMintBurnDisableEpoch, 4)
+	sm.SetUInt64Value(common.MetricESDTTransferRoleEnableEpoch, 4)
+	sm.SetUInt64Value(common.MetricSetGuardianEnableEpoch, 3)
+	sm.SetUInt64Value(common.MetricSetScToScLogEventEnableEpoch, 4)
 
 	maxNodesChangeConfig := []map[string]uint64{
 		{
@@ -368,7 +381,19 @@ func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 		common.MetricDelegationSmartContractEnableEpoch:          uint64(2),
 		common.MetricIncrementSCRNonceInMultiTransferEnableEpoch: uint64(3),
 		common.MetricBalanceWaitingListsEnableEpoch:              uint64(4),
+		common.MetricCorrectLastUnjailedEnableEpoch:              uint64(4),
+		common.MetricReturnDataToLastTransferEnableEpoch:         uint64(4),
+		common.MetricSenderInOutTransferEnableEpoch:              uint64(4),
+		common.MetricRelayedTransactionsV2EnableEpoch:            uint64(4),
+		common.MetricUnbondTokensV2EnableEpoch:                   uint64(4),
+		common.MetricSaveJailedAlwaysEnableEpoch:                 uint64(4),
+		common.MetricValidatorToDelegationEnableEpoch:            uint64(4),
+		common.MetricReDelegateBelowMinCheckEnableEpoch:          uint64(4),
+		common.MetricESDTMultiTransferEnableEpoch:                uint64(4),
+		common.MetricGlobalMintBurnDisableEpoch:                  uint64(4),
+		common.MetricESDTTransferRoleEnableEpoch:                 uint64(4),
 		common.MetricSetGuardianEnableEpoch:                      uint64(3),
+		common.MetricSetScToScLogEventEnableEpoch:                uint64(4),
 
 		common.MetricMaxNodesChangeEnableEpoch: []map[string]interface{}{
 			{

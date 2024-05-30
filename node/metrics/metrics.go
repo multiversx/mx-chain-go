@@ -95,6 +95,7 @@ func InitConfigMetrics(
 
 	enableEpochs := epochConfig.EnableEpochs
 
+	// enable epochs metrics
 	appStatusHandler.SetUInt64Value(common.MetricScDeployEnableEpoch, uint64(enableEpochs.SCDeployEnableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricBuiltInFunctionsEnableEpoch, uint64(enableEpochs.BuiltInFunctionsEnableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricRelayedTransactionsEnableEpoch, uint64(enableEpochs.RelayedTransactionsEnableEpoch))
@@ -128,7 +129,6 @@ func InitConfigMetrics(
 	appStatusHandler.SetUInt64Value(common.MetricESDTMultiTransferEnableEpoch, uint64(enableEpochs.ESDTMultiTransferEnableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricGlobalMintBurnDisableEpoch, uint64(enableEpochs.GlobalMintBurnDisableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricESDTTransferRoleEnableEpoch, uint64(enableEpochs.ESDTTransferRoleEnableEpoch))
-	appStatusHandler.SetStringValue(common.MetricTotalSupply, economicsConfig.GlobalSettings.GenesisTotalSupply)
 	appStatusHandler.SetUInt64Value(common.MetricSetGuardianEnableEpoch, uint64(enableEpochs.SetGuardianEnableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricSetScToScLogEventEnableEpoch, uint64(enableEpochs.ScToScLogEventEnableEpoch))
 
@@ -147,6 +147,7 @@ func InitConfigMetrics(
 	appStatusHandler.SetStringValue(common.MetricHysteresis, fmt.Sprintf("%f", genesisNodesConfig.GetHysteresis()))
 	appStatusHandler.SetStringValue(common.MetricAdaptivity, fmt.Sprintf("%t", genesisNodesConfig.GetAdaptivity()))
 	appStatusHandler.SetStringValue(common.MetricGatewayMetricsEndpoint, gatewayMetricsConfig.URL)
+	appStatusHandler.SetStringValue(common.MetricTotalSupply, economicsConfig.GlobalSettings.GenesisTotalSupply)
 
 	return nil
 }
