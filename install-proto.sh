@@ -22,7 +22,11 @@ fi
 
 git checkout casttypewith
 
-PROTO_COMPILER=protoc-3.17.3-linux-x86_64.zip
+if [[ "$(uname)" == "Darwin" ]]; then
+  PROTO_COMPILER=protoc-3.17.3-osx-x86_64.zip
+else
+  PROTO_COMPILER=protoc-3.17.3-linux-x86_64.zip
+fi
 TEMP_FOLDER_NAME=temp-proto-001
 TEMP_LOCATION=~/temp/${TEMP_FOLDER_NAME}
 mkdir -p ${TEMP_LOCATION}
@@ -30,9 +34,22 @@ cd "${TEMP_LOCATION}"
 echo "Downloading protobuf compiler v3.17.3 ..."
 wget -q https://github.com/protocolbuffers/protobuf/releases/download/v3.17.3/${PROTO_COMPILER}
 unzip -q "${PROTO_COMPILER}" -d ./
-sudo cp -rf include/google /usr/include
-sudo cp -f bin/protoc /usr/bin
-sudo chmod +x /usr/bin/protoc
+
+if [[ "$(uname)" == "Darwin" ]]; then
+  echo "Running on macOS"
+  sudo mkdir -p /usr/local/include
+  sudo cp -rf include/google /usr/local/include
+
+  sudo mkdir -p /usr/local/bin
+
+  sudo cp -f bin/protoc /usr/local/bin
+  sudo chmod +x /usr/local/bin/protoc
+else
+  sudo cp -rf include/google /usr/include
+  sudo cp -f bin/protoc /usr/bin
+  sudo chmod +x /usr/bin/protoc
+fi
+
 
 echo "Removing temporally files ..."
 rm -r ${TEMP_LOCATION}
@@ -48,7 +65,12 @@ fi
 echo "Building protoc-gen-gogoslick binary..."
 cd protobuf/protoc-gen-gogoslick
 go build
-sudo cp -f protoc-gen-gogoslick /usr/bin/
 
+
+if [[ "$(uname)" == "Darwin" ]]; then
+  sudo cp -f protoc-gen-gogoslick /usr/local/bin/
+else
+  sudo cp -f protoc-gen-gogoslick /usr/bin/
+fi
 echo "Done."
 
