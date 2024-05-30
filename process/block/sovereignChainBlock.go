@@ -159,6 +159,17 @@ func (scbp *sovereignChainBlockProcessor) CreateBlock(initialHdr data.HeaderHand
 		}
 	}
 
+	if scbp.epochStartTrigger.IsEpochStart() {
+		epoch := scbp.epochStartTrigger.MetaEpoch()
+		log.Debug("sovereignChainBlockProcessor.CreateBlock", "isEpochStart", true, "epoch from epoch start trigger", epoch)
+		err := initialHdr.SetEpoch(epoch)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	scbp.epochNotifier.CheckEpoch(initialHdr)
+
 	err := scbp.createBlockStarted()
 	if err != nil {
 		return nil, nil, err
@@ -653,6 +664,18 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 		return nil, nil, err
 	}
 
+	shardHeader, castOK := headerHandler.(data.ShardHeaderHandler)
+	if !castOK {
+		return nil, nil, errors.ErrWrongTypeAssertion
+	}
+
+	err = scbp.checkSovereignEpochCorrectness(shardHeader)
+
+	if shardHeader.IsStartOfEpochBlock() {
+		err = scbp.processEpochStartMetaBlock(shardHeader, body)
+		return nil, nil, err
+	}
+
 	defer func() {
 		if err != nil {
 			scbp.RevertCurrentBlock()
@@ -694,6 +717,163 @@ func (scbp *sovereignChainBlockProcessor) checkExtendedShardHeadersValidity() er
 
 		lastCrossNotarizedHeader = extendedShardHdr
 	}
+
+	return nil
+}
+
+func (scbp *sovereignChainBlockProcessor) checkSovereignEpochCorrectness(
+	header data.ShardHeaderHandler,
+) error {
+	currentBlockHeader := scbp.blockChain.GetCurrentBlockHeader()
+	if check.IfNil(currentBlockHeader) {
+		return nil
+	}
+
+	headerEpochBehindCurrentHeader := header.GetEpoch() < currentBlockHeader.GetEpoch()
+	if headerEpochBehindCurrentHeader {
+		return fmt.Errorf("%w proposed header with older epoch %d than blockchain epoch %d",
+			process.ErrEpochDoesNotMatch, header.GetEpoch(), currentBlockHeader.GetEpoch())
+	}
+
+	isStartOfEpochButShouldNotBe := header.GetEpoch() == currentBlockHeader.GetEpoch() && header.IsStartOfEpochBlock()
+	if isStartOfEpochButShouldNotBe {
+		return fmt.Errorf("%w proposed header with same epoch %d as blockchain and it is of epoch start",
+			process.ErrEpochDoesNotMatch, currentBlockHeader.GetEpoch())
+	}
+
+	incorrectStartOfEpochBlock := header.GetEpoch() != currentBlockHeader.GetEpoch() &&
+		scbp.epochStartTrigger.MetaEpoch() == currentBlockHeader.GetEpoch()
+	if incorrectStartOfEpochBlock {
+		if header.IsStartOfEpochBlock() {
+			go scbp.requestHandler.RequestShardHeader(core.SovereignChainShardId, header.GetEpochStartMetaHash())
+		}
+		return fmt.Errorf("%w proposed header with new epoch %d with trigger still in last epoch %d",
+			process.ErrEpochDoesNotMatch, header.GetEpoch(), scbp.epochStartTrigger.MetaEpoch())
+	}
+
+	isHeaderOfInvalidEpoch := header.GetEpoch() > scbp.epochStartTrigger.MetaEpoch()
+	if isHeaderOfInvalidEpoch {
+		return fmt.Errorf("%w proposed header with epoch too high %d with trigger in epoch %d",
+			process.ErrEpochDoesNotMatch, header.GetEpoch(), scbp.epochStartTrigger.MetaEpoch())
+	}
+
+	isOldEpochAndShouldBeNew := scbp.epochStartTrigger.IsEpochStart() &&
+		header.GetRound() > scbp.epochStartTrigger.EpochFinalityAttestingRound()+process.EpochChangeGracePeriod &&
+		header.GetEpoch() < scbp.epochStartTrigger.MetaEpoch() &&
+		scbp.epochStartTrigger.EpochStartRound() < scbp.epochStartTrigger.EpochFinalityAttestingRound()
+	if isOldEpochAndShouldBeNew {
+		return fmt.Errorf("%w proposed header with epoch %d should be in epoch %d",
+			process.ErrEpochDoesNotMatch, header.GetEpoch(), scbp.epochStartTrigger.MetaEpoch())
+	}
+
+	isEpochStartMetaHashIncorrect := header.IsStartOfEpochBlock() &&
+		!bytes.Equal(header.GetEpochStartMetaHash(), scbp.epochStartTrigger.EpochStartMetaHdrHash()) &&
+		header.GetEpoch() == scbp.epochStartTrigger.MetaEpoch()
+	if isEpochStartMetaHashIncorrect {
+		go scbp.requestHandler.RequestShardHeader(core.SovereignChainShardId, header.GetEpochStartMetaHash())
+		log.Warn("epoch start meta hash mismatch", "proposed", header.GetEpochStartMetaHash(), "calculated", scbp.epochStartTrigger.EpochStartMetaHdrHash())
+		return fmt.Errorf("%w proposed header with epoch %d has invalid epochStartMetaHash",
+			process.ErrEpochDoesNotMatch, header.GetEpoch())
+	}
+
+	isNotEpochStartButShouldBe := header.GetEpoch() != currentBlockHeader.GetEpoch() &&
+		!header.IsStartOfEpochBlock()
+	if isNotEpochStartButShouldBe {
+		return fmt.Errorf("%w proposed header with new epoch %d is not of type epoch start",
+			process.ErrEpochDoesNotMatch, header.GetEpoch())
+	}
+
+	isOldEpochStart := header.IsStartOfEpochBlock() && header.GetEpoch() < scbp.epochStartTrigger.MetaEpoch()
+	if isOldEpochStart {
+		metaBlock, err := process.GetMetaHeader(header.GetEpochStartMetaHash(), scbp.dataPool.Headers(), scbp.marshalizer, scbp.store)
+		if err != nil {
+			// TODO: rewrite sovereign requester to give this info
+			go scbp.requestHandler.RequestStartOfEpochMetaBlock(header.GetEpoch())
+			return fmt.Errorf("%w could not find epoch start metablock for epoch %d",
+				err, header.GetEpoch())
+		}
+
+		isMetaBlockCorrect := metaBlock.IsStartOfEpochBlock() && metaBlock.GetEpoch() == header.GetEpoch()
+		if !isMetaBlockCorrect {
+			return fmt.Errorf("%w proposed header with epoch %d does not include correct start of epoch metaBlock %s",
+				process.ErrEpochDoesNotMatch, header.GetEpoch(), header.GetEpochStartMetaHash())
+		}
+	}
+
+	return nil
+}
+
+func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
+	header data.HeaderHandler,
+	_ *block.Body,
+) error {
+	currentRootHash, err := scbp.validatorStatisticsProcessor.RootHash()
+	if err != nil {
+		return err
+	}
+
+	allValidatorsInfo, err := scbp.validatorStatisticsProcessor.GetValidatorInfoForRootHash(currentRootHash)
+	if err != nil {
+		return err
+	}
+
+	err = scbp.validatorStatisticsProcessor.ProcessRatingsEndOfEpoch(allValidatorsInfo, header.GetEpoch())
+	if err != nil {
+		return err
+	}
+
+	// TODO:
+	//computedEconomics, err := scbp.epochEconomics.ComputeEndOfEpochEconomics(header)
+	//if err != nil {
+	//	return err
+	//}
+
+	//err = scbp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, header)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//err = mp.epochRewardsCreator.VerifyRewardsMiniBlocks(header, allValidatorsInfo, computedEconomics)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//err = mp.epochSystemSCProcessor.ProcessDelegationRewards(body.MiniBlocks, mp.epochRewardsCreator.GetLocalTxCache())
+	//if err != nil {
+	//	return err
+	//}
+
+	//err = mp.validatorInfoCreator.VerifyValidatorInfoMiniBlocks(body.MiniBlocks, allValidatorsInfo)
+	//if err != nil {
+	//	return err
+	//}
+
+	err = scbp.validatorStatisticsProcessor.ResetValidatorStatisticsAtNewEpoch(allValidatorsInfo)
+	if err != nil {
+		return err
+	}
+
+	//err = mp.epochEconomics.VerifyRewardsPerBlock(header, mp.epochRewardsCreator.GetProtocolSustainabilityRewards(), computedEconomics)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//err = mp.verifyFees(header)
+	//if err != nil {
+	//	return err
+	//}
+
+	if !scbp.verifyStateRoot(header.GetRootHash()) {
+		err = process.ErrRootStateDoesNotMatch
+		return err
+	}
+
+	err = scbp.verifyValidatorStatisticsRootHash(header)
+	if err != nil {
+		return err
+	}
+
+	//saveEpochStartEconomicsMetrics(scbp.appStatusHandler, header)
 
 	return nil
 }
