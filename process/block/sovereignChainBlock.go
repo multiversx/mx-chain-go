@@ -3,6 +3,7 @@ package block
 import (
 	"bytes"
 	"fmt"
+	"math/big"
 	"sort"
 	"time"
 
@@ -47,6 +48,9 @@ type sovereignChainBlockProcessor struct {
 	outgoingOperationsFormatter  sovereign.OutgoingOperationsFormatter
 	outGoingOperationsPool       sovereignBlock.OutGoingOperationsPool
 	operationsHasher             hashing.Hasher
+
+	// todo: add this to constructor
+	epochStartDataCreator process.EpochStartDataCreator
 }
 
 // ArgsSovereignChainBlockProcessor is a struct placeholder for args needed to create a new sovereign chain block processor
@@ -166,6 +170,12 @@ func (scbp *sovereignChainBlockProcessor) CreateBlock(initialHdr data.HeaderHand
 		if err != nil {
 			return nil, nil, err
 		}
+
+		// TODO: Add epoch start and missing fields to sovereign header
+		//err = scbp.updateEpochStartHeader(metaHdr)
+		//if err != nil {
+		//	return nil, nil, err
+		//}
 	}
 
 	scbp.epochNotifier.CheckEpoch(initialHdr)
@@ -199,6 +209,44 @@ func (scbp *sovereignChainBlockProcessor) CreateBlock(initialHdr data.HeaderHand
 	}
 
 	return initialHdr, &block.Body{MiniBlocks: miniBlocks}, nil
+}
+
+func (scbp *sovereignChainBlockProcessor) updateEpochStartHeader(metaHdr *block.MetaBlock) error {
+	sw := core.NewStopWatch()
+	sw.Start("createEpochStartForMetablock")
+	defer func() {
+		sw.Stop("createEpochStartForMetablock")
+		log.Debug("epochStartHeaderDataCreation", sw.GetMeasurements()...)
+	}()
+
+	epochStart, err := scbp.epochStartDataCreator.CreateEpochStartData()
+	if err != nil {
+		return err
+	}
+
+	metaHdr.EpochStart = *epochStart
+
+	totalAccumulatedFeesInEpoch := big.NewInt(0)
+	totalDevFeesInEpoch := big.NewInt(0)
+	currentHeader := scbp.blockChain.GetCurrentBlockHeader()
+	if !check.IfNil(currentHeader) && !currentHeader.IsStartOfEpochBlock() {
+		prevMetaHdr, ok := currentHeader.(*block.MetaBlock)
+		if !ok {
+			return process.ErrWrongTypeAssertion
+		}
+		totalAccumulatedFeesInEpoch = big.NewInt(0).Set(prevMetaHdr.AccumulatedFeesInEpoch)
+		totalDevFeesInEpoch = big.NewInt(0).Set(prevMetaHdr.DevFeesInEpoch)
+	}
+
+	metaHdr.AccumulatedFeesInEpoch.Set(totalAccumulatedFeesInEpoch)
+	metaHdr.DevFeesInEpoch.Set(totalDevFeesInEpoch)
+	economicsData := &block.Economics{} // TODO: scbp.epochEconomics.ComputeEndOfEpochEconomics(metaHdr)
+
+	metaHdr.EpochStart.Economics = *economicsData
+
+	saveEpochStartEconomicsMetrics(scbp.appStatusHandler, metaHdr)
+
+	return nil
 }
 
 func (scbp *sovereignChainBlockProcessor) createAllMiniBlocks(
@@ -729,77 +777,20 @@ func (scbp *sovereignChainBlockProcessor) checkSovereignEpochCorrectness(
 		return nil
 	}
 
-	headerEpochBehindCurrentHeader := header.GetEpoch() < currentBlockHeader.GetEpoch()
-	if headerEpochBehindCurrentHeader {
-		return fmt.Errorf("%w proposed header with older epoch %d than blockchain epoch %d",
-			process.ErrEpochDoesNotMatch, header.GetEpoch(), currentBlockHeader.GetEpoch())
+	isEpochIncorrect := header.GetEpoch() != currentBlockHeader.GetEpoch() &&
+		scbp.epochStartTrigger.Epoch() == currentBlockHeader.GetEpoch()
+	if isEpochIncorrect {
+		log.Warn("epoch does not match", "currentHeaderEpoch", currentBlockHeader.GetEpoch(), "receivedHeaderEpoch", header.GetEpoch(), "epochStartTrigger", scbp.epochStartTrigger.Epoch())
+		return process.ErrEpochDoesNotMatch
 	}
 
-	isStartOfEpochButShouldNotBe := header.GetEpoch() == currentBlockHeader.GetEpoch() && header.IsStartOfEpochBlock()
-	if isStartOfEpochButShouldNotBe {
-		return fmt.Errorf("%w proposed header with same epoch %d as blockchain and it is of epoch start",
-			process.ErrEpochDoesNotMatch, currentBlockHeader.GetEpoch())
+	isEpochIncorrect = scbp.epochStartTrigger.IsEpochStart() &&
+		scbp.epochStartTrigger.EpochStartRound() <= header.GetRound() &&
+		header.GetEpoch() != currentBlockHeader.GetEpoch()+1
+	if isEpochIncorrect {
+		log.Warn("is epoch start and epoch does not match", "currentHeaderEpoch", currentBlockHeader.GetEpoch(), "receivedHeaderEpoch", header.GetEpoch(), "epochStartTrigger", scbp.epochStartTrigger.Epoch())
+		return process.ErrEpochDoesNotMatch
 	}
-
-	incorrectStartOfEpochBlock := header.GetEpoch() != currentBlockHeader.GetEpoch() &&
-		scbp.epochStartTrigger.MetaEpoch() == currentBlockHeader.GetEpoch()
-	if incorrectStartOfEpochBlock {
-		if header.IsStartOfEpochBlock() {
-			go scbp.requestHandler.RequestShardHeader(core.SovereignChainShardId, header.GetEpochStartMetaHash())
-		}
-		return fmt.Errorf("%w proposed header with new epoch %d with trigger still in last epoch %d",
-			process.ErrEpochDoesNotMatch, header.GetEpoch(), scbp.epochStartTrigger.MetaEpoch())
-	}
-
-	isHeaderOfInvalidEpoch := header.GetEpoch() > scbp.epochStartTrigger.MetaEpoch()
-	if isHeaderOfInvalidEpoch {
-		return fmt.Errorf("%w proposed header with epoch too high %d with trigger in epoch %d",
-			process.ErrEpochDoesNotMatch, header.GetEpoch(), scbp.epochStartTrigger.MetaEpoch())
-	}
-
-	isOldEpochAndShouldBeNew := scbp.epochStartTrigger.IsEpochStart() &&
-		header.GetRound() > scbp.epochStartTrigger.EpochFinalityAttestingRound()+process.EpochChangeGracePeriod &&
-		header.GetEpoch() < scbp.epochStartTrigger.MetaEpoch() &&
-		scbp.epochStartTrigger.EpochStartRound() < scbp.epochStartTrigger.EpochFinalityAttestingRound()
-	if isOldEpochAndShouldBeNew {
-		return fmt.Errorf("%w proposed header with epoch %d should be in epoch %d",
-			process.ErrEpochDoesNotMatch, header.GetEpoch(), scbp.epochStartTrigger.MetaEpoch())
-	}
-
-	isEpochStartMetaHashIncorrect := header.IsStartOfEpochBlock() &&
-		!bytes.Equal(header.GetEpochStartMetaHash(), scbp.epochStartTrigger.EpochStartMetaHdrHash()) &&
-		header.GetEpoch() == scbp.epochStartTrigger.MetaEpoch()
-	if isEpochStartMetaHashIncorrect {
-		go scbp.requestHandler.RequestShardHeader(core.SovereignChainShardId, header.GetEpochStartMetaHash())
-		log.Warn("epoch start meta hash mismatch", "proposed", header.GetEpochStartMetaHash(), "calculated", scbp.epochStartTrigger.EpochStartMetaHdrHash())
-		return fmt.Errorf("%w proposed header with epoch %d has invalid epochStartMetaHash",
-			process.ErrEpochDoesNotMatch, header.GetEpoch())
-	}
-
-	isNotEpochStartButShouldBe := header.GetEpoch() != currentBlockHeader.GetEpoch() &&
-		!header.IsStartOfEpochBlock()
-	if isNotEpochStartButShouldBe {
-		return fmt.Errorf("%w proposed header with new epoch %d is not of type epoch start",
-			process.ErrEpochDoesNotMatch, header.GetEpoch())
-	}
-
-	isOldEpochStart := header.IsStartOfEpochBlock() && header.GetEpoch() < scbp.epochStartTrigger.MetaEpoch()
-	if isOldEpochStart {
-		metaBlock, err := process.GetMetaHeader(header.GetEpochStartMetaHash(), scbp.dataPool.Headers(), scbp.marshalizer, scbp.store)
-		if err != nil {
-			// TODO: rewrite sovereign requester to give this info
-			go scbp.requestHandler.RequestStartOfEpochMetaBlock(header.GetEpoch())
-			return fmt.Errorf("%w could not find epoch start metablock for epoch %d",
-				err, header.GetEpoch())
-		}
-
-		isMetaBlockCorrect := metaBlock.IsStartOfEpochBlock() && metaBlock.GetEpoch() == header.GetEpoch()
-		if !isMetaBlockCorrect {
-			return fmt.Errorf("%w proposed header with epoch %d does not include correct start of epoch metaBlock %s",
-				process.ErrEpochDoesNotMatch, header.GetEpoch(), header.GetEpochStartMetaHash())
-		}
-	}
-
 	return nil
 }
 
@@ -1246,6 +1237,8 @@ func (scbp *sovereignChainBlockProcessor) CommitBlock(headerHandler data.HeaderH
 		return err
 	}
 
+	scbp.commitEpochStart(headerHandler, body)
+
 	headerHash := scbp.hasher.Compute(string(marshalizedHeader))
 	scbp.saveShardHeader(headerHandler, headerHash, marshalizedHeader)
 	scbp.saveBody(body, headerHandler, headerHash)
@@ -1316,6 +1309,16 @@ func (scbp *sovereignChainBlockProcessor) CommitBlock(headerHandler data.HeaderH
 	}
 
 	return nil
+}
+
+func (scbp *sovereignChainBlockProcessor) commitEpochStart(header data.HeaderHandler, body *block.Body) {
+	if header.IsStartOfEpochBlock() {
+		scbp.epochStartTrigger.SetProcessed(header, body)
+		//go scbp.epochRewardsCreator.SaveBlockDataToStorage(header, body)
+
+		// TODO: AT LEAST HERE fix this
+		//go scbp.validatorInfoCreator.SaveBlockDataToStorage(header, body)
+	}
 }
 
 // getOrderedProcessedExtendedShardHeadersFromHeader returns all the extended shard headers fully processed
@@ -1697,6 +1700,30 @@ func (scbp *sovereignChainBlockProcessor) updateState(header data.HeaderHandler,
 	if errNotCritical != nil {
 		log.Debug("could not get header with validator stats from storage")
 		return
+	}
+
+	if header.IsStartOfEpochBlock() {
+
+		log.Debug("trie snapshot",
+			"rootHash", header.GetRootHash(),
+			"prevRootHash", prevHeader.GetRootHash(),
+			"validatorStatsRootHash", header.GetValidatorStatsRootHash())
+		scbp.accountsDB[state.UserAccountsState].SnapshotState(header.GetRootHash(), header.GetEpoch())
+		scbp.accountsDB[state.PeerAccountsState].SnapshotState(header.GetValidatorStatsRootHash(), header.GetEpoch())
+		go func() {
+			// TODO: HERE REFACTOR commitTrieEpochRootHashIfNeeded
+			metaBlock, ok := header.(*block.MetaBlock)
+			if !ok {
+				log.Warn("cannot commit Trie Epoch Root Hash: lastMetaBlock is not *block.MetaBlock")
+				return
+			}
+			err := scbp.commitTrieEpochRootHashIfNeeded(metaBlock, header.GetRootHash())
+			if err != nil {
+				log.Warn("couldn't commit trie checkpoint", "epoch", metaBlock.Epoch, "error", err)
+			}
+		}()
+
+		scbp.nodesCoordinator.ShuffleOutForEpoch(header.GetEpoch())
 	}
 
 	scbp.updateStateStorage(
