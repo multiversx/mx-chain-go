@@ -28,7 +28,7 @@ const (
 	eventIDDepositIncomingTransfer = "deposit"
 	topicIDDepositIncomingTransfer = "deposit"
 	hashSize                       = 32
-	tokenIdentifier                = "TKN-123456"
+	token                          = "TKN-123456"
 	amountToTransfer               = "123"
 )
 
@@ -81,8 +81,8 @@ func TestIncomingOperations(t *testing.T) {
 	esdts, _, err := nodeHandler.GetFacadeHandler().GetAllESDTTokens(receiverWallet.Bech32, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
 	require.NotNil(t, esdts)
-	require.True(t, esdts[tokenIdentifier] != nil)
-	require.Equal(t, amountToTransfer, esdts[tokenIdentifier].Value.String())
+	require.True(t, esdts[token] != nil)
+	require.Equal(t, amountToTransfer, esdts[token].Value.String())
 }
 
 func addNextHeader(t *testing.T, cs chainSim.ChainSimulator, headerNonce *uint64, prevHeader *block.HeaderV2, txsEvent []*transaction.Event) *block.HeaderV2 {
@@ -134,7 +134,7 @@ func createTransactionsEvent(receiver []byte) []*transaction.Event {
 	events := make([]*transaction.Event, 0)
 	return append(events, &transaction.Event{
 		Identifier: []byte(eventIDDepositIncomingTransfer),
-		Topics:     [][]byte{[]byte(topicIDDepositIncomingTransfer), receiver, []byte(tokenIdentifier), []byte(""), tokenData},
+		Topics:     [][]byte{[]byte(topicIDDepositIncomingTransfer), receiver, []byte(token), []byte(""), tokenData},
 		Data:       eventData,
 	})
 }
