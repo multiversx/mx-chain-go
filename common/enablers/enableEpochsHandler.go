@@ -6,10 +6,11 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("common/enablers")
@@ -713,11 +714,11 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.StakingV4Step3EnableEpoch,
 		},
-		common.StakingQueueFlag: {
+		common.CleanupAuctionOnLowWaitingListFlag: {
 			isActiveInEpoch: func(epoch uint32) bool {
-				return epoch < handler.enableEpochsConfig.StakingV4Step1EnableEpoch
+				return epoch >= handler.enableEpochsConfig.CleanupAuctionOnLowWaitingListEnableEpoch
 			},
-			activationEpoch: handler.enableEpochsConfig.StakingV4Step1EnableEpoch,
+			activationEpoch: handler.enableEpochsConfig.CleanupAuctionOnLowWaitingListEnableEpoch,
 		},
 		common.StakingV4StartedFlag: {
 			isActiveInEpoch: func(epoch uint32) bool {
@@ -736,6 +737,18 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 				return epoch >= handler.enableEpochsConfig.DynamicESDTEnableEpoch
 			},
 			activationEpoch: handler.enableEpochsConfig.DynamicESDTEnableEpoch,
+		},
+		common.EGLDInESDTMultiTransferFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.EGLDInMultiTransferEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.EGLDInMultiTransferEnableEpoch,
+		},
+		common.CryptoOpcodesV2Flag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.CryptoOpcodesV2EnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.CryptoOpcodesV2EnableEpoch,
 		},
 	}
 }

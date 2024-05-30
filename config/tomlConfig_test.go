@@ -5,10 +5,11 @@ import (
 	"strconv"
 	"testing"
 
-	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
 	"github.com/pelletier/go-toml"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
 )
 
 func TestTomlParser(t *testing.T) {
@@ -102,6 +103,10 @@ func TestTomlParser(t *testing.T) {
 				WasmVMVersions:                      wasmVMVersions,
 				TimeOutForSCExecutionInMilliseconds: 10000,
 				WasmerSIGSEGVPassthrough:            true,
+				TransferAndExecuteByUserAddresses: []string{
+					"erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe0",
+					"erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe1",
+					"erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe2"},
 			},
 			Querying: QueryVirtualMachineConfig{
 				NumConcurrentVMs:     16,
@@ -199,6 +204,11 @@ func TestTomlParser(t *testing.T) {
             { StartEpoch = 12, Version = "v0.3" },
             { StartEpoch = 88, Version = "v1.2" },
         ]
+		TransferAndExecuteByUserAddresses = [
+			"erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe0", #shard 0
+			"erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe1", #shard 1
+			"erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe2", #shard 2
+		]
 
     [VirtualMachine.Querying]
         NumConcurrentVMs = 16
@@ -850,8 +860,17 @@ func TestEnableEpochConfig(t *testing.T) {
     # AlwaysMergeContextsInEEIEnableEpoch represents the epoch in which the EEI will always merge the contexts
     AlwaysMergeContextsInEEIEnableEpoch = 94
 
+    # CleanupAuctionOnLowWaitingListEnableEpoch represents the epoch when the cleanup auction on low waiting list is enabled
+    CleanupAuctionOnLowWaitingListEnableEpoch = 95
+
     # DynamicESDTEnableEpoch represents the epoch when dynamic NFT feature is enabled
-    DynamicESDTEnableEpoch = 95
+    DynamicESDTEnableEpoch = 96
+
+    # EGLDInMultiTransferEnableEpoch represents the epoch when EGLD in MultiTransfer is enabled
+    EGLDInMultiTransferEnableEpoch = 97
+
+    # CryptoOpcodesV2EnableEpoch represents the epoch when BLSMultiSig, Secp256r1 and other opcodes are enabled
+    CryptoOpcodesV2EnableEpoch = 98
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
@@ -965,7 +984,10 @@ func TestEnableEpochConfig(t *testing.T) {
 			MigrateDataTrieEnableEpoch:                               92,
 			CurrentRandomnessOnSortingEnableEpoch:                    93,
 			AlwaysMergeContextsInEEIEnableEpoch:                      94,
-			DynamicESDTEnableEpoch:                                   95,
+			CleanupAuctionOnLowWaitingListEnableEpoch:                95,
+			DynamicESDTEnableEpoch:                                   96,
+			EGLDInMultiTransferEnableEpoch:                           97,
+			CryptoOpcodesV2EnableEpoch:                               98,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,
