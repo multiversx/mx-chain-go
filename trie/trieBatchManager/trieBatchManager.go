@@ -56,11 +56,11 @@ func (t *trieBatchManager) MarkTrieUpdateCompleted() {
 }
 
 // Add adds a new key and data to the current batch
-func (t *trieBatchManager) Add(key []byte, data core.TrieData) {
+func (t *trieBatchManager) Add(data core.TrieData) {
 	t.mutex.RLock()
 	defer t.mutex.RUnlock()
 
-	t.currentBatch.Add(key, data)
+	t.currentBatch.Add(data)
 }
 
 // Get returns the data for the given key checking first the current batch and then the temp batch if the trie update is in progress

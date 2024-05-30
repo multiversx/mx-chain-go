@@ -375,8 +375,8 @@ type ExecutionOrderGetter interface {
 // TrieBatcher defines the methods needed for a trie batcher
 type TrieBatcher interface {
 	BatchHandler
-	GetSortedDataForInsertion() ([]string, map[string]core.TrieData)
-	GetSortedDataForRemoval() []string
+	GetSortedDataForInsertion() []core.TrieData
+	GetSortedDataForRemoval() []core.TrieData
 	IsInterfaceNil() bool
 }
 
@@ -390,7 +390,7 @@ type TrieBatchManager interface {
 
 // BatchHandler is the interface for the batch handler
 type BatchHandler interface {
-	Add(key []byte, data core.TrieData)
+	Add(data core.TrieData)
 	MarkForRemoval(key []byte)
 	Get(key []byte) ([]byte, bool)
 }

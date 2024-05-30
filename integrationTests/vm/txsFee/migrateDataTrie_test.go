@@ -185,6 +185,7 @@ func TestMigrateDataTrieBuiltInFunc(t *testing.T) {
 
 		err = testContext.Accounts.SaveAccount(acc)
 		require.Nil(t, err)
+		_, err = testContext.Accounts.Commit()
 
 		acc = getAccount(t, testContext, sndAddr)
 

@@ -20,7 +20,6 @@ func TestNewTrieChangesBatch(t *testing.T) {
 func TestTrieChangesBatch_Add(t *testing.T) {
 	t.Parallel()
 
-	keyForInsertion := []byte("keyForInsertion")
 	dataForInsertion := core.TrieData{
 		Key:     []byte("trieKey"),
 		Value:   []byte("trieValue"),
@@ -28,12 +27,12 @@ func TestTrieChangesBatch_Add(t *testing.T) {
 	}
 
 	tcb := NewTrieChangesBatch()
-	tcb.deletedKeys[string(keyForInsertion)] = struct{}{}
+	tcb.deletedKeys[string(dataForInsertion.Key)] = struct{}{}
 
-	tcb.Add(keyForInsertion, dataForInsertion)
+	tcb.Add(dataForInsertion)
 	assert.Equal(t, 0, len(tcb.deletedKeys))
 	assert.Equal(t, 1, len(tcb.insertedData))
-	assert.Equal(t, dataForInsertion, tcb.insertedData[string(keyForInsertion)])
+	assert.Equal(t, dataForInsertion, tcb.insertedData[string(dataForInsertion.Key)])
 }
 
 func TestTrieChangesBatch_MarkForRemoval(t *testing.T) {
@@ -102,14 +101,15 @@ func TestTrieChangesBatch_GetSortedDataForInsertion(t *testing.T) {
 	t.Parallel()
 
 	tcb := NewTrieChangesBatch()
+	tcb.insertedData["key3"] = core.TrieData{Key: []byte("key3")}
+	tcb.insertedData["key1"] = core.TrieData{Key: []byte("key1")}
+	tcb.insertedData["key2"] = core.TrieData{Key: []byte("key2")}
 
-	tcb.insertedData["key3"] = core.TrieData{}
-	tcb.insertedData["key1"] = core.TrieData{}
-	tcb.insertedData["key2"] = core.TrieData{}
-
-	keys, data := tcb.GetSortedDataForInsertion()
-	assert.Equal(t, []string{"key1", "key2", "key3"}, keys)
+	data := tcb.GetSortedDataForInsertion()
 	assert.Equal(t, 3, len(data))
+	assert.Equal(t, "key1", string(data[0].Key))
+	assert.Equal(t, "key2", string(data[1].Key))
+	assert.Equal(t, "key3", string(data[2].Key))
 }
 
 func TestTrieChangesBatch_GetSortedDataForRemoval(t *testing.T) {
@@ -121,6 +121,9 @@ func TestTrieChangesBatch_GetSortedDataForRemoval(t *testing.T) {
 	tcb.deletedKeys["key1"] = struct{}{}
 	tcb.deletedKeys["key2"] = struct{}{}
 
-	keys := tcb.GetSortedDataForRemoval()
-	assert.Equal(t, []string{"key1", "key2", "key3"}, keys)
+	data := tcb.GetSortedDataForRemoval()
+	assert.Equal(t, 3, len(data))
+	assert.Equal(t, "key1", string(data[0].Key))
+	assert.Equal(t, "key2", string(data[1].Key))
+	assert.Equal(t, "key3", string(data[2].Key))
 }

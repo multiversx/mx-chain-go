@@ -334,7 +334,7 @@ func (en *extensionNode) getNext(key []byte, db common.TrieStorageInteractor) (n
 	return en.child, key, nil
 }
 
-func (en *extensionNode) insert(newData core.TrieData, db common.TrieStorageInteractor) (node, [][]byte, error) {
+func (en *extensionNode) insert(newData []core.TrieData, db common.TrieStorageInteractor) (node, [][]byte, error) {
 	emptyHashes := make([][]byte, 0)
 	err := en.isEmptyOrNil()
 	if err != nil {
@@ -345,7 +345,7 @@ func (en *extensionNode) insert(newData core.TrieData, db common.TrieStorageInte
 		return nil, emptyHashes, err
 	}
 
-	keyMatchLen := prefixLen(newData.Key, en.Key)
+	keyMatchLen, index := getMinKeyMatchLen(newData, en.Key)
 
 	// If the whole key matches, keep this extension node as is
 	// and only update the value.
@@ -354,14 +354,48 @@ func (en *extensionNode) insert(newData core.TrieData, db common.TrieStorageInte
 	}
 
 	// Otherwise branch out at the index where they differ.
-	return en.insertInNewBn(newData, keyMatchLen)
+	return en.insertInNewBn(newData, db, keyMatchLen, index)
 }
 
-func (en *extensionNode) insertInSameEn(newData core.TrieData, keyMatchLen int, db common.TrieStorageInteractor) (node, [][]byte, error) {
-	newData.Key = newData.Key[keyMatchLen:]
+func getMinKeyMatchLen(newData []core.TrieData, enKey []byte) (int, int) {
+	keyMatchLen := len(enKey)
+	index := 0
+	for i, data := range newData {
+		if keyMatchLen == 0 {
+			return 0, index
+		}
+		matchLen := prefixLen(data.Key, enKey)
+		if matchLen < keyMatchLen {
+			keyMatchLen = matchLen
+			index = i
+		}
+	}
+
+	return keyMatchLen, index
+}
+
+func removeCommonPrefix(newData []core.TrieData, prefixLen int) error {
+	for i := range newData {
+		if len(newData[i].Key) < prefixLen {
+			return ErrValueTooShort
+		}
+		newData[i].Key = newData[i].Key[prefixLen:]
+	}
+
+	return nil
+}
+
+func (en *extensionNode) insertInSameEn(newData []core.TrieData, keyMatchLen int, db common.TrieStorageInteractor) (node, [][]byte, error) {
+	for i := range newData {
+		newData[i].Key = newData[i].Key[keyMatchLen:]
+	}
 	newNode, oldHashes, err := en.child.insert(newData, db)
-	if check.IfNil(newNode) || err != nil {
+	if err != nil {
 		return nil, [][]byte{}, err
+	}
+
+	if check.IfNil(newNode) {
+		return nil, [][]byte{}, nil
 	}
 
 	if !en.dirty {
@@ -376,7 +410,7 @@ func (en *extensionNode) insertInSameEn(newData core.TrieData, keyMatchLen int, 
 	return newEn, oldHashes, nil
 }
 
-func (en *extensionNode) insertInNewBn(newData core.TrieData, keyMatchLen int) (node, [][]byte, error) {
+func (en *extensionNode) insertInNewBn(newData []core.TrieData, db common.TrieStorageInteractor, keyMatchLen int, index int) (node, [][]byte, error) {
 	oldHash := make([][]byte, 0)
 	if !en.dirty {
 		oldHash = append(oldHash, en.hash)
@@ -388,7 +422,7 @@ func (en *extensionNode) insertInNewBn(newData core.TrieData, keyMatchLen int) (
 	}
 
 	oldChildPos := en.Key[keyMatchLen]
-	newChildPos := newData.Key[keyMatchLen]
+	newChildPos := newData[index].Key[keyMatchLen]
 	if childPosOutOfRange(oldChildPos) || childPosOutOfRange(newChildPos) {
 		return nil, [][]byte{}, ErrChildPosOutOfRange
 	}
@@ -398,16 +432,33 @@ func (en *extensionNode) insertInNewBn(newData core.TrieData, keyMatchLen int) (
 		return nil, [][]byte{}, err
 	}
 
-	err = en.insertNewChildInBn(bn, newData, newChildPos, keyMatchLen)
+	newChild := newData[index]
+	newData = append(newData[:index], newData[index+1:]...)
+
+	err = en.insertNewChildInBn(bn, newChild, newChildPos, keyMatchLen)
 	if err != nil {
 		return nil, [][]byte{}, err
 	}
 
-	if keyMatchLen == 0 {
-		return bn, oldHash, nil
+	err = removeCommonPrefix(newData, keyMatchLen)
+	if err != nil {
+		return nil, [][]byte{}, err
 	}
 
-	newEn, err := newExtensionNode(en.Key[:keyMatchLen], bn, en.marsh, en.hasher)
+	var newNode node
+	newNode = bn
+	if len(newData) != 0 {
+		newNode, _, err = bn.insert(newData, db)
+		if err != nil {
+			return nil, [][]byte{}, err
+		}
+	}
+
+	if keyMatchLen == 0 {
+		return newNode, oldHash, nil
+	}
+
+	newEn, err := newExtensionNode(en.Key[:keyMatchLen], newNode, en.marsh, en.hasher)
 	if err != nil {
 		return nil, [][]byte{}, err
 	}
@@ -437,30 +488,40 @@ func (en *extensionNode) insertOldChildInBn(bn *branchNode, oldChildPos byte, ke
 	return nil
 }
 
-func (en *extensionNode) insertNewChildInBn(bn *branchNode, newData core.TrieData, newChildPos byte, keyMatchLen int) error {
-	newData.Key = newData.Key[keyMatchLen+1:]
+func (en *extensionNode) insertNewChildInBn(bn *branchNode, newChild core.TrieData, newChildPos byte, keyMatchLen int) error {
+	newChild.Key = newChild.Key[keyMatchLen+1:]
 
-	newLeaf, err := newLeafNode(newData, en.marsh, en.hasher)
+	newLeaf, err := newLeafNode(newChild, en.marsh, en.hasher)
 	if err != nil {
 		return err
 	}
 
 	bn.children[newChildPos] = newLeaf
-	bn.setVersionForChild(newData.Version, newChildPos)
+	bn.setVersionForChild(newChild.Version, newChildPos)
 	return nil
 }
 
-func (en *extensionNode) delete(key []byte, db common.TrieStorageInteractor) (bool, node, [][]byte, error) {
+func (en *extensionNode) getDataWithMatchingPrefix(data []core.TrieData) []core.TrieData {
+	dataWithMatchingKey := make([]core.TrieData, 0)
+	for _, d := range data {
+		if len(en.Key) == prefixLen(d.Key, en.Key) {
+			d.Key = d.Key[len(en.Key):]
+			dataWithMatchingKey = append(dataWithMatchingKey, d)
+		}
+	}
+
+	return dataWithMatchingKey
+}
+
+func (en *extensionNode) delete(data []core.TrieData, db common.TrieStorageInteractor) (bool, node, [][]byte, error) {
 	emptyHashes := make([][]byte, 0)
 	err := en.isEmptyOrNil()
 	if err != nil {
 		return false, nil, emptyHashes, fmt.Errorf("delete error %w", err)
 	}
-	if len(key) == 0 {
-		return false, nil, emptyHashes, ErrValueTooShort
-	}
-	keyMatchLen := prefixLen(key, en.Key)
-	if keyMatchLen < len(en.Key) {
+
+	dataWithMatchingKey := en.getDataWithMatchingPrefix(data)
+	if len(dataWithMatchingKey) == 0 {
 		return false, en, emptyHashes, nil
 	}
 	err = resolveIfCollapsed(en, 0, db)
@@ -468,9 +529,13 @@ func (en *extensionNode) delete(key []byte, db common.TrieStorageInteractor) (bo
 		return false, nil, emptyHashes, err
 	}
 
-	dirty, newNode, oldHashes, err := en.child.delete(key[len(en.Key):], db)
-	if !dirty || err != nil {
+	dirty, newNode, oldHashes, err := en.child.delete(dataWithMatchingKey, db)
+	if err != nil {
 		return false, en, emptyHashes, err
+	}
+
+	if !dirty {
+		return false, en, emptyHashes, nil
 	}
 
 	if !en.dirty {
@@ -505,7 +570,6 @@ func (en *extensionNode) delete(key []byte, db common.TrieStorageInteractor) (bo
 
 		return true, n, oldHashes, nil
 	case nil:
-		log.Warn("nil child after deleting from extension node")
 		return true, nil, oldHashes, nil
 	default:
 		return false, nil, oldHashes, ErrInvalidNode

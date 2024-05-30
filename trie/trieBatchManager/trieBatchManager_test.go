@@ -23,8 +23,8 @@ func TestTrieBatchManager_TrieUpdateInProgress(t *testing.T) {
 	t.Parallel()
 
 	tbm := NewTrieBatchManager()
-	tbm.Add([]byte("key1"), core.TrieData{})
-	tbm.Add([]byte("key2"), core.TrieData{})
+	tbm.Add(core.TrieData{Key: []byte("key1")})
+	tbm.Add(core.TrieData{Key: []byte("key2")})
 	assert.False(t, tbm.isUpdateInProgress)
 	assert.True(t, check.IfNil(tbm.tempBatch))
 
@@ -50,12 +50,12 @@ func TestTrieBatchManager_AddUpdatesCurrentBatch(t *testing.T) {
 	t.Parallel()
 
 	tbm := NewTrieBatchManager()
-	tbm.Add([]byte("key1"), core.TrieData{})
+	tbm.Add(core.TrieData{Key: []byte("key1")})
 	_, found := tbm.currentBatch.Get([]byte("key1"))
 	assert.True(t, found)
 
 	_, _ = tbm.MarkTrieUpdateInProgress()
-	tbm.Add([]byte("key2"), core.TrieData{})
+	tbm.Add(core.TrieData{Key: []byte("key2")})
 	_, found = tbm.currentBatch.Get([]byte("key2"))
 	assert.True(t, found)
 }
@@ -70,7 +70,8 @@ func TestTrieBatchManager_Get(t *testing.T) {
 		t.Parallel()
 
 		tbm := NewTrieBatchManager()
-		tbm.currentBatch.Add(key, core.TrieData{
+		tbm.currentBatch.Add(core.TrieData{
+			Key:   key,
 			Value: value,
 		})
 
@@ -82,7 +83,8 @@ func TestTrieBatchManager_Get(t *testing.T) {
 		t.Parallel()
 
 		tbm := NewTrieBatchManager()
-		tbm.currentBatch.Add(key, core.TrieData{
+		tbm.currentBatch.Add(core.TrieData{
+			Key:   key,
 			Value: value,
 		})
 		_, _ = tbm.MarkTrieUpdateInProgress()
