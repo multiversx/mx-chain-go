@@ -45,14 +45,14 @@ func runEsdtMetaDataRecreateTest(t *testing.T, tokenType string) {
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
 
-	defaultMetaData := getDefaultMetaData()
+	defaultMetaData := GetDefaultMetaData()
 	tx = createTokenTx(sndAddr, sndAddr, 100000, 1, defaultMetaData)
 	retCode, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
 
 	// TODO change default metadata
-	defaultMetaData.nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
+	defaultMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
 	tx = esdtMetaDataRecreateTx(sndAddr, sndAddr, 100000, defaultMetaData)
 	retCode, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
@@ -68,20 +68,20 @@ func esdtMetaDataRecreateTx(
 	sndAddr []byte,
 	rcvAddr []byte,
 	gasLimit uint64,
-	metaData *metaData,
+	metaData *MetaData,
 ) *transaction.Transaction {
 	txDataField := bytes.Join(
 		[][]byte{
 			[]byte(core.ESDTMetaDataRecreate),
-			metaData.tokenId,
-			metaData.nonce,
-			metaData.name,
-			metaData.royalties,
-			metaData.hash,
-			metaData.attributes,
-			metaData.uris[0],
-			metaData.uris[1],
-			metaData.uris[2],
+			metaData.TokenId,
+			metaData.Nonce,
+			metaData.Name,
+			metaData.Royalties,
+			metaData.Hash,
+			metaData.Attributes,
+			metaData.Uris[0],
+			metaData.Uris[1],
+			metaData.Uris[2],
 		},
 		[]byte("@"),
 	)
