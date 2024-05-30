@@ -11,11 +11,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// ArgsBridgeSetup holds the arguments for bridge setup
 type ArgsBridgeSetup struct {
 	ESDTSafeAddress  []byte
 	FeeMarketAddress []byte
 }
 
+// DeploySovereignBridgeSetup will deploy all bridge contracts
 func DeploySovereignBridgeSetup(
 	t *testing.T,
 	cs chainSim.ChainSimulator,
