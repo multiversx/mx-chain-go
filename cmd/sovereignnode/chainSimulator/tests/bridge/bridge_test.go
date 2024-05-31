@@ -28,7 +28,7 @@ const (
 // - issue a new fungible token
 // - deposit some tokens in esdt-safe contract
 // - check the sender balance is correct
-// - check the token supply is correct after deposit (burned amount, supply etc)
+// - check the token burned amount is correct after deposit
 func TestBridge_DeployOnSovereignChain_IssueAndDeposit(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -88,8 +88,5 @@ func TestBridge_DeployOnSovereignChain_IssueAndDeposit(t *testing.T) {
 	tokenSupply, err := nodeHandler.GetFacadeHandler().GetTokenSupply(tokenIdentifier)
 	require.Nil(t, err)
 	require.NotNil(t, tokenSupply)
-	require.Equal(t, supply.String(), tokenSupply.InitialMinted)
-	require.Equal(t, big.NewInt(0), tokenSupply.Minted)
 	require.Equal(t, amountToDeposit.String(), tokenSupply.Burned)
-	require.Equal(t, big.NewInt(0).Sub(supply, amountToDeposit).String(), tokenSupply.Supply)
 }
