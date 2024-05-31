@@ -14,7 +14,6 @@ import (
 	dataVm "github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-go/config"
 	testsChainSimulator "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
-	"github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/staking"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
@@ -31,8 +30,11 @@ import (
 const (
 	defaultPathToInitialConfig = "../../../cmd/node/config/"
 
-	minGasPrice = 1000000000
+	minGasPrice                            = 1000000000
+	maxNumOfBlockToGenerateWhenExecutingTx = 7
 )
+
+var oneEGLD = big.NewInt(1000000000000000000)
 
 var log = logger.GetOrCreate("integrationTests/chainSimulator/vm")
 
@@ -114,7 +116,7 @@ func transferAndCheckTokensMetaData(t *testing.T, isCrossShard bool) {
 	metaESDTTicker := []byte("METATTICKER")
 	tx := issueMetaESDTTx(0, addrs[0].Bytes, metaESDTTicker, baseIssuingCost)
 
-	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
 	require.Equal(t, "success", txResult.Status.String())
@@ -133,7 +135,7 @@ func transferAndCheckTokensMetaData(t *testing.T, isCrossShard bool) {
 	fungibleTicker := []byte("FUNGIBLETICKER")
 	tx = issueTx(1, addrs[0].Bytes, fungibleTicker, baseIssuingCost)
 
-	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
 	require.Equal(t, "success", txResult.Status.String())
@@ -147,7 +149,7 @@ func transferAndCheckTokensMetaData(t *testing.T, isCrossShard bool) {
 	nftTicker := []byte("NFTTICKER")
 	tx = issueNonFungibleTx(2, addrs[0].Bytes, nftTicker, baseIssuingCost)
 
-	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
 	require.Equal(t, "success", txResult.Status.String())
@@ -161,7 +163,7 @@ func transferAndCheckTokensMetaData(t *testing.T, isCrossShard bool) {
 	sftTicker := []byte("SFTTICKER")
 	tx = issueSemiFungibleTx(3, addrs[0].Bytes, sftTicker, baseIssuingCost)
 
-	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
 	require.Equal(t, "success", txResult.Status.String())
@@ -201,7 +203,7 @@ func transferAndCheckTokensMetaData(t *testing.T, isCrossShard bool) {
 	for i := range tokenIDs {
 		tx = nftCreateTx(nonce, addrs[0].Bytes, tokenIDs[i], tokensMetadata[i])
 
-		txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+		txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 		require.Nil(t, err)
 		require.NotNil(t, txResult)
 		require.Equal(t, "success", txResult.Status.String())
@@ -230,7 +232,7 @@ func transferAndCheckTokensMetaData(t *testing.T, isCrossShard bool) {
 		log.Info("transfering token id", "tokenID", tokenID)
 
 		tx = esdtNFTTransferTx(nonce, addrs[0].Bytes, addrs[1].Bytes, tokenID)
-		txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+		txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 		require.Nil(t, err)
 		require.NotNil(t, txResult)
 		require.Equal(t, "success", txResult.Status.String())
@@ -252,7 +254,7 @@ func transferAndCheckTokensMetaData(t *testing.T, isCrossShard bool) {
 
 		log.Info("updating token id", "tokenID", tokenID)
 
-		txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+		txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 		require.Nil(t, err)
 		require.NotNil(t, txResult)
 		require.Equal(t, "success", txResult.Status.String())
@@ -274,7 +276,7 @@ func transferAndCheckTokensMetaData(t *testing.T, isCrossShard bool) {
 		log.Info("transfering token id", "tokenID", tokenID)
 
 		tx = esdtNFTTransferTx(nonce, addrs[1].Bytes, addrs[2].Bytes, tokenID)
-		txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+		txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 		require.Nil(t, err)
 		require.NotNil(t, txResult)
 		require.Equal(t, "success", txResult.Status.String())
@@ -306,7 +308,7 @@ func createAddresses(
 	}
 
 	mintValue := big.NewInt(10)
-	mintValue = mintValue.Mul(staking.OneEGLD, mintValue)
+	mintValue = mintValue.Mul(oneEGLD, mintValue)
 
 	address, err := cs.GenerateAndMintWalletAddress(shardIDs[0], mintValue)
 	require.Nil(t, err)
@@ -651,7 +653,7 @@ func TestChainSimulator_CreateTokensAfterActivation(t *testing.T) {
 	metaESDTTicker := []byte("METATTICKER")
 	tx := issueMetaESDTTx(0, addrs[0].Bytes, metaESDTTicker, baseIssuingCost)
 
-	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
 	require.Equal(t, "success", txResult.Status.String())
@@ -670,7 +672,7 @@ func TestChainSimulator_CreateTokensAfterActivation(t *testing.T) {
 	fungibleTicker := []byte("FUNGIBLETICKER")
 	tx = issueTx(1, addrs[0].Bytes, fungibleTicker, baseIssuingCost)
 
-	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
 	require.Equal(t, "success", txResult.Status.String())
@@ -684,7 +686,7 @@ func TestChainSimulator_CreateTokensAfterActivation(t *testing.T) {
 	nftTicker := []byte("NFTTICKER")
 	tx = issueNonFungibleTx(2, addrs[0].Bytes, nftTicker, baseIssuingCost)
 
-	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
 	require.Equal(t, "success", txResult.Status.String())
@@ -698,7 +700,7 @@ func TestChainSimulator_CreateTokensAfterActivation(t *testing.T) {
 	sftTicker := []byte("SFTTICKER")
 	tx = issueSemiFungibleTx(3, addrs[0].Bytes, sftTicker, baseIssuingCost)
 
-	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
 	require.Equal(t, "success", txResult.Status.String())
@@ -738,7 +740,7 @@ func TestChainSimulator_CreateTokensAfterActivation(t *testing.T) {
 	for i := range tokenIDs {
 		tx = nftCreateTx(nonce, addrs[0].Bytes, tokenIDs[i], tokensMetadata[i])
 
-		txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+		txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 		require.Nil(t, err)
 		require.NotNil(t, txResult)
 		require.Equal(t, "success", txResult.Status.String())
@@ -809,7 +811,7 @@ func TestChainSimulator_NFT_ESDTMetaDataRecreate(t *testing.T) {
 	defer cs.Close()
 
 	mintValue := big.NewInt(10)
-	mintValue = mintValue.Mul(staking.OneEGLD, mintValue)
+	mintValue = mintValue.Mul(oneEGLD, mintValue)
 
 	address, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
 	require.Nil(t, err)
@@ -825,7 +827,7 @@ func TestChainSimulator_NFT_ESDTMetaDataRecreate(t *testing.T) {
 	nftTicker := []byte("NFTTICKER")
 	tx := issueNonFungibleTx(0, address.Bytes, nftTicker, baseIssuingCost)
 
-	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
 	require.Equal(t, "success", txResult.Status.String())
@@ -845,7 +847,7 @@ func TestChainSimulator_NFT_ESDTMetaDataRecreate(t *testing.T) {
 
 	tx = nftCreateTx(1, address.Bytes, nftTokenID, nftMetaData)
 
-	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
 	require.Equal(t, "success", txResult.Status.String())
@@ -889,7 +891,7 @@ func TestChainSimulator_NFT_ESDTMetaDataRecreate(t *testing.T) {
 		Version:   1,
 	}
 
-	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
 
@@ -947,7 +949,7 @@ func TestChainSimulator_NFT_ESDTMetaDataUpdate(t *testing.T) {
 	defer cs.Close()
 
 	mintValue := big.NewInt(10)
-	mintValue = mintValue.Mul(staking.OneEGLD, mintValue)
+	mintValue = mintValue.Mul(oneEGLD, mintValue)
 
 	address, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
 	require.Nil(t, err)
@@ -963,7 +965,7 @@ func TestChainSimulator_NFT_ESDTMetaDataUpdate(t *testing.T) {
 	nftTicker := []byte("NFTTICKER")
 	tx := issueNonFungibleTx(0, address.Bytes, nftTicker, baseIssuingCost)
 
-	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
 	require.Equal(t, "success", txResult.Status.String())
@@ -983,7 +985,7 @@ func TestChainSimulator_NFT_ESDTMetaDataUpdate(t *testing.T) {
 
 	tx = nftCreateTx(1, address.Bytes, nftTokenID, nftMetaData)
 
-	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
 	require.Equal(t, "success", txResult.Status.String())
@@ -1024,7 +1026,7 @@ func TestChainSimulator_NFT_ESDTMetaDataUpdate(t *testing.T) {
 		Version:   1,
 	}
 
-	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
 
@@ -1082,7 +1084,7 @@ func TestChainSimulator_NFT_ESDTModifyCreator(t *testing.T) {
 	defer cs.Close()
 
 	mintValue := big.NewInt(10)
-	mintValue = mintValue.Mul(staking.OneEGLD, mintValue)
+	mintValue = mintValue.Mul(oneEGLD, mintValue)
 
 	address, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
 	require.Nil(t, err)
@@ -1098,7 +1100,7 @@ func TestChainSimulator_NFT_ESDTModifyCreator(t *testing.T) {
 	nftTicker := []byte("NFTTICKER")
 	tx := issueNonFungibleTx(0, address.Bytes, nftTicker, baseIssuingCost)
 
-	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
 	require.Equal(t, "success", txResult.Status.String())
@@ -1118,7 +1120,7 @@ func TestChainSimulator_NFT_ESDTModifyCreator(t *testing.T) {
 
 	tx = nftCreateTx(1, address.Bytes, nftTokenID, nftMetaData)
 
-	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
 	require.Equal(t, "success", txResult.Status.String())
@@ -1158,7 +1160,7 @@ func TestChainSimulator_NFT_ESDTModifyCreator(t *testing.T) {
 		Version:   1,
 	}
 
-	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
 
@@ -1224,7 +1226,7 @@ func TestChainSimulator_NFT_ESDTSetNewURIs(t *testing.T) {
 	defer cs.Close()
 
 	mintValue := big.NewInt(10)
-	mintValue = mintValue.Mul(staking.OneEGLD, mintValue)
+	mintValue = mintValue.Mul(oneEGLD, mintValue)
 
 	address, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
 	require.Nil(t, err)
@@ -1240,7 +1242,7 @@ func TestChainSimulator_NFT_ESDTSetNewURIs(t *testing.T) {
 	nftTicker := []byte("NFTTICKER")
 	tx := issueNonFungibleTx(0, address.Bytes, nftTicker, baseIssuingCost)
 
-	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
 	require.Equal(t, "success", txResult.Status.String())
@@ -1260,7 +1262,7 @@ func TestChainSimulator_NFT_ESDTSetNewURIs(t *testing.T) {
 
 	tx = nftCreateTx(1, address.Bytes, nftTokenID, nftMetaData)
 
-	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
 	require.Equal(t, "success", txResult.Status.String())
@@ -1310,7 +1312,7 @@ func TestChainSimulator_NFT_ESDTSetNewURIs(t *testing.T) {
 		Version:   1,
 	}
 
-	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
 
@@ -1371,7 +1373,7 @@ func TestChainSimulator_NFT_ESDTModifyRoyalties(t *testing.T) {
 	defer cs.Close()
 
 	mintValue := big.NewInt(10)
-	mintValue = mintValue.Mul(staking.OneEGLD, mintValue)
+	mintValue = mintValue.Mul(oneEGLD, mintValue)
 
 	address, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
 	require.Nil(t, err)
@@ -1387,7 +1389,7 @@ func TestChainSimulator_NFT_ESDTModifyRoyalties(t *testing.T) {
 	nftTicker := []byte("NFTTICKER")
 	tx := issueNonFungibleTx(0, address.Bytes, nftTicker, baseIssuingCost)
 
-	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
 	require.Equal(t, "success", txResult.Status.String())
@@ -1407,7 +1409,7 @@ func TestChainSimulator_NFT_ESDTModifyRoyalties(t *testing.T) {
 
 	tx = nftCreateTx(1, address.Bytes, nftTokenID, nftMetaData)
 
-	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
 	require.Equal(t, "success", txResult.Status.String())
@@ -1445,7 +1447,7 @@ func TestChainSimulator_NFT_ESDTModifyRoyalties(t *testing.T) {
 		Version:   1,
 	}
 
-	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
 
