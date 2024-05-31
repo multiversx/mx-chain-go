@@ -133,9 +133,10 @@ func RegisterAndSetAllRoles(
 	issueCost *big.Int,
 	esdtName string,
 	esdtTicker string,
-	esdtType string,
+	tokenType string,
 	numDecimals int,
 ) string {
+	esdtType := getTokenRegisterType(tokenType)
 	registerArgs := "registerAndSetAllRoles" +
 		"@" + hex.EncodeToString([]byte(esdtName)) +
 		"@" + hex.EncodeToString([]byte(esdtTicker)) +
@@ -143,17 +144,20 @@ func RegisterAndSetAllRoles(
 		"@" + fmt.Sprintf("%02X", numDecimals)
 	SendTransaction(t, cs, sender, nonce, vm.ESDTSCAddress, issueCost, registerArgs, uint64(60000000))
 
-	issuedTokens, err := nodeHandler.GetFacadeHandler().GetAllIssuedESDTs(core.SemiFungibleESDT)
-	require.Nil(t, err)
-	require.GreaterOrEqual(t, len(issuedTokens), 1)
+	return getEsdtIdentifier(t, nodeHandler, esdtTicker, tokenType)
+}
 
-	for _, issuedToken := range issuedTokens {
-		if strings.Contains(issuedToken, esdtTicker) {
-			return issuedToken
-		}
+func getTokenRegisterType(tokenType string) string {
+	switch tokenType {
+	case core.FungibleESDT:
+		return "FNG"
+	case core.NonFungibleESDT:
+		return "NFT"
+	case core.SemiFungibleESDT:
+		return "SFT"
+	case core.MetaESDT:
+		return "METTA"
 	}
-
-	require.Fail(t, "could not issue semi fungible")
 	return ""
 }
 
@@ -179,18 +183,7 @@ func IssueFungible(
 		"@" + hex.EncodeToString([]byte("true"))
 	SendTransaction(t, cs, sender, nonce, vm.ESDTSCAddress, issueCost, issueArgs, uint64(60000000))
 
-	issuedTokens, err := nodeHandler.GetFacadeHandler().GetAllIssuedESDTs(core.FungibleESDT)
-	require.Nil(t, err)
-	require.GreaterOrEqual(t, len(issuedTokens), 1)
-
-	for _, issuedToken := range issuedTokens {
-		if strings.Contains(issuedToken, tokenTicker) {
-			return issuedToken
-		}
-	}
-
-	require.Fail(t, "could not issue fungible")
-	return ""
+	return getEsdtIdentifier(t, nodeHandler, tokenTicker, core.FungibleESDT)
 }
 
 // IssueSemiFungible will issue a semi fungible token
@@ -201,20 +194,24 @@ func IssueSemiFungible(
 	sender []byte,
 	nonce *uint64,
 	issueCost *big.Int,
-	tokenName string,
-	tokenTicker string,
+	sftName string,
+	sftTicker string,
 ) string {
 	issueArgs := "issueSemiFungible" +
-		"@" + hex.EncodeToString([]byte(tokenName)) +
-		"@" + hex.EncodeToString([]byte(tokenTicker))
+		"@" + hex.EncodeToString([]byte(sftName)) +
+		"@" + hex.EncodeToString([]byte(sftTicker))
 	SendTransaction(t, cs, sender, nonce, vm.ESDTSCAddress, issueCost, issueArgs, uint64(60000000))
 
-	issuedTokens, err := nodeHandler.GetFacadeHandler().GetAllIssuedESDTs(core.SemiFungibleESDT)
+	return getEsdtIdentifier(t, nodeHandler, sftTicker, core.SemiFungibleESDT)
+}
+
+func getEsdtIdentifier(t *testing.T, nodeHandler process.NodeHandler, ticker string, tokenType string) string {
+	issuedTokens, err := nodeHandler.GetFacadeHandler().GetAllIssuedESDTs(tokenType)
 	require.Nil(t, err)
 	require.GreaterOrEqual(t, len(issuedTokens), 1)
 
 	for _, issuedToken := range issuedTokens {
-		if strings.Contains(issuedToken, tokenTicker) {
+		if strings.Contains(issuedToken, ticker) {
 			return issuedToken
 		}
 	}
