@@ -3,10 +3,12 @@ package bootstrap
 import (
 	"fmt"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+
+	"github.com/multiversx/mx-chain-core-go/core/check"
 )
 
 const baseErrorMessage = "error with epoch start bootstrapper arguments"
@@ -122,6 +124,21 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	}
 	if check.IfNil(args.NodesCoordinatorRegistryFactory) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, nodesCoordinator.ErrNilNodesCoordinatorRegistryFactory)
+	}
+	if check.IfNil(args.RunTypeComponents) {
+		return fmt.Errorf("%s: %w", baseErrorMessage, errors.ErrNilRunTypeComponents)
+	}
+	if check.IfNil(args.RunTypeComponents.ShardCoordinatorCreator()) {
+		return fmt.Errorf("%s: %w", baseErrorMessage, errors.ErrNilShardCoordinatorFactory)
+	}
+	if check.IfNil(args.RunTypeComponents.AdditionalStorageServiceCreator()) {
+		return fmt.Errorf("%s: %w", baseErrorMessage, errors.ErrNilAdditionalStorageServiceCreator)
+	}
+	if check.IfNil(args.RunTypeComponents.NodesCoordinatorWithRaterCreator()) {
+		return fmt.Errorf("%s: %w", baseErrorMessage, errors.ErrNilNodesCoordinatorFactory)
+	}
+	if check.IfNil(args.RunTypeComponents.RequestHandlerCreator()) {
+		return fmt.Errorf("%s: %w", baseErrorMessage, errors.ErrNilRequestHandlerCreator)
 	}
 
 	return nil

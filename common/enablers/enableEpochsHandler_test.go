@@ -92,6 +92,7 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		RefactorPeersMiniBlocksEnableEpoch:                       75,
 		MaxBlockchainHookCountersEnableEpoch:                     76,
 		WipeSingleNFTLiquidityDecreaseEnableEpoch:                77,
+		ConsensusModelV2EnableEpoch:                              77,
 		AlwaysSaveTokenMetaDataEnableEpoch:                       78,
 		RuntimeCodeSizeFixEnableEpoch:                            79,
 		RelayedNonceFixEnableEpoch:                               80,
@@ -319,6 +320,7 @@ func TestEnableEpochsHandler_IsFlagEnabled(t *testing.T) {
 	require.True(t, handler.IsFlagEnabled(common.StakingV4StartedFlag))
 	require.True(t, handler.IsFlagEnabled(common.AlwaysMergeContextsInEEIFlag))
 	require.True(t, handler.IsFlagEnabled(common.DynamicESDTFlag))
+	require.True(t, handler.IsFlagEnabled(common.ConsensusModelV2Flag))
 }
 
 func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
@@ -438,6 +440,7 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.DynamicESDTEnableEpoch, handler.GetActivationEpoch(common.DynamicESDTFlag))
 	require.Equal(t, cfg.EGLDInMultiTransferEnableEpoch, handler.GetActivationEpoch(common.EGLDInESDTMultiTransferFlag))
 	require.Equal(t, cfg.CryptoOpcodesV2EnableEpoch, handler.GetActivationEpoch(common.CryptoOpcodesV2Flag))
+	require.Equal(t, cfg.ConsensusModelV2EnableEpoch, handler.GetActivationEpoch(common.ConsensusModelV2Flag))
 }
 
 func TestEnableEpochsHandler_IsInterfaceNil(t *testing.T) {

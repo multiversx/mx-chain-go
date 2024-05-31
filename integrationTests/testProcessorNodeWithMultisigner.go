@@ -32,6 +32,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/headerSigVerifier"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
@@ -453,13 +454,14 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 
 		nodesList := make([]*TestProcessorNode, len(validatorList))
 		args := headerCheck.ArgsHeaderSigVerifier{
-			Marshalizer:             TestMarshalizer,
-			Hasher:                  TestHasher,
-			NodesCoordinator:        nodesCoordinatorInstance,
-			MultiSigContainer:       cryptoMocks.NewMultiSignerContainerMock(TestMultiSig),
-			SingleSigVerifier:       signer,
-			KeyGen:                  keyGen,
-			FallbackHeaderValidator: &testscommon.FallBackHeaderValidatorStub{},
+			Marshalizer:                  TestMarshalizer,
+			Hasher:                       TestHasher,
+			NodesCoordinator:             nodesCoordinatorInstance,
+			MultiSigContainer:            cryptoMocks.NewMultiSignerContainerMock(TestMultiSig),
+			SingleSigVerifier:            signer,
+			KeyGen:                       keyGen,
+			FallbackHeaderValidator:      &testscommon.FallBackHeaderValidatorStub{},
+			ExtraHeaderSigVerifierHolder: &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
 		}
 		headerSig, _ := headerCheck.NewHeaderSigVerifier(&args)
 
@@ -588,13 +590,14 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 			)
 
 			args := headerCheck.ArgsHeaderSigVerifier{
-				Marshalizer:             TestMarshalizer,
-				Hasher:                  TestHasher,
-				NodesCoordinator:        nodesCoord,
-				MultiSigContainer:       cryptoMocks.NewMultiSignerContainerMock(TestMultiSig),
-				SingleSigVerifier:       singleSigner,
-				KeyGen:                  keyGenForBlocks,
-				FallbackHeaderValidator: &testscommon.FallBackHeaderValidatorStub{},
+				Marshalizer:                  TestMarshalizer,
+				Hasher:                       TestHasher,
+				NodesCoordinator:             nodesCoord,
+				MultiSigContainer:            cryptoMocks.NewMultiSignerContainerMock(TestMultiSig),
+				SingleSigVerifier:            singleSigner,
+				KeyGen:                       keyGenForBlocks,
+				FallbackHeaderValidator:      &testscommon.FallBackHeaderValidatorStub{},
+				ExtraHeaderSigVerifierHolder: &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
 			}
 
 			headerSig, _ := headerCheck.NewHeaderSigVerifier(&args)

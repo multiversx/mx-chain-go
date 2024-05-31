@@ -3,7 +3,6 @@ package processProxy
 import (
 	"sync"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
@@ -40,12 +39,9 @@ type scProcessorProxy struct {
 //   that will notify a new epoch *** after *** all its epoch flags are set
 
 // NewSmartContractProcessorProxy creates a smart contract processor proxy
-func NewSmartContractProcessorProxy(args scrCommon.ArgsNewSmartContractProcessor, epochNotifier vmcommon.EpochNotifier) (*scProcessorProxy, error) {
-	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
-		common.SCProcessorV2Flag,
-	})
-	if err != nil {
-		return nil, err
+func NewSmartContractProcessorProxy(args scrCommon.ArgsNewSmartContractProcessor) (*scProcessorProxy, error) {
+	if check.IfNil(args.EpochNotifier) {
+		return nil, process.ErrNilEpochNotifier
 	}
 
 	proxy := &scProcessorProxy{
@@ -73,15 +69,13 @@ func NewSmartContractProcessorProxy(args scrCommon.ArgsNewSmartContractProcessor
 			VMOutputCacher:      args.VMOutputCacher,
 			WasmVMChangeLocker:  args.WasmVMChangeLocker,
 			IsGenesisProcessing: args.IsGenesisProcessing,
+			EpochNotifier:       args.EpochNotifier,
 		},
-	}
-	if check.IfNil(epochNotifier) {
-		return nil, process.ErrNilEpochNotifier
 	}
 
 	proxy.processorsCache = make(map[configuredProcessor]process.SmartContractProcessorFacade)
 
-	err = proxy.createProcessorV1()
+	err := proxy.createProcessorV1()
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +85,7 @@ func NewSmartContractProcessorProxy(args scrCommon.ArgsNewSmartContractProcessor
 		return nil, err
 	}
 
-	epochNotifier.RegisterNotifyHandler(proxy)
+	args.EpochNotifier.RegisterNotifyHandler(proxy)
 
 	return proxy, nil
 }

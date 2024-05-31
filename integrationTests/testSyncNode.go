@@ -105,6 +105,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
 		ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
 		SentSignaturesTracker:        &testscommon.SentSignatureTrackerStub{},
+		RunTypeComponents:            tpn.RunTypeComponents,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
@@ -120,7 +121,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 			EpochRewardsCreator:       &testscommon.RewardsCreatorStub{},
 			EpochValidatorInfoCreator: &testscommon.EpochValidatorInfoCreatorStub{},
 			ValidatorStatisticsProcessor: &testscommon.ValidatorStatisticsProcessorStub{
-				UpdatePeerStateCalled: func(header data.MetaHeaderHandler) ([]byte, error) {
+				UpdatePeerStateCalled: func(header data.CommonHeaderHandler) ([]byte, error) {
 					return []byte("validator stats root hash"), nil
 				},
 			},

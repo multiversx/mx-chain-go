@@ -8,12 +8,15 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/consensus/spos/sposFactory"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+	"github.com/multiversx/mx-chain-go/testscommon/subRoundsHolder"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -55,6 +58,10 @@ func TestGetSubroundsFactory_BlsNilConsensusCoreShouldErr(t *testing.T) {
 		&testscommon.SentSignatureTrackerStub{},
 		chainID,
 		currentPid,
+		consensus.ConsensusModelV1,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&subRoundsHolder.ExtraSignersHolderMock{},
+		bls.NewSubRoundEndV2Creator(),
 	)
 
 	assert.Nil(t, sf)
@@ -79,6 +86,10 @@ func TestGetSubroundsFactory_BlsNilStatusHandlerShouldErr(t *testing.T) {
 		&testscommon.SentSignatureTrackerStub{},
 		chainID,
 		currentPid,
+		consensus.ConsensusModelV1,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&subRoundsHolder.ExtraSignersHolderMock{},
+		bls.NewSubRoundEndV2Creator(),
 	)
 
 	assert.Nil(t, sf)
@@ -104,6 +115,10 @@ func TestGetSubroundsFactory_BlsShouldWork(t *testing.T) {
 		&testscommon.SentSignatureTrackerStub{},
 		chainID,
 		currentPid,
+		consensus.ConsensusModelV1,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&subRoundsHolder.ExtraSignersHolderMock{},
+		bls.NewSubRoundEndV2Creator(),
 	)
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(sf))
@@ -123,6 +138,10 @@ func TestGetSubroundsFactory_InvalidConsensusTypeShouldErr(t *testing.T) {
 		nil,
 		nil,
 		currentPid,
+		consensus.ConsensusModelV1,
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&subRoundsHolder.ExtraSignersHolderMock{},
+		bls.NewSubRoundEndV2Creator(),
 	)
 
 	assert.Nil(t, sf)
@@ -140,7 +159,7 @@ func TestGetBroadcastMessenger_ShardShouldWork(t *testing.T) {
 		return 0
 	}
 	peerSigHandler := &mock.PeerSignatureHandler{}
-	headersSubscriber := &mock.HeadersCacherStub{}
+	headersSubscriber := &testscommon.HeadersCacherStub{}
 	interceptosContainer := &testscommon.InterceptorsContainerStub{}
 	alarmSchedulerStub := &mock.AlarmSchedulerStub{}
 
@@ -171,7 +190,7 @@ func TestGetBroadcastMessenger_MetachainShouldWork(t *testing.T) {
 		return core.MetachainShardId
 	}
 	peerSigHandler := &mock.PeerSignatureHandler{}
-	headersSubscriber := &mock.HeadersCacherStub{}
+	headersSubscriber := &testscommon.HeadersCacherStub{}
 	interceptosContainer := &testscommon.InterceptorsContainerStub{}
 	alarmSchedulerStub := &mock.AlarmSchedulerStub{}
 
@@ -194,7 +213,7 @@ func TestGetBroadcastMessenger_MetachainShouldWork(t *testing.T) {
 func TestGetBroadcastMessenger_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	headersSubscriber := &mock.HeadersCacherStub{}
+	headersSubscriber := &testscommon.HeadersCacherStub{}
 	interceptosContainer := &testscommon.InterceptorsContainerStub{}
 	alarmSchedulerStub := &mock.AlarmSchedulerStub{}
 
@@ -221,7 +240,7 @@ func TestGetBroadcastMessenger_InvalidShardIdShouldErr(t *testing.T) {
 	shardCoord.SelfIDCalled = func() uint32 {
 		return 37
 	}
-	headersSubscriber := &mock.HeadersCacherStub{}
+	headersSubscriber := &testscommon.HeadersCacherStub{}
 	interceptosContainer := &testscommon.InterceptorsContainerStub{}
 	alarmSchedulerStub := &mock.AlarmSchedulerStub{}
 

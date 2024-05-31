@@ -32,6 +32,8 @@ type NodesCoordinator interface {
 	ConsensusGroupSize(uint32) int
 	GetNumTotalEligible() uint64
 	GetWaitingEpochsLeftForPublicKey(publicKey []byte) (uint32, error)
+	EpochStartPrepare(metaHdr data.HeaderHandler, body data.BodyHandler)
+	NodesCoordinatorToRegistry(epoch uint32) NodesCoordinatorRegistryHandler
 	IsInterfaceNil() bool
 }
 
@@ -176,5 +178,11 @@ type EpochNotifier interface {
 	RegisterNotifyHandler(handler vmcommon.EpochSubscriberHandler)
 	CurrentEpoch() uint32
 	CheckEpoch(header data.HeaderHandler)
+	IsInterfaceNil() bool
+}
+
+// NodesCoordinatorWithRaterFactory should create a nodes coordinator with rater
+type NodesCoordinatorWithRaterFactory interface {
+	CreateNodesCoordinatorWithRater(args *NodesCoordinatorWithRaterArgs) (NodesCoordinator, error)
 	IsInterfaceNil() bool
 }

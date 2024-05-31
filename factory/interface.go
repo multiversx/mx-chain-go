@@ -5,6 +5,49 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/multiversx/mx-chain-go/cmd/node/factory"
+	"github.com/multiversx/mx-chain-go/common"
+	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
+	"github.com/multiversx/mx-chain-go/common/statistics"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
+	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
+	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
+	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
+	"github.com/multiversx/mx-chain-go/dblookupext"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
+	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
+	"github.com/multiversx/mx-chain-go/genesis"
+	processComp "github.com/multiversx/mx-chain-go/genesis/process"
+	heartbeatData "github.com/multiversx/mx-chain-go/heartbeat/data"
+	"github.com/multiversx/mx-chain-go/node/external"
+	"github.com/multiversx/mx-chain-go/ntp"
+	"github.com/multiversx/mx-chain-go/outport"
+	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/process"
+	processBlock "github.com/multiversx/mx-chain-go/process/block"
+	"github.com/multiversx/mx-chain-go/process/block/preprocess"
+	"github.com/multiversx/mx-chain-go/process/block/sovereign"
+	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
+	"github.com/multiversx/mx-chain-go/process/headerCheck"
+	"github.com/multiversx/mx-chain-go/process/peer"
+	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
+	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
+	"github.com/multiversx/mx-chain-go/process/sync"
+	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap"
+	"github.com/multiversx/mx-chain-go/process/track"
+	txSimData "github.com/multiversx/mx-chain-go/process/transactionEvaluator/data"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/update"
+	"github.com/multiversx/mx-chain-go/vm"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
@@ -14,29 +57,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
-	"github.com/multiversx/mx-chain-go/cmd/node/factory"
-	"github.com/multiversx/mx-chain-go/common"
-	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
-	"github.com/multiversx/mx-chain-go/common/statistics"
-	"github.com/multiversx/mx-chain-go/consensus"
-	"github.com/multiversx/mx-chain-go/dataRetriever"
-	"github.com/multiversx/mx-chain-go/dblookupext"
-	"github.com/multiversx/mx-chain-go/epochStart"
-	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
-	"github.com/multiversx/mx-chain-go/genesis"
-	heartbeatData "github.com/multiversx/mx-chain-go/heartbeat/data"
-	"github.com/multiversx/mx-chain-go/node/external"
-	"github.com/multiversx/mx-chain-go/ntp"
-	"github.com/multiversx/mx-chain-go/outport"
-	"github.com/multiversx/mx-chain-go/p2p"
-	"github.com/multiversx/mx-chain-go/process"
-	txSimData "github.com/multiversx/mx-chain-go/process/transactionEvaluator/data"
-	"github.com/multiversx/mx-chain-go/sharding"
-	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
-	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/multiversx/mx-chain-go/update"
-	"github.com/multiversx/mx-chain-go/vm"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
@@ -554,4 +574,52 @@ type TrieSyncStatisticsProvider interface {
 type PersistentStatusHandler interface {
 	core.AppStatusHandler
 	SetStorage(store storage.Storer) error
+}
+
+// RunTypeComponentsHandler defines the run type components handler actions
+type RunTypeComponentsHandler interface {
+	ComponentHandler
+	RunTypeComponentsHolder
+}
+
+// RunTypeComponentsHolder holds the run type components
+type RunTypeComponentsHolder interface {
+	BlockChainHookHandlerCreator() hooks.BlockChainHookHandlerCreator
+	BlockProcessorCreator() processBlock.BlockProcessorCreator
+	BlockTrackerCreator() track.BlockTrackerCreator
+	BootstrapperFromStorageCreator() storageBootstrap.BootstrapperFromStorageCreator
+	BootstrapperCreator() storageBootstrap.BootstrapperCreator
+	EpochStartBootstrapperCreator() bootstrap.EpochStartBootstrapperCreator
+	ForkDetectorCreator() sync.ForkDetectorCreator
+	HeaderValidatorCreator() processBlock.HeaderValidatorCreator
+	RequestHandlerCreator() requestHandlers.RequestHandlerCreator
+	ScheduledTxsExecutionCreator() preprocess.ScheduledTxsExecutionCreator
+	TransactionCoordinatorCreator() coordinator.TransactionCoordinatorCreator
+	ValidatorStatisticsProcessorCreator() peer.ValidatorStatisticsProcessorCreator
+	AdditionalStorageServiceCreator() process.AdditionalStorageServiceCreator
+	SCProcessorCreator() scrCommon.SCProcessorCreator
+	SCResultsPreProcessorCreator() preprocess.SmartContractResultPreProcessorCreator
+	ConsensusModel() consensus.ConsensusModel
+	VmContainerMetaFactoryCreator() factoryVm.VmContainerCreator
+	VmContainerShardFactoryCreator() factoryVm.VmContainerCreator
+	AccountsParser() genesis.AccountsParser
+	AccountsCreator() state.AccountFactory
+	VMContextCreator() systemSmartContracts.VMContextCreatorHandler
+	OutGoingOperationsPoolHandler() sovereignBlock.OutGoingOperationsPool
+	DataCodecHandler() sovereign.DataCodecHandler
+	TopicsCheckerHandler() sovereign.TopicsCheckerHandler
+	ShardCoordinatorCreator() sharding.ShardCoordinatorFactory
+	NodesCoordinatorWithRaterCreator() nodesCoordinator.NodesCoordinatorWithRaterFactory
+	RequestersContainerFactoryCreator() requesterscontainer.RequesterContainerFactoryCreator
+	InterceptorsContainerFactoryCreator() interceptorscontainer.InterceptorsContainerFactoryCreator
+	ShardResolversContainerFactoryCreator() resolverscontainer.ShardResolversContainerFactoryCreator
+	TxPreProcessorCreator() preprocess.TxPreProcessorCreator
+	ExtraHeaderSigVerifierHolder() headerCheck.ExtraHeaderSigVerifierHolder
+	GenesisBlockCreatorFactory() processComp.GenesisBlockCreatorFactory
+	GenesisMetaBlockCheckerCreator() processComp.GenesisMetaBlockChecker
+	Create() error
+	Close() error
+	CheckSubcomponents() error
+	String() string
+	IsInterfaceNil() bool
 }

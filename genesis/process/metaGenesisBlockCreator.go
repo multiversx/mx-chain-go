@@ -9,12 +9,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	disabledCommon "github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/common/enablers"
@@ -44,6 +38,13 @@ import (
 	"github.com/multiversx/mx-chain-go/update"
 	hardForkProcess "github.com/multiversx/mx-chain-go/update/process"
 	"github.com/multiversx/mx-chain-go/vm"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
@@ -343,27 +344,28 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		return nil, err
 	}
 
-	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argsHook)
+	blockChainHookImpl, err := arg.RunTypeComponents.BlockChainHookHandlerCreator().CreateBlockChainHookHandler(argsHook)
 	if err != nil {
 		return nil, err
 	}
 
 	argsNewVMContainerFactory := metachain.ArgsNewVMContainerFactory{
-		BlockChainHook:      blockChainHookImpl,
-		PubkeyConv:          argsHook.PubkeyConv,
-		Economics:           arg.Economics,
-		MessageSignVerifier: pubKeyVerifier,
-		GasSchedule:         arg.GasSchedule,
-		NodesConfigProvider: arg.InitialNodesSetup,
-		Hasher:              arg.Core.Hasher(),
-		Marshalizer:         arg.Core.InternalMarshalizer(),
-		SystemSCConfig:      &arg.SystemSCConfig,
-		ValidatorAccountsDB: arg.ValidatorAccounts,
-		UserAccountsDB:      arg.Accounts,
-		ChanceComputer:      &disabled.Rater{},
-		ShardCoordinator:    arg.ShardCoordinator,
-		EnableEpochsHandler: enableEpochsHandler,
-		NodesCoordinator:    &disabled.NodesCoordinator{},
+		BlockChainHook:          blockChainHookImpl,
+		PubkeyConv:              argsHook.PubkeyConv,
+		Economics:               arg.Economics,
+		MessageSignVerifier:     pubKeyVerifier,
+		GasSchedule:             arg.GasSchedule,
+		NodesConfigProvider:     arg.InitialNodesSetup,
+		Hasher:                  arg.Core.Hasher(),
+		Marshalizer:             arg.Core.InternalMarshalizer(),
+		SystemSCConfig:          &arg.SystemSCConfig,
+		ValidatorAccountsDB:     arg.ValidatorAccounts,
+		UserAccountsDB:          arg.Accounts,
+		ChanceComputer:          &disabled.Rater{},
+		ShardCoordinator:        arg.ShardCoordinator,
+		EnableEpochsHandler:     enableEpochsHandler,
+		NodesCoordinator:        &disabled.NodesCoordinator{},
+		VMContextCreatorHandler: arg.RunTypeComponents.VMContextCreator(),
 	}
 	virtualMachineFactory, err := metachain.NewVMContainerFactory(argsNewVMContainerFactory)
 	if err != nil {
@@ -459,9 +461,10 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		IsGenesisProcessing: true,
 		WasmVMChangeLocker:  &sync.RWMutex{}, // local Locker as to not interfere with the rest of the components
 		VMOutputCacher:      txcache.NewDisabledCache(),
+		EpochNotifier:       epochNotifier,
 	}
 
-	scProcessorProxy, err := processProxy.NewSmartContractProcessorProxy(argsNewSCProcessor, epochNotifier)
+	scProcessorProxy, err := processProxy.NewSmartContractProcessorProxy(argsNewSCProcessor)
 	if err != nil {
 		return nil, err
 	}
@@ -491,28 +494,30 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 	disabledScheduledTxsExecutionHandler := &disabled.ScheduledTxsExecutionHandler{}
 	disabledProcessedMiniBlocksTracker := &disabled.ProcessedMiniBlocksTracker{}
 
-	preProcFactory, err := metachain.NewPreProcessorsContainerFactory(
-		arg.ShardCoordinator,
-		arg.Data.StorageService(),
-		arg.Core.InternalMarshalizer(),
-		arg.Core.Hasher(),
-		arg.Data.Datapool(),
-		arg.Accounts,
-		disabledRequestHandler,
-		txProcessor,
-		scProcessorProxy,
-		arg.Economics,
-		gasHandler,
-		disabledBlockTracker,
-		arg.Core.AddressPubKeyConverter(),
-		disabledBlockSizeComputationHandler,
-		disabledBalanceComputationHandler,
-		enableEpochsHandler,
-		txTypeHandler,
-		disabledScheduledTxsExecutionHandler,
-		disabledProcessedMiniBlocksTracker,
-		arg.TxExecutionOrderHandler,
-	)
+	argsPreProc := metachain.ArgPreProcessorsContainerFactory{
+		ShardCoordinator:             arg.ShardCoordinator,
+		Store:                        arg.Data.StorageService(),
+		Marshaller:                   arg.Core.InternalMarshalizer(),
+		Hasher:                       arg.Core.Hasher(),
+		DataPool:                     arg.Data.Datapool(),
+		Accounts:                     arg.Accounts,
+		RequestHandler:               disabledRequestHandler,
+		TxProcessor:                  txProcessor,
+		ScResultProcessor:            scProcessorProxy,
+		EconomicsFee:                 arg.Economics,
+		GasHandler:                   gasHandler,
+		BlockTracker:                 disabledBlockTracker,
+		PubkeyConverter:              arg.Core.AddressPubKeyConverter(),
+		BlockSizeComputation:         disabledBlockSizeComputationHandler,
+		BalanceComputation:           disabledBalanceComputationHandler,
+		EnableEpochsHandler:          enableEpochsHandler,
+		TxTypeHandler:                txTypeHandler,
+		ScheduledTxsExecutionHandler: disabledScheduledTxsExecutionHandler,
+		ProcessedMiniBlocksTracker:   disabledProcessedMiniBlocksTracker,
+		TxExecutionOrderHandler:      arg.TxExecutionOrderHandler,
+		TxPreProcessorCreator:        arg.RunTypeComponents.TxPreProcessorCreator(),
+	}
+	preProcFactory, err := metachain.NewPreProcessorsContainerFactory(argsPreProc)
 	if err != nil {
 		return nil, err
 	}

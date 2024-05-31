@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/factory/containers"
@@ -27,44 +28,46 @@ import (
 var _ process.VirtualMachinesContainerFactory = (*vmContainerFactory)(nil)
 
 type vmContainerFactory struct {
-	chanceComputer         nodesCoordinator.ChanceComputer
-	validatorAccountsDB    state.AccountsAdapter
-	userAccountsDB         state.AccountsAdapter
-	blockChainHook         process.BlockChainHookWithAccountsAdapter
-	cryptoHook             vmcommon.CryptoHook
-	systemContracts        vm.SystemSCContainer
-	economics              process.EconomicsDataHandler
-	messageSigVerifier     vm.MessageSignVerifier
-	nodesConfigProvider    vm.NodesConfigProvider
-	gasSchedule            core.GasScheduleNotifier
-	hasher                 hashing.Hasher
-	marshalizer            marshal.Marshalizer
-	systemSCConfig         *config.SystemSmartContractsConfig
-	addressPubKeyConverter core.PubkeyConverter
-	scFactory              vm.SystemSCContainerFactory
-	shardCoordinator       sharding.Coordinator
-	enableEpochsHandler    common.EnableEpochsHandler
-	nodesCoordinator       vm.NodesCoordinator
+	chanceComputer          nodesCoordinator.ChanceComputer
+	validatorAccountsDB     state.AccountsAdapter
+	userAccountsDB          state.AccountsAdapter
+	blockChainHook          process.BlockChainHookWithAccountsAdapter
+	cryptoHook              vmcommon.CryptoHook
+	systemContracts         vm.SystemSCContainer
+	economics               process.EconomicsDataHandler
+	messageSigVerifier      vm.MessageSignVerifier
+	nodesConfigProvider     vm.NodesConfigProvider
+	gasSchedule             core.GasScheduleNotifier
+	hasher                  hashing.Hasher
+	marshalizer             marshal.Marshalizer
+	systemSCConfig          *config.SystemSmartContractsConfig
+	addressPubKeyConverter  core.PubkeyConverter
+	scFactory               vm.SystemSCContainerFactory
+	shardCoordinator        sharding.Coordinator
+	enableEpochsHandler     common.EnableEpochsHandler
+	nodesCoordinator        vm.NodesCoordinator
+	vmContextCreatorHandler systemSmartContracts.VMContextCreatorHandler
 }
 
 // ArgsNewVMContainerFactory defines the arguments needed to create a new VM container factory
 type ArgsNewVMContainerFactory struct {
-	ArgBlockChainHook   hooks.ArgBlockChainHook
-	Economics           process.EconomicsDataHandler
-	MessageSignVerifier vm.MessageSignVerifier
-	GasSchedule         core.GasScheduleNotifier
-	NodesConfigProvider vm.NodesConfigProvider
-	Hasher              hashing.Hasher
-	Marshalizer         marshal.Marshalizer
-	SystemSCConfig      *config.SystemSmartContractsConfig
-	ValidatorAccountsDB state.AccountsAdapter
-	UserAccountsDB      state.AccountsAdapter
-	ChanceComputer      nodesCoordinator.ChanceComputer
-	ShardCoordinator    sharding.Coordinator
-	PubkeyConv          core.PubkeyConverter
-	BlockChainHook      process.BlockChainHookWithAccountsAdapter
-	EnableEpochsHandler common.EnableEpochsHandler
-	NodesCoordinator    vm.NodesCoordinator
+	ArgBlockChainHook       hooks.ArgBlockChainHook
+	Economics               process.EconomicsDataHandler
+	MessageSignVerifier     vm.MessageSignVerifier
+	GasSchedule             core.GasScheduleNotifier
+	NodesConfigProvider     vm.NodesConfigProvider
+	Hasher                  hashing.Hasher
+	Marshalizer             marshal.Marshalizer
+	SystemSCConfig          *config.SystemSmartContractsConfig
+	ValidatorAccountsDB     state.AccountsAdapter
+	UserAccountsDB          state.AccountsAdapter
+	ChanceComputer          nodesCoordinator.ChanceComputer
+	ShardCoordinator        sharding.Coordinator
+	PubkeyConv              core.PubkeyConverter
+	BlockChainHook          process.BlockChainHookWithAccountsAdapter
+	EnableEpochsHandler     common.EnableEpochsHandler
+	NodesCoordinator        vm.NodesCoordinator
+	VMContextCreatorHandler systemSmartContracts.VMContextCreatorHandler
 }
 
 // NewVMContainerFactory is responsible for creating a new virtual machine factory object
@@ -114,26 +117,30 @@ func NewVMContainerFactory(args ArgsNewVMContainerFactory) (*vmContainerFactory,
 	if check.IfNil(args.NodesCoordinator) {
 		return nil, fmt.Errorf("%w in NewVMContainerFactory", process.ErrNilNodesCoordinator)
 	}
+	if check.IfNil(args.VMContextCreatorHandler) {
+		return nil, fmt.Errorf("%w in NewVMContainerFactory", errors.ErrNilVMContextCreator)
+	}
 
 	cryptoHook := hooks.NewVMCryptoHook()
 
 	return &vmContainerFactory{
-		blockChainHook:         args.BlockChainHook,
-		cryptoHook:             cryptoHook,
-		economics:              args.Economics,
-		messageSigVerifier:     args.MessageSignVerifier,
-		gasSchedule:            args.GasSchedule,
-		nodesConfigProvider:    args.NodesConfigProvider,
-		hasher:                 args.Hasher,
-		marshalizer:            args.Marshalizer,
-		systemSCConfig:         args.SystemSCConfig,
-		validatorAccountsDB:    args.ValidatorAccountsDB,
-		userAccountsDB:         args.UserAccountsDB,
-		chanceComputer:         args.ChanceComputer,
-		addressPubKeyConverter: args.PubkeyConv,
-		shardCoordinator:       args.ShardCoordinator,
-		enableEpochsHandler:    args.EnableEpochsHandler,
-		nodesCoordinator:       args.NodesCoordinator,
+		blockChainHook:          args.BlockChainHook,
+		cryptoHook:              cryptoHook,
+		economics:               args.Economics,
+		messageSigVerifier:      args.MessageSignVerifier,
+		gasSchedule:             args.GasSchedule,
+		nodesConfigProvider:     args.NodesConfigProvider,
+		hasher:                  args.Hasher,
+		marshalizer:             args.Marshalizer,
+		systemSCConfig:          args.SystemSCConfig,
+		validatorAccountsDB:     args.ValidatorAccountsDB,
+		userAccountsDB:          args.UserAccountsDB,
+		chanceComputer:          args.ChanceComputer,
+		addressPubKeyConverter:  args.PubkeyConv,
+		shardCoordinator:        args.ShardCoordinator,
+		enableEpochsHandler:     args.EnableEpochsHandler,
+		nodesCoordinator:        args.NodesCoordinator,
+		vmContextCreatorHandler: args.VMContextCreatorHandler,
 	}, nil
 }
 
@@ -189,8 +196,9 @@ func (vmf *vmContainerFactory) createSystemVMFactoryAndEEI() (vm.SystemSCContain
 		UserAccountsDB:      vmf.userAccountsDB,
 		ChanceComputer:      vmf.chanceComputer,
 		EnableEpochsHandler: vmf.enableEpochsHandler,
+		ShardCoordinator:    vmf.shardCoordinator,
 	}
-	systemEI, err := systemSmartContracts.NewVMContext(vmContextArgs)
+	systemEI, err := vmf.vmContextCreatorHandler.CreateVmContext(vmContextArgs)
 	if err != nil {
 		return nil, nil, err
 	}

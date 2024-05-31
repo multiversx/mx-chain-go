@@ -282,7 +282,7 @@ func (txs *transactions) createScheduledMiniBlocks(
 			break
 		}
 
-		tx, miniBlock, shouldContinue := txs.shouldContinueProcessingScheduledTx(
+		tx, miniBlock, shouldContinue := txs.scheduledTXContinueFunc(
 			isShardStuck,
 			sortedTxs[index],
 			mapSCTxs,
@@ -383,15 +383,16 @@ func (txs *transactions) verifyTransaction(
 	txs.accountTxsShards.accountsInfo[string(tx.GetSndAddr())] = &txShardInfo{senderShardID: senderShardID, receiverShardID: receiverShardID}
 	txs.accountTxsShards.Unlock()
 
-	if err != nil {
-		isTxTargetedForDeletion := errors.Is(err, process.ErrLowerNonceInTransaction) || errors.Is(err, process.ErrInsufficientFee) || errors.Is(err, process.ErrTransactionNotExecutable)
+	executionErr, canExecute := txs.isTransactionEligibleForExecutionFunc(tx, err)
+	if !canExecute {
+		isTxTargetedForDeletion := errors.Is(executionErr, process.ErrLowerNonceInTransaction) || errors.Is(executionErr, process.ErrInsufficientFee) || errors.Is(executionErr, process.ErrTransactionNotExecutable)
 		if isTxTargetedForDeletion {
 			strCache := process.ShardCacherIdentifier(senderShardID, receiverShardID)
 			txs.txPool.RemoveData(txHash, strCache)
 		}
 
 		mbInfo.schedulingInfo.numScheduledBadTxs++
-		log.Trace("bad tx", "error", err.Error(), "hash", txHash)
+		log.Trace("bad tx", "error", executionErr, "hash", txHash)
 
 		txs.gasHandler.RemoveGasProvidedAsScheduled([][]byte{txHash})
 
@@ -399,7 +400,7 @@ func (txs *transactions) verifyTransaction(
 		mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID] = oldGasConsumedByMiniBlockInReceiverShard
 		mbInfo.gasInfo.totalGasConsumedInSelfShard = oldTotalGasConsumedInSelfShard
 
-		return err
+		return executionErr
 	}
 
 	txShardInfoToSet := &txShardInfo{senderShardID: senderShardID, receiverShardID: receiverShardID}
@@ -408,6 +409,10 @@ func (txs *transactions) verifyTransaction(
 	txs.txsForCurrBlock.mutTxsForBlock.Unlock()
 
 	return nil
+}
+
+func (txs *transactions) isTransactionEligibleForExecution(_ *transaction.Transaction, err error) (error, bool) {
+	return err, err == nil
 }
 
 func (txs *transactions) displayProcessingResults(

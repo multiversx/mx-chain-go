@@ -33,19 +33,20 @@ func NewShardStorageHandler(args StorageHandlerArgs) (*shardStorageHandler, erro
 	epochStartNotifier := &disabled.EpochStartNotifier{}
 	storageFactory, err := factory.NewStorageServiceFactory(
 		factory.StorageServiceFactoryArgs{
-			Config:                        args.GeneralConfig,
-			PrefsConfig:                   args.PreferencesConfig,
-			ShardCoordinator:              args.ShardCoordinator,
-			PathManager:                   args.PathManagerHandler,
-			EpochStartNotifier:            epochStartNotifier,
-			NodeTypeProvider:              args.NodeTypeProvider,
-			StorageType:                   factory.BootstrapStorageService,
-			ManagedPeersHolder:            args.ManagedPeersHolder,
-			CurrentEpoch:                  args.CurrentEpoch,
-			CreateTrieEpochRootHashStorer: false,
-			NodeProcessingMode:            args.NodeProcessingMode,
-			RepopulateTokensSupplies:      false, // tokens supplies cannot be repopulated at this time
-			StateStatsHandler:             args.StateStatsHandler,
+			Config:                          args.GeneralConfig,
+			PrefsConfig:                     args.PreferencesConfig,
+			ShardCoordinator:                args.ShardCoordinator,
+			PathManager:                     args.PathManagerHandler,
+			EpochStartNotifier:              epochStartNotifier,
+			NodeTypeProvider:                args.NodeTypeProvider,
+			StorageType:                     factory.BootstrapStorageService,
+			ManagedPeersHolder:              args.ManagedPeersHolder,
+			CurrentEpoch:                    args.CurrentEpoch,
+			CreateTrieEpochRootHashStorer:   false,
+			NodeProcessingMode:              args.NodeProcessingMode,
+			RepopulateTokensSupplies:        false, // tokens supplies cannot be repopulated at this time
+			StateStatsHandler:               args.StateStatsHandler,
+			AdditionalStorageServiceCreator: args.AdditionalStorageServiceCreator,
 		},
 	)
 	if err != nil {

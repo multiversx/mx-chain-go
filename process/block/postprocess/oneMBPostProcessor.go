@@ -110,7 +110,7 @@ func (opp *oneMBPostProcessor) CreateAllInterMiniBlocks() []*block.MiniBlock {
 		log.Trace("tx", "hash", hash)
 	}
 	miniBlocks = append(miniBlocks, miniBlock)
-	opp.intraShardMiniBlock = miniBlock.Clone()
+	opp.intraShardMiniBlock = miniBlock.DeepClone()
 
 	return miniBlocks
 }

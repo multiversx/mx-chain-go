@@ -36,9 +36,9 @@ import (
 
 func createMetaBlockProcessor(blk data.ChainHandler) *testscommon.BlockProcessorStub {
 	blockProcessorMock := &testscommon.BlockProcessorStub{
-		ProcessBlockCalled: func(hdr data.HeaderHandler, bdy data.BodyHandler, haveTime func() time.Duration) error {
-			_ = blk.SetCurrentBlockHeaderAndRootHash(hdr.(*block.MetaBlock), hdr.GetRootHash())
-			return nil
+		ProcessBlockCalled: func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) (data.HeaderHandler, data.BodyHandler, error) {
+			_ = blk.SetCurrentBlockHeaderAndRootHash(header.(*block.MetaBlock), header.GetRootHash())
+			return header, body, nil
 		},
 		RevertCurrentBlockCalled: func() {
 		},
@@ -708,8 +708,8 @@ func TestMetaBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testi
 	args.ChainHandler = blkc
 
 	blockProcessor := createMetaBlockProcessor(args.ChainHandler)
-	blockProcessor.ProcessBlockCalled = func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
-		return process.ErrBlockHashDoesNotMatch
+	blockProcessor.ProcessBlockCalled = func(_ data.HeaderHandler, _ data.BodyHandler, haveTime func() time.Duration) (data.HeaderHandler, data.BodyHandler, error) {
+		return nil, nil, process.ErrBlockHashDoesNotMatch
 	}
 	args.BlockProcessor = blockProcessor
 
@@ -1628,8 +1628,8 @@ func TestMetaBootstrap_SyncBlockErrGetNodeDBShouldSyncAccounts(t *testing.T) {
 
 	errGetNodeFromDB := core.NewGetNodeFromDBErrWithKey([]byte("key"), errors.New("get error"), dataRetriever.UserAccountsUnit.String())
 	blockProcessor := createMetaBlockProcessor(args.ChainHandler)
-	blockProcessor.ProcessBlockCalled = func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
-		return errGetNodeFromDB
+	blockProcessor.ProcessBlockCalled = func(_ data.HeaderHandler, _ data.BodyHandler, haveTime func() time.Duration) (data.HeaderHandler, data.BodyHandler, error) {
+		return nil, nil, errGetNodeFromDB
 	}
 	args.BlockProcessor = blockProcessor
 

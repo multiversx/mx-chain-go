@@ -80,6 +80,9 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 	base.syncStarter = &boot
 	base.getHeaderFromPool = boot.getShardHeaderFromPool
 	base.requestMiniBlocks = boot.requestMiniBlocksFromHeaderWithNonceIfMissing
+	base.processAndCommitFunc = base.processAndCommit
+	base.handleScheduledRollBackToHeaderFunc = base.handleScheduledRollBackToHeader
+	base.getRootHashFromBlockFunc = base.getRootHashFromBlock
 
 	// placed in struct fields for performance reasons
 	base.headerStore, err = boot.store.GetStorer(dataRetriever.BlockHeaderUnit)
@@ -93,6 +96,7 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 		return nil, err
 	}
 
+	base.doProcessReceivedHeaderJobFunc = base.doProcessReceivedHeaderJob
 	base.init()
 
 	return &boot, nil

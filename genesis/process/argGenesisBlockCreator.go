@@ -9,15 +9,21 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/preprocess"
+	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
+	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/update"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 )
 
 type coreComponentsHandler interface {
@@ -41,6 +47,19 @@ type dataComponentsHandler interface {
 	IsInterfaceNil() bool
 }
 
+type runTypeComponentsHandler interface {
+	BlockChainHookHandlerCreator() hooks.BlockChainHookHandlerCreator
+	TransactionCoordinatorCreator() coordinator.TransactionCoordinatorCreator
+	SCResultsPreProcessorCreator() preprocess.SmartContractResultPreProcessorCreator
+	SCProcessorCreator() scrCommon.SCProcessorCreator
+	AccountsParser() genesis.AccountsParser
+	AccountsCreator() state.AccountFactory
+	ShardCoordinatorCreator() sharding.ShardCoordinatorFactory
+	TxPreProcessorCreator() preprocess.TxPreProcessorCreator
+	VMContextCreator() systemSmartContracts.VMContextCreatorHandler
+	IsInterfaceNil() bool
+}
+
 // ArgsGenesisBlockCreator holds the arguments which are needed to create a genesis block
 type ArgsGenesisBlockCreator struct {
 	GenesisTime             uint64
@@ -55,7 +74,6 @@ type ArgsGenesisBlockCreator struct {
 	InitialNodesSetup       genesis.InitialNodesHandler
 	Economics               process.EconomicsDataHandler
 	ShardCoordinator        sharding.Coordinator
-	AccountsParser          genesis.AccountsParser
 	SmartContractParser     genesis.InitialSmartContractParser
 	GasSchedule             core.GasScheduleNotifier
 	TxLogsProcessor         process.TransactionLogProcessor
@@ -70,6 +88,8 @@ type ArgsGenesisBlockCreator struct {
 	BlockSignKeyGen         crypto.KeyGenerator
 	HistoryRepository       dblookupext.HistoryRepository
 	TxExecutionOrderHandler common.TxExecutionOrderHandler
+	RunTypeComponents       runTypeComponentsHandler
+	Config                  config.Config
 
 	GenesisNodePrice *big.Int
 	GenesisString    string
@@ -77,4 +97,6 @@ type ArgsGenesisBlockCreator struct {
 	// created components
 	importHandler          update.ImportHandler
 	versionedHeaderFactory genesis.VersionedHeaderFactory
+
+	DNSV2Addresses []string
 }

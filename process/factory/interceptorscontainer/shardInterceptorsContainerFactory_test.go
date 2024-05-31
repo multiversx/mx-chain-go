@@ -598,21 +598,7 @@ func TestShardInterceptorsContainerFactory_With4ShardsShouldWork(t *testing.T) {
 
 		mainContainer, fullArchiveContainer, err := icf.Create()
 
-		numInterceptorTxs := noOfShards + 1
-		numInterceptorsUnsignedTxs := numInterceptorTxs
-		numInterceptorsRewardTxs := 1
-		numInterceptorHeaders := 1
-		numInterceptorMiniBlocks := noOfShards + 2
-		numInterceptorMetachainHeaders := 1
-		numInterceptorTrieNodes := 1
-		numInterceptorPeerAuth := 1
-		numInterceptorHeartbeat := 1
-		numInterceptorsShardValidatorInfo := 1
-		numInterceptorValidatorInfo := 1
-		totalInterceptors := numInterceptorTxs + numInterceptorsUnsignedTxs + numInterceptorsRewardTxs +
-			numInterceptorHeaders + numInterceptorMiniBlocks + numInterceptorMetachainHeaders + numInterceptorTrieNodes +
-			numInterceptorPeerAuth + numInterceptorHeartbeat + numInterceptorsShardValidatorInfo + numInterceptorValidatorInfo
-
+		totalInterceptors := calcNumShardInterceptors(noOfShards)
 		assert.Nil(t, err)
 		assert.Equal(t, totalInterceptors, mainContainer.Len())
 		assert.Equal(t, 0, fullArchiveContainer.Len())
@@ -696,6 +682,24 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 	}
 
 	return coreComponents, cryptoComponents
+}
+
+func calcNumShardInterceptors(noOfShards int) int {
+	numInterceptorTxs := noOfShards + 1
+	numInterceptorsUnsignedTxs := numInterceptorTxs
+	numInterceptorsRewardTxs := 1
+	numInterceptorHeaders := 1
+	numInterceptorMiniBlocks := noOfShards + 2
+	numInterceptorMetachainHeaders := 1
+	numInterceptorTrieNodes := 1
+	numInterceptorPeerAuth := 1
+	numInterceptorHeartbeat := 1
+	numInterceptorsShardValidatorInfo := 1
+	numInterceptorValidatorInfo := 1
+	return numInterceptorTxs + numInterceptorsUnsignedTxs + numInterceptorsRewardTxs +
+		numInterceptorHeaders + numInterceptorMiniBlocks + numInterceptorMetachainHeaders + numInterceptorTrieNodes +
+		numInterceptorPeerAuth + numInterceptorHeartbeat + numInterceptorsShardValidatorInfo + numInterceptorValidatorInfo
+
 }
 
 func getArgumentsShard(

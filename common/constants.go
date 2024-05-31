@@ -1017,5 +1017,16 @@ const (
 	DynamicESDTFlag                                    core.EnableEpochFlag = "DynamicEsdtFlag"
 	EGLDInESDTMultiTransferFlag                        core.EnableEpochFlag = "EGLDInESDTMultiTransferFlag"
 	CryptoOpcodesV2Flag                                core.EnableEpochFlag = "CryptoOpcodesV2Flag"
+	ConsensusModelV2Flag                               core.EnableEpochFlag = "ConsensusModelV2Flag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
+)
+
+// ChainRunType defines the types of chain to be run: regular (shards + metachain) or sovereign
+type ChainRunType string
+
+const (
+	// ChainRunTypeRegular defines the type of "regular" chain: a chain that uses shards + metachain
+	ChainRunTypeRegular ChainRunType = "regular"
+	// ChainRunTypeSovereign defines the type of sovereign chain that can be run independently
+	ChainRunTypeSovereign ChainRunType = "sovereign"
 )

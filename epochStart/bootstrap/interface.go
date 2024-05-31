@@ -3,12 +3,15 @@ package bootstrap
 import (
 	"context"
 
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/dataRetriever"
-	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
 
 // StartOfEpochNodesConfigHandler defines the methods to process nodesConfig from epoch start metablocks
@@ -58,5 +61,26 @@ type RequestHandler interface {
 type NodeTypeProviderHandler interface {
 	SetType(nodeType core.NodeType)
 	GetType() core.NodeType
+	IsInterfaceNil() bool
+}
+
+// EpochStartBootstrapperCreator defines the epoch start bootstrapper factory handler
+type EpochStartBootstrapperCreator interface {
+	CreateEpochStartBootstrapper(epochStartBootstrapArgs ArgsEpochStartBootstrap) (EpochStartBootstrapper, error)
+	IsInterfaceNil() bool
+}
+
+// EpochStartBootstrapper defines the epoch start bootstrap functionality
+type EpochStartBootstrapper interface {
+	Bootstrap() (Parameters, error)
+	Close() error
+	IsInterfaceNil() bool
+}
+
+type RunTypeComponentsHolder interface {
+	AdditionalStorageServiceCreator() process.AdditionalStorageServiceCreator
+	ShardCoordinatorCreator() sharding.ShardCoordinatorFactory
+	NodesCoordinatorWithRaterCreator() nodesCoordinator.NodesCoordinatorWithRaterFactory
+	RequestHandlerCreator() requestHandlers.RequestHandlerCreator
 	IsInterfaceNil() bool
 }

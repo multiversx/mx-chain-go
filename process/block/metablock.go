@@ -14,7 +14,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/headerVersionData"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	processOutport "github.com/multiversx/mx-chain-go/outport/process"
 	"github.com/multiversx/mx-chain-go/process"
@@ -92,6 +91,12 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	}
 
 	genesisHdr := arguments.DataComponents.Blockchain().GetGenesisHeader()
+	notarizer := &multiShardCrossNotarizer{
+		shardCoordinator: arguments.BootstrapComponents.ShardCoordinator(),
+		baseBlockNotarizer: &baseBlockNotarizer{
+			blockTracker: arguments.BlockTracker,
+		},
+	}
 	base := &baseProcessor{
 		accountsDB:                    arguments.AccountsDB,
 		blockSizeThrottler:            arguments.BlockSizeThrottler,
@@ -139,6 +144,9 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		managedPeersHolder:            arguments.ManagedPeersHolder,
 		sentSignaturesTracker:         arguments.SentSignaturesTracker,
 		extraDelayRequestBlockInfo:    time.Duration(arguments.Config.EpochStartConfig.ExtraDelayForRequestBlockInfoInMilliseconds) * time.Millisecond,
+		crossNotarizer:                notarizer,
+		accountCreator:                arguments.RunTypeComponents.AccountsCreator(),
+		validatorStatisticsProcessor:  arguments.ValidatorStatisticsProcessor,
 	}
 
 	mp := metaProcessor{
@@ -178,6 +186,10 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	mp.shardBlockFinality = process.BlockFinality
 
 	mp.shardsHeadersNonce = &sync.Map{}
+	mp.requestMissingHeadersFunc = mp.requestMissingHeaders
+	mp.cleanupBlockTrackerPoolsForShardFunc = mp.cleanupBlockTrackerPoolsForShard
+	mp.cleanupPoolsForCrossShardFunc = mp.cleanupPoolsForCrossShard
+	mp.getExtraMissingNoncesToRequestFunc = mp.getExtraMissingNoncesToRequest
 
 	return &mp, nil
 }
@@ -191,9 +203,9 @@ func (mp *metaProcessor) ProcessBlock(
 	headerHandler data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 	haveTime func() time.Duration,
-) error {
+) (data.HeaderHandler, data.BodyHandler, error) {
 	if haveTime == nil {
-		return process.ErrNilHaveTimeHandler
+		return nil, nil, process.ErrNilHaveTimeHandler
 	}
 
 	mp.processStatusHandler.SetBusy("metaProcessor.ProcessBlock")
@@ -210,7 +222,7 @@ func (mp *metaProcessor) ProcessBlock(
 			go mp.requestHandler.RequestMetaHeader(headerHandler.GetPrevHash())
 		}
 
-		return err
+		return nil, nil, err
 	}
 
 	mp.roundNotifier.CheckRound(headerHandler)
@@ -225,22 +237,22 @@ func (mp *metaProcessor) ProcessBlock(
 
 	header, ok := headerHandler.(*block.MetaBlock)
 	if !ok {
-		return process.ErrWrongTypeAssertion
+		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
 	body, ok := bodyHandler.(*block.Body)
 	if !ok {
-		return process.ErrWrongTypeAssertion
+		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
 	err = mp.checkHeaderBodyCorrelation(header.GetMiniBlockHeaderHandlers(), body)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	err = mp.checkScheduledMiniBlocksValidity(headerHandler)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	headersPool := mp.dataPool.Headers()
@@ -270,7 +282,7 @@ func (mp *metaProcessor) ProcessBlock(
 
 	err = mp.createBlockStarted()
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	mp.blockChainHook.SetCurrentHeader(header)
@@ -278,34 +290,34 @@ func (mp *metaProcessor) ProcessBlock(
 
 	err = mp.checkEpochCorrectness(header)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	if mp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
 		log.Error("metaProcessor.ProcessBlock first entry", "stack", string(mp.accountsDB[state.UserAccountsState].GetStackDebugFirstEntry()))
-		return process.ErrAccountStateDirty
+		return nil, nil, process.ErrAccountStateDirty
 	}
 
 	err = mp.processIfFirstBlockAfterEpochStart()
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	if header.IsStartOfEpochBlock() {
 		err = mp.processEpochStartMetaBlock(header, body)
-		return err
+		return nil, nil, err
 	}
 
 	mp.txCoordinator.RequestBlockTransactions(body)
 	requestedShardHdrs, requestedFinalityAttestingShardHdrs := mp.requestShardHeaders(header)
 
 	if haveTime() < 0 {
-		return process.ErrTimeIsOut
+		return nil, nil, process.ErrTimeIsOut
 	}
 
 	err = mp.txCoordinator.IsDataPreparedForProcessing(haveTime)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	haveMissingShardHeaders := requestedShardHdrs > 0 || requestedFinalityAttestingShardHdrs > 0
@@ -321,7 +333,7 @@ func (mp *metaProcessor) ProcessBlock(
 			)
 		}
 
-		err = mp.waitForBlockHeaders(haveTime())
+		err = waitForHeaderHashes(haveTime(), mp.chRcvAllHdrs)
 
 		mp.hdrsForCurrBlock.mutHdrsForBlock.RLock()
 		missingShardHdrs := mp.hdrsForCurrBlock.missingHdrs
@@ -336,7 +348,7 @@ func (mp *metaProcessor) ProcessBlock(
 		}
 
 		if err != nil {
-			return err
+			return nil, nil, err
 		}
 	}
 
@@ -346,68 +358,68 @@ func (mp *metaProcessor) ProcessBlock(
 
 	highestNonceHdrs, err := mp.checkShardHeadersValidity(header)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	err = mp.checkShardHeadersFinality(highestNonceHdrs)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	err = mp.verifyCrossShardMiniBlockDstMe(header)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	err = mp.verifyTotalAccumulatedFeesInEpoch(header)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	mbIndex := mp.getIndexOfFirstMiniBlockToBeExecuted(header)
 	miniBlocks := body.MiniBlocks[mbIndex:]
 
 	startTime := time.Now()
-	err = mp.txCoordinator.ProcessBlockTransaction(header, &block.Body{MiniBlocks: miniBlocks}, haveTime)
+	_, err = mp.txCoordinator.ProcessBlockTransaction(header, &block.Body{MiniBlocks: miniBlocks}, haveTime)
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to process block transaction",
 		"time [s]", elapsedTime,
 	)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	err = mp.txCoordinator.VerifyCreatedBlockTransactions(header, &block.Body{MiniBlocks: miniBlocks})
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	err = mp.scToProtocol.UpdateProtocol(&block.Body{MiniBlocks: miniBlocks}, header.Nonce)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	err = mp.verifyFees(header)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	if !mp.verifyStateRoot(header.GetRootHash()) {
 		err = process.ErrRootStateDoesNotMatch
-		return err
+		return nil, nil, err
 	}
 
 	err = mp.verifyValidatorStatisticsRootHash(header)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	err = mp.blockProcessingCutoffHandler.HandleProcessErrorCutoff(header)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
-	return nil
+	return header, body, nil
 }
 
 func (mp *metaProcessor) processEpochStartMetaBlock(
@@ -1585,33 +1597,14 @@ func (mp *metaProcessor) commitEpochStart(header *block.MetaBlock, body *block.B
 
 // RevertStateToBlock recreates the state tries to the root hashes indicated by the provided root hash and header
 func (mp *metaProcessor) RevertStateToBlock(header data.HeaderHandler, rootHash []byte) error {
-	rootHashHolder := holders.NewDefaultRootHashesHolder(rootHash)
-	err := mp.accountsDB[state.UserAccountsState].RecreateTrie(rootHashHolder)
+	err := mp.revertAccountsStates(header, rootHash)
 	if err != nil {
-		log.Debug("recreate trie with error for header",
-			"nonce", header.GetNonce(),
-			"header root hash", header.GetRootHash(),
-			"given root hash", rootHash,
-			"error", err.Error(),
-		)
-
 		return err
 	}
 
 	metaHeader, ok := header.(data.MetaHeaderHandler)
 	if !ok {
 		return process.ErrWrongTypeAssertion
-	}
-
-	err = mp.validatorStatisticsProcessor.RevertPeerState(metaHeader)
-	if err != nil {
-		log.Debug("revert peer state with error for header",
-			"nonce", metaHeader.GetNonce(),
-			"validators root hash", metaHeader.GetValidatorStatsRootHash(),
-			"error", err.Error(),
-		)
-
-		return err
 	}
 
 	err = mp.epochStartTrigger.RevertStateToBlock(metaHeader)
@@ -2237,7 +2230,7 @@ func (mp *metaProcessor) applyBodyToHeader(metaHdr data.MetaHeaderHandler, bodyH
 
 	sw.Start("UpdatePeerState")
 	mp.prepareBlockHeaderInternalMapForValidatorProcessor()
-	valStatRootHash, err := mp.validatorStatisticsProcessor.UpdatePeerState(metaHdr, mp.hdrsForCurrBlock.getHdrHashMap())
+	valStatRootHash, err := mp.validatorStatisticsProcessor.UpdatePeerState(metaHdr, makeCommonHeaderHandlerHashMap(mp.hdrsForCurrBlock.getHdrHashMap()))
 	sw.Stop("UpdatePeerState")
 	if err != nil {
 		return nil, err
@@ -2274,7 +2267,7 @@ func (mp *metaProcessor) prepareBlockHeaderInternalMapForValidatorProcessor() {
 
 func (mp *metaProcessor) verifyValidatorStatisticsRootHash(header *block.MetaBlock) error {
 	mp.prepareBlockHeaderInternalMapForValidatorProcessor()
-	validatorStatsRH, err := mp.validatorStatisticsProcessor.UpdatePeerState(header, mp.hdrsForCurrBlock.getHdrHashMap())
+	validatorStatsRH, err := mp.validatorStatisticsProcessor.UpdatePeerState(header, makeCommonHeaderHandlerHashMap(mp.hdrsForCurrBlock.getHdrHashMap()))
 	if err != nil {
 		return err
 	}
@@ -2293,15 +2286,6 @@ func (mp *metaProcessor) verifyValidatorStatisticsRootHash(header *block.MetaBlo
 	}
 
 	return nil
-}
-
-func (mp *metaProcessor) waitForBlockHeaders(waitTime time.Duration) error {
-	select {
-	case <-mp.chRcvAllHdrs:
-		return nil
-	case <-time.After(waitTime):
-		return process.ErrTimeIsOut
-	}
 }
 
 // CreateNewHeader creates a new header

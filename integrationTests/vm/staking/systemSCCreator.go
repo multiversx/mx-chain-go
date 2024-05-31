@@ -27,6 +27,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
 	"github.com/multiversx/mx-chain-go/vm"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	vmcommonMock "github.com/multiversx/mx-chain-vm-common-go/mock"
 )
@@ -250,13 +251,14 @@ func createVMContainerFactory(
 				MaxNumberOfIterations: 100000,
 			},
 		},
-		ValidatorAccountsDB: stateComponents.PeerAccounts(),
-		ChanceComputer:      coreComponents.Rater(),
-		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
-		ShardCoordinator:    shardCoordinator,
-		NodesCoordinator:    nc,
-		UserAccountsDB:      stateComponents.AccountsAdapter(),
-		ArgBlockChainHook:   argsBlockChainHook,
+		ValidatorAccountsDB:     stateComponents.PeerAccounts(),
+		ChanceComputer:          coreComponents.Rater(),
+		EnableEpochsHandler:     coreComponents.EnableEpochsHandler(),
+		ShardCoordinator:        shardCoordinator,
+		NodesCoordinator:        nc,
+		UserAccountsDB:          stateComponents.AccountsAdapter(),
+		ArgBlockChainHook:       argsBlockChainHook,
+		VMContextCreatorHandler: systemSmartContracts.NewVMContextCreator(),
 	}
 
 	metaVmFactory, _ := metaProcess.NewVMContainerFactory(argsNewVMContainerFactory)

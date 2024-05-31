@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/scheduled"
+	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/stretchr/testify/require"
 )
 
@@ -151,7 +152,7 @@ func TestProcessedMiniBlocksTracker(t *testing.T) {
 
 	handler := &ProcessedMiniBlocksTracker{}
 	handler.SetProcessedMiniBlockInfo([]byte{}, []byte{}, nil)
-	handler.RemoveMetaBlockHash([]byte{})
+	handler.RemoveHeaderHash([]byte{})
 	handler.RemoveMiniBlockHash([]byte{})
 	require.Nil(t, handler.GetProcessedMiniBlocksInfo([]byte{}))
 	info, hash := handler.GetProcessedMiniBlockInfo([]byte{})
@@ -249,7 +250,7 @@ func TestScheduledTxsExecutionHandler(t *testing.T) {
 	require.Nil(t, handler.Execute([]byte{}))
 	require.Nil(t, handler.ExecuteAll(nil))
 	require.Equal(t, make(map[block.Type][]data.TransactionHandler), handler.GetScheduledIntermediateTxs())
-	require.Equal(t, make(block.MiniBlockSlice, 0), handler.GetScheduledMiniBlocks())
+	require.Empty(t, handler.GetScheduledMiniBlocks())
 	require.Equal(t, scheduled.GasAndFees{
 		AccumulatedFees: big.NewInt(0),
 		DeveloperFees:   big.NewInt(0),
@@ -271,12 +272,12 @@ func TestScheduledTxsExecutionHandler(t *testing.T) {
 	require.False(t, handler.IsInterfaceNil())
 
 	hash, err := handler.GetScheduledRootHashForHeader([]byte{})
-	require.Equal(t, make([]byte, 0), hash)
-	require.Nil(t, err)
+	require.Empty(t, hash)
+	require.Equal(t, genesis.ErrScheduledRootHashForHeaderNotFound, err)
 
 	hash, err = handler.GetScheduledRootHashForHeaderWithEpoch([]byte{}, 0)
-	require.Equal(t, make([]byte, 0), hash)
-	require.Nil(t, err)
+	require.Empty(t, hash)
+	require.Equal(t, genesis.ErrScheduledRootHashForHeaderWithEpochNotFound, err)
 }
 
 func TestSimpleNFTStorage(t *testing.T) {

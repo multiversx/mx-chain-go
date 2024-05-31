@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/api/gin"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/forking"
@@ -15,7 +14,10 @@ import (
 	apiComp "github.com/multiversx/mx-chain-go/factory/api"
 	nodePack "github.com/multiversx/mx-chain-go/node"
 	"github.com/multiversx/mx-chain-go/node/metrics"
+	"github.com/multiversx/mx-chain-go/node/trieIterators/factory"
 	"github.com/multiversx/mx-chain-go/process/mock"
+
+	"github.com/multiversx/mx-chain-core-go/core"
 )
 
 func (node *testOnlyProcessingNode) createFacade(configs config.Configs, apiInterface APIConfigurator) error {
@@ -59,9 +61,13 @@ func (node *testOnlyProcessingNode) createFacade(configs config.Configs, apiInte
 				return common.NsSynchronized
 			},
 		},
-		AllowVMQueriesChan: allowVMQueriesChan,
-		StatusComponents:   node.StatusComponentsHolder,
-		ProcessingMode:     common.GetNodeProcessingMode(configs.ImportDbConfig),
+		AllowVMQueriesChan:             allowVMQueriesChan,
+		StatusComponents:               node.StatusComponentsHolder,
+		ProcessingMode:                 common.GetNodeProcessingMode(configs.ImportDbConfig),
+		RunTypeComponents:              node.RunTypeComponents,
+		DelegatedListFactoryHandler:    factory.NewDelegatedListProcessorFactory(),
+		DirectStakedListFactoryHandler: factory.NewDirectStakedListProcessorFactory(),
+		TotalStakedValueFactoryHandler: factory.NewTotalStakedListProcessorFactory(),
 	}
 
 	apiResolver, err := apiComp.CreateApiResolver(apiResolverArgs)

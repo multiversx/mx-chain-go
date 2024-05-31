@@ -4,6 +4,7 @@ import (
 	"time"
 )
 
+// AlarmSchedulerStub -
 type AlarmSchedulerStub struct {
 	AddCalled    func(func(alarmID string), time.Duration, string)
 	CancelCalled func(string)

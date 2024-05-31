@@ -77,3 +77,8 @@ resumeSeednode() {
 stopSeednode() {
   stopProcessByPort $PORT_SEEDNODE
 }
+
+stopElasticsearch() {
+  ES_CONTAINER_ID=$(cat $TESTNETDIR/es_container_id.txt)
+  sudo docker stop $ES_CONTAINER_ID
+}

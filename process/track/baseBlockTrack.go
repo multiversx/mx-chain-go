@@ -15,7 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
-	"github.com/multiversx/mx-chain-logger-go"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ process.ValidityAttester = (*baseBlockTrack)(nil)
@@ -51,6 +51,10 @@ type baseBlockTrack struct {
 	mutHeaders                  sync.RWMutex
 	headers                     map[uint32]map[uint64][]*HeaderInfo
 	maxNumHeadersToKeepPerShard int
+	doReceivedHeaderJobFunc     func(headerHandler data.HeaderHandler, headerHash []byte)
+	getFinalHeaderFunc          func(headerHandler data.HeaderHandler) (data.HeaderHandler, error)
+	mutStartHeaders             sync.RWMutex
+	startHeaders                map[uint32]data.HeaderHandler
 }
 
 func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
@@ -114,12 +118,17 @@ func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
 		maxNumHeadersToKeepPerShard:           maxNumHeadersToKeepPerShard,
 		whitelistHandler:                      arguments.WhitelistHandler,
 		feeHandler:                            arguments.FeeHandler,
+		startHeaders:                          arguments.StartHeaders,
 	}
 
 	return bbt, nil
 }
 
 func (bbt *baseBlockTrack) receivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
+	bbt.doReceivedHeaderJobFunc(headerHandler, headerHash)
+}
+
+func (bbt *baseBlockTrack) doReceivedHeaderJob(headerHandler data.HeaderHandler, headerHash []byte) {
 	if headerHandler.GetShardID() == core.MetachainShardId {
 		bbt.receivedMetaBlock(headerHandler, headerHash)
 		return
@@ -135,8 +144,10 @@ func (bbt *baseBlockTrack) receivedShardHeader(headerHandler data.HeaderHandler,
 		return
 	}
 
+	shardID := shardHeader.GetShardID()
+
 	log.Debug("received shard header from network in block tracker",
-		"shard", shardHeader.GetShardID(),
+		"shard", shardID,
 		"epoch", shardHeader.GetEpoch(),
 		"round", shardHeader.GetRound(),
 		"nonce", shardHeader.GetNonce(),
@@ -148,7 +159,7 @@ func (bbt *baseBlockTrack) receivedShardHeader(headerHandler data.HeaderHandler,
 		return
 	}
 
-	if !bbt.addHeader(shardHeader, shardHeaderHash) {
+	if !bbt.addHeader(shardHeader, shardHeaderHash, shardID) {
 		log.Trace("received shard header was not added", "nonce", headerHandler.GetNonce())
 		return
 	}
@@ -164,8 +175,10 @@ func (bbt *baseBlockTrack) receivedMetaBlock(headerHandler data.HeaderHandler, m
 		return
 	}
 
+	shardID := metaBlock.GetShardID()
+
 	log.Debug("received meta block from network in block tracker",
-		"shard", metaBlock.GetShardID(),
+		"shard", shardID,
 		"epoch", metaBlock.GetEpoch(),
 		"round", metaBlock.GetRound(),
 		"nonce", metaBlock.GetNonce(),
@@ -177,7 +190,7 @@ func (bbt *baseBlockTrack) receivedMetaBlock(headerHandler data.HeaderHandler, m
 		return
 	}
 
-	if !bbt.addHeader(metaBlock, metaBlockHash) {
+	if !bbt.addHeader(metaBlock, metaBlockHash, shardID) {
 		log.Trace("received meta block was not added", "nonce", headerHandler.GetNonce())
 		return
 	}
@@ -215,12 +228,11 @@ func (bbt *baseBlockTrack) shouldAddHeaderForShard(
 	return !isHeaderOutOfRange
 }
 
-func (bbt *baseBlockTrack) addHeader(header data.HeaderHandler, hash []byte) bool {
+func (bbt *baseBlockTrack) addHeader(header data.HeaderHandler, hash []byte, shardID uint32) bool {
 	if check.IfNil(header) {
 		return false
 	}
 
-	shardID := header.GetShardID()
 	nonce := header.GetNonce()
 
 	bbt.mutHeaders.Lock()
@@ -426,7 +438,7 @@ func (bbt *baseBlockTrack) CheckBlockAgainstFinal(headerHandler data.HeaderHandl
 		return process.ErrNilHeaderHandler
 	}
 
-	finalHeader, _, err := bbt.getFinalHeader(headerHandler.GetShardID())
+	finalHeader, err := bbt.getFinalHeaderFunc(headerHandler)
 	if err != nil {
 		return fmt.Errorf("%w: header shard: %d, header round: %d, header nonce: %d",
 			err,
@@ -466,7 +478,16 @@ func (bbt *baseBlockTrack) CheckBlockAgainstFinal(headerHandler data.HeaderHandl
 	return nil
 }
 
-func (bbt *baseBlockTrack) getFinalHeader(shardID uint32) (data.HeaderHandler, []byte, error) {
+func (bbt *baseBlockTrack) getFinalHeader(headerHandler data.HeaderHandler) (data.HeaderHandler, error) {
+	finalHeader, _, err := bbt.getFinalHeaderForShard(headerHandler.GetShardID())
+	if err != nil {
+		return nil, err
+	}
+
+	return finalHeader, nil
+}
+
+func (bbt *baseBlockTrack) getFinalHeaderForShard(shardID uint32) (data.HeaderHandler, []byte, error) {
 	if shardID != bbt.shardCoordinator.SelfId() {
 		return bbt.crossNotarizer.GetFirstNotarizedHeader(shardID)
 	}

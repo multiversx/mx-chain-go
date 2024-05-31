@@ -12,13 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/core/versioning"
-	"github.com/multiversx/mx-chain-core-go/data"
-	dataBatch "github.com/multiversx/mx-chain-core-go/data/batch"
-	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	disabledStatistics "github.com/multiversx/mx-chain-go/common/statistics/disabled"
@@ -28,7 +21,9 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/types"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
+	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
+	processMocks "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -53,6 +48,14 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/syncer"
 	validatorInfoCacherStub "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
 	"github.com/multiversx/mx-chain-go/trie/factory"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/versioning"
+	"github.com/multiversx/mx-chain-core-go/data"
+	dataBatch "github.com/multiversx/mx-chain-core-go/data/batch"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -206,7 +209,8 @@ func createMockEpochStartBootstrapArgs(
 				Capacity: 10,
 				Shards:   10,
 			},
-			Requesters: generalCfg.Requesters,
+			Requesters:      generalCfg.Requesters,
+			SovereignConfig: generalCfg.SovereignConfig,
 		},
 		EconomicsData: &economicsmocks.EconomicsHandlerStub{
 			MinGasPriceCalled: func() uint64 {
@@ -241,6 +245,7 @@ func createMockEpochStartBootstrapArgs(
 		},
 		TrieSyncStatisticsProvider: &testscommon.SizeSyncStatisticsHandlerStub{},
 		StateStatsHandler:          disabledStatistics.NewStateStatistics(),
+		RunTypeComponents:          processMocks.NewRunTypeComponentsStub(),
 	}
 }
 
@@ -632,6 +637,65 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, statistics.ErrNilStateStatsHandler))
 	})
+	t.Run("nil RunTypeComponents should error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComp, cryptoComp := createComponentsForEpochStart()
+		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+		args.RunTypeComponents = nil
+
+		epochStartProvider, err := NewEpochStartBootstrap(args)
+		require.True(t, errors.Is(err, errorsMx.ErrNilRunTypeComponents))
+		require.Nil(t, epochStartProvider)
+	})
+	t.Run("nil ShardCoordinatorFactory should error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComp, cryptoComp := createComponentsForEpochStart()
+		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+		rtMock := processMocks.NewRunTypeComponentsStub()
+		rtMock.ShardCoordinatorFactory = nil
+		args.RunTypeComponents = rtMock
+		epochStartProvider, err := NewEpochStartBootstrap(args)
+		require.Nil(t, epochStartProvider)
+		require.True(t, errors.Is(err, errorsMx.ErrNilShardCoordinatorFactory))
+	})
+	t.Run("nil AdditionalStorageServiceCreator should error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComp, cryptoComp := createComponentsForEpochStart()
+		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+		rtMock := processMocks.NewRunTypeComponentsStub()
+		rtMock.AdditionalStorageServiceFactory = nil
+		args.RunTypeComponents = rtMock
+		epochStartProvider, err := NewEpochStartBootstrap(args)
+		require.Nil(t, epochStartProvider)
+		require.True(t, errors.Is(err, errorsMx.ErrNilAdditionalStorageServiceCreator))
+	})
+	t.Run("nil NodesCoordinatorWithRaterFactory should error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComp, cryptoComp := createComponentsForEpochStart()
+		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+		rtMock := processMocks.NewRunTypeComponentsStub()
+		rtMock.NodesCoordinatorWithRaterFactory = nil
+		args.RunTypeComponents = rtMock
+		epochStartProvider, err := NewEpochStartBootstrap(args)
+		require.Nil(t, epochStartProvider)
+		require.True(t, errors.Is(err, errorsMx.ErrNilNodesCoordinatorFactory))
+	})
+	t.Run("nil RequestHandlerFactory should error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComp, cryptoComp := createComponentsForEpochStart()
+		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+		rtMock := processMocks.NewRunTypeComponentsStub()
+		rtMock.RequestHandlerFactory = nil
+		args.RunTypeComponents = rtMock
+		epochStartProvider, err := NewEpochStartBootstrap(args)
+		require.Nil(t, epochStartProvider)
+		require.True(t, errors.Is(err, errorsMx.ErrNilRequestHandlerCreator))
+	})
 }
 
 func TestNewEpochStartBootstrap(t *testing.T) {
@@ -954,7 +1018,7 @@ func TestCreateSyncers(t *testing.T) {
 	epochStartProvider.shardCoordinator = mock.NewMultipleShardsCoordinatorMock()
 	epochStartProvider.dataPool = &dataRetrieverMock.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
-			return &mock.HeadersCacherStub{}
+			return &testscommon.HeadersCacherStub{}
 		},
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return testscommon.NewShardedDataStub()
@@ -1820,7 +1884,7 @@ func TestRequestAndProcessing(t *testing.T) {
 				}
 			},
 			HeadersCalled: func() dataRetriever.HeadersPool {
-				return &mock.HeadersCacherStub{}
+				return &testscommon.HeadersCacherStub{}
 			},
 			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
 				return &validatorInfoCacherStub.ValidatorInfoCacherStub{}
@@ -1890,7 +1954,7 @@ func TestRequestAndProcessing(t *testing.T) {
 				}
 			},
 			HeadersCalled: func() dataRetriever.HeadersPool {
-				return &mock.HeadersCacherStub{}
+				return &testscommon.HeadersCacherStub{}
 			},
 			CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
 				return &validatorInfoCacherStub.ValidatorInfoCacherStub{}
@@ -2033,7 +2097,7 @@ func TestEpochStartBootstrap_WithDisabledShardIDAsObserver(t *testing.T) {
 
 	epochStartProvider.dataPool = &dataRetrieverMock.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
-			return &mock.HeadersCacherStub{}
+			return &testscommon.HeadersCacherStub{}
 		},
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return testscommon.NewShardedDataStub()
@@ -2369,7 +2433,7 @@ func TestSyncSetGuardianTransaction(t *testing.T) {
 	transactions := testscommon.NewShardedDataCacheNotifierMock()
 	epochStartProvider.dataPool = &dataRetrieverMock.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
-			return &mock.HeadersCacherStub{}
+			return &testscommon.HeadersCacherStub{}
 		},
 		TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return transactions
