@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-go/config"
+	chainSimulatorIntegrationTests "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/staking"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
@@ -73,7 +74,7 @@ func testStakingProviderWithNodesReStakeUnStaked(t *testing.T, stakingV4Activati
 	require.NotNil(t, cs)
 	defer cs.Close()
 
-	mintValue := big.NewInt(0).Mul(big.NewInt(5000), staking.OneEGLD)
+	mintValue := big.NewInt(0).Mul(big.NewInt(5000), chainSimulatorIntegrationTests.OneEGLD)
 	validatorOwner, err := cs.GenerateAndMintWalletAddress(0, mintValue)
 	require.Nil(t, err)
 	require.Nil(t, err)
@@ -84,7 +85,7 @@ func testStakingProviderWithNodesReStakeUnStaked(t *testing.T, stakingV4Activati
 	// create delegation contract
 	stakeValue, _ := big.NewInt(0).SetString("4250000000000000000000", 10)
 	dataField := "createNewDelegationContract@00@0ea1"
-	txStake := staking.GenerateTransaction(validatorOwner.Bytes, staking.GetNonce(t, cs, validatorOwner), vm.DelegationManagerSCAddress, stakeValue, dataField, 80_000_000)
+	txStake := chainSimulatorIntegrationTests.GenerateTransaction(validatorOwner.Bytes, staking.GetNonce(t, cs, validatorOwner), vm.DelegationManagerSCAddress, stakeValue, dataField, 80_000_000)
 	stakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txStake, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, stakeTx)
@@ -98,14 +99,14 @@ func testStakingProviderWithNodesReStakeUnStaked(t *testing.T, stakingV4Activati
 
 	txDataFieldAddNodes := fmt.Sprintf("addNodes@%s@%s", blsKeys[0], staking.MockBLSSignature+"02")
 	ownerNonce := staking.GetNonce(t, cs, validatorOwner)
-	txAddNodes := staking.GenerateTransaction(validatorOwner.Bytes, ownerNonce, delegationAddressBytes, big.NewInt(0), txDataFieldAddNodes, staking.GasLimitForStakeOperation)
+	txAddNodes := chainSimulatorIntegrationTests.GenerateTransaction(validatorOwner.Bytes, ownerNonce, delegationAddressBytes, big.NewInt(0), txDataFieldAddNodes, staking.GasLimitForStakeOperation)
 	addNodesTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txAddNodes, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, addNodesTx)
 
 	txDataFieldStakeNodes := fmt.Sprintf("stakeNodes@%s", blsKeys[0])
 	ownerNonce = staking.GetNonce(t, cs, validatorOwner)
-	txStakeNodes := staking.GenerateTransaction(validatorOwner.Bytes, ownerNonce, delegationAddressBytes, big.NewInt(0), txDataFieldStakeNodes, staking.GasLimitForStakeOperation)
+	txStakeNodes := chainSimulatorIntegrationTests.GenerateTransaction(validatorOwner.Bytes, ownerNonce, delegationAddressBytes, big.NewInt(0), txDataFieldStakeNodes, staking.GasLimitForStakeOperation)
 
 	stakeNodesTxs, err := cs.SendTxsAndGenerateBlocksTilAreExecuted([]*transaction.Transaction{txStakeNodes}, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
@@ -129,7 +130,7 @@ func testStakingProviderWithNodesReStakeUnStaked(t *testing.T, stakingV4Activati
 
 	ownerNonce = staking.GetNonce(t, cs, validatorOwner)
 	reStakeTxData := fmt.Sprintf("reStakeUnStakedNodes@%s", blsKeys[0])
-	reStakeNodes := staking.GenerateTransaction(validatorOwner.Bytes, ownerNonce, delegationAddressBytes, big.NewInt(0), reStakeTxData, staking.GasLimitForStakeOperation)
+	reStakeNodes := chainSimulatorIntegrationTests.GenerateTransaction(validatorOwner.Bytes, ownerNonce, delegationAddressBytes, big.NewInt(0), reStakeTxData, staking.GasLimitForStakeOperation)
 	reStakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(reStakeNodes, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, reStakeTx)
