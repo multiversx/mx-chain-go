@@ -20,6 +20,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever/dataPool"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -31,8 +34,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 const stakingV4Epoch = 444
@@ -145,7 +146,7 @@ func validatorsPubKeys(validators []Validator) []string {
 	return pKeys
 }
 
-//------- NewIndexHashedNodesCoordinator
+// ------- NewIndexHashedNodesCoordinator
 
 func TestNewIndexHashedNodesCoordinator_NilHasherShouldErr(t *testing.T) {
 	t.Parallel()
@@ -247,7 +248,7 @@ func TestNewIndexHashedGroupSelector_OkValsShouldWork(t *testing.T) {
 	require.Nil(t, err)
 }
 
-//------- LoadEligibleList
+// ------- LoadEligibleList
 
 func TestIndexHashedNodesCoordinator_SetNilEligibleMapShouldErr(t *testing.T) {
 	t.Parallel()
@@ -256,7 +257,7 @@ func TestIndexHashedNodesCoordinator_SetNilEligibleMapShouldErr(t *testing.T) {
 	arguments := createArguments()
 
 	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
-	require.Equal(t, ErrNilInputNodesMap, ihnc.setNodesPerShards(nil, waitingMap, nil, nil, 0))
+	require.Equal(t, ErrNilInputNodesMap, ihnc.setNodesPerShards(nil, waitingMap, nil, nil, 0, false))
 }
 
 func TestIndexHashedNodesCoordinator_SetNilWaitingMapShouldErr(t *testing.T) {
@@ -266,7 +267,7 @@ func TestIndexHashedNodesCoordinator_SetNilWaitingMapShouldErr(t *testing.T) {
 	arguments := createArguments()
 
 	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
-	require.Equal(t, ErrNilInputNodesMap, ihnc.setNodesPerShards(eligibleMap, nil, nil, nil, 0))
+	require.Equal(t, ErrNilInputNodesMap, ihnc.setNodesPerShards(eligibleMap, nil, nil, nil, 0, false))
 }
 
 func TestIndexHashedNodesCoordinator_OkValShouldWork(t *testing.T) {
@@ -319,7 +320,7 @@ func TestIndexHashedNodesCoordinator_OkValShouldWork(t *testing.T) {
 	require.Equal(t, eligibleMap[0], readEligible)
 }
 
-//------- ComputeValidatorsGroup
+// ------- ComputeValidatorsGroup
 
 func TestIndexHashedNodesCoordinator_NewCoordinatorGroup0SizeShouldErr(t *testing.T) {
 	t.Parallel()
@@ -401,7 +402,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroupInvalidShardIdShouldE
 	require.Nil(t, list2)
 }
 
-//------- functionality tests
+// ------- functionality tests
 
 func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup1ValidatorShouldReturnSame(t *testing.T) {
 	t.Parallel()
@@ -558,7 +559,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup400of400For10BlocksMe
 
 	mut := sync.Mutex{}
 
-	//consensusGroup := list[0:21]
+	// consensusGroup := list[0:21]
 	cacheMap := make(map[string]interface{})
 	lruCache := &mock.NodesCoordinatorCacheMock{
 		PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
@@ -1275,7 +1276,7 @@ func TestIndexHashedNodesCoordinator_setNodesPerShardsShouldTriggerWrongConfigur
 		},
 	}
 
-	err = ihnc.setNodesPerShards(eligibleMap, map[uint32][]Validator{}, map[uint32][]Validator{}, map[uint32][]Validator{}, 2)
+	err = ihnc.setNodesPerShards(eligibleMap, map[uint32][]Validator{}, map[uint32][]Validator{}, map[uint32][]Validator{}, 2, false)
 	require.NoError(t, err)
 
 	value := <-chanStopNode
@@ -1301,7 +1302,7 @@ func TestIndexHashedNodesCoordinator_setNodesPerShardsShouldNotTriggerWrongConfi
 		},
 	}
 
-	err = ihnc.setNodesPerShards(eligibleMap, map[uint32][]Validator{}, map[uint32][]Validator{}, map[uint32][]Validator{}, 2)
+	err = ihnc.setNodesPerShards(eligibleMap, map[uint32][]Validator{}, map[uint32][]Validator{}, map[uint32][]Validator{}, 2, false)
 	require.NoError(t, err)
 
 	require.Empty(t, chanStopNode)
@@ -1333,7 +1334,7 @@ func TestIndexHashedNodesCoordinator_setNodesPerShardsShouldSetNodeTypeValidator
 		},
 	}
 
-	err = ihnc.setNodesPerShards(eligibleMap, map[uint32][]Validator{}, map[uint32][]Validator{}, map[uint32][]Validator{}, 2)
+	err = ihnc.setNodesPerShards(eligibleMap, map[uint32][]Validator{}, map[uint32][]Validator{}, map[uint32][]Validator{}, 2, false)
 	require.NoError(t, err)
 	require.True(t, setTypeWasCalled)
 	require.Equal(t, core.NodeTypeValidator, nodeTypeResult)
@@ -1365,7 +1366,7 @@ func TestIndexHashedNodesCoordinator_setNodesPerShardsShouldSetNodeTypeObserver(
 		},
 	}
 
-	err = ihnc.setNodesPerShards(eligibleMap, map[uint32][]Validator{}, map[uint32][]Validator{}, map[uint32][]Validator{}, 2)
+	err = ihnc.setNodesPerShards(eligibleMap, map[uint32][]Validator{}, map[uint32][]Validator{}, map[uint32][]Validator{}, 2, false)
 	require.NoError(t, err)
 	require.True(t, setTypeWasCalled)
 	require.Equal(t, core.NodeTypeObserver, nodeTypeResult)

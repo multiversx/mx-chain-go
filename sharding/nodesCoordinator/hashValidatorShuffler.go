@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -30,22 +31,23 @@ type NodesShufflerArgs struct {
 }
 
 type shuffleNodesArg struct {
-	eligible                map[uint32][]Validator
-	waiting                 map[uint32][]Validator
-	unstakeLeaving          []Validator
-	additionalLeaving       []Validator
-	newNodes                []Validator
-	auction                 []Validator
-	randomness              []byte
-	distributor             ValidatorsDistributor
-	nodesMeta               uint32
-	nodesPerShard           uint32
-	nbShards                uint32
-	maxNodesToSwapPerShard  uint32
-	maxNumNodes             uint32
-	flagBalanceWaitingLists bool
-	flagStakingV4Step2      bool
-	flagStakingV4Step3      bool
+	eligible                           map[uint32][]Validator
+	waiting                            map[uint32][]Validator
+	unstakeLeaving                     []Validator
+	additionalLeaving                  []Validator
+	newNodes                           []Validator
+	auction                            []Validator
+	randomness                         []byte
+	distributor                        ValidatorsDistributor
+	nodesMeta                          uint32
+	nodesPerShard                      uint32
+	nbShards                           uint32
+	maxNodesToSwapPerShard             uint32
+	maxNumNodes                        uint32
+	flagBalanceWaitingLists            bool
+	flagStakingV4Step2                 bool
+	flagStakingV4Step3                 bool
+	flagCleanupAuctionOnLowWaitingList bool
 }
 
 type shuffledNodesConfig struct {
@@ -90,6 +92,7 @@ func NewHashValidatorsShuffler(args *NodesShufflerArgs) (*randHashShuffler, erro
 	}
 	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
 		common.BalanceWaitingListsFlag,
+		common.CleanupAuctionOnLowWaitingListFlag,
 	})
 	if err != nil {
 		return nil, err
@@ -196,22 +199,23 @@ func (rhs *randHashShuffler) UpdateNodeLists(args ArgsUpdateNodes) (*ResUpdateNo
 	}
 
 	return shuffleNodes(shuffleNodesArg{
-		eligible:                eligibleAfterReshard,
-		waiting:                 waitingAfterReshard,
-		unstakeLeaving:          args.UnStakeLeaving,
-		additionalLeaving:       args.AdditionalLeaving,
-		newNodes:                args.NewNodes,
-		auction:                 args.Auction,
-		randomness:              args.Rand,
-		nodesMeta:               nodesMeta,
-		nodesPerShard:           nodesPerShard,
-		nbShards:                args.NbShards,
-		distributor:             rhs.validatorDistributor,
-		maxNodesToSwapPerShard:  rhs.activeNodesConfig.NodesToShufflePerShard,
-		flagBalanceWaitingLists: rhs.enableEpochsHandler.IsFlagEnabledInEpoch(common.BalanceWaitingListsFlag, args.Epoch),
-		flagStakingV4Step2:      rhs.flagStakingV4Step2.IsSet(),
-		flagStakingV4Step3:      rhs.flagStakingV4Step3.IsSet(),
-		maxNumNodes:             rhs.activeNodesConfig.MaxNumNodes,
+		eligible:                           eligibleAfterReshard,
+		waiting:                            waitingAfterReshard,
+		unstakeLeaving:                     args.UnStakeLeaving,
+		additionalLeaving:                  args.AdditionalLeaving,
+		newNodes:                           args.NewNodes,
+		auction:                            args.Auction,
+		randomness:                         args.Rand,
+		nodesMeta:                          nodesMeta,
+		nodesPerShard:                      nodesPerShard,
+		nbShards:                           args.NbShards,
+		distributor:                        rhs.validatorDistributor,
+		maxNodesToSwapPerShard:             rhs.activeNodesConfig.NodesToShufflePerShard,
+		flagBalanceWaitingLists:            rhs.enableEpochsHandler.IsFlagEnabledInEpoch(common.BalanceWaitingListsFlag, args.Epoch),
+		flagStakingV4Step2:                 rhs.flagStakingV4Step2.IsSet(),
+		flagStakingV4Step3:                 rhs.flagStakingV4Step3.IsSet(),
+		maxNumNodes:                        rhs.activeNodesConfig.MaxNumNodes,
+		flagCleanupAuctionOnLowWaitingList: rhs.enableEpochsHandler.IsFlagEnabledInEpoch(common.CleanupAuctionOnLowWaitingListFlag, args.Epoch),
 	})
 }
 
@@ -344,12 +348,18 @@ func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 
 	actualLeaving, _ := removeValidatorsFromList(allLeaving, stillRemainingInLeaving, len(stillRemainingInLeaving))
 
+	shouldCleanupAuction := false
+	if arg.flagCleanupAuctionOnLowWaitingList {
+		shouldCleanupAuction = lowWaitingList
+	}
+
 	return &ResUpdateNodes{
 		Eligible:       newEligible,
 		Waiting:        newWaiting,
 		ShuffledOut:    shuffledOutMap,
 		Leaving:        actualLeaving,
 		StillRemaining: stillRemainingInLeaving,
+		LowWaitingList: shouldCleanupAuction,
 	}, nil
 }
 
