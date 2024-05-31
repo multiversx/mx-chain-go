@@ -19,6 +19,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const (
+	sftType = "SFT"
+)
+
 var sftRoles = []string{
 	core.ESDTRoleNFTCreate,
 	core.ESDTRoleNFTBurn,
@@ -59,37 +63,37 @@ func TestSovereignChain_RegisterTwoSfts(t *testing.T) {
 	nonce := uint64(0)
 
 	issueCost, _ := big.NewInt(0).SetString(issuePrice, 10)
-	registerArgs := createSftRegisterArgs("SFTNAME", "SFTTICKER")
-	registerTx := chainSim.SendTransaction(t, cs, wallet.Bytes, &nonce, vm.ESDTSCAddress, issueCost, registerArgs, uint64(60000000))
-	tokenIdentifier := registerTx.Logs.Events[0].Topics[0]
+	sftName := "SFTNAME"
+	sftTicker := "SFTTICKER"
+	sftIdentifier := chainSim.RegisterAndSetAllRoles(t, cs, nodeHandler, wallet.Bytes, &nonce, issueCost, sftName, sftTicker, "SFT", 0)
 
-	checkAllRoles(t, nodeHandler, wallet.Bech32, string(tokenIdentifier), sftRoles)
+	checkAllRoles(t, nodeHandler, wallet.Bech32, sftIdentifier, sftRoles)
 
 	initialSupply := big.NewInt(111)
-	createArgs := createNftArgs(tokenIdentifier, initialSupply, "SFTNAME #1")
+	createArgs := createNftArgs(sftIdentifier, initialSupply, "SFTNAME #1")
 	chainSim.SendTransaction(t, cs, wallet.Bytes, &nonce, wallet.Bytes, chainSim.ZeroValue, createArgs, uint64(60000000))
 
 	tokens, _, err := nodeHandler.GetFacadeHandler().GetAllESDTTokens(wallet.Bech32, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
 	require.NotNil(t, tokens)
 	require.True(t, len(tokens) == 2)
-	require.Equal(t, initialSupply, tokens[string(tokenIdentifier)+"-01"].Value)
+	require.Equal(t, initialSupply, tokens[sftIdentifier+"-01"].Value)
 
-	registerArgs = createSftRegisterArgs("SFTNAME2", "SFTTICKER2")
-	registerTx = chainSim.SendTransaction(t, cs, wallet.Bytes, &nonce, vm.ESDTSCAddress, issueCost, registerArgs, uint64(60000000))
-	tokenIdentifier = registerTx.Logs.Events[0].Topics[0]
+	sftName = "SFTNAME2"
+	sftTicker = "SFTTICKER2"
+	sftIdentifier = chainSim.RegisterAndSetAllRoles(t, cs, nodeHandler, wallet.Bytes, &nonce, issueCost, sftName, sftTicker, sftType, 0)
 
-	checkAllRoles(t, nodeHandler, wallet.Bech32, string(tokenIdentifier), sftRoles)
+	checkAllRoles(t, nodeHandler, wallet.Bech32, sftIdentifier, sftRoles)
 
 	initialSupply = big.NewInt(222)
-	createArgs = createNftArgs(tokenIdentifier, initialSupply, "SFTNAME #2")
+	createArgs = createNftArgs(sftIdentifier, initialSupply, "SFTNAME #2")
 	chainSim.SendTransaction(t, cs, wallet.Bytes, &nonce, wallet.Bytes, chainSim.ZeroValue, createArgs, uint64(60000000))
 
 	tokens, _, err = nodeHandler.GetFacadeHandler().GetAllESDTTokens(wallet.Bech32, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
 	require.NotNil(t, tokens)
 	require.True(t, len(tokens) == 3)
-	require.Equal(t, initialSupply, tokens[string(tokenIdentifier)+"-01"].Value)
+	require.Equal(t, initialSupply, tokens[sftIdentifier+"-01"].Value)
 }
 
 func TestSovereignChain_IssueTwoSfts(t *testing.T) {
@@ -123,62 +127,48 @@ func TestSovereignChain_IssueTwoSfts(t *testing.T) {
 	nonce := uint64(0)
 
 	issueCost, _ := big.NewInt(0).SetString(issuePrice, 10)
-	issueArgs := createIssueSftArgs("SFTNAME", "SFTTIKER")
-	txResult := chainSim.SendTransaction(t, cs, wallet.Bytes, &nonce, vm.ESDTSCAddress, issueCost, issueArgs, uint64(60000000))
-	tokenIdentifier := txResult.Logs.Events[0].Topics[0]
+	sftName := "SFTNAME"
+	sftTicker := "SFTTICKER"
+	sftIdentifier := chainSim.IssueSemiFungible(t, cs, nodeHandler, wallet.Bytes, &nonce, issueCost, sftName, sftTicker)
 
-	setRolesArgs := setSpecialRole(tokenIdentifier, wallet.Bytes, sftRoles)
+	setRolesArgs := setSpecialRole(sftIdentifier, wallet.Bytes, sftRoles)
 	chainSim.SendTransaction(t, cs, wallet.Bytes, &nonce, vm.ESDTSCAddress, chainSim.ZeroValue, setRolesArgs, uint64(60000000))
 
-	checkAllRoles(t, nodeHandler, wallet.Bech32, string(tokenIdentifier), sftRoles)
+	checkAllRoles(t, nodeHandler, wallet.Bech32, sftIdentifier, sftRoles)
 
 	initialSupply := big.NewInt(100)
-	createArgs := createNftArgs(tokenIdentifier, initialSupply, "SFTNAME #1")
+	createArgs := createNftArgs(sftIdentifier, initialSupply, "SFTNAME #1")
 	chainSim.SendTransaction(t, cs, wallet.Bytes, &nonce, wallet.Bytes, chainSim.ZeroValue, createArgs, uint64(60000000))
 
 	tokens, _, err := nodeHandler.GetFacadeHandler().GetAllESDTTokens(wallet.Bech32, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
 	require.NotNil(t, tokens)
 	require.True(t, len(tokens) == 2)
-	require.Equal(t, initialSupply, tokens[string(tokenIdentifier)+"-01"].Value)
+	require.Equal(t, initialSupply, tokens[sftIdentifier+"-01"].Value)
 
-	issueArgs = createIssueSftArgs("SFTNAME2", "SFTTIKER2")
-	txResult = chainSim.SendTransaction(t, cs, wallet.Bytes, &nonce, vm.ESDTSCAddress, issueCost, issueArgs, uint64(60000000))
-	tokenIdentifier = txResult.Logs.Events[0].Topics[0]
+	sftName = "SFTNAME2"
+	sftTicker = "SFTTICKER2"
+	sftIdentifier = chainSim.IssueSemiFungible(t, cs, nodeHandler, wallet.Bytes, &nonce, issueCost, sftName, sftTicker)
 
-	setRolesArgs = setSpecialRole(tokenIdentifier, wallet.Bytes, sftRoles)
+	setRolesArgs = setSpecialRole(sftIdentifier, wallet.Bytes, sftRoles)
 	chainSim.SendTransaction(t, cs, wallet.Bytes, &nonce, vm.ESDTSCAddress, chainSim.ZeroValue, setRolesArgs, uint64(60000000))
 
-	checkAllRoles(t, nodeHandler, wallet.Bech32, string(tokenIdentifier), sftRoles)
+	checkAllRoles(t, nodeHandler, wallet.Bech32, sftIdentifier, sftRoles)
 
 	initialSupply = big.NewInt(200)
-	createArgs = createNftArgs(tokenIdentifier, initialSupply, "SFTNAME2 #1")
+	createArgs = createNftArgs(sftIdentifier, initialSupply, "SFTNAME2 #1")
 	chainSim.SendTransaction(t, cs, wallet.Bytes, &nonce, wallet.Bytes, chainSim.ZeroValue, createArgs, uint64(60000000))
 
 	tokens, _, err = nodeHandler.GetFacadeHandler().GetAllESDTTokens(wallet.Bech32, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
 	require.NotNil(t, tokens)
 	require.True(t, len(tokens) == 3)
-	require.Equal(t, initialSupply, tokens[string(tokenIdentifier)+"-01"].Value)
+	require.Equal(t, initialSupply, tokens[sftIdentifier+"-01"].Value)
 }
 
-func createSftRegisterArgs(name string, ticker string) string {
-	return "registerAndSetAllRoles" +
-		"@" + hex.EncodeToString([]byte(name)) + // name
-		"@" + hex.EncodeToString([]byte(ticker)) + // ticker
-		"@" + hex.EncodeToString([]byte("SFT")) + // type
-		"@" // num decimals
-}
-
-func createIssueSftArgs(name string, ticker string) string {
-	return "issueSemiFungible" +
-		"@" + hex.EncodeToString([]byte(name)) + // name
-		"@" + hex.EncodeToString([]byte(ticker)) // ticker
-}
-
-func createNftArgs(tokenIdentifier []byte, initialSupply *big.Int, name string) string {
+func createNftArgs(tokenIdentifier string, initialSupply *big.Int, name string) string {
 	return "ESDTNFTCreate" +
-		"@" + hex.EncodeToString(tokenIdentifier) +
+		"@" + hex.EncodeToString([]byte(tokenIdentifier)) +
 		"@" + hex.EncodeToString(initialSupply.Bytes()) +
 		"@" + hex.EncodeToString([]byte(name)) +
 		"@" + fmt.Sprintf("%04X", 2500) + // royalties 25%
@@ -187,9 +177,9 @@ func createNftArgs(tokenIdentifier []byte, initialSupply *big.Int, name string) 
 		"@" // uri
 }
 
-func setSpecialRole(tokenIdentifier []byte, address []byte, roles []string) string {
+func setSpecialRole(tokenIdentifier string, address []byte, roles []string) string {
 	args := "setSpecialRole" +
-		"@" + hex.EncodeToString(tokenIdentifier) +
+		"@" + hex.EncodeToString([]byte(tokenIdentifier)) +
 		"@" + hex.EncodeToString(address)
 
 	for _, role := range roles {
