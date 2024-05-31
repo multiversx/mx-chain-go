@@ -19,10 +19,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const (
-	sftType = "SFT"
-)
-
 var sftRoles = []string{
 	core.ESDTRoleNFTCreate,
 	core.ESDTRoleNFTBurn,
@@ -65,7 +61,7 @@ func TestSovereignChain_RegisterTwoSfts(t *testing.T) {
 	issueCost, _ := big.NewInt(0).SetString(issuePrice, 10)
 	sftName := "SFTNAME"
 	sftTicker := "SFTTICKER"
-	sftIdentifier := chainSim.RegisterAndSetAllRoles(t, cs, nodeHandler, wallet.Bytes, &nonce, issueCost, sftName, sftTicker, "SFT", 0)
+	sftIdentifier := chainSim.RegisterAndSetAllRoles(t, cs, nodeHandler, wallet.Bytes, &nonce, issueCost, sftName, sftTicker, core.SemiFungibleESDT, 0)
 
 	checkAllRoles(t, nodeHandler, wallet.Bech32, sftIdentifier, sftRoles)
 
@@ -81,7 +77,7 @@ func TestSovereignChain_RegisterTwoSfts(t *testing.T) {
 
 	sftName = "SFTNAME2"
 	sftTicker = "SFTTICKER2"
-	sftIdentifier = chainSim.RegisterAndSetAllRoles(t, cs, nodeHandler, wallet.Bytes, &nonce, issueCost, sftName, sftTicker, sftType, 0)
+	sftIdentifier = chainSim.RegisterAndSetAllRoles(t, cs, nodeHandler, wallet.Bytes, &nonce, issueCost, sftName, sftTicker, core.SemiFungibleESDT, 0)
 
 	checkAllRoles(t, nodeHandler, wallet.Bech32, sftIdentifier, sftRoles)
 
