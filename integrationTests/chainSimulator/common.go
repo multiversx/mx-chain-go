@@ -40,8 +40,11 @@ var (
 )
 
 // GetSysAccBytesAddress will return the system account bytes address
-func GetSysAccBytesAddress(nodeHandler process.NodeHandler) ([]byte, error) {
-	return nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode("erd1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq6gq4hu")
+func GetSysAccBytesAddress(t *testing.T, nodeHandler process.NodeHandler) []byte {
+	addressBytes, err := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode("erd1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq6gq4hu")
+	require.Nil(t, err)
+
+	return addressBytes
 }
 
 // DeployContract will deploy a smart contract and return its address
