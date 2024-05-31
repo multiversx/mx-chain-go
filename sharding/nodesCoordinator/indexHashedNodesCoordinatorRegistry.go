@@ -61,7 +61,7 @@ func displayNodesConfigInfo(config map[uint32]*epochNodesConfig) {
 
 func (ihnc *indexHashedNodesCoordinator) saveState(key []byte, epoch uint32) error {
 	registry := ihnc.NodesCoordinatorToRegistry(epoch)
-	data, err := ihnc.nodesCoordinatorRegistryFactory.GetRegistryData(registry, ihnc.currentEpoch)
+	data, err := ihnc.nodesCoordinatorRegistryFactory.GetRegistryData(registry, epoch)
 	if err != nil {
 		return err
 	}
@@ -212,6 +212,7 @@ func epochValidatorsToEpochNodesConfig(config EpochValidatorsHandler) (*epochNod
 		if err != nil {
 			return nil, err
 		}
+		result.lowWaitingList = configWithAuction.GetLowWaitingList()
 	}
 
 	return result, nil
