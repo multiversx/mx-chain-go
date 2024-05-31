@@ -18,6 +18,12 @@ type ArgsBridgeSetup struct {
 }
 
 // DeploySovereignBridgeSetup will deploy all bridge contracts
+// This function will:
+// - deploy esdt-safe contract
+// - deploy fee-market contract
+// - set the fee-market address inside esdt-safe contract
+// - disable fee in fee-market contract
+// - unpause esdt-safe contract so deposit operations can start
 func DeploySovereignBridgeSetup(
 	t *testing.T,
 	cs chainSim.ChainSimulator,
@@ -26,8 +32,7 @@ func DeploySovereignBridgeSetup(
 ) *ArgsBridgeSetup {
 	nodeHandler := cs.GetNodeHandler(core.SovereignChainShardId)
 
-	systemScAddress, err := chainSim.GetSysAccBytesAddress(nodeHandler)
-	require.Nil(t, err)
+	systemScAddress := chainSim.GetSysAccBytesAddress(t, nodeHandler)
 
 	wallet, err := cs.GenerateAndMintWalletAddress(core.SovereignChainShardId, chainSim.InitialAmount)
 	require.Nil(t, err)

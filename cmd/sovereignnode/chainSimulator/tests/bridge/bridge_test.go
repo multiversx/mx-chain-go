@@ -23,6 +23,12 @@ const (
 	issuePrice                 = "5000000000000000000"
 )
 
+// This test will:
+// - deploy bridge contracts setup
+// - issue a new fungible token
+// - deposit some tokens in esdt-safe contract
+// - check the sender balance is correct
+// - check the token supply is correct after deposit (burned amount, supply etc)
 func TestBridge_DeployOnSovereignChain_IssueAndDeposit(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -78,4 +84,14 @@ func TestBridge_DeployOnSovereignChain_IssueAndDeposit(t *testing.T) {
 	require.NotNil(t, tokens)
 	require.True(t, len(tokens) == 2)
 	require.Equal(t, big.NewInt(0).Sub(supply, amountToDeposit).String(), tokens[string(tokenIdentifier)].GetValue().String())
+
+	_ = cs.GenerateBlocks(10)
+
+	tokenSupply, err := nodeHandler.GetFacadeHandler().GetTokenSupply(string(tokenIdentifier))
+	require.Nil(t, err)
+	require.NotNil(t, tokenSupply)
+	require.Equal(t, supply.String(), tokenSupply.InitialMinted)
+	require.Equal(t, big.NewInt(0), tokenSupply.Minted)
+	require.Equal(t, amountToDeposit.String(), tokenSupply.Burned)
+	require.Equal(t, big.NewInt(0).Sub(supply, amountToDeposit).String(), tokenSupply.Supply)
 }
