@@ -2,6 +2,8 @@ package api
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/process"
@@ -28,8 +30,8 @@ type SCQueryElementArgs struct {
 }
 
 // CreateScQueryElement -
-func CreateScQueryElement(args SCQueryElementArgs) (process.SCQueryService, error) {
-	return createScQueryElement(&scQueryElementArgs{
+func CreateScQueryElement(args SCQueryElementArgs) (process.SCQueryService, common.StorageManager, error) {
+	return createScQueryElement(scQueryElementArgs{
 		generalConfig:         args.GeneralConfig,
 		epochConfig:           args.EpochConfig,
 		coreComponents:        args.CoreComponents,
@@ -46,4 +48,9 @@ func CreateScQueryElement(args SCQueryElementArgs) (process.SCQueryService, erro
 		index:                 args.Index,
 		guardedAccountHandler: args.GuardedAccountHandler,
 	})
+}
+
+// CreateBlockchainForScQuery -
+func CreateBlockchainForScQuery(selfShardID uint32) (data.ChainHandler, error) {
+	return createBlockchainForScQuery(selfShardID)
 }

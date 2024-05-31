@@ -745,6 +745,10 @@ func validateQuery(sender, fields string, lastNonce, nonceGaps bool) error {
 		return errors.ErrEmptySenderToGetNonceGaps
 	}
 
+	if fields == "*" {
+		return nil
+	}
+
 	if fields != "" {
 		return validateFields(fields)
 	}

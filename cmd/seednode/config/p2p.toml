@@ -22,10 +22,11 @@
         [Node.Transports.TCP]
             ListenAddress = "/ip4/0.0.0.0/tcp/%d" # TCP listen address
             PreventPortReuse = true # seeder nodes will need to enable this option
-        [Node.ResourceLimiter]
-            Type = "default with manual scale"
-            ManualSystemMemoryInMB = 65536 # pretend that the host running the seeder has more RAM so it can handle more connections
-            ManualMaximumFD = 1048576
+
+    [Node.ResourceLimiter]
+        Type = "default with manual scale"
+        ManualSystemMemoryInMB = 65536 # pretend that the host running the seeder has more RAM so it can handle more connections
+        ManualMaximumFD = 1048576
 
 # P2P peer discovery section
 
@@ -47,9 +48,12 @@
     #RefreshIntervalInSec represents the time in seconds between querying for new peers
     RefreshIntervalInSec = 10
 
-    #ProtocolID represents the protocol that this node will advertize to other peers
-    #To connect to other nodes, those nodes should have the same ProtocolID string
-    ProtocolID = "/erd/kad/1.0.0"
+    # ProtocolIDs represents the protocols that this node will advertise to other peers
+    # To connect to other nodes, those nodes should have at least one common protocol string
+    ProtocolIDs = [
+        "/erd/kad/1.0.0",
+        "mvx-main",
+    ]
 
     #InitialPeerList represents the list of strings of some known nodes that will bootstrap this node
     #The address will be in a self-describing addressing format.

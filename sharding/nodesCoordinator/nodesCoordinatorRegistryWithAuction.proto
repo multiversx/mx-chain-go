@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "nodesCoordinator";
+option (gogoproto.stable_marshaler_all) = true;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+message SerializableValidator {
+  bytes   PubKey = 1 [(gogoproto.jsontag) = "pubKey"];
+  uint32  Chances = 2 [(gogoproto.jsontag) = "chances"];
+  uint32  Index = 3 [(gogoproto.jsontag) = "index"];
+}
+
+message Validators {
+  repeated SerializableValidator Data = 1;
+}
+
+message EpochValidatorsWithAuction {
+  map <string, Validators> Eligible = 1 [(gogoproto.nullable) = false];
+  map <string, Validators> Waiting = 2 [(gogoproto.nullable) = false];
+  map <string, Validators> Leaving = 3 [(gogoproto.nullable) = false];
+  map <string, Validators> ShuffledOut = 4 [(gogoproto.nullable) = false];
+  bool LowWaitingList = 5;
+}
+
+message NodesCoordinatorRegistryWithAuction {
+  uint32 CurrentEpoch = 1;
+  map<string, EpochValidatorsWithAuction> EpochsConfigWithAuction = 2;
+}

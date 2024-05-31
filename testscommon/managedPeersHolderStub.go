@@ -17,6 +17,7 @@ type ManagedPeersHolderStub struct {
 	IncrementRoundsWithoutReceivedMessagesCalled func(pkBytes []byte)
 	ResetRoundsWithoutReceivedMessagesCalled     func(pkBytes []byte, pid core.PeerID)
 	GetManagedKeysByCurrentNodeCalled            func() map[string]crypto.PrivateKey
+	GetLoadedKeysByCurrentNodeCalled             func() [][]byte
 	IsKeyManagedByCurrentNodeCalled              func(pkBytes []byte) bool
 	IsKeyRegisteredCalled                        func(pkBytes []byte) bool
 	IsPidManagedByCurrentNodeCalled              func(pid core.PeerID) bool
@@ -88,6 +89,14 @@ func (stub *ManagedPeersHolderStub) GetManagedKeysByCurrentNode() map[string]cry
 		return stub.GetManagedKeysByCurrentNodeCalled()
 	}
 	return nil
+}
+
+// GetLoadedKeysByCurrentNode -
+func (stub *ManagedPeersHolderStub) GetLoadedKeysByCurrentNode() [][]byte {
+	if stub.GetLoadedKeysByCurrentNodeCalled != nil {
+		return stub.GetLoadedKeysByCurrentNodeCalled()
+	}
+	return make([][]byte, 0)
 }
 
 // IsKeyManagedByCurrentNode -

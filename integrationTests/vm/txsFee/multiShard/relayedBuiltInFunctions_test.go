@@ -15,9 +15,8 @@ import (
 )
 
 func TestRelayedBuiltInFunctionExecuteOnRelayerAndDstShardShouldWork(t *testing.T) {
-	// TODO reinstate test after Wasm VM pointer fix
 	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Wasm VM fix")
+		t.Skip("this is not a short test")
 	}
 
 	testContextRelayer, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(

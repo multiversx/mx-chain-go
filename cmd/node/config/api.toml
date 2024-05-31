@@ -43,6 +43,9 @@
         # /node/managed-keys will return the keys managed by the node
         { Name = "/managed-keys", Open = true },
 
+        # /node/loaded-keys will return the keys loaded by the node
+        { Name = "/loaded-keys", Open = true },
+
         # /node/managed-keys/count will return the number of keys managed by the node
         { Name = "/managed-keys/count", Open = true },
 
@@ -170,7 +173,10 @@
 [APIPackages.validator]
     Routes = [
         # /validator/statistics will return a list of validators statistics for all validators
-        { Name = "/statistics", Open = true }
+        { Name = "/statistics", Open = true },
+
+        # /validator/auction will return a list of nodes that are in the auction list
+        { Name = "/auction", Open = true },
     ]
 
 [APIPackages.vm-values]

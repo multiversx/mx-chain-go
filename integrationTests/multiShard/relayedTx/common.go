@@ -33,7 +33,7 @@ func CreateGeneralSetupForRelayTxTest() ([]*integrationTests.TestProcessorNode, 
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
-	initialVal := big.NewInt(1000000000)
+	initialVal := big.NewInt(10000000000)
 	integrationTests.MintAllNodes(nodes, initialVal)
 
 	numPlayers := 5

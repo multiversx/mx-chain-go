@@ -34,7 +34,7 @@ type GasScheduleMap = map[string]map[string]uint64
 // TestNetwork wraps a set of TestProcessorNodes along with a set of test
 // Wallets, instantiates them, controls them and provides operations with them;
 // designed to be used in integration tests.
-// TODO combine TestNetwork with the preexisting TestContext and OneNodeNetwork
+// TODO combine TestNetwork with the preexisting TestContext and MiniNetwork
 // into a single struct containing the functionality of all three
 type TestNetwork struct {
 	NumShards          int

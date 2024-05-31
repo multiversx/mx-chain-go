@@ -28,6 +28,7 @@ const (
 	bootstrapStatusPath       = "/bootstrapstatus"
 	connectedPeersRatingsPath = "/connected-peers-ratings"
 	managedKeys               = "/managed-keys"
+	loadedKeys                = "/loaded-keys"
 	managedKeysCount          = "/managed-keys/count"
 	eligibleManagedKeys       = "/managed-keys/eligible"
 	waitingManagedKeys        = "/managed-keys/waiting"
@@ -44,6 +45,7 @@ type nodeFacadeHandler interface {
 	GetConnectedPeersRatingsOnMainNetwork() (string, error)
 	GetManagedKeysCount() int
 	GetManagedKeys() []string
+	GetLoadedKeys() []string
 	GetEligibleManagedKeys() ([]string, error)
 	GetWaitingManagedKeys() ([]string, error)
 	GetWaitingEpochsLeftForPublicKey(publicKey string) (uint32, error)
@@ -128,6 +130,11 @@ func NewNodeGroup(facade nodeFacadeHandler) (*nodeGroup, error) {
 			Path:    managedKeys,
 			Method:  http.MethodGet,
 			Handler: ng.managedKeys,
+		},
+		{
+			Path:    loadedKeys,
+			Method:  http.MethodGet,
+			Handler: ng.loadedKeys,
 		},
 		{
 			Path:    eligibleManagedKeys,
@@ -405,6 +412,19 @@ func (ng *nodeGroup) managedKeys(c *gin.Context) {
 		http.StatusOK,
 		shared.GenericAPIResponse{
 			Data:  gin.H{"managedKeys": keys},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
+// loadedKeys returns all keys loaded by the current node
+func (ng *nodeGroup) loadedKeys(c *gin.Context) {
+	keys := ng.getFacade().GetLoadedKeys()
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"loadedKeys": keys},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},

@@ -704,6 +704,7 @@ func TestTransactionGroup_getTransactionsPool(t *testing.T) {
 	t.Run("fields + nonce gaps", testTxPoolWithInvalidQuery("?fields=sender,receiver&nonce-gaps=true", apiErrors.ErrFetchingNonceGapsCannotIncludeFields))
 	t.Run("fields has spaces", testTxPoolWithInvalidQuery("?fields=sender ,receiver", apiErrors.ErrInvalidFields))
 	t.Run("fields has numbers", testTxPoolWithInvalidQuery("?fields=sender1", apiErrors.ErrInvalidFields))
+	t.Run("fields + wild card", testTxPoolWithInvalidQuery("?fields=sender,receiver,*", apiErrors.ErrInvalidFields))
 	t.Run("GetTransactionsPool error should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -816,8 +817,7 @@ func TestTransactionGroup_getTransactionsPool(t *testing.T) {
 		t.Parallel()
 
 		expectedSender := "sender"
-		providedFields := "sender,receiver"
-		query := "?by-sender=" + expectedSender + "&fields=" + providedFields
+		query := "?by-sender=" + expectedSender + "&fields=*"
 		expectedResp := &common.TransactionsPoolForSenderApiResponse{
 			Transactions: []common.Transaction{
 				{

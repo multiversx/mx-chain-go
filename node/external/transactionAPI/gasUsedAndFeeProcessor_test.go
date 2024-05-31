@@ -20,11 +20,10 @@ import (
 func createEconomicsData(enableEpochsHandler common.EnableEpochsHandler) process.EconomicsDataHandler {
 	economicsConfig := testscommon.GetEconomicsConfig()
 	economicsData, _ := economics.NewEconomicsData(economics.ArgsNewEconomicsData{
-		BuiltInFunctionsCostHandler: &testscommon.BuiltInCostHandlerStub{},
-		Economics:                   &economicsConfig,
-		EnableEpochsHandler:         enableEpochsHandler,
-		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
-		EpochNotifier:               &epochNotifier.EpochNotifierStub{},
+		Economics:           &economicsConfig,
+		EnableEpochsHandler: enableEpochsHandler,
+		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
+		EpochNotifier:       &epochNotifier.EpochNotifierStub{},
 	})
 
 	return economicsData

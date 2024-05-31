@@ -7,7 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/sharding/mock"
-	"github.com/multiversx/mx-chain-go/testscommon/shardingmock"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/stretchr/testify/require"
 )
 
@@ -76,7 +76,7 @@ func createTestNodesSetup(args argsTestNodesSetup) (*NodesSetup, error) {
 			StartTime:    0,
 			InitialNodes: initialNodes,
 		},
-		&shardingmock.ChainParametersHandlerStub{
+		&chainParameters.ChainParametersHandlerStub{
 			ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
 				return config.ChainParametersByEpochConfig{
 					EnableEpoch:                 0,
@@ -414,7 +414,7 @@ func TestNewNodesSetup_InvalidMaxNumShardsShouldErr(t *testing.T) {
 
 	ns, err := NewNodesSetup(
 		config.NodesConfig{},
-		&shardingmock.ChainParametersHandlerStub{},
+		&chainParameters.ChainParametersHandlerStub{},
 		mock.NewPubkeyConverterMock(32),
 		mock.NewPubkeyConverterMock(96),
 		0,

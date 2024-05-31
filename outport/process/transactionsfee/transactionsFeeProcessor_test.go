@@ -212,11 +212,15 @@ func TestPutFeeAndGasUsedInvalidTxs(t *testing.T) {
 func TestPutFeeAndGasUsedLogWithErrorAndInformative(t *testing.T) {
 	t.Parallel()
 
+	receiver, _ := hex.DecodeString("00000000000000000500d3b28828d62052124f07dcd50ed31b0825f60eee1526")
 	tx1Hash := "h1"
 	tx1 := &outportcore.TxInfo{
 		Transaction: &transaction.Transaction{
 			GasLimit: 30000000,
 			GasPrice: 1000000000,
+			SndAddr:  []byte("erd1dglncxk6sl9a3xumj78n6z2xux4ghp5c92cstv5zsn56tjgtdwpsk46qrs"),
+			RcvAddr:  receiver,
+			Data:     []byte("here"),
 		},
 		FeeInfo: &outportcore.FeeInfo{Fee: big.NewInt(0)},
 	}
@@ -226,6 +230,9 @@ func TestPutFeeAndGasUsedLogWithErrorAndInformative(t *testing.T) {
 		Transaction: &transaction.Transaction{
 			GasLimit: 50000000,
 			GasPrice: 1000000000,
+			SndAddr:  []byte("erd1dglncxk6sl9a3xumj78n6z2xux4ghp5c92cstv5zsn56tjgtdwpsk46qrs"),
+			RcvAddr:  receiver,
+			Data:     []byte("here"),
 		},
 		FeeInfo: &outportcore.FeeInfo{Fee: big.NewInt(0)},
 	}
@@ -519,4 +526,60 @@ func TestPutFeeAndGasUsedScrWithRefund(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, big.NewInt(552865000000000), initialTx.GetFeeInfo().GetFee())
 	require.Equal(t, uint64(50_336_500), initialTx.GetFeeInfo().GetGasUsed())
+}
+
+func TestMoveBalanceWithSignalError(t *testing.T) {
+	txHash := []byte("e3cdb8b4936fdbee2d3b1244b4c49959df5f90ada683d650019d244e5a64afaf")
+	initialTx := &outportcore.TxInfo{Transaction: &transaction.Transaction{
+		Nonce:    1004,
+		GasLimit: 12_175_500,
+		GasPrice: 1000000000,
+		SndAddr:  []byte("erd1s8jr8e8hsvv7c9ehmshcjlpzf9ua5l50qeswa8feshrp6xlz9c7quacmtx"),
+		RcvAddr:  []byte("erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzllls8a5w6u"),
+		Data:     []byte("start@5465737420526166666c65203120f09f9a80@10000000000000000@0100000002@01000000006082a400@0100000001@01000000023232@"),
+	}, FeeInfo: &outportcore.FeeInfo{Fee: big.NewInt(0)}}
+
+	scrHash := []byte("scrHash")
+	scr := &outportcore.SCRInfo{
+		SmartContractResult: &smartContractResult.SmartContractResult{
+			Nonce:          1005,
+			SndAddr:        []byte("erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqzllls8a5w6u"),
+			RcvAddr:        []byte("erd1s8jr8e8hsvv7c9ehmshcjlpzf9ua5l50qeswa8feshrp6xlz9c7quacmtx"),
+			PrevTxHash:     txHash,
+			OriginalTxHash: txHash,
+			Value:          big.NewInt(0),
+			Data:           []byte("@sending value to non payable contract"),
+		},
+		FeeInfo: &outportcore.FeeInfo{Fee: big.NewInt(0)},
+	}
+
+	pool := &outportcore.TransactionPool{
+		SmartContractResults: map[string]*outportcore.SCRInfo{
+			hex.EncodeToString(scrHash): scr,
+		},
+		Transactions: map[string]*outportcore.TxInfo{
+			hex.EncodeToString(txHash): initialTx,
+		},
+		Logs: []*outportcore.LogData{
+			{
+				Log: &transaction.Log{
+					Events: []*transaction.Event{
+						{
+							Identifier: []byte(core.SignalErrorOperation),
+						},
+					},
+				},
+				TxHash: hex.EncodeToString(txHash),
+			},
+		},
+	}
+
+	arg := prepareMockArg()
+	txsFeeProc, err := NewTransactionsFeeProcessor(arg)
+	require.NotNil(t, txsFeeProc)
+	require.Nil(t, err)
+
+	err = txsFeeProc.PutFeeAndGasUsed(pool)
+	require.Nil(t, err)
+	require.Equal(t, uint64(225_500), initialTx.GetFeeInfo().GetGasUsed())
 }

@@ -52,6 +52,7 @@ type ArgsNewSyncValidatorStatus struct {
 	NodeTypeProvider       NodeTypeProviderHandler
 	IsFullArchive          bool
 	EnableEpochsHandler    common.EnableEpochsHandler
+	NodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory
 }
 
 // NewSyncValidatorStatus creates a new validator status process component
@@ -131,6 +132,7 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 		EnableEpochsHandler:    args.EnableEpochsHandler,
 		ValidatorInfoCacher:    s.dataPool.CurrentEpochValidatorInfo(),
 		GenesisNodesSetupHandler: s.genesisNodesConfig,
+		NodesCoordinatorRegistryFactory: args.NodesCoordinatorRegistryFactory,
 	}
 	baseNodesCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argsNodesCoordinator)
 	if err != nil {
@@ -151,7 +153,7 @@ func NewSyncValidatorStatus(args ArgsNewSyncValidatorStatus) (*syncValidatorStat
 func (s *syncValidatorStatus) NodesConfigFromMetaBlock(
 	currMetaBlock data.HeaderHandler,
 	prevMetaBlock data.HeaderHandler,
-) (*nodesCoordinator.NodesCoordinatorRegistry, uint32, []*block.MiniBlock, error) {
+) (nodesCoordinator.NodesCoordinatorRegistryHandler, uint32, []*block.MiniBlock, error) {
 	if currMetaBlock.GetNonce() > 1 && !currMetaBlock.IsStartOfEpochBlock() {
 		return nil, 0, nil, epochStart.ErrNotEpochStartBlock
 	}
@@ -177,8 +179,8 @@ func (s *syncValidatorStatus) NodesConfigFromMetaBlock(
 		return nil, 0, nil, err
 	}
 
-	nodesConfig := s.nodeCoordinator.NodesCoordinatorToRegistry()
-	nodesConfig.CurrentEpoch = currMetaBlock.GetEpoch()
+	nodesConfig := s.nodeCoordinator.NodesCoordinatorToRegistry(currMetaBlock.GetEpoch())
+	nodesConfig.SetCurrentEpoch(currMetaBlock.GetEpoch())
 	return nodesConfig, selfShardId, allMiniblocks, nil
 }
 

@@ -1,5 +1,3 @@
-//go:build !race
-
 package delegation
 
 import (
@@ -23,6 +21,10 @@ var (
 )
 
 func TestDelegationChangeOwnerOnAccountHandler(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	t.Run("fix flag not activated, should not save - backwards compatibility", func(t *testing.T) {
 		_, _, userAccount := testDelegationChangeOwnerOnAccountHandler(t, 1)
 

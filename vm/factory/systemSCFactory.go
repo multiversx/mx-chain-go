@@ -31,6 +31,7 @@ type systemSCFactory struct {
 	addressPubKeyConverter core.PubkeyConverter
 	shardCoordinator       sharding.Coordinator
 	enableEpochsHandler    common.EnableEpochsHandler
+	nodesCoordinator       vm.NodesCoordinator
 }
 
 // ArgsNewSystemSCFactory defines the arguments struct needed to create the system SCs
@@ -46,6 +47,7 @@ type ArgsNewSystemSCFactory struct {
 	AddressPubKeyConverter core.PubkeyConverter
 	ShardCoordinator       sharding.Coordinator
 	EnableEpochsHandler    common.EnableEpochsHandler
+	NodesCoordinator       vm.NodesCoordinator
 }
 
 // NewSystemSCFactory creates a factory which will instantiate the system smart contracts
@@ -80,6 +82,9 @@ func NewSystemSCFactory(args ArgsNewSystemSCFactory) (*systemSCFactory, error) {
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, fmt.Errorf("%w in NewSystemSCFactory", vm.ErrNilEnableEpochsHandler)
 	}
+	if check.IfNil(args.NodesCoordinator) {
+		return nil, fmt.Errorf("%w in NewSystemSCFactory", vm.ErrNilNodesCoordinator)
+	}
 
 	scf := &systemSCFactory{
 		systemEI:               args.SystemEI,
@@ -92,6 +97,7 @@ func NewSystemSCFactory(args ArgsNewSystemSCFactory) (*systemSCFactory, error) {
 		addressPubKeyConverter: args.AddressPubKeyConverter,
 		shardCoordinator:       args.ShardCoordinator,
 		enableEpochsHandler:    args.EnableEpochsHandler,
+		nodesCoordinator:       args.NodesCoordinator,
 	}
 
 	err := scf.createGasConfig(args.GasSchedule.LatestGasSchedule())
@@ -197,6 +203,7 @@ func (scf *systemSCFactory) createValidatorContract() (vm.SystemSmartContract, e
 		GovernanceSCAddress:    vm.GovernanceSCAddress,
 		ShardCoordinator:       scf.shardCoordinator,
 		EnableEpochsHandler:    scf.enableEpochsHandler,
+		NodesCoordinator:       scf.nodesCoordinator,
 	}
 	validatorSC, err := systemSmartContracts.NewValidatorSmartContract(args)
 	return validatorSC, err

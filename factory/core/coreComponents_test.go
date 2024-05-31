@@ -248,18 +248,6 @@ func TestCoreComponentsFactory_CreateCoreComponentsInvalidRoundConfigShouldErr(t
 	require.NotNil(t, err)
 }
 
-func TestCoreComponentsFactory_CreateCoreComponentsInvalidEpochConfigShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := componentsMock.GetCoreArgs()
-	args.EpochConfig = config.EpochConfig{}
-	ccf, _ := coreComp.NewCoreComponentsFactory(args)
-
-	cc, err := ccf.Create()
-	require.Nil(t, cc)
-	require.NotNil(t, err)
-}
-
 func TestCoreComponentsFactory_CreateCoreComponentsInvalidGenesisMaxNumberOfShardsShouldErr(t *testing.T) {
 	t.Parallel()
 

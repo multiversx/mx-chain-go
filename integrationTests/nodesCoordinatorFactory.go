@@ -12,10 +12,10 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
-	"github.com/multiversx/mx-chain-go/testscommon/shardingmock"
 	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
 )
 
@@ -52,9 +52,14 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 		MaxNodesEnableConfig: nil,
 		EnableEpochsHandler:  &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
+
 	nodeShuffler, _ := nodesCoordinator.NewHashValidatorsShuffler(nodeShufflerArgs)
+	nodesCoordinatorRegistryFactory, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
+		TestMarshalizer,
+		StakingV4Step2EnableEpoch,
+	)
 	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-		ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{
+		ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
 			ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
 				return config.ChainParametersByEpochConfig{
 					ShardMinNumNodes:            uint32(arg.nodesPerShard),
@@ -83,14 +88,15 @@ func (tpn *IndexHashedNodesCoordinatorFactory) CreateNodesCoordinator(arg ArgInd
 		IsFullArchive:       false,
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
-				if flag == common.RefactorPeersMiniBlocksFlag {
+				if flag == common.RefactorPeersMiniBlocksFlag || flag == common.StakingV4Step2Flag {
 					return UnreachableEpoch
 				}
 				return 0
 			},
 		},
-		ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
-		GenesisNodesSetupHandler: &testscommon.NodesSetupStub{},
+		ValidatorInfoCacher:             &vic.ValidatorInfoCacherStub{},
+		GenesisNodesSetupHandler:        &genesisMocks.NodesSetupStub{},
+		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
 	}
 	nodesCoord, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)
 	if err != nil {
@@ -118,9 +124,14 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 		MaxNodesEnableConfig: nil,
 		EnableEpochsHandler:  &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
+
 	nodeShuffler, _ := nodesCoordinator.NewHashValidatorsShuffler(shufflerArgs)
+	nodesCoordinatorRegistryFactory, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
+		TestMarshalizer,
+		StakingV4Step2EnableEpoch,
+	)
 	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-		ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{
+		ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
 			ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
 				return config.ChainParametersByEpochConfig{
 					ShardMinNumNodes:            uint32(arg.nodesPerShard),
@@ -155,8 +166,9 @@ func (ihncrf *IndexHashedNodesCoordinatorWithRaterFactory) CreateNodesCoordinato
 				return 0
 			},
 		},
-		ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
-		GenesisNodesSetupHandler: &testscommon.NodesSetupStub{},
+		ValidatorInfoCacher:             &vic.ValidatorInfoCacherStub{},
+		GenesisNodesSetupHandler:        &genesisMocks.NodesSetupStub{},
+		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
 	}
 
 	baseCoordinator, err := nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)

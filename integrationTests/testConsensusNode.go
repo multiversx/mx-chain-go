@@ -39,14 +39,15 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	testFactory "github.com/multiversx/mx-chain-go/testscommon/factory"
+	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/shardingmock"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
@@ -245,7 +246,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 		return string(ChainID)
 	}
 	coreComponents.GenesisTimeField = time.Unix(args.StartTime, 0)
-	coreComponents.GenesisNodesSetupField = &testscommon.NodesSetupStub{
+	coreComponents.GenesisNodesSetupField = &genesisMocks.NodesSetupStub{
 		GetShardConsensusGroupSizeCalled: func() uint32 {
 			return uint32(args.ConsensusSize)
 		},
@@ -367,7 +368,7 @@ func (tcn *TestConsensusNode) initNodesCoordinator(
 	cache storage.Cacher,
 ) {
 	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-		ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{
+		ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
 			ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
 				return config.ChainParametersByEpochConfig{
 					ShardConsensusGroupSize:     uint32(consensusSize),
@@ -375,24 +376,25 @@ func (tcn *TestConsensusNode) initNodesCoordinator(
 				}, nil
 			},
 		},
-		Marshalizer:              TestMarshalizer,
-		Hasher:                   hasher,
-		Shuffler:                 &shardingMocks.NodeShufflerMock{},
-		EpochStartNotifier:       epochStartRegistrationHandler,
-		BootStorer:               CreateMemUnit(),
-		NbShards:                 maxShards,
-		EligibleNodes:            eligibleMap,
-		WaitingNodes:             waitingMap,
-		SelfPublicKey:            pkBytes,
-		ConsensusGroupCache:      cache,
-		ShuffledOutHandler:       &chainShardingMocks.ShuffledOutHandlerStub{},
-		ChanStopNode:             endProcess.GetDummyEndProcessChannel(),
-		NodeTypeProvider:         &nodeTypeProviderMock.NodeTypeProviderStub{},
-		IsFullArchive:            false,
-		EnableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		ValidatorInfoCacher:      &vic.ValidatorInfoCacherStub{},
-		ShardIDAsObserver:        tcn.ShardCoordinator.SelfId(),
-		GenesisNodesSetupHandler: &testscommon.NodesSetupStub{},
+		Marshalizer:                     TestMarshalizer,
+		Hasher:                          hasher,
+		Shuffler:                        &shardingMocks.NodeShufflerMock{},
+		EpochStartNotifier:              epochStartRegistrationHandler,
+		BootStorer:                      CreateMemUnit(),
+		NbShards:                        maxShards,
+		EligibleNodes:                   eligibleMap,
+		WaitingNodes:                    waitingMap,
+		SelfPublicKey:                   pkBytes,
+		ConsensusGroupCache:             cache,
+		ShuffledOutHandler:              &chainShardingMocks.ShuffledOutHandlerStub{},
+		ChanStopNode:                    endProcess.GetDummyEndProcessChannel(),
+		NodeTypeProvider:                &nodeTypeProviderMock.NodeTypeProviderStub{},
+		IsFullArchive:                   false,
+		EnableEpochsHandler:             &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		ValidatorInfoCacher:             &vic.ValidatorInfoCacherStub{},
+		ShardIDAsObserver:               tcn.ShardCoordinator.SelfId(),
+		GenesisNodesSetupHandler:        &genesisMocks.NodesSetupStub{},
+		NodesCoordinatorRegistryFactory: &shardingMocks.NodesCoordinatorRegistryFactoryMock{},
 	}
 
 	tcn.NodesCoordinator, _ = nodesCoordinator.NewIndexHashedNodesCoordinator(argumentsNodesCoordinator)

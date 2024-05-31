@@ -94,8 +94,15 @@ func TestNewMetaResolversContainerFactory_NewNumGoRoutinesThrottlerFailsShouldEr
 
 	args := getArgumentsMeta()
 	args.NumConcurrentResolvingJobs = 0
-	rcf, err := resolverscontainer.NewMetaResolversContainerFactory(args)
 
+	rcf, err := resolverscontainer.NewMetaResolversContainerFactory(args)
+	assert.Nil(t, rcf)
+	assert.Equal(t, core.ErrNotPositiveValue, err)
+
+	args.NumConcurrentResolvingJobs = 10
+	args.NumConcurrentResolvingTrieNodesJobs = 0
+
+	rcf, err = resolverscontainer.NewMetaResolversContainerFactory(args)
 	assert.Nil(t, rcf)
 	assert.Equal(t, core.ErrNotPositiveValue, err)
 }
@@ -357,21 +364,22 @@ func TestMetaResolversContainerFactory_IsInterfaceNil(t *testing.T) {
 
 func getArgumentsMeta() resolverscontainer.FactoryArgs {
 	return resolverscontainer.FactoryArgs{
-		ShardCoordinator:                mock.NewOneShardCoordinatorMock(),
-		MainMessenger:                   createStubMessengerForMeta("", ""),
-		FullArchiveMessenger:            createStubMessengerForMeta("", ""),
-		Store:                           createStoreForMeta(),
-		Marshalizer:                     &mock.MarshalizerMock{},
-		DataPools:                       createDataPoolsForMeta(),
-		Uint64ByteSliceConverter:        &mock.Uint64ByteSliceConverterMock{},
-		DataPacker:                      &mock.DataPackerStub{},
-		TriesContainer:                  createTriesHolderForMeta(),
-		SizeCheckDelta:                  0,
-		InputAntifloodHandler:           &mock.P2PAntifloodHandlerStub{},
-		OutputAntifloodHandler:          &mock.P2PAntifloodHandlerStub{},
-		NumConcurrentResolvingJobs:      10,
-		MainPreferredPeersHolder:        &p2pmocks.PeersHolderStub{},
-		FullArchivePreferredPeersHolder: &p2pmocks.PeersHolderStub{},
-		PayloadValidator:                &testscommon.PeerAuthenticationPayloadValidatorStub{},
+		ShardCoordinator:                    mock.NewOneShardCoordinatorMock(),
+		MainMessenger:                       createStubMessengerForMeta("", ""),
+		FullArchiveMessenger:                createStubMessengerForMeta("", ""),
+		Store:                               createStoreForMeta(),
+		Marshalizer:                         &mock.MarshalizerMock{},
+		DataPools:                           createDataPoolsForMeta(),
+		Uint64ByteSliceConverter:            &mock.Uint64ByteSliceConverterMock{},
+		DataPacker:                          &mock.DataPackerStub{},
+		TriesContainer:                      createTriesHolderForMeta(),
+		SizeCheckDelta:                      0,
+		InputAntifloodHandler:               &mock.P2PAntifloodHandlerStub{},
+		OutputAntifloodHandler:              &mock.P2PAntifloodHandlerStub{},
+		NumConcurrentResolvingJobs:          10,
+		NumConcurrentResolvingTrieNodesJobs: 3,
+		MainPreferredPeersHolder:            &p2pmocks.PeersHolderStub{},
+		FullArchivePreferredPeersHolder:     &p2pmocks.PeersHolderStub{},
+		PayloadValidator:                    &testscommon.PeerAuthenticationPayloadValidatorStub{},
 	}
 }

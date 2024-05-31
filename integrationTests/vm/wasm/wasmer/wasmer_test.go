@@ -1,7 +1,3 @@
-//go:build !race
-
-// TODO remove build condition above to allow -race -short, after Wasm VM fix
-
 package wasmer
 
 import (
@@ -21,6 +17,10 @@ import (
 var ownerAddressBytes = []byte("12345678901234567890123456789012")
 
 func TestAllowNonFloatingPointSC(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	wasmvm, scAddress := deploy(t, "../testdata/floating_point/non_fp.wasm")
 	defer closeVM(wasmvm)
 
@@ -37,6 +37,10 @@ func TestAllowNonFloatingPointSC(t *testing.T) {
 }
 
 func TestDisallowFloatingPointSC(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	wasmvm, scAddress := deploy(t, "../testdata/floating_point/fp.wasm")
 	defer closeVM(wasmvm)
 
@@ -53,6 +57,10 @@ func TestDisallowFloatingPointSC(t *testing.T) {
 }
 
 func TestSCAbortExecution_DontAbort(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	wasmvm, scAddress := deploy(t, "../testdata/misc/test_abort/test_abort.wasm")
 	defer closeVM(wasmvm)
 
@@ -74,6 +82,10 @@ func TestSCAbortExecution_DontAbort(t *testing.T) {
 }
 
 func TestSCAbortExecution_Abort(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	wasmvm, scAddress := deploy(t, "../testdata/misc/test_abort/test_abort.wasm")
 	defer closeVM(wasmvm)
 

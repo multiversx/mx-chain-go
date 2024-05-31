@@ -115,6 +115,7 @@ type FacadeHandler interface {
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	EncodeAddressPubkey(pk []byte) (string, error)
 	ValidatorStatisticsApi() (map[string]*validator.ValidatorStatistics, error)
+	AuctionListApi() ([]*common.AuctionListValidatorAPIResponse, error)
 	ExecuteSCQuery(*process.SCQuery) (*vm.VMOutputApi, api.BlockInfo, error)
 	DecodeAddressPubkey(pk string) ([]byte, error)
 	RestApiInterface() string
@@ -130,6 +131,7 @@ type FacadeHandler interface {
 	IsDataTrieMigrated(address string, options api.AccountQueryOptions) (bool, error)
 	GetManagedKeysCount() int
 	GetManagedKeys() []string
+	GetLoadedKeys() []string
 	GetEligibleManagedKeys() ([]string, error)
 	GetWaitingManagedKeys() ([]string, error)
 	GetWaitingEpochsLeftForPublicKey(publicKey string) (uint32, error)

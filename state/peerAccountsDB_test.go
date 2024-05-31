@@ -163,7 +163,7 @@ func TestNewPeerAccountsDB_RecreateAllTries(t *testing.T) {
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &storageManager.StorageManagerStub{}
 		},
-		RecreateCalled: func(_ []byte) (common.Trie, error) {
+		RecreateCalled: func(_ common.RootHashHolder) (common.Trie, error) {
 			recreateCalled = true
 			return nil, nil
 		},

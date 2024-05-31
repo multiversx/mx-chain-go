@@ -31,9 +31,6 @@ var ErrInputCallerAddrIsNil = errors.New("input called address for system smart 
 // ErrInputRecipientAddrIsNil signals that input recipient address for system smart contract is nil
 var ErrInputRecipientAddrIsNil = errors.New("input recipient address for system smart contract is nil")
 
-// ErrInputAsyncParamsMissing signals that input does not contain async params
-var ErrInputAsyncParamsMissing = errors.New("input does not contain async params")
-
 // ErrNilBlockchainHook signals that blockchain hook is nil
 var ErrNilBlockchainHook = errors.New("blockchain hook is nil")
 
@@ -267,3 +264,18 @@ var ErrWrongNewOwnerAddress = errors.New("wrong new owner address")
 
 // ErrInternalErrorWhileSettingNewOwner signals that an error occurred when setting the new contract owner
 var ErrInternalErrorWhileSettingNewOwner = errors.New("internal error when setting new contract owner")
+
+// ErrInvalidStakeLimitPercentage signals the invalid stake limit percentage was provided
+var ErrInvalidStakeLimitPercentage = errors.New("invalid stake limit percentage")
+
+// ErrInvalidNodeLimitPercentage signals the invalid node limit percentage was provided
+var ErrInvalidNodeLimitPercentage = errors.New("invalid node limit percentage")
+
+// ErrNilNodesCoordinator signals that nil nodes coordinator was provided
+var ErrNilNodesCoordinator = errors.New("nil nodes coordinator")
+
+// ErrWaitingListDisabled signals that waiting list has been disabled, since staking v4 is active
+var ErrWaitingListDisabled = errors.New("waiting list is disabled since staking v4 activation")
+
+// ErrCannotChangeToDynamic signals that tokenID cannot be change to type dynamic
+var ErrCannotChangeToDynamic = errors.New("cannot change to dynamic because of duplicated roles")

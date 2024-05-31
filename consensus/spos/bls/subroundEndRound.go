@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/process/headerCheck"
 )
 
 type subroundEndRound struct {
@@ -861,33 +862,9 @@ func (sr *subroundEndRound) doEndRoundConsensusCheck() bool {
 	return false
 }
 
-// computeSignersPublicKeys will extract from the provided consensus group slice only the strings that matched with the bitmap
-func computeSignersPublicKeys(consensusGroup []string, bitmap []byte) []string {
-	nbBitsBitmap := len(bitmap) * 8
-	consensusGroupSize := len(consensusGroup)
-	size := consensusGroupSize
-	if consensusGroupSize > nbBitsBitmap {
-		size = nbBitsBitmap
-	}
-
-	result := make([]string, 0, len(consensusGroup))
-
-	for i := 0; i < size; i++ {
-		indexRequired := (bitmap[i/8] & (1 << uint16(i%8))) > 0
-		if !indexRequired {
-			continue
-		}
-
-		pubKey := consensusGroup[i]
-		result = append(result, pubKey)
-	}
-
-	return result
-}
-
 func (sr *subroundEndRound) checkSignaturesValidity(bitmap []byte) error {
 	consensusGroup := sr.ConsensusGroup()
-	signers := computeSignersPublicKeys(consensusGroup, bitmap)
+	signers := headerCheck.ComputeSignersPublicKeys(consensusGroup, bitmap)
 	for _, pubKey := range signers {
 		isSigJobDone, err := sr.JobDone(pubKey, SrSignature)
 		if err != nil {

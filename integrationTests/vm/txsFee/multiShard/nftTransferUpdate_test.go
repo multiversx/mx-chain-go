@@ -15,6 +15,10 @@ import (
 )
 
 func TestNFTTransferAndUpdateOnOldTypeToken(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	enableEpochs := config.EnableEpochs{
 		CheckCorrectTokenIDForTransferRoleEnableEpoch: 3,
 		DisableExecByCallerEnableEpoch:                3,

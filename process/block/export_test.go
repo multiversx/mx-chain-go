@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/scheduled"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -180,6 +181,10 @@ func (mp *metaProcessor) RequestBlockHeaders(header *block.MetaBlock) (uint32, u
 
 func (mp *metaProcessor) ReceivedShardHeader(header data.HeaderHandler, shardHeaderHash []byte) {
 	mp.receivedShardHeader(header, shardHeaderHash)
+}
+
+func (mp *metaProcessor) GetDataPool() dataRetriever.PoolsHolder {
+	return mp.dataPool
 }
 
 func (mp *metaProcessor) AddHdrHashToRequestedList(hdr data.HeaderHandler, hdrHash []byte) {
@@ -564,4 +569,140 @@ func (bp *baseProcessor) SetNonceOfFirstCommittedBlock(nonce uint64) {
 // CheckSentSignaturesAtCommitTime -
 func (bp *baseProcessor) CheckSentSignaturesAtCommitTime(header data.HeaderHandler) error {
 	return bp.checkSentSignaturesAtCommitTime(header)
+}
+
+// GetHdrForBlock -
+func (mp *metaProcessor) GetHdrForBlock() *hdrForBlock {
+	return mp.hdrsForCurrBlock
+}
+
+// ChannelReceiveAllHeaders -
+func (mp *metaProcessor) ChannelReceiveAllHeaders() chan bool {
+	return mp.chRcvAllHdrs
+}
+
+// ComputeExistingAndRequestMissingShardHeaders -
+func (mp *metaProcessor) ComputeExistingAndRequestMissingShardHeaders(metaBlock *block.MetaBlock) (uint32, uint32) {
+	return mp.computeExistingAndRequestMissingShardHeaders(metaBlock)
+}
+
+// ComputeExistingAndRequestMissingMetaHeaders -
+func (sp *shardProcessor) ComputeExistingAndRequestMissingMetaHeaders(header data.ShardHeaderHandler) (uint32, uint32) {
+	return sp.computeExistingAndRequestMissingMetaHeaders(header)
+}
+
+// GetHdrForBlock -
+func (sp *shardProcessor) GetHdrForBlock() *hdrForBlock {
+	return sp.hdrsForCurrBlock
+}
+
+// ChannelReceiveAllHeaders -
+func (sp *shardProcessor) ChannelReceiveAllHeaders() chan bool {
+	return sp.chRcvAllMetaHdrs
+}
+
+// InitMaps -
+func (hfb *hdrForBlock) InitMaps() {
+	hfb.initMaps()
+	hfb.resetMissingHdrs()
+}
+
+// Clone -
+func (hfb *hdrForBlock) Clone() *hdrForBlock {
+	return hfb
+}
+
+// SetNumMissingHdrs -
+func (hfb *hdrForBlock) SetNumMissingHdrs(num uint32) {
+	hfb.mutHdrsForBlock.Lock()
+	hfb.missingHdrs = num
+	hfb.mutHdrsForBlock.Unlock()
+}
+
+// SetNumMissingFinalityAttestingHdrs -
+func (hfb *hdrForBlock) SetNumMissingFinalityAttestingHdrs(num uint32) {
+	hfb.mutHdrsForBlock.Lock()
+	hfb.missingFinalityAttestingHdrs = num
+	hfb.mutHdrsForBlock.Unlock()
+}
+
+// SetHighestHdrNonce -
+func (hfb *hdrForBlock) SetHighestHdrNonce(shardId uint32, nonce uint64) {
+	hfb.mutHdrsForBlock.Lock()
+	hfb.highestHdrNonce[shardId] = nonce
+	hfb.mutHdrsForBlock.Unlock()
+}
+
+// HdrInfo -
+type HdrInfo struct {
+	UsedInBlock bool
+	Hdr         data.HeaderHandler
+}
+
+// SetHdrHashAndInfo -
+func (hfb *hdrForBlock) SetHdrHashAndInfo(hash string, info *HdrInfo) {
+	hfb.mutHdrsForBlock.Lock()
+	hfb.hdrHashAndInfo[hash] = &hdrInfo{
+		hdr:         info.Hdr,
+		usedInBlock: info.UsedInBlock,
+	}
+	hfb.mutHdrsForBlock.Unlock()
+}
+
+// GetHdrHashMap -
+func (hfb *hdrForBlock) GetHdrHashMap() map[string]data.HeaderHandler {
+	m := make(map[string]data.HeaderHandler)
+
+	hfb.mutHdrsForBlock.RLock()
+	for hash, hi := range hfb.hdrHashAndInfo {
+		m[hash] = hi.hdr
+	}
+	hfb.mutHdrsForBlock.RUnlock()
+
+	return m
+}
+
+// GetHighestHdrNonce -
+func (hfb *hdrForBlock) GetHighestHdrNonce() map[uint32]uint64 {
+	m := make(map[uint32]uint64)
+
+	hfb.mutHdrsForBlock.RLock()
+	for shardId, nonce := range hfb.highestHdrNonce {
+		m[shardId] = nonce
+	}
+	hfb.mutHdrsForBlock.RUnlock()
+
+	return m
+}
+
+// GetMissingHdrs -
+func (hfb *hdrForBlock) GetMissingHdrs() uint32 {
+	hfb.mutHdrsForBlock.RLock()
+	defer hfb.mutHdrsForBlock.RUnlock()
+
+	return hfb.missingHdrs
+}
+
+// GetMissingFinalityAttestingHdrs -
+func (hfb *hdrForBlock) GetMissingFinalityAttestingHdrs() uint32 {
+	hfb.mutHdrsForBlock.RLock()
+	defer hfb.mutHdrsForBlock.RUnlock()
+
+	return hfb.missingFinalityAttestingHdrs
+}
+
+// GetHdrHashAndInfo -
+func (hfb *hdrForBlock) GetHdrHashAndInfo() map[string]*HdrInfo {
+	hfb.mutHdrsForBlock.RLock()
+	defer hfb.mutHdrsForBlock.RUnlock()
+
+	m := make(map[string]*HdrInfo)
+	for hash, hi := range hfb.hdrHashAndInfo {
+		m[hash] = &HdrInfo{
+			UsedInBlock: hi.usedInBlock,
+			Hdr:         hi.hdr,
+		}
+	}
+
+	return m
 }

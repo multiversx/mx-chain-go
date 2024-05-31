@@ -200,9 +200,7 @@ func TestVmContext_Transfer(t *testing.T) {
 	value := big.NewInt(999)
 	input := []byte("input")
 
-	err := vmCtx.Transfer(destination, sender, value, input, 0)
-	assert.Nil(t, err)
-
+	vmCtx.Transfer(destination, sender, value, input, 0)
 	balance := vmCtx.GetBalance(destination)
 	assert.Equal(t, value.Uint64(), balance.Uint64())
 

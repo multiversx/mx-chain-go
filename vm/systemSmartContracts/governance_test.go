@@ -366,6 +366,101 @@ func TestGovernanceContract_ChangeConfig(t *testing.T) {
 	require.Equal(t, vmcommon.Ok, retCode)
 }
 
+func TestGovernanceContract_ValidatorVoteInvalidDelegated(t *testing.T) {
+	t.Parallel()
+
+	returnMessage := ""
+	errInvalidVoteSubstr := "invalid delegator address"
+	callerAddress := vm.FirstDelegationSCAddress
+	proposalIdentifier := bytes.Repeat([]byte("a"), commitHashLength)
+
+	args := createMockGovernanceArgs()
+
+	generalProposal := &GeneralProposal{
+		CommitHash:     proposalIdentifier,
+		StartVoteEpoch: 10,
+		EndVoteEpoch:   15,
+	}
+	args.Eei = &mock.SystemEIStub{
+		GetStorageCalled: func(key []byte) []byte {
+			if bytes.Equal(key, append([]byte(proposalPrefix), proposalIdentifier...)) {
+				proposalBytes, _ := args.Marshalizer.Marshal(generalProposal)
+				return proposalBytes
+			}
+
+			return nil
+		},
+		BlockChainHookCalled: func() vm.BlockchainHook {
+			return &mock.BlockChainHookStub{
+				CurrentNonceCalled: func() uint64 {
+					return 14
+				},
+			}
+		},
+		AddReturnMessageCalled: func(msg string) {
+			returnMessage = msg
+		},
+	}
+	voteArgs := [][]byte{
+		proposalIdentifier,
+		[]byte("yes"),
+		[]byte("delegatedToWrongAddress"),
+		big.NewInt(1000).Bytes(),
+	}
+
+	gsc, _ := NewGovernanceContract(args)
+	callInput := createVMInput(big.NewInt(0), "delegateVote", callerAddress, vm.GovernanceSCAddress, voteArgs)
+	retCode := gsc.Execute(callInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.Contains(t, returnMessage, errInvalidVoteSubstr)
+}
+
+func TestGovernanceContract_DelegateVoteUserErrors(t *testing.T) {
+	t.Parallel()
+
+	gsc, blockchainHook, eei := createGovernanceBlockChainHookStubContextHandler()
+	blockchainHook.CurrentNonceCalled = func() uint64 {
+		return 12
+	}
+
+	callerAddress := bytes.Repeat([]byte{2}, 32)
+	proposalIdentifier := []byte("aaaaaaaaa")
+	generalProposal := &GeneralProposal{
+		CommitHash:     proposalIdentifier,
+		StartVoteEpoch: 10,
+		EndVoteEpoch:   15,
+		Yes:            big.NewInt(0),
+		No:             big.NewInt(0),
+		Veto:           big.NewInt(0),
+		Abstain:        big.NewInt(0),
+	}
+
+	voteArgs := [][]byte{
+		[]byte("1"),
+		[]byte("yes"),
+	}
+	gsc.eei.SetStorage(voteArgs[0], proposalIdentifier)
+	_ = gsc.saveGeneralProposal(proposalIdentifier, generalProposal)
+
+	callInput := createVMInput(big.NewInt(0), "delegateVote", callerAddress, vm.GovernanceSCAddress, voteArgs)
+	retCode := gsc.Execute(callInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.Equal(t, eei.GetReturnMessage(), "invalid number of arguments")
+
+	callInput.Arguments = append(callInput.Arguments, []byte{1}, []byte{2})
+	callInput.CallValue = big.NewInt(10)
+	retCode = gsc.Execute(callInput)
+	require.Equal(t, vmcommon.UserError, retCode)
+	require.True(t, strings.Contains(eei.GetReturnMessage(), "function is not payable"))
+
+	callInput.CallValue = big.NewInt(0)
+	callInput.GasProvided = 0
+	gsc.gasCost.MetaChainSystemSCsCost.DelegateVote = 10
+	retCode = gsc.Execute(callInput)
+	require.Equal(t, vmcommon.OutOfGas, retCode)
+	require.True(t, strings.Contains(eei.GetReturnMessage(), "not enough gas"))
+}
+
 func TestGovernanceContract_ChangeConfigWrongCaller(t *testing.T) {
 	t.Parallel()
 
@@ -825,52 +920,6 @@ func TestGovernanceContract_VoteTwice(t *testing.T) {
 	retCode = gsc.Execute(callInput)
 	require.Equal(t, vmcommon.UserError, retCode)
 	require.Equal(t, eei.GetReturnMessage(), "double vote is not allowed")
-}
-
-func TestGovernanceContract_DelegateVoteUserErrors(t *testing.T) {
-	t.Parallel()
-
-	gsc, blockchainHook, eei := createGovernanceBlockChainHookStubContextHandler()
-	blockchainHook.CurrentNonceCalled = func() uint64 {
-		return 12
-	}
-
-	callerAddress := bytes.Repeat([]byte{2}, 32)
-	proposalIdentifier := []byte("aaaaaaaaa")
-	generalProposal := &GeneralProposal{
-		CommitHash:     proposalIdentifier,
-		StartVoteEpoch: 10,
-		EndVoteEpoch:   15,
-		Yes:            big.NewInt(0),
-		No:             big.NewInt(0),
-		Veto:           big.NewInt(0),
-		Abstain:        big.NewInt(0),
-	}
-
-	voteArgs := [][]byte{
-		[]byte("1"),
-		[]byte("yes"),
-	}
-	gsc.eei.SetStorage(voteArgs[0], proposalIdentifier)
-	_ = gsc.saveGeneralProposal(proposalIdentifier, generalProposal)
-
-	callInput := createVMInput(big.NewInt(0), "delegateVote", callerAddress, vm.GovernanceSCAddress, voteArgs)
-	retCode := gsc.Execute(callInput)
-	require.Equal(t, vmcommon.UserError, retCode)
-	require.Equal(t, eei.GetReturnMessage(), "invalid number of arguments")
-
-	callInput.Arguments = append(callInput.Arguments, []byte{1}, []byte{2})
-	callInput.CallValue = big.NewInt(10)
-	retCode = gsc.Execute(callInput)
-	require.Equal(t, vmcommon.UserError, retCode)
-	require.True(t, strings.Contains(eei.GetReturnMessage(), "function is not payable"))
-
-	callInput.CallValue = big.NewInt(0)
-	callInput.GasProvided = 0
-	gsc.gasCost.MetaChainSystemSCsCost.DelegateVote = 10
-	retCode = gsc.Execute(callInput)
-	require.Equal(t, vmcommon.OutOfGas, retCode)
-	require.True(t, strings.Contains(eei.GetReturnMessage(), "not enough gas"))
 }
 
 func TestGovernanceContract_DelegateVoteMoreErrors(t *testing.T) {

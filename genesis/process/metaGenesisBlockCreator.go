@@ -19,6 +19,7 @@ import (
 	disabledCommon "github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/forking"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
@@ -48,9 +49,6 @@ import (
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 )
 
-const unreachableEpoch = ^uint32(0)
-const unreachableRound = ^uint64(0)
-
 // CreateMetaGenesisBlock will create a metachain genesis block
 func CreateMetaGenesisBlock(
 	arg ArgsGenesisBlockCreator,
@@ -70,7 +68,11 @@ func CreateMetaGenesisBlock(
 		DeployInitialScTxs: make([]data.TransactionHandler, 0),
 	}
 
-	processors, err := createProcessorsForMetaGenesisBlock(arg, createGenesisConfig(), createGenesisRoundConfig())
+	processors, err := createProcessorsForMetaGenesisBlock(
+		arg,
+		createGenesisConfig(arg.EpochConfig.EnableEpochs),
+		createGenesisRoundConfig(arg.RoundConfig),
+	)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -189,7 +191,8 @@ func createMetaGenesisBlockAfterHardFork(
 		return nil, nil, nil, process.ErrWrongTypeAssertion
 	}
 
-	err = arg.Accounts.RecreateTrie(hdrHandler.GetRootHash())
+	rootHashHolder := holders.NewDefaultRootHashesHolder(hdrHandler.GetRootHash())
+	err = arg.Accounts.RecreateTrie(rootHashHolder)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -295,7 +298,7 @@ func saveGenesisMetaToStorage(
 	return nil
 }
 
-func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpochsConfig config.EnableEpochs, roundConfig *config.RoundConfig) (*genesisProcessors, error) {
+func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpochsConfig config.EnableEpochs, roundConfig config.RoundConfig) (*genesisProcessors, error) {
 	epochNotifier := forking.NewGenericEpochNotifier()
 	temporaryMetaHeader := &block.MetaBlock{
 		Epoch:     arg.StartEpochNum,
@@ -308,7 +311,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 	epochNotifier.CheckEpoch(temporaryMetaHeader)
 
 	roundNotifier := forking.NewGenericRoundNotifier()
-	enableRoundsHandler, err := enablers.NewEnableRoundsHandler(*roundConfig, roundNotifier)
+	enableRoundsHandler, err := enablers.NewEnableRoundsHandler(roundConfig, roundNotifier)
 	if err != nil {
 		return nil, err
 	}
@@ -360,6 +363,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		ChanceComputer:      &disabled.Rater{},
 		ShardCoordinator:    arg.ShardCoordinator,
 		EnableEpochsHandler: enableEpochsHandler,
+		NodesCoordinator:    &disabled.NodesCoordinator{},
 	}
 	virtualMachineFactory, err := metachain.NewVMContainerFactory(argsNewVMContainerFactory)
 	if err != nil {

@@ -58,6 +58,7 @@ func (psh *PersistentStatusHandler) initMap() {
 	psh.persistentMetrics.Store(common.MetricNumProcessedTxs, initUint)
 	psh.persistentMetrics.Store(common.MetricNumShardHeadersProcessed, initUint)
 	psh.persistentMetrics.Store(common.MetricNonce, initUint)
+	psh.persistentMetrics.Store(common.MetricBlockTimestamp, initUint)
 	psh.persistentMetrics.Store(common.MetricCurrentRound, initUint)
 	psh.persistentMetrics.Store(common.MetricNonceAtEpochStart, initUint)
 	psh.persistentMetrics.Store(common.MetricRoundAtEpochStart, initUint)

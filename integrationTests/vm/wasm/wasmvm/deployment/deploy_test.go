@@ -22,7 +22,7 @@ var senderBalance = big.NewInt(1000000000000)
 
 func TestScDeployShouldManageCorrectlyTheCodeMetadata(t *testing.T) {
 	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Wasm VM fix")
+		t.Skip("this is not a short test")
 	}
 
 	testContext, err := vm.CreatePreparedTxProcessorAndAccountsWithVMs(
