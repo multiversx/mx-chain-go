@@ -267,30 +267,30 @@ func TestChainSimulator_StakingV4Step2APICalls(t *testing.T) {
 		err = cs.GenerateBlocks(2)
 		require.Nil(t, err)
 
-		numQualified, numUnQualified := getNumQualifiedAndUnqualified(t, metachainNode)
-		require.Equal(t, 8, numQualified)
-		require.Equal(t, 1, numUnQualified)
+		qualified, unQualified := getQualifiedAndUnqualifiedNodes(t, metachainNode)
+		require.Equal(t, 8, len(qualified))
+		require.Equal(t, 1, len(unQualified))
 	}
 }
 
-func getNumQualifiedAndUnqualified(t *testing.T, metachainNode process.NodeHandler) (int, int) {
+func getQualifiedAndUnqualifiedNodes(t *testing.T, metachainNode process.NodeHandler) ([]string, []string) {
 	err := metachainNode.GetProcessComponents().ValidatorsProvider().ForceUpdate()
 	require.Nil(t, err)
 	auctionList, err := metachainNode.GetProcessComponents().ValidatorsProvider().GetAuctionList()
 	require.Nil(t, err)
 
-	numQualified := 0
-	numUnQualified := 0
+	qualified := make([]string, 0)
+	unQualified := make([]string, 0)
 
 	for _, auctionOwnerData := range auctionList {
 		for _, auctionNode := range auctionOwnerData.Nodes {
 			if auctionNode.Qualified {
-				numQualified++
+				qualified = append(qualified, auctionNode.BlsKey)
 			} else {
-				numUnQualified++
+				unQualified = append(unQualified, auctionNode.BlsKey)
 			}
 		}
 	}
 
-	return numQualified, numUnQualified
+	return qualified, unQualified
 }

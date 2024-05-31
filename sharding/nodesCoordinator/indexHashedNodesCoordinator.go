@@ -15,11 +15,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ NodesCoordinator = (*indexHashedNodesCoordinator)(nil)
@@ -68,6 +69,7 @@ type epochNodesConfig struct {
 	newList        []Validator
 	auctionList    []Validator
 	mutNodesMaps   sync.RWMutex
+	lowWaitingList bool
 }
 
 type indexHashedNodesCoordinator struct {
@@ -122,6 +124,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		shuffledOutMap: make(map[uint32][]Validator),
 		newList:        make([]Validator, 0),
 		auctionList:    make([]Validator, 0),
+		lowWaitingList: false,
 	}
 
 	// todo: if not genesis, use previous randomness from start of epoch meta block
@@ -156,7 +159,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 	ihnc.loadingFromDisk.Store(false)
 
 	ihnc.nodesCoordinatorHelper = ihnc
-	err = ihnc.setNodesPerShards(arguments.EligibleNodes, arguments.WaitingNodes, nil, nil, arguments.Epoch)
+	err = ihnc.setNodesPerShards(arguments.EligibleNodes, arguments.WaitingNodes, nil, nil, arguments.Epoch, false)
 	if err != nil {
 		return nil, err
 	}
@@ -261,6 +264,7 @@ func (ihnc *indexHashedNodesCoordinator) setNodesPerShards(
 	leaving map[uint32][]Validator,
 	shuffledOut map[uint32][]Validator,
 	epoch uint32,
+	lowWaitingList bool,
 ) error {
 	ihnc.mutNodesConfig.Lock()
 	defer ihnc.mutNodesConfig.Unlock()
@@ -292,7 +296,7 @@ func (ihnc *indexHashedNodesCoordinator) setNodesPerShards(
 		numTotalEligible += uint64(nbNodesShard)
 	}
 
-	return ihnc.baseSetNodesPerShard(nodesConfig, numTotalEligible, eligible, waiting, leaving, shuffledOut, epoch)
+	return ihnc.baseSetNodesPerShard(nodesConfig, numTotalEligible, eligible, waiting, leaving, shuffledOut, epoch, lowWaitingList)
 }
 
 func (ihnc *indexHashedNodesCoordinator) baseSetNodesPerShard(
@@ -303,6 +307,7 @@ func (ihnc *indexHashedNodesCoordinator) baseSetNodesPerShard(
 	leaving map[uint32][]Validator,
 	shuffledOut map[uint32][]Validator,
 	epoch uint32,
+	lowWaitingList bool,
 ) error {
 	var err error
 	var isCurrentNodeValidator bool
@@ -312,6 +317,7 @@ func (ihnc *indexHashedNodesCoordinator) baseSetNodesPerShard(
 	nodesConfig.waitingMap = waiting
 	nodesConfig.leavingMap = leaving
 	nodesConfig.shuffledOutMap = shuffledOut
+	nodesConfig.lowWaitingList = lowWaitingList
 	nodesConfig.shardID, isCurrentNodeValidator = ihnc.computeShardForSelfPublicKey(nodesConfig)
 	nodesConfig.selectors, err = ihnc.createSelectors(nodesConfig)
 	if err != nil {
@@ -571,6 +577,26 @@ func (ihnc *indexHashedNodesCoordinator) GetAllShuffledOutValidatorsPublicKeys(e
 	return validatorsPubKeys, nil
 }
 
+// GetShuffledOutToAuctionValidatorsPublicKeys will return shuffled out to auction validators public keys
+func (ihnc *indexHashedNodesCoordinator) GetShuffledOutToAuctionValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error) {
+	validatorsPubKeys := make(map[uint32][][]byte)
+
+	ihnc.mutNodesConfig.RLock()
+	nodesConfig, ok := ihnc.nodesConfig[epoch]
+	ihnc.mutNodesConfig.RUnlock()
+
+	if !ok {
+		return nil, fmt.Errorf("%w epoch=%v", ErrEpochNodesConfigDoesNotExist, epoch)
+	}
+
+	if nodesConfig.lowWaitingList {
+		// in case of low waiting list the nodes do not go through auction but directly to waiting
+		return validatorsPubKeys, nil
+	}
+
+	return ihnc.GetAllShuffledOutValidatorsPublicKeys(epoch)
+}
+
 // GetValidatorsIndexes will return validators indexes for a block
 func (ihnc *indexHashedNodesCoordinator) GetValidatorsIndexes(
 	publicKeys []string,
@@ -687,7 +713,7 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 		resUpdateNodes.Leaving,
 	)
 
-	err = ihnc.setNodesPerShards(resUpdateNodes.Eligible, resUpdateNodes.Waiting, leavingNodesMap, resUpdateNodes.ShuffledOut, newEpoch)
+	err = ihnc.setNodesPerShards(resUpdateNodes.Eligible, resUpdateNodes.Waiting, leavingNodesMap, resUpdateNodes.ShuffledOut, newEpoch, resUpdateNodes.LowWaitingList)
 	if err != nil {
 		log.Error("set nodes per shard failed", "error", err.Error())
 	}
