@@ -362,18 +362,21 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 	}
 
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:               arg.GasSchedule,
-		MapDNSAddresses:           make(map[string]struct{}),
-		MapDNSV2Addresses:         make(map[string]struct{}),
-		EnableUserNameChange:      false,
-		Marshalizer:               arg.Core.InternalMarshalizer(),
-		Accounts:                  arg.Accounts,
-		ShardCoordinator:          arg.ShardCoordinator,
-		EpochNotifier:             epochNotifier,
-		EnableEpochsHandler:       enableEpochsHandler,
-		AutomaticCrawlerAddresses: [][]byte{make([]byte, 32)},
-		MaxNumNodesInTransferRole: math.MaxUint32,
-		GuardedAccountHandler:     disabledGuardian.NewDisabledGuardedAccountHandler(),
+		GasSchedule:                    arg.GasSchedule,
+		MapDNSAddresses:                make(map[string]struct{}),
+		DNSV2Addresses:                 []string{},
+		WhiteListedCrossChainAddresses: arg.VirtualMachineConfig.TransferAndExecuteByUserAddresses,
+		EnableUserNameChange:           false,
+		Marshalizer:                    arg.Core.InternalMarshalizer(),
+		Accounts:                       arg.Accounts,
+		ShardCoordinator:               arg.ShardCoordinator,
+		EpochNotifier:                  epochNotifier,
+		EnableEpochsHandler:            enableEpochsHandler,
+		AutomaticCrawlerAddresses:      [][]byte{make([]byte, 32)},
+		MaxNumAddressesInTransferRole:  math.MaxUint32,
+		GuardedAccountHandler:          disabledGuardian.NewDisabledGuardedAccountHandler(),
+		SelfESDTPrefix:                 []byte(arg.SystemSCConfig.ESDTSystemSCConfig.ESDTPrefix),
+		PubKeyConverter:                arg.Core.AddressPubKeyConverter(),
 	}
 	builtInFuncFactory, err := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 	if err != nil {
