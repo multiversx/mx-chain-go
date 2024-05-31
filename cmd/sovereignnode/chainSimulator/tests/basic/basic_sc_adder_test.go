@@ -50,8 +50,7 @@ func TestSovereignChain_SmartContract_Adder(t *testing.T) {
 
 	nodeHandler := cs.GetNodeHandler(core.SovereignChainShardId)
 
-	systemScAddress, err := chainSim.GetSysAccBytesAddress(nodeHandler)
-	require.Nil(t, err)
+	systemScAddress := chainSim.GetSysAccBytesAddress(t, nodeHandler)
 
 	wallet, err := cs.GenerateAndMintWalletAddress(core.SovereignChainShardId, chainSim.InitialAmount)
 	require.Nil(t, err)
