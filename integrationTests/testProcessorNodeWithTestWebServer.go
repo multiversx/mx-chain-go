@@ -145,7 +145,7 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 		ShardCoordinator:               tpn.ShardCoordinator,
 		EpochNotifier:                  tpn.EpochNotifier,
 		EnableEpochsHandler:            tpn.EnableEpochsHandler,
-		MaxNumNodesInTransferRole:      100,
+		MaxNumAddressesInTransferRole:  100,
 		GuardedAccountHandler:          tpn.GuardedAccountHandler,
 		WhiteListedCrossChainAddresses: CrossChainAddresses,
 		PubKeyConverter:                TestAddressPubkeyConverter,

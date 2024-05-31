@@ -280,7 +280,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		ShardCoordinator:               oneShardCoordinator,
 		EpochNotifier:                  context.EpochNotifier,
 		EnableEpochsHandler:            context.EnableEpochsHandler,
-		MaxNumNodesInTransferRole:      100,
+		MaxNumAddressesInTransferRole:  100,
 		GuardedAccountHandler:          &guardianMocks.GuardedAccountHandlerStub{},
 		WhiteListedCrossChainAddresses: CrossChainAddresses,
 		PubKeyConverter:                pkConverter,

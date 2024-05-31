@@ -38,7 +38,7 @@ func createMockArguments() ArgsCreateBuiltInFunctionContainer {
 		AutomaticCrawlerAddresses: [][]byte{
 			bytes.Repeat([]byte{1}, 32),
 		},
-		MaxNumNodesInTransferRole:      100,
+		MaxNumAddressesInTransferRole:  100,
 		GuardedAccountHandler:          &guardianMocks.GuardedAccountHandlerStub{},
 		WhiteListedCrossChainAddresses: []string{"3132333435363738393031323334353637383930313233343536373839303234"},
 		PubKeyConverter:                &testscommon.PubkeyConverterMock{},

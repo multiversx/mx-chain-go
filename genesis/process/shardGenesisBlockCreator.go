@@ -373,7 +373,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		EpochNotifier:                  epochNotifier,
 		EnableEpochsHandler:            enableEpochsHandler,
 		AutomaticCrawlerAddresses:      [][]byte{make([]byte, 32)},
-		MaxNumNodesInTransferRole:      math.MaxUint32,
+		MaxNumAddressesInTransferRole:  math.MaxUint32,
 		GuardedAccountHandler:          disabledGuardian.NewDisabledGuardedAccountHandler(),
 		SelfESDTPrefix:                 []byte(arg.SystemSCConfig.ESDTSystemSCConfig.ESDTPrefix),
 		PubKeyConverter:                arg.Core.AddressPubKeyConverter(),

@@ -32,7 +32,7 @@ type ArgsCreateBuiltInFunctionContainer struct {
 	GuardedAccountHandler          vmcommon.GuardedAccountHandler
 	PubKeyConverter                core.PubkeyConverter
 	AutomaticCrawlerAddresses      [][]byte
-	MaxNumNodesInTransferRole      uint32
+	MaxNumAddressesInTransferRole  uint32
 	SelfESDTPrefix                 []byte
 }
 
@@ -107,7 +107,7 @@ func CreateBuiltInFunctionsFactory(args ArgsCreateBuiltInFunctionContainer) (vmc
 		ShardCoordinator:                  args.ShardCoordinator,
 		EnableEpochsHandler:               args.EnableEpochsHandler,
 		GuardedAccountHandler:             args.GuardedAccountHandler,
-		MaxNumOfAddressesForTransferRole:  args.MaxNumNodesInTransferRole,
+		MaxNumOfAddressesForTransferRole:  args.MaxNumAddressesInTransferRole,
 		ConfigAddress:                     crawlerAllowedAddress,
 		SelfESDTPrefix:                    args.SelfESDTPrefix,
 	}

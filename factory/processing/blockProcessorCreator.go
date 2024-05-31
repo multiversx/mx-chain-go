@@ -1174,7 +1174,7 @@ func (pcf *processComponentsFactory) createBuiltInFunctionContainer(
 		EnableEpochsHandler:            pcf.coreData.EnableEpochsHandler(),
 		GuardedAccountHandler:          pcf.bootstrapComponents.GuardedAccountHandler(),
 		AutomaticCrawlerAddresses:      convertedAddresses,
-		MaxNumNodesInTransferRole:      pcf.config.BuiltInFunctions.MaxNumAddressesInTransferRole,
+		MaxNumAddressesInTransferRole:  pcf.config.BuiltInFunctions.MaxNumAddressesInTransferRole,
 		SelfESDTPrefix:                 []byte(pcf.systemSCConfig.ESDTSystemSCConfig.ESDTPrefix),
 		PubKeyConverter:                pcf.coreData.AddressPubKeyConverter(),
 	}

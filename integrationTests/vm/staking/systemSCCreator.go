@@ -149,7 +149,7 @@ func createBlockChainHook(
 		EpochNotifier:                  coreComponents.EpochNotifier(),
 		EnableEpochsHandler:            coreComponents.EnableEpochsHandler(),
 		AutomaticCrawlerAddresses:      [][]byte{core.SystemAccountAddress},
-		MaxNumNodesInTransferRole:      1,
+		MaxNumAddressesInTransferRole:  1,
 		GuardedAccountHandler:          &guardianMocks.GuardedAccountHandlerStub{},
 		DNSV2Addresses:                 []string{},
 		WhiteListedCrossChainAddresses: []string{"c0ff33"},
