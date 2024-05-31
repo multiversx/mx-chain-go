@@ -1162,46 +1162,21 @@ func (pcf *processComponentsFactory) createBuiltInFunctionContainer(
 		return nil, err
 	}
 
-	convertedDNSV2Addresses, err := mainFactory.DecodeAddresses(
-		pcf.coreData.AddressPubKeyConverter(),
-		pcf.config.BuiltInFunctions.DNSV2Addresses,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	mapDNSV2Addresses := make(map[string]struct{})
-	for _, address := range convertedDNSV2Addresses {
-		mapDNSV2Addresses[string(address)] = struct{}{}
-	}
-
-	convertedCrossChainAddresses, err := mainFactory.DecodeAddresses(
-		pcf.coreData.AddressPubKeyConverter(),
-		pcf.systemSCConfig.ESDTSystemSCConfig.WhiteListedCrossChainMintAddresses,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	mapCrossChainAddresses := make(map[string]struct{})
-	for _, address := range convertedCrossChainAddresses {
-		mapCrossChainAddresses[string(address)] = struct{}{}
-	}
-
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:                           pcf.gasSchedule,
-		MapDNSAddresses:                       mapDNSAddresses,
-		MapDNSV2Addresses:                     mapDNSV2Addresses,
-		MapWhiteListedCrossChainMintAddresses: mapCrossChainAddresses,
-		Marshalizer:                           pcf.coreData.InternalMarshalizer(),
-		Accounts:                              accounts,
-		ShardCoordinator:                      pcf.bootstrapComponents.ShardCoordinator(),
-		EpochNotifier:                         pcf.coreData.EpochNotifier(),
-		EnableEpochsHandler:                   pcf.coreData.EnableEpochsHandler(),
-		GuardedAccountHandler:                 pcf.bootstrapComponents.GuardedAccountHandler(),
-		AutomaticCrawlerAddresses:             convertedAddresses,
-		MaxNumNodesInTransferRole:             pcf.config.BuiltInFunctions.MaxNumAddressesInTransferRole,
-		SelfESDTPrefix:                        []byte(pcf.systemSCConfig.ESDTSystemSCConfig.ESDTPrefix),
+		GasSchedule:                    pcf.gasSchedule,
+		MapDNSAddresses:                mapDNSAddresses,
+		DNSV2Addresses:                 pcf.config.BuiltInFunctions.DNSV2Addresses,
+		WhiteListedCrossChainAddresses: pcf.config.VirtualMachine.Execution.TransferAndExecuteByUserAddresses,
+		Marshalizer:                    pcf.coreData.InternalMarshalizer(),
+		Accounts:                       accounts,
+		ShardCoordinator:               pcf.bootstrapComponents.ShardCoordinator(),
+		EpochNotifier:                  pcf.coreData.EpochNotifier(),
+		EnableEpochsHandler:            pcf.coreData.EnableEpochsHandler(),
+		GuardedAccountHandler:          pcf.bootstrapComponents.GuardedAccountHandler(),
+		AutomaticCrawlerAddresses:      convertedAddresses,
+		MaxNumAddressesInTransferRole:  pcf.config.BuiltInFunctions.MaxNumAddressesInTransferRole,
+		SelfESDTPrefix:                 []byte(pcf.systemSCConfig.ESDTSystemSCConfig.ESDTPrefix),
+		PubKeyConverter:                pcf.coreData.AddressPubKeyConverter(),
 	}
 
 	return builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)

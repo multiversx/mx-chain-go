@@ -18,7 +18,6 @@ import (
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
-	mainFactory "github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
 	"github.com/multiversx/mx-chain-go/genesis/process/intermediate"
@@ -362,34 +361,22 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		return nil, err
 	}
 
-	convertedCrossChainAddresses, err := mainFactory.DecodeAddresses(
-		arg.Core.AddressPubKeyConverter(),
-		arg.SystemSCConfig.ESDTSystemSCConfig.WhiteListedCrossChainMintAddresses,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	mapCrossChainAddresses := make(map[string]struct{})
-	for _, address := range convertedCrossChainAddresses {
-		mapCrossChainAddresses[string(address)] = struct{}{}
-	}
-
 	argsBuiltIn := builtInFunctions.ArgsCreateBuiltInFunctionContainer{
-		GasSchedule:                           arg.GasSchedule,
-		MapDNSAddresses:                       make(map[string]struct{}),
-		MapDNSV2Addresses:                     make(map[string]struct{}),
-		MapWhiteListedCrossChainMintAddresses: mapCrossChainAddresses,
-		EnableUserNameChange:                  false,
-		Marshalizer:                           arg.Core.InternalMarshalizer(),
-		Accounts:                              arg.Accounts,
-		ShardCoordinator:                      arg.ShardCoordinator,
-		EpochNotifier:                         epochNotifier,
-		EnableEpochsHandler:                   enableEpochsHandler,
-		AutomaticCrawlerAddresses:             [][]byte{make([]byte, 32)},
-		MaxNumNodesInTransferRole:             math.MaxUint32,
-		GuardedAccountHandler:                 disabledGuardian.NewDisabledGuardedAccountHandler(),
-		SelfESDTPrefix:                        []byte(arg.SystemSCConfig.ESDTSystemSCConfig.ESDTPrefix),
+		GasSchedule:                    arg.GasSchedule,
+		MapDNSAddresses:                make(map[string]struct{}),
+		DNSV2Addresses:                 []string{},
+		WhiteListedCrossChainAddresses: arg.VirtualMachineConfig.TransferAndExecuteByUserAddresses,
+		EnableUserNameChange:           false,
+		Marshalizer:                    arg.Core.InternalMarshalizer(),
+		Accounts:                       arg.Accounts,
+		ShardCoordinator:               arg.ShardCoordinator,
+		EpochNotifier:                  epochNotifier,
+		EnableEpochsHandler:            enableEpochsHandler,
+		AutomaticCrawlerAddresses:      [][]byte{make([]byte, 32)},
+		MaxNumAddressesInTransferRole:  math.MaxUint32,
+		GuardedAccountHandler:          disabledGuardian.NewDisabledGuardedAccountHandler(),
+		SelfESDTPrefix:                 []byte(arg.SystemSCConfig.ESDTSystemSCConfig.ESDTPrefix),
+		PubKeyConverter:                arg.Core.AddressPubKeyConverter(),
 	}
 	builtInFuncFactory, err := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 	if err != nil {
