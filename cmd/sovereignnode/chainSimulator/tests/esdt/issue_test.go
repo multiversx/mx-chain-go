@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestSovereignChain_Issue(t *testing.T) {
+func TestSovereignChain_IssueFungible(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -55,21 +55,16 @@ func TestSovereignChain_Issue(t *testing.T) {
 	tokenName := "SovereignTkn"
 	tokenTicker := "SVN"
 	numDecimals := 18
-	tokenIdentifier := chainSim.IssueFungible(t, cs, wallet.Bytes, &nonce, issueCost, tokenName, tokenTicker, numDecimals, supply)
-
-	esdts, err := nodeHandler.GetFacadeHandler().GetAllIssuedESDTs(core.FungibleESDT)
-	require.Nil(t, err)
-	require.NotNil(t, esdts)
-	require.True(t, string(tokenIdentifier) == esdts[0])
+	tokenIdentifier := chainSim.IssueFungible(t, cs, nodeHandler, wallet.Bytes, &nonce, issueCost, tokenName, tokenTicker, numDecimals, supply)
 
 	tokens, _, err := nodeHandler.GetFacadeHandler().GetAllESDTTokens(wallet.Bech32, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
 	require.NotNil(t, tokens)
 	require.True(t, len(tokens) == 2)
-	require.Equal(t, supply, tokens[string(tokenIdentifier)].Value)
+	require.Equal(t, supply, tokens[tokenIdentifier].Value)
 
 	setRolesArgs := setSpecialRole(tokenIdentifier, wallet.Bytes, fungibleRoles)
 	chainSim.SendTransaction(t, cs, wallet.Bytes, &nonce, vm.ESDTSCAddress, big.NewInt(0), setRolesArgs, uint64(60000000))
 
-	checkAllRoles(t, nodeHandler, wallet.Bech32, string(tokenIdentifier), fungibleRoles)
+	checkAllRoles(t, nodeHandler, wallet.Bech32, tokenIdentifier, fungibleRoles)
 }
