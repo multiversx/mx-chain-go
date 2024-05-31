@@ -34,6 +34,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/peer"
+	"github.com/multiversx/mx-chain-go/process/rating"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 	"github.com/multiversx/mx-chain-go/process/sync"
@@ -617,6 +618,23 @@ type RunTypeComponentsHolder interface {
 	ExtraHeaderSigVerifierHolder() headerCheck.ExtraHeaderSigVerifierHolder
 	GenesisBlockCreatorFactory() processComp.GenesisBlockCreatorFactory
 	GenesisMetaBlockCheckerCreator() processComp.GenesisMetaBlockChecker
+	Create() error
+	Close() error
+	CheckSubcomponents() error
+	String() string
+	IsInterfaceNil() bool
+}
+
+// RunTypeCoreComponentsHandler defines the run type core components handler actions
+type RunTypeCoreComponentsHandler interface {
+	ComponentHandler
+	RunTypeCoreComponentsHolder
+}
+
+// RunTypeCoreComponentsHolder holds the run type core components
+type RunTypeCoreComponentsHolder interface {
+	GenesisNodesSetupFactoryCreator() sharding.GenesisNodesSetupFactory
+	RatingsDataFactoryCreator() rating.RatingsDataFactory
 	Create() error
 	Close() error
 	CheckSubcomponents() error

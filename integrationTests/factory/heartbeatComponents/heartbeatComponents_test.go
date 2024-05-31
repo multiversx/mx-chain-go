@@ -32,7 +32,10 @@ func TestHeartbeatComponents_Close_ShouldWork(t *testing.T) {
 	chanStopNodeProcess := make(chan endProcess.ArgEndProcess)
 	nr, err := node.NewNodeRunner(configs)
 	require.Nil(t, err)
-	managedCoreComponents, err := nr.CreateManagedCoreComponents(chanStopNodeProcess)
+
+	managedRunTypeCoreComponents, err := nr.CreateManagedRunTypeCoreComponents()
+	require.Nil(t, err)
+	managedCoreComponents, err := nr.CreateManagedCoreComponents(chanStopNodeProcess, managedRunTypeCoreComponents)
 	require.Nil(t, err)
 	managedCryptoComponents, err := nr.CreateManagedCryptoComponents(managedCoreComponents)
 	require.Nil(t, err)

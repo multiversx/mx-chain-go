@@ -5,8 +5,6 @@ package main
 
 import (
 	"fmt"
-	outportCore "github.com/multiversx/mx-chain-core-go/data/outport"
-	"github.com/multiversx/mx-chain-go/outport"
 	"io"
 	"io/ioutil"
 	"os"
@@ -17,6 +15,10 @@ import (
 	"strconv"
 	"syscall"
 	"time"
+
+	outportCore "github.com/multiversx/mx-chain-core-go/data/outport"
+
+	"github.com/multiversx/mx-chain-go/outport"
 
 	"github.com/multiversx/mx-chain-go/api/gin"
 	"github.com/multiversx/mx-chain-go/api/shared"
@@ -55,8 +57,6 @@ import (
 	trieIteratorsFactory "github.com/multiversx/mx-chain-go/node/trieIterators/factory"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
-	"github.com/multiversx/mx-chain-go/process/rating"
-	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	sovereignConfig "github.com/multiversx/mx-chain-go/sovereignnode/config"
 	"github.com/multiversx/mx-chain-go/sovereignnode/incomingHeader"
@@ -289,10 +289,14 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 	log.Debug("creating healthService")
 	healthService := snr.createHealthService(flagsConfig)
 
+	log.Debug("creating runType core components")
+	managedRunTypeCoreComponents, err := snr.CreateManagedRunTypeCoreComponents()
+	if err != nil {
+		return true, err
+	}
+
 	log.Debug("creating core components")
-	managedCoreComponents, err := snr.CreateManagedCoreComponents(
-		chanStopNodeProcess,
-	)
+	managedCoreComponents, err := snr.CreateManagedCoreComponents(chanStopNodeProcess, managedRunTypeCoreComponents)
 	if err != nil {
 		return true, err
 	}
@@ -1519,6 +1523,7 @@ func (snr *sovereignNodeRunner) CreateManagedNetworkComponents(
 // CreateManagedCoreComponents is the managed core components factory
 func (snr *sovereignNodeRunner) CreateManagedCoreComponents(
 	chanStopNodeProcess chan endProcess.ArgEndProcess,
+	runTypeCoreComponents mainFactory.RunTypeCoreComponentsHolder,
 ) (mainFactory.CoreComponentsHandler, error) {
 	coreArgs := coreComp.CoreComponentsFactoryArgs{
 		Config:                   *snr.configs.GeneralConfig,
@@ -1531,8 +1536,8 @@ func (snr *sovereignNodeRunner) CreateManagedCoreComponents(
 		NodesFilename:            snr.configs.ConfigurationPathsHolder.Nodes,
 		WorkingDirectory:         snr.configs.FlagsConfig.DbDir,
 		ChanStopNodeProcess:      chanStopNodeProcess,
-		GenesisNodesSetupFactory: sharding.NewSovereignGenesisNodesSetupFactory(),
-		RatingsDataFactory:       rating.NewSovereignRatingsDataFactory(),
+		GenesisNodesSetupFactory: runTypeCoreComponents.GenesisNodesSetupFactoryCreator(),
+		RatingsDataFactory:       runTypeCoreComponents.RatingsDataFactoryCreator(),
 	}
 
 	coreComponentsFactory, err := coreComp.NewCoreComponentsFactory(coreArgs)
@@ -1621,6 +1626,28 @@ func (snr *sovereignNodeRunner) CreateManagedCryptoComponents(
 	}
 
 	return managedCryptoComponents, nil
+}
+
+// CreateManagedRunTypeCoreComponents creates the managed run type core components
+func (snr *sovereignNodeRunner) CreateManagedRunTypeCoreComponents() (mainFactory.RunTypeCoreComponentsHandler, error) {
+	runTypeCoreComponentsFactory := runType.NewRunTypeCoreComponentsFactory()
+
+	sovereignRunTypeCoreComponentsFactory, err := runType.NewSovereignRunTypeCoreComponentsFactory(runTypeCoreComponentsFactory)
+	if err != nil {
+		return nil, fmt.Errorf("NewSovereignRunTypeCoreComponentsFactory failed: %w", err)
+	}
+
+	managedRunTypeCoreComponents, err := runType.NewManagedRunTypeCoreComponents(sovereignRunTypeCoreComponentsFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	err = managedRunTypeCoreComponents.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	return managedRunTypeCoreComponents, nil
 }
 
 // CreateSovereignArgsRunTypeComponents creates the arguments for sovereign runType components
