@@ -2,6 +2,8 @@ package chainSimulator
 
 import "errors"
 
-var errNilChainSimulator = errors.New("nil chain simulator")
-var errNilMetachainNode = errors.New("nil metachain node")
-var errShardSetupError = errors.New("shard setup error")
+var (
+	errNilChainSimulator = errors.New("nil chain simulator")
+	errNilMetachainNode  = errors.New("nil metachain node")
+	errShardSetupError   = errors.New("shard setup error")
+)
