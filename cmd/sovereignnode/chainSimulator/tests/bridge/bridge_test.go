@@ -68,7 +68,7 @@ func TestBridge_DeployOnSovereignChain_IssueAndDeposit(t *testing.T) {
 	tokenName := "SovToken"
 	tokenTicker := "SVN"
 	numDecimals := 18
-	tokenIdentifier := chainSim.IssueFungible(t, cs, wallet.Bytes, &nonce, issueCost, tokenName, tokenTicker, numDecimals, supply)
+	tokenIdentifier := chainSim.IssueFungible(t, cs, nodeHandler, wallet.Bytes, &nonce, issueCost, tokenName, tokenTicker, numDecimals, supply)
 
 	amountToDeposit, _ := big.NewInt(0).SetString("2000000000000000000", 10)
 	depositTokens := make([]chainSim.ArgsDepositToken, 0)
@@ -83,9 +83,9 @@ func TestBridge_DeployOnSovereignChain_IssueAndDeposit(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, tokens)
 	require.True(t, len(tokens) == 2)
-	require.Equal(t, big.NewInt(0).Sub(supply, amountToDeposit).String(), tokens[string(tokenIdentifier)].GetValue().String())
+	require.Equal(t, big.NewInt(0).Sub(supply, amountToDeposit).String(), tokens[tokenIdentifier].GetValue().String())
 
-	tokenSupply, err := nodeHandler.GetFacadeHandler().GetTokenSupply(string(tokenIdentifier))
+	tokenSupply, err := nodeHandler.GetFacadeHandler().GetTokenSupply(tokenIdentifier)
 	require.Nil(t, err)
 	require.NotNil(t, tokenSupply)
 	require.Equal(t, supply.String(), tokenSupply.InitialMinted)

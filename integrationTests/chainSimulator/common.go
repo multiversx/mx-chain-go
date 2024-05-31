@@ -45,7 +45,7 @@ var (
 
 // ArgsDepositToken holds the arguments for a token
 type ArgsDepositToken struct {
-	Identifier []byte
+	Identifier string
 	Nonce      uint64
 	Amount     *big.Int
 }
@@ -241,7 +241,7 @@ func Deposit(
 
 	for _, token := range tokens {
 		depositArgs = depositArgs +
-			"@" + hex.EncodeToString(token.Identifier) +
+			"@" + hex.EncodeToString([]byte(token.Identifier)) +
 			"@" + getTokenNonce(token.Nonce) +
 			"@" + hex.EncodeToString(token.Amount.Bytes())
 	}
