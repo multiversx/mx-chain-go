@@ -20,4 +20,5 @@ type ResUpdateNodes struct {
 	ShuffledOut    map[uint32][]Validator
 	Leaving        []Validator
 	StillRemaining []Validator
+	LowWaitingList bool
 }
