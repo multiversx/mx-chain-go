@@ -85,8 +85,6 @@ func TestBridge_DeployOnSovereignChain_IssueAndDeposit(t *testing.T) {
 	require.True(t, len(tokens) == 2)
 	require.Equal(t, big.NewInt(0).Sub(supply, amountToDeposit).String(), tokens[string(tokenIdentifier)].GetValue().String())
 
-	_ = cs.GenerateBlocks(10)
-
 	tokenSupply, err := nodeHandler.GetFacadeHandler().GetTokenSupply(string(tokenIdentifier))
 	require.Nil(t, err)
 	require.NotNil(t, tokenSupply)
