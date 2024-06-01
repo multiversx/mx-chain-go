@@ -22,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/vm"
 	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -214,10 +215,12 @@ func transferAndCheckTokensMetaData(t *testing.T, isCrossShard bool) {
 
 	log.Info("Step 1. check that the metadata for all tokens is saved on the system account")
 
-	checkMetaData(t, cs, core.SystemAccountAddress, nftTokenID, nftMetaData)
-	checkMetaData(t, cs, core.SystemAccountAddress, sftTokenID, sftMetaData)
-	checkMetaData(t, cs, core.SystemAccountAddress, metaESDTTokenID, esdtMetaData)
-	checkMetaData(t, cs, core.SystemAccountAddress, fungibleTokenID, fungibleMetaData)
+	systemAccountAddress := getSystemAccountAddress(t, cs, addrs[0].Bytes)
+
+	checkMetaData(t, cs, systemAccountAddress, nftTokenID, nftMetaData)
+	checkMetaData(t, cs, systemAccountAddress, sftTokenID, sftMetaData)
+	checkMetaData(t, cs, systemAccountAddress, metaESDTTokenID, esdtMetaData)
+	checkMetaData(t, cs, systemAccountAddress, fungibleTokenID, fungibleMetaData)
 
 	log.Info("Step 2. wait for DynamicEsdtFlag activation")
 
@@ -240,10 +243,10 @@ func transferAndCheckTokensMetaData(t *testing.T, isCrossShard bool) {
 
 	log.Info("Step 4. check that the metadata for all tokens is saved on the system account")
 
-	checkMetaData(t, cs, core.SystemAccountAddress, nftTokenID, nftMetaData)
-	checkMetaData(t, cs, core.SystemAccountAddress, sftTokenID, nftMetaData)
-	checkMetaData(t, cs, core.SystemAccountAddress, metaESDTTokenID, esdtMetaData)
-	checkMetaData(t, cs, core.SystemAccountAddress, fungibleTokenID, fungibleMetaData)
+	checkMetaData(t, cs, systemAccountAddress, nftTokenID, nftMetaData)
+	checkMetaData(t, cs, systemAccountAddress, sftTokenID, sftMetaData)
+	checkMetaData(t, cs, systemAccountAddress, metaESDTTokenID, esdtMetaData)
+	checkMetaData(t, cs, systemAccountAddress, fungibleTokenID, fungibleMetaData)
 
 	log.Info("Step 5. make an updateTokenID@tokenID function call on the ESDTSystem SC for all token types")
 
@@ -262,10 +265,10 @@ func transferAndCheckTokensMetaData(t *testing.T, isCrossShard bool) {
 
 	log.Info("Step 6. check that the metadata for all tokens is saved on the system account")
 
-	checkMetaData(t, cs, core.SystemAccountAddress, nftTokenID, nftMetaData)
-	checkMetaData(t, cs, core.SystemAccountAddress, sftTokenID, nftMetaData)
-	checkMetaData(t, cs, core.SystemAccountAddress, metaESDTTokenID, esdtMetaData)
-	checkMetaData(t, cs, core.SystemAccountAddress, fungibleTokenID, fungibleMetaData)
+	checkMetaData(t, cs, systemAccountAddress, nftTokenID, nftMetaData)
+	checkMetaData(t, cs, systemAccountAddress, sftTokenID, sftMetaData)
+	checkMetaData(t, cs, systemAccountAddress, metaESDTTokenID, esdtMetaData)
+	checkMetaData(t, cs, systemAccountAddress, fungibleTokenID, fungibleMetaData)
 
 	log.Info("Step 7. transfer the tokens to another account")
 
@@ -284,18 +287,20 @@ func transferAndCheckTokensMetaData(t *testing.T, isCrossShard bool) {
 
 	log.Info("Step 8. check that the metaData for the NFT was removed from the system account and moved to the user account")
 
+	systemAccountAddress = getSystemAccountAddress(t, cs, addrs[2].Bytes)
+
 	checkMetaData(t, cs, addrs[2].Bytes, nftTokenID, nftMetaData)
-	checkMetaDataNotInAcc(t, cs, core.SystemAccountAddress, nftTokenID)
+	checkMetaDataNotInAcc(t, cs, systemAccountAddress, nftTokenID)
 
 	log.Info("Step 9. check that the metaData for the rest of the tokens is still present on the system account and not on the userAccount")
 
-	checkMetaData(t, cs, core.SystemAccountAddress, sftTokenID, sftMetaData)
+	checkMetaData(t, cs, systemAccountAddress, sftTokenID, sftMetaData)
 	checkMetaDataNotInAcc(t, cs, addrs[2].Bytes, sftTokenID)
 
-	checkMetaData(t, cs, core.SystemAccountAddress, metaESDTTokenID, esdtMetaData)
+	checkMetaData(t, cs, systemAccountAddress, metaESDTTokenID, esdtMetaData)
 	checkMetaDataNotInAcc(t, cs, addrs[2].Bytes, metaESDTTokenID)
 
-	checkMetaData(t, cs, core.SystemAccountAddress, fungibleTokenID, fungibleMetaData)
+	checkMetaData(t, cs, systemAccountAddress, fungibleTokenID, fungibleMetaData)
 	checkMetaDataNotInAcc(t, cs, addrs[2].Bytes, fungibleTokenID)
 }
 
@@ -324,6 +329,34 @@ func createAddresses(
 	require.Nil(t, err)
 
 	return []dtos.WalletAddress{address, address2, address3}
+}
+
+func getSystemAccountAddress(
+	t *testing.T,
+	cs testsChainSimulator.ChainSimulator,
+	addressBytes []byte,
+) []byte {
+	shardID := cs.GetNodeHandler(0).GetProcessComponents().ShardCoordinator().ComputeId(addressBytes)
+	pubKeyConverter := cs.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter()
+
+	var systemAccountAddress []byte
+	var err error
+
+	switch shardID {
+	case uint32(0):
+		systemAccountAddress, err = pubKeyConverter.Decode("erd1llllllllllllllllllllllllllllllllllllllllllllllllluqq2m3f0f")
+		require.Nil(t, err)
+	case uint32(1):
+		systemAccountAddress, err = pubKeyConverter.Decode("erd1lllllllllllllllllllllllllllllllllllllllllllllllllllsckry7t")
+		require.Nil(t, err)
+	case uint32(2):
+		systemAccountAddress, err = pubKeyConverter.Decode("erd1lllllllllllllllllllllllllllllllllllllllllllllllllupq9x7ny0")
+		require.Nil(t, err)
+	default:
+		assert.Fail(t, "no valid shard ID")
+	}
+
+	return systemAccountAddress
 }
 
 func checkMetaData(
