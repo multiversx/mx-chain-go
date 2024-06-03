@@ -2,19 +2,18 @@ package esdt
 
 import (
 	"encoding/hex"
+	"fmt"
 	"math/big"
-	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	coreAPI "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/config"
 	chainSimulator2 "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
@@ -39,15 +38,12 @@ func TestChainSimulator_ExecuteBridgeOpsWithPrefix(t *testing.T) {
 		Value:    20,
 	}
 
-	whiteListedAddresses := make([]string, 0)
-	whiteListedAddresses = append(whiteListedAddresses, "erd1qqqqqqqqqqqqqpgqmzzm05jeav6d5qvna0q2pmcllelkz8xddz3syjszx5")
-
-	numOfShards := uint32(1)
+	whiteListedAddress := "erd1qqqqqqqqqqqqqpgqmzzm05jeav6d5qvna0q2pmcllelkz8xddz3syjszx5"
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 		BypassTxSignatureCheck:      false,
 		TempDir:                     t.TempDir(),
 		PathToInitialConfig:         defaultPathToInitialConfig,
-		NumOfShards:                 numOfShards,
+		NumOfShards:                 1,
 		GenesisTimestamp:            startTime,
 		RoundDurationInMillis:       roundDurationInMillis,
 		RoundsPerEpoch:              roundsPerEpoch,
@@ -59,7 +55,7 @@ func TestChainSimulator_ExecuteBridgeOpsWithPrefix(t *testing.T) {
 		ConsensusGroupSize:          1,
 		MetaChainConsensusGroupSize: 1,
 		AlterConfigsFunction: func(cfg *config.Configs) {
-			cfg.GeneralConfig.VirtualMachine.Execution.TransferAndExecuteByUserAddresses = whiteListedAddresses
+			cfg.GeneralConfig.VirtualMachine.Execution.TransferAndExecuteByUserAddresses = []string{whiteListedAddress}
 		},
 	})
 	require.Nil(t, err)
@@ -87,42 +83,52 @@ func TestChainSimulator_ExecuteBridgeOpsWithPrefix(t *testing.T) {
 	wallet := dtos.WalletAddress{Bech32: initialAddress, Bytes: initialAddrBytes}
 	bridgeSetup := deployMainChainBridgeContracts(t, cs, wallet, "testdata/esdt-safe.wasm", "testdata/fee-market.wasm")
 
+	esdtSafeEncoded, _ := cs.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Encode(bridgeSetup.ESDTSafeAddress)
+	require.Equal(t, esdtSafeEncoded, whiteListedAddress)
+
+	// We will deposit a prefixed token from a sovereign chain to the main chain,
+	// expecting these tokens to be minted by the whitelisted ESDT safe sc and transferred to our address.
+	depositToken := "sov1-SOVT-5d8f56"
+	expectedMintValue, _ := big.NewInt(0).SetString("123000000000000000000", 10)
 	executeBridgeOpsData := "executeBridgeOps" +
 		"@de96b8d3842668aad676f915f545403b3e706f8f724cefb0c15b728e83864ce7" + //dummy hash
 		"@" + // operation
 		hex.EncodeToString(wallet.Bytes) + // receiver address
 		"00000001" + // nr of tokens
 		"00000010" + // length of token identifier
-		"736f76312d534f56542d356438663536" + //token identifier
+		hex.EncodeToString([]byte(depositToken)) + //token identifier
 		"0000000000000000000000000906aaf7c8516d0c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000" + // nonce + token data
 		"0000000000000000" + // event nonce
 		hex.EncodeToString(wallet.Bytes) + // sender address from other chain
 		"00" // no transfer data
 	_ = sendTx(t, cs, wallet.Bytes, 5, bridgeSetup.ESDTSafeAddress, big.NewInt(0), executeBridgeOpsData, uint64(50000000))
+	requireAccountHasToken(t, cs, depositToken, wallet.Bech32, expectedMintValue)
 
-	expectedMintValue, _ := big.NewInt(0).SetString("123000000000000000000", 10)
-	esdts, _, err := cs.GetNodeHandler(0).GetFacadeHandler().GetAllESDTTokens(wallet.Bech32, coreAPI.AccountQueryOptions{})
-	require.Nil(t, err)
-	require.Contains(t, esdts, "sov1-SOVT-5d8f56")
-	require.Equal(t, esdts["sov1-SOVT-5d8f56"].Value, expectedMintValue)
-
+	// Now we will transfer a part of the previously mentioned tokens from main chain to a sovereign chain,
+	// expecting these tokens to be burned by the whitelisted ESDT safe sc.
 	amountToBurn, _ := big.NewInt(0).SetString("120000000000000000000", 10)
+	remainingValueAfterBridge := expectedMintValue.Sub(expectedMintValue, amountToBurn)
 	depositTxData := "MultiESDTNFTTransfer" +
 		"@" + hex.EncodeToString(bridgeSetup.ESDTSafeAddress) +
 		"@01" +
-		"@736f76312d534f56542d356438663536" + // token
+		fmt.Sprintf("@%x", depositToken) + // token
 		"@" + // nonce
 		"@" + hex.EncodeToString(amountToBurn.Bytes()) + // amount
 		"@6465706f736974" + //deposit
 		"@" + hex.EncodeToString(wallet.Bytes) // receiver on the other chain
 
 	_ = sendTx(t, cs, wallet.Bytes, 6, wallet.Bytes, big.NewInt(0), depositTxData, uint64(50000000))
+	requireAccountHasToken(t, cs, depositToken, wallet.Bech32, remainingValueAfterBridge)
 
-	expectedRemainingValue := expectedMintValue.Sub(expectedMintValue, amountToBurn)
-	esdts, _, err = cs.GetNodeHandler(0).GetFacadeHandler().GetAllESDTTokens(wallet.Bech32, coreAPI.AccountQueryOptions{})
+	// Send some of the bridged prefixed tokens to another address
+	receiver := "erd1spyavw0956vq68xj8y4tenjpq2wd5a9p2c6j8gsz7ztyrnpxrruqzu66jx"
+	receiverBytes, err := cs.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Decode(receiver)
 	require.Nil(t, err)
-	require.Contains(t, esdts, "sov1-SOVT-5d8f56")
-	require.Equal(t, esdts["sov1-SOVT-5d8f56"].Value, expectedRemainingValue)
+
+	receivedTokens := big.NewInt(11)
+	transferESDT(t, cs, wallet.Bytes, receiverBytes, 7, receivedTokens, depositToken)
+	requireAccountHasToken(t, cs, depositToken, receiver, receivedTokens)
+	requireAccountHasToken(t, cs, depositToken, initialAddress, big.NewInt(0).Sub(remainingValueAfterBridge, receivedTokens))
 }
 
 // TODO: Delete this in feat/chain-go-sdk when merged and use existing functions
@@ -136,7 +142,7 @@ func deployMainChainBridgeContracts(
 	nodeHandler := cs.GetNodeHandler(core.MetachainShardId)
 	systemScAddress, _ := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode("erd1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq6gq4hu")
 
-	esdtSafeCode := getSCCode(esdtSafeWasmPath)
+	esdtSafeCode := wasm.GetSCCode(esdtSafeWasmPath)
 	esdtSafeArgs := "@0500@0500" +
 		"@" + // is_sovereign_chain
 		"@" + // min_valid_signers
@@ -145,7 +151,7 @@ func deployMainChainBridgeContracts(
 	txResult := sendTx(t, cs, wallet.Bytes, 0, systemScAddress, big.NewInt(0), deployEsdtSafeData, uint64(200000000))
 	esdtSafeAddress := txResult.Logs.Events[0].Topics[0]
 
-	feeMarketCode := getSCCode(feeMarketWasmPath)
+	feeMarketCode := wasm.GetSCCode(feeMarketWasmPath)
 	feeMarketArgs := "@0500@0500" +
 		"@" + hex.EncodeToString(esdtSafeAddress) + // esdt_safe_address
 		"@000000000000000005004c13819a7f26de997e7c6720a6efe2d4b85c0609c9ad" + // price_aggregator_address
@@ -173,14 +179,4 @@ func sendTx(t *testing.T, cs chainSimulator2.ChainSimulator, sender []byte, nonc
 	require.Equal(t, transaction.TxStatusSuccess, txResult.Status)
 
 	return txResult
-}
-
-func getSCCode(fileName string) string {
-	code, err := os.ReadFile(filepath.Clean(fileName))
-	if err != nil {
-		panic("Could not get SC code.")
-	}
-
-	codeEncoded := hex.EncodeToString(code)
-	return codeEncoded
 }
