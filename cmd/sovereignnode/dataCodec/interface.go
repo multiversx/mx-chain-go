@@ -1,14 +1,10 @@
 package dataCodec
 
 import (
+	abiSerializer "github.com/multiversx/mx-chain-go/process/block/sovereign"
+
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 )
-
-// AbiSerializer is the interface to work with abi codec
-type AbiSerializer interface {
-	Serialize(inputValues []any) (string, error)
-	Deserialize(data string, outputValues []any) error
-}
 
 // EventDataEncoder is the interface for serializing/deserializing event data
 type EventDataEncoder interface {
@@ -29,6 +25,7 @@ type OperationDataEncoder interface {
 
 // SovereignDataCodec is the interface for serializing/deserializing data
 type SovereignDataCodec interface {
+	abiSerializer.AbiSerializer
 	SerializeEventData(eventData sovereign.EventData) ([]byte, error)
 	DeserializeEventData(data []byte) (*sovereign.EventData, error)
 	SerializeTokenData(tokenData sovereign.EsdtTokenData) ([]byte, error)

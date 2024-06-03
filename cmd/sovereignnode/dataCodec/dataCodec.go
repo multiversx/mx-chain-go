@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
+	abiSerializer "github.com/multiversx/mx-chain-go/process/block/sovereign"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
@@ -12,13 +13,13 @@ import (
 )
 
 type dataCodec struct {
-	serializer AbiSerializer
+	serializer abiSerializer.AbiSerializer
 }
 
 // TODO MX-15286 split data codec in multiple components
 
 // NewDataCodec creates a data codec which is able to serialize/deserialize data from incoming/outgoing operations
-func NewDataCodec(serializer AbiSerializer) (*dataCodec, error) {
+func NewDataCodec(serializer abiSerializer.AbiSerializer) (*dataCodec, error) {
 	if serializer == nil {
 		return nil, errors.ErrNilSerializer
 	}
@@ -26,6 +27,16 @@ func NewDataCodec(serializer AbiSerializer) (*dataCodec, error) {
 	return &dataCodec{
 		serializer: serializer,
 	}, nil
+}
+
+// Serialize will serialize the input value
+func (dc *dataCodec) Serialize(inputValues []any) (string, error) {
+	return dc.serializer.Serialize(inputValues)
+}
+
+// Deserialize will deserialize data into output value
+func (dc *dataCodec) Deserialize(data string, outputValues []any) error {
+	return dc.serializer.Deserialize(data, outputValues)
 }
 
 // SerializeEventData will receive an event data and serialize it

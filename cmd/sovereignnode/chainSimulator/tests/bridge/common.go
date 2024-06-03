@@ -2,13 +2,20 @@ package bridge
 
 import (
 	"encoding/hex"
-	"math/big"
+	"fmt"
 	"testing"
 
 	chainSim "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
+	"github.com/multiversx/mx-chain-go/sovereignnode/dataCodec"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/sovereign"
+	"github.com/multiversx/mx-sdk-abi-go/abi"
 	"github.com/stretchr/testify/require"
+)
+
+const (
+	deposit = "deposit"
 )
 
 // ArgsBridgeSetup holds the arguments for bridge setup
@@ -51,14 +58,81 @@ func DeploySovereignBridgeSetup(
 
 	setFeeMarketAddressData := "setFeeMarketAddress" +
 		"@" + hex.EncodeToString(feeMarketAddress)
-	chainSim.SendTransaction(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, big.NewInt(0), setFeeMarketAddressData, uint64(10000000))
+	chainSim.SendTransaction(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, chainSim.ZeroValue, setFeeMarketAddressData, uint64(10000000))
 
-	chainSim.SendTransaction(t, cs, wallet.Bytes, &nonce, feeMarketAddress, big.NewInt(0), "disableFee", uint64(10000000))
+	chainSim.SendTransaction(t, cs, wallet.Bytes, &nonce, feeMarketAddress, chainSim.ZeroValue, "disableFee", uint64(10000000))
 
-	chainSim.SendTransaction(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, big.NewInt(0), "unpause", uint64(10000000))
+	chainSim.SendTransaction(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, chainSim.ZeroValue, "unpause", uint64(10000000))
 
 	return &ArgsBridgeSetup{
 		ESDTSafeAddress:  esdtSafeAddress,
 		FeeMarketAddress: feeMarketAddress,
 	}
+}
+
+// Deposit will deposit tokens in the bridge sc safe contract
+func Deposit(
+	t *testing.T,
+	cs chainSim.ChainSimulator,
+	sender []byte,
+	nonce *uint64,
+	contract []byte,
+	tokens []chainSim.ArgsDepositToken,
+	receiver []byte,
+	transferData *sovereign.TransferData,
+) {
+	require.True(t, len(tokens) > 0)
+
+	dtaCodec := cs.GetNodeHandler(core.SovereignChainShardId).GetRunTypeComponents().DataCodecHandler()
+
+	depositArgs := core.BuiltInFunctionMultiESDTNFTTransfer +
+		"@" + hex.EncodeToString(contract) +
+		"@" + fmt.Sprintf("%02X", len(tokens))
+
+	for _, token := range tokens {
+		depositArgs = depositArgs +
+			"@" + hex.EncodeToString([]byte(token.Identifier)) +
+			"@" + getTokenNonce(t, dtaCodec, token.Nonce) +
+			"@" + hex.EncodeToString(token.Amount.Bytes())
+	}
+
+	transferDataArg := getTransferDataArg(t, dtaCodec, transferData)
+	depositArgs = depositArgs +
+		"@" + hex.EncodeToString([]byte(deposit)) +
+		"@" + hex.EncodeToString(receiver) +
+		transferDataArg
+
+	chainSim.SendTransaction(t, cs, sender, nonce, sender, chainSim.ZeroValue, depositArgs, uint64(20000000))
+}
+
+func getTokenNonce(t *testing.T, dataCodec dataCodec.SovereignDataCodec, nonce uint64) string {
+	if nonce == 0 {
+		return ""
+	}
+
+	hexNonce, err := dataCodec.Serialize([]any{&abi.U64Value{Value: nonce}})
+	require.Nil(t, err)
+	return hexNonce
+}
+
+func getTransferDataArg(t *testing.T, dataCodec dataCodec.SovereignDataCodec, transferData *sovereign.TransferData) string {
+	if transferData == nil {
+		return ""
+	}
+
+	arguments := make([]abi.SingleValue, len(transferData.Args))
+	for i, arg := range transferData.Args {
+		arguments[i] = &abi.BytesValue{Value: arg}
+	}
+	transferDataValue := &abi.MultiValue{
+		Items: []any{
+			&abi.U64Value{Value: transferData.GasLimit},
+			&abi.BytesValue{Value: transferData.Function},
+			&abi.ListValue{Items: arguments},
+		},
+	}
+	args, err := dataCodec.Serialize([]any{transferDataValue})
+	require.Nil(t, err)
+
+	return "@" + args
 }

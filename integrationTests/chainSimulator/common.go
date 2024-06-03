@@ -23,7 +23,6 @@ const (
 	minGasPrice                             = 1000000000
 	txVersion                               = 1
 	mockTxSignature                         = "sig"
-	deposit                                 = "deposit"
 	maxNumOfBlocksToGenerateWhenExecutingTx = 1
 	signalError                             = "signalError"
 
@@ -69,7 +68,7 @@ func DeployContract(
 ) []byte {
 	data = wasm.GetSCCode(wasmPath) + "@" + vmTypeHex + "@" + codeMetadata + data
 
-	tx := GenerateTransaction(sender, *nonce, receiver, big.NewInt(0), data, uint64(200000000))
+	tx := GenerateTransaction(sender, *nonce, receiver, ZeroValue, data, uint64(200000000))
 	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlocksToGenerateWhenExecutingTx)
 	*nonce++
 
@@ -217,42 +216,4 @@ func getEsdtIdentifier(t *testing.T, nodeHandler process.NodeHandler, ticker str
 
 	require.Fail(t, "could not issue semi fungible")
 	return ""
-}
-
-// Deposit will deposit tokens in the bridge sc safe contract
-func Deposit(
-	t *testing.T,
-	cs ChainSimulator,
-	sender []byte,
-	nonce *uint64,
-	contract []byte,
-	tokens []ArgsDepositToken,
-	receiver []byte,
-) {
-	require.True(t, len(tokens) > 0)
-
-	depositArgs := core.BuiltInFunctionMultiESDTNFTTransfer +
-		"@" + hex.EncodeToString(contract) +
-		"@" + fmt.Sprintf("%02X", len(tokens))
-
-	for _, token := range tokens {
-		depositArgs = depositArgs +
-			"@" + hex.EncodeToString([]byte(token.Identifier)) +
-			"@" + getTokenNonce(token.Nonce) +
-			"@" + hex.EncodeToString(token.Amount.Bytes())
-	}
-
-	depositArgs = depositArgs +
-		"@" + hex.EncodeToString([]byte(deposit)) +
-		"@" + hex.EncodeToString(receiver)
-	//TODO MX-15523 add transfer data in deposit arguments after integrating the new version of sdk-abi-go
-
-	SendTransaction(t, cs, sender, nonce, sender, ZeroValue, depositArgs, uint64(20000000))
-}
-
-func getTokenNonce(nonce uint64) string {
-	if nonce == 0 {
-		return ""
-	}
-	return fmt.Sprintf("%02X", nonce)
 }
