@@ -2,7 +2,6 @@ package bridge
 
 import (
 	"encoding/hex"
-	"math/big"
 	"testing"
 
 	chainSim "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
@@ -51,11 +50,11 @@ func DeploySovereignBridgeSetup(
 
 	setFeeMarketAddressData := "setFeeMarketAddress" +
 		"@" + hex.EncodeToString(feeMarketAddress)
-	chainSim.SendTransaction(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, big.NewInt(0), setFeeMarketAddressData, uint64(10000000))
+	chainSim.SendTransaction(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, chainSim.ZeroValue, setFeeMarketAddressData, uint64(10000000))
 
-	chainSim.SendTransaction(t, cs, wallet.Bytes, &nonce, feeMarketAddress, big.NewInt(0), "disableFee", uint64(10000000))
+	chainSim.SendTransaction(t, cs, wallet.Bytes, &nonce, feeMarketAddress, chainSim.ZeroValue, "disableFee", uint64(10000000))
 
-	chainSim.SendTransaction(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, big.NewInt(0), "unpause", uint64(10000000))
+	chainSim.SendTransaction(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, chainSim.ZeroValue, "unpause", uint64(10000000))
 
 	return &ArgsBridgeSetup{
 		ESDTSafeAddress:  esdtSafeAddress,

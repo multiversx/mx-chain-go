@@ -69,7 +69,7 @@ func DeployContract(
 ) []byte {
 	data = wasm.GetSCCode(wasmPath) + "@" + vmTypeHex + "@" + codeMetadata + data
 
-	tx := GenerateTransaction(sender, *nonce, receiver, big.NewInt(0), data, uint64(200000000))
+	tx := GenerateTransaction(sender, *nonce, receiver, ZeroValue, data, uint64(200000000))
 	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlocksToGenerateWhenExecutingTx)
 	*nonce++
 
