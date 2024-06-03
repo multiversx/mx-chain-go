@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	initialESDTSupplyFunc = "getTokenProperties"
+	getTokenPropertiesFunc = "getTokenProperties"
 )
 
 func TestSovereignChain_IssueFungible(t *testing.T) {
@@ -72,7 +72,7 @@ func TestSovereignChain_IssueFungible(t *testing.T) {
 
 	res, _, err := nodeHandler.GetFacadeHandler().ExecuteSCQuery(&process.SCQuery{
 		ScAddress: vm.ESDTSCAddress,
-		FuncName:  initialESDTSupplyFunc,
+		FuncName:  getTokenPropertiesFunc,
 		Arguments: [][]byte{[]byte(tokenIdentifier)},
 	})
 	require.Nil(t, err)
