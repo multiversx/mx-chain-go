@@ -32,7 +32,6 @@ import (
 	"github.com/multiversx/mx-chain-go/p2p"
 	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
 	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
-	"github.com/multiversx/mx-chain-go/process/rating"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -82,8 +81,42 @@ const DummySk = "cea01c0bf060187d90394802ff223078e47527dc8aa33a922744fb1d06029c4
 // LoadKeysFunc -
 type LoadKeysFunc func(string, int) ([]byte, string, error)
 
+// GetRunTypeCoreComponents -
+func GetRunTypeCoreComponents() factory.RunTypeCoreComponentsHolder {
+	runTypeCoreComponentsFactory := runType.NewRunTypeCoreComponentsFactory()
+	managedRunTypeCoreComponents, err := runType.NewManagedRunTypeCoreComponents(runTypeCoreComponentsFactory)
+	if err != nil {
+		log.Error("getRunTypeCoreComponents NewManagedRunTypeCoreComponents", "error", err.Error())
+		return nil
+	}
+	err = managedRunTypeCoreComponents.Create()
+	if err != nil {
+		log.Error("getRunTypeCoreComponents Create", "error", err.Error())
+		return nil
+	}
+	return managedRunTypeCoreComponents
+}
+
+// GetSovereignRunTypeCoreComponents -
+func GetSovereignRunTypeCoreComponents() factory.RunTypeCoreComponentsHolder {
+	runTypeCoreComponentsFactory := runType.NewRunTypeCoreComponentsFactory()
+	sovRunTypeCoreComponentsFactory, _ := runType.NewSovereignRunTypeCoreComponentsFactory(runTypeCoreComponentsFactory)
+	managedRunTypeCoreComponents, err := runType.NewManagedRunTypeCoreComponents(sovRunTypeCoreComponentsFactory)
+	if err != nil {
+		log.Error("getSovereignRunTypeCoreComponents NewManagedRunTypeCoreComponents", "error", err.Error())
+		return nil
+	}
+	err = managedRunTypeCoreComponents.Create()
+	if err != nil {
+		log.Error("getSovereignRunTypeCoreComponents Create", "error", err.Error())
+		return nil
+	}
+	return managedRunTypeCoreComponents
+}
+
 // GetCoreArgs -
 func GetCoreArgs() coreComp.CoreComponentsFactoryArgs {
+	runTypeCoreComponents := GetRunTypeCoreComponents()
 	return coreComp.CoreComponentsFactoryArgs{
 		Config: GetGeneralConfig(),
 		ConfigPathsHolder: config.ConfigurationPathsHolder{
@@ -111,8 +144,8 @@ func GetCoreArgs() coreComp.CoreComponentsFactoryArgs {
 				},
 			},
 		},
-		GenesisNodesSetupFactory: sharding.NewGenesisNodesSetupFactory(),
-		RatingsDataFactory:       rating.NewRatingsDataFactory(),
+		GenesisNodesSetupFactory: runTypeCoreComponents.GenesisNodesSetupFactoryCreator(),
+		RatingsDataFactory:       runTypeCoreComponents.RatingsDataFactoryCreator(),
 	}
 }
 
@@ -258,10 +291,11 @@ func GetCoreComponents() factory.CoreComponentsHolder {
 
 // GetSovereignCoreComponents -
 func GetSovereignCoreComponents() factory.CoreComponentsHolder {
+	sovRunTypeCoreComponents := GetSovereignRunTypeCoreComponents()
 	coreArgs := GetCoreArgs()
 	coreArgs.NodesFilename = "../mock/testdata/sovereignNodesSetupMock.json"
-	coreArgs.GenesisNodesSetupFactory = sharding.NewSovereignGenesisNodesSetupFactory()
-	coreArgs.RatingsDataFactory = rating.NewSovereignRatingsDataFactory()
+	coreArgs.GenesisNodesSetupFactory = sovRunTypeCoreComponents.GenesisNodesSetupFactoryCreator()
+	coreArgs.RatingsDataFactory = sovRunTypeCoreComponents.RatingsDataFactoryCreator()
 	return createCoreComponents(coreArgs)
 }
 
