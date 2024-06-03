@@ -2,8 +2,8 @@ package chainSimulator
 
 import "github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 
-// ChainProcessorFactory defines what the factory should be able to do
-type ChainProcessorFactory interface {
+// ChainHandlerFactory defines what the chain factory should be able to do
+type ChainHandlerFactory interface {
 	CreateChainHandler(nodeHandler process.NodeHandler) (ChainHandler, error)
 	IsInterfaceNil() bool
 }

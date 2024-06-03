@@ -27,7 +27,7 @@ const (
 )
 
 const (
-	eventIDExecutedOutGoingBridgeOp = "executed"
+	eventIDExecutedOutGoingBridgeOp = "execute"
 	eventIDDepositIncomingTransfer  = "deposit"
 
 	topicIDConfirmedOutGoingOperation = "executedBridgeOp"

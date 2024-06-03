@@ -328,6 +328,11 @@ func (sr *subroundEndRound) ReceivedBlockHeaderFinalInfo(cnsDta *consensus.Messa
 	return sr.receivedBlockHeaderFinalInfo(context.Background(), cnsDta)
 }
 
+// ReceivedBlockHeaderFinalInfo calls the unexported receivedBlockHeaderFinalInfo function
+func (sr *sovereignSubRoundEnd) ReceivedBlockHeaderFinalInfo(cnsDta *consensus.Message) bool {
+	return sr.receivedBlockHeaderFinalInfo(context.Background(), cnsDta)
+}
+
 // IsBlockHeaderFinalInfoValid calls the unexported isBlockHeaderFinalInfoValid function
 func (sr *subroundEndRound) IsBlockHeaderFinalInfoValid(cnsDta *consensus.Message) bool {
 	return sr.isBlockHeaderFinalInfoValid(cnsDta)
@@ -411,4 +416,9 @@ func (sr *subroundEndRoundV2) GetMessageToVerifySig() []byte {
 // DoSovereignEndRoundJob -
 func (sr *sovereignSubRoundEnd) DoSovereignEndRoundJob(ctx context.Context) bool {
 	return sr.doSovereignEndRoundJob(ctx)
+}
+
+// GetInternalHeader -
+func (sr *sovereignSubRoundEnd) GetInternalHeader() data.HeaderHandler {
+	return sr.Header
 }

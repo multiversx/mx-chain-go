@@ -41,10 +41,7 @@ depositTokenInSC() {
         --function="MultiESDTNFTTransfer" \
         --arguments \
            ${ESDT_SAFE_ADDRESS} \
-           2 \
-           str:${DEPOSIT_TOKEN_IDENTIFIER} \
-           0 \
-           ${AMOUNT_TO_TRANSFER} \
+           1 \
            str:${DEPOSIT_TOKEN_IDENTIFIER} \
            0 \
            ${AMOUNT_TO_TRANSFER} \
@@ -135,10 +132,7 @@ depositTokenInSCSovereign() {
         --function="MultiESDTNFTTransfer" \
         --arguments \
            ${ESDT_SAFE_ADDRESS_SOVEREIGN} \
-           2 \
-           str:${DEPOSIT_TOKEN_IDENTIFIER_SOVEREIGN} \
-           0 \
-           ${AMOUNT_TO_TRANSFER} \
+           1 \
            str:${DEPOSIT_TOKEN_IDENTIFIER_SOVEREIGN} \
            0 \
            ${AMOUNT_TO_TRANSFER} \

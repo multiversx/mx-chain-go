@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
+	chainSimulatorErrors "github.com/multiversx/mx-chain-go/node/chainSimulator/errors"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 	processing "github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/rating"
@@ -71,10 +72,10 @@ type ArgsChainSimulator struct {
 	CreateIncomingHeaderSubscriber func(config *config.NotifierConfig, dataPool dataRetriever.PoolsHolder, mainChainNotarizationStartRound uint64, runTypeComponents factory.RunTypeComponentsHolder) (processing.IncomingHeaderSubscriber, error)
 	CreateRunTypeComponents        func(args runType.ArgsRunTypeComponents) (factory.RunTypeComponentsHolder, error)
 	NodeFactory                    node.NodeFactory
-	ChainProcessorFactory          ChainProcessorFactory
+	ChainProcessorFactory          ChainHandlerFactory
 }
 
-type Simulator struct {
+type simulator struct {
 	chanStopNodeProcess    chan endProcess.ArgEndProcess
 	syncedBroadcastNetwork components.SyncedBroadcastNetworkHandler
 	handlers               []ChainHandler
@@ -87,10 +88,10 @@ type Simulator struct {
 }
 
 // NewChainSimulator will create a new instance of simulator
-func NewChainSimulator(args ArgsChainSimulator) (*Simulator, error) {
+func NewChainSimulator(args ArgsChainSimulator) (*simulator, error) {
 	setSimulatorRunTypeArguments(&args)
 
-	instance := &Simulator{
+	instance := &simulator{
 		syncedBroadcastNetwork: components.NewSyncedBroadcastNetwork(),
 		nodes:                  make(map[uint32]process.NodeHandler),
 		handlers:               make([]ChainHandler, 0, args.NumOfShards+1),
@@ -133,7 +134,7 @@ func setSimulatorRunTypeArguments(args *ArgsChainSimulator) {
 		args.NodeFactory = node.NewNodeFactory()
 	}
 	if args.ChainProcessorFactory == nil {
-		args.ChainProcessorFactory = NewProcessorFactory()
+		args.ChainProcessorFactory = NewChainHandlerFactory()
 	}
 }
 
@@ -154,7 +155,7 @@ func createRunTypeComponents(args runType.ArgsRunTypeComponents) (factory.RunTyp
 	return managedRunTypeComponents, nil
 }
 
-func (s *Simulator) createChainHandlers(args ArgsChainSimulator) error {
+func (s *simulator) createChainHandlers(args ArgsChainSimulator) error {
 	outputConfigs, err := configs.CreateChainSimulatorConfigs(configs.ArgsChainSimulatorConfigs{
 		NumOfShards:                 args.NumOfShards,
 		OriginalConfigsPath:         args.PathToInitialConfig,
@@ -242,7 +243,7 @@ func computeStartTimeBaseOnInitialRound(args ArgsChainSimulator) int64 {
 	return args.GenesisTimestamp + int64(args.RoundDurationInMillis/1000)*args.InitialRound
 }
 
-func (s *Simulator) createTestNode(
+func (s *simulator) createTestNode(
 	outputConfigs configs.ArgsConfigsSimulator, args ArgsChainSimulator, shardIDStr string,
 ) (process.NodeHandler, error) {
 	argsTestOnlyProcessorNode := components.ArgsTestOnlyProcessingNode{
@@ -272,7 +273,7 @@ func (s *Simulator) createTestNode(
 }
 
 // GenerateBlocks will generate the provided number of blocks
-func (s *Simulator) GenerateBlocks(numOfBlocks int) error {
+func (s *simulator) GenerateBlocks(numOfBlocks int) error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -287,7 +288,7 @@ func (s *Simulator) GenerateBlocks(numOfBlocks int) error {
 }
 
 // GenerateBlocksUntilEpochIsReached will generate blocks until the epoch is reached
-func (s *Simulator) GenerateBlocksUntilEpochIsReached(targetEpoch int32) error {
+func (s *simulator) GenerateBlocksUntilEpochIsReached(targetEpoch int32) error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -312,7 +313,7 @@ func (s *Simulator) GenerateBlocksUntilEpochIsReached(targetEpoch int32) error {
 }
 
 // ForceResetValidatorStatisticsCache will force the reset of the cache used for the validators statistics endpoint
-func (s *Simulator) ForceResetValidatorStatisticsCache() error {
+func (s *simulator) ForceResetValidatorStatisticsCache() error {
 	metachainNode := s.GetNodeHandler(core.MetachainShardId)
 	if check.IfNil(metachainNode) {
 		return errNilMetachainNode
@@ -321,7 +322,7 @@ func (s *Simulator) ForceResetValidatorStatisticsCache() error {
 	return metachainNode.GetProcessComponents().ValidatorsProvider().ForceUpdate()
 }
 
-func (s *Simulator) isTargetEpochReached(targetEpoch int32) (bool, error) {
+func (s *simulator) isTargetEpochReached(targetEpoch int32) (bool, error) {
 	metachainNode := s.nodes[core.MetachainShardId]
 	metachainEpoch := metachainNode.GetCoreComponents().EnableEpochsHandler().GetCurrentEpoch()
 
@@ -341,13 +342,13 @@ func (s *Simulator) isTargetEpochReached(targetEpoch int32) (bool, error) {
 	return true, nil
 }
 
-func (s *Simulator) incrementRoundOnAllValidators() {
+func (s *simulator) incrementRoundOnAllValidators() {
 	for _, node := range s.handlers {
 		node.IncrementRound()
 	}
 }
 
-func (s *Simulator) allNodesCreateBlocks() error {
+func (s *simulator) allNodesCreateBlocks() error {
 	for _, node := range s.handlers {
 		// TODO MX-15150 remove this when we remove all goroutines
 		time.Sleep(2 * time.Millisecond)
@@ -362,7 +363,7 @@ func (s *Simulator) allNodesCreateBlocks() error {
 }
 
 // GetNodeHandler returns the node handler from the provided shardID
-func (s *Simulator) GetNodeHandler(shardID uint32) process.NodeHandler {
+func (s *simulator) GetNodeHandler(shardID uint32) process.NodeHandler {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 
@@ -370,7 +371,7 @@ func (s *Simulator) GetNodeHandler(shardID uint32) process.NodeHandler {
 }
 
 // GetRestAPIInterfaces will return a map with the rest api interfaces for every node
-func (s *Simulator) GetRestAPIInterfaces() map[uint32]string {
+func (s *simulator) GetRestAPIInterfaces() map[uint32]string {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -383,12 +384,12 @@ func (s *Simulator) GetRestAPIInterfaces() map[uint32]string {
 }
 
 // GetInitialWalletKeys will return the initial wallet keys
-func (s *Simulator) GetInitialWalletKeys() *dtos.InitialWalletKeys {
+func (s *simulator) GetInitialWalletKeys() *dtos.InitialWalletKeys {
 	return s.initialWalletKeys
 }
 
 // AddValidatorKeys will add the provided validators private keys in the keys handler on all nodes
-func (s *Simulator) AddValidatorKeys(validatorsPrivateKeys [][]byte) error {
+func (s *simulator) AddValidatorKeys(validatorsPrivateKeys [][]byte) error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -404,7 +405,7 @@ func (s *Simulator) AddValidatorKeys(validatorsPrivateKeys [][]byte) error {
 
 // GenerateAndMintWalletAddress will generate an address in the provided shard and will mint that address with the provided value
 // if the target shard ID value does not correspond to a node handled by the chain simulator, the address will be generated in a random shard ID
-func (s *Simulator) GenerateAndMintWalletAddress(targetShardID uint32, value *big.Int) (dtos.WalletAddress, error) {
+func (s *simulator) GenerateAndMintWalletAddress(targetShardID uint32, value *big.Int) (dtos.WalletAddress, error) {
 	addressConverter := s.nodes[0].GetCoreComponents().AddressPubKeyConverter()
 	nodeHandler := s.GetNodeHandler(targetShardID)
 	var buff []byte
@@ -449,7 +450,7 @@ func generateAddress(len int) []byte {
 	return buff
 }
 
-func (s *Simulator) setValidatorKeysForNode(node process.NodeHandler, validatorsPrivateKeys [][]byte) error {
+func (s *simulator) setValidatorKeysForNode(node process.NodeHandler, validatorsPrivateKeys [][]byte) error {
 	for idx, privateKey := range validatorsPrivateKeys {
 
 		err := node.GetCryptoComponents().ManagedPeersHolder().AddManagedPeer(privateKey)
@@ -462,7 +463,7 @@ func (s *Simulator) setValidatorKeysForNode(node process.NodeHandler, validators
 }
 
 // GetValidatorPrivateKeys will return the initial validators private keys
-func (s *Simulator) GetValidatorPrivateKeys() []crypto.PrivateKey {
+func (s *simulator) GetValidatorPrivateKeys() []crypto.PrivateKey {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -470,7 +471,7 @@ func (s *Simulator) GetValidatorPrivateKeys() []crypto.PrivateKey {
 }
 
 // SetKeyValueForAddress will set the provided state for a given address
-func (s *Simulator) SetKeyValueForAddress(address string, keyValueMap map[string]string) error {
+func (s *simulator) SetKeyValueForAddress(address string, keyValueMap map[string]string) error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -493,7 +494,7 @@ func (s *Simulator) SetKeyValueForAddress(address string, keyValueMap map[string
 	return testNode.SetKeyValueForAddress(addressBytes, keyValueMap)
 }
 
-func (s *Simulator) setKeyValueSystemAccount(keyValueMap map[string]string) error {
+func (s *simulator) setKeyValueSystemAccount(keyValueMap map[string]string) error {
 	for shard, node := range s.nodes {
 		err := node.SetKeyValueForAddress(core.SystemAccountAddress, keyValueMap)
 		if err != nil {
@@ -505,7 +506,7 @@ func (s *Simulator) setKeyValueSystemAccount(keyValueMap map[string]string) erro
 }
 
 // SetStateMultiple will set state for multiple addresses
-func (s *Simulator) SetStateMultiple(stateSlice []*dtos.AddressState) error {
+func (s *simulator) SetStateMultiple(stateSlice []*dtos.AddressState) error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -531,7 +532,7 @@ func (s *Simulator) SetStateMultiple(stateSlice []*dtos.AddressState) error {
 }
 
 // RemoveAccounts will try to remove all accounts data for the addresses provided
-func (s *Simulator) RemoveAccounts(addresses []string) error {
+func (s *simulator) RemoveAccounts(addresses []string) error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -557,7 +558,7 @@ func (s *Simulator) RemoveAccounts(addresses []string) error {
 }
 
 // SendTxAndGenerateBlockTilTxIsExecuted will send the provided transaction and generate block until the transaction is executed
-func (s *Simulator) SendTxAndGenerateBlockTilTxIsExecuted(txToSend *transaction.Transaction, maxNumOfBlocksToGenerateWhenExecutingTx int) (*transaction.ApiTransactionResult, error) {
+func (s *simulator) SendTxAndGenerateBlockTilTxIsExecuted(txToSend *transaction.Transaction, maxNumOfBlocksToGenerateWhenExecutingTx int) (*transaction.ApiTransactionResult, error) {
 	result, err := s.SendTxsAndGenerateBlocksTilAreExecuted([]*transaction.Transaction{txToSend}, maxNumOfBlocksToGenerateWhenExecutingTx)
 	if err != nil {
 		return nil, err
@@ -567,18 +568,18 @@ func (s *Simulator) SendTxAndGenerateBlockTilTxIsExecuted(txToSend *transaction.
 }
 
 // SendTxsAndGenerateBlocksTilAreExecuted will send the provided transactions and generate block until all transactions are executed
-func (s *Simulator) SendTxsAndGenerateBlocksTilAreExecuted(txsToSend []*transaction.Transaction, maxNumOfBlocksToGenerateWhenExecutingTx int) ([]*transaction.ApiTransactionResult, error) {
+func (s *simulator) SendTxsAndGenerateBlocksTilAreExecuted(txsToSend []*transaction.Transaction, maxNumOfBlocksToGenerateWhenExecutingTx int) ([]*transaction.ApiTransactionResult, error) {
 	if len(txsToSend) == 0 {
-		return nil, ErrEmptySliceOfTxs
+		return nil, chainSimulatorErrors.ErrEmptySliceOfTxs
 	}
 	if maxNumOfBlocksToGenerateWhenExecutingTx == 0 {
-		return nil, ErrInvalidMaxNumOfBlocks
+		return nil, chainSimulatorErrors.ErrInvalidMaxNumOfBlocks
 	}
 
 	transactionStatus := make([]*transactionWithResult, 0, len(txsToSend))
 	for idx, tx := range txsToSend {
 		if tx == nil {
-			return nil, fmt.Errorf("%w on position %d", ErrNilTransaction, idx)
+			return nil, fmt.Errorf("%w on position %d", chainSimulatorErrors.ErrNilTransaction, idx)
 		}
 
 		txHashHex, err := s.sendTx(tx)
@@ -609,7 +610,7 @@ func (s *Simulator) SendTxsAndGenerateBlocksTilAreExecuted(txsToSend []*transact
 	return nil, errors.New("something went wrong. Transaction(s) is/are still in pending")
 }
 
-func (s *Simulator) computeTransactionsStatus(txsWithResult []*transactionWithResult) bool {
+func (s *simulator) computeTransactionsStatus(txsWithResult []*transactionWithResult) bool {
 	allAreExecuted := true
 	for _, resultTx := range txsWithResult {
 		if resultTx.result != nil {
@@ -640,7 +641,7 @@ func getApiTransactionsFromResult(txWithResult []*transactionWithResult) []*tran
 	return result
 }
 
-func (s *Simulator) sendTx(tx *transaction.Transaction) (string, error) {
+func (s *simulator) sendTx(tx *transaction.Transaction) (string, error) {
 	shardID := s.GetNodeHandler(0).GetShardCoordinator().ComputeId(tx.SndAddr)
 	err := s.GetNodeHandler(shardID).GetFacadeHandler().ValidateTransaction(tx)
 	if err != nil {
@@ -670,7 +671,7 @@ func (s *Simulator) sendTx(tx *transaction.Transaction) (string, error) {
 	}
 }
 
-func (s *Simulator) setStateSystemAccount(state *dtos.AddressState) error {
+func (s *simulator) setStateSystemAccount(state *dtos.AddressState) error {
 	for shard, node := range s.nodes {
 		err := node.SetStateForAddress(core.SystemAccountAddress, state)
 		if err != nil {
@@ -681,7 +682,7 @@ func (s *Simulator) setStateSystemAccount(state *dtos.AddressState) error {
 	return nil
 }
 
-func (s *Simulator) removeAllSystemAccounts() error {
+func (s *simulator) removeAllSystemAccounts() error {
 	for shard, node := range s.nodes {
 		err := node.RemoveAccount(core.SystemAccountAddress)
 		if err != nil {
@@ -693,7 +694,7 @@ func (s *Simulator) removeAllSystemAccounts() error {
 }
 
 // GetAccount will fetch the account of the provided address
-func (s *Simulator) GetAccount(address dtos.WalletAddress) (api.AccountResponse, error) {
+func (s *simulator) GetAccount(address dtos.WalletAddress) (api.AccountResponse, error) {
 	destinationShardID := s.GetNodeHandler(0).GetShardCoordinator().ComputeId(address.Bytes)
 
 	account, _, err := s.GetNodeHandler(destinationShardID).GetFacadeHandler().GetAccount(address.Bech32, api.AccountQueryOptions{})
@@ -701,7 +702,7 @@ func (s *Simulator) GetAccount(address dtos.WalletAddress) (api.AccountResponse,
 }
 
 // Close will stop and close the simulator
-func (s *Simulator) Close() {
+func (s *simulator) Close() {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -719,7 +720,7 @@ func (s *Simulator) Close() {
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (s *Simulator) IsInterfaceNil() bool {
+func (s *simulator) IsInterfaceNil() bool {
 	return s == nil
 }
 

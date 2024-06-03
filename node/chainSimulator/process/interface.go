@@ -30,3 +30,9 @@ type NodeHandler interface {
 	Close() error
 	IsInterfaceNil() bool
 }
+
+// BlocksProcessorFactory defines what the block processor factory should be able to do
+type BlocksProcessorFactory interface {
+	ProcessBlock(processor process.BlockProcessor, header chainData.HeaderHandler) (chainData.HeaderHandler, chainData.BodyHandler, error)
+	IsInterfaceNil() bool
+}

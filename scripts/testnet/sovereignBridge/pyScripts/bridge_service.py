@@ -2,7 +2,6 @@ import os
 import re
 import subprocess
 import sys
-from datetime import datetime
 
 
 def update_env(lines, identifier, value) -> []:
@@ -21,7 +20,8 @@ def build_and_run_bridge_server(server_path):
     os.chdir(server_path)
 
     build_command = "go build"
-    run_service = "screen -L -Logfile sovereignBridgeService.log -d -m -S sovereignBridgeService ./server"
+    kill_screen_service = "screen -ls | grep 'sovereignBridgeService' | awk -F. '{print $1}' | xargs -I{} screen -X -S {} quit"
+    run_service = "screen -dmS sovereignBridgeService -L -Logfile sovereignBridgeService.log ./server"
 
     build_process = subprocess.run(build_command, shell=True, capture_output=True, text=True)
     if build_process.returncode == 0:
@@ -29,6 +29,8 @@ def build_and_run_bridge_server(server_path):
     else:
         print("Error during Go build.")
         return
+
+    subprocess.run(kill_screen_service, shell=True, capture_output=True, text=True)
 
     # TODO start terminal with server app
     run_process = subprocess.run(run_service, shell=True, capture_output=True, text=True)

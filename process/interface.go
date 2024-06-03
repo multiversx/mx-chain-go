@@ -289,10 +289,16 @@ type ScheduledBlockProcessor interface {
 	IsInterfaceNil() bool
 }
 
+// ValidatorStatsHeader defines a common header which contains validator stats root hash
+type ValidatorStatsHeader interface {
+	data.HeaderHandler
+	GetValidatorStatsRootHash() []byte
+}
+
 // ValidatorStatisticsProcessor is the main interface for validators' consensus participation statistics
 type ValidatorStatisticsProcessor interface {
 	UpdatePeerState(header data.CommonHeaderHandler, cache map[string]data.CommonHeaderHandler) ([]byte, error)
-	RevertPeerState(header data.MetaHeaderHandler) error
+	RevertPeerState(header ValidatorStatsHeader) error
 	Process(shardValidatorInfo data.ShardValidatorInfoHandler) error
 	IsInterfaceNil() bool
 	RootHash() ([]byte, error)

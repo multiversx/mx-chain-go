@@ -33,6 +33,10 @@ func (op *outGoingOperationsPool) GetUnconfirmedOperations() []*sovereign.Bridge
 	return make([]*sovereign.BridgeOutGoingData, 0)
 }
 
+// ResetTimer -
+func (op *outGoingOperationsPool) ResetTimer(_ [][]byte) {
+}
+
 // IsInterfaceNil checks if the underlying pointer is nil
 func (op *outGoingOperationsPool) IsInterfaceNil() bool {
 	return op == nil
