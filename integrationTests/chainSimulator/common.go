@@ -1,247 +1,258 @@
 package chainSimulator
 
 import (
-	"encoding/base64"
+	"encoding/hex"
+	"fmt"
 	"math/big"
+	"strings"
 	"testing"
-	"time"
 
-	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
-	"github.com/multiversx/mx-chain-go/node/chainSimulator/errors"
-	chainSimulatorProcess "github.com/multiversx/mx-chain-go/node/chainSimulator/process"
-	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
+	"github.com/multiversx/mx-chain-go/vm"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	coreAPI "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// CheckSetState -
-func CheckSetState(t *testing.T, chainSimulator ChainSimulator, nodeHandler chainSimulatorProcess.NodeHandler) {
-	keyValueMap := map[string]string{
-		"01": "01",
-		"02": "02",
+const (
+	vmTypeHex                               = "0500"
+	codeMetadata                            = "0500"
+	minGasPrice                             = 1000000000
+	txVersion                               = 1
+	mockTxSignature                         = "sig"
+	deposit                                 = "deposit"
+	multiEsdtTransfer                       = "MultiESDTNFTTransfer"
+	maxNumOfBlocksToGenerateWhenExecutingTx = 1
+	signalError                             = "signalError"
+
+	// OkReturnCode the const for the ok return code
+	OkReturnCode = "ok"
+)
+
+var (
+	// ZeroValue the variable for the zero big int
+	ZeroValue = big.NewInt(0)
+	// OneEGLD the variable for one egld value
+	OneEGLD = big.NewInt(1000000000000000000)
+	// MinimumStakeValue the variable for the minimum stake value
+	MinimumStakeValue = big.NewInt(0).Mul(OneEGLD, big.NewInt(2500))
+	// InitialAmount the variable for initial minting amount in account
+	InitialAmount = big.NewInt(0).Mul(OneEGLD, big.NewInt(100))
+)
+
+// ArgsDepositToken holds the arguments for a token
+type ArgsDepositToken struct {
+	Identifier string
+	Nonce      uint64
+	Amount     *big.Int
+}
+
+// GetSysAccBytesAddress will return the system account bytes address
+func GetSysAccBytesAddress(t *testing.T, nodeHandler process.NodeHandler) []byte {
+	addressBytes, err := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode("erd1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq6gq4hu")
+	require.Nil(t, err)
+
+	return addressBytes
+}
+
+// DeployContract will deploy a smart contract and return its address
+func DeployContract(
+	t *testing.T,
+	cs ChainSimulator,
+	sender []byte,
+	nonce *uint64,
+	receiver []byte,
+	data string,
+	wasmPath string,
+) []byte {
+	data = wasm.GetSCCode(wasmPath) + "@" + vmTypeHex + "@" + codeMetadata + data
+
+	tx := GenerateTransaction(sender, *nonce, receiver, big.NewInt(0), data, uint64(200000000))
+	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlocksToGenerateWhenExecutingTx)
+	*nonce++
+
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+	require.Equal(t, transaction.TxStatusSuccess, txResult.Status)
+
+	address := txResult.Logs.Events[0].Topics[0]
+	require.NotNil(t, address)
+	return address
+}
+
+// GenerateTransaction will generate a transaction object
+func GenerateTransaction(sender []byte, nonce uint64, receiver []byte, value *big.Int, data string, gasLimit uint64) *transaction.Transaction {
+	return &transaction.Transaction{
+		Nonce:     nonce,
+		Value:     value,
+		SndAddr:   sender,
+		RcvAddr:   receiver,
+		Data:      []byte(data),
+		GasLimit:  gasLimit,
+		GasPrice:  minGasPrice,
+		ChainID:   []byte(configs.ChainID),
+		Version:   txVersion,
+		Signature: []byte(mockTxSignature),
+	}
+}
+
+// SendTransaction will send a transaction and return the result
+func SendTransaction(
+	t *testing.T,
+	cs ChainSimulator,
+	sender []byte,
+	nonce *uint64,
+	receiver []byte,
+	value *big.Int,
+	data string,
+	gasLimit uint64,
+) *transaction.ApiTransactionResult {
+	tx := GenerateTransaction(sender, *nonce, receiver, value, data, gasLimit)
+	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlocksToGenerateWhenExecutingTx)
+	*nonce++
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+	require.Equal(t, transaction.TxStatusSuccess, txResult.Status)
+	if txResult.Logs != nil && txResult.Logs.Events != nil && len(txResult.Logs.Events) > 0 {
+		require.NotEqual(t, signalError, txResult.Logs.Events[0].Identifier)
 	}
 
-	address := "erd1qtc600lryvytxuy4h7vn7xmsy5tw6vuw3tskr75cwnmv4mnyjgsq6e5zgj"
-	err := chainSimulator.SetKeyValueForAddress(address, keyValueMap)
-	require.Nil(t, err)
-
-	err = chainSimulator.GenerateBlocks(1)
-	require.Nil(t, err)
-
-	keyValuePairs, _, err := nodeHandler.GetFacadeHandler().GetKeyValuePairs(address, coreAPI.AccountQueryOptions{})
-	require.Nil(t, err)
-	require.Equal(t, keyValueMap, keyValuePairs)
+	return txResult
 }
 
-// CheckSetEntireState -
-func CheckSetEntireState(t *testing.T, chainSimulator ChainSimulator, nodeHandler chainSimulatorProcess.NodeHandler, accountState *dtos.AddressState) {
-	err := chainSimulator.SetStateMultiple([]*dtos.AddressState{accountState})
-	require.Nil(t, err)
+// RegisterAndSetAllRoles will issue an esdt token with all roles enabled
+func RegisterAndSetAllRoles(
+	t *testing.T,
+	cs ChainSimulator,
+	nodeHandler process.NodeHandler,
+	sender []byte,
+	nonce *uint64,
+	issueCost *big.Int,
+	esdtName string,
+	esdtTicker string,
+	tokenType string,
+	numDecimals int,
+) string {
+	esdtType := getTokenRegisterType(tokenType)
+	registerArgs := "registerAndSetAllRoles" +
+		"@" + hex.EncodeToString([]byte(esdtName)) +
+		"@" + hex.EncodeToString([]byte(esdtTicker)) +
+		"@" + hex.EncodeToString([]byte(esdtType)) +
+		"@" + fmt.Sprintf("%02X", numDecimals)
+	SendTransaction(t, cs, sender, nonce, vm.ESDTSCAddress, issueCost, registerArgs, uint64(60000000))
 
-	err = chainSimulator.GenerateBlocks(30)
-	require.Nil(t, err)
-
-	scAddress, _ := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode(accountState.Address)
-	res, _, err := nodeHandler.GetFacadeHandler().ExecuteSCQuery(&process.SCQuery{
-		ScAddress:  scAddress,
-		FuncName:   "getSum",
-		CallerAddr: nil,
-		BlockNonce: core.OptionalUint64{},
-	})
-	require.Nil(t, err)
-
-	counterValue := big.NewInt(0).SetBytes(res.ReturnData[0]).Int64()
-	require.Equal(t, 10, int(counterValue))
-
-	time.Sleep(time.Second)
-
-	account, _, err := nodeHandler.GetFacadeHandler().GetAccount(accountState.Address, coreAPI.AccountQueryOptions{})
-	require.Nil(t, err)
-	require.Equal(t, accountState.Balance, account.Balance)
-	require.Equal(t, accountState.DeveloperRewards, account.DeveloperReward)
-	require.Equal(t, accountState.Code, account.Code)
-	require.Equal(t, accountState.CodeHash, base64.StdEncoding.EncodeToString(account.CodeHash))
-	require.Equal(t, accountState.CodeMetadata, base64.StdEncoding.EncodeToString(account.CodeMetadata))
-	require.Equal(t, accountState.Owner, account.OwnerAddress)
-	require.Equal(t, accountState.RootHash, base64.StdEncoding.EncodeToString(account.RootHash))
+	return getEsdtIdentifier(t, nodeHandler, esdtTicker, tokenType)
 }
 
-// CheckSetEntireStateWithRemoval -
-func CheckSetEntireStateWithRemoval(t *testing.T, chainSimulator ChainSimulator, nodeHandler chainSimulatorProcess.NodeHandler, accountState *dtos.AddressState) {
-	// activate the auto balancing tries so the results will be the same
-	err := chainSimulator.GenerateBlocks(30)
-	require.Nil(t, err)
-
-	err = chainSimulator.SetStateMultiple([]*dtos.AddressState{accountState})
-	require.Nil(t, err)
-
-	err = chainSimulator.GenerateBlocks(2)
-	require.Nil(t, err)
-
-	scAddress, _ := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode(accountState.Address)
-	res, _, err := nodeHandler.GetFacadeHandler().ExecuteSCQuery(&process.SCQuery{
-		ScAddress:  scAddress,
-		FuncName:   "getSum",
-		CallerAddr: nil,
-		BlockNonce: core.OptionalUint64{},
-	})
-	require.Nil(t, err)
-
-	counterValue := big.NewInt(0).SetBytes(res.ReturnData[0]).Int64()
-	require.Equal(t, 10, int(counterValue))
-
-	account, _, err := nodeHandler.GetFacadeHandler().GetAccount(accountState.Address, coreAPI.AccountQueryOptions{})
-	require.Nil(t, err)
-	require.Equal(t, accountState.Balance, account.Balance)
-	require.Equal(t, accountState.DeveloperRewards, account.DeveloperReward)
-	require.Equal(t, accountState.Code, account.Code)
-	require.Equal(t, accountState.CodeHash, base64.StdEncoding.EncodeToString(account.CodeHash))
-	require.Equal(t, accountState.CodeMetadata, base64.StdEncoding.EncodeToString(account.CodeMetadata))
-	require.Equal(t, accountState.Owner, account.OwnerAddress)
-	require.Equal(t, accountState.RootHash, base64.StdEncoding.EncodeToString(account.RootHash))
-
-	// Now we remove the account
-	err = chainSimulator.RemoveAccounts([]string{accountState.Address})
-	require.Nil(t, err)
-
-	err = chainSimulator.GenerateBlocks(2)
-	require.Nil(t, err)
-
-	account, _, err = nodeHandler.GetFacadeHandler().GetAccount(accountState.Address, coreAPI.AccountQueryOptions{})
-	require.Nil(t, err)
-	require.Equal(t, "0", account.Balance)
-	require.Equal(t, "0", account.DeveloperReward)
-	require.Equal(t, "", account.Code)
-	require.Equal(t, "", base64.StdEncoding.EncodeToString(account.CodeHash))
-	require.Equal(t, "", base64.StdEncoding.EncodeToString(account.CodeMetadata))
-	require.Equal(t, "", account.OwnerAddress)
-	require.Equal(t, "", base64.StdEncoding.EncodeToString(account.RootHash))
-
-	// Set the state again
-	err = chainSimulator.SetStateMultiple([]*dtos.AddressState{accountState})
-	require.Nil(t, err)
-
-	err = chainSimulator.GenerateBlocks(2)
-	require.Nil(t, err)
-
-	account, _, err = nodeHandler.GetFacadeHandler().GetAccount(accountState.Address, coreAPI.AccountQueryOptions{})
-	require.Nil(t, err)
-
-	require.Equal(t, accountState.Balance, account.Balance)
-	require.Equal(t, accountState.DeveloperRewards, account.DeveloperReward)
-	require.Equal(t, accountState.Code, account.Code)
-	require.Equal(t, accountState.CodeHash, base64.StdEncoding.EncodeToString(account.CodeHash))
-	require.Equal(t, accountState.CodeMetadata, base64.StdEncoding.EncodeToString(account.CodeMetadata))
-	require.Equal(t, accountState.Owner, account.OwnerAddress)
-	require.Equal(t, accountState.RootHash, base64.StdEncoding.EncodeToString(account.RootHash))
-}
-
-// CheckGetAccount -
-func CheckGetAccount(t *testing.T, chainSimulator ChainSimulator) {
-	// the facade's GetAccount method requires that at least one block was produced over the genesis block
-	err := chainSimulator.GenerateBlocks(1)
-	require.Nil(t, err)
-
-	address := dtos.WalletAddress{
-		Bech32: "erd1qtc600lryvytxuy4h7vn7xmsy5tw6vuw3tskr75cwnmv4mnyjgsq6e5zgj",
+func getTokenRegisterType(tokenType string) string {
+	switch tokenType {
+	case core.FungibleESDT:
+		return "FNG"
+	case core.NonFungibleESDT:
+		return "NFT"
+	case core.SemiFungibleESDT:
+		return "SFT"
+	case core.MetaESDT:
+		return "METTA"
 	}
-	address.Bytes, err = chainSimulator.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Decode(address.Bech32)
-	require.Nil(t, err)
-
-	account, err := chainSimulator.GetAccount(address)
-	require.Nil(t, err)
-	require.Equal(t, uint64(0), account.Nonce)
-	require.Equal(t, "0", account.Balance)
-
-	nonce := uint64(37)
-	err = chainSimulator.SetStateMultiple([]*dtos.AddressState{
-		{
-			Address: address.Bech32,
-			Nonce:   &nonce,
-			Balance: big.NewInt(38).String(),
-		},
-	})
-	require.Nil(t, err)
-
-	// without this call the test will fail because the latest produced block points to a state roothash that tells that
-	// the account has the nonce 0
-	_ = chainSimulator.GenerateBlocks(1)
-
-	account, err = chainSimulator.GetAccount(address)
-	require.Nil(t, err)
-	require.Equal(t, uint64(37), account.Nonce)
-	require.Equal(t, "38", account.Balance)
+	return ""
 }
 
-// CheckGenerateTransactions -
-func CheckGenerateTransactions(t *testing.T, chainSimulator ChainSimulator) {
-	oneEgld := big.NewInt(1000000000000000000)
-	initialMinting := big.NewInt(0).Mul(oneEgld, big.NewInt(100))
-	transferValue := big.NewInt(0).Mul(oneEgld, big.NewInt(5))
+// IssueFungible will issue a fungible token
+func IssueFungible(
+	t *testing.T,
+	cs ChainSimulator,
+	nodeHandler process.NodeHandler,
+	sender []byte,
+	nonce *uint64,
+	issueCost *big.Int,
+	tokenName string,
+	tokenTicker string,
+	numDecimals int,
+	supply *big.Int,
+) string {
+	issueArgs := "issue" +
+		"@" + hex.EncodeToString([]byte(tokenName)) +
+		"@" + hex.EncodeToString([]byte(tokenTicker)) +
+		"@" + hex.EncodeToString(supply.Bytes()) +
+		"@" + fmt.Sprintf("%X", numDecimals) +
+		"@" + hex.EncodeToString([]byte("canAddSpecialRoles")) +
+		"@" + hex.EncodeToString([]byte("true"))
+	SendTransaction(t, cs, sender, nonce, vm.ESDTSCAddress, issueCost, issueArgs, uint64(60000000))
 
-	wallet0, err := chainSimulator.GenerateAndMintWalletAddress(0, initialMinting)
+	return getEsdtIdentifier(t, nodeHandler, tokenTicker, core.FungibleESDT)
+}
+
+// IssueSemiFungible will issue a semi fungible token
+func IssueSemiFungible(
+	t *testing.T,
+	cs ChainSimulator,
+	nodeHandler process.NodeHandler,
+	sender []byte,
+	nonce *uint64,
+	issueCost *big.Int,
+	sftName string,
+	sftTicker string,
+) string {
+	issueArgs := "issueSemiFungible" +
+		"@" + hex.EncodeToString([]byte(sftName)) +
+		"@" + hex.EncodeToString([]byte(sftTicker))
+	SendTransaction(t, cs, sender, nonce, vm.ESDTSCAddress, issueCost, issueArgs, uint64(60000000))
+
+	return getEsdtIdentifier(t, nodeHandler, sftTicker, core.SemiFungibleESDT)
+}
+
+func getEsdtIdentifier(t *testing.T, nodeHandler process.NodeHandler, ticker string, tokenType string) string {
+	issuedTokens, err := nodeHandler.GetFacadeHandler().GetAllIssuedESDTs(tokenType)
 	require.Nil(t, err)
+	require.GreaterOrEqual(t, len(issuedTokens), 1)
 
-	wallet1, err := chainSimulator.GenerateAndMintWalletAddress(1, initialMinting)
-	require.Nil(t, err)
+	for _, issuedToken := range issuedTokens {
+		if strings.Contains(issuedToken, ticker) {
+			return issuedToken
+		}
+	}
 
-	wallet2, err := chainSimulator.GenerateAndMintWalletAddress(2, initialMinting)
-	require.Nil(t, err)
+	require.Fail(t, "could not issue semi fungible")
+	return ""
+}
 
-	wallet3, err := chainSimulator.GenerateAndMintWalletAddress(2, initialMinting)
-	require.Nil(t, err)
+// Deposit will deposit tokens in a contract
+func Deposit(
+	t *testing.T,
+	cs ChainSimulator,
+	sender []byte,
+	nonce *uint64,
+	contract []byte,
+	tokens []ArgsDepositToken,
+	receiver []byte,
+) {
+	require.True(t, len(tokens) > 0)
 
-	wallet4, err := chainSimulator.GenerateAndMintWalletAddress(2, initialMinting)
-	require.Nil(t, err)
+	depositArgs := multiEsdtTransfer +
+		"@" + hex.EncodeToString(contract) +
+		"@" + fmt.Sprintf("%02X", len(tokens))
 
-	gasLimit := uint64(50000)
-	tx0 := GenerateTransaction(wallet0.Bytes, 0, wallet2.Bytes, transferValue, "", gasLimit)
-	tx1 := GenerateTransaction(wallet1.Bytes, 0, wallet2.Bytes, transferValue, "", gasLimit)
-	tx3 := GenerateTransaction(wallet3.Bytes, 0, wallet4.Bytes, transferValue, "", gasLimit)
+	for _, token := range tokens {
+		depositArgs = depositArgs +
+			"@" + hex.EncodeToString([]byte(token.Identifier)) +
+			"@" + getTokenNonce(token.Nonce) +
+			"@" + hex.EncodeToString(token.Amount.Bytes())
+	}
 
-	maxNumOfBlockToGenerateWhenExecutingTx := 15
+	depositArgs = depositArgs +
+		"@" + hex.EncodeToString([]byte(deposit)) +
+		"@" + hex.EncodeToString(receiver)
 
-	t.Run("nil or empty slice of transactions should error", func(t *testing.T) {
-		sentTxs, errSend := chainSimulator.SendTxsAndGenerateBlocksTilAreExecuted(nil, 1)
-		assert.Equal(t, errors.ErrEmptySliceOfTxs, errSend)
-		assert.Nil(t, sentTxs)
+	SendTransaction(t, cs, sender, nonce, sender, ZeroValue, depositArgs, uint64(20000000))
+}
 
-		sentTxs, errSend = chainSimulator.SendTxsAndGenerateBlocksTilAreExecuted(make([]*transaction.Transaction, 0), 1)
-		assert.Equal(t, errors.ErrEmptySliceOfTxs, errSend)
-		assert.Nil(t, sentTxs)
-	})
-	t.Run("invalid max number of blocks to generate should error", func(t *testing.T) {
-		sentTxs, errSend := chainSimulator.SendTxsAndGenerateBlocksTilAreExecuted([]*transaction.Transaction{tx0, tx1}, 0)
-		assert.Equal(t, errors.ErrInvalidMaxNumOfBlocks, errSend)
-		assert.Nil(t, sentTxs)
-	})
-	t.Run("nil transaction in slice should error", func(t *testing.T) {
-		sentTxs, errSend := chainSimulator.SendTxsAndGenerateBlocksTilAreExecuted([]*transaction.Transaction{nil}, 1)
-		assert.ErrorIs(t, errSend, errors.ErrNilTransaction)
-		assert.Nil(t, sentTxs)
-	})
-	t.Run("2 transactions from different shard should call send correctly", func(t *testing.T) {
-		sentTxs, errSend := chainSimulator.SendTxsAndGenerateBlocksTilAreExecuted([]*transaction.Transaction{tx0, tx1}, maxNumOfBlockToGenerateWhenExecutingTx)
-		assert.Equal(t, 2, len(sentTxs))
-		assert.Nil(t, errSend)
-
-		account, errGet := chainSimulator.GetAccount(wallet2)
-		assert.Nil(t, errGet)
-		expectedBalance := big.NewInt(0).Add(initialMinting, transferValue)
-		expectedBalance.Add(expectedBalance, transferValue)
-		assert.Equal(t, expectedBalance.String(), account.Balance)
-	})
-	t.Run("1 transaction should be sent correctly", func(t *testing.T) {
-		_, errSend := chainSimulator.SendTxAndGenerateBlockTilTxIsExecuted(tx3, maxNumOfBlockToGenerateWhenExecutingTx)
-		assert.Nil(t, errSend)
-
-		account, errGet := chainSimulator.GetAccount(wallet4)
-		assert.Nil(t, errGet)
-		expectedBalance := big.NewInt(0).Add(initialMinting, transferValue)
-		assert.Equal(t, expectedBalance.String(), account.Balance)
-	})
+func getTokenNonce(nonce uint64) string {
+	if nonce == 0 {
+		return ""
+	}
+	return fmt.Sprintf("%02X", nonce)
 }
