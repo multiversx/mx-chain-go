@@ -34,7 +34,7 @@ type BridgeSetupAddresses struct {
 // - deposit a cross chain prefixed token in the contract to be transferred to an address (mint)
 // - send back some of the cross chain prefixed tokens to the contract to be bridged to a sovereign chain (burn)
 // - move some of the prefixed tokens to another address
-func TestChainSimulator_ExecuteMintBurnBridgeOpForTokensWithPrefix(t *testing.T) {
+func TestChainSimulator_ExecuteMintBurnBridgeOpForESDTTokensWithPrefix(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
