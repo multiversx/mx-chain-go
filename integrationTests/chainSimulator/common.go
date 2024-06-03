@@ -13,7 +13,6 @@ import (
 	"github.com/multiversx/mx-chain-go/vm"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/stretchr/testify/require"
 )
@@ -229,7 +228,6 @@ func Deposit(
 	contract []byte,
 	tokens []ArgsDepositToken,
 	receiver []byte,
-	_ *sovereign.TransferData,
 ) {
 	require.True(t, len(tokens) > 0)
 

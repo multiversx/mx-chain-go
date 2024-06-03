@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestSovereignChain_IssueFungible(t *testing.T) {
+func TestSovereignChainSimulator_IssueFungible(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}

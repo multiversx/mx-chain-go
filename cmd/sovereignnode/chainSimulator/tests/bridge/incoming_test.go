@@ -30,7 +30,7 @@ const (
 
 // This test will simulate an incoming header.
 // At the end of the test the amount of tokens needs to be in the receiver account
-func TestIncomingOperations(t *testing.T) {
+func TestSovereignChainSimulator_IncomingHeader(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
