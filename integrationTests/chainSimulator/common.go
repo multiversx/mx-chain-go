@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/vm"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/sovereign"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/stretchr/testify/require"
 )
@@ -24,7 +25,6 @@ const (
 	txVersion                               = 1
 	mockTxSignature                         = "sig"
 	deposit                                 = "deposit"
-	multiEsdtTransfer                       = "MultiESDTNFTTransfer"
 	maxNumOfBlocksToGenerateWhenExecutingTx = 1
 	signalError                             = "signalError"
 
@@ -220,7 +220,7 @@ func getEsdtIdentifier(t *testing.T, nodeHandler process.NodeHandler, ticker str
 	return ""
 }
 
-// Deposit will deposit tokens in a contract
+// Deposit will deposit tokens in the bridge sc safe contract
 func Deposit(
 	t *testing.T,
 	cs ChainSimulator,
@@ -229,10 +229,11 @@ func Deposit(
 	contract []byte,
 	tokens []ArgsDepositToken,
 	receiver []byte,
+	_ *sovereign.TransferData,
 ) {
 	require.True(t, len(tokens) > 0)
 
-	depositArgs := multiEsdtTransfer +
+	depositArgs := core.BuiltInFunctionMultiESDTNFTTransfer +
 		"@" + hex.EncodeToString(contract) +
 		"@" + fmt.Sprintf("%02X", len(tokens))
 
@@ -246,6 +247,7 @@ func Deposit(
 	depositArgs = depositArgs +
 		"@" + hex.EncodeToString([]byte(deposit)) +
 		"@" + hex.EncodeToString(receiver)
+	//TODO MX-15523 add transfer data in deposit arguments after integrating the new version of sdk-abi-go
 
 	SendTransaction(t, cs, sender, nonce, sender, ZeroValue, depositArgs, uint64(20000000))
 }

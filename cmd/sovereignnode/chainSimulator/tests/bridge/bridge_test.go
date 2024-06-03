@@ -53,8 +53,6 @@ func TestBridge_DeployOnSovereignChain_IssueAndDeposit(t *testing.T) {
 
 	defer cs.Close()
 
-	time.Sleep(time.Second) // wait for VM to be ready for processing queries
-
 	nodeHandler := cs.GetNodeHandler(core.SovereignChainShardId)
 
 	wallet, err := cs.GenerateAndMintWalletAddress(core.SovereignChainShardId, chainSim.InitialAmount)
@@ -77,7 +75,7 @@ func TestBridge_DeployOnSovereignChain_IssueAndDeposit(t *testing.T) {
 		Nonce:      0,
 		Amount:     amountToDeposit,
 	})
-	chainSim.Deposit(t, cs, wallet.Bytes, &nonce, bridgeData.ESDTSafeAddress, depositTokens, wallet.Bytes)
+	chainSim.Deposit(t, cs, wallet.Bytes, &nonce, bridgeData.ESDTSafeAddress, depositTokens, wallet.Bytes, nil)
 
 	tokens, _, err := nodeHandler.GetFacadeHandler().GetAllESDTTokens(wallet.Bech32, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)

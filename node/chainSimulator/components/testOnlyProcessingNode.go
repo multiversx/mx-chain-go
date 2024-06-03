@@ -427,7 +427,12 @@ func (node *testOnlyProcessingNode) GetStatusCoreComponents() factory.StatusCore
 	return node.StatusCoreComponents
 }
 
-// GetIncomingHeaderSubscriber  will return the incoming header subscriber
+// GetRunTypeComponents will return the run type components
+func (node *testOnlyProcessingNode) GetRunTypeComponents() factory.RunTypeComponentsHolder {
+	return node.RunTypeComponents
+}
+
+// GetIncomingHeaderSubscriber will return the incoming header subscriber
 func (node *testOnlyProcessingNode) GetIncomingHeaderSubscriber() process.IncomingHeaderSubscriber {
 	return node.IncomingHeaderSubscriber
 }
