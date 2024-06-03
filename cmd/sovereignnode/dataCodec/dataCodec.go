@@ -8,13 +8,8 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
-	"github.com/multiversx/mx-sdk-abi-incubator/golang/abi"
+	"github.com/multiversx/mx-sdk-abi-go/abi"
 )
-
-// ArgsDataCodec holds the components needed for serialization/deserialization
-type ArgsDataCodec struct {
-	Serializer AbiSerializer
-}
 
 type dataCodec struct {
 	serializer AbiSerializer
@@ -23,13 +18,13 @@ type dataCodec struct {
 // TODO MX-15286 split data codec in multiple components
 
 // NewDataCodec creates a data codec which is able to serialize/deserialize data from incoming/outgoing operations
-func NewDataCodec(args ArgsDataCodec) (*dataCodec, error) {
-	if args.Serializer == nil {
+func NewDataCodec(serializer AbiSerializer) (*dataCodec, error) {
+	if serializer == nil {
 		return nil, errors.ErrNilSerializer
 	}
 
 	return &dataCodec{
-		serializer: args.Serializer,
+		serializer: serializer,
 	}, nil
 }
 
@@ -45,29 +40,27 @@ func (dc *dataCodec) SerializeEventData(eventData sovereign.EventData) ([]byte, 
 	return hex.DecodeString(encodedOp)
 }
 
-func getEventDataStruct(eventData sovereign.EventData) abi.StructValue {
+func getEventDataStruct(eventData sovereign.EventData) *abi.StructValue {
 	transferData := getTransferDataInAbiFormat(eventData.TransferData)
 
-	eventDataStruct := abi.StructValue{
+	return &abi.StructValue{
 		Fields: []abi.Field{
 			{
 				Name:  "op_nonce",
-				Value: abi.U64Value{Value: eventData.Nonce},
+				Value: &abi.U64Value{Value: eventData.Nonce},
 			},
 			{
 				Name:  "op_sender",
-				Value: abi.AddressValue{Value: eventData.Sender},
+				Value: &abi.AddressValue{Value: eventData.Sender},
 			},
 			{
 				Name: "opt_transfer_data",
-				Value: abi.OptionValue{
+				Value: &abi.OptionValue{
 					Value: transferData,
 				},
 			},
 		},
 	}
-
-	return eventDataStruct
 }
 
 // DeserializeEventData will deserialize bytes to an event data structure
@@ -80,11 +73,13 @@ func (dc *dataCodec) DeserializeEventData(data []byte) (*sovereign.EventData, er
 	sender := &abi.AddressValue{}
 	gasLimit := &abi.U64Value{}
 	function := &abi.BytesValue{}
-	args := &abi.OutputListValue{
-		ItemCreator: func() any { return &abi.BytesValue{} },
+	args := &abi.ListValue{
+		ItemCreator: func() abi.SingleValue {
+			return &abi.BytesValue{}
+		},
 	}
 
-	eventDataStruct := abi.StructValue{
+	eventDataStruct := &abi.StructValue{
 		Fields: []abi.Field{
 			{
 				Name:  "op_nonce",
@@ -118,7 +113,7 @@ func (dc *dataCodec) DeserializeEventData(data []byte) (*sovereign.EventData, er
 		},
 	}
 
-	err := dc.serializer.Deserialize(hex.EncodeToString(data), []any{&eventDataStruct})
+	err := dc.serializer.Deserialize(hex.EncodeToString(data), []any{eventDataStruct})
 	if err != nil {
 		return nil, err
 	}
@@ -149,53 +144,51 @@ func (dc *dataCodec) SerializeTokenData(tokenData sovereign.EsdtTokenData) ([]by
 	return hex.DecodeString(encodedTokenData)
 }
 
-func getTokenDataStruct(tokenData sovereign.EsdtTokenData) abi.StructValue {
+func getTokenDataStruct(tokenData sovereign.EsdtTokenData) *abi.StructValue {
 	uris := getUrisInAbiFormat(tokenData.Uris)
 
-	tokenDataStruct := abi.StructValue{
+	return &abi.StructValue{
 		Fields: []abi.Field{
 			{
 				Name:  "token_type",
-				Value: abi.EnumValue{Discriminant: uint8(tokenData.TokenType)},
+				Value: &abi.EnumValue{Discriminant: uint8(tokenData.TokenType)},
 			},
 			{
 				Name:  "amount",
-				Value: abi.BigIntValue{Value: tokenData.Amount},
+				Value: &abi.BigIntValue{Value: tokenData.Amount},
 			},
 			{
 				Name:  "frozen",
-				Value: abi.BoolValue{Value: tokenData.Frozen},
+				Value: &abi.BoolValue{Value: tokenData.Frozen},
 			},
 			{
 				Name:  "hash",
-				Value: abi.BytesValue{Value: tokenData.Hash},
+				Value: &abi.BytesValue{Value: tokenData.Hash},
 			},
 			{
 				Name:  "name",
-				Value: abi.BytesValue{Value: tokenData.Name},
+				Value: &abi.BytesValue{Value: tokenData.Name},
 			},
 			{
 				Name:  "attributes",
-				Value: abi.BytesValue{Value: tokenData.Attributes},
+				Value: &abi.BytesValue{Value: tokenData.Attributes},
 			},
 			{
 				Name:  "creator",
-				Value: abi.AddressValue{Value: tokenData.Creator},
+				Value: &abi.AddressValue{Value: tokenData.Creator},
 			},
 			{
 				Name:  "royalties",
-				Value: abi.BigIntValue{Value: tokenData.Royalties},
+				Value: &abi.BigIntValue{Value: tokenData.Royalties},
 			},
 			{
 				Name: "uris",
-				Value: abi.InputListValue{
+				Value: &abi.ListValue{
 					Items: uris,
 				},
 			},
 		},
 	}
-
-	return tokenDataStruct
 }
 
 // DeserializeTokenData will deserialize bytes to an esdt token data
@@ -204,7 +197,11 @@ func (dc *dataCodec) DeserializeTokenData(data []byte) (*sovereign.EsdtTokenData
 		return nil, errEmptyTokenData
 	}
 
-	enum := &abi.EnumValue{}
+	enum := &abi.EnumValue{
+		FieldsProvider: func(discriminant uint8) []abi.Field {
+			return nil
+		},
+	}
 	amount := &abi.BigIntValue{}
 	frozen := &abi.BoolValue{}
 	hash := &abi.BytesValue{}
@@ -212,11 +209,13 @@ func (dc *dataCodec) DeserializeTokenData(data []byte) (*sovereign.EsdtTokenData
 	attributes := &abi.BytesValue{}
 	creator := &abi.AddressValue{}
 	royalties := &abi.BigIntValue{}
-	uris := &abi.OutputListValue{
-		ItemCreator: func() any { return &abi.BytesValue{} },
+	uris := &abi.ListValue{
+		ItemCreator: func() abi.SingleValue {
+			return &abi.BytesValue{}
+		},
 	}
 
-	tokenDataStruct := abi.StructValue{
+	tokenDataStruct := &abi.StructValue{
 		Fields: []abi.Field{
 			{
 				Name:  "token_type",
@@ -257,7 +256,7 @@ func (dc *dataCodec) DeserializeTokenData(data []byte) (*sovereign.EsdtTokenData
 		},
 	}
 
-	err := dc.serializer.Deserialize(hex.EncodeToString(data), []any{&tokenDataStruct})
+	err := dc.serializer.Deserialize(hex.EncodeToString(data), []any{tokenDataStruct})
 	if err != nil {
 		return nil, err
 	}
@@ -292,20 +291,19 @@ func (dc *dataCodec) SerializeOperation(operation sovereign.Operation) ([]byte, 
 	return hex.DecodeString(encodedOp)
 }
 
-func getOperationStruct(operation sovereign.Operation) abi.StructValue {
+func getOperationStruct(operation sovereign.Operation) *abi.StructValue {
 	tokens := getOperationTokens(operation.Tokens)
-
 	operationData := getOperationData(*operation.Data)
 
-	return abi.StructValue{
+	return &abi.StructValue{
 		Fields: []abi.Field{
 			{
 				Name:  "to",
-				Value: abi.AddressValue{Value: operation.Address},
+				Value: &abi.AddressValue{Value: operation.Address},
 			},
 			{
 				Name: "tokens",
-				Value: abi.InputListValue{
+				Value: &abi.ListValue{
 					Items: tokens,
 				},
 			},
@@ -317,25 +315,25 @@ func getOperationStruct(operation sovereign.Operation) abi.StructValue {
 	}
 }
 
-func createTransferData(transferData sovereign.TransferData) any {
-	arguments := make([]any, len(transferData.Args))
+func createTransferData(transferData sovereign.TransferData) *abi.StructValue {
+	arguments := make([]abi.SingleValue, len(transferData.Args))
 	for i, arg := range transferData.Args {
-		arguments[i] = abi.BytesValue{Value: arg}
+		arguments[i] = &abi.BytesValue{Value: arg}
 	}
 
-	return abi.StructValue{
+	return &abi.StructValue{
 		Fields: []abi.Field{
 			{
 				Name:  "gas_limit",
-				Value: abi.U64Value{Value: transferData.GasLimit},
+				Value: &abi.U64Value{Value: transferData.GasLimit},
 			},
 			{
 				Name:  "function",
-				Value: abi.BytesValue{Value: transferData.Function},
+				Value: &abi.BytesValue{Value: transferData.Function},
 			},
 			{
 				Name: "args",
-				Value: abi.InputListValue{
+				Value: &abi.ListValue{
 					Items: arguments,
 				},
 			},
@@ -343,7 +341,7 @@ func createTransferData(transferData sovereign.TransferData) any {
 	}
 }
 
-func getTransferDataInAbiFormat(transferData *sovereign.TransferData) any {
+func getTransferDataInAbiFormat(transferData *sovereign.TransferData) abi.SingleValue {
 	if transferData != nil {
 		return createTransferData(*transferData)
 	}
@@ -351,7 +349,7 @@ func getTransferDataInAbiFormat(transferData *sovereign.TransferData) any {
 	return nil
 }
 
-func getTransferDataArguments(items []any) ([][]byte, error) {
+func getTransferDataArguments(items []abi.SingleValue) ([][]byte, error) {
 	arguments := make([][]byte, 0)
 	for _, item := range items {
 		arg, ok := item.(*abi.BytesValue)
@@ -377,16 +375,16 @@ func getTransferData(gasLimit uint64, function []byte, arguments [][]byte) *sove
 	}
 }
 
-func getUrisInAbiFormat(items [][]byte) []any {
-	uris := make([]any, len(items))
+func getUrisInAbiFormat(items [][]byte) []abi.SingleValue {
+	uris := make([]abi.SingleValue, len(items))
 	for i, uri := range items {
-		uris[i] = abi.BytesValue{Value: uri}
+		uris[i] = &abi.BytesValue{Value: uri}
 	}
 
 	return uris
 }
 
-func getTokenDataUris(items []any) ([][]byte, error) {
+func getTokenDataUris(items []abi.SingleValue) ([][]byte, error) {
 	uris := make([][]byte, 0)
 	for _, item := range items {
 		uri, ok := item.(*abi.BytesValue)
@@ -400,8 +398,8 @@ func getTokenDataUris(items []any) ([][]byte, error) {
 	return uris, nil
 }
 
-func getOperationTokens(tokens []sovereign.EsdtToken) []any {
-	operationTokens := make([]any, 0)
+func getOperationTokens(tokens []sovereign.EsdtToken) []abi.SingleValue {
+	operationTokens := make([]abi.SingleValue, 0)
 	for _, token := range tokens {
 		tokenStruct := getTokenStruct(token)
 		operationTokens = append(operationTokens, tokenStruct)
@@ -410,58 +408,58 @@ func getOperationTokens(tokens []sovereign.EsdtToken) []any {
 	return operationTokens
 }
 
-func getTokenStruct(token sovereign.EsdtToken) abi.StructValue {
+func getTokenStruct(token sovereign.EsdtToken) *abi.StructValue {
 	uris := getUrisInAbiFormat(token.Data.Uris)
 
-	return abi.StructValue{
+	return &abi.StructValue{
 		Fields: []abi.Field{
 			{
 				Name:  "token_identifier",
-				Value: abi.BytesValue{Value: token.Identifier},
+				Value: &abi.BytesValue{Value: token.Identifier},
 			},
 			{
 				Name:  "token_nonce",
-				Value: abi.U64Value{Value: token.Nonce},
+				Value: &abi.U64Value{Value: token.Nonce},
 			},
 			{
 				Name: "token_data",
-				Value: abi.StructValue{
+				Value: &abi.StructValue{
 					Fields: []abi.Field{
 						{
 							Name:  "token_type",
-							Value: abi.EnumValue{Discriminant: uint8(token.Data.TokenType)},
+							Value: &abi.EnumValue{Discriminant: uint8(token.Data.TokenType)},
 						},
 						{
 							Name:  "amount",
-							Value: abi.BigIntValue{Value: token.Data.Amount},
+							Value: &abi.BigIntValue{Value: token.Data.Amount},
 						},
 						{
 							Name:  "frozen",
-							Value: abi.BoolValue{Value: token.Data.Frozen},
+							Value: &abi.BoolValue{Value: token.Data.Frozen},
 						},
 						{
 							Name:  "hash",
-							Value: abi.BytesValue{Value: token.Data.Hash},
+							Value: &abi.BytesValue{Value: token.Data.Hash},
 						},
 						{
 							Name:  "name",
-							Value: abi.BytesValue{Value: token.Data.Name},
+							Value: &abi.BytesValue{Value: token.Data.Name},
 						},
 						{
 							Name:  "attributes",
-							Value: abi.BytesValue{Value: token.Data.Attributes},
+							Value: &abi.BytesValue{Value: token.Data.Attributes},
 						},
 						{
 							Name:  "creator",
-							Value: abi.AddressValue{Value: token.Data.Creator},
+							Value: &abi.AddressValue{Value: token.Data.Creator},
 						},
 						{
 							Name:  "royalties",
-							Value: abi.BigIntValue{Value: token.Data.Royalties},
+							Value: &abi.BigIntValue{Value: token.Data.Royalties},
 						},
 						{
 							Name: "uris",
-							Value: abi.InputListValue{
+							Value: &abi.ListValue{
 								Items: uris,
 							},
 						},
@@ -472,27 +470,27 @@ func getTokenStruct(token sovereign.EsdtToken) abi.StructValue {
 	}
 }
 
-func getOperationData(data sovereign.EventData) any {
-	var transferData any
+func getOperationData(data sovereign.EventData) *abi.StructValue {
+	var transferData abi.SingleValue
 	if data.TransferData == nil {
 		transferData = nil
 	} else {
 		transferData = getTransferDataInAbiFormat(data.TransferData)
 	}
 
-	return abi.StructValue{
+	return &abi.StructValue{
 		Fields: []abi.Field{
 			{
 				Name:  "op_nonce",
-				Value: abi.U64Value{Value: data.Nonce},
+				Value: &abi.U64Value{Value: data.Nonce},
 			},
 			{
 				Name:  "op_sender",
-				Value: abi.AddressValue{Value: data.Sender},
+				Value: &abi.AddressValue{Value: data.Sender},
 			},
 			{
 				Name: "opt_transfer_data",
-				Value: abi.OptionValue{
+				Value: &abi.OptionValue{
 					Value: transferData,
 				},
 			},
