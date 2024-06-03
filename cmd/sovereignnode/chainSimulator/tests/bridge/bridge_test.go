@@ -29,7 +29,7 @@ const (
 // - deposit some tokens in esdt-safe contract
 // - check the sender balance is correct
 // - check the token burned amount is correct after deposit
-func TestBridge_DeployOnSovereignChain_IssueAndDeposit(t *testing.T) {
+func TestSovereignChainSimulator_DeployBridgeContractsThenIssueAndDeposit(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -75,7 +75,7 @@ func TestBridge_DeployOnSovereignChain_IssueAndDeposit(t *testing.T) {
 		Nonce:      0,
 		Amount:     amountToDeposit,
 	})
-	chainSim.Deposit(t, cs, wallet.Bytes, &nonce, bridgeData.ESDTSafeAddress, depositTokens, wallet.Bytes, nil)
+	chainSim.Deposit(t, cs, wallet.Bytes, &nonce, bridgeData.ESDTSafeAddress, depositTokens, wallet.Bytes)
 
 	tokens, _, err := nodeHandler.GetFacadeHandler().GetAllESDTTokens(wallet.Bech32, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
