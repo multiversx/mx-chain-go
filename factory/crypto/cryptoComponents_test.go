@@ -371,12 +371,10 @@ func TestCryptoComponentsFactory_GetSkPkOK(t *testing.T) {
 func TestCryptoComponentsFactory_MultiKey(t *testing.T) {
 	t.Parallel()
 
-	cfg := testscommon.GetGeneralConfig()
-
 	t.Run("internal error, LoadAllKeys returns different lengths for private and public keys", func(t *testing.T) {
 		t.Parallel()
 
-		coreComponents := componentsMock.GetCoreComponents(cfg)
+		coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig())
 		args := componentsMock.GetCryptoArgs(coreComponents)
 
 		privateKeys, publicKeys := createBLSPrivatePublicKeys()
@@ -400,7 +398,7 @@ func TestCryptoComponentsFactory_MultiKey(t *testing.T) {
 	t.Run("encoded private key can not be hex decoded", func(t *testing.T) {
 		t.Parallel()
 
-		coreComponents := componentsMock.GetCoreComponents(cfg)
+		coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig())
 		args := componentsMock.GetCryptoArgs(coreComponents)
 		privateKeys, publicKeys := createBLSPrivatePublicKeys()
 
@@ -423,7 +421,7 @@ func TestCryptoComponentsFactory_MultiKey(t *testing.T) {
 	t.Run("encoded public key can not be hex decoded", func(t *testing.T) {
 		t.Parallel()
 
-		coreComponents := componentsMock.GetCoreComponents(cfg)
+		coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig())
 		args := componentsMock.GetCryptoArgs(coreComponents)
 		privateKeys, publicKeys := createBLSPrivatePublicKeys()
 
@@ -446,7 +444,7 @@ func TestCryptoComponentsFactory_MultiKey(t *testing.T) {
 	t.Run("not a valid private key", func(t *testing.T) {
 		t.Parallel()
 
-		coreComponents := componentsMock.GetCoreComponents(cfg)
+		coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig())
 		args := componentsMock.GetCryptoArgs(coreComponents)
 		privateKeys, publicKeys := createBLSPrivatePublicKeys()
 
@@ -469,7 +467,7 @@ func TestCryptoComponentsFactory_MultiKey(t *testing.T) {
 	t.Run("wrong public string read from file", func(t *testing.T) {
 		t.Parallel()
 
-		coreComponents := componentsMock.GetCoreComponents(cfg)
+		coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig())
 		args := componentsMock.GetCryptoArgs(coreComponents)
 		privateKeys, publicKeys := createBLSPrivatePublicKeys()
 
@@ -495,7 +493,7 @@ func TestCryptoComponentsFactory_MultiKey(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		coreComponents := componentsMock.GetCoreComponents(cfg)
+		coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig())
 		args := componentsMock.GetCryptoArgs(coreComponents)
 
 		privateKeys, publicKeys := createBLSPrivatePublicKeys()

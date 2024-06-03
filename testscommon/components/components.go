@@ -368,6 +368,7 @@ func GetSovereignRunTypeComponents(coreComponents factory.CoreComponentsHolder, 
 	return managedRunTypeComponents
 }
 
+// GetRunTypeComponentsStub -
 func GetRunTypeComponentsStub(rt factory.RunTypeComponentsHandler) *mainFactoryMocks.RunTypeComponentsStub {
 	return &mainFactoryMocks.RunTypeComponentsStub{
 		BlockChainHookHandlerFactory:        rt.BlockChainHookHandlerCreator(),
@@ -535,6 +536,7 @@ func GetBootStrapFactoryArgs(
 	}
 }
 
+// GetBootstrapComponents -
 func GetBootstrapComponents(
 	cfg config.Config,
 	statusCoreComponents factory.StatusCoreComponentsHolder,
@@ -677,6 +679,7 @@ func GetStateComponents(
 	return stateComponents
 }
 
+// GetStatusFactoryArgs -
 func GetStatusFactoryArgs(
 	cfg config.Config,
 	statusCoreComponents factory.StatusCoreComponentsHolder,
@@ -925,6 +928,7 @@ func GetProcessComponents(
 	return managedProcessComponents
 }
 
+// GetConsensusFactoryArgs -
 func GetConsensusFactoryArgs(
 	cfg config.Config,
 	runTypeComponents factory.RunTypeComponentsHolder,

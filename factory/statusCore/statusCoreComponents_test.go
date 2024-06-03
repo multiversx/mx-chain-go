@@ -24,12 +24,10 @@ import (
 func TestNewStatusCoreComponentsFactory(t *testing.T) {
 	t.Parallel()
 
-	cfg := testscommon.GetGeneralConfig()
-
 	t.Run("nil core components should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := componentsMock.GetStatusCoreArgs(cfg, nil)
+		args := componentsMock.GetStatusCoreArgs(testscommon.GetGeneralConfig(), nil)
 		sccf, err := statusCore.NewStatusCoreComponentsFactory(args)
 		assert.Equal(t, errorsMx.ErrNilCoreComponents, err)
 		require.Nil(t, sccf)
@@ -41,7 +39,7 @@ func TestNewStatusCoreComponentsFactory(t *testing.T) {
 			EconomicsDataField: nil,
 		}
 
-		args := componentsMock.GetStatusCoreArgs(cfg, coreComp)
+		args := componentsMock.GetStatusCoreArgs(testscommon.GetGeneralConfig(), coreComp)
 		sccf, err := statusCore.NewStatusCoreComponentsFactory(args)
 		assert.Equal(t, errorsMx.ErrNilEconomicsData, err)
 		require.Nil(t, sccf)
@@ -49,6 +47,7 @@ func TestNewStatusCoreComponentsFactory(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
+		cfg := testscommon.GetGeneralConfig()
 		args := componentsMock.GetStatusCoreArgs(cfg, componentsMock.GetCoreComponents(cfg))
 		sccf, err := statusCore.NewStatusCoreComponentsFactory(args)
 		assert.Nil(t, err)
@@ -59,11 +58,10 @@ func TestNewStatusCoreComponentsFactory(t *testing.T) {
 func TestStatusCoreComponentsFactory_Create(t *testing.T) {
 	t.Parallel()
 
-	cfg := testscommon.GetGeneralConfig()
-
 	t.Run("NewResourceMonitor fails should error", func(t *testing.T) {
 		t.Parallel()
 
+		cfg := testscommon.GetGeneralConfig()
 		coreComp := componentsMock.GetCoreComponents(cfg)
 		args := componentsMock.GetStatusCoreArgs(cfg, coreComp)
 		args.Config = config.Config{
@@ -81,6 +79,7 @@ func TestStatusCoreComponentsFactory_Create(t *testing.T) {
 	t.Run("NewPersistentStatusHandler fails should error", func(t *testing.T) {
 		t.Parallel()
 
+		cfg := testscommon.GetGeneralConfig()
 		coreCompStub := factory.NewCoreComponentsHolderStubFromRealComponent(componentsMock.GetCoreComponents(cfg))
 		coreCompStub.InternalMarshalizerCalled = func() marshal.Marshalizer {
 			return nil
@@ -96,6 +95,7 @@ func TestStatusCoreComponentsFactory_Create(t *testing.T) {
 	t.Run("SetStatusHandler fails should error", func(t *testing.T) {
 		t.Parallel()
 
+		cfg := testscommon.GetGeneralConfig()
 		expectedErr := errors.New("expected error")
 		coreCompStub := factory.NewCoreComponentsHolderStubFromRealComponent(componentsMock.GetCoreComponents(cfg))
 		coreCompStub.EconomicsDataCalled = func() process.EconomicsDataHandler {
@@ -116,6 +116,7 @@ func TestStatusCoreComponentsFactory_Create(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
+		cfg := testscommon.GetGeneralConfig()
 		args := componentsMock.GetStatusCoreArgs(cfg, componentsMock.GetCoreComponents(cfg))
 		args.Config.ResourceStats.Enabled = true // coverage
 		sccf, err := statusCore.NewStatusCoreComponentsFactory(args)

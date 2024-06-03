@@ -37,12 +37,10 @@ func TestNewManagedStatusCoreComponents(t *testing.T) {
 func TestManagedStatusCoreComponents_Create(t *testing.T) {
 	t.Parallel()
 
-	cfg := testscommon.GetGeneralConfig()
-
 	t.Run("invalid params should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := componentsMock.GetStatusCoreArgs(cfg, componentsMock.GetDefaultCoreComponents())
+		args := componentsMock.GetStatusCoreArgs(testscommon.GetGeneralConfig(), componentsMock.GetDefaultCoreComponents())
 		args.Config.ResourceStats.RefreshIntervalInSec = 0
 
 		statusCoreComponentsFactory, err := statusCore.NewStatusCoreComponentsFactory(args)
@@ -56,6 +54,7 @@ func TestManagedStatusCoreComponents_Create(t *testing.T) {
 	t.Run("should work with getters", func(t *testing.T) {
 		t.Parallel()
 
+		cfg := testscommon.GetGeneralConfig()
 		args := componentsMock.GetStatusCoreArgs(cfg, componentsMock.GetCoreComponents(cfg))
 		statusCoreComponentsFactory, err := statusCore.NewStatusCoreComponentsFactory(args)
 		require.NoError(t, err)

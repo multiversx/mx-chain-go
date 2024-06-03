@@ -17,8 +17,6 @@ import (
 func TestManagedCryptoComponents(t *testing.T) {
 	t.Parallel()
 
-	cfg := testscommon.GetGeneralConfig()
-
 	t.Run("nil factory should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -29,7 +27,7 @@ func TestManagedCryptoComponents(t *testing.T) {
 	t.Run("invalid args should error", func(t *testing.T) {
 		t.Parallel()
 
-		coreComponents := componentsMock.GetCoreComponents(cfg)
+		coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig())
 		args := componentsMock.GetCryptoArgs(coreComponents)
 		args.Config.Consensus.Type = "invalid"
 		cryptoComponentsFactory, _ := cryptoComp.NewCryptoComponentsFactory(args)
@@ -42,7 +40,7 @@ func TestManagedCryptoComponents(t *testing.T) {
 	t.Run("pub key mismatch will not return critical error", func(t *testing.T) {
 		t.Parallel()
 
-		coreComponents := componentsMock.GetCoreComponents(cfg)
+		coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig())
 		args := componentsMock.GetCryptoArgs(coreComponents)
 		args.Config.Consensus.Type = "disabled"
 		cryptoComponentsFactory, _ := cryptoComp.NewCryptoComponentsFactory(args)
@@ -54,7 +52,7 @@ func TestManagedCryptoComponents(t *testing.T) {
 	t.Run("should work with activateBLSPubKeyMessageVerification", func(t *testing.T) {
 		t.Parallel()
 
-		coreComponents := componentsMock.GetCoreComponents(cfg)
+		coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig())
 		args := componentsMock.GetCryptoArgs(coreComponents)
 		args.ActivateBLSPubKeyMessageVerification = true
 		cryptoComponentsFactory, _ := cryptoComp.NewCryptoComponentsFactory(args)
@@ -66,7 +64,7 @@ func TestManagedCryptoComponents(t *testing.T) {
 	t.Run("should work with getters", func(t *testing.T) {
 		t.Parallel()
 
-		coreComponents := componentsMock.GetCoreComponents(cfg)
+		coreComponents := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig())
 		args := componentsMock.GetCryptoArgs(coreComponents)
 		cryptoComponentsFactory, _ := cryptoComp.NewCryptoComponentsFactory(args)
 		managedCryptoComponents, err := cryptoComp.NewManagedCryptoComponents(cryptoComponentsFactory)

@@ -18,8 +18,6 @@ import (
 func TestManagedCoreComponents(t *testing.T) {
 	t.Parallel()
 
-	cfg := testscommon.GetGeneralConfig()
-
 	t.Run("nil factory should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -30,7 +28,7 @@ func TestManagedCoreComponents(t *testing.T) {
 	t.Run("invalid args should error", func(t *testing.T) {
 		t.Parallel()
 
-		coreArgs := componentsMock.GetCoreArgs(cfg)
+		coreArgs := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig())
 		coreArgs.Config.Marshalizer = config.MarshalizerConfig{
 			Type:           "invalid_marshalizer_type",
 			SizeCheckDelta: 0,
@@ -45,7 +43,7 @@ func TestManagedCoreComponents(t *testing.T) {
 	t.Run("should work with getters", func(t *testing.T) {
 		t.Parallel()
 
-		coreArgs := componentsMock.GetCoreArgs(cfg)
+		coreArgs := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig())
 		coreComponentsFactory, _ := coreComp.NewCoreComponentsFactory(coreArgs)
 		managedCoreComponents, err := coreComp.NewManagedCoreComponents(coreComponentsFactory)
 		require.NoError(t, err)

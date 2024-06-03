@@ -17,23 +17,21 @@ import (
 func TestNewCoreComponentsFactory(t *testing.T) {
 	t.Parallel()
 
-	cfg := testscommon.GetGeneralConfig()
-
 	t.Run("should work", func(t *testing.T) {
-		args := componentsMock.GetCoreArgs(cfg)
+		args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig())
 		ccf, err := coreComp.NewCoreComponentsFactory(args)
 		require.NotNil(t, ccf)
 		require.Nil(t, err)
 	})
 	t.Run("nil genesis nodes setup factory, should return error", func(t *testing.T) {
-		args := componentsMock.GetCoreArgs(cfg)
+		args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig())
 		args.GenesisNodesSetupFactory = nil
 		ccf, err := coreComp.NewCoreComponentsFactory(args)
 		require.Nil(t, ccf)
 		require.Equal(t, errorsMx.ErrNilNodesSetupFactory, err)
 	})
 	t.Run("nil ratings data factory, should return error", func(t *testing.T) {
-		args := componentsMock.GetCoreArgs(cfg)
+		args := componentsMock.GetCoreArgs(testscommon.GetGeneralConfig())
 		args.RatingsDataFactory = nil
 		ccf, err := coreComp.NewCoreComponentsFactory(args)
 		require.Nil(t, ccf)
