@@ -3,12 +3,12 @@ package runType
 import (
 	"sync"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
-
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/process/rating"
 	"github.com/multiversx/mx-chain-go/sharding"
+
+	"github.com/multiversx/mx-chain-core-go/core/check"
 )
 
 var _ factory.ComponentHandler = (*managedRunTypeCoreComponents)(nil)

@@ -16,10 +16,6 @@ import (
 	"syscall"
 	"time"
 
-	outportCore "github.com/multiversx/mx-chain-core-go/data/outport"
-
-	"github.com/multiversx/mx-chain-go/outport"
-
 	"github.com/multiversx/mx-chain-go/api/gin"
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/common"
@@ -55,6 +51,7 @@ import (
 	"github.com/multiversx/mx-chain-go/node"
 	"github.com/multiversx/mx-chain-go/node/metrics"
 	trieIteratorsFactory "github.com/multiversx/mx-chain-go/node/trieIterators/factory"
+	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -74,6 +71,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/closing"
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	outportCore "github.com/multiversx/mx-chain-core-go/data/outport"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/multiversx/mx-chain-sovereign-bridge-go/cert"
 	factoryBridge "github.com/multiversx/mx-chain-sovereign-bridge-go/client"
