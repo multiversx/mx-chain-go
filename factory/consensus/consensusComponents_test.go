@@ -8,10 +8,12 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	retriever "github.com/multiversx/mx-chain-go/dataRetriever"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
+	mainFactory "github.com/multiversx/mx-chain-go/factory"
 	consensusComp "github.com/multiversx/mx-chain-go/factory/consensus"
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	testsMocks "github.com/multiversx/mx-chain-go/integrationTests/mock"
@@ -1047,28 +1049,23 @@ func TestConsensusComponentsFactory_Create(t *testing.T) {
 }
 
 func createConsensusFactoryArgs() consensusComp.ConsensusComponentsFactoryArgs {
-	cfg := testscommon.GetGeneralConfig()
-	coreComp := componentsMock.GetCoreComponents(cfg)
-	statusCoreComp := componentsMock.GetStatusCoreComponents(cfg, coreComp)
-	cryptoComp := componentsMock.GetCryptoComponents(coreComp)
-	networkComp := componentsMock.GetNetworkComponents(cryptoComp)
-	runTypeComp := componentsMock.GetRunTypeComponents(coreComp, cryptoComp)
-	bootstrapComp := componentsMock.GetBootstrapComponents(cfg, statusCoreComp, coreComp, cryptoComp, networkComp, runTypeComp)
-	dataComp := componentsMock.GetDataComponents(cfg, statusCoreComp, coreComp, bootstrapComp, cryptoComp, runTypeComp)
-	stateComp := componentsMock.GetStateComponents(cfg, coreComp, dataComp, statusCoreComp, runTypeComp)
-	statusComp := componentsMock.GetStatusComponents(cfg, statusCoreComp, coreComp, networkComp, bootstrapComp, stateComp, &shardingMocks.NodesCoordinatorMock{}, cryptoComp)
-	processComp := componentsMock.GetProcessComponents(cfg, runTypeComp, coreComp, cryptoComp, networkComp, bootstrapComp, stateComp, dataComp, statusComp, statusCoreComp)
-
-	return componentsMock.GetConsensusFactoryArgs(cfg, runTypeComp, coreComp, cryptoComp, networkComp, stateComp, dataComp, statusComp, statusCoreComp, processComp)
+	return createFactoryArgs(componentsMock.GetCoreComponents, componentsMock.GetRunTypeComponents)
 }
 
 func createSovereignConsensusFactoryArgs() consensusComp.ConsensusComponentsFactoryArgs {
+	return createFactoryArgs(componentsMock.GetSovereignCoreComponents, componentsMock.GetSovereignRunTypeComponents)
+}
+
+func createFactoryArgs(
+	getCoreComponents func(cfg config.Config) mainFactory.CoreComponentsHolder,
+	getRunTypeComponents func(coreComp mainFactory.CoreComponentsHolder, cryptoComp mainFactory.CryptoComponentsHolder) mainFactory.RunTypeComponentsHolder,
+) consensusComp.ConsensusComponentsFactoryArgs {
 	cfg := testscommon.GetGeneralConfig()
-	coreComp := componentsMock.GetSovereignCoreComponents(cfg)
+	coreComp := getCoreComponents(cfg)
 	statusCoreComp := componentsMock.GetStatusCoreComponents(cfg, coreComp)
 	cryptoComp := componentsMock.GetCryptoComponents(coreComp)
 	networkComp := componentsMock.GetNetworkComponents(cryptoComp)
-	runTypeComp := componentsMock.GetSovereignRunTypeComponents(coreComp, cryptoComp)
+	runTypeComp := getRunTypeComponents(coreComp, cryptoComp)
 	bootstrapComp := componentsMock.GetBootstrapComponents(cfg, statusCoreComp, coreComp, cryptoComp, networkComp, runTypeComp)
 	dataComp := componentsMock.GetDataComponents(cfg, statusCoreComp, coreComp, bootstrapComp, cryptoComp, runTypeComp)
 	stateComp := componentsMock.GetStateComponents(cfg, coreComp, dataComp, statusCoreComp, runTypeComp)

@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
+	mainFactory "github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/bootstrap"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
@@ -23,23 +24,23 @@ import (
 )
 
 func createBootstrapFactoryArgs() bootstrap.BootstrapComponentsFactoryArgs {
-	cfg := testscommon.GetGeneralConfig()
-	coreComp := componentsMock.GetCoreComponents(cfg)
-	statusCoreComp := componentsMock.GetStatusCoreComponents(cfg, coreComp)
-	cryptoComp := componentsMock.GetCryptoComponents(coreComp)
-	networkComp := componentsMock.GetNetworkComponents(cryptoComp)
-	runTypeComp := componentsMock.GetRunTypeComponents(coreComp, cryptoComp)
-
-	return componentsMock.GetBootStrapFactoryArgs(cfg, statusCoreComp, coreComp, cryptoComp, networkComp, runTypeComp)
+	return createFactoryArgs(componentsMock.GetCoreComponents, componentsMock.GetRunTypeComponents)
 }
 
 func createSovereignBootstrapFactoryArgs() bootstrap.BootstrapComponentsFactoryArgs {
+	return createFactoryArgs(componentsMock.GetSovereignCoreComponents, componentsMock.GetSovereignRunTypeComponents)
+}
+
+func createFactoryArgs(
+	getCoreComponents func(cfg config.Config) mainFactory.CoreComponentsHolder,
+	getRunTypeComponents func(coreComp mainFactory.CoreComponentsHolder, cryptoComp mainFactory.CryptoComponentsHolder) mainFactory.RunTypeComponentsHolder,
+) bootstrap.BootstrapComponentsFactoryArgs {
 	cfg := testscommon.GetGeneralConfig()
-	coreComp := componentsMock.GetSovereignCoreComponents(cfg)
+	coreComp := getCoreComponents(cfg)
 	statusCoreComp := componentsMock.GetStatusCoreComponents(cfg, coreComp)
 	cryptoComp := componentsMock.GetCryptoComponents(coreComp)
 	networkComp := componentsMock.GetNetworkComponents(cryptoComp)
-	runTypeComp := componentsMock.GetSovereignRunTypeComponents(coreComp, cryptoComp)
+	runTypeComp := getRunTypeComponents(coreComp, cryptoComp)
 
 	return componentsMock.GetBootStrapFactoryArgs(cfg, statusCoreComp, coreComp, cryptoComp, networkComp, runTypeComp)
 }
