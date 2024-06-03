@@ -4,8 +4,13 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/rating"
+	"github.com/multiversx/mx-chain-go/sharding"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/stretchr/testify/require"
 )
 
@@ -124,15 +129,23 @@ func createArgsCoreComponentsHolder() ArgsCoreComponentsHolder {
 				},
 			},
 		},
-		ChanStopNodeProcess: make(chan endProcess.ArgEndProcess),
-		InitialRound:        0,
-		NodesSetupPath:      "../../../sharding/mock/testdata/nodesSetupMock.json",
-		GasScheduleFilename: "../../../cmd/node/config/gasSchedules/gasScheduleV7.toml",
-		NumShards:           3,
-		WorkingDir:          ".",
-		MinNodesPerShard:    1,
-		MinNodesMeta:        1,
-		RoundDurationInMs:   6000,
+		ChanStopNodeProcess:         make(chan endProcess.ArgEndProcess),
+		InitialRound:                0,
+		NodesSetupPath:              "../../../sharding/mock/testdata/nodesSetupMock.json",
+		GasScheduleFilename:         "../../../cmd/node/config/gasSchedules/gasScheduleV7.toml",
+		NumShards:                   3,
+		WorkingDir:                  ".",
+		MinNodesPerShard:            1,
+		MinNodesMeta:                1,
+		ConsensusGroupSize:          1,
+		MetaChainConsensusGroupSize: 1,
+		RoundDurationInMs:           6000,
+		CreateGenesisNodesSetup: func(nodesFilePath string, addressPubkeyConverter core.PubkeyConverter, validatorPubkeyConverter core.PubkeyConverter, genesisMaxNumShards uint32) (sharding.GenesisNodesSetupHandler, error) {
+			return sharding.NewNodesSetup(nodesFilePath, addressPubkeyConverter, validatorPubkeyConverter, genesisMaxNumShards)
+		},
+		CreateRatingsData: func(arg rating.RatingsDataArg) (process.RatingsInfoHandler, error) {
+			return rating.NewRatingsData(arg)
+		},
 	}
 }
 

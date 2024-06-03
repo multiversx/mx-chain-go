@@ -14,6 +14,8 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/vmContext"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 )
 
 // RunTypeComponentsStub -
@@ -24,6 +26,7 @@ type RunTypeComponentsStub struct {
 	SCProcessorFactory            scrCommon.SCProcessorCreator
 	AccountParser                 genesis.AccountsParser
 	AccountCreator                state.AccountFactory
+	VMContextCreatorHandler       systemSmartContracts.VMContextCreatorHandler
 	ShardCoordinatorFactory       sharding.ShardCoordinatorFactory
 	TxPreProcessorFactory         preprocess.TxPreProcessorCreator
 }
@@ -47,6 +50,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		SCProcessorFactory:            scProcessorCreator,
 		AccountParser:                 &AccountsParserStub{},
 		AccountCreator:                accountsCreator,
+		VMContextCreatorHandler:       systemSmartContracts.NewVMContextCreator(),
 		ShardCoordinatorFactory:       sharding.NewMultiShardCoordinatorFactory(),
 		TxPreProcessorFactory:         preprocess.NewTxPreProcessorCreator(),
 	}
@@ -76,6 +80,7 @@ func NewSovereignRunTypeComponentsStub() *RunTypeComponentsStub {
 		SCProcessorFactory:            scProcessorCreator,
 		AccountParser:                 &AccountsParserStub{},
 		AccountCreator:                accountsCreator,
+		VMContextCreatorHandler:       &vmContext.VMContextCreatorStub{},
 		ShardCoordinatorFactory:       sharding.NewSovereignShardCoordinatorFactory(),
 		TxPreProcessorFactory:         preprocess.NewSovereignTxPreProcessorCreator(),
 	}
@@ -109,6 +114,11 @@ func (r *RunTypeComponentsStub) AccountsParser() genesis.AccountsParser {
 // AccountsCreator -
 func (r *RunTypeComponentsStub) AccountsCreator() state.AccountFactory {
 	return r.AccountCreator
+}
+
+// VMContextCreator -
+func (r *RunTypeComponentsStub) VMContextCreator() systemSmartContracts.VMContextCreatorHandler {
+	return r.VMContextCreatorHandler
 }
 
 // ShardCoordinatorCreator -

@@ -11,11 +11,11 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/runType"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/genesis"
-	genesisData "github.com/multiversx/mx-chain-go/genesis/data"
 	"github.com/multiversx/mx-chain-go/genesis/mock"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
 	"github.com/multiversx/mx-chain-go/process"
@@ -108,6 +108,7 @@ func createArgument(
 			WasmVMVersions: []config.WasmVMVersionByEpoch{
 				{StartEpoch: 0, Version: "*"},
 			},
+			TransferAndExecuteByUserAddresses: []string{"3132333435363738393031323334353637383930313233343536373839303234"},
 		},
 		HardForkConfig: config.HardforkConfig{
 			ImportKeysStorageConfig: config.StorageConfig{
@@ -252,7 +253,7 @@ func createArgument(
 	}
 	arg.Economics = ted
 
-	initialAccounts, err := readInitialAccounts(genesisFilename)
+	initialAccounts, err := runType.ReadInitialAccounts(genesisFilename)
 	require.Nil(t, err)
 
 	args := genesis.AccountsParserArgs{
@@ -279,21 +280,6 @@ func createArgument(
 	arg.RunTypeComponents = runTypeComponents
 
 	return arg
-}
-
-func readInitialAccounts(filePath string) ([]genesis.InitialAccountHandler, error) {
-	initialAccounts := make([]*genesisData.InitialAccount, 0)
-	err := core.LoadJsonFile(&initialAccounts, filePath)
-	if err != nil {
-		return nil, err
-	}
-
-	var accounts []genesis.InitialAccountHandler
-	for _, ia := range initialAccounts {
-		accounts = append(accounts, ia)
-	}
-
-	return accounts, nil
 }
 
 func createTrieStorageManagers() map[string]common.StorageManager {

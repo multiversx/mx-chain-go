@@ -32,6 +32,8 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/headerSigVerifier"
 	sovereignMocks "github.com/multiversx/mx-chain-go/testscommon/sovereign"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
+	"github.com/multiversx/mx-chain-go/testscommon/vmContext"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 )
 
 // RunTypeComponentsStub -
@@ -56,6 +58,7 @@ type RunTypeComponentsStub struct {
 	VmContainerShardFactory             factoryVm.VmContainerCreator
 	AccountParser                       genesis.AccountsParser
 	AccountCreator                      state.AccountFactory
+	VMContextCreatorHandler             systemSmartContracts.VMContextCreatorHandler
 	OutGoingOperationsPool              sovereignBlock.OutGoingOperationsPool
 	DataCodec                           sovereign.DataCodecHandler
 	TopicsChecker                       sovereign.TopicsCheckerHandler
@@ -93,6 +96,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		VmContainerShardFactory:             &testFactory.VMContainerShardFactoryMock{},
 		AccountParser:                       &genesisMocks.AccountsParserStub{},
 		AccountCreator:                      &stateMock.AccountsFactoryStub{},
+		VMContextCreatorHandler:             &vmContext.VMContextCreatorStub{},
 		OutGoingOperationsPool:              &sovereignMocks.OutGoingOperationsPoolMock{},
 		DataCodec:                           &sovereignMocks.DataCodecMock{},
 		TopicsChecker:                       &sovereignMocks.TopicsCheckerMock{},
@@ -228,6 +232,11 @@ func (r *RunTypeComponentsStub) AccountsCreator() state.AccountFactory {
 	return r.AccountCreator
 }
 
+// VMContextCreator -
+func (r *RunTypeComponentsStub) VMContextCreator() systemSmartContracts.VMContextCreatorHandler {
+	return r.VMContextCreatorHandler
+}
+
 // OutGoingOperationsPoolHandler -
 func (r *RunTypeComponentsStub) OutGoingOperationsPoolHandler() sovereignBlock.OutGoingOperationsPool {
 	return r.OutGoingOperationsPool
@@ -273,8 +282,8 @@ func (r *RunTypeComponentsStub) TxPreProcessorCreator() preprocess.TxPreProcesso
 	return r.TxPreProcessorFactory
 }
 
-// ExtraHeaderSigVerifierHandler -
-func (r *RunTypeComponentsStub) ExtraHeaderSigVerifierHandler() headerCheck.ExtraHeaderSigVerifierHolder {
+// ExtraHeaderSigVerifierHolder -
+func (r *RunTypeComponentsStub) ExtraHeaderSigVerifierHolder() headerCheck.ExtraHeaderSigVerifierHolder {
 	return r.ExtraHeaderSigVerifier
 }
 

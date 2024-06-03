@@ -3,88 +3,110 @@ package components
 import (
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
-	"github.com/multiversx/mx-chain-core-go/hashing"
-	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
+	factoryErrors "github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+	updateMocks "github.com/multiversx/mx-chain-go/update/mock"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/stretchr/testify/require"
 )
 
+func createCoreComponents() *factory.CoreComponentsHolderMock {
+	return &factory.CoreComponentsHolderMock{
+		ChainIDCalled: func() string {
+			return "T"
+		},
+		GenesisNodesSetupCalled: func() sharding.GenesisNodesSetupHandler {
+			return &genesisMocks.NodesSetupStub{}
+		},
+		InternalMarshalizerCalled: func() marshal.Marshalizer {
+			return &testscommon.MarshallerStub{}
+		},
+		EpochNotifierCalled: func() process.EpochNotifier {
+			return &epochNotifier.EpochNotifierStub{}
+		},
+		EconomicsDataCalled: func() process.EconomicsDataHandler {
+			return &economicsmocks.EconomicsHandlerMock{}
+		},
+		EpochStartNotifierWithConfirmCalled: func() factoryErrors.EpochStartNotifierWithConfirm {
+			return &updateMocks.EpochStartNotifierStub{}
+		},
+		RaterCalled: func() sharding.PeerAccountListAndRatingHandler {
+			return &testscommon.RaterMock{}
+		},
+		NodesShufflerCalled: func() nodesCoordinator.NodesShuffler {
+			return &shardingMocks.NodeShufflerMock{}
+		},
+		RoundHandlerCalled: func() consensus.RoundHandler {
+			return &testscommon.RoundHandlerMock{}
+		},
+		HasherCalled: func() hashing.Hasher {
+			return &testscommon.HasherStub{}
+		},
+		PathHandlerCalled: func() storage.PathManagerHandler {
+			return &testscommon.PathManagerStub{}
+		},
+		TxMarshalizerCalled: func() marshal.Marshalizer {
+			return &testscommon.MarshallerStub{}
+		},
+		AddressPubKeyConverterCalled: func() core.PubkeyConverter {
+			return &testscommon.PubkeyConverterStub{}
+		},
+		Uint64ByteSliceConverterCalled: func() typeConverters.Uint64ByteSliceConverter {
+			return &mock.Uint64ByteSliceConverterMock{}
+		},
+		TxSignHasherCalled: func() hashing.Hasher {
+			return &testscommon.HasherStub{}
+		},
+		EnableEpochsHandlerCalled: func() common.EnableEpochsHandler {
+			return &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
+		},
+		NodeTypeProviderCalled: func() core.NodeTypeProviderHandler {
+			return &nodeTypeProviderMock.NodeTypeProviderStub{}
+		},
+	}
+}
+
+func createCryptoComponents() *mock.CryptoComponentsStub {
+	return &mock.CryptoComponentsStub{
+		PubKey:                  &mock.PublicKeyMock{},
+		BlockSig:                &cryptoMocks.SingleSignerStub{},
+		BlKeyGen:                &cryptoMocks.KeyGenStub{},
+		TxSig:                   &cryptoMocks.SingleSignerStub{},
+		TxKeyGen:                &cryptoMocks.KeyGenStub{},
+		ManagedPeersHolderField: &testscommon.ManagedPeersHolderStub{},
+	}
+}
+
 func createArgsBootstrapComponentsHolder() ArgsBootstrapComponentsHolder {
+	coreComp := createCoreComponents()
+	cryptoComp := createCryptoComponents()
+
 	return ArgsBootstrapComponentsHolder{
-		CoreComponents: &factory.CoreComponentsHolderMock{
-			ChainIDCalled: func() string {
-				return "T"
-			},
-			GenesisNodesSetupCalled: func() sharding.GenesisNodesSetupHandler {
-				return &genesisMocks.NodesSetupStub{}
-			},
-			InternalMarshalizerCalled: func() marshal.Marshalizer {
-				return &testscommon.MarshallerStub{}
-			},
-			EpochNotifierCalled: func() process.EpochNotifier {
-				return &epochNotifier.EpochNotifierStub{}
-			},
-			EconomicsDataCalled: func() process.EconomicsDataHandler {
-				return &economicsmocks.EconomicsHandlerMock{}
-			},
-			RaterCalled: func() sharding.PeerAccountListAndRatingHandler {
-				return &testscommon.RaterMock{}
-			},
-			NodesShufflerCalled: func() nodesCoordinator.NodesShuffler {
-				return &shardingMocks.NodeShufflerMock{}
-			},
-			RoundHandlerCalled: func() consensus.RoundHandler {
-				return &testscommon.RoundHandlerMock{}
-			},
-			HasherCalled: func() hashing.Hasher {
-				return &testscommon.HasherStub{}
-			},
-			PathHandlerCalled: func() storage.PathManagerHandler {
-				return &testscommon.PathManagerStub{}
-			},
-			TxMarshalizerCalled: func() marshal.Marshalizer {
-				return &testscommon.MarshallerStub{}
-			},
-			AddressPubKeyConverterCalled: func() core.PubkeyConverter {
-				return &testscommon.PubkeyConverterStub{}
-			},
-			Uint64ByteSliceConverterCalled: func() typeConverters.Uint64ByteSliceConverter {
-				return &mock.Uint64ByteSliceConverterMock{}
-			},
-			TxSignHasherCalled: func() hashing.Hasher {
-				return &testscommon.HasherStub{}
-			},
-			EnableEpochsHandlerCalled: func() common.EnableEpochsHandler {
-				return &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
-			},
-		},
-		CryptoComponents: &mock.CryptoComponentsStub{
-			PubKey:                  &mock.PublicKeyMock{},
-			BlockSig:                &cryptoMocks.SingleSignerStub{},
-			BlKeyGen:                &cryptoMocks.KeyGenStub{},
-			TxSig:                   &cryptoMocks.SingleSignerStub{},
-			TxKeyGen:                &cryptoMocks.KeyGenStub{},
-			ManagedPeersHolderField: &testscommon.ManagedPeersHolderStub{},
-		},
+		CoreComponents:   coreComp,
+		CryptoComponents: cryptoComp,
 		NetworkComponents: &mock.NetworkComponentsStub{
 			Messenger:                        &p2pmocks.MessengerStub{},
 			FullArchiveNetworkMessengerField: &p2pmocks.MessengerStub{},
@@ -128,7 +150,8 @@ func createArgsBootstrapComponentsHolder() ArgsBootstrapComponentsHolder {
 				Capacity: 123,
 			},
 		},
-		ShardIDStr: "0",
+		ShardIDStr:        "0",
+		RunTypeComponents: components.GetRunTypeComponents(coreComp, cryptoComp),
 	}
 }
 

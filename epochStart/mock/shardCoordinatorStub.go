@@ -35,7 +35,10 @@ func (coordinator *ShardCoordinatorStub) SelfId() uint32 {
 
 // SameShard -
 func (coordinator *ShardCoordinatorStub) SameShard(firstAddress, secondAddress []byte) bool {
-	return coordinator.SameShardCalled(firstAddress, secondAddress)
+	if coordinator.SameShardCalled != nil {
+		return coordinator.SameShardCalled(firstAddress, secondAddress)
+	}
+	return false
 }
 
 // CommunicationIdentifier -

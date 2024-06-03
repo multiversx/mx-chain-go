@@ -131,6 +131,7 @@ type processComponents struct {
 	accountsParser                   genesis.AccountsParser
 	receiptsRepository               factory.ReceiptsRepository
 	sentSignaturesTracker            process.SentSignaturesTracker
+	epochSystemSCProcessor           process.EpochStartSystemSCProcessor
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -287,7 +288,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		SingleSigVerifier:            pcf.crypto.BlockSigner(),
 		KeyGen:                       pcf.crypto.BlockSignKeyGen(),
 		FallbackHeaderValidator:      fallbackHeaderValidator,
-		ExtraHeaderSigVerifierHolder: pcf.runTypeComponents.ExtraHeaderSigVerifierHandler(),
+		ExtraHeaderSigVerifierHolder: pcf.runTypeComponents.ExtraHeaderSigVerifierHolder(),
 	}
 	headerSigVerifier, err := headerCheck.NewHeaderSigVerifier(argsHeaderSig)
 	if err != nil {
@@ -727,6 +728,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		currentEpochProvider:             currentEpochProvider,
 		vmFactoryForTxSimulator:          vmFactoryForTxSimulate,
 		vmFactoryForProcessing:           blockProcessorComponents.vmFactoryForProcessing,
+		epochSystemSCProcessor:           blockProcessorComponents.epochSystemSCProcessor,
 		scheduledTxsExecutionHandler:     scheduledTxsExecutionHandler,
 		txsSender:                        txsSenderWithAccumulator,
 		hardforkTrigger:                  hardforkTrigger,
@@ -2113,7 +2115,7 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	if check.IfNil(args.RunTypeComponents.TxPreProcessorCreator()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilTxPreProcessorCreator)
 	}
-	if check.IfNil(args.RunTypeComponents.ExtraHeaderSigVerifierHandler()) {
+	if check.IfNil(args.RunTypeComponents.ExtraHeaderSigVerifierHolder()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilExtraHeaderSigVerifierHolder)
 	}
 	if check.IfNil(args.RunTypeComponents.GenesisBlockCreatorFactory()) {

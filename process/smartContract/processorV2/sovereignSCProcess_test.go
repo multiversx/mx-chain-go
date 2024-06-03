@@ -127,7 +127,7 @@ func createAccountsDB() *state.AccountsDB {
 func createESDTDataStorage(accountsDB state.AccountsAdapter) vmcommon.ESDTNFTStorageHandler {
 	esdtDataStorage, _ := builtInFunctions.NewESDTDataStorage(builtInFunctions.ArgsNewESDTDataStorage{
 		Accounts:              accountsDB,
-		GlobalSettingsHandler: &testscommon.ESDTGlobalSettingsHandlerStub{},
+		GlobalSettingsHandler: &mockVm.GlobalSettingsHandlerStub{},
 		Marshalizer:           sovMarshaller,
 		EnableEpochsHandler:   sovEnableEpochsHandler,
 		ShardCoordinator:      sovShardCoord,

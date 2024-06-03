@@ -31,6 +31,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 )
@@ -142,6 +143,9 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	if check.IfNil(mrc.scResultPreProcessorCreator) {
 		return errors.ErrNilSCResultsPreProcessorCreator
 	}
+	if check.IfNil(mrc.vmContextCreator) {
+		return errors.ErrNilVMContextCreator
+	}
 	if mrc.consensusModel == consensus.ConsensusModelInvalid {
 		return errors.ErrInvalidConsensusModel
 	}
@@ -184,7 +188,7 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	if check.IfNil(mrc.txPreProcessorCreator) {
 		return errors.ErrNilTxPreProcessorCreator
 	}
-	if check.IfNil(mrc.extraHeaderSigVerifierHandler) {
+	if check.IfNil(mrc.extraHeaderSigVerifierHolder) {
 		return errors.ErrNilExtraHeaderSigVerifierHolder
 	}
 	if check.IfNil(mrc.genesisBlockCreatorFactory) {
@@ -436,6 +440,18 @@ func (mrc *managedRunTypeComponents) AccountsCreator() state.AccountFactory {
 	return mrc.runTypeComponents.accountsCreator
 }
 
+// VMContextCreator returns the vm context creator
+func (mrc *managedRunTypeComponents) VMContextCreator() systemSmartContracts.VMContextCreatorHandler {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.vmContextCreator
+}
+
 // OutGoingOperationsPoolHandler return the outgoing operations pool factory
 func (mrc *managedRunTypeComponents) OutGoingOperationsPoolHandler() sovereignBlock.OutGoingOperationsPool {
 	mrc.mutRunTypeComponents.RLock()
@@ -544,8 +560,8 @@ func (mrc *managedRunTypeComponents) TxPreProcessorCreator() preprocess.TxPrePro
 	return mrc.runTypeComponents.txPreProcessorCreator
 }
 
-// ExtraHeaderSigVerifierHandler returns the extra header sig verifier handler
-func (mrc *managedRunTypeComponents) ExtraHeaderSigVerifierHandler() headerCheck.ExtraHeaderSigVerifierHolder {
+// ExtraHeaderSigVerifierHolder returns the extra header sig verifier holder
+func (mrc *managedRunTypeComponents) ExtraHeaderSigVerifierHolder() headerCheck.ExtraHeaderSigVerifierHolder {
 	mrc.mutRunTypeComponents.RLock()
 	defer mrc.mutRunTypeComponents.RUnlock()
 
@@ -553,7 +569,7 @@ func (mrc *managedRunTypeComponents) ExtraHeaderSigVerifierHandler() headerCheck
 		return nil
 	}
 
-	return mrc.runTypeComponents.extraHeaderSigVerifierHandler
+	return mrc.runTypeComponents.extraHeaderSigVerifierHolder
 }
 
 // GenesisBlockCreatorFactory returns the genesis block factory

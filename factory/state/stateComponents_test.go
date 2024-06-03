@@ -16,15 +16,16 @@ import (
 )
 
 func createStateFactoryArgs() stateComp.StateComponentsFactoryArgs {
-	coreComp := componentsMock.GetCoreComponents()
-	statusCoreComp := componentsMock.GetStatusCoreComponents(coreComp)
+	cfg := testscommon.GetGeneralConfig()
+	coreComp := componentsMock.GetCoreComponents(cfg)
+	statusCoreComp := componentsMock.GetStatusCoreComponents(cfg, coreComp)
 	cryptoComp := componentsMock.GetCryptoComponents(coreComp)
 	networkComp := componentsMock.GetNetworkComponents(cryptoComp)
 	runTypeComp := componentsMock.GetRunTypeComponents(coreComp, cryptoComp)
-	bootstrapComp := componentsMock.GetBootstrapComponents(statusCoreComp, coreComp, cryptoComp, networkComp, runTypeComp)
-	dataComp := componentsMock.GetDataComponents(statusCoreComp, coreComp, bootstrapComp, cryptoComp, runTypeComp)
+	bootstrapComp := componentsMock.GetBootstrapComponents(cfg, statusCoreComp, coreComp, cryptoComp, networkComp, runTypeComp)
+	dataComp := componentsMock.GetDataComponents(cfg, statusCoreComp, coreComp, bootstrapComp, cryptoComp, runTypeComp)
 
-	return componentsMock.GetStateFactoryArgs(coreComp, dataComp, statusCoreComp, runTypeComp)
+	return componentsMock.GetStateFactoryArgs(cfg, coreComp, dataComp, statusCoreComp, runTypeComp)
 }
 
 func TestNewStateComponentsFactory(t *testing.T) {

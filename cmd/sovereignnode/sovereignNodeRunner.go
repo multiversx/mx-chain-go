@@ -5,6 +5,8 @@ package main
 
 import (
 	"fmt"
+	outportCore "github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-go/outport"
 	"io"
 	"io/ioutil"
 	"os"
@@ -46,8 +48,6 @@ import (
 	stateComp "github.com/multiversx/mx-chain-go/factory/state"
 	statusComp "github.com/multiversx/mx-chain-go/factory/status"
 	"github.com/multiversx/mx-chain-go/factory/statusCore"
-	"github.com/multiversx/mx-chain-go/genesis"
-	"github.com/multiversx/mx-chain-go/genesis/data"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
 	"github.com/multiversx/mx-chain-go/health"
 	"github.com/multiversx/mx-chain-go/node"
@@ -572,6 +572,13 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
+	indexValidatorsListIfNeeded(
+		managedProcessComponents.ShardCoordinator().SelfId(),
+		managedStatusComponents.OutportHandler(),
+		nodesCoordinatorInstance,
+		managedProcessComponents.EpochStartTrigger().Epoch(),
+	)
+
 	// this channel will trigger the moment when the sc query service should be able to process VM Query requests
 	allowExternalVMQueriesChan := make(chan struct{})
 
@@ -639,6 +646,30 @@ func addSyncersToAccountsDB(
 	}
 
 	return stateComponents.AccountsAdapter().StartSnapshotIfNeeded()
+}
+
+func indexValidatorsListIfNeeded(
+	shardID uint32,
+	outportHandler outport.OutportHandler,
+	coordinator nodesCoordinator.NodesCoordinator,
+	epoch uint32,
+) {
+	if !outportHandler.HasDrivers() {
+		return
+	}
+
+	validatorsPubKeys, err := coordinator.GetAllEligibleValidatorsPublicKeys(epoch)
+	if err != nil {
+		log.Warn("GetAllEligibleValidatorPublicKeys for epoch 0 failed", "error", err)
+	}
+
+	if len(validatorsPubKeys) > 0 {
+		outportHandler.SaveValidatorsPubKeys(&outportCore.ValidatorsPubKeys{
+			ShardID:                shardID,
+			ShardValidatorsPubKeys: outportCore.ConvertPubKeys(validatorsPubKeys),
+			Epoch:                  epoch,
+		})
+	}
 }
 
 func getUserAccountSyncer(
@@ -1595,30 +1626,9 @@ func (snr *sovereignNodeRunner) CreateManagedCryptoComponents(
 	return managedCryptoComponents, nil
 }
 
-// CreateArgsRunTypeComponents - creates the arguments for runType components
-func (snr *sovereignNodeRunner) CreateArgsRunTypeComponents(coreComponents mainFactory.CoreComponentsHandler, cryptoComponents mainFactory.CryptoComponentsHandler) (*runType.ArgsRunTypeComponents, error) {
-	initialAccounts := make([]*data.InitialAccount, 0)
-	err := core.LoadJsonFile(&initialAccounts, snr.configs.ConfigurationPathsHolder.Genesis)
-	if err != nil {
-		return nil, err
-	}
-
-	var accounts []genesis.InitialAccountHandler
-	for _, ia := range initialAccounts {
-		accounts = append(accounts, ia)
-	}
-
-	return &runType.ArgsRunTypeComponents{
-		CoreComponents:   coreComponents,
-		CryptoComponents: cryptoComponents,
-		Configs:          *snr.configs.Configs,
-		InitialAccounts:  accounts,
-	}, nil
-}
-
 // CreateSovereignArgsRunTypeComponents creates the arguments for sovereign runType components
 func (snr *sovereignNodeRunner) CreateSovereignArgsRunTypeComponents(coreComponents mainFactory.CoreComponentsHandler, cryptoComponents mainFactory.CryptoComponentsHandler) (*runType.ArgsSovereignRunTypeComponents, error) {
-	args, err := snr.CreateArgsRunTypeComponents(coreComponents, cryptoComponents)
+	args, err := runType.CreateArgsRunTypeComponents(coreComponents, cryptoComponents, *snr.configs.Configs)
 	if err != nil {
 		return nil, err
 	}

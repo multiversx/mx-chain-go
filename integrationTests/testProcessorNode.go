@@ -35,7 +35,6 @@ import (
 	hdrFactory "github.com/multiversx/mx-chain-go/factory/block"
 	heartbeatComp "github.com/multiversx/mx-chain-go/factory/heartbeat"
 	"github.com/multiversx/mx-chain-go/factory/peerSignatureHandler"
-	"github.com/multiversx/mx-chain-go/factory/processing"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
@@ -109,6 +108,7 @@ import (
 	"github.com/multiversx/mx-chain-go/update/trigger"
 	"github.com/multiversx/mx-chain-go/vm"
 	vmProcess "github.com/multiversx/mx-chain-go/vm/process"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -424,10 +424,6 @@ type TestProcessorNode struct {
 	AppStatusHandler        core.AppStatusHandler
 	StatusMetrics           external.StatusMetricsHandler
 
-	RequestHandlerCreator processing.RequestHandlerCreator
-	BlockTrackerCreator   track.BlockTrackerCreator
-	BlockProcessorCreator processing.BlockProcessorCreator
-
 	RunTypeComponents factory.RunTypeComponentsHolder
 }
 
@@ -516,7 +512,7 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 
 	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
 
-	args.RunTypeComponents = components.GetRunTypeComponents(
+	rtc := components.GetRunTypeComponents(
 		&mock.CoreComponentsStub{
 			HasherField:                 TestHasher,
 			InternalMarshalizerField:    TestMarshalizer,
@@ -525,6 +521,9 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 		},
 		GetDefaultCryptoComponents(),
 	)
+	runTypeComponents := components.GetRunTypeComponentsStub(rtc)
+	runTypeComponents.AccountParser = &genesisMocks.AccountsParserStub{}
+	args.RunTypeComponents = runTypeComponents
 
 	tpn := &TestProcessorNode{
 		ShardCoordinator:           shardCoordinator,
@@ -557,9 +556,6 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 		AppStatusHandler:           appStatusHandler,
 		PeersRatingMonitor:         peersRatingMonitor,
 		TxExecutionOrderHandler:    ordering.NewOrderedCollection(),
-		RequestHandlerCreator:      requestHandlers.NewResolverRequestHandlerFactory(),
-		BlockProcessorCreator:      args.RunTypeComponents.BlockProcessorCreator(),
-		BlockTrackerCreator:        args.RunTypeComponents.BlockTrackerCreator(),
 		RunTypeComponents:          args.RunTypeComponents,
 	}
 
@@ -1002,12 +998,13 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 					MaxNumberOfIterations: 100000,
 				},
 			},
-			ValidatorAccountsDB: tpn.PeerState,
-			UserAccountsDB:      tpn.AccntState,
-			ChanceComputer:      tpn.NodesCoordinator,
-			ShardCoordinator:    tpn.ShardCoordinator,
-			EnableEpochsHandler: tpn.EnableEpochsHandler,
-			NodesCoordinator:    tpn.NodesCoordinator,
+			ValidatorAccountsDB:     tpn.PeerState,
+			UserAccountsDB:          tpn.AccntState,
+			ChanceComputer:          tpn.NodesCoordinator,
+			ShardCoordinator:        tpn.ShardCoordinator,
+			EnableEpochsHandler:     tpn.EnableEpochsHandler,
+			NodesCoordinator:        tpn.NodesCoordinator,
+			VMContextCreatorHandler: tpn.RunTypeComponents.VMContextCreator(),
 		}
 		tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
 			EpochField: tpn.EnableEpochs.DelegationSmartContractEnableEpoch,
@@ -1030,6 +1027,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 			WasmVMChangeLocker:  tpn.WasmVMChangeLocker,
 			ESDTTransferParser:  esdtTransferParser,
 			Hasher:              TestHasher,
+			PubKeyConverter:     TestAddressPubkeyConverter,
 		}
 		vmFactory, _ = shard.NewVMContainerFactory(argsNewVMFactory)
 	}
@@ -1553,7 +1551,7 @@ func (tpn *TestProcessorNode) initRequesters() {
 		RequestInterval:       time.Second,
 	}
 
-	tpn.RequestHandler, _ = tpn.RequestHandlerCreator.CreateRequestHandler(argsRequestHandler)
+	tpn.RequestHandler, _ = tpn.RunTypeComponents.RequestHandlerCreator().CreateRequestHandler(argsRequestHandler)
 }
 
 func (tpn *TestProcessorNode) createMetaRequestersContainer(args requesterscontainer.FactoryArgs) {
@@ -1688,6 +1686,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		WasmVMChangeLocker:  tpn.WasmVMChangeLocker,
 		ESDTTransferParser:  esdtTransferParser,
 		Hasher:              TestHasher,
+		PubKeyConverter:     TestAddressPubkeyConverter,
 	}
 	vmFactory, _ := shard.NewVMContainerFactory(argsNewVMFactory)
 
@@ -1980,12 +1979,13 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 				MaxNumberOfIterations: 100000,
 			},
 		},
-		ValidatorAccountsDB: tpn.PeerState,
-		UserAccountsDB:      tpn.AccntState,
-		ChanceComputer:      &mock.RaterMock{},
-		ShardCoordinator:    tpn.ShardCoordinator,
-		EnableEpochsHandler: tpn.EnableEpochsHandler,
-		NodesCoordinator:    tpn.NodesCoordinator,
+		ValidatorAccountsDB:     tpn.PeerState,
+		UserAccountsDB:          tpn.AccntState,
+		ChanceComputer:          &mock.RaterMock{},
+		ShardCoordinator:        tpn.ShardCoordinator,
+		EnableEpochsHandler:     tpn.EnableEpochsHandler,
+		NodesCoordinator:        tpn.NodesCoordinator,
+		VMContextCreatorHandler: tpn.RunTypeComponents.VMContextCreator(),
 	}
 	vmFactory, _ := metaProcess.NewVMContainerFactory(argsVMContainerFactory)
 
@@ -2473,7 +2473,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
 		argumentsBase.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{}
 
-		tpn.BlockProcessor, err = tpn.BlockProcessorCreator.CreateBlockProcessor(argumentsBase)
+		tpn.BlockProcessor, err = tpn.RunTypeComponents.BlockProcessorCreator().CreateBlockProcessor(argumentsBase)
 	}
 
 	if err != nil {
@@ -3098,7 +3098,7 @@ func (tpn *TestProcessorNode) initBlockTracker() {
 		ArgBaseTracker: argBaseTracker,
 	}
 
-	tpn.BlockTracker, _ = tpn.BlockTrackerCreator.CreateBlockTracker(arguments)
+	tpn.BlockTracker, _ = tpn.RunTypeComponents.BlockTrackerCreator().CreateBlockTracker(arguments)
 }
 
 func (tpn *TestProcessorNode) initHeaderValidator() {
@@ -3303,7 +3303,7 @@ func CreateEnableEpochsConfig() config.EnableEpochs {
 
 // GetDefaultRunTypeComponents -
 func GetDefaultRunTypeComponents(consensusModel consensus.ConsensusModel) *mainFactoryMocks.RunTypeComponentsStub {
-	coreComp := components.GetCoreComponents()
+	coreComp := components.GetCoreComponents(testscommon.GetGeneralConfig())
 	cryptoComp := components.GetCryptoComponents(coreComp)
 	rt := components.GetRunTypeComponents(coreComp, cryptoComp)
 	return &mainFactoryMocks.RunTypeComponentsStub{
@@ -3324,6 +3324,7 @@ func GetDefaultRunTypeComponents(consensusModel consensus.ConsensusModel) *mainF
 		SCResultsPreProcessorFactory:        rt.SCResultsPreProcessorCreator(),
 		AccountParser:                       rt.AccountsParser(),
 		AccountCreator:                      rt.AccountsCreator(),
+		VMContextCreatorHandler:             systemSmartContracts.NewVMContextCreator(),
 		ConsensusModelType:                  consensusModel,
 		VmContainerMetaFactory:              rt.VmContainerMetaFactoryCreator(),
 		VmContainerShardFactory:             rt.VmContainerShardFactoryCreator(),
@@ -3336,7 +3337,7 @@ func GetDefaultRunTypeComponents(consensusModel consensus.ConsensusModel) *mainF
 		InterceptorsContainerFactory:        rt.InterceptorsContainerFactoryCreator(),
 		ShardResolversContainerFactory:      rt.ShardResolversContainerFactoryCreator(),
 		TxPreProcessorFactory:               rt.TxPreProcessorCreator(),
-		ExtraHeaderSigVerifier:              rt.ExtraHeaderSigVerifierHandler(),
+		ExtraHeaderSigVerifier:              rt.ExtraHeaderSigVerifierHolder(),
 		GenesisBlockFactory:                 rt.GenesisBlockCreatorFactory(),
 		GenesisMetaBlockChecker:             rt.GenesisMetaBlockCheckerCreator(),
 	}
@@ -3584,6 +3585,7 @@ func getDefaultVMConfig() *config.VirtualMachineConfig {
 		WasmVMVersions: []config.WasmVMVersionByEpoch{
 			{StartEpoch: 0, Version: "*"},
 		},
+		TransferAndExecuteByUserAddresses: []string{"erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe3"},
 	}
 }
 

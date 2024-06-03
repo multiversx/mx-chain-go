@@ -47,7 +47,7 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 		_, err = pcf.Create()
 		require.NoError(t, err)
 
-		bp, err := pcf.NewBlockProcessor(
+		bp, epochStartSCProc, err := pcf.NewBlockProcessor(
 			&testscommon.RequestHandlerStub{},
 			&processMocks.ForkDetectorStub{},
 			&mock.EpochStartTriggerStub{},
@@ -67,6 +67,7 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 
 		require.NoError(t, err)
 		require.Equal(t, "*block.shardProcessor", fmt.Sprintf("%T", bp))
+		require.Equal(t, "*disabled.epochStartSystemSCProcessor", fmt.Sprintf("%T", epochStartSCProc))
 	})
 
 	t.Run("new block processor creator for shard in sovereign chain should work", func(t *testing.T) {
@@ -81,7 +82,7 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 		_, err = pcf.Create()
 		require.NoError(t, err)
 
-		bp, err := pcf.NewBlockProcessor(
+		bp, epochStartSCProc, err := pcf.NewBlockProcessor(
 			&testscommon.ExtendedShardHeaderRequestHandlerStub{},
 			&processMocks.ForkDetectorStub{},
 			&mock.EpochStartTriggerStub{},
@@ -101,17 +102,19 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 
 		require.NoError(t, err)
 		require.Equal(t, "*block.sovereignChainBlockProcessor", fmt.Sprintf("%T", bp))
+		require.Equal(t, "*disabled.epochStartSystemSCProcessor", fmt.Sprintf("%T", epochStartSCProc))
 	})
 }
 
 func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 	t.Parallel()
 
-	coreComponents := componentsMock.GetCoreComponents()
+	cfg := testscommon.GetGeneralConfig()
+	coreComponents := componentsMock.GetCoreComponents(cfg)
 	cryptoComponents := componentsMock.GetCryptoComponents(coreComponents)
 	runTypeComponents := componentsMock.GetRunTypeComponents(coreComponents, cryptoComponents)
 	networkComponents := componentsMock.GetNetworkComponents(cryptoComponents)
-	statusCoreComponents := componentsMock.GetStatusCoreComponents(coreComponents)
+	statusCoreComponents := componentsMock.GetStatusCoreComponents(cfg, coreComponents)
 
 	storageManagerArgs := storageManager.GetStorageManagerArgs()
 	storageManagerArgs.Marshalizer = coreComponents.InternalMarshalizer()
@@ -188,19 +191,19 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 	}
 	shardC.CurrentShard = core.MetachainShardId
 
-	bootstrapComponents := componentsMock.GetBootstrapComponents(statusCoreComponents, coreComponents, cryptoComponents, networkComponents, runTypeComponents)
+	bootstrapComponents := componentsMock.GetBootstrapComponents(cfg, statusCoreComponents, coreComponents, cryptoComponents, networkComponents, runTypeComponents)
 	componentsMock.SetShardCoordinator(t, bootstrapComponents, shardC)
-	statusComponents := componentsMock.GetStatusComponents(statusCoreComponents, coreComponents, networkComponents, bootstrapComponents, stateComponents, &shardingMocks.NodesCoordinatorMock{}, cryptoComponents)
-	dataComponents := componentsMock.GetDataComponents(statusCoreComponents, coreComponents, bootstrapComponents, cryptoComponents, runTypeComponents)
+	statusComponents := componentsMock.GetStatusComponents(cfg, statusCoreComponents, coreComponents, networkComponents, bootstrapComponents, stateComponents, &shardingMocks.NodesCoordinatorMock{}, cryptoComponents)
+	dataComponents := componentsMock.GetDataComponents(cfg, statusCoreComponents, coreComponents, bootstrapComponents, cryptoComponents, runTypeComponents)
 
-	processArgs := componentsMock.GetProcessFactoryArgs(runTypeComponents, coreComponents, cryptoComponents, networkComponents, bootstrapComponents, stateComponents, dataComponents, statusComponents, statusCoreComponents)
+	processArgs := componentsMock.GetProcessFactoryArgs(cfg, runTypeComponents, coreComponents, cryptoComponents, networkComponents, bootstrapComponents, stateComponents, dataComponents, statusComponents, statusCoreComponents)
 	pcf, _ := processComp.NewProcessComponentsFactory(processArgs)
 	require.NotNil(t, pcf)
 
 	_, err = pcf.Create()
 	require.NoError(t, err)
 
-	bp, err := pcf.NewBlockProcessor(
+	bp, epochStartSCProc, err := pcf.NewBlockProcessor(
 		&testscommon.RequestHandlerStub{},
 		&processMocks.ForkDetectorStub{},
 		&mock.EpochStartTriggerStub{},
@@ -220,6 +223,7 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotNil(t, bp)
+	require.Equal(t, "*metachain.systemSCProcessor", fmt.Sprintf("%T", epochStartSCProc))
 }
 
 func createAccountAdapter(

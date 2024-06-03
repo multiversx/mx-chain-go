@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
+	runType "github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/process"
 	blproc "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -130,8 +131,14 @@ func createArgBaseProcessor(
 		BlockProcessingCutoffHandler:   &testscommon.BlockProcessingCutoffStub{},
 		ManagedPeersHolder:             &testscommon.ManagedPeersHolderStub{},
 		SentSignaturesTracker:          &testscommon.SentSignatureTrackerStub{},
-		RunTypeComponents:              components.GetRunTypeComponents(),
+		RunTypeComponents:              createRunTypeComponents(),
 	}
+}
+
+func createRunTypeComponents() runType.RunTypeComponentsHolder {
+	coreComp := components.GetCoreComponents(testscommon.GetGeneralConfig())
+	cryptoComp := components.GetCryptoComponents(coreComp)
+	return components.GetRunTypeComponents(coreComp, cryptoComp)
 }
 
 func createTestBlockchain() *testscommon.ChainHandlerStub {
@@ -1092,7 +1099,7 @@ func TestBaseProcessor_RevertStateRecreateTrieFailsShouldErr(t *testing.T) {
 	expectedErr := errors.New("err")
 	arguments := CreateMockArguments(createComponentHolderMocks())
 	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
-		RecreateTrieCalled: func(rootHash []byte) error {
+		RecreateTrieCalled: func(rootHash common.RootHashHolder) error {
 			return expectedErr
 		},
 	}

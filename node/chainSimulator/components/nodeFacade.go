@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/api/gin"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/forking"
@@ -17,10 +16,11 @@ import (
 	"github.com/multiversx/mx-chain-go/node/metrics"
 	"github.com/multiversx/mx-chain-go/node/trieIterators/factory"
 	"github.com/multiversx/mx-chain-go/process/mock"
-	"github.com/multiversx/mx-chain-go/testscommon/components"
+
+	"github.com/multiversx/mx-chain-core-go/core"
 )
 
-func (node *testOnlyProcessingNode) createFacade(configs config.Configs, apiInterface APIConfigurator) error {
+func (node *testOnlyProcessingNode) createFacade(configs config.Configs, apiInterface APIConfigurator, nodeFactory nodePack.NodeFactory) error {
 	log.Debug("creating api resolver structure")
 
 	err := node.createMetrics(configs)
@@ -64,7 +64,7 @@ func (node *testOnlyProcessingNode) createFacade(configs config.Configs, apiInte
 		AllowVMQueriesChan:             allowVMQueriesChan,
 		StatusComponents:               node.StatusComponentsHolder,
 		ProcessingMode:                 common.GetNodeProcessingMode(configs.ImportDbConfig),
-		RunTypeComponents:              components.GetRunTypeComponents(),
+		RunTypeComponents:              node.RunTypeComponents,
 		DelegatedListFactoryHandler:    factory.NewDelegatedListProcessorFactory(),
 		DirectStakedListFactoryHandler: factory.NewDirectStakedListProcessorFactory(),
 		TotalStakedValueFactoryHandler: factory.NewTotalStakedListProcessorFactory(),
@@ -79,7 +79,8 @@ func (node *testOnlyProcessingNode) createFacade(configs config.Configs, apiInte
 
 	flagsConfig := configs.FlagsConfig
 
-	nd, err := nodePack.NewNode(
+	nd, err := nodeFactory.CreateNewNode(
+		nodePack.WithRunTypeComponents(node.RunTypeComponents),
 		nodePack.WithStatusCoreComponents(node.StatusCoreComponents),
 		nodePack.WithCoreComponents(node.CoreComponentsHolder),
 		nodePack.WithCryptoComponents(node.CryptoComponentsHolder),

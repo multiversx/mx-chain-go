@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/common/ordering"
+	commonRunType "github.com/multiversx/mx-chain-go/common/runType"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	dbLookupFactory "github.com/multiversx/mx-chain-go/dblookupext/factory"
@@ -89,7 +90,7 @@ func (pr *ProcessorRunner) createComponents(tb testing.TB) {
 }
 
 func (pr *ProcessorRunner) createRunTypeComponents(tb testing.TB) {
-	initialAccounts, err := runType.ReadInitialAccounts(pr.Config.ConfigurationPathsHolder.Genesis)
+	initialAccounts, err := commonRunType.ReadInitialAccounts(pr.Config.ConfigurationPathsHolder.Genesis)
 	require.Nil(tb, err)
 
 	rtFactory, err := runType.NewRunTypeComponentsFactory(runType.ArgsRunTypeComponents{

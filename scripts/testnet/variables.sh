@@ -53,7 +53,7 @@ export NODE_WATCHER=0
 export SEEDNODE_DELAY=5
 export GENESIS_DELAY=30
 export HARDFORK_DELAY=900 #15 minutes enough to take export and gracefully close
-export NODE_DELAY=60
+export NODE_DELAY=30
 
 export GENESIS_STAKE_TYPE="direct" #'delegated' or 'direct' as in direct stake
 
@@ -75,6 +75,9 @@ export SHARD_CONSENSUS_SIZE=2
 export META_VALIDATORCOUNT=0
 export META_OBSERVERCOUNT=0
 export META_CONSENSUS_SIZE=$META_VALIDATORCOUNT
+
+# ROUND_DURATION_IN_MS is the duration in milliseconds for one round
+export ROUND_DURATION_IN_MS=6000
 
 # MULTI_KEY_NODES if set to 1, one observer will be generated on each shard that will handle all generated keys
 export MULTI_KEY_NODES=0
@@ -117,7 +120,7 @@ export PORT_ORIGIN_VALIDATOR_REST="9500"
 export USETMUX=1
 
 # Log level for the logger in the Node.
-export LOGLEVEL="*:INFO"
+export LOGLEVEL="*:DEBUG"
 
 
 if [ "$TESTNETMODE" == "debug" ]; then

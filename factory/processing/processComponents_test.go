@@ -284,45 +284,48 @@ func createProcessComponentsFactoryArgs(runTypeComponents *mainFactoryMocks.RunT
 }
 
 func createProcessFactoryArgs(t *testing.T, shardCoordinator sharding.Coordinator) processComp.ProcessComponentsFactoryArgs {
-	coreComp := components.GetCoreComponents()
-	statusCoreComp := components.GetStatusCoreComponents(coreComp)
+	cfg := testscommon.GetGeneralConfig()
+	coreComp := components.GetCoreComponents(cfg)
+	statusCoreComp := components.GetStatusCoreComponents(cfg, coreComp)
 	cryptoComp := components.GetCryptoComponents(coreComp)
 	networkComp := components.GetNetworkComponents(cryptoComp)
 	runTypeComp := components.GetRunTypeComponents(coreComp, cryptoComp)
-	bootstrapComp := components.GetBootstrapComponents(statusCoreComp, coreComp, cryptoComp, networkComp, runTypeComp)
+	bootstrapComp := components.GetBootstrapComponents(cfg, statusCoreComp, coreComp, cryptoComp, networkComp, runTypeComp)
 	components.SetShardCoordinator(t, bootstrapComp, shardCoordinator)
-	dataComp := components.GetDataComponents(statusCoreComp, coreComp, bootstrapComp, cryptoComp, runTypeComp)
-	stateComp := components.GetStateComponents(coreComp, dataComp, statusCoreComp, runTypeComp)
-	statusComp := components.GetStatusComponents(statusCoreComp, coreComp, networkComp, bootstrapComp, stateComp, &shardingMocks.NodesCoordinatorMock{}, cryptoComp)
+	dataComp := components.GetDataComponents(cfg, statusCoreComp, coreComp, bootstrapComp, cryptoComp, runTypeComp)
+	stateComp := components.GetStateComponents(cfg, coreComp, dataComp, statusCoreComp, runTypeComp)
+	statusComp := components.GetStatusComponents(cfg, statusCoreComp, coreComp, networkComp, bootstrapComp, stateComp, &shardingMocks.NodesCoordinatorMock{}, cryptoComp)
 
-	return components.GetProcessFactoryArgs(runTypeComp, coreComp, cryptoComp, networkComp, bootstrapComp, stateComp, dataComp, statusComp, statusCoreComp)
+	return components.GetProcessFactoryArgs(cfg, runTypeComp, coreComp, cryptoComp, networkComp, bootstrapComp, stateComp, dataComp, statusComp, statusCoreComp)
 }
 
 func createSovereignProcessFactoryArgs(t *testing.T, shardCoordinator sharding.Coordinator) processComp.ProcessComponentsFactoryArgs {
-	coreComp := components.GetSovereignCoreComponents()
-	statusCoreComp := components.GetStatusCoreComponents(coreComp)
+	cfg := testscommon.GetGeneralConfig()
+	coreComp := components.GetSovereignCoreComponents(cfg)
+	statusCoreComp := components.GetStatusCoreComponents(cfg, coreComp)
 	cryptoComp := components.GetCryptoComponents(coreComp)
 	networkComp := components.GetNetworkComponents(cryptoComp)
 	runTypeComp := components.GetSovereignRunTypeComponents(coreComp, cryptoComp)
-	bootstrapComp := components.GetBootstrapComponents(statusCoreComp, coreComp, cryptoComp, networkComp, runTypeComp)
+	bootstrapComp := components.GetBootstrapComponents(cfg, statusCoreComp, coreComp, cryptoComp, networkComp, runTypeComp)
 	components.SetShardCoordinator(t, bootstrapComp, shardCoordinator)
-	dataComp := components.GetDataComponents(statusCoreComp, coreComp, bootstrapComp, cryptoComp, runTypeComp)
-	stateComp := components.GetStateComponents(coreComp, dataComp, statusCoreComp, runTypeComp)
-	statusComp := components.GetStatusComponents(statusCoreComp, coreComp, networkComp, bootstrapComp, stateComp, &shardingMocks.NodesCoordinatorMock{}, cryptoComp)
+	dataComp := components.GetDataComponents(cfg, statusCoreComp, coreComp, bootstrapComp, cryptoComp, runTypeComp)
+	stateComp := components.GetStateComponents(cfg, coreComp, dataComp, statusCoreComp, runTypeComp)
+	statusComp := components.GetStatusComponents(cfg, statusCoreComp, coreComp, networkComp, bootstrapComp, stateComp, &shardingMocks.NodesCoordinatorMock{}, cryptoComp)
 
-	return components.GetProcessFactoryArgs(runTypeComp, coreComp, cryptoComp, networkComp, bootstrapComp, stateComp, dataComp, statusComp, statusCoreComp)
+	return components.GetProcessFactoryArgs(cfg, runTypeComp, coreComp, cryptoComp, networkComp, bootstrapComp, stateComp, dataComp, statusComp, statusCoreComp)
 }
 
 func createStateComponents() runType.StateComponentsHolder {
-	coreComp := components.GetCoreComponents()
-	statusCoreComp := components.GetStatusCoreComponents(coreComp)
+	cfg := testscommon.GetGeneralConfig()
+	coreComp := components.GetCoreComponents(cfg)
+	statusCoreComp := components.GetStatusCoreComponents(cfg, coreComp)
 	cryptoComp := components.GetCryptoComponents(coreComp)
 	networkComp := components.GetNetworkComponents(cryptoComp)
 	runTypeComp := components.GetRunTypeComponents(coreComp, cryptoComp)
-	bootstrapComp := components.GetBootstrapComponents(statusCoreComp, coreComp, cryptoComp, networkComp, runTypeComp)
-	dataComp := components.GetDataComponents(statusCoreComp, coreComp, bootstrapComp, cryptoComp, runTypeComp)
+	bootstrapComp := components.GetBootstrapComponents(cfg, statusCoreComp, coreComp, cryptoComp, networkComp, runTypeComp)
+	dataComp := components.GetDataComponents(cfg, statusCoreComp, coreComp, bootstrapComp, cryptoComp, runTypeComp)
 
-	return components.GetStateComponents(coreComp, dataComp, statusCoreComp, runTypeComp)
+	return components.GetStateComponents(cfg, coreComp, dataComp, statusCoreComp, runTypeComp)
 }
 
 func TestNewProcessComponentsFactory(t *testing.T) {
@@ -1000,13 +1003,13 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 }
 
 func getRunTypeComponentsMock() *mainFactoryMocks.RunTypeComponentsStub {
-	coreComp := components.GetCoreComponents()
+	coreComp := components.GetCoreComponents(testscommon.GetGeneralConfig())
 	cryptoComp := components.GetCryptoComponents(coreComp)
 	return getRunTypeComponents(components.GetRunTypeComponents(coreComp, cryptoComp))
 }
 
 func getSovereignRunTypeComponentsMock() *mainFactoryMocks.RunTypeComponentsStub {
-	coreComp := components.GetSovereignCoreComponents()
+	coreComp := components.GetSovereignCoreComponents(testscommon.GetGeneralConfig())
 	cryptoComp := components.GetCryptoComponents(coreComp)
 	return getRunTypeComponents(components.GetSovereignRunTypeComponents(coreComp, cryptoComp))
 }
@@ -1033,6 +1036,7 @@ func getRunTypeComponents(rt runType.RunTypeComponentsHolder) *mainFactoryMocks.
 		VmContainerShardFactory:             rt.VmContainerShardFactoryCreator(),
 		AccountParser:                       rt.AccountsParser(),
 		AccountCreator:                      rt.AccountsCreator(),
+		VMContextCreatorHandler:             rt.VMContextCreator(),
 		OutGoingOperationsPool:              rt.OutGoingOperationsPoolHandler(),
 		DataCodec:                           rt.DataCodecHandler(),
 		TopicsChecker:                       rt.TopicsCheckerHandler(),
@@ -1041,7 +1045,7 @@ func getRunTypeComponents(rt runType.RunTypeComponentsHolder) *mainFactoryMocks.
 		InterceptorsContainerFactory:        rt.InterceptorsContainerFactoryCreator(),
 		ShardResolversContainerFactory:      rt.ShardResolversContainerFactoryCreator(),
 		TxPreProcessorFactory:               rt.TxPreProcessorCreator(),
-		ExtraHeaderSigVerifier:              rt.ExtraHeaderSigVerifierHandler(),
+		ExtraHeaderSigVerifier:              rt.ExtraHeaderSigVerifierHolder(),
 		GenesisBlockFactory:                 rt.GenesisBlockCreatorFactory(),
 		GenesisMetaBlockChecker:             rt.GenesisMetaBlockCheckerCreator(),
 	}

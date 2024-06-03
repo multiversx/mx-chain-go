@@ -43,6 +43,16 @@ func NewOutGoingOperationPool(expiryTime time.Duration) *outGoingOperationsPool 
 
 // Add adds the outgoing txs data at the specified hash in the internal cache
 func (op *outGoingOperationsPool) Add(data *sovereign.BridgeOutGoingData) {
+	if data == nil {
+		return
+	}
+
+	log.Debug("outGoingOperationsPool.Add",
+		"hash", data.Hash,
+		"aggregated sig", data.AggregatedSignature,
+		"leader sig", data.LeaderSignature,
+	)
+
 	hashStr := string(data.Hash)
 
 	op.mutex.Lock()
@@ -72,6 +82,8 @@ func (op *outGoingOperationsPool) Get(hash []byte) *sovereign.BridgeOutGoingData
 
 // Delete removes the outgoing tx data at the specified hash
 func (op *outGoingOperationsPool) Delete(hash []byte) {
+	log.Debug("outGoingOperationsPool.Delete", "hash", hash)
+
 	op.mutex.Lock()
 	defer op.mutex.Unlock()
 
@@ -145,6 +157,21 @@ func (op *outGoingOperationsPool) GetUnconfirmedOperations() []*sovereign.Bridge
 	}
 
 	return ret
+}
+
+// ResetTimer will reset the internal expiry timer for the provided outgoing operations hashes
+func (op *outGoingOperationsPool) ResetTimer(hashes [][]byte) {
+	op.mutex.Lock()
+	defer op.mutex.Unlock()
+
+	for _, hash := range hashes {
+		cachedEntry, exists := op.cache[string(hash)]
+		if !exists {
+			log.Error("outGoingOperationsPool.ResetTimer error", "hash not found", hash)
+			continue
+		}
+		cachedEntry.expireAt = time.Now().Add(op.timeout)
+	}
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil

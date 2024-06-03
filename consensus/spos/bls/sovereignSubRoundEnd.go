@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/errors"
 
@@ -42,8 +43,56 @@ func NewSovereignSubRoundEndRound(
 	}
 
 	sr.Job = sr.doSovereignEndRoundJob
-
 	return sr, nil
+}
+
+func (sr *sovereignSubRoundEnd) receivedBlockHeaderFinalInfo(ctx context.Context, cnsDta *consensus.Message) bool {
+	success := sr.subroundEndRoundV2.receivedBlockHeaderFinalInfo(ctx, cnsDta)
+	if !success {
+		return false
+	}
+
+	// TODO: MX-15502 once we have ZKProofs included in blocks for leaders which have resent the unconfirmed
+	// outgoing operation we should also call resetOutGoingOpTimer here for consensus participants
+	return sr.updateOutGoingPoolIfNeeded(cnsDta) == nil
+}
+
+func (sr *sovereignSubRoundEnd) updateOutGoingPoolIfNeeded(cnsDta *consensus.Message) error {
+	sovHeader, castOk := sr.Header.(data.SovereignChainHeaderHandler)
+	if !castOk {
+		log.Error("sovereignSubRoundEnd.updateOutGoingPoolIfNeeded", "error", errors.ErrWrongTypeAssertion)
+		return errors.ErrWrongTypeAssertion
+	}
+
+	outGoingMBHeader := sovHeader.GetOutGoingMiniBlockHeaderHandler()
+	if check.IfNil(outGoingMBHeader) {
+		return nil
+	}
+
+	err := outGoingMBHeader.SetAggregatedSignatureOutGoingOperations(cnsDta.AggregatedSignatureOutGoingTxData)
+	if err != nil {
+		log.Error("sovereignSubRoundEnd.updateOutGoingPoolIfNeeded.SetAggregatedSignatureOutGoingOperations", "error", err)
+		return err
+	}
+
+	err = outGoingMBHeader.SetLeaderSignatureOutGoingOperations(cnsDta.LeaderSignatureOutGoingTxData)
+	if err != nil {
+		log.Error("sovereignSubRoundEnd.updateOutGoingPoolIfNeeded.SetLeaderSignatureOutGoingOperations", "error", err)
+		return err
+	}
+
+	log.Debug("step 3.1: block header final info has been received with outgoing mb",
+		"LeaderSignatureOutGoingTxData", cnsDta.LeaderSignatureOutGoingTxData,
+		"AggregatedSignatureOutGoingTxData", cnsDta.AggregatedSignatureOutGoingTxData,
+	)
+
+	_, err = sr.updateBridgeDataWithSignatures(outGoingMBHeader)
+	if err != nil {
+		log.Error("sovereignSubRoundEnd.updateOutGoingPoolIfNeeded.updateBridgeDataWithSignatures", "error", err)
+		return err
+	}
+
+	return nil
 }
 
 func (sr *sovereignSubRoundEnd) doSovereignEndRoundJob(ctx context.Context) bool {
@@ -121,7 +170,7 @@ func (sr *sovereignSubRoundEnd) getAllOutGoingOperations(currentOperations *sove
 	unconfirmedOperations := sr.outGoingOperationsPool.GetUnconfirmedOperations()
 	if len(unconfirmedOperations) != 0 {
 		log.Debug("found unconfirmed operations", "num unconfirmed operations", len(unconfirmedOperations))
-		outGoingOperations = append(outGoingOperations, unconfirmedOperations...)
+		outGoingOperations = append(unconfirmedOperations, outGoingOperations...)
 	}
 
 	log.Debug("current outgoing operations", "hash", currentOperations.Hash)
@@ -137,7 +186,17 @@ func (sr *sovereignSubRoundEnd) sendOutGoingOperations(ctx context.Context, data
 		return
 	}
 
+	sr.resetOutGoingOpTimer(data)
 	log.Debug("sent outgoing operations", "hashes", resp.TxHashes)
+}
+
+func (sr *sovereignSubRoundEnd) resetOutGoingOpTimer(data []*sovereign.BridgeOutGoingData) {
+	hashes := make([][]byte, len(data))
+	for idx, dta := range data {
+		hashes[idx] = dta.Hash
+	}
+
+	sr.outGoingOperationsPool.ResetTimer(hashes)
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil

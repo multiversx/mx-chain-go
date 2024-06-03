@@ -66,6 +66,7 @@ func TestManagedRunTypeComponents_Create(t *testing.T) {
 		require.Nil(t, managedRunTypeComponents.ScheduledTxsExecutionCreator())
 		require.Nil(t, managedRunTypeComponents.TransactionCoordinatorCreator())
 		require.Nil(t, managedRunTypeComponents.ValidatorStatisticsProcessorCreator())
+		require.Nil(t, managedRunTypeComponents.VMContextCreator())
 		require.Nil(t, managedRunTypeComponents.AdditionalStorageServiceCreator())
 		require.Nil(t, managedRunTypeComponents.SCProcessorCreator())
 		require.Nil(t, managedRunTypeComponents.SCResultsPreProcessorCreator())
@@ -83,7 +84,7 @@ func TestManagedRunTypeComponents_Create(t *testing.T) {
 		require.Nil(t, managedRunTypeComponents.InterceptorsContainerFactoryCreator())
 		require.Nil(t, managedRunTypeComponents.ShardResolversContainerFactoryCreator())
 		require.Nil(t, managedRunTypeComponents.TxPreProcessorCreator())
-		require.Nil(t, managedRunTypeComponents.ExtraHeaderSigVerifierHandler())
+		require.Nil(t, managedRunTypeComponents.ExtraHeaderSigVerifierHolder())
 		require.Nil(t, managedRunTypeComponents.GenesisBlockCreatorFactory())
 		require.Nil(t, managedRunTypeComponents.GenesisMetaBlockCheckerCreator())
 
@@ -101,6 +102,7 @@ func TestManagedRunTypeComponents_Create(t *testing.T) {
 		require.NotNil(t, managedRunTypeComponents.ScheduledTxsExecutionCreator())
 		require.NotNil(t, managedRunTypeComponents.TransactionCoordinatorCreator())
 		require.NotNil(t, managedRunTypeComponents.ValidatorStatisticsProcessorCreator())
+		require.NotNil(t, managedRunTypeComponents.VMContextCreator())
 		require.NotNil(t, managedRunTypeComponents.AdditionalStorageServiceCreator())
 		require.NotNil(t, managedRunTypeComponents.SCProcessorCreator())
 		require.NotNil(t, managedRunTypeComponents.SCResultsPreProcessorCreator())
@@ -118,7 +120,7 @@ func TestManagedRunTypeComponents_Create(t *testing.T) {
 		require.NotNil(t, managedRunTypeComponents.InterceptorsContainerFactoryCreator())
 		require.NotNil(t, managedRunTypeComponents.ShardResolversContainerFactoryCreator())
 		require.NotNil(t, managedRunTypeComponents.TxPreProcessorCreator())
-		require.NotNil(t, managedRunTypeComponents.ExtraHeaderSigVerifierHandler())
+		require.NotNil(t, managedRunTypeComponents.ExtraHeaderSigVerifierHolder())
 		require.NotNil(t, managedRunTypeComponents.GenesisBlockCreatorFactory())
 		require.NotNil(t, managedRunTypeComponents.GenesisMetaBlockCheckerCreator())
 

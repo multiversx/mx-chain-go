@@ -9,6 +9,7 @@ import (
 	dataComp "github.com/multiversx/mx-chain-go/factory/data"
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
 
@@ -17,14 +18,15 @@ import (
 )
 
 func createDataArgs(shardCoordinator sharding.Coordinator) dataComp.DataComponentsFactoryArgs {
-	coreComp := componentsMock.GetCoreComponents()
-	statusCoreComp := componentsMock.GetStatusCoreComponents(coreComp)
+	cfg := testscommon.GetGeneralConfig()
+	coreComp := componentsMock.GetCoreComponents(cfg)
+	statusCoreComp := componentsMock.GetStatusCoreComponents(cfg, coreComp)
 	cryptoComp := componentsMock.GetCryptoComponents(coreComp)
 	networkComp := componentsMock.GetNetworkComponents(cryptoComp)
 	runTypeComp := componentsMock.GetRunTypeComponents(coreComp, cryptoComp)
-	bootstrapComp := componentsMock.GetBootstrapComponents(statusCoreComp, coreComp, cryptoComp, networkComp, runTypeComp)
+	bootstrapComp := componentsMock.GetBootstrapComponents(cfg, statusCoreComp, coreComp, cryptoComp, networkComp, runTypeComp)
 
-	dataArgs := componentsMock.GetDataArgs(statusCoreComp, coreComp, bootstrapComp, cryptoComp, runTypeComp)
+	dataArgs := componentsMock.GetDataArgs(cfg, statusCoreComp, coreComp, bootstrapComp, cryptoComp, runTypeComp)
 	dataArgs.ShardCoordinator = shardCoordinator
 	return dataArgs
 }
