@@ -9,12 +9,17 @@ import (
 	chainSim "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
+	"github.com/multiversx/mx-chain-go/process"
 	sovereignChainSimulator "github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator"
 	"github.com/multiversx/mx-chain-go/vm"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	coreAPI "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/stretchr/testify/require"
+)
+
+const (
+	getTokenPropertiesFunc = "getTokenProperties"
 )
 
 func TestSovereignChainSimulator_IssueFungible(t *testing.T) {
@@ -44,6 +49,8 @@ func TestSovereignChainSimulator_IssueFungible(t *testing.T) {
 
 	defer cs.Close()
 
+	time.Sleep(time.Second) // wait for VM to be ready for processing queries
+
 	nodeHandler := cs.GetNodeHandler(core.SovereignChainShardId)
 
 	nonce := uint64(0)
@@ -62,6 +69,16 @@ func TestSovereignChainSimulator_IssueFungible(t *testing.T) {
 	require.NotNil(t, tokens)
 	require.True(t, len(tokens) == 2)
 	require.Equal(t, supply, tokens[tokenIdentifier].Value)
+
+	res, _, err := nodeHandler.GetFacadeHandler().ExecuteSCQuery(&process.SCQuery{
+		ScAddress: vm.ESDTSCAddress,
+		FuncName:  getTokenPropertiesFunc,
+		Arguments: [][]byte{[]byte(tokenIdentifier)},
+	})
+	require.Nil(t, err)
+	require.Equal(t, chainSim.OkReturnCode, res.ReturnCode)
+	esdtSupply, _ := big.NewInt(0).SetString(string(res.ReturnData[3]), 10)
+	require.Equal(t, supply, esdtSupply)
 
 	setRolesArgs := setSpecialRole(tokenIdentifier, wallet.Bytes, fungibleRoles)
 	chainSim.SendTransaction(t, cs, wallet.Bytes, &nonce, vm.ESDTSCAddress, big.NewInt(0), setRolesArgs, uint64(60000000))
