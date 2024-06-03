@@ -1518,3 +1518,138 @@ func TestChainSimulator_NFT_ESDTModifyRoyalties(t *testing.T) {
 
 	require.Equal(t, uint32(big.NewInt(20).Uint64()), retrievedMetaData.Royalties)
 }
+
+// Test scenario #9
+//
+// Initial setup: Create NFT
+//
+// 1. Change the nft to DYNAMIC type - the metadata should be on the system account
+// 2. Send the NFT cross shard
+// 3. The meta data should still be present on the system account
+func TestChainSimulator_NFT_ChangeToDynamicType(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	startTime := time.Now().Unix()
+	roundDurationInMillis := uint64(6000)
+	roundsPerEpoch := core.OptionalUint64{
+		HasValue: true,
+		Value:    20,
+	}
+
+	activationEpoch := uint32(2)
+
+	baseIssuingCost := "1000"
+
+	numOfShards := uint32(3)
+	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+		BypassTxSignatureCheck:      false,
+		TempDir:                     t.TempDir(),
+		PathToInitialConfig:         defaultPathToInitialConfig,
+		NumOfShards:                 numOfShards,
+		GenesisTimestamp:            startTime,
+		RoundDurationInMillis:       roundDurationInMillis,
+		RoundsPerEpoch:              roundsPerEpoch,
+		ApiInterface:                api.NewNoApiInterface(),
+		MinNodesPerShard:            3,
+		MetaChainMinNodes:           3,
+		ConsensusGroupSize:          1,
+		MetaChainConsensusGroupSize: 1,
+		NumNodesWaitingListMeta:     0,
+		NumNodesWaitingListShard:    0,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpoch
+			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, cs)
+
+	defer cs.Close()
+
+	mintValue := big.NewInt(10)
+	mintValue = mintValue.Mul(oneEGLD, mintValue)
+
+	addrs := createAddresses(t, cs, true)
+
+	err = cs.GenerateBlocksUntilEpochIsReached(int32(activationEpoch) - 1)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(10)
+	require.Nil(t, err)
+
+	log.Info("Initial setup: Create NFT")
+
+	nftTicker := []byte("NFTTICKER")
+	tx := issueNonFungibleTx(0, addrs[1].Bytes, nftTicker, baseIssuingCost)
+
+	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+	require.Equal(t, "success", txResult.Status.String())
+
+	roles := [][]byte{
+		[]byte(core.ESDTRoleNFTCreate),
+		[]byte(core.ESDTRoleNFTUpdate),
+	}
+
+	nftTokenID := txResult.Logs.Events[0].Topics[0]
+	tokenType := core.DynamicNFTESDT
+
+	setAddressEsdtRoles(t, cs, addrs[1], nftTokenID, roles)
+
+	log.Info("Issued NFT token id", "tokenID", string(nftTokenID))
+
+	nftMetaData := txsFee.GetDefaultMetaData()
+	nftMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
+
+	tx = nftCreateTx(1, addrs[1].Bytes, nftTokenID, nftMetaData)
+
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+	require.Equal(t, "success", txResult.Status.String())
+
+	err = cs.GenerateBlocks(10)
+	require.Nil(t, err)
+
+	log.Info("Step 1. Change the nft to DYNAMIC type - the metadata should be on the system account")
+
+	txDataField := bytes.Join(
+		[][]byte{
+			[]byte(core.ESDTSetTokenType),
+			[]byte(hex.EncodeToString(nftTokenID)),
+			[]byte(hex.EncodeToString([]byte(tokenType))),
+		},
+		[]byte("@"),
+	)
+
+	tx = &transaction.Transaction{
+		Nonce:     2,
+		SndAddr:   addrs[1].Bytes,
+		RcvAddr:   addrs[1].Bytes,
+		GasLimit:  10_000_000,
+		GasPrice:  minGasPrice,
+		Signature: []byte("dummySig"),
+		Data:      txDataField,
+		Value:     big.NewInt(0),
+		ChainID:   []byte(configs.ChainID),
+		Version:   1,
+	}
+
+	systemAccountAddress := getSystemAccountAddress(t, cs, addrs[1].Bytes)
+	checkMetaData(t, cs, systemAccountAddress, nftTokenID, nftMetaData)
+
+	log.Info("Step 2. Send the NFT cross shard")
+
+	tx = esdtNFTTransferTx(2, addrs[1].Bytes, addrs[2].Bytes, nftTokenID)
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+	require.Equal(t, "success", txResult.Status.String())
+
+	log.Info("Step 3. The meta data should still be present on the system account")
+
+	checkMetaData(t, cs, systemAccountAddress, nftTokenID, nftMetaData)
+}
