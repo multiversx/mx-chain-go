@@ -92,7 +92,7 @@ func Deposit(
 	for _, token := range tokens {
 		depositArgs = depositArgs +
 			"@" + hex.EncodeToString([]byte(token.Identifier)) +
-			"@" + getTokenNonce(t, dtaCodec, token.Nonce) +
+			"@" + getNonceArg(t, dtaCodec, token.Nonce) +
 			"@" + hex.EncodeToString(token.Amount.Bytes())
 	}
 
@@ -105,7 +105,7 @@ func Deposit(
 	chainSim.SendTransaction(t, cs, sender, nonce, sender, chainSim.ZeroValue, depositArgs, uint64(20000000))
 }
 
-func getTokenNonce(t *testing.T, dataCodec dataCodec.SovereignDataCodec, nonce uint64) string {
+func getNonceArg(t *testing.T, dataCodec dataCodec.SovereignDataCodec, nonce uint64) string {
 	if nonce == 0 {
 		return ""
 	}
