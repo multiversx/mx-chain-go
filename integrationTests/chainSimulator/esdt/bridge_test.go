@@ -12,21 +12,29 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/config"
-	chainSimulator2 "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
+	chainSim "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 )
 
-// TODO: Delete this in feat/chain-go-sdk when merged and use existing functions
+// TODO: MX-15527 Delete this in feat/chain-go-sdk when merged and use existing functions
 // ArgsBridgeSetup holds the arguments for bridge setup
 type BridgeSetupAddresses struct {
 	ESDTSafeAddress  []byte
 	FeeMarketAddress []byte
 }
 
-func TestChainSimulator_ExecuteBridgeOpsWithPrefix(t *testing.T) {
+// TODO: MX-15527 Make a similar bridge test with sovereign chain simulator after merging this into feat/chain-go-sdk
+
+// In this test we:
+// - will deploy sovereign bridge contracts on the main chain
+// - will whitelist the bridge esdt safe contract to allow it to burn/mint cross chain esdt tokens
+// - deposit a cross chain prefixed token in the contract to be transferred to an address (mint)
+// - send back some of the cross chain prefixed tokens to the contract to be bridged to a sovereign chain (burn)
+// - move some of the prefixed tokens to another address
+func TestChainSimulator_ExecuteMintBurnBridgeOpForTokensWithPrefix(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -131,10 +139,10 @@ func TestChainSimulator_ExecuteBridgeOpsWithPrefix(t *testing.T) {
 	requireAccountHasToken(t, cs, depositToken, initialAddress, big.NewInt(0).Sub(remainingValueAfterBridge, receivedTokens))
 }
 
-// TODO: Delete this in feat/chain-go-sdk when merged and use existing functions
+// TODO: MX-15527 Delete this in feat/chain-go-sdk when merged and use existing functions
 func deployMainChainBridgeContracts(
 	t *testing.T,
-	cs chainSimulator2.ChainSimulator,
+	cs chainSim.ChainSimulator,
 	wallet dtos.WalletAddress,
 	esdtSafeWasmPath string,
 	feeMarketWasmPath string,
@@ -171,8 +179,8 @@ func deployMainChainBridgeContracts(
 	}
 }
 
-func sendTx(t *testing.T, cs chainSimulator2.ChainSimulator, sender []byte, nonce uint64, receiver []byte, value *big.Int, data string, gasLimit uint64) *transaction.ApiTransactionResult {
-	tx := chainSimulator2.GenerateTransaction(sender, nonce, receiver, value, data, gasLimit)
+func sendTx(t *testing.T, cs chainSim.ChainSimulator, sender []byte, nonce uint64, receiver []byte, value *big.Int, data string, gasLimit uint64) *transaction.ApiTransactionResult {
+	tx := chainSim.GenerateTransaction(sender, nonce, receiver, value, data, gasLimit)
 	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, 10)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
