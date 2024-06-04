@@ -51,7 +51,7 @@ func TestChainSimulator_ExecuteMintBurnBridgeOpForESDTTokensWithPrefix(t *testin
 		BypassTxSignatureCheck:      false,
 		TempDir:                     t.TempDir(),
 		PathToInitialConfig:         defaultPathToInitialConfig,
-		NumOfShards:                 1,
+		NumOfShards:                 3,
 		GenesisTimestamp:            startTime,
 		RoundDurationInMillis:       roundDurationInMillis,
 		RoundsPerEpoch:              roundsPerEpoch,

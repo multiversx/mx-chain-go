@@ -177,7 +177,13 @@ func requireAccountHasToken(
 	address string,
 	value *big.Int,
 ) {
-	tokens, _, err := cs.GetNodeHandler(0).GetFacadeHandler().GetAllESDTTokens(address, dataApi.AccountQueryOptions{})
+	nodeHandler := cs.GetNodeHandler(0)
+
+	pubKey, err := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode(address)
+	require.Nil(t, err)
+
+	addressShardID := nodeHandler.GetShardCoordinator().ComputeId(pubKey)
+	tokens, _, err := cs.GetNodeHandler(addressShardID).GetFacadeHandler().GetAllESDTTokens(address, dataApi.AccountQueryOptions{})
 	require.Nil(t, err)
 
 	tokenData, found := tokens[token]
