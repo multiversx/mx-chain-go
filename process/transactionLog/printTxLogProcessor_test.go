@@ -65,7 +65,7 @@ func TestPrintTxLogProcessor_SaveLog(t *testing.T) {
 	err := ptlp.SaveLog([]byte("hash"), &transaction.Transaction{}, txLogEntry)
 	require.Nil(t, err)
 
-	err = ptlp.SaveLog([]byte("hash"), &transaction.Transaction{}, nil)
+	err = ptlp.AppendLog([]byte("hash"), &transaction.Transaction{}, nil)
 	require.Nil(t, err)
 
 	require.True(t, strings.Contains(buff.String(), "printTxLogProcessor.SaveLog"))

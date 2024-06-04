@@ -137,15 +137,12 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulator(t *testing.
 	// check SCRs
 	shardC := cs.GetNodeHandler(0).GetShardCoordinator()
 	for _, scr := range result.SmartContractResults {
-		checkSCRStatus(t, cs, pkConv, shardC, scr)
+		checkSCRSucceeded(t, cs, pkConv, shardC, scr)
 	}
 
-	// 6 log events, 3 from the succeeded txs + 3 from the failed one
-	require.Equal(t, 6, len(result.Logs.Events))
-	require.Equal(t, core.CompletedTxEventIdentifier, result.Logs.Events[0].Identifier)
-	require.Equal(t, core.CompletedTxEventIdentifier, result.Logs.Events[1].Identifier)
-	require.Equal(t, core.CompletedTxEventIdentifier, result.Logs.Events[5].Identifier)
-	require.True(t, strings.Contains(string(result.Logs.Events[4].Data), "contract is paused"))
+	// 3 log events from the failed sc call
+	require.Equal(t, 3, len(result.Logs.Events))
+	require.True(t, strings.Contains(string(result.Logs.Events[2].Data), "contract is paused"))
 }
 
 func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorScCalls(t *testing.T) {
@@ -238,7 +235,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorScCalls(t *t
 			continue
 		}
 
-		checkSCRStatus(t, cs, pkConv, shardC, scr)
+		checkSCRSucceeded(t, cs, pkConv, shardC, scr)
 	}
 
 	// 6 events, 3 with signalError + 3 with the actual errors
@@ -332,7 +329,7 @@ func checkSum(
 	require.Equal(t, expectedSum, sum)
 }
 
-func checkSCRStatus(
+func checkSCRSucceeded(
 	t *testing.T,
 	cs testsChainSimulator.ChainSimulator,
 	pkConv core.PubkeyConverter,
@@ -345,5 +342,14 @@ func checkSCRStatus(
 	senderShard := shardC.ComputeId(addr)
 	tx, err := cs.GetNodeHandler(senderShard).GetFacadeHandler().GetTransaction(scr.Hash, true)
 	require.NoError(t, err)
-	assert.Equal(t, transaction.TxStatusSuccess, tx.Status)
+	require.Equal(t, transaction.TxStatusSuccess, tx.Status)
+
+	require.GreaterOrEqual(t, len(tx.Logs.Events), 1)
+	for _, event := range tx.Logs.Events {
+		if event.Identifier == core.WriteLogIdentifier {
+			continue
+		}
+
+		require.Equal(t, core.CompletedTxEventIdentifier, event.Identifier)
+	}
 }

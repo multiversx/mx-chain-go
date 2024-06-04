@@ -2,7 +2,6 @@ package transactionLog
 
 import (
 	"encoding/hex"
-	"strings"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -131,6 +130,15 @@ func (tlp *txLogProcessor) Clean() {
 
 // SaveLog takes the VM logs and saves them into the correct format in storage
 func (tlp *txLogProcessor) SaveLog(txHash []byte, tx data.TransactionHandler, logEntries []*vmcommon.LogEntry) error {
+	return tlp.saveLog(txHash, tx, logEntries, false)
+}
+
+// AppendLog takes the VM logs and appends them into the correct format in storage
+func (tlp *txLogProcessor) AppendLog(txHash []byte, tx data.TransactionHandler, logEntries []*vmcommon.LogEntry) error {
+	return tlp.saveLog(txHash, tx, logEntries, true)
+}
+
+func (tlp *txLogProcessor) saveLog(txHash []byte, tx data.TransactionHandler, logEntries []*vmcommon.LogEntry, appendLog bool) error {
 	if len(txHash) == 0 {
 		return process.ErrNilTxHash
 	}
@@ -167,21 +175,27 @@ func (tlp *txLogProcessor) SaveLog(txHash []byte, tx data.TransactionHandler, lo
 
 	tlp.saveLogToCache(txHash, txLog)
 
+	buff, err := tlp.marshalizer.Marshal(txLog)
+	if err != nil {
+		return err
+	}
+
+	if !appendLog {
+		return tlp.storer.Put(txHash, buff)
+	}
+
 	return tlp.appendLogToStorer(txHash, txLog)
 }
 
 func (tlp *txLogProcessor) appendLogToStorer(txHash []byte, newLog *transaction.Log) error {
 	oldLogsBuff, errGet := tlp.storer.Get(txHash)
-	if isFirstEntryForHash(oldLogsBuff, errGet) {
+	if errGet != nil || len(oldLogsBuff) == 0 {
 		allLogsBuff, err := tlp.marshalizer.Marshal(newLog)
 		if err != nil {
 			return err
 		}
 
 		return tlp.storer.Put(txHash, allLogsBuff)
-	}
-	if errGet != nil {
-		return errGet
 	}
 
 	oldLogs := &transaction.Log{}
@@ -201,18 +215,6 @@ func (tlp *txLogProcessor) appendLogToStorer(txHash []byte, newLog *transaction.
 	}
 
 	return tlp.storer.Put(txHash, allLogsBuff)
-}
-
-func isFirstEntryForHash(oldLogsBuff []byte, errGet error) bool {
-	if errGet == nil && len(oldLogsBuff) == 0 {
-		return true
-	}
-
-	if errGet == nil {
-		return false
-	}
-
-	return strings.Contains(errGet.Error(), "not found")
 }
 
 func (tlp *txLogProcessor) saveLogToCache(txHash []byte, log *transaction.Log) {

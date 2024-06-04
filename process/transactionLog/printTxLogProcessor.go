@@ -55,6 +55,11 @@ func (tlp *printTxLogProcessor) SaveLog(txHash []byte, _ data.TransactionHandler
 	return nil
 }
 
+// AppendLog -
+func (tlp *printTxLogProcessor) AppendLog(txHash []byte, tx data.TransactionHandler, logEntries []*vmcommon.LogEntry) error {
+	return tlp.SaveLog(txHash, tx, logEntries)
+}
+
 func prepareTopics(topics [][]byte) string {
 	all := ""
 	for _, topic := range topics {

@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	coreTransaction "github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
@@ -53,6 +54,7 @@ func createMockArgRelayedTxV3Processor() transaction.ArgRelayedTxV3Processor {
 	return transaction.ArgRelayedTxV3Processor{
 		EconomicsFee:           &economicsmocks.EconomicsHandlerStub{},
 		ShardCoordinator:       &testscommon.ShardsCoordinatorMock{},
+		ArgsParser:             &mock.ArgumentParserMock{},
 		MaxTransactionsAllowed: 10,
 	}
 }
@@ -77,6 +79,15 @@ func TestNewRelayedTxV3Processor(t *testing.T) {
 		proc, err := transaction.NewRelayedTxV3Processor(args)
 		require.Nil(t, proc)
 		require.Equal(t, process.ErrNilShardCoordinator, err)
+	})
+	t.Run("nil args parser should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgRelayedTxV3Processor()
+		args.ArgsParser = nil
+		proc, err := transaction.NewRelayedTxV3Processor(args)
+		require.Nil(t, proc)
+		require.Equal(t, process.ErrNilArgumentParser, err)
 	})
 	t.Run("invalid max transactions allowed should error", func(t *testing.T) {
 		t.Parallel()
@@ -149,6 +160,25 @@ func TestRelayedTxV3Processor_CheckRelayedTx(t *testing.T) {
 
 		err = proc.CheckRelayedTx(tx)
 		require.Equal(t, process.ErrRelayedTxV3SenderDoesNotMatchReceiver, err)
+	})
+	t.Run("multiple relayed txs should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgRelayedTxV3Processor()
+		args.ArgsParser = &mock.ArgumentParserMock{
+			ParseCallDataCalled: func(data string) (string, [][]byte, error) {
+				splitData := strings.Split(data, "@")
+				return splitData[0], nil, nil
+			},
+		}
+		proc, err := transaction.NewRelayedTxV3Processor(args)
+		require.NoError(t, err)
+
+		tx := getDefaultTx()
+		tx.Data = []byte("relayedTx@asd")
+
+		err = proc.CheckRelayedTx(tx)
+		require.Equal(t, process.ErrMultipleRelayedTxTypesIsNotAllowed, err)
 	})
 	t.Run("invalid gas limit should error", func(t *testing.T) {
 		t.Parallel()
