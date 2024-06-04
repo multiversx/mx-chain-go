@@ -62,7 +62,7 @@ func NewSovereignIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*so
 	ihnc.loadingFromDisk.Store(false)
 
 	ihnc.nodesCoordinatorHelper = ihnc
-	err = ihnc.setNodesPerShards(arguments.EligibleNodes, arguments.WaitingNodes, nil, nil, arguments.Epoch)
+	err = ihnc.setNodesPerShards(arguments.EligibleNodes, arguments.WaitingNodes, nil, nil, arguments.Epoch, false)
 	if err != nil {
 		return nil, err
 	}
@@ -111,6 +111,7 @@ func (ihnc *sovereignIndexHashedNodesCoordinator) setNodesPerShards(
 	leaving map[uint32][]Validator,
 	shuffledOut map[uint32][]Validator,
 	epoch uint32,
+	lowWaitingList bool,
 ) error {
 	ihnc.mutNodesConfig.Lock()
 	defer ihnc.mutNodesConfig.Unlock()
@@ -134,7 +135,7 @@ func (ihnc *sovereignIndexHashedNodesCoordinator) setNodesPerShards(
 	}
 	numTotalEligible := uint64(nbNodesShard)
 
-	err := ihnc.baseSetNodesPerShard(nodesConfig, numTotalEligible, eligible, waiting, leaving, shuffledOut, epoch)
+	err := ihnc.baseSetNodesPerShard(nodesConfig, numTotalEligible, eligible, waiting, leaving, shuffledOut, epoch, lowWaitingList)
 	if err != nil {
 		return err
 	}

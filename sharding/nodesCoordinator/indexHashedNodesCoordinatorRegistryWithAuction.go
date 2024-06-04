@@ -29,10 +29,11 @@ func (ihnc *indexHashedNodesCoordinator) nodesCoordinatorToRegistryWithAuction()
 
 func epochNodesConfigToEpochValidatorsWithAuction(config *epochNodesConfig) *EpochValidatorsWithAuction {
 	result := &EpochValidatorsWithAuction{
-		Eligible:    make(map[string]Validators, len(config.eligibleMap)),
-		Waiting:     make(map[string]Validators, len(config.waitingMap)),
-		Leaving:     make(map[string]Validators, len(config.leavingMap)),
-		ShuffledOut: make(map[string]Validators, len(config.shuffledOutMap)),
+		Eligible:       make(map[string]Validators, len(config.eligibleMap)),
+		Waiting:        make(map[string]Validators, len(config.waitingMap)),
+		Leaving:        make(map[string]Validators, len(config.leavingMap)),
+		ShuffledOut:    make(map[string]Validators, len(config.shuffledOutMap)),
+		LowWaitingList: config.lowWaitingList,
 	}
 
 	for k, v := range config.eligibleMap {
