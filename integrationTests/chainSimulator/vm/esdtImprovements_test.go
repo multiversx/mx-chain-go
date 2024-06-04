@@ -517,7 +517,7 @@ func nftCreateTx(
 		[][]byte{
 			[]byte(core.BuiltInFunctionESDTNFTCreate),
 			[]byte(hex.EncodeToString(tokenID)),
-			[]byte(hex.EncodeToString(big.NewInt(2).Bytes())), // quantity
+			[]byte(hex.EncodeToString(big.NewInt(1).Bytes())), // quantity
 			metaData.Name,
 			[]byte(hex.EncodeToString(big.NewInt(10).Bytes())),
 			metaData.Hash,
@@ -1123,7 +1123,8 @@ func TestChainSimulator_NFT_ESDTModifyCreator(t *testing.T) {
 	mintValue := big.NewInt(10)
 	mintValue = mintValue.Mul(oneEGLD, mintValue)
 
-	address, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	shardID := uint32(1)
+	address, err := cs.GenerateAndMintWalletAddress(shardID, mintValue)
 	require.Nil(t, err)
 
 	err = cs.GenerateBlocksUntilEpochIsReached(int32(activationEpoch))
@@ -1160,11 +1161,12 @@ func TestChainSimulator_NFT_ESDTModifyCreator(t *testing.T) {
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
+
 	require.Equal(t, "success", txResult.Status.String())
 
 	log.Info("Call ESDTModifyCreator and check that the creator was modified")
 
-	newCreatorAddress, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	newCreatorAddress, err := cs.GenerateAndMintWalletAddress(shardID, mintValue)
 	require.Nil(t, err)
 
 	err = cs.GenerateBlocks(10)
@@ -1208,7 +1210,6 @@ func TestChainSimulator_NFT_ESDTModifyCreator(t *testing.T) {
 
 	require.Equal(t, "success", txResult.Status.String())
 
-	shardID := cs.GetNodeHandler(0).GetProcessComponents().ShardCoordinator().ComputeId(address.Bytes)
 	retrievedMetaData := getMetaDataFromAcc(t, cs, address.Bytes, nftTokenID, shardID)
 
 	require.Equal(t, newCreatorAddress.Bytes, retrievedMetaData.Creator)
@@ -1721,7 +1722,34 @@ func TestChainSimulator_SFT_ChangeMetaData(t *testing.T) {
 	sftMetaData := txsFee.GetDefaultMetaData()
 	sftMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
 
-	tx = nftCreateTx(1, addrs[1].Bytes, sftTokenID, sftMetaData)
+	txDataField := bytes.Join(
+		[][]byte{
+			[]byte(core.BuiltInFunctionESDTNFTCreate),
+			[]byte(hex.EncodeToString(sftTokenID)),
+			[]byte(hex.EncodeToString(big.NewInt(2).Bytes())), // quantity
+			sftMetaData.Name,
+			[]byte(hex.EncodeToString(big.NewInt(10).Bytes())),
+			sftMetaData.Hash,
+			sftMetaData.Attributes,
+			sftMetaData.Uris[0],
+			sftMetaData.Uris[1],
+			sftMetaData.Uris[2],
+		},
+		[]byte("@"),
+	)
+
+	tx = &transaction.Transaction{
+		Nonce:     1,
+		SndAddr:   addrs[1].Bytes,
+		RcvAddr:   addrs[1].Bytes,
+		GasLimit:  10_000_000,
+		GasPrice:  minGasPrice,
+		Signature: []byte("dummySig"),
+		Data:      txDataField,
+		Value:     big.NewInt(0),
+		ChainID:   []byte(configs.ChainID),
+		Version:   1,
+	}
 
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
@@ -1759,7 +1787,7 @@ func TestChainSimulator_SFT_ChangeMetaData(t *testing.T) {
 	sftMetaData2.Hash = []byte(hex.EncodeToString([]byte("hash2")))
 	sftMetaData2.Attributes = []byte(hex.EncodeToString([]byte("attributes2")))
 
-	txDataField := bytes.Join(
+	txDataField = bytes.Join(
 		[][]byte{
 			[]byte(core.ESDTMetaDataUpdate),
 			[]byte(hex.EncodeToString(sftTokenID)),
