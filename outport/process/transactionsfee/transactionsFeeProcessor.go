@@ -182,7 +182,9 @@ func (tep *transactionsFeeProcessor) prepareTxWithResultsBasedOnLogs(
 			tooMuchGas = strings.Contains(string(event.GetTopics()[1]), smartContract.TooMuchGasProvidedMessage)
 		}
 
-		if (isWriteLog && !hasRefund && !isESDTTransfer) || (isWriteLog && tooMuchGas) {
+		isWriteLogWithTooMuchGas := isWriteLog && tooMuchGas
+		isWriteLogNoRefundAndNoESDTTransfer := isWriteLog && !hasRefund && !isESDTTransfer
+		if isWriteLogNoRefundAndNoESDTTransfer || isWriteLogWithTooMuchGas {
 			gasUsed, fee := tep.txFeeCalculator.ComputeGasUsedAndFeeBasedOnRefundValue(txWithResults.GetTxHandler(), big.NewInt(0))
 			txWithResults.GetFeeInfo().SetGasUsed(gasUsed)
 			txWithResults.GetFeeInfo().SetFee(fee)

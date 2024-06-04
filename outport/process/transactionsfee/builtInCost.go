@@ -1,6 +1,8 @@
 package transactionsfee
 
 import (
+	"sync"
+
 	"github.com/mitchellh/mapstructure"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -15,6 +17,7 @@ type ArgsBuiltInFunctionCost struct {
 }
 
 type builtInFunctionsCost struct {
+	mutex     sync.RWMutex
 	gasConfig *process.GasCost
 }
 
@@ -24,17 +27,19 @@ func NewBuiltInFunctionsCost(gasSchedule core.GasScheduleNotifier) (*builtInFunc
 		return nil, process.ErrNilGasSchedule
 	}
 
-	bs := &builtInFunctionsCost{}
+	instance := &builtInFunctionsCost{
+		mutex: sync.RWMutex{},
+	}
 
 	var err error
-	bs.gasConfig, err = createGasConfig(gasSchedule.LatestGasSchedule())
+	instance.gasConfig, err = createGasConfig(gasSchedule.LatestGasSchedule())
 	if err != nil {
 		return nil, err
 	}
 
-	gasSchedule.RegisterNotifyHandler(bs)
+	gasSchedule.RegisterNotifyHandler(instance)
 
-	return bs, nil
+	return instance, nil
 }
 
 // GasScheduleChange is called when gas schedule is changed, thus all contracts must be updated
@@ -44,11 +49,16 @@ func (bc *builtInFunctionsCost) GasScheduleChange(gasSchedule map[string]map[str
 		return
 	}
 
+	bc.mutex.Lock()
 	bc.gasConfig = newGasConfig
+	bc.mutex.Unlock()
 }
 
 // GetESDTTransferBuiltInCost -
 func (bc *builtInFunctionsCost) GetESDTTransferBuiltInCost() uint64 {
+	bc.mutex.RLock()
+	defer bc.mutex.RUnlock()
+
 	return bc.gasConfig.BuiltInCost.ESDTTransfer
 }
 

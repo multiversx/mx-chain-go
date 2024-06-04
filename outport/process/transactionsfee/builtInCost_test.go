@@ -1,6 +1,7 @@
 package transactionsfee
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/process"
@@ -24,4 +25,27 @@ func TestBuiltInFunctionsCost_GetESDTTransferBuiltInCost(t *testing.T) {
 	require.Nil(t, err)
 
 	require.Equal(t, uint64(100), builtInCostHandler.GetESDTTransferBuiltInCost())
+}
+
+func TestBuiltInFunctionsCost_Concurrent(t *testing.T) {
+	gs := defaults.FillGasMapInternal(map[string]map[string]uint64{}, 100)
+	builtInCostHandler, err := NewBuiltInFunctionsCost(testscommon.NewGasScheduleNotifierMock(gs))
+	require.Nil(t, err)
+
+	wg := sync.WaitGroup{}
+	numCalls := 100
+	wg.Add(numCalls)
+	for i := 0; i < numCalls; i++ {
+		go func(idx int) {
+			switch idx % 2 {
+			case 0:
+				builtInCostHandler.GasScheduleChange(gs)
+			case 1:
+				builtInCostHandler.GetESDTTransferBuiltInCost()
+			}
+			wg.Done()
+		}(i)
+	}
+
+	wg.Wait()
 }
