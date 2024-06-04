@@ -125,6 +125,7 @@ func NewSovereignChainBlockProcessor(args ArgsSovereignChainBlockProcessor) (*so
 
 // CreateNewHeader creates a new header
 func (scbp *sovereignChainBlockProcessor) CreateNewHeader(round uint64, nonce uint64) (data.HeaderHandler, error) {
+	scbp.epochStartTrigger.Update(round, nonce)
 	scbp.enableRoundsHandler.RoundConfirmed(round, 0)
 	header := &block.SovereignChainHeader{
 		Header: &block.Header{
@@ -646,6 +647,10 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 		return nil, nil, err
 	}
 
+	scbp.roundNotifier.CheckRound(headerHandler)
+	scbp.epochNotifier.CheckEpoch(headerHandler)
+	scbp.requestHandler.SetEpoch(headerHandler.GetEpoch())
+
 	log.Debug("started processing block",
 		"epoch", headerHandler.GetEpoch(),
 		"shard", headerHandler.GetShardID(),
@@ -717,6 +722,7 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 		return nil, nil, errors.ErrWrongTypeAssertion
 	}
 
+	scbp.epochStartTrigger.Update(shardHeader.GetRound(), shardHeader.GetNonce())
 	err = scbp.checkSovereignEpochCorrectness(shardHeader)
 
 	if shardHeader.IsStartOfEpochBlock() {

@@ -1,6 +1,7 @@
 package chainSimulator
 
 import (
+	"fmt"
 	"path"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -29,6 +30,10 @@ const (
 type ArgsSovereignChainSimulator struct {
 	SovereignConfigPath string
 	*chainSimulator.ArgsChainSimulator
+}
+
+type sovereignChainSimulator struct {
+	chainSimulatorIntegrationTests.ChainSimulator
 }
 
 // NewSovereignChainSimulator will create a new instance of sovereign chain simulator
@@ -71,7 +76,14 @@ func NewSovereignChainSimulator(args ArgsSovereignChainSimulator) (chainSimulato
 	args.NodeFactory = node.NewSovereignNodeFactory()
 	args.ChainProcessorFactory = NewSovereignChainHandlerFactory()
 
-	return chainSimulator.NewChainSimulator(*args.ArgsChainSimulator)
+	cs, err := chainSimulator.NewChainSimulator(*args.ArgsChainSimulator)
+	if err != nil {
+		return nil, err
+	}
+
+	return &sovereignChainSimulator{
+		ChainSimulator: cs,
+	}, nil
 }
 
 // loadSovereignConfigs loads sovereign configs
@@ -121,4 +133,29 @@ func createSovereignRunTypeComponents(args runType.ArgsRunTypeComponents, sovere
 	}
 
 	return managedRunTypeComponents, nil
+}
+
+// GenerateBlocksUntilEpochIsReached will generate blocks until the epoch is reached
+func (scs *sovereignChainSimulator) GenerateBlocksUntilEpochIsReached2(targetEpoch int32) error {
+	//scs.mutex.Lock()
+	//defer s.mutex.Unlock()
+	//
+	//maxNumberOfRounds := 10000
+	//for idx := 0; idx < maxNumberOfRounds; idx++ {
+	//	s.incrementRoundOnAllValidators()
+	//	err := s.allNodesCreateBlocks()
+	//	if err != nil {
+	//		return err
+	//	}
+	//
+	//	epochReachedOnAllNodes, err := s.isTargetEpochReached(targetEpoch)
+	//	if err != nil {
+	//		return err
+	//	}
+	//
+	//	if epochReachedOnAllNodes {
+	//		return nil
+	//	}
+	//}
+	return fmt.Errorf("exceeded rounds to generate blocks")
 }

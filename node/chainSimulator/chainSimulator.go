@@ -323,16 +323,8 @@ func (s *simulator) ForceResetValidatorStatisticsCache() error {
 }
 
 func (s *simulator) isTargetEpochReached(targetEpoch int32) (bool, error) {
-	metachainNode := s.nodes[core.MetachainShardId]
-	metachainEpoch := metachainNode.GetCoreComponents().EnableEpochsHandler().GetCurrentEpoch()
 
-	for shardID, n := range s.nodes {
-		if shardID != core.MetachainShardId {
-			if int32(n.GetCoreComponents().EnableEpochsHandler().GetCurrentEpoch()) < int32(metachainEpoch-1) {
-				return false, fmt.Errorf("shard %d is with at least 2 epochs behind metachain shard node epoch %d, metachain node epoch %d",
-					shardID, n.GetCoreComponents().EnableEpochsHandler().GetCurrentEpoch(), metachainEpoch)
-			}
-		}
+	for _, n := range s.nodes {
 
 		if int32(n.GetCoreComponents().EnableEpochsHandler().GetCurrentEpoch()) < targetEpoch {
 			return false, nil
