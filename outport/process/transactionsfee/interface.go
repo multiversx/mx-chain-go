@@ -24,3 +24,9 @@ type transactionGetter interface {
 type dataFieldParser interface {
 	Parse(dataField []byte, sender, receiver []byte, numOfShards uint32) *datafield.ResponseParseData
 }
+
+// BuildInCostHandler defines the interface for the builtin cost handler
+type BuildInCostHandler interface {
+	GetESDTTransferBuiltInCost() uint64
+	IsInterfaceNil() bool
+}

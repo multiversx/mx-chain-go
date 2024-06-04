@@ -13,3 +13,6 @@ var ErrNilStorage = errors.New("nil storage")
 
 // ErrNilMarshaller signals that a nil marshaller has been provided
 var ErrNilMarshaller = errors.New("nil Marshaller")
+
+// ErrNilBuiltInCostHandler signal that a nil builtin cost handler has been provided
+var ErrNilBuiltInCostHandler = errors.New("nil builtin cost handler")

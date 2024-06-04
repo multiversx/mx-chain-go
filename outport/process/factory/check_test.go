@@ -14,10 +14,12 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/state"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
 	"github.com/stretchr/testify/require"
 )
 
 func createArgOutportDataProviderFactory() ArgOutportDataProviderFactory {
+
 	return ArgOutportDataProviderFactory{
 		HasDrivers:             false,
 		AddressConverter:       testscommon.NewPubkeyConverterMock(32),
@@ -34,6 +36,7 @@ func createArgOutportDataProviderFactory() ArgOutportDataProviderFactory {
 		MbsStorer:              &genericMocks.StorerMock{},
 		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		ExecutionOrderGetter:   &commonMocks.TxExecutionOrderHandlerStub{},
+		GasSchedule:            testscommon.NewGasScheduleNotifierMock(defaults.FillGasMapInternal(map[string]map[string]uint64{}, 1)),
 	}
 }
 

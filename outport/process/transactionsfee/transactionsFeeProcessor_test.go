@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 )
@@ -21,12 +22,16 @@ import (
 var pubKeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
 
 func prepareMockArg() ArgTransactionsFeeProcessor {
+	gasSchedule := testscommon.NewGasScheduleNotifierMock(defaults.FillGasMapInternal(map[string]map[string]uint64{}, 1))
+	builtInCost, _ := NewBuiltInFunctionsCost(gasSchedule)
+
 	return ArgTransactionsFeeProcessor{
 		Marshaller:         marshallerMock.MarshalizerMock{},
 		TransactionsStorer: genericMocks.NewStorerMock(),
 		ShardCoordinator:   &testscommon.ShardsCoordinatorMock{},
 		TxFeeCalculator:    &mock.EconomicsHandlerMock{},
 		PubKeyConverter:    pubKeyConverter,
+		BuiltInCost:        builtInCost,
 	}
 }
 
@@ -375,6 +380,162 @@ func TestPutFeeAndGasUsedESDTWithScCall(t *testing.T) {
 	require.Equal(t, big.NewInt(820765000000000), tx.GetFeeInfo().GetFee())
 	require.Equal(t, uint64(55_000_000), tx.GetFeeInfo().GetGasUsed())
 	require.Equal(t, "820765000000000", tx.GetFeeInfo().GetInitialPaidFee().String())
+}
+
+func TestEsdtTransferCrossShard(t *testing.T) {
+	t.Parallel()
+
+	txHash := []byte("tx")
+	tx := &outportcore.TxInfo{
+		Transaction: &transaction.Transaction{
+			Nonce:    1011,
+			SndAddr:  silentDecodeAddress("erd184j860qcdnvtepwf32q57uw7q0xxd95nktg8hu0csm9x5fqdgm4qy5dft6"),
+			RcvAddr:  silentDecodeAddress("erd1ty4pvmjtl3mnsjvnsxgcpedd08fsn83f05tu0v5j23wnfce9p86snlkdyy"),
+			GasLimit: 500_000,
+			GasPrice: 1000000000,
+			Data:     []byte("ESDTTransfer@5a5041592d323437383735@152d02c7e14af6800000"),
+			Value:    big.NewInt(0),
+		},
+		FeeInfo: &outportcore.FeeInfo{Fee: big.NewInt(0)},
+	}
+
+	pool := &outportcore.TransactionPool{
+		Transactions: map[string]*outportcore.TxInfo{
+			string(txHash): tx,
+		},
+		Logs: []*outportcore.LogData{
+			{
+				Log: &transaction.Log{
+					Events: []*transaction.Event{
+						{
+							Identifier: []byte(core.WriteLogIdentifier),
+						},
+					},
+				},
+				TxHash: string(txHash),
+			},
+		},
+	}
+
+	arg := prepareMockArg()
+	esdtTransferCost := uint64(200000)
+	gasSchedule := testscommon.NewGasScheduleNotifierMock(defaults.FillGasMapInternal(map[string]map[string]uint64{}, esdtTransferCost))
+	arg.BuiltInCost, _ = NewBuiltInFunctionsCost(gasSchedule)
+	txsFeeProc, err := NewTransactionsFeeProcessor(arg)
+	require.NotNil(t, txsFeeProc)
+	require.Nil(t, err)
+
+	err = txsFeeProc.PutFeeAndGasUsed(pool)
+	require.Nil(t, err)
+	require.Equal(t, uint64(334_000), tx.GetFeeInfo().GetGasUsed())
+	require.Equal(t, big.NewInt(136000000000000), tx.GetFeeInfo().GetFee())
+	require.Equal(t, "137660000000000", tx.GetFeeInfo().GetInitialPaidFee().String())
+}
+
+func TestEsdtTransferTooMuchGas(t *testing.T) {
+	t.Parallel()
+
+	txHash := []byte("tx")
+	tx := &outportcore.TxInfo{
+		Transaction: &transaction.Transaction{
+			Nonce:    1011,
+			SndAddr:  silentDecodeAddress("erd184j860qcdnvtepwf32q57uw7q0xxd95nktg8hu0csm9x5fqdgm4qy5dft6"),
+			RcvAddr:  silentDecodeAddress("erd1ty4pvmjtl3mnsjvnsxgcpedd08fsn83f05tu0v5j23wnfce9p86snlkdyy"),
+			GasLimit: 5_000_000,
+			GasPrice: 1000000000,
+			Data:     []byte("ESDTTransfer@5a5041592d323437383735@152d02c7e14af6800000"),
+			Value:    big.NewInt(0),
+		},
+		FeeInfo: &outportcore.FeeInfo{Fee: big.NewInt(0)},
+	}
+
+	pool := &outportcore.TransactionPool{
+		Transactions: map[string]*outportcore.TxInfo{
+			string(txHash): tx,
+		},
+		Logs: []*outportcore.LogData{
+			{
+				Log: &transaction.Log{
+					Events: []*transaction.Event{
+						{
+							Identifier: []byte(core.WriteLogIdentifier),
+							Topics:     [][]byte{[]byte(""), []byte("@too much gas provided for processing: gas provided = 4875000, gas used = 200000")},
+						},
+					},
+				},
+				TxHash: string(txHash),
+			},
+		},
+	}
+
+	arg := prepareMockArg()
+	esdtTransferCost := uint64(200000)
+	gasSchedule := testscommon.NewGasScheduleNotifierMock(defaults.FillGasMapInternal(map[string]map[string]uint64{}, esdtTransferCost))
+	arg.BuiltInCost, _ = NewBuiltInFunctionsCost(gasSchedule)
+	txsFeeProc, err := NewTransactionsFeeProcessor(arg)
+	require.NotNil(t, txsFeeProc)
+	require.Nil(t, err)
+
+	err = txsFeeProc.PutFeeAndGasUsed(pool)
+	require.Nil(t, err)
+	require.Equal(t, uint64(5_000_000), tx.GetFeeInfo().GetGasUsed())
+	require.Equal(t, big.NewInt(182660000000000), tx.GetFeeInfo().GetFee())
+	require.Equal(t, "182660000000000", tx.GetFeeInfo().GetInitialPaidFee().String())
+}
+
+func TestEsdtTransferWithRefundScr(t *testing.T) {
+
+	txHash := []byte("tx")
+	tx := &outportcore.TxInfo{
+		Transaction: &transaction.Transaction{
+			Nonce:    1004,
+			SndAddr:  silentDecodeAddress("erd184j860qcdnvtepwf32q57uw7q0xxd95nktg8hu0csm9x5fqdgm4qy5dft6"),
+			RcvAddr:  silentDecodeAddress("erd1ty4pvmjtl3mnsjvnsxgcpedd08fsn83f05tu0v5j23wnfce9p86snlkdyy"),
+			GasLimit: 60_000_000,
+			GasPrice: 1000000000,
+			Data:     []byte("ESDTTransfer@5a5041592d323437383735@152d02c7e14af6800000"),
+			Value:    big.NewInt(0),
+		},
+		FeeInfo: &outportcore.FeeInfo{Fee: big.NewInt(0)},
+	}
+
+	scrWithRefund := []byte("scrWithRefund")
+	refundValueBig, _ := big.NewInt(0).SetString("96635000000000", 10)
+	scr := &outportcore.SCRInfo{
+		SmartContractResult: &smartContractResult.SmartContractResult{
+			Nonce:          1005,
+			SndAddr:        silentDecodeAddress("erd1ty4pvmjtl3mnsjvnsxgcpedd08fsn83f05tu0v5j23wnfce9p86snlkdyy"),
+			RcvAddr:        silentDecodeAddress("erd184j860qcdnvtepwf32q57uw7q0xxd95nktg8hu0csm9x5fqdgm4qy5dft6"),
+			PrevTxHash:     txHash,
+			OriginalTxHash: txHash,
+			Value:          refundValueBig,
+			Data:           []byte("@6f6b"),
+		},
+		FeeInfo: &outportcore.FeeInfo{Fee: big.NewInt(0)},
+	}
+
+	pool := &outportcore.TransactionPool{
+		Transactions: map[string]*outportcore.TxInfo{
+			hex.EncodeToString(txHash): tx,
+		},
+		SmartContractResults: map[string]*outportcore.SCRInfo{
+			hex.EncodeToString(scrWithRefund): scr,
+		},
+	}
+
+	arg := prepareMockArg()
+	esdtTransferCost := uint64(200000)
+	gasSchedule := testscommon.NewGasScheduleNotifierMock(defaults.FillGasMapInternal(map[string]map[string]uint64{}, esdtTransferCost))
+	arg.BuiltInCost, _ = NewBuiltInFunctionsCost(gasSchedule)
+	txsFeeProc, err := NewTransactionsFeeProcessor(arg)
+	require.NotNil(t, txsFeeProc)
+	require.Nil(t, err)
+
+	err = txsFeeProc.PutFeeAndGasUsed(pool)
+	require.Nil(t, err)
+	require.Equal(t, uint64(50_336_500), tx.GetFeeInfo().GetGasUsed())
+	require.Equal(t, big.NewInt(636025000000000), tx.GetFeeInfo().GetFee())
+	require.Equal(t, big.NewInt(732660000000000), tx.GetFeeInfo().GetInitialPaidFee())
 }
 
 func silentDecodeAddress(address string) []byte {

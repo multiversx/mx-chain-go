@@ -3,12 +3,14 @@ package transactionsfee
 import (
 	"bytes"
 	"math/big"
+	"strings"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/storage"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -24,6 +26,7 @@ type ArgTransactionsFeeProcessor struct {
 	ShardCoordinator   sharding.Coordinator
 	TxFeeCalculator    FeesProcessorHandler
 	PubKeyConverter    core.PubkeyConverter
+	BuiltInCost        BuildInCostHandler
 }
 
 type transactionsFeeProcessor struct {
@@ -32,6 +35,7 @@ type transactionsFeeProcessor struct {
 	shardCoordinator sharding.Coordinator
 	dataFieldParser  dataFieldParser
 	log              logger.Logger
+	builtInCost      BuildInCostHandler
 }
 
 // NewTransactionsFeeProcessor will create a new instance of transactionsFeeProcessor
@@ -55,6 +59,7 @@ func NewTransactionsFeeProcessor(arg ArgTransactionsFeeProcessor) (*transactions
 		txGetter:         newTxGetter(arg.TransactionsStorer, arg.Marshaller),
 		log:              logger.GetOrCreate(loggerName),
 		dataFieldParser:  parser,
+		builtInCost:      arg.BuiltInCost,
 	}, nil
 }
 
@@ -73,6 +78,9 @@ func checkArg(arg ArgTransactionsFeeProcessor) error {
 	}
 	if check.IfNil(arg.PubKeyConverter) {
 		return core.ErrNilPubkeyConverter
+	}
+	if check.IfNil(arg.BuiltInCost) {
+		return ErrNilBuiltInCostHandler
 	}
 
 	return nil
@@ -157,8 +165,24 @@ func (tep *transactionsFeeProcessor) prepareTxWithResultsBasedOnLogs(
 		return
 	}
 
+	isESDTTransfer := res.Operation == core.BuiltInFunctionESDTTransfer
+	if isESDTTransfer && !hasRefund {
+		gasLimit := tep.txFeeCalculator.ComputeGasLimit(tx)
+		gasUsed := gasLimit + tep.builtInCost.GetESDTTransferBuiltInCost()
+		fee := tep.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(tx, gasUsed)
+
+		txWithResults.GetFeeInfo().SetGasUsed(gasUsed)
+		txWithResults.GetFeeInfo().SetFee(fee)
+	}
+
 	for _, event := range txWithResults.log.GetLogEvents() {
-		if core.WriteLogIdentifier == string(event.GetIdentifier()) && !hasRefund {
+		isWriteLog := core.WriteLogIdentifier == string(event.GetIdentifier())
+		tooMuchGas := false
+		if len(event.GetTopics()) > 1 {
+			tooMuchGas = strings.Contains(string(event.GetTopics()[1]), smartContract.TooMuchGasProvidedMessage)
+		}
+
+		if (isWriteLog && !hasRefund && !isESDTTransfer) || (isWriteLog && tooMuchGas) {
 			gasUsed, fee := tep.txFeeCalculator.ComputeGasUsedAndFeeBasedOnRefundValue(txWithResults.GetTxHandler(), big.NewInt(0))
 			txWithResults.GetFeeInfo().SetGasUsed(gasUsed)
 			txWithResults.GetFeeInfo().SetFee(fee)

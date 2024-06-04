@@ -36,6 +36,7 @@ type ArgOutportDataProviderFactory struct {
 	MbsStorer              storage.Storer
 	EnableEpochsHandler    common.EnableEpochsHandler
 	ExecutionOrderGetter   common.ExecutionOrderGetter
+	GasSchedule            core.GasScheduleNotifier
 }
 
 // CreateOutportDataProvider will create a new instance of outport.DataProviderOutport
@@ -59,12 +60,18 @@ func CreateOutportDataProvider(arg ArgOutportDataProviderFactory) (outport.DataP
 		return nil, err
 	}
 
+	builtInCost, err := transactionsfee.NewBuiltInFunctionsCost(arg.GasSchedule)
+	if err != nil {
+		return nil, err
+	}
+
 	transactionsFeeProc, err := transactionsfee.NewTransactionsFeeProcessor(transactionsfee.ArgTransactionsFeeProcessor{
 		Marshaller:         arg.Marshaller,
 		TransactionsStorer: arg.TransactionsStorer,
 		ShardCoordinator:   arg.ShardCoordinator,
 		TxFeeCalculator:    arg.EconomicsData,
 		PubKeyConverter:    arg.AddressConverter,
+		BuiltInCost:        builtInCost,
 	})
 	if err != nil {
 		return nil, err
