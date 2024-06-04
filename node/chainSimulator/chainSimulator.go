@@ -566,6 +566,10 @@ func (s *simulator) computeTransactionsStatus(txsWithResult []*transactionWithRe
 
 		sentTx := resultTx.tx
 		destinationShardID := s.GetNodeHandler(0).GetShardCoordinator().ComputeId(sentTx.RcvAddr)
+		if core.IsSmartContractOnMetachain([]byte{255}, sentTx.RcvAddr) {
+			destinationShardID = s.GetNodeHandler(0).GetShardCoordinator().ComputeId(sentTx.SndAddr)
+		}
+
 		result, errGet := s.GetNodeHandler(destinationShardID).GetFacadeHandler().GetTransaction(resultTx.hexHash, true)
 		if errGet == nil && result.Status != transaction.TxStatusPending {
 			log.Info("############## transaction was executed ##############", "txHash", resultTx.hexHash)
