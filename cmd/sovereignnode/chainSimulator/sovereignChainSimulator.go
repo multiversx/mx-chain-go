@@ -12,13 +12,9 @@ import (
 	"github.com/multiversx/mx-chain-go/node"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/rating"
-	"github.com/multiversx/mx-chain-go/sharding"
 	sovereignConfig "github.com/multiversx/mx-chain-go/sovereignnode/config"
 	"github.com/multiversx/mx-chain-go/sovereignnode/incomingHeader"
 	sovRunType "github.com/multiversx/mx-chain-go/sovereignnode/runType"
-
-	"github.com/multiversx/mx-chain-core-go/core"
 )
 
 const (
@@ -52,15 +48,8 @@ func NewSovereignChainSimulator(args ArgsSovereignChainSimulator) (chainSimulato
 		}
 	}
 
-	args.CreateGenesisNodesSetup = func(nodesFilePath string, addressPubkeyConverter core.PubkeyConverter, validatorPubkeyConverter core.PubkeyConverter, _ uint32) (sharding.GenesisNodesSetupHandler, error) {
-		return sharding.NewSovereignNodesSetup(&sharding.SovereignNodesSetupArgs{
-			NodesFilePath:            nodesFilePath,
-			AddressPubKeyConverter:   addressPubkeyConverter,
-			ValidatorPubKeyConverter: validatorPubkeyConverter,
-		})
-	}
-	args.CreateRatingsData = func(arg rating.RatingsDataArg) (process.RatingsInfoHandler, error) {
-		return rating.NewSovereignRatingsData(arg)
+	args.CreateRunTypeCoreComponents = func() (factory.RunTypeCoreComponentsHolder, error) {
+		return createSovereignRunTypeCoreComponents()
 	}
 	args.CreateIncomingHeaderSubscriber = func(config *config.NotifierConfig, dataPool dataRetriever.PoolsHolder, mainChainNotarizationStartRound uint64, runTypeComponents factory.RunTypeComponentsHolder) (process.IncomingHeaderSubscriber, error) {
 		return incomingHeader.CreateIncomingHeaderProcessor(config, dataPool, mainChainNotarizationStartRound, runTypeComponents)
@@ -98,6 +87,26 @@ func loadSovereignConfigs(configsPath string) (*sovereignConfig.SovereignConfig,
 		},
 		SovereignExtraConfig: sovereignExtraConfig,
 	}, nil
+}
+
+func createSovereignRunTypeCoreComponents() (factory.RunTypeCoreComponentsHolder, error) {
+	runTypeCoreComponentsFactory := runType.NewRunTypeCoreComponentsFactory()
+
+	sovereignRunTypeCoreComponentsFactory, err := runType.NewSovereignRunTypeCoreComponentsFactory(runTypeCoreComponentsFactory)
+	if err != nil {
+		return nil, err
+	}
+
+	managedRunTypeCoreComponents, err := runType.NewManagedRunTypeCoreComponents(sovereignRunTypeCoreComponentsFactory)
+	if err != nil {
+		return nil, err
+	}
+	err = managedRunTypeCoreComponents.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	return managedRunTypeCoreComponents, nil
 }
 
 func createSovereignRunTypeComponents(args runType.ArgsRunTypeComponents, sovereignExtraConfig config.SovereignConfig) (factory.RunTypeComponentsHolder, error) {
