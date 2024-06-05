@@ -48,6 +48,7 @@ type ArgsDepositToken struct {
 	Identifier string
 	Nonce      uint64
 	Amount     *big.Int
+	Type       core.ESDTType
 }
 
 // GetSysAccBytesAddress will return the system account bytes address
@@ -123,6 +124,7 @@ func SendTransaction(
 	return txResult
 }
 
+// RequireAccountHasToken checks if the account has the amount of tokens (can also be zero)
 func RequireAccountHasToken(
 	t *testing.T,
 	cs ChainSimulator,
@@ -143,17 +145,18 @@ func RequireAccountHasToken(
 	require.Equal(t, tokenData, &esdt.ESDigitalToken{Value: value})
 }
 
+// TransferESDT will transfer the amount of esdt token to an address
 func TransferESDT(
 	t *testing.T,
 	cs ChainSimulator,
 	sender, receiver []byte,
 	nonce *uint64,
 	token string,
-	value *big.Int,
+	amount *big.Int,
 ) {
 	esdtTransferArgs := core.BuiltInFunctionESDTTransfer +
 		"@" + hex.EncodeToString([]byte(token)) +
-		"@" + hex.EncodeToString(value.Bytes())
+		"@" + hex.EncodeToString(amount.Bytes())
 	SendTransaction(t, cs, sender, nonce, receiver, ZeroValue, esdtTransferArgs, uint64(5000000))
 }
 

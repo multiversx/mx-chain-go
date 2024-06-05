@@ -1,6 +1,7 @@
 package bridge
 
 import (
+	"bytes"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
@@ -29,9 +30,26 @@ func TestChainSimulator_ExecuteWithMintAndBurnFungibleWithDeposit(t *testing.T) 
 
 	depositToken := "sov1-SOVTKN-1a2b3c"
 	depositTokenNonce := uint64(0)
+
 	amountToMint, _ := big.NewInt(0).SetString("123000000000000000000", 10)
+	mintTokens := make([]chainSim.ArgsDepositToken, 0)
+	mintTokens = append(mintTokens, chainSim.ArgsDepositToken{
+		Identifier: depositToken,
+		Nonce:      depositTokenNonce,
+		Amount:     amountToMint,
+		Type:       core.Fungible,
+	})
+
 	amountToDeposit, _ := big.NewInt(0).SetString("12000000000000000000", 10)
-	simulateExecutionAndDeposit(t, depositToken, depositTokenNonce, core.Fungible, amountToMint, amountToDeposit, executeBridgeOpForFungible)
+	depositTokens := make([]chainSim.ArgsDepositToken, 0)
+	depositTokens = append(depositTokens, chainSim.ArgsDepositToken{
+		Identifier: depositToken,
+		Nonce:      depositTokenNonce,
+		Amount:     amountToDeposit,
+		Type:       core.Fungible,
+	})
+
+	simulateExecutionAndDeposit(t, mintTokens, depositTokens)
 }
 
 func TestChainSimulator_ExecuteWithMintAndBurnNftWithDeposit(t *testing.T) {
@@ -41,9 +59,26 @@ func TestChainSimulator_ExecuteWithMintAndBurnNftWithDeposit(t *testing.T) {
 
 	depositToken := "sov1-SOVNFT-123456"
 	depositTokenNonce := uint64(1)
+
 	amountToMint := big.NewInt(1)
+	mintTokens := make([]chainSim.ArgsDepositToken, 0)
+	mintTokens = append(mintTokens, chainSim.ArgsDepositToken{
+		Identifier: depositToken,
+		Nonce:      depositTokenNonce,
+		Amount:     amountToMint,
+		Type:       core.NonFungible,
+	})
+
 	amountToDeposit := big.NewInt(1)
-	simulateExecutionAndDeposit(t, depositToken, depositTokenNonce, core.NonFungible, amountToMint, amountToDeposit, executeBridgeOpForNonFungible)
+	depositTokens := make([]chainSim.ArgsDepositToken, 0)
+	depositTokens = append(depositTokens, chainSim.ArgsDepositToken{
+		Identifier: depositToken,
+		Nonce:      depositTokenNonce,
+		Amount:     amountToDeposit,
+		Type:       core.NonFungible,
+	})
+
+	simulateExecutionAndDeposit(t, mintTokens, depositTokens)
 }
 
 func TestChainSimulator_ExecuteWithMintAndBurnSftWithDeposit(t *testing.T) {
@@ -53,19 +88,32 @@ func TestChainSimulator_ExecuteWithMintAndBurnSftWithDeposit(t *testing.T) {
 
 	depositToken := "sov1-SOVSFT-654321"
 	depositTokenNonce := uint64(1)
+
 	amountToMint := big.NewInt(50)
+	mintTokens := make([]chainSim.ArgsDepositToken, 0)
+	mintTokens = append(mintTokens, chainSim.ArgsDepositToken{
+		Identifier: depositToken,
+		Nonce:      depositTokenNonce,
+		Amount:     amountToMint,
+		Type:       core.SemiFungible,
+	})
+
 	amountToDeposit := big.NewInt(20)
-	simulateExecutionAndDeposit(t, depositToken, depositTokenNonce, core.SemiFungible, amountToMint, amountToDeposit, executeBridgeOpForNonFungible)
+	depositTokens := make([]chainSim.ArgsDepositToken, 0)
+	depositTokens = append(depositTokens, chainSim.ArgsDepositToken{
+		Identifier: depositToken,
+		Nonce:      depositTokenNonce,
+		Amount:     amountToDeposit,
+		Type:       core.SemiFungible,
+	})
+
+	simulateExecutionAndDeposit(t, mintTokens, depositTokens)
 }
 
 func simulateExecutionAndDeposit(
 	t *testing.T,
-	depositToken string,
-	depositTokenNonce uint64,
-	esdtType core.ESDTType,
-	mintValue *big.Int,
-	amountToDeposit *big.Int,
-	executeBridgeOp func(t *testing.T, cs chainSim.ChainSimulator, wallet dtos.WalletAddress, nonce *uint64, esdtSafeAddress []byte, depositToken string, depositTokenNonce uint64, tokenType core.ESDTType, mintValue *big.Int),
+	mintTokens []chainSim.ArgsDepositToken,
+	depositTokens []chainSim.ArgsDepositToken,
 ) {
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
@@ -125,108 +173,90 @@ func simulateExecutionAndDeposit(
 	esdtSafeEncoded, _ := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Encode(bridgeData.ESDTSafeAddress)
 	require.Equal(t, esdtSafeEncoded, whiteListedAddress)
 
-	// We will deposit a prefixed token from a sovereign chain to the main chain,
-	// expecting these tokens to be minted by the whitelisted ESDT safe sc and transferred to our address.
-	executeBridgeOp(t, cs, wallet, &nonce, bridgeData.ESDTSafeAddress, depositToken, depositTokenNonce, esdtType, mintValue)
+	// We will deposit an array of prefixed tokens from a sovereign chain to the main chain,
+	// expecting these tokens to be minted by the whitelisted ESDT safe sc and transferred to our wallet address.
+	executeBridgeOperation(t, cs, wallet, &nonce, bridgeData.ESDTSafeAddress, mintTokens)
 
-	depositTokens := make([]chainSim.ArgsDepositToken, 0)
-	depositTokens = append(depositTokens, chainSim.ArgsDepositToken{
-		Identifier: depositToken,
-		Nonce:      depositTokenNonce,
-		Amount:     amountToDeposit,
-	})
+	// Deposit an array of tokens from main chain to sovereign chain,
+	// expecting these tokens to be burned by the whitelisted ESDT safe sc
 	Deposit(t, cs, wallet.Bytes, &nonce, bridgeData.ESDTSafeAddress, depositTokens, wallet.Bytes)
-	chainSim.RequireAccountHasToken(t, cs, depositToken, wallet.Bech32, big.NewInt(0).Sub(mintValue, amountToDeposit))
-	chainSim.RequireAccountHasToken(t, cs, depositToken, esdtSafeEncoded, big.NewInt(0))
+	for _, token := range depositTokens {
+		mintedValue, err := getMintedValue(mintTokens, token.Identifier)
+		require.Nil(t, err)
 
-	tokenSupply, err := nodeHandler.GetFacadeHandler().GetTokenSupply(depositToken)
-	require.Nil(t, err)
-	require.NotNil(t, tokenSupply)
-	require.Equal(t, amountToDeposit.String(), tokenSupply.Burned)
+		fullTokenIdentifier := token.Identifier + "-" + fmt.Sprintf("%02x", token.Nonce)
+		chainSim.RequireAccountHasToken(t, cs, fullTokenIdentifier, wallet.Bech32, big.NewInt(0).Sub(mintedValue, token.Amount))
+		chainSim.RequireAccountHasToken(t, cs, fullTokenIdentifier, esdtSafeEncoded, big.NewInt(0))
+
+		tokenSupply, err := nodeHandler.GetFacadeHandler().GetTokenSupply(fullTokenIdentifier)
+		require.Nil(t, err)
+		require.NotNil(t, tokenSupply)
+		require.Equal(t, token.Amount.String(), tokenSupply.Burned)
+	}
 }
 
-func executeBridgeOpForFungible(
+func getMintedValue(mintTokens []chainSim.ArgsDepositToken, token string) (*big.Int, error) {
+	for _, tkn := range mintTokens {
+		if tkn.Identifier == token {
+			return tkn.Amount, nil
+		}
+	}
+	return nil, fmt.Errorf("token not found")
+}
+
+func executeBridgeOperation(
 	t *testing.T,
 	cs chainSim.ChainSimulator,
 	wallet dtos.WalletAddress,
 	nonce *uint64,
 	esdtSafeAddress []byte,
-	depositToken string,
-	depositTokenNonce uint64,
-	tokenType core.ESDTType,
-	mintValue *big.Int,
+	mintTokens []chainSim.ArgsDepositToken,
 ) {
 	executeBridgeOpsData := "executeBridgeOps" +
 		"@de96b8d3842668aad676f915f545403b3e706f8f724cefb0c15b728e83864ce7" + //dummy hash
 		"@" + // operation
 		hex.EncodeToString(wallet.Bytes) + // receiver address
-		"00000001" + // nr of tokens
-		lengthOn4Bytes(len(depositToken)) + // length of token identifier
-		hex.EncodeToString([]byte(depositToken)) + //token identifier
-		getNonceHex(depositTokenNonce) + // nonce
-		fmt.Sprintf("%02x", tokenType) + // type
-		lengthOn4Bytes(len(mintValue.Bytes())) + // length of amount
-		hex.EncodeToString(mintValue.Bytes()) + // amount
-		"00" + // frozen
-		"00000000" + // length of hash
-		"00000000" + // length of name
-		"00000000" + // length of attributes
-		"0000000000000000000000000000000000000000000000000000000000000000" + // creator
-		"00000000" + // length of royalties
-		"00000000" + // length of uris
+		lengthOn4Bytes(len(mintTokens)) + // nr of tokens
+		getTokenDataArgs(mintTokens) +
 		"0000000000000000" + // event nonce
 		hex.EncodeToString(wallet.Bytes) + // sender address from other chain
 		"00" // no transfer data
 	chainSim.SendTransaction(t, cs, wallet.Bytes, nonce, esdtSafeAddress, chainSim.ZeroValue, executeBridgeOpsData, uint64(50000000))
-	chainSim.RequireAccountHasToken(t, cs, depositToken, wallet.Bech32, mintValue)
+	for _, token := range mintTokens {
+		fullTokenIdentifier := token.Identifier + "-" + fmt.Sprintf("%02x", token.Nonce)
+		chainSim.RequireAccountHasToken(t, cs, fullTokenIdentifier, wallet.Bech32, token.Amount)
+	}
 }
 
-func executeBridgeOpForNonFungible(
-	t *testing.T,
-	cs chainSim.ChainSimulator,
-	wallet dtos.WalletAddress,
-	nonce *uint64,
-	esdtSafeAddress []byte,
-	depositToken string,
-	depositTokenNonce uint64,
-	tokenType core.ESDTType,
-	mintValue *big.Int,
-) {
-	executeBridgeOpsData := "executeBridgeOps" +
-		"@de96b8d3842668aad676f915f545403b3e706f8f724cefb0c15b728e83864ce7" + //dummy hash
-		"@" + // operation
-		hex.EncodeToString(wallet.Bytes) + // receiver address
-		"00000001" + // nr of tokens
-		lengthOn4Bytes(len(depositToken)) + // length of token identifier
-		hex.EncodeToString([]byte(depositToken)) + //token identifier
-		getNonceHex(depositTokenNonce) + // nonce
-		fmt.Sprintf("%02x", tokenType) + // type
-		lengthOn4Bytes(len(mintValue.Bytes())) + // length of amount
-		hex.EncodeToString(mintValue.Bytes()) + // amount
-		"00" + // frozen
-		"00000000" + // length of hash
-		"00000003" + // length of name
-		hex.EncodeToString([]byte("ABC")) + // name
-		"00000000" + // length of attributes
-		"0000000000000000000000000000000000000000000000000000000000000000" + // creator
-		"00000002" + // length of royalties
-		hex.EncodeToString(big.NewInt(1000).Bytes()) +
-		"00000000" + // length of uris
-		"0000000000000000" + // event nonce
-		hex.EncodeToString(wallet.Bytes) + // sender address from other chain
-		"00" // no transfer data
-	chainSim.SendTransaction(t, cs, wallet.Bytes, nonce, esdtSafeAddress, chainSim.ZeroValue, executeBridgeOpsData, uint64(50000000))
-	chainSim.RequireAccountHasToken(t, cs, depositToken, wallet.Bech32, mintValue)
+func getTokenDataArgs(tokens []chainSim.ArgsDepositToken) string {
+	var arg string
+	for _, token := range tokens {
+		arg = arg +
+			lengthOn4Bytes(len(token.Identifier)) + // length of token identifier
+			hex.EncodeToString([]byte(token.Identifier)) + //token identifier
+			getNonceHex(token.Nonce) + // nonce
+			fmt.Sprintf("%02x", token.Type) + // type
+			lengthOn4Bytes(len(token.Amount.Bytes())) + // length of amount
+			hex.EncodeToString(token.Amount.Bytes()) + // amount
+			"00" + // not frozen
+			lengthOn4Bytes(0) + // length of hash
+			lengthOn4Bytes(0) + // length of name
+			lengthOn4Bytes(0) + // length of attributes
+			hex.EncodeToString(bytes.Repeat([]byte{0x00}, 32)) + // creator
+			lengthOn4Bytes(0) + // length of royalties
+			lengthOn4Bytes(0) // length of uris
+	}
+	return arg
 }
 
 func getNonceHex(nonce uint64) string {
-	bytes := make([]byte, 8)
-	binary.BigEndian.PutUint64(bytes, nonce)
-	return hex.EncodeToString(bytes)
+	nonceBytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(nonceBytes, nonce)
+	return hex.EncodeToString(nonceBytes)
 }
 
 func lengthOn4Bytes(number int) string {
-	bytes := make([]byte, 4)
-	binary.BigEndian.PutUint32(bytes, uint32(number))
-	return hex.EncodeToString(bytes)
+	numberBytes := make([]byte, 4)
+	binary.BigEndian.PutUint32(numberBytes, uint32(number))
+	return hex.EncodeToString(numberBytes)
 }
