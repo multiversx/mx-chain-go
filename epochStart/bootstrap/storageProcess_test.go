@@ -93,11 +93,26 @@ func TestNewStorageEpochStartBootstrap_InvalidArgumentsShouldErr(t *testing.T) {
 func TestNewStorageEpochStartBootstrap_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	coreComp, cryptoComp := createComponentsForEpochStart()
-	args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
-	sesb, err := NewStorageEpochStartBootstrap(args)
-	assert.False(t, check.IfNil(sesb))
-	assert.Nil(t, err)
+	t.Run("should work for normal", func(t *testing.T) {
+		t.Parallel()
+
+		coreComp, cryptoComp := createComponentsForEpochStart()
+		args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
+		sesb, err := NewStorageEpochStartBootstrap(args)
+		assert.False(t, check.IfNil(sesb))
+		assert.Nil(t, err)
+	})
+
+	t.Run("should work for sovereign", func(t *testing.T) {
+		t.Parallel()
+
+		coreComp, cryptoComp := createComponentsForEpochStart()
+		args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
+		args.EpochStartBootstrapperCreator, _ = NewSovereignEpochStartBootstrapperFactory(args.EpochStartBootstrapperCreator)
+		sesb, err := NewStorageEpochStartBootstrap(args)
+		assert.False(t, check.IfNil(sesb))
+		assert.Nil(t, err)
+	})
 }
 
 func TestCreateEpochStartBootstrapper_ShouldWork(t *testing.T) {

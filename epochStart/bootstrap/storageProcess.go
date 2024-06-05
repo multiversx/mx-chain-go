@@ -72,7 +72,11 @@ func NewStorageEpochStartBootstrap(args ArgsStorageEpochStartBootstrap) (*storag
 
 	esbConverted, ok := esb.(*epochStartBootstrap)
 	if !ok {
-		return nil, errors.ErrInvalidTypeConversion
+		sovereignESB, ok := esb.(*sovereignChainEpochStartBootstrap)
+		if !ok {
+			return nil, errors.ErrInvalidTypeConversion
+		}
+		esbConverted = sovereignESB.epochStartBootstrap
 	}
 
 	sesb := &storageEpochStartBootstrap{
