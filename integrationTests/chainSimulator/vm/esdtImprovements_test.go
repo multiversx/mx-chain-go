@@ -56,16 +56,20 @@ func TestChainSimulator_CheckTokensMetadata_TransferTokens(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	// t.Run("transfer and check all tokens - intra shard", func(t *testing.T) {
-	// 	transferAndCheckTokensMetaData(t, false)
-	// })
+	t.Run("transfer and check all tokens - intra shard", func(t *testing.T) {
+		transferAndCheckTokensMetaData(t, false, false)
+	})
+
+	t.Run("transfer and check all tokens - intra shard - multi transfer", func(t *testing.T) {
+		transferAndCheckTokensMetaData(t, false, true)
+	})
 
 	t.Run("transfer and check all tokens - cross shard", func(t *testing.T) {
-		transferAndCheckTokensMetaData(t, true)
+		transferAndCheckTokensMetaData(t, true, false)
 	})
 }
 
-func transferAndCheckTokensMetaData(t *testing.T, isCrossShard bool) {
+func transferAndCheckTokensMetaData(t *testing.T, isCrossShard bool, isMultiTransfer bool) {
 	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
 	roundsPerEpoch := core.OptionalUint64{
@@ -204,6 +208,7 @@ func transferAndCheckTokensMetaData(t *testing.T, isCrossShard bool) {
 		txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 		require.Nil(t, err)
 		require.NotNil(t, txResult)
+
 		require.Equal(t, "success", txResult.Status.String())
 
 		nonce++
@@ -228,16 +233,44 @@ func transferAndCheckTokensMetaData(t *testing.T, isCrossShard bool) {
 
 	log.Info("Step 3. transfer the tokens to another account")
 
-	for _, tokenID := range tokenIDs {
-		log.Info("transfering token id", "tokenID", tokenID)
+	if isMultiTransfer {
+		tx = utils.CreateMultiTransferTX(nonce, addrs[0].Bytes, addrs[1].Bytes, minGasPrice, 10_000_000, &utils.TransferESDTData{
+			Token: nftTokenID,
+			Value: big.NewInt(1),
+		}, &utils.TransferESDTData{
+			Token: sftTokenID,
+			Value: big.NewInt(1),
+		}, &utils.TransferESDTData{
+			Token: metaESDTTokenID,
+			Value: big.NewInt(1),
+		}, &utils.TransferESDTData{
+			Token: fungibleTokenID,
+			Value: big.NewInt(1),
+		},
+		)
+		tx.Version = 1
+		tx.Signature = []byte("dummySig")
+		tx.ChainID = []byte(configs.ChainID)
 
-		tx = esdtNFTTransferTx(nonce, addrs[0].Bytes, addrs[1].Bytes, tokenID)
 		txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 		require.Nil(t, err)
 		require.NotNil(t, txResult)
+
 		require.Equal(t, "success", txResult.Status.String())
 
 		nonce++
+	} else {
+		for _, tokenID := range tokenIDs {
+			log.Info("transfering token id", "tokenID", tokenID)
+
+			tx = esdtNFTTransferTx(nonce, addrs[0].Bytes, addrs[1].Bytes, tokenID)
+			txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+			require.Nil(t, err)
+			require.NotNil(t, txResult)
+			require.Equal(t, "success", txResult.Status.String())
+
+			nonce++
+		}
 	}
 
 	log.Info("Step 4. check that the metadata for all tokens is saved on the system account")
