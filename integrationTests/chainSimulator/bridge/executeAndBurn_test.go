@@ -184,7 +184,10 @@ func simulateExecutionAndDeposit(
 		mintedValue, err := getMintedValue(mintTokens, token.Identifier)
 		require.Nil(t, err)
 
-		fullTokenIdentifier := token.Identifier + "-" + fmt.Sprintf("%02x", token.Nonce)
+		fullTokenIdentifier := token.Identifier
+		if token.Nonce > 0 {
+			fullTokenIdentifier = fullTokenIdentifier + "-" + fmt.Sprintf("%02x", token.Nonce)
+		}
 		chainSim.RequireAccountHasToken(t, cs, fullTokenIdentifier, wallet.Bech32, big.NewInt(0).Sub(mintedValue, token.Amount))
 		chainSim.RequireAccountHasToken(t, cs, fullTokenIdentifier, esdtSafeEncoded, big.NewInt(0))
 
@@ -223,7 +226,10 @@ func executeBridgeOperation(
 		"00" // no transfer data
 	chainSim.SendTransaction(t, cs, wallet.Bytes, nonce, esdtSafeAddress, chainSim.ZeroValue, executeBridgeOpsData, uint64(50000000))
 	for _, token := range mintTokens {
-		fullTokenIdentifier := token.Identifier + "-" + fmt.Sprintf("%02x", token.Nonce)
+		fullTokenIdentifier := token.Identifier
+		if token.Nonce > 0 {
+			fullTokenIdentifier = fullTokenIdentifier + "-" + fmt.Sprintf("%02x", token.Nonce)
+		}
 		chainSim.RequireAccountHasToken(t, cs, fullTokenIdentifier, wallet.Bech32, token.Amount)
 	}
 }
