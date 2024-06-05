@@ -15,6 +15,11 @@ const (
 	separatorChar = "-"
 )
 
+type tokenData struct {
+	ticker                  string
+	randomSequencePlusNonce string
+}
+
 // TODO: move this to core
 
 // ExtractTokenIDAndNonceFromTokenStorageKey will parse the token's storage key and extract the identifier and the nonce
@@ -29,23 +34,20 @@ func ExtractTokenIDAndNonceFromTokenStorageKey(tokenKey []byte) ([]byte, uint64)
 		return tokenKey, 0
 	}
 
-	indexOfTokenHyphen := getIndexOfTokenHyphen(token, indexOfFirstHyphen)
-	tokenTicker := token[:indexOfTokenHyphen]
-	randomSequencePlusNonce := token[indexOfTokenHyphen+1:]
+	tknData := getTokenData(token, indexOfFirstHyphen)
+	tokenTickerLen := len(tknData.ticker)
 
-	tokenTickerLen := len(tokenTicker)
-
-	areTickerAndRandomSequenceInvalid := !esdt.IsTokenTickerLenCorrect(tokenTickerLen) || len(randomSequencePlusNonce) == 0
+	areTickerAndRandomSequenceInvalid := !esdt.IsTokenTickerLenCorrect(tokenTickerLen) || len(tknData.randomSequencePlusNonce) == 0
 	if areTickerAndRandomSequenceInvalid {
 		return tokenKey, 0
 	}
 
-	if len(randomSequencePlusNonce) < esdtTickerNumRandChars+1 {
+	if len(tknData.randomSequencePlusNonce) < esdtTickerNumRandChars+1 {
 		return tokenKey, 0
 	}
 
 	// ALC-1q2w3eX - X is the nonce
-	nonceStr := randomSequencePlusNonce[esdtTickerNumRandChars:]
+	nonceStr := tknData.randomSequencePlusNonce[esdtTickerNumRandChars:]
 	nonceBigInt := big.NewInt(0).SetBytes([]byte(nonceStr))
 
 	numCharsSinceNonce := len(token) - len(nonceStr)
@@ -54,13 +56,20 @@ func ExtractTokenIDAndNonceFromTokenStorageKey(tokenKey []byte) ([]byte, uint64)
 	return []byte(tokenID), nonceBigInt.Uint64()
 }
 
-func getIndexOfTokenHyphen(token string, indexOfFirstHyphen int) int {
+func getTokenData(token string, indexOfFirstHyphen int) *tokenData {
 	if !isValidPrefixedToken(token) {
-		return indexOfFirstHyphen
+		return &tokenData{
+			ticker:                  token[:indexOfFirstHyphen],
+			randomSequencePlusNonce: token[indexOfFirstHyphen+1:],
+		}
 	}
 
 	indexOfSecondHyphen := strings.Index(token[indexOfFirstHyphen+1:], separatorChar)
-	return indexOfSecondHyphen + indexOfFirstHyphen + 1
+	indexOfTokenHyphen := indexOfSecondHyphen + indexOfFirstHyphen + 1
+	return &tokenData{
+		ticker:                  token[indexOfFirstHyphen+1 : indexOfTokenHyphen],
+		randomSequencePlusNonce: token[indexOfTokenHyphen+1:],
+	}
 }
 
 func isValidPrefixedToken(token string) bool {

@@ -63,6 +63,8 @@ func TestExtractTokenIDAndNonceFromTokenStorageKey(t *testing.T) {
 
 		checkTickerAndNonceExtraction(t, "sv1-TKN-1q2w3e4", "sv1-TKN-1q2w3e", 52)
 		checkTickerAndNonceExtraction(t, "sv1-TKN-1q2w3e-", "sv1-TKN-1q2w3e", 45)
+		checkTickerAndNonceExtraction(t, "sov1-SOVNFT-1q2w3e-", "sov1-SOVNFT-1q2w3e", 45)
+		checkTickerAndNonceExtraction(t, "sov1-ABCDEFGHIJ-1q2w3e-", "sov1-ABCDEFGHIJ-1q2w3e", 45)
 	})
 }
 
