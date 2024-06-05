@@ -550,7 +550,8 @@ func (s *simulator) computeTransactionsStatus(txsWithResult []*transactionWithRe
 
 		sentTx := resultTx.tx
 		destinationShardID := s.GetNodeHandler(0).GetShardCoordinator().ComputeId(sentTx.RcvAddr)
-		if core.IsSmartContractOnMetachain([]byte{255}, sentTx.RcvAddr) {
+		contractDeploySCAddress := make([]byte, s.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Len())
+		if bytes.Equal(sentTx.RcvAddr, contractDeploySCAddress) {
 			destinationShardID = s.GetNodeHandler(0).GetShardCoordinator().ComputeId(sentTx.SndAddr)
 		}
 
