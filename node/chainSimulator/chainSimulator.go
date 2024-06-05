@@ -544,7 +544,6 @@ func (s *simulator) SendTxsAndGenerateBlocksTilAreExecuted(txsToSend []*transact
 func (s *simulator) computeTransactionsStatus(txsWithResult []*transactionWithResult) bool {
 	allAreExecuted := true
 	contractDeploySCAddress := make([]byte, s.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Len())
-
 	for _, resultTx := range txsWithResult {
 		if resultTx.result != nil {
 			continue
