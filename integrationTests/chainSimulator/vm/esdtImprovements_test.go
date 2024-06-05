@@ -234,23 +234,7 @@ func transferAndCheckTokensMetaData(t *testing.T, isCrossShard bool, isMultiTran
 	log.Info("Step 3. transfer the tokens to another account")
 
 	if isMultiTransfer {
-		tx = utils.CreateMultiTransferTX(nonce, addrs[0].Bytes, addrs[1].Bytes, minGasPrice, 10_000_000, &utils.TransferESDTData{
-			Token: nftTokenID,
-			Value: big.NewInt(1),
-		}, &utils.TransferESDTData{
-			Token: sftTokenID,
-			Value: big.NewInt(1),
-		}, &utils.TransferESDTData{
-			Token: metaESDTTokenID,
-			Value: big.NewInt(1),
-		}, &utils.TransferESDTData{
-			Token: fungibleTokenID,
-			Value: big.NewInt(1),
-		},
-		)
-		tx.Version = 1
-		tx.Signature = []byte("dummySig")
-		tx.ChainID = []byte(configs.ChainID)
+		tx = multiESDTNFTTransferTx(nonce, addrs[0].Bytes, addrs[1].Bytes, tokenIDs)
 
 		txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 		require.Nil(t, err)
@@ -395,6 +379,32 @@ func checkMetaDataNotInAcc(
 	esdtData := getESDTDataFromAcc(t, cs, addressBytes, token, shardID)
 
 	require.Nil(t, esdtData.TokenMetaData)
+}
+
+func multiESDTNFTTransferTx(nonce uint64, sndAdr, rcvAddr []byte, tokens [][]byte) *transaction.Transaction {
+	transferData := make([]*utils.TransferESDTData, 0)
+
+	for _, tokenID := range tokens {
+		transferData = append(transferData, &utils.TransferESDTData{
+			Token: tokenID,
+			Nonce: 1,
+			Value: big.NewInt(1),
+		})
+	}
+
+	tx := utils.CreateMultiTransferTX(
+		nonce,
+		sndAdr,
+		rcvAddr,
+		minGasPrice,
+		10_000_000,
+		transferData...,
+	)
+	tx.Version = 1
+	tx.Signature = []byte("dummySig")
+	tx.ChainID = []byte(configs.ChainID)
+
+	return tx
 }
 
 func esdtNFTTransferTx(nonce uint64, sndAdr, rcvAddr, token []byte) *transaction.Transaction {
