@@ -134,6 +134,11 @@ func RequireAccountHasToken(
 	require.Nil(t, err)
 
 	tokenData, found := tokens[token]
+
+	if value.Cmp(big.NewInt(0)) == 0 {
+		require.False(t, found)
+		return
+	}
 	require.True(t, found)
 	require.Equal(t, tokenData, &esdt.ESDigitalToken{Value: value})
 }
@@ -150,44 +155,6 @@ func TransferESDT(
 		"@" + hex.EncodeToString([]byte(token)) +
 		"@" + hex.EncodeToString(value.Bytes())
 	SendTransaction(t, cs, sender, nonce, receiver, ZeroValue, esdtTransferArgs, uint64(5000000))
-}
-
-// RegisterAndSetAllRoles will issue an esdt token with all roles enabled
-func RegisterAndSetAllRoles(
-	t *testing.T,
-	cs ChainSimulator,
-	nodeHandler process.NodeHandler,
-	sender []byte,
-	nonce *uint64,
-	issueCost *big.Int,
-	esdtName string,
-	esdtTicker string,
-	tokenType string,
-	numDecimals int,
-) string {
-	esdtType := getTokenRegisterType(tokenType)
-	registerArgs := "registerAndSetAllRoles" +
-		"@" + hex.EncodeToString([]byte(esdtName)) +
-		"@" + hex.EncodeToString([]byte(esdtTicker)) +
-		"@" + hex.EncodeToString([]byte(esdtType)) +
-		"@" + fmt.Sprintf("%02X", numDecimals)
-	SendTransaction(t, cs, sender, nonce, vm.ESDTSCAddress, issueCost, registerArgs, uint64(60000000))
-
-	return getEsdtIdentifier(t, nodeHandler, esdtTicker, tokenType)
-}
-
-func getTokenRegisterType(tokenType string) string {
-	switch tokenType {
-	case core.FungibleESDT:
-		return "FNG"
-	case core.NonFungibleESDT:
-		return "NFT"
-	case core.SemiFungibleESDT:
-		return "SFT"
-	case core.MetaESDT:
-		return "META"
-	}
-	return ""
 }
 
 // IssueFungible will issue a fungible token
@@ -213,44 +180,6 @@ func IssueFungible(
 	SendTransaction(t, cs, sender, nonce, vm.ESDTSCAddress, issueCost, issueArgs, uint64(60000000))
 
 	return getEsdtIdentifier(t, nodeHandler, tokenTicker, core.FungibleESDT)
-}
-
-// IssueNonFungible will issue a non fungible token
-func IssueNonFungible(
-	t *testing.T,
-	cs ChainSimulator,
-	nodeHandler process.NodeHandler,
-	sender []byte,
-	nonce *uint64,
-	issueCost *big.Int,
-	nftName string,
-	nftTicker string,
-) string {
-	issueArgs := "issueSemiFungible" +
-		"@" + hex.EncodeToString([]byte(nftName)) +
-		"@" + hex.EncodeToString([]byte(nftTicker))
-	SendTransaction(t, cs, sender, nonce, vm.ESDTSCAddress, issueCost, issueArgs, uint64(60000000))
-
-	return getEsdtIdentifier(t, nodeHandler, nftTicker, core.NonFungibleESDT)
-}
-
-// IssueSemiFungible will issue a semi fungible token
-func IssueSemiFungible(
-	t *testing.T,
-	cs ChainSimulator,
-	nodeHandler process.NodeHandler,
-	sender []byte,
-	nonce *uint64,
-	issueCost *big.Int,
-	sftName string,
-	sftTicker string,
-) string {
-	issueArgs := "issueSemiFungible" +
-		"@" + hex.EncodeToString([]byte(sftName)) +
-		"@" + hex.EncodeToString([]byte(sftTicker))
-	SendTransaction(t, cs, sender, nonce, vm.ESDTSCAddress, issueCost, issueArgs, uint64(60000000))
-
-	return getEsdtIdentifier(t, nodeHandler, sftTicker, core.SemiFungibleESDT)
 }
 
 func getEsdtIdentifier(t *testing.T, nodeHandler process.NodeHandler, ticker string, tokenType string) string {
