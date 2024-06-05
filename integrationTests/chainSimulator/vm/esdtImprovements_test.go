@@ -1224,7 +1224,7 @@ func TestChainSimulator_NFT_ESDTModifyCreator(t *testing.T) {
 		[][]byte{
 			[]byte(core.ESDTModifyCreator),
 			[]byte(hex.EncodeToString(nftTokenID)),
-			nftMetaData.Nonce,
+			[]byte(hex.EncodeToString(big.NewInt(1).Bytes())),
 		},
 		[]byte("@"),
 	)
@@ -1589,9 +1589,6 @@ func TestChainSimulator_NFT_ChangeToDynamicType(t *testing.T) {
 
 	defer cs.Close()
 
-	mintValue := big.NewInt(10)
-	mintValue = mintValue.Mul(oneEGLD, mintValue)
-
 	addrs := createAddresses(t, cs, true)
 
 	err = cs.GenerateBlocksUntilEpochIsReached(int32(activationEpoch) - 1)
@@ -1647,9 +1644,9 @@ func TestChainSimulator_NFT_ChangeToDynamicType(t *testing.T) {
 	)
 
 	tx = &transaction.Transaction{
-		Nonce:     2,
-		SndAddr:   addrs[1].Bytes,
-		RcvAddr:   addrs[1].Bytes,
+		Nonce:     0,
+		SndAddr:   core.ESDTSCAddress,
+		RcvAddr:   core.SystemAccountAddress,
 		GasLimit:  10_000_000,
 		GasPrice:  minGasPrice,
 		Signature: []byte("dummySig"),
@@ -1658,6 +1655,17 @@ func TestChainSimulator_NFT_ChangeToDynamicType(t *testing.T) {
 		ChainID:   []byte(configs.ChainID),
 		Version:   1,
 	}
+
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+
+	fmt.Println(txResult)
+	fmt.Println(txResult.Logs.Events[0])
+	fmt.Println(string(txResult.Logs.Events[0].Topics[0]))
+	fmt.Println(string(txResult.Logs.Events[0].Topics[1]))
+
+	require.Equal(t, "success", txResult.Status.String())
 
 	shardID := cs.GetNodeHandler(0).GetProcessComponents().ShardCoordinator().ComputeId(addrs[1].Bytes)
 
@@ -1725,9 +1733,6 @@ func TestChainSimulator_SFT_ChangeMetaData(t *testing.T) {
 	require.NotNil(t, cs)
 
 	defer cs.Close()
-
-	mintValue := big.NewInt(10)
-	mintValue = mintValue.Mul(oneEGLD, mintValue)
 
 	addrs := createAddresses(t, cs, true)
 
