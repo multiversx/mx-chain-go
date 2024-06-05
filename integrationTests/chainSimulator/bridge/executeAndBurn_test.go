@@ -57,7 +57,7 @@ func TestChainSimulator_ExecuteWithMintAndBurnNftWithDeposit(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	depositToken := "sov1-SOVNFT-123456"
+	depositToken := "sov2-SOVNFT-123456"
 	depositTokenNonce := uint64(1)
 
 	amountToMint := big.NewInt(1)
@@ -86,7 +86,7 @@ func TestChainSimulator_ExecuteWithMintAndBurnSftWithDeposit(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	depositToken := "sov1-SOVSFT-654321"
+	depositToken := "sov3-SOVSFT-654321"
 	depositTokenNonce := uint64(1)
 
 	amountToMint := big.NewInt(50)
@@ -184,10 +184,7 @@ func simulateExecutionAndDeposit(
 		mintedValue, err := getMintedValue(mintTokens, token.Identifier)
 		require.Nil(t, err)
 
-		fullTokenIdentifier := token.Identifier
-		if token.Nonce > 0 {
-			fullTokenIdentifier = fullTokenIdentifier + "-" + fmt.Sprintf("%02x", token.Nonce)
-		}
+		fullTokenIdentifier := getTokenIdentifier(token)
 		chainSim.RequireAccountHasToken(t, cs, fullTokenIdentifier, wallet.Bech32, big.NewInt(0).Sub(mintedValue, token.Amount))
 		chainSim.RequireAccountHasToken(t, cs, fullTokenIdentifier, esdtSafeEncoded, big.NewInt(0))
 
@@ -226,11 +223,7 @@ func executeBridgeOperation(
 		"00" // no transfer data
 	chainSim.SendTransaction(t, cs, wallet.Bytes, nonce, esdtSafeAddress, chainSim.ZeroValue, executeBridgeOpsData, uint64(50000000))
 	for _, token := range mintTokens {
-		fullTokenIdentifier := token.Identifier
-		if token.Nonce > 0 {
-			fullTokenIdentifier = fullTokenIdentifier + "-" + fmt.Sprintf("%02x", token.Nonce)
-		}
-		chainSim.RequireAccountHasToken(t, cs, fullTokenIdentifier, wallet.Bech32, token.Amount)
+		chainSim.RequireAccountHasToken(t, cs, getTokenIdentifier(token), wallet.Bech32, token.Amount)
 	}
 }
 
@@ -253,6 +246,13 @@ func getTokenDataArgs(tokens []chainSim.ArgsDepositToken) string {
 			lengthOn4Bytes(0) // length of uris
 	}
 	return arg
+}
+
+func getTokenIdentifier(token chainSim.ArgsDepositToken) string {
+	if token.Nonce == 0 {
+		return token.Identifier
+	}
+	return token.Identifier + "-" + fmt.Sprintf("%02x", token.Nonce)
 }
 
 func getNonceHex(nonce uint64) string {
