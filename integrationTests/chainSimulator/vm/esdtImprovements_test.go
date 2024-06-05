@@ -1613,26 +1613,8 @@ func TestChainSimulator_NFT_ChangeToDynamicType(t *testing.T) {
 	}
 
 	nftTokenID := txResult.Logs.Events[0].Topics[0]
+
 	tokenType := core.DynamicNFTESDT
-
-	setAddressEsdtRoles(t, cs, addrs[1], nftTokenID, roles)
-
-	log.Info("Issued NFT token id", "tokenID", string(nftTokenID))
-
-	nftMetaData := txsFee.GetDefaultMetaData()
-	nftMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
-
-	tx = nftCreateTx(1, addrs[1].Bytes, nftTokenID, nftMetaData)
-
-	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
-	require.Nil(t, err)
-	require.NotNil(t, txResult)
-	require.Equal(t, "success", txResult.Status.String())
-
-	err = cs.GenerateBlocks(10)
-	require.Nil(t, err)
-
-	log.Info("Step 1. Change the nft to DYNAMIC type - the metadata should be on the system account")
 
 	txDataField := bytes.Join(
 		[][]byte{
@@ -1666,6 +1648,25 @@ func TestChainSimulator_NFT_ChangeToDynamicType(t *testing.T) {
 	fmt.Println(string(txResult.Logs.Events[0].Topics[1]))
 
 	require.Equal(t, "success", txResult.Status.String())
+
+	setAddressEsdtRoles(t, cs, addrs[1], nftTokenID, roles)
+
+	log.Info("Issued NFT token id", "tokenID", string(nftTokenID))
+
+	nftMetaData := txsFee.GetDefaultMetaData()
+	nftMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
+
+	tx = nftCreateTx(1, addrs[1].Bytes, nftTokenID, nftMetaData)
+
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+	require.Equal(t, "success", txResult.Status.String())
+
+	err = cs.GenerateBlocks(10)
+	require.Nil(t, err)
+
+	log.Info("Step 1. Change the nft to DYNAMIC type - the metadata should be on the system account")
 
 	shardID := cs.GetNodeHandler(0).GetProcessComponents().ShardCoordinator().ComputeId(addrs[1].Bytes)
 
