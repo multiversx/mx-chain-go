@@ -559,6 +559,7 @@ func (s *simulator) SendTxsAndGenerateBlocksTilAreExecuted(txsToSend []*transact
 
 func (s *simulator) computeTransactionsStatus(txsWithResult []*transactionWithResult) bool {
 	allAreExecuted := true
+	contractDeploySCAddress := make([]byte, s.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Len())
 	for _, resultTx := range txsWithResult {
 		if resultTx.result != nil {
 			continue
@@ -566,6 +567,10 @@ func (s *simulator) computeTransactionsStatus(txsWithResult []*transactionWithRe
 
 		sentTx := resultTx.tx
 		destinationShardID := s.GetNodeHandler(0).GetShardCoordinator().ComputeId(sentTx.RcvAddr)
+		if bytes.Equal(sentTx.RcvAddr, contractDeploySCAddress) {
+			destinationShardID = s.GetNodeHandler(0).GetShardCoordinator().ComputeId(sentTx.SndAddr)
+		}
+
 		result, errGet := s.GetNodeHandler(destinationShardID).GetFacadeHandler().GetTransaction(resultTx.hexHash, true)
 		if errGet == nil && result.Status != transaction.TxStatusPending {
 			log.Info("############## transaction was executed ##############", "txHash", resultTx.hexHash)
