@@ -76,7 +76,7 @@ type esdtTokenData struct {
 type ESDTNFTTokenData struct {
 	TokenIdentifier string   `json:"tokenIdentifier"`
 	Balance         string   `json:"balance"`
-	Type            uint32   `json:"type"`
+	Type            string   `json:"type"`
 	Properties      string   `json:"properties,omitempty"`
 	Name            string   `json:"name,omitempty"`
 	Nonce           uint64   `json:"nonce,omitempty"`
@@ -487,7 +487,7 @@ func buildTokenDataApiResponse(tokenIdentifier string, esdtData *esdt.ESDigitalT
 	tokenData := &ESDTNFTTokenData{
 		TokenIdentifier: tokenIdentifier,
 		Balance:         esdtData.Value.String(),
-		Type:            esdtData.GetType(),
+		Type:            core.ESDTType(esdtData.GetType()).String(),
 		Properties:      hex.EncodeToString(esdtData.Properties),
 	}
 	if esdtData.TokenMetaData != nil {
