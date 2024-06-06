@@ -35,14 +35,7 @@ func ExtractTokenIDAndNonceFromTokenStorageKey(tokenKey []byte) ([]byte, uint64)
 	}
 
 	tknData := getTokenData(token, indexOfFirstHyphen)
-	tokenTickerLen := len(tknData.ticker)
-
-	areTickerAndRandomSequenceInvalid := !esdt.IsTokenTickerLenCorrect(tokenTickerLen) || len(tknData.randomSequencePlusNonce) == 0
-	if areTickerAndRandomSequenceInvalid {
-		return tokenKey, 0
-	}
-
-	if len(tknData.randomSequencePlusNonce) < esdtTickerNumRandChars+1 {
+	if !isTokenDataValid(tknData) {
 		return tokenKey, 0
 	}
 
@@ -70,6 +63,14 @@ func getTokenData(token string, indexOfFirstHyphen int) *tokenData {
 		ticker:                  token[indexOfFirstHyphen+1 : indexOfTokenHyphen],
 		randomSequencePlusNonce: token[indexOfTokenHyphen+1:],
 	}
+}
+
+func isTokenDataValid(tknData *tokenData) bool {
+	tokenTickerLen := len(tknData.ticker)
+	isTickerValid := esdt.IsTickerValid(tknData.ticker) && esdt.IsTokenTickerLenCorrect(tokenTickerLen)
+	isRandomSequencePlusNonceValid := len(tknData.randomSequencePlusNonce) >= esdtTickerNumRandChars+1
+
+	return isTickerValid && isRandomSequencePlusNonceValid
 }
 
 func isValidPrefixedToken(token string) bool {
