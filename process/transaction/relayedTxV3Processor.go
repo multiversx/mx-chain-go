@@ -18,14 +18,12 @@ const minTransactionsAllowed = 1
 type ArgRelayedTxV3Processor struct {
 	EconomicsFee           process.FeeHandler
 	ShardCoordinator       sharding.Coordinator
-	ArgsParser             process.ArgumentsParser
 	MaxTransactionsAllowed int
 }
 
 type relayedTxV3Processor struct {
 	economicsFee           process.FeeHandler
 	shardCoordinator       sharding.Coordinator
-	argsParser             process.ArgumentsParser
 	maxTransactionsAllowed int
 }
 
@@ -39,7 +37,6 @@ func NewRelayedTxV3Processor(args ArgRelayedTxV3Processor) (*relayedTxV3Processo
 		economicsFee:           args.EconomicsFee,
 		shardCoordinator:       args.ShardCoordinator,
 		maxTransactionsAllowed: args.MaxTransactionsAllowed,
-		argsParser:             args.ArgsParser,
 	}, nil
 }
 
@@ -49,9 +46,6 @@ func checkArgs(args ArgRelayedTxV3Processor) error {
 	}
 	if check.IfNil(args.ShardCoordinator) {
 		return process.ErrNilShardCoordinator
-	}
-	if check.IfNil(args.ArgsParser) {
-		return process.ErrNilArgumentParser
 	}
 	if args.MaxTransactionsAllowed < minTransactionsAllowed {
 		return fmt.Errorf("%w for MaxTransactionsAllowed, provided %d, min expected %d", process.ErrInvalidValue, args.MaxTransactionsAllowed, minTransactionsAllowed)
@@ -70,12 +64,6 @@ func (proc *relayedTxV3Processor) CheckRelayedTx(tx *transaction.Transaction) er
 	}
 	if !bytes.Equal(tx.RcvAddr, tx.SndAddr) {
 		return process.ErrRelayedTxV3SenderDoesNotMatchReceiver
-	}
-	if len(tx.Data) > 0 {
-		funcName, _, err := proc.argsParser.ParseCallData(string(tx.Data))
-		if err == nil && isRelayedTx(funcName) {
-			return process.ErrMultipleRelayedTxTypesIsNotAllowed
-		}
 	}
 	if tx.GasLimit < proc.computeRelayedTxMinGasLimit(tx) {
 		return process.ErrRelayedTxV3GasLimitMismatch

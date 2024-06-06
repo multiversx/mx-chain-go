@@ -202,7 +202,6 @@ func createInterceptedTxFromPlainTxWithArgParser(tx *dataTransaction.Transaction
 	relayedTxV3Processor, err := transaction.NewRelayedTxV3Processor(transaction.ArgRelayedTxV3Processor{
 		EconomicsFee:           txFeeHandler,
 		ShardCoordinator:       shardCoordinator,
-		ArgsParser:             &mock.ArgumentParserMock{},
 		MaxTransactionsAllowed: 10,
 	})
 	if err != nil {

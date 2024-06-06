@@ -1265,3 +1265,6 @@ var ErrConsumedFeesMismatch = errors.New("consumed fees mismatch")
 
 // ErrRelayedTxV3InvalidDataField signals that the data field is invalid
 var ErrRelayedTxV3InvalidDataField = errors.New("invalid data field")
+
+// ErrMultipleRelayedTxTypesIsNotAllowed signals that multiple types of relayed tx is not allowed
+var ErrMultipleRelayedTxTypesIsNotAllowed = errors.New("multiple relayed tx types is not allowed")

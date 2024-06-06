@@ -1291,7 +1291,6 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 	relayedV3TxProcessor, _ := transaction.NewRelayedTxV3Processor(transaction.ArgRelayedTxV3Processor{
 		EconomicsFee:           tpn.EconomicsData,
 		ShardCoordinator:       tpn.ShardCoordinator,
-		ArgsParser:             smartContract.NewArgumentParser(),
 		MaxTransactionsAllowed: 10,
 	})
 
@@ -1729,7 +1728,6 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	relayedV3TxProcessor, _ := transaction.NewRelayedTxV3Processor(transaction.ArgRelayedTxV3Processor{
 		EconomicsFee:           tpn.EconomicsData,
 		ShardCoordinator:       tpn.ShardCoordinator,
-		ArgsParser:             smartContract.NewArgumentParser(),
 		MaxTransactionsAllowed: 10,
 	})
 
