@@ -3,7 +3,6 @@ package vm
 import (
 	"bytes"
 	"encoding/hex"
-	"fmt"
 	"math/big"
 	"testing"
 	"time"
@@ -1159,7 +1158,7 @@ func TestChainSimulator_NFT_ESDTModifyCreator(t *testing.T) {
 		Value:    20,
 	}
 
-	activationEpoch := uint32(2)
+	activationEpoch := uint32(4)
 
 	baseIssuingCost := "1000"
 
@@ -1196,7 +1195,7 @@ func TestChainSimulator_NFT_ESDTModifyCreator(t *testing.T) {
 	address, err := cs.GenerateAndMintWalletAddress(shardID, mintValue)
 	require.Nil(t, err)
 
-	err = cs.GenerateBlocksUntilEpochIsReached(int32(activationEpoch))
+	err = cs.GenerateBlocksUntilEpochIsReached(int32(activationEpoch) - 2)
 	require.Nil(t, err)
 
 	err = cs.GenerateBlocks(10)
@@ -1226,6 +1225,19 @@ func TestChainSimulator_NFT_ESDTModifyCreator(t *testing.T) {
 	nftMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
 
 	tx = nftCreateTx(1, address.Bytes, nftTokenID, nftMetaData)
+
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+
+	require.Equal(t, "success", txResult.Status.String())
+
+	err = cs.GenerateBlocksUntilEpochIsReached(int32(activationEpoch))
+	require.Nil(t, err)
+
+	log.Info("Change to DYNAMIC type")
+
+	tx = changeToDynamicTx(2, address.Bytes, nftTokenID)
 
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
@@ -1272,14 +1284,9 @@ func TestChainSimulator_NFT_ESDTModifyCreator(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
 
-	fmt.Println(txResult)
-	fmt.Println(txResult.Logs.Events[0])
-	fmt.Println(string(txResult.Logs.Events[0].Topics[0]))
-	fmt.Println(string(txResult.Logs.Events[0].Topics[1]))
-
 	require.Equal(t, "success", txResult.Status.String())
 
-	retrievedMetaData := getMetaDataFromAcc(t, cs, address.Bytes, nftTokenID, shardID)
+	retrievedMetaData := getMetaDataFromAcc(t, cs, core.SystemAccountAddress, nftTokenID, shardID)
 
 	require.Equal(t, newCreatorAddress.Bytes, retrievedMetaData.Creator)
 }
@@ -1662,6 +1669,7 @@ func TestChainSimulator_NFT_ChangeToDynamicType(t *testing.T) {
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
+
 	require.Equal(t, "success", txResult.Status.String())
 
 	err = cs.GenerateBlocks(10)
