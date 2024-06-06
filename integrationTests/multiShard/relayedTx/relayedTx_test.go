@@ -62,7 +62,7 @@ func testRelayedTransactionInMultiShardEnvironmentWithNormalTx(
 			t.Skip("this is not a short test")
 		}
 
-		nodes, idxProposers, players, relayer := createSetupForTest(relayedV3Test)
+		nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest(relayedV3Test)
 		defer func() {
 			for _, n := range nodes {
 				n.Close()
@@ -126,7 +126,7 @@ func testRelayedTransactionInMultiShardEnvironmentWithSmartContractTX(
 			t.Skip("this is not a short test")
 		}
 
-		nodes, idxProposers, players, relayer := createSetupForTest(relayedV3Test)
+		nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest(relayedV3Test)
 		defer func() {
 			for _, n := range nodes {
 				n.Close()
@@ -222,7 +222,7 @@ func testRelayedTransactionInMultiShardEnvironmentWithESDTTX(
 			t.Skip("this is not a short test")
 		}
 
-		nodes, idxProposers, players, relayer := createSetupForTest(relayedV3Test)
+		nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest(relayedV3Test)
 		defer func() {
 			for _, n := range nodes {
 				n.Close()
@@ -320,7 +320,7 @@ func testRelayedTransactionInMultiShardEnvironmentWithAttestationContract(
 			t.Skip("this is not a short test")
 		}
 
-		nodes, idxProposers, players, relayer := createSetupForTest(relayedV3Test)
+		nodes, idxProposers, players, relayer := CreateGeneralSetupForRelayTxTest(relayedV3Test)
 		defer func() {
 			for _, n := range nodes {
 				n.Close()
@@ -411,14 +411,6 @@ func testRelayedTransactionInMultiShardEnvironmentWithAttestationContract(
 			checkAttestedPublicKeys(t, ownerNode, scAddress, []byte(uniqueIDs[i]), player.Address)
 		}
 	}
-}
-
-func createSetupForTest(relayedV3Test bool) ([]*integrationTests.TestProcessorNode, []int, []*integrationTests.TestWalletAccount, *integrationTests.TestWalletAccount) {
-	if relayedV3Test {
-		return CreateGeneralSetupForRelayedV3TxTest()
-	}
-
-	return CreateGeneralSetupForRelayTxTest()
 }
 
 func checkAttestedPublicKeys(

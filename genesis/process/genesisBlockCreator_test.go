@@ -34,7 +34,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	storageCommon "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
@@ -192,7 +191,6 @@ func createMockArgument(
 				return &block.Header{}
 			},
 		},
-		RelayedTxV3Processor: &processMocks.RelayedTxV3ProcessorMock{},
 	}
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{

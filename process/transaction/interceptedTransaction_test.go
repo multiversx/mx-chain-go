@@ -1732,17 +1732,17 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTxV3(t *testing.T) {
 		err := txi.CheckValidity()
 		assert.Nil(t, err)
 	})
-	t.Run("empty relayer on inner tx should error", func(t *testing.T) {
+	t.Run("inner txs on inner tx should error", func(t *testing.T) {
 		t.Parallel()
 
 		txCopy := *tx
 		innerTxCopy := *innerTx
-		innerTxCopy.RelayerAddr = nil
+		innerTxCopy.InnerTransactions = []*dataTransaction.Transaction{{}}
 		txCopy.InnerTransactions = []*dataTransaction.Transaction{&innerTxCopy}
 
 		txi, _ := createInterceptedTxFromPlainTxWithArgParser(&txCopy)
 		err := txi.CheckValidity()
-		assert.Equal(t, process.ErrRelayedTxV3EmptyRelayer, err)
+		assert.Equal(t, process.ErrRecursiveRelayedTxIsNotAllowed, err)
 	})
 	t.Run("different relayer on inner tx should error", func(t *testing.T) {
 		t.Parallel()
