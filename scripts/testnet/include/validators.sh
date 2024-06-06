@@ -103,17 +103,12 @@ iterateOverValidatorsMultiKey() {
 
 iterateOverSovereignValidatorsMultiKey() {
   local callback=$1
-  local VALIDATOR_INDEX=$META_VALIDATORCOUNT
-
-  # Iterate over shards and start validators
-  (( max_shard_id=$SHARDCOUNT - 1 ))
-  for SHARD in $(seq 0 1 $max_shard_id); do
-    if [ $VALIDATOR_INDEX -ne $SKIP_VALIDATOR_IDX ]; then
-      $callback $SHARD $VALIDATOR_INDEX
-      sleep 0.5
-    fi
-    (( VALIDATOR_INDEX++ ))
-  done
+  local VALIDATOR_INDEX=0
+  local SHARD="0"
+  if [ $VALIDATOR_INDEX -ne $SKIP_VALIDATOR_IDX ]; then
+    $callback $SHARD $VALIDATOR_INDEX
+    sleep 0.5
+  fi
 }
 
 startSingleValidator() {
