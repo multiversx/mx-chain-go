@@ -39,9 +39,21 @@ func TestChainSimulator_ExecuteWithMintAndBurnFungibleWithDeposit(t *testing.T) 
 		Amount:     amountToMint,
 		Type:       core.Fungible,
 	})
+	mintTokens = append(mintTokens, chainSim.ArgsDepositToken{
+		Identifier: depositToken,
+		Nonce:      depositTokenNonce,
+		Amount:     amountToMint,
+		Type:       core.Fungible,
+	})
 
 	amountToDeposit, _ := big.NewInt(0).SetString("12000000000000000000", 10)
 	depositTokens := make([]chainSim.ArgsDepositToken, 0)
+	depositTokens = append(depositTokens, chainSim.ArgsDepositToken{
+		Identifier: depositToken,
+		Nonce:      depositTokenNonce,
+		Amount:     amountToDeposit,
+		Type:       core.Fungible,
+	})
 	depositTokens = append(depositTokens, chainSim.ArgsDepositToken{
 		Identifier: depositToken,
 		Nonce:      depositTokenNonce,
@@ -67,6 +79,12 @@ func TestChainSimulator_ExecuteWithMintAndBurnNftWithDeposit(t *testing.T) {
 		Nonce:      depositTokenNonce,
 		Amount:     amountToMint,
 		Type:       core.NonFungible,
+	})
+	mintTokens = append(mintTokens, chainSim.ArgsDepositToken{
+		Identifier: "sov3-TKN-1q2w3e",
+		Nonce:      0,
+		Amount:     amountToMint,
+		Type:       core.Fungible,
 	})
 
 	amountToDeposit := big.NewInt(1)
@@ -180,8 +198,8 @@ func simulateExecutionAndDeposit(
 	// Deposit an array of tokens from main chain to sovereign chain,
 	// expecting these tokens to be burned by the whitelisted ESDT safe sc
 	Deposit(t, cs, wallet.Bytes, &nonce, bridgeData.ESDTSafeAddress, depositTokens, wallet.Bytes)
-	for _, token := range depositTokens {
-		mintedValue, err := getMintedValue(mintTokens, token.Identifier)
+	for _, token := range groupTokens(depositTokens) {
+		mintedValue, err := getMintedValue(groupTokens(mintTokens), token.Identifier)
 		require.Nil(t, err)
 
 		fullTokenIdentifier := getTokenIdentifier(token)
@@ -193,6 +211,32 @@ func simulateExecutionAndDeposit(
 		require.NotNil(t, tokenSupply)
 		require.Equal(t, token.Amount.String(), tokenSupply.Burned)
 	}
+}
+
+func groupTokens(tokens []chainSim.ArgsDepositToken) []chainSim.ArgsDepositToken {
+	groupMap := make(map[string]*chainSim.ArgsDepositToken)
+
+	for _, token := range tokens {
+		key := fmt.Sprintf("%s:%d", token.Identifier, token.Nonce)
+		if existingToken, found := groupMap[key]; found {
+			existingToken.Amount.Add(existingToken.Amount, token.Amount)
+		} else {
+			newAmount := new(big.Int).Set(token.Amount)
+			groupMap[key] = &chainSim.ArgsDepositToken{
+				Identifier: token.Identifier,
+				Nonce:      token.Nonce,
+				Amount:     newAmount,
+				Type:       token.Type,
+			}
+		}
+	}
+
+	result := make([]chainSim.ArgsDepositToken, 0, len(groupMap))
+	for _, token := range groupMap {
+		result = append(result, *token)
+	}
+
+	return result
 }
 
 func getMintedValue(mintTokens []chainSim.ArgsDepositToken, token string) (*big.Int, error) {
@@ -217,12 +261,12 @@ func executeBridgeOperation(
 		"@" + // operation
 		hex.EncodeToString(wallet.Bytes) + // receiver address
 		lengthOn4Bytes(len(mintTokens)) + // nr of tokens
-		getTokenDataArgs(mintTokens) +
+		getTokenDataArgs(mintTokens) + // tokens encoded arg
 		"0000000000000000" + // event nonce
 		hex.EncodeToString(wallet.Bytes) + // sender address from other chain
 		"00" // no transfer data
 	chainSim.SendTransaction(t, cs, wallet.Bytes, nonce, esdtSafeAddress, chainSim.ZeroValue, executeBridgeOpsData, uint64(50000000))
-	for _, token := range mintTokens {
+	for _, token := range groupTokens(mintTokens) {
 		chainSim.RequireAccountHasToken(t, cs, getTokenIdentifier(token), wallet.Bech32, token.Amount)
 	}
 }
