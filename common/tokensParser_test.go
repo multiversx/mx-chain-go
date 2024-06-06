@@ -75,7 +75,7 @@ func TestExtractTokenIDAndNonceFromTokenStorageKey(t *testing.T) {
 }
 
 func checkTickerAndNonceExtraction(t *testing.T, input string, expectedTicker string, expectedNonce uint64) {
-	tokenName, nonce := ExtractTokenIDAndNonceFromTokenStorageKey([]byte(input))
+	tokenName, _, nonce := ExtractTokenIDAndNonceFromTokenStorageKey([]byte(input))
 	require.Equal(t, expectedNonce, nonce)
 	require.Equal(t, []byte(expectedTicker), tokenName)
 }

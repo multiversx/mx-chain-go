@@ -16,6 +16,7 @@ const (
 )
 
 type tokenData struct {
+	hasPrefix               bool
 	ticker                  string
 	randomSequencePlusNonce string
 }
@@ -23,7 +24,8 @@ type tokenData struct {
 // TODO: move this to core
 
 // ExtractTokenIDAndNonceFromTokenStorageKey will parse the token's storage key and extract the identifier and the nonce
-func ExtractTokenIDAndNonceFromTokenStorageKey(tokenKey []byte) ([]byte, uint64) {
+// It also returns true if it has a valid prefix.
+func ExtractTokenIDAndNonceFromTokenStorageKey(tokenKey []byte) ([]byte, bool, uint64) {
 	// ALC-1q2w3e for fungible
 	// ALC-2w3e4rX for non fungible
 	token := string(tokenKey)
@@ -31,12 +33,12 @@ func ExtractTokenIDAndNonceFromTokenStorageKey(tokenKey []byte) ([]byte, uint64)
 	// filtering by the index of first occurrence is faster than splitting
 	indexOfFirstHyphen := strings.Index(token, separatorChar)
 	if indexOfFirstHyphen < 0 {
-		return tokenKey, 0
+		return tokenKey, false, 0
 	}
 
 	tknData := getTokenData(token, indexOfFirstHyphen)
 	if !isTokenDataValid(tknData) {
-		return tokenKey, 0
+		return tokenKey, tknData.hasPrefix, 0
 	}
 
 	// ALC-1q2w3eX - X is the nonce
@@ -46,7 +48,7 @@ func ExtractTokenIDAndNonceFromTokenStorageKey(tokenKey []byte) ([]byte, uint64)
 	numCharsSinceNonce := len(token) - len(nonceStr)
 	tokenID := token[:numCharsSinceNonce]
 
-	return []byte(tokenID), nonceBigInt.Uint64()
+	return []byte(tokenID), tknData.hasPrefix, nonceBigInt.Uint64()
 }
 
 func getTokenData(token string, indexOfFirstHyphen int) *tokenData {
@@ -54,6 +56,7 @@ func getTokenData(token string, indexOfFirstHyphen int) *tokenData {
 		return &tokenData{
 			ticker:                  token[:indexOfFirstHyphen],
 			randomSequencePlusNonce: token[indexOfFirstHyphen+1:],
+			hasPrefix:               false,
 		}
 	}
 
@@ -62,6 +65,7 @@ func getTokenData(token string, indexOfFirstHyphen int) *tokenData {
 	return &tokenData{
 		ticker:                  token[indexOfFirstHyphen+1 : indexOfTokenHyphen],
 		randomSequencePlusNonce: token[indexOfTokenHyphen+1:],
+		hasPrefix:               true,
 	}
 }
 
