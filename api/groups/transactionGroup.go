@@ -182,36 +182,17 @@ func (tg *transactionGroup) simulateTransaction(c *gin.Context) {
 		return
 	}
 
-	innerTxs := make([]*transaction.Transaction, 0, len(ftx.InnerTransactions))
-	if len(ftx.InnerTransactions) != 0 {
-		for _, innerTx := range ftx.InnerTransactions {
-			if len(innerTx.InnerTransactions) != 0 {
-				c.JSON(
-					http.StatusBadRequest,
-					shared.GenericAPIResponse{
-						Data:  nil,
-						Error: fmt.Sprintf("%s: %s", errors.ErrTxGenerationFailed.Error(), errors.ErrRecursiveRelayedTxIsNotAllowed.Error()),
-						Code:  shared.ReturnCodeRequestError,
-					},
-				)
-				return
-			}
-
-			newInnerTx, _, err := tg.createTransaction(innerTx, nil)
-			if err != nil {
-				c.JSON(
-					http.StatusBadRequest,
-					shared.GenericAPIResponse{
-						Data:  nil,
-						Error: fmt.Sprintf("%s: %s", errors.ErrTxGenerationFailed.Error(), err.Error()),
-						Code:  shared.ReturnCodeRequestError,
-					},
-				)
-				return
-			}
-
-			innerTxs = append(innerTxs, newInnerTx)
-		}
+	innerTxs, err := tg.extractInnerTransactions(ftx.InnerTransactions)
+	if err != nil {
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrTxGenerationFailed.Error(), err.Error()),
+				Code:  shared.ReturnCodeRequestError,
+			},
+		)
+		return
 	}
 
 	if len(innerTxs) == 0 {
@@ -287,36 +268,17 @@ func (tg *transactionGroup) sendTransaction(c *gin.Context) {
 		return
 	}
 
-	innerTxs := make([]*transaction.Transaction, 0, len(ftx.InnerTransactions))
-	if len(ftx.InnerTransactions) != 0 {
-		for _, innerTx := range ftx.InnerTransactions {
-			if len(innerTx.InnerTransactions) != 0 {
-				c.JSON(
-					http.StatusBadRequest,
-					shared.GenericAPIResponse{
-						Data:  nil,
-						Error: fmt.Sprintf("%s: %s", errors.ErrTxGenerationFailed.Error(), errors.ErrRecursiveRelayedTxIsNotAllowed.Error()),
-						Code:  shared.ReturnCodeRequestError,
-					},
-				)
-				return
-			}
-
-			newInnerTx, _, err := tg.createTransaction(innerTx, nil)
-			if err != nil {
-				c.JSON(
-					http.StatusBadRequest,
-					shared.GenericAPIResponse{
-						Data:  nil,
-						Error: fmt.Sprintf("%s: %s", errors.ErrTxGenerationFailed.Error(), err.Error()),
-						Code:  shared.ReturnCodeRequestError,
-					},
-				)
-				return
-			}
-
-			innerTxs = append(innerTxs, newInnerTx)
-		}
+	innerTxs, err := tg.extractInnerTransactions(ftx.InnerTransactions)
+	if err != nil {
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrTxGenerationFailed.Error(), err.Error()),
+				Code:  shared.ReturnCodeRequestError,
+			},
+		)
+		return
 	}
 
 	if len(innerTxs) == 0 {
@@ -401,30 +363,17 @@ func (tg *transactionGroup) sendMultipleTransactions(c *gin.Context) {
 	var start time.Time
 	txsHashes := make(map[int]string)
 	for idx, receivedTx := range ftxs {
-		innerTxs := make([]*transaction.Transaction, 0, len(receivedTx.InnerTransactions))
-		if len(receivedTx.InnerTransactions) != 0 {
-			for _, innerTx := range receivedTx.InnerTransactions {
-				if len(innerTx.InnerTransactions) != 0 {
-					// if one of the inner txs is invalid, break the loop and move to the next transaction received
-					break
-				}
-
-				newInnerTx, _, err := tg.createTransaction(innerTx, nil)
-				if err != nil {
-					// if one of the inner txs is invalid, return bad request
-					c.JSON(
-						http.StatusBadRequest,
-						shared.GenericAPIResponse{
-							Data:  nil,
-							Error: fmt.Sprintf("%s: %s", errors.ErrTxGenerationFailed.Error(), err.Error()),
-							Code:  shared.ReturnCodeInternalError,
-						},
-					)
-					return
-				}
-
-				innerTxs = append(innerTxs, newInnerTx)
-			}
+		innerTxs, errExtractInnerTransactions := tg.extractInnerTransactions(receivedTx.InnerTransactions)
+		if errExtractInnerTransactions != nil {
+			c.JSON(
+				http.StatusBadRequest,
+				shared.GenericAPIResponse{
+					Data:  nil,
+					Error: fmt.Sprintf("%s: %s", errors.ErrTxGenerationFailed.Error(), err.Error()),
+					Code:  shared.ReturnCodeInternalError,
+				},
+			)
+			return
 		}
 
 		if len(innerTxs) == 0 {
@@ -541,36 +490,17 @@ func (tg *transactionGroup) computeTransactionGasLimit(c *gin.Context) {
 		return
 	}
 
-	innerTxs := make([]*transaction.Transaction, 0, len(ftx.InnerTransactions))
-	if len(ftx.InnerTransactions) != 0 {
-		for _, innerTx := range ftx.InnerTransactions {
-			if len(innerTx.InnerTransactions) != 0 {
-				c.JSON(
-					http.StatusBadRequest,
-					shared.GenericAPIResponse{
-						Data:  nil,
-						Error: fmt.Sprintf("%s: %s", errors.ErrTxGenerationFailed.Error(), errors.ErrRecursiveRelayedTxIsNotAllowed.Error()),
-						Code:  shared.ReturnCodeRequestError,
-					},
-				)
-				return
-			}
-
-			newInnerTx, _, err := tg.createTransaction(innerTx, nil)
-			if err != nil {
-				c.JSON(
-					http.StatusBadRequest,
-					shared.GenericAPIResponse{
-						Data:  nil,
-						Error: fmt.Sprintf("%s: %s", errors.ErrTxGenerationFailed.Error(), err.Error()),
-						Code:  shared.ReturnCodeRequestError,
-					},
-				)
-				return
-			}
-
-			innerTxs = append(innerTxs, newInnerTx)
-		}
+	innerTxs, errExtractInnerTransactions := tg.extractInnerTransactions(ftx.InnerTransactions)
+	if errExtractInnerTransactions != nil {
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrTxGenerationFailed.Error(), errExtractInnerTransactions.Error()),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
 	}
 
 	if len(innerTxs) == 0 {
@@ -908,6 +838,28 @@ func (tg *transactionGroup) getFacade() transactionFacadeHandler {
 	defer tg.mutFacade.RUnlock()
 
 	return tg.facade
+}
+
+func (tg *transactionGroup) extractInnerTransactions(
+	innerTransactions []*transaction.FrontendTransaction,
+) ([]*transaction.Transaction, error) {
+	innerTxs := make([]*transaction.Transaction, 0, len(innerTransactions))
+	if len(innerTransactions) != 0 {
+		for _, innerTx := range innerTransactions {
+			if len(innerTx.InnerTransactions) != 0 {
+				return innerTxs, errors.ErrRecursiveRelayedTxIsNotAllowed
+			}
+
+			newInnerTx, _, err := tg.createTransaction(innerTx, nil)
+			if err != nil {
+				return innerTxs, err
+			}
+
+			innerTxs = append(innerTxs, newInnerTx)
+		}
+	}
+
+	return innerTxs, nil
 }
 
 // UpdateFacade will update the facade

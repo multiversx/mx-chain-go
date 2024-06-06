@@ -14,21 +14,11 @@ import (
 )
 
 // CreateGeneralSetupForRelayTxTest will create the general setup for relayed transactions
-func CreateGeneralSetupForRelayTxTest() ([]*integrationTests.TestProcessorNode, []int, []*integrationTests.TestWalletAccount, *integrationTests.TestWalletAccount) {
+func CreateGeneralSetupForRelayTxTest(intraShardPlayers bool) ([]*integrationTests.TestProcessorNode, []int, []*integrationTests.TestWalletAccount, *integrationTests.TestWalletAccount) {
 	initialVal := big.NewInt(10000000000)
 	nodes, idxProposers := createAndMintNodes(initialVal)
 
-	players, relayerAccount := createAndMintPlayers(false, nodes, initialVal)
-
-	return nodes, idxProposers, players, relayerAccount
-}
-
-// CreateGeneralSetupForRelayedV3TxTest will create the general setup for relayed transactions v3
-func CreateGeneralSetupForRelayedV3TxTest() ([]*integrationTests.TestProcessorNode, []int, []*integrationTests.TestWalletAccount, *integrationTests.TestWalletAccount) {
-	initialVal := big.NewInt(10000000000)
-	nodes, idxProposers := createAndMintNodes(initialVal)
-
-	players, relayerAccount := createAndMintPlayers(true, nodes, initialVal)
+	players, relayerAccount := createAndMintPlayers(intraShardPlayers, nodes, initialVal)
 
 	return nodes, idxProposers, players, relayerAccount
 }

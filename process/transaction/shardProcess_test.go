@@ -1641,7 +1641,7 @@ func TestTxProcessor_ProcessTransactionShouldTreatAsInvalidTxIfTxTypeIsWrong(t *
 	_, err := execTx.ProcessTransaction(&tx)
 	assert.Equal(t, err, process.ErrFailedTransaction)
 	assert.Equal(t, uint64(1), acntSrc.GetNonce())
-	assert.Equal(t, uint64(46), acntSrc.GetBalance().Uint64())
+	assert.Equal(t, uint64(45), acntSrc.GetBalance().Uint64())
 }
 
 func TestTxProcessor_ProcessRelayedTransactionV2NotActiveShouldErr(t *testing.T) {

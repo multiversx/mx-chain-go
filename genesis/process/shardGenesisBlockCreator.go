@@ -24,6 +24,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
+	processDisabled "github.com/multiversx/mx-chain-go/process/disabled"
 	"github.com/multiversx/mx-chain-go/process/factory/shard"
 	disabledGuardian "github.com/multiversx/mx-chain-go/process/guardian/disabled"
 	"github.com/multiversx/mx-chain-go/process/receipts"
@@ -564,7 +565,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		TxVersionChecker:     arg.Core.TxVersionChecker(),
 		GuardianChecker:      disabledGuardian.NewDisabledGuardedAccountHandler(),
 		TxLogsProcessor:      arg.TxLogsProcessor,
-		RelayedTxV3Processor: arg.RelayedTxV3Processor,
+		RelayedTxV3Processor: processDisabled.NewRelayedTxV3Processor(),
 	}
 	transactionProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
 	if err != nil {

@@ -379,18 +379,8 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	argsRelayedTxV3Processor := transaction.ArgRelayedTxV3Processor{
-		EconomicsFee:           pcf.coreData.EconomicsData(),
-		ShardCoordinator:       pcf.bootstrapComponents.ShardCoordinator(),
-		MaxTransactionsAllowed: pcf.config.RelayedTransactionConfig.MaxTransactionsAllowed,
-	}
-	relayedTxV3Processor, err := transaction.NewRelayedTxV3Processor(argsRelayedTxV3Processor)
-	if err != nil {
-		return nil, err
-	}
-
 	pcf.txLogsProcessor = txLogsProcessor
-	genesisBlocks, initialTxs, err := pcf.generateGenesisHeadersAndApplyInitialBalances(relayedTxV3Processor)
+	genesisBlocks, initialTxs, err := pcf.generateGenesisHeadersAndApplyInitialBalances()
 	if err != nil {
 		return nil, err
 	}
@@ -522,6 +512,16 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 
 	hardforkTrigger, err := pcf.createHardforkTrigger(epochStartTrigger)
+	if err != nil {
+		return nil, err
+	}
+
+	argsRelayedTxV3Processor := transaction.ArgRelayedTxV3Processor{
+		EconomicsFee:           pcf.coreData.EconomicsData(),
+		ShardCoordinator:       pcf.bootstrapComponents.ShardCoordinator(),
+		MaxTransactionsAllowed: pcf.config.RelayedTransactionConfig.MaxTransactionsAllowed,
+	}
+	relayedTxV3Processor, err := transaction.NewRelayedTxV3Processor(argsRelayedTxV3Processor)
 	if err != nil {
 		return nil, err
 	}
@@ -888,7 +888,7 @@ func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochSt
 	return nil, errors.New("error creating new start of epoch trigger because of invalid shard id")
 }
 
-func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalances(relayedTxV3Processor process.RelayedTxV3Processor) (map[uint32]data.HeaderHandler, map[uint32]*genesis.IndexingData, error) {
+func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalances() (map[uint32]data.HeaderHandler, map[uint32]*genesis.IndexingData, error) {
 	genesisVmConfig := pcf.config.VirtualMachine.Execution
 	conversionBase := 10
 	genesisNodePrice, ok := big.NewInt(0).SetString(pcf.systemSCConfig.StakingSystemSCConfig.GenesisNodePrice, conversionBase)
@@ -925,7 +925,6 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		GenesisEpoch:            pcf.config.EpochStartConfig.GenesisEpoch,
 		GenesisNonce:            pcf.genesisNonce,
 		GenesisRound:            pcf.genesisRound,
-		RelayedTxV3Processor:    relayedTxV3Processor,
 	}
 
 	gbc, err := processGenesis.NewGenesisBlockCreator(arg)

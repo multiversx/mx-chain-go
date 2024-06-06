@@ -16,7 +16,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const minGasLimit = uint64(1)
+const (
+	minGasLimit       = uint64(1)
+	guardedTxExtraGas = uint64(10)
+)
 
 func getDefaultTx() *coreTransaction.Transaction {
 	return &coreTransaction.Transaction{
@@ -168,17 +171,29 @@ func TestRelayedTxV3Processor_CheckRelayedTx(t *testing.T) {
 		err = proc.CheckRelayedTx(tx)
 		require.Equal(t, process.ErrRelayedTxV3GasLimitMismatch, err)
 	})
-	t.Run("empty relayer on inner should error", func(t *testing.T) {
+	t.Run("data field not empty should error", func(t *testing.T) {
 		t.Parallel()
 
 		proc, err := transaction.NewRelayedTxV3Processor(createMockArgRelayedTxV3Processor())
 		require.NoError(t, err)
 
 		tx := getDefaultTx()
-		tx.InnerTransactions[0].RelayerAddr = []byte("")
+		tx.Data = []byte("dummy")
 
 		err = proc.CheckRelayedTx(tx)
-		require.Equal(t, process.ErrRelayedTxV3EmptyRelayer, err)
+		require.Equal(t, process.ErrRelayedTxV3InvalidDataField, err)
+	})
+	t.Run("inner txs on inner should error", func(t *testing.T) {
+		t.Parallel()
+
+		proc, err := transaction.NewRelayedTxV3Processor(createMockArgRelayedTxV3Processor())
+		require.NoError(t, err)
+
+		tx := getDefaultTx()
+		tx.InnerTransactions[0].InnerTransactions = []*coreTransaction.Transaction{{}}
+
+		err = proc.CheckRelayedTx(tx)
+		require.Equal(t, process.ErrRecursiveRelayedTxIsNotAllowed, err)
 	})
 	t.Run("relayer mismatch on inner should error", func(t *testing.T) {
 		t.Parallel()
@@ -239,18 +254,61 @@ func TestRelayedTxV3Processor_CheckRelayedTx(t *testing.T) {
 func TestRelayedTxV3Processor_ComputeRelayedTxFees(t *testing.T) {
 	t.Parallel()
 
-	args := createMockArgRelayedTxV3Processor()
-	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
-		ComputeMoveBalanceFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
-			return big.NewInt(int64(minGasLimit * tx.GetGasPrice()))
-		},
-	}
-	proc, err := transaction.NewRelayedTxV3Processor(args)
-	require.NoError(t, err)
+	t.Run("should work unguarded", func(t *testing.T) {
+		t.Parallel()
 
-	tx := getDefaultTx()
-	relayerFee, totalFee := proc.ComputeRelayedTxFees(tx)
-	expectedRelayerFee := big.NewInt(int64(2 * minGasLimit * tx.GetGasPrice())) // 2 move balance
-	require.Equal(t, expectedRelayerFee, relayerFee)
-	require.Equal(t, big.NewInt(int64(tx.GetGasLimit()*tx.GetGasPrice())), totalFee)
+		args := createMockArgRelayedTxV3Processor()
+		args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+			ComputeMoveBalanceFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
+				return big.NewInt(int64(minGasLimit * tx.GetGasPrice()))
+			},
+			MinGasLimitCalled: func() uint64 {
+				return minGasLimit
+			},
+			GasPriceForMoveCalled: func(tx data.TransactionWithFeeHandler) uint64 {
+				return tx.GetGasPrice()
+			},
+		}
+		proc, err := transaction.NewRelayedTxV3Processor(args)
+		require.NoError(t, err)
+
+		tx := getDefaultTx()
+		relayerFee, totalFee := proc.ComputeRelayedTxFees(tx)
+		expectedRelayerFee := big.NewInt(int64(2 * minGasLimit * tx.GetGasPrice())) // 2 move balance
+		require.Equal(t, expectedRelayerFee, relayerFee)
+		require.Equal(t, big.NewInt(int64(tx.GetGasLimit()*tx.GetGasPrice())), totalFee)
+	})
+	t.Run("should work guarded", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgRelayedTxV3Processor()
+		args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
+			ComputeMoveBalanceFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
+				txHandler, ok := tx.(data.TransactionHandler)
+				require.True(t, ok)
+
+				if len(txHandler.GetUserTransactions()) == 0 { // inner tx
+					return big.NewInt(int64(minGasLimit * tx.GetGasPrice()))
+				}
+
+				// relayed tx
+				return big.NewInt(int64(minGasLimit*tx.GetGasPrice() + guardedTxExtraGas*tx.GetGasPrice()))
+			},
+			MinGasLimitCalled: func() uint64 {
+				return minGasLimit
+			},
+			GasPriceForMoveCalled: func(tx data.TransactionWithFeeHandler) uint64 {
+				return tx.GetGasPrice()
+			},
+		}
+		proc, err := transaction.NewRelayedTxV3Processor(args)
+		require.NoError(t, err)
+
+		tx := getDefaultTx()
+		tx.GasLimit += guardedTxExtraGas
+		relayerFee, totalFee := proc.ComputeRelayedTxFees(tx)
+		expectedRelayerFee := big.NewInt(int64(2*minGasLimit*tx.GetGasPrice() + guardedTxExtraGas*tx.GetGasPrice())) // 2 move balance
+		require.Equal(t, expectedRelayerFee, relayerFee)
+		require.Equal(t, big.NewInt(int64(tx.GetGasLimit()*tx.GetGasPrice())), totalFee)
+	})
 }

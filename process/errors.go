@@ -1242,9 +1242,6 @@ var ErrRelayedTxV3Disabled = errors.New("relayed tx v3 is disabled")
 // ErrRelayedTxV3ZeroVal signals that the v3 version of relayed tx should be created with 0 as value
 var ErrRelayedTxV3ZeroVal = errors.New("relayed tx v3 value should be 0")
 
-// ErrRelayedTxV3EmptyRelayer signals that the inner tx of the relayed v3 does not have a relayer address set
-var ErrRelayedTxV3EmptyRelayer = errors.New("empty relayer on inner tx of relayed tx v3")
-
 // ErrRelayedTxV3RelayerMismatch signals that the relayer address of the inner tx does not match the real relayer
 var ErrRelayedTxV3RelayerMismatch = errors.New("relayed tx v3 relayer mismatch")
 
@@ -1265,3 +1262,6 @@ var ErrRelayedTxV3TooManyInnerTransactions = errors.New("too many inner transact
 
 // ErrConsumedFeesMismatch signals that the fees consumed from relayer do not match the inner transactions fees
 var ErrConsumedFeesMismatch = errors.New("consumed fees mismatch")
+
+// ErrRelayedTxV3InvalidDataField signals that the data field is invalid
+var ErrRelayedTxV3InvalidDataField = errors.New("invalid data field")
