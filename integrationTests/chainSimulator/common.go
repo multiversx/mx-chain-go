@@ -9,7 +9,6 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	dataApi "github.com/multiversx/mx-chain-core-go/data/api"
-	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/stretchr/testify/require"
 
@@ -142,7 +141,7 @@ func RequireAccountHasToken(
 		return
 	}
 	require.True(t, found)
-	require.Equal(t, tokenData, &esdt.ESDigitalToken{Value: value})
+	require.Equal(t, tokenData.Value, value)
 }
 
 // TransferESDT will transfer the amount of esdt token to an address
