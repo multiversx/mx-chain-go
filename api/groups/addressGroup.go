@@ -72,7 +72,8 @@ type esdtTokenData struct {
 	Properties      string `json:"properties"`
 }
 
-type esdtNFTTokenData struct {
+// ESDTNFTTokenData defines the exposed nft token data structure
+type ESDTNFTTokenData struct {
 	TokenIdentifier string   `json:"tokenIdentifier"`
 	Balance         string   `json:"balance"`
 	Type            uint32   `json:"type"`
@@ -449,7 +450,7 @@ func (ag *addressGroup) getAllESDTData(c *gin.Context) {
 		return
 	}
 
-	formattedTokens := make(map[string]*esdtNFTTokenData)
+	formattedTokens := make(map[string]*ESDTNFTTokenData)
 	for tokenID, esdtData := range tokens {
 		tokenData := buildTokenDataApiResponse(tokenID, esdtData)
 
@@ -482,8 +483,8 @@ func (ag *addressGroup) isDataTrieMigrated(c *gin.Context) {
 	shared.RespondWithSuccess(c, gin.H{"isMigrated": isMigrated})
 }
 
-func buildTokenDataApiResponse(tokenIdentifier string, esdtData *esdt.ESDigitalToken) *esdtNFTTokenData {
-	tokenData := &esdtNFTTokenData{
+func buildTokenDataApiResponse(tokenIdentifier string, esdtData *esdt.ESDigitalToken) *ESDTNFTTokenData {
+	tokenData := &ESDTNFTTokenData{
 		TokenIdentifier: tokenIdentifier,
 		Balance:         esdtData.Value.String(),
 		Type:            esdtData.GetType(),
