@@ -66,6 +66,10 @@ func TestChainSimulator_CheckTokensMetadata_TransferTokens(t *testing.T) {
 	t.Run("transfer and check all tokens - cross shard", func(t *testing.T) {
 		transferAndCheckTokensMetaData(t, true, false)
 	})
+
+	t.Run("transfer and check all tokens - cross shard - multi transfer", func(t *testing.T) {
+		transferAndCheckTokensMetaData(t, true, true)
+	})
 }
 
 func transferAndCheckTokensMetaData(t *testing.T, isCrossShard bool, isMultiTransfer bool) {
