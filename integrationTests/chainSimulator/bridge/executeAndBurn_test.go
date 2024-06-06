@@ -28,36 +28,34 @@ func TestChainSimulator_ExecuteWithMintAndBurnFungibleWithDeposit(t *testing.T) 
 		t.Skip("this is not a short test")
 	}
 
-	depositToken := "sov1-SOVTKN-1a2b3c"
-	depositTokenNonce := uint64(0)
+	token := "sov1-SOVTKN-1a2b3c"
+	tokenNonce := uint64(0)
 
-	amountToMint, _ := big.NewInt(0).SetString("123000000000000000000", 10)
 	mintTokens := make([]chainSim.ArgsDepositToken, 0)
 	mintTokens = append(mintTokens, chainSim.ArgsDepositToken{
-		Identifier: depositToken,
-		Nonce:      depositTokenNonce,
-		Amount:     amountToMint,
+		Identifier: token,
+		Nonce:      tokenNonce,
+		Amount:     big.NewInt(123),
 		Type:       core.Fungible,
 	})
 	mintTokens = append(mintTokens, chainSim.ArgsDepositToken{
-		Identifier: depositToken,
-		Nonce:      depositTokenNonce,
-		Amount:     amountToMint,
+		Identifier: token,
+		Nonce:      tokenNonce,
+		Amount:     big.NewInt(100),
 		Type:       core.Fungible,
 	})
 
-	amountToDeposit, _ := big.NewInt(0).SetString("12000000000000000000", 10)
 	depositTokens := make([]chainSim.ArgsDepositToken, 0)
 	depositTokens = append(depositTokens, chainSim.ArgsDepositToken{
-		Identifier: depositToken,
-		Nonce:      depositTokenNonce,
-		Amount:     amountToDeposit,
+		Identifier: token,
+		Nonce:      tokenNonce,
+		Amount:     big.NewInt(12),
 		Type:       core.Fungible,
 	})
 	depositTokens = append(depositTokens, chainSim.ArgsDepositToken{
-		Identifier: depositToken,
-		Nonce:      depositTokenNonce,
-		Amount:     amountToDeposit,
+		Identifier: token,
+		Nonce:      tokenNonce,
+		Amount:     big.NewInt(10),
 		Type:       core.Fungible,
 	})
 
@@ -69,30 +67,29 @@ func TestChainSimulator_ExecuteWithMintAndBurnNftWithDeposit(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	depositToken := "sov2-SOVNFT-123456"
-	depositTokenNonce := uint64(1)
+	nft := "sov2-SOVNFT-123456"
+	nftNonce := uint64(1)
+	token := "sov3-TKN-1q2w3e"
 
-	amountToMint := big.NewInt(1)
 	mintTokens := make([]chainSim.ArgsDepositToken, 0)
 	mintTokens = append(mintTokens, chainSim.ArgsDepositToken{
-		Identifier: depositToken,
-		Nonce:      depositTokenNonce,
-		Amount:     amountToMint,
+		Identifier: nft,
+		Nonce:      nftNonce,
+		Amount:     big.NewInt(1),
 		Type:       core.NonFungible,
 	})
 	mintTokens = append(mintTokens, chainSim.ArgsDepositToken{
-		Identifier: "sov3-TKN-1q2w3e",
+		Identifier: token,
 		Nonce:      0,
-		Amount:     amountToMint,
+		Amount:     big.NewInt(1),
 		Type:       core.Fungible,
 	})
 
-	amountToDeposit := big.NewInt(1)
 	depositTokens := make([]chainSim.ArgsDepositToken, 0)
 	depositTokens = append(depositTokens, chainSim.ArgsDepositToken{
-		Identifier: depositToken,
-		Nonce:      depositTokenNonce,
-		Amount:     amountToDeposit,
+		Identifier: nft,
+		Nonce:      nftNonce,
+		Amount:     big.NewInt(1),
 		Type:       core.NonFungible,
 	})
 
@@ -104,24 +101,22 @@ func TestChainSimulator_ExecuteWithMintAndBurnSftWithDeposit(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	depositToken := "sov3-SOVSFT-654321"
-	depositTokenNonce := uint64(1)
+	sft := "sov3-SOVSFT-654321"
+	sftNonce := uint64(1)
 
-	amountToMint := big.NewInt(50)
 	mintTokens := make([]chainSim.ArgsDepositToken, 0)
 	mintTokens = append(mintTokens, chainSim.ArgsDepositToken{
-		Identifier: depositToken,
-		Nonce:      depositTokenNonce,
-		Amount:     amountToMint,
+		Identifier: sft,
+		Nonce:      sftNonce,
+		Amount:     big.NewInt(50),
 		Type:       core.SemiFungible,
 	})
 
-	amountToDeposit := big.NewInt(20)
 	depositTokens := make([]chainSim.ArgsDepositToken, 0)
 	depositTokens = append(depositTokens, chainSim.ArgsDepositToken{
-		Identifier: depositToken,
-		Nonce:      depositTokenNonce,
-		Amount:     amountToDeposit,
+		Identifier: sft,
+		Nonce:      sftNonce,
+		Amount:     big.NewInt(20),
 		Type:       core.SemiFungible,
 	})
 
@@ -198,8 +193,9 @@ func simulateExecutionAndDeposit(
 	// Deposit an array of tokens from main chain to sovereign chain,
 	// expecting these tokens to be burned by the whitelisted ESDT safe sc
 	Deposit(t, cs, wallet.Bytes, &nonce, bridgeData.ESDTSafeAddress, depositTokens, wallet.Bytes)
+	mintedTokens := groupTokens(mintTokens)
 	for _, token := range groupTokens(depositTokens) {
-		mintedValue, err := getMintedValue(groupTokens(mintTokens), token.Identifier)
+		mintedValue, err := getMintedValue(mintedTokens, token.Identifier)
 		require.Nil(t, err)
 
 		fullTokenIdentifier := getTokenIdentifier(token)
@@ -211,32 +207,6 @@ func simulateExecutionAndDeposit(
 		require.NotNil(t, tokenSupply)
 		require.Equal(t, token.Amount.String(), tokenSupply.Burned)
 	}
-}
-
-func groupTokens(tokens []chainSim.ArgsDepositToken) []chainSim.ArgsDepositToken {
-	groupMap := make(map[string]*chainSim.ArgsDepositToken)
-
-	for _, token := range tokens {
-		key := fmt.Sprintf("%s:%d", token.Identifier, token.Nonce)
-		if existingToken, found := groupMap[key]; found {
-			existingToken.Amount.Add(existingToken.Amount, token.Amount)
-		} else {
-			newAmount := new(big.Int).Set(token.Amount)
-			groupMap[key] = &chainSim.ArgsDepositToken{
-				Identifier: token.Identifier,
-				Nonce:      token.Nonce,
-				Amount:     newAmount,
-				Type:       token.Type,
-			}
-		}
-	}
-
-	result := make([]chainSim.ArgsDepositToken, 0, len(groupMap))
-	for _, token := range groupMap {
-		result = append(result, *token)
-	}
-
-	return result
 }
 
 func getMintedValue(mintTokens []chainSim.ArgsDepositToken, token string) (*big.Int, error) {
@@ -309,4 +279,30 @@ func lengthOn4Bytes(number int) string {
 	numberBytes := make([]byte, 4)
 	binary.BigEndian.PutUint32(numberBytes, uint32(number))
 	return hex.EncodeToString(numberBytes)
+}
+
+func groupTokens(tokens []chainSim.ArgsDepositToken) []chainSim.ArgsDepositToken {
+	groupMap := make(map[string]*chainSim.ArgsDepositToken)
+
+	for _, token := range tokens {
+		key := fmt.Sprintf("%s:%d", token.Identifier, token.Nonce)
+		if existingToken, found := groupMap[key]; found {
+			existingToken.Amount.Add(existingToken.Amount, token.Amount)
+		} else {
+			newAmount := new(big.Int).Set(token.Amount)
+			groupMap[key] = &chainSim.ArgsDepositToken{
+				Identifier: token.Identifier,
+				Nonce:      token.Nonce,
+				Amount:     newAmount,
+				Type:       token.Type,
+			}
+		}
+	}
+
+	result := make([]chainSim.ArgsDepositToken, 0, len(groupMap))
+	for _, token := range groupMap {
+		result = append(result, *token)
+	}
+
+	return result
 }
