@@ -678,7 +678,7 @@ func setAddressEsdtRoles(
 		{
 			Address: address.Bech32,
 			Balance: "10000000000000000000000",
-			Keys:    keys,
+			Pairs:   keys,
 		},
 	})
 	require.Nil(t, err)
