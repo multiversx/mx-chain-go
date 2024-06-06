@@ -3,9 +3,6 @@
 # METASHARD_ID will be used to identify a shard ID as metachain
 export METASHARD_ID=4294967295
 
-# ROUND_DURATION_IN_MS is the duration in milliseconds for one round
-export ROUND_DURATION_IN_MS=6000
-
 # Path to mx-chain-go. Determined automatically. Do not change.
 export MULTIVERSXDIR=$(dirname $(dirname $MULTIVERSXTESTNETSCRIPTSDIR))
 
@@ -20,7 +17,7 @@ export USE_TXGEN=0
 # Enable the Elasticsearch data indexing. Will run a Docker image containing an Elasticsearch cluster, on port 9200.
 # It will also change the external.toml files for observers, so they can index data into it.
 # Docker must be managed as a non-root user: https://docs.docker.com/engine/install/linux-postinstall/
-export USE_ELASTICSEARCH=1
+export USE_ELASTICSEARCH=0
 
 # Path where the testnet will be instantiated. This folder is assumed to not
 # exist, but it doesn't matter if it already does. It will be created if not,
@@ -56,7 +53,7 @@ export NODE_WATCHER=0
 export SEEDNODE_DELAY=5
 export GENESIS_DELAY=30
 export HARDFORK_DELAY=900 #15 minutes enough to take export and gracefully close
-export NODE_DELAY=60
+export NODE_DELAY=30
 
 export GENESIS_STAKE_TYPE="direct" #'delegated' or 'direct' as in direct stake
 
@@ -79,6 +76,7 @@ export META_VALIDATORCOUNT=0
 export META_OBSERVERCOUNT=0
 export META_CONSENSUS_SIZE=$META_VALIDATORCOUNT
 
+# ROUND_DURATION_IN_MS is the duration in milliseconds for one round
 export ROUND_DURATION_IN_MS=6000
 
 # MULTI_KEY_NODES if set to 1, one observer will be generated on each shard that will handle all generated keys
@@ -122,7 +120,7 @@ export PORT_ORIGIN_VALIDATOR_REST="9500"
 export USETMUX=1
 
 # Log level for the logger in the Node.
-export LOGLEVEL="*:INFO"
+export LOGLEVEL="*:DEBUG"
 
 
 if [ "$TESTNETMODE" == "debug" ]; then

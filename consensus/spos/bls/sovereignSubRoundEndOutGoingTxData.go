@@ -155,6 +155,10 @@ func (sr *sovereignSubRoundEndOutGoingTxData) AddLeaderAndAggregatedSignatures(h
 	cnsMsg.AggregatedSignatureOutGoingTxData = outGoingMb.GetAggregatedSignatureOutGoingOperations()
 	cnsMsg.LeaderSignatureOutGoingTxData = outGoingMb.GetLeaderSignatureOutGoingOperations()
 
+	log.Debug("sovereignSubRoundEndOutGoingTxData.AddLeaderAndAggregatedSignatures",
+		"AggregatedSignatureOutGoingTxData", cnsMsg.AggregatedSignatureOutGoingTxData,
+		"LeaderSignatureOutGoingTxData", cnsMsg.LeaderSignatureOutGoingTxData)
+
 	return nil
 }
 
