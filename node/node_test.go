@@ -30,6 +30,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -70,9 +74,6 @@ import (
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/testscommon/txsSenderMock"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 type testBlockInfo struct {
@@ -1149,6 +1150,85 @@ func TestNode_GetAllESDTTokensShouldReturnEsdtAndFormattedNft(t *testing.T) {
 
 	// check that the NFT was formatted correctly
 	expectedNftFormattedKey := "TCKR-67tgv3-01"
+	assert.NotNil(t, tokens[expectedNftFormattedKey])
+	assert.Equal(t, uint64(1), tokens[expectedNftFormattedKey].TokenMetaData.Nonce)
+}
+
+func TestNode_GetAllESDTTokensForNFTWithPrefix(t *testing.T) {
+	t.Parallel()
+
+	acc := createAcc(testscommon.TestPubKeyAlice)
+
+	nftToken := "pref-TCKR-67tgv3"
+	nftNonce := big.NewInt(1)
+	nftKey := []byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier + nftToken)
+	nftKeyWithBytes := append(nftKey, nftNonce.Bytes()...)
+	nftSuffix := append(nftKeyWithBytes, acc.AddressBytes()...)
+
+	nftMetaData := &esdt.MetaData{Nonce: nftNonce.Uint64(), Creator: []byte("12345678901234567890123456789012")}
+	nftData := &esdt.ESDigitalToken{Type: uint32(core.NonFungible), Value: big.NewInt(10), TokenMetaData: nftMetaData}
+	marshalledNftData, _ := getMarshalizer().Marshal(nftData)
+
+	esdtStorageStub := &testscommon.EsdtStorageHandlerStub{
+		GetESDTNFTTokenOnDestinationWithCustomSystemAccountCalled: func(acnt vmcommon.UserAccountHandler, esdtTokenKey []byte, nonce uint64, _ vmcommon.UserAccountHandler) (*esdt.ESDigitalToken, bool, error) {
+			return nftData, false, nil
+
+		},
+	}
+	acc.SetDataTrie(
+		&trieMock.TrieStub{
+			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.KeyBuilder, _ common.TrieLeafParser) error {
+				wg := &sync.WaitGroup{}
+				wg.Add(1)
+				go func() {
+					trieLeaf := keyValStorage.NewKeyValStorage(nftKey, append(marshalledNftData, nftSuffix...))
+					leavesChannels.LeavesChan <- trieLeaf
+					wg.Done()
+					close(leavesChannels.LeavesChan)
+					leavesChannels.ErrChan.Close()
+				}()
+
+				wg.Wait()
+
+				return nil
+			},
+			RootCalled: func() ([]byte, error) {
+				return nil, nil
+			},
+		})
+
+	accDB := &stateMock.AccountsStub{
+		RecreateTrieCalled: func(rootHash common.RootHashHolder) error {
+			return nil
+		},
+	}
+	accDB.GetAccountWithBlockInfoCalled = func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
+		return acc, nil, nil
+	}
+
+	coreComponents := getDefaultCoreComponents()
+	dataComponents := getDefaultDataComponents()
+	stateComponents := getDefaultStateComponents()
+	args := state.ArgsAccountsRepository{
+		FinalStateAccountsWrapper:      accDB,
+		CurrentStateAccountsWrapper:    accDB,
+		HistoricalStateAccountsWrapper: accDB,
+	}
+	stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
+
+	n, _ := node.NewNode(
+		node.WithCoreComponents(coreComponents),
+		node.WithDataComponents(dataComponents),
+		node.WithStateComponents(stateComponents),
+		node.WithESDTNFTStorageHandler(esdtStorageStub),
+	)
+
+	tokens, _, err := n.GetAllESDTTokens(testscommon.TestAddressAlice, api.AccountQueryOptions{}, context.Background())
+	require.Nil(t, err)
+	require.Equal(t, 1, len(tokens))
+
+	// check that the NFT was formatted correctly
+	expectedNftFormattedKey := "pref-TCKR-67tgv3-01"
 	assert.NotNil(t, tokens[expectedNftFormattedKey])
 	assert.Equal(t, uint64(1), tokens[expectedNftFormattedKey].TokenMetaData.Nonce)
 }
