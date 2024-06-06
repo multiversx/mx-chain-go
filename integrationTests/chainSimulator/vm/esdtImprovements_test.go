@@ -1585,7 +1585,7 @@ func TestChainSimulator_NFT_ChangeToDynamicType(t *testing.T) {
 		Value:    20,
 	}
 
-	activationEpoch := uint32(2)
+	activationEpoch := uint32(4)
 
 	baseIssuingCost := "1000"
 
@@ -1617,10 +1617,7 @@ func TestChainSimulator_NFT_ChangeToDynamicType(t *testing.T) {
 
 	addrs := createAddresses(t, cs, true)
 
-	err = cs.GenerateBlocksUntilEpochIsReached(int32(activationEpoch))
-	require.Nil(t, err)
-
-	err = cs.GenerateBlocks(10)
+	err = cs.GenerateBlocksUntilEpochIsReached(int32(activationEpoch) - 2)
 	require.Nil(t, err)
 
 	log.Info("Initial setup: Create NFT")
@@ -1653,7 +1650,7 @@ func TestChainSimulator_NFT_ChangeToDynamicType(t *testing.T) {
 	require.NotNil(t, txResult)
 	require.Equal(t, "success", txResult.Status.String())
 
-	err = cs.GenerateBlocks(10)
+	err = cs.GenerateBlocksUntilEpochIsReached(int32(activationEpoch))
 	require.Nil(t, err)
 
 	log.Info("Step 1. Change the nft to DYNAMIC type - the metadata should be on the system account")
