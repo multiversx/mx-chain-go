@@ -25,7 +25,7 @@ var sftRoles = []string{
 	core.ESDTRoleNFTAddQuantity,
 }
 
-func TestSovereignChain_RegisterTwoSfts(t *testing.T) {
+func TestSovereignChainSimulator_RegisterTwoSfts(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -92,7 +92,7 @@ func TestSovereignChain_RegisterTwoSfts(t *testing.T) {
 	require.Equal(t, initialSupply, tokens[sftIdentifier+"-01"].Value)
 }
 
-func TestSovereignChain_IssueTwoSfts(t *testing.T) {
+func TestSovereignChainSimulator_IssueTwoSfts(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}

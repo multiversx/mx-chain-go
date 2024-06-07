@@ -22,7 +22,7 @@ const (
 	adderWasmPath              = "../testdata/adder.wasm"
 )
 
-func TestSovereignChain_SmartContract_Adder(t *testing.T) {
+func TestSovereignChainSimulator_SmartContract_Adder(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
