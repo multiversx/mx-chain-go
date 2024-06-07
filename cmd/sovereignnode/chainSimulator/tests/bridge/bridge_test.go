@@ -1,14 +1,14 @@
 package bridge
 
 import (
-	"fmt"
 	"math/big"
 	"testing"
 	"time"
 
-	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	chainSim "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
@@ -28,8 +28,6 @@ const (
 	issuePrice                 = "5000000000000000000"
 )
 
-var log = logger.GetOrCreate("dsa")
-
 // This test will:
 // - deploy bridge contracts setup
 // - issue a new fungible token
@@ -41,6 +39,7 @@ func TestSovereignChainSimulator_DeployBridgeContractsThenIssueAndDeposit(t *tes
 		t.Skip("this is not a short test")
 	}
 
+	outGoingSubscribedAddress := "erd1qqqqqqqqqqqqqpgqmzzm05jeav6d5qvna0q2pmcllelkz8xddz3syjszx5"
 	cs, err := sovereignChainSimulator.NewSovereignChainSimulator(sovereignChainSimulator.ArgsSovereignChainSimulator{
 		SovereignConfigPath: sovereignConfigPath,
 		ArgsChainSimulator: &chainSimulator.ArgsChainSimulator{
@@ -54,7 +53,18 @@ func TestSovereignChainSimulator_DeployBridgeContractsThenIssueAndDeposit(t *tes
 			MinNodesPerShard:       2,
 			ConsensusGroupSize:     2,
 			AlterConfigsFunction: func(cfg *config.Configs) {
-				cfg.GeneralConfig.SovereignConfig.OutgoingSubscribedEvents.SubscribedEvents[0].Addresses = []string{"erd1qqqqqqqqqqqqqpgqmzzm05jeav6d5qvna0q2pmcllelkz8xddz3syjszx5"}
+				// Put every enable epoch on 0
+				cfg.EpochConfig.EnableEpochs = config.EnableEpochs{
+					MaxNodesChangeEnableEpoch: cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch,
+					BLSMultiSignerEnableEpoch: cfg.EpochConfig.EnableEpochs.BLSMultiSignerEnableEpoch,
+				}
+				cfg.GeneralConfig.SovereignConfig.OutgoingSubscribedEvents.SubscribedEvents = []config.SubscribedEvent{
+					{
+						Identifier: "deposit",
+						Addresses:  []string{outGoingSubscribedAddress},
+					},
+				}
+				cfg.GeneralConfig.SovereignConfig.OutgoingSubscribedEvents.TimeToWaitForUnconfirmedOutGoingOperationInSeconds = 1
 			},
 		},
 	})
@@ -68,32 +78,30 @@ func TestSovereignChainSimulator_DeployBridgeContractsThenIssueAndDeposit(t *tes
 	initialAddress := "erd1l6xt0rqlyzw56a3k8xwwshq2dcjwy3q9cppucvqsmdyw8r98dz3sae0kxl"
 	initialAddrBytes, err := cs.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Decode(initialAddress)
 	require.Nil(t, err)
+
 	err = cs.SetStateMultiple([]*dtos.AddressState{
 		{
 			Address: initialAddress,
 			Balance: "10000000000000000000000",
 		},
-		{
-			Address: "erd1lllllllllllllllllllllllllllllllllllllllllllllllllllsckry7t", // init sys account
-		},
 	})
 	require.Nil(t, err)
 
 	wallet := dtos.WalletAddress{Bech32: initialAddress, Bytes: initialAddrBytes}
-	nonce := uint64(5)
+
+	expectedESDTSafeAddressBytes, err := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode(outGoingSubscribedAddress)
+	require.Nil(t, err)
 
 	bridgeData := DeploySovereignBridgeSetup(t, cs, wallet, esdtSafeWasmPath, feeMarketWasmPath)
+	require.Equal(t, expectedESDTSafeAddressBytes, bridgeData.ESDTSafeAddress)
 
-	fmt.Println(nodeHandler.GetCoreComponents().AddressPubKeyConverter().SilentEncode(bridgeData.ESDTSafeAddress, log))
-
+	nonce := uint64(5)
 	issueCost, _ := big.NewInt(0).SetString(issuePrice, 10)
 	supply, _ := big.NewInt(0).SetString("123000000000000000000", 10)
 	tokenName := "SovToken"
 	tokenTicker := "SVN"
 	numDecimals := 18
 	tokenIdentifier := chainSim.IssueFungible(t, cs, nodeHandler, wallet.Bytes, &nonce, issueCost, tokenName, tokenTicker, numDecimals, supply)
-
-	logger.SetLogLevel("*:DEBUG")
 
 	amountToDeposit, _ := big.NewInt(0).SetString("2000000000000000000", 10)
 	depositTokens := make([]chainSim.ArgsDepositToken, 0)
@@ -102,6 +110,7 @@ func TestSovereignChainSimulator_DeployBridgeContractsThenIssueAndDeposit(t *tes
 		Nonce:      0,
 		Amount:     amountToDeposit,
 	})
+
 	chainSim.Deposit(t, cs, wallet.Bytes, &nonce, bridgeData.ESDTSafeAddress, depositTokens, wallet.Bytes)
 
 	tokens, _, err := nodeHandler.GetFacadeHandler().GetAllESDTTokens(wallet.Bech32, coreAPI.AccountQueryOptions{})
@@ -115,5 +124,27 @@ func TestSovereignChainSimulator_DeployBridgeContractsThenIssueAndDeposit(t *tes
 	require.NotNil(t, tokenSupply)
 	require.Equal(t, amountToDeposit.String(), tokenSupply.Burned)
 
-	cs.GenerateBlocks(20)
+	// Wait for outgoing operations to get unconfirmed and check we have one, which is also saved in storage
+	time.Sleep(time.Second)
+	outGoingOps := nodeHandler.GetRunTypeComponents().OutGoingOperationsPoolHandler().GetUnconfirmedOperations()
+	require.Len(t, outGoingOps, 1)
+	require.Len(t, outGoingOps[0].OutGoingOperations, 1)
+
+	savedMarshalledTx, err := nodeHandler.GetDataComponents().StorageService().Get(dataRetriever.TransactionUnit, outGoingOps[0].OutGoingOperations[0].Hash)
+	require.Nil(t, err)
+	require.NotNil(t, savedMarshalledTx)
+
+	savedTx := &transaction.Transaction{}
+	err = nodeHandler.GetCoreComponents().InternalMarshalizer().Unmarshal(savedTx, savedMarshalledTx)
+	require.Nil(t, err)
+
+	expectedSavedTx := &transaction.Transaction{
+		GasPrice: nodeHandler.GetCoreComponents().EconomicsData().MinGasPrice(),
+		GasLimit: nodeHandler.GetCoreComponents().EconomicsData().MinGasLimit(),
+	}
+	require.Equal(t, expectedSavedTx, savedTx)
+
+	// Generate extra blocks after outgoing operations are created
+	err = cs.GenerateBlocks(10)
+	require.Nil(t, err)
 }

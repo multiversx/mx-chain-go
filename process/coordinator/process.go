@@ -1544,6 +1544,9 @@ func (tc *transactionCoordinator) VerifyCreatedMiniBlocks(
 	header data.HeaderHandler,
 	body *block.Body,
 ) error {
+	if header.GetEpoch() < tc.enableEpochsHandler.GetActivationEpoch(common.BlockGasAndFeesReCheckFlag) {
+		return nil
+	}
 
 	mapMiniBlockTypeAllTxs := tc.getAllTransactions(body)
 
