@@ -12,6 +12,9 @@ import (
 	dataApi "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/config"
 	chainSimulatorIntegrationTests "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
@@ -19,8 +22,6 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/vm"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -93,7 +94,7 @@ func TestChainSimulator_IssueESDTWithPrefix(t *testing.T) {
 	receiverBytes, err := cs.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Decode(receiver)
 	receivedTokens := big.NewInt(11)
 	require.Nil(t, err)
-	transferESDT(t, cs, initialAddrBytes, receiverBytes, receivedTokens, issuedToken)
+	transferESDT(t, cs, initialAddrBytes, receiverBytes, 1, receivedTokens, issuedToken)
 
 	// Step 4 - check balances
 	requireAccountHasToken(t, cs, issuedToken, receiver, receivedTokens)
@@ -146,13 +147,14 @@ func transferESDT(
 	t *testing.T,
 	cs chainSimulatorIntegrationTests.ChainSimulator,
 	sender, receiver []byte,
+	nonce uint64,
 	value *big.Int,
 	tokenName string,
 ) {
 	tokenIDHexEncoded := hex.EncodeToString([]byte(tokenName))
 	valueHexEncoded := hex.EncodeToString(value.Bytes())
 	tx := &transaction.Transaction{
-		Nonce:     1,
+		Nonce:     nonce,
 		Value:     big.NewInt(0),
 		SndAddr:   sender,
 		RcvAddr:   receiver,
@@ -175,7 +177,13 @@ func requireAccountHasToken(
 	address string,
 	value *big.Int,
 ) {
-	tokens, _, err := cs.GetNodeHandler(0).GetFacadeHandler().GetAllESDTTokens(address, dataApi.AccountQueryOptions{})
+	nodeHandler := cs.GetNodeHandler(0)
+
+	pubKey, err := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode(address)
+	require.Nil(t, err)
+
+	addressShardID := nodeHandler.GetShardCoordinator().ComputeId(pubKey)
+	tokens, _, err := cs.GetNodeHandler(addressShardID).GetFacadeHandler().GetAllESDTTokens(address, dataApi.AccountQueryOptions{})
 	require.Nil(t, err)
 
 	tokenData, found := tokens[token]
