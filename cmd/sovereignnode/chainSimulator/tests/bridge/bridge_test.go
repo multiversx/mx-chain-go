@@ -126,11 +126,13 @@ func TestSovereignChainSimulator_DeployBridgeContractsThenIssueAndDeposit(t *tes
 
 	// Wait for outgoing operations to get unconfirmed and check we have one, which is also saved in storage
 	time.Sleep(time.Second)
+
 	outGoingOps := nodeHandler.GetRunTypeComponents().OutGoingOperationsPoolHandler().GetUnconfirmedOperations()
 	require.Len(t, outGoingOps, 1)
 	require.Len(t, outGoingOps[0].OutGoingOperations, 1)
 
-	savedMarshalledTx, err := nodeHandler.GetDataComponents().StorageService().Get(dataRetriever.TransactionUnit, outGoingOps[0].OutGoingOperations[0].Hash)
+	outGoingOp := outGoingOps[0].OutGoingOperations[0]
+	savedMarshalledTx, err := nodeHandler.GetDataComponents().StorageService().Get(dataRetriever.TransactionUnit, outGoingOp.Hash)
 	require.Nil(t, err)
 	require.NotNil(t, savedMarshalledTx)
 
@@ -140,7 +142,11 @@ func TestSovereignChainSimulator_DeployBridgeContractsThenIssueAndDeposit(t *tes
 
 	expectedSavedTx := &transaction.Transaction{
 		GasPrice: nodeHandler.GetCoreComponents().EconomicsData().MinGasPrice(),
-		GasLimit: nodeHandler.GetCoreComponents().EconomicsData().MinGasLimit(),
+		GasLimit: nodeHandler.GetCoreComponents().EconomicsData().ComputeGasLimit(
+			&transaction.Transaction{
+				Data: outGoingOp.Data,
+			}),
+		Data: outGoingOp.Data,
 	}
 	require.Equal(t, expectedSavedTx, savedTx)
 

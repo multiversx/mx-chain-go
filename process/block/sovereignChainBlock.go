@@ -905,11 +905,14 @@ func (scbp *sovereignChainBlockProcessor) createOutGoingMiniBlockData(outGoingOp
 		outGoingOpHash := scbp.operationsHasher.Compute(string(outGoingOp))
 		aggregatedOutGoingOperations = append(aggregatedOutGoingOperations, outGoingOpHash...)
 
-		outGoingOpHashes[idx] = outGoingOpHash
-		outGoingOperationsData = append(outGoingOperationsData, &sovCore.OutGoingOperation{
+		outGoingOpData := &sovCore.OutGoingOperation{
 			Hash: outGoingOpHash,
 			Data: outGoingOp,
-		})
+		}
+		outGoingOpHashes[idx] = outGoingOpHash
+		outGoingOperationsData = append(outGoingOperationsData, outGoingOpData)
+
+		scbp.addOutGoingTxToPool(outGoingOpData)
 	}
 
 	outGoingOperationsHash := scbp.operationsHasher.Compute(string(aggregatedOutGoingOperations))
@@ -918,22 +921,29 @@ func (scbp *sovereignChainBlockProcessor) createOutGoingMiniBlockData(outGoingOp
 		OutGoingOperations: outGoingOperationsData,
 	})
 
-	// TODO: We need to have a mocked transaction with this hash to be saved in storage and get rid of following warnings:
-	// 1. basePreProcess.createMarshalledData: tx not found hash = bf7e...
-	// 2. basePreProcess.saveTransactionToStorage  txHash = bf7e... dataUnit = TransactionUnit error = missing transaction
-	// Task for this: MX-14716
-
-	tx := &transaction.Transaction{
-		GasLimit: scbp.economicsData.MinGasLimit(),
-		GasPrice: scbp.economicsData.MinGasPrice(),
-	}
-	scbp.dataPool.Transactions().AddData(outGoingOpHashes[0], tx, tx.Size(), fmt.Sprintf("%d_%d", core.SovereignChainShardId, core.MainChainShardId))
-
 	return &block.MiniBlock{
 		TxHashes:        outGoingOpHashes,
 		ReceiverShardID: core.MainChainShardId,
 		SenderShardID:   scbp.shardCoordinator.SelfId(),
 	}, outGoingOperationsHash
+}
+
+func (scbp *sovereignChainBlockProcessor) addOutGoingTxToPool(outGoingOp *sovCore.OutGoingOperation) {
+	tx := &transaction.Transaction{
+		GasLimit: scbp.economicsData.ComputeGasLimit(
+			&transaction.Transaction{
+				Data: outGoingOp.Data,
+			}),
+		GasPrice: scbp.economicsData.MinGasPrice(),
+		Data:     outGoingOp.Data,
+	}
+
+	scbp.dataPool.Transactions().AddData(
+		outGoingOp.Hash,
+		tx,
+		tx.Size(),
+		fmt.Sprintf("%d_%d", core.SovereignChainShardId, core.MainChainShardId),
+	)
 }
 
 func (scbp *sovereignChainBlockProcessor) setOutGoingMiniBlock(
