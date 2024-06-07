@@ -960,7 +960,7 @@ func (n *Node) GetAccountWithKeys(address string, options api.AccountQueryOption
 		return api.AccountResponse{}, api.BlockInfo{}, err
 	}
 
-	if accInfo.account == nil {
+	if accInfo.account == nil || accInfo.account.DataTrie() == nil {
 		return accInfo.accountResponse, accInfo.block, nil
 	}
 

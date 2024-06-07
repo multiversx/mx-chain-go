@@ -3558,6 +3558,32 @@ func TestNode_GetAccountAccountWithKeysNeverUsedAccountShouldWork(t *testing.T) 
 	require.Equal(t, api.BlockInfo{}, blockInfo)
 }
 
+func TestNode_GetAccountAccountWithKeysNilDataTrieShouldWork(t *testing.T) {
+	t.Parallel()
+
+	accnt := createAcc(testscommon.TestPubKeyBob)
+	accnt.SetDataTrie(nil)
+	_ = accnt.AddToBalance(big.NewInt(1))
+
+	accDB := &stateMock.AccountsStub{
+		GetAccountWithBlockInfoCalled: func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
+			return accnt, nil, nil
+		},
+		RecreateTrieCalled: func(options common.RootHashHolder) error {
+			return nil
+		},
+	}
+
+	n := getNodeWithAccount(accDB)
+
+	recovAccnt, blockInfo, err := n.GetAccountWithKeys(testscommon.TestAddressBob, api.AccountQueryOptions{WithKeys: true}, context.Background())
+
+	require.Nil(t, err)
+	require.Equal(t, uint64(0), recovAccnt.Nonce)
+	require.Equal(t, testscommon.TestAddressBob, recovAccnt.Address)
+	require.Equal(t, api.BlockInfo{}, blockInfo)
+}
+
 func getNodeWithAccount(accDB *stateMock.AccountsStub) *node.Node {
 	coreComponents := getDefaultCoreComponents()
 	dataComponents := getDefaultDataComponents()
