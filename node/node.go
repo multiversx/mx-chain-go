@@ -960,6 +960,10 @@ func (n *Node) GetAccountWithKeys(address string, options api.AccountQueryOption
 		return api.AccountResponse{}, api.BlockInfo{}, err
 	}
 
+	if accInfo.account == nil {
+		return accInfo.accountResponse, accInfo.block, nil
+	}
+
 	var keys map[string]string
 	if options.WithKeys {
 		keys, err = n.getKeys(accInfo.account, ctx)
