@@ -129,9 +129,10 @@ func (vp *validatorsProvider) GetLatestValidators() map[string]*validator.Valida
 }
 
 func (vp *validatorsProvider) updateCacheIfNeeded() {
-	vp.lock.RLock()
+	vp.lock.Lock()
+	defer vp.lock.Unlock()
+
 	shouldUpdate := time.Since(vp.lastCacheUpdate) > vp.cacheRefreshIntervalDuration
-	vp.lock.RUnlock()
 
 	if shouldUpdate {
 		vp.updateCache()
@@ -192,7 +193,10 @@ func (vp *validatorsProvider) epochStartEventHandler() nodesCoordinator.EpochSta
 
 func (vp *validatorsProvider) startRefreshProcess(ctx context.Context) {
 	for {
+		vp.lock.Lock()
 		vp.updateCache()
+		vp.lock.Unlock()
+
 		select {
 		case epoch := <-vp.refreshCache:
 			vp.lock.Lock()
@@ -206,6 +210,7 @@ func (vp *validatorsProvider) startRefreshProcess(ctx context.Context) {
 	}
 }
 
+// this func should be called under mutex protection
 func (vp *validatorsProvider) updateCache() {
 	lastFinalizedRootHash := vp.validatorStatistics.LastFinalizedRootHash()
 	if len(lastFinalizedRootHash) == 0 {
@@ -217,16 +222,12 @@ func (vp *validatorsProvider) updateCache() {
 		log.Trace("validatorsProvider - GetLatestValidatorInfos failed", "error", err)
 	}
 
-	vp.lock.RLock()
 	epoch := vp.currentEpoch
-	vp.lock.RUnlock()
 
 	newCache := vp.createNewCache(epoch, allNodes)
 
-	vp.lock.Lock()
 	vp.lastCacheUpdate = time.Now()
 	vp.cache = newCache
-	vp.lock.Unlock()
 }
 
 func (vp *validatorsProvider) createNewCache(
@@ -319,7 +320,13 @@ func shouldCombine(triePeerType common.PeerType, currentPeerType common.PeerType
 
 // ForceUpdate will trigger the update process of all caches
 func (vp *validatorsProvider) ForceUpdate() error {
+	vp.lock.Lock()
 	vp.updateCache()
+	vp.lock.Unlock()
+
+	vp.auctionMutex.Lock()
+	defer vp.auctionMutex.Unlock()
+
 	return vp.updateAuctionListCache()
 }
 
