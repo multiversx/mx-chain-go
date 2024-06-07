@@ -1,13 +1,18 @@
 package bridge
 
 import (
+	"fmt"
 	"math/big"
 	"testing"
 	"time"
 
+	logger "github.com/multiversx/mx-chain-logger-go"
+
+	"github.com/multiversx/mx-chain-go/config"
 	chainSim "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	sovereignChainSimulator "github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -22,6 +27,8 @@ const (
 	feeMarketWasmPath          = "../testdata/fee-market.wasm"
 	issuePrice                 = "5000000000000000000"
 )
+
+var log = logger.GetOrCreate("dsa")
 
 // This test will:
 // - deploy bridge contracts setup
@@ -46,6 +53,9 @@ func TestSovereignChainSimulator_DeployBridgeContractsThenIssueAndDeposit(t *tes
 			ApiInterface:           api.NewNoApiInterface(),
 			MinNodesPerShard:       2,
 			ConsensusGroupSize:     2,
+			AlterConfigsFunction: func(cfg *config.Configs) {
+				cfg.GeneralConfig.SovereignConfig.OutgoingSubscribedEvents.SubscribedEvents[0].Addresses = []string{"erd1qqqqqqqqqqqqqpgqmzzm05jeav6d5qvna0q2pmcllelkz8xddz3syjszx5"}
+			},
 		},
 	})
 	require.Nil(t, err)
@@ -55,11 +65,26 @@ func TestSovereignChainSimulator_DeployBridgeContractsThenIssueAndDeposit(t *tes
 
 	nodeHandler := cs.GetNodeHandler(core.SovereignChainShardId)
 
-	wallet, err := cs.GenerateAndMintWalletAddress(core.SovereignChainShardId, chainSim.InitialAmount)
+	initialAddress := "erd1l6xt0rqlyzw56a3k8xwwshq2dcjwy3q9cppucvqsmdyw8r98dz3sae0kxl"
+	initialAddrBytes, err := cs.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Decode(initialAddress)
 	require.Nil(t, err)
-	nonce := uint64(0)
+	err = cs.SetStateMultiple([]*dtos.AddressState{
+		{
+			Address: initialAddress,
+			Balance: "10000000000000000000000",
+		},
+		{
+			Address: "erd1lllllllllllllllllllllllllllllllllllllllllllllllllllsckry7t", // init sys account
+		},
+	})
+	require.Nil(t, err)
 
-	bridgeData := DeploySovereignBridgeSetup(t, cs, esdtSafeWasmPath, feeMarketWasmPath)
+	wallet := dtos.WalletAddress{Bech32: initialAddress, Bytes: initialAddrBytes}
+	nonce := uint64(5)
+
+	bridgeData := DeploySovereignBridgeSetup(t, cs, wallet, esdtSafeWasmPath, feeMarketWasmPath)
+
+	fmt.Println(nodeHandler.GetCoreComponents().AddressPubKeyConverter().SilentEncode(bridgeData.ESDTSafeAddress, log))
 
 	issueCost, _ := big.NewInt(0).SetString(issuePrice, 10)
 	supply, _ := big.NewInt(0).SetString("123000000000000000000", 10)
@@ -67,6 +92,8 @@ func TestSovereignChainSimulator_DeployBridgeContractsThenIssueAndDeposit(t *tes
 	tokenTicker := "SVN"
 	numDecimals := 18
 	tokenIdentifier := chainSim.IssueFungible(t, cs, nodeHandler, wallet.Bytes, &nonce, issueCost, tokenName, tokenTicker, numDecimals, supply)
+
+	logger.SetLogLevel("*:DEBUG")
 
 	amountToDeposit, _ := big.NewInt(0).SetString("2000000000000000000", 10)
 	depositTokens := make([]chainSim.ArgsDepositToken, 0)
@@ -87,4 +114,6 @@ func TestSovereignChainSimulator_DeployBridgeContractsThenIssueAndDeposit(t *tes
 	require.Nil(t, err)
 	require.NotNil(t, tokenSupply)
 	require.Equal(t, amountToDeposit.String(), tokenSupply.Burned)
+
+	cs.GenerateBlocks(20)
 }

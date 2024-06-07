@@ -6,6 +6,8 @@ import (
 	"sort"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/common/logging"
@@ -920,6 +922,13 @@ func (scbp *sovereignChainBlockProcessor) createOutGoingMiniBlockData(outGoingOp
 	// 1. basePreProcess.createMarshalledData: tx not found hash = bf7e...
 	// 2. basePreProcess.saveTransactionToStorage  txHash = bf7e... dataUnit = TransactionUnit error = missing transaction
 	// Task for this: MX-14716
+
+	tx := &transaction.Transaction{
+		GasLimit: scbp.economicsData.MinGasLimit(),
+		GasPrice: scbp.economicsData.MinGasPrice(),
+	}
+	scbp.dataPool.Transactions().AddData(outGoingOpHashes[0], tx, tx.Size(), fmt.Sprintf("%d_%d", core.SovereignChainShardId, core.MainChainShardId))
+
 	return &block.MiniBlock{
 		TxHashes:        outGoingOpHashes,
 		ReceiverShardID: core.MainChainShardId,
@@ -954,7 +963,9 @@ func (scbp *sovereignChainBlockProcessor) setOutGoingMiniBlock(
 	}
 
 	createdBlockBody.MiniBlocks = append(createdBlockBody.MiniBlocks, outGoingMb)
-	return nil
+
+	scbp.txCoordinator.AddTxsFromMiniBlocks([]*block.MiniBlock{outGoingMb})
+	return err
 }
 
 func (scbp *sovereignChainBlockProcessor) waitForExtendedHeadersIfMissing(requestedExtendedShardHdrs uint32, haveTime func() time.Duration) error {

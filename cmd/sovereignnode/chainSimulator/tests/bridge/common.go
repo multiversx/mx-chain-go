@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	chainSim "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/stretchr/testify/require"
 )
 
 // ArgsBridgeSetup holds the arguments for bridge setup
@@ -26,6 +26,7 @@ type ArgsBridgeSetup struct {
 func DeploySovereignBridgeSetup(
 	t *testing.T,
 	cs chainSim.ChainSimulator,
+	wallet dtos.WalletAddress,
 	esdtSafeWasmPath string,
 	feeMarketWasmPath string,
 ) *ArgsBridgeSetup {
@@ -33,8 +34,6 @@ func DeploySovereignBridgeSetup(
 
 	systemScAddress := chainSim.GetSysAccBytesAddress(t, nodeHandler)
 
-	wallet, err := cs.GenerateAndMintWalletAddress(core.SovereignChainShardId, chainSim.InitialAmount)
-	require.Nil(t, err)
 	nonce := uint64(0)
 
 	esdtSafeArgs := "@01" + // is_sovereign_chain
