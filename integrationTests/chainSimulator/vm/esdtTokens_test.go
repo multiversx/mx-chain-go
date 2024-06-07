@@ -195,6 +195,194 @@ func TestChainSimulator_Api_TokenType(t *testing.T) {
 	require.Equal(t, core.SemiFungibleESDT, tokenData.Type)
 }
 
+func TestChainSimulator_Api_NFTToken(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	startTime := time.Now().Unix()
+	roundDurationInMillis := uint64(6000)
+	roundsPerEpoch := core.OptionalUint64{
+		HasValue: true,
+		Value:    20,
+	}
+
+	activationEpoch := uint32(2)
+
+	baseIssuingCost := "1000"
+
+	numOfShards := uint32(3)
+	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+		BypassTxSignatureCheck:      false,
+		TempDir:                     t.TempDir(),
+		PathToInitialConfig:         defaultPathToInitialConfig,
+		NumOfShards:                 numOfShards,
+		GenesisTimestamp:            startTime,
+		RoundDurationInMillis:       roundDurationInMillis,
+		RoundsPerEpoch:              roundsPerEpoch,
+		ApiInterface:                api.NewFreePortAPIConfigurator("localhost"),
+		MinNodesPerShard:            3,
+		MetaChainMinNodes:           3,
+		ConsensusGroupSize:          1,
+		MetaChainConsensusGroupSize: 1,
+		NumNodesWaitingListMeta:     0,
+		NumNodesWaitingListShard:    0,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpoch
+			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, cs)
+
+	defer cs.Close()
+
+	mintValue := big.NewInt(10)
+	mintValue = mintValue.Mul(oneEGLD, mintValue)
+
+	err = cs.GenerateBlocksUntilEpochIsReached(int32(activationEpoch) - 1)
+	require.Nil(t, err)
+
+	log.Info("Initial setup: Create NFT token before activation")
+
+	addrs := createAddresses(t, cs, false)
+
+	roles := [][]byte{
+		[]byte(core.ESDTRoleNFTCreate),
+		[]byte(core.ESDTRoleTransfer),
+	}
+
+	// issue NFT
+	nftTicker := []byte("NFTTICKER")
+	tx := issueNonFungibleTx(0, addrs[0].Bytes, nftTicker, baseIssuingCost)
+
+	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+	require.Equal(t, "success", txResult.Status.String())
+
+	nftTokenID := txResult.Logs.Events[0].Topics[0]
+	setAddressEsdtRoles(t, cs, addrs[0], nftTokenID, roles)
+
+	log.Info("Issued NFT token id", "tokenID", string(nftTokenID))
+
+	nftMetaData := txsFee.GetDefaultMetaData()
+	nftMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
+
+	tx = nftCreateTx(1, addrs[0].Bytes, nftTokenID, nftMetaData)
+
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+
+	require.Equal(t, "success", txResult.Status.String())
+
+	err = cs.GenerateBlocks(5)
+	require.Nil(t, err)
+
+	shardID := cs.GetNodeHandler(0).GetProcessComponents().ShardCoordinator().ComputeId(addrs[0].Bytes)
+
+	restAPIInterfaces := cs.GetRestAPIInterfaces()
+	require.NotNil(t, restAPIInterfaces)
+
+	url := fmt.Sprintf("http://%s/address/%s/esdt", restAPIInterfaces[shardID], addrs[0].Bech32)
+	response := &esdtTokensCompleteResponse{}
+
+	doHTTPClientGetReq(t, url, response)
+
+	allTokens := response.Data.Tokens
+
+	require.Equal(t, 1, len(allTokens))
+
+	expTokenID := string(nftTokenID) + "-01"
+	tokenData, ok := allTokens[expTokenID]
+	require.True(t, ok)
+	require.Equal(t, expTokenID, tokenData.TokenIdentifier)
+	require.Equal(t, core.NonFungibleESDT, tokenData.Type)
+
+	log.Info("Wait for DynamicESDTFlag activation")
+
+	err = cs.GenerateBlocksUntilEpochIsReached(int32(activationEpoch))
+	require.Nil(t, err)
+
+	doHTTPClientGetReq(t, url, response)
+
+	allTokens = response.Data.Tokens
+
+	require.Equal(t, 1, len(allTokens))
+
+	expTokenID = string(nftTokenID) + "-01"
+	tokenData, ok = allTokens[expTokenID]
+	require.True(t, ok)
+	require.Equal(t, expTokenID, tokenData.TokenIdentifier)
+	require.Equal(t, core.NonFungibleESDT, tokenData.Type)
+
+	log.Info("Update token id", "tokenID", nftTokenID)
+
+	tx = updateTokenIDTx(2, addrs[0].Bytes, nftTokenID)
+
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+	require.Equal(t, "success", txResult.Status.String())
+
+	doHTTPClientGetReq(t, url, response)
+
+	allTokens = response.Data.Tokens
+
+	require.Equal(t, 1, len(allTokens))
+
+	expTokenID = string(nftTokenID) + "-01"
+	tokenData, ok = allTokens[expTokenID]
+	require.True(t, ok)
+	require.Equal(t, expTokenID, tokenData.TokenIdentifier)
+	require.Equal(t, core.NonFungibleESDT, tokenData.Type)
+
+	log.Info("Transfer token id", "tokenID", nftTokenID)
+
+	tx = esdtNFTTransferTx(3, addrs[0].Bytes, addrs[1].Bytes, nftTokenID)
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+	require.Equal(t, "success", txResult.Status.String())
+
+	url = fmt.Sprintf("http://%s/address/%s/esdt", restAPIInterfaces[1], addrs[1].Bech32)
+	doHTTPClientGetReq(t, url, response)
+
+	allTokens = response.Data.Tokens
+
+	require.Equal(t, 1, len(allTokens))
+
+	expTokenID = string(nftTokenID) + "-01"
+	tokenData, ok = allTokens[expTokenID]
+	require.True(t, ok)
+	require.Equal(t, expTokenID, tokenData.TokenIdentifier)
+	require.Equal(t, core.NonFungibleESDTv2, tokenData.Type)
+
+	log.Info("Change to DYNAMIC type")
+
+	tx = changeToDynamicTx(4, addrs[0].Bytes, nftTokenID)
+
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+
+	require.Equal(t, "success", txResult.Status.String())
+
+	response = &esdtTokensCompleteResponse{}
+	doHTTPClientGetReq(t, url, response)
+
+	allTokens = response.Data.Tokens
+
+	require.Equal(t, 1, len(allTokens))
+
+	expTokenID = string(nftTokenID) + "-01"
+	tokenData, ok = allTokens[expTokenID]
+	require.True(t, ok)
+	require.Equal(t, expTokenID, tokenData.TokenIdentifier)
+	require.Equal(t, core.NonFungibleESDTv2, tokenData.Type)
+}
+
 func doHTTPClientGetReq(t *testing.T, url string, response interface{}) {
 	httpClient := &http.Client{}
 
