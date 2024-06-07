@@ -1,13 +1,18 @@
 package chainSimulator
 
 import (
+	"encoding/hex"
+	"fmt"
 	"math/big"
+	"strings"
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
+	"github.com/multiversx/mx-chain-go/vm"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/stretchr/testify/require"
 )
@@ -107,4 +112,101 @@ func SendTransaction(
 	}
 
 	return txResult
+}
+
+// RegisterAndSetAllRoles will issue an esdt token with all roles enabled
+func RegisterAndSetAllRoles(
+	t *testing.T,
+	cs ChainSimulator,
+	nodeHandler process.NodeHandler,
+	sender []byte,
+	nonce *uint64,
+	issueCost *big.Int,
+	esdtName string,
+	esdtTicker string,
+	tokenType string,
+	numDecimals int,
+) string {
+	esdtType := getTokenRegisterType(tokenType)
+	registerArgs := "registerAndSetAllRoles" +
+		"@" + hex.EncodeToString([]byte(esdtName)) +
+		"@" + hex.EncodeToString([]byte(esdtTicker)) +
+		"@" + hex.EncodeToString([]byte(esdtType)) +
+		"@" + fmt.Sprintf("%02X", numDecimals)
+	SendTransaction(t, cs, sender, nonce, vm.ESDTSCAddress, issueCost, registerArgs, uint64(60000000))
+
+	return getEsdtIdentifier(t, nodeHandler, esdtTicker, tokenType)
+}
+
+func getTokenRegisterType(tokenType string) string {
+	switch tokenType {
+	case core.FungibleESDT:
+		return "FNG"
+	case core.NonFungibleESDT:
+		return "NFT"
+	case core.SemiFungibleESDT:
+		return "SFT"
+	case core.MetaESDT:
+		return "META"
+	}
+	return ""
+}
+
+// IssueFungible will issue a fungible token
+func IssueFungible(
+	t *testing.T,
+	cs ChainSimulator,
+	nodeHandler process.NodeHandler,
+	sender []byte,
+	nonce *uint64,
+	issueCost *big.Int,
+	tokenName string,
+	tokenTicker string,
+	numDecimals int,
+	supply *big.Int,
+) string {
+	issueArgs := "issue" +
+		"@" + hex.EncodeToString([]byte(tokenName)) +
+		"@" + hex.EncodeToString([]byte(tokenTicker)) +
+		"@" + hex.EncodeToString(supply.Bytes()) +
+		"@" + fmt.Sprintf("%X", numDecimals) +
+		"@" + hex.EncodeToString([]byte("canAddSpecialRoles")) +
+		"@" + hex.EncodeToString([]byte("true"))
+	SendTransaction(t, cs, sender, nonce, vm.ESDTSCAddress, issueCost, issueArgs, uint64(60000000))
+
+	return getEsdtIdentifier(t, nodeHandler, tokenTicker, core.FungibleESDT)
+}
+
+// IssueSemiFungible will issue a semi fungible token
+func IssueSemiFungible(
+	t *testing.T,
+	cs ChainSimulator,
+	nodeHandler process.NodeHandler,
+	sender []byte,
+	nonce *uint64,
+	issueCost *big.Int,
+	sftName string,
+	sftTicker string,
+) string {
+	issueArgs := "issueSemiFungible" +
+		"@" + hex.EncodeToString([]byte(sftName)) +
+		"@" + hex.EncodeToString([]byte(sftTicker))
+	SendTransaction(t, cs, sender, nonce, vm.ESDTSCAddress, issueCost, issueArgs, uint64(60000000))
+
+	return getEsdtIdentifier(t, nodeHandler, sftTicker, core.SemiFungibleESDT)
+}
+
+func getEsdtIdentifier(t *testing.T, nodeHandler process.NodeHandler, ticker string, tokenType string) string {
+	issuedTokens, err := nodeHandler.GetFacadeHandler().GetAllIssuedESDTs(tokenType)
+	require.Nil(t, err)
+	require.GreaterOrEqual(t, len(issuedTokens), 1)
+
+	for _, issuedToken := range issuedTokens {
+		if strings.Contains(issuedToken, ticker) {
+			return issuedToken
+		}
+	}
+
+	require.Fail(t, "could not issue semi fungible")
+	return ""
 }
