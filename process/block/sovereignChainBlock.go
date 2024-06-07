@@ -973,9 +973,8 @@ func (scbp *sovereignChainBlockProcessor) setOutGoingMiniBlock(
 	}
 
 	createdBlockBody.MiniBlocks = append(createdBlockBody.MiniBlocks, outGoingMb)
-
 	scbp.txCoordinator.AddTxsFromMiniBlocks([]*block.MiniBlock{outGoingMb})
-	return err
+	return nil
 }
 
 func (scbp *sovereignChainBlockProcessor) waitForExtendedHeadersIfMissing(requestedExtendedShardHdrs uint32, haveTime func() time.Duration) error {
