@@ -41,8 +41,6 @@ import (
 	stateComp "github.com/multiversx/mx-chain-go/factory/state"
 	statusComp "github.com/multiversx/mx-chain-go/factory/status"
 	"github.com/multiversx/mx-chain-go/factory/statusCore"
-	"github.com/multiversx/mx-chain-go/genesis"
-	"github.com/multiversx/mx-chain-go/genesis/data"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
 	"github.com/multiversx/mx-chain-go/health"
 	"github.com/multiversx/mx-chain-go/node/metrics"
@@ -1567,30 +1565,9 @@ func (nr *nodeRunner) CreateManagedCryptoComponents(
 	return managedCryptoComponents, nil
 }
 
-// CreateArgsRunTypeComponents - creates the args for runType components
-func (nr *nodeRunner) CreateArgsRunTypeComponents(coreComponents mainFactory.CoreComponentsHandler, cryptoComponents mainFactory.CryptoComponentsHandler) (*runType.ArgsRunTypeComponents, error) {
-	initialAccounts := make([]*data.InitialAccount, 0)
-	err := core.LoadJsonFile(&initialAccounts, nr.configs.ConfigurationPathsHolder.Genesis)
-	if err != nil {
-		return nil, err
-	}
-
-	var accounts []genesis.InitialAccountHandler
-	for _, ia := range initialAccounts {
-		accounts = append(accounts, ia)
-	}
-
-	return &runType.ArgsRunTypeComponents{
-		CoreComponents:   coreComponents,
-		CryptoComponents: cryptoComponents,
-		Configs:          *nr.configs,
-		InitialAccounts:  accounts,
-	}, nil
-}
-
 // CreateManagedRunTypeComponents creates the managed run type components
 func (nr *nodeRunner) CreateManagedRunTypeComponents(coreComponents mainFactory.CoreComponentsHandler, cryptoComponents mainFactory.CryptoComponentsHandler) (mainFactory.RunTypeComponentsHandler, error) {
-	args, err := nr.CreateArgsRunTypeComponents(coreComponents, cryptoComponents)
+	args, err := runType.CreateArgsRunTypeComponents(coreComponents, cryptoComponents, *nr.configs)
 	if err != nil {
 		return nil, err
 	}
