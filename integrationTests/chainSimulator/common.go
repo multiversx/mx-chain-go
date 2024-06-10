@@ -116,7 +116,7 @@ func SendTransaction(
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
 	require.Equal(t, transaction.TxStatusSuccess, txResult.Status)
-	if txResult.Logs != nil && txResult.Logs.Events != nil && len(txResult.Logs.Events) > 0 {
+	if txResult.Logs != nil && len(txResult.Logs.Events) > 0 {
 		require.NotEqual(t, signalError, txResult.Logs.Events[0].Identifier)
 	}
 
@@ -131,7 +131,13 @@ func RequireAccountHasToken(
 	address string,
 	value *big.Int,
 ) {
-	tokens, _, err := cs.GetNodeHandler(0).GetFacadeHandler().GetAllESDTTokens(address, dataApi.AccountQueryOptions{})
+	nodeHandler := cs.GetNodeHandler(0)
+
+	pubKey, err := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode(address)
+	require.Nil(t, err)
+
+	addressShardID := nodeHandler.GetShardCoordinator().ComputeId(pubKey)
+	tokens, _, err := cs.GetNodeHandler(addressShardID).GetFacadeHandler().GetAllESDTTokens(address, dataApi.AccountQueryOptions{})
 	require.Nil(t, err)
 
 	tokenData, found := tokens[token]

@@ -39,7 +39,7 @@ func TestChainSimulator_IssueESDTWithPrefix(t *testing.T) {
 		BypassTxSignatureCheck:      false,
 		TempDir:                     t.TempDir(),
 		PathToInitialConfig:         defaultPathToInitialConfig,
-		NumOfShards:                 1,
+		NumOfShards:                 3,
 		GenesisTimestamp:            time.Now().Unix(),
 		RoundDurationInMillis:       uint64(6000),
 		RoundsPerEpoch:              roundsPerEpoch,

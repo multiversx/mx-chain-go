@@ -20,7 +20,10 @@ import (
 )
 
 const (
-	issuePrice = "5000000000000000000"
+	defaultPathToInitialConfig = "../../../cmd/node/config/"
+	issuePrice                 = "5000000000000000000"
+	esdtSafeWasmPath           = "testdata/esdt-safe.wasm"
+	feeMarketWasmPath          = "testdata/fee-market.wasm"
 )
 
 func TestChainSimulator_ExecuteWithMintAndBurnFungibleWithDeposit(t *testing.T) {
@@ -31,38 +34,38 @@ func TestChainSimulator_ExecuteWithMintAndBurnFungibleWithDeposit(t *testing.T) 
 	token := "sov1-SOVTKN-1a2b3c"
 	tokenNonce := uint64(0)
 
-	mintTokens := make([]chainSim.ArgsDepositToken, 0)
-	mintTokens = append(mintTokens, chainSim.ArgsDepositToken{
+	bridgedInTokens := make([]chainSim.ArgsDepositToken, 0)
+	bridgedInTokens = append(bridgedInTokens, chainSim.ArgsDepositToken{
 		Identifier: token,
 		Nonce:      tokenNonce,
 		Amount:     big.NewInt(123),
 		Type:       core.Fungible,
 	})
-	mintTokens = append(mintTokens, chainSim.ArgsDepositToken{
+	bridgedInTokens = append(bridgedInTokens, chainSim.ArgsDepositToken{
 		Identifier: token,
 		Nonce:      tokenNonce,
 		Amount:     big.NewInt(100),
 		Type:       core.Fungible,
 	})
 
-	depositTokens := make([]chainSim.ArgsDepositToken, 0)
-	depositTokens = append(depositTokens, chainSim.ArgsDepositToken{
+	bridgedOutTokens := make([]chainSim.ArgsDepositToken, 0)
+	bridgedOutTokens = append(bridgedOutTokens, chainSim.ArgsDepositToken{
 		Identifier: token,
 		Nonce:      tokenNonce,
 		Amount:     big.NewInt(12),
 		Type:       core.Fungible,
 	})
-	depositTokens = append(depositTokens, chainSim.ArgsDepositToken{
+	bridgedOutTokens = append(bridgedOutTokens, chainSim.ArgsDepositToken{
 		Identifier: token,
 		Nonce:      tokenNonce,
 		Amount:     big.NewInt(10),
 		Type:       core.Fungible,
 	})
 
-	simulateExecutionAndDeposit(t, mintTokens, depositTokens)
+	simulateExecutionAndDeposit(t, bridgedInTokens, bridgedOutTokens)
 }
 
-func TestChainSimulator_ExecuteWithMintAndBurnNftWithDeposit(t *testing.T) {
+func TestChainSimulator_ExecuteWithMintMultipleEsdtsAndBurnNftWithDeposit(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -71,29 +74,29 @@ func TestChainSimulator_ExecuteWithMintAndBurnNftWithDeposit(t *testing.T) {
 	nftNonce := uint64(1)
 	token := "sov3-TKN-1q2w3e"
 
-	mintTokens := make([]chainSim.ArgsDepositToken, 0)
-	mintTokens = append(mintTokens, chainSim.ArgsDepositToken{
+	bridgedInTokens := make([]chainSim.ArgsDepositToken, 0)
+	bridgedInTokens = append(bridgedInTokens, chainSim.ArgsDepositToken{
 		Identifier: nft,
 		Nonce:      nftNonce,
 		Amount:     big.NewInt(1),
 		Type:       core.NonFungible,
 	})
-	mintTokens = append(mintTokens, chainSim.ArgsDepositToken{
+	bridgedInTokens = append(bridgedInTokens, chainSim.ArgsDepositToken{
 		Identifier: token,
 		Nonce:      0,
 		Amount:     big.NewInt(1),
 		Type:       core.Fungible,
 	})
 
-	depositTokens := make([]chainSim.ArgsDepositToken, 0)
-	depositTokens = append(depositTokens, chainSim.ArgsDepositToken{
+	bridgedOutTokens := make([]chainSim.ArgsDepositToken, 0)
+	bridgedOutTokens = append(bridgedOutTokens, chainSim.ArgsDepositToken{
 		Identifier: nft,
 		Nonce:      nftNonce,
 		Amount:     big.NewInt(1),
 		Type:       core.NonFungible,
 	})
 
-	simulateExecutionAndDeposit(t, mintTokens, depositTokens)
+	simulateExecutionAndDeposit(t, bridgedInTokens, bridgedOutTokens)
 }
 
 func TestChainSimulator_ExecuteWithMintAndBurnSftWithDeposit(t *testing.T) {
@@ -104,29 +107,29 @@ func TestChainSimulator_ExecuteWithMintAndBurnSftWithDeposit(t *testing.T) {
 	sft := "sov3-SOVSFT-654321"
 	sftNonce := uint64(1)
 
-	mintTokens := make([]chainSim.ArgsDepositToken, 0)
-	mintTokens = append(mintTokens, chainSim.ArgsDepositToken{
+	bridgedInTokens := make([]chainSim.ArgsDepositToken, 0)
+	bridgedInTokens = append(bridgedInTokens, chainSim.ArgsDepositToken{
 		Identifier: sft,
 		Nonce:      sftNonce,
 		Amount:     big.NewInt(50),
 		Type:       core.SemiFungible,
 	})
 
-	depositTokens := make([]chainSim.ArgsDepositToken, 0)
-	depositTokens = append(depositTokens, chainSim.ArgsDepositToken{
+	bridgedOutTokens := make([]chainSim.ArgsDepositToken, 0)
+	bridgedOutTokens = append(bridgedOutTokens, chainSim.ArgsDepositToken{
 		Identifier: sft,
 		Nonce:      sftNonce,
 		Amount:     big.NewInt(20),
 		Type:       core.SemiFungible,
 	})
 
-	simulateExecutionAndDeposit(t, mintTokens, depositTokens)
+	simulateExecutionAndDeposit(t, bridgedInTokens, bridgedOutTokens)
 }
 
 func simulateExecutionAndDeposit(
 	t *testing.T,
-	mintTokens []chainSim.ArgsDepositToken,
-	depositTokens []chainSim.ArgsDepositToken,
+	bridgedInTokens []chainSim.ArgsDepositToken,
+	bridgedOutTokens []chainSim.ArgsDepositToken,
 ) {
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
@@ -188,29 +191,29 @@ func simulateExecutionAndDeposit(
 
 	// We will deposit an array of prefixed tokens from a sovereign chain to the main chain,
 	// expecting these tokens to be minted by the whitelisted ESDT safe sc and transferred to our wallet address.
-	executeBridgeOperation(t, cs, wallet, &nonce, bridgeData.ESDTSafeAddress, mintTokens)
+	executeMintOperation(t, cs, wallet, &nonce, bridgeData.ESDTSafeAddress, bridgedInTokens)
 
 	// Deposit an array of tokens from main chain to sovereign chain,
 	// expecting these tokens to be burned by the whitelisted ESDT safe sc
-	Deposit(t, cs, wallet.Bytes, &nonce, bridgeData.ESDTSafeAddress, depositTokens, wallet.Bytes)
-	mintedTokens := groupTokens(mintTokens)
-	for _, token := range groupTokens(depositTokens) {
-		mintedValue, err := getMintedValue(mintedTokens, token.Identifier)
+	Deposit(t, cs, wallet.Bytes, &nonce, bridgeData.ESDTSafeAddress, bridgedOutTokens, wallet.Bytes)
+	bridgedTokens := groupTokens(bridgedInTokens)
+	for _, bridgedOutToken := range groupTokens(bridgedOutTokens) {
+		bridgedValue, err := getBridgedValue(bridgedTokens, bridgedOutToken.Identifier)
 		require.Nil(t, err)
 
-		fullTokenIdentifier := getTokenIdentifier(token)
-		chainSim.RequireAccountHasToken(t, cs, fullTokenIdentifier, wallet.Bech32, big.NewInt(0).Sub(mintedValue, token.Amount))
+		fullTokenIdentifier := getTokenIdentifier(bridgedOutToken)
+		chainSim.RequireAccountHasToken(t, cs, fullTokenIdentifier, wallet.Bech32, big.NewInt(0).Sub(bridgedValue, bridgedOutToken.Amount))
 		chainSim.RequireAccountHasToken(t, cs, fullTokenIdentifier, esdtSafeEncoded, big.NewInt(0))
 
 		tokenSupply, err := nodeHandler.GetFacadeHandler().GetTokenSupply(fullTokenIdentifier)
 		require.Nil(t, err)
 		require.NotNil(t, tokenSupply)
-		require.Equal(t, token.Amount.String(), tokenSupply.Burned)
+		require.Equal(t, bridgedOutToken.Amount.String(), tokenSupply.Burned)
 	}
 }
 
-func getMintedValue(mintTokens []chainSim.ArgsDepositToken, token string) (*big.Int, error) {
-	for _, tkn := range mintTokens {
+func getBridgedValue(bridgeInTokens []chainSim.ArgsDepositToken, token string) (*big.Int, error) {
+	for _, tkn := range bridgeInTokens {
 		if tkn.Identifier == token {
 			return tkn.Amount, nil
 		}
@@ -218,25 +221,25 @@ func getMintedValue(mintTokens []chainSim.ArgsDepositToken, token string) (*big.
 	return nil, fmt.Errorf("token not found")
 }
 
-func executeBridgeOperation(
+func executeMintOperation(
 	t *testing.T,
 	cs chainSim.ChainSimulator,
 	wallet dtos.WalletAddress,
 	nonce *uint64,
 	esdtSafeAddress []byte,
-	mintTokens []chainSim.ArgsDepositToken,
+	bridgedInTokens []chainSim.ArgsDepositToken,
 ) {
 	executeBridgeOpsData := "executeBridgeOps" +
 		"@de96b8d3842668aad676f915f545403b3e706f8f724cefb0c15b728e83864ce7" + //dummy hash
 		"@" + // operation
 		hex.EncodeToString(wallet.Bytes) + // receiver address
-		lengthOn4Bytes(len(mintTokens)) + // nr of tokens
-		getTokenDataArgs(mintTokens) + // tokens encoded arg
+		lengthOn4Bytes(len(bridgedInTokens)) + // nr of tokens
+		getTokenDataArgs(bridgedInTokens) + // tokens encoded arg
 		"0000000000000000" + // event nonce
 		hex.EncodeToString(wallet.Bytes) + // sender address from other chain
 		"00" // no transfer data
 	chainSim.SendTransaction(t, cs, wallet.Bytes, nonce, esdtSafeAddress, chainSim.ZeroValue, executeBridgeOpsData, uint64(50000000))
-	for _, token := range groupTokens(mintTokens) {
+	for _, token := range groupTokens(bridgedInTokens) {
 		chainSim.RequireAccountHasToken(t, cs, getTokenIdentifier(token), wallet.Bech32, token.Amount)
 	}
 }

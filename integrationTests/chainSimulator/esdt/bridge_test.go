@@ -1,4 +1,4 @@
-package bridge
+package esdt
 
 import (
 	"encoding/hex"
@@ -8,6 +8,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/config"
 	chainSim "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
+	"github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/bridge"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
@@ -17,9 +18,8 @@ import (
 )
 
 const (
-	defaultPathToInitialConfig = "../../../cmd/node/config/"
-	esdtSafeWasmPath           = "testdata/esdt-safe.wasm"
-	feeMarketWasmPath          = "testdata/fee-market.wasm"
+	esdtSafeWasmPath  = "../bridge/testdata/esdt-safe.wasm"
+	feeMarketWasmPath = "../bridge/testdata/fee-market.wasm"
 )
 
 // TODO: MX-15527 Make a similar bridge test with sovereign chain simulator after merging this into feat/chain-go-sdk
@@ -87,7 +87,7 @@ func TestChainSimulator_ExecuteMintBurnBridgeOpForESDTTokensWithPrefix(t *testin
 	wallet := dtos.WalletAddress{Bech32: initialAddress, Bytes: initialAddrBytes}
 	nonce := uint64(0)
 
-	bridgeData := DeployBridgeSetup(t, cs, wallet.Bytes, &nonce, esdtSafeWasmPath, feeMarketWasmPath)
+	bridgeData := bridge.DeployBridgeSetup(t, cs, wallet.Bytes, &nonce, esdtSafeWasmPath, feeMarketWasmPath)
 
 	esdtSafeEncoded, _ := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Encode(bridgeData.ESDTSafeAddress)
 	require.Equal(t, esdtSafeEncoded, whiteListedAddress)
@@ -118,7 +118,7 @@ func TestChainSimulator_ExecuteMintBurnBridgeOpForESDTTokensWithPrefix(t *testin
 		Nonce:      0,
 		Amount:     amountToDeposit,
 	})
-	Deposit(t, cs, wallet.Bytes, &nonce, bridgeData.ESDTSafeAddress, depositTokens, wallet.Bytes)
+	bridge.Deposit(t, cs, wallet.Bytes, &nonce, bridgeData.ESDTSafeAddress, depositTokens, wallet.Bytes)
 	chainSim.RequireAccountHasToken(t, cs, depositToken, wallet.Bech32, remainingValueAfterBridge)
 
 	// Send some of the bridged prefixed tokens to another address
