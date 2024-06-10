@@ -62,8 +62,8 @@ type ArgsChainSimulator struct {
 
 type ArgsBaseChainSimulator struct {
 	ArgsChainSimulator
-	ConsensusGroupSize     uint32
-	MetaConsensusGroupSize uint32
+	ConsensusGroupSize          uint32
+	MetaChainConsensusGroupSize uint32
 }
 
 type simulator struct {
@@ -81,9 +81,9 @@ type simulator struct {
 // NewChainSimulator will create a new instance of simulator
 func NewChainSimulator(args ArgsChainSimulator) (*simulator, error) {
 	return NewBaseChainSimulator(ArgsBaseChainSimulator{
-		ArgsChainSimulator:     args,
-		ConsensusGroupSize:     configs.ChainSimulatorConsensusGroupSize,
-		MetaConsensusGroupSize: configs.ChainSimulatorConsensusGroupSize,
+		ArgsChainSimulator:          args,
+		ConsensusGroupSize:          configs.ChainSimulatorConsensusGroupSize,
+		MetaChainConsensusGroupSize: configs.ChainSimulatorConsensusGroupSize,
 	})
 }
 
@@ -109,20 +109,20 @@ func NewBaseChainSimulator(args ArgsBaseChainSimulator) (*simulator, error) {
 
 func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 	outputConfigs, err := configs.CreateChainSimulatorConfigs(configs.ArgsChainSimulatorConfigs{
-		NumOfShards:              args.NumOfShards,
-		OriginalConfigsPath:      args.PathToInitialConfig,
-		GenesisTimeStamp:         computeStartTimeBaseOnInitialRound(args.ArgsChainSimulator),
-		RoundDurationInMillis:    args.RoundDurationInMillis,
-		TempDir:                  args.TempDir,
-		MinNodesPerShard:         args.MinNodesPerShard,
-		MetaChainMinNodes:        args.MetaChainMinNodes,
-		RoundsPerEpoch:           args.RoundsPerEpoch,
-		InitialEpoch:             args.InitialEpoch,
-		ConsensusGroupSize:       args.ConsensusGroupSize,
-		MetaConsensusGroupSize:   args.MetaConsensusGroupSize,
-		AlterConfigsFunction:     args.AlterConfigsFunction,
-		NumNodesWaitingListShard: args.NumNodesWaitingListShard,
-		NumNodesWaitingListMeta:  args.NumNodesWaitingListMeta,
+		NumOfShards:                 args.NumOfShards,
+		OriginalConfigsPath:         args.PathToInitialConfig,
+		GenesisTimeStamp:            computeStartTimeBaseOnInitialRound(args.ArgsChainSimulator),
+		RoundDurationInMillis:       args.RoundDurationInMillis,
+		TempDir:                     args.TempDir,
+		MinNodesPerShard:            args.MinNodesPerShard,
+		ConsensusGroupSize:          args.ConsensusGroupSize,
+		MetaChainMinNodes:           args.MetaChainMinNodes,
+		MetaChainConsensusGroupSize: args.MetaChainConsensusGroupSize,
+		RoundsPerEpoch:              args.RoundsPerEpoch,
+		InitialEpoch:                args.InitialEpoch,
+		AlterConfigsFunction:        args.AlterConfigsFunction,
+		NumNodesWaitingListShard:    args.NumNodesWaitingListShard,
+		NumNodesWaitingListMeta:     args.NumNodesWaitingListMeta,
 	})
 	if err != nil {
 		return err
@@ -209,7 +209,7 @@ func (s *simulator) createTestNode(
 		MinNodesPerShard:            args.MinNodesPerShard,
 		ConsensusGroupSize:          args.ConsensusGroupSize,
 		MinNodesMeta:                args.MetaChainMinNodes,
-		MetaChainConsensusGroupSize: args.MetaConsensusGroupSize,
+		MetaChainConsensusGroupSize: args.MetaChainConsensusGroupSize,
 		RoundDurationInMillis:       args.RoundDurationInMillis,
 	}
 

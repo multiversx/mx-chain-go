@@ -43,20 +43,20 @@ const (
 
 // ArgsChainSimulatorConfigs holds all the components needed to create the chain simulator configs
 type ArgsChainSimulatorConfigs struct {
-	NumOfShards              uint32
-	OriginalConfigsPath      string
-	GenesisTimeStamp         int64
-	RoundDurationInMillis    uint64
-	TempDir                  string
-	MinNodesPerShard         uint32
-	MetaChainMinNodes        uint32
-	InitialEpoch             uint32
-	ConsensusGroupSize       uint32
-	MetaConsensusGroupSize   uint32
-	RoundsPerEpoch           core.OptionalUint64
-	NumNodesWaitingListShard uint32
-	NumNodesWaitingListMeta  uint32
-	AlterConfigsFunction     func(cfg *config.Configs)
+	NumOfShards                 uint32
+	OriginalConfigsPath         string
+	GenesisTimeStamp            int64
+	RoundDurationInMillis       uint64
+	TempDir                     string
+	MinNodesPerShard            uint32
+	ConsensusGroupSize          uint32
+	MetaChainMinNodes           uint32
+	MetaChainConsensusGroupSize uint32
+	InitialEpoch                uint32
+	RoundsPerEpoch              core.OptionalUint64
+	NumNodesWaitingListShard    uint32
+	NumNodesWaitingListMeta     uint32
+	AlterConfigsFunction        func(cfg *config.Configs)
 }
 
 // ArgsConfigsSimulator holds the configs for the chain simulator
@@ -281,7 +281,7 @@ func generateValidatorsKeyAndUpdateFiles(
 	nodes.StartTime = args.GenesisTimeStamp
 
 	nodes.ConsensusGroupSize = args.ConsensusGroupSize
-	nodes.MetaChainConsensusGroupSize = args.MetaConsensusGroupSize
+	nodes.MetaChainConsensusGroupSize = args.MetaChainConsensusGroupSize
 	nodes.Hysteresis = 0
 
 	nodes.MinNodesPerShard = args.MinNodesPerShard
