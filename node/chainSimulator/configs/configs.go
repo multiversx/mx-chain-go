@@ -51,6 +51,8 @@ type ArgsChainSimulatorConfigs struct {
 	MinNodesPerShard         uint32
 	MetaChainMinNodes        uint32
 	InitialEpoch             uint32
+	ConsensusGroupSize       uint32
+	MetaConsensusGroupSize   uint32
 	RoundsPerEpoch           core.OptionalUint64
 	NumNodesWaitingListShard uint32
 	NumNodesWaitingListMeta  uint32
@@ -278,8 +280,8 @@ func generateValidatorsKeyAndUpdateFiles(
 	nodes.RoundDuration = args.RoundDurationInMillis
 	nodes.StartTime = args.GenesisTimeStamp
 
-	nodes.ConsensusGroupSize = ChainSimulatorConsensusGroupSize
-	nodes.MetaChainConsensusGroupSize = ChainSimulatorConsensusGroupSize
+	nodes.ConsensusGroupSize = args.ConsensusGroupSize
+	nodes.MetaChainConsensusGroupSize = args.MetaConsensusGroupSize
 	nodes.Hysteresis = 0
 
 	nodes.MinNodesPerShard = args.MinNodesPerShard
