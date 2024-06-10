@@ -2,11 +2,9 @@ package bridge
 
 import (
 	"encoding/hex"
-	"fmt"
 	"testing"
 
 	chainSim "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
-	"github.com/multiversx/mx-chain-go/sovereignnode/dataCodec"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
@@ -83,52 +81,40 @@ func Deposit(
 ) {
 	require.True(t, len(tokens) > 0)
 
-	dtaCodec := cs.GetNodeHandler(core.SovereignChainShardId).GetRunTypeComponents().DataCodecHandler()
-
-	depositArgs := core.BuiltInFunctionMultiESDTNFTTransfer +
-		"@" + hex.EncodeToString(contract) +
-		"@" + fmt.Sprintf("%02X", len(tokens))
-
+	args := make([]any, 0)
+	args = append(args, &abi.AddressValue{Value: contract})
+	args = append(args, &abi.U32Value{Value: uint32(len(tokens))})
 	for _, token := range tokens {
-		depositArgs = depositArgs +
-			"@" + hex.EncodeToString([]byte(token.Identifier)) +
-			"@" + getNonceArg(t, dtaCodec, token.Nonce) +
-			"@" + hex.EncodeToString(token.Amount.Bytes())
+		args = append(args, &abi.StringValue{Value: token.Identifier})
+		args = append(args, &abi.U64Value{Value: token.Nonce})
+		args = append(args, &abi.BigUIntValue{Value: token.Amount})
 	}
+	args = append(args, &abi.StringValue{Value: deposit})
+	args = append(args, &abi.AddressValue{Value: receiver})
+	args = append(args, &abi.OptionalValue{Value: getTransferDataValue(transferData)})
 
-	transferDataArg := getTransferDataArg(t, dtaCodec, transferData)
-	depositArgs = depositArgs +
-		"@" + hex.EncodeToString([]byte(deposit)) +
-		"@" + hex.EncodeToString(receiver) +
-		transferDataArg
+	multiTransferArg, err := cs.GetNodeHandler(core.SovereignChainShardId).GetRunTypeComponents().DataCodecHandler().Serialize(args)
+	require.Nil(t, err)
+	depositArgs := core.BuiltInFunctionMultiESDTNFTTransfer +
+		"@" + multiTransferArg
 
 	chainSim.SendTransaction(t, cs, sender, nonce, sender, chainSim.ZeroValue, depositArgs, uint64(20000000))
 }
 
-func getNonceArg(t *testing.T, dataCodec dataCodec.SovereignDataCodec, nonce uint64) string {
-	hexNonce, err := dataCodec.Serialize([]any{&abi.U64Value{Value: nonce}})
-	require.Nil(t, err)
-	return hexNonce
-}
-
-func getTransferDataArg(t *testing.T, dataCodec dataCodec.SovereignDataCodec, transferData *sovereign.TransferData) string {
+func getTransferDataValue(transferData *sovereign.TransferData) any {
 	if transferData == nil {
-		return ""
+		return nil
 	}
 
 	arguments := make([]abi.SingleValue, len(transferData.Args))
 	for i, arg := range transferData.Args {
 		arguments[i] = &abi.BytesValue{Value: arg}
 	}
-	transferDataValue := &abi.MultiValue{
+	return &abi.MultiValue{
 		Items: []any{
 			&abi.U64Value{Value: transferData.GasLimit},
 			&abi.BytesValue{Value: transferData.Function},
 			&abi.ListValue{Items: arguments},
 		},
 	}
-	args, err := dataCodec.Serialize([]any{transferDataValue})
-	require.Nil(t, err)
-
-	return "@" + args
 }
