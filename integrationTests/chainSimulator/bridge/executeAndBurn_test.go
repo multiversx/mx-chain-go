@@ -196,6 +196,7 @@ func simulateExecutionAndDeposit(
 	// Deposit an array of tokens from main chain to sovereign chain,
 	// expecting these tokens to be burned by the whitelisted ESDT safe sc
 	Deposit(t, cs, wallet.Bytes, &nonce, bridgeData.ESDTSafeAddress, bridgedOutTokens, wallet.Bytes)
+
 	bridgedTokens := groupTokens(bridgedInTokens)
 	for _, bridgedOutToken := range groupTokens(bridgedOutTokens) {
 		bridgedValue, err := getBridgedValue(bridgedTokens, bridgedOutToken.Identifier)
