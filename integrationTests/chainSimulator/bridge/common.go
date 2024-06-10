@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"testing"
 
+	chainSim "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/stretchr/testify/require"
-
-	chainSim "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 )
 
 const (
