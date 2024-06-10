@@ -106,10 +106,6 @@ func Deposit(
 }
 
 func getNonceArg(t *testing.T, dataCodec dataCodec.SovereignDataCodec, nonce uint64) string {
-	if nonce == 0 {
-		return ""
-	}
-
 	hexNonce, err := dataCodec.Serialize([]any{&abi.U64Value{Value: nonce}})
 	require.Nil(t, err)
 	return hexNonce
