@@ -751,6 +751,7 @@ func (txProc *txProcessor) processInnerTx(
 			process.ErrRelayedTxV3SenderShardMismatch.Error())
 	}
 
+	// TODO: remove adding and then removing the fee at the sender
 	err = txProc.addFeeAndValueToDest(acntSnd, big.NewInt(0), txFee)
 	if err != nil {
 		return txFee, vmcommon.UserError, txProc.executeFailedRelayedUserTx(
@@ -945,12 +946,23 @@ func (txProc *txProcessor) processUserTx(
 	originalTxHash []byte,
 ) (vmcommon.ReturnCode, error) {
 
+	relayerAdr := originalTx.SndAddr
 	acntSnd, acntDst, err := txProc.getAccounts(userTx.SndAddr, userTx.RcvAddr)
 	if err != nil {
-		return 0, err
+		errRemove := txProc.removeValueAndConsumedFeeFromUser(userTx, relayedTxValue, originalTxHash, originalTx, err)
+		if errRemove != nil {
+			return vmcommon.UserError, errRemove
+		}
+		return vmcommon.UserError, txProc.executeFailedRelayedUserTx(
+			userTx,
+			relayerAdr,
+			relayedTxValue,
+			relayedNonce,
+			originalTx,
+			originalTxHash,
+			err.Error())
 	}
 
-	relayerAdr := originalTx.SndAddr
 	txType, dstShardTxType := txProc.txTypeHandler.ComputeTransactionType(userTx)
 	err = txProc.checkTxValues(userTx, acntSnd, acntDst, true)
 	if err != nil {
