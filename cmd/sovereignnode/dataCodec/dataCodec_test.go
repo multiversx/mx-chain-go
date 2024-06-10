@@ -46,27 +46,6 @@ func TestNewDataCodec(t *testing.T) {
 	})
 }
 
-func TestDataCodec_Serialize(t *testing.T) {
-	t.Parallel()
-
-	abiCodec := createDataCodec()
-	serialized, err := abiCodec.Serialize([]any{&abi.U64Value{Value: uint64(0x1011)}})
-	require.Nil(t, err)
-	require.Equal(t, "1011", serialized)
-}
-
-func TestDataCodec_deserialize(t *testing.T) {
-	t.Parallel()
-
-	abiCodec := createDataCodec()
-	outputValues := []any{
-		&abi.U64Value{},
-	}
-	err := abiCodec.Deserialize("1011", outputValues)
-	require.Nil(t, err)
-	require.Equal(t, []any{&abi.U64Value{Value: 0x1011}}, outputValues)
-}
-
 func TestDataCodec_EventDataCodec(t *testing.T) {
 	t.Parallel()
 

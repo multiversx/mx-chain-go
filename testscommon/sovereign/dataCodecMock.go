@@ -14,22 +14,6 @@ type DataCodecMock struct {
 	SerializeOperationCalled   func(operation sovereign.Operation) ([]byte, error)
 }
 
-// Serialize -
-func (dcm *DataCodecMock) Serialize(inputValues []any) (string, error) {
-	if dcm.SerializeCalled != nil {
-		return dcm.SerializeCalled(inputValues)
-	}
-	return "", nil
-}
-
-// Deserialize -
-func (dcm *DataCodecMock) Deserialize(data string, outputValues []any) error {
-	if dcm.DeserializeCalled != nil {
-		return dcm.DeserializeCalled(data, outputValues)
-	}
-	return nil
-}
-
 // SerializeEventData -
 func (dcm *DataCodecMock) SerializeEventData(eventData sovereign.EventData) ([]byte, error) {
 	if dcm.SerializeEventDataCalled != nil {

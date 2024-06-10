@@ -16,6 +16,10 @@ const (
 	deposit = "deposit"
 )
 
+var serializer, _ = abi.NewSerializer(abi.ArgsNewSerializer{
+	PartsSeparator: "@",
+})
+
 // ArgsBridgeSetup holds the arguments for bridge setup
 type ArgsBridgeSetup struct {
 	ESDTSafeAddress  []byte
@@ -93,7 +97,7 @@ func Deposit(
 	args = append(args, &abi.AddressValue{Value: receiver})
 	args = append(args, &abi.OptionalValue{Value: getTransferDataValue(transferData)})
 
-	multiTransferArg, err := cs.GetNodeHandler(core.SovereignChainShardId).GetRunTypeComponents().DataCodecHandler().Serialize(args)
+	multiTransferArg, err := serializer.Serialize(args)
 	require.Nil(t, err)
 	depositArgs := core.BuiltInFunctionMultiESDTNFTTransfer +
 		"@" + multiTransferArg

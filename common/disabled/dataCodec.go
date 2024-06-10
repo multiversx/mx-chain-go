@@ -10,16 +10,6 @@ func NewDisabledDataCodec() *dataCodec {
 	return &dataCodec{}
 }
 
-// Serialize -
-func (dc *dataCodec) Serialize(_ []any) (string, error) {
-	return "", nil
-}
-
-// Deserialize -
-func (dc *dataCodec) Deserialize(_ string, _ []any) error {
-	return nil
-}
-
 // SerializeEventData returns nothing
 func (dc *dataCodec) SerializeEventData(_ sovereign.EventData) ([]byte, error) {
 	return make([]byte, 0), nil

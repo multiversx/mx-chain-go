@@ -12,15 +12,8 @@ type OutgoingOperationsFormatter interface {
 	IsInterfaceNil() bool
 }
 
-// AbiSerializer is the interface to work with abi codec
-type AbiSerializer interface {
-	Serialize(inputValues []any) (string, error)
-	Deserialize(data string, outputValues []any) error
-}
-
 // DataCodecHandler is the interface for serializing/deserializing data
 type DataCodecHandler interface {
-	AbiSerializer
 	SerializeEventData(eventData sovereign.EventData) ([]byte, error)
 	DeserializeEventData(data []byte) (*sovereign.EventData, error)
 	SerializeTokenData(tokenData sovereign.EsdtTokenData) ([]byte, error)
