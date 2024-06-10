@@ -11,7 +11,7 @@ require (
 	github.com/gizak/termui/v3 v3.1.0
 	github.com/gogo/protobuf v1.3.2
 	github.com/google/gops v0.3.18
-	github.com/gorilla/websocket v1.5.0
+	github.com/gorilla/websocket v1.5.2
 	github.com/klauspost/cpuid/v2 v2.2.5
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/multiversx/mx-chain-communication-go v1.0.14
@@ -175,7 +175,7 @@ require (
 	golang.org/x/arch v0.3.0 // indirect
 	golang.org/x/exp v0.0.0-20230321023759-10a507213a29 // indirect
 	golang.org/x/mod v0.10.0 // indirect
-	golang.org/x/net v0.21.0 // indirect
+	golang.org/x/net v0.23.0 // indirect
 	golang.org/x/sync v0.2.0 // indirect
 	golang.org/x/sys v0.19.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
