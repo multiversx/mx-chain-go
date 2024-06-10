@@ -71,7 +71,7 @@ func TestChainSimulator_ExecuteWithMintMultipleEsdtsAndBurnNftWithDeposit(t *tes
 	}
 
 	nft := "sov2-SOVNFT-123456"
-	nftNonce := uint64(1)
+	nftNonce := uint64(3)
 	token := "sov3-TKN-1q2w3e"
 
 	bridgedInTokens := make([]chainSim.ArgsDepositToken, 0)
@@ -105,7 +105,7 @@ func TestChainSimulator_ExecuteWithMintAndBurnSftWithDeposit(t *testing.T) {
 	}
 
 	sft := "sov3-SOVSFT-654321"
-	sftNonce := uint64(1)
+	sftNonce := uint64(123)
 
 	bridgedInTokens := make([]chainSim.ArgsDepositToken, 0)
 	bridgedInTokens = append(bridgedInTokens, chainSim.ArgsDepositToken{
