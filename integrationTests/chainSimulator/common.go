@@ -154,7 +154,7 @@ func getTokenRegisterType(tokenType string) string {
 	case core.SemiFungibleESDT:
 		return "SFT"
 	case core.MetaESDT:
-		return "METTA"
+		return "META"
 	}
 	return ""
 }
