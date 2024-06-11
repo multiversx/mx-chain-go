@@ -699,6 +699,7 @@ type feeHandler interface {
 	ComputeGasLimitInEpoch(tx data.TransactionWithFeeHandler, epoch uint32) uint64
 	ComputeGasUsedAndFeeBasedOnRefundValueInEpoch(tx data.TransactionWithFeeHandler, refundValue *big.Int, epoch uint32) (uint64, *big.Int)
 	ComputeTxFeeBasedOnGasUsedInEpoch(tx data.TransactionWithFeeHandler, gasUsed uint64, epoch uint32) *big.Int
+	ComputeRelayedTxFees(tx data.TransactionWithFeeHandler) (*big.Int, *big.Int, error)
 }
 
 // TxGasHandler handles a transaction gas and gas cost
@@ -1363,6 +1364,5 @@ type SentSignaturesTracker interface {
 // RelayedTxV3Processor defines a component able to check and process relayed transactions v3
 type RelayedTxV3Processor interface {
 	CheckRelayedTx(tx *transaction.Transaction) error
-	ComputeRelayedTxFees(tx *transaction.Transaction) (*big.Int, *big.Int)
 	IsInterfaceNil() bool
 }

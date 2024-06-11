@@ -1,8 +1,6 @@
 package disabled
 
 import (
-	"math/big"
-
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 )
 
@@ -17,11 +15,6 @@ func NewRelayedTxV3Processor() *relayedTxV3Processor {
 // CheckRelayedTx returns nil as it is disabled
 func (proc *relayedTxV3Processor) CheckRelayedTx(_ *transaction.Transaction) error {
 	return nil
-}
-
-// ComputeRelayedTxFees returns 0, 0 as it is disabled
-func (proc *relayedTxV3Processor) ComputeRelayedTxFees(_ *transaction.Transaction) (*big.Int, *big.Int) {
-	return big.NewInt(0), big.NewInt(0)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

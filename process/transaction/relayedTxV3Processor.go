@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/process"
@@ -92,36 +91,6 @@ func (proc *relayedTxV3Processor) CheckRelayedTx(tx *transaction.Transaction) er
 	}
 
 	return nil
-}
-
-// ComputeRelayedTxFees returns the both the total fee for the entire relayed tx and the relayed only fee
-func (proc *relayedTxV3Processor) ComputeRelayedTxFees(tx *transaction.Transaction) (*big.Int, *big.Int) {
-	feesForInnerTxs := proc.getTotalFeesRequiredForInnerTxs(tx.InnerTransactions)
-
-	relayerUnguardedMoveBalanceFee := core.SafeMul(proc.economicsFee.GasPriceForMove(tx), proc.economicsFee.MinGasLimit())
-	relayerTotalMoveBalanceFee := proc.economicsFee.ComputeMoveBalanceFee(tx)
-	relayerMoveBalanceFeeDiff := big.NewInt(0).Sub(relayerTotalMoveBalanceFee, relayerUnguardedMoveBalanceFee)
-
-	relayerFee := big.NewInt(0).Mul(relayerUnguardedMoveBalanceFee, big.NewInt(int64(len(tx.InnerTransactions))))
-	relayerFee.Add(relayerFee, relayerMoveBalanceFeeDiff) // add the difference in case of guarded relayed tx
-
-	totalFee := big.NewInt(0).Add(relayerFee, feesForInnerTxs)
-
-	return relayerFee, totalFee
-}
-
-func (proc *relayedTxV3Processor) getTotalFeesRequiredForInnerTxs(innerTxs []*transaction.Transaction) *big.Int {
-	totalFees := big.NewInt(0)
-	for _, innerTx := range innerTxs {
-		gasToUse := innerTx.GetGasLimit() - proc.economicsFee.ComputeGasLimit(innerTx)
-		moveBalanceUserFee := proc.economicsFee.ComputeMoveBalanceFee(innerTx)
-		processingUserFee := proc.economicsFee.ComputeFeeForProcessing(innerTx, gasToUse)
-		innerTxFee := big.NewInt(0).Add(moveBalanceUserFee, processingUserFee)
-
-		totalFees.Add(totalFees, innerTxFee)
-	}
-
-	return totalFees
 }
 
 func (proc *relayedTxV3Processor) computeRelayedTxMinGasLimit(tx *transaction.Transaction) uint64 {

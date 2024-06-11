@@ -232,7 +232,7 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 
 	switch txType {
 	case process.MoveBalance:
-		err = txProc.processMoveBalance(tx, acntSnd, acntDst, dstShardTxType, nil, false)
+		err = txProc.processMoveBalance(tx, acntSnd, acntDst, dstShardTxType, nil, false, false)
 		if err != nil {
 			return vmcommon.UserError, txProc.executeAfterFailedMoveBalanceTransaction(tx, err)
 		}
@@ -467,6 +467,7 @@ func (txProc *txProcessor) processMoveBalance(
 	destShardTxType process.TransactionType,
 	originalTxHash []byte,
 	isUserTxOfRelayed bool,
+	isUserTxOfRelayedV3 bool,
 ) error {
 
 	moveBalanceCost, totalCost, err := txProc.processTxFee(tx, acntSrc, acntDst, destShardTxType, isUserTxOfRelayed)
@@ -528,6 +529,10 @@ func (txProc *txProcessor) processMoveBalance(
 		txProc.txFeeHandler.ProcessTransactionFeeRelayedUserTx(moveBalanceCost, big.NewInt(0), txHash, originalTxHash)
 	} else {
 		txProc.txFeeHandler.ProcessTransactionFee(moveBalanceCost, big.NewInt(0), txHash)
+	}
+
+	if isUserTxOfRelayedV3 {
+		return txProc.createRefundSCRForMoveBalance(tx, txHash, originalTxHash, moveBalanceCost)
 	}
 
 	return nil
@@ -670,7 +675,11 @@ func (txProc *txProcessor) processRelayedTxV3(
 	snapshot := txProc.accounts.JournalLen()
 
 	// process fees on both relayer and sender
-	relayerFee, totalFee := txProc.relayedTxV3Processor.ComputeRelayedTxFees(tx)
+	relayerFee, totalFee, err := txProc.economicsFee.ComputeRelayedTxFees(tx)
+	if err != nil {
+		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, err)
+	}
+
 	err = txProc.processTxAtRelayer(relayerAcnt, totalFee, relayerFee, tx)
 	if err != nil {
 		return 0, err
@@ -988,7 +997,8 @@ func (txProc *txProcessor) processUserTx(
 	returnCode := vmcommon.Ok
 	switch txType {
 	case process.MoveBalance:
-		err = txProc.processMoveBalance(userTx, acntSnd, acntDst, dstShardTxType, originalTxHash, true)
+		isUserTxOfRelayedV3 := len(originalTx.InnerTransactions) > 0
+		err = txProc.processMoveBalance(userTx, acntSnd, acntDst, dstShardTxType, originalTxHash, true, isUserTxOfRelayedV3)
 		intraShard := txProc.shardCoordinator.SameShard(userTx.SndAddr, userTx.RcvAddr)
 		if err == nil && intraShard {
 			txProc.createCompleteEventLog(scrFromTx, originalTxHash)
@@ -1214,6 +1224,31 @@ func (txProc *txProcessor) createCompleteEventLog(scr data.TransactionHandler, o
 	if ignorableError != nil {
 		log.Debug("txProcessor.createCompleteEventLog txLogsProcessor.SaveLog()", "error", ignorableError.Error())
 	}
+}
+
+func (txProc *txProcessor) createRefundSCRForMoveBalance(
+	tx *transaction.Transaction,
+	txHash []byte,
+	originalTxHash []byte,
+	consumedFee *big.Int,
+) error {
+	providedFee := big.NewInt(0).Mul(big.NewInt(0).SetUint64(tx.GasLimit), big.NewInt(0).SetUint64(tx.GasPrice))
+	refundValue := big.NewInt(0).Sub(providedFee, consumedFee)
+
+	refundGasToRelayerSCR := &smartContractResult.SmartContractResult{
+		Nonce:          tx.Nonce,
+		Value:          refundValue,
+		RcvAddr:        tx.RelayerAddr,
+		SndAddr:        tx.SndAddr,
+		PrevTxHash:     txHash,
+		OriginalTxHash: originalTxHash,
+		GasPrice:       tx.GetGasPrice(),
+		CallType:       vm.DirectCall,
+		ReturnMessage:  []byte(core.GasRefundForRelayerMessage),
+		OriginalSender: tx.RelayerAddr,
+	}
+
+	return txProc.scrForwarder.AddIntermediateTransactions([]data.TransactionHandler{refundGasToRelayerSCR})
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
