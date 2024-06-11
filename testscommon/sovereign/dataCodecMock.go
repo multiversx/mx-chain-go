@@ -4,8 +4,6 @@ import "github.com/multiversx/mx-chain-core-go/data/sovereign"
 
 // DataCodecMock -
 type DataCodecMock struct {
-	SerializeCalled            func(inputValues []any) (string, error)
-	DeserializeCalled          func(data string, outputValues []any) error
 	SerializeEventDataCalled   func(eventData sovereign.EventData) ([]byte, error)
 	DeserializeEventDataCalled func(data []byte) (*sovereign.EventData, error)
 	SerializeTokenDataCalled   func(tokenData sovereign.EsdtTokenData) ([]byte, error)
