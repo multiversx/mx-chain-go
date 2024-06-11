@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 
@@ -21,7 +22,6 @@ import (
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
-	mock2 "github.com/multiversx/mx-chain-go/epochStart/mock"
 	"github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
@@ -31,7 +31,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/factory/shard"
 	disabledGuardian "github.com/multiversx/mx-chain-go/process/guardian/disabled"
-	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/receipts"
 	"github.com/multiversx/mx-chain-go/process/rewardTransaction"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
@@ -44,7 +43,6 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
-	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/update"
 	hardForkProcess "github.com/multiversx/mx-chain-go/update/process"
 )
@@ -422,6 +420,21 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		return nil, err
 	}
 
+	pubKeyVerifier, err := disabled.NewMessageSignVerifier(arg.BlockSignKeyGen)
+	if err != nil {
+		return nil, err
+	}
+
+	// VM container only needs to know the number of eligible nodes.
+	// At genesis, we don't need a full nodes coordinator, and this information
+	// is already available in initial nodes setup from genesis
+	liteNodesCoordinator := &shardingMocks.NodesCoordinatorMock{
+		GetNumTotalEligibleCalled: func() uint64 {
+			eligible, _ := arg.InitialNodesSetup.InitialNodesInfo()
+			return uint64(len(eligible))
+		},
+	}
+
 	vmContainer, vmFactoryImpl, err := arg.RunTypeComponents.VmContainerShardFactoryCreator().CreateVmContainerFactory(argsHook, vm.ArgsVmContainerFactory{
 		Config:              arg.VirtualMachineConfig,
 		BlockGasLimit:       math.MaxUint64,
@@ -440,11 +453,10 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		Marshalizer:         arg.Core.InternalMarshalizer(),
 		SystemSCConfig:      &arg.SystemSCConfig,
 		ValidatorAccountsDB: arg.ValidatorAccounts,
-		// TODO: Check what to do here
-		MessageSignVerifier: &testscommon.MessageSignVerifierMock{},
-		NodesCoordinator:    &disabled.NodesCoordinator{},
-		NodesConfigProvider: &mock.NodesConfigProviderStub{},
-		ChanceComputer:      &mock2.ChanceComputerStub{},
+		ChanceComputer:      arg.Core.Rater(),
+		NodesConfigProvider: arg.InitialNodesSetup,
+		MessageSignVerifier: pubKeyVerifier,
+		NodesCoordinator:    liteNodesCoordinator,
 	})
 
 	err = blockChainHookImpl.SetVMContainer(vmContainer)

@@ -92,6 +92,7 @@ func createArgument(
 			TxVersionCheck:           &testscommon.TxVersionCheckerStub{},
 			MinTxVersion:             1,
 			EnableEpochsHandlerField: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+			RaterField:               &testscommon.RaterMock{},
 		},
 		Data: &mock.DataComponentsMock{
 			Storage: &storageCommon.ChainStorerStub{
