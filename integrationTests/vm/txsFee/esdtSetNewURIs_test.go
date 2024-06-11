@@ -45,14 +45,14 @@ func runEsdtSetNewURIsTest(t *testing.T, tokenType string) {
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
 
-	defaultMetaData := getDefaultMetaData()
+	defaultMetaData := GetDefaultMetaData()
 	tx = createTokenTx(sndAddr, sndAddr, 100000, 1, defaultMetaData)
 	retCode, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
 
-	defaultMetaData.uris = [][]byte{[]byte(hex.EncodeToString([]byte("newUri1"))), []byte(hex.EncodeToString([]byte("newUri2")))}
-	defaultMetaData.nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
+	defaultMetaData.Uris = [][]byte{[]byte(hex.EncodeToString([]byte("newUri1"))), []byte(hex.EncodeToString([]byte("newUri2")))}
+	defaultMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
 	tx = esdtSetNewUrisTx(sndAddr, sndAddr, 100000, defaultMetaData)
 	retCode, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
@@ -69,15 +69,15 @@ func esdtSetNewUrisTx(
 	sndAddr []byte,
 	rcvAddr []byte,
 	gasLimit uint64,
-	metaData *metaData,
+	metaData *MetaData,
 ) *transaction.Transaction {
 	txDataField := bytes.Join(
 		[][]byte{
 			[]byte(core.ESDTSetNewURIs),
-			metaData.tokenId,
-			metaData.nonce,
-			metaData.uris[0],
-			metaData.uris[1],
+			metaData.TokenId,
+			metaData.Nonce,
+			metaData.Uris[0],
+			metaData.Uris[1],
 		},
 		[]byte("@"),
 	)

@@ -45,17 +45,17 @@ func runEsdtMetaDataUpdateTest(t *testing.T, tokenType string) {
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
 
-	defaultMetaData := getDefaultMetaData()
+	defaultMetaData := GetDefaultMetaData()
 	tx = createTokenTx(sndAddr, sndAddr, 100000, 1, defaultMetaData)
 	retCode, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
 
 	// TODO change default metadata
-	defaultMetaData.nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
-	defaultMetaData.name = []byte(hex.EncodeToString([]byte("newName")))
-	defaultMetaData.hash = []byte(hex.EncodeToString([]byte("newHash")))
-	defaultMetaData.uris = [][]byte{defaultMetaData.uris[1]}
+	defaultMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
+	defaultMetaData.Name = []byte(hex.EncodeToString([]byte("newName")))
+	defaultMetaData.Hash = []byte(hex.EncodeToString([]byte("newHash")))
+	defaultMetaData.Uris = [][]byte{defaultMetaData.Uris[1]}
 	tx = esdtMetaDataUpdateTx(sndAddr, sndAddr, 100000, defaultMetaData)
 	retCode, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
@@ -71,18 +71,18 @@ func esdtMetaDataUpdateTx(
 	sndAddr []byte,
 	rcvAddr []byte,
 	gasLimit uint64,
-	metaData *metaData,
+	metaData *MetaData,
 ) *transaction.Transaction {
 	txDataField := bytes.Join(
 		[][]byte{
 			[]byte(core.ESDTMetaDataUpdate),
-			metaData.tokenId,
-			metaData.nonce,
-			metaData.name,
-			metaData.royalties,
-			metaData.hash,
-			metaData.attributes,
-			metaData.uris[0],
+			metaData.TokenId,
+			metaData.Nonce,
+			metaData.Name,
+			metaData.Royalties,
+			metaData.Hash,
+			metaData.Attributes,
+			metaData.Uris[0],
 		},
 		[]byte("@"),
 	)
