@@ -95,6 +95,8 @@ type ArgsCoreComponentsHolder struct {
 	MinNodesMeta                uint32
 	MetaChainConsensusGroupSize uint32
 	RoundDurationInMs           uint64
+	CreateGenesisNodesSetup     func(nodesFilePath string, addressPubkeyConverter core.PubkeyConverter, validatorPubkeyConverter core.PubkeyConverter, genesisMaxNumShards uint32) (sharding.GenesisNodesSetupHandler, error)
+	CreateRatingsData           func(arg rating.RatingsDataArg) (process.RatingsInfoHandler, error)
 }
 
 // CreateCoreComponents will create a new instance of factory.CoreComponentsHolder
@@ -148,7 +150,7 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 	instance.alarmScheduler = &mock.AlarmSchedulerStub{}
 	instance.syncTimer = &testscommon.SyncTimerStub{}
 
-	instance.genesisNodesSetup, err = sharding.NewNodesSetup(args.NodesSetupPath, instance.addressPubKeyConverter, instance.validatorPubKeyConverter, args.NumShards)
+	instance.genesisNodesSetup, err = args.CreateGenesisNodesSetup(args.NodesSetupPath, instance.addressPubKeyConverter, instance.validatorPubKeyConverter, args.NumShards)
 	if err != nil {
 		return nil, err
 	}
@@ -181,7 +183,7 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 	}
 	instance.apiEconomicsData = instance.economicsData
 
-	instance.ratingsData, err = rating.NewRatingsData(rating.RatingsDataArg{
+	instance.ratingsData, err = args.CreateRatingsData(rating.RatingsDataArg{
 		Config:                   args.RatingConfig,
 		ShardConsensusSize:       args.ConsensusGroupSize,
 		MetaConsensusSize:        args.MetaChainConsensusGroupSize,
