@@ -22,6 +22,26 @@ func NewSovereignEpochStartBootstrapperFactory(esbf EpochStartBootstrapperCreato
 
 // CreateEpochStartBootstrapper creates a new epoch start bootstrapper for chain run sovereign
 func (bcf *sovereignEpochStartBootstrapperFactory) CreateEpochStartBootstrapper(epochStartBootstrapArgs ArgsEpochStartBootstrap) (EpochStartBootstrapper, error) {
+	sesb, err := bcf.createEpochStartBootStrapper(epochStartBootstrapArgs)
+	if err != nil {
+		return nil, err
+	}
+
+	return sesb, nil
+}
+
+// CreateStorageEpochStartBootstrapper creates a new storage epoch start bootstrapper for chain run normal
+func (bcf *sovereignEpochStartBootstrapperFactory) CreateStorageEpochStartBootstrapper(epochStartBootstrapArgs ArgsStorageEpochStartBootstrap) (EpochStartBootstrapper, error) {
+	esb, err := bcf.createEpochStartBootStrapper(epochStartBootstrapArgs.ArgsEpochStartBootstrap)
+	if err != nil {
+		return nil, err
+	}
+
+	epochStartBootstrapArgs.EpochStartBootStrap = esb.epochStartBootstrap
+	return NewStorageEpochStartBootstrap(epochStartBootstrapArgs)
+}
+
+func (bcf *sovereignEpochStartBootstrapperFactory) createEpochStartBootStrapper(epochStartBootstrapArgs ArgsEpochStartBootstrap) (*sovereignChainEpochStartBootstrap, error) {
 	epochStartBootstrapper, err := NewEpochStartBootstrap(epochStartBootstrapArgs)
 	if err != nil {
 		return nil, err
@@ -31,7 +51,6 @@ func (bcf *sovereignEpochStartBootstrapperFactory) CreateEpochStartBootstrapper(
 	if err != nil {
 		return nil, err
 	}
-
 	return sesb, nil
 }
 

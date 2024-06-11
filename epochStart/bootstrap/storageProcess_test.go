@@ -35,13 +35,16 @@ func createMockStorageEpochStartBootstrapArgs(
 	coreMock *mock.CoreComponentsMock,
 	cryptoMock *mock.CryptoComponentsMock,
 ) ArgsStorageEpochStartBootstrap {
+	args := createMockEpochStartBootstrapArgs(coreMock, cryptoMock)
 	esbc := NewEpochStartBootstrapperFactory()
+	esb, _ := esbc.CreateEpochStartBootstrapper(args)
+
 	return ArgsStorageEpochStartBootstrap{
-		ArgsEpochStartBootstrap:       createMockEpochStartBootstrapArgs(coreMock, cryptoMock),
-		ImportDbConfig:                config.ImportDbConfig{},
-		ChanGracefullyClose:           make(chan endProcess.ArgEndProcess, 1),
-		TimeToWaitForRequestedData:    time.Second,
-		EpochStartBootstrapperCreator: esbc,
+		ArgsEpochStartBootstrap:    args,
+		ImportDbConfig:             config.ImportDbConfig{},
+		ChanGracefullyClose:        make(chan endProcess.ArgEndProcess, 1),
+		TimeToWaitForRequestedData: time.Second,
+		EpochStartBootStrap:        esb.(*epochStartBootstrap),
 	}
 }
 
@@ -78,12 +81,12 @@ func TestNewStorageEpochStartBootstrap_InvalidArgumentsShouldErr(t *testing.T) {
 		assert.True(t, check.IfNil(sesb))
 		assert.True(t, errors.Is(err, dataRetriever.ErrNilGracefullyCloseChannel))
 	})
-	t.Run("nil EpochStartBootstrapperCreator should err", func(t *testing.T) {
+	t.Run("nil EpochStartBootStrap should err", func(t *testing.T) {
 		t.Parallel()
 
 		coreComp, cryptoComp := createComponentsForEpochStart()
 		args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
-		args.EpochStartBootstrapperCreator = nil
+		args.EpochStartBootStrap = nil
 		sesb, err := NewStorageEpochStartBootstrap(args)
 		assert.True(t, check.IfNil(sesb))
 		assert.Equal(t, errorsMx.ErrNilEpochStartBootstrapperCreator, err)
@@ -98,17 +101,9 @@ func TestNewStorageEpochStartBootstrap_ShouldWork(t *testing.T) {
 
 		coreComp, cryptoComp := createComponentsForEpochStart()
 		args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
-		sesb, err := NewStorageEpochStartBootstrap(args)
-		assert.False(t, check.IfNil(sesb))
-		assert.Nil(t, err)
-	})
-
-	t.Run("should work for sovereign", func(t *testing.T) {
-		t.Parallel()
-
-		coreComp, cryptoComp := createComponentsForEpochStart()
-		args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
-		args.EpochStartBootstrapperCreator, _ = NewSovereignEpochStartBootstrapperFactory(args.EpochStartBootstrapperCreator)
+		esbc := NewEpochStartBootstrapperFactory()
+		esb, _ := esbc.CreateEpochStartBootstrapper(args.ArgsEpochStartBootstrap)
+		args.EpochStartBootStrap = esb.(*epochStartBootstrap)
 		sesb, err := NewStorageEpochStartBootstrap(args)
 		assert.False(t, check.IfNil(sesb))
 		assert.Nil(t, err)
@@ -121,8 +116,8 @@ func TestCreateEpochStartBootstrapper_ShouldWork(t *testing.T) {
 	coreComp, cryptoComp := createComponentsForEpochStart()
 
 	args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
-
-	esb, err := args.EpochStartBootstrapperCreator.CreateEpochStartBootstrapper(args.ArgsEpochStartBootstrap)
+	esbc := NewEpochStartBootstrapperFactory()
+	esb, err := esbc.CreateEpochStartBootstrapper(args.ArgsEpochStartBootstrap)
 
 	require.NotNil(t, esb)
 	assert.Nil(t, err)
@@ -139,7 +134,7 @@ func TestStorageEpochStartBootstrap_BootstrapStartInEpochNotEnabled(t *testing.T
 		},
 	}
 
-	sesb, _ := NewStorageEpochStartBootstrap(args)
+	sesb := initializeStorageEpochStartBootstrap(args)
 
 	params, err := sesb.Bootstrap()
 	assert.Nil(t, err)
@@ -163,7 +158,8 @@ func TestStorageEpochStartBootstrap_BootstrapFromGenesis(t *testing.T) {
 	}
 	args.GeneralConfig = testscommon.GetGeneralConfig()
 	args.GeneralConfig.EpochStartConfig.RoundsPerEpoch = roundsPerEpoch
-	sesb, _ := NewStorageEpochStartBootstrap(args)
+
+	sesb := initializeStorageEpochStartBootstrap(args)
 
 	params, err := sesb.Bootstrap()
 	assert.Nil(t, err)
@@ -191,7 +187,7 @@ func TestStorageEpochStartBootstrap_BootstrapMetablockNotFound(t *testing.T) {
 	args.GeneralConfig = testscommon.GetGeneralConfig()
 	args.GeneralConfig.EpochStartConfig.RoundsPerEpoch = roundsPerEpoch
 
-	sesb, _ := NewStorageEpochStartBootstrap(args)
+	sesb := initializeStorageEpochStartBootstrap(args)
 
 	params, err := sesb.Bootstrap()
 	assert.Equal(t, process.ErrNilMetaBlockHeader, err)
@@ -264,7 +260,7 @@ func testRequestAndProcessFromStorageByShardId(t *testing.T, shardId uint32) {
 		},
 	}
 
-	sesb, _ := NewStorageEpochStartBootstrap(args)
+	sesb := initializeStorageEpochStartBootstrap(args)
 	sesb.epochStartMeta = epochStartMetaBlock
 	sesb.requestHandler = &testscommon.RequestHandlerStub{}
 	sesb.dataPool = dataRetrieverMock.NewPoolsHolderMock()
@@ -410,7 +406,7 @@ func TestStorageEpochStartBootstrap_syncHeadersFromStorage(t *testing.T) {
 			},
 		}
 
-		sesb, _ := NewStorageEpochStartBootstrap(args)
+		sesb := initializeStorageEpochStartBootstrap(args)
 		expectedHeaders := map[string]data.HeaderHandler{
 			string(hdrHash1): metaBlock,
 			string(hdrHash2): prevMetaBlock,
@@ -513,7 +509,7 @@ func TestStorageEpochStartBootstrap_processNodesConfig(t *testing.T) {
 	args.GeneralConfig = testscommon.GetGeneralConfig()
 	args.GenesisNodesConfig = getNodesConfigMock(1)
 
-	sesb, _ := NewStorageEpochStartBootstrap(args)
+	sesb := initializeStorageEpochStartBootstrap(args)
 	sesb.dataPool = dataRetrieverMock.NewPoolsHolderMock()
 	sesb.requestHandler = &testscommon.RequestHandlerStub{}
 	sesb.epochStartMeta = metaBlock
@@ -583,7 +579,7 @@ func TestCreateStorageRequestHandler_ShouldWork(t *testing.T) {
 
 		args := createMockStorageEpochStartBootstrapArgs(coreComp, cryptoComp)
 		args.RunTypeComponents = processMocks.NewSovereignRunTypeComponentsStub()
-		sesb, _ := NewStorageEpochStartBootstrap(args)
+		sesb := initializeStorageEpochStartBootstrap(args)
 
 		requestHandler, err := sesb.createStorageRequestHandler()
 
@@ -592,4 +588,12 @@ func TestCreateStorageRequestHandler_ShouldWork(t *testing.T) {
 		assert.Nil(t, err)
 	})
 
+}
+
+func initializeStorageEpochStartBootstrap(args ArgsStorageEpochStartBootstrap) *storageEpochStartBootstrap {
+	esbc := NewEpochStartBootstrapperFactory()
+	esb, _ := esbc.CreateEpochStartBootstrapper(args.ArgsEpochStartBootstrap)
+	args.EpochStartBootStrap = esb.(*epochStartBootstrap)
+	sesb, _ := NewStorageEpochStartBootstrap(args)
+	return sesb
 }
