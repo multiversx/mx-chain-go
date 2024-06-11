@@ -3,9 +3,10 @@ package nodesCoordinator
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/state"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // Validator defines a node that can be allocated to a shard for participation in a consensus group as validator
@@ -50,6 +51,7 @@ type PublicKeysSelector interface {
 	GetAllWaitingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
 	GetAllLeavingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
 	GetAllShuffledOutValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
+	GetShuffledOutToAuctionValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
 	GetConsensusValidatorsPublicKeys(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
 	GetOwnPublicKey() []byte
 }
@@ -70,9 +72,9 @@ type NodesCoordinatorHelper interface {
 
 // ChanceComputer provides chance computation capabilities based on a rating
 type ChanceComputer interface {
-	//GetChance returns the chances for the rating
+	// GetChance returns the chances for the rating
 	GetChance(uint32) uint32
-	//IsInterfaceNil verifies if the interface is nil
+	// IsInterfaceNil verifies if the interface is nil
 	IsInterfaceNil() bool
 }
 
@@ -154,6 +156,7 @@ type EpochValidatorsHandler interface {
 type EpochValidatorsHandlerWithAuction interface {
 	EpochValidatorsHandler
 	GetShuffledOutValidators() map[string][]*SerializableValidator
+	GetLowWaitingList() bool
 }
 
 // NodesCoordinatorRegistryHandler defines what is used to initialize nodes coordinator
