@@ -820,36 +820,7 @@ func (s *legacySystemSCProcessor) getUserAccount(address []byte) (state.UserAcco
 func (s *legacySystemSCProcessor) processSCOutputAccounts(
 	vmOutput *vmcommon.VMOutput,
 ) error {
-
-	outputAccounts := process.SortVMOutputInsideData(vmOutput)
-	for _, outAcc := range outputAccounts {
-		acc, err := s.getUserAccount(outAcc.Address)
-		if err != nil {
-			return err
-		}
-
-		storageUpdates := process.GetSortedStorageUpdates(outAcc)
-		for _, storeUpdate := range storageUpdates {
-			err = acc.SaveKeyValue(storeUpdate.Offset, storeUpdate.Data)
-			if err != nil {
-				return err
-			}
-		}
-
-		if outAcc.BalanceDelta != nil && outAcc.BalanceDelta.Cmp(zero) != 0 {
-			err = acc.AddToBalance(outAcc.BalanceDelta)
-			if err != nil {
-				return err
-			}
-		}
-
-		err = s.userAccountsDB.SaveAccount(acc)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return genesisCommon.ProcessSCOutputAccounts(vmOutput, s.userAccountsDB)
 }
 
 func (s *legacySystemSCProcessor) getSortedJailedNodes(validatorsInfoMap state.ShardValidatorsInfoMapHandler) []state.ValidatorInfoHandler {
@@ -1060,41 +1031,7 @@ func (s *legacySystemSCProcessor) callSetOwnersOnAddresses(arguments [][]byte) e
 }
 
 func (s *legacySystemSCProcessor) initDelegationSystemSC() error {
-	codeMetaData := &vmcommon.CodeMetadata{
-		Upgradeable: false,
-		Payable:     false,
-		Readable:    true,
-	}
-
-	vmInput := &vmcommon.ContractCreateInput{
-		VMInput: vmcommon.VMInput{
-			CallerAddr: vm.DelegationManagerSCAddress,
-			Arguments:  [][]byte{},
-			CallValue:  big.NewInt(0),
-		},
-		ContractCode:         vm.DelegationManagerSCAddress,
-		ContractCodeMetadata: codeMetaData.ToBytes(),
-	}
-
-	vmOutput, err := s.systemVM.RunSmartContractCreate(vmInput)
-	if err != nil {
-		return err
-	}
-	if vmOutput.ReturnCode != vmcommon.Ok {
-		return epochStart.ErrCouldNotInitDelegationSystemSC
-	}
-
-	err = s.processSCOutputAccounts(vmOutput)
-	if err != nil {
-		return err
-	}
-
-	err = genesisCommon.UpdateSystemSCContractsCode(vmInput.ContractCodeMetadata, s.userAccountsDB)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return genesisCommon.InitDelegationSystemSC(s.systemVM, s.userAccountsDB)
 }
 
 func (s *legacySystemSCProcessor) cleanAdditionalQueue() error {
