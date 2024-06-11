@@ -351,12 +351,7 @@ func TestSovereignGenesisBlockCreator_setSovereignStakedData(t *testing.T) {
 func TestSovereignGenesisBlockCreator_InitSystemAccountCalled(t *testing.T) {
 	t.Parallel()
 
-	arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
-	arg.ShardCoordinator = sharding.NewSovereignShardCoordinator(core.SovereignChainShardId)
-	arg.DNSV2Addresses = []string{"00000000000000000500761b8c4a25d3979359223208b412285f635e71300102"}
-
-	gbc, _ := NewGenesisBlockCreator(arg)
-	sgbc, _ := NewSovereignGenesisBlockCreator(gbc)
+	arg, sgbc := createSovereignGenesisBlockCreator(t)
 	require.NotNil(t, sgbc)
 
 	acc, err := arg.Accounts.GetExistingAccount(core.SystemAccountAddress)
