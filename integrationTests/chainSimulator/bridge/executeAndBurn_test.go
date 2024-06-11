@@ -1,7 +1,6 @@
 package bridge
 
 import (
-	"bytes"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
@@ -235,7 +234,7 @@ func executeMintOperation(
 		"@" + // operation
 		hex.EncodeToString(wallet.Bytes) + // receiver address
 		lengthOn4Bytes(len(bridgedInTokens)) + // nr of tokens
-		getTokenDataArgs(bridgedInTokens) + // tokens encoded arg
+		getTokenDataArgs(wallet.Bytes, bridgedInTokens) + // tokens encoded arg
 		"0000000000000000" + // event nonce
 		hex.EncodeToString(wallet.Bytes) + // sender address from other chain
 		"00" // no transfer data
@@ -245,7 +244,7 @@ func executeMintOperation(
 	}
 }
 
-func getTokenDataArgs(tokens []chainSim.ArgsDepositToken) string {
+func getTokenDataArgs(creator []byte, tokens []chainSim.ArgsDepositToken) string {
 	var arg string
 	for _, token := range tokens {
 		arg = arg +
@@ -257,10 +256,11 @@ func getTokenDataArgs(tokens []chainSim.ArgsDepositToken) string {
 			hex.EncodeToString(token.Amount.Bytes()) + // amount
 			"00" + // not frozen
 			lengthOn4Bytes(0) + // length of hash
-			lengthOn4Bytes(0) + // length of name
+			lengthOn4Bytes(4) + // length of name
+			hex.EncodeToString([]byte("ESDT")) + // name
 			lengthOn4Bytes(0) + // length of attributes
-			hex.EncodeToString(bytes.Repeat([]byte{0x00}, 32)) + // creator
-			lengthOn4Bytes(0) + // length of royalties
+			hex.EncodeToString(creator) + // creator
+			lengthOn4Bytes(0) + //length of royalties
 			lengthOn4Bytes(0) // length of uris
 	}
 	return arg
