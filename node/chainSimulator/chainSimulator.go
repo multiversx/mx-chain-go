@@ -60,6 +60,7 @@ type ArgsChainSimulator struct {
 	AlterConfigsFunction     func(cfg *config.Configs)
 }
 
+// ArgsBaseChainSimulator holds the arguments needed to create a new instance of simulator
 type ArgsBaseChainSimulator struct {
 	ArgsChainSimulator
 	ConsensusGroupSize          uint32
