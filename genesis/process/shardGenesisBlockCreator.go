@@ -458,6 +458,9 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		MessageSignVerifier: pubKeyVerifier,
 		NodesCoordinator:    liteNodesCoordinator,
 	})
+	if err != nil {
+		return nil, err
+	}
 
 	err = blockChainHookImpl.SetVMContainer(vmContainer)
 	if err != nil {
