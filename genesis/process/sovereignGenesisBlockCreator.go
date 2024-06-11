@@ -183,6 +183,11 @@ func createSovereignShardGenesisBlock(
 		return nil, nil, nil, err
 	}
 
+	err = initSystemSCs(shardProcessors.vmContainer, arg.Accounts)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	deploySystemSCTxs, err := deploySystemSmartContracts(arg, metaProcessor.txProcessor, metaProcessor.systemSCs)
 	if err != nil {
 		return nil, nil, nil, err
@@ -197,11 +202,6 @@ func createSovereignShardGenesisBlock(
 
 	metaScrsTxs := metaProcessor.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
 	indexingData.ScrsTxs = mergeScrs(indexingData.ScrsTxs, metaScrsTxs)
-
-	err = initSystemSCs(shardProcessors.vmContainer, arg.Accounts)
-	if err != nil {
-		return nil, nil, nil, err
-	}
 
 	rootHash, err := arg.Accounts.Commit()
 	if err != nil {

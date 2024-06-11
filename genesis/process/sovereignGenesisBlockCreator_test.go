@@ -373,12 +373,15 @@ func TestSovereignGenesisBlockCreator_InitSystemSCs(t *testing.T) {
 	arg, sgbc := createSovereignGenesisBlockCreator(t)
 	require.NotNil(t, sgbc)
 
+	_, err := sgbc.CreateGenesisBlocks()
+	require.Nil(t, err)
+
 	accountsDB := arg.Accounts
 
 	// Check delegation manager is initialized
 	val := retrieveAccValue(t, accountsDB, vm.DelegationManagerSCAddress, []byte("delegationContracts"))
 	delegationList := &systemSmartContracts.DelegationContractList{}
-	err := arg.Core.InternalMarshalizer().Unmarshal(delegationList, val)
+	err = arg.Core.InternalMarshalizer().Unmarshal(delegationList, val)
 	require.Nil(t, err)
 	require.Equal(t, [][]byte{vm.FirstDelegationSCAddress}, delegationList.Addresses)
 
