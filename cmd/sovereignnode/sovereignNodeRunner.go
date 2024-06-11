@@ -48,8 +48,6 @@ import (
 	stateComp "github.com/multiversx/mx-chain-go/factory/state"
 	statusComp "github.com/multiversx/mx-chain-go/factory/status"
 	"github.com/multiversx/mx-chain-go/factory/statusCore"
-	"github.com/multiversx/mx-chain-go/genesis"
-	"github.com/multiversx/mx-chain-go/genesis/data"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
 	"github.com/multiversx/mx-chain-go/health"
 	"github.com/multiversx/mx-chain-go/node"
@@ -61,8 +59,8 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	sovereignConfig "github.com/multiversx/mx-chain-go/sovereignnode/config"
-	"github.com/multiversx/mx-chain-go/sovereignnode/dataCodec"
 	"github.com/multiversx/mx-chain-go/sovereignnode/incomingHeader"
+	sovRunType "github.com/multiversx/mx-chain-go/sovereignnode/runType"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
@@ -76,8 +74,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/closing"
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
-	hasherFactory "github.com/multiversx/mx-chain-core-go/hashing/factory"
-	marshallerFactory "github.com/multiversx/mx-chain-core-go/marshal/factory"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/multiversx/mx-chain-sovereign-bridge-go/cert"
 	factoryBridge "github.com/multiversx/mx-chain-sovereign-bridge-go/client"
@@ -85,7 +81,6 @@ import (
 	notifierCfg "github.com/multiversx/mx-chain-sovereign-notifier-go/config"
 	"github.com/multiversx/mx-chain-sovereign-notifier-go/factory"
 	notifierProcess "github.com/multiversx/mx-chain-sovereign-notifier-go/process"
-	"github.com/multiversx/mx-sdk-abi-incubator/golang/abi"
 )
 
 var log = logger.GetOrCreate("sovereignNode")
@@ -435,7 +430,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 
 	log.Debug("creating process components")
 
-	incomingHeaderHandler, err := createIncomingHeaderProcessor(
+	incomingHeaderHandler, err := incomingHeader.CreateIncomingHeaderProcessor(
 		&configs.SovereignExtraConfig.NotifierConfig,
 		managedDataComponents.Datapool(),
 		configs.SovereignExtraConfig.MainChainNotarization.MainChainNotarizationStartRound,
@@ -1628,65 +1623,24 @@ func (snr *sovereignNodeRunner) CreateManagedCryptoComponents(
 	return managedCryptoComponents, nil
 }
 
-// CreateArgsRunTypeComponents - creates the arguments for runType components
-func (snr *sovereignNodeRunner) CreateArgsRunTypeComponents(coreComponents mainFactory.CoreComponentsHandler, cryptoComponents mainFactory.CryptoComponentsHandler) (*runType.ArgsRunTypeComponents, error) {
-	initialAccounts := make([]*data.InitialAccount, 0)
-	err := core.LoadJsonFile(&initialAccounts, snr.configs.ConfigurationPathsHolder.Genesis)
-	if err != nil {
-		return nil, err
-	}
-
-	var accounts []genesis.InitialAccountHandler
-	for _, ia := range initialAccounts {
-		accounts = append(accounts, ia)
-	}
-
-	return &runType.ArgsRunTypeComponents{
-		CoreComponents:   coreComponents,
-		CryptoComponents: cryptoComponents,
-		Configs:          *snr.configs.Configs,
-		InitialAccounts:  accounts,
-	}, nil
-}
-
 // CreateSovereignArgsRunTypeComponents creates the arguments for sovereign runType components
 func (snr *sovereignNodeRunner) CreateSovereignArgsRunTypeComponents(coreComponents mainFactory.CoreComponentsHandler, cryptoComponents mainFactory.CryptoComponentsHandler) (*runType.ArgsSovereignRunTypeComponents, error) {
-	args, err := snr.CreateArgsRunTypeComponents(coreComponents, cryptoComponents)
+	argsRunType, err := runType.CreateArgsRunTypeComponents(coreComponents, cryptoComponents, *snr.configs.Configs)
 	if err != nil {
 		return nil, err
 	}
 
-	runTypeComponentsFactory, err := runType.NewRunTypeComponentsFactory(*args)
-	if err != nil {
-		return nil, fmt.Errorf("NewRunTypeComponentsFactory failed: %w", err)
-	}
-
-	codec := abi.NewDefaultCodec()
-	argsDataCodec := dataCodec.ArgsDataCodec{
-		Serializer: abi.NewSerializer(codec),
-	}
-
-	dataCodecHandler, err := dataCodec.NewDataCodec(argsDataCodec)
-	if err != nil {
-		return nil, err
-	}
-
-	return &runType.ArgsSovereignRunTypeComponents{
-		RunTypeComponentsFactory: runTypeComponentsFactory,
-		Config:                   *snr.configs.SovereignExtraConfig,
-		DataCodec:                dataCodecHandler,
-		TopicsChecker:            incomingHeader.NewTopicsChecker(),
-	}, nil
+	return sovRunType.CreateSovereignArgsRunTypeComponents(*argsRunType, *snr.configs.SovereignExtraConfig)
 }
 
 // CreateManagedRunTypeComponents creates the managed runType components
 func (snr *sovereignNodeRunner) CreateManagedRunTypeComponents(coreComponents mainFactory.CoreComponentsHandler, cryptoComponents mainFactory.CryptoComponentsHandler) (mainFactory.RunTypeComponentsHandler, error) {
-	args, err := snr.CreateSovereignArgsRunTypeComponents(coreComponents, cryptoComponents)
+	argsSovRunType, err := snr.CreateSovereignArgsRunTypeComponents(coreComponents, cryptoComponents)
 	if err != nil {
 		return nil, err
 	}
 
-	sovereignRunTypeComponentsFactory, err := runType.NewSovereignRunTypeComponentsFactory(*args)
+	sovereignRunTypeComponentsFactory, err := runType.NewSovereignRunTypeComponentsFactory(*argsSovRunType)
 	if err != nil {
 		return nil, fmt.Errorf("NewSovereignRunTypeComponentsFactory failed: %w", err)
 	}
@@ -1857,35 +1811,6 @@ func createWhiteListerVerifiedTxs(generalConfig *config.Config) (process.WhiteLi
 		return nil, err
 	}
 	return interceptors.NewWhiteListDataVerifier(whiteListCacheVerified)
-}
-
-func createIncomingHeaderProcessor(
-	config *config.NotifierConfig,
-	dataPool dataRetriever.PoolsHolder,
-	mainChainNotarizationStartRound uint64,
-	runTypeComponents mainFactory.RunTypeComponentsHolder,
-) (process.IncomingHeaderSubscriber, error) {
-	marshaller, err := marshallerFactory.NewMarshalizer(config.WebSocketConfig.MarshallerType)
-	if err != nil {
-		return nil, err
-	}
-	hasher, err := hasherFactory.NewHasher(config.WebSocketConfig.HasherType)
-	if err != nil {
-		return nil, err
-	}
-
-	argsIncomingHeaderHandler := incomingHeader.ArgsIncomingHeaderProcessor{
-		HeadersPool:                     dataPool.Headers(),
-		TxPool:                          dataPool.UnsignedTransactions(),
-		Marshaller:                      marshaller,
-		Hasher:                          hasher,
-		MainChainNotarizationStartRound: mainChainNotarizationStartRound,
-		OutGoingOperationsPool:          runTypeComponents.OutGoingOperationsPoolHandler(),
-		DataCodec:                       runTypeComponents.DataCodecHandler(),
-		TopicsChecker:                   runTypeComponents.TopicsCheckerHandler(),
-	}
-
-	return incomingHeader.NewIncomingHeaderProcessor(argsIncomingHeaderHandler)
 }
 
 func createSovereignWsReceiver(

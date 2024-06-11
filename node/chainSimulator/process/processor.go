@@ -1,11 +1,12 @@
 package process
 
 import (
-	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
+
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -16,17 +17,22 @@ type manualRoundHandler interface {
 }
 
 type blocksCreator struct {
-	nodeHandler NodeHandler
+	nodeHandler     NodeHandler
+	blocksProcessor BlocksProcessorFactory
 }
 
 // NewBlocksCreator will create a new instance of blocksCreator
-func NewBlocksCreator(nodeHandler NodeHandler) (*blocksCreator, error) {
+func NewBlocksCreator(nodeHandler NodeHandler, blocksProcessor BlocksProcessorFactory) (*blocksCreator, error) {
 	if check.IfNil(nodeHandler) {
 		return nil, ErrNilNodeHandler
 	}
+	if check.IfNil(blocksProcessor) {
+		return nil, ErrNilBlockProcessor
+	}
 
 	return &blocksCreator{
-		nodeHandler: nodeHandler,
+		nodeHandler:     nodeHandler,
+		blocksProcessor: blocksProcessor,
 	}, nil
 }
 
@@ -105,10 +111,7 @@ func (creator *blocksCreator) CreateNewBlock() error {
 	if err != nil {
 		return err
 	}
-
-	header, block, err := bp.CreateBlock(newHeader, func() bool {
-		return true
-	})
+	header, block, err := creator.blocksProcessor.ProcessBlock(bp, newHeader)
 	if err != nil {
 		return err
 	}
