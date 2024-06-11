@@ -1,6 +1,7 @@
 package common
 
 import (
+	"fmt"
 	"math/big"
 
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -125,6 +126,32 @@ func ProcessSCOutputAccounts(
 		if err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+func InitGovernanceV2(systemVM vmcommon.VMExecutionHandler, userAccountsDB state.AccountsAdapter) error {
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr: vm.GovernanceSCAddress,
+			CallValue:  big.NewInt(0),
+			Arguments:  [][]byte{},
+		},
+		RecipientAddr: vm.GovernanceSCAddress,
+		Function:      "initV2",
+	}
+	vmOutput, errRun := systemVM.RunSmartContractCall(vmInput)
+	if errRun != nil {
+		return fmt.Errorf("%w when updating to governanceV2", errRun)
+	}
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return fmt.Errorf("got return code %s when updating to governanceV2", vmOutput.ReturnCode)
+	}
+
+	err := ProcessSCOutputAccounts(vmOutput, userAccountsDB)
+	if err != nil {
+		return err
 	}
 
 	return nil
