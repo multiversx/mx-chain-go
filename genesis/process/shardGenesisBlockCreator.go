@@ -420,7 +420,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		return nil, err
 	}
 
-	pubKeyVerifier, err := disabled.NewMessageSignVerifier(arg.BlockSignKeyGen)
+	messageSignVerifier, err := disabled.NewMessageSignVerifier(arg.BlockSignKeyGen)
 	if err != nil {
 		return nil, err
 	}
@@ -455,7 +455,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		ValidatorAccountsDB: arg.ValidatorAccounts,
 		ChanceComputer:      arg.Core.Rater(),
 		NodesConfigProvider: arg.InitialNodesSetup,
-		MessageSignVerifier: pubKeyVerifier,
+		MessageSignVerifier: messageSignVerifier,
 		NodesCoordinator:    liteNodesCoordinator,
 	})
 	if err != nil {

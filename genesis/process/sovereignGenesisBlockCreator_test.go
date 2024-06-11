@@ -24,6 +24,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/vm"
+	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -364,4 +365,35 @@ func TestSovereignGenesisBlockCreator_InitSystemAccountCalled(t *testing.T) {
 	acc, err = arg.Accounts.GetExistingAccount(core.SystemAccountAddress)
 	require.NotNil(t, acc)
 	require.Nil(t, err)
+}
+
+func TestSovereignGenesisBlockCreator_InitSystemSCs(t *testing.T) {
+	t.Parallel()
+
+	arg, sgbc := createSovereignGenesisBlockCreator(t)
+	require.NotNil(t, sgbc)
+
+	accountsDB := arg.Accounts
+
+	// Check delegation manager is initialized
+	val := retrieveAccValue(t, accountsDB, vm.DelegationManagerSCAddress, []byte("delegationContracts"))
+	delegationList := &systemSmartContracts.DelegationContractList{}
+	err := arg.Core.InternalMarshalizer().Unmarshal(delegationList, val)
+	require.Nil(t, err)
+	require.Equal(t, [][]byte{vm.FirstDelegationSCAddress}, delegationList.Addresses)
+
+	// Check governance manager is initialized
+	val = retrieveAccValue(t, accountsDB, vm.GovernanceSCAddress, []byte("owner"))
+	require.Equal(t, vm.GovernanceSCAddress, val)
+}
+
+func retrieveAccValue(t *testing.T, accountsDB stateAcc.AccountsAdapter, address []byte, key []byte) []byte {
+	acc, err := accountsDB.GetExistingAccount(address)
+	require.Nil(t, err)
+
+	val, _, err := acc.(data.UserAccountHandler).RetrieveValue(key)
+	require.Nil(t, err)
+	require.NotEmpty(t, val)
+
+	return val
 }
