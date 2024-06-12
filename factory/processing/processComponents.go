@@ -639,7 +639,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		ValidatorPubKeyConverter: pcf.coreData.ValidatorPubKeyConverter(),
 		KeyGenerator:             pcf.crypto.BlockSignKeyGen(),
 	}
-	nodesSetupChecker, err := checking.NewNodesSetupChecker(argsNodesSetupChecker)
+	nodesSetupChecker, err := pcf.runTypeComponents.NodesSetupCheckerFactory().CreateNodesSetupChecker(argsNodesSetupChecker)
 	if err != nil {
 		return nil, err
 	}
