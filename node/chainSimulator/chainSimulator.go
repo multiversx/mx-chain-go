@@ -42,24 +42,29 @@ type transactionWithResult struct {
 
 // ArgsChainSimulator holds the arguments needed to create a new instance of simulator
 type ArgsChainSimulator struct {
-	BypassTxSignatureCheck      bool
-	TempDir                     string
-	PathToInitialConfig         string
-	NumOfShards                 uint32
-	MinNodesPerShard            uint32
+	BypassTxSignatureCheck   bool
+	TempDir                  string
+	PathToInitialConfig      string
+	NumOfShards              uint32
+	MinNodesPerShard         uint32
+	MetaChainMinNodes        uint32
+	NumNodesWaitingListShard uint32
+	NumNodesWaitingListMeta  uint32
+	GenesisTimestamp         int64
+	InitialRound             int64
+	InitialEpoch             uint32
+	InitialNonce             uint64
+	RoundDurationInMillis    uint64
+	RoundsPerEpoch           core.OptionalUint64
+	ApiInterface             components.APIConfigurator
+	AlterConfigsFunction     func(cfg *config.Configs)
+}
+
+// ArgsBaseChainSimulator holds the arguments needed to create a new instance of simulator
+type ArgsBaseChainSimulator struct {
+	ArgsChainSimulator
 	ConsensusGroupSize          uint32
-	MetaChainMinNodes           uint32
 	MetaChainConsensusGroupSize uint32
-	NumNodesWaitingListShard    uint32
-	NumNodesWaitingListMeta     uint32
-	GenesisTimestamp            int64
-	InitialRound                int64
-	InitialEpoch                uint32
-	InitialNonce                uint64
-	RoundDurationInMillis       uint64
-	RoundsPerEpoch              core.OptionalUint64
-	ApiInterface                components.APIConfigurator
-	AlterConfigsFunction        func(cfg *config.Configs)
 }
 
 type simulator struct {
@@ -76,6 +81,15 @@ type simulator struct {
 
 // NewChainSimulator will create a new instance of simulator
 func NewChainSimulator(args ArgsChainSimulator) (*simulator, error) {
+	return NewBaseChainSimulator(ArgsBaseChainSimulator{
+		ArgsChainSimulator:          args,
+		ConsensusGroupSize:          configs.ChainSimulatorConsensusGroupSize,
+		MetaChainConsensusGroupSize: configs.ChainSimulatorConsensusGroupSize,
+	})
+}
+
+// NewBaseChainSimulator will create a new instance of simulator
+func NewBaseChainSimulator(args ArgsBaseChainSimulator) (*simulator, error) {
 	instance := &simulator{
 		syncedBroadcastNetwork: components.NewSyncedBroadcastNetwork(),
 		nodes:                  make(map[uint32]process.NodeHandler),
@@ -94,11 +108,11 @@ func NewChainSimulator(args ArgsChainSimulator) (*simulator, error) {
 	return instance, nil
 }
 
-func (s *simulator) createChainHandlers(args ArgsChainSimulator) error {
+func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 	outputConfigs, err := configs.CreateChainSimulatorConfigs(configs.ArgsChainSimulatorConfigs{
 		NumOfShards:                 args.NumOfShards,
 		OriginalConfigsPath:         args.PathToInitialConfig,
-		GenesisTimeStamp:            computeStartTimeBaseOnInitialRound(args),
+		GenesisTimeStamp:            computeStartTimeBaseOnInitialRound(args.ArgsChainSimulator),
 		RoundDurationInMillis:       args.RoundDurationInMillis,
 		TempDir:                     args.TempDir,
 		MinNodesPerShard:            args.MinNodesPerShard,
@@ -180,7 +194,7 @@ func computeStartTimeBaseOnInitialRound(args ArgsChainSimulator) int64 {
 }
 
 func (s *simulator) createTestNode(
-	outputConfigs configs.ArgsConfigsSimulator, args ArgsChainSimulator, shardIDStr string,
+	outputConfigs configs.ArgsConfigsSimulator, args ArgsBaseChainSimulator, shardIDStr string,
 ) (process.NodeHandler, error) {
 	argsTestOnlyProcessorNode := components.ArgsTestOnlyProcessingNode{
 		Configs:                     outputConfigs.Configs,
