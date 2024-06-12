@@ -31,6 +31,7 @@ type RunTypeComponentsStub struct {
 	ShardCoordinatorFactory       sharding.ShardCoordinatorFactory
 	TxPreProcessorFactory         preprocess.TxPreProcessorCreator
 	VmContainerShardFactory       factoryVm.VmContainerCreator
+	VmContainerMetaFactory        factoryVm.VmContainerCreator
 }
 
 // NewRunTypeComponentsStub -
@@ -44,7 +45,8 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		Marshaller:          &marshallerMock.MarshalizerMock{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	})
-	vmContainer, _ := factoryVm.NewVmContainerShardFactory(blockChainHookHandlerFactory)
+	vmContainerShard, _ := factoryVm.NewVmContainerShardFactory(blockChainHookHandlerFactory)
+	vmContainerMeta, _ := factoryVm.NewVmContainerMetaFactory(blockChainHookHandlerFactory, systemSmartContracts.NewVMContextCreator())
 
 	return &RunTypeComponentsStub{
 		BlockChainHookHandlerFactory:  blockChainHookHandlerFactory,
@@ -56,7 +58,8 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		VMContextCreatorHandler:       systemSmartContracts.NewVMContextCreator(),
 		ShardCoordinatorFactory:       sharding.NewMultiShardCoordinatorFactory(),
 		TxPreProcessorFactory:         preprocess.NewTxPreProcessorCreator(),
-		VmContainerShardFactory:       vmContainer,
+		VmContainerShardFactory:       vmContainerShard,
+		VmContainerMetaFactory:        vmContainerMeta,
 	}
 }
 
@@ -80,6 +83,7 @@ func NewSovereignRunTypeComponentsStub() *RunTypeComponentsStub {
 	oneShardVM := systemSmartContracts.NewOneShardSystemVMEEICreator()
 	vmMetaFactory, _ := factoryVm.NewVmContainerMetaFactory(blockChainHookHandlerFactory, oneShardVM)
 	sovVMContainerShardFactory, _ := factoryVm.NewSovereignVmContainerShardFactory(blockChainHookHandlerFactory, vmMetaFactory, runTypeComponents.VmContainerShardFactory)
+	sovVMContainerMeta, _ := factoryVm.NewVmContainerMetaFactory(blockChainHookHandlerFactory, oneShardVM)
 
 	return &RunTypeComponentsStub{
 		BlockChainHookHandlerFactory:  blockChainHookHandlerFactory,
@@ -92,6 +96,7 @@ func NewSovereignRunTypeComponentsStub() *RunTypeComponentsStub {
 		ShardCoordinatorFactory:       sharding.NewSovereignShardCoordinatorFactory(),
 		TxPreProcessorFactory:         preprocess.NewSovereignTxPreProcessorCreator(),
 		VmContainerShardFactory:       sovVMContainerShardFactory,
+		VmContainerMetaFactory:        sovVMContainerMeta,
 	}
 }
 
@@ -142,6 +147,10 @@ func (r *RunTypeComponentsStub) TxPreProcessorCreator() preprocess.TxPreProcesso
 
 func (r *RunTypeComponentsStub) VmContainerShardFactoryCreator() factoryVm.VmContainerCreator {
 	return r.VmContainerShardFactory
+}
+
+func (r *RunTypeComponentsStub) VmContainerMetaFactoryCreator() factoryVm.VmContainerCreator {
+	return r.VmContainerMetaFactory
 }
 
 // IsInterfaceNil -
