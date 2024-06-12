@@ -44,14 +44,14 @@ func runEsdtModifyRoyaltiesTest(t *testing.T, tokenType string) {
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
 
-	defaultMetaData := getDefaultMetaData()
+	defaultMetaData := GetDefaultMetaData()
 	tx = createTokenTx(creatorAddr, creatorAddr, 100000, 1, defaultMetaData)
 	retCode, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
 
-	defaultMetaData.nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
-	defaultMetaData.royalties = []byte(hex.EncodeToString(big.NewInt(20).Bytes()))
+	defaultMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
+	defaultMetaData.Royalties = []byte(hex.EncodeToString(big.NewInt(20).Bytes()))
 	tx = esdtModifyRoyaltiesTx(creatorAddr, creatorAddr, 100000, defaultMetaData)
 	retCode, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
@@ -68,14 +68,14 @@ func esdtModifyRoyaltiesTx(
 	sndAddr []byte,
 	rcvAddr []byte,
 	gasLimit uint64,
-	metaData *metaData,
+	metaData *MetaData,
 ) *transaction.Transaction {
 	txDataField := bytes.Join(
 		[][]byte{
 			[]byte(core.ESDTModifyRoyalties),
-			metaData.tokenId,
-			metaData.nonce,
-			metaData.royalties,
+			metaData.TokenId,
+			metaData.Nonce,
+			metaData.Royalties,
 		},
 		[]byte("@"),
 	)
