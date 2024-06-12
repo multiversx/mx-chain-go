@@ -58,7 +58,7 @@ func NewStorageEpochStartBootstrap(args ArgsStorageEpochStartBootstrap) (*storag
 		return nil, err
 	}
 	if check.IfNil(args.EpochStartBootStrap) {
-		return nil, errors.ErrNilEpochStartBootstrapperCreator
+		return nil, errors.ErrNilEpochStartBootstrapper
 	}
 	if args.ChanGracefullyClose == nil {
 		return nil, dataRetriever.ErrNilGracefullyCloseChannel

@@ -89,7 +89,7 @@ func TestNewStorageEpochStartBootstrap_InvalidArgumentsShouldErr(t *testing.T) {
 		args.EpochStartBootStrap = nil
 		sesb, err := NewStorageEpochStartBootstrap(args)
 		assert.True(t, check.IfNil(sesb))
-		assert.Equal(t, errorsMx.ErrNilEpochStartBootstrapperCreator, err)
+		assert.Equal(t, errorsMx.ErrNilEpochStartBootstrapper, err)
 	})
 }
 
