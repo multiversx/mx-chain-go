@@ -9,17 +9,16 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
-	"github.com/multiversx/mx-sdk-abi-incubator/golang/abi"
+	"github.com/multiversx/mx-sdk-abi-go/abi"
 	"github.com/stretchr/testify/require"
 )
 
 func createDataCodec() SovereignDataCodec {
-	codec := abi.NewDefaultCodec()
-	args := ArgsDataCodec{
-		Serializer: abi.NewSerializer(codec),
-	}
+	serializer, _ := abi.NewSerializer(abi.ArgsNewSerializer{
+		PartsSeparator: "@",
+	})
 
-	dtaCodec, _ := NewDataCodec(args)
+	dtaCodec, _ := NewDataCodec(serializer)
 	return dtaCodec
 }
 
@@ -29,21 +28,19 @@ func TestNewDataCodec(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		codec := abi.NewDefaultCodec()
-		args := ArgsDataCodec{
-			Serializer: abi.NewSerializer(codec),
-		}
-		abiCodec, err := NewDataCodec(args)
+		serializer, err := abi.NewSerializer(abi.ArgsNewSerializer{
+			PartsSeparator: "@",
+		})
+		require.Nil(t, err)
+
+		abiCodec, err := NewDataCodec(serializer)
 		require.Nil(t, err)
 		require.False(t, abiCodec.IsInterfaceNil())
 	})
 	t.Run("nil serializer should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := ArgsDataCodec{
-			Serializer: nil,
-		}
-		abiCodec, err := NewDataCodec(args)
+		abiCodec, err := NewDataCodec(nil)
 		require.ErrorIs(t, errors.ErrNilSerializer, err)
 		require.True(t, abiCodec.IsInterfaceNil())
 	})
