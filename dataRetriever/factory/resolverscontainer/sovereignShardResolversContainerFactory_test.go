@@ -3,7 +3,6 @@ package resolverscontainer_test
 import (
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/p2p"
@@ -49,7 +48,7 @@ func TestSovereignShardResolversContainerFactory_Create(t *testing.T) {
 		},
 	}
 
-	args.ShardCoordinator = sharding.NewSovereignShardCoordinator(core.SovereignChainShardId)
+	args.ShardCoordinator = sharding.NewSovereignShardCoordinator()
 	shardContainer, _ := resolverscontainer.NewShardResolversContainerFactory(args)
 	sovContainer, _ := resolverscontainer.NewSovereignShardResolversContainerFactory(shardContainer)
 
