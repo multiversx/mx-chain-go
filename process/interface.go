@@ -477,7 +477,7 @@ type VirtualMachinesContainerFactory interface {
 	IsInterfaceNil() bool
 }
 
-// MetaVirtualMachinesContainerFactory defines the extended functionality to create a virtual machine container
+// MetaVirtualMachinesContainerFactory defines the extended functionality to create virtual machine containers for meta
 type MetaVirtualMachinesContainerFactory interface {
 	VirtualMachinesContainerFactory
 	CreateForGenesis() (VirtualMachinesContainer, error)
