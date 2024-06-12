@@ -2,6 +2,7 @@ package relayedTx
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"math/big"
 	"strconv"
 	"strings"
@@ -16,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	chainSimulatorProcess "github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -32,14 +34,20 @@ const (
 	maxNumOfBlocksToGenerateWhenExecutingTx = 10
 )
 
-var oneEGLD = big.NewInt(1000000000000000000)
+var (
+	oneEGLD                                  = big.NewInt(1000000000000000000)
+	alterConfigsFuncRelayedV3EarlyActivation = func(cfg *config.Configs) {
+		cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3EnableEpoch = 1
+		cfg.EpochConfig.EnableEpochs.FixRelayedMoveBalanceEnableEpoch = 1
+	}
+)
 
 func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulator(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 
-	cs := startChainSimulator(t)
+	cs := startChainSimulator(t, alterConfigsFuncRelayedV3EarlyActivation)
 	defer cs.Close()
 
 	initialBalance := big.NewInt(0).Mul(oneEGLD, big.NewInt(30000))
@@ -150,7 +158,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorScCalls(t *t
 		t.Skip("this is not a short test")
 	}
 
-	cs := startChainSimulator(t)
+	cs := startChainSimulator(t, alterConfigsFuncRelayedV3EarlyActivation)
 	defer cs.Close()
 
 	initialBalance := big.NewInt(0).Mul(oneEGLD, big.NewInt(10))
@@ -255,7 +263,199 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorScCalls(t *t
 	}
 }
 
-func startChainSimulator(t *testing.T) testsChainSimulator.ChainSimulator {
+func TestFixRelayedMoveBalanceWithChainSimulator(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	expectedFeeScCall := "815285920000000"
+	t.Run("sc call", testFixRelayedMoveBalanceWithChainSimulatorScCall(expectedFeeScCall, expectedFeeScCall))
+
+	expectedFeeMoveBalanceBefore := "797500000000000" // 498 * 1500 + 50000 + 5000
+	expectedFeeMoveBalanceAfter := "847000000000000"  // 498 * 1500 + 50000 + 50000
+	t.Run("move balance", testFixRelayedMoveBalanceWithChainSimulatorMoveBalance(expectedFeeMoveBalanceBefore, expectedFeeMoveBalanceAfter))
+
+}
+
+func testFixRelayedMoveBalanceWithChainSimulatorScCall(
+	expectedFeeBeforeFix string,
+	expectedFeeAfterFix string,
+) func(t *testing.T) {
+	return func(t *testing.T) {
+
+		providedActivationEpoch := uint32(7)
+		alterConfigsFunc := func(cfg *config.Configs) {
+			cfg.EpochConfig.EnableEpochs.FixRelayedMoveBalanceEnableEpoch = providedActivationEpoch
+		}
+
+		cs := startChainSimulator(t, alterConfigsFunc)
+		defer cs.Close()
+
+		pkConv := cs.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter()
+
+		initialBalance := big.NewInt(0).Mul(oneEGLD, big.NewInt(10))
+		relayer, err := cs.GenerateAndMintWalletAddress(0, initialBalance)
+		require.NoError(t, err)
+
+		// deploy adder contract
+		owner, err := cs.GenerateAndMintWalletAddress(0, initialBalance)
+		require.NoError(t, err)
+
+		// generate one block so the minting has effect
+		err = cs.GenerateBlocks(1)
+		require.NoError(t, err)
+
+		scCode := wasm.GetSCCode("testData/adder.wasm")
+		params := []string{scCode, wasm.VMTypeHex, wasm.DummyCodeMetadataHex, "00"}
+		txDataDeploy := strings.Join(params, "@")
+		deployTx := generateTransaction(owner.Bytes, 0, make([]byte, 32), big.NewInt(0), txDataDeploy, 100000000)
+
+		result, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(deployTx, maxNumOfBlocksToGenerateWhenExecutingTx)
+		require.NoError(t, err)
+
+		scAddress := result.Logs.Events[0].Address
+		scAddressBytes, _ := pkConv.Decode(scAddress)
+
+		// fast-forward until epoch 4
+		err = cs.GenerateBlocksUntilEpochIsReached(int32(4))
+		require.NoError(t, err)
+
+		// send relayed tx
+		txDataAdd := "add@" + hex.EncodeToString(big.NewInt(1).Bytes())
+		innerTx := generateTransaction(owner.Bytes, 1, scAddressBytes, big.NewInt(0), txDataAdd, 3000000)
+		marshalledTx, err := json.Marshal(innerTx)
+		require.NoError(t, err)
+		txData := []byte("relayedTx@" + hex.EncodeToString(marshalledTx))
+		gasLimit := 50000 + uint64(len(txData))*1500 + innerTx.GasLimit
+
+		relayedTx := generateTransaction(relayer.Bytes, 0, owner.Bytes, big.NewInt(0), string(txData), gasLimit)
+
+		result, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
+		require.NoError(t, err)
+
+		// send relayed tx, fix still not active
+		innerTx = generateTransaction(owner.Bytes, 2, scAddressBytes, big.NewInt(0), txDataAdd, 3000000)
+		marshalledTx, err = json.Marshal(innerTx)
+		require.NoError(t, err)
+		txData = []byte("relayedTx@" + hex.EncodeToString(marshalledTx))
+		gasLimit = 50000 + uint64(len(txData))*1500 + innerTx.GasLimit
+
+		relayedTx = generateTransaction(relayer.Bytes, 1, owner.Bytes, big.NewInt(0), string(txData), gasLimit)
+
+		relayerBalanceBefore := getBalance(t, cs, relayer)
+
+		result, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
+		require.NoError(t, err)
+		relayerBalanceAfter := getBalance(t, cs, relayer)
+
+		feeConsumed := big.NewInt(0).Sub(relayerBalanceBefore, relayerBalanceAfter)
+
+		require.Equal(t, expectedFeeBeforeFix, feeConsumed.String())
+
+		// fast-forward until the fix is active
+		err = cs.GenerateBlocksUntilEpochIsReached(int32(providedActivationEpoch))
+		require.NoError(t, err)
+
+		// send relayed tx after fix
+		innerTx = generateTransaction(owner.Bytes, 3, scAddressBytes, big.NewInt(0), txDataAdd, 3000000)
+		marshalledTx, err = json.Marshal(innerTx)
+		require.NoError(t, err)
+		txData = []byte("relayedTx@" + hex.EncodeToString(marshalledTx))
+		gasLimit = 50000 + uint64(len(txData))*1500 + innerTx.GasLimit
+
+		relayedTx = generateTransaction(relayer.Bytes, 2, owner.Bytes, big.NewInt(0), string(txData), gasLimit)
+
+		relayerBalanceBefore = getBalance(t, cs, relayer)
+
+		result, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
+		require.NoError(t, err)
+
+		relayerBalanceAfter = getBalance(t, cs, relayer)
+
+		feeConsumed = big.NewInt(0).Sub(relayerBalanceBefore, relayerBalanceAfter)
+
+		require.Equal(t, expectedFeeAfterFix, feeConsumed.String())
+	}
+}
+
+func testFixRelayedMoveBalanceWithChainSimulatorMoveBalance(
+	expectedFeeBeforeFix string,
+	expectedFeeAfterFix string,
+) func(t *testing.T) {
+	return func(t *testing.T) {
+
+		providedActivationEpoch := uint32(5)
+		alterConfigsFunc := func(cfg *config.Configs) {
+			cfg.EpochConfig.EnableEpochs.FixRelayedMoveBalanceEnableEpoch = providedActivationEpoch
+		}
+
+		cs := startChainSimulator(t, alterConfigsFunc)
+		defer cs.Close()
+
+		initialBalance := big.NewInt(0).Mul(oneEGLD, big.NewInt(10))
+		relayer, err := cs.GenerateAndMintWalletAddress(0, initialBalance)
+		require.NoError(t, err)
+
+		sender, err := cs.GenerateAndMintWalletAddress(0, initialBalance)
+		require.NoError(t, err)
+
+		receiver, err := cs.GenerateAndMintWalletAddress(0, big.NewInt(0))
+		require.NoError(t, err)
+
+		// generate one block so the minting has effect
+		err = cs.GenerateBlocks(1)
+		require.NoError(t, err)
+
+		// send relayed tx
+		innerTx := generateTransaction(sender.Bytes, 0, receiver.Bytes, oneEGLD, "", 50000)
+		marshalledTx, err := json.Marshal(innerTx)
+		require.NoError(t, err)
+		txData := []byte("relayedTx@" + hex.EncodeToString(marshalledTx))
+		gasLimit := 50000 + uint64(len(txData))*1500 + innerTx.GasLimit
+
+		relayedTx := generateTransaction(relayer.Bytes, 0, sender.Bytes, big.NewInt(0), string(txData), gasLimit)
+
+		relayerBalanceBefore := getBalance(t, cs, relayer)
+
+		_, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
+		require.NoError(t, err)
+
+		relayerBalanceAfter := getBalance(t, cs, relayer)
+
+		feeConsumed := big.NewInt(0).Sub(relayerBalanceBefore, relayerBalanceAfter)
+
+		require.Equal(t, expectedFeeBeforeFix, feeConsumed.String())
+
+		// fast-forward until the fix is active
+		err = cs.GenerateBlocksUntilEpochIsReached(int32(providedActivationEpoch))
+		require.NoError(t, err)
+
+		// send relayed tx
+		innerTx = generateTransaction(sender.Bytes, 1, receiver.Bytes, oneEGLD, "", 50000)
+		marshalledTx, err = json.Marshal(innerTx)
+		require.NoError(t, err)
+		txData = []byte("relayedTx@" + hex.EncodeToString(marshalledTx))
+		gasLimit = 50000 + uint64(len(txData))*1500 + innerTx.GasLimit
+
+		relayedTx = generateTransaction(relayer.Bytes, 1, sender.Bytes, big.NewInt(0), string(txData), gasLimit)
+
+		relayerBalanceBefore = getBalance(t, cs, relayer)
+
+		_, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
+		require.NoError(t, err)
+
+		relayerBalanceAfter = getBalance(t, cs, relayer)
+
+		feeConsumed = big.NewInt(0).Sub(relayerBalanceBefore, relayerBalanceAfter)
+
+		require.Equal(t, expectedFeeAfterFix, feeConsumed.String())
+	}
+}
+
+func startChainSimulator(
+	t *testing.T,
+	alterConfigsFunction func(cfg *config.Configs),
+) testsChainSimulator.ChainSimulator {
 	roundDurationInMillis := uint64(6000)
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
@@ -263,22 +463,19 @@ func startChainSimulator(t *testing.T) testsChainSimulator.ChainSimulator {
 	}
 
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:   false,
-		TempDir:                  t.TempDir(),
-		PathToInitialConfig:      defaultPathToInitialConfig,
-		NumOfShards:              3,
-		GenesisTimestamp:         time.Now().Unix(),
-		RoundDurationInMillis:    roundDurationInMillis,
-		RoundsPerEpoch:           roundsPerEpoch,
-		ApiInterface:             api.NewNoApiInterface(),
-		MinNodesPerShard:         3,
-		MetaChainMinNodes:        3,
-		NumNodesWaitingListMeta:  3,
-		NumNodesWaitingListShard: 3,
-		AlterConfigsFunction: func(cfg *config.Configs) {
-			cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3EnableEpoch = 1
-			cfg.EpochConfig.EnableEpochs.FixRelayedMoveBalanceEnableEpoch = 1
-		},
+		BypassTxSignatureCheck:      false,
+		TempDir:                     t.TempDir(),
+		PathToInitialConfig:         defaultPathToInitialConfig,
+		NumOfShards:                 3,
+		GenesisTimestamp:            time.Now().Unix(),
+		RoundDurationInMillis:       roundDurationInMillis,
+		RoundsPerEpoch:              roundsPerEpoch,
+		ApiInterface:                api.NewNoApiInterface(),
+		MinNodesPerShard:            3,
+		MetaChainMinNodes:           3,
+		NumNodesWaitingListMeta:     3,
+		NumNodesWaitingListShard:    3,
+		AlterConfigsFunction:        alterConfigsFunction,
 		ConsensusGroupSize:          1,
 		MetaChainConsensusGroupSize: 1,
 	})
@@ -344,6 +541,10 @@ func checkSCRSucceeded(
 	require.NoError(t, err)
 	require.Equal(t, transaction.TxStatusSuccess, tx.Status)
 
+	if tx.ReturnMessage == core.GasRefundForRelayerMessage {
+		return
+	}
+
 	require.GreaterOrEqual(t, len(tx.Logs.Events), 1)
 	for _, event := range tx.Logs.Events {
 		if event.Identifier == core.WriteLogIdentifier {
@@ -352,4 +553,18 @@ func checkSCRSucceeded(
 
 		require.Equal(t, core.CompletedTxEventIdentifier, event.Identifier)
 	}
+}
+
+func getBalance(
+	t *testing.T,
+	cs testsChainSimulator.ChainSimulator,
+	address dtos.WalletAddress,
+) *big.Int {
+	account, err := cs.GetAccount(address)
+	require.NoError(t, err)
+
+	balance, ok := big.NewInt(0).SetString(account.Balance, 10)
+	require.True(t, ok)
+
+	return balance
 }
