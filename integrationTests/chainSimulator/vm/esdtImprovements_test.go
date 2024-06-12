@@ -38,7 +38,8 @@ var log = logger.GetOrCreate("integrationTests/chainSimulator/vm")
 // Test scenario #1
 //
 // Initial setup: Create fungible, NFT,  SFT and metaESDT tokens
-//  (before the activation of DynamicEsdtFlag)
+//
+//	(before the activation of DynamicEsdtFlag)
 //
 // 1.check that the metadata for all tokens is saved on the system account
 // 2. wait for DynamicEsdtFlag activation
@@ -86,20 +87,18 @@ func transferAndCheckTokensMetaData(t *testing.T, isCrossShard bool, isMultiTran
 
 	numOfShards := uint32(3)
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:      false,
-		TempDir:                     t.TempDir(),
-		PathToInitialConfig:         defaultPathToInitialConfig,
-		NumOfShards:                 numOfShards,
-		GenesisTimestamp:            startTime,
-		RoundDurationInMillis:       roundDurationInMillis,
-		RoundsPerEpoch:              roundsPerEpoch,
-		ApiInterface:                api.NewNoApiInterface(),
-		MinNodesPerShard:            3,
-		MetaChainMinNodes:           3,
-		ConsensusGroupSize:          1,
-		MetaChainConsensusGroupSize: 1,
-		NumNodesWaitingListMeta:     0,
-		NumNodesWaitingListShard:    0,
+		BypassTxSignatureCheck:   false,
+		TempDir:                  t.TempDir(),
+		PathToInitialConfig:      defaultPathToInitialConfig,
+		NumOfShards:              numOfShards,
+		GenesisTimestamp:         startTime,
+		RoundDurationInMillis:    roundDurationInMillis,
+		RoundsPerEpoch:           roundsPerEpoch,
+		ApiInterface:             api.NewNoApiInterface(),
+		MinNodesPerShard:         3,
+		MetaChainMinNodes:        3,
+		NumNodesWaitingListMeta:  0,
+		NumNodesWaitingListShard: 0,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpoch
 			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
@@ -712,20 +711,18 @@ func TestChainSimulator_CreateTokensAfterActivation(t *testing.T) {
 
 	numOfShards := uint32(3)
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:      false,
-		TempDir:                     t.TempDir(),
-		PathToInitialConfig:         defaultPathToInitialConfig,
-		NumOfShards:                 numOfShards,
-		GenesisTimestamp:            startTime,
-		RoundDurationInMillis:       roundDurationInMillis,
-		RoundsPerEpoch:              roundsPerEpoch,
-		ApiInterface:                api.NewNoApiInterface(),
-		MinNodesPerShard:            3,
-		MetaChainMinNodes:           3,
-		ConsensusGroupSize:          1,
-		MetaChainConsensusGroupSize: 1,
-		NumNodesWaitingListMeta:     0,
-		NumNodesWaitingListShard:    0,
+		BypassTxSignatureCheck:   false,
+		TempDir:                  t.TempDir(),
+		PathToInitialConfig:      defaultPathToInitialConfig,
+		NumOfShards:              numOfShards,
+		GenesisTimestamp:         startTime,
+		RoundDurationInMillis:    roundDurationInMillis,
+		RoundsPerEpoch:           roundsPerEpoch,
+		ApiInterface:             api.NewNoApiInterface(),
+		MinNodesPerShard:         3,
+		MetaChainMinNodes:        3,
+		NumNodesWaitingListMeta:  0,
+		NumNodesWaitingListShard: 0,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpoch
 			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
@@ -891,20 +888,18 @@ func TestChainSimulator_NFT_ESDTMetaDataRecreate(t *testing.T) {
 
 	numOfShards := uint32(3)
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:      false,
-		TempDir:                     t.TempDir(),
-		PathToInitialConfig:         defaultPathToInitialConfig,
-		NumOfShards:                 numOfShards,
-		GenesisTimestamp:            startTime,
-		RoundDurationInMillis:       roundDurationInMillis,
-		RoundsPerEpoch:              roundsPerEpoch,
-		ApiInterface:                api.NewNoApiInterface(),
-		MinNodesPerShard:            3,
-		MetaChainMinNodes:           3,
-		ConsensusGroupSize:          1,
-		MetaChainConsensusGroupSize: 1,
-		NumNodesWaitingListMeta:     0,
-		NumNodesWaitingListShard:    0,
+		BypassTxSignatureCheck:   false,
+		TempDir:                  t.TempDir(),
+		PathToInitialConfig:      defaultPathToInitialConfig,
+		NumOfShards:              numOfShards,
+		GenesisTimestamp:         startTime,
+		RoundDurationInMillis:    roundDurationInMillis,
+		RoundsPerEpoch:           roundsPerEpoch,
+		ApiInterface:             api.NewNoApiInterface(),
+		MinNodesPerShard:         3,
+		MetaChainMinNodes:        3,
+		NumNodesWaitingListMeta:  0,
+		NumNodesWaitingListShard: 0,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpoch
 			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
@@ -1031,20 +1026,18 @@ func TestChainSimulator_NFT_ESDTMetaDataUpdate(t *testing.T) {
 
 	numOfShards := uint32(3)
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:      false,
-		TempDir:                     t.TempDir(),
-		PathToInitialConfig:         defaultPathToInitialConfig,
-		NumOfShards:                 numOfShards,
-		GenesisTimestamp:            startTime,
-		RoundDurationInMillis:       roundDurationInMillis,
-		RoundsPerEpoch:              roundsPerEpoch,
-		ApiInterface:                api.NewNoApiInterface(),
-		MinNodesPerShard:            3,
-		MetaChainMinNodes:           3,
-		ConsensusGroupSize:          1,
-		MetaChainConsensusGroupSize: 1,
-		NumNodesWaitingListMeta:     0,
-		NumNodesWaitingListShard:    0,
+		BypassTxSignatureCheck:   false,
+		TempDir:                  t.TempDir(),
+		PathToInitialConfig:      defaultPathToInitialConfig,
+		NumOfShards:              numOfShards,
+		GenesisTimestamp:         startTime,
+		RoundDurationInMillis:    roundDurationInMillis,
+		RoundsPerEpoch:           roundsPerEpoch,
+		ApiInterface:             api.NewNoApiInterface(),
+		MinNodesPerShard:         3,
+		MetaChainMinNodes:        3,
+		NumNodesWaitingListMeta:  0,
+		NumNodesWaitingListShard: 0,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpoch
 			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
@@ -1168,20 +1161,18 @@ func TestChainSimulator_NFT_ESDTModifyCreator(t *testing.T) {
 
 	numOfShards := uint32(3)
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:      false,
-		TempDir:                     t.TempDir(),
-		PathToInitialConfig:         defaultPathToInitialConfig,
-		NumOfShards:                 numOfShards,
-		GenesisTimestamp:            startTime,
-		RoundDurationInMillis:       roundDurationInMillis,
-		RoundsPerEpoch:              roundsPerEpoch,
-		ApiInterface:                api.NewNoApiInterface(),
-		MinNodesPerShard:            3,
-		MetaChainMinNodes:           3,
-		ConsensusGroupSize:          1,
-		MetaChainConsensusGroupSize: 1,
-		NumNodesWaitingListMeta:     0,
-		NumNodesWaitingListShard:    0,
+		BypassTxSignatureCheck:   false,
+		TempDir:                  t.TempDir(),
+		PathToInitialConfig:      defaultPathToInitialConfig,
+		NumOfShards:              numOfShards,
+		GenesisTimestamp:         startTime,
+		RoundDurationInMillis:    roundDurationInMillis,
+		RoundsPerEpoch:           roundsPerEpoch,
+		ApiInterface:             api.NewNoApiInterface(),
+		MinNodesPerShard:         3,
+		MetaChainMinNodes:        3,
+		NumNodesWaitingListMeta:  0,
+		NumNodesWaitingListShard: 0,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpoch
 			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
@@ -1319,20 +1310,18 @@ func TestChainSimulator_NFT_ESDTSetNewURIs(t *testing.T) {
 
 	numOfShards := uint32(3)
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:      false,
-		TempDir:                     t.TempDir(),
-		PathToInitialConfig:         defaultPathToInitialConfig,
-		NumOfShards:                 numOfShards,
-		GenesisTimestamp:            startTime,
-		RoundDurationInMillis:       roundDurationInMillis,
-		RoundsPerEpoch:              roundsPerEpoch,
-		ApiInterface:                api.NewNoApiInterface(),
-		MinNodesPerShard:            3,
-		MetaChainMinNodes:           3,
-		ConsensusGroupSize:          1,
-		MetaChainConsensusGroupSize: 1,
-		NumNodesWaitingListMeta:     0,
-		NumNodesWaitingListShard:    0,
+		BypassTxSignatureCheck:   false,
+		TempDir:                  t.TempDir(),
+		PathToInitialConfig:      defaultPathToInitialConfig,
+		NumOfShards:              numOfShards,
+		GenesisTimestamp:         startTime,
+		RoundDurationInMillis:    roundDurationInMillis,
+		RoundsPerEpoch:           roundsPerEpoch,
+		ApiInterface:             api.NewNoApiInterface(),
+		MinNodesPerShard:         3,
+		MetaChainMinNodes:        3,
+		NumNodesWaitingListMeta:  0,
+		NumNodesWaitingListShard: 0,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpoch
 			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
@@ -1466,20 +1455,18 @@ func TestChainSimulator_NFT_ESDTModifyRoyalties(t *testing.T) {
 
 	numOfShards := uint32(3)
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:      false,
-		TempDir:                     t.TempDir(),
-		PathToInitialConfig:         defaultPathToInitialConfig,
-		NumOfShards:                 numOfShards,
-		GenesisTimestamp:            startTime,
-		RoundDurationInMillis:       roundDurationInMillis,
-		RoundsPerEpoch:              roundsPerEpoch,
-		ApiInterface:                api.NewNoApiInterface(),
-		MinNodesPerShard:            3,
-		MetaChainMinNodes:           3,
-		ConsensusGroupSize:          1,
-		MetaChainConsensusGroupSize: 1,
-		NumNodesWaitingListMeta:     0,
-		NumNodesWaitingListShard:    0,
+		BypassTxSignatureCheck:   false,
+		TempDir:                  t.TempDir(),
+		PathToInitialConfig:      defaultPathToInitialConfig,
+		NumOfShards:              numOfShards,
+		GenesisTimestamp:         startTime,
+		RoundDurationInMillis:    roundDurationInMillis,
+		RoundsPerEpoch:           roundsPerEpoch,
+		ApiInterface:             api.NewNoApiInterface(),
+		MinNodesPerShard:         3,
+		MetaChainMinNodes:        3,
+		NumNodesWaitingListMeta:  0,
+		NumNodesWaitingListShard: 0,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpoch
 			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
@@ -1602,20 +1589,18 @@ func TestChainSimulator_NFT_ChangeToDynamicType(t *testing.T) {
 
 	numOfShards := uint32(3)
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:      false,
-		TempDir:                     t.TempDir(),
-		PathToInitialConfig:         defaultPathToInitialConfig,
-		NumOfShards:                 numOfShards,
-		GenesisTimestamp:            startTime,
-		RoundDurationInMillis:       roundDurationInMillis,
-		RoundsPerEpoch:              roundsPerEpoch,
-		ApiInterface:                api.NewNoApiInterface(),
-		MinNodesPerShard:            3,
-		MetaChainMinNodes:           3,
-		ConsensusGroupSize:          1,
-		MetaChainConsensusGroupSize: 1,
-		NumNodesWaitingListMeta:     0,
-		NumNodesWaitingListShard:    0,
+		BypassTxSignatureCheck:   false,
+		TempDir:                  t.TempDir(),
+		PathToInitialConfig:      defaultPathToInitialConfig,
+		NumOfShards:              numOfShards,
+		GenesisTimestamp:         startTime,
+		RoundDurationInMillis:    roundDurationInMillis,
+		RoundsPerEpoch:           roundsPerEpoch,
+		ApiInterface:             api.NewNoApiInterface(),
+		MinNodesPerShard:         3,
+		MetaChainMinNodes:        3,
+		NumNodesWaitingListMeta:  0,
+		NumNodesWaitingListShard: 0,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpoch
 			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
@@ -1720,20 +1705,18 @@ func TestChainSimulator_SFT_ChangeMetaData(t *testing.T) {
 
 	numOfShards := uint32(3)
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:      false,
-		TempDir:                     t.TempDir(),
-		PathToInitialConfig:         defaultPathToInitialConfig,
-		NumOfShards:                 numOfShards,
-		GenesisTimestamp:            startTime,
-		RoundDurationInMillis:       roundDurationInMillis,
-		RoundsPerEpoch:              roundsPerEpoch,
-		ApiInterface:                api.NewNoApiInterface(),
-		MinNodesPerShard:            3,
-		MetaChainMinNodes:           3,
-		ConsensusGroupSize:          1,
-		MetaChainConsensusGroupSize: 1,
-		NumNodesWaitingListMeta:     0,
-		NumNodesWaitingListShard:    0,
+		BypassTxSignatureCheck:   false,
+		TempDir:                  t.TempDir(),
+		PathToInitialConfig:      defaultPathToInitialConfig,
+		NumOfShards:              numOfShards,
+		GenesisTimestamp:         startTime,
+		RoundDurationInMillis:    roundDurationInMillis,
+		RoundsPerEpoch:           roundsPerEpoch,
+		ApiInterface:             api.NewNoApiInterface(),
+		MinNodesPerShard:         3,
+		MetaChainMinNodes:        3,
+		NumNodesWaitingListMeta:  0,
+		NumNodesWaitingListShard: 0,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpoch
 			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
