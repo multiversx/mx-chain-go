@@ -1,64 +1,68 @@
 MULTISIG_VERIFIER_ADDRESS=$(mxpy data load --partition=${CHAIN_ID} --key=address-multisig-verifier-contract)
 
-deployMultisigVerifierContract() {
+deployMultiSigVerifierContract() {
     manualUpdateConfigFile #update config file
+
+    echo "Deploying MultiSig contract on main chain..."
 
     BLS_PUB_KEYS=$(python3 $SCRIPT_PATH/pyScripts/read_bls_keys.py)
 
-    mxpy --verbose contract deploy \
+    local OUTFILE="${OUTFILE_PATH}/deploy-multisig-verifier.interaction.json"
+    mxpy contract deploy \
         --bytecode=$(eval echo ${MULTISIG_VERIFIER_WASM}) \
         --pem=${WALLET} \
         --proxy=${PROXY} \
         --chain=${CHAIN_ID} \
         --gas-limit=200000000 \
         --arguments ${BLS_PUB_KEYS} \
-        --outfile="${SCRIPT_PATH}/deploy-multisig-verifier.interaction.json" \
+        --outfile=${OUTFILE} \
         --recall-nonce \
         --wait-result \
         --send || return
 
-    local TX_STATUS=$(mxpy data parse --file="${SCRIPT_PATH}/deploy-multisig-verifier.interaction.json"  --expression="data['transactionOnNetwork']['status']")
-    if [ "$TX_STATUS" != "success" ]; then
-        echo "Transaction was not successful"
-        return
-    fi
+    printTxStatus ${OUTFILE} || return
 
-    local ADDRESS=$(mxpy data parse --file="${SCRIPT_PATH}/deploy-multisig-verifier.interaction.json"  --expression="data['contractAddress']")
+    local ADDRESS=$(mxpy data parse --file=${OUTFILE}  --expression="data['contractAddress']")
     mxpy data store --partition=${CHAIN_ID} --key=address-multisig-verifier-contract --value=${ADDRESS}
     MULTISIG_VERIFIER_ADDRESS=$(mxpy data load --partition=${CHAIN_ID} --key=address-multisig-verifier-contract)
-    echo -e "Multisig Verifier contract: ${ADDRESS}"
+    echo -e "MultiSig Verifier contract: ${ADDRESS}"
 }
 
-upgradeMultisigVerifierContract() {
+upgradeMultiSigVerifierContract() {
     manualUpdateConfigFile #update config file
 
-    mxpy --verbose contract upgrade ${MULTISIG_VERIFIER_ADDRESS} \
+    echo "Upgrading MultiSig contract on main chain..."
+
+    local OUTFILE="${OUTFILE_PATH}/upgrade-multisig-verifier.interaction.json"
+    mxpy contract upgrade ${MULTISIG_VERIFIER_ADDRESS} \
         --bytecode=$(eval echo ${MULTISIG_VERIFIER_WASM}) \
         --pem=${WALLET} \
         --proxy=${PROXY} \
         --chain=${CHAIN_ID} \
         --gas-limit=200000000 \
-        --outfile="${SCRIPT_PATH}/upgrade-multisig-verifier.interaction.json" \
+        --outfile=${OUTFILE} \
         --recall-nonce \
         --wait-result \
         --send || return
 
-    local TX_STATUS=$(mxpy data parse --file="${SCRIPT_PATH}/upgrade-multisig-verifier.interaction.json"  --expression="data['transactionOnNetwork']['status']")
-    if [ "$TX_STATUS" != "success" ]; then
-        echo "Transaction was not successful"
-        return
-    fi
+    printTxStatus ${OUTFILE}
 }
 
 setEsdtSafeAddress() {
-    mxpy --verbose contract call ${MULTISIG_VERIFIER_ADDRESS} \
+    echo "Setting ESDT Safe address in MultiSig contract on main chain..."
+    checkVariables ESDT_SAFE_ADDRESS ESDT_SAFE_ADDRESS_SOVEREIGN || return
+
+    mxpy contract call ${MULTISIG_VERIFIER_ADDRESS} \
         --pem=${WALLET} \
         --proxy=${PROXY} \
         --chain=${CHAIN_ID} \
         --gas-limit=10000000 \
         --function="setEsdtSafeAddress" \
         --arguments ${ESDT_SAFE_ADDRESS} \
+        --outfile=${OUTFILE} \
         --recall-nonce \
         --wait-result \
         --send || return
+
+    printTxStatus ${OUTFILE}
 }

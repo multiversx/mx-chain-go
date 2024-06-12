@@ -1,3 +1,9 @@
+deploySovereignWithCrossChainContracts() {
+    deployMainChainContractsAndSetupObserver
+
+    sovereignDeploy
+}
+
 deployMainChainContractsAndSetupObserver() {
     deployEsdtSafeContract
 
@@ -21,17 +27,13 @@ sovereignDeploy() {
 
     ../config.sh
 
-    deployMultisigVerifierContract
+    deployMultiSigVerifierContract
 
     setEsdtSafeAddress
 
-    updateAndStartBridgeService
+    sovereignStart
 
-    ../sovereignStart.sh
-
-    deployObserver
-
-    setMultisigAddress
+    setMultiSigAddress
 
     setSovereignBridgeAddress
 
@@ -44,12 +46,24 @@ sovereignDeploy() {
     unpauseEsdtSafeContractSovereign
 }
 
-stopAndCleanSovereign() {
+sovereignStart() {
+    updateAndStartBridgeService
+
+    ../sovereignStart.sh
+
+    deployObserver
+}
+
+stopSovereign() {
     ../stop.sh
 
     screen -S sovereignBridgeService -X kill
 
-    ../clean.sh
-
     stopObserver
+}
+
+stopAndCleanSovereign() {
+    stopSovereign
+
+    ../clean.sh
 }

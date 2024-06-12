@@ -35,7 +35,7 @@ if [[ "$DISTRIBUTION" =~ ^(ubuntu|debian)$ ]]; then
 
   if ! [ -x "$(command -v go)" ]; then
     echo "Installing Go..."
-    GO_LATEST=$(curl -sS https://golang.org/VERSION?m=text) 
+    GO_VERSION="go1.20"
     wget https://dl.google.com/go/$GO_LATEST.linux-amd64.tar.gz
     sudo tar -C /usr/local -xzf $GO_LATEST.linux-amd64.tar.gz
     rm $GO_LATEST.linux-amd64.tar.gz
@@ -65,7 +65,7 @@ if [ "$SOVEREIGN_DEPLOY" -eq 1 ]; then
 
     pushd .
 
-    git clone https://github.com/multiversx/mx-chain-sovereign-bridge-go.git
+    git clone git@github.com/multiversx/mx-chain-sovereign-bridge-go.git
     cd mx-chain-sovereign-bridge-go
     cd cert/cmd/cert
     go build

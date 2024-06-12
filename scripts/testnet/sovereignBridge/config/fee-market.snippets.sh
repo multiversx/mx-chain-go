@@ -4,7 +4,10 @@ FEE_MARKET_ADDRESS_SOVEREIGN=$(mxpy data load --partition=sovereign --key=addres
 deployFeeMarketContract() {
     checkVariables ESDT_SAFE_ADDRESS || return
 
-    mxpy --verbose contract deploy \
+    echo "Deploying Fee Market contract on main chain..."
+
+    local OUTFILE="${OUTFILE_PATH}/deploy-fee-market.interaction.json"
+    mxpy contract deploy \
         --bytecode=$(eval echo ${FEE_MARKET_WASM}) \
         --pem=${WALLET} \
         --proxy=${PROXY} \
@@ -15,18 +18,14 @@ deployFeeMarketContract() {
             ${PRICE_AGGREGATOR_ADDRESS} \
             str:${USDC_TOKEN_ID} \
             str:${WEGLD_TOKEN_ID} \
-        --outfile="${SCRIPT_PATH}/deploy-fee-market.interaction.json" \
+        --outfile=${OUTFILE} \
         --recall-nonce \
         --wait-result \
         --send || return
 
-    local TX_STATUS=$(mxpy data parse --file="${SCRIPT_PATH}/deploy-fee-market.interaction.json"  --expression="data['transactionOnNetwork']['status']")
-    if [ "$TX_STATUS" != "success" ]; then
-        echo "Transaction was not successful"
-        return
-    fi
+    printTxStatus ${OUTFILE} || return
 
-    local ADDRESS=$(mxpy data parse --file="${SCRIPT_PATH}/deploy-fee-market.interaction.json" --expression="data['contractAddress']")
+    local ADDRESS=$(mxpy data parse --file=${OUTFILE} --expression="data['contractAddress']")
     mxpy data store --partition=${CHAIN_ID} --key=address-fee-market-contract --value=${ADDRESS}
     FEE_MARKET_ADDRESS=$(mxpy data load --partition=${CHAIN_ID} --key=address-fee-market-contract)
     echo -e "Fee Market contract: ${ADDRESS}"
@@ -38,132 +37,170 @@ deployFeeMarketContract() {
 }
 
 upgradeFeeMarketContract() {
+    echo "Upgrading Fee Market contract on main chain..."
     checkVariables ESDT_SAFE_ADDRESS || return
 
-    mxpy --verbose contract upgrade ${FEE_MARKET_ADDRESS} \
+    local OUTFILE="${OUTFILE_PATH}/upgrade-fee-market.interaction.json"
+    mxpy contract upgrade ${FEE_MARKET_ADDRESS} \
         --bytecode=$(eval echo ${FEE_MARKET_WASM}) \
         --pem=${WALLET} \
         --proxy=${PROXY} \
         --chain=${CHAIN_ID} \
         --gas-limit=200000000 \
-        --outfile="${SCRIPT_PATH}/upgrade-fee-market.interaction.json" \
+        --outfile=${OUTFILE} \
         --recall-nonce \
         --wait-result \
         --send || return
 
-    local TX_STATUS=$(mxpy data parse --file="${SCRIPT_PATH}/upgrade-fee-market.interaction.json"  --expression="data['transactionOnNetwork']['status']")
-    if [ "$TX_STATUS" != "success" ]; then
-        echo "Transaction was not successful"
-        return
-    fi
+    printTxStatus ${OUTFILE}
 }
 
 enableFeeMarketContract() {
-    enableFeeMarketContractCall ${FEE_MARKET_ADDRESS} ${PROXY} ${CHAIN_ID}
+    echo "Enabling Fee Market contract on main chain..."
+
+    local OUTFILE="${OUTFILE_PATH}/enable-feemarket-contract.interaction.json"
+    enableFeeMarketContractCall ${FEE_MARKET_ADDRESS} ${PROXY} ${CHAIN_ID} ${OUTFILE}
 }
 enableFeeMarketContractSovereign() {
-    enableFeeMarketContractCall ${FEE_MARKET_ADDRESS_SOVEREIGN} ${PROXY_SOVEREIGN} ${CHAIN_ID_SOVEREIGN}
+    echo "Enabling Fee Market contract on sovereign chain..."
+
+    local OUTFILE="${OUTFILE_PATH}/enable-feemarket-contract-sovereign.interaction.json"
+    enableFeeMarketContractCall ${FEE_MARKET_ADDRESS_SOVEREIGN} ${PROXY_SOVEREIGN} ${CHAIN_ID_SOVEREIGN} ${OUTFILE}
 }
 enableFeeMarketContractCall() {
-    if [ $# -lt 3 ]; then
-        echo "Usage: $0 <arg1> <arg2> <arg3>"
+    if [ $# -lt 4 ]; then
+        echo "Usage: $0 <arg1> <arg2> <arg3> <arg4>"
         exit 1
     fi
 
     local ADDRESS=$1
     local URL=$2
     local CHAIN=$3
+    local OUTFILE=$4
 
-    mxpy --verbose contract call ${ADDRESS} \
+    mxpy contract call ${ADDRESS} \
         --pem=${WALLET} \
         --proxy=${URL} \
         --chain=${CHAIN} \
         --gas-limit=10000000 \
         --function="enableFee" \
+        --outfile=${OUTFILE} \
         --recall-nonce \
         --wait-result \
         --send || return
+
+    printTxStatus ${OUTFILE}
 }
 
 disableFeeMarketContract() {
-    disableFeeMarketContractCall ${FEE_MARKET_ADDRESS} ${PROXY} ${CHAIN_ID}
+    echo "Disabling Fee Market contract on main chain..."
+
+    local OUTFILE="${OUTFILE_PATH}/disable-feemarket-contract.interaction.json"
+    disableFeeMarketContractCall ${FEE_MARKET_ADDRESS} ${PROXY} ${CHAIN_ID} ${OUTFILE}
 }
 disableFeeMarketContractSovereign() {
-    disableFeeMarketContractCall ${FEE_MARKET_ADDRESS_SOVEREIGN} ${PROXY_SOVEREIGN} ${CHAIN_ID_SOVEREIGN}
+    echo "Disabling Fee Market contract on sovereign chain..."
+
+    local OUTFILE="${OUTFILE_PATH}/disable-feemarket-contract-sovereign.interaction.json"
+    disableFeeMarketContractCall ${FEE_MARKET_ADDRESS_SOVEREIGN} ${PROXY_SOVEREIGN} ${CHAIN_ID_SOVEREIGN} ${OUTFILE}
 }
 disableFeeMarketContractCall() {
-    if [ $# -lt 3 ]; then
-        echo "Usage: $0 <arg1> <arg2> <arg3>"
+    if [ $# -lt 4 ]; then
+        echo "Usage: $0 <arg1> <arg2> <arg3> <arg4>"
         exit 1
     fi
 
     local ADDRESS=$1
     local URL=$2
     local CHAIN=$3
+    local OUTFILE=$4
 
-    mxpy --verbose contract call ${ADDRESS} \
+    mxpy contract call ${ADDRESS} \
         --pem=${WALLET} \
         --proxy=${URL} \
         --chain=${CHAIN} \
         --gas-limit=10000000 \
         --function="disableFee" \
+        --outfile=${OUTFILE} \
         --recall-nonce \
         --wait-result \
         --send || return
+
+    printTxStatus ${OUTFILE}
 }
 
 setFixedFeeMarketContract() {
-    setFixedFeeMarketContractCall ${FEE_MARKET_ADDRESS} ${PROXY} ${CHAIN_ID}
+    echo "Setting fixed fee in market contract on main chain..."
+
+    local OUTFILE="${OUTFILE_PATH}/set-fixed-feemarket-contract.interaction.json"
+    setFixedFeeMarketContractCall ${FEE_MARKET_ADDRESS} ${PROXY} ${CHAIN_ID} ${OUTFILE}
 }
 setFixedFeeMarketContractSovereign() {
-    setFixedFeeMarketContractCall ${FEE_MARKET_ADDRESS_SOVEREIGN} ${PROXY_SOVEREIGN} ${CHAIN_ID_SOVEREIGN}
+    echo "Setting fixed fee in market contract on sovereign chain..."
+
+    local OUTFILE="${OUTFILE_PATH}/set-fixed-feemarket-contract-sovereign.interaction.json"
+    setFixedFeeMarketContractCall ${FEE_MARKET_ADDRESS_SOVEREIGN} ${PROXY_SOVEREIGN} ${CHAIN_ID_SOVEREIGN} ${OUTFILE}
 }
 setFixedFeeMarketContractCall() {
-    if [ $# -lt 3 ]; then
-            echo "Usage: $0 <arg1> <arg2> <arg3>"
-            exit 1
-        fi
+    if [ $# -lt 4 ]; then
+        echo "Usage: $0 <arg1> <arg2> <arg3> <arg4>"
+        exit 1
+    fi
 
-        local ADDRESS=$1
-        local URL=$2
-        local CHAIN=$3
+    local ADDRESS=$1
+    local URL=$2
+    local CHAIN=$3
+    local OUTFILE=$4
 
-        mxpy --verbose contract call ${ADDRESS} \
-            --pem=${WALLET} \
-            --proxy=${URL} \
-            --chain=${CHAIN} \
-            --gas-limit=10000000 \
-            --function="addFee" \
-            --arguments \
-                str:SVN-c53da0 \
-                0x010000000a53564e2d6335336461300000000901314fb370629800000000000901c9f78d2893e40000 \
-            --recall-nonce \
-            --wait-result \
-            --send || return
+    mxpy contract call ${ADDRESS} \
+        --pem=${WALLET} \
+        --proxy=${URL} \
+        --chain=${CHAIN} \
+        --gas-limit=10000000 \
+        --function="addFee" \
+        --arguments \
+            str:SVN-c53da0 \
+            0x010000000a53564e2d6335336461300000000901314fb370629800000000000901c9f78d2893e40000 \
+        --outfile=${OUTFILE} \
+        --recall-nonce \
+        --wait-result \
+        --send || return
+
+    printTxStatus ${OUTFILE}
 }
 
 setAnyTokenFeeMarketContract() {
-    setAnyTokenFeeMarketContractCall ${FEE_MARKET_ADDRESS} ${PROXY} ${CHAIN_ID}
+    echo "Setting any token fee in market contract on main chain..."
+
+    local OUTFILE="${OUTFILE_PATH}/set-anytoken-feemarket-contract.interaction.json"
+    setAnyTokenFeeMarketContractCall ${FEE_MARKET_ADDRESS} ${PROXY} ${CHAIN_ID} ${OUTFILE}
 }
 setAnyTokenFeeMarketContractSovereign() {
-    setAnyTokenFeeMarketContractCall ${FEE_MARKET_ADDRESS_SOVEREIGN} ${PROXY_SOVEREIGN} ${CHAIN_ID_SOVEREIGN}
+    echo "Setting any token fee in market contract on sovereign chain..."
+
+    local OUTFILE="${OUTFILE_PATH}/set-anytoken-feemarket-contract-sovereign.interaction.json"
+    setAnyTokenFeeMarketContractCall ${FEE_MARKET_ADDRESS_SOVEREIGN} ${PROXY_SOVEREIGN} ${CHAIN_ID_SOVEREIGN} ${OUTFILE}
 }
 setAnyTokenFeeMarketContractCall() {
-    if [ $# -lt 3 ]; then
-            echo "Usage: $0 <arg1> <arg2> <arg3>"
-            exit 1
-        fi
+    if [ $# -lt 4 ]; then
+        echo "Usage: $0 <arg1> <arg2> <arg3> <arg4>"
+        exit 1
+    fi
 
-        local ADDRESS=$1
-        local URL=$2
-        local CHAIN=$3
+    local ADDRESS=$1
+    local URL=$2
+    local CHAIN=$3
+    local OUTFILE=$4
 
-        echo "NOT IMPLEMENTED YET"
+    echo "NOT IMPLEMENTED YET"
 }
 
 # distribute all the fees to wallet
 distributeFees() {
-    mxpy --verbose contract call ${FEE_MARKET_ADDRESS} \
+    echo "Distributing 100% fees to owner wallet on main chain..."
+
+    local OUTFILE="${OUTFILE_PATH}/distribute-fees.interaction.json"
+    mxpy contract call ${FEE_MARKET_ADDRESS} \
         --pem=${WALLET} \
         --proxy=${PROXY} \
         --chain=${CHAIN_ID} \
@@ -172,7 +209,10 @@ distributeFees() {
         --arguments \
            ${WALLET_ADDRESS} \
            0x2710 \
+        --outfile=${OUTFILE} \
         --recall-nonce \
         --wait-result \
         --send || return
+
+    printTxStatus ${OUTFILE}
 }
