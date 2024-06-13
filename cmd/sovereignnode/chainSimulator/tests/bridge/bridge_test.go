@@ -95,7 +95,8 @@ func TestSovereignChainSimulator_DeployBridgeContractsThenIssueAndDeposit(t *tes
 	bridgeData := DeploySovereignBridgeSetup(t, cs, wallet, esdtSafeWasmPath, feeMarketWasmPath)
 	require.Equal(t, expectedESDTSafeAddressBytes, bridgeData.ESDTSafeAddress)
 
-	nonce := uint64(5)
+	nonce := GetNonce(t, nodeHandler, wallet.Bech32)
+
 	issueCost, _ := big.NewInt(0).SetString(issuePrice, 10)
 	supply, _ := big.NewInt(0).SetString("123000000000000000000", 10)
 	tokenName := "SovToken"

@@ -41,7 +41,7 @@ func NewSovereignChainSimulator(args ArgsSovereignChainSimulator) (chainSimulato
 		return nil, err
 	}
 
-	alteredSovConfigs := config.SovereignConfig{}
+	alteredSovConfigs := *configs.SovereignExtraConfig
 	args.AlterConfigsFunction = func(cfg *config.Configs) {
 		cfg.EconomicsConfig = configs.EconomicsConfig
 		cfg.EpochConfig = configs.EpochConfig
@@ -51,9 +51,8 @@ func NewSovereignChainSimulator(args ArgsSovereignChainSimulator) (chainSimulato
 
 		if alterConfigs != nil {
 			alterConfigs(cfg)
+			alteredSovConfigs = cfg.GeneralConfig.SovereignConfig
 		}
-
-		alteredSovConfigs = cfg.GeneralConfig.SovereignConfig
 	}
 
 	args.CreateGenesisNodesSetup = func(nodesFilePath string, addressPubkeyConverter core.PubkeyConverter, validatorPubkeyConverter core.PubkeyConverter, _ uint32) (sharding.GenesisNodesSetupHandler, error) {
@@ -67,12 +66,10 @@ func NewSovereignChainSimulator(args ArgsSovereignChainSimulator) (chainSimulato
 		return rating.NewSovereignRatingsData(arg)
 	}
 	args.CreateIncomingHeaderSubscriber = func(config *config.NotifierConfig, dataPool dataRetriever.PoolsHolder, mainChainNotarizationStartRound uint64, runTypeComponents factory.RunTypeComponentsHolder) (process.IncomingHeaderSubscriber, error) {
-		config = &alteredSovConfigs.NotifierConfig
-		return incomingHeader.CreateIncomingHeaderProcessor(config, dataPool, mainChainNotarizationStartRound, runTypeComponents)
+		return incomingHeader.CreateIncomingHeaderProcessor(&alteredSovConfigs.NotifierConfig, dataPool, mainChainNotarizationStartRound, runTypeComponents)
 	}
 	args.CreateRunTypeComponents = func(argsRunType runType.ArgsRunTypeComponents) (factory.RunTypeComponentsHolder, error) {
-		*configs.SovereignExtraConfig = alteredSovConfigs
-		return createSovereignRunTypeComponents(argsRunType, *configs.SovereignExtraConfig)
+		return createSovereignRunTypeComponents(argsRunType, alteredSovConfigs)
 	}
 	args.NodeFactory = node.NewSovereignNodeFactory()
 	args.ChainProcessorFactory = NewSovereignChainHandlerFactory()

@@ -938,11 +938,12 @@ func (scbp *sovereignChainBlockProcessor) addOutGoingTxToPool(outGoingOp *sovCor
 		Data:     outGoingOp.Data,
 	}
 
+	cacheID := fmt.Sprintf("%d_%d", core.SovereignChainShardId, core.MainChainShardId)
 	scbp.dataPool.Transactions().AddData(
 		outGoingOp.Hash,
 		tx,
 		tx.Size(),
-		fmt.Sprintf("%d_%d", core.SovereignChainShardId, core.MainChainShardId),
+		cacheID,
 	)
 }
 
