@@ -1,7 +1,8 @@
-package epochStartTriggerFactory
+package epochStartTrigger
 
 import (
-	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/factory"
 )
 
 type sovereignEpochStartTriggerFactory struct {
@@ -14,7 +15,7 @@ func NewSovereignEpochStartTriggerFactory() *sovereignEpochStartTriggerFactory {
 }
 
 // CreateEpochStartTrigger creates a meta epoch start trigger for sovereign run type
-func (f *sovereignEpochStartTriggerFactory) CreateEpochStartTrigger(args ArgsEpochStartTrigger) (process.EpochStartTriggerHandler, error) {
+func (f *sovereignEpochStartTriggerFactory) CreateEpochStartTrigger(args factory.ArgsEpochStartTrigger) (epochStart.TriggerHandler, error) {
 	return createMetaEpochStartTrigger(args)
 }
 

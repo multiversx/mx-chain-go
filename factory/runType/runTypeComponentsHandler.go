@@ -596,6 +596,18 @@ func (mrc *managedRunTypeComponents) GenesisMetaBlockCheckerCreator() processCom
 	return mrc.runTypeComponents.genesisMetaBlockCheckerCreator
 }
 
+// EpochStartTriggerFactory returns the epoch start trigger factory
+func (mrc *managedRunTypeComponents) EpochStartTriggerFactory() factory.EpochStartTriggerFactoryHandler {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.epochStartTriggerFactory
+}
+
 // IsInterfaceNil returns true if the interface is nil
 func (mrc *managedRunTypeComponents) IsInterfaceNil() bool {
 	return mrc == nil

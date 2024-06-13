@@ -13,6 +13,8 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/errors"
+	mainFactory "github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/factory/epochStartTrigger"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
@@ -92,6 +94,7 @@ type runTypeComponents struct {
 	extraHeaderSigVerifierHolder            headerCheck.ExtraHeaderSigVerifierHolder
 	genesisBlockCreatorFactory              processGenesis.GenesisBlockCreatorFactory
 	genesisMetaBlockCheckerCreator          processGenesis.GenesisMetaBlockChecker
+	epochStartTriggerFactory                mainFactory.EpochStartTriggerFactoryHandler
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
@@ -257,6 +260,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		extraHeaderSigVerifierHolder:            headerCheck.NewExtraHeaderSigVerifierHolder(),
 		genesisBlockCreatorFactory:              processGenesis.NewGenesisBlockCreatorFactory(),
 		genesisMetaBlockCheckerCreator:          processGenesis.NewGenesisMetaBlockChecker(),
+		epochStartTriggerFactory:                epochStartTrigger.NewEpochStartTriggerFactory(),
 	}, nil
 }
 

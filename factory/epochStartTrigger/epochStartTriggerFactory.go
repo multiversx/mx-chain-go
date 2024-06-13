@@ -1,4 +1,4 @@
-package epochStartTriggerFactory
+package epochStartTrigger
 
 import (
 	"errors"
@@ -6,7 +6,6 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/metachain"
 	"github.com/multiversx/mx-chain-go/epochStart/shardchain"
@@ -19,17 +18,6 @@ import (
 type epochStartTriggerFactory struct {
 }
 
-// ArgsEpochStartTrigger is a struct placeholder for arguments needed to create an epoch start trigger
-type ArgsEpochStartTrigger struct {
-	RequestHandler             epochStart.RequestHandler
-	CoreData                   factory.CoreComponentsHolder
-	BootstrapComponents        factory.BootstrapComponentsHandler
-	DataComps                  factory.DataComponentsHolder
-	StatusCoreComponentsHolder process.StatusCoreComponentsHolder
-	RunTypeComponentsHolder    factory.RunTypeComponentsHolder
-	Config                     config.Config
-}
-
 // NewEpochStartTriggerFactory creates a normal run type chain epoch start trigger. It will create epoch start triggers
 // (meta/shard) based on shard coordinator. In an ideal case, this should be further broken down into separate factories
 // for each shard.
@@ -38,7 +26,7 @@ func NewEpochStartTriggerFactory() *epochStartTriggerFactory {
 }
 
 // CreateEpochStartTrigger creates an epoch start trigger for normal run type
-func (f *epochStartTriggerFactory) CreateEpochStartTrigger(args ArgsEpochStartTrigger) (process.EpochStartTriggerHandler, error) {
+func (f *epochStartTriggerFactory) CreateEpochStartTrigger(args factory.ArgsEpochStartTrigger) (epochStart.TriggerHandler, error) {
 	shardCoordinator := args.BootstrapComponents.ShardCoordinator()
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
@@ -51,7 +39,7 @@ func (f *epochStartTriggerFactory) CreateEpochStartTrigger(args ArgsEpochStartTr
 	return nil, errors.New("error creating new start of epoch trigger because of invalid shard id")
 }
 
-func createShardEpochStartTrigger(args ArgsEpochStartTrigger) (process.EpochStartTriggerHandler, error) {
+func createShardEpochStartTrigger(args factory.ArgsEpochStartTrigger) (epochStart.TriggerHandler, error) {
 	argsHeaderValidator := block.ArgsHeaderValidator{
 		Hasher:      args.CoreData.Hasher(),
 		Marshalizer: args.CoreData.InternalMarshalizer(),
@@ -93,7 +81,7 @@ func createShardEpochStartTrigger(args ArgsEpochStartTrigger) (process.EpochStar
 	return shardchain.NewEpochStartTrigger(argEpochStart)
 }
 
-func createMetaEpochStartTrigger(args ArgsEpochStartTrigger) (process.EpochStartTriggerHandler, error) {
+func createMetaEpochStartTrigger(args factory.ArgsEpochStartTrigger) (epochStart.TriggerHandler, error) {
 	genesisHeader := args.DataComps.Blockchain().GetGenesisHeader()
 	if check.IfNil(genesisHeader) {
 		return nil, errorsMx.ErrGenesisBlockNotInitialized

@@ -389,7 +389,16 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	epochStartTrigger, err := pcf.newEpochStartTrigger(requestHandler)
+	argsEpochStartTrigger := factory.ArgsEpochStartTrigger{
+		RequestHandler:             requestHandler,
+		CoreData:                   pcf.coreData,
+		BootstrapComponents:        pcf.bootstrapComponents,
+		DataComps:                  pcf.data,
+		StatusCoreComponentsHolder: pcf.statusCoreComponents,
+		RunTypeComponentsHolder:    pcf.runTypeComponents,
+		Config:                     pcf.config,
+	}
+	epochStartTrigger, err := pcf.runTypeComponents.EpochStartTriggerFactory().CreateEpochStartTrigger(argsEpochStartTrigger)
 	if err != nil {
 		return nil, err
 	}
