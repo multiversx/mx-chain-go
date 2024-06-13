@@ -35,7 +35,6 @@ import (
 	hdrFactory "github.com/multiversx/mx-chain-go/factory/block"
 	heartbeatComp "github.com/multiversx/mx-chain-go/factory/heartbeat"
 	"github.com/multiversx/mx-chain-go/factory/peerSignatureHandler"
-	"github.com/multiversx/mx-chain-go/factory/processing"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
@@ -425,10 +424,6 @@ type TestProcessorNode struct {
 	AppStatusHandler        core.AppStatusHandler
 	StatusMetrics           external.StatusMetricsHandler
 
-	RequestHandlerCreator processing.RequestHandlerCreator
-	BlockTrackerCreator   track.BlockTrackerCreator
-	BlockProcessorCreator processing.BlockProcessorCreator
-
 	RunTypeComponents factory.RunTypeComponentsHolder
 }
 
@@ -517,12 +512,15 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 
 	logsProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{Marshalizer: TestMarshalizer})
 
-	rtc := components.GetRunTypeComponentsWithCoreComp(&mock.CoreComponentsStub{
-		HasherField:                 TestHasher,
-		InternalMarshalizerField:    TestMarshalizer,
-		EnableEpochsHandlerField:    enableEpochsHandler,
-		AddressPubKeyConverterField: &testscommon.PubkeyConverterStub{},
-	})
+	rtc := components.GetRunTypeComponents(
+		&mock.CoreComponentsStub{
+			HasherField:                 TestHasher,
+			InternalMarshalizerField:    TestMarshalizer,
+			EnableEpochsHandlerField:    enableEpochsHandler,
+			AddressPubKeyConverterField: &testscommon.PubkeyConverterStub{},
+		},
+		GetDefaultCryptoComponents(),
+	)
 	runTypeComponents := components.GetRunTypeComponentsStub(rtc)
 	runTypeComponents.AccountParser = &genesisMocks.AccountsParserStub{}
 	args.RunTypeComponents = runTypeComponents
@@ -558,9 +556,6 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 		AppStatusHandler:           appStatusHandler,
 		PeersRatingMonitor:         peersRatingMonitor,
 		TxExecutionOrderHandler:    ordering.NewOrderedCollection(),
-		RequestHandlerCreator:      requestHandlers.NewResolverRequestHandlerFactory(),
-		BlockProcessorCreator:      args.RunTypeComponents.BlockProcessorCreator(),
-		BlockTrackerCreator:        args.RunTypeComponents.BlockTrackerCreator(),
 		RunTypeComponents:          args.RunTypeComponents,
 	}
 
@@ -1556,7 +1551,7 @@ func (tpn *TestProcessorNode) initRequesters() {
 		RequestInterval:       time.Second,
 	}
 
-	tpn.RequestHandler, _ = tpn.RequestHandlerCreator.CreateRequestHandler(argsRequestHandler)
+	tpn.RequestHandler, _ = tpn.RunTypeComponents.RequestHandlerCreator().CreateRequestHandler(argsRequestHandler)
 }
 
 func (tpn *TestProcessorNode) createMetaRequestersContainer(args requesterscontainer.FactoryArgs) {
@@ -2478,7 +2473,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
 		argumentsBase.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{}
 
-		tpn.BlockProcessor, err = tpn.BlockProcessorCreator.CreateBlockProcessor(argumentsBase)
+		tpn.BlockProcessor, err = tpn.RunTypeComponents.BlockProcessorCreator().CreateBlockProcessor(argumentsBase)
 	}
 
 	if err != nil {
@@ -3103,7 +3098,7 @@ func (tpn *TestProcessorNode) initBlockTracker() {
 		ArgBaseTracker: argBaseTracker,
 	}
 
-	tpn.BlockTracker, _ = tpn.BlockTrackerCreator.CreateBlockTracker(arguments)
+	tpn.BlockTracker, _ = tpn.RunTypeComponents.BlockTrackerCreator().CreateBlockTracker(arguments)
 }
 
 func (tpn *TestProcessorNode) initHeaderValidator() {
@@ -3308,7 +3303,9 @@ func CreateEnableEpochsConfig() config.EnableEpochs {
 
 // GetDefaultRunTypeComponents -
 func GetDefaultRunTypeComponents(consensusModel consensus.ConsensusModel) *mainFactoryMocks.RunTypeComponentsStub {
-	rt := components.GetRunTypeComponents()
+	coreComp := components.GetCoreComponents(testscommon.GetGeneralConfig())
+	cryptoComp := components.GetCryptoComponents(coreComp)
+	rt := components.GetRunTypeComponents(coreComp, cryptoComp)
 	return &mainFactoryMocks.RunTypeComponentsStub{
 		BlockChainHookHandlerFactory:        rt.BlockChainHookHandlerCreator(),
 		BlockProcessorFactory:               rt.BlockProcessorCreator(),

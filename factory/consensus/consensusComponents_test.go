@@ -7,14 +7,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	retriever "github.com/multiversx/mx-chain-go/dataRetriever"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
+	mainFactory "github.com/multiversx/mx-chain-go/factory"
 	consensusComp "github.com/multiversx/mx-chain-go/factory/consensus"
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	testsMocks "github.com/multiversx/mx-chain-go/integrationTests/mock"
@@ -47,6 +46,10 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	"github.com/multiversx/mx-chain-go/testscommon/subRoundsHolder"
 	"github.com/multiversx/mx-chain-go/update"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-crypto-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -1045,16 +1048,40 @@ func TestConsensusComponentsFactory_Create(t *testing.T) {
 	})
 }
 
+func createConsensusFactoryArgs() consensusComp.ConsensusComponentsFactoryArgs {
+	return createFactoryArgs(componentsMock.GetCoreComponents, componentsMock.GetRunTypeComponents)
+}
+
+func createSovereignConsensusFactoryArgs() consensusComp.ConsensusComponentsFactoryArgs {
+	return createFactoryArgs(componentsMock.GetSovereignCoreComponents, componentsMock.GetSovereignRunTypeComponents)
+}
+
+func createFactoryArgs(
+	getCoreComponents func(cfg config.Config) mainFactory.CoreComponentsHolder,
+	getRunTypeComponents func(coreComp mainFactory.CoreComponentsHolder, cryptoComp mainFactory.CryptoComponentsHolder) mainFactory.RunTypeComponentsHolder,
+) consensusComp.ConsensusComponentsFactoryArgs {
+	cfg := testscommon.GetGeneralConfig()
+	coreComp := getCoreComponents(cfg)
+	statusCoreComp := componentsMock.GetStatusCoreComponents(cfg, coreComp)
+	cryptoComp := componentsMock.GetCryptoComponents(coreComp)
+	networkComp := componentsMock.GetNetworkComponents(cryptoComp)
+	runTypeComp := getRunTypeComponents(coreComp, cryptoComp)
+	bootstrapComp := componentsMock.GetBootstrapComponents(cfg, statusCoreComp, coreComp, cryptoComp, networkComp, runTypeComp)
+	dataComp := componentsMock.GetDataComponents(cfg, statusCoreComp, coreComp, bootstrapComp, cryptoComp, runTypeComp)
+	stateComp := componentsMock.GetStateComponents(cfg, coreComp, dataComp, statusCoreComp, runTypeComp)
+	statusComp := componentsMock.GetStatusComponents(cfg, statusCoreComp, coreComp, networkComp, bootstrapComp, stateComp, &shardingMocks.NodesCoordinatorMock{}, cryptoComp)
+	processComp := componentsMock.GetProcessComponents(cfg, runTypeComp, coreComp, cryptoComp, networkComp, bootstrapComp, stateComp, dataComp, statusComp, statusCoreComp)
+
+	return componentsMock.GetConsensusFactoryArgs(cfg, runTypeComp, coreComp, cryptoComp, networkComp, stateComp, dataComp, statusComp, statusCoreComp, processComp)
+}
+
 func TestConsensusComponentsFactory_CreateShardStorageAndSyncBootstrapperShouldWork(t *testing.T) {
 	t.Parallel()
 
 	t.Run("should create a shard storage and sync bootstrapper main chain instance", func(t *testing.T) {
 		t.Parallel()
 
-		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-		args := componentsMock.GetConsensusArgs(shardCoordinator)
-		args.RunTypeComponents = componentsMock.GetRunTypeComponents()
-
+		args := createConsensusFactoryArgs()
 		ccf, _ := consensusComp.NewConsensusComponentsFactory(args)
 		cc, err := ccf.Create()
 
@@ -1067,10 +1094,7 @@ func TestConsensusComponentsFactory_CreateShardStorageAndSyncBootstrapperShouldW
 	t.Run("should create a shard storage and sync bootstrapper sovereign chain instance", func(t *testing.T) {
 		t.Parallel()
 
-		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-		args := componentsMock.GetConsensusArgs(shardCoordinator)
-		args.RunTypeComponents = componentsMock.GetSovereignRunTypeComponents()
-
+		args := createSovereignConsensusFactoryArgs()
 		ccf, _ := consensusComp.NewConsensusComponentsFactory(args)
 		cc, err := ccf.Create()
 
