@@ -185,7 +185,7 @@ setMultiSigVerifierAddressInEsdtSafe() {
     printTxStatus ${OUTFILE}
 }
 
-setSovereignBridgeAddress() {
+setSovereignBridgeAddressInEsdtSafe() {
     echo "Setting Sovereign bridge address in ESDT Safe contract on main chain..."
     checkVariables ESDT_SAFE_ADDRESS ESDT_SAFE_ADDRESS_SOVEREIGN || return
 
@@ -195,7 +195,7 @@ setSovereignBridgeAddress() {
         --proxy=${PROXY} \
         --chain=${CHAIN_ID} \
         --gas-limit=10000000 \
-        --function="setSovereignBridgeAddress" \
+        --function="setSovereignBridgeAddressInEsdtSafe" \
         --arguments ${ESDT_SAFE_ADDRESS_SOVEREIGN} \
         --outfile=${OUTFILE} \
         --recall-nonce \

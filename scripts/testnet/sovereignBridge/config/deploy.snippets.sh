@@ -39,7 +39,7 @@ sovereignDeploy() {
 
     setMultiSigVerifierAddressInEsdtSafe
 
-    setSovereignBridgeAddress
+    setSovereignBridgeAddressInEsdtSafe
 
     getFundsInAddressSovereign
 
