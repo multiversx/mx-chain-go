@@ -8,7 +8,18 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/sovereign"
+	"github.com/multiversx/mx-sdk-abi-go/abi"
+	"github.com/stretchr/testify/require"
 )
+
+const (
+	deposit = "deposit"
+)
+
+var serializer, _ = abi.NewSerializer(abi.ArgsNewSerializer{
+	PartsSeparator: "@",
+})
 
 // ArgsBridgeSetup holds the arguments for bridge setup
 type ArgsBridgeSetup struct {
@@ -58,5 +69,56 @@ func DeploySovereignBridgeSetup(
 	return &ArgsBridgeSetup{
 		ESDTSafeAddress:  esdtSafeAddress,
 		FeeMarketAddress: feeMarketAddress,
+	}
+}
+
+// Deposit will deposit tokens in the bridge sc safe contract
+func Deposit(
+	t *testing.T,
+	cs chainSim.ChainSimulator,
+	sender []byte,
+	nonce *uint64,
+	contract []byte,
+	tokens []chainSim.ArgsDepositToken,
+	receiver []byte,
+	transferData *sovereign.TransferData,
+) {
+	require.True(t, len(tokens) > 0)
+
+	args := make([]any, 0)
+	args = append(args, &abi.AddressValue{Value: contract})
+	args = append(args, &abi.U32Value{Value: uint32(len(tokens))})
+	for _, token := range tokens {
+		args = append(args, &abi.StringValue{Value: token.Identifier})
+		args = append(args, &abi.U64Value{Value: token.Nonce})
+		args = append(args, &abi.BigUIntValue{Value: token.Amount})
+	}
+	args = append(args, &abi.StringValue{Value: deposit})
+	args = append(args, &abi.AddressValue{Value: receiver})
+	args = append(args, &abi.OptionalValue{Value: getTransferDataValue(transferData)})
+
+	multiTransferArg, err := serializer.Serialize(args)
+	require.Nil(t, err)
+	depositArgs := core.BuiltInFunctionMultiESDTNFTTransfer +
+		"@" + multiTransferArg
+
+	chainSim.SendTransaction(t, cs, sender, nonce, sender, chainSim.ZeroValue, depositArgs, uint64(20000000))
+}
+
+func getTransferDataValue(transferData *sovereign.TransferData) any {
+	if transferData == nil {
+		return nil
+	}
+
+	arguments := make([]abi.SingleValue, len(transferData.Args))
+	for i, arg := range transferData.Args {
+		arguments[i] = &abi.BytesValue{Value: arg}
+	}
+	return &abi.MultiValue{
+		Items: []any{
+			&abi.U64Value{Value: transferData.GasLimit},
+			&abi.BytesValue{Value: transferData.Function},
+			&abi.ListValue{Items: arguments},
+		},
 	}
 }
