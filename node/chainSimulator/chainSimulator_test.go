@@ -27,18 +27,16 @@ func TestNewChainSimulator(t *testing.T) {
 	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
-		BypassTxSignatureCheck:      false,
-		TempDir:                     t.TempDir(),
-		PathToInitialConfig:         defaultPathToInitialConfig,
-		NumOfShards:                 3,
-		GenesisTimestamp:            startTime,
-		RoundDurationInMillis:       roundDurationInMillis,
-		RoundsPerEpoch:              core.OptionalUint64{},
-		ApiInterface:                api.NewNoApiInterface(),
-		MinNodesPerShard:            1,
-		MetaChainMinNodes:           1,
-		ConsensusGroupSize:          1,
-		MetaChainConsensusGroupSize: 1,
+		BypassTxSignatureCheck: false,
+		TempDir:                t.TempDir(),
+		PathToInitialConfig:    defaultPathToInitialConfig,
+		NumOfShards:            3,
+		GenesisTimestamp:       startTime,
+		RoundDurationInMillis:  roundDurationInMillis,
+		RoundsPerEpoch:         core.OptionalUint64{},
+		ApiInterface:           api.NewNoApiInterface(),
+		MinNodesPerShard:       1,
+		MetaChainMinNodes:      1,
 	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
@@ -66,14 +64,12 @@ func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
 			HasValue: true,
 			Value:    20,
 		},
-		ApiInterface:                api.NewNoApiInterface(),
-		MinNodesPerShard:            1,
-		MetaChainMinNodes:           1,
-		ConsensusGroupSize:          1,
-		MetaChainConsensusGroupSize: 1,
-		InitialRound:                200000000,
-		InitialEpoch:                100,
-		InitialNonce:                100,
+		ApiInterface:      api.NewNoApiInterface(),
+		MinNodesPerShard:  1,
+		MetaChainMinNodes: 1,
+		InitialRound:      200000000,
+		InitialEpoch:      100,
+		InitialNonce:      100,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			// we need to enable this as this test skips a lot of epoch activations events, and it will fail otherwise
 			// because the owner of a BLS key coming from genesis is not set
@@ -104,18 +100,16 @@ func TestChainSimulator_GenerateBlocksAndEpochChangeShouldWork(t *testing.T) {
 		Value:    20,
 	}
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
-		BypassTxSignatureCheck:      false,
-		TempDir:                     t.TempDir(),
-		PathToInitialConfig:         defaultPathToInitialConfig,
-		NumOfShards:                 3,
-		GenesisTimestamp:            startTime,
-		RoundDurationInMillis:       roundDurationInMillis,
-		RoundsPerEpoch:              roundsPerEpoch,
-		ApiInterface:                api.NewNoApiInterface(),
-		MinNodesPerShard:            100,
-		MetaChainMinNodes:           100,
-		ConsensusGroupSize:          1,
-		MetaChainConsensusGroupSize: 1,
+		BypassTxSignatureCheck: false,
+		TempDir:                t.TempDir(),
+		PathToInitialConfig:    defaultPathToInitialConfig,
+		NumOfShards:            3,
+		GenesisTimestamp:       startTime,
+		RoundDurationInMillis:  roundDurationInMillis,
+		RoundsPerEpoch:         roundsPerEpoch,
+		ApiInterface:           api.NewNoApiInterface(),
+		MinNodesPerShard:       100,
+		MetaChainMinNodes:      100,
 	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
@@ -163,18 +157,16 @@ func TestSimulator_TriggerChangeOfEpoch(t *testing.T) {
 		Value:    15000,
 	}
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
-		BypassTxSignatureCheck:      false,
-		TempDir:                     t.TempDir(),
-		PathToInitialConfig:         defaultPathToInitialConfig,
-		NumOfShards:                 3,
-		GenesisTimestamp:            startTime,
-		RoundDurationInMillis:       roundDurationInMillis,
-		RoundsPerEpoch:              roundsPerEpoch,
-		ApiInterface:                api.NewNoApiInterface(),
-		MinNodesPerShard:            100,
-		MetaChainMinNodes:           100,
-		ConsensusGroupSize:          1,
-		MetaChainConsensusGroupSize: 1,
+		BypassTxSignatureCheck: false,
+		TempDir:                t.TempDir(),
+		PathToInitialConfig:    defaultPathToInitialConfig,
+		NumOfShards:            3,
+		GenesisTimestamp:       startTime,
+		RoundDurationInMillis:  roundDurationInMillis,
+		RoundsPerEpoch:         roundsPerEpoch,
+		ApiInterface:           api.NewNoApiInterface(),
+		MinNodesPerShard:       100,
+		MetaChainMinNodes:      100,
 	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
@@ -210,18 +202,16 @@ func TestChainSimulator_SetState(t *testing.T) {
 		Value:    20,
 	}
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
-		BypassTxSignatureCheck:      false,
-		TempDir:                     t.TempDir(),
-		PathToInitialConfig:         defaultPathToInitialConfig,
-		NumOfShards:                 3,
-		GenesisTimestamp:            startTime,
-		RoundDurationInMillis:       roundDurationInMillis,
-		RoundsPerEpoch:              roundsPerEpoch,
-		ApiInterface:                api.NewNoApiInterface(),
-		MinNodesPerShard:            1,
-		MetaChainMinNodes:           1,
-		ConsensusGroupSize:          1,
-		MetaChainConsensusGroupSize: 1,
+		BypassTxSignatureCheck: false,
+		TempDir:                t.TempDir(),
+		PathToInitialConfig:    defaultPathToInitialConfig,
+		NumOfShards:            3,
+		GenesisTimestamp:       startTime,
+		RoundDurationInMillis:  roundDurationInMillis,
+		RoundsPerEpoch:         roundsPerEpoch,
+		ApiInterface:           api.NewNoApiInterface(),
+		MinNodesPerShard:       1,
+		MetaChainMinNodes:      1,
 	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
@@ -243,18 +233,16 @@ func TestChainSimulator_SetEntireState(t *testing.T) {
 		Value:    20,
 	}
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
-		BypassTxSignatureCheck:      false,
-		TempDir:                     t.TempDir(),
-		PathToInitialConfig:         defaultPathToInitialConfig,
-		NumOfShards:                 3,
-		GenesisTimestamp:            startTime,
-		RoundDurationInMillis:       roundDurationInMillis,
-		RoundsPerEpoch:              roundsPerEpoch,
-		ApiInterface:                api.NewNoApiInterface(),
-		MinNodesPerShard:            1,
-		MetaChainMinNodes:           1,
-		ConsensusGroupSize:          1,
-		MetaChainConsensusGroupSize: 1,
+		BypassTxSignatureCheck: false,
+		TempDir:                t.TempDir(),
+		PathToInitialConfig:    defaultPathToInitialConfig,
+		NumOfShards:            3,
+		GenesisTimestamp:       startTime,
+		RoundDurationInMillis:  roundDurationInMillis,
+		RoundsPerEpoch:         roundsPerEpoch,
+		ApiInterface:           api.NewNoApiInterface(),
+		MinNodesPerShard:       1,
+		MetaChainMinNodes:      1,
 	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
@@ -293,18 +281,16 @@ func TestChainSimulator_SetEntireStateWithRemoval(t *testing.T) {
 		Value:    20,
 	}
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
-		BypassTxSignatureCheck:      false,
-		TempDir:                     t.TempDir(),
-		PathToInitialConfig:         defaultPathToInitialConfig,
-		NumOfShards:                 3,
-		GenesisTimestamp:            startTime,
-		RoundDurationInMillis:       roundDurationInMillis,
-		RoundsPerEpoch:              roundsPerEpoch,
-		ApiInterface:                api.NewNoApiInterface(),
-		MinNodesPerShard:            1,
-		MetaChainMinNodes:           1,
-		ConsensusGroupSize:          1,
-		MetaChainConsensusGroupSize: 1,
+		BypassTxSignatureCheck: false,
+		TempDir:                t.TempDir(),
+		PathToInitialConfig:    defaultPathToInitialConfig,
+		NumOfShards:            3,
+		GenesisTimestamp:       startTime,
+		RoundDurationInMillis:  roundDurationInMillis,
+		RoundsPerEpoch:         roundsPerEpoch,
+		ApiInterface:           api.NewNoApiInterface(),
+		MinNodesPerShard:       1,
+		MetaChainMinNodes:      1,
 	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
@@ -342,18 +328,16 @@ func TestChainSimulator_GetAccount(t *testing.T) {
 		Value:    20,
 	}
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
-		BypassTxSignatureCheck:      false,
-		TempDir:                     t.TempDir(),
-		PathToInitialConfig:         defaultPathToInitialConfig,
-		NumOfShards:                 3,
-		GenesisTimestamp:            startTime,
-		RoundDurationInMillis:       roundDurationInMillis,
-		RoundsPerEpoch:              roundsPerEpoch,
-		ApiInterface:                api.NewNoApiInterface(),
-		MinNodesPerShard:            1,
-		MetaChainMinNodes:           1,
-		ConsensusGroupSize:          1,
-		MetaChainConsensusGroupSize: 1,
+		BypassTxSignatureCheck: false,
+		TempDir:                t.TempDir(),
+		PathToInitialConfig:    defaultPathToInitialConfig,
+		NumOfShards:            3,
+		GenesisTimestamp:       startTime,
+		RoundDurationInMillis:  roundDurationInMillis,
+		RoundsPerEpoch:         roundsPerEpoch,
+		ApiInterface:           api.NewNoApiInterface(),
+		MinNodesPerShard:       1,
+		MetaChainMinNodes:      1,
 	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
@@ -378,18 +362,16 @@ func TestSimulator_SendTransactions(t *testing.T) {
 		Value:    20,
 	}
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
-		BypassTxSignatureCheck:      false,
-		TempDir:                     t.TempDir(),
-		PathToInitialConfig:         defaultPathToInitialConfig,
-		NumOfShards:                 3,
-		GenesisTimestamp:            startTime,
-		RoundDurationInMillis:       roundDurationInMillis,
-		RoundsPerEpoch:              roundsPerEpoch,
-		ApiInterface:                api.NewNoApiInterface(),
-		MinNodesPerShard:            1,
-		MetaChainMinNodes:           1,
-		ConsensusGroupSize:          1,
-		MetaChainConsensusGroupSize: 1,
+		BypassTxSignatureCheck: false,
+		TempDir:                t.TempDir(),
+		PathToInitialConfig:    defaultPathToInitialConfig,
+		NumOfShards:            3,
+		GenesisTimestamp:       startTime,
+		RoundDurationInMillis:  roundDurationInMillis,
+		RoundsPerEpoch:         roundsPerEpoch,
+		ApiInterface:           api.NewNoApiInterface(),
+		MinNodesPerShard:       1,
+		MetaChainMinNodes:      1,
 	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
