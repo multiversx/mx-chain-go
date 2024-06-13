@@ -676,7 +676,7 @@
             { StartEpoch = 1, Version = "v1.5" }, # TODO: set also the RoundActivations.DisableAsyncCallV1 accordingly
         ]
         TransferAndExecuteByUserAddresses = [ # TODO: set real contract addresses for all shards
-            "erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe3", #shard 0
+            "erd1qqqqqqqqqqqqqpgqz9haw65wv037fudkl8z0adltg0rsgryz9c7qmcq9mp", #shard 0
         ]
 
     [VirtualMachine.Querying]
@@ -688,7 +688,7 @@
             { StartEpoch = 1, Version = "v1.5" }, # TODO: set also the RoundActivations.DisableAsyncCallV1 accordingly
         ]
         TransferAndExecuteByUserAddresses = [ # TODO: set real contract addresses for all shards
-            "erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe3",
+            "erd1qqqqqqqqqqqqqpgqz9haw65wv037fudkl8z0adltg0rsgryz9c7qmcq9mp",
         ]
 
     [VirtualMachine.GasConfig]
