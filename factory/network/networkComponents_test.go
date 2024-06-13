@@ -6,9 +6,19 @@ import (
 
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	networkComp "github.com/multiversx/mx-chain-go/factory/network"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
+
 	"github.com/stretchr/testify/require"
 )
+
+func createNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
+	cfg := testscommon.GetGeneralConfig()
+	coreComp := componentsMock.GetCoreComponents(cfg)
+	cryptoComp := componentsMock.GetCryptoComponents(coreComp)
+
+	return componentsMock.GetNetworkFactoryArgs(cryptoComp)
+}
 
 func TestNewNetworkComponentsFactory(t *testing.T) {
 	t.Parallel()
@@ -16,7 +26,7 @@ func TestNewNetworkComponentsFactory(t *testing.T) {
 	t.Run("nil StatusHandler should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := componentsMock.GetNetworkFactoryArgs()
+		args := createNetworkFactoryArgs()
 		args.StatusHandler = nil
 		ncf, err := networkComp.NewNetworkComponentsFactory(args)
 		require.Nil(t, ncf)
@@ -25,7 +35,7 @@ func TestNewNetworkComponentsFactory(t *testing.T) {
 	t.Run("nil Marshalizer should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := componentsMock.GetNetworkFactoryArgs()
+		args := createNetworkFactoryArgs()
 		args.Marshalizer = nil
 		ncf, err := networkComp.NewNetworkComponentsFactory(args)
 		require.Nil(t, ncf)
@@ -34,7 +44,7 @@ func TestNewNetworkComponentsFactory(t *testing.T) {
 	t.Run("nil Syncer should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := componentsMock.GetNetworkFactoryArgs()
+		args := createNetworkFactoryArgs()
 		args.Syncer = nil
 		ncf, err := networkComp.NewNetworkComponentsFactory(args)
 		require.Nil(t, ncf)
@@ -43,7 +53,7 @@ func TestNewNetworkComponentsFactory(t *testing.T) {
 	t.Run("nil CryptoComponents should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := componentsMock.GetNetworkFactoryArgs()
+		args := createNetworkFactoryArgs()
 		args.CryptoComponents = nil
 		ncf, err := networkComp.NewNetworkComponentsFactory(args)
 		require.Nil(t, ncf)
@@ -52,7 +62,7 @@ func TestNewNetworkComponentsFactory(t *testing.T) {
 	t.Run("invalid node operation mode should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := componentsMock.GetNetworkFactoryArgs()
+		args := createNetworkFactoryArgs()
 		args.NodeOperationMode = "invalid"
 
 		ncf, err := networkComp.NewNetworkComponentsFactory(args)
@@ -62,7 +72,7 @@ func TestNewNetworkComponentsFactory(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		args := componentsMock.GetNetworkFactoryArgs()
+		args := createNetworkFactoryArgs()
 		ncf, err := networkComp.NewNetworkComponentsFactory(args)
 		require.NoError(t, err)
 		require.NotNil(t, ncf)
@@ -75,7 +85,7 @@ func TestNetworkComponentsFactory_Create(t *testing.T) {
 	t.Run("NewPeersHolder fails should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := componentsMock.GetNetworkFactoryArgs()
+		args := createNetworkFactoryArgs()
 		args.PreferredPeersSlices = []string{"invalid peer"}
 
 		ncf, _ := networkComp.NewNetworkComponentsFactory(args)
@@ -87,7 +97,7 @@ func TestNetworkComponentsFactory_Create(t *testing.T) {
 	t.Run("first NewLRUCache fails should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := componentsMock.GetNetworkFactoryArgs()
+		args := createNetworkFactoryArgs()
 		args.MainConfig.PeersRatingConfig.BadRatedCacheCapacity = 0
 
 		ncf, _ := networkComp.NewNetworkComponentsFactory(args)
@@ -99,7 +109,7 @@ func TestNetworkComponentsFactory_Create(t *testing.T) {
 	t.Run("second NewLRUCache fails should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := componentsMock.GetNetworkFactoryArgs()
+		args := createNetworkFactoryArgs()
 		args.MainConfig.PeersRatingConfig.TopRatedCacheCapacity = 0
 
 		ncf, _ := networkComp.NewNetworkComponentsFactory(args)
@@ -111,7 +121,7 @@ func TestNetworkComponentsFactory_Create(t *testing.T) {
 	t.Run("NewP2PAntiFloodComponents fails should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := componentsMock.GetNetworkFactoryArgs()
+		args := createNetworkFactoryArgs()
 		args.MainConfig.Antiflood.Enabled = true
 		args.MainConfig.Antiflood.SlowReacting.BlackList.NumFloodingRounds = 0 // NewP2PAntiFloodComponents fails
 
@@ -124,7 +134,7 @@ func TestNetworkComponentsFactory_Create(t *testing.T) {
 	t.Run("NewAntifloodDebugger fails should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := componentsMock.GetNetworkFactoryArgs()
+		args := createNetworkFactoryArgs()
 		args.MainConfig.Antiflood.Enabled = true
 		args.MainConfig.Debug.Antiflood.CacheSize = 0 // NewAntifloodDebugger fails
 
@@ -137,7 +147,7 @@ func TestNetworkComponentsFactory_Create(t *testing.T) {
 	t.Run("createPeerHonestyHandler fails should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := componentsMock.GetNetworkFactoryArgs()
+		args := createNetworkFactoryArgs()
 		args.MainConfig.PeerHonesty.Type = "invalid" // createPeerHonestyHandler fails
 
 		ncf, _ := networkComp.NewNetworkComponentsFactory(args)
@@ -149,7 +159,7 @@ func TestNetworkComponentsFactory_Create(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		args := componentsMock.GetNetworkFactoryArgs()
+		args := createNetworkFactoryArgs()
 		ncf, _ := networkComp.NewNetworkComponentsFactory(args)
 
 		nc, err := ncf.Create()
@@ -162,7 +172,7 @@ func TestNetworkComponentsFactory_Create(t *testing.T) {
 func TestNetworkComponents_Close(t *testing.T) {
 	t.Parallel()
 
-	args := componentsMock.GetNetworkFactoryArgs()
+	args := createNetworkFactoryArgs()
 	ncf, _ := networkComp.NewNetworkComponentsFactory(args)
 
 	nc, err := ncf.Create()

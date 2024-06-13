@@ -9,7 +9,7 @@ import (
 	dataComp "github.com/multiversx/mx-chain-go/factory/data"
 	"github.com/multiversx/mx-chain-go/factory/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -26,9 +26,8 @@ func TestNewManagedDataComponents(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		coreComponents := componentsMock.GetCoreComponents()
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-		args := componentsMock.GetDataArgs(coreComponents, shardCoordinator)
+		args := createDataArgs(shardCoordinator)
 		dataComponentsFactory, _ := dataComp.NewDataComponentsFactory(args)
 		managedDataComponents, err := dataComp.NewManagedDataComponents(dataComponentsFactory)
 		require.Nil(t, err)
@@ -42,9 +41,8 @@ func TestManagedDataComponents_Create(t *testing.T) {
 	t.Run("invalid config should error", func(t *testing.T) {
 		t.Parallel()
 
-		coreComponents := componentsMock.GetCoreComponents()
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-		args := componentsMock.GetDataArgs(coreComponents, shardCoordinator)
+		args := createDataArgs(shardCoordinator)
 		args.Config.ShardHdrNonceHashStorage = config.StorageConfig{}
 		dataComponentsFactory, _ := dataComp.NewDataComponentsFactory(args)
 		managedDataComponents, err := dataComp.NewManagedDataComponents(dataComponentsFactory)
@@ -56,9 +54,8 @@ func TestManagedDataComponents_Create(t *testing.T) {
 	t.Run("should work with getters", func(t *testing.T) {
 		t.Parallel()
 
-		coreComponents := componentsMock.GetCoreComponents()
 		shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-		args := componentsMock.GetDataArgs(coreComponents, shardCoordinator)
+		args := createDataArgs(shardCoordinator)
 		dataComponentsFactory, _ := dataComp.NewDataComponentsFactory(args)
 		managedDataComponents, err := dataComp.NewManagedDataComponents(dataComponentsFactory)
 		require.NoError(t, err)
@@ -81,9 +78,8 @@ func TestManagedDataComponents_Create(t *testing.T) {
 func TestManagedDataComponents_CheckSubcomponents(t *testing.T) {
 	t.Parallel()
 
-	coreComponents := componentsMock.GetCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	args := componentsMock.GetDataArgs(coreComponents, shardCoordinator)
+	args := createDataArgs(shardCoordinator)
 	dataComponentsFactory, _ := dataComp.NewDataComponentsFactory(args)
 	managedDataComponents, err := dataComp.NewManagedDataComponents(dataComponentsFactory)
 	require.NoError(t, err)
@@ -97,9 +93,8 @@ func TestManagedDataComponents_CheckSubcomponents(t *testing.T) {
 func TestManagedDataComponents_SetBlockchain(t *testing.T) {
 	t.Parallel()
 
-	coreComponents := componentsMock.GetCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	args := componentsMock.GetDataArgs(coreComponents, shardCoordinator)
+	args := createDataArgs(shardCoordinator)
 	dataComponentsFactory, _ := dataComp.NewDataComponentsFactory(args)
 	managedDataComponents, _ := dataComp.NewManagedDataComponents(dataComponentsFactory)
 
@@ -112,9 +107,8 @@ func TestManagedDataComponents_SetBlockchain(t *testing.T) {
 func TestManagedDataComponents_Close(t *testing.T) {
 	t.Parallel()
 
-	coreComponents := componentsMock.GetCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	args := componentsMock.GetDataArgs(coreComponents, shardCoordinator)
+	args := createDataArgs(shardCoordinator)
 	dataComponentsFactory, _ := dataComp.NewDataComponentsFactory(args)
 	managedDataComponents, _ := dataComp.NewManagedDataComponents(dataComponentsFactory)
 	err := managedDataComponents.Create()
@@ -130,9 +124,8 @@ func TestManagedDataComponents_Close(t *testing.T) {
 func TestManagedDataComponents_Clone(t *testing.T) {
 	t.Parallel()
 
-	coreComponents := componentsMock.GetCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	args := componentsMock.GetDataArgs(coreComponents, shardCoordinator)
+	args := createDataArgs(shardCoordinator)
 	dataComponentsFactory, _ := dataComp.NewDataComponentsFactory(args)
 	managedDataComponents, _ := dataComp.NewManagedDataComponents(dataComponentsFactory)
 
@@ -154,9 +147,8 @@ func TestManagedDataComponents_IsInterfaceNil(t *testing.T) {
 	managedDataComponents, _ := dataComp.NewManagedDataComponents(nil)
 	require.True(t, managedDataComponents.IsInterfaceNil())
 
-	coreComponents := componentsMock.GetCoreComponents()
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	args := componentsMock.GetDataArgs(coreComponents, shardCoordinator)
+	args := createDataArgs(shardCoordinator)
 	dataComponentsFactory, _ := dataComp.NewDataComponentsFactory(args)
 	managedDataComponents, _ = dataComp.NewManagedDataComponents(dataComponentsFactory)
 	require.False(t, managedDataComponents.IsInterfaceNil())

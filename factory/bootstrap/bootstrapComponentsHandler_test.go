@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/bootstrap"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -16,7 +17,7 @@ import (
 func TestNewManagedBootstrapComponents(t *testing.T) {
 	t.Parallel()
 
-	args := componentsMock.GetBootStrapFactoryArgs()
+	args := createBootstrapFactoryArgs()
 	bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
 	mbc, err := bootstrap.NewManagedBootstrapComponents(bcf)
 
@@ -36,7 +37,7 @@ func TestNewBootstrapComponentsFactory_NilFactory(t *testing.T) {
 func TestManagedBootstrapComponents_MethodsNoCreate(t *testing.T) {
 	t.Parallel()
 
-	args := componentsMock.GetBootStrapFactoryArgs()
+	args := createBootstrapFactoryArgs()
 	bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
 	mbc, _ := bootstrap.NewManagedBootstrapComponents(bcf)
 	err := mbc.CheckSubcomponents()
@@ -51,7 +52,7 @@ func TestManagedBootstrapComponents_MethodsNoCreate(t *testing.T) {
 func TestManagedBootstrapComponents_MethodsCreate(t *testing.T) {
 	t.Parallel()
 
-	args := componentsMock.GetBootStrapFactoryArgs()
+	args := createBootstrapFactoryArgs()
 	bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
 	mbc, _ := bootstrap.NewManagedBootstrapComponents(bcf)
 
@@ -76,7 +77,7 @@ func TestManagedBootstrapComponents_MethodsCreate(t *testing.T) {
 func TestManagedBootstrapComponents_CreateNilInternalMarshalizer(t *testing.T) {
 	t.Parallel()
 
-	args := componentsMock.GetBootStrapFactoryArgs()
+	args := createBootstrapFactoryArgs()
 	coreComponents := componentsMock.GetDefaultCoreComponents()
 	args.CoreComponents = coreComponents
 	bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
@@ -90,7 +91,7 @@ func TestManagedBootstrapComponents_CreateNilInternalMarshalizer(t *testing.T) {
 func TestManagedBootstrapComponents_Close(t *testing.T) {
 	t.Parallel()
 
-	args := componentsMock.GetBootStrapFactoryArgs()
+	args := createBootstrapFactoryArgs()
 
 	bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
 	mbc, _ := bootstrap.NewManagedBootstrapComponents(bcf)
@@ -108,7 +109,7 @@ func TestManagedBootstrapComponents_IsInterfaceNil(t *testing.T) {
 	mbc, _ := bootstrap.NewManagedBootstrapComponents(nil)
 	require.True(t, mbc.IsInterfaceNil())
 
-	args := componentsMock.GetBootStrapFactoryArgs()
+	args := createBootstrapFactoryArgs()
 	bcf, _ := bootstrap.NewBootstrapComponentsFactory(args)
 	mbc, _ = bootstrap.NewManagedBootstrapComponents(bcf)
 	require.False(t, mbc.IsInterfaceNil())

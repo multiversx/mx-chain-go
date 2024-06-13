@@ -4,13 +4,23 @@ import (
 	"fmt"
 	"testing"
 
+	runType "github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/process"
-	factory2 "github.com/multiversx/mx-chain-go/process/factory"
+	processFactory "github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
+
 	"github.com/stretchr/testify/require"
 )
+
+func createRunTypeComponents() runType.RunTypeComponentsHolder {
+	coreComp := componentsMock.GetCoreComponents(testscommon.GetGeneralConfig())
+	cryptoComp := componentsMock.GetCryptoComponents(coreComp)
+
+	return componentsMock.GetRunTypeComponents(coreComp, cryptoComp)
+}
 
 func TestNewSovereignVmContainerShardCreatorFactory(t *testing.T) {
 	t.Parallel()
@@ -18,7 +28,7 @@ func TestNewSovereignVmContainerShardCreatorFactory(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 		bhhc := &factory.BlockChainHookHandlerFactoryMock{}
-		runTypeComponents := componentsMock.GetRunTypeComponents()
+		runTypeComponents := createRunTypeComponents()
 		sovereignVmContainerShardFactory, err := vm.NewSovereignVmContainerShardFactory(bhhc, runTypeComponents.VmContainerMetaFactoryCreator(), runTypeComponents.VmContainerShardFactoryCreator())
 		require.Nil(t, err)
 		require.False(t, sovereignVmContainerShardFactory.IsInterfaceNil())
@@ -27,7 +37,7 @@ func TestNewSovereignVmContainerShardCreatorFactory(t *testing.T) {
 	t.Run("nil blockChainHookHandlerCreator", func(t *testing.T) {
 		t.Parallel()
 
-		runTypeComponents := componentsMock.GetRunTypeComponents()
+		runTypeComponents := createRunTypeComponents()
 		sovereignVmContainerShardFactory, err := vm.NewSovereignVmContainerShardFactory(nil, runTypeComponents.VmContainerMetaFactoryCreator(), runTypeComponents.VmContainerShardFactoryCreator())
 		require.ErrorIs(t, err, process.ErrNilBlockChainHook)
 		require.True(t, sovereignVmContainerShardFactory.IsInterfaceNil())
@@ -37,7 +47,7 @@ func TestNewSovereignVmContainerShardCreatorFactory(t *testing.T) {
 		t.Parallel()
 
 		bhhc := &factory.BlockChainHookHandlerFactoryMock{}
-		runTypeComponents := componentsMock.GetRunTypeComponents()
+		runTypeComponents := createRunTypeComponents()
 		sovereignVmContainerShardFactory, err := vm.NewSovereignVmContainerShardFactory(bhhc, nil, runTypeComponents.VmContainerShardFactoryCreator())
 		require.ErrorIs(t, err, vm.ErrNilVmContainerMetaCreator)
 		require.True(t, sovereignVmContainerShardFactory.IsInterfaceNil())
@@ -47,7 +57,7 @@ func TestNewSovereignVmContainerShardCreatorFactory(t *testing.T) {
 		t.Parallel()
 
 		bhhc := &factory.BlockChainHookHandlerFactoryMock{}
-		runTypeComponents := componentsMock.GetRunTypeComponents()
+		runTypeComponents := createRunTypeComponents()
 		sovereignVmContainerShardFactory, err := vm.NewSovereignVmContainerShardFactory(bhhc, runTypeComponents.VmContainerMetaFactoryCreator(), nil)
 		require.ErrorIs(t, err, vm.ErrNilVmContainerShardCreator)
 		require.True(t, sovereignVmContainerShardFactory.IsInterfaceNil())
@@ -58,7 +68,7 @@ func TestNewSovereignVmContainerShardFactory_CreateVmContainerFactoryShard(t *te
 	t.Parallel()
 
 	bhhc := &factory.BlockChainHookHandlerFactoryMock{}
-	runTypeComponents := componentsMock.GetRunTypeComponents()
+	runTypeComponents := createRunTypeComponents()
 	sovereignVmContainerShardFactory, err := vm.NewSovereignVmContainerShardFactory(bhhc, runTypeComponents.VmContainerMetaFactoryCreator(), runTypeComponents.VmContainerShardFactoryCreator())
 	require.Nil(t, err)
 	require.False(t, sovereignVmContainerShardFactory.IsInterfaceNil())
@@ -96,12 +106,12 @@ func TestNewSovereignVmContainerShardFactory_CreateVmContainerFactoryShard(t *te
 	require.Equal(t, "*shard.vmContainerFactory", fmt.Sprintf("%T", vmFactory))
 
 	require.Equal(t, 2, vmContainer.Len())
-	svm, err := vmContainer.Get(factory2.SystemVirtualMachine)
+	svm, err := vmContainer.Get(processFactory.SystemVirtualMachine)
 	require.Nil(t, err)
 	require.NotNil(t, svm)
 	require.Equal(t, "*process.systemVM", fmt.Sprintf("%T", svm))
 
-	wasmvm, err := vmContainer.Get(factory2.WasmVirtualMachine)
+	wasmvm, err := vmContainer.Get(processFactory.WasmVirtualMachine)
 	require.Nil(t, err)
 	require.NotNil(t, wasmvm)
 	require.Equal(t, "*hostCore.vmHost", fmt.Sprintf("%T", wasmvm))

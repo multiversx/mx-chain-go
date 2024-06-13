@@ -5,10 +5,10 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/factory/processing"
 	"github.com/multiversx/mx-chain-go/process/mock"
-	"github.com/multiversx/mx-chain-go/testscommon/components"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestManagedProcessComponents_createAPITransactionEvaluator(t *testing.T) {
@@ -22,7 +22,7 @@ func TestManagedProcessComponents_createAPITransactionEvaluator(t *testing.T) {
 
 	// no further t.Parallel as these tests are quite heavy (they open netMessengers and other components that start a lot of goroutines)
 	t.Run("invalid VMOutputCacher config should error", func(t *testing.T) {
-		processArgs := components.GetProcessComponentsFactoryArgs(shardCoordinatorForShardID2)
+		processArgs := createProcessFactoryArgs(t, shardCoordinatorForShardID2)
 		processArgs.Config.VMOutputCacher.Type = "invalid"
 		pcf, _ := processing.NewProcessComponentsFactory(processArgs)
 
@@ -33,7 +33,7 @@ func TestManagedProcessComponents_createAPITransactionEvaluator(t *testing.T) {
 		assert.Contains(t, err.Error(), "not supported cache type")
 	})
 	t.Run("should work for shard", func(t *testing.T) {
-		processArgs := components.GetProcessComponentsFactoryArgs(shardCoordinatorForShardID2)
+		processArgs := createProcessFactoryArgs(t, shardCoordinatorForShardID2)
 		pcf, _ := processing.NewProcessComponentsFactory(processArgs)
 
 		apiTransactionEvaluator, vmContainerFactory, err := pcf.CreateAPITransactionEvaluator()
@@ -42,7 +42,7 @@ func TestManagedProcessComponents_createAPITransactionEvaluator(t *testing.T) {
 		assert.False(t, check.IfNil(vmContainerFactory))
 	})
 	t.Run("should work for metachain", func(t *testing.T) {
-		processArgs := components.GetProcessComponentsFactoryArgs(shardCoordinatorForMetachain)
+		processArgs := createProcessFactoryArgs(t, shardCoordinatorForMetachain)
 		pcf, _ := processing.NewProcessComponentsFactory(processArgs)
 
 		apiTransactionEvaluator, vmContainerFactory, err := pcf.CreateAPITransactionEvaluator()

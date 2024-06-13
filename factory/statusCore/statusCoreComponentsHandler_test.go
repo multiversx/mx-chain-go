@@ -6,7 +6,9 @@ import (
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/statusCore"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -23,7 +25,7 @@ func TestNewManagedStatusCoreComponents(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		args := componentsMock.GetStatusCoreArgs(componentsMock.GetDefaultCoreComponents())
+		args := componentsMock.GetStatusCoreArgs(testscommon.GetGeneralConfig(), componentsMock.GetDefaultCoreComponents())
 		statusCoreComponentsFactory, err := statusCore.NewStatusCoreComponentsFactory(args)
 		require.NoError(t, err)
 		managedStatusCoreComponents, err := statusCore.NewManagedStatusCoreComponents(statusCoreComponentsFactory)
@@ -35,10 +37,12 @@ func TestNewManagedStatusCoreComponents(t *testing.T) {
 func TestManagedStatusCoreComponents_Create(t *testing.T) {
 	t.Parallel()
 
+	cfg := testscommon.GetGeneralConfig()
+
 	t.Run("invalid params should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := componentsMock.GetStatusCoreArgs(componentsMock.GetDefaultCoreComponents())
+		args := componentsMock.GetStatusCoreArgs(cfg, componentsMock.GetDefaultCoreComponents())
 		args.Config.ResourceStats.RefreshIntervalInSec = 0
 
 		statusCoreComponentsFactory, err := statusCore.NewStatusCoreComponentsFactory(args)
@@ -52,7 +56,7 @@ func TestManagedStatusCoreComponents_Create(t *testing.T) {
 	t.Run("should work with getters", func(t *testing.T) {
 		t.Parallel()
 
-		args := componentsMock.GetStatusCoreArgs(componentsMock.GetCoreComponents())
+		args := componentsMock.GetStatusCoreArgs(cfg, componentsMock.GetCoreComponents(cfg))
 		statusCoreComponentsFactory, err := statusCore.NewStatusCoreComponentsFactory(args)
 		require.NoError(t, err)
 		managedStatusCoreComponents, err := statusCore.NewManagedStatusCoreComponents(statusCoreComponentsFactory)
@@ -84,7 +88,8 @@ func TestManagedStatusCoreComponents_Create(t *testing.T) {
 func TestManagedStatusCoreComponents_CheckSubcomponents(t *testing.T) {
 	t.Parallel()
 
-	args := componentsMock.GetStatusCoreArgs(componentsMock.GetCoreComponents())
+	cfg := testscommon.GetGeneralConfig()
+	args := componentsMock.GetStatusCoreArgs(cfg, componentsMock.GetCoreComponents(cfg))
 	statusCoreComponentsFactory, _ := statusCore.NewStatusCoreComponentsFactory(args)
 	managedStatusCoreComponents, _ := statusCore.NewManagedStatusCoreComponents(statusCoreComponentsFactory)
 
@@ -101,7 +106,8 @@ func TestManagedStatusCoreComponents_CheckSubcomponents(t *testing.T) {
 func TestManagedStatusCoreComponents_Close(t *testing.T) {
 	t.Parallel()
 
-	args := componentsMock.GetStatusCoreArgs(componentsMock.GetCoreComponents())
+	cfg := testscommon.GetGeneralConfig()
+	args := componentsMock.GetStatusCoreArgs(cfg, componentsMock.GetCoreComponents(cfg))
 	statusCoreComponentsFactory, err := statusCore.NewStatusCoreComponentsFactory(args)
 	require.NoError(t, err)
 	managedStatusCoreComponents, err := statusCore.NewManagedStatusCoreComponents(statusCoreComponentsFactory)
@@ -123,7 +129,7 @@ func TestManagedStatusCoreComponents_IsInterfaceNil(t *testing.T) {
 	managedStatusCoreComponents, _ := statusCore.NewManagedStatusCoreComponents(nil)
 	require.True(t, managedStatusCoreComponents.IsInterfaceNil())
 
-	args := componentsMock.GetStatusCoreArgs(componentsMock.GetCoreComponents())
+	args := componentsMock.GetStatusCoreArgs(testscommon.GetGeneralConfig(), componentsMock.GetDefaultCoreComponents())
 	statusCoreComponentsFactory, _ := statusCore.NewStatusCoreComponentsFactory(args)
 	managedStatusCoreComponents, _ = statusCore.NewManagedStatusCoreComponents(statusCoreComponentsFactory)
 	require.False(t, managedStatusCoreComponents.IsInterfaceNil())
