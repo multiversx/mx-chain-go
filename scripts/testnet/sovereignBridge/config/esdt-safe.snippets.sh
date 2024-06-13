@@ -195,7 +195,7 @@ setSovereignBridgeAddressInEsdtSafe() {
         --proxy=${PROXY} \
         --chain=${CHAIN_ID} \
         --gas-limit=10000000 \
-        --function="setSovereignBridgeAddressInEsdtSafe" \
+        --function="setSovereignBridgeAddress" \
         --arguments ${ESDT_SAFE_ADDRESS_SOVEREIGN} \
         --outfile=${OUTFILE} \
         --recall-nonce \
