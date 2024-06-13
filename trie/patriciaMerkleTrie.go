@@ -117,8 +117,6 @@ func (tr *patriciaMerkleTrie) Get(key []byte) ([]byte, uint32, error) {
 		return nil, depth, err
 	}
 
-	log.Trace("get trie", "key", key, "val", val)
-
 	return val, depth, nil
 }
 
@@ -126,7 +124,7 @@ func (tr *patriciaMerkleTrie) Get(key []byte) ([]byte, uint32, error) {
 // If the key is not in the trie, it will be added.
 // If the value is empty, the key will be removed from the trie
 func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
-	log.Debug("update trie",
+	log.Trace("update trie",
 		"key", hex.EncodeToString(key),
 		"val", hex.EncodeToString(value),
 	)
@@ -136,7 +134,7 @@ func (tr *patriciaMerkleTrie) Update(key, value []byte) error {
 
 // UpdateWithVersion does the same thing as Update, but the new leaf that is created will be of the specified version
 func (tr *patriciaMerkleTrie) UpdateWithVersion(key []byte, value []byte, version core.TrieNodeVersion) error {
-	log.Debug("update trie with version",
+	log.Trace("update trie with version",
 		"key", hex.EncodeToString(key),
 		"val", hex.EncodeToString(value),
 		"version", version,
