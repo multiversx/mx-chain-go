@@ -375,7 +375,7 @@ func TestESDTIssueFromASmartContractSimulated(t *testing.T) {
 	interimProc, _ := metaNode.InterimProcContainer.Get(block.SmartContractResultBlock)
 	mapCreatedSCRs := interimProc.GetAllCurrentFinishedTxs()
 
-	require.Equal(t, len(mapCreatedSCRs), 2)
+	require.Equal(t, len(mapCreatedSCRs), 3)
 	foundTransfer := false
 	for _, addedSCR := range mapCreatedSCRs {
 		foundTransfer = foundTransfer || strings.Contains(string(addedSCR.GetData()), core.BuiltInFunctionESDTTransfer)
@@ -1287,7 +1287,10 @@ func TestExecOnDestWithTokenTransferFromScAtoScBWithIntermediaryExecOnDest_NotEn
 		FailExecutionOnEveryAPIErrorEnableEpoch: integrationTests.UnreachableEpoch,
 	}
 	arwenVersion := config.WasmVMVersionByEpoch{Version: "v1.4"}
-	vmConfig := &config.VirtualMachineConfig{WasmVMVersions: []config.WasmVMVersionByEpoch{arwenVersion}}
+	vmConfig := &config.VirtualMachineConfig{
+		WasmVMVersions:                    []config.WasmVMVersionByEpoch{arwenVersion},
+		TransferAndExecuteByUserAddresses: []string{"erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe3"},
+	}
 	nodes := integrationTests.CreateNodesWithEnableEpochsAndVmConfig(
 		numOfShards,
 		nodesPerShard,
