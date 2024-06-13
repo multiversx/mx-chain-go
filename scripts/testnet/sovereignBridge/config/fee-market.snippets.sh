@@ -33,7 +33,7 @@ deployFeeMarketContract() {
     local SOVEREIGN_CONTRACT_ADDRESS=$(computeSecondSovereignContractAddress)
     mxpy data store --partition=sovereign --key=address-fee-market-contract --value=${SOVEREIGN_CONTRACT_ADDRESS}
     FEE_MARKET_ADDRESS_SOVEREIGN=$(mxpy data load --partition=sovereign --key=address-fee-market-contract)
-    echo -e "Fee Market sovereign contract: ${SOVEREIGN_CONTRACT_ADDRESS}"
+    echo -e "Fee Market sovereign contract: ${SOVEREIGN_CONTRACT_ADDRESS}\n"
 }
 
 upgradeFeeMarketContract() {

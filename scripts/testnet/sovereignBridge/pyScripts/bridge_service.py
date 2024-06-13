@@ -25,9 +25,9 @@ def build_and_run_bridge_server(server_path):
 
     build_process = subprocess.run(build_command, shell=True, capture_output=True, text=True)
     if build_process.returncode == 0:
-        print("Go build successful.")
+        print("Go build successful")
     else:
-        print("Error during Go build.")
+        print("Error during Go build")
         return
 
     subprocess.run(kill_screen_service, shell=True, capture_output=True, text=True)
@@ -35,9 +35,9 @@ def build_and_run_bridge_server(server_path):
     # TODO start terminal with server app
     run_process = subprocess.run(run_service, shell=True, capture_output=True, text=True)
     if run_process.returncode == 0:
-        print("Bridge service running...")
+        print("Bridge service started successfully")
     else:
-        print("Error running bridge service.")
+        print("Error starting bridge service")
         return
 
 

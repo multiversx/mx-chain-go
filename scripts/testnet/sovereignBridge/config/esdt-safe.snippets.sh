@@ -31,7 +31,7 @@ deployEsdtSafeContract() {
     local SOVEREIGN_CONTRACT_ADDRESS=$(computeFirstSovereignContractAddress)
     mxpy data store --partition=sovereign --key=address-esdt-safe-contract --value=${SOVEREIGN_CONTRACT_ADDRESS}
     ESDT_SAFE_ADDRESS_SOVEREIGN=$(mxpy data load --partition=sovereign --key=address-esdt-safe-contract)
-    echo -e "ESDT Safe sovereign contract: ${SOVEREIGN_CONTRACT_ADDRESS}"
+    echo -e "ESDT Safe sovereign contract: ${SOVEREIGN_CONTRACT_ADDRESS}\n"
 }
 
 upgradeEsdtSafeContract() {
