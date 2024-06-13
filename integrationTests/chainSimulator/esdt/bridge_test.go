@@ -2,29 +2,25 @@ package esdt
 
 import (
 	"encoding/hex"
-	"fmt"
 	"math/big"
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/stretchr/testify/require"
-
 	"github.com/multiversx/mx-chain-go/config"
 	chainSim "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
-	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
+	"github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/bridge"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/stretchr/testify/require"
 )
 
-// TODO: MX-15527 Delete this in feat/chain-go-sdk when merged and use existing functions
-// ArgsBridgeSetup holds the arguments for bridge setup
-type BridgeSetupAddresses struct {
-	ESDTSafeAddress  []byte
-	FeeMarketAddress []byte
-}
+const (
+	esdtSafeWasmPath  = "../bridge/testdata/esdt-safe.wasm"
+	feeMarketWasmPath = "../bridge/testdata/fee-market.wasm"
+)
 
 // TODO: MX-15527 Make a similar bridge test with sovereign chain simulator after merging this into feat/chain-go-sdk
 
@@ -39,8 +35,6 @@ func TestChainSimulator_ExecuteMintBurnBridgeOpForESDTTokensWithPrefix(t *testin
 		t.Skip("this is not a short test")
 	}
 
-	startTime := time.Now().Unix()
-	roundDurationInMillis := uint64(6000)
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
 		Value:    20,
@@ -51,9 +45,9 @@ func TestChainSimulator_ExecuteMintBurnBridgeOpForESDTTokensWithPrefix(t *testin
 		BypassTxSignatureCheck:      false,
 		TempDir:                     t.TempDir(),
 		PathToInitialConfig:         defaultPathToInitialConfig,
-		NumOfShards:                 3,
-		GenesisTimestamp:            startTime,
-		RoundDurationInMillis:       roundDurationInMillis,
+		NumOfShards:                 1,
+		GenesisTimestamp:            time.Now().Unix(),
+		RoundDurationInMillis:       uint64(6000),
 		RoundsPerEpoch:              roundsPerEpoch,
 		ApiInterface:                api.NewNoApiInterface(),
 		MinNodesPerShard:            3,
@@ -71,8 +65,10 @@ func TestChainSimulator_ExecuteMintBurnBridgeOpForESDTTokensWithPrefix(t *testin
 
 	defer cs.Close()
 
+	nodeHandler := cs.GetNodeHandler(0)
+
 	initialAddress := "erd1l6xt0rqlyzw56a3k8xwwshq2dcjwy3q9cppucvqsmdyw8r98dz3sae0kxl"
-	initialAddrBytes, err := cs.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Decode(initialAddress)
+	initialAddrBytes, err := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode(initialAddress)
 	require.Nil(t, err)
 	err = cs.SetStateMultiple([]*dtos.AddressState{
 		{
@@ -89,9 +85,11 @@ func TestChainSimulator_ExecuteMintBurnBridgeOpForESDTTokensWithPrefix(t *testin
 	require.Nil(t, err)
 
 	wallet := dtos.WalletAddress{Bech32: initialAddress, Bytes: initialAddrBytes}
-	bridgeSetup := deployMainChainBridgeContracts(t, cs, wallet, "testdata/esdt-safe.wasm", "testdata/fee-market.wasm")
+	nonce := uint64(0)
 
-	esdtSafeEncoded, _ := cs.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Encode(bridgeSetup.ESDTSafeAddress)
+	bridgeData := bridge.DeployBridgeSetup(t, cs, wallet.Bytes, &nonce, esdtSafeWasmPath, feeMarketWasmPath)
+
+	esdtSafeEncoded, _ := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Encode(bridgeData.ESDTSafeAddress)
 	require.Equal(t, esdtSafeEncoded, whiteListedAddress)
 
 	// We will deposit a prefixed token from a sovereign chain to the main chain,
@@ -109,82 +107,27 @@ func TestChainSimulator_ExecuteMintBurnBridgeOpForESDTTokensWithPrefix(t *testin
 		"0000000000000000" + // event nonce
 		hex.EncodeToString(wallet.Bytes) + // sender address from other chain
 		"00" // no transfer data
-	_ = sendTx(t, cs, wallet.Bytes, 5, bridgeSetup.ESDTSafeAddress, big.NewInt(0), executeBridgeOpsData, uint64(50000000))
-	requireAccountHasToken(t, cs, depositToken, wallet.Bech32, expectedMintValue)
+	chainSim.SendTransaction(t, cs, wallet.Bytes, &nonce, bridgeData.ESDTSafeAddress, chainSim.ZeroValue, executeBridgeOpsData, uint64(50000000))
+	chainSim.RequireAccountHasToken(t, cs, depositToken, wallet.Bech32, expectedMintValue)
 
-	// Now we will transfer a part of the previously mentioned tokens from main chain to a sovereign chain,
-	// expecting these tokens to be burned by the whitelisted ESDT safe sc.
-	amountToBurn, _ := big.NewInt(0).SetString("120000000000000000000", 10)
-	remainingValueAfterBridge := expectedMintValue.Sub(expectedMintValue, amountToBurn)
-	depositTxData := "MultiESDTNFTTransfer" +
-		"@" + hex.EncodeToString(bridgeSetup.ESDTSafeAddress) +
-		"@01" +
-		fmt.Sprintf("@%x", depositToken) + // token
-		"@" + // nonce
-		"@" + hex.EncodeToString(amountToBurn.Bytes()) + // amount
-		"@6465706f736974" + //deposit
-		"@" + hex.EncodeToString(wallet.Bytes) // receiver on the other chain
-
-	_ = sendTx(t, cs, wallet.Bytes, 6, wallet.Bytes, big.NewInt(0), depositTxData, uint64(50000000))
-	requireAccountHasToken(t, cs, depositToken, wallet.Bech32, remainingValueAfterBridge)
+	amountToDeposit, _ := big.NewInt(0).SetString("120000000000000000000", 10)
+	remainingValueAfterBridge := expectedMintValue.Sub(expectedMintValue, amountToDeposit)
+	depositTokens := make([]chainSim.ArgsDepositToken, 0)
+	depositTokens = append(depositTokens, chainSim.ArgsDepositToken{
+		Identifier: depositToken,
+		Nonce:      0,
+		Amount:     amountToDeposit,
+	})
+	bridge.Deposit(t, cs, wallet.Bytes, &nonce, bridgeData.ESDTSafeAddress, depositTokens, wallet.Bytes)
+	chainSim.RequireAccountHasToken(t, cs, depositToken, wallet.Bech32, remainingValueAfterBridge)
 
 	// Send some of the bridged prefixed tokens to another address
 	receiver := "erd1spyavw0956vq68xj8y4tenjpq2wd5a9p2c6j8gsz7ztyrnpxrruqzu66jx"
-	receiverBytes, err := cs.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Decode(receiver)
+	receiverBytes, err := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode(receiver)
 	require.Nil(t, err)
 
 	receivedTokens := big.NewInt(11)
-	transferESDT(t, cs, wallet.Bytes, receiverBytes, 7, receivedTokens, depositToken)
-	requireAccountHasToken(t, cs, depositToken, receiver, receivedTokens)
-	requireAccountHasToken(t, cs, depositToken, initialAddress, big.NewInt(0).Sub(remainingValueAfterBridge, receivedTokens))
-}
-
-// TODO: MX-15527 Delete this in feat/chain-go-sdk when merged and use existing functions
-func deployMainChainBridgeContracts(
-	t *testing.T,
-	cs chainSim.ChainSimulator,
-	wallet dtos.WalletAddress,
-	esdtSafeWasmPath string,
-	feeMarketWasmPath string,
-) BridgeSetupAddresses {
-	nodeHandler := cs.GetNodeHandler(core.MetachainShardId)
-	systemScAddress, _ := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode("erd1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq6gq4hu")
-
-	esdtSafeCode := wasm.GetSCCode(esdtSafeWasmPath)
-	esdtSafeArgs := "@0500@0500" +
-		"@" + // is_sovereign_chain
-		"@" + // min_valid_signers
-		"@" + hex.EncodeToString(wallet.Bytes) // initiator_address
-	deployEsdtSafeData := esdtSafeCode + esdtSafeArgs
-	txResult := sendTx(t, cs, wallet.Bytes, 0, systemScAddress, big.NewInt(0), deployEsdtSafeData, uint64(200000000))
-	esdtSafeAddress := txResult.Logs.Events[0].Topics[0]
-
-	feeMarketCode := wasm.GetSCCode(feeMarketWasmPath)
-	feeMarketArgs := "@0500@0500" +
-		"@" + hex.EncodeToString(esdtSafeAddress) + // esdt_safe_address
-		"@000000000000000005004c13819a7f26de997e7c6720a6efe2d4b85c0609c9ad" + // price_aggregator_address
-		"@555344432d333530633465" + // usdc_token_id
-		"@5745474c442d613238633539" // wegld_token_id
-	deployFeeMarketData := feeMarketCode + feeMarketArgs
-	txResult = sendTx(t, cs, wallet.Bytes, 1, systemScAddress, big.NewInt(0), deployFeeMarketData, uint64(200000000))
-	feeMarketAddress := txResult.Logs.Events[0].Topics[0]
-
-	_ = sendTx(t, cs, wallet.Bytes, 2, esdtSafeAddress, big.NewInt(0), "setFeeMarketAddress@"+hex.EncodeToString(feeMarketAddress), uint64(10000000))
-	_ = sendTx(t, cs, wallet.Bytes, 3, feeMarketAddress, big.NewInt(0), "disableFee", uint64(10000000))
-	_ = sendTx(t, cs, wallet.Bytes, 4, esdtSafeAddress, big.NewInt(0), "unpause", uint64(10000000))
-
-	return BridgeSetupAddresses{
-		ESDTSafeAddress:  esdtSafeAddress,
-		FeeMarketAddress: feeMarketAddress,
-	}
-}
-
-func sendTx(t *testing.T, cs chainSim.ChainSimulator, sender []byte, nonce uint64, receiver []byte, value *big.Int, data string, gasLimit uint64) *transaction.ApiTransactionResult {
-	tx := chainSim.GenerateTransaction(sender, nonce, receiver, value, data, gasLimit)
-	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, 10)
-	require.Nil(t, err)
-	require.NotNil(t, txResult)
-	require.Equal(t, transaction.TxStatusSuccess, txResult.Status)
-
-	return txResult
+	chainSim.TransferESDT(t, cs, wallet.Bytes, receiverBytes, &nonce, depositToken, receivedTokens)
+	chainSim.RequireAccountHasToken(t, cs, depositToken, receiver, receivedTokens)
+	chainSim.RequireAccountHasToken(t, cs, depositToken, initialAddress, big.NewInt(0).Sub(remainingValueAfterBridge, receivedTokens))
 }
