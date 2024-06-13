@@ -171,7 +171,7 @@ depositTokenInSCSovereign() {
     printTxStatus ${OUTFILE}
 }
 
-checkWalletBalance() {
+checkWalletBalanceOnMainChain() {
     local BALANCE=$(mxpy account get --address ${WALLET_ADDRESS} --proxy ${PROXY} --balance)
     if [ "$BALANCE" == "0" ]; then
         echo -e "Your wallet balance is zero on main chain"
