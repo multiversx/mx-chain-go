@@ -1,73 +1,25 @@
-deploySovereignWithCrossChainContracts() {
-    deployMainChainContractsAndSetupObserver || return
-
-    sovereignDeploy
+checkWalletBalanceOnMainChain() {
+    local BALANCE=$(mxpy account get --address ${WALLET_ADDRESS} --proxy ${PROXY} --balance)
+    if [ "$BALANCE" == "0" ]; then
+        echo -e "Your wallet balance is zero on main chain"
+        return 1
+    fi
+    return 0
 }
 
-deployMainChainContractsAndSetupObserver() {
-    checkWalletBalanceOnMainChain || return
+getFundsInAddressSovereign() {
+    echo "Getting funds in wallet on sovereign chain..."
 
-    deployEsdtSafeContract
+    mxpy tx new \
+        --pem="~/MultiversX/testnet/node/config/walletKey.pem" \
+        --pem-index 0 \
+        --proxy=${PROXY_SOVEREIGN} \
+        --chain=${CHAIN_ID_SOVEREIGN} \
+        --receiver=${WALLET_ADDRESS} \
+        --value=200000000000000000000 \
+        --gas-limit=50000 \
+        --recall-nonce \
+        --send
 
-    deployFeeMarketContract
-
-    setFeeMarketAddress
-
-    disableFeeMarketContract
-
-    unpauseEsdtSafeContract
-
-    setGenesisContract
-
-    updateSovereignConfig
-
-    prepareObserver
-}
-
-sovereignDeploy() {
-    checkWalletBalanceOnMainChain || return
-
-    updateNotifierNotarizationRound
-
-    ../config.sh
-
-    deployMultiSigVerifierContract
-
-    setEsdtSafeAddressInMultiSigVerifier
-
-    sovereignStart
-
-    setMultiSigVerifierAddressInEsdtSafe
-
-    setSovereignBridgeAddress
-
-    getFundsInAddressSovereign
-
-    setFeeMarketAddressSovereign
-
-    disableFeeMarketContractSovereign
-
-    unpauseEsdtSafeContractSovereign
-}
-
-sovereignStart() {
-    updateAndStartBridgeService
-
-    ../sovereignStart.sh
-
-    deployObserver
-}
-
-stopSovereign() {
-    ../stop.sh
-
-    screen -S sovereignBridgeService -X kill
-
-    stopObserver
-}
-
-stopAndCleanSovereign() {
-    stopSovereign
-
-    ../clean.sh
+    sleep 6
 }

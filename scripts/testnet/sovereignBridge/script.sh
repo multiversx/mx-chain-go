@@ -10,9 +10,10 @@ source $SCRIPT_PATH/config/helper.cfg
 source $SCRIPT_PATH/config/esdt-safe.snippets.sh
 source $SCRIPT_PATH/config/fee-market.snippets.sh
 source $SCRIPT_PATH/config/multisig-verifier.snippets.sh
-source $SCRIPT_PATH/config/token.snippets.sh
 source $SCRIPT_PATH/config/common.snippets.sh
+source $SCRIPT_PATH/config/token.snippets.sh
 source $SCRIPT_PATH/config/py.snippets.sh
+source $SCRIPT_PATH/config/deploy.snippets.sh
 source $SCRIPT_PATH/observer/deployObserver.sh
 
 # Create necessary directories
