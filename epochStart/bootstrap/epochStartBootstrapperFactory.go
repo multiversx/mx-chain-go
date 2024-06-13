@@ -14,7 +14,7 @@ func (bcf *epochStartBootstrapperFactory) CreateEpochStartBootstrapper(epochStar
 	return NewEpochStartBootstrap(epochStartBootstrapArgs)
 }
 
-// CreateStorageEpochStartBootstrapper creates a new storage epoch start bootstrapper for chain run normal
+// CreateStorageEpochStartBootstrapper creates a new storage epoch start bootstrapper for normal chain operations.
 func (bcf *epochStartBootstrapperFactory) CreateStorageEpochStartBootstrapper(epochStartBootstrapArgs ArgsStorageEpochStartBootstrap) (EpochStartBootstrapper, error) {
 	esb, err := NewEpochStartBootstrap(epochStartBootstrapArgs.ArgsEpochStartBootstrap)
 	if err != nil {
