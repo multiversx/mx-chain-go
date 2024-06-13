@@ -22,12 +22,7 @@ func NewSovereignEpochStartBootstrapperFactory(esbf EpochStartBootstrapperCreato
 
 // CreateEpochStartBootstrapper creates a new epoch start bootstrapper for sovereign chain operations
 func (bcf *sovereignEpochStartBootstrapperFactory) CreateEpochStartBootstrapper(epochStartBootstrapArgs ArgsEpochStartBootstrap) (EpochStartBootstrapper, error) {
-	sesb, err := bcf.createSovereignEpochStartBootStrapper(epochStartBootstrapArgs)
-	if err != nil {
-		return nil, err
-	}
-
-	return sesb, nil
+	return bcf.createSovereignEpochStartBootStrapper(epochStartBootstrapArgs)
 }
 
 // CreateStorageEpochStartBootstrapper creates a new storage epoch start bootstrapper for sovereign chain operations

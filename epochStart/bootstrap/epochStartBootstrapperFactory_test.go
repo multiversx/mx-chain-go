@@ -27,6 +27,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/versioning"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/stretchr/testify/require"
 )
 
@@ -43,6 +44,22 @@ func TestEpochStartBootstrapperFactory_CreateEpochStartBootstrapper(t *testing.T
 
 	esbf := NewEpochStartBootstrapperFactory()
 	esb, err := esbf.CreateEpochStartBootstrapper(getDefaultArgs())
+
+	require.Nil(t, err)
+	require.NotNil(t, esb)
+}
+
+func TestEpochStartBootstrapperFactory_CreateStorageEpochStartBootstrapper(t *testing.T) {
+	t.Parallel()
+
+	esbf := NewEpochStartBootstrapperFactory()
+	arg := ArgsStorageEpochStartBootstrap{
+		ArgsEpochStartBootstrap:    getDefaultArgs(),
+		ImportDbConfig:             config.ImportDbConfig{},
+		ChanGracefullyClose:        make(chan endProcess.ArgEndProcess, 1),
+		TimeToWaitForRequestedData: 1,
+	}
+	esb, err := esbf.CreateStorageEpochStartBootstrapper(arg)
 
 	require.Nil(t, err)
 	require.NotNil(t, esb)

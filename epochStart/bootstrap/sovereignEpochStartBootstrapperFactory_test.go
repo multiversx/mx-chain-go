@@ -3,7 +3,10 @@ package bootstrap
 import (
 	"testing"
 
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/errors"
+
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/stretchr/testify/require"
 )
 
@@ -32,6 +35,25 @@ func TestSovereignEpochStartBootstrapperFactory_CreateEpochStartBootstrapper(t *
 
 	require.Nil(t, err)
 	require.NotNil(t, seb)
+}
+
+func TestSovereignEpochStartBootstrapperFactory_CreateStorageEpochStartBootstrapper(t *testing.T) {
+	t.Parallel()
+
+	esbf := NewEpochStartBootstrapperFactory()
+	sebf, _ := NewSovereignEpochStartBootstrapperFactory(esbf)
+
+	arg := ArgsStorageEpochStartBootstrap{
+		ArgsEpochStartBootstrap:    getDefaultArgs(),
+		ImportDbConfig:             config.ImportDbConfig{},
+		ChanGracefullyClose:        make(chan endProcess.ArgEndProcess, 1),
+		TimeToWaitForRequestedData: 1,
+	}
+	esb, err := sebf.CreateStorageEpochStartBootstrapper(arg)
+
+	require.Nil(t, err)
+	require.NotNil(t, esb)
+
 }
 
 func TestSovereignEpochStartBootstrapperFactory_IsInterfaceNil(t *testing.T) {
