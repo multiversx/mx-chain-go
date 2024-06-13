@@ -1,13 +1,15 @@
 deploySovereignWithCrossChainContracts() {
-    deployMainChainContractsAndSetupObserver
+    deployMainChainContractsAndSetupObserver || return
 
-    sovereignDeploy
+    sovereignDeploy || return
 }
 
 deployMainChainContractsAndSetupObserver() {
-    deployEsdtSafeContract
+    checkWalletBalance || return
 
-    deployFeeMarketContract
+    deployEsdtSafeContract || return
+
+    deployFeeMarketContract || return
 
     setFeeMarketAddress
 
@@ -27,13 +29,13 @@ sovereignDeploy() {
 
     ../config.sh
 
-    deployMultiSigVerifierContract
+    deployMultiSigVerifierContract || return
 
-    setEsdtSafeAddress
+    setEsdtSafeAddressInMultiSigVerifier
 
     sovereignStart
 
-    setMultiSigAddress
+    setMultiSigVerifierAddressInEsdtSafe
 
     setSovereignBridgeAddress
 

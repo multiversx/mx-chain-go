@@ -1,7 +1,7 @@
 #!/bin/bash
 
 runPrerequisites() {
-   installSoftwareDependenciesl
+    installSoftwareDependencies
 
     downloadCrossChainContracts
 }

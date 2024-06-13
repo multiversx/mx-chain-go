@@ -17,6 +17,8 @@ source $SCRIPT_PATH/observer/deployObserver.sh
 
 # Create necessary directories
 mkdir -p $(eval echo "${SOVEREIGN_DIRECTORY}")
+mkdir -p $(eval echo "${TXS_OUTFILE_DIRECTORY}")
+mkdir -p $(eval echo "${CONTRACTS_DIRECTORY}")
 
 # Define other variables
 WALLET_ADDRESS=$(echo "$(head -n 1 $(eval echo ${WALLET}))" | sed -n 's/.* for \([^-]*\)-----.*/\1/p')

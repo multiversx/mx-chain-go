@@ -165,11 +165,11 @@ setFeeMarketAddressCall() {
     printTxStatus ${OUTFILE}
 }
 
-setMultiSigAddress() {
-    echo "Setting MultiSig address in ESDT Safe contract on main chain..."
+setMultiSigVerifierAddressInEsdtSafe() {
+    echo "Setting MultiSig Verifier address in ESDT Safe contract on main chain..."
     checkVariables ESDT_SAFE_ADDRESS MULTISIG_VERIFIER_ADDRESS || return
 
-    local OUTFILE="${OUTFILE_PATH}/set-multisig-address.interaction.json"
+    local OUTFILE="${OUTFILE_PATH}/set-multisigverifier-address.interaction.json"
     mxpy contract call ${ESDT_SAFE_ADDRESS} \
         --pem=${WALLET} \
         --proxy=${PROXY} \

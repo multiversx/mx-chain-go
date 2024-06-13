@@ -3,7 +3,7 @@ MULTISIG_VERIFIER_ADDRESS=$(mxpy data load --partition=${CHAIN_ID} --key=address
 deployMultiSigVerifierContract() {
     manualUpdateConfigFile #update config file
 
-    echo "Deploying MultiSig contract on main chain..."
+    echo "Deploying MultiSig Verifier contract on main chain..."
 
     BLS_PUB_KEYS=$(python3 $SCRIPT_PATH/pyScripts/read_bls_keys.py)
 
@@ -31,7 +31,7 @@ deployMultiSigVerifierContract() {
 upgradeMultiSigVerifierContract() {
     manualUpdateConfigFile #update config file
 
-    echo "Upgrading MultiSig contract on main chain..."
+    echo "Upgrading MultiSig Verifier contract on main chain..."
 
     local OUTFILE="${OUTFILE_PATH}/upgrade-multisig-verifier.interaction.json"
     mxpy contract upgrade ${MULTISIG_VERIFIER_ADDRESS} \
@@ -48,8 +48,8 @@ upgradeMultiSigVerifierContract() {
     printTxStatus ${OUTFILE}
 }
 
-setEsdtSafeAddress() {
-    echo "Setting ESDT Safe address in MultiSig contract on main chain..."
+setEsdtSafeAddressInMultiSigVerifier() {
+    echo "Setting ESDT Safe address in MultiSig Verifier contract on main chain..."
     checkVariables ESDT_SAFE_ADDRESS ESDT_SAFE_ADDRESS_SOVEREIGN || return
 
     mxpy contract call ${MULTISIG_VERIFIER_ADDRESS} \
