@@ -1233,8 +1233,8 @@ var ErrTransferAndExecuteByUserAddressesAreNil = errors.New("transfer and execut
 // ErrRelayedV3GasPriceMismatch signals that relayed v3 gas price is not equal with inner tx
 var ErrRelayedV3GasPriceMismatch = errors.New("relayed tx v3 gas price mismatch")
 
-// ErrRelayedTxV3BeneficiaryDoesNotMatchReceiver signals that an invalid address was provided in the relayed tx v3
-var ErrRelayedTxV3BeneficiaryDoesNotMatchReceiver = errors.New("invalid address in relayed tx v3")
+// ErrRelayedTxV3SenderDoesNotMatchReceiver signals that the sender of relayed tx v3 does not match the receiver
+var ErrRelayedTxV3SenderDoesNotMatchReceiver = errors.New("relayed tx v3 sender does not match receiver")
 
 // ErrRelayedTxV3Disabled signals that the v3 version of relayed tx is disabled
 var ErrRelayedTxV3Disabled = errors.New("relayed tx v3 is disabled")
@@ -1242,11 +1242,26 @@ var ErrRelayedTxV3Disabled = errors.New("relayed tx v3 is disabled")
 // ErrRelayedTxV3ZeroVal signals that the v3 version of relayed tx should be created with 0 as value
 var ErrRelayedTxV3ZeroVal = errors.New("relayed tx v3 value should be 0")
 
-// ErrRelayedTxV3EmptyRelayer signals that the inner tx of the relayed v3 does not have a relayer address set
-var ErrRelayedTxV3EmptyRelayer = errors.New("empty relayer on inner tx of relayed tx v3")
-
 // ErrRelayedTxV3RelayerMismatch signals that the relayer address of the inner tx does not match the real relayer
 var ErrRelayedTxV3RelayerMismatch = errors.New("relayed tx v3 relayer mismatch")
 
 // ErrRelayedTxV3GasLimitMismatch signals that relayed tx v3 gas limit is higher than user tx gas limit
 var ErrRelayedTxV3GasLimitMismatch = errors.New("relayed tx v3 gas limit mismatch")
+
+// ErrNilRelayedTxV3Processor signals that a nil relayed tx v3 processor has been provided
+var ErrNilRelayedTxV3Processor = errors.New("nil relayed tx v3 processor")
+
+// ErrRelayedTxV3SenderShardMismatch signals that the sender from inner transaction is from a different shard than relayer
+var ErrRelayedTxV3SenderShardMismatch = errors.New("sender shard mismatch")
+
+// ErrNilRelayerAccount signals that a nil relayer accouont has been provided
+var ErrNilRelayerAccount = errors.New("nil relayer account")
+
+// ErrRelayedTxV3TooManyInnerTransactions signals that too many inner transactions were provided
+var ErrRelayedTxV3TooManyInnerTransactions = errors.New("too many inner transactions")
+
+// ErrConsumedFeesMismatch signals that the fees consumed from relayer do not match the inner transactions fees
+var ErrConsumedFeesMismatch = errors.New("consumed fees mismatch")
+
+// ErrRelayedTxV3InvalidDataField signals that the data field is invalid
+var ErrRelayedTxV3InvalidDataField = errors.New("invalid data field")

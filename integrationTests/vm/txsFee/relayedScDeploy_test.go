@@ -70,7 +70,7 @@ func TestRelayedScDeployInvalidCodeShouldConsumeGas(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	t.Run("before relayed fix", testRelayedScDeployInvalidCodeShouldConsumeGas(integrationTests.UnreachableEpoch, big.NewInt(17030), big.NewInt(32970)))
+	t.Run("before relayed fix", testRelayedScDeployInvalidCodeShouldConsumeGas(integrationTests.UnreachableEpoch, big.NewInt(8890), big.NewInt(41110)))
 	t.Run("after relayed fix", testRelayedScDeployInvalidCodeShouldConsumeGas(0, big.NewInt(8890), big.NewInt(41110)))
 }
 
@@ -87,7 +87,6 @@ func testRelayedScDeployInvalidCodeShouldConsumeGas(relayedFixActivationEpoch ui
 
 		senderNonce := uint64(0)
 		senderBalance := big.NewInt(0)
-		gasLimit := uint64(500)
 
 		_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
 		_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, big.NewInt(50000))
@@ -95,6 +94,7 @@ func testRelayedScDeployInvalidCodeShouldConsumeGas(relayedFixActivationEpoch ui
 		scCode := wasm.GetSCCode("../wasm/testdata/misc/fib_wasm/output/fib_wasm.wasm")
 		scCodeBytes := []byte(wasm.CreateDeployTxData(scCode))
 		scCodeBytes = append(scCodeBytes, []byte("aaaaa")...)
+		gasLimit := minGasLimit + uint64(len(scCodeBytes))
 		userTx := vm.CreateTransaction(senderNonce, big.NewInt(0), sndAddr, vm.CreateEmptyAddress(), gasPrice, gasLimit, scCodeBytes)
 
 		rtxData := integrationTests.PrepareRelayedTxDataV1(userTx)
@@ -123,7 +123,7 @@ func TestRelayedScDeployInsufficientGasLimitShouldConsumeGas(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	t.Run("before relayed fix", testRelayedScDeployInsufficientGasLimitShouldConsumeGas(integrationTests.UnreachableEpoch, big.NewInt(17130), big.NewInt(32870)))
+	t.Run("before relayed fix", testRelayedScDeployInsufficientGasLimitShouldConsumeGas(integrationTests.UnreachableEpoch, big.NewInt(9040), big.NewInt(40960)))
 	t.Run("after relayed fix", testRelayedScDeployInsufficientGasLimitShouldConsumeGas(0, big.NewInt(9040), big.NewInt(40960)))
 }
 
@@ -140,13 +140,14 @@ func testRelayedScDeployInsufficientGasLimitShouldConsumeGas(relayedFixActivatio
 
 		senderNonce := uint64(0)
 		senderBalance := big.NewInt(0)
-		gasLimit := uint64(500)
 
 		_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
 		_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, big.NewInt(50000))
 
 		scCode := wasm.GetSCCode("../wasm/testdata/misc/fib_wasm/output/fib_wasm.wasm")
-		userTx := vm.CreateTransaction(senderNonce, big.NewInt(0), sndAddr, vm.CreateEmptyAddress(), gasPrice, gasLimit, []byte(wasm.CreateDeployTxData(scCode)))
+		data := wasm.CreateDeployTxData(scCode)
+		gasLimit := minGasLimit + uint64(len(data))
+		userTx := vm.CreateTransaction(senderNonce, big.NewInt(0), sndAddr, vm.CreateEmptyAddress(), gasPrice, gasLimit, []byte(data))
 
 		rtxData := integrationTests.PrepareRelayedTxDataV1(userTx)
 		rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))
@@ -174,7 +175,7 @@ func TestRelayedScDeployOutOfGasShouldConsumeGas(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	t.Run("before relayed fix", testRelayedScDeployOutOfGasShouldConsumeGas(integrationTests.UnreachableEpoch, big.NewInt(16430), big.NewInt(33570)))
+	t.Run("before relayed fix", testRelayedScDeployOutOfGasShouldConsumeGas(integrationTests.UnreachableEpoch, big.NewInt(9040), big.NewInt(40960)))
 	t.Run("after relayed fix", testRelayedScDeployOutOfGasShouldConsumeGas(0, big.NewInt(9040), big.NewInt(40960)))
 }
 
@@ -191,13 +192,14 @@ func testRelayedScDeployOutOfGasShouldConsumeGas(relayedFixActivationEpoch uint3
 
 		senderNonce := uint64(0)
 		senderBalance := big.NewInt(0)
-		gasLimit := uint64(570)
 
 		_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
 		_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, big.NewInt(50000))
 
 		scCode := wasm.GetSCCode("../wasm/testdata/misc/fib_wasm/output/fib_wasm.wasm")
-		userTx := vm.CreateTransaction(senderNonce, big.NewInt(0), sndAddr, vm.CreateEmptyAddress(), gasPrice, gasLimit, []byte(wasm.CreateDeployTxData(scCode)))
+		data := wasm.CreateDeployTxData(scCode)
+		gasLimit := minGasLimit + uint64(len(data))
+		userTx := vm.CreateTransaction(senderNonce, big.NewInt(0), sndAddr, vm.CreateEmptyAddress(), gasPrice, gasLimit, []byte(data))
 
 		rtxData := integrationTests.PrepareRelayedTxDataV1(userTx)
 		rTxGasLimit := 1 + gasLimit + uint64(len(rtxData))

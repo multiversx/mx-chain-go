@@ -14,7 +14,16 @@ import (
 )
 
 // CreateGeneralSetupForRelayTxTest will create the general setup for relayed transactions
-func CreateGeneralSetupForRelayTxTest() ([]*integrationTests.TestProcessorNode, []int, []*integrationTests.TestWalletAccount, *integrationTests.TestWalletAccount) {
+func CreateGeneralSetupForRelayTxTest(intraShardPlayers bool) ([]*integrationTests.TestProcessorNode, []int, []*integrationTests.TestWalletAccount, *integrationTests.TestWalletAccount) {
+	initialVal := big.NewInt(10000000000)
+	nodes, idxProposers := createAndMintNodes(initialVal)
+
+	players, relayerAccount := createAndMintPlayers(intraShardPlayers, nodes, initialVal)
+
+	return nodes, idxProposers, players, relayerAccount
+}
+
+func createAndMintNodes(initialVal *big.Int) ([]*integrationTests.TestProcessorNode, []int) {
 	numOfShards := 2
 	nodesPerShard := 2
 	numMetachainNodes := 1
@@ -33,21 +42,32 @@ func CreateGeneralSetupForRelayTxTest() ([]*integrationTests.TestProcessorNode, 
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
-	initialVal := big.NewInt(10000000000)
 	integrationTests.MintAllNodes(nodes, initialVal)
 
+	return nodes, idxProposers
+}
+
+func createAndMintPlayers(
+	intraShard bool,
+	nodes []*integrationTests.TestProcessorNode,
+	initialVal *big.Int,
+) ([]*integrationTests.TestWalletAccount, *integrationTests.TestWalletAccount) {
+	relayerShard := uint32(0)
 	numPlayers := 5
 	numShards := nodes[0].ShardCoordinator.NumberOfShards()
 	players := make([]*integrationTests.TestWalletAccount, numPlayers)
 	for i := 0; i < numPlayers; i++ {
 		shardId := uint32(i) % numShards
+		if intraShard {
+			shardId = relayerShard
+		}
 		players[i] = integrationTests.CreateTestWalletAccount(nodes[0].ShardCoordinator, shardId)
 	}
 
-	relayerAccount := integrationTests.CreateTestWalletAccount(nodes[0].ShardCoordinator, 0)
+	relayerAccount := integrationTests.CreateTestWalletAccount(nodes[0].ShardCoordinator, relayerShard)
 	integrationTests.MintAllPlayers(nodes, []*integrationTests.TestWalletAccount{relayerAccount}, initialVal)
 
-	return nodes, idxProposers, players, relayerAccount
+	return players, relayerAccount
 }
 
 // CreateAndSendRelayedAndUserTx will create and send a relayed user transaction
@@ -214,15 +234,15 @@ func createRelayedTxV3(
 	userTx *transaction.Transaction,
 ) *transaction.Transaction {
 	tx := &transaction.Transaction{
-		Nonce:            relayer.Nonce,
-		Value:            big.NewInt(0),
-		RcvAddr:          userTx.SndAddr,
-		SndAddr:          relayer.Address,
-		GasPrice:         integrationTests.MinTxGasPrice,
-		Data:             []byte(""),
-		ChainID:          userTx.ChainID,
-		Version:          userTx.Version,
-		InnerTransaction: userTx,
+		Nonce:             relayer.Nonce,
+		Value:             big.NewInt(0),
+		RcvAddr:           relayer.Address,
+		SndAddr:           relayer.Address,
+		GasPrice:          integrationTests.MinTxGasPrice,
+		Data:              []byte(""),
+		ChainID:           userTx.ChainID,
+		Version:           userTx.Version,
+		InnerTransactions: []*transaction.Transaction{userTx},
 	}
 	gasLimit := economicsFee.ComputeGasLimit(tx)
 	tx.GasLimit = userTx.GasLimit + gasLimit
