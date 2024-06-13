@@ -45,7 +45,7 @@ func NewSovereignIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*so
 			shardConsensusGroupSize:         arguments.ShardConsensusGroupSize,
 			metaConsensusGroupSize:          arguments.MetaConsensusGroupSize,
 			consensusGroupCacher:            arguments.ConsensusGroupCache,
-			shardIDAsObserver:               arguments.ShardIDAsObserver,
+			shardIDAsObserver:               core.SovereignChainShardId,
 			shuffledOutHandler:              arguments.ShuffledOutHandler,
 			startEpoch:                      arguments.StartEpoch,
 			publicKeyToValidatorMap:         make(map[string]*validatorWithShardID),
@@ -61,6 +61,7 @@ func NewSovereignIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*so
 
 	ihnc.loadingFromDisk.Store(false)
 
+	ihnc.numberOfShardsComputer = ihnc
 	ihnc.nodesCoordinatorHelper = ihnc
 	err = ihnc.setNodesPerShards(arguments.EligibleNodes, arguments.WaitingNodes, nil, nil, arguments.Epoch, false)
 	if err != nil {
@@ -103,6 +104,15 @@ func checkSovereignArguments(arguments ArgNodesCoordinator) error {
 	}
 
 	return checkNilArguments(arguments)
+}
+
+// ComputeNumberOfShards computes the number of shards for the given nodes config
+func (ihnc *sovereignIndexHashedNodesCoordinator) ComputeNumberOfShards(config *epochNodesConfig) (nbShards uint32, err error) {
+	nbShards = uint32(len(config.eligibleMap))
+	if nbShards != 1 {
+		return 0, ErrInvalidNumberOfShards
+	}
+	return nbShards, nil
 }
 
 func (ihnc *sovereignIndexHashedNodesCoordinator) setNodesPerShards(

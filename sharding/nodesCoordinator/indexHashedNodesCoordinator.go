@@ -103,6 +103,7 @@ type indexHashedNodesCoordinator struct {
 	flagStakingV4Step2              atomicFlags.Flag
 	nodesCoordinatorRegistryFactory NodesCoordinatorRegistryFactory
 	flagStakingV4Started            atomicFlags.Flag
+	numberOfShardsComputer          NumberOfShardsComputer
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
@@ -159,6 +160,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 	ihnc.loadingFromDisk.Store(false)
 
 	ihnc.nodesCoordinatorHelper = ihnc
+	ihnc.numberOfShardsComputer = ihnc
 	err = ihnc.setNodesPerShards(arguments.EligibleNodes, arguments.WaitingNodes, nil, nil, arguments.Epoch, false)
 	if err != nil {
 		return nil, err
