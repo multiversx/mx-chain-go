@@ -622,7 +622,8 @@ func TestBranchNode_insert(t *testing.T) {
 	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	nodeKey := []byte{0, 2, 3}
 
-	newBn, _, err := bn.insert(getTrieDataWithDefaultVersion(string(nodeKey), "dogs"), nil)
+	data := []core.TrieData{getTrieDataWithDefaultVersion(string(nodeKey), "dogs")}
+	newBn, _, err := bn.insert(data, nil)
 	assert.NotNil(t, newBn)
 	assert.Nil(t, err)
 
@@ -636,7 +637,8 @@ func TestBranchNode_insertEmptyKey(t *testing.T) {
 
 	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 
-	newBn, _, err := bn.insert(getTrieDataWithDefaultVersion("", "dogs"), nil)
+	data := []core.TrieData{getTrieDataWithDefaultVersion("", "dogs")}
+	newBn, _, err := bn.insert(data, nil)
 	assert.Equal(t, ErrValueTooShort, err)
 	assert.Nil(t, newBn)
 }
@@ -646,7 +648,8 @@ func TestBranchNode_insertChildPosOutOfRange(t *testing.T) {
 
 	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 
-	newBn, _, err := bn.insert(getTrieDataWithDefaultVersion("dog", "dogs"), nil)
+	data := []core.TrieData{getTrieDataWithDefaultVersion("dog", "dogs")}
+	newBn, _, err := bn.insert(data, nil)
 	assert.Equal(t, ErrChildPosOutOfRange, err)
 	assert.Nil(t, newBn)
 }
@@ -662,7 +665,8 @@ func TestBranchNode_insertCollapsedNode(t *testing.T) {
 	_ = bn.setHash()
 	_ = bn.commitDirty(0, 5, db, db)
 
-	newBn, _, err := collapsedBn.insert(getTrieDataWithDefaultVersion(string(key), "dogs"), db)
+	data := []core.TrieData{getTrieDataWithDefaultVersion(string(key), "dogs")}
+	newBn, _, err := collapsedBn.insert(data, db)
 	assert.NotNil(t, newBn)
 	assert.Nil(t, err)
 
@@ -684,7 +688,8 @@ func TestBranchNode_insertInStoredBnOnExistingPos(t *testing.T) {
 	lnHash := ln.getHash()
 	expectedHashes := [][]byte{lnHash, bnHash}
 
-	newNode, oldHashes, err := bn.insert(getTrieDataWithDefaultVersion(string(key), "dogs"), db)
+	data := []core.TrieData{getTrieDataWithDefaultVersion(string(key), "dogs")}
+	newNode, oldHashes, err := bn.insert(data, db)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedHashes, oldHashes)
@@ -702,7 +707,8 @@ func TestBranchNode_insertInStoredBnOnNilPos(t *testing.T) {
 	bnHash := bn.getHash()
 	expectedHashes := [][]byte{bnHash}
 
-	newNode, oldHashes, err := bn.insert(getTrieDataWithDefaultVersion(string(key), "dogs"), db)
+	data := []core.TrieData{getTrieDataWithDefaultVersion(string(key), "dogs")}
+	newNode, oldHashes, err := bn.insert(data, db)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedHashes, oldHashes)
@@ -715,7 +721,8 @@ func TestBranchNode_insertInDirtyBnOnNilPos(t *testing.T) {
 	nilChildPos := byte(11)
 	key := append([]byte{nilChildPos}, []byte("dog")...)
 
-	newNode, oldHashes, err := bn.insert(getTrieDataWithDefaultVersion(string(key), "dogs"), nil)
+	data := []core.TrieData{getTrieDataWithDefaultVersion(string(key), "dogs")}
+	newNode, oldHashes, err := bn.insert(data, nil)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 	assert.Equal(t, [][]byte{}, oldHashes)
@@ -728,7 +735,8 @@ func TestBranchNode_insertInDirtyBnOnExistingPos(t *testing.T) {
 	childPos := byte(2)
 	key := append([]byte{childPos}, []byte("dog")...)
 
-	newNode, oldHashes, err := bn.insert(getTrieDataWithDefaultVersion(string(key), "dogs"), nil)
+	data := []core.TrieData{getTrieDataWithDefaultVersion(string(key), "dogs")}
+	newNode, oldHashes, err := bn.insert(data, nil)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 	assert.Equal(t, [][]byte{}, oldHashes)
@@ -739,7 +747,8 @@ func TestBranchNode_insertInNilNode(t *testing.T) {
 
 	var bn *branchNode
 
-	newBn, _, err := bn.insert(getTrieDataWithDefaultVersion("key", "dogs"), nil)
+	data := []core.TrieData{getTrieDataWithDefaultVersion("key", "dogs")}
+	newBn, _, err := bn.insert(data, nil)
 	assert.True(t, errors.Is(err, ErrNilBranchNode))
 	assert.Nil(t, newBn)
 }
@@ -756,8 +765,9 @@ func TestBranchNode_delete(t *testing.T) {
 
 	childPos := byte(2)
 	key := append([]byte{childPos}, []byte("dog")...)
+	data := []core.TrieData{{Key: key}}
 
-	dirty, newBn, _, err := bn.delete(key, nil)
+	dirty, newBn, _, err := bn.delete(data, nil)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
 
@@ -780,7 +790,8 @@ func TestBranchNode_deleteFromStoredBn(t *testing.T) {
 	lnHash := ln.getHash()
 	expectedHashes := [][]byte{lnHash, bnHash}
 
-	dirty, _, oldHashes, err := bn.delete(lnKey, db)
+	data := []core.TrieData{{Key: lnKey}}
+	dirty, _, oldHashes, err := bn.delete(data, db)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedHashes, oldHashes)
@@ -792,8 +803,9 @@ func TestBranchNode_deleteFromDirtyBn(t *testing.T) {
 	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	childPos := byte(2)
 	lnKey := append([]byte{childPos}, []byte("dog")...)
+	data := []core.TrieData{{Key: lnKey}}
 
-	dirty, _, oldHashes, err := bn.delete(lnKey, nil)
+	dirty, _, oldHashes, err := bn.delete(data, nil)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
 	assert.Equal(t, [][]byte{}, oldHashes)
@@ -805,8 +817,9 @@ func TestBranchNode_deleteEmptyNode(t *testing.T) {
 	bn := emptyDirtyBranchNode()
 	childPos := byte(2)
 	key := append([]byte{childPos}, []byte("dog")...)
+	data := []core.TrieData{{Key: key}}
 
-	dirty, newBn, _, err := bn.delete(key, nil)
+	dirty, newBn, _, err := bn.delete(data, nil)
 	assert.False(t, dirty)
 	assert.True(t, errors.Is(err, ErrEmptyBranchNode))
 	assert.Nil(t, newBn)
@@ -818,8 +831,9 @@ func TestBranchNode_deleteNilNode(t *testing.T) {
 	var bn *branchNode
 	childPos := byte(2)
 	key := append([]byte{childPos}, []byte("dog")...)
+	data := []core.TrieData{{Key: key}}
 
-	dirty, newBn, _, err := bn.delete(key, nil)
+	dirty, newBn, _, err := bn.delete(data, nil)
 	assert.False(t, dirty)
 	assert.True(t, errors.Is(err, ErrNilBranchNode))
 	assert.Nil(t, newBn)
@@ -832,8 +846,9 @@ func TestBranchNode_deleteNonexistentNodeFromChild(t *testing.T) {
 
 	childPos := byte(2)
 	key := append([]byte{childPos}, []byte("butterfly")...)
+	data := []core.TrieData{{Key: key}}
 
-	dirty, newBn, _, err := bn.delete(key, nil)
+	dirty, newBn, _, err := bn.delete(data, nil)
 	assert.False(t, dirty)
 	assert.Nil(t, err)
 	assert.Equal(t, bn, newBn)
@@ -843,8 +858,9 @@ func TestBranchNode_deleteEmptykey(t *testing.T) {
 	t.Parallel()
 
 	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
+	data := []core.TrieData{{Key: []byte{}}}
 
-	dirty, newBn, _, err := bn.delete([]byte{}, nil)
+	dirty, newBn, _, err := bn.delete(data, nil)
 	assert.False(t, dirty)
 	assert.Equal(t, ErrValueTooShort, err)
 	assert.Nil(t, newBn)
@@ -860,8 +876,9 @@ func TestBranchNode_deleteCollapsedNode(t *testing.T) {
 
 	childPos := byte(2)
 	key := append([]byte{childPos}, []byte("dog")...)
+	data := []core.TrieData{{Key: key}}
 
-	dirty, newBn, _, err := collapsedBn.delete(key, db)
+	dirty, newBn, _, err := collapsedBn.delete(data, db)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
 
@@ -885,7 +902,8 @@ func TestBranchNode_deleteAndReduceBn(t *testing.T) {
 	ln, _ := newLeafNode(getTrieDataWithDefaultVersion(string(key), "dog"), bn.marsh, bn.hasher)
 
 	key = append([]byte{secondChildPos}, []byte("doe")...)
-	dirty, newBn, _, err := bn.delete(key, nil)
+	data := []core.TrieData{{Key: key}}
+	dirty, newBn, _, err := bn.delete(data, nil)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
 	assert.Equal(t, ln, newBn)
@@ -1453,7 +1471,7 @@ func TestBranchNode_VerifyChildrenVersionIsSetCorrectlyAfterInsertAndDelete(t *t
 			Value:   []byte("value"),
 			Version: 0,
 		}
-		newBn, _, err := bn.insert(data, &testscommon.MemDbMock{})
+		newBn, _, err := bn.insert([]core.TrieData{data}, &testscommon.MemDbMock{})
 		assert.Nil(t, err)
 		assert.Nil(t, newBn.(*branchNode).ChildrenVersion)
 	})
@@ -1465,8 +1483,9 @@ func TestBranchNode_VerifyChildrenVersionIsSetCorrectlyAfterInsertAndDelete(t *t
 		bn.ChildrenVersion = make([]byte, nrOfChildren)
 		bn.ChildrenVersion[2] = byte(core.AutoBalanceEnabled)
 		childKey := []byte{2, 'd', 'o', 'g'}
+		data := []core.TrieData{{Key: childKey}}
 
-		_, newBn, _, err := bn.delete(childKey, &testscommon.MemDbMock{})
+		_, newBn, _, err := bn.delete(data, &testscommon.MemDbMock{})
 		assert.Nil(t, err)
 		assert.Nil(t, newBn.(*branchNode).ChildrenVersion)
 	})
