@@ -9,14 +9,14 @@ import (
 )
 
 func TestSovereignShardCoordinator_ComputeId(t *testing.T) {
-	shardCoordinator := NewSovereignShardCoordinator(core.SovereignChainShardId)
+	shardCoordinator := NewSovereignShardCoordinator()
 	require.Equal(t, core.SovereignChainShardId, shardCoordinator.ComputeId([]byte("address")))
 
 	require.Equal(t, uint32(1), shardCoordinator.NumberOfShards())
 }
 
 func TestNewSovereignShardCoordinator_SameShard(t *testing.T) {
-	shardCoordinator := NewSovereignShardCoordinator(core.SovereignChainShardId)
+	shardCoordinator := NewSovereignShardCoordinator()
 	metaShardAddress := vm.ESDTSCAddress
 	addr1 := getAddressFromUint32(uint32(1))
 	addr2 := getAddressFromUint32(uint32(2))
