@@ -34,7 +34,7 @@ func CreateSovereignChainBlockProcessorMockArguments() track.ArgBlockProcessor {
 	headerValidator, _ := processBlock.NewHeaderValidator(argsHeaderValidator)
 	sovereignChainHeaderValidator, _ := processBlock.NewSovereignChainHeaderValidator(headerValidator)
 	blockProcessorArguments.HeaderValidator = sovereignChainHeaderValidator
-	blockProcessorArguments.ShardCoordinator = sharding.NewSovereignShardCoordinator(core.SovereignChainShardId)
+	blockProcessorArguments.ShardCoordinator = sharding.NewSovereignShardCoordinator()
 
 	return blockProcessorArguments
 }
