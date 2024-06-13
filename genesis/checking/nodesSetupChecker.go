@@ -31,6 +31,7 @@ type delegationAddress struct {
 	address string
 }
 
+// ArgsNodesSetupChecker is a struct placeholder for args needed to create a nodes setup checker
 type ArgsNodesSetupChecker struct {
 	AccountsParser           genesis.AccountsParser
 	InitialNodePrice         *big.Int
