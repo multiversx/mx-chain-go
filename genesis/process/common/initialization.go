@@ -58,6 +58,7 @@ func getUserAccount(address []byte, userAccountsDB state.AccountsAdapter) (state
 	return userAcc, nil
 }
 
+// InitDelegationSystemSC inits the delegation system sc
 func InitDelegationSystemSC(systemVM vmcommon.VMExecutionHandler, userAccountsDB state.AccountsAdapter) error {
 	codeMetaData := &vmcommon.CodeMetadata{
 		Upgradeable: false,
@@ -96,6 +97,7 @@ func InitDelegationSystemSC(systemVM vmcommon.VMExecutionHandler, userAccountsDB
 	return nil
 }
 
+// ProcessSCOutputAccounts processes sc output accounts
 func ProcessSCOutputAccounts(
 	vmOutput *vmcommon.VMOutput,
 	userAccountsDB state.AccountsAdapter,
@@ -132,6 +134,7 @@ func ProcessSCOutputAccounts(
 	return nil
 }
 
+// InitGovernanceV2 inits governance v2
 func InitGovernanceV2(systemVM vmcommon.VMExecutionHandler, userAccountsDB state.AccountsAdapter) error {
 	vmInput := &vmcommon.ContractCallInput{
 		VMInput: vmcommon.VMInput{

@@ -49,7 +49,7 @@ func createGenesisBlockCreator(t *testing.T) *genesisBlockCreator {
 
 func createSovereignGenesisBlockCreator(t *testing.T) (ArgsGenesisBlockCreator, *sovereignGenesisBlockCreator) {
 	arg := createSovereignMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
-	arg.ShardCoordinator = sharding.NewSovereignShardCoordinator(core.SovereignChainShardId)
+	arg.ShardCoordinator = sharding.NewSovereignShardCoordinator()
 	arg.DNSV2Addresses = []string{"00000000000000000500761b8c4a25d3979359223208b412285f635e71300102"}
 
 	trieStorageManagers := createTrieStorageManagers()

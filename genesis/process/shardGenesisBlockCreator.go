@@ -11,7 +11,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 
@@ -428,11 +427,9 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 	// VM container only needs to know the number of eligible nodes.
 	// At genesis, we don't need a full nodes coordinator, and this information
 	// is already available in initial nodes setup from genesis
-	liteNodesCoordinator := &shardingMocks.NodesCoordinatorMock{
-		GetNumTotalEligibleCalled: func() uint64 {
-			eligible, _ := arg.InitialNodesSetup.InitialNodesInfo()
-			return uint64(len(eligible))
-		},
+	eligible, _ := arg.InitialNodesSetup.InitialNodesInfo()
+	liteNodesCoordinator := &vmNodesCoordinator{
+		numEligible: uint64(len(eligible)),
 	}
 
 	vmContainer, vmFactoryImpl, err := arg.RunTypeComponents.VmContainerShardFactoryCreator().CreateVmContainerFactory(argsHook, vm.ArgsVmContainerFactory{
