@@ -50,8 +50,9 @@ upgradeHeaderVerifierContract() {
 
 setEsdtSafeAddressInHeaderVerifier() {
     echo "Setting ESDT Safe address in Header Verifier contract on main chain..."
-    checkVariables ESDT_SAFE_ADDRESS ESDT_SAFE_ADDRESS_SOVEREIGN || return
+    checkVariables HEADER_VERIFIER_ADDRESS ESDT_SAFE_ADDRESS || return
 
+    local OUTFILE="${OUTFILE_PATH}/set-esdtsafe-address.interaction.json"
     mxpy contract call ${HEADER_VERIFIER_ADDRESS} \
         --pem=${WALLET} \
         --proxy=${PROXY} \
