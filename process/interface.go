@@ -32,6 +32,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/vm"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 )
@@ -474,6 +475,13 @@ type VirtualMachinesContainerFactory interface {
 	Close() error
 	BlockChainHookImpl() BlockChainHookWithAccountsAdapter
 	IsInterfaceNil() bool
+}
+
+// MetaVirtualMachinesContainerFactory defines the extended functionality to create virtual machine containers for meta
+type MetaVirtualMachinesContainerFactory interface {
+	VirtualMachinesContainerFactory
+	CreateForGenesis() (VirtualMachinesContainer, error)
+	SystemSmartContractContainer() vm.SystemSCContainer
 }
 
 // EpochStartTriggerHandler defines that actions which are needed by processor for start of epoch
