@@ -18,7 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
-	vm2 "github.com/multiversx/mx-chain-go/factory/vm"
+	vmFactory "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
 	"github.com/multiversx/mx-chain-go/process"
@@ -351,7 +351,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		return nil, err
 	}
 
-	_, virtualMachineFactory, err := arg.RunTypeComponents.VmContainerMetaFactoryCreator().CreateVmContainerFactory(argsHook, vm2.ArgsVmContainerFactory{
+	_, virtualMachineFactory, err := arg.RunTypeComponents.VmContainerMetaFactoryCreator().CreateVmContainerFactory(argsHook, vmFactory.ArgsVmContainerFactory{
 		BlockChainHook:      blockChainHookImpl,
 		PubkeyConv:          argsHook.PubkeyConv,
 		Economics:           arg.Economics,
