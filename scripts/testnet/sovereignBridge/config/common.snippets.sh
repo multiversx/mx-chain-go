@@ -25,3 +25,35 @@ getFundsInAddressSovereign() {
 
     sleep 6
 }
+
+gitPullAllChanges()
+{
+    pushd .
+
+    # Traverse up to the parent directory of "mx-chain-go"
+    while [[ ! -d "mx-chain-go" ]]; do
+      cd ..
+    done
+
+    echo -e "Pulling changes for mx-chain-go..."
+    cd mx-chain-go
+    git pull
+    cd ..
+
+    echo -e "Pulling changes for mx-chain-deploy-go..."
+    cd mx-chain-deploy-go
+    git pull
+    cd ..
+
+    echo -e "Pulling changes for mx-chain-proxy-go..."
+    cd mx-chain-proxy-go
+    git pull
+    cd ..
+
+    echo -e "Pulling changes for mx-chain-sovereign-bridge-go..."
+    cd mx-chain-sovereign-bridge-go
+    git pull
+    cd ..
+
+    popd
+}

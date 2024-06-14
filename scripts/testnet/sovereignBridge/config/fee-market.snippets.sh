@@ -38,14 +38,36 @@ deployFeeMarketContract() {
 
 upgradeFeeMarketContract() {
     echo "Upgrading Fee Market contract on main chain..."
-    checkVariables ESDT_SAFE_ADDRESS || return
+    checkVariables FEE_MARKET_ADDRESS || return
 
     local OUTFILE="${OUTFILE_PATH}/upgrade-fee-market.interaction.json"
-    mxpy contract upgrade ${FEE_MARKET_ADDRESS} \
+    upgradeEsdtSafeContractCall ${ESDT_SAFE_ADDRESS} ${PROXY} ${CHAIN_ID} ${OUTFILE}
+}
+
+upgradeFeeMarketContractSovereign() {
+    echo "Upgrading Fee Market contract on sovereign chain..."
+    checkVariables FEE_MARKET_ADDRESS_SOVEREIGN || return
+
+    local OUTFILE="${OUTFILE_PATH}/upgrade-fee-market-sovereign.interaction.json"
+    upgradeEsdtSafeContractCall ${ESDT_SAFE_ADDRESS_SOVEREIGN} ${PROXY_SOVEREIGN} ${CHAIN_ID_SOVEREIGN} ${OUTFILE}
+}
+
+upgradeFeeMarketContractCall() {
+    if [ $# -lt 4 ]; then
+        echo "Usage: $0 <arg1> <arg2> <arg3> <arg4>"
+        exit 1
+    fi
+
+    local ADDRESS=$1
+    local URL=$2
+    local CHAIN=$3
+    local OUTFILE=$4
+
+    mxpy contract upgrade ${ADDRESS} \
         --bytecode=$(eval echo ${FEE_MARKET_WASM}) \
         --pem=${WALLET} \
-        --proxy=${PROXY} \
-        --chain=${CHAIN_ID} \
+        --proxy=${URL} \
+        --chain=${CHAIN} \
         --gas-limit=200000000 \
         --outfile=${OUTFILE} \
         --recall-nonce \

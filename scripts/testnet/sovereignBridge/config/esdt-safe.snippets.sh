@@ -33,13 +33,36 @@ deployEsdtSafeContract() {
 
 upgradeEsdtSafeContract() {
     echo "Upgrading ESDT Safe contract on main chain..."
+    checkVariables ESDT_SAFE_ADDRESS || return
 
     local OUTFILE="${OUTFILE_PATH}/upgrade-esdt-safe.interaction.json"
-    mxpy contract upgrade ${ESDT_SAFE_ADDRESS} \
+    upgradeEsdtSafeContractCall ${ESDT_SAFE_ADDRESS} ${PROXY} ${CHAIN_ID} ${OUTFILE}
+}
+
+upgradeEsdtSafeContractSovereign() {
+    echo "Upgrading ESDT Safe contract on sovereign chain..."
+    checkVariables ESDT_SAFE_ADDRESS_SOVEREIGN || return
+
+    local OUTFILE="${OUTFILE_PATH}/upgrade-esdt-safe-sovereign.interaction.json"
+    upgradeEsdtSafeContractCall ${ESDT_SAFE_ADDRESS_SOVEREIGN} ${PROXY_SOVEREIGN} ${CHAIN_ID_SOVEREIGN} ${OUTFILE}
+}
+
+upgradeEsdtSafeContractCall() {
+    if [ $# -lt 4 ]; then
+        echo "Usage: $0 <arg1> <arg2> <arg3> <arg4>"
+        exit 1
+    fi
+
+    local ADDRESS=$1
+    local URL=$2
+    local CHAIN=$3
+    local OUTFILE=$4
+
+    mxpy contract upgrade ${ADDRESS} \
         --bytecode=$(eval echo ${ESDT_SAFE_WASM}) \
         --pem=${WALLET} \
-        --proxy=${PROXY} \
-        --chain=${CHAIN_ID} \
+        --proxy=${URL} \
+        --chain=${CHAIN} \
         --gas-limit=200000000 \
         --outfile=${OUTFILE} \
         --recall-nonce \

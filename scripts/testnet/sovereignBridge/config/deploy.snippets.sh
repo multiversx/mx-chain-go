@@ -85,6 +85,25 @@ sovereignRestart() {
 }
 
 # This function will:
+# - stop sovereign and clean nodes
+# - pull the latest changes for all the repositories
+# - download the new version of the contracts and update them on main chain
+# - deploy sovereign nodes with all services
+sovereignUpgradeAndRestart() {
+    stopAndCleanSovereign
+
+    gitPullAllChanges
+
+    downloadCrossChainContracts
+
+    upgradeEsdtSafeContract
+
+    upgradeFeeMarketContract
+
+    sovereignDeploy
+}
+
+# This function will:
 # - stop sovereign nodes
 # - stop the bridge service
 # - stop the main chain observer
