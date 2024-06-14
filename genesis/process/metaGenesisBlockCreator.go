@@ -3,6 +3,7 @@ package process
 import (
 	"bytes"
 	"encoding/hex"
+	"fmt"
 	"math"
 	"math/big"
 	"sort"
@@ -17,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
+	vmFactory "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
 	"github.com/multiversx/mx-chain-go/process"
@@ -349,30 +351,33 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		return nil, err
 	}
 
-	argsNewVMContainerFactory := metachain.ArgsNewVMContainerFactory{
-		BlockChainHook:          blockChainHookImpl,
-		PubkeyConv:              argsHook.PubkeyConv,
-		Economics:               arg.Economics,
-		MessageSignVerifier:     pubKeyVerifier,
-		GasSchedule:             arg.GasSchedule,
-		NodesConfigProvider:     arg.InitialNodesSetup,
-		Hasher:                  arg.Core.Hasher(),
-		Marshalizer:             arg.Core.InternalMarshalizer(),
-		SystemSCConfig:          &arg.SystemSCConfig,
-		ValidatorAccountsDB:     arg.ValidatorAccounts,
-		UserAccountsDB:          arg.Accounts,
-		ChanceComputer:          &disabled.Rater{},
-		ShardCoordinator:        arg.ShardCoordinator,
-		EnableEpochsHandler:     enableEpochsHandler,
-		NodesCoordinator:        &disabled.NodesCoordinator{},
-		VMContextCreatorHandler: arg.RunTypeComponents.VMContextCreator(),
-	}
-	virtualMachineFactory, err := metachain.NewVMContainerFactory(argsNewVMContainerFactory)
+	_, virtualMachineFactory, err := arg.RunTypeComponents.VmContainerMetaFactoryCreator().CreateVmContainerFactory(argsHook, vmFactory.ArgsVmContainerFactory{
+		BlockChainHook:      blockChainHookImpl,
+		PubkeyConv:          argsHook.PubkeyConv,
+		Economics:           arg.Economics,
+		MessageSignVerifier: pubKeyVerifier,
+		GasSchedule:         arg.GasSchedule,
+		NodesConfigProvider: arg.InitialNodesSetup,
+		Hasher:              arg.Core.Hasher(),
+		Marshalizer:         arg.Core.InternalMarshalizer(),
+		SystemSCConfig:      &arg.SystemSCConfig,
+		ValidatorAccountsDB: arg.ValidatorAccounts,
+		UserAccountsDB:      arg.Accounts,
+		ChanceComputer:      &disabled.Rater{},
+		ShardCoordinator:    arg.ShardCoordinator,
+		EnableEpochsHandler: enableEpochsHandler,
+		NodesCoordinator:    &disabled.NodesCoordinator{},
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	vmContainer, err := virtualMachineFactory.CreateForGenesis()
+	metaVMFactory, castOk := virtualMachineFactory.(process.MetaVirtualMachinesContainerFactory)
+	if !castOk {
+		return nil, fmt.Errorf("%w in metaGenesisBlockCreator when trying to cast virtualMachineFactory to MetaVirtualMachinesContainerFactory", process.ErrWrongTypeAssertion)
+	}
+
+	vmContainer, err := metaVMFactory.CreateForGenesis()
 	if err != nil {
 		return nil, err
 	}
@@ -444,7 +449,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		Hasher:              arg.Core.Hasher(),
 		Marshalizer:         arg.Core.InternalMarshalizer(),
 		AccountsDB:          arg.Accounts,
-		BlockChainHook:      virtualMachineFactory.BlockChainHookImpl(),
+		BlockChainHook:      metaVMFactory.BlockChainHookImpl(),
 		BuiltInFunctions:    builtInFuncs,
 		PubkeyConv:          arg.Core.AddressPubKeyConverter(),
 		ShardCoordinator:    arg.ShardCoordinator,
@@ -572,7 +577,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 	argsNewSCQueryService := smartContract.ArgsNewSCQueryService{
 		VmContainer:              vmContainer,
 		EconomicsFee:             arg.Economics,
-		BlockChainHook:           virtualMachineFactory.BlockChainHookImpl(),
+		BlockChainHook:           metaVMFactory.BlockChainHookImpl(),
 		MainBlockChain:           arg.Data.Blockchain(),
 		APIBlockChain:            apiBlockchain,
 		WasmVMChangeLocker:       &sync.RWMutex{},
@@ -592,8 +597,8 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 
 	return &genesisProcessors{
 		txCoordinator:  txCoordinator,
-		systemSCs:      virtualMachineFactory.SystemSmartContractContainer(),
-		blockchainHook: virtualMachineFactory.BlockChainHookImpl(),
+		systemSCs:      metaVMFactory.SystemSmartContractContainer(),
+		blockchainHook: metaVMFactory.BlockChainHookImpl(),
 		txProcessor:    txProcessor,
 		scProcessor:    scProcessorProxy,
 		scrProcessor:   scProcessorProxy,
