@@ -77,11 +77,11 @@ sovereignStart() {
 
 # This function will:
 # - stop sovereign nodes and services
-# - start again the sovereign nodes and services
+# - deploy sovereign nodes with all services
 sovereignRestart() {
-    stopSovereign
+    stopAndCleanSovereign
 
-    sovereignStart
+    sovereignDeploy
 }
 
 # This function will:

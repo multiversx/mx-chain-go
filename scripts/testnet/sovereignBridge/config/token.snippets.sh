@@ -94,7 +94,7 @@ issueTokenSovereign() {
     echo "Issued Sovereign Token identifier: ${DEPOSIT_TOKEN_IDENTIFIER_SOVEREIGN}"
 }
 
-registerToken() {
+registerSovereignToken() {
     echo "Registering Sovereign token in ESDT Safe contract on main chain..."
     checkVariables DEPOSIT_TOKEN_IDENTIFIER_SOVEREIGN || return
 

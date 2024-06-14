@@ -1,6 +1,6 @@
 #!/bin/bash
 
-runPrerequisites() {
+runBridgePrerequisites() {
     installSoftwareDependencies
 
     downloadCrossChainContracts
