@@ -1268,3 +1268,6 @@ var ErrRelayedTxV3InvalidDataField = errors.New("invalid data field")
 
 // ErrMultipleRelayedTxTypesIsNotAllowed signals that multiple types of relayed tx is not allowed
 var ErrMultipleRelayedTxTypesIsNotAllowed = errors.New("multiple relayed tx types is not allowed")
+
+// ErrNilFailedTxLogsAccumulator signals that a nil failed transaction logs accumulator has been provided
+var ErrNilFailedTxLogsAccumulator = errors.New("nil failed transaction logs accumulator")

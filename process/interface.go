@@ -303,7 +303,6 @@ type TransactionLogProcessor interface {
 	GetAllCurrentLogs() []*data.LogData
 	GetLog(txHash []byte) (data.LogHandler, error)
 	SaveLog(txHash []byte, tx data.TransactionHandler, vmLogs []*vmcommon.LogEntry) error
-	AppendLog(txHash []byte, tx data.TransactionHandler, logEntries []*vmcommon.LogEntry) error
 	Clean()
 	IsInterfaceNil() bool
 }
@@ -1364,5 +1363,13 @@ type SentSignaturesTracker interface {
 type RelayedTxV3Processor interface {
 	CheckRelayedTx(tx *transaction.Transaction) error
 	ComputeRelayedTxFees(tx *transaction.Transaction) (*big.Int, *big.Int)
+	IsInterfaceNil() bool
+}
+
+// FailedTxLogsAccumulator defines a component able to accumulate logs during a relayed tx execution
+type FailedTxLogsAccumulator interface {
+	GetLogs(txHash []byte) (data.TransactionHandler, []*vmcommon.LogEntry, bool)
+	SaveLogs(txHash []byte, tx data.TransactionHandler, logs []*vmcommon.LogEntry) error
+	Remove(txHash []byte)
 	IsInterfaceNil() bool
 }

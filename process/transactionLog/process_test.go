@@ -9,13 +9,10 @@ import (
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/transactionLog"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 )
-
-var expectedErr = errors.New("expected err")
 
 func TestNewTxLogProcessor_NilParameters(t *testing.T) {
 	_, nilMarshalizer := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
@@ -128,93 +125,6 @@ func TestTxLogProcessor_SaveLogsStoreErr(t *testing.T) {
 	}
 	err := txLogProcessor.SaveLog([]byte("txhash"), &transaction.Transaction{}, logs)
 	require.Equal(t, retErr, err)
-}
-
-func TestTxLogProcessor_AppendLogGetErrSaveLog(t *testing.T) {
-	t.Parallel()
-
-	wasSaved := false
-	txLogProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
-		Storer: &storageStubs.StorerStub{
-			GetCalled: func(key []byte) ([]byte, error) {
-				return nil, expectedErr
-			},
-			PutCalled: func(key, data []byte) error {
-				wasSaved = true
-				return nil
-			},
-		},
-		Marshalizer:          &mock.MarshalizerMock{},
-		SaveInStorageEnabled: true,
-	})
-
-	logs := []*vmcommon.LogEntry{
-		{Address: []byte("first log")},
-	}
-	err := txLogProcessor.AppendLog([]byte("txhash"), &transaction.Transaction{}, logs)
-	require.NoError(t, err)
-	require.True(t, wasSaved)
-}
-
-func TestTxLogProcessor_AppendLogsUnmarshalErrShouldError(t *testing.T) {
-	t.Parallel()
-
-	txLogProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
-		Storer: &storageStubs.StorerStub{
-			GetCalled: func(key []byte) ([]byte, error) {
-				return []byte("dummy buff"), nil
-			},
-		},
-		Marshalizer: &testscommon.MarshallerStub{
-			UnmarshalCalled: func(obj interface{}, buff []byte) error {
-				return expectedErr
-			},
-		},
-		SaveInStorageEnabled: true,
-	})
-
-	logs := []*vmcommon.LogEntry{
-		{Address: []byte("first log")},
-	}
-	err := txLogProcessor.AppendLog([]byte("txhash"), &transaction.Transaction{}, logs)
-	require.Equal(t, expectedErr, err)
-}
-
-func TestTxLogProcessor_AppendLogShouldWorkAndAppend(t *testing.T) {
-	t.Parallel()
-
-	providedHash := []byte("txhash")
-	storer := genericMocks.NewStorerMockWithErrKeyNotFound(0)
-	marshaller := &mock.MarshalizerMock{}
-	txLogProcessor, _ := transactionLog.NewTxLogProcessor(transactionLog.ArgTxLogProcessor{
-		Storer:               storer,
-		Marshalizer:          marshaller,
-		SaveInStorageEnabled: true,
-	})
-
-	oldLogs := []*vmcommon.LogEntry{
-		{Address: []byte("addr 1"), Data: [][]byte{[]byte("old data 1")}},
-		{Address: []byte("addr 2"), Data: [][]byte{[]byte("old data 2")}},
-	}
-
-	err := txLogProcessor.SaveLog(providedHash, &transaction.Transaction{}, oldLogs)
-	require.NoError(t, err)
-
-	newLogs := []*vmcommon.LogEntry{
-		{Address: []byte("addr 3"), Data: [][]byte{[]byte("new data 1")}},
-	}
-
-	err = txLogProcessor.AppendLog(providedHash, &transaction.Transaction{SndAddr: []byte("sender")}, newLogs)
-	require.NoError(t, err)
-
-	buff, err := storer.Get(providedHash)
-	require.NoError(t, err)
-
-	allLogs := &transaction.Log{}
-	err = marshaller.Unmarshal(allLogs, buff)
-	require.NoError(t, err)
-
-	require.Equal(t, 3, len(allLogs.Events))
 }
 
 func TestTxLogProcessor_SaveLogsCallsPutWithMarshalBuff(t *testing.T) {
