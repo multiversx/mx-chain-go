@@ -145,10 +145,12 @@ func (r *RunTypeComponentsStub) TxPreProcessorCreator() preprocess.TxPreProcesso
 	return r.TxPreProcessorFactory
 }
 
+// VmContainerShardFactoryCreator -
 func (r *RunTypeComponentsStub) VmContainerShardFactoryCreator() factoryVm.VmContainerCreator {
 	return r.VmContainerShardFactory
 }
 
+// VmContainerMetaFactoryCreator -
 func (r *RunTypeComponentsStub) VmContainerMetaFactoryCreator() factoryVm.VmContainerCreator {
 	return r.VmContainerMetaFactory
 }

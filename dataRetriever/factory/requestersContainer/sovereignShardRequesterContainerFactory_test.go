@@ -3,7 +3,6 @@ package requesterscontainer_test
 import (
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process/factory"
@@ -13,7 +12,7 @@ import (
 
 func createSovArgs() requesterscontainer.FactoryArgs {
 	args := getArguments()
-	args.ShardCoordinator = sharding.NewSovereignShardCoordinator(core.SovereignChainShardId)
+	args.ShardCoordinator = sharding.NewSovereignShardCoordinator()
 
 	return args
 }

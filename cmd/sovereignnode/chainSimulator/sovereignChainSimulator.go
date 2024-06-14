@@ -40,6 +40,7 @@ func NewSovereignChainSimulator(args ArgsSovereignChainSimulator) (chainSimulato
 	if err != nil {
 		return nil, err
 	}
+
 	args.AlterConfigsFunction = func(cfg *config.Configs) {
 		cfg.EconomicsConfig = configs.EconomicsConfig
 		cfg.EpochConfig = configs.EpochConfig
@@ -49,6 +50,7 @@ func NewSovereignChainSimulator(args ArgsSovereignChainSimulator) (chainSimulato
 
 		if alterConfigs != nil {
 			alterConfigs(cfg)
+			configs.SovereignExtraConfig = &cfg.GeneralConfig.SovereignConfig
 		}
 	}
 
