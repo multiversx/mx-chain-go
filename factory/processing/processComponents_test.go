@@ -134,6 +134,7 @@ func createProcessComponentsFactoryArgs(runTypeComponents *mainFactoryMocks.RunT
 				},
 				Active: config.GovernanceSystemSCConfigActive{
 					ProposalCost:     "500",
+					LostProposalFee:  "100",
 					MinQuorum:        0.5,
 					MinPassThreshold: 0.5,
 					MinVetoThreshold: 0.5,

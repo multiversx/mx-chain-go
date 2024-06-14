@@ -185,6 +185,9 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 	if check.IfNil(arg.Data.Datapool()) {
 		return process.ErrNilPoolsHolder
 	}
+	if check.IfNil(arg.Core.Rater()) {
+		return process.ErrNilRater
+	}
 	if check.IfNil(arg.GasSchedule) {
 		return process.ErrNilGasSchedule
 	}
@@ -217,6 +220,12 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 	}
 	if check.IfNil(arg.RunTypeComponents.TxPreProcessorCreator()) {
 		return errors.ErrNilTxPreProcessorCreator
+	}
+	if check.IfNil(arg.RunTypeComponents.VMContextCreator()) {
+		return errors.ErrNilVMContextCreator
+	}
+	if check.IfNil(arg.RunTypeComponents.VmContainerShardFactoryCreator()) {
+		return errors.ErrNilVmContainerShardFactoryCreator
 	}
 	if arg.TrieStorageManagers == nil {
 		return genesis.ErrNilTrieStorageManager

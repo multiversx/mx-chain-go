@@ -1,6 +1,7 @@
 package genesisMocks
 
 import (
+	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
@@ -29,6 +30,7 @@ type RunTypeComponentsStub struct {
 	VMContextCreatorHandler       systemSmartContracts.VMContextCreatorHandler
 	ShardCoordinatorFactory       sharding.ShardCoordinatorFactory
 	TxPreProcessorFactory         preprocess.TxPreProcessorCreator
+	VmContainerShardFactory       factoryVm.VmContainerCreator
 }
 
 // NewRunTypeComponentsStub -
@@ -42,6 +44,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		Marshaller:          &marshallerMock.MarshalizerMock{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	})
+	vmContainer, _ := factoryVm.NewVmContainerShardFactory(blockChainHookHandlerFactory)
 
 	return &RunTypeComponentsStub{
 		BlockChainHookHandlerFactory:  blockChainHookHandlerFactory,
@@ -53,6 +56,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		VMContextCreatorHandler:       systemSmartContracts.NewVMContextCreator(),
 		ShardCoordinatorFactory:       sharding.NewMultiShardCoordinatorFactory(),
 		TxPreProcessorFactory:         preprocess.NewTxPreProcessorCreator(),
+		VmContainerShardFactory:       vmContainer,
 	}
 }
 
@@ -73,6 +77,10 @@ func NewSovereignRunTypeComponentsStub() *RunTypeComponentsStub {
 		BaseTokenID: "WEGLD-bd4d79",
 	})
 
+	oneShardVM := systemSmartContracts.NewOneShardSystemVMEEICreator()
+	vmMetaFactory, _ := factoryVm.NewVmContainerMetaFactory(blockChainHookHandlerFactory, oneShardVM)
+	sovVMContainerShardFactory, _ := factoryVm.NewSovereignVmContainerShardFactory(blockChainHookHandlerFactory, vmMetaFactory, runTypeComponents.VmContainerShardFactory)
+
 	return &RunTypeComponentsStub{
 		BlockChainHookHandlerFactory:  blockChainHookHandlerFactory,
 		TransactionCoordinatorFactory: transactionCoordinatorFactory,
@@ -83,6 +91,7 @@ func NewSovereignRunTypeComponentsStub() *RunTypeComponentsStub {
 		VMContextCreatorHandler:       &vmContext.VMContextCreatorStub{},
 		ShardCoordinatorFactory:       sharding.NewSovereignShardCoordinatorFactory(),
 		TxPreProcessorFactory:         preprocess.NewSovereignTxPreProcessorCreator(),
+		VmContainerShardFactory:       sovVMContainerShardFactory,
 	}
 }
 
@@ -129,6 +138,11 @@ func (r *RunTypeComponentsStub) ShardCoordinatorCreator() sharding.ShardCoordina
 // TxPreProcessorCreator -
 func (r *RunTypeComponentsStub) TxPreProcessorCreator() preprocess.TxPreProcessorCreator {
 	return r.TxPreProcessorFactory
+}
+
+// VmContainerShardFactoryCreator -
+func (r *RunTypeComponentsStub) VmContainerShardFactoryCreator() factoryVm.VmContainerCreator {
+	return r.VmContainerShardFactory
 }
 
 // IsInterfaceNil -
