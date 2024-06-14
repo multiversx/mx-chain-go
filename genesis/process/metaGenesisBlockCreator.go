@@ -368,6 +368,9 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		EnableEpochsHandler: enableEpochsHandler,
 		NodesCoordinator:    &disabled.NodesCoordinator{},
 	})
+	if err != nil {
+		return nil, err
+	}
 
 	metaVMFactory, castOk := virtualMachineFactory.(process.MetaVirtualMachinesContainerFactory)
 	if !castOk {
