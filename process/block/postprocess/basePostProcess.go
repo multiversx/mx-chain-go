@@ -30,9 +30,9 @@ type txInfo struct {
 }
 
 type processedResult struct {
-	parent   []byte
-	children map[string]struct{}
-	results  [][]byte
+	parentKey    []byte
+	childrenKeys map[string]struct{}
+	results      [][]byte
 }
 
 const defaultCapacity = 100
@@ -201,8 +201,8 @@ func (bpp *basePostProcessor) removeProcessedResultsAndLinks(key string) ([][]by
 	collectedProcessedResultsKeys := make([][]byte, 0, defaultCapacity)
 	collectedProcessedResultsKeys = append(collectedProcessedResultsKeys, processedResults.results...)
 
-	// go through the children and do the same
-	for childKey := range processedResults.children {
+	// go through the childrenKeys and do the same
+	for childKey := range processedResults.childrenKeys {
 		childProcessedResults, ok := bpp.removeProcessedResultsAndLinks(childKey)
 		if !ok {
 			continue
@@ -211,10 +211,10 @@ func (bpp *basePostProcessor) removeProcessedResultsAndLinks(key string) ([][]by
 		collectedProcessedResultsKeys = append(collectedProcessedResultsKeys, childProcessedResults...)
 	}
 
-	// remove link from parent
-	parent, ok := bpp.mapProcessedResult[string(processedResults.parent)]
+	// remove link from parentKey
+	parent, ok := bpp.mapProcessedResult[string(processedResults.parentKey)]
 	if ok {
-		delete(parent.children, key)
+		delete(parent.childrenKeys, key)
 	}
 
 	return collectedProcessedResultsKeys, true
@@ -226,23 +226,23 @@ func (bpp *basePostProcessor) InitProcessedResults(key []byte, parentKey []byte)
 	defer bpp.mutInterResultsForBlock.Unlock()
 
 	pr := &processedResult{
-		parent:   parentKey,
-		children: make(map[string]struct{}),
-		results:  make([][]byte, 0),
+		parentKey:    parentKey,
+		childrenKeys: make(map[string]struct{}),
+		results:      make([][]byte, 0),
 	}
 
 	bpp.mapProcessedResult[string(key)] = pr
 
-	if parentKey != nil {
+	if len(parentKey) > 0 {
 		parentPr, ok := bpp.mapProcessedResult[string(parentKey)]
 		if !ok {
 			bpp.mapProcessedResult[string(parentKey)] = &processedResult{
-				parent:   nil,
-				children: map[string]struct{}{string(key): {}},
-				results:  make([][]byte, 0),
+				parentKey:    nil,
+				childrenKeys: map[string]struct{}{string(key): {}},
+				results:      make([][]byte, 0),
 			}
 		} else {
-			parentPr.children[string(key)] = struct{}{}
+			parentPr.childrenKeys[string(key)] = struct{}{}
 		}
 	}
 }
