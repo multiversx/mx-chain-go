@@ -934,7 +934,7 @@ func TestChainSimulator_NFT_ESDTMetaDataRecreate(t *testing.T) {
 
 	roles := [][]byte{
 		[]byte(core.ESDTRoleNFTCreate),
-		[]byte(core.ESDTMetaDataRecreate),
+		[]byte(core.ESDTRoleNFTRecreate),
 	}
 
 	nftTokenID := txResult.Logs.Events[0].Topics[0]
