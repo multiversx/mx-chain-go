@@ -4,7 +4,10 @@ import (
 	"encoding/hex"
 	"testing"
 
+	coreAPI "github.com/multiversx/mx-chain-core-go/data/api"
 	chainSim "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/sovereign"
@@ -36,16 +39,13 @@ type ArgsBridgeSetup struct {
 func DeploySovereignBridgeSetup(
 	t *testing.T,
 	cs chainSim.ChainSimulator,
+	wallet dtos.WalletAddress,
 	esdtSafeWasmPath string,
 	feeMarketWasmPath string,
 ) *ArgsBridgeSetup {
 	nodeHandler := cs.GetNodeHandler(core.SovereignChainShardId)
-
 	systemScAddress := chainSim.GetSysAccBytesAddress(t, nodeHandler)
-
-	wallet, err := cs.GenerateAndMintWalletAddress(core.SovereignChainShardId, chainSim.InitialAmount)
-	require.Nil(t, err)
-	nonce := uint64(0)
+	nonce := GetNonce(t, nodeHandler, wallet.Bech32)
 
 	esdtSafeArgs := "@01" + // is_sovereign_chain
 		"@" + // min_valid_signers
@@ -70,6 +70,14 @@ func DeploySovereignBridgeSetup(
 		ESDTSafeAddress:  esdtSafeAddress,
 		FeeMarketAddress: feeMarketAddress,
 	}
+}
+
+// GetNonce returns account's nonce
+func GetNonce(t *testing.T, nodeHandler process.NodeHandler, address string) uint64 {
+	acc, _, err := nodeHandler.GetFacadeHandler().GetAccount(address, coreAPI.AccountQueryOptions{})
+	require.Nil(t, err)
+
+	return acc.Nonce
 }
 
 // Deposit will deposit tokens in the bridge sc safe contract
