@@ -12,7 +12,6 @@ installSoftwareDependencies() {
     pip install multiversx-sdk
     pipx install multiversx-sdk-cli --force
     pipx ensurepath
-    export PATH="$PATH:/root/.local/bin"
 
     # install docker-ce
     install -m 0755 -d /etc/apt/keyrings

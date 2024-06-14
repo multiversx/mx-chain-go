@@ -114,19 +114,19 @@ enableFeeMarketContractCall() {
     printTxStatus ${OUTFILE}
 }
 
-disableFeeMarketContract() {
-    echo "Disabling Fee Market contract on main chain..."
+disableFeeInFeeMarketContract() {
+    echo "Disabling Fee in Fee Market contract on main chain..."
 
     local OUTFILE="${OUTFILE_PATH}/disable-feemarket-contract.interaction.json"
-    disableFeeMarketContractCall ${FEE_MARKET_ADDRESS} ${PROXY} ${CHAIN_ID} ${OUTFILE}
+    disableFeeInFeeMarketContractCall ${FEE_MARKET_ADDRESS} ${PROXY} ${CHAIN_ID} ${OUTFILE}
 }
-disableFeeMarketContractSovereign() {
-    echo "Disabling Fee Market contract on sovereign chain..."
+disableFeeInFeeMarketContractSovereign() {
+    echo "Disabling Fee in Fee Market contract on sovereign chain..."
 
     local OUTFILE="${OUTFILE_PATH}/disable-feemarket-contract-sovereign.interaction.json"
-    disableFeeMarketContractCall ${FEE_MARKET_ADDRESS_SOVEREIGN} ${PROXY_SOVEREIGN} ${CHAIN_ID_SOVEREIGN} ${OUTFILE}
+    disableFeeInFeeMarketContractCall ${FEE_MARKET_ADDRESS_SOVEREIGN} ${PROXY_SOVEREIGN} ${CHAIN_ID_SOVEREIGN} ${OUTFILE}
 }
-disableFeeMarketContractCall() {
+disableFeeInFeeMarketContractCall() {
     if [ $# -lt 4 ]; then
         echo "Usage: $0 <arg1> <arg2> <arg3> <arg4>"
         exit 1
