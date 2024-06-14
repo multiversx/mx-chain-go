@@ -5,13 +5,14 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func createEnableEpochsConfig() config.EnableEpochs {
@@ -113,6 +114,7 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		StakingV4Step1EnableEpoch:                                96,
 		StakingV4Step2EnableEpoch:                                97,
 		StakingV4Step3EnableEpoch:                                98,
+		CleanupAuctionOnLowWaitingListEnableEpoch:                96,
 		AlwaysMergeContextsInEEIEnableEpoch:                      99,
 	}
 }
@@ -426,6 +428,7 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.StakingV4Step1EnableEpoch, handler.GetActivationEpoch(common.StakingV4Step1Flag))
 	require.Equal(t, cfg.StakingV4Step2EnableEpoch, handler.GetActivationEpoch(common.StakingV4Step2Flag))
 	require.Equal(t, cfg.StakingV4Step3EnableEpoch, handler.GetActivationEpoch(common.StakingV4Step3Flag))
+	require.Equal(t, cfg.CleanupAuctionOnLowWaitingListEnableEpoch, handler.GetActivationEpoch(common.CleanupAuctionOnLowWaitingListFlag))
 	require.Equal(t, cfg.StakingV4Step1EnableEpoch, handler.GetActivationEpoch(common.StakingV4StartedFlag))
 	require.Equal(t, cfg.AlwaysMergeContextsInEEIEnableEpoch, handler.GetActivationEpoch(common.AlwaysMergeContextsInEEIFlag))
 }
