@@ -76,6 +76,7 @@ func (ccm *CoreComponentsMock) TxVersionChecker() process.TxVersionCheckerHandle
 	return ccm.TxVersionCheck
 }
 
+// Rater -
 func (ccm *CoreComponentsMock) Rater() sharding.PeerAccountListAndRatingHandler {
 	return ccm.RaterField
 }
