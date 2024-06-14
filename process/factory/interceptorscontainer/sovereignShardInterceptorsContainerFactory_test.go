@@ -3,7 +3,6 @@ package interceptorscontainer_test
 import (
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
@@ -15,7 +14,7 @@ import (
 func createSovInterceptorsContainerArgs() interceptorscontainer.ArgsSovereignShardInterceptorsContainerFactory {
 	coreComp, cryptoComp := createMockComponentHolders()
 	args := getArgumentsShard(coreComp, cryptoComp)
-	args.ShardCoordinator = sharding.NewSovereignShardCoordinator(core.SovereignChainShardId)
+	args.ShardCoordinator = sharding.NewSovereignShardCoordinator()
 	shardContainer, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(args)
 
 	return interceptorscontainer.ArgsSovereignShardInterceptorsContainerFactory{
@@ -64,7 +63,7 @@ func TestSovereignShardInterceptorsContainerFactory_Create(t *testing.T) {
 	require.Equal(t, totalInterceptors, mainContainer.Len())
 	require.Equal(t, 0, fullArchiveContainer.Len())
 
-	shardCoord := sharding.NewSovereignShardCoordinator(core.SovereignChainShardId)
+	shardCoord := sharding.NewSovereignShardCoordinator()
 	_, err = mainContainer.Get(factory.ExtendedHeaderProofTopic + shardCoord.CommunicationIdentifier(shardCoord.SelfId()))
 	require.Nil(t, err)
 }
