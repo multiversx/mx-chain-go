@@ -132,6 +132,7 @@ type baseProcessor struct {
 	crossNotarizer               crossNotarizer
 	accountCreator               state.AccountFactory
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor
+	epochSystemSCProcessor       process.EpochStartSystemSCProcessor
 }
 
 type bootStorerDataArgs struct {

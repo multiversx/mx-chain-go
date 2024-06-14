@@ -147,6 +147,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		crossNotarizer:                notarizer,
 		accountCreator:                arguments.RunTypeComponents.AccountsCreator(),
 		validatorStatisticsProcessor:  arguments.ValidatorStatisticsProcessor,
+		epochSystemSCProcessor:        arguments.EpochSystemSCProcessor,
 	}
 
 	mp := metaProcessor{
@@ -786,7 +787,7 @@ func (mp *metaProcessor) CreateBlock(
 	return metaHdr, body, nil
 }
 
-func (mp *metaProcessor) isPreviousBlockEpochStart() (uint32, bool) {
+func (mp *baseProcessor) isPreviousBlockEpochStart() (uint32, bool) {
 	blockHeader := mp.blockChain.GetCurrentBlockHeader()
 	if check.IfNil(blockHeader) {
 		blockHeader = mp.blockChain.GetGenesisHeader()
@@ -795,18 +796,18 @@ func (mp *metaProcessor) isPreviousBlockEpochStart() (uint32, bool) {
 	return blockHeader.GetEpoch(), blockHeader.IsStartOfEpochBlock()
 }
 
-func (mp *metaProcessor) processIfFirstBlockAfterEpochStart() error {
-	epoch, isPreviousEpochStart := mp.isPreviousBlockEpochStart()
+func (bp *baseProcessor) processIfFirstBlockAfterEpochStart() error {
+	epoch, isPreviousEpochStart := bp.isPreviousBlockEpochStart()
 	if !isPreviousEpochStart {
 		return nil
 	}
 
-	nodesForcedToStay, err := mp.validatorStatisticsProcessor.SaveNodesCoordinatorUpdates(epoch)
+	nodesForcedToStay, err := bp.validatorStatisticsProcessor.SaveNodesCoordinatorUpdates(epoch)
 	if err != nil {
 		return err
 	}
 
-	err = mp.epochSystemSCProcessor.ToggleUnStakeUnBond(nodesForcedToStay)
+	err = bp.epochSystemSCProcessor.ToggleUnStakeUnBond(nodesForcedToStay)
 	if err != nil {
 		return err
 	}

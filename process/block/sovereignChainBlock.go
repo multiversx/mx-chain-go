@@ -177,6 +177,10 @@ func (scbp *sovereignChainBlockProcessor) CreateBlock(initialHdr data.HeaderHand
 		//if err != nil {
 		//	return nil, nil, err
 		//}
+		//body, err = mp.createEpochStartBody(metaHdr)
+		//if err != nil {
+		//	return nil, nil, err
+		//}
 	}
 
 	scbp.epochNotifier.CheckEpoch(initialHdr)
@@ -208,6 +212,8 @@ func (scbp *sovereignChainBlockProcessor) CreateBlock(initialHdr data.HeaderHand
 	if err != nil {
 		return nil, nil, err
 	}
+
+	scbp.requestHandler.SetEpoch(initialHdr.GetEpoch())
 
 	return initialHdr, &block.Body{MiniBlocks: miniBlocks}, nil
 }
