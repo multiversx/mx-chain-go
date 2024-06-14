@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
@@ -57,6 +58,7 @@ type runTypeComponentsHandler interface {
 	ShardCoordinatorCreator() sharding.ShardCoordinatorFactory
 	TxPreProcessorCreator() preprocess.TxPreProcessorCreator
 	VMContextCreator() systemSmartContracts.VMContextCreatorHandler
+	VmContainerShardFactoryCreator() factoryVm.VmContainerCreator
 	IsInterfaceNil() bool
 }
 
