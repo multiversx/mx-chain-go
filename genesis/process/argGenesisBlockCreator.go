@@ -60,6 +60,7 @@ type runTypeComponentsHandler interface {
 	TxPreProcessorCreator() preprocess.TxPreProcessorCreator
 	VMContextCreator() systemSmartContracts.VMContextCreatorHandler
 	VmContainerShardFactoryCreator() factoryVm.VmContainerCreator
+	VmContainerMetaFactoryCreator() factoryVm.VmContainerCreator
 	IsInterfaceNil() bool
 }
 
