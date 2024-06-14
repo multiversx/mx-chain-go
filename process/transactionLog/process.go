@@ -161,9 +161,6 @@ func (tlp *txLogProcessor) SaveLog(txHash []byte, tx data.TransactionHandler, lo
 		})
 	}
 
-	tlp.mut.Lock()
-	defer tlp.mut.Unlock()
-
 	tlp.saveLogToCache(txHash, txLog)
 
 	buff, err := tlp.marshalizer.Marshal(txLog)
@@ -175,11 +172,13 @@ func (tlp *txLogProcessor) SaveLog(txHash []byte, tx data.TransactionHandler, lo
 }
 
 func (tlp *txLogProcessor) saveLogToCache(txHash []byte, log *transaction.Log) {
+	tlp.mut.Lock()
 	tlp.logs = append(tlp.logs, &data.LogData{
 		TxHash:     string(txHash),
 		LogHandler: log,
 	})
 	tlp.logsIndices[string(txHash)] = len(tlp.logs) - 1
+	tlp.mut.Unlock()
 }
 
 // For SC deployment transactions, we use the sender address
