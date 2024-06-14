@@ -1,14 +1,8 @@
 package postprocess
 
 import (
-	"fmt"
-	"os"
-	"runtime/debug"
-	"runtime/pprof"
 	"sync"
 	"testing"
-
-	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
@@ -70,36 +64,6 @@ func createScrs(hasher hashing.Hasher, num int) ([]data.TransactionHandler, [][]
 	}
 
 	return scrs, scrHashes
-}
-
-func Test_addIntermediateTxToResultsForBlock(t *testing.T) {
-	numInstances := 1
-	basePreProcs := createBaseProcessors(numInstances)
-	numTxs := 1000000
-	txs, txHashes := createTxs(sha256.NewSha256(), numTxs)
-	defaultParentKey := "defaultParentKey"
-	key := "defaultkey"
-	for i := 0; i < numInstances; i++ {
-		basePreProcs[i].InitProcessedResults([]byte(key), []byte(defaultParentKey))
-	}
-	t.Run("addIntermediateTxToResultsForBlock", func(t *testing.T) {
-		fileName := fmt.Sprintf("logs/cpu-profile-%d.pprof", time.Now().Unix())
-		f, err := os.Create(fileName)
-		require.Nil(t, err)
-		debug.SetGCPercent(-1)
-		_ = pprof.StartCPUProfile(f)
-		defer func() {
-			pprof.StopCPUProfile()
-
-			log.Info("cpu-profile saved", "file", fileName)
-		}()
-
-		for i := 0; i < numInstances; i++ {
-			for j := 0; j < numTxs; j++ {
-				basePreProcs[i].addIntermediateTxToResultsForBlock(txs[j], txHashes[j], 0, 1, []byte(key))
-			}
-		}
-	})
 }
 
 func TestBasePostProcessor_InitAddAndRemove(t *testing.T) {
