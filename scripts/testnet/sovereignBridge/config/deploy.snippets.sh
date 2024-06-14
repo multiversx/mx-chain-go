@@ -34,7 +34,7 @@ deployMainChainContractsAndSetupObserver() {
 # This function will:
 # - update some parameter in notifier
 # - run the sovereign nodes config
-# - deploy multisig contract on main chain
+# - deploy header verifier contract on main chain
 # - start the bridge service, nodes and the observer
 # - do other transactions in sovereign contracts
 sovereignDeploy() {
@@ -44,13 +44,13 @@ sovereignDeploy() {
 
     ../config.sh
 
-    deployMultiSigVerifierContract
+    deployHeaderVerifierContract
 
-    setEsdtSafeAddressInMultiSigVerifier
+    setEsdtSafeAddressInHeaderVerifier
 
     sovereignStart
 
-    setMultiSigVerifierAddressInEsdtSafe
+    setHeaderVerifierAddressInEsdtSafe
 
     setSovereignBridgeAddressInEsdtSafe
 

@@ -13,9 +13,6 @@ deployEsdtSafeContract() {
         --gas-limit=200000000 \
         --arguments \
             false \
-            ${MIN_VALID_SIGNERS} \
-            ${INITIATOR_ADDRESS} \
-            ${SIGNERS} \
         --outfile=${OUTFILE} \
         --recall-nonce \
         --wait-result \
@@ -165,18 +162,18 @@ setFeeMarketAddressCall() {
     printTxStatus ${OUTFILE}
 }
 
-setMultiSigVerifierAddressInEsdtSafe() {
-    echo "Setting MultiSig Verifier address in ESDT Safe contract on main chain..."
-    checkVariables ESDT_SAFE_ADDRESS MULTISIG_VERIFIER_ADDRESS || return
+setHeaderVerifierAddressInEsdtSafe() {
+    echo "Setting Header Verifier address in ESDT Safe contract on main chain..."
+    checkVariables ESDT_SAFE_ADDRESS HEADER_VERIFIER_ADDRESS || return
 
-    local OUTFILE="${OUTFILE_PATH}/set-multisigverifier-address.interaction.json"
+    local OUTFILE="${OUTFILE_PATH}/set-headerverifier-address.interaction.json"
     mxpy contract call ${ESDT_SAFE_ADDRESS} \
         --pem=${WALLET} \
         --proxy=${PROXY} \
         --chain=${CHAIN_ID} \
         --gas-limit=10000000 \
-        --function="setMultisigAddress" \
-        --arguments ${MULTISIG_VERIFIER_ADDRESS} \
+        --function="setHeaderVerifierAddress" \
+        --arguments ${HEADER_VERIFIER_ADDRESS} \
         --outfile=${OUTFILE} \
         --recall-nonce \
         --wait-result \

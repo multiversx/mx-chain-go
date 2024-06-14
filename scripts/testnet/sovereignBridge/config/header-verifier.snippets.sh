@@ -1,15 +1,15 @@
-MULTISIG_VERIFIER_ADDRESS=$(mxpy data load --partition=${CHAIN_ID} --key=address-multisig-verifier-contract)
+HEADER_VERIFIER_ADDRESS=$(mxpy data load --partition=${CHAIN_ID} --key=address-header-verifier-contract)
 
-deployMultiSigVerifierContract() {
+deployHeaderVerifierContract() {
     manualUpdateConfigFile #update config file
 
-    echo "Deploying MultiSig Verifier contract on main chain..."
+    echo "Deploying Header Verifier contract on main chain..."
 
     BLS_PUB_KEYS=$(python3 $SCRIPT_PATH/pyScripts/read_bls_keys.py)
 
-    local OUTFILE="${OUTFILE_PATH}/deploy-multisig-verifier.interaction.json"
+    local OUTFILE="${OUTFILE_PATH}/deploy-header-verifier.interaction.json"
     mxpy contract deploy \
-        --bytecode=$(eval echo ${MULTISIG_VERIFIER_WASM}) \
+        --bytecode=$(eval echo ${HEADER_VERIFIER_WASM}) \
         --pem=${WALLET} \
         --proxy=${PROXY} \
         --chain=${CHAIN_ID} \
@@ -23,19 +23,19 @@ deployMultiSigVerifierContract() {
     printTxStatus ${OUTFILE} || return
 
     local ADDRESS=$(mxpy data parse --file=${OUTFILE}  --expression="data['contractAddress']")
-    mxpy data store --partition=${CHAIN_ID} --key=address-multisig-verifier-contract --value=${ADDRESS}
-    MULTISIG_VERIFIER_ADDRESS=$(mxpy data load --partition=${CHAIN_ID} --key=address-multisig-verifier-contract)
-    echo -e "MultiSig Verifier contract: ${ADDRESS}\n"
+    mxpy data store --partition=${CHAIN_ID} --key=address-header-verifier-contract --value=${ADDRESS}
+    HEADER_VERIFIER_ADDRESS=$(mxpy data load --partition=${CHAIN_ID} --key=address-header-verifier-contract)
+    echo -e "Header Verifier contract: ${ADDRESS}\n"
 }
 
-upgradeMultiSigVerifierContract() {
+upgradeHeaderVerifierContract() {
     manualUpdateConfigFile #update config file
 
-    echo "Upgrading MultiSig Verifier contract on main chain..."
+    echo "Upgrading Header Verifier contract on main chain..."
 
-    local OUTFILE="${OUTFILE_PATH}/upgrade-multisig-verifier.interaction.json"
-    mxpy contract upgrade ${MULTISIG_VERIFIER_ADDRESS} \
-        --bytecode=$(eval echo ${MULTISIG_VERIFIER_WASM}) \
+    local OUTFILE="${OUTFILE_PATH}/upgrade-header-verifier.interaction.json"
+    mxpy contract upgrade ${HEADER_VERIFIER_ADDRESS} \
+        --bytecode=$(eval echo ${HEADER_VERIFIER_WASM}) \
         --pem=${WALLET} \
         --proxy=${PROXY} \
         --chain=${CHAIN_ID} \
@@ -48,11 +48,11 @@ upgradeMultiSigVerifierContract() {
     printTxStatus ${OUTFILE}
 }
 
-setEsdtSafeAddressInMultiSigVerifier() {
-    echo "Setting ESDT Safe address in MultiSig Verifier contract on main chain..."
+setEsdtSafeAddressInHeaderVerifier() {
+    echo "Setting ESDT Safe address in Header Verifier contract on main chain..."
     checkVariables ESDT_SAFE_ADDRESS ESDT_SAFE_ADDRESS_SOVEREIGN || return
 
-    mxpy contract call ${MULTISIG_VERIFIER_ADDRESS} \
+    mxpy contract call ${HEADER_VERIFIER_ADDRESS} \
         --pem=${WALLET} \
         --proxy=${PROXY} \
         --chain=${CHAIN_ID} \
