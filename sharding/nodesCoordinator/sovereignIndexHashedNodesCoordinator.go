@@ -61,8 +61,8 @@ func NewSovereignIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*so
 
 	ihnc.loadingFromDisk.Store(false)
 
-	ihnc.numberOfShardsComputer = ihnc
 	ihnc.nodesCoordinatorHelper = ihnc
+	ihnc.numberOfShardsComputer = ihnc
 	err = ihnc.setNodesPerShards(arguments.EligibleNodes, arguments.WaitingNodes, nil, nil, arguments.Epoch, false)
 	if err != nil {
 		return nil, err

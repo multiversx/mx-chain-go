@@ -2761,3 +2761,66 @@ func TestIndexHashedGroupSelector_GetWaitingEpochsLeftForPublicKey(t *testing.T)
 		require.Equal(t, uint32(3), epochsLeft)
 	})
 }
+
+func TestIndexHashedNodesCoordinatorComputeNumberOfShards(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should fail with less than 2", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createArguments()
+		ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
+
+		eligibleMap := make(map[uint32][]Validator)
+		eligibleMap[0] = []Validator{&validator{}}
+
+		nodesConfig := &epochNodesConfig{
+			eligibleMap: eligibleMap,
+		}
+		nbShards, err := ihnc.ComputeNumberOfShards(nodesConfig)
+
+		require.NotNil(t, err)
+		require.Equal(t, uint32(0), nbShards)
+	})
+
+	t.Run("should work with 2", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createArguments()
+		ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
+
+		eligibleMap := make(map[uint32][]Validator)
+		eligibleMap[0] = []Validator{&validator{}}
+		eligibleMap[1] = []Validator{&validator{}}
+
+		nodesConfig := &epochNodesConfig{
+			eligibleMap: eligibleMap,
+		}
+		nbShards, err := ihnc.ComputeNumberOfShards(nodesConfig)
+
+		expectedNbShardsWithoutMeta := uint32(1)
+		require.Nil(t, err)
+		require.Equal(t, expectedNbShardsWithoutMeta, nbShards)
+	})
+
+	t.Run("should work with 10", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createArguments()
+		ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
+
+		eligibleMap := make(map[uint32][]Validator)
+		for i := uint32(0); i < 10; i++ {
+			eligibleMap[i] = []Validator{&validator{}}
+		}
+
+		nodesConfig := &epochNodesConfig{
+			eligibleMap: eligibleMap,
+		}
+		nbShards, err := ihnc.ComputeNumberOfShards(nodesConfig)
+
+		expectedNbShardsWithoutMeta := uint32(9)
+		require.Nil(t, err)
+		require.Equal(t, expectedNbShardsWithoutMeta, nbShards)
+	})
+}
