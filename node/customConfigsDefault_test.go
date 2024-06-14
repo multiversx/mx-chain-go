@@ -31,6 +31,7 @@ func TestApplyArchCustomConfigs(t *testing.T) {
 				Version:    "v1.5",
 			},
 		},
+		TransferAndExecuteByUserAddresses:   []string{"3132333435363738393031323334353637383930313233343536373839303234"},
 		TimeOutForSCExecutionInMilliseconds: 1,
 		WasmerSIGSEGVPassthrough:            true,
 	}
