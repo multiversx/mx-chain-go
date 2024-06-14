@@ -64,8 +64,8 @@ func TestSovereignEpochStartBootstrap_GetShardIDForLatestEpoch(t *testing.T) {
 
 	destinationShardId := uint32(2)
 	args := createEpochStartBootstrapParams(destinationShardId)
-	epochStartProvider, err := NewEpochStartBootstrap(args)
-	sesp, err := NewSovereignChainEpochStartBootstrap(epochStartProvider)
+	epochStartProvider, _ := NewEpochStartBootstrap(args)
+	sesp, _ := NewSovereignChainEpochStartBootstrap(epochStartProvider)
 
 	shardId, isShuffledOut, err := sesp.GetShardIDForLatestEpoch()
 	assert.Equal(t, core.SovereignChainShardId, shardId)

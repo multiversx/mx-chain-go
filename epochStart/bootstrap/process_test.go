@@ -2518,7 +2518,7 @@ func TestEpochStartBootstrap_GetShardIDForLatestEpoch(t *testing.T) {
 
 	expectedShardId := uint32(2)
 	args := createEpochStartBootstrapParams(expectedShardId)
-	epochStartProvider, err := NewEpochStartBootstrap(args)
+	epochStartProvider, _ := NewEpochStartBootstrap(args)
 
 	shardId, isShuffledOut, err := epochStartProvider.GetShardIDForLatestEpoch()
 	assert.Equal(t, expectedShardId, shardId)
