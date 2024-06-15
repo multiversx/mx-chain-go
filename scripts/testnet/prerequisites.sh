@@ -35,7 +35,7 @@ if [[ "$DISTRIBUTION" =~ ^(ubuntu|debian)$ ]]; then
 
   if ! [ -x "$(command -v go)" ]; then
     echo "Installing Go..."
-    GO_VERSION="go1.20"
+    GO_LATEST="go1.20"
     wget https://dl.google.com/go/$GO_LATEST.linux-amd64.tar.gz
     sudo tar -C /usr/local -xzf $GO_LATEST.linux-amd64.tar.gz
     rm $GO_LATEST.linux-amd64.tar.gz
