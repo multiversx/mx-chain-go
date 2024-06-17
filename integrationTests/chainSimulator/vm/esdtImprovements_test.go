@@ -38,8 +38,7 @@ var log = logger.GetOrCreate("integrationTests/chainSimulator/vm")
 // Test scenario #1
 //
 // Initial setup: Create fungible, NFT,  SFT and metaESDT tokens
-//
-//	(before the activation of DynamicEsdtFlag)
+// (before the activation of DynamicEsdtFlag)
 //
 // 1.check that the metadata for all tokens is saved on the system account
 // 2. wait for DynamicEsdtFlag activation
@@ -1139,7 +1138,7 @@ func TestChainSimulator_NFT_ESDTMetaDataUpdate(t *testing.T) {
 
 // Test scenario #6
 //
-// Initial setup: Create NFT
+// Initial setup: Create SFT
 //
 // Call ESDTModifyCreator and check that the creator was modified
 // (The sender must have the ESDTRoleModifyCreator role)
@@ -1196,10 +1195,10 @@ func TestChainSimulator_NFT_ESDTModifyCreator(t *testing.T) {
 	err = cs.GenerateBlocks(10)
 	require.Nil(t, err)
 
-	log.Info("Initial setup: Create NFT")
+	log.Info("Initial setup: Create SFT")
 
-	nftTicker := []byte("NFTTICKER")
-	tx := issueNonFungibleTx(0, address.Bytes, nftTicker, baseIssuingCost)
+	sftTicker := []byte("SFTTICKER")
+	tx := issueSemiFungibleTx(0, address.Bytes, sftTicker, baseIssuingCost)
 
 	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
@@ -1211,15 +1210,15 @@ func TestChainSimulator_NFT_ESDTModifyCreator(t *testing.T) {
 		[]byte(core.ESDTRoleNFTUpdate),
 	}
 
-	nftTokenID := txResult.Logs.Events[0].Topics[0]
-	setAddressEsdtRoles(t, cs, address, nftTokenID, roles)
+	sft := txResult.Logs.Events[0].Topics[0]
+	setAddressEsdtRoles(t, cs, address, sft, roles)
 
-	log.Info("Issued NFT token id", "tokenID", string(nftTokenID))
+	log.Info("Issued SFT token id", "tokenID", string(sft))
 
 	nftMetaData := txsFee.GetDefaultMetaData()
 	nftMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
 
-	tx = nftCreateTx(1, address.Bytes, nftTokenID, nftMetaData)
+	tx = nftCreateTx(1, address.Bytes, sft, nftMetaData)
 
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
@@ -1232,7 +1231,7 @@ func TestChainSimulator_NFT_ESDTModifyCreator(t *testing.T) {
 
 	log.Info("Change to DYNAMIC type")
 
-	tx = changeToDynamicTx(2, address.Bytes, nftTokenID)
+	tx = changeToDynamicTx(2, address.Bytes, sft)
 
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
@@ -1251,12 +1250,12 @@ func TestChainSimulator_NFT_ESDTModifyCreator(t *testing.T) {
 	roles = [][]byte{
 		[]byte(core.ESDTRoleModifyCreator),
 	}
-	setAddressEsdtRoles(t, cs, newCreatorAddress, nftTokenID, roles)
+	setAddressEsdtRoles(t, cs, newCreatorAddress, sft, roles)
 
 	txDataField := bytes.Join(
 		[][]byte{
 			[]byte(core.ESDTModifyCreator),
-			[]byte(hex.EncodeToString(nftTokenID)),
+			[]byte(hex.EncodeToString(sft)),
 			[]byte(hex.EncodeToString(big.NewInt(1).Bytes())),
 		},
 		[]byte("@"),
@@ -1281,7 +1280,7 @@ func TestChainSimulator_NFT_ESDTModifyCreator(t *testing.T) {
 
 	require.Equal(t, "success", txResult.Status.String())
 
-	retrievedMetaData := getMetaDataFromAcc(t, cs, core.SystemAccountAddress, nftTokenID, shardID)
+	retrievedMetaData := getMetaDataFromAcc(t, cs, core.SystemAccountAddress, sft, shardID)
 
 	require.Equal(t, newCreatorAddress.Bytes, retrievedMetaData.Creator)
 }
