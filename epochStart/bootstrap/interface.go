@@ -67,6 +67,7 @@ type NodeTypeProviderHandler interface {
 // EpochStartBootstrapperCreator defines the epoch start bootstrapper factory handler
 type EpochStartBootstrapperCreator interface {
 	CreateEpochStartBootstrapper(epochStartBootstrapArgs ArgsEpochStartBootstrap) (EpochStartBootstrapper, error)
+	CreateStorageEpochStartBootstrapper(epochStartBootstrapArgs ArgsStorageEpochStartBootstrap) (EpochStartBootstrapper, error)
 	IsInterfaceNil() bool
 }
 

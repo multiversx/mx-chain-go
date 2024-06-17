@@ -34,10 +34,10 @@ import (
 // from storage
 type ArgsStorageEpochStartBootstrap struct {
 	ArgsEpochStartBootstrap
-	ImportDbConfig                config.ImportDbConfig
-	ChanGracefullyClose           chan endProcess.ArgEndProcess
-	TimeToWaitForRequestedData    time.Duration
-	EpochStartBootstrapperCreator EpochStartBootstrapperCreator
+	ImportDbConfig             config.ImportDbConfig
+	ChanGracefullyClose        chan endProcess.ArgEndProcess
+	TimeToWaitForRequestedData time.Duration
+	EpochStartBootStrap        *epochStartBootstrap
 }
 
 type storageEpochStartBootstrap struct {
@@ -57,26 +57,15 @@ func NewStorageEpochStartBootstrap(args ArgsStorageEpochStartBootstrap) (*storag
 	if err != nil {
 		return nil, err
 	}
-	if check.IfNil(args.EpochStartBootstrapperCreator) {
-		return nil, errors.ErrNilEpochStartBootstrapperCreator
+	if check.IfNil(args.EpochStartBootStrap) {
+		return nil, errors.ErrNilEpochStartBootstrapper
 	}
-
-	esb, err := args.EpochStartBootstrapperCreator.CreateEpochStartBootstrapper(args.ArgsEpochStartBootstrap)
-	if err != nil {
-		return nil, err
-	}
-
 	if args.ChanGracefullyClose == nil {
 		return nil, dataRetriever.ErrNilGracefullyCloseChannel
 	}
 
-	esbConverted, ok := esb.(*epochStartBootstrap)
-	if !ok {
-		return nil, errors.ErrInvalidTypeConversion
-	}
-
 	sesb := &storageEpochStartBootstrap{
-		epochStartBootstrap:        esbConverted,
+		epochStartBootstrap:        args.EpochStartBootStrap,
 		importDbConfig:             args.ImportDbConfig,
 		chanGracefullyClose:        args.ChanGracefullyClose,
 		chainID:                    args.CoreComponentsHolder.ChainID(),
