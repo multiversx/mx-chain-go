@@ -280,6 +280,9 @@ func TestSovereignChainBlockProcessor_createAndSetOutGoingMiniBlock(t *testing.T
 		OutgoingOperationsFormatter:  outgoingOperationsFormatter,
 		OutGoingOperationsPool:       outGoingOperationsPool,
 		OperationsHasher:             outgoingOpsHasher,
+		EpochStartDataCreator:        &mock.EpochStartDataCreatorStub{},
+		EpochRewardsCreator:          &testscommon.RewardsCreatorStub{},
+		ValidatorInfoCreator:         &testscommon.EpochValidatorInfoCreatorStub{},
 	})
 
 	sovChainHdr := &block.SovereignChainHeader{}

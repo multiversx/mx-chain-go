@@ -20,7 +20,7 @@ func NewSovereignChainValidatorStatisticsProcessor(validatorStatistics *validato
 		validatorStatistics,
 	}
 
-	// TODO: FIX THIS
+	// TODO: MX-15586 Analyse this func and refactor it for sovereign epoch change
 	scvs.updateShardDataPeerStateFunc = scvs.updateShardDataPeerState
 
 	return scvs, nil

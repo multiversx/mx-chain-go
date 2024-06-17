@@ -187,7 +187,7 @@ func (scbp *sovereignChainBlockProcessor) CreateBlock(initialHdr data.HeaderHand
 			return nil, nil, err
 		}
 
-		// TODO: Add epoch start and missing fields to sovereign header
+		// TODO: MX-15590 Add epoch start and missing fields to sovereign header to use this
 		//err = scbp.updateEpochStartHeader(metaHdr)
 		//if err != nil {
 		//	return nil, nil, err
@@ -777,7 +777,7 @@ func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
-	// TODO:
+	// TODO MX-15589 check how we can integrate all of these later on
 	//computedEconomics, err := scbp.epochEconomics.ComputeEndOfEpochEconomics(header)
 	//if err != nil {
 	//	return err
@@ -1201,7 +1201,7 @@ func (scbp *sovereignChainBlockProcessor) CommitBlock(headerHandler data.HeaderH
 		return err
 	}
 
-	// TODO: FIX THIS:
+	// TODO: MX-15588
 	scbp.commitEpochStart(headerHandler, body)
 
 	headerHash := scbp.hasher.Compute(string(marshalizedHeader))
@@ -1281,7 +1281,7 @@ func (scbp *sovereignChainBlockProcessor) commitEpochStart(header data.HeaderHan
 		scbp.epochStartTrigger.SetProcessed(header, body)
 		scbp.epochStartTrigger.SetProcessed(header, body)
 
-		// TODO: FIX THIS ******* and reuse (mp *metaProcessor) commitEpochStart
+		// TODO: MX-15588 FIX THIS (mp *metaProcessor) commitEpochStart
 		//go scbp.epochRewardsCreator.SaveBlockDataToStorage(header, body)
 		// ************
 
@@ -1685,7 +1685,7 @@ func (scbp *sovereignChainBlockProcessor) updateState(header data.HeaderHandler,
 		scbp.accountsDB[state.UserAccountsState].SnapshotState(header.GetRootHash(), header.GetEpoch())
 		scbp.accountsDB[state.PeerAccountsState].SnapshotState(header.GetValidatorStatsRootHash(), header.GetEpoch())
 
-		// TODO: HERE REFACTOR commitTrieEpochRootHashIfNeeded **********
+		// TODO: MX-15587- implement this and reuse code from meta processor
 		/*
 			go func() {
 
