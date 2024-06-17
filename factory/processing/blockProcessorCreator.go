@@ -49,6 +49,12 @@ import (
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 )
 
+type argsMetaBlockProcessorAndVmFactories struct {
+	vmFactoryForProcessing process.VirtualMachinesContainerFactory
+	epochSystemSCProcessor process.EpochStartSystemSCProcessor
+	argsMetaBlockProcessor block.ArgMetaProcessor
+}
+
 type blockProcessorAndVmFactories struct {
 	blockProcessor         process.BlockProcessor
 	vmFactoryForProcessing process.VirtualMachinesContainerFactory
@@ -73,6 +79,26 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 	sentSignaturesTracker process.SentSignaturesTracker,
 ) (*blockProcessorAndVmFactories, error) {
 	shardCoordinator := pcf.bootstrapComponents.ShardCoordinator()
+	argsMetaAndFactories, err := pcf.createArgsMetaBlockProcessor(
+		requestHandler,
+		forkDetector,
+		validatorStatisticsProcessor,
+		epochStartTrigger,
+		bootStorer,
+		headerValidator,
+		blockTracker,
+		pendingMiniBlocksHandler,
+		wasmVMChangeLocker,
+		scheduledTxsExecutionHandler,
+		processedMiniBlocksTracker,
+		receiptsRepository,
+		blockCutoffProcessingHandler,
+		sentSignaturesTracker,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return pcf.newShardBlockProcessor(
 			requestHandler,
@@ -90,25 +116,11 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 			blockCutoffProcessingHandler,
 			missingTrieNodesNotifier,
 			sentSignaturesTracker,
+			argsMetaAndFactories.argsMetaBlockProcessor,
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
-		return pcf.newMetaBlockProcessor(
-			requestHandler,
-			forkDetector,
-			validatorStatisticsProcessor,
-			epochStartTrigger,
-			bootStorer,
-			headerValidator,
-			blockTracker,
-			pendingMiniBlocksHandler,
-			wasmVMChangeLocker,
-			scheduledTxsExecutionHandler,
-			processedMiniBlocksTracker,
-			receiptsRepository,
-			blockCutoffProcessingHandler,
-			sentSignaturesTracker,
-		)
+		return pcf.newMetaBlockProcessor(argsMetaAndFactories)
 	}
 
 	return nil, errors.New("could not create block processor")
@@ -132,6 +144,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	blockProcessingCutoffHandler cutoff.BlockProcessingCutoffHandler,
 	missingTrieNodesNotifier common.MissingTrieNodesNotifier,
 	sentSignaturesTracker process.SentSignaturesTracker,
+	argsMetaBlockProcessor block.ArgMetaProcessor,
 ) (*blockProcessorAndVmFactories, error) {
 	argsParser := smartContract.NewArgumentParser()
 
@@ -483,7 +496,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		SentSignaturesTracker:        sentSignaturesTracker,
 		ValidatorStatisticsProcessor: validatorStatisticsProcessor,
 	}
-	blockProcessor, err := pcf.createBlockProcessor(argumentsBaseProcessor)
+	blockProcessor, err := pcf.createBlockProcessor(argumentsBaseProcessor, argsMetaBlockProcessor)
 	if err != nil {
 		return nil, err
 	}
@@ -502,8 +515,9 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 
 func (pcf *processComponentsFactory) createBlockProcessor(
 	argumentsBaseProcessor block.ArgBaseProcessor,
+	argsMetaBlockProcessor block.ArgMetaProcessor,
 ) (process.BlockProcessor, error) {
-	blockProcessor, err := pcf.runTypeComponents.BlockProcessorCreator().CreateBlockProcessor(argumentsBaseProcessor)
+	blockProcessor, err := pcf.runTypeComponents.BlockProcessorCreator().CreateBlockProcessor(argumentsBaseProcessor, argsMetaBlockProcessor)
 	if err != nil {
 		return nil, err
 	}
@@ -517,6 +531,28 @@ func (pcf *processComponentsFactory) createBlockProcessor(
 }
 
 func (pcf *processComponentsFactory) newMetaBlockProcessor(
+	arguments *argsMetaBlockProcessorAndVmFactories,
+) (*blockProcessorAndVmFactories, error) {
+	metaProcessor, err := block.NewMetaProcessor(arguments.argsMetaBlockProcessor)
+	if err != nil {
+		return nil, errors.New("could not create meta block processor: " + err.Error())
+	}
+
+	err = pcf.attachProcessDebugger(metaProcessor, pcf.config.Debug.Process)
+	if err != nil {
+		return nil, err
+	}
+
+	blockProcessorComponents := &blockProcessorAndVmFactories{
+		blockProcessor:         metaProcessor,
+		vmFactoryForProcessing: arguments.vmFactoryForProcessing,
+		epochSystemSCProcessor: arguments.epochSystemSCProcessor,
+	}
+
+	return blockProcessorComponents, nil
+}
+
+func (pcf *processComponentsFactory) createArgsMetaBlockProcessor(
 	requestHandler process.RequestHandler,
 	forkDetector process.ForkDetector,
 	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
@@ -531,7 +567,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	receiptsRepository mainFactory.ReceiptsRepository,
 	blockProcessingCutoffhandler cutoff.BlockProcessingCutoffHandler,
 	sentSignaturesTracker process.SentSignaturesTracker,
-) (*blockProcessorAndVmFactories, error) {
+) (*argsMetaBlockProcessorAndVmFactories, error) {
 	builtInFuncFactory, err := pcf.createBuiltInFunctionContainer(pcf.state.AccountsAdapter(), make(map[string]struct{}))
 	if err != nil {
 		return nil, err
@@ -1045,35 +1081,22 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
-	arguments := block.ArgMetaProcessor{
-		ArgBaseProcessor:             argumentsBaseProcessor,
-		SCToProtocol:                 smartContractToProtocol,
-		PendingMiniBlocksHandler:     pendingMiniBlocksHandler,
-		EpochStartDataCreator:        epochStartDataCreator,
-		EpochEconomics:               epochEconomics,
-		EpochRewardsCreator:          epochRewards,
-		EpochValidatorInfoCreator:    validatorInfoCreator,
-		ValidatorStatisticsProcessor: validatorStatisticsProcessor,
-		EpochSystemSCProcessor:       epochStartSystemSCProcessor,
-	}
-
-	metaProcessor, err := block.NewMetaProcessor(arguments)
-	if err != nil {
-		return nil, errors.New("could not create meta block processor: " + err.Error())
-	}
-
-	err = pcf.attachProcessDebugger(metaProcessor, pcf.config.Debug.Process)
-	if err != nil {
-		return nil, err
-	}
-
-	blockProcessorComponents := &blockProcessorAndVmFactories{
-		blockProcessor:         metaProcessor,
+	return &argsMetaBlockProcessorAndVmFactories{
 		vmFactoryForProcessing: vmFactory,
 		epochSystemSCProcessor: epochStartSystemSCProcessor,
-	}
 
-	return blockProcessorComponents, nil
+		argsMetaBlockProcessor: block.ArgMetaProcessor{
+			ArgBaseProcessor:             argumentsBaseProcessor,
+			SCToProtocol:                 smartContractToProtocol,
+			PendingMiniBlocksHandler:     pendingMiniBlocksHandler,
+			EpochStartDataCreator:        epochStartDataCreator,
+			EpochEconomics:               epochEconomics,
+			EpochRewardsCreator:          epochRewards,
+			EpochValidatorInfoCreator:    validatorInfoCreator,
+			ValidatorStatisticsProcessor: validatorStatisticsProcessor,
+			EpochSystemSCProcessor:       epochStartSystemSCProcessor,
+		},
+	}, nil
 }
 
 func (pcf *processComponentsFactory) attachProcessDebugger(

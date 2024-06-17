@@ -20,6 +20,7 @@ func NewSovereignChainValidatorStatisticsProcessor(validatorStatistics *validato
 		validatorStatistics,
 	}
 
+	// TODO: FIX THIS
 	scvs.updateShardDataPeerStateFunc = scvs.updateShardDataPeerState
 
 	return scvs, nil

@@ -519,32 +519,6 @@ func (mp *metaProcessor) SetNumProcessedObj(numObj uint64) {
 	mp.headersCounter.shardMBHeadersTotalProcessed = numObj
 }
 
-func (mp *metaProcessor) checkEpochCorrectness(
-	headerHandler data.HeaderHandler,
-) error {
-	currentBlockHeader := mp.blockChain.GetCurrentBlockHeader()
-	if check.IfNil(currentBlockHeader) {
-		return nil
-	}
-
-	isEpochIncorrect := headerHandler.GetEpoch() != currentBlockHeader.GetEpoch() &&
-		mp.epochStartTrigger.Epoch() == currentBlockHeader.GetEpoch()
-	if isEpochIncorrect {
-		log.Warn("epoch does not match", "currentHeaderEpoch", currentBlockHeader.GetEpoch(), "receivedHeaderEpoch", headerHandler.GetEpoch(), "epochStartTrigger", mp.epochStartTrigger.Epoch())
-		return process.ErrEpochDoesNotMatch
-	}
-
-	isEpochIncorrect = mp.epochStartTrigger.IsEpochStart() &&
-		mp.epochStartTrigger.EpochStartRound() <= headerHandler.GetRound() &&
-		headerHandler.GetEpoch() != currentBlockHeader.GetEpoch()+1
-	if isEpochIncorrect {
-		log.Warn("is epoch start and epoch does not match", "currentHeaderEpoch", currentBlockHeader.GetEpoch(), "receivedHeaderEpoch", headerHandler.GetEpoch(), "epochStartTrigger", mp.epochStartTrigger.Epoch())
-		return process.ErrEpochDoesNotMatch
-	}
-
-	return nil
-}
-
 func (mp *metaProcessor) verifyCrossShardMiniBlockDstMe(metaBlock *block.MetaBlock) error {
 	miniBlockShardsHashes, err := mp.getAllMiniBlockDstMeFromShards(metaBlock)
 	if err != nil {
@@ -794,25 +768,6 @@ func (mp *baseProcessor) isPreviousBlockEpochStart() (uint32, bool) {
 	}
 
 	return blockHeader.GetEpoch(), blockHeader.IsStartOfEpochBlock()
-}
-
-func (bp *baseProcessor) processIfFirstBlockAfterEpochStart() error {
-	epoch, isPreviousEpochStart := bp.isPreviousBlockEpochStart()
-	if !isPreviousEpochStart {
-		return nil
-	}
-
-	nodesForcedToStay, err := bp.validatorStatisticsProcessor.SaveNodesCoordinatorUpdates(epoch)
-	if err != nil {
-		return err
-	}
-
-	err = bp.epochSystemSCProcessor.ToggleUnStakeUnBond(nodesForcedToStay)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (mp *metaProcessor) updateEpochStartHeader(metaHdr *block.MetaBlock) error {

@@ -49,8 +49,9 @@ type sovereignChainBlockProcessor struct {
 	outGoingOperationsPool       sovereignBlock.OutGoingOperationsPool
 	operationsHasher             hashing.Hasher
 
-	// todo: add this to constructor
 	epochStartDataCreator process.EpochStartDataCreator
+	epochRewardsCreator   process.RewardsCreator
+	validatorInfoCreator  process.EpochStartValidatorInfoCreator
 }
 
 // ArgsSovereignChainBlockProcessor is a struct placeholder for args needed to create a new sovereign chain block processor
@@ -60,6 +61,9 @@ type ArgsSovereignChainBlockProcessor struct {
 	OutgoingOperationsFormatter  sovereign.OutgoingOperationsFormatter
 	OutGoingOperationsPool       sovereignBlock.OutGoingOperationsPool
 	OperationsHasher             hashing.Hasher
+	EpochStartDataCreator        process.EpochStartDataCreator
+	EpochRewardsCreator          process.RewardsCreator
+	ValidatorInfoCreator         process.EpochStartValidatorInfoCreator
 }
 
 // NewSovereignChainBlockProcessor creates a new sovereign chain block processor
@@ -79,6 +83,15 @@ func NewSovereignChainBlockProcessor(args ArgsSovereignChainBlockProcessor) (*so
 	if check.IfNil(args.OperationsHasher) {
 		return nil, errors.ErrNilOperationsHasher
 	}
+	if check.IfNil(args.EpochStartDataCreator) {
+		return nil, process.ErrNilEpochStartDataCreator
+	}
+	if check.IfNil(args.EpochRewardsCreator) {
+		return nil, process.ErrNilRewardsCreator
+	}
+	if check.IfNil(args.ValidatorInfoCreator) {
+		return nil, process.ErrNilEpochStartValidatorInfoCreator
+	}
 
 	scbp := &sovereignChainBlockProcessor{
 		shardProcessor:               args.ShardProcessor,
@@ -86,6 +99,9 @@ func NewSovereignChainBlockProcessor(args ArgsSovereignChainBlockProcessor) (*so
 		outgoingOperationsFormatter:  args.OutgoingOperationsFormatter,
 		outGoingOperationsPool:       args.OutGoingOperationsPool,
 		operationsHasher:             args.OperationsHasher,
+		epochStartDataCreator:        args.EpochStartDataCreator,
+		epochRewardsCreator:          args.EpochRewardsCreator,
+		validatorInfoCreator:         args.ValidatorInfoCreator,
 	}
 
 	scbp.uncomputedRootHash = scbp.hasher.Compute(rootHash)
@@ -729,7 +745,7 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 	}
 
 	scbp.epochStartTrigger.Update(shardHeader.GetRound(), shardHeader.GetNonce())
-	err = scbp.checkSovereignEpochCorrectness(shardHeader)
+	err = scbp.checkEpochCorrectness(shardHeader)
 
 	if shardHeader.IsStartOfEpochBlock() {
 		err = scbp.processEpochStartMetaBlock(shardHeader, body)
@@ -778,31 +794,6 @@ func (scbp *sovereignChainBlockProcessor) checkExtendedShardHeadersValidity() er
 		lastCrossNotarizedHeader = extendedShardHdr
 	}
 
-	return nil
-}
-
-func (scbp *sovereignChainBlockProcessor) checkSovereignEpochCorrectness(
-	header data.ShardHeaderHandler,
-) error {
-	currentBlockHeader := scbp.blockChain.GetCurrentBlockHeader()
-	if check.IfNil(currentBlockHeader) {
-		return nil
-	}
-
-	isEpochIncorrect := header.GetEpoch() != currentBlockHeader.GetEpoch() &&
-		scbp.epochStartTrigger.Epoch() == currentBlockHeader.GetEpoch()
-	if isEpochIncorrect {
-		log.Warn("epoch does not match", "currentHeaderEpoch", currentBlockHeader.GetEpoch(), "receivedHeaderEpoch", header.GetEpoch(), "epochStartTrigger", scbp.epochStartTrigger.Epoch())
-		return process.ErrEpochDoesNotMatch
-	}
-
-	isEpochIncorrect = scbp.epochStartTrigger.IsEpochStart() &&
-		scbp.epochStartTrigger.EpochStartRound() <= header.GetRound() &&
-		header.GetEpoch() != currentBlockHeader.GetEpoch()+1
-	if isEpochIncorrect {
-		log.Warn("is epoch start and epoch does not match", "currentHeaderEpoch", currentBlockHeader.GetEpoch(), "receivedHeaderEpoch", header.GetEpoch(), "epochStartTrigger", scbp.epochStartTrigger.Epoch())
-		return process.ErrEpochDoesNotMatch
-	}
 	return nil
 }
 
@@ -1249,6 +1240,7 @@ func (scbp *sovereignChainBlockProcessor) CommitBlock(headerHandler data.HeaderH
 		return err
 	}
 
+	// TODO: FIX THIS:
 	scbp.commitEpochStart(headerHandler, body)
 
 	headerHash := scbp.hasher.Compute(string(marshalizedHeader))
@@ -1326,10 +1318,19 @@ func (scbp *sovereignChainBlockProcessor) CommitBlock(headerHandler data.HeaderH
 func (scbp *sovereignChainBlockProcessor) commitEpochStart(header data.HeaderHandler, body *block.Body) {
 	if header.IsStartOfEpochBlock() {
 		scbp.epochStartTrigger.SetProcessed(header, body)
-		//go scbp.epochRewardsCreator.SaveBlockDataToStorage(header, body)
+		scbp.epochStartTrigger.SetProcessed(header, body)
 
-		// TODO: AT LEAST HERE fix this
-		//go scbp.validatorInfoCreator.SaveBlockDataToStorage(header, body)
+		// TODO: FIX THIS ******* and reuse (mp *metaProcessor) commitEpochStart
+		//go scbp.epochRewardsCreator.SaveBlockDataToStorage(header, body)
+		// ************
+
+		go scbp.validatorInfoCreator.SaveBlockDataToStorage(header, body)
+	} else {
+		currentHeader := scbp.blockChain.GetCurrentBlockHeader()
+		if !check.IfNil(currentHeader) && currentHeader.IsStartOfEpochBlock() {
+			scbp.epochStartTrigger.SetFinalityAttestingRound(header.GetRound())
+			scbp.nodesCoordinator.ShuffleOutForEpoch(currentHeader.GetEpoch())
+		}
 	}
 }
 
@@ -1722,19 +1723,22 @@ func (scbp *sovereignChainBlockProcessor) updateState(header data.HeaderHandler,
 			"validatorStatsRootHash", header.GetValidatorStatsRootHash())
 		scbp.accountsDB[state.UserAccountsState].SnapshotState(header.GetRootHash(), header.GetEpoch())
 		scbp.accountsDB[state.PeerAccountsState].SnapshotState(header.GetValidatorStatsRootHash(), header.GetEpoch())
-		go func() {
-			// TODO: HERE REFACTOR commitTrieEpochRootHashIfNeeded
-			metaBlock, ok := header.(*block.MetaBlock)
-			if !ok {
-				log.Warn("cannot commit Trie Epoch Root Hash: lastMetaBlock is not *block.MetaBlock")
-				return
-			}
-			err := scbp.commitTrieEpochRootHashIfNeeded(metaBlock, header.GetRootHash())
-			if err != nil {
-				log.Warn("couldn't commit trie checkpoint", "epoch", metaBlock.Epoch, "error", err)
-			}
-		}()
 
+		// TODO: HERE REFACTOR commitTrieEpochRootHashIfNeeded **********
+		/*
+			go func() {
+
+				metaBlock, ok := header.(*block.MetaBlock)
+				if !ok {
+					log.Warn("cannot commit Trie Epoch Root Hash: lastMetaBlock is not *block.MetaBlock")
+					return
+				}
+				err := scbp.commitTrieEpochRootHashIfNeeded(metaBlock, header.GetRootHash())
+				if err != nil {
+					log.Warn("couldn't commit trie checkpoint", "epoch", metaBlock.Epoch, "error", err)
+				}
+			}()
+		*/
 		scbp.nodesCoordinator.ShuffleOutForEpoch(header.GetEpoch())
 	}
 

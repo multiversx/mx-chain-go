@@ -2267,182 +2267,10 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		tpn.EpochStartNotifier = notifier.NewEpochStartSubscriptionHandler()
 	}
 
+	argsMetaProcessor := tpn.createMetaBlockProcessorArgs(argumentsBase, coreComponents)
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
-		if check.IfNil(tpn.EpochStartTrigger) {
-			argsEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
-				GenesisTime: argumentsBase.CoreComponents.RoundHandler().TimeStamp(),
-				Settings: &config.EpochStartConfig{
-					MinRoundsBetweenEpochs: 1000,
-					RoundsPerEpoch:         10000,
-				},
-				Epoch:              0,
-				EpochStartNotifier: tpn.EpochStartNotifier,
-				Storage:            tpn.Storage,
-				Marshalizer:        TestMarshalizer,
-				Hasher:             TestHasher,
-				AppStatusHandler:   &statusHandlerMock.AppStatusHandlerStub{},
-				DataPool:           tpn.DataPool,
-			}
-			epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsEpochStart)
-			tpn.EpochStartTrigger = &metachain.TestTrigger{}
-			tpn.EpochStartTrigger.SetTrigger(epochStartTrigger)
-		}
 
-		argumentsBase.EpochStartTrigger = tpn.EpochStartTrigger
-		argumentsBase.TxCoordinator = tpn.TxCoordinator
-
-		argsStakingToPeer := scToProtocol.ArgStakingToPeer{
-			PubkeyConv:          TestValidatorPubkeyConverter,
-			Hasher:              TestHasher,
-			Marshalizer:         TestMarshalizer,
-			PeerState:           tpn.PeerState,
-			BaseState:           tpn.AccntState,
-			ArgParser:           tpn.ArgsParser,
-			CurrTxs:             tpn.DataPool.CurrentBlockTxs(),
-			RatingsData:         tpn.RatingsData,
-			EnableEpochsHandler: tpn.EnableEpochsHandler,
-		}
-		scToProtocolInstance, _ := scToProtocol.NewStakingToPeer(argsStakingToPeer)
-
-		argsEpochStartData := metachain.ArgsNewEpochStartData{
-			Marshalizer:         TestMarshalizer,
-			Hasher:              TestHasher,
-			Store:               tpn.Storage,
-			DataPool:            tpn.DataPool,
-			BlockTracker:        tpn.BlockTracker,
-			ShardCoordinator:    tpn.ShardCoordinator,
-			EpochStartTrigger:   tpn.EpochStartTrigger,
-			RequestHandler:      tpn.RequestHandler,
-			EnableEpochsHandler: tpn.EnableEpochsHandler,
-		}
-		epochStartDataCreator, _ := metachain.NewEpochStartData(argsEpochStartData)
-
-		economicsDataProvider := metachain.NewEpochEconomicsStatistics()
-		argsEpochEconomics := metachain.ArgsNewEpochEconomics{
-			Marshalizer:           TestMarshalizer,
-			Hasher:                TestHasher,
-			Store:                 tpn.Storage,
-			ShardCoordinator:      tpn.ShardCoordinator,
-			RewardsHandler:        tpn.EconomicsData,
-			RoundTime:             tpn.RoundHandler,
-			GenesisTotalSupply:    tpn.EconomicsData.GenesisTotalSupply(),
-			EconomicsDataNotified: economicsDataProvider,
-			StakingV2EnableEpoch:  tpn.EnableEpochs.StakingV2EnableEpoch,
-		}
-		epochEconomics, _ := metachain.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
-
-		systemVM, errGet := tpn.VMContainer.Get(processFactory.SystemVirtualMachine)
-		if errGet != nil {
-			log.Error("initBlockProcessor tpn.VMContainer.Get", "error", errGet)
-		}
-
-		argsStakingDataProvider := metachain.StakingDataProviderArgs{
-			EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
-			SystemVM:            systemVM,
-			MinNodePrice:        "1000",
-		}
-		stakingDataProvider, errRsp := metachain.NewStakingDataProvider(argsStakingDataProvider)
-		if errRsp != nil {
-			log.Error("initBlockProcessor NewRewardsStakingProvider", "error", errRsp)
-		}
-
-		rewardsStorage, _ := tpn.Storage.GetStorer(dataRetriever.RewardTransactionUnit)
-		miniBlockStorage, _ := tpn.Storage.GetStorer(dataRetriever.MiniBlockUnit)
-		argsEpochRewards := metachain.RewardsCreatorProxyArgs{
-			BaseRewardsCreatorArgs: metachain.BaseRewardsCreatorArgs{
-				ShardCoordinator:              tpn.ShardCoordinator,
-				PubkeyConverter:               TestAddressPubkeyConverter,
-				RewardsStorage:                rewardsStorage,
-				MiniBlockStorage:              miniBlockStorage,
-				Hasher:                        TestHasher,
-				Marshalizer:                   TestMarshalizer,
-				DataPool:                      tpn.DataPool,
-				ProtocolSustainabilityAddress: testProtocolSustainabilityAddress,
-				NodesConfigProvider:           tpn.NodesCoordinator,
-				UserAccountsDB:                tpn.AccntState,
-				EnableEpochsHandler:           tpn.EnableEpochsHandler,
-				ExecutionOrderHandler:         tpn.TxExecutionOrderHandler,
-			},
-			StakingDataProvider:   stakingDataProvider,
-			RewardsHandler:        tpn.EconomicsData,
-			EconomicsDataProvider: economicsDataProvider,
-		}
-		epochStartRewards, _ := metachain.NewRewardsCreatorProxy(argsEpochRewards)
-
-		validatorInfoStorage, _ := tpn.Storage.GetStorer(dataRetriever.UnsignedTransactionUnit)
-		argsEpochValidatorInfo := metachain.ArgsNewValidatorInfoCreator{
-			ShardCoordinator:     tpn.ShardCoordinator,
-			ValidatorInfoStorage: validatorInfoStorage,
-			MiniBlockStorage:     miniBlockStorage,
-			Hasher:               TestHasher,
-			Marshalizer:          TestMarshalizer,
-			DataPool:             tpn.DataPool,
-			EnableEpochsHandler:  tpn.EnableEpochsHandler,
-		}
-		epochStartValidatorInfo, _ := metachain.NewValidatorInfoCreator(argsEpochValidatorInfo)
-
-		maxNodesChangeConfigProvider, _ := notifier.NewNodesConfigProvider(
-			tpn.EpochNotifier,
-			nil,
-		)
-		auctionCfg := config.SoftAuctionConfig{
-			TopUpStep:             "10",
-			MinTopUp:              "1",
-			MaxTopUp:              "32000000",
-			MaxNumberOfIterations: 100000,
-		}
-		ald, _ := metachain.NewAuctionListDisplayer(metachain.ArgsAuctionListDisplayer{
-			TableDisplayHandler:      metachain.NewTableDisplayer(),
-			ValidatorPubKeyConverter: &testscommon.PubkeyConverterMock{},
-			AddressPubKeyConverter:   &testscommon.PubkeyConverterMock{},
-			AuctionConfig:            auctionCfg,
-		})
-
-		argsAuctionListSelector := metachain.AuctionListSelectorArgs{
-			ShardCoordinator:             tpn.ShardCoordinator,
-			StakingDataProvider:          stakingDataProvider,
-			MaxNodesChangeConfigProvider: maxNodesChangeConfigProvider,
-			AuctionListDisplayHandler:    ald,
-			SoftAuctionConfig:            auctionCfg,
-		}
-		auctionListSelector, _ := metachain.NewAuctionListSelector(argsAuctionListSelector)
-
-		argsEpochSystemSC := metachain.ArgsNewEpochStartSystemSCProcessing{
-			SystemVM:                     systemVM,
-			UserAccountsDB:               tpn.AccntState,
-			PeerAccountsDB:               tpn.PeerState,
-			Marshalizer:                  TestMarshalizer,
-			StartRating:                  tpn.RatingsData.StartRating(),
-			ValidatorInfoCreator:         tpn.ValidatorStatisticsProcessor,
-			EndOfEpochCallerAddress:      vm.EndOfEpochAddress,
-			StakingSCAddress:             vm.StakingSCAddress,
-			ChanceComputer:               tpn.NodesCoordinator,
-			EpochNotifier:                tpn.EpochNotifier,
-			GenesisNodesConfig:           tpn.NodesSetup,
-			StakingDataProvider:          stakingDataProvider,
-			NodesConfigProvider:          tpn.NodesCoordinator,
-			ShardCoordinator:             tpn.ShardCoordinator,
-			ESDTOwnerAddressBytes:        vm.EndOfEpochAddress,
-			EnableEpochsHandler:          tpn.EnableEpochsHandler,
-			AuctionListSelector:          auctionListSelector,
-			MaxNodesChangeConfigProvider: maxNodesChangeConfigProvider,
-		}
-		epochStartSystemSCProcessor, _ := metachain.NewSystemSCProcessor(argsEpochSystemSC)
-		tpn.EpochStartSystemSCProcessor = epochStartSystemSCProcessor
-
-		arguments := block.ArgMetaProcessor{
-			ArgBaseProcessor:             argumentsBase,
-			SCToProtocol:                 scToProtocolInstance,
-			PendingMiniBlocksHandler:     &mock.PendingMiniBlocksHandlerStub{},
-			EpochEconomics:               epochEconomics,
-			EpochStartDataCreator:        epochStartDataCreator,
-			EpochRewardsCreator:          epochStartRewards,
-			EpochValidatorInfoCreator:    epochStartValidatorInfo,
-			ValidatorStatisticsProcessor: tpn.ValidatorStatisticsProcessor,
-			EpochSystemSCProcessor:       epochStartSystemSCProcessor,
-		}
-
-		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
+		tpn.BlockProcessor, err = block.NewMetaProcessor(argsMetaProcessor)
 	} else {
 		if check.IfNil(tpn.EpochStartTrigger) {
 			argsPeerMiniBlocksSyncer := shardchain.ArgPeerMiniBlockSyncer{
@@ -2478,11 +2306,187 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
 		argumentsBase.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{}
 
-		tpn.BlockProcessor, err = tpn.BlockProcessorCreator.CreateBlockProcessor(argumentsBase)
+		tpn.BlockProcessor, err = tpn.BlockProcessorCreator.CreateBlockProcessor(argumentsBase, argsMetaProcessor)
 	}
 
 	if err != nil {
 		panic(fmt.Sprintf("error creating blockprocessor: %s", err.Error()))
+	}
+}
+
+func (tpn *TestProcessorNode) createMetaBlockProcessorArgs(argumentsBase block.ArgBaseProcessor, coreComponents process.CoreComponentsHolder) block.ArgMetaProcessor {
+	if check.IfNil(tpn.EpochStartTrigger) {
+		argsEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
+			GenesisTime: argumentsBase.CoreComponents.RoundHandler().TimeStamp(),
+			Settings: &config.EpochStartConfig{
+				MinRoundsBetweenEpochs: 1000,
+				RoundsPerEpoch:         10000,
+			},
+			Epoch:              0,
+			EpochStartNotifier: tpn.EpochStartNotifier,
+			Storage:            tpn.Storage,
+			Marshalizer:        TestMarshalizer,
+			Hasher:             TestHasher,
+			AppStatusHandler:   &statusHandlerMock.AppStatusHandlerStub{},
+			DataPool:           tpn.DataPool,
+		}
+		epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsEpochStart)
+		tpn.EpochStartTrigger = &metachain.TestTrigger{}
+		tpn.EpochStartTrigger.SetTrigger(epochStartTrigger)
+	}
+
+	argumentsBase.EpochStartTrigger = tpn.EpochStartTrigger
+	argumentsBase.TxCoordinator = tpn.TxCoordinator
+
+	argsStakingToPeer := scToProtocol.ArgStakingToPeer{
+		PubkeyConv:          TestValidatorPubkeyConverter,
+		Hasher:              TestHasher,
+		Marshalizer:         TestMarshalizer,
+		PeerState:           tpn.PeerState,
+		BaseState:           tpn.AccntState,
+		ArgParser:           tpn.ArgsParser,
+		CurrTxs:             tpn.DataPool.CurrentBlockTxs(),
+		RatingsData:         tpn.RatingsData,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
+	}
+	scToProtocolInstance, _ := scToProtocol.NewStakingToPeer(argsStakingToPeer)
+
+	argsEpochStartData := metachain.ArgsNewEpochStartData{
+		Marshalizer:         TestMarshalizer,
+		Hasher:              TestHasher,
+		Store:               tpn.Storage,
+		DataPool:            tpn.DataPool,
+		BlockTracker:        tpn.BlockTracker,
+		ShardCoordinator:    tpn.ShardCoordinator,
+		EpochStartTrigger:   tpn.EpochStartTrigger,
+		RequestHandler:      tpn.RequestHandler,
+		EnableEpochsHandler: tpn.EnableEpochsHandler,
+	}
+	epochStartDataCreator, _ := metachain.NewEpochStartData(argsEpochStartData)
+
+	economicsDataProvider := metachain.NewEpochEconomicsStatistics()
+	argsEpochEconomics := metachain.ArgsNewEpochEconomics{
+		Marshalizer:           TestMarshalizer,
+		Hasher:                TestHasher,
+		Store:                 tpn.Storage,
+		ShardCoordinator:      tpn.ShardCoordinator,
+		RewardsHandler:        tpn.EconomicsData,
+		RoundTime:             tpn.RoundHandler,
+		GenesisTotalSupply:    tpn.EconomicsData.GenesisTotalSupply(),
+		EconomicsDataNotified: economicsDataProvider,
+		StakingV2EnableEpoch:  tpn.EnableEpochs.StakingV2EnableEpoch,
+	}
+	epochEconomics, _ := metachain.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
+
+	systemVM, errGet := tpn.VMContainer.Get(processFactory.SystemVirtualMachine)
+	if errGet != nil {
+		log.Error("initBlockProcessor tpn.VMContainer.Get", "error", errGet)
+	}
+
+	argsStakingDataProvider := metachain.StakingDataProviderArgs{
+		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
+		SystemVM:            systemVM,
+		MinNodePrice:        "1000",
+	}
+	stakingDataProvider, errRsp := metachain.NewStakingDataProvider(argsStakingDataProvider)
+	if errRsp != nil {
+		log.Error("initBlockProcessor NewRewardsStakingProvider", "error", errRsp)
+	}
+
+	rewardsStorage, _ := tpn.Storage.GetStorer(dataRetriever.RewardTransactionUnit)
+	miniBlockStorage, _ := tpn.Storage.GetStorer(dataRetriever.MiniBlockUnit)
+	argsEpochRewards := metachain.RewardsCreatorProxyArgs{
+		BaseRewardsCreatorArgs: metachain.BaseRewardsCreatorArgs{
+			ShardCoordinator:              tpn.ShardCoordinator,
+			PubkeyConverter:               TestAddressPubkeyConverter,
+			RewardsStorage:                rewardsStorage,
+			MiniBlockStorage:              miniBlockStorage,
+			Hasher:                        TestHasher,
+			Marshalizer:                   TestMarshalizer,
+			DataPool:                      tpn.DataPool,
+			ProtocolSustainabilityAddress: testProtocolSustainabilityAddress,
+			NodesConfigProvider:           tpn.NodesCoordinator,
+			UserAccountsDB:                tpn.AccntState,
+			EnableEpochsHandler:           tpn.EnableEpochsHandler,
+			ExecutionOrderHandler:         tpn.TxExecutionOrderHandler,
+		},
+		StakingDataProvider:   stakingDataProvider,
+		RewardsHandler:        tpn.EconomicsData,
+		EconomicsDataProvider: economicsDataProvider,
+	}
+	epochStartRewards, _ := metachain.NewRewardsCreatorProxy(argsEpochRewards)
+
+	validatorInfoStorage, _ := tpn.Storage.GetStorer(dataRetriever.UnsignedTransactionUnit)
+	argsEpochValidatorInfo := metachain.ArgsNewValidatorInfoCreator{
+		ShardCoordinator:     tpn.ShardCoordinator,
+		ValidatorInfoStorage: validatorInfoStorage,
+		MiniBlockStorage:     miniBlockStorage,
+		Hasher:               TestHasher,
+		Marshalizer:          TestMarshalizer,
+		DataPool:             tpn.DataPool,
+		EnableEpochsHandler:  tpn.EnableEpochsHandler,
+	}
+	epochStartValidatorInfo, _ := metachain.NewValidatorInfoCreator(argsEpochValidatorInfo)
+
+	maxNodesChangeConfigProvider, _ := notifier.NewNodesConfigProvider(
+		tpn.EpochNotifier,
+		nil,
+	)
+	auctionCfg := config.SoftAuctionConfig{
+		TopUpStep:             "10",
+		MinTopUp:              "1",
+		MaxTopUp:              "32000000",
+		MaxNumberOfIterations: 100000,
+	}
+	ald, _ := metachain.NewAuctionListDisplayer(metachain.ArgsAuctionListDisplayer{
+		TableDisplayHandler:      metachain.NewTableDisplayer(),
+		ValidatorPubKeyConverter: &testscommon.PubkeyConverterMock{},
+		AddressPubKeyConverter:   &testscommon.PubkeyConverterMock{},
+		AuctionConfig:            auctionCfg,
+	})
+
+	argsAuctionListSelector := metachain.AuctionListSelectorArgs{
+		ShardCoordinator:             tpn.ShardCoordinator,
+		StakingDataProvider:          stakingDataProvider,
+		MaxNodesChangeConfigProvider: maxNodesChangeConfigProvider,
+		AuctionListDisplayHandler:    ald,
+		SoftAuctionConfig:            auctionCfg,
+	}
+	auctionListSelector, _ := metachain.NewAuctionListSelector(argsAuctionListSelector)
+
+	argsEpochSystemSC := metachain.ArgsNewEpochStartSystemSCProcessing{
+		SystemVM:                     systemVM,
+		UserAccountsDB:               tpn.AccntState,
+		PeerAccountsDB:               tpn.PeerState,
+		Marshalizer:                  TestMarshalizer,
+		StartRating:                  tpn.RatingsData.StartRating(),
+		ValidatorInfoCreator:         tpn.ValidatorStatisticsProcessor,
+		EndOfEpochCallerAddress:      vm.EndOfEpochAddress,
+		StakingSCAddress:             vm.StakingSCAddress,
+		ChanceComputer:               tpn.NodesCoordinator,
+		EpochNotifier:                tpn.EpochNotifier,
+		GenesisNodesConfig:           tpn.NodesSetup,
+		StakingDataProvider:          stakingDataProvider,
+		NodesConfigProvider:          tpn.NodesCoordinator,
+		ShardCoordinator:             tpn.ShardCoordinator,
+		ESDTOwnerAddressBytes:        vm.EndOfEpochAddress,
+		EnableEpochsHandler:          tpn.EnableEpochsHandler,
+		AuctionListSelector:          auctionListSelector,
+		MaxNodesChangeConfigProvider: maxNodesChangeConfigProvider,
+	}
+	epochStartSystemSCProcessor, _ := metachain.NewSystemSCProcessor(argsEpochSystemSC)
+	tpn.EpochStartSystemSCProcessor = epochStartSystemSCProcessor
+
+	return block.ArgMetaProcessor{
+		ArgBaseProcessor:             argumentsBase,
+		SCToProtocol:                 scToProtocolInstance,
+		PendingMiniBlocksHandler:     &mock.PendingMiniBlocksHandlerStub{},
+		EpochEconomics:               epochEconomics,
+		EpochStartDataCreator:        epochStartDataCreator,
+		EpochRewardsCreator:          epochStartRewards,
+		EpochValidatorInfoCreator:    epochStartValidatorInfo,
+		ValidatorStatisticsProcessor: tpn.ValidatorStatisticsProcessor,
+		EpochSystemSCProcessor:       epochStartSystemSCProcessor,
 	}
 }
 
