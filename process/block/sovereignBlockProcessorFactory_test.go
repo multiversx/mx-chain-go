@@ -31,7 +31,7 @@ func TestSovereignBlockProcessorFactory_CreateBlockProcessor(t *testing.T) {
 	shardFactory, _ := block.NewShardBlockProcessorFactory()
 	sbpf, _ := block.NewSovereignBlockProcessorFactory(shardFactory)
 
-	sbp, err := sbpf.CreateBlockProcessor(block.ArgBaseProcessor{})
+	sbp, err := sbpf.CreateBlockProcessor(block.ArgBaseProcessor{}, block.ArgMetaProcessor{})
 	require.NotNil(t, err)
 	require.Nil(t, sbp)
 
@@ -40,7 +40,7 @@ func TestSovereignBlockProcessorFactory_CreateBlockProcessor(t *testing.T) {
 	metaArgument.ArgBaseProcessor.RequestHandler = &testscommon.ExtendedShardHeaderRequestHandlerStub{}
 	metaArgument.ArgBaseProcessor.Config = testscommon.GetGeneralConfig()
 
-	sbp, err = sbpf.CreateBlockProcessor(metaArgument.ArgBaseProcessor)
+	sbp, err = sbpf.CreateBlockProcessor(metaArgument.ArgBaseProcessor, metaArgument)
 	require.Nil(t, err)
 	require.NotNil(t, sbp)
 	require.Implements(t, new(process.BlockProcessor), sbp)

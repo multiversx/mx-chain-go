@@ -21,12 +21,12 @@ func TestShardBlockProcessorFactory_CreateBlockProcessor(t *testing.T) {
 	t.Parallel()
 
 	sbpf, _ := block.NewShardBlockProcessorFactory()
-	sbp, err := sbpf.CreateBlockProcessor(block.ArgBaseProcessor{})
+	sbp, err := sbpf.CreateBlockProcessor(block.ArgBaseProcessor{}, block.ArgMetaProcessor{})
 	require.NotNil(t, err)
 	require.Nil(t, sbp)
 
 	metaArgument := createMockMetaArguments(createMockComponentHolders())
-	sbp, err = sbpf.CreateBlockProcessor(metaArgument.ArgBaseProcessor)
+	sbp, err = sbpf.CreateBlockProcessor(metaArgument.ArgBaseProcessor, metaArgument)
 	require.NotNil(t, sbp)
 	require.Nil(t, err)
 	require.Implements(t, new(process.DebuggerBlockProcessor), sbp)

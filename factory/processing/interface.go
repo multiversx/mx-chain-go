@@ -18,7 +18,7 @@ type TransactionCoordinatorCreator interface {
 
 // BlockProcessorCreator defines the block processor factory handler
 type BlockProcessorCreator interface {
-	CreateBlockProcessor(argumentsBaseProcessor block.ArgBaseProcessor) (process.DebuggerBlockProcessor, error)
+	CreateBlockProcessor(argumentsBaseProcessor block.ArgBaseProcessor, argsMetaProcessor block.ArgMetaProcessor) (process.DebuggerBlockProcessor, error)
 	IsInterfaceNil() bool
 }
 

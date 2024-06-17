@@ -27,8 +27,8 @@ func NewSovereignBlockProcessorFactory(sbpf BlockProcessorCreator) (*sovereignBl
 }
 
 // CreateBlockProcessor creates a new sovereign block processor for the chain run type sovereign
-func (s *sovereignBlockProcessorFactory) CreateBlockProcessor(argumentsBaseProcessor ArgBaseProcessor) (process.DebuggerBlockProcessor, error) {
-	sp, err := s.shardBlockProcessorFactory.CreateBlockProcessor(argumentsBaseProcessor)
+func (s *sovereignBlockProcessorFactory) CreateBlockProcessor(argumentsBaseProcessor ArgBaseProcessor, argsMetaProcessor ArgMetaProcessor) (process.DebuggerBlockProcessor, error) {
+	sp, err := s.shardBlockProcessorFactory.CreateBlockProcessor(argumentsBaseProcessor, argsMetaProcessor)
 	if err != nil {
 		return nil, errors.New("could not create shard block processor: " + err.Error())
 	}
@@ -58,11 +58,12 @@ func (s *sovereignBlockProcessorFactory) CreateBlockProcessor(argumentsBaseProce
 		OutgoingOperationsFormatter:  outgoingOpFormatter,
 		OutGoingOperationsPool:       argumentsBaseProcessor.RunTypeComponents.OutGoingOperationsPoolHandler(),
 		OperationsHasher:             operationsHasher,
+		ValidatorInfoCreator:         argsMetaProcessor.EpochValidatorInfoCreator,
+		EpochRewardsCreator:          argsMetaProcessor.EpochRewardsCreator,
+		EpochStartDataCreator:        argsMetaProcessor.EpochStartDataCreator,
 	}
 
-	scbp, err := NewSovereignChainBlockProcessor(args)
-
-	return scbp, err
+	return NewSovereignChainBlockProcessor(args)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

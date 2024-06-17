@@ -47,7 +47,7 @@ type crossNotarizer interface {
 
 // BlockProcessorCreator defines the block processor factory handler
 type BlockProcessorCreator interface {
-	CreateBlockProcessor(argumentsBaseProcessor ArgBaseProcessor) (process.DebuggerBlockProcessor, error)
+	CreateBlockProcessor(argumentsBaseProcessor ArgBaseProcessor, argsMetaProcessor ArgMetaProcessor) (process.DebuggerBlockProcessor, error)
 	IsInterfaceNil() bool
 }
 

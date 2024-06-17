@@ -617,9 +617,16 @@ type RunTypeComponentsHolder interface {
 	ExtraHeaderSigVerifierHolder() headerCheck.ExtraHeaderSigVerifierHolder
 	GenesisBlockCreatorFactory() processComp.GenesisBlockCreatorFactory
 	GenesisMetaBlockCheckerCreator() processComp.GenesisMetaBlockChecker
+	EpochStartTriggerFactory() EpochStartTriggerFactoryHandler
 	Create() error
 	Close() error
 	CheckSubcomponents() error
 	String() string
+	IsInterfaceNil() bool
+}
+
+// EpochStartTriggerFactoryHandler defines the interface needed to create an epoch start trigger
+type EpochStartTriggerFactoryHandler interface {
+	CreateEpochStartTrigger(args ArgsEpochStartTrigger) (epochStart.TriggerHandler, error)
 	IsInterfaceNil() bool
 }
