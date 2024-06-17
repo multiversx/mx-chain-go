@@ -35,6 +35,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	testsCommonStorage "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/vmcommonMocks"
@@ -129,9 +130,10 @@ func createMockSmartContractProcessorArguments() scrCommon.ArgsNewSmartContractP
 				return flag == common.SCDeployFlag
 			},
 		},
-		GasSchedule:        testscommon.NewGasScheduleNotifierMock(gasSchedule),
-		WasmVMChangeLocker: &sync.RWMutex{},
-		VMOutputCacher:     txcache.NewDisabledCache(),
+		GasSchedule:             testscommon.NewGasScheduleNotifierMock(gasSchedule),
+		WasmVMChangeLocker:      &sync.RWMutex{},
+		VMOutputCacher:          txcache.NewDisabledCache(),
+		FailedTxLogsAccumulator: &processMocks.FailedTxLogsAccumulatorMock{},
 	}
 }
 
@@ -332,6 +334,17 @@ func TestNewSmartContractProcessor_NilTxLogsProcessorShouldErr(t *testing.T) {
 
 	require.Nil(t, sc)
 	require.Equal(t, process.ErrNilTxLogsProcessor, err)
+}
+
+func TestNewSmartContractProcessor_NilFailedTxLogsAccumulatorShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockSmartContractProcessorArguments()
+	arguments.FailedTxLogsAccumulator = nil
+	sc, err := NewSmartContractProcessorV2(arguments)
+
+	require.Nil(t, sc)
+	require.Equal(t, process.ErrNilFailedTxLogsAccumulator, err)
 }
 
 func TestNewSmartContractProcessor_NilBadTxForwarderShouldErr(t *testing.T) {
@@ -3330,6 +3343,13 @@ func TestScProcessor_ProcessRelayedSCRValueBackToRelayer(t *testing.T) {
 			return process.SCInvoking, process.SCInvoking
 		},
 	}
+	wasSaveLogsCalled := false
+	arguments.FailedTxLogsAccumulator = &processMocks.FailedTxLogsAccumulatorMock{
+		SaveLogsCalled: func(txHash []byte, tx data.TransactionHandler, logs []*vmcommon.LogEntry) error {
+			wasSaveLogsCalled = true
+			return nil
+		},
+	}
 	sc, err := NewSmartContractProcessorV2(arguments)
 	require.NotNil(t, sc)
 	require.Nil(t, err)
@@ -3352,6 +3372,7 @@ func TestScProcessor_ProcessRelayedSCRValueBackToRelayer(t *testing.T) {
 	userFinalValue := baseValue.Sub(baseValue, scr.Value)
 	userFinalValue.Add(userFinalValue, userReturnValue)
 	require.True(t, userAcc.GetBalance().Cmp(userFinalValue) == 0)
+	require.True(t, wasSaveLogsCalled)
 }
 
 func TestScProcessor_checkUpgradePermission(t *testing.T) {
@@ -4061,18 +4082,20 @@ func TestProcessGetOriginalTxHashForRelayedIntraShard(t *testing.T) {
 	scr := &smartContractResult.SmartContractResult{Value: big.NewInt(1), SndAddr: bytes.Repeat([]byte{1}, 32)}
 	scrHash := []byte("hash")
 
-	logHash := sc.getOriginalTxHashIfIntraShardRelayedSCR(scr, scrHash)
+	logHash, isRelayed := sc.getOriginalTxHashIfIntraShardRelayedSCR(scr, scrHash)
 	assert.Equal(t, scrHash, logHash)
+	assert.False(t, isRelayed)
 
 	scr.OriginalTxHash = []byte("originalHash")
 	scr.RelayerAddr = bytes.Repeat([]byte{1}, 32)
 	scr.SndAddr = bytes.Repeat([]byte{1}, 32)
 	scr.RcvAddr = bytes.Repeat([]byte{1}, 32)
-	logHash = sc.getOriginalTxHashIfIntraShardRelayedSCR(scr, scrHash)
+	logHash, isRelayed = sc.getOriginalTxHashIfIntraShardRelayedSCR(scr, scrHash)
 	assert.Equal(t, scr.OriginalTxHash, logHash)
+	assert.True(t, isRelayed)
 
 	scr.RcvAddr = bytes.Repeat([]byte{2}, 32)
-	logHash = sc.getOriginalTxHashIfIntraShardRelayedSCR(scr, scrHash)
+	logHash, _ = sc.getOriginalTxHashIfIntraShardRelayedSCR(scr, scrHash)
 	assert.Equal(t, scrHash, logHash)
 }
 

@@ -37,39 +37,41 @@ type relayedFees struct {
 // txProcessor implements TransactionProcessor interface and can modify account states according to a transaction
 type txProcessor struct {
 	*baseTxProcessor
-	txFeeHandler         process.TransactionFeeHandler
-	receiptForwarder     process.IntermediateTransactionHandler
-	badTxForwarder       process.IntermediateTransactionHandler
-	argsParser           process.ArgumentsParser
-	scrForwarder         process.IntermediateTransactionHandler
-	signMarshalizer      marshal.Marshalizer
-	enableEpochsHandler  common.EnableEpochsHandler
-	txLogsProcessor      process.TransactionLogProcessor
-	relayedTxV3Processor process.RelayedTxV3Processor
+	txFeeHandler            process.TransactionFeeHandler
+	receiptForwarder        process.IntermediateTransactionHandler
+	badTxForwarder          process.IntermediateTransactionHandler
+	argsParser              process.ArgumentsParser
+	scrForwarder            process.IntermediateTransactionHandler
+	signMarshalizer         marshal.Marshalizer
+	enableEpochsHandler     common.EnableEpochsHandler
+	txLogsProcessor         process.TransactionLogProcessor
+	relayedTxV3Processor    process.RelayedTxV3Processor
+	failedTxLogsAccumulator process.FailedTxLogsAccumulator
 }
 
 // ArgsNewTxProcessor defines the arguments needed for new tx processor
 type ArgsNewTxProcessor struct {
-	Accounts             state.AccountsAdapter
-	Hasher               hashing.Hasher
-	PubkeyConv           core.PubkeyConverter
-	Marshalizer          marshal.Marshalizer
-	SignMarshalizer      marshal.Marshalizer
-	ShardCoordinator     sharding.Coordinator
-	ScProcessor          process.SmartContractProcessor
-	TxFeeHandler         process.TransactionFeeHandler
-	TxTypeHandler        process.TxTypeHandler
-	EconomicsFee         process.FeeHandler
-	ReceiptForwarder     process.IntermediateTransactionHandler
-	BadTxForwarder       process.IntermediateTransactionHandler
-	ArgsParser           process.ArgumentsParser
-	ScrForwarder         process.IntermediateTransactionHandler
-	EnableRoundsHandler  process.EnableRoundsHandler
-	EnableEpochsHandler  common.EnableEpochsHandler
-	TxVersionChecker     process.TxVersionCheckerHandler
-	GuardianChecker      process.GuardianChecker
-	TxLogsProcessor      process.TransactionLogProcessor
-	RelayedTxV3Processor process.RelayedTxV3Processor
+	Accounts                state.AccountsAdapter
+	Hasher                  hashing.Hasher
+	PubkeyConv              core.PubkeyConverter
+	Marshalizer             marshal.Marshalizer
+	SignMarshalizer         marshal.Marshalizer
+	ShardCoordinator        sharding.Coordinator
+	ScProcessor             process.SmartContractProcessor
+	TxFeeHandler            process.TransactionFeeHandler
+	TxTypeHandler           process.TxTypeHandler
+	EconomicsFee            process.FeeHandler
+	ReceiptForwarder        process.IntermediateTransactionHandler
+	BadTxForwarder          process.IntermediateTransactionHandler
+	ArgsParser              process.ArgumentsParser
+	ScrForwarder            process.IntermediateTransactionHandler
+	EnableRoundsHandler     process.EnableRoundsHandler
+	EnableEpochsHandler     common.EnableEpochsHandler
+	TxVersionChecker        process.TxVersionCheckerHandler
+	GuardianChecker         process.GuardianChecker
+	TxLogsProcessor         process.TransactionLogProcessor
+	RelayedTxV3Processor    process.RelayedTxV3Processor
+	FailedTxLogsAccumulator process.FailedTxLogsAccumulator
 }
 
 // NewTxProcessor creates a new txProcessor engine
@@ -147,6 +149,9 @@ func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
 	if check.IfNil(args.RelayedTxV3Processor) {
 		return nil, process.ErrNilRelayedTxV3Processor
 	}
+	if check.IfNil(args.FailedTxLogsAccumulator) {
+		return nil, process.ErrNilFailedTxLogsAccumulator
+	}
 
 	baseTxProcess := &baseTxProcessor{
 		accounts:            args.Accounts,
@@ -163,16 +168,17 @@ func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
 	}
 
 	txProc := &txProcessor{
-		baseTxProcessor:      baseTxProcess,
-		txFeeHandler:         args.TxFeeHandler,
-		receiptForwarder:     args.ReceiptForwarder,
-		badTxForwarder:       args.BadTxForwarder,
-		argsParser:           args.ArgsParser,
-		scrForwarder:         args.ScrForwarder,
-		signMarshalizer:      args.SignMarshalizer,
-		enableEpochsHandler:  args.EnableEpochsHandler,
-		txLogsProcessor:      args.TxLogsProcessor,
-		relayedTxV3Processor: args.RelayedTxV3Processor,
+		baseTxProcessor:         baseTxProcess,
+		txFeeHandler:            args.TxFeeHandler,
+		receiptForwarder:        args.ReceiptForwarder,
+		badTxForwarder:          args.BadTxForwarder,
+		argsParser:              args.ArgsParser,
+		scrForwarder:            args.ScrForwarder,
+		signMarshalizer:         args.SignMarshalizer,
+		enableEpochsHandler:     args.EnableEpochsHandler,
+		txLogsProcessor:         args.TxLogsProcessor,
+		relayedTxV3Processor:    args.RelayedTxV3Processor,
+		failedTxLogsAccumulator: args.FailedTxLogsAccumulator,
 	}
 
 	return txProc, nil
@@ -606,6 +612,8 @@ func (txProc *txProcessor) finishExecutionOfRelayedTx(
 			err.Error())
 	}
 
+	defer txProc.saveFailedLogsIfNeeded(originalTxHash)
+
 	return txProc.processUserTx(tx, userTx, tx.Value, tx.Nonce, originalTxHash)
 }
 
@@ -710,6 +718,8 @@ func (txProc *txProcessor) processRelayedTxV3(
 	allUserTxsSucceeded := len(executedUserTxs) == len(innerTxs) && innerTxErr == nil && innerTxRetCode == vmcommon.Ok
 	if !allUserTxsSucceeded {
 		log.Trace("failed to execute all inner transactions", "total", len(innerTxs), "executed transactions", len(executedUserTxs))
+
+		txProc.saveFailedLogsIfNeeded(originalTxHash)
 	}
 
 	expectedMaxInnerTxsTotalFees := big.NewInt(0).Sub(totalFee, relayerFee)
@@ -1229,6 +1239,18 @@ func (txProc *txProcessor) createCompleteEventLog(scr data.TransactionHandler, o
 	if ignorableError != nil {
 		log.Debug("txProcessor.createCompleteEventLog txLogsProcessor.SaveLog()", "error", ignorableError.Error())
 	}
+}
+
+func (txProc *txProcessor) saveFailedLogsIfNeeded(originalTxHash []byte) {
+	logsTx, logs, ok := txProc.failedTxLogsAccumulator.GetLogs(originalTxHash)
+	if ok {
+		ignorableErr := txProc.txLogsProcessor.SaveLog(originalTxHash, logsTx, logs)
+		if ignorableErr != nil {
+			log.Debug("txLogsProcessor.SaveLog failed", "error", ignorableErr.Error())
+		}
+	}
+
+	txProc.failedTxLogsAccumulator.Remove(originalTxHash)
 }
 
 func (txProc *txProcessor) createRefundSCRForMoveBalance(
