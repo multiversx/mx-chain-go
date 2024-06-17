@@ -4,12 +4,12 @@ import (
 	"encoding/hex"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/config"
 	mainFactory "github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/runType"
-
-	"github.com/multiversx/mx-chain-core-go/data/endProcess"
-	"github.com/stretchr/testify/require"
 )
 
 func createArgsCoreComponentsHolder() ArgsCoreComponentsHolder {

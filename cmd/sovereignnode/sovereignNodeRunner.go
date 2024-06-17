@@ -16,6 +16,21 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/google/gops/agent"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/core/closing"
+	"github.com/multiversx/mx-chain-core-go/core/throttler"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	outportCore "github.com/multiversx/mx-chain-core-go/data/outport"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/multiversx/mx-chain-sovereign-bridge-go/cert"
+	factoryBridge "github.com/multiversx/mx-chain-sovereign-bridge-go/client"
+	bridgeCfg "github.com/multiversx/mx-chain-sovereign-bridge-go/client/config"
+	notifierCfg "github.com/multiversx/mx-chain-sovereign-notifier-go/config"
+	"github.com/multiversx/mx-chain-sovereign-notifier-go/factory"
+	notifierProcess "github.com/multiversx/mx-chain-sovereign-notifier-go/process"
+
 	"github.com/multiversx/mx-chain-go/api/gin"
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/common"
@@ -64,21 +79,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	trieStatistics "github.com/multiversx/mx-chain-go/trie/statistics"
 	"github.com/multiversx/mx-chain-go/update/trigger"
-
-	"github.com/google/gops/agent"
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/core/closing"
-	"github.com/multiversx/mx-chain-core-go/core/throttler"
-	"github.com/multiversx/mx-chain-core-go/data/endProcess"
-	outportCore "github.com/multiversx/mx-chain-core-go/data/outport"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	"github.com/multiversx/mx-chain-sovereign-bridge-go/cert"
-	factoryBridge "github.com/multiversx/mx-chain-sovereign-bridge-go/client"
-	bridgeCfg "github.com/multiversx/mx-chain-sovereign-bridge-go/client/config"
-	notifierCfg "github.com/multiversx/mx-chain-sovereign-notifier-go/config"
-	"github.com/multiversx/mx-chain-sovereign-notifier-go/factory"
-	notifierProcess "github.com/multiversx/mx-chain-sovereign-notifier-go/process"
 )
 
 var log = logger.GetOrCreate("sovereignNode")

@@ -1,11 +1,11 @@
 package runType
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core/check"
+
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process/rating"
 	"github.com/multiversx/mx-chain-go/sharding"
-
-	"github.com/multiversx/mx-chain-core-go/core/check"
 )
 
 type sovereignRunTypeCoreComponentsFactory struct {

@@ -3,9 +3,9 @@ package runType_test
 import (
 	"testing"
 
-	"github.com/multiversx/mx-chain-go/factory/runType"
-
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/factory/runType"
 )
 
 func TestNewRunTypeCoreComponentsFactory(t *testing.T) {
