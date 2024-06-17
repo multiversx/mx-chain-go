@@ -33,7 +33,7 @@ var fungibleRoles = []string{
 
 // The test will deploy issue.wasm contract.
 // The contract contains 3 endpoints (issue, setRoles and mint) which are called in the test
-func TestSovereignChain_SmartContract_IssueToken(t *testing.T) {
+func TestSovereignChainSimulator_SmartContract_IssueToken(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}

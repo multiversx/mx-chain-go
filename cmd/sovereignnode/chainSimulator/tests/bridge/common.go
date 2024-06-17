@@ -2,14 +2,26 @@ package bridge
 
 import (
 	"encoding/hex"
-	"math/big"
 	"testing"
 
+	coreAPI "github.com/multiversx/mx-chain-core-go/data/api"
 	chainSim "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/sovereign"
+	"github.com/multiversx/mx-sdk-abi-go/abi"
 	"github.com/stretchr/testify/require"
 )
+
+const (
+	deposit = "deposit"
+)
+
+var serializer, _ = abi.NewSerializer(abi.ArgsNewSerializer{
+	PartsSeparator: "@",
+})
 
 // ArgsBridgeSetup holds the arguments for bridge setup
 type ArgsBridgeSetup struct {
@@ -27,16 +39,13 @@ type ArgsBridgeSetup struct {
 func DeploySovereignBridgeSetup(
 	t *testing.T,
 	cs chainSim.ChainSimulator,
+	wallet dtos.WalletAddress,
 	esdtSafeWasmPath string,
 	feeMarketWasmPath string,
 ) *ArgsBridgeSetup {
 	nodeHandler := cs.GetNodeHandler(core.SovereignChainShardId)
-
 	systemScAddress := chainSim.GetSysAccBytesAddress(t, nodeHandler)
-
-	wallet, err := cs.GenerateAndMintWalletAddress(core.SovereignChainShardId, chainSim.InitialAmount)
-	require.Nil(t, err)
-	nonce := uint64(0)
+	nonce := GetNonce(t, nodeHandler, wallet.Bech32)
 
 	esdtSafeArgs := "@01" + // is_sovereign_chain
 		"@" + // min_valid_signers
@@ -51,14 +60,73 @@ func DeploySovereignBridgeSetup(
 
 	setFeeMarketAddressData := "setFeeMarketAddress" +
 		"@" + hex.EncodeToString(feeMarketAddress)
-	chainSim.SendTransaction(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, big.NewInt(0), setFeeMarketAddressData, uint64(10000000))
+	chainSim.SendTransaction(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, chainSim.ZeroValue, setFeeMarketAddressData, uint64(10000000))
 
-	chainSim.SendTransaction(t, cs, wallet.Bytes, &nonce, feeMarketAddress, big.NewInt(0), "disableFee", uint64(10000000))
+	chainSim.SendTransaction(t, cs, wallet.Bytes, &nonce, feeMarketAddress, chainSim.ZeroValue, "disableFee", uint64(10000000))
 
-	chainSim.SendTransaction(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, big.NewInt(0), "unpause", uint64(10000000))
+	chainSim.SendTransaction(t, cs, wallet.Bytes, &nonce, esdtSafeAddress, chainSim.ZeroValue, "unpause", uint64(10000000))
 
 	return &ArgsBridgeSetup{
 		ESDTSafeAddress:  esdtSafeAddress,
 		FeeMarketAddress: feeMarketAddress,
+	}
+}
+
+// GetNonce returns account's nonce
+func GetNonce(t *testing.T, nodeHandler process.NodeHandler, address string) uint64 {
+	acc, _, err := nodeHandler.GetFacadeHandler().GetAccount(address, coreAPI.AccountQueryOptions{})
+	require.Nil(t, err)
+
+	return acc.Nonce
+}
+
+// Deposit will deposit tokens in the bridge sc safe contract
+func Deposit(
+	t *testing.T,
+	cs chainSim.ChainSimulator,
+	sender []byte,
+	nonce *uint64,
+	contract []byte,
+	tokens []chainSim.ArgsDepositToken,
+	receiver []byte,
+	transferData *sovereign.TransferData,
+) {
+	require.True(t, len(tokens) > 0)
+
+	args := make([]any, 0)
+	args = append(args, &abi.AddressValue{Value: contract})
+	args = append(args, &abi.U32Value{Value: uint32(len(tokens))})
+	for _, token := range tokens {
+		args = append(args, &abi.StringValue{Value: token.Identifier})
+		args = append(args, &abi.U64Value{Value: token.Nonce})
+		args = append(args, &abi.BigUIntValue{Value: token.Amount})
+	}
+	args = append(args, &abi.StringValue{Value: deposit})
+	args = append(args, &abi.AddressValue{Value: receiver})
+	args = append(args, &abi.OptionalValue{Value: getTransferDataValue(transferData)})
+
+	multiTransferArg, err := serializer.Serialize(args)
+	require.Nil(t, err)
+	depositArgs := core.BuiltInFunctionMultiESDTNFTTransfer +
+		"@" + multiTransferArg
+
+	chainSim.SendTransaction(t, cs, sender, nonce, sender, chainSim.ZeroValue, depositArgs, uint64(20000000))
+}
+
+func getTransferDataValue(transferData *sovereign.TransferData) any {
+	if transferData == nil {
+		return nil
+	}
+
+	arguments := make([]abi.SingleValue, len(transferData.Args))
+	for i, arg := range transferData.Args {
+		arguments[i] = &abi.BytesValue{Value: arg}
+	}
+	return &abi.MultiValue{
+		Items: []any{
+			&abi.U64Value{Value: transferData.GasLimit},
+			&abi.BytesValue{Value: transferData.Function},
+			&abi.ListValue{Items: arguments},
+		},
 	}
 }

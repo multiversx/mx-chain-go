@@ -7,6 +7,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
+	coreAPI "github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/sovereign"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/stretchr/testify/require"
+
 	chainSim "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
@@ -14,25 +21,17 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 	sovereignChainSimulator "github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator"
 	"github.com/multiversx/mx-chain-go/sovereignnode/dataCodec"
-
-	"github.com/multiversx/mx-chain-core-go/core"
-	coreAPI "github.com/multiversx/mx-chain-core-go/data/api"
-	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/data/sovereign"
-	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-sdk-abi-incubator/golang/abi"
-	"github.com/stretchr/testify/require"
 )
 
 const (
 	eventIDDepositIncomingTransfer = "deposit"
 	topicIDDepositIncomingTransfer = "deposit"
 	hashSize                       = 32
-	token                          = "TKN-123456"
-	amountToTransfer               = "123"
 )
 
-func TestIncomingOperations(t *testing.T) {
+// This test will simulate an incoming header.
+// At the end of the test the amount of tokens needs to be in the receiver account
+func TestSovereignChainSimulator_IncomingHeader(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -56,6 +55,8 @@ func TestIncomingOperations(t *testing.T) {
 
 	defer cs.Close()
 
+	token := "TKN-123456"
+	amountToTransfer := "123"
 	nodeHandler := cs.GetNodeHandler(core.SovereignChainShardId)
 
 	receiverWallet, err := cs.GenerateAndMintWalletAddress(core.SovereignChainShardId, chainSim.ZeroValue)
@@ -63,20 +64,24 @@ func TestIncomingOperations(t *testing.T) {
 
 	headerNonce := uint64(9999999)
 	prevHeader := createHeaderV2(headerNonce, generateRandomHash(), generateRandomHash())
-	var txsEvent []*transaction.Event
+	txsEvent := make([]*transaction.Event, 0)
 
 	for i := 0; i < 3; i++ {
-		prevHeader = addNextHeader(t, cs, &headerNonce, prevHeader, txsEvent)
-
-		if i == 0 {
-			txsEvent = createTransactionsEvent(receiverWallet.Bytes)
+		if i == 1 {
+			txsEvent = append(txsEvent, createTransactionsEvent(nodeHandler.GetRunTypeComponents().DataCodecHandler(), receiverWallet.Bytes, token, amountToTransfer)...)
 		} else {
 			txsEvent = nil
 		}
-	}
 
-	err = cs.GenerateBlocks(1)
-	require.Nil(t, err)
+		incomingHeader, headerHash := createIncomingHeader(nodeHandler, &headerNonce, prevHeader, txsEvent)
+		err = nodeHandler.GetIncomingHeaderSubscriber().AddHeader(headerHash, incomingHeader)
+		require.Nil(t, err)
+
+		prevHeader = incomingHeader.Header
+
+		err = cs.GenerateBlocks(1)
+		require.Nil(t, err)
+	}
 
 	esdts, _, err := nodeHandler.GetFacadeHandler().GetAllESDTTokens(receiverWallet.Bech32, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
@@ -85,26 +90,16 @@ func TestIncomingOperations(t *testing.T) {
 	require.Equal(t, amountToTransfer, esdts[token].Value.String())
 }
 
-func addNextHeader(t *testing.T, cs chainSim.ChainSimulator, headerNonce *uint64, prevHeader *block.HeaderV2, txsEvent []*transaction.Event) *block.HeaderV2 {
-	err := cs.GenerateBlocks(1)
-	require.Nil(t, err)
-
-	nodeHandler := cs.GetNodeHandler(core.SovereignChainShardId)
-	incomingHeader := createIncomingHeader(nodeHandler, headerNonce, prevHeader, txsEvent)
-	err = nodeHandler.GetIncomingHeaderSubscriber().AddHeader(generateRandomHash(), incomingHeader)
-	require.Nil(t, err)
-
-	return incomingHeader.Header
-}
-
-func createIncomingHeader(nodeHandler process.NodeHandler, headerNonce *uint64, prevHeader *block.HeaderV2, txsEvent []*transaction.Event) *sovereign.IncomingHeader {
+func createIncomingHeader(nodeHandler process.NodeHandler, headerNonce *uint64, prevHeader *block.HeaderV2, txsEvent []*transaction.Event) (*sovereign.IncomingHeader, []byte) {
 	*headerNonce++
 	prevHeaderHash, _ := core.CalculateHash(nodeHandler.GetCoreComponents().InternalMarshalizer(), nodeHandler.GetCoreComponents().Hasher(), prevHeader)
 	incomingHeader := &sovereign.IncomingHeader{
 		Header:         createHeaderV2(*headerNonce, prevHeaderHash, prevHeader.GetRandSeed()),
 		IncomingEvents: txsEvent,
 	}
-	return incomingHeader
+	headerHash, _ := core.CalculateHash(nodeHandler.GetCoreComponents().InternalMarshalizer(), nodeHandler.GetCoreComponents().Hasher(), incomingHeader.Header)
+
+	return incomingHeader, headerHash
 }
 
 func createHeaderV2(nonce uint64, prevHash []byte, prevRandSeed []byte) *block.HeaderV2 {
@@ -126,10 +121,9 @@ func generateRandomHash() []byte {
 	return randomBytes
 }
 
-func createTransactionsEvent(receiver []byte) []*transaction.Event {
-	codec := createDataCodec()
-	tokenData, _ := codec.SerializeTokenData(createTokenData())
-	eventData, _ := codec.SerializeEventData(createEventData())
+func createTransactionsEvent(dataCodecHandler dataCodec.SovereignDataCodec, receiver []byte, token string, amountToTransfer string) []*transaction.Event {
+	tokenData, _ := dataCodecHandler.SerializeTokenData(createTokenData(amountToTransfer))
+	eventData, _ := dataCodecHandler.SerializeEventData(createEventData())
 
 	events := make([]*transaction.Event, 0)
 	return append(events, &transaction.Event{
@@ -139,17 +133,7 @@ func createTransactionsEvent(receiver []byte) []*transaction.Event {
 	})
 }
 
-func createDataCodec() dataCodec.SovereignDataCodec {
-	codec := abi.NewDefaultCodec()
-	args := dataCodec.ArgsDataCodec{
-		Serializer: abi.NewSerializer(codec),
-	}
-
-	dtaCodec, _ := dataCodec.NewDataCodec(args)
-	return dtaCodec
-}
-
-func createTokenData() sovereign.EsdtTokenData {
+func createTokenData(amountToTransfer string) sovereign.EsdtTokenData {
 	creator, _ := hex.DecodeString("0000000000000000000000000000000000000000000000000000000000000000")
 	amount, _ := big.NewInt(0).SetString(amountToTransfer, 10)
 

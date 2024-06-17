@@ -23,6 +23,7 @@ type NodeHandler interface {
 	GetStateComponents() factory.StateComponentsHolder
 	GetFacadeHandler() shared.FacadeHandler
 	GetStatusCoreComponents() factory.StatusCoreComponentsHolder
+	GetRunTypeComponents() factory.RunTypeComponentsHolder
 	GetIncomingHeaderSubscriber() process.IncomingHeaderSubscriber
 	SetKeyValueForAddress(addressBytes []byte, state map[string]string) error
 	SetStateForAddress(address []byte, state *dtos.AddressState) error

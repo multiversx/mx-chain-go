@@ -6,6 +6,15 @@ import (
 	"sort"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	sovCore "github.com/multiversx/mx-chain-core-go/data/sovereign"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/common/logging"
@@ -16,14 +25,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/state"
-
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
-	sovCore "github.com/multiversx/mx-chain-core-go/data/sovereign"
-	"github.com/multiversx/mx-chain-core-go/hashing"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var rootHash = "uncomputed root hash"
@@ -903,11 +904,14 @@ func (scbp *sovereignChainBlockProcessor) createOutGoingMiniBlockData(outGoingOp
 		outGoingOpHash := scbp.operationsHasher.Compute(string(outGoingOp))
 		aggregatedOutGoingOperations = append(aggregatedOutGoingOperations, outGoingOpHash...)
 
-		outGoingOpHashes[idx] = outGoingOpHash
-		outGoingOperationsData = append(outGoingOperationsData, &sovCore.OutGoingOperation{
+		outGoingOpData := &sovCore.OutGoingOperation{
 			Hash: outGoingOpHash,
 			Data: outGoingOp,
-		})
+		}
+		outGoingOpHashes[idx] = outGoingOpHash
+		outGoingOperationsData = append(outGoingOperationsData, outGoingOpData)
+
+		scbp.addOutGoingTxToPool(outGoingOpData)
 	}
 
 	outGoingOperationsHash := scbp.operationsHasher.Compute(string(aggregatedOutGoingOperations))
@@ -916,15 +920,30 @@ func (scbp *sovereignChainBlockProcessor) createOutGoingMiniBlockData(outGoingOp
 		OutGoingOperations: outGoingOperationsData,
 	})
 
-	// TODO: We need to have a mocked transaction with this hash to be saved in storage and get rid of following warnings:
-	// 1. basePreProcess.createMarshalledData: tx not found hash = bf7e...
-	// 2. basePreProcess.saveTransactionToStorage  txHash = bf7e... dataUnit = TransactionUnit error = missing transaction
-	// Task for this: MX-14716
 	return &block.MiniBlock{
 		TxHashes:        outGoingOpHashes,
 		ReceiverShardID: core.MainChainShardId,
 		SenderShardID:   scbp.shardCoordinator.SelfId(),
 	}, outGoingOperationsHash
+}
+
+func (scbp *sovereignChainBlockProcessor) addOutGoingTxToPool(outGoingOp *sovCore.OutGoingOperation) {
+	tx := &transaction.Transaction{
+		GasLimit: scbp.economicsData.ComputeGasLimit(
+			&transaction.Transaction{
+				Data: outGoingOp.Data,
+			}),
+		GasPrice: scbp.economicsData.MinGasPrice(),
+		Data:     outGoingOp.Data,
+	}
+
+	cacheID := fmt.Sprintf("%d_%d", core.SovereignChainShardId, core.MainChainShardId)
+	scbp.dataPool.Transactions().AddData(
+		outGoingOp.Hash,
+		tx,
+		tx.Size(),
+		cacheID,
+	)
 }
 
 func (scbp *sovereignChainBlockProcessor) setOutGoingMiniBlock(
@@ -954,6 +973,7 @@ func (scbp *sovereignChainBlockProcessor) setOutGoingMiniBlock(
 	}
 
 	createdBlockBody.MiniBlocks = append(createdBlockBody.MiniBlocks, outGoingMb)
+	scbp.txCoordinator.AddTxsFromMiniBlocks([]*block.MiniBlock{outGoingMb})
 	return nil
 }
 

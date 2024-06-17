@@ -1105,6 +1105,7 @@ func GetRunTypeComponentsStub(rt factory.RunTypeComponentsHandler) *mainFactoryM
 		ExtraHeaderSigVerifier:              rt.ExtraHeaderSigVerifierHolder(),
 		GenesisBlockFactory:                 rt.GenesisBlockCreatorFactory(),
 		GenesisMetaBlockChecker:             rt.GenesisMetaBlockCheckerCreator(),
+		NodesSetupCheckerFactoryField:       rt.NodesSetupCheckerFactory(),
 	}
 }
 
