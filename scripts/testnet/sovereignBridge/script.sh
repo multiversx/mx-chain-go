@@ -3,6 +3,10 @@
 # Current location
 SCRIPT_PATH=$(dirname "$(realpath "$BASH_SOURCE")")
 
+# Source node variables
+VARIABLES_PATH=$(dirname $SCRIPT_PATH)
+source $VARIABLES_PATH/variables.sh
+
 # Source all scripts
 source $SCRIPT_PATH/prerequisites.sh
 source $SCRIPT_PATH/config/configs.cfg

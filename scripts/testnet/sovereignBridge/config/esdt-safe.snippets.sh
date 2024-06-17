@@ -189,7 +189,7 @@ setHeaderVerifierAddressInEsdtSafe() {
     echo "Setting Header Verifier address in ESDT Safe contract on main chain..."
     checkVariables ESDT_SAFE_ADDRESS HEADER_VERIFIER_ADDRESS || return
 
-    local OUTFILE="${OUTFILE_PATH}/set-headerverifier-address.interaction.json"
+    local OUTFILE="${OUTFILE_PATH}/set-header-verifier-address.interaction.json"
     mxpy contract call ${ESDT_SAFE_ADDRESS} \
         --pem=${WALLET} \
         --proxy=${PROXY} \
@@ -197,26 +197,6 @@ setHeaderVerifierAddressInEsdtSafe() {
         --gas-limit=10000000 \
         --function="setHeaderVerifierAddress" \
         --arguments ${HEADER_VERIFIER_ADDRESS} \
-        --outfile=${OUTFILE} \
-        --recall-nonce \
-        --wait-result \
-        --send || return
-
-    printTxStatus ${OUTFILE}
-}
-
-setSovereignBridgeAddressInEsdtSafe() {
-    echo "Setting Sovereign bridge address in ESDT Safe contract on main chain..."
-    checkVariables ESDT_SAFE_ADDRESS ESDT_SAFE_ADDRESS_SOVEREIGN || return
-
-    local OUTFILE="${OUTFILE_PATH}/set-sovereign-bridge-address.interaction.json"
-    mxpy contract call ${ESDT_SAFE_ADDRESS} \
-        --pem=${WALLET} \
-        --proxy=${PROXY} \
-        --chain=${CHAIN_ID} \
-        --gas-limit=10000000 \
-        --function="setSovereignBridgeAddress" \
-        --arguments ${ESDT_SAFE_ADDRESS_SOVEREIGN} \
         --outfile=${OUTFILE} \
         --recall-nonce \
         --wait-result \

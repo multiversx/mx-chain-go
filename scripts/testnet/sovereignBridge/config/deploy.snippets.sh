@@ -52,8 +52,6 @@ sovereignDeploy() {
 
     setHeaderVerifierAddressInEsdtSafe
 
-    setSovereignBridgeAddressInEsdtSafe
-
     getFundsInAddressSovereign
 
     setFeeMarketAddressSovereign
@@ -92,7 +90,7 @@ sovereignRestart() {
 sovereignUpgradeAndRestart() {
     stopAndCleanSovereign
 
-    gitPullAllChanges
+    gitPullAllChanges || return
 
     downloadCrossChainContracts
 

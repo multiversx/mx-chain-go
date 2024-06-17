@@ -31,9 +31,16 @@ gitPullAllChanges()
     pushd .
 
     # Traverse up to the parent directory of "mx-chain-go"
-    while [[ ! -d "mx-chain-go" ]]; do
+    while [[ ! -d "mx-chain-go" && $(pwd) != "/" ]]; do
       cd ..
     done
+
+    # Check if we found the directory
+    if [[ ! -d "mx-chain-go" ]]; then
+      echo "mx-chain-go directory not found"
+      popd
+      return 1
+    fi
 
     echo -e "Pulling changes for mx-chain-go..."
     cd mx-chain-go
