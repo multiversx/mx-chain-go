@@ -3,7 +3,6 @@ package block
 import (
 	"bytes"
 	"fmt"
-	"math/big"
 	"sort"
 	"time"
 
@@ -232,44 +231,6 @@ func (scbp *sovereignChainBlockProcessor) CreateBlock(initialHdr data.HeaderHand
 	scbp.requestHandler.SetEpoch(initialHdr.GetEpoch())
 
 	return initialHdr, &block.Body{MiniBlocks: miniBlocks}, nil
-}
-
-func (scbp *sovereignChainBlockProcessor) updateEpochStartHeader(metaHdr *block.MetaBlock) error {
-	sw := core.NewStopWatch()
-	sw.Start("createEpochStartForMetablock")
-	defer func() {
-		sw.Stop("createEpochStartForMetablock")
-		log.Debug("epochStartHeaderDataCreation", sw.GetMeasurements()...)
-	}()
-
-	epochStart, err := scbp.epochStartDataCreator.CreateEpochStartData()
-	if err != nil {
-		return err
-	}
-
-	metaHdr.EpochStart = *epochStart
-
-	totalAccumulatedFeesInEpoch := big.NewInt(0)
-	totalDevFeesInEpoch := big.NewInt(0)
-	currentHeader := scbp.blockChain.GetCurrentBlockHeader()
-	if !check.IfNil(currentHeader) && !currentHeader.IsStartOfEpochBlock() {
-		prevMetaHdr, ok := currentHeader.(*block.MetaBlock)
-		if !ok {
-			return process.ErrWrongTypeAssertion
-		}
-		totalAccumulatedFeesInEpoch = big.NewInt(0).Set(prevMetaHdr.AccumulatedFeesInEpoch)
-		totalDevFeesInEpoch = big.NewInt(0).Set(prevMetaHdr.DevFeesInEpoch)
-	}
-
-	metaHdr.AccumulatedFeesInEpoch.Set(totalAccumulatedFeesInEpoch)
-	metaHdr.DevFeesInEpoch.Set(totalDevFeesInEpoch)
-	economicsData := &block.Economics{} // TODO: scbp.epochEconomics.ComputeEndOfEpochEconomics(metaHdr)
-
-	metaHdr.EpochStart.Economics = *economicsData
-
-	saveEpochStartEconomicsMetrics(scbp.appStatusHandler, metaHdr)
-
-	return nil
 }
 
 func (scbp *sovereignChainBlockProcessor) createAllMiniBlocks(
