@@ -237,7 +237,7 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 
 	switch txType {
 	case process.MoveBalance:
-		err = txProc.processMoveBalance(tx, acntSnd, acntDst, dstShardTxType, nil, false, false)
+		err = txProc.processMoveBalance(tx, acntSnd, acntDst, dstShardTxType, nil, false)
 		if err != nil {
 			return vmcommon.UserError, txProc.executeAfterFailedMoveBalanceTransaction(tx, err)
 		}
@@ -473,7 +473,6 @@ func (txProc *txProcessor) processMoveBalance(
 	destShardTxType process.TransactionType,
 	originalTxHash []byte,
 	isUserTxOfRelayed bool,
-	isUserTxOfRelayedV3 bool,
 ) error {
 
 	moveBalanceCost, totalCost, err := txProc.processTxFee(tx, acntSrc, acntDst, destShardTxType, isUserTxOfRelayed)
@@ -537,7 +536,7 @@ func (txProc *txProcessor) processMoveBalance(
 		txProc.txFeeHandler.ProcessTransactionFee(moveBalanceCost, big.NewInt(0), txHash)
 	}
 
-	if isUserTxOfRelayedV3 {
+	if len(tx.RelayerAddr) > 0 {
 		return txProc.createRefundSCRForMoveBalance(tx, txHash, originalTxHash, moveBalanceCost)
 	}
 
@@ -1010,8 +1009,7 @@ func (txProc *txProcessor) processUserTx(
 	returnCode := vmcommon.Ok
 	switch txType {
 	case process.MoveBalance:
-		isUserTxOfRelayedV3 := len(originalTx.InnerTransactions) > 0
-		err = txProc.processMoveBalance(userTx, acntSnd, acntDst, dstShardTxType, originalTxHash, true, isUserTxOfRelayedV3)
+		err = txProc.processMoveBalance(userTx, acntSnd, acntDst, dstShardTxType, originalTxHash, true)
 		intraShard := txProc.shardCoordinator.SameShard(userTx.SndAddr, userTx.RcvAddr)
 		if err == nil && intraShard {
 			txProc.createCompleteEventLog(scrFromTx, originalTxHash)
