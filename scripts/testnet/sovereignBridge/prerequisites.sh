@@ -8,7 +8,7 @@ runBridgePrerequisites() {
 
 installSoftwareDependencies() {
     apt update
-    apt install -y python3-pip pipx screen ca-certificates wget
+    apt install -y python3-pip pipx screen ca-certificates curl wget
     pip install multiversx-sdk
     pipx install multiversx-sdk-cli --force
     pipx ensurepath
