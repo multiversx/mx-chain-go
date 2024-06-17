@@ -62,11 +62,11 @@
     ESDTEnableEpoch = 0
 
     # GovernanceEnableEpoch represents the epoch when governance is enabled
-    GovernanceEnableEpoch = 1000000
+    GovernanceEnableEpoch = 0
 
     # DelegationManagerEnableEpoch represents the epoch when the delegation manager is enabled
     # epoch should not be 0
-    DelegationManagerEnableEpoch = 1
+    DelegationManagerEnableEpoch = 0
 
     # DelegationSmartContractEnableEpoch represents the epoch when delegation smart contract is enabled
     # epoch should not be 0
