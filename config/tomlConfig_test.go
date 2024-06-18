@@ -5,10 +5,11 @@ import (
 	"strconv"
 	"testing"
 
-	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
 	"github.com/pelletier/go-toml"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
 )
 
 func TestTomlParser(t *testing.T) {
@@ -859,20 +860,23 @@ func TestEnableEpochConfig(t *testing.T) {
     # AlwaysMergeContextsInEEIEnableEpoch represents the epoch in which the EEI will always merge the contexts
     AlwaysMergeContextsInEEIEnableEpoch = 94
 
+    # CleanupAuctionOnLowWaitingListEnableEpoch represents the epoch when the cleanup auction on low waiting list is enabled
+    CleanupAuctionOnLowWaitingListEnableEpoch = 95
+
     # DynamicESDTEnableEpoch represents the epoch when dynamic NFT feature is enabled
-    DynamicESDTEnableEpoch = 95
+    DynamicESDTEnableEpoch = 96
 
     # EGLDInMultiTransferEnableEpoch represents the epoch when EGLD in MultiTransfer is enabled
-    EGLDInMultiTransferEnableEpoch = 96
+    EGLDInMultiTransferEnableEpoch = 97
 
     # CryptoOpcodesV2EnableEpoch represents the epoch when BLSMultiSig, Secp256r1 and other opcodes are enabled
-    CryptoOpcodesV2EnableEpoch = 97
+    CryptoOpcodesV2EnableEpoch = 98
 
     # RelayedTransactionsV3EnableEpoch represents the epoch when the relayed transactions V3 will be enabled
-    RelayedTransactionsV3EnableEpoch = 98
+    RelayedTransactionsV3EnableEpoch = 99
 
     # FixRelayedMoveBalanceEnableEpoch represents the epoch when the fix for relayed for move balance will be enabled
-    FixRelayedMoveBalanceEnableEpoch = 99
+    FixRelayedMoveBalanceEnableEpoch = 100
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
@@ -986,11 +990,12 @@ func TestEnableEpochConfig(t *testing.T) {
 			MigrateDataTrieEnableEpoch:                               92,
 			CurrentRandomnessOnSortingEnableEpoch:                    93,
 			AlwaysMergeContextsInEEIEnableEpoch:                      94,
-			DynamicESDTEnableEpoch:                                   95,
-			EGLDInMultiTransferEnableEpoch:                           96,
-			CryptoOpcodesV2EnableEpoch:                               97,
-			RelayedTransactionsV3EnableEpoch:                  		  98,
-			FixRelayedMoveBalanceEnableEpoch:                  		  99,
+			CleanupAuctionOnLowWaitingListEnableEpoch:                95,
+			DynamicESDTEnableEpoch:                                   96,
+			EGLDInMultiTransferEnableEpoch:                           97,
+			CryptoOpcodesV2EnableEpoch:                               98,
+			RelayedTransactionsV3EnableEpoch:                  		  99,
+			FixRelayedMoveBalanceEnableEpoch:                  		  100,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,

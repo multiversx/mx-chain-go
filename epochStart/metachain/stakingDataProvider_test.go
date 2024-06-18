@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -465,16 +466,58 @@ func TestStakingDataProvider_PrepareStakingDataForRewards(t *testing.T) {
 func TestStakingDataProvider_FillValidatorInfo(t *testing.T) {
 	t.Parallel()
 
-	owner := []byte("owner")
-	topUpVal := big.NewInt(828743)
-	basePrice := big.NewInt(100000)
-	stakeVal := big.NewInt(0).Add(topUpVal, basePrice)
-	numRunContractCalls := 0
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
 
-	sdp := createStakingDataProviderWithMockArgs(t, owner, topUpVal, stakeVal, &numRunContractCalls)
+		owner := []byte("owner")
+		topUpVal := big.NewInt(828743)
+		basePrice := big.NewInt(100000)
+		stakeVal := big.NewInt(0).Add(topUpVal, basePrice)
+		numRunContractCalls := 0
 
-	err := sdp.FillValidatorInfo(&state.ValidatorInfo{PublicKey: []byte("bls key")})
-	require.NoError(t, err)
+		sdp := createStakingDataProviderWithMockArgs(t, owner, topUpVal, stakeVal, &numRunContractCalls)
+
+		err := sdp.FillValidatorInfo(&state.ValidatorInfo{PublicKey: []byte("bls key")})
+		require.NoError(t, err)
+	})
+	t.Run("concurrent calls should work", func(t *testing.T) {
+		t.Parallel()
+
+		owner := []byte("owner")
+		topUpVal := big.NewInt(828743)
+		basePrice := big.NewInt(100000)
+		stakeVal := big.NewInt(0).Add(topUpVal, basePrice)
+		numRunContractCalls := 0
+
+		sdp := createStakingDataProviderWithMockArgs(t, owner, topUpVal, stakeVal, &numRunContractCalls)
+
+		wg := sync.WaitGroup{}
+		numCalls := 100
+		wg.Add(numCalls)
+
+		require.NotPanics(t, func() {
+			for i := 0; i < numCalls; i++ {
+				go func(idx int) {
+					switch idx % 2 {
+					case 0:
+						err := sdp.FillValidatorInfo(&state.ValidatorInfo{
+							PublicKey: []byte("bls key"),
+							List:      string(common.EligibleList),
+							ShardId:   0,
+						})
+						require.NoError(t, err)
+					case 1:
+						stats := sdp.GetCurrentEpochValidatorStats()
+						log.Info(fmt.Sprintf("%d", stats.Eligible[0]))
+					}
+
+					wg.Done()
+				}(i)
+			}
+
+			wg.Wait()
+		})
+	})
 }
 
 func TestCheckAndFillOwnerValidatorAuctionData(t *testing.T) {
