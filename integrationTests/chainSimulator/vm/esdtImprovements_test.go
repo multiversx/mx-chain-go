@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/vm"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -2057,6 +2058,20 @@ func TestChainSimulator_RegisterDynamic(t *testing.T) {
 	shardID := cs.GetNodeHandler(0).GetProcessComponents().ShardCoordinator().ComputeId(addrs[0].Bytes)
 
 	checkMetaData(t, cs, core.SystemAccountAddress, nftTokenID, shardID, nftMetaData)
+
+	scQuery := &process.SCQuery{
+		ScAddress: vm.ESDTSCAddress,
+		FuncName:  "getTokenProperties",
+		CallValue: big.NewInt(0),
+		Arguments: [][]byte{nftTokenID},
+	}
+	result, _, err := cs.GetNodeHandler(core.MetachainShardId).GetFacadeHandler().ExecuteSCQuery(scQuery)
+	require.Nil(t, err)
+	require.Equal(t, "", result.ReturnMessage)
+	require.Equal(t, testsChainSimulator.OkReturnCode, result.ReturnCode)
+
+	tokenType := result.ReturnData[1]
+	require.Equal(t, core.Dynamic+core.NonFungibleESDTv2, string(tokenType))
 }
 
 // Test scenario #12
