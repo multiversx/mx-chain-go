@@ -57,8 +57,6 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulator(t *testing.
 			cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3EnableEpoch = 1
 			cfg.EpochConfig.EnableEpochs.FixRelayedMoveBalanceEnableEpoch = 1
 		},
-		ConsensusGroupSize:          1,
-		MetaChainConsensusGroupSize: 1,
 	})
 	require.NoError(t, err)
 	require.NotNil(t, cs)
