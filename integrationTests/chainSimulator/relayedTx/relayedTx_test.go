@@ -279,8 +279,6 @@ func startChainSimulator(t *testing.T) testsChainSimulator.ChainSimulator {
 			cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3EnableEpoch = 1
 			cfg.EpochConfig.EnableEpochs.FixRelayedMoveBalanceEnableEpoch = 1
 		},
-		ConsensusGroupSize:          1,
-		MetaChainConsensusGroupSize: 1,
 	})
 	require.NoError(t, err)
 	require.NotNil(t, cs)
