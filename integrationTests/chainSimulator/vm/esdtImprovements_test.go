@@ -2189,7 +2189,7 @@ func TestChainSimulator_MetaESDT_RegisterDynamic(t *testing.T) {
 
 // Test scenario #12
 //
-func TestChainSimulator_RegisterAndSetAllRolesDynamic(t *testing.T) {
+func TestChainSimulator_NFT_RegisterAndSetAllRolesDynamic(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -2309,7 +2309,7 @@ func TestChainSimulator_RegisterAndSetAllRolesDynamic(t *testing.T) {
 	require.Equal(t, testsChainSimulator.OkReturnCode, result.ReturnCode)
 
 	tokenType := result.ReturnData[1]
-	require.Equal(t, core.Dynamic+core.MetaESDT, string(tokenType))
+	require.Equal(t, core.DynamicNFTESDT, string(tokenType))
 
 	log.Info("Check token roles")
 

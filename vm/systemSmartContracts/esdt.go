@@ -2257,7 +2257,7 @@ func (e *esdt) createDynamicToken(args *vmcommon.ContractCallInput) ([]byte, *ES
 		}
 	}
 
-	dynamicTokenType := append([]byte(core.Dynamic), tokenType...)
+	dynamicTokenType := getDynamicTokenType(tokenType)
 
 	tokenIdentifier, token, err := e.createNewToken(
 		args.CallerAddr,
@@ -2281,6 +2281,15 @@ func (e *esdt) createDynamicToken(args *vmcommon.ContractCallInput) ([]byte, *ES
 	e.eei.AddLogEntry(logEntry)
 
 	return tokenIdentifier, token, vmcommon.Ok
+}
+
+func getDynamicTokenType(tokenType []byte) []byte {
+	if bytes.Equal(tokenType, []byte(core.NonFungibleESDTv2)) ||
+		bytes.Equal(tokenType, []byte(core.NonFungibleESDT)) {
+		return []byte(core.DynamicNFTESDT)
+	}
+
+	return append([]byte(core.Dynamic), tokenType...)
 }
 
 func (e *esdt) registerDynamic(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
