@@ -2415,11 +2415,7 @@ func isNotAllowed(tokenType []byte) bool {
 }
 
 func isNotAllowedToCreateDynamicToken(tokenType []byte) bool {
-	if bytes.Equal(tokenType, []byte(core.FungibleESDT)) {
-		return true
-	}
-
-	return false
+	return bytes.Equal(tokenType, []byte(core.FungibleESDT))
 }
 
 func (e *esdt) sendTokenTypeToSystemAccounts(caller []byte, tokenID []byte, token *ESDTDataV2) {

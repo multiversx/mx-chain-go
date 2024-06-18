@@ -2266,11 +2266,6 @@ func TestChainSimulator_FNG_RegisterDynamic(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
 
-	fmt.Println(txResult)
-	fmt.Println(txResult.Logs.Events[0])
-	fmt.Println(string(txResult.Logs.Events[0].Topics[0]))
-	fmt.Println(string(txResult.Logs.Events[0].Topics[1]))
-
 	signalErrorTopic := string(txResult.Logs.Events[0].Topics[1])
 
 	require.Equal(t, fmt.Sprintf("cannot create %s tokens as dynamic", core.FungibleESDT), signalErrorTopic)
@@ -2659,8 +2654,6 @@ func TestChainSimulator_FNG_RegisterAndSetAllRolesDynamic(t *testing.T) {
 	require.Equal(t, fmt.Sprintf("cannot create %s tokens as dynamic", core.FungibleESDT), signalErrorTopic)
 }
 
-// Test scenario #12b
-//
 func TestChainSimulator_MetaESDT_RegisterAndSetAllRolesDynamic(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
