@@ -716,6 +716,7 @@ type TxGasHandler interface {
 // FeeHandler is able to perform some economics calculation on a provided transaction
 type FeeHandler interface {
 	feeHandler
+	MaxGasHigherFactorAccepted() uint64
 	IsInterfaceNil() bool
 }
 
@@ -723,6 +724,15 @@ type FeeHandler interface {
 type EconomicsDataHandler interface {
 	rewardsHandler
 	feeHandler
+	SetStatusHandler(statusHandler core.AppStatusHandler) error
+	IsInterfaceNil() bool
+}
+
+// CompleteEconomicsDataHandler provides some economics related computation and read access to economics data
+type CompleteEconomicsDataHandler interface {
+	rewardsHandler
+	feeHandler
+	MaxGasHigherFactorAccepted() uint64
 	SetStatusHandler(statusHandler core.AppStatusHandler) error
 	IsInterfaceNil() bool
 }

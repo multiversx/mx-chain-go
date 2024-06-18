@@ -3437,16 +3437,18 @@ func TestScProcessor_isTooMuchGasProvidedShouldWork(t *testing.T) {
 	gasProvided := uint64(100)
 	maxGasToRemain := gasProvided - (gasProvided / process.MaxGasFeeHigherFactorAccepted)
 
-	isTooMuchGas := isTooMuchGasProvided(gasProvided, gasProvided)
+	economicsHandler := &economicsmocks.EconomicsHandlerStub{}
+
+	isTooMuchGas := isTooMuchGasProvided(gasProvided, gasProvided, economicsHandler)
 	assert.False(t, isTooMuchGas)
 
-	isTooMuchGas = isTooMuchGasProvided(gasProvided, maxGasToRemain-1)
+	isTooMuchGas = isTooMuchGasProvided(gasProvided, maxGasToRemain-1, economicsHandler)
 	assert.False(t, isTooMuchGas)
 
-	isTooMuchGas = isTooMuchGasProvided(gasProvided, maxGasToRemain)
+	isTooMuchGas = isTooMuchGasProvided(gasProvided, maxGasToRemain, economicsHandler)
 	assert.False(t, isTooMuchGas)
 
-	isTooMuchGas = isTooMuchGasProvided(gasProvided, maxGasToRemain+1)
+	isTooMuchGas = isTooMuchGasProvided(gasProvided, maxGasToRemain+1, economicsHandler)
 	assert.True(t, isTooMuchGas)
 }
 
@@ -4168,6 +4170,7 @@ func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
 						MaxGasLimitPerTx:            "1500000000",
 						MinGasLimit:                 "50000",
 						ExtraGasLimitGuardedTx:      "50000",
+						MaxGasHigherFactorAccepted:  "10",
 					},
 				},
 				GasPerDataByte:         "1500",

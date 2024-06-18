@@ -30,6 +30,7 @@ type EconomicsHandlerStub struct {
 	MinGasLimitCalled                                   func() uint64
 	ExtraGasLimitGuardedTxCalled                        func() uint64
 	MaxGasPriceSetGuardianCalled                        func() uint64
+	MaxGasHigherFactorAcceptedCalled                    func() uint64
 	GenesisTotalSupplyCalled                            func() *big.Int
 	ComputeFeeForProcessingCalled                       func(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int
 	RewardsTopUpGradientPointCalled                     func() *big.Int
@@ -199,6 +200,14 @@ func (e *EconomicsHandlerStub) MaxGasLimitPerMiniBlockForSafeCrossShard() uint64
 		return e.MaxGasLimitPerMiniBlockForSafeCrossShardCalled()
 	}
 	return 1000000
+}
+
+// MaxGasHigherFactorAccepted -
+func (e *EconomicsHandlerStub) MaxGasHigherFactorAccepted() uint64 {
+	if e.MaxGasHigherFactorAcceptedCalled != nil {
+		return e.MaxGasHigherFactorAcceptedCalled()
+	}
+	return 10
 }
 
 // MaxGasLimitPerTx -
