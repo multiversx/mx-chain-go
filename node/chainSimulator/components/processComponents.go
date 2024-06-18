@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core/partitioning"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/common/ordering"
@@ -266,7 +267,7 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		nodeRedundancyHandler:            managedProcessComponents.NodeRedundancyHandler(),
 		currentEpochProvider:             managedProcessComponents.CurrentEpochProvider(),
 		scheduledTxsExecutionHandler:     managedProcessComponents.ScheduledTxsExecutionHandler(),
-		txsSenderHandler:                 managedProcessComponents.TxsSenderHandler(),
+		txsSenderHandler:                 managedProcessComponents.TxsSenderHandler(), // warning: this will be replaced
 		hardforkTrigger:                  managedProcessComponents.HardforkTrigger(),
 		processedMiniBlocksTracker:       managedProcessComponents.ProcessedMiniBlocksTracker(),
 		esdtDataStorageHandlerForAPI:     managedProcessComponents.ESDTDataStorageHandlerForAPI(),
@@ -275,6 +276,30 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		epochStartSystemSCProcessor:      managedProcessComponents.EpochSystemSCProcessor(),
 		relayedTxV3Processor:             managedProcessComponents.RelayedTxV3Processor(),
 		managedProcessComponentsCloser:   managedProcessComponents,
+	}
+
+	return replaceWithCustomProcessSubComponents(instance, processArgs)
+}
+
+func replaceWithCustomProcessSubComponents(
+	instance *processComponentsHolder,
+	processArgs processComp.ProcessComponentsFactoryArgs,
+) (*processComponentsHolder, error) {
+	dataPacker, err := partitioning.NewSimpleDataPacker(processArgs.CoreData.InternalMarshalizer())
+	if err != nil {
+		return nil, fmt.Errorf("%w in replaceWithCustomProcessSubComponents", err)
+	}
+
+	argsSyncedTxsSender := ArgsSyncedTxsSender{
+		Marshaller:       processArgs.CoreData.InternalMarshalizer(),
+		ShardCoordinator: processArgs.BootstrapComponents.ShardCoordinator(),
+		NetworkMessenger: processArgs.Network.NetworkMessenger(),
+		DataPacker:       dataPacker,
+	}
+
+	instance.txsSenderHandler, err = NewSyncedTxsSender(argsSyncedTxsSender)
+	if err != nil {
+		return nil, fmt.Errorf("%w in replaceWithCustomProcessSubComponents", err)
 	}
 
 	return instance, nil
