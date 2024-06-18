@@ -52,4 +52,7 @@ func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 	err = cs.GenerateBlocksUntilEpochIsReached(1)
 	require.Nil(t, err)
 	require.Equal(t, uint32(1), cs.GetNodeHandler(0).GetCoreComponents().EpochNotifier().CurrentEpoch())
+
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
 }

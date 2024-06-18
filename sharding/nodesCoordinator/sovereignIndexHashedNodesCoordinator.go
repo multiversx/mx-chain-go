@@ -206,7 +206,8 @@ func (ihnc *sovereignIndexHashedNodesCoordinator) GetConsensusValidatorsPublicKe
 }
 
 // EpochStartPrepare is not implemented for sovereign
-func (ihnc *sovereignIndexHashedNodesCoordinator) EpochStartPrepare(_ data.HeaderHandler, _ data.BodyHandler) {
+func (ihnc *sovereignIndexHashedNodesCoordinator) EpochStartPrepare(hdr data.HeaderHandler, body data.BodyHandler) {
+	ihnc.indexHashedNodesCoordinator.EpochStartPrepare(hdr, body)
 	log.Error("sovereignIndexHashedNodesCoordinator.EpochStartPrepare was called, not implemented in sovereign")
 }
 

@@ -646,16 +646,6 @@ func (ihnc *indexHashedNodesCoordinator) GetValidatorsIndexes(
 // EpochStartPrepare is called when an epoch start event is observed, but not yet confirmed/committed.
 // Some components may need to do some initialisation on this event
 func (ihnc *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHandler, body data.BodyHandler) {
-	if !metaHdr.IsStartOfEpochBlock() {
-		log.Error("could not process EpochStartPrepare on nodesCoordinator - not epoch start block")
-		return
-	}
-
-	_, castOk := metaHdr.(*block.MetaBlock)
-	if !castOk {
-		log.Error("could not process EpochStartPrepare on nodesCoordinator - not metaBlock")
-		return
-	}
 
 	randomness := metaHdr.GetPrevRandSeed()
 	newEpoch := metaHdr.GetEpoch()

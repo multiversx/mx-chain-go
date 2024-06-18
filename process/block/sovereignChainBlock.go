@@ -192,6 +192,18 @@ func (scbp *sovereignChainBlockProcessor) CreateBlock(initialHdr data.HeaderHand
 		//if err != nil {
 		//	return nil, nil, err
 		//}
+
+		// NEED TO SEE HOW TO FIX THIS ????
+
+		//hash, err := core.CalculateHash(scbp.marshalizer, scbp.hasher, sovereignChainHeaderHandler)
+		//if err != nil {
+		//	return nil, nil, err
+		//}
+		//
+		//err = sovereignChainHeaderHandler.SetEpochStartHeaderHash(hash)
+		//if err != nil {
+		//	return nil, nil, err
+		//}
 		//body, err = mp.createEpochStartBody(metaHdr)
 		//if err != nil {
 		//	return nil, nil, err
@@ -1277,9 +1289,10 @@ func (scbp *sovereignChainBlockProcessor) CommitBlock(headerHandler data.HeaderH
 }
 
 func (scbp *sovereignChainBlockProcessor) commitEpochStart(header data.HeaderHandler, body *block.Body) {
-	if header.IsStartOfEpochBlock() {
+	// THIS CHECK IS NOT OOOKKKKKKKK
+	if scbp.epochStartTrigger.IsEpochStart() { //header.IsStartOfEpochBlock() {
 		scbp.epochStartTrigger.SetProcessed(header, body)
-		scbp.epochStartTrigger.SetProcessed(header, body)
+		//scbp.epochStartTrigger.SetProcessed(header, body)
 
 		// TODO: MX-15588 FIX THIS (mp *metaProcessor) commitEpochStart
 		//go scbp.epochRewardsCreator.SaveBlockDataToStorage(header, body)
