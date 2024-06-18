@@ -391,6 +391,36 @@ func TestNewEconomicsData_InvalidExtraGasLimitGuardedTxShouldErr(t *testing.T) {
 	}
 }
 
+func TestNewEconomicsData_InvalidMaxGasHigherFactorAccepted(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForEconomicsData(1)
+	badExtraMaxGasHigherFactorAccepted := []string{
+		"-1",
+		"-100000000000000000000",
+		"badValue",
+		"",
+		"#########",
+		"11112S",
+		"1111O0000",
+		"10ERD",
+	}
+
+	for _, gasLimitGuardedTx := range badExtraMaxGasHigherFactorAccepted {
+		args.Economics.FeeSettings.GasLimitSettings[0].MaxGasHigherFactorAccepted = gasLimitGuardedTx
+		_, err := economics.NewEconomicsData(args)
+		assert.True(t, errors.Is(err, process.ErrInvalidMaxGasHigherFactorAccepted))
+	}
+
+	args.Economics.FeeSettings.GasLimitSettings[0].MaxGasHigherFactorAccepted = "0"
+	_, err := economics.NewEconomicsData(args)
+	assert.True(t, errors.Is(err, process.ErrInvalidMaxGasHigherFactorAccepted))
+
+	args.Economics.FeeSettings.GasLimitSettings[0].MaxGasHigherFactorAccepted = "2"
+	_, err = economics.NewEconomicsData(args)
+	assert.Nil(t, err)
+}
+
 func TestNewEconomicsData_MaxGasLimitPerBlockLowerThanMinGasLimitShouldErr(t *testing.T) {
 	t.Parallel()
 
