@@ -126,7 +126,7 @@ type VMTestContext struct {
 	TxFeeHandler           process.TransactionFeeHandler
 	ShardCoordinator       sharding.Coordinator
 	ScForwarder            process.IntermediateTransactionHandler
-	EconomicsData          process.CompleteEconomicsDataHandler
+	EconomicsData          process.EconomicsDataHandler
 	Marshalizer            marshal.Marshalizer
 	GasSchedule            core.GasScheduleNotifier
 	VMConfiguration        *config.VirtualMachineConfig
@@ -317,7 +317,7 @@ func CreateAccount(accnts state.AccountsAdapter, pubKey []byte, nonce uint64, ba
 	return hashCreated, nil
 }
 
-func createEconomicsData(enableEpochsConfig config.EnableEpochs) (process.CompleteEconomicsDataHandler, error) {
+func createEconomicsData(enableEpochsConfig config.EnableEpochs) (process.EconomicsDataHandler, error) {
 	maxGasLimitPerBlock := strconv.FormatUint(math.MaxUint64, 10)
 	minGasPrice := strconv.FormatUint(1, 10)
 	minGasLimit := strconv.FormatUint(1, 10)
@@ -807,7 +807,7 @@ type ResultsCreateTxProcessor struct {
 	TxProc             process.TransactionProcessor
 	SCProc             scrCommon.TestSmartContractProcessor
 	IntermediateTxProc process.IntermediateTransactionHandler
-	EconomicsHandler   process.CompleteEconomicsDataHandler
+	EconomicsHandler   process.EconomicsDataHandler
 	CostHandler        external.TransactionEvaluator
 	TxLogProc          process.TransactionLogProcessor
 }

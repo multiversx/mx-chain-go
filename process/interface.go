@@ -698,6 +698,7 @@ type feeHandler interface {
 	ComputeGasLimitInEpoch(tx data.TransactionWithFeeHandler, epoch uint32) uint64
 	ComputeGasUsedAndFeeBasedOnRefundValueInEpoch(tx data.TransactionWithFeeHandler, refundValue *big.Int, epoch uint32) (uint64, *big.Int)
 	ComputeTxFeeBasedOnGasUsedInEpoch(tx data.TransactionWithFeeHandler, gasUsed uint64, epoch uint32) *big.Int
+	MaxGasHigherFactorAccepted() uint64
 }
 
 // TxGasHandler handles a transaction gas and gas cost
@@ -716,7 +717,6 @@ type TxGasHandler interface {
 // FeeHandler is able to perform some economics calculation on a provided transaction
 type FeeHandler interface {
 	feeHandler
-	MaxGasHigherFactorAccepted() uint64
 	IsInterfaceNil() bool
 }
 
@@ -724,15 +724,6 @@ type FeeHandler interface {
 type EconomicsDataHandler interface {
 	rewardsHandler
 	feeHandler
-	SetStatusHandler(statusHandler core.AppStatusHandler) error
-	IsInterfaceNil() bool
-}
-
-// CompleteEconomicsDataHandler provides some economics related computation and read access to economics data
-type CompleteEconomicsDataHandler interface {
-	rewardsHandler
-	feeHandler
-	MaxGasHigherFactorAccepted() uint64
 	SetStatusHandler(statusHandler core.AppStatusHandler) error
 	IsInterfaceNil() bool
 }
