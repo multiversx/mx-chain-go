@@ -2349,8 +2349,8 @@ func (e *esdt) changeToDynamic(args *vmcommon.ContractCallInput) vmcommon.Return
 		return returnCode
 	}
 
-	if bytes.Equal(token.TokenType, []byte(core.FungibleESDT)) {
-		e.eei.AddReturnMessage("cannot change fungible tokens to dynamic")
+	if isNotAllowed(token.TokenType) {
+		e.eei.AddReturnMessage(fmt.Sprintf("cannot change %s tokens to dynamic", token.TokenType))
 		return vmcommon.UserError
 	}
 	if isDynamicTokenType(token.TokenType) {
@@ -2382,6 +2382,22 @@ func (e *esdt) changeToDynamic(args *vmcommon.ContractCallInput) vmcommon.Return
 	e.sendTokenTypeToSystemAccounts(args.CallerAddr, args.Arguments[0], token)
 
 	return vmcommon.Ok
+}
+
+func isNotAllowed(tokenType []byte) bool {
+	notAllowedTypes := [][]byte{
+		[]byte(core.FungibleESDT),
+		[]byte(core.NonFungibleESDT),
+		[]byte(core.NonFungibleESDTv2),
+	}
+
+	for _, notAllowedType := range notAllowedTypes {
+		if bytes.Equal(tokenType, notAllowedType) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (e *esdt) sendTokenTypeToSystemAccounts(caller []byte, tokenID []byte, token *ESDTDataV2) {
