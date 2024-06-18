@@ -14,6 +14,16 @@ func (bcf *epochStartBootstrapperFactory) CreateEpochStartBootstrapper(epochStar
 	return NewEpochStartBootstrap(epochStartBootstrapArgs)
 }
 
+// CreateStorageEpochStartBootstrapper creates a new storage epoch start bootstrapper for normal chain operations.
+func (bcf *epochStartBootstrapperFactory) CreateStorageEpochStartBootstrapper(epochStartBootstrapArgs ArgsStorageEpochStartBootstrap) (EpochStartBootstrapper, error) {
+	esb, err := NewEpochStartBootstrap(epochStartBootstrapArgs.ArgsEpochStartBootstrap)
+	if err != nil {
+		return nil, err
+	}
+	epochStartBootstrapArgs.EpochStartBootStrap = esb
+	return NewStorageEpochStartBootstrap(epochStartBootstrapArgs)
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (bcf *epochStartBootstrapperFactory) IsInterfaceNil() bool {
 	return bcf == nil
