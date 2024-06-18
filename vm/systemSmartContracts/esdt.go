@@ -585,6 +585,15 @@ func (e *esdt) getTokenType(compressed []byte) (bool, []byte, error) {
 	return false, nil, vm.ErrInvalidArgument
 }
 
+func getDynamicTokenType(tokenType []byte) []byte {
+	if bytes.Equal(tokenType, []byte(core.NonFungibleESDTv2)) ||
+		bytes.Equal(tokenType, []byte(core.NonFungibleESDT)) {
+		return []byte(core.DynamicNFTESDT)
+	}
+
+	return append([]byte(core.Dynamic), tokenType...)
+}
+
 func (e *esdt) changeSFTToMetaESDT(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if !e.enableEpochsHandler.IsFlagEnabled(common.MetaESDTSetFlag) {
 		e.eei.AddReturnMessage("invalid method to call")
@@ -2236,6 +2245,11 @@ func (e *esdt) createDynamicToken(args *vmcommon.ContractCallInput) ([]byte, *ES
 		return nil, nil, vmcommon.UserError
 	}
 
+	if isNotAllowedToCreateDynamicToken(tokenType) {
+		e.eei.AddReturnMessage(fmt.Sprintf("cannot create %s tokens as dynamic", tokenType))
+		return nil, nil, vmcommon.UserError
+	}
+
 	propertiesStart := 3
 	numOfDecimals := uint32(0)
 	if isWithDecimals {
@@ -2281,15 +2295,6 @@ func (e *esdt) createDynamicToken(args *vmcommon.ContractCallInput) ([]byte, *ES
 	e.eei.AddLogEntry(logEntry)
 
 	return tokenIdentifier, token, vmcommon.Ok
-}
-
-func getDynamicTokenType(tokenType []byte) []byte {
-	if bytes.Equal(tokenType, []byte(core.NonFungibleESDTv2)) ||
-		bytes.Equal(tokenType, []byte(core.NonFungibleESDT)) {
-		return []byte(core.DynamicNFTESDT)
-	}
-
-	return append([]byte(core.Dynamic), tokenType...)
 }
 
 func (e *esdt) registerDynamic(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
@@ -2404,6 +2409,14 @@ func isNotAllowed(tokenType []byte) bool {
 		if bytes.Equal(tokenType, notAllowedType) {
 			return true
 		}
+	}
+
+	return false
+}
+
+func isNotAllowedToCreateDynamicToken(tokenType []byte) bool {
+	if bytes.Equal(tokenType, []byte(core.FungibleESDT)) {
+		return true
 	}
 
 	return false
