@@ -463,21 +463,19 @@ func startChainSimulator(
 	}
 
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:      false,
-		TempDir:                     t.TempDir(),
-		PathToInitialConfig:         defaultPathToInitialConfig,
-		NumOfShards:                 3,
-		GenesisTimestamp:            time.Now().Unix(),
-		RoundDurationInMillis:       roundDurationInMillis,
-		RoundsPerEpoch:              roundsPerEpoch,
-		ApiInterface:                api.NewNoApiInterface(),
-		MinNodesPerShard:            3,
-		MetaChainMinNodes:           3,
-		NumNodesWaitingListMeta:     3,
-		NumNodesWaitingListShard:    3,
-		AlterConfigsFunction:        alterConfigsFunction,
-		ConsensusGroupSize:          1,
-		MetaChainConsensusGroupSize: 1,
+		BypassTxSignatureCheck:   false,
+		TempDir:                  t.TempDir(),
+		PathToInitialConfig:      defaultPathToInitialConfig,
+		NumOfShards:              3,
+		GenesisTimestamp:         time.Now().Unix(),
+		RoundDurationInMillis:    roundDurationInMillis,
+		RoundsPerEpoch:           roundsPerEpoch,
+		ApiInterface:             api.NewNoApiInterface(),
+		MinNodesPerShard:         3,
+		MetaChainMinNodes:        3,
+		NumNodesWaitingListMeta:  3,
+		NumNodesWaitingListShard: 3,
+		AlterConfigsFunction:     alterConfigsFunction,
 	})
 	require.NoError(t, err)
 	require.NotNil(t, cs)
