@@ -16,6 +16,7 @@ source $SCRIPT_PATH/config/header-verifier.snippets.sh
 source $SCRIPT_PATH/config/common.snippets.sh
 source $SCRIPT_PATH/config/token.snippets.sh
 source $SCRIPT_PATH/config/py.snippets.sh
+source $SCRIPT_PATH/config/contracts.snippets.sh
 source $SCRIPT_PATH/config/deploy.snippets.sh
 source $SCRIPT_PATH/observer/deployObserver.sh
 

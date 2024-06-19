@@ -32,15 +32,14 @@ prepareObserver() {
 
 deployObserver() {
     local SHARD=$(getShardOfAddress)
-
-    docker run --restart always -d -p 8083:8080 -p 22111:22111 --name "sov-observer" $IMAGE_NAME --destination-shard-as-observer=$SHARD
+    docker run -d -p 8083:8080 -p 22111:22111 $IMAGE_NAME --destination-shard-as-observer=$SHARD
 }
 
 stopObserver() {
-    local CONTAINER_IDS=$(docker ps -q --filter "ancestor=${IMAGE_NAME}")
+    local CONTAINER_IDS=$(docker ps -qf ancestor=$IMAGE_NAME)
 
     if [ -z "$CONTAINER_IDS" ]; then
-        echo "No containers running based on image ${IMAGE_NAME}"
+        echo "No containers running based on image $IMAGE_NAME"
         return
     fi
 
