@@ -9,6 +9,7 @@ pipx ensurepath
 # install docker
 if ! command -v docker &> /dev/null
 then
+  echo "Installing Docker..."
   sudo apt-get update
   sudo apt-get install ca-certificates curl
   sudo install -m 0755 -d /etc/apt/keyrings
