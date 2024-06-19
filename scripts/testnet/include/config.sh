@@ -89,7 +89,7 @@ updateSeednodeConfig() {
 prepareElasticsearch() {
   echo "Starting Elasticsearch Docker container..."
   pwd
-  export ES_CONTAINER_ID=$(docker run -d -p 9200:9200 --volume=sov-elastic:/usr/share/elasticsearch/data -e "discovery.type=single-node" docker.elastic.co/elasticsearch/elasticsearch:7.10.2)
+  export ES_CONTAINER_ID=$(docker run -d --network host --volume=sov-elastic:/usr/share/elasticsearch/data --name "sov-elastic" -e "discovery.type=single-node" docker.elastic.co/elasticsearch/elasticsearch:8.14.1)
   echo $ES_CONTAINER_ID > $TESTNETDIR/es_container_id.txt
 }
 
@@ -148,8 +148,8 @@ updateNodeConfig() {
   updateJSONValue nodesSetup_edit.json "minTransactionVersion" "1"
 
 	if [ $ALWAYS_NEW_CHAINID -eq 1 ]; then
-		updateTOMLValue config_validator.toml "ChainID" $DEFAULT_CHAIN_ID
-		updateTOMLValue config_observer.toml "ChainID" $DEFAULT_CHAIN_ID
+		updateTOMLValue config_validator.toml "ChainID" "\"$DEFAULT_CHAIN_ID"\"
+		updateTOMLValue config_observer.toml "ChainID" "\"$DEFAULT_CHAIN_ID"\"
 	fi
 
 	if [ $ROUNDS_PER_EPOCH -ne 0 ]; then
