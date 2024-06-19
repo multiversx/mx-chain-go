@@ -330,7 +330,7 @@ func testFixRelayedMoveBalanceWithChainSimulatorScCall(
 
 		relayedTx := generateTransaction(relayer.Bytes, 0, owner.Bytes, big.NewInt(0), string(txData), gasLimit)
 
-		result, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
+		_, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
 		require.NoError(t, err)
 
 		// send relayed tx, fix still not active
@@ -344,7 +344,7 @@ func testFixRelayedMoveBalanceWithChainSimulatorScCall(
 
 		relayerBalanceBefore := getBalance(t, cs, relayer)
 
-		result, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
+		_, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
 		require.NoError(t, err)
 		relayerBalanceAfter := getBalance(t, cs, relayer)
 
@@ -367,7 +367,7 @@ func testFixRelayedMoveBalanceWithChainSimulatorScCall(
 
 		relayerBalanceBefore = getBalance(t, cs, relayer)
 
-		result, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
+		_, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
 		require.NoError(t, err)
 
 		relayerBalanceAfter = getBalance(t, cs, relayer)
