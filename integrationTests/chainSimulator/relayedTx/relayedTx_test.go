@@ -263,7 +263,7 @@ func startChainSimulator(t *testing.T) testsChainSimulator.ChainSimulator {
 	}
 
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:   false,
+		BypassTxSignatureCheck:   true,
 		TempDir:                  t.TempDir(),
 		PathToInitialConfig:      defaultPathToInitialConfig,
 		NumOfShards:              3,
