@@ -2055,7 +2055,7 @@ func TestChainSimulator_NFT_RegisterDynamic(t *testing.T) {
 	require.Equal(t, testsChainSimulator.OkReturnCode, result.ReturnCode)
 
 	tokenType := result.ReturnData[1]
-	require.Equal(t, core.Dynamic+core.NonFungibleESDTv2, string(tokenType))
+	require.Equal(t, core.DynamicNFTESDT, string(tokenType))
 }
 
 func TestChainSimulator_MetaESDT_RegisterDynamic(t *testing.T) {
