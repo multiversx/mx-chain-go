@@ -86,7 +86,7 @@ func transferAndCheckTokensMetaData(t *testing.T, isCrossShard bool, isMultiTran
 
 	numOfShards := uint32(3)
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:   false,
+		BypassTxSignatureCheck:   true,
 		TempDir:                  t.TempDir(),
 		PathToInitialConfig:      defaultPathToInitialConfig,
 		NumOfShards:              numOfShards,
@@ -710,7 +710,7 @@ func TestChainSimulator_CreateTokensAfterActivation(t *testing.T) {
 
 	numOfShards := uint32(3)
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:   false,
+		BypassTxSignatureCheck:   true,
 		TempDir:                  t.TempDir(),
 		PathToInitialConfig:      defaultPathToInitialConfig,
 		NumOfShards:              numOfShards,
@@ -887,7 +887,7 @@ func TestChainSimulator_NFT_ESDTMetaDataRecreate(t *testing.T) {
 
 	numOfShards := uint32(3)
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:   false,
+		BypassTxSignatureCheck:   true,
 		TempDir:                  t.TempDir(),
 		PathToInitialConfig:      defaultPathToInitialConfig,
 		NumOfShards:              numOfShards,
@@ -1025,7 +1025,7 @@ func TestChainSimulator_NFT_ESDTMetaDataUpdate(t *testing.T) {
 
 	numOfShards := uint32(3)
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:   false,
+		BypassTxSignatureCheck:   true,
 		TempDir:                  t.TempDir(),
 		PathToInitialConfig:      defaultPathToInitialConfig,
 		NumOfShards:              numOfShards,
@@ -1160,7 +1160,7 @@ func TestChainSimulator_NFT_ESDTModifyCreator(t *testing.T) {
 
 	numOfShards := uint32(3)
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:   false,
+		BypassTxSignatureCheck:   true,
 		TempDir:                  t.TempDir(),
 		PathToInitialConfig:      defaultPathToInitialConfig,
 		NumOfShards:              numOfShards,
@@ -1309,7 +1309,7 @@ func TestChainSimulator_NFT_ESDTSetNewURIs(t *testing.T) {
 
 	numOfShards := uint32(3)
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:   false,
+		BypassTxSignatureCheck:   true,
 		TempDir:                  t.TempDir(),
 		PathToInitialConfig:      defaultPathToInitialConfig,
 		NumOfShards:              numOfShards,
@@ -1454,7 +1454,7 @@ func TestChainSimulator_NFT_ESDTModifyRoyalties(t *testing.T) {
 
 	numOfShards := uint32(3)
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:   false,
+		BypassTxSignatureCheck:   true,
 		TempDir:                  t.TempDir(),
 		PathToInitialConfig:      defaultPathToInitialConfig,
 		NumOfShards:              numOfShards,
@@ -1588,7 +1588,7 @@ func TestChainSimulator_NFT_ChangeToDynamicType(t *testing.T) {
 
 	numOfShards := uint32(3)
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:   false,
+		BypassTxSignatureCheck:   true,
 		TempDir:                  t.TempDir(),
 		PathToInitialConfig:      defaultPathToInitialConfig,
 		NumOfShards:              numOfShards,
@@ -1704,7 +1704,7 @@ func TestChainSimulator_SFT_ChangeMetaData(t *testing.T) {
 
 	numOfShards := uint32(3)
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:   false,
+		BypassTxSignatureCheck:   true,
 		TempDir:                  t.TempDir(),
 		PathToInitialConfig:      defaultPathToInitialConfig,
 		NumOfShards:              numOfShards,
