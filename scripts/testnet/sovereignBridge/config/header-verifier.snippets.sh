@@ -1,4 +1,4 @@
-HEADER_VERIFIER_ADDRESS=$(mxpy data load --partition=${CHAIN_ID} --key=address-header-verifier-contract)
+HEADER_VERIFIER_ADDRESS=$(mxpy data load --use-global --partition=${CHAIN_ID} --key=address-header-verifier-contract)
 
 deployHeaderVerifierContract() {
     manualUpdateConfigFile #update config file
@@ -23,8 +23,8 @@ deployHeaderVerifierContract() {
     printTxStatus ${OUTFILE} || return
 
     local ADDRESS=$(mxpy data parse --file=${OUTFILE}  --expression="data['contractAddress']")
-    mxpy data store --partition=${CHAIN_ID} --key=address-header-verifier-contract --value=${ADDRESS}
-    HEADER_VERIFIER_ADDRESS=$(mxpy data load --partition=${CHAIN_ID} --key=address-header-verifier-contract)
+    mxpy data store --use-global --partition=${CHAIN_ID} --key=address-header-verifier-contract --value=${ADDRESS}
+    HEADER_VERIFIER_ADDRESS=$(mxpy data load --use-global --partition=${CHAIN_ID} --key=address-header-verifier-contract)
     echo -e "Header Verifier contract: ${ADDRESS}\n"
 }
 

@@ -1,5 +1,5 @@
-FEE_MARKET_ADDRESS=$(mxpy data load --partition=${CHAIN_ID} --key=address-fee-market-contract)
-FEE_MARKET_ADDRESS_SOVEREIGN=$(mxpy data load --partition=sovereign --key=address-fee-market-contract)
+FEE_MARKET_ADDRESS=$(mxpy data load --use-global --partition=${CHAIN_ID} --key=address-fee-market-contract)
+FEE_MARKET_ADDRESS_SOVEREIGN=$(mxpy data load --use-global --partition=sovereign --key=address-fee-market-contract)
 
 deployFeeMarketContract() {
     checkVariables ESDT_SAFE_ADDRESS || return
@@ -26,13 +26,13 @@ deployFeeMarketContract() {
     printTxStatus ${OUTFILE} || return
 
     local ADDRESS=$(mxpy data parse --file=${OUTFILE} --expression="data['contractAddress']")
-    mxpy data store --partition=${CHAIN_ID} --key=address-fee-market-contract --value=${ADDRESS}
-    FEE_MARKET_ADDRESS=$(mxpy data load --partition=${CHAIN_ID} --key=address-fee-market-contract)
+    mxpy data store --use-global --partition=${CHAIN_ID} --key=address-fee-market-contract --value=${ADDRESS}
+    FEE_MARKET_ADDRESS=$(mxpy data load --use-global --partition=${CHAIN_ID} --key=address-fee-market-contract)
     echo -e "Fee Market contract: ${ADDRESS}"
 
     local SOVEREIGN_CONTRACT_ADDRESS=$(computeSecondSovereignContractAddress)
-    mxpy data store --partition=sovereign --key=address-fee-market-contract --value=${SOVEREIGN_CONTRACT_ADDRESS}
-    FEE_MARKET_ADDRESS_SOVEREIGN=$(mxpy data load --partition=sovereign --key=address-fee-market-contract)
+    mxpy data store --use-global --partition=sovereign --key=address-fee-market-contract --value=${SOVEREIGN_CONTRACT_ADDRESS}
+    FEE_MARKET_ADDRESS_SOVEREIGN=$(mxpy data load --use-global --partition=sovereign --key=address-fee-market-contract)
     echo -e "Fee Market sovereign contract: ${SOVEREIGN_CONTRACT_ADDRESS}\n"
 }
 
