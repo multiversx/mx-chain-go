@@ -8,7 +8,6 @@ TESTNET_DIR=$(dirname $SCRIPT_PATH)
 source $TESTNET_DIR/variables.sh
 
 # Source all scripts
-source $SCRIPT_PATH/prerequisites.sh
 source $SCRIPT_PATH/config/configs.cfg
 source $SCRIPT_PATH/config/helper.cfg
 source $SCRIPT_PATH/config/esdt-safe.snippets.sh
