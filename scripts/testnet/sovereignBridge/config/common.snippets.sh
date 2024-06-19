@@ -17,7 +17,7 @@ getFundsInAddressSovereign() {
         --proxy=${PROXY_SOVEREIGN} \
         --chain=${CHAIN_ID_SOVEREIGN} \
         --receiver=${WALLET_ADDRESS} \
-        --value=200000000000000000000 \
+        --value=100000000000000000000000 \
         --gas-limit=50000 \
         --outfile=${OUTFILE} \
         --recall-nonce \
