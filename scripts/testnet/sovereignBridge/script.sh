@@ -4,8 +4,8 @@
 SCRIPT_PATH=$(dirname "$(realpath "$BASH_SOURCE")")
 
 # Source node variables
-VARIABLES_PATH=$(dirname $SCRIPT_PATH)
-source $VARIABLES_PATH/variables.sh
+TESTNET_DIR=$(dirname $SCRIPT_PATH)
+source $TESTNET_DIR/variables.sh
 
 # Source all scripts
 source $SCRIPT_PATH/prerequisites.sh

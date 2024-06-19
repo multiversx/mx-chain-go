@@ -14,9 +14,9 @@ deploySovereignWithCrossChainContracts() {
 deployMainChainContractsAndSetupObserver() {
     checkWalletBalanceOnMainChain || return
 
-    deployEsdtSafeContract
+    deployEsdtSafeContract || return
 
-    deployFeeMarketContract
+    deployFeeMarketContract || return
 
     setFeeMarketAddress
 
@@ -42,9 +42,9 @@ sovereignDeploy() {
 
     updateNotifierNotarizationRound
 
-    ../config.sh
+    $TESTNET_DIR/config.sh
 
-    deployHeaderVerifierContract
+    deployHeaderVerifierContract || return
 
     setEsdtSafeAddressInHeaderVerifier
 
@@ -68,7 +68,7 @@ sovereignDeploy() {
 sovereignStart() {
     updateAndStartBridgeService
 
-    ../sovereignStart.sh
+    $TESTNET_DIR/sovereignStart.sh
 
     deployObserver
 }
@@ -106,7 +106,7 @@ sovereignUpgradeAndRestart() {
 # - stop the bridge service
 # - stop the main chain observer
 stopSovereign() {
-    ../stop.sh
+    $TESTNET_DIR/stop.sh
 
     screen -S sovereignBridgeService -X kill
 
@@ -119,5 +119,5 @@ stopSovereign() {
 stopAndCleanSovereign() {
     stopSovereign
 
-    ../clean.sh
+    $TESTNET_DIR/clean.sh
 }
