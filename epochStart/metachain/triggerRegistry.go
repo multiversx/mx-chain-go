@@ -6,7 +6,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/epochStart"
 )
 
 // LoadState loads into trigger the saved state
@@ -59,10 +58,10 @@ func UnmarshalTrigger(marshaller marshal.Marshalizer, data []byte) (*block.MetaT
 
 // saveState saves the trigger state. Needs to be called under mutex
 func (t *trigger) saveState(key []byte) error {
-	metaHeader, ok := t.epochStartMeta.(*block.MetaBlock)
-	if !ok {
-		return epochStart.ErrWrongTypeAssertion
-	}
+	//metaHeader, ok := t.epochStartMeta.(*block.MetaBlock)
+	//if !ok {
+	//	return epochStart.ErrWrongTypeAssertion
+	//}
 	registry := &block.MetaTriggerRegistry{}
 	registry.CurrentRound = t.currentRound
 	registry.EpochFinalityAttestingRound = t.epochFinalityAttestingRound
@@ -70,7 +69,7 @@ func (t *trigger) saveState(key []byte) error {
 	registry.PrevEpochStartRound = t.prevEpochStartRound
 	registry.Epoch = t.epoch
 	registry.EpochStartMetaHash = t.epochStartMetaHash
-	registry.EpochStartMeta = metaHeader
+	//registry.EpochStartMeta = metaHeader
 	triggerData, err := t.marshaller.Marshal(registry)
 	if err != nil {
 		return err
