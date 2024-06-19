@@ -89,7 +89,7 @@ updateSeednodeConfig() {
 prepareElasticsearch() {
   echo "Starting Elasticsearch Docker container..."
   pwd
-  export ES_CONTAINER_ID=$(docker run -d --network host --volume=sov-elastic:/usr/share/elasticsearch/data --name "sov-elastic" -e "discovery.type=single-node" docker.elastic.co/elasticsearch/elasticsearch:8.14.1)
+  export ES_CONTAINER_ID=$(docker run -d --network host --volume=sov-elastic:/usr/share/elasticsearch/data --name "sov-elastic" -e "discovery.type=single-node" docker.elastic.co/elasticsearch/elasticsearch:7.10.2)
   echo $ES_CONTAINER_ID > $TESTNETDIR/es_container_id.txt
 }
 
