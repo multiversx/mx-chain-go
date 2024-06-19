@@ -21,6 +21,7 @@ import (
 	processComp "github.com/multiversx/mx-chain-go/factory/processing"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
+	nodeDisabled "github.com/multiversx/mx-chain-go/node/disabled"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors/disabled"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -159,10 +160,7 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		return nil, err
 	}
 
-	whiteListerVerifiedTxs, err := disabled.NewDisabledWhiteListDataVerifier()
-	if err != nil {
-		return nil, err
-	}
+	whiteListerVerifiedTxs := nodeDisabled.NewDisabledWhiteListDataVerifier()
 
 	historyRepository, err := historyRepositoryFactory.Create()
 	if err != nil {
