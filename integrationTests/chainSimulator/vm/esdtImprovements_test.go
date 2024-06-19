@@ -1992,14 +1992,14 @@ func TestChainSimulator_SFTcreatedBeforeSaveToSystemAccountEnabled(t *testing.T)
 
 	log.Info("Issued SFT token id", "tokenID", string(sftTokenID))
 
-	nftMetaData := txsFee.GetDefaultMetaData()
-	nftMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
+	metaData := txsFee.GetDefaultMetaData()
+	metaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
 
-	createTokenUpdateTokenIDAndTransfer(t, cs, addrs[0].Bytes, addrs[1].Bytes, sftTokenID, nftMetaData, epochForDynamicNFT, addrs[0])
+	createTokenUpdateTokenIDAndTransfer(t, cs, addrs[0].Bytes, addrs[1].Bytes, sftTokenID, metaData, epochForDynamicNFT, addrs[0])
 
 	shardID := cs.GetNodeHandler(0).GetProcessComponents().ShardCoordinator().ComputeId(addrs[0].Bytes)
 
-	checkMetaData(t, cs, core.SystemAccountAddress, sftTokenID, shardID, nftMetaData)
+	checkMetaData(t, cs, core.SystemAccountAddress, sftTokenID, shardID, metaData)
 	checkMetaDataNotInAcc(t, cs, addrs[0].Bytes, sftTokenID, shardID)
 	checkMetaDataNotInAcc(t, cs, addrs[1].Bytes, sftTokenID, shardID)
 }
@@ -2028,14 +2028,14 @@ func TestChainSimulator_FungibleCreatedBeforeSaveToSystemAccountEnabled(t *testi
 
 	log.Info("Issued FungibleESDT token id", "tokenID", string(funTokenID))
 
-	nftMetaData := txsFee.GetDefaultMetaData()
-	nftMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
+	metaData := txsFee.GetDefaultMetaData()
+	metaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
 
-	createTokenUpdateTokenIDAndTransfer(t, cs, addrs[0].Bytes, addrs[1].Bytes, funTokenID, nftMetaData, epochForDynamicNFT, addrs[0])
+	createTokenUpdateTokenIDAndTransfer(t, cs, addrs[0].Bytes, addrs[1].Bytes, funTokenID, metaData, epochForDynamicNFT, addrs[0])
 
 	shardID := cs.GetNodeHandler(0).GetProcessComponents().ShardCoordinator().ComputeId(addrs[0].Bytes)
 
-	checkMetaData(t, cs, core.SystemAccountAddress, funTokenID, shardID, nftMetaData)
+	checkMetaData(t, cs, core.SystemAccountAddress, funTokenID, shardID, metaData)
 	checkMetaDataNotInAcc(t, cs, addrs[0].Bytes, funTokenID, shardID)
 	checkMetaDataNotInAcc(t, cs, addrs[1].Bytes, funTokenID, shardID)
 }
@@ -2064,13 +2064,13 @@ func TestChainSimulator_MetaESDTCreatedBeforeSaveToSystemAccountEnabled(t *testi
 
 	log.Info("Issued MetaESDT token id", "tokenID", string(metaTokenID))
 
-	nftMetaData := txsFee.GetDefaultMetaData()
-	nftMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
+	metaData := txsFee.GetDefaultMetaData()
+	metaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
 
-	createTokenUpdateTokenIDAndTransfer(t, cs, addrs[0].Bytes, addrs[1].Bytes, metaTokenID, nftMetaData, epochForDynamicNFT, addrs[0])
+	createTokenUpdateTokenIDAndTransfer(t, cs, addrs[0].Bytes, addrs[1].Bytes, metaTokenID, metaData, epochForDynamicNFT, addrs[0])
 
 	shardID := cs.GetNodeHandler(0).GetProcessComponents().ShardCoordinator().ComputeId(addrs[0].Bytes)
-	checkMetaData(t, cs, core.SystemAccountAddress, metaTokenID, shardID, nftMetaData)
+	checkMetaData(t, cs, core.SystemAccountAddress, metaTokenID, shardID, metaData)
 	checkMetaDataNotInAcc(t, cs, addrs[0].Bytes, metaTokenID, shardID)
 	checkMetaDataNotInAcc(t, cs, addrs[1].Bytes, metaTokenID, shardID)
 }
