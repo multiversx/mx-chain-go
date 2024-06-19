@@ -620,6 +620,7 @@ func testExtractAlteredAccountsFromPoolShouldIncludeESDT(t *testing.T) {
 		Nonce:      0,
 		Properties: "6f6b",
 		MetaData:   nil,
+		Type:       core.FungibleESDT,
 	}, res[encodedAddr].Tokens[0])
 }
 
@@ -1124,6 +1125,7 @@ func testExtractAlteredAccountsFromPoolAddressHasMultipleNfts(t *testing.T) {
 		Balance:    expectedToken0.Value.String(),
 		Nonce:      0,
 		MetaData:   nil,
+		Type:       core.FungibleESDT,
 	})
 
 	require.Contains(t, res[encodedAddr].Tokens, &alteredAccount.AccountTokenData{
@@ -1222,6 +1224,7 @@ func testExtractAlteredAccountsFromPoolESDTTransferBalanceNotChanged(t *testing.
 					AdditionalData: &alteredAccount.AdditionalAccountTokenData{
 						IsNFTCreate: false,
 					},
+					Type: core.FungibleESDT,
 				},
 			},
 			AdditionalData: &alteredAccount.AdditionalAccountData{
@@ -1241,6 +1244,7 @@ func testExtractAlteredAccountsFromPoolESDTTransferBalanceNotChanged(t *testing.
 					AdditionalData: &alteredAccount.AdditionalAccountTokenData{
 						IsNFTCreate: false,
 					},
+					Type: core.FungibleESDT,
 				},
 			},
 			AdditionalData: &alteredAccount.AdditionalAccountData{
@@ -1432,6 +1436,7 @@ func textExtractAlteredAccountsFromPoolNftCreate(t *testing.T) {
 					AdditionalData: &alteredAccount.AdditionalAccountTokenData{
 						IsNFTCreate: true,
 					},
+					Type: core.FungibleESDT,
 				},
 			},
 			AdditionalData: &alteredAccount.AdditionalAccountData{
