@@ -3,6 +3,7 @@ package relayedTx
 import (
 	"encoding/hex"
 	"math/big"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -10,10 +11,14 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/config"
+	testsChainSimulator "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
+	chainSimulatorProcess "github.com/multiversx/mx-chain-go/node/chainSimulator/process"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -34,37 +39,8 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulator(t *testing.
 		t.Skip("this is not a short test")
 	}
 
-	roundDurationInMillis := uint64(6000)
-	roundsPerEpoch := core.OptionalUint64{
-		HasValue: true,
-		Value:    30,
-	}
-
-	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:   false,
-		TempDir:                  t.TempDir(),
-		PathToInitialConfig:      defaultPathToInitialConfig,
-		NumOfShards:              3,
-		GenesisTimestamp:         time.Now().Unix(),
-		RoundDurationInMillis:    roundDurationInMillis,
-		RoundsPerEpoch:           roundsPerEpoch,
-		ApiInterface:             api.NewNoApiInterface(),
-		MinNodesPerShard:         3,
-		MetaChainMinNodes:        3,
-		NumNodesWaitingListMeta:  3,
-		NumNodesWaitingListShard: 3,
-		AlterConfigsFunction: func(cfg *config.Configs) {
-			cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3EnableEpoch = 1
-			cfg.EpochConfig.EnableEpochs.FixRelayedMoveBalanceEnableEpoch = 1
-		},
-	})
-	require.NoError(t, err)
-	require.NotNil(t, cs)
-
+	cs := startChainSimulator(t)
 	defer cs.Close()
-
-	err = cs.GenerateBlocksUntilEpochIsReached(1)
-	require.NoError(t, err)
 
 	initialBalance := big.NewInt(0).Mul(oneEGLD, big.NewInt(30000))
 	relayer, err := cs.GenerateAndMintWalletAddress(0, initialBalance)
@@ -161,18 +137,156 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulator(t *testing.
 	// check SCRs
 	shardC := cs.GetNodeHandler(0).GetShardCoordinator()
 	for _, scr := range result.SmartContractResults {
-		addr, err := pkConv.Decode(scr.RcvAddr)
-		require.NoError(t, err)
-
-		senderShard := shardC.ComputeId(addr)
-		tx, err := cs.GetNodeHandler(senderShard).GetFacadeHandler().GetTransaction(scr.Hash, true)
-		require.NoError(t, err)
-		assert.Equal(t, transaction.TxStatusSuccess, tx.Status)
+		checkSCRSucceeded(t, cs, pkConv, shardC, scr)
 	}
 
-	// check log events
+	// 3 log events from the failed sc call
 	require.Equal(t, 3, len(result.Logs.Events))
 	require.True(t, strings.Contains(string(result.Logs.Events[2].Data), "contract is paused"))
+}
+
+func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorScCalls(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	cs := startChainSimulator(t)
+	defer cs.Close()
+
+	initialBalance := big.NewInt(0).Mul(oneEGLD, big.NewInt(10))
+	relayer, err := cs.GenerateAndMintWalletAddress(0, initialBalance)
+	require.NoError(t, err)
+
+	pkConv := cs.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter()
+	shardC := cs.GetNodeHandler(0).GetShardCoordinator()
+
+	// deploy adder contract
+	owner, err := cs.GenerateAndMintWalletAddress(0, initialBalance)
+	require.NoError(t, err)
+
+	ownerNonce := uint64(0)
+	scCode := wasm.GetSCCode("testData/adder.wasm")
+	params := []string{scCode, wasm.VMTypeHex, wasm.DummyCodeMetadataHex, "00"}
+	txDataDeploy := strings.Join(params, "@")
+	deployTx := generateTransaction(owner.Bytes, ownerNonce, make([]byte, 32), big.NewInt(0), txDataDeploy, 100000000)
+
+	result, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(deployTx, maxNumOfBlocksToGenerateWhenExecutingTx)
+	require.NoError(t, err)
+
+	scAddress := result.Logs.Events[0].Address
+	scAddressBytes, _ := pkConv.Decode(scAddress)
+	scShard := shardC.ComputeId(scAddressBytes)
+	scShardNodeHandler := cs.GetNodeHandler(scShard)
+
+	// 1st inner tx, successful add 1
+	ownerNonce++
+	txDataAdd := "add@" + hex.EncodeToString(big.NewInt(1).Bytes())
+	innerTx1 := generateTransaction(owner.Bytes, ownerNonce, scAddressBytes, big.NewInt(0), txDataAdd, 5000000)
+	innerTx1.RelayerAddr = relayer.Bytes
+
+	// 2nd inner tx, successful add 1
+	ownerNonce++
+	innerTx2 := generateTransaction(owner.Bytes, ownerNonce, scAddressBytes, big.NewInt(0), txDataAdd, 5000000)
+	innerTx2.RelayerAddr = relayer.Bytes
+
+	// 3rd inner tx, wrong number of parameters
+	ownerNonce++
+	innerTx3 := generateTransaction(owner.Bytes, ownerNonce, scAddressBytes, big.NewInt(0), "add", 5000000)
+	innerTx3.RelayerAddr = relayer.Bytes
+
+	// 4th inner tx, successful add 1
+	ownerNonce++
+	innerTx4 := generateTransaction(owner.Bytes, ownerNonce, scAddressBytes, big.NewInt(0), txDataAdd, 5000000)
+	innerTx4.RelayerAddr = relayer.Bytes
+
+	// 5th inner tx, invalid function
+	ownerNonce++
+	innerTx5 := generateTransaction(owner.Bytes, ownerNonce, scAddressBytes, big.NewInt(0), "substract", 5000000)
+	innerTx5.RelayerAddr = relayer.Bytes
+
+	// 6th inner tx, successful add 1
+	ownerNonce++
+	innerTx6 := generateTransaction(owner.Bytes, ownerNonce, scAddressBytes, big.NewInt(0), txDataAdd, 5000000)
+	innerTx6.RelayerAddr = relayer.Bytes
+
+	// 7th inner tx, not enough gas
+	ownerNonce++
+	innerTx7 := generateTransaction(owner.Bytes, ownerNonce, scAddressBytes, big.NewInt(0), txDataAdd, 100000)
+	innerTx7.RelayerAddr = relayer.Bytes
+
+	innerTxs := []*transaction.Transaction{innerTx1, innerTx2, innerTx3, innerTx4, innerTx5, innerTx6, innerTx7}
+
+	relayedTxGasLimit := uint64(minGasLimit)
+	for _, tx := range innerTxs {
+		relayedTxGasLimit += minGasLimit + tx.GasLimit
+	}
+	relayedTx := generateTransaction(relayer.Bytes, 0, relayer.Bytes, big.NewInt(0), "", relayedTxGasLimit)
+	relayedTx.InnerTransactions = innerTxs
+
+	result, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
+	require.NoError(t, err)
+
+	checkSum(t, scShardNodeHandler, scAddressBytes, owner.Bytes, 4)
+
+	// 8 scrs, 4 from the succeeded txs + 4 with refunded gas to relayer
+	require.Equal(t, 8, len(result.SmartContractResults))
+	for _, scr := range result.SmartContractResults {
+		if strings.Contains(scr.ReturnMessage, "gas refund for relayer") {
+			continue
+		}
+
+		checkSCRSucceeded(t, cs, pkConv, shardC, scr)
+	}
+
+	// 6 events, 3 with signalError + 3 with the actual errors
+	require.Equal(t, 6, len(result.Logs.Events))
+	expectedLogEvents := map[int]string{
+		1: "[wrong number of arguments]",
+		3: "[invalid function (not found)] [substract]",
+		5: "[not enough gas] [add]",
+	}
+	for idx, logEvent := range result.Logs.Events {
+		if logEvent.Identifier == "signalError" {
+			continue
+		}
+
+		expectedLogEvent := expectedLogEvents[idx]
+		require.True(t, strings.Contains(string(logEvent.Data), expectedLogEvent))
+	}
+}
+
+func startChainSimulator(t *testing.T) testsChainSimulator.ChainSimulator {
+	roundDurationInMillis := uint64(6000)
+	roundsPerEpoch := core.OptionalUint64{
+		HasValue: true,
+		Value:    30,
+	}
+
+	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+		BypassTxSignatureCheck:   false,
+		TempDir:                  t.TempDir(),
+		PathToInitialConfig:      defaultPathToInitialConfig,
+		NumOfShards:              3,
+		GenesisTimestamp:         time.Now().Unix(),
+		RoundDurationInMillis:    roundDurationInMillis,
+		RoundsPerEpoch:           roundsPerEpoch,
+		ApiInterface:             api.NewNoApiInterface(),
+		MinNodesPerShard:         3,
+		MetaChainMinNodes:        3,
+		NumNodesWaitingListMeta:  3,
+		NumNodesWaitingListShard: 3,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3EnableEpoch = 1
+			cfg.EpochConfig.EnableEpochs.FixRelayedMoveBalanceEnableEpoch = 1
+		},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, cs)
+
+	err = cs.GenerateBlocksUntilEpochIsReached(1)
+	require.NoError(t, err)
+
+	return cs
 }
 
 func generateTransaction(sender []byte, nonce uint64, receiver []byte, value *big.Int, data string, gasLimit uint64) *transaction.Transaction {
@@ -187,5 +301,53 @@ func generateTransaction(sender []byte, nonce uint64, receiver []byte, value *bi
 		ChainID:   []byte(configs.ChainID),
 		Version:   txVersion,
 		Signature: []byte(mockTxSignature),
+	}
+}
+
+func checkSum(
+	t *testing.T,
+	nodeHandler chainSimulatorProcess.NodeHandler,
+	scAddress []byte,
+	callerAddress []byte,
+	expectedSum int,
+) {
+	scQuery := &process.SCQuery{
+		ScAddress:  scAddress,
+		FuncName:   "getSum",
+		CallerAddr: callerAddress,
+		CallValue:  big.NewInt(0),
+	}
+	result, _, err := nodeHandler.GetFacadeHandler().ExecuteSCQuery(scQuery)
+	require.Nil(t, err)
+	require.Equal(t, "ok", result.ReturnCode)
+
+	sum, err := strconv.Atoi(hex.EncodeToString(result.ReturnData[0]))
+	require.NoError(t, err)
+
+	require.Equal(t, expectedSum, sum)
+}
+
+func checkSCRSucceeded(
+	t *testing.T,
+	cs testsChainSimulator.ChainSimulator,
+	pkConv core.PubkeyConverter,
+	shardC sharding.Coordinator,
+	scr *transaction.ApiSmartContractResult,
+) {
+	addr, err := pkConv.Decode(scr.RcvAddr)
+	require.NoError(t, err)
+
+	senderShard := shardC.ComputeId(addr)
+	tx, err := cs.GetNodeHandler(senderShard).GetFacadeHandler().GetTransaction(scr.Hash, true)
+	require.NoError(t, err)
+	require.Equal(t, transaction.TxStatusSuccess, tx.Status)
+
+	require.GreaterOrEqual(t, len(tx.Logs.Events), 1)
+	for _, event := range tx.Logs.Events {
+		if event.Identifier == core.WriteLogIdentifier {
+			continue
+		}
+
+		require.Equal(t, core.CompletedTxEventIdentifier, event.Identifier)
 	}
 }
