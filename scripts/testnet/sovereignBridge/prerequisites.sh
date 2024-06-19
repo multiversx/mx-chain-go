@@ -27,6 +27,7 @@ then
   newgrp docker
 fi
 
+echo "Downloading cross-chain contracts..."
 # load config paths
 source config/configs.cfg
 
