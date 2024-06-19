@@ -23,7 +23,6 @@ then
   sudo apt-get update
   sudo apt install -y docker-ce
   # docker post install
-  sudo groupadd docker
   sudo usermod -aG docker $USER
   newgrp docker
 fi
