@@ -447,11 +447,8 @@ func checkPlayerBalances(
 	t *testing.T,
 	nodes []*integrationTests.TestProcessorNode,
 	players []*integrationTests.TestWalletAccount) {
-	for idx, player := range players {
+	for _, player := range players {
 		userAcc := GetUserAccount(nodes, player.Address)
-		if idx == 5 {
-			print("x")
-		}
 		assert.Equal(t, 0, userAcc.GetBalance().Cmp(player.Balance))
 		assert.Equal(t, userAcc.GetNonce(), player.Nonce)
 	}
