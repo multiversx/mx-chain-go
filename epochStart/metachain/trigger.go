@@ -233,6 +233,10 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, body data.BodyHandler)
 
 	metaBlock := header.(*block.SovereignChainHeader)
 
+	if !metaBlock.IsStartOfEpochBlock() {
+		return
+	}
+
 	metaBuff, errNotCritical := t.marshaller.Marshal(metaBlock)
 	if errNotCritical != nil {
 		log.Debug("SetProcessed marshal", "error", errNotCritical.Error())

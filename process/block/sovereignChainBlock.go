@@ -63,6 +63,7 @@ type ArgsSovereignChainBlockProcessor struct {
 	EpochStartDataCreator        process.EpochStartDataCreator
 	EpochRewardsCreator          process.RewardsCreator
 	ValidatorInfoCreator         process.EpochStartValidatorInfoCreator
+	EpochSystemSCProcessor       process.EpochStartSystemSCProcessor
 }
 
 // NewSovereignChainBlockProcessor creates a new sovereign chain block processor
@@ -91,6 +92,9 @@ func NewSovereignChainBlockProcessor(args ArgsSovereignChainBlockProcessor) (*so
 	if check.IfNil(args.ValidatorInfoCreator) {
 		return nil, process.ErrNilEpochStartValidatorInfoCreator
 	}
+	if check.IfNil(args.EpochSystemSCProcessor) {
+		return nil, process.ErrNilEpochStartSystemSCProcessor
+	}
 
 	scbp := &sovereignChainBlockProcessor{
 		shardProcessor:               args.ShardProcessor,
@@ -102,6 +106,8 @@ func NewSovereignChainBlockProcessor(args ArgsSovereignChainBlockProcessor) (*so
 		epochRewardsCreator:          args.EpochRewardsCreator,
 		validatorInfoCreator:         args.ValidatorInfoCreator,
 	}
+
+	scbp.baseProcessor.epochSystemSCProcessor = args.EpochSystemSCProcessor
 
 	scbp.uncomputedRootHash = scbp.hasher.Compute(rootHash)
 
@@ -189,6 +195,21 @@ func (scbp *sovereignChainBlockProcessor) CreateBlock(initialHdr data.HeaderHand
 		epoch := scbp.epochStartTrigger.MetaEpoch()
 		log.Debug("sovereignChainBlockProcessor.CreateBlock", "isEpochStart", true, "epoch from epoch start trigger", epoch)
 		err = initialHdr.SetEpoch(epoch)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		err = sovereignChainHeaderHandler.SetStartOfEpochHeader()
+		if err != nil {
+			return nil, nil, err
+		}
+
+		shardHdr, ok := initialHdr.(data.ShardHeaderHandler)
+		if !ok {
+			return nil, nil, err
+		}
+
+		err = shardHdr.SetEpochStartMetaHash(scbp.epochStartTrigger.EpochStartMetaHdrHash())
 		if err != nil {
 			return nil, nil, err
 		}
@@ -809,7 +830,7 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 		return nil, nil, err
 	}
 
-	if scbp.epochStartTrigger.IsEpochStart() { // TODO: FIX THIS SOMEHIOWWWWW //shardHeader.IsStartOfEpochBlock() {
+	if shardHeader.IsStartOfEpochBlock() { // TODO: FIX THIS SOMEHIOWWWWW //shardHeader.IsStartOfEpochBlock() {
 		err = scbp.processEpochStartMetaBlock(shardHeader, body)
 		if err != nil {
 			return nil, nil, err
@@ -1401,9 +1422,8 @@ func (scbp *sovereignChainBlockProcessor) CommitBlock(headerHandler data.HeaderH
 
 func (scbp *sovereignChainBlockProcessor) commitEpochStart(header data.HeaderHandler, body *block.Body) {
 	// THIS CHECK IS NOT OOOKKKKKKKK
-	if scbp.epochStartTrigger.IsEpochStart() { //header.IsStartOfEpochBlock() {
+	if header.IsStartOfEpochBlock() {
 		scbp.epochStartTrigger.SetProcessed(header, body)
-		//scbp.epochStartTrigger.SetProcessed(header, body)
 
 		go scbp.validatorInfoCreator.SaveBlockDataToStorage(header, body)
 
