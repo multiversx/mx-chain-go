@@ -27,6 +27,9 @@ then
   newgrp docker
 fi
 
+# load config paths
+source config/configs.cfg
+
 mkdir -p $(eval echo "${CONTRACTS_DIRECTORY}")
 version=$(basename `curl -s https://github.com/multiversx/mx-sovereign-sc/releases/latest -I | grep location | awk -F"https:/" '{print $2}' | tr -d "\r"`)
 wget -O $(eval echo ${ESDT_SAFE_WASM}) https://github.com/multiversx/mx-sovereign-sc/releases/download/${version}/esdt-safe.wasm
