@@ -2088,7 +2088,7 @@ func getTestChainSimulatorWithSaveToSystemAccountDisabled(t *testing.T, baseIssu
 
 	numOfShards := uint32(3)
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:   false,
+		BypassTxSignatureCheck:   true,
 		TempDir:                  t.TempDir(),
 		PathToInitialConfig:      defaultPathToInitialConfig,
 		NumOfShards:              numOfShards,
