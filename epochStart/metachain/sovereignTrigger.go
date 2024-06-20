@@ -1,19 +1,24 @@
 package metachain
 
 import (
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	errorsMx "github.com/multiversx/mx-chain-go/errors"
 )
 
 type sovereignTrigger struct {
 	*trigger
+	registryCreator triggerRegistryCreator
 }
 
-func NewSovereignTrigger(metaTrigger *trigger) (*sovereignTrigger, error) {
-	if check.IfNil(metaTrigger) {
-		return nil, errorsMx.ErrNilEpochStartTrigger
+func NewSovereignTrigger(args *ArgsNewMetaEpochStartTrigger) (*sovereignTrigger, error) {
+	metaTrigger, err := newTrigger(args, &block.SovereignChainHeader{}, &sovereignTriggerRegistryCreator{})
+	if err != nil {
+		return nil, err
+	}
+
+	err = metaTrigger.saveState(metaTrigger.triggerStateKey)
+	if err != nil {
+		return nil, err
 	}
 
 	return &sovereignTrigger{

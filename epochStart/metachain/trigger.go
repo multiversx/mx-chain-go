@@ -71,45 +71,28 @@ type trigger struct {
 	hasher                      hashing.Hasher
 	appStatusHandler            core.AppStatusHandler
 	validatorInfoPool           epochStart.ValidatorInfoCacher
+	registryCreator             triggerRegistryCreator
 }
 
 // NewEpochStartTrigger creates a trigger for start of epoch
 func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) {
-	if args == nil {
-		return nil, epochStart.ErrNilArgsNewMetaEpochStartTrigger
+	trig, err := newTrigger(args, &block.MetaBlock{}, &metaTriggerRegistryCreator{})
+	if err != nil {
+		return nil, err
 	}
-	if args.Settings == nil {
-		return nil, epochStart.ErrNilEpochStartSettings
+
+	err = trig.saveState(trig.triggerStateKey)
+	if err != nil {
+		return nil, err
 	}
-	if args.Settings.RoundsPerEpoch < 1 {
-		return nil, fmt.Errorf("%w, RoundsPerEpoch < 1", epochStart.ErrInvalidSettingsForEpochStartTrigger)
-	}
-	if args.Settings.MinRoundsBetweenEpochs < 1 {
-		return nil, fmt.Errorf("%w, MinRoundsBetweenEpochs < 1", epochStart.ErrInvalidSettingsForEpochStartTrigger)
-	}
-	if args.Settings.MinRoundsBetweenEpochs > args.Settings.RoundsPerEpoch {
-		return nil, fmt.Errorf("%w, MinRoundsBetweenEpochs > RoundsPerEpoch", epochStart.ErrInvalidSettingsForEpochStartTrigger)
-	}
-	if check.IfNil(args.EpochStartNotifier) {
-		return nil, epochStart.ErrNilEpochStartNotifier
-	}
-	if check.IfNil(args.Marshalizer) {
-		return nil, epochStart.ErrNilMarshalizer
-	}
-	if check.IfNil(args.Storage) {
-		return nil, epochStart.ErrNilStorageService
-	}
-	if check.IfNil(args.Hasher) {
-		return nil, epochStart.ErrNilHasher
-	}
-	if check.IfNil(args.AppStatusHandler) {
-		return nil, epochStart.ErrNilStatusHandler
-	}
-	if check.IfNil(args.DataPool) {
-		return nil, epochStart.ErrNilDataPoolsHolder
-	}
-	if check.IfNil(args.DataPool.CurrentEpochValidatorInfo()) {
-		return nil, epochStart.ErrNilCurrentEpochValidatorsInfoPool
+
+	return trig, nil
+}
+
+func newTrigger(args *ArgsNewMetaEpochStartTrigger, epochStartHeader data.HeaderHandler, registryCreator triggerRegistryCreator) (*trigger, error) {
+	err := checkArgs(args)
+	if err != nil {
+		return nil, err
 	}
 
 	triggerStorage, err := args.Storage.GetStorer(dataRetriever.BootstrapUnit)
@@ -123,7 +106,7 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 	}
 
 	trigggerStateKey := common.TriggerRegistryInitialKeyPrefix + fmt.Sprintf("%d", args.Epoch)
-	trig := &trigger{
+	return &trigger{
 		triggerStateKey:             []byte(trigggerStateKey),
 		roundsPerEpoch:              uint64(args.Settings.RoundsPerEpoch),
 		epochStartTime:              args.GenesisTime,
@@ -138,18 +121,53 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 		triggerStorage:              triggerStorage,
 		marshaller:                  args.Marshalizer,
 		hasher:                      args.Hasher,
-		epochStartMeta:              &block.MetaBlock{},
+		epochStartMeta:              epochStartHeader,
 		appStatusHandler:            args.AppStatusHandler,
 		nextEpochStartRound:         disabledRoundForForceEpochStart,
 		validatorInfoPool:           args.DataPool.CurrentEpochValidatorInfo(),
+		registryCreator:             registryCreator,
+	}, nil
+}
+
+func checkArgs(args *ArgsNewMetaEpochStartTrigger) error {
+	if args == nil {
+		return epochStart.ErrNilArgsNewMetaEpochStartTrigger
+	}
+	if args.Settings == nil {
+		return epochStart.ErrNilEpochStartSettings
+	}
+	if args.Settings.RoundsPerEpoch < 1 {
+		return fmt.Errorf("%w, RoundsPerEpoch < 1", epochStart.ErrInvalidSettingsForEpochStartTrigger)
+	}
+	if args.Settings.MinRoundsBetweenEpochs < 1 {
+		return fmt.Errorf("%w, MinRoundsBetweenEpochs < 1", epochStart.ErrInvalidSettingsForEpochStartTrigger)
+	}
+	if args.Settings.MinRoundsBetweenEpochs > args.Settings.RoundsPerEpoch {
+		return fmt.Errorf("%w, MinRoundsBetweenEpochs > RoundsPerEpoch", epochStart.ErrInvalidSettingsForEpochStartTrigger)
+	}
+	if check.IfNil(args.EpochStartNotifier) {
+		return epochStart.ErrNilEpochStartNotifier
+	}
+	if check.IfNil(args.Marshalizer) {
+		return epochStart.ErrNilMarshalizer
+	}
+	if check.IfNil(args.Storage) {
+		return epochStart.ErrNilStorageService
+	}
+	if check.IfNil(args.Hasher) {
+		return epochStart.ErrNilHasher
+	}
+	if check.IfNil(args.AppStatusHandler) {
+		return epochStart.ErrNilStatusHandler
+	}
+	if check.IfNil(args.DataPool) {
+		return epochStart.ErrNilDataPoolsHolder
+	}
+	if check.IfNil(args.DataPool.CurrentEpochValidatorInfo()) {
+		return epochStart.ErrNilCurrentEpochValidatorsInfoPool
 	}
 
-	err = trig.saveState(trig.triggerStateKey)
-	if err != nil {
-		return nil, err
-	}
-
-	return trig, nil
+	return nil
 }
 
 // IsEpochStart return true if conditions are fulfilled for start of epoch
@@ -231,7 +249,7 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, body data.BodyHandler)
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
-	metaBlock, ok := header.(*block.SovereignChainHeader)
+	metaBlock, ok := header.(*block.MetaBlock)
 	if !ok {
 		log.Error("metachain.trigger", "error", data.ErrInvalidTypeAssertion)
 		return

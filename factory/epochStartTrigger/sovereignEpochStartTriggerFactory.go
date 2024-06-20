@@ -22,12 +22,7 @@ func (f *sovereignEpochStartTriggerFactory) CreateEpochStartTrigger(args factory
 		return nil, err
 	}
 
-	metaTrigger, err := metachain.NewEpochStartTrigger(metaTriggerArgs)
-	if err != nil {
-		return nil, err
-	}
-
-	return metachain.NewSovereignTrigger(metaTrigger)
+	return metachain.NewSovereignTrigger(metaTriggerArgs)
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil

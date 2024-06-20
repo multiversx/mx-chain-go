@@ -3,10 +3,67 @@ package metachain
 import (
 	"encoding/json"
 
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/epochStart"
 )
+
+type MetaTriggerRegistryHandler interface {
+	GetEpoch() uint32
+	GetCurrentRound() uint64
+	GetEpochFinalityAttestingRound() uint64
+	GetCurrEpochStartRound() uint64
+	GetPrevEpochStartRound() uint64
+	GetEpochStartMetaHash() []byte
+}
+
+type triggerRegistryCreator interface {
+	createRegistry(header data.HeaderHandler, t *trigger) (MetaTriggerRegistryHandler, error)
+}
+
+type metaTriggerRegistryCreator struct {
+}
+
+type sovereignTriggerRegistryCreator struct {
+}
+
+func (mt *metaTriggerRegistryCreator) createRegistry(header data.HeaderHandler, t *trigger) (MetaTriggerRegistryHandler, error) {
+	metaHeader, ok := header.(*block.MetaBlock)
+	if !ok {
+		return nil, epochStart.ErrWrongTypeAssertion
+	}
+
+	registry := &block.MetaTriggerRegistry{}
+	registry.CurrentRound = t.currentRound
+	registry.EpochFinalityAttestingRound = t.epochFinalityAttestingRound
+	registry.CurrEpochStartRound = t.currEpochStartRound
+	registry.PrevEpochStartRound = t.prevEpochStartRound
+	registry.Epoch = t.epoch
+	registry.EpochStartMetaHash = t.epochStartMetaHash
+	registry.EpochStartMeta = metaHeader
+
+	return registry, nil
+}
+
+func (st *sovereignTriggerRegistryCreator) createRegistry(header data.HeaderHandler, t *trigger) (MetaTriggerRegistryHandler, error) {
+	sovChainHdr, ok := header.(*block.SovereignChainHeader)
+	if !ok {
+		return nil, epochStart.ErrWrongTypeAssertion
+	}
+
+	registry := &block.SovereignShardTriggerRegistry{}
+	registry.CurrentRound = t.currentRound
+	registry.EpochFinalityAttestingRound = t.epochFinalityAttestingRound
+	registry.CurrEpochStartRound = t.currEpochStartRound
+	registry.PrevEpochStartRound = t.prevEpochStartRound
+	registry.Epoch = t.epoch
+	registry.EpochStartMetaHash = t.epochStartMetaHash
+	registry.SovereignChainHeader = sovChainHdr
+
+	return registry, nil
+}
 
 // LoadState loads into trigger the saved state
 func (t *trigger) LoadState(key []byte) error {
@@ -58,18 +115,11 @@ func UnmarshalTrigger(marshaller marshal.Marshalizer, data []byte) (*block.MetaT
 
 // saveState saves the trigger state. Needs to be called under mutex
 func (t *trigger) saveState(key []byte) error {
-	//metaHeader, ok := t.epochStartMeta.(*block.MetaBlock)
-	//if !ok {
-	//	return epochStart.ErrWrongTypeAssertion
-	//}
-	registry := &block.MetaTriggerRegistry{}
-	registry.CurrentRound = t.currentRound
-	registry.EpochFinalityAttestingRound = t.epochFinalityAttestingRound
-	registry.CurrEpochStartRound = t.currEpochStartRound
-	registry.PrevEpochStartRound = t.prevEpochStartRound
-	registry.Epoch = t.epoch
-	registry.EpochStartMetaHash = t.epochStartMetaHash
-	//registry.EpochStartMeta = metaHeader
+	registry, err := t.registryCreator.createRegistry(t.epochStartMeta, t)
+	if err != nil {
+		return err
+	}
+
 	triggerData, err := t.marshaller.Marshal(registry)
 	if err != nil {
 		return err
