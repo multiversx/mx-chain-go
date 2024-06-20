@@ -71,7 +71,7 @@ type trigger struct {
 	hasher                      hashing.Hasher
 	appStatusHandler            core.AppStatusHandler
 	validatorInfoPool           epochStart.ValidatorInfoCacher
-	registryCreator             triggerRegistryCreator
+	registryHandler             registryHandler
 }
 
 // NewEpochStartTrigger creates a trigger for start of epoch
@@ -89,7 +89,7 @@ func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) 
 	return trig, nil
 }
 
-func newTrigger(args *ArgsNewMetaEpochStartTrigger, epochStartHeader data.HeaderHandler, registryCreator triggerRegistryCreator) (*trigger, error) {
+func newTrigger(args *ArgsNewMetaEpochStartTrigger, epochStartHeader data.HeaderHandler, registryHandler registryHandler) (*trigger, error) {
 	err := checkArgs(args)
 	if err != nil {
 		return nil, err
@@ -125,7 +125,7 @@ func newTrigger(args *ArgsNewMetaEpochStartTrigger, epochStartHeader data.Header
 		appStatusHandler:            args.AppStatusHandler,
 		nextEpochStartRound:         disabledRoundForForceEpochStart,
 		validatorInfoPool:           args.DataPool.CurrentEpochValidatorInfo(),
-		registryCreator:             registryCreator,
+		registryHandler:             registryHandler,
 	}, nil
 }
 
@@ -350,6 +350,7 @@ func (t *trigger) RevertStateToBlock(header data.HeaderHandler) error {
 	return nil
 }
 
+// TODO: take care of this when economics is added to sovereign block
 func (t *trigger) revert(header data.HeaderHandler) error {
 	if check.IfNil(header) || !header.IsStartOfEpochBlock() || header.GetEpoch() == 0 {
 		return nil

@@ -7,7 +7,7 @@ import (
 
 type sovereignTrigger struct {
 	*trigger
-	registryCreator triggerRegistryCreator
+	registryHandler registryHandler
 }
 
 func NewSovereignTrigger(args *ArgsNewMetaEpochStartTrigger) (*sovereignTrigger, error) {
