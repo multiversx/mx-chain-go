@@ -36,7 +36,9 @@ const (
 	// ChainID contains the chain id
 	ChainID = "chain"
 
-	allValidatorsPemFileName = "allValidatorsKeys.pem"
+	// ChainSimulatorConsensusGroupSize defines the size of the consensus group for chain simulator
+	ChainSimulatorConsensusGroupSize = 1
+	allValidatorsPemFileName         = "allValidatorsKeys.pem"
 )
 
 // ArgsChainSimulatorConfigs holds all the components needed to create the chain simulator configs
