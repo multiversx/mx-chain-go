@@ -6,6 +6,11 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 )
 
+type LatestDataProviderFactory interface {
+	CreateLatestDataProvider(args ArgsLatestDataProvider) (storage.LatestStorageDataProviderHandler, error)
+	IsInterfaceNil() bool
+}
+
 type MetaEpochStartTriggerRegistryHandler interface {
 	UnmarshalTrigger(marshaller marshal.Marshalizer, data []byte) (data.MetaTriggerRegistryHandler, error)
 }

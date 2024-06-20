@@ -34,6 +34,7 @@ import (
 	nodesCoord "github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state/factory"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
+	"github.com/multiversx/mx-chain-go/storage/latestData"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -253,5 +254,6 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		genesisBlockCreatorFactory:              processComp.NewSovereignGenesisBlockCreatorFactory(),
 		genesisMetaBlockCheckerCreator:          processComp.NewSovereignGenesisMetaBlockChecker(),
 		epochStartTriggerFactory:                epochStartTrigger.NewSovereignEpochStartTriggerFactory(),
+		latestDataProviderFactory:               latestData.NewSovereignLatestDataProviderFactory(),
 	}, nil
 }
