@@ -48,6 +48,8 @@ sovereignDeploy() {
 
     setEsdtSafeAddressInHeaderVerifier
 
+    createObserver
+
     sovereignStart
 
     setHeaderVerifierAddressInEsdtSafe
