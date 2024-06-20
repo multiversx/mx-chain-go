@@ -149,7 +149,7 @@ func (txProc *baseTxProcessor) checkTxValues(
 
 		_, dstShardTxType := txProc.txTypeHandler.ComputeTransactionType(tx)
 		isMoveBalance := dstShardTxType == process.MoveBalance
-		txFee = txProc.computeTxFee(tx, isMoveBalance)
+		txFee = txProc.computeTxFeeForRelayed(tx, isMoveBalance)
 	} else {
 		txFee = txProc.economicsFee.ComputeTxFee(tx)
 	}
@@ -176,7 +176,7 @@ func (txProc *baseTxProcessor) checkTxValues(
 	return nil
 }
 
-func (txProc *baseTxProcessor) computeTxFee(tx *transaction.Transaction, isInnerTxMoveBalance bool) *big.Int {
+func (txProc *baseTxProcessor) computeTxFeeForRelayed(tx *transaction.Transaction, isInnerTxMoveBalance bool) *big.Int {
 	if txProc.enableEpochsHandler.IsFlagEnabled(common.FixRelayedMoveBalanceFlag) && isInnerTxMoveBalance {
 		return txProc.computeTxFeeAfterMoveBalanceFix(tx)
 	}

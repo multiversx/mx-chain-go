@@ -290,6 +290,10 @@ func (ed *economicsData) ComputeTxFeeInEpoch(tx data.TransactionWithFeeHandler, 
 		return totalFee
 	}
 
+	if ed.enableEpochsHandler.IsFlagEnabledInEpoch(common.FullGasPriceForSCRsFlag, epoch) {
+
+	}
+
 	if ed.enableEpochsHandler.IsFlagEnabledInEpoch(common.GasPriceModifierFlag, epoch) {
 		if isSmartContractResult(tx) {
 			return ed.ComputeFeeForProcessingInEpoch(tx, tx.GetGasLimit(), epoch)

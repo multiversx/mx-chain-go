@@ -401,7 +401,7 @@ func (txProc *txProcessor) processTxFee(
 
 	if isUserTxOfRelayed {
 		isUserTxMoveBalance := dstShardTxType == process.MoveBalance
-		totalCost := txProc.computeTxFee(tx, isUserTxMoveBalance)
+		totalCost := txProc.computeTxFeeForRelayed(tx, isUserTxMoveBalance)
 
 		err := acntSnd.SubFromBalance(totalCost)
 		if err != nil {
@@ -746,7 +746,7 @@ func (txProc *txProcessor) processInnerTx(
 
 	_, dstShardTxType := txProc.txTypeHandler.ComputeTransactionType(innerTx)
 	isMoveBalance := dstShardTxType == process.MoveBalance
-	txFee := txProc.computeTxFee(innerTx, isMoveBalance)
+	txFee := txProc.computeTxFeeForRelayed(innerTx, isMoveBalance)
 
 	acntSnd, err := txProc.getAccountFromAddress(innerTx.SndAddr)
 	if err != nil {
@@ -904,7 +904,7 @@ func (txProc *txProcessor) removeValueAndConsumedFeeFromUser(
 
 	_, dstShardTxType := txProc.txTypeHandler.ComputeTransactionType(userTx)
 	isMoveBalance := dstShardTxType == process.MoveBalance
-	consumedFee := txProc.computeTxFee(userTx, isMoveBalance)
+	consumedFee := txProc.computeTxFeeForRelayed(userTx, isMoveBalance)
 
 	err = userAcnt.SubFromBalance(consumedFee)
 	if err != nil {
