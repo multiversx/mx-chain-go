@@ -220,26 +220,8 @@ func (scbp *sovereignChainBlockProcessor) CreateBlock(initialHdr data.HeaderHand
 		//	return nil, nil, err
 		//}
 
-		// NEED TO SEE HOW TO FIX THIS ????
-
-		//hash, err := core.CalculateHash(scbp.marshalizer, scbp.hasher, sovereignChainHeaderHandler)
-		//if err != nil {
-		//	return nil, nil, err
-		//}
-		//
-		//err = sovereignChainHeaderHandler.SetEpochStartHeaderHash(hash)
-		//if err != nil {
-		//	return nil, nil, err
-		//}
-		//body, err := scbp.createEpochStartBody(initialHdr)
-		//if err != nil {
-		//	return nil, nil, err
-		//}
-
 		scbp.blockChainHook.SetCurrentHeader(initialHdr)
-
 		scbp.requestHandler.SetEpoch(initialHdr.GetEpoch())
-
 		return initialHdr, &block.Body{}, nil
 	}
 
@@ -279,75 +261,6 @@ func (scbp *sovereignChainBlockProcessor) CreateBlock(initialHdr data.HeaderHand
 	scbp.requestHandler.SetEpoch(initialHdr.GetEpoch())
 
 	return initialHdr, &block.Body{MiniBlocks: miniBlocks}, nil
-}
-
-func (mp *sovereignChainBlockProcessor) createEpochStartBody(metaBlock data.HeaderHandler) (data.BodyHandler, error) {
-	err := mp.createBlockStarted()
-	if err != nil {
-		return nil, err
-	}
-
-	log.Debug("started creating epoch start block body",
-		"epoch", metaBlock.GetEpoch(),
-		"round", metaBlock.GetRound(),
-		"nonce", metaBlock.GetNonce(),
-	)
-
-	currentRootHash, err := mp.validatorStatisticsProcessor.RootHash()
-	if err != nil {
-		return nil, err
-	}
-
-	allValidatorsInfo, err := mp.validatorStatisticsProcessor.GetValidatorInfoForRootHash(currentRootHash)
-	if err != nil {
-		return nil, err
-	}
-
-	//err = mp.validatorStatisticsProcessor.ProcessRatingsEndOfEpoch(allValidatorsInfo, metaBlock.GetEpoch())
-	//if err != nil {
-	//	return nil, err
-	//}
-
-	// TODO: Take care of rewards another time
-	//var rewardMiniBlocks block.MiniBlockSlice
-	//
-	//err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, metaBlock)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//rewardMiniBlocks, err = mp.epochRewardsCreator.CreateRewardsMiniBlocks(metaBlock, allValidatorsInfo, &metaBlock.EpochStart.Economics)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//metaBlock.EpochStart.Economics.RewardsForProtocolSustainability.Set(mp.epochRewardsCreator.GetProtocolSustainabilityRewards())
-
-	//err = mp.epochSystemSCProcessor.ProcessDelegationRewards(rewardMiniBlocks, mp.epochRewardsCreator.GetLocalTxCache())
-	//if err != nil {
-	//	return nil, err
-	//}
-
-	validatorMiniBlocks, err := mp.validatorInfoCreator.CreateValidatorInfoMiniBlocks(allValidatorsInfo)
-	if err != nil {
-		return nil, err
-	}
-
-	// WHAT TO DO HERE?
-	//err = mp.validatorStatisticsProcessor.ResetValidatorStatisticsAtNewEpoch(allValidatorsInfo)
-	//if err != nil {
-	//	return nil, err
-	//}
-
-	for _, valMB := range validatorMiniBlocks {
-		valMB.ReceiverShardID = core.SovereignChainShardId
-	}
-
-	finalMiniBlocks := make([]*block.MiniBlock, 0)
-	//finalMiniBlocks = append(finalMiniBlocks, rewardMiniBlocks...)
-	finalMiniBlocks = append(finalMiniBlocks, validatorMiniBlocks...)
-
-	return &block.Body{MiniBlocks: finalMiniBlocks}, nil
 }
 
 func (scbp *sovereignChainBlockProcessor) createAllMiniBlocks(
@@ -959,10 +872,10 @@ func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
 	}
 
 	// WHAT TO DO HERE?
-	//err = mp.validatorStatisticsProcessor.ResetValidatorStatisticsAtNewEpoch(allValidatorsInfo)
-	//if err != nil {
-	//	return nil, err
-	//}
+	err = scbp.validatorStatisticsProcessor.ResetValidatorStatisticsAtNewEpoch(allValidatorsInfo)
+	if err != nil {
+		return err
+	}
 
 	for _, valMB := range validatorMiniBlocks {
 		valMB.ReceiverShardID = core.SovereignChainShardId

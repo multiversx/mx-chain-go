@@ -231,37 +231,45 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, body data.BodyHandler)
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
-	metaBlock := header.(*block.SovereignChainHeader)
-
-	if !metaBlock.IsStartOfEpochBlock() {
+	metaBlock, ok := header.(*block.SovereignChainHeader)
+	if !ok {
+		log.Error("metachain.trigger", "error", data.ErrInvalidTypeAssertion)
 		return
 	}
 
-	metaBuff, errNotCritical := t.marshaller.Marshal(metaBlock)
+	t.baseSetProcessed(metaBlock, body)
+}
+
+func (t *trigger) baseSetProcessed(header data.HeaderHandler, body data.BodyHandler) {
+	if !header.IsStartOfEpochBlock() {
+		return
+	}
+
+	metaBuff, errNotCritical := t.marshaller.Marshal(header)
 	if errNotCritical != nil {
 		log.Debug("SetProcessed marshal", "error", errNotCritical.Error())
 	}
 
-	t.appStatusHandler.SetUInt64Value(common.MetricRoundAtEpochStart, metaBlock.GetRound())
-	t.appStatusHandler.SetUInt64Value(common.MetricNonceAtEpochStart, metaBlock.GetNonce())
+	t.appStatusHandler.SetUInt64Value(common.MetricRoundAtEpochStart, header.GetRound())
+	t.appStatusHandler.SetUInt64Value(common.MetricNonceAtEpochStart, header.GetNonce())
 
 	metaHash := t.hasher.Compute(string(metaBuff))
 
-	t.currEpochStartRound = metaBlock.GetRound()
-	t.epoch = metaBlock.GetEpoch()
+	t.currEpochStartRound = header.GetRound()
+	t.epoch = header.GetEpoch()
 	t.isEpochStart = false
-	t.currentRound = metaBlock.GetRound()
-	t.epochStartMeta = metaBlock
+	t.currentRound = header.GetRound()
+	t.epochStartMeta = header
 	t.epochStartMetaHash = metaHash
 
-	t.epochStartNotifier.NotifyAllPrepare(metaBlock, body)
-	t.epochStartNotifier.NotifyAll(metaBlock)
+	t.epochStartNotifier.NotifyAllPrepare(header, body)
+	t.epochStartNotifier.NotifyAll(header)
 
-	t.saveCurrentState(metaBlock.GetRound())
+	t.saveCurrentState(header.GetRound())
 
 	log.Debug("trigger.SetProcessed", "isEpochStart", t.isEpochStart)
 
-	epochStartIdentifier := core.EpochStartIdentifier(metaBlock.GetEpoch())
+	epochStartIdentifier := core.EpochStartIdentifier(header.GetEpoch())
 	errNotCritical = t.triggerStorage.Put([]byte(epochStartIdentifier), metaBuff)
 	if errNotCritical != nil {
 		log.Warn("SetProcessed put into triggerStorage", "error", errNotCritical.Error())
