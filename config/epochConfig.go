@@ -117,8 +117,9 @@ type EnableEpochs struct {
 	DynamicESDTEnableEpoch                                   uint32
 	EGLDInMultiTransferEnableEpoch                           uint32
 	CryptoOpcodesV2EnableEpoch                               uint32
-	RelayedTransactionsV3EnableEpoch                  		 uint32
-	FixRelayedMoveBalanceEnableEpoch                  		 uint32
+	RelayedTransactionsV3EnableEpoch                         uint32
+	FixRelayedMoveBalanceEnableEpoch                         uint32
+	FullGasPriceForSCRsEnableEpoch                           uint32
 	BLSMultiSignerEnableEpoch                                []MultiSignerConfig
 }
 

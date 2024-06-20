@@ -878,6 +878,9 @@ func TestEnableEpochConfig(t *testing.T) {
     # FixRelayedMoveBalanceEnableEpoch represents the epoch when the fix for relayed for move balance will be enabled
     FixRelayedMoveBalanceEnableEpoch = 100
 
+    # FullGasPriceForSCRsEnableEpoch represents the epoch when the full gasPrice is taken for SCRs
+    FullGasPriceForSCRsEnableEpoch = 101
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -994,8 +997,9 @@ func TestEnableEpochConfig(t *testing.T) {
 			DynamicESDTEnableEpoch:                                   96,
 			EGLDInMultiTransferEnableEpoch:                           97,
 			CryptoOpcodesV2EnableEpoch:                               98,
-			RelayedTransactionsV3EnableEpoch:                  		  99,
-			FixRelayedMoveBalanceEnableEpoch:                  		  100,
+			RelayedTransactionsV3EnableEpoch:                         99,
+			FixRelayedMoveBalanceEnableEpoch:                         100,
+			FullGasPriceForSCRsEnableEpoch:                           101,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,

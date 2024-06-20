@@ -324,8 +324,8 @@
     # FixRelayedMoveBalanceEnableEpoch represents the epoch when the fix for relayed for move balance will be enabled
     FixRelayedMoveBalanceEnableEpoch = 7
 
-    # FullGasPriceForSCRs represents the epoch when the full gasPrice is taken for SCRs
-    FullGasPriceForSCRs = 8
+    # FullGasPriceForSCRsEnableEpoch represents the epoch when the full gasPrice is taken for SCRs
+    FullGasPriceForSCRsEnableEpoch = 8
 
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [

@@ -3275,6 +3275,7 @@ func CreateEnableEpochsConfig() config.EnableEpochs {
 		SCProcessorV2EnableEpoch:                          UnreachableEpoch,
 		RelayedTransactionsV3EnableEpoch:                  UnreachableEpoch,
 		FixRelayedMoveBalanceEnableEpoch:                  UnreachableEpoch,
+		FullGasPriceForSCRsEnableEpoch:                    UnreachableEpoch,
 	}
 }
 

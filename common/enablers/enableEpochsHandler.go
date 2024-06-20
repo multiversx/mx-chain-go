@@ -762,6 +762,12 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.FixRelayedMoveBalanceEnableEpoch,
 		},
+		common.FullGasPriceForSCRsFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.FullGasPriceForSCRsEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.FullGasPriceForSCRsEnableEpoch,
+		},
 	}
 }
 

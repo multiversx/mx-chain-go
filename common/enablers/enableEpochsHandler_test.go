@@ -121,6 +121,7 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		CryptoOpcodesV2EnableEpoch:                               104,
 		RelayedTransactionsV3EnableEpoch:                         105,
 		FixRelayedMoveBalanceEnableEpoch:                         106,
+		FullGasPriceForSCRsEnableEpoch:                           107,
 	}
 }
 
@@ -323,6 +324,7 @@ func TestEnableEpochsHandler_IsFlagEnabled(t *testing.T) {
 	require.True(t, handler.IsFlagEnabled(common.DynamicESDTFlag))
 	require.True(t, handler.IsFlagEnabled(common.RelayedTransactionsV3Flag))
 	require.True(t, handler.IsFlagEnabled(common.FixRelayedMoveBalanceFlag))
+	require.True(t, handler.IsFlagEnabled(common.FullGasPriceForSCRsFlag))
 }
 
 func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
@@ -444,6 +446,7 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.CryptoOpcodesV2EnableEpoch, handler.GetActivationEpoch(common.CryptoOpcodesV2Flag))
 	require.Equal(t, cfg.RelayedTransactionsV3EnableEpoch, handler.GetActivationEpoch(common.RelayedTransactionsV3Flag))
 	require.Equal(t, cfg.FixRelayedMoveBalanceEnableEpoch, handler.GetActivationEpoch(common.FixRelayedMoveBalanceFlag))
+	require.Equal(t, cfg.FullGasPriceForSCRsEnableEpoch, handler.GetActivationEpoch(common.FullGasPriceForSCRsFlag))
 }
 
 func TestEnableEpochsHandler_IsInterfaceNil(t *testing.T) {
