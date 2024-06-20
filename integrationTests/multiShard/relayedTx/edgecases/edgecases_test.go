@@ -6,10 +6,8 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/multiShard/relayedTx"
-	"github.com/multiversx/mx-chain-go/process"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -34,16 +32,12 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTxButWrongNonceShoul
 	receiverAddress1 := []byte("12345678901234567890123456789012")
 	receiverAddress2 := []byte("12345678901234567890123456789011")
 
-	totalFees := big.NewInt(0)
-	relayerInitialValue := big.NewInt(0).Set(relayer.Balance)
 	nrRoundsToTest := int64(5)
 	for i := int64(0); i < nrRoundsToTest; i++ {
 		for _, player := range players {
 			player.Nonce += 1
-			relayerTx, userTx := relayedTx.CreateAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress1, sendValue, integrationTests.MinTxGasLimit, []byte(""))
-			appendFeeToTotalFees(relayerTx, userTx, nodes[0].EconomicsData, totalFees)
-			relayerTx, userTx = relayedTx.CreateAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress2, sendValue, integrationTests.MinTxGasLimit, []byte(""))
-			appendFeeToTotalFees(relayerTx, userTx, nodes[0].EconomicsData, totalFees)
+			_, _ = relayedTx.CreateAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress1, sendValue, integrationTests.MinTxGasLimit, []byte(""))
+			_, _ = relayedTx.CreateAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress2, sendValue, integrationTests.MinTxGasLimit, []byte(""))
 		}
 
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
@@ -71,9 +65,8 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTxButWrongNonceShoul
 		assert.Equal(t, uint64(0), account.GetNonce())
 	}
 
-	expectedBalance := big.NewInt(0).Sub(relayerInitialValue, totalFees)
 	relayerAccount := relayedTx.GetUserAccount(nodes, relayer.Address)
-	assert.True(t, relayerAccount.GetBalance().Cmp(expectedBalance) == 0)
+	assert.True(t, relayerAccount.GetBalance().Cmp(relayer.Balance) == 0)
 }
 
 func TestRelayedTransactionInMultiShardEnvironmentWithNormalTxButWithTooMuchGas(t *testing.T) {
@@ -148,16 +141,4 @@ func checkPlayerBalancesWithPenalization(
 		assert.Equal(t, 0, userAcc.GetBalance().Cmp(players[i].Balance))
 		assert.Equal(t, userAcc.GetNonce(), players[i].Nonce)
 	}
-}
-
-func appendFeeToTotalFees(relayerTx, userTx *transaction.Transaction, economicsData process.EconomicsDataHandler, totalFees *big.Int) {
-	relayerFee := economicsData.ComputeMoveBalanceFee(relayerTx)
-	totalFees.Add(totalFees, relayerFee)
-
-	userTxCopy := *userTx
-	if userTxCopy.GasLimit == 0 { // relayed v2
-		userTxCopy.GasLimit = relayerTx.GasLimit - economicsData.ComputeGasLimit(relayerTx)
-	}
-	userFee := economicsData.ComputeTxFee(&userTxCopy)
-	totalFees.Add(totalFees, userFee)
 }

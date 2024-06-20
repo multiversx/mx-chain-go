@@ -8,30 +8,37 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
 )
 
 // CreateGeneralSetupForRelayTxTest will create the general setup for relayed transactions
-func CreateGeneralSetupForRelayTxTest(intraShardPlayers bool) ([]*integrationTests.TestProcessorNode, []int, []*integrationTests.TestWalletAccount, *integrationTests.TestWalletAccount) {
+func CreateGeneralSetupForRelayTxTest(relayedV3Test bool) ([]*integrationTests.TestProcessorNode, []int, []*integrationTests.TestWalletAccount, *integrationTests.TestWalletAccount) {
 	initialVal := big.NewInt(10000000000)
-	nodes, idxProposers := createAndMintNodes(initialVal)
+	epochsConfig := integrationTests.GetDefaultEnableEpochsConfig()
+	if !relayedV3Test {
+		epochsConfig.RelayedTransactionsV3EnableEpoch = integrationTests.UnreachableEpoch
+		epochsConfig.FixRelayedMoveBalanceEnableEpoch = integrationTests.UnreachableEpoch
+	}
+	nodes, idxProposers := createAndMintNodes(initialVal, epochsConfig)
 
-	players, relayerAccount := createAndMintPlayers(intraShardPlayers, nodes, initialVal)
+	players, relayerAccount := createAndMintPlayers(relayedV3Test, nodes, initialVal)
 
 	return nodes, idxProposers, players, relayerAccount
 }
 
-func createAndMintNodes(initialVal *big.Int) ([]*integrationTests.TestProcessorNode, []int) {
+func createAndMintNodes(initialVal *big.Int, enableEpochsConfig *config.EnableEpochs) ([]*integrationTests.TestProcessorNode, []int) {
 	numOfShards := 2
 	nodesPerShard := 2
 	numMetachainNodes := 1
 
-	nodes := integrationTests.CreateNodes(
+	nodes := integrationTests.CreateNodesWithEnableEpochsConfig(
 		numOfShards,
 		nodesPerShard,
 		numMetachainNodes,
+		enableEpochsConfig,
 	)
 
 	idxProposers := make([]int, numOfShards+1)
@@ -193,7 +200,8 @@ func createRelayedTx(
 
 	relayer.Balance.Sub(relayer.Balance, tx.Value)
 
-	subFeesFromRelayer(tx, userTx, economicsFee, relayer)
+	txFee := economicsFee.ComputeTxFee(tx)
+	relayer.Balance.Sub(relayer.Balance, txFee)
 
 	return tx
 }
@@ -223,7 +231,8 @@ func createRelayedTxV2(
 
 	relayer.Balance.Sub(relayer.Balance, tx.Value)
 
-	subFeesFromRelayer(tx, userTx, economicsFee, relayer)
+	txFee := economicsFee.ComputeTxFee(tx)
+	relayer.Balance.Sub(relayer.Balance, txFee)
 
 	return tx
 }
@@ -253,7 +262,8 @@ func createRelayedTxV3(
 
 	relayer.Balance.Sub(relayer.Balance, tx.Value)
 
-	subFeesFromRelayer(tx, userTx, economicsFee, relayer)
+	txFee := economicsFee.ComputeTxFee(tx)
+	relayer.Balance.Sub(relayer.Balance, txFee)
 
 	return tx
 }
@@ -309,16 +319,4 @@ func GetUserAccount(
 		}
 	}
 	return nil
-}
-
-func subFeesFromRelayer(tx, userTx *transaction.Transaction, economicsFee process.FeeHandler, relayer *integrationTests.TestWalletAccount) {
-	relayerFee := economicsFee.ComputeMoveBalanceFee(tx)
-	relayer.Balance.Sub(relayer.Balance, relayerFee)
-
-	userTxCopy := *userTx
-	if userTxCopy.GasLimit == 0 { // relayed v2
-		userTxCopy.GasLimit = tx.GasLimit - economicsFee.ComputeGasLimit(tx)
-	}
-	userFee := economicsFee.ComputeTxFee(&userTxCopy)
-	relayer.Balance.Sub(relayer.Balance, userFee)
 }

@@ -3585,6 +3585,5 @@ func GetDefaultEnableEpochsConfig() *config.EnableEpochs {
 		DynamicGasCostForDataTrieStorageLoadEnableEpoch: UnreachableEpoch,
 		StakingV4Step1EnableEpoch:                       UnreachableEpoch,
 		StakingV4Step2EnableEpoch:                       UnreachableEpoch,
-		StakingV4Step3EnableEpoch:                       UnreachableEpoch,
 	}
 }

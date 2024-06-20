@@ -1271,3 +1271,6 @@ var ErrMultipleRelayedTxTypesIsNotAllowed = errors.New("multiple relayed tx type
 
 // ErrNilFailedTxLogsAccumulator signals that a nil failed transaction logs accumulator has been provided
 var ErrNilFailedTxLogsAccumulator = errors.New("nil failed transaction logs accumulator")
+
+// ErrEmptyInnerTransactions signals that the inner transactions slice is empty
+var ErrEmptyInnerTransactions = errors.New("empty inner transactions")

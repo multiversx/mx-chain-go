@@ -29,6 +29,7 @@ type baseTxProcessor struct {
 	enableEpochsHandler common.EnableEpochsHandler
 	txVersionChecker    process.TxVersionCheckerHandler
 	guardianChecker     process.GuardianChecker
+	txTypeHandler       process.TxTypeHandler
 }
 
 func (txProc *baseTxProcessor) getAccounts(
@@ -145,7 +146,10 @@ func (txProc *baseTxProcessor) checkTxValues(
 		if tx.GasLimit < txProc.economicsFee.ComputeGasLimit(tx) {
 			return process.ErrNotEnoughGasInUserTx
 		}
-		txFee = txProc.computeTxFee(tx)
+
+		_, dstShardTxType := txProc.txTypeHandler.ComputeTransactionType(tx)
+		isMoveBalance := dstShardTxType == process.MoveBalance
+		txFee = txProc.computeTxFee(tx, isMoveBalance)
 	} else {
 		txFee = txProc.economicsFee.ComputeTxFee(tx)
 	}
@@ -172,8 +176,8 @@ func (txProc *baseTxProcessor) checkTxValues(
 	return nil
 }
 
-func (txProc *baseTxProcessor) computeTxFee(tx *transaction.Transaction) *big.Int {
-	if txProc.enableEpochsHandler.IsFlagEnabled(common.FixRelayedMoveBalanceFlag) {
+func (txProc *baseTxProcessor) computeTxFee(tx *transaction.Transaction, isInnerTxMoveBalance bool) *big.Int {
+	if txProc.enableEpochsHandler.IsFlagEnabled(common.FixRelayedMoveBalanceFlag) && isInnerTxMoveBalance {
 		return txProc.computeTxFeeAfterMoveBalanceFix(tx)
 	}
 

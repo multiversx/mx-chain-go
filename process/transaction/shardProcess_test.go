@@ -2243,6 +2243,15 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 			ComputeMoveBalanceFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 				return big.NewInt(1)
 			},
+			ComputeRelayedTxFeesCalled: func(tx data.TransactionWithFeeHandler) (*big.Int, *big.Int, error) {
+				relayerFee := big.NewInt(0).SetInt64(int64(len(tx.GetUserTransactions()))) // gasPrice = 1
+				totalFee := *relayerFee
+				for _, innerTx := range tx.GetUserTransactions() {
+					totalFee.Add(&totalFee, big.NewInt(0).SetUint64(innerTx.GetGasLimit()))
+				}
+
+				return relayerFee, &totalFee, nil
+			},
 		}
 		args.RelayedTxV3Processor, _ = txproc.NewRelayedTxV3Processor(txproc.ArgRelayedTxV3Processor{
 			EconomicsFee:           args.EconomicsFee,
@@ -2356,6 +2365,15 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 		args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 			ComputeMoveBalanceFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 				return big.NewInt(int64(tx.GetGasPrice() * tx.GetGasLimit()))
+			},
+			ComputeRelayedTxFeesCalled: func(tx data.TransactionWithFeeHandler) (*big.Int, *big.Int, error) {
+				relayerFee := big.NewInt(0).SetInt64(int64(len(tx.GetUserTransactions()))) // gasPrice = 1
+				totalFee := *relayerFee
+				for _, innerTx := range tx.GetUserTransactions() {
+					totalFee.Add(&totalFee, big.NewInt(0).SetUint64(innerTx.GetGasLimit()))
+				}
+
+				return relayerFee, &totalFee, nil
 			},
 		}
 		args.RelayedTxV3Processor, _ = txproc.NewRelayedTxV3Processor(txproc.ArgRelayedTxV3Processor{
@@ -2546,6 +2564,15 @@ func testProcessRelayedTransactionV3(
 		},
 		ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
 			return 4
+		},
+		ComputeRelayedTxFeesCalled: func(tx data.TransactionWithFeeHandler) (*big.Int, *big.Int, error) {
+			relayerFee := big.NewInt(0).SetInt64(int64(len(tx.GetUserTransactions()))) // gasPrice = 1
+			totalFee := *relayerFee
+			for _, innerTx := range tx.GetUserTransactions() {
+				totalFee.Add(&totalFee, big.NewInt(0).SetUint64(innerTx.GetGasLimit()))
+			}
+
+			return relayerFee, &totalFee, nil
 		},
 	}
 	args.RelayedTxV3Processor, _ = txproc.NewRelayedTxV3Processor(txproc.ArgRelayedTxV3Processor{
@@ -3181,7 +3208,7 @@ func TestTxProcessor_ConsumeMoveBalanceWithUserTx(t *testing.T) {
 		ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return big.NewInt(150)
 		},
-		ComputeMoveBalanceFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
+		ComputeFeeForProcessingCalled: func(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
 			return big.NewInt(1)
 		},
 	}

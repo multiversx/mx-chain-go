@@ -20,7 +20,6 @@ var _ process.TransactionProcessor = (*metaTxProcessor)(nil)
 // txProcessor implements TransactionProcessor interface and can modify account states according to a transaction
 type metaTxProcessor struct {
 	*baseTxProcessor
-	txTypeHandler       process.TxTypeHandler
 	enableEpochsHandler common.EnableEpochsHandler
 }
 
@@ -89,11 +88,11 @@ func NewMetaTxProcessor(args ArgsNewMetaTxProcessor) (*metaTxProcessor, error) {
 		enableEpochsHandler: args.EnableEpochsHandler,
 		txVersionChecker:    args.TxVersionChecker,
 		guardianChecker:     args.GuardianChecker,
+		txTypeHandler:       args.TxTypeHandler,
 	}
 
 	txProc := &metaTxProcessor{
 		baseTxProcessor:     baseTxProcess,
-		txTypeHandler:       args.TxTypeHandler,
 		enableEpochsHandler: args.EnableEpochsHandler,
 	}
 
