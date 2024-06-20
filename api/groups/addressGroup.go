@@ -487,9 +487,10 @@ func buildTokenDataApiResponse(tokenIdentifier string, esdtData *esdt.ESDigitalT
 	tokenData := &ESDTNFTTokenData{
 		TokenIdentifier: tokenIdentifier,
 		Balance:         esdtData.Value.String(),
-		Type:            core.ESDTType(esdtData.GetType()).String(),
 		Properties:      hex.EncodeToString(esdtData.Properties),
 	}
+
+	tokenType := core.ESDTType(esdtData.Type).String()
 	if esdtData.TokenMetaData != nil {
 		tokenData.Name = string(esdtData.TokenMetaData.Name)
 		tokenData.Nonce = esdtData.TokenMetaData.Nonce
@@ -498,9 +499,23 @@ func buildTokenDataApiResponse(tokenIdentifier string, esdtData *esdt.ESDigitalT
 		tokenData.Hash = esdtData.TokenMetaData.Hash
 		tokenData.URIs = esdtData.TokenMetaData.URIs
 		tokenData.Attributes = esdtData.TokenMetaData.Attributes
+
+		tokenType = getTokenType(esdtData.GetType(), tokenData.Nonce)
 	}
 
+	tokenData.Type = tokenType
+
 	return tokenData
+}
+
+func getTokenType(tokenType uint32, tokenNonce uint64) string {
+	isNotFungible := tokenNonce != 0
+	tokenTypeNotSet := isNotFungible && core.ESDTType(tokenType) == core.Fungible
+	if tokenTypeNotSet {
+		return ""
+	}
+
+	return core.ESDTType(tokenType).String()
 }
 
 func (ag *addressGroup) getFacade() addressFacadeHandler {
