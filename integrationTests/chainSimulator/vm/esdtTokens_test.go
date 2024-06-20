@@ -68,9 +68,6 @@ func TestChainSimulator_Api_TokenType(t *testing.T) {
 
 	defer cs.Close()
 
-	mintValue := big.NewInt(10)
-	mintValue = mintValue.Mul(oneEGLD, mintValue)
-
 	err = cs.GenerateBlocksUntilEpochIsReached(int32(activationEpoch))
 	require.Nil(t, err)
 
@@ -233,9 +230,6 @@ func TestChainSimulator_Api_NFTToken(t *testing.T) {
 
 	defer cs.Close()
 
-	mintValue := big.NewInt(10)
-	mintValue = mintValue.Mul(oneEGLD, mintValue)
-
 	err = cs.GenerateBlocksUntilEpochIsReached(int32(activationEpoch) - 1)
 	require.Nil(t, err)
 
@@ -383,6 +377,7 @@ func doHTTPClientGetReq(t *testing.T, url string, response interface{}) {
 	httpClient := &http.Client{}
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
+	require.Nil(t, err)
 
 	resp, err := httpClient.Do(req)
 	require.Nil(t, err)
