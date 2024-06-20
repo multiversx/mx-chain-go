@@ -50,8 +50,6 @@ sovereignDeploy() {
 
     sovereignStart
 
-    deployObserver
-
     setHeaderVerifierAddressInEsdtSafe
 
     getFundsInAddressSovereign
@@ -66,10 +64,13 @@ sovereignDeploy() {
 # This function will start sovereign:
 # - update and start bridge service
 # - start sovereign nodes
+# - deploy main chain observer
 sovereignStart() {
     updateAndStartBridgeService
 
     $TESTNET_DIR/sovereignStart.sh
+
+    deployObserver
 }
 
 # This function will restart sovereign:
@@ -119,20 +120,22 @@ sovereignUpgradeAndReset() {
 # This function will stop sovereign:
 # - stop sovereign nodes
 # - stop the bridge service
+# - stop the main chain observer
 stopSovereign() {
     $TESTNET_DIR/stop.sh
 
     screen -S sovereignBridgeService -X kill
+
+    stopObserver
 }
 
 # This function will stop and clean sovereign:
 # - stop sovereign nodes and services
-# - clean the sovereign configuration
-# - stop the main chain observer
+# - clean the sovereign configuration and observer
 stopAndCleanSovereign() {
     stopSovereign
 
     $TESTNET_DIR/clean.sh
 
-    stopObserver
+    cleanObserver
 }

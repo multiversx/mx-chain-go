@@ -19,6 +19,9 @@ export USE_TXGEN=0
 # Docker must be managed as a non-root user: https://docs.docker.com/engine/install/linux-postinstall/
 export USE_ELASTICSEARCH=0
 
+# Elasticsearch volume name to keep the elastic history on host. History will be loaded when docker is starting.
+export ELASTICSEARCH_VOLUME="sov-elastic"
+
 # Path where the testnet will be instantiated. This folder is assumed to not
 # exist, but it doesn't matter if it already does. It will be created if not,
 # anyway.

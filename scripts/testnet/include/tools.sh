@@ -79,10 +79,6 @@ stopSeednode() {
 }
 
 stopElasticsearch() {
-  if [ ! -f "$TESTNETDIR/es_container_id.txt" ]; then
-    return
-  fi
-
   ES_CONTAINER_ID=$(cat $TESTNETDIR/es_container_id.txt)
   sudo docker stop $ES_CONTAINER_ID
 }
