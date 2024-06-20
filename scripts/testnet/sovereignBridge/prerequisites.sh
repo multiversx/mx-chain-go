@@ -8,7 +8,7 @@ pipx install multiversx-sdk-cli --force
 pipx ensurepath
 
 source config/configs.cfg
-source config/contracts.cfg
+source config/contracts.snippets.sh
 downloadCrossChainContracts
 
 # install docker
