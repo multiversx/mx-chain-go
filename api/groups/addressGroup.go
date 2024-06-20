@@ -510,7 +510,7 @@ func buildTokenDataApiResponse(tokenIdentifier string, esdtData *esdt.ESDigitalT
 
 func getTokenType(tokenType uint32, tokenNonce uint64) string {
 	isNotFungible := tokenNonce != 0
-	tokenTypeNotSet := isNotFungible && core.ESDTType(tokenType) == core.Fungible
+	tokenTypeNotSet := isNotFungible && core.ESDTType(tokenType) == core.NonFungible
 	if tokenTypeNotSet {
 		return ""
 	}
