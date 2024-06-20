@@ -90,7 +90,6 @@ sovereignReset() {
     sovereignDeploy
 }
 
-
 # This function will upgrade and reset sovereign:
 # - stop sovereign and clean nodes
 # - pull the latest changes for all the repositories
