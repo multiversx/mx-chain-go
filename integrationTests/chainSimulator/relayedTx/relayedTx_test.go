@@ -119,7 +119,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulator(t *testing.
 	relayerAccount, err := cs.GetAccount(relayer)
 	require.NoError(t, err)
 	economicsData := cs.GetNodeHandler(0).GetCoreComponents().EconomicsData()
-	relayerMoveBalanceFee := economicsData.ComputeMoveBalanceFee(relayedTx)
+	relayerMoveBalanceFee := economicsData.ComputeBaseFee(relayedTx)
 	expectedRelayerFee := big.NewInt(0).Mul(relayerMoveBalanceFee, big.NewInt(int64(len(relayedTx.InnerTransactions))))
 	for _, tx := range innerTxs {
 		expectedRelayerFee.Add(expectedRelayerFee, economicsData.ComputeTxFee(tx))

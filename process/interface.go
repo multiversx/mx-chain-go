@@ -678,8 +678,9 @@ type feeHandler interface {
 	MaxGasLimitPerMiniBlockForSafeCrossShard() uint64
 	MaxGasLimitPerTx() uint64
 	ComputeGasLimit(tx data.TransactionWithFeeHandler) uint64
-	ComputeMoveBalanceFee(tx data.TransactionWithFeeHandler) *big.Int
+	ComputeBaseFee(tx data.TransactionWithFeeHandler) *big.Int
 	ComputeTxFee(tx data.TransactionWithFeeHandler) *big.Int
+	ComputeInitialTxFee(tx data.TransactionWithFeeHandler) *big.Int
 	CheckValidityTxValues(tx data.TransactionWithFeeHandler) error
 	ComputeFeeForProcessing(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int
 	MinGasPrice() uint64
@@ -695,6 +696,7 @@ type feeHandler interface {
 	ComputeTxFeeBasedOnGasUsed(tx data.TransactionWithFeeHandler, gasUsed uint64) *big.Int
 	ComputeGasLimitBasedOnBalance(tx data.TransactionWithFeeHandler, balance *big.Int) (uint64, error)
 	ComputeTxFeeInEpoch(tx data.TransactionWithFeeHandler, epoch uint32) *big.Int
+	ComputeInitialTxFeeInEpoch(tx data.TransactionWithFeeHandler, epoch uint32) *big.Int
 	ComputeGasLimitInEpoch(tx data.TransactionWithFeeHandler, epoch uint32) uint64
 	ComputeGasUsedAndFeeBasedOnRefundValueInEpoch(tx data.TransactionWithFeeHandler, refundValue *big.Int, epoch uint32) (uint64, *big.Int)
 	ComputeTxFeeBasedOnGasUsedInEpoch(tx data.TransactionWithFeeHandler, gasUsed uint64, epoch uint32) *big.Int

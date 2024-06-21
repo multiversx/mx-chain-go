@@ -34,7 +34,7 @@ func createMockBaseTxProcessor() *baseTxProcessor {
 			CheckValidityTxValuesCalled: func(tx data.TransactionWithFeeHandler) error {
 				return nil
 			},
-			ComputeMoveBalanceFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
+			ComputeBaseFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 				return big.NewInt(0)
 			},
 		},
@@ -203,7 +203,7 @@ func TestBaseTxProcessor_VerifyGuardian(t *testing.T) {
 			CheckValidityTxValuesCalled: func(tx data.TransactionWithFeeHandler) error {
 				return nil
 			},
-			ComputeMoveBalanceFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
+			ComputeBaseFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 				return big.NewInt(0)
 			},
 		},

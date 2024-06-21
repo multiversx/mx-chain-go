@@ -580,7 +580,7 @@ func TestEconomicsData_LeaderPercentage(t *testing.T) {
 	assert.Equal(t, leaderPercentage, value)
 }
 
-func TestEconomicsData_ComputeMoveBalanceFeeNoTxData(t *testing.T) {
+func TestEconomicsData_ComputeBaseFeeNoTxData(t *testing.T) {
 	t.Parallel()
 
 	args := createArgsForEconomicsData(1)
@@ -594,14 +594,14 @@ func TestEconomicsData_ComputeMoveBalanceFeeNoTxData(t *testing.T) {
 		Value:    big.NewInt(0),
 	}
 
-	cost := economicsData.ComputeMoveBalanceFee(tx)
+	cost := economicsData.ComputeBaseFee(tx)
 
 	expectedCost := big.NewInt(0).SetUint64(gasPrice)
 	expectedCost.Mul(expectedCost, big.NewInt(0).SetUint64(minGasLimit))
 	assert.Equal(t, expectedCost, cost)
 }
 
-func TestEconomicsData_ComputeMoveBalanceFeeWithTxData(t *testing.T) {
+func TestEconomicsData_ComputeBaseFeeWithTxData(t *testing.T) {
 	t.Parallel()
 
 	args := createArgsForEconomicsData(1)
@@ -617,7 +617,7 @@ func TestEconomicsData_ComputeMoveBalanceFeeWithTxData(t *testing.T) {
 		Value:    big.NewInt(0),
 	}
 
-	cost := economicsData.ComputeMoveBalanceFee(tx)
+	cost := economicsData.ComputeBaseFee(tx)
 
 	expectedGasLimit := big.NewInt(0).SetUint64(minGasLimit)
 	expectedGasLimit.Add(expectedGasLimit, big.NewInt(int64(len(txData))))
@@ -1013,7 +1013,7 @@ func TestEconomicsData_SCRWithNotEnoughMoveBalanceShouldNotError(t *testing.T) {
 	err = economicsData.CheckValidityTxValues(scr)
 	assert.Nil(t, err)
 
-	moveBalanceFee := economicsData.ComputeMoveBalanceFee(scr)
+	moveBalanceFee := economicsData.ComputeBaseFee(scr)
 	assert.Equal(t, moveBalanceFee, big.NewInt(0))
 }
 

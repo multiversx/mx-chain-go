@@ -81,11 +81,6 @@ func (e *EconomicsHandlerMock) computeMoveBalanceFee(tx coreData.TransactionWith
 	return core.SafeMul(tx.GetGasPrice(), e.ComputeGasLimit(tx))
 }
 
-// IsInterfaceNil returns true if there is no value under the interface
-func (e *EconomicsHandlerMock) IsInterfaceNil() bool {
-	return e == nil
-}
-
 func (e *EconomicsHandlerMock) computeFeeForProcessing(tx coreData.TransactionWithFeeHandler, gasToUse uint64) *big.Int {
 	gasPrice := e.gasPriceForProcessing(tx)
 	return core.SafeMul(gasPrice, gasToUse)
@@ -95,6 +90,12 @@ func (e *EconomicsHandlerMock) gasPriceForProcessing(tx coreData.TransactionWith
 	return uint64(float64(tx.GetGasPrice()) * gasPriceModifier)
 }
 
+// ComputeInitialTxFee -
+func (e *EconomicsHandlerMock) ComputeInitialTxFee(tx coreData.TransactionWithFeeHandler) *big.Int {
+	return e.ComputeTxFee(tx)
+}
+
+// ComputeTxFee -
 func (e *EconomicsHandlerMock) ComputeTxFee(tx coreData.TransactionWithFeeHandler) *big.Int {
 	gasLimitForMoveBalance, difference := e.splitTxGasInCategories(tx)
 	moveBalanceFee := core.SafeMul(tx.GetGasPrice(), gasLimitForMoveBalance)
@@ -120,4 +121,9 @@ func (e *EconomicsHandlerMock) splitTxGasInCategories(tx coreData.TransactionWit
 	}
 
 	return
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (e *EconomicsHandlerMock) IsInterfaceNil() bool {
+	return e == nil
 }

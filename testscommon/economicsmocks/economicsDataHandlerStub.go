@@ -15,8 +15,9 @@ type EconomicsHandlerStub struct {
 	MaxGasLimitPerMiniBlockForSafeCrossShardCalled      func() uint64
 	MaxGasLimitPerTxCalled                              func() uint64
 	ComputeGasLimitCalled                               func(tx data.TransactionWithFeeHandler) uint64
-	ComputeMoveBalanceFeeCalled                         func(tx data.TransactionWithFeeHandler) *big.Int
+	ComputeBaseFeeCalled                                func(tx data.TransactionWithFeeHandler) *big.Int
 	ComputeTxFeeCalled                                  func(tx data.TransactionWithFeeHandler) *big.Int
+	ComputeInitialTxFeeCalled                           func(tx data.TransactionWithFeeHandler) *big.Int
 	CheckValidityTxValuesCalled                         func(tx data.TransactionWithFeeHandler) error
 	DeveloperPercentageCalled                           func() float64
 	MinGasPriceCalled                                   func() uint64
@@ -43,6 +44,7 @@ type EconomicsHandlerStub struct {
 	ComputeGasLimitBasedOnBalanceCalled                 func(tx data.TransactionWithFeeHandler, balance *big.Int) (uint64, error)
 	SetStatusHandlerCalled                              func(statusHandler core.AppStatusHandler) error
 	ComputeTxFeeInEpochCalled                           func(tx data.TransactionWithFeeHandler, epoch uint32) *big.Int
+	ComputeInitialTxFeeInEpochCalled                    func(tx data.TransactionWithFeeHandler, epoch uint32) *big.Int
 	ComputeGasLimitInEpochCalled                        func(tx data.TransactionWithFeeHandler, epoch uint32) uint64
 	ComputeGasUsedAndFeeBasedOnRefundValueInEpochCalled func(tx data.TransactionWithFeeHandler, refundValue *big.Int, epoch uint32) (uint64, *big.Int)
 	ComputeTxFeeBasedOnGasUsedInEpochCalled             func(tx data.TransactionWithFeeHandler, gasUsed uint64, epoch uint32) *big.Int
@@ -218,10 +220,10 @@ func (e *EconomicsHandlerStub) ComputeGasLimit(tx data.TransactionWithFeeHandler
 	return 0
 }
 
-// ComputeMoveBalanceFee -
-func (e *EconomicsHandlerStub) ComputeMoveBalanceFee(tx data.TransactionWithFeeHandler) *big.Int {
-	if e.ComputeMoveBalanceFeeCalled != nil {
-		return e.ComputeMoveBalanceFeeCalled(tx)
+// ComputeBaseFee -
+func (e *EconomicsHandlerStub) ComputeBaseFee(tx data.TransactionWithFeeHandler) *big.Int {
+	if e.ComputeBaseFeeCalled != nil {
+		return e.ComputeBaseFeeCalled(tx)
 	}
 	return big.NewInt(0)
 }
@@ -230,6 +232,14 @@ func (e *EconomicsHandlerStub) ComputeMoveBalanceFee(tx data.TransactionWithFeeH
 func (e *EconomicsHandlerStub) ComputeTxFee(tx data.TransactionWithFeeHandler) *big.Int {
 	if e.ComputeTxFeeCalled != nil {
 		return e.ComputeTxFeeCalled(tx)
+	}
+	return big.NewInt(0)
+}
+
+// ComputeInitialTxFee -
+func (e *EconomicsHandlerStub) ComputeInitialTxFee(tx data.TransactionWithFeeHandler) *big.Int {
+	if e.ComputeInitialTxFeeCalled != nil {
+		return e.ComputeInitialTxFeeCalled(tx)
 	}
 	return big.NewInt(0)
 }
@@ -329,6 +339,14 @@ func (e *EconomicsHandlerStub) SetStatusHandler(statusHandler core.AppStatusHand
 func (e *EconomicsHandlerStub) ComputeTxFeeInEpoch(tx data.TransactionWithFeeHandler, epoch uint32) *big.Int {
 	if e.ComputeTxFeeInEpochCalled != nil {
 		return e.ComputeTxFeeInEpochCalled(tx, epoch)
+	}
+	return nil
+}
+
+// ComputeInitialTxFeeInEpoch -
+func (e *EconomicsHandlerStub) ComputeInitialTxFeeInEpoch(tx data.TransactionWithFeeHandler, epoch uint32) *big.Int {
+	if e.ComputeInitialTxFeeInEpochCalled != nil {
+		return e.ComputeInitialTxFeeInEpochCalled(tx, epoch)
 	}
 	return nil
 }

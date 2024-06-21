@@ -229,14 +229,14 @@ func (ed *economicsData) GasPerDataByte() uint64 {
 	return ed.gasPerDataByte
 }
 
-// ComputeMoveBalanceFee computes the provided transaction's fee
-func (ed *economicsData) ComputeMoveBalanceFee(tx data.TransactionWithFeeHandler) *big.Int {
+// ComputeBaseFee computes the provided transaction's fee
+func (ed *economicsData) ComputeBaseFee(tx data.TransactionWithFeeHandler) *big.Int {
 	currentEpoch := ed.enableEpochsHandler.GetCurrentEpoch()
-	return ed.ComputeMoveBalanceFeeInEpoch(tx, currentEpoch)
+	return ed.ComputeBaseFeeInEpoch(tx, currentEpoch)
 }
 
-// ComputeMoveBalanceFeeInEpoch computes the provided transaction's fee in a specific epoch
-func (ed *economicsData) ComputeMoveBalanceFeeInEpoch(tx data.TransactionWithFeeHandler, epoch uint32) *big.Int {
+// ComputeBaseFeeInEpoch computes the provided transaction's fee in a specific epoch
+func (ed *economicsData) ComputeBaseFeeInEpoch(tx data.TransactionWithFeeHandler, epoch uint32) *big.Int {
 	if isSmartContractResult(tx) {
 		return big.NewInt(0)
 	}
@@ -277,6 +277,20 @@ func isSmartContractResult(tx data.TransactionWithFeeHandler) bool {
 	return isSCR
 }
 
+// ComputeInitialTxFee computes the provided transaction's fee using enable from epoch approach
+func (ed *economicsData) ComputeInitialTxFee(tx data.TransactionWithFeeHandler) *big.Int {
+	currentEpoch := ed.enableEpochsHandler.GetCurrentEpoch()
+	return ed.ComputeInitialTxFeeInEpoch(tx, currentEpoch)
+}
+
+// ComputeInitialTxFeeInEpoch computes the provided transaction's fee in a specific epoch
+func (ed *economicsData) ComputeInitialTxFeeInEpoch(tx data.TransactionWithFeeHandler, epoch uint32) *big.Int {
+	if ed.enableEpochsHandler.IsFlagEnabledInEpoch(common.FullGasPriceForSCRsFlag, epoch) {
+		return core.SafeMul(tx.GetGasPrice(), tx.GetGasLimit())
+	}
+	return ed.ComputeTxFeeInEpoch(tx, epoch)
+}
+
 // ComputeTxFee computes the provided transaction's fee using enable from epoch approach
 func (ed *economicsData) ComputeTxFee(tx data.TransactionWithFeeHandler) *big.Int {
 	currentEpoch := ed.enableEpochsHandler.GetCurrentEpoch()
@@ -288,10 +302,6 @@ func (ed *economicsData) ComputeTxFeeInEpoch(tx data.TransactionWithFeeHandler, 
 	if len(tx.GetUserTransactions()) > 0 {
 		_, totalFee, _ := ed.ComputeRelayedTxFees(tx)
 		return totalFee
-	}
-
-	if ed.enableEpochsHandler.IsFlagEnabledInEpoch(common.FullGasPriceForSCRsFlag, epoch) {
-
 	}
 
 	if ed.enableEpochsHandler.IsFlagEnabledInEpoch(common.GasPriceModifierFlag, epoch) {
@@ -314,7 +324,7 @@ func (ed *economicsData) ComputeTxFeeInEpoch(tx data.TransactionWithFeeHandler, 
 		return core.SafeMul(tx.GetGasLimit(), tx.GetGasPrice())
 	}
 
-	return ed.ComputeMoveBalanceFeeInEpoch(tx, epoch)
+	return ed.ComputeBaseFeeInEpoch(tx, epoch)
 }
 
 // ComputeRelayedTxFees returns the both the total fee for the entire relayed tx and the relayed only fee
@@ -327,7 +337,7 @@ func (ed *economicsData) ComputeRelayedTxFees(tx data.TransactionWithFeeHandler)
 	feesForInnerTxs := ed.getTotalFeesRequiredForInnerTxs(innerTxs)
 
 	relayerUnguardedMoveBalanceFee := core.SafeMul(ed.GasPriceForMove(tx), ed.MinGasLimit())
-	relayerTotalMoveBalanceFee := ed.ComputeMoveBalanceFee(tx)
+	relayerTotalMoveBalanceFee := ed.ComputeBaseFee(tx)
 	relayerMoveBalanceFeeDiff := big.NewInt(0).Sub(relayerTotalMoveBalanceFee, relayerUnguardedMoveBalanceFee)
 
 	relayerFee := big.NewInt(0).Mul(relayerUnguardedMoveBalanceFee, big.NewInt(int64(len(innerTxs))))
@@ -342,7 +352,7 @@ func (ed *economicsData) getTotalFeesRequiredForInnerTxs(innerTxs []data.Transac
 	totalFees := big.NewInt(0)
 	for _, innerTx := range innerTxs {
 		gasToUse := innerTx.GetGasLimit() - ed.ComputeGasLimit(innerTx)
-		moveBalanceUserFee := ed.ComputeMoveBalanceFee(innerTx)
+		moveBalanceUserFee := ed.ComputeBaseFee(innerTx)
 		processingUserFee := ed.ComputeFeeForProcessing(innerTx, gasToUse)
 		innerTxFee := big.NewInt(0).Add(moveBalanceUserFee, processingUserFee)
 
@@ -577,7 +587,7 @@ func (ed *economicsData) ComputeGasUsedAndFeeBasedOnRefundValueInEpoch(tx data.T
 	txFee = big.NewInt(0).Sub(txFee, refundValue)
 
 	moveBalanceGasUnits := ed.ComputeGasLimitInEpoch(tx, epoch)
-	moveBalanceFee := ed.ComputeMoveBalanceFeeInEpoch(tx, epoch)
+	moveBalanceFee := ed.ComputeBaseFeeInEpoch(tx, epoch)
 
 	scOpFee := big.NewInt(0).Sub(txFee, moveBalanceFee)
 	gasPriceForProcessing := big.NewInt(0).SetUint64(ed.GasPriceForProcessingInEpoch(tx, epoch))
@@ -597,7 +607,7 @@ func (ed *economicsData) ComputeTxFeeBasedOnGasUsed(tx data.TransactionWithFeeHa
 // ComputeTxFeeBasedOnGasUsedInEpoch will compute transaction fee in a specific epoch
 func (ed *economicsData) ComputeTxFeeBasedOnGasUsedInEpoch(tx data.TransactionWithFeeHandler, gasUsed uint64, epoch uint32) *big.Int {
 	moveBalanceGasLimit := ed.ComputeGasLimitInEpoch(tx, epoch)
-	moveBalanceFee := ed.ComputeMoveBalanceFeeInEpoch(tx, epoch)
+	moveBalanceFee := ed.ComputeBaseFeeInEpoch(tx, epoch)
 	if gasUsed <= moveBalanceGasLimit {
 		return moveBalanceFee
 	}
@@ -631,7 +641,7 @@ func (ed *economicsData) ComputeGasLimitBasedOnBalanceInEpoch(tx data.Transactio
 		return 0, process.ErrInsufficientFunds
 	}
 
-	moveBalanceFee := ed.ComputeMoveBalanceFeeInEpoch(tx, epoch)
+	moveBalanceFee := ed.ComputeBaseFeeInEpoch(tx, epoch)
 	if moveBalanceFee.Cmp(balanceWithoutTransferValue) > 0 {
 		return 0, process.ErrInsufficientFunds
 	}

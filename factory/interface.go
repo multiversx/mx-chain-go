@@ -487,7 +487,7 @@ type EconomicsHandler interface {
 	GenesisTotalSupply() *big.Int
 	MaxGasLimitPerBlock(shardID uint32) uint64
 	ComputeGasLimit(tx data.TransactionWithFeeHandler) uint64
-	ComputeMoveBalanceFee(tx data.TransactionWithFeeHandler) *big.Int
+	ComputeBaseFee(tx data.TransactionWithFeeHandler) *big.Int
 	CheckValidityTxValues(tx data.TransactionWithFeeHandler) error
 	MinGasPrice() uint64
 	MinGasLimit() uint64

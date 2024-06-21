@@ -782,7 +782,7 @@ func (sc *scProcessor) computeTotalConsumedFeeAndDevRwd(
 	totalDevRwd := core.GetIntTrimmedPercentageOfValue(totalFeeMinusBuiltIn, sc.economicsFee.DeveloperPercentage())
 
 	if !isSmartContractResult(tx) && senderInSelfShard {
-		totalFee.Add(totalFee, sc.economicsFee.ComputeMoveBalanceFee(tx))
+		totalFee.Add(totalFee, sc.economicsFee.ComputeBaseFee(tx))
 	}
 
 	return totalFee, totalDevRwd
@@ -2202,7 +2202,7 @@ func (sc *scProcessor) createSCRsWhenError(
 	} else {
 		accumulatedSCRData += "@" + hex.EncodeToString([]byte(returnCode))
 		if check.IfNil(acntSnd) {
-			moveBalanceCost := sc.economicsFee.ComputeMoveBalanceFee(tx)
+			moveBalanceCost := sc.economicsFee.ComputeBaseFee(tx)
 			consumedFee.Sub(consumedFee, moveBalanceCost)
 		}
 	}

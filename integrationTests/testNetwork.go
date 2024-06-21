@@ -378,6 +378,12 @@ func (net *TestNetwork) ComputeTxFee(tx *transaction.Transaction) *big.Int {
 	return net.DefaultNode.EconomicsData.ComputeTxFee(tx)
 }
 
+// ComputeInitialTxFee calculates the cost of the provided transaction, smart contract
+// execution or built-in function calls notwithstanding.
+func (net *TestNetwork) ComputeInitialTxFee(tx *transaction.Transaction) *big.Int {
+	return net.DefaultNode.EconomicsData.ComputeInitialTxFee(tx)
+}
+
 // ComputeTxFeeUint64 calculates the cost of the provided transaction, smart contract
 // execution or built-in function calls notwithstanding.
 func (net *TestNetwork) ComputeTxFeeUint64(tx *transaction.Transaction) uint64 {

@@ -187,7 +187,7 @@ func (txProc *baseTxProcessor) computeTxFeeForRelayed(tx *transaction.Transactio
 func (txProc *baseTxProcessor) computeTxFeeAfterMoveBalanceFix(tx *transaction.Transaction) *big.Int {
 	moveBalanceGasLimit := txProc.economicsFee.ComputeGasLimit(tx)
 	gasToUse := tx.GetGasLimit() - moveBalanceGasLimit
-	moveBalanceUserFee := txProc.economicsFee.ComputeMoveBalanceFee(tx)
+	moveBalanceUserFee := txProc.economicsFee.ComputeBaseFee(tx)
 	processingUserFee := txProc.economicsFee.ComputeFeeForProcessing(tx, gasToUse)
 	txFee := big.NewInt(0).Add(moveBalanceUserFee, processingUserFee)
 

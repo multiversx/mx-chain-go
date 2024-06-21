@@ -417,7 +417,7 @@ func (txProc *txProcessor) processTxFee(
 		return currentShardFee, totalCost, nil
 	}
 
-	moveBalanceFee := txProc.economicsFee.ComputeMoveBalanceFee(tx)
+	moveBalanceFee := txProc.economicsFee.ComputeBaseFee(tx)
 	totalCost := txProc.economicsFee.ComputeTxFee(tx)
 
 	if !txProc.enableEpochsHandler.IsFlagEnabled(common.PenalizedTooMuchGasFlag) {
@@ -863,7 +863,7 @@ func (txProc *txProcessor) processRelayedTx(
 }
 
 func (txProc *txProcessor) computeRelayedTxFees(tx, userTx *transaction.Transaction) relayedFees {
-	relayerFee := txProc.economicsFee.ComputeMoveBalanceFee(tx)
+	relayerFee := txProc.economicsFee.ComputeBaseFee(tx)
 	totalFee := txProc.economicsFee.ComputeTxFee(tx)
 	_, dstShardTxType := txProc.txTypeHandler.ComputeTransactionType(userTx)
 	isMoveBalance := dstShardTxType == process.MoveBalance
@@ -1165,7 +1165,7 @@ func (txProc *txProcessor) executeFailedRelayedUserTx(
 	gasToUse := userTx.GetGasLimit() - moveBalanceGasLimit
 	processingUserFee := txProc.economicsFee.ComputeFeeForProcessing(userTx, gasToUse)
 	if txProc.enableEpochsHandler.IsFlagEnabled(common.FixRelayedMoveBalanceFlag) && isMoveBalance {
-		moveBalanceUserFee := txProc.economicsFee.ComputeMoveBalanceFee(userTx)
+		moveBalanceUserFee := txProc.economicsFee.ComputeBaseFee(userTx)
 		totalFee = big.NewInt(0).Add(moveBalanceUserFee, processingUserFee)
 	}
 

@@ -806,7 +806,7 @@ func (sc *scProcessor) computeTotalConsumedFeeAndDevRwd(
 	}
 
 	if !isSmartContractResult(tx) && senderInSelfShard {
-		totalFee.Add(totalFee, sc.economicsFee.ComputeMoveBalanceFee(tx))
+		totalFee.Add(totalFee, sc.economicsFee.ComputeBaseFee(tx))
 	}
 
 	if !sc.enableEpochsHandler.IsFlagEnabled(common.SCDeployFlag) {
@@ -2101,7 +2101,7 @@ func (sc *scProcessor) createSCRsWhenError(
 	if !sc.enableEpochsHandler.IsFlagEnabled(common.SCDeployFlag) {
 		accumulatedSCRData += "@" + hex.EncodeToString([]byte(returnCode)) + "@" + hex.EncodeToString(txHash)
 		if check.IfNil(acntSnd) {
-			moveBalanceCost := sc.economicsFee.ComputeMoveBalanceFee(tx)
+			moveBalanceCost := sc.economicsFee.ComputeBaseFee(tx)
 			consumedFee.Sub(consumedFee, moveBalanceCost)
 		}
 	} else {
@@ -2120,7 +2120,7 @@ func (sc *scProcessor) createSCRsWhenError(
 		} else {
 			accumulatedSCRData += "@" + hex.EncodeToString([]byte(returnCode))
 			if check.IfNil(acntSnd) {
-				moveBalanceCost := sc.economicsFee.ComputeMoveBalanceFee(tx)
+				moveBalanceCost := sc.economicsFee.ComputeBaseFee(tx)
 				consumedFee.Sub(consumedFee, moveBalanceCost)
 			}
 		}

@@ -82,8 +82,8 @@ func (fh *FeeHandler) ComputeGasLimit(_ data.TransactionWithFeeHandler) uint64 {
 	return 0
 }
 
-// ComputeMoveBalanceFee returns 0
-func (fh *FeeHandler) ComputeMoveBalanceFee(_ data.TransactionWithFeeHandler) *big.Int {
+// ComputeBaseFee returns 0
+func (fh *FeeHandler) ComputeBaseFee(_ data.TransactionWithFeeHandler) *big.Int {
 	return big.NewInt(0)
 }
 
@@ -94,6 +94,11 @@ func (fh *FeeHandler) ComputeFeeForProcessing(_ data.TransactionWithFeeHandler, 
 
 // ComputeTxFee returns 0
 func (fh *FeeHandler) ComputeTxFee(_ data.TransactionWithFeeHandler) *big.Int {
+	return big.NewInt(0)
+}
+
+// ComputeInitialTxFee returns 0
+func (fh *FeeHandler) ComputeInitialTxFee(_ data.TransactionWithFeeHandler) *big.Int {
 	return big.NewInt(0)
 }
 
@@ -164,22 +169,27 @@ func (fh *FeeHandler) ComputeTxFeeBasedOnGasUsed(_ data.TransactionWithFeeHandle
 }
 
 // ComputeTxFeeInEpoch returns 0
-func (fh *FeeHandler) ComputeTxFeeInEpoch(tx data.TransactionWithFeeHandler, epoch uint32) *big.Int {
+func (fh *FeeHandler) ComputeTxFeeInEpoch(_ data.TransactionWithFeeHandler, _ uint32) *big.Int {
+	return big.NewInt(0)
+}
+
+// ComputeInitialTxFeeInEpoch returns 0
+func (fh *FeeHandler) ComputeInitialTxFeeInEpoch(_ data.TransactionWithFeeHandler, _ uint32) *big.Int {
 	return big.NewInt(0)
 }
 
 // ComputeGasLimitInEpoch returns 0
-func (fh *FeeHandler) ComputeGasLimitInEpoch(tx data.TransactionWithFeeHandler, epoch uint32) uint64 {
+func (fh *FeeHandler) ComputeGasLimitInEpoch(_ data.TransactionWithFeeHandler, _ uint32) uint64 {
 	return 0
 }
 
 // ComputeGasUsedAndFeeBasedOnRefundValueInEpoch returns 0
-func (fh *FeeHandler) ComputeGasUsedAndFeeBasedOnRefundValueInEpoch(tx data.TransactionWithFeeHandler, refundValue *big.Int, epoch uint32) (uint64, *big.Int) {
+func (fh *FeeHandler) ComputeGasUsedAndFeeBasedOnRefundValueInEpoch(_ data.TransactionWithFeeHandler, _ *big.Int, _ uint32) (uint64, *big.Int) {
 	return 0, big.NewInt(0)
 }
 
 // ComputeTxFeeBasedOnGasUsedInEpoch returns 0
-func (fh *FeeHandler) ComputeTxFeeBasedOnGasUsedInEpoch(tx data.TransactionWithFeeHandler, gasUsed uint64, epoch uint32) *big.Int {
+func (fh *FeeHandler) ComputeTxFeeBasedOnGasUsedInEpoch(_ data.TransactionWithFeeHandler, _ uint64, _ uint32) *big.Int {
 	return big.NewInt(0)
 }
 
