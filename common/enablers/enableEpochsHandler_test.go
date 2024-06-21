@@ -120,7 +120,7 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		EGLDInMultiTransferEnableEpoch:                           103,
 		CryptoOpcodesV2EnableEpoch:                               104,
 		RelayedTransactionsV3EnableEpoch:                         105,
-		FixRelayedMoveBalanceEnableEpoch:                         106,
+		FixRelayedBaseCostEnableEpoch:                            106,
 	}
 }
 
@@ -322,7 +322,7 @@ func TestEnableEpochsHandler_IsFlagEnabled(t *testing.T) {
 	require.True(t, handler.IsFlagEnabled(common.AlwaysMergeContextsInEEIFlag))
 	require.True(t, handler.IsFlagEnabled(common.DynamicESDTFlag))
 	require.True(t, handler.IsFlagEnabled(common.RelayedTransactionsV3Flag))
-	require.True(t, handler.IsFlagEnabled(common.FixRelayedMoveBalanceFlag))
+	require.True(t, handler.IsFlagEnabled(common.FixRelayedBaseCostFlag))
 }
 
 func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
@@ -443,7 +443,7 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.EGLDInMultiTransferEnableEpoch, handler.GetActivationEpoch(common.EGLDInESDTMultiTransferFlag))
 	require.Equal(t, cfg.CryptoOpcodesV2EnableEpoch, handler.GetActivationEpoch(common.CryptoOpcodesV2Flag))
 	require.Equal(t, cfg.RelayedTransactionsV3EnableEpoch, handler.GetActivationEpoch(common.RelayedTransactionsV3Flag))
-	require.Equal(t, cfg.FixRelayedMoveBalanceEnableEpoch, handler.GetActivationEpoch(common.FixRelayedMoveBalanceFlag))
+	require.Equal(t, cfg.FixRelayedBaseCostEnableEpoch, handler.GetActivationEpoch(common.FixRelayedBaseCostFlag))
 }
 
 func TestEnableEpochsHandler_IsInterfaceNil(t *testing.T) {

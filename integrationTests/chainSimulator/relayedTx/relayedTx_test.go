@@ -38,7 +38,7 @@ var (
 	oneEGLD                                  = big.NewInt(1000000000000000000)
 	alterConfigsFuncRelayedV3EarlyActivation = func(cfg *config.Configs) {
 		cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3EnableEpoch = 1
-		cfg.EpochConfig.EnableEpochs.FixRelayedMoveBalanceEnableEpoch = 1
+		cfg.EpochConfig.EnableEpochs.FixRelayedBaseCostEnableEpoch = 1
 	}
 )
 
@@ -268,8 +268,9 @@ func TestFixRelayedMoveBalanceWithChainSimulator(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	expectedFeeScCall := "815285920000000"
-	t.Run("sc call", testFixRelayedMoveBalanceWithChainSimulatorScCall(expectedFeeScCall, expectedFeeScCall))
+	expectedFeeScCallBefore := "815285920000000"
+	expectedFeeScCallAfter := "873695920000000"
+	t.Run("sc call", testFixRelayedMoveBalanceWithChainSimulatorScCall(expectedFeeScCallBefore, expectedFeeScCallAfter))
 
 	expectedFeeMoveBalanceBefore := "797500000000000" // 498 * 1500 + 50000 + 5000
 	expectedFeeMoveBalanceAfter := "847000000000000"  // 498 * 1500 + 50000 + 50000
@@ -285,7 +286,7 @@ func testFixRelayedMoveBalanceWithChainSimulatorScCall(
 
 		providedActivationEpoch := uint32(7)
 		alterConfigsFunc := func(cfg *config.Configs) {
-			cfg.EpochConfig.EnableEpochs.FixRelayedMoveBalanceEnableEpoch = providedActivationEpoch
+			cfg.EpochConfig.EnableEpochs.FixRelayedBaseCostEnableEpoch = providedActivationEpoch
 		}
 
 		cs := startChainSimulator(t, alterConfigsFunc)
@@ -386,7 +387,7 @@ func testFixRelayedMoveBalanceWithChainSimulatorMoveBalance(
 
 		providedActivationEpoch := uint32(5)
 		alterConfigsFunc := func(cfg *config.Configs) {
-			cfg.EpochConfig.EnableEpochs.FixRelayedMoveBalanceEnableEpoch = providedActivationEpoch
+			cfg.EpochConfig.EnableEpochs.FixRelayedBaseCostEnableEpoch = providedActivationEpoch
 		}
 
 		cs := startChainSimulator(t, alterConfigsFunc)

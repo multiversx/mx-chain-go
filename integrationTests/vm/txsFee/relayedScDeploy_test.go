@@ -24,7 +24,7 @@ func TestRelayedScDeployShouldWork(t *testing.T) {
 func testRelayedScDeployShouldWork(relayedFixActivationEpoch uint32) func(t *testing.T) {
 	return func(t *testing.T) {
 		testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
-			FixRelayedMoveBalanceEnableEpoch: relayedFixActivationEpoch,
+			FixRelayedBaseCostEnableEpoch: relayedFixActivationEpoch,
 		})
 		require.Nil(t, err)
 		defer testContext.Close()
@@ -77,7 +77,7 @@ func TestRelayedScDeployInvalidCodeShouldConsumeGas(t *testing.T) {
 func testRelayedScDeployInvalidCodeShouldConsumeGas(relayedFixActivationEpoch uint32, expectedBalance *big.Int, expectedAccumulatedFees *big.Int) func(t *testing.T) {
 	return func(t *testing.T) {
 		testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
-			FixRelayedMoveBalanceEnableEpoch: relayedFixActivationEpoch,
+			FixRelayedBaseCostEnableEpoch: relayedFixActivationEpoch,
 		})
 		require.Nil(t, err)
 		defer testContext.Close()
@@ -130,7 +130,7 @@ func TestRelayedScDeployInsufficientGasLimitShouldConsumeGas(t *testing.T) {
 func testRelayedScDeployInsufficientGasLimitShouldConsumeGas(relayedFixActivationEpoch uint32, expectedBalance *big.Int, expectedAccumulatedFees *big.Int) func(t *testing.T) {
 	return func(t *testing.T) {
 		testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
-			FixRelayedMoveBalanceEnableEpoch: relayedFixActivationEpoch,
+			FixRelayedBaseCostEnableEpoch: relayedFixActivationEpoch,
 		})
 		require.Nil(t, err)
 		defer testContext.Close()
@@ -182,7 +182,7 @@ func TestRelayedScDeployOutOfGasShouldConsumeGas(t *testing.T) {
 func testRelayedScDeployOutOfGasShouldConsumeGas(relayedFixActivationEpoch uint32, expectedBalance *big.Int, expectedAccumulatedFees *big.Int) func(t *testing.T) {
 	return func(t *testing.T) {
 		testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
-			FixRelayedMoveBalanceEnableEpoch: relayedFixActivationEpoch,
+			FixRelayedBaseCostEnableEpoch: relayedFixActivationEpoch,
 		})
 		require.Nil(t, err)
 		defer testContext.Close()

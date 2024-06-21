@@ -756,11 +756,11 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.RelayedTransactionsV3EnableEpoch,
 		},
-		common.FixRelayedMoveBalanceFlag: {
+		common.FixRelayedBaseCostFlag: {
 			isActiveInEpoch: func(epoch uint32) bool {
-				return epoch >= handler.enableEpochsConfig.FixRelayedMoveBalanceEnableEpoch
+				return epoch >= handler.enableEpochsConfig.FixRelayedBaseCostEnableEpoch
 			},
-			activationEpoch: handler.enableEpochsConfig.FixRelayedMoveBalanceEnableEpoch,
+			activationEpoch: handler.enableEpochsConfig.FixRelayedBaseCostEnableEpoch,
 		},
 	}
 }
