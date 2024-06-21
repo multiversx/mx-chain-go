@@ -5,18 +5,22 @@ source "$MULTIVERSXTESTNETSCRIPTSDIR/variables.sh"
 
 export DISTRIBUTION=$(cat /etc/os-release | grep "^ID=" | sed 's/ID=//')
 
+tmux=""
+if [ "$USETMUX" -eq 1 ]; then
+  tmux="tmux"
+fi
 
 if [[ "$DISTRIBUTION" =~ ^(fedora|centos|rhel)$ ]]; then
   export PACKAGE_MANAGER="dnf"
-  export REQUIRED_PACKAGES="git golang gcc lsof jq curl tmux"
+  export REQUIRED_PACKAGES="git golang gcc lsof jq curl $tmux"
   export INSTALL_PACKAGES_COMMAND="sudo $PACKAGE_MANAGER install -y $REQUIRED_PACKAGES"
 elif [[ "$DISTRIBUTION" =~ ^(ubuntu|debian)$ ]]; then
   export PACKAGE_MANAGER="apt-get"
-  export REQUIRED_PACKAGES="git gcc lsof jq curl tmux"
+  export REQUIRED_PACKAGES="git gcc lsof jq curl $tmux"
   export INSTALL_PACKAGES_COMMAND="sudo $PACKAGE_MANAGER install -y $REQUIRED_PACKAGES"
 elif [[ "$DISTRIBUTION" =~ ^(arch)$ ]]; then
   export PACKAGE_MANAGER="pacman"
-  export REQUIRED_PACKAGES="git gcc lsof jq curl tmux"
+  export REQUIRED_PACKAGES="git gcc lsof jq curl $tmux"
   export INSTALL_PACKAGES_COMMAND="sudo $PACKAGE_MANAGER -S $REQUIRED_PACKAGES"
 fi
 
