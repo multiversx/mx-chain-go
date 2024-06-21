@@ -1154,20 +1154,18 @@ func (txProc *txProcessor) executeFailedRelayedUserTx(
 		return err
 	}
 
-	_, dstShardTxType := txProc.txTypeHandler.ComputeTransactionType(userTx)
-	isMoveBalance := dstShardTxType == process.MoveBalance
 	totalFee := txProc.economicsFee.ComputeFeeForProcessing(userTx, userTx.GasLimit)
 	moveBalanceGasLimit := txProc.economicsFee.ComputeGasLimit(userTx)
 	gasToUse := userTx.GetGasLimit() - moveBalanceGasLimit
 	processingUserFee := txProc.economicsFee.ComputeFeeForProcessing(userTx, gasToUse)
-	if txProc.enableEpochsHandler.IsFlagEnabled(common.FixRelayedBaseCostFlag) && isMoveBalance {
+	if txProc.enableEpochsHandler.IsFlagEnabled(common.FixRelayedBaseCostFlag) {
 		moveBalanceUserFee := txProc.economicsFee.ComputeMoveBalanceFee(userTx)
 		totalFee = big.NewInt(0).Add(moveBalanceUserFee, processingUserFee)
 	}
 
 	senderShardID := txProc.shardCoordinator.ComputeId(userTx.SndAddr)
 	if senderShardID != txProc.shardCoordinator.SelfId() {
-		if txProc.enableEpochsHandler.IsFlagEnabled(common.FixRelayedBaseCostFlag) && isMoveBalance {
+		if txProc.enableEpochsHandler.IsFlagEnabled(common.FixRelayedBaseCostFlag) {
 			totalFee.Sub(totalFee, processingUserFee)
 		} else {
 			moveBalanceUserFee := txProc.economicsFee.ComputeFeeForProcessing(userTx, moveBalanceGasLimit)
