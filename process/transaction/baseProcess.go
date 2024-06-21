@@ -147,9 +147,7 @@ func (txProc *baseTxProcessor) checkTxValues(
 			return process.ErrNotEnoughGasInUserTx
 		}
 
-		_, dstShardTxType := txProc.txTypeHandler.ComputeTransactionType(tx)
-		isMoveBalance := dstShardTxType == process.MoveBalance
-		txFee = txProc.computeTxFee(tx, isMoveBalance)
+		txFee = txProc.computeTxFee(tx)
 	} else {
 		txFee = txProc.economicsFee.ComputeTxFee(tx)
 	}
@@ -176,15 +174,15 @@ func (txProc *baseTxProcessor) checkTxValues(
 	return nil
 }
 
-func (txProc *baseTxProcessor) computeTxFee(tx *transaction.Transaction, isInnerTxMoveBalance bool) *big.Int {
-	if txProc.enableEpochsHandler.IsFlagEnabled(common.FixRelayedMoveBalanceFlag) && isInnerTxMoveBalance {
-		return txProc.computeTxFeeAfterMoveBalanceFix(tx)
+func (txProc *baseTxProcessor) computeTxFee(tx *transaction.Transaction) *big.Int {
+	if txProc.enableEpochsHandler.IsFlagEnabled(common.FixRelayedBaseCostFlag) {
+		return txProc.computeTxFeeAfterBaseCostFix(tx)
 	}
 
 	return txProc.economicsFee.ComputeFeeForProcessing(tx, tx.GasLimit)
 }
 
-func (txProc *baseTxProcessor) computeTxFeeAfterMoveBalanceFix(tx *transaction.Transaction) *big.Int {
+func (txProc *baseTxProcessor) computeTxFeeAfterBaseCostFix(tx *transaction.Transaction) *big.Int {
 	moveBalanceGasLimit := txProc.economicsFee.ComputeGasLimit(tx)
 	gasToUse := tx.GetGasLimit() - moveBalanceGasLimit
 	moveBalanceUserFee := txProc.economicsFee.ComputeMoveBalanceFee(tx)

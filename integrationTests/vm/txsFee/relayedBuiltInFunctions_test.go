@@ -28,8 +28,8 @@ func testRelayedBuildInFunctionChangeOwnerCallShouldWork(relayedFixActivationEpo
 	return func(t *testing.T) {
 		testContext, err := vm.CreatePreparedTxProcessorWithVMs(
 			config.EnableEpochs{
-				PenalizedTooMuchGasEnableEpoch:   integrationTests.UnreachableEpoch,
-				FixRelayedMoveBalanceEnableEpoch: relayedFixActivationEpoch,
+				PenalizedTooMuchGasEnableEpoch: integrationTests.UnreachableEpoch,
+				FixRelayedBaseCostEnableEpoch:  relayedFixActivationEpoch,
 			})
 		require.Nil(t, err)
 		defer testContext.Close()
@@ -63,8 +63,8 @@ func testRelayedBuildInFunctionChangeOwnerCallShouldWork(relayedFixActivationEpo
 		expectedBalanceRelayer := big.NewInt(16610)
 		vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalanceRelayer)
 
-	expectedBalance := big.NewInt(9988100)
-	vm.TestAccount(t, testContext.Accounts, owner, 2, expectedBalance)
+		expectedBalance := big.NewInt(9988100)
+		vm.TestAccount(t, testContext.Accounts, owner, 2, expectedBalance)
 
 		// check accumulated fees
 		accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
@@ -87,7 +87,7 @@ func TestRelayedBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(t *test
 func testRelayedBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(relayedFixActivationEpoch uint32) func(t *testing.T) {
 	return func(t *testing.T) {
 		testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
-			FixRelayedMoveBalanceEnableEpoch: relayedFixActivationEpoch,
+			FixRelayedBaseCostEnableEpoch: relayedFixActivationEpoch,
 		})
 		require.Nil(t, err)
 		defer testContext.Close()
@@ -190,15 +190,15 @@ func TestRelayedBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldConsumeG
 	t.Run("nonce fix is disabled, should increase the sender's nonce", func(t *testing.T) {
 		testRelayedBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldConsumeGas(t,
 			config.EnableEpochs{
-				RelayedNonceFixEnableEpoch:       1000,
-				FixRelayedMoveBalanceEnableEpoch: 1000,
+				RelayedNonceFixEnableEpoch:    1000,
+				FixRelayedBaseCostEnableEpoch: 1000,
 			})
 	})
 	t.Run("nonce fix is enabled, should still increase the sender's nonce", func(t *testing.T) {
 		testRelayedBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldConsumeGas(t,
 			config.EnableEpochs{
-				RelayedNonceFixEnableEpoch:       0,
-				FixRelayedMoveBalanceEnableEpoch: 1000,
+				RelayedNonceFixEnableEpoch:    0,
+				FixRelayedBaseCostEnableEpoch: 1000,
 			})
 	})
 }
