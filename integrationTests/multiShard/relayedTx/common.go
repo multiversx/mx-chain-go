@@ -20,7 +20,7 @@ func CreateGeneralSetupForRelayTxTest(relayedV3Test bool) ([]*integrationTests.T
 	epochsConfig := integrationTests.GetDefaultEnableEpochsConfig()
 	if !relayedV3Test {
 		epochsConfig.RelayedTransactionsV3EnableEpoch = integrationTests.UnreachableEpoch
-		epochsConfig.FixRelayedMoveBalanceEnableEpoch = integrationTests.UnreachableEpoch
+		epochsConfig.FixRelayedBaseCostEnableEpoch = integrationTests.UnreachableEpoch
 	}
 	nodes, idxProposers := createAndMintNodes(initialVal, epochsConfig)
 

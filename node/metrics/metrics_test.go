@@ -209,7 +209,7 @@ func TestInitConfigMetrics(t *testing.T) {
 			CryptoOpcodesV2EnableEpoch:                               102,
 			ScToScLogEventEnableEpoch:                                103,
 			RelayedTransactionsV3EnableEpoch:                         104,
-			FixRelayedMoveBalanceEnableEpoch:                         105,
+			FixRelayedBaseCostEnableEpoch:                            105,
 			FullGasPriceForSCRsEnableEpoch:                           106,
 			MaxNodesChangeEnableEpoch: []config.MaxNodesChangeConfig{
 				{
@@ -330,7 +330,7 @@ func TestInitConfigMetrics(t *testing.T) {
 		"erd_crypto_opcodes_v2_enable_epoch":                                   uint32(102),
 		"erd_set_sc_to_sc_log_event_enable_epoch":                              uint32(103),
 		"erd_relayed_transactions_v3_enable_epoch":                             uint32(104),
-		"erd_fix_relayed_move_balance_enable_epoch":                            uint32(105),
+		"erd_fix_relayed_base_cost_enable_epoch":                               uint32(105),
 		"erd_full_gasprice_on-scr_enable_epoch":                                uint32(106),
 		"erd_max_nodes_change_enable_epoch":                                    nil,
 		"erd_total_supply":                                                     "12345",

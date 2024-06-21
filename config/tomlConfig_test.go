@@ -875,8 +875,8 @@ func TestEnableEpochConfig(t *testing.T) {
     # RelayedTransactionsV3EnableEpoch represents the epoch when the relayed transactions V3 will be enabled
     RelayedTransactionsV3EnableEpoch = 99
 
-    # FixRelayedMoveBalanceEnableEpoch represents the epoch when the fix for relayed for move balance will be enabled
-    FixRelayedMoveBalanceEnableEpoch = 100
+    # FixRelayedBaseCostEnableEpoch represents the epoch when the fix for relayed base cost will be enabled
+    FixRelayedBaseCostEnableEpoch = 100
 
     # FullGasPriceForSCRsEnableEpoch represents the epoch when the full gasPrice is taken for SCRs
     FullGasPriceForSCRsEnableEpoch = 101
@@ -998,7 +998,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			EGLDInMultiTransferEnableEpoch:                           97,
 			CryptoOpcodesV2EnableEpoch:                               98,
 			RelayedTransactionsV3EnableEpoch:                         99,
-			FixRelayedMoveBalanceEnableEpoch:                         100,
+			FixRelayedBaseCostEnableEpoch:                            100,
 			FullGasPriceForSCRsEnableEpoch:                           101,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{

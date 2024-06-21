@@ -498,8 +498,8 @@ const (
 	// MetricRelayedTransactionsV3EnableEpoch represents the epoch when the relayed transactions v3 is enabled
 	MetricRelayedTransactionsV3EnableEpoch = "erd_relayed_transactions_v3_enable_epoch"
 
-	// MetricFixRelayedMoveBalanceEnableEpoch represents the epoch when the fix for relayed move balance is enabled
-	MetricFixRelayedMoveBalanceEnableEpoch = "erd_fix_relayed_move_balance_enable_epoch"
+	// MetricFixRelayedBaseCostEnableEpoch represents the epoch when the fix for relayed base cost is enabled
+	MetricFixRelayedBaseCostEnableEpoch = "erd_fix_relayed_base_cost_enable_epoch"
 
 	// MetricFullGasPriceForSCRsEnableEpoch represents the epoch when full gasPrice is taken for SCRs
 	MetricFullGasPriceForSCRsEnableEpoch = "erd_full_gasprice_on-scr_enable_epoch"
@@ -1230,7 +1230,7 @@ const (
 	EGLDInESDTMultiTransferFlag                        core.EnableEpochFlag = "EGLDInESDTMultiTransferFlag"
 	CryptoOpcodesV2Flag                                core.EnableEpochFlag = "CryptoOpcodesV2Flag"
 	RelayedTransactionsV3Flag                          core.EnableEpochFlag = "RelayedTransactionsV3Flag"
-	FixRelayedMoveBalanceFlag                          core.EnableEpochFlag = "FixRelayedMoveBalanceFlag"
+	FixRelayedBaseCostFlag                             core.EnableEpochFlag = "FixRelayedBaseCostFlag"
 	FullGasPriceForSCRsFlag                            core.EnableEpochFlag = "FullGasPriceForSCRsFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )

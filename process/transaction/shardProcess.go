@@ -132,7 +132,7 @@ func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
 		common.RelayedTransactionsV2Flag,
 		common.RelayedNonceFixFlag,
 		common.RelayedTransactionsV3Flag,
-		common.FixRelayedMoveBalanceFlag,
+		common.FixRelayedBaseCostFlag,
 	})
 	if err != nil {
 		return nil, err
@@ -400,8 +400,7 @@ func (txProc *txProcessor) processTxFee(
 	}
 
 	if isUserTxOfRelayed {
-		isUserTxMoveBalance := dstShardTxType == process.MoveBalance
-		totalCost := txProc.computeTxFeeForRelayed(tx, isUserTxMoveBalance)
+		totalCost := txProc.computeTxFeeForRelayedTx(tx)
 
 		err := acntSnd.SubFromBalance(totalCost)
 		if err != nil {
@@ -744,9 +743,7 @@ func (txProc *txProcessor) processInnerTx(
 	originalTxHash []byte,
 ) (*big.Int, vmcommon.ReturnCode, error) {
 
-	_, dstShardTxType := txProc.txTypeHandler.ComputeTransactionType(innerTx)
-	isMoveBalance := dstShardTxType == process.MoveBalance
-	txFee := txProc.computeTxFeeForRelayed(innerTx, isMoveBalance)
+	txFee := txProc.computeTxFeeForRelayedTx(innerTx)
 
 	acntSnd, err := txProc.getAccountFromAddress(innerTx.SndAddr)
 	if err != nil {
@@ -865,10 +862,8 @@ func (txProc *txProcessor) processRelayedTx(
 func (txProc *txProcessor) computeRelayedTxFees(tx, userTx *transaction.Transaction) relayedFees {
 	relayerFee := txProc.economicsFee.ComputeBaseFee(tx)
 	totalFee := txProc.economicsFee.ComputeTxFee(tx)
-	_, dstShardTxType := txProc.txTypeHandler.ComputeTransactionType(userTx)
-	isMoveBalance := dstShardTxType == process.MoveBalance
-	if txProc.enableEpochsHandler.IsFlagEnabled(common.FixRelayedMoveBalanceFlag) && isMoveBalance {
-		userFee := txProc.computeTxFeeAfterMoveBalanceFix(userTx)
+	if txProc.enableEpochsHandler.IsFlagEnabled(common.FixRelayedBaseCostFlag) {
+		userFee := txProc.computeTxFeeAfterBaseCostFix(userTx)
 
 		totalFee = totalFee.Add(relayerFee, userFee)
 	}
@@ -902,9 +897,7 @@ func (txProc *txProcessor) removeValueAndConsumedFeeFromUser(
 		return err
 	}
 
-	_, dstShardTxType := txProc.txTypeHandler.ComputeTransactionType(userTx)
-	isMoveBalance := dstShardTxType == process.MoveBalance
-	consumedFee := txProc.computeTxFeeForRelayed(userTx, isMoveBalance)
+	consumedFee := txProc.computeTxFeeForRelayedTx(userTx)
 
 	err = userAcnt.SubFromBalance(consumedFee)
 	if err != nil {
@@ -949,6 +942,9 @@ func (txProc *txProcessor) processMoveBalanceCostRelayedUserTx(
 ) error {
 	moveBalanceGasLimit := txProc.economicsFee.ComputeGasLimit(userTx)
 	moveBalanceUserFee := txProc.economicsFee.ComputeFeeForProcessing(userTx, moveBalanceGasLimit)
+	if txProc.enableEpochsHandler.IsFlagEnabled(common.FixRelayedBaseCostFlag) {
+		moveBalanceUserFee = txProc.economicsFee.ComputeBaseFee(userTx)
+	}
 
 	userScrHash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, userScr)
 	if err != nil {
@@ -1158,20 +1154,18 @@ func (txProc *txProcessor) executeFailedRelayedUserTx(
 		return err
 	}
 
-	_, dstShardTxType := txProc.txTypeHandler.ComputeTransactionType(userTx)
-	isMoveBalance := dstShardTxType == process.MoveBalance
 	totalFee := txProc.economicsFee.ComputeFeeForProcessing(userTx, userTx.GasLimit)
 	moveBalanceGasLimit := txProc.economicsFee.ComputeGasLimit(userTx)
 	gasToUse := userTx.GetGasLimit() - moveBalanceGasLimit
 	processingUserFee := txProc.economicsFee.ComputeFeeForProcessing(userTx, gasToUse)
-	if txProc.enableEpochsHandler.IsFlagEnabled(common.FixRelayedMoveBalanceFlag) && isMoveBalance {
+	if txProc.enableEpochsHandler.IsFlagEnabled(common.FixRelayedBaseCostFlag) {
 		moveBalanceUserFee := txProc.economicsFee.ComputeBaseFee(userTx)
 		totalFee = big.NewInt(0).Add(moveBalanceUserFee, processingUserFee)
 	}
 
 	senderShardID := txProc.shardCoordinator.ComputeId(userTx.SndAddr)
 	if senderShardID != txProc.shardCoordinator.SelfId() {
-		if txProc.enableEpochsHandler.IsFlagEnabled(common.FixRelayedMoveBalanceFlag) && isMoveBalance {
+		if txProc.enableEpochsHandler.IsFlagEnabled(common.FixRelayedBaseCostFlag) {
 			totalFee.Sub(totalFee, processingUserFee)
 		} else {
 			moveBalanceUserFee := txProc.economicsFee.ComputeFeeForProcessing(userTx, moveBalanceGasLimit)

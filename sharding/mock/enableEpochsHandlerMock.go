@@ -53,8 +53,8 @@ func (mock *EnableEpochsHandlerMock) IsRelayedTransactionsV3FlagEnabled() bool {
 	return false
 }
 
-// IsFixRelayedMoveBalanceFlagEnabled -
-func (mock *EnableEpochsHandlerMock) IsFixRelayedMoveBalanceFlagEnabled() bool {
+// IsFixRelayedBaseCostFlagEnabled -
+func (mock *EnableEpochsHandlerMock) IsFixRelayedBaseCostFlagEnabled() bool {
 	return false
 }
 

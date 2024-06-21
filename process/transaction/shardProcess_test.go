@@ -92,7 +92,7 @@ func createArgsForTxProcessor() txproc.ArgsNewTxProcessor {
 		BadTxForwarder:          &mock.IntermediateTransactionHandlerMock{},
 		ArgsParser:              &mock.ArgumentParserMock{},
 		ScrForwarder:            &mock.IntermediateTransactionHandlerMock{},
-		EnableEpochsHandler:     enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.PenalizedTooMuchGasFlag, common.FixRelayedMoveBalanceFlag),
+		EnableEpochsHandler:     enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.PenalizedTooMuchGasFlag, common.FixRelayedBaseCostFlag),
 		GuardianChecker:         &guardianMocks.GuardedAccountHandlerStub{},
 		TxVersionChecker:        &testscommon.TxVersionCheckerStub{},
 		TxLogsProcessor:         &mock.TxLogsProcessorStub{},
@@ -2238,7 +2238,7 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 		args.TxTypeHandler = txTypeHandler
 		args.PubkeyConv = pubKeyConverter
 		args.ArgsParser = smartContract.NewArgumentParser()
-		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.RelayedTransactionsV3Flag, common.FixRelayedMoveBalanceFlag)
+		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.RelayedTransactionsV3Flag, common.FixRelayedBaseCostFlag)
 		args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 			ComputeBaseFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 				return big.NewInt(1)
@@ -2361,7 +2361,7 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 		args.TxTypeHandler = txTypeHandler
 		args.PubkeyConv = pubKeyConverter
 		args.ArgsParser = smartContract.NewArgumentParser()
-		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.RelayedTransactionsV3Flag, common.FixRelayedMoveBalanceFlag)
+		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.RelayedTransactionsV3Flag, common.FixRelayedBaseCostFlag)
 		args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 			ComputeBaseFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 				return big.NewInt(int64(tx.GetGasPrice() * tx.GetGasLimit()))
@@ -2448,7 +2448,7 @@ func TestTxProcessor_ProcessRelayedTransactionV3(t *testing.T) {
 		args.TxTypeHandler = txTypeHandler
 		args.PubkeyConv = pubKeyConverter
 		args.ArgsParser = smartContract.NewArgumentParser()
-		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.RelayedTransactionsV3Flag, common.FixRelayedMoveBalanceFlag)
+		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.RelayedTransactionsV3Flag, common.FixRelayedBaseCostFlag)
 		increasingFee := big.NewInt(0)
 		args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 			ComputeBaseFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
@@ -2554,7 +2554,7 @@ func testProcessRelayedTransactionV3(
 	args.TxTypeHandler = txTypeHandler
 	args.PubkeyConv = pubKeyConverter
 	args.ArgsParser = smartContract.NewArgumentParser()
-	args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.RelayedTransactionsV3Flag, common.FixRelayedMoveBalanceFlag)
+	args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.RelayedTransactionsV3Flag, common.FixRelayedBaseCostFlag)
 	args.EconomicsFee = &economicsmocks.EconomicsHandlerMock{
 		ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return big.NewInt(4)
@@ -3204,6 +3204,7 @@ func TestTxProcessor_ConsumeMoveBalanceWithUserTx(t *testing.T) {
 	t.Parallel()
 
 	args := createArgsForTxProcessor()
+	args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
 	args.EconomicsFee = &economicsmocks.EconomicsHandlerStub{
 		ComputeTxFeeCalled: func(tx data.TransactionWithFeeHandler) *big.Int {
 			return big.NewInt(150)
