@@ -147,7 +147,7 @@ func (txProc *baseTxProcessor) checkTxValues(
 			return process.ErrNotEnoughGasInUserTx
 		}
 
-		txFee = txProc.computeTxFee(tx)
+		txFee = txProc.computeTxFeeForRelayedTx(tx)
 	} else {
 		txFee = txProc.economicsFee.ComputeTxFee(tx)
 	}
@@ -174,7 +174,7 @@ func (txProc *baseTxProcessor) checkTxValues(
 	return nil
 }
 
-func (txProc *baseTxProcessor) computeTxFee(tx *transaction.Transaction) *big.Int {
+func (txProc *baseTxProcessor) computeTxFeeForRelayedTx(tx *transaction.Transaction) *big.Int {
 	if txProc.enableEpochsHandler.IsFlagEnabled(common.FixRelayedBaseCostFlag) {
 		return txProc.computeTxFeeAfterBaseCostFix(tx)
 	}
