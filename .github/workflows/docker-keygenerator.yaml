@@ -1,8 +1,4 @@
-env:
-  IMAGE_NODE: chain-keygenerator
-  REGISTRY_HOSTNAME: multiversx
-
-name: Build Docker image & push
+name: Build & push keygenerator docker image
 
 on:
   workflow_dispatch:
@@ -37,4 +33,4 @@ jobs:
           file: ./docker/keygenerator/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ env.REGISTRY_HOSTNAME }}/${{ env.IMAGE_NODE }}:latest
+          tags: multiversx/chain-keygenerator:latest
