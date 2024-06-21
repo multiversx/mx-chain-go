@@ -1197,10 +1197,6 @@ func (ihnc *indexHashedNodesCoordinator) createSelectors(
 	selectors := make(map[uint32]RandomSelector)
 	// weights for validators are computed according to each validator rating
 	for shard, vList := range nodesConfig.eligibleMap {
-		if shard == core.MetachainShardId {
-			continue
-		}
-
 		log.Debug("create selectors", "shard", shard)
 		weights, err = ihnc.nodesCoordinatorHelper.ValidatorsWeights(vList)
 		if err != nil {
