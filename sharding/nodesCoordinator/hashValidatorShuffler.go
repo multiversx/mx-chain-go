@@ -268,11 +268,7 @@ func (rhs *randHashShuffler) IsInterfaceNil() bool {
 }
 
 func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
-	allLeaving := append(arg.unstakeLeaving, arg.additionalLeaving...)
-
 	waitingCopy := copyValidatorMap(arg.waiting)
-	eligibleCopy := copyValidatorMap(arg.eligible)
-
 	createListsForAllShards(waitingCopy, arg.nbShards)
 
 	numToRemove, err := computeNumToRemove(arg)
@@ -280,11 +276,18 @@ func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 		return nil, err
 	}
 
+	return baseShuffleNodes(arg, waitingCopy, numToRemove)
+}
+
+func baseShuffleNodes(arg shuffleNodesArg, waitingCopy map[uint32][]Validator, numToRemove map[uint32]int) (*ResUpdateNodes, error) {
 	for i, toRemove := range numToRemove {
 		if toRemove > int(arg.maxNodesToSwapPerShard) {
 			numToRemove[i] = int(arg.maxNodesToSwapPerShard)
 		}
 	}
+
+	allLeaving := append(arg.unstakeLeaving, arg.additionalLeaving...)
+	eligibleCopy := copyValidatorMap(arg.eligible)
 
 	remainingUnstakeLeaving, _ := removeLeavingNodesNotExistingInEligibleOrWaiting(arg.unstakeLeaving, waitingCopy, eligibleCopy)
 	remainingAdditionalLeaving, _ := removeLeavingNodesNotExistingInEligibleOrWaiting(arg.additionalLeaving, waitingCopy, eligibleCopy)
@@ -304,7 +307,7 @@ func shuffleNodes(arg shuffleNodesArg) (*ResUpdateNodes, error) {
 
 	shuffledOutMap, newEligible := shuffleOutNodes(newEligible, numToRemove, arg.randomness)
 
-	err = moveMaxNumNodesToMap(newEligible, newWaiting, arg.nodesMeta, arg.nodesPerShard)
+	err := moveMaxNumNodesToMap(newEligible, newWaiting, arg.nodesMeta, arg.nodesPerShard)
 	if err != nil {
 		return nil, fmt.Errorf("moveNodesToMap failed, error: %w", err)
 	}
