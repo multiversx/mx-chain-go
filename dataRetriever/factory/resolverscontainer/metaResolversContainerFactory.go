@@ -305,6 +305,7 @@ func (mrcf *metaResolversContainerFactory) createMetaChainHeaderResolver(
 	return resolver, nil
 }
 
+// check do we need this?
 func (mrcf *metaResolversContainerFactory) generateTrieNodesResolvers() error {
 	keys := make([]string, 0)
 	resolversSlice := make([]dataRetriever.Resolver, 0)

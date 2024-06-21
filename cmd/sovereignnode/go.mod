@@ -6,7 +6,7 @@ go 1.20
 
 require (
 	github.com/google/gops v0.3.18
-	github.com/multiversx/mx-chain-core-go v1.2.21-0.20240531074039-9f259f2709fd
+	github.com/multiversx/mx-chain-core-go v1.2.21-0.20240620115018-92f76e51ab0d
 	github.com/multiversx/mx-chain-go v1.6.3
 	github.com/multiversx/mx-chain-logger-go v1.0.15-0.20240508072523-3f00a726af57
 	github.com/multiversx/mx-chain-sovereign-bridge-go v0.0.0-20240116102202-4cf6fbbd95a3

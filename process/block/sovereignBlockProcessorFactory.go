@@ -61,6 +61,7 @@ func (s *sovereignBlockProcessorFactory) CreateBlockProcessor(argumentsBaseProce
 		ValidatorInfoCreator:         argsMetaProcessor.EpochValidatorInfoCreator,
 		EpochRewardsCreator:          argsMetaProcessor.EpochRewardsCreator,
 		EpochStartDataCreator:        argsMetaProcessor.EpochStartDataCreator,
+		EpochSystemSCProcessor:       argsMetaProcessor.EpochSystemSCProcessor,
 	}
 
 	return NewSovereignChainBlockProcessor(args)

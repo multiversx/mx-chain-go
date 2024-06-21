@@ -28,6 +28,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	nodesCoord "github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage/latestData"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	testFactory "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
@@ -74,6 +75,7 @@ type RunTypeComponentsStub struct {
 	GenesisBlockFactory                 processGenesis.GenesisBlockCreatorFactory
 	GenesisMetaBlockChecker             processGenesis.GenesisMetaBlockChecker
 	EpochStartTriggerFactoryField       factory.EpochStartTriggerFactoryHandler
+	LatestDataProviderFactoryField      latestData.LatestDataProviderFactory
 }
 
 // NewRunTypeComponentsStub -
@@ -113,6 +115,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		GenesisBlockFactory:                 &testFactory.GenesisBlockCreatorFactoryMock{},
 		GenesisMetaBlockChecker:             &testFactory.GenesisMetaBlockCheckerMock{},
 		EpochStartTriggerFactoryField:       epochStartTrigger.NewEpochStartTriggerFactory(),
+		LatestDataProviderFactoryField:      latestData.NewLatestDataProviderFactory(),
 	}
 }
 
@@ -304,6 +307,11 @@ func (r *RunTypeComponentsStub) GenesisMetaBlockCheckerCreator() processGenesis.
 // EpochStartTriggerFactory -
 func (r *RunTypeComponentsStub) EpochStartTriggerFactory() factory.EpochStartTriggerFactoryHandler {
 	return r.EpochStartTriggerFactoryField
+}
+
+// LatestDataProviderFactory  -
+func (r *RunTypeComponentsStub) LatestDataProviderFactory() latestData.LatestDataProviderFactory {
+	return r.LatestDataProviderFactoryField
 }
 
 // IsInterfaceNil -
