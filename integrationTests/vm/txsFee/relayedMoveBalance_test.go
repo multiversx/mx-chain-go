@@ -23,7 +23,9 @@ func TestRelayedMoveBalanceShouldWork(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
+		FixRelayedBaseCostEnableEpoch: integrationTests.UnreachableEpoch,
+	})
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -109,7 +111,9 @@ func TestRelayedMoveBalanceInvalidUserTxShouldConsumeGas(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
+		FixRelayedBaseCostEnableEpoch: integrationTests.UnreachableEpoch,
+	})
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -147,7 +151,8 @@ func TestRelayedMoveBalanceInvalidUserTxValueShouldConsumeGas(t *testing.T) {
 	}
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
-		RelayedNonceFixEnableEpoch: 1,
+		RelayedNonceFixEnableEpoch:    1,
+		FixRelayedBaseCostEnableEpoch: integrationTests.UnreachableEpoch,
 	})
 	require.Nil(t, err)
 	defer testContext.Close()

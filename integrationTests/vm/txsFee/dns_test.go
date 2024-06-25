@@ -200,7 +200,9 @@ func TestDeployDNSContract_TestGasWhenSaveUsernameAfterDNSv2IsActivated(t *testi
 		t.Skip("this is not a short test")
 	}
 
-	testContextForDNSContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
+	testContextForDNSContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{
+		FixRelayedBaseCostEnableEpoch: integrationTests.UnreachableEpoch,
+	})
 	require.Nil(t, err)
 	defer testContextForDNSContract.Close()
 

@@ -20,14 +20,13 @@ func TestRelayedMoveBalanceRelayerShard0InnerTxSenderAndReceiverShard1ShouldWork
 		t.Skip("this is not a short test")
 	}
 
-	t.Run("before relayed move balance fix", testRelayedMoveBalanceRelayerShard0InnerTxSenderAndReceiverShard1ShouldWork(integrationTests.UnreachableEpoch))
-	t.Run("after relayed move balance fix", testRelayedMoveBalanceRelayerShard0InnerTxSenderAndReceiverShard1ShouldWork(0))
+	t.Run("before relayed base cost fix", testRelayedMoveBalanceRelayerShard0InnerTxSenderAndReceiverShard1ShouldWork(integrationTests.UnreachableEpoch))
 }
 
 func testRelayedMoveBalanceRelayerShard0InnerTxSenderAndReceiverShard1ShouldWork(relayedFixActivationEpoch uint32) func(t *testing.T) {
 	return func(t *testing.T) {
 		testContext, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{
-			RelayedNonceFixEnableEpoch: relayedFixActivationEpoch,
+			FixRelayedBaseCostEnableEpoch: relayedFixActivationEpoch,
 		})
 		require.Nil(t, err)
 		defer testContext.Close()
@@ -80,14 +79,13 @@ func TestRelayedMoveBalanceRelayerAndInnerTxSenderShard0ReceiverShard1(t *testin
 		t.Skip("this is not a short test")
 	}
 
-	t.Run("before relayed move balance fix", testRelayedMoveBalanceRelayerAndInnerTxSenderShard0ReceiverShard1(integrationTests.UnreachableEpoch))
-	t.Run("after relayed move balance fix", testRelayedMoveBalanceRelayerAndInnerTxSenderShard0ReceiverShard1(0))
+	t.Run("before relayed base cost fix", testRelayedMoveBalanceRelayerAndInnerTxSenderShard0ReceiverShard1(integrationTests.UnreachableEpoch))
 }
 
 func testRelayedMoveBalanceRelayerAndInnerTxSenderShard0ReceiverShard1(relayedFixActivationEpoch uint32) func(t *testing.T) {
 	return func(t *testing.T) {
 		testContext, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{
-			RelayedNonceFixEnableEpoch: relayedFixActivationEpoch,
+			FixRelayedBaseCostEnableEpoch: relayedFixActivationEpoch,
 		})
 		require.Nil(t, err)
 		defer testContext.Close()
@@ -138,8 +136,7 @@ func TestRelayedMoveBalanceExecuteOnSourceAndDestination(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	t.Run("before relayed move balance fix", testRelayedMoveBalanceExecuteOnSourceAndDestination(integrationTests.UnreachableEpoch))
-	t.Run("after relayed move balance fix", testRelayedMoveBalanceExecuteOnSourceAndDestination(0))
+	t.Run("before relayed base cost fix", testRelayedMoveBalanceExecuteOnSourceAndDestination(integrationTests.UnreachableEpoch))
 }
 
 func testRelayedMoveBalanceExecuteOnSourceAndDestination(relayedFixActivationEpoch uint32) func(t *testing.T) {
@@ -219,8 +216,8 @@ func TestRelayedMoveBalanceExecuteOnSourceAndDestinationRelayerAndInnerTxSenderS
 		t.Skip("this is not a short test")
 	}
 
-	t.Run("before relayed move balance fix", testRelayedMoveBalanceExecuteOnSourceAndDestinationRelayerAndInnerTxSenderShard0InnerTxReceiverShard1ShouldWork(integrationTests.UnreachableEpoch))
-	t.Run("after relayed move balance fix", testRelayedMoveBalanceExecuteOnSourceAndDestinationRelayerAndInnerTxSenderShard0InnerTxReceiverShard1ShouldWork(0))
+	t.Run("before relayed base cost fix", testRelayedMoveBalanceExecuteOnSourceAndDestinationRelayerAndInnerTxSenderShard0InnerTxReceiverShard1ShouldWork(integrationTests.UnreachableEpoch))
+	t.Run("after relayed base cost fix", testRelayedMoveBalanceExecuteOnSourceAndDestinationRelayerAndInnerTxSenderShard0InnerTxReceiverShard1ShouldWork(0))
 }
 
 func testRelayedMoveBalanceExecuteOnSourceAndDestinationRelayerAndInnerTxSenderShard0InnerTxReceiverShard1ShouldWork(relayedFixActivationEpoch uint32) func(t *testing.T) {
@@ -267,14 +264,21 @@ func testRelayedMoveBalanceExecuteOnSourceAndDestinationRelayerAndInnerTxSenderS
 		require.Nil(t, err)
 
 		// check relayed balance
-		// 100000 - rTxFee(163)*gasPrice(10) - innerTxFee(1000) = 97370
-		utils.TestAccount(t, testContextSource.Accounts, relayerAddr, 1, big.NewInt(97370))
+		// before base cost fix: 100000 - rTxFee(163)*gasPrice(10) - innerTxFee(1000) = 97370
+		//  after base cost fix: 100000 - rTxFee(163)*gasPrice(10) - innerTxFee(10)   = 98360
+		expectedConsumedFee := big.NewInt(97370)
+		expectedAccumulatedFees := big.NewInt(2630)
+		if relayedFixActivationEpoch != integrationTests.UnreachableEpoch {
+			expectedConsumedFee = big.NewInt(98360)
+			expectedAccumulatedFees = big.NewInt(1640)
+		}
+		utils.TestAccount(t, testContextSource.Accounts, relayerAddr, 1, expectedConsumedFee)
 		// check inner tx sender
 		utils.TestAccount(t, testContextSource.Accounts, sndAddr, 1, big.NewInt(0))
 
 		// check accumulated fees
 		accumulatedFees := testContextSource.TxFeeHandler.GetAccumulatedFees()
-		require.Equal(t, big.NewInt(2630), accumulatedFees)
+		require.Equal(t, expectedAccumulatedFees, accumulatedFees)
 
 		// get scr for destination shard
 		txs := testContextSource.GetIntermediateTransactions(t)
@@ -296,8 +300,7 @@ func TestRelayedMoveBalanceRelayerAndInnerTxReceiverShard0SenderShard1(t *testin
 		t.Skip("this is not a short test")
 	}
 
-	t.Run("before relayed move balance fix", testRelayedMoveBalanceRelayerAndInnerTxReceiverShard0SenderShard1(integrationTests.UnreachableEpoch))
-	t.Run("after relayed move balance fix", testRelayedMoveBalanceRelayerAndInnerTxReceiverShard0SenderShard1(0))
+	t.Run("before relayed base cost fix", testRelayedMoveBalanceRelayerAndInnerTxReceiverShard0SenderShard1(integrationTests.UnreachableEpoch))
 }
 
 func testRelayedMoveBalanceRelayerAndInnerTxReceiverShard0SenderShard1(relayedFixActivationEpoch uint32) func(t *testing.T) {
@@ -385,8 +388,7 @@ func TestMoveBalanceRelayerShard0InnerTxSenderShard1InnerTxReceiverShard2ShouldW
 		t.Skip("this is not a short test")
 	}
 
-	t.Run("before relayed move balance fix", testMoveBalanceRelayerShard0InnerTxSenderShard1InnerTxReceiverShard2ShouldWork(integrationTests.UnreachableEpoch))
-	t.Run("after relayed move balance fix", testMoveBalanceRelayerShard0InnerTxSenderShard1InnerTxReceiverShard2ShouldWork(0))
+	t.Run("before relayed base cost fix", testMoveBalanceRelayerShard0InnerTxSenderShard1InnerTxReceiverShard2ShouldWork(integrationTests.UnreachableEpoch))
 }
 
 func testMoveBalanceRelayerShard0InnerTxSenderShard1InnerTxReceiverShard2ShouldWork(relayedFixActivationEpoch uint32) func(t *testing.T) {

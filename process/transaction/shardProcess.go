@@ -400,7 +400,7 @@ func (txProc *txProcessor) processTxFee(
 	}
 
 	if isUserTxOfRelayed {
-		totalCost := txProc.computeTxFeeForRelayedTx(tx)
+		totalCost := txProc.computeInnerTxFee(tx)
 
 		err := acntSnd.SubFromBalance(totalCost)
 		if err != nil {
@@ -747,7 +747,7 @@ func (txProc *txProcessor) processInnerTx(
 	originalTxHash []byte,
 ) (*big.Int, vmcommon.ReturnCode, error) {
 
-	txFee := txProc.computeTxFeeForRelayedTx(innerTx)
+	txFee := txProc.computeInnerTxFee(innerTx)
 
 	acntSnd, err := txProc.getAccountFromAddress(innerTx.SndAddr)
 	if err != nil {
@@ -867,7 +867,7 @@ func (txProc *txProcessor) computeRelayedTxFees(tx, userTx *transaction.Transact
 	relayerFee := txProc.economicsFee.ComputeMoveBalanceFee(tx)
 	totalFee := txProc.economicsFee.ComputeTxFee(tx)
 	if txProc.enableEpochsHandler.IsFlagEnabled(common.FixRelayedBaseCostFlag) {
-		userFee := txProc.computeTxFeeAfterBaseCostFix(userTx)
+		userFee := txProc.computeInnerTxFeeAfterBaseCostFix(userTx)
 
 		totalFee = totalFee.Add(relayerFee, userFee)
 	}
@@ -901,7 +901,7 @@ func (txProc *txProcessor) removeValueAndConsumedFeeFromUser(
 		return err
 	}
 
-	consumedFee := txProc.computeTxFeeForRelayedTx(userTx)
+	consumedFee := txProc.computeInnerTxFee(userTx)
 
 	err = userAcnt.SubFromBalance(consumedFee)
 	if err != nil {
