@@ -1530,3 +1530,141 @@ func TestBranchNode_revertChildrenVersionSliceIfNeeded(t *testing.T) {
 		assert.Nil(t, bn.ChildrenVersion)
 	})
 }
+
+func TestBranchNode_splitDataForChildren(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty array returns err", func(t *testing.T) {
+		t.Parallel()
+
+		var newData []core.TrieData
+		data, err := splitDataForChildren(newData)
+		assert.Nil(t, data)
+		assert.Equal(t, ErrValueTooShort, err)
+	})
+	t.Run("empty key returns err", func(t *testing.T) {
+		t.Parallel()
+
+		newData := []core.TrieData{
+			{Key: []byte{2, 3, 4}},
+			{Key: []byte{}},
+		}
+
+		data, err := splitDataForChildren(newData)
+		assert.Nil(t, data)
+		assert.Equal(t, ErrValueTooShort, err)
+	})
+	t.Run("child pos out of range returns err", func(t *testing.T) {
+		t.Parallel()
+
+		newData := []core.TrieData{
+			{Key: []byte{2, 3, 4}},
+			{Key: []byte{17, 2, 3}},
+		}
+
+		data, err := splitDataForChildren(newData)
+		assert.Nil(t, data)
+		assert.Equal(t, ErrChildPosOutOfRange, err)
+	})
+	t.Run("one child on last pos should work", func(t *testing.T) {
+		t.Parallel()
+
+		childPos := byte(16)
+		newData := []core.TrieData{
+			{Key: []byte{childPos}},
+		}
+
+		data, err := splitDataForChildren(newData)
+		assert.True(t, len(data) == nrOfChildren)
+		assert.Nil(t, err)
+		assert.Equal(t, newData, data[childPos])
+	})
+	t.Run("all children have same pos should work", func(t *testing.T) {
+		t.Parallel()
+
+		childPos := byte(2)
+		newData := []core.TrieData{
+			{Key: []byte{childPos, 3, 4}},
+			{Key: []byte{childPos, 5, 6}},
+			{Key: []byte{childPos, 7, 8}},
+		}
+
+		data, err := splitDataForChildren(newData)
+		assert.True(t, len(data) == nrOfChildren)
+		assert.Nil(t, err)
+		for i := range data {
+			if i != int(childPos) {
+				assert.Nil(t, data[i])
+				continue
+			}
+			assert.Equal(t, newData, data[i])
+		}
+	})
+	t.Run("all children have different pos should work", func(t *testing.T) {
+		t.Parallel()
+
+		childPos1 := byte(2)
+		childPos2 := byte(6)
+		childPos3 := byte(13)
+		newData := []core.TrieData{
+			{Key: []byte{childPos1, 3, 4}},
+			{Key: []byte{childPos2, 5, 6}},
+			{Key: []byte{childPos3, 7, 8}},
+		}
+
+		data, err := splitDataForChildren(newData)
+		assert.True(t, len(data) == nrOfChildren)
+		assert.Nil(t, err)
+		for i := range data {
+			if i == int(childPos1) {
+				assert.Equal(t, []core.TrieData{newData[0]}, data[i])
+			} else if i == int(childPos2) {
+				assert.Equal(t, []core.TrieData{newData[1]}, data[i])
+			} else if i == int(childPos3) {
+				assert.Equal(t, []core.TrieData{newData[2]}, data[i])
+			} else {
+				assert.Nil(t, data[i])
+			}
+		}
+	})
+	t.Run("some children have same pos should work", func(t *testing.T) {
+		t.Parallel()
+
+		childPos1 := byte(2)
+		childPos2 := byte(6)
+		newData := []core.TrieData{
+			{Key: []byte{childPos1, 3, 4}},
+			{Key: []byte{childPos1, 5, 6}},
+			{Key: []byte{childPos2, 7, 8}},
+		}
+
+		data, err := splitDataForChildren(newData)
+		assert.True(t, len(data) == nrOfChildren)
+		assert.Nil(t, err)
+		for i := range data {
+			if i == int(childPos1) {
+				assert.Equal(t, []core.TrieData{newData[0], newData[1]}, data[i])
+			} else if i == int(childPos2) {
+				assert.Equal(t, []core.TrieData{newData[2]}, data[i])
+			} else {
+				assert.Nil(t, data[i])
+			}
+		}
+	})
+	t.Run("child pos is removed from key", func(t *testing.T) {
+		t.Parallel()
+
+		childPos := byte(2)
+		newData := []core.TrieData{
+			{Key: []byte{childPos, 3, 4}},
+			{Key: []byte{childPos, 5, 6}},
+		}
+
+		data, err := splitDataForChildren(newData)
+		assert.True(t, len(data) == nrOfChildren)
+		assert.Nil(t, err)
+		assert.Equal(t, 2, len(data[childPos]))
+		assert.Equal(t, []byte{3, 4}, newData[0].Key)
+		assert.Equal(t, []byte{5, 6}, newData[1].Key)
+	})
+}
