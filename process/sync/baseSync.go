@@ -650,13 +650,13 @@ func (boot *baseBootstrap) syncBlock() error {
 	}
 
 	withRevertErr := func() error {
+		if true {
+			return nil
+		}
 		defer func() {
 			boot.blockProcessorWithRevert.RevertCurrentBlock()
 			log.Info("========================================ProcessBlockWithRevert - END ========================================")
 		}()
-		//if true {
-		//	return nil
-		//}
 
 		log.Info("========================================ProcessBlockWithRevert - START ========================================")
 		startProcessBlockTime := time.Now()

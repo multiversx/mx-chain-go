@@ -70,7 +70,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 	blockCutoffProcessingHandler cutoff.BlockProcessingCutoffHandler,
 	missingTrieNodesNotifier common.MissingTrieNodesNotifier,
 	sentSignaturesTracker process.SentSignaturesTracker,
-	hardCodedToV15 bool,
+	hardCodedToGasScheduleV8 bool,
 ) (*blockProcessorAndVmFactories, error) {
 	shardCoordinator := pcf.bootstrapComponents.ShardCoordinator()
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
@@ -89,7 +89,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 			blockCutoffProcessingHandler,
 			missingTrieNodesNotifier,
 			sentSignaturesTracker,
-			hardCodedToV15,
+			hardCodedToGasScheduleV8,
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -131,7 +131,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	blockProcessingCutoffHandler cutoff.BlockProcessingCutoffHandler,
 	missingTrieNodesNotifier common.MissingTrieNodesNotifier,
 	sentSignaturesTracker process.SentSignaturesTracker,
-	hardCodedToV15 bool,
+	hardCodedToGasV8 bool,
 ) (*blockProcessorAndVmFactories, error) {
 	argsParser := smartContract.NewArgumentParser()
 
@@ -155,9 +155,17 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	log.Debug("blockProcessorCreator: enable epoch for repair callback", "epoch", pcf.epochConfig.EnableEpochs.RepairCallbackEnableEpoch)
 
 	scStorage := pcf.config.SmartContractsStorage
-	if hardCodedToV15 {
-		scStorage.DB.FilePath = scStorage.DB.FilePath + "_v15"
+	if hardCodedToGasV8 {
+		scStorage.DB.FilePath = scStorage.DB.FilePath + "_v8"
+		//oldGasSchedule := pcf.gasSchedule
+		//
+		//pcf.gasSchedule = common.LatestGasSchedule
+		//
+		//defer func() {
+		//	pcf.gasSchedule = oldGasSchedule
+		//}()
 	}
+
 	vmFactory, err := pcf.createVMFactoryShard(
 		pcf.state.AccountsAdapter(),
 		missingTrieNodesNotifier,
@@ -167,7 +175,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		scStorage,
 		builtInFuncFactory.NFTStorageHandler(),
 		builtInFuncFactory.ESDTGlobalSettingsHandler(),
-		hardCodedToV15,
+		hardCodedToGasV8,
 	)
 	if err != nil {
 		return nil, err
@@ -269,7 +277,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	}
 
 	var scProcessorProxy process.SmartContractProcessorFacade
-	if hardCodedToV15 {
+	if hardCodedToGasV8 {
 		scProcessorProxy, err = processorV2.NewSmartContractProcessorV2(argsNewScProcessor)
 	} else {
 		scProcessorProxy, err = processProxy.NewSmartContractProcessorProxy(argsNewScProcessor, pcf.epochNotifier)
