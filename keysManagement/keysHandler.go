@@ -120,6 +120,11 @@ func (handler *keysHandler) ResetRoundsWithoutReceivedMessages(pkBytes []byte, p
 	handler.managedPeersHolder.ResetRoundsWithoutReceivedMessages(pkBytes, pid)
 }
 
+// GetRedundancyStepInReason returns the reason if the current node stepped in as a redundancy node
+func (handler *keysHandler) GetRedundancyStepInReason() string {
+	return handler.managedPeersHolder.GetRedundancyStepInReason()
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (handler *keysHandler) IsInterfaceNil() bool {
 	return handler == nil

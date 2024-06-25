@@ -232,7 +232,7 @@ func (ibp *internalBlockProcessor) getValidatorsInfo(
 	epoch uint32,
 ) ([]*state.ShardValidatorInfo, error) {
 	validatorsInfoBytes := make([][]byte, 0)
-	if epoch >= ibp.enableEpochsHandler.RefactorPeersMiniBlocksEnableEpoch() {
+	if ibp.enableEpochsHandler.IsFlagEnabledInEpoch(common.RefactorPeersMiniBlocksFlag, epoch) {
 		validatorsInfoBuff, err := ibp.store.GetAll(dataRetriever.UnsignedTransactionUnit, miniBlock.TxHashes)
 		if err != nil {
 			return nil, err

@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/shardedData"
 	"github.com/multiversx/mx-chain-go/dataRetriever/txpool"
 	"github.com/multiversx/mx-chain-go/storage/cache"
+	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/multiversx/mx-chain-go/trie/factory"
@@ -88,14 +89,20 @@ func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHo
 	panicIfError("Create trieSync cacher", err)
 
 	tempDir, _ := os.MkdirTemp("", "integrationTests")
-	cfg := storageunit.ArgDB{
-		Path:              tempDir,
-		DBType:            storageunit.LvlDBSerial,
+
+	dbConfig := config.DBConfig{
+		FilePath:          tempDir,
+		Type:              string(storageunit.LvlDBSerial),
 		BatchDelaySeconds: 4,
 		MaxBatchSize:      10000,
 		MaxOpenFiles:      10,
 	}
-	persister, err := storageunit.NewDB(cfg)
+
+	dbConfigHandler := storageFactory.NewDBConfigHandler(dbConfig)
+	persisterFactory, err := storageFactory.NewPersisterFactory(dbConfigHandler)
+	panicIfError("Create persister factory", err)
+
+	persister, err := storageunit.NewDB(persisterFactory, tempDir)
 	panicIfError("Create trieSync DB", err)
 	tnf := factory.NewTrieNodeFactory()
 

@@ -92,6 +92,8 @@ func TestManagedProcessComponents_Create(t *testing.T) {
 		require.True(t, check.IfNil(managedProcessComponents.ReceiptsRepository()))
 		require.True(t, check.IfNil(managedProcessComponents.FullArchivePeerShardMapper()))
 		require.True(t, check.IfNil(managedProcessComponents.FullArchiveInterceptorsContainer()))
+		require.True(t, check.IfNil(managedProcessComponents.SentSignaturesTracker()))
+		require.True(t, check.IfNil(managedProcessComponents.EpochSystemSCProcessor()))
 
 		err := managedProcessComponents.Create()
 		require.NoError(t, err)
@@ -135,6 +137,8 @@ func TestManagedProcessComponents_Create(t *testing.T) {
 		require.False(t, check.IfNil(managedProcessComponents.ReceiptsRepository()))
 		require.False(t, check.IfNil(managedProcessComponents.FullArchivePeerShardMapper()))
 		require.False(t, check.IfNil(managedProcessComponents.FullArchiveInterceptorsContainer()))
+		require.False(t, check.IfNil(managedProcessComponents.SentSignaturesTracker()))
+		require.False(t, check.IfNil(managedProcessComponents.EpochSystemSCProcessor()))
 
 		require.Equal(t, factory.ProcessComponentsName, managedProcessComponents.String())
 	})

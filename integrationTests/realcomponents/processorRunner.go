@@ -304,6 +304,7 @@ func (pr *ProcessorRunner) createStatusComponents(tb testing.TB) {
 		pr.CoreComponents.NodeTypeProvider(),
 		pr.CoreComponents.EnableEpochsHandler(),
 		pr.DataComponents.Datapool().CurrentEpochValidatorInfo(),
+		pr.BootstrapComponents.NodesCoordinatorRegistryFactory(),
 	)
 	require.Nil(tb, err)
 
@@ -406,6 +407,7 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 	argsProcess := factoryProcessing.ProcessComponentsFactoryArgs{
 		Config:         *pr.Config.GeneralConfig,
 		EpochConfig:    *pr.Config.EpochConfig,
+		RoundConfig:    *pr.Config.RoundConfig,
 		PrefConfigs:    *pr.Config.PreferencesConfig,
 		ImportDBConfig: *pr.Config.ImportDbConfig,
 		FlagsConfig: config.ContextFlagsConfig{

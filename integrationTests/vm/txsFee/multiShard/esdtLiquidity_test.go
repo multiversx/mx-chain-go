@@ -18,6 +18,10 @@ import (
 )
 
 func TestSystemAccountLiquidityAfterCrossShardTransferAndBurn(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	tokenID := []byte("MYNFT")
 	sh0Addr := []byte("12345678901234567890123456789010")
 	sh1Addr := []byte("12345678901234567890123456789011")
@@ -66,6 +70,10 @@ func TestSystemAccountLiquidityAfterCrossShardTransferAndBurn(t *testing.T) {
 }
 
 func TestSystemAccountLiquidityAfterNFTWipe(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	tokenID := []byte("MYNFT-0a0a0a")
 	sh0Addr := bytes.Repeat([]byte{1}, 31)
 	sh0Addr = append(sh0Addr, 0)
@@ -112,6 +120,10 @@ func TestSystemAccountLiquidityAfterNFTWipe(t *testing.T) {
 }
 
 func TestSystemAccountLiquidityAfterSFTWipe(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	tokenID := []byte("MYSFT-0a0a0a")
 	sh0Addr := bytes.Repeat([]byte{1}, 31)
 	sh0Addr = append(sh0Addr, 0)

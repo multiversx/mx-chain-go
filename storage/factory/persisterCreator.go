@@ -31,6 +31,7 @@ func newPersisterCreator(config config.DBConfig) *persisterCreator {
 }
 
 // Create will create the persister for the provided path
+// TODO: refactor to use max tries mechanism
 func (pc *persisterCreator) Create(path string) (storage.Persister, error) {
 	if len(path) == 0 {
 		return nil, storage.ErrInvalidFilePath

@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"sort"
 	"sync"
 	"time"
 
@@ -18,6 +19,11 @@ import (
 )
 
 var log = logger.GetOrCreate("keysManagement")
+
+const (
+	redundancyReasonForOneKey       = "multikey node stepped in with one key"
+	redundancyReasonForMultipleKeys = "multikey node stepped in with %d keys"
+)
 
 type managedPeersHolder struct {
 	mut                         sync.RWMutex
@@ -163,7 +169,6 @@ func (holder *managedPeersHolder) AddManagedPeer(privateKeyBytes []byte) error {
 	pInfo, found = holder.providedIdentities[string(publicKeyBytes)]
 	if !found {
 		pInfo = &peerInfo{
-			handler:      common.NewRedundancyHandler(),
 			machineID:    generateRandomMachineID(),
 			nodeName:     generateNodeName(holder.defaultName, holder.defaultPeerInfoCurrentIndex),
 			nodeIdentity: holder.defaultIdentity,
@@ -171,6 +176,7 @@ func (holder *managedPeersHolder) AddManagedPeer(privateKeyBytes []byte) error {
 		holder.defaultPeerInfoCurrentIndex++
 	}
 
+	pInfo.handler = common.NewRedundancyHandler()
 	pInfo.pid = pid
 	pInfo.p2pPrivateKeyBytes = p2pPrivateKeyBytes
 	pInfo.privateKey = privateKey
@@ -276,7 +282,7 @@ func (holder *managedPeersHolder) ResetRoundsWithoutReceivedMessages(pkBytes []b
 	pInfo.resetRoundsWithoutReceivedMessages()
 }
 
-// GetManagedKeysByCurrentNode returns all keys that will be managed by this node
+// GetManagedKeysByCurrentNode returns all keys that should act as validator(main or backup that took over) and will be managed by this node
 func (holder *managedPeersHolder) GetManagedKeysByCurrentNode() map[string]crypto.PrivateKey {
 	holder.mut.RLock()
 	defer holder.mut.RUnlock()
@@ -292,6 +298,23 @@ func (holder *managedPeersHolder) GetManagedKeysByCurrentNode() map[string]crypt
 	}
 
 	return allManagedKeys
+}
+
+// GetLoadedKeysByCurrentNode returns all keys that were loaded and will be managed by this node
+func (holder *managedPeersHolder) GetLoadedKeysByCurrentNode() [][]byte {
+	holder.mut.RLock()
+	defer holder.mut.RUnlock()
+
+	allLoadedKeys := make([][]byte, 0, len(holder.data))
+	for pk := range holder.data {
+		allLoadedKeys = append(allLoadedKeys, []byte(pk))
+	}
+
+	sort.Slice(allLoadedKeys, func(i, j int) bool {
+		return string(allLoadedKeys[i]) < string(allLoadedKeys[j])
+	})
+
+	return allLoadedKeys
 }
 
 // IsKeyManagedByCurrentNode returns true if the key is managed by the current node
@@ -367,6 +390,26 @@ func (holder *managedPeersHolder) IsMultiKeyMode() bool {
 	defer holder.mut.RUnlock()
 
 	return len(holder.data) > 0
+}
+
+// GetRedundancyStepInReason returns the reason if the current node stepped in as a redundancy node
+// Returns empty string if the current node is the main multikey machine, the machine is not running in multikey mode
+// or the machine is acting as a backup but the main machine is acting accordingly
+func (holder *managedPeersHolder) GetRedundancyStepInReason() string {
+	if holder.isMainMachine {
+		return ""
+	}
+
+	numManagedKeys := len(holder.GetManagedKeysByCurrentNode())
+	if numManagedKeys == 0 {
+		return ""
+	}
+
+	if numManagedKeys == 1 {
+		return redundancyReasonForOneKey
+	}
+
+	return fmt.Sprintf(redundancyReasonForMultipleKeys, numManagedKeys)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -146,3 +146,13 @@ func TestTrieStorageManagerWithoutSnapshot_IsInterfaceNil(t *testing.T) {
 	ts, _ = trie.NewTrieStorageManagerWithoutSnapshot(tsm)
 	assert.False(t, check.IfNil(ts))
 }
+
+func TestTrieStorageManagerWithoutSnapshot_IsSnapshotSupportedShouldReturnFalse(t *testing.T) {
+	t.Parallel()
+
+	args := trie.GetDefaultTrieStorageManagerParameters()
+	tsm, _ := trie.NewTrieStorageManager(args)
+	ts, _ := trie.NewTrieStorageManagerWithoutSnapshot(tsm)
+
+	assert.False(t, ts.IsSnapshotSupported())
+}

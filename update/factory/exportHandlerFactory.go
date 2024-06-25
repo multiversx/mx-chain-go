@@ -323,6 +323,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		ShardCoordinator:     e.shardCoordinator,
 		MaxTrieLevelInMemory: e.maxTrieLevelInMemory,
 		EnableEpochsHandler:  e.coreComponents.EnableEpochsHandler(),
+		StateStatsCollector:  e.statusCoreComponents.StateStatsHandler(),
 	}
 	dataTriesContainerFactory, err := NewDataTrieFactory(argsDataTrieFactory)
 	if err != nil {
@@ -606,9 +607,17 @@ func (e *exportHandlerFactory) createInterceptors() error {
 func createStorer(storageConfig config.StorageConfig, folder string) (storage.Storer, error) {
 	dbConfig := storageFactory.GetDBFromConfig(storageConfig.DB)
 	dbConfig.FilePath = path.Join(folder, storageConfig.DB.FilePath)
+
+	dbConfigHandler := storageFactory.NewDBConfigHandler(storageConfig.DB)
+	persisterFactory, err := storageFactory.NewPersisterFactory(dbConfigHandler)
+	if err != nil {
+		return nil, err
+	}
+
 	accountsTrieStorage, err := storageunit.NewStorageUnitFromConf(
 		storageFactory.GetCacherFromConfig(storageConfig.Cache),
 		dbConfig,
+		persisterFactory,
 	)
 	if err != nil {
 		return nil, err

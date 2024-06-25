@@ -24,6 +24,12 @@ func NewDataTrieLeafParser(address []byte, marshaller marshal.Marshalizer, enabl
 	if check.IfNil(enableEpochsHandler) {
 		return nil, errors.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(enableEpochsHandler, []core.EnableEpochFlag{
+		common.AutoBalanceDataTriesFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	return &dataTrieLeafParser{
 		address:             address,
@@ -34,7 +40,8 @@ func NewDataTrieLeafParser(address []byte, marshaller marshal.Marshalizer, enabl
 
 // ParseLeaf returns a new KeyValStorage with the actual key and value
 func (tlp *dataTrieLeafParser) ParseLeaf(trieKey []byte, trieVal []byte, version core.TrieNodeVersion) (core.KeyValueHolder, error) {
-	if tlp.enableEpochsHandler.IsAutoBalanceDataTriesEnabled() && version == core.AutoBalanceEnabled {
+	isAutoBalanceDataTriesFlagEnabled := tlp.enableEpochsHandler.IsFlagEnabled(common.AutoBalanceDataTriesFlag)
+	if isAutoBalanceDataTriesFlagEnabled && version == core.AutoBalanceEnabled {
 		data := &dataTrieValue.TrieLeafData{}
 		err := tlp.marshaller.Unmarshal(data, trieVal)
 		if err != nil {

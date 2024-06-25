@@ -87,7 +87,10 @@ func (sc *scProcessor) createVMCallInput(
 
 	finalArguments, gasLocked := getAsyncCallGasLockFromTxData(callType, arguments)
 
-	asyncArguments, callArguments := separateAsyncArguments(callType, finalArguments)
+	asyncArguments, callArguments, err := separateAsyncArguments(callType, finalArguments)
+	if err != nil {
+		return nil, err
+	}
 
 	vmCallInput := &vmcommon.ContractCallInput{}
 	vmCallInput.VMInput = vmcommon.VMInput{}
@@ -150,9 +153,9 @@ func getAsyncCallGasLockFromTxData(callType vm.CallType, arguments [][]byte) ([]
 	return argsWithoutGasLocked, gasLocked
 }
 
-func separateAsyncArguments(callType vm.CallType, arguments [][]byte) ([][]byte, [][]byte) {
+func separateAsyncArguments(callType vm.CallType, arguments [][]byte) ([][]byte, [][]byte, error) {
 	if callType == vm.DirectCall || callType == vm.ESDTTransferAndExecute {
-		return nil, arguments
+		return nil, arguments, nil
 	}
 
 	var noOfAsyncArguments int
@@ -160,6 +163,10 @@ func separateAsyncArguments(callType vm.CallType, arguments [][]byte) ([][]byte,
 		noOfAsyncArguments = 2
 	} else {
 		noOfAsyncArguments = 4
+	}
+
+	if len(arguments) < noOfAsyncArguments {
+		return nil, nil, process.ErrInvalidAsyncArguments
 	}
 
 	noOfCallArguments := len(arguments) - noOfAsyncArguments
@@ -172,7 +179,7 @@ func separateAsyncArguments(callType vm.CallType, arguments [][]byte) ([][]byte,
 	copy(callArguments, arguments[:noOfCallArguments])
 	copy(asyncArguments, arguments[noOfCallArguments:])
 
-	return asyncArguments, callArguments
+	return asyncArguments, callArguments, nil
 }
 
 func buildAsyncArgumentsObject(callType vm.CallType, asyncArguments [][]byte) *vmcommon.AsyncArguments {

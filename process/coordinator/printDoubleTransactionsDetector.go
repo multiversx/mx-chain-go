@@ -61,8 +61,9 @@ func checkArgsPrintDoubleTransactionsDetector(args ArgsPrintDoubleTransactionsDe
 	if check.IfNil(args.EnableEpochsHandler) {
 		return process.ErrNilEnableEpochsHandler
 	}
-
-	return nil
+	return core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.AddFailedRelayedTxToInvalidMBsFlag,
+	})
 }
 
 // ProcessBlockBody processes the block body provided in search of doubled transactions. If there are doubled transactions,
@@ -100,7 +101,7 @@ func (detector *printDoubleTransactionsDetector) ProcessBlockBody(body *block.Bo
 		detector.logger.Debug(noDoubledTransactionsFoundMessage)
 		return
 	}
-	if detector.enableEpochsHandler.IsAddFailedRelayedTxToInvalidMBsFlag() {
+	if detector.enableEpochsHandler.IsFlagEnabled(common.AddFailedRelayedTxToInvalidMBsFlag) {
 		detector.logger.Debug(doubledTransactionsFoundButFlagActive)
 		return
 	}

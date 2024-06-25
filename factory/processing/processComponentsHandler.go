@@ -55,7 +55,7 @@ func (m *managedProcessComponents) Create() error {
 	return nil
 }
 
-// Close will close all underlying sub-components
+// Close will close all underlying subcomponents
 func (m *managedProcessComponents) Close() error {
 	m.mutProcessComponents.Lock()
 	defer m.mutProcessComponents.Unlock()
@@ -173,6 +173,12 @@ func (m *managedProcessComponents) CheckSubcomponents() error {
 	}
 	if check.IfNil(m.processComponents.esdtDataStorageForApi) {
 		return errors.ErrNilESDTDataStorage
+	}
+	if check.IfNil(m.processComponents.sentSignaturesTracker) {
+		return errors.ErrNilSentSignatureTracker
+	}
+	if check.IfNil(m.processComponents.epochSystemSCProcessor) {
+		return errors.ErrNilEpochSystemSCProcessor
 	}
 
 	return nil
@@ -668,6 +674,30 @@ func (m *managedProcessComponents) ReceiptsRepository() factory.ReceiptsReposito
 	}
 
 	return m.processComponents.receiptsRepository
+}
+
+// SentSignaturesTracker returns the signature tracker
+func (m *managedProcessComponents) SentSignaturesTracker() process.SentSignaturesTracker {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.sentSignaturesTracker
+}
+
+// EpochSystemSCProcessor returns the epoch start system SC processor
+func (m *managedProcessComponents) EpochSystemSCProcessor() process.EpochStartSystemSCProcessor {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.epochSystemSCProcessor
 }
 
 // IsInterfaceNil returns true if the interface is nil

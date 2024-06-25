@@ -4,6 +4,10 @@ void init()
 {
 }
 
+void upgrade()
+{
+}
+
 void getUltimateAnswer()
 {
     int64finish(24);

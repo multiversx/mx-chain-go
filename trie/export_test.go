@@ -5,11 +5,11 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
-	"github.com/multiversx/mx-chain-go/trie/hashesHolder"
 )
 
 func (ts *trieSyncer) trieNodeIntercepted(hash []byte, val interface{}) {
@@ -34,25 +34,11 @@ func (ts *trieSyncer) trieNodeIntercepted(hash []byte, val interface{}) {
 	}
 }
 
-// PruningBlockingOperations -
-func (tsm *trieStorageManagerWithoutCheckpoints) PruningBlockingOperations() uint32 {
-	ts, _ := tsm.StorageManager.(*trieStorageManager)
-	return ts.pruningBlockingOps
-}
-
 // WaitForOperationToComplete -
 func WaitForOperationToComplete(tsm common.StorageManager) {
 	for tsm.IsPruningBlocked() {
 		time.Sleep(10 * time.Millisecond)
 	}
-}
-
-// GetFromCheckpoint -
-func (tsm *trieStorageManager) GetFromCheckpoint(key []byte) ([]byte, error) {
-	tsm.storageOperationMutex.Lock()
-	defer tsm.storageOperationMutex.Unlock()
-
-	return tsm.checkpointsStorer.Get(key)
 }
 
 // CreateSmallTestTrieAndStorageManager -
@@ -116,13 +102,12 @@ func GetDefaultTrieStorageManagerParameters() NewTrieStorageManagerArgs {
 	}
 
 	return NewTrieStorageManagerArgs{
-		MainStorer:             testscommon.NewSnapshotPruningStorerMock(),
-		CheckpointsStorer:      testscommon.NewSnapshotPruningStorerMock(),
-		Marshalizer:            &marshal.GogoProtoMarshalizer{},
-		Hasher:                 &testscommon.KeccakMock{},
-		GeneralConfig:          generalCfg,
-		CheckpointHashesHolder: hashesHolder.NewCheckpointHashesHolder(10000000, testscommon.HashSize),
-		IdleProvider:           &testscommon.ProcessStatusHandlerStub{},
-		Identifier:             dataRetriever.UserAccountsUnit.String(),
+		MainStorer:     testscommon.NewSnapshotPruningStorerMock(),
+		Marshalizer:    &marshal.GogoProtoMarshalizer{},
+		Hasher:         &testscommon.KeccakMock{},
+		GeneralConfig:  generalCfg,
+		IdleProvider:   &testscommon.ProcessStatusHandlerStub{},
+		Identifier:     dataRetriever.UserAccountsUnit.String(),
+		StatsCollector: statistics.NewStateStatistics(),
 	}
 }

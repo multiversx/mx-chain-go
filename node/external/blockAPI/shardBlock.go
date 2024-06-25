@@ -226,6 +226,8 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 		SoftwareVersion: hex.EncodeToString(blockHeader.GetSoftwareVersion()),
 		ReceiptsHash:    hex.EncodeToString(blockHeader.GetReceiptsHash()),
 		Reserved:        blockHeader.GetReserved(),
+		RandSeed:        hex.EncodeToString(blockHeader.GetRandSeed()),
+		PrevRandSeed:    hex.EncodeToString(blockHeader.GetPrevRandSeed()),
 	}
 
 	addScheduledInfoInBlock(blockHeader, apiBlock)

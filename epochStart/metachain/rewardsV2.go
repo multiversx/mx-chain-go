@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/validatorInfo"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process"
@@ -24,7 +25,7 @@ type nodeRewardsData struct {
 	fullRewards  *big.Int
 	topUpStake   *big.Int
 	powerInShard *big.Int
-	valInfo      *state.ValidatorInfo
+	valInfo      state.ValidatorInfoHandler
 }
 
 // RewardsCreatorArgsV2 holds the data required to create end of epoch rewards
@@ -74,7 +75,7 @@ func NewRewardsCreatorV2(args RewardsCreatorArgsV2) (*rewardsCreatorV2, error) {
 // stake top-up values per node
 func (rc *rewardsCreatorV2) CreateRewardsMiniBlocks(
 	metaBlock data.MetaHeaderHandler,
-	validatorsInfo map[uint32][]*state.ValidatorInfo,
+	validatorsInfo state.ShardValidatorsInfoMapHandler,
 	computedEconomics *block.Economics,
 ) (block.MiniBlockSlice, error) {
 	if check.IfNil(metaBlock) {
@@ -99,7 +100,7 @@ func (rc *rewardsCreatorV2) CreateRewardsMiniBlocks(
 
 	miniBlocks := rc.initializeRewardsMiniBlocks()
 	rc.clean()
-	rc.flagDelegationSystemSCEnabled.SetValue(metaBlock.GetEpoch() >= rc.enableEpochsHandler.StakingV2EnableEpoch())
+	rc.flagDelegationSystemSCEnabled.SetValue(metaBlock.GetEpoch() >= rc.enableEpochsHandler.GetActivationEpoch(common.StakingV2Flag))
 
 	protRwdTx, protRwdShardId, err := rc.createProtocolSustainabilityRewardTransaction(metaBlock, computedEconomics)
 	if err != nil {
@@ -150,7 +151,7 @@ func (rc *rewardsCreatorV2) adjustProtocolSustainabilityRewards(protocolSustaina
 // VerifyRewardsMiniBlocks verifies if received rewards miniblocks are correct
 func (rc *rewardsCreatorV2) VerifyRewardsMiniBlocks(
 	metaBlock data.MetaHeaderHandler,
-	validatorsInfo map[uint32][]*state.ValidatorInfo,
+	validatorsInfo state.ShardValidatorsInfoMapHandler,
 	computedEconomics *block.Economics,
 ) error {
 	if check.IfNil(metaBlock) {
@@ -221,23 +222,23 @@ func (rc *rewardsCreatorV2) computeValidatorInfoPerRewardAddress(
 
 	for _, nodeInfoList := range nodesRewardInfo {
 		for _, nodeInfo := range nodeInfoList {
-			if nodeInfo.valInfo.LeaderSuccess == 0 && nodeInfo.valInfo.ValidatorSuccess == 0 {
+			if nodeInfo.valInfo.GetLeaderSuccess() == 0 && nodeInfo.valInfo.GetValidatorSuccess() == 0 {
 				accumulatedUnassigned.Add(accumulatedUnassigned, nodeInfo.fullRewards)
 				continue
 			}
 
-			rwdInfo, ok := rwdAddrValidatorInfo[string(nodeInfo.valInfo.RewardAddress)]
+			rwdInfo, ok := rwdAddrValidatorInfo[string(nodeInfo.valInfo.GetRewardAddress())]
 			if !ok {
 				rwdInfo = &rewardInfoData{
 					accumulatedFees:     big.NewInt(0),
 					rewardsFromProtocol: big.NewInt(0),
-					address:             string(nodeInfo.valInfo.RewardAddress),
+					address:             string(nodeInfo.valInfo.GetRewardAddress()),
 				}
-				rwdAddrValidatorInfo[string(nodeInfo.valInfo.RewardAddress)] = rwdInfo
+				rwdAddrValidatorInfo[string(nodeInfo.valInfo.GetRewardAddress())] = rwdInfo
 			}
 
-			distributedLeaderFees.Add(distributedLeaderFees, nodeInfo.valInfo.AccumulatedFees)
-			rwdInfo.accumulatedFees.Add(rwdInfo.accumulatedFees, nodeInfo.valInfo.AccumulatedFees)
+			distributedLeaderFees.Add(distributedLeaderFees, nodeInfo.valInfo.GetAccumulatedFees())
+			rwdInfo.accumulatedFees.Add(rwdInfo.accumulatedFees, nodeInfo.valInfo.GetAccumulatedFees())
 			rwdInfo.rewardsFromProtocol.Add(rwdInfo.rewardsFromProtocol, nodeInfo.fullRewards)
 		}
 	}
@@ -262,7 +263,7 @@ func (rc *rewardsCreatorV2) IsInterfaceNil() bool {
 }
 
 func (rc *rewardsCreatorV2) computeRewardsPerNode(
-	validatorsInfo map[uint32][]*state.ValidatorInfo,
+	validatorsInfo state.ShardValidatorsInfoMapHandler,
 ) (map[uint32][]*nodeRewardsData, *big.Int) {
 
 	var baseRewardsPerBlock *big.Int
@@ -301,11 +302,11 @@ func (rc *rewardsCreatorV2) computeRewardsPerNode(
 }
 
 func (rc *rewardsCreatorV2) initNodesRewardsInfo(
-	validatorsInfo map[uint32][]*state.ValidatorInfo,
+	validatorsInfo state.ShardValidatorsInfoMapHandler,
 ) map[uint32][]*nodeRewardsData {
 	nodesRewardsInfo := make(map[uint32][]*nodeRewardsData)
 
-	for shardID, valInfoList := range validatorsInfo {
+	for shardID, valInfoList := range validatorsInfo.GetShardValidatorsInfoMap() {
 		nodesRewardsInfo[shardID] = make([]*nodeRewardsData, 0, len(valInfoList))
 		for _, valInfo := range valInfoList {
 			if validatorInfo.WasEligibleInCurrentEpoch(valInfo) {
@@ -335,7 +336,7 @@ func (rc *rewardsCreatorV2) computeBaseRewardsPerNode(
 		for _, nodeRewardsInfo := range nodeRewardsInfoList {
 			nodeRewardsInfo.baseReward = big.NewInt(0).Mul(
 				rc.mapBaseRewardsPerBlockPerValidator[shardID],
-				big.NewInt(int64(nodeRewardsInfo.valInfo.NumSelectedInSuccessBlocks)))
+				big.NewInt(int64(nodeRewardsInfo.valInfo.GetNumSelectedInSuccessBlocks())))
 			accumulatedRewards.Add(accumulatedRewards, nodeRewardsInfo.baseReward)
 		}
 	}
@@ -506,13 +507,13 @@ func computeNodesPowerInShard(
 
 // power in epoch is computed as nbBlocks*nodeTopUp, where nbBlocks represents the number of blocks the node
 // participated at creation/validation
-func computeNodePowerInShard(nodeInfo *state.ValidatorInfo, nodeTopUp *big.Int) *big.Int {
+func computeNodePowerInShard(nodeInfo state.ValidatorInfoHandler, nodeTopUp *big.Int) *big.Int {
 	// if node was offline, it had no power, so the rewards should go to the others
-	if nodeInfo.LeaderSuccess == 0 && nodeInfo.ValidatorSuccess == 0 {
+	if nodeInfo.GetLeaderSuccess() == 0 && nodeInfo.GetValidatorSuccess() == 0 {
 		return big.NewInt(0)
 	}
 
-	nbBlocks := big.NewInt(0).SetUint64(uint64(nodeInfo.NumSelectedInSuccessBlocks))
+	nbBlocks := big.NewInt(0).SetUint64(uint64(nodeInfo.GetNumSelectedInSuccessBlocks()))
 	return big.NewInt(0).Mul(nbBlocks, nodeTopUp)
 }
 

@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -22,7 +23,7 @@ import (
 	errorsCommon "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
-	"github.com/multiversx/mx-chain-go/testscommon/storage"
+	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
@@ -480,33 +481,6 @@ func TestPatriciaMerkleTrie_GetSerializedNodesTinyBufferShouldNotGetAllNodes(t *
 
 	maxBuffToSend := uint64(150)
 	expectedNodes := 2
-	serializedNodes, _, err := tr.GetSerializedNodes(rootHash, maxBuffToSend)
-	assert.Nil(t, err)
-	assert.Equal(t, expectedNodes, len(serializedNodes))
-}
-
-func TestPatriciaMerkleTrie_GetSerializedNodesGetFromCheckpoint(t *testing.T) {
-	t.Parallel()
-
-	tr := initTrie()
-	_ = tr.Commit()
-	rootHash, _ := tr.RootHash()
-
-	storageManager := tr.GetStorageManager()
-	dirtyHashes := trie.GetDirtyHashes(tr)
-	storageManager.AddDirtyCheckpointHashes(rootHash, dirtyHashes)
-	iteratorChannels := &common.TrieIteratorChannels{
-		LeavesChan: nil,
-		ErrChan:    errChan.NewErrChanWrapper(),
-	}
-	storageManager.SetCheckpoint(rootHash, make([]byte, 0), iteratorChannels, nil, &trieMock.MockStatistics{})
-	trie.WaitForOperationToComplete(storageManager)
-
-	err := storageManager.Remove(rootHash)
-	assert.Nil(t, err)
-
-	maxBuffToSend := uint64(500)
-	expectedNodes := 6
 	serializedNodes, _, err := tr.GetSerializedNodes(rootHash, maxBuffToSend)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedNodes, len(serializedNodes))
@@ -1085,64 +1059,56 @@ func TestPatriciaMerkleTrie_ConcurrentOperations(t *testing.T) {
 	wg.Wait()
 }
 
-func TestPatriciaMerkleTrie_GetSerializedNodesClose(t *testing.T) {
+func TestPatriciaMerkleTrie_GetSerializedNodesShouldSerializeTheCalls(t *testing.T) {
 	t.Parallel()
 
 	args := trie.GetDefaultTrieStorageManagerParameters()
-	args.MainStorer = &storage.StorerStub{
-		GetCalled: func(key []byte) ([]byte, error) {
-			// gets take a long time
+	numConcurrentCalls := int32(0)
+	testTrieStorageManager := &storageManager.StorageManagerStub{
+		GetCalled: func(bytes []byte) ([]byte, error) {
+			newValue := atomic.AddInt32(&numConcurrentCalls, 1)
+			defer atomic.AddInt32(&numConcurrentCalls, -1)
+
+			assert.Equal(t, int32(1), newValue)
+
+			// get takes a long time
 			time.Sleep(time.Millisecond * 10)
-			return key, nil
+
+			return bytes, nil
 		},
 	}
 
-	trieStorageManager, _ := trie.NewTrieStorageManager(args)
-	tr, _ := trie.NewTrie(trieStorageManager, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 5)
-	numGoRoutines := 1000
-	wgStart := sync.WaitGroup{}
-	wgStart.Add(numGoRoutines)
-	wgEnd := sync.WaitGroup{}
-	wgEnd.Add(numGoRoutines)
+	tr, _ := trie.NewTrie(testTrieStorageManager, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 5)
+	numGoRoutines := 100
+	wg := sync.WaitGroup{}
+	wg.Add(numGoRoutines)
 
 	for i := 0; i < numGoRoutines; i++ {
 		if i%2 == 0 {
 			go func() {
 				time.Sleep(time.Millisecond * 100)
-				wgStart.Done()
-
 				_, _, _ = tr.GetSerializedNodes([]byte("dog"), 1024)
-				wgEnd.Done()
+				wg.Done()
 			}()
 		} else {
 			go func() {
 				time.Sleep(time.Millisecond * 100)
-				wgStart.Done()
-
 				_, _ = tr.GetSerializedNode([]byte("dog"))
-				wgEnd.Done()
+				wg.Done()
 			}()
 		}
 	}
 
-	wgStart.Wait()
+	wg.Wait()
 	chanClosed := make(chan struct{})
 	go func() {
 		_ = tr.Close()
 		close(chanClosed)
 	}()
 
-	chanGetsEnded := make(chan struct{})
-	go func() {
-		wgEnd.Wait()
-		close(chanGetsEnded)
-	}()
-
 	timeout := time.Second * 10
 	select {
 	case <-chanClosed: // ok
-	case <-chanGetsEnded:
-		assert.Fail(t, "trie should have been closed before all gets ended")
 	case <-time.After(timeout):
 		assert.Fail(t, "timeout waiting for trie to be closed")
 	}
@@ -1197,7 +1163,9 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 		numLoadsCalled := 0
 		tr := emptyTrieWithCustomEnableEpochsHandler(
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{
-				IsAutoBalanceDataTriesEnabledField: true,
+				IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+					return flag == common.AutoBalanceDataTriesFlag
+				},
 			},
 		)
 		dtr := tr.(dataTrie)
@@ -1228,7 +1196,9 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 		addLeafToMigrationQueueCalled := 0
 		tr := emptyTrieWithCustomEnableEpochsHandler(
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{
-				IsAutoBalanceDataTriesEnabledField: true,
+				IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+					return flag == common.AutoBalanceDataTriesFlag
+				},
 			},
 		)
 		dtr := tr.(dataTrie)
@@ -1264,7 +1234,9 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 
 		tr := emptyTrieWithCustomEnableEpochsHandler(
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{
-				IsAutoBalanceDataTriesEnabledField: true,
+				IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+					return flag == common.AutoBalanceDataTriesFlag
+				},
 			},
 		)
 		addDefaultDataToTrie(tr)
@@ -1304,7 +1276,9 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 
 		tr := emptyTrieWithCustomEnableEpochsHandler(
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{
-				IsAutoBalanceDataTriesEnabledField: true,
+				IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+					return flag == common.AutoBalanceDataTriesFlag
+				},
 			},
 		)
 		addDefaultDataToTrie(tr)
@@ -1402,7 +1376,9 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 
 		tr := emptyTrieWithCustomEnableEpochsHandler(
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{
-				IsAutoBalanceDataTriesEnabledField: true,
+				IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+					return flag == common.AutoBalanceDataTriesFlag
+				},
 			},
 		)
 		addDefaultDataToTrie(tr)
@@ -1439,7 +1415,9 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 		numAddLeafToMigrationQueueCalled := 0
 		tr := emptyTrieWithCustomEnableEpochsHandler(
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{
-				IsAutoBalanceDataTriesEnabledField: true,
+				IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+					return flag == common.AutoBalanceDataTriesFlag
+				},
 			},
 		)
 		dtr := tr.(dataTrie)
@@ -1475,7 +1453,9 @@ func TestPatriciaMerkleTrie_CollectLeavesForMigration(t *testing.T) {
 		numAddLeafToMigrationQueueCalled := 0
 		tr := emptyTrieWithCustomEnableEpochsHandler(
 			&enableEpochsHandlerMock.EnableEpochsHandlerStub{
-				IsAutoBalanceDataTriesEnabledField: true,
+				IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+					return flag == common.AutoBalanceDataTriesFlag
+				},
 			},
 		)
 		dtr := tr.(dataTrie)
@@ -1522,7 +1502,9 @@ func TestPatriciaMerkleTrie_IsMigrated(t *testing.T) {
 
 		tsm, marshaller, hasher, _, maxTrieInMem := getDefaultTrieParameters()
 		enableEpochs := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsAutoBalanceDataTriesEnabledField: true,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.AutoBalanceDataTriesFlag
+			},
 		}
 		tr, _ := trie.NewTrie(tsm, marshaller, hasher, enableEpochs, maxTrieInMem)
 
@@ -1537,7 +1519,9 @@ func TestPatriciaMerkleTrie_IsMigrated(t *testing.T) {
 
 		tsm, marshaller, hasher, _, maxTrieInMem := getDefaultTrieParameters()
 		enableEpochs := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsAutoBalanceDataTriesEnabledField: true,
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.AutoBalanceDataTriesFlag
+			},
 		}
 		tr, _ := trie.NewTrie(tsm, marshaller, hasher, enableEpochs, maxTrieInMem)
 

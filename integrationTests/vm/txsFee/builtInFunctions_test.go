@@ -1,7 +1,3 @@
-//go:build !race
-
-// TODO remove build condition above to allow -race -short, after Wasm VM fix
-
 package txsFee
 
 import (
@@ -11,6 +7,8 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
@@ -18,11 +16,18 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestBuildInFunctionChangeOwnerCallShouldWorkV1(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(
 		config.EnableEpochs{
 			PenalizedTooMuchGasEnableEpoch: integrationTests.UnreachableEpoch,
@@ -61,6 +66,10 @@ func TestBuildInFunctionChangeOwnerCallShouldWorkV1(t *testing.T) {
 }
 
 func TestBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(
 		config.EnableEpochs{
 			PenalizedTooMuchGasEnableEpoch: integrationTests.UnreachableEpoch,
@@ -98,6 +107,10 @@ func TestBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
 }
 
 func TestBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -135,6 +148,10 @@ func TestBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(t *testing.T) 
 }
 
 func TestBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -169,6 +186,10 @@ func TestBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *testing.T) 
 }
 
 func TestBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -205,6 +226,10 @@ func TestBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldNotConsumeGas(t
 }
 
 func TestBuildInFunctionChangeOwnerOutOfGasShouldConsumeGas(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -240,6 +265,10 @@ func TestBuildInFunctionChangeOwnerOutOfGasShouldConsumeGas(t *testing.T) {
 }
 
 func TestBuildInFunctionSaveKeyValue_WrongDestination(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	shardCoord, _ := sharding.NewMultiShardCoordinator(2, 0)
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinator(
@@ -275,6 +304,10 @@ func TestBuildInFunctionSaveKeyValue_WrongDestination(t *testing.T) {
 }
 
 func TestBuildInFunctionSaveKeyValue_NotEnoughGasFor3rdSave(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	shardCoord, _ := sharding.NewMultiShardCoordinator(2, 0)
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinator(
@@ -300,4 +333,107 @@ func TestBuildInFunctionSaveKeyValue_NotEnoughGasFor3rdSave(t *testing.T) {
 	account, _ := testContext.Accounts.LoadAccount(sndAddr)
 	userAcc, _ := account.(state.UserAccountHandler)
 	require.True(t, bytes.Equal(make([]byte, 32), userAcc.GetRootHash()))
+}
+
+func TestBuildInFunctionSaveKeyValue_NotEnoughGasForTheSameKeyValue(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	shardCoord, _ := sharding.NewMultiShardCoordinator(2, 0)
+
+	gasScheduleNotifier := vm.CreateMockGasScheduleNotifier()
+	gasScheduleNotifier.GasSchedule[common.BuiltInCost]["SaveKeyValue"] = 100000
+	gasScheduleNotifier.GasSchedule[common.BaseOperationCost]["PersistPerByte"] = 1000
+	gasScheduleNotifier.GasSchedule[common.BaseOperationCost]["StorePerByte"] = 10000
+
+	testContext, err := vm.CreatePreparedTxProcessorWithVMConfigWithShardCoordinatorDBAndGasAndRoundConfig(
+		config.EnableEpochs{
+			FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch: 1,
+		},
+		shardCoord,
+		integrationtests.CreateMemUnit(),
+		gasScheduleNotifier,
+		testscommon.GetDefaultRoundsConfig(),
+		vm.CreateVMConfigWithVersion("v1.5"),
+	)
+	require.Nil(t, err)
+	defer testContext.Close()
+
+	sndAddr := []byte("12345678901234567890123456789112")
+
+	senderBalance := big.NewInt(1000000000)
+	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
+
+	hexKey := "aa"
+	key, err := hex.DecodeString(hexKey)
+	require.Nil(t, err)
+
+	hexValue := "bb"
+	val, err := hex.DecodeString(hexValue)
+	require.Nil(t, err)
+
+	txData := []byte(core.BuiltInFunctionSaveKeyValue + "@" + hexKey + "@" + hexValue)
+
+	minGasLimit := uint64(1)
+	txDataGasLimit := uint64(len(txData))
+	baseGasLimit := gasScheduleNotifier.GasSchedule[common.BuiltInCost]["SaveKeyValue"]
+	persistGasLimit := gasScheduleNotifier.GasSchedule[common.BaseOperationCost]["PersistPerByte"] * uint64(len(key)+len(val))
+	saveGasLimitWhenNew := gasScheduleNotifier.GasSchedule[common.BaseOperationCost]["StorePerByte"] * uint64(len(val))
+	saveGasLimitWhenExisting := uint64(0)
+
+	nonce := uint64(0)
+	gasLimitWhenNew := minGasLimit + txDataGasLimit + baseGasLimit + persistGasLimit + saveGasLimitWhenNew
+	tx := vm.CreateTransaction(nonce, big.NewInt(0), sndAddr, sndAddr, gasPrice, gasLimitWhenNew, txData)
+	retCode, err := testContext.TxProcessor.ProcessTransaction(tx)
+	assert.Nil(t, err)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
+	_, _ = testContext.Accounts.Commit()
+
+	account, _ := testContext.Accounts.LoadAccount(sndAddr)
+	userAcc, _ := account.(state.UserAccountHandler)
+	recoveredValue, _, err := userAcc.RetrieveValue(key)
+	assert.Nil(t, err)
+	assert.Equal(t, hexValue, hex.EncodeToString(recoveredValue))
+
+	// try to re-execute the same transaction with enough gas, saving is not actually done
+	nonce++
+	gasLimitWhenExisting := minGasLimit + txDataGasLimit + baseGasLimit + persistGasLimit + saveGasLimitWhenExisting
+	tx = vm.CreateTransaction(nonce, big.NewInt(0), sndAddr, sndAddr, gasPrice, gasLimitWhenExisting, txData)
+	retCode, err = testContext.TxProcessor.ProcessTransaction(tx)
+	assert.Nil(t, err)
+	assert.Equal(t, vmcommon.Ok, retCode)
+
+	_, _ = testContext.Accounts.Commit()
+
+	account, _ = testContext.Accounts.LoadAccount(sndAddr)
+	userAcc, _ = account.(state.UserAccountHandler)
+	recoveredValue, _, err = userAcc.RetrieveValue(key)
+	assert.Nil(t, err)
+	assert.Equal(t, hexValue, hex.EncodeToString(recoveredValue))
+
+	// try to re-execute the same transaction with insufficient gas, should hard error because the fix is not enabled
+	nonce++
+	insufficientGas := minGasLimit + txDataGasLimit
+	tx = vm.CreateTransaction(nonce, big.NewInt(0), sndAddr, sndAddr, gasPrice, insufficientGas, txData)
+	retCode, err = testContext.TxProcessor.ProcessTransaction(tx)
+	assert.Nil(t, err)
+	assert.Equal(t, vmcommon.ExecutionFailed, retCode)
+
+	testContext.EpochNotifier.CheckEpoch(&block.Header{Epoch: 1})
+
+	// try to re-execute the same transaction with insufficient gas, should error because the fix is enabled
+	nonce++
+	tx = vm.CreateTransaction(nonce, big.NewInt(0), sndAddr, sndAddr, gasPrice, insufficientGas, txData)
+	retCode, err = testContext.TxProcessor.ProcessTransaction(tx)
+	assert.Equal(t, process.ErrFailedTransaction, err)
+	assert.Equal(t, vmcommon.UserError, retCode)
+
+	// try to re-execute the same transaction with enough gas, saving is not actually done when fix is enabled
+	nonce++
+	tx = vm.CreateTransaction(nonce, big.NewInt(0), sndAddr, sndAddr, gasPrice, gasLimitWhenExisting, txData)
+	retCode, err = testContext.TxProcessor.ProcessTransaction(tx)
+	assert.Nil(t, err)
+	assert.Equal(t, vmcommon.Ok, retCode)
 }

@@ -2,26 +2,17 @@ package state
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/storage/storageEpochChange"
 	"github.com/multiversx/mx-chain-go/trie/storageMarker"
 )
-
-// storageEpochChangeWaitArgs are the args needed for calling the WaitForStorageEpochChange function
-type storageEpochChangeWaitArgs struct {
-	TrieStorageManager            common.StorageManager
-	Epoch                         uint32
-	WaitTimeForSnapshotEpochCheck time.Duration
-	SnapshotWaitTimeout           time.Duration
-}
 
 // ArgsNewSnapshotsManager are the args needed for creating a new snapshots manager
 type ArgsNewSnapshotsManager struct {
@@ -33,6 +24,8 @@ type ArgsNewSnapshotsManager struct {
 	StateMetrics             StateMetrics
 	AccountFactory           AccountFactory
 	ChannelsProvider         IteratorChannelsProvider
+	StateStatsHandler        StateStatsHandler
+	LastSnapshotMarker       LastSnapshotMarker
 }
 
 type snapshotsManager struct {
@@ -42,12 +35,14 @@ type snapshotsManager struct {
 	processingMode           common.NodeProcessingMode
 
 	stateMetrics         StateMetrics
+	lastSnapshotMarker   LastSnapshotMarker
 	marshaller           marshal.Marshalizer
 	addressConverter     core.PubkeyConverter
 	trieSyncer           AccountsDBSyncer
 	processStatusHandler common.ProcessStatusHandler
 	channelsProvider     IteratorChannelsProvider
 	accountFactory       AccountFactory
+	stateStatsHandler    StateStatsHandler
 	mutex                sync.RWMutex
 }
 
@@ -71,6 +66,12 @@ func NewSnapshotsManager(args ArgsNewSnapshotsManager) (*snapshotsManager, error
 	if check.IfNil(args.AccountFactory) {
 		return nil, ErrNilAccountFactory
 	}
+	if check.IfNil(args.StateStatsHandler) {
+		return nil, ErrNilStatsHandler
+	}
+	if check.IfNil(args.LastSnapshotMarker) {
+		return nil, ErrNilLastSnapshotMarker
+	}
 
 	return &snapshotsManager{
 		isSnapshotInProgress:     atomic.Flag{},
@@ -85,6 +86,8 @@ func NewSnapshotsManager(args ArgsNewSnapshotsManager) (*snapshotsManager, error
 		channelsProvider:         args.ChannelsProvider,
 		mutex:                    sync.RWMutex{},
 		accountFactory:           args.AccountFactory,
+		stateStatsHandler:        args.StateStatsHandler,
+		lastSnapshotMarker:       args.LastSnapshotMarker,
 	}, nil
 }
 
@@ -136,7 +139,7 @@ func (sm *snapshotsManager) StartSnapshotAfterRestartIfNeeded(trieStorageManager
 }
 
 func (sm *snapshotsManager) getSnapshotRootHashAndEpoch(trieStorageManager common.StorageManager) ([]byte, uint32, error) {
-	rootHash, err := trieStorageManager.GetFromCurrentEpoch([]byte(lastSnapshot))
+	rootHash, err := sm.lastSnapshotMarker.GetMarkerInfo(trieStorageManager)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -155,6 +158,15 @@ func (sm *snapshotsManager) SnapshotState(
 	epoch uint32,
 	trieStorageManager common.StorageManager,
 ) {
+	if check.IfNil(trieStorageManager) {
+		return
+	}
+	if !trieStorageManager.IsSnapshotSupported() {
+		log.Debug("skipping snapshot as the snapshot is not supported by the current trieStorageManager",
+			"trieStorageManager type", fmt.Sprintf("%T", trieStorageManager))
+		return
+	}
+
 	sm.mutex.Lock()
 
 	stats, skipSnapshot := sm.prepareSnapshot(rootHash, epoch, trieStorageManager)
@@ -179,46 +191,15 @@ func (sm *snapshotsManager) SnapshotState(
 	sm.waitForCompletionIfAppropriate(stats)
 }
 
-// SetStateCheckpoint sets a checkpoint for the state trie
-func (sm *snapshotsManager) SetStateCheckpoint(rootHash []byte, trieStorageManager common.StorageManager) {
-	sm.setStateCheckpoint(rootHash, trieStorageManager)
-}
-
-func (sm *snapshotsManager) setStateCheckpoint(rootHash []byte, trieStorageManager common.StorageManager) {
-	log.Trace("snapshotsManager.SetStateCheckpoint", "root hash", rootHash)
-	trieStorageManager.EnterPruningBufferingMode()
-
-	missingNodesChannel := make(chan []byte, missingNodesChannelSize)
-	iteratorChannels := sm.channelsProvider.GetIteratorChannels()
-
-	stats := newSnapshotStatistics(1, 1)
-	go func() {
-		stats.NewSnapshotStarted()
-		trieStorageManager.SetCheckpoint(rootHash, rootHash, iteratorChannels, missingNodesChannel, stats)
-		sm.snapshotUserAccountDataTrie(false, rootHash, iteratorChannels, missingNodesChannel, stats, 0, trieStorageManager)
-
-		stats.SnapshotFinished()
-	}()
-
-	go sm.syncMissingNodes(missingNodesChannel, iteratorChannels.ErrChan, stats, sm.getTrieSyncer())
-
-	// TODO decide if we need to take some actions whenever we hit an error that occurred in the checkpoint process
-	//  that will be present in the errChan var
-	go sm.finishSnapshotOperation(rootHash, stats, missingNodesChannel, "setStateCheckpoint"+sm.stateMetrics.GetSnapshotMessage(), trieStorageManager)
-
-	sm.waitForCompletionIfAppropriate(stats)
-}
-
 func (sm *snapshotsManager) prepareSnapshot(rootHash []byte, epoch uint32, trieStorageManager common.StorageManager) (*snapshotStatistics, bool) {
 	snapshotAlreadyTaken := bytes.Equal(sm.lastSnapshot.rootHash, rootHash) && sm.lastSnapshot.epoch == epoch
 	if snapshotAlreadyTaken {
 		return nil, true
 	}
 
-	defer func() {
-		err := trieStorageManager.PutInEpoch([]byte(lastSnapshot), rootHash, epoch)
-		handleLoggingWhenError("could not set lastSnapshot", err, "rootHash", rootHash)
-	}()
+	if sm.processingMode != common.ImportDb {
+		go sm.lastSnapshotMarker.AddMarker(trieStorageManager, epoch, rootHash)
+	}
 
 	if sm.isSnapshotInProgress.IsSet() {
 		return nil, true
@@ -230,6 +211,8 @@ func (sm *snapshotsManager) prepareSnapshot(rootHash []byte, epoch uint32, trieS
 	trieStorageManager.EnterPruningBufferingMode()
 	stats := newSnapshotStatistics(1, 1)
 
+	sm.stateStatsHandler.ResetSnapshot()
+
 	return stats, false
 }
 
@@ -239,16 +222,18 @@ func (sm *snapshotsManager) snapshotState(
 	trieStorageManager common.StorageManager,
 	stats *snapshotStatistics,
 ) {
-	err := sm.waitForStorageEpochChange(storageEpochChangeWaitArgs{
-		TrieStorageManager:            trieStorageManager,
-		Epoch:                         epoch,
-		WaitTimeForSnapshotEpochCheck: waitTimeForSnapshotEpochCheck,
-		SnapshotWaitTimeout:           snapshotWaitTimeout,
-	})
-	if err != nil {
-		log.Error("error waiting for storage epoch change", "err", err)
-		sm.earlySnapshotCompletion(stats, trieStorageManager)
-		return
+	if sm.processingMode != common.ImportDb {
+		err := storageEpochChange.WaitForStorageEpochChange(storageEpochChange.StorageEpochChangeWaitArgs{
+			TrieStorageManager:            trieStorageManager,
+			Epoch:                         epoch,
+			WaitTimeForSnapshotEpochCheck: storageEpochChange.WaitTimeForSnapshotEpochCheck,
+			SnapshotWaitTimeout:           storageEpochChange.SnapshotWaitTimeout,
+		})
+		if err != nil {
+			log.Error("error waiting for storage epoch change", "err", err)
+			sm.earlySnapshotCompletion(stats, trieStorageManager)
+			return
+		}
 	}
 
 	if !trieStorageManager.ShouldTakeSnapshot() {
@@ -267,7 +252,7 @@ func (sm *snapshotsManager) snapshotState(
 		stats.NewSnapshotStarted()
 
 		trieStorageManager.TakeSnapshot("", rootHash, rootHash, iteratorChannels, missingNodesChannel, stats, epoch)
-		sm.snapshotUserAccountDataTrie(true, rootHash, iteratorChannels, missingNodesChannel, stats, epoch, trieStorageManager)
+		sm.snapshotUserAccountDataTrie(rootHash, iteratorChannels, missingNodesChannel, stats, epoch, trieStorageManager)
 
 		stats.SnapshotFinished()
 	}()
@@ -286,48 +271,7 @@ func (sm *snapshotsManager) earlySnapshotCompletion(stats *snapshotStatistics, t
 	trieStorageManager.ExitPruningBufferingMode()
 }
 
-func (sm *snapshotsManager) waitForStorageEpochChange(args storageEpochChangeWaitArgs) error {
-	if sm.processingMode == common.ImportDb {
-		log.Debug("no need to wait for storage epoch change as the node is running in import-db mode")
-		return nil
-	}
-
-	if args.SnapshotWaitTimeout < args.WaitTimeForSnapshotEpochCheck {
-		return fmt.Errorf("timeout (%s) must be greater than wait time between snapshot epoch check (%s)", args.SnapshotWaitTimeout, args.WaitTimeForSnapshotEpochCheck)
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), args.SnapshotWaitTimeout)
-	defer cancel()
-
-	timer := time.NewTimer(args.WaitTimeForSnapshotEpochCheck)
-	defer timer.Stop()
-
-	for {
-		timer.Reset(args.WaitTimeForSnapshotEpochCheck)
-
-		if args.TrieStorageManager.IsClosed() {
-			return core.ErrContextClosing
-		}
-
-		latestStorageEpoch, err := args.TrieStorageManager.GetLatestStorageEpoch()
-		if err != nil {
-			return err
-		}
-
-		if latestStorageEpoch == args.Epoch {
-			return nil
-		}
-
-		select {
-		case <-timer.C:
-		case <-ctx.Done():
-			return fmt.Errorf("timeout waiting for storage epoch change, snapshot epoch %d", args.Epoch)
-		}
-	}
-}
-
 func (sm *snapshotsManager) snapshotUserAccountDataTrie(
-	isSnapshot bool,
 	mainTrieRootHash []byte,
 	iteratorChannels *common.TrieIteratorChannels,
 	missingNodesChannel chan []byte,
@@ -359,13 +303,9 @@ func (sm *snapshotsManager) snapshotUserAccountDataTrie(
 			LeavesChan: nil,
 			ErrChan:    iteratorChannels.ErrChan,
 		}
-		if isSnapshot {
-			address := sm.addressConverter.SilentEncode(userAccount.AddressBytes(), log)
-			trieStorageManager.TakeSnapshot(address, userAccount.GetRootHash(), mainTrieRootHash, iteratorChannelsForDataTries, missingNodesChannel, stats, epoch)
-			continue
-		}
 
-		trieStorageManager.SetCheckpoint(userAccount.GetRootHash(), mainTrieRootHash, iteratorChannelsForDataTries, missingNodesChannel, stats)
+		address := sm.addressConverter.SilentEncode(userAccount.AddressBytes(), log)
+		trieStorageManager.TakeSnapshot(address, userAccount.GetRootHash(), mainTrieRootHash, iteratorChannelsForDataTries, missingNodesChannel, stats, epoch)
 	}
 }
 
@@ -406,6 +346,7 @@ func (sm *snapshotsManager) processSnapshotCompletion(
 	defer func() {
 		sm.isSnapshotInProgress.Reset()
 		sm.stateMetrics.UpdateMetricsOnSnapshotCompletion(stats)
+		sm.printStorageStatistics()
 		errChan.Close()
 	}()
 
@@ -418,12 +359,20 @@ func (sm *snapshotsManager) processSnapshotCompletion(
 		return
 	}
 
-	err := trieStorageManager.RemoveFromAllActiveEpochs([]byte(lastSnapshot))
-	handleLoggingWhenError("could not remove lastSnapshot", err, "rootHash", rootHash)
+	sm.lastSnapshotMarker.RemoveMarker(trieStorageManager, epoch, rootHash)
 
 	log.Debug("set activeDB in epoch", "epoch", epoch)
 	errPut := trieStorageManager.PutInEpochWithoutCache([]byte(common.ActiveDBKey), []byte(common.ActiveDBVal), epoch)
 	handleLoggingWhenError("error while putting active DB value into main storer", errPut)
+}
+
+func (sm *snapshotsManager) printStorageStatistics() {
+	stats := sm.stateStatsHandler.SnapshotStats()
+	if stats != nil {
+		log.Debug("snapshot storage statistics",
+			"stats", stats,
+		)
+	}
 }
 
 func (sm *snapshotsManager) finishSnapshotOperation(

@@ -46,8 +46,10 @@ type ApiResolverStub struct {
 	GetGasConfigsCalled                         func() map[string]map[string]uint64
 	GetManagedKeysCountCalled                   func() int
 	GetManagedKeysCalled                        func() []string
+	GetLoadedKeysCalled                         func() []string
 	GetEligibleManagedKeysCalled                func() ([]string, error)
 	GetWaitingManagedKeysCalled                 func() ([]string, error)
+	GetWaitingEpochsLeftForPublicKeyCalled      func(publicKey string) (uint32, error)
 }
 
 // GetTransaction -
@@ -308,6 +310,14 @@ func (ars *ApiResolverStub) GetManagedKeys() []string {
 	return make([]string, 0)
 }
 
+// GetLoadedKeys -
+func (ars *ApiResolverStub) GetLoadedKeys() []string {
+	if ars.GetLoadedKeysCalled != nil {
+		return ars.GetLoadedKeysCalled()
+	}
+	return make([]string, 0)
+}
+
 // GetEligibleManagedKeys -
 func (ars *ApiResolverStub) GetEligibleManagedKeys() ([]string, error) {
 	if ars.GetEligibleManagedKeysCalled != nil {
@@ -322,6 +332,14 @@ func (ars *ApiResolverStub) GetWaitingManagedKeys() ([]string, error) {
 		return ars.GetWaitingManagedKeysCalled()
 	}
 	return make([]string, 0), nil
+}
+
+// GetWaitingEpochsLeftForPublicKey -
+func (ars *ApiResolverStub) GetWaitingEpochsLeftForPublicKey(publicKey string) (uint32, error) {
+	if ars.GetWaitingEpochsLeftForPublicKeyCalled != nil {
+		return ars.GetWaitingEpochsLeftForPublicKeyCalled(publicKey)
+	}
+	return 0, nil
 }
 
 // Close -

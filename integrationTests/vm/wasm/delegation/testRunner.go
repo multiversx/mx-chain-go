@@ -94,8 +94,8 @@ func RunDelegationStressTest(
 	totalSupply, _ := big.NewInt(0).SetString("20000000000000000000000000", 10) // 20MIL eGLD
 	nodeInitialBalance := big.NewInt(0).Set(totalSupply)
 	nodeInitialBalance.Div(nodeInitialBalance, big.NewInt(2))
-	node.EconomicsData.SetMaxGasLimitPerBlock(1500000000)
-	node.EconomicsData.SetMinGasLimit(50000)
+	node.EconomicsData.SetMaxGasLimitPerBlock(1500000000, 0)
+	node.EconomicsData.SetMinGasLimit(50000, 0)
 	node.EconomicsData.SetMinGasPrice(1000000000)
 	node.EconomicsData.SetTotalSupply(totalSupply)
 	integrationTests.MintAllNodes([]*integrationTests.TestProcessorNode{node}, nodeInitialBalance)
@@ -228,7 +228,7 @@ func deployDelegationSC(node *integrationTests.TestProcessorNode, delegationFile
 		node.OwnAccount.Nonce,
 		big.NewInt(0),
 		node.EconomicsData.MinGasPrice(),
-		node.EconomicsData.GetMinGasLimit()+uint64(100000000),
+		node.EconomicsData.GetMinGasLimit(0)+uint64(100000000),
 		wasm.CreateDeployTxData(hex.EncodeToString(contractBytes))+
 			"@"+hex.EncodeToString(systemVm.ValidatorSCAddress)+"@"+core.ConvertToEvenHex(serviceFeePer10000)+
 			"@"+core.ConvertToEvenHex(serviceFeePer10000)+"@"+core.ConvertToEvenHex(blocksBeforeUnBond)+

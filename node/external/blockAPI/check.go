@@ -3,7 +3,9 @@ package blockAPI
 import (
 	"errors"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 )
 
@@ -61,6 +63,7 @@ func checkNilArg(arg *ArgAPIBlockProcessor) error {
 	if check.IfNil(arg.EnableEpochsHandler) {
 		return errNilEnableEpochsHandler
 	}
-
-	return nil
+	return core.CheckHandlerCompatibility(arg.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.RefactorPeersMiniBlocksFlag,
+	})
 }

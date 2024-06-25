@@ -268,3 +268,18 @@ func TestKeysHandler_ResetRoundsWithoutReceivedMessages(t *testing.T) {
 	assert.Equal(t, 1, len(mapResetCalled))
 	assert.Equal(t, 1, mapResetCalled[string(randomPublicKeyBytes)])
 }
+
+func TestKeysHandler_GetRedundancyStepInReason(t *testing.T) {
+	t.Parallel()
+
+	expectedString := "expected string"
+	args := createMockArgsKeysHandler()
+	args.ManagedPeersHolder = &testscommon.ManagedPeersHolderStub{
+		GetRedundancyStepInReasonCalled: func() string {
+			return expectedString
+		},
+	}
+
+	handler, _ := keysManagement.NewKeysHandler(args)
+	assert.Equal(t, expectedString, handler.GetRedundancyStepInReason())
+}

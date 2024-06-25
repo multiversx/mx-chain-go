@@ -1,7 +1,7 @@
 package pruning
 
 import (
-	storageCore "github.com/multiversx/mx-chain-core-go/storage"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/storage"
 )
@@ -29,7 +29,7 @@ type PersistersTracker interface {
 
 type storerWithEpochOperations interface {
 	GetFromEpoch(key []byte, epoch uint32) ([]byte, error)
-	GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]storageCore.KeyValuePair, error)
+	GetBulkFromEpoch(keys [][]byte, epoch uint32) ([]data.KeyValuePair, error)
 	PutInEpoch(key []byte, data []byte, epoch uint32) error
 	Close() error
 }

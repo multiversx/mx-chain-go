@@ -171,8 +171,28 @@ func (accountsDB *accountsDBApi) RecreateTrie(rootHash []byte) error {
 }
 
 // RecreateTrieFromEpoch is a not permitted operation in this implementation and thus, will return an error
-func (accountsDB *accountsDBApi) RecreateTrieFromEpoch(_ common.RootHashHolder) error {
-	return ErrOperationNotPermitted
+func (accountsDB *accountsDBApi) RecreateTrieFromEpoch(options common.RootHashHolder) error {
+	accountsDB.mutRecreatedTrieBlockInfo.Lock()
+	defer accountsDB.mutRecreatedTrieBlockInfo.Unlock()
+
+	if check.IfNil(options) {
+		return ErrNilRootHashHolder
+	}
+
+	newBlockInfo := holders.NewBlockInfo([]byte{}, 0, options.GetRootHash())
+	if newBlockInfo.Equal(accountsDB.blockInfo) {
+		return nil
+	}
+
+	err := accountsDB.innerAccountsAdapter.RecreateTrieFromEpoch(options)
+	if err != nil {
+		accountsDB.blockInfo = nil
+		return err
+	}
+
+	accountsDB.blockInfo = newBlockInfo
+
+	return nil
 }
 
 // PruneTrie is a not permitted operation in this implementation and thus, does nothing
@@ -185,10 +205,6 @@ func (accountsDB *accountsDBApi) CancelPrune(_ []byte, _ TriePruningIdentifier) 
 
 // SnapshotState is a not permitted operation in this implementation and thus, does nothing
 func (accountsDB *accountsDBApi) SnapshotState(_ []byte, _ uint32) {
-}
-
-// SetStateCheckpoint is a not permitted operation in this implementation and thus, does nothing
-func (accountsDB *accountsDBApi) SetStateCheckpoint(_ []byte) {
 }
 
 // IsPruningEnabled will call the inner accountsAdapter method

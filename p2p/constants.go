@@ -25,5 +25,8 @@ const ConnectionWatcherTypePrint = p2p.ConnectionWatcherTypePrint
 // LocalHostListenAddrWithIp4AndTcp defines the local host listening ip v.4 address and TCP
 const LocalHostListenAddrWithIp4AndTcp = p2p.LocalHostListenAddrWithIp4AndTcp
 
+// DefaultWithScaleResourceLimiter defines the default & autoscale resource limiter
+const DefaultWithScaleResourceLimiter = p2p.DefaultWithScaleResourceLimiter
+
 // BroadcastMethod defines the broadcast method of the message
 type BroadcastMethod = p2p.BroadcastMethod
