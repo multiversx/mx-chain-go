@@ -413,6 +413,10 @@ func (txProc *txProcessor) processTxFee(
 
 		moveBalanceGasLimit := txProc.economicsFee.ComputeGasLimit(tx)
 		currentShardFee := txProc.economicsFee.ComputeFeeForProcessing(tx, moveBalanceGasLimit)
+		if txProc.enableEpochsHandler.IsFlagEnabled(common.FixRelayedBaseCostFlag) {
+			currentShardFee = txProc.economicsFee.ComputeMoveBalanceFee(tx)
+		}
+
 		return currentShardFee, totalCost, nil
 	}
 
