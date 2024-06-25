@@ -337,6 +337,13 @@ func (ed *economicsData) ComputeRelayedTxFees(tx data.TransactionWithFeeHandler)
 func (ed *economicsData) getTotalFeesRequiredForInnerTxs(innerTxs []data.TransactionHandler) *big.Int {
 	totalFees := big.NewInt(0)
 	for _, innerTx := range innerTxs {
+		if !core.IsSmartContractAddress(innerTx.GetRcvAddr()) {
+			innerTxFee := ed.ComputeMoveBalanceFee(innerTx)
+			totalFees.Add(totalFees, innerTxFee)
+
+			continue
+		}
+
 		gasToUse := innerTx.GetGasLimit() - ed.ComputeGasLimit(innerTx)
 		moveBalanceUserFee := ed.ComputeMoveBalanceFee(innerTx)
 		processingUserFee := ed.ComputeFeeForProcessing(innerTx, gasToUse)
