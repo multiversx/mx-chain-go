@@ -389,6 +389,34 @@ func (txProc *txProcessor) createReceiptWithReturnedGas(
 	return nil
 }
 
+func (txProc *txProcessor) processTxFeeForUserTXofRelayed(
+	tx *transaction.Transaction,
+	acntSnd state.UserAccountHandler,
+	dstShardTxType process.TransactionType,
+) (*big.Int, *big.Int, error) {
+	totalCost := txProc.computeTxFeeForRelayedTx(tx)
+
+	err := acntSnd.SubFromBalance(totalCost)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	moveBalanceGasLimit := txProc.economicsFee.ComputeGasLimit(tx)
+
+	var currentShardFee *big.Int
+	if txProc.enableEpochsHandler.IsFlagEnabled(common.FixRelayedBaseCostFlag) {
+		currentShardFee = txProc.economicsFee.ComputeBaseFee(tx)
+	} else {
+		currentShardFee = txProc.economicsFee.ComputeFeeForProcessing(tx, moveBalanceGasLimit)
+	}
+
+	if dstShardTxType == process.MoveBalance {
+		return currentShardFee, currentShardFee, nil
+	}
+
+	return currentShardFee, totalCost, nil
+}
+
 func (txProc *txProcessor) processTxFee(
 	tx *transaction.Transaction,
 	acntSnd, acntDst state.UserAccountHandler,
@@ -400,24 +428,11 @@ func (txProc *txProcessor) processTxFee(
 	}
 
 	if isUserTxOfRelayed {
-		totalCost := txProc.computeTxFeeForRelayedTx(tx)
-
-		err := acntSnd.SubFromBalance(totalCost)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		if dstShardTxType == process.MoveBalance {
-			return totalCost, totalCost, nil
-		}
-
-		moveBalanceGasLimit := txProc.economicsFee.ComputeGasLimit(tx)
-		currentShardFee := txProc.economicsFee.ComputeFeeForProcessing(tx, moveBalanceGasLimit)
-		return currentShardFee, totalCost, nil
+		return txProc.processTxFeeForUserTXofRelayed(tx, acntSnd, dstShardTxType)
 	}
 
 	moveBalanceFee := txProc.economicsFee.ComputeBaseFee(tx)
-	totalCost := txProc.economicsFee.ComputeTxFee(tx)
+	totalCost := txProc.economicsFee.ComputeInitialTxFee(tx)
 
 	if !txProc.enableEpochsHandler.IsFlagEnabled(common.PenalizedTooMuchGasFlag) {
 		totalCost = core.SafeMul(tx.GasLimit, tx.GasPrice)
@@ -1251,7 +1266,7 @@ func (txProc *txProcessor) createRefundSCRForMoveBalance(
 	originalTxHash []byte,
 	consumedFee *big.Int,
 ) error {
-	providedFee := big.NewInt(0).Mul(big.NewInt(0).SetUint64(tx.GasLimit), big.NewInt(0).SetUint64(tx.GasPrice))
+	providedFee := core.SafeMul(tx.GasLimit, tx.GasPrice)
 	refundValue := big.NewInt(0).Sub(providedFee, consumedFee)
 
 	refundGasToRelayerSCR := &smartContractResult.SmartContractResult{

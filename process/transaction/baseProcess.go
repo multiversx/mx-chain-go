@@ -141,15 +141,9 @@ func (txProc *baseTxProcessor) checkTxValues(
 		return err
 	}
 
-	var txFee *big.Int
-	if isUserTxOfRelayed {
-		if tx.GasLimit < txProc.economicsFee.ComputeGasLimit(tx) {
-			return process.ErrNotEnoughGasInUserTx
-		}
-
-		txFee = txProc.computeTxFeeForRelayedTx(tx)
-	} else {
-		txFee = txProc.economicsFee.ComputeTxFee(tx)
+	txFee, err := txProc.computeInitialFee(tx, isUserTxOfRelayed)
+	if err != nil {
+		return err
 	}
 
 	if acntSnd.GetBalance().Cmp(txFee) < 0 {
@@ -174,7 +168,33 @@ func (txProc *baseTxProcessor) checkTxValues(
 	return nil
 }
 
+func (txProc *baseTxProcessor) computeInitialFee(
+	tx *transaction.Transaction,
+	isUserOfRelayed bool,
+) (*big.Int, error) {
+	if txProc.enableEpochsHandler.IsFlagEnabled(common.FullGasPriceForSCRsFlag) {
+		return txProc.economicsFee.ComputeInitialTxFee(tx), nil
+	}
+
+	var txFee *big.Int
+	if isUserOfRelayed {
+		if tx.GasLimit < txProc.economicsFee.ComputeGasLimit(tx) {
+			return nil, process.ErrNotEnoughGasInUserTx
+		}
+
+		txFee = txProc.computeTxFeeForRelayedTx(tx)
+	} else {
+		txFee = txProc.economicsFee.ComputeTxFee(tx)
+	}
+
+	return txFee, nil
+}
+
 func (txProc *baseTxProcessor) computeTxFeeForRelayedTx(tx *transaction.Transaction) *big.Int {
+	if txProc.enableEpochsHandler.IsFlagEnabled(common.FullGasPriceForSCRsFlag) {
+		return txProc.economicsFee.ComputeInitialTxFee(tx)
+	}
+
 	if txProc.enableEpochsHandler.IsFlagEnabled(common.FixRelayedBaseCostFlag) {
 		return txProc.computeTxFeeAfterBaseCostFix(tx)
 	}
