@@ -43,6 +43,9 @@
         # /node/managed-keys will return the keys managed by the node
         { Name = "/managed-keys", Open = true },
 
+        # /node/loaded-keys will return the keys loaded by the node
+        { Name = "/loaded-keys", Open = true },
+
         # /node/managed-keys/count will return the number of keys managed by the node
         { Name = "/managed-keys/count", Open = true },
 
@@ -50,7 +53,10 @@
         { Name = "/managed-keys/eligible", Open = true },
 
         # /node/managed-keys/waiting will return the waiting keys managed by the node on the current epoch
-        { Name = "/managed-keys/waiting", Open = true }
+        { Name = "/managed-keys/waiting", Open = true },
+
+        # /waiting-epochs-left/:key will return the number of epochs left in waiting state for the provided key
+        { Name = "/waiting-epochs-left/:key", Open = true }
     ]
 
 [APIPackages.address]
@@ -167,7 +173,10 @@
 [APIPackages.validator]
     Routes = [
         # /validator/statistics will return a list of validators statistics for all validators
-        { Name = "/statistics", Open = true }
+        { Name = "/statistics", Open = true },
+
+        # /validator/auction will return a list of nodes that are in the auction list
+        { Name = "/auction", Open = true },
     ]
 
 [APIPackages.vm-values]

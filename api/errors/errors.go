@@ -171,3 +171,6 @@ var ErrGetEligibleManagedKeys = errors.New("error getting the eligible managed k
 
 // ErrGetWaitingManagedKeys signals that an error occurred while getting the waiting managed keys
 var ErrGetWaitingManagedKeys = errors.New("error getting the waiting managed keys")
+
+// ErrGetWaitingEpochsLeftForPublicKey signals that an error occurred while getting the waiting epochs left for public key
+var ErrGetWaitingEpochsLeftForPublicKey = errors.New("error getting the waiting epochs left for public key")

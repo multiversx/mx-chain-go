@@ -2,6 +2,7 @@ package transaction
 
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/big"
@@ -121,6 +122,17 @@ func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.PenalizedTooMuchGasFlag,
+		common.MetaProtectionFlag,
+		common.AddFailedRelayedTxToInvalidMBsFlag,
+		common.RelayedTransactionsFlag,
+		common.RelayedTransactionsV2Flag,
+		common.RelayedNonceFixFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
 	if check.IfNil(args.TxVersionChecker) {
 		return nil, process.ErrNilTransactionVersionChecker
 	}
@@ -194,7 +206,7 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 			}
 		}
 
-		if errors.Is(err, process.ErrUserNameDoesNotMatch) && txProc.enableEpochsHandler.IsRelayedTransactionsFlagEnabled() {
+		if errors.Is(err, process.ErrUserNameDoesNotMatch) && txProc.enableEpochsHandler.IsFlagEnabled(common.RelayedTransactionsFlag) {
 			receiptErr := txProc.executingFailedTransaction(tx, acntSnd, err)
 			if receiptErr != nil {
 				return vmcommon.UserError, receiptErr
@@ -210,6 +222,18 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 		}
 		return vmcommon.UserError, err
 	}
+	retCode := vmcommon.Ok
+
+	defer func() {
+		if err != nil || retCode != vmcommon.Ok {
+			txHashString := hex.EncodeToString(txHash)
+			errString := ""
+			if err != nil {
+				errString = err.Error()
+			}
+			log.Info("failedProcessTransaction", "tx", fmt.Sprintf("%s, %s, %s", txHashString, retCode, errString))
+		}
+	}()
 
 	switch txType {
 	case process.MoveBalance:
@@ -219,18 +243,26 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 		}
 		return vmcommon.Ok, err
 	case process.SCDeployment:
-		return txProc.processSCDeployment(tx, acntSnd)
+		retCode, err = txProc.processSCDeployment(tx, acntSnd)
+		return retCode, err
 	case process.SCInvoking:
-		return txProc.processSCInvoking(tx, acntSnd, acntDst)
+		retCode, err = txProc.processSCInvoking(tx, acntSnd, acntDst)
+		return retCode, err
 	case process.BuiltInFunctionCall:
-		return txProc.processBuiltInFunctionCall(tx, acntSnd, acntDst)
+		retCode, err = txProc.processBuiltInFunctionCall(tx, acntSnd, acntDst)
+		return retCode, err
 	case process.RelayedTx:
-		return txProc.processRelayedTx(tx, acntSnd, acntDst)
+		retCode, err = txProc.processRelayedTx(tx, acntSnd, acntDst)
+		return retCode, err
 	case process.RelayedTxV2:
-		return txProc.processRelayedTxV2(tx, acntSnd, acntDst)
+		retCode, err = txProc.processRelayedTxV2(tx, acntSnd, acntDst)
+		return retCode, err
 	}
 
-	return vmcommon.UserError, txProc.executingFailedTransaction(tx, acntSnd, process.ErrWrongTransaction)
+	retCode = vmcommon.UserError
+	err = txProc.executingFailedTransaction(tx, acntSnd, process.ErrWrongTransaction)
+
+	return retCode, err
 }
 
 func (txProc *txProcessor) executeAfterFailedMoveBalanceTransaction(
@@ -336,7 +368,7 @@ func (txProc *txProcessor) createReceiptWithReturnedGas(
 	if check.IfNil(acntSnd) || isUserTxOfRelayed {
 		return nil
 	}
-	shouldCreateReceiptBackwardCompatible := !txProc.enableEpochsHandler.IsMetaProtectionFlagEnabled() && core.IsSmartContractAddress(tx.RcvAddr)
+	shouldCreateReceiptBackwardCompatible := !txProc.enableEpochsHandler.IsFlagEnabled(common.MetaProtectionFlag) && core.IsSmartContractAddress(tx.RcvAddr)
 	if destShardTxType != process.MoveBalance || shouldCreateReceiptBackwardCompatible {
 		return nil
 	}
@@ -391,13 +423,14 @@ func (txProc *txProcessor) processTxFee(
 
 	moveBalanceFee := txProc.economicsFee.ComputeMoveBalanceFee(tx)
 	totalCost := txProc.economicsFee.ComputeTxFee(tx)
-	if !txProc.enableEpochsHandler.IsPenalizedTooMuchGasFlagEnabled() {
+
+	if !txProc.enableEpochsHandler.IsFlagEnabled(common.PenalizedTooMuchGasFlag) {
 		totalCost = core.SafeMul(tx.GasLimit, tx.GasPrice)
 	}
 
 	isCrossShardSCCall := check.IfNil(acntDst) && len(tx.GetData()) > 0 && core.IsSmartContractAddress(tx.GetRcvAddr())
 	if dstShardTxType != process.MoveBalance ||
-		(!txProc.enableEpochsHandler.IsMetaProtectionFlagEnabled() && isCrossShardSCCall) {
+		(!txProc.enableEpochsHandler.IsFlagEnabled(common.MetaProtectionFlag) && isCrossShardSCCall) {
 
 		err := acntSnd.SubFromBalance(totalCost)
 		if err != nil {
@@ -428,7 +461,7 @@ func (txProc *txProcessor) checkIfValidTxToMetaChain(
 		return process.ErrInvalidMetaTransaction
 	}
 
-	if txProc.enableEpochsHandler.IsMetaProtectionFlagEnabled() {
+	if txProc.enableEpochsHandler.IsFlagEnabled(common.MetaProtectionFlag) {
 		// additional check
 		if tx.GasLimit < txProc.economicsFee.ComputeGasLimit(tx)+core.MinMetaTxExtraGasCost {
 			return fmt.Errorf("%w: not enough gas", process.ErrInvalidMetaTransaction)
@@ -616,7 +649,7 @@ func (txProc *txProcessor) processRelayedTxV2(
 	tx *transaction.Transaction,
 	relayerAcnt, acntDst state.UserAccountHandler,
 ) (vmcommon.ReturnCode, error) {
-	if !txProc.enableEpochsHandler.IsRelayedTransactionsV2FlagEnabled() {
+	if !txProc.enableEpochsHandler.IsFlagEnabled(common.RelayedTransactionsV2Flag) {
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxV2Disabled)
 	}
 	if tx.GetValue().Cmp(big.NewInt(0)) != 0 {
@@ -651,7 +684,7 @@ func (txProc *txProcessor) processRelayedTx(
 	if len(args) != 1 {
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrInvalidArguments)
 	}
-	if !txProc.enableEpochsHandler.IsRelayedTransactionsFlagEnabled() {
+	if !txProc.enableEpochsHandler.IsFlagEnabled(common.RelayedTransactionsFlag) {
 		return vmcommon.UserError, txProc.executingFailedTransaction(tx, relayerAcnt, process.ErrRelayedTxDisabled)
 	}
 
@@ -972,7 +1005,7 @@ func (txProc *txProcessor) executeFailedRelayedUserTx(
 			return err
 		}
 
-		if txProc.enableEpochsHandler.IsAddFailedRelayedTxToInvalidMBsFlag() {
+		if txProc.enableEpochsHandler.IsFlagEnabled(common.AddFailedRelayedTxToInvalidMBsFlag) {
 			err = txProc.badTxForwarder.AddIntermediateTransactions([]data.TransactionHandler{originalTx})
 			if err != nil {
 				return err
@@ -989,7 +1022,7 @@ func (txProc *txProcessor) executeFailedRelayedUserTx(
 }
 
 func (txProc *txProcessor) shouldIncreaseNonce(executionErr error) bool {
-	if !txProc.enableEpochsHandler.IsRelayedNonceFixEnabled() {
+	if !txProc.enableEpochsHandler.IsFlagEnabled(common.RelayedNonceFixFlag) {
 		return true
 	}
 

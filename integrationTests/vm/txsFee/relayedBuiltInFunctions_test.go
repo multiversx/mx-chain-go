@@ -1,7 +1,3 @@
-//go:build !race
-
-// TODO remove build condition above to allow -race -short, after Wasm VM fix
-
 package txsFee
 
 import (
@@ -20,6 +16,10 @@ import (
 )
 
 func TestRelayedBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(
 		config.EnableEpochs{
 			PenalizedTooMuchGasEnableEpoch: integrationTests.UnreachableEpoch,
@@ -68,6 +68,10 @@ func TestRelayedBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
 }
 
 func TestRelayedBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -114,6 +118,10 @@ func TestRelayedBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(t *test
 }
 
 func TestRelayedBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -158,6 +166,10 @@ func TestRelayedBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *test
 }
 
 func TestRelayedBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldConsumeGas(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	t.Run("nonce fix is disabled, should increase the sender's nonce", func(t *testing.T) {
 		testRelayedBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldConsumeGas(t,
 			config.EnableEpochs{
@@ -220,6 +232,10 @@ func testRelayedBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldConsumeG
 }
 
 func TestRelayedBuildInFunctionChangeOwnerCallOutOfGasShouldConsumeGas(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()

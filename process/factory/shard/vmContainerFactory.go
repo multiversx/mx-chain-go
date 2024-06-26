@@ -38,7 +38,7 @@ type vmContainerFactory struct {
 	gasSchedule         core.GasScheduleNotifier
 	builtinFunctions    vmcommon.BuiltInFunctionContainer
 	epochNotifier       process.EpochNotifier
-	enableEpochsHandler vmcommon.EnableEpochsHandler
+	enableEpochsHandler common.EnableEpochsHandler
 	container           process.VirtualMachinesContainer
 	wasmVMVersions      []config.WasmVMVersionByEpoch
 	wasmVMChangeLocker  common.Locker
@@ -52,7 +52,7 @@ type ArgVMContainerFactory struct {
 	BlockGasLimit       uint64
 	GasSchedule         core.GasScheduleNotifier
 	EpochNotifier       process.EpochNotifier
-	EnableEpochsHandler vmcommon.EnableEpochsHandler
+	EnableEpochsHandler common.EnableEpochsHandler
 	WasmVMChangeLocker  common.Locker
 	ESDTTransferParser  vmcommon.ESDTTransferParser
 	BuiltInFunctions    vmcommon.BuiltInFunctionContainer

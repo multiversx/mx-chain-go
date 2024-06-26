@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
@@ -33,14 +34,13 @@ func getArgs() factory.TrieFactoryArgs {
 func getCreateArgs() factory.TrieCreateArgs {
 	return factory.TrieCreateArgs{
 		MainStorer:          testscommon.CreateMemUnit(),
-		CheckpointsStorer:   testscommon.CreateMemUnit(),
 		PruningEnabled:      false,
-		CheckpointsEnabled:  false,
 		SnapshotsEnabled:    true,
 		MaxTrieLevelInMem:   5,
 		IdleProvider:        &testscommon.ProcessStatusHandlerStub{},
 		Identifier:          dataRetriever.UserAccountsUnit.String(),
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		StatsCollector:      disabled.NewStateStatistics(),
 	}
 }
 
@@ -125,20 +125,6 @@ func TestTrieCreator_CreateWithoutSnapshotsShouldWork(t *testing.T) {
 	require.NotNil(t, tr)
 }
 
-func TestTrieCreator_CreateWithoutCheckpointShouldWork(t *testing.T) {
-	t.Parallel()
-
-	args := getArgs()
-	tf, _ := factory.NewTrieFactory(args)
-
-	createArgs := getCreateArgs()
-	createArgs.PruningEnabled = true
-	createArgs.CheckpointsEnabled = true
-	_, tr, err := tf.Create(createArgs)
-	require.NotNil(t, tr)
-	require.Nil(t, err)
-}
-
 func TestTrieCreator_CreateWithNilMainStorerShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -148,21 +134,6 @@ func TestTrieCreator_CreateWithNilMainStorerShouldErr(t *testing.T) {
 	createArgs := getCreateArgs()
 	createArgs.PruningEnabled = true
 	createArgs.MainStorer = nil
-	_, tr, err := tf.Create(createArgs)
-	require.Nil(t, tr)
-	require.NotNil(t, err)
-	require.True(t, strings.Contains(err.Error(), trie.ErrNilStorer.Error()))
-}
-
-func TestTrieCreator_CreateWithNilCheckpointsStorerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := getArgs()
-	tf, _ := factory.NewTrieFactory(args)
-
-	createArgs := getCreateArgs()
-	createArgs.PruningEnabled = true
-	createArgs.CheckpointsStorer = nil
 	_, tr, err := tf.Create(createArgs)
 	require.Nil(t, tr)
 	require.NotNil(t, err)
@@ -187,9 +158,7 @@ func TestTrieCreator_CreateTriesComponentsForShardId(t *testing.T) {
 	t.Parallel()
 
 	t.Run("missing UserAccountsUnit", testWithMissingStorer(dataRetriever.UserAccountsUnit))
-	t.Run("missing UserAccountsCheckpointsUnit", testWithMissingStorer(dataRetriever.UserAccountsCheckpointsUnit))
 	t.Run("missing PeerAccountsUnit", testWithMissingStorer(dataRetriever.PeerAccountsUnit))
-	t.Run("missing PeerAccountsCheckpointsUnit", testWithMissingStorer(dataRetriever.PeerAccountsCheckpointsUnit))
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -207,6 +176,7 @@ func TestTrieCreator_CreateTriesComponentsForShardId(t *testing.T) {
 					return &storageStubs.StorerStub{}, nil
 				},
 			},
+			disabled.NewStateStatistics(),
 		)
 		require.NotNil(t, holder)
 		require.NotNil(t, storageManager)
@@ -234,7 +204,9 @@ func testWithMissingStorer(missingUnit dataRetriever.UnitType) func(t *testing.T
 					}
 					return &storageStubs.StorerStub{}, nil
 				},
-			})
+			},
+			disabled.NewStateStatistics(),
+		)
 		require.True(t, check.IfNil(holder))
 		require.Nil(t, storageManager)
 		require.NotNil(t, err)

@@ -20,6 +20,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/statistics"
+	disabledStatistics "github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -39,6 +41,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
@@ -83,7 +86,14 @@ func createComponentsForEpochStart() (*mock.CoreComponentsMock, *mock.CryptoComp
 			NodeTypeProviderField:        &nodeTypeProviderMock.NodeTypeProviderStub{},
 			ProcessStatusHandlerInstance: &testscommon.ProcessStatusHandlerStub{},
 			HardforkTriggerPubKeyField:   []byte("provided hardfork pub key"),
-			EnableEpochsHandlerField:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+			EnableEpochsHandlerField: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+				GetActivationEpochCalled: func(flag core.EnableEpochFlag) uint32 {
+					if flag == common.StakingV4Step2Flag {
+						return 99999
+					}
+					return 0
+				},
+			},
 		},
 		&mock.CryptoComponentsMock{
 			PubKey:          &cryptoMocks.PublicKeyStub{},
@@ -109,31 +119,29 @@ func createMockEpochStartBootstrapArgs(
 		MainMessenger: &p2pmocks.MessengerStub{
 			ConnectedPeersCalled: func() []core.PeerID {
 				return []core.PeerID{"peer0", "peer1", "peer2", "peer3", "peer4", "peer5"}
-			},
-		},
-		FullArchiveMessenger: &p2pmocks.MessengerStub{},
+			}},
+		NodesCoordinatorRegistryFactory: &shardingMocks.NodesCoordinatorRegistryFactoryMock{},
+		FullArchiveMessenger:            &p2pmocks.MessengerStub{},
 		GeneralConfig: config.Config{
-			MiniBlocksStorage:                  generalCfg.MiniBlocksStorage,
-			PeerBlockBodyStorage:               generalCfg.PeerBlockBodyStorage,
-			BlockHeaderStorage:                 generalCfg.BlockHeaderStorage,
-			TxStorage:                          generalCfg.TxStorage,
-			UnsignedTransactionStorage:         generalCfg.UnsignedTransactionStorage,
-			RewardTxStorage:                    generalCfg.RewardTxStorage,
-			ShardHdrNonceHashStorage:           generalCfg.ShardHdrNonceHashStorage,
-			MetaHdrNonceHashStorage:            generalCfg.MetaHdrNonceHashStorage,
-			StatusMetricsStorage:               generalCfg.StatusMetricsStorage,
-			ReceiptsStorage:                    generalCfg.ReceiptsStorage,
-			SmartContractsStorage:              generalCfg.SmartContractsStorage,
-			SmartContractsStorageForSCQuery:    generalCfg.SmartContractsStorageForSCQuery,
-			TrieEpochRootHashStorage:           generalCfg.TrieEpochRootHashStorage,
-			BootstrapStorage:                   generalCfg.BootstrapStorage,
-			MetaBlockStorage:                   generalCfg.MetaBlockStorage,
-			AccountsTrieStorage:                generalCfg.AccountsTrieStorage,
-			PeerAccountsTrieStorage:            generalCfg.PeerAccountsTrieStorage,
-			AccountsTrieCheckpointsStorage:     generalCfg.AccountsTrieCheckpointsStorage,
-			PeerAccountsTrieCheckpointsStorage: generalCfg.PeerAccountsTrieCheckpointsStorage,
-			HeartbeatV2:                        generalCfg.HeartbeatV2,
-			Hardfork:                           generalCfg.Hardfork,
+			MiniBlocksStorage:               generalCfg.MiniBlocksStorage,
+			PeerBlockBodyStorage:            generalCfg.PeerBlockBodyStorage,
+			BlockHeaderStorage:              generalCfg.BlockHeaderStorage,
+			TxStorage:                       generalCfg.TxStorage,
+			UnsignedTransactionStorage:      generalCfg.UnsignedTransactionStorage,
+			RewardTxStorage:                 generalCfg.RewardTxStorage,
+			ShardHdrNonceHashStorage:        generalCfg.ShardHdrNonceHashStorage,
+			MetaHdrNonceHashStorage:         generalCfg.MetaHdrNonceHashStorage,
+			StatusMetricsStorage:            generalCfg.StatusMetricsStorage,
+			ReceiptsStorage:                 generalCfg.ReceiptsStorage,
+			SmartContractsStorage:           generalCfg.SmartContractsStorage,
+			SmartContractsStorageForSCQuery: generalCfg.SmartContractsStorageForSCQuery,
+			TrieEpochRootHashStorage:        generalCfg.TrieEpochRootHashStorage,
+			BootstrapStorage:                generalCfg.BootstrapStorage,
+			MetaBlockStorage:                generalCfg.MetaBlockStorage,
+			AccountsTrieStorage:             generalCfg.AccountsTrieStorage,
+			PeerAccountsTrieStorage:         generalCfg.PeerAccountsTrieStorage,
+			HeartbeatV2:                     generalCfg.HeartbeatV2,
+			Hardfork:                        generalCfg.Hardfork,
 			EvictionWaitingList: config.EvictionWaitingListConfig{
 				HashesSize:     100,
 				RootHashesSize: 100,
@@ -146,8 +154,8 @@ func createMockEpochStartBootstrapArgs(
 				},
 			},
 			StateTriesConfig: config.StateTriesConfig{
-				CheckpointRoundsModulus:     5,
 				AccountsStatePruningEnabled: true,
+				SnapshotsEnabled:            true,
 				PeerStatePruningEnabled:     true,
 				MaxStateTrieLevelInMemory:   5,
 				MaxPeerTrieLevelInMemory:    5,
@@ -205,7 +213,7 @@ func createMockEpochStartBootstrapArgs(
 				return 1
 			},
 		},
-		GenesisNodesConfig:         &mock.NodesSetupStub{},
+		GenesisNodesConfig:         &genesisMocks.NodesSetupStub{},
 		GenesisShardCoordinator:    mock.NewMultipleShardsCoordinatorMock(),
 		Rater:                      &mock.RaterStub{},
 		DestinationShardAsObserver: 0,
@@ -232,6 +240,7 @@ func createMockEpochStartBootstrapArgs(
 			ForceStartFromNetwork: false,
 		},
 		TrieSyncStatisticsProvider: &testscommon.SizeSyncStatisticsHandlerStub{},
+		StateStatsHandler:          disabledStatistics.NewStateStatistics(),
 	}
 }
 
@@ -612,6 +621,17 @@ func TestNewEpochStartBootstrap_NilArgsChecks(t *testing.T) {
 		require.Nil(t, epochStartProvider)
 		require.True(t, errors.Is(err, epochStart.ErrNilManagedPeersHolder))
 	})
+	t.Run("nil state statistics handler", func(t *testing.T) {
+		t.Parallel()
+
+		coreComp, cryptoComp := createComponentsForEpochStart()
+		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+		args.StateStatsHandler = nil
+
+		epochStartProvider, err := NewEpochStartBootstrap(args)
+		require.Nil(t, epochStartProvider)
+		require.True(t, errors.Is(err, statistics.ErrNilStateStatsHandler))
+	})
 }
 
 func TestNewEpochStartBootstrap(t *testing.T) {
@@ -782,7 +802,7 @@ func TestIsStartInEpochZero(t *testing.T) {
 
 	coreComp, cryptoComp := createComponentsForEpochStart()
 	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
-	args.GenesisNodesConfig = &mock.NodesSetupStub{
+	args.GenesisNodesConfig = &genesisMocks.NodesSetupStub{
 		GetStartTimeCalled: func() int64 {
 			return 1000
 		},
@@ -816,7 +836,7 @@ func TestEpochStartBootstrap_BootstrapShouldStartBootstrapProcess(t *testing.T) 
 	roundDuration := uint64(60000)
 	coreComp, cryptoComp := createComponentsForEpochStart()
 	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
-	args.GenesisNodesConfig = &mock.NodesSetupStub{
+	args.GenesisNodesConfig = &genesisMocks.NodesSetupStub{
 		GetRoundDurationCalled: func() uint64 {
 			return roundDuration
 		},
@@ -875,7 +895,7 @@ func TestPrepareForEpochZero_NodeInGenesisShouldNotAlterShardID(t *testing.T) {
 	}
 
 	args.DestinationShardAsObserver = uint32(7)
-	args.GenesisNodesConfig = &mock.NodesSetupStub{
+	args.GenesisNodesConfig = &genesisMocks.NodesSetupStub{
 		InitialNodesInfoCalled: func() (map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
 			eligibleMap := map[uint32][]nodesCoordinator.GenesisNodeInfoHandler{
 				1: {mock.NewNodeInfo([]byte("addr"), []byte("pubKey11"), 1, initRating)},
@@ -910,7 +930,7 @@ func TestPrepareForEpochZero_NodeNotInGenesisShouldAlterShardID(t *testing.T) {
 		},
 	}
 	args.DestinationShardAsObserver = desiredShardAsObserver
-	args.GenesisNodesConfig = &mock.NodesSetupStub{
+	args.GenesisNodesConfig = &genesisMocks.NodesSetupStub{
 		InitialNodesInfoCalled: func() (map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
 			eligibleMap := map[uint32][]nodesCoordinator.GenesisNodeInfoHandler{
 				1: {mock.NewNodeInfo([]byte("addr"), []byte("pubKey11"), 1, initRating)},
@@ -1023,6 +1043,7 @@ func TestSyncValidatorAccountsState_NilRequestHandlerErr(t *testing.T) {
 		args.GeneralConfig,
 		coreComp,
 		disabled.NewChainStorer(),
+		disabledStatistics.NewStateStatistics(),
 	)
 	assert.Nil(t, err)
 	epochStartProvider.trieContainer = triesContainer
@@ -1042,6 +1063,7 @@ func TestCreateTriesForNewShardID(t *testing.T) {
 		args.GeneralConfig,
 		coreComp,
 		disabled.NewChainStorer(),
+		disabledStatistics.NewStateStatistics(),
 	)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(triesContainer.GetAll()))
@@ -1068,6 +1090,7 @@ func TestSyncUserAccountsState(t *testing.T) {
 		args.GeneralConfig,
 		coreComp,
 		disabled.NewChainStorer(),
+		disabledStatistics.NewStateStatistics(),
 	)
 	assert.Nil(t, err)
 	epochStartProvider.trieContainer = triesContainer
@@ -1472,7 +1495,7 @@ func getNodesConfigMock(numOfShards uint32) sharding.GenesisNodesSetupHandler {
 	roundDurationMillis := 4000
 	epochDurationMillis := 50 * int64(roundDurationMillis)
 
-	nodesConfig := &mock.NodesSetupStub{
+	nodesConfig := &genesisMocks.NodesSetupStub{
 		InitialNodesInfoCalled: func() (m map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, m2 map[uint32][]nodesCoordinator.GenesisNodeInfoHandler) {
 			oneMap := make(map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
 			for i := uint32(0); i < numOfShards; i++ {

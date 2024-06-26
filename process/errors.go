@@ -194,6 +194,9 @@ var ErrNilShardCoordinator = errors.New("nil shard coordinator")
 // ErrNilNodesCoordinator signals that an operation has been attempted to or with a nil nodes coordinator
 var ErrNilNodesCoordinator = errors.New("nil nodes coordinator")
 
+// ErrNilStakingDataProvider signals that a nil staking data provider was used
+var ErrNilStakingDataProvider = errors.New("nil staking data provider")
+
 // ErrNilKeyGen signals that an operation has been attempted to or with a nil single sign key generator
 var ErrNilKeyGen = errors.New("nil key generator")
 
@@ -981,12 +984,6 @@ var ErrMaxAccumulatedFeesExceeded = errors.New("max accumulated fees has been ex
 // ErrMaxDeveloperFeesExceeded signals that max developer fees has been exceeded
 var ErrMaxDeveloperFeesExceeded = errors.New("max developer fees has been exceeded")
 
-// ErrNilBuiltInFunctionsCostHandler signals that a nil built-in functions cost handler has been provided
-var ErrNilBuiltInFunctionsCostHandler = errors.New("nil built in functions cost handler")
-
-// ErrNilArgsBuiltInFunctionsConstHandler signals that a nil arguments struct for built-in functions cost handler has been provided
-var ErrNilArgsBuiltInFunctionsConstHandler = errors.New("nil arguments for built in functions cost handler")
-
 // ErrInvalidEpochStartMetaBlockConsensusPercentage signals that a small epoch start meta block consensus percentage has been provided
 var ErrInvalidEpochStartMetaBlockConsensusPercentage = errors.New("invalid epoch start meta block consensus percentage")
 
@@ -1226,3 +1223,6 @@ var ErrNilStorageService = errors.New("nil storage service")
 
 // ErrInvalidAsyncArguments signals that invalid arguments were given for async/callBack processing
 var ErrInvalidAsyncArguments = errors.New("invalid arguments to process async/callback function")
+
+// ErrNilSentSignatureTracker defines the error for setting a nil SentSignatureTracker
+var ErrNilSentSignatureTracker = errors.New("nil sent signature tracker")

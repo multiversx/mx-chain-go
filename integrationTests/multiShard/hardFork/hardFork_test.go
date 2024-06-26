@@ -12,6 +12,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common/statistics/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/genesis/process"
@@ -20,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	vmFactory "github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
@@ -386,7 +388,7 @@ func hardForkImport(
 		defaults.FillGasMapInternal(gasSchedule, 1)
 		log.Warn("started import process")
 
-		coreComponents := integrationTests.GetDefaultCoreComponents()
+		coreComponents := integrationTests.GetDefaultCoreComponents(integrationTests.CreateEnableEpochsConfig())
 		coreComponents.InternalMarshalizerField = integrationTests.TestMarshalizer
 		coreComponents.TxMarshalizerField = integrationTests.TestMarshalizer
 		coreComponents.HasherField = integrationTests.TestHasher
@@ -404,8 +406,6 @@ func hardForkImport(
 		dataComponents.Store = node.Storage
 		dataComponents.DataPool = node.DataPool
 		dataComponents.BlockChain = node.BlockChain
-
-		roundConfig := integrationTests.GetDefaultRoundsConfig()
 
 		argsGenesis := process.ArgsGenesisBlockCreator{
 			GenesisTime:       0,
@@ -464,6 +464,8 @@ func hardForkImport(
 					MaxNumberOfNodesForStake:             100,
 					ActivateBLSPubKeyMessageVerification: false,
 					MinUnstakeTokensValue:                "1",
+					StakeLimitPercentage:                 100.0,
+					NodeLimitPercentage:                  100.0,
 				},
 				DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
 					MinCreationDeposit:  "100",
@@ -474,11 +476,17 @@ func hardForkImport(
 					MinServiceFee: 0,
 					MaxServiceFee: 100,
 				},
+				SoftAuctionConfig: config.SoftAuctionConfig{
+					TopUpStep:             "10",
+					MinTopUp:              "1",
+					MaxTopUp:              "32000000",
+					MaxNumberOfIterations: 100000,
+				},
 			},
 			AccountsParser:      &genesisMocks.AccountsParserStub{},
 			SmartContractParser: &mock.SmartContractParserStub{},
 			BlockSignKeyGen:     &mock.KeyGenMock{},
-			EpochConfig: &config.EpochConfig{
+			EpochConfig: config.EpochConfig{
 				EnableEpochs: config.EnableEpochs{
 					BuiltInFunctionsEnableEpoch:        0,
 					SCDeployEnableEpoch:                0,
@@ -490,7 +498,8 @@ func hardForkImport(
 					DelegationSmartContractEnableEpoch: 0,
 				},
 			},
-			RoundConfig:             &roundConfig,
+			RoundConfig:             testscommon.GetDefaultRoundsConfig(),
+			HeaderVersionConfigs:    testscommon.GetDefaultHeaderVersionConfig(),
 			HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 			TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 		}
@@ -558,7 +567,7 @@ func createHardForkExporter(
 		returnedConfigs[node.ShardCoordinator.SelfId()] = append(returnedConfigs[node.ShardCoordinator.SelfId()], exportConfig)
 		returnedConfigs[node.ShardCoordinator.SelfId()] = append(returnedConfigs[node.ShardCoordinator.SelfId()], keysConfig)
 
-		coreComponents := integrationTests.GetDefaultCoreComponents()
+		coreComponents := integrationTests.GetDefaultCoreComponents(integrationTests.CreateEnableEpochsConfig())
 		coreComponents.InternalMarshalizerField = integrationTests.TestMarshalizer
 		coreComponents.TxMarshalizerField = integrationTests.TestTxSignMarshalizer
 		coreComponents.HasherField = integrationTests.TestHasher
@@ -580,7 +589,8 @@ func createHardForkExporter(
 		cryptoComponents.TxKeyGen = node.OwnAccount.KeygenTxSign
 
 		statusCoreComponents := &factoryTests.StatusCoreComponentsStub{
-			AppStatusHandlerField: &statusHandler.AppStatusHandlerStub{},
+			AppStatusHandlerField:  &statusHandler.AppStatusHandlerStub{},
+			StateStatsHandlerField: disabled.NewStateStatistics(),
 		}
 
 		networkComponents := integrationTests.GetDefaultNetworkComponents()

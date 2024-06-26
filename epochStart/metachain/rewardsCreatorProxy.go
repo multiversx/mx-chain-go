@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
@@ -63,7 +64,7 @@ func NewRewardsCreatorProxy(args RewardsCreatorProxyArgs) (*rewardsCreatorProxy,
 // CreateRewardsMiniBlocks proxies the CreateRewardsMiniBlocks method of the configured rewardsCreator instance
 func (rcp *rewardsCreatorProxy) CreateRewardsMiniBlocks(
 	metaBlock data.MetaHeaderHandler,
-	validatorsInfo map[uint32][]*state.ValidatorInfo,
+	validatorsInfo state.ShardValidatorsInfoMapHandler,
 	computedEconomics *block.Economics,
 ) (block.MiniBlockSlice, error) {
 	err := rcp.changeRewardCreatorIfNeeded(metaBlock.GetEpoch())
@@ -76,7 +77,7 @@ func (rcp *rewardsCreatorProxy) CreateRewardsMiniBlocks(
 // VerifyRewardsMiniBlocks proxies the same method of the configured rewardsCreator instance
 func (rcp *rewardsCreatorProxy) VerifyRewardsMiniBlocks(
 	metaBlock data.MetaHeaderHandler,
-	validatorsInfo map[uint32][]*state.ValidatorInfo,
+	validatorsInfo state.ShardValidatorsInfoMapHandler,
 	computedEconomics *block.Economics,
 ) error {
 	err := rcp.changeRewardCreatorIfNeeded(metaBlock.GetEpoch())
@@ -130,7 +131,7 @@ func (rcp *rewardsCreatorProxy) changeRewardCreatorIfNeeded(epoch uint32) error 
 	rcp.mutRc.Lock()
 	defer rcp.mutRc.Unlock()
 
-	if epoch > rcp.args.EnableEpochsHandler.StakingV2EnableEpoch() {
+	if rcp.args.EnableEpochsHandler.IsFlagEnabledInEpoch(common.StakingV2FlagAfterEpoch, epoch) {
 		if rcp.configuredRC != rCreatorV2 {
 			return rcp.switchToRewardsCreatorV2()
 		}

@@ -450,7 +450,7 @@ func getTxMaxTotalCost(txHandler data.TransactionHandler) *big.Int {
 }
 
 func (bpp *basePreProcess) getTotalGasConsumed() uint64 {
-	if !bpp.enableEpochsHandler.IsOptimizeGasUsedInCrossMiniBlocksFlagEnabled() {
+	if !bpp.enableEpochsHandler.IsFlagEnabled(common.OptimizeGasUsedInCrossMiniBlocksFlag) {
 		return bpp.gasHandler.TotalGasProvided()
 	}
 
@@ -473,7 +473,7 @@ func (bpp *basePreProcess) updateGasConsumedWithGasRefundedAndGasPenalized(
 	txHash []byte,
 	gasInfo *gasConsumedInfo,
 ) {
-	if !bpp.enableEpochsHandler.IsOptimizeGasUsedInCrossMiniBlocksFlagEnabled() {
+	if !bpp.enableEpochsHandler.IsFlagEnabled(common.OptimizeGasUsedInCrossMiniBlocksFlag) {
 		return
 	}
 

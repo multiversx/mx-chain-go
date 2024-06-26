@@ -67,6 +67,11 @@ func (mock *keysHandlerSingleSignerMock) IsOriginalPublicKeyOfTheNode(pkBytes []
 func (mock *keysHandlerSingleSignerMock) ResetRoundsWithoutReceivedMessages(_ []byte, _ core.PeerID) {
 }
 
+// GetRedundancyStepInReason -
+func (mock *keysHandlerSingleSignerMock) GetRedundancyStepInReason() string {
+	return ""
+}
+
 // IsInterfaceNil -
 func (mock *keysHandlerSingleSignerMock) IsInterfaceNil() bool {
 	return mock == nil

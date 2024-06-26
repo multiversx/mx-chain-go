@@ -2,6 +2,7 @@ package factory
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/node/external"
 )
@@ -15,6 +16,7 @@ type StatusCoreComponentsStub struct {
 	AppStatusHandlerCalled       func() core.AppStatusHandler
 	StatusMetricsField           external.StatusMetricsHandler
 	PersistentStatusHandlerField factory.PersistentStatusHandler
+	StateStatsHandlerField       common.StateStatisticsHandler
 }
 
 // Create -
@@ -68,6 +70,11 @@ func (stub *StatusCoreComponentsStub) StatusMetrics() external.StatusMetricsHand
 // PersistentStatusHandler -
 func (stub *StatusCoreComponentsStub) PersistentStatusHandler() factory.PersistentStatusHandler {
 	return stub.PersistentStatusHandlerField
+}
+
+// StateStatsHandler -
+func (stub *StatusCoreComponentsStub) StateStatsHandler() common.StateStatisticsHandler {
+	return stub.StateStatsHandlerField
 }
 
 // IsInterfaceNil -

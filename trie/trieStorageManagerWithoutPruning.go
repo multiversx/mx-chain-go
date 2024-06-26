@@ -1,8 +1,6 @@
 package trie
 
 import (
-	"fmt"
-
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
 )
@@ -10,7 +8,6 @@ import (
 // trieStorageManagerWithoutPruning manages the storage operations of the trie, but does not prune old values
 type trieStorageManagerWithoutPruning struct {
 	common.StorageManager
-	storage storageManagerExtension
 }
 
 // NewTrieStorageManagerWithoutPruning creates a new instance of trieStorageManagerWithoutPruning
@@ -19,14 +16,8 @@ func NewTrieStorageManagerWithoutPruning(sm common.StorageManager) (*trieStorage
 		return nil, ErrNilTrieStorage
 	}
 
-	tsm, ok := sm.GetBaseTrieStorageManager().(storageManagerExtension)
-	if !ok {
-		return nil, fmt.Errorf("invalid storage manager type %T", sm.GetBaseTrieStorageManager())
-	}
-
 	return &trieStorageManagerWithoutPruning{
 		StorageManager: sm,
-		storage:        tsm,
 	}, nil
 }
 
@@ -36,7 +27,6 @@ func (tsm *trieStorageManagerWithoutPruning) IsPruningEnabled() bool {
 }
 
 // Remove deletes the given hash from checkpointHashesHolder
-func (tsm *trieStorageManagerWithoutPruning) Remove(hash []byte) error {
-	tsm.storage.RemoveFromCheckpointHashesHolder(hash)
+func (tsm *trieStorageManagerWithoutPruning) Remove(_ []byte) error {
 	return nil
 }

@@ -1,10 +1,13 @@
 package coordinator
 
 import (
+	"errors"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -16,7 +19,7 @@ func createMockArgsPrintDoubleTransactionsDetector() ArgsPrintDoubleTransactions
 	return ArgsPrintDoubleTransactionsDetector{
 		Marshaller:          &marshallerMock.MarshalizerMock{},
 		Hasher:              &testscommon.HasherStub{},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 	}
 }
 
@@ -52,6 +55,16 @@ func TestNewPrintDoubleTransactionsDetector(t *testing.T) {
 		detector, err := NewPrintDoubleTransactionsDetector(args)
 		assert.True(t, check.IfNil(detector))
 		assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
+	})
+	t.Run("invalid enable epochs handler should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgsPrintDoubleTransactionsDetector()
+		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined()
+
+		detector, err := NewPrintDoubleTransactionsDetector(args)
+		assert.True(t, check.IfNil(detector))
+		assert.True(t, errors.Is(err, core.ErrInvalidEnableEpochsHandler))
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
@@ -133,9 +146,7 @@ func TestPrintDoubleTransactionsDetector_ProcessBlockBody(t *testing.T) {
 
 		debugCalled := false
 		args := createMockArgsPrintDoubleTransactionsDetector()
-		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsAddFailedRelayedTxToInvalidMBsFlagField: true,
-		}
+		args.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.AddFailedRelayedTxToInvalidMBsFlag)
 		detector, _ := NewPrintDoubleTransactionsDetector(args)
 		detector.logger = &testscommon.LoggerStub{
 			ErrorCalled: func(message string, args ...interface{}) {

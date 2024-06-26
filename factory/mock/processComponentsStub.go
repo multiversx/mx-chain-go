@@ -56,6 +56,8 @@ type ProcessComponentsMock struct {
 	ESDTDataStorageHandlerForAPIInternal vmcommon.ESDTNFTStorageHandler
 	AccountsParserInternal               genesis.AccountsParser
 	ReceiptsRepositoryInternal           factory.ReceiptsRepository
+	SentSignaturesTrackerInternal        process.SentSignaturesTracker
+	EpochSystemSCProcessorInternal       process.EpochStartSystemSCProcessor
 }
 
 // Create -
@@ -125,6 +127,11 @@ func (pcm *ProcessComponentsMock) ForkDetector() process.ForkDetector {
 
 // BlockProcessor -
 func (pcm *ProcessComponentsMock) BlockProcessor() process.BlockProcessor {
+	return pcm.BlockProcess
+}
+
+// BlockProcessorWithRevert -
+func (pcm *ProcessComponentsMock) BlockProcessorWithRevert() process.BlockProcessor {
 	return pcm.BlockProcess
 }
 
@@ -276,6 +283,16 @@ func (pcm *ProcessComponentsMock) ESDTDataStorageHandlerForAPI() vmcommon.ESDTNF
 // ReceiptsRepository -
 func (pcm *ProcessComponentsMock) ReceiptsRepository() factory.ReceiptsRepository {
 	return pcm.ReceiptsRepositoryInternal
+}
+
+// SentSignaturesTracker -
+func (pcm *ProcessComponentsMock) SentSignaturesTracker() process.SentSignaturesTracker {
+	return pcm.SentSignaturesTrackerInternal
+}
+
+// EpochSystemSCProcessor -
+func (pcm *ProcessComponentsMock) EpochSystemSCProcessor() process.EpochStartSystemSCProcessor {
+	return pcm.EpochSystemSCProcessorInternal
 }
 
 // IsInterfaceNil -

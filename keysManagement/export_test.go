@@ -6,6 +6,12 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 )
 
+// exported constants
+const (
+	RedundancyReasonForOneKey       = redundancyReasonForOneKey
+	RedundancyReasonForMultipleKeys = redundancyReasonForMultipleKeys
+)
+
 // GetRoundsOfInactivity -
 func (pInfo *peerInfo) GetRoundsOfInactivity() int {
 	pInfo.mutChangeableData.RLock()

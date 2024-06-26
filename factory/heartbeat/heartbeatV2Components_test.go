@@ -11,7 +11,6 @@ import (
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	heartbeatComp "github.com/multiversx/mx-chain-go/factory/heartbeat"
 	testsMocks "github.com/multiversx/mx-chain-go/integrationTests/mock"
-	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -503,26 +502,6 @@ func TestHeartbeatV2Components_Create(t *testing.T) {
 		hc, err := hcf.Create()
 		assert.Nil(t, hc)
 		assert.Error(t, err)
-	})
-	t.Run("AddPeerTopicNotifier fails should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockHeartbeatV2ComponentsFactoryArgs()
-		args.NetworkComponents = &testsMocks.NetworkComponentsStub{
-			Messenger: &p2pmocks.MessengerStub{
-				AddPeerTopicNotifierCalled: func(notifier p2p.PeerTopicNotifier) error {
-					return expectedErr
-				},
-			},
-			FullArchiveNetworkMessengerField: &p2pmocks.MessengerStub{},
-		}
-		hcf, err := heartbeatComp.NewHeartbeatV2ComponentsFactory(args)
-		assert.NotNil(t, hcf)
-		assert.NoError(t, err)
-
-		hc, err := hcf.Create()
-		assert.Nil(t, hc)
-		assert.Equal(t, expectedErr, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()

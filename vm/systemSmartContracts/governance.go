@@ -73,6 +73,12 @@ func NewGovernanceContract(args ArgsNewGovernanceContract) (*governanceContract,
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, vm.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.GovernanceFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	baseProposalCost, okConvert := big.NewInt(0).SetString(args.GovernanceConfig.V1.ProposalCost, conversionBase)
 	if !okConvert || baseProposalCost.Cmp(zero) < 0 {
@@ -122,7 +128,7 @@ func (g *governanceContract) Execute(args *vmcommon.ContractCallInput) vmcommon.
 		return g.init(args)
 	}
 
-	if !g.enableEpochsHandler.IsGovernanceFlagEnabled() {
+	if !g.enableEpochsHandler.IsFlagEnabled(common.GovernanceFlag) {
 		g.eei.AddReturnMessage("Governance SC disabled")
 		return vmcommon.UserError
 	}
@@ -642,11 +648,7 @@ func (g *governanceContract) closeProposal(args *vmcommon.ContractCallInput) vmc
 		g.addToAccumulatedFees(baseConfig.LostProposalFee)
 	}
 
-	err = g.eei.Transfer(args.CallerAddr, args.RecipientAddr, tokensToReturn, nil, 0)
-	if err != nil {
-		g.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
+	g.eei.Transfer(args.CallerAddr, args.RecipientAddr, tokensToReturn, nil, 0)
 
 	logEntry := &vmcommon.LogEntry{
 		Identifier: []byte(args.Function),
@@ -695,12 +697,7 @@ func (g *governanceContract) claimAccumulatedFees(args *vmcommon.ContractCallInp
 	accumulatedFees := g.getAccumulatedFees()
 	g.setAccumulatedFees(big.NewInt(0))
 
-	err = g.eei.Transfer(args.CallerAddr, args.RecipientAddr, accumulatedFees, nil, 0)
-	if err != nil {
-		g.eei.AddReturnMessage(err.Error())
-		return vmcommon.UserError
-	}
-
+	g.eei.Transfer(args.CallerAddr, args.RecipientAddr, accumulatedFees, nil, 0)
 	return vmcommon.Ok
 }
 

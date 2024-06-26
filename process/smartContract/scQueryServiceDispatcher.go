@@ -78,7 +78,7 @@ func (sqsd *scQueryServiceDispatcher) Close() error {
 	for _, scQueryService := range sqsd.list {
 		err := scQueryService.Close()
 		if err != nil {
-			log.Error("error while closing inner SC query service in scQueryServiceDispatcher.Close", "error", err)
+			logQueryService.Error("error while closing inner SC query service in scQueryServiceDispatcher.Close", "error", err)
 			errFound = err
 		}
 	}

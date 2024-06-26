@@ -261,11 +261,6 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		return nil, err
 	}
 
-	sentSignaturesHandler, err := spos.NewSentSignaturesTracker(ccf.cryptoComponents.KeysHandler())
-	if err != nil {
-		return nil, err
-	}
-
 	fct, err := sposFactory.GetSubroundsFactory(
 		consensusDataContainer,
 		consensusState,
@@ -273,7 +268,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		ccf.config.Consensus.Type,
 		ccf.statusCoreComponents.AppStatusHandler(),
 		ccf.statusComponents.OutportHandler(),
-		sentSignaturesHandler,
+		ccf.processComponents.SentSignaturesTracker(),
 		[]byte(ccf.coreComponents.ChainID()),
 		ccf.networkComponents.NetworkMessenger().ID(),
 	)
@@ -470,6 +465,7 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		ChainHandler:                 ccf.dataComponents.Blockchain(),
 		RoundHandler:                 ccf.processComponents.RoundHandler(),
 		BlockProcessor:               ccf.processComponents.BlockProcessor(),
+		BlockProcessorWithRevert:     ccf.processComponents.BlockProcessorWithRevert(),
 		WaitTime:                     ccf.processComponents.RoundHandler().TimeDuration(),
 		Hasher:                       ccf.coreComponents.Hasher(),
 		Marshalizer:                  ccf.coreComponents.InternalMarshalizer(),

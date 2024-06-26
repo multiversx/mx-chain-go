@@ -73,6 +73,12 @@ func NewIntermediateResultsProcessor(
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
+	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
+		common.KeepExecOrderOnCreatedSCRsFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
 	if check.IfNil(args.TxExecutionOrderHandler) {
 		return nil, process.ErrNilTxExecutionOrderHandler
 	}
@@ -148,7 +154,7 @@ func (irp *intermediateResultsProcessor) CreateAllInterMiniBlocks() []*block.Min
 			miniblock.ReceiverShardID = shId
 			miniblock.Type = irp.blockType
 
-			if irp.enableEpochsHandler.IsKeepExecOrderOnCreatedSCRsEnabled() {
+			if irp.enableEpochsHandler.IsFlagEnabled(common.KeepExecOrderOnCreatedSCRsFlag) {
 				sort.Slice(miniblock.TxHashes, func(a, b int) bool {
 					scrInfoA := irp.interResultsForBlock[string(miniblock.TxHashes[a])]
 					scrInfoB := irp.interResultsForBlock[string(miniblock.TxHashes[b])]

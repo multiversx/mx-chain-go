@@ -134,57 +134,6 @@ func (ln *leafNode) commitDirty(_ byte, _ uint, _ common.TrieStorageInteractor, 
 	return err
 }
 
-func (ln *leafNode) commitCheckpoint(
-	_ common.TrieStorageInteractor,
-	targetDb common.BaseStorer,
-	checkpointHashes CheckpointHashesHolder,
-	leavesChan chan core.KeyValueHolder,
-	ctx context.Context,
-	stats common.TrieStatisticsHandler,
-	idleProvider IdleNodeProvider,
-	depthLevel int,
-) error {
-	if shouldStopIfContextDoneBlockingIfBusy(ctx, idleProvider) {
-		return core.ErrContextClosing
-	}
-
-	err := ln.isEmptyOrNil()
-	if err != nil {
-		return fmt.Errorf("commit checkpoint error %w", err)
-	}
-
-	hash, err := computeAndSetNodeHash(ln)
-	if err != nil {
-		return err
-	}
-
-	shouldCommit := checkpointHashes.ShouldCommit(hash)
-	if !shouldCommit {
-		return nil
-	}
-
-	err = writeNodeOnChannel(ln, leavesChan)
-	if err != nil {
-		return err
-	}
-
-	checkpointHashes.Remove(hash)
-
-	nodeSize, err := encodeNodeAndCommitToDB(ln, targetDb)
-	if err != nil {
-		return err
-	}
-
-	version, err := ln.getVersion()
-	if err != nil {
-		return err
-	}
-
-	stats.AddLeafNode(depthLevel, uint64(nodeSize), version)
-
-	return nil
-}
-
 func (ln *leafNode) commitSnapshot(
 	db common.TrieStorageInteractor,
 	leavesChan chan core.KeyValueHolder,
