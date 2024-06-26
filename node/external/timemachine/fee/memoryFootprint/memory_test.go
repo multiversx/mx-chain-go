@@ -44,6 +44,7 @@ func TestFeeComputer_MemoryFootprint(t *testing.T) {
 		},
 		TxVersionChecker: &testscommon.TxVersionCheckerStub{},
 		EpochNotifier:    &epochNotifier.EpochNotifierStub{},
+		ArgumentParser:   &testscommon.ArgumentParserMock{},
 	})
 	feeComputer, _ := fee.NewFeeComputer(economicsData)
 	computer := fee.NewTestFeeComputer(feeComputer)

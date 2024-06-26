@@ -24,6 +24,7 @@ func createEconomicsData(enableEpochsHandler common.EnableEpochsHandler) process
 		EnableEpochsHandler: enableEpochsHandler,
 		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
 		EpochNotifier:       &epochNotifier.EpochNotifierStub{},
+		ArgumentParser:      &testscommon.ArgumentParserMock{},
 	})
 
 	return economicsData

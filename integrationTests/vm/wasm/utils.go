@@ -254,6 +254,7 @@ func (context *TestContext) initFeeHandlers() {
 		EpochNotifier:       context.EpochNotifier,
 		EnableEpochsHandler: context.EnableEpochsHandler,
 		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
+		ArgumentParser:      smartContract.NewArgumentParser(),
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
 

@@ -323,6 +323,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 		EpochNotifier:       &epochNotifier.EpochNotifierStub{},
 		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
+		ArgumentParser:      &testscommon.ArgumentParserMock{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
 

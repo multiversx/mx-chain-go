@@ -371,6 +371,7 @@ func createEconomicsData(enableEpochsConfig config.EnableEpochs) (process.Econom
 		EpochNotifier:       realEpochNotifier,
 		EnableEpochsHandler: enableEpochsHandler,
 		TxVersionChecker:    versioning.NewTxVersionChecker(minTransactionVersion),
+		ArgumentParser:      smartContract.NewArgumentParser(),
 	}
 
 	return economics.NewEconomicsData(argsNewEconomicsData)

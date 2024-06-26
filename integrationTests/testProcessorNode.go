@@ -1109,6 +1109,7 @@ func (tpn *TestProcessorNode) initEconomicsData(economicsConfig *config.Economic
 		EpochNotifier:       tpn.EpochNotifier,
 		EnableEpochsHandler: tpn.EnableEpochsHandler,
 		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
+		ArgumentParser:      smartContract.NewArgumentParser(),
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
 	tpn.EconomicsData = economics.NewTestEconomicsData(economicsData)

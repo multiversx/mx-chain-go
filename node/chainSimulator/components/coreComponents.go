@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/economics"
 	"github.com/multiversx/mx-chain-go/process/rating"
+	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/statusHandler"
@@ -173,6 +174,7 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 		Economics:           &args.EconomicsConfig,
 		EpochNotifier:       instance.epochNotifier,
 		EnableEpochsHandler: instance.enableEpochsHandler,
+		ArgumentParser:      smartContract.NewArgumentParser(),
 	}
 
 	instance.economicsData, err = economics.NewEconomicsData(argsEconomicsHandler)

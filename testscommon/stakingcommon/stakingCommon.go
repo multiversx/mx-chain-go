@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
 	"github.com/multiversx/mx-chain-go/process"
 	economicsHandler "github.com/multiversx/mx-chain-go/process/economics"
+	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
@@ -277,6 +278,7 @@ func CreateEconomicsData() process.EconomicsDataHandler {
 		EpochNotifier:       &epochNotifier.EpochNotifierStub{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		TxVersionChecker:    &disabled.TxVersionChecker{},
+		ArgumentParser:      smartContract.NewArgumentParser(),
 	}
 	economicsData, _ := economicsHandler.NewEconomicsData(argsNewEconomicsData)
 	return economicsData

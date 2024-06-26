@@ -34,6 +34,7 @@ type economicsData struct {
 	statusHandler       core.AppStatusHandler
 	enableEpochsHandler common.EnableEpochsHandler
 	txVersionHandler    process.TxVersionCheckerHandler
+	argumentParser      process.ArgumentsParser
 	mut                 sync.RWMutex
 }
 
@@ -43,6 +44,7 @@ type ArgsNewEconomicsData struct {
 	Economics           *config.EconomicsConfig
 	EpochNotifier       process.EpochNotifier
 	EnableEpochsHandler common.EnableEpochsHandler
+	ArgumentParser      process.ArgumentsParser
 }
 
 // NewEconomicsData will create an object with information about economics parameters
@@ -63,6 +65,9 @@ func NewEconomicsData(args ArgsNewEconomicsData) (*economicsData, error) {
 	if err != nil {
 		return nil, err
 	}
+	if check.IfNil(args.ArgumentParser) {
+		return nil, process.ErrNilArgumentParser
+	}
 
 	err = checkEconomicsConfig(args.Economics)
 	if err != nil {
@@ -75,6 +80,7 @@ func NewEconomicsData(args ArgsNewEconomicsData) (*economicsData, error) {
 		statusHandler:       statusHandler.NewNilStatusHandler(),
 		enableEpochsHandler: args.EnableEpochsHandler,
 		txVersionHandler:    args.TxVersionChecker,
+		argumentParser:      args.ArgumentParser,
 	}
 
 	ed.yearSettings = make(map[uint32]*config.YearSetting)
@@ -337,7 +343,7 @@ func (ed *economicsData) ComputeRelayedTxFees(tx data.TransactionWithFeeHandler)
 func (ed *economicsData) getTotalFeesRequiredForInnerTxs(innerTxs []data.TransactionHandler) *big.Int {
 	totalFees := big.NewInt(0)
 	for _, innerTx := range innerTxs {
-		if !core.IsSmartContractAddress(innerTx.GetRcvAddr()) {
+		if ed.isMoveBalance(innerTx) {
 			innerTxFee := ed.ComputeMoveBalanceFee(innerTx)
 			totalFees.Add(totalFees, innerTxFee)
 
@@ -353,6 +359,23 @@ func (ed *economicsData) getTotalFeesRequiredForInnerTxs(innerTxs []data.Transac
 	}
 
 	return totalFees
+}
+
+func (ed *economicsData) isMoveBalance(tx data.TransactionHandler) bool {
+	if len(tx.GetData()) == 0 {
+		return true
+	}
+
+	if core.IsSmartContractAddress(tx.GetRcvAddr()) {
+		return false
+	}
+
+	_, args, err := ed.argumentParser.ParseCallData(string(tx.GetData()))
+	if err != nil {
+		return false
+	}
+
+	return len(args) == 0
 }
 
 // SplitTxGasInCategories returns the gas split per categories
