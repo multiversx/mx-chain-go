@@ -85,3 +85,9 @@ type RunTypeComponentsHolder interface {
 	RequestHandlerCreator() requestHandlers.RequestHandlerCreator
 	IsInterfaceNil() bool
 }
+
+// ShardForLatestEpochComputer defines the methods to get the shard ID for the latest epoch
+type ShardForLatestEpochComputer interface {
+	GetShardIDForLatestEpoch() (uint32, bool, error)
+	IsInterfaceNil() bool
+}

@@ -145,13 +145,13 @@ func (ihnc *indexHashedNodesCoordinator) registryToNodesCoordinator(
 			return nil, err
 		}
 
-		nbShards := uint32(len(nodesConfig.eligibleMap))
-		if nbShards < 2 {
-			return nil, ErrInvalidNumberOfShards
+		var nbShards uint32
+		nbShards, err = ihnc.numberOfShardsComputer.ComputeNumberOfShards(nodesConfig)
+		if err != nil {
+			return nil, err
 		}
 
-		// shards without metachain shard
-		nodesConfig.nbShards = nbShards - 1
+		nodesConfig.nbShards = nbShards
 		nodesConfig.shardID, _ = ihnc.computeShardForSelfPublicKey(nodesConfig)
 		epoch32 := uint32(epoch)
 		result[epoch32] = nodesConfig
@@ -163,6 +163,16 @@ func (ihnc *indexHashedNodesCoordinator) registryToNodesCoordinator(
 	}
 
 	return result, nil
+}
+
+// ComputeNumberOfShards computes the number of shards for the given nodes config
+func (ihnc *indexHashedNodesCoordinator) ComputeNumberOfShards(config *epochNodesConfig) (nbShards uint32, err error) {
+	nbShards = uint32(len(config.eligibleMap))
+	if nbShards < 2 {
+		return 0, ErrInvalidNumberOfShards
+	}
+	// shards without metachain shard
+	return nbShards - 1, nil
 }
 
 func epochNodesConfigToEpochValidators(config *epochNodesConfig) *EpochValidators {
