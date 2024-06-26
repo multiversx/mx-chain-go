@@ -546,7 +546,7 @@ func (sc *scProcessor) finishSCExecution(
 	totalConsumedFee, totalDevRwd := sc.computeTotalConsumedFeeAndDevRwd(tx, vmOutput, builtInFuncGasUsed)
 	sc.txFeeHandler.ProcessTransactionFee(totalConsumedFee, totalDevRwd, txHash)
 	sc.gasHandler.SetGasRefunded(vmOutput.GasRemaining, txHash)
-
+	log.Info("finishSCExecution", "txHash", txHash, "remaining", vmOutput.GasRemaining, "refund", vmOutput.GasRefund)
 	sc.vmOutputCacher.Put(txHash, vmOutput, 0)
 
 	return vmcommon.Ok, nil

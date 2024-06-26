@@ -230,15 +230,30 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 		}
 		return vmcommon.Ok, err
 	case process.SCDeployment:
-		return txProc.processSCDeployment(tx, acntSnd)
+		log.Info("ProcessTransaction: SCDeployment - start", "tx", txHash)
+		rc, scErr := txProc.processSCDeployment(tx, acntSnd)
+		log.Info("ProcessTransaction: SCDeployment - end", "tx", txHash)
+		return rc, scErr
 	case process.SCInvoking:
-		return txProc.processSCInvoking(tx, acntSnd, acntDst)
+		log.Info("ProcessTransaction: SCInvoking - start", "tx", txHash)
+		rc, scErr := txProc.processSCInvoking(tx, acntSnd, acntDst)
+		log.Info("ProcessTransaction: SCInvoking - end", "tx", txHash)
+		return rc, scErr
 	case process.BuiltInFunctionCall:
-		return txProc.processBuiltInFunctionCall(tx, acntSnd, acntDst)
+		log.Info("ProcessTransaction: BuiltInFunctionCall - start", "tx", txHash)
+		rc, scErr := txProc.processBuiltInFunctionCall(tx, acntSnd, acntDst)
+		log.Info("ProcessTransaction: BuiltInFunctionCall - end", "tx", txHash)
+		return rc, scErr
 	case process.RelayedTx:
-		return txProc.processRelayedTx(tx, acntSnd, acntDst)
+		log.Info("ProcessTransaction: processRelayedTx - start", "tx", txHash)
+		rc, scErr := txProc.processRelayedTx(tx, acntSnd, acntDst)
+		log.Info("ProcessTransaction: processRelayedTx - end", "tx", txHash)
+		return rc, scErr
 	case process.RelayedTxV2:
-		return txProc.processRelayedTxV2(tx, acntSnd, acntDst)
+		log.Info("ProcessTransaction: processRelayedTxV2 - start", "tx", txHash)
+		rc, scErr := txProc.processRelayedTxV2(tx, acntSnd, acntDst)
+		log.Info("ProcessTransaction: processRelayedTxV2 - end", "tx", txHash)
+		return rc, scErr
 	}
 
 	return vmcommon.UserError, txProc.executingFailedTransaction(tx, acntSnd, process.ErrWrongTransaction)
