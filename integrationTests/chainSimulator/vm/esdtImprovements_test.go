@@ -699,48 +699,12 @@ func TestChainSimulator_CreateTokensAfterActivation(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	startTime := time.Now().Unix()
-	roundDurationInMillis := uint64(6000)
-	roundsPerEpoch := core.OptionalUint64{
-		HasValue: true,
-		Value:    20,
-	}
-
-	activationEpoch := uint32(2)
-
 	baseIssuingCost := "1000"
 
-	numOfShards := uint32(3)
-	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:   true,
-		TempDir:                  t.TempDir(),
-		PathToInitialConfig:      defaultPathToInitialConfig,
-		NumOfShards:              numOfShards,
-		GenesisTimestamp:         startTime,
-		RoundDurationInMillis:    roundDurationInMillis,
-		RoundsPerEpoch:           roundsPerEpoch,
-		ApiInterface:             api.NewNoApiInterface(),
-		MinNodesPerShard:         3,
-		MetaChainMinNodes:        3,
-		NumNodesWaitingListMeta:  0,
-		NumNodesWaitingListShard: 0,
-		AlterConfigsFunction: func(cfg *config.Configs) {
-			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpoch
-			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
-		},
-	})
-	require.Nil(t, err)
-	require.NotNil(t, cs)
-
+	cs, _ := getTestChainSimulatorWithDynamicNFTEnabled(t, baseIssuingCost)
 	defer cs.Close()
 
 	addrs := createAddresses(t, cs, false)
-
-	err = cs.GenerateBlocksUntilEpochIsReached(int32(activationEpoch))
-	require.Nil(t, err)
-
-	err = cs.GenerateBlocks(10)
-	require.Nil(t, err)
 
 	log.Info("Initial setup: Create fungible, NFT,  SFT and metaESDT tokens (after the activation of DynamicEsdtFlag)")
 
@@ -876,50 +840,14 @@ func TestChainSimulator_NFT_ESDTMetaDataRecreate(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	startTime := time.Now().Unix()
-	roundDurationInMillis := uint64(6000)
-	roundsPerEpoch := core.OptionalUint64{
-		HasValue: true,
-		Value:    20,
-	}
-
-	activationEpoch := uint32(2)
-
 	baseIssuingCost := "1000"
 
-	numOfShards := uint32(3)
-	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:   true,
-		TempDir:                  t.TempDir(),
-		PathToInitialConfig:      defaultPathToInitialConfig,
-		NumOfShards:              numOfShards,
-		GenesisTimestamp:         startTime,
-		RoundDurationInMillis:    roundDurationInMillis,
-		RoundsPerEpoch:           roundsPerEpoch,
-		ApiInterface:             api.NewNoApiInterface(),
-		MinNodesPerShard:         3,
-		MetaChainMinNodes:        3,
-		NumNodesWaitingListMeta:  0,
-		NumNodesWaitingListShard: 0,
-		AlterConfigsFunction: func(cfg *config.Configs) {
-			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpoch
-			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
-		},
-	})
-	require.Nil(t, err)
-	require.NotNil(t, cs)
-
+	cs, _ := getTestChainSimulatorWithDynamicNFTEnabled(t, baseIssuingCost)
 	defer cs.Close()
 
-	addrs := createAddresses(t, cs, false)
-
-	err = cs.GenerateBlocksUntilEpochIsReached(int32(activationEpoch))
-	require.Nil(t, err)
-
-	err = cs.GenerateBlocks(10)
-	require.Nil(t, err)
-
 	log.Info("Initial setup: Create fungible, NFT,  SFT and metaESDT tokens (after the activation of DynamicEsdtFlag)")
+
+	addrs := createAddresses(t, cs, false)
 
 	// issue metaESDT
 	metaESDTTicker := []byte("METATTICKER")
@@ -941,23 +869,9 @@ func TestChainSimulator_NFT_ESDTMetaDataRecreate(t *testing.T) {
 
 	log.Info("Issued metaESDT token id", "tokenID", string(metaESDTTokenID))
 
-	// issue fungible
-	fungibleTicker := []byte("FUNTICKER")
-	tx = issueTx(1, addrs[0].Bytes, fungibleTicker, baseIssuingCost)
-
-	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
-	require.Nil(t, err)
-	require.NotNil(t, txResult)
-	require.Equal(t, "success", txResult.Status.String())
-
-	fungibleTokenID := txResult.Logs.Events[0].Topics[0]
-	setAddressEsdtRoles(t, cs, addrs[0], fungibleTokenID, roles)
-
-	log.Info("Issued fungible token id", "tokenID", string(fungibleTokenID))
-
 	// issue NFT
 	nftTicker := []byte("NFTTICKER")
-	tx = issueNonFungibleTx(2, addrs[0].Bytes, nftTicker, baseIssuingCost)
+	tx = issueNonFungibleTx(1, addrs[0].Bytes, nftTicker, baseIssuingCost)
 
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
@@ -971,7 +885,7 @@ func TestChainSimulator_NFT_ESDTMetaDataRecreate(t *testing.T) {
 
 	// issue SFT
 	sftTicker := []byte("SFTTICKER")
-	tx = issueSemiFungibleTx(3, addrs[0].Bytes, sftTicker, baseIssuingCost)
+	tx = issueSemiFungibleTx(2, addrs[0].Bytes, sftTicker, baseIssuingCost)
 
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
@@ -987,7 +901,6 @@ func TestChainSimulator_NFT_ESDTMetaDataRecreate(t *testing.T) {
 		nftTokenID,
 		sftTokenID,
 		metaESDTTokenID,
-		fungibleTokenID,
 	}
 
 	nftMetaData := txsFee.GetDefaultMetaData()
@@ -999,17 +912,13 @@ func TestChainSimulator_NFT_ESDTMetaDataRecreate(t *testing.T) {
 	esdtMetaData := txsFee.GetDefaultMetaData()
 	esdtMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
 
-	fungibleMetaData := txsFee.GetDefaultMetaData()
-	fungibleMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
-
 	tokensMetadata := []*txsFee.MetaData{
 		nftMetaData,
 		sftMetaData,
 		esdtMetaData,
-		fungibleMetaData,
 	}
 
-	nonce := uint64(4)
+	nonce := uint64(3)
 	for i := range tokenIDs {
 		tx = nftCreateTx(nonce, addrs[0].Bytes, tokenIDs[i], tokensMetadata[i])
 
@@ -1066,10 +975,6 @@ func TestChainSimulator_NFT_ESDTMetaDataRecreate(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, txResult)
 
-		// fmt.Println(txResult)
-		// fmt.Println(string(txResult.Logs.Events[0].Topics[0]))
-		// fmt.Println(string(txResult.Logs.Events[0].Topics[1]))
-
 		require.Equal(t, "success", txResult.Status.String())
 
 		shardID := cs.GetNodeHandler(0).GetProcessComponents().ShardCoordinator().ComputeId(addrs[0].Bytes)
@@ -1095,43 +1000,10 @@ func TestChainSimulator_NFT_ESDTMetaDataUpdate(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	startTime := time.Now().Unix()
-	roundDurationInMillis := uint64(6000)
-	roundsPerEpoch := core.OptionalUint64{
-		HasValue: true,
-		Value:    20,
-	}
-
-	activationEpoch := uint32(2)
-
 	baseIssuingCost := "1000"
 
-	numOfShards := uint32(3)
-	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:   true,
-		TempDir:                  t.TempDir(),
-		PathToInitialConfig:      defaultPathToInitialConfig,
-		NumOfShards:              numOfShards,
-		GenesisTimestamp:         startTime,
-		RoundDurationInMillis:    roundDurationInMillis,
-		RoundsPerEpoch:           roundsPerEpoch,
-		ApiInterface:             api.NewNoApiInterface(),
-		MinNodesPerShard:         3,
-		MetaChainMinNodes:        3,
-		NumNodesWaitingListMeta:  0,
-		NumNodesWaitingListShard: 0,
-		AlterConfigsFunction: func(cfg *config.Configs) {
-			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpoch
-			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
-		},
-	})
-	require.Nil(t, err)
-	require.NotNil(t, cs)
-
+	cs, _ := getTestChainSimulatorWithDynamicNFTEnabled(t, baseIssuingCost)
 	defer cs.Close()
-
-	err = cs.GenerateBlocksUntilEpochIsReached(int32(activationEpoch))
-	require.Nil(t, err)
 
 	log.Info("Initial setup: Create fungible, NFT,  SFT and metaESDT tokens (after the activation of DynamicEsdtFlag)")
 
@@ -1290,43 +1162,10 @@ func TestChainSimulator_NFT_ESDTModifyCreator(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	startTime := time.Now().Unix()
-	roundDurationInMillis := uint64(6000)
-	roundsPerEpoch := core.OptionalUint64{
-		HasValue: true,
-		Value:    20,
-	}
-
-	activationEpoch := uint32(4)
-
 	baseIssuingCost := "1000"
 
-	numOfShards := uint32(3)
-	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:   true,
-		TempDir:                  t.TempDir(),
-		PathToInitialConfig:      defaultPathToInitialConfig,
-		NumOfShards:              numOfShards,
-		GenesisTimestamp:         startTime,
-		RoundDurationInMillis:    roundDurationInMillis,
-		RoundsPerEpoch:           roundsPerEpoch,
-		ApiInterface:             api.NewNoApiInterface(),
-		MinNodesPerShard:         3,
-		MetaChainMinNodes:        3,
-		NumNodesWaitingListMeta:  0,
-		NumNodesWaitingListShard: 0,
-		AlterConfigsFunction: func(cfg *config.Configs) {
-			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpoch
-			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
-		},
-	})
-	require.Nil(t, err)
-	require.NotNil(t, cs)
-
+	cs, _ := getTestChainSimulatorWithDynamicNFTEnabled(t, baseIssuingCost)
 	defer cs.Close()
-
-	err = cs.GenerateBlocksUntilEpochIsReached(int32(activationEpoch))
-	require.Nil(t, err)
 
 	log.Info("Initial setup: Create fungible, NFT,  SFT and metaESDT tokens (after the activation of DynamicEsdtFlag). Register NFT directly as dynamic")
 
@@ -1445,9 +1284,6 @@ func TestChainSimulator_NFT_ESDTModifyCreator(t *testing.T) {
 		nonce++
 	}
 
-	err = cs.GenerateBlocksUntilEpochIsReached(int32(activationEpoch))
-	require.Nil(t, err)
-
 	log.Info("Change to DYNAMIC type")
 
 	for i := range tokenIDs {
@@ -1530,43 +1366,10 @@ func TestChainSimulator_NFT_ESDTSetNewURIs(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	startTime := time.Now().Unix()
-	roundDurationInMillis := uint64(6000)
-	roundsPerEpoch := core.OptionalUint64{
-		HasValue: true,
-		Value:    20,
-	}
-
-	activationEpoch := uint32(2)
-
 	baseIssuingCost := "1000"
 
-	numOfShards := uint32(3)
-	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:   true,
-		TempDir:                  t.TempDir(),
-		PathToInitialConfig:      defaultPathToInitialConfig,
-		NumOfShards:              numOfShards,
-		GenesisTimestamp:         startTime,
-		RoundDurationInMillis:    roundDurationInMillis,
-		RoundsPerEpoch:           roundsPerEpoch,
-		ApiInterface:             api.NewNoApiInterface(),
-		MinNodesPerShard:         3,
-		MetaChainMinNodes:        3,
-		NumNodesWaitingListMeta:  0,
-		NumNodesWaitingListShard: 0,
-		AlterConfigsFunction: func(cfg *config.Configs) {
-			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpoch
-			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
-		},
-	})
-	require.Nil(t, err)
-	require.NotNil(t, cs)
-
+	cs, _ := getTestChainSimulatorWithDynamicNFTEnabled(t, baseIssuingCost)
 	defer cs.Close()
-
-	err = cs.GenerateBlocksUntilEpochIsReached(int32(activationEpoch))
-	require.Nil(t, err)
 
 	log.Info("Initial setup: Create fungible, NFT,  SFT and metaESDT tokens (after the activation of DynamicEsdtFlag)")
 
@@ -1733,45 +1536,12 @@ func TestChainSimulator_ESDTModifyRoyalties(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	startTime := time.Now().Unix()
-	roundDurationInMillis := uint64(6000)
-	roundsPerEpoch := core.OptionalUint64{
-		HasValue: true,
-		Value:    20,
-	}
-
-	activationEpoch := uint32(2)
-
 	baseIssuingCost := "1000"
 
-	numOfShards := uint32(3)
-	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:   true,
-		TempDir:                  t.TempDir(),
-		PathToInitialConfig:      defaultPathToInitialConfig,
-		NumOfShards:              numOfShards,
-		GenesisTimestamp:         startTime,
-		RoundDurationInMillis:    roundDurationInMillis,
-		RoundsPerEpoch:           roundsPerEpoch,
-		ApiInterface:             api.NewNoApiInterface(),
-		MinNodesPerShard:         3,
-		MetaChainMinNodes:        3,
-		NumNodesWaitingListMeta:  0,
-		NumNodesWaitingListShard: 0,
-		AlterConfigsFunction: func(cfg *config.Configs) {
-			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpoch
-			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
-		},
-	})
-	require.Nil(t, err)
-	require.NotNil(t, cs)
-
+	cs, _ := getTestChainSimulatorWithDynamicNFTEnabled(t, baseIssuingCost)
 	defer cs.Close()
 
 	addrs := createAddresses(t, cs, false)
-
-	err = cs.GenerateBlocksUntilEpochIsReached(int32(activationEpoch))
-	require.Nil(t, err)
 
 	// issue metaESDT
 	metaESDTTicker := []byte("METATTICKER")
@@ -3298,6 +3068,44 @@ func TestChainSimulator_MetaESDTCreatedBeforeSaveToSystemAccountEnabled(t *testi
 	checkMetaData(t, cs, core.SystemAccountAddress, metaTokenID, shardID, metaData)
 	checkMetaDataNotInAcc(t, cs, addrs[0].Bytes, metaTokenID, shardID)
 	checkMetaDataNotInAcc(t, cs, addrs[1].Bytes, metaTokenID, shardID)
+}
+
+func getTestChainSimulatorWithDynamicNFTEnabled(t *testing.T, baseIssuingCost string) (testsChainSimulator.ChainSimulator, int32) {
+	startTime := time.Now().Unix()
+	roundDurationInMillis := uint64(6000)
+	roundsPerEpoch := core.OptionalUint64{
+		HasValue: true,
+		Value:    20,
+	}
+
+	activationEpochForDynamicNFT := uint32(2)
+
+	numOfShards := uint32(3)
+	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+		BypassTxSignatureCheck:   true,
+		TempDir:                  t.TempDir(),
+		PathToInitialConfig:      defaultPathToInitialConfig,
+		NumOfShards:              numOfShards,
+		GenesisTimestamp:         startTime,
+		RoundDurationInMillis:    roundDurationInMillis,
+		RoundsPerEpoch:           roundsPerEpoch,
+		ApiInterface:             api.NewNoApiInterface(),
+		MinNodesPerShard:         3,
+		MetaChainMinNodes:        3,
+		NumNodesWaitingListMeta:  0,
+		NumNodesWaitingListShard: 0,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpochForDynamicNFT
+			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, cs)
+
+	err = cs.GenerateBlocksUntilEpochIsReached(int32(activationEpochForDynamicNFT))
+	require.Nil(t, err)
+
+	return cs, int32(activationEpochForDynamicNFT)
 }
 
 func getTestChainSimulatorWithSaveToSystemAccountDisabled(t *testing.T, baseIssuingCost string) (testsChainSimulator.ChainSimulator, int32) {
