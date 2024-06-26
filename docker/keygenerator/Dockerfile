@@ -12,5 +12,4 @@ RUN go build
 FROM ubuntu:22.04
 COPY --from=builder /go/mx-chain-go/cmd/keygenerator /go/mx-chain-go/cmd/keygenerator
 
-WORKDIR /go/mx-chain-go/cmd/keygenerator/
 ENTRYPOINT ["/go/mx-chain-go/cmd/keygenerator/keygenerator"]
