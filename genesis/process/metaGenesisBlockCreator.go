@@ -28,6 +28,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
+	disabledProcess "github.com/multiversx/mx-chain-go/process/disabled"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/factory/metachain"
 	disabledGuardian "github.com/multiversx/mx-chain-go/process/guardian/disabled"
@@ -437,28 +438,29 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 
 	argsParser := smartContract.NewArgumentParser()
 	argsNewSCProcessor := scrCommon.ArgsNewSmartContractProcessor{
-		VmContainer:         vmContainer,
-		ArgsParser:          argsParser,
-		Hasher:              arg.Core.Hasher(),
-		Marshalizer:         arg.Core.InternalMarshalizer(),
-		AccountsDB:          arg.Accounts,
-		BlockChainHook:      virtualMachineFactory.BlockChainHookImpl(),
-		BuiltInFunctions:    builtInFuncs,
-		PubkeyConv:          arg.Core.AddressPubKeyConverter(),
-		ShardCoordinator:    arg.ShardCoordinator,
-		ScrForwarder:        scForwarder,
-		TxFeeHandler:        genesisFeeHandler,
-		EconomicsFee:        genesisFeeHandler,
-		TxTypeHandler:       txTypeHandler,
-		GasHandler:          gasHandler,
-		GasSchedule:         arg.GasSchedule,
-		TxLogsProcessor:     arg.TxLogsProcessor,
-		BadTxForwarder:      badTxForwarder,
-		EnableRoundsHandler: enableRoundsHandler,
-		EnableEpochsHandler: enableEpochsHandler,
-		IsGenesisProcessing: true,
-		WasmVMChangeLocker:  &sync.RWMutex{}, // local Locker as to not interfere with the rest of the components
-		VMOutputCacher:      txcache.NewDisabledCache(),
+		VmContainer:             vmContainer,
+		ArgsParser:              argsParser,
+		Hasher:                  arg.Core.Hasher(),
+		Marshalizer:             arg.Core.InternalMarshalizer(),
+		AccountsDB:              arg.Accounts,
+		BlockChainHook:          virtualMachineFactory.BlockChainHookImpl(),
+		BuiltInFunctions:        builtInFuncs,
+		PubkeyConv:              arg.Core.AddressPubKeyConverter(),
+		ShardCoordinator:        arg.ShardCoordinator,
+		ScrForwarder:            scForwarder,
+		TxFeeHandler:            genesisFeeHandler,
+		EconomicsFee:            genesisFeeHandler,
+		TxTypeHandler:           txTypeHandler,
+		GasHandler:              gasHandler,
+		GasSchedule:             arg.GasSchedule,
+		TxLogsProcessor:         arg.TxLogsProcessor,
+		BadTxForwarder:          badTxForwarder,
+		EnableRoundsHandler:     enableRoundsHandler,
+		EnableEpochsHandler:     enableEpochsHandler,
+		IsGenesisProcessing:     true,
+		WasmVMChangeLocker:      &sync.RWMutex{}, // local Locker as to not interfere with the rest of the components
+		VMOutputCacher:          txcache.NewDisabledCache(),
+		FailedTxLogsAccumulator: disabledProcess.NewFailedTxLogsAccumulator(),
 	}
 
 	scProcessorProxy, err := processProxy.NewSmartContractProcessorProxy(argsNewSCProcessor, epochNotifier)

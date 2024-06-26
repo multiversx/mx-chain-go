@@ -46,6 +46,7 @@ type EconomicsHandlerMock struct {
 	ComputeGasLimitInEpochCalled                        func(tx data.TransactionWithFeeHandler, epoch uint32) uint64
 	ComputeGasUsedAndFeeBasedOnRefundValueInEpochCalled func(tx data.TransactionWithFeeHandler, refundValue *big.Int, epoch uint32) (uint64, *big.Int)
 	ComputeTxFeeBasedOnGasUsedInEpochCalled             func(tx data.TransactionWithFeeHandler, gasUsed uint64, epoch uint32) *big.Int
+	ComputeRelayedTxFeesCalled                          func(tx data.TransactionWithFeeHandler) (*big.Int, *big.Int, error)
 }
 
 // LeaderPercentage -
@@ -333,6 +334,14 @@ func (ehm *EconomicsHandlerMock) ComputeTxFeeBasedOnGasUsedInEpoch(tx data.Trans
 		return ehm.ComputeTxFeeBasedOnGasUsedInEpochCalled(tx, gasUsed, epoch)
 	}
 	return nil
+}
+
+// ComputeRelayedTxFees -
+func (ehm *EconomicsHandlerMock) ComputeRelayedTxFees(tx data.TransactionWithFeeHandler) (*big.Int, *big.Int, error) {
+	if ehm.ComputeRelayedTxFeesCalled != nil {
+		return ehm.ComputeRelayedTxFeesCalled(tx)
+	}
+	return big.NewInt(0), big.NewInt(0), nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

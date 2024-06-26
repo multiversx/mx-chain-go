@@ -46,6 +46,7 @@ type EconomicsHandlerStub struct {
 	ComputeGasLimitInEpochCalled                        func(tx data.TransactionWithFeeHandler, epoch uint32) uint64
 	ComputeGasUsedAndFeeBasedOnRefundValueInEpochCalled func(tx data.TransactionWithFeeHandler, refundValue *big.Int, epoch uint32) (uint64, *big.Int)
 	ComputeTxFeeBasedOnGasUsedInEpochCalled             func(tx data.TransactionWithFeeHandler, gasUsed uint64, epoch uint32) *big.Int
+	ComputeRelayedTxFeesCalled                          func(tx data.TransactionWithFeeHandler) (*big.Int, *big.Int, error)
 }
 
 // ComputeFeeForProcessing -
@@ -354,6 +355,14 @@ func (e *EconomicsHandlerStub) ComputeTxFeeBasedOnGasUsedInEpoch(tx data.Transac
 		return e.ComputeTxFeeBasedOnGasUsedInEpochCalled(tx, gasUsed, epoch)
 	}
 	return nil
+}
+
+// ComputeRelayedTxFees -
+func (e *EconomicsHandlerStub) ComputeRelayedTxFees(tx data.TransactionWithFeeHandler) (*big.Int, *big.Int, error) {
+	if e.ComputeRelayedTxFeesCalled != nil {
+		return e.ComputeRelayedTxFeesCalled(tx)
+	}
+	return big.NewInt(0), big.NewInt(0), nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
