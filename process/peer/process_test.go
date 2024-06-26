@@ -105,7 +105,6 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 		EpochNotifier:       &epochNotifier.EpochNotifierStub{},
 		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
-		ArgumentParser:      &testscommon.ArgumentParserMock{},
 	}
 	economicsData, _ := economics.NewEconomicsData(argsNewEconomicsData)
 

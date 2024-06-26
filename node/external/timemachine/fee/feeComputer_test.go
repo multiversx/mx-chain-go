@@ -35,7 +35,6 @@ func createEconomicsData() process.EconomicsDataHandler {
 		},
 		TxVersionChecker: &testscommon.TxVersionCheckerStub{},
 		EpochNotifier:    &epochNotifier.EpochNotifierStub{},
-		ArgumentParser:   &testscommon.ArgumentParserMock{},
 	})
 
 	return economicsData

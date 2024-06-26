@@ -371,7 +371,6 @@ func createEconomicsData(enableEpochsConfig config.EnableEpochs) (process.Econom
 		EpochNotifier:       realEpochNotifier,
 		EnableEpochsHandler: enableEpochsHandler,
 		TxVersionChecker:    versioning.NewTxVersionChecker(minTransactionVersion),
-		ArgumentParser:      smartContract.NewArgumentParser(),
 	}
 
 	return economics.NewEconomicsData(argsNewEconomicsData)
@@ -443,6 +442,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 	if err != nil {
 		return nil, err
 	}
+	_ = economicsData.SetTxTypeHandler(txTypeHandler)
 
 	argsNewSCProcessor := scrCommon.ArgsNewSmartContractProcessor{
 		VmContainer:      vmContainer,
@@ -857,6 +857,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	if err != nil {
 		return nil, err
 	}
+	_ = economicsData.SetTxTypeHandler(txTypeHandler)
 
 	gasComp, err := preprocess.NewGasComputation(economicsData, txTypeHandler, enableEpochsHandler)
 	if err != nil {

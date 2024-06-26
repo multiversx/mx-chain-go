@@ -104,7 +104,6 @@ func createArgsForEconomicsData(gasModifier float64) economics.ArgsNewEconomicsD
 			},
 		},
 		TxVersionChecker: &testscommon.TxVersionCheckerStub{},
-		ArgumentParser:   &testscommon.ArgumentParserMock{},
 	}
 	return args
 }
@@ -120,7 +119,6 @@ func createArgsForEconomicsDataRealFees() economics.ArgsNewEconomicsData {
 			},
 		},
 		TxVersionChecker: &testscommon.TxVersionCheckerStub{},
-		ArgumentParser:   &testscommon.ArgumentParserMock{},
 	}
 	return args
 }
@@ -165,16 +163,6 @@ func TestNewEconomicsData_NilOrEmptyGasLimitSettingsShouldErr(t *testing.T) {
 	args.Economics.FeeSettings.GasLimitSettings = make([]config.GasLimitSetting, 0)
 	_, err = economics.NewEconomicsData(args)
 	assert.Equal(t, process.ErrEmptyGasLimitSettings, err)
-}
-
-func TestNewEconomicsData_NilArgumentParserShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := createArgsForEconomicsData(1)
-	args.ArgumentParser = nil
-
-	_, err := economics.NewEconomicsData(args)
-	assert.Equal(t, process.ErrNilArgumentParser, err)
 }
 
 func TestNewEconomicsData_InvalidMaxGasLimitPerBlockShouldErr(t *testing.T) {

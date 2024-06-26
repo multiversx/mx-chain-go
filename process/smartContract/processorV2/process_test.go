@@ -4206,7 +4206,6 @@ func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
 			},
 		},
 		TxVersionChecker: &testscommon.TxVersionCheckerStub{},
-		ArgumentParser:   &testscommon.ArgumentParserMock{},
 	}
 }
 

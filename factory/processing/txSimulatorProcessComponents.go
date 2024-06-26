@@ -155,6 +155,11 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorForMeta(
 		return args, nil, nil, err
 	}
 
+	err = pcf.coreData.EconomicsData().SetTxTypeHandler(txTypeHandler)
+	if err != nil {
+		return args, nil, nil, err
+	}
+
 	gasHandler, err := preprocess.NewGasComputation(
 		pcf.coreData.EconomicsData(),
 		txTypeHandler,
@@ -326,6 +331,11 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorShard(
 		return args, nil, nil, err
 	}
 	txFeeHandler := &processDisabled.FeeHandler{}
+
+	err = pcf.coreData.EconomicsData().SetTxTypeHandler(txTypeHandler)
+	if err != nil {
+		return args, nil, nil, err
+	}
 
 	gasHandler, err := preprocess.NewGasComputation(
 		pcf.coreData.EconomicsData(),

@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/disabled"
 	"github.com/multiversx/mx-chain-go/statusHandler"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
@@ -34,7 +35,8 @@ type economicsData struct {
 	statusHandler       core.AppStatusHandler
 	enableEpochsHandler common.EnableEpochsHandler
 	txVersionHandler    process.TxVersionCheckerHandler
-	argumentParser      process.ArgumentsParser
+	txTypeHandler       process.TxTypeHandler
+	mutTxTypeHandler    sync.RWMutex
 	mut                 sync.RWMutex
 }
 
@@ -44,7 +46,6 @@ type ArgsNewEconomicsData struct {
 	Economics           *config.EconomicsConfig
 	EpochNotifier       process.EpochNotifier
 	EnableEpochsHandler common.EnableEpochsHandler
-	ArgumentParser      process.ArgumentsParser
 }
 
 // NewEconomicsData will create an object with information about economics parameters
@@ -65,9 +66,6 @@ func NewEconomicsData(args ArgsNewEconomicsData) (*economicsData, error) {
 	if err != nil {
 		return nil, err
 	}
-	if check.IfNil(args.ArgumentParser) {
-		return nil, process.ErrNilArgumentParser
-	}
 
 	err = checkEconomicsConfig(args.Economics)
 	if err != nil {
@@ -80,7 +78,7 @@ func NewEconomicsData(args ArgsNewEconomicsData) (*economicsData, error) {
 		statusHandler:       statusHandler.NewNilStatusHandler(),
 		enableEpochsHandler: args.EnableEpochsHandler,
 		txVersionHandler:    args.TxVersionChecker,
-		argumentParser:      args.ArgumentParser,
+		txTypeHandler:       disabled.NewTxTypeHandler(),
 	}
 
 	ed.yearSettings = make(map[uint32]*config.YearSetting)
@@ -141,6 +139,19 @@ func (ed *economicsData) SetStatusHandler(statusHandler core.AppStatusHandler) e
 		return err
 	}
 	return ed.rewardsConfigHandler.setStatusHandler(statusHandler)
+}
+
+// SetTxTypeHandler sets the provided tx type handler
+func (ed *economicsData) SetTxTypeHandler(txTypeHandler process.TxTypeHandler) error {
+	if check.IfNil(txTypeHandler) {
+		return process.ErrNilTxTypeHandler
+	}
+
+	ed.mutTxTypeHandler.Lock()
+	ed.txTypeHandler = txTypeHandler
+	ed.mutTxTypeHandler.Unlock()
+
+	return nil
 }
 
 // LeaderPercentage returns leader reward percentage
@@ -362,20 +373,11 @@ func (ed *economicsData) getTotalFeesRequiredForInnerTxs(innerTxs []data.Transac
 }
 
 func (ed *economicsData) isMoveBalance(tx data.TransactionHandler) bool {
-	if len(tx.GetData()) == 0 {
-		return true
-	}
+	ed.mutTxTypeHandler.RLock()
+	_, dstTxType := ed.txTypeHandler.ComputeTransactionType(tx)
+	ed.mutTxTypeHandler.RUnlock()
 
-	if core.IsSmartContractAddress(tx.GetRcvAddr()) {
-		return false
-	}
-
-	_, args, err := ed.argumentParser.ParseCallData(string(tx.GetData()))
-	if err != nil {
-		return false
-	}
-
-	return len(args) == 0
+	return dstTxType == process.MoveBalance
 }
 
 // SplitTxGasInCategories returns the gas split per categories
