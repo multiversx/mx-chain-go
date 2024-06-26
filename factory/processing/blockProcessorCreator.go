@@ -24,6 +24,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/cutoff"
 	"github.com/multiversx/mx-chain-go/process/block/postprocess"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
+	"github.com/multiversx/mx-chain-go/process/block/radu"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/factory/metachain"
@@ -35,7 +36,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks/counters"
 	"github.com/multiversx/mx-chain-go/process/smartContract/processProxy"
-	"github.com/multiversx/mx-chain-go/process/smartContract/processorV2"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 	"github.com/multiversx/mx-chain-go/process/throttle"
 	"github.com/multiversx/mx-chain-go/process/transaction"
@@ -157,13 +157,13 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	scStorage := pcf.config.SmartContractsStorage
 	if hardCodedToGasV8 {
 		scStorage.DB.FilePath = scStorage.DB.FilePath + "_v8"
-		//oldGasSchedule := pcf.gasSchedule
-		//
-		//pcf.gasSchedule = common.LatestGasSchedule
-		//
-		//defer func() {
-		//	pcf.gasSchedule = oldGasSchedule
-		//}()
+		oldGasSchedule := pcf.gasSchedule
+
+		pcf.gasSchedule = common.LatestGasSchedule
+
+		defer func() {
+			pcf.gasSchedule = oldGasSchedule
+		}()
 	}
 
 	vmFactory, err := pcf.createVMFactoryShard(
@@ -175,7 +175,6 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		scStorage,
 		builtInFuncFactory.NFTStorageHandler(),
 		builtInFuncFactory.ESDTGlobalSettingsHandler(),
-		hardCodedToGasV8,
 	)
 	if err != nil {
 		return nil, err
@@ -276,12 +275,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		WasmVMChangeLocker:  wasmVMChangeLocker,
 	}
 
-	var scProcessorProxy process.SmartContractProcessorFacade
-	if hardCodedToGasV8 {
-		scProcessorProxy, err = processorV2.NewSmartContractProcessorV2(argsNewScProcessor)
-	} else {
-		scProcessorProxy, err = processProxy.NewSmartContractProcessorProxy(argsNewScProcessor, pcf.epochNotifier)
-	}
+	scProcessorProxy, err := processProxy.NewSmartContractProcessorProxy(argsNewScProcessor, pcf.epochNotifier)
 	if err != nil {
 		return nil, err
 	}
@@ -481,6 +475,12 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 
 	pcf.stakingDataProviderAPI = factoryDisabled.NewDisabledStakingDataProvider()
 	pcf.auctionListSelectorAPI = factoryDisabled.NewDisabledAuctionListSelector()
+
+	if hardCodedToGasV8 {
+		radu.GasHandlerV8 = gasHandler
+	} else {
+		radu.GasHandler = gasHandler
+	}
 
 	return blockProcessorComponents, nil
 }
@@ -1066,7 +1066,6 @@ func (pcf *processComponentsFactory) createVMFactoryShard(
 	configSCStorage config.StorageConfig,
 	nftStorageHandler vmcommon.SimpleESDTNFTStorageHandler,
 	globalSettingsHandler vmcommon.ESDTGlobalSettingsHandler,
-	hardCodedToV15 bool,
 ) (process.VirtualMachinesContainerFactory, error) {
 	counter, err := counters.NewUsageCounter(esdtTransferParser)
 	if err != nil {
@@ -1112,7 +1111,6 @@ func (pcf *processComponentsFactory) createVMFactoryShard(
 		WasmVMChangeLocker:  wasmVMChangeLocker,
 		ESDTTransferParser:  esdtTransferParser,
 		Hasher:              pcf.coreData.Hasher(),
-		HardCodedToVM15:     hardCodedToV15,
 	}
 
 	return shard.NewVMContainerFactory(argsNewVMFactory)

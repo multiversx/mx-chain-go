@@ -419,10 +419,10 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		return true, err
 	}
 
-	//common.LatestGasSchedule, err = forking.NewLatestGasSchedule()
-	//if err != nil {
-	//	return true, err
-	//}
+	common.LatestGasSchedule, err = forking.NewLatestGasSchedule()
+	if err != nil {
+		return true, err
+	}
 
 	log.Debug("creating process components")
 	managedProcessComponents, err := nr.CreateManagedProcessComponents(

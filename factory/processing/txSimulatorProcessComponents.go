@@ -299,7 +299,6 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorShard(
 		smartContractStorageSimulate,
 		builtInFuncFactory.NFTStorageHandler(),
 		builtInFuncFactory.ESDTGlobalSettingsHandler(),
-		false,
 	)
 	if err != nil {
 		return args, nil, nil, err

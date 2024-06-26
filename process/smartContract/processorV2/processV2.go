@@ -2683,10 +2683,6 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 		return 0, process.ErrNilSmartContractResult
 	}
 
-	if true {
-		return vmcommon.Ok, nil
-	}
-
 	log.Trace("scProcessor.ProcessSmartContractResult()", "sender", scr.GetSndAddr(), "receiver", scr.GetRcvAddr(), "data", string(scr.GetData()))
 
 	var err error

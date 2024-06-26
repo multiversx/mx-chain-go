@@ -818,6 +818,7 @@ type GasHandler interface {
 	ComputeGasProvidedByMiniBlock(*block.MiniBlock, map[string]data.TransactionHandler) (uint64, uint64, error)
 	ComputeGasProvidedByTx(txSenderShardId uint32, txReceiverShardId uint32, txHandler data.TransactionHandler) (uint64, uint64, error)
 	IsInterfaceNil() bool
+	GetMaps() (map[string]uint64, map[string]uint64)
 }
 
 // BootStorer is the interface needed by bootstrapper to read/write data in storage
