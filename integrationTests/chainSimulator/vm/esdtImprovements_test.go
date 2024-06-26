@@ -3,6 +3,7 @@ package vm
 import (
 	"bytes"
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	"testing"
 	"time"
@@ -18,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/vm"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -1933,6 +1935,888 @@ func TestChainSimulator_SFT_ChangeMetaData(t *testing.T) {
 	checkMetaData(t, cs, core.SystemAccountAddress, sftTokenID, shardID, sftMetaData2)
 }
 
+func TestChainSimulator_NFT_RegisterDynamic(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	startTime := time.Now().Unix()
+	roundDurationInMillis := uint64(6000)
+	roundsPerEpoch := core.OptionalUint64{
+		HasValue: true,
+		Value:    20,
+	}
+
+	activationEpoch := uint32(2)
+
+	baseIssuingCost := "1000"
+
+	numOfShards := uint32(3)
+	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+		BypassTxSignatureCheck:   true,
+		TempDir:                  t.TempDir(),
+		PathToInitialConfig:      defaultPathToInitialConfig,
+		NumOfShards:              numOfShards,
+		GenesisTimestamp:         startTime,
+		RoundDurationInMillis:    roundDurationInMillis,
+		RoundsPerEpoch:           roundsPerEpoch,
+		ApiInterface:             api.NewNoApiInterface(),
+		MinNodesPerShard:         3,
+		MetaChainMinNodes:        3,
+		NumNodesWaitingListMeta:  0,
+		NumNodesWaitingListShard: 0,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpoch
+			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, cs)
+
+	defer cs.Close()
+
+	addrs := createAddresses(t, cs, true)
+
+	err = cs.GenerateBlocksUntilEpochIsReached(int32(activationEpoch))
+	require.Nil(t, err)
+
+	log.Info("Register dynamic nft token")
+
+	nftTicker := []byte("NFTTICKER")
+	nftTokenName := []byte("tokenName")
+
+	txDataField := bytes.Join(
+		[][]byte{
+			[]byte("registerDynamic"),
+			[]byte(hex.EncodeToString(nftTokenName)),
+			[]byte(hex.EncodeToString(nftTicker)),
+			[]byte(hex.EncodeToString([]byte("NFT"))),
+		},
+		[]byte("@"),
+	)
+
+	callValue, _ := big.NewInt(0).SetString(baseIssuingCost, 10)
+
+	tx := &transaction.Transaction{
+		Nonce:     0,
+		SndAddr:   addrs[0].Bytes,
+		RcvAddr:   vm.ESDTSCAddress,
+		GasLimit:  100_000_000,
+		GasPrice:  minGasPrice,
+		Signature: []byte("dummySig"),
+		Data:      txDataField,
+		Value:     callValue,
+		ChainID:   []byte(configs.ChainID),
+		Version:   1,
+	}
+
+	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+
+	require.Equal(t, "success", txResult.Status.String())
+
+	nftTokenID := txResult.Logs.Events[0].Topics[0]
+	roles := [][]byte{
+		[]byte(core.ESDTRoleNFTCreate),
+		[]byte(core.ESDTRoleTransfer),
+	}
+	setAddressEsdtRoles(t, cs, addrs[0], nftTokenID, roles)
+
+	nftMetaData := txsFee.GetDefaultMetaData()
+	nftMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
+
+	tx = nftCreateTx(1, addrs[0].Bytes, nftTokenID, nftMetaData)
+
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+
+	require.Equal(t, "success", txResult.Status.String())
+
+	err = cs.GenerateBlocks(10)
+	require.Nil(t, err)
+
+	shardID := cs.GetNodeHandler(0).GetProcessComponents().ShardCoordinator().ComputeId(addrs[0].Bytes)
+
+	checkMetaData(t, cs, core.SystemAccountAddress, nftTokenID, shardID, nftMetaData)
+
+	log.Info("Check that token type is Dynamic")
+
+	scQuery := &process.SCQuery{
+		ScAddress: vm.ESDTSCAddress,
+		FuncName:  "getTokenProperties",
+		CallValue: big.NewInt(0),
+		Arguments: [][]byte{nftTokenID},
+	}
+	result, _, err := cs.GetNodeHandler(core.MetachainShardId).GetFacadeHandler().ExecuteSCQuery(scQuery)
+	require.Nil(t, err)
+	require.Equal(t, "", result.ReturnMessage)
+	require.Equal(t, testsChainSimulator.OkReturnCode, result.ReturnCode)
+
+	tokenType := result.ReturnData[1]
+	require.Equal(t, core.DynamicNFTESDT, string(tokenType))
+}
+
+func TestChainSimulator_MetaESDT_RegisterDynamic(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	startTime := time.Now().Unix()
+	roundDurationInMillis := uint64(6000)
+	roundsPerEpoch := core.OptionalUint64{
+		HasValue: true,
+		Value:    20,
+	}
+
+	activationEpoch := uint32(2)
+
+	baseIssuingCost := "1000"
+
+	numOfShards := uint32(3)
+	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+		BypassTxSignatureCheck:   true,
+		TempDir:                  t.TempDir(),
+		PathToInitialConfig:      defaultPathToInitialConfig,
+		NumOfShards:              numOfShards,
+		GenesisTimestamp:         startTime,
+		RoundDurationInMillis:    roundDurationInMillis,
+		RoundsPerEpoch:           roundsPerEpoch,
+		ApiInterface:             api.NewNoApiInterface(),
+		MinNodesPerShard:         3,
+		MetaChainMinNodes:        3,
+		NumNodesWaitingListMeta:  0,
+		NumNodesWaitingListShard: 0,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpoch
+			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, cs)
+
+	defer cs.Close()
+
+	addrs := createAddresses(t, cs, true)
+
+	err = cs.GenerateBlocksUntilEpochIsReached(int32(activationEpoch))
+	require.Nil(t, err)
+
+	log.Info("Register dynamic metaESDT token")
+
+	metaTicker := []byte("METATICKER")
+	metaTokenName := []byte("tokenName")
+
+	decimals := big.NewInt(15)
+
+	txDataField := bytes.Join(
+		[][]byte{
+			[]byte("registerDynamic"),
+			[]byte(hex.EncodeToString(metaTokenName)),
+			[]byte(hex.EncodeToString(metaTicker)),
+			[]byte(hex.EncodeToString([]byte("META"))),
+			[]byte(hex.EncodeToString(decimals.Bytes())),
+		},
+		[]byte("@"),
+	)
+
+	callValue, _ := big.NewInt(0).SetString(baseIssuingCost, 10)
+
+	tx := &transaction.Transaction{
+		Nonce:     0,
+		SndAddr:   addrs[0].Bytes,
+		RcvAddr:   vm.ESDTSCAddress,
+		GasLimit:  100_000_000,
+		GasPrice:  minGasPrice,
+		Signature: []byte("dummySig"),
+		Data:      txDataField,
+		Value:     callValue,
+		ChainID:   []byte(configs.ChainID),
+		Version:   1,
+	}
+
+	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+
+	require.Equal(t, "success", txResult.Status.String())
+
+	nftTokenID := txResult.Logs.Events[0].Topics[0]
+	roles := [][]byte{
+		[]byte(core.ESDTRoleNFTCreate),
+		[]byte(core.ESDTRoleTransfer),
+	}
+	setAddressEsdtRoles(t, cs, addrs[0], nftTokenID, roles)
+
+	nftMetaData := txsFee.GetDefaultMetaData()
+	nftMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
+
+	tx = nftCreateTx(1, addrs[0].Bytes, nftTokenID, nftMetaData)
+
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+
+	require.Equal(t, "success", txResult.Status.String())
+
+	err = cs.GenerateBlocks(10)
+	require.Nil(t, err)
+
+	shardID := cs.GetNodeHandler(0).GetProcessComponents().ShardCoordinator().ComputeId(addrs[0].Bytes)
+
+	checkMetaData(t, cs, core.SystemAccountAddress, nftTokenID, shardID, nftMetaData)
+
+	log.Info("Check that token type is Dynamic")
+
+	scQuery := &process.SCQuery{
+		ScAddress: vm.ESDTSCAddress,
+		FuncName:  "getTokenProperties",
+		CallValue: big.NewInt(0),
+		Arguments: [][]byte{nftTokenID},
+	}
+	result, _, err := cs.GetNodeHandler(core.MetachainShardId).GetFacadeHandler().ExecuteSCQuery(scQuery)
+	require.Nil(t, err)
+	require.Equal(t, "", result.ReturnMessage)
+	require.Equal(t, testsChainSimulator.OkReturnCode, result.ReturnCode)
+
+	tokenType := result.ReturnData[1]
+	require.Equal(t, core.Dynamic+core.MetaESDT, string(tokenType))
+}
+
+func TestChainSimulator_FNG_RegisterDynamic(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	startTime := time.Now().Unix()
+	roundDurationInMillis := uint64(6000)
+	roundsPerEpoch := core.OptionalUint64{
+		HasValue: true,
+		Value:    20,
+	}
+
+	activationEpoch := uint32(2)
+
+	baseIssuingCost := "1000"
+
+	numOfShards := uint32(3)
+	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+		BypassTxSignatureCheck:   true,
+		TempDir:                  t.TempDir(),
+		PathToInitialConfig:      defaultPathToInitialConfig,
+		NumOfShards:              numOfShards,
+		GenesisTimestamp:         startTime,
+		RoundDurationInMillis:    roundDurationInMillis,
+		RoundsPerEpoch:           roundsPerEpoch,
+		ApiInterface:             api.NewNoApiInterface(),
+		MinNodesPerShard:         3,
+		MetaChainMinNodes:        3,
+		NumNodesWaitingListMeta:  0,
+		NumNodesWaitingListShard: 0,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpoch
+			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, cs)
+
+	defer cs.Close()
+
+	addrs := createAddresses(t, cs, true)
+
+	err = cs.GenerateBlocksUntilEpochIsReached(int32(activationEpoch))
+	require.Nil(t, err)
+
+	log.Info("Register dynamic fungible token")
+
+	metaTicker := []byte("FNGTICKER")
+	metaTokenName := []byte("tokenName")
+
+	decimals := big.NewInt(15)
+
+	txDataField := bytes.Join(
+		[][]byte{
+			[]byte("registerDynamic"),
+			[]byte(hex.EncodeToString(metaTokenName)),
+			[]byte(hex.EncodeToString(metaTicker)),
+			[]byte(hex.EncodeToString([]byte("FNG"))),
+			[]byte(hex.EncodeToString(decimals.Bytes())),
+		},
+		[]byte("@"),
+	)
+
+	callValue, _ := big.NewInt(0).SetString(baseIssuingCost, 10)
+
+	tx := &transaction.Transaction{
+		Nonce:     0,
+		SndAddr:   addrs[0].Bytes,
+		RcvAddr:   vm.ESDTSCAddress,
+		GasLimit:  100_000_000,
+		GasPrice:  minGasPrice,
+		Signature: []byte("dummySig"),
+		Data:      txDataField,
+		Value:     callValue,
+		ChainID:   []byte(configs.ChainID),
+		Version:   1,
+	}
+
+	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+
+	signalErrorTopic := string(txResult.Logs.Events[0].Topics[1])
+
+	require.Equal(t, fmt.Sprintf("cannot create %s tokens as dynamic", core.FungibleESDT), signalErrorTopic)
+}
+
+func TestChainSimulator_NFT_RegisterAndSetAllRolesDynamic(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	startTime := time.Now().Unix()
+	roundDurationInMillis := uint64(6000)
+	roundsPerEpoch := core.OptionalUint64{
+		HasValue: true,
+		Value:    20,
+	}
+
+	activationEpoch := uint32(2)
+
+	baseIssuingCost := "1000"
+
+	numOfShards := uint32(3)
+	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+		BypassTxSignatureCheck:   true,
+		TempDir:                  t.TempDir(),
+		PathToInitialConfig:      defaultPathToInitialConfig,
+		NumOfShards:              numOfShards,
+		GenesisTimestamp:         startTime,
+		RoundDurationInMillis:    roundDurationInMillis,
+		RoundsPerEpoch:           roundsPerEpoch,
+		ApiInterface:             api.NewNoApiInterface(),
+		MinNodesPerShard:         3,
+		MetaChainMinNodes:        3,
+		NumNodesWaitingListMeta:  0,
+		NumNodesWaitingListShard: 0,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpoch
+			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, cs)
+
+	defer cs.Close()
+
+	addrs := createAddresses(t, cs, true)
+
+	err = cs.GenerateBlocksUntilEpochIsReached(int32(activationEpoch))
+	require.Nil(t, err)
+
+	log.Info("Register dynamic nft token")
+
+	nftTicker := []byte("NFTTICKER")
+	nftTokenName := []byte("tokenName")
+
+	txDataField := bytes.Join(
+		[][]byte{
+			[]byte("registerAndSetAllRolesDynamic"),
+			[]byte(hex.EncodeToString(nftTokenName)),
+			[]byte(hex.EncodeToString(nftTicker)),
+			[]byte(hex.EncodeToString([]byte("NFT"))),
+		},
+		[]byte("@"),
+	)
+
+	callValue, _ := big.NewInt(0).SetString(baseIssuingCost, 10)
+
+	tx := &transaction.Transaction{
+		Nonce:     0,
+		SndAddr:   addrs[0].Bytes,
+		RcvAddr:   vm.ESDTSCAddress,
+		GasLimit:  100_000_000,
+		GasPrice:  minGasPrice,
+		Signature: []byte("dummySig"),
+		Data:      txDataField,
+		Value:     callValue,
+		ChainID:   []byte(configs.ChainID),
+		Version:   1,
+	}
+
+	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+
+	require.Equal(t, "success", txResult.Status.String())
+
+	nftTokenID := txResult.Logs.Events[0].Topics[0]
+	roles := [][]byte{
+		[]byte(core.ESDTRoleNFTCreate),
+		[]byte(core.ESDTRoleTransfer),
+	}
+	setAddressEsdtRoles(t, cs, addrs[0], nftTokenID, roles)
+
+	nftMetaData := txsFee.GetDefaultMetaData()
+	nftMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
+
+	tx = nftCreateTx(1, addrs[0].Bytes, nftTokenID, nftMetaData)
+
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+
+	require.Equal(t, "success", txResult.Status.String())
+
+	err = cs.GenerateBlocks(10)
+	require.Nil(t, err)
+
+	shardID := cs.GetNodeHandler(0).GetProcessComponents().ShardCoordinator().ComputeId(addrs[0].Bytes)
+
+	checkMetaData(t, cs, core.SystemAccountAddress, nftTokenID, shardID, nftMetaData)
+
+	log.Info("Check that token type is Dynamic")
+
+	scQuery := &process.SCQuery{
+		ScAddress: vm.ESDTSCAddress,
+		FuncName:  "getTokenProperties",
+		CallValue: big.NewInt(0),
+		Arguments: [][]byte{nftTokenID},
+	}
+	result, _, err := cs.GetNodeHandler(core.MetachainShardId).GetFacadeHandler().ExecuteSCQuery(scQuery)
+	require.Nil(t, err)
+	require.Equal(t, "", result.ReturnMessage)
+	require.Equal(t, testsChainSimulator.OkReturnCode, result.ReturnCode)
+
+	tokenType := result.ReturnData[1]
+	require.Equal(t, core.DynamicNFTESDT, string(tokenType))
+
+	log.Info("Check token roles")
+
+	scQuery = &process.SCQuery{
+		ScAddress: vm.ESDTSCAddress,
+		FuncName:  "getAllAddressesAndRoles",
+		CallValue: big.NewInt(0),
+		Arguments: [][]byte{nftTokenID},
+	}
+	result, _, err = cs.GetNodeHandler(core.MetachainShardId).GetFacadeHandler().ExecuteSCQuery(scQuery)
+	require.Nil(t, err)
+	require.Equal(t, "", result.ReturnMessage)
+	require.Equal(t, testsChainSimulator.OkReturnCode, result.ReturnCode)
+
+	expectedRoles := [][]byte{
+		[]byte(core.ESDTRoleNFTCreate),
+		[]byte(core.ESDTRoleNFTBurn),
+		[]byte(core.ESDTRoleNFTUpdateAttributes),
+		[]byte(core.ESDTRoleNFTAddURI),
+		[]byte(core.ESDTRoleNFTRecreate),
+		[]byte(core.ESDTRoleModifyCreator),
+		[]byte(core.ESDTRoleModifyRoyalties),
+		[]byte(core.ESDTRoleSetNewURI),
+	}
+
+	checkTokenRoles(t, result.ReturnData, expectedRoles)
+}
+
+func TestChainSimulator_SFT_RegisterAndSetAllRolesDynamic(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	startTime := time.Now().Unix()
+	roundDurationInMillis := uint64(6000)
+	roundsPerEpoch := core.OptionalUint64{
+		HasValue: true,
+		Value:    20,
+	}
+
+	activationEpoch := uint32(2)
+
+	baseIssuingCost := "1000"
+
+	numOfShards := uint32(3)
+	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+		BypassTxSignatureCheck:   true,
+		TempDir:                  t.TempDir(),
+		PathToInitialConfig:      defaultPathToInitialConfig,
+		NumOfShards:              numOfShards,
+		GenesisTimestamp:         startTime,
+		RoundDurationInMillis:    roundDurationInMillis,
+		RoundsPerEpoch:           roundsPerEpoch,
+		ApiInterface:             api.NewNoApiInterface(),
+		MinNodesPerShard:         3,
+		MetaChainMinNodes:        3,
+		NumNodesWaitingListMeta:  0,
+		NumNodesWaitingListShard: 0,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpoch
+			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, cs)
+
+	defer cs.Close()
+
+	addrs := createAddresses(t, cs, true)
+
+	err = cs.GenerateBlocksUntilEpochIsReached(int32(activationEpoch))
+	require.Nil(t, err)
+
+	log.Info("Register dynamic sft token")
+
+	sftTicker := []byte("SFTTICKER")
+	sftTokenName := []byte("tokenName")
+
+	txDataField := bytes.Join(
+		[][]byte{
+			[]byte("registerAndSetAllRolesDynamic"),
+			[]byte(hex.EncodeToString(sftTokenName)),
+			[]byte(hex.EncodeToString(sftTicker)),
+			[]byte(hex.EncodeToString([]byte("SFT"))),
+		},
+		[]byte("@"),
+	)
+
+	callValue, _ := big.NewInt(0).SetString(baseIssuingCost, 10)
+
+	tx := &transaction.Transaction{
+		Nonce:     0,
+		SndAddr:   addrs[0].Bytes,
+		RcvAddr:   vm.ESDTSCAddress,
+		GasLimit:  100_000_000,
+		GasPrice:  minGasPrice,
+		Signature: []byte("dummySig"),
+		Data:      txDataField,
+		Value:     callValue,
+		ChainID:   []byte(configs.ChainID),
+		Version:   1,
+	}
+
+	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+
+	require.Equal(t, "success", txResult.Status.String())
+
+	sftTokenID := txResult.Logs.Events[0].Topics[0]
+	roles := [][]byte{
+		[]byte(core.ESDTRoleNFTCreate),
+		[]byte(core.ESDTRoleTransfer),
+	}
+	setAddressEsdtRoles(t, cs, addrs[0], sftTokenID, roles)
+
+	nftMetaData := txsFee.GetDefaultMetaData()
+	nftMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
+
+	tx = nftCreateTx(1, addrs[0].Bytes, sftTokenID, nftMetaData)
+
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+
+	require.Equal(t, "success", txResult.Status.String())
+
+	err = cs.GenerateBlocks(10)
+	require.Nil(t, err)
+
+	shardID := cs.GetNodeHandler(0).GetProcessComponents().ShardCoordinator().ComputeId(addrs[0].Bytes)
+
+	checkMetaData(t, cs, core.SystemAccountAddress, sftTokenID, shardID, nftMetaData)
+
+	log.Info("Check that token type is Dynamic")
+
+	scQuery := &process.SCQuery{
+		ScAddress: vm.ESDTSCAddress,
+		FuncName:  "getTokenProperties",
+		CallValue: big.NewInt(0),
+		Arguments: [][]byte{sftTokenID},
+	}
+	result, _, err := cs.GetNodeHandler(core.MetachainShardId).GetFacadeHandler().ExecuteSCQuery(scQuery)
+	require.Nil(t, err)
+	require.Equal(t, "", result.ReturnMessage)
+	require.Equal(t, testsChainSimulator.OkReturnCode, result.ReturnCode)
+
+	tokenType := result.ReturnData[1]
+	require.Equal(t, core.DynamicSFTESDT, string(tokenType))
+
+	log.Info("Check token roles")
+
+	scQuery = &process.SCQuery{
+		ScAddress: vm.ESDTSCAddress,
+		FuncName:  "getAllAddressesAndRoles",
+		CallValue: big.NewInt(0),
+		Arguments: [][]byte{sftTokenID},
+	}
+	result, _, err = cs.GetNodeHandler(core.MetachainShardId).GetFacadeHandler().ExecuteSCQuery(scQuery)
+	require.Nil(t, err)
+	require.Equal(t, "", result.ReturnMessage)
+	require.Equal(t, testsChainSimulator.OkReturnCode, result.ReturnCode)
+
+	expectedRoles := [][]byte{
+		[]byte(core.ESDTRoleNFTCreate),
+		[]byte(core.ESDTRoleNFTBurn),
+		[]byte(core.ESDTRoleNFTUpdateAttributes),
+		[]byte(core.ESDTRoleNFTAddURI),
+		[]byte(core.ESDTRoleNFTRecreate),
+		[]byte(core.ESDTRoleModifyCreator),
+		[]byte(core.ESDTRoleModifyRoyalties),
+		[]byte(core.ESDTRoleSetNewURI),
+	}
+
+	checkTokenRoles(t, result.ReturnData, expectedRoles)
+}
+
+func TestChainSimulator_FNG_RegisterAndSetAllRolesDynamic(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	startTime := time.Now().Unix()
+	roundDurationInMillis := uint64(6000)
+	roundsPerEpoch := core.OptionalUint64{
+		HasValue: true,
+		Value:    20,
+	}
+
+	activationEpoch := uint32(2)
+
+	baseIssuingCost := "1000"
+
+	numOfShards := uint32(3)
+	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+		BypassTxSignatureCheck:   true,
+		TempDir:                  t.TempDir(),
+		PathToInitialConfig:      defaultPathToInitialConfig,
+		NumOfShards:              numOfShards,
+		GenesisTimestamp:         startTime,
+		RoundDurationInMillis:    roundDurationInMillis,
+		RoundsPerEpoch:           roundsPerEpoch,
+		ApiInterface:             api.NewNoApiInterface(),
+		MinNodesPerShard:         3,
+		MetaChainMinNodes:        3,
+		NumNodesWaitingListMeta:  0,
+		NumNodesWaitingListShard: 0,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpoch
+			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, cs)
+
+	defer cs.Close()
+
+	addrs := createAddresses(t, cs, true)
+
+	err = cs.GenerateBlocksUntilEpochIsReached(int32(activationEpoch))
+	require.Nil(t, err)
+
+	log.Info("Register dynamic fungible token")
+
+	fngTicker := []byte("FNGTICKER")
+	fngTokenName := []byte("tokenName")
+
+	txDataField := bytes.Join(
+		[][]byte{
+			[]byte("registerAndSetAllRolesDynamic"),
+			[]byte(hex.EncodeToString(fngTokenName)),
+			[]byte(hex.EncodeToString(fngTicker)),
+			[]byte(hex.EncodeToString([]byte("FNG"))),
+			[]byte(hex.EncodeToString(big.NewInt(10).Bytes())),
+		},
+		[]byte("@"),
+	)
+
+	callValue, _ := big.NewInt(0).SetString(baseIssuingCost, 10)
+
+	tx := &transaction.Transaction{
+		Nonce:     0,
+		SndAddr:   addrs[0].Bytes,
+		RcvAddr:   vm.ESDTSCAddress,
+		GasLimit:  100_000_000,
+		GasPrice:  minGasPrice,
+		Signature: []byte("dummySig"),
+		Data:      txDataField,
+		Value:     callValue,
+		ChainID:   []byte(configs.ChainID),
+		Version:   1,
+	}
+
+	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+
+	signalErrorTopic := string(txResult.Logs.Events[0].Topics[1])
+
+	require.Equal(t, fmt.Sprintf("cannot create %s tokens as dynamic", core.FungibleESDT), signalErrorTopic)
+}
+
+func TestChainSimulator_MetaESDT_RegisterAndSetAllRolesDynamic(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	startTime := time.Now().Unix()
+	roundDurationInMillis := uint64(6000)
+	roundsPerEpoch := core.OptionalUint64{
+		HasValue: true,
+		Value:    20,
+	}
+
+	activationEpoch := uint32(2)
+
+	baseIssuingCost := "1000"
+
+	numOfShards := uint32(3)
+	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+		BypassTxSignatureCheck:   true,
+		TempDir:                  t.TempDir(),
+		PathToInitialConfig:      defaultPathToInitialConfig,
+		NumOfShards:              numOfShards,
+		GenesisTimestamp:         startTime,
+		RoundDurationInMillis:    roundDurationInMillis,
+		RoundsPerEpoch:           roundsPerEpoch,
+		ApiInterface:             api.NewNoApiInterface(),
+		MinNodesPerShard:         3,
+		MetaChainMinNodes:        3,
+		NumNodesWaitingListMeta:  0,
+		NumNodesWaitingListShard: 0,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpoch
+			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, cs)
+
+	defer cs.Close()
+
+	addrs := createAddresses(t, cs, true)
+
+	err = cs.GenerateBlocksUntilEpochIsReached(int32(activationEpoch))
+	require.Nil(t, err)
+
+	log.Info("Register dynamic meta esdt token")
+
+	ticker := []byte("META" + "TICKER")
+	tokenName := []byte("tokenName")
+
+	decimals := big.NewInt(10)
+
+	txDataField := bytes.Join(
+		[][]byte{
+			[]byte("registerAndSetAllRolesDynamic"),
+			[]byte(hex.EncodeToString(tokenName)),
+			[]byte(hex.EncodeToString(ticker)),
+			[]byte(hex.EncodeToString([]byte("META"))),
+			[]byte(hex.EncodeToString(decimals.Bytes())),
+		},
+		[]byte("@"),
+	)
+
+	callValue, _ := big.NewInt(0).SetString(baseIssuingCost, 10)
+
+	tx := &transaction.Transaction{
+		Nonce:     0,
+		SndAddr:   addrs[0].Bytes,
+		RcvAddr:   vm.ESDTSCAddress,
+		GasLimit:  100_000_000,
+		GasPrice:  minGasPrice,
+		Signature: []byte("dummySig"),
+		Data:      txDataField,
+		Value:     callValue,
+		ChainID:   []byte(configs.ChainID),
+		Version:   1,
+	}
+
+	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+
+	require.Equal(t, "success", txResult.Status.String())
+
+	metaTokenID := txResult.Logs.Events[0].Topics[0]
+	roles := [][]byte{
+		[]byte(core.ESDTRoleNFTCreate),
+		[]byte(core.ESDTRoleTransfer),
+	}
+	setAddressEsdtRoles(t, cs, addrs[0], metaTokenID, roles)
+
+	nftMetaData := txsFee.GetDefaultMetaData()
+	nftMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
+
+	tx = nftCreateTx(1, addrs[0].Bytes, metaTokenID, nftMetaData)
+
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+
+	require.Equal(t, "success", txResult.Status.String())
+
+	err = cs.GenerateBlocks(10)
+	require.Nil(t, err)
+
+	shardID := cs.GetNodeHandler(0).GetProcessComponents().ShardCoordinator().ComputeId(addrs[0].Bytes)
+
+	checkMetaData(t, cs, core.SystemAccountAddress, metaTokenID, shardID, nftMetaData)
+
+	log.Info("Check that token type is Dynamic")
+
+	scQuery := &process.SCQuery{
+		ScAddress: vm.ESDTSCAddress,
+		FuncName:  "getTokenProperties",
+		CallValue: big.NewInt(0),
+		Arguments: [][]byte{metaTokenID},
+	}
+	result, _, err := cs.GetNodeHandler(core.MetachainShardId).GetFacadeHandler().ExecuteSCQuery(scQuery)
+	require.Nil(t, err)
+	require.Equal(t, "", result.ReturnMessage)
+	require.Equal(t, testsChainSimulator.OkReturnCode, result.ReturnCode)
+
+	tokenType := result.ReturnData[1]
+	require.Equal(t, core.Dynamic+core.MetaESDT, string(tokenType))
+
+	log.Info("Check token roles")
+
+	scQuery = &process.SCQuery{
+		ScAddress: vm.ESDTSCAddress,
+		FuncName:  "getAllAddressesAndRoles",
+		CallValue: big.NewInt(0),
+		Arguments: [][]byte{metaTokenID},
+	}
+	result, _, err = cs.GetNodeHandler(core.MetachainShardId).GetFacadeHandler().ExecuteSCQuery(scQuery)
+	require.Nil(t, err)
+	require.Equal(t, "", result.ReturnMessage)
+	require.Equal(t, testsChainSimulator.OkReturnCode, result.ReturnCode)
+
+	expectedRoles := [][]byte{
+		[]byte(core.ESDTRoleNFTCreate),
+		[]byte(core.ESDTRoleNFTBurn),
+		[]byte(core.ESDTRoleNFTAddQuantity),
+		[]byte(core.ESDTRoleNFTUpdateAttributes),
+		[]byte(core.ESDTRoleNFTAddURI),
+	}
+
+	checkTokenRoles(t, result.ReturnData, expectedRoles)
+}
+
+func checkTokenRoles(t *testing.T, returnData [][]byte, expectedRoles [][]byte) {
+	for _, expRole := range expectedRoles {
+		found := false
+
+		for _, item := range returnData {
+			if bytes.Equal(expRole, item) {
+				found = true
+			}
+		}
+
+		require.True(t, found)
+	}
+}
+
 func TestChainSimulator_NFTcreatedBeforeSaveToSystemAccountEnabled(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -2059,7 +2943,7 @@ func TestChainSimulator_MetaESDTCreatedBeforeSaveToSystemAccountEnabled(t *testi
 	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
-	require.Equal(t, "success", txResult.Status.String())
+
 	metaTokenID := txResult.Logs.Events[0].Topics[0]
 
 	log.Info("Issued MetaESDT token id", "tokenID", string(metaTokenID))

@@ -268,8 +268,8 @@ func TestFixRelayedMoveBalanceWithChainSimulator(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	expectedFeeScCallBefore := "815285920000000"
-	expectedFeeScCallAfter := "873695920000000"
+	expectedFeeScCallBefore := "815294920000000"
+	expectedFeeScCallAfter := "873704920000000"
 	t.Run("sc call", testFixRelayedMoveBalanceWithChainSimulatorScCall(expectedFeeScCallBefore, expectedFeeScCallAfter))
 
 	expectedFeeMoveBalanceBefore := "797500000000000" // 498 * 1500 + 50000 + 5000
