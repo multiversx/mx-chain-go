@@ -539,10 +539,6 @@ func (txProc *txProcessor) processMoveBalance(
 		txProc.txFeeHandler.ProcessTransactionFee(moveBalanceCost, big.NewInt(0), txHash)
 	}
 
-	if len(tx.RelayerAddr) > 0 {
-		return txProc.createRefundSCRForMoveBalance(tx, txHash, originalTxHash, moveBalanceCost)
-	}
-
 	return nil
 }
 
@@ -1247,31 +1243,6 @@ func (txProc *txProcessor) saveFailedLogsIfNeeded(originalTxHash []byte) {
 	}
 
 	txProc.failedTxLogsAccumulator.Remove(originalTxHash)
-}
-
-func (txProc *txProcessor) createRefundSCRForMoveBalance(
-	tx *transaction.Transaction,
-	txHash []byte,
-	originalTxHash []byte,
-	consumedFee *big.Int,
-) error {
-	providedFee := big.NewInt(0).Mul(big.NewInt(0).SetUint64(tx.GasLimit), big.NewInt(0).SetUint64(tx.GasPrice))
-	refundValue := big.NewInt(0).Sub(providedFee, consumedFee)
-
-	refundGasToRelayerSCR := &smartContractResult.SmartContractResult{
-		Nonce:          tx.Nonce,
-		Value:          refundValue,
-		RcvAddr:        tx.RelayerAddr,
-		SndAddr:        tx.SndAddr,
-		PrevTxHash:     txHash,
-		OriginalTxHash: originalTxHash,
-		GasPrice:       tx.GetGasPrice(),
-		CallType:       vm.DirectCall,
-		ReturnMessage:  []byte(core.GasRefundForRelayerMessage),
-		OriginalSender: tx.RelayerAddr,
-	}
-
-	return txProc.scrForwarder.AddIntermediateTransactions([]data.TransactionHandler{refundGasToRelayerSCR})
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
