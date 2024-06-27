@@ -124,6 +124,9 @@ var ErrNilStatusCoreComponentsFactory = errors.New("nil status core components f
 // ErrNilRunTypeComponentsFactory signals that the provided runType components factory is nil
 var ErrNilRunTypeComponentsFactory = errors.New("nil runType components factory")
 
+// ErrNilRunTypeCoreComponentsFactory signals that the provided runType core components factory is nil
+var ErrNilRunTypeCoreComponentsFactory = errors.New("nil runType core components factory")
+
 // ErrNilBootstrapParamsHandler signals that the provided bootstrap parameters handler is nil
 var ErrNilBootstrapParamsHandler = errors.New("nil bootstrap parameters handler")
 
@@ -333,6 +336,9 @@ var ErrNilStateComponents = errors.New("nil state components")
 
 // ErrNilRunTypeComponents signals that a nil runType components was provided
 var ErrNilRunTypeComponents = errors.New("nil runType components")
+
+// ErrNilRunTypeCoreComponents signals that a nil runType core components was provided
+var ErrNilRunTypeCoreComponents = errors.New("nil runType core components")
 
 // ErrNilStateComponentsHolder signals that a nil state components holder was provided
 var ErrNilStateComponentsHolder = errors.New("nil state components holder")

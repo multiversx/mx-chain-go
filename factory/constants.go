@@ -25,4 +25,6 @@ const (
 	StatusComponentsName = "managedStatusComponents"
 	// RunTypeComponentsName is the runType components identifier
 	RunTypeComponentsName = "managedRunTypeComponents"
+	// RunTypeCoreComponentsName is the runType core components identifier
+	RunTypeCoreComponentsName = "managedRunTypeCoreComponents"
 )

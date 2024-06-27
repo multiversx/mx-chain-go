@@ -5,15 +5,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	bootstrapComp "github.com/multiversx/mx-chain-go/factory/bootstrap"
 	"github.com/multiversx/mx-chain-go/integrationTests/factory"
 	"github.com/multiversx/mx-chain-go/node"
 	"github.com/multiversx/mx-chain-go/testscommon/goroutines"
-
-	"github.com/multiversx/mx-chain-core-go/data/endProcess"
-	"github.com/stretchr/testify/require"
 )
 
 // ------------ Test TestProcessComponents --------------------
@@ -33,7 +33,9 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 	nr, err := node.NewNodeRunner(configs)
 	require.Nil(t, err)
 
-	managedCoreComponents, err := nr.CreateManagedCoreComponents(chanStopNodeProcess)
+	managedRunTypeCoreComponents, err := nr.CreateManagedRunTypeCoreComponents()
+	require.Nil(t, err)
+	managedCoreComponents, err := nr.CreateManagedCoreComponents(chanStopNodeProcess, managedRunTypeCoreComponents)
 	require.Nil(t, err)
 	managedCryptoComponents, err := nr.CreateManagedCryptoComponents(managedCoreComponents)
 	require.Nil(t, err)
