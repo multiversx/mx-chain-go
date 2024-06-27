@@ -258,15 +258,13 @@ func (service *SCQueryService) recreateTrie(blockRootHash []byte, blockHeader da
 
 	accountsAdapter := service.blockChainHook.GetAccountsAdapter()
 
+	rootHashHolder := holders.NewDefaultRootHashesHolder(blockRootHash)
 	if service.isInHistoricalBalancesMode {
-		logQueryService.Trace("calling RecreateTrieFromEpoch", "block", blockHeader.GetNonce(), "rootHash", blockRootHash)
-		holder := holders.NewRootHashHolder(blockRootHash, core.OptionalUint32{Value: blockHeader.GetEpoch(), HasValue: true})
-
-		return accountsAdapter.RecreateTrieFromEpoch(holder)
+		rootHashHolder = holders.NewRootHashHolder(blockRootHash, core.OptionalUint32{Value: blockHeader.GetEpoch(), HasValue: true})
 	}
 
-	logQueryService.Trace("calling RecreateTrie", "block", blockHeader.GetNonce(), "rootHash", blockRootHash)
-	return accountsAdapter.RecreateTrie(blockRootHash)
+	logQueryService.Trace("calling RecreateTrie", "block", blockHeader.GetNonce(), "rootHashHolder", rootHashHolder)
+	return accountsAdapter.RecreateTrie(rootHashHolder)
 }
 
 // TODO: extract duplicated code with nodeBlocks.go

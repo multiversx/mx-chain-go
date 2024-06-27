@@ -54,7 +54,7 @@ func TestBuildInFunctionChangeOwnerCallShouldWorkV1(t *testing.T) {
 
 	utils.CheckOwnerAddr(t, testContext, scAddress, newOwner)
 
-	expectedBalance := big.NewInt(87250)
+	expectedBalance := big.NewInt(9987250)
 	vm.TestAccount(t, testContext.Accounts, owner, 2, expectedBalance)
 
 	// check accumulated fees
@@ -95,7 +95,7 @@ func TestBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
 
 	utils.CheckOwnerAddr(t, testContext, scAddress, newOwner)
 
-	expectedBalance := big.NewInt(78100)
+	expectedBalance := big.NewInt(9978100)
 	vm.TestAccount(t, testContext.Accounts, owner, 2, expectedBalance)
 
 	// check accumulated fees
@@ -174,7 +174,7 @@ func TestBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *testing.T) 
 
 	utils.CheckOwnerAddr(t, testContext, scAddress, owner)
 
-	expectedBalance := big.NewInt(78100)
+	expectedBalance := big.NewInt(9978100)
 	vm.TestAccount(t, testContext.Accounts, owner, 2, expectedBalance)
 
 	// check accumulated fees
@@ -214,7 +214,7 @@ func TestBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldNotConsumeGas(t
 
 	utils.CheckOwnerAddr(t, testContext, scAddress, owner)
 
-	expectedBalance := big.NewInt(99070)
+	expectedBalance := big.NewInt(9999070)
 	vm.TestAccount(t, testContext.Accounts, owner, 2, expectedBalance)
 
 	// check accumulated fees
@@ -253,7 +253,7 @@ func TestBuildInFunctionChangeOwnerOutOfGasShouldConsumeGas(t *testing.T) {
 
 	utils.CheckOwnerAddr(t, testContext, scAddress, owner)
 
-	expectedBalance := big.NewInt(87260)
+	expectedBalance := big.NewInt(9987260)
 	vm.TestAccount(t, testContext.Accounts, owner, 2, expectedBalance)
 
 	// check accumulated fees

@@ -47,7 +47,7 @@ func createArgsCryptoComponentsHolder() ArgsCryptoComponentsHolder {
 			},
 		},
 		AllValidatorKeysPemFileName: "allValidatorKeys.pem",
-		BypassTxSignatureCheck:      false,
+		BypassTxSignatureCheck:      true,
 	}
 }
 

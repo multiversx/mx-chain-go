@@ -121,12 +121,7 @@ func (r *simulationAccountsDB) RootHash() ([]byte, error) {
 }
 
 // RecreateTrie won't do anything as write operations are disabled on this component
-func (r *simulationAccountsDB) RecreateTrie(_ []byte) error {
-	return nil
-}
-
-// RecreateTrieFromEpoch won't do anything as write operations are disabled on this component
-func (r *simulationAccountsDB) RecreateTrieFromEpoch(_ common.RootHashHolder) error {
+func (r *simulationAccountsDB) RecreateTrie(_ common.RootHashHolder) error {
 	return nil
 }
 

@@ -110,12 +110,15 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		FixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch: 93,
 		ChangeOwnerAddressCrossShardThroughSCEnableEpoch:         94,
 		CurrentRandomnessOnSortingEnableEpoch:                    95,
-		StakeLimitsEnableEpoch:                                   95,
-		StakingV4Step1EnableEpoch:                                96,
-		StakingV4Step2EnableEpoch:                                97,
-		StakingV4Step3EnableEpoch:                                98,
-		CleanupAuctionOnLowWaitingListEnableEpoch:                96,
-		AlwaysMergeContextsInEEIEnableEpoch:                      99,
+		StakeLimitsEnableEpoch:                                   96,
+		StakingV4Step1EnableEpoch:                                97,
+		StakingV4Step2EnableEpoch:                                98,
+		StakingV4Step3EnableEpoch:                                99,
+		AlwaysMergeContextsInEEIEnableEpoch:                      100,
+		CleanupAuctionOnLowWaitingListEnableEpoch: 101,
+		DynamicESDTEnableEpoch:                                   102,
+		EGLDInMultiTransferEnableEpoch:                           103,
+		CryptoOpcodesV2EnableEpoch:                               104,
 	}
 }
 
@@ -315,6 +318,7 @@ func TestEnableEpochsHandler_IsFlagEnabled(t *testing.T) {
 	require.True(t, handler.IsFlagEnabled(common.StakingV4Step3Flag))
 	require.True(t, handler.IsFlagEnabled(common.StakingV4StartedFlag))
 	require.True(t, handler.IsFlagEnabled(common.AlwaysMergeContextsInEEIFlag))
+	require.True(t, handler.IsFlagEnabled(common.DynamicESDTFlag))
 }
 
 func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
@@ -431,6 +435,9 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.CleanupAuctionOnLowWaitingListEnableEpoch, handler.GetActivationEpoch(common.CleanupAuctionOnLowWaitingListFlag))
 	require.Equal(t, cfg.StakingV4Step1EnableEpoch, handler.GetActivationEpoch(common.StakingV4StartedFlag))
 	require.Equal(t, cfg.AlwaysMergeContextsInEEIEnableEpoch, handler.GetActivationEpoch(common.AlwaysMergeContextsInEEIFlag))
+	require.Equal(t, cfg.DynamicESDTEnableEpoch, handler.GetActivationEpoch(common.DynamicESDTFlag))
+	require.Equal(t, cfg.EGLDInMultiTransferEnableEpoch, handler.GetActivationEpoch(common.EGLDInESDTMultiTransferFlag))
+	require.Equal(t, cfg.CryptoOpcodesV2EnableEpoch, handler.GetActivationEpoch(common.CryptoOpcodesV2Flag))
 }
 
 func TestEnableEpochsHandler_IsInterfaceNil(t *testing.T) {

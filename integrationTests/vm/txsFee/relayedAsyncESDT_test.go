@@ -69,10 +69,10 @@ func TestRelayedAsyncESDTCallShouldWork(t *testing.T) {
 	utils.CheckESDTBalance(t, testContext, firstSCAddress, token, big.NewInt(2500))
 	utils.CheckESDTBalance(t, testContext, secondSCAddress, token, big.NewInt(2500))
 
-	expectedSenderBalance := big.NewInt(94996430)
+	expectedSenderBalance := big.NewInt(98219900)
 	utils.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedSenderBalance)
 
-	expectedAccumulatedFees := big.NewInt(5003570)
+	expectedAccumulatedFees := big.NewInt(1780100)
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, expectedAccumulatedFees, accumulatedFees)
 }

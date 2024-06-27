@@ -100,8 +100,8 @@ func TestScCallShouldWork(t *testing.T) {
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	sndAddr := []byte("12345678901234567890123456789112")
-	senderBalance := big.NewInt(100000)
-	gasLimit := uint64(1000)
+	senderBalance := big.NewInt(1000000000)
+	gasLimit := uint64(100000)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
 
@@ -109,7 +109,7 @@ func TestScCallShouldWork(t *testing.T) {
 		tx := vm.CreateTransaction(idx, big.NewInt(0), sndAddr, scAddress, gasPrice, gasLimit, []byte("increment"))
 
 		calculatedGasLimit := vm.ComputeGasLimit(nil, testContext, tx)
-		require.Equal(t, uint64(418), calculatedGasLimit)
+		require.Equal(t, uint64(15704), calculatedGasLimit)
 
 		returnCode, errProcess := testContext.TxProcessor.ProcessTransaction(tx)
 		require.Nil(t, errProcess)
@@ -122,15 +122,15 @@ func TestScCallShouldWork(t *testing.T) {
 	ret := vm.GetIntValueFromSC(nil, testContext.Accounts, scAddress, "get")
 	require.Equal(t, big.NewInt(11), ret)
 
-	expectedBalance := big.NewInt(58200)
+	expectedBalance := big.NewInt(998429600)
 	vm.TestAccount(t, testContext.Accounts, sndAddr, 10, expectedBalance)
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(53700), accumulatedFees)
+	require.Equal(t, big.NewInt(1582300), accumulatedFees)
 
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
-	require.Equal(t, big.NewInt(4479), developerFees)
+	require.Equal(t, big.NewInt(157339), developerFees)
 }
 
 func TestScCallContractNotFoundShouldConsumeGas(t *testing.T) {
@@ -296,7 +296,7 @@ func TestScCallAndGasChangeShouldWork(t *testing.T) {
 
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance := big.NewInt(10000000)
-	gasLimit := uint64(1000)
+	gasLimit := uint64(100000)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
 	numIterations := uint64(10)

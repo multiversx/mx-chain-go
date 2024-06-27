@@ -1,6 +1,7 @@
 package holders
 
 import (
+	"encoding/hex"
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -16,6 +17,14 @@ func NewRootHashHolder(rootHash []byte, epoch core.OptionalUint32) *rootHashHold
 	return &rootHashHolder{
 		rootHash: rootHash,
 		epoch:    epoch,
+	}
+}
+
+// NewDefaultRootHashesHolder creates a rootHashHolder without an epoch set
+func NewDefaultRootHashesHolder(rootHash []byte) *rootHashHolder {
+	return &rootHashHolder{
+		rootHash: rootHash,
+		epoch:    core.OptionalUint32{},
 	}
 }
 
@@ -39,7 +48,7 @@ func (holder *rootHashHolder) GetEpoch() core.OptionalUint32 {
 
 // String returns rootHashesHolder as a string
 func (holder *rootHashHolder) String() string {
-	return fmt.Sprintf("root hash %s, epoch %v, has value %v", holder.rootHash, holder.epoch.Value, holder.epoch.HasValue)
+	return fmt.Sprintf("root hash %s, epoch %v, has value %v", hex.EncodeToString(holder.rootHash), holder.epoch.Value, holder.epoch.HasValue)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

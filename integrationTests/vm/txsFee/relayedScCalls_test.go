@@ -30,10 +30,10 @@ func TestRelayedScCallShouldWork(t *testing.T) {
 
 	relayerAddr := []byte("12345678901234567890123456789033")
 	sndAddr := []byte("12345678901234567890123456789112")
-	gasLimit := uint64(1000)
+	gasLimit := uint64(100000)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, big.NewInt(0))
-	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, big.NewInt(30000))
+	_, _ = vm.CreateAccount(testContext.Accounts, relayerAddr, 0, big.NewInt(30000000))
 
 	userTx := vm.CreateTransaction(0, big.NewInt(100), sndAddr, scAddress, gasPrice, gasLimit, []byte("increment"))
 
@@ -51,15 +51,15 @@ func TestRelayedScCallShouldWork(t *testing.T) {
 	ret := vm.GetIntValueFromSC(nil, testContext.Accounts, scAddress, "get")
 	require.Equal(t, big.NewInt(2), ret)
 
-	expectedBalance := big.NewInt(23850)
+	expectedBalance := big.NewInt(29840970)
 	vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalance)
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(17950), accumulatedFees)
+	require.Equal(t, big.NewInt(170830), accumulatedFees)
 
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
-	require.Equal(t, big.NewInt(807), developerFees)
+	require.Equal(t, big.NewInt(16093), developerFees)
 }
 
 func TestRelayedScCallContractNotFoundShouldConsumeGas(t *testing.T) {

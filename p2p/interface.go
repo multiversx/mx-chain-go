@@ -102,9 +102,6 @@ type PeersRatingHandler interface {
 // PeersRatingMonitor represents an entity able to provide peers ratings
 type PeersRatingMonitor = p2p.PeersRatingMonitor
 
-// PeerTopicNotifier represents an entity able to handle new notifications on a new peer on a topic
-type PeerTopicNotifier = p2p.PeerTopicNotifier
-
 // P2PSigningHandler defines the behaviour of a component able to verify p2p message signature
 type P2PSigningHandler interface {
 	Verify(message MessageP2P) error

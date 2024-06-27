@@ -67,8 +67,7 @@ func NewDataTrieFactory(args ArgsNewDataTrieFactory) (*dataTrieFactory, error) {
 	dbConfig := storageFactory.GetDBFromConfig(args.StorageConfig.DB)
 	dbConfig.FilePath = path.Join(args.SyncFolder, args.StorageConfig.DB.FilePath)
 
-	dbConfigHandler := factory.NewDBConfigHandler(args.StorageConfig.DB)
-	persisterFactory, err := factory.NewPersisterFactory(dbConfigHandler)
+	persisterFactory, err := factory.NewPersisterFactory(args.StorageConfig.DB)
 	if err != nil {
 		return nil, err
 	}
