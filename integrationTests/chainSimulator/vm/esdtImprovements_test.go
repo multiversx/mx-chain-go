@@ -835,7 +835,7 @@ func TestChainSimulator_CreateTokensAfterActivation(t *testing.T) {
 //
 // Call ESDTMetaDataRecreate to rewrite the meta data for the nft
 // (The sender must have the ESDTMetaDataRecreate role)
-func TestChainSimulator_NFT_ESDTMetaDataRecreate(t *testing.T) {
+func TestChainSimulator_ESDTMetaDataRecreate(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -995,7 +995,7 @@ func TestChainSimulator_NFT_ESDTMetaDataRecreate(t *testing.T) {
 //
 // Call ESDTMetaDataUpdate to update some of the meta data parameters
 // (The sender must have the ESDTRoleNFTUpdate role)
-func TestChainSimulator_NFT_ESDTMetaDataUpdate(t *testing.T) {
+func TestChainSimulator_ESDTMetaDataUpdate(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -1133,10 +1133,6 @@ func TestChainSimulator_NFT_ESDTMetaDataUpdate(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, txResult)
 
-		// fmt.Println(txResult)
-		// fmt.Println(string(txResult.Logs.Events[0].Topics[0]))
-		// fmt.Println(string(txResult.Logs.Events[0].Topics[1]))
-
 		require.Equal(t, "success", txResult.Status.String())
 
 		shardID := cs.GetNodeHandler(0).GetProcessComponents().ShardCoordinator().ComputeId(addrs[0].Bytes)
@@ -1157,7 +1153,7 @@ func TestChainSimulator_NFT_ESDTMetaDataUpdate(t *testing.T) {
 //
 // Call ESDTModifyCreator and check that the creator was modified
 // (The sender must have the ESDTRoleModifyCreator role)
-func TestChainSimulator_NFT_ESDTModifyCreator(t *testing.T) {
+func TestChainSimulator_ESDTModifyCreator(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -1178,10 +1174,6 @@ func TestChainSimulator_NFT_ESDTModifyCreator(t *testing.T) {
 	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
-
-	fmt.Println(txResult)
-	fmt.Println(string(txResult.Logs.Events[0].Topics[0]))
-	fmt.Println(string(txResult.Logs.Events[0].Topics[1]))
 
 	require.Equal(t, "success", txResult.Status.String())
 
@@ -1361,7 +1353,7 @@ func TestChainSimulator_NFT_ESDTModifyCreator(t *testing.T) {
 //
 // Call ESDTSetNewURIs and check that the new URIs were set for the token
 // (The sender must have the ESDTRoleSetNewURI role)
-func TestChainSimulator_NFT_ESDTSetNewURIs(t *testing.T) {
+func TestChainSimulator_ESDTSetNewURIs(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -1453,16 +1445,12 @@ func TestChainSimulator_NFT_ESDTSetNewURIs(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, txResult)
 
-		fmt.Println(txResult)
-		fmt.Println(string(txResult.Logs.Events[0].Topics[0]))
-		fmt.Println(string(txResult.Logs.Events[0].Topics[1]))
-
 		require.Equal(t, "success", txResult.Status.String())
 
 		nonce++
 	}
 
-	log.Info("Call ESDTSetNewURIs and check that the new URIs were set for the NFT")
+	log.Info("Call ESDTSetNewURIs and check that the new URIs were set for the tokens")
 
 	metaDataNonce := []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
 	uris := [][]byte{
@@ -1621,10 +1609,6 @@ func TestChainSimulator_ESDTModifyRoyalties(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, txResult)
 
-		fmt.Println(txResult)
-		fmt.Println(string(txResult.Logs.Events[0].Topics[0]))
-		fmt.Println(string(txResult.Logs.Events[0].Topics[1]))
-
 		require.Equal(t, "success", txResult.Status.String())
 
 		nonce++
@@ -1636,7 +1620,7 @@ func TestChainSimulator_ESDTModifyRoyalties(t *testing.T) {
 	royalties := []byte(hex.EncodeToString(big.NewInt(20).Bytes()))
 
 	for i := range tokenIDs {
-		log.Info("Set new royalities for token", "tokenID", string(tokenIDs[i]))
+		log.Info("Set new royalties for token", "tokenID", string(tokenIDs[i]))
 
 		txDataField := bytes.Join(
 			[][]byte{
