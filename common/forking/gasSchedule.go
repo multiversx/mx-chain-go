@@ -70,6 +70,9 @@ func NewGasScheduleNotifier(args ArgsNewGasScheduleNotifier) (*gasScheduleNotifi
 		return nil, err
 	}
 
+	gas := *g
+	gasSchedule = &gas
+
 	args.EpochNotifier.RegisterNotifyHandler(g)
 
 	return g, nil

@@ -42,6 +42,7 @@ func (pcf *processComponentsFactory) NewBlockProcessor(
 		blockProcessingCutoff,
 		missingTrieNodesNotifier,
 		sentSignaturesTracker,
+		false,
 	)
 	if err != nil {
 		return nil, nil, err

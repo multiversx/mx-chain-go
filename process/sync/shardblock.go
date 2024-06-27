@@ -39,6 +39,7 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 	base := &baseBootstrap{
 		chainHandler:                 arguments.ChainHandler,
 		blockProcessor:               arguments.BlockProcessor,
+		blockProcessorWithRevert:     arguments.BlockProcessorWithRevert,
 		store:                        arguments.Store,
 		headers:                      arguments.PoolsHolder.Headers(),
 		roundHandler:                 arguments.RoundHandler,

@@ -429,6 +429,12 @@ func (gc *gasComputation) isRelayedTx(txType process.TransactionType) bool {
 	return txType == process.RelayedTx || txType == process.RelayedTxV2
 }
 
+// GetMaps - test
+func (gc *gasComputation) GetMaps() (map[string]uint64, map[string]uint64) {
+	return gc.gasRefunded, gc.gasPenalized
+
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (gc *gasComputation) IsInterfaceNil() bool {
 	return gc == nil

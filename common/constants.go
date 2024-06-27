@@ -1016,3 +1016,5 @@ const (
 	AlwaysMergeContextsInEEIFlag                       core.EnableEpochFlag = "AlwaysMergeContextsInEEIFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )
+
+var LatestGasSchedule core.GasScheduleNotifier
