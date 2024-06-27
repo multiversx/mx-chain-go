@@ -3030,12 +3030,13 @@ func TestChainSimulator_ChangeToDynamic_OldTokens(t *testing.T) {
 		nonce++
 	}
 
-	shardID := uint32(0)
-
 	err = cs.GenerateBlocks(10)
 	require.Nil(t, err)
 
-	checkMetaData(t, cs, core.SystemAccountAddress, nftTokenID, shardID, nftMetaData)
+	shardID := cs.GetNodeHandler(0).GetProcessComponents().ShardCoordinator().ComputeId(addrs[0].Bytes)
+
+	// meta data should be saved on account, since it is before `OptimizeNFTStoreEnableEpoch`
+	checkMetaData(t, cs, addrs[0].Bytes, nftTokenID, shardID, nftMetaData)
 	checkMetaDataNotInAcc(t, cs, core.SystemAccountAddress, nftTokenID, shardID)
 
 	checkMetaData(t, cs, addrs[0].Bytes, sftTokenID, shardID, sftMetaData)
@@ -3056,6 +3057,27 @@ func TestChainSimulator_ChangeToDynamic_OldTokens(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, txResult)
 
+		fmt.Println(txResult)
+		fmt.Println(string(txResult.Logs.Events[0].Topics[0]))
+		fmt.Println(string(txResult.Logs.Events[0].Topics[1]))
+
+		require.Equal(t, "success", txResult.Status.String())
+
+		nonce++
+	}
+
+	for _, tokenID := range tokenIDs {
+		log.Info("transfering token id", "tokenID", tokenID)
+
+		tx = esdtNFTTransferTx(nonce, addrs[0].Bytes, addrs[1].Bytes, tokenID)
+		txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+		require.Nil(t, err)
+		require.NotNil(t, txResult)
+
+		fmt.Println(txResult)
+		fmt.Println(string(txResult.Logs.Events[0].Topics[0]))
+		fmt.Println(string(txResult.Logs.Events[0].Topics[1]))
+
 		require.Equal(t, "success", txResult.Status.String())
 
 		nonce++
@@ -3063,7 +3085,13 @@ func TestChainSimulator_ChangeToDynamic_OldTokens(t *testing.T) {
 
 	checkMetaData(t, cs, core.SystemAccountAddress, sftTokenID, shardID, sftMetaData)
 	checkMetaDataNotInAcc(t, cs, addrs[0].Bytes, sftTokenID, shardID)
+	checkMetaDataNotInAcc(t, cs, addrs[1].Bytes, sftTokenID, shardID)
 
 	checkMetaData(t, cs, core.SystemAccountAddress, metaESDTTokenID, shardID, esdtMetaData)
 	checkMetaDataNotInAcc(t, cs, addrs[0].Bytes, metaESDTTokenID, shardID)
+	checkMetaDataNotInAcc(t, cs, addrs[1].Bytes, metaESDTTokenID, shardID)
+
+	checkMetaData(t, cs, core.SystemAccountAddress, nftTokenID, shardID, nftMetaData)
+	checkMetaDataNotInAcc(t, cs, addrs[0].Bytes, nftTokenID, shardID)
+	checkMetaDataNotInAcc(t, cs, addrs[1].Bytes, nftTokenID, shardID)
 }
