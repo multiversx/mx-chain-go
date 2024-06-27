@@ -3022,9 +3022,6 @@ func TestChainSimulator_ChangeToDynamic_OldTokens(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, txResult)
 
-		fmt.Println(txResult)
-		fmt.Println(string(txResult.Logs.Events[0].Topics[0]))
-		fmt.Println(string(txResult.Logs.Events[0].Topics[1]))
 		require.Equal(t, "success", txResult.Status.String())
 
 		nonce++
@@ -3050,6 +3047,7 @@ func TestChainSimulator_ChangeToDynamic_OldTokens(t *testing.T) {
 
 	log.Info("Change to DYNAMIC type")
 
+	// it will not be able to change nft to dynamic type
 	for i := range tokenIDs {
 		tx = changeToDynamicTx(nonce, addrs[0].Bytes, tokenIDs[i])
 
@@ -3057,10 +3055,19 @@ func TestChainSimulator_ChangeToDynamic_OldTokens(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, txResult)
 
-		fmt.Println(txResult)
-		fmt.Println(string(txResult.Logs.Events[0].Topics[0]))
-		fmt.Println(string(txResult.Logs.Events[0].Topics[1]))
+		require.Equal(t, "success", txResult.Status.String())
 
+		nonce++
+	}
+
+	for _, tokenID := range tokenIDs {
+		tx = updateTokenIDTx(nonce, addrs[0].Bytes, tokenID)
+
+		log.Info("updating token id", "tokenID", tokenID)
+
+		txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+		require.Nil(t, err)
+		require.NotNil(t, txResult)
 		require.Equal(t, "success", txResult.Status.String())
 
 		nonce++
@@ -3073,10 +3080,6 @@ func TestChainSimulator_ChangeToDynamic_OldTokens(t *testing.T) {
 		txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 		require.Nil(t, err)
 		require.NotNil(t, txResult)
-
-		fmt.Println(txResult)
-		fmt.Println(string(txResult.Logs.Events[0].Topics[0]))
-		fmt.Println(string(txResult.Logs.Events[0].Topics[1]))
 
 		require.Equal(t, "success", txResult.Status.String())
 
@@ -3091,7 +3094,7 @@ func TestChainSimulator_ChangeToDynamic_OldTokens(t *testing.T) {
 	checkMetaDataNotInAcc(t, cs, addrs[0].Bytes, metaESDTTokenID, shardID)
 	checkMetaDataNotInAcc(t, cs, addrs[1].Bytes, metaESDTTokenID, shardID)
 
-	checkMetaData(t, cs, core.SystemAccountAddress, nftTokenID, shardID, nftMetaData)
+	checkMetaData(t, cs, addrs[1].Bytes, nftTokenID, shardID, nftMetaData)
 	checkMetaDataNotInAcc(t, cs, addrs[0].Bytes, nftTokenID, shardID)
-	checkMetaDataNotInAcc(t, cs, addrs[1].Bytes, nftTokenID, shardID)
+	checkMetaDataNotInAcc(t, cs, core.SystemAccountAddress, nftTokenID, shardID)
 }
