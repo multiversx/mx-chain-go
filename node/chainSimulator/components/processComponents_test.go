@@ -66,7 +66,7 @@ func createArgsProcessComponentsHolder() ArgsProcessComponentsHolder {
 				GasScheduleByEpochs: []config.GasScheduleByEpochs{
 					{
 						StartEpoch: 0,
-						FileName:   "../../../cmd/node/config/gasSchedules/gasScheduleV7.toml",
+						FileName:   "../../../cmd/node/config/gasSchedules/gasScheduleV8.toml",
 					},
 				},
 			},
