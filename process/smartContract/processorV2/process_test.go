@@ -2516,6 +2516,7 @@ func TestScProcessor_RefundGasToSenderAccNotInShard(t *testing.T) {
 		tx,
 		txHash,
 		vmData.DirectCall,
+		0,
 	)
 	require.Nil(t, err)
 	require.NotNil(t, sctx)
@@ -2526,6 +2527,7 @@ func TestScProcessor_RefundGasToSenderAccNotInShard(t *testing.T) {
 		tx,
 		txHash,
 		vmData.DirectCall,
+		0,
 	)
 	require.Nil(t, err)
 	require.NotNil(t, sctx)
@@ -3476,13 +3478,13 @@ func TestSCProcessor_createSCRWhenError(t *testing.T) {
 	sc, _ := NewSmartContractProcessorV2(arguments)
 
 	acntSnd := &stateMock.UserAccountStub{}
-	scr, consumedFee := sc.createSCRsWhenError(nil, []byte("txHash"), &transaction.Transaction{}, "string", []byte("msg"), 0)
+	scr, consumedFee := sc.createSCRsWhenError(nil, []byte("txHash"), &transaction.Transaction{}, "string", []byte("msg"), 0, big.NewInt(0))
 	assert.Equal(t, uint64(0), scr.GasLimit)
 	assert.Equal(t, consumedFee.Cmp(big.NewInt(0)), 0)
 	expectedError := "@" + hex.EncodeToString([]byte("string"))
 	assert.Equal(t, expectedError, string(scr.Data))
 
-	scr, consumedFee = sc.createSCRsWhenError(acntSnd, []byte("txHash"), &transaction.Transaction{}, "string", []byte("msg"), 0)
+	scr, consumedFee = sc.createSCRsWhenError(acntSnd, []byte("txHash"), &transaction.Transaction{}, "string", []byte("msg"), 0, big.NewInt(0))
 	assert.Equal(t, uint64(0), scr.GasLimit)
 	assert.Equal(t, consumedFee.Cmp(big.NewInt(0)), 0)
 	assert.Equal(t, expectedError, string(scr.Data))
@@ -3493,7 +3495,8 @@ func TestSCProcessor_createSCRWhenError(t *testing.T) {
 		&smartContractResult.SmartContractResult{CallType: vmData.AsynchronousCall},
 		"string",
 		[]byte("msg"),
-		0)
+		0,
+		big.NewInt(0))
 	assert.Equal(t, uint64(0), scr.GasLimit)
 	assert.Equal(t, consumedFee.Cmp(big.NewInt(0)), 0)
 	assert.Equal(t, "@04@6d7367", string(scr.Data))
@@ -3504,7 +3507,8 @@ func TestSCProcessor_createSCRWhenError(t *testing.T) {
 		&smartContractResult.SmartContractResult{CallType: vmData.AsynchronousCall, GasPrice: 1, GasLimit: 100},
 		"string",
 		[]byte("msg"),
-		20)
+		20,
+		big.NewInt(0))
 	assert.Equal(t, uint64(1), scr.GasPrice)
 	assert.Equal(t, consumedFee.Cmp(big.NewInt(80)), 0)
 	assert.Equal(t, "@04@6d7367", string(scr.Data))
@@ -3516,7 +3520,8 @@ func TestSCProcessor_createSCRWhenError(t *testing.T) {
 		&smartContractResult.SmartContractResult{CallType: vmData.AsynchronousCall, GasPrice: 1, GasLimit: 100},
 		"string",
 		[]byte("msg"),
-		0)
+		0,
+		big.NewInt(0))
 	assert.Equal(t, uint64(1), scr.GasPrice)
 	assert.Equal(t, consumedFee.Cmp(big.NewInt(100)), 0)
 	assert.Equal(t, "@04@6d7367", string(scr.Data))
@@ -3661,21 +3666,21 @@ func TestSmartContractProcessor_computeTotalConsumedFeeAndDevRwd(t *testing.T) {
 	arguments.ShardCoordinator = shardCoordinator
 	sc, _ := NewSmartContractProcessorV2(arguments)
 
-	totalFee, devFees := sc.computeTotalConsumedFeeAndDevRwd(&transaction.Transaction{GasPrice: 1}, &vmcommon.VMOutput{}, 0)
+	totalFee, devFees := sc.computeTotalConsumedFeeAndDevRwd(&transaction.Transaction{GasPrice: 1}, &vmcommon.VMOutput{}, 0, 0)
 	assert.Equal(t, totalFee.Int64(), int64(0))
 	assert.Equal(t, devFees.Int64(), int64(0))
 
-	totalFee, devFees = sc.computeTotalConsumedFeeAndDevRwd(&transaction.Transaction{GasLimit: 100, GasPrice: 1}, &vmcommon.VMOutput{GasRemaining: 200}, 0)
+	totalFee, devFees = sc.computeTotalConsumedFeeAndDevRwd(&transaction.Transaction{GasLimit: 100, GasPrice: 1}, &vmcommon.VMOutput{GasRemaining: 200}, 0, 0)
 	assert.Equal(t, totalFee.Int64(), int64(0))
 	assert.Equal(t, devFees.Int64(), int64(0))
 
-	totalFee, _ = sc.computeTotalConsumedFeeAndDevRwd(&transaction.Transaction{GasLimit: 100, GasPrice: 1}, &vmcommon.VMOutput{GasRemaining: 50}, 0)
+	totalFee, _ = sc.computeTotalConsumedFeeAndDevRwd(&transaction.Transaction{GasLimit: 100, GasPrice: 1}, &vmcommon.VMOutput{GasRemaining: 50}, 0, 0)
 	assert.Equal(t, totalFee.Int64(), int64(50))
 
 	feeHandler.DeveloperPercentageCalled = func() float64 {
 		return 0.5
 	}
-	totalFee, devFees = sc.computeTotalConsumedFeeAndDevRwd(&transaction.Transaction{GasLimit: 100, GasPrice: 1}, &vmcommon.VMOutput{GasRemaining: 50}, 10)
+	totalFee, devFees = sc.computeTotalConsumedFeeAndDevRwd(&transaction.Transaction{GasLimit: 100, GasPrice: 1}, &vmcommon.VMOutput{GasRemaining: 50}, 10, 0)
 	assert.Equal(t, totalFee.Int64(), int64(50))
 	assert.Equal(t, devFees.Int64(), int64(20))
 
@@ -3685,7 +3690,7 @@ func TestSmartContractProcessor_computeTotalConsumedFeeAndDevRwd(t *testing.T) {
 	shardCoordinator.SelfIdCalled = func() uint32 {
 		return 1
 	}
-	totalFee, devFees = sc.computeTotalConsumedFeeAndDevRwd(&transaction.Transaction{GasLimit: 100, GasPrice: 1}, &vmcommon.VMOutput{GasRemaining: 50}, 10)
+	totalFee, devFees = sc.computeTotalConsumedFeeAndDevRwd(&transaction.Transaction{GasLimit: 100, GasPrice: 1}, &vmcommon.VMOutput{GasRemaining: 50}, 10, 0)
 	assert.Equal(t, totalFee.Int64(), int64(30))
 	assert.Equal(t, devFees.Int64(), int64(15))
 
@@ -3695,7 +3700,7 @@ func TestSmartContractProcessor_computeTotalConsumedFeeAndDevRwd(t *testing.T) {
 	totalFee, devFees = sc.computeTotalConsumedFeeAndDevRwd(
 		&transaction.Transaction{GasLimit: 100, GasPrice: 1},
 		vmOutput,
-		10)
+		10, 0)
 	assert.Equal(t, totalFee.Int64(), int64(20))
 	assert.Equal(t, devFees.Int64(), int64(10))
 }
@@ -3747,7 +3752,7 @@ func TestSmartContractProcessor_computeTotalConsumedFeeAndDevRwdWithDifferentSCC
 	}
 	builtInGasUsed := uint64(1000000)
 
-	totalFee, devFees := sc.computeTotalConsumedFeeAndDevRwd(tx, vmoutput, builtInGasUsed)
+	totalFee, devFees := sc.computeTotalConsumedFeeAndDevRwd(tx, vmoutput, builtInGasUsed, 0)
 	expectedTotalFee, expectedDevFees := computeExpectedResults(args, tx, builtInGasUsed, vmoutput, true)
 	require.Equal(t, expectedTotalFee, totalFee)
 	require.Equal(t, expectedDevFees, devFees)
@@ -3821,7 +3826,7 @@ func TestSmartContractProcessor_finishSCExecutionV2(t *testing.T) {
 
 			expectedTotalFee, expectedDevFees := computeExpectedResults(args, test.tx, test.builtInGasUsed, test.vmOutput, true)
 
-			retcode, err := sc.finishSCExecution(nil, []byte("txhash"), test.tx, test.vmOutput, test.builtInGasUsed)
+			retcode, err := sc.finishSCExecution(nil, []byte("txhash"), test.tx, test.vmOutput, test.builtInGasUsed, 0)
 			require.Nil(t, err)
 			require.Equal(t, retcode, vmcommon.Ok)
 			require.Nil(t, err)
@@ -3872,7 +3877,7 @@ func TestScProcessor_CreateRefundForRelayerFromAnotherShard(t *testing.T) {
 	}
 
 	vmOutput := &vmcommon.VMOutput{GasRemaining: 1000}
-	_, relayerRefund := sc.createSCRForSenderAndRelayer(vmOutput, scrWithRelayed, []byte("txhash"), vmData.DirectCall)
+	_, relayerRefund := sc.createSCRForSenderAndRelayer(vmOutput, scrWithRelayed, []byte("txhash"), vmData.DirectCall, 0)
 	assert.NotNil(t, relayerRefund)
 
 	senderID := sc.shardCoordinator.ComputeId(relayerRefund.SndAddr)

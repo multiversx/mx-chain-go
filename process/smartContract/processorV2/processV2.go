@@ -806,9 +806,6 @@ func (sc *scProcessor) computeTotalConsumedFeeAndDevRwd(
 		totalFee = sc.economicsFee.ComputeFeeForProcessing(tx, consumedGas)
 	}
 
-	//TODO delete first SCR base fee calculation if ESDTNFTTransfer/MultiESDTNFTTransfer cross shard, change persistperbyte to 1500
-	// think about changing finish to 50000
-	// developer rewards remain the same
 	totalFeeMinusBuiltIn := sc.economicsFee.ComputeFeeForProcessing(tx, consumedGasWithoutBuiltin)
 	totalDevRwd := core.GetIntTrimmedPercentageOfValue(totalFeeMinusBuiltIn, sc.economicsFee.DeveloperPercentage())
 
@@ -858,7 +855,7 @@ func (sc *scProcessor) saveAccounts(acntSnd, acntDst vmcommon.AccountHandler) er
 }
 
 func (sc *scProcessor) resolveFailedTransaction(
-	_ state.UserAccountHandler,
+	acntSnd state.UserAccountHandler,
 	tx data.TransactionHandler,
 	_ []byte,
 ) error {
@@ -869,7 +866,33 @@ func (sc *scProcessor) resolveFailedTransaction(
 		}
 	}
 
+	if sc.enableEpochsHandler.IsFlagEnabled(common.FullGasPriceForSCRsFlag) {
+		gasPaid := sc.economicsFee.ComputeInitialTxFee(tx)
+		gasWithPriceModifier := sc.economicsFee.ComputeTxFee(tx)
+
+		difference := big.NewInt(0).Sub(gasPaid, gasWithPriceModifier)
+
+		if difference.Cmp(zero) > 0 {
+			err := acntSnd.AddToBalance(difference)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	return process.ErrFailedTransaction
+}
+
+func (sc *scProcessor) computeRefundWhenError(tx data.TransactionHandler) *big.Int {
+	gasPaid := sc.economicsFee.ComputeInitialTxFee(tx)
+	gasWithPriceModifier := sc.economicsFee.ComputeTxFee(tx)
+	if gasPaid.Cmp(gasWithPriceModifier) < 0 {
+		return big.NewInt(0)
+	}
+
+	difference := big.NewInt(0).Sub(gasPaid, gasWithPriceModifier)
+
+	return difference
 }
 
 func (sc *scProcessor) computeBuiltInFuncGasUsed(
@@ -976,7 +999,6 @@ func (sc *scProcessor) doExecuteBuiltInFunctionWithoutFailureProcessing(
 
 	if vmOutput.ReturnCode != vmcommon.Ok {
 		if !check.IfNil(acntSnd) {
-			//TODO recompute paid fee and add back values
 			err := sc.resolveFailedTransaction(acntSnd, tx, txHash)
 			failureContext.setMessage(vmOutput.ReturnMessage)
 			failureContext.setGasLocked(0)
@@ -1511,6 +1533,13 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(acntSnd state.UserAccountHand
 		return err
 	}
 
+	gasRefundForError := big.NewInt(0)
+	if sc.enableEpochsHandler.IsFlagEnabled(common.FullGasPriceForSCRsFlag) {
+		if !core.IsSmartContractAddress(tx.GetSndAddr()) {
+			gasRefundForError = sc.computeRefundWhenError(tx)
+		}
+	}
+
 	sc.setEmptyRoothashOnErrorIfSaveKeyValue(tx, acntSnd)
 
 	scrIfError, consumedFee := sc.createSCRsWhenError(
@@ -1519,7 +1548,8 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(acntSnd state.UserAccountHand
 		tx,
 		failureContext.errorMessage,
 		failureContext.returnMessage,
-		failureContext.gasLocked)
+		failureContext.gasLocked,
+		gasRefundForError)
 	err = sc.addBackTxValues(acntSnd, scrIfError, tx)
 	if err != nil {
 		return err
@@ -1535,7 +1565,7 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(acntSnd state.UserAccountHand
 		}
 	}
 
-	relayerLog, err := sc.processForRelayerWhenError(tx, failureContext.txHash, failureContext.returnMessage)
+	relayerLog, err := sc.processForRelayerWhenError(tx, failureContext.txHash, failureContext.returnMessage, gasRefundForError)
 	if err != nil {
 		return err
 	}
@@ -1626,11 +1656,14 @@ func (sc *scProcessor) processForRelayerWhenError(
 	originalTx data.TransactionHandler,
 	txHash []byte,
 	returnMessage []byte,
+	gasRefund *big.Int,
 ) (*vmcommon.LogEntry, error) {
 	relayedSCR, isRelayed := isRelayedTx(originalTx)
 	if !isRelayed {
 		return nil, nil
 	}
+
+	relayedSCR.Value.Add(relayedSCR.Value, gasRefund)
 	if relayedSCR.Value.Cmp(zero) == 0 {
 		return nil, nil
 	}
@@ -2192,6 +2225,7 @@ func (sc *scProcessor) createSCRsWhenError(
 	returnCode string,
 	returnMessage []byte,
 	gasLocked uint64,
+	gasRefundForError *big.Int,
 ) (*smartContractResult.SmartContractResult, *big.Int) {
 	rcvAddress := tx.GetSndAddr()
 	callType := determineCallType(tx)
@@ -2257,6 +2291,11 @@ func (sc *scProcessor) createSCRsWhenError(
 	}
 	if scr.Value.Cmp(zero) > 0 {
 		scr.OriginalSender = tx.GetSndAddr()
+	}
+
+	_, isRelayed := isRelayedTx(tx)
+	if !isRelayed {
+		scr.Value.Add(scr.Value, gasRefundForError)
 	}
 
 	return scr, consumedFee
@@ -2598,27 +2637,14 @@ func (sc *scProcessor) isTransferWithNoAdditionalData(sndAddr []byte, dstAddr []
 	return len(parsedTransfer.CallFunction) == 0
 }
 
-// createSCRForSender(vmOutput, tx, txHash, acntSnd)
-// give back the user the unused gas money
-func (sc *scProcessor) createSCRForSenderAndRelayer(
-	vmOutput *vmcommon.VMOutput,
+func (sc *scProcessor) computeGasRefund(
+	rcvAddress []byte,
 	tx data.TransactionHandler,
-	txHash []byte,
-	callType vmData.CallType,
+	vmOutput *vmcommon.VMOutput,
 	baseGasUsedForSCRs uint64,
-) (*smartContractResult.SmartContractResult, *smartContractResult.SmartContractResult) {
-	if vmOutput.GasRefund == nil {
-		vmOutput.GasRefund = big.NewInt(0)
-	}
+) *big.Int {
 
 	gasRefund := sc.economicsFee.ComputeFeeForProcessing(tx, vmOutput.GasRemaining)
-	gasRemaining := uint64(0)
-	storageFreeRefund := big.NewInt(0)
-
-	rcvAddress := tx.GetSndAddr()
-	if callType == vmData.AsynchronousCallBack {
-		rcvAddress = tx.GetRcvAddr()
-	}
 
 	if sc.enableEpochsHandler.IsFlagEnabled(common.FullGasPriceForSCRsFlag) {
 		if !core.IsSmartContractAddress(rcvAddress) {
@@ -2633,6 +2659,32 @@ func (sc *scProcessor) createSCRForSenderAndRelayer(
 			gasRefund.Add(gasRefund, core.SafeMul(uint64(refundGasFromProcessing), gasUsedForProcessing))
 		}
 	}
+
+	return gasRefund
+}
+
+// createSCRForSender(vmOutput, tx, txHash, acntSnd)
+// give back the user the unused gas money
+func (sc *scProcessor) createSCRForSenderAndRelayer(
+	vmOutput *vmcommon.VMOutput,
+	tx data.TransactionHandler,
+	txHash []byte,
+	callType vmData.CallType,
+	baseGasUsedForSCRs uint64,
+) (*smartContractResult.SmartContractResult, *smartContractResult.SmartContractResult) {
+	if vmOutput.GasRefund == nil {
+		vmOutput.GasRefund = big.NewInt(0)
+	}
+
+	gasRemaining := uint64(0)
+	storageFreeRefund := big.NewInt(0)
+
+	rcvAddress := tx.GetSndAddr()
+	if callType == vmData.AsynchronousCallBack {
+		rcvAddress = tx.GetRcvAddr()
+	}
+
+	gasRefund := sc.computeGasRefund(rcvAddress, tx, vmOutput, baseGasUsedForSCRs)
 
 	var refundGasToRelayerSCR *smartContractResult.SmartContractResult
 	relayedSCR, isRelayed := isRelayedTx(tx)
@@ -2713,7 +2765,7 @@ func (sc *scProcessor) deleteAccounts(deletedAccounts [][]byte) error {
 		}
 
 		if check.IfNil(acc) {
-			// TODO: sharded Smart Contract processing
+			// TODO: implement delete from other shard
 			continue
 		}
 
