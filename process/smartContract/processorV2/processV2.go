@@ -2660,6 +2660,9 @@ func (sc *scProcessor) computeGasRefund(
 		}
 	}
 
+	//TODO what to do for the epoch change - transactions launched before epoch change, processed cross shard after?
+	// do we disable cross shard calls for 100 rounds before the epoch change?
+
 	return gasRefund
 }
 
