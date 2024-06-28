@@ -370,7 +370,24 @@ func (sc *scProcessor) doExecuteSmartContractTransaction(
 		return vmcommon.ExecutionFailed, nil
 	}
 
-	return sc.finishSCExecution(results, txHash, tx, vmOutput, 0)
+	baseGasUsed := sc.computeBaseGasFeeFromVMOutput(vmOutput)
+	return sc.finishSCExecution(results, txHash, tx, vmOutput, 0, baseGasUsed)
+}
+
+func (sc *scProcessor) computeBaseGasFeeFromVMOutput(vmOutput *vmcommon.VMOutput) uint64 {
+	baseGasUsed := uint64(0)
+	for _, outAcc := range vmOutput.OutputAccounts {
+		baseGasUsed += sc.economicsFee.MinGasLimit() * uint64(len(outAcc.OutputTransfers))
+
+		lenTransfers := uint64(0)
+		for _, transfer := range outAcc.OutputTransfers {
+			lenTransfers += uint64(len(transfer.Data))
+		}
+
+		baseGasUsed += lenTransfers * sc.economicsFee.GasPerDataByte()
+	}
+
+	return baseGasUsed
 }
 
 func (sc *scProcessor) executeSmartContractCallAndCheckGas(
@@ -521,6 +538,7 @@ func (sc *scProcessor) finishSCExecution(
 	tx data.TransactionHandler,
 	vmOutput *vmcommon.VMOutput,
 	builtInFuncGasUsed uint64,
+	baseGasUsedForSCRs uint64,
 ) (vmcommon.ReturnCode, error) {
 	resultWithoutMeta := sc.deleteSCRsWithValueZeroGoingToMeta(results)
 	finalResults, logsFromSCRs := sc.cleanInformativeOnlySCRs(resultWithoutMeta)
@@ -548,7 +566,7 @@ func (sc *scProcessor) finishSCExecution(
 		log.Debug("scProcessor.finishSCExecution txLogsProcessor.SaveLog()", "error", ignorableError.Error())
 	}
 
-	totalConsumedFee, totalDevRwd := sc.computeTotalConsumedFeeAndDevRwd(tx, vmOutput, builtInFuncGasUsed)
+	totalConsumedFee, totalDevRwd := sc.computeTotalConsumedFeeAndDevRwd(tx, vmOutput, builtInFuncGasUsed, baseGasUsedForSCRs)
 	sc.txFeeHandler.ProcessTransactionFee(totalConsumedFee, totalDevRwd, txHash)
 	sc.gasHandler.SetGasRefunded(vmOutput.GasRemaining, txHash)
 
@@ -699,6 +717,7 @@ func (sc *scProcessor) computeTotalConsumedFeeAndDevRwd(
 	tx data.TransactionHandler,
 	vmOutput *vmcommon.VMOutput,
 	builtInFuncGasUsed uint64,
+	baseGasLimitForSCRs uint64,
 ) (*big.Int, *big.Int) {
 	if tx.GetGasLimit() == 0 {
 		return big.NewInt(0), big.NewInt(0)
@@ -777,7 +796,19 @@ func (sc *scProcessor) computeTotalConsumedFeeAndDevRwd(
 		)
 	}
 
-	totalFee := sc.economicsFee.ComputeFeeForProcessing(tx, consumedGas)
+	var totalFee *big.Int
+	if sc.enableEpochsHandler.IsFlagEnabled(common.FullGasPriceForSCRsFlag) {
+		baseFeeForSCRs := core.SafeMul(baseGasLimitForSCRs, tx.GetGasPrice())
+
+		totalGasForProcessing, _ := core.SafeSubUint64(consumedGas, baseGasLimitForSCRs)
+		totalFee = big.NewInt(0).Add(baseFeeForSCRs, sc.economicsFee.ComputeFeeForProcessing(tx, totalGasForProcessing))
+	} else {
+		totalFee = sc.economicsFee.ComputeFeeForProcessing(tx, consumedGas)
+	}
+
+	//TODO delete first SCR base fee calculation if ESDTNFTTransfer/MultiESDTNFTTransfer cross shard, change persistperbyte to 1500
+	// think about changing finish to 50000
+	// developer rewards remain the same
 	totalFeeMinusBuiltIn := sc.economicsFee.ComputeFeeForProcessing(tx, consumedGasWithoutBuiltin)
 	totalDevRwd := core.GetIntTrimmedPercentageOfValue(totalFeeMinusBuiltIn, sc.economicsFee.DeveloperPercentage())
 
@@ -932,7 +963,7 @@ func (sc *scProcessor) doExecuteBuiltInFunctionWithoutFailureProcessing(
 	}
 
 	if vmInput.ReturnCallAfterError && vmInput.CallType != vmData.AsynchronousCallBack {
-		return sc.finishSCExecution(make([]data.TransactionHandler, 0), txHash, tx, vmOutput, 0)
+		return sc.finishSCExecution(make([]data.TransactionHandler, 0), txHash, tx, vmOutput, 0, 0)
 	}
 
 	_, txTypeOnDst := sc.txTypeHandler.ComputeTransactionType(tx)
@@ -945,6 +976,7 @@ func (sc *scProcessor) doExecuteBuiltInFunctionWithoutFailureProcessing(
 
 	if vmOutput.ReturnCode != vmcommon.Ok {
 		if !check.IfNil(acntSnd) {
+			//TODO recompute paid fee and add back values
 			err := sc.resolveFailedTransaction(acntSnd, tx, txHash)
 			failureContext.setMessage(vmOutput.ReturnMessage)
 			failureContext.setGasLocked(0)
@@ -981,6 +1013,7 @@ func (sc *scProcessor) doExecuteBuiltInFunctionWithoutFailureProcessing(
 
 	newVMInput := vmInput
 	newVMOutput := vmOutput
+	baseGasUsedForSCRs := uint64(0)
 
 	var errReturnCode vmcommon.ReturnCode
 	if executionDataAfterBuiltIn.isSCCallSelfShard {
@@ -1016,6 +1049,8 @@ func (sc *scProcessor) doExecuteBuiltInFunctionWithoutFailureProcessing(
 			return vmcommon.ExecutionFailed, nil
 		}
 
+		baseGasUsedForSCRs = sc.computeBaseGasFeeFromVMOutput(newVMOutput)
+
 		createdAsyncCallback, scrResults = mergeOutputResultsWithBuiltinResults(
 			&outputResultsToBeMerged{
 				tmpCreatedAsyncCallback: tmpCreatedAsyncCallback,
@@ -1039,6 +1074,7 @@ func (sc *scProcessor) doExecuteBuiltInFunctionWithoutFailureProcessing(
 				acntSnd:              acntSnd,
 				createdAsyncCallback: createdAsyncCallback,
 				failureContext:       failureContext,
+				baseGasUsedForSCRs:   baseGasUsedForSCRs,
 			})
 		if errReturnCode != vmcommon.Ok || err != nil {
 			return errReturnCode, nil
@@ -1051,7 +1087,7 @@ func (sc *scProcessor) doExecuteBuiltInFunctionWithoutFailureProcessing(
 		return vmcommon.UserError, nil
 	}
 
-	return sc.finishSCExecution(scrResults, txHash, tx, newVMOutput, builtInFuncGasUsed)
+	return sc.finishSCExecution(scrResults, txHash, tx, newVMOutput, builtInFuncGasUsed, baseGasUsedForSCRs)
 }
 
 func mergeOutputResultsWithBuiltinResults(results *outputResultsToBeMerged) (bool, []data.TransactionHandler) {
@@ -1541,6 +1577,10 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(acntSnd state.UserAccountHand
 	return nil
 }
 
+func (sc *scProcessor) createRefundWhenProcessIfError() error {
+	return nil
+}
+
 // TODO delete this function and actually resolve the issue in the built in function of saveKeyValue
 func (sc *scProcessor) setEmptyRoothashOnErrorIfSaveKeyValue(tx data.TransactionHandler, account state.UserAccountHandler) {
 	if sc.shardCoordinator.SelfId() == core.MetachainShardId {
@@ -1882,7 +1922,7 @@ func (sc *scProcessor) doDeploySmartContract(
 		return 0, err
 	}
 
-	totalConsumedFee, totalDevRwd := sc.computeTotalConsumedFeeAndDevRwd(tx, vmOutput, 0)
+	totalConsumedFee, totalDevRwd := sc.computeTotalConsumedFeeAndDevRwd(tx, vmOutput, 0, 0)
 	sc.txFeeHandler.ProcessTransactionFee(totalConsumedFee, totalDevRwd, txHash)
 	sc.printScDeployed(vmOutput, tx)
 	sc.gasHandler.SetGasRefunded(vmOutput.GasRemaining, txHash)
@@ -1930,7 +1970,7 @@ func (sc *scProcessor) processSCPayment(tx data.TransactionHandler, acntSnd stat
 		return err
 	}
 
-	cost := sc.economicsFee.ComputeTxFee(tx)
+	cost := sc.economicsFee.ComputeInitialTxFee(tx)
 	cost = cost.Add(cost, tx.GetValue())
 
 	if cost.Cmp(big.NewInt(0)) == 0 {
@@ -1969,6 +2009,7 @@ func (sc *scProcessor) processVMOutput(
 			acntSnd:              acntSnd,
 			createdAsyncCallback: createdAsyncCallback,
 			failureContext:       failureContext,
+			baseGasUsedForSCRs:   sc.computeBaseGasFeeFromVMOutput(vmOutput),
 		})
 	if err != nil {
 		return nil, err
@@ -1991,6 +2032,7 @@ type outputDataFromCall struct {
 	acntSnd              state.UserAccountHandler
 	createdAsyncCallback bool
 	failureContext       *failureContext
+	baseGasUsedForSCRs   uint64
 }
 
 func (sc *scProcessor) completeOutputProcessingAndCreateCallback(
@@ -2034,6 +2076,7 @@ func (sc *scProcessor) createSCRForSenderAndRelayerAndRefundGas(outData *outputD
 		outData.tx,
 		outData.txHash,
 		outData.vmInput.CallType,
+		outData.baseGasUsedForSCRs,
 	)
 
 	var err error
@@ -2562,9 +2605,9 @@ func (sc *scProcessor) createSCRForSenderAndRelayer(
 	tx data.TransactionHandler,
 	txHash []byte,
 	callType vmData.CallType,
+	baseGasUsedForSCRs uint64,
 ) (*smartContractResult.SmartContractResult, *smartContractResult.SmartContractResult) {
 	if vmOutput.GasRefund == nil {
-		// TODO: compute gas refund with reduced gasPrice if we need to activate this
 		vmOutput.GasRefund = big.NewInt(0)
 	}
 
@@ -2575,6 +2618,20 @@ func (sc *scProcessor) createSCRForSenderAndRelayer(
 	rcvAddress := tx.GetSndAddr()
 	if callType == vmData.AsynchronousCallBack {
 		rcvAddress = tx.GetRcvAddr()
+	}
+
+	if sc.enableEpochsHandler.IsFlagEnabled(common.FullGasPriceForSCRsFlag) {
+		if !core.IsSmartContractAddress(rcvAddress) {
+			//gasRefund is gasRemaining in full price - as that is what was taken out
+			//plus (gasUsed - baseGasUseForSCRs) * (1 - gasModifier) * gasPrice
+
+			gasRefund = core.SafeMul(tx.GetGasPrice(), vmOutput.GasRemaining)
+			gasUsedForProcessing, _ := core.SafeSubUint64(tx.GetGasLimit(), vmOutput.GasRemaining)
+			gasUsedForProcessing, _ = core.SafeSubUint64(gasUsedForProcessing, baseGasUsedForSCRs)
+			refundGasFromProcessing := (1.0 - sc.economicsFee.GasPriceModifier()) * float64(gasUsedForProcessing)
+
+			gasRefund.Add(gasRefund, core.SafeMul(uint64(refundGasFromProcessing), gasUsedForProcessing))
+		}
 	}
 
 	var refundGasToRelayerSCR *smartContractResult.SmartContractResult

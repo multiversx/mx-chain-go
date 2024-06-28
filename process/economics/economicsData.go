@@ -544,12 +544,22 @@ func (ed *economicsData) ComputeGasLimit(tx data.TransactionWithFeeHandler) uint
 
 // ComputeGasLimitInEpoch returns the gas limit need by the provided transaction in order to be executed in a specific epoch
 func (ed *economicsData) ComputeGasLimitInEpoch(tx data.TransactionWithFeeHandler, epoch uint32) uint64 {
-	gasLimit := ed.getMinGasLimit(epoch)
-
-	dataLen := uint64(len(tx.GetData()))
-	gasLimit += dataLen * ed.gasPerDataByte
 	txInstance, ok := tx.(*transaction.Transaction)
-	if ok && ed.txVersionHandler.IsGuardedTransaction(txInstance) {
+	isGuarded := ok && ed.txVersionHandler.IsGuardedTransaction(txInstance)
+	return ed.ComputeBaseGasLimitInEpoch(uint64(len(tx.GetData())), isGuarded, epoch)
+}
+
+// ComputeBaseGasLimit returns gas limit used for base operation depending on data and guardian
+func (ed *economicsData) ComputeBaseGasLimit(dataLen uint64, isGuarded bool) uint64 {
+	currentEpoch := ed.enableEpochsHandler.GetCurrentEpoch()
+	return ed.ComputeBaseGasLimitInEpoch(dataLen, isGuarded, currentEpoch)
+}
+
+// ComputeBaseGasLimitInEpoch returns gas limit used for base operation depending on data and guardian
+func (ed *economicsData) ComputeBaseGasLimitInEpoch(dataLen uint64, isGuarded bool, epoch uint32) uint64 {
+	gasLimit := ed.getMinGasLimit(epoch)
+	gasLimit += dataLen * ed.gasPerDataByte
+	if isGuarded {
 		gasLimit += ed.getExtraGasLimitGuardedTx(epoch)
 	}
 
