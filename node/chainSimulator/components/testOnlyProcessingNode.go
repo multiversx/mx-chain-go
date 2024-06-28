@@ -503,6 +503,18 @@ func (node *testOnlyProcessingNode) RemoveAccount(address []byte) error {
 	return err
 }
 
+// ForceChangeOfEpoch will force change of epoch
+func (node *testOnlyProcessingNode) ForceChangeOfEpoch() error {
+	currentHeader := node.DataComponentsHolder.Blockchain().GetCurrentBlockHeader()
+	if currentHeader == nil {
+		currentHeader = node.DataComponentsHolder.Blockchain().GetGenesisHeader()
+	}
+
+	node.ProcessComponentsHolder.EpochStartTrigger().ForceEpochStart(currentHeader.GetRound() + 1)
+
+	return nil
+}
+
 func setNonceAndBalanceForAccount(userAccount state.UserAccountHandler, nonce *uint64, balance string) error {
 	if nonce != nil {
 		// set nonce to zero
