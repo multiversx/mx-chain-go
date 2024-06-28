@@ -146,10 +146,16 @@ func TestChainSimulator_UpdateCrossShardAttributes(t *testing.T) {
 
 	cs.GenerateBlocks(5)
 
-	//update attribute for NFT second time -> cross-shard update
+	//update attribute for NFT -> cross-shard update
 	expectedNewAttribute = "attribute2"
-	data = "update@" + hex.EncodeToString([]byte(expectedNewAttribute))
-	tx = chainSim.GenerateTransaction(address1.Bytes, 1, scAddress, zeroValue, data, uint64(60000000))
+	data = "ESDTNFTTransfer" +
+		"@" + hex.EncodeToString([]byte(nftCollection)) + //nft collection
+		"@01" + // nonce
+		"@01" + // amount
+		"@" + hex.EncodeToString(scAddress) + // sc address
+		"@" + hex.EncodeToString([]byte("update")) +
+		"@" + hex.EncodeToString([]byte(expectedNewAttribute))
+	tx = chainSim.GenerateTransaction(address1.Bytes, 1, address1.Bytes, zeroValue, data, uint64(60000000))
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlocksToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
@@ -165,10 +171,16 @@ func TestChainSimulator_UpdateCrossShardAttributes(t *testing.T) {
 
 	cs.GenerateBlocks(5)
 
-	//update attribute for NFT third time -> cross-shard update
+	//update attribute for NFT -> cross-shard update
 	expectedNewAttribute = "attribute3"
-	data = "update@" + hex.EncodeToString([]byte(expectedNewAttribute))
-	tx = chainSim.GenerateTransaction(address1.Bytes, 2, scAddress, zeroValue, data, uint64(60000000))
+	data = "ESDTNFTTransfer" +
+		"@" + hex.EncodeToString([]byte(nftCollection)) + //nft collection
+		"@01" + // nonce
+		"@01" + // amount
+		"@" + hex.EncodeToString(scAddress) + // sc address
+		"@" + hex.EncodeToString([]byte("update")) +
+		"@" + hex.EncodeToString([]byte(expectedNewAttribute))
+	tx = chainSim.GenerateTransaction(address1.Bytes, 2, address1.Bytes, zeroValue, data, uint64(60000000))
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlocksToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
@@ -273,7 +285,7 @@ func TestChainSimulator_UpdateSameShardAttributes(t *testing.T) {
 	nftAttributes := accountsEsdts[nftIdentifier].TokenMetaData.Attributes
 	require.Equal(t, "common", string(nftAttributes))
 
-	//update attribute for NFT -> cross-shard update
+	//update attribute for NFT -> same-shard update
 	expectedNewAttribute := "attribute1"
 	data = "ESDTNFTTransfer" +
 		"@" + hex.EncodeToString([]byte(nftCollection)) + //nft collection
@@ -298,10 +310,16 @@ func TestChainSimulator_UpdateSameShardAttributes(t *testing.T) {
 
 	cs.GenerateBlocks(5)
 
-	//update attribute for NFT second time -> cross-shard update
+	//update attribute for NFT -> same-shard update
 	expectedNewAttribute = "attribute2"
-	data = "update@" + hex.EncodeToString([]byte(expectedNewAttribute))
-	tx = chainSim.GenerateTransaction(address0.Bytes, 4, scAddress, zeroValue, data, uint64(60000000))
+	data = "ESDTNFTTransfer" +
+		"@" + hex.EncodeToString([]byte(nftCollection)) + //nft collection
+		"@01" + // nonce
+		"@01" + // amount
+		"@" + hex.EncodeToString(scAddress) + // sc address
+		"@" + hex.EncodeToString([]byte("update")) +
+		"@" + hex.EncodeToString([]byte(expectedNewAttribute))
+	tx = chainSim.GenerateTransaction(address0.Bytes, 4, address0.Bytes, zeroValue, data, uint64(60000000))
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlocksToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
@@ -317,10 +335,16 @@ func TestChainSimulator_UpdateSameShardAttributes(t *testing.T) {
 
 	cs.GenerateBlocks(5)
 
-	//update attribute for NFT third time -> cross-shard update
+	//update attribute for NFT -> same-shard update
 	expectedNewAttribute = "attribute3"
-	data = "update@" + hex.EncodeToString([]byte(expectedNewAttribute))
-	tx = chainSim.GenerateTransaction(address0.Bytes, 5, scAddress, zeroValue, data, uint64(60000000))
+	data = "ESDTNFTTransfer" +
+		"@" + hex.EncodeToString([]byte(nftCollection)) + //nft collection
+		"@01" + // nonce
+		"@01" + // amount
+		"@" + hex.EncodeToString(scAddress) + // sc address
+		"@" + hex.EncodeToString([]byte("update")) +
+		"@" + hex.EncodeToString([]byte(expectedNewAttribute))
+	tx = chainSim.GenerateTransaction(address0.Bytes, 5, address0.Bytes, zeroValue, data, uint64(60000000))
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlocksToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
