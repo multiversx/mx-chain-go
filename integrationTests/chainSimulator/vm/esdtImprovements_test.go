@@ -628,6 +628,7 @@ func nftCreateTx(
 }
 
 func modifyCreatorTx(
+	nonce uint64,
 	sndAdr []byte,
 	tokenID []byte,
 ) *transaction.Transaction {
@@ -641,7 +642,7 @@ func modifyCreatorTx(
 	)
 
 	return &transaction.Transaction{
-		Nonce:     0,
+		Nonce:     nonce,
 		SndAddr:   sndAdr,
 		RcvAddr:   sndAdr,
 		GasLimit:  10_000_000,
@@ -1350,7 +1351,7 @@ func TestChainSimulator_ESDTModifyCreator(t *testing.T) {
 		}
 		setAddressEsdtRoles(t, cs, newCreatorAddress, tokenIDs[i], roles)
 
-		tx = modifyCreatorTx(newCreatorAddress.Bytes, tokenIDs[i])
+		tx = modifyCreatorTx(0, newCreatorAddress.Bytes, tokenIDs[i])
 
 		txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 		require.Nil(t, err)
@@ -1491,7 +1492,7 @@ func TestChainSimulator_ESDTModifyCreator_SFTmetaESDT(t *testing.T) {
 		require.NotNil(t, txResult)
 		require.Equal(t, "success", txResult.Status.String())
 
-		tx = modifyCreatorTx(newCreatorAddress.Bytes, tokenIDs[i])
+		tx = modifyCreatorTx(0, newCreatorAddress.Bytes, tokenIDs[i])
 
 		txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 		require.Nil(t, err)
@@ -1674,9 +1675,13 @@ func TestChainSimulator_ESDTModifyCreator_CrossShard(t *testing.T) {
 		txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 		require.Nil(t, err)
 		require.NotNil(t, txResult)
+
 		require.Equal(t, "success", txResult.Status.String())
 
-		tx = modifyCreatorTx(newCreatorAddress.Bytes, tokenIDs[i])
+		err = cs.GenerateBlocks(10)
+		require.Nil(t, err)
+
+		tx = modifyCreatorTx(0, newCreatorAddress.Bytes, tokenIDs[i])
 
 		txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 		require.Nil(t, err)
@@ -1688,6 +1693,7 @@ func TestChainSimulator_ESDTModifyCreator_CrossShard(t *testing.T) {
 
 		require.Equal(t, "success", txResult.Status.String())
 
+		shardID := cs.GetNodeHandler(0).GetProcessComponents().ShardCoordinator().ComputeId(newCreatorAddress.Bytes)
 		retrievedMetaData := getMetaDataFromAcc(t, cs, core.SystemAccountAddress, tokenIDs[i], shardID)
 
 		require.Equal(t, newCreatorAddress.Bytes, retrievedMetaData.Creator)
