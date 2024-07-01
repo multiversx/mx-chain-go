@@ -3430,7 +3430,7 @@ func TestChainSimulator_ChangeToDynamic_OldTokens(t *testing.T) {
 	checkMetaDataNotInAcc(t, cs, core.SystemAccountAddress, nftTokenID, shardID)
 }
 
-func TestChainSimulator_CreateAndPauseTokens(t *testing.T) {
+func TestChainSimulator_CreateAndPause_NFT(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -3531,13 +3531,13 @@ func TestChainSimulator_CreateAndPauseTokens(t *testing.T) {
 	err = cs.GenerateBlocks(10)
 	require.Nil(t, err)
 
-	log.Info("Step 1. check that the metadata for all tokens is saved on the system account")
+	log.Info("check that the metadata for all tokens is saved on the system account")
 
 	shardID := cs.GetNodeHandler(0).GetProcessComponents().ShardCoordinator().ComputeId(addrs[0].Bytes)
 
 	checkMetaData(t, cs, core.SystemAccountAddress, nftTokenID, shardID, nftMetaData)
 
-	log.Info("Step 1b. Pause all tokens")
+	log.Info("Pause all tokens")
 
 	scQuery := &process.SCQuery{
 		ScAddress:  vm.ESDTSCAddress,
@@ -3551,12 +3551,12 @@ func TestChainSimulator_CreateAndPauseTokens(t *testing.T) {
 	require.Equal(t, "", result.ReturnMessage)
 	require.Equal(t, testsChainSimulator.OkReturnCode, result.ReturnCode)
 
-	log.Info("Step 2. wait for DynamicEsdtFlag activation")
+	log.Info("wait for DynamicEsdtFlag activation")
 
 	err = cs.GenerateBlocksUntilEpochIsReached(int32(activationEpoch))
 	require.Nil(t, err)
 
-	log.Info("Step 5. make an updateTokenID@tokenID function call on the ESDTSystem SC for all token types")
+	log.Info("make an updateTokenID@tokenID function call on the ESDTSystem SC for all token types")
 
 	tx = updateTokenIDTx(2, addrs[0].Bytes, nftTokenID)
 
@@ -3565,21 +3565,16 @@ func TestChainSimulator_CreateAndPauseTokens(t *testing.T) {
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
-
-	fmt.Println(txResult)
-	fmt.Println(string(txResult.Logs.Events[0].Topics[0]))
-	fmt.Println(string(txResult.Logs.Events[0].Topics[1]))
-
 	require.Equal(t, "success", txResult.Status.String())
 
-	log.Info("Step 6. check that the metadata for all tokens is saved on the system account")
+	log.Info("check that the metadata for all tokens is saved on the system account")
 
 	err = cs.GenerateBlocks(10)
 	require.Nil(t, err)
 
 	checkMetaData(t, cs, core.SystemAccountAddress, nftTokenID, shardID, nftMetaData)
 
-	log.Info("Step 7. transfer the tokens to another account")
+	log.Info("transfer the tokens to another account")
 
 	log.Info("transfering token id", "tokenID", nftTokenID)
 
@@ -3587,14 +3582,9 @@ func TestChainSimulator_CreateAndPauseTokens(t *testing.T) {
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
-
-	fmt.Println(txResult)
-	fmt.Println(string(txResult.Logs.Events[0].Topics[0]))
-	fmt.Println(string(txResult.Logs.Events[0].Topics[1]))
-
 	require.Equal(t, "success", txResult.Status.String())
 
-	log.Info("Step 8. check that the metaData for the NFT is still on the system account")
+	log.Info("check that the metaData for the NFT is still on the system account")
 
 	err = cs.GenerateBlocks(10)
 	require.Nil(t, err)
@@ -3606,7 +3596,7 @@ func TestChainSimulator_CreateAndPauseTokens(t *testing.T) {
 	checkMetaDataNotInAcc(t, cs, core.SystemAccountAddress, nftTokenID, shardID)
 }
 
-func TestChainSimulator_CreateAndPauseTokens_ChangeToDynamic(t *testing.T) {
+func TestChainSimulator_CreateAndPauseTokens_DynamicNFT(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -3712,11 +3702,6 @@ func TestChainSimulator_CreateAndPauseTokens_ChangeToDynamic(t *testing.T) {
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
-
-	fmt.Println(txResult)
-	fmt.Println(string(txResult.Logs.Events[0].Topics[0]))
-	fmt.Println(string(txResult.Logs.Events[0].Topics[1]))
-
 	require.Equal(t, "success", txResult.Status.String())
 
 	err = cs.GenerateBlocks(10)
@@ -3749,11 +3734,6 @@ func TestChainSimulator_CreateAndPauseTokens_ChangeToDynamic(t *testing.T) {
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
-
-	fmt.Println(txResult)
-	fmt.Println(string(txResult.Logs.Events[0].Topics[0]))
-	fmt.Println(string(txResult.Logs.Events[0].Topics[1]))
-
 	require.Equal(t, "success", txResult.Status.String())
 
 	log.Info("change to dynamic token")
@@ -3765,14 +3745,9 @@ func TestChainSimulator_CreateAndPauseTokens_ChangeToDynamic(t *testing.T) {
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
-
-	fmt.Println(txResult)
-	fmt.Println(string(txResult.Logs.Events[0].Topics[0]))
-	fmt.Println(string(txResult.Logs.Events[0].Topics[1]))
-
 	require.Equal(t, "success", txResult.Status.String())
 
-	log.Info("Step 6. check that the metadata for all tokens is saved on the system account")
+	log.Info("check that the metadata for all tokens is saved on the system account")
 
 	err = cs.GenerateBlocks(10)
 	require.Nil(t, err)
@@ -3785,14 +3760,9 @@ func TestChainSimulator_CreateAndPauseTokens_ChangeToDynamic(t *testing.T) {
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
-
-	fmt.Println(txResult)
-	fmt.Println(string(txResult.Logs.Events[0].Topics[0]))
-	fmt.Println(string(txResult.Logs.Events[0].Topics[1]))
-
 	require.Equal(t, "success", txResult.Status.String())
 
-	log.Info("Step 8. check that the metaData for the NFT is still on the system account")
+	log.Info("check that the metaData for the NFT is still on the system account")
 
 	err = cs.GenerateBlocks(10)
 	require.Nil(t, err)
