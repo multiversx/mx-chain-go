@@ -2136,11 +2136,27 @@ func TestChainSimulator_NFT_ChangeToDynamicType(t *testing.T) {
 // 2. change the sft meta data (differently from the previous one) in the other shard
 // 3. send sft from one shard to another
 // 4. check that the newest metadata is saved
-func TestChainSimulator_SFT_ChangeMetaData(t *testing.T) {
+func TestChainSimulator_ChangeMetaData(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 
+	t.Run("sft change metadata", func(t *testing.T) {
+		testChainSimulatorChangeMetaData(t, issueSemiFungibleTx)
+	})
+
+	t.Run("metaESDT change metadata", func(t *testing.T) {
+		testChainSimulatorChangeMetaData(t, issueMetaESDTTx)
+	})
+
+	t.Run("fungible change metadata", func(t *testing.T) {
+		testChainSimulatorChangeMetaData(t, issueTx)
+	})
+}
+
+type issueTxFunc func(uint64, []byte, []byte, string) *transaction.Transaction
+
+func testChainSimulatorChangeMetaData(t *testing.T, issueFn issueTxFunc) {
 	baseIssuingCost := "1000"
 
 	cs, _ := getTestChainSimulatorWithDynamicNFTEnabled(t, baseIssuingCost)
@@ -2148,7 +2164,7 @@ func TestChainSimulator_SFT_ChangeMetaData(t *testing.T) {
 
 	addrs := createAddresses(t, cs, true)
 
-	log.Info("Initial setup: Create SFT and send in 2 shards")
+	log.Info("Initial setup: Create token and send in 2 shards")
 
 	roles := [][]byte{
 		[]byte(core.ESDTRoleNFTCreate),
@@ -2156,22 +2172,20 @@ func TestChainSimulator_SFT_ChangeMetaData(t *testing.T) {
 		[]byte(core.ESDTRoleNFTAddQuantity),
 	}
 
-	sftTicker := []byte("SFTTICKER")
-	tx := issueSemiFungibleTx(0, addrs[1].Bytes, sftTicker, baseIssuingCost)
-
+	ticker := []byte("TICKER")
+	tx := issueFn(0, addrs[1].Bytes, ticker, baseIssuingCost)
 	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
-
 	require.Equal(t, "success", txResult.Status.String())
 
-	sftTokenID := txResult.Logs.Events[0].Topics[0]
-	setAddressEsdtRoles(t, cs, addrs[1], sftTokenID, roles)
+	tokenID := txResult.Logs.Events[0].Topics[0]
+	setAddressEsdtRoles(t, cs, addrs[1], tokenID, roles)
 
-	setAddressEsdtRoles(t, cs, addrs[0], sftTokenID, roles)
-	setAddressEsdtRoles(t, cs, addrs[2], sftTokenID, roles)
+	setAddressEsdtRoles(t, cs, addrs[0], tokenID, roles)
+	setAddressEsdtRoles(t, cs, addrs[2], tokenID, roles)
 
-	log.Info("Issued SFT token id", "tokenID", string(sftTokenID))
+	log.Info("Issued token id", "tokenID", string(tokenID))
 
 	sftMetaData := txsFee.GetDefaultMetaData()
 	sftMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
@@ -2179,7 +2193,7 @@ func TestChainSimulator_SFT_ChangeMetaData(t *testing.T) {
 	txDataField := bytes.Join(
 		[][]byte{
 			[]byte(core.BuiltInFunctionESDTNFTCreate),
-			[]byte(hex.EncodeToString(sftTokenID)),
+			[]byte(hex.EncodeToString(tokenID)),
 			[]byte(hex.EncodeToString(big.NewInt(2).Bytes())), // quantity
 			sftMetaData.Name,
 			[]byte(hex.EncodeToString(big.NewInt(10).Bytes())),
@@ -2208,7 +2222,6 @@ func TestChainSimulator_SFT_ChangeMetaData(t *testing.T) {
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
-
 	require.Equal(t, "success", txResult.Status.String())
 
 	err = cs.GenerateBlocks(10)
@@ -2216,13 +2229,13 @@ func TestChainSimulator_SFT_ChangeMetaData(t *testing.T) {
 
 	log.Info("Send to separate shards")
 
-	tx = esdtNFTTransferTx(2, addrs[1].Bytes, addrs[2].Bytes, sftTokenID)
+	tx = esdtNFTTransferTx(2, addrs[1].Bytes, addrs[2].Bytes, tokenID)
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
 	require.Equal(t, "success", txResult.Status.String())
 
-	tx = esdtNFTTransferTx(3, addrs[1].Bytes, addrs[0].Bytes, sftTokenID)
+	tx = esdtNFTTransferTx(3, addrs[1].Bytes, addrs[0].Bytes, tokenID)
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
@@ -2244,7 +2257,7 @@ func TestChainSimulator_SFT_ChangeMetaData(t *testing.T) {
 	txDataField = bytes.Join(
 		[][]byte{
 			[]byte(core.ESDTMetaDataUpdate),
-			[]byte(hex.EncodeToString(sftTokenID)),
+			[]byte(hex.EncodeToString(tokenID)),
 			sftMetaData2.Nonce,
 			sftMetaData2.Name,
 			[]byte(hex.EncodeToString(big.NewInt(10).Bytes())),
@@ -2273,12 +2286,11 @@ func TestChainSimulator_SFT_ChangeMetaData(t *testing.T) {
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
-
 	require.Equal(t, "success", txResult.Status.String())
 
 	shardID := cs.GetNodeHandler(0).GetProcessComponents().ShardCoordinator().ComputeId(addrs[0].Bytes)
 
-	checkMetaData(t, cs, core.SystemAccountAddress, sftTokenID, shardID, sftMetaData2)
+	checkMetaData(t, cs, core.SystemAccountAddress, tokenID, shardID, sftMetaData2)
 
 	log.Info("Step 2. change the sft meta data (differently from the previous one) in the other shard")
 
@@ -2292,7 +2304,7 @@ func TestChainSimulator_SFT_ChangeMetaData(t *testing.T) {
 	txDataField = bytes.Join(
 		[][]byte{
 			[]byte(core.ESDTMetaDataUpdate),
-			[]byte(hex.EncodeToString(sftTokenID)),
+			[]byte(hex.EncodeToString(tokenID)),
 			sftMetaData3.Nonce,
 			sftMetaData3.Name,
 			[]byte(hex.EncodeToString(big.NewInt(10).Bytes())),
@@ -2326,11 +2338,11 @@ func TestChainSimulator_SFT_ChangeMetaData(t *testing.T) {
 
 	shardID = cs.GetNodeHandler(0).GetProcessComponents().ShardCoordinator().ComputeId(addrs[2].Bytes)
 
-	checkMetaData(t, cs, core.SystemAccountAddress, sftTokenID, shardID, sftMetaData3)
+	checkMetaData(t, cs, core.SystemAccountAddress, tokenID, shardID, sftMetaData3)
 
 	log.Info("Step 3. send sft from one shard to another")
 
-	tx = esdtNFTTransferTx(1, addrs[0].Bytes, addrs[2].Bytes, sftTokenID)
+	tx = esdtNFTTransferTx(1, addrs[0].Bytes, addrs[2].Bytes, tokenID)
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
@@ -2344,7 +2356,7 @@ func TestChainSimulator_SFT_ChangeMetaData(t *testing.T) {
 
 	shardID = cs.GetNodeHandler(0).GetProcessComponents().ShardCoordinator().ComputeId(addrs[2].Bytes)
 
-	checkMetaData(t, cs, core.SystemAccountAddress, sftTokenID, shardID, sftMetaData2)
+	checkMetaData(t, cs, core.SystemAccountAddress, tokenID, shardID, sftMetaData2)
 }
 
 func TestChainSimulator_NFT_RegisterDynamic(t *testing.T) {
