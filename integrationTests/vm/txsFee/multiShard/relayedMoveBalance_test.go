@@ -266,13 +266,13 @@ func testRelayedMoveBalanceExecuteOnSourceAndDestinationRelayerAndInnerTxSenderS
 		// check relayed balance
 		// before base cost fix: 100000 - rTxFee(163)*gasPrice(10) - innerTxFee(1000) = 97370
 		//  after base cost fix: 100000 - rTxFee(163)*gasPrice(10) - innerTxFee(10)   = 98360
-		expectedConsumedFee := big.NewInt(97370)
+		expectedRelayerBalance := big.NewInt(97370)
 		expectedAccumulatedFees := big.NewInt(2630)
 		if relayedFixActivationEpoch != integrationTests.UnreachableEpoch {
-			expectedConsumedFee = big.NewInt(98360)
+			expectedRelayerBalance = big.NewInt(98360)
 			expectedAccumulatedFees = big.NewInt(1640)
 		}
-		utils.TestAccount(t, testContextSource.Accounts, relayerAddr, 1, expectedConsumedFee)
+		utils.TestAccount(t, testContextSource.Accounts, relayerAddr, 1, expectedRelayerBalance)
 		// check inner tx sender
 		utils.TestAccount(t, testContextSource.Accounts, sndAddr, 1, big.NewInt(0))
 

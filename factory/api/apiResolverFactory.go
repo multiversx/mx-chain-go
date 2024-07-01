@@ -185,11 +185,6 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		return nil, err
 	}
 
-	err = args.CoreComponents.EconomicsData().SetTxTypeHandler(txTypeHandler)
-	if err != nil {
-		return nil, err
-	}
-
 	accountsWrapper := &trieIterators.AccountsWrapper{
 		Mutex:           &sync.Mutex{},
 		AccountsAdapter: args.StateComponents.AccountsAdapterAPI(),
