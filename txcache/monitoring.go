@@ -12,10 +12,18 @@ import (
 var log = logger.GetOrCreate("txcache")
 
 func (cache *TxCache) monitorEvictionWrtSenderLimit(sender []byte, evicted [][]byte) {
-	log.Trace("TxCache.AddTx() evict transactions wrt. limit by sender", "name", cache.name, "sender", sender, "num", len(evicted))
+	log.Trace("TxCache.monitorEvictionWrtSenderLimit()", "name", cache.name, "sender", sender, "num", len(evicted))
 
 	for i := 0; i < core.MinInt(len(evicted), numEvictedTxsToDisplay); i++ {
-		log.Trace("TxCache.AddTx() evict transactions wrt. limit by sender", "name", cache.name, "sender", sender, "tx", evicted[i])
+		log.Trace("TxCache.monitorEvictionWrtSenderLimit()", "name", cache.name, "sender", sender, "tx", evicted[i])
+	}
+}
+
+func (cache *TxCache) monitorEvictionWrtSenderNonce(sender []byte, senderNonce uint64, evicted [][]byte) {
+	log.Trace("TxCache.monitorEvictionWrtSenderNonce()", "name", cache.name, "sender", sender, "nonce", senderNonce, "num", len(evicted))
+
+	for i := 0; i < core.MinInt(len(evicted), numEvictedTxsToDisplay); i++ {
+		log.Trace("TxCache.monitorEvictionWrtSenderNonce()", "name", cache.name, "sender", sender, "nonce", senderNonce, "tx", evicted[i])
 	}
 }
 

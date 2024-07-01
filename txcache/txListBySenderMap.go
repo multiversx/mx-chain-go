@@ -133,14 +133,14 @@ func (txMap *txListBySenderMap) RemoveSendersBulk(senders []string) uint32 {
 	return numRemoved
 }
 
-func (txMap *txListBySenderMap) notifyAccountNonce(accountKey []byte, nonce uint64) {
+func (txMap *txListBySenderMap) notifyAccountNonce(accountKey []byte, nonce uint64) [][]byte {
 	sender := string(accountKey)
 	listForSender, ok := txMap.getListForSender(sender)
 	if !ok {
-		return
+		return nil
 	}
 
-	listForSender.notifyAccountNonce(nonce)
+	return listForSender.notifyAccountNonce(nonce)
 }
 
 func (txMap *txListBySenderMap) getSnapshotAscending() []*txListForSender {
