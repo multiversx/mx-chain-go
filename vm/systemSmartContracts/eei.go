@@ -770,7 +770,7 @@ func (host *vmContext) CreateVMOutput() *vmcommon.VMOutput {
 		}
 
 		// backward compatibility - genesis was done without this
-		if host.blockChainHook.CurrentNonce() > 0 {
+		if host.blockChainHook.CurrentNonce() > 0 || host.enableEpochsHandler.IsFlagEnabled(common.SCDeployFlag) {
 			if len(outAcc.CodeDeployerAddress) > 0 {
 				outAccs[addr].CodeDeployerAddress = outAcc.CodeDeployerAddress
 			}
