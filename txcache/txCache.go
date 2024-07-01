@@ -311,7 +311,12 @@ func (cache *TxCache) UnRegisterHandler(string) {
 // NotifyAccountNonce should be called by external components (such as interceptors and transactions processor)
 // in order to inform the cache about initial nonce gap phenomena
 func (cache *TxCache) NotifyAccountNonce(accountKey []byte, nonce uint64) {
-	cache.txListBySender.notifyAccountNonce(accountKey, nonce)
+	evicted := cache.txListBySender.notifyAccountNonce(accountKey, nonce)
+
+	if len(evicted) > 0 {
+		cache.monitorEvictionWrtSenderNonce(accountKey, nonce, evicted)
+		cache.txByHash.RemoveTxsBulk(evicted)
+	}
 }
 
 // ImmunizeTxsAgainstEviction does nothing for this type of cache

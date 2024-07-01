@@ -320,9 +320,37 @@ func approximatelyCountTxInLists(lists []*txListForSender) uint64 {
 
 // notifyAccountNonce does not update the "numFailedSelections" counter,
 // since the notification comes at a time when we cannot actually detect whether the initial gap still exists or it was resolved.
-func (listForSender *txListForSender) notifyAccountNonce(nonce uint64) {
+// Removes transactions with lower nonces and returns their hashes.
+func (listForSender *txListForSender) notifyAccountNonce(nonce uint64) [][]byte {
+	listForSender.mutex.Lock()
+	defer listForSender.mutex.Unlock()
+
 	listForSender.accountNonce.Set(nonce)
 	_ = listForSender.accountNonceKnown.SetReturningPrevious()
+
+	return listForSender.evictTransactionsWithLowerNonces(nonce)
+}
+
+// This function should only be used in critical section (listForSender.mutex)
+func (listForSender *txListForSender) evictTransactionsWithLowerNonces(accountNonce uint64) [][]byte {
+	evictedTxHashes := make([][]byte, 0)
+
+	for element := listForSender.items.Front(); element != nil; element = element.Next() {
+		tx := element.Value.(*WrappedTransaction)
+		txNonce := tx.Tx.GetNonce()
+
+		if txNonce >= accountNonce {
+			break
+		}
+
+		listForSender.items.Remove(element)
+		listForSender.onRemovedListElement(element)
+
+		// Keep track of removed transactions
+		evictedTxHashes = append(evictedTxHashes, tx.TxHash)
+	}
+
+	return evictedTxHashes
 }
 
 // This function should only be used in critical section (listForSender.mutex)
