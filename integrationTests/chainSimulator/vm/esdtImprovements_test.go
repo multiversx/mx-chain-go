@@ -1359,6 +1359,7 @@ func TestChainSimulator_ESDTModifyCreator(t *testing.T) {
 	}
 }
 
+// ESDTModifyCreator without changing to dynamic type
 func TestChainSimulator_ESDTModifyCreator_SFTmetaESDT(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -1483,6 +1484,14 @@ func TestChainSimulator_ESDTModifyCreator_SFTmetaESDT(t *testing.T) {
 		}
 		setAddressEsdtRoles(t, cs, newCreatorAddress, tokenIDs[i], roles)
 
+		log.Info("transfering token id", "tokenID", tokenIDs[i])
+
+		tx = esdtNFTTransferTx(nonce, addrs[1].Bytes, newCreatorAddress.Bytes, tokenIDs[i])
+		txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+		require.Nil(t, err)
+		require.NotNil(t, txResult)
+		require.Equal(t, "success", txResult.Status.String())
+
 		txDataField := bytes.Join(
 			[][]byte{
 				[]byte(core.ESDTModifyCreator),
@@ -1532,8 +1541,6 @@ func TestChainSimulator_ESDTModifyCreator_CrossShard(t *testing.T) {
 
 	cs, _ := getTestChainSimulatorWithDynamicNFTEnabled(t, baseIssuingCost)
 	defer cs.Close()
-
-	log.Info("Initial setup: Create fungible, NFT,  SFT and metaESDT tokens (after the activation of DynamicEsdtFlag). Register NFT directly as dynamic")
 
 	addrs := createAddresses(t, cs, false)
 
@@ -1741,8 +1748,6 @@ func TestChainSimulator_ESDTSetNewURIs(t *testing.T) {
 
 	cs, _ := getTestChainSimulatorWithDynamicNFTEnabled(t, baseIssuingCost)
 	defer cs.Close()
-
-	log.Info("Initial setup: Create fungible, NFT,  SFT and metaESDT tokens (after the activation of DynamicEsdtFlag)")
 
 	addrs := createAddresses(t, cs, false)
 
