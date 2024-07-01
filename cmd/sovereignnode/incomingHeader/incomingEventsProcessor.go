@@ -75,9 +75,11 @@ func (iep *incomingEventsProcessor) processIncomingEvents(events []data.EventHan
 		var err error
 		switch string(event.GetIdentifier()) {
 		case eventIDDepositIncomingTransfer:
+			log.Debug("incoming event", eventIDDepositIncomingTransfer, "-")
 			scr, err = iep.createSCRInfo(topics, event)
 			scrs = append(scrs, scr)
 		case eventIDExecutedOutGoingBridgeOp:
+			log.Debug("incoming event", eventIDExecutedOutGoingBridgeOp, "-")
 			if len(topics) == 0 {
 				return nil, fmt.Errorf("%w for event id: %s", errInvalidNumTopicsIncomingEvent, eventIDExecutedOutGoingBridgeOp)
 			}
@@ -89,6 +91,7 @@ func (iep *incomingEventsProcessor) processIncomingEvents(events []data.EventHan
 			case topicIDConfirmedOutGoingOperation:
 				confirmedOp, err = iep.getConfirmedBridgeOperation(topics)
 				confirmedBridgeOps = append(confirmedBridgeOps, confirmedOp)
+				log.Debug("incoming event", topicIDConfirmedOutGoingOperation, hex.EncodeToString(confirmedOp.hash))
 			default:
 				return nil, errInvalidIncomingTopicIdentifier
 			}
