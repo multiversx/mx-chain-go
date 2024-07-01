@@ -627,6 +627,33 @@ func nftCreateTx(
 	}
 }
 
+func modifyCreatorTx(
+	sndAdr []byte,
+	tokenID []byte,
+) *transaction.Transaction {
+	txDataField := bytes.Join(
+		[][]byte{
+			[]byte(core.ESDTModifyCreator),
+			[]byte(hex.EncodeToString(tokenID)),
+			[]byte(hex.EncodeToString(big.NewInt(1).Bytes())),
+		},
+		[]byte("@"),
+	)
+
+	return &transaction.Transaction{
+		Nonce:     0,
+		SndAddr:   sndAdr,
+		RcvAddr:   sndAdr,
+		GasLimit:  10_000_000,
+		GasPrice:  minGasPrice,
+		Signature: []byte("dummySig"),
+		Data:      txDataField,
+		Value:     big.NewInt(0),
+		ChainID:   []byte(configs.ChainID),
+		Version:   1,
+	}
+}
+
 func getESDTDataFromAcc(
 	t *testing.T,
 	cs testsChainSimulator.ChainSimulator,
@@ -1323,27 +1350,7 @@ func TestChainSimulator_ESDTModifyCreator(t *testing.T) {
 		}
 		setAddressEsdtRoles(t, cs, newCreatorAddress, tokenIDs[i], roles)
 
-		txDataField := bytes.Join(
-			[][]byte{
-				[]byte(core.ESDTModifyCreator),
-				[]byte(hex.EncodeToString(tokenIDs[i])),
-				[]byte(hex.EncodeToString(big.NewInt(1).Bytes())),
-			},
-			[]byte("@"),
-		)
-
-		tx = &transaction.Transaction{
-			Nonce:     0,
-			SndAddr:   newCreatorAddress.Bytes,
-			RcvAddr:   newCreatorAddress.Bytes,
-			GasLimit:  10_000_000,
-			GasPrice:  minGasPrice,
-			Signature: []byte("dummySig"),
-			Data:      txDataField,
-			Value:     big.NewInt(0),
-			ChainID:   []byte(configs.ChainID),
-			Version:   1,
-		}
+		tx = modifyCreatorTx(newCreatorAddress.Bytes, tokenIDs[i])
 
 		txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 		require.Nil(t, err)
@@ -1433,10 +1440,6 @@ func TestChainSimulator_ESDTModifyCreator_SFTmetaESDT(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, txResult)
 
-		fmt.Println(txResult)
-		fmt.Println(string(txResult.Logs.Events[0].Topics[0]))
-		fmt.Println(string(txResult.Logs.Events[0].Topics[1]))
-
 		require.Equal(t, "success", txResult.Status.String())
 
 		nonce++
@@ -1450,10 +1453,6 @@ func TestChainSimulator_ESDTModifyCreator_SFTmetaESDT(t *testing.T) {
 		txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 		require.Nil(t, err)
 		require.NotNil(t, txResult)
-
-		fmt.Println(txResult)
-		fmt.Println(string(txResult.Logs.Events[0].Topics[0]))
-		fmt.Println(string(txResult.Logs.Events[0].Topics[1]))
 
 		require.Equal(t, "success", txResult.Status.String())
 
@@ -1492,35 +1491,11 @@ func TestChainSimulator_ESDTModifyCreator_SFTmetaESDT(t *testing.T) {
 		require.NotNil(t, txResult)
 		require.Equal(t, "success", txResult.Status.String())
 
-		txDataField := bytes.Join(
-			[][]byte{
-				[]byte(core.ESDTModifyCreator),
-				[]byte(hex.EncodeToString(tokenIDs[i])),
-				[]byte(hex.EncodeToString(big.NewInt(1).Bytes())),
-			},
-			[]byte("@"),
-		)
-
-		tx = &transaction.Transaction{
-			Nonce:     0,
-			SndAddr:   newCreatorAddress.Bytes,
-			RcvAddr:   newCreatorAddress.Bytes,
-			GasLimit:  10_000_000,
-			GasPrice:  minGasPrice,
-			Signature: []byte("dummySig"),
-			Data:      txDataField,
-			Value:     big.NewInt(0),
-			ChainID:   []byte(configs.ChainID),
-			Version:   1,
-		}
+		tx = modifyCreatorTx(newCreatorAddress.Bytes, tokenIDs[i])
 
 		txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 		require.Nil(t, err)
 		require.NotNil(t, txResult)
-
-		fmt.Println(txResult)
-		fmt.Println(string(txResult.Logs.Events[0].Topics[0]))
-		fmt.Println(string(txResult.Logs.Events[0].Topics[1]))
 
 		require.Equal(t, "success", txResult.Status.String())
 
@@ -1693,27 +1668,15 @@ func TestChainSimulator_ESDTModifyCreator_CrossShard(t *testing.T) {
 		}
 		setAddressEsdtRoles(t, cs, newCreatorAddress, tokenIDs[i], roles)
 
-		txDataField := bytes.Join(
-			[][]byte{
-				[]byte(core.ESDTModifyCreator),
-				[]byte(hex.EncodeToString(tokenIDs[i])),
-				[]byte(hex.EncodeToString(big.NewInt(1).Bytes())),
-			},
-			[]byte("@"),
-		)
+		log.Info("transfering token id", "tokenID", tokenIDs[i])
 
-		tx = &transaction.Transaction{
-			Nonce:     0,
-			SndAddr:   newCreatorAddress.Bytes,
-			RcvAddr:   newCreatorAddress.Bytes,
-			GasLimit:  10_000_000,
-			GasPrice:  minGasPrice,
-			Signature: []byte("dummySig"),
-			Data:      txDataField,
-			Value:     big.NewInt(0),
-			ChainID:   []byte(configs.ChainID),
-			Version:   1,
-		}
+		tx = esdtNFTTransferTx(nonce, addrs[1].Bytes, newCreatorAddress.Bytes, tokenIDs[i])
+		txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+		require.Nil(t, err)
+		require.NotNil(t, txResult)
+		require.Equal(t, "success", txResult.Status.String())
+
+		tx = modifyCreatorTx(newCreatorAddress.Bytes, tokenIDs[i])
 
 		txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 		require.Nil(t, err)
