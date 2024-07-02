@@ -29,7 +29,7 @@ func TestDynamicGasCostForDataTrieStorageLoad(t *testing.T) {
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(3, 1)
 	gasScheduleNotifier := vm.CreateMockGasScheduleNotifier()
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas(enableEpochs, shardCoordinator, integrationTests.CreateMemUnit(), gasScheduleNotifier)
+	testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas(enableEpochs, shardCoordinator, integrationTests.CreateMemUnit(), gasScheduleNotifier, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 

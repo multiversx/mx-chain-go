@@ -90,7 +90,7 @@ func createArgsForTxProcessor() txproc.ArgsNewTxProcessor {
 		EconomicsFee:            feeHandlerMock(),
 		ReceiptForwarder:        &mock.IntermediateTransactionHandlerMock{},
 		BadTxForwarder:          &mock.IntermediateTransactionHandlerMock{},
-		ArgsParser:              &mock.ArgumentParserMock{},
+		ArgsParser:              &testscommon.ArgumentParserMock{},
 		ScrForwarder:            &mock.IntermediateTransactionHandlerMock{},
 		EnableEpochsHandler:     enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.PenalizedTooMuchGasFlag, common.FixRelayedBaseCostFlag),
 		GuardianChecker:         &guardianMocks.GuardedAccountHandlerStub{},
@@ -1514,8 +1514,8 @@ func TestTxProcessor_ProcessTxFeeMoveBalanceUserTx(t *testing.T) {
 
 	cost, totalCost, err := execTx.ProcessTxFee(tx, acntSnd, nil, process.MoveBalance, true)
 	assert.Nil(t, err)
-	assert.True(t, cost.Cmp(big.NewInt(0).Add(moveBalanceFee, processingFee)) == 0)
-	assert.True(t, totalCost.Cmp(big.NewInt(0).Add(moveBalanceFee, processingFee)) == 0)
+	assert.True(t, cost.Cmp(moveBalanceFee) == 0)
+	assert.True(t, totalCost.Cmp(moveBalanceFee) == 0)
 }
 
 func TestTxProcessor_ProcessTxFeeSCInvokeUserTx(t *testing.T) {
@@ -1885,7 +1885,7 @@ func TestTxProcessor_ProcessRelayedTransactionV2ArgsParserShouldErr(t *testing.T
 	parseError := errors.New("parse error")
 
 	args := createArgsForTxProcessor()
-	args.ArgsParser = &mock.ArgumentParserMock{
+	args.ArgsParser = &testscommon.ArgumentParserMock{
 		ParseCallDataCalled: func(data string) (string, [][]byte, error) {
 			return "", nil, parseError
 		}}
@@ -2701,7 +2701,7 @@ func TestTxProcessor_ProcessRelayedTransactionArgsParserErrorShouldError(t *test
 	parseError := errors.New("parse error")
 
 	args := createArgsForTxProcessor()
-	args.ArgsParser = &mock.ArgumentParserMock{
+	args.ArgsParser = &testscommon.ArgumentParserMock{
 		ParseCallDataCalled: func(data string) (string, [][]byte, error) {
 			return "", nil, parseError
 		}}
@@ -2764,7 +2764,7 @@ func TestTxProcessor_ProcessRelayedTransactionMultipleArgumentsShouldError(t *te
 	tx.Data = []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxMarshalled))
 
 	args := createArgsForTxProcessor()
-	args.ArgsParser = &mock.ArgumentParserMock{
+	args.ArgsParser = &testscommon.ArgumentParserMock{
 		ParseCallDataCalled: func(data string) (string, [][]byte, error) {
 			return core.RelayedTransaction, [][]byte{[]byte("0"), []byte("1")}, nil
 		}}
@@ -2827,7 +2827,7 @@ func TestTxProcessor_ProcessRelayedTransactionFailUnMarshalInnerShouldError(t *t
 	tx.Data = []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxMarshalled))
 
 	args := createArgsForTxProcessor()
-	args.ArgsParser = &mock.ArgumentParserMock{
+	args.ArgsParser = &testscommon.ArgumentParserMock{
 		ParseCallDataCalled: func(data string) (string, [][]byte, error) {
 			return core.RelayedTransaction, [][]byte{[]byte("0")}, nil
 		}}
@@ -2890,7 +2890,7 @@ func TestTxProcessor_ProcessRelayedTransactionDifferentSenderInInnerTxThanReceiv
 	tx.Data = []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxMarshalled))
 
 	args := createArgsForTxProcessor()
-	args.ArgsParser = &mock.ArgumentParserMock{
+	args.ArgsParser = &testscommon.ArgumentParserMock{
 		ParseCallDataCalled: func(data string) (string, [][]byte, error) {
 			return core.RelayedTransaction, [][]byte{userTxMarshalled}, nil
 		}}
@@ -2953,7 +2953,7 @@ func TestTxProcessor_ProcessRelayedTransactionSmallerValueInnerTxShouldError(t *
 	tx.Data = []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxMarshalled))
 
 	args := createArgsForTxProcessor()
-	args.ArgsParser = &mock.ArgumentParserMock{
+	args.ArgsParser = &testscommon.ArgumentParserMock{
 		ParseCallDataCalled: func(data string) (string, [][]byte, error) {
 			return core.RelayedTransaction, [][]byte{userTxMarshalled}, nil
 		}}
@@ -3016,7 +3016,7 @@ func TestTxProcessor_ProcessRelayedTransactionGasPriceMismatchShouldError(t *tes
 	tx.Data = []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxMarshalled))
 
 	args := createArgsForTxProcessor()
-	args.ArgsParser = &mock.ArgumentParserMock{
+	args.ArgsParser = &testscommon.ArgumentParserMock{
 		ParseCallDataCalled: func(data string) (string, [][]byte, error) {
 			return core.RelayedTransaction, [][]byte{userTxMarshalled}, nil
 		}}
@@ -3079,7 +3079,7 @@ func TestTxProcessor_ProcessRelayedTransactionGasLimitMismatchShouldError(t *tes
 	tx.Data = []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxMarshalled))
 
 	args := createArgsForTxProcessor()
-	args.ArgsParser = &mock.ArgumentParserMock{
+	args.ArgsParser = &testscommon.ArgumentParserMock{
 		ParseCallDataCalled: func(data string) (string, [][]byte, error) {
 			return core.RelayedTransaction, [][]byte{userTxMarshalled}, nil
 		}}
@@ -3275,7 +3275,7 @@ func TestTxProcessor_ProcessUserTxOfTypeRelayedShouldError(t *testing.T) {
 	tx.Data = []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxMarshalled))
 
 	args := createArgsForTxProcessor()
-	args.ArgsParser = &mock.ArgumentParserMock{
+	args.ArgsParser = &testscommon.ArgumentParserMock{
 		ParseCallDataCalled: func(data string) (string, [][]byte, error) {
 			return core.RelayedTransaction, [][]byte{userTxMarshalled}, nil
 		}}
@@ -3338,7 +3338,7 @@ func TestTxProcessor_ProcessUserTxOfTypeMoveBalanceShouldWork(t *testing.T) {
 	tx.Data = []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxMarshalled))
 
 	args := createArgsForTxProcessor()
-	args.ArgsParser = &mock.ArgumentParserMock{
+	args.ArgsParser = &testscommon.ArgumentParserMock{
 		ParseCallDataCalled: func(data string) (string, [][]byte, error) {
 			return core.RelayedTransaction, [][]byte{userTxMarshalled}, nil
 		}}
@@ -3401,7 +3401,7 @@ func TestTxProcessor_ProcessUserTxOfTypeSCDeploymentShouldWork(t *testing.T) {
 	tx.Data = []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxMarshalled))
 
 	args := createArgsForTxProcessor()
-	args.ArgsParser = &mock.ArgumentParserMock{
+	args.ArgsParser = &testscommon.ArgumentParserMock{
 		ParseCallDataCalled: func(data string) (string, [][]byte, error) {
 			return core.RelayedTransaction, [][]byte{userTxMarshalled}, nil
 		}}
@@ -3464,7 +3464,7 @@ func TestTxProcessor_ProcessUserTxOfTypeSCInvokingShouldWork(t *testing.T) {
 	tx.Data = []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxMarshalled))
 
 	args := createArgsForTxProcessor()
-	args.ArgsParser = &mock.ArgumentParserMock{
+	args.ArgsParser = &testscommon.ArgumentParserMock{
 		ParseCallDataCalled: func(data string) (string, [][]byte, error) {
 			return core.RelayedTransaction, [][]byte{userTxMarshalled}, nil
 		}}
@@ -3527,7 +3527,7 @@ func TestTxProcessor_ProcessUserTxOfTypeBuiltInFunctionCallShouldWork(t *testing
 	tx.Data = []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxMarshalled))
 
 	args := createArgsForTxProcessor()
-	args.ArgsParser = &mock.ArgumentParserMock{
+	args.ArgsParser = &testscommon.ArgumentParserMock{
 		ParseCallDataCalled: func(data string) (string, [][]byte, error) {
 			return core.RelayedTransaction, [][]byte{userTxMarshalled}, nil
 		}}
@@ -3590,7 +3590,7 @@ func TestTxProcessor_ProcessUserTxErrNotPayableShouldFailRelayTx(t *testing.T) {
 	tx.Data = []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxMarshalled))
 
 	args := createArgsForTxProcessor()
-	args.ArgsParser = &mock.ArgumentParserMock{
+	args.ArgsParser = &testscommon.ArgumentParserMock{
 		ParseCallDataCalled: func(data string) (string, [][]byte, error) {
 			return core.RelayedTransaction, [][]byte{userTxMarshalled}, nil
 		}}
@@ -3657,7 +3657,7 @@ func TestTxProcessor_ProcessUserTxFailedBuiltInFunctionCall(t *testing.T) {
 	tx.Data = []byte(core.RelayedTransaction + "@" + hex.EncodeToString(userTxMarshalled))
 
 	args := createArgsForTxProcessor()
-	args.ArgsParser = &mock.ArgumentParserMock{
+	args.ArgsParser = &testscommon.ArgumentParserMock{
 		ParseCallDataCalled: func(data string) (string, [][]byte, error) {
 			return core.RelayedTransaction, [][]byte{userTxMarshalled}, nil
 		}}

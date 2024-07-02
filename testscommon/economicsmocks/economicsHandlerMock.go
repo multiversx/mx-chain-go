@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 // EconomicsHandlerMock -
@@ -47,6 +48,7 @@ type EconomicsHandlerMock struct {
 	ComputeGasUsedAndFeeBasedOnRefundValueInEpochCalled func(tx data.TransactionWithFeeHandler, refundValue *big.Int, epoch uint32) (uint64, *big.Int)
 	ComputeTxFeeBasedOnGasUsedInEpochCalled             func(tx data.TransactionWithFeeHandler, gasUsed uint64, epoch uint32) *big.Int
 	ComputeRelayedTxFeesCalled                          func(tx data.TransactionWithFeeHandler) (*big.Int, *big.Int, error)
+	SetTxTypeHandlerCalled                              func(txTypeHandler process.TxTypeHandler) error
 }
 
 // LeaderPercentage -
@@ -342,6 +344,14 @@ func (ehm *EconomicsHandlerMock) ComputeRelayedTxFees(tx data.TransactionWithFee
 		return ehm.ComputeRelayedTxFeesCalled(tx)
 	}
 	return big.NewInt(0), big.NewInt(0), nil
+}
+
+// SetTxTypeHandler -
+func (ehm *EconomicsHandlerMock) SetTxTypeHandler(txTypeHandler process.TxTypeHandler) error {
+	if ehm.SetTxTypeHandlerCalled != nil {
+		return ehm.SetTxTypeHandlerCalled(txTypeHandler)
+	}
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

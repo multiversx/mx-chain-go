@@ -97,11 +97,13 @@ func prepareTestContextForGuardedAccounts(tb testing.TB) *vm.VMTestContext {
 			GovernanceEnableEpoch:                   unreachableEpoch,
 			SetSenderInEeiOutputTransferEnableEpoch: unreachableEpoch,
 			RefactorPeersMiniBlocksEnableEpoch:      unreachableEpoch,
+			FixRelayedBaseCostEnableEpoch:           unreachableEpoch,
 		},
 		testscommon.NewMultiShardsCoordinatorMock(2),
 		db,
 		gasScheduleNotifier,
 		testscommon.GetDefaultRoundsConfig(),
+		1,
 	)
 	require.Nil(tb, err)
 

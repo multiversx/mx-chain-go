@@ -400,7 +400,7 @@ func (txProc *txProcessor) processTxFee(
 	}
 
 	if isUserTxOfRelayed {
-		totalCost := txProc.computeTxFeeForRelayedTx(tx)
+		totalCost := txProc.computeInnerTxFee(tx)
 
 		err := acntSnd.SubFromBalance(totalCost)
 		if err != nil {
@@ -537,10 +537,6 @@ func (txProc *txProcessor) processMoveBalance(
 		txProc.txFeeHandler.ProcessTransactionFeeRelayedUserTx(moveBalanceCost, big.NewInt(0), txHash, originalTxHash)
 	} else {
 		txProc.txFeeHandler.ProcessTransactionFee(moveBalanceCost, big.NewInt(0), txHash)
-	}
-
-	if len(tx.RelayerAddr) > 0 {
-		return txProc.createRefundSCRForMoveBalance(tx, txHash, originalTxHash, moveBalanceCost)
 	}
 
 	return nil
@@ -747,7 +743,7 @@ func (txProc *txProcessor) processInnerTx(
 	originalTxHash []byte,
 ) (*big.Int, vmcommon.ReturnCode, error) {
 
-	txFee := txProc.computeTxFeeForRelayedTx(innerTx)
+	txFee := txProc.computeInnerTxFee(innerTx)
 
 	acntSnd, err := txProc.getAccountFromAddress(innerTx.SndAddr)
 	if err != nil {
@@ -867,7 +863,7 @@ func (txProc *txProcessor) computeRelayedTxFees(tx, userTx *transaction.Transact
 	relayerFee := txProc.economicsFee.ComputeMoveBalanceFee(tx)
 	totalFee := txProc.economicsFee.ComputeTxFee(tx)
 	if txProc.enableEpochsHandler.IsFlagEnabled(common.FixRelayedBaseCostFlag) {
-		userFee := txProc.computeTxFeeAfterBaseCostFix(userTx)
+		userFee := txProc.computeInnerTxFeeAfterBaseCostFix(userTx)
 
 		totalFee = totalFee.Add(relayerFee, userFee)
 	}
@@ -901,7 +897,7 @@ func (txProc *txProcessor) removeValueAndConsumedFeeFromUser(
 		return err
 	}
 
-	consumedFee := txProc.computeTxFeeForRelayedTx(userTx)
+	consumedFee := txProc.computeInnerTxFee(userTx)
 
 	err = userAcnt.SubFromBalance(consumedFee)
 	if err != nil {
@@ -1247,31 +1243,6 @@ func (txProc *txProcessor) saveFailedLogsIfNeeded(originalTxHash []byte) {
 	}
 
 	txProc.failedTxLogsAccumulator.Remove(originalTxHash)
-}
-
-func (txProc *txProcessor) createRefundSCRForMoveBalance(
-	tx *transaction.Transaction,
-	txHash []byte,
-	originalTxHash []byte,
-	consumedFee *big.Int,
-) error {
-	providedFee := big.NewInt(0).Mul(big.NewInt(0).SetUint64(tx.GasLimit), big.NewInt(0).SetUint64(tx.GasPrice))
-	refundValue := big.NewInt(0).Sub(providedFee, consumedFee)
-
-	refundGasToRelayerSCR := &smartContractResult.SmartContractResult{
-		Nonce:          tx.Nonce,
-		Value:          refundValue,
-		RcvAddr:        tx.RelayerAddr,
-		SndAddr:        tx.SndAddr,
-		PrevTxHash:     txHash,
-		OriginalTxHash: originalTxHash,
-		GasPrice:       tx.GetGasPrice(),
-		CallType:       vm.DirectCall,
-		ReturnMessage:  []byte(core.GasRefundForRelayerMessage),
-		OriginalSender: tx.RelayerAddr,
-	}
-
-	return txProc.scrForwarder.AddIntermediateTransactions([]data.TransactionHandler{refundGasToRelayerSCR})
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

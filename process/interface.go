@@ -725,6 +725,7 @@ type EconomicsDataHandler interface {
 	rewardsHandler
 	feeHandler
 	SetStatusHandler(statusHandler core.AppStatusHandler) error
+	SetTxTypeHandler(txTypeHandler TxTypeHandler) error
 	IsInterfaceNil() bool
 }
 

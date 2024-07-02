@@ -37,8 +37,11 @@ func DoDeploy(
 	t *testing.T,
 	testContext *vm.VMTestContext,
 	pathToContract string,
+	expectedBalance,
+	expectedAccFees,
+	expectedDevFees int64,
 ) (scAddr []byte, owner []byte) {
-	return doDeployInternal(t, testContext, pathToContract, 9988100, 11900, 399)
+	return doDeployInternal(t, testContext, pathToContract, expectedBalance, expectedAccFees, expectedDevFees)
 }
 
 // DoDeployOldCounter -

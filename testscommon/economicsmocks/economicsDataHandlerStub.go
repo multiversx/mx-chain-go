@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 // EconomicsHandlerStub -
@@ -47,6 +48,7 @@ type EconomicsHandlerStub struct {
 	ComputeGasUsedAndFeeBasedOnRefundValueInEpochCalled func(tx data.TransactionWithFeeHandler, refundValue *big.Int, epoch uint32) (uint64, *big.Int)
 	ComputeTxFeeBasedOnGasUsedInEpochCalled             func(tx data.TransactionWithFeeHandler, gasUsed uint64, epoch uint32) *big.Int
 	ComputeRelayedTxFeesCalled                          func(tx data.TransactionWithFeeHandler) (*big.Int, *big.Int, error)
+	SetTxTypeHandlerCalled                              func(txTypeHandler process.TxTypeHandler) error
 }
 
 // ComputeFeeForProcessing -
@@ -363,6 +365,14 @@ func (e *EconomicsHandlerStub) ComputeRelayedTxFees(tx data.TransactionWithFeeHa
 		return e.ComputeRelayedTxFeesCalled(tx)
 	}
 	return big.NewInt(0), big.NewInt(0), nil
+}
+
+// SetTxTypeHandler -
+func (e *EconomicsHandlerStub) SetTxTypeHandler(txTypeHandler process.TxTypeHandler) error {
+	if e.SetTxTypeHandlerCalled != nil {
+		return e.SetTxTypeHandlerCalled(txTypeHandler)
+	}
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

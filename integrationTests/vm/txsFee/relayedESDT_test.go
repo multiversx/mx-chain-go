@@ -17,15 +17,19 @@ func TestRelayedESDTTransferShouldWork(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	t.Run("before relayed move balance fix", testRelayedESDTTransferShouldWork(integrationTests.UnreachableEpoch))
-	t.Run("after relayed move balance fix", testRelayedESDTTransferShouldWork(0))
+	t.Run("before relayed base cost fix", testRelayedESDTTransferShouldWork(integrationTests.UnreachableEpoch, big.NewInt(9997614), big.NewInt(2386)))
+	t.Run("after relayed base cost fix", testRelayedESDTTransferShouldWork(0, big.NewInt(9997299), big.NewInt(2701)))
 }
 
-func testRelayedESDTTransferShouldWork(relayedFixActivationEpoch uint32) func(t *testing.T) {
+func testRelayedESDTTransferShouldWork(
+	relayedFixActivationEpoch uint32,
+	expectedRelayerBalance *big.Int,
+	expectedAccFees *big.Int,
+) func(t *testing.T) {
 	return func(t *testing.T) {
 		testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
 			FixRelayedBaseCostEnableEpoch: relayedFixActivationEpoch,
-		})
+		}, gasPriceModifier)
 		require.Nil(t, err)
 		defer testContext.Close()
 
@@ -62,11 +66,11 @@ func testRelayedESDTTransferShouldWork(relayedFixActivationEpoch uint32) func(t 
 		expectedEGLDBalance := big.NewInt(0)
 		utils.TestAccount(t, testContext.Accounts, sndAddr, 1, expectedEGLDBalance)
 
-		utils.TestAccount(t, testContext.Accounts, relayerAddr, 1, big.NewInt(9997290))
+		utils.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedRelayerBalance)
 
 		// check accumulated fees
 		accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-		require.Equal(t, big.NewInt(2710), accumulatedFees)
+		require.Equal(t, expectedAccFees, accumulatedFees)
 	}
 }
 
@@ -75,15 +79,19 @@ func TestRelayedESTTransferNotEnoughESTValueShouldConsumeGas(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	t.Run("before relayed move balance fix", testRelayedESTTransferNotEnoughESTValueShouldConsumeGas(integrationTests.UnreachableEpoch))
-	t.Run("after relayed move balance fix", testRelayedESTTransferNotEnoughESTValueShouldConsumeGas(0))
+	t.Run("before relayed base cost fix", testRelayedESTTransferNotEnoughESTValueShouldConsumeGas(integrationTests.UnreachableEpoch, big.NewInt(9997488), big.NewInt(2512)))
+	t.Run("after relayed base cost fix", testRelayedESTTransferNotEnoughESTValueShouldConsumeGas(0, big.NewInt(9997119), big.NewInt(2881)))
 }
 
-func testRelayedESTTransferNotEnoughESTValueShouldConsumeGas(relayedFixActivationEpoch uint32) func(t *testing.T) {
+func testRelayedESTTransferNotEnoughESTValueShouldConsumeGas(
+	relayedFixActivationEpoch uint32,
+	expectedRelayerBalance *big.Int,
+	expectedAccFees *big.Int,
+) func(t *testing.T) {
 	return func(t *testing.T) {
 		testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
 			FixRelayedBaseCostEnableEpoch: relayedFixActivationEpoch,
-		})
+		}, gasPriceModifier)
 		require.Nil(t, err)
 		defer testContext.Close()
 
@@ -120,10 +128,10 @@ func testRelayedESTTransferNotEnoughESTValueShouldConsumeGas(relayedFixActivatio
 		expectedEGLDBalance := big.NewInt(0)
 		utils.TestAccount(t, testContext.Accounts, sndAddr, 1, expectedEGLDBalance)
 
-		utils.TestAccount(t, testContext.Accounts, relayerAddr, 1, big.NewInt(9997110))
+		utils.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedRelayerBalance)
 
 		// check accumulated fees
 		accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-		require.Equal(t, big.NewInt(2890), accumulatedFees)
+		require.Equal(t, expectedAccFees, accumulatedFees)
 	}
 }
