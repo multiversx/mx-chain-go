@@ -27,6 +27,7 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
+var CurrentMaxGasLimitPercentage = float64(1.00)
 var _ process.DataMarshalizer = (*transactions)(nil)
 var _ process.PreProcessor = (*transactions)(nil)
 
@@ -198,7 +199,6 @@ func NewTransactionPreprocessor(
 	txs.accountTxsShards.accountsInfo = make(map[string]*txShardInfo)
 
 	txs.emptyAddress = make([]byte, txs.pubkeyConverter.Len())
-
 	return txs, nil
 }
 
@@ -1043,7 +1043,7 @@ func (txs *transactions) getRemainingGasPerBlock() uint64 {
 
 func (txs *transactions) getRemainingGasPerBlockAsScheduled() uint64 {
 	gasProvided := txs.gasHandler.TotalGasProvidedAsScheduled()
-	maxGasPerBlock := txs.economicsFee.MaxGasLimitPerBlock(txs.shardCoordinator.SelfId())
+	maxGasPerBlock := uint64(float64(txs.economicsFee.MaxGasLimitPerBlock(txs.shardCoordinator.SelfId())) * CurrentMaxGasLimitPercentage)
 	gasBandwidth := uint64(0)
 	if gasProvided < maxGasPerBlock {
 		gasBandwidth = maxGasPerBlock - gasProvided
@@ -1070,9 +1070,9 @@ func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool, random
 		log.Debug("computeSortedTxs", "error", err.Error())
 		return make(block.MiniBlockSlice, 0), nil
 	}
-
+	log.Debug("createScheduledMiniBlocks", "CurrentMaxGasLimitPercentage", CurrentMaxGasLimitPercentage)
 	if len(sortedTxs) == 0 {
-		log.Trace("no transaction found after computeSortedTxs",
+		log.Debug("no transaction found after computeSortedTxs",
 			"time [s]", elapsedTime,
 		)
 		return make(block.MiniBlockSlice, 0), nil
@@ -1462,12 +1462,13 @@ func (txs *transactions) computeSortedTxs(
 	}
 
 	sortedTransactionsProvider := createSortedTransactionsProvider(txShardPool)
-	log.Debug("computeSortedTxs.GetSortedTransactions")
 	sortedTxs := sortedTransactionsProvider.GetSortedTransactions()
 
 	// TODO: this could be moved to SortedTransactionsProvider
 	selectedTxs, remainingTxs := txs.preFilterTransactionsWithMoveBalancePriority(sortedTxs, gasBandwidth)
 	txs.sortTransactionsBySenderAndNonce(selectedTxs, randomness)
+
+	log.Debug("computeSortedTxs.GetSortedTransactions", "num txs", len(sortedTxs), "num selected txs", len(selectedTxs), "num remaining txs", len(remainingTxs))
 
 	return selectedTxs, remainingTxs, nil
 }
@@ -1515,9 +1516,10 @@ func (txs *transactions) ProcessMiniBlock(
 		totalGasConsumed = txs.getTotalGasConsumed()
 	}
 
+	isSelfShardStuck := txs.blockTracker.IsShardStuck(txs.shardCoordinator.SelfId())
 	var maxGasLimitUsedForDestMeTxs uint64
 	isFirstMiniBlockDestMe := totalGasConsumed == 0
-	if isFirstMiniBlockDestMe {
+	if isFirstMiniBlockDestMe || isSelfShardStuck {
 		maxGasLimitUsedForDestMeTxs = txs.economicsFee.MaxGasLimitPerBlock(txs.shardCoordinator.SelfId())
 	} else {
 		maxGasLimitUsedForDestMeTxs = txs.economicsFee.MaxGasLimitPerBlock(txs.shardCoordinator.SelfId()) * maxGasLimitPercentUsedForDestMeTxs / 100
@@ -1532,6 +1534,7 @@ func (txs *transactions) ProcessMiniBlock(
 	log.Debug("transactions.ProcessMiniBlock: before processing",
 		"scheduled mode", scheduledMode,
 		"totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
+		"maxGasLimitUsedForDestMeTxs", maxGasLimitUsedForDestMeTxs,
 		"total gas provided", txs.gasHandler.TotalGasProvided(),
 		"total gas provided as scheduled", txs.gasHandler.TotalGasProvidedAsScheduled(),
 		"total gas refunded", txs.gasHandler.TotalGasRefunded(),
@@ -1547,6 +1550,7 @@ func (txs *transactions) ProcessMiniBlock(
 			"total gas provided as scheduled", txs.gasHandler.TotalGasProvidedAsScheduled(),
 			"total gas refunded", txs.gasHandler.TotalGasRefunded(),
 			"total gas penalized", txs.gasHandler.TotalGasPenalized(),
+			"isSelfShardStuck", isSelfShardStuck,
 		)
 	}()
 
@@ -1599,7 +1603,7 @@ func (txs *transactions) ProcessMiniBlock(
 		numTXsProcessed++
 	}
 
-	if err != nil && !partialMbExecutionMode {
+	if err != nil && (!partialMbExecutionMode || isSelfShardStuck) {
 		return processedTxHashes, txIndex - 1, true, err
 	}
 
