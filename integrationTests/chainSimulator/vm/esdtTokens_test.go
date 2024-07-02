@@ -288,7 +288,7 @@ func TestChainSimulator_Api_NFTToken(t *testing.T) {
 	tokenData, ok := allTokens[expTokenID]
 	require.True(t, ok)
 	require.Equal(t, expTokenID, tokenData.TokenIdentifier)
-	require.Equal(t, core.NonFungibleESDT, tokenData.Type)
+	require.Equal(t, "", tokenData.Type)
 
 	log.Info("Wait for DynamicESDTFlag activation")
 
@@ -305,7 +305,7 @@ func TestChainSimulator_Api_NFTToken(t *testing.T) {
 	tokenData, ok = allTokens[expTokenID]
 	require.True(t, ok)
 	require.Equal(t, expTokenID, tokenData.TokenIdentifier)
-	require.Equal(t, core.NonFungibleESDT, tokenData.Type)
+	require.Equal(t, "", tokenData.Type)
 
 	log.Info("Update token id", "tokenID", nftTokenID)
 
@@ -326,7 +326,7 @@ func TestChainSimulator_Api_NFTToken(t *testing.T) {
 	tokenData, ok = allTokens[expTokenID]
 	require.True(t, ok)
 	require.Equal(t, expTokenID, tokenData.TokenIdentifier)
-	require.Equal(t, core.NonFungibleESDT, tokenData.Type)
+	require.Equal(t, "", tokenData.Type)
 
 	log.Info("Transfer token id", "tokenID", nftTokenID)
 
