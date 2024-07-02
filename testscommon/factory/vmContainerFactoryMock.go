@@ -8,13 +8,13 @@ import (
 
 // VMContainerFactoryMock -
 type VMContainerFactoryMock struct {
-	CreateVmContainerFactoryShardCalled func(args factoryVm.ArgsVmContainerFactory) (process.VirtualMachinesContainer, process.VirtualMachinesContainerFactory, error)
+	CreateVmContainerFactoryCalled func(args factoryVm.ArgsVmContainerFactory) (process.VirtualMachinesContainer, process.VirtualMachinesContainerFactory, error)
 }
 
 // CreateVmContainerFactory -
 func (v *VMContainerFactoryMock) CreateVmContainerFactory(args factoryVm.ArgsVmContainerFactory) (process.VirtualMachinesContainer, process.VirtualMachinesContainerFactory, error) {
-	if v.CreateVmContainerFactoryShardCalled != nil {
-		return v.CreateVmContainerFactoryShardCalled(args)
+	if v.CreateVmContainerFactoryCalled != nil {
+		return v.CreateVmContainerFactoryCalled(args)
 	}
 	return &mock.VMContainerMock{}, &mock.VmMachinesContainerFactoryMock{}, nil
 }
