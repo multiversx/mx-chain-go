@@ -52,7 +52,7 @@ func testStakingProviderWithNodesReStakeUnStaked(t *testing.T, stakingV4Activati
 	}
 
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:   false,
+		BypassTxSignatureCheck:   true,
 		TempDir:                  t.TempDir(),
 		PathToInitialConfig:      defaultPathToInitialConfig,
 		NumOfShards:              3,
