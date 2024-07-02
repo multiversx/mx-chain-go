@@ -42,7 +42,6 @@ func TestSovereignChainSimulator_NewDelegationSC(t *testing.T) {
 			ConsensusGroupSize:     2,
 			AlterConfigsFunction: func(cfg *config.Configs) {
 				cfg.EpochConfig.EnableEpochs.DelegationSmartContractEnableEpoch = 0
-				//cfg.EpochConfig.EnableEpochs.MultiClaimOnDelegationEnableEpoch = 1
 			},
 		},
 	})
@@ -66,7 +65,6 @@ func TestSovereignChainSimulator_NewDelegationSC(t *testing.T) {
 	txResult := chainSim.SendTransaction(t, cs, wallet.Bytes, &nonce, vm.DelegationManagerSCAddress, cost, txData, uint64(60000000))
 
 	secondDelegationSCAddress := txResult.Logs.Events[1].Topics[4]
-	//secondDelegationSCAddress := []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 255, 255, 255}
 	secondDelegationSCAddressBech32, _ := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Encode(secondDelegationSCAddress)
 	account, _, err := nodeHandler.GetFacadeHandler().GetAccount(secondDelegationSCAddressBech32, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
