@@ -16,8 +16,9 @@ import (
 )
 
 const (
-	gasPrice    = uint64(10)
-	minGasLimit = uint64(1)
+	gasPrice         = uint64(10)
+	minGasLimit      = uint64(1)
+	gasPriceModifier = float64(0.1)
 )
 
 // MetaData defines test meta data struct

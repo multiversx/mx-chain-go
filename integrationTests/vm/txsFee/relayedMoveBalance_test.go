@@ -25,7 +25,7 @@ func TestRelayedMoveBalanceShouldWork(t *testing.T) {
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
 		FixRelayedBaseCostEnableEpoch: integrationTests.UnreachableEpoch,
-	})
+	}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -75,7 +75,7 @@ func TestRelayedMoveBalanceInvalidGasLimitShouldConsumeGas(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -113,7 +113,7 @@ func TestRelayedMoveBalanceInvalidUserTxShouldConsumeGas(t *testing.T) {
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
 		FixRelayedBaseCostEnableEpoch: integrationTests.UnreachableEpoch,
-	})
+	}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -153,7 +153,7 @@ func TestRelayedMoveBalanceInvalidUserTxValueShouldConsumeGas(t *testing.T) {
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
 		RelayedNonceFixEnableEpoch:    1,
 		FixRelayedBaseCostEnableEpoch: integrationTests.UnreachableEpoch,
-	})
+	}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -192,7 +192,7 @@ func TestRelayedMoveBalanceHigherNonce(t *testing.T) {
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
 		RelayedNonceFixEnableEpoch: 1,
-	})
+	}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -248,7 +248,7 @@ func TestRelayedMoveBalanceLowerNonce(t *testing.T) {
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
 		RelayedNonceFixEnableEpoch: 1,
-	})
+	}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -312,6 +312,7 @@ func TestRelayedMoveBalanceHigherNonceWithActivatedFixCrossShard(t *testing.T) {
 		shardCoordinator0,
 		integrationtests.CreateMemUnit(),
 		vm.CreateMockGasScheduleNotifier(),
+		1,
 	)
 	require.Nil(t, err)
 
@@ -321,6 +322,7 @@ func TestRelayedMoveBalanceHigherNonceWithActivatedFixCrossShard(t *testing.T) {
 		shardCoordinator1,
 		integrationtests.CreateMemUnit(),
 		vm.CreateMockGasScheduleNotifier(),
+		1,
 	)
 	require.Nil(t, err)
 	defer testContext0.Close()

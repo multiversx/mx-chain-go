@@ -19,20 +19,25 @@ func TestRelayedScCallShouldWork(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	t.Run("before relayed fix", testRelayedScCallShouldWork(integrationTests.UnreachableEpoch))
-	t.Run("after relayed fix", testRelayedScCallShouldWork(0))
+	t.Run("before relayed base cost fix", testRelayedScCallShouldWork(integrationTests.UnreachableEpoch, big.NewInt(29982306), big.NewInt(25903), big.NewInt(1608)))
+	t.Run("after relayed base cost fix", testRelayedScCallShouldWork(0, big.NewInt(29982216), big.NewInt(25993), big.NewInt(1608)))
 }
 
-func testRelayedScCallShouldWork(relayedFixActivationEpoch uint32) func(t *testing.T) {
+func testRelayedScCallShouldWork(
+	relayedFixActivationEpoch uint32,
+	expectedRelayerBalance *big.Int,
+	expectedAccFees *big.Int,
+	expectedDevFees *big.Int,
+) func(t *testing.T) {
 	return func(t *testing.T) {
 		testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
 			DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
 			FixRelayedBaseCostEnableEpoch:                   relayedFixActivationEpoch,
-		})
+		}, gasPriceModifier)
 		require.Nil(t, err)
 		defer testContext.Close()
 
-		scAddress, _ := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
+		scAddress, _ := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm", 9991691, 8309, 39)
 		utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 		relayerAddr := []byte("12345678901234567890123456789033")
@@ -58,15 +63,14 @@ func testRelayedScCallShouldWork(relayedFixActivationEpoch uint32) func(t *testi
 		ret := vm.GetIntValueFromSC(nil, testContext.Accounts, scAddress, "get")
 		require.Equal(t, big.NewInt(2), ret)
 
-		expectedBalance := big.NewInt(29840970)
-		vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalance)
+		vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedRelayerBalance)
 
 		// check accumulated fees
 		accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-		require.Equal(t, big.NewInt(170830), accumulatedFees)
+		require.Equal(t, expectedAccFees, accumulatedFees)
 
 		developerFees := testContext.TxFeeHandler.GetDeveloperFees()
-		require.Equal(t, big.NewInt(16093), developerFees)
+		require.Equal(t, expectedDevFees, developerFees)
 	}
 }
 
@@ -75,15 +79,19 @@ func TestRelayedScCallContractNotFoundShouldConsumeGas(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	t.Run("before relayed fix", testRelayedScCallContractNotFoundShouldConsumeGas(integrationTests.UnreachableEpoch))
-	t.Run("after relayed fix", testRelayedScCallContractNotFoundShouldConsumeGas(0))
+	t.Run("before relayed fix", testRelayedScCallContractNotFoundShouldConsumeGas(integrationTests.UnreachableEpoch, big.NewInt(27130), big.NewInt(2870)))
+	t.Run("after relayed fix", testRelayedScCallContractNotFoundShouldConsumeGas(0, big.NewInt(27040), big.NewInt(2960)))
 }
 
-func testRelayedScCallContractNotFoundShouldConsumeGas(relayedFixActivationEpoch uint32) func(t *testing.T) {
+func testRelayedScCallContractNotFoundShouldConsumeGas(
+	relayedFixActivationEpoch uint32,
+	expectedRelayerBalance *big.Int,
+	expectedAccFees *big.Int,
+) func(t *testing.T) {
 	return func(t *testing.T) {
 		testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
 			FixRelayedBaseCostEnableEpoch: relayedFixActivationEpoch,
-		})
+		}, gasPriceModifier)
 		require.Nil(t, err)
 		defer testContext.Close()
 
@@ -110,12 +118,11 @@ func testRelayedScCallContractNotFoundShouldConsumeGas(relayedFixActivationEpoch
 		_, err = testContext.Accounts.Commit()
 		require.Nil(t, err)
 
-		expectedBalance := big.NewInt(18130)
-		vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalance)
+		vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedRelayerBalance)
 
 		// check accumulated fees
 		accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-		require.Equal(t, big.NewInt(11870), accumulatedFees)
+		require.Equal(t, expectedAccFees, accumulatedFees)
 
 		developerFees := testContext.TxFeeHandler.GetDeveloperFees()
 		require.Equal(t, big.NewInt(0), developerFees)
@@ -127,19 +134,23 @@ func TestRelayedScCallInvalidMethodShouldConsumeGas(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	t.Run("before relayed fix", testRelayedScCallInvalidMethodShouldConsumeGas(integrationTests.UnreachableEpoch))
-	t.Run("after relayed fix", testRelayedScCallInvalidMethodShouldConsumeGas(0))
+	t.Run("before relayed fix", testRelayedScCallInvalidMethodShouldConsumeGas(integrationTests.UnreachableEpoch, big.NewInt(26924), big.NewInt(11385)))
+	t.Run("after relayed fix", testRelayedScCallInvalidMethodShouldConsumeGas(0, big.NewInt(26924), big.NewInt(11385)))
 }
 
-func testRelayedScCallInvalidMethodShouldConsumeGas(relayedFixActivationEpoch uint32) func(t *testing.T) {
+func testRelayedScCallInvalidMethodShouldConsumeGas(
+	relayedFixActivationEpoch uint32,
+	expectedRelayerBalance *big.Int,
+	expectedAccFees *big.Int,
+) func(t *testing.T) {
 	return func(t *testing.T) {
 		testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
 			RelayedNonceFixEnableEpoch: relayedFixActivationEpoch,
-		})
+		}, gasPriceModifier)
 		require.Nil(t, err)
 		defer testContext.Close()
 
-		scAddress, _ := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
+		scAddress, _ := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm", 9991691, 8309, 39)
 		utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 		relayerAddr := []byte("12345678901234567890123456789033")
@@ -162,15 +173,14 @@ func testRelayedScCallInvalidMethodShouldConsumeGas(relayedFixActivationEpoch ui
 		_, err = testContext.Accounts.Commit()
 		require.Nil(t, err)
 
-		expectedBalance := big.NewInt(18050)
-		vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalance)
+		vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedRelayerBalance)
 
 		// check accumulated fees
 		accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-		require.Equal(t, big.NewInt(23850), accumulatedFees)
+		require.Equal(t, expectedAccFees, accumulatedFees)
 
 		developerFees := testContext.TxFeeHandler.GetDeveloperFees()
-		require.Equal(t, big.NewInt(399), developerFees)
+		require.Equal(t, big.NewInt(39), developerFees)
 	}
 }
 
@@ -179,19 +189,23 @@ func TestRelayedScCallInsufficientGasLimitShouldConsumeGas(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	t.Run("before relayed fix", testRelayedScCallInsufficientGasLimitShouldConsumeGas(integrationTests.UnreachableEpoch, big.NewInt(28050), big.NewInt(13850)))
-	t.Run("after relayed fix", testRelayedScCallInsufficientGasLimitShouldConsumeGas(0, big.NewInt(28050), big.NewInt(13850)))
+	t.Run("before relayed fix", testRelayedScCallInsufficientGasLimitShouldConsumeGas(integrationTests.UnreachableEpoch, big.NewInt(28140), big.NewInt(10169)))
+	t.Run("after relayed fix", testRelayedScCallInsufficientGasLimitShouldConsumeGas(0, big.NewInt(28050), big.NewInt(10259)))
 }
 
-func testRelayedScCallInsufficientGasLimitShouldConsumeGas(relayedFixActivationEpoch uint32, expectedBalance *big.Int, expectedAccumulatedFees *big.Int) func(t *testing.T) {
+func testRelayedScCallInsufficientGasLimitShouldConsumeGas(
+	relayedFixActivationEpoch uint32,
+	expectedBalance *big.Int,
+	expectedAccumulatedFees *big.Int,
+) func(t *testing.T) {
 	return func(t *testing.T) {
 		testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
 			FixRelayedBaseCostEnableEpoch: relayedFixActivationEpoch,
-		})
+		}, gasPriceModifier)
 		require.Nil(t, err)
 		defer testContext.Close()
 
-		scAddress, _ := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
+		scAddress, _ := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm", 9991691, 8309, 39)
 		utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 		relayerAddr := []byte("12345678901234567890123456789033")
@@ -221,7 +235,7 @@ func testRelayedScCallInsufficientGasLimitShouldConsumeGas(relayedFixActivationE
 		require.Equal(t, expectedAccumulatedFees, accumulatedFees)
 
 		developerFees := testContext.TxFeeHandler.GetDeveloperFees()
-		require.Equal(t, big.NewInt(399), developerFees)
+		require.Equal(t, big.NewInt(39), developerFees)
 	}
 }
 
@@ -230,19 +244,23 @@ func TestRelayedScCallOutOfGasShouldConsumeGas(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	t.Run("before relayed fix", testRelayedScCallOutOfGasShouldConsumeGas(integrationTests.UnreachableEpoch))
-	t.Run("after relayed fix", testRelayedScCallOutOfGasShouldConsumeGas(0))
+	t.Run("before relayed fix", testRelayedScCallOutOfGasShouldConsumeGas(integrationTests.UnreachableEpoch, big.NewInt(28040), big.NewInt(10269)))
+	t.Run("after relayed fix", testRelayedScCallOutOfGasShouldConsumeGas(0, big.NewInt(28040), big.NewInt(10269)))
 }
 
-func testRelayedScCallOutOfGasShouldConsumeGas(relayedFixActivationEpoch uint32) func(t *testing.T) {
+func testRelayedScCallOutOfGasShouldConsumeGas(
+	relayedFixActivationEpoch uint32,
+	expectedRelayerBalance *big.Int,
+	expectedAccFees *big.Int,
+) func(t *testing.T) {
 	return func(t *testing.T) {
 		testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
 			RelayedNonceFixEnableEpoch: relayedFixActivationEpoch,
-		})
+		}, gasPriceModifier)
 		require.Nil(t, err)
 		defer testContext.Close()
 
-		scAddress, _ := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
+		scAddress, _ := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm", 9991691, 8309, 39)
 		utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 		relayerAddr := []byte("12345678901234567890123456789033")
@@ -265,15 +283,14 @@ func testRelayedScCallOutOfGasShouldConsumeGas(relayedFixActivationEpoch uint32)
 		_, err = testContext.Accounts.Commit()
 		require.Nil(t, err)
 
-		expectedBalance := big.NewInt(27950)
-		vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalance)
+		vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedRelayerBalance)
 
 		// check accumulated fees
 		accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-		require.Equal(t, big.NewInt(13950), accumulatedFees)
+		require.Equal(t, expectedAccFees, accumulatedFees)
 
 		developerFees := testContext.TxFeeHandler.GetDeveloperFees()
-		require.Equal(t, big.NewInt(399), developerFees)
+		require.Equal(t, big.NewInt(39), developerFees)
 	}
 }
 
@@ -325,7 +342,7 @@ func testRelayedDeployInvalidContractShouldIncrementNonceOnSender(
 	senderAddr []byte,
 	senderNonce uint64,
 ) *vm.VMTestContext {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(enableEpochs)
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(enableEpochs, 1)
 	require.Nil(t, err)
 
 	relayerAddr := []byte("12345678901234567890123456789033")

@@ -103,6 +103,7 @@ func prepareTestContextForGuardedAccounts(tb testing.TB) *vm.VMTestContext {
 		db,
 		gasScheduleNotifier,
 		testscommon.GetDefaultRoundsConfig(),
+		1,
 	)
 	require.Nil(tb, err)
 
