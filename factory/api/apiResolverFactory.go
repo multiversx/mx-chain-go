@@ -463,7 +463,13 @@ func createArgsSCQueryService(args *scQueryElementArgs) (*smartContract.ArgsNewS
 			return nil, nil, err
 		}
 
+		blockChainHookImpl, err := args.runTypeComponents.BlockChainHookHandlerCreator().CreateBlockChainHookHandler(argsHook)
+		if err != nil {
+			return nil, nil, err
+		}
+
 		argsNewVmContainerFactory := factoryVm.ArgsVmContainerFactory{
+			BlockChainHook:             blockChainHookImpl,
 			PubkeyConv:                 argsHook.PubkeyConv,
 			Economics:                  args.coreComponents.EconomicsData(),
 			MessageSignVerifier:        args.messageSigVerifier,
@@ -481,7 +487,7 @@ func createArgsSCQueryService(args *scQueryElementArgs) (*smartContract.ArgsNewS
 			IsInHistoricalBalancesMode: args.isInHistoricalBalancesMode,
 		}
 
-		vmContainer, vmFactory, err = args.runTypeComponents.VmContainerMetaFactoryCreator().CreateVmContainerFactory(argsHook, argsNewVmContainerFactory)
+		vmContainer, vmFactory, err = args.runTypeComponents.VmContainerMetaFactoryCreator().CreateVmContainerFactory(argsNewVmContainerFactory)
 	} else {
 		argsHook.BlockChain, err = blockchain.NewBlockChain(disabled.NewAppStatusHandler())
 		if err != nil {
@@ -493,6 +499,11 @@ func createArgsSCQueryService(args *scQueryElementArgs) (*smartContract.ArgsNewS
 			return nil, nil, err
 		}
 
+		blockChainHookImpl, err := args.runTypeComponents.BlockChainHookHandlerCreator().CreateBlockChainHookHandler(argsHook)
+		if err != nil {
+			return nil, nil, err
+		}
+
 		queryVirtualMachineConfig := args.generalConfig.VirtualMachine.Querying.VirtualMachineConfig
 		esdtTransferParser, errParser := parsers.NewESDTTransferParser(args.coreComponents.InternalMarshalizer())
 		if errParser != nil {
@@ -500,6 +511,7 @@ func createArgsSCQueryService(args *scQueryElementArgs) (*smartContract.ArgsNewS
 		}
 
 		argsNewVmContainerFactory := factoryVm.ArgsVmContainerFactory{
+			BlockChainHook:      blockChainHookImpl,
 			BuiltInFunctions:    argsHook.BuiltInFunctions,
 			Config:              queryVirtualMachineConfig,
 			BlockGasLimit:       args.coreComponents.EconomicsData().MaxGasLimitPerBlock(args.processComponents.ShardCoordinator().SelfId()),
@@ -522,7 +534,7 @@ func createArgsSCQueryService(args *scQueryElementArgs) (*smartContract.ArgsNewS
 			NodesCoordinator:    args.processComponents.NodesCoordinator(),
 		}
 
-		vmContainer, vmFactory, err = args.runTypeComponents.VmContainerShardFactoryCreator().CreateVmContainerFactory(argsHook, argsNewVmContainerFactory)
+		vmContainer, vmFactory, err = args.runTypeComponents.VmContainerShardFactoryCreator().CreateVmContainerFactory(argsNewVmContainerFactory)
 	}
 
 	if err != nil {
