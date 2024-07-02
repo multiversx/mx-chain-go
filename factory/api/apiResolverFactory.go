@@ -449,7 +449,7 @@ func createArgsSCQueryService(args *scQueryElementArgs) (*smartContract.ArgsNewS
 	var vmContainer process.VirtualMachinesContainer
 	var vmFactory process.VirtualMachinesContainerFactory
 	var storageManager common.StorageManager
-	var blockChainHookHandler process.BlockChainHookWithAccountsAdapter
+	var blockChainHookImpl process.BlockChainHookWithAccountsAdapter
 	maxGasForVmQueries := args.generalConfig.VirtualMachine.GasConfig.ShardMaxGasPerVmQuery
 	if selfShardID == core.MetachainShardId {
 		maxGasForVmQueries = args.generalConfig.VirtualMachine.GasConfig.MetaMaxGasPerVmQuery
@@ -464,13 +464,13 @@ func createArgsSCQueryService(args *scQueryElementArgs) (*smartContract.ArgsNewS
 			return nil, nil, err
 		}
 
-		blockChainHookHandler, err = args.runTypeComponents.BlockChainHookHandlerCreator().CreateBlockChainHookHandler(argsHook)
+		blockChainHookImpl, err = args.runTypeComponents.BlockChainHookHandlerCreator().CreateBlockChainHookHandler(argsHook)
 		if err != nil {
 			return nil, nil, err
 		}
 
 		argsNewVmContainerFactory := factoryVm.ArgsVmContainerFactory{
-			BlockChainHook:             blockChainHookHandler,
+			BlockChainHook:             blockChainHookImpl,
 			PubkeyConv:                 argsHook.PubkeyConv,
 			Economics:                  args.coreComponents.EconomicsData(),
 			MessageSignVerifier:        args.messageSigVerifier,
@@ -500,7 +500,7 @@ func createArgsSCQueryService(args *scQueryElementArgs) (*smartContract.ArgsNewS
 			return nil, nil, err
 		}
 
-		blockChainHookHandler, err = args.runTypeComponents.BlockChainHookHandlerCreator().CreateBlockChainHookHandler(argsHook)
+		blockChainHookImpl, err = args.runTypeComponents.BlockChainHookHandlerCreator().CreateBlockChainHookHandler(argsHook)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -512,7 +512,7 @@ func createArgsSCQueryService(args *scQueryElementArgs) (*smartContract.ArgsNewS
 		}
 
 		argsNewVmContainerFactory := factoryVm.ArgsVmContainerFactory{
-			BlockChainHook:      blockChainHookHandler,
+			BlockChainHook:      blockChainHookImpl,
 			BuiltInFunctions:    argsHook.BuiltInFunctions,
 			Config:              queryVirtualMachineConfig,
 			BlockGasLimit:       args.coreComponents.EconomicsData().MaxGasLimitPerBlock(args.processComponents.ShardCoordinator().SelfId()),
