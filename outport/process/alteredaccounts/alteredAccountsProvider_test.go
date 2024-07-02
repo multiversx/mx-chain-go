@@ -628,6 +628,7 @@ func testExtractAlteredAccountsFromPoolShouldIncludeNFT(t *testing.T) {
 	t.Parallel()
 
 	expectedToken := esdt.ESDigitalToken{
+		Type:  uint32(core.NonFungible),
 		Value: big.NewInt(37),
 		TokenMetaData: &esdt.MetaData{
 			Nonce: 38,
@@ -758,6 +759,7 @@ func testExtractAlteredAccountsFromPoolShouldIncludeDestinationFromTokensLogsTop
 	receiverOnDestination := []byte("receiver on destination shard")
 	expectedToken := esdt.ESDigitalToken{
 		Value: big.NewInt(37),
+		Type:  uint32(core.NonFungible),
 		TokenMetaData: &esdt.MetaData{
 			Nonce:      38,
 			Name:       []byte("name"),
@@ -904,12 +906,14 @@ func testExtractAlteredAccountsFromPoolMultiTransferEventV2(t *testing.T) {
 		TokenMetaData: &esdt.MetaData{
 			Nonce: 1,
 		},
+		Type: uint32(core.NonFungible),
 	}
 	expectedToken2 := &esdt.ESDigitalToken{
 		Value: big.NewInt(10),
 		TokenMetaData: &esdt.MetaData{
 			Nonce: 1,
 		},
+		Type: uint32(core.NonFungible),
 	}
 	args := getMockArgs()
 
@@ -1004,6 +1008,7 @@ func testExtractAlteredAccountsFromPoolAddressHasMultipleNfts(t *testing.T) {
 	}
 	expectedToken1 := esdt.ESDigitalToken{
 		Value: big.NewInt(38),
+		Type:  uint32(core.NonFungible),
 		TokenMetaData: &esdt.MetaData{
 			Nonce: 5,
 			Name:  []byte("nft-0"),
@@ -1011,6 +1016,7 @@ func testExtractAlteredAccountsFromPoolAddressHasMultipleNfts(t *testing.T) {
 	}
 	expectedToken2 := esdt.ESDigitalToken{
 		Value: big.NewInt(37),
+		Type:  uint32(core.NonFungible),
 		TokenMetaData: &esdt.MetaData{
 			Nonce: 6,
 			Name:  []byte("nft-0"),
