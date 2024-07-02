@@ -20,6 +20,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
+
 	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -30,8 +33,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 )
 
 // TransactionProcessor is the main interface for transaction execution engine
@@ -170,7 +171,7 @@ type TransactionCoordinator interface {
 	VerifyCreatedBlockTransactions(hdr data.HeaderHandler, body *block.Body) error
 	GetCreatedInShardMiniBlocks() []*block.MiniBlock
 	VerifyCreatedMiniBlocks(hdr data.HeaderHandler, body *block.Body) error
-	AddIntermediateTransactions(mapSCRs map[block.Type][]data.TransactionHandler) error
+	AddIntermediateTransactions(mapSCRs map[block.Type][]data.TransactionHandler, key []byte) error
 	GetAllIntermediateTxs() map[block.Type]map[string]data.TransactionHandler
 	AddTxsFromMiniBlocks(miniBlocks block.MiniBlockSlice)
 	AddTransactions(txHandlers []data.TransactionHandler, blockType block.Type)
@@ -190,7 +191,7 @@ type SmartContractProcessor interface {
 
 // IntermediateTransactionHandler handles transactions which are not resolved in only one step
 type IntermediateTransactionHandler interface {
-	AddIntermediateTransactions(txs []data.TransactionHandler) error
+	AddIntermediateTransactions(txs []data.TransactionHandler, key []byte) error
 	GetNumOfCrossInterMbsAndTxs() (int, int)
 	CreateAllInterMiniBlocks() []*block.MiniBlock
 	VerifyInterMiniBlocks(body *block.Body) error
@@ -199,7 +200,7 @@ type IntermediateTransactionHandler interface {
 	CreateBlockStarted()
 	GetCreatedInShardMiniBlock() *block.MiniBlock
 	RemoveProcessedResults(key []byte) [][]byte
-	InitProcessedResults(key []byte)
+	InitProcessedResults(key []byte, parentKey []byte)
 	IsInterfaceNil() bool
 }
 
@@ -1319,7 +1320,7 @@ type TxsSenderHandler interface {
 // PreProcessorExecutionInfoHandler handles pre processor execution info needed by the transactions preprocessors
 type PreProcessorExecutionInfoHandler interface {
 	GetNumOfCrossInterMbsAndTxs() (int, int)
-	InitProcessedTxsResults(key []byte)
+	InitProcessedTxsResults(key []byte, parentKey []byte)
 	RevertProcessedTxsResults(txHashes [][]byte, key []byte)
 }
 
