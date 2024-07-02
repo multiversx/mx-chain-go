@@ -186,15 +186,12 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 	scProcessorCreator := processProxy.NewSCProcessProxyFactory()
 
 	vmContextCreator := systemSmartContracts.NewVMContextCreator()
-	vmContainerMetaCreator, err := factoryVm.NewVmContainerMetaFactory(blockChainHookHandlerFactory, vmContextCreator)
+	vmContainerMetaCreator, err := factoryVm.NewVmContainerMetaFactory(vmContextCreator)
 	if err != nil {
 		return nil, fmt.Errorf("runTypeComponentsFactory - NewVmContainerMetaFactory failed: %w", err)
 	}
 
-	vmContainerShardCreator, err := factoryVm.NewVmContainerShardFactory(blockChainHookHandlerFactory)
-	if err != nil {
-		return nil, fmt.Errorf("runTypeComponentsFactory - NewVmContainerShardFactory failed: %w", err)
-	}
+	vmContainerShardCreator := factoryVm.NewVmContainerShardFactory()
 
 	totalSupply, ok := big.NewInt(0).SetString(rcf.configs.EconomicsConfig.GlobalSettings.GenesisTotalSupply, 10)
 	if !ok {

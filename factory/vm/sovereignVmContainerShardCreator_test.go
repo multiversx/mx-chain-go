@@ -4,12 +4,11 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/factory/vm"
-	"github.com/multiversx/mx-chain-go/process"
 	factory2 "github.com/multiversx/mx-chain-go/process/factory"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
-	"github.com/multiversx/mx-chain-go/testscommon/factory"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewSovereignVmContainerShardCreatorFactory(t *testing.T) {
@@ -17,28 +16,17 @@ func TestNewSovereignVmContainerShardCreatorFactory(t *testing.T) {
 
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
-		bhhc := &factory.BlockChainHookHandlerFactoryMock{}
 		runTypeComponents := componentsMock.GetRunTypeComponents()
-		sovereignVmContainerShardFactory, err := vm.NewSovereignVmContainerShardFactory(bhhc, runTypeComponents.VmContainerMetaFactoryCreator(), runTypeComponents.VmContainerShardFactoryCreator())
+		sovereignVmContainerShardFactory, err := vm.NewSovereignVmContainerShardFactory(runTypeComponents.VmContainerMetaFactoryCreator(), runTypeComponents.VmContainerShardFactoryCreator())
 		require.Nil(t, err)
 		require.False(t, sovereignVmContainerShardFactory.IsInterfaceNil())
-	})
-
-	t.Run("nil blockChainHookHandlerCreator", func(t *testing.T) {
-		t.Parallel()
-
-		runTypeComponents := componentsMock.GetRunTypeComponents()
-		sovereignVmContainerShardFactory, err := vm.NewSovereignVmContainerShardFactory(nil, runTypeComponents.VmContainerMetaFactoryCreator(), runTypeComponents.VmContainerShardFactoryCreator())
-		require.ErrorIs(t, err, process.ErrNilBlockChainHook)
-		require.True(t, sovereignVmContainerShardFactory.IsInterfaceNil())
 	})
 
 	t.Run("nil vmContainerMetaFactory", func(t *testing.T) {
 		t.Parallel()
 
-		bhhc := &factory.BlockChainHookHandlerFactoryMock{}
 		runTypeComponents := componentsMock.GetRunTypeComponents()
-		sovereignVmContainerShardFactory, err := vm.NewSovereignVmContainerShardFactory(bhhc, nil, runTypeComponents.VmContainerShardFactoryCreator())
+		sovereignVmContainerShardFactory, err := vm.NewSovereignVmContainerShardFactory(nil, runTypeComponents.VmContainerShardFactoryCreator())
 		require.ErrorIs(t, err, vm.ErrNilVmContainerMetaCreator)
 		require.True(t, sovereignVmContainerShardFactory.IsInterfaceNil())
 	})
@@ -46,9 +34,8 @@ func TestNewSovereignVmContainerShardCreatorFactory(t *testing.T) {
 	t.Run("nil vmContainerShardFactory", func(t *testing.T) {
 		t.Parallel()
 
-		bhhc := &factory.BlockChainHookHandlerFactoryMock{}
 		runTypeComponents := componentsMock.GetRunTypeComponents()
-		sovereignVmContainerShardFactory, err := vm.NewSovereignVmContainerShardFactory(bhhc, runTypeComponents.VmContainerMetaFactoryCreator(), nil)
+		sovereignVmContainerShardFactory, err := vm.NewSovereignVmContainerShardFactory(runTypeComponents.VmContainerMetaFactoryCreator(), nil)
 		require.ErrorIs(t, err, vm.ErrNilVmContainerShardCreator)
 		require.True(t, sovereignVmContainerShardFactory.IsInterfaceNil())
 	})
@@ -57,17 +44,16 @@ func TestNewSovereignVmContainerShardCreatorFactory(t *testing.T) {
 func TestNewSovereignVmContainerShardFactory_CreateVmContainerFactoryShard(t *testing.T) {
 	t.Parallel()
 
-	bhhc := &factory.BlockChainHookHandlerFactoryMock{}
 	runTypeComponents := componentsMock.GetRunTypeComponents()
-	sovereignVmContainerShardFactory, err := vm.NewSovereignVmContainerShardFactory(bhhc, runTypeComponents.VmContainerMetaFactoryCreator(), runTypeComponents.VmContainerShardFactoryCreator())
+	sovereignVmContainerShardFactory, err := vm.NewSovereignVmContainerShardFactory(runTypeComponents.VmContainerMetaFactoryCreator(), runTypeComponents.VmContainerShardFactoryCreator())
 	require.Nil(t, err)
 	require.False(t, sovereignVmContainerShardFactory.IsInterfaceNil())
 
-	argsBlockchain := createMockBlockChainHookArgs()
 	argsShard := createMockVMAccountsArguments()
 	gasSchedule := makeGasSchedule()
 	argsMeta := createVmContainerMockArgument(gasSchedule)
 	args := vm.ArgsVmContainerFactory{
+		BlockChainHook:      argsShard.BlockChainHook,
 		Config:              argsShard.Config,
 		BlockGasLimit:       argsShard.BlockGasLimit,
 		GasSchedule:         argsMeta.GasSchedule,
@@ -90,7 +76,7 @@ func TestNewSovereignVmContainerShardFactory_CreateVmContainerFactoryShard(t *te
 		NodesCoordinator:    argsMeta.NodesCoordinator,
 	}
 
-	vmContainer, vmFactory, err := sovereignVmContainerShardFactory.CreateVmContainerFactory(argsBlockchain, args)
+	vmContainer, vmFactory, err := sovereignVmContainerShardFactory.CreateVmContainerFactory(args)
 	require.Nil(t, err)
 	require.Equal(t, "*containers.virtualMachinesContainer", fmt.Sprintf("%T", vmContainer))
 	require.Equal(t, "*shard.vmContainerFactory", fmt.Sprintf("%T", vmFactory))
