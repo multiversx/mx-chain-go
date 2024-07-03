@@ -59,7 +59,7 @@ func (bp *blockProcessor) ProcessReceivedHeader(header data.HeaderHandler) {
 	if check.IfNil(header) {
 		return
 	}
-
+	log.Debug("blockProcessor.ProcessReceivedHeader", "shard", header.GetShardID(), "nonce", header.GetNonce())
 	if !bp.shouldProcessReceivedHeader(header) {
 		return
 	}
@@ -139,7 +139,7 @@ func (bp *blockProcessor) doJobOnReceivedMetachainHeader() {
 	var header data.HeaderHandler
 	var headerHash []byte
 	var err error
-
+	log.Debug("blockProcessor.doJobOnReceivedMetachainHeader", "shard", core.MetachainShardId)
 	if bp.shardCoordinator.SelfId() == core.MetachainShardId {
 		header, headerHash, err = bp.selfNotarizer.GetLastNotarizedHeader(bp.shardCoordinator.SelfId())
 		if err != nil {
@@ -148,6 +148,7 @@ func (bp *blockProcessor) doJobOnReceivedMetachainHeader() {
 		}
 	} else {
 		header, headerHash, err = bp.crossNotarizer.GetLastNotarizedHeader(core.MetachainShardId)
+		log.Debug("blockProcessor.doJobOnReceivedMetachainHeader", "lastNotarizedHeader", headerHash)
 		if err != nil {
 			log.Warn("blockProcessor.doJobOnReceivedMetachainHeader", "error", err.Error())
 			return
@@ -431,7 +432,7 @@ func (bp *blockProcessor) requestHeadersIfNothingNewIsReceived(
 func (bp *blockProcessor) requestHeaders(shardID uint32, fromNonce uint64) {
 	toNonce := fromNonce + bp.blockFinality
 	for nonce := fromNonce; nonce <= toNonce; nonce++ {
-		log.Trace("requestHeaders.RequestHeaderByNonce",
+		log.Debug("requestHeaders.RequestHeaderByNonce",
 			"shard", shardID,
 			"nonce", nonce)
 

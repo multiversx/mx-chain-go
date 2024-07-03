@@ -173,12 +173,12 @@ func (bbt *baseBlockTrack) receivedMetaBlock(headerHandler data.HeaderHandler, m
 	)
 
 	if !bbt.ShouldAddHeader(headerHandler) {
-		log.Trace("received meta block is out of range", "nonce", headerHandler.GetNonce())
+		log.Debug("received meta block is out of range", "nonce", headerHandler.GetNonce())
 		return
 	}
 
 	if !bbt.addHeader(metaBlock, metaBlockHash) {
-		log.Trace("received meta block was not added", "nonce", headerHandler.GetNonce())
+		log.Debug("received meta block was not added", "nonce", headerHandler.GetNonce())
 		return
 	}
 
@@ -310,13 +310,14 @@ func (bbt *baseBlockTrack) ComputeLongestChain(shardID uint32, header data.Heade
 
 // ComputeLongestMetaChainFromLastNotarized returns the longest valid chain for metachain from its last cross notarized header
 func (bbt *baseBlockTrack) ComputeLongestMetaChainFromLastNotarized() ([]data.HeaderHandler, [][]byte, error) {
+	log.Debug("ComputeLongestMetaChainFromLastNotarized")
 	lastCrossNotarizedHeader, _, err := bbt.GetLastCrossNotarizedHeader(core.MetachainShardId)
 	if err != nil {
 		return nil, nil, err
 	}
-
+	log.Debug("ComputeLongestMetaChainFromLastNotarized - 2")
 	hdrsForShard, hdrsHashesForShard := bbt.ComputeLongestChain(core.MetachainShardId, lastCrossNotarizedHeader)
-
+	log.Debug("ComputeLongestMetaChainFromLastNotarized - 3", "len", len(hdrsForShard), "hashes", hdrsHashesForShard)
 	return hdrsForShard, hdrsHashesForShard, nil
 }
 
@@ -537,16 +538,18 @@ func (bbt *baseBlockTrack) SortHeadersFromNonce(shardID uint32, nonce uint64) ([
 	if !ok {
 		return nil, nil
 	}
+	log.Debug("SortHeadersFromNonce", "shard", shardID, "nonce", nonce, "headersForShard len", len(headersForShard))
 
 	sortedHeadersInfo := make([]*HeaderInfo, 0)
 	for headersNonce, headersInfo := range headersForShard {
 		if headersNonce < nonce {
+			log.Debug("SortHeadersFromNonce", "shard", shardID, "nonce", nonce, "headersNonce", headersNonce, "continue")
 			continue
 		}
 
 		sortedHeadersInfo = append(sortedHeadersInfo, headersInfo...)
 	}
-
+	log.Debug("SortHeadersFromNonce", "shard", shardID, "nb", len(sortedHeadersInfo))
 	if len(sortedHeadersInfo) > 1 {
 		sort.Slice(sortedHeadersInfo, func(i, j int) bool {
 			if sortedHeadersInfo[i].Header.GetNonce() == sortedHeadersInfo[j].Header.GetNonce() {

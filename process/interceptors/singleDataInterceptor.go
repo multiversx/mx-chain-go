@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-go/debug/handler"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/interceptedBlocks"
 )
 
 // ArgSingleDataInterceptor is the argument for the single-data interceptor
@@ -81,7 +82,13 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 	}
 
 	interceptedData, err := sdi.factory.Create(message.Data())
+
+	metaheader, ok := interceptedData.(*interceptedBlocks.InterceptedMetaHeader)
+	if ok {
+		log.Debug("SingleDataInterceptor interceptedData", "metaheader", metaheader)
+	}
 	if err != nil {
+		log.Error("SingleDataInterceptor can not create object from received bytes", "topic", sdi.topic, "error", err)
 		sdi.throttler.EndProcessing()
 
 		// this situation is so severe that we need to black list the peers
@@ -96,11 +103,14 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 
 	err = interceptedData.CheckValidity()
 	if err != nil {
+		log.Error("SingleDataInterceptor can not create object from received bytes CheckValidity", "error", err)
 		sdi.throttler.EndProcessing()
 		sdi.processDebugInterceptedData(interceptedData, err)
 
 		isWrongVersion := err == process.ErrInvalidTransactionVersion || err == process.ErrInvalidChainID
 		if isWrongVersion {
+			log.Error("SingleDataInterceptor can not create object from received bytes isWrongVersion", "error", err)
+
 			// this situation is so severe that we need to black list de peers
 			reason := "wrong version of received intercepted data, topic " + sdi.topic + ", error " + err.Error()
 			sdi.antifloodHandler.BlacklistPeer(message.Peer(), reason, common.InvalidMessageBlacklistDuration)
@@ -113,7 +123,7 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 	errOriginator := sdi.antifloodHandler.IsOriginatorEligibleForTopic(message.Peer(), sdi.topic)
 	isWhiteListed := sdi.whiteListRequest.IsWhiteListed(interceptedData)
 	if !isWhiteListed && errOriginator != nil {
-		log.Trace("got message from peer on topic only for validators",
+		log.Debug("got message from peer on topic only for validators",
 			"originator", p2p.PeerIdToShortString(message.Peer()), "topic",
 			sdi.topic, "err", errOriginator)
 		sdi.throttler.EndProcessing()
@@ -124,7 +134,7 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 	shouldProcess := isForCurrentShard || isWhiteListed
 	if !shouldProcess {
 		sdi.throttler.EndProcessing()
-		log.Trace("intercepted data is for other shards",
+		log.Debug("intercepted data is for other shards",
 			"pid", p2p.MessageOriginatorPid(message),
 			"seq no", p2p.MessageOriginatorSeq(message),
 			"topic", message.Topic(),
@@ -137,6 +147,7 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 	}
 
 	go func() {
+		log.Error("SingleDataInterceptor processInterceptedData")
 		sdi.processInterceptedData(interceptedData, message)
 		sdi.throttler.EndProcessing()
 	}()
