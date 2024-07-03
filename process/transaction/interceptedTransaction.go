@@ -174,7 +174,6 @@ func createRelayedV2(relayedTx *transaction.Transaction, args [][]byte) (*transa
 func (inTx *InterceptedTransaction) CheckValidity() error {
 	err := inTx.integrity(inTx.tx)
 	if err != nil {
-		log.Error("InterceptedTransaction integrity check failed", "err", err)
 		return err
 	}
 

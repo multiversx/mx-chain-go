@@ -151,7 +151,7 @@ func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, fro
 			dataRetriever.ErrMissingData,
 		)
 
-		log.Debug("missing data",
+		log.Trace("missing data",
 			"data", rd)
 		return nil
 	}

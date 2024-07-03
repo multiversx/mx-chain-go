@@ -11,7 +11,6 @@ import (
 	"github.com/multiversx/mx-chain-go/debug/handler"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/block/interceptedBlocks"
 	"github.com/multiversx/mx-chain-go/process/interceptors/disabled"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
@@ -186,7 +185,6 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 	}
 
 	go func() {
-		log.Debug("MultiDataInterceptor process")
 		for _, interceptedData := range listInterceptedData {
 			mdi.processInterceptedData(interceptedData, message)
 		}
@@ -198,12 +196,7 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 
 func (mdi *MultiDataInterceptor) interceptedData(dataBuff []byte, originator core.PeerID, fromConnectedPeer core.PeerID) (process.InterceptedData, error) {
 	interceptedData, err := mdi.factory.Create(dataBuff)
-	metaheader, ok := interceptedData.(*interceptedBlocks.InterceptedMetaHeader)
-	if ok {
-		log.Debug("MultiDataInterceptor interceptedData", "metaheader", metaheader)
-	}
 	if err != nil {
-		log.Error("MultiDataInterceptor can not create object from received bytes", "topic", mdi.topic, "error", err)
 		// this situation is so severe that we need to black list de peers
 		reason := "can not create object from received bytes, topic " + mdi.topic + ", error " + err.Error()
 		mdi.antifloodHandler.BlacklistPeer(originator, reason, common.InvalidMessageBlacklistDuration)
@@ -216,13 +209,10 @@ func (mdi *MultiDataInterceptor) interceptedData(dataBuff []byte, originator cor
 
 	err = interceptedData.CheckValidity()
 	if err != nil {
-		log.Error("MultiDataInterceptor can not create object from received bytes CheckValidity", "error", err)
-
 		mdi.processDebugInterceptedData(interceptedData, err)
 
 		isWrongVersion := err == process.ErrInvalidTransactionVersion || err == process.ErrInvalidChainID
 		if isWrongVersion {
-			log.Error("MultiDataInterceptor can not create object from received bytes isWrongVersion", "error", err)
 			// this situation is so severe that we need to black list de peers
 			reason := "wrong version of received intercepted data, topic " + mdi.topic + ", error " + err.Error()
 			mdi.antifloodHandler.BlacklistPeer(originator, reason, common.InvalidMessageBlacklistDuration)
@@ -231,7 +221,7 @@ func (mdi *MultiDataInterceptor) interceptedData(dataBuff []byte, originator cor
 
 		return nil, err
 	}
-	log.Debug("MultiDataInterceptor returning")
+
 	return interceptedData, nil
 }
 
