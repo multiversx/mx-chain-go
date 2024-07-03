@@ -17,15 +17,19 @@ func TestRelayedScDeployShouldWork(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	t.Run("before relayed fix", testRelayedScDeployShouldWork(integrationTests.UnreachableEpoch))
-	t.Run("after relayed fix", testRelayedScDeployShouldWork(0))
+	t.Run("before relayed fix", testRelayedScDeployShouldWork(integrationTests.UnreachableEpoch, big.NewInt(20170), big.NewInt(29830)))
+	t.Run("after relayed fix", testRelayedScDeployShouldWork(0, big.NewInt(8389), big.NewInt(41611)))
 }
 
-func testRelayedScDeployShouldWork(relayedFixActivationEpoch uint32) func(t *testing.T) {
+func testRelayedScDeployShouldWork(
+	relayedFixActivationEpoch uint32,
+	expectedRelayerBalance *big.Int,
+	expectedAccFees *big.Int,
+) func(t *testing.T) {
 	return func(t *testing.T) {
 		testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
 			FixRelayedBaseCostEnableEpoch: relayedFixActivationEpoch,
-		})
+		}, gasPriceModifier)
 		require.Nil(t, err)
 		defer testContext.Close()
 
@@ -53,15 +57,14 @@ func testRelayedScDeployShouldWork(relayedFixActivationEpoch uint32) func(t *tes
 		_, err = testContext.Accounts.Commit()
 		require.Nil(t, err)
 
-		expectedBalanceRelayer := big.NewInt(2530)
-		vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalanceRelayer)
+		vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedRelayerBalance)
 
 		// check balance inner tx sender
 		vm.TestAccount(t, testContext.Accounts, sndAddr, 1, big.NewInt(0))
 
 		// check accumulated fees
 		accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-		require.Equal(t, big.NewInt(47470), accumulatedFees)
+		require.Equal(t, expectedAccFees, accumulatedFees)
 	}
 }
 
@@ -70,15 +73,19 @@ func TestRelayedScDeployInvalidCodeShouldConsumeGas(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	t.Run("before relayed fix", testRelayedScDeployInvalidCodeShouldConsumeGas(integrationTests.UnreachableEpoch, big.NewInt(8890), big.NewInt(41110)))
+	t.Run("before relayed fix", testRelayedScDeployInvalidCodeShouldConsumeGas(integrationTests.UnreachableEpoch, big.NewInt(20716), big.NewInt(29284)))
 	t.Run("after relayed fix", testRelayedScDeployInvalidCodeShouldConsumeGas(0, big.NewInt(8890), big.NewInt(41110)))
 }
 
-func testRelayedScDeployInvalidCodeShouldConsumeGas(relayedFixActivationEpoch uint32, expectedBalance *big.Int, expectedAccumulatedFees *big.Int) func(t *testing.T) {
+func testRelayedScDeployInvalidCodeShouldConsumeGas(
+	relayedFixActivationEpoch uint32,
+	expectedBalance *big.Int,
+	expectedAccumulatedFees *big.Int,
+) func(t *testing.T) {
 	return func(t *testing.T) {
 		testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
 			FixRelayedBaseCostEnableEpoch: relayedFixActivationEpoch,
-		})
+		}, gasPriceModifier)
 		require.Nil(t, err)
 		defer testContext.Close()
 
@@ -123,15 +130,19 @@ func TestRelayedScDeployInsufficientGasLimitShouldConsumeGas(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	t.Run("before relayed fix", testRelayedScDeployInsufficientGasLimitShouldConsumeGas(integrationTests.UnreachableEpoch, big.NewInt(9040), big.NewInt(40960)))
+	t.Run("before relayed fix", testRelayedScDeployInsufficientGasLimitShouldConsumeGas(integrationTests.UnreachableEpoch, big.NewInt(20821), big.NewInt(29179)))
 	t.Run("after relayed fix", testRelayedScDeployInsufficientGasLimitShouldConsumeGas(0, big.NewInt(9040), big.NewInt(40960)))
 }
 
-func testRelayedScDeployInsufficientGasLimitShouldConsumeGas(relayedFixActivationEpoch uint32, expectedBalance *big.Int, expectedAccumulatedFees *big.Int) func(t *testing.T) {
+func testRelayedScDeployInsufficientGasLimitShouldConsumeGas(
+	relayedFixActivationEpoch uint32,
+	expectedBalance *big.Int,
+	expectedAccumulatedFees *big.Int,
+) func(t *testing.T) {
 	return func(t *testing.T) {
 		testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
 			FixRelayedBaseCostEnableEpoch: relayedFixActivationEpoch,
-		})
+		}, gasPriceModifier)
 		require.Nil(t, err)
 		defer testContext.Close()
 
@@ -175,15 +186,19 @@ func TestRelayedScDeployOutOfGasShouldConsumeGas(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	t.Run("before relayed fix", testRelayedScDeployOutOfGasShouldConsumeGas(integrationTests.UnreachableEpoch, big.NewInt(9040), big.NewInt(40960)))
+	t.Run("before relayed fix", testRelayedScDeployOutOfGasShouldConsumeGas(integrationTests.UnreachableEpoch, big.NewInt(20821), big.NewInt(29179)))
 	t.Run("after relayed fix", testRelayedScDeployOutOfGasShouldConsumeGas(0, big.NewInt(9040), big.NewInt(40960)))
 }
 
-func testRelayedScDeployOutOfGasShouldConsumeGas(relayedFixActivationEpoch uint32, expectedBalance *big.Int, expectedAccumulatedFees *big.Int) func(t *testing.T) {
+func testRelayedScDeployOutOfGasShouldConsumeGas(
+	relayedFixActivationEpoch uint32,
+	expectedBalance *big.Int,
+	expectedAccumulatedFees *big.Int,
+) func(t *testing.T) {
 	return func(t *testing.T) {
 		testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
 			FixRelayedBaseCostEnableEpoch: relayedFixActivationEpoch,
-		})
+		}, gasPriceModifier)
 		require.Nil(t, err)
 		defer testContext.Close()
 

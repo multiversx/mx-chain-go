@@ -20,21 +20,25 @@ func TestRelayedBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	t.Run("before relayed move balance fix", testRelayedBuildInFunctionChangeOwnerCallShouldWork(integrationTests.UnreachableEpoch))
-	t.Run("after relayed move balance fix", testRelayedBuildInFunctionChangeOwnerCallShouldWork(0))
+	t.Run("before relayed base cost fix", testRelayedBuildInFunctionChangeOwnerCallShouldWork(integrationTests.UnreachableEpoch, big.NewInt(25610), big.NewInt(4390)))
+	t.Run("after relayed base cost fix", testRelayedBuildInFunctionChangeOwnerCallShouldWork(0, big.NewInt(24854), big.NewInt(5146)))
 }
 
-func testRelayedBuildInFunctionChangeOwnerCallShouldWork(relayedFixActivationEpoch uint32) func(t *testing.T) {
+func testRelayedBuildInFunctionChangeOwnerCallShouldWork(
+	relayedFixActivationEpoch uint32,
+	expectedBalanceRelayer *big.Int,
+	expectedAccumulatedFees *big.Int,
+) func(t *testing.T) {
 	return func(t *testing.T) {
 		testContext, err := vm.CreatePreparedTxProcessorWithVMs(
 			config.EnableEpochs{
 				PenalizedTooMuchGasEnableEpoch: integrationTests.UnreachableEpoch,
 				FixRelayedBaseCostEnableEpoch:  relayedFixActivationEpoch,
-			})
+			}, gasPriceModifier)
 		require.Nil(t, err)
 		defer testContext.Close()
 
-		scAddress, owner := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
+		scAddress, owner := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm", 9991691, 8309, 39)
 		testContext.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 		utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
@@ -60,18 +64,17 @@ func testRelayedBuildInFunctionChangeOwnerCallShouldWork(relayedFixActivationEpo
 
 		utils.CheckOwnerAddr(t, testContext, scAddress, newOwner)
 
-		expectedBalanceRelayer := big.NewInt(16610)
 		vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalanceRelayer)
 
-		expectedBalance := big.NewInt(9988100)
+		expectedBalance := big.NewInt(9991691)
 		vm.TestAccount(t, testContext.Accounts, owner, 2, expectedBalance)
 
 		// check accumulated fees
 		accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-		require.Equal(t, big.NewInt(13390), accumulatedFees)
+		require.Equal(t, expectedAccumulatedFees, accumulatedFees)
 
 		developerFees := testContext.TxFeeHandler.GetDeveloperFees()
-		require.Equal(t, big.NewInt(915), developerFees)
+		require.Equal(t, big.NewInt(91), developerFees)
 	}
 }
 
@@ -80,19 +83,23 @@ func TestRelayedBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(t *test
 		t.Skip("this is not a short test")
 	}
 
-	t.Run("before relayed move balance fix", testRelayedBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(integrationTests.UnreachableEpoch))
-	t.Run("after relayed move balance fix", testRelayedBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(0))
+	t.Run("before relayed base cost fix", testRelayedBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(integrationTests.UnreachableEpoch, big.NewInt(25610), big.NewInt(4390)))
+	t.Run("after relayed base cost fix", testRelayedBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(0, big.NewInt(25610), big.NewInt(4390)))
 }
 
-func testRelayedBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(relayedFixActivationEpoch uint32) func(t *testing.T) {
+func testRelayedBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(
+	relayedFixActivationEpoch uint32,
+	expectedBalanceRelayer *big.Int,
+	expectedAccumulatedFees *big.Int,
+) func(t *testing.T) {
 	return func(t *testing.T) {
 		testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
 			FixRelayedBaseCostEnableEpoch: relayedFixActivationEpoch,
-		})
+		}, gasPriceModifier)
 		require.Nil(t, err)
 		defer testContext.Close()
 
-		scAddress, owner := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
+		scAddress, owner := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm", 9991691, 8309, 39)
 		testContext.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 		utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
@@ -119,15 +126,14 @@ func testRelayedBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(relayed
 
 		utils.CheckOwnerAddr(t, testContext, scAddress, owner)
 
-		expectedBalanceRelayer := big.NewInt(16610)
 		vm.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedBalanceRelayer)
 
-		expectedBalance := big.NewInt(9988100)
+		expectedBalance := big.NewInt(9991691)
 		vm.TestAccount(t, testContext.Accounts, owner, 1, expectedBalance)
 
 		// check accumulated fees
 		accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-		require.Equal(t, big.NewInt(13390), accumulatedFees)
+		require.Equal(t, expectedAccumulatedFees, accumulatedFees)
 
 		developerFees := testContext.TxFeeHandler.GetDeveloperFees()
 		require.Equal(t, big.NewInt(0), developerFees)
@@ -139,11 +145,11 @@ func TestRelayedBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *test
 		t.Skip("this is not a short test")
 	}
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, owner := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
+	scAddress, owner := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm", 9988100, 11900, 399)
 	testContext.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
@@ -207,11 +213,11 @@ func testRelayedBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldConsumeG
 	t *testing.T,
 	enableEpochs config.EnableEpochs,
 ) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(enableEpochs)
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(enableEpochs, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, owner := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
+	scAddress, owner := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm", 9988100, 11900, 399)
 	testContext.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
@@ -255,11 +261,11 @@ func TestRelayedBuildInFunctionChangeOwnerCallOutOfGasShouldConsumeGas(t *testin
 		t.Skip("this is not a short test")
 	}
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, owner := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
+	scAddress, owner := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm", 9988100, 11900, 399)
 	testContext.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 

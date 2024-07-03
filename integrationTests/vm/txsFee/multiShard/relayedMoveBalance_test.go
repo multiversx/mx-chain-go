@@ -13,22 +13,24 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const minGasLimit = uint64(1)
+const (
+	minGasLimit      = uint64(1)
+	gasPriceModifier = float64(0.1)
+)
 
 func TestRelayedMoveBalanceRelayerShard0InnerTxSenderAndReceiverShard1ShouldWork(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 
-	t.Run("before relayed move balance fix", testRelayedMoveBalanceRelayerShard0InnerTxSenderAndReceiverShard1ShouldWork(integrationTests.UnreachableEpoch))
-	t.Run("after relayed move balance fix", testRelayedMoveBalanceRelayerShard0InnerTxSenderAndReceiverShard1ShouldWork(0))
+	t.Run("before relayed base cost fix", testRelayedMoveBalanceRelayerShard0InnerTxSenderAndReceiverShard1ShouldWork(integrationTests.UnreachableEpoch))
 }
 
 func testRelayedMoveBalanceRelayerShard0InnerTxSenderAndReceiverShard1ShouldWork(relayedFixActivationEpoch uint32) func(t *testing.T) {
 	return func(t *testing.T) {
 		testContext, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{
-			RelayedNonceFixEnableEpoch: relayedFixActivationEpoch,
-		})
+			FixRelayedBaseCostEnableEpoch: relayedFixActivationEpoch,
+		}, gasPriceModifier)
 		require.Nil(t, err)
 		defer testContext.Close()
 
@@ -71,7 +73,7 @@ func testRelayedMoveBalanceRelayerShard0InnerTxSenderAndReceiverShard1ShouldWork
 
 		// check accumulated fees
 		accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-		require.Equal(t, big.NewInt(1000), accumulatedFees)
+		require.Equal(t, big.NewInt(100), accumulatedFees)
 	}
 }
 
@@ -80,15 +82,14 @@ func TestRelayedMoveBalanceRelayerAndInnerTxSenderShard0ReceiverShard1(t *testin
 		t.Skip("this is not a short test")
 	}
 
-	t.Run("before relayed move balance fix", testRelayedMoveBalanceRelayerAndInnerTxSenderShard0ReceiverShard1(integrationTests.UnreachableEpoch))
-	t.Run("after relayed move balance fix", testRelayedMoveBalanceRelayerAndInnerTxSenderShard0ReceiverShard1(0))
+	t.Run("before relayed base cost fix", testRelayedMoveBalanceRelayerAndInnerTxSenderShard0ReceiverShard1(integrationTests.UnreachableEpoch))
 }
 
 func testRelayedMoveBalanceRelayerAndInnerTxSenderShard0ReceiverShard1(relayedFixActivationEpoch uint32) func(t *testing.T) {
 	return func(t *testing.T) {
 		testContext, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{
-			RelayedNonceFixEnableEpoch: relayedFixActivationEpoch,
-		})
+			FixRelayedBaseCostEnableEpoch: relayedFixActivationEpoch,
+		}, gasPriceModifier)
 		require.Nil(t, err)
 		defer testContext.Close()
 
@@ -129,7 +130,7 @@ func testRelayedMoveBalanceRelayerAndInnerTxSenderShard0ReceiverShard1(relayedFi
 
 		// check accumulated fees
 		accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-		require.Equal(t, big.NewInt(1000), accumulatedFees)
+		require.Equal(t, big.NewInt(100), accumulatedFees)
 	}
 }
 
@@ -138,21 +139,20 @@ func TestRelayedMoveBalanceExecuteOnSourceAndDestination(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	t.Run("before relayed move balance fix", testRelayedMoveBalanceExecuteOnSourceAndDestination(integrationTests.UnreachableEpoch))
-	t.Run("after relayed move balance fix", testRelayedMoveBalanceExecuteOnSourceAndDestination(0))
+	t.Run("before relayed base cost fix", testRelayedMoveBalanceExecuteOnSourceAndDestination(integrationTests.UnreachableEpoch))
 }
 
 func testRelayedMoveBalanceExecuteOnSourceAndDestination(relayedFixActivationEpoch uint32) func(t *testing.T) {
 	return func(t *testing.T) {
 		testContextSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{
 			FixRelayedBaseCostEnableEpoch: relayedFixActivationEpoch,
-		})
+		}, gasPriceModifier)
 		require.Nil(t, err)
 		defer testContextSource.Close()
 
 		testContextDst, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{
 			FixRelayedBaseCostEnableEpoch: relayedFixActivationEpoch,
-		})
+		}, gasPriceModifier)
 		require.Nil(t, err)
 		defer testContextDst.Close()
 
@@ -188,8 +188,8 @@ func testRelayedMoveBalanceExecuteOnSourceAndDestination(relayedFixActivationEpo
 		require.Nil(t, err)
 
 		// check relayed balance
-		// 100000 - rTxFee(163)*gasPrice(10) - txFeeInner(1000) = 97370
-		utils.TestAccount(t, testContextSource.Accounts, relayerAddr, 1, big.NewInt(97370))
+		// 100000 - rTxFee(163)*gasPrice(10) - txFeeInner(1000*gasPriceModifier(0.1)) = 98270
+		utils.TestAccount(t, testContextSource.Accounts, relayerAddr, 1, big.NewInt(98270))
 
 		// check accumulated fees
 		accumulatedFees := testContextSource.TxFeeHandler.GetAccumulatedFees()
@@ -210,7 +210,7 @@ func testRelayedMoveBalanceExecuteOnSourceAndDestination(relayedFixActivationEpo
 
 		// check accumulated fees
 		accumulatedFees = testContextDst.TxFeeHandler.GetAccumulatedFees()
-		require.Equal(t, big.NewInt(1000), accumulatedFees)
+		require.Equal(t, big.NewInt(100), accumulatedFees)
 	}
 }
 
@@ -219,21 +219,21 @@ func TestRelayedMoveBalanceExecuteOnSourceAndDestinationRelayerAndInnerTxSenderS
 		t.Skip("this is not a short test")
 	}
 
-	t.Run("before relayed move balance fix", testRelayedMoveBalanceExecuteOnSourceAndDestinationRelayerAndInnerTxSenderShard0InnerTxReceiverShard1ShouldWork(integrationTests.UnreachableEpoch))
-	t.Run("after relayed move balance fix", testRelayedMoveBalanceExecuteOnSourceAndDestinationRelayerAndInnerTxSenderShard0InnerTxReceiverShard1ShouldWork(0))
+	t.Run("before relayed base cost fix", testRelayedMoveBalanceExecuteOnSourceAndDestinationRelayerAndInnerTxSenderShard0InnerTxReceiverShard1ShouldWork(integrationTests.UnreachableEpoch))
+	t.Run("after relayed base cost fix", testRelayedMoveBalanceExecuteOnSourceAndDestinationRelayerAndInnerTxSenderShard0InnerTxReceiverShard1ShouldWork(0))
 }
 
 func testRelayedMoveBalanceExecuteOnSourceAndDestinationRelayerAndInnerTxSenderShard0InnerTxReceiverShard1ShouldWork(relayedFixActivationEpoch uint32) func(t *testing.T) {
 	return func(t *testing.T) {
 		testContextSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{
 			FixRelayedBaseCostEnableEpoch: relayedFixActivationEpoch,
-		})
+		}, gasPriceModifier)
 		require.Nil(t, err)
 		defer testContextSource.Close()
 
 		testContextDst, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{
 			FixRelayedBaseCostEnableEpoch: relayedFixActivationEpoch,
-		})
+		}, gasPriceModifier)
 		require.Nil(t, err)
 		defer testContextDst.Close()
 
@@ -267,14 +267,21 @@ func testRelayedMoveBalanceExecuteOnSourceAndDestinationRelayerAndInnerTxSenderS
 		require.Nil(t, err)
 
 		// check relayed balance
-		// 100000 - rTxFee(163)*gasPrice(10) - innerTxFee(1000) = 97370
-		utils.TestAccount(t, testContextSource.Accounts, relayerAddr, 1, big.NewInt(97370))
+		// before base cost fix: 100000 - rTxFee(163)*gasPrice(10) - innerTxFee(1000*gasPriceModifier(0.1)) = 98270
+		//  after base cost fix: 100000 - rTxFee(163)*gasPrice(10) - innerTxFee(10)   = 98360
+		expectedRelayerBalance := big.NewInt(98270)
+		expectedAccumulatedFees := big.NewInt(1730)
+		if relayedFixActivationEpoch != integrationTests.UnreachableEpoch {
+			expectedRelayerBalance = big.NewInt(98360)
+			expectedAccumulatedFees = big.NewInt(1640)
+		}
+		utils.TestAccount(t, testContextSource.Accounts, relayerAddr, 1, expectedRelayerBalance)
 		// check inner tx sender
 		utils.TestAccount(t, testContextSource.Accounts, sndAddr, 1, big.NewInt(0))
 
 		// check accumulated fees
 		accumulatedFees := testContextSource.TxFeeHandler.GetAccumulatedFees()
-		require.Equal(t, big.NewInt(2630), accumulatedFees)
+		require.Equal(t, expectedAccumulatedFees, accumulatedFees)
 
 		// get scr for destination shard
 		txs := testContextSource.GetIntermediateTransactions(t)
@@ -296,21 +303,20 @@ func TestRelayedMoveBalanceRelayerAndInnerTxReceiverShard0SenderShard1(t *testin
 		t.Skip("this is not a short test")
 	}
 
-	t.Run("before relayed move balance fix", testRelayedMoveBalanceRelayerAndInnerTxReceiverShard0SenderShard1(integrationTests.UnreachableEpoch))
-	t.Run("after relayed move balance fix", testRelayedMoveBalanceRelayerAndInnerTxReceiverShard0SenderShard1(0))
+	t.Run("before relayed base cost fix", testRelayedMoveBalanceRelayerAndInnerTxReceiverShard0SenderShard1(integrationTests.UnreachableEpoch))
 }
 
 func testRelayedMoveBalanceRelayerAndInnerTxReceiverShard0SenderShard1(relayedFixActivationEpoch uint32) func(t *testing.T) {
 	return func(t *testing.T) {
 		testContextSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{
 			FixRelayedBaseCostEnableEpoch: relayedFixActivationEpoch,
-		})
+		}, gasPriceModifier)
 		require.Nil(t, err)
 		defer testContextSource.Close()
 
 		testContextDst, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{
 			FixRelayedBaseCostEnableEpoch: relayedFixActivationEpoch,
-		})
+		}, gasPriceModifier)
 		require.Nil(t, err)
 		defer testContextDst.Close()
 
@@ -344,8 +350,8 @@ func testRelayedMoveBalanceRelayerAndInnerTxReceiverShard0SenderShard1(relayedFi
 		require.Nil(t, err)
 
 		// check relayed balance
-		// 100000 - rTxFee(163)*gasPrice(10) - innerTxFee(1000) = 97370
-		utils.TestAccount(t, testContextSource.Accounts, relayerAddr, 1, big.NewInt(97370))
+		// 100000 - rTxFee(163)*gasPrice(10) - innerTxFee(1000*gasPriceModifier(0.1)) = 98270
+		utils.TestAccount(t, testContextSource.Accounts, relayerAddr, 1, big.NewInt(98270))
 
 		// check inner Tx receiver
 		innerTxSenderAccount, err := testContextSource.Accounts.GetExistingAccount(sndAddr)
@@ -366,7 +372,7 @@ func testRelayedMoveBalanceRelayerAndInnerTxReceiverShard0SenderShard1(relayedFi
 
 		// check accumulated fees
 		accumulatedFees = testContextDst.TxFeeHandler.GetAccumulatedFees()
-		expectedAccFees = big.NewInt(1000)
+		expectedAccFees = big.NewInt(100)
 		require.Equal(t, expectedAccFees, accumulatedFees)
 
 		txs := testContextDst.GetIntermediateTransactions(t)
@@ -385,27 +391,26 @@ func TestMoveBalanceRelayerShard0InnerTxSenderShard1InnerTxReceiverShard2ShouldW
 		t.Skip("this is not a short test")
 	}
 
-	t.Run("before relayed move balance fix", testMoveBalanceRelayerShard0InnerTxSenderShard1InnerTxReceiverShard2ShouldWork(integrationTests.UnreachableEpoch))
-	t.Run("after relayed move balance fix", testMoveBalanceRelayerShard0InnerTxSenderShard1InnerTxReceiverShard2ShouldWork(0))
+	t.Run("before relayed base cost fix", testMoveBalanceRelayerShard0InnerTxSenderShard1InnerTxReceiverShard2ShouldWork(integrationTests.UnreachableEpoch))
 }
 
 func testMoveBalanceRelayerShard0InnerTxSenderShard1InnerTxReceiverShard2ShouldWork(relayedFixActivationEpoch uint32) func(t *testing.T) {
 	return func(t *testing.T) {
 		testContextRelayer, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{
 			FixRelayedBaseCostEnableEpoch: relayedFixActivationEpoch,
-		})
+		}, gasPriceModifier)
 		require.Nil(t, err)
 		defer testContextRelayer.Close()
 
 		testContextInnerSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{
 			FixRelayedBaseCostEnableEpoch: relayedFixActivationEpoch,
-		})
+		}, gasPriceModifier)
 		require.Nil(t, err)
 		defer testContextInnerSource.Close()
 
 		testContextDst, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{
 			FixRelayedBaseCostEnableEpoch: relayedFixActivationEpoch,
-		})
+		}, gasPriceModifier)
 		require.Nil(t, err)
 		defer testContextDst.Close()
 
@@ -439,8 +444,8 @@ func testMoveBalanceRelayerShard0InnerTxSenderShard1InnerTxReceiverShard2ShouldW
 		require.Nil(t, err)
 
 		// check relayed balance
-		// 100000 - rTxFee(164)*gasPrice(10) - innerTxFee(1000) = 97370
-		utils.TestAccount(t, testContextRelayer.Accounts, relayerAddr, 1, big.NewInt(97370))
+		// 100000 - rTxFee(164)*gasPrice(10) - innerTxFee(1000*gasPriceModifier(0.1)) = 98270
+		utils.TestAccount(t, testContextRelayer.Accounts, relayerAddr, 1, big.NewInt(98270))
 
 		// check inner Tx receiver
 		innerTxSenderAccount, err := testContextRelayer.Accounts.GetExistingAccount(sndAddr)
@@ -461,7 +466,7 @@ func testMoveBalanceRelayerShard0InnerTxSenderShard1InnerTxReceiverShard2ShouldW
 
 		// check accumulated fees
 		accumulatedFees = testContextInnerSource.TxFeeHandler.GetAccumulatedFees()
-		expectedAccFees = big.NewInt(1000)
+		expectedAccFees = big.NewInt(100)
 		require.Equal(t, expectedAccFees, accumulatedFees)
 
 		// execute on inner tx receiver shard

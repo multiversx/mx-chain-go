@@ -228,6 +228,11 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
+	err = pcf.coreData.EconomicsData().SetTxTypeHandler(txTypeHandler)
+	if err != nil {
+		return nil, err
+	}
+
 	gasHandler, err := preprocess.NewGasComputation(
 		pcf.coreData.EconomicsData(),
 		txTypeHandler,
@@ -556,6 +561,11 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	err = pcf.coreData.EconomicsData().SetTxTypeHandler(txTypeHandler)
 	if err != nil {
 		return nil, err
 	}

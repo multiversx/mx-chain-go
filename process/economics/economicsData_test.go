@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
@@ -1672,6 +1673,12 @@ func TestEconomicsData_ComputeRelayedTxFees(t *testing.T) {
 
 		economicsData, _ := economics.NewEconomicsData(args)
 
+		_ = economicsData.SetTxTypeHandler(&testscommon.TxTypeHandlerMock{
+			ComputeTransactionTypeCalled: func(tx data.TransactionHandler) (process.TransactionType, process.TransactionType) {
+				return process.MoveBalance, process.MoveBalance
+			},
+		})
+
 		relayerFee, totalFee, err := economicsData.ComputeRelayedTxFees(tx)
 		require.NoError(t, err)
 		expectedRelayerFee := big.NewInt(int64(2 * uint64(minGasLimit) * tx.GetGasPrice())) // 2 move balance
@@ -1699,4 +1706,18 @@ func TestEconomicsData_ComputeRelayedTxFees(t *testing.T) {
 		require.Equal(t, expectedRelayerFee, relayerFee)
 		require.Equal(t, big.NewInt(int64(txCopy.GetGasLimit()*txCopy.GetGasPrice())), totalFee)
 	})
+}
+
+func TestEconomicsData_SetTxTypeHandler(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForEconomicsData(1)
+	economicsData, _ := economics.NewEconomicsData(args)
+	assert.NotNil(t, economicsData)
+
+	err := economicsData.SetTxTypeHandler(nil)
+	require.Equal(t, process.ErrNilTxTypeHandler, err)
+
+	err = economicsData.SetTxTypeHandler(&testscommon.TxTypeHandlerMock{})
+	require.NoError(t, err)
 }
