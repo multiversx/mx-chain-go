@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-storage-go/common"
+	"github.com/multiversx/mx-chain-storage-go/testscommon/txcachemocks"
 	"github.com/multiversx/mx-chain-storage-go/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -35,7 +36,8 @@ func Test_NewTxCache(t *testing.T) {
 		CountThreshold:                math.MaxUint32,
 		NumSendersToPreemptivelyEvict: 100,
 	}
-	txGasHandler, _ := dummyParams()
+
+	txGasHandler := txcachemocks.NewTxGasHandlerMock()
 
 	cache, err := NewTxCache(config, txGasHandler)
 	require.Nil(t, err)
@@ -138,18 +140,18 @@ func Test_AddTx_AppliesSizeConstraintsPerSenderForNumTransactions(t *testing.T) 
 func Test_AddTx_AppliesSizeConstraintsPerSenderForNumBytes(t *testing.T) {
 	cache := newCacheToTest(1024, math.MaxUint32)
 
-	cache.AddTx(createTxWithParams([]byte("tx-alice-1"), "alice", 1, 128, 42, 42))
-	cache.AddTx(createTxWithParams([]byte("tx-alice-2"), "alice", 2, 512, 42, 42))
-	cache.AddTx(createTxWithParams([]byte("tx-alice-4"), "alice", 3, 256, 42, 42))
-	cache.AddTx(createTxWithParams([]byte("tx-bob-1"), "bob", 1, 512, 42, 42))
-	cache.AddTx(createTxWithParams([]byte("tx-bob-2"), "bob", 2, 513, 42, 42))
+	cache.AddTx(createTxWithParams([]byte("tx-alice-1"), "alice", 1, 128, 50000, 42))
+	cache.AddTx(createTxWithParams([]byte("tx-alice-2"), "alice", 2, 512, 1500000, 42))
+	cache.AddTx(createTxWithParams([]byte("tx-alice-4"), "alice", 3, 256, 1500000, 42))
+	cache.AddTx(createTxWithParams([]byte("tx-bob-1"), "bob", 1, 512, 1500000, 42))
+	cache.AddTx(createTxWithParams([]byte("tx-bob-2"), "bob", 2, 513, 1500000, 42))
 
 	require.Equal(t, []string{"tx-alice-1", "tx-alice-2", "tx-alice-4"}, cache.getHashesForSender("alice"))
 	require.Equal(t, []string{"tx-bob-1"}, cache.getHashesForSender("bob"))
 	require.True(t, cache.areInternalMapsConsistent())
 
-	cache.AddTx(createTxWithParams([]byte("tx-alice-3"), "alice", 3, 256, 42, 42))
-	cache.AddTx(createTxWithParams([]byte("tx-bob-2"), "bob", 3, 512, 42, 42))
+	cache.AddTx(createTxWithParams([]byte("tx-alice-3"), "alice", 3, 256, 1500000, 42))
+	cache.AddTx(createTxWithParams([]byte("tx-bob-2"), "bob", 3, 512, 1500000, 42))
 	require.Equal(t, []string{"tx-alice-1", "tx-alice-2", "tx-alice-3"}, cache.getHashesForSender("alice"))
 	require.Equal(t, []string{"tx-bob-1", "tx-bob-2"}, cache.getHashesForSender("bob"))
 	require.True(t, cache.areInternalMapsConsistent())
@@ -406,7 +408,7 @@ func Test_Keys(t *testing.T) {
 }
 
 func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
-	txGasHandler, _ := dummyParams()
+	txGasHandler := txcachemocks.NewTxGasHandlerMock()
 	config := ConfigSourceMe{
 		Name:                          "untitled",
 		NumChunks:                     16,
@@ -627,7 +629,7 @@ func TestTxCache_NoCriticalInconsistency_WhenConcurrentAdditionsAndRemovals(t *t
 }
 
 func newUnconstrainedCacheToTest() *TxCache {
-	txGasHandler, _ := dummyParams()
+	txGasHandler := txcachemocks.NewTxGasHandlerMock()
 	cache, err := NewTxCache(ConfigSourceMe{
 		Name:                       "test",
 		NumChunks:                  16,
@@ -642,7 +644,7 @@ func newUnconstrainedCacheToTest() *TxCache {
 }
 
 func newCacheToTest(numBytesPerSenderThreshold uint32, countPerSenderThreshold uint32) *TxCache {
-	txGasHandler, _ := dummyParams()
+	txGasHandler := txcachemocks.NewTxGasHandlerMock()
 	cache, err := NewTxCache(ConfigSourceMe{
 		Name:                       "test",
 		NumChunks:                  16,

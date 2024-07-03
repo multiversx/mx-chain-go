@@ -2,66 +2,69 @@ package txcache
 
 import (
 	"math"
+
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 )
 
 var _ scoreComputer = (*defaultScoreComputer)(nil)
 
-// TODO (continued): The score formula should work even if minGasPrice = 0.
 type senderScoreParams struct {
-	count uint64
-	// Fee score is normalized
-	feeScore uint64
-	gas      uint64
+	avgPpuNumerator   float64
+	avgPpuDenominator uint64
+
+	accountNonce        uint64
+	accountNonceIsKnown bool
+	maxTransactionNonce uint64
+	minTransactionNonce uint64
+
+	numOfTransactions           uint64
+	hasSpotlessSequenceOfNonces bool
 }
 
 type defaultScoreComputer struct {
-	txFeeHelper feeHelper
-	ppuDivider  uint64
+	worstPpu float64
 }
 
-func newDefaultScoreComputer(txFeeHelper feeHelper) *defaultScoreComputer {
-	ppuScoreDivider := txFeeHelper.minGasPriceFactor()
-	ppuScoreDivider = ppuScoreDivider * ppuScoreDivider * ppuScoreDivider
+func newDefaultScoreComputer(txGasHandler TxGasHandler) *defaultScoreComputer {
+	worstPpu := computeWorstPpu(txGasHandler)
 
 	return &defaultScoreComputer{
-		txFeeHelper: txFeeHelper,
-		ppuDivider:  ppuScoreDivider,
+		worstPpu: worstPpu,
 	}
 }
 
-// computeScore computes the score of the sender, as an integer 0-100
+func computeWorstPpu(txGasHandler TxGasHandler) float64 {
+	minGasPrice := txGasHandler.MinGasPrice()
+	maxGasLimitPerTx := txGasHandler.MaxGasLimitPerTx()
+	worstPpuTx := &WrappedTransaction{
+		Tx: &transaction.Transaction{
+			GasLimit: maxGasLimitPerTx,
+			GasPrice: minGasPrice,
+		},
+	}
+
+	return worstPpuTx.computeFee(txGasHandler) / float64(maxGasLimitPerTx)
+}
+
+// computeScore computes the score of the sender, as an integer in [0, numberOfScoreChunks]
 func (computer *defaultScoreComputer) computeScore(scoreParams senderScoreParams) uint32 {
 	rawScore := computer.computeRawScore(scoreParams)
 	truncatedScore := uint32(rawScore)
 	return truncatedScore
 }
 
-// TODO (optimization): switch to integer operations (as opposed to float operations).
 func (computer *defaultScoreComputer) computeRawScore(params senderScoreParams) float64 {
-	allParamsDefined := params.feeScore > 0 && params.gas > 0 && params.count > 0
-	if !allParamsDefined {
+	if !params.hasSpotlessSequenceOfNonces {
 		return 0
 	}
 
-	ppuMin := computer.txFeeHelper.minPricePerUnit()
-	normalizedGas := params.gas >> computer.txFeeHelper.gasLimitShift()
-	if normalizedGas == 0 {
-		normalizedGas = 1
-	}
-	ppuAvg := params.feeScore / normalizedGas
-	// (<< 3)^3 and >> 9 cancel each other; used to preserve a bit more resolution
-	ppuRatio := ppuAvg << 3 / ppuMin
-	ppuScore := ppuRatio * ppuRatio * ppuRatio >> 9
-	ppuScoreAdjusted := float64(ppuScore) / float64(computer.ppuDivider)
+	avgPpu := params.avgPpuNumerator / float64(params.avgPpuDenominator)
 
-	countPow2 := params.count * params.count
-	countScore := math.Log(float64(countPow2)+1) + 1
+	// We use the worst possible price per unit for normalization.
+	avgPpuNormalized := avgPpu / computer.worstPpu
 
-	rawScore := ppuScoreAdjusted / countScore
-	// We apply the logistic function,
-	// and then subtract 0.5, since we only deal with positive scores,
-	// and then we multiply by 2, to have full [0..1] range.
-	asymptoticScore := (1/(1+math.Exp(-rawScore)) - 0.5) * 2
-	score := asymptoticScore * float64(numberOfScoreChunks)
+	// https://www.wolframalpha.com, with input "((1 / (1 + exp(-x)) - 1/2) * 2) * 100, where x is from 0 to 10"
+	avgPpuNormalizedSubunitary := (1/(1+math.Exp(-avgPpuNormalized)) - 0.5) * 2
+	score := avgPpuNormalizedSubunitary * float64(numberOfScoreChunks)
 	return score
 }
