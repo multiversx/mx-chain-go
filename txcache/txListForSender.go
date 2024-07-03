@@ -26,10 +26,13 @@ type txListForSender struct {
 	scoreChunk          *maps.MapChunk
 	accountNonce        atomic.Uint64
 	totalBytes          atomic.Counter
-	totalGas            atomic.Counter
-	totalFeeScore       atomic.Counter
 	numFailedSelections atomic.Counter
-	onScoreChange       scoreChangeCallback
+
+	avgPpuNumerator   float64
+	avgPpuDenominator uint64
+	noncesTracker     *noncesTracker
+
+	onScoreChange scoreChangeCallback
 
 	scoreChunkMutex sync.RWMutex
 	mutex           sync.RWMutex
@@ -43,13 +46,14 @@ func newTxListForSender(sender string, constraints *senderConstraints, onScoreCh
 		items:         list.New(),
 		sender:        sender,
 		constraints:   constraints,
+		noncesTracker: newNoncesTracker(),
 		onScoreChange: onScoreChange,
 	}
 }
 
 // AddTx adds a transaction in sender's list
 // This is a "sorted" insert
-func (listForSender *txListForSender) AddTx(tx *WrappedTransaction, gasHandler TxGasHandler, txFeeHelper feeHelper) (bool, [][]byte) {
+func (listForSender *txListForSender) AddTx(tx *WrappedTransaction, gasHandler TxGasHandler) (bool, [][]byte) {
 	// We don't allow concurrent interceptor goroutines to mutate a given sender's list
 	listForSender.mutex.Lock()
 	defer listForSender.mutex.Unlock()
@@ -65,7 +69,7 @@ func (listForSender *txListForSender) AddTx(tx *WrappedTransaction, gasHandler T
 		listForSender.items.InsertAfter(tx, insertionPlace)
 	}
 
-	listForSender.onAddedTransaction(tx, gasHandler, txFeeHelper)
+	listForSender.onAddedTransaction(tx, gasHandler)
 	evicted := listForSender.applySizeConstraints()
 	listForSender.triggerScoreChange()
 	return true, evicted
@@ -101,10 +105,14 @@ func (listForSender *txListForSender) isCapacityExceeded() bool {
 	return tooManyBytes || tooManyTxs
 }
 
-func (listForSender *txListForSender) onAddedTransaction(tx *WrappedTransaction, gasHandler TxGasHandler, txFeeHelper feeHelper) {
+func (listForSender *txListForSender) onAddedTransaction(tx *WrappedTransaction, gasHandler TxGasHandler) {
+	nonce := tx.Tx.GetNonce()
+	gasLimit := tx.Tx.GetGasLimit()
+
 	listForSender.totalBytes.Add(tx.Size)
-	listForSender.totalGas.Add(int64(estimateTxGas(tx)))
-	listForSender.totalFeeScore.Add(int64(estimateTxFeeScore(tx, gasHandler, txFeeHelper)))
+	listForSender.avgPpuNumerator += tx.computeFee(gasHandler)
+	listForSender.avgPpuDenominator += gasLimit
+	listForSender.noncesTracker.addNonce(nonce)
 }
 
 func (listForSender *txListForSender) triggerScoreChange() {
@@ -114,11 +122,34 @@ func (listForSender *txListForSender) triggerScoreChange() {
 
 // This function should only be used in critical section (listForSender.mutex)
 func (listForSender *txListForSender) getScoreParams() senderScoreParams {
-	fee := listForSender.totalFeeScore.GetUint64()
-	gas := listForSender.totalGas.GetUint64()
-	count := listForSender.countTx()
+	numTxs := listForSender.countTx()
+	minTransactionNonce := uint64(0)
+	maxTransactionNonce := uint64(0)
 
-	return senderScoreParams{count: count, feeScore: fee, gas: gas}
+	firstTx := listForSender.items.Front()
+	lastTx := listForSender.items.Back()
+
+	if firstTx != nil {
+		minTransactionNonce = firstTx.Value.(*WrappedTransaction).Tx.GetNonce()
+	}
+
+	if lastTx != nil {
+		maxTransactionNonce = lastTx.Value.(*WrappedTransaction).Tx.GetNonce()
+	}
+
+	hasSpotlessSequenceOfNonces := listForSender.noncesTracker.isSpotlessSequence(minTransactionNonce, numTxs)
+
+	return senderScoreParams{
+		avgPpuNumerator:             listForSender.avgPpuNumerator,
+		avgPpuDenominator:           listForSender.avgPpuDenominator,
+		numOfTransactions:           numTxs,
+		hasSpotlessSequenceOfNonces: hasSpotlessSequenceOfNonces,
+
+		accountNonce:        listForSender.accountNonce.Get(),
+		accountNonceIsKnown: listForSender.accountNonceKnown.IsSet(),
+		minTransactionNonce: minTransactionNonce,
+		maxTransactionNonce: maxTransactionNonce,
+	}
 }
 
 // This function should only be used in critical section (listForSender.mutex)
@@ -181,11 +212,14 @@ func (listForSender *txListForSender) RemoveTx(tx *WrappedTransaction) bool {
 }
 
 func (listForSender *txListForSender) onRemovedListElement(element *list.Element) {
-	value := element.Value.(*WrappedTransaction)
+	tx := element.Value.(*WrappedTransaction)
+	nonce := tx.Tx.GetNonce()
+	gasLimit := tx.Tx.GetGasLimit()
 
-	listForSender.totalBytes.Subtract(value.Size)
-	listForSender.totalGas.Subtract(int64(estimateTxGas(value)))
-	listForSender.totalFeeScore.Subtract(int64(value.TxFeeScoreNormalized))
+	listForSender.totalBytes.Subtract(tx.Size)
+	listForSender.avgPpuNumerator -= tx.TxFee
+	listForSender.avgPpuDenominator -= gasLimit
+	listForSender.noncesTracker.removeNonce(nonce)
 }
 
 // This function should only be used in critical section (listForSender.mutex)

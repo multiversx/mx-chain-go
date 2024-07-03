@@ -6,6 +6,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/multiversx/mx-chain-storage-go/testscommon/txcachemocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -176,9 +177,9 @@ func createTxListBySenderMap(numSenders int) *txListBySenderMap {
 }
 
 func newSendersMapToTest() *txListBySenderMap {
-	txGasHandler, txFeeHelper := dummyParams()
+	txGasHandler := txcachemocks.NewTxGasHandlerMock()
 	return newTxListBySenderMap(4, senderConstraints{
 		maxNumBytes: math.MaxUint32,
 		maxNumTxs:   math.MaxUint32,
-	}, &disabledScoreComputer{}, txGasHandler, txFeeHelper)
+	}, &disabledScoreComputer{}, txGasHandler)
 }
