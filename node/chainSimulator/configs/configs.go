@@ -289,6 +289,7 @@ func generateValidatorsKeyAndUpdateFiles(
 	nodes.Hysteresis = 0
 
 	nodes.InitialNodes = make([]*sharding.InitialNode, 0)
+	configs.NodesConfig.InitialNodes = make([]*config.InitialNodeConfig, 0)
 	privateKeys := make([]crypto.PrivateKey, 0)
 	publicKeys := make([]crypto.PublicKey, 0)
 	walletIndex := 0
@@ -306,6 +307,12 @@ func generateValidatorsKeyAndUpdateFiles(
 		nodes.InitialNodes = append(nodes.InitialNodes, &sharding.InitialNode{
 			PubKey:  hex.EncodeToString(pkBytes),
 			Address: stakeWallets[walletIndex].Address.Bech32,
+		})
+
+		configs.NodesConfig.InitialNodes = append(configs.NodesConfig.InitialNodes, &config.InitialNodeConfig{
+			PubKey:        hex.EncodeToString(pkBytes),
+			Address:       stakeWallets[walletIndex].Address.Bech32,
+			InitialRating: 5000001,
 		})
 
 		walletIndex++
@@ -327,6 +334,13 @@ func generateValidatorsKeyAndUpdateFiles(
 				PubKey:  hex.EncodeToString(pkBytes),
 				Address: stakeWallets[walletIndex].Address.Bech32,
 			})
+
+			configs.NodesConfig.InitialNodes = append(configs.NodesConfig.InitialNodes, &config.InitialNodeConfig{
+				PubKey:        hex.EncodeToString(pkBytes),
+				Address:       stakeWallets[walletIndex].Address.Bech32,
+				InitialRating: 5000001,
+			})
+
 			walletIndex++
 		}
 	}
