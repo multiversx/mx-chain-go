@@ -935,7 +935,7 @@ func TestChainSimulator_NFT_ESDTMetaDataRecreate(t *testing.T) {
 
 	roles := [][]byte{
 		[]byte(core.ESDTRoleNFTCreate),
-		[]byte(core.ESDTMetaDataRecreate),
+		[]byte(core.ESDTRoleNFTRecreate),
 	}
 
 	nftTokenID := txResult.Logs.Events[0].Topics[0]
@@ -1001,6 +1001,7 @@ func TestChainSimulator_NFT_ESDTMetaDataRecreate(t *testing.T) {
 	shardID := cs.GetNodeHandler(0).GetProcessComponents().ShardCoordinator().ComputeId(address.Bytes)
 
 	checkMetaData(t, cs, address.Bytes, nftTokenID, shardID, nftMetaData)
+	require.Equal(t, core.ESDTMetaDataRecreate, txResult.Logs.Events[0].Identifier)
 }
 
 // Test scenario #5
@@ -1136,6 +1137,7 @@ func TestChainSimulator_NFT_ESDTMetaDataUpdate(t *testing.T) {
 	shardID := cs.GetNodeHandler(0).GetProcessComponents().ShardCoordinator().ComputeId(address.Bytes)
 
 	checkMetaData(t, cs, address.Bytes, nftTokenID, shardID, nftMetaData)
+	require.Equal(t, core.ESDTMetaDataUpdate, txResult.Logs.Events[0].Identifier)
 }
 
 // Test scenario #6
@@ -1285,6 +1287,7 @@ func TestChainSimulator_NFT_ESDTModifyCreator(t *testing.T) {
 	retrievedMetaData := getMetaDataFromAcc(t, cs, core.SystemAccountAddress, sft, shardID)
 
 	require.Equal(t, newCreatorAddress.Bytes, retrievedMetaData.Creator)
+	require.Equal(t, core.ESDTModifyCreator, txResult.Logs.Events[0].Identifier)
 }
 
 // Test scenario #7
@@ -1430,6 +1433,7 @@ func TestChainSimulator_NFT_ESDTSetNewURIs(t *testing.T) {
 	retrievedMetaData := getMetaDataFromAcc(t, cs, address.Bytes, nftTokenID, shardID)
 
 	require.Equal(t, expUris, retrievedMetaData.URIs)
+	require.Equal(t, core.ESDTSetNewURIs, txResult.Logs.Events[0].Identifier)
 }
 
 // Test scenario #8
@@ -1563,6 +1567,7 @@ func TestChainSimulator_NFT_ESDTModifyRoyalties(t *testing.T) {
 	retrievedMetaData := getMetaDataFromAcc(t, cs, address.Bytes, nftTokenID, shardID)
 
 	require.Equal(t, uint32(big.NewInt(20).Uint64()), retrievedMetaData.Royalties)
+	require.Equal(t, core.ESDTModifyRoyalties, txResult.Logs.Events[0].Identifier)
 }
 
 // Test scenario #9

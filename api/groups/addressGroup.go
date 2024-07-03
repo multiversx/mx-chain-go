@@ -72,9 +72,11 @@ type esdtTokenData struct {
 	Properties      string `json:"properties"`
 }
 
-type esdtNFTTokenData struct {
+// ESDTNFTTokenData defines the exposed nft token data structure
+type ESDTNFTTokenData struct {
 	TokenIdentifier string   `json:"tokenIdentifier"`
 	Balance         string   `json:"balance"`
+	Type            string   `json:"type"`
 	Properties      string   `json:"properties,omitempty"`
 	Name            string   `json:"name,omitempty"`
 	Nonce           uint64   `json:"nonce,omitempty"`
@@ -448,7 +450,7 @@ func (ag *addressGroup) getAllESDTData(c *gin.Context) {
 		return
 	}
 
-	formattedTokens := make(map[string]*esdtNFTTokenData)
+	formattedTokens := make(map[string]*ESDTNFTTokenData)
 	for tokenID, esdtData := range tokens {
 		tokenData := buildTokenDataApiResponse(tokenID, esdtData)
 
@@ -481,12 +483,14 @@ func (ag *addressGroup) isDataTrieMigrated(c *gin.Context) {
 	shared.RespondWithSuccess(c, gin.H{"isMigrated": isMigrated})
 }
 
-func buildTokenDataApiResponse(tokenIdentifier string, esdtData *esdt.ESDigitalToken) *esdtNFTTokenData {
-	tokenData := &esdtNFTTokenData{
+func buildTokenDataApiResponse(tokenIdentifier string, esdtData *esdt.ESDigitalToken) *ESDTNFTTokenData {
+	tokenData := &ESDTNFTTokenData{
 		TokenIdentifier: tokenIdentifier,
 		Balance:         esdtData.Value.String(),
 		Properties:      hex.EncodeToString(esdtData.Properties),
 	}
+
+	tokenType := core.ESDTType(esdtData.Type).String()
 	if esdtData.TokenMetaData != nil {
 		tokenData.Name = string(esdtData.TokenMetaData.Name)
 		tokenData.Nonce = esdtData.TokenMetaData.Nonce
@@ -495,9 +499,23 @@ func buildTokenDataApiResponse(tokenIdentifier string, esdtData *esdt.ESDigitalT
 		tokenData.Hash = esdtData.TokenMetaData.Hash
 		tokenData.URIs = esdtData.TokenMetaData.URIs
 		tokenData.Attributes = esdtData.TokenMetaData.Attributes
+
+		tokenType = getTokenType(esdtData.GetType(), tokenData.Nonce)
 	}
 
+	tokenData.Type = tokenType
+
 	return tokenData
+}
+
+func getTokenType(tokenType uint32, tokenNonce uint64) string {
+	isNotFungible := tokenNonce != 0
+	tokenTypeNotSet := isNotFungible && core.ESDTType(tokenType) == core.NonFungible
+	if tokenTypeNotSet {
+		return ""
+	}
+
+	return core.ESDTType(tokenType).String()
 }
 
 func (ag *addressGroup) getFacade() addressFacadeHandler {
