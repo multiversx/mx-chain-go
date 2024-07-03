@@ -36,6 +36,7 @@ func NewInterceptedMetaHeader(arg *ArgInterceptedBlockHeader) (*InterceptedMetaH
 	if err != nil {
 		return nil, err
 	}
+
 	hdr, err := createMetaHdr(arg.Marshalizer, arg.HdrBuff)
 	if err != nil {
 		return nil, err
@@ -51,7 +52,7 @@ func NewInterceptedMetaHeader(arg *ArgInterceptedBlockHeader) (*InterceptedMetaH
 		epochStartTrigger: arg.EpochStartTrigger,
 	}
 	inHdr.processFields(arg.HdrBuff)
-	log.Info("InterceptedMetaHeader.NewInterceptedMetaHeader", "nonce", hdr.Nonce, "round", hdr.Round, "hash", inHdr.hash)
+
 	return inHdr, nil
 }
 

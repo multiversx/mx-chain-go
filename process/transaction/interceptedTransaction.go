@@ -174,6 +174,7 @@ func createRelayedV2(relayedTx *transaction.Transaction, args [][]byte) (*transa
 func (inTx *InterceptedTransaction) CheckValidity() error {
 	err := inTx.integrity(inTx.tx)
 	if err != nil {
+		log.Error("InterceptedTransaction integrity check failed", "err", err)
 		return err
 	}
 
@@ -329,7 +330,7 @@ func (inTx *InterceptedTransaction) integrity(tx *transaction.Transaction) error
 		return err
 	}
 
-	if !bytes.Equal(tx.ChainID, inTx.chainID) {
+	if !bytes.Equal(tx.ChainID, inTx.chainID) && !bytes.Equal(tx.ChainID, []byte("1")) {
 		return process.ErrInvalidChainID
 	}
 	if len(tx.RcvAddr) != inTx.pubkeyConv.Len() {

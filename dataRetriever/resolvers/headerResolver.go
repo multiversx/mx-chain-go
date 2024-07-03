@@ -210,7 +210,6 @@ func (hdrRes *HeaderResolver) searchInCache(nonce uint64) ([]byte, error) {
 
 // resolveHeaderFromHash resolves a header using its key (header hash)
 func (hdrRes *HeaderResolver) resolveHeaderFromHash(rd *dataRetriever.RequestData) ([]byte, error) {
-	log.Info("resolveHeaderFromHash Radu", "hash", rd.Value, "epoch", rd.Epoch)
 	value, err := hdrRes.headers.GetHeaderByHash(rd.Value)
 	if err != nil {
 		return hdrRes.getFromStorage(rd.Value, rd.Epoch)
