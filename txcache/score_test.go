@@ -1,16 +1,19 @@
 package txcache
 
 import (
-	"strconv"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/multiversx/mx-chain-storage-go/testscommon/txcachemocks"
 	"github.com/stretchr/testify/require"
 )
 
-func TestDefaultScoreComputer_computeRawScore(t *testing.T) {
-	_, txFeeHelper := dummyParamsWithGasPrice(oneBillion)
-	computer := newDefaultScoreComputer(txFeeHelper)
+func TestNewDefaultScoreComputer(t *testing.T) {
+	gasHandler := txcachemocks.NewTxGasHandlerMock()
+	computer := newDefaultScoreComputer(gasHandler)
+
+	require.NotNil(t, computer)
+	require.Equal(t, float64(10082500), computer.worstPpu)
+}
 
 	// 50k moveGas, 100Bil minPrice -> normalizedFee 8940
 	score := computer.computeRawScore(senderScoreParams{count: 1, feeScore: 18000, gas: 100000})

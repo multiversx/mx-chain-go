@@ -1,6 +1,8 @@
 package txcache
 
 import (
+	"math/big"
+
 	"github.com/multiversx/mx-chain-core-go/data"
 )
 
@@ -10,12 +12,9 @@ type scoreComputer interface {
 
 // TxGasHandler handles a transaction gas and gas cost
 type TxGasHandler interface {
-	SplitTxGasInCategories(tx data.TransactionWithFeeHandler) (uint64, uint64)
-	GasPriceForProcessing(tx data.TransactionWithFeeHandler) uint64
-	GasPriceForMove(tx data.TransactionWithFeeHandler) uint64
 	MinGasPrice() uint64
-	MinGasLimit() uint64
-	MinGasPriceForProcessing() uint64
+	MaxGasLimitPerTx() uint64
+	ComputeTxFee(tx data.TransactionWithFeeHandler) *big.Int
 	IsInterfaceNil() bool
 }
 

@@ -47,12 +47,11 @@ func NewTxCache(config ConfigSourceMe, txGasHandler TxGasHandler) (*TxCache, err
 	// Note: for simplicity, we use the same "numChunks" for both internal concurrent maps
 	numChunks := config.NumChunks
 	senderConstraintsObj := config.getSenderConstraints()
-	txFeeHelper := newFeeComputationHelper(txGasHandler.MinGasPrice(), txGasHandler.MinGasLimit(), txGasHandler.MinGasPriceForProcessing())
-	scoreComputerObj := newDefaultScoreComputer(txFeeHelper)
+	scoreComputerObj := newDefaultScoreComputer(txGasHandler)
 
 	txCache := &TxCache{
 		name:            config.Name,
-		txListBySender:  newTxListBySenderMap(numChunks, senderConstraintsObj, scoreComputerObj, txGasHandler, txFeeHelper),
+		txListBySender:  newTxListBySenderMap(numChunks, senderConstraintsObj, scoreComputerObj, txGasHandler),
 		txByHash:        newTxByHashMap(numChunks),
 		config:          config,
 		evictionJournal: evictionJournal{},
