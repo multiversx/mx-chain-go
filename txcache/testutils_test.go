@@ -95,21 +95,10 @@ func addManyTransactionsWithUniformDistribution(cache *TxCache, nSenders int, nT
 
 func createTx(hash []byte, sender string, nonce uint64) *WrappedTransaction {
 	tx := &transaction.Transaction{
-		SndAddr: []byte(sender),
-		Nonce:   nonce,
-	}
-
-	return &WrappedTransaction{
-		Tx:     tx,
-		TxHash: hash,
-		Size:   int64(estimatedSizeOfBoundedTxFields),
-	}
-}
-func createTxWithGasLimit(hash []byte, sender string, nonce uint64, gasLimit uint64) *WrappedTransaction {
-	tx := &transaction.Transaction{
 		SndAddr:  []byte(sender),
 		Nonce:    nonce,
-		GasLimit: gasLimit,
+		GasLimit: 50000,
+		GasPrice: oneBillion,
 	}
 
 	return &WrappedTransaction{
@@ -138,6 +127,33 @@ func createTxWithParams(hash []byte, sender string, nonce uint64, size uint64, g
 		TxHash: hash,
 		Size:   int64(size),
 	}
+}
+
+func (wrappedTx *WrappedTransaction) withSize(size uint64) *WrappedTransaction {
+	dataLength := size - estimatedSizeOfBoundedTxFields
+	tx := wrappedTx.Tx.(*transaction.Transaction)
+	tx.Data = make([]byte, dataLength)
+	wrappedTx.Size = int64(size)
+	return wrappedTx
+}
+
+func (wrappedTx *WrappedTransaction) withDataLength(dataLength int) *WrappedTransaction {
+	tx := wrappedTx.Tx.(*transaction.Transaction)
+	tx.Data = make([]byte, dataLength)
+	wrappedTx.Size = int64(dataLength) + int64(estimatedSizeOfBoundedTxFields)
+	return wrappedTx
+}
+
+func (wrappedTx *WrappedTransaction) withGasPrice(gasPrice uint64) *WrappedTransaction {
+	tx := wrappedTx.Tx.(*transaction.Transaction)
+	tx.GasPrice = gasPrice
+	return wrappedTx
+}
+
+func (wrappedTx *WrappedTransaction) withGasLimit(gasLimit uint64) *WrappedTransaction {
+	tx := wrappedTx.Tx.(*transaction.Transaction)
+	tx.GasLimit = gasLimit
+	return wrappedTx
 }
 
 func createFakeSenderAddress(senderTag int) []byte {
