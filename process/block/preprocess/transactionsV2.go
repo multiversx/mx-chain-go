@@ -281,7 +281,11 @@ func (txs *transactions) createScheduledMiniBlocks(
 			log.Debug("time is out in createScheduledMiniBlocks")
 			break
 		}
-
+		maxGasLimitForScheduled := uint64(CurrentMaxGasLimitPercentage * float64(txs.economicsFee.MaxGasLimitPerBlock(txs.shardCoordinator.SelfId())))
+		if mbInfo.gasInfo.totalGasConsumedInSelfShard >= maxGasLimitForScheduled {
+			log.Debug("stopped processing transactions because the gas limit is reached", "CurrentMaxGasLimitPercentage", CurrentMaxGasLimitPercentage, "maxGasLimitForScheduled", maxGasLimitForScheduled)
+			break
+		}
 		tx, miniBlock, shouldContinue := txs.scheduledTXContinueFunc(
 			isShardStuck,
 			sortedTxs[index],

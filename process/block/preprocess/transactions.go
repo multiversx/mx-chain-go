@@ -27,6 +27,7 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
+var CurrentMaxGasLimitPercentage = float64(1.00)
 var _ process.DataMarshalizer = (*transactions)(nil)
 var _ process.PreProcessor = (*transactions)(nil)
 
@@ -1059,10 +1060,10 @@ func (txs *transactions) getRemainingGasPerBlock() uint64 {
 
 func (txs *transactions) getRemainingGasPerBlockAsScheduled() uint64 {
 	gasProvided := txs.gasHandler.TotalGasProvidedAsScheduled()
-	maxGasPerBlock := txs.economicsFee.MaxGasLimitPerBlock(txs.shardCoordinator.SelfId())
+	maxGasPerBlockWithLimit := uint64(float64(txs.economicsFee.MaxGasLimitPerBlock(txs.shardCoordinator.SelfId())) * CurrentMaxGasLimitPercentage)
 	gasBandwidth := uint64(0)
-	if gasProvided < maxGasPerBlock {
-		gasBandwidth = maxGasPerBlock - gasProvided
+	if gasProvided < maxGasPerBlockWithLimit {
+		gasBandwidth = maxGasPerBlockWithLimit - gasProvided
 	}
 	return gasBandwidth
 }
@@ -1072,7 +1073,7 @@ func (txs *transactions) getRemainingGasPerBlockAsScheduled() uint64 {
 // TODO: check if possible for transaction pre processor to receive a blockChainHook and use it to get the randomness instead
 func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool, randomness []byte) (block.MiniBlockSlice, error) {
 	startTime := time.Now()
-
+	log.Debug("createScheduledMiniBlocks", "CurrentMaxGasLimitPercentage", CurrentMaxGasLimitPercentage)
 	gasBandwidth := txs.getRemainingGasPerBlock() * selectionGasBandwidthIncreasePercent / 100
 	gasBandwidthForScheduled := uint64(0)
 	if txs.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
