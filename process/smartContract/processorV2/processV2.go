@@ -18,6 +18,12 @@ import (
 	vmData "github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
+	"github.com/multiversx/mx-chain-vm-go/vmhost"
+	"github.com/multiversx/mx-chain-vm-go/vmhost/contexts"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
@@ -27,11 +33,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
 	"github.com/multiversx/mx-chain-go/vm"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/multiversx/mx-chain-vm-common-go/parsers"
-	"github.com/multiversx/mx-chain-vm-go/vmhost"
-	"github.com/multiversx/mx-chain-vm-go/vmhost/contexts"
 )
 
 var _ process.SmartContractResultProcessor = (*scProcessor)(nil)
@@ -531,7 +532,7 @@ func (sc *scProcessor) finishSCExecution(
 		return 0, err
 	}
 
-	err = sc.scrForwarder.AddIntermediateTransactions(finalResults)
+	err = sc.scrForwarder.AddIntermediateTransactions(finalResults, txHash)
 	if err != nil {
 		log.Error("AddIntermediateTransactions error", "error", err.Error())
 		return 0, err
@@ -829,10 +830,10 @@ func (sc *scProcessor) saveAccounts(acntSnd, acntDst vmcommon.AccountHandler) er
 func (sc *scProcessor) resolveFailedTransaction(
 	_ state.UserAccountHandler,
 	tx data.TransactionHandler,
-	_ []byte,
+	txHash []byte,
 ) error {
 	if _, ok := tx.(*transaction.Transaction); ok {
-		err := sc.badTxForwarder.AddIntermediateTransactions([]data.TransactionHandler{tx})
+		err := sc.badTxForwarder.AddIntermediateTransactions([]data.TransactionHandler{tx}, txHash)
 		if err != nil {
 			return err
 		}
@@ -1493,7 +1494,7 @@ func (sc *scProcessor) processIfErrorWithAddedLogs(acntSnd state.UserAccountHand
 
 	isRecvSelfShard := sc.shardCoordinator.SelfId() == sc.shardCoordinator.ComputeId(scrIfError.RcvAddr)
 	if !isRecvSelfShard && !sc.isInformativeTxHandler(scrIfError) {
-		err = sc.scrForwarder.AddIntermediateTransactions([]data.TransactionHandler{scrIfError})
+		err = sc.scrForwarder.AddIntermediateTransactions([]data.TransactionHandler{scrIfError}, failureContext.txHash)
 		if err != nil {
 			return err
 		}
@@ -1624,7 +1625,7 @@ func (sc *scProcessor) processForRelayerWhenError(
 	}
 
 	if scrForRelayer.Value.Cmp(zero) > 0 {
-		err = sc.scrForwarder.AddIntermediateTransactions([]data.TransactionHandler{scrForRelayer})
+		err = sc.scrForwarder.AddIntermediateTransactions([]data.TransactionHandler{scrForRelayer}, txHash)
 		if err != nil {
 			return nil, err
 		}
@@ -1876,7 +1877,7 @@ func (sc *scProcessor) doDeploySmartContract(
 		return 0, err
 	}
 
-	err = sc.scrForwarder.AddIntermediateTransactions(finalResults)
+	err = sc.scrForwarder.AddIntermediateTransactions(finalResults, txHash)
 	if err != nil {
 		log.Debug("AddIntermediate Transaction error", "error", err.Error())
 		return 0, err

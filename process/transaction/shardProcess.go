@@ -15,12 +15,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var log = logger.GetOrCreate("process/transaction")
@@ -289,7 +290,7 @@ func (txProc *txProcessor) executeAfterFailedMoveBalanceTransaction(
 			return nil
 		}
 
-		err = txProc.badTxForwarder.AddIntermediateTransactions([]data.TransactionHandler{tx})
+		err = txProc.badTxForwarder.AddIntermediateTransactions([]data.TransactionHandler{tx}, txHash)
 		if err != nil {
 			return err
 		}
@@ -315,13 +316,13 @@ func (txProc *txProcessor) executingFailedTransaction(
 		return err
 	}
 
-	acntSnd.IncreaseNonce(1)
-	err = txProc.badTxForwarder.AddIntermediateTransactions([]data.TransactionHandler{tx})
+	txHash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
 	if err != nil {
 		return err
 	}
 
-	txHash, err := core.CalculateHash(txProc.marshalizer, txProc.hasher, tx)
+	acntSnd.IncreaseNonce(1)
+	err = txProc.badTxForwarder.AddIntermediateTransactions([]data.TransactionHandler{tx}, txHash)
 	if err != nil {
 		return err
 	}
@@ -335,7 +336,7 @@ func (txProc *txProcessor) executingFailedTransaction(
 		TxHash:  txHash,
 	}
 
-	err = txProc.receiptForwarder.AddIntermediateTransactions([]data.TransactionHandler{rpt})
+	err = txProc.receiptForwarder.AddIntermediateTransactions([]data.TransactionHandler{rpt}, txHash)
 	if err != nil {
 		return err
 	}
@@ -381,7 +382,7 @@ func (txProc *txProcessor) createReceiptWithReturnedGas(
 		TxHash:  txHash,
 	}
 
-	err := txProc.receiptForwarder.AddIntermediateTransactions([]data.TransactionHandler{rpt})
+	err := txProc.receiptForwarder.AddIntermediateTransactions([]data.TransactionHandler{rpt}, txHash)
 	if err != nil {
 		return err
 	}
@@ -1076,7 +1077,7 @@ func (txProc *txProcessor) processUserTx(
 		return returnCode, nil
 	}
 
-	err = txProc.scrForwarder.AddIntermediateTransactions([]data.TransactionHandler{scrFromTx})
+	err = txProc.scrForwarder.AddIntermediateTransactions([]data.TransactionHandler{scrFromTx}, txHash)
 	if err != nil {
 		return 0, err
 	}
@@ -1149,7 +1150,7 @@ func (txProc *txProcessor) executeFailedRelayedUserTx(
 		return err
 	}
 
-	err = txProc.scrForwarder.AddIntermediateTransactions([]data.TransactionHandler{scrForRelayer})
+	err = txProc.scrForwarder.AddIntermediateTransactions([]data.TransactionHandler{scrForRelayer}, originalTxHash)
 	if err != nil {
 		return err
 	}
@@ -1182,7 +1183,7 @@ func (txProc *txProcessor) executeFailedRelayedUserTx(
 		}
 
 		if txProc.enableEpochsHandler.IsFlagEnabled(common.AddFailedRelayedTxToInvalidMBsFlag) && !isRelayedV3(originalTx.InnerTransactions) {
-			err = txProc.badTxForwarder.AddIntermediateTransactions([]data.TransactionHandler{originalTx})
+			err = txProc.badTxForwarder.AddIntermediateTransactions([]data.TransactionHandler{originalTx}, originalTxHash)
 			if err != nil {
 				return err
 			}
