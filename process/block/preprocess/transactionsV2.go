@@ -30,9 +30,13 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 	}()
 
 	remainingTxs := make([]*txcache.WrappedTransaction, 0)
+	totalTxs := len(sortedTxs)
 	for index := range sortedTxs {
 		if !haveTime() {
 			log.Debug("time is out in createAndProcessMiniBlocksFromMeV2")
+			percentageProcessed := float64(index) / float64(totalTxs)
+			CurrentMaxGasLimitPercentage = CurrentMaxGasLimitPercentage * percentageProcessed
+			log.Debug("createAndProcessMiniBlocksFromMeV2: time is out", "percentage processed", percentageProcessed, "CurrentMaxGasLimitPercentage", CurrentMaxGasLimitPercentage)
 			remainingTxs = append(remainingTxs, sortedTxs[index:]...)
 			break
 		}
