@@ -405,23 +405,6 @@ func TestListForSender_DetectRaceConditions(t *testing.T) {
 	}()
 }
 
-func dummyParamsWithGasPriceAndGasLimit(minGasPrice uint64, minGasLimit uint64) TxGasHandler {
-	txGasHandler := txcachemocks.NewTxGasHandlerMock()
-	txGasHandler.SetMinGasLimit(minGasLimit)
-	txGasHandler.SetMinGasPrice(minGasPrice)
-	return txGasHandler
-}
-
-func dummyParamsWithGasPrice(minGasPrice uint64) TxGasHandler {
-	return dummyParamsWithGasPriceAndGasLimit(minGasPrice, 50000)
-}
-
-func dummyParams() TxGasHandler {
-	minPrice := uint64(oneBillion)
-	minGasLimit := uint64(50000)
-	return dummyParamsWithGasPriceAndGasLimit(minPrice, minGasLimit)
-}
-
 func newUnconstrainedListToTest() *txListForSender {
 	return newTxListForSender(".", &senderConstraints{
 		maxNumBytes: math.MaxUint32,
