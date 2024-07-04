@@ -37,6 +37,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 			percentageProcessed := float64(index) / float64(totalTxs)
 			CurrentMaxGasLimitPercentage = CurrentMaxGasLimitPercentage * percentageProcessed
 			log.Debug("createAndProcessMiniBlocksFromMeV2: time is out", "percentage processed", percentageProcessed, "CurrentMaxGasLimitPercentage", CurrentMaxGasLimitPercentage)
+			ConsecutiveProcessedBlocksWithTransactions = 0
 			remainingTxs = append(remainingTxs, sortedTxs[index:]...)
 			break
 		}
@@ -90,6 +91,16 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 			receiverShardID,
 			txMbInfo,
 			mbInfo)
+	}
+
+	ConsecutiveProcessedBlocksWithTransactions++
+	if ConsecutiveProcessedBlocksWithTransactions >= 5 {
+		CurrentMaxGasLimitPercentage = CurrentMaxGasLimitPercentage * 1.1
+		if CurrentMaxGasLimitPercentage > 1.0 {
+			CurrentMaxGasLimitPercentage = 1.0
+		}
+		log.Debug("createAndProcessMiniBlocksFromMeV2: increasing CurrentMaxGasLimitPercentage", "CurrentMaxGasLimitPercentage", CurrentMaxGasLimitPercentage)
+		ConsecutiveProcessedBlocksWithTransactions = 0
 	}
 
 	miniBlocks := txs.getMiniBlockSliceFromMapV2(mbInfo.mapMiniBlocks)

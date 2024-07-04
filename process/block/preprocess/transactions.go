@@ -28,6 +28,7 @@ import (
 )
 
 var CurrentMaxGasLimitPercentage = float64(1.00)
+var ConsecutiveProcessedBlocksWithTransactions = 0
 var _ process.DataMarshalizer = (*transactions)(nil)
 var _ process.PreProcessor = (*transactions)(nil)
 
