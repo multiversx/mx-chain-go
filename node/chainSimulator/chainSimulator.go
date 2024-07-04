@@ -48,6 +48,7 @@ type ArgsChainSimulator struct {
 	NumOfShards              uint32
 	MinNodesPerShard         uint32
 	MetaChainMinNodes        uint32
+	Hysteresis               float32
 	NumNodesWaitingListShard uint32
 	NumNodesWaitingListMeta  uint32
 	GenesisTimestamp         int64
@@ -119,6 +120,7 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 		ConsensusGroupSize:          args.ConsensusGroupSize,
 		MetaChainMinNodes:           args.MetaChainMinNodes,
 		MetaChainConsensusGroupSize: args.MetaChainConsensusGroupSize,
+		Hysteresis:                  args.Hysteresis,
 		RoundsPerEpoch:              args.RoundsPerEpoch,
 		InitialEpoch:                args.InitialEpoch,
 		AlterConfigsFunction:        args.AlterConfigsFunction,

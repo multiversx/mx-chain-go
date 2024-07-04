@@ -52,6 +52,7 @@ type ArgsChainSimulatorConfigs struct {
 	ConsensusGroupSize          uint32
 	MetaChainMinNodes           uint32
 	MetaChainConsensusGroupSize uint32
+	Hysteresis                  float32
 	InitialEpoch                uint32
 	RoundsPerEpoch              core.OptionalUint64
 	NumNodesWaitingListShard    uint32
@@ -137,6 +138,7 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 	configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[0].MetachainConsensusGroupSize = args.MetaChainConsensusGroupSize
 	configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[0].ShardConsensusGroupSize = args.ConsensusGroupSize
 	configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[0].RoundDuration = args.RoundDurationInMillis
+	configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[0].Hysteresis = args.Hysteresis
 
 	node.ApplyArchCustomConfigs(configs)
 

@@ -2685,6 +2685,7 @@ func TestRandHashShuffler_UpdateNodeLists_WithStakingV4(t *testing.T) {
 		Auction:           auctionList,
 		NbShards:          nbShards,
 		Epoch:             stakingV4Epoch,
+		ChainParameters:   getTestChainParameters(),
 	}
 
 	shuffler, _ := createHashShufflerIntraShards()

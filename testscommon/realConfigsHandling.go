@@ -90,8 +90,6 @@ func CreateTestConfigs(tempDir string, originalConfigsPath string) (*config.Conf
 		return nil, err
 	}
 
-	generalConfig.GeneralSettings.ChainParametersByEpoch = computeChainParameters(uint32(len(nodesSetup.InitialNodes)), generalConfig.GeneralSettings.GenesisMaxNumberOfShards)
-
 	// make the node pass the network wait constraints
 	mainP2PConfig.Node.MinNumPeersToWaitForOnBootstrap = 0
 	mainP2PConfig.Node.ThresholdMinConnectedPeers = 0
@@ -141,23 +139,4 @@ func correctTestPathInGenesisSmartContracts(tempDir string, newGenesisSmartContr
 	}
 	output := strings.Join(lines, "\n")
 	return os.WriteFile(newGenesisSmartContractsFilename, []byte(output), 0644)
-}
-
-func computeChainParameters(numInitialNodes uint32, numShardsWithoutMeta uint32) []config.ChainParametersByEpochConfig {
-	numShardsWithMeta := numShardsWithoutMeta + 1
-	nodesPerShards := numInitialNodes / numShardsWithMeta
-	shardCnsGroupSize := nodesPerShards
-	if shardCnsGroupSize > 1 {
-		shardCnsGroupSize--
-	}
-	diff := numInitialNodes - nodesPerShards*numShardsWithMeta
-	return []config.ChainParametersByEpochConfig{
-		{
-			ShardConsensusGroupSize:     shardCnsGroupSize,
-			ShardMinNumNodes:            nodesPerShards,
-			MetachainConsensusGroupSize: nodesPerShards,
-			MetachainMinNumNodes:        nodesPerShards + diff,
-			RoundDuration:               2000,
-		},
-	}
 }
