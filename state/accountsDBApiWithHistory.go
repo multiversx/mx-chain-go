@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -141,7 +142,7 @@ func (accountsDB *accountsDBApiWithHistory) GetStackDebugFirstEntry() []byte {
 }
 
 // SetTxHashForLatestStateChanges returns nil
-func (accountsDB *accountsDBApiWithHistory) SetTxHashForLatestStateChanges(_ []byte) {
+func (accountsDB *accountsDBApiWithHistory) SetTxHashForLatestStateChanges(_ []byte, _ *transaction.Transaction) {
 }
 
 // ResetStateChangesCollector returns nil
