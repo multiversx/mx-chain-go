@@ -1077,7 +1077,7 @@ func (txProc *txProcessor) processUserTx(
 		return returnCode, nil
 	}
 
-	err = txProc.scrForwarder.AddIntermediateTransactions([]data.TransactionHandler{scrFromTx}, txHash)
+	err = txProc.scrForwarder.AddIntermediateTransactions([]data.TransactionHandler{scrFromTx}, originalTxHash)
 	if err != nil {
 		return 0, err
 	}
