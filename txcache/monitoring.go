@@ -12,7 +12,7 @@ import (
 var log = logger.GetOrCreate("txcache")
 
 func (cache *TxCache) monitorEvictionWrtSenderLimit(sender []byte, evicted [][]byte) {
-	log.Trace("TxCache.monitorEvictionWrtSenderLimit()", "name", cache.name, "sender", sender, "num", len(evicted))
+	log.Debug("TxCache.monitorEvictionWrtSenderLimit()", "name", cache.name, "sender", sender, "num", len(evicted))
 
 	for i := 0; i < core.MinInt(len(evicted), numEvictedTxsToDisplay); i++ {
 		log.Trace("TxCache.monitorEvictionWrtSenderLimit()", "name", cache.name, "sender", sender, "tx", evicted[i])
