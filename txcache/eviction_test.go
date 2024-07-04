@@ -5,6 +5,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/multiversx/mx-chain-storage-go/testscommon/txcachemocks"
 	"github.com/stretchr/testify/require"
 )
 
@@ -19,7 +20,7 @@ func TestEviction_EvictSendersWhileTooManyTxs(t *testing.T) {
 		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
 	}
 
-	txGasHandler, _ := dummyParams()
+	txGasHandler := txcachemocks.NewTxGasHandlerMock()
 
 	cache, err := NewTxCache(config, txGasHandler)
 	require.Nil(t, err)
@@ -45,7 +46,7 @@ func TestEviction_EvictSendersWhileTooManyTxs(t *testing.T) {
 }
 
 func TestEviction_EvictSendersWhileTooManyBytes(t *testing.T) {
-	numBytesPerTx := uint32(1000)
+	numBytesPerTx := uint32(200)
 
 	config := ConfigSourceMe{
 		Name:                          "untitled",
@@ -56,7 +57,7 @@ func TestEviction_EvictSendersWhileTooManyBytes(t *testing.T) {
 		NumBytesPerSenderThreshold:    maxNumBytesPerSenderUpperBound,
 		NumSendersToPreemptivelyEvict: 20,
 	}
-	txGasHandler, _ := dummyParams()
+	txGasHandler := txcachemocks.NewTxGasHandlerMock()
 
 	cache, err := NewTxCache(config, txGasHandler)
 	require.Nil(t, err)
@@ -65,7 +66,7 @@ func TestEviction_EvictSendersWhileTooManyBytes(t *testing.T) {
 	// 200 senders, each with 1 transaction
 	for index := 0; index < 200; index++ {
 		sender := string(createFakeSenderAddress(index))
-		cache.AddTx(createTxWithParams([]byte{byte(index)}, sender, uint64(1), uint64(numBytesPerTx), 10000, 100*oneBillion))
+		cache.AddTx(createTxWithParams([]byte{byte(index)}, sender, uint64(1), uint64(numBytesPerTx), 250000, 100*oneBillion))
 	}
 
 	require.Equal(t, int64(200), cache.txListBySender.counter.Get())
@@ -91,14 +92,14 @@ func TestEviction_DoEvictionDoneInPassTwo_BecauseOfCount(t *testing.T) {
 		CountPerSenderThreshold:       math.MaxUint32,
 		NumSendersToPreemptivelyEvict: 2,
 	}
-	txGasHandler, _ := dummyParamsWithGasPrice(100 * oneBillion)
+	txGasHandler := txcachemocks.NewTxGasHandlerMock().WithMinGasPrice(100 * oneBillion)
 	cache, err := NewTxCache(config, txGasHandler)
 	require.Nil(t, err)
 	require.NotNil(t, cache)
 
-	cache.AddTx(createTxWithParams([]byte("hash-alice"), "alice", uint64(1), 1000, 100000, 100*oneBillion))
-	cache.AddTx(createTxWithParams([]byte("hash-bob"), "bob", uint64(1), 1000, 100000, 100*oneBillion))
-	cache.AddTx(createTxWithParams([]byte("hash-carol"), "carol", uint64(1), 1000, 100000, 700*oneBillion))
+	cache.AddTx(createTxWithParams([]byte("hash-alice"), "alice", uint64(1), 200, 1000000, 1*oneBillion))
+	cache.AddTx(createTxWithParams([]byte("hash-bob"), "bob", uint64(1), 200, 1000000, 1*oneBillion))
+	cache.AddTx(createTxWithParams([]byte("hash-carol"), "carol", uint64(1), 200, 1000000, 3*oneBillion))
 
 	cache.doEviction()
 	require.Equal(t, uint32(2), cache.evictionJournal.passOneNumTxs)
@@ -123,7 +124,7 @@ func TestEviction_DoEvictionDoneInPassTwo_BecauseOfSize(t *testing.T) {
 		NumSendersToPreemptivelyEvict: 2,
 	}
 
-	txGasHandler, _ := dummyParamsWithGasPrice(oneBillion)
+	txGasHandler := txcachemocks.NewTxGasHandlerMock().WithMinGasPrice(oneBillion)
 	cache, err := NewTxCache(config, txGasHandler)
 	require.Nil(t, err)
 	require.NotNil(t, cache)
@@ -146,16 +147,16 @@ func TestEviction_DoEvictionDoneInPassTwo_BecauseOfSize(t *testing.T) {
 	scoreChris := cache.getScoreOfSender("chris")
 	scoreRichard := cache.getScoreOfSender("richard")
 
-	require.Equal(t, uint32(23), scoreAlice)
-	require.Equal(t, uint32(23), scoreBob)
-	require.Equal(t, uint32(7), scoreDave)
+	require.Equal(t, uint32(100), scoreAlice)
+	require.Equal(t, uint32(100), scoreBob)
+	require.Equal(t, uint32(100), scoreDave)
 	require.Equal(t, uint32(100), scoreCarol)
 	require.Equal(t, uint32(100), scoreEve)
-	require.Equal(t, uint32(33), scoreChris)
-	require.Equal(t, uint32(54), scoreRichard)
+	require.Equal(t, uint32(100), scoreChris)
+	require.Equal(t, uint32(100), scoreRichard)
 
 	cache.doEviction()
-	require.Equal(t, uint32(4), cache.evictionJournal.passOneNumTxs)
+	require.Equal(t, uint32(2), cache.evictionJournal.passOneNumTxs)
 	require.Equal(t, uint32(2), cache.evictionJournal.passOneNumSenders)
 	require.Equal(t, uint32(1), cache.evictionJournal.passOneNumSteps)
 
@@ -163,7 +164,7 @@ func TestEviction_DoEvictionDoneInPassTwo_BecauseOfSize(t *testing.T) {
 	_, ok := cache.GetByTxHash([]byte("hash-carol"))
 	require.True(t, ok)
 	require.Equal(t, uint64(5), cache.CountSenders())
-	require.Equal(t, uint64(5), cache.CountTx())
+	require.Equal(t, uint64(7), cache.CountTx())
 }
 
 func TestEviction_doEvictionDoesNothingWhenAlreadyInProgress(t *testing.T) {
@@ -176,7 +177,7 @@ func TestEviction_doEvictionDoesNothingWhenAlreadyInProgress(t *testing.T) {
 		CountPerSenderThreshold:       math.MaxUint32,
 	}
 
-	txGasHandler, _ := dummyParams()
+	txGasHandler := txcachemocks.NewTxGasHandlerMock()
 	cache, err := NewTxCache(config, txGasHandler)
 	require.Nil(t, err)
 	require.NotNil(t, cache)
@@ -199,7 +200,7 @@ func TestEviction_evictSendersInLoop_CoverLoopBreak_WhenSmallBatch(t *testing.T)
 		CountPerSenderThreshold:       math.MaxUint32,
 	}
 
-	txGasHandler, _ := dummyParams()
+	txGasHandler := txcachemocks.NewTxGasHandlerMock()
 	cache, err := NewTxCache(config, txGasHandler)
 	require.Nil(t, err)
 	require.NotNil(t, cache)
@@ -224,7 +225,7 @@ func TestEviction_evictSendersWhile_ShouldContinueBreak(t *testing.T) {
 		CountPerSenderThreshold:       math.MaxUint32,
 	}
 
-	txGasHandler, _ := dummyParams()
+	txGasHandler := txcachemocks.NewTxGasHandlerMock()
 	cache, err := NewTxCache(config, txGasHandler)
 	require.Nil(t, err)
 	require.NotNil(t, cache)
@@ -258,7 +259,7 @@ func Test_AddWithEviction_UniformDistribution_25000x10(t *testing.T) {
 		CountPerSenderThreshold:       math.MaxUint32,
 	}
 
-	txGasHandler, _ := dummyParams()
+	txGasHandler := txcachemocks.NewTxGasHandlerMock()
 	numSenders := 25000
 	numTxsPerSender := 10
 
