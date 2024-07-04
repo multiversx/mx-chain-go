@@ -13,6 +13,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
@@ -29,11 +35,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/vm"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
-	"github.com/multiversx/mx-chain-vm-common-go/parsers"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 var txHash = []byte("hash")
@@ -108,7 +109,7 @@ func createTxProcessor() txproc.TxProcessor {
 	return txProc
 }
 
-//------- NewTxProcessor
+// ------- NewTxProcessor
 
 func TestNewTxProcessor_NilAccountsShouldErr(t *testing.T) {
 	t.Parallel()
@@ -362,7 +363,7 @@ func TestNewTxProcessor_OkValsShouldWork(t *testing.T) {
 	assert.NotNil(t, txProc)
 }
 
-//------- getAccounts
+// ------- getAccounts
 
 func TestTxProcessor_GetAccountsShouldErrNilAddressContainer(t *testing.T) {
 	t.Parallel()
@@ -529,7 +530,7 @@ func TestTxProcessor_GetSameAccountShouldWork(t *testing.T) {
 	assert.True(t, a1 == a2)
 }
 
-//------- checkTxValues
+// ------- checkTxValues
 
 func TestTxProcessor_CheckTxValuesHigherNonceShouldErr(t *testing.T) {
 	t.Parallel()
@@ -652,7 +653,7 @@ func TestTxProcessor_CheckTxValuesOkValsShouldErr(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//------- increaseNonce
+// ------- increaseNonce
 
 func TestTxProcessor_IncreaseNonceOkValsShouldWork(t *testing.T) {
 	t.Parallel()
@@ -668,7 +669,7 @@ func TestTxProcessor_IncreaseNonceOkValsShouldWork(t *testing.T) {
 	assert.Equal(t, uint64(46), acntSrc.GetNonce())
 }
 
-//------- ProcessTransaction
+// ------- ProcessTransaction
 
 func TestTxProcessor_ProcessTransactionNilTxShouldErr(t *testing.T) {
 	t.Parallel()
@@ -701,7 +702,7 @@ func TestTxProcessor_ProcessTransactionMalfunctionAccountsShouldErr(t *testing.T
 func TestTxProcessor_ProcessCheckNotPassShouldErr(t *testing.T) {
 	t.Parallel()
 
-	//these values will trigger ErrHigherNonceInTransaction
+	// these values will trigger ErrHigherNonceInTransaction
 	tx := transaction.Transaction{}
 	tx.Nonce = 1
 	tx.SndAddr = []byte("SRC")
@@ -3187,7 +3188,7 @@ func TestTxProcessor_ProcessRelayedTransactionDisabled(t *testing.T) {
 	args.ArgsParser = smartContract.NewArgumentParser()
 	called := false
 	args.BadTxForwarder = &mock.IntermediateTransactionHandlerMock{
-		AddIntermediateTransactionsCalled: func(txs []data.TransactionHandler) error {
+		AddIntermediateTransactionsCalled: func(txs []data.TransactionHandler, key []byte) error {
 			called = true
 			return nil
 		},
