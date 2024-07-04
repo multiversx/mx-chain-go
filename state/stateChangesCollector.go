@@ -1,22 +1,38 @@
 package state
 
+import (
+	"encoding/json"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+)
+
+const (
+	workingDir              = "."
+	defaultStateChangesPath = "stateChanges"
+)
+
 // DataTrieChange represents a change in the data trie
 type DataTrieChange struct {
-	Key []byte
-	Val []byte
+	Key []byte `json:"key"`
+	Val []byte `json:"-"`
 }
 
 // StateChangeDTO is used to collect state changes
 type StateChangeDTO struct {
-	MainTrieKey     []byte
-	MainTrieVal     []byte
-	DataTrieChanges []DataTrieChange
+	MainTrieKey     []byte           `json:"mainTrieKey"`
+	MainTrieVal     []byte           `json:"-"`
+	DataTrieChanges []DataTrieChange `json:"dataTrieChanges"`
 }
 
 // StateChangesForTx is used to collect state changes for a transaction hash
 type StateChangesForTx struct {
-	TxHash       []byte
-	StateChanges []StateChangeDTO
+	TxHash       []byte                   `json:"txHash"`
+	Tx           *transaction.Transaction `json:"tx"`
+	StateChanges []StateChangeDTO         `json:"stateChanges"`
 }
 
 type stateChangesCollector struct {
@@ -39,7 +55,7 @@ func (scc *stateChangesCollector) AddStateChange(stateChange StateChangeDTO) {
 // GetStateChanges returns the accumulated state changes
 func (scc *stateChangesCollector) GetStateChanges() []StateChangesForTx {
 	if len(scc.stateChanges) > 0 {
-		scc.AddTxHashToCollectedStateChanges([]byte{})
+		scc.AddTxHashToCollectedStateChanges([]byte{}, nil)
 	}
 
 	return scc.stateChangesForTx
@@ -51,14 +67,47 @@ func (scc *stateChangesCollector) Reset() {
 	scc.stateChangesForTx = make([]StateChangesForTx, 0)
 }
 
-func (scc *stateChangesCollector) AddTxHashToCollectedStateChanges(txHash []byte) {
+func (scc *stateChangesCollector) AddTxHashToCollectedStateChanges(txHash []byte, tx *transaction.Transaction) {
 	stateChangesForTx := StateChangesForTx{
 		TxHash:       txHash,
+		Tx:           tx,
 		StateChanges: scc.stateChanges,
 	}
 
 	scc.stateChanges = make([]StateChangeDTO, 0)
 	scc.stateChangesForTx = append(scc.stateChangesForTx, stateChangesForTx)
+}
+
+func (scc *stateChangesCollector) DumpToJSONFile() error {
+	directory := filepath.Join(workingDir, defaultStateChangesPath)
+	args := core.ArgCreateFileArgument{
+		Directory:     directory,
+		Prefix:        "stateChanges",
+		FileExtension: "json",
+	}
+	jsonFile, err := core.CreateFile(args)
+	if err != nil {
+		return err
+	}
+
+	marshalledData, err := json.Marshal(scc.stateChangesForTx)
+	if err != nil {
+		return err
+	}
+
+	// encoder := json.NewEncoder(jsonFile)
+
+	// err = encoder.Encode(marshalledData)
+	// if err != nil {
+	// 	return err
+	// }
+
+	err = ioutil.WriteFile(jsonFile.Name(), marshalledData, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

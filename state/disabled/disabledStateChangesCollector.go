@@ -1,6 +1,7 @@
 package disabled
 
 import (
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/state"
 )
 
@@ -27,7 +28,12 @@ func (d *disabledStateChangesCollector) Reset() {
 }
 
 // AddTxHashToCollectedStateChanges does nothing
-func (d *disabledStateChangesCollector) AddTxHashToCollectedStateChanges(_ []byte) {
+func (d *disabledStateChangesCollector) AddTxHashToCollectedStateChanges(_ []byte, _ *transaction.Transaction) {
+}
+
+// DumpToJSONFile returns nil
+func (d *disabledStateChangesCollector) DumpToJSONFile() error {
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
@@ -90,7 +91,7 @@ type AccountsAdapter interface {
 	GetStackDebugFirstEntry() []byte
 	SetSyncer(syncer AccountsDBSyncer) error
 	StartSnapshotIfNeeded() error
-	SetTxHashForLatestStateChanges(txHash []byte)
+	SetTxHashForLatestStateChanges(txHash []byte, tx *transaction.Transaction)
 	ResetStateChangesCollector() []StateChangesForTx
 	Close() error
 	IsInterfaceNil() bool
@@ -358,6 +359,7 @@ type StateChangesCollector interface {
 	AddStateChange(stateChange StateChangeDTO)
 	GetStateChanges() []StateChangesForTx
 	Reset()
-	AddTxHashToCollectedStateChanges(txHash []byte)
+	AddTxHashToCollectedStateChanges(txHash []byte, tx *transaction.Transaction)
+	DumpToJSONFile() error
 	IsInterfaceNil() bool
 }
