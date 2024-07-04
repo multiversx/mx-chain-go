@@ -894,16 +894,16 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 	log.Trace("accountsDB.Commit started")
 	adb.entries = make([]JournalEntry, 0)
 
-	stateChanges := adb.stateChangesCollector.GetStateChanges()
-	if len(stateChanges) != 0 {
-		log.Warn("state changes collector is not empty", "state changes", stateChanges)
-		// adb.stateChangesCollector.Reset()
-	}
-
+	stateChanges := adb.ResetStateChangesCollector()
 	printStateChanges(stateChanges)
 	err := adb.stateChangesCollector.DumpToJSONFile()
 	if err != nil {
 		log.Warn("failed to dump state changes to json file", "error", err)
+	}
+
+	if len(stateChanges) != 0 {
+		log.Warn("state changes collector is not empty", "state changes", stateChanges)
+		adb.stateChangesCollector.Reset()
 	}
 
 	oldHashes := make(common.ModifiedHashes)
