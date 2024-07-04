@@ -2858,8 +2858,10 @@ func TestIndexHashedGroupSelector_GetWaitingEpochsLeftForPublicKey(t *testing.T)
 
 func TestNodesCoordinator_CustomConsensusGroupSize(t *testing.T) {
 	arguments := createArguments()
-	eligibleMap := createDummyNodesMap(3, 2, "eligible")
-	waitingMap := createDummyNodesMap(0, 2, "waiting")
+	numShards := uint32(2)
+	nodesPerShard := uint32(3)
+	eligibleMap := createDummyNodesMap(nodesPerShard, numShards, "eligible")
+	waitingMap := createDummyNodesMap(0, numShards, "waiting")
 	arguments.EligibleNodes = eligibleMap
 	arguments.WaitingNodes = waitingMap
 	arguments.ValidatorInfoCacher = dataPool.NewCurrentEpochValidatorInfoPool()
@@ -2916,6 +2918,16 @@ func TestNodesCoordinator_CustomConsensusGroupSize(t *testing.T) {
 			return config.ChainParametersByEpochConfig{}, errors.New("wrong test setup")
 		},
 	}
+
+	shufflerArgs := &NodesShufflerArgs{
+		ShuffleBetweenShards: shuffleBetweenShards,
+		EnableEpochsHandler:  &mock.EnableEpochsHandlerMock{},
+		MaxNodesEnableConfig: []config.MaxNodesChangeConfig{
+			{EpochEnable: 0, MaxNumNodes: nodesPerShard * (numShards + 1), NodesToShufflePerShard: 2},
+			{EpochEnable: 3, MaxNumNodes: nodesPerShard * (numShards + 1), NodesToShufflePerShard: 3},
+		},
+	}
+	arguments.Shuffler, _ = NewHashValidatorsShuffler(shufflerArgs)
 
 	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
 	require.NotNil(t, ihnc)
