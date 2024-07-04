@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	globalErrors "github.com/multiversx/mx-chain-go/errors"
@@ -107,6 +108,7 @@ func CreateNode(
 		WithNodeStopChannel(coreComponents.ChanStopNodeProcess()),
 		WithImportMode(isInImportMode),
 		WithESDTNFTStorageHandler(processComponents.ESDTDataStorageHandlerForAPI()),
+		WithNativeESDT(config.SovereignConfig.GenesisConfig.NativeESDT),
 	}
 	options = append(options, extraOptions...)
 

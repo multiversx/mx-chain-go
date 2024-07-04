@@ -49,7 +49,6 @@ import (
 const (
 	// esdtTickerNumChars represents the number of hex-encoded characters of a ticker
 	esdtTickerNumChars = 6
-	baseESDTKeyPrefix  = core.ProtectedKeyPrefix + core.ESDTKeyIdentifier
 )
 
 var log = logger.GetOrCreate("node")
@@ -77,6 +76,7 @@ type Node struct {
 	genesisTime         time.Time
 	peerDenialEvaluator p2p.PeerDenialEvaluator
 	esdtStorageHandler  vmcommon.ESDTNFTStorageHandler
+	nativeESDT          string
 
 	consensusType       string
 	bootstrapRoundIndex uint64
@@ -246,10 +246,6 @@ func (n *Node) baseGetAllIssuedESDTs(tokenType string, ctx context.Context) ([]s
 	for leaf := range chLeaves.LeavesChan {
 		tokenName := string(leaf.Key())
 		if !strings.Contains(tokenName, "-") {
-			continue
-		}
-
-		if strings.HasPrefix(tokenName, baseESDTKeyPrefix) {
 			continue
 		}
 
