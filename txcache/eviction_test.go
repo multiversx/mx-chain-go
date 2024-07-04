@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestEviction_EvictSendersWhileTooManyTxs(t *testing.T) {
+func TestTxCache_EvictSendersInLoop_BecauseOfCount(t *testing.T) {
 	config := ConfigSourceMe{
 		Name:                          "untitled",
 		NumChunks:                     16,
@@ -29,7 +29,7 @@ func TestEviction_EvictSendersWhileTooManyTxs(t *testing.T) {
 	// 200 senders, each with 1 transaction
 	for index := 0; index < 200; index++ {
 		sender := string(createFakeSenderAddress(index))
-		cache.AddTx(createTx([]byte{byte(index)}, sender, uint64(1)))
+		cache.AddTx(createTx([]byte{byte(index)}, sender, 1))
 	}
 
 	require.Equal(t, int64(200), cache.txListBySender.counter.Get())
@@ -45,7 +45,7 @@ func TestEviction_EvictSendersWhileTooManyTxs(t *testing.T) {
 	require.Equal(t, int64(100), cache.txByHash.counter.Get())
 }
 
-func TestEviction_EvictSendersWhileTooManyBytes(t *testing.T) {
+func TestTxCache_EvictSendersInLoop_BecauseOfSize(t *testing.T) {
 	numBytesPerTx := uint32(200)
 
 	config := ConfigSourceMe{
@@ -66,7 +66,7 @@ func TestEviction_EvictSendersWhileTooManyBytes(t *testing.T) {
 	// 200 senders, each with 1 transaction
 	for index := 0; index < 200; index++ {
 		sender := string(createFakeSenderAddress(index))
-		cache.AddTx(createTxWithParams([]byte{byte(index)}, sender, uint64(1), uint64(numBytesPerTx), 250000, 100*oneBillion))
+		cache.AddTx(createTx([]byte{byte(index)}, sender, 1).withSize(uint64(numBytesPerTx)).withGasLimit(250000))
 	}
 
 	require.Equal(t, int64(200), cache.txListBySender.counter.Get())
@@ -82,7 +82,7 @@ func TestEviction_EvictSendersWhileTooManyBytes(t *testing.T) {
 	require.Equal(t, int64(100), cache.txByHash.counter.Get())
 }
 
-func TestEviction_DoEvictionDoneInPassTwo_BecauseOfCount(t *testing.T) {
+func TestTxCache_DoEviction_BecauseOfCount(t *testing.T) {
 	config := ConfigSourceMe{
 		Name:                          "untitled",
 		NumChunks:                     16,
@@ -92,28 +92,28 @@ func TestEviction_DoEvictionDoneInPassTwo_BecauseOfCount(t *testing.T) {
 		CountPerSenderThreshold:       math.MaxUint32,
 		NumSendersToPreemptivelyEvict: 2,
 	}
-	txGasHandler := txcachemocks.NewTxGasHandlerMock().WithMinGasPrice(100 * oneBillion)
+	txGasHandler := txcachemocks.NewTxGasHandlerMock()
 	cache, err := NewTxCache(config, txGasHandler)
 	require.Nil(t, err)
 	require.NotNil(t, cache)
 
-	cache.AddTx(createTxWithParams([]byte("hash-alice"), "alice", uint64(1), 200, 1000000, 1*oneBillion))
-	cache.AddTx(createTxWithParams([]byte("hash-bob"), "bob", uint64(1), 200, 1000000, 1*oneBillion))
-	cache.AddTx(createTxWithParams([]byte("hash-carol"), "carol", uint64(1), 200, 1000000, 3*oneBillion))
+	cache.AddTx(createTx([]byte("hash-alice"), "alice", 1).withGasPrice(1 * oneBillion))
+	cache.AddTx(createTx([]byte("hash-bob"), "bob", 1).withGasPrice(1 * oneBillion))
+	cache.AddTx(createTx([]byte("hash-carol"), "carol", 1).withGasPrice(3 * oneBillion))
 
 	cache.doEviction()
 	require.Equal(t, uint32(2), cache.evictionJournal.passOneNumTxs)
 	require.Equal(t, uint32(2), cache.evictionJournal.passOneNumSenders)
 	require.Equal(t, uint32(1), cache.evictionJournal.passOneNumSteps)
 
-	// Alice and Bob evicted. Carol still there.
+	// Alice and Bob evicted. Carol still there (better score).
 	_, ok := cache.GetByTxHash([]byte("hash-carol"))
 	require.True(t, ok)
 	require.Equal(t, uint64(1), cache.CountSenders())
 	require.Equal(t, uint64(1), cache.CountTx())
 }
 
-func TestEviction_DoEvictionDoneInPassTwo_BecauseOfSize(t *testing.T) {
+func TestTxCache_DoEviction_BecauseOfSize(t *testing.T) {
 	config := ConfigSourceMe{
 		Name:                          "untitled",
 		NumChunks:                     16,
@@ -124,7 +124,7 @@ func TestEviction_DoEvictionDoneInPassTwo_BecauseOfSize(t *testing.T) {
 		NumSendersToPreemptivelyEvict: 2,
 	}
 
-	txGasHandler := txcachemocks.NewTxGasHandlerMock().WithMinGasPrice(oneBillion)
+	txGasHandler := txcachemocks.NewTxGasHandlerMock()
 	cache, err := NewTxCache(config, txGasHandler)
 	require.Nil(t, err)
 	require.NotNil(t, cache)
@@ -167,7 +167,7 @@ func TestEviction_DoEvictionDoneInPassTwo_BecauseOfSize(t *testing.T) {
 	require.Equal(t, uint64(7), cache.CountTx())
 }
 
-func TestEviction_doEvictionDoesNothingWhenAlreadyInProgress(t *testing.T) {
+func TestTxCache_DoEviction_DoesNothingWhenAlreadyInProgress(t *testing.T) {
 	config := ConfigSourceMe{
 		Name:                          "untitled",
 		NumChunks:                     1,
@@ -190,7 +190,7 @@ func TestEviction_doEvictionDoesNothingWhenAlreadyInProgress(t *testing.T) {
 	require.False(t, cache.evictionJournal.evictionPerformed)
 }
 
-func TestEviction_evictSendersInLoop_CoverLoopBreak_WhenSmallBatch(t *testing.T) {
+func TestTxCache_EvictSendersInLoop_CodeCoverageForLoopBreak_WhenSmallBatch(t *testing.T) {
 	config := ConfigSourceMe{
 		Name:                          "untitled",
 		NumChunks:                     1,
@@ -215,7 +215,7 @@ func TestEviction_evictSendersInLoop_CoverLoopBreak_WhenSmallBatch(t *testing.T)
 	require.Equal(t, uint32(1), nSenders)
 }
 
-func TestEviction_evictSendersWhile_ShouldContinueBreak(t *testing.T) {
+func TestTxCache_EvictSendersWhile_ShouldContinueBreak(t *testing.T) {
 	config := ConfigSourceMe{
 		Name:                          "untitled",
 		NumChunks:                     1,
@@ -247,7 +247,7 @@ func TestEviction_evictSendersWhile_ShouldContinueBreak(t *testing.T) {
 // This seems to be the most reasonable "bad-enough" (not worst) scenario to benchmark:
 // 25000 senders with 10 transactions each, with default "NumSendersToPreemptivelyEvict".
 // ~1 second on average laptop.
-func Test_AddWithEviction_UniformDistribution_25000x10(t *testing.T) {
+func TestTxCache_AddWithEviction_UniformDistribution_25000x10(t *testing.T) {
 	config := ConfigSourceMe{
 		Name:                          "untitled",
 		NumChunks:                     16,
@@ -274,7 +274,7 @@ func Test_AddWithEviction_UniformDistribution_25000x10(t *testing.T) {
 	require.GreaterOrEqual(t, uint32(cache.CountTx()), config.CountThreshold-config.NumSendersToPreemptivelyEvict*uint32(numTxsPerSender))
 }
 
-func Test_EvictSendersAndTheirTxs_Concurrently(t *testing.T) {
+func TestTxCache_EvictSendersAndTheirTxs_Concurrently(t *testing.T) {
 	cache := newUnconstrainedCacheToTest()
 	var wg sync.WaitGroup
 
