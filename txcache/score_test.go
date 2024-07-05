@@ -13,7 +13,12 @@ func TestNewDefaultScoreComputer(t *testing.T) {
 	computer := newDefaultScoreComputer(gasHandler)
 
 	require.NotNil(t, computer)
-	require.Equal(t, float64(10082500), computer.worstPpu)
+	require.Equal(t, float64(16.12631180572966), computer.worstPpuLog)
+}
+
+func TestComputeWorstPpu(t *testing.T) {
+	gasHandler := txcachemocks.NewTxGasHandlerMock()
+	require.Equal(t, float64(10082500), computeWorstPpu(gasHandler))
 }
 
 func TestDefaultScoreComputer_computeScore(t *testing.T) {
@@ -21,14 +26,14 @@ func TestDefaultScoreComputer_computeScore(t *testing.T) {
 	require.Equal(t, 74, computeScoreOfTransaction(0, 50000, oneBillion))
 	require.Equal(t, 80, computeScoreOfTransaction(0, 50000, 1.5*oneBillion))
 	require.Equal(t, 85, computeScoreOfTransaction(0, 50000, 2*oneBillion))
-	require.Equal(t, 100, computeScoreOfTransaction(0, 50000, 5*oneBillion))
+	require.Equal(t, 99, computeScoreOfTransaction(0, 50000, 5*oneBillion))
 	require.Equal(t, 100, computeScoreOfTransaction(0, 50000, 10*oneBillion))
 
 	// Simple transfers, with some data (same scores as above):
 	require.Equal(t, 74, computeScoreOfTransaction(100, 50000+1500*100, oneBillion))
 	require.Equal(t, 80, computeScoreOfTransaction(100, 50000+1500*100, 1.5*oneBillion))
 	require.Equal(t, 85, computeScoreOfTransaction(100, 50000+1500*100, 2*oneBillion))
-	require.Equal(t, 100, computeScoreOfTransaction(100, 50000+1500*100, 5*oneBillion))
+	require.Equal(t, 99, computeScoreOfTransaction(100, 50000+1500*100, 5*oneBillion))
 	require.Equal(t, 100, computeScoreOfTransaction(100, 50000+1500*100, 10*oneBillion))
 
 	// Smart contract calls:
