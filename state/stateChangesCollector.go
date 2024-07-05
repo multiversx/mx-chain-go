@@ -17,12 +17,14 @@ const (
 
 // DataTrieChange represents a change in the data trie
 type DataTrieChange struct {
-	Key []byte `json:"key"`
-	Val []byte `json:"-"`
+	Type string `json:"type"`
+	Key  []byte `json:"key"`
+	Val  []byte `json:"-"`
 }
 
 // StateChangeDTO is used to collect state changes
 type StateChangeDTO struct {
+	Type            string           `json:"type"`
 	MainTrieKey     []byte           `json:"mainTrieKey"`
 	MainTrieVal     []byte           `json:"-"`
 	DataTrieChanges []DataTrieChange `json:"dataTrieChanges"`

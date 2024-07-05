@@ -28,12 +28,13 @@ type dirtyData struct {
 
 // TrackableDataTrie wraps a PatriciaMerkelTrie adding modifying data capabilities
 type trackableDataTrie struct {
-	dirtyData           map[string]dirtyData
-	tr                  common.Trie
-	hasher              hashing.Hasher
-	marshaller          marshal.Marshalizer
-	enableEpochsHandler common.EnableEpochsHandler
-	identifier          []byte
+	dirtyData             map[string]dirtyData
+	tr                    common.Trie
+	hasher                hashing.Hasher
+	marshaller            marshal.Marshalizer
+	enableEpochsHandler   common.EnableEpochsHandler
+	identifier            []byte
+	stateChangesCollector state.StateChangesCollector
 }
 
 // NewTrackableDataTrie returns an instance of trackableDataTrie
@@ -42,6 +43,7 @@ func NewTrackableDataTrie(
 	hasher hashing.Hasher,
 	marshaller marshal.Marshalizer,
 	enableEpochsHandler common.EnableEpochsHandler,
+	stateChangesCollector state.StateChangesCollector,
 ) (*trackableDataTrie, error) {
 	if check.IfNil(hasher) {
 		return nil, state.ErrNilHasher
@@ -60,12 +62,13 @@ func NewTrackableDataTrie(
 	}
 
 	return &trackableDataTrie{
-		tr:                  nil,
-		hasher:              hasher,
-		marshaller:          marshaller,
-		dirtyData:           make(map[string]dirtyData),
-		identifier:          identifier,
-		enableEpochsHandler: enableEpochsHandler,
+		tr:                    nil,
+		hasher:                hasher,
+		marshaller:            marshaller,
+		dirtyData:             make(map[string]dirtyData),
+		identifier:            identifier,
+		enableEpochsHandler:   enableEpochsHandler,
+		stateChangesCollector: stateChangesCollector,
 	}, nil
 }
 
@@ -76,6 +79,7 @@ func (tdt *trackableDataTrie) RetrieveValue(key []byte) ([]byte, uint32, error) 
 	// search in dirty data cache
 	if dataEntry, found := tdt.dirtyData[string(key)]; found {
 		log.Trace("retrieve value from dirty data", "key", key, "value", dataEntry.value, "account", tdt.identifier)
+
 		return dataEntry.value, 0, nil
 	}
 
@@ -94,6 +98,20 @@ func (tdt *trackableDataTrie) RetrieveValue(key []byte) ([]byte, uint32, error) 
 	}
 
 	log.Trace("retrieve value from trie", "key", key, "value", val, "account", tdt.identifier)
+
+	stateChange := state.StateChangeDTO{
+		Type:        "read",
+		MainTrieKey: tdt.identifier,
+		MainTrieVal: nil,
+		DataTrieChanges: []state.DataTrieChange{
+			{
+				Type: "read",
+				Key:  key,
+				Val:  val,
+			},
+		},
+	}
+	tdt.stateChangesCollector.AddStateChange(stateChange)
 
 	return val, depth, nil
 }
@@ -265,8 +283,9 @@ func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]state.DataTrieCh
 		if wasDeleted {
 			deletedKeys = append(deletedKeys,
 				state.DataTrieChange{
-					Key: []byte(key),
-					Val: nil,
+					Type: "write",
+					Key:  []byte(key),
+					Val:  nil,
 				},
 			)
 		}
@@ -295,8 +314,9 @@ func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]state.DataTrieCh
 		}
 
 		newData[dataEntry.index] = state.DataTrieChange{
-			Key: dataTrieKey,
-			Val: dataTrieVal,
+			Type: "write",
+			Key:  dataTrieKey,
+			Val:  dataTrieVal,
 		}
 	}
 
