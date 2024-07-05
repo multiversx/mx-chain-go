@@ -149,12 +149,12 @@ func (listForSender *txListForSender) findInsertionPlace(incomingTx *WrappedTran
 		currentTxNonce := currentTx.Tx.GetNonce()
 		currentTxGasPrice := currentTx.Tx.GetGasPrice()
 
-		if incomingTx.sameAs(currentTx) {
-			// The incoming transaction will be discarded
-			return nil, common.ErrItemAlreadyInCache
-		}
-
 		if currentTxNonce == incomingNonce {
+			if incomingTx.sameAs(currentTx) {
+				// The incoming transaction will be discarded
+				return nil, common.ErrItemAlreadyInCache
+			}
+
 			if currentTxGasPrice > incomingGasPrice {
 				// The incoming transaction will be placed right after the existing one, which has same nonce but higher price.
 				// If the nonces are the same, but the incoming gas price is higher or equal, the search loop continues.
