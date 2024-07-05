@@ -2099,7 +2099,7 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []by
 
 		log.Debug("processed miniblocks and txs from self shard",
 			"num miniblocks", len(mbsFromMe),
-			"num txs", numTxs)
+			"num txs", numTxs, "elapsed time", elapsedTime)
 	}
 
 	log.Debug("creating mini blocks has been finished", "num miniblocks", len(miniBlocks))
