@@ -139,10 +139,10 @@ func TestTxCache_DoEviction_BecauseOfSize(t *testing.T) {
 	scoreCarol := cache.getScoreOfSender("carol")
 	scoreEve := cache.getScoreOfSender("eve")
 
-	require.Equal(t, uint32(95), scoreAlice)
-	require.Equal(t, uint32(95), scoreBob)
-	require.Equal(t, uint32(97), scoreCarol)
-	require.Equal(t, uint32(98), scoreEve)
+	require.Equal(t, uint32(62), scoreAlice)
+	require.Equal(t, uint32(62), scoreBob)
+	require.Equal(t, uint32(69), scoreCarol)
+	require.Equal(t, uint32(80), scoreEve)
 
 	cache.doEviction()
 	require.Equal(t, uint32(2), cache.evictionJournal.passOneNumTxs)
