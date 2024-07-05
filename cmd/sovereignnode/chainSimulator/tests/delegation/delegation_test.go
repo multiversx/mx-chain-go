@@ -50,8 +50,6 @@ func TestSovereignChainSimulator_NewDelegationSC(t *testing.T) {
 
 	defer cs.Close()
 
-	time.Sleep(time.Second) // wait for VM to be ready for processing queries
-
 	nodeHandler := cs.GetNodeHandler(core.SovereignChainShardId)
 
 	wallet, err := cs.GenerateAndMintWalletAddress(core.SovereignChainShardId, big.NewInt(0).Mul(chainSim.OneEGLD, big.NewInt(2500)))
