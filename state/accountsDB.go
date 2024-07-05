@@ -13,6 +13,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
@@ -207,6 +208,14 @@ func (adb *AccountsDB) GetCode(codeHash []byte) []byte {
 		return nil
 	}
 
+	stateChange := StateChangeDTO{
+		Type:            "read",
+		MainTrieKey:     codeHash,
+		MainTrieVal:     val,
+		DataTrieChanges: nil,
+	}
+	adb.stateChangesCollector.AddStateChange(stateChange)
+
 	err = adb.marshaller.Unmarshal(&codeEntry, val)
 	if err != nil {
 		return nil
@@ -274,6 +283,7 @@ func (adb *AccountsDB) SaveAccount(account vmcommon.AccountHandler) error {
 	}
 
 	stateChange := StateChangeDTO{
+		Type:            "write",
 		MainTrieKey:     account.AddressBytes(),
 		MainTrieVal:     marshalledAccount,
 		DataTrieChanges: newDataTrieValues,
@@ -357,6 +367,14 @@ func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte) (*CodeEntry, error
 		return nil, nil
 	}
 
+	stateChange := StateChangeDTO{
+		Type:            "read",
+		MainTrieKey:     oldCodeHash,
+		MainTrieVal:     nil,
+		DataTrieChanges: nil,
+	}
+	adb.stateChangesCollector.AddStateChange(stateChange)
+
 	unmodifiedOldCodeEntry := &CodeEntry{
 		Code:          oldCodeEntry.Code,
 		NumReferences: oldCodeEntry.NumReferences,
@@ -369,6 +387,7 @@ func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte) (*CodeEntry, error
 		}
 
 		stateChange := StateChangeDTO{
+			Type:            "write",
 			MainTrieKey:     oldCodeHash,
 			MainTrieVal:     nil,
 			DataTrieChanges: nil,
@@ -384,7 +403,8 @@ func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte) (*CodeEntry, error
 		return nil, err
 	}
 
-	stateChange := StateChangeDTO{
+	stateChange = StateChangeDTO{
+		Type:            "write",
 		MainTrieKey:     oldCodeHash,
 		MainTrieVal:     codeEntryBytes,
 		DataTrieChanges: nil,
@@ -417,6 +437,7 @@ func (adb *AccountsDB) updateNewCodeEntry(newCodeHash []byte, newCode []byte) er
 	}
 
 	stateChange := StateChangeDTO{
+		Type:            "write",
 		MainTrieKey:     newCodeHash,
 		MainTrieVal:     codeEntryBytes,
 		DataTrieChanges: nil,
@@ -861,15 +882,40 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 	return adb.commit()
 }
 
+func printStateChanges(stateChanges []StateChangesForTx) {
+	for _, stateChange := range stateChanges {
+		if stateChange.TxHash != nil {
+			fmt.Println(hex.EncodeToString(stateChange.TxHash))
+		}
+
+		for _, st := range stateChange.StateChanges {
+			fmt.Println(string(st.MainTrieKey))
+			fmt.Println(hex.EncodeToString(st.MainTrieVal))
+		}
+	}
+}
+
 func (adb *AccountsDB) commit() ([]byte, error) {
 	log.Trace("accountsDB.Commit started")
 	adb.entries = make([]JournalEntry, 0)
 
 	stateChanges := adb.stateChangesCollector.GetStateChanges()
-	if len(stateChanges) != 0 {
-		log.Warn("state changes collector is not empty", "state changes", stateChanges)
-		adb.stateChangesCollector.Reset()
+	printStateChanges(stateChanges)
+	err := adb.stateChangesCollector.DumpToJSONFile()
+	if err != nil {
+		log.Warn("failed to dump state changes to json file", "error", err)
 	}
+
+	log.Debug("commit: dump to json file")
+
+	adb.stateChangesCollector.Reset()
+
+	log.Debug("commit: reset")
+
+	// if len(stateChanges) != 0 {
+	// 	log.Warn("state changes collector is not empty", "state changes", stateChanges)
+	// 	adb.stateChangesCollector.Reset()
+	// }
 
 	oldHashes := make(common.ModifiedHashes)
 	newHashes := make(common.ModifiedHashes)
@@ -886,7 +932,7 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 	oldRoot := adb.mainTrie.GetOldRoot()
 
 	// Step 2. commit main trie
-	err := adb.commitTrie(adb.mainTrie, oldHashes, newHashes)
+	err = adb.commitTrie(adb.mainTrie, oldHashes, newHashes)
 	if err != nil {
 		return nil, err
 	}
@@ -1249,8 +1295,9 @@ func collectStats(
 }
 
 // SetTxHashForLatestStateChanges will return the state changes since the last call of this method
-func (adb *AccountsDB) SetTxHashForLatestStateChanges(txHash []byte) {
-	adb.stateChangesCollector.AddTxHashToCollectedStateChanges(txHash)
+func (adb *AccountsDB) SetTxHashForLatestStateChanges(txHash []byte, tx *transaction.Transaction) {
+	adb.stateChangesCollector.AddTxHashToCollectedStateChanges(txHash, tx)
+
 }
 
 func (adb *AccountsDB) ResetStateChangesCollector() []StateChangesForTx {
