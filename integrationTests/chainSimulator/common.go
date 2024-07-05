@@ -7,15 +7,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
-	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
-	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
-	"github.com/multiversx/mx-chain-go/vm"
-
 	"github.com/multiversx/mx-chain-core-go/core"
 	dataApi "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
+	"github.com/multiversx/mx-chain-go/vm"
 )
 
 const (
@@ -76,6 +76,7 @@ func DeployContract(
 
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
+	requireNoSignalErrorEvent(t, txResult)
 	require.Equal(t, transaction.TxStatusSuccess, txResult.Status)
 
 	address := txResult.Logs.Events[0].Topics[0]
@@ -115,12 +116,18 @@ func SendTransaction(
 	*nonce++
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
+	requireNoSignalErrorEvent(t, txResult)
 	require.Equal(t, transaction.TxStatusSuccess, txResult.Status)
-	if txResult.Logs != nil && len(txResult.Logs.Events) > 0 {
-		require.NotEqual(t, signalError, txResult.Logs.Events[0].Identifier)
-	}
 
 	return txResult
+}
+
+func requireNoSignalErrorEvent(t *testing.T, txResult *transaction.ApiTransactionResult) {
+	if txResult.Logs != nil && len(txResult.Logs.Events) > 0 {
+		if txResult.Logs.Events[0].Identifier == signalError {
+			require.Fail(t, string(txResult.Logs.Events[0].Topics[1]))
+		}
+	}
 }
 
 // RequireAccountHasToken checks if the account has the amount of tokens (can also be zero)

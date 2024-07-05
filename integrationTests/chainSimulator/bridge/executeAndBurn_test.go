@@ -249,7 +249,7 @@ func getTokenDataArgs(creator []byte, tokens []chainSim.ArgsDepositToken) string
 			lengthOn4Bytes(len(token.Identifier)) + // length of token identifier
 			hex.EncodeToString([]byte(token.Identifier)) + //token identifier
 			getNonceHex(token.Nonce) + // nonce
-			fmt.Sprintf("%02x", token.Type) + // type
+			fmt.Sprintf("%02x", uint32(token.Type)) + // type
 			lengthOn4Bytes(len(token.Amount.Bytes())) + // length of amount
 			hex.EncodeToString(token.Amount.Bytes()) + // amount
 			"00" + // not frozen
