@@ -1628,13 +1628,7 @@ func (snr *sovereignNodeRunner) CreateManagedCryptoComponents(
 
 // CreateManagedRunTypeCoreComponents creates the managed run type core components
 func (snr *sovereignNodeRunner) CreateManagedRunTypeCoreComponents() (mainFactory.RunTypeCoreComponentsHandler, error) {
-	runTypeCoreComponentsFactory := runType.NewRunTypeCoreComponentsFactory()
-
-	sovereignRunTypeCoreComponentsFactory, err := runType.NewSovereignRunTypeCoreComponentsFactory(runTypeCoreComponentsFactory)
-	if err != nil {
-		return nil, fmt.Errorf("NewSovereignRunTypeCoreComponentsFactory failed: %w", err)
-	}
-
+	sovereignRunTypeCoreComponentsFactory := runType.NewSovereignRunTypeCoreComponentsFactory()
 	managedRunTypeCoreComponents, err := runType.NewManagedRunTypeCoreComponents(sovereignRunTypeCoreComponentsFactory)
 	if err != nil {
 		return nil, err

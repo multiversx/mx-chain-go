@@ -337,7 +337,7 @@ var ErrNilStateComponents = errors.New("nil state components")
 // ErrNilRunTypeComponents signals that a nil runType components was provided
 var ErrNilRunTypeComponents = errors.New("nil runType components")
 
-// ErrNilRunTypeCoreComponents signals that a nil runType core components was provided
+// ErrNilRunTypeCoreComponents signals that nil runType core components were provided
 var ErrNilRunTypeCoreComponents = errors.New("nil runType core components")
 
 // ErrNilStateComponentsHolder signals that a nil state components holder was provided

@@ -21,7 +21,7 @@ type managedRunTypeCoreComponents struct {
 	mutRunTypeCoreComponents sync.RWMutex
 }
 
-// NewManagedRunTypeCoreComponents returns a news instance of managedRunTypeCoreComponents
+// NewManagedRunTypeCoreComponents returns a news instance of managed runType core components
 func NewManagedRunTypeCoreComponents(rcf runTypeCoreComponentsCreator) (*managedRunTypeCoreComponents, error) {
 	if rcf == nil {
 		return nil, errors.ErrNilRunTypeCoreComponentsFactory

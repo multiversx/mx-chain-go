@@ -99,16 +99,15 @@ func GetRunTypeCoreComponents() factory.RunTypeCoreComponentsHolder {
 
 // GetSovereignRunTypeCoreComponents -
 func GetSovereignRunTypeCoreComponents() factory.RunTypeCoreComponentsHolder {
-	runTypeCoreComponentsFactory := runType.NewRunTypeCoreComponentsFactory()
-	sovRunTypeCoreComponentsFactory, _ := runType.NewSovereignRunTypeCoreComponentsFactory(runTypeCoreComponentsFactory)
+	sovRunTypeCoreComponentsFactory := runType.NewSovereignRunTypeCoreComponentsFactory()
 	managedRunTypeCoreComponents, err := runType.NewManagedRunTypeCoreComponents(sovRunTypeCoreComponentsFactory)
 	if err != nil {
-		log.Error("getSovereignRunTypeCoreComponents NewManagedRunTypeCoreComponents", "error", err.Error())
+		log.Error("GetSovereignRunTypeCoreComponents.NewManagedRunTypeCoreComponents", "error", err.Error())
 		return nil
 	}
 	err = managedRunTypeCoreComponents.Create()
 	if err != nil {
-		log.Error("getSovereignRunTypeCoreComponents Create", "error", err.Error())
+		log.Error("GetSovereignRunTypeCoreComponents.Create", "error", err.Error())
 		return nil
 	}
 	return managedRunTypeCoreComponents

@@ -10,15 +10,24 @@ import (
 	"github.com/multiversx/mx-chain-go/factory/runType"
 )
 
+func createCoreComponents() (factory.RunTypeCoreComponentsHandler, error) {
+	rccf := runType.NewRunTypeCoreComponentsFactory()
+	return runType.NewManagedRunTypeCoreComponents(rccf)
+}
+
 func TestNewManagedRunTypeCoreComponents(t *testing.T) {
 	t.Parallel()
 
+	t.Run("should error", func(t *testing.T) {
+		managedRunTypeCoreComponents, err := runType.NewManagedRunTypeCoreComponents(nil)
+		require.ErrorIs(t, err, errors.ErrNilRunTypeCoreComponentsFactory)
+		require.True(t, managedRunTypeCoreComponents.IsInterfaceNil())
+	})
 	t.Run("should work", func(t *testing.T) {
-		t.Parallel()
-
-		managedRunTypeCoreComponents, err := createCoreComponents()
+		rccf := runType.NewRunTypeCoreComponentsFactory()
+		managedRunTypeCoreComponents, err := runType.NewManagedRunTypeCoreComponents(rccf)
 		require.NoError(t, err)
-		require.NotNil(t, managedRunTypeCoreComponents)
+		require.False(t, managedRunTypeCoreComponents.IsInterfaceNil())
 	})
 }
 
@@ -74,20 +83,4 @@ func TestManagedRunTypeCoreComponents_CheckSubcomponents(t *testing.T) {
 	require.NoError(t, err)
 
 	require.NoError(t, managedRunTypeCoreComponents.Close())
-}
-
-func TestManagedRunTypeCoreComponents_IsInterfaceNil(t *testing.T) {
-	t.Parallel()
-
-	var managedRunTypeCoreComponents factory.RunTypeCoreComponentsHandler
-	managedRunTypeCoreComponents, _ = runType.NewManagedRunTypeCoreComponents(nil)
-	require.True(t, managedRunTypeCoreComponents.IsInterfaceNil())
-
-	managedRunTypeCoreComponents, _ = createCoreComponents()
-	require.False(t, managedRunTypeCoreComponents.IsInterfaceNil())
-}
-
-func createCoreComponents() (factory.RunTypeCoreComponentsHandler, error) {
-	rccf := runType.NewRunTypeCoreComponentsFactory()
-	return runType.NewManagedRunTypeCoreComponents(rccf)
 }

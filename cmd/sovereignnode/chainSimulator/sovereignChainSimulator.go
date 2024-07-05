@@ -92,13 +92,7 @@ func loadSovereignConfigs(configsPath string) (*sovereignConfig.SovereignConfig,
 }
 
 func createSovereignRunTypeCoreComponents() (factory.RunTypeCoreComponentsHolder, error) {
-	runTypeCoreComponentsFactory := runType.NewRunTypeCoreComponentsFactory()
-
-	sovereignRunTypeCoreComponentsFactory, err := runType.NewSovereignRunTypeCoreComponentsFactory(runTypeCoreComponentsFactory)
-	if err != nil {
-		return nil, err
-	}
-
+	sovereignRunTypeCoreComponentsFactory := runType.NewSovereignRunTypeCoreComponentsFactory()
 	managedRunTypeCoreComponents, err := runType.NewManagedRunTypeCoreComponents(sovereignRunTypeCoreComponentsFactory)
 	if err != nil {
 		return nil, err
