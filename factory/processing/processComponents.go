@@ -2062,6 +2062,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	if check.IfNil(args.RunTypeComponents.GenesisMetaBlockCheckerCreator()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilGenesisMetaBlockChecker)
 	}
+	if check.IfNil(args.RunTypeComponents.EpochStartTriggerFactory()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilEpochStartTriggerFactory)
+	}
 
 	return nil
 }

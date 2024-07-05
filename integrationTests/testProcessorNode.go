@@ -2269,7 +2269,6 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 
 	argsMetaProcessor := tpn.createMetaBlockProcessorArgs(argumentsBase, coreComponents)
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
-
 		tpn.BlockProcessor, err = block.NewMetaProcessor(argsMetaProcessor)
 	} else {
 		if check.IfNil(tpn.EpochStartTrigger) {

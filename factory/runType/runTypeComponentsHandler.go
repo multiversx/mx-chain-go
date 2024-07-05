@@ -197,6 +197,9 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	if check.IfNil(mrc.genesisMetaBlockCheckerCreator) {
 		return errors.ErrNilGenesisMetaBlockChecker
 	}
+	if check.IfNil(mrc.epochStartTriggerFactory) {
+		return errors.ErrNilEpochStartTriggerFactory
+	}
 	return nil
 }
 

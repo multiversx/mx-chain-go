@@ -31,24 +31,19 @@ func (ss *sovereignChainSimulator) GenerateBlocksUntilEpochIsReached(targetEpoch
 			return err
 		}
 
-		epochReachedOnAllNodes, err := ss.isSovereignTargetEpochReached(targetEpoch)
-		if err != nil {
-			return err
-		}
-
-		if epochReachedOnAllNodes {
+		if ss.isSovereignTargetEpochReached(targetEpoch) {
 			return nil
 		}
 	}
 	return fmt.Errorf("exceeded rounds to generate blocks")
 }
 
-func (ss *sovereignChainSimulator) isSovereignTargetEpochReached(targetEpoch int32) (bool, error) {
+func (ss *sovereignChainSimulator) isSovereignTargetEpochReached(targetEpoch int32) bool {
 	for _, n := range ss.nodes {
 		if int32(n.GetCoreComponents().EnableEpochsHandler().GetCurrentEpoch()) < targetEpoch {
-			return false, nil
+			return false
 		}
 	}
 
-	return true, nil
+	return true
 }
