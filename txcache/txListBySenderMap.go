@@ -7,8 +7,6 @@ import (
 	"github.com/multiversx/mx-chain-storage-go/txcache/maps"
 )
 
-const numberOfScoreChunks = uint32(100)
-
 // txListBySenderMap is a map-like structure for holding and accessing transactions by sender
 type txListBySenderMap struct {
 	backingMap        *maps.BucketSortedMap

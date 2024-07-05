@@ -15,34 +15,46 @@ type senderScoreParams struct {
 }
 
 type defaultScoreComputer struct {
-	worstPpu float64
+	worstPpu           float64
+	scoreScalingFactor float64
 }
 
 func newDefaultScoreComputer(txGasHandler TxGasHandler) *defaultScoreComputer {
 	worstPpu := computeWorstPpu(txGasHandler)
+	excellentPpu := float64(txGasHandler.MinGasPrice()) * excellentGasPriceFactor
+	excellentPpuNormalized := excellentPpu / worstPpu
+	excellentPpuNormalizedLog := math.Log(excellentPpuNormalized)
+	scoreScalingFactor := float64(numberOfScoreChunks) / excellentPpuNormalizedLog
 
 	return &defaultScoreComputer{
-		worstPpu: worstPpu,
+		worstPpu:           worstPpu,
+		scoreScalingFactor: scoreScalingFactor,
 	}
 }
 
 func computeWorstPpu(txGasHandler TxGasHandler) float64 {
-	minGasPrice := txGasHandler.MinGasPrice()
-	maxGasLimitPerTx := txGasHandler.MaxGasLimitPerTx()
+	gasLimit := txGasHandler.MaxGasLimitPerTx()
+	gasPrice := txGasHandler.MinGasPrice()
+
 	worstPpuTx := &WrappedTransaction{
 		Tx: &transaction.Transaction{
-			GasLimit: maxGasLimitPerTx,
-			GasPrice: minGasPrice,
+			GasLimit: gasLimit,
+			GasPrice: gasPrice,
 		},
 	}
 
-	return worstPpuTx.computeFee(txGasHandler) / float64(maxGasLimitPerTx)
+	return worstPpuTx.computeFee(txGasHandler) / float64(gasLimit)
 }
 
 // computeScore computes the score of the sender, as an integer in [0, numberOfScoreChunks]
 func (computer *defaultScoreComputer) computeScore(scoreParams senderScoreParams) uint32 {
 	rawScore := computer.computeRawScore(scoreParams)
 	truncatedScore := uint32(rawScore)
+
+	if truncatedScore > numberOfScoreChunks {
+		return numberOfScoreChunks
+	}
+
 	return truncatedScore
 }
 
@@ -57,9 +69,6 @@ func (computer *defaultScoreComputer) computeRawScore(params senderScoreParams) 
 	avgPpuNormalized := avgPpu / computer.worstPpu
 	avgPpuNormalizedLog := math.Log(avgPpuNormalized)
 
-	// https://www.wolframalpha.com, with input "((1 / (1 + exp(-x)) - 1/2) * 2) * 100, where x is from 0 to 10"
-	avgPpuNormalizedSubunitary := (1.0/(1+math.Exp(-avgPpuNormalizedLog)) - 0.5) * 2
-	score := avgPpuNormalizedSubunitary * float64(numberOfScoreChunks)
-
+	score := avgPpuNormalizedLog * computer.scoreScalingFactor
 	return score
 }
