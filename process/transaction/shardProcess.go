@@ -932,7 +932,8 @@ func (txProc *txProcessor) addNonExecutableLog(executionErr error, originalTxHas
 		Address:    originalTx.GetRcvAddr(),
 	}
 
-	return txProc.txLogsProcessor.SaveLog(originalTxHash, originalTx, []*vmcommon.LogEntry{logEntry})
+	return txProc.failedTxLogsAccumulator.SaveLogs(originalTxHash, originalTx, []*vmcommon.LogEntry{logEntry})
+
 }
 
 func (txProc *txProcessor) processMoveBalanceCostRelayedUserTx(

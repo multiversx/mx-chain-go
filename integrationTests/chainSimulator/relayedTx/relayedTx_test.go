@@ -21,7 +21,6 @@ import (
 	chainSimulatorProcess "github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -29,9 +28,12 @@ const (
 	defaultPathToInitialConfig              = "../../../cmd/node/config/"
 	minGasPrice                             = 1_000_000_000
 	minGasLimit                             = 50_000
+	guardAccountCost                        = 250_000
+	extraGasLimitForGuarded                 = minGasLimit
 	txVersion                               = 2
 	mockTxSignature                         = "sig"
 	maxNumOfBlocksToGenerateWhenExecutingTx = 10
+	roundsPerEpoch                          = 30
 )
 
 var (
@@ -102,7 +104,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulator(t *testing.
 	innerTxs := []*transaction.Transaction{innerTx, innerTx2, innerTx3Failure, innerTx3}
 
 	// relayer will consume first a move balance for each inner tx, then the specific gas for each inner tx
-	relayedTxGasLimit := uint64(minGasLimit)
+	relayedTxGasLimit := uint64(0)
 	for _, tx := range innerTxs {
 		relayedTxGasLimit += minGasLimit + tx.GasLimit
 	}
@@ -116,31 +118,21 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulator(t *testing.
 	err = cs.GenerateBlocks(maxNumOfBlocksToGenerateWhenExecutingTx)
 	require.NoError(t, err)
 
-	relayerAccount, err := cs.GetAccount(relayer)
-	require.NoError(t, err)
 	economicsData := cs.GetNodeHandler(0).GetCoreComponents().EconomicsData()
 	relayerMoveBalanceFee := economicsData.ComputeMoveBalanceFee(relayedTx)
 	expectedRelayerFee := big.NewInt(0).Mul(relayerMoveBalanceFee, big.NewInt(int64(len(relayedTx.InnerTransactions))))
 	for _, tx := range innerTxs {
 		expectedRelayerFee.Add(expectedRelayerFee, economicsData.ComputeTxFee(tx))
 	}
-	assert.Equal(t, big.NewInt(0).Sub(initialBalance, expectedRelayerFee).String(), relayerAccount.Balance)
+	checkBalance(t, cs, relayer, big.NewInt(0).Sub(initialBalance, expectedRelayerFee))
 
-	senderAccount, err := cs.GetAccount(sender)
-	require.NoError(t, err)
-	assert.Equal(t, big.NewInt(0).Sub(initialBalance, big.NewInt(0).Mul(oneEGLD, big.NewInt(2))).String(), senderAccount.Balance)
+	checkBalance(t, cs, sender, big.NewInt(0).Sub(initialBalance, big.NewInt(0).Mul(oneEGLD, big.NewInt(2))))
 
-	sender2Account, err := cs.GetAccount(sender2)
-	require.NoError(t, err)
-	assert.Equal(t, big.NewInt(0).Sub(initialBalance, oneEGLD).String(), sender2Account.Balance)
+	checkBalance(t, cs, sender2, big.NewInt(0).Sub(initialBalance, oneEGLD))
 
-	receiverAccount, err := cs.GetAccount(receiver)
-	require.NoError(t, err)
-	assert.Equal(t, oneEGLD.String(), receiverAccount.Balance)
+	checkBalance(t, cs, receiver, oneEGLD)
 
-	receiver2Account, err := cs.GetAccount(receiver2)
-	require.NoError(t, err)
-	assert.Equal(t, big.NewInt(0).Mul(oneEGLD, big.NewInt(2)).String(), receiver2Account.Balance)
+	checkBalance(t, cs, receiver2, big.NewInt(0).Mul(oneEGLD, big.NewInt(2)))
 
 	// check SCRs
 	shardC := cs.GetNodeHandler(0).GetShardCoordinator()
@@ -224,7 +216,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorScCalls(t *t
 
 	innerTxs := []*transaction.Transaction{innerTx1, innerTx2, innerTx3, innerTx4, innerTx5, innerTx6, innerTx7}
 
-	relayedTxGasLimit := uint64(minGasLimit)
+	relayedTxGasLimit := uint64(0)
 	for _, tx := range innerTxs {
 		relayedTxGasLimit += minGasLimit + tx.GasLimit
 	}
@@ -275,7 +267,6 @@ func TestFixRelayedMoveBalanceWithChainSimulator(t *testing.T) {
 	expectedFeeMoveBalanceBefore := "797500000000000" // 498 * 1500 + 50000 + 5000
 	expectedFeeMoveBalanceAfter := "847000000000000"  // 498 * 1500 + 50000 + 50000
 	t.Run("move balance", testFixRelayedMoveBalanceWithChainSimulatorMoveBalance(expectedFeeMoveBalanceBefore, expectedFeeMoveBalanceAfter))
-
 }
 
 func testFixRelayedMoveBalanceWithChainSimulatorScCall(
@@ -453,14 +444,136 @@ func testFixRelayedMoveBalanceWithChainSimulatorMoveBalance(
 	}
 }
 
+func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorInnerNotExecutable(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	cs := startChainSimulator(t, alterConfigsFuncRelayedV3EarlyActivation)
+	defer cs.Close()
+
+	initialBalance := big.NewInt(0).Mul(oneEGLD, big.NewInt(10))
+	relayer, err := cs.GenerateAndMintWalletAddress(0, initialBalance)
+	require.NoError(t, err)
+
+	sender, err := cs.GenerateAndMintWalletAddress(0, initialBalance)
+	require.NoError(t, err)
+
+	sender2, err := cs.GenerateAndMintWalletAddress(0, initialBalance)
+	require.NoError(t, err)
+
+	guardian, err := cs.GenerateAndMintWalletAddress(0, initialBalance)
+	require.NoError(t, err)
+
+	// Set guardian for sender
+	senderNonce := uint64(0)
+	setGuardianTxData := "SetGuardian@" + hex.EncodeToString(guardian.Bytes) + "@" + hex.EncodeToString([]byte("uuid"))
+	setGuardianGasLimit := minGasLimit + 1500*len(setGuardianTxData) + guardAccountCost
+	setGuardianTx := generateTransaction(sender.Bytes, senderNonce, sender.Bytes, big.NewInt(0), setGuardianTxData, uint64(setGuardianGasLimit))
+	_, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(setGuardianTx, maxNumOfBlocksToGenerateWhenExecutingTx)
+	require.NoError(t, err)
+
+	// fast-forward until the guardian becomes active
+	err = cs.GenerateBlocks(roundsPerEpoch * 20)
+	require.NoError(t, err)
+
+	// guard account
+	senderNonce++
+	guardAccountTxData := "GuardAccount"
+	guardAccountGasLimit := minGasLimit + 1500*len(guardAccountTxData) + guardAccountCost
+	guardAccountTx := generateTransaction(sender.Bytes, senderNonce, sender.Bytes, big.NewInt(0), guardAccountTxData, uint64(guardAccountGasLimit))
+	_, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(guardAccountTx, maxNumOfBlocksToGenerateWhenExecutingTx)
+	require.NoError(t, err)
+
+	receiver, err := cs.GenerateAndMintWalletAddress(1, big.NewInt(0))
+	require.NoError(t, err)
+
+	// move balance inner transaction non-executable due to guardian mismatch
+	senderNonce++
+	innerTx := generateTransaction(sender.Bytes, senderNonce, receiver.Bytes, oneEGLD, "", minGasLimit+extraGasLimitForGuarded)
+	innerTx.RelayerAddr = relayer.Bytes
+	innerTx.GuardianAddr = sender.Bytes // this is not the real guardian
+	innerTx.GuardianSignature = []byte(mockTxSignature)
+	innerTx.Options = 2
+
+	// move balance inner transaction non-executable due to higher nonce
+	nonceTooHigh := uint64(100)
+	innerTx2 := generateTransaction(sender2.Bytes, nonceTooHigh, receiver.Bytes, oneEGLD, "", minGasLimit)
+	innerTx2.RelayerAddr = relayer.Bytes
+
+	innerTxs := []*transaction.Transaction{innerTx, innerTx2}
+
+	// relayer will consume first a move balance for each inner tx, then the specific gas for each inner tx
+	relayedTxGasLimit := uint64(0)
+	for _, tx := range innerTxs {
+		relayedTxGasLimit += minGasLimit + tx.GasLimit
+	}
+	relayedTx := generateTransaction(relayer.Bytes, 0, relayer.Bytes, big.NewInt(0), "", relayedTxGasLimit)
+	relayedTx.InnerTransactions = innerTxs
+
+	result, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
+	require.NoError(t, err)
+
+	// generate few more blocks for the cross shard scrs to be done
+	err = cs.GenerateBlocks(maxNumOfBlocksToGenerateWhenExecutingTx)
+	require.NoError(t, err)
+
+	// check the inner tx failed with the desired error
+	require.Equal(t, 2, len(result.SmartContractResults))
+	require.True(t, strings.Contains(result.SmartContractResults[0].ReturnMessage, process.ErrTransactionNotExecutable.Error()))
+	require.True(t, strings.Contains(result.SmartContractResults[0].ReturnMessage, process.ErrTransactionAndAccountGuardianMismatch.Error()))
+	require.True(t, strings.Contains(result.SmartContractResults[1].ReturnMessage, process.ErrHigherNonceInTransaction.Error()))
+
+	// check events
+	require.Equal(t, 2, len(result.Logs.Events))
+	for _, event := range result.Logs.Events {
+		require.Equal(t, core.SignalErrorOperation, event.Identifier)
+	}
+
+	// compute expected consumed fee for relayer
+	expectedConsumedGasForGuardedInnerTx := minGasLimit + minGasLimit + extraGasLimitForGuarded // invalid guardian
+	expectedConsumedGasForHigherNonceInnerTx := minGasLimit + minGasLimit                       // higher nonce
+	expectedConsumeGas := expectedConsumedGasForGuardedInnerTx + expectedConsumedGasForHigherNonceInnerTx
+	expectedRelayerFee := core.SafeMul(uint64(expectedConsumeGas), minGasPrice)
+	checkBalance(t, cs, relayer, big.NewInt(0).Sub(initialBalance, expectedRelayerFee))
+
+	checkBalance(t, cs, receiver, big.NewInt(0))
+
+	relayerBalanceBeforeSuccessfullAttempt := getBalance(t, cs, relayer)
+
+	// generate a valid guarded move balance inner tx
+	// senderNonce would be the same, as previous failed tx didn't increase it(expected)
+	innerTx = generateTransaction(sender.Bytes, senderNonce, receiver.Bytes, oneEGLD, "", minGasLimit+extraGasLimitForGuarded)
+	innerTx.RelayerAddr = relayer.Bytes
+	innerTx.GuardianAddr = guardian.Bytes
+	innerTx.GuardianSignature = []byte(mockTxSignature)
+	innerTx.Options = 2
+
+	innerTxs = []*transaction.Transaction{innerTx}
+	relayedTx = generateTransaction(relayer.Bytes, 1, relayer.Bytes, big.NewInt(0), "", relayedTxGasLimit)
+	relayedTx.InnerTransactions = innerTxs
+
+	_, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
+	require.NoError(t, err)
+
+	// generate few more blocks for the cross shard scrs to be done
+	err = cs.GenerateBlocks(maxNumOfBlocksToGenerateWhenExecutingTx)
+	require.NoError(t, err)
+
+	expectedRelayerFee = core.SafeMul(uint64(expectedConsumedGasForGuardedInnerTx), minGasPrice)
+	checkBalance(t, cs, relayer, big.NewInt(0).Sub(relayerBalanceBeforeSuccessfullAttempt, expectedRelayerFee))
+
+	checkBalance(t, cs, receiver, oneEGLD)
+}
+
 func startChainSimulator(
 	t *testing.T,
 	alterConfigsFunction func(cfg *config.Configs),
 ) testsChainSimulator.ChainSimulator {
 	roundDurationInMillis := uint64(6000)
-	roundsPerEpoch := core.OptionalUint64{
+	roundsPerEpochOpt := core.OptionalUint64{
 		HasValue: true,
-		Value:    30,
+		Value:    roundsPerEpoch,
 	}
 
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
@@ -470,7 +583,7 @@ func startChainSimulator(
 		NumOfShards:              3,
 		GenesisTimestamp:         time.Now().Unix(),
 		RoundDurationInMillis:    roundDurationInMillis,
-		RoundsPerEpoch:           roundsPerEpoch,
+		RoundsPerEpoch:           roundsPerEpochOpt,
 		ApiInterface:             api.NewNoApiInterface(),
 		MinNodesPerShard:         3,
 		MetaChainMinNodes:        3,
@@ -566,4 +679,14 @@ func getBalance(
 	require.True(t, ok)
 
 	return balance
+}
+
+func checkBalance(
+	t *testing.T,
+	cs testsChainSimulator.ChainSimulator,
+	address dtos.WalletAddress,
+	expectedBalance *big.Int,
+) {
+	balance := getBalance(t, cs, address)
+	require.Equal(t, expectedBalance.String(), balance.String())
 }
