@@ -3,6 +3,7 @@ package txcache
 import (
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-storage-go/testscommon/txcachemocks"
 	"github.com/stretchr/testify/require"
 )
@@ -15,24 +16,78 @@ func TestNewDefaultScoreComputer(t *testing.T) {
 	require.Equal(t, float64(10082500), computer.worstPpu)
 }
 
-	// 50k moveGas, 100Bil minPrice -> normalizedFee 8940
-	score := computer.computeRawScore(senderScoreParams{count: 1, feeScore: 18000, gas: 100000})
-	assert.InDelta(t, float64(16.8753739025), score, delta)
+func TestDefaultScoreComputer_computeScore(t *testing.T) {
+	// Simple transfers:
+	require.Equal(t, 74, computeScoreOfTransaction(0, 50000, oneBillion))
+	require.Equal(t, 80, computeScoreOfTransaction(0, 50000, 1.5*oneBillion))
+	require.Equal(t, 85, computeScoreOfTransaction(0, 50000, 2*oneBillion))
+	require.Equal(t, 100, computeScoreOfTransaction(0, 50000, 5*oneBillion))
+	require.Equal(t, 100, computeScoreOfTransaction(0, 50000, 10*oneBillion))
 
-	score = computer.computeRawScore(senderScoreParams{count: 1, feeScore: 1500000, gas: 10000000})
-	assert.InDelta(t, float64(9.3096887100), score, delta)
+	// Simple transfers, with some data (same scores as above):
+	require.Equal(t, 74, computeScoreOfTransaction(100, 50000+1500*100, oneBillion))
+	require.Equal(t, 80, computeScoreOfTransaction(100, 50000+1500*100, 1.5*oneBillion))
+	require.Equal(t, 85, computeScoreOfTransaction(100, 50000+1500*100, 2*oneBillion))
+	require.Equal(t, 100, computeScoreOfTransaction(100, 50000+1500*100, 5*oneBillion))
+	require.Equal(t, 100, computeScoreOfTransaction(100, 50000+1500*100, 10*oneBillion))
 
-	score = computer.computeRawScore(senderScoreParams{count: 1, feeScore: 5000000, gas: 30000000})
-	assert.InDelta(t, float64(12.7657690638), score, delta)
+	// Smart contract calls:
+	require.Equal(t, 28, computeScoreOfTransaction(1, 1000000, oneBillion))
+	require.Equal(t, 40, computeScoreOfTransaction(42, 1000000, oneBillion))
+	// Even though the gas price is high, it does not compensate the network's contract execution subsidies (thus, score is not excellent).
+	require.Equal(t, 46, computeScoreOfTransaction(42, 1000000, 1.5*oneBillion))
+	require.Equal(t, 51, computeScoreOfTransaction(42, 1000000, 2*oneBillion))
+	require.Equal(t, 66, computeScoreOfTransaction(42, 1000000, 5*oneBillion))
+	require.Equal(t, 77, computeScoreOfTransaction(42, 1000000, 10*oneBillion))
+	require.Equal(t, 88, computeScoreOfTransaction(42, 1000000, 20*oneBillion))
+	require.Equal(t, 94, computeScoreOfTransaction(42, 1000000, 30*oneBillion))
+	require.Equal(t, 99, computeScoreOfTransaction(42, 1000000, 40*oneBillion))
+	require.Equal(t, 100, computeScoreOfTransaction(42, 1000000, 50*oneBillion))
 
-	score = computer.computeRawScore(senderScoreParams{count: 2, feeScore: 36000, gas: 200000})
-	assert.InDelta(t, float64(11.0106052638), score, delta)
+	// Smart contract calls with extremely large gas limit:
+	require.Equal(t, 0, computeScoreOfTransaction(3, 150000000, oneBillion))
+	require.Equal(t, 0, computeScoreOfTransaction(3, 300000000, oneBillion))
+	require.Equal(t, 6, computeScoreOfTransaction(3, 150000000, 1.5*oneBillion))
+	require.Equal(t, 11, computeScoreOfTransaction(3, 150000000, 2*oneBillion))
+	require.Equal(t, 26, computeScoreOfTransaction(3, 150000000, 5*oneBillion))
+	require.Equal(t, 37, computeScoreOfTransaction(3, 150000000, 10*oneBillion))
+	require.Equal(t, 48, computeScoreOfTransaction(3, 150000000, 20*oneBillion))
+	require.Equal(t, 55, computeScoreOfTransaction(3, 150000000, 30*oneBillion))
+	// With a very high gas price, the transaction reaches the score of a simple transfer:
+	require.Equal(t, 74, computeScoreOfTransaction(3, 150000000, 100*oneBillion))
 
-	score = computer.computeRawScore(senderScoreParams{count: 1000, feeScore: 18000000, gas: 100000000})
-	assert.InDelta(t, float64(1.8520698299), score, delta)
+	// Smart contract calls with max gas limit:
+	require.Equal(t, 0, computeScoreOfTransaction(3, 600000000, oneBillion))
+	require.Equal(t, 37, computeScoreOfTransaction(3, 600000000, 10*oneBillion))
+	require.Equal(t, 63, computeScoreOfTransaction(3, 600000000, 50*oneBillion))
+	// With a very high gas price, the transaction reaches the score of a simple transfer:
+	require.Equal(t, 74, computeScoreOfTransaction(3, 600000000, 100*oneBillion))
+	require.Equal(t, 85, computeScoreOfTransaction(3, 600000000, 200*oneBillion))
+}
 
-	score = computer.computeRawScore(senderScoreParams{count: 10000, feeScore: 180000000, gas: 1000000000})
-	assert.InDelta(t, float64(1.4129614707), score, delta)
+// Generally speaking, the score is computed for a sender, not for a single transaction.
+// However, for the sake of testing, we consider a sender with a single transaction.
+func computeScoreOfTransaction(dataLength int, gasLimit uint64, gasPrice uint64) int {
+	gasHandler := txcachemocks.NewTxGasHandlerMock()
+	computer := newDefaultScoreComputer(gasHandler)
+
+	tx := &WrappedTransaction{
+		Tx: &transaction.Transaction{
+			Data:     make([]byte, dataLength),
+			GasLimit: gasLimit,
+			GasPrice: gasPrice,
+		},
+	}
+
+	txFee := tx.computeFee(gasHandler)
+
+	scoreParams := senderScoreParams{
+		avgPpuNumerator:             txFee,
+		avgPpuDenominator:           gasLimit,
+		hasSpotlessSequenceOfNonces: true,
+	}
+
+	return int(computer.computeScore(scoreParams))
 }
 
 func BenchmarkScoreComputer_computeRawScore(b *testing.B) {
