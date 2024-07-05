@@ -1055,33 +1055,12 @@ func (bp *baseProcessor) removeBlockDataFromPools(headerHandler data.HeaderHandl
 }
 
 func (bp *baseProcessor) removeTxsFromPools(header data.HeaderHandler, body *block.Body) error {
-	newBody, err := bp.getNonPartialMiniblocks(header, body)
+	newBody, err := bp.getFinalMiniBlocks(header, body)
 	if err != nil {
 		return err
 	}
 
 	return bp.txCoordinator.RemoveTxsFromPool(newBody)
-}
-
-func (bp *baseProcessor) getNonPartialMiniblocks(header data.HeaderHandler, body *block.Body) (*block.Body, error) {
-	var miniBlocks block.MiniBlockSlice
-
-	if len(body.MiniBlocks) != len(header.GetMiniBlockHeaderHandlers()) {
-		log.Warn("baseProcessor.getFinalMiniBlocks: num of mini blocks and mini blocks headers does not match", "num of mb", len(body.MiniBlocks), "num of mbh", len(header.GetMiniBlockHeaderHandlers()))
-		return nil, process.ErrNumOfMiniBlocksAndMiniBlocksHeadersMismatch
-	}
-
-	for index, miniBlock := range body.MiniBlocks {
-		miniBlockHeader := header.GetMiniBlockHeaderHandlers()[index]
-		if miniBlockHeader.GetConstructionState() == int32(block.PartialExecuted) {
-			log.Debug("shardProcessor.getNonPartialMiniblocks: do not remove from pool which is partially executed", "mb hash", miniBlockHeader.GetHash())
-			continue
-		}
-
-		miniBlocks = append(miniBlocks, miniBlock)
-	}
-
-	return &block.Body{MiniBlocks: miniBlocks}, nil
 }
 
 func (bp *baseProcessor) getFinalMiniBlocks(header data.HeaderHandler, body *block.Body) (*block.Body, error) {

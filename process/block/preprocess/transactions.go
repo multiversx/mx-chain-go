@@ -199,6 +199,7 @@ func NewTransactionPreprocessor(
 	txs.accountTxsShards.accountsInfo = make(map[string]*txShardInfo)
 
 	txs.emptyAddress = make([]byte, txs.pubkeyConverter.Len())
+
 	return txs, nil
 }
 
@@ -1516,10 +1517,9 @@ func (txs *transactions) ProcessMiniBlock(
 		totalGasConsumed = txs.getTotalGasConsumed()
 	}
 
-	isSelfShardStuck := txs.blockTracker.IsShardStuck(txs.shardCoordinator.SelfId())
 	var maxGasLimitUsedForDestMeTxs uint64
 	isFirstMiniBlockDestMe := totalGasConsumed == 0
-	if isFirstMiniBlockDestMe || isSelfShardStuck {
+	if isFirstMiniBlockDestMe {
 		maxGasLimitUsedForDestMeTxs = txs.economicsFee.MaxGasLimitPerBlock(txs.shardCoordinator.SelfId())
 	} else {
 		maxGasLimitUsedForDestMeTxs = txs.economicsFee.MaxGasLimitPerBlock(txs.shardCoordinator.SelfId()) * maxGasLimitPercentUsedForDestMeTxs / 100
@@ -1534,7 +1534,6 @@ func (txs *transactions) ProcessMiniBlock(
 	log.Debug("transactions.ProcessMiniBlock: before processing",
 		"scheduled mode", scheduledMode,
 		"totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
-		"maxGasLimitUsedForDestMeTxs", maxGasLimitUsedForDestMeTxs,
 		"total gas provided", txs.gasHandler.TotalGasProvided(),
 		"total gas provided as scheduled", txs.gasHandler.TotalGasProvidedAsScheduled(),
 		"total gas refunded", txs.gasHandler.TotalGasRefunded(),
@@ -1550,7 +1549,6 @@ func (txs *transactions) ProcessMiniBlock(
 			"total gas provided as scheduled", txs.gasHandler.TotalGasProvidedAsScheduled(),
 			"total gas refunded", txs.gasHandler.TotalGasRefunded(),
 			"total gas penalized", txs.gasHandler.TotalGasPenalized(),
-			"isSelfShardStuck", isSelfShardStuck,
 		)
 	}()
 
@@ -1603,7 +1601,7 @@ func (txs *transactions) ProcessMiniBlock(
 		numTXsProcessed++
 	}
 
-	if err != nil && (!partialMbExecutionMode || isSelfShardStuck) {
+	if err != nil && !partialMbExecutionMode {
 		return processedTxHashes, txIndex - 1, true, err
 	}
 

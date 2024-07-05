@@ -1097,14 +1097,8 @@ func (sp *shardProcessor) CommitBlock(
 		)
 	}()
 
-	gasConsumed := sp.gasConsumedProvider.TotalGasProvidedWithScheduled() - sp.gasConsumedProvider.TotalGasRefunded() - sp.gasConsumedProvider.TotalGasPenalized()
-	log.Info("blockGasUsage",
-		"gas consumed", fmt.Sprintf("%.3f", float64(gasConsumed)/1e9),
-		"gasProvided Bil", fmt.Sprintf("%.3f", float64(sp.gasConsumedProvider.TotalGasProvidedWithScheduled())/1e9),
-		"gasRefunded Bil", fmt.Sprintf("%.3f", float64(sp.gasConsumedProvider.TotalGasRefunded())/1e9),
-		"gasPenalized Bil", fmt.Sprintf("%.3f", float64(sp.gasConsumedProvider.TotalGasPenalized())/1e9))
-
 	sp.blockSizeThrottler.Succeed(header.GetRound())
+
 	sp.displayPoolsInfo()
 
 	errNotCritical = sp.removeTxsFromPools(header, body)
