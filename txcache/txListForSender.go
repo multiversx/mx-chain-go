@@ -124,17 +124,10 @@ func (listForSender *txListForSender) triggerScoreChange() {
 func (listForSender *txListForSender) getScoreParams() senderScoreParams {
 	numTxs := listForSender.countTx()
 	minTransactionNonce := uint64(0)
-	maxTransactionNonce := uint64(0)
-
 	firstTx := listForSender.items.Front()
-	lastTx := listForSender.items.Back()
 
 	if firstTx != nil {
 		minTransactionNonce = firstTx.Value.(*WrappedTransaction).Tx.GetNonce()
-	}
-
-	if lastTx != nil {
-		maxTransactionNonce = lastTx.Value.(*WrappedTransaction).Tx.GetNonce()
 	}
 
 	hasSpotlessSequenceOfNonces := listForSender.noncesTracker.isSpotlessSequence(minTransactionNonce, numTxs)
@@ -142,13 +135,7 @@ func (listForSender *txListForSender) getScoreParams() senderScoreParams {
 	return senderScoreParams{
 		avgPpuNumerator:             listForSender.avgPpuNumerator,
 		avgPpuDenominator:           listForSender.avgPpuDenominator,
-		numOfTransactions:           numTxs,
 		hasSpotlessSequenceOfNonces: hasSpotlessSequenceOfNonces,
-
-		accountNonce:        listForSender.accountNonce.Get(),
-		accountNonceIsKnown: listForSender.accountNonceKnown.IsSet(),
-		minTransactionNonce: minTransactionNonce,
-		maxTransactionNonce: maxTransactionNonce,
 	}
 }
 

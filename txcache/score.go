@@ -9,15 +9,8 @@ import (
 var _ scoreComputer = (*defaultScoreComputer)(nil)
 
 type senderScoreParams struct {
-	avgPpuNumerator   float64
-	avgPpuDenominator uint64
-
-	accountNonce        uint64
-	accountNonceIsKnown bool
-	maxTransactionNonce uint64
-	minTransactionNonce uint64
-
-	numOfTransactions           uint64
+	avgPpuNumerator             float64
+	avgPpuDenominator           uint64
 	hasSpotlessSequenceOfNonces bool
 }
 
