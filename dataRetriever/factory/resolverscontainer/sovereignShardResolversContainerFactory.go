@@ -37,8 +37,6 @@ func (srcf *sovereignShardResolversContainerFactory) Create() (dataRetriever.Res
 		return nil, err
 	}
 
-	err = srcf.generateTrieNodesResolvers()
-
 	return srcf.container, nil
 }
 
