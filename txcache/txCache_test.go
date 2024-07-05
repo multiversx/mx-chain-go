@@ -140,18 +140,18 @@ func Test_AddTx_AppliesSizeConstraintsPerSenderForNumTransactions(t *testing.T) 
 func Test_AddTx_AppliesSizeConstraintsPerSenderForNumBytes(t *testing.T) {
 	cache := newCacheToTest(1024, math.MaxUint32)
 
-	cache.AddTx(createTxWithParams([]byte("tx-alice-1"), "alice", 1, 128, 50000, 42))
-	cache.AddTx(createTxWithParams([]byte("tx-alice-2"), "alice", 2, 512, 1500000, 42))
-	cache.AddTx(createTxWithParams([]byte("tx-alice-4"), "alice", 3, 256, 1500000, 42))
-	cache.AddTx(createTxWithParams([]byte("tx-bob-1"), "bob", 1, 512, 1500000, 42))
-	cache.AddTx(createTxWithParams([]byte("tx-bob-2"), "bob", 2, 513, 1500000, 42))
+	cache.AddTx(createTx([]byte("tx-alice-1"), "alice", 1).withSize(128).withGasLimit(50000))
+	cache.AddTx(createTx([]byte("tx-alice-2"), "alice", 2).withSize(512).withGasLimit(1500000))
+	cache.AddTx(createTx([]byte("tx-alice-4"), "alice", 3).withSize(256).withGasLimit(1500000))
+	cache.AddTx(createTx([]byte("tx-bob-1"), "bob", 1).withSize(512).withGasLimit(1500000))
+	cache.AddTx(createTx([]byte("tx-bob-2"), "bob", 2).withSize(513).withGasLimit(1500000))
 
 	require.Equal(t, []string{"tx-alice-1", "tx-alice-2", "tx-alice-4"}, cache.getHashesForSender("alice"))
 	require.Equal(t, []string{"tx-bob-1"}, cache.getHashesForSender("bob"))
 	require.True(t, cache.areInternalMapsConsistent())
 
-	cache.AddTx(createTxWithParams([]byte("tx-alice-3"), "alice", 3, 256, 1500000, 42))
-	cache.AddTx(createTxWithParams([]byte("tx-bob-2"), "bob", 3, 512, 1500000, 42))
+	cache.AddTx(createTx([]byte("tx-alice-3"), "alice", 3).withSize(256).withGasLimit(1500000))
+	cache.AddTx(createTx([]byte("tx-bob-2"), "bob", 3).withSize(512).withGasLimit(1500000))
 	require.Equal(t, []string{"tx-alice-1", "tx-alice-2", "tx-alice-3"}, cache.getHashesForSender("alice"))
 	require.Equal(t, []string{"tx-bob-1", "tx-bob-2"}, cache.getHashesForSender("bob"))
 	require.True(t, cache.areInternalMapsConsistent())
@@ -481,8 +481,8 @@ func TestTxCache_ConcurrentMutationAndSelection(t *testing.T) {
 	cache := newUnconstrainedCacheToTest()
 
 	// Alice will quickly move between two score buckets (chunks)
-	cheapTransaction := createTxWithParams([]byte("alice-x-o"), "alice", 0, 128, 50000, 100*oneBillion)
-	expensiveTransaction := createTxWithParams([]byte("alice-x-1"), "alice", 1, 128, 50000, 300*oneBillion)
+	cheapTransaction := createTx([]byte("alice-x-o"), "alice", 0).withDataLength(1).withGasLimit(300000000).withGasPrice(oneBillion)
+	expensiveTransaction := createTx([]byte("alice-x-1"), "alice", 1).withDataLength(42).withGasLimit(50000000).withGasPrice(10 * oneBillion)
 	cache.AddTx(cheapTransaction)
 	cache.AddTx(expensiveTransaction)
 
