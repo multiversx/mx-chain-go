@@ -15,19 +15,20 @@ type senderScoreParams struct {
 }
 
 type defaultScoreComputer struct {
-	worstPpu           float64
+	worstPpuLog        float64
 	scoreScalingFactor float64
 }
 
 func newDefaultScoreComputer(txGasHandler TxGasHandler) *defaultScoreComputer {
 	worstPpu := computeWorstPpu(txGasHandler)
+	worstPpuLog := math.Log(worstPpu)
 	excellentPpu := float64(txGasHandler.MinGasPrice()) * excellentGasPriceFactor
 	excellentPpuNormalized := excellentPpu / worstPpu
 	excellentPpuNormalizedLog := math.Log(excellentPpuNormalized)
 	scoreScalingFactor := float64(numberOfScoreChunks) / excellentPpuNormalizedLog
 
 	return &defaultScoreComputer{
-		worstPpu:           worstPpu,
+		worstPpuLog:        worstPpuLog,
 		scoreScalingFactor: scoreScalingFactor,
 	}
 }
@@ -58,6 +59,9 @@ func (computer *defaultScoreComputer) computeScore(scoreParams senderScoreParams
 	return truncatedScore
 }
 
+// computeRawScore computes the score of a sender, as follows:
+// score = log(sender's average price per unit / worst price per unit) * scoreScalingFactor,
+// where scoreScalingFactor = highest score / log(excellent price per unit / worst price per unit)
 func (computer *defaultScoreComputer) computeRawScore(params senderScoreParams) float64 {
 	if !params.hasSpotlessSequenceOfNonces {
 		return 0
@@ -66,8 +70,8 @@ func (computer *defaultScoreComputer) computeRawScore(params senderScoreParams) 
 	avgPpu := params.avgPpuNumerator / float64(params.avgPpuDenominator)
 
 	// We use the worst possible price per unit for normalization.
-	avgPpuNormalized := avgPpu / computer.worstPpu
-	avgPpuNormalizedLog := math.Log(avgPpuNormalized)
+	// The expression below is same as log(avgPpu / worstPpu), but we precompute "worstPpuLog" in the constructor.
+	avgPpuNormalizedLog := math.Log(avgPpu) - computer.worstPpuLog
 
 	score := avgPpuNormalizedLog * computer.scoreScalingFactor
 	return score
