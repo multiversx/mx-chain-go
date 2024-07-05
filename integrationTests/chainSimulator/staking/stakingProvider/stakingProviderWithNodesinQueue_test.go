@@ -52,20 +52,18 @@ func testStakingProviderWithNodesReStakeUnStaked(t *testing.T, stakingV4Activati
 	}
 
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:      false,
-		TempDir:                     t.TempDir(),
-		PathToInitialConfig:         defaultPathToInitialConfig,
-		NumOfShards:                 3,
-		GenesisTimestamp:            time.Now().Unix(),
-		RoundDurationInMillis:       roundDurationInMillis,
-		RoundsPerEpoch:              roundsPerEpoch,
-		ApiInterface:                api.NewNoApiInterface(),
-		MinNodesPerShard:            3,
-		MetaChainMinNodes:           3,
-		ConsensusGroupSize:          1,
-		MetaChainConsensusGroupSize: 1,
-		NumNodesWaitingListMeta:     3,
-		NumNodesWaitingListShard:    3,
+		BypassTxSignatureCheck:   true,
+		TempDir:                  t.TempDir(),
+		PathToInitialConfig:      defaultPathToInitialConfig,
+		NumOfShards:              3,
+		GenesisTimestamp:         time.Now().Unix(),
+		RoundDurationInMillis:    roundDurationInMillis,
+		RoundsPerEpoch:           roundsPerEpoch,
+		ApiInterface:             api.NewNoApiInterface(),
+		MinNodesPerShard:         3,
+		MetaChainMinNodes:        3,
+		NumNodesWaitingListMeta:  3,
+		NumNodesWaitingListShard: 3,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			configs.SetStakingV4ActivationEpochs(cfg, stakingV4ActivationEpoch)
 		},
