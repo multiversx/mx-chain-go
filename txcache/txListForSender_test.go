@@ -25,11 +25,11 @@ func TestListForSender_AddTx_GivesPriorityToHigherGas(t *testing.T) {
 	list := newUnconstrainedListToTest()
 	txGasHandler := txcachemocks.NewTxGasHandlerMock()
 
-	list.AddTx(createTxWithParams([]byte("a"), ".", 1, 128, 50000, 42), txGasHandler)
-	list.AddTx(createTxWithParams([]byte("b"), ".", 3, 128, 50000, 100), txGasHandler)
-	list.AddTx(createTxWithParams([]byte("c"), ".", 3, 128, 50000, 99), txGasHandler)
-	list.AddTx(createTxWithParams([]byte("d"), ".", 2, 128, 50000, 42), txGasHandler)
-	list.AddTx(createTxWithParams([]byte("e"), ".", 3, 128, 50000, 101), txGasHandler)
+	list.AddTx(createTx([]byte("a"), ".", 1), txGasHandler)
+	list.AddTx(createTx([]byte("b"), ".", 3).withGasPrice(1.2*oneBillion), txGasHandler)
+	list.AddTx(createTx([]byte("c"), ".", 3).withGasPrice(1.1*oneBillion), txGasHandler)
+	list.AddTx(createTx([]byte("d"), ".", 2), txGasHandler)
+	list.AddTx(createTx([]byte("e"), ".", 3).withGasPrice(1.3*oneBillion), txGasHandler)
 
 	require.Equal(t, []string{"a", "d", "e", "b", "c"}, list.getTxHashesAsStrings())
 }
@@ -38,13 +38,13 @@ func TestListForSender_AddTx_SortsCorrectlyWhenSameNonceSamePrice(t *testing.T) 
 	list := newUnconstrainedListToTest()
 	txGasHandler := txcachemocks.NewTxGasHandlerMock()
 
-	list.AddTx(createTxWithParams([]byte("a"), ".", 1, 128, 50000, 42), txGasHandler)
-	list.AddTx(createTxWithParams([]byte("b"), ".", 3, 128, 50000, 100), txGasHandler)
-	list.AddTx(createTxWithParams([]byte("c"), ".", 3, 128, 50000, 100), txGasHandler)
-	list.AddTx(createTxWithParams([]byte("d"), ".", 3, 128, 50000, 98), txGasHandler)
-	list.AddTx(createTxWithParams([]byte("e"), ".", 3, 128, 50000, 101), txGasHandler)
-	list.AddTx(createTxWithParams([]byte("f"), ".", 2, 128, 50000, 42), txGasHandler)
-	list.AddTx(createTxWithParams([]byte("g"), ".", 3, 128, 50000, 99), txGasHandler)
+	list.AddTx(createTx([]byte("a"), ".", 1).withGasPrice(oneBillion), txGasHandler)
+	list.AddTx(createTx([]byte("b"), ".", 3).withGasPrice(3*oneBillion), txGasHandler)
+	list.AddTx(createTx([]byte("c"), ".", 3).withGasPrice(3*oneBillion), txGasHandler)
+	list.AddTx(createTx([]byte("d"), ".", 3).withGasPrice(2*oneBillion), txGasHandler)
+	list.AddTx(createTx([]byte("e"), ".", 3).withGasPrice(3.5*oneBillion), txGasHandler)
+	list.AddTx(createTx([]byte("f"), ".", 2).withGasPrice(oneBillion), txGasHandler)
+	list.AddTx(createTx([]byte("g"), ".", 3).withGasPrice(2.5*oneBillion), txGasHandler)
 
 	// In case of same-nonce, same-price transactions, the newer one has priority
 	require.Equal(t, []string{"a", "f", "e", "b", "c", "g", "d"}, list.getTxHashesAsStrings())
@@ -79,12 +79,12 @@ func TestListForSender_AddTx_AppliesSizeConstraintsForNumTransactions(t *testing
 	require.Equal(t, []string{"tx4"}, hashesAsStrings(evicted))
 
 	// Gives priority to higher gas - though undesirably to some extent, "tx3" is evicted
-	_, evicted = list.AddTx(createTxWithParams([]byte("tx2++"), ".", 2, 128, 50000, 42), txGasHandler)
+	_, evicted = list.AddTx(createTx([]byte("tx2++"), ".", 2).withGasPrice(1.5*oneBillion), txGasHandler)
 	require.Equal(t, []string{"tx1", "tx2++", "tx2"}, list.getTxHashesAsStrings())
 	require.Equal(t, []string{"tx3"}, hashesAsStrings(evicted))
 
 	// Though Undesirably to some extent, "tx3++"" is added, then evicted
-	_, evicted = list.AddTx(createTxWithParams([]byte("tx3++"), ".", 3, 128, 50000, 42), txGasHandler)
+	_, evicted = list.AddTx(createTx([]byte("tx3++"), ".", 3).withGasPrice(1.5*oneBillion), txGasHandler)
 	require.Equal(t, []string{"tx1", "tx2++", "tx2"}, list.getTxHashesAsStrings())
 	require.Equal(t, []string{"tx3++"}, hashesAsStrings(evicted))
 }
@@ -93,23 +93,23 @@ func TestListForSender_AddTx_AppliesSizeConstraintsForNumBytes(t *testing.T) {
 	list := newListToTest(1024, math.MaxUint32)
 	txGasHandler := txcachemocks.NewTxGasHandlerMock()
 
-	list.AddTx(createTxWithParams([]byte("tx1"), ".", 1, 128, 50000, 42), txGasHandler)
-	list.AddTx(createTxWithParams([]byte("tx2"), ".", 2, 512, 1500000, 42), txGasHandler)
-	list.AddTx(createTxWithParams([]byte("tx3"), ".", 3, 256, 1500000, 42), txGasHandler)
-	_, evicted := list.AddTx(createTxWithParams([]byte("tx5"), ".", 4, 256, 1500000, 42), txGasHandler)
+	list.AddTx(createTx([]byte("tx1"), ".", 1).withSize(128).withGasLimit(50000), txGasHandler)
+	list.AddTx(createTx([]byte("tx2"), ".", 2).withSize(512).withGasLimit(1500000), txGasHandler)
+	list.AddTx(createTx([]byte("tx3"), ".", 3).withSize(256).withGasLimit(1500000), txGasHandler)
+	_, evicted := list.AddTx(createTx([]byte("tx5"), ".", 4).withSize(256).withGasLimit(1500000), txGasHandler)
 	require.Equal(t, []string{"tx1", "tx2", "tx3"}, list.getTxHashesAsStrings())
 	require.Equal(t, []string{"tx5"}, hashesAsStrings(evicted))
 
-	_, evicted = list.AddTx(createTxWithParams([]byte("tx5--"), ".", 4, 128, 50000, 42), txGasHandler)
+	_, evicted = list.AddTx(createTx([]byte("tx5--"), ".", 4).withSize(128).withGasLimit(50000), txGasHandler)
 	require.Equal(t, []string{"tx1", "tx2", "tx3", "tx5--"}, list.getTxHashesAsStrings())
 	require.Equal(t, []string{}, hashesAsStrings(evicted))
 
-	_, evicted = list.AddTx(createTxWithParams([]byte("tx4"), ".", 4, 128, 50000, 42), txGasHandler)
+	_, evicted = list.AddTx(createTx([]byte("tx4"), ".", 4).withSize(128).withGasLimit(50000), txGasHandler)
 	require.Equal(t, []string{"tx1", "tx2", "tx3", "tx4"}, list.getTxHashesAsStrings())
 	require.Equal(t, []string{"tx5--"}, hashesAsStrings(evicted))
 
 	// Gives priority to higher gas - though undesirably to some extent, "tx4" is evicted
-	_, evicted = list.AddTx(createTxWithParams([]byte("tx3++"), ".", 3, 256, 1500000, 100), txGasHandler)
+	_, evicted = list.AddTx(createTx([]byte("tx3++"), ".", 3).withSize(256).withGasLimit(1500000).withGasPrice(1.5*oneBillion), txGasHandler)
 	require.Equal(t, []string{"tx1", "tx2", "tx3++", "tx3"}, list.getTxHashesAsStrings())
 	require.Equal(t, []string{"tx4"}, hashesAsStrings(evicted))
 }

@@ -62,9 +62,11 @@ func (computer *defaultScoreComputer) computeRawScore(params senderScoreParams) 
 
 	// We use the worst possible price per unit for normalization.
 	avgPpuNormalized := avgPpu / computer.worstPpu
+	avgPpuNormalizedLog := math.Log(avgPpuNormalized)
 
 	// https://www.wolframalpha.com, with input "((1 / (1 + exp(-x)) - 1/2) * 2) * 100, where x is from 0 to 10"
-	avgPpuNormalizedSubunitary := (1/(1+math.Exp(-avgPpuNormalized)) - 0.5) * 2
+	avgPpuNormalizedSubunitary := (1.0/(1+math.Exp(-avgPpuNormalizedLog)) - 0.5) * 2
 	score := avgPpuNormalizedSubunitary * float64(numberOfScoreChunks)
+
 	return score
 }

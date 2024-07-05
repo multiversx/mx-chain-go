@@ -12,6 +12,7 @@ import (
 
 const oneMilion = 1000000
 const oneBillion = oneMilion * 1000
+const oneTrillion = oneBillion * 1000
 const delta = 0.00000001
 const estimatedSizeOfBoundedTxFields = uint64(128)
 
@@ -105,27 +106,6 @@ func createTx(hash []byte, sender string, nonce uint64) *WrappedTransaction {
 		Tx:     tx,
 		TxHash: hash,
 		Size:   int64(estimatedSizeOfBoundedTxFields),
-	}
-}
-
-func createTxWithParams(hash []byte, sender string, nonce uint64, size uint64, gasLimit uint64, gasPrice uint64) *WrappedTransaction {
-	dataLength := int(size) - int(estimatedSizeOfBoundedTxFields)
-	if dataLength < 0 {
-		panic("createTxWithData(): invalid length for dummy tx")
-	}
-
-	tx := &transaction.Transaction{
-		SndAddr:  []byte(sender),
-		Nonce:    nonce,
-		Data:     make([]byte, dataLength),
-		GasLimit: gasLimit,
-		GasPrice: gasPrice,
-	}
-
-	return &WrappedTransaction{
-		Tx:     tx,
-		TxHash: hash,
-		Size:   int64(size),
 	}
 }
 
