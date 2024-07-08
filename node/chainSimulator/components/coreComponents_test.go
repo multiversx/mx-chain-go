@@ -10,7 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 )
 
-func createArgsCoreComponentsHolder(t *testing.T) ArgsCoreComponentsHolder {
+func createArgsCoreComponentsHolder() ArgsCoreComponentsHolder {
 	runTypeCoreComponents, _ := createRunTypeCoreComponents()
 
 	return ArgsCoreComponentsHolder{
@@ -148,7 +148,7 @@ func TestCreateCoreComponents(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		comp, err := CreateCoreComponents(createArgsCoreComponentsHolder(t))
+		comp, err := CreateCoreComponents(createArgsCoreComponentsHolder())
 		require.NoError(t, err)
 		require.NotNil(t, comp)
 
@@ -158,7 +158,7 @@ func TestCreateCoreComponents(t *testing.T) {
 	t.Run("internal NewMarshalizer failure should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createArgsCoreComponentsHolder(t)
+		args := createArgsCoreComponentsHolder()
 		args.Config.Marshalizer.Type = "invalid"
 		comp, err := CreateCoreComponents(args)
 		require.Error(t, err)
@@ -167,7 +167,7 @@ func TestCreateCoreComponents(t *testing.T) {
 	t.Run("tx NewMarshalizer failure should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createArgsCoreComponentsHolder(t)
+		args := createArgsCoreComponentsHolder()
 		args.Config.TxSignMarshalizer.Type = "invalid"
 		comp, err := CreateCoreComponents(args)
 		require.Error(t, err)
@@ -176,7 +176,7 @@ func TestCreateCoreComponents(t *testing.T) {
 	t.Run("vm NewMarshalizer failure should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createArgsCoreComponentsHolder(t)
+		args := createArgsCoreComponentsHolder()
 		args.Config.VmMarshalizer.Type = "invalid"
 		comp, err := CreateCoreComponents(args)
 		require.Error(t, err)
@@ -185,7 +185,7 @@ func TestCreateCoreComponents(t *testing.T) {
 	t.Run("main NewHasher failure should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createArgsCoreComponentsHolder(t)
+		args := createArgsCoreComponentsHolder()
 		args.Config.Hasher.Type = "invalid"
 		comp, err := CreateCoreComponents(args)
 		require.Error(t, err)
@@ -194,7 +194,7 @@ func TestCreateCoreComponents(t *testing.T) {
 	t.Run("tx NewHasher failure should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createArgsCoreComponentsHolder(t)
+		args := createArgsCoreComponentsHolder()
 		args.Config.TxSignHasher.Type = "invalid"
 		comp, err := CreateCoreComponents(args)
 		require.Error(t, err)
@@ -203,7 +203,7 @@ func TestCreateCoreComponents(t *testing.T) {
 	t.Run("address NewPubkeyConverter failure should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createArgsCoreComponentsHolder(t)
+		args := createArgsCoreComponentsHolder()
 		args.Config.AddressPubkeyConverter.Type = "invalid"
 		comp, err := CreateCoreComponents(args)
 		require.Error(t, err)
@@ -212,7 +212,7 @@ func TestCreateCoreComponents(t *testing.T) {
 	t.Run("validator NewPubkeyConverter failure should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createArgsCoreComponentsHolder(t)
+		args := createArgsCoreComponentsHolder()
 		args.Config.ValidatorPubkeyConverter.Type = "invalid"
 		comp, err := CreateCoreComponents(args)
 		require.Error(t, err)
@@ -221,7 +221,7 @@ func TestCreateCoreComponents(t *testing.T) {
 	t.Run("NewNodesSetup failure should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createArgsCoreComponentsHolder(t)
+		args := createArgsCoreComponentsHolder()
 		args.NumShards = 0
 		comp, err := CreateCoreComponents(args)
 		require.Error(t, err)
@@ -230,7 +230,7 @@ func TestCreateCoreComponents(t *testing.T) {
 	t.Run("NewEconomicsData failure should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createArgsCoreComponentsHolder(t)
+		args := createArgsCoreComponentsHolder()
 		args.EconomicsConfig.GlobalSettings.MinimumInflation = -1.0
 		comp, err := CreateCoreComponents(args)
 		require.Error(t, err)
@@ -239,7 +239,7 @@ func TestCreateCoreComponents(t *testing.T) {
 	t.Run("validatorPubKeyConverter.Decode failure should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := createArgsCoreComponentsHolder(t)
+		args := createArgsCoreComponentsHolder()
 		args.Config.Hardfork.PublicKeyToListenFrom = "invalid"
 		comp, err := CreateCoreComponents(args)
 		require.Error(t, err)
@@ -253,7 +253,7 @@ func TestCoreComponentsHolder_IsInterfaceNil(t *testing.T) {
 	var comp *coreComponentsHolder
 	require.True(t, comp.IsInterfaceNil())
 
-	comp, _ = CreateCoreComponents(createArgsCoreComponentsHolder(t))
+	comp, _ = CreateCoreComponents(createArgsCoreComponentsHolder())
 	require.False(t, comp.IsInterfaceNil())
 	require.Nil(t, comp.Close())
 }
@@ -261,7 +261,7 @@ func TestCoreComponentsHolder_IsInterfaceNil(t *testing.T) {
 func TestCoreComponents_GettersSetters(t *testing.T) {
 	t.Parallel()
 
-	comp, err := CreateCoreComponents(createArgsCoreComponentsHolder(t))
+	comp, err := CreateCoreComponents(createArgsCoreComponentsHolder())
 	require.NoError(t, err)
 
 	require.NotNil(t, comp.InternalMarshalizer())
