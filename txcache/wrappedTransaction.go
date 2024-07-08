@@ -1,7 +1,6 @@
 package txcache
 
 import (
-	"bytes"
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -15,10 +14,6 @@ type WrappedTransaction struct {
 	ReceiverShardID uint32
 	Size            int64
 	TxFee           float64
-}
-
-func (wrappedTx *WrappedTransaction) sameAs(another *WrappedTransaction) bool {
-	return bytes.Equal(wrappedTx.TxHash, another.TxHash)
 }
 
 // computeFee computes the transaction fee.
