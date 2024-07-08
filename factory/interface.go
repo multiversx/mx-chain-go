@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/genesis"
+	"github.com/multiversx/mx-chain-go/genesis/checking"
 	processComp "github.com/multiversx/mx-chain-go/genesis/process"
 	heartbeatData "github.com/multiversx/mx-chain-go/heartbeat/data"
 	"github.com/multiversx/mx-chain-go/node/external"
@@ -617,6 +618,7 @@ type RunTypeComponentsHolder interface {
 	ExtraHeaderSigVerifierHolder() headerCheck.ExtraHeaderSigVerifierHolder
 	GenesisBlockCreatorFactory() processComp.GenesisBlockCreatorFactory
 	GenesisMetaBlockCheckerCreator() processComp.GenesisMetaBlockChecker
+	NodesSetupCheckerFactory() checking.NodesSetupCheckerFactory
 	Create() error
 	Close() error
 	CheckSubcomponents() error

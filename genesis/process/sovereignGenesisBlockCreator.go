@@ -10,6 +10,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/process/factory"
+	"github.com/multiversx/mx-chain-go/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
 	"github.com/multiversx/mx-chain-go/config"
@@ -43,7 +45,6 @@ func (gbc *sovereignGenesisBlockCreator) CreateGenesisBlocks() (map[uint32]data.
 	if err != nil {
 		return nil, err
 	}
-
 	if !mustDoGenesisProcess(gbc.arg) {
 		return gbc.createSovereignEmptyGenesisBlocks()
 	}
@@ -182,6 +183,11 @@ func createSovereignShardGenesisBlock(
 		return nil, nil, nil, err
 	}
 
+	err = initSystemSCs(shardProcessors.vmContainer, arg.Accounts)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	deploySystemSCTxs, err := deploySystemSmartContracts(arg, metaProcessor.txProcessor, metaProcessor.systemSCs)
 	if err != nil {
 		return nil, nil, nil, err
@@ -223,6 +229,20 @@ func createSovereignShardGenesisBlock(
 	}
 
 	return genesisBlock, scAddresses, indexingData, nil
+}
+
+func initSystemSCs(vmContainer process.VirtualMachinesContainer, accounts state.AccountsAdapter) error {
+	vmExecutionHandler, err := vmContainer.Get(factory.SystemVirtualMachine)
+	if err != nil {
+		return err
+	}
+
+	err = genesisCommon.InitDelegationSystemSC(vmExecutionHandler, accounts)
+	if err != nil {
+		return err
+	}
+
+	return genesisCommon.InitGovernanceV2(vmExecutionHandler, accounts)
 }
 
 func setRootHash(header data.HeaderHandler, rootHash []byte) error {
