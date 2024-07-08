@@ -3,10 +3,8 @@ package txcache
 import (
 	"encoding/binary"
 	"sync"
-	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 )
 
@@ -149,16 +147,6 @@ func createFakeTxHash(fakeSenderAddress []byte, nonce int) []byte {
 	binary.LittleEndian.PutUint64(bytes[8:], uint64(nonce))
 	binary.LittleEndian.PutUint64(bytes[16:], uint64(nonce))
 	return bytes
-}
-
-func measureWithStopWatch(b *testing.B, function func()) {
-	sw := core.NewStopWatch()
-	sw.Start("time")
-	function()
-	sw.Stop("time")
-
-	duration := sw.GetMeasurementsMap()["time"]
-	b.ReportMetric(duration, "time@stopWatch")
 }
 
 // waitTimeout waits for the waitgroup for the specified max timeout.

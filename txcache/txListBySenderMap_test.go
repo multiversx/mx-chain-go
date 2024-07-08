@@ -6,6 +6,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-storage-go/testscommon/txcachemocks"
 	"github.com/stretchr/testify/require"
 )
@@ -114,26 +115,28 @@ func TestSendersMap_notifyAccountNonce(t *testing.T) {
 	require.True(t, alice.accountNonceKnown.IsSet())
 }
 
-func BenchmarkSendersMap_GetSnapshotAscending(b *testing.B) {
-	if b.N > 10 {
-		fmt.Println("impractical benchmark: b.N too high")
-		return
+func TestBenchmarkSendersMap_GetSnapshotAscending(t *testing.T) {
+	numSendersValues := []int{50000, 100000, 300000}
+
+	for _, numSenders := range numSendersValues {
+		myMap := createTxListBySenderMap(numSenders)
+
+		sw := core.NewStopWatch()
+		sw.Start("time")
+		snapshot := myMap.getSnapshotAscending()
+		sw.Stop("time")
+
+		require.Len(t, snapshot, numSenders)
+		fmt.Printf("took %v to sort %d senders\n", sw.GetMeasurementsMap()["time"], numSenders)
 	}
 
-	numSenders := 250000
-	maps := make([]*txListBySenderMap, b.N)
-	for i := 0; i < b.N; i++ {
-		maps[i] = createTxListBySenderMap(numSenders)
-	}
-
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
-		measureWithStopWatch(b, func() {
-			snapshot := maps[i].getSnapshotAscending()
-			require.Len(b, snapshot, numSenders)
-		})
-	}
+	// Results:
+	//
+	// (a) 22 ms to sort 300k senders:
+	//		cpu: 11th Gen Intel(R) Core(TM) i7-1165G7 @ 2.80GHz
+	//		took 0.004527414 to sort 50000 senders
+	//		took 0.00745592 to sort 100000 senders
+	//		took 0.022954026 to sort 300000 senders
 }
 
 func TestSendersMap_GetSnapshots_NoPanic_IfAlsoConcurrentMutation(t *testing.T) {
