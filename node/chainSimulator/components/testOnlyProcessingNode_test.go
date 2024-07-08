@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	mainFactory "github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/runType"
 	"github.com/multiversx/mx-chain-go/node"
@@ -180,6 +181,13 @@ func TestNewTestOnlyProcessingNode(t *testing.T) {
 		args.Configs.FlagsConfig.Version = ""
 		node, err := NewTestOnlyProcessingNode(args)
 		require.Error(t, err)
+		require.Nil(t, node)
+	})
+	t.Run("CreateRunTypeComponents failure should error", func(t *testing.T) {
+		args := createMockArgsTestOnlyProcessingNode(t)
+		args.Configs.EconomicsConfig.GlobalSettings.GenesisTotalSupply = "0"
+		node, err := NewTestOnlyProcessingNode(args)
+		require.ErrorIs(t, err, errorsMx.ErrRunTypeComponentsFactoryCreate)
 		require.Nil(t, node)
 	})
 	t.Run("createFacade failure should error", func(t *testing.T) {
@@ -502,7 +510,6 @@ func TestTestOnlyProcessingNode_Getters(t *testing.T) {
 	require.Nil(t, node.GetBroadcastMessenger())
 	require.Nil(t, node.GetCryptoComponents())
 	require.Nil(t, node.GetCoreComponents())
-	require.Nil(t, node.GetDataComponents())
 	require.Nil(t, node.GetStateComponents())
 	require.Nil(t, node.GetFacadeHandler())
 	require.Nil(t, node.GetStatusCoreComponents())
@@ -518,7 +525,6 @@ func TestTestOnlyProcessingNode_Getters(t *testing.T) {
 	require.NotNil(t, node.GetShardCoordinator())
 	require.NotNil(t, node.GetCryptoComponents())
 	require.NotNil(t, node.GetCoreComponents())
-	require.NotNil(t, node.GetDataComponents())
 	require.NotNil(t, node.GetStateComponents())
 	require.NotNil(t, node.GetFacadeHandler())
 	require.NotNil(t, node.GetStatusCoreComponents())
