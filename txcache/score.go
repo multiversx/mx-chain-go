@@ -48,9 +48,9 @@ func computeWorstPpu(txGasHandler TxGasHandler) float64 {
 }
 
 // computeScore computes the score of the sender, as an integer in [0, numberOfScoreChunks]
-func (computer *defaultScoreComputer) computeScore(scoreParams senderScoreParams) uint32 {
+func (computer *defaultScoreComputer) computeScore(scoreParams senderScoreParams) int {
 	rawScore := computer.computeRawScore(scoreParams)
-	truncatedScore := uint32(rawScore)
+	truncatedScore := int(rawScore)
 
 	if truncatedScore > numberOfScoreChunks {
 		return numberOfScoreChunks

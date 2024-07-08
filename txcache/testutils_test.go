@@ -36,7 +36,7 @@ func (txMap *txListBySenderMap) testGetListForSender(sender string) *txListForSe
 	return list
 }
 
-func (cache *TxCache) getScoreOfSender(sender string) uint32 {
+func (cache *TxCache) getScoreOfSender(sender string) int {
 	list := cache.getListForSender(sender)
 	scoreParams := list.getScoreParams()
 	computer := cache.txListBySender.scoreComputer
@@ -171,6 +171,6 @@ var _ scoreComputer = (*disabledScoreComputer)(nil)
 type disabledScoreComputer struct {
 }
 
-func (computer *disabledScoreComputer) computeScore(_ senderScoreParams) uint32 {
+func (computer *disabledScoreComputer) computeScore(_ senderScoreParams) int {
 	return 0
 }

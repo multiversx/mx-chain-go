@@ -110,7 +110,7 @@ func (listForSender *txListForSender) onAddedTransaction(tx *WrappedTransaction,
 func (listForSender *txListForSender) recomputeScore() {
 	scoreParams := listForSender.getScoreParams()
 	score := listForSender.scoreComputer.computeScore(scoreParams)
-	listForSender.score.Set(score)
+	listForSender.score.Set(uint32(score))
 }
 
 // This function should only be used in critical section (listForSender.mutex)
@@ -430,8 +430,8 @@ func (listForSender *txListForSender) isGracePeriodExceeded() bool {
 	return numFailedSelections > senderGracePeriodUpperBound
 }
 
-func (listForSender *txListForSender) getScore() uint32 {
-	return listForSender.score.Get()
+func (listForSender *txListForSender) getScore() int {
+	return int(listForSender.score.Get())
 }
 
 // GetKey returns the key

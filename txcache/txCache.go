@@ -123,7 +123,7 @@ func (cache *TxCache) doSelectTransactions(numRequested int, batchSizePerSender 
 		copiedInThisPass := 0
 
 		for _, txList := range snapshotOfSenders {
-			batchSizeWithScoreCoefficient := batchSizePerSender * int(txList.getScore()+1)
+			batchSizeWithScoreCoefficient := batchSizePerSender * (txList.getScore() + 1)
 			// Reset happens on first pass only
 			isFirstBatch := pass == 0
 			journal := txList.selectBatchTo(isFirstBatch, result[resultFillIndex:], batchSizeWithScoreCoefficient, bandwidthPerSender)
