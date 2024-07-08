@@ -51,8 +51,8 @@ func runEsdtModifyCreatorTest(t *testing.T, tokenType string) {
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
 
-	defaultMetaData := getDefaultMetaData()
-	defaultMetaData.nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
+	defaultMetaData := GetDefaultMetaData()
+	defaultMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
 	tx = createTokenTx(creatorAddr, creatorAddr, 100000, 1, defaultMetaData)
 	retCode, err = testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmcommon.Ok, retCode)
@@ -74,13 +74,13 @@ func esdtModifyCreatorTx(
 	sndAddr []byte,
 	rcvAddr []byte,
 	gasLimit uint64,
-	metaData *metaData,
+	metaData *MetaData,
 ) *transaction.Transaction {
 	txDataField := bytes.Join(
 		[][]byte{
 			[]byte(core.ESDTModifyCreator),
-			metaData.tokenId,
-			metaData.nonce,
+			metaData.TokenId,
+			metaData.Nonce,
 		},
 		[]byte("@"),
 	)
