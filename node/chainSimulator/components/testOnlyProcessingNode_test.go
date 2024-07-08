@@ -70,8 +70,25 @@ func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNo
 	}
 }
 
+func createRunTypeCoreComponents() (mainFactory.RunTypeCoreComponentsHolder, error) {
+	runTypeCoreComponentsFactory := runType.NewRunTypeCoreComponentsFactory()
+	managedRunTypeCoreComponents, err := runType.NewManagedRunTypeCoreComponents(runTypeCoreComponentsFactory)
+	if err != nil {
+		return nil, err
+	}
+	err = managedRunTypeCoreComponents.Create()
+	if err != nil {
+		return nil, err
+	}
+
+	return managedRunTypeCoreComponents, nil
+}
+
 func createRunTypeComponents(args runType.ArgsRunTypeComponents) (mainFactory.RunTypeComponentsHolder, error) {
-	runTypeComponentsFactory, _ := runType.NewRunTypeComponentsFactory(args)
+	runTypeComponentsFactory, err := runType.NewRunTypeComponentsFactory(args)
+	if err != nil {
+		return nil, err
+	}
 	managedRunTypeComponents, err := runType.NewManagedRunTypeComponents(runTypeComponentsFactory)
 	if err != nil {
 		return nil, err
@@ -485,9 +502,11 @@ func TestTestOnlyProcessingNode_Getters(t *testing.T) {
 	require.Nil(t, node.GetBroadcastMessenger())
 	require.Nil(t, node.GetCryptoComponents())
 	require.Nil(t, node.GetCoreComponents())
+	require.Nil(t, node.GetDataComponents())
 	require.Nil(t, node.GetStateComponents())
 	require.Nil(t, node.GetFacadeHandler())
 	require.Nil(t, node.GetStatusCoreComponents())
+	require.Nil(t, node.GetRunTypeComponents())
 	require.Nil(t, node.GetIncomingHeaderSubscriber())
 
 	node, err := NewTestOnlyProcessingNode(createMockArgsTestOnlyProcessingNode(t))
@@ -499,8 +518,10 @@ func TestTestOnlyProcessingNode_Getters(t *testing.T) {
 	require.NotNil(t, node.GetShardCoordinator())
 	require.NotNil(t, node.GetCryptoComponents())
 	require.NotNil(t, node.GetCoreComponents())
+	require.NotNil(t, node.GetDataComponents())
 	require.NotNil(t, node.GetStateComponents())
 	require.NotNil(t, node.GetFacadeHandler())
 	require.NotNil(t, node.GetStatusCoreComponents())
+	require.NotNil(t, node.GetRunTypeComponents())
 	require.NotNil(t, node.GetIncomingHeaderSubscriber())
 }

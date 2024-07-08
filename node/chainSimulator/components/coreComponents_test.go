@@ -8,12 +8,10 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/config"
-	mainFactory "github.com/multiversx/mx-chain-go/factory"
-	"github.com/multiversx/mx-chain-go/factory/runType"
 )
 
 func createArgsCoreComponentsHolder(t *testing.T) ArgsCoreComponentsHolder {
-	runTypeCoreComponents := createRunTypeCoreComponents(t)
+	runTypeCoreComponents, _ := createRunTypeCoreComponents()
 
 	return ArgsCoreComponentsHolder{
 		Config: config.Config{
@@ -142,17 +140,6 @@ func createArgsCoreComponentsHolder(t *testing.T) ArgsCoreComponentsHolder {
 		RoundDurationInMs:           6000,
 		RunTypeCoreComponents:       runTypeCoreComponents,
 	}
-}
-
-func createRunTypeCoreComponents(t *testing.T) mainFactory.RunTypeCoreComponentsHolder {
-	runTypeCoreComponentsFactory := runType.NewRunTypeCoreComponentsFactory()
-	managedRunTypeCoreComponents, err := runType.NewManagedRunTypeCoreComponents(runTypeCoreComponentsFactory)
-	require.NoError(t, err)
-
-	err = managedRunTypeCoreComponents.Create()
-	require.NoError(t, err)
-
-	return managedRunTypeCoreComponents
 }
 
 func TestCreateCoreComponents(t *testing.T) {
