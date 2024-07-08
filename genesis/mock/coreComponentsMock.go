@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/sharding"
 )
 
 // CoreComponentsMock -
@@ -22,6 +23,7 @@ type CoreComponentsMock struct {
 	StatHandler              core.AppStatusHandler
 	EnableEpochsHandlerField common.EnableEpochsHandler
 	TxVersionCheck           process.TxVersionCheckerHandler
+	RaterField               sharding.PeerAccountListAndRatingHandler
 }
 
 // InternalMarshalizer -
@@ -72,6 +74,11 @@ func (ccm *CoreComponentsMock) EnableEpochsHandler() common.EnableEpochsHandler 
 // TxVersionChecker -
 func (ccm *CoreComponentsMock) TxVersionChecker() process.TxVersionCheckerHandler {
 	return ccm.TxVersionCheck
+}
+
+// Rater -
+func (ccm *CoreComponentsMock) Rater() sharding.PeerAccountListAndRatingHandler {
+	return ccm.RaterField
 }
 
 // IsInterfaceNil -

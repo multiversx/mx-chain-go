@@ -7,6 +7,13 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
+
 	"github.com/multiversx/mx-chain-go/common"
 	disabledCommon "github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/common/enablers"
@@ -14,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
+	"github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
 	"github.com/multiversx/mx-chain-go/genesis/process/intermediate"
@@ -36,13 +44,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/update"
 	hardForkProcess "github.com/multiversx/mx-chain-go/update/process"
-
-	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
-	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 )
 
 const unreachableEpoch = ^uint32(0)
@@ -418,7 +419,20 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		return nil, err
 	}
 
-	argsNewVMFactory := shard.ArgVMContainerFactory{
+	messageSignVerifier, err := disabled.NewMessageSignVerifier(arg.BlockSignKeyGen)
+	if err != nil {
+		return nil, err
+	}
+
+	// VM container only needs to know the number of eligible nodes.
+	// At genesis, we don't need a full nodes coordinator, and this information
+	// is already available in initial nodes setup from genesis
+	eligible, _ := arg.InitialNodesSetup.InitialNodesInfo()
+	liteNodesCoordinator := &vmNodesCoordinator{
+		numEligible: uint64(len(eligible)),
+	}
+
+	vmContainer, vmFactoryImpl, err := arg.RunTypeComponents.VmContainerShardFactoryCreator().CreateVmContainerFactory(argsHook, vm.ArgsVmContainerFactory{
 		Config:              arg.VirtualMachineConfig,
 		BlockGasLimit:       math.MaxUint64,
 		GasSchedule:         arg.GasSchedule,
@@ -429,14 +443,18 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		ESDTTransferParser:  esdtTransferParser,
 		BuiltInFunctions:    argsHook.BuiltInFunctions,
 		Hasher:              arg.Core.Hasher(),
-		PubKeyConverter:     arg.Core.AddressPubKeyConverter(),
-	}
-	vmFactoryImpl, err := shard.NewVMContainerFactory(argsNewVMFactory)
-	if err != nil {
-		return nil, err
-	}
-
-	vmContainer, err := vmFactoryImpl.Create()
+		PubkeyConv:          arg.Core.AddressPubKeyConverter(),
+		Economics:           arg.Economics,
+		UserAccountsDB:      arg.Accounts,
+		ShardCoordinator:    arg.ShardCoordinator,
+		Marshalizer:         arg.Core.InternalMarshalizer(),
+		SystemSCConfig:      &arg.SystemSCConfig,
+		ValidatorAccountsDB: arg.ValidatorAccounts,
+		ChanceComputer:      arg.Core.Rater(),
+		NodesConfigProvider: arg.InitialNodesSetup,
+		MessageSignVerifier: messageSignVerifier,
+		NodesCoordinator:    liteNodesCoordinator,
+	})
 	if err != nil {
 		return nil, err
 	}

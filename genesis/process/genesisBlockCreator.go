@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/factory/vm"
 	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
 
 	"github.com/multiversx/mx-chain-go/common/enablers"
@@ -185,6 +186,9 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 	if check.IfNil(arg.Data.Datapool()) {
 		return process.ErrNilPoolsHolder
 	}
+	if check.IfNil(arg.Core.Rater()) {
+		return process.ErrNilRater
+	}
 	if check.IfNil(arg.GasSchedule) {
 		return process.ErrNilGasSchedule
 	}
@@ -217,6 +221,15 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 	}
 	if check.IfNil(arg.RunTypeComponents.TxPreProcessorCreator()) {
 		return errors.ErrNilTxPreProcessorCreator
+	}
+	if check.IfNil(arg.RunTypeComponents.VMContextCreator()) {
+		return errors.ErrNilVMContextCreator
+	}
+	if check.IfNil(arg.RunTypeComponents.VmContainerShardFactoryCreator()) {
+		return errors.ErrNilVmContainerShardFactoryCreator
+	}
+	if check.IfNil(arg.RunTypeComponents.VmContainerMetaFactoryCreator()) {
+		return vm.ErrNilVmContainerMetaCreator
 	}
 	if arg.TrieStorageManagers == nil {
 		return genesis.ErrNilTrieStorageManager

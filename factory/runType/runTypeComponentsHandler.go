@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/factory"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/genesis"
+	"github.com/multiversx/mx-chain-go/genesis/checking"
 	processComp "github.com/multiversx/mx-chain-go/genesis/process"
 	"github.com/multiversx/mx-chain-go/process"
 	processBlock "github.com/multiversx/mx-chain-go/process/block"
@@ -597,6 +598,18 @@ func (mrc *managedRunTypeComponents) GenesisMetaBlockCheckerCreator() processCom
 	}
 
 	return mrc.runTypeComponents.genesisMetaBlockCheckerCreator
+}
+
+// NodesSetupCheckerFactory returns the nodes setup checker factory
+func (mrc *managedRunTypeComponents) NodesSetupCheckerFactory() checking.NodesSetupCheckerFactory {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.nodesSetupCheckerFactory
 }
 
 // EpochStartTriggerFactory returns the epoch start trigger factory
