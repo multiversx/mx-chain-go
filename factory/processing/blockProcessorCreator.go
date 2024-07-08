@@ -79,26 +79,6 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 	sentSignaturesTracker process.SentSignaturesTracker,
 ) (*blockProcessorAndVmFactories, error) {
 	shardCoordinator := pcf.bootstrapComponents.ShardCoordinator()
-	argsMetaAndFactories, err := pcf.createArgsMetaBlockProcessor(
-		requestHandler,
-		forkDetector,
-		validatorStatisticsProcessor,
-		epochStartTrigger,
-		bootStorer,
-		headerValidator,
-		blockTracker,
-		pendingMiniBlocksHandler,
-		wasmVMChangeLocker,
-		scheduledTxsExecutionHandler,
-		processedMiniBlocksTracker,
-		receiptsRepository,
-		blockCutoffProcessingHandler,
-		sentSignaturesTracker,
-	)
-	if err != nil {
-		return nil, err
-	}
-
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
 		return pcf.newShardBlockProcessor(
 			requestHandler,
@@ -116,10 +96,28 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 			blockCutoffProcessingHandler,
 			missingTrieNodesNotifier,
 			sentSignaturesTracker,
-			argsMetaAndFactories.argsMetaBlockProcessor,
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
+		argsMetaAndFactories, err := pcf.createArgsMetaBlockProcessor(
+			requestHandler,
+			forkDetector,
+			validatorStatisticsProcessor,
+			epochStartTrigger,
+			bootStorer,
+			headerValidator,
+			blockTracker,
+			pendingMiniBlocksHandler,
+			wasmVMChangeLocker,
+			scheduledTxsExecutionHandler,
+			processedMiniBlocksTracker,
+			receiptsRepository,
+			blockCutoffProcessingHandler,
+			sentSignaturesTracker,
+		)
+		if err != nil {
+			return nil, err
+		}
 		return pcf.newMetaBlockProcessor(argsMetaAndFactories)
 	}
 
@@ -144,7 +142,6 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	blockProcessingCutoffHandler cutoff.BlockProcessingCutoffHandler,
 	missingTrieNodesNotifier common.MissingTrieNodesNotifier,
 	sentSignaturesTracker process.SentSignaturesTracker,
-	argsMetaBlockProcessor block.ArgMetaProcessor,
 ) (*blockProcessorAndVmFactories, error) {
 	argsParser := smartContract.NewArgumentParser()
 
@@ -496,7 +493,14 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		SentSignaturesTracker:        sentSignaturesTracker,
 		ValidatorStatisticsProcessor: validatorStatisticsProcessor,
 	}
-	blockProcessor, err := pcf.createBlockProcessor(argumentsBaseProcessor, argsMetaBlockProcessor)
+
+	extraMetaArgsFunc := pcf.createExtraMetaBlockProcessorArgs(
+		requestHandler,
+		blockTracker,
+		epochStartTrigger,
+	)
+
+	blockProcessor, err := pcf.createBlockProcessor(argumentsBaseProcessor, extraMetaArgsFunc)
 	if err != nil {
 		return nil, err
 	}
@@ -515,9 +519,9 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 
 func (pcf *processComponentsFactory) createBlockProcessor(
 	argumentsBaseProcessor block.ArgBaseProcessor,
-	argsMetaBlockProcessor block.ArgMetaProcessor,
+	extraMetaArgs block.ExtraMetaBlockProcessorCreateFunc,
 ) (process.BlockProcessor, error) {
-	blockProcessor, err := pcf.runTypeComponents.BlockProcessorCreator().CreateBlockProcessor(argumentsBaseProcessor, argsMetaBlockProcessor)
+	blockProcessor, err := pcf.runTypeComponents.BlockProcessorCreator().CreateBlockProcessor(argumentsBaseProcessor, extraMetaArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -1097,6 +1101,103 @@ func (pcf *processComponentsFactory) createArgsMetaBlockProcessor(
 			EpochSystemSCProcessor:       epochStartSystemSCProcessor,
 		},
 	}, nil
+}
+
+func (pcf *processComponentsFactory) createExtraMetaBlockProcessorArgs(
+	requestHandler process.RequestHandler,
+	blockTracker process.BlockTracker,
+	epochStartTrigger process.EpochStartTriggerHandler,
+) block.ExtraMetaBlockProcessorCreateFunc {
+	return func(systemVM vmcommon.VMExecutionHandler) (*block.ExtraArgsMetaBlockProcessor, error) {
+		validatorInfoStorage, err := pcf.data.StorageService().GetStorer(dataRetriever.UnsignedTransactionUnit)
+		if err != nil {
+			return nil, err
+		}
+		miniBlockStorage, err := pcf.data.StorageService().GetStorer(dataRetriever.MiniBlockUnit)
+		if err != nil {
+			return nil, err
+		}
+
+		argsEpochValidatorInfo := metachainEpochStart.ArgsNewValidatorInfoCreator{
+			ShardCoordinator:     pcf.bootstrapComponents.ShardCoordinator(),
+			ValidatorInfoStorage: validatorInfoStorage,
+			MiniBlockStorage:     miniBlockStorage,
+			Hasher:               pcf.coreData.Hasher(),
+			Marshalizer:          pcf.coreData.InternalMarshalizer(),
+			DataPool:             pcf.data.Datapool(),
+			EnableEpochsHandler:  pcf.coreData.EnableEpochsHandler(),
+		}
+		validatorInfoCreator, err := metachainEpochStart.NewValidatorInfoCreator(argsEpochValidatorInfo)
+		if err != nil {
+			return nil, err
+		}
+
+		rewardsStorage, err := pcf.data.StorageService().GetStorer(dataRetriever.RewardTransactionUnit)
+		if err != nil {
+			return nil, err
+		}
+
+		genesisHdr := pcf.data.Blockchain().GetGenesisHeader()
+		argsEpochStartData := metachainEpochStart.ArgsNewEpochStartData{
+			Marshalizer:         pcf.coreData.InternalMarshalizer(),
+			Hasher:              pcf.coreData.Hasher(),
+			Store:               pcf.data.StorageService(),
+			DataPool:            pcf.data.Datapool(),
+			BlockTracker:        blockTracker,
+			ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
+			EpochStartTrigger:   epochStartTrigger,
+			RequestHandler:      requestHandler,
+			GenesisEpoch:        genesisHdr.GetEpoch(),
+			EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+		}
+		epochStartDataCreator, err := metachainEpochStart.NewEpochStartData(argsEpochStartData)
+		if err != nil {
+			return nil, err
+		}
+
+		economicsDataProvider := metachainEpochStart.NewEpochEconomicsStatistics()
+		argsStakingDataProvider := metachainEpochStart.StakingDataProviderArgs{
+			EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+			SystemVM:            systemVM,
+			MinNodePrice:        pcf.systemSCConfig.StakingSystemSCConfig.GenesisNodePrice,
+		}
+
+		// TODO: in case of changing the minimum node price, make sure to update the staking data provider
+		stakingDataProvider, err := metachainEpochStart.NewStakingDataProvider(argsStakingDataProvider)
+		if err != nil {
+			return nil, err
+		}
+
+		argsEpochRewards := metachainEpochStart.RewardsCreatorProxyArgs{
+			BaseRewardsCreatorArgs: metachainEpochStart.BaseRewardsCreatorArgs{
+				ShardCoordinator:              pcf.bootstrapComponents.ShardCoordinator(),
+				PubkeyConverter:               pcf.coreData.AddressPubKeyConverter(),
+				RewardsStorage:                rewardsStorage,
+				MiniBlockStorage:              miniBlockStorage,
+				Hasher:                        pcf.coreData.Hasher(),
+				Marshalizer:                   pcf.coreData.InternalMarshalizer(),
+				DataPool:                      pcf.data.Datapool(),
+				ProtocolSustainabilityAddress: pcf.coreData.EconomicsData().ProtocolSustainabilityAddress(),
+				NodesConfigProvider:           pcf.nodesCoordinator,
+				UserAccountsDB:                pcf.state.AccountsAdapter(),
+				EnableEpochsHandler:           pcf.coreData.EnableEpochsHandler(),
+				ExecutionOrderHandler:         pcf.txExecutionOrderHandler,
+			},
+			StakingDataProvider:   stakingDataProvider,
+			RewardsHandler:        pcf.coreData.EconomicsData(),
+			EconomicsDataProvider: economicsDataProvider,
+		}
+		epochRewards, err := metachainEpochStart.NewRewardsCreatorProxy(argsEpochRewards)
+		if err != nil {
+			return nil, err
+		}
+
+		return &block.ExtraArgsMetaBlockProcessor{
+			EpochRewardsCreator:       epochRewards,
+			EpochStartDataCreator:     epochStartDataCreator,
+			EpochValidatorInfoCreator: validatorInfoCreator,
+		}, nil
+	}
 }
 
 func (pcf *processComponentsFactory) attachProcessDebugger(
