@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -154,6 +155,9 @@ func TestGetBroadcastMessenger_ShardShouldWork(t *testing.T) {
 		interceptosContainer,
 		alarmSchedulerStub,
 		&testscommon.KeysHandlerStub{},
+		config.ConsensusGradualBroadcastConfig{
+			GradualIndexBroadcastDelay: []config.IndexBroadcastDelay{},
+		},
 	)
 
 	assert.Nil(t, err)
@@ -185,6 +189,9 @@ func TestGetBroadcastMessenger_MetachainShouldWork(t *testing.T) {
 		interceptosContainer,
 		alarmSchedulerStub,
 		&testscommon.KeysHandlerStub{},
+		config.ConsensusGradualBroadcastConfig{
+			GradualIndexBroadcastDelay: []config.IndexBroadcastDelay{},
+		},
 	)
 
 	assert.Nil(t, err)
@@ -208,6 +215,9 @@ func TestGetBroadcastMessenger_NilShardCoordinatorShouldErr(t *testing.T) {
 		interceptosContainer,
 		alarmSchedulerStub,
 		&testscommon.KeysHandlerStub{},
+		config.ConsensusGradualBroadcastConfig{
+			GradualIndexBroadcastDelay: []config.IndexBroadcastDelay{},
+		},
 	)
 
 	assert.Nil(t, bm)
@@ -235,6 +245,9 @@ func TestGetBroadcastMessenger_InvalidShardIdShouldErr(t *testing.T) {
 		interceptosContainer,
 		alarmSchedulerStub,
 		&testscommon.KeysHandlerStub{},
+		config.ConsensusGradualBroadcastConfig{
+			GradualIndexBroadcastDelay: []config.IndexBroadcastDelay{},
+		},
 	)
 
 	assert.Nil(t, bm)
