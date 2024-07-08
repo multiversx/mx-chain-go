@@ -1279,8 +1279,6 @@ func (scbp *sovereignChainBlockProcessor) CommitBlock(headerHandler data.HeaderH
 func (scbp *sovereignChainBlockProcessor) commitEpochStart(header data.HeaderHandler, body *block.Body) {
 	if header.IsStartOfEpochBlock() {
 		scbp.epochStartTrigger.SetProcessed(header, body)
-		scbp.epochStartTrigger.SetProcessed(header, body)
-
 		// TODO: MX-15588 FIX THIS (mp *metaProcessor) commitEpochStart
 		//go scbp.epochRewardsCreator.SaveBlockDataToStorage(header, body)
 		// ************

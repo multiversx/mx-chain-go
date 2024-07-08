@@ -8,7 +8,6 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/factory"
-	"github.com/multiversx/mx-chain-go/factory/epochStartTrigger"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/genesis"
 	processGenesis "github.com/multiversx/mx-chain-go/genesis/process"
@@ -112,7 +111,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		ExtraHeaderSigVerifier:              &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
 		GenesisBlockFactory:                 &testFactory.GenesisBlockCreatorFactoryMock{},
 		GenesisMetaBlockChecker:             &testFactory.GenesisMetaBlockCheckerMock{},
-		EpochStartTriggerFactoryField:       epochStartTrigger.NewEpochStartTriggerFactory(),
+		EpochStartTriggerFactoryField:       &testFactory.EpochStartTriggerFactoryMock{},
 	}
 }
 
