@@ -7,15 +7,12 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-storage-go/common"
-	"github.com/multiversx/mx-chain-storage-go/txcache/maps"
 )
-
-var _ maps.BucketSortedMapItem = (*txListForSender)(nil)
 
 // txListForSender represents a sorted list of transactions of a particular sender
 type txListForSender struct {
 	copyDetectedGap     bool
-	lastComputedScore   atomic.Uint32
+	score               atomic.Uint32
 	accountNonceKnown   atomic.Flag
 	sweepable           atomic.Flag
 	copyPreviousNonce   uint64
@@ -23,7 +20,6 @@ type txListForSender struct {
 	items               *list.List
 	copyBatchIndex      *list.Element
 	constraints         *senderConstraints
-	scoreChunk          *maps.MapChunk
 	accountNonce        atomic.Uint64
 	totalBytes          atomic.Counter
 	numFailedSelections atomic.Counter
@@ -31,23 +27,19 @@ type txListForSender struct {
 	avgPpuNumerator   float64
 	avgPpuDenominator uint64
 	noncesTracker     *noncesTracker
+	scoreComputer     scoreComputer
 
-	onScoreChange scoreChangeCallback
-
-	scoreChunkMutex sync.RWMutex
-	mutex           sync.RWMutex
+	mutex sync.RWMutex
 }
 
-type scoreChangeCallback func(value *txListForSender, scoreParams senderScoreParams)
-
 // newTxListForSender creates a new (sorted) list of transactions
-func newTxListForSender(sender string, constraints *senderConstraints, onScoreChange scoreChangeCallback) *txListForSender {
+func newTxListForSender(sender string, constraints *senderConstraints, scoreComputer scoreComputer) *txListForSender {
 	return &txListForSender{
 		items:         list.New(),
 		sender:        sender,
 		constraints:   constraints,
 		noncesTracker: newNoncesTracker(),
-		onScoreChange: onScoreChange,
+		scoreComputer: scoreComputer,
 	}
 }
 
@@ -71,7 +63,7 @@ func (listForSender *txListForSender) AddTx(tx *WrappedTransaction, gasHandler T
 
 	listForSender.onAddedTransaction(tx, gasHandler)
 	evicted := listForSender.applySizeConstraints()
-	listForSender.triggerScoreChange()
+	listForSender.recomputeScore()
 	return true, evicted
 }
 
@@ -115,9 +107,10 @@ func (listForSender *txListForSender) onAddedTransaction(tx *WrappedTransaction,
 	listForSender.noncesTracker.addNonce(nonce)
 }
 
-func (listForSender *txListForSender) triggerScoreChange() {
+func (listForSender *txListForSender) recomputeScore() {
 	scoreParams := listForSender.getScoreParams()
-	listForSender.onScoreChange(listForSender, scoreParams)
+	score := listForSender.scoreComputer.computeScore(scoreParams)
+	listForSender.score.Set(score)
 }
 
 // This function should only be used in critical section (listForSender.mutex)
@@ -192,7 +185,7 @@ func (listForSender *txListForSender) RemoveTx(tx *WrappedTransaction) bool {
 	if isFound {
 		listForSender.items.Remove(marker)
 		listForSender.onRemovedListElement(marker)
-		listForSender.triggerScoreChange()
+		listForSender.recomputeScore()
 	}
 
 	return isFound
@@ -432,30 +425,11 @@ func (listForSender *txListForSender) isGracePeriodExceeded() bool {
 	return numFailedSelections > senderGracePeriodUpperBound
 }
 
-func (listForSender *txListForSender) getLastComputedScore() uint32 {
-	return listForSender.lastComputedScore.Get()
-}
-
-func (listForSender *txListForSender) setLastComputedScore(score uint32) {
-	listForSender.lastComputedScore.Set(score)
+func (listForSender *txListForSender) getScore() uint32 {
+	return listForSender.score.Get()
 }
 
 // GetKey returns the key
 func (listForSender *txListForSender) GetKey() string {
 	return listForSender.sender
-}
-
-// GetScoreChunk returns the score chunk the sender is currently in
-func (listForSender *txListForSender) GetScoreChunk() *maps.MapChunk {
-	listForSender.scoreChunkMutex.RLock()
-	defer listForSender.scoreChunkMutex.RUnlock()
-
-	return listForSender.scoreChunk
-}
-
-// SetScoreChunk returns the score chunk the sender is currently in
-func (listForSender *txListForSender) SetScoreChunk(scoreChunk *maps.MapChunk) {
-	listForSender.scoreChunkMutex.Lock()
-	listForSender.scoreChunk = scoreChunk
-	listForSender.scoreChunkMutex.Unlock()
 }

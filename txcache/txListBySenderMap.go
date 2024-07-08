@@ -9,7 +9,7 @@ import (
 
 // txListBySenderMap is a map-like structure for holding and accessing transactions by sender
 type txListBySenderMap struct {
-	backingMap        *maps.BucketSortedMap
+	backingMap        *maps.ConcurrentMap
 	senderConstraints senderConstraints
 	counter           atomic.Counter
 	scoreComputer     scoreComputer
@@ -24,7 +24,7 @@ func newTxListBySenderMap(
 	scoreComputer scoreComputer,
 	txGasHandler TxGasHandler,
 ) *txListBySenderMap {
-	backingMap := maps.NewBucketSortedMap(nChunksHint, numberOfScoreChunks)
+	backingMap := maps.NewConcurrentMap(nChunksHint)
 
 	return &txListBySenderMap{
 		backingMap:        backingMap,
@@ -70,19 +70,12 @@ func (txMap *txListBySenderMap) getListForSender(sender string) (*txListForSende
 }
 
 func (txMap *txListBySenderMap) addSender(sender string) *txListForSender {
-	listForSender := newTxListForSender(sender, &txMap.senderConstraints, txMap.notifyScoreChange)
+	listForSender := newTxListForSender(sender, &txMap.senderConstraints, txMap.scoreComputer)
 
-	txMap.backingMap.Set(listForSender)
+	txMap.backingMap.Set(sender, listForSender)
 	txMap.counter.Increment()
 
 	return listForSender
-}
-
-// This function should only be called in a critical section managed by a "txListForSender"
-func (txMap *txListBySenderMap) notifyScoreChange(txList *txListForSender, scoreParams senderScoreParams) {
-	score := txMap.scoreComputer.computeScore(scoreParams)
-	txList.setLastComputedScore(score)
-	txMap.backingMap.NotifyScoreChange(txList, score)
 }
 
 // removeTx removes a transaction from the map
@@ -139,25 +132,44 @@ func (txMap *txListBySenderMap) notifyAccountNonce(accountKey []byte, nonce uint
 }
 
 func (txMap *txListBySenderMap) getSnapshotAscending() []*txListForSender {
-	itemsSnapshot := txMap.backingMap.GetSnapshotAscending()
-	listsSnapshot := make([]*txListForSender, len(itemsSnapshot))
+	scoreGroups := txMap.getSendersGroupedByScore()
+	listsSnapshot := make([]*txListForSender, 0, txMap.counter.Get())
 
-	for i, item := range itemsSnapshot {
-		listsSnapshot[i] = item.(*txListForSender)
+	for i := 0; i < len(scoreGroups); i++ {
+		listsSnapshot = append(listsSnapshot, scoreGroups[i]...)
 	}
 
 	return listsSnapshot
 }
 
 func (txMap *txListBySenderMap) getSnapshotDescending() []*txListForSender {
-	itemsSnapshot := txMap.backingMap.GetSnapshotDescending()
-	listsSnapshot := make([]*txListForSender, len(itemsSnapshot))
+	scoreGroups := txMap.getSendersGroupedByScore()
+	listsSnapshot := make([]*txListForSender, 0, txMap.counter.Get())
 
-	for i, item := range itemsSnapshot {
-		listsSnapshot[i] = item.(*txListForSender)
+	for i := len(scoreGroups) - 1; i >= 0; i-- {
+		listsSnapshot = append(listsSnapshot, scoreGroups[i]...)
 	}
 
 	return listsSnapshot
+}
+
+func (txMap *txListBySenderMap) getSendersGroupedByScore() [][]*txListForSender {
+	groups := make([][]*txListForSender, numberOfScoreChunks)
+	// Hint for pre-allocating slice for each group (imprecise, but reasonable).
+	groupSizeHint := txMap.counter.Get() / int64(numberOfScoreChunks) / 2
+
+	txMap.backingMap.IterCb(func(key string, item interface{}) {
+		listForSender := item.(*txListForSender)
+		score := listForSender.getScore()
+
+		if groups[score] == nil {
+			groups[score] = make([]*txListForSender, 0, groupSizeHint)
+		}
+
+		groups[score] = append(groups[score], listForSender)
+	})
+
+	return groups
 }
 
 func (txMap *txListBySenderMap) clear() {

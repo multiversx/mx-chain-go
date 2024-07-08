@@ -406,15 +406,17 @@ func TestListForSender_DetectRaceConditions(t *testing.T) {
 }
 
 func newUnconstrainedListToTest() *txListForSender {
-	return newTxListForSender(".", &senderConstraints{
-		maxNumBytes: math.MaxUint32,
-		maxNumTxs:   math.MaxUint32,
-	}, func(_ *txListForSender, _ senderScoreParams) {})
+	return newListToTest(math.MaxUint32, math.MaxUint32)
 }
 
 func newListToTest(maxNumBytes uint32, maxNumTxs uint32) *txListForSender {
-	return newTxListForSender(".", &senderConstraints{
+	senderConstraints := &senderConstraints{
 		maxNumBytes: maxNumBytes,
 		maxNumTxs:   maxNumTxs,
-	}, func(_ *txListForSender, _ senderScoreParams) {})
+	}
+
+	txGasHandler := txcachemocks.NewTxGasHandlerMock()
+	scoreComputer := newDefaultScoreComputer(txGasHandler)
+
+	return newTxListForSender(".", senderConstraints, scoreComputer)
 }

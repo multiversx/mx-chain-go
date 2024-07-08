@@ -96,20 +96,35 @@ func computeScoreOfTransaction(dataLength int, gasLimit uint64, gasPrice uint64)
 }
 
 func BenchmarkScoreComputer_computeRawScore(b *testing.B) {
-	_, txFeeHelper := dummyParams()
-	computer := newDefaultScoreComputer(txFeeHelper)
+	gasHandler := txcachemocks.NewTxGasHandlerMock()
+	computer := newDefaultScoreComputer(gasHandler)
+
+	tx := &WrappedTransaction{
+		Tx: &transaction.Transaction{
+			Data:     make([]byte, 42),
+			GasLimit: 50000000,
+			GasPrice: 1000000000,
+		},
+	}
 
 	for i := 0; i < b.N; i++ {
-		for j := uint64(0); j < 10000000; j++ {
-			computer.computeRawScore(senderScoreParams{count: j, feeScore: uint64(float64(8000) * float64(j)), gas: 100000 * j})
+		txFee := tx.computeFee(gasHandler)
+
+		for j := uint64(0); j < 1000000; j++ {
+			computer.computeScore(senderScoreParams{
+				avgPpuNumerator:             txFee,
+				avgPpuDenominator:           tx.Tx.GetGasLimit(),
+				hasSpotlessSequenceOfNonces: true,
+			})
 		}
 	}
-}
 
-func TestDefaultScoreComputer_computeRawScoreOfTxListForSender(t *testing.T) {
-	txGasHandler, txFeeHelper := dummyParamsWithGasPrice(oneBillion)
-	computer := newDefaultScoreComputer(txFeeHelper)
-	list := newUnconstrainedListToTest()
+	// Results:
+	//
+	// (a) 10 millisecond(s) to compute the score 1 million times.
+	// cpu: 11th Gen Intel(R) Core(TM) i7-1165G7 @ 2.80GHz
+	// BenchmarkScoreComputer_computeRawScore-8   	     124	   9812711 ns/op	     295 B/op	      12 allocs/op
+}
 
 	list.AddTx(createTxWithParams([]byte("a"), ".", 1, 1000, 50000, oneBillion), txGasHandler, txFeeHelper)
 	list.AddTx(createTxWithParams([]byte("b"), ".", 1, 500, 100000, oneBillion), txGasHandler, txFeeHelper)
