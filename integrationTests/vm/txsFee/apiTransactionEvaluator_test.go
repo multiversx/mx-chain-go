@@ -27,12 +27,10 @@ func getZeroGasAndFees() scheduled.GasAndFees {
 
 func TestSCCallCostTransactionCost(t *testing.T) {
 	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Wasm VM fix")
+		t.Skip("this is not a short test")
 	}
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
-		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
-	})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -40,8 +38,8 @@ func TestSCCallCostTransactionCost(t *testing.T) {
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	sndAddr := []byte("12345678901234567890123456789112")
-	senderBalance := big.NewInt(100000)
-	gasLimit := uint64(1000)
+	senderBalance := big.NewInt(100000000000)
+	gasLimit := uint64(10000000)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
 
@@ -49,12 +47,12 @@ func TestSCCallCostTransactionCost(t *testing.T) {
 
 	res, err := testContext.TxCostHandler.ComputeTransactionGasLimit(tx)
 	require.Nil(t, err)
-	require.Equal(t, uint64(418), res.GasUnits)
+	require.Equal(t, uint64(15704), res.GasUnits)
 }
 
 func TestScDeployTransactionCost(t *testing.T) {
 	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Wasm VM fix")
+		t.Skip("this is not a short test")
 	}
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
@@ -74,7 +72,7 @@ func TestScDeployTransactionCost(t *testing.T) {
 
 func TestAsyncCallsTransactionCost(t *testing.T) {
 	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Wasm VM fix")
+		t.Skip("this is not a short test")
 	}
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
@@ -105,7 +103,7 @@ func TestAsyncCallsTransactionCost(t *testing.T) {
 
 func TestBuiltInFunctionTransactionCost(t *testing.T) {
 	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Wasm VM fix")
+		t.Skip("this is not a short test")
 	}
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(
@@ -131,7 +129,7 @@ func TestBuiltInFunctionTransactionCost(t *testing.T) {
 
 func TestESDTTransfer(t *testing.T) {
 	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Wasm VM fix")
+		t.Skip("this is not a short test")
 	}
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
@@ -154,7 +152,7 @@ func TestESDTTransfer(t *testing.T) {
 
 func TestAsyncESDTTransfer(t *testing.T) {
 	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Wasm VM fix")
+		t.Skip("this is not a short test")
 	}
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
@@ -194,5 +192,5 @@ func TestAsyncESDTTransfer(t *testing.T) {
 
 	res, err := testContext.TxCostHandler.ComputeTransactionGasLimit(tx)
 	require.Nil(t, err)
-	require.Equal(t, uint64(34157), res.GasUnits)
+	require.Equal(t, uint64(177653), res.GasUnits)
 }

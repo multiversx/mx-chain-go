@@ -35,6 +35,9 @@ func TestStakingUnstakingAndUnbondingOnMultiShardEnvironment(t *testing.T) {
 		StakingV2EnableEpoch:                 integrationTests.UnreachableEpoch,
 		ScheduledMiniBlocksEnableEpoch:       integrationTests.UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch: integrationTests.UnreachableEpoch,
+		StakingV4Step1EnableEpoch:            integrationTests.UnreachableEpoch,
+		StakingV4Step2EnableEpoch:            integrationTests.UnreachableEpoch,
+		StakingV4Step3EnableEpoch:            integrationTests.UnreachableEpoch,
 	}
 
 	nodes := integrationTests.CreateNodesWithEnableEpochs(

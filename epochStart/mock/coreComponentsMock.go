@@ -12,7 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/multiversx/mx-chain-go/testscommon/shardingmock"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 )
 
 // CoreComponentsMock -
@@ -164,7 +164,7 @@ func (ccm *CoreComponentsMock) ChainParametersHandler() process.ChainParametersH
 		return ccm.ChainParametersHandlerField
 	}
 
-	return &shardingmock.ChainParametersHolderMock{}
+	return &chainParameters.ChainParametersHolderMock{}
 }
 
 // ChainParametersSubscriber -

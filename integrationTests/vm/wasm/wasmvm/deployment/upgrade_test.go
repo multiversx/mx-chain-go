@@ -20,7 +20,7 @@ const gasLimit = uint64(10000000)
 
 func TestScUpgradeShouldManageCorrectlyTheCodeMetadata(t *testing.T) {
 	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Wasm VM fix")
+		t.Skip("this is not a short test")
 	}
 
 	testContext, err := vm.CreatePreparedTxProcessorAndAccountsWithVMs(

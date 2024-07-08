@@ -1,6 +1,7 @@
 package headerCheck
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data/block"
@@ -91,5 +92,96 @@ func TestComputeConsensusGroup(t *testing.T) {
 		vGroup, err := ComputeConsensusGroup(header, nodesCoordinatorInstance)
 		assert.Nil(t, err)
 		assert.Equal(t, validatorGroup, vGroup)
+	})
+}
+
+func generatePubKeys(num int) []string {
+	consensusGroup := make([]string, 0, num)
+	for i := 0; i < num; i++ {
+		consensusGroup = append(consensusGroup, fmt.Sprintf("pub key %d", i))
+	}
+
+	return consensusGroup
+}
+
+func TestComputeSignersPublicKeys(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should compute with 16 validators", func(t *testing.T) {
+		t.Parallel()
+
+		consensusGroup := generatePubKeys(16)
+		mask0 := byte(0b00110101)
+		mask1 := byte(0b01001101)
+
+		result := ComputeSignersPublicKeys(consensusGroup, []byte{mask0, mask1})
+		expected := []string{
+			"pub key 0",
+			"pub key 2",
+			"pub key 4",
+			"pub key 5",
+
+			"pub key 8",
+			"pub key 10",
+			"pub key 11",
+			"pub key 14",
+		}
+
+		assert.Equal(t, expected, result)
+	})
+	t.Run("should compute with 14 validators", func(t *testing.T) {
+		t.Parallel()
+
+		consensusGroup := generatePubKeys(14)
+		mask0 := byte(0b00110101)
+		mask1 := byte(0b00001101)
+
+		result := ComputeSignersPublicKeys(consensusGroup, []byte{mask0, mask1})
+		expected := []string{
+			"pub key 0",
+			"pub key 2",
+			"pub key 4",
+			"pub key 5",
+
+			"pub key 8",
+			"pub key 10",
+			"pub key 11",
+		}
+
+		assert.Equal(t, expected, result)
+	})
+	t.Run("should compute with 14 validators, mask is 0", func(t *testing.T) {
+		t.Parallel()
+
+		consensusGroup := generatePubKeys(14)
+		mask0 := byte(0b00000000)
+		mask1 := byte(0b00000000)
+
+		result := ComputeSignersPublicKeys(consensusGroup, []byte{mask0, mask1})
+		expected := make([]string, 0)
+
+		assert.Equal(t, expected, result)
+	})
+	t.Run("should compute with 14 validators, mask contains all bits set", func(t *testing.T) {
+		t.Parallel()
+
+		consensusGroup := generatePubKeys(14)
+		mask0 := byte(0b11111111)
+		mask1 := byte(0b00111111)
+
+		result := ComputeSignersPublicKeys(consensusGroup, []byte{mask0, mask1})
+
+		assert.Equal(t, consensusGroup, result)
+	})
+	t.Run("should compute with 17 validators, mask contains 2 bytes", func(t *testing.T) {
+		t.Parallel()
+
+		consensusGroup := generatePubKeys(17)
+		mask0 := byte(0b11111111)
+		mask1 := byte(0b11111111)
+
+		result := ComputeSignersPublicKeys(consensusGroup, []byte{mask0, mask1})
+		expected := generatePubKeys(16)
+		assert.Equal(t, expected, result)
 	})
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 )
@@ -27,6 +28,9 @@ type NodesCoordinatorMock struct {
 	ConsensusGroupSizeCalled                 func(uint32, uint32) int
 	GetValidatorsIndexesCalled               func(publicKeys []string, epoch uint32) ([]uint64, error)
 	GetConsensusWhitelistedNodesCalled       func(epoch uint32) (map[string]struct{}, error)
+	GetAllShuffledOutValidatorsPublicKeysCalled func(epoch uint32) (map[uint32][][]byte, error)
+	GetShuffledOutToAuctionValidatorsPublicKeysCalled func(epoch uint32) (map[uint32][][]byte, error)
+	GetNumTotalEligibleCalled                   func() uint64
 }
 
 // NewNodesCoordinatorMock -
@@ -79,6 +83,9 @@ func (ncm *NodesCoordinatorMock) GetAllLeavingValidatorsPublicKeys(_ uint32) (ma
 
 // GetNumTotalEligible -
 func (ncm *NodesCoordinatorMock) GetNumTotalEligible() uint64 {
+	if ncm.GetNumTotalEligibleCalled != nil {
+		return ncm.GetNumTotalEligibleCalled()
+	}
 	return 1
 }
 
@@ -95,6 +102,23 @@ func (ncm *NodesCoordinatorMock) GetAllWaitingValidatorsPublicKeys(_ uint32) (ma
 	if ncm.GetAllWaitingValidatorsPublicKeysCalled != nil {
 		return ncm.GetAllWaitingValidatorsPublicKeysCalled()
 	}
+	return nil, nil
+}
+
+// GetAllShuffledOutValidatorsPublicKeys -
+func (ncm *NodesCoordinatorMock) GetAllShuffledOutValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error) {
+	if ncm.GetAllShuffledOutValidatorsPublicKeysCalled != nil {
+		return ncm.GetAllShuffledOutValidatorsPublicKeysCalled(epoch)
+	}
+	return nil, nil
+}
+
+// GetShuffledOutToAuctionValidatorsPublicKeys -
+func (ncm *NodesCoordinatorMock) GetShuffledOutToAuctionValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error) {
+	if ncm.GetShuffledOutToAuctionValidatorsPublicKeysCalled != nil {
+		return ncm.GetShuffledOutToAuctionValidatorsPublicKeysCalled(epoch)
+	}
+
 	return nil, nil
 }
 

@@ -53,7 +53,7 @@ func (es *epochEconomicsStatistics) SetLeadersFees(fees *big.Int) {
 }
 
 // SetRewardsToBeDistributed sets the rewards to be distributed at the end of the epoch (includes the rewards per block,
-//the block producers fees, protocol sustainability rewards and developer fees)
+// the block producers fees, protocol sustainability rewards and developer fees)
 func (es *epochEconomicsStatistics) SetRewardsToBeDistributed(rewards *big.Int) {
 	es.mutEconomicsStatistics.Lock()
 	defer es.mutEconomicsStatistics.Unlock()
@@ -99,7 +99,7 @@ func (es *epochEconomicsStatistics) LeaderFees() *big.Int {
 }
 
 // RewardsToBeDistributed returns the rewards to be distributed at the end of epoch (includes rewards for produced
-//blocks, protocol sustainability rewards, block producer fees and developer fees)
+// blocks, protocol sustainability rewards, block producer fees and developer fees)
 func (es *epochEconomicsStatistics) RewardsToBeDistributed() *big.Int {
 	es.mutEconomicsStatistics.RLock()
 	defer es.mutEconomicsStatistics.RUnlock()
