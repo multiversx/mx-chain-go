@@ -4796,7 +4796,7 @@ func TestEsdt_ChangeToDynamic(t *testing.T) {
 	eei.returnMessage = ""
 	output = e.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, "cannot change fungible tokens to dynamic"))
+	assert.True(t, strings.Contains(eei.returnMessage, "cannot change FungibleESDT tokens to dynamic"))
 
 	esdtData.TokenType = []byte(core.DynamicMetaESDT)
 	_ = e.saveToken(vmInput.Arguments[0], esdtData)

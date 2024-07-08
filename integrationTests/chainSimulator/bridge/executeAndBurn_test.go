@@ -137,20 +137,18 @@ func simulateExecutionAndDeposit(
 
 	whiteListedAddress := "erd1qqqqqqqqqqqqqpgqmzzm05jeav6d5qvna0q2pmcllelkz8xddz3syjszx5"
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:      false,
-		TempDir:                     t.TempDir(),
-		PathToInitialConfig:         defaultPathToInitialConfig,
-		NumOfShards:                 1,
-		GenesisTimestamp:            time.Now().Unix(),
-		RoundDurationInMillis:       uint64(6000),
-		RoundsPerEpoch:              roundsPerEpoch,
-		ApiInterface:                api.NewNoApiInterface(),
-		MinNodesPerShard:            3,
-		MetaChainMinNodes:           3,
-		NumNodesWaitingListMeta:     0,
-		NumNodesWaitingListShard:    0,
-		ConsensusGroupSize:          1,
-		MetaChainConsensusGroupSize: 1,
+		BypassTxSignatureCheck:   true,
+		TempDir:                  t.TempDir(),
+		PathToInitialConfig:      defaultPathToInitialConfig,
+		NumOfShards:              1,
+		GenesisTimestamp:         time.Now().Unix(),
+		RoundDurationInMillis:    uint64(6000),
+		RoundsPerEpoch:           roundsPerEpoch,
+		ApiInterface:             api.NewNoApiInterface(),
+		MinNodesPerShard:         3,
+		MetaChainMinNodes:        3,
+		NumNodesWaitingListMeta:  0,
+		NumNodesWaitingListShard: 0,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.GeneralConfig.VirtualMachine.Execution.TransferAndExecuteByUserAddresses = []string{whiteListedAddress}
 			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = issuePrice
@@ -251,7 +249,7 @@ func getTokenDataArgs(creator []byte, tokens []chainSim.ArgsDepositToken) string
 			lengthOn4Bytes(len(token.Identifier)) + // length of token identifier
 			hex.EncodeToString([]byte(token.Identifier)) + //token identifier
 			getNonceHex(token.Nonce) + // nonce
-			fmt.Sprintf("%02x", token.Type) + // type
+			fmt.Sprintf("%02x", uint32(token.Type)) + // type
 			lengthOn4Bytes(len(token.Amount.Bytes())) + // length of amount
 			hex.EncodeToString(token.Amount.Bytes()) + // amount
 			"00" + // not frozen
