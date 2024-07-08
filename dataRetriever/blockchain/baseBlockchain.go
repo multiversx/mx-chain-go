@@ -16,6 +16,7 @@ type baseBlockChain struct {
 	currentBlockHeader     data.HeaderHandler
 	currentBlockHeaderHash []byte
 	finalBlockInfo         *blockInfo
+	currentHeaderProof     data.HeaderProof
 }
 
 type blockInfo struct {
@@ -99,4 +100,20 @@ func (bbc *baseBlockChain) GetFinalBlockInfo() (uint64, []byte, []byte) {
 	rootHash := bbc.finalBlockInfo.committedRootHash
 
 	return nonce, hash, rootHash
+}
+
+// SetCurrentHeaderProof sets the current aggregated signature and its validator's public keys bitmap
+func (bbc *baseBlockChain) SetCurrentHeaderProof(proof data.HeaderProof) {
+	bbc.mut.Lock()
+	defer bbc.mut.Unlock()
+
+	bbc.currentHeaderProof = proof
+}
+
+// GetCurrentHeaderProof returns the current aggregated signature and its validator's public keys bitmap for the current block
+func (bbc *baseBlockChain) GetCurrentHeaderProof() data.HeaderProof {
+	bbc.mut.RLock()
+	defer bbc.mut.RUnlock()
+
+	return bbc.currentHeaderProof
 }

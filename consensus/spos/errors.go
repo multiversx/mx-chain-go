@@ -243,3 +243,12 @@ var ErrNilFunctionHandler = errors.New("nil function handler")
 
 // ErrWrongHashForHeader signals that the hash of the header is not the expected one
 var ErrWrongHashForHeader = errors.New("wrong hash for header")
+
+// ErrEquivalentMessageAlreadyReceived signals that an equivalent message has been already received
+var ErrEquivalentMessageAlreadyReceived = errors.New("equivalent message already received")
+
+// ErrNilEquivalentMessagesDebugger signals that a nil equivalent messages debugger has been provided
+var ErrNilEquivalentMessagesDebugger = errors.New("nil equivalent messages debugger")
+
+// ErrNilEnableEpochsHandler signals that a nil enable epochs handler has been provided
+var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")

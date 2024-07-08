@@ -38,6 +38,8 @@ type HeaderHandlerStub struct {
 	SetRandSeedCalled                      func(seed []byte) error
 	SetSignatureCalled                     func(signature []byte) error
 	SetLeaderSignatureCalled               func(signature []byte) error
+	GetPreviousAggregatedSignatureAndBitmapCalled func() ([]byte, []byte)
+	SetPreviousAggregatedSignatureAndBitmapCalled func(aggregatedSignature []byte, pubkeysBitmap []byte)
 }
 
 // GetAccumulatedFees -
@@ -426,4 +428,20 @@ func (hhs *HeaderHandlerStub) SetBlockBodyTypeInt32(blockBodyType int32) error {
 	hhs.BlockBodyTypeInt32Field = blockBodyType
 
 	return nil
+}
+
+// GetPreviousAggregatedSignatureAndBitmap -
+func (hhs *HeaderHandlerStub) GetPreviousAggregatedSignatureAndBitmap() ([]byte, []byte) {
+	if hhs.GetPreviousAggregatedSignatureAndBitmapCalled != nil {
+		return hhs.GetPreviousAggregatedSignatureAndBitmapCalled()
+	}
+
+	return nil, nil
+}
+
+// SetPreviousAggregatedSignatureAndBitmap -
+func (hhs *HeaderHandlerStub) SetPreviousAggregatedSignatureAndBitmap(aggregatedSignature []byte, pubkeysBitmap []byte) {
+	if hhs.SetPreviousAggregatedSignatureAndBitmapCalled != nil {
+		hhs.SetPreviousAggregatedSignatureAndBitmapCalled(aggregatedSignature, pubkeysBitmap)
+	}
 }

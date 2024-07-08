@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
@@ -715,7 +716,7 @@ func getArgumentsShard(
 		MaxTxNonceDeltaAllowed:       maxTxNonceDeltaAllowed,
 		TxFeeHandler:                 &economicsmocks.EconomicsHandlerStub{},
 		BlockBlackList:               &testscommon.TimeCacheStub{},
-		HeaderSigVerifier:            &mock.HeaderSigVerifierStub{},
+		HeaderSigVerifier:            &consensus.HeaderSigVerifierMock{},
 		HeaderIntegrityVerifier:      &mock.HeaderIntegrityVerifierStub{},
 		SizeCheckDelta:               0,
 		ValidityAttester:             &mock.ValidityAttesterStub{},

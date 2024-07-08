@@ -17,6 +17,8 @@ type ChainHandlerStub struct {
 	GetCurrentBlockRootHashCalled          func() []byte
 	SetFinalBlockInfoCalled                func(nonce uint64, headerHash []byte, rootHash []byte)
 	GetFinalBlockInfoCalled                func() (nonce uint64, blockHash []byte, rootHash []byte)
+	SetCurrentHeaderProofCalled            func(proof data.HeaderProof)
+	GetCurrentHeaderProofCalled            func() data.HeaderProof
 }
 
 // GetGenesisHeader -
@@ -104,6 +106,22 @@ func (stub *ChainHandlerStub) GetFinalBlockInfo() (nonce uint64, blockHash []byt
 	}
 
 	return 0, nil, nil
+}
+
+// SetCurrentHeaderProof -
+func (stub *ChainHandlerStub) SetCurrentHeaderProof(proof data.HeaderProof) {
+	if stub.SetCurrentHeaderProofCalled != nil {
+		stub.SetCurrentHeaderProofCalled(proof)
+	}
+}
+
+// GetCurrentHeaderProof -
+func (stub *ChainHandlerStub) GetCurrentHeaderProof() data.HeaderProof {
+	if stub.GetCurrentHeaderProofCalled != nil {
+		return stub.GetCurrentHeaderProofCalled()
+	}
+
+	return data.HeaderProof{}
 }
 
 // IsInterfaceNil -

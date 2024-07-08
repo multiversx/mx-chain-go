@@ -105,6 +105,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
+	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	dblookupextMock "github.com/multiversx/mx-chain-go/testscommon/dblookupext"
@@ -560,7 +561,7 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 
 	tpn.HeaderSigVerifier = args.HeaderSigVerifier
 	if check.IfNil(tpn.HeaderSigVerifier) {
-		tpn.HeaderSigVerifier = &mock.HeaderSigVerifierStub{}
+		tpn.HeaderSigVerifier = &consensusMocks.HeaderSigVerifierMock{}
 	}
 
 	tpn.HeaderIntegrityVerifier = args.HeaderIntegrityVerifier
@@ -3253,6 +3254,7 @@ func CreateEnableEpochsConfig() config.EnableEpochs {
 		MiniBlockPartialExecutionEnableEpoch:              UnreachableEpoch,
 		RefactorPeersMiniBlocksEnableEpoch:                UnreachableEpoch,
 		SCProcessorV2EnableEpoch:                          UnreachableEpoch,
+		EquivalentMessagesEnableEpoch:                     UnreachableEpoch,
 	}
 }
 
@@ -3312,7 +3314,7 @@ func GetDefaultProcessComponents() *mock.ProcessComponentsStub {
 		BlockProcess:             &mock.BlockProcessorMock{},
 		BlackListHdl:             &testscommon.TimeCacheStub{},
 		BootSore:                 &mock.BoostrapStorerMock{},
-		HeaderSigVerif:           &mock.HeaderSigVerifierStub{},
+		HeaderSigVerif:           &consensusMocks.HeaderSigVerifierMock{},
 		HeaderIntegrVerif:        &mock.HeaderIntegrityVerifierStub{},
 		ValidatorStatistics:      &testscommon.ValidatorStatisticsProcessorStub{},
 		ValidatorProvider:        &stakingcommon.ValidatorsProviderStub{},
@@ -3559,5 +3561,17 @@ func GetDefaultEnableEpochsConfig() *config.EnableEpochs {
 		StakingV4Step1EnableEpoch:                       UnreachableEpoch,
 		StakingV4Step2EnableEpoch:                       UnreachableEpoch,
 		StakingV4Step3EnableEpoch:                       UnreachableEpoch,
+		EquivalentMessagesEnableEpoch:                   UnreachableEpoch,
+	}
+}
+
+// GetDefaultRoundsConfig -
+func GetDefaultRoundsConfig() config.RoundConfig {
+	return config.RoundConfig{
+		RoundActivations: map[string]config.ActivationRoundByName{
+			"DisableAsyncCallV1": {
+				Round: "18446744073709551615",
+			},
+		},
 	}
 }

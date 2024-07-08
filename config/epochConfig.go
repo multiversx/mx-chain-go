@@ -117,6 +117,7 @@ type EnableEpochs struct {
 	DynamicESDTEnableEpoch                                   uint32
 	EGLDInMultiTransferEnableEpoch                           uint32
 	CryptoOpcodesV2EnableEpoch                               uint32
+	EquivalentMessagesEnableEpoch                            uint32
 	BLSMultiSignerEnableEpoch                                []MultiSignerConfig
 }
 
