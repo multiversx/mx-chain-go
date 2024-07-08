@@ -281,6 +281,9 @@ var ErrSystemValidatorSCCall = errors.New("system validator sc call failed")
 // ErrOwnerDoesntHaveEligibleNodesInEpoch signals that the owner doesn't have any eligible nodes in epoch
 var ErrOwnerDoesntHaveEligibleNodesInEpoch = errors.New("owner has no eligible nodes in epoch")
 
+// ErrOwnerDoesntHaveNodesInEpoch signals that the owner has no nodes in epoch
+var ErrOwnerDoesntHaveNodesInEpoch = errors.New("owner has no nodes in epoch")
+
 // ErrInvalidMaxHardCapForMissingNodes signals that the maximum hardcap value for missing nodes is invalid
 var ErrInvalidMaxHardCapForMissingNodes = errors.New("invalid max hardcap for missing nodes")
 
@@ -331,3 +334,21 @@ var ErrNilManagedPeersHolder = errors.New("nil managed peers holder")
 
 // ErrNilExecutionOrderHandler signals that a nil execution order handler has been provided
 var ErrNilExecutionOrderHandler = errors.New("nil execution order handler")
+
+// ErrReceivedNewListNodeInStakingV4 signals that a new node has been assigned in common.NewList instead of common.AuctionList after staking v4
+var ErrReceivedNewListNodeInStakingV4 = errors.New("new node has been assigned in common.NewList instead of common.AuctionList after staking v4")
+
+// ErrNilMaxNodesChangeConfigProvider signals that a nil nodes config provider has been provided
+var ErrNilMaxNodesChangeConfigProvider = errors.New("nil nodes config provider has been provided")
+
+// ErrNilAuctionListSelector signals that a nil auction list selector has been provided
+var ErrNilAuctionListSelector = errors.New("nil auction list selector has been provided")
+
+// ErrOwnerHasNoStakedNode signals that the owner has no staked node
+var ErrOwnerHasNoStakedNode = errors.New("owner has no staked node")
+
+// ErrUint32SubtractionOverflow signals uint32 subtraction overflowed
+var ErrUint32SubtractionOverflow = errors.New("uint32 subtraction overflowed")
+
+// ErrReceivedAuctionValidatorsBeforeStakingV4 signals that an auction node has been provided before enabling staking v4
+var ErrReceivedAuctionValidatorsBeforeStakingV4 = errors.New("auction node has been provided before enabling staking v4")

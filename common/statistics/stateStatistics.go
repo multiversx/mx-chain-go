@@ -51,8 +51,8 @@ func (ss *stateStatistics) ResetSnapshot() {
 	ss.mutPersisters.Unlock()
 }
 
-// IncrCache will increment cache counter
-func (ss *stateStatistics) IncrCache() {
+// IncrementCache will increment cache counter
+func (ss *stateStatistics) IncrementCache() {
 	atomic.AddUint64(&ss.numCache, 1)
 }
 
@@ -61,8 +61,8 @@ func (ss *stateStatistics) Cache() uint64 {
 	return atomic.LoadUint64(&ss.numCache)
 }
 
-// IncrSnapshotCache will increment snapshot cache counter
-func (ss *stateStatistics) IncrSnapshotCache() {
+// IncrementSnapshotCache will increment snapshot cache counter
+func (ss *stateStatistics) IncrementSnapshotCache() {
 	atomic.AddUint64(&ss.numSnapshotCache, 1)
 }
 
@@ -71,8 +71,8 @@ func (ss *stateStatistics) SnapshotCache() uint64 {
 	return atomic.LoadUint64(&ss.numSnapshotCache)
 }
 
-// IncrPersister will increment persister counter
-func (ss *stateStatistics) IncrPersister(epoch uint32) {
+// IncrementPersister will increment persister counter
+func (ss *stateStatistics) IncrementPersister(epoch uint32) {
 	ss.mutPersisters.Lock()
 	defer ss.mutPersisters.Unlock()
 
@@ -87,8 +87,8 @@ func (ss *stateStatistics) Persister(epoch uint32) uint64 {
 	return ss.numPersister[epoch]
 }
 
-// IncrSnapshotPersister will increment snapshot persister counter
-func (ss *stateStatistics) IncrSnapshotPersister(epoch uint32) {
+// IncrementSnapshotPersister will increment snapshot persister counter
+func (ss *stateStatistics) IncrementSnapshotPersister(epoch uint32) {
 	ss.mutPersisters.Lock()
 	defer ss.mutPersisters.Unlock()
 
@@ -103,8 +103,8 @@ func (ss *stateStatistics) SnapshotPersister(epoch uint32) uint64 {
 	return ss.numSnapshotPersister[epoch]
 }
 
-// IncrTrie will increment trie counter
-func (ss *stateStatistics) IncrTrie() {
+// IncrementTrie will increment trie counter
+func (ss *stateStatistics) IncrementTrie() {
 	atomic.AddUint64(&ss.numTrie, 1)
 }
 

@@ -145,11 +145,11 @@ func (proxy *scProcessorTestProxy) IsInterfaceNil() bool {
 }
 
 // EpochConfirmed is called whenever a new epoch is confirmed
-func (proxy *scProcessorTestProxy) EpochConfirmed(_ uint32, _ uint64) {
+func (proxy *scProcessorTestProxy) EpochConfirmed(epoch uint32, _ uint64) {
 	proxy.mutRc.Lock()
 	defer proxy.mutRc.Unlock()
 
-	if proxy.args.EnableEpochsHandler.IsFlagEnabled(common.SCProcessorV2Flag) {
+	if proxy.args.EnableEpochsHandler.IsFlagEnabledInEpoch(common.SCProcessorV2Flag, epoch) {
 		proxy.setActiveProcessorV2()
 		return
 	}

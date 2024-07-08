@@ -11,8 +11,12 @@ import (
 )
 
 const (
-	dbConfigFileName = "config.toml"
-	defaultType      = "LvlDBSerial"
+	dbConfigFileName         = "config.toml"
+	defaultType              = "LvlDBSerial"
+	defaultBatchDelaySeconds = 2
+	defaultMaxBatchSize      = 100
+	defaultMaxOpenFiles      = 10
+	defaultUseTmpAsFilePath  = false
 )
 
 var (
@@ -20,23 +24,13 @@ var (
 )
 
 type dbConfigHandler struct {
-	dbType              string
-	batchDelaySeconds   int
-	maxBatchSize        int
-	maxOpenFiles        int
-	shardIDProviderType string
-	numShards           int32
+	conf config.DBConfig
 }
 
 // NewDBConfigHandler will create a new db config handler instance
 func NewDBConfigHandler(config config.DBConfig) *dbConfigHandler {
 	return &dbConfigHandler{
-		dbType:              config.Type,
-		batchDelaySeconds:   config.BatchDelaySeconds,
-		maxBatchSize:        config.MaxBatchSize,
-		maxOpenFiles:        config.MaxOpenFiles,
-		shardIDProviderType: config.ShardIDProviderType,
-		numShards:           config.NumShards,
+		conf: config,
 	}
 }
 
@@ -56,9 +50,10 @@ func (dh *dbConfigHandler) GetDBConfig(path string) (*config.DBConfig, error) {
 	if !empty {
 		dbConfig := &config.DBConfig{
 			Type:              defaultType,
-			BatchDelaySeconds: dh.batchDelaySeconds,
-			MaxBatchSize:      dh.maxBatchSize,
-			MaxOpenFiles:      dh.maxOpenFiles,
+			BatchDelaySeconds: dh.conf.BatchDelaySeconds,
+			MaxBatchSize:      dh.conf.MaxBatchSize,
+			MaxOpenFiles:      dh.conf.MaxOpenFiles,
+			UseTmpAsFilePath:  dh.conf.UseTmpAsFilePath,
 		}
 
 		log.Debug("GetDBConfig: loaded default db config",
@@ -68,20 +63,11 @@ func (dh *dbConfigHandler) GetDBConfig(path string) (*config.DBConfig, error) {
 		return dbConfig, nil
 	}
 
-	dbConfig := &config.DBConfig{
-		Type:                dh.dbType,
-		BatchDelaySeconds:   dh.batchDelaySeconds,
-		MaxBatchSize:        dh.maxBatchSize,
-		MaxOpenFiles:        dh.maxOpenFiles,
-		ShardIDProviderType: dh.shardIDProviderType,
-		NumShards:           dh.numShards,
-	}
-
 	log.Debug("GetDBConfig: loaded db config from main config file",
-		"configuration", fmt.Sprintf("%+v", dbConfig),
+		"configuration", fmt.Sprintf("%+v", dh.conf),
 	)
 
-	return dbConfig, nil
+	return &dh.conf, nil
 }
 
 func readCorrectConfigurationFromToml(dbConfig *config.DBConfig, filePath string) error {

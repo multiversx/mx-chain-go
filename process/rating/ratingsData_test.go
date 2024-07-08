@@ -8,8 +8,8 @@ import (
 
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
-	"github.com/multiversx/mx-chain-go/testscommon/shardingmock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -38,7 +38,7 @@ const (
 func createDummyRatingsData() RatingsDataArg {
 	return RatingsDataArg{
 		Config: config.RatingsConfig{},
-		ChainParametersHolder: &shardingmock.ChainParametersHandlerStub{
+		ChainParametersHolder: &chainParameters.ChainParametersHandlerStub{
 			CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
 				return config.ChainParametersByEpochConfig{
 					RoundDuration:               4000,
@@ -135,7 +135,7 @@ func TestNewRatingsData_MissingConfigurationForEpoch0(t *testing.T) {
 
 	ratingsDataArg := createDummyRatingsData()
 	ratingsDataArg.Config = createDummyRatingsConfig()
-	ratingsDataArg.ChainParametersHolder = &shardingmock.ChainParametersHandlerStub{
+	ratingsDataArg.ChainParametersHolder = &chainParameters.ChainParametersHandlerStub{
 		CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
 			return config.ChainParametersByEpochConfig{
 				RoundDuration:               4000,
@@ -386,7 +386,7 @@ func TestRatingsData_EpochConfirmed(t *testing.T) {
 			Adaptivity:                  false,
 		})
 	}
-	chainParamsHandler := &shardingmock.ChainParametersHandlerStub{
+	chainParamsHandler := &chainParameters.ChainParametersHandlerStub{
 		AllChainParametersCalled: func() []config.ChainParametersByEpochConfig {
 			return chainParams
 		},
@@ -444,8 +444,8 @@ func TestRatingsData_OverflowErr(t *testing.T) {
 			Adaptivity:                  false,
 		}
 	}
-	getChainParametersHandler := func(cfg config.ChainParametersByEpochConfig) *shardingmock.ChainParametersHandlerStub {
-		return &shardingmock.ChainParametersHandlerStub{
+	getChainParametersHandler := func(cfg config.ChainParametersByEpochConfig) *chainParameters.ChainParametersHandlerStub {
+		return &chainParameters.ChainParametersHandlerStub{
 			CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
 				return cfg
 			},

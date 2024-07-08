@@ -10,12 +10,13 @@ type RoundHandlerMock struct {
 	indexMut sync.RWMutex
 	index    int64
 
-	IndexCalled         func() int64
-	TimeDurationCalled  func() time.Duration
-	TimeStampCalled     func() time.Time
-	UpdateRoundCalled   func(time.Time, time.Time)
-	RemainingTimeCalled func(startTime time.Time, maxTime time.Duration) time.Duration
-	BeforeGenesisCalled func() bool
+	IndexCalled          func() int64
+	TimeDurationCalled   func() time.Duration
+	TimeStampCalled      func() time.Time
+	UpdateRoundCalled    func(time.Time, time.Time)
+	RemainingTimeCalled  func(startTime time.Time, maxTime time.Duration) time.Duration
+	BeforeGenesisCalled  func() bool
+	IncrementIndexCalled func()
 }
 
 // BeforeGenesis -
@@ -75,6 +76,13 @@ func (rndm *RoundHandlerMock) RemainingTime(startTime time.Time, maxTime time.Du
 	}
 
 	return 4000 * time.Millisecond
+}
+
+// IncrementIndex -
+func (rndm *RoundHandlerMock) IncrementIndex() {
+	if rndm.IncrementIndexCalled != nil {
+		rndm.IncrementIndexCalled()
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

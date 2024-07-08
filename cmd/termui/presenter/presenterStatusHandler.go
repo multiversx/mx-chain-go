@@ -6,7 +6,7 @@ import (
 	"sync"
 )
 
-//maxLogLines is used to specify how many lines of logs need to store in slice
+// maxLogLines is used to specify how many lines of logs need to store in slice
 var maxLogLines = 100
 
 // PresenterStatusHandler is the AppStatusHandler impl that is able to process and store received data
