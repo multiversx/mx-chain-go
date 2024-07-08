@@ -51,7 +51,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	updateMocks "github.com/multiversx/mx-chain-go/update/mock"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
 	coreData "github.com/multiversx/mx-chain-core-go/data"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
@@ -135,6 +134,7 @@ func createProcessComponentsFactoryArgs(runTypeComponents *mainFactoryMocks.RunT
 				},
 				Active: config.GovernanceSystemSCConfigActive{
 					ProposalCost:     "500",
+					LostProposalFee:  "100",
 					MinQuorum:        0.5,
 					MinPassThreshold: 0.5,
 					MinVetoThreshold: 0.5,
@@ -999,6 +999,7 @@ func getRunTypeComponents(rt runType.RunTypeComponentsHolder) *mainFactoryMocks.
 		ExtraHeaderSigVerifier:              rt.ExtraHeaderSigVerifierHolder(),
 		GenesisBlockFactory:                 rt.GenesisBlockCreatorFactory(),
 		GenesisMetaBlockChecker:             rt.GenesisMetaBlockCheckerCreator(),
+		NodesSetupCheckerFactoryField:       rt.NodesSetupCheckerFactory(),
 	}
 }
 
@@ -1482,7 +1483,7 @@ func TestProcessComponentsFactory_CreateShouldWork(t *testing.T) {
 	t.Run("creating process components factory in sovereign chain should work", func(t *testing.T) {
 		t.Parallel()
 
-		shardCoordinator := sharding.NewSovereignShardCoordinator(core.SovereignChainShardId)
+		shardCoordinator := sharding.NewSovereignShardCoordinator()
 		processArgs := components.GetSovereignProcessComponentsFactoryArgs(shardCoordinator)
 		pcf, _ := processComp.NewProcessComponentsFactory(processArgs)
 

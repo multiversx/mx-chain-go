@@ -1,14 +1,16 @@
 package sharding
 
+import "github.com/multiversx/mx-chain-core-go/core"
+
 type sovereignShardCoordinator struct {
 	*multiShardCoordinator
 }
 
 // NewSovereignShardCoordinator creates a new sovereign shard coordinator
-func NewSovereignShardCoordinator(selfId uint32) *sovereignShardCoordinator {
+func NewSovereignShardCoordinator() *sovereignShardCoordinator {
 	sr := &sovereignShardCoordinator{
 		multiShardCoordinator: &multiShardCoordinator{
-			selfId:         selfId,
+			selfId:         core.SovereignChainShardId,
 			numberOfShards: 1,
 		},
 	}
