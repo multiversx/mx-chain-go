@@ -223,6 +223,7 @@ func (aap *alteredAccountsProvider) addTokensDataForMarkedAccount(
 		Nonce:      nonce,
 		Properties: hex.EncodeToString(esdtToken.Properties),
 		MetaData:   aap.convertMetaData(esdtToken.TokenMetaData),
+		Type:       getTokenType(esdtToken.Type, nonce),
 	}
 	if options.WithAdditionalOutportData {
 		accountTokenData.AdditionalData = &alteredAccount.AdditionalAccountTokenData{
@@ -234,6 +235,16 @@ func (aap *alteredAccountsProvider) addTokensDataForMarkedAccount(
 	alteredAcc.Tokens = append(alteredAccounts[encodedAddress].Tokens, accountTokenData)
 
 	return nil
+}
+
+func getTokenType(tokenType uint32, tokenNonce uint64) string {
+	isNotFungible := tokenNonce != 0
+	tokenTypeNotSet := isNotFungible && core.ESDTType(tokenType) == core.NonFungible
+	if tokenTypeNotSet {
+		return ""
+	}
+
+	return core.ESDTType(tokenType).String()
 }
 
 func (aap *alteredAccountsProvider) convertMetaData(metaData *esdt.MetaData) *alteredAccount.TokenMetaData {

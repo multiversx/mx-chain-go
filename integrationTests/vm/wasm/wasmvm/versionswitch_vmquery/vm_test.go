@@ -1,7 +1,3 @@
-//go:build !race
-
-// TODO remove build condition above to allow -race -short, after Wasm VM fix
-
 package versionswitch_vmquery
 
 import (
@@ -35,6 +31,7 @@ func TestSCExecutionWithVMVersionSwitchingEpochRevertAndVMQueries(t *testing.T) 
 			{StartEpoch: 8, Version: "v1.3"},
 			{StartEpoch: 9, Version: "v1.4"},
 		},
+		TransferAndExecuteByUserAddresses: []string{"3132333435363738393031323334353637383930313233343536373839303234"},
 	}
 
 	gasSchedule, _ := common.LoadGasScheduleConfig(integrationTests.GasSchedulePath)

@@ -231,6 +231,7 @@ func TestStatusMetrics_NetworkMetrics(t *testing.T) {
 	sm.SetUInt64Value(common.MetricCurrentRound, 200)
 	sm.SetUInt64Value(common.MetricRoundAtEpochStart, 100)
 	sm.SetUInt64Value(common.MetricNonce, 180)
+	sm.SetUInt64Value(common.MetricBlockTimestamp, 18000)
 	sm.SetUInt64Value(common.MetricHighestFinalBlock, 181)
 	sm.SetUInt64Value(common.MetricNonceAtEpochStart, 95)
 	sm.SetUInt64Value(common.MetricEpochNumber, 1)
@@ -240,6 +241,7 @@ func TestStatusMetrics_NetworkMetrics(t *testing.T) {
 		"erd_current_round":                  uint64(200),
 		"erd_round_at_epoch_start":           uint64(100),
 		"erd_nonce":                          uint64(180),
+		"erd_block_timestamp":                uint64(18000),
 		"erd_highest_final_nonce":            uint64(181),
 		"erd_nonce_at_epoch_start":           uint64(95),
 		"erd_epoch_number":                   uint64(1),
@@ -270,6 +272,7 @@ func TestStatusMetrics_StatusMetricsMapWithoutP2P(t *testing.T) {
 	sm.SetUInt64Value(common.MetricCurrentRound, 100)
 	sm.SetUInt64Value(common.MetricRoundAtEpochStart, 200)
 	sm.SetUInt64Value(common.MetricNonce, 300)
+	sm.SetUInt64Value(common.MetricBlockTimestamp, 30000)
 	sm.SetStringValue(common.MetricAppVersion, "400")
 	sm.SetUInt64Value(common.MetricRoundsPassedInCurrentEpoch, 95)
 	sm.SetUInt64Value(common.MetricNoncesPassedInCurrentEpoch, 1)
@@ -281,6 +284,7 @@ func TestStatusMetrics_StatusMetricsMapWithoutP2P(t *testing.T) {
 	require.Equal(t, uint64(100), res[common.MetricCurrentRound])
 	require.Equal(t, uint64(200), res[common.MetricRoundAtEpochStart])
 	require.Equal(t, uint64(300), res[common.MetricNonce])
+	require.Equal(t, uint64(30000), res[common.MetricBlockTimestamp])
 	require.Equal(t, "400", res[common.MetricAppVersion])
 	require.NotContains(t, res, common.MetricRoundsPassedInCurrentEpoch)
 	require.NotContains(t, res, common.MetricNoncesPassedInCurrentEpoch)
@@ -293,30 +297,109 @@ func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 
 	sm := statusHandler.NewStatusMetrics()
 
-	sm.SetUInt64Value(common.MetricScDeployEnableEpoch, 4)
-	sm.SetUInt64Value(common.MetricBuiltInFunctionsEnableEpoch, 2)
-	sm.SetUInt64Value(common.MetricRelayedTransactionsEnableEpoch, 4)
-	sm.SetUInt64Value(common.MetricPenalizedTooMuchGasEnableEpoch, 2)
-	sm.SetUInt64Value(common.MetricSwitchJailWaitingEnableEpoch, 2)
-	sm.SetUInt64Value(common.MetricSwitchHysteresisForMinNodesEnableEpoch, 4)
-	sm.SetUInt64Value(common.MetricBelowSignedThresholdEnableEpoch, 2)
-	sm.SetUInt64Value(common.MetricTransactionSignedWithTxHashEnableEpoch, 4)
-	sm.SetUInt64Value(common.MetricMetaProtectionEnableEpoch, 6)
-	sm.SetUInt64Value(common.MetricAheadOfTimeGasUsageEnableEpoch, 2)
-	sm.SetUInt64Value(common.MetricGasPriceModifierEnableEpoch, 2)
-	sm.SetUInt64Value(common.MetricRepairCallbackEnableEpoch, 2)
-	sm.SetUInt64Value(common.MetricBlockGasAndFreeRecheckEnableEpoch, 2)
-	sm.SetUInt64Value(common.MetricStakingV2EnableEpoch, 2)
-	sm.SetUInt64Value(common.MetricStakeEnableEpoch, 2)
-	sm.SetUInt64Value(common.MetricDoubleKeyProtectionEnableEpoch, 2)
-	sm.SetUInt64Value(common.MetricEsdtEnableEpoch, 4)
-	sm.SetUInt64Value(common.MetricGovernanceEnableEpoch, 3)
-	sm.SetUInt64Value(common.MetricDelegationManagerEnableEpoch, 1)
-	sm.SetUInt64Value(common.MetricDelegationSmartContractEnableEpoch, 2)
-	sm.SetUInt64Value(common.MetricIncrementSCRNonceInMultiTransferEnableEpoch, 3)
-	sm.SetUInt64Value(common.MetricBalanceWaitingListsEnableEpoch, 4)
-	sm.SetUInt64Value(common.MetricWaitingListFixEnableEpoch, 1)
-	sm.SetUInt64Value(common.MetricSetGuardianEnableEpoch, 3)
+	sm.SetUInt64Value(common.MetricScDeployEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricBuiltInFunctionsEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricRelayedTransactionsEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricPenalizedTooMuchGasEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricSwitchJailWaitingEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricSwitchHysteresisForMinNodesEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricBelowSignedThresholdEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricTransactionSignedWithTxHashEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricMetaProtectionEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricAheadOfTimeGasUsageEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricGasPriceModifierEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricRepairCallbackEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricBlockGasAndFreeRecheckEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricStakingV2EnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricStakeEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricDoubleKeyProtectionEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricEsdtEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricGovernanceEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricDelegationManagerEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricDelegationSmartContractEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricCorrectLastUnjailedEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricBalanceWaitingListsEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricReturnDataToLastTransferEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricSenderInOutTransferEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricRelayedTransactionsV2EnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricUnbondTokensV2EnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricSaveJailedAlwaysEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricValidatorToDelegationEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricReDelegateBelowMinCheckEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricIncrementSCRNonceInMultiTransferEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricScheduledMiniBlocksEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricESDTMultiTransferEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricGlobalMintBurnDisableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricESDTTransferRoleEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricComputeRewardCheckpointEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricSCRSizeInvariantCheckEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricBackwardCompSaveKeyValueEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricESDTNFTCreateOnMultiShardEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricMetaESDTSetEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricAddTokensToDelegationEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricMultiESDTTransferFixOnCallBackOnEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricOptimizeGasUsedInCrossMiniBlocksEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricCorrectFirstQueuedEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricCorrectJailedNotUnstakedEmptyQueueEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricFixOOGReturnCodeEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricRemoveNonUpdatedStorageEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricDeleteDelegatorAfterClaimRewardsEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricOptimizeNFTStoreEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricCreateNFTThroughExecByCallerEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricStopDecreasingValidatorRatingWhenStuckEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricFrontRunningProtectionEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricIsPayableBySCEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricStorageAPICostOptimizationEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricTransformToMultiShardCreateEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricESDTRegisterAndSetAllRolesEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricDoNotReturnOldBlockInBlockchainHookEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricAddFailedRelayedTxToInvalidMBsDisableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricSCRSizeInvariantOnBuiltInResultEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricCheckCorrectTokenIDForTransferRoleEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricDisableExecByCallerEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricFailExecutionOnEveryAPIErrorEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricManagedCryptoAPIsEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricRefactorContextEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricCheckFunctionArgumentEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricCheckExecuteOnReadOnlyEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricMiniBlockPartialExecutionEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricESDTMetadataContinuousCleanupEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricFixAsyncCallBackArgsListEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricFixOldTokenLiquidityEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricRuntimeMemStoreLimitEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricRuntimeCodeSizeFixEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricSetSenderInEeiOutputTransferEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricRefactorPeersMiniBlocksEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricSCProcessorV2EnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricMaxBlockchainHookCountersEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricWipeSingleNFTLiquidityDecreaseEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricAlwaysSaveTokenMetaDataEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricCleanUpInformativeSCRsEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricSetGuardianEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricSetScToScLogEventEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricRelayedNonceFixEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricDeterministicSortOnValidatorsInfoEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricKeepExecOrderOnCreatedSCRsEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricMultiClaimOnDelegationEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricChangeUsernameEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricAutoBalanceDataTriesEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricMigrateDataTrieEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricConsistentTokensValuesLengthCheckEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricFixDelegationChangeOwnerOnAccountEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricDynamicGasCostForDataTrieStorageLoadEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricNFTStopCreateEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricChangeOwnerAddressCrossShardThroughSCEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricFixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricCurrentRandomnessOnSortingEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricStakeLimitsEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricStakingV4Step1EnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricStakingV4Step2EnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricStakingV4Step3EnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricCleanupAuctionOnLowWaitingListEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricAlwaysMergeContextsInEEIEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricDynamicESDTEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricEGLDInMultiTransferEnableEpoch, uint64(4))
+	sm.SetUInt64Value(common.MetricCryptoOpcodesV2EnableEpoch, uint64(4))
 
 	maxNodesChangeConfig := []map[string]uint64{
 		{
@@ -343,30 +426,109 @@ func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 	sm.SetUInt64Value(common.MetricMaxNodesChangeEnableEpoch+"_count", uint64(len(maxNodesChangeConfig)))
 
 	expectedMetrics := map[string]interface{}{
-		common.MetricScDeployEnableEpoch:                         uint64(4),
-		common.MetricBuiltInFunctionsEnableEpoch:                 uint64(2),
-		common.MetricRelayedTransactionsEnableEpoch:              uint64(4),
-		common.MetricPenalizedTooMuchGasEnableEpoch:              uint64(2),
-		common.MetricSwitchJailWaitingEnableEpoch:                uint64(2),
-		common.MetricSwitchHysteresisForMinNodesEnableEpoch:      uint64(4),
-		common.MetricBelowSignedThresholdEnableEpoch:             uint64(2),
-		common.MetricTransactionSignedWithTxHashEnableEpoch:      uint64(4),
-		common.MetricMetaProtectionEnableEpoch:                   uint64(6),
-		common.MetricAheadOfTimeGasUsageEnableEpoch:              uint64(2),
-		common.MetricGasPriceModifierEnableEpoch:                 uint64(2),
-		common.MetricRepairCallbackEnableEpoch:                   uint64(2),
-		common.MetricBlockGasAndFreeRecheckEnableEpoch:           uint64(2),
-		common.MetricStakingV2EnableEpoch:                        uint64(2),
-		common.MetricStakeEnableEpoch:                            uint64(2),
-		common.MetricDoubleKeyProtectionEnableEpoch:              uint64(2),
-		common.MetricEsdtEnableEpoch:                             uint64(4),
-		common.MetricGovernanceEnableEpoch:                       uint64(3),
-		common.MetricDelegationManagerEnableEpoch:                uint64(1),
-		common.MetricDelegationSmartContractEnableEpoch:          uint64(2),
-		common.MetricIncrementSCRNonceInMultiTransferEnableEpoch: uint64(3),
-		common.MetricBalanceWaitingListsEnableEpoch:              uint64(4),
-		common.MetricWaitingListFixEnableEpoch:                   uint64(1),
-		common.MetricSetGuardianEnableEpoch:                      uint64(3),
+		common.MetricScDeployEnableEpoch:                                      uint64(4),
+		common.MetricBuiltInFunctionsEnableEpoch:                              uint64(4),
+		common.MetricRelayedTransactionsEnableEpoch:                           uint64(4),
+		common.MetricPenalizedTooMuchGasEnableEpoch:                           uint64(4),
+		common.MetricSwitchJailWaitingEnableEpoch:                             uint64(4),
+		common.MetricSwitchHysteresisForMinNodesEnableEpoch:                   uint64(4),
+		common.MetricBelowSignedThresholdEnableEpoch:                          uint64(4),
+		common.MetricTransactionSignedWithTxHashEnableEpoch:                   uint64(4),
+		common.MetricMetaProtectionEnableEpoch:                                uint64(4),
+		common.MetricAheadOfTimeGasUsageEnableEpoch:                           uint64(4),
+		common.MetricGasPriceModifierEnableEpoch:                              uint64(4),
+		common.MetricRepairCallbackEnableEpoch:                                uint64(4),
+		common.MetricBlockGasAndFreeRecheckEnableEpoch:                        uint64(4),
+		common.MetricStakingV2EnableEpoch:                                     uint64(4),
+		common.MetricStakeEnableEpoch:                                         uint64(4),
+		common.MetricDoubleKeyProtectionEnableEpoch:                           uint64(4),
+		common.MetricEsdtEnableEpoch:                                          uint64(4),
+		common.MetricGovernanceEnableEpoch:                                    uint64(4),
+		common.MetricDelegationManagerEnableEpoch:                             uint64(4),
+		common.MetricDelegationSmartContractEnableEpoch:                       uint64(4),
+		common.MetricCorrectLastUnjailedEnableEpoch:                           uint64(4),
+		common.MetricBalanceWaitingListsEnableEpoch:                           uint64(4),
+		common.MetricReturnDataToLastTransferEnableEpoch:                      uint64(4),
+		common.MetricSenderInOutTransferEnableEpoch:                           uint64(4),
+		common.MetricRelayedTransactionsV2EnableEpoch:                         uint64(4),
+		common.MetricUnbondTokensV2EnableEpoch:                                uint64(4),
+		common.MetricSaveJailedAlwaysEnableEpoch:                              uint64(4),
+		common.MetricValidatorToDelegationEnableEpoch:                         uint64(4),
+		common.MetricReDelegateBelowMinCheckEnableEpoch:                       uint64(4),
+		common.MetricIncrementSCRNonceInMultiTransferEnableEpoch:              uint64(4),
+		common.MetricScheduledMiniBlocksEnableEpoch:                           uint64(4),
+		common.MetricESDTMultiTransferEnableEpoch:                             uint64(4),
+		common.MetricGlobalMintBurnDisableEpoch:                               uint64(4),
+		common.MetricESDTTransferRoleEnableEpoch:                              uint64(4),
+		common.MetricComputeRewardCheckpointEnableEpoch:                       uint64(4),
+		common.MetricSCRSizeInvariantCheckEnableEpoch:                         uint64(4),
+		common.MetricBackwardCompSaveKeyValueEnableEpoch:                      uint64(4),
+		common.MetricESDTNFTCreateOnMultiShardEnableEpoch:                     uint64(4),
+		common.MetricMetaESDTSetEnableEpoch:                                   uint64(4),
+		common.MetricAddTokensToDelegationEnableEpoch:                         uint64(4),
+		common.MetricMultiESDTTransferFixOnCallBackOnEnableEpoch:              uint64(4),
+		common.MetricOptimizeGasUsedInCrossMiniBlocksEnableEpoch:              uint64(4),
+		common.MetricCorrectFirstQueuedEpoch:                                  uint64(4),
+		common.MetricCorrectJailedNotUnstakedEmptyQueueEpoch:                  uint64(4),
+		common.MetricFixOOGReturnCodeEnableEpoch:                              uint64(4),
+		common.MetricRemoveNonUpdatedStorageEnableEpoch:                       uint64(4),
+		common.MetricDeleteDelegatorAfterClaimRewardsEnableEpoch:              uint64(4),
+		common.MetricOptimizeNFTStoreEnableEpoch:                              uint64(4),
+		common.MetricCreateNFTThroughExecByCallerEnableEpoch:                  uint64(4),
+		common.MetricStopDecreasingValidatorRatingWhenStuckEnableEpoch:        uint64(4),
+		common.MetricFrontRunningProtectionEnableEpoch:                        uint64(4),
+		common.MetricIsPayableBySCEnableEpoch:                                 uint64(4),
+		common.MetricStorageAPICostOptimizationEnableEpoch:                    uint64(4),
+		common.MetricTransformToMultiShardCreateEnableEpoch:                   uint64(4),
+		common.MetricESDTRegisterAndSetAllRolesEnableEpoch:                    uint64(4),
+		common.MetricDoNotReturnOldBlockInBlockchainHookEnableEpoch:           uint64(4),
+		common.MetricAddFailedRelayedTxToInvalidMBsDisableEpoch:               uint64(4),
+		common.MetricSCRSizeInvariantOnBuiltInResultEnableEpoch:               uint64(4),
+		common.MetricCheckCorrectTokenIDForTransferRoleEnableEpoch:            uint64(4),
+		common.MetricDisableExecByCallerEnableEpoch:                           uint64(4),
+		common.MetricFailExecutionOnEveryAPIErrorEnableEpoch:                  uint64(4),
+		common.MetricManagedCryptoAPIsEnableEpoch:                             uint64(4),
+		common.MetricRefactorContextEnableEpoch:                               uint64(4),
+		common.MetricCheckFunctionArgumentEnableEpoch:                         uint64(4),
+		common.MetricCheckExecuteOnReadOnlyEnableEpoch:                        uint64(4),
+		common.MetricMiniBlockPartialExecutionEnableEpoch:                     uint64(4),
+		common.MetricESDTMetadataContinuousCleanupEnableEpoch:                 uint64(4),
+		common.MetricFixAsyncCallBackArgsListEnableEpoch:                      uint64(4),
+		common.MetricFixOldTokenLiquidityEnableEpoch:                          uint64(4),
+		common.MetricRuntimeMemStoreLimitEnableEpoch:                          uint64(4),
+		common.MetricRuntimeCodeSizeFixEnableEpoch:                            uint64(4),
+		common.MetricSetSenderInEeiOutputTransferEnableEpoch:                  uint64(4),
+		common.MetricRefactorPeersMiniBlocksEnableEpoch:                       uint64(4),
+		common.MetricSCProcessorV2EnableEpoch:                                 uint64(4),
+		common.MetricMaxBlockchainHookCountersEnableEpoch:                     uint64(4),
+		common.MetricWipeSingleNFTLiquidityDecreaseEnableEpoch:                uint64(4),
+		common.MetricAlwaysSaveTokenMetaDataEnableEpoch:                       uint64(4),
+		common.MetricCleanUpInformativeSCRsEnableEpoch:                        uint64(4),
+		common.MetricSetGuardianEnableEpoch:                                   uint64(4),
+		common.MetricSetScToScLogEventEnableEpoch:                             uint64(4),
+		common.MetricRelayedNonceFixEnableEpoch:                               uint64(4),
+		common.MetricDeterministicSortOnValidatorsInfoEnableEpoch:             uint64(4),
+		common.MetricKeepExecOrderOnCreatedSCRsEnableEpoch:                    uint64(4),
+		common.MetricMultiClaimOnDelegationEnableEpoch:                        uint64(4),
+		common.MetricChangeUsernameEnableEpoch:                                uint64(4),
+		common.MetricAutoBalanceDataTriesEnableEpoch:                          uint64(4),
+		common.MetricMigrateDataTrieEnableEpoch:                               uint64(4),
+		common.MetricConsistentTokensValuesLengthCheckEnableEpoch:             uint64(4),
+		common.MetricFixDelegationChangeOwnerOnAccountEnableEpoch:             uint64(4),
+		common.MetricDynamicGasCostForDataTrieStorageLoadEnableEpoch:          uint64(4),
+		common.MetricNFTStopCreateEnableEpoch:                                 uint64(4),
+		common.MetricChangeOwnerAddressCrossShardThroughSCEnableEpoch:         uint64(4),
+		common.MetricFixGasRemainingForSaveKeyValueBuiltinFunctionEnableEpoch: uint64(4),
+		common.MetricCurrentRandomnessOnSortingEnableEpoch:                    uint64(4),
+		common.MetricStakeLimitsEnableEpoch:                                   uint64(4),
+		common.MetricStakingV4Step1EnableEpoch:                                uint64(4),
+		common.MetricStakingV4Step2EnableEpoch:                                uint64(4),
+		common.MetricStakingV4Step3EnableEpoch:                                uint64(4),
+		common.MetricCleanupAuctionOnLowWaitingListEnableEpoch:                uint64(4),
+		common.MetricAlwaysMergeContextsInEEIEnableEpoch:                      uint64(4),
+		common.MetricDynamicESDTEnableEpoch:                                   uint64(4),
+		common.MetricEGLDInMultiTransferEnableEpoch:                           uint64(4),
+		common.MetricCryptoOpcodesV2EnableEpoch:                               uint64(4),
 
 		common.MetricMaxNodesChangeEnableEpoch: []map[string]interface{}{
 			{
