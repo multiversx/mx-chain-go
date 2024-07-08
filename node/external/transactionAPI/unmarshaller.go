@@ -88,15 +88,10 @@ func (tu *txUnmarshaller) unmarshalTransaction(txBytes []byte, txType transactio
 		}
 		apiTx = tu.prepareUnsignedTx(&tx)
 	}
-	if err != nil {
-		return nil, err
-	}
 
 	isRelayedV3 := len(apiTx.InnerTransactions) > 0
 	if isRelayedV3 {
 		apiTx.Operation = operationTransfer
-
-		rcvsShardIDs := make(map[uint32]struct{})
 		for _, innerTx := range apiTx.InnerTransactions {
 			apiTx.Receivers = append(apiTx.Receivers, innerTx.Receiver)
 
@@ -106,12 +101,7 @@ func (tu *txUnmarshaller) unmarshalTransaction(txBytes []byte, txType transactio
 				continue
 			}
 
-			rcvShardID := tu.shardCoordinator.ComputeId(rcvBytes)
-			rcvsShardIDs[rcvShardID] = struct{}{}
-		}
-
-		for rcvShard := range rcvsShardIDs {
-			apiTx.ReceiversShardIDs = append(apiTx.ReceiversShardIDs, rcvShard)
+			apiTx.ReceiversShardIDs = append(apiTx.ReceiversShardIDs, tu.shardCoordinator.ComputeId(rcvBytes))
 		}
 
 		apiTx.IsRelayed = true
