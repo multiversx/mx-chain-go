@@ -29,7 +29,6 @@ func (cache *TxCache) monitorEvictionWrtSenderNonce(sender []byte, senderNonce u
 
 func (cache *TxCache) monitorEvictionStart() *core.StopWatch {
 	log.Debug("TxCache: eviction started", "name", cache.name, "numBytes", cache.NumBytes(), "txs", cache.CountTx(), "senders", cache.CountSenders())
-	cache.displaySendersHistogram()
 	sw := core.NewStopWatch()
 	sw.Start("eviction")
 	return sw
@@ -40,12 +39,10 @@ func (cache *TxCache) monitorEvictionEnd(stopWatch *core.StopWatch) {
 	duration := stopWatch.GetMeasurement("eviction")
 	log.Debug("TxCache: eviction ended", "name", cache.name, "duration", duration, "numBytes", cache.NumBytes(), "txs", cache.CountTx(), "senders", cache.CountSenders())
 	cache.evictionJournal.display()
-	cache.displaySendersHistogram()
 }
 
 func (cache *TxCache) monitorSelectionStart() *core.StopWatch {
 	log.Debug("TxCache: selection started", "name", cache.name, "numBytes", cache.NumBytes(), "txs", cache.CountTx(), "senders", cache.CountSenders())
-	cache.displaySendersHistogram()
 	sw := core.NewStopWatch()
 	sw.Start("selection")
 	return sw
@@ -142,25 +139,23 @@ func (cache *TxCache) diagnoseShallowly() {
 	numTxsEstimate := int(cache.CountTx())
 	numTxsInChunks := cache.txByHash.backingMap.Count()
 	txsKeys := cache.txByHash.backingMap.Keys()
-	numSendersEstimate := uint32(cache.CountSenders())
+	numSendersEstimate := int(cache.CountSenders())
 	numSendersInChunks := cache.txListBySender.backingMap.Count()
-	numSendersInScoreChunks := cache.txListBySender.backingMap.CountSorted()
 	sendersKeys := cache.txListBySender.backingMap.Keys()
-	sendersKeysSorted := cache.txListBySender.backingMap.KeysSorted()
 	sendersSnapshot := cache.txListBySender.getSnapshotAscending()
 
 	sw.Stop("diagnose")
 	duration := sw.GetMeasurement("diagnose")
 
-	fine := numSendersEstimate == numSendersInChunks && numSendersEstimate == numSendersInScoreChunks
-	fine = fine && (len(sendersKeys) == len(sendersKeysSorted) && len(sendersKeys) == len(sendersSnapshot))
+	fine := numSendersEstimate == numSendersInChunks
+	fine = fine && len(sendersKeys) == len(sendersSnapshot)
 	fine = fine && (int(numSendersEstimate) == len(sendersKeys))
 	fine = fine && (numTxsEstimate == numTxsInChunks && numTxsEstimate == len(txsKeys))
 
 	log.Debug("TxCache.diagnoseShallowly()", "name", cache.name, "duration", duration, "fine", fine)
 	log.Debug("TxCache.Size:", "current", sizeInBytes, "max", cache.config.NumBytesThreshold)
-	log.Debug("TxCache.NumSenders:", "estimate", numSendersEstimate, "inChunks", numSendersInChunks, "inScoreChunks", numSendersInScoreChunks)
-	log.Debug("TxCache.NumSenders (continued):", "keys", len(sendersKeys), "keysSorted", len(sendersKeysSorted), "snapshot", len(sendersSnapshot))
+	log.Debug("TxCache.NumSenders:", "estimate", numSendersEstimate, "inChunks", numSendersInChunks)
+	log.Debug("TxCache.NumSenders (continued):", "keys", len(sendersKeys), "snapshot", len(sendersSnapshot))
 	log.Debug("TxCache.NumTxs:", "estimate", numTxsEstimate, "inChunks", numTxsInChunks, "keys", len(txsKeys))
 }
 
@@ -238,7 +233,7 @@ func (cache *TxCache) displaySendersSummary() {
 		accountNonce := sender.accountNonce.Get()
 		accountNonceKnown := sender.accountNonceKnown.IsSet()
 		numFailedSelections := sender.numFailedSelections.Get()
-		score := sender.getLastComputedScore()
+		score := sender.getScore()
 		numTxs := sender.countTxWithLock()
 
 		lowestTxNonce := -1
