@@ -7,7 +7,7 @@ import (
 )
 
 type scoreComputer interface {
-	computeScore(scoreParams senderScoreParams) uint32
+	computeScore(scoreParams senderScoreParams) int
 }
 
 // TxGasHandler handles a transaction gas and gas cost

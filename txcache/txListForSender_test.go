@@ -405,6 +405,73 @@ func TestListForSender_DetectRaceConditions(t *testing.T) {
 	}()
 }
 
+func TestListForSender_transactionAddAndRemove_updateScore(t *testing.T) {
+	txGasHandler := txcachemocks.NewTxGasHandlerMock()
+	alice := newUnconstrainedListToTest()
+	bob := newUnconstrainedListToTest()
+
+	a := createTx([]byte("a"), ".", 1)
+	b := createTx([]byte("b"), ".", 1)
+	c := createTx([]byte("c"), ".", 2).withDataLength(42).withGasLimit(50000 + 1500*42)
+	d := createTx([]byte("d"), ".", 2).withDataLength(84).withGasLimit(50000 + 1500*84)
+	e := createTx([]byte("e"), ".", 3).withDataLength(1).withGasLimit(50000000).withGasPrice(oneBillion)
+	f := createTx([]byte("f"), ".", 3).withDataLength(1).withGasLimit(150000000).withGasPrice(oneBillion)
+	g := createTx([]byte("g"), ".", 4).withDataLength(7).withGasLimit(5000000).withGasPrice(oneBillion)
+	h := createTx([]byte("h"), ".", 4).withDataLength(7).withGasLimit(5000000).withGasPrice(oneBillion)
+	i := createTx([]byte("i"), ".", 5).withDataLength(42).withGasLimit(5000000).withGasPrice(2 * oneBillion)
+	j := createTx([]byte("j"), ".", 5).withDataLength(42).withGasLimit(5000000).withGasPrice(3 * oneBillion)
+	k := createTx([]byte("k"), ".", 5).withDataLength(42).withGasLimit(5000000).withGasPrice(2 * oneBillion)
+	l := createTx([]byte("l"), ".", 8)
+
+	alice.AddTx(a, txGasHandler)
+	bob.AddTx(b, txGasHandler)
+
+	require.Equal(t, 74, alice.getScore())
+	require.Equal(t, 74, bob.getScore())
+
+	alice.AddTx(c, txGasHandler)
+	bob.AddTx(d, txGasHandler)
+
+	require.Equal(t, 74, alice.getScore())
+	require.Equal(t, 74, bob.getScore())
+
+	alice.AddTx(e, txGasHandler)
+	bob.AddTx(f, txGasHandler)
+
+	require.Equal(t, 5, alice.getScore())
+	require.Equal(t, 2, bob.getScore())
+
+	alice.AddTx(g, txGasHandler)
+	bob.AddTx(h, txGasHandler)
+
+	require.Equal(t, 6, alice.getScore())
+	require.Equal(t, 3, bob.getScore())
+
+	alice.AddTx(i, txGasHandler)
+	bob.AddTx(j, txGasHandler)
+
+	require.Equal(t, 10, alice.getScore())
+	require.Equal(t, 6, bob.getScore())
+
+	// Bob adds a transaction with duplicated nonce
+	bob.AddTx(k, txGasHandler)
+
+	require.Equal(t, 10, alice.getScore())
+	require.Equal(t, 0, bob.getScore())
+
+	require.True(t, alice.RemoveTx(a))
+	require.True(t, alice.RemoveTx(c))
+
+	require.Equal(t, 7, alice.getScore())
+	require.Equal(t, 0, bob.getScore())
+
+	// Alice comes with a nonce gap
+	alice.AddTx(l, txGasHandler)
+
+	require.Equal(t, 0, alice.getScore())
+	require.Equal(t, 0, bob.getScore())
+}
+
 func newUnconstrainedListToTest() *txListForSender {
 	return newListToTest(math.MaxUint32, math.MaxUint32)
 }

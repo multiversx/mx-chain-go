@@ -139,10 +139,10 @@ func TestTxCache_DoEviction_BecauseOfSize(t *testing.T) {
 	scoreCarol := cache.getScoreOfSender("carol")
 	scoreEve := cache.getScoreOfSender("eve")
 
-	require.Equal(t, uint32(62), scoreAlice)
-	require.Equal(t, uint32(62), scoreBob)
-	require.Equal(t, uint32(69), scoreCarol)
-	require.Equal(t, uint32(80), scoreEve)
+	require.Equal(t, 62, scoreAlice)
+	require.Equal(t, 62, scoreBob)
+	require.Equal(t, 69, scoreCarol)
+	require.Equal(t, 80, scoreEve)
 
 	cache.doEviction()
 	require.Equal(t, uint32(2), cache.evictionJournal.passOneNumTxs)
@@ -221,8 +221,8 @@ func TestTxCache_EvictSendersWhile_ShouldContinueBreak(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, cache)
 
-	cache.AddTx(createTx([]byte("hash-alice"), "alice", uint64(1)))
-	cache.AddTx(createTx([]byte("hash-bob"), "bob", uint64(1)))
+	cache.AddTx(createTx([]byte("hash-alice"), "alice", 1))
+	cache.AddTx(createTx([]byte("hash-bob"), "bob", 1))
 
 	cache.makeSnapshotOfSenders()
 
