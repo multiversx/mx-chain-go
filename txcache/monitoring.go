@@ -110,7 +110,7 @@ func (cache *TxCache) monitorSweepingEnd(numTxs uint32, numSenders uint32, stopW
 
 func (cache *TxCache) displaySendersHistogram() {
 	backingMap := cache.txListBySender.backingMap
-	log.Debug("TxCache.sendersHistogram:", "chunks", backingMap.ChunksCounts(), "scoreChunks", backingMap.ScoreChunksCounts())
+	log.Debug("TxCache.sendersHistogram:", "scoreChunks", backingMap.ScoreChunksCounts())
 }
 
 // evictionJournal keeps a short journal about the eviction process
