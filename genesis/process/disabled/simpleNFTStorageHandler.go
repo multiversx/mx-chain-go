@@ -17,8 +17,8 @@ func (s *SimpleNFTStorage) GetESDTNFTTokenOnDestination(_ vmcommon.UserAccountHa
 	return &esdt.ESDigitalToken{Value: big.NewInt(0)}, true, nil
 }
 
-// SaveNFTMetaDataToSystemAccount is disabled
-func (s *SimpleNFTStorage) SaveNFTMetaDataToSystemAccount(_ data.TransactionHandler) error {
+// SaveNFTMetaData is disabled
+func (s *SimpleNFTStorage) SaveNFTMetaData(_ data.TransactionHandler) error {
 	return nil
 }
 

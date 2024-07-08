@@ -150,7 +150,7 @@ func GetConsensusArgs(shardCoordinator sharding.Coordinator) consensusComp.Conse
 	coreComponents := GetCoreComponents()
 	cryptoComponents := GetCryptoComponents(coreComponents)
 	networkComponents := GetNetworkComponents(cryptoComponents)
-	stateComponents := GetStateComponents(coreComponents)
+	stateComponents := GetStateComponents(coreComponents, GetStatusCoreComponents())
 	dataComponents := GetDataComponents(coreComponents, shardCoordinator)
 	processComponents := GetProcessComponents(
 		shardCoordinator,
@@ -215,6 +215,13 @@ func GetCryptoArgs(coreComponents factory.CoreComponentsHolder) cryptoComp.Crypt
 		},
 		EnableEpochs: config.EnableEpochs{
 			BLSMultiSignerEnableEpoch: []config.MultiSignerConfig{{EnableEpoch: 0, Type: "no-KOSK"}},
+			MaxNodesChangeEnableEpoch: []config.MaxNodesChangeConfig{
+				{
+					EpochEnable:            0,
+					MaxNumNodes:            100,
+					NodesToShufflePerShard: 2,
+				},
+			},
 		},
 	}
 
@@ -273,7 +280,7 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 			Enabled:                          false,
 			Type:                             "optimized",
 			RefreshIntervalInSec:             10,
-			ProtocolID:                       "erd/kad/1.0.0",
+			ProtocolIDs:                      []string{"erd/kad/1.0.0"},
 			InitialPeerList:                  []string{"peer0", "peer1"},
 			BucketSize:                       10,
 			RoutingTableRefreshIntervalInSec: 5,
@@ -341,7 +348,7 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 }
 
 // GetStateFactoryArgs -
-func GetStateFactoryArgs(coreComponents factory.CoreComponentsHolder) stateComp.StateComponentsFactoryArgs {
+func GetStateFactoryArgs(coreComponents factory.CoreComponentsHolder, statusCoreComp factory.StatusCoreComponentsHolder) stateComp.StateComponentsFactoryArgs {
 	tsm, _ := trie.NewTrieStorageManager(storage.GetStorageManagerArgs())
 	storageManagerUser, _ := trie.NewTrieStorageManagerWithoutPruning(tsm)
 	tsm, _ = trie.NewTrieStorageManager(storage.GetStorageManagerArgs())
@@ -360,7 +367,7 @@ func GetStateFactoryArgs(coreComponents factory.CoreComponentsHolder) stateComp.
 	stateComponentsFactoryArgs := stateComp.StateComponentsFactoryArgs{
 		Config:         GetGeneralConfig(),
 		Core:           coreComponents,
-		StatusCore:     GetStatusCoreComponents(),
+		StatusCore:     statusCoreComp,
 		StorageService: disabled.NewChainStorer(),
 		ProcessingMode: common.Normal,
 		ChainHandler:   &testscommon.ChainHandlerStub{},
@@ -375,7 +382,7 @@ func GetProcessComponentsFactoryArgs(shardCoordinator sharding.Coordinator) proc
 	cryptoComponents := GetCryptoComponents(coreComponents)
 	networkComponents := GetNetworkComponents(cryptoComponents)
 	dataComponents := GetDataComponents(coreComponents, shardCoordinator)
-	stateComponents := GetStateComponents(coreComponents)
+	stateComponents := GetStateComponents(coreComponents, GetStatusCoreComponents())
 	processArgs := GetProcessArgs(
 		shardCoordinator,
 		coreComponents,
@@ -564,6 +571,8 @@ func GetProcessArgs(
 				MaxNumberOfNodesForStake:             10,
 				ActivateBLSPubKeyMessageVerification: false,
 				MinUnstakeTokensValue:                "1",
+				StakeLimitPercentage:                 100,
+				NodeLimitPercentage:                  100,
 			},
 			DelegationManagerSystemSCConfig: config.DelegationManagerSystemSCConfig{
 				MinCreationDeposit:  "100",
@@ -574,12 +583,30 @@ func GetProcessArgs(
 				MinServiceFee: 0,
 				MaxServiceFee: 100,
 			},
+			SoftAuctionConfig: config.SoftAuctionConfig{
+				TopUpStep:             "10",
+				MinTopUp:              "1",
+				MaxTopUp:              "32000000",
+				MaxNumberOfIterations: 100000,
+			},
 		},
 		HistoryRepo: &dblookupext.HistoryRepositoryStub{},
 		FlagsConfig: config.ContextFlagsConfig{
 			Version: "v1.0.0",
 		},
+		RoundConfig:             testscommon.GetDefaultRoundsConfig(),
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
+		EpochConfig: config.EpochConfig{
+			EnableEpochs: config.EnableEpochs{
+				MaxNodesChangeEnableEpoch: []config.MaxNodesChangeConfig{
+					{
+						EpochEnable:            0,
+						MaxNumNodes:            100,
+						NodesToShufflePerShard: 2,
+					},
+				},
+			},
+		},
 	}
 }
 
@@ -642,7 +669,7 @@ func GetStatusComponentsFactoryArgsAndProcessComponents(shardCoordinator shardin
 	cryptoComponents := GetCryptoComponents(coreComponents)
 	networkComponents := GetNetworkComponents(cryptoComponents)
 	dataComponents := GetDataComponents(coreComponents, shardCoordinator)
-	stateComponents := GetStateComponents(coreComponents)
+	stateComponents := GetStateComponents(coreComponents, GetStatusCoreComponents())
 	processComponents := GetProcessComponents(
 		shardCoordinator,
 		coreComponents,
@@ -737,22 +764,22 @@ func GetCryptoComponents(coreComponents factory.CoreComponentsHolder) factory.Cr
 }
 
 // GetStateComponents -
-func GetStateComponents(coreComponents factory.CoreComponentsHolder) factory.StateComponentsHolder {
-	stateArgs := GetStateFactoryArgs(coreComponents)
+func GetStateComponents(coreComponents factory.CoreComponentsHolder, statusCoreComponents factory.StatusCoreComponentsHolder) factory.StateComponentsHolder {
+	stateArgs := GetStateFactoryArgs(coreComponents, statusCoreComponents)
 	stateComponentsFactory, err := stateComp.NewStateComponentsFactory(stateArgs)
 	if err != nil {
-		log.Error("getStateComponents NewStateComponentsFactory", "error", err.Error())
+		log.Error("GetStateComponents NewStateComponentsFactory", "error", err.Error())
 		return nil
 	}
 
 	stateComponents, err := stateComp.NewManagedStateComponents(stateComponentsFactory)
 	if err != nil {
-		log.Error("getStateComponents NewManagedStateComponents", "error", err.Error())
+		log.Error("GetStateComponents NewManagedStateComponents", "error", err.Error())
 		return nil
 	}
 	err = stateComponents.Create()
 	if err != nil {
-		log.Error("getStateComponents Create", "error", err.Error())
+		log.Error("GetStateComponents Create", "error", err.Error())
 		return nil
 	}
 	return stateComponents
@@ -775,7 +802,7 @@ func GetStatusCoreComponents() factory.StatusCoreComponentsHolder {
 
 	err = statusCoreComponents.Create()
 	if err != nil {
-		log.Error("statusCoreComponents Create", "error", err.Error())
+		log.Error("GetStatusCoreComponents Create", "error", err.Error())
 		return nil
 	}
 

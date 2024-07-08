@@ -17,7 +17,7 @@ type DrawableContainer struct {
 	maxHeight int
 }
 
-//NewDrawableContainer method is used to return a new NewDrawableContainer structure
+// NewDrawableContainer method is used to return a new NewDrawableContainer structure
 func NewDrawableContainer() *DrawableContainer {
 	dc := DrawableContainer{}
 	return &dc

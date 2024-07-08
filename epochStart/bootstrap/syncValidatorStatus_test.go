@@ -15,12 +15,13 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	epochStartMocks "github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks/epochStart"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/shardingmock"
 	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -247,6 +248,11 @@ func TestSyncValidatorStatus_getPeerBlockBodyForMeta(t *testing.T) {
 }
 
 func getSyncValidatorStatusArgs() ArgsNewSyncValidatorStatus {
+	nodesCoordinatorRegistryFactory, _ := nodesCoordinator.NewNodesCoordinatorRegistryFactory(
+		&mock.MarshalizerMock{},
+		444,
+	)
+
 	return ArgsNewSyncValidatorStatus{
 		DataPool: &dataRetrieverMock.PoolsHolderStub{
 			MiniBlocksCalled: func() storage.Cacher {
@@ -260,8 +266,8 @@ func getSyncValidatorStatusArgs() ArgsNewSyncValidatorStatus {
 		Hasher:                 &hashingMocks.HasherMock{},
 		RequestHandler:         &testscommon.RequestHandlerStub{},
 		ChanceComputer:         &shardingMocks.NodesCoordinatorStub{},
-		ChainParametersHandler: &shardingmock.ChainParametersHandlerStub{},
-		GenesisNodesConfig: &mock.NodesSetupStub{
+		ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{},
+		GenesisNodesConfig: &genesisMocks.NodesSetupStub{
 			NumberOfShardsCalled: func() uint32 {
 				return 1
 			},
@@ -303,12 +309,13 @@ func getSyncValidatorStatusArgs() ArgsNewSyncValidatorStatus {
 				return 2
 			},
 		},
-		NodeShuffler:        &shardingMocks.NodeShufflerMock{},
-		PubKey:              []byte("public key"),
-		ShardIdAsObserver:   0,
-		ChanNodeStop:        endProcess.GetDummyEndProcessChannel(),
-		NodeTypeProvider:    &nodeTypeProviderMock.NodeTypeProviderStub{},
-		IsFullArchive:       false,
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		NodeShuffler:                    &shardingMocks.NodeShufflerMock{},
+		PubKey:                          []byte("public key"),
+		ShardIdAsObserver:               0,
+		ChanNodeStop:                    endProcess.GetDummyEndProcessChannel(),
+		NodeTypeProvider:                &nodeTypeProviderMock.NodeTypeProviderStub{},
+		IsFullArchive:                   false,
+		EnableEpochsHandler:             &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
 	}
 }

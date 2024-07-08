@@ -205,7 +205,7 @@ func (awm *AccountWrapMock) SetDataTrie(trie common.Trie) {
 	awm.trackableDataTrie.SetDataTrie(trie)
 }
 
-//IncreaseNonce adds the given value to the current nonce
+// IncreaseNonce adds the given value to the current nonce
 func (awm *AccountWrapMock) IncreaseNonce(val uint64) {
 	awm.nonce = awm.nonce + val
 }

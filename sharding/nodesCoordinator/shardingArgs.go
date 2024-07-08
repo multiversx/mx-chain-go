@@ -32,4 +32,5 @@ type ArgNodesCoordinator struct {
 	EnableEpochsHandler    common.EnableEpochsHandler
 	ValidatorInfoCacher    epochStart.ValidatorInfoCacher
 	GenesisNodesSetupHandler GenesisNodesSetupHandler
+	NodesCoordinatorRegistryFactory NodesCoordinatorRegistryFactory
 }
