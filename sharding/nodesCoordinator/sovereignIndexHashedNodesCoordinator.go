@@ -32,7 +32,7 @@ func NewSovereignIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*so
 
 	savedKey := arguments.Hasher.Compute(string(arguments.SelfPublicKey))
 
-	// TODO: Once we have sovereign core components merged, we should delete this and have it directly from constructor
+	// TODO: MX-15633 Once we have sovereign core components merged, we should delete this and have it directly from constructor
 	sovereignShuffler, err := newSovereignHashValidatorShuffler(arguments.Shuffler)
 	if err != nil {
 		return nil, err

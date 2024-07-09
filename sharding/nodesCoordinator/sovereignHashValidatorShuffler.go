@@ -26,6 +26,7 @@ func newSovereignHashValidatorShuffler(baseShuffler NodesShuffler) (*sovereignHa
 	}, nil
 }
 
+// UpdateNodeLists will update node lists w.r.t to metachain original shuffling, only adjusted to work for one shard
 func (ss *sovereignHashValidatorShuffler) UpdateNodeLists(args ArgsUpdateNodes) (*ResUpdateNodes, error) {
 	ss.updateShufflerConfig(args.Epoch)
 	eligibleAfterReshard := copyValidatorMap(args.Eligible)
@@ -94,6 +95,7 @@ func computeSovereignNumToRemove(arg shuffleNodesArg) (map[uint32]int, error) {
 	return numToRemove, nil
 }
 
+// IsInterfaceNil checks if the underlying pointer is nil
 func (ss *sovereignHashValidatorShuffler) IsInterfaceNil() bool {
 	return ss == nil
 }

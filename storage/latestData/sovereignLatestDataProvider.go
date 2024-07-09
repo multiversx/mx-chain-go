@@ -9,8 +9,12 @@ func NewSovereignLatestDataProvider(args ArgsLatestDataProvider) (*sovereignLate
 	if err != nil {
 		return nil, err
 	}
-
 	return &sovereignLatestDataProvider{
 		ldp,
 	}, nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (sldp *sovereignLatestDataProvider) IsInterfaceNil() bool {
+	return sldp == nil
 }

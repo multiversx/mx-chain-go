@@ -186,7 +186,6 @@ func (scbp *sovereignChainBlockProcessor) CreateBlock(initialHdr data.HeaderHand
 		}
 	}
 
-	var miniBlocks []*block.MiniBlock
 	if scbp.epochStartTrigger.IsEpochStart() {
 		err := scbp.createBlockStarted()
 		if err != nil {
@@ -744,7 +743,7 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 		return nil, nil, err
 	}
 
-	if shardHeader.IsStartOfEpochBlock() { // TODO: FIX THIS SOMEHIOWWWWW //shardHeader.IsStartOfEpochBlock() {
+	if shardHeader.IsStartOfEpochBlock() {
 		err = scbp.processEpochStartMetaBlock(shardHeader, body)
 		if err != nil {
 			return nil, nil, err
@@ -755,6 +754,7 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 			return nil, nil, err
 		}
 
+		// finish processing here, only process epoch start
 		return shardHeader, body, nil
 	}
 
@@ -850,11 +850,6 @@ func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
 	//	return err
 	//}
 
-	err = scbp.validatorStatisticsProcessor.ResetValidatorStatisticsAtNewEpoch(allValidatorsInfo)
-	if err != nil {
-		return err
-	}
-
 	//err = mp.epochEconomics.VerifyRewardsPerBlock(header, mp.epochRewardsCreator.GetProtocolSustainabilityRewards(), computedEconomics)
 	//if err != nil {
 	//	return err
@@ -872,7 +867,6 @@ func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
-	// WHAT TO DO HERE?
 	err = scbp.validatorStatisticsProcessor.ResetValidatorStatisticsAtNewEpoch(allValidatorsInfo)
 	if err != nil {
 		return err
@@ -1354,12 +1348,9 @@ func (scbp *sovereignChainBlockProcessor) CommitBlock(headerHandler data.HeaderH
 }
 
 func (scbp *sovereignChainBlockProcessor) commitEpochStart(header data.HeaderHandler, body *block.Body) {
-	// THIS CHECK IS NOT OOOKKKKKKKK
 	if header.IsStartOfEpochBlock() {
 		scbp.epochStartTrigger.SetProcessed(header, body)
-
 		go scbp.validatorInfoCreator.SaveBlockDataToStorage(header, body)
-
 		// TODO: MX-15588 FIX THIS (mp *metaProcessor) commitEpochStart
 		//go scbp.epochRewardsCreator.SaveBlockDataToStorage(header, body)
 		// ************

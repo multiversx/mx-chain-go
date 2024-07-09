@@ -6,11 +6,13 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 )
 
+// LatestDataProviderFactory defines the factory for latest data provider
 type LatestDataProviderFactory interface {
 	CreateLatestDataProvider(args ArgsLatestDataProvider) (storage.LatestStorageDataProviderHandler, error)
 	IsInterfaceNil() bool
 }
 
+// MetaEpochStartTriggerRegistryHandler defines the interface needed to create registry trigger for epoch start
 type MetaEpochStartTriggerRegistryHandler interface {
 	UnmarshalTrigger(marshaller marshal.Marshalizer, data []byte) (data.MetaTriggerRegistryHandler, error)
 }
