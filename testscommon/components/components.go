@@ -1072,6 +1072,7 @@ func GetRunTypeComponentsStub(rt factory.RunTypeComponentsHandler) *mainFactoryM
 		GenesisBlockFactory:                 rt.GenesisBlockCreatorFactory(),
 		GenesisMetaBlockChecker:             rt.GenesisMetaBlockCheckerCreator(),
 		NodesSetupCheckerFactoryField:       rt.NodesSetupCheckerFactory(),
+		EpochStartTriggerFactoryField:       rt.EpochStartTriggerFactory(),
 	}
 }
 

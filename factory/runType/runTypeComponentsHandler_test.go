@@ -88,6 +88,7 @@ func TestManagedRunTypeComponents_Create(t *testing.T) {
 		require.Nil(t, managedRunTypeComponents.GenesisBlockCreatorFactory())
 		require.Nil(t, managedRunTypeComponents.GenesisMetaBlockCheckerCreator())
 		require.Nil(t, managedRunTypeComponents.NodesSetupCheckerFactory())
+		require.Nil(t, managedRunTypeComponents.EpochStartTriggerFactory())
 
 		err = managedRunTypeComponents.Create()
 		require.NoError(t, err)
@@ -125,6 +126,7 @@ func TestManagedRunTypeComponents_Create(t *testing.T) {
 		require.NotNil(t, managedRunTypeComponents.GenesisBlockCreatorFactory())
 		require.NotNil(t, managedRunTypeComponents.GenesisMetaBlockCheckerCreator())
 		require.NotNil(t, managedRunTypeComponents.NodesSetupCheckerFactory())
+		require.NotNil(t, managedRunTypeComponents.EpochStartTriggerFactory())
 
 		require.Equal(t, factory.RunTypeComponentsName, managedRunTypeComponents.String())
 		require.NoError(t, managedRunTypeComponents.Close())

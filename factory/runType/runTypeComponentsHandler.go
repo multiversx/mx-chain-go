@@ -198,6 +198,9 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	if check.IfNil(mrc.genesisMetaBlockCheckerCreator) {
 		return errors.ErrNilGenesisMetaBlockChecker
 	}
+	if check.IfNil(mrc.epochStartTriggerFactory) {
+		return errors.ErrNilEpochStartTriggerFactory
+	}
 	return nil
 }
 
@@ -607,6 +610,18 @@ func (mrc *managedRunTypeComponents) NodesSetupCheckerFactory() checking.NodesSe
 	}
 
 	return mrc.runTypeComponents.nodesSetupCheckerFactory
+}
+
+// EpochStartTriggerFactory returns the epoch start trigger factory
+func (mrc *managedRunTypeComponents) EpochStartTriggerFactory() factory.EpochStartTriggerFactoryHandler {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.epochStartTriggerFactory
 }
 
 // IsInterfaceNil returns true if the interface is nil

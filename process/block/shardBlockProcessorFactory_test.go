@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 )
 
@@ -21,12 +22,23 @@ func TestShardBlockProcessorFactory_CreateBlockProcessor(t *testing.T) {
 	t.Parallel()
 
 	sbpf, _ := block.NewShardBlockProcessorFactory()
-	sbp, err := sbpf.CreateBlockProcessor(block.ArgBaseProcessor{})
+
+	funcCreateMetaArgs := func(systemVM vmcommon.VMExecutionHandler) (*block.ExtraArgsMetaBlockProcessor, error) {
+		return nil, nil
+	}
+	sbp, err := sbpf.CreateBlockProcessor(block.ArgBaseProcessor{}, funcCreateMetaArgs)
 	require.NotNil(t, err)
 	require.Nil(t, sbp)
 
 	metaArgument := createMockMetaArguments(createMockComponentHolders())
-	sbp, err = sbpf.CreateBlockProcessor(metaArgument.ArgBaseProcessor)
+	funcCreateMetaArgs = func(systemVM vmcommon.VMExecutionHandler) (*block.ExtraArgsMetaBlockProcessor, error) {
+		return &block.ExtraArgsMetaBlockProcessor{
+			EpochStartDataCreator:     metaArgument.EpochStartDataCreator,
+			EpochValidatorInfoCreator: metaArgument.EpochValidatorInfoCreator,
+			EpochRewardsCreator:       metaArgument.EpochRewardsCreator,
+		}, nil
+	}
+	sbp, err = sbpf.CreateBlockProcessor(metaArgument.ArgBaseProcessor, funcCreateMetaArgs)
 	require.NotNil(t, sbp)
 	require.Nil(t, err)
 	require.Implements(t, new(process.DebuggerBlockProcessor), sbp)

@@ -23,9 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/dblookupext"
 	"github.com/multiversx/mx-chain-go/epochStart"
-	"github.com/multiversx/mx-chain-go/epochStart/metachain"
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
-	"github.com/multiversx/mx-chain-go/epochStart/shardchain"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/disabled"
@@ -389,7 +387,16 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	epochStartTrigger, err := pcf.newEpochStartTrigger(requestHandler)
+	argsEpochStartTrigger := factory.ArgsEpochStartTrigger{
+		RequestHandler:             requestHandler,
+		CoreData:                   pcf.coreData,
+		BootstrapComponents:        pcf.bootstrapComponents,
+		DataComps:                  pcf.data,
+		StatusCoreComponentsHolder: pcf.statusCoreComponents,
+		RunTypeComponentsHolder:    pcf.runTypeComponents,
+		Config:                     pcf.config,
+	}
+	epochStartTrigger, err := pcf.runTypeComponents.EpochStartTriggerFactory().CreateEpochStartTrigger(argsEpochStartTrigger)
 	if err != nil {
 		return nil, err
 	}
@@ -813,75 +820,6 @@ func (pcf *processComponentsFactory) newValidatorStatisticsProcessor() (process.
 	}
 
 	return pcf.runTypeComponents.ValidatorStatisticsProcessorCreator().CreateValidatorStatisticsProcessor(arguments)
-}
-
-func (pcf *processComponentsFactory) newEpochStartTrigger(requestHandler epochStart.RequestHandler) (epochStart.TriggerHandler, error) {
-	shardCoordinator := pcf.bootstrapComponents.ShardCoordinator()
-	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
-		argsHeaderValidator := block.ArgsHeaderValidator{
-			Hasher:      pcf.coreData.Hasher(),
-			Marshalizer: pcf.coreData.InternalMarshalizer(),
-		}
-		headerValidator, err := pcf.runTypeComponents.HeaderValidatorCreator().CreateHeaderValidator(argsHeaderValidator)
-		if err != nil {
-			return nil, err
-		}
-
-		argsPeerMiniBlockSyncer := shardchain.ArgPeerMiniBlockSyncer{
-			MiniBlocksPool:     pcf.data.Datapool().MiniBlocks(),
-			ValidatorsInfoPool: pcf.data.Datapool().ValidatorsInfo(),
-			RequestHandler:     requestHandler,
-		}
-
-		peerMiniBlockSyncer, err := shardchain.NewPeerMiniBlockSyncer(argsPeerMiniBlockSyncer)
-		if err != nil {
-			return nil, err
-		}
-
-		argEpochStart := &shardchain.ArgsShardEpochStartTrigger{
-			Marshalizer:                   pcf.coreData.InternalMarshalizer(),
-			Hasher:                        pcf.coreData.Hasher(),
-			HeaderValidator:               headerValidator,
-			Uint64Converter:               pcf.coreData.Uint64ByteSliceConverter(),
-			DataPool:                      pcf.data.Datapool(),
-			Storage:                       pcf.data.StorageService(),
-			RequestHandler:                requestHandler,
-			Epoch:                         pcf.bootstrapComponents.EpochBootstrapParams().Epoch(),
-			EpochStartNotifier:            pcf.coreData.EpochStartNotifierWithConfirm(),
-			Validity:                      process.MetaBlockValidity,
-			Finality:                      process.BlockFinality,
-			PeerMiniBlocksSyncer:          peerMiniBlockSyncer,
-			RoundHandler:                  pcf.coreData.RoundHandler(),
-			AppStatusHandler:              pcf.statusCoreComponents.AppStatusHandler(),
-			EnableEpochsHandler:           pcf.coreData.EnableEpochsHandler(),
-			ExtraDelayForRequestBlockInfo: time.Duration(pcf.config.EpochStartConfig.ExtraDelayForRequestBlockInfoInMilliseconds) * time.Millisecond,
-		}
-		return shardchain.NewEpochStartTrigger(argEpochStart)
-	}
-
-	if shardCoordinator.SelfId() == core.MetachainShardId {
-		genesisHeader := pcf.data.Blockchain().GetGenesisHeader()
-		if check.IfNil(genesisHeader) {
-			return nil, errorsMx.ErrGenesisBlockNotInitialized
-		}
-
-		argEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
-			GenesisTime:        time.Unix(pcf.coreData.GenesisNodesSetup().GetStartTime(), 0),
-			Settings:           &pcf.config.EpochStartConfig,
-			Epoch:              pcf.bootstrapComponents.EpochBootstrapParams().Epoch(),
-			EpochStartRound:    genesisHeader.GetRound(),
-			EpochStartNotifier: pcf.coreData.EpochStartNotifierWithConfirm(),
-			Storage:            pcf.data.StorageService(),
-			Marshalizer:        pcf.coreData.InternalMarshalizer(),
-			Hasher:             pcf.coreData.Hasher(),
-			AppStatusHandler:   pcf.statusCoreComponents.AppStatusHandler(),
-			DataPool:           pcf.data.Datapool(),
-		}
-
-		return metachain.NewEpochStartTrigger(argEpochStart)
-	}
-
-	return nil, errors.New("error creating new start of epoch trigger because of invalid shard id")
 }
 
 func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalances() (map[uint32]data.HeaderHandler, map[uint32]*genesis.IndexingData, error) {
@@ -2124,6 +2062,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.RunTypeComponents.GenesisMetaBlockCheckerCreator()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilGenesisMetaBlockChecker)
+	}
+	if check.IfNil(args.RunTypeComponents.EpochStartTriggerFactory()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilEpochStartTriggerFactory)
 	}
 
 	return nil

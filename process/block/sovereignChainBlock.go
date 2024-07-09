@@ -48,6 +48,10 @@ type sovereignChainBlockProcessor struct {
 	outgoingOperationsFormatter  sovereign.OutgoingOperationsFormatter
 	outGoingOperationsPool       sovereignBlock.OutGoingOperationsPool
 	operationsHasher             hashing.Hasher
+
+	epochStartDataCreator process.EpochStartDataCreator
+	epochRewardsCreator   process.RewardsCreator
+	validatorInfoCreator  process.EpochStartValidatorInfoCreator
 }
 
 // ArgsSovereignChainBlockProcessor is a struct placeholder for args needed to create a new sovereign chain block processor
@@ -57,6 +61,9 @@ type ArgsSovereignChainBlockProcessor struct {
 	OutgoingOperationsFormatter  sovereign.OutgoingOperationsFormatter
 	OutGoingOperationsPool       sovereignBlock.OutGoingOperationsPool
 	OperationsHasher             hashing.Hasher
+	EpochStartDataCreator        process.EpochStartDataCreator
+	EpochRewardsCreator          process.RewardsCreator
+	ValidatorInfoCreator         process.EpochStartValidatorInfoCreator
 }
 
 // NewSovereignChainBlockProcessor creates a new sovereign chain block processor
@@ -76,6 +83,15 @@ func NewSovereignChainBlockProcessor(args ArgsSovereignChainBlockProcessor) (*so
 	if check.IfNil(args.OperationsHasher) {
 		return nil, errors.ErrNilOperationsHasher
 	}
+	if check.IfNil(args.EpochStartDataCreator) {
+		return nil, process.ErrNilEpochStartDataCreator
+	}
+	if check.IfNil(args.EpochRewardsCreator) {
+		return nil, process.ErrNilRewardsCreator
+	}
+	if check.IfNil(args.ValidatorInfoCreator) {
+		return nil, process.ErrNilEpochStartValidatorInfoCreator
+	}
 
 	scbp := &sovereignChainBlockProcessor{
 		shardProcessor:               args.ShardProcessor,
@@ -83,6 +99,9 @@ func NewSovereignChainBlockProcessor(args ArgsSovereignChainBlockProcessor) (*so
 		outgoingOperationsFormatter:  args.OutgoingOperationsFormatter,
 		outGoingOperationsPool:       args.OutGoingOperationsPool,
 		operationsHasher:             args.OperationsHasher,
+		epochStartDataCreator:        args.EpochStartDataCreator,
+		epochRewardsCreator:          args.EpochRewardsCreator,
+		validatorInfoCreator:         args.ValidatorInfoCreator,
 	}
 
 	scbp.uncomputedRootHash = scbp.hasher.Compute(rootHash)
@@ -122,6 +141,7 @@ func NewSovereignChainBlockProcessor(args ArgsSovereignChainBlockProcessor) (*so
 
 // CreateNewHeader creates a new header
 func (scbp *sovereignChainBlockProcessor) CreateNewHeader(round uint64, nonce uint64) (data.HeaderHandler, error) {
+	scbp.epochStartTrigger.Update(round, nonce)
 	scbp.enableRoundsHandler.RoundConfirmed(round, 0)
 	header := &block.SovereignChainHeader{
 		Header: &block.Header{
@@ -160,6 +180,27 @@ func (scbp *sovereignChainBlockProcessor) CreateBlock(initialHdr data.HeaderHand
 		}
 	}
 
+	if scbp.epochStartTrigger.IsEpochStart() {
+		epoch := scbp.epochStartTrigger.MetaEpoch()
+		log.Debug("sovereignChainBlockProcessor.CreateBlock", "isEpochStart", true, "epoch from epoch start trigger", epoch)
+		err := initialHdr.SetEpoch(epoch)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		// TODO: MX-15590 Add epoch start and missing fields to sovereign header to use this
+		//err = scbp.updateEpochStartHeader(metaHdr)
+		//if err != nil {
+		//	return nil, nil, err
+		//}
+		//body, err = mp.createEpochStartBody(metaHdr)
+		//if err != nil {
+		//	return nil, nil, err
+		//}
+	}
+
+	scbp.epochNotifier.CheckEpoch(initialHdr)
+
 	err := scbp.createBlockStarted()
 	if err != nil {
 		return nil, nil, err
@@ -187,6 +228,8 @@ func (scbp *sovereignChainBlockProcessor) CreateBlock(initialHdr data.HeaderHand
 	if err != nil {
 		return nil, nil, err
 	}
+
+	scbp.requestHandler.SetEpoch(initialHdr.GetEpoch())
 
 	return initialHdr, &block.Body{MiniBlocks: miniBlocks}, nil
 }
@@ -588,6 +631,10 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 		return nil, nil, err
 	}
 
+	scbp.roundNotifier.CheckRound(headerHandler)
+	scbp.epochNotifier.CheckEpoch(headerHandler)
+	scbp.requestHandler.SetEpoch(headerHandler.GetEpoch())
+
 	log.Debug("started processing block",
 		"epoch", headerHandler.GetEpoch(),
 		"shard", headerHandler.GetShardID(),
@@ -654,6 +701,19 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 		return nil, nil, err
 	}
 
+	shardHeader, castOK := headerHandler.(data.ShardHeaderHandler)
+	if !castOK {
+		return nil, nil, errors.ErrWrongTypeAssertion
+	}
+
+	scbp.epochStartTrigger.Update(shardHeader.GetRound(), shardHeader.GetNonce())
+	err = scbp.checkEpochCorrectness(shardHeader)
+
+	if shardHeader.IsStartOfEpochBlock() {
+		err = scbp.processEpochStartMetaBlock(shardHeader, body)
+		return nil, nil, err
+	}
+
 	defer func() {
 		if err != nil {
 			scbp.RevertCurrentBlock()
@@ -695,6 +755,81 @@ func (scbp *sovereignChainBlockProcessor) checkExtendedShardHeadersValidity() er
 
 		lastCrossNotarizedHeader = extendedShardHdr
 	}
+
+	return nil
+}
+
+func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
+	header data.HeaderHandler,
+	_ *block.Body,
+) error {
+	currentRootHash, err := scbp.validatorStatisticsProcessor.RootHash()
+	if err != nil {
+		return err
+	}
+
+	allValidatorsInfo, err := scbp.validatorStatisticsProcessor.GetValidatorInfoForRootHash(currentRootHash)
+	if err != nil {
+		return err
+	}
+
+	err = scbp.validatorStatisticsProcessor.ProcessRatingsEndOfEpoch(allValidatorsInfo, header.GetEpoch())
+	if err != nil {
+		return err
+	}
+
+	// TODO MX-15589 check how we can integrate all of these later on
+	//computedEconomics, err := scbp.epochEconomics.ComputeEndOfEpochEconomics(header)
+	//if err != nil {
+	//	return err
+	//}
+
+	//err = scbp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, header)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//err = mp.epochRewardsCreator.VerifyRewardsMiniBlocks(header, allValidatorsInfo, computedEconomics)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//err = mp.epochSystemSCProcessor.ProcessDelegationRewards(body.MiniBlocks, mp.epochRewardsCreator.GetLocalTxCache())
+	//if err != nil {
+	//	return err
+	//}
+
+	//err = mp.validatorInfoCreator.VerifyValidatorInfoMiniBlocks(body.MiniBlocks, allValidatorsInfo)
+	//if err != nil {
+	//	return err
+	//}
+
+	err = scbp.validatorStatisticsProcessor.ResetValidatorStatisticsAtNewEpoch(allValidatorsInfo)
+	if err != nil {
+		return err
+	}
+
+	//err = mp.epochEconomics.VerifyRewardsPerBlock(header, mp.epochRewardsCreator.GetProtocolSustainabilityRewards(), computedEconomics)
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//err = mp.verifyFees(header)
+	//if err != nil {
+	//	return err
+	//}
+
+	if !scbp.verifyStateRoot(header.GetRootHash()) {
+		err = process.ErrRootStateDoesNotMatch
+		return err
+	}
+
+	err = scbp.verifyValidatorStatisticsRootHash(header)
+	if err != nil {
+		return err
+	}
+
+	//saveEpochStartEconomicsMetrics(scbp.appStatusHandler, header)
 
 	return nil
 }
@@ -1086,6 +1221,9 @@ func (scbp *sovereignChainBlockProcessor) CommitBlock(headerHandler data.HeaderH
 		return err
 	}
 
+	// TODO: MX-15588
+	scbp.commitEpochStart(headerHandler, body)
+
 	headerHash := scbp.hasher.Compute(string(marshalizedHeader))
 	scbp.saveShardHeader(headerHandler, headerHash, marshalizedHeader)
 	scbp.saveBody(body, headerHandler, headerHash)
@@ -1156,6 +1294,23 @@ func (scbp *sovereignChainBlockProcessor) CommitBlock(headerHandler data.HeaderH
 	}
 
 	return nil
+}
+
+func (scbp *sovereignChainBlockProcessor) commitEpochStart(header data.HeaderHandler, body *block.Body) {
+	if header.IsStartOfEpochBlock() {
+		scbp.epochStartTrigger.SetProcessed(header, body)
+		// TODO: MX-15588 FIX THIS (mp *metaProcessor) commitEpochStart
+		//go scbp.epochRewardsCreator.SaveBlockDataToStorage(header, body)
+		// ************
+
+		go scbp.validatorInfoCreator.SaveBlockDataToStorage(header, body)
+	} else {
+		currentHeader := scbp.blockChain.GetCurrentBlockHeader()
+		if !check.IfNil(currentHeader) && currentHeader.IsStartOfEpochBlock() {
+			scbp.epochStartTrigger.SetFinalityAttestingRound(header.GetRound())
+			scbp.nodesCoordinator.ShuffleOutForEpoch(currentHeader.GetEpoch())
+		}
+	}
 }
 
 // getOrderedProcessedExtendedShardHeadersFromHeader returns all the extended shard headers fully processed
@@ -1537,6 +1692,33 @@ func (scbp *sovereignChainBlockProcessor) updateState(header data.HeaderHandler,
 	if errNotCritical != nil {
 		log.Debug("could not get header with validator stats from storage")
 		return
+	}
+
+	if header.IsStartOfEpochBlock() {
+
+		log.Debug("trie snapshot",
+			"rootHash", header.GetRootHash(),
+			"prevRootHash", prevHeader.GetRootHash(),
+			"validatorStatsRootHash", header.GetValidatorStatsRootHash())
+		scbp.accountsDB[state.UserAccountsState].SnapshotState(header.GetRootHash(), header.GetEpoch())
+		scbp.accountsDB[state.PeerAccountsState].SnapshotState(header.GetValidatorStatsRootHash(), header.GetEpoch())
+
+		// TODO: MX-15587- implement this and reuse code from meta processor
+		/*
+			go func() {
+
+				metaBlock, ok := header.(*block.MetaBlock)
+				if !ok {
+					log.Warn("cannot commit Trie Epoch Root Hash: lastMetaBlock is not *block.MetaBlock")
+					return
+				}
+				err := scbp.commitTrieEpochRootHashIfNeeded(metaBlock, header.GetRootHash())
+				if err != nil {
+					log.Warn("couldn't commit trie checkpoint", "epoch", metaBlock.Epoch, "error", err)
+				}
+			}()
+		*/
+		scbp.nodesCoordinator.ShuffleOutForEpoch(header.GetEpoch())
 	}
 
 	scbp.updateStateStorage(

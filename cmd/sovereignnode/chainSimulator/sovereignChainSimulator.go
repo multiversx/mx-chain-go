@@ -73,7 +73,7 @@ func NewSovereignChainSimulator(args ArgsSovereignChainSimulator) (chainSimulato
 	args.NodeFactory = node.NewSovereignNodeFactory()
 	args.ChainProcessorFactory = NewSovereignChainHandlerFactory()
 
-	return chainSimulator.NewChainSimulator(*args.ArgsChainSimulator)
+	return chainSimulator.NewSovereignChainSimulator(*args.ArgsChainSimulator)
 }
 
 // loadSovereignConfigs loads sovereign configs

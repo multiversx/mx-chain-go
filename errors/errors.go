@@ -814,3 +814,6 @@ var ErrNilAccountsCreator = errors.New("nil accounts creator")
 
 // ErrNilInitialAccounts signals that a nil initial accounts has been provided
 var ErrNilInitialAccounts = errors.New("nil initial accounts")
+
+// ErrNilEpochStartTriggerFactory signals that a nil epoch start trigger factory has been provided
+var ErrNilEpochStartTriggerFactory = errors.New("nil epoch start trigger factory has been provided")

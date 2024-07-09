@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
+	"github.com/multiversx/mx-chain-go/factory"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/checking"
@@ -73,6 +74,7 @@ type RunTypeComponentsStub struct {
 	GenesisBlockFactory                 processGenesis.GenesisBlockCreatorFactory
 	GenesisMetaBlockChecker             processGenesis.GenesisMetaBlockChecker
 	NodesSetupCheckerFactoryField       checking.NodesSetupCheckerFactory
+	EpochStartTriggerFactoryField       factory.EpochStartTriggerFactoryHandler
 }
 
 // NewRunTypeComponentsStub -
@@ -112,6 +114,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		GenesisBlockFactory:                 &testFactory.GenesisBlockCreatorFactoryMock{},
 		GenesisMetaBlockChecker:             &testFactory.GenesisMetaBlockCheckerMock{},
 		NodesSetupCheckerFactoryField:       checking.NewNodesSetupCheckerFactory(),
+		EpochStartTriggerFactoryField:       &testFactory.EpochStartTriggerFactoryMock{},
 	}
 }
 
@@ -303,6 +306,11 @@ func (r *RunTypeComponentsStub) GenesisMetaBlockCheckerCreator() processGenesis.
 // NodesSetupCheckerFactory -
 func (r *RunTypeComponentsStub) NodesSetupCheckerFactory() checking.NodesSetupCheckerFactory {
 	return r.NodesSetupCheckerFactoryField
+}
+
+// EpochStartTriggerFactory -
+func (r *RunTypeComponentsStub) EpochStartTriggerFactory() factory.EpochStartTriggerFactoryHandler {
+	return r.EpochStartTriggerFactoryField
 }
 
 // IsInterfaceNil -
