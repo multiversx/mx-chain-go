@@ -212,6 +212,7 @@ func (adb *AccountsDB) GetCode(codeHash []byte) []byte {
 		Type:            "read",
 		MainTrieKey:     codeHash,
 		MainTrieVal:     val,
+		Operation:       "getCode",
 		DataTrieChanges: nil,
 	}
 	adb.stateChangesCollector.AddStateChange(stateChange)
@@ -371,6 +372,7 @@ func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte) (*CodeEntry, error
 		Type:            "read",
 		MainTrieKey:     oldCodeHash,
 		MainTrieVal:     nil,
+		Operation:       "getCode",
 		DataTrieChanges: nil,
 	}
 	adb.stateChangesCollector.AddStateChange(stateChange)
@@ -390,6 +392,7 @@ func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte) (*CodeEntry, error
 			Type:            "write",
 			MainTrieKey:     oldCodeHash,
 			MainTrieVal:     nil,
+			Operation:       "writeCode",
 			DataTrieChanges: nil,
 		}
 		adb.stateChangesCollector.AddStateChange(stateChange)
@@ -407,6 +410,7 @@ func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte) (*CodeEntry, error
 		Type:            "write",
 		MainTrieKey:     oldCodeHash,
 		MainTrieVal:     codeEntryBytes,
+		Operation:       "writeCode",
 		DataTrieChanges: nil,
 	}
 	adb.stateChangesCollector.AddStateChange(stateChange)
@@ -440,6 +444,7 @@ func (adb *AccountsDB) updateNewCodeEntry(newCodeHash []byte, newCode []byte) er
 		Type:            "write",
 		MainTrieKey:     newCodeHash,
 		MainTrieVal:     codeEntryBytes,
+		Operation:       "writeCode",
 		DataTrieChanges: nil,
 	}
 	adb.stateChangesCollector.AddStateChange(stateChange)
@@ -900,19 +905,6 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 	log.Trace("accountsDB.Commit started")
 	adb.entries = make([]JournalEntry, 0)
 
-	stateChanges := adb.stateChangesCollector.GetStateChanges()
-	printStateChanges(stateChanges)
-	err := adb.stateChangesCollector.DumpToJSONFile()
-	if err != nil {
-		log.Warn("failed to dump state changes to json file", "error", err)
-	}
-
-	log.Debug("commit: dump to json file")
-
-	adb.stateChangesCollector.Reset()
-
-	log.Debug("commit: reset")
-
 	// if len(stateChanges) != 0 {
 	// 	log.Warn("state changes collector is not empty", "state changes", stateChanges)
 	// 	adb.stateChangesCollector.Reset()
@@ -933,7 +925,7 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 	oldRoot := adb.mainTrie.GetOldRoot()
 
 	// Step 2. commit main trie
-	err = adb.commitTrie(adb.mainTrie, oldHashes, newHashes)
+	err := adb.commitTrie(adb.mainTrie, oldHashes, newHashes)
 	if err != nil {
 		return nil, err
 	}
@@ -1298,6 +1290,19 @@ func collectStats(
 // SetTxHashForLatestStateChanges will return the state changes since the last call of this method
 func (adb *AccountsDB) SetTxHashForLatestStateChanges(txHash []byte, tx *transaction.Transaction) {
 	adb.stateChangesCollector.AddTxHashToCollectedStateChanges(txHash, tx)
+
+	stateChanges := adb.stateChangesCollector.GetStateChanges()
+	printStateChanges(stateChanges)
+	err := adb.stateChangesCollector.DumpToJSONFile()
+	if err != nil {
+		log.Warn("failed to dump state changes to json file", "error", err)
+	}
+
+	log.Debug("SetTxHashForLatestStateChanges: dump to json file")
+
+	adb.stateChangesCollector.Reset()
+
+	log.Debug("SetTxHashForLatestStateChanges: reset")
 
 }
 

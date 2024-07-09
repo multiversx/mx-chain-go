@@ -2,11 +2,11 @@ package state
 
 import (
 	"encoding/json"
-	"os"
 	"path/filepath"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-storage-go/leveldb"
+	"github.com/multiversx/mx-chain-storage-go/types"
 )
 
 const (
@@ -41,35 +41,21 @@ type stateChangesCollector struct {
 	stateChanges      []StateChangeDTO
 	stateChangesForTx []StateChangesForTx
 
-	jsonFile    *os.File
-	jsonEncoder *json.Encoder
+	storer types.Persister
 }
 
 // NewStateChangesCollector creates a new StateChangesCollector
 func NewStateChangesCollector() *stateChangesCollector {
-	directory := filepath.Join(workingDir, defaultStateChangesPath)
-	args := core.ArgCreateFileArgument{
-		Directory:     directory,
-		Prefix:        "stateChanges",
-		FileExtension: "json",
-	}
+	dbPath := filepath.Join(workingDir, "stateChangesDB", "StateChanges")
 
-	jsonFile, err := core.CreateFile(args)
+	db, err := leveldb.NewSerialDB(dbPath, 2, 100, 10)
 	if err != nil {
-		log.Error("NewStateChangesCollector: failed to create json file")
+		log.Error("NewStateChangesCollector: failed to create level db")
 	}
-
-	// _, err = jsonFile.Write([]byte("["))
-	// if err != nil {
-	// 	log.Error("NewStateChangesCollector: failed to write to json file")
-	// }
-
-	encoder := json.NewEncoder(jsonFile)
 
 	return &stateChangesCollector{
 		stateChanges: []StateChangeDTO{},
-		jsonFile:     jsonFile,
-		jsonEncoder:  encoder,
+		storer:       db,
 	}
 }
 
@@ -106,16 +92,16 @@ func (scc *stateChangesCollector) AddTxHashToCollectedStateChanges(txHash []byte
 
 func (scc *stateChangesCollector) DumpToJSONFile() error {
 	for _, stateChange := range scc.stateChangesForTx {
-		err := scc.jsonEncoder.Encode(stateChange)
+		marshalledData, err := json.Marshal(stateChange)
+		if err != nil {
+			return err
+		}
+
+		err = scc.storer.Put(stateChange.TxHash, marshalledData)
 		if err != nil {
 			return err
 		}
 	}
-
-	// _, err := scc.jsonFile.Write([]byte(","))
-	// if err != nil {
-	// 	return err
-	// }
 
 	return nil
 }
