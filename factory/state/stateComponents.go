@@ -240,9 +240,9 @@ func (scf *stateComponentsFactory) createPeerAdapter(triesContainer common.Tries
 	}
 
 	stateChangesCollector := disabled.NewDisabledStateChangesCollector()
-	if scf.config.StateTriesConfig.CollectStateChangesEnabled {
-		stateChangesCollector = state.NewStateChangesCollector()
-	}
+	// if scf.config.StateTriesConfig.CollectStateChangesEnabled {
+	// 	stateChangesCollector = state.NewStateChangesCollector()
+	// }
 
 	argStateMetrics := stateMetrics.ArgsStateMetrics{
 		SnapshotInProgressKey:   common.MetricPeersSnapshotInProgress,
