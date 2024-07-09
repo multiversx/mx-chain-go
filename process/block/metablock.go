@@ -761,15 +761,6 @@ func (mp *metaProcessor) CreateBlock(
 	return metaHdr, body, nil
 }
 
-func (mp *baseProcessor) isPreviousBlockEpochStart() (uint32, bool) {
-	blockHeader := mp.blockChain.GetCurrentBlockHeader()
-	if check.IfNil(blockHeader) {
-		blockHeader = mp.blockChain.GetGenesisHeader()
-	}
-
-	return blockHeader.GetEpoch(), blockHeader.IsStartOfEpochBlock()
-}
-
 func (mp *metaProcessor) updateEpochStartHeader(metaHdr *block.MetaBlock) error {
 	sw := core.NewStopWatch()
 	sw.Start("createEpochStartForMetablock")

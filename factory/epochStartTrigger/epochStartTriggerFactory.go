@@ -15,6 +15,8 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block"
 )
 
+// TODO: MX-15632 Unit tests + fix import cycle
+
 type epochStartTriggerFactory struct {
 }
 

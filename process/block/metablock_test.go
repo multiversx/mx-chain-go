@@ -159,6 +159,7 @@ func createMockMetaArguments(
 			SentSignaturesTracker:        &testscommon.SentSignatureTrackerStub{},
 			ValidatorStatisticsProcessor: &testscommon.ValidatorStatisticsProcessorStub{},
 			RunTypeComponents:            components.GetRunTypeComponents(),
+			VmContainer:                  &mock.VMContainerMock{},
 		},
 		SCToProtocol:                 &mock.SCToProtocolStub{},
 		PendingMiniBlocksHandler:     &mock.PendingMiniBlocksHandlerStub{},

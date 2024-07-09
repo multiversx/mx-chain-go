@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/mock"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
@@ -92,6 +93,7 @@ func createArgument(
 			TxVersionCheck:           &testscommon.TxVersionCheckerStub{},
 			MinTxVersion:             1,
 			EnableEpochsHandlerField: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+			RaterField:               &testscommon.RaterMock{},
 		},
 		Data: &mock.DataComponentsMock{
 			Storage: &storageCommon.ChainStorerStub{
@@ -338,6 +340,21 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		require.ErrorIs(t, err, process.ErrNilPubkeyConverter)
 		require.Nil(t, gbc)
 	})
+	t.Run("nil Rater should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
+		arg.Core = &mock.CoreComponentsMock{
+			AddrPubKeyConv: testscommon.NewPubkeyConverterMock(32),
+			IntMarsh:       &mock.MarshalizerMock{},
+			Hash:           &hashingMocks.HasherMock{},
+			RaterField:     nil,
+		}
+
+		gbc, err := NewGenesisBlockCreator(arg)
+		require.ErrorIs(t, err, process.ErrNilRater)
+		require.Nil(t, gbc)
+	})
 	t.Run("nil InitialNodesSetup should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -544,6 +561,42 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 
 		gbc, err := NewGenesisBlockCreator(arg)
 		require.True(t, errors.Is(err, errorsMx.ErrNilTxPreProcessorCreator))
+		require.Nil(t, gbc)
+	})
+	t.Run("nil VMContextCreator, should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
+		rtComponents := genesisMocks.NewRunTypeComponentsStub()
+		rtComponents.VMContextCreatorHandler = nil
+		arg.RunTypeComponents = rtComponents
+
+		gbc, err := NewGenesisBlockCreator(arg)
+		require.True(t, errors.Is(err, errorsMx.ErrNilVMContextCreator))
+		require.Nil(t, gbc)
+	})
+	t.Run("nil VmContainerShardFactoryCreator, should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
+		rtComponents := genesisMocks.NewRunTypeComponentsStub()
+		rtComponents.VmContainerShardFactory = nil
+		arg.RunTypeComponents = rtComponents
+
+		gbc, err := NewGenesisBlockCreator(arg)
+		require.True(t, errors.Is(err, errorsMx.ErrNilVmContainerShardFactoryCreator))
+		require.Nil(t, gbc)
+	})
+	t.Run("nil VmContainerMetaFactoryCreator, should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
+		rtComponents := genesisMocks.NewRunTypeComponentsStub()
+		rtComponents.VmContainerMetaFactory = nil
+		arg.RunTypeComponents = rtComponents
+
+		gbc, err := NewGenesisBlockCreator(arg)
+		require.True(t, errors.Is(err, vm.ErrNilVmContainerMetaCreator))
 		require.Nil(t, gbc)
 	})
 	t.Run("nil TrieStorageManagers should error", func(t *testing.T) {

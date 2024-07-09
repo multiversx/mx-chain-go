@@ -2333,3 +2333,12 @@ func (bp *baseProcessor) processIfFirstBlockAfterEpochStart() error {
 
 	return nil
 }
+
+func (bp *baseProcessor) isPreviousBlockEpochStart() (uint32, bool) {
+	blockHeader := bp.blockChain.GetCurrentBlockHeader()
+	if check.IfNil(blockHeader) {
+		blockHeader = bp.blockChain.GetGenesisHeader()
+	}
+
+	return blockHeader.GetEpoch(), blockHeader.IsStartOfEpochBlock()
+}

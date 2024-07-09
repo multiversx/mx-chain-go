@@ -253,6 +253,7 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		extraHeaderSigVerifierHolder:            rtc.extraHeaderSigVerifierHolder,
 		genesisBlockCreatorFactory:              processComp.NewSovereignGenesisBlockCreatorFactory(),
 		genesisMetaBlockCheckerCreator:          processComp.NewSovereignGenesisMetaBlockChecker(),
+		nodesSetupCheckerFactory:                rtc.nodesSetupCheckerFactory,
 		epochStartTriggerFactory:                epochStartTrigger.NewSovereignEpochStartTriggerFactory(),
 		latestDataProviderFactory:               latestData.NewSovereignLatestDataProviderFactory(),
 	}, nil

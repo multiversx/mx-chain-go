@@ -3,12 +3,12 @@ package block
 import (
 	"errors"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/hashing/factory"
 	mxErrors "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/sovereign"
-
-	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/hashing/factory"
+	processFactory "github.com/multiversx/mx-chain-go/process/factory"
 )
 
 type sovereignBlockProcessorFactory struct {
@@ -27,8 +27,8 @@ func NewSovereignBlockProcessorFactory(sbpf BlockProcessorCreator) (*sovereignBl
 }
 
 // CreateBlockProcessor creates a new sovereign block processor for the chain run type sovereign
-func (s *sovereignBlockProcessorFactory) CreateBlockProcessor(argumentsBaseProcessor ArgBaseProcessor, argsMetaProcessor ArgMetaProcessor) (process.DebuggerBlockProcessor, error) {
-	sp, err := s.shardBlockProcessorFactory.CreateBlockProcessor(argumentsBaseProcessor, argsMetaProcessor)
+func (s *sovereignBlockProcessorFactory) CreateBlockProcessor(argumentsBaseProcessor ArgBaseProcessor, argsMetaProcessorCreateFunc ExtraMetaBlockProcessorCreateFunc) (process.DebuggerBlockProcessor, error) {
+	sp, err := s.shardBlockProcessorFactory.CreateBlockProcessor(argumentsBaseProcessor, argsMetaProcessorCreateFunc)
 	if err != nil {
 		return nil, errors.New("could not create shard block processor: " + err.Error())
 	}
@@ -48,6 +48,16 @@ func (s *sovereignBlockProcessorFactory) CreateBlockProcessor(argumentsBaseProce
 	}
 
 	operationsHasher, err := factory.NewHasher(argumentsBaseProcessor.Config.SovereignConfig.OutGoingBridge.Hasher)
+	if err != nil {
+		return nil, err
+	}
+
+	systemVM, err := argumentsBaseProcessor.VmContainer.Get(processFactory.SystemVirtualMachine)
+	if err != nil {
+		return nil, err
+	}
+
+	argsMetaProcessor, err := argsMetaProcessorCreateFunc(systemVM)
 	if err != nil {
 		return nil, err
 	}

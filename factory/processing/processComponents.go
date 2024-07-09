@@ -640,12 +640,13 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, errors.New("invalid genesis node price")
 	}
 
-	nodesSetupChecker, err := checking.NewNodesSetupChecker(
-		pcf.runTypeComponents.AccountsParser(),
-		genesisNodePrice,
-		pcf.coreData.ValidatorPubKeyConverter(),
-		pcf.crypto.BlockSignKeyGen(),
-	)
+	argsNodesSetupChecker := checking.ArgsNodesSetupChecker{
+		AccountsParser:           pcf.runTypeComponents.AccountsParser(),
+		InitialNodePrice:         genesisNodePrice,
+		ValidatorPubKeyConverter: pcf.coreData.ValidatorPubKeyConverter(),
+		KeyGenerator:             pcf.crypto.BlockSignKeyGen(),
+	}
+	nodesSetupChecker, err := pcf.runTypeComponents.NodesSetupCheckerFactory().CreateNodesSetupChecker(argsNodesSetupChecker)
 	if err != nil {
 		return nil, err
 	}
@@ -2061,6 +2062,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.RunTypeComponents.GenesisMetaBlockCheckerCreator()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilGenesisMetaBlockChecker)
+	}
+	if check.IfNil(args.RunTypeComponents.EpochStartTriggerFactory()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilEpochStartTriggerFactory)
 	}
 
 	return nil

@@ -2269,7 +2269,6 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 
 	argsMetaProcessor := tpn.createMetaBlockProcessorArgs(argumentsBase, coreComponents)
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
-
 		tpn.BlockProcessor, err = block.NewMetaProcessor(argsMetaProcessor)
 	} else {
 		if check.IfNil(tpn.EpochStartTrigger) {
@@ -2306,7 +2305,14 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
 		argumentsBase.ScheduledTxsExecutionHandler = &testscommon.ScheduledTxsExecutionStub{}
 
-		tpn.BlockProcessor, err = tpn.BlockProcessorCreator.CreateBlockProcessor(argumentsBase, argsMetaProcessor)
+		funcCreateExtraArgs := func(systemVM vmcommon.VMExecutionHandler) (*block.ExtraArgsMetaBlockProcessor, error) {
+			return &block.ExtraArgsMetaBlockProcessor{
+				EpochStartDataCreator:     argsMetaProcessor.EpochStartDataCreator,
+				EpochValidatorInfoCreator: argsMetaProcessor.EpochValidatorInfoCreator,
+				EpochRewardsCreator:       argsMetaProcessor.EpochRewardsCreator,
+			}, nil
+		}
+		tpn.BlockProcessor, err = tpn.BlockProcessorCreator.CreateBlockProcessor(argumentsBase, funcCreateExtraArgs)
 	}
 
 	if err != nil {

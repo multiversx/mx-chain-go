@@ -51,7 +51,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	updateMocks "github.com/multiversx/mx-chain-go/update/mock"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
 	coreData "github.com/multiversx/mx-chain-core-go/data"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
@@ -135,6 +134,7 @@ func createProcessComponentsFactoryArgs(runTypeComponents *mainFactoryMocks.RunT
 				},
 				Active: config.GovernanceSystemSCConfigActive{
 					ProposalCost:     "500",
+					LostProposalFee:  "100",
 					MinQuorum:        0.5,
 					MinPassThreshold: 0.5,
 					MinVetoThreshold: 0.5,
@@ -948,6 +948,17 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		require.True(t, errors.Is(err, errorsMx.ErrNilGenesisMetaBlockChecker))
 		require.Nil(t, pcf)
 	})
+	t.Run("nil EpochStartTrigger should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockProcessComponentsFactoryArgs()
+		rtMock := getRunTypeComponentsMock()
+		rtMock.EpochStartTriggerFactoryField = nil
+		args.RunTypeComponents = rtMock
+		pcf, err := processComp.NewProcessComponentsFactory(args)
+		require.True(t, errors.Is(err, errorsMx.ErrNilEpochStartTriggerFactory))
+		require.Nil(t, pcf)
+	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -999,6 +1010,7 @@ func getRunTypeComponents(rt runType.RunTypeComponentsHolder) *mainFactoryMocks.
 		ExtraHeaderSigVerifier:              rt.ExtraHeaderSigVerifierHolder(),
 		GenesisBlockFactory:                 rt.GenesisBlockCreatorFactory(),
 		GenesisMetaBlockChecker:             rt.GenesisMetaBlockCheckerCreator(),
+		NodesSetupCheckerFactoryField:       rt.NodesSetupCheckerFactory(),
 		EpochStartTriggerFactoryField:       rt.EpochStartTriggerFactory(),
 	}
 }
@@ -1483,7 +1495,7 @@ func TestProcessComponentsFactory_CreateShouldWork(t *testing.T) {
 	t.Run("creating process components factory in sovereign chain should work", func(t *testing.T) {
 		t.Parallel()
 
-		shardCoordinator := sharding.NewSovereignShardCoordinator(core.SovereignChainShardId)
+		shardCoordinator := sharding.NewSovereignShardCoordinator()
 		processArgs := components.GetSovereignProcessComponentsFactoryArgs(shardCoordinator)
 		pcf, _ := processComp.NewProcessComponentsFactory(processArgs)
 

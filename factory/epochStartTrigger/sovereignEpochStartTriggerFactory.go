@@ -6,6 +6,8 @@ import (
 	"github.com/multiversx/mx-chain-go/factory"
 )
 
+// TODO: MX-15632 Unit tests + fix import cycle
+
 type sovereignEpochStartTriggerFactory struct {
 }
 

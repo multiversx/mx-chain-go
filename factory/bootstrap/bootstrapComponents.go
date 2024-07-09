@@ -250,22 +250,22 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		RunTypeComponents:               bcf.runTypeComponents,
 	}
 
+	esbc := bcf.runTypeComponents.EpochStartBootstrapperCreator()
 	var epochStartBootstrapper factory.EpochStartBootstrapper
 	if bcf.importDbConfig.IsImportDBMode {
 		storageArg := bootstrap.ArgsStorageEpochStartBootstrap{
-			ArgsEpochStartBootstrap:       epochStartBootstrapArgs,
-			ImportDbConfig:                bcf.importDbConfig,
-			ChanGracefullyClose:           bcf.coreComponents.ChanStopNodeProcess(),
-			TimeToWaitForRequestedData:    bootstrap.DefaultTimeToWaitForRequestedData,
-			EpochStartBootstrapperCreator: bcf.runTypeComponents.EpochStartBootstrapperCreator(),
+			ArgsEpochStartBootstrap:    epochStartBootstrapArgs,
+			ImportDbConfig:             bcf.importDbConfig,
+			ChanGracefullyClose:        bcf.coreComponents.ChanStopNodeProcess(),
+			TimeToWaitForRequestedData: bootstrap.DefaultTimeToWaitForRequestedData,
 		}
 
-		epochStartBootstrapper, err = bootstrap.NewStorageEpochStartBootstrap(storageArg)
+		epochStartBootstrapper, err = esbc.CreateStorageEpochStartBootstrapper(storageArg)
 		if err != nil {
 			return nil, fmt.Errorf("%w: %v", errors.ErrNewStorageEpochStartBootstrap, err)
 		}
 	} else {
-		esbc := bcf.runTypeComponents.EpochStartBootstrapperCreator()
+
 		epochStartBootstrapper, err = esbc.CreateEpochStartBootstrapper(epochStartBootstrapArgs)
 		if err != nil {
 			return nil, fmt.Errorf("%w: %v", errors.ErrNewEpochStartBootstrap, err)
