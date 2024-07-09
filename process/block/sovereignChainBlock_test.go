@@ -60,6 +60,7 @@ func createSovChainBlockProcessorArgs() blproc.ArgsSovereignChainBlockProcessor 
 		EpochStartDataCreator:        &mock.EpochStartDataCreatorStub{},
 		EpochRewardsCreator:          &testscommon.RewardsCreatorStub{},
 		ValidatorInfoCreator:         &testscommon.EpochValidatorInfoCreatorStub{},
+		EpochSystemSCProcessor:       &testscommon.EpochStartSystemSCStub{},
 	}
 }
 
@@ -179,6 +180,17 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 
 		require.Nil(t, scbp)
 		require.Equal(t, process.ErrNilEpochStartValidatorInfoCreator, err)
+	})
+
+	t.Run("should error when epoch start system sc processor is nil", func(t *testing.T) {
+		t.Parallel()
+
+		args := createSovChainBlockProcessorArgs()
+		args.EpochSystemSCProcessor = nil
+		scbp, err := blproc.NewSovereignChainBlockProcessor(args)
+
+		require.Nil(t, scbp)
+		require.Equal(t, process.ErrNilEpochStartSystemSCProcessor, err)
 	})
 
 	t.Run("should error when type assertion to extendedShardHeaderTrackHandler fails", func(t *testing.T) {
