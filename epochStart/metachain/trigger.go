@@ -35,6 +35,11 @@ var _ closing.Closer = (*trigger)(nil)
 const minimumNonceToStartEpoch = 4
 const disabledRoundForForceEpochStart = math.MaxUint64
 
+type registryHandler interface {
+	createRegistry(header data.HeaderHandler, t *trigger) (data.MetaTriggerRegistryHandler, error)
+	UnmarshalTrigger(marshaller marshal.Marshalizer, data []byte) (data.MetaTriggerRegistryHandler, error)
+}
+
 // ArgsNewMetaEpochStartTrigger defines struct needed to create a new start of epoch trigger
 type ArgsNewMetaEpochStartTrigger struct {
 	GenesisTime        time.Time
@@ -76,17 +81,7 @@ type trigger struct {
 
 // NewEpochStartTrigger creates a trigger for start of epoch
 func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) {
-	trig, err := newTrigger(args, &block.MetaBlock{}, &metaTriggerRegistryCreator{})
-	if err != nil {
-		return nil, err
-	}
-
-	err = trig.saveState(trig.triggerStateKey)
-	if err != nil {
-		return nil, err
-	}
-
-	return trig, nil
+	return newTrigger(args, &block.MetaBlock{}, &metaTriggerRegistryCreator{})
 }
 
 func newTrigger(args *ArgsNewMetaEpochStartTrigger, epochStartHeader data.HeaderHandler, registryHandler registryHandler) (*trigger, error) {
@@ -106,7 +101,7 @@ func newTrigger(args *ArgsNewMetaEpochStartTrigger, epochStartHeader data.Header
 	}
 
 	trigggerStateKey := common.TriggerRegistryInitialKeyPrefix + fmt.Sprintf("%d", args.Epoch)
-	return &trigger{
+	trig := &trigger{
 		triggerStateKey:             []byte(trigggerStateKey),
 		roundsPerEpoch:              uint64(args.Settings.RoundsPerEpoch),
 		epochStartTime:              args.GenesisTime,
@@ -126,7 +121,14 @@ func newTrigger(args *ArgsNewMetaEpochStartTrigger, epochStartHeader data.Header
 		nextEpochStartRound:         disabledRoundForForceEpochStart,
 		validatorInfoPool:           args.DataPool.CurrentEpochValidatorInfo(),
 		registryHandler:             registryHandler,
-	}, nil
+	}
+
+	err = trig.saveState(trig.triggerStateKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return trig, nil
 }
 
 func checkArgs(args *ArgsNewMetaEpochStartTrigger) error {
@@ -350,7 +352,7 @@ func (t *trigger) RevertStateToBlock(header data.HeaderHandler) error {
 	return nil
 }
 
-// TODO: take care of this when economics is added to sovereign block
+// TODO: TODO MX-15589 take care of this when economics is added to sovereign block
 func (t *trigger) revert(header data.HeaderHandler) error {
 	if check.IfNil(header) || !header.IsStartOfEpochBlock() || header.GetEpoch() == 0 {
 		return nil

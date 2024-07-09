@@ -7,16 +7,11 @@ import (
 
 type sovereignTrigger struct {
 	*trigger
-	registryHandler registryHandler
 }
 
+// NewSovereignTrigger creates a new sovereign epoch start trigger
 func NewSovereignTrigger(args *ArgsNewMetaEpochStartTrigger) (*sovereignTrigger, error) {
 	metaTrigger, err := newTrigger(args, &block.SovereignChainHeader{}, &sovereignTriggerRegistryCreator{})
-	if err != nil {
-		return nil, err
-	}
-
-	err = metaTrigger.saveState(metaTrigger.triggerStateKey)
 	if err != nil {
 		return nil, err
 	}

@@ -13,7 +13,7 @@ type sovereignEpochStartRoundLoader struct {
 
 func newSovereignEpochStartRoundLoader() *sovereignEpochStartRoundLoader {
 	return &sovereignEpochStartRoundLoader{
-		registryHandler: metachain.NewSovereignTriggerHandler(),
+		registryHandler: metachain.NewSovereignTriggerRegistryCreator(),
 	}
 }
 

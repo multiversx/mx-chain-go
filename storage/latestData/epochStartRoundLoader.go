@@ -16,7 +16,7 @@ type epochStartRoundLoader struct {
 
 func newEpochStartRoundLoader() *epochStartRoundLoader {
 	return &epochStartRoundLoader{
-		registryHandler: metachain.NewMetaTriggerHandler(),
+		registryHandler: metachain.NewMetaTriggerRegistryCreator(),
 	}
 }
 

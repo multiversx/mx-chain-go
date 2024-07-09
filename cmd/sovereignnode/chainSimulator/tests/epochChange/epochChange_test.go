@@ -55,17 +55,12 @@ func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 
 	defer cs.Close()
 
-	cs.GenerateBlocks(1)
-
 	trie := cs.GetNodeHandler(0).GetStateComponents().TriesContainer().Get([]byte(dataRetriever.PeerAccountsUnit.String()))
 	require.NotNil(t, trie)
 
 	err = cs.GenerateBlocksUntilEpochIsReached(1)
 	require.Nil(t, err)
 	require.Equal(t, uint32(1), cs.GetNodeHandler(0).GetCoreComponents().EpochNotifier().CurrentEpoch())
-
-	err = cs.GenerateBlocks(1)
-	require.Nil(t, err)
 
 	err = cs.GenerateBlocksUntilEpochIsReached(3)
 	require.Nil(t, err)
