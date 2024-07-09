@@ -14,6 +14,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 	"github.com/multiversx/mx-chain-go/vm"
 )
@@ -48,6 +49,12 @@ type ArgsDepositToken struct {
 	Nonce      uint64
 	Amount     *big.Int
 	Type       core.ESDTType
+}
+
+// Account holds the arguments for a user account
+type Account struct {
+	Wallet dtos.WalletAddress
+	Nonce  uint64
 }
 
 // GetSysAccBytesAddress will return the system account bytes address
