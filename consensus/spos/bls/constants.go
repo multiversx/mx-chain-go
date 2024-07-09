@@ -52,10 +52,10 @@ const srStartEndTime = 0.05
 const srBlockStartTime = 0.05
 
 // srBlockEndTime specifies the end time, from the total time of the round, of Subround Block
-const srBlockEndTime = 0.45
+const srBlockEndTime = 0.25
 
 // srSignatureStartTime specifies the start time, from the total time of the round, of Subround Signature
-const srSignatureStartTime = 0.45
+const srSignatureStartTime = 0.25
 
 // srSignatureEndTime specifies the end time, from the total time of the round, of Subround Signature
 const srSignatureEndTime = 0.85

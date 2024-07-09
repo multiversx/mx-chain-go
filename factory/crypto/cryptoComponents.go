@@ -12,6 +12,7 @@ import (
 	disabledCrypto "github.com/multiversx/mx-chain-crypto-go/signing/disabled"
 	disabledSig "github.com/multiversx/mx-chain-crypto-go/signing/disabled/singlesig"
 	"github.com/multiversx/mx-chain-crypto-go/signing/ed25519"
+	"github.com/multiversx/mx-chain-crypto-go/signing/ed25519/singlesig"
 	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
 	mclSig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/singlesig"
 	"github.com/multiversx/mx-chain-crypto-go/signing/secp256k1"
@@ -152,14 +153,13 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 	}
 
 	txSignKeyGen := signing.NewKeyGenerator(ed25519.NewEd25519())
-	txSingleSigner := &disabledSig.DisabledSingleSig{}
-
-	processingSingleSigner, err := ccf.createSingleSigner(true)
+	txSingleSigner := &singlesig.Ed25519Signer{}
+	processingSingleSigner, err := ccf.createSingleSigner(false)
 	if err != nil {
 		return nil, err
 	}
 
-	interceptSingleSigner, err := ccf.createSingleSigner(true)
+	interceptSingleSigner, err := ccf.createSingleSigner(ccf.importModeNoSigCheck)
 	if err != nil {
 		return nil, err
 	}
