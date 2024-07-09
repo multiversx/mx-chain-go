@@ -2,7 +2,6 @@ package state
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -27,6 +26,7 @@ type StateChangeDTO struct {
 	Type            string           `json:"type"`
 	MainTrieKey     []byte           `json:"mainTrieKey"`
 	MainTrieVal     []byte           `json:"-"`
+	Operation       string           `json:"operation,omitempty"`
 	DataTrieChanges []DataTrieChange `json:"dataTrieChanges"`
 }
 
@@ -40,12 +40,36 @@ type StateChangesForTx struct {
 type stateChangesCollector struct {
 	stateChanges      []StateChangeDTO
 	stateChangesForTx []StateChangesForTx
+
+	jsonFile    *os.File
+	jsonEncoder *json.Encoder
 }
 
 // NewStateChangesCollector creates a new StateChangesCollector
 func NewStateChangesCollector() *stateChangesCollector {
+	directory := filepath.Join(workingDir, defaultStateChangesPath)
+	args := core.ArgCreateFileArgument{
+		Directory:     directory,
+		Prefix:        "stateChanges",
+		FileExtension: "json",
+	}
+
+	jsonFile, err := core.CreateFile(args)
+	if err != nil {
+		log.Error("NewStateChangesCollector: failed to create json file")
+	}
+
+	// _, err = jsonFile.Write([]byte("["))
+	// if err != nil {
+	// 	log.Error("NewStateChangesCollector: failed to write to json file")
+	// }
+
+	encoder := json.NewEncoder(jsonFile)
+
 	return &stateChangesCollector{
 		stateChanges: []StateChangeDTO{},
+		jsonFile:     jsonFile,
+		jsonEncoder:  encoder,
 	}
 }
 
@@ -81,33 +105,17 @@ func (scc *stateChangesCollector) AddTxHashToCollectedStateChanges(txHash []byte
 }
 
 func (scc *stateChangesCollector) DumpToJSONFile() error {
-	directory := filepath.Join(workingDir, defaultStateChangesPath)
-	args := core.ArgCreateFileArgument{
-		Directory:     directory,
-		Prefix:        "stateChanges",
-		FileExtension: "json",
-	}
-	jsonFile, err := core.CreateFile(args)
-	if err != nil {
-		return err
+	for _, stateChange := range scc.stateChangesForTx {
+		err := scc.jsonEncoder.Encode(stateChange)
+		if err != nil {
+			return err
+		}
 	}
 
-	marshalledData, err := json.Marshal(scc.stateChangesForTx)
-	if err != nil {
-		return err
-	}
-
-	// encoder := json.NewEncoder(jsonFile)
-
-	// err = encoder.Encode(marshalledData)
+	// _, err := scc.jsonFile.Write([]byte(","))
 	// if err != nil {
 	// 	return err
 	// }
-
-	err = ioutil.WriteFile(jsonFile.Name(), marshalledData, os.ModePerm)
-	if err != nil {
-		return err
-	}
 
 	return nil
 }
