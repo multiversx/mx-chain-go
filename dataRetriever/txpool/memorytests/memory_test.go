@@ -38,13 +38,13 @@ func TestShardedTxPool_MemoryFootprint(t *testing.T) {
 	journals = append(journals, runScenario(t, newScenario(10000, 1, 1024, "0"), memoryAssertion{10, 16}, memoryAssertion{4, 10}))
 	journals = append(journals, runScenario(t, newScenario(1, 60000, 256, "0"), memoryAssertion{30, 36}, memoryAssertion{10, 16}))
 	journals = append(journals, runScenario(t, newScenario(10, 10000, 100, "0"), memoryAssertion{36, 46}, memoryAssertion{16, 24}))
-	journals = append(journals, runScenario(t, newScenario(100000, 1, 1024, "0"), memoryAssertion{120, 136}, memoryAssertion{56, 60}))
+	journals = append(journals, runScenario(t, newScenario(100000, 1, 1024, "0"), memoryAssertion{120, 136}, memoryAssertion{40, 60}))
 
 	// With larger memory footprint
 
-	journals = append(journals, runScenario(t, newScenario(100000, 3, 650, "0"), memoryAssertion{290, 320}, memoryAssertion{95, 120}))
-	journals = append(journals, runScenario(t, newScenario(150000, 2, 650, "0"), memoryAssertion{290, 320}, memoryAssertion{120, 140}))
-	journals = append(journals, runScenario(t, newScenario(300000, 1, 650, "0"), memoryAssertion{290, 320}, memoryAssertion{170, 190}))
+	journals = append(journals, runScenario(t, newScenario(100000, 3, 650, "0"), memoryAssertion{290, 320}, memoryAssertion{90, 120}))
+	journals = append(journals, runScenario(t, newScenario(150000, 2, 650, "0"), memoryAssertion{290, 320}, memoryAssertion{100, 140}))
+	journals = append(journals, runScenario(t, newScenario(300000, 1, 650, "0"), memoryAssertion{290, 320}, memoryAssertion{150, 190}))
 	journals = append(journals, runScenario(t, newScenario(30, 10000, 650, "0"), memoryAssertion{290, 320}, memoryAssertion{60, 75}))
 	journals = append(journals, runScenario(t, newScenario(300, 1000, 650, "0"), memoryAssertion{290, 320}, memoryAssertion{60, 80}))
 
@@ -110,12 +110,8 @@ func newPool() dataRetriever.ShardedDataCacherNotifier {
 	}
 
 	args := txpool.ArgShardedTxPool{
-		Config: config,
-		TxGasHandler: &txcachemocks.TxGasHandlerMock{
-			MinimumGasMove:       50000,
-			MinimumGasPrice:      200000000000,
-			GasProcessingDivisor: 100,
-		},
+		Config:         config,
+		TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
 		NumberOfShards: 2,
 		SelfShardID:    0,
 	}
@@ -187,9 +183,10 @@ func createTxWithPayload(senderTag int, nonce int, payloadLength int) *dummyTx {
 
 	return &dummyTx{
 		Transaction: transaction.Transaction{
-			SndAddr: sender,
-			Nonce:   uint64(nonce),
-			Data:    make([]byte, payloadLength),
+			SndAddr:  sender,
+			Nonce:    uint64(nonce),
+			Data:     make([]byte, payloadLength),
+			GasLimit: uint64(50000 + 1500*payloadLength),
 		},
 		hash: hash,
 	}

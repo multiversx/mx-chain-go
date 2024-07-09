@@ -33,11 +33,7 @@ func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
 			SizeInBytesPerSender: 40960,
 			Shards:               16,
 		},
-		TxGasHandler: &txcachemocks.TxGasHandlerMock{
-			MinimumGasMove:       50000,
-			MinimumGasPrice:      1000000000,
-			GasProcessingDivisor: 100,
-		},
+		TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
 		NumberOfShards: 1,
 	}
 
@@ -84,11 +80,7 @@ func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
 	require.Errorf(t, err, dataRetriever.ErrNilTxGasHandler.Error())
 
 	args = goodArgs
-	args.TxGasHandler = &txcachemocks.TxGasHandlerMock{
-		MinimumGasMove:       50000,
-		MinimumGasPrice:      0,
-		GasProcessingDivisor: 1,
-	}
+	args.TxGasHandler = txcachemocks.NewTxGasHandlerMock().WithMinGasPrice(0)
 	pool, err = NewShardedTxPool(args)
 	require.Nil(t, pool)
 	require.NotNil(t, err)
@@ -105,12 +97,8 @@ func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
 func Test_NewShardedTxPool_ComputesCacheConfig(t *testing.T) {
 	config := storageunit.CacheConfig{SizeInBytes: 419430400, SizeInBytesPerSender: 614400, Capacity: 600000, SizePerSender: 1000, Shards: 1}
 	args := ArgShardedTxPool{
-		Config: config,
-		TxGasHandler: &txcachemocks.TxGasHandlerMock{
-			MinimumGasMove:       50000,
-			MinimumGasPrice:      1000000000,
-			GasProcessingDivisor: 1,
-		},
+		Config:         config,
+		TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
 		NumberOfShards: 2,
 	}
 
@@ -392,12 +380,8 @@ func Test_routeToCacheUnions(t *testing.T) {
 		Shards:               1,
 	}
 	args := ArgShardedTxPool{
-		Config: config,
-		TxGasHandler: &txcachemocks.TxGasHandlerMock{
-			MinimumGasMove:       50000,
-			MinimumGasPrice:      200000000000,
-			GasProcessingDivisor: 100,
-		},
+		Config:         config,
+		TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
 		NumberOfShards: 4,
 		SelfShardID:    42,
 	}
@@ -414,8 +398,9 @@ func Test_routeToCacheUnions(t *testing.T) {
 
 func createTx(sender string, nonce uint64) data.TransactionHandler {
 	return &transaction.Transaction{
-		SndAddr: []byte(sender),
-		Nonce:   nonce,
+		SndAddr:  []byte(sender),
+		Nonce:    nonce,
+		GasLimit: 50000,
 	}
 }
 
@@ -435,12 +420,8 @@ func newTxPoolToTest() (dataRetriever.ShardedDataCacherNotifier, error) {
 		Shards:               1,
 	}
 	args := ArgShardedTxPool{
-		Config: config,
-		TxGasHandler: &txcachemocks.TxGasHandlerMock{
-			MinimumGasMove:       50000,
-			MinimumGasPrice:      200000000000,
-			GasProcessingDivisor: 100,
-		},
+		Config:         config,
+		TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
 		NumberOfShards: 4,
 		SelfShardID:    0,
 	}
