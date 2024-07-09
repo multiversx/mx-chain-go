@@ -498,6 +498,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		requestHandler,
 		blockTracker,
 		epochStartTrigger,
+		validatorStatisticsProcessor,
 	)
 
 	blockProcessor, err := pcf.createBlockProcessor(argumentsBaseProcessor, extraMetaArgsFunc)
@@ -684,7 +685,6 @@ func (pcf *processComponentsFactory) createArgsMetaBlockProcessor(
 	}
 
 	txFeeHandler := postprocess.NewFeeAccumulator()
-	enableEpochs := pcf.epochConfig.EnableEpochs
 	argsNewScProcessor := scrCommon.ArgsNewSmartContractProcessor{
 		VmContainer:         vmContainer,
 		ArgsParser:          argsParser,
@@ -1001,15 +1001,56 @@ func (pcf *processComponentsFactory) createArgsMetaBlockProcessor(
 		SentSignaturesTracker:        sentSignaturesTracker,
 	}
 
-	esdtOwnerAddress, err := pcf.coreData.AddressPubKeyConverter().Decode(pcf.systemSCConfig.ESDTSystemSCConfig.OwnerAddress)
+	maxNodesChangeConfigProviderAPI, err := notifier.NewNodesConfigProviderAPI(pcf.epochNotifier, pcf.epochConfig.EnableEpochs)
 	if err != nil {
-		return nil, fmt.Errorf("%w while decoding systemSCConfig.ESDTSystemSCConfig.OwnerAddress "+
-			"in processComponentsFactory.newMetaBlockProcessor", err)
+		return nil, err
+	}
+	argsAuctionListSelectorAPI := metachainEpochStart.AuctionListSelectorArgs{
+		ShardCoordinator:             pcf.bootstrapComponents.ShardCoordinator(),
+		StakingDataProvider:          stakingDataProviderAPI,
+		MaxNodesChangeConfigProvider: maxNodesChangeConfigProviderAPI,
+		SoftAuctionConfig:            pcf.systemSCConfig.SoftAuctionConfig,
+		Denomination:                 pcf.economicsConfig.GlobalSettings.Denomination,
+		AuctionListDisplayHandler:    factoryDisabled.NewDisabledAuctionListDisplayer(),
+	}
+	auctionListSelectorAPI, err := metachainEpochStart.NewAuctionListSelector(argsAuctionListSelectorAPI)
+	if err != nil {
+		return nil, err
 	}
 
+	pcf.auctionListSelectorAPI = auctionListSelectorAPI
+
+	epochStartSystemSCProcessor, err := pcf.createEpochStartSysSCProcessor(stakingDataProvider, validatorStatisticsProcessor, systemVM)
+	if err != nil {
+		return nil, err
+	}
+
+	return &argsMetaBlockProcessorAndVmFactories{
+		vmFactoryForProcessing: vmFactory,
+		epochSystemSCProcessor: epochStartSystemSCProcessor,
+
+		argsMetaBlockProcessor: block.ArgMetaProcessor{
+			ArgBaseProcessor:             argumentsBaseProcessor,
+			SCToProtocol:                 smartContractToProtocol,
+			PendingMiniBlocksHandler:     pendingMiniBlocksHandler,
+			EpochStartDataCreator:        epochStartDataCreator,
+			EpochEconomics:               epochEconomics,
+			EpochRewardsCreator:          epochRewards,
+			EpochValidatorInfoCreator:    validatorInfoCreator,
+			ValidatorStatisticsProcessor: validatorStatisticsProcessor,
+			EpochSystemSCProcessor:       epochStartSystemSCProcessor,
+		},
+	}, nil
+}
+
+func (pcf *processComponentsFactory) createEpochStartSysSCProcessor(
+	stakingDataProvider epochStart.StakingDataProvider,
+	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
+	systemVM vmcommon.VMExecutionHandler,
+) (process.EpochStartSystemSCProcessor, error) {
 	maxNodesChangeConfigProvider, err := notifier.NewNodesConfigProvider(
 		pcf.epochNotifier,
-		enableEpochs.MaxNodesChangeEnableEpoch,
+		pcf.epochConfig.EnableEpochs.MaxNodesChangeEnableEpoch,
 	)
 	if err != nil {
 		return nil, err
@@ -1035,29 +1076,17 @@ func (pcf *processComponentsFactory) createArgsMetaBlockProcessor(
 		SoftAuctionConfig:            pcf.systemSCConfig.SoftAuctionConfig,
 		Denomination:                 pcf.economicsConfig.GlobalSettings.Denomination,
 	}
+
 	auctionListSelector, err := metachainEpochStart.NewAuctionListSelector(argsAuctionListSelector)
 	if err != nil {
 		return nil, err
 	}
 
-	maxNodesChangeConfigProviderAPI, err := notifier.NewNodesConfigProviderAPI(pcf.epochNotifier, pcf.epochConfig.EnableEpochs)
+	esdtOwnerAddress, err := pcf.coreData.AddressPubKeyConverter().Decode(pcf.systemSCConfig.ESDTSystemSCConfig.OwnerAddress)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w while decoding systemSCConfig.ESDTSystemSCConfig.OwnerAddress "+
+			"in processComponentsFactory.createEpochStartSysSCProcessor", err)
 	}
-	argsAuctionListSelectorAPI := metachainEpochStart.AuctionListSelectorArgs{
-		ShardCoordinator:             pcf.bootstrapComponents.ShardCoordinator(),
-		StakingDataProvider:          stakingDataProviderAPI,
-		MaxNodesChangeConfigProvider: maxNodesChangeConfigProviderAPI,
-		SoftAuctionConfig:            pcf.systemSCConfig.SoftAuctionConfig,
-		Denomination:                 pcf.economicsConfig.GlobalSettings.Denomination,
-		AuctionListDisplayHandler:    factoryDisabled.NewDisabledAuctionListDisplayer(),
-	}
-	auctionListSelectorAPI, err := metachainEpochStart.NewAuctionListSelector(argsAuctionListSelectorAPI)
-	if err != nil {
-		return nil, err
-	}
-
-	pcf.auctionListSelectorAPI = auctionListSelectorAPI
 
 	argsEpochSystemSC := metachainEpochStart.ArgsNewEpochStartSystemSCProcessing{
 		SystemVM:                     systemVM,
@@ -1080,33 +1109,14 @@ func (pcf *processComponentsFactory) createArgsMetaBlockProcessor(
 		AuctionListSelector:          auctionListSelector,
 	}
 
-	epochStartSystemSCProcessor, err := metachainEpochStart.NewSystemSCProcessor(argsEpochSystemSC)
-	if err != nil {
-		return nil, err
-	}
-
-	return &argsMetaBlockProcessorAndVmFactories{
-		vmFactoryForProcessing: vmFactory,
-		epochSystemSCProcessor: epochStartSystemSCProcessor,
-
-		argsMetaBlockProcessor: block.ArgMetaProcessor{
-			ArgBaseProcessor:             argumentsBaseProcessor,
-			SCToProtocol:                 smartContractToProtocol,
-			PendingMiniBlocksHandler:     pendingMiniBlocksHandler,
-			EpochStartDataCreator:        epochStartDataCreator,
-			EpochEconomics:               epochEconomics,
-			EpochRewardsCreator:          epochRewards,
-			EpochValidatorInfoCreator:    validatorInfoCreator,
-			ValidatorStatisticsProcessor: validatorStatisticsProcessor,
-			EpochSystemSCProcessor:       epochStartSystemSCProcessor,
-		},
-	}, nil
+	return metachainEpochStart.NewSystemSCProcessor(argsEpochSystemSC)
 }
 
 func (pcf *processComponentsFactory) createExtraMetaBlockProcessorArgs(
 	requestHandler process.RequestHandler,
 	blockTracker process.BlockTracker,
 	epochStartTrigger process.EpochStartTriggerHandler,
+	validatorStatisticsProcessor process.ValidatorStatisticsProcessor,
 ) block.ExtraMetaBlockProcessorCreateFunc {
 	return func(systemVM vmcommon.VMExecutionHandler) (*block.ExtraArgsMetaBlockProcessor, error) {
 		validatorInfoStorage, err := pcf.data.StorageService().GetStorer(dataRetriever.UnsignedTransactionUnit)
@@ -1192,10 +1202,16 @@ func (pcf *processComponentsFactory) createExtraMetaBlockProcessorArgs(
 			return nil, err
 		}
 
+		epochStartSystemSCProcessor, err := pcf.createEpochStartSysSCProcessor(stakingDataProvider, validatorStatisticsProcessor, systemVM)
+		if err != nil {
+			return nil, err
+		}
+
 		return &block.ExtraArgsMetaBlockProcessor{
 			EpochRewardsCreator:       epochRewards,
 			EpochStartDataCreator:     epochStartDataCreator,
 			EpochValidatorInfoCreator: validatorInfoCreator,
+			EpochSystemSCProcessor:    epochStartSystemSCProcessor,
 		}, nil
 	}
 }

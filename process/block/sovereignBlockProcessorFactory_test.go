@@ -49,6 +49,7 @@ func TestSovereignBlockProcessorFactory_CreateBlockProcessor(t *testing.T) {
 			EpochStartDataCreator:     metaArgument.EpochStartDataCreator,
 			EpochValidatorInfoCreator: metaArgument.EpochValidatorInfoCreator,
 			EpochRewardsCreator:       metaArgument.EpochRewardsCreator,
+			EpochSystemSCProcessor:    metaArgument.EpochSystemSCProcessor,
 		}, nil
 	}
 
