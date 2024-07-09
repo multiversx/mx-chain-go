@@ -115,7 +115,7 @@ func transferAndCheckTokensMetaData(t *testing.T, isCrossShard bool, isMultiTran
 	err = cs.GenerateBlocksUntilEpochIsReached(int32(activationEpoch) - 1)
 	require.Nil(t, err)
 
-	log.Info("Initial setup: Create fungible, NFT, SFT and metaESDT tokens (before the activation of DynamicEsdtFlag)")
+	log.Info("Initial setup: Create NFT, SFT and metaESDT tokens (before the activation of DynamicEsdtFlag)")
 
 	// issue metaESDT
 	metaESDTTicker := []byte("METATTICKER")
@@ -136,23 +136,9 @@ func transferAndCheckTokensMetaData(t *testing.T, isCrossShard bool, isMultiTran
 
 	log.Info("Issued metaESDT token id", "tokenID", string(metaESDTTokenID))
 
-	// issue fungible
-	fungibleTicker := []byte("FUNTICKER")
-	tx = issueTx(1, addrs[0].Bytes, fungibleTicker, baseIssuingCost)
-
-	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
-	require.Nil(t, err)
-	require.NotNil(t, txResult)
-	require.Equal(t, "success", txResult.Status.String())
-
-	fungibleTokenID := txResult.Logs.Events[0].Topics[0]
-	setAddressEsdtRoles(t, cs, addrs[0], fungibleTokenID, roles)
-
-	log.Info("Issued fungible token id", "tokenID", string(fungibleTokenID))
-
 	// issue NFT
 	nftTicker := []byte("NFTTICKER")
-	tx = issueNonFungibleTx(2, addrs[0].Bytes, nftTicker, baseIssuingCost)
+	tx = issueNonFungibleTx(1, addrs[0].Bytes, nftTicker, baseIssuingCost)
 
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
@@ -166,7 +152,7 @@ func transferAndCheckTokensMetaData(t *testing.T, isCrossShard bool, isMultiTran
 
 	// issue SFT
 	sftTicker := []byte("SFTTICKER")
-	tx = issueSemiFungibleTx(3, addrs[0].Bytes, sftTicker, baseIssuingCost)
+	tx = issueSemiFungibleTx(2, addrs[0].Bytes, sftTicker, baseIssuingCost)
 
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
@@ -187,24 +173,19 @@ func transferAndCheckTokensMetaData(t *testing.T, isCrossShard bool, isMultiTran
 	esdtMetaData := txsFee.GetDefaultMetaData()
 	esdtMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
 
-	fungibleMetaData := txsFee.GetDefaultMetaData()
-	fungibleMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
-
 	tokenIDs := [][]byte{
 		nftTokenID,
 		sftTokenID,
 		metaESDTTokenID,
-		fungibleTokenID,
 	}
 
 	tokensMetadata := []*txsFee.MetaData{
 		nftMetaData,
 		sftMetaData,
 		esdtMetaData,
-		fungibleMetaData,
 	}
 
-	nonce := uint64(4)
+	nonce := uint64(3)
 	for i := range tokenIDs {
 		tx = nftCreateTx(nonce, addrs[0].Bytes, tokenIDs[i], tokensMetadata[i])
 
@@ -227,7 +208,6 @@ func transferAndCheckTokensMetaData(t *testing.T, isCrossShard bool, isMultiTran
 	checkMetaData(t, cs, core.SystemAccountAddress, nftTokenID, shardID, nftMetaData)
 	checkMetaData(t, cs, core.SystemAccountAddress, sftTokenID, shardID, sftMetaData)
 	checkMetaData(t, cs, core.SystemAccountAddress, metaESDTTokenID, shardID, esdtMetaData)
-	checkMetaData(t, cs, core.SystemAccountAddress, fungibleTokenID, shardID, fungibleMetaData)
 
 	log.Info("Step 2. wait for DynamicEsdtFlag activation")
 
@@ -270,7 +250,6 @@ func transferAndCheckTokensMetaData(t *testing.T, isCrossShard bool, isMultiTran
 	checkMetaData(t, cs, core.SystemAccountAddress, nftTokenID, shardID, nftMetaData)
 	checkMetaData(t, cs, core.SystemAccountAddress, sftTokenID, shardID, sftMetaData)
 	checkMetaData(t, cs, core.SystemAccountAddress, metaESDTTokenID, shardID, esdtMetaData)
-	checkMetaData(t, cs, core.SystemAccountAddress, fungibleTokenID, shardID, fungibleMetaData)
 
 	log.Info("Step 5. make an updateTokenID@tokenID function call on the ESDTSystem SC for all token types")
 
@@ -295,7 +274,6 @@ func transferAndCheckTokensMetaData(t *testing.T, isCrossShard bool, isMultiTran
 	checkMetaData(t, cs, core.SystemAccountAddress, nftTokenID, shardID, nftMetaData)
 	checkMetaData(t, cs, core.SystemAccountAddress, sftTokenID, shardID, sftMetaData)
 	checkMetaData(t, cs, core.SystemAccountAddress, metaESDTTokenID, shardID, esdtMetaData)
-	checkMetaData(t, cs, core.SystemAccountAddress, fungibleTokenID, shardID, fungibleMetaData)
 
 	log.Info("Step 7. transfer the tokens to another account")
 
@@ -341,9 +319,6 @@ func transferAndCheckTokensMetaData(t *testing.T, isCrossShard bool, isMultiTran
 
 	checkMetaData(t, cs, core.SystemAccountAddress, metaESDTTokenID, shardID, esdtMetaData)
 	checkMetaDataNotInAcc(t, cs, addrs[2].Bytes, metaESDTTokenID, shardID)
-
-	checkMetaData(t, cs, core.SystemAccountAddress, fungibleTokenID, shardID, fungibleMetaData)
-	checkMetaDataNotInAcc(t, cs, addrs[2].Bytes, fungibleTokenID, shardID)
 }
 
 func createAddresses(
@@ -729,7 +704,7 @@ func setAddressEsdtRoles(
 
 // Test scenario #3
 //
-// Initial setup: Create fungible, NFT,  SFT and metaESDT tokens
+// Initial setup: Create NFT,  SFT and metaESDT tokens
 // (after the activation of DynamicEsdtFlag)
 //
 // 1. check that the metaData for the NFT was saved in the user account and not on the system account
@@ -746,7 +721,7 @@ func TestChainSimulator_CreateTokensAfterActivation(t *testing.T) {
 
 	addrs := createAddresses(t, cs, false)
 
-	log.Info("Initial setup: Create fungible, NFT,  SFT and metaESDT tokens (after the activation of DynamicEsdtFlag)")
+	log.Info("Initial setup: Create NFT,  SFT and metaESDT tokens (after the activation of DynamicEsdtFlag)")
 
 	// issue metaESDT
 	metaESDTTicker := []byte("METATTICKER")
@@ -767,23 +742,9 @@ func TestChainSimulator_CreateTokensAfterActivation(t *testing.T) {
 
 	log.Info("Issued metaESDT token id", "tokenID", string(metaESDTTokenID))
 
-	// issue fungible
-	fungibleTicker := []byte("FUNTICKER")
-	tx = issueTx(1, addrs[0].Bytes, fungibleTicker, baseIssuingCost)
-
-	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
-	require.Nil(t, err)
-	require.NotNil(t, txResult)
-	require.Equal(t, "success", txResult.Status.String())
-
-	fungibleTokenID := txResult.Logs.Events[0].Topics[0]
-	setAddressEsdtRoles(t, cs, addrs[0], fungibleTokenID, roles)
-
-	log.Info("Issued fungible token id", "tokenID", string(fungibleTokenID))
-
 	// issue NFT
 	nftTicker := []byte("NFTTICKER")
-	tx = issueNonFungibleTx(2, addrs[0].Bytes, nftTicker, baseIssuingCost)
+	tx = issueNonFungibleTx(1, addrs[0].Bytes, nftTicker, baseIssuingCost)
 
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
@@ -797,7 +758,7 @@ func TestChainSimulator_CreateTokensAfterActivation(t *testing.T) {
 
 	// issue SFT
 	sftTicker := []byte("SFTTICKER")
-	tx = issueSemiFungibleTx(3, addrs[0].Bytes, sftTicker, baseIssuingCost)
+	tx = issueSemiFungibleTx(2, addrs[0].Bytes, sftTicker, baseIssuingCost)
 
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
@@ -813,7 +774,6 @@ func TestChainSimulator_CreateTokensAfterActivation(t *testing.T) {
 		nftTokenID,
 		sftTokenID,
 		metaESDTTokenID,
-		fungibleTokenID,
 	}
 
 	nftMetaData := txsFee.GetDefaultMetaData()
@@ -825,17 +785,13 @@ func TestChainSimulator_CreateTokensAfterActivation(t *testing.T) {
 	esdtMetaData := txsFee.GetDefaultMetaData()
 	esdtMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
 
-	fungibleMetaData := txsFee.GetDefaultMetaData()
-	fungibleMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
-
 	tokensMetadata := []*txsFee.MetaData{
 		nftMetaData,
 		sftMetaData,
 		esdtMetaData,
-		fungibleMetaData,
 	}
 
-	nonce := uint64(4)
+	nonce := uint64(3)
 	for i := range tokenIDs {
 		tx = nftCreateTx(nonce, addrs[0].Bytes, tokenIDs[i], tokensMetadata[i])
 
@@ -864,9 +820,6 @@ func TestChainSimulator_CreateTokensAfterActivation(t *testing.T) {
 
 	checkMetaData(t, cs, core.SystemAccountAddress, metaESDTTokenID, shardID, esdtMetaData)
 	checkMetaDataNotInAcc(t, cs, addrs[0].Bytes, metaESDTTokenID, shardID)
-
-	checkMetaData(t, cs, core.SystemAccountAddress, fungibleTokenID, shardID, fungibleMetaData)
-	checkMetaDataNotInAcc(t, cs, addrs[0].Bytes, fungibleTokenID, shardID)
 }
 
 // Test scenario #4
@@ -885,7 +838,7 @@ func TestChainSimulator_ESDTMetaDataRecreate(t *testing.T) {
 	cs, _ := getTestChainSimulatorWithDynamicNFTEnabled(t, baseIssuingCost)
 	defer cs.Close()
 
-	log.Info("Initial setup: Create fungible, NFT,  SFT and metaESDT tokens (after the activation of DynamicEsdtFlag)")
+	log.Info("Initial setup: Create NFT,  SFT and metaESDT tokens (after the activation of DynamicEsdtFlag)")
 
 	addrs := createAddresses(t, cs, false)
 
@@ -1044,7 +997,7 @@ func TestChainSimulator_ESDTMetaDataUpdate(t *testing.T) {
 	cs, _ := getTestChainSimulatorWithDynamicNFTEnabled(t, baseIssuingCost)
 	defer cs.Close()
 
-	log.Info("Initial setup: Create fungible, NFT,  SFT and metaESDT tokens (after the activation of DynamicEsdtFlag)")
+	log.Info("Initial setup: Create NFT,  SFT and metaESDT tokens (after the activation of DynamicEsdtFlag)")
 
 	addrs := createAddresses(t, cs, false)
 
@@ -1202,7 +1155,7 @@ func TestChainSimulator_ESDTModifyCreator(t *testing.T) {
 	cs, _ := getTestChainSimulatorWithDynamicNFTEnabled(t, baseIssuingCost)
 	defer cs.Close()
 
-	log.Info("Initial setup: Create fungible, NFT,  SFT and metaESDT tokens (after the activation of DynamicEsdtFlag). Register NFT directly as dynamic")
+	log.Info("Initial setup: Create NFT,  SFT and metaESDT tokens (after the activation of DynamicEsdtFlag). Register NFT directly as dynamic")
 
 	addrs := createAddresses(t, cs, false)
 
@@ -2146,10 +2099,6 @@ func TestChainSimulator_ChangeMetaData(t *testing.T) {
 
 	t.Run("metaESDT change metadata", func(t *testing.T) {
 		testChainSimulatorChangeMetaData(t, issueMetaESDTTx)
-	})
-
-	t.Run("fungible change metadata", func(t *testing.T) {
-		testChainSimulatorChangeMetaData(t, issueTx)
 	})
 }
 
