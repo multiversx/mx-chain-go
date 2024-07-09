@@ -902,8 +902,7 @@ func TestChainSimulator_ESDTMetaDataRecreate(t *testing.T) {
 
 	roles := [][]byte{
 		[]byte(core.ESDTRoleNFTCreate),
-		[]byte(core.ESDTRoleTransfer),
-		[]byte(core.ESDTMetaDataRecreate),
+		[]byte(core.ESDTRoleNFTRecreate),
 	}
 	setAddressEsdtRoles(t, cs, addrs[0], metaESDTTokenID, roles)
 

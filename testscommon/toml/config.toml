@@ -48,5 +48,6 @@
         Text = "Config Nested Struct"
         Mesage = { Public = true, MessageDescription = [{ Text = "Text1" }, { Text = "Text2"}] }
 
-[TestMap]
-    Value = { "key" = 0 }
+[Map]
+    [Map.Key1]
+        Number = 999
