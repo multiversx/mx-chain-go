@@ -53,7 +53,12 @@ func hexToTrieKeyBytes(hex []byte) ([]byte, error) {
 	key := make([]byte, length/2)
 	hexSliceIndex := 0
 	for i := len(key) - 1; i >= 0; i-- {
-		key[i] = hex[hexSliceIndex+1]<<NibbleSize | hex[hexSliceIndex]
+		if hex[hexSliceIndex+1] == 0 {
+			key[i] = hex[hexSliceIndex]
+			hexSliceIndex += 2
+			continue
+		}
+		key[i] = hex[hexSliceIndex] + 1
 		hexSliceIndex += 2
 	}
 
