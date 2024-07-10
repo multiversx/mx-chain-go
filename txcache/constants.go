@@ -10,4 +10,4 @@ const numEvictedTxsToDisplay = 3
 
 const excellentGasPriceFactor = 5
 
-const numberOfScoreChunks = 100
+const maxSenderScore = 100

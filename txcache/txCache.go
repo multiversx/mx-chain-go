@@ -167,7 +167,7 @@ func (cache *TxCache) computeSelectionSenderConstraints(score int, baseBatchSize
 		return 1, 1
 	}
 
-	scoreDivision := float64(score) / float64(numberOfScoreChunks)
+	scoreDivision := float64(score) / float64(maxSenderScore)
 	batchSize := int(float64(baseBatchSize) * scoreDivision)
 	bandwidth := uint64(float64(baseBandwidth) * scoreDivision)
 

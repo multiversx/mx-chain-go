@@ -25,7 +25,7 @@ func newDefaultScoreComputer(txGasHandler TxGasHandler) *defaultScoreComputer {
 	excellentPpu := float64(txGasHandler.MinGasPrice()) * excellentGasPriceFactor
 	excellentPpuNormalized := excellentPpu / worstPpu
 	excellentPpuNormalizedLog := math.Log(excellentPpuNormalized)
-	scoreScalingFactor := float64(numberOfScoreChunks) / excellentPpuNormalizedLog
+	scoreScalingFactor := float64(maxSenderScore) / excellentPpuNormalizedLog
 
 	return &defaultScoreComputer{
 		worstPpuLog:        worstPpuLog,
@@ -52,8 +52,11 @@ func (computer *defaultScoreComputer) computeScore(scoreParams senderScoreParams
 	rawScore := computer.computeRawScore(scoreParams)
 	truncatedScore := int(rawScore)
 
-	if truncatedScore > numberOfScoreChunks {
-		return numberOfScoreChunks
+	if truncatedScore < 0 {
+		return 0
+	}
+	if truncatedScore > maxSenderScore {
+		return maxSenderScore
 	}
 
 	return truncatedScore
