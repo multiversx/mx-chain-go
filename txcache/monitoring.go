@@ -81,7 +81,7 @@ func (cache *TxCache) monitorSelectionEnd(sortedSenders []*txListForSender, sele
 }
 
 type batchSelectionJournal struct {
-	copied        int
+	selectedNum   int
 	isFirstBatch  bool
 	hasInitialGap bool
 	hasMiddleGap  bool
@@ -102,7 +102,7 @@ func (cache *TxCache) monitorBatchSelectionEnd(journal batchSelectionJournal) {
 
 	if journal.isGracePeriod {
 		cache.numSendersInGracePeriod.Increment()
-	} else if journal.copied > 0 {
+	} else if journal.selectedNum > 0 {
 		cache.numSendersSelected.Increment()
 	}
 }

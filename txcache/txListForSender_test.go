@@ -183,22 +183,22 @@ func TestListForSender_SelectBatchTo(t *testing.T) {
 
 	// First batch
 	journal := list.selectBatchTo(true, destination, 50, math.MaxUint64)
-	require.Equal(t, 50, journal.copied)
+	require.Equal(t, 50, journal.selectedNum)
 	require.NotNil(t, destination[49])
 	require.Nil(t, destination[50])
 
 	// Second batch
 	journal = list.selectBatchTo(false, destination[50:], 50, math.MaxUint64)
-	require.Equal(t, 50, journal.copied)
+	require.Equal(t, 50, journal.selectedNum)
 	require.NotNil(t, destination[99])
 
 	// No third batch
 	journal = list.selectBatchTo(false, destination, 50, math.MaxUint64)
-	require.Equal(t, 0, journal.copied)
+	require.Equal(t, 0, journal.selectedNum)
 
 	// Restart copy
 	journal = list.selectBatchTo(true, destination, 12345, math.MaxUint64)
-	require.Equal(t, 100, journal.copied)
+	require.Equal(t, 100, journal.selectedNum)
 }
 
 func TestListForSender_SelectBatchToWithLimitedGasBandwidth(t *testing.T) {
@@ -216,23 +216,23 @@ func TestListForSender_SelectBatchToWithLimitedGasBandwidth(t *testing.T) {
 
 	// First batch
 	journal := list.selectBatchTo(true, destination, 50, 500000)
-	require.Equal(t, 1, journal.copied)
+	require.Equal(t, 1, journal.selectedNum)
 	require.NotNil(t, destination[0])
 	require.Nil(t, destination[1])
 
 	// Second batch
 	journal = list.selectBatchTo(false, destination[1:], 50, 20000000)
-	require.Equal(t, 20, journal.copied)
+	require.Equal(t, 20, journal.selectedNum)
 	require.NotNil(t, destination[20])
 	require.Nil(t, destination[21])
 
 	// third batch
 	journal = list.selectBatchTo(false, destination[21:], 20, math.MaxUint64)
-	require.Equal(t, 19, journal.copied)
+	require.Equal(t, 19, journal.selectedNum)
 
 	// Restart copy
 	journal = list.selectBatchTo(true, destination[41:], 12345, math.MaxUint64)
-	require.Equal(t, 40, journal.copied)
+	require.Equal(t, 40, journal.selectedNum)
 }
 
 func TestListForSender_SelectBatchTo_NoPanicWhenCornerCases(t *testing.T) {
@@ -246,12 +246,12 @@ func TestListForSender_SelectBatchTo_NoPanicWhenCornerCases(t *testing.T) {
 	// When empty destination
 	destination := make([]*WrappedTransaction, 0)
 	journal := list.selectBatchTo(true, destination, 10, math.MaxUint64)
-	require.Equal(t, 0, journal.copied)
+	require.Equal(t, 0, journal.selectedNum)
 
 	// When small destination
 	destination = make([]*WrappedTransaction, 5)
 	journal = list.selectBatchTo(false, destination, 10, math.MaxUint64)
-	require.Equal(t, 5, journal.copied)
+	require.Equal(t, 5, journal.selectedNum)
 }
 
 func TestListForSender_SelectBatchTo_WhenInitialGap(t *testing.T) {
@@ -267,19 +267,19 @@ func TestListForSender_SelectBatchTo_WhenInitialGap(t *testing.T) {
 
 	// First batch of selection, first failure
 	journal := list.selectBatchTo(true, destination, 50, math.MaxUint64)
-	require.Equal(t, 0, journal.copied)
+	require.Equal(t, 0, journal.selectedNum)
 	require.Nil(t, destination[0])
 	require.Equal(t, int64(1), list.numFailedSelections.Get())
 
 	// Second batch of selection, don't count failure again
 	journal = list.selectBatchTo(false, destination, 50, math.MaxUint64)
-	require.Equal(t, 0, journal.copied)
+	require.Equal(t, 0, journal.selectedNum)
 	require.Nil(t, destination[0])
 	require.Equal(t, int64(1), list.numFailedSelections.Get())
 
 	// First batch of another selection, second failure, enters grace period
 	journal = list.selectBatchTo(true, destination, 50, math.MaxUint64)
-	require.Equal(t, 1, journal.copied)
+	require.Equal(t, 1, journal.selectedNum)
 	require.NotNil(t, destination[0])
 	require.Nil(t, destination[1])
 	require.Equal(t, int64(2), list.numFailedSelections.Get())
@@ -299,13 +299,13 @@ func TestListForSender_SelectBatchTo_WhenGracePeriodWithGapResolve(t *testing.T)
 	// Try a number of selections with failure, reach close to grace period
 	for i := 1; i < senderGracePeriodLowerBound; i++ {
 		journal := list.selectBatchTo(true, destination, math.MaxInt32, math.MaxUint64)
-		require.Equal(t, 0, journal.copied)
+		require.Equal(t, 0, journal.selectedNum)
 		require.Equal(t, int64(i), list.numFailedSelections.Get())
 	}
 
 	// Try selection again. Failure will move the sender to grace period and return 1 transaction
 	journal := list.selectBatchTo(true, destination, math.MaxInt32, math.MaxUint64)
-	require.Equal(t, 1, journal.copied)
+	require.Equal(t, 1, journal.selectedNum)
 	require.Equal(t, int64(senderGracePeriodLowerBound), list.numFailedSelections.Get())
 	require.False(t, list.sweepable.IsSet())
 
@@ -313,7 +313,7 @@ func TestListForSender_SelectBatchTo_WhenGracePeriodWithGapResolve(t *testing.T)
 	list.AddTx(createTx([]byte("resolving-tx"), ".", 1), txGasHandler)
 	// Selection will be successful
 	journal = list.selectBatchTo(true, destination, math.MaxInt32, math.MaxUint64)
-	require.Equal(t, 19, journal.copied)
+	require.Equal(t, 19, journal.selectedNum)
 	require.Equal(t, int64(0), list.numFailedSelections.Get())
 	require.False(t, list.sweepable.IsSet())
 }
@@ -332,20 +332,20 @@ func TestListForSender_SelectBatchTo_WhenGracePeriodWithNoGapResolve(t *testing.
 	// Try a number of selections with failure, reach close to grace period
 	for i := 1; i < senderGracePeriodLowerBound; i++ {
 		journal := list.selectBatchTo(true, destination, math.MaxInt32, math.MaxUint64)
-		require.Equal(t, 0, journal.copied)
+		require.Equal(t, 0, journal.selectedNum)
 		require.Equal(t, int64(i), list.numFailedSelections.Get())
 	}
 
 	// Try a number of selections with failure, within the grace period
 	for i := senderGracePeriodLowerBound; i <= senderGracePeriodUpperBound; i++ {
 		journal := list.selectBatchTo(true, destination, math.MaxInt32, math.MaxUint64)
-		require.Equal(t, 1, journal.copied)
+		require.Equal(t, 1, journal.selectedNum)
 		require.Equal(t, int64(i), list.numFailedSelections.Get())
 	}
 
 	// Grace period exceeded now
 	journal := list.selectBatchTo(true, destination, math.MaxInt32, math.MaxUint64)
-	require.Equal(t, 0, journal.copied)
+	require.Equal(t, 0, journal.selectedNum)
 	require.Equal(t, int64(senderGracePeriodUpperBound+1), list.numFailedSelections.Get())
 	require.True(t, list.sweepable.IsSet())
 }
