@@ -119,12 +119,12 @@ func (cache *TxCache) doSelectTransactions(numRequested int, batchSizePerSender 
 	resultFillIndex := 0
 	resultIsFull := false
 
-	snapshotOfSenders := cache.getSendersEligibleForSelection()
+	senders := cache.getSendersEligibleForSelection()
 
 	for pass := 0; !resultIsFull; pass++ {
 		copiedInThisPass := 0
 
-		for _, txList := range snapshotOfSenders {
+		for _, txList := range senders {
 			score := txList.getScore()
 			batchSize := cache.computeSenderBatchSize(score, batchSizePerSender)
 			bandwidth := cache.computeSenderBandwidth(score, bandwidthPerSender)
@@ -155,7 +155,7 @@ func (cache *TxCache) doSelectTransactions(numRequested int, batchSizePerSender 
 	}
 
 	result = result[:resultFillIndex]
-	cache.monitorSelectionEnd(result, stopWatch)
+	cache.monitorSelectionEnd(senders, result, stopWatch)
 	return result
 }
 
