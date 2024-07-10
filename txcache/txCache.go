@@ -68,6 +68,8 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 		return false, false
 	}
 
+	log.Trace("TxCache.AddTx()", "name", cache.name, "tx", tx.TxHash)
+
 	if cache.config.EvictionEnabled {
 		cache.doEviction()
 	}
@@ -82,7 +84,7 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 		// - B won't add to "txByHash" (duplicate)
 		// - B adds to "txListBySender"
 		// - A won't add to "txListBySender" (duplicate)
-		log.Trace("TxCache.AddTx(): slight inconsistency detected:", "name", cache.name, "tx", tx.TxHash, "sender", tx.Tx.GetSndAddr(), "addedInByHash", addedInByHash, "addedInBySender", addedInBySender)
+		log.Debug("TxCache.AddTx(): slight inconsistency detected:", "name", cache.name, "tx", tx.TxHash, "sender", tx.Tx.GetSndAddr(), "addedInByHash", addedInByHash, "addedInBySender", addedInBySender)
 	}
 
 	if len(evicted) > 0 {
@@ -168,6 +170,8 @@ func (cache *TxCache) RemoveTxByHash(txHash []byte) bool {
 	cache.mutTxOperation.Lock()
 	defer cache.mutTxOperation.Unlock()
 
+	log.Trace("TxCache.RemoveTxByHash()", "name", cache.name, "tx", txHash)
+
 	tx, foundInByHash := cache.txByHash.removeTx(string(txHash))
 	if !foundInByHash {
 		return false
@@ -183,7 +187,7 @@ func (cache *TxCache) RemoveTxByHash(txHash []byte) bool {
 		// - B reaches "cache.txByHash.RemoveTxsBulk()"
 		// - B reaches "cache.txListBySender.RemoveSendersBulk()"
 		// - A reaches "cache.txListBySender.removeTx()", but sender does not exist anymore
-		log.Trace("TxCache.RemoveTxByHash(): slight inconsistency detected: !foundInBySender", "name", cache.name, "tx", txHash)
+		log.Debug("TxCache.RemoveTxByHash(): slight inconsistency detected: !foundInBySender", "name", cache.name, "tx", txHash)
 	}
 
 	return true
