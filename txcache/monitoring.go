@@ -10,6 +10,7 @@ import (
 )
 
 var log = logger.GetOrCreate("txcache")
+var logSelection = logger.GetOrCreate("txcache-selection")
 
 func (cache *TxCache) monitorEvictionWrtSenderLimit(sender []byte, evicted [][]byte) {
 	log.Debug("TxCache.monitorEvictionWrtSenderLimit()", "name", cache.name, "sender", sender, "num", len(evicted))
@@ -48,7 +49,7 @@ func (cache *TxCache) monitorSelectionStart() *core.StopWatch {
 	return sw
 }
 
-func (cache *TxCache) monitorSelectionEnd(selection []*WrappedTransaction, stopWatch *core.StopWatch) {
+func (cache *TxCache) monitorSelectionEnd(sortedSenders []*txListForSender, selection []*WrappedTransaction, stopWatch *core.StopWatch) {
 	stopWatch.Stop("selection")
 	duration := stopWatch.GetMeasurement("selection")
 	numSendersSelected := cache.numSendersSelected.Reset()
@@ -63,6 +64,16 @@ func (cache *TxCache) monitorSelectionEnd(selection []*WrappedTransaction, stopW
 		"numSendersWithMiddleGap", numSendersWithMiddleGap,
 		"numSendersInGracePeriod", numSendersInGracePeriod,
 	)
+
+	if logSelection.GetLevel() != logger.LogTrace {
+		return
+	}
+
+	logSelection.Trace("Sorted senders (as newline-separated JSON):")
+	logSelection.Trace(marshalSendersToNewlineDelimitedJson(sortedSenders))
+
+	logSelection.Trace("Selected transactions (as newline-separated JSON):")
+	logSelection.Trace(marshalTransactionsToNewlineDelimitedJson(selection))
 }
 
 type batchSelectionJournal struct {
