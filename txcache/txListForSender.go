@@ -297,7 +297,7 @@ func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destinati
 
 	listForSender.copyBatchIndex = element
 	listForSender.copyPreviousNonce = previousNonce
-	journal.copied = copied
+	journal.selectedNum = copied
 	return journal
 }
 

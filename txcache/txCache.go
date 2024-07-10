@@ -122,7 +122,7 @@ func (cache *TxCache) doSelectTransactions(numRequested int, batchSizePerSender 
 	senders := cache.getSendersEligibleForSelection()
 
 	for pass := 0; !resultIsFull; pass++ {
-		copiedInThisPass := 0
+		numSelectedInThisPass := 0
 
 		for _, txList := range senders {
 			score := txList.getScore()
@@ -137,18 +137,18 @@ func (cache *TxCache) doSelectTransactions(numRequested int, batchSizePerSender 
 				cache.collectSweepable(txList)
 			}
 
-			resultFillIndex += journal.copied
-			copiedInThisPass += journal.copied
+			resultFillIndex += journal.selectedNum
+			numSelectedInThisPass += journal.selectedNum
 			resultIsFull = resultFillIndex == numRequested
 			if resultIsFull {
 				break
 			}
 		}
 
-		nothingCopiedThisPass := copiedInThisPass == 0
+		nothingSelectedInThisPass := numSelectedInThisPass == 0
 
 		// No more passes needed
-		if nothingCopiedThisPass {
+		if nothingSelectedInThisPass {
 			break
 		}
 	}
