@@ -126,8 +126,7 @@ func (cache *TxCache) doSelectTransactions(numRequested int, batchSizePerSender 
 
 		for _, txList := range senders {
 			score := txList.getScore()
-			batchSize := cache.computeSenderBatchSize(score, batchSizePerSender)
-			bandwidth := cache.computeSenderBandwidth(score, bandwidthPerSender)
+			batchSize, bandwidth := cache.computeSelectionSenderConstraints(score, batchSizePerSender, bandwidthPerSender)
 
 			// Reset happens on first pass only
 			isFirstBatch := pass == 0
@@ -163,20 +162,16 @@ func (cache *TxCache) getSendersEligibleForSelection() []*txListForSender {
 	return cache.txListBySender.getSnapshotDescending()
 }
 
-func (cache *TxCache) computeSenderBatchSize(score int, baseBatchSize int) int {
+func (cache *TxCache) computeSelectionSenderConstraints(score int, baseBatchSize int, baseBandwidth uint64) (int, uint64) {
 	if score == 0 {
-		return 1
+		return 1, 1
 	}
 
-	return baseBatchSize * score
-}
+	scoreDivision := float64(score) / float64(numberOfScoreChunks)
+	batchSize := int(float64(baseBatchSize) * scoreDivision)
+	bandwidth := uint64(float64(baseBandwidth) * scoreDivision)
 
-func (cache *TxCache) computeSenderBandwidth(score int, baseBandwidth uint64) uint64 {
-	if score == 0 {
-		return 1
-	}
-
-	return uint64(float64(baseBandwidth) * float64(score) / float64(numberOfScoreChunks))
+	return batchSize, bandwidth
 }
 
 func (cache *TxCache) doAfterSelection() {

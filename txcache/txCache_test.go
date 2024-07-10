@@ -628,6 +628,36 @@ func TestTxCache_NoCriticalInconsistency_WhenConcurrentAdditionsAndRemovals(t *t
 	cache.Clear()
 }
 
+func TestTxCache_computeSelectionSenderConstraints(t *testing.T) {
+	cache := newUnconstrainedCacheToTest()
+	baseBatchSize := 100
+	baseBandwidth := uint64(120000000)
+
+	batchSize, bandwidth := cache.computeSelectionSenderConstraints(100, baseBatchSize, baseBandwidth)
+	require.Equal(t, 100, batchSize)
+	require.Equal(t, 120000000, int(bandwidth))
+
+	batchSize, bandwidth = cache.computeSelectionSenderConstraints(99, baseBatchSize, baseBandwidth)
+	require.Equal(t, 99, batchSize)
+	require.Equal(t, 118800000, int(bandwidth))
+
+	batchSize, bandwidth = cache.computeSelectionSenderConstraints(74, baseBatchSize, baseBandwidth)
+	require.Equal(t, 74, batchSize)
+	require.Equal(t, 88800000, int(bandwidth))
+
+	batchSize, bandwidth = cache.computeSelectionSenderConstraints(74, baseBatchSize, baseBandwidth)
+	require.Equal(t, 74, batchSize)
+	require.Equal(t, 88800000, int(bandwidth))
+
+	batchSize, bandwidth = cache.computeSelectionSenderConstraints(1, baseBatchSize, baseBandwidth)
+	require.Equal(t, 1, batchSize)
+	require.Equal(t, 1200000, int(bandwidth))
+
+	batchSize, bandwidth = cache.computeSelectionSenderConstraints(0, baseBatchSize, baseBandwidth)
+	require.Equal(t, 1, batchSize)
+	require.Equal(t, 1, int(bandwidth))
+}
+
 func newUnconstrainedCacheToTest() *TxCache {
 	txGasHandler := txcachemocks.NewTxGasHandlerMock()
 	cache, err := NewTxCache(ConfigSourceMe{
