@@ -82,7 +82,7 @@ const MaxHeaderRequestsAllowed = 20
 // NumTxPerSenderBatchForFillingMiniblock defines the number of transactions to be drawn
 // from the transactions pool, for a specific sender, in a single pass.
 // Drawing transactions for a miniblock happens in multiple passes, until "MaxItemsInBlock" are drawn.
-const NumTxPerSenderBatchForFillingMiniblock = 10
+const NumTxPerSenderBatchForFillingMiniblock = 100
 
 // NonceDifferenceWhenSynced defines the difference between probable highest nonce seen from network and node's last
 // committed block nonce, after which, node is considered himself not synced
@@ -139,7 +139,7 @@ const MinShardHeadersFromSameShardInOneMetaBlock = 10
 const MaxNumOfTxsToSelect = 30000
 
 // MaxGasBandwidthPerBatchPerSender defines the maximum gas bandwidth that should be selected for a sender per batch from the cache
-const MaxGasBandwidthPerBatchPerSender = 5000000
+const MaxGasBandwidthPerBatchPerSender = 120000000
 
 // MaxHeadersToWhitelistInAdvance defines the maximum number of headers whose miniblocks will be whitelisted in advance
 const MaxHeadersToWhitelistInAdvance = 300
