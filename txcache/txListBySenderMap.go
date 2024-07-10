@@ -169,6 +169,8 @@ func (txMap *txListBySenderMap) getSendersGroupedByScore() [][]*txListForSender 
 		groups[score] = append(groups[score], listForSender)
 	})
 
+	monitorSendersScoreHistogram(groups)
+
 	return groups
 }
 

@@ -102,12 +102,6 @@ func (cache *TxCache) monitorSweepingEnd(numTxs uint32, numSenders uint32, stopW
 	stopWatch.Stop("sweeping")
 	duration := stopWatch.GetMeasurement("sweeping")
 	log.Debug("TxCache: swept senders:", "name", cache.name, "duration", duration, "txs", numTxs, "senders", numSenders)
-	cache.displaySendersHistogram()
-}
-
-func (cache *TxCache) displaySendersHistogram() {
-	backingMap := cache.txListBySender.backingMap
-	log.Debug("TxCache.sendersHistogram:", "scoreChunks", backingMap.ScoreChunksCounts())
 }
 
 // evictionJournal keeps a short journal about the eviction process
@@ -171,7 +165,6 @@ func (cache *TxCache) diagnoseDeeply() {
 
 	log.Debug("TxCache.diagnoseDeeply()", "name", cache.name, "duration", duration)
 	journal.display()
-	cache.displaySendersHistogram()
 }
 
 type internalConsistencyJournal struct {
@@ -247,4 +240,14 @@ func (cache *TxCache) displaySendersSummary() {
 
 	summary := builder.String()
 	log.Debug("TxCache.displaySendersSummary()", "name", cache.name, "summary\n", summary)
+}
+
+func monitorSendersScoreHistogram(scoreGroups [][]*txListForSender) {
+	histogram := make([]int, numberOfScoreChunks)
+
+	for i := 0; i < len(scoreGroups); i++ {
+		histogram[i] = len(scoreGroups[i])
+	}
+
+	log.Debug("TxCache.monitorSendersScoreHistogram():", "histogram", histogram)
 }
