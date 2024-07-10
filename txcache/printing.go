@@ -9,10 +9,10 @@ import (
 type printedTransaction struct {
 	Hash     string `json:"hash"`
 	Nonce    uint64 `json:"nonce"`
-	Receiver string `json:"receiver"`
-	Sender   string `json:"sender"`
 	GasPrice uint64 `json:"gasPrice"`
 	GasLimit uint64 `json:"gasLimit"`
+	Sender   string `json:"sender"`
+	Receiver string `json:"receiver"`
 }
 
 type printedSender struct {
