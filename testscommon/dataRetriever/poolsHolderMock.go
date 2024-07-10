@@ -49,11 +49,7 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 				SizeInBytesPerSender: 10000000,
 				Shards:               16,
 			},
-			TxGasHandler: &txcachemocks.TxGasHandlerMock{
-				MinimumGasMove:       50000,
-				MinimumGasPrice:      200000000000,
-				GasProcessingDivisor: 100,
-			},
+			TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
 			NumberOfShards: 1,
 		},
 	)

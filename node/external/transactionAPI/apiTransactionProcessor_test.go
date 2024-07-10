@@ -768,11 +768,7 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 		NumChunks:                  4,
 		NumBytesPerSenderThreshold: 1_048_576, // 1 MB
 		CountPerSenderThreshold:    math.MaxUint32,
-	}, &txcachemocks.TxGasHandlerMock{
-		MinimumGasMove:       1,
-		MinimumGasPrice:      1,
-		GasProcessingDivisor: 1,
-	})
+	}, txcachemocks.NewTxGasHandlerMock())
 	txCacheIntraShard.AddTx(createTx(txHash2, sender, 3))
 	txCacheIntraShard.AddTx(createTx(txHash0, sender, 1))
 	txCacheIntraShard.AddTx(createTx(txHash1, sender, 2))
@@ -783,11 +779,7 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 		NumChunks:                  4,
 		NumBytesPerSenderThreshold: 1_048_576, // 1 MB
 		CountPerSenderThreshold:    math.MaxUint32,
-	}, &txcachemocks.TxGasHandlerMock{
-		MinimumGasMove:       1,
-		MinimumGasPrice:      1,
-		GasProcessingDivisor: 1,
-	})
+	}, txcachemocks.NewTxGasHandlerMock())
 	txCacheWithMeta.AddTx(createTx(txHash3, sender, 4))
 	txCacheWithMeta.AddTx(createTx(txHash4, sender, 5))
 
@@ -855,11 +847,7 @@ func TestApiTransactionProcessor_GetLastPoolNonceForSender(t *testing.T) {
 		NumChunks:                  4,
 		NumBytesPerSenderThreshold: 1_048_576, // 1 MB
 		CountPerSenderThreshold:    math.MaxUint32,
-	}, &txcachemocks.TxGasHandlerMock{
-		MinimumGasMove:       1,
-		MinimumGasPrice:      1,
-		GasProcessingDivisor: 1,
-	})
+	}, txcachemocks.NewTxGasHandlerMock())
 	txCacheIntraShard.AddTx(createTx(txHash2, sender, 3))
 	txCacheIntraShard.AddTx(createTx(txHash0, sender, 1))
 	txCacheIntraShard.AddTx(createTx(txHash1, sender, 2))
@@ -908,22 +896,14 @@ func TestApiTransactionProcessor_GetTransactionsPoolNonceGapsForSender(t *testin
 		NumChunks:                  4,
 		NumBytesPerSenderThreshold: 1_048_576, // 1 MB
 		CountPerSenderThreshold:    math.MaxUint32,
-	}, &txcachemocks.TxGasHandlerMock{
-		MinimumGasMove:       1,
-		MinimumGasPrice:      1,
-		GasProcessingDivisor: 1,
-	})
+	}, txcachemocks.NewTxGasHandlerMock())
 
 	txCacheWithMeta, _ := txcache.NewTxCache(txcache.ConfigSourceMe{
 		Name:                       "test-meta",
 		NumChunks:                  4,
 		NumBytesPerSenderThreshold: 1_048_576, // 1 MB
 		CountPerSenderThreshold:    math.MaxUint32,
-	}, &txcachemocks.TxGasHandlerMock{
-		MinimumGasMove:       1,
-		MinimumGasPrice:      1,
-		GasProcessingDivisor: 1,
-	})
+	}, txcachemocks.NewTxGasHandlerMock())
 
 	accountNonce := uint64(20)
 	// expected nonce gaps: 21-31, 33-33, 36-38

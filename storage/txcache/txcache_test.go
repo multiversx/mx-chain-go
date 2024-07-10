@@ -42,11 +42,7 @@ func TestNewTxCache(t *testing.T) {
 			NumSendersToPreemptivelyEvict: 1,
 		}
 
-		cache, err := NewTxCache(cfg, &txcachemocks.TxGasHandlerMock{
-			GasProcessingDivisor: 1,
-			MinimumGasPrice:      1,
-			MinimumGasMove:       1,
-		})
+		cache, err := NewTxCache(cfg, txcachemocks.NewTxGasHandlerMock())
 		assert.NotNil(t, cache)
 		assert.Nil(t, err)
 	})

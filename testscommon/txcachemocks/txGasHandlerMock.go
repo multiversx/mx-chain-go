@@ -71,7 +71,7 @@ func (ghm *TxGasHandlerMock) ComputeTxFee(tx data.TransactionWithFeeHandler) *bi
 
 	gasLimitForMovement := ghm.minGasLimit + dataLength*ghm.gasPerDataByte
 	if tx.GetGasLimit() < gasLimitForMovement {
-		panic("tx.GetGasLimit() < gasLimitForMovement")
+		return big.NewInt(0)
 	}
 
 	gasLimitForProcessing := tx.GetGasLimit() - gasLimitForMovement
