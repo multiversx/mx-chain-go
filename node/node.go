@@ -76,7 +76,6 @@ type Node struct {
 	genesisTime         time.Time
 	peerDenialEvaluator p2p.PeerDenialEvaluator
 	esdtStorageHandler  vmcommon.ESDTNFTStorageHandler
-	nativeESDT          string
 
 	consensusType       string
 	bootstrapRoundIndex uint64

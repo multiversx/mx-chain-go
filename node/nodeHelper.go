@@ -108,7 +108,6 @@ func CreateNode(
 		WithNodeStopChannel(coreComponents.ChanStopNodeProcess()),
 		WithImportMode(isInImportMode),
 		WithESDTNFTStorageHandler(processComponents.ESDTDataStorageHandlerForAPI()),
-		WithNativeESDT(config.SovereignConfig.GenesisConfig.NativeESDT),
 	}
 	options = append(options, extraOptions...)
 

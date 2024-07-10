@@ -70,7 +70,7 @@ func NewSovereignChainSimulator(args ArgsSovereignChainSimulator) (chainSimulato
 	args.CreateRunTypeComponents = func(argsRunType runType.ArgsRunTypeComponents) (factory.RunTypeComponentsHolder, error) {
 		return createSovereignRunTypeComponents(argsRunType, *configs.SovereignExtraConfig)
 	}
-	args.NodeFactory = node.NewSovereignNodeFactory()
+	args.NodeFactory = node.NewSovereignNodeFactory(configs.SovereignExtraConfig.GenesisConfig.NativeESDT)
 	args.ChainProcessorFactory = NewSovereignChainHandlerFactory()
 
 	return chainSimulator.NewChainSimulator(*args.ArgsChainSimulator)

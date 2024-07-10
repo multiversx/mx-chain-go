@@ -11,7 +11,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/node/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -291,17 +290,4 @@ func TestWithESDTNFTStorageHandler(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, esdtStorer, node.esdtStorageHandler)
 	})
-}
-
-func TestWithNativeESDT(t *testing.T) {
-	t.Parallel()
-
-	nativeEsdt := "ESDT-123456"
-
-	node, _ := NewNode()
-	opt := WithNativeESDT(nativeEsdt)
-	err := opt(node)
-
-	require.NoError(t, err)
-	require.Equal(t, nativeEsdt, node.nativeESDT)
 }

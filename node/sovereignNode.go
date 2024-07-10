@@ -16,16 +16,21 @@ const (
 
 type sovereignNode struct {
 	*Node
+	nativeESDT string
 }
 
 // NewSovereignNode creates a new sovereign node instance
-func NewSovereignNode(node *Node) (*sovereignNode, error) {
+func NewSovereignNode(node *Node, nativeESDT string) (*sovereignNode, error) {
 	if check.IfNil(node) {
 		return nil, errors.ErrNilNode
 	}
+	if len(nativeESDT) == 0 {
+		return nil, ErrEmptyNativeEsdt
+	}
 
 	return &sovereignNode{
-		node,
+		Node:       node,
+		nativeESDT: nativeESDT,
 	}, nil
 }
 

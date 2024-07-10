@@ -353,11 +353,3 @@ func WithESDTNFTStorageHandler(storageHandler vmcommon.ESDTNFTStorageHandler) Op
 		return nil
 	}
 }
-
-// WithNativeESDT sets the native esdt
-func WithNativeESDT(nativeESDT string) Option {
-	return func(n *Node) error {
-		n.nativeESDT = nativeESDT
-		return nil
-	}
-}
