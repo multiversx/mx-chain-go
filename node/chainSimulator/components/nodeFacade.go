@@ -102,7 +102,6 @@ func (node *testOnlyProcessingNode) createFacade(configs config.Configs, apiInte
 		nodePack.WithNodeStopChannel(node.CoreComponentsHolder.ChanStopNodeProcess()),
 		nodePack.WithImportMode(configs.ImportDbConfig.IsImportDBMode),
 		nodePack.WithESDTNFTStorageHandler(node.ProcessComponentsHolder.ESDTDataStorageHandlerForAPI()),
-		nodePack.WithNativeESDT(configs.GeneralConfig.SovereignConfig.GenesisConfig.NativeESDT),
 	)
 	if err != nil {
 		return errors.New("error creating node: " + err.Error())
