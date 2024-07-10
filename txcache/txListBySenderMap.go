@@ -154,9 +154,9 @@ func (txMap *txListBySenderMap) getSnapshotDescending() []*txListForSender {
 }
 
 func (txMap *txListBySenderMap) getSendersGroupedByScore() [][]*txListForSender {
-	groups := make([][]*txListForSender, numberOfScoreChunks)
+	groups := make([][]*txListForSender, maxSenderScore+1)
 	// Hint for pre-allocating slice for each group (imprecise, but reasonable).
-	groupSizeHint := txMap.counter.Get() / int64(numberOfScoreChunks) / 2
+	groupSizeHint := txMap.counter.Get() / int64(maxSenderScore) / 2
 
 	txMap.backingMap.IterCb(func(key string, item interface{}) {
 		listForSender := item.(*txListForSender)
