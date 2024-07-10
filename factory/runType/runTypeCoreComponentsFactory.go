@@ -13,6 +13,7 @@ func NewRunTypeCoreComponentsFactory() *runTypeCoreComponentsFactory {
 	return &runTypeCoreComponentsFactory{}
 }
 
+// Create will create the runType core components
 func (rccf *runTypeCoreComponentsFactory) Create() *runTypeCoreComponents {
 	return &runTypeCoreComponents{
 		genesisNodesSetupFactory: sharding.NewGenesisNodesSetupFactory(),
