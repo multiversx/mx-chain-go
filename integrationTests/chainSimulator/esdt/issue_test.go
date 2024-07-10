@@ -13,7 +13,6 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 )
 
@@ -22,8 +21,6 @@ const (
 	issuePrice                 = "5000000000000000000"
 	tokenPrefix                = "sov1"
 )
-
-var log = logger.GetOrCreate("issue-tests")
 
 func TestChainSimulator_IssueESDTWithPrefix(t *testing.T) {
 	if testing.Short() {
