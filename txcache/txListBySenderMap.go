@@ -86,7 +86,7 @@ func (txMap *txListBySenderMap) removeTx(tx *WrappedTransaction) bool {
 	if !ok {
 		// This happens when a sender whose transactions were selected for processing is removed from cache in the meantime.
 		// When it comes to remove one if its transactions due to processing (commited / finalized block), they don't exist in cache anymore.
-		log.Trace("txListBySenderMap.removeTx() detected slight inconsistency: sender of tx not in cache", "tx", tx.TxHash, "sender", []byte(sender))
+		log.Debug("txListBySenderMap.removeTx() detected slight inconsistency: sender of tx not in cache", "tx", tx.TxHash, "sender", []byte(sender))
 		return false
 	}
 
