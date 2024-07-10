@@ -5,56 +5,24 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/process/factory/metachain"
 	"github.com/multiversx/mx-chain-go/process/mock"
-	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
-	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
-	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
-	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/vmContext"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
-	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
-	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
-	"github.com/stretchr/testify/require"
 )
-
-func createMockBlockChainHookArgs() hooks.ArgBlockChainHook {
-	return hooks.ArgBlockChainHook{
-		Accounts:              &stateMock.AccountsStub{},
-		PubkeyConv:            &testscommon.PubkeyConverterMock{},
-		StorageService:        &storageStubs.ChainStorerStub{},
-		BlockChain:            &testscommon.ChainHandlerStub{},
-		ShardCoordinator:      &testscommon.ShardsCoordinatorMock{},
-		Marshalizer:           &testscommon.ProtoMarshalizerMock{},
-		Uint64Converter:       &testscommon.Uint64ByteSliceConverterStub{},
-		BuiltInFunctions:      vmcommonBuiltInFunctions.NewBuiltInFunctionContainer(),
-		NFTStorageHandler:     &testscommon.SimpleNFTStorageHandlerStub{},
-		GlobalSettingsHandler: &testscommon.ESDTGlobalSettingsHandlerStub{},
-		DataPool:              &dataRetrieverMock.PoolsHolderMock{},
-		CompiledSCPool:        &testscommon.CacherStub{},
-		EpochNotifier:         &epochNotifier.EpochNotifierStub{},
-		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		NilCompiledSCStore:    true,
-		GasSchedule: &testscommon.GasScheduleNotifierMock{
-			LatestGasScheduleCalled: func() map[string]map[string]uint64 {
-				return make(map[string]map[string]uint64)
-			},
-		},
-		Counter:                  &testscommon.BlockChainHookCounterStub{},
-		MissingTrieNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
-	}
-}
 
 func makeGasSchedule() core.GasScheduleNotifier {
 	gasSchedule := wasmConfig.MakeGasMapForTests()
@@ -128,19 +96,13 @@ func TestNewVmContainerMetaCreatorFactory(t *testing.T) {
 	t.Parallel()
 
 	t.Run("should work", func(t *testing.T) {
-		vmContainerMetaFactory, err := vm.NewVmContainerMetaFactory(&factory.BlockChainHookHandlerFactoryMock{}, &vmContext.VMContextCreatorStub{})
+		vmContainerMetaFactory, err := vm.NewVmContainerMetaFactory(&vmContext.VMContextCreatorStub{})
 		require.Nil(t, err)
 		require.False(t, vmContainerMetaFactory.IsInterfaceNil())
 	})
 
-	t.Run("nil blockchain hook creator", func(t *testing.T) {
-		vmContainerMetaFactory, err := vm.NewVmContainerMetaFactory(nil, &vmContext.VMContextCreatorStub{})
-		require.ErrorIs(t, err, errors.ErrNilBlockChainHookCreator)
-		require.True(t, vmContainerMetaFactory.IsInterfaceNil())
-	})
-
 	t.Run("nil vm context creator", func(t *testing.T) {
-		vmContainerMetaFactory, err := vm.NewVmContainerMetaFactory(&factory.BlockChainHookHandlerFactoryMock{}, nil)
+		vmContainerMetaFactory, err := vm.NewVmContainerMetaFactory(nil)
 		require.ErrorIs(t, err, errors.ErrNilVMContextCreator)
 		require.True(t, vmContainerMetaFactory.IsInterfaceNil())
 	})
@@ -149,14 +111,14 @@ func TestNewVmContainerMetaCreatorFactory(t *testing.T) {
 func TestVmContainerMetaFactory_CreateVmContainerFactoryMeta(t *testing.T) {
 	t.Parallel()
 
-	vmContainerMetaFactory, err := vm.NewVmContainerMetaFactory(&factory.BlockChainHookHandlerFactoryMock{}, &vmContext.VMContextCreatorStub{})
+	vmContainerMetaFactory, err := vm.NewVmContainerMetaFactory(&vmContext.VMContextCreatorStub{})
 	require.Nil(t, err)
 	require.False(t, vmContainerMetaFactory.IsInterfaceNil())
 
-	argsBlockchain := createMockBlockChainHookArgs()
 	gasSchedule := makeGasSchedule()
 	argsMeta := createVmContainerMockArgument(gasSchedule)
 	args := vm.ArgsVmContainerFactory{
+		BlockChainHook:      argsMeta.BlockChainHook,
 		Economics:           argsMeta.Economics,
 		MessageSignVerifier: argsMeta.MessageSignVerifier,
 		GasSchedule:         argsMeta.GasSchedule,
@@ -173,7 +135,7 @@ func TestVmContainerMetaFactory_CreateVmContainerFactoryMeta(t *testing.T) {
 		NodesCoordinator:    argsMeta.NodesCoordinator,
 	}
 
-	vmContainer, vmFactory, err := vmContainerMetaFactory.CreateVmContainerFactory(argsBlockchain, args)
+	vmContainer, vmFactory, err := vmContainerMetaFactory.CreateVmContainerFactory(args)
 	require.Nil(t, err)
 	require.Equal(t, "*containers.virtualMachinesContainer", fmt.Sprintf("%T", vmContainer))
 	require.Equal(t, "*metachain.vmContainerFactory", fmt.Sprintf("%T", vmFactory))
