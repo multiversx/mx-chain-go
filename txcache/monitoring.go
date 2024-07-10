@@ -69,11 +69,15 @@ func (cache *TxCache) monitorSelectionEnd(sortedSenders []*txListForSender, sele
 		return
 	}
 
-	logSelection.Trace("Sorted senders (as newline-separated JSON):")
-	logSelection.Trace(marshalSendersToNewlineDelimitedJson(sortedSenders))
+	if len(sortedSenders) > 0 {
+		logSelection.Trace("Sorted senders (as newline-separated JSON):")
+		logSelection.Trace(marshalSendersToNewlineDelimitedJson(sortedSenders))
+	}
 
-	logSelection.Trace("Selected transactions (as newline-separated JSON):")
-	logSelection.Trace(marshalTransactionsToNewlineDelimitedJson(selection))
+	if len(selection) == 0 {
+		logSelection.Trace("Selected transactions (as newline-separated JSON):")
+		logSelection.Trace(marshalTransactionsToNewlineDelimitedJson(selection))
+	}
 }
 
 type batchSelectionJournal struct {
