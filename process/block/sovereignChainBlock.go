@@ -830,11 +830,11 @@ func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
 	//	return err
 	//}
 
-	//err = scbp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, header)
-	//if err != nil {
-	//	return err
-	//}
-	//
+	err = scbp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, header)
+	if err != nil {
+		return err
+	}
+
 	//err = mp.epochRewardsCreator.VerifyRewardsMiniBlocks(header, allValidatorsInfo, computedEconomics)
 	//if err != nil {
 	//	return err
