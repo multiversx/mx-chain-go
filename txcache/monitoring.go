@@ -74,7 +74,7 @@ func (cache *TxCache) monitorSelectionEnd(sortedSenders []*txListForSender, sele
 		logSelection.Trace(marshalSendersToNewlineDelimitedJson(sortedSenders))
 	}
 
-	if len(selection) == 0 {
+	if len(selection) > 0 {
 		logSelection.Trace("Selected transactions (as newline-separated JSON):")
 		logSelection.Trace(marshalTransactionsToNewlineDelimitedJson(selection))
 	}
