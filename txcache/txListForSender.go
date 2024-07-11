@@ -117,10 +117,10 @@ func (listForSender *txListForSender) recomputeScore() {
 func (listForSender *txListForSender) getScoreParams() senderScoreParams {
 	numTxs := listForSender.countTx()
 	minTransactionNonce := uint64(0)
-	firstTx := listForSender.items.Front()
+	firstTx := listForSender.getLowestNonceTx()
 
 	if firstTx != nil {
-		minTransactionNonce = firstTx.Value.(*WrappedTransaction).Tx.GetNonce()
+		minTransactionNonce = firstTx.Tx.GetNonce()
 	}
 
 	hasSpotlessSequenceOfNonces := listForSender.noncesTracker.isSpotlessSequence(minTransactionNonce, numTxs)
