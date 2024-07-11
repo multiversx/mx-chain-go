@@ -55,14 +55,11 @@ func (cache *TxCache) monitorSelectionEnd(sortedSenders []*txListForSender, sele
 	numSendersSelected := cache.numSendersSelected.Reset()
 	numSendersWithInitialGap := cache.numSendersWithInitialGap.Reset()
 	numSendersWithMiddleGap := cache.numSendersWithMiddleGap.Reset()
-	numSendersInGracePeriod := cache.numSendersInGracePeriod.Reset()
-
 	log.Debug("TxCache: selection ended", "name", cache.name, "duration", duration,
 		"numTxSelected", len(selection),
 		"numSendersSelected", numSendersSelected,
 		"numSendersWithInitialGap", numSendersWithInitialGap,
 		"numSendersWithMiddleGap", numSendersWithMiddleGap,
-		"numSendersInGracePeriod", numSendersInGracePeriod,
 	)
 
 	if logSelection.GetLevel() != logger.LogTrace {
@@ -85,7 +82,6 @@ type batchSelectionJournal struct {
 	isFirstBatch  bool
 	hasInitialGap bool
 	hasMiddleGap  bool
-	isGracePeriod bool
 }
 
 func (cache *TxCache) monitorBatchSelectionEnd(journal batchSelectionJournal) {
@@ -100,23 +96,9 @@ func (cache *TxCache) monitorBatchSelectionEnd(journal batchSelectionJournal) {
 		cache.numSendersWithMiddleGap.Increment()
 	}
 
-	if journal.isGracePeriod {
-		cache.numSendersInGracePeriod.Increment()
-	} else if journal.selectedNum > 0 {
+	if journal.selectedNum > 0 {
 		cache.numSendersSelected.Increment()
 	}
-}
-
-func (cache *TxCache) monitorSweepingStart() *core.StopWatch {
-	sw := core.NewStopWatch()
-	sw.Start("sweeping")
-	return sw
-}
-
-func (cache *TxCache) monitorSweepingEnd(numTxs uint32, numSenders uint32, stopWatch *core.StopWatch) {
-	stopWatch.Stop("sweeping")
-	duration := stopWatch.GetMeasurement("sweeping")
-	log.Debug("TxCache: swept senders:", "name", cache.name, "duration", duration, "txs", numTxs, "senders", numSenders)
 }
 
 // evictionJournal keeps a short journal about the eviction process
