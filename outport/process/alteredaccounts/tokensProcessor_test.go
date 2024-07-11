@@ -1,13 +1,13 @@
 package alteredaccounts
 
 import (
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"math/big"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/process/mock"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 )
 

@@ -1,13 +1,13 @@
 package alteredaccounts
 
 import (
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-go/sharding"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 const (
