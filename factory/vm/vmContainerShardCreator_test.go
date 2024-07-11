@@ -5,20 +5,19 @@ import (
 	"sync"
 	"testing"
 
+	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
+	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/factory/vm"
-	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory/shard"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
-	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
-	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
-	"github.com/multiversx/mx-chain-vm-common-go/parsers"
-	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
-	"github.com/stretchr/testify/require"
 )
 
 func makeVMConfig() config.VirtualMachineConfig {
@@ -54,32 +53,20 @@ func TestNewVmContainerShardCreatorFactory(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		bhhc := &factory.BlockChainHookHandlerFactoryMock{}
-		vmContainerShardFactory, err := vm.NewVmContainerShardFactory(bhhc)
-		require.Nil(t, err)
+		vmContainerShardFactory := vm.NewVmContainerShardFactory()
 		require.False(t, vmContainerShardFactory.IsInterfaceNil())
-	})
-
-	t.Run("should error", func(t *testing.T) {
-		t.Parallel()
-
-		vmContainerShardFactory, err := vm.NewVmContainerShardFactory(nil)
-		require.ErrorIs(t, err, process.ErrNilBlockChainHook)
-		require.True(t, vmContainerShardFactory.IsInterfaceNil())
 	})
 }
 
 func TestNewVmContainerShardFactory_CreateVmContainerFactoryShard(t *testing.T) {
 	t.Parallel()
 
-	bhhc := &factory.BlockChainHookHandlerFactoryMock{}
-	vmContainerShardFactory, err := vm.NewVmContainerShardFactory(bhhc)
-	require.Nil(t, err)
+	vmContainerShardFactory := vm.NewVmContainerShardFactory()
 	require.False(t, vmContainerShardFactory.IsInterfaceNil())
 
-	argsBlockchain := createMockBlockChainHookArgs()
 	argsShard := createMockVMAccountsArguments()
 	args := vm.ArgsVmContainerFactory{
+		BlockChainHook:      argsShard.BlockChainHook,
 		Config:              argsShard.Config,
 		BlockGasLimit:       argsShard.BlockGasLimit,
 		GasSchedule:         argsShard.GasSchedule,
@@ -92,7 +79,7 @@ func TestNewVmContainerShardFactory_CreateVmContainerFactoryShard(t *testing.T) 
 		PubkeyConv:          argsShard.PubKeyConverter,
 	}
 
-	vmContainer, vmFactory, err := vmContainerShardFactory.CreateVmContainerFactory(argsBlockchain, args)
+	vmContainer, vmFactory, err := vmContainerShardFactory.CreateVmContainerFactory(args)
 	require.Nil(t, err)
 	require.Equal(t, "*containers.virtualMachinesContainer", fmt.Sprintf("%T", vmContainer))
 	require.Equal(t, "*shard.vmContainerFactory", fmt.Sprintf("%T", vmFactory))

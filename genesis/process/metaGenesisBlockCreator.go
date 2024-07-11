@@ -351,7 +351,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		return nil, err
 	}
 
-	_, virtualMachineFactory, err := arg.RunTypeComponents.VmContainerMetaFactoryCreator().CreateVmContainerFactory(argsHook, vmFactory.ArgsVmContainerFactory{
+	_, virtualMachineFactory, err := arg.RunTypeComponents.VmContainerMetaFactoryCreator().CreateVmContainerFactory(vmFactory.ArgsVmContainerFactory{
 		BlockChainHook:      blockChainHookImpl,
 		PubkeyConv:          argsHook.PubkeyConv,
 		Economics:           arg.Economics,
