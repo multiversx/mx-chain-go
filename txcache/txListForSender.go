@@ -243,16 +243,16 @@ func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destinati
 
 	journal := batchSelectionJournal{}
 
-	// Reset the internal state used for copy operations
 	if isFirstBatch {
 		hasInitialGap := listForSender.hasInitialGap()
 
+		journal.isFirstBatch = true
+		journal.hasInitialGap = hasInitialGap
+
+		// Reset the internal state used for copy operations
 		listForSender.copyBatchIndex = listForSender.items.Front()
 		listForSender.copyPreviousNonce = 0
 		listForSender.copyDetectedGap = hasInitialGap
-
-		journal.isFirstBatch = true
-		journal.hasInitialGap = hasInitialGap
 	}
 
 	element := listForSender.copyBatchIndex
@@ -262,7 +262,7 @@ func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destinati
 
 	// If a nonce gap is detected, no transaction is returned in this read.
 	if detectedGap {
-		batchSize = 0
+		return journal
 	}
 
 	copiedBandwidth := uint64(0)

@@ -124,13 +124,12 @@ func (cache *TxCache) doSelectTransactions(numRequested int, batchSizePerSender 
 			score := txList.getScore()
 			batchSize, bandwidth := cache.computeSelectionSenderConstraints(score, batchSizePerSender, bandwidthPerSender)
 
-			// Reset happens on first pass only
 			isFirstBatch := pass == 0
-			journal := txList.selectBatchTo(isFirstBatch, result[resultFillIndex:], batchSize, bandwidth)
-			cache.monitorBatchSelectionEnd(journal)
+			batchSelectionJournal := txList.selectBatchTo(isFirstBatch, result[resultFillIndex:], batchSize, bandwidth)
+			cache.monitorBatchSelectionEnd(batchSelectionJournal)
 
-			resultFillIndex += journal.selectedNum
-			numSelectedInThisPass += journal.selectedNum
+			resultFillIndex += batchSelectionJournal.selectedNum
+			numSelectedInThisPass += batchSelectionJournal.selectedNum
 			resultIsFull = resultFillIndex == numRequested
 			if resultIsFull {
 				break
@@ -138,9 +137,8 @@ func (cache *TxCache) doSelectTransactions(numRequested int, batchSizePerSender 
 		}
 
 		nothingSelectedInThisPass := numSelectedInThisPass == 0
-
-		// No more passes needed
 		if nothingSelectedInThisPass {
+			// No more passes needed
 			break
 		}
 	}
