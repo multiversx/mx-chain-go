@@ -129,7 +129,12 @@ func (txMap *txListBySenderMap) notifyAccountNonce(accountKey []byte, nonce uint
 		return nil
 	}
 
-	return listForSender.notifyAccountNonce(nonce)
+	evictedTxHashes := listForSender.notifyAccountNonce(nonce)
+	if listForSender.IsEmpty() {
+		txMap.removeSender(sender)
+	}
+
+	return evictedTxHashes
 }
 
 func (txMap *txListBySenderMap) getSnapshotAscending() []*txListForSender {
