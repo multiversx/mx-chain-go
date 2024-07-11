@@ -563,7 +563,7 @@ func (snr *sovereignNodeRunner) executeOneComponentCreationCycle(
 		managedConsensusComponents,
 		flagsConfig.BootstrapRoundIndex,
 		configs.ImportDbConfig.IsImportDBMode,
-		node.NewSovereignNodeFactory(),
+		node.NewSovereignNodeFactory(configs.GeneralConfig.SovereignConfig.GenesisConfig.NativeESDT),
 		extraOptionNotifierReceiver,
 		extraOptionOutGoingBridgeSender,
 	)
