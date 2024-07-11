@@ -262,14 +262,8 @@ func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destinati
 	previousNonce := listForSender.copyPreviousNonce
 
 	// If a nonce gap is detected, no transaction is returned in this read.
-	// There is an exception though: if this is the first read operation for the sender in the current selection process and the sender is in the grace period,
-	// then one transaction will be returned. But subsequent reads for this sender will return nothing.
 	if detectedGap {
-		if isFirstBatch && listForSender.isInGracePeriod() {
-			batchSize = 1
-		} else {
-			batchSize = 0
-		}
+		batchSize = 0
 	}
 
 	copiedBandwidth := uint64(0)
@@ -413,17 +407,6 @@ func (listForSender *txListForSender) getLowestNonceTx() *WrappedTransaction {
 
 	value := front.Value.(*WrappedTransaction)
 	return value
-}
-
-// isInGracePeriod returns whether the sender is grace period due to a number of failed selections
-func (listForSender *txListForSender) isInGracePeriod() bool {
-	numFailedSelections := listForSender.numFailedSelections.Get()
-	return numFailedSelections >= senderGracePeriodLowerBound && numFailedSelections <= senderGracePeriodUpperBound
-}
-
-func (listForSender *txListForSender) isGracePeriodExceeded() bool {
-	numFailedSelections := listForSender.numFailedSelections.Get()
-	return numFailedSelections > senderGracePeriodUpperBound
 }
 
 func (listForSender *txListForSender) getScore() int {
