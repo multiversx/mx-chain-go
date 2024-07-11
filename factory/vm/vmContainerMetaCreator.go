@@ -2,45 +2,34 @@ package vm
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
+
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory/metachain"
-	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 )
 
 type vmContainerMetaFactory struct {
-	blockChainHookHandlerCreator hooks.BlockChainHookHandlerCreator
-	vmContextCreatorHandler      systemSmartContracts.VMContextCreatorHandler
+	vmContextCreatorHandler systemSmartContracts.VMContextCreatorHandler
 }
 
 // NewVmContainerMetaFactory creates a new vm container meta factory
 func NewVmContainerMetaFactory(
-	blockChainHookCreator hooks.BlockChainHookHandlerCreator,
 	vmContextCreator systemSmartContracts.VMContextCreatorHandler,
 ) (*vmContainerMetaFactory, error) {
-	if check.IfNil(blockChainHookCreator) {
-		return nil, errors.ErrNilBlockChainHookCreator
-	}
 	if check.IfNil(vmContextCreator) {
 		return nil, errors.ErrNilVMContextCreator
 	}
 
 	return &vmContainerMetaFactory{
-		blockChainHookHandlerCreator: blockChainHookCreator,
-		vmContextCreatorHandler:      vmContextCreator,
+		vmContextCreatorHandler: vmContextCreator,
 	}, nil
 }
 
 // CreateVmContainerFactory will create a new vm container and factory for metachain
-func (vcmf *vmContainerMetaFactory) CreateVmContainerFactory(argsHook hooks.ArgBlockChainHook, args ArgsVmContainerFactory) (process.VirtualMachinesContainer, process.VirtualMachinesContainerFactory, error) {
-	blockChainHookImpl, err := vcmf.blockChainHookHandlerCreator.CreateBlockChainHookHandler(argsHook)
-	if err != nil {
-		return nil, nil, err
-	}
-
+func (vcmf *vmContainerMetaFactory) CreateVmContainerFactory(args ArgsVmContainerFactory) (process.VirtualMachinesContainer, process.VirtualMachinesContainerFactory, error) {
 	argsNewVmFactory := metachain.ArgsNewVMContainerFactory{
-		BlockChainHook:          blockChainHookImpl,
+		BlockChainHook:          args.BlockChainHook,
 		PubkeyConv:              args.PubkeyConv,
 		Economics:               args.Economics,
 		MessageSignVerifier:     args.MessageSignVerifier,

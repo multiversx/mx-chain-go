@@ -192,7 +192,13 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		MissingTrieNodesNotifier: missingTrieNodesNotifier,
 	}
 
+	blockChainHookImpl, err := pcf.runTypeComponents.BlockChainHookHandlerCreator().CreateBlockChainHookHandler(argsHook)
+	if err != nil {
+		return nil, err
+	}
+
 	argsNewVmContainerFactory := factoryVm.ArgsVmContainerFactory{
+		BlockChainHook:      blockChainHookImpl,
 		Config:              pcf.config.VirtualMachine.Execution,
 		BlockGasLimit:       pcf.coreData.EconomicsData().MaxGasLimitPerBlock(pcf.bootstrapComponents.ShardCoordinator().SelfId()),
 		GasSchedule:         pcf.gasSchedule,
@@ -215,7 +221,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		NodesCoordinator:    pcf.nodesCoordinator,
 	}
 
-	vmContainer, vmFactory, err := pcf.runTypeComponents.VmContainerShardFactoryCreator().CreateVmContainerFactory(argsHook, argsNewVmContainerFactory)
+	vmContainer, vmFactory, err := pcf.runTypeComponents.VmContainerShardFactoryCreator().CreateVmContainerFactory(argsNewVmContainerFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -602,7 +608,13 @@ func (pcf *processComponentsFactory) createArgsMetaBlockProcessor(
 		MissingTrieNodesNotifier: syncer.NewMissingTrieNodesNotifier(),
 	}
 
+	blockChainHookImpl, err := pcf.runTypeComponents.BlockChainHookHandlerCreator().CreateBlockChainHookHandler(argsHook)
+	if err != nil {
+		return nil, err
+	}
+
 	argsNewVmContainerFactory := factoryVm.ArgsVmContainerFactory{
+		BlockChainHook:      blockChainHookImpl,
 		PubkeyConv:          argsHook.PubkeyConv,
 		Economics:           pcf.coreData.EconomicsData(),
 		MessageSignVerifier: pcf.crypto.MessageSignVerifier(),
@@ -619,7 +631,7 @@ func (pcf *processComponentsFactory) createArgsMetaBlockProcessor(
 		NodesCoordinator:    pcf.nodesCoordinator,
 	}
 
-	vmContainer, vmFactory, err := pcf.runTypeComponents.VmContainerMetaFactoryCreator().CreateVmContainerFactory(argsHook, argsNewVmContainerFactory)
+	vmContainer, vmFactory, err := pcf.runTypeComponents.VmContainerMetaFactoryCreator().CreateVmContainerFactory(argsNewVmContainerFactory)
 	if err != nil {
 		return nil, err
 	}
