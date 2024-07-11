@@ -99,6 +99,7 @@ func (txMap *txListBySenderMap) removeTx(tx *WrappedTransaction) bool {
 	return isFound
 }
 
+// Important: this doesn't remove the transactions from txCache.txByHash. That's done by the caller.
 func (txMap *txListBySenderMap) removeSender(sender string) bool {
 	_, removed := txMap.backingMap.Remove(sender)
 	if removed {
@@ -166,6 +167,7 @@ func (txMap *txListBySenderMap) getSendersGroupedByScore() [][]*txListForSender 
 			groups[score] = make([]*txListForSender, 0, groupSizeHint)
 		}
 
+		// TODO (next PR) randomize / shuffle.
 		groups[score] = append(groups[score], listForSender)
 	})
 
