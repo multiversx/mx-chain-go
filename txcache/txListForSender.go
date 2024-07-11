@@ -11,17 +11,16 @@ import (
 
 // txListForSender represents a sorted list of transactions of a particular sender
 type txListForSender struct {
-	copyDetectedGap     bool
-	score               atomic.Uint32
-	accountNonceKnown   atomic.Flag
-	copyPreviousNonce   uint64
-	sender              string
-	items               *list.List
-	copyBatchIndex      *list.Element
-	constraints         *senderConstraints
-	accountNonce        atomic.Uint64
-	totalBytes          atomic.Counter
-	numFailedSelections atomic.Counter
+	copyDetectedGap   bool
+	score             atomic.Uint32
+	accountNonceKnown atomic.Flag
+	copyPreviousNonce uint64
+	sender            string
+	items             *list.List
+	copyBatchIndex    *list.Element
+	constraints       *senderConstraints
+	accountNonce      atomic.Uint64
+	totalBytes        atomic.Counter
 
 	avgPpuNumerator   float64
 	avgPpuDenominator uint64
@@ -246,7 +245,7 @@ func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destinati
 
 	// Reset the internal state used for copy operations
 	if isFirstBatch {
-		hasInitialGap := listForSender.verifyInitialGapOnSelectionStart()
+		hasInitialGap := listForSender.hasInitialGap()
 
 		listForSender.copyBatchIndex = listForSender.items.Front()
 		listForSender.copyPreviousNonce = 0
@@ -331,8 +330,6 @@ func approximatelyCountTxInLists(lists []*txListForSender) uint64 {
 	return count
 }
 
-// notifyAccountNonce does not update the "numFailedSelections" counter,
-// since the notification comes at a time when we cannot actually detect whether the initial gap still exists or it was resolved.
 // Removes transactions with lower nonces and returns their hashes.
 func (listForSender *txListForSender) notifyAccountNonce(nonce uint64) [][]byte {
 	listForSender.mutex.Lock()
@@ -364,19 +361,6 @@ func (listForSender *txListForSender) evictTransactionsWithLowerNonces(accountNo
 	}
 
 	return evictedTxHashes
-}
-
-// This function should only be used in critical section (listForSender.mutex)
-func (listForSender *txListForSender) verifyInitialGapOnSelectionStart() bool {
-	hasInitialGap := listForSender.hasInitialGap()
-
-	if hasInitialGap {
-		listForSender.numFailedSelections.Increment()
-	} else {
-		listForSender.numFailedSelections.Reset()
-	}
-
-	return hasInitialGap
 }
 
 // hasInitialGap should only be called at tx selection time, since only then we can detect initial gaps with certainty
