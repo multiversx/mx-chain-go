@@ -216,13 +216,12 @@ func (cache *TxCache) displaySendersSummary() {
 	}
 
 	var builder strings.Builder
-	builder.WriteString("\n[#index (score)] address [nonce known / nonce vs lowestTxNonce] txs = numTxs, !numFailedSelections\n")
+	builder.WriteString("\n[#index (score)] address [nonce known / nonce vs lowestTxNonce] txs = numTxs\n")
 
 	for i, sender := range senders {
 		address := hex.EncodeToString([]byte(sender.sender))
 		accountNonce := sender.accountNonce.Get()
 		accountNonceKnown := sender.accountNonceKnown.IsSet()
-		numFailedSelections := sender.numFailedSelections.Get()
 		score := sender.getScore()
 		numTxs := sender.countTxWithLock()
 
@@ -232,7 +231,7 @@ func (cache *TxCache) displaySendersSummary() {
 			lowestTxNonce = int(lowestTx.Tx.GetNonce())
 		}
 
-		_, _ = fmt.Fprintf(&builder, "[#%d (%d)] %s [%t / %d vs %d] txs = %d, !%d\n", i, score, address, accountNonceKnown, accountNonce, lowestTxNonce, numTxs, numFailedSelections)
+		_, _ = fmt.Fprintf(&builder, "[#%d (%d)] %s [%t / %d vs %d] txs = %d\n", i, score, address, accountNonceKnown, accountNonce, lowestTxNonce, numTxs)
 	}
 
 	summary := builder.String()

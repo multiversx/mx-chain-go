@@ -265,17 +265,15 @@ func TestListForSender_SelectBatchTo_WhenInitialGap(t *testing.T) {
 
 	destination := make([]*WrappedTransaction, 1000)
 
-	// First batch of selection, first failure
+	// First batch of selection (failed to select)
 	journal := list.selectBatchTo(true, destination, 50, math.MaxUint64)
 	require.Equal(t, 0, journal.selectedNum)
 	require.Nil(t, destination[0])
-	require.Equal(t, int64(1), list.numFailedSelections.Get())
 
-	// Second batch of selection, don't count failure again
+	// Second batch of selection (the same, failed to select)
 	journal = list.selectBatchTo(false, destination, 50, math.MaxUint64)
 	require.Equal(t, 0, journal.selectedNum)
 	require.Nil(t, destination[0])
-	require.Equal(t, int64(1), list.numFailedSelections.Get())
 }
 
 func TestListForSender_NotifyAccountNonce(t *testing.T) {

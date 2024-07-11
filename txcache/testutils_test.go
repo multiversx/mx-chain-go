@@ -43,10 +43,6 @@ func (cache *TxCache) getScoreOfSender(sender string) int {
 	return computer.computeScore(scoreParams)
 }
 
-func (cache *TxCache) getNumFailedSelectionsOfSender(sender string) int {
-	return int(cache.getListForSender(sender).numFailedSelections.Get())
-}
-
 func (listForSender *txListForSender) getTxHashesAsStrings() []string {
 	hashes := listForSender.getTxHashes()
 	return hashesAsStrings(hashes)
