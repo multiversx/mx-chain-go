@@ -1,36 +1,22 @@
 package vm
 
 import (
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory/shard"
-	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 )
 
 type vmContainerShardFactory struct {
-	blockChainHookHandlerCreator hooks.BlockChainHookHandlerCreator
 }
 
 // NewVmContainerShardFactory creates a new vm container shard factory
-func NewVmContainerShardFactory(bhhc hooks.BlockChainHookHandlerCreator) (*vmContainerShardFactory, error) {
-	if check.IfNil(bhhc) {
-		return nil, process.ErrNilBlockChainHook
-	}
-
-	return &vmContainerShardFactory{
-		blockChainHookHandlerCreator: bhhc,
-	}, nil
+func NewVmContainerShardFactory() *vmContainerShardFactory {
+	return &vmContainerShardFactory{}
 }
 
 // CreateVmContainerFactory will create a new vm container and factoy for shard
-func (vcsf *vmContainerShardFactory) CreateVmContainerFactory(argsHook hooks.ArgBlockChainHook, args ArgsVmContainerFactory) (process.VirtualMachinesContainer, process.VirtualMachinesContainerFactory, error) {
-	blockChainHookImpl, err := vcsf.blockChainHookHandlerCreator.CreateBlockChainHookHandler(argsHook)
-	if err != nil {
-		return nil, nil, err
-	}
-
+func (vcsf *vmContainerShardFactory) CreateVmContainerFactory(args ArgsVmContainerFactory) (process.VirtualMachinesContainer, process.VirtualMachinesContainerFactory, error) {
 	argsNewVmFactory := shard.ArgVMContainerFactory{
-		BlockChainHook:      blockChainHookImpl,
+		BlockChainHook:      args.BlockChainHook,
 		BuiltInFunctions:    args.BuiltInFunctions,
 		Config:              args.Config,
 		BlockGasLimit:       args.BlockGasLimit,
