@@ -307,7 +307,6 @@ func TestListForSender_SelectBatchTo_WhenGracePeriodWithGapResolve(t *testing.T)
 	journal := list.selectBatchTo(true, destination, math.MaxInt32, math.MaxUint64)
 	require.Equal(t, 1, journal.selectedNum)
 	require.Equal(t, int64(senderGracePeriodLowerBound), list.numFailedSelections.Get())
-	require.False(t, list.sweepable.IsSet())
 
 	// Now resolve the gap
 	list.AddTx(createTx([]byte("resolving-tx"), ".", 1), txGasHandler)
@@ -315,7 +314,6 @@ func TestListForSender_SelectBatchTo_WhenGracePeriodWithGapResolve(t *testing.T)
 	journal = list.selectBatchTo(true, destination, math.MaxInt32, math.MaxUint64)
 	require.Equal(t, 19, journal.selectedNum)
 	require.Equal(t, int64(0), list.numFailedSelections.Get())
-	require.False(t, list.sweepable.IsSet())
 }
 
 func TestListForSender_SelectBatchTo_WhenGracePeriodWithNoGapResolve(t *testing.T) {
@@ -347,7 +345,6 @@ func TestListForSender_SelectBatchTo_WhenGracePeriodWithNoGapResolve(t *testing.
 	journal := list.selectBatchTo(true, destination, math.MaxInt32, math.MaxUint64)
 	require.Equal(t, 0, journal.selectedNum)
 	require.Equal(t, int64(senderGracePeriodUpperBound+1), list.numFailedSelections.Get())
-	require.True(t, list.sweepable.IsSet())
 }
 
 func TestListForSender_NotifyAccountNonce(t *testing.T) {

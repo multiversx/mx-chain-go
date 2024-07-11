@@ -25,9 +25,6 @@ type TxCache struct {
 	numSendersSelected        atomic.Counter
 	numSendersWithInitialGap  atomic.Counter
 	numSendersWithMiddleGap   atomic.Counter
-	numSendersInGracePeriod   atomic.Counter
-	sweepingMutex             sync.Mutex
-	sweepingListOfSenders     []*txListForSender
 	mutTxOperation            sync.Mutex
 }
 
@@ -57,7 +54,6 @@ func NewTxCache(config ConfigSourceMe, txGasHandler TxGasHandler) (*TxCache, err
 		evictionJournal: evictionJournal{},
 	}
 
-	txCache.initSweepable()
 	return txCache, nil
 }
 
@@ -133,10 +129,6 @@ func (cache *TxCache) doSelectTransactions(numRequested int, batchSizePerSender 
 			journal := txList.selectBatchTo(isFirstBatch, result[resultFillIndex:], batchSize, bandwidth)
 			cache.monitorBatchSelectionEnd(journal)
 
-			if isFirstBatch {
-				cache.collectSweepable(txList)
-			}
-
 			resultFillIndex += journal.selectedNum
 			numSelectedInThisPass += journal.selectedNum
 			resultIsFull = resultFillIndex == numRequested
@@ -175,7 +167,6 @@ func (cache *TxCache) computeSelectionSenderConstraints(score int, baseBatchSize
 }
 
 func (cache *TxCache) doAfterSelection() {
-	cache.sweepSweepable()
 	cache.Diagnose(false)
 }
 

@@ -47,16 +47,6 @@ func (cache *TxCache) getNumFailedSelectionsOfSender(sender string) int {
 	return int(cache.getListForSender(sender).numFailedSelections.Get())
 }
 
-func (cache *TxCache) isSenderSweepable(sender string) bool {
-	for _, item := range cache.sweepingListOfSenders {
-		if item.sender == sender {
-			return true
-		}
-	}
-
-	return false
-}
-
 func (listForSender *txListForSender) getTxHashesAsStrings() []string {
 	hashes := listForSender.getTxHashes()
 	return hashesAsStrings(hashes)

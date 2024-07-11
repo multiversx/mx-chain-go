@@ -14,7 +14,6 @@ type txListForSender struct {
 	copyDetectedGap     bool
 	score               atomic.Uint32
 	accountNonceKnown   atomic.Flag
-	sweepable           atomic.Flag
 	copyPreviousNonce   uint64
 	sender              string
 	items               *list.List
@@ -267,7 +266,6 @@ func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destinati
 	// then one transaction will be returned. But subsequent reads for this sender will return nothing.
 	if detectedGap {
 		if isFirstBatch && listForSender.isInGracePeriod() {
-			journal.isGracePeriod = true
 			batchSize = 1
 		} else {
 			batchSize = 0
@@ -380,10 +378,6 @@ func (listForSender *txListForSender) verifyInitialGapOnSelectionStart() bool {
 
 	if hasInitialGap {
 		listForSender.numFailedSelections.Increment()
-
-		if listForSender.isGracePeriodExceeded() {
-			_ = listForSender.sweepable.SetReturningPrevious()
-		}
 	} else {
 		listForSender.numFailedSelections.Reset()
 	}
