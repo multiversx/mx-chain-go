@@ -57,11 +57,13 @@ func (h *httpServer) Close() error {
 }
 
 // Port returns the port number this server was bound to
+// TODO: use this method by the facade, to report the bound port
 func (h *httpServer) Port() int {
 	return h.listener.Addr().(*net.TCPAddr).Port
 }
 
 // Address returns the actual address this server was bound to
+// TODO: use this method by the facade, to report the bound address
 func (h *httpServer) Address() string {
 	return h.listener.Addr().String()
 }
