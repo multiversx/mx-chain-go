@@ -45,8 +45,8 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		Marshaller:          &marshallerMock.MarshalizerMock{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	})
-	vmContainerShard, _ := factoryVm.NewVmContainerShardFactory(blockChainHookHandlerFactory)
-	vmContainerMeta, _ := factoryVm.NewVmContainerMetaFactory(blockChainHookHandlerFactory, systemSmartContracts.NewVMContextCreator())
+	vmContainerShard := factoryVm.NewVmContainerShardFactory()
+	vmContainerMeta, _ := factoryVm.NewVmContainerMetaFactory(systemSmartContracts.NewVMContextCreator())
 
 	return &RunTypeComponentsStub{
 		BlockChainHookHandlerFactory:  blockChainHookHandlerFactory,
@@ -81,9 +81,9 @@ func NewSovereignRunTypeComponentsStub() *RunTypeComponentsStub {
 	})
 
 	oneShardVM := systemSmartContracts.NewOneShardSystemVMEEICreator()
-	vmMetaFactory, _ := factoryVm.NewVmContainerMetaFactory(blockChainHookHandlerFactory, oneShardVM)
-	sovVMContainerShardFactory, _ := factoryVm.NewSovereignVmContainerShardFactory(blockChainHookHandlerFactory, vmMetaFactory, runTypeComponents.VmContainerShardFactory)
-	sovVMContainerMeta, _ := factoryVm.NewVmContainerMetaFactory(blockChainHookHandlerFactory, oneShardVM)
+	vmMetaFactory, _ := factoryVm.NewVmContainerMetaFactory(oneShardVM)
+	sovVMContainerShardFactory, _ := factoryVm.NewSovereignVmContainerShardFactory(vmMetaFactory, runTypeComponents.VmContainerShardFactory)
+	sovVMContainerMeta, _ := factoryVm.NewVmContainerMetaFactory(oneShardVM)
 
 	return &RunTypeComponentsStub{
 		BlockChainHookHandlerFactory:  blockChainHookHandlerFactory,

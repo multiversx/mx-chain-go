@@ -432,7 +432,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		numEligible: uint64(len(eligible)),
 	}
 
-	vmContainer, vmFactoryImpl, err := arg.RunTypeComponents.VmContainerShardFactoryCreator().CreateVmContainerFactory(argsHook, vm.ArgsVmContainerFactory{
+	vmContainer, vmFactoryImpl, err := arg.RunTypeComponents.VmContainerShardFactoryCreator().CreateVmContainerFactory(vm.ArgsVmContainerFactory{
 		Config:              arg.VirtualMachineConfig,
 		BlockGasLimit:       math.MaxUint64,
 		GasSchedule:         arg.GasSchedule,
