@@ -323,7 +323,7 @@ func (stp *stakingToPeer) updatePeerState(
 
 	isValidator := account.GetList() == string(common.EligibleList) || account.GetList() == string(common.WaitingList)
 	if !stakingData.Jailed {
-		if stakingData.StakedNonce != nonce && !isValidator {
+		if stakingData.StakedNonce == nonce && !isValidator {
 			log.Debug("node is staked, changed status to", "list", newNodesList, "blsKey", blsPubKey)
 			account.SetListAndIndex(account.GetShardId(), string(newNodesList), uint32(stakingData.StakedNonce), isStakingV4Started)
 			account.SetTempRating(stp.startRating)
