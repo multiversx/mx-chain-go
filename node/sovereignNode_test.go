@@ -10,7 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-go/node"
 )
 
-var nativeEsdt = "WEGLD-bd4d79"
+var nativeESDT = "WEGLD-bd4d79"
 
 func TestNewSovereignNode(t *testing.T) {
 	t.Parallel()
@@ -22,14 +22,14 @@ func TestNewSovereignNode(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, n)
 
-		sn, err := node.NewSovereignNode(n, nativeEsdt)
+		sn, err := node.NewSovereignNode(n, nativeESDT)
 		require.Nil(t, err)
 		require.False(t, sn.IsInterfaceNil())
 	})
 	t.Run("nil node should error", func(t *testing.T) {
 		t.Parallel()
 
-		sn, err := node.NewSovereignNode(nil, nativeEsdt)
+		sn, err := node.NewSovereignNode(nil, nativeESDT)
 		require.NotNil(t, err)
 		require.Equal(t, errors.ErrNilNode, err)
 		require.Nil(t, sn)
@@ -51,27 +51,27 @@ func TestNewSovereignNode(t *testing.T) {
 func TestSovereignNode_GetAllESDTTokens(t *testing.T) {
 	t.Parallel()
 
-	testNodeGetAllIssuedESDTs(t, node.NewSovereignNodeFactory(nativeEsdt), core.SovereignChainShardId)
-	testNodeGetAllIssuedESDTs(t, node.NewSovereignNodeFactory(nativeEsdt), core.MainChainShardId)
+	testNodeGetAllIssuedESDTs(t, node.NewSovereignNodeFactory(nativeESDT), core.SovereignChainShardId)
+	testNodeGetAllIssuedESDTs(t, node.NewSovereignNodeFactory(nativeESDT), core.MainChainShardId)
 }
 
 func TestSovereignNode_GetNFTTokenIDsRegisteredByAddress(t *testing.T) {
 	t.Parallel()
 
-	testNodeGetNFTTokenIDsRegisteredByAddress(t, node.NewSovereignNodeFactory(nativeEsdt), core.SovereignChainShardId)
-	testNodeGetNFTTokenIDsRegisteredByAddress(t, node.NewSovereignNodeFactory(nativeEsdt), core.MainChainShardId)
+	testNodeGetNFTTokenIDsRegisteredByAddress(t, node.NewSovereignNodeFactory(nativeESDT), core.SovereignChainShardId)
+	testNodeGetNFTTokenIDsRegisteredByAddress(t, node.NewSovereignNodeFactory(nativeESDT), core.MainChainShardId)
 }
 
 func TestSovereignNode_GetESDTsWithRole(t *testing.T) {
 	t.Parallel()
 
-	testNodeGetESDTsWithRole(t, node.NewSovereignNodeFactory(nativeEsdt), core.SovereignChainShardId)
-	testNodeGetESDTsWithRole(t, node.NewSovereignNodeFactory(nativeEsdt), core.MainChainShardId)
+	testNodeGetESDTsWithRole(t, node.NewSovereignNodeFactory(nativeESDT), core.SovereignChainShardId)
+	testNodeGetESDTsWithRole(t, node.NewSovereignNodeFactory(nativeESDT), core.MainChainShardId)
 }
 
 func TestSovereignNode_GetESDTsRoles(t *testing.T) {
 	t.Parallel()
 
-	testNodeGetESDTsRoles(t, node.NewSovereignNodeFactory(nativeEsdt), core.SovereignChainShardId)
-	testNodeGetESDTsRoles(t, node.NewSovereignNodeFactory(nativeEsdt), core.MainChainShardId)
+	testNodeGetESDTsRoles(t, node.NewSovereignNodeFactory(nativeESDT), core.SovereignChainShardId)
+	testNodeGetESDTsRoles(t, node.NewSovereignNodeFactory(nativeESDT), core.MainChainShardId)
 }

@@ -66,7 +66,7 @@ func TestCreateNode(t *testing.T) {
 			},
 			0,
 			false,
-			node.NewSovereignNodeFactory(nativeEsdt))
+			node.NewSovereignNodeFactory(nativeESDT))
 
 		require.Nil(t, err)
 		require.NotNil(t, nodeHandler)
