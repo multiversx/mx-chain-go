@@ -3,7 +3,6 @@ package gin
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"sync"
 	"time"
 
@@ -126,12 +125,17 @@ func (ws *webServer) StartHttpServer() error {
 
 	ws.registerRoutes(engine)
 
-	server := &http.Server{Addr: ws.facade.RestApiInterface(), Handler: engine}
-	log.Debug("creating gin web sever", "interface", ws.facade.RestApiInterface())
-	ws.httpServer, err = NewHttpServer(server)
+	restAPIInterface := ws.facade.RestApiInterface()
+	log.Debug("creating gin web sever", "interface", restAPIInterface)
+
+	// TODO refactor
+
+	ws.httpServer, err = NewHttpServer(restAPIInterface, "tcp4", engine)
 	if err != nil {
 		return err
 	}
+
+	// TODO: add print for port & address here
 
 	if !ws.antiFloodConfig.WebServerAntifloodEnabled {
 		log.Debug("starting web server with no throttler middleware")

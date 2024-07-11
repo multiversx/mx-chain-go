@@ -29,6 +29,14 @@ func TestNewChainSimulator(t *testing.T) {
 
 	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
+	// TODO: refactor the freePortAPIConfigurator implementation: remove the getFreePort method, pass 0 as port
+	apiInterface := api.NewFixedPortAPIConfigurator("", map[uint32]int{
+		0:                     0,
+		1:                     0,
+		2:                     0,
+		core.MetachainShardId: 0,
+	})
+
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
 		BypassTxSignatureCheck: false,
 		TempDir:                t.TempDir(),
@@ -37,7 +45,7 @@ func TestNewChainSimulator(t *testing.T) {
 		GenesisTimestamp:       startTime,
 		RoundDurationInMillis:  roundDurationInMillis,
 		RoundsPerEpoch:         core.OptionalUint64{},
-		ApiInterface:           api.NewNoApiInterface(),
+		ApiInterface:           apiInterface,
 		MinNodesPerShard:       1,
 		MetaChainMinNodes:      1,
 	})
