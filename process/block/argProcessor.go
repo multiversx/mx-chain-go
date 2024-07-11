@@ -126,4 +126,5 @@ type ExtraArgsMetaBlockProcessor struct {
 	EpochValidatorInfoCreator process.EpochStartValidatorInfoCreator
 	EpochRewardsCreator       process.RewardsCreator
 	EpochSystemSCProcessor    process.EpochStartSystemSCProcessor
+	SCToProtocol              process.SmartContractToProtocolHandler
 }

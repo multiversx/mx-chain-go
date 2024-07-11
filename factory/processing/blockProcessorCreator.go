@@ -1207,11 +1207,29 @@ func (pcf *processComponentsFactory) createExtraMetaBlockProcessorArgs(
 			return nil, err
 		}
 
+		// todo: common func
+		argsStaking := scToProtocol.ArgStakingToPeer{
+			PubkeyConv:          pcf.coreData.ValidatorPubKeyConverter(),
+			Hasher:              pcf.coreData.Hasher(),
+			Marshalizer:         pcf.coreData.InternalMarshalizer(),
+			PeerState:           pcf.state.PeerAccounts(),
+			BaseState:           pcf.state.AccountsAdapter(),
+			ArgParser:           smartContract.NewArgumentParser(),
+			CurrTxs:             pcf.data.Datapool().CurrentBlockTxs(),
+			RatingsData:         pcf.coreData.RatingsData(),
+			EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+		}
+		smartContractToProtocol, err := scToProtocol.NewStakingToPeer(argsStaking)
+		if err != nil {
+			return nil, err
+		}
+
 		return &block.ExtraArgsMetaBlockProcessor{
 			EpochRewardsCreator:       epochRewards,
 			EpochStartDataCreator:     epochStartDataCreator,
 			EpochValidatorInfoCreator: validatorInfoCreator,
 			EpochSystemSCProcessor:    epochStartSystemSCProcessor,
+			SCToProtocol:              smartContractToProtocol,
 		}, nil
 	}
 }

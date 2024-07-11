@@ -229,6 +229,8 @@ func (ihnc *sovereignIndexHashedNodesCoordinator) EpochStartPrepare(hdr data.Hea
 		return
 	}
 
+	ihnc.updateEpochFlags(newEpoch)
+
 	allValidatorInfo, err := ihnc.createValidatorInfoFromBody(body, ihnc.numTotalEligible, newEpoch)
 	if err != nil {
 		log.Error("could not create validator info from body - do nothing on nodesCoordinator epochStartPrepare", "error", err.Error())
@@ -238,7 +240,7 @@ func (ihnc *sovereignIndexHashedNodesCoordinator) EpochStartPrepare(hdr data.Hea
 	// TODO: compare with previous nodesConfig if exists
 	newNodesConfig, err := ihnc.computeNodesConfigFromList(allValidatorInfo)
 	if err != nil {
-		log.Error("could not compute nodes config from list - do nothing on nodesCoordinator epochStartPrepare")
+		log.Error("could not compute nodes config from list - do nothing on nodesCoordinator epochStartPrepare", "error", err)
 		return
 	}
 

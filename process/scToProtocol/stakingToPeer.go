@@ -323,7 +323,7 @@ func (stp *stakingToPeer) updatePeerState(
 
 	isValidator := account.GetList() == string(common.EligibleList) || account.GetList() == string(common.WaitingList)
 	if !stakingData.Jailed {
-		if stakingData.StakedNonce == nonce && !isValidator {
+		if stakingData.StakedNonce != nonce && !isValidator {
 			log.Debug("node is staked, changed status to", "list", newNodesList, "blsKey", blsPubKey)
 			account.SetListAndIndex(account.GetShardId(), string(newNodesList), uint32(stakingData.StakedNonce), isStakingV4Started)
 			account.SetTempRating(stp.startRating)
@@ -374,12 +374,12 @@ func (stp *stakingToPeer) getAllModifiedStates(body *block.Body) ([]string, erro
 	affectedStates := make([]string, 0)
 
 	for _, miniBlock := range body.MiniBlocks {
-		if miniBlock.Type != block.SmartContractResultBlock {
-			continue
-		}
-		if miniBlock.SenderShardID != core.MetachainShardId || miniBlock.ReceiverShardID != core.MetachainShardId {
-			continue
-		}
+		//if miniBlock.Type != block.SmartContractResultBlock {
+		//	continue
+		//}
+		//if miniBlock.SenderShardID != core.MetachainShardId || miniBlock.ReceiverShardID != core.MetachainShardId {
+		//	continue
+		//}
 
 		for _, txHash := range miniBlock.TxHashes {
 			tx, err := stp.currTxs.GetTx(txHash)
