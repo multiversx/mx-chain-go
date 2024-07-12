@@ -249,3 +249,96 @@ func multiESDTNFTTransferWithEGLDTx(nonce uint64, sndAdr, rcvAddr []byte, tokens
 
 	return tx
 }
+
+func TestChainSimulator_IssueToken_EGLDTicker(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	startTime := time.Now().Unix()
+	roundDurationInMillis := uint64(6000)
+	roundsPerEpoch := core.OptionalUint64{
+		HasValue: true,
+		Value:    20,
+	}
+
+	activationEpoch := uint32(4)
+
+	baseIssuingCost := "1000"
+
+	numOfShards := uint32(3)
+	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+		BypassTxSignatureCheck:   true,
+		TempDir:                  t.TempDir(),
+		PathToInitialConfig:      defaultPathToInitialConfig,
+		NumOfShards:              numOfShards,
+		GenesisTimestamp:         startTime,
+		RoundDurationInMillis:    roundDurationInMillis,
+		RoundsPerEpoch:           roundsPerEpoch,
+		ApiInterface:             api.NewNoApiInterface(),
+		MinNodesPerShard:         3,
+		MetaChainMinNodes:        3,
+		NumNodesWaitingListMeta:  0,
+		NumNodesWaitingListShard: 0,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			cfg.EpochConfig.EnableEpochs.EGLDInMultiTransferEnableEpoch = activationEpoch
+			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, cs)
+
+	defer cs.Close()
+
+	addrs := createAddresses(t, cs, false)
+
+	err = cs.GenerateBlocksUntilEpochIsReached(int32(activationEpoch) - 1)
+	require.Nil(t, err)
+
+	log.Info("Initial setup: Create fungible, NFT, SFT and metaESDT tokens (before the activation of DynamicEsdtFlag)")
+
+	// issue NFT
+	nftTicker := []byte("EGLD")
+	tx := issueNonFungibleTx(0, addrs[0].Bytes, nftTicker, baseIssuingCost)
+
+	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+	require.Equal(t, "success", txResult.Status.String())
+
+	nftTokenID := txResult.Logs.Events[0].Topics[0]
+
+	roles := [][]byte{
+		[]byte(core.ESDTRoleNFTCreate),
+		[]byte(core.ESDTRoleTransfer),
+	}
+	setAddressEsdtRoles(t, cs, addrs[0], nftTokenID, roles)
+
+	log.Info("Issued NFT token id", "tokenID", string(nftTokenID))
+
+	nftMetaData := txsFee.GetDefaultMetaData()
+	nftMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
+
+	tx = nftCreateTx(1, addrs[0].Bytes, nftTokenID, nftMetaData)
+
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+
+	require.Equal(t, "success", txResult.Status.String())
+
+	err = cs.GenerateBlocks(10)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocksUntilEpochIsReached(int32(activationEpoch))
+	require.Nil(t, err)
+
+	// should fail issuing token with EGLD ticker
+	tx = issueNonFungibleTx(2, addrs[0].Bytes, nftTicker, baseIssuingCost)
+
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+
+	require.NotEqual(t, "success", txResult.Status.String())
+}
