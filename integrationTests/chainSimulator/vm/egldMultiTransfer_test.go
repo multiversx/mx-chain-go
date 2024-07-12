@@ -168,6 +168,9 @@ func TestChainSimulator_EGLD_MultiTransfer(t *testing.T) {
 
 	require.Equal(t, "success", txResult.Status.String())
 
+	egldLog := string(txResult.Logs.Events[0].Topics[0])
+	require.Equal(t, "EGLD-000000", egldLog)
+
 	err = cs.GenerateBlocks(10)
 	require.Nil(t, err)
 
