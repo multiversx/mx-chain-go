@@ -290,20 +290,20 @@ func (n *Node) GetKeyValuePairs(address string, options api.AccountQueryOptions,
 			return make(map[string]string), adaptedBlockInfo, nil
 		}
 
-		return nil, api.BlockInfo{}, err
+		return nil, blockInfo, err
 	}
 
 	if check.IfNil(userAccount.DataTrie()) {
-		return map[string]string{}, api.BlockInfo{}, nil
+		return map[string]string{}, blockInfo, nil
 	}
 
 	mapToReturn, err := n.getKeys(userAccount, ctx)
 	if err != nil {
-		return nil, api.BlockInfo{}, err
+		return nil, blockInfo, err
 	}
 
 	if common.IsContextDone(ctx) {
-		return nil, api.BlockInfo{}, ErrTrieOperationsTimeout
+		return nil, blockInfo, ErrTrieOperationsTimeout
 	}
 
 	return mapToReturn, blockInfo, nil
