@@ -2526,7 +2526,7 @@ func TestChainSimulator_EdgeCaseLowWaitingList(t *testing.T) {
 	require.Equal(t, 0, len(unQualified))
 
 	// stake 16 mode nodes, these will go to auction list
-	stakeNodes(t, cs, 17)
+	staking.StakeNodes(t, cs, 17)
 
 	epochToCheck += 1
 	err = cs.GenerateBlocksUntilEpochIsReached(epochToCheck)
@@ -2557,41 +2557,13 @@ func checkKeysNotInMap(t *testing.T, m map[uint32][][]byte, keys []string) {
 	}
 }
 
-func stakeNodes(t *testing.T, cs chainSimulatorIntegrationTests.ChainSimulator, numNodesToStake int) {
-	txs := make([]*transaction.Transaction, numNodesToStake)
-	for i := 0; i < numNodesToStake; i++ {
-		txs[i] = createStakeTransaction(t, cs)
-	}
-
-	stakeTxs, err := cs.SendTxsAndGenerateBlocksTilAreExecuted(txs, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
-	require.Nil(t, err)
-	require.NotNil(t, stakeTxs)
-	require.Len(t, stakeTxs, numNodesToStake)
-
-	require.Nil(t, cs.GenerateBlocks(1))
-}
-
 func stakeOneNode(t *testing.T, cs chainSimulatorIntegrationTests.ChainSimulator) {
-	txStake := createStakeTransaction(t, cs)
+	txStake := staking.CreateStakeTransaction(t, cs)
 	stakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txStake, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, stakeTx)
 
 	require.Nil(t, cs.GenerateBlocks(1))
-}
-
-func createStakeTransaction(t *testing.T, cs chainSimulatorIntegrationTests.ChainSimulator) *transaction.Transaction {
-	privateKey, blsKeys, err := chainSimulator.GenerateBlsPrivateKeys(1)
-	require.Nil(t, err)
-	err = cs.AddValidatorKeys(privateKey)
-	require.Nil(t, err)
-
-	mintValue := big.NewInt(0).Add(chainSimulatorIntegrationTests.MinimumStakeValue, chainSimulatorIntegrationTests.OneEGLD)
-	validatorOwner, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
-	require.Nil(t, err)
-
-	txDataField := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], staking.MockBLSSignature)
-	return chainSimulatorIntegrationTests.GenerateTransaction(validatorOwner.Bytes, 0, vm.ValidatorSCAddress, chainSimulatorIntegrationTests.MinimumStakeValue, txDataField, staking.GasLimitForStakeOperation)
 }
 
 func unStakeOneActiveNode(t *testing.T, cs chainSimulatorIntegrationTests.ChainSimulator) {

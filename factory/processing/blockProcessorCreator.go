@@ -518,6 +518,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		epochSystemSCProcessor: factoryDisabled.NewDisabledEpochStartSystemSC(),
 	}
 
+	// TODO: MX-15650 - fix this for sovereign
 	pcf.stakingDataProviderAPI = factoryDisabled.NewDisabledStakingDataProvider()
 	pcf.auctionListSelectorAPI = factoryDisabled.NewDisabledAuctionListSelector()
 

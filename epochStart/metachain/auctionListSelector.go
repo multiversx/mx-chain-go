@@ -276,6 +276,7 @@ func isInAuction(validator state.ValidatorInfoHandler) bool {
 
 func (als *auctionListSelector) computeNumShuffledNodes(currNodesConfig config.MaxNodesChangeConfig) (uint32, uint32) {
 	numNodesToShufflePerShard := currNodesConfig.NodesToShufflePerShard
+	// TODO: MX-15650 - fix this for sovereign
 	numTotalToShuffleOut := numNodesToShufflePerShard * (als.shardCoordinator.NumberOfShards() + 1)
 	epochStats := als.stakingDataProvider.GetCurrentEpochValidatorStats()
 
