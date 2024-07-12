@@ -152,7 +152,12 @@ func TestChainSimulator_EGLD_MultiTransfer(t *testing.T) {
 	account0, err := cs.GetAccount(addrs[0])
 	require.Nil(t, err)
 
-	beforeBalanceStr := account0.Balance
+	beforeBalanceStr0 := account0.Balance
+
+	account1, err := cs.GetAccount(addrs[1])
+	require.Nil(t, err)
+
+	beforeBalanceStr1 := account1.Balance
 
 	egldValue := oneEGLD.Mul(oneEGLD, big.NewInt(3))
 	tx = multiESDTNFTTransferWithEGLDTx(nonce, addrs[0].Bytes, addrs[1].Bytes, tokenIDs, egldValue)
@@ -166,16 +171,25 @@ func TestChainSimulator_EGLD_MultiTransfer(t *testing.T) {
 	err = cs.GenerateBlocks(10)
 	require.Nil(t, err)
 
+	// check accounts balance
 	account0, err = cs.GetAccount(addrs[0])
 	require.Nil(t, err)
 
-	beforeBalance, _ := big.NewInt(0).SetString(beforeBalanceStr, 10)
+	beforeBalance0, _ := big.NewInt(0).SetString(beforeBalanceStr0, 10)
 
-	expectedBalance := big.NewInt(0).Sub(beforeBalance, egldValue)
+	expectedBalance0 := big.NewInt(0).Sub(beforeBalance0, egldValue)
 	txsFee, _ := big.NewInt(0).SetString(txResult.Fee, 10)
-	expectedBalanceWithFee := big.NewInt(0).Sub(expectedBalance, txsFee)
+	expectedBalanceWithFee0 := big.NewInt(0).Sub(expectedBalance0, txsFee)
 
-	require.Equal(t, expectedBalanceWithFee.String(), account0.Balance)
+	require.Equal(t, expectedBalanceWithFee0.String(), account0.Balance)
+
+	account1, err = cs.GetAccount(addrs[1])
+	require.Nil(t, err)
+
+	beforeBalance1, _ := big.NewInt(0).SetString(beforeBalanceStr1, 10)
+	expectedBalance1 := big.NewInt(0).Add(beforeBalance1, egldValue)
+
+	require.Equal(t, expectedBalance1.String(), account1.Balance)
 }
 
 func multiESDTNFTTransferWithEGLDTx(nonce uint64, sndAdr, rcvAddr []byte, tokens [][]byte, egldValue *big.Int) *transaction.Transaction {
