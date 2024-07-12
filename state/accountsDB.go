@@ -288,6 +288,7 @@ func (adb *AccountsDB) SaveAccount(account vmcommon.AccountHandler) error {
 		MainTrieKey:     account.AddressBytes(),
 		MainTrieVal:     marshalledAccount,
 		DataTrieChanges: newDataTrieValues,
+		Operation:       "saveAccount",
 	}
 	adb.stateChangesCollector.AddStateChange(stateChange)
 
