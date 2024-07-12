@@ -120,7 +120,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		NodesSetupCheckerFactoryField:       checking.NewNodesSetupCheckerFactory(),
 		EpochStartTriggerFactoryField:       &testFactory.EpochStartTriggerFactoryMock{},
 		LatestDataProviderFactoryField:      latestData.NewLatestDataProviderFactory(),
-		StakingToPeerFactoryField:           scToProtocol.NewStakingToPeerFactory(),
+		StakingToPeerFactoryField:           &testFactory.StakingToPeerFactoryMock{},
 	}
 }
 

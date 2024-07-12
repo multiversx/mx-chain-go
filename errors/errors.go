@@ -817,3 +817,6 @@ var ErrNilInitialAccounts = errors.New("nil initial accounts")
 
 // ErrNilEpochStartTriggerFactory signals that a nil epoch start trigger factory has been provided
 var ErrNilEpochStartTriggerFactory = errors.New("nil epoch start trigger factory has been provided")
+
+// ErrNilStakingToPeerFactory signals that a nil staking to peer factory has been provided
+var ErrNilStakingToPeerFactory = errors.New("nil staking to peer factory has been provided")
