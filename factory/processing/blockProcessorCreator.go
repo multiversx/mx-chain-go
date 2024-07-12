@@ -840,18 +840,7 @@ func (pcf *processComponentsFactory) createArgsMetaBlockProcessor(
 
 	scheduledTxsExecutionHandler.SetTransactionCoordinator(txCoordinator)
 
-	argsStaking := scToProtocol.ArgStakingToPeer{
-		PubkeyConv:          pcf.coreData.ValidatorPubKeyConverter(),
-		Hasher:              pcf.coreData.Hasher(),
-		Marshalizer:         pcf.coreData.InternalMarshalizer(),
-		PeerState:           pcf.state.PeerAccounts(),
-		BaseState:           pcf.state.AccountsAdapter(),
-		ArgParser:           argsParser,
-		CurrTxs:             pcf.data.Datapool().CurrentBlockTxs(),
-		RatingsData:         pcf.coreData.RatingsData(),
-		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
-	}
-	smartContractToProtocol, err := scToProtocol.NewStakingToPeer(argsStaking)
+	smartContractToProtocol, err := pcf.createStakingToPeer(argsParser)
 	if err != nil {
 		return nil, err
 	}
@@ -1219,19 +1208,7 @@ func (pcf *processComponentsFactory) createExtraMetaBlockProcessorArgs(
 			return nil, err
 		}
 
-		// todo: common func
-		argsStaking := scToProtocol.ArgStakingToPeer{
-			PubkeyConv:          pcf.coreData.ValidatorPubKeyConverter(),
-			Hasher:              pcf.coreData.Hasher(),
-			Marshalizer:         pcf.coreData.InternalMarshalizer(),
-			PeerState:           pcf.state.PeerAccounts(),
-			BaseState:           pcf.state.AccountsAdapter(),
-			ArgParser:           smartContract.NewArgumentParser(),
-			CurrTxs:             pcf.data.Datapool().CurrentBlockTxs(),
-			RatingsData:         pcf.coreData.RatingsData(),
-			EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
-		}
-		smartContractToProtocol, err := scToProtocol.NewStakingToPeer(argsStaking)
+		smartContractToProtocol, err := pcf.createStakingToPeer(smartContract.NewArgumentParser())
 		if err != nil {
 			return nil, err
 		}
@@ -1244,6 +1221,26 @@ func (pcf *processComponentsFactory) createExtraMetaBlockProcessorArgs(
 			SCToProtocol:              smartContractToProtocol,
 		}, nil
 	}
+}
+
+func (pcf *processComponentsFactory) createStakingToPeer(argParser process.ArgumentsParser) (process.SmartContractToProtocolHandler, error) {
+	argsStaking := scToProtocol.ArgStakingToPeer{
+		PubkeyConv:          pcf.coreData.ValidatorPubKeyConverter(),
+		Hasher:              pcf.coreData.Hasher(),
+		Marshalizer:         pcf.coreData.InternalMarshalizer(),
+		PeerState:           pcf.state.PeerAccounts(),
+		BaseState:           pcf.state.AccountsAdapter(),
+		ArgParser:           argParser,
+		CurrTxs:             pcf.data.Datapool().CurrentBlockTxs(),
+		RatingsData:         pcf.coreData.RatingsData(),
+		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+	}
+	smartContractToProtocol, err := pcf.runTypeComponents.StakingToPeerFactory().CreateStakingToPeer(argsStaking)
+	if err != nil {
+		return nil, err
+	}
+
+	return smartContractToProtocol, nil
 }
 
 func (pcf *processComponentsFactory) attachProcessDebugger(

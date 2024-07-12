@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/peer"
+	"github.com/multiversx/mx-chain-go/process/scToProtocol"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 	"github.com/multiversx/mx-chain-go/process/sync"
@@ -77,6 +78,7 @@ type RunTypeComponentsStub struct {
 	NodesSetupCheckerFactoryField       checking.NodesSetupCheckerFactory
 	EpochStartTriggerFactoryField       factory.EpochStartTriggerFactoryHandler
 	LatestDataProviderFactoryField      latestData.LatestDataProviderFactory
+	StakingToPeerFactoryField           scToProtocol.StakingToPeerFactoryHandler
 }
 
 // NewRunTypeComponentsStub -
@@ -118,6 +120,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		NodesSetupCheckerFactoryField:       checking.NewNodesSetupCheckerFactory(),
 		EpochStartTriggerFactoryField:       &testFactory.EpochStartTriggerFactoryMock{},
 		LatestDataProviderFactoryField:      latestData.NewLatestDataProviderFactory(),
+		StakingToPeerFactoryField:           scToProtocol.NewStakingToPeerFactory(),
 	}
 }
 
@@ -319,6 +322,11 @@ func (r *RunTypeComponentsStub) EpochStartTriggerFactory() factory.EpochStartTri
 // LatestDataProviderFactory  -
 func (r *RunTypeComponentsStub) LatestDataProviderFactory() latestData.LatestDataProviderFactory {
 	return r.LatestDataProviderFactoryField
+}
+
+// StakingToPeerFactory -
+func (r *RunTypeComponentsStub) StakingToPeerFactory() scToProtocol.StakingToPeerFactoryHandler {
+	return r.StakingToPeerFactoryField
 }
 
 // IsInterfaceNil -

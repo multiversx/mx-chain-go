@@ -24,6 +24,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/peer"
+	"github.com/multiversx/mx-chain-go/process/scToProtocol"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 	processSync "github.com/multiversx/mx-chain-go/process/sync"
@@ -635,6 +636,18 @@ func (mrc *managedRunTypeComponents) LatestDataProviderFactory() latestData.Late
 	}
 
 	return mrc.runTypeComponents.latestDataProviderFactory
+}
+
+// StakingToPeerFactory returns the staking to peer factory
+func (mrc *managedRunTypeComponents) StakingToPeerFactory() scToProtocol.StakingToPeerFactoryHandler {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.scToProtocolFactory
 }
 
 // IsInterfaceNil returns true if the interface is nil
