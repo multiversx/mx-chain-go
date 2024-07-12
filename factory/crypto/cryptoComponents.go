@@ -159,7 +159,7 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 		return nil, err
 	}
 
-	interceptSingleSigner, err := ccf.createSingleSigner(ccf.importModeNoSigCheck)
+	interceptSingleSigner, err := ccf.createSingleSigner(true)
 	if err != nil {
 		return nil, err
 	}
