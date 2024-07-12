@@ -875,6 +875,12 @@ func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
+	scbp.prepareBlockHeaderInternalMapForValidatorProcessor()
+	_, err = scbp.validatorStatisticsProcessor.UpdatePeerState(header, makeCommonHeaderHandlerHashMap(scbp.hdrsForCurrBlock.getHdrHashMap()))
+	if err != nil {
+		return err
+	}
+
 	for _, valMB := range validatorMiniBlocks {
 		valMB.ReceiverShardID = core.SovereignChainShardId
 	}
