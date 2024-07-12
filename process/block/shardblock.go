@@ -878,6 +878,18 @@ func (sp *shardProcessor) createBlockBody(shardHdr data.HeaderHandler, haveTime 
 		"nonce", shardHdr.GetNonce(),
 	)
 
+	if shardHdr.GetRound() == 20 {
+		var err error
+		go func() {
+			log.Debug("txgen.sh")
+			//err = exec.Command("/bin/sh", "-c", "~/MultiversX/txgen.sh").Run()
+
+			if err != nil {
+				log.Info("shardProcessor.CreateBlock: error running txgen.sh", "err", err)
+			}
+		}()
+	}
+
 	randomness := helpers.ComputeRandomnessForTxSorting(shardHdr, sp.enableEpochsHandler)
 	miniBlocks, processedMiniBlocksDestMeInfo, err := sp.createMiniBlocks(haveTime, randomness)
 	if err != nil {
@@ -2015,6 +2027,22 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []by
 	var miniBlocks block.MiniBlockSlice
 	processedMiniBlocksDestMeInfo := make(map[string]*processedMb.ProcessedMiniBlockInfo)
 
+	//cpuFile := fmt.Sprintf("cpu-profile-%d-%d.pprof", time.Now().Unix(), randomness[0])
+	//f, err := os.Create(cpuFile)
+	//if err != nil {
+	//	log.Error("could not create CPU profile", "error", err)
+	//}
+	//
+	//debug.SetGCPercent(-1)
+	//pprof.StartCPUProfile(f)
+	//
+	//defer func() {
+	//	pprof.StopCPUProfile()
+	//	runtime.GC()
+	//
+	//	f.Close()
+	//}()
+
 	if sp.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		miniBlocks = sp.scheduledTxsExecutionHandler.GetScheduledMiniBlocks()
 		sp.txCoordinator.AddTxsFromMiniBlocks(miniBlocks)
@@ -2087,8 +2115,8 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []by
 	startTime = time.Now()
 	mbsFromMe := sp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(haveTime, randomness)
 	elapsedTime = time.Since(startTime)
-	log.Debug("elapsed time to create mbs from me", "time", elapsedTime)
 
+	totalTxs := 0
 	if len(mbsFromMe) > 0 {
 		miniBlocks = append(miniBlocks, mbsFromMe...)
 
@@ -2096,11 +2124,17 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []by
 		for _, mb := range mbsFromMe {
 			numTxs += len(mb.TxHashes)
 		}
+		totalTxs += numTxs
 
 		log.Debug("processed miniblocks and txs from self shard",
 			"num miniblocks", len(mbsFromMe),
 			"num txs", numTxs, "elapsed time", elapsedTime)
+		//if totalTxs == 0 {
+		//	os.Remove(cpuFile)
+		//}
 	}
+
+	log.Debug("elapsed time to create mbs from me", "time", elapsedTime, "current block txs", totalTxs) // "cpu profile", cpuFile)
 
 	log.Debug("creating mini blocks has been finished", "num miniblocks", len(miniBlocks))
 	return &block.Body{MiniBlocks: miniBlocks}, processedMiniBlocksDestMeInfo, nil

@@ -385,7 +385,7 @@
 
 [TxDataPool]
     Name = "TxDataPool"
-    Capacity = 600000
+    Capacity = 6000000
     SizePerSender = 2000000
     SizeInBytes = 419430400 #400MB
     SizeInBytesPerSender = 33500000
@@ -623,7 +623,7 @@
 [EpochStartConfig]
     GenesisEpoch = 0
     MinRoundsBetweenEpochs = 20
-    RoundsPerEpoch         = 200
+    RoundsPerEpoch         = 100
     # Min and Max ShuffledOutRestartThreshold represents the minimum and maximum duration of an epoch (in percentage) after a node which
     # has been shuffled out has to restart its process in order to start in a new shard
     MinShuffledOutRestartThreshold = 0.05
@@ -659,13 +659,13 @@
     SnapshotsEnabled = true
     AccountsStatePruningEnabled = false
     PeerStatePruningEnabled = true
-    MaxStateTrieLevelInMemory = 5
-    MaxPeerTrieLevelInMemory = 5
+    MaxStateTrieLevelInMemory = 3
+    MaxPeerTrieLevelInMemory = 3
     StateStatisticsEnabled = true
 
 [BlockSizeThrottleConfig]
     MinSizeInBytes = 104857 # 104857 is 10% from 1MB
-    MaxSizeInBytes = 943718 # 943718 is 90% from 1MB
+    MaxSizeInBytes = 1048576 # 943718 is 90% from 1MB
 
 [VirtualMachine]
     [VirtualMachine.Execution]

@@ -181,7 +181,7 @@ func (mbb *miniBlocksBuilder) checkAddTransaction(wtx *txcache.WrappedTransactio
 	}
 
 	if mbb.wouldExceedBlockSizeWithTx(tx, receiverShardID, miniBlock) {
-		log.Debug("max txs accepted in one block is reached", "num txs added", mbb.stats.numTxsAdded)
+		log.Debug("wouldExceedBlockSizeWithTx max txs accepted in one block is reached", "num txs added", mbb.stats.numTxsAdded)
 		return &processingActions{
 			canAddTx:             false,
 			canAddMore:           false,

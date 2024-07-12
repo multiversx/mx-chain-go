@@ -1874,6 +1874,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 	var remainingTxs []*txcache.WrappedTransaction
 
 	if txs.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
+		log.Info("createAndProcessMiniBlocksFromMe: scheduled mini blocks")
 		miniBlocks, remainingTxs, mapSCTxs, err = txs.createAndProcessMiniBlocksFromMeV2(
 			haveTime,
 			isShardStuck,
@@ -1881,6 +1882,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMe(
 			sortedTxs,
 		)
 	} else {
+		log.Info("createAndProcessMiniBlocksFromMe: normal mini blocks")
 		miniBlocks, remainingTxs, err = txs.createAndProcessMiniBlocksFromMeV1(
 			haveTime,
 			isShardStuck,

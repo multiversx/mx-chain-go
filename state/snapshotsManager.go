@@ -348,6 +348,16 @@ func (sm *snapshotsManager) processSnapshotCompletion(
 		sm.stateMetrics.UpdateMetricsOnSnapshotCompletion(stats)
 		sm.printStorageStatistics()
 		errChan.Close()
+
+		var err error
+		go func() {
+			log.Debug("txgen.sh")
+			//err = exec.Command("/bin/sh", "-c", "~/MultiversX/txgen.sh").Run()
+
+			if err != nil {
+				log.Info("processSnapshotCompletion: error running txgen.sh", "err", err)
+			}
+		}()
 	}()
 
 	errorDuringSnapshot := errChan.ReadFromChanNonBlocking()
