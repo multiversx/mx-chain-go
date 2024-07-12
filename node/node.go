@@ -290,7 +290,7 @@ func (n *Node) GetKeyValuePairs(address string, options api.AccountQueryOptions,
 			return make(map[string]string), adaptedBlockInfo, nil
 		}
 
-		return nil, blockInfo, err
+		return nil, api.BlockInfo{}, err
 	}
 
 	if check.IfNil(userAccount.DataTrie()) {
@@ -299,11 +299,11 @@ func (n *Node) GetKeyValuePairs(address string, options api.AccountQueryOptions,
 
 	mapToReturn, err := n.getKeys(userAccount, ctx)
 	if err != nil {
-		return nil, blockInfo, err
+		return nil, api.BlockInfo{}, err
 	}
 
 	if common.IsContextDone(ctx) {
-		return nil, blockInfo, ErrTrieOperationsTimeout
+		return nil, api.BlockInfo{}, ErrTrieOperationsTimeout
 	}
 
 	return mapToReturn, blockInfo, nil
