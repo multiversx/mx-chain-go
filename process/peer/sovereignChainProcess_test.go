@@ -33,17 +33,6 @@ func TestNewSovereignChainValidatorStatisticsProcessor_ShouldWork(t *testing.T) 
 	assert.Nil(t, err)
 }
 
-func TestUpdateShardDataPeerState_ShouldReturnNil(t *testing.T) {
-	t.Parallel()
-
-	args := createMockArguments()
-	vs, _ := peer.NewValidatorStatisticsProcessor(args)
-	scvs, _ := peer.NewSovereignChainValidatorStatisticsProcessor(vs)
-
-	err := scvs.UpdateShardDataPeerState(nil, nil)
-	assert.Nil(t, err)
-}
-
 func TestSovereignValidatorStatisticsProcessor_UpdateShardDataPeerState_IncreasesConsensusCurrentShardBlock_SameEpoch(t *testing.T) {
 	t.Parallel()
 
