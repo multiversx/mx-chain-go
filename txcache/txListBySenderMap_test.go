@@ -14,9 +14,9 @@ import (
 func TestSendersMap_AddTx_IncrementsCounter(t *testing.T) {
 	myMap := newSendersMapToTest()
 
-	myMap.addTx(createTx([]byte("a"), "alice", uint64(1)))
-	myMap.addTx(createTx([]byte("aa"), "alice", uint64(2)))
-	myMap.addTx(createTx([]byte("b"), "bob", uint64(1)))
+	myMap.addTx(createTx([]byte("a"), "alice", 1))
+	myMap.addTx(createTx([]byte("aa"), "alice", 2))
+	myMap.addTx(createTx([]byte("b"), "bob", 1))
 
 	// There are 2 senders
 	require.Equal(t, int64(2), myMap.counter.Get())
@@ -25,9 +25,9 @@ func TestSendersMap_AddTx_IncrementsCounter(t *testing.T) {
 func TestSendersMap_RemoveTx_AlsoRemovesSenderWhenNoTransactionLeft(t *testing.T) {
 	myMap := newSendersMapToTest()
 
-	txAlice1 := createTx([]byte("a1"), "alice", uint64(1))
-	txAlice2 := createTx([]byte("a2"), "alice", uint64(2))
-	txBob := createTx([]byte("b"), "bob", uint64(1))
+	txAlice1 := createTx([]byte("a1"), "alice", 1)
+	txAlice2 := createTx([]byte("a2"), "alice", 2)
+	txBob := createTx([]byte("b"), "bob", 1)
 
 	myMap.addTx(txAlice1)
 	myMap.addTx(txAlice2)
@@ -53,7 +53,7 @@ func TestSendersMap_RemoveTx_AlsoRemovesSenderWhenNoTransactionLeft(t *testing.T
 func TestSendersMap_RemoveSender(t *testing.T) {
 	myMap := newSendersMapToTest()
 
-	myMap.addTx(createTx([]byte("a"), "alice", uint64(1)))
+	myMap.addTx(createTx([]byte("a"), "alice", 1))
 	require.Equal(t, int64(1), myMap.counter.Get())
 
 	// Bob is unknown
@@ -105,7 +105,7 @@ func TestSendersMap_notifyAccountNonce(t *testing.T) {
 	// Discarded notification, since sender not added yet
 	myMap.notifyAccountNonce([]byte("alice"), 42)
 
-	myMap.addTx(createTx([]byte("tx-42"), "alice", uint64(42)))
+	myMap.addTx(createTx([]byte("tx-42"), "alice", 42))
 	alice, _ := myMap.getListForSender("alice")
 	require.Equal(t, uint64(0), alice.accountNonce.Get())
 	require.False(t, alice.accountNonceKnown.IsSet())
@@ -118,25 +118,75 @@ func TestSendersMap_notifyAccountNonce(t *testing.T) {
 func TestBenchmarkSendersMap_GetSnapshotAscending(t *testing.T) {
 	numSendersValues := []int{50000, 100000, 300000}
 
-	for _, numSenders := range numSendersValues {
-		myMap := createTxListBySenderMap(numSenders)
+	t.Run("scores with uniform distribution", func(t *testing.T) {
+		fmt.Println(t.Name())
 
-		sw := core.NewStopWatch()
-		sw.Start("time")
-		snapshot := myMap.getSnapshotAscending()
-		sw.Stop("time")
+		for _, numSenders := range numSendersValues {
+			myMap := newSendersMapToTest()
 
-		require.Len(t, snapshot, numSenders)
-		fmt.Printf("took %v to sort %d senders\n", sw.GetMeasurementsMap()["time"], numSenders)
-	}
+			// Many senders, each with a single transaction
+			for i := 0; i < numSenders; i++ {
+				sender := fmt.Sprintf("sender-%d", i)
+				hash := []byte(fmt.Sprintf("transaction-%d", i))
+				myMap.addTx(createTx(hash, sender, 1))
 
-	// Results:
-	//
-	// (a) 22 ms to sort 300k senders:
-	//		cpu: 11th Gen Intel(R) Core(TM) i7-1165G7 @ 2.80GHz
-	//		took 0.004527414 to sort 50000 senders
-	//		took 0.00745592 to sort 100000 senders
-	//		took 0.022954026 to sort 300000 senders
+				// Artificially set a score to each sender:
+				txList, _ := myMap.getListForSender(sender)
+				txList.score.Set(uint32(i % (maxSenderScore + 1)))
+			}
+
+			sw := core.NewStopWatch()
+			sw.Start("time")
+			snapshot := myMap.getSnapshotAscending()
+			sw.Stop("time")
+
+			require.Len(t, snapshot, numSenders)
+			fmt.Printf("took %v to sort %d senders\n", sw.GetMeasurementsMap()["time"], numSenders)
+		}
+
+		// Results:
+		//
+		// (a) Summary: 0.02s to sort 300k senders:
+		// cpu: 11th Gen Intel(R) Core(TM) i7-1165G7 @ 2.80GHz
+		// took 0.003156466 to sort 50000 senders
+		// took 0.007549091 to sort 100000 senders
+		// took 0.022103215 to sort 300000 senders
+	})
+
+	t.Run("scores with skewed distribution", func(t *testing.T) {
+		fmt.Println(t.Name())
+
+		for _, numSenders := range numSendersValues {
+			myMap := newSendersMapToTest()
+
+			// Many senders, each with a single transaction
+			for i := 0; i < numSenders; i++ {
+				sender := fmt.Sprintf("sender-%d", i)
+				hash := []byte(fmt.Sprintf("transaction-%d", i))
+				myMap.addTx(createTx(hash, sender, 1))
+
+				// Artificially set a score to each sender:
+				txList, _ := myMap.getListForSender(sender)
+				txList.score.Set(uint32(i % 3))
+			}
+
+			sw := core.NewStopWatch()
+			sw.Start("time")
+			snapshot := myMap.getSnapshotAscending()
+			sw.Stop("time")
+
+			require.Len(t, snapshot, numSenders)
+			fmt.Printf("took %v to sort %d senders\n", sw.GetMeasurementsMap()["time"], numSenders)
+		}
+
+		// Results:
+		//
+		// (a) Summary: 0.02s to sort 300k senders:
+		// cpu: 11th Gen Intel(R) Core(TM) i7-1165G7 @ 2.80GHz
+		// took 0.00423772 to sort 50000 senders
+		// took 0.00683838 to sort 100000 senders
+		// took 0.025094983 to sort 300000 senders
+	})
 }
 
 func TestSendersMap_GetSnapshots_NoPanic_IfAlsoConcurrentMutation(t *testing.T) {
@@ -168,21 +218,10 @@ func TestSendersMap_GetSnapshots_NoPanic_IfAlsoConcurrentMutation(t *testing.T) 
 	wg.Wait()
 }
 
-func createTxListBySenderMap(numSenders int) *txListBySenderMap {
-	myMap := newSendersMapToTest()
-	for i := 0; i < numSenders; i++ {
-		sender := fmt.Sprintf("Sender-%d", i)
-		hash := createFakeTxHash([]byte(sender), 1)
-		myMap.addTx(createTx(hash, sender, uint64(1)))
-	}
-
-	return myMap
-}
-
 func newSendersMapToTest() *txListBySenderMap {
 	txGasHandler := txcachemocks.NewTxGasHandlerMock()
 	return newTxListBySenderMap(4, senderConstraints{
 		maxNumBytes: math.MaxUint32,
 		maxNumTxs:   math.MaxUint32,
-	}, &disabledScoreComputer{}, txGasHandler)
+	}, newDefaultScoreComputer(txGasHandler), txGasHandler)
 }

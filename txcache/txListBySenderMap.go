@@ -1,6 +1,7 @@
 package txcache
 
 import (
+	"math/rand"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
@@ -172,9 +173,19 @@ func (txMap *txListBySenderMap) getSendersGroupedByScore() [][]*txListForSender 
 			groups[score] = make([]*txListForSender, 0, groupSizeHint)
 		}
 
-		// TODO (next PR) randomize / shuffle.
 		groups[score] = append(groups[score], listForSender)
 	})
+
+	// Shuffle the items of a group (senders with the same score).
+	for _, group := range groups {
+		if group == nil {
+			continue
+		}
+
+		rand.Shuffle(len(group), func(j, k int) {
+			group[j], group[k] = group[k], group[j]
+		})
+	}
 
 	monitorSendersScoreHistogram(groups)
 
