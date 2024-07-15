@@ -1381,33 +1381,33 @@ func (scbp *sovereignChainBlockProcessor) commitEpochStart(header data.HeaderHan
 }
 
 func (scbp *sovereignChainBlockProcessor) saveValidatorsInfoData(body *block.Body) error {
-	mrsTxs := scbp.getAllMarshalledTxs(body)
+	_ = scbp.epochRewardsCreator.CreateMarshalledData(body)
+	_ = scbp.validatorInfoCreator.CreateMarshalledData(body)
 
-	_ = mrsTxs
-
-	for txType, marshalledTxs := range mrsTxs {
-		if txType != common.ValidatorInfoTopic {
-			continue
-		}
-
-		for _, marshalledData := range marshalledTxs {
-			shardValidator := &state.ShardValidatorInfo{}
-			err := scbp.marshalizer.Unmarshal(shardValidator, marshalledData)
-			if err != nil {
-				return err
+	/*
+		for txType, marshalledTxs := range mrsTxs {
+			if txType != common.ValidatorInfoTopic {
+				continue
 			}
 
-			hash, err := core.CalculateHash(scbp.marshalizer, scbp.hasher, shardValidator)
-			if err != nil {
-				return err
+			for _, marshalledData := range marshalledTxs {
+				shardValidator := &state.ShardValidatorInfo{}
+				err := scbp.marshalizer.Unmarshal(shardValidator, marshalledData)
+				if err != nil {
+					return err
+				}
+
+				hash, err := core.CalculateHash(scbp.marshalizer, scbp.hasher, shardValidator)
+				if err != nil {
+					return err
+				}
+
+				strCache := process.ShardCacherIdentifier(core.SovereignChainShardId, core.SovereignChainShardId)
+				scbp.dataPool.ValidatorsInfo().AddData(hash, shardValidator, shardValidator.Size(), strCache)
 			}
 
-			strCache := process.ShardCacherIdentifier(core.SovereignChainShardId, core.SovereignChainShardId)
-			scbp.dataPool.ValidatorsInfo().AddData(hash, shardValidator, shardValidator.Size(), strCache)
 		}
-
-	}
-
+	*/
 	return nil
 }
 
@@ -1866,7 +1866,7 @@ func (scbp *sovereignChainBlockProcessor) MarshalizedDataToBroadcast(
 	// todo: maybe here do nothing if epoch start?
 	var mrsTxs map[string][][]byte
 	if hdr.IsStartOfEpochBlock() {
-		mrsTxs = scbp.getAllMarshalledTxs(body)
+		//mrsTxs = scbp.getAllMarshalledTxs(body)
 	} else {
 		mrsTxs = scbp.txCoordinator.CreateMarshalizedData(body)
 	}
@@ -1891,25 +1891,6 @@ func (scbp *sovereignChainBlockProcessor) MarshalizedDataToBroadcast(
 	}
 
 	return mrsData, mrsTxs, nil
-}
-
-func (scbp *sovereignChainBlockProcessor) getAllMarshalledTxs(body *block.Body) map[string][][]byte {
-	allMarshalledTxs := make(map[string][][]byte)
-
-	marshalledRewardsTxs := scbp.epochRewardsCreator.CreateMarshalledData(body)
-	marshalledValidatorInfoTxs := scbp.validatorInfoCreator.CreateMarshalledData(body)
-
-	for topic, marshalledTxs := range marshalledRewardsTxs {
-		allMarshalledTxs[topic] = append(allMarshalledTxs[topic], marshalledTxs...)
-		log.Trace("metaProcessor.getAllMarshalledTxs", "topic", topic, "num rewards txs", len(marshalledTxs))
-	}
-
-	for topic, marshalledTxs := range marshalledValidatorInfoTxs {
-		allMarshalledTxs[topic] = append(allMarshalledTxs[topic], marshalledTxs...)
-		log.Trace("metaProcessor.getAllMarshalledTxs", "topic", topic, "num validator info txs", len(marshalledTxs))
-	}
-
-	return allMarshalledTxs
 }
 
 // IsInterfaceNil returns true if underlying object is nil

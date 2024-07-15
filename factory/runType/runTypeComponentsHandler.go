@@ -653,6 +653,18 @@ func (mrc *managedRunTypeComponents) StakingToPeerFactory() scToProtocol.Staking
 	return mrc.runTypeComponents.scToProtocolFactory
 }
 
+// ValidatorInfoCreatorFactory returns the validator info creator factory
+func (mrc *managedRunTypeComponents) ValidatorInfoCreatorFactory() factory.ValidatorInfoCreatorFactory {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.validatorInfoCreatorFactory
+}
+
 // IsInterfaceNil returns true if the interface is nil
 func (mrc *managedRunTypeComponents) IsInterfaceNil() bool {
 	return mrc == nil

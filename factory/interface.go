@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dblookupext"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
+	"github.com/multiversx/mx-chain-go/epochStart/metachain"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/checking"
@@ -624,10 +625,17 @@ type RunTypeComponentsHolder interface {
 	EpochStartTriggerFactory() EpochStartTriggerFactoryHandler
 	LatestDataProviderFactory() latestData.LatestDataProviderFactory
 	StakingToPeerFactory() scToProtocol.StakingToPeerFactoryHandler
+	ValidatorInfoCreatorFactory() ValidatorInfoCreatorFactory
 	Create() error
 	Close() error
 	CheckSubcomponents() error
 	String() string
+	IsInterfaceNil() bool
+}
+
+// ValidatorInfoCreatorFactory defines a validator info creator factory
+type ValidatorInfoCreatorFactory interface {
+	CreateValidatorInfoCreator(args metachain.ArgsNewValidatorInfoCreator) (process.EpochStartValidatorInfoCreator, error)
 	IsInterfaceNil() bool
 }
 

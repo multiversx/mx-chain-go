@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
+	"github.com/multiversx/mx-chain-go/epochStart/metachain"
 	"github.com/multiversx/mx-chain-go/factory"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/genesis"
@@ -79,6 +80,7 @@ type RunTypeComponentsStub struct {
 	EpochStartTriggerFactoryField       factory.EpochStartTriggerFactoryHandler
 	LatestDataProviderFactoryField      latestData.LatestDataProviderFactory
 	StakingToPeerFactoryField           scToProtocol.StakingToPeerFactoryHandler
+	ValidatorInfoCreatorFactoryField    factory.ValidatorInfoCreatorFactory
 }
 
 // NewRunTypeComponentsStub -
@@ -121,6 +123,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		EpochStartTriggerFactoryField:       &testFactory.EpochStartTriggerFactoryMock{},
 		LatestDataProviderFactoryField:      latestData.NewLatestDataProviderFactory(),
 		StakingToPeerFactoryField:           &testFactory.StakingToPeerFactoryMock{},
+		ValidatorInfoCreatorFactoryField:    metachain.NewValidatorInfoCreatorFactory(),
 	}
 }
 
@@ -327,6 +330,11 @@ func (r *RunTypeComponentsStub) LatestDataProviderFactory() latestData.LatestDat
 // StakingToPeerFactory -
 func (r *RunTypeComponentsStub) StakingToPeerFactory() scToProtocol.StakingToPeerFactoryHandler {
 	return r.StakingToPeerFactoryField
+}
+
+// ValidatorInfoCreatorFactory -
+func (r *RunTypeComponentsStub) ValidatorInfoCreatorFactory() factory.ValidatorInfoCreatorFactory {
+	return r.ValidatorInfoCreatorFactoryField
 }
 
 // IsInterfaceNil -
