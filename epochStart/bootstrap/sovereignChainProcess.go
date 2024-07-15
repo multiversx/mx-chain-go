@@ -1,6 +1,7 @@
 package bootstrap
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/errors"
 )
@@ -20,7 +21,7 @@ func NewSovereignChainEpochStartBootstrap(epochStartBootstrap *epochStartBootstr
 	}
 
 	scesb.getDataToSyncMethod = scesb.getDataToSync
-
+	scesb.shardForLatestEpochComputer = scesb
 	return scesb, nil
 }
 
@@ -34,4 +35,9 @@ func (scesb *sovereignChainEpochStartBootstrap) getDataToSync(
 		withScheduled:     false,
 		additionalHeaders: nil,
 	}, nil
+}
+
+// GetShardIDForLatestEpoch returns the shard ID for the latest epoch
+func (scesb *sovereignChainEpochStartBootstrap) GetShardIDForLatestEpoch() (uint32, bool, error) {
+	return core.SovereignChainShardId, false, nil
 }

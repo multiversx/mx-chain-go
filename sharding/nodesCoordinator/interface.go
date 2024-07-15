@@ -70,6 +70,12 @@ type NodesCoordinatorHelper interface {
 	GetChance(uint32) uint32
 }
 
+// NumberOfShardsComputer provides the number of shards computation capabilities
+type NumberOfShardsComputer interface {
+	ComputeNumberOfShards(config *epochNodesConfig) (uint32, error)
+	IsInterfaceNil() bool
+}
+
 // ChanceComputer provides chance computation capabilities based on a rating
 type ChanceComputer interface {
 	// GetChance returns the chances for the rating
