@@ -242,8 +242,8 @@ func (cache *TxCache) displaySendersSummary() {
 func monitorSendersScoreHistogram(scoreGroups [][]*txListForSender) {
 	histogram := make([]int, len(scoreGroups))
 
-	for i := 0; i < len(scoreGroups); i++ {
-		histogram[i] = len(scoreGroups[i])
+	for i, group := range scoreGroups {
+		histogram[i] = len(group)
 	}
 
 	log.Debug("TxCache.monitorSendersScoreHistogram():", "histogram", histogram)
