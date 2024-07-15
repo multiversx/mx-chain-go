@@ -90,9 +90,5 @@ func (tracker *noncesTracker) isSpotlessSequence(firstNonce uint64, count uint64
 	sumOfSquaresOfNonces := tracker.modStrict(int64(tracker.sumOfSquaresOfAddedNonces) - int64(tracker.sumOfSquaresOfRemovedNonces))
 	sumOfSquaresOfNoncesTimesSix := tracker.mod(sumOfSquaresOfNonces * six)
 	expectedSumOfSquaresOfNoncesTimesSix := tracker.computeExpectedSumOfSquaresOfNoncesTimesSix(firstNonce, count)
-	if sumOfSquaresOfNoncesTimesSix != expectedSumOfSquaresOfNoncesTimesSix {
-		return false
-	}
-
-	return true
+	return sumOfSquaresOfNoncesTimesSix == expectedSumOfSquaresOfNoncesTimesSix
 }
