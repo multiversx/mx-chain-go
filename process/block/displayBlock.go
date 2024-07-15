@@ -280,22 +280,22 @@ func (txc *transactionCounter) displayTxBlockBody(
 		}
 
 		for j := 0; j < len(miniBlock.TxHashes); j++ {
-			if j == 0 || j >= len(miniBlock.TxHashes)-1 {
-				lines = append(lines, display.NewLineData(false, []string{
-					part,
-					fmt.Sprintf("TxHash_%d", j+1),
-					logger.DisplayByteSlice(miniBlock.TxHashes[j])}))
+			//	if j == 0 || j >= len(miniBlock.TxHashes)-1 {
+			lines = append(lines, display.NewLineData(false, []string{
+				part,
+				fmt.Sprintf("TxHash_%d", j+1),
+				logger.DisplayByteSlice(miniBlock.TxHashes[j])}))
 
-				part = ""
-			} else if j == 1 {
-				lines = append(lines, display.NewLineData(false, []string{
-					part,
-					"...",
-					"...",
-				}))
-
-				part = ""
-			}
+			part = ""
+			//} else if j == 1 {
+			//	lines = append(lines, display.NewLineData(false, []string{
+			//		part,
+			//		"...",
+			//		"...",
+			//	}))
+			//
+			//	part = ""
+			//}
 		}
 
 		lines[len(lines)-1].HorizontalRuleAfter = true
