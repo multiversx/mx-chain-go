@@ -12,6 +12,7 @@ type sovereignValidatorInfoCreator struct {
 	*validatorInfoCreator
 }
 
+// NewSovereignValidatorInfoCreator creates a sovereign validator info creator
 func NewSovereignValidatorInfoCreator(vic *validatorInfoCreator) (*sovereignValidatorInfoCreator, error) {
 	if check.IfNil(vic) {
 		return nil, process.ErrNilEpochStartValidatorInfoCreator
@@ -37,6 +38,7 @@ func (svic *sovereignValidatorInfoCreator) CreateMarshalledData(body *block.Body
 		marshalledValidatorInfoTxs = append(marshalledValidatorInfoTxs, svic.getMarshalledValidatorInfoTxs(miniBlock)...)
 	}
 
+	// create broadcast txs as in normal run type processing for now
 	mapMarshalledValidatorInfoTxs := make(map[string][][]byte)
 	if len(marshalledValidatorInfoTxs) > 0 {
 		mapMarshalledValidatorInfoTxs[common.ValidatorInfoTopic] = marshalledValidatorInfoTxs
@@ -70,4 +72,9 @@ func (svic *sovereignValidatorInfoCreator) getMarshalledValidatorInfoTxs(miniBlo
 	}
 
 	return marshalledValidatorInfoTxs
+}
+
+// IsInterfaceNil checks if the underlying pointer is nil
+func (svic *sovereignValidatorInfoCreator) IsInterfaceNil() bool {
+	return svic == nil
 }

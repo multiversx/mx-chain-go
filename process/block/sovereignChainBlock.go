@@ -1379,8 +1379,9 @@ func (scbp *sovereignChainBlockProcessor) commitEpochStart(header data.HeaderHan
 }
 
 func (scbp *sovereignChainBlockProcessor) createEpochStartData(body *block.Body) {
-	_ = scbp.epochRewardsCreator.CreateMarshalledData(body)
+	// this will create validators info data and save it to pool
 	_ = scbp.validatorInfoCreator.CreateMarshalledData(body)
+	_ = scbp.epochRewardsCreator.CreateMarshalledData(body)
 }
 
 // getOrderedProcessedExtendedShardHeadersFromHeader returns all the extended shard headers fully processed

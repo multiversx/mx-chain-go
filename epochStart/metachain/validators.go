@@ -374,7 +374,6 @@ func (vic *validatorInfoCreator) getMarshalledValidatorInfoTxs(miniBlock *block.
 
 	marshalledValidatorInfoTxs := make([][]byte, 0)
 	for _, txHash := range miniBlock.TxHashes {
-		// todo: maybe save here directly for sovereign ???
 		validatorInfoTx, err := validatorInfoCacher.GetValidatorInfo(txHash)
 		if err != nil {
 			log.Error("validatorInfoCreator.getMarshalledValidatorInfoTxs.GetValidatorInfo", "hash", txHash, "error", err)
