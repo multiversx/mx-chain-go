@@ -143,8 +143,6 @@ stopAndCleanSovereign() {
 }
 
 deployBridge() {
-    checkWalletBalanceOnMainChain || return
-
     deployEsdtSafeContract || return
 
     deployFeeMarketContract || return

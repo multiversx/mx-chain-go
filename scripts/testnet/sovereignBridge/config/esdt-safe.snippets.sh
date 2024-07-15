@@ -13,8 +13,8 @@ deployEsdtSafeContract() {
         --gas-limit=200000000 \
         --arguments \
             false \
-            str:WEGLD-bd4d79 \
-            str:sov \
+            0x010000000c5745474c442d626434643739 \
+            0x0100000003736f76 \
         --outfile=${OUTFILE} \
         --recall-nonce \
         --wait-result \
