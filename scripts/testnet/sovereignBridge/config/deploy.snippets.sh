@@ -141,3 +141,18 @@ stopAndCleanSovereign() {
 
     cleanObserver
 }
+
+deployBridge() {
+    checkWalletBalanceOnMainChain || return
+
+    deployEsdtSafeContract || return
+
+    deployFeeMarketContract || return
+
+    setFeeMarketAddress
+
+    disableFeeInFeeMarketContract
+
+    unpauseEsdtSafeContract
+}
+
