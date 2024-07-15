@@ -62,8 +62,10 @@ func (svic *sovereignValidatorInfoCreator) getMarshalledValidatorInfoTxs(miniBlo
 			continue
 		}
 
+		// add data directly to pool for sovereign chain, we don't need to broadcast and intercept it
 		strCache := process.ShardCacherIdentifier(core.SovereignChainShardId, core.SovereignChainShardId)
 		svic.dataPool.ValidatorsInfo().AddData(txHash, validatorInfoTx, validatorInfoTx.Size(), strCache)
+
 		marshalledValidatorInfoTxs = append(marshalledValidatorInfoTxs, marshalledData)
 	}
 

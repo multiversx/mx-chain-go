@@ -1075,6 +1075,7 @@ func GetRunTypeComponentsStub(rt factory.RunTypeComponentsHandler) *mainFactoryM
 		EpochStartTriggerFactoryField:       rt.EpochStartTriggerFactory(),
 		LatestDataProviderFactoryField:      rt.LatestDataProviderFactory(),
 		StakingToPeerFactoryField:           rt.StakingToPeerFactory(),
+		ValidatorInfoCreatorFactoryField:    rt.ValidatorInfoCreatorFactory(),
 	}
 }
 

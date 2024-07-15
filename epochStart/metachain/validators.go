@@ -352,6 +352,11 @@ func (vic *validatorInfoCreator) CreateMarshalledData(body *block.Body) map[stri
 		if miniBlock.Type != block.PeerBlock {
 			continue
 		}
+		isCrossMiniBlockFromMe := miniBlock.SenderShardID == vic.shardCoordinator.SelfId() &&
+			miniBlock.ReceiverShardID != vic.shardCoordinator.SelfId()
+		if !isCrossMiniBlockFromMe {
+			continue
+		}
 
 		marshalledValidatorInfoTxs = append(marshalledValidatorInfoTxs, vic.getMarshalledValidatorInfoTxs(miniBlock)...)
 	}

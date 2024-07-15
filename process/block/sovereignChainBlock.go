@@ -1364,9 +1364,7 @@ func (scbp *sovereignChainBlockProcessor) CommitBlock(headerHandler data.HeaderH
 func (scbp *sovereignChainBlockProcessor) commitEpochStart(header data.HeaderHandler, body *block.Body) {
 	if header.IsStartOfEpochBlock() {
 		scbp.epochStartTrigger.SetProcessed(header, body)
-
-		scbp.saveValidatorsInfoData(body)
-
+		scbp.createEpochStartData(body)
 		go scbp.validatorInfoCreator.SaveBlockDataToStorage(header, body)
 		// TODO: MX-15588 FIX THIS (mp *metaProcessor) commitEpochStart
 		//go scbp.epochRewardsCreator.SaveBlockDataToStorage(header, body)
@@ -1380,35 +1378,9 @@ func (scbp *sovereignChainBlockProcessor) commitEpochStart(header data.HeaderHan
 	}
 }
 
-func (scbp *sovereignChainBlockProcessor) saveValidatorsInfoData(body *block.Body) error {
+func (scbp *sovereignChainBlockProcessor) createEpochStartData(body *block.Body) {
 	_ = scbp.epochRewardsCreator.CreateMarshalledData(body)
 	_ = scbp.validatorInfoCreator.CreateMarshalledData(body)
-
-	/*
-		for txType, marshalledTxs := range mrsTxs {
-			if txType != common.ValidatorInfoTopic {
-				continue
-			}
-
-			for _, marshalledData := range marshalledTxs {
-				shardValidator := &state.ShardValidatorInfo{}
-				err := scbp.marshalizer.Unmarshal(shardValidator, marshalledData)
-				if err != nil {
-					return err
-				}
-
-				hash, err := core.CalculateHash(scbp.marshalizer, scbp.hasher, shardValidator)
-				if err != nil {
-					return err
-				}
-
-				strCache := process.ShardCacherIdentifier(core.SovereignChainShardId, core.SovereignChainShardId)
-				scbp.dataPool.ValidatorsInfo().AddData(hash, shardValidator, shardValidator.Size(), strCache)
-			}
-
-		}
-	*/
-	return nil
 }
 
 // getOrderedProcessedExtendedShardHeadersFromHeader returns all the extended shard headers fully processed
@@ -1844,53 +1816,6 @@ func (scbp *sovereignChainBlockProcessor) cleanupBlockTrackerPoolsForShard(_ uin
 
 func (scbp *sovereignChainBlockProcessor) cleanupPoolsForCrossShard(_ uint32, noncesToPrevFinal uint64) {
 	scbp.baseCleanupPoolsForCrossShard(core.MainChainShardId, noncesToPrevFinal)
-}
-
-// MarshalizedDataToBroadcast prepares underlying data into a marshalized object according to destination
-func (scbp *sovereignChainBlockProcessor) MarshalizedDataToBroadcast(
-	hdr data.HeaderHandler,
-	bodyHandler data.BodyHandler,
-) (map[uint32][]byte, map[string][][]byte, error) {
-	if check.IfNil(hdr) {
-		return nil, nil, process.ErrNilMetaBlockHeader
-	}
-	if check.IfNil(bodyHandler) {
-		return nil, nil, process.ErrNilMiniBlocks
-	}
-
-	body, ok := bodyHandler.(*block.Body)
-	if !ok {
-		return nil, nil, process.ErrWrongTypeAssertion
-	}
-
-	// todo: maybe here do nothing if epoch start?
-	var mrsTxs map[string][][]byte
-	if hdr.IsStartOfEpochBlock() {
-		//mrsTxs = scbp.getAllMarshalledTxs(body)
-	} else {
-		mrsTxs = scbp.txCoordinator.CreateMarshalizedData(body)
-	}
-
-	bodies := make(map[uint32]block.MiniBlockSlice)
-	for _, miniBlock := range body.MiniBlocks {
-		if miniBlock.SenderShardID != scbp.shardCoordinator.SelfId() ||
-			miniBlock.ReceiverShardID == scbp.shardCoordinator.SelfId() {
-			continue
-		}
-		bodies[miniBlock.ReceiverShardID] = append(bodies[miniBlock.ReceiverShardID], miniBlock)
-	}
-
-	mrsData := make(map[uint32][]byte, len(bodies))
-	for shardId, subsetBlockBody := range bodies {
-		buff, err := scbp.marshalizer.Marshal(&block.Body{MiniBlocks: subsetBlockBody})
-		if err != nil {
-			log.Error("metaProcessor.MarshalizedDataToBroadcast.Marshal", "error", err.Error())
-			continue
-		}
-		mrsData[shardId] = buff
-	}
-
-	return mrsData, mrsTxs, nil
 }
 
 // IsInterfaceNil returns true if underlying object is nil

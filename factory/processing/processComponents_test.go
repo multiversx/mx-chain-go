@@ -1025,6 +1025,7 @@ func getRunTypeComponents(rt runType.RunTypeComponentsHolder) *mainFactoryMocks.
 		EpochStartTriggerFactoryField:       rt.EpochStartTriggerFactory(),
 		LatestDataProviderFactoryField:      rt.LatestDataProviderFactory(),
 		StakingToPeerFactoryField:           rt.StakingToPeerFactory(),
+		ValidatorInfoCreatorFactoryField:    rt.ValidatorInfoCreatorFactory(),
 	}
 }
 
