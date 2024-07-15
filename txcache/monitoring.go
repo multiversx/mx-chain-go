@@ -79,6 +79,7 @@ func (cache *TxCache) monitorSelectionEnd(sortedSenders []*txListForSender, sele
 
 type batchSelectionJournal struct {
 	selectedNum   int
+	selectedGas   uint64
 	isFirstBatch  bool
 	hasInitialGap bool
 	hasMiddleGap  bool

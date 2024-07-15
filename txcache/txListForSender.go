@@ -11,17 +11,18 @@ import (
 
 // txListForSender represents a sorted list of transactions of a particular sender
 type txListForSender struct {
-	copyDetectedGap   bool
-	score             atomic.Uint32
-	accountNonceKnown atomic.Flag
-	copyPreviousNonce uint64
 	sender            string
-	items             *list.List
-	copyBatchIndex    *list.Element
-	constraints       *senderConstraints
 	accountNonce      atomic.Uint64
+	accountNonceKnown atomic.Flag
+	items             *list.List
 	totalBytes        atomic.Counter
+	constraints       *senderConstraints
 
+	selectionPointer       *list.Element
+	selectionPreviousNonce uint64
+	selectionDetectedGap   bool
+
+	score             atomic.Uint32
 	avgPpuNumerator   float64
 	avgPpuDenominator uint64
 	noncesTracker     *noncesTracker
@@ -235,7 +236,7 @@ func (listForSender *txListForSender) IsEmpty() bool {
 
 // selectBatchTo copies a batch (usually small) of transactions of a limited gas bandwidth and limited number of transactions to a destination slice
 // It also updates the internal state used for copy operations
-func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destination []*WrappedTransaction, batchSize int, bandwidth uint64) batchSelectionJournal {
+func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destination []*WrappedTransaction, numRequested int, gasRequested uint64) batchSelectionJournal {
 	// We can't read from multiple goroutines at the same time
 	// And we can't mutate the sender's list while reading it
 	listForSender.mutex.Lock()
@@ -250,47 +251,63 @@ func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destinati
 		journal.hasInitialGap = hasInitialGap
 
 		// Reset the internal state used for copy operations
-		listForSender.copyBatchIndex = listForSender.items.Front()
-		listForSender.copyPreviousNonce = 0
-		listForSender.copyDetectedGap = hasInitialGap
+		listForSender.selectionPointer = listForSender.items.Front()
+		listForSender.selectionPreviousNonce = 0
+		listForSender.selectionDetectedGap = hasInitialGap
 	}
 
-	element := listForSender.copyBatchIndex
-	availableSpace := len(destination)
-	detectedGap := listForSender.copyDetectedGap
-	previousNonce := listForSender.copyPreviousNonce
+	pointer := listForSender.selectionPointer
+	detectedGap := listForSender.selectionDetectedGap
+	previousNonce := listForSender.selectionPreviousNonce
 
 	// If a nonce gap is detected, no transaction is returned in this read.
 	if detectedGap {
 		return journal
 	}
 
-	copiedBandwidth := uint64(0)
-	lastTxGasLimit := uint64(0)
-	copied := 0
-	for ; ; copied, copiedBandwidth = copied+1, copiedBandwidth+lastTxGasLimit {
-		if element == nil || copied == batchSize || copied == availableSpace || copiedBandwidth >= bandwidth {
+	selectedGas := uint64(0)
+	selectedNum := 0
+
+	for {
+		if pointer == nil {
 			break
 		}
 
-		value := element.Value.(*WrappedTransaction)
-		txNonce := value.Tx.GetNonce()
-		lastTxGasLimit = value.Tx.GetGasLimit()
-
-		if previousNonce > 0 && txNonce > previousNonce+1 {
-			listForSender.copyDetectedGap = true
-			journal.hasMiddleGap = true
+		// End because of count
+		if selectedNum == numRequested || selectedNum == len(destination) {
 			break
 		}
 
-		destination[copied] = value
-		element = element.Next()
-		previousNonce = txNonce
+		// End because of gas limit
+		if selectedGas >= gasRequested {
+			break
+		}
+
+		value := pointer.Value.(*WrappedTransaction)
+		nonce := value.Tx.GetNonce()
+		gasLimit := value.Tx.GetGasLimit()
+
+		if previousNonce > 0 && nonce > previousNonce+1 {
+			detectedGap = true
+			break
+		}
+
+		destination[selectedNum] = value
+		pointer = pointer.Next()
+		previousNonce = nonce
+
+		selectedNum += 1
+		selectedGas += gasLimit
 	}
 
-	listForSender.copyBatchIndex = element
-	listForSender.copyPreviousNonce = previousNonce
-	journal.selectedNum = copied
+	listForSender.selectionPointer = pointer
+	listForSender.selectionPreviousNonce = previousNonce
+	listForSender.selectionDetectedGap = detectedGap
+
+	journal.selectedNum = selectedNum
+	journal.selectedGas = selectedGas
+	journal.hasMiddleGap = detectedGap
+
 	return journal
 }
 
