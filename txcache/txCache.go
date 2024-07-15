@@ -126,6 +126,10 @@ func (cache *TxCache) doSelectTransactions(numRequested int, gasRequested uint64
 
 		for _, txList := range senders {
 			score := txList.getScore()
+
+			// Slighly suboptimal: we recompute the constraints for each pass,
+			// even though they are constant with respect to a sender, in the scope of a selection.
+			// However, this is not a performance bottleneck.
 			numPerBatch, gasPerBatch := cache.computeSelectionSenderConstraints(score, baseNumPerSenderBatch, baseGasPerSenderBatch)
 
 			isFirstBatch := pass == 0

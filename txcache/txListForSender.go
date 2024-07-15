@@ -236,7 +236,7 @@ func (listForSender *txListForSender) IsEmpty() bool {
 
 // selectBatchTo copies a batch (usually small) of transactions of a limited gas bandwidth and limited number of transactions to a destination slice
 // It also updates the internal state used for copy operations
-func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destination []*WrappedTransaction, numRequested int, gasRequested uint64) batchSelectionJournal {
+func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destination []*WrappedTransaction, numPerBatch int, gasPerBatch uint64) batchSelectionJournal {
 	// We can't read from multiple goroutines at the same time
 	// And we can't mutate the sender's list while reading it
 	listForSender.mutex.Lock()
@@ -270,12 +270,12 @@ func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destinati
 		}
 
 		// End because of count
-		if selectedNum == numRequested || selectedNum == len(destination) {
+		if selectedNum == numPerBatch || selectedNum == len(destination) {
 			break
 		}
 
 		// End because of gas limit
-		if selectedGas >= gasRequested {
+		if selectedGas >= gasPerBatch {
 			break
 		}
 

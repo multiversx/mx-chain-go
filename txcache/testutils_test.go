@@ -11,7 +11,6 @@ import (
 const oneMilion = 1000000
 const oneBillion = oneMilion * 1000
 const oneTrillion = oneBillion * 1000
-const delta = 0.00000001
 const estimatedSizeOfBoundedTxFields = uint64(128)
 
 func (cache *TxCache) areInternalMapsConsistent() bool {
@@ -150,13 +149,4 @@ func waitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
 	case <-time.After(timeout):
 		return true // timed out
 	}
-}
-
-var _ scoreComputer = (*disabledScoreComputer)(nil)
-
-type disabledScoreComputer struct {
-}
-
-func (computer *disabledScoreComputer) computeScore(_ senderScoreParams) int {
-	return 0
 }
