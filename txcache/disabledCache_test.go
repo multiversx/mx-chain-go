@@ -18,7 +18,7 @@ func TestDisabledCache_DoesNothing(t *testing.T) {
 	require.Nil(t, tx)
 	require.False(t, ok)
 
-	selection := cache.SelectTransactionsWithBandwidth(42, 42, math.MaxUint64)
+	selection := cache.SelectTransactions(42, math.MaxUint64, 42, math.MaxUint64)
 	require.Equal(t, 0, len(selection))
 
 	removed := cache.RemoveTxByHash([]byte{})
