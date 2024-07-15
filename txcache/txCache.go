@@ -99,51 +99,57 @@ func (cache *TxCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool) {
 	return tx, ok
 }
 
-// SelectTransactionsWithBandwidth selects a reasonably fair list of transactions to be included in the next miniblock
-// It returns at most "numRequested" transactions
-// Each sender gets the chance to give at least bandwidthPerSender gas worth of transactions, unless "numRequested" limit is reached before iterating over all senders
-func (cache *TxCache) SelectTransactionsWithBandwidth(numRequested int, batchSizePerSender int, bandwidthPerSender uint64) []*WrappedTransaction {
-	result := cache.doSelectTransactions(numRequested, batchSizePerSender, bandwidthPerSender)
+// SelectTransactions selects a reasonably fair list of transactions to be included in the next miniblock
+// It returns at most "numRequested" transactions, with total gas ~ "gasRequested".
+//
+// Selection is performed in more passes.
+// In each pass, each sender is allowed to contribute a batch of transactions,
+// with a number of transactions and total gas proportional to the sender's score.
+func (cache *TxCache) SelectTransactions(numRequested int, gasRequested uint64, baseNumPerSenderBatch int, baseGasPerSenderBatch uint64) []*WrappedTransaction {
+	result := cache.doSelectTransactions(numRequested, gasRequested, baseNumPerSenderBatch, baseGasPerSenderBatch)
 	go cache.doAfterSelection()
 	return result
 }
 
-func (cache *TxCache) doSelectTransactions(numRequested int, batchSizePerSender int, bandwidthPerSender uint64) []*WrappedTransaction {
+func (cache *TxCache) doSelectTransactions(numRequested int, gasRequested uint64, baseNumPerSenderBatch int, baseGasPerSenderBatch uint64) []*WrappedTransaction {
 	stopWatch := cache.monitorSelectionStart()
 
-	result := make([]*WrappedTransaction, numRequested)
-	resultFillIndex := 0
-	resultIsFull := false
-
 	senders := cache.getSendersEligibleForSelection()
+	result := make([]*WrappedTransaction, numRequested)
 
-	for pass := 0; !resultIsFull; pass++ {
-		numSelectedInThisPass := 0
+	shouldContinueSelection := true
+	selectedGas := uint64(0)
+	selectedNum := 0
+
+	for pass := 0; shouldContinueSelection; pass++ {
+		selectedNumInThisPass := 0
 
 		for _, txList := range senders {
 			score := txList.getScore()
-			batchSize, bandwidth := cache.computeSelectionSenderConstraints(score, batchSizePerSender, bandwidthPerSender)
+			numPerBatch, gasPerBatch := cache.computeSelectionSenderConstraints(score, baseNumPerSenderBatch, baseGasPerSenderBatch)
 
 			isFirstBatch := pass == 0
-			batchSelectionJournal := txList.selectBatchTo(isFirstBatch, result[resultFillIndex:], batchSize, bandwidth)
+			batchSelectionJournal := txList.selectBatchTo(isFirstBatch, result[selectedNum:], numPerBatch, gasPerBatch)
+			selectedGas += batchSelectionJournal.selectedGas
+			selectedNum += batchSelectionJournal.selectedNum
+			selectedNumInThisPass += batchSelectionJournal.selectedNum
+
 			cache.monitorBatchSelectionEnd(batchSelectionJournal)
 
-			resultFillIndex += batchSelectionJournal.selectedNum
-			numSelectedInThisPass += batchSelectionJournal.selectedNum
-			resultIsFull = resultFillIndex == numRequested
-			if resultIsFull {
+			shouldContinueSelection := selectedNum < numRequested && selectedGas < gasRequested
+			if !shouldContinueSelection {
 				break
 			}
 		}
 
-		nothingSelectedInThisPass := numSelectedInThisPass == 0
+		nothingSelectedInThisPass := selectedNumInThisPass == 0
 		if nothingSelectedInThisPass {
 			// No more passes needed
 			break
 		}
 	}
 
-	result = result[:resultFillIndex]
+	result = result[:selectedNum]
 	cache.monitorSelectionEnd(senders, result, stopWatch)
 	return result
 }
@@ -152,16 +158,16 @@ func (cache *TxCache) getSendersEligibleForSelection() []*txListForSender {
 	return cache.txListBySender.getSnapshotDescending()
 }
 
-func (cache *TxCache) computeSelectionSenderConstraints(score int, baseBatchSize int, baseBandwidth uint64) (int, uint64) {
+func (cache *TxCache) computeSelectionSenderConstraints(score int, baseNumPerBatch int, baseGasPerBatch uint64) (int, uint64) {
 	if score == 0 {
 		return 1, 1
 	}
 
 	scoreDivision := float64(score) / float64(maxSenderScore)
-	batchSize := int(float64(baseBatchSize) * scoreDivision)
-	bandwidth := uint64(float64(baseBandwidth) * scoreDivision)
+	numPerBatch := int(float64(baseNumPerBatch) * scoreDivision)
+	gasPerBatch := uint64(float64(baseGasPerBatch) * scoreDivision)
 
-	return batchSize, bandwidth
+	return numPerBatch, gasPerBatch
 }
 
 func (cache *TxCache) doAfterSelection() {
