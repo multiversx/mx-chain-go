@@ -176,7 +176,13 @@ func (txMap *txListBySenderMap) getSendersGroupedByScore() [][]*txListForSender 
 		groups[score] = append(groups[score], listForSender)
 	})
 
-	// Shuffle the items of a group (senders with the same score).
+	txMap.shuffleSendersWithinScoreGroups(groups)
+	monitorSendersScoreHistogram(groups)
+
+	return groups
+}
+
+func (txMap *txListBySenderMap) shuffleSendersWithinScoreGroups(groups [][]*txListForSender) {
 	for _, group := range groups {
 		if group == nil {
 			continue
@@ -186,10 +192,6 @@ func (txMap *txListBySenderMap) getSendersGroupedByScore() [][]*txListForSender 
 			group[j], group[k] = group[k], group[j]
 		})
 	}
-
-	monitorSendersScoreHistogram(groups)
-
-	return groups
 }
 
 func (txMap *txListBySenderMap) clear() {

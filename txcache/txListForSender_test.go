@@ -201,7 +201,7 @@ func TestListForSender_SelectBatchTo(t *testing.T) {
 	require.Equal(t, 100, journal.selectedNum)
 }
 
-func TestListForSender_SelectBatchToWithLimitedGasBandwidth(t *testing.T) {
+func TestListForSender_SelectBatchToWithLimitedGasPerBatch(t *testing.T) {
 	list := newUnconstrainedListToTest()
 	txGasHandler := txcachemocks.NewTxGasHandlerMock()
 
