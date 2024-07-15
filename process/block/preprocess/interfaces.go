@@ -15,7 +15,7 @@ type SortedTransactionsProvider interface {
 
 // TxCache defines the functionality for the transactions cache
 type TxCache interface {
-	SelectTransactionsWithBandwidth(numRequested int, batchSizePerSender int, bandwidthPerSender uint64) []*txcache.WrappedTransaction
+	SelectTransactions(numRequested int, gasRequested uint64, baseNumPerSenderBatch int, baseGasPerSenderBatch uint64) []*txcache.WrappedTransaction
 	NotifyAccountNonce(accountKey []byte, nonce uint64)
 	IsInterfaceNil() bool
 }
