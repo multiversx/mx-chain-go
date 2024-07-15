@@ -352,11 +352,6 @@ func (vic *validatorInfoCreator) CreateMarshalledData(body *block.Body) map[stri
 		if miniBlock.Type != block.PeerBlock {
 			continue
 		}
-		isCrossMiniBlockFromMe := miniBlock.SenderShardID == vic.shardCoordinator.SelfId() &&
-			miniBlock.ReceiverShardID != vic.shardCoordinator.SelfId()
-		if !isCrossMiniBlockFromMe {
-			continue
-		}
 
 		marshalledValidatorInfoTxs = append(marshalledValidatorInfoTxs, vic.getMarshalledValidatorInfoTxs(miniBlock)...)
 	}
@@ -374,6 +369,7 @@ func (vic *validatorInfoCreator) getMarshalledValidatorInfoTxs(miniBlock *block.
 
 	marshalledValidatorInfoTxs := make([][]byte, 0)
 	for _, txHash := range miniBlock.TxHashes {
+		// todo: maybe save here directly for sovereign ???
 		validatorInfoTx, err := validatorInfoCacher.GetValidatorInfo(txHash)
 		if err != nil {
 			log.Error("validatorInfoCreator.getMarshalledValidatorInfoTxs.GetValidatorInfo", "hash", txHash, "error", err)
