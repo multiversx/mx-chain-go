@@ -63,8 +63,6 @@ func TestChainSimulator_EGLD_MultiTransfer(t *testing.T) {
 	err = cs.GenerateBlocksUntilEpochIsReached(int32(activationEpoch))
 	require.Nil(t, err)
 
-	log.Info("Initial setup: Create fungible, NFT, SFT and metaESDT tokens (before the activation of DynamicEsdtFlag)")
-
 	// issue metaESDT
 	metaESDTTicker := []byte("METATTICKER")
 	tx := issueMetaESDTTx(0, addrs[0].Bytes, metaESDTTicker, baseIssuingCost)
@@ -295,7 +293,7 @@ func TestChainSimulator_IssueToken_EGLDTicker(t *testing.T) {
 	err = cs.GenerateBlocksUntilEpochIsReached(int32(activationEpoch) - 1)
 	require.Nil(t, err)
 
-	log.Info("Initial setup: Create fungible, NFT, SFT and metaESDT tokens (before the activation of DynamicEsdtFlag)")
+	log.Info("Initial setup: Issue token (before the activation of EGLDInMultiTransferFlag)")
 
 	// issue NFT
 	nftTicker := []byte("EGLD")
@@ -332,6 +330,8 @@ func TestChainSimulator_IssueToken_EGLDTicker(t *testing.T) {
 
 	err = cs.GenerateBlocksUntilEpochIsReached(int32(activationEpoch))
 	require.Nil(t, err)
+
+	log.Info("Issue token (after activation of EGLDInMultiTransferFlag)")
 
 	// should fail issuing token with EGLD ticker
 	tx = issueNonFungibleTx(2, addrs[0].Bytes, nftTicker, baseIssuingCost)
