@@ -251,17 +251,13 @@ func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destinati
 		journal.hasInitialGap = hasInitialGap
 
 		// Reset the internal state used for copy operations
-		listForSender.selectionPointer = listForSender.items.Front()
 		listForSender.selectionPreviousNonce = 0
+		listForSender.selectionPointer = listForSender.items.Front()
 		listForSender.selectionDetectedGap = hasInitialGap
 	}
 
-	pointer := listForSender.selectionPointer
-	detectedGap := listForSender.selectionDetectedGap
-	previousNonce := listForSender.selectionPreviousNonce
-
 	// If a nonce gap is detected, no transaction is returned in this read.
-	if detectedGap {
+	if listForSender.selectionDetectedGap {
 		return journal
 	}
 
@@ -269,7 +265,7 @@ func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destinati
 	selectedNum := 0
 
 	for {
-		if pointer == nil {
+		if listForSender.selectionPointer == nil {
 			break
 		}
 
@@ -283,30 +279,28 @@ func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destinati
 			break
 		}
 
-		value := pointer.Value.(*WrappedTransaction)
-		nonce := value.Tx.GetNonce()
-		gasLimit := value.Tx.GetGasLimit()
+		tx := listForSender.selectionPointer.Value.(*WrappedTransaction)
+		nonce := tx.Tx.GetNonce()
+		gasLimit := tx.Tx.GetGasLimit()
 
-		if previousNonce > 0 && nonce > previousNonce+1 {
-			detectedGap = true
+		isMiddleGap := listForSender.selectionPreviousNonce > 0 && nonce > listForSender.selectionPreviousNonce+1
+		if isMiddleGap {
+			listForSender.selectionDetectedGap = true
 			break
 		}
 
-		destination[selectedNum] = value
-		pointer = pointer.Next()
-		previousNonce = nonce
+		destination[selectedNum] = tx
+
+		listForSender.selectionPreviousNonce = nonce
+		listForSender.selectionPointer = listForSender.selectionPointer.Next()
 
 		selectedNum += 1
 		selectedGas += gasLimit
 	}
 
-	listForSender.selectionPointer = pointer
-	listForSender.selectionPreviousNonce = previousNonce
-	listForSender.selectionDetectedGap = detectedGap
-
 	journal.selectedNum = selectedNum
 	journal.selectedGas = selectedGas
-	journal.hasMiddleGap = detectedGap
+	journal.hasMiddleGap = listForSender.selectionDetectedGap
 
 	return journal
 }
