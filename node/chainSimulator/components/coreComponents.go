@@ -5,6 +5,18 @@ import (
 	"sync"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/nodetype"
+	"github.com/multiversx/mx-chain-core-go/core/versioning"
+	"github.com/multiversx/mx-chain-core-go/core/watchdog"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	hashingFactory "github.com/multiversx/mx-chain-core-go/hashing/factory"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	marshalFactory "github.com/multiversx/mx-chain-core-go/marshal/factory"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	factoryPubKey "github.com/multiversx/mx-chain-go/common/factory"
@@ -24,18 +36,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/testscommon"
-
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/nodetype"
-	"github.com/multiversx/mx-chain-core-go/core/versioning"
-	"github.com/multiversx/mx-chain-core-go/core/watchdog"
-	"github.com/multiversx/mx-chain-core-go/data/endProcess"
-	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
-	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
-	"github.com/multiversx/mx-chain-core-go/hashing"
-	hashingFactory "github.com/multiversx/mx-chain-core-go/hashing/factory"
-	"github.com/multiversx/mx-chain-core-go/marshal"
-	marshalFactory "github.com/multiversx/mx-chain-core-go/marshal/factory"
 )
 
 type coreComponentsHolder struct {
@@ -95,8 +95,7 @@ type ArgsCoreComponentsHolder struct {
 	MinNodesMeta                uint32
 	MetaChainConsensusGroupSize uint32
 	RoundDurationInMs           uint64
-	CreateGenesisNodesSetup     func(nodesFilePath string, addressPubkeyConverter core.PubkeyConverter, validatorPubkeyConverter core.PubkeyConverter, genesisMaxNumShards uint32) (sharding.GenesisNodesSetupHandler, error)
-	CreateRatingsData           func(arg rating.RatingsDataArg) (process.RatingsInfoHandler, error)
+	RunTypeCoreComponents       factory.RunTypeCoreComponentsHolder
 }
 
 // CreateCoreComponents will create a new instance of factory.CoreComponentsHolder
@@ -150,7 +149,12 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 	instance.alarmScheduler = &mock.AlarmSchedulerStub{}
 	instance.syncTimer = &testscommon.SyncTimerStub{}
 
-	instance.genesisNodesSetup, err = args.CreateGenesisNodesSetup(args.NodesSetupPath, instance.addressPubKeyConverter, instance.validatorPubKeyConverter, args.NumShards)
+	instance.genesisNodesSetup, err = args.RunTypeCoreComponents.GenesisNodesSetupFactoryCreator().CreateNodesSetup(&sharding.NodesSetupArgs{
+		NodesFilePath:            args.NodesSetupPath,
+		AddressPubKeyConverter:   instance.addressPubKeyConverter,
+		ValidatorPubKeyConverter: instance.validatorPubKeyConverter,
+		GenesisMaxNumShards:      args.NumShards,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -183,7 +187,7 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 	}
 	instance.apiEconomicsData = instance.economicsData
 
-	instance.ratingsData, err = args.CreateRatingsData(rating.RatingsDataArg{
+	instance.ratingsData, err = args.RunTypeCoreComponents.RatingsDataFactoryCreator().CreateRatingsData(rating.RatingsDataArg{
 		Config:                   args.RatingConfig,
 		ShardConsensusSize:       args.ConsensusGroupSize,
 		MetaConsensusSize:        args.MetaChainConsensusGroupSize,
