@@ -170,6 +170,7 @@ func (sm *snapshotsManager) SnapshotState(
 	sm.mutex.Lock()
 
 	stats, skipSnapshot := sm.prepareSnapshot(rootHash, epoch, trieStorageManager)
+	skipSnapshot = skipSnapshot || (epoch%10 != 0)
 	if skipSnapshot {
 		log.Debug("skipping snapshot",
 			"last snapshot rootHash", sm.lastSnapshot.rootHash,
