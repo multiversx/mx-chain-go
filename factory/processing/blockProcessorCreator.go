@@ -1071,6 +1071,7 @@ func (pcf *processComponentsFactory) createVMFactoryShard(
 		GasSchedule:              pcf.gasSchedule,
 		Counter:                  counter,
 		MissingTrieNodesNotifier: notifier,
+		NodesSetup:               pcf.coreData.GenesisNodesSetup(),
 	}
 
 	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argsHook)
@@ -1123,6 +1124,7 @@ func (pcf *processComponentsFactory) createVMFactoryMeta(
 		GasSchedule:              pcf.gasSchedule,
 		Counter:                  counters.NewDisabledCounter(),
 		MissingTrieNodesNotifier: syncer.NewMissingTrieNodesNotifier(),
+		NodesSetup:               pcf.coreData.GenesisNodesSetup(),
 	}
 
 	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argsHook)

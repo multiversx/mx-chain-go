@@ -384,6 +384,32 @@ func GetMetaHeaderFromStorageWithNonce(
 	return hdr, hash, nil
 }
 
+func GetBlockHeaderForEpochStartFromStorage(
+	epoch uint32,
+	shard uint32,
+	storageService dataRetriever.StorageService,
+	uint64Converter typeConverters.Uint64ByteSliceConverter,
+	marshalizer marshal.Marshalizer,
+) (data.HeaderHandler, []byte, error) {
+	storer, err := storageService.GetStorer(dataRetriever.BlockHeaderUnit)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	identifier := core.EpochStartIdentifier(epoch)
+	headerBytes, err := storer.GetFromEpoch([]byte(identifier), epoch)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	header, err := UnmarshalShardHeader(marshalizer, headerBytes)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return GetHeaderFromStorageWithNonce(header.GetNonce(), shard, storageService, uint64Converter, marshalizer)
+}
+
 // GetTransactionHandler gets the transaction with a given sender/receiver shardId and txHash
 func GetTransactionHandler(
 	senderShardID uint32,

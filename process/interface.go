@@ -512,6 +512,10 @@ type BlockChainHookHandler interface {
 	CurrentTimeStamp() uint64
 	CurrentRandomSeed() []byte
 	CurrentEpoch() uint32
+	RoundTime() uint64
+	EpochStartBlockNonce() uint64
+	EpochStartBlockRound() uint64
+	EpochStartBlockTimeStamp() uint64
 	NewAddress(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error)
 	ProcessBuiltInFunction(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
 	SaveNFTMetaDataToSystemAccount(tx data.TransactionHandler) error

@@ -64,6 +64,7 @@ type ArgBlockChainHook struct {
 	GasSchedule              core.GasScheduleNotifier
 	Counter                  BlockChainHookCounter
 	MissingTrieNodesNotifier common.MissingTrieNodesNotifier
+	NodesSetup               sharding.GenesisNodesSetupHandler
 }
 
 // BlockChainHookImpl is a wrapper over AccountsAdapter that satisfy vmcommon.BlockchainHook interface
@@ -81,6 +82,7 @@ type BlockChainHookImpl struct {
 	globalSettingsHandler vmcommon.ESDTGlobalSettingsHandler
 	enableEpochsHandler   common.EnableEpochsHandler
 	counter               BlockChainHookCounter
+	nodesSetup            sharding.GenesisNodesSetupHandler
 
 	mutCurrentHdr sync.RWMutex
 	currentHdr    data.HeaderHandler
@@ -126,6 +128,7 @@ func NewBlockChainHookImpl(
 		gasSchedule:              args.GasSchedule,
 		counter:                  args.Counter,
 		missingTrieNodesNotifier: args.MissingTrieNodesNotifier,
+		nodesSetup:               args.NodesSetup,
 	}
 
 	err = blockChainHookImpl.makeCompiledSCStorage()
@@ -391,6 +394,76 @@ func (bh *BlockChainHookImpl) LastEpoch() uint32 {
 		return bh.blockChain.GetCurrentBlockHeader().GetEpoch()
 	}
 	return 0
+}
+
+func (bh *BlockChainHookImpl) getCurrentEpochStartBlockHeader() (data.HeaderHandler, error) {
+	currentEpoch := bh.CurrentEpoch()
+
+	if currentEpoch == 0 {
+		return bh.blockChain.GetGenesisHeader(), nil
+	}
+
+	epochStartBlock, _, err := process.GetBlockHeaderForEpochStartFromStorage(
+		currentEpoch,
+		bh.shardCoordinator.SelfId(),
+		bh.storageService,
+		bh.uint64Converter,
+		bh.marshalizer,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return epochStartBlock, nil
+}
+
+// RoundTime returns the duration of a round
+func (bh *BlockChainHookImpl) RoundTime() uint64 {
+	if bh.nodesSetup == nil {
+		return 0
+	}
+
+	return bh.nodesSetup.GetRoundDuration()
+}
+
+// EpochStartBlockTimeStamp returns the timestamp of the first block of the current epoch
+func (bh *BlockChainHookImpl) EpochStartBlockTimeStamp() uint64 {
+	defer stopMeasure(startMeasure("EpochStartBlockTimeStamp"))
+
+	epochStartBlock, err := bh.getCurrentEpochStartBlockHeader()
+
+	if err != nil {
+		return 0
+	}
+
+	return epochStartBlock.GetTimeStamp()
+}
+
+// EpochStartBlockNonce returns the nonce of the first block of the current epoch
+func (bh *BlockChainHookImpl) EpochStartBlockNonce() uint64 {
+	defer stopMeasure(startMeasure("EpochStartBlockNonce"))
+
+	epochStartBlock, err := bh.getCurrentEpochStartBlockHeader()
+
+	if err != nil {
+		return 0
+	}
+
+	return epochStartBlock.GetNonce()
+}
+
+// EpochStartBlockRound returns the round of the first block of the current epoch
+func (bh *BlockChainHookImpl) EpochStartBlockRound() uint64 {
+	defer stopMeasure(startMeasure("EpochStartBlockRound"))
+
+	epochStartBlock, err := bh.getCurrentEpochStartBlockHeader()
+
+	if err != nil {
+		return 0
+	}
+
+	return epochStartBlock.GetRound()
 }
 
 // GetStateRootHash returns the state root hash from the last committed block

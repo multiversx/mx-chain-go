@@ -24,6 +24,10 @@ type BlockChainHookStub struct {
 	CurrentTimeStampCalled                  func() uint64
 	CurrentRandomSeedCalled                 func() []byte
 	CurrentEpochCalled                      func() uint32
+	RoundTimeCalled                         func() uint64
+	EpochStartBlockNonceCalled              func() uint64
+	EpochStartBlockRoundCalled              func() uint64
+	EpochStartBlockTimeStampCalled          func() uint64
 	ProcessBuiltInFunctionCalled            func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
 	GetBuiltinFunctionNamesCalled           func() vmcommon.FunctionNames
 	GetBuiltinFunctionsContainerCalled      func() vmcommon.BuiltInFunctionContainer
@@ -186,6 +190,42 @@ func (stub *BlockChainHookStub) CurrentRandomSeed() []byte {
 func (stub *BlockChainHookStub) CurrentEpoch() uint32 {
 	if stub.CurrentEpochCalled != nil {
 		return stub.CurrentEpochCalled()
+	}
+
+	return 0
+}
+
+// RoundTime -
+func (stub *BlockChainHookStub) RoundTime() uint64 {
+	if stub.RoundTimeCalled != nil {
+		return stub.RoundTimeCalled()
+	}
+
+	return 0
+}
+
+// EpochStartBlockNonce -
+func (stub *BlockChainHookStub) EpochStartBlockNonce() uint64 {
+	if stub.EpochStartBlockNonceCalled != nil {
+		return stub.EpochStartBlockNonceCalled()
+	}
+
+	return 0
+}
+
+// EpochStartBlockRound -
+func (stub *BlockChainHookStub) EpochStartBlockRound() uint64 {
+	if stub.EpochStartBlockRoundCalled != nil {
+		return stub.EpochStartBlockRoundCalled()
+	}
+
+	return 0
+}
+
+// EpochStartBlockTimeStamp -
+func (stub *BlockChainHookStub) EpochStartBlockTimeStamp() uint64 {
+	if stub.EpochStartBlockTimeStampCalled != nil {
+		return stub.EpochStartBlockTimeStampCalled()
 	}
 
 	return 0

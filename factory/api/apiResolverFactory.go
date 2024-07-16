@@ -411,6 +411,7 @@ func createScQueryElement(
 		MissingTrieNodesNotifier: syncer.NewMissingTrieNodesNotifier(),
 		Accounts:                 accountsAdapterApi,
 		BlockChain:               apiBlockchain,
+		NodesSetup:               args.coreComponents.GenesisNodesSetup(),
 	}
 
 	var vmFactory process.VirtualMachinesContainerFactory
