@@ -85,10 +85,9 @@ func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 	err = nodeHandler.GetProcessComponents().ValidatorsProvider().ForceUpdate()
 	require.Nil(t, err)
 
-	// TODO: MX-15650 - fix this
-	//auctionList, err := nodeHandler.GetProcessComponents().ValidatorsProvider().GetAuctionList()
-	//require.Nil(t, err)
-	//require.Len(t, auctionList, 10)
+	auctionList, err := nodeHandler.GetProcessComponents().ValidatorsProvider().GetAuctionList()
+	require.Nil(t, err)
+	require.Len(t, auctionList, 10)
 
 	validators := nodeHandler.GetProcessComponents().ValidatorsProvider().GetLatestValidators()
 	require.Len(t, validators, 18)
