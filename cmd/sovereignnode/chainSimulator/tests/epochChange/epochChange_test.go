@@ -64,7 +64,7 @@ func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 
 	defer cs.Close()
 
-	nodeHandler := cs.GetNodeHandler(0)
+	nodeHandler := cs.GetNodeHandler(core.SovereignChainShardId)
 
 	trie := nodeHandler.GetStateComponents().TriesContainer().Get([]byte(dataRetriever.PeerAccountsUnit.String()))
 	require.NotNil(t, trie)
