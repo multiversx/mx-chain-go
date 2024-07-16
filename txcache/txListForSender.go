@@ -344,6 +344,11 @@ func approximatelyCountTxInLists(lists []*txListForSender) uint64 {
 
 // Removes transactions with lower nonces and returns their hashes.
 func (listForSender *txListForSender) notifyAccountNonce(nonce uint64) [][]byte {
+	// Optimization: if nonce is the same, do nothing.
+	if listForSender.accountNonce.Get() == nonce {
+		return nil
+	}
+
 	listForSender.mutex.Lock()
 	defer listForSender.mutex.Unlock()
 
