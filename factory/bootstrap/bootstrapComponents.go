@@ -114,6 +114,9 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 	if check.IfNil(args.RunTypeComponents.RequestHandlerCreator()) {
 		return nil, errors.ErrNilRequestHandlerCreator
 	}
+	if check.IfNil(args.RunTypeComponents.LatestDataProviderFactory()) {
+		return nil, errors.ErrNilLatestDataProviderFactory
+	}
 
 	return &bootstrapComponentsFactory{
 		config:               args.Config,

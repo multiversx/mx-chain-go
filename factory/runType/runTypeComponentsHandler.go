@@ -203,6 +203,9 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	if check.IfNil(mrc.epochStartTriggerFactory) {
 		return errors.ErrNilEpochStartTriggerFactory
 	}
+	if check.IfNil(mrc.latestDataProviderFactory) {
+		return errors.ErrNilLatestDataProviderFactory
+	}
 	if check.IfNil(mrc.scToProtocolFactory) {
 		return errors.ErrNilStakingToPeerFactory
 	}

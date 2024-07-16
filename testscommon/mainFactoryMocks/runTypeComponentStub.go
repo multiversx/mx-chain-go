@@ -119,7 +119,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		GenesisMetaBlockChecker:             &testFactory.GenesisMetaBlockCheckerMock{},
 		NodesSetupCheckerFactoryField:       checking.NewNodesSetupCheckerFactory(),
 		EpochStartTriggerFactoryField:       &testFactory.EpochStartTriggerFactoryMock{},
-		LatestDataProviderFactoryField:      latestData.NewLatestDataProviderFactory(),
+		LatestDataProviderFactoryField:      &testFactory.LatestDataProviderFactoryMock{},
 		StakingToPeerFactoryField:           &testFactory.StakingToPeerFactoryMock{},
 	}
 }
