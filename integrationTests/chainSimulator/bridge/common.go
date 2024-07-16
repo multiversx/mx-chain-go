@@ -31,6 +31,12 @@ type ArgsBridgeSetup struct {
 	OwnerAccount     chainSim.Account
 }
 
+type transferData struct {
+	GasLimit uint64
+	Function []byte
+	Args     [][]byte
+}
+
 // This function will:
 // - deploy esdt-safe contract
 // - deploy fee-market contract
@@ -154,22 +160,26 @@ func executeMintOperation(
 	t *testing.T,
 	cs chainSim.ChainSimulator,
 	wallet dtos.WalletAddress,
+	receiver []byte,
 	nonce *uint64,
 	esdtSafeAddress []byte,
 	bridgedInTokens []chainSim.ArgsDepositToken,
+	originalSender []byte,
+	transferData *transferData,
 ) {
 	executeBridgeOpsData := "executeBridgeOps" +
 		"@de96b8d3842668aad676f915f545403b3e706f8f724cefb0c15b728e83864ce7" + //dummy hash
 		"@" + // operation
-		hex.EncodeToString(wallet.Bytes) + // receiver address
+		hex.EncodeToString(receiver) + // receiver address
 		lengthOn4Bytes(len(bridgedInTokens)) + // nr of tokens
 		getTokenDataArgs(wallet.Bytes, bridgedInTokens) + // tokens encoded arg
-		"0000000000000000" + // event nonce
-		hex.EncodeToString(wallet.Bytes) + // sender address from other chain
-		"00" // no transfer data
-	chainSim.SendTransaction(t, cs, wallet.Bytes, nonce, esdtSafeAddress, chainSim.ZeroValue, executeBridgeOpsData, uint64(50000000))
+		getU64Bytes(0) + // event nonce
+		hex.EncodeToString(originalSender) + // sender address from other chain
+		getTransferDataArgs(transferData)
+	chainSim.SendTransaction(t, cs, wallet.Bytes, nonce, esdtSafeAddress, chainSim.ZeroValue, executeBridgeOpsData, uint64(100000000))
 	for _, token := range groupTokens(bridgedInTokens) {
-		chainSim.RequireAccountHasToken(t, cs, getTokenIdentifier(token), wallet.Bech32, token.Amount)
+		receiverBech32, _ := cs.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Encode(receiver)
+		chainSim.RequireAccountHasToken(t, cs, getTokenIdentifier(token), receiverBech32, token.Amount)
 	}
 }
 
@@ -179,7 +189,7 @@ func getTokenDataArgs(creator []byte, tokens []chainSim.ArgsDepositToken) string
 		arg = arg +
 			lengthOn4Bytes(len(token.Identifier)) + // length of token identifier
 			hex.EncodeToString([]byte(token.Identifier)) + //token identifier
-			getNonceHex(token.Nonce) + // nonce
+			getU64Bytes(token.Nonce) + // nonce
 			fmt.Sprintf("%02x", uint32(token.Type)) + // type
 			lengthOn4Bytes(len(token.Amount.Bytes())) + // length of amount
 			hex.EncodeToString(token.Amount.Bytes()) + // amount
@@ -193,6 +203,24 @@ func getTokenDataArgs(creator []byte, tokens []chainSim.ArgsDepositToken) string
 			lengthOn4Bytes(0) // length of uris
 	}
 	return arg
+}
+
+func getTransferDataArgs(transferData *transferData) string {
+	if transferData == nil {
+		return "00"
+	}
+
+	transferDataArgs := "01" +
+		getU64Bytes(transferData.GasLimit) +
+		lengthOn4Bytes(len(transferData.Function)) +
+		hex.EncodeToString(transferData.Function) +
+		lengthOn4Bytes(len(transferData.Args))
+	for _, arg := range transferData.Args {
+		transferDataArgs = transferDataArgs +
+			lengthOn4Bytes(len(arg)) +
+			hex.EncodeToString(arg)
+	}
+	return transferDataArgs
 }
 
 func getTokenIdentifier(token chainSim.ArgsDepositToken) string {
@@ -209,9 +237,9 @@ func getTokenNonce(nonce uint64) string {
 	return fmt.Sprintf("%02X", nonce)
 }
 
-func getNonceHex(nonce uint64) string {
+func getU64Bytes(number uint64) string {
 	nonceBytes := make([]byte, 8)
-	binary.BigEndian.PutUint64(nonceBytes, nonce)
+	binary.BigEndian.PutUint64(nonceBytes, number)
 	return hex.EncodeToString(nonceBytes)
 }
 

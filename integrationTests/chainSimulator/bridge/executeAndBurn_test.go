@@ -189,7 +189,7 @@ func simulateExecutionAndDeposit(
 
 	// We will deposit an array of prefixed tokens from a sovereign chain to the main chain,
 	// expecting these tokens to be minted by the whitelisted ESDT safe sc and transferred to our wallet address.
-	executeMintOperation(t, cs, wallet, &nonce, bridgeData.ESDTSafeAddress, bridgedInTokens)
+	executeMintOperation(t, cs, bridgeData.OwnerAccount.Wallet, wallet.Bytes, &bridgeData.OwnerAccount.Nonce, bridgeData.ESDTSafeAddress, bridgedInTokens, wallet.Bytes, nil)
 
 	// deposit an array of tokens from main chain to sovereign chain,
 	// expecting these tokens to be burned by the whitelisted ESDT safe sc
