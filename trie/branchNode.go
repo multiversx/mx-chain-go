@@ -537,27 +537,22 @@ func (bn *branchNode) insertOnNilChild(newData []core.TrieData, childPos byte, d
 		return [][]byte{}, ErrValueTooShort
 	}
 
-	newLn, err := newLeafNode(newData[0], bn.marsh, bn.hasher)
+	var newNode node
+	modifiedHashes := make([][]byte, 0)
+
+	newNode, err := newLeafNode(newData[0], bn.marsh, bn.hasher)
 	if err != nil {
 		return [][]byte{}, err
 	}
 
 	if len(newData) > 1 {
-		newNode, modifiedHashes, err := newLn.insert(newData[1:], db)
+		newNode, modifiedHashes, err = newNode.insert(newData[1:], db)
 		if check.IfNil(newNode) || err != nil {
 			return [][]byte{}, err
 		}
-
-		modifiedHashes, err = bn.modifyNodeAfterInsert(modifiedHashes, childPos, newNode)
-		if err != nil {
-			return [][]byte{}, err
-		}
-
-		return modifiedHashes, nil
 	}
 
-	modifiedHashes := make([][]byte, 0)
-	modifiedHashes, err = bn.modifyNodeAfterInsert(modifiedHashes, childPos, newLn)
+	modifiedHashes, err = bn.modifyNodeAfterInsert(modifiedHashes, childPos, newNode)
 	if err != nil {
 		return [][]byte{}, err
 	}
