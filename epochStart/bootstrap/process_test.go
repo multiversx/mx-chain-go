@@ -35,6 +35,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	epochStartMocks "github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks/epochStart"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
@@ -73,6 +74,14 @@ func createPkBytes(numShards uint32) map[uint32][]byte {
 }
 
 func createComponentsForEpochStart() (*mock.CoreComponentsMock, *mock.CryptoComponentsMock) {
+	chainParams := &chainParameters.ChainParametersHandlerStub{
+		CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+			return config.ChainParametersByEpochConfig{
+				ShardConsensusGroupSize:     1,
+				MetachainConsensusGroupSize: 1,
+			}
+		},
+	}
 	return &mock.CoreComponentsMock{
 			IntMarsh:                     &mock.MarshalizerMock{},
 			Marsh:                        &mock.MarshalizerMock{},
@@ -94,6 +103,7 @@ func createComponentsForEpochStart() (*mock.CoreComponentsMock, *mock.CryptoComp
 					return 0
 				},
 			},
+			ChainParametersHandlerField: chainParams,
 		},
 		&mock.CryptoComponentsMock{
 			PubKey:          &cryptoMocks.PublicKeyStub{},

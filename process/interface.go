@@ -20,8 +20,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
+
 	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -30,8 +34,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 )
 
 // TransactionProcessor is the main interface for transaction execution engine
@@ -170,7 +172,7 @@ type TransactionCoordinator interface {
 	VerifyCreatedBlockTransactions(hdr data.HeaderHandler, body *block.Body) error
 	GetCreatedInShardMiniBlocks() []*block.MiniBlock
 	VerifyCreatedMiniBlocks(hdr data.HeaderHandler, body *block.Body) error
-	AddIntermediateTransactions(mapSCRs map[block.Type][]data.TransactionHandler) error
+	AddIntermediateTransactions(mapSCRs map[block.Type][]data.TransactionHandler, key []byte) error
 	GetAllIntermediateTxs() map[block.Type]map[string]data.TransactionHandler
 	AddTxsFromMiniBlocks(miniBlocks block.MiniBlockSlice)
 	AddTransactions(txHandlers []data.TransactionHandler, blockType block.Type)
@@ -190,7 +192,7 @@ type SmartContractProcessor interface {
 
 // IntermediateTransactionHandler handles transactions which are not resolved in only one step
 type IntermediateTransactionHandler interface {
-	AddIntermediateTransactions(txs []data.TransactionHandler) error
+	AddIntermediateTransactions(txs []data.TransactionHandler, key []byte) error
 	GetNumOfCrossInterMbsAndTxs() (int, int)
 	CreateAllInterMiniBlocks() []*block.MiniBlock
 	VerifyInterMiniBlocks(body *block.Body) error
@@ -199,7 +201,7 @@ type IntermediateTransactionHandler interface {
 	CreateBlockStarted()
 	GetCreatedInShardMiniBlock() *block.MiniBlock
 	RemoveProcessedResults(key []byte) [][]byte
-	InitProcessedResults(key []byte)
+	InitProcessedResults(key []byte, parentKey []byte)
 	IsInterfaceNil() bool
 }
 
@@ -910,12 +912,18 @@ type TopicFloodPreventer interface {
 	IsInterfaceNil() bool
 }
 
+// ChainParametersSubscriber is the interface that can be used to subscribe for chain parameters changes
+type ChainParametersSubscriber interface {
+	RegisterNotifyHandler(handler common.ChainParametersSubscriptionHandler)
+	IsInterfaceNil() bool
+}
+
 // P2PAntifloodHandler defines the behavior of a component able to signal that the system is too busy (or flooded) processing
 // p2p messages
 type P2PAntifloodHandler interface {
 	CanProcessMessage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error
 	CanProcessMessagesOnTopic(pid core.PeerID, topic string, numMessages uint32, totalSize uint64, sequence []byte) error
-	ApplyConsensusSize(size int)
+	SetConsensusSizeNotifier(chainParametersNotifier ChainParametersSubscriber, shardID uint32)
 	SetDebugger(debugger AntifloodDebugger) error
 	BlacklistPeer(peer core.PeerID, reason string, duration time.Duration)
 	IsOriginatorEligibleForTopic(pid core.PeerID, topic string) error
@@ -1042,6 +1050,36 @@ type RatingsStepHandler interface {
 	ValidatorIncreaseRatingStep() int32
 	ValidatorDecreaseRatingStep() int32
 	ConsecutiveMissedBlocksPenalty() float32
+}
+
+// NodesSetupHandler returns the nodes' configuration
+type NodesSetupHandler interface {
+	AllInitialNodes() []nodesCoordinator.GenesisNodeInfoHandler
+	InitialNodesPubKeys() map[uint32][]string
+	GetShardIDForPubKey(pubkey []byte) (uint32, error)
+	InitialEligibleNodesPubKeysForShard(shardId uint32) ([]string, error)
+	InitialNodesInfoForShard(shardId uint32) ([]nodesCoordinator.GenesisNodeInfoHandler, []nodesCoordinator.GenesisNodeInfoHandler, error)
+	InitialNodesInfo() (map[uint32][]nodesCoordinator.GenesisNodeInfoHandler, map[uint32][]nodesCoordinator.GenesisNodeInfoHandler)
+	GetStartTime() int64
+	GetRoundDuration() uint64
+	GetShardConsensusGroupSize() uint32
+	GetMetaConsensusGroupSize() uint32
+	NumberOfShards() uint32
+	MinNumberOfNodes() uint32
+	MinNumberOfShardNodes() uint32
+	MinNumberOfMetaNodes() uint32
+	GetHysteresis() float32
+	GetAdaptivity() bool
+	MinNumberOfNodesWithHysteresis() uint32
+	IsInterfaceNil() bool
+}
+
+// ChainParametersHandler defines the actions that need to be done by a component that can handle chain parameters
+type ChainParametersHandler interface {
+	CurrentChainParameters() config.ChainParametersByEpochConfig
+	AllChainParameters() []config.ChainParametersByEpochConfig
+	ChainParametersForEpoch(epoch uint32) (config.ChainParametersByEpochConfig, error)
+	IsInterfaceNil() bool
 }
 
 // ValidatorInfoSyncer defines the method needed for validatorInfoProcessing
@@ -1183,11 +1221,13 @@ type CoreComponentsHolder interface {
 	TxVersionChecker() TxVersionCheckerHandler
 	GenesisNodesSetup() sharding.GenesisNodesSetupHandler
 	EpochNotifier() EpochNotifier
+	ChainParametersSubscriber() ChainParametersSubscriber
 	ChanStopNodeProcess() chan endProcess.ArgEndProcess
 	NodeTypeProvider() core.NodeTypeProviderHandler
 	ProcessStatusHandler() common.ProcessStatusHandler
 	HardforkTriggerPubKey() []byte
 	EnableEpochsHandler() common.EnableEpochsHandler
+	ChainParametersHandler() ChainParametersHandler
 	IsInterfaceNil() bool
 }
 
@@ -1319,7 +1359,7 @@ type TxsSenderHandler interface {
 // PreProcessorExecutionInfoHandler handles pre processor execution info needed by the transactions preprocessors
 type PreProcessorExecutionInfoHandler interface {
 	GetNumOfCrossInterMbsAndTxs() (int, int)
-	InitProcessedTxsResults(key []byte)
+	InitProcessedTxsResults(key []byte, parentKey []byte)
 	RevertProcessedTxsResults(txHashes [][]byte, key []byte)
 }
 

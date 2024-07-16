@@ -8,16 +8,6 @@ import (
 type NodeShufflerMock struct {
 }
 
-// UpdateParams -
-func (nsm *NodeShufflerMock) UpdateParams(
-	_ uint32,
-	_ uint32,
-	_ float32,
-	_ bool,
-) {
-
-}
-
 // UpdateNodeLists -
 func (nsm *NodeShufflerMock) UpdateNodeLists(args nodesCoordinator.ArgsUpdateNodes) (*nodesCoordinator.ResUpdateNodes, error) {
 	return &nodesCoordinator.ResUpdateNodes{

@@ -27,7 +27,7 @@ func TestNewChainSimulator(t *testing.T) {
 	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
-		BypassTxSignatureCheck: false,
+		BypassTxSignatureCheck: true,
 		TempDir:                t.TempDir(),
 		PathToInitialConfig:    defaultPathToInitialConfig,
 		NumOfShards:            3,
@@ -54,7 +54,7 @@ func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
 	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
-		BypassTxSignatureCheck: false,
+		BypassTxSignatureCheck: true,
 		TempDir:                t.TempDir(),
 		PathToInitialConfig:    defaultPathToInitialConfig,
 		NumOfShards:            3,
@@ -100,7 +100,7 @@ func TestChainSimulator_GenerateBlocksAndEpochChangeShouldWork(t *testing.T) {
 		Value:    20,
 	}
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
-		BypassTxSignatureCheck: false,
+		BypassTxSignatureCheck: true,
 		TempDir:                t.TempDir(),
 		PathToInitialConfig:    defaultPathToInitialConfig,
 		NumOfShards:            3,
@@ -157,7 +157,7 @@ func TestSimulator_TriggerChangeOfEpoch(t *testing.T) {
 		Value:    15000,
 	}
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
-		BypassTxSignatureCheck: false,
+		BypassTxSignatureCheck: true,
 		TempDir:                t.TempDir(),
 		PathToInitialConfig:    defaultPathToInitialConfig,
 		NumOfShards:            3,
@@ -202,7 +202,7 @@ func TestChainSimulator_SetState(t *testing.T) {
 		Value:    20,
 	}
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
-		BypassTxSignatureCheck: false,
+		BypassTxSignatureCheck: true,
 		TempDir:                t.TempDir(),
 		PathToInitialConfig:    defaultPathToInitialConfig,
 		NumOfShards:            3,
@@ -233,7 +233,7 @@ func TestChainSimulator_SetEntireState(t *testing.T) {
 		Value:    20,
 	}
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
-		BypassTxSignatureCheck: false,
+		BypassTxSignatureCheck: true,
 		TempDir:                t.TempDir(),
 		PathToInitialConfig:    defaultPathToInitialConfig,
 		NumOfShards:            3,
@@ -281,7 +281,7 @@ func TestChainSimulator_SetEntireStateWithRemoval(t *testing.T) {
 		Value:    20,
 	}
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
-		BypassTxSignatureCheck: false,
+		BypassTxSignatureCheck: true,
 		TempDir:                t.TempDir(),
 		PathToInitialConfig:    defaultPathToInitialConfig,
 		NumOfShards:            3,
@@ -328,7 +328,7 @@ func TestChainSimulator_GetAccount(t *testing.T) {
 		Value:    20,
 	}
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
-		BypassTxSignatureCheck: false,
+		BypassTxSignatureCheck: true,
 		TempDir:                t.TempDir(),
 		PathToInitialConfig:    defaultPathToInitialConfig,
 		NumOfShards:            3,
@@ -362,7 +362,7 @@ func TestSimulator_SendTransactions(t *testing.T) {
 		Value:    20,
 	}
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
-		BypassTxSignatureCheck: false,
+		BypassTxSignatureCheck: true,
 		TempDir:                t.TempDir(),
 		PathToInitialConfig:    defaultPathToInitialConfig,
 		NumOfShards:            3,

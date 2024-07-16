@@ -28,7 +28,7 @@ func TestESDTMetaDataRecreate(t *testing.T) {
 func runEsdtMetaDataRecreateTest(t *testing.T, tokenType string) {
 	sndAddr := []byte("12345678901234567890123456789012")
 	token := []byte("tokenId")
-	roles := [][]byte{[]byte(core.ESDTMetaDataRecreate), []byte(core.ESDTRoleNFTCreate)}
+	roles := [][]byte{[]byte(core.ESDTRoleNFTRecreate), []byte(core.ESDTRoleNFTCreate)}
 	baseEsdtKeyPrefix := core.ProtectedKeyPrefix + core.ESDTKeyIdentifier
 	key := append([]byte(baseEsdtKeyPrefix), token...)
 
