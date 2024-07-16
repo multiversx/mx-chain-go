@@ -556,6 +556,7 @@ func TestInsertSameNodeShouldNotSetDirtyBnRoot(t *testing.T) {
 	rootHash := tr.root.getHash()
 
 	_ = tr.Update([]byte("dog"), []byte("puppy"))
+	ExecuteUpdatesFromBatch(tr)
 	assert.False(t, tr.root.isDirty())
 	assert.Equal(t, rootHash, tr.root.getHash())
 	assert.Equal(t, [][]byte{}, tr.oldHashes)
@@ -571,6 +572,7 @@ func TestInsertSameNodeShouldNotSetDirtyEnRoot(t *testing.T) {
 	rootHash := tr.root.getHash()
 
 	_ = tr.Update([]byte("dog"), []byte("puppy"))
+	ExecuteUpdatesFromBatch(tr)
 	assert.False(t, tr.root.isDirty())
 	assert.Equal(t, rootHash, tr.root.getHash())
 	assert.Equal(t, [][]byte{}, tr.oldHashes)
@@ -585,6 +587,7 @@ func TestInsertSameNodeShouldNotSetDirtyLnRoot(t *testing.T) {
 	rootHash := tr.root.getHash()
 
 	_ = tr.Update([]byte("dog"), []byte("puppy"))
+	ExecuteUpdatesFromBatch(tr)
 	assert.False(t, tr.root.isDirty())
 	assert.Equal(t, rootHash, tr.root.getHash())
 	assert.Equal(t, [][]byte{}, tr.oldHashes)
@@ -598,6 +601,7 @@ func TestLeafNode_deleteDifferentKeyShouldNotModifyTrie(t *testing.T) {
 	rootHash := tr.root.getHash()
 
 	_ = tr.Update([]byte("ddoe"), []byte{})
+	ExecuteUpdatesFromBatch(tr)
 	assert.False(t, tr.root.isDirty())
 	assert.Equal(t, rootHash, tr.root.getHash())
 	assert.Equal(t, [][]byte{}, tr.oldHashes)

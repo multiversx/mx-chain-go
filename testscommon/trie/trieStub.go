@@ -16,7 +16,7 @@ type TrieStub struct {
 	GetCalled                       func(key []byte) ([]byte, uint32, error)
 	UpdateCalled                    func(key, value []byte) error
 	UpdateWithVersionCalled         func(key, value []byte, version core.TrieNodeVersion) error
-	DeleteCalled                    func(key []byte) error
+	DeleteCalled                    func(key []byte)
 	RootCalled                      func() ([]byte, error)
 	CommitCalled                    func() error
 	RecreateCalled                  func(options common.RootHashHolder) (common.Trie, error)
@@ -108,12 +108,10 @@ func (ts *TrieStub) CollectLeavesForMigration(args vmcommon.ArgsMigrateDataTrieL
 }
 
 // Delete -
-func (ts *TrieStub) Delete(key []byte) error {
+func (ts *TrieStub) Delete(key []byte) {
 	if ts.DeleteCalled != nil {
-		return ts.DeleteCalled(key)
+		ts.DeleteCalled(key)
 	}
-
-	return errNotImplemented
 }
 
 // RootHash -
