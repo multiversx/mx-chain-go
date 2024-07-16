@@ -189,12 +189,12 @@ func (scbp *sovereignChainBlockProcessor) CreateBlock(initialHdr data.HeaderHand
 		}
 	}
 
-	if scbp.epochStartTrigger.IsEpochStart() {
-		err := scbp.createBlockStarted()
-		if err != nil {
-			return nil, nil, err
-		}
+	err := scbp.createBlockStarted()
+	if err != nil {
+		return nil, nil, err
+	}
 
+	if scbp.epochStartTrigger.IsEpochStart() {
 		epoch := scbp.epochStartTrigger.MetaEpoch()
 		log.Debug("sovereignChainBlockProcessor.CreateBlock", "isEpochStart", true, "epoch from epoch start trigger", epoch)
 		err = initialHdr.SetEpoch(epoch)
@@ -226,11 +226,6 @@ func (scbp *sovereignChainBlockProcessor) CreateBlock(initialHdr data.HeaderHand
 		scbp.blockChainHook.SetCurrentHeader(initialHdr)
 		scbp.requestHandler.SetEpoch(initialHdr.GetEpoch())
 		return initialHdr, &block.Body{}, nil
-	}
-
-	err := scbp.createBlockStarted()
-	if err != nil {
-		return nil, nil, err
 	}
 
 	err = initialHdr.SetEpoch(scbp.epochStartTrigger.Epoch())

@@ -217,7 +217,7 @@ func (ihnc *sovereignIndexHashedNodesCoordinator) GetConsensusValidatorsPublicKe
 // EpochStartPrepare is not implemented for sovereign
 func (ihnc *sovereignIndexHashedNodesCoordinator) EpochStartPrepare(hdr data.HeaderHandler, body data.BodyHandler) {
 	if !hdr.IsStartOfEpochBlock() {
-		log.Error("could not process EpochStartPrepare on nodesCoordinator - not epoch start block")
+		log.Error("could not process EpochStartPrepare on sovereignIndexHashedNodesCoordinator - not epoch start block")
 		return
 	}
 
@@ -225,7 +225,7 @@ func (ihnc *sovereignIndexHashedNodesCoordinator) EpochStartPrepare(hdr data.Hea
 	newEpoch := hdr.GetEpoch()
 
 	if check.IfNil(body) && newEpoch == ihnc.currentEpoch {
-		log.Debug("nil body provided for epoch start prepare, it is normal in case of revertStateToBlock")
+		log.Debug("nil body provided for epoch start prepare for sovereign, it is normal in case of revertStateToBlock")
 		return
 	}
 
@@ -233,14 +233,14 @@ func (ihnc *sovereignIndexHashedNodesCoordinator) EpochStartPrepare(hdr data.Hea
 
 	allValidatorInfo, err := ihnc.createValidatorInfoFromBody(body, ihnc.numTotalEligible, newEpoch)
 	if err != nil {
-		log.Error("could not create validator info from body - do nothing on nodesCoordinator epochStartPrepare", "error", err.Error())
+		log.Error("could not create validator info from body - do nothing on sovereignIndexHashedNodesCoordinator epochStartPrepare", "error", err.Error())
 		return
 	}
 
 	// TODO: compare with previous nodesConfig if exists
 	newNodesConfig, err := ihnc.computeNodesConfigFromList(allValidatorInfo)
 	if err != nil {
-		log.Error("could not compute nodes config from list - do nothing on nodesCoordinator epochStartPrepare", "error", err)
+		log.Error("could not compute nodes config from list - do nothing on sovereignIndexHashedNodesCoordinator epochStartPrepare", "error", err)
 		return
 	}
 
@@ -248,7 +248,7 @@ func (ihnc *sovereignIndexHashedNodesCoordinator) EpochStartPrepare(hdr data.Hea
 
 	additionalLeavingMap, err := ihnc.nodesCoordinatorHelper.ComputeAdditionalLeaving(allValidatorInfo)
 	if err != nil {
-		log.Error("could not compute additionalLeaving Nodes  - do nothing on nodesCoordinator epochStartPrepare")
+		log.Error("could not compute additionalLeaving Nodes  - do nothing on sovereignIndexHashedNodesCoordinator epochStartPrepare")
 		return
 	}
 
@@ -269,7 +269,7 @@ func (ihnc *sovereignIndexHashedNodesCoordinator) EpochStartPrepare(hdr data.Hea
 
 	resUpdateNodes, err := ihnc.shuffler.UpdateNodeLists(shufflerArgs)
 	if err != nil {
-		log.Error("could not compute UpdateNodeLists - do nothing on nodesCoordinator epochStartPrepare", "err", err.Error())
+		log.Error("could not compute UpdateNodeLists - do nothing on sovereignIndexHashedNodesCoordinator epochStartPrepare", "err", err.Error())
 		return
 	}
 
