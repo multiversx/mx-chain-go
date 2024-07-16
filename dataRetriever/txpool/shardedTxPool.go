@@ -228,13 +228,8 @@ func (txPool *shardedTxPool) searchFirstTx(txHash []byte) (tx data.TransactionHa
 
 // RemoveData removes the transaction from the pool
 func (txPool *shardedTxPool) RemoveData(key []byte, cacheID string) {
-	txPool.removeTx(key, cacheID)
-}
-
-// removeTx removes the transaction from the pool
-func (txPool *shardedTxPool) removeTx(txHash []byte, cacheID string) bool {
 	shard := txPool.getOrCreateShard(cacheID)
-	return shard.Cache.RemoveTxByHash(txHash)
+	_ = shard.Cache.RemoveTxByHash(key)
 }
 
 // RemoveSetOfDataFromPool removes a bunch of transactions from the pool
@@ -244,14 +239,16 @@ func (txPool *shardedTxPool) RemoveSetOfDataFromPool(keys [][]byte, cacheID stri
 
 // removeTxBulk removes a bunch of transactions from the pool
 func (txPool *shardedTxPool) removeTxBulk(txHashes [][]byte, cacheID string) {
+	shard := txPool.getOrCreateShard(cacheID)
+
 	numRemoved := 0
 	for _, key := range txHashes {
-		if txPool.removeTx(key, cacheID) {
+		if shard.Cache.RemoveTxByHash(key) {
 			numRemoved++
 		}
 	}
 
-	log.Trace("shardedTxPool.removeTxBulk()", "name", cacheID, "numToRemove", len(txHashes), "numRemoved", numRemoved)
+	log.Debug("shardedTxPool.removeTxBulk()", "name", cacheID, "numToRemove", len(txHashes), "numRemoved", numRemoved)
 }
 
 // RemoveDataFromAllShards removes the transaction from the pool (it searches in all shards)
