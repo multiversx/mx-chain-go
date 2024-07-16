@@ -283,16 +283,47 @@ func (adb *AccountsDB) SaveAccount(account vmcommon.AccountHandler) error {
 		return err
 	}
 
-	stateChange := StateChangeDTO{
+	stateChange := &StateChangeDTO{
 		Type:            "write",
 		MainTrieKey:     account.AddressBytes(),
 		MainTrieVal:     marshalledAccount,
 		DataTrieChanges: newDataTrieValues,
 		Operation:       "saveAccount",
 	}
-	adb.stateChangesCollector.AddStateChange(stateChange)
+
+	checkAccountChanges(oldAccount, account, stateChange)
+
+	adb.stateChangesCollector.AddStateChange(*stateChange)
 
 	return err
+}
+
+func checkAccountChanges(oldAcc, newAcc vmcommon.AccountHandler, stateChange *StateChangeDTO) {
+	baseNewAcc, newAccOk := newAcc.(UserAccountHandler)
+	if !newAccOk {
+		return
+	}
+	baseOldAccount, oldAccOk := oldAcc.(UserAccountHandler)
+	if !oldAccOk {
+		return
+	}
+
+	if baseNewAcc.GetNonce() != baseOldAccount.GetNonce() {
+		log.Trace("CheckAcc: diff nonce")
+		stateChange.Nonce = true
+	}
+
+	if baseNewAcc.GetBalance().Uint64() != baseOldAccount.GetBalance().Uint64() {
+		log.Trace("CheckAcc: diff balance")
+		stateChange.Balance = true
+	}
+
+	if bytes.Equal(baseNewAcc.GetRootHash(), baseOldAccount.GetRootHash()) {
+		log.Trace("CheckAcc: diff rootHash")
+		stateChange.RootHash = true
+	}
+
+	log.Trace("CheckAcc: checked all")
 }
 
 func (adb *AccountsDB) saveCodeAndDataTrie(oldAcc, newAcc vmcommon.AccountHandler) ([]DataTrieChange, error) {

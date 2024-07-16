@@ -26,7 +26,10 @@ type StateChangeDTO struct {
 	Type            string           `json:"type"`
 	MainTrieKey     []byte           `json:"mainTrieKey"`
 	MainTrieVal     []byte           `json:"-"`
-	Operation       string           `json:"operation,omitempty"`
+	Operation       string           `json:"operation"`
+	Balance         bool             `json:"balanceChanged"`
+	Nonce           bool             `json:"nonceChanged"`
+	RootHash        bool             `json:"rootHashChanged"`
 	DataTrieChanges []DataTrieChange `json:"dataTrieChanges"`
 }
 
