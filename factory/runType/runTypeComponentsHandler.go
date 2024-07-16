@@ -206,6 +206,9 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	if check.IfNil(mrc.scToProtocolFactory) {
 		return errors.ErrNilStakingToPeerFactory
 	}
+	if check.IfNil(mrc.validatorInfoCreatorFactory) {
+		return errors.ErrNilValidatorInfoCreatorFactory
+	}
 	return nil
 }
 
