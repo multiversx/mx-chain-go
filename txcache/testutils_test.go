@@ -14,8 +14,27 @@ const oneTrillion = oneBillion * 1000
 const estimatedSizeOfBoundedTxFields = uint64(128)
 
 func (cache *TxCache) areInternalMapsConsistent() bool {
-	journal := cache.checkInternalConsistency()
-	return journal.isFine()
+	internalMapByHash := cache.txByHash
+	internalMapBySender := cache.txListBySender
+
+	senders := internalMapBySender.getSnapshotAscending()
+	numInMapByHash := len(internalMapByHash.keys())
+	numInMapBySender := 0
+	numMissingInMapByHash := 0
+
+	for _, sender := range senders {
+		numInMapBySender += int(sender.countTx())
+
+		for _, hash := range sender.getTxHashes() {
+			_, ok := internalMapByHash.getTx(string(hash))
+			if !ok {
+				numMissingInMapByHash++
+			}
+		}
+	}
+
+	isFine := (numInMapByHash == numInMapBySender) && (numMissingInMapByHash == 0)
+	return isFine
 }
 
 func (cache *TxCache) getHashesForSender(sender string) []string {

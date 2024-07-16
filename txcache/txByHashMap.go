@@ -74,6 +74,8 @@ func (txMap *txByHashMap) RemoveTxsBulk(txHashes [][]byte) uint32 {
 		}
 	}
 
+	logRemove.Trace("RemoveTxsBulk()", "len(txHashes)", len(txHashes), "numRemoved", numRemoved)
+
 	return numRemoved
 }
 
