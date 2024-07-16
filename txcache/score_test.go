@@ -21,6 +21,25 @@ func TestComputeWorstPpu(t *testing.T) {
 	require.Equal(t, float64(10082500), computeWorstPpu(gasHandler))
 }
 
+func TestDefaultScoreComputer_computeRawScore(t *testing.T) {
+	gasHandler := txcachemocks.NewTxGasHandlerMock()
+	computer := newDefaultScoreComputer(gasHandler)
+
+	require.Equal(t, 74.06805875222626, computer.computeRawScore(senderScoreParams{
+		avgPpuNumerator:             57500000000000,
+		avgPpuDenominator:           57500,
+		isAccountNonceKnown:         false,
+		hasSpotlessSequenceOfNonces: true,
+	}))
+
+	require.Equal(t, 135.40260746155397, computer.computeRawScore(senderScoreParams{
+		avgPpuNumerator:             57500000000000 * 45,
+		avgPpuDenominator:           57500,
+		isAccountNonceKnown:         false,
+		hasSpotlessSequenceOfNonces: true,
+	}))
+}
+
 func TestDefaultScoreComputer_computeScore(t *testing.T) {
 	// Simple transfers:
 	require.Equal(t, 74, computeScoreOfTransaction(0, 50000, oneBillion))
@@ -110,7 +129,7 @@ func BenchmarkScoreComputer_computeScore(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		txFee := tx.computeFee(gasHandler)
 
-		for j := uint64(0); j < 1000000; j++ {
+		for j := uint64(0); j < 1_000_000; j++ {
 			computer.computeScore(senderScoreParams{
 				avgPpuNumerator:             txFee,
 				avgPpuDenominator:           tx.Tx.GetGasLimit(),
@@ -121,7 +140,7 @@ func BenchmarkScoreComputer_computeScore(b *testing.B) {
 
 	// Results:
 	//
-	// (a) 10 ms to compute the score 1 million times:
+	// (a) 12 ms to compute the score 1 million times:
 	// 		cpu: 11th Gen Intel(R) Core(TM) i7-1165G7 @ 2.80GHz
-	// 		BenchmarkScoreComputer_computeRawScore-8   	     124	   9812711 ns/op	     295 B/op	      12 allocs/op
+	// 		BenchmarkScoreComputer_computeScore-8   	     100	  11895452 ns/op	     297 B/op	      12 allocs/op
 }

@@ -1,7 +1,6 @@
 package txcache
 
 import (
-	"encoding/hex"
 	"fmt"
 	"strings"
 
@@ -9,27 +8,21 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
-var log = logger.GetOrCreate("txcache")
-var logSelection = logger.GetOrCreate("txcache-selection")
+var log = logger.GetOrCreate("txcache/main")
+var logAdd = logger.GetOrCreate("txcache/add")
+var logRemove = logger.GetOrCreate("txcache/remove")
+var logSelect = logger.GetOrCreate("txcache/select")
 
 func (cache *TxCache) monitorEvictionWrtSenderLimit(sender []byte, evicted [][]byte) {
-	log.Debug("TxCache.monitorEvictionWrtSenderLimit()", "name", cache.name, "sender", sender, "num", len(evicted))
-
-	for i := 0; i < core.MinInt(len(evicted), numEvictedTxsToDisplay); i++ {
-		log.Trace("TxCache.monitorEvictionWrtSenderLimit()", "name", cache.name, "sender", sender, "tx", evicted[i])
-	}
+	logRemove.Debug("monitorEvictionWrtSenderLimit()", "sender", sender, "num", len(evicted))
 }
 
 func (cache *TxCache) monitorEvictionWrtSenderNonce(sender []byte, senderNonce uint64, evicted [][]byte) {
-	log.Trace("TxCache.monitorEvictionWrtSenderNonce()", "name", cache.name, "sender", sender, "nonce", senderNonce, "num", len(evicted))
-
-	for i := 0; i < core.MinInt(len(evicted), numEvictedTxsToDisplay); i++ {
-		log.Trace("TxCache.monitorEvictionWrtSenderNonce()", "name", cache.name, "sender", sender, "nonce", senderNonce, "tx", evicted[i])
-	}
+	logRemove.Trace("monitorEvictionWrtSenderNonce()", "sender", sender, "nonce", senderNonce, "num", len(evicted))
 }
 
 func (cache *TxCache) monitorEvictionStart() *core.StopWatch {
-	log.Debug("TxCache: eviction started", "name", cache.name, "numBytes", cache.NumBytes(), "txs", cache.CountTx(), "senders", cache.CountSenders())
+	logRemove.Debug("monitorEvictionStart()", "numBytes", cache.NumBytes(), "txs", cache.CountTx(), "senders", cache.CountSenders())
 	sw := core.NewStopWatch()
 	sw.Start("eviction")
 	return sw
@@ -38,42 +31,46 @@ func (cache *TxCache) monitorEvictionStart() *core.StopWatch {
 func (cache *TxCache) monitorEvictionEnd(stopWatch *core.StopWatch) {
 	stopWatch.Stop("eviction")
 	duration := stopWatch.GetMeasurement("eviction")
-	log.Debug("TxCache: eviction ended", "name", cache.name, "duration", duration, "numBytes", cache.NumBytes(), "txs", cache.CountTx(), "senders", cache.CountSenders())
+	logRemove.Debug("monitorEvictionEnd()", "duration", duration, "numBytes", cache.NumBytes(), "txs", cache.CountTx(), "senders", cache.CountSenders())
 	cache.evictionJournal.display()
 }
 
 func (cache *TxCache) monitorSelectionStart() *core.StopWatch {
-	log.Debug("TxCache: selection started", "name", cache.name, "numBytes", cache.NumBytes(), "txs", cache.CountTx(), "senders", cache.CountSenders())
+	logSelect.Debug("monitorSelectionStart()", "numBytes", cache.NumBytes(), "txs", cache.CountTx(), "senders", cache.CountSenders())
 	sw := core.NewStopWatch()
 	sw.Start("selection")
 	return sw
 }
 
-func (cache *TxCache) monitorSelectionEnd(sortedSenders []*txListForSender, selection []*WrappedTransaction, stopWatch *core.StopWatch) {
+func (cache *TxCache) monitorSelectionEnd(stopWatch *core.StopWatch, selection []*WrappedTransaction) {
 	stopWatch.Stop("selection")
 	duration := stopWatch.GetMeasurement("selection")
+
 	numSendersSelected := cache.numSendersSelected.Reset()
 	numSendersWithInitialGap := cache.numSendersWithInitialGap.Reset()
 	numSendersWithMiddleGap := cache.numSendersWithMiddleGap.Reset()
-	log.Debug("TxCache: selection ended", "name", cache.name, "duration", duration,
+
+	logSelect.Debug("monitorSelectionEnd()", "duration", duration,
 		"numTxSelected", len(selection),
 		"numSendersSelected", numSendersSelected,
 		"numSendersWithInitialGap", numSendersWithInitialGap,
 		"numSendersWithMiddleGap", numSendersWithMiddleGap,
 	)
+}
 
-	if logSelection.GetLevel() != logger.LogTrace {
+func displaySelectionOutcome(sortedSenders []*txListForSender, selection []*WrappedTransaction) {
+	if logSelect.GetLevel() > logger.LogTrace {
 		return
 	}
 
 	if len(sortedSenders) > 0 {
-		logSelection.Trace("Sorted senders (as newline-separated JSON):")
-		logSelection.Trace(marshalSendersToNewlineDelimitedJson(sortedSenders))
+		logSelect.Trace("Sorted senders (as newline-separated JSON):")
+		logSelect.Trace(marshalSendersToNewlineDelimitedJson(sortedSenders))
 	}
 
 	if len(selection) > 0 {
-		logSelection.Trace("Selected transactions (as newline-separated JSON):")
-		logSelection.Trace(marshalTransactionsToNewlineDelimitedJson(selection))
+		logSelect.Trace("Selected transactions (as newline-separated JSON):")
+		logSelect.Trace(marshalTransactionsToNewlineDelimitedJson(selection))
 	}
 }
 
@@ -112,18 +109,11 @@ type evictionJournal struct {
 }
 
 func (journal *evictionJournal) display() {
-	log.Debug("Eviction.pass1:", "txs", journal.passOneNumTxs, "senders", journal.passOneNumSenders, "steps", journal.passOneNumSteps)
+	logRemove.Debug("Eviction.pass1:", "txs", journal.passOneNumTxs, "senders", journal.passOneNumSenders, "steps", journal.passOneNumSteps)
 }
 
 // Diagnose checks the state of the cache for inconsistencies and displays a summary
-func (cache *TxCache) Diagnose(deep bool) {
-	cache.diagnoseShallowly()
-	if deep {
-		cache.diagnoseDeeply()
-	}
-}
-
-func (cache *TxCache) diagnoseShallowly() {
+func (cache *TxCache) Diagnose(_ bool) {
 	sw := core.NewStopWatch()
 	sw.Start("diagnose")
 
@@ -134,117 +124,60 @@ func (cache *TxCache) diagnoseShallowly() {
 	numSendersEstimate := int(cache.CountSenders())
 	numSendersInChunks := cache.txListBySender.backingMap.Count()
 	sendersKeys := cache.txListBySender.backingMap.Keys()
-	sendersSnapshot := cache.txListBySender.getSnapshotAscending()
+	senders := cache.txListBySender.getSnapshotAscending()
+
+	cache.displaySendersSummary(senders)
 
 	sw.Stop("diagnose")
 	duration := sw.GetMeasurement("diagnose")
 
 	fine := numSendersEstimate == numSendersInChunks
-	fine = fine && len(sendersKeys) == len(sendersSnapshot)
+	fine = fine && len(sendersKeys) == len(senders)
 	fine = fine && (int(numSendersEstimate) == len(sendersKeys))
 	fine = fine && (numTxsEstimate == numTxsInChunks && numTxsEstimate == len(txsKeys))
 
-	log.Debug("TxCache.diagnoseShallowly()", "name", cache.name, "duration", duration, "fine", fine)
-	log.Debug("TxCache.Size:", "current", sizeInBytes, "max", cache.config.NumBytesThreshold)
-	log.Debug("TxCache.NumSenders:", "estimate", numSendersEstimate, "inChunks", numSendersInChunks)
-	log.Debug("TxCache.NumSenders (continued):", "keys", len(sendersKeys), "snapshot", len(sendersSnapshot))
-	log.Debug("TxCache.NumTxs:", "estimate", numTxsEstimate, "inChunks", numTxsInChunks, "keys", len(txsKeys))
+	log.Debug("TxCache.Diagnose()",
+		"duration", duration,
+		"fine", fine,
+		"numTxsEstimate", numTxsEstimate,
+		"numTxsInChunks", numTxsInChunks,
+		"len(txsKeys)", len(txsKeys),
+		"sizeInBytes", sizeInBytes,
+		"numBytesThreshold", cache.config.NumBytesThreshold,
+		"numSendersEstimate", numSendersEstimate,
+		"numSendersInChunks", numSendersInChunks,
+		"len(sendersKeys)", len(sendersKeys),
+		"len(senders)", len(senders),
+	)
 }
 
-func (cache *TxCache) diagnoseDeeply() {
-	sw := core.NewStopWatch()
-	sw.Start("diagnose")
-
-	journal := cache.checkInternalConsistency()
-	cache.displaySendersSummary()
-
-	sw.Stop("diagnose")
-	duration := sw.GetMeasurement("diagnose")
-
-	log.Debug("TxCache.diagnoseDeeply()", "name", cache.name, "duration", duration)
-	journal.display()
-}
-
-type internalConsistencyJournal struct {
-	numInMapByHash        int
-	numInMapBySender      int
-	numMissingInMapByHash int
-}
-
-func (journal *internalConsistencyJournal) isFine() bool {
-	return (journal.numInMapByHash == journal.numInMapBySender) && (journal.numMissingInMapByHash == 0)
-}
-
-func (journal *internalConsistencyJournal) display() {
-	log.Debug("TxCache.internalConsistencyJournal:", "fine", journal.isFine(), "numInMapByHash", journal.numInMapByHash, "numInMapBySender", journal.numInMapBySender, "numMissingInMapByHash", journal.numMissingInMapByHash)
-}
-
-func (cache *TxCache) checkInternalConsistency() internalConsistencyJournal {
-	internalMapByHash := cache.txByHash
-	internalMapBySender := cache.txListBySender
-
-	senders := internalMapBySender.getSnapshotAscending()
-	numInMapByHash := len(internalMapByHash.keys())
-	numInMapBySender := 0
-	numMissingInMapByHash := 0
-
-	for _, sender := range senders {
-		numInMapBySender += int(sender.countTx())
-
-		for _, hash := range sender.getTxHashes() {
-			_, ok := internalMapByHash.getTx(string(hash))
-			if !ok {
-				numMissingInMapByHash++
-			}
-		}
-	}
-
-	return internalConsistencyJournal{
-		numInMapByHash:        numInMapByHash,
-		numInMapBySender:      numInMapBySender,
-		numMissingInMapByHash: numMissingInMapByHash,
-	}
-}
-
-func (cache *TxCache) displaySendersSummary() {
-	if log.GetLevel() != logger.LogTrace {
+func (cache *TxCache) displaySendersSummary(senders []*txListForSender) {
+	if log.GetLevel() > logger.LogTrace {
 		return
 	}
 
-	senders := cache.txListBySender.getSnapshotAscending()
 	if len(senders) == 0 {
 		return
 	}
 
-	var builder strings.Builder
-	builder.WriteString("\n[#index (score)] address [nonce known / nonce vs lowestTxNonce] txs = numTxs\n")
-
-	for i, sender := range senders {
-		address := hex.EncodeToString([]byte(sender.sender))
-		accountNonce := sender.accountNonce.Get()
-		accountNonceKnown := sender.accountNonceKnown.IsSet()
-		score := sender.getScore()
-		numTxs := sender.countTxWithLock()
-
-		lowestTxNonce := -1
-		lowestTx := sender.getLowestNonceTx()
-		if lowestTx != nil {
-			lowestTxNonce = int(lowestTx.Tx.GetNonce())
-		}
-
-		_, _ = fmt.Fprintf(&builder, "[#%d (%d)] %s [%t / %d vs %d] txs = %d\n", i, score, address, accountNonceKnown, accountNonce, lowestTxNonce, numTxs)
-	}
-
-	summary := builder.String()
-	log.Debug("TxCache.displaySendersSummary()", "name", cache.name, "summary\n", summary)
+	log.Trace("displaySendersSummary(), as newline-separated JSON:")
+	log.Trace(marshalSendersToNewlineDelimitedJson(senders))
 }
 
 func monitorSendersScoreHistogram(scoreGroups [][]*txListForSender) {
-	histogram := make([]int, len(scoreGroups))
-
-	for i, group := range scoreGroups {
-		histogram[i] = len(group)
+	if log.GetLevel() > logger.LogDebug {
+		return
 	}
 
-	log.Debug("TxCache.monitorSendersScoreHistogram():", "histogram", histogram)
+	stringBuilder := strings.Builder{}
+
+	for i, group := range scoreGroups {
+		if len(group) == 0 {
+			continue
+		}
+
+		stringBuilder.WriteString(fmt.Sprintf("#%d: %d; ", i, len(group)))
+	}
+
+	log.Debug("monitorSendersScoreHistogram()", "histogram", stringBuilder.String())
 }

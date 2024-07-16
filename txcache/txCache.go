@@ -64,7 +64,7 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 		return false, false
 	}
 
-	log.Trace("TxCache.AddTx()", "name", cache.name, "tx", tx.TxHash)
+	logAdd.Trace("AddTx()", "tx", tx.TxHash)
 
 	if cache.config.EvictionEnabled {
 		cache.doEviction()
@@ -80,7 +80,7 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 		// - B won't add to "txByHash" (duplicate)
 		// - B adds to "txListBySender"
 		// - A won't add to "txListBySender" (duplicate)
-		log.Debug("TxCache.AddTx(): slight inconsistency detected:", "name", cache.name, "tx", tx.TxHash, "sender", tx.Tx.GetSndAddr(), "addedInByHash", addedInByHash, "addedInBySender", addedInBySender)
+		logAdd.Debug("AddTx(): slight inconsistency detected:", "tx", tx.TxHash, "sender", tx.Tx.GetSndAddr(), "addedInByHash", addedInByHash, "addedInBySender", addedInBySender)
 	}
 
 	if len(evicted) > 0 {
@@ -154,7 +154,10 @@ func (cache *TxCache) doSelectTransactions(numRequested int, gasRequested uint64
 	}
 
 	result = result[:selectedNum]
-	cache.monitorSelectionEnd(senders, result, stopWatch)
+
+	cache.monitorSelectionEnd(stopWatch, result)
+	go displaySelectionOutcome(senders, result)
+
 	return result
 }
 
@@ -183,7 +186,7 @@ func (cache *TxCache) RemoveTxByHash(txHash []byte) bool {
 	cache.mutTxOperation.Lock()
 	defer cache.mutTxOperation.Unlock()
 
-	log.Trace("TxCache.RemoveTxByHash()", "name", cache.name, "tx", txHash)
+	logRemove.Trace("RemoveTxByHash()", "tx", txHash)
 
 	tx, foundInByHash := cache.txByHash.removeTx(string(txHash))
 	if !foundInByHash {
@@ -200,7 +203,7 @@ func (cache *TxCache) RemoveTxByHash(txHash []byte) bool {
 		// - B reaches "cache.txByHash.RemoveTxsBulk()"
 		// - B reaches "cache.txListBySender.RemoveSendersBulk()"
 		// - A reaches "cache.txListBySender.removeTx()", but sender does not exist anymore
-		log.Debug("TxCache.RemoveTxByHash(): slight inconsistency detected: !foundInBySender", "name", cache.name, "tx", txHash)
+		logRemove.Debug("RemoveTxByHash(): slight inconsistency detected: !foundInBySender", "tx", txHash)
 	}
 
 	return true

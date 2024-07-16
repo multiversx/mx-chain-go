@@ -3,6 +3,7 @@ package txcache
 import (
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"strings"
 )
 
@@ -20,30 +21,41 @@ type printedSender struct {
 	Score        int    `json:"score"`
 	Nonce        uint64 `json:"nonce"`
 	IsNonceKnown bool   `json:"isNonceKnown"`
+	NumTxs       uint64 `json:"numTxs"`
 }
 
+// marshalSendersToNewlineDelimitedJson converts a list of senders to a newline-delimited JSON string.
+// Note: each line is indexed, to improve readability. The index is easily removable for if separate analysis is needed.
 func marshalSendersToNewlineDelimitedJson(senders []*txListForSender) string {
 	builder := strings.Builder{}
 	builder.WriteString("\n")
 
-	for _, txListForSender := range senders {
+	for i, txListForSender := range senders {
 		printedSender := convertTxListForSenderToPrintedSender(txListForSender)
 		printedSenderJson, _ := json.Marshal(printedSender)
+
+		builder.WriteString(fmt.Sprintf("#%d: ", i))
 		builder.WriteString(string(printedSenderJson))
+		builder.WriteString("\n")
 	}
 
 	builder.WriteString("\n")
 	return builder.String()
 }
 
+// marshalTransactionsToNewlineDelimitedJson converts a list of transactions to a newline-delimited JSON string.
+// Note: each line is indexed, to improve readability. The index is easily removable for if separate analysis is needed.
 func marshalTransactionsToNewlineDelimitedJson(transactions []*WrappedTransaction) string {
 	builder := strings.Builder{}
 	builder.WriteString("\n")
 
-	for _, wrappedTx := range transactions {
+	for i, wrappedTx := range transactions {
 		printedTx := convertWrappedTransactionToPrintedTransaction(wrappedTx)
 		printedTxJson, _ := json.Marshal(printedTx)
+
+		builder.WriteString(fmt.Sprintf("#%d: ", i))
 		builder.WriteString(string(printedTxJson))
+		builder.WriteString("\n")
 	}
 
 	builder.WriteString("\n")
@@ -69,5 +81,6 @@ func convertTxListForSenderToPrintedSender(txListForSender *txListForSender) *pr
 		Score:        txListForSender.getScore(),
 		Nonce:        txListForSender.accountNonce.Get(),
 		IsNonceKnown: txListForSender.accountNonceKnown.IsSet(),
+		NumTxs:       txListForSender.countTxWithLock(),
 	}
 }

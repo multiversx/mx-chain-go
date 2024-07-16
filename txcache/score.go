@@ -11,6 +11,7 @@ var _ scoreComputer = (*defaultScoreComputer)(nil)
 type senderScoreParams struct {
 	avgPpuNumerator             float64
 	avgPpuDenominator           uint64
+	isAccountNonceKnown         bool
 	hasSpotlessSequenceOfNonces bool
 }
 
@@ -66,7 +67,7 @@ func (computer *defaultScoreComputer) computeScore(scoreParams senderScoreParams
 // score = log(sender's average price per unit / worst price per unit) * scoreScalingFactor,
 // where scoreScalingFactor = highest score / log(excellent price per unit / worst price per unit)
 func (computer *defaultScoreComputer) computeRawScore(params senderScoreParams) float64 {
-	if !params.hasSpotlessSequenceOfNonces {
+	if params.isAccountNonceKnown && !params.hasSpotlessSequenceOfNonces {
 		return 0
 	}
 

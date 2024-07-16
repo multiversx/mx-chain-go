@@ -336,6 +336,9 @@ func TestListForSender_transactionAddAndRemove_updateScore(t *testing.T) {
 	alice := newUnconstrainedListToTest()
 	bob := newUnconstrainedListToTest()
 
+	alice.notifyAccountNonce(1)
+	bob.notifyAccountNonce(1)
+
 	a := createTx([]byte("a"), ".", 1)
 	b := createTx([]byte("b"), ".", 1)
 	c := createTx([]byte("c"), ".", 2).withDataLength(42).withGasLimit(50000 + 1500*42)

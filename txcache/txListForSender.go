@@ -129,6 +129,7 @@ func (listForSender *txListForSender) getScoreParams() senderScoreParams {
 	return senderScoreParams{
 		avgPpuNumerator:             listForSender.avgPpuNumerator,
 		avgPpuDenominator:           listForSender.avgPpuDenominator,
+		isAccountNonceKnown:         listForSender.accountNonceKnown.IsSet(),
 		hasSpotlessSequenceOfNonces: hasSpotlessSequenceOfNonces,
 	}
 }
