@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
+	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/stretchr/testify/require"
 )
 
@@ -325,10 +326,10 @@ func TestChainSimulator_IssueToken_EGLDTicker(t *testing.T) {
 
 	require.Equal(t, "success", txResult.Status.String())
 
-	err = cs.GenerateBlocks(10)
+	err = cs.GenerateBlocksUntilEpochIsReached(int32(activationEpoch))
 	require.Nil(t, err)
 
-	err = cs.GenerateBlocksUntilEpochIsReached(int32(activationEpoch))
+	err = cs.GenerateBlocks(10)
 	require.Nil(t, err)
 
 	log.Info("Issue token (after activation of EGLDInMultiTransferFlag)")
@@ -340,5 +341,8 @@ func TestChainSimulator_IssueToken_EGLDTicker(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
 
-	require.NotEqual(t, "success", txResult.Status.String())
+	errMessage := string(txResult.Logs.Events[0].Topics[1])
+	require.Equal(t, vm.ErrCouldNotCreateNewTokenIdentifier.Error(), errMessage)
+
+	require.Equal(t, "success", txResult.Status.String())
 }
