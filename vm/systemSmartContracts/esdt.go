@@ -42,6 +42,7 @@ const canTransferNFTCreateRole = "canTransferNFTCreateRole"
 const upgradable = "canUpgrade"
 const canCreateMultiShard = "canCreateMultiShard"
 const upgradeProperties = "upgradeProperties"
+const eGLD = "EGLD"
 
 const conversionBase = 10
 
@@ -585,6 +586,15 @@ func (e *esdt) getTokenType(compressed []byte) (bool, []byte, error) {
 	return false, nil, vm.ErrInvalidArgument
 }
 
+func getDynamicTokenType(tokenType []byte) []byte {
+	if bytes.Equal(tokenType, []byte(core.NonFungibleESDTv2)) ||
+		bytes.Equal(tokenType, []byte(core.NonFungibleESDT)) {
+		return []byte(core.DynamicNFTESDT)
+	}
+
+	return append([]byte(core.Dynamic), tokenType...)
+}
+
 func (e *esdt) changeSFTToMetaESDT(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
 	if !e.enableEpochsHandler.IsFlagEnabled(common.MetaESDTSetFlag) {
 		e.eei.AddReturnMessage("invalid method to call")
@@ -714,6 +724,11 @@ func isTokenNameHumanReadable(tokenName []byte) bool {
 }
 
 func (e *esdt) createNewTokenIdentifier(caller []byte, ticker []byte) ([]byte, error) {
+	if e.enableEpochsHandler.IsFlagEnabled(common.EGLDInESDTMultiTransferFlag) {
+		if bytes.Equal(ticker, []byte(eGLD)) {
+			return nil, vm.ErrCouldNotCreateNewTokenIdentifier
+		}
+	}
 	newRandomBase := append(caller, e.eei.BlockChainHook().CurrentRandomSeed()...)
 	newRandom := e.hasher.Compute(string(newRandomBase))
 	newRandomForTicker := newRandom[:tickerRandomSequenceLength]
@@ -2236,6 +2251,11 @@ func (e *esdt) createDynamicToken(args *vmcommon.ContractCallInput) ([]byte, *ES
 		return nil, nil, vmcommon.UserError
 	}
 
+	if isNotAllowedToCreateDynamicToken(tokenType) {
+		e.eei.AddReturnMessage(fmt.Sprintf("cannot create %s tokens as dynamic", tokenType))
+		return nil, nil, vmcommon.UserError
+	}
+
 	propertiesStart := 3
 	numOfDecimals := uint32(0)
 	if isWithDecimals {
@@ -2257,7 +2277,7 @@ func (e *esdt) createDynamicToken(args *vmcommon.ContractCallInput) ([]byte, *ES
 		}
 	}
 
-	dynamicTokenType := append([]byte(core.Dynamic), tokenType...)
+	dynamicTokenType := getDynamicTokenType(tokenType)
 
 	tokenIdentifier, token, err := e.createNewToken(
 		args.CallerAddr,
@@ -2398,6 +2418,10 @@ func isNotAllowed(tokenType []byte) bool {
 	}
 
 	return false
+}
+
+func isNotAllowedToCreateDynamicToken(tokenType []byte) bool {
+	return bytes.Equal(tokenType, []byte(core.FungibleESDT))
 }
 
 func (e *esdt) sendTokenTypeToSystemAccounts(caller []byte, tokenID []byte, token *ESDTDataV2) {

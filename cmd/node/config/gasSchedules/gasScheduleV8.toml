@@ -62,27 +62,27 @@
     GetCode           = 1000000
 
 [BaseOpsAPICost]
-    GetSCAddress       = 100
+    GetSCAddress       = 1000
     GetOwnerAddress    = 5000
     IsSmartContract    = 5000
     GetShardOfAddress  = 5000
     GetExternalBalance = 7000
     GetBlockHash       = 10000
     TransferValue      = 100000
-    GetArgument        = 100
-    GetFunction        = 100
-    GetNumArguments    = 100
+    GetArgument        = 1000
+    GetFunction        = 1000
+    GetNumArguments    = 1000
     StorageStore       = 75000
     StorageLoad        = 50000
     CachedStorageLoad  = 1000
-    GetCaller          = 100
-    GetCallValue       = 100
+    GetCaller          = 1000
+    GetCallValue       = 1000
     Log                = 3750
     Finish             = 1
     SignalError        = 1
     GetBlockTimeStamp  = 10000
-    GetGasLeft         = 100
-    Int64GetArgument   = 100
+    GetGasLeft         = 1000
+    Int64GetArgument   = 1000
     Int64StorageStore  = 75000
     Int64StorageLoad   = 50000
     Int64Finish        = 1000
@@ -98,12 +98,12 @@
     AsyncCallbackGasLock = 4000000
     ExecuteReadOnly      = 160000
     CreateContract       = 300000
-    GetReturnData        = 100
-    GetNumReturnData     = 100
-    GetReturnDataSize    = 100
+    GetReturnData        = 1000
+    GetNumReturnData     = 1000
+    GetReturnDataSize    = 1000
     GetOriginalTxHash    = 10000
-    CleanReturnData      = 100
-    DeleteFromReturnData = 100
+    CleanReturnData      = 1000
+    DeleteFromReturnData = 1000
     GetPrevTxHash      = 10000
     GetCurrentTxHash   = 10000
     CreateAsyncCall      = 200000
@@ -114,7 +114,7 @@
     GetCodeMetadata      = 10000
     IsBuiltinFunction    = 10000
     IsReservedFunctionName = 10000
-    
+
 [EthAPICost]
     UseGas              = 100
     GetAddress          = 100000
@@ -196,26 +196,26 @@
     CopyPerByteForTooBig        = 1000
 
 [CryptoAPICost]
-    SHA256                 = 1000000
-    Keccak256              = 1000000
-    Ripemd160              = 1000000
-    VerifyBLS              = 5000000
-    VerifyEd25519          = 2000000
-    VerifySecp256k1        = 2000000
-    EllipticCurveNew       = 10000
-    AddECC                 = 75000
-    DoubleECC              = 65000
-    IsOnCurveECC           = 10000
-    ScalarMultECC          = 400000
-    MarshalECC             = 13000
-    MarshalCompressedECC   = 15000
-    UnmarshalECC           = 20000
-    UnmarshalCompressedECC = 270000
-    GenerateKeyECC         = 7000000
-    EncodeDERSig           = 10000000
-    VerifySecp256r1        = 2000000
+    SHA256                  = 1000000
+    Keccak256               = 1000000
+    Ripemd160               = 1000000
+    VerifyBLS               = 5000000
+    VerifyEd25519           = 2000000
+    VerifySecp256k1         = 2000000
+    EllipticCurveNew        = 10000
+    AddECC                  = 75000
+    DoubleECC               = 65000
+    IsOnCurveECC            = 10000
+    ScalarMultECC           = 400000
+    MarshalECC              = 13000
+    MarshalCompressedECC    = 15000
+    UnmarshalECC            = 20000
+    UnmarshalCompressedECC  = 270000
+    GenerateKeyECC          = 7000000
+    EncodeDERSig            = 10000000
+    VerifySecp256r1         = 2000000
     VerifyBLSSignatureShare = 2000000
-    VerifyBLSMultiSig      = 2000000
+    VerifyBLSMultiSig       = 2000000
 
 [ManagedBufferAPICost]
     MBufferNew                   = 2000
