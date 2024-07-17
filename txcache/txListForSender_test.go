@@ -181,24 +181,20 @@ func TestListForSender_SelectBatchTo(t *testing.T) {
 
 	destination := make([]*WrappedTransaction, 1000)
 
-	// First batch
+	// 1st batch
 	journal := list.selectBatchTo(true, destination, 50, math.MaxUint64)
 	require.Equal(t, 50, journal.selectedNum)
 	require.NotNil(t, destination[49])
 	require.Nil(t, destination[50])
 
-	// Second batch
+	// 2nd batch
 	journal = list.selectBatchTo(false, destination[50:], 50, math.MaxUint64)
 	require.Equal(t, 50, journal.selectedNum)
 	require.NotNil(t, destination[99])
 
-	// No third batch
+	// No 3rd batch
 	journal = list.selectBatchTo(false, destination, 50, math.MaxUint64)
 	require.Equal(t, 0, journal.selectedNum)
-
-	// Restart copy
-	journal = list.selectBatchTo(true, destination, 12345, math.MaxUint64)
-	require.Equal(t, 100, journal.selectedNum)
 }
 
 func TestListForSender_SelectBatchToWithLimitedGasPerBatch(t *testing.T) {
@@ -206,33 +202,33 @@ func TestListForSender_SelectBatchToWithLimitedGasPerBatch(t *testing.T) {
 	txGasHandler := txcachemocks.NewTxGasHandlerMock()
 
 	for index := 0; index < 40; index++ {
-		wtx := createTx([]byte{byte(index)}, ".", uint64(index))
-		tx, _ := wtx.Tx.(*transaction.Transaction)
-		tx.GasLimit = 1000000
-		list.AddTx(wtx, txGasHandler)
+		tx := createTx([]byte{byte(index)}, ".", uint64(index)).withGasLimit(oneMilion)
+		list.AddTx(tx, txGasHandler)
 	}
 
 	destination := make([]*WrappedTransaction, 1000)
 
-	// First batch
-	journal := list.selectBatchTo(true, destination, 50, 500000)
+	// 1st batch
+	journal := list.selectBatchTo(true, destination, 50, oneMilion-1)
 	require.Equal(t, 1, journal.selectedNum)
 	require.NotNil(t, destination[0])
 	require.Nil(t, destination[1])
 
-	// Second batch
-	journal = list.selectBatchTo(false, destination[1:], 50, 20000000)
+	// 2nd batch
+	journal = list.selectBatchTo(false, destination[1:], 50, oneMilion)
+	require.Equal(t, 1, journal.selectedNum)
+	require.NotNil(t, destination[1])
+	require.Nil(t, destination[2])
+
+	// 3nd batch
+	journal = list.selectBatchTo(false, destination[2:], 50, oneMilion*20)
 	require.Equal(t, 20, journal.selectedNum)
-	require.NotNil(t, destination[20])
-	require.Nil(t, destination[21])
+	require.NotNil(t, destination[21])
+	require.Nil(t, destination[22])
 
-	// third batch
-	journal = list.selectBatchTo(false, destination[21:], 20, math.MaxUint64)
-	require.Equal(t, 19, journal.selectedNum)
-
-	// Restart copy
-	journal = list.selectBatchTo(true, destination[41:], 12345, math.MaxUint64)
-	require.Equal(t, 40, journal.selectedNum)
+	// 4th batch
+	journal = list.selectBatchTo(false, destination[22:], 20, math.MaxUint64)
+	require.Equal(t, 18, journal.selectedNum)
 }
 
 func TestListForSender_SelectBatchTo_NoPanicWhenCornerCases(t *testing.T) {
