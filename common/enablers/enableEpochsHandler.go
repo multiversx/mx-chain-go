@@ -714,6 +714,12 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.StakingV4Step3EnableEpoch,
 		},
+		common.CleanupAuctionOnLowWaitingListFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.CleanupAuctionOnLowWaitingListEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.CleanupAuctionOnLowWaitingListEnableEpoch,
+		},
 		common.StakingV4StartedFlag: {
 			isActiveInEpoch: func(epoch uint32) bool {
 				return epoch >= handler.enableEpochsConfig.StakingV4Step1EnableEpoch

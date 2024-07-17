@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core/partitioning"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/common/ordering"
@@ -20,6 +21,7 @@ import (
 	processComp "github.com/multiversx/mx-chain-go/factory/processing"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
+	nodeDisabled "github.com/multiversx/mx-chain-go/node/disabled"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors/disabled"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -157,10 +159,7 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		return nil, err
 	}
 
-	whiteListerVerifiedTxs, err := disabled.NewDisabledWhiteListDataVerifier()
-	if err != nil {
-		return nil, err
-	}
+	whiteListerVerifiedTxs := nodeDisabled.NewDisabledWhiteListDataVerifier()
 
 	historyRepository, err := historyRepositoryFactory.Create()
 	if err != nil {
@@ -265,7 +264,7 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		nodeRedundancyHandler:            managedProcessComponents.NodeRedundancyHandler(),
 		currentEpochProvider:             managedProcessComponents.CurrentEpochProvider(),
 		scheduledTxsExecutionHandler:     managedProcessComponents.ScheduledTxsExecutionHandler(),
-		txsSenderHandler:                 managedProcessComponents.TxsSenderHandler(),
+		txsSenderHandler:                 managedProcessComponents.TxsSenderHandler(), // warning: this will be replaced
 		hardforkTrigger:                  managedProcessComponents.HardforkTrigger(),
 		processedMiniBlocksTracker:       managedProcessComponents.ProcessedMiniBlocksTracker(),
 		esdtDataStorageHandlerForAPI:     managedProcessComponents.ESDTDataStorageHandlerForAPI(),
@@ -273,6 +272,30 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		sentSignatureTracker:             managedProcessComponents.SentSignaturesTracker(),
 		epochStartSystemSCProcessor:      managedProcessComponents.EpochSystemSCProcessor(),
 		managedProcessComponentsCloser:   managedProcessComponents,
+	}
+
+	return replaceWithCustomProcessSubComponents(instance, processArgs)
+}
+
+func replaceWithCustomProcessSubComponents(
+	instance *processComponentsHolder,
+	processArgs processComp.ProcessComponentsFactoryArgs,
+) (*processComponentsHolder, error) {
+	dataPacker, err := partitioning.NewSimpleDataPacker(processArgs.CoreData.InternalMarshalizer())
+	if err != nil {
+		return nil, fmt.Errorf("%w in replaceWithCustomProcessSubComponents", err)
+	}
+
+	argsSyncedTxsSender := ArgsSyncedTxsSender{
+		Marshaller:       processArgs.CoreData.InternalMarshalizer(),
+		ShardCoordinator: processArgs.BootstrapComponents.ShardCoordinator(),
+		NetworkMessenger: processArgs.Network.NetworkMessenger(),
+		DataPacker:       dataPacker,
+	}
+
+	instance.txsSenderHandler, err = NewSyncedTxsSender(argsSyncedTxsSender)
+	if err != nil {
+		return nil, fmt.Errorf("%w in replaceWithCustomProcessSubComponents", err)
 	}
 
 	return instance, nil

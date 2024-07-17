@@ -9,6 +9,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	chainSimulatorIntegrationTests "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/staking"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
@@ -66,18 +67,16 @@ func testChainSimulatorJailAndUnJail(t *testing.T, targetEpoch int32, nodeStatus
 	numOfShards := uint32(3)
 
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:      false,
-		TempDir:                     t.TempDir(),
-		PathToInitialConfig:         defaultPathToInitialConfig,
-		NumOfShards:                 numOfShards,
-		GenesisTimestamp:            startTime,
-		RoundDurationInMillis:       roundDurationInMillis,
-		RoundsPerEpoch:              roundsPerEpoch,
-		ApiInterface:                api.NewNoApiInterface(),
-		MinNodesPerShard:            2,
-		MetaChainMinNodes:           2,
-		ConsensusGroupSize:          1,
-		MetaChainConsensusGroupSize: 1,
+		BypassTxSignatureCheck: true,
+		TempDir:                t.TempDir(),
+		PathToInitialConfig:    defaultPathToInitialConfig,
+		NumOfShards:            numOfShards,
+		GenesisTimestamp:       startTime,
+		RoundDurationInMillis:  roundDurationInMillis,
+		RoundsPerEpoch:         roundsPerEpoch,
+		ApiInterface:           api.NewNoApiInterface(),
+		MinNodesPerShard:       2,
+		MetaChainMinNodes:      2,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			configs.SetStakingV4ActivationEpochs(cfg, stakingV4JailUnJailStep1EnableEpoch)
 			newNumNodes := cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake + 8 // 8 nodes until new nodes will be placed on queue
@@ -96,12 +95,12 @@ func testChainSimulatorJailAndUnJail(t *testing.T, targetEpoch int32, nodeStatus
 	_, blsKeys, err := chainSimulator.GenerateBlsPrivateKeys(1)
 	require.Nil(t, err)
 
-	mintValue := big.NewInt(0).Mul(staking.OneEGLD, big.NewInt(3000))
+	mintValue := big.NewInt(0).Mul(chainSimulatorIntegrationTests.OneEGLD, big.NewInt(3000))
 	walletAddress, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
 	require.Nil(t, err)
 
 	txDataField := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], staking.MockBLSSignature)
-	txStake := staking.GenerateTransaction(walletAddress.Bytes, 0, vm.ValidatorSCAddress, staking.MinimumStakeValue, txDataField, staking.GasLimitForStakeOperation)
+	txStake := chainSimulatorIntegrationTests.GenerateTransaction(walletAddress.Bytes, 0, vm.ValidatorSCAddress, chainSimulatorIntegrationTests.MinimumStakeValue, txDataField, staking.GasLimitForStakeOperation)
 	stakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txStake, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, stakeTx)
@@ -117,7 +116,7 @@ func testChainSimulatorJailAndUnJail(t *testing.T, targetEpoch int32, nodeStatus
 	// do an unjail transaction
 	unJailValue, _ := big.NewInt(0).SetString("2500000000000000000", 10)
 	txUnJailDataField := fmt.Sprintf("unJail@%s", blsKeys[0])
-	txUnJail := staking.GenerateTransaction(walletAddress.Bytes, 1, vm.ValidatorSCAddress, unJailValue, txUnJailDataField, staking.GasLimitForStakeOperation)
+	txUnJail := chainSimulatorIntegrationTests.GenerateTransaction(walletAddress.Bytes, 1, vm.ValidatorSCAddress, unJailValue, txUnJailDataField, staking.GasLimitForStakeOperation)
 
 	err = cs.GenerateBlocksUntilEpochIsReached(targetEpoch)
 	require.Nil(t, err)
@@ -168,18 +167,16 @@ func TestChainSimulator_FromQueueToAuctionList(t *testing.T) {
 	numOfShards := uint32(3)
 
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:      false,
-		TempDir:                     t.TempDir(),
-		PathToInitialConfig:         defaultPathToInitialConfig,
-		NumOfShards:                 numOfShards,
-		GenesisTimestamp:            startTime,
-		RoundDurationInMillis:       roundDurationInMillis,
-		RoundsPerEpoch:              roundsPerEpoch,
-		ApiInterface:                api.NewNoApiInterface(),
-		MinNodesPerShard:            3,
-		MetaChainMinNodes:           3,
-		ConsensusGroupSize:          1,
-		MetaChainConsensusGroupSize: 1,
+		BypassTxSignatureCheck: true,
+		TempDir:                t.TempDir(),
+		PathToInitialConfig:    defaultPathToInitialConfig,
+		NumOfShards:            numOfShards,
+		GenesisTimestamp:       startTime,
+		RoundDurationInMillis:  roundDurationInMillis,
+		RoundsPerEpoch:         roundsPerEpoch,
+		ApiInterface:           api.NewNoApiInterface(),
+		MinNodesPerShard:       3,
+		MetaChainMinNodes:      3,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			configs.SetStakingV4ActivationEpochs(cfg, stakingV4JailUnJailStep1EnableEpoch)
 			configs.SetQuickJailRatingConfig(cfg)
@@ -202,12 +199,12 @@ func TestChainSimulator_FromQueueToAuctionList(t *testing.T) {
 	err = cs.AddValidatorKeys([][]byte{privateKeys[1]})
 	require.Nil(t, err)
 
-	mintValue := big.NewInt(0).Mul(staking.OneEGLD, big.NewInt(6000))
+	mintValue := big.NewInt(0).Mul(chainSimulatorIntegrationTests.OneEGLD, big.NewInt(6000))
 	walletAddress, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
 	require.Nil(t, err)
 
 	txDataField := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], staking.MockBLSSignature)
-	txStake := staking.GenerateTransaction(walletAddress.Bytes, 0, vm.ValidatorSCAddress, staking.MinimumStakeValue, txDataField, staking.GasLimitForStakeOperation)
+	txStake := chainSimulatorIntegrationTests.GenerateTransaction(walletAddress.Bytes, 0, vm.ValidatorSCAddress, chainSimulatorIntegrationTests.MinimumStakeValue, txDataField, staking.GasLimitForStakeOperation)
 	stakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txStake, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, stakeTx)
@@ -222,7 +219,7 @@ func TestChainSimulator_FromQueueToAuctionList(t *testing.T) {
 
 	// add one more node
 	txDataField = fmt.Sprintf("stake@01@%s@%s", blsKeys[1], staking.MockBLSSignature)
-	txStake = staking.GenerateTransaction(walletAddress.Bytes, 1, vm.ValidatorSCAddress, staking.MinimumStakeValue, txDataField, staking.GasLimitForStakeOperation)
+	txStake = chainSimulatorIntegrationTests.GenerateTransaction(walletAddress.Bytes, 1, vm.ValidatorSCAddress, chainSimulatorIntegrationTests.MinimumStakeValue, txDataField, staking.GasLimitForStakeOperation)
 	stakeTx, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(txStake, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, stakeTx)
@@ -234,7 +231,7 @@ func TestChainSimulator_FromQueueToAuctionList(t *testing.T) {
 	// unJail the first node
 	unJailValue, _ := big.NewInt(0).SetString("2500000000000000000", 10)
 	txUnJailDataField := fmt.Sprintf("unJail@%s", blsKeys[0])
-	txUnJail := staking.GenerateTransaction(walletAddress.Bytes, 2, vm.ValidatorSCAddress, unJailValue, txUnJailDataField, staking.GasLimitForStakeOperation)
+	txUnJail := chainSimulatorIntegrationTests.GenerateTransaction(walletAddress.Bytes, 2, vm.ValidatorSCAddress, unJailValue, txUnJailDataField, staking.GasLimitForStakeOperation)
 
 	unJailTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnJail, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)

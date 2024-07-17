@@ -302,6 +302,10 @@
     # StakingV4Step3EnableEpoch represents the epoch in which selected nodes from auction will be distributed to waiting list
     StakingV4Step3EnableEpoch = 3
 
+    # CleanupAuctionOnLowWaitingListEnableEpoch represents the epoch when duplicated data cleanup from auction list is enabled in the condition of a low waiting list
+    # Should have the same value as StakingV4Step1EnableEpoch if the low waiting list has not happened, otherwise should have a greater value
+    CleanupAuctionOnLowWaitingListEnableEpoch = 1
+
     # AlwaysMergeContextsInEEIEnableEpoch represents the epoch in which the EEI will always merge the contexts
     AlwaysMergeContextsInEEIEnableEpoch = 1
 
@@ -337,5 +341,5 @@
 [GasSchedule]
     # GasScheduleByEpochs holds the configuration for the gas schedule that will be applied from specific epochs
     GasScheduleByEpochs = [
-        { StartEpoch = 0, FileName = "gasScheduleV7.toml" },
+        { StartEpoch = 0, FileName = "gasScheduleV8.toml" },
     ]
