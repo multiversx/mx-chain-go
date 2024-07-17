@@ -52,6 +52,7 @@ type sovereignChainBlockProcessor struct {
 	epochStartDataCreator process.EpochStartDataCreator
 	epochRewardsCreator   process.RewardsCreator
 	validatorInfoCreator  process.EpochStartValidatorInfoCreator
+	scToProtocol          process.SmartContractToProtocolHandler
 }
 
 // ArgsSovereignChainBlockProcessor is a struct placeholder for args needed to create a new sovereign chain block processor
@@ -65,6 +66,7 @@ type ArgsSovereignChainBlockProcessor struct {
 	EpochRewardsCreator          process.RewardsCreator
 	ValidatorInfoCreator         process.EpochStartValidatorInfoCreator
 	EpochSystemSCProcessor       process.EpochStartSystemSCProcessor
+	SCToProtocol                 process.SmartContractToProtocolHandler
 }
 
 // NewSovereignChainBlockProcessor creates a new sovereign chain block processor
@@ -106,6 +108,7 @@ func NewSovereignChainBlockProcessor(args ArgsSovereignChainBlockProcessor) (*so
 		epochStartDataCreator:        args.EpochStartDataCreator,
 		epochRewardsCreator:          args.EpochRewardsCreator,
 		validatorInfoCreator:         args.ValidatorInfoCreator,
+		scToProtocol:                 args.SCToProtocol,
 	}
 
 	scbp.baseProcessor.epochSystemSCProcessor = args.EpochSystemSCProcessor
@@ -867,6 +870,12 @@ func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
+	scbp.prepareBlockHeaderInternalMapForValidatorProcessor()
+	_, err = scbp.validatorStatisticsProcessor.UpdatePeerState(header, makeCommonHeaderHandlerHashMap(scbp.hdrsForCurrBlock.getHdrHashMap()))
+	if err != nil {
+		return err
+	}
+
 	for _, valMB := range validatorMiniBlocks {
 		valMB.ReceiverShardID = core.SovereignChainShardId
 	}
@@ -1040,6 +1049,11 @@ func (scbp *sovereignChainBlockProcessor) processSovereignBlockTransactions(
 	}
 
 	err = headerHandler.SetReceiptsHash(receiptsHash)
+	if err != nil {
+		return nil, err
+	}
+
+	err = scbp.scToProtocol.UpdateProtocol(&block.Body{MiniBlocks: postProcessMBs}, headerHandler.GetNonce())
 	if err != nil {
 		return nil, err
 	}

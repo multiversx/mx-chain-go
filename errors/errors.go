@@ -820,3 +820,6 @@ var ErrNilEpochStartTriggerFactory = errors.New("nil epoch start trigger factory
 
 // ErrNilLatestDataProviderFactory signals that a nil latest data provider factory has been provided
 var ErrNilLatestDataProviderFactory = errors.New("nil latest data provider factory has been provided")
+
+// ErrNilStakingToPeerFactory signals that a nil staking to peer factory has been provided
+var ErrNilStakingToPeerFactory = errors.New("nil staking to peer factory has been provided")

@@ -90,6 +90,7 @@ func TestManagedRunTypeComponents_Create(t *testing.T) {
 		require.Nil(t, managedRunTypeComponents.NodesSetupCheckerFactory())
 		require.Nil(t, managedRunTypeComponents.EpochStartTriggerFactory())
 		require.Nil(t, managedRunTypeComponents.LatestDataProviderFactory())
+		require.Nil(t, managedRunTypeComponents.StakingToPeerFactory())
 
 		err = managedRunTypeComponents.Create()
 		require.NoError(t, err)
@@ -129,6 +130,7 @@ func TestManagedRunTypeComponents_Create(t *testing.T) {
 		require.NotNil(t, managedRunTypeComponents.NodesSetupCheckerFactory())
 		require.NotNil(t, managedRunTypeComponents.EpochStartTriggerFactory())
 		require.NotNil(t, managedRunTypeComponents.LatestDataProviderFactory())
+		require.NotNil(t, managedRunTypeComponents.StakingToPeerFactory())
 
 		require.Equal(t, factory.RunTypeComponentsName, managedRunTypeComponents.String())
 		require.NoError(t, managedRunTypeComponents.Close())

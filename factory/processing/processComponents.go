@@ -2066,6 +2066,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	if check.IfNil(args.RunTypeComponents.EpochStartTriggerFactory()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilEpochStartTriggerFactory)
 	}
+	if check.IfNil(args.RunTypeComponents.StakingToPeerFactory()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilStakingToPeerFactory)
+	}
 
 	return nil
 }

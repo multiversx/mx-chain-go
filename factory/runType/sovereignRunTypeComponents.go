@@ -25,6 +25,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/peer"
+	"github.com/multiversx/mx-chain-go/process/scToProtocol"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/processorV2"
 	"github.com/multiversx/mx-chain-go/process/sync"
@@ -251,5 +252,6 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		nodesSetupCheckerFactory:                rtc.nodesSetupCheckerFactory,
 		epochStartTriggerFactory:                epochStartTrigger.NewSovereignEpochStartTriggerFactory(),
 		latestDataProviderFactory:               latestData.NewSovereignLatestDataProviderFactory(),
+		scToProtocolFactory:                     scToProtocol.NewSovereignStakingToPeerFactory(),
 	}, nil
 }

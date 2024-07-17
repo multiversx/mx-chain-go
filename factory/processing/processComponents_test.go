@@ -959,6 +959,17 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		require.True(t, errors.Is(err, errorsMx.ErrNilEpochStartTriggerFactory))
 		require.Nil(t, pcf)
 	})
+	t.Run("nil StakingToPeerFactory should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockProcessComponentsFactoryArgs()
+		rtMock := getRunTypeComponentsMock()
+		rtMock.StakingToPeerFactoryField = nil
+		args.RunTypeComponents = rtMock
+		pcf, err := processComp.NewProcessComponentsFactory(args)
+		require.True(t, errors.Is(err, errorsMx.ErrNilStakingToPeerFactory))
+		require.Nil(t, pcf)
+	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -1012,6 +1023,8 @@ func getRunTypeComponents(rt runType.RunTypeComponentsHolder) *mainFactoryMocks.
 		GenesisMetaBlockChecker:             rt.GenesisMetaBlockCheckerCreator(),
 		NodesSetupCheckerFactoryField:       rt.NodesSetupCheckerFactory(),
 		EpochStartTriggerFactoryField:       rt.EpochStartTriggerFactory(),
+		LatestDataProviderFactoryField:      rt.LatestDataProviderFactory(),
+		StakingToPeerFactoryField:           rt.StakingToPeerFactory(),
 	}
 }
 

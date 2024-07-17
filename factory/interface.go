@@ -35,6 +35,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/peer"
+	"github.com/multiversx/mx-chain-go/process/scToProtocol"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 	"github.com/multiversx/mx-chain-go/process/sync"
@@ -622,6 +623,7 @@ type RunTypeComponentsHolder interface {
 	NodesSetupCheckerFactory() checking.NodesSetupCheckerFactory
 	EpochStartTriggerFactory() EpochStartTriggerFactoryHandler
 	LatestDataProviderFactory() latestData.LatestDataProviderFactory
+	StakingToPeerFactory() scToProtocol.StakingToPeerFactoryHandler
 	Create() error
 	Close() error
 	CheckSubcomponents() error
