@@ -250,6 +250,8 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		roundConfig:              args.RoundConfig,
 		runTypeComponents:        args.RunTypeComponents,
 		incomingHeaderSubscriber: args.IncomingHeaderSubscriber,
+		auctionListSelectorAPI:   disabled.NewDisabledAuctionListSelector(),
+		stakingDataProviderAPI:   disabled.NewDisabledStakingDataProvider(),
 	}, nil
 }
 

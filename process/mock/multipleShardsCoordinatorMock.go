@@ -25,6 +25,11 @@ func (scm *multipleShardsCoordinatorMock) NumberOfShards() uint32 {
 	return scm.noShards
 }
 
+// TotalNumberOfShards -
+func (scm *multipleShardsCoordinatorMock) TotalNumberOfShards() uint32 {
+	return scm.NumberOfShards() + 1
+}
+
 // ComputeId -
 func (scm *multipleShardsCoordinatorMock) ComputeId(address []byte) uint32 {
 	if scm.ComputeIdCalled == nil {

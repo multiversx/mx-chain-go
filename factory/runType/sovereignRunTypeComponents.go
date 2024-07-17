@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/metachain"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory/epochStartTrigger"
+	"github.com/multiversx/mx-chain-go/factory/processing/api"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
@@ -255,5 +256,6 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		latestDataProviderFactory:               latestData.NewSovereignLatestDataProviderFactory(),
 		scToProtocolFactory:                     scToProtocol.NewSovereignStakingToPeerFactory(),
 		validatorInfoCreatorFactory:             metachain.NewSovereignValidatorInfoCreatorFactory(),
+		apiProcessorCompsCreatorHandler:         api.NewSovereignAPIProcessorCompsCreator(),
 	}, nil
 }

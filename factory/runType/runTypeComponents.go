@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/errors"
 	mainFactory "github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/epochStartTrigger"
+	"github.com/multiversx/mx-chain-go/factory/processing/api"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/checking"
@@ -103,6 +104,7 @@ type runTypeComponents struct {
 	latestDataProviderFactory               latestData.LatestDataProviderFactory
 	scToProtocolFactory                     scToProtocol.StakingToPeerFactoryHandler
 	validatorInfoCreatorFactory             mainFactory.ValidatorInfoCreatorFactory
+	apiProcessorCompsCreatorHandler         api.ApiProcessorCompsCreatorHandler
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
@@ -270,6 +272,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		latestDataProviderFactory:               latestData.NewLatestDataProviderFactory(),
 		scToProtocolFactory:                     scToProtocol.NewStakingToPeerFactory(),
 		validatorInfoCreatorFactory:             metachain.NewValidatorInfoCreatorFactory(),
+		apiProcessorCompsCreatorHandler:         api.NewAPIProcessorCompsCreator(),
 	}, nil
 }
 

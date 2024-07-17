@@ -14,6 +14,7 @@ import (
 	mainFactory "github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/addressDecoder"
 	factoryDisabled "github.com/multiversx/mx-chain-go/factory/disabled"
+	"github.com/multiversx/mx-chain-go/factory/processing/api"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/outport"
@@ -499,10 +500,6 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		SentSignaturesTracker:        sentSignaturesTracker,
 		ValidatorStatisticsProcessor: validatorStatisticsProcessor,
 	}
-
-	// do not move this func calls below
-	pcf.stakingDataProviderAPI = factoryDisabled.NewDisabledStakingDataProvider()
-	pcf.auctionListSelectorAPI = factoryDisabled.NewDisabledAuctionListSelector()
 
 	extraMetaArgsFunc := pcf.createExtraMetaBlockProcessorArgs(
 		requestHandler,
@@ -1236,36 +1233,20 @@ func (pcf *processComponentsFactory) createStakingToPeer(argParser process.Argum
 func (pcf *processComponentsFactory) setAPIComps(
 	argsStakingDataProvider metachainEpochStart.StakingDataProviderArgs,
 ) error {
-	stakingDataProviderAPI, err := metachainEpochStart.NewStakingDataProvider(argsStakingDataProvider)
+	apiComps, err := pcf.runTypeComponents.ApiProcessorCompsCreatorHandler().CreateAPIComps(api.ArgsCreateAPIProcessComps{
+		ArgsStakingDataProvider: argsStakingDataProvider,
+		ShardCoordinator:        pcf.bootstrapComponents.ShardCoordinator(),
+		EpochNotifier:           pcf.epochNotifier,
+		SoftAuctionConfig:       pcf.systemSCConfig.SoftAuctionConfig,
+		EnableEpochs:            pcf.epochConfig.EnableEpochs,
+		Denomination:            pcf.economicsConfig.GlobalSettings.Denomination,
+	})
 	if err != nil {
 		return err
 	}
 
-	maxNodesChangeConfigProviderAPI, err := notifier.NewNodesConfigProviderAPI(pcf.epochNotifier, pcf.epochConfig.EnableEpochs)
-	if err != nil {
-		return err
-	}
-
-	extendedShardCoordinator, castOk := pcf.bootstrapComponents.ShardCoordinator().(metachainEpochStart.ShardCoordinatorHandler)
-	if !castOk {
-		return fmt.Errorf("%w when trying to cast shard coordinator to extended shard coordinator", process.ErrWrongTypeAssertion)
-	}
-
-	argsAuctionListSelectorAPI := metachainEpochStart.AuctionListSelectorArgs{
-		ShardCoordinator:             extendedShardCoordinator,
-		StakingDataProvider:          stakingDataProviderAPI,
-		MaxNodesChangeConfigProvider: maxNodesChangeConfigProviderAPI,
-		SoftAuctionConfig:            pcf.systemSCConfig.SoftAuctionConfig,
-		Denomination:                 pcf.economicsConfig.GlobalSettings.Denomination,
-		AuctionListDisplayHandler:    factoryDisabled.NewDisabledAuctionListDisplayer(),
-	}
-	auctionListSelectorAPI, err := metachainEpochStart.NewAuctionListSelector(argsAuctionListSelectorAPI)
-	if err != nil {
-		return err
-	}
-
-	pcf.stakingDataProviderAPI = stakingDataProviderAPI
-	pcf.auctionListSelectorAPI = auctionListSelectorAPI
+	pcf.stakingDataProviderAPI = apiComps.StakingDataProviderAPI
+	pcf.auctionListSelectorAPI = apiComps.AuctionListSelector
 
 	return nil
 }
