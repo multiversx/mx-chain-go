@@ -16,6 +16,8 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis/mock"
 	nodeMock "github.com/multiversx/mx-chain-go/node/mock"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/factory"
+	processMock "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	stateAcc "github.com/multiversx/mx-chain-go/state"
@@ -297,8 +299,11 @@ func TestSovereignGenesisBlockCreator_setSovereignStakedData(t *testing.T) {
 
 	args := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
 
+	ownerAddr := []byte("owner")
+	blsKey := []byte("blsKey")
 	acc := &state.AccountWrapMock{
 		Balance: big.NewInt(1),
+		Address: ownerAddr,
 	}
 	acc.IncreaseNonce(4)
 	args.Accounts = &state.AccountsStub{
@@ -306,8 +311,8 @@ func TestSovereignGenesisBlockCreator_setSovereignStakedData(t *testing.T) {
 			return acc, nil
 		},
 	}
-	initialNode := &sharding.InitialNode{
-		Address: "addr",
+	initialNode := &mock.GenesisNodeInfoHandlerMock{
+		PubKeyBytesValue: blsKey,
 	}
 	nodesSpliter := &mock.NodesListSplitterStub{
 		GetAllNodesCalled: func() []nodesCoordinator.GenesisNodeInfoHandler {
@@ -323,6 +328,24 @@ func TestSovereignGenesisBlockCreator_setSovereignStakedData(t *testing.T) {
 		GasLimit:  math.MaxUint64,
 		Data:      []byte("stake@" + hex.EncodeToString(big.NewInt(1).Bytes()) + "@" + hex.EncodeToString(initialNode.PubKeyBytes()) + "@" + hex.EncodeToString([]byte("genesis"))),
 		Signature: nil,
+	}
+
+	wasSetOwnersCalled := false
+	vmExecutionHandler := &processMock.VMExecutionHandlerStub{
+		RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+			require.Equal(t, &vmcommon.ContractCallInput{
+				VMInput: vmcommon.VMInput{
+					CallerAddr: vm.EndOfEpochAddress,
+					CallValue:  big.NewInt(0),
+					Arguments:  [][]byte{blsKey, ownerAddr},
+				},
+				RecipientAddr: vm.StakingSCAddress,
+				Function:      "setOwnersOnAddresses",
+			}, input)
+
+			wasSetOwnersCalled = true
+			return &vmcommon.VMOutput{ReturnCode: vmcommon.Ok}, nil
+		},
 	}
 	processors := &genesisProcessors{
 		txProcessor: &testscommon.TxProcessorStub{
@@ -342,11 +365,18 @@ func TestSovereignGenesisBlockCreator_setSovereignStakedData(t *testing.T) {
 				return &vmcommon.VMOutput{ReturnCode: vmcommon.Ok}, holders.NewBlockInfo(nil, 0, nil), nil
 			},
 		},
+		vmContainer: &processMock.VMContainerMock{
+			GetCalled: func(key []byte) (vmcommon.VMExecutionHandler, error) {
+				require.Equal(t, factory.SystemVirtualMachine, key)
+				return vmExecutionHandler, nil
+			},
+		},
 	}
 
 	txs, err := setSovereignStakedData(args, processors, nodesSpliter)
 	require.Nil(t, err)
 	require.Equal(t, []data.TransactionHandler{expectedTx}, txs)
+	require.True(t, wasSetOwnersCalled)
 }
 
 func TestSovereignGenesisBlockCreator_InitSystemAccountCalled(t *testing.T) {

@@ -109,6 +109,8 @@ func (gbc *sovereignGenesisBlockCreator) createSovereignEmptyGenesisBlocks() (ma
 func createSovereignGenesisConfig(providedEnableEpochs config.EnableEpochs) config.EnableEpochs {
 	cfg := createGenesisConfig(providedEnableEpochs)
 	cfg.ESDTMultiTransferEnableEpoch = 0
+	cfg.StakeEnableEpoch = 0
+	cfg.PenalizedTooMuchGasEnableEpoch = 0
 	return cfg
 }
 
@@ -292,6 +294,7 @@ func setSovereignStakedData(
 	stakeValue := arg.GenesisNodePrice
 
 	stakedNodes := nodesListSplitter.GetAllNodes()
+	argsUpdateOwnersForBlsKeys := make([][]byte, 0)
 	for _, nodeInfo := range stakedNodes {
 		senderAcc, err := arg.Accounts.LoadAccount(nodeInfo.AddressBytes())
 		if err != nil {
@@ -325,6 +328,14 @@ func setSovereignStakedData(
 		if vmOutput.ReturnCode != vmcommon.Ok {
 			return nil, genesis.ErrBLSKeyNotStaked
 		}
+
+		argsUpdateOwnersForBlsKeys = append(argsUpdateOwnersForBlsKeys, nodeInfo.PubKeyBytes())
+		argsUpdateOwnersForBlsKeys = append(argsUpdateOwnersForBlsKeys, senderAcc.AddressBytes())
+	}
+
+	err := updateOwnersForBlsKeys(argsUpdateOwnersForBlsKeys, processors.vmContainer, arg.Accounts)
+	if err != nil {
+		return nil, err
 	}
 
 	log.Debug("sovereign genesis block",
@@ -332,4 +343,35 @@ func setSovereignStakedData(
 	)
 
 	return stakingTxs, nil
+}
+
+func updateOwnersForBlsKeys(
+	arguments [][]byte,
+	vmContainer process.VirtualMachinesContainer,
+	accounts state.AccountsAdapter,
+) error {
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr: vm.EndOfEpochAddress,
+			CallValue:  big.NewInt(0),
+			Arguments:  arguments,
+		},
+		RecipientAddr: vm.StakingSCAddress,
+		Function:      "setOwnersOnAddresses",
+	}
+
+	systemVM, err := vmContainer.Get(factory.SystemVirtualMachine)
+	if err != nil {
+		return err
+	}
+
+	vmOutput, errRun := systemVM.RunSmartContractCall(vmInput)
+	if errRun != nil {
+		return fmt.Errorf("%w when calling setOwnersOnAddresses function", errRun)
+	}
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return fmt.Errorf("got return code %s when calling setOwnersOnAddresses", vmOutput.ReturnCode)
+	}
+
+	return genesisCommon.ProcessSCOutputAccounts(vmOutput, accounts)
 }
