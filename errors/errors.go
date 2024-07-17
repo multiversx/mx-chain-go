@@ -826,3 +826,6 @@ var ErrNilStakingToPeerFactory = errors.New("nil staking to peer factory has bee
 
 // ErrNilValidatorInfoCreatorFactory signals that a nil validator info creator factory has been provided
 var ErrNilValidatorInfoCreatorFactory = errors.New("nil validator info creator factory has been provided")
+
+// ErrNilAPIProcessorCompsCreator signals that a nil api processor components creator has been provided
+var ErrNilAPIProcessorCompsCreator = errors.New("nil api processor components creator has been provided")

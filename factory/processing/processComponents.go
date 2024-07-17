@@ -2074,6 +2074,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	if check.IfNil(args.RunTypeComponents.ValidatorInfoCreatorFactory()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilValidatorInfoCreatorFactory)
 	}
+	if check.IfNil(args.RunTypeComponents.ApiProcessorCompsCreatorHandler()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilAPIProcessorCompsCreator)
+	}
 
 	return nil
 }

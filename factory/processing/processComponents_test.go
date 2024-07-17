@@ -981,6 +981,17 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		require.True(t, errors.Is(err, errorsMx.ErrNilValidatorInfoCreatorFactory))
 		require.Nil(t, pcf)
 	})
+	t.Run("nil ApiProcessorCompsCreator should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockProcessComponentsFactoryArgs()
+		rtMock := getRunTypeComponentsMock()
+		rtMock.APIProcessorCompsCreatorHandlerField = nil
+		args.RunTypeComponents = rtMock
+		pcf, err := processComp.NewProcessComponentsFactory(args)
+		require.True(t, errors.Is(err, errorsMx.ErrNilAPIProcessorCompsCreator))
+		require.Nil(t, pcf)
+	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 

@@ -213,6 +213,9 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	if check.IfNil(mrc.validatorInfoCreatorFactory) {
 		return errors.ErrNilValidatorInfoCreatorFactory
 	}
+	if check.IfNil(mrc.apiProcessorCompsCreatorHandler) {
+		return errors.ErrNilAPIProcessorCompsCreator
+	}
 	return nil
 }
 
