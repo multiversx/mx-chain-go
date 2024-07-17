@@ -199,6 +199,7 @@ func InitConfigMetrics(
 	appStatusHandler.SetUInt64Value(common.MetricDynamicESDTEnableEpoch, uint64(enableEpochs.DynamicESDTEnableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricEGLDInMultiTransferEnableEpoch, uint64(enableEpochs.EGLDInMultiTransferEnableEpoch))
 	appStatusHandler.SetUInt64Value(common.MetricCryptoOpcodesV2EnableEpoch, uint64(enableEpochs.CryptoOpcodesV2EnableEpoch))
+	appStatusHandler.SetUInt64Value(common.MetricValidationOnGobDecodeEnableEpoch, uint64(enableEpochs.ValidationOnGobDecodeEnableEpoch))
 
 	for i, nodesChangeConfig := range enableEpochs.MaxNodesChangeEnableEpoch {
 		epochEnable := fmt.Sprintf("%s%d%s", common.MetricMaxNodesChangeEnableEpoch, i, common.EpochEnableSuffix)

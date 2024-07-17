@@ -872,6 +872,9 @@ func TestEnableEpochConfig(t *testing.T) {
     # CryptoOpcodesV2EnableEpoch represents the epoch when BLSMultiSig, Secp256r1 and other opcodes are enabled
     CryptoOpcodesV2EnableEpoch = 98
 
+	# ValidationOnGobDecodeEnableEpoch represents the epoch when validation on GobDecode will be taken into account
+    ValidationOnGobDecodeEnableEpoch = 99
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -988,6 +991,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			DynamicESDTEnableEpoch:                                   96,
 			EGLDInMultiTransferEnableEpoch:                           97,
 			CryptoOpcodesV2EnableEpoch:                               98,
+			ValidationOnGobDecodeEnableEpoch:                         99,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,

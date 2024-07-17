@@ -318,6 +318,9 @@
     # CryptoOpcodesV2EnableEpoch represents the epoch when BLSMultiSig, Secp256r1 and other opcodes are enabled
     CryptoOpcodesV2EnableEpoch = 4
 
+    # ValidationOnGobDecodeEnableEpoch represents the epoch when validation on GobDecode will be taken into account
+    ValidationOnGobDecodeEnableEpoch = 5
+
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
         { EnableEpoch = 0, Type = "no-KOSK" },
