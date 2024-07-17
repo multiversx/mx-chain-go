@@ -199,13 +199,15 @@ func (txPool *shardedTxPool) addTx(tx *txcache.WrappedTransaction, cacheID strin
 	}
 
 	// TODO: fix this (workaround for testing).
-	cacheAsTxCache, ok := cache.(*txcache.TxCache)
-	if ok {
-		sender := tx.Tx.GetSndAddr()
-		senderAccount, err := AccountsAdapter.GetExistingAccount(sender)
-		if err == nil {
-			nonce := senderAccount.GetNonce()
-			cacheAsTxCache.NotifyAccountNonce(sender, nonce)
+	if AccountsAdapter != nil {
+		cacheAsTxCache, ok := cache.(*txcache.TxCache)
+		if ok {
+			sender := tx.Tx.GetSndAddr()
+			senderAccount, err := AccountsAdapter.GetExistingAccount(sender)
+			if err == nil {
+				nonce := senderAccount.GetNonce()
+				cacheAsTxCache.NotifyAccountNonce(sender, nonce)
+			}
 		}
 	}
 }
