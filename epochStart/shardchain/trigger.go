@@ -659,9 +659,7 @@ func (t *trigger) updateTriggerFromMeta() {
 			t.epochStartMeta = currMetaInfo.hdr
 			t.saveCurrentState(currMetaInfo.hdr.GetRound())
 			t.epochStartNotifier.NotifyEpochChangeConfirmed(t.metaEpoch)
-			if t.metaEpoch == 1439 {
-				panic("epoch 1439")
-			}
+
 			msg := fmt.Sprintf("EPOCH %d BEGINS IN ROUND (%d)", t.metaEpoch, t.epochStartRound)
 			log.Debug(display.Headline(msg, "", "#"))
 			log.Debug("trigger.updateTriggerFromMeta", "isEpochStart", t.isEpochStart)
