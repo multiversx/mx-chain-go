@@ -16,10 +16,6 @@ import (
 
 // TODO: MX-15527 Make a similar bridge test with sovereign chain simulator after merging this into feat/chain-go-sdk
 
-const (
-	saveCallerWasmPath = "testdata/tc-contract.wasm"
-)
-
 // In this test we:
 // - will deploy sovereign bridge contracts on the main chain
 // - will whitelist the bridge esdt safe contract to allow it to burn/mint cross chain esdt tokens
