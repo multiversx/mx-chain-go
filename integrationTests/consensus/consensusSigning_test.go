@@ -4,16 +4,12 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"os"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/integrationTests"
-	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func initNodesWithTestSigner(
@@ -70,14 +66,6 @@ func TestConsensusWithInvalidSigners(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-
-	logger.SetLogLevel("*:DEBUG")
-	f, err := os.OpenFile("log.log", os.O_CREATE|os.O_APPEND|os.O_WRONLY, core.FileModeReadWrite)
-	require.NoError(t, err)
-	defer f.Close()
-
-	err = logger.AddLogObserver(f, &logger.PlainFormatter{})
-	require.NoError(t, err)
 
 	numMetaNodes := uint32(4)
 	numNodes := uint32(4)
