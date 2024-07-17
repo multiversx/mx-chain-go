@@ -172,6 +172,7 @@ func simulateExecutionAndDeposit(
 		IssuePaymentToken: "WEGLD-bd4d79",
 	}
 	bridgeData := deployBridgeSetup(t, cs, initialAddress, esdtSafeWasmPath, argsEsdtSafe, feeMarketWasmPath)
+	chainSim.RequireAccountHasToken(t, cs, argsEsdtSafe.IssuePaymentToken, initialAddress, big.NewInt(0))
 
 	esdtSafeEncoded, _ := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Encode(bridgeData.ESDTSafeAddress)
 	require.Equal(t, whiteListedAddress, esdtSafeEncoded)

@@ -238,12 +238,17 @@ func GetEsdtInWallet(
 	cs ChainSimulator,
 	wallet dtos.WalletAddress,
 	token string,
+	tokenNonce uint64,
 	tokenData esdt.ESDigitalToken,
 ) {
 	marshalledTokenData, err := cs.GetNodeHandler(0).GetCoreComponents().InternalMarshalizer().Marshal(&tokenData)
 	require.NoError(t, err)
 
-	tokenKey := hex.EncodeToString([]byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier + token))
+	nonce := ""
+	if tokenNonce != 0 {
+		nonce = fmt.Sprintf("%x", tokenNonce)
+	}
+	tokenKey := hex.EncodeToString([]byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier + token + nonce))
 	tokenValue := hex.EncodeToString(marshalledTokenData)
 	keyValueMap := map[string]string{
 		tokenKey: tokenValue,

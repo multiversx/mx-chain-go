@@ -1,6 +1,7 @@
 package bridge
 
 import (
+	"bytes"
 	"math/big"
 	"testing"
 	"time"
@@ -13,6 +14,7 @@ import (
 	chainSim "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 )
 
 const (
@@ -228,7 +230,7 @@ func testExecuteOperationNotAllowedToMintFungibleContractNotWhitelisted(
 	chainSim.RequireSignalError(t, txResult, actionNotAllowed)
 }
 
-func TestChainSimulator_DeposiNotAllowedToBurnFungbileWithoutPrefix(t *testing.T) {
+func TestChainSimulator_DepositNotAllowedToBurnFungibleContractNotWhitelisted(t *testing.T) {
 	prefix := "sov1"
 	bridgedOutTokens := make([]chainSim.ArgsDepositToken, 0)
 	bridgedOutTokens = append(bridgedOutTokens, chainSim.ArgsDepositToken{
@@ -241,7 +243,7 @@ func TestChainSimulator_DeposiNotAllowedToBurnFungbileWithoutPrefix(t *testing.T
 	testDepositNotAllowedToBurnTokensContractNotWhitelisted(t, prefix, bridgedOutTokens)
 }
 
-func TestChainSimulator_DeposiNotAllowedToBurnNonFungbileWithoutPrefix(t *testing.T) {
+func TestChainSimulator_DepositNotAllowedToBurnNonFungibleContractNotWhitelisted(t *testing.T) {
 	prefix := "sov1"
 	bridgedOutTokens := make([]chainSim.ArgsDepositToken, 0)
 	bridgedOutTokens = append(bridgedOutTokens, chainSim.ArgsDepositToken{
@@ -254,7 +256,7 @@ func TestChainSimulator_DeposiNotAllowedToBurnNonFungbileWithoutPrefix(t *testin
 	testDepositNotAllowedToBurnTokensContractNotWhitelisted(t, prefix, bridgedOutTokens)
 }
 
-func TestChainSimulator_DeposiNotAllowedToBurnSemiFungbileWithoutPrefix(t *testing.T) {
+func TestChainSimulator_DepositNotAllowedToBurnSemiFungibleContractNotWhitelisted(t *testing.T) {
 	prefix := "sov1"
 	bridgedOutTokens := make([]chainSim.ArgsDepositToken, 0)
 	bridgedOutTokens = append(bridgedOutTokens, chainSim.ArgsDepositToken{
@@ -325,19 +327,44 @@ func testDepositNotAllowedToBurnTokensContractNotWhitelisted(
 	esdtSafeEncoded, _ := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Encode(bridgeData.ESDTSafeAddress)
 	require.NotEqual(t, whiteListedAddress, esdtSafeEncoded)
 
-	wallet, err := cs.GenerateAndMintWalletAddress(0, chainSim.InitialAmount)
+	walletAddress := "erd1j7t00tq4jhcarcl2kuw3aywplnqlh9y6w9sxx2v6namc3jxvn5qq0jumrh"
+	err = cs.SetStateMultiple([]*dtos.AddressState{
+		{
+			Address: walletAddress,
+			Balance: "10000000000000000000000",
+		},
+	})
 	require.Nil(t, err)
+	walletAddrBytes, _ := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode(walletAddress)
+
+	wallet := dtos.WalletAddress{Bech32: walletAddress, Bytes: walletAddrBytes}
 	nonce := uint64(0)
+
 	for _, token := range bridgedOutTokens {
 		tokenData := esdt.ESDigitalToken{
-			Value: token.Amount,
-			Type:  uint32(token.Type),
+			Value:         token.Amount,
+			Type:          uint32(token.Type),
+			TokenMetaData: getTokenMetaData(token),
 		}
-		chainSim.GetEsdtInWallet(t, cs, wallet, token.Identifier, tokenData)
+		chainSim.GetEsdtInWallet(t, cs, wallet, token.Identifier, token.Nonce, tokenData)
+
+		err = cs.GenerateBlocks(1)
+		require.Nil(t, err)
+		chainSim.RequireAccountHasToken(t, cs, getTokenIdentifier(token), wallet.Bech32, token.Amount)
 	}
 
 	// deposit an array of tokens from main chain to sovereign chain,
 	// expecting these tokens to NOT be burned by ESDT safe sc because is not whitelisted
 	txResult := deposit(t, cs, wallet.Bytes, &nonce, bridgeData.ESDTSafeAddress, bridgedOutTokens, wallet.Bytes)
 	chainSim.RequireSignalError(t, txResult, actionNotAllowed)
+}
+
+func getTokenMetaData(token chainSim.ArgsDepositToken) *esdt.MetaData {
+	if token.Type == core.Fungible {
+		return nil
+	}
+	return &esdt.MetaData{
+		Nonce:   token.Nonce,
+		Creator: bytes.Repeat([]byte{1}, 32),
+	}
 }
