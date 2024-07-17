@@ -15,14 +15,13 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 )
 
-type apiProcessorCompsCreator struct {
-}
-
+// APIProcessComps is a struct placeholder for created api process comps
 type APIProcessComps struct {
 	StakingDataProviderAPI peer.StakingDataProviderAPI
 	AuctionListSelector    epochStart.AuctionListSelector
 }
 
+// ArgsCreateAPIProcessComps is a struct placeholder for args needed to create api process comps
 type ArgsCreateAPIProcessComps struct {
 	ArgsStakingDataProvider metachainEpochStart.StakingDataProviderArgs
 	ShardCoordinator        sharding.Coordinator
@@ -32,10 +31,15 @@ type ArgsCreateAPIProcessComps struct {
 	Denomination            int
 }
 
+type apiProcessorCompsCreator struct {
+}
+
+// NewAPIProcessorCompsCreator creates a new api processor components creator for regular chain(meta+shard)
 func NewAPIProcessorCompsCreator() *apiProcessorCompsCreator {
 	return &apiProcessorCompsCreator{}
 }
 
+// CreateAPIComps creates api process comps for metachain, otherwise returns disabled comps
 func (c *apiProcessorCompsCreator) CreateAPIComps(args ArgsCreateAPIProcessComps) (*APIProcessComps, error) {
 	if args.ShardCoordinator.SelfId() == core.MetachainShardId {
 		return createAPIComps(args)
@@ -83,6 +87,7 @@ func createAPIComps(args ArgsCreateAPIProcessComps) (*APIProcessComps, error) {
 	}, nil
 }
 
+// IsInterfaceNil checks if the underlying pointer is nil
 func (c *apiProcessorCompsCreator) IsInterfaceNil() bool {
 	return c == nil
 }
