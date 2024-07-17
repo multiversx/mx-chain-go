@@ -7,7 +7,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/staking"
-	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/config"
@@ -77,11 +76,7 @@ func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 	err = cs.GenerateBlocksUntilEpochIsReached(3)
 	require.Nil(t, err)
 
-	logger.SetLogLevel("*:DEBUG")
 	staking.StakeNodes(t, cs, 10)
-
-	err = cs.GenerateBlocks(1)
-	require.Nil(t, err)
 
 	err = nodeHandler.GetProcessComponents().ValidatorsProvider().ForceUpdate()
 	require.Nil(t, err)
@@ -93,9 +88,14 @@ func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 	validators := nodeHandler.GetProcessComponents().ValidatorsProvider().GetLatestValidators()
 	require.Len(t, validators, 18)
 
-	err = cs.GenerateBlocksUntilEpochIsReached(7)
-	require.Nil(t, err)
+	currentEpoch := nodeHandler.GetCoreComponents().EpochNotifier().CurrentEpoch()
 
-	err = cs.GenerateBlocks(1)
-	require.Nil(t, err)
+	for epoch := currentEpoch; epoch < currentEpoch+4; epoch++ {
+		err = cs.GenerateBlocksUntilEpochIsReached(7)
+		require.Nil(t, err)
+
+		qualified, unqualified := staking.GetQualifiedAndUnqualifiedNodes(t, nodeHandler)
+		require.Len(t, qualified, 2)
+		require.Len(t, unqualified, 8)
+	}
 }
