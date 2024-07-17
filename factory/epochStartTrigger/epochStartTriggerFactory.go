@@ -83,13 +83,13 @@ func createShardEpochStartTrigger(args factory.ArgsEpochStartTrigger) (epochStar
 	return shardchain.NewEpochStartTrigger(argEpochStart)
 }
 
-func createMetaEpochStartTrigger(args factory.ArgsEpochStartTrigger) (epochStart.TriggerHandler, error) {
+func createMetaEpochStartTriggerArgs(args factory.ArgsEpochStartTrigger) (*metachain.ArgsNewMetaEpochStartTrigger, error) {
 	genesisHeader := args.DataComps.Blockchain().GetGenesisHeader()
 	if check.IfNil(genesisHeader) {
 		return nil, errorsMx.ErrGenesisBlockNotInitialized
 	}
 
-	argEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
+	return &metachain.ArgsNewMetaEpochStartTrigger{
 		GenesisTime:        time.Unix(args.CoreData.GenesisNodesSetup().GetStartTime(), 0),
 		Settings:           &args.Config.EpochStartConfig,
 		Epoch:              args.BootstrapComponents.EpochBootstrapParams().Epoch(),
@@ -100,6 +100,13 @@ func createMetaEpochStartTrigger(args factory.ArgsEpochStartTrigger) (epochStart
 		Hasher:             args.CoreData.Hasher(),
 		AppStatusHandler:   args.StatusCoreComponentsHolder.AppStatusHandler(),
 		DataPool:           args.DataComps.Datapool(),
+	}, nil
+}
+
+func createMetaEpochStartTrigger(args factory.ArgsEpochStartTrigger) (epochStart.TriggerHandler, error) {
+	argEpochStart, err := createMetaEpochStartTriggerArgs(args)
+	if err != nil {
+		return nil, err
 	}
 
 	return metachain.NewEpochStartTrigger(argEpochStart)

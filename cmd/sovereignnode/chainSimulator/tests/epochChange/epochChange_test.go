@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/config"
@@ -41,6 +42,11 @@ func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 			MinNodesPerShard:       2,
 			ConsensusGroupSize:     2,
 			AlterConfigsFunction: func(cfg *config.Configs) {
+				newCfg := config.EnableEpochs{}
+				newCfg.BLSMultiSignerEnableEpoch = cfg.EpochConfig.EnableEpochs.BLSMultiSignerEnableEpoch
+				newCfg.MaxNodesChangeEnableEpoch = cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch
+
+				cfg.EpochConfig.EnableEpochs = newCfg
 			},
 		},
 	})
@@ -49,7 +55,13 @@ func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 
 	defer cs.Close()
 
+	trie := cs.GetNodeHandler(0).GetStateComponents().TriesContainer().Get([]byte(dataRetriever.PeerAccountsUnit.String()))
+	require.NotNil(t, trie)
+
 	err = cs.GenerateBlocksUntilEpochIsReached(1)
 	require.Nil(t, err)
 	require.Equal(t, uint32(1), cs.GetNodeHandler(0).GetCoreComponents().EpochNotifier().CurrentEpoch())
+
+	err = cs.GenerateBlocksUntilEpochIsReached(3)
+	require.Nil(t, err)
 }

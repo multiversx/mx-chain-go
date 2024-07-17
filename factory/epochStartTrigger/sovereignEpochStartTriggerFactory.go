@@ -2,6 +2,7 @@ package epochStartTrigger
 
 import (
 	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/epochStart/metachain"
 	"github.com/multiversx/mx-chain-go/factory"
 )
 
@@ -18,7 +19,12 @@ func NewSovereignEpochStartTriggerFactory() *sovereignEpochStartTriggerFactory {
 
 // CreateEpochStartTrigger creates a meta epoch start trigger for sovereign run type
 func (f *sovereignEpochStartTriggerFactory) CreateEpochStartTrigger(args factory.ArgsEpochStartTrigger) (epochStart.TriggerHandler, error) {
-	return createMetaEpochStartTrigger(args)
+	metaTriggerArgs, err := createMetaEpochStartTriggerArgs(args)
+	if err != nil {
+		return nil, err
+	}
+
+	return metachain.NewSovereignTrigger(metaTriggerArgs)
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil

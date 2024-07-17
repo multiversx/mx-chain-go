@@ -40,6 +40,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/factory"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
+	"github.com/multiversx/mx-chain-go/storage/latestData"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -97,6 +98,7 @@ type runTypeComponents struct {
 	genesisMetaBlockCheckerCreator          processGenesis.GenesisMetaBlockChecker
 	nodesSetupCheckerFactory                checking.NodesSetupCheckerFactory
 	epochStartTriggerFactory                mainFactory.EpochStartTriggerFactoryHandler
+	latestDataProviderFactory               latestData.LatestDataProviderFactory
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
@@ -261,6 +263,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		genesisMetaBlockCheckerCreator:          processGenesis.NewGenesisMetaBlockChecker(),
 		nodesSetupCheckerFactory:                checking.NewNodesSetupCheckerFactory(),
 		epochStartTriggerFactory:                epochStartTrigger.NewEpochStartTriggerFactory(),
+		latestDataProviderFactory:               latestData.NewLatestDataProviderFactory(),
 	}, nil
 }
 

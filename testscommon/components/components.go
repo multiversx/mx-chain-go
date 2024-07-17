@@ -1073,6 +1073,7 @@ func GetRunTypeComponentsStub(rt factory.RunTypeComponentsHandler) *mainFactoryM
 		GenesisMetaBlockChecker:             rt.GenesisMetaBlockCheckerCreator(),
 		NodesSetupCheckerFactoryField:       rt.NodesSetupCheckerFactory(),
 		EpochStartTriggerFactoryField:       rt.EpochStartTriggerFactory(),
+		LatestDataProviderFactoryField:      rt.LatestDataProviderFactory(),
 	}
 }
 

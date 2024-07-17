@@ -305,6 +305,7 @@ func (mrcf *metaResolversContainerFactory) createMetaChainHeaderResolver(
 	return resolver, nil
 }
 
+// TODO: MX-15586 Analyse this func and check if we should have these resolvers on sovereign as well
 func (mrcf *metaResolversContainerFactory) generateTrieNodesResolvers() error {
 	keys := make([]string, 0)
 	resolversSlice := make([]dataRetriever.Resolver, 0)

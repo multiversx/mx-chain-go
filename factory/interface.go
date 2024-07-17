@@ -45,6 +45,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/latestData"
 	"github.com/multiversx/mx-chain-go/update"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
@@ -620,6 +621,7 @@ type RunTypeComponentsHolder interface {
 	GenesisMetaBlockCheckerCreator() processComp.GenesisMetaBlockChecker
 	NodesSetupCheckerFactory() checking.NodesSetupCheckerFactory
 	EpochStartTriggerFactory() EpochStartTriggerFactoryHandler
+	LatestDataProviderFactory() latestData.LatestDataProviderFactory
 	Create() error
 	Close() error
 	CheckSubcomponents() error

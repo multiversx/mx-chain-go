@@ -32,6 +32,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage/latestData"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -200,6 +201,9 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	}
 	if check.IfNil(mrc.epochStartTriggerFactory) {
 		return errors.ErrNilEpochStartTriggerFactory
+	}
+	if check.IfNil(mrc.latestDataProviderFactory) {
+		return errors.ErrNilLatestDataProviderFactory
 	}
 	return nil
 }
@@ -622,6 +626,18 @@ func (mrc *managedRunTypeComponents) EpochStartTriggerFactory() factory.EpochSta
 	}
 
 	return mrc.runTypeComponents.epochStartTriggerFactory
+}
+
+// LatestDataProviderFactory returns the latest data provider factory
+func (mrc *managedRunTypeComponents) LatestDataProviderFactory() latestData.LatestDataProviderFactory {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.latestDataProviderFactory
 }
 
 // IsInterfaceNil returns true if the interface is nil
