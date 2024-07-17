@@ -259,7 +259,7 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 			},
 			ResourceLimiter: p2pConfig.P2PResourceLimiterConfig{
 				Type:          p2p.DefaultWithScaleResourceLimiter,
-				Ipv4ConnLimit: []p2pConfig.ConnLimitConfig{{BitMask: 0, ConnCount: math.MaxInt}},
+				Ipv4ConnLimit: []p2pConfig.ConnLimitConfig{{PrefixLength: 0, ConnCount: math.MaxInt}},
 			},
 		},
 		KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{
