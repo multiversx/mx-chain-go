@@ -85,9 +85,8 @@ func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 	require.Len(t, validators, 18)
 
 	currentEpoch := nodeHandler.GetCoreComponents().EpochNotifier().CurrentEpoch()
-
 	for epoch := currentEpoch; epoch < currentEpoch+4; epoch++ {
-		err = cs.GenerateBlocksUntilEpochIsReached(7)
+		err = cs.GenerateBlocksUntilEpochIsReached(int32(epoch))
 		require.Nil(t, err)
 
 		qualified, unqualified := staking.GetQualifiedAndUnqualifiedNodes(t, nodeHandler)
