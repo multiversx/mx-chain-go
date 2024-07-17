@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/stretchr/testify/require"
 
 	chainSim "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
@@ -86,11 +87,14 @@ func deployBridgeSetup(
 
 	setFeeMarketAddressData := "setFeeMarketAddress" +
 		"@" + hex.EncodeToString(feeMarketAddress)
-	chainSim.SendTransaction(t, cs, ownerAddrBytes, &nonce, esdtSafeAddress, chainSim.ZeroValue, setFeeMarketAddressData, uint64(10000000))
+	txResult := chainSim.SendTransaction(t, cs, ownerAddrBytes, &nonce, esdtSafeAddress, chainSim.ZeroValue, setFeeMarketAddressData, uint64(10000000))
+	chainSim.RequireSuccessfulTransaction(t, txResult)
 
-	chainSim.SendTransaction(t, cs, ownerAddrBytes, &nonce, feeMarketAddress, chainSim.ZeroValue, "disableFee", uint64(10000000))
+	txResult = chainSim.SendTransaction(t, cs, ownerAddrBytes, &nonce, feeMarketAddress, chainSim.ZeroValue, "disableFee", uint64(10000000))
+	chainSim.RequireSuccessfulTransaction(t, txResult)
 
-	chainSim.SendTransaction(t, cs, ownerAddrBytes, &nonce, esdtSafeAddress, chainSim.ZeroValue, "unpause", uint64(10000000))
+	txResult = chainSim.SendTransaction(t, cs, ownerAddrBytes, &nonce, esdtSafeAddress, chainSim.ZeroValue, "unpause", uint64(10000000))
+	chainSim.RequireSuccessfulTransaction(t, txResult)
 
 	return &ArgsBridgeSetup{
 		ESDTSafeAddress:  esdtSafeAddress,
@@ -111,7 +115,7 @@ func deposit(
 	contract []byte,
 	tokens []chainSim.ArgsDepositToken,
 	receiver []byte,
-) {
+) *transaction.ApiTransactionResult {
 	require.True(t, len(tokens) > 0)
 
 	depositArgs := core.BuiltInFunctionMultiESDTNFTTransfer +
@@ -129,7 +133,7 @@ func deposit(
 		"@" + hex.EncodeToString([]byte("deposit")) +
 		"@" + hex.EncodeToString(receiver)
 
-	chainSim.SendTransaction(t, cs, sender, nonce, sender, chainSim.ZeroValue, depositArgs, uint64(20000000))
+	return chainSim.SendTransaction(t, cs, sender, nonce, sender, chainSim.ZeroValue, depositArgs, uint64(20000000))
 }
 
 func registerSovereignNewTokens(
@@ -153,10 +157,11 @@ func registerSovereignNewTokens(
 		registerData = registerData +
 			"@" + hex.EncodeToString([]byte(token))
 	}
-	chainSim.SendTransaction(t, cs, wallet.Bytes, nonce, esdtSafeAddress, chainSim.ZeroValue, registerData, uint64(10000000))
+	txResult := chainSim.SendTransaction(t, cs, wallet.Bytes, nonce, esdtSafeAddress, chainSim.ZeroValue, registerData, uint64(10000000))
+	chainSim.RequireSuccessfulTransaction(t, txResult)
 }
 
-func executeMintOperation(
+func executeOperation(
 	t *testing.T,
 	cs chainSim.ChainSimulator,
 	wallet dtos.WalletAddress,
@@ -166,7 +171,7 @@ func executeMintOperation(
 	bridgedInTokens []chainSim.ArgsDepositToken,
 	originalSender []byte,
 	transferData *transferData,
-) {
+) *transaction.ApiTransactionResult {
 	executeBridgeOpsData := "executeBridgeOps" +
 		"@de96b8d3842668aad676f915f545403b3e706f8f724cefb0c15b728e83864ce7" + //dummy hash
 		"@" + // operation
@@ -176,11 +181,7 @@ func executeMintOperation(
 		getU64Bytes(0) + // event nonce
 		hex.EncodeToString(originalSender) + // sender address from other chain
 		getTransferDataArgs(transferData)
-	chainSim.SendTransaction(t, cs, wallet.Bytes, nonce, esdtSafeAddress, chainSim.ZeroValue, executeBridgeOpsData, uint64(100000000))
-	for _, token := range groupTokens(bridgedInTokens) {
-		receiverBech32, _ := cs.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter().Encode(receiver)
-		chainSim.RequireAccountHasToken(t, cs, getTokenIdentifier(token), receiverBech32, token.Amount)
-	}
+	return chainSim.SendTransaction(t, cs, wallet.Bytes, nonce, esdtSafeAddress, chainSim.ZeroValue, executeBridgeOpsData, uint64(100000000))
 }
 
 func getTokenDataArgs(creator []byte, tokens []chainSim.ArgsDepositToken) string {

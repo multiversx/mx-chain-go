@@ -189,11 +189,16 @@ func simulateExecutionAndDeposit(
 
 	// We will deposit an array of prefixed tokens from a sovereign chain to the main chain,
 	// expecting these tokens to be minted by the whitelisted ESDT safe sc and transferred to our wallet address.
-	executeMintOperation(t, cs, bridgeData.OwnerAccount.Wallet, wallet.Bytes, &bridgeData.OwnerAccount.Nonce, bridgeData.ESDTSafeAddress, bridgedInTokens, wallet.Bytes, nil)
+	txResult := executeOperation(t, cs, bridgeData.OwnerAccount.Wallet, wallet.Bytes, &bridgeData.OwnerAccount.Nonce, bridgeData.ESDTSafeAddress, bridgedInTokens, wallet.Bytes, nil)
+	chainSim.RequireSuccessfulTransaction(t, txResult)
+	for _, token := range groupTokens(bridgedInTokens) {
+		chainSim.RequireAccountHasToken(t, cs, getTokenIdentifier(token), wallet.Bech32, token.Amount)
+	}
 
 	// deposit an array of tokens from main chain to sovereign chain,
 	// expecting these tokens to be burned by the whitelisted ESDT safe sc
-	deposit(t, cs, wallet.Bytes, &nonce, bridgeData.ESDTSafeAddress, bridgedOutTokens, wallet.Bytes)
+	txResult = deposit(t, cs, wallet.Bytes, &nonce, bridgeData.ESDTSafeAddress, bridgedOutTokens, wallet.Bytes)
+	chainSim.RequireSuccessfulTransaction(t, txResult)
 
 	bridgedTokens := groupTokens(bridgedInTokens)
 	for _, bridgedOutToken := range groupTokens(bridgedOutTokens) {

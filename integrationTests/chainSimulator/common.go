@@ -9,6 +9,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	dataApi "github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/stretchr/testify/require"
 
@@ -82,9 +83,7 @@ func DeployContract(
 	*nonce++
 
 	require.Nil(t, err)
-	require.NotNil(t, txResult)
-	requireNoSignalErrorEvent(t, txResult)
-	require.Equal(t, transaction.TxStatusSuccess, txResult.Status)
+	RequireSuccessfulTransaction(t, txResult)
 
 	address := txResult.Logs.Events[0].Topics[0]
 	require.NotNil(t, address)
@@ -122,18 +121,30 @@ func SendTransaction(
 	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlocksToGenerateWhenExecutingTx)
 	*nonce++
 	require.Nil(t, err)
-	require.NotNil(t, txResult)
-	requireNoSignalErrorEvent(t, txResult)
-	require.Equal(t, transaction.TxStatusSuccess, txResult.Status)
 
 	return txResult
 }
 
-func requireNoSignalErrorEvent(t *testing.T, txResult *transaction.ApiTransactionResult) {
+// RequireSuccessfulTransaction require that the transaction doesn't have signal error event
+func RequireSuccessfulTransaction(t *testing.T, txResult *transaction.ApiTransactionResult) {
+	require.NotNil(t, txResult)
+	require.Equal(t, transaction.TxStatusSuccess, txResult.Status)
 	if txResult.Logs != nil && len(txResult.Logs.Events) > 0 {
 		if txResult.Logs.Events[0].Identifier == signalError {
 			require.Fail(t, string(txResult.Logs.Events[0].Topics[1]))
 		}
+	}
+}
+
+// RequireSignalError require that the transaction has specific signal error
+func RequireSignalError(t *testing.T, txResult *transaction.ApiTransactionResult, error string) {
+	require.NotNil(t, txResult)
+	require.Equal(t, transaction.TxStatusSuccess, txResult.Status)
+	if txResult.Logs != nil && len(txResult.Logs.Events) > 0 {
+		if txResult.Logs.Events[0].Identifier != signalError {
+			require.Fail(t, "signal error event not found")
+		}
+		require.Equal(t, error, string(txResult.Logs.Events[0].Topics[1]))
 	}
 }
 
@@ -176,7 +187,8 @@ func TransferESDT(
 	esdtTransferArgs := core.BuiltInFunctionESDTTransfer +
 		"@" + hex.EncodeToString([]byte(token)) +
 		"@" + hex.EncodeToString(amount.Bytes())
-	SendTransaction(t, cs, sender, nonce, receiver, ZeroValue, esdtTransferArgs, uint64(5000000))
+	txResult := SendTransaction(t, cs, sender, nonce, receiver, ZeroValue, esdtTransferArgs, uint64(5000000))
+	RequireSuccessfulTransaction(t, txResult)
 }
 
 // IssueFungible will issue a fungible token
@@ -199,7 +211,8 @@ func IssueFungible(
 		"@" + fmt.Sprintf("%X", numDecimals) +
 		"@" + hex.EncodeToString([]byte("canAddSpecialRoles")) +
 		"@" + hex.EncodeToString([]byte("true"))
-	SendTransaction(t, cs, sender, nonce, vm.ESDTSCAddress, issueCost, issueArgs, uint64(60000000))
+	txResult := SendTransaction(t, cs, sender, nonce, vm.ESDTSCAddress, issueCost, issueArgs, uint64(60000000))
+	RequireSuccessfulTransaction(t, txResult)
 
 	return getEsdtIdentifier(t, nodeHandler, tokenTicker, core.FungibleESDT)
 }
@@ -217,4 +230,24 @@ func getEsdtIdentifier(t *testing.T, nodeHandler process.NodeHandler, ticker str
 
 	require.Fail(t, "could not issue semi fungible")
 	return ""
+}
+
+// GetEsdtInWallet will add token key in wallet storage without adding key in system account
+func GetEsdtInWallet(
+	t *testing.T,
+	cs ChainSimulator,
+	wallet dtos.WalletAddress,
+	token string,
+	tokenData esdt.ESDigitalToken,
+) {
+	marshalledTokenData, err := cs.GetNodeHandler(0).GetCoreComponents().InternalMarshalizer().Marshal(&tokenData)
+	require.NoError(t, err)
+
+	tokenKey := hex.EncodeToString([]byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier + token))
+	tokenValue := hex.EncodeToString(marshalledTokenData)
+	keyValueMap := map[string]string{
+		tokenKey: tokenValue,
+	}
+	err = cs.SetKeyValueForAddress(wallet.Bech32, keyValueMap)
+	require.NoError(t, err)
 }
