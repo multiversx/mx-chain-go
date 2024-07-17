@@ -34,15 +34,16 @@ func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 	cs, err := sovereignChainSimulator.NewSovereignChainSimulator(sovereignChainSimulator.ArgsSovereignChainSimulator{
 		SovereignConfigPath: sovereignConfigPath,
 		ArgsChainSimulator: &chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck: false,
-			TempDir:                t.TempDir(),
-			PathToInitialConfig:    defaultPathToInitialConfig,
-			GenesisTimestamp:       time.Now().Unix(),
-			RoundDurationInMillis:  uint64(6000),
-			RoundsPerEpoch:         roundsPerEpoch,
-			ApiInterface:           api.NewNoApiInterface(),
-			MinNodesPerShard:       8,
-			ConsensusGroupSize:     8,
+			BypassTxSignatureCheck:   false,
+			TempDir:                  t.TempDir(),
+			PathToInitialConfig:      defaultPathToInitialConfig,
+			GenesisTimestamp:         time.Now().Unix(),
+			RoundDurationInMillis:    uint64(6000),
+			RoundsPerEpoch:           roundsPerEpoch,
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         6,
+			ConsensusGroupSize:       6,
+			NumNodesWaitingListShard: 2,
 			AlterConfigsFunction: func(cfg *config.Configs) {
 				newCfg := config.EnableEpochs{}
 				cfg.SystemSCConfig.StakingSystemSCConfig.NodeLimitPercentage = 1
@@ -92,6 +93,9 @@ func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 	validators := nodeHandler.GetProcessComponents().ValidatorsProvider().GetLatestValidators()
 	require.Len(t, validators, 18)
 
-	err = cs.GenerateBlocksUntilEpochIsReached(6)
+	err = cs.GenerateBlocksUntilEpochIsReached(7)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 }

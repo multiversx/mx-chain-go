@@ -2,6 +2,7 @@ package metachain
 
 import (
 	"github.com/multiversx/mx-chain-core-go/display"
+	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 )
 
@@ -21,4 +22,10 @@ type AuctionListDisplayHandler interface {
 type TableDisplayHandler interface {
 	DisplayTable(tableHeader []string, lines []*display.LineData, message string)
 	IsInterfaceNil() bool
+}
+
+// ShardCoordinatorHandler defines an extended version over shard coordinator
+type ShardCoordinatorHandler interface {
+	sharding.Coordinator
+	TotalNumberOfShards() uint32
 }

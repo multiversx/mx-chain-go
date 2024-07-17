@@ -1049,8 +1049,13 @@ func (pcf *processComponentsFactory) createEpochStartSysSCProcessor(
 		return nil, err
 	}
 
+	extendedShardCoordinator, castOk := pcf.bootstrapComponents.ShardCoordinator().(metachainEpochStart.ShardCoordinatorHandler)
+	if !castOk {
+		return nil, fmt.Errorf("%w when trying to cast shard coordinator to extended shard coordinator", process.ErrWrongTypeAssertion)
+	}
+
 	argsAuctionListSelector := metachainEpochStart.AuctionListSelectorArgs{
-		ShardCoordinator:             pcf.bootstrapComponents.ShardCoordinator(),
+		ShardCoordinator:             extendedShardCoordinator,
 		StakingDataProvider:          stakingDataProvider,
 		MaxNodesChangeConfigProvider: maxNodesChangeConfigProvider,
 		AuctionListDisplayHandler:    auctionListDisplayer,
@@ -1240,8 +1245,14 @@ func (pcf *processComponentsFactory) setAPIComps(
 	if err != nil {
 		return err
 	}
+
+	extendedShardCoordinator, castOk := pcf.bootstrapComponents.ShardCoordinator().(metachainEpochStart.ShardCoordinatorHandler)
+	if !castOk {
+		return fmt.Errorf("%w when trying to cast shard coordinator to extended shard coordinator", process.ErrWrongTypeAssertion)
+	}
+
 	argsAuctionListSelectorAPI := metachainEpochStart.AuctionListSelectorArgs{
-		ShardCoordinator:             pcf.bootstrapComponents.ShardCoordinator(),
+		ShardCoordinator:             extendedShardCoordinator,
 		StakingDataProvider:          stakingDataProviderAPI,
 		MaxNodesChangeConfigProvider: maxNodesChangeConfigProviderAPI,
 		SoftAuctionConfig:            pcf.systemSCConfig.SoftAuctionConfig,
