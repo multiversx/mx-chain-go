@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -17,6 +18,9 @@ import (
 var _ dataRetriever.ShardedDataCacherNotifier = (*shardedTxPool)(nil)
 
 var log = logger.GetOrCreate("txpool")
+
+// TODO: fix this (workaround for testing).
+var AccountsAdapter state.AccountsAdapter = nil
 
 // shardedTxPool holds transaction caches organised by source & destination shard
 type shardedTxPool struct {
@@ -188,9 +192,21 @@ func (txPool *shardedTxPool) AddData(key []byte, value interface{}, sizeInBytes 
 func (txPool *shardedTxPool) addTx(tx *txcache.WrappedTransaction, cacheID string) {
 	shard := txPool.getOrCreateShard(cacheID)
 	cache := shard.Cache
+
 	_, added := cache.AddTx(tx)
 	if added {
 		txPool.onAdded(tx.TxHash, tx)
+	}
+
+	// TODO: fix this (workaround for testing).
+	cacheAsTxCache, ok := cache.(*txcache.TxCache)
+	if ok {
+		sender := tx.Tx.GetSndAddr()
+		senderAccount, err := AccountsAdapter.GetExistingAccount(sender)
+		if err == nil {
+			nonce := senderAccount.GetNonce()
+			cacheAsTxCache.NotifyAccountNonce(sender, nonce)
+		}
 	}
 }
 

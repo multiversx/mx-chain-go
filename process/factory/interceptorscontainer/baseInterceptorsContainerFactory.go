@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/dataRetriever/txpool"
 	"github.com/multiversx/mx-chain-go/heartbeat"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/dataValidators"
@@ -258,6 +259,9 @@ func (bicf *baseInterceptorsContainerFactory) createOneTxInterceptor(topic strin
 	}
 
 	addrPubKeyConverter := bicf.argInterceptorFactory.CoreComponents.AddressPubKeyConverter()
+
+	// TODO: fix this (workaround for testing).
+	txpool.AccountsAdapter = bicf.accounts
 
 	txValidator, err := dataValidators.NewTxValidator(
 		bicf.accounts,
