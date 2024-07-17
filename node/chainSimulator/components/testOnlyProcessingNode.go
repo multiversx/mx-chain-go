@@ -37,15 +37,16 @@ type ArgsTestOnlyProcessingNode struct {
 	ChanStopNodeProcess    chan endProcess.ArgEndProcess
 	SyncedBroadcastNetwork SyncedBroadcastNetworkHandler
 
-	InitialRound           int64
-	InitialNonce           uint64
-	GasScheduleFilename    string
-	NumShards              uint32
-	ShardIDStr             string
-	BypassTxSignatureCheck bool
-	MinNodesPerShard       uint32
-	MinNodesMeta           uint32
-	RoundDurationInMillis  uint64
+	InitialRound               int64
+	InitialNonce               uint64
+	GasScheduleFilename        string
+	NumShards                  uint32
+	ShardIDStr                 string
+	BypassTxSignatureCheck     bool
+	MinNodesPerShard           uint32
+	MinNodesMeta               uint32
+	RoundDurationInMillis      uint64
+	VmQueryDelayAfterStartInMs uint64
 }
 
 type testOnlyProcessingNode struct {
@@ -228,7 +229,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		return nil, err
 	}
 
-	err = instance.createFacade(args.Configs, args.APIInterface)
+	err = instance.createFacade(args.Configs, args.APIInterface, args.VmQueryDelayAfterStartInMs)
 	if err != nil {
 		return nil, err
 	}
