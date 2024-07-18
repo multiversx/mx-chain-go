@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"math/big"
-	"os"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -917,12 +916,6 @@ func (sp *shardProcessor) CommitBlock(
 		"round", headerHandler.GetRound(),
 		"nonce", headerHandler.GetNonce(),
 	)
-
-	if headerHandler.GetEpoch() == 1439 {
-		log.Debug("epoch 1439")
-		time.Sleep(5 * time.Second)
-		os.Exit(0)
-	}
 
 	err = sp.checkBlockValidity(headerHandler, bodyHandler)
 	if err != nil {
