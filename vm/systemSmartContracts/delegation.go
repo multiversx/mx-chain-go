@@ -2096,7 +2096,7 @@ func (d *delegation) claimRewards(args *vmcommon.ContractCallInput) vmcommon.Ret
 		}
 	}
 
-	d.createAndAddLogEntry(args, unclaimedRewardsBytes, boolToSlice(wasDeleted))
+	d.createAndAddLogEntry(args, unclaimedRewardsBytes, boolToSlice(wasDeleted), args.RecipientAddr)
 
 	return vmcommon.Ok
 }
