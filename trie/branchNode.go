@@ -494,35 +494,38 @@ func (bn *branchNode) insert(newData []core.TrieData, db common.TrieStorageInter
 	return nil, emptyHashes, nil
 }
 
+// the prerequisite for this to work is that the data is already sorted
 func splitDataForChildren(newData []core.TrieData) ([][]core.TrieData, error) {
 	if len(newData) == 0 {
 		return nil, ErrValueTooShort
 	}
 	childrenData := make([][]core.TrieData, nrOfChildren)
 
-	if len(newData[0].Key) == 0 {
-		return nil, ErrValueTooShort
-	}
-	childPos := newData[0].Key[firstByte]
 	startIndex := 0
-
+	childPos := byte(0)
+	prevChildPos := byte(0)
 	for i := range newData {
 		if len(newData[i].Key) == 0 {
 			return nil, ErrValueTooShort
 		}
-		newDataFirstByte := newData[i].Key[firstByte]
+		childPos = newData[i].Key[firstByte]
 		if childPosOutOfRange(childPos) {
 			return nil, ErrChildPosOutOfRange
 		}
 		newData[i].Key = newData[i].Key[1:]
 
-		if newDataFirstByte == childPos {
+		if i == 0 {
+			prevChildPos = childPos
 			continue
 		}
 
-		childrenData[childPos] = newData[startIndex:i]
+		if childPos == prevChildPos {
+			continue
+		}
+
+		childrenData[prevChildPos] = newData[startIndex:i]
 		startIndex = i
-		childPos = newDataFirstByte
+		prevChildPos = childPos
 	}
 
 	childrenData[childPos] = newData[startIndex:]
@@ -534,27 +537,22 @@ func (bn *branchNode) insertOnNilChild(newData []core.TrieData, childPos byte, d
 		return [][]byte{}, ErrValueTooShort
 	}
 
-	newLn, err := newLeafNode(newData[0], bn.marsh, bn.hasher)
+	var newNode node
+	modifiedHashes := make([][]byte, 0)
+
+	newNode, err := newLeafNode(newData[0], bn.marsh, bn.hasher)
 	if err != nil {
 		return [][]byte{}, err
 	}
 
 	if len(newData) > 1 {
-		newNode, modifiedHashes, err := newLn.insert(newData[1:], db)
+		newNode, modifiedHashes, err = newNode.insert(newData[1:], db)
 		if check.IfNil(newNode) || err != nil {
 			return [][]byte{}, err
 		}
-
-		modifiedHashes, err = bn.modifyNodeAfterInsert(modifiedHashes, childPos, newNode)
-		if err != nil {
-			return [][]byte{}, err
-		}
-
-		return modifiedHashes, nil
 	}
 
-	modifiedHashes := make([][]byte, 0)
-	modifiedHashes, err = bn.modifyNodeAfterInsert(modifiedHashes, childPos, newLn)
+	modifiedHashes, err = bn.modifyNodeAfterInsert(modifiedHashes, childPos, newNode)
 	if err != nil {
 		return [][]byte{}, err
 	}

@@ -1080,3 +1080,321 @@ func TestExtensionNode_getVersion(t *testing.T) {
 		assert.Nil(t, err)
 	})
 }
+
+func Test_getMinKeyMatchLen(t *testing.T) {
+	t.Parallel()
+
+	t.Run("same key", func(t *testing.T) {
+		t.Parallel()
+
+		newData := []core.TrieData{
+			{
+				Key: []byte("dog"),
+			},
+		}
+		keyMatchLen, index := getMinKeyMatchLen(newData, []byte("dog"))
+		assert.Equal(t, 3, keyMatchLen)
+		assert.Equal(t, 0, index)
+	})
+	t.Run("first key is min", func(t *testing.T) {
+		t.Parallel()
+
+		newData := []core.TrieData{
+			{
+				Key: []byte("dog"),
+			},
+			{
+				Key: []byte("doge"),
+			},
+		}
+		keyMatchLen, index := getMinKeyMatchLen(newData, []byte("doe"))
+		assert.Equal(t, 2, keyMatchLen)
+		assert.Equal(t, 0, index)
+
+	})
+	t.Run("last key is min", func(t *testing.T) {
+		t.Parallel()
+
+		newData := []core.TrieData{
+			{
+				Key: []byte("doge"),
+			},
+			{
+				Key: []byte("dad"),
+			},
+		}
+		keyMatchLen, index := getMinKeyMatchLen(newData, []byte("doe"))
+		assert.Equal(t, 1, keyMatchLen)
+		assert.Equal(t, 1, index)
+
+	})
+	t.Run("no match", func(t *testing.T) {
+		t.Parallel()
+
+		newData := []core.TrieData{
+			{
+				Key: []byte("doge"),
+			},
+			{
+				Key: []byte("dog"),
+			},
+		}
+		keyMatchLen, index := getMinKeyMatchLen(newData, []byte("cat"))
+		assert.Equal(t, 0, keyMatchLen)
+		assert.Equal(t, 0, index)
+	})
+}
+
+func Test_removeCommonPrefix(t *testing.T) {
+	t.Parallel()
+
+	t.Run("no common prefix", func(t *testing.T) {
+		t.Parallel()
+
+		newData := []core.TrieData{
+			{
+				Key: []byte("doge"),
+			},
+			{
+				Key: []byte("cat"),
+			},
+		}
+
+		err := removeCommonPrefix(newData, 0)
+		assert.Nil(t, err)
+		assert.Equal(t, []byte("doge"), newData[0].Key)
+		assert.Equal(t, []byte("cat"), newData[1].Key)
+	})
+	t.Run("remove prefix from all", func(t *testing.T) {
+		t.Parallel()
+
+		newData := []core.TrieData{
+			{
+				Key: []byte("doge"),
+			},
+			{
+				Key: []byte("doe"),
+			},
+		}
+
+		err := removeCommonPrefix(newData, 2)
+		assert.Nil(t, err)
+		assert.Equal(t, []byte("ge"), newData[0].Key)
+		assert.Equal(t, []byte("e"), newData[1].Key)
+
+	})
+	t.Run("one key is less than the prefix", func(t *testing.T) {
+		t.Parallel()
+
+		newData := []core.TrieData{
+			{
+				Key: []byte("doge"),
+			},
+			{
+				Key: []byte("do"),
+			},
+		}
+
+		err := removeCommonPrefix(newData, 3)
+		assert.Equal(t, ErrValueTooShort, err)
+	})
+}
+
+func getEn() *extensionNode {
+	marsh, hasher := getTestMarshalizerAndHasher()
+	var children [nrOfChildren]node
+	children[4], _ = newLeafNode(getTrieDataWithDefaultVersion(string([]byte{3, 4, 5}), "dog"), marsh, hasher)
+	children[7], _ = newLeafNode(getTrieDataWithDefaultVersion(string([]byte{7, 8, 9}), "doe"), marsh, hasher)
+	bn, _ := newBranchNode(marsh, hasher)
+	bn.children = children
+	en, _ := newExtensionNode([]byte{1, 2}, bn, marsh, hasher)
+	return en
+}
+
+func TestExtensionNode_insertInSameEn(t *testing.T) {
+	t.Parallel()
+
+	t.Run("insert same data", func(t *testing.T) {
+		t.Parallel()
+
+		en := getEn()
+		err := en.commitDirty(0, 5, testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
+		assert.Nil(t, err)
+
+		data := []core.TrieData{
+			getTrieDataWithDefaultVersion(string([]byte{1, 2, 4, 3, 4, 5}), "dog"),
+			getTrieDataWithDefaultVersion(string([]byte{1, 2, 7, 7, 8, 9}), "doe"),
+		}
+
+		newNode, modifiedHashes, err := en.insert(data, nil)
+		assert.Nil(t, err)
+		assert.Equal(t, 0, len(modifiedHashes))
+		assert.Nil(t, newNode)
+		assert.False(t, en.dirty)
+	})
+	t.Run("insert different data", func(t *testing.T) {
+		t.Parallel()
+
+		en := getEn()
+		err := en.commitDirty(0, 5, testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
+		assert.Nil(t, err)
+
+		data := []core.TrieData{
+			getTrieDataWithDefaultVersion(string([]byte{1, 2, 6, 7, 16}), "dog"),
+			getTrieDataWithDefaultVersion(string([]byte{1, 2, 3, 4, 5}), "doe"),
+		}
+
+		newNode, modifiedHashes, err := en.insert(data, nil)
+		assert.Nil(t, err)
+		assert.Equal(t, 2, len(modifiedHashes))
+		en, ok := newNode.(*extensionNode)
+		assert.True(t, ok)
+		assert.True(t, en.dirty)
+		bn, ok := en.child.(*branchNode)
+		assert.True(t, ok)
+		assert.False(t, bn.children[4].isDirty())
+		assert.False(t, bn.children[7].isDirty())
+		assert.Equal(t, []byte{4, 5}, bn.children[3].(*leafNode).Key)
+		assert.Equal(t, []byte{7, 16}, bn.children[6].(*leafNode).Key)
+	})
+}
+
+func TestExtensionNode_insertInNewBn(t *testing.T) {
+	t.Parallel()
+
+	t.Run("with a new en parent", func(t *testing.T) {
+		t.Parallel()
+
+		en := getEn()
+		err := en.commitDirty(0, 5, testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
+		assert.Nil(t, err)
+
+		data := []core.TrieData{
+			getTrieDataWithDefaultVersion(string([]byte{1, 3, 6, 7, 16}), "dog"),
+			getTrieDataWithDefaultVersion(string([]byte{1, 3, 3, 4, 5}), "doe"),
+		}
+
+		newNode, modifiedHashes, err := en.insert(data, nil)
+		assert.Nil(t, err)
+		assert.Equal(t, 1, len(modifiedHashes))
+		en, ok := newNode.(*extensionNode)
+		assert.True(t, ok)
+		assert.True(t, en.dirty)
+		assert.Equal(t, []byte{1}, en.Key)
+		bn, ok := en.child.(*branchNode)
+		assert.True(t, ok)
+		assert.False(t, bn.children[2].isDirty())
+		assert.True(t, bn.children[3].isDirty())
+		_, ok = bn.children[2].(*branchNode)
+		assert.True(t, ok)
+		_, ok = bn.children[3].(*branchNode)
+		assert.True(t, ok)
+	})
+	t.Run("branch at the beginning of the en", func(t *testing.T) {
+		t.Parallel()
+
+		en := getEn()
+		err := en.commitDirty(0, 5, testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
+		assert.Nil(t, err)
+
+		data := []core.TrieData{
+			getTrieDataWithDefaultVersion(string([]byte{2, 3, 6, 7, 16}), "dog"),
+			getTrieDataWithDefaultVersion(string([]byte{3, 3, 3, 4, 5}), "doe"),
+		}
+
+		newNode, modifiedHashes, err := en.insert(data, nil)
+		assert.Nil(t, err)
+		assert.Equal(t, 1, len(modifiedHashes))
+		bn, ok := newNode.(*branchNode)
+		assert.True(t, ok)
+		assert.True(t, bn.dirty)
+		assert.Equal(t, []byte{3, 6, 7, 16}, bn.children[2].(*leafNode).Key)
+		assert.Equal(t, []byte{3, 3, 4, 5}, bn.children[3].(*leafNode).Key)
+		assert.Equal(t, []byte{2}, bn.children[1].(*extensionNode).Key)
+	})
+}
+
+func TestExtensionNode_deleteBatch(t *testing.T) {
+	t.Parallel()
+
+	t.Run("delete invalid node", func(t *testing.T) {
+		t.Parallel()
+
+		en := getEn()
+		err := en.commitDirty(0, 5, testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
+		assert.Nil(t, err)
+
+		data := []core.TrieData{
+			getTrieDataWithDefaultVersion(string([]byte{2, 3, 6, 7, 16}), "dog"),
+			getTrieDataWithDefaultVersion(string([]byte{3, 3, 3, 4, 5}), "doe"),
+		}
+
+		dirty, newNode, modifiedHashes, err := en.delete(data, nil)
+		assert.False(t, dirty)
+		assert.Nil(t, err)
+		assert.Equal(t, 0, len(modifiedHashes))
+		assert.Equal(t, en, newNode)
+	})
+	t.Run("reduce to leaf after delete", func(t *testing.T) {
+		t.Parallel()
+
+		en := getEn()
+		err := en.commitDirty(0, 5, testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
+		assert.Nil(t, err)
+
+		data := []core.TrieData{
+			getTrieDataWithDefaultVersion(string([]byte{1, 2, 4, 3, 4, 5}), "dog"),
+		}
+
+		dirty, newNode, modifiedHashes, err := en.delete(data, nil)
+		assert.True(t, dirty)
+		assert.Nil(t, err)
+		assert.Equal(t, 4, len(modifiedHashes))
+		ln, ok := newNode.(*leafNode)
+		assert.True(t, ok)
+		assert.Equal(t, []byte{1, 2, 7, 7, 8, 9}, ln.Key)
+		assert.True(t, ln.dirty)
+	})
+	t.Run("reduce to extension node after delete", func(t *testing.T) {
+		t.Parallel()
+
+		en := getEn()
+		data := []core.TrieData{
+			getTrieDataWithDefaultVersion(string([]byte{1, 2, 4, 4, 5, 6}), "dog"),
+		}
+		_, _, _ = en.insert(data, nil)
+		err := en.commitDirty(0, 5, testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
+		assert.Nil(t, err)
+
+		dataForRemoval := []core.TrieData{
+			getTrieDataWithDefaultVersion(string([]byte{1, 2, 7, 7, 8, 9}), "dog"),
+		}
+
+		dirty, newNode, modifiedHashes, err := en.delete(dataForRemoval, nil)
+		assert.True(t, dirty)
+		assert.Nil(t, err)
+		assert.Equal(t, 3, len(modifiedHashes))
+		en, ok := newNode.(*extensionNode)
+		assert.True(t, ok)
+		assert.Equal(t, []byte{1, 2, 4}, en.Key)
+		assert.True(t, en.dirty)
+	})
+	t.Run("delete all children", func(t *testing.T) {
+		t.Parallel()
+
+		en := getEn()
+		err := en.commitDirty(0, 5, testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
+		assert.Nil(t, err)
+
+		data := []core.TrieData{
+			getTrieDataWithDefaultVersion(string([]byte{1, 2, 4, 3, 4, 5}), "dog"),
+			getTrieDataWithDefaultVersion(string([]byte{1, 2, 7, 7, 8, 9}), "doe"),
+		}
+
+		dirty, newNode, modifiedHashes, err := en.delete(data, nil)
+		assert.True(t, dirty)
+		assert.Nil(t, err)
+		assert.Equal(t, 4, len(modifiedHashes))
+		assert.Nil(t, newNode)
+	})
+}

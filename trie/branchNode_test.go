@@ -1530,3 +1530,462 @@ func TestBranchNode_revertChildrenVersionSliceIfNeeded(t *testing.T) {
 		assert.Nil(t, bn.ChildrenVersion)
 	})
 }
+
+func TestBranchNode_splitDataForChildren(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty array returns err", func(t *testing.T) {
+		t.Parallel()
+
+		var newData []core.TrieData
+		data, err := splitDataForChildren(newData)
+		assert.Nil(t, data)
+		assert.Equal(t, ErrValueTooShort, err)
+	})
+	t.Run("empty key returns err", func(t *testing.T) {
+		t.Parallel()
+
+		newData := []core.TrieData{
+			{Key: []byte{2, 3, 4}},
+			{Key: []byte{}},
+		}
+
+		data, err := splitDataForChildren(newData)
+		assert.Nil(t, data)
+		assert.Equal(t, ErrValueTooShort, err)
+	})
+	t.Run("child pos out of range returns err", func(t *testing.T) {
+		t.Parallel()
+
+		newData := []core.TrieData{
+			{Key: []byte{2, 3, 4}},
+			{Key: []byte{17, 2, 3}},
+		}
+
+		data, err := splitDataForChildren(newData)
+		assert.Nil(t, data)
+		assert.Equal(t, ErrChildPosOutOfRange, err)
+	})
+	t.Run("one child on last pos should work", func(t *testing.T) {
+		t.Parallel()
+
+		childPos := byte(16)
+		newData := []core.TrieData{
+			{Key: []byte{childPos}},
+		}
+
+		data, err := splitDataForChildren(newData)
+		assert.True(t, len(data) == nrOfChildren)
+		assert.Nil(t, err)
+		assert.Equal(t, newData, data[childPos])
+	})
+	t.Run("all children have same pos should work", func(t *testing.T) {
+		t.Parallel()
+
+		childPos := byte(2)
+		newData := []core.TrieData{
+			{Key: []byte{childPos, 3, 4}},
+			{Key: []byte{childPos, 5, 6}},
+			{Key: []byte{childPos, 7, 8}},
+		}
+
+		data, err := splitDataForChildren(newData)
+		assert.True(t, len(data) == nrOfChildren)
+		assert.Nil(t, err)
+		for i := range data {
+			if i != int(childPos) {
+				assert.Nil(t, data[i])
+				continue
+			}
+			assert.Equal(t, newData, data[i])
+		}
+	})
+	t.Run("all children have different pos should work", func(t *testing.T) {
+		t.Parallel()
+
+		childPos1 := byte(2)
+		childPos2 := byte(6)
+		childPos3 := byte(13)
+		newData := []core.TrieData{
+			{Key: []byte{childPos1, 3, 4}},
+			{Key: []byte{childPos2, 5, 6}},
+			{Key: []byte{childPos3, 7, 8}},
+		}
+
+		data, err := splitDataForChildren(newData)
+		assert.True(t, len(data) == nrOfChildren)
+		assert.Nil(t, err)
+		for i := range data {
+			if i == int(childPos1) {
+				assert.Equal(t, []core.TrieData{newData[0]}, data[i])
+			} else if i == int(childPos2) {
+				assert.Equal(t, []core.TrieData{newData[1]}, data[i])
+			} else if i == int(childPos3) {
+				assert.Equal(t, []core.TrieData{newData[2]}, data[i])
+			} else {
+				assert.Nil(t, data[i])
+			}
+		}
+	})
+	t.Run("some children have same pos should work", func(t *testing.T) {
+		t.Parallel()
+
+		childPos1 := byte(2)
+		childPos2 := byte(6)
+		newData := []core.TrieData{
+			{Key: []byte{childPos1, 3, 4}},
+			{Key: []byte{childPos1, 5, 6}},
+			{Key: []byte{childPos2, 7, 8}},
+		}
+
+		data, err := splitDataForChildren(newData)
+		assert.True(t, len(data) == nrOfChildren)
+		assert.Nil(t, err)
+		for i := range data {
+			if i == int(childPos1) {
+				assert.Equal(t, []core.TrieData{newData[0], newData[1]}, data[i])
+			} else if i == int(childPos2) {
+				assert.Equal(t, []core.TrieData{newData[2]}, data[i])
+			} else {
+				assert.Nil(t, data[i])
+			}
+		}
+	})
+	t.Run("child pos is removed from key", func(t *testing.T) {
+		t.Parallel()
+
+		childPos := byte(2)
+		newData := []core.TrieData{
+			{Key: []byte{childPos, 3, 4}},
+			{Key: []byte{childPos, 5, 6}},
+		}
+
+		data, err := splitDataForChildren(newData)
+		assert.True(t, len(data) == nrOfChildren)
+		assert.Nil(t, err)
+		assert.Equal(t, 2, len(data[childPos]))
+		assert.Equal(t, []byte{3, 4}, newData[0].Key)
+		assert.Equal(t, []byte{5, 6}, newData[1].Key)
+	})
+}
+
+func TestBranchNode_insertOnNilChild(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty data should err", func(t *testing.T) {
+		t.Parallel()
+
+		bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
+		var data []core.TrieData
+		modifiedHashes, err := bn.insertOnNilChild(data, 0, nil)
+		assert.Equal(t, 0, len(modifiedHashes))
+		assert.Equal(t, ErrValueTooShort, err)
+	})
+	t.Run("insert one child in !dirty node", func(t *testing.T) {
+		t.Parallel()
+
+		db := testscommon.NewMemDbMock()
+		bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
+		err := bn.commitDirty(0, 5, db, db)
+		assert.Nil(t, err)
+		assert.False(t, bn.dirty)
+		originalHash := bn.getHash()
+		assert.True(t, len(originalHash) > 0)
+		newData := []core.TrieData{
+			{
+				Key:     []byte{1, 2, 3},
+				Value:   []byte("value"),
+				Version: core.AutoBalanceEnabled,
+			},
+		}
+		childPos := byte(0)
+		modifiedHashes, err := bn.insertOnNilChild(newData, childPos, db)
+		assert.Nil(t, err)
+		assert.Equal(t, 1, len(modifiedHashes))
+		assert.Equal(t, originalHash, modifiedHashes[0])
+		assert.True(t, bn.dirty)
+		assert.NotNil(t, bn.children[childPos])
+		assert.Equal(t, byte(core.AutoBalanceEnabled), bn.ChildrenVersion[childPos])
+	})
+	t.Run("insert one child in dirty node", func(t *testing.T) {
+		t.Parallel()
+
+		db := testscommon.NewMemDbMock()
+		bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
+		assert.True(t, bn.dirty)
+		newData := []core.TrieData{
+			{
+				Key:     []byte{1, 2, 3},
+				Value:   []byte("value"),
+				Version: core.AutoBalanceEnabled,
+			},
+		}
+		childPos := byte(0)
+		modifiedHashes, err := bn.insertOnNilChild(newData, childPos, db)
+		assert.Nil(t, err)
+		assert.Equal(t, 0, len(modifiedHashes))
+		assert.True(t, bn.dirty)
+		assert.NotNil(t, bn.children[childPos])
+		assert.Equal(t, byte(core.AutoBalanceEnabled), bn.ChildrenVersion[childPos])
+
+	})
+	t.Run("insert multiple children", func(t *testing.T) {
+		t.Parallel()
+
+		db := testscommon.NewMemDbMock()
+		bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
+		newData := []core.TrieData{
+			{
+				Key:     []byte{1, 2, 3},
+				Value:   []byte("value"),
+				Version: core.AutoBalanceEnabled,
+			},
+			{
+				Key:     []byte{1, 2, 4},
+				Value:   []byte("value"),
+				Version: core.AutoBalanceEnabled,
+			},
+		}
+		childPos := byte(0)
+		modifiedHashes, err := bn.insertOnNilChild(newData, childPos, db)
+		assert.Nil(t, err)
+		assert.Equal(t, 0, len(modifiedHashes))
+		assert.True(t, bn.dirty)
+		assert.NotNil(t, bn.children[childPos])
+		assert.Equal(t, byte(core.AutoBalanceEnabled), bn.ChildrenVersion[childPos])
+		_, ok := bn.children[0].(*extensionNode)
+		assert.True(t, ok)
+	})
+}
+
+func TestBranchNode_insertOnExistingChild(t *testing.T) {
+	t.Parallel()
+
+	t.Run("insert on existing child multiple children", func(t *testing.T) {
+		t.Parallel()
+
+		childPos := byte(2)
+		db := testscommon.NewMemDbMock()
+		var children [nrOfChildren]node
+		marshaller, hasher := getTestMarshalizerAndHasher()
+		children[2], _ = newLeafNode(getTrieDataWithDefaultVersion(string([]byte{1, 2, 5}), "dog"), marshaller, hasher)
+		children[6], _ = newLeafNode(getTrieDataWithDefaultVersion("doe", "doe"), marshaller, hasher)
+		bn, _ := newBranchNode(marshaller, hasher)
+		bn.children = children
+		newData := []core.TrieData{
+			{
+				Key:     []byte{1, 2, 3},
+				Value:   []byte("value"),
+				Version: core.AutoBalanceEnabled,
+			},
+			{
+				Key:     []byte{1, 2, 4},
+				Value:   []byte("value"),
+				Version: core.AutoBalanceEnabled,
+			},
+		}
+		err := bn.commitDirty(0, 5, db, db)
+		assert.Nil(t, err)
+		assert.False(t, bn.dirty)
+		originalHash := bn.getHash()
+		assert.True(t, len(originalHash) > 0)
+		originalChildHash := bn.children[childPos].getHash()
+		assert.True(t, len(originalChildHash) > 0)
+
+		dirty, modifiedHashes, err := bn.insertOnExistingChild(newData, childPos, db)
+		assert.True(t, dirty)
+		assert.True(t, bn.dirty)
+		assert.Equal(t, 2, len(modifiedHashes))
+		assert.Equal(t, originalChildHash, modifiedHashes[0])
+		assert.Equal(t, originalHash, modifiedHashes[1])
+		_, ok := bn.children[childPos].(*extensionNode)
+		assert.True(t, ok)
+	})
+	t.Run("insert on existing child same node", func(t *testing.T) {
+		t.Parallel()
+
+		childPos := byte(2)
+		db := testscommon.NewMemDbMock()
+		var children [nrOfChildren]node
+		marshaller, hasher := getTestMarshalizerAndHasher()
+		key := []byte{1, 2, 5}
+		value := "dog"
+		children[2], _ = newLeafNode(getTrieDataWithDefaultVersion(string(key), value), marshaller, hasher)
+		children[6], _ = newLeafNode(getTrieDataWithDefaultVersion("doe", "doe"), marshaller, hasher)
+		bn, _ := newBranchNode(marshaller, hasher)
+		bn.children = children
+		newData := []core.TrieData{
+			{
+				Key:     key,
+				Value:   []byte(value),
+				Version: core.NotSpecified,
+			},
+		}
+		err := bn.commitDirty(0, 5, db, db)
+		assert.Nil(t, err)
+		assert.False(t, bn.dirty)
+
+		dirty, modifiedHashes, err := bn.insertOnExistingChild(newData, childPos, db)
+		assert.False(t, dirty)
+		assert.False(t, bn.dirty)
+		assert.Equal(t, 0, len(modifiedHashes))
+		_, ok := bn.children[childPos].(*leafNode)
+		assert.True(t, ok)
+	})
+}
+
+func TestBranchNode_insertBatch(t *testing.T) {
+	t.Parallel()
+
+	db := testscommon.NewMemDbMock()
+	var children [nrOfChildren]node
+	marshaller, hasher := getTestMarshalizerAndHasher()
+	children[2], _ = newLeafNode(getTrieDataWithDefaultVersion(string([]byte{3, 4, 5}), "dog"), marshaller, hasher)
+	children[6], _ = newLeafNode(getTrieDataWithDefaultVersion(string([]byte{7, 8, 9}), "doe"), marshaller, hasher)
+	bn, _ := newBranchNode(marshaller, hasher)
+	bn.children = children
+
+	newData := []core.TrieData{
+		{
+			Key:   []byte{1, 2, 3},
+			Value: []byte("value1"),
+		},
+		{
+			Key:   []byte{6, 7, 8, 16},
+			Value: []byte("value2"),
+		},
+		{
+			Key:   []byte{6, 10, 11, 16},
+			Value: []byte("value3"),
+		},
+		{
+			Key:   []byte{16},
+			Value: []byte("value4"),
+		},
+	}
+	err := bn.commitDirty(0, 5, db, db)
+	assert.Nil(t, err)
+	assert.False(t, bn.dirty)
+
+	newNode, modifiedHashes, err := bn.insert(newData, db)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(modifiedHashes))
+	assert.True(t, newNode.isDirty())
+
+	bn, ok := newNode.(*branchNode)
+	assert.True(t, ok)
+	assert.True(t, bn.dirty)
+	assert.False(t, bn.children[2].isDirty())
+	_, ok = bn.children[1].(*leafNode)
+	assert.True(t, ok)
+	_, ok = bn.children[6].(*branchNode)
+	assert.True(t, ok)
+	_, ok = bn.children[16].(*leafNode)
+	assert.True(t, ok)
+
+}
+
+func getNewBn() *branchNode {
+	marsh, hasher := getTestMarshalizerAndHasher()
+	var children [nrOfChildren]node
+	childBn, _ := newBranchNode(marsh, hasher)
+	childBn.children[1], _ = newLeafNode(getTrieDataWithDefaultVersion(string([]byte{3, 4, 5}), "dog"), marsh, hasher)
+	childBn.children[3], _ = newLeafNode(getTrieDataWithDefaultVersion(string([]byte{7, 8, 9}), "doe"), marsh, hasher)
+
+	children[4], _ = newLeafNode(getTrieDataWithDefaultVersion(string([]byte{3, 4, 5}), "dog"), marsh, hasher)
+	children[7], _ = newLeafNode(getTrieDataWithDefaultVersion(string([]byte{7, 8, 9}), "doe"), marsh, hasher)
+	children[9] = childBn
+
+	bn, _ := newBranchNode(marsh, hasher)
+	bn.children = children
+	_ = bn.commitDirty(0, 5, testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
+	return bn
+}
+
+func TestBranchNode_deleteBatch(t *testing.T) {
+	t.Parallel()
+
+	t.Run("delete multiple children", func(t *testing.T) {
+		t.Parallel()
+
+		bn := getNewBn()
+		assert.False(t, bn.dirty)
+
+		data := []core.TrieData{
+			{
+				Key: []byte{4, 3, 4, 5},
+			},
+			{
+				Key: []byte{9, 1, 3, 4, 5},
+			},
+		}
+
+		dirty, newNode, modifiedHashes, err := bn.delete(data, testscommon.NewMemDbMock())
+		assert.Nil(t, err)
+		assert.True(t, dirty)
+		assert.True(t, newNode.isDirty())
+		assert.Equal(t, 5, len(modifiedHashes))
+		bn, ok := newNode.(*branchNode)
+		assert.True(t, ok)
+
+		assert.Nil(t, bn.children[4])
+		assert.False(t, bn.children[7].isDirty())
+		_, ok = bn.children[9].(*leafNode)
+		assert.True(t, ok)
+
+	})
+	t.Run("reduce node after delete batch", func(t *testing.T) {
+		t.Parallel()
+
+		bn := getNewBn()
+		assert.False(t, bn.dirty)
+
+		data := []core.TrieData{
+			{
+				Key: []byte{4, 3, 4, 5},
+			},
+			{
+				Key: []byte{7, 7, 8, 9},
+			},
+			{
+				Key: []byte{9, 1, 3, 4, 5},
+			},
+		}
+
+		dirty, newNode, modifiedHashes, err := bn.delete(data, testscommon.NewMemDbMock())
+		assert.Nil(t, err)
+		assert.True(t, dirty)
+		assert.True(t, newNode.isDirty())
+		assert.Equal(t, 6, len(modifiedHashes))
+		ln, ok := newNode.(*leafNode)
+		assert.True(t, ok)
+		assert.Equal(t, []byte{9, 3, 7, 8, 9}, ln.Key)
+	})
+	t.Run("delete all children", func(t *testing.T) {
+		t.Parallel()
+
+		bn := getNewBn()
+		assert.False(t, bn.dirty)
+
+		data := []core.TrieData{
+			{
+				Key: []byte{4, 3, 4, 5},
+			},
+			{
+				Key: []byte{7, 7, 8, 9},
+			},
+			{
+				Key: []byte{9, 1, 3, 4, 5},
+			},
+			{
+				Key: []byte{9, 3, 7, 8, 9},
+			},
+		}
+
+		dirty, newNode, modifiedHashes, err := bn.delete(data, testscommon.NewMemDbMock())
+		assert.Nil(t, err)
+		assert.True(t, dirty)
+		assert.Nil(t, newNode)
+		assert.Equal(t, 6, len(modifiedHashes))
+	})
+}
