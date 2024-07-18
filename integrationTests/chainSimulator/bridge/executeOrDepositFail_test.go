@@ -110,6 +110,7 @@ func testExecuteOperationNotAllowedToMintTokenWithoutPrefix(
 		ChainPrefix:       "sov1",
 		IssuePaymentToken: "ABC-123456",
 	}
+	setStateBridgeOwner(t, cs, initialAddress, argsEsdtSafe)
 	bridgeData := deployBridgeSetup(t, cs, initialAddress, simpleEsdtSafeWasmPath, argsEsdtSafe, feeMarketWasmPath)
 
 	esdtSafeEncoded, _ := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Encode(bridgeData.ESDTSafeAddress)
@@ -215,6 +216,7 @@ func testExecuteOperationNotAllowedToMintFungibleContractNotWhitelisted(
 		ChainPrefix:       prefix,
 		IssuePaymentToken: "ABC-123456",
 	}
+	setStateBridgeOwner(t, cs, initialAddress, argsEsdtSafe)
 	bridgeData := deployBridgeSetup(t, cs, initialAddress, simpleEsdtSafeWasmPath, argsEsdtSafe, feeMarketWasmPath)
 
 	// esdt-safe address generated is NOT whitelisted
@@ -321,6 +323,7 @@ func testDepositNotAllowedToBurnTokensContractNotWhitelisted(
 		ChainPrefix:       prefix,
 		IssuePaymentToken: "ABC-123456",
 	}
+	setStateBridgeOwner(t, cs, initialAddress, argsEsdtSafe)
 	bridgeData := deployBridgeSetup(t, cs, initialAddress, simpleEsdtSafeWasmPath, argsEsdtSafe, feeMarketWasmPath)
 
 	// esdt-safe address generated is NOT whitelisted
@@ -346,7 +349,7 @@ func testDepositNotAllowedToBurnTokensContractNotWhitelisted(
 			Type:          uint32(token.Type),
 			TokenMetaData: getTokenMetaData(token),
 		}
-		chainSim.GetEsdtInWallet(t, cs, wallet, token.Identifier, token.Nonce, tokenData)
+		chainSim.SetEsdtInWallet(t, cs, wallet, token.Identifier, token.Nonce, tokenData)
 
 		err = cs.GenerateBlocks(1)
 		require.Nil(t, err)
@@ -355,7 +358,7 @@ func testDepositNotAllowedToBurnTokensContractNotWhitelisted(
 
 	// deposit an array of tokens from main chain to sovereign chain,
 	// expecting these tokens to NOT be burned by ESDT safe sc because is not whitelisted
-	txResult := deposit(t, cs, wallet.Bytes, &nonce, bridgeData.ESDTSafeAddress, bridgedOutTokens, wallet.Bytes)
+	txResult := Deposit(t, cs, wallet.Bytes, &nonce, bridgeData.ESDTSafeAddress, bridgedOutTokens, wallet.Bytes)
 	chainSim.RequireSignalError(t, txResult, actionNotAllowed)
 }
 

@@ -106,6 +106,22 @@ func GenerateTransaction(sender []byte, nonce uint64, receiver []byte, value *bi
 	}
 }
 
+// SendTransactionWithSuccess will send a transaction and expect successful execution and return the result
+func SendTransactionWithSuccess(
+	t *testing.T,
+	cs ChainSimulator,
+	sender []byte,
+	nonce *uint64,
+	receiver []byte,
+	value *big.Int,
+	data string,
+	gasLimit uint64,
+) *transaction.ApiTransactionResult {
+	txResult := SendTransaction(t, cs, sender, nonce, receiver, value, data, gasLimit)
+	RequireSuccessfulTransaction(t, txResult)
+	return txResult
+}
+
 // SendTransaction will send a transaction and return the result
 func SendTransaction(
 	t *testing.T,
@@ -129,10 +145,9 @@ func SendTransaction(
 func RequireSuccessfulTransaction(t *testing.T, txResult *transaction.ApiTransactionResult) {
 	require.NotNil(t, txResult)
 	require.Equal(t, transaction.TxStatusSuccess, txResult.Status)
-	if txResult.Logs != nil && len(txResult.Logs.Events) > 0 {
-		if txResult.Logs.Events[0].Identifier == signalError {
-			require.Fail(t, string(txResult.Logs.Events[0].Topics[1]))
-		}
+	event := getEvent(txResult.Logs, signalError)
+	if event != nil {
+		require.Fail(t, string(event.Topics[1]))
 	}
 }
 
@@ -140,12 +155,23 @@ func RequireSuccessfulTransaction(t *testing.T, txResult *transaction.ApiTransac
 func RequireSignalError(t *testing.T, txResult *transaction.ApiTransactionResult, error string) {
 	require.NotNil(t, txResult)
 	require.Equal(t, transaction.TxStatusSuccess, txResult.Status)
-	if txResult.Logs != nil && len(txResult.Logs.Events) > 0 {
-		if txResult.Logs.Events[0].Identifier != signalError {
-			require.Fail(t, "signal error event not found")
-		}
-		require.Equal(t, error, string(txResult.Logs.Events[0].Topics[1]))
+	event := getEvent(txResult.Logs, signalError)
+	if event == nil {
+		require.Fail(t, "%s event not found", signalError)
 	}
+	require.Equal(t, error, string(event.Topics[1]))
+}
+
+func getEvent(logs *transaction.ApiLogs, eventID string) *transaction.Events {
+	if logs == nil || len(logs.Events) == 0 {
+		return nil
+	}
+	for _, event := range logs.Events {
+		if event.Identifier == eventID {
+			return event
+		}
+	}
+	return nil
 }
 
 // RequireAccountHasToken checks if the account has the amount of tokens (can also be zero)
@@ -232,8 +258,8 @@ func getEsdtIdentifier(t *testing.T, nodeHandler process.NodeHandler, ticker str
 	return ""
 }
 
-// GetEsdtInWallet will add token key in wallet storage without adding key in system account
-func GetEsdtInWallet(
+// SetEsdtInWallet will add token key in wallet storage without adding key in system account
+func SetEsdtInWallet(
 	t *testing.T,
 	cs ChainSimulator,
 	wallet dtos.WalletAddress,

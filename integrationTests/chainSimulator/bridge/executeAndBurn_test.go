@@ -169,6 +169,7 @@ func simulateExecutionAndDeposit(
 		ChainPrefix:       sovChainPrefix,
 		IssuePaymentToken: "WEGLD-bd4d79",
 	}
+	setStateBridgeOwner(t, cs, initialAddress, argsEsdtSafe)
 	bridgeData := deployBridgeSetup(t, cs, initialAddress, esdtSafeWasmPath, argsEsdtSafe, feeMarketWasmPath)
 	chainSim.RequireAccountHasToken(t, cs, argsEsdtSafe.IssuePaymentToken, initialAddress, big.NewInt(0))
 
@@ -179,11 +180,11 @@ func simulateExecutionAndDeposit(
 	require.Nil(t, err)
 	nonce := uint64(0)
 	paymentTokenAmount, _ := big.NewInt(0).SetString("1000000000000000000", 10)
-	chainSim.GetEsdtInWallet(t, cs, wallet, argsEsdtSafe.IssuePaymentToken, 0, esdt.ESDigitalToken{Value: paymentTokenAmount})
+	chainSim.SetEsdtInWallet(t, cs, wallet, argsEsdtSafe.IssuePaymentToken, 0, esdt.ESDigitalToken{Value: paymentTokenAmount})
 
 	// We need to register tokens originated from sovereign (to pay the issue cost)
 	// Only the tokens with sovereign prefix need to be registered (these are the ones that will be minted), the rest will be taken from contract balance
-	tokens := getSovereignTokens(bridgedInTokens, argsEsdtSafe.ChainPrefix)
+	tokens := getPrefixedTokens(bridgedInTokens, argsEsdtSafe.ChainPrefix)
 	registerSovereignNewTokens(t, cs, wallet, &nonce, bridgeData.ESDTSafeAddress, argsEsdtSafe.IssuePaymentToken, tokens)
 
 	// We will deposit an array of prefixed tokens from a sovereign chain to the main chain,
@@ -196,7 +197,7 @@ func simulateExecutionAndDeposit(
 
 	// deposit an array of tokens from main chain to sovereign chain,
 	// expecting these tokens to be burned by the whitelisted ESDT safe sc
-	txResult = deposit(t, cs, wallet.Bytes, &nonce, bridgeData.ESDTSafeAddress, bridgedOutTokens, wallet.Bytes)
+	txResult = Deposit(t, cs, wallet.Bytes, &nonce, bridgeData.ESDTSafeAddress, bridgedOutTokens, wallet.Bytes)
 	chainSim.RequireSuccessfulTransaction(t, txResult)
 
 	bridgedTokens := groupTokens(bridgedInTokens)
@@ -215,7 +216,7 @@ func simulateExecutionAndDeposit(
 	}
 }
 
-func getSovereignTokens(bridgedTokens []chainSim.ArgsDepositToken, prefix string) []string {
+func getPrefixedTokens(bridgedTokens []chainSim.ArgsDepositToken, prefix string) []string {
 	tokens := make([]string, 0)
 	for _, token := range bridgedTokens {
 		if strings.HasPrefix(token.Identifier, prefix+"-") {

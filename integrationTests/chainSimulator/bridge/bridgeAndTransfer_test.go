@@ -67,6 +67,7 @@ func TestChainSimulator_ExecuteMintBurnBridgeOpForESDTTokensWithPrefixAndTransfe
 		ChainPrefix:       "sov1",
 		IssuePaymentToken: "ABC-123456",
 	}
+	setStateBridgeOwner(t, cs, initialAddress, argsEsdtSafe)
 	bridgeData := deployBridgeSetup(t, cs, initialAddress, esdtSafeWasmPath, argsEsdtSafe, feeMarketWasmPath)
 
 	esdtSafeEncoded, _ := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Encode(bridgeData.ESDTSafeAddress)
@@ -76,7 +77,7 @@ func TestChainSimulator_ExecuteMintBurnBridgeOpForESDTTokensWithPrefixAndTransfe
 	require.Nil(t, err)
 	nonce := uint64(0)
 	paymentTokenAmount, _ := big.NewInt(0).SetString("1000000000000000000", 10)
-	chainSim.GetEsdtInWallet(t, cs, wallet, argsEsdtSafe.IssuePaymentToken, 0, esdt.ESDigitalToken{Value: paymentTokenAmount})
+	chainSim.SetEsdtInWallet(t, cs, wallet, argsEsdtSafe.IssuePaymentToken, 0, esdt.ESDigitalToken{Value: paymentTokenAmount})
 
 	tokenToBridge := argsEsdtSafe.ChainPrefix + "-SOVT-5d8f56"
 	expectedMintValue := big.NewInt(123)
@@ -110,7 +111,7 @@ func TestChainSimulator_ExecuteMintBurnBridgeOpForESDTTokensWithPrefixAndTransfe
 	})
 	// We will deposit a prefixed token from main chain to sovereign chain,
 	// expecting these tokens to be burned by the whitelisted ESDT safe sc
-	txResult = deposit(t, cs, wallet.Bytes, &nonce, bridgeData.ESDTSafeAddress, bridgedOutTokens, wallet.Bytes)
+	txResult = Deposit(t, cs, wallet.Bytes, &nonce, bridgeData.ESDTSafeAddress, bridgedOutTokens, wallet.Bytes)
 	chainSim.RequireSuccessfulTransaction(t, txResult)
 
 	remainingValueAfterBridge := big.NewInt(0).Sub(expectedMintValue, amountToDeposit)
