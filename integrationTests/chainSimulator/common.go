@@ -246,9 +246,9 @@ func GetEsdtInWallet(
 
 	nonce := ""
 	if tokenNonce != 0 {
-		nonce = fmt.Sprintf("%x", tokenNonce)
+		nonce = hex.EncodeToString(big.NewInt(0).SetUint64(tokenNonce).Bytes())
 	}
-	tokenKey := hex.EncodeToString([]byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier + token + nonce))
+	tokenKey := hex.EncodeToString([]byte(core.ProtectedKeyPrefix+core.ESDTKeyIdentifier+token)) + nonce
 	tokenValue := hex.EncodeToString(marshalledTokenData)
 	keyValueMap := map[string]string{
 		tokenKey: tokenValue,

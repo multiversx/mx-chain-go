@@ -138,7 +138,7 @@ func TestChainSimulator_ExecuteOperationNotAllowedToMintFungibleContractNotWhite
 }
 
 func TestChainSimulator_ExecuteOperationNotAllowedToMintNonFungibleContractNotWhitelisted(t *testing.T) {
-	prefix := "sov1"
+	prefix := "sov2"
 	bridgedInTokens := make([]chainSim.ArgsDepositToken, 0)
 	bridgedInTokens = append(bridgedInTokens, chainSim.ArgsDepositToken{
 		Identifier: prefix + "-SOVT-5d8f56",
@@ -151,7 +151,7 @@ func TestChainSimulator_ExecuteOperationNotAllowedToMintNonFungibleContractNotWh
 }
 
 func TestChainSimulator_ExecuteOperationNotAllowedToMintSemiFungibleContractNotWhitelisted(t *testing.T) {
-	prefix := "sov1"
+	prefix := "sov3"
 	bridgedInTokens := make([]chainSim.ArgsDepositToken, 0)
 	bridgedInTokens = append(bridgedInTokens, chainSim.ArgsDepositToken{
 		Identifier: prefix + "-SOVT-5d8f56",
@@ -244,11 +244,11 @@ func TestChainSimulator_DepositNotAllowedToBurnFungibleContractNotWhitelisted(t 
 }
 
 func TestChainSimulator_DepositNotAllowedToBurnNonFungibleContractNotWhitelisted(t *testing.T) {
-	prefix := "sov1"
+	prefix := "sov2"
 	bridgedOutTokens := make([]chainSim.ArgsDepositToken, 0)
 	bridgedOutTokens = append(bridgedOutTokens, chainSim.ArgsDepositToken{
-		Identifier: prefix + "-SOVT-5d8f56",
-		Nonce:      5,
+		Identifier: prefix + "-SOVNFT-5d8f56",
+		Nonce:      3,
 		Amount:     big.NewInt(1),
 		Type:       core.NonFungible,
 	})
@@ -257,10 +257,10 @@ func TestChainSimulator_DepositNotAllowedToBurnNonFungibleContractNotWhitelisted
 }
 
 func TestChainSimulator_DepositNotAllowedToBurnSemiFungibleContractNotWhitelisted(t *testing.T) {
-	prefix := "sov1"
+	prefix := "sov3"
 	bridgedOutTokens := make([]chainSim.ArgsDepositToken, 0)
 	bridgedOutTokens = append(bridgedOutTokens, chainSim.ArgsDepositToken{
-		Identifier: prefix + "-SOVT-5d8f56",
+		Identifier: prefix + "-SOVSFT-5d8f56",
 		Nonce:      3,
 		Amount:     big.NewInt(15),
 		Type:       core.SemiFungible,
