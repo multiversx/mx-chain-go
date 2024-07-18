@@ -140,29 +140,33 @@ func (gbc *sovereignGenesisBlockCreator) createSovereignHeaders(args *headerCrea
 		return nil, fmt.Errorf("'%w' while generating genesis block for shard %d", err, shardID)
 	}
 
-	genesisBlocks := make(map[uint32]data.HeaderHandler)
-	allScAddresses := make([][]byte, 0)
-	allScAddresses = append(allScAddresses, scResults...)
-	genesisBlocks[shardID] = genesisBlock
 	err = gbc.saveGenesisBlock(genesisBlock)
 	if err != nil {
 		return nil, fmt.Errorf("'%w' while saving genesis block for shard %d", err, shardID)
 	}
 
-	err = gbc.checkDelegationsAgainstDeployedSC(allScAddresses, gbc.arg)
+	err = gbc.checkDelegationsAgainstDeployedSC(scResults, gbc.arg)
 	if err != nil {
 		return nil, err
 	}
 
-	gb := genesisBlocks[shardID]
+	// TODO: Ugly fix, we need header versioning creator here to be integrated for sovereign chain
+	sovereignHeader := &block.SovereignChainHeader{
+		Header:                 genesisBlock.(*block.Header),
+		AccumulatedFeesInEpoch: big.NewInt(0),
+		DevFeesInEpoch:         big.NewInt(0),
+	}
+
 	log.Info("sovereignGenesisBlockCreator.createSovereignHeaders",
-		"shard", gb.GetShardID(),
-		"nonce", gb.GetNonce(),
-		"round", gb.GetRound(),
-		"root hash", gb.GetRootHash(),
+		"shard", sovereignHeader.GetShardID(),
+		"nonce", sovereignHeader.GetNonce(),
+		"round", sovereignHeader.GetRound(),
+		"root hash", sovereignHeader.GetRootHash(),
 	)
 
-	return genesisBlocks, nil
+	return map[uint32]data.HeaderHandler{
+		core.SovereignChainShardId: sovereignHeader,
+	}, nil
 }
 
 func createSovereignShardGenesisBlock(

@@ -48,21 +48,9 @@ func NewSovereignChainShardBlockTrack(shardBlockTrack *shardBlockTrack) (*sovere
 }
 
 func (scsbt *sovereignChainShardBlockTrack) initCrossNotarizedStartHeaders() error {
-	scsbt.mutStartHeaders.RLock()
-	startHeader, foundHeader := scsbt.startHeaders[scsbt.shardCoordinator.SelfId()]
-	scsbt.mutStartHeaders.RUnlock()
-	if !foundHeader {
-		return fmt.Errorf("%w in sovereignChainShardBlockTrack.initCrossNotarizedStartHeaders", process.ErrMissingHeader)
-	}
-
-	header, isHeader := startHeader.(*block.Header)
-	if !isHeader {
-		return fmt.Errorf("%w in sovereignChainShardBlockTrack.initCrossNotarizedStartHeaders", process.ErrWrongTypeAssertion)
-	}
-
 	extendedShardHeader := &block.ShardHeaderExtended{
 		Header: &block.HeaderV2{
-			Header: header,
+			Header: &block.Header{},
 		},
 	}
 	extendedShardHeaderHash, err := core.CalculateHash(scsbt.marshalizer, scsbt.hasher, extendedShardHeader)
