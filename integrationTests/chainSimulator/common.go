@@ -163,6 +163,18 @@ func RequireSignalError(t *testing.T, txResult *transaction.ApiTransactionResult
 	require.Equal(t, error, string(event.Topics[1]))
 }
 
+// RequireErrorEvent require that the transaction has specific event with error
+func RequireErrorEvent(t *testing.T, txResult *transaction.ApiTransactionResult, eventID string, error string) {
+	require.NotNil(t, txResult)
+	require.Equal(t, transaction.TxStatusSuccess, txResult.Status)
+	event := getEvent(txResult.Logs, eventID)
+	if event == nil {
+		require.Fail(t, "%s event not found", eventID)
+		return
+	}
+	require.Contains(t, string(event.Data), error)
+}
+
 func getEvent(logs *transaction.ApiLogs, eventID string) *transaction.Events {
 	if logs == nil || len(logs.Events) == 0 {
 		return nil
