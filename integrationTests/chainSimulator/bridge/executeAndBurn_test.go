@@ -1,7 +1,6 @@
 package bridge
 
 import (
-	"encoding/hex"
 	"fmt"
 	"math/big"
 	"strings"
@@ -16,7 +15,6 @@ import (
 	chainSim "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
-	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 )
 
 const (
@@ -181,7 +179,7 @@ func simulateExecutionAndDeposit(
 	require.Nil(t, err)
 	nonce := uint64(0)
 	paymentTokenAmount, _ := big.NewInt(0).SetString("1000000000000000000", 10)
-	getIssuePaymentTokenInWallet(t, cs, wallet, argsEsdtSafe.IssuePaymentToken, paymentTokenAmount)
+	chainSim.GetEsdtInWallet(t, cs, wallet, argsEsdtSafe.IssuePaymentToken, 0, esdt.ESDigitalToken{Value: paymentTokenAmount})
 
 	// We need to register tokens originated from sovereign (to pay the issue cost)
 	// Only the tokens with sovereign prefix need to be registered (these are the ones that will be minted), the rest will be taken from contract balance
@@ -215,30 +213,6 @@ func simulateExecutionAndDeposit(
 		require.NotNil(t, tokenSupply)
 		require.Equal(t, bridgedOutToken.Amount.String(), tokenSupply.Burned)
 	}
-}
-
-func getIssuePaymentTokenInWallet(
-	t *testing.T,
-	cs chainSim.ChainSimulator,
-	wallet dtos.WalletAddress,
-	token string,
-	amount *big.Int,
-) {
-	tokenData := &esdt.ESDigitalToken{
-		Value: amount,
-		Type:  uint32(core.Fungible),
-	}
-	marshalledTokenData, err := cs.GetNodeHandler(0).GetCoreComponents().InternalMarshalizer().Marshal(tokenData)
-	require.NoError(t, err)
-
-	tokenKey := hex.EncodeToString([]byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier + token))
-	tokenValue := hex.EncodeToString(marshalledTokenData)
-	keyValueMap := map[string]string{
-		tokenKey: tokenValue,
-	}
-
-	err = cs.SetKeyValueForAddress(wallet.Bech32, keyValueMap)
-	require.NoError(t, err)
 }
 
 func getSovereignTokens(bridgedTokens []chainSim.ArgsDepositToken, prefix string) []string {

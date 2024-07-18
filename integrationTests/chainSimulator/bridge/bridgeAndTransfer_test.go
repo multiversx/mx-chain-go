@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/config"
@@ -75,7 +76,7 @@ func TestChainSimulator_ExecuteMintBurnBridgeOpForESDTTokensWithPrefixAndTransfe
 	require.Nil(t, err)
 	nonce := uint64(0)
 	paymentTokenAmount, _ := big.NewInt(0).SetString("1000000000000000000", 10)
-	getIssuePaymentTokenInWallet(t, cs, wallet, argsEsdtSafe.IssuePaymentToken, paymentTokenAmount)
+	chainSim.GetEsdtInWallet(t, cs, wallet, argsEsdtSafe.IssuePaymentToken, 0, esdt.ESDigitalToken{Value: paymentTokenAmount})
 
 	tokenToBridge := argsEsdtSafe.ChainPrefix + "-SOVT-5d8f56"
 	expectedMintValue := big.NewInt(123)
