@@ -158,6 +158,7 @@ func RequireSignalError(t *testing.T, txResult *transaction.ApiTransactionResult
 	event := getEvent(txResult.Logs, signalError)
 	if event == nil {
 		require.Fail(t, "%s event not found", signalError)
+		return
 	}
 	require.Equal(t, error, string(event.Topics[1]))
 }
@@ -166,6 +167,7 @@ func getEvent(logs *transaction.ApiLogs, eventID string) *transaction.Events {
 	if logs == nil || len(logs.Events) == 0 {
 		return nil
 	}
+
 	for _, event := range logs.Events {
 		if event.Identifier == eventID {
 			return event
