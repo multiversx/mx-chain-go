@@ -239,6 +239,16 @@ func (cache *TxCache) ForEachTransaction(function ForEachTransaction) {
 	cache.txByHash.forEach(function)
 }
 
+func (cache *TxCache) getAllTransactions() []*WrappedTransaction {
+	transactions := make([]*WrappedTransaction, 0, cache.Len())
+
+	cache.ForEachTransaction(func(_ []byte, tx *WrappedTransaction) {
+		transactions = append(transactions, tx)
+	})
+
+	return transactions
+}
+
 // GetTransactionsPoolForSender returns the list of transaction hashes for the sender
 func (cache *TxCache) GetTransactionsPoolForSender(sender string) []*WrappedTransaction {
 	listForSender, ok := cache.txListBySender.getListForSender(sender)

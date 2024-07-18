@@ -8,11 +8,6 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
-var log = logger.GetOrCreate("txcache/main")
-var logAdd = logger.GetOrCreate("txcache/add")
-var logRemove = logger.GetOrCreate("txcache/remove")
-var logSelect = logger.GetOrCreate("txcache/select")
-
 func (cache *TxCache) monitorEvictionWrtSenderLimit(sender []byte, evicted [][]byte) {
 	logRemove.Debug("monitorEvictionWrtSenderLimit()", "sender", sender, "num", len(evicted))
 }
@@ -110,58 +105,6 @@ type evictionJournal struct {
 
 func (journal *evictionJournal) display() {
 	logRemove.Debug("Eviction.pass1:", "txs", journal.passOneNumTxs, "senders", journal.passOneNumSenders, "steps", journal.passOneNumSteps)
-}
-
-// Diagnose checks the state of the cache for inconsistencies and displays a summary
-func (cache *TxCache) Diagnose(_ bool) {
-	sw := core.NewStopWatch()
-	sw.Start("diagnose")
-
-	sizeInBytes := cache.NumBytes()
-	numTxsEstimate := int(cache.CountTx())
-	numTxsInChunks := cache.txByHash.backingMap.Count()
-	txsKeys := cache.txByHash.backingMap.Keys()
-	numSendersEstimate := int(cache.CountSenders())
-	numSendersInChunks := cache.txListBySender.backingMap.Count()
-	sendersKeys := cache.txListBySender.backingMap.Keys()
-	senders := cache.txListBySender.getSnapshotAscending()
-
-	cache.displaySendersSummary(senders)
-
-	sw.Stop("diagnose")
-	duration := sw.GetMeasurement("diagnose")
-
-	fine := numSendersEstimate == numSendersInChunks
-	fine = fine && len(sendersKeys) == len(senders)
-	fine = fine && (int(numSendersEstimate) == len(sendersKeys))
-	fine = fine && (numTxsEstimate == numTxsInChunks && numTxsEstimate == len(txsKeys))
-
-	log.Debug("TxCache.Diagnose()",
-		"duration", duration,
-		"fine", fine,
-		"numTxsEstimate", numTxsEstimate,
-		"numTxsInChunks", numTxsInChunks,
-		"len(txsKeys)", len(txsKeys),
-		"sizeInBytes", sizeInBytes,
-		"numBytesThreshold", cache.config.NumBytesThreshold,
-		"numSendersEstimate", numSendersEstimate,
-		"numSendersInChunks", numSendersInChunks,
-		"len(sendersKeys)", len(sendersKeys),
-		"len(senders)", len(senders),
-	)
-}
-
-func (cache *TxCache) displaySendersSummary(senders []*txListForSender) {
-	if log.GetLevel() > logger.LogTrace {
-		return
-	}
-
-	if len(senders) == 0 {
-		return
-	}
-
-	log.Trace("displaySendersSummary(), as newline-separated JSON:")
-	log.Trace(marshalSendersToNewlineDelimitedJson(senders))
 }
 
 func monitorSendersScoreHistogram(scoreGroups [][]*txListForSender) {
