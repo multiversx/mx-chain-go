@@ -141,8 +141,9 @@ type VMTestContext struct {
 	ContractOwner VMTestAccount
 	Contract      VMTestAccount
 
-	TxCostHandler    external.TransactionEvaluator
-	TxsLogsProcessor process.TransactionLogProcessor
+	TxCostHandler           external.TransactionEvaluator
+	TxsLogsProcessor        process.TransactionLogProcessor
+	FailedTxLogsAccumulator process.FailedTxLogsAccumulator
 }
 
 // Close -
@@ -808,12 +809,13 @@ func CreateVMConfigWithVersion(version string) *config.VirtualMachineConfig {
 
 // ResultsCreateTxProcessor is the struct that will hold all needed processor instances
 type ResultsCreateTxProcessor struct {
-	TxProc             process.TransactionProcessor
-	SCProc             scrCommon.TestSmartContractProcessor
-	IntermediateTxProc process.IntermediateTransactionHandler
-	EconomicsHandler   process.EconomicsDataHandler
-	CostHandler        external.TransactionEvaluator
-	TxLogProc          process.TransactionLogProcessor
+	TxProc                  process.TransactionProcessor
+	SCProc                  scrCommon.TestSmartContractProcessor
+	IntermediateTxProc      process.IntermediateTransactionHandler
+	EconomicsHandler        process.EconomicsDataHandler
+	CostHandler             external.TransactionEvaluator
+	TxLogProc               process.TransactionLogProcessor
+	FailedTxLogsAccumulator process.FailedTxLogsAccumulator
 }
 
 // CreateTxProcessorWithOneSCExecutorWithVMs -
@@ -870,6 +872,8 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		Marshalizer:          integrationtests.TestMarshalizer,
 	})
 
+	failedLogsAcc := transactionLog.NewFailedTxLogsAccumulator()
+
 	intermediateTxHandler := &mock.IntermediateTransactionHandlerMock{}
 	argsNewSCProcessor := scrCommon.ArgsNewSmartContractProcessor{
 		VmContainer:             vmContainer,
@@ -918,8 +922,8 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		TxVersionChecker:        versioning.NewTxVersionChecker(minTransactionVersion),
 		GuardianChecker:         guardianChecker,
 		TxLogsProcessor:         logProc,
+		FailedTxLogsAccumulator: failedLogsAcc,
 		RelayedTxV3Processor:    &processMocks.RelayedTxV3ProcessorMock{},
-		FailedTxLogsAccumulator: &processMocks.FailedTxLogsAccumulatorMock{},
 	}
 	txProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
 	if err != nil {
@@ -1326,23 +1330,24 @@ func CreatePreparedTxProcessorWithVMConfigWithShardCoordinatorDBAndGasAndRoundCo
 	}
 
 	return &VMTestContext{
-		TxProcessor:            res.TxProc,
-		ScProcessor:            res.SCProc,
-		Accounts:               accounts,
-		BlockchainHook:         blockchainHook,
-		VMContainer:            vmContainer,
-		TxFeeHandler:           feeAccumulator,
-		ScForwarder:            res.IntermediateTxProc,
-		ShardCoordinator:       shardCoordinator,
-		EconomicsData:          res.EconomicsHandler,
-		TxCostHandler:          res.CostHandler,
-		TxsLogsProcessor:       res.TxLogProc,
-		GasSchedule:            gasScheduleNotifier,
-		EpochNotifier:          epochNotifierInstance,
-		EnableEpochsHandler:    enableEpochsHandler,
-		ChainHandler:           chainHandler,
-		Marshalizer:            integrationtests.TestMarshalizer,
-		GuardedAccountsHandler: guardedAccountHandler,
+		TxProcessor:             res.TxProc,
+		ScProcessor:             res.SCProc,
+		Accounts:                accounts,
+		BlockchainHook:          blockchainHook,
+		VMContainer:             vmContainer,
+		TxFeeHandler:            feeAccumulator,
+		ScForwarder:             res.IntermediateTxProc,
+		ShardCoordinator:        shardCoordinator,
+		EconomicsData:           res.EconomicsHandler,
+		TxCostHandler:           res.CostHandler,
+		TxsLogsProcessor:        res.TxLogProc,
+		FailedTxLogsAccumulator: res.FailedTxLogsAccumulator,
+		GasSchedule:             gasScheduleNotifier,
+		EpochNotifier:           epochNotifierInstance,
+		EnableEpochsHandler:     enableEpochsHandler,
+		ChainHandler:            chainHandler,
+		Marshalizer:             integrationtests.TestMarshalizer,
+		GuardedAccountsHandler:  guardedAccountHandler,
 	}, nil
 }
 
@@ -1939,21 +1944,22 @@ func CreatePreparedTxProcessorWithVMsMultiShardRoundVMConfig(
 	}
 
 	return &VMTestContext{
-		TxProcessor:            res.TxProc,
-		ScProcessor:            res.SCProc,
-		Accounts:               accounts,
-		BlockchainHook:         blockchainHook,
-		VMContainer:            vmContainer,
-		TxFeeHandler:           feeAccumulator,
-		ShardCoordinator:       shardCoordinator,
-		ScForwarder:            res.IntermediateTxProc,
-		EconomicsData:          res.EconomicsHandler,
-		Marshalizer:            integrationtests.TestMarshalizer,
-		TxsLogsProcessor:       res.TxLogProc,
-		EpochNotifier:          epochNotifierInstance,
-		EnableEpochsHandler:    enableEpochsHandler,
-		ChainHandler:           chainHandler,
-		GuardedAccountsHandler: guardedAccountHandler,
+		TxProcessor:             res.TxProc,
+		ScProcessor:             res.SCProc,
+		Accounts:                accounts,
+		BlockchainHook:          blockchainHook,
+		VMContainer:             vmContainer,
+		TxFeeHandler:            feeAccumulator,
+		ShardCoordinator:        shardCoordinator,
+		ScForwarder:             res.IntermediateTxProc,
+		EconomicsData:           res.EconomicsHandler,
+		Marshalizer:             integrationtests.TestMarshalizer,
+		TxsLogsProcessor:        res.TxLogProc,
+		FailedTxLogsAccumulator: res.FailedTxLogsAccumulator,
+		EpochNotifier:           epochNotifierInstance,
+		EnableEpochsHandler:     enableEpochsHandler,
+		ChainHandler:            chainHandler,
+		GuardedAccountsHandler:  guardedAccountHandler,
 	}, nil
 }
 
