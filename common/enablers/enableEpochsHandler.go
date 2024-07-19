@@ -768,6 +768,12 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.FixRelayedBaseCostEnableEpoch,
 		},
+		common.ValidationOnGobDecodeFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.ValidationOnGobDecodeEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.ValidationOnGobDecodeEnableEpoch,
+		},
 	}
 }
 

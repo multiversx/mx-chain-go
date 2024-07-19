@@ -120,6 +120,7 @@ type EnableEpochs struct {
 	UnJailCleanupEnableEpoch                                 uint32
 	RelayedTransactionsV3EnableEpoch                         uint32
 	FixRelayedBaseCostEnableEpoch                            uint32
+	ValidationOnGobDecodeEnableEpoch                         uint32
 	BLSMultiSignerEnableEpoch                                []MultiSignerConfig
 }
 

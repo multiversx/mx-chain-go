@@ -878,6 +878,9 @@ func TestEnableEpochConfig(t *testing.T) {
     # FixRelayedBaseCostEnableEpoch represents the epoch when the fix for relayed base cost will be enabled
     FixRelayedBaseCostEnableEpoch = 100
 
+	# ValidationOnGobDecodeEnableEpoch represents the epoch when validation on GobDecode will be taken into account
+    ValidationOnGobDecodeEnableEpoch = 101
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -996,6 +999,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			CryptoOpcodesV2EnableEpoch:                               98,
 			RelayedTransactionsV3EnableEpoch:                         99,
 			FixRelayedBaseCostEnableEpoch:                            100,
+			ValidationOnGobDecodeEnableEpoch:                         101,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,

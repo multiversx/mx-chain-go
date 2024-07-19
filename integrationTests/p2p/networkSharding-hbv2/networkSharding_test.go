@@ -2,9 +2,11 @@ package networkSharding
 
 import (
 	"fmt"
+	"math"
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-communication-go/p2p/config"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/p2p"
 	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
@@ -23,7 +25,8 @@ func createDefaultConfig() p2pConfig.P2PConfig {
 				},
 			},
 			ResourceLimiter: p2pConfig.P2PResourceLimiterConfig{
-				Type: p2p.DefaultWithScaleResourceLimiter,
+				Type:          p2p.DefaultWithScaleResourceLimiter,
+				Ipv4ConnLimit: []config.ConnLimitConfig{{PrefixLength: 0, ConnCount: math.MaxInt}},
 			},
 		},
 		KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{

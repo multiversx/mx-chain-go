@@ -377,6 +377,7 @@ func (sm *statusMetrics) EnableEpochsMetrics() (map[string]interface{}, error) {
 	enableEpochsMetrics[common.MetricDynamicESDTEnableEpoch] = sm.uint64Metrics[common.MetricDynamicESDTEnableEpoch]
 	enableEpochsMetrics[common.MetricEGLDInMultiTransferEnableEpoch] = sm.uint64Metrics[common.MetricEGLDInMultiTransferEnableEpoch]
 	enableEpochsMetrics[common.MetricCryptoOpcodesV2EnableEpoch] = sm.uint64Metrics[common.MetricCryptoOpcodesV2EnableEpoch]
+	enableEpochsMetrics[common.MetricValidationOnGobDecodeEnableEpoch] = sm.uint64Metrics[common.MetricValidationOnGobDecodeEnableEpoch]
 
 	numNodesChangeConfig := sm.uint64Metrics[common.MetricMaxNodesChangeEnableEpoch+"_count"]
 

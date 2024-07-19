@@ -28,6 +28,8 @@
         Type = "default autoscale" #available options "default autoscale", "infinite", "default with manual scale".
         ManualSystemMemoryInMB = 0 # not taken into account if the type is not "default with manual scale"
         ManualMaximumFD = 0 # not taken into account if the type is not "default with manual scale"
+        # Ipv4ConnLimit = [] default values will be used
+        # Ipv6ConnLimit = [] default values will be used
 
 # P2P peer discovery section
 
