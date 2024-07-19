@@ -31,7 +31,7 @@ func TestDeployDNSContract_TestRegisterAndResolveAndSendTxWithSndAndRcvUserName(
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
 		DynamicGasCostForDataTrieStorageLoadEnableEpoch: 10,
-	})
+	}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -131,6 +131,7 @@ func TestDeployDNSContract_TestGasWhenSaveUsernameFailsCrossShardBackwardsCompat
 		enableEpochs,
 		testscommon.GetDefaultRoundsConfig(),
 		vmConfig,
+		1,
 	)
 	require.Nil(t, err)
 	defer testContextForDNSContract.Close()
@@ -140,6 +141,7 @@ func TestDeployDNSContract_TestGasWhenSaveUsernameFailsCrossShardBackwardsCompat
 		enableEpochs,
 		testscommon.GetDefaultRoundsConfig(),
 		vmConfig,
+		1,
 	)
 	require.Nil(t, err)
 	defer testContextForRelayerAndUser.Close()
@@ -200,11 +202,13 @@ func TestDeployDNSContract_TestGasWhenSaveUsernameAfterDNSv2IsActivated(t *testi
 		t.Skip("this is not a short test")
 	}
 
-	testContextForDNSContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
+	testContextForDNSContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{
+		FixRelayedBaseCostEnableEpoch: integrationTests.UnreachableEpoch,
+	}, 1)
 	require.Nil(t, err)
 	defer testContextForDNSContract.Close()
 
-	testContextForRelayerAndUser, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{})
+	testContextForRelayerAndUser, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContextForRelayerAndUser.Close()
 	scAddress, _ := utils.DoDeployDNS(t, testContextForDNSContract, "../../multiShard/smartContract/dns/dns.wasm")

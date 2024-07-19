@@ -18,6 +18,7 @@ import (
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -697,7 +698,7 @@ func getArgumentsMeta(
 		WhiteListHandler:             &testscommon.WhiteListHandlerStub{},
 		WhiteListerVerifiedTxs:       &testscommon.WhiteListHandlerStub{},
 		AntifloodHandler:             &mock.P2PAntifloodHandlerStub{},
-		ArgumentsParser:              &mock.ArgumentParserMock{},
+		ArgumentsParser:              &testscommon.ArgumentParserMock{},
 		PreferredPeersHolder:         &p2pmocks.PeersHolderStub{},
 		RequestHandler:               &testscommon.RequestHandlerStub{},
 		PeerSignatureHandler:         &mock.PeerSignatureHandlerStub{},
@@ -707,5 +708,6 @@ func getArgumentsMeta(
 		FullArchivePeerShardMapper:   &p2pmocks.NetworkShardingCollectorStub{},
 		HardforkTrigger:              &testscommon.HardforkTriggerStub{},
 		NodeOperationMode:            common.NormalOperation,
+		RelayedTxV3Processor:         &processMocks.RelayedTxV3ProcessorMock{},
 	}
 }
