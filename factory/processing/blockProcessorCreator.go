@@ -1219,13 +1219,18 @@ func (pcf *processComponentsFactory) createExtraMetaBlockProcessorArgs(
 			return nil, err
 		}
 
+		sovEconomics, err := metachainEpochStart.NewSovereignEconomics(epochEconomics)
+		if err != nil {
+			return nil, err
+		}
+
 		return &block.ExtraArgsMetaBlockProcessor{
 			EpochRewardsCreator:       epochRewards,
 			EpochStartDataCreator:     epochStartDataCreator,
 			EpochValidatorInfoCreator: validatorInfoCreator,
 			EpochSystemSCProcessor:    epochStartSystemSCProcessor,
 			SCToProtocol:              smartContractToProtocol,
-			EpochEconomics:            epochEconomics,
+			EpochEconomics:            sovEconomics,
 		}, nil
 	}
 }

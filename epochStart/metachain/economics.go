@@ -25,6 +25,8 @@ var _ process.EndOfEpochEconomics = (*economics)(nil)
 const numberOfDaysInYear = 365.0
 const numberOfSecondsInDay = 86400
 
+// TODO : e.shardCoordinator.NumberOfShards()+1 replace with TotalNumOfShards
+
 type economics struct {
 	marshalizer           marshal.Marshalizer
 	hasher                hashing.Hasher
@@ -175,19 +177,19 @@ func (e *economics) ComputeEndOfEpochEconomics(
 		PrevEpochStartRound:              prevEpochStart.GetRound(),
 		PrevEpochStartHash:               prevEpochStartHash,
 	}
-	/*
-		e.printEconomicsData(
-			metaBlock,
-			prevEpochEconomics,
-			inflationRate,
-			newTokens,
-			computedEconomics,
-			totalRewardsToBeDistributed,
-			totalNumBlocksInEpoch,
-			rwdPerBlock,
-			rewardsForProtocolSustainability,
-		)
-	*/
+
+	e.printEconomicsData(
+		metaBlock,
+		prevEpochEconomics,
+		inflationRate,
+		newTokens,
+		computedEconomics,
+		totalRewardsToBeDistributed,
+		totalNumBlocksInEpoch,
+		rwdPerBlock,
+		rewardsForProtocolSustainability,
+	)
+
 	maxPossibleNotarizedBlocks := e.maxPossibleNotarizedBlocks(metaBlock.GetRound(), prevEpochStart)
 	err = e.checkEconomicsInvariants(computedEconomics, inflationRate, maxBlocksInEpoch, totalNumBlocksInEpoch, metaBlock, metaBlock.GetEpoch(), maxPossibleNotarizedBlocks)
 	if err != nil {
@@ -201,7 +203,7 @@ func (e *economics) ComputeEndOfEpochEconomics(
 
 func (e *economics) printEconomicsData(
 	metaBlock data.MetaHeaderHandler,
-	prevEpochEconomics block.Economics,
+	prevEpochEconomics data.EconomicsHandler,
 	inflationRate float64,
 	newTokens *big.Int,
 	computedEconomics block.Economics,
@@ -219,14 +221,14 @@ func (e *economics) printEconomicsData(
 		rewardsForLeaders = core.GetApproximatePercentageOfValue(metaBlock.GetAccumulatedFeesInEpoch(), e.rewardsHandler.LeaderPercentage())
 	}
 
-	maxSupplyLength := len(prevEpochEconomics.TotalSupply.String())
+	maxSupplyLength := len(prevEpochEconomics.GetTotalSupply().String())
 	lines := []*display.LineData{
 		e.newDisplayLine("epoch", "",
 			e.alignRight(fmt.Sprintf("%d", metaBlock.GetEpoch()), maxSupplyLength)),
 		e.newDisplayLine("inflation rate", "",
 			e.alignRight(fmt.Sprintf("%.6f", inflationRate), maxSupplyLength)),
 		e.newDisplayLine("previous total supply", "(1)",
-			e.alignRight(prevEpochEconomics.TotalSupply.String(), maxSupplyLength)),
+			e.alignRight(prevEpochEconomics.GetTotalSupply().String(), maxSupplyLength)),
 		e.newDisplayLine("new tokens", "(2)",
 			e.alignRight(newTokens.String(), maxSupplyLength)),
 		e.newDisplayLine("current total supply", "(1+2)",
