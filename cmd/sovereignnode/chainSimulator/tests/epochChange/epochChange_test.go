@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/staking"
 	"github.com/stretchr/testify/require"
@@ -73,6 +74,9 @@ func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, uint32(1), nodeHandler.GetCoreComponents().EpochNotifier().CurrentEpoch())
 
+	require.Empty(t, nodeHandler.GetChainHandler().GetCurrentBlockHeader().(data.SovereignChainHeaderHandler).GetAccumulatedFeesInEpoch().Bytes())
+	require.Empty(t, nodeHandler.GetChainHandler().GetCurrentBlockHeader().(data.SovereignChainHeaderHandler).GetDevFeesInEpoch().Bytes())
+
 	staking.StakeNodes(t, cs, 10)
 	err = nodeHandler.GetProcessComponents().ValidatorsProvider().ForceUpdate()
 	require.Nil(t, err)
@@ -83,6 +87,9 @@ func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 
 	validators := nodeHandler.GetProcessComponents().ValidatorsProvider().GetLatestValidators()
 	require.Len(t, validators, 18)
+
+	require.NotEmpty(t, nodeHandler.GetChainHandler().GetCurrentBlockHeader().(data.SovereignChainHeaderHandler).GetAccumulatedFeesInEpoch().Bytes())
+	require.NotEmpty(t, nodeHandler.GetChainHandler().GetCurrentBlockHeader().(data.SovereignChainHeaderHandler).GetDevFeesInEpoch().Bytes())
 
 	currentEpoch := nodeHandler.GetCoreComponents().EpochNotifier().CurrentEpoch()
 	for epoch := currentEpoch; epoch < currentEpoch+4; epoch++ {

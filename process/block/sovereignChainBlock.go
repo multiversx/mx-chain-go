@@ -1058,6 +1058,14 @@ func (scbp *sovereignChainBlockProcessor) applyBodyToHeader(
 		return nil, err
 	}
 
+	newBody := deleteSelfReceiptsMiniBlocks(body)
+	//TODO: This map should be passed from the caller side
+	processedMiniBlocksDestMeInfo := make(map[string]*processedMb.ProcessedMiniBlockInfo)
+	err = scbp.applyBodyInfoOnCommonHeader(headerHandler, newBody, processedMiniBlocksDestMeInfo)
+	if err != nil {
+		return nil, err
+	}
+
 	sovHeader := headerHandler.(data.SovereignChainHeaderHandler)
 	accumulatedFees, devFees, err := scbp.computeAccumulatedFeesInEpoch(sovHeader)
 	if err != nil {
@@ -1074,13 +1082,6 @@ func (scbp *sovereignChainBlockProcessor) applyBodyToHeader(
 		return nil, err
 	}
 
-	newBody := deleteSelfReceiptsMiniBlocks(body)
-	//TODO: This map should be passed from the caller side
-	processedMiniBlocksDestMeInfo := make(map[string]*processedMb.ProcessedMiniBlockInfo)
-	err = scbp.applyBodyInfoOnCommonHeader(headerHandler, newBody, processedMiniBlocksDestMeInfo)
-	if err != nil {
-		return nil, err
-	}
 	return newBody, nil
 }
 
@@ -1103,11 +1104,11 @@ func (scbp *sovereignChainBlockProcessor) computeAccumulatedFeesInEpoch(metaHdr 
 
 	currentlyAccumulatedFeesInEpoch.Add(currentlyAccumulatedFeesInEpoch, metaHdr.GetAccumulatedFees())
 	currentDevFeesInEpoch.Add(currentDevFeesInEpoch, metaHdr.GetDeveloperFees())
-	log.Debug("computeAccumulatedFeesInEpoch - meta block fees",
+	log.Debug("computeAccumulatedFeesInEpoch - sovereign block fees",
 		"meta nonce", metaHdr.GetNonce(),
 		"accumulatedFees", metaHdr.GetAccumulatedFees().String(),
 		"devFees", metaHdr.GetDeveloperFees().String(),
-		"meta leader fees", core.GetIntTrimmedPercentageOfValue(big.NewInt(0).Sub(metaHdr.GetAccumulatedFees(), metaHdr.GetDeveloperFees()), scbp.economicsData.LeaderPercentage()).String())
+		"leader fees", core.GetIntTrimmedPercentageOfValue(big.NewInt(0).Sub(metaHdr.GetAccumulatedFees(), metaHdr.GetDeveloperFees()), scbp.economicsData.LeaderPercentage()).String())
 
 	log.Debug("computeAccumulatedFeesInEpoch - fees in epoch",
 		"accumulatedFeesInEpoch", currentlyAccumulatedFeesInEpoch.String(),
