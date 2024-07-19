@@ -318,6 +318,9 @@
     # CryptoOpcodesV2EnableEpoch represents the epoch when BLSMultiSig, Secp256r1 and other opcodes are enabled
     CryptoOpcodesV2EnableEpoch = 4
 
+    # UnjailCleanupEnableEpoch represents the epoch when the cleanup of the unjailed nodes is enabled
+    UnJailCleanupEnableEpoch = 4
+
     # RelayedTransactionsV3EnableEpoch represents the epoch when the relayed transactions V3 will be enabled
     RelayedTransactionsV3EnableEpoch = 7
 
