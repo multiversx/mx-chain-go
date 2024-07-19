@@ -260,13 +260,13 @@ func (adb *AccountsDB) SaveAccount(account vmcommon.AccountHandler) error {
 
 	var entry JournalEntry
 	if check.IfNil(oldAccount) {
-		entry, err = NewJournalEntryAccountCreation(account.AddressBytes(), adb.mainTrie)
+		entry, err = NewJournalEntryAccountCreation(account.AddressBytes(), adb.mainTrie, adb.stateChangesCollector)
 		if err != nil {
 			return err
 		}
 		adb.journalize(entry)
 	} else {
-		entry, err = NewJournalEntryAccount(oldAccount)
+		entry, err = NewJournalEntryAccount(oldAccount, adb.stateChangesCollector)
 		if err != nil {
 			return err
 		}
@@ -301,29 +301,50 @@ func (adb *AccountsDB) SaveAccount(account vmcommon.AccountHandler) error {
 func checkAccountChanges(oldAcc, newAcc vmcommon.AccountHandler, stateChange *StateChangeDTO) {
 	baseNewAcc, newAccOk := newAcc.(UserAccountHandler)
 	if !newAccOk {
+		log.Trace("checkAccountChanges: Not able to cast new acc")
 		return
 	}
 	baseOldAccount, oldAccOk := oldAcc.(UserAccountHandler)
 	if !oldAccOk {
+		log.Trace("checkAccountChanges: Not able to cast old acc")
 		return
 	}
 
 	if baseNewAcc.GetNonce() != baseOldAccount.GetNonce() {
-		log.Trace("CheckAcc: diff nonce")
 		stateChange.Nonce = true
 	}
 
 	if baseNewAcc.GetBalance().Uint64() != baseOldAccount.GetBalance().Uint64() {
-		log.Trace("CheckAcc: diff balance")
 		stateChange.Balance = true
 	}
 
-	if bytes.Equal(baseNewAcc.GetRootHash(), baseOldAccount.GetRootHash()) {
-		log.Trace("CheckAcc: diff rootHash")
-		stateChange.RootHash = true
+	if !bytes.Equal(baseNewAcc.GetCodeHash(), baseOldAccount.GetCodeHash()) {
+		stateChange.CodeHash = true
 	}
 
-	log.Trace("CheckAcc: checked all")
+	if !bytes.Equal(baseNewAcc.GetRootHash(), baseOldAccount.GetRootHash()) {
+		stateChange.RootHash = true
+		log.Trace("checkAccountChanges: rootHash changed", "address", baseNewAcc.AddressBytes())
+	}
+	log.Trace("checkAccountChanges: rootHash NOT changed", "address", baseNewAcc.AddressBytes())
+
+	if !bytes.Equal(baseNewAcc.GetDeveloperReward().Bytes(), baseOldAccount.GetDeveloperReward().Bytes()) {
+		stateChange.DeveloperReward = true
+	}
+
+	if !bytes.Equal(baseNewAcc.GetOwnerAddress(), baseOldAccount.GetOwnerAddress()) {
+		stateChange.OwnerAddress = true
+	}
+
+	if !bytes.Equal(baseNewAcc.GetUserName(), baseOldAccount.GetUserName()) {
+		stateChange.UserName = true
+	}
+
+	if !bytes.Equal(baseNewAcc.GetCodeMetadata(), baseOldAccount.GetCodeMetadata()) {
+		stateChange.CodeMetadata = true
+	}
+
+	log.Trace("checkAccountChanges: checked all", "address", baseNewAcc.AddressBytes())
 }
 
 func (adb *AccountsDB) saveCodeAndDataTrie(oldAcc, newAcc vmcommon.AccountHandler) ([]DataTrieChange, error) {
@@ -380,7 +401,7 @@ func (adb *AccountsDB) saveCode(newAcc, oldAcc baseAccountHandler) error {
 		return err
 	}
 
-	entry, err := NewJournalEntryCode(unmodifiedOldCodeEntry, oldCodeHash, newCodeHash, adb.mainTrie, adb.marshaller)
+	entry, err := NewJournalEntryCode(unmodifiedOldCodeEntry, oldCodeHash, newCodeHash, adb.mainTrie, adb.marshaller, adb.stateChangesCollector)
 	if err != nil {
 		return err
 	}
@@ -554,7 +575,7 @@ func (adb *AccountsDB) saveDataTrie(accountHandler baseAccountHandler) ([]DataTr
 		return nil, nil
 	}
 
-	entry, err := NewJournalEntryDataTrieUpdates(oldValues, accountHandler)
+	entry, err := NewJournalEntryDataTrieUpdates(oldValues, accountHandler, adb.stateChangesCollector)
 	if err != nil {
 		return nil, err
 	}
@@ -565,6 +586,7 @@ func (adb *AccountsDB) saveDataTrie(accountHandler baseAccountHandler) ([]DataTr
 		return nil, err
 	}
 	accountHandler.SetRootHash(rootHash)
+	log.Trace("saveDataTrie: rootHash changed", "address", accountHandler.AddressBytes())
 
 	if check.IfNil(adb.dataTries.Get(accountHandler.AddressBytes())) {
 		trie, ok := accountHandler.DataTrie().(common.Trie)
@@ -617,7 +639,7 @@ func (adb *AccountsDB) RemoveAccount(address []byte) error {
 		return fmt.Errorf("%w in RemoveAccount for address %s", ErrAccNotFound, address)
 	}
 
-	entry, err := NewJournalEntryAccount(acnt)
+	entry, err := NewJournalEntryAccount(acnt, adb.stateChangesCollector)
 	if err != nil {
 		return err
 	}
@@ -672,11 +694,19 @@ func (adb *AccountsDB) removeDataTrie(baseAcc baseAccountHandler) error {
 
 	adb.obsoleteDataTrieHashes[string(rootHash)] = hashes
 
-	entry, err := NewJournalEntryDataTrieRemove(rootHash, adb.obsoleteDataTrieHashes)
+	entry, err := NewJournalEntryDataTrieRemove(rootHash, adb.obsoleteDataTrieHashes, adb.stateChangesCollector)
 	if err != nil {
 		return err
 	}
 	adb.journalize(entry)
+
+	stateChange := &StateChangeDTO{
+		Type:            "write",
+		MainTrieKey:     baseAcc.AddressBytes(),
+		Operation:       "removeDataTrie",
+		DataTrieChanges: nil,
+	}
+	adb.stateChangesCollector.AddStateChange(*stateChange)
 
 	return nil
 }
@@ -688,7 +718,7 @@ func (adb *AccountsDB) removeCode(baseAcc baseAccountHandler) error {
 		return err
 	}
 
-	codeChangeEntry, err := NewJournalEntryCode(unmodifiedOldCodeEntry, oldCodeHash, nil, adb.mainTrie, adb.marshaller)
+	codeChangeEntry, err := NewJournalEntryCode(unmodifiedOldCodeEntry, oldCodeHash, nil, adb.mainTrie, adb.marshaller, adb.stateChangesCollector)
 	if err != nil {
 		return err
 	}

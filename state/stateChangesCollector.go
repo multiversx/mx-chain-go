@@ -27,9 +27,14 @@ type StateChangeDTO struct {
 	MainTrieKey     []byte           `json:"mainTrieKey"`
 	MainTrieVal     []byte           `json:"-"`
 	Operation       string           `json:"operation"`
-	Balance         bool             `json:"balanceChanged"`
 	Nonce           bool             `json:"nonceChanged"`
+	Balance         bool             `json:"balanceChanged"`
+	CodeHash        bool             `json:"codeHashChanged"`
 	RootHash        bool             `json:"rootHashChanged"`
+	DeveloperReward bool             `json:"developerRewardChanged"`
+	OwnerAddress    bool             `json:"ownerAddressChanged"`
+	UserName        bool             `json:"userNameChanged"`
+	CodeMetadata    bool             `json:"codeMetadataChanged"`
 	DataTrieChanges []DataTrieChange `json:"dataTrieChanges"`
 }
 
