@@ -119,7 +119,9 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		DynamicESDTEnableEpoch:                                   102,
 		EGLDInMultiTransferEnableEpoch:                           103,
 		CryptoOpcodesV2EnableEpoch:                               104,
-		ValidationOnGobDecodeEnableEpoch:                         105,
+		RelayedTransactionsV3EnableEpoch:                         105,
+		FixRelayedBaseCostEnableEpoch:                            106,
+		ValidationOnGobDecodeEnableEpoch:                         107,
 	}
 }
 
@@ -320,6 +322,8 @@ func TestEnableEpochsHandler_IsFlagEnabled(t *testing.T) {
 	require.True(t, handler.IsFlagEnabled(common.StakingV4StartedFlag))
 	require.True(t, handler.IsFlagEnabled(common.AlwaysMergeContextsInEEIFlag))
 	require.True(t, handler.IsFlagEnabled(common.DynamicESDTFlag))
+	require.True(t, handler.IsFlagEnabled(common.RelayedTransactionsV3Flag))
+	require.True(t, handler.IsFlagEnabled(common.FixRelayedBaseCostFlag))
 	require.True(t, handler.IsFlagEnabled(common.DynamicESDTFlag))
 }
 
@@ -440,6 +444,8 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.DynamicESDTEnableEpoch, handler.GetActivationEpoch(common.DynamicESDTFlag))
 	require.Equal(t, cfg.EGLDInMultiTransferEnableEpoch, handler.GetActivationEpoch(common.EGLDInESDTMultiTransferFlag))
 	require.Equal(t, cfg.CryptoOpcodesV2EnableEpoch, handler.GetActivationEpoch(common.CryptoOpcodesV2Flag))
+	require.Equal(t, cfg.RelayedTransactionsV3EnableEpoch, handler.GetActivationEpoch(common.RelayedTransactionsV3Flag))
+	require.Equal(t, cfg.FixRelayedBaseCostEnableEpoch, handler.GetActivationEpoch(common.FixRelayedBaseCostFlag))
 	require.Equal(t, cfg.ValidationOnGobDecodeEnableEpoch, handler.GetActivationEpoch(common.ValidationOnGobDecodeFlag))
 }
 
