@@ -24,7 +24,7 @@ func TestAsyncCallLegacy(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -71,7 +71,7 @@ func TestAsyncCallMulti(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -122,7 +122,7 @@ func TestAsyncCallTransferAndExecute(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -183,7 +183,7 @@ func TestAsyncCallTransferESDTAndExecute_Success(t *testing.T) {
 }
 
 func transferESDTAndExecute(t *testing.T, numberOfCallsFromParent int, numberOfBackTransfers int) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -297,15 +297,15 @@ func TestAsyncCallMulti_CrossShard(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testContextFirstContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
+	testContextFirstContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContextFirstContract.Close()
 
-	testContextSecondContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
+	testContextSecondContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContextSecondContract.Close()
 
-	testContextSender, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{})
+	testContextSender, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContextSender.Close()
 
@@ -387,15 +387,15 @@ func TestAsyncCallTransferAndExecute_CrossShard(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	childShard, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
+	childShard, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer childShard.Close()
 
-	forwarderShard, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
+	forwarderShard, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer forwarderShard.Close()
 
-	testContextSender, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{})
+	testContextSender, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContextSender.Close()
 
@@ -479,15 +479,15 @@ func TestAsyncCallTransferESDTAndExecute_CrossShard_Success(t *testing.T) {
 }
 
 func transferESDTAndExecuteCrossShard(t *testing.T, numberOfCallsFromParent int, numberOfBackTransfers int) {
-	vaultShard, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
+	vaultShard, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer vaultShard.Close()
 
-	forwarderShard, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
+	forwarderShard, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer forwarderShard.Close()
 
-	testContextSender, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{})
+	testContextSender, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContextSender.Close()
 
