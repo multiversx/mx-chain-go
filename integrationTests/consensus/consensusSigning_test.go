@@ -2,7 +2,6 @@ package consensus
 
 import (
 	"bytes"
-	"encoding/hex"
 	"fmt"
 	"sync"
 	"testing"
@@ -43,14 +42,8 @@ func initNodesWithTestSigner(
 			for i := uint32(0); i < numInvalid; i++ {
 				ii := numNodes - i - 1
 				nodes[shardID][ii].MultiSigner.CreateSignatureShareCalled = func(privateKeyBytes, message []byte) ([]byte, error) {
-					var invalidSigShare []byte
-					if i%2 == 0 {
-						// invalid sig share but with valid format
-						invalidSigShare, _ = hex.DecodeString("2ee350b9a821e20df97ba487a80b0d0ffffca7da663185cf6a562edc7c2c71e3ca46ed71b31bccaf53c626b87f2b6e08")
-					} else {
-						// sig share with invalid size
-						invalidSigShare = bytes.Repeat([]byte("a"), 3)
-					}
+					// sig share with invalid size, it will be dropped but user won't be blacklisted
+					invalidSigShare := bytes.Repeat([]byte("a"), 3)
 					log.Warn("invalid sig share from ", "pk", getPkEncoded(nodes[shardID][ii].NodeKeys.Pk), "sig", invalidSigShare)
 
 					return invalidSigShare, nil
