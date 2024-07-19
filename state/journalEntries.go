@@ -11,11 +11,12 @@ import (
 )
 
 type journalEntryCode struct {
-	oldCodeEntry *CodeEntry
-	oldCodeHash  []byte
-	newCodeHash  []byte
-	trie         Updater
-	marshalizer  marshal.Marshalizer
+	oldCodeEntry          *CodeEntry
+	oldCodeHash           []byte
+	newCodeHash           []byte
+	trie                  Updater
+	marshalizer           marshal.Marshalizer
+	stateChangesCollector StateChangesCollector
 }
 
 // NewJournalEntryCode creates a new instance of JournalEntryCode
@@ -25,6 +26,7 @@ func NewJournalEntryCode(
 	newCodeHash []byte,
 	trie Updater,
 	marshalizer marshal.Marshalizer,
+	stateChangesCollector StateChangesCollector,
 ) (*journalEntryCode, error) {
 	if check.IfNil(trie) {
 		return nil, ErrNilUpdater
@@ -34,11 +36,12 @@ func NewJournalEntryCode(
 	}
 
 	return &journalEntryCode{
-		oldCodeEntry: oldCodeEntry,
-		oldCodeHash:  oldCodeHash,
-		newCodeHash:  newCodeHash,
-		trie:         trie,
-		marshalizer:  marshalizer,
+		oldCodeEntry:          oldCodeEntry,
+		oldCodeHash:           oldCodeHash,
+		newCodeHash:           newCodeHash,
+		trie:                  trie,
+		marshalizer:           marshalizer,
+		stateChangesCollector: stateChangesCollector,
 	}, nil
 }
 
@@ -66,10 +69,19 @@ func (jea *journalEntryCode) revertOldCodeEntry() error {
 		return nil
 	}
 
-	_, err := saveCodeEntry(jea.oldCodeHash, jea.oldCodeEntry, jea.trie, jea.marshalizer)
+	codeEntryBytes, err := saveCodeEntry(jea.oldCodeHash, jea.oldCodeEntry, jea.trie, jea.marshalizer)
 	if err != nil {
 		return err
 	}
+
+	stateChange := StateChangeDTO{
+		Type:            "revert",
+		MainTrieKey:     jea.oldCodeHash,
+		MainTrieVal:     codeEntryBytes,
+		Operation:       "writeCode",
+		DataTrieChanges: nil,
+	}
+	jea.stateChangesCollector.AddStateChange(stateChange)
 
 	return nil
 }
@@ -90,14 +102,32 @@ func (jea *journalEntryCode) revertNewCodeEntry() error {
 			return err
 		}
 
+		stateChange := StateChangeDTO{
+			Type:            "revert",
+			MainTrieKey:     jea.newCodeHash,
+			MainTrieVal:     nil,
+			Operation:       "writeCode",
+			DataTrieChanges: nil,
+		}
+		jea.stateChangesCollector.AddStateChange(stateChange)
+
 		return nil
 	}
 
 	newCodeEntry.NumReferences--
-	_, err = saveCodeEntry(jea.newCodeHash, newCodeEntry, jea.trie, jea.marshalizer)
+	codeEntryBytes, err := saveCodeEntry(jea.newCodeHash, newCodeEntry, jea.trie, jea.marshalizer)
 	if err != nil {
 		return err
 	}
+
+	stateChange := StateChangeDTO{
+		Type:            "revert",
+		MainTrieKey:     jea.newCodeHash,
+		MainTrieVal:     codeEntryBytes,
+		Operation:       "writeCode",
+		DataTrieChanges: nil,
+	}
+	jea.stateChangesCollector.AddStateChange(stateChange)
 
 	return nil
 }
@@ -109,22 +139,32 @@ func (jea *journalEntryCode) IsInterfaceNil() bool {
 
 // JournalEntryAccount represents a journal entry for account fields change
 type journalEntryAccount struct {
-	account vmcommon.AccountHandler
+	account               vmcommon.AccountHandler
+	stateChangesCollector StateChangesCollector
 }
 
 // NewJournalEntryAccount creates a new instance of JournalEntryAccount
-func NewJournalEntryAccount(account vmcommon.AccountHandler) (*journalEntryAccount, error) {
+func NewJournalEntryAccount(account vmcommon.AccountHandler, stateChangesCollector StateChangesCollector) (*journalEntryAccount, error) {
 	if check.IfNil(account) {
 		return nil, fmt.Errorf("%w in NewJournalEntryAccount", ErrNilAccountHandler)
 	}
 
 	return &journalEntryAccount{
-		account: account,
+		account:               account,
+		stateChangesCollector: stateChangesCollector,
 	}, nil
 }
 
 // Revert applies undo operation
 func (jea *journalEntryAccount) Revert() (vmcommon.AccountHandler, error) {
+	stateChange := StateChangeDTO{
+		Type:            "revert",
+		MainTrieKey:     jea.account.AddressBytes(),
+		Operation:       "revertAccount",
+		DataTrieChanges: nil,
+	}
+	jea.stateChangesCollector.AddStateChange(stateChange)
+
 	return jea.account, nil
 }
 
@@ -135,12 +175,13 @@ func (jea *journalEntryAccount) IsInterfaceNil() bool {
 
 // JournalEntryAccountCreation represents a journal entry for account creation
 type journalEntryAccountCreation struct {
-	address []byte
-	updater Updater
+	address               []byte
+	updater               Updater
+	stateChangesCollector StateChangesCollector
 }
 
 // NewJournalEntryAccountCreation creates a new instance of JournalEntryAccountCreation
-func NewJournalEntryAccountCreation(address []byte, updater Updater) (*journalEntryAccountCreation, error) {
+func NewJournalEntryAccountCreation(address []byte, updater Updater, stateChangesCollector StateChangesCollector) (*journalEntryAccountCreation, error) {
 	if check.IfNil(updater) {
 		return nil, ErrNilUpdater
 	}
@@ -149,13 +190,22 @@ func NewJournalEntryAccountCreation(address []byte, updater Updater) (*journalEn
 	}
 
 	return &journalEntryAccountCreation{
-		address: address,
-		updater: updater,
+		address:               address,
+		updater:               updater,
+		stateChangesCollector: stateChangesCollector,
 	}, nil
 }
 
 // Revert applies undo operation
 func (jea *journalEntryAccountCreation) Revert() (vmcommon.AccountHandler, error) {
+	stateChange := StateChangeDTO{
+		Type:            "revert",
+		MainTrieKey:     jea.address,
+		Operation:       "revertNewAccount",
+		DataTrieChanges: nil,
+	}
+	jea.stateChangesCollector.AddStateChange(stateChange)
+
 	return nil, jea.updater.Update(jea.address, nil)
 }
 
@@ -167,12 +217,13 @@ func (jea *journalEntryAccountCreation) IsInterfaceNil() bool {
 // JournalEntryDataTrieUpdates stores all the updates done to the account's data trie,
 // so it can be reverted in case of rollback
 type journalEntryDataTrieUpdates struct {
-	trieUpdates []core.TrieData
-	account     baseAccountHandler
+	trieUpdates           []core.TrieData
+	account               baseAccountHandler
+	stateChangesCollector StateChangesCollector
 }
 
 // NewJournalEntryDataTrieUpdates outputs a new JournalEntryDataTrieUpdates implementation used to revert an account's data trie
-func NewJournalEntryDataTrieUpdates(trieUpdates []core.TrieData, account baseAccountHandler) (*journalEntryDataTrieUpdates, error) {
+func NewJournalEntryDataTrieUpdates(trieUpdates []core.TrieData, account baseAccountHandler, stateChangesCollector StateChangesCollector) (*journalEntryDataTrieUpdates, error) {
 	if check.IfNil(account) {
 		return nil, fmt.Errorf("%w in NewJournalEntryDataTrieUpdates", ErrNilAccountHandler)
 	}
@@ -181,8 +232,9 @@ func NewJournalEntryDataTrieUpdates(trieUpdates []core.TrieData, account baseAcc
 	}
 
 	return &journalEntryDataTrieUpdates{
-		trieUpdates: trieUpdates,
-		account:     account,
+		trieUpdates:           trieUpdates,
+		account:               account,
+		stateChangesCollector: stateChangesCollector,
 	}, nil
 }
 
@@ -192,6 +244,8 @@ func (jedtu *journalEntryDataTrieUpdates) Revert() (vmcommon.AccountHandler, err
 	if !ok {
 		return nil, fmt.Errorf("invalid trie, type is %T", jedtu.account.DataTrie())
 	}
+
+	dataTrieChanges := make([]DataTrieChange, len(jedtu.trieUpdates))
 
 	for _, trieUpdate := range jedtu.trieUpdates {
 		err := trie.UpdateWithVersion(trieUpdate.Key, trieUpdate.Value, trieUpdate.Version)
@@ -204,6 +258,12 @@ func (jedtu *journalEntryDataTrieUpdates) Revert() (vmcommon.AccountHandler, err
 			"val", trieUpdate.Value,
 			"version", trieUpdate.Version,
 		)
+
+		dataTrieChanges = append(dataTrieChanges, DataTrieChange{
+			Type: "write",
+			Key:  trieUpdate.Key,
+			Val:  trieUpdate.Value,
+		})
 	}
 
 	rootHash, err := trie.RootHash()
@@ -212,6 +272,14 @@ func (jedtu *journalEntryDataTrieUpdates) Revert() (vmcommon.AccountHandler, err
 	}
 
 	jedtu.account.SetRootHash(rootHash)
+
+	stateChange := StateChangeDTO{
+		Type:            "revert",
+		MainTrieKey:     jedtu.account.AddressBytes(),
+		Operation:       "dataTrieUpdates",
+		DataTrieChanges: dataTrieChanges,
+	}
+	jedtu.stateChangesCollector.AddStateChange(stateChange)
 
 	return jedtu.account, nil
 }
@@ -225,11 +293,12 @@ func (jedtu *journalEntryDataTrieUpdates) IsInterfaceNil() bool {
 type journalEntryDataTrieRemove struct {
 	rootHash               []byte
 	obsoleteDataTrieHashes map[string][][]byte
+	stateChangesCollector  StateChangesCollector
 }
 
 // NewJournalEntryDataTrieRemove outputs a new journalEntryDataTrieRemove implementation used to cancel
 // the eviction of the hashes from the data trie with the given root hash
-func NewJournalEntryDataTrieRemove(rootHash []byte, obsoleteDataTrieHashes map[string][][]byte) (*journalEntryDataTrieRemove, error) {
+func NewJournalEntryDataTrieRemove(rootHash []byte, obsoleteDataTrieHashes map[string][][]byte, stateChangesCollector StateChangesCollector) (*journalEntryDataTrieRemove, error) {
 	if obsoleteDataTrieHashes == nil {
 		return nil, fmt.Errorf("%w in NewJournalEntryDataTrieRemove", ErrNilMapOfHashes)
 	}
@@ -240,12 +309,21 @@ func NewJournalEntryDataTrieRemove(rootHash []byte, obsoleteDataTrieHashes map[s
 	return &journalEntryDataTrieRemove{
 		rootHash:               rootHash,
 		obsoleteDataTrieHashes: obsoleteDataTrieHashes,
+		stateChangesCollector:  stateChangesCollector,
 	}, nil
 }
 
 // Revert applies undo operation
 func (jedtr *journalEntryDataTrieRemove) Revert() (vmcommon.AccountHandler, error) {
 	delete(jedtr.obsoleteDataTrieHashes, string(jedtr.rootHash))
+
+	stateChange := StateChangeDTO{
+		Type:            "revert",
+		MainTrieKey:     jedtr.rootHash,
+		Operation:       "removeDataTrie",
+		DataTrieChanges: nil,
+	}
+	jedtr.stateChangesCollector.AddStateChange(stateChange)
 
 	return nil, nil
 }
