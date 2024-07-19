@@ -293,7 +293,7 @@ func (n *Node) GetKeyValuePairs(address string, options api.AccountQueryOptions,
 	}
 
 	if check.IfNil(userAccount.DataTrie()) {
-		return map[string]string{}, api.BlockInfo{}, nil
+		return map[string]string{}, blockInfo, nil
 	}
 
 	mapToReturn, err := n.getKeys(userAccount, ctx)
@@ -961,6 +961,10 @@ func (n *Node) GetAccountWithKeys(address string, options api.AccountQueryOption
 
 	var keys map[string]string
 	if options.WithKeys {
+		if accInfo.account == nil || accInfo.account.DataTrie() == nil {
+			return accInfo.accountResponse, accInfo.block, nil
+		}
+
 		keys, err = n.getKeys(accInfo.account, ctx)
 		if err != nil {
 			return api.AccountResponse{}, api.BlockInfo{}, err
