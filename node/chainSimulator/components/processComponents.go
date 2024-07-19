@@ -23,7 +23,6 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
 	nodeDisabled "github.com/multiversx/mx-chain-go/node/disabled"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/interceptors/disabled"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage/cache"
@@ -154,7 +153,7 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		return nil, err
 	}
 
-	whiteListRequest, err := disabled.NewDisabledWhiteListDataVerifier()
+	whiteListRequest, err := NewWhiteListDataVerifier(args.BootstrapComponents.ShardCoordinator().SelfId())
 	if err != nil {
 		return nil, err
 	}

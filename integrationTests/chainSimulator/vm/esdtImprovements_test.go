@@ -345,6 +345,9 @@ func createAddresses(
 	address3, err := cs.GenerateAndMintWalletAddress(shardIDs[2], mintValue)
 	require.Nil(t, err)
 
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
+
 	return []dtos.WalletAddress{address, address2, address3}
 }
 
