@@ -1200,12 +1200,32 @@ func (pcf *processComponentsFactory) createExtraMetaBlockProcessorArgs(
 			return nil, err
 		}
 
+		// todo: common func
+		argsEpochEconomics := metachainEpochStart.ArgsNewEpochEconomics{
+			Marshalizer:           pcf.coreData.InternalMarshalizer(),
+			Hasher:                pcf.coreData.Hasher(),
+			Store:                 pcf.data.StorageService(),
+			ShardCoordinator:      pcf.bootstrapComponents.ShardCoordinator(),
+			RewardsHandler:        pcf.coreData.EconomicsData(),
+			RoundTime:             pcf.coreData.RoundHandler(),
+			GenesisNonce:          genesisHdr.GetNonce(),
+			GenesisEpoch:          genesisHdr.GetEpoch(),
+			GenesisTotalSupply:    pcf.coreData.EconomicsData().GenesisTotalSupply(),
+			EconomicsDataNotified: economicsDataProvider,
+			StakingV2EnableEpoch:  pcf.coreData.EnableEpochsHandler().GetActivationEpoch(common.StakingV2Flag),
+		}
+		epochEconomics, err := metachainEpochStart.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
+		if err != nil {
+			return nil, err
+		}
+
 		return &block.ExtraArgsMetaBlockProcessor{
 			EpochRewardsCreator:       epochRewards,
 			EpochStartDataCreator:     epochStartDataCreator,
 			EpochValidatorInfoCreator: validatorInfoCreator,
 			EpochSystemSCProcessor:    epochStartSystemSCProcessor,
 			SCToProtocol:              smartContractToProtocol,
+			EpochEconomics:            epochEconomics,
 		}, nil
 	}
 }

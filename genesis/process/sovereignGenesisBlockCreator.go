@@ -10,6 +10,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -150,11 +152,28 @@ func (gbc *sovereignGenesisBlockCreator) createSovereignHeaders(args *headerCrea
 		return nil, err
 	}
 
+	err = genesisBlock.SetSoftwareVersion(process.SovereignHeaderVersion)
+	if err != nil {
+		return nil, err
+	}
+
 	// TODO: Ugly fix, we need header versioning creator here to be integrated for sovereign chain
 	sovereignHeader := &block.SovereignChainHeader{
 		Header:                 genesisBlock.(*block.Header),
 		AccumulatedFeesInEpoch: big.NewInt(0),
 		DevFeesInEpoch:         big.NewInt(0),
+	}
+	sovereignHeader.EpochStart.Economics = block.Economics{
+		TotalSupply:       big.NewInt(0).Set(gbc.arg.Economics.GenesisTotalSupply()),
+		TotalToDistribute: big.NewInt(0),
+		TotalNewlyMinted:  big.NewInt(0),
+		RewardsPerBlock:   big.NewInt(0),
+		NodePrice:         big.NewInt(0).Set(gbc.arg.GenesisNodePrice),
+	}
+
+	err = saveSovereignGenesisToStorage(gbc.arg.Data.StorageService(), gbc.arg.Core.InternalMarshalizer(), sovereignHeader)
+	if err != nil {
+		return nil, err
 	}
 
 	log.Info("sovereignGenesisBlockCreator.createSovereignHeaders",
@@ -167,6 +186,42 @@ func (gbc *sovereignGenesisBlockCreator) createSovereignHeaders(args *headerCrea
 	return map[uint32]data.HeaderHandler{
 		core.SovereignChainShardId: sovereignHeader,
 	}, nil
+}
+
+func saveSovereignGenesisToStorage(
+	storageService dataRetriever.StorageService,
+	marshalizer marshal.Marshalizer,
+	genesisBlock data.HeaderHandler,
+) error {
+
+	epochStartID := core.EpochStartIdentifier(genesisBlock.GetEpoch())
+
+	metaHdrStorage, err := storageService.GetStorer(dataRetriever.BlockHeaderUnit)
+	if err != nil {
+		return err
+	}
+
+	triggerStorage, err := storageService.GetStorer(dataRetriever.BootstrapUnit)
+	if err != nil {
+		return err
+	}
+
+	marshaledData, err := marshalizer.Marshal(genesisBlock)
+	if err != nil {
+		return err
+	}
+
+	err = metaHdrStorage.Put([]byte(epochStartID), marshaledData)
+	if err != nil {
+		return err
+	}
+
+	err = triggerStorage.Put([]byte(epochStartID), marshaledData)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func createSovereignShardGenesisBlock(

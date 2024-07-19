@@ -69,6 +69,7 @@ type ArgsSovereignChainBlockProcessor struct {
 	ValidatorInfoCreator         process.EpochStartValidatorInfoCreator
 	EpochSystemSCProcessor       process.EpochStartSystemSCProcessor
 	SCToProtocol                 process.SmartContractToProtocolHandler
+	EpochEconomics               process.EndOfEpochEconomics
 }
 
 // NewSovereignChainBlockProcessor creates a new sovereign chain block processor
@@ -100,6 +101,9 @@ func NewSovereignChainBlockProcessor(args ArgsSovereignChainBlockProcessor) (*so
 	if check.IfNil(args.EpochSystemSCProcessor) {
 		return nil, process.ErrNilEpochStartSystemSCProcessor
 	}
+	if check.IfNil(args.EpochEconomics) {
+		return nil, process.ErrNilEpochEconomics
+	}
 
 	scbp := &sovereignChainBlockProcessor{
 		shardProcessor:               args.ShardProcessor,
@@ -111,6 +115,7 @@ func NewSovereignChainBlockProcessor(args ArgsSovereignChainBlockProcessor) (*so
 		epochRewardsCreator:          args.EpochRewardsCreator,
 		validatorInfoCreator:         args.ValidatorInfoCreator,
 		scToProtocol:                 args.SCToProtocol,
+		epochEconomics:               args.EpochEconomics,
 	}
 
 	scbp.baseProcessor.epochSystemSCProcessor = args.EpochSystemSCProcessor
@@ -291,12 +296,12 @@ func (scbp *sovereignChainBlockProcessor) updateEpochStartHeader(header data.Sov
 
 	sovHeader.AccumulatedFeesInEpoch.Set(totalAccumulatedFeesInEpoch)
 	sovHeader.DevFeesInEpoch.Set(totalDevFeesInEpoch)
-	//economicsData, err := scbp.epochEconomics.ComputeEndOfEpochEconomics(sovHeader)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//sovHeader.EpochStart.Economics = *economicsData
+	economicsData, err := scbp.epochEconomics.ComputeEndOfEpochEconomics(sovHeader)
+	if err != nil {
+		return err
+	}
+
+	sovHeader.EpochStart.Economics = *economicsData
 
 	//saveEpochStartEconomicsMetrics(scbp.appStatusHandler, sovHeader)
 

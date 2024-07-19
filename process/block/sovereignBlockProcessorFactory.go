@@ -73,6 +73,7 @@ func (s *sovereignBlockProcessorFactory) CreateBlockProcessor(argumentsBaseProce
 		EpochStartDataCreator:        argsMetaProcessor.EpochStartDataCreator,
 		EpochSystemSCProcessor:       argsMetaProcessor.EpochSystemSCProcessor,
 		SCToProtocol:                 argsMetaProcessor.SCToProtocol,
+		EpochEconomics:               argsMetaProcessor.EpochEconomics,
 	}
 
 	return NewSovereignChainBlockProcessor(args)

@@ -120,7 +120,7 @@ func (e *economics) ComputeEndOfEpochEconomics(
 	if err != nil {
 		return nil, err
 	}
-	prevEpochEconomics := prevEpochStart.EpochStart.Economics
+	prevEpochEconomics := prevEpochStart.GetEpochStartHandler().GetEconomicsHandler()
 
 	noncesPerShardCurrEpoch, err := e.startNoncePerShardFromLastCrossNotarized(metaBlock.GetNonce(), metaBlock.GetEpochStartHandler())
 	if err != nil {
@@ -166,28 +166,28 @@ func (e *economics) ComputeEndOfEpochEconomics(
 	}
 
 	computedEconomics := block.Economics{
-		TotalSupply:                      big.NewInt(0).Add(prevEpochEconomics.TotalSupply, newTokens),
+		TotalSupply:                      big.NewInt(0).Add(prevEpochEconomics.GetTotalSupply(), newTokens),
 		TotalToDistribute:                big.NewInt(0).Set(totalRewardsToBeDistributed),
 		TotalNewlyMinted:                 big.NewInt(0).Set(newTokens),
 		RewardsPerBlock:                  rwdPerBlock,
 		RewardsForProtocolSustainability: rewardsForProtocolSustainability,
-		NodePrice:                        big.NewInt(0).Set(prevEpochEconomics.NodePrice),
+		NodePrice:                        big.NewInt(0).Set(prevEpochEconomics.GetNodePrice()),
 		PrevEpochStartRound:              prevEpochStart.GetRound(),
 		PrevEpochStartHash:               prevEpochStartHash,
 	}
-
-	e.printEconomicsData(
-		metaBlock,
-		prevEpochEconomics,
-		inflationRate,
-		newTokens,
-		computedEconomics,
-		totalRewardsToBeDistributed,
-		totalNumBlocksInEpoch,
-		rwdPerBlock,
-		rewardsForProtocolSustainability,
-	)
-
+	/*
+		e.printEconomicsData(
+			metaBlock,
+			prevEpochEconomics,
+			inflationRate,
+			newTokens,
+			computedEconomics,
+			totalRewardsToBeDistributed,
+			totalNumBlocksInEpoch,
+			rwdPerBlock,
+			rewardsForProtocolSustainability,
+		)
+	*/
 	maxPossibleNotarizedBlocks := e.maxPossibleNotarizedBlocks(metaBlock.GetRound(), prevEpochStart)
 	err = e.checkEconomicsInvariants(computedEconomics, inflationRate, maxBlocksInEpoch, totalNumBlocksInEpoch, metaBlock, metaBlock.GetEpoch(), maxPossibleNotarizedBlocks)
 	if err != nil {
@@ -384,7 +384,7 @@ func (e *economics) computeNumOfTotalCreatedBlocks(
 	return core.MaxUint64(1, totalNumBlocks)
 }
 
-func (e *economics) startNoncePerShardFromEpochStart(epoch uint32) (map[uint32]uint64, *block.MetaBlock, error) {
+func (e *economics) startNoncePerShardFromEpochStart(epoch uint32) (map[uint32]uint64, data.MetaHeaderHandler, error) {
 	mapShardIdNonce := make(map[uint32]uint64, e.shardCoordinator.NumberOfShards()+1)
 	for i := uint32(0); i < e.shardCoordinator.NumberOfShards(); i++ {
 		mapShardIdNonce[i] = e.genesisNonce
@@ -392,30 +392,35 @@ func (e *economics) startNoncePerShardFromEpochStart(epoch uint32) (map[uint32]u
 	mapShardIdNonce[core.MetachainShardId] = e.genesisNonce
 
 	epochStartIdentifier := core.EpochStartIdentifier(epoch)
-	previousEpochStartMeta, err := process.GetMetaHeaderFromStorage([]byte(epochStartIdentifier), e.marshalizer, e.store)
+	previousEpochStartMeta, err := process.GetSovereignChainHeaderFromStorage([]byte(epochStartIdentifier), e.marshalizer, e.store)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	ret, castOk := previousEpochStartMeta.(data.MetaHeaderHandler)
+	if !castOk {
+		return nil, nil, process.ErrWrongTypeAssertion
+	}
+
 	if epoch == e.genesisEpoch {
-		return mapShardIdNonce, previousEpochStartMeta, nil
+		return mapShardIdNonce, ret, nil
 	}
 
-	mapShardIdNonce[core.MetachainShardId] = previousEpochStartMeta.GetNonce()
-	for _, shardData := range previousEpochStartMeta.EpochStart.LastFinalizedHeaders {
-		mapShardIdNonce[shardData.ShardID] = shardData.Nonce
+	mapShardIdNonce[core.MetachainShardId] = ret.GetNonce()
+	for _, shardData := range ret.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
+		mapShardIdNonce[shardData.GetShardID()] = shardData.GetNonce()
 	}
 
-	return mapShardIdNonce, previousEpochStartMeta, nil
+	return mapShardIdNonce, ret, nil
 }
 
-func (e *economics) maxPossibleNotarizedBlocks(currentRound uint64, prev *block.MetaBlock) uint64 {
+func (e *economics) maxPossibleNotarizedBlocks(currentRound uint64, prev data.MetaHeaderHandler) uint64 {
 	maxBlocks := uint64(0)
-	for _, shardData := range prev.EpochStart.LastFinalizedHeaders {
-		maxBlocks += currentRound - shardData.Round
+	for _, shardData := range prev.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
+		maxBlocks += currentRound - shardData.GetRound()
 	}
 	// For metaChain blocks
-	maxBlocks += currentRound - prev.Round
+	maxBlocks += currentRound - prev.GetRound()
 
 	return maxBlocks
 }

@@ -127,4 +127,5 @@ type ExtraArgsMetaBlockProcessor struct {
 	EpochRewardsCreator       process.RewardsCreator
 	EpochSystemSCProcessor    process.EpochStartSystemSCProcessor
 	SCToProtocol              process.SmartContractToProtocolHandler
+	EpochEconomics            process.EndOfEpochEconomics
 }

@@ -3,6 +3,7 @@ package metachain
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 )
 
 type sovereignTrigger struct {
@@ -11,7 +12,7 @@ type sovereignTrigger struct {
 
 // NewSovereignTrigger creates a new sovereign epoch start trigger
 func NewSovereignTrigger(args *ArgsNewMetaEpochStartTrigger) (*sovereignTrigger, error) {
-	metaTrigger, err := newTrigger(args, &block.SovereignChainHeader{}, &sovereignTriggerRegistryCreator{})
+	metaTrigger, err := newTrigger(args, &block.SovereignChainHeader{}, &sovereignTriggerRegistryCreator{}, dataRetriever.BlockHeaderUnit)
 	if err != nil {
 		return nil, err
 	}
