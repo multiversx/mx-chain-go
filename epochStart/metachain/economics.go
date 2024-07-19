@@ -17,7 +17,6 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/sharding"
 )
 
 var _ process.EndOfEpochEconomics = (*economics)(nil)
@@ -31,7 +30,7 @@ type economics struct {
 	marshalizer           marshal.Marshalizer
 	hasher                hashing.Hasher
 	store                 dataRetriever.StorageService
-	shardCoordinator      sharding.Coordinator
+	shardCoordinator      ShardCoordinatorHandler
 	rewardsHandler        process.RewardsHandler
 	roundTime             process.RoundTimeDurationHandler
 	genesisEpoch          uint32
@@ -39,6 +38,7 @@ type economics struct {
 	genesisTotalSupply    *big.Int
 	economicsDataNotified epochStart.EpochEconomicsDataProvider
 	stakingV2EnableEpoch  uint32
+	baseEconomicsHandler  baseEconomicsHandler
 }
 
 // ArgsNewEpochEconomics is the argument for the economics constructor
@@ -46,7 +46,7 @@ type ArgsNewEpochEconomics struct {
 	Marshalizer           marshal.Marshalizer
 	Hasher                hashing.Hasher
 	Store                 dataRetriever.StorageService
-	ShardCoordinator      sharding.Coordinator
+	ShardCoordinator      ShardCoordinatorHandler
 	RewardsHandler        process.RewardsHandler
 	RoundTime             process.RoundTimeDurationHandler
 	GenesisEpoch          uint32
@@ -95,6 +95,14 @@ func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*economics, 
 		genesisTotalSupply:    big.NewInt(0).Set(args.GenesisTotalSupply),
 		economicsDataNotified: args.EconomicsDataNotified,
 		stakingV2EnableEpoch:  args.StakingV2EnableEpoch,
+		baseEconomicsHandler: &baseEconomics{
+			marshalizer:           args.Marshalizer,
+			store:                 args.Store,
+			shardCoordinator:      args.ShardCoordinator,
+			economicsDataNotified: args.EconomicsDataNotified,
+			genesisEpoch:          args.GenesisEpoch,
+			genesisNonce:          args.GenesisNonce,
+		},
 	}
 	log.Debug("economics: enable epoch for staking v2", "epoch", e.stakingV2EnableEpoch)
 
@@ -118,20 +126,20 @@ func (e *economics) ComputeEndOfEpochEconomics(
 		return nil, epochStart.ErrNotEpochStartBlock
 	}
 
-	noncesPerShardPrevEpoch, prevEpochStart, err := e.startNoncePerShardFromEpochStart(metaBlock.GetEpoch() - 1)
+	noncesPerShardPrevEpoch, prevEpochStart, err := e.baseEconomicsHandler.startNoncePerShardFromEpochStart(metaBlock.GetEpoch() - 1)
 	if err != nil {
 		return nil, err
 	}
 	prevEpochEconomics := prevEpochStart.GetEpochStartHandler().GetEconomicsHandler()
 
-	noncesPerShardCurrEpoch, err := e.startNoncePerShardFromLastCrossNotarized(metaBlock.GetNonce(), metaBlock.GetEpochStartHandler())
+	noncesPerShardCurrEpoch, err := e.baseEconomicsHandler.startNoncePerShardFromLastCrossNotarized(metaBlock.GetNonce(), metaBlock.GetEpochStartHandler())
 	if err != nil {
 		return nil, err
 	}
 
 	roundsPassedInEpoch := metaBlock.GetRound() - prevEpochStart.GetRound()
-	maxBlocksInEpoch := core.MaxUint64(1, roundsPassedInEpoch*uint64(e.shardCoordinator.NumberOfShards()+1))
-	totalNumBlocksInEpoch := e.computeNumOfTotalCreatedBlocks(noncesPerShardPrevEpoch, noncesPerShardCurrEpoch)
+	maxBlocksInEpoch := core.MaxUint64(1, roundsPassedInEpoch*uint64(e.shardCoordinator.TotalNumberOfShards()))
+	totalNumBlocksInEpoch := e.baseEconomicsHandler.computeNumOfTotalCreatedBlocks(noncesPerShardPrevEpoch, noncesPerShardCurrEpoch)
 
 	inflationRate := e.computeInflationRate(metaBlock.GetRound())
 	rwdPerBlock := e.computeRewardsPerBlock(e.genesisTotalSupply, maxBlocksInEpoch, inflationRate, metaBlock.GetEpoch())
@@ -190,7 +198,7 @@ func (e *economics) ComputeEndOfEpochEconomics(
 		rewardsForProtocolSustainability,
 	)
 
-	maxPossibleNotarizedBlocks := e.maxPossibleNotarizedBlocks(metaBlock.GetRound(), prevEpochStart)
+	maxPossibleNotarizedBlocks := e.baseEconomicsHandler.maxPossibleNotarizedBlocks(metaBlock.GetRound(), prevEpochStart)
 	err = e.checkEconomicsInvariants(computedEconomics, inflationRate, maxBlocksInEpoch, totalNumBlocksInEpoch, metaBlock, metaBlock.GetEpoch(), maxPossibleNotarizedBlocks)
 	if err != nil {
 		log.Warn("ComputeEndOfEpochEconomics", "error", err.Error())
@@ -353,92 +361,11 @@ func (e *economics) computeRewardsPerBlock(
 func (e *economics) computeInflationForEpoch(inflationRate float64, maxBlocksInEpoch uint64) float64 {
 	inflationRatePerDay := inflationRate / numberOfDaysInYear
 	roundsPerDay := numberOfSecondsInDay / uint64(e.roundTime.TimeDuration().Seconds())
-	maxBlocksInADay := core.MaxUint64(1, roundsPerDay*uint64(e.shardCoordinator.NumberOfShards()+1))
+	maxBlocksInADay := core.MaxUint64(1, roundsPerDay*uint64(e.shardCoordinator.TotalNumberOfShards()))
 
 	inflationRateForEpoch := inflationRatePerDay * (float64(maxBlocksInEpoch) / float64(maxBlocksInADay))
 
 	return inflationRateForEpoch
-}
-
-func (e *economics) computeNumOfTotalCreatedBlocks(
-	mapStartNonce map[uint32]uint64,
-	mapEndNonce map[uint32]uint64,
-) uint64 {
-	totalNumBlocks := uint64(0)
-	var blocksInShard uint64
-	blocksPerShard := make(map[uint32]uint64)
-	shardMap := createShardsMap(e.shardCoordinator)
-	for shardId := range shardMap {
-		blocksInShard = mapEndNonce[shardId] - mapStartNonce[shardId]
-		blocksPerShard[shardId] = blocksInShard
-		totalNumBlocks += blocksInShard
-		log.Debug("computeNumOfTotalCreatedBlocks",
-			"shardID", shardId,
-			"prevEpochLastNonce", mapEndNonce[shardId],
-			"epochLastNonce", mapStartNonce[shardId],
-			"nbBlocksEpoch", blocksPerShard[shardId],
-		)
-	}
-
-	e.economicsDataNotified.SetNumberOfBlocks(totalNumBlocks)
-	e.economicsDataNotified.SetNumberOfBlocksPerShard(blocksPerShard)
-
-	return core.MaxUint64(1, totalNumBlocks)
-}
-
-func (e *economics) startNoncePerShardFromEpochStart(epoch uint32) (map[uint32]uint64, data.MetaHeaderHandler, error) {
-	mapShardIdNonce := make(map[uint32]uint64, e.shardCoordinator.NumberOfShards()+1)
-	for i := uint32(0); i < e.shardCoordinator.NumberOfShards(); i++ {
-		mapShardIdNonce[i] = e.genesisNonce
-	}
-	mapShardIdNonce[core.MetachainShardId] = e.genesisNonce
-
-	epochStartIdentifier := core.EpochStartIdentifier(epoch)
-	previousEpochStartMeta, err := process.GetSovereignChainHeaderFromStorage([]byte(epochStartIdentifier), e.marshalizer, e.store)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	ret, castOk := previousEpochStartMeta.(data.MetaHeaderHandler)
-	if !castOk {
-		return nil, nil, process.ErrWrongTypeAssertion
-	}
-
-	if epoch == e.genesisEpoch {
-		return mapShardIdNonce, ret, nil
-	}
-
-	mapShardIdNonce[core.MetachainShardId] = ret.GetNonce()
-	for _, shardData := range ret.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
-		mapShardIdNonce[shardData.GetShardID()] = shardData.GetNonce()
-	}
-
-	return mapShardIdNonce, ret, nil
-}
-
-func (e *economics) maxPossibleNotarizedBlocks(currentRound uint64, prev data.MetaHeaderHandler) uint64 {
-	maxBlocks := uint64(0)
-	for _, shardData := range prev.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
-		maxBlocks += currentRound - shardData.GetRound()
-	}
-	// For metaChain blocks
-	maxBlocks += currentRound - prev.GetRound()
-
-	return maxBlocks
-}
-
-func (e *economics) startNoncePerShardFromLastCrossNotarized(metaNonce uint64, epochStart data.EpochStartHandler) (map[uint32]uint64, error) {
-	mapShardIdNonce := make(map[uint32]uint64, e.shardCoordinator.NumberOfShards()+1)
-	for i := uint32(0); i < e.shardCoordinator.NumberOfShards(); i++ {
-		mapShardIdNonce[i] = e.genesisNonce
-	}
-	mapShardIdNonce[core.MetachainShardId] = metaNonce
-
-	for _, shardData := range epochStart.GetLastFinalizedHeaderHandlers() {
-		mapShardIdNonce[shardData.GetShardID()] = shardData.GetNonce()
-	}
-
-	return mapShardIdNonce, nil
 }
 
 func (e *economics) checkEconomicsInvariants(

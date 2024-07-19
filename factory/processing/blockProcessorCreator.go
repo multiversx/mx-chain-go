@@ -866,7 +866,7 @@ func (pcf *processComponentsFactory) createArgsMetaBlockProcessor(
 		Marshalizer:           pcf.coreData.InternalMarshalizer(),
 		Hasher:                pcf.coreData.Hasher(),
 		Store:                 pcf.data.StorageService(),
-		ShardCoordinator:      pcf.bootstrapComponents.ShardCoordinator(),
+		ShardCoordinator:      pcf.bootstrapComponents.ShardCoordinator().(metachainEpochStart.ShardCoordinatorHandler), // TODO: HERERERERERERRER,
 		RewardsHandler:        pcf.coreData.EconomicsData(),
 		RoundTime:             pcf.coreData.RoundHandler(),
 		GenesisNonce:          genesisHdr.GetNonce(),
@@ -1205,7 +1205,7 @@ func (pcf *processComponentsFactory) createExtraMetaBlockProcessorArgs(
 			Marshalizer:           pcf.coreData.InternalMarshalizer(),
 			Hasher:                pcf.coreData.Hasher(),
 			Store:                 pcf.data.StorageService(),
-			ShardCoordinator:      pcf.bootstrapComponents.ShardCoordinator(),
+			ShardCoordinator:      pcf.bootstrapComponents.ShardCoordinator().(metachainEpochStart.ShardCoordinatorHandler), // TODO: HERERERERERERRER
 			RewardsHandler:        pcf.coreData.EconomicsData(),
 			RoundTime:             pcf.coreData.RoundHandler(),
 			GenesisNonce:          genesisHdr.GetNonce(),

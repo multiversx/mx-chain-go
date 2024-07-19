@@ -1,13 +1,7 @@
 package metachain
 
 import (
-	"math/big"
-
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process"
 )
 
@@ -20,11 +14,23 @@ func NewSovereignEconomics(ec *economics) (*sovereignEconomics, error) {
 		return nil, process.ErrNilEconomicsData
 	}
 
+	ec.baseEconomicsHandler = &sovereignBaseEconomics{
+		marshalizer:           ec.marshalizer,
+		store:                 ec.store,
+		shardCoordinator:      ec.shardCoordinator,
+		economicsDataNotified: ec.economicsDataNotified,
+		genesisEpoch:          ec.genesisEpoch,
+		genesisNonce:          ec.genesisNonce,
+	}
+
 	return &sovereignEconomics{
 		ec,
 	}, nil
 }
 
+// todo: interfaceIsNil
+
+/*
 // ComputeEndOfEpochEconomics calculates the rewards per block value for the current epoch
 func (e *sovereignEconomics) ComputeEndOfEpochEconomics(
 	metaBlock data.MetaHeaderHandler,
@@ -126,7 +132,7 @@ func (e *sovereignEconomics) ComputeEndOfEpochEconomics(
 }
 
 func (e *sovereignEconomics) startNoncePerShardFromEpochStart(epoch uint32) (map[uint32]uint64, data.MetaHeaderHandler, error) {
-	mapShardIdNonce := make(map[uint32]uint64, e.shardCoordinator.NumberOfShards())
+	mapShardIdNonce := make(map[uint32]uint64, e.shardCoordinator.TotalNumberOfShards())
 	mapShardIdNonce[core.SovereignChainShardId] = e.genesisNonce
 
 	epochStartIdentifier := core.EpochStartIdentifier(epoch)
@@ -183,3 +189,4 @@ func (e *sovereignEconomics) computeNumOfTotalCreatedBlocks(
 func (e *sovereignEconomics) maxPossibleNotarizedBlocks(currentRound uint64, prev data.MetaHeaderHandler) uint64 {
 	return currentRound - prev.GetRound()
 }
+*/

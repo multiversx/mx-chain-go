@@ -1,0 +1,78 @@
+package metachain
+
+import (
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/process"
+)
+
+type sovereignBaseEconomics struct {
+	marshalizer           marshal.Marshalizer
+	store                 dataRetriever.StorageService
+	shardCoordinator      ShardCoordinatorHandler
+	economicsDataNotified epochStart.EpochEconomicsDataProvider
+	genesisEpoch          uint32
+	genesisNonce          uint64
+}
+
+func (e *sovereignBaseEconomics) startNoncePerShardFromEpochStart(epoch uint32) (map[uint32]uint64, data.MetaHeaderHandler, error) {
+	mapShardIdNonce := make(map[uint32]uint64, e.shardCoordinator.TotalNumberOfShards())
+	mapShardIdNonce[core.SovereignChainShardId] = e.genesisNonce
+
+	epochStartIdentifier := core.EpochStartIdentifier(epoch)
+	previousEpochStartMeta, err := process.GetSovereignChainHeaderFromStorage([]byte(epochStartIdentifier), e.marshalizer, e.store)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	ret, castOk := previousEpochStartMeta.(data.MetaHeaderHandler)
+	if !castOk {
+		return nil, nil, process.ErrWrongTypeAssertion
+	}
+
+	if epoch == e.genesisEpoch {
+		return mapShardIdNonce, ret, nil
+	}
+
+	mapShardIdNonce[core.SovereignChainShardId] = ret.GetNonce()
+	return mapShardIdNonce, ret, nil
+}
+
+func (e *sovereignBaseEconomics) startNoncePerShardFromLastCrossNotarized(metaNonce uint64, _ data.EpochStartHandler) (map[uint32]uint64, error) {
+	mapShardIdNonce := make(map[uint32]uint64, e.shardCoordinator.NumberOfShards())
+	mapShardIdNonce[core.SovereignChainShardId] = metaNonce
+	return mapShardIdNonce, nil
+}
+
+func (e *sovereignBaseEconomics) computeNumOfTotalCreatedBlocks(
+	mapStartNonce map[uint32]uint64,
+	mapEndNonce map[uint32]uint64,
+) uint64 {
+	totalNumBlocks := uint64(0)
+	var blocksInShard uint64
+	blocksPerShard := make(map[uint32]uint64)
+
+	shardId := core.SovereignChainShardId
+
+	blocksInShard = mapEndNonce[shardId] - mapStartNonce[shardId]
+	blocksPerShard[shardId] = blocksInShard
+	totalNumBlocks += blocksInShard
+	log.Debug("computeNumOfTotalCreatedBlocks",
+		"shardID", shardId,
+		"prevEpochLastNonce", mapEndNonce[shardId],
+		"epochLastNonce", mapStartNonce[shardId],
+		"nbBlocksEpoch", blocksPerShard[shardId],
+	)
+
+	e.economicsDataNotified.SetNumberOfBlocks(totalNumBlocks)
+	e.economicsDataNotified.SetNumberOfBlocksPerShard(blocksPerShard)
+
+	return core.MaxUint64(1, totalNumBlocks)
+}
+
+func (e *sovereignBaseEconomics) maxPossibleNotarizedBlocks(currentRound uint64, prev data.MetaHeaderHandler) uint64 {
+	return currentRound - prev.GetRound()
+}
