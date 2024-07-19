@@ -291,11 +291,11 @@ func (scbp *sovereignChainBlockProcessor) updateEpochStartHeader(header data.Sov
 
 	sovHeader.AccumulatedFeesInEpoch.Set(totalAccumulatedFeesInEpoch)
 	sovHeader.DevFeesInEpoch.Set(totalDevFeesInEpoch)
-	//economicsData, err := scbp.epochEconomics.ComputeEndOfEpochEconomics(header)
+	//economicsData, err := scbp.epochEconomics.ComputeEndOfEpochEconomics(sovHeader)
 	//if err != nil {
 	//	return err
 	//}
-
+	//
 	//sovHeader.EpochStart.Economics = *economicsData
 
 	//saveEpochStartEconomicsMetrics(scbp.appStatusHandler, sovHeader)
