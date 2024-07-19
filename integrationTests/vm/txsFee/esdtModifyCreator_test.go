@@ -36,7 +36,7 @@ func runEsdtModifyCreatorTest(t *testing.T, tokenType string) {
 	baseEsdtKeyPrefix := core.ProtectedKeyPrefix + core.ESDTKeyIdentifier
 	key := append([]byte(baseEsdtKeyPrefix), token...)
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
