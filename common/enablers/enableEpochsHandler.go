@@ -750,6 +750,12 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.CryptoOpcodesV2EnableEpoch,
 		},
+		common.UnJailCleanupFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.UnJailCleanupEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.UnJailCleanupEnableEpoch,
+		},
 		common.ValidationOnGobDecodeFlag: {
 			isActiveInEpoch: func(epoch uint32) bool {
 				return epoch >= handler.enableEpochsConfig.ValidationOnGobDecodeEnableEpoch
