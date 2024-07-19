@@ -22,7 +22,7 @@ func TestCreateMemUnitForTries(t *testing.T) {
 	require.NoError(t, memUnit.PutInEpoch(key, data, 0))
 	require.NoError(t, memUnit.PutInEpochWithoutCache(key, data, 0))
 
-	value, _, err := memUnit.GetFromOldEpochsWithoutAddingToCache(key)
+	value, _, err := memUnit.GetFromOldEpochsWithoutAddingToCache(key, 10)
 	require.NoError(t, err)
 	require.Equal(t, data, value)
 
