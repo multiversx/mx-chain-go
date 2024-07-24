@@ -750,6 +750,24 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.CryptoOpcodesV2EnableEpoch,
 		},
+		common.UnJailCleanupFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.UnJailCleanupEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.UnJailCleanupEnableEpoch,
+		},
+		common.RelayedTransactionsV3Flag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.RelayedTransactionsV3EnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.RelayedTransactionsV3EnableEpoch,
+		},
+		common.FixRelayedBaseCostFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.FixRelayedBaseCostEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.FixRelayedBaseCostEnableEpoch,
+		},
 	}
 }
 

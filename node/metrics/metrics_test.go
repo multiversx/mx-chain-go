@@ -208,6 +208,8 @@ func TestInitConfigMetrics(t *testing.T) {
 			EGLDInMultiTransferEnableEpoch:                           101,
 			CryptoOpcodesV2EnableEpoch:                               102,
 			ScToScLogEventEnableEpoch:                                103,
+			RelayedTransactionsV3EnableEpoch:                         104,
+			FixRelayedBaseCostEnableEpoch:                            105,
 			MaxNodesChangeEnableEpoch: []config.MaxNodesChangeConfig{
 				{
 					EpochEnable:            0,
@@ -326,6 +328,8 @@ func TestInitConfigMetrics(t *testing.T) {
 		"erd_egld_in_multi_transfer_enable_epoch":                              uint32(101),
 		"erd_crypto_opcodes_v2_enable_epoch":                                   uint32(102),
 		"erd_set_sc_to_sc_log_event_enable_epoch":                              uint32(103),
+		"erd_relayed_transactions_v3_enable_epoch":                             uint32(104),
+		"erd_fix_relayed_base_cost_enable_epoch":                               uint32(105),
 		"erd_max_nodes_change_enable_epoch":                                    nil,
 		"erd_total_supply":                                                     "12345",
 		"erd_hysteresis":                                                       "0.100000",
