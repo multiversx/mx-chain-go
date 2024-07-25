@@ -50,11 +50,17 @@ func (vs *sovereignChainValidatorStatistics) updateShardDataPeerState(
 		"accumulatedFees", header.GetAccumulatedFees().String(),
 		"developerFees", header.GetDeveloperFees().String(),
 	)
+
+	prevShardData, shardInfoErr := vs.searchInMap(header.GetPrevHash(), cacheMap)
+	if shardInfoErr != nil {
+		return shardInfoErr
+	}
+
 	shardInfoErr = vs.updateValidatorInfoOnSuccessfulBlock(
 		shardConsensus,
-		header.GetPubKeysBitmap(),
-		big.NewInt(0).Sub(header.GetAccumulatedFees(), header.GetDeveloperFees()),
-		header.GetShardID(),
+		prevShardData.GetPubKeysBitmap(),
+		big.NewInt(0).Sub(prevShardData.GetAccumulatedFees(), prevShardData.GetDeveloperFees()),
+		prevShardData.GetShardID(),
 	)
 	if shardInfoErr != nil {
 		return shardInfoErr
@@ -62,11 +68,6 @@ func (vs *sovereignChainValidatorStatistics) updateShardDataPeerState(
 
 	if header.GetNonce() == vs.genesisNonce+1 {
 		return nil
-	}
-
-	prevShardData, shardInfoErr := vs.searchInMap(header.GetPrevHash(), cacheMap)
-	if shardInfoErr != nil {
-		return shardInfoErr
 	}
 
 	return vs.checkForMissedBlocks(

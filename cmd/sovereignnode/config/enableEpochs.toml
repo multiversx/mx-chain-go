@@ -53,7 +53,7 @@
     StakeEnableEpoch = 0
 
     # StakingV2EnableEpoch represents the epoch when staking v2 is enabled
-    StakingV2EnableEpoch = 1
+    StakingV2EnableEpoch = 0
 
     # DoubleKeyProtectionEnableEpoch represents the epoch when the double key protection will be enabled
     DoubleKeyProtectionEnableEpoch = 1
