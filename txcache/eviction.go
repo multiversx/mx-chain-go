@@ -4,15 +4,23 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 )
 
+// evictionJournal keeps a short journal about the eviction process
+// This is useful for debugging and reasoning about the eviction
+type evictionJournal struct {
+	numTxs     uint32
+	numSenders uint32
+	numSteps   uint32
+}
+
 // doEviction does cache eviction
 // We do not allow more evictions to start concurrently
-func (cache *TxCache) doEviction() {
+func (cache *TxCache) doEviction() *evictionJournal {
 	if cache.isEvictionInProgress.IsSet() {
-		return
+		return nil
 	}
 
 	if !cache.isCapacityExceeded() {
-		return
+		return nil
 	}
 
 	cache.evictionMutex.Lock()
@@ -22,27 +30,35 @@ func (cache *TxCache) doEviction() {
 	defer cache.isEvictionInProgress.Reset()
 
 	if !cache.isCapacityExceeded() {
-		return
+		return nil
 	}
 
-	stopWatch := cache.monitorEvictionStart()
-	cache.makeSnapshotOfSenders()
+	logRemove.Debug("doEviction(): before eviction",
+		"num bytes", cache.NumBytes(),
+		"num txs", cache.CountTx(),
+		"num senders", cache.CountSenders(),
+	)
 
-	journal := evictionJournal{}
-	journal.passOneNumSteps, journal.passOneNumTxs, journal.passOneNumSenders = cache.evictSendersInLoop()
-	journal.evictionPerformed = true
-	cache.evictionJournal = journal
+	stopWatch := core.NewStopWatch()
+	stopWatch.Start("eviction")
 
-	cache.monitorEvictionEnd(stopWatch)
-	cache.destroySnapshotOfSenders()
-}
+	sendersSnapshot := cache.txListBySender.getSnapshotAscending()
+	evictionJournal := cache.evictSendersInLoop(sendersSnapshot)
 
-func (cache *TxCache) makeSnapshotOfSenders() {
-	cache.evictionSnapshotOfSenders = cache.txListBySender.getSnapshotAscending()
-}
+	stopWatch.Stop("eviction")
 
-func (cache *TxCache) destroySnapshotOfSenders() {
-	cache.evictionSnapshotOfSenders = nil
+	logRemove.Debug(
+		"doEviction(): after eviction",
+		"num bytes", cache.NumBytes(),
+		"num now", cache.CountTx(),
+		"num senders", cache.CountSenders(),
+		"duration", stopWatch.GetMeasurement("eviction"),
+		"evicted txs", evictionJournal.numTxs,
+		"evicted senders", evictionJournal.numSenders,
+		"eviction steps", evictionJournal.numSteps,
+	)
+
+	return &evictionJournal
 }
 
 func (cache *TxCache) isCapacityExceeded() bool {
@@ -73,31 +89,32 @@ func (cache *TxCache) doEvictItems(txsToEvict [][]byte, sendersToEvict []string)
 	return
 }
 
-func (cache *TxCache) evictSendersInLoop() (uint32, uint32, uint32) {
-	return cache.evictSendersWhile(cache.isCapacityExceeded)
+func (cache *TxCache) evictSendersInLoop(sendersSnapshot []*txListForSender) evictionJournal {
+	return cache.evictSendersWhile(sendersSnapshot, cache.isCapacityExceeded)
 }
 
 // evictSendersWhileTooManyTxs removes transactions in a loop, as long as "shouldContinue" is true
 // One batch of senders is removed in each step
-func (cache *TxCache) evictSendersWhile(shouldContinue func() bool) (step uint32, numTxs uint32, numSenders uint32) {
+func (cache *TxCache) evictSendersWhile(sendersSnapshot []*txListForSender, shouldContinue func() bool) evictionJournal {
 	if !shouldContinue() {
-		return
+		return evictionJournal{}
 	}
 
-	snapshot := cache.evictionSnapshotOfSenders
-	snapshotLength := uint32(len(snapshot))
+	snapshotLength := uint32(len(sendersSnapshot))
 	batchSize := cache.config.NumSendersToPreemptivelyEvict
 	batchStart := uint32(0)
 
-	for step = 0; shouldContinue(); step++ {
+	journal := evictionJournal{}
+
+	for ; shouldContinue(); journal.numSteps++ {
 		batchEnd := batchStart + batchSize
 		batchEndBounded := core.MinUint32(batchEnd, snapshotLength)
-		batch := snapshot[batchStart:batchEndBounded]
+		batch := sendersSnapshot[batchStart:batchEndBounded]
 
 		numTxsEvictedInStep, numSendersEvictedInStep := cache.evictSendersAndTheirTxs(batch)
 
-		numTxs += numTxsEvictedInStep
-		numSenders += numSendersEvictedInStep
+		journal.numTxs += numTxsEvictedInStep
+		journal.numSenders += numSendersEvictedInStep
 		batchStart += batchSize
 
 		reachedEnd := batchStart >= snapshotLength
@@ -110,7 +127,7 @@ func (cache *TxCache) evictSendersWhile(shouldContinue func() bool) (step uint32
 		}
 	}
 
-	return
+	return journal
 }
 
 func (cache *TxCache) evictSendersAndTheirTxs(listsToEvict []*txListForSender) (uint32, uint32) {

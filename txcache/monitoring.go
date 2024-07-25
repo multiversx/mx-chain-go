@@ -8,28 +8,6 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
-func (cache *TxCache) monitorEvictionWrtSenderLimit(sender []byte, evicted [][]byte) {
-	logRemove.Debug("monitorEvictionWrtSenderLimit()", "sender", sender, "num", len(evicted))
-}
-
-func (cache *TxCache) monitorEvictionWrtSenderNonce(sender []byte, senderNonce uint64, evicted [][]byte) {
-	logRemove.Trace("monitorEvictionWrtSenderNonce()", "sender", sender, "nonce", senderNonce, "num", len(evicted))
-}
-
-func (cache *TxCache) monitorEvictionStart() *core.StopWatch {
-	logRemove.Debug("monitorEvictionStart()", "numBytes", cache.NumBytes(), "txs", cache.CountTx(), "senders", cache.CountSenders())
-	sw := core.NewStopWatch()
-	sw.Start("eviction")
-	return sw
-}
-
-func (cache *TxCache) monitorEvictionEnd(stopWatch *core.StopWatch) {
-	stopWatch.Stop("eviction")
-	duration := stopWatch.GetMeasurement("eviction")
-	logRemove.Debug("monitorEvictionEnd()", "duration", duration, "numBytes", cache.NumBytes(), "txs", cache.CountTx(), "senders", cache.CountSenders())
-	cache.evictionJournal.display()
-}
-
 func (cache *TxCache) monitorSelectionStart(contextualLogger logger.Logger) *core.StopWatch {
 	contextualLogger.Debug("monitorSelectionStart()", "numBytes", cache.NumBytes(), "txs", cache.CountTx(), "senders", cache.CountSenders())
 	sw := core.NewStopWatch()
@@ -96,19 +74,6 @@ func (cache *TxCache) monitorBatchSelectionEnd(journal batchSelectionJournal) {
 	if journal.selectedNum > 0 {
 		cache.numSendersSelected.Increment()
 	}
-}
-
-// evictionJournal keeps a short journal about the eviction process
-// This is useful for debugging and reasoning about the eviction
-type evictionJournal struct {
-	evictionPerformed bool
-	passOneNumTxs     uint32
-	passOneNumSenders uint32
-	passOneNumSteps   uint32
-}
-
-func (journal *evictionJournal) display() {
-	logRemove.Debug("Eviction.pass1:", "txs", journal.passOneNumTxs, "senders", journal.passOneNumSenders, "steps", journal.passOneNumSteps)
 }
 
 func monitorSendersScoreHistogram(scoreGroups [][]*txListForSender) {
