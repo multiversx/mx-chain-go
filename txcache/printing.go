@@ -17,11 +17,12 @@ type printedTransaction struct {
 }
 
 type printedSender struct {
-	Address      string `json:"address"`
-	Score        int    `json:"score"`
-	Nonce        uint64 `json:"nonce"`
-	IsNonceKnown bool   `json:"isNonceKnown"`
-	NumTxs       uint64 `json:"numTxs"`
+	Address       string `json:"address"`
+	Score         int    `json:"score"`
+	Nonce         uint64 `json:"nonce"`
+	IsNonceKnown  bool   `json:"isNonceKnown"`
+	HasInitialGap bool   `json:"hasInitialGap"`
+	NumTxs        uint64 `json:"numTxs"`
 }
 
 // marshalSendersToNewlineDelimitedJson converts a list of senders to a newline-delimited JSON string.
@@ -77,10 +78,11 @@ func convertWrappedTransactionToPrintedTransaction(wrappedTx *WrappedTransaction
 
 func convertTxListForSenderToPrintedSender(txListForSender *txListForSender) *printedSender {
 	return &printedSender{
-		Address:      hex.EncodeToString([]byte(txListForSender.sender)),
-		Score:        txListForSender.getScore(),
-		Nonce:        txListForSender.accountNonce.Get(),
-		IsNonceKnown: txListForSender.accountNonceKnown.IsSet(),
-		NumTxs:       txListForSender.countTxWithLock(),
+		Address:       hex.EncodeToString([]byte(txListForSender.sender)),
+		Score:         txListForSender.getScore(),
+		Nonce:         txListForSender.accountNonce.Get(),
+		IsNonceKnown:  txListForSender.accountNonceKnown.IsSet(),
+		HasInitialGap: txListForSender.hasInitialGapWithLock(),
+		NumTxs:        txListForSender.countTxWithLock(),
 	}
 }

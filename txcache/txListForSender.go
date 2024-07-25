@@ -31,6 +31,11 @@ type txListForSender struct {
 	mutex sync.RWMutex
 }
 
+type batchSelectionJournal struct {
+	selectedNum int
+	selectedGas uint64
+}
+
 // newTxListForSender creates a new (sorted) list of transactions
 func newTxListForSender(sender string, constraints *senderConstraints, scoreComputer scoreComputer) *txListForSender {
 	return &txListForSender{
@@ -246,15 +251,10 @@ func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destinati
 	journal := batchSelectionJournal{}
 
 	if isFirstBatch {
-		hasInitialGap := listForSender.hasInitialGap()
-
-		journal.isFirstBatch = true
-		journal.hasInitialGap = hasInitialGap
-
 		// Reset the internal state used for copy operations
 		listForSender.selectionPreviousNonce = 0
 		listForSender.selectionPointer = listForSender.items.Front()
-		listForSender.selectionDetectedGap = hasInitialGap
+		listForSender.selectionDetectedGap = listForSender.hasInitialGap()
 	}
 
 	// If a nonce gap is detected, no transaction is returned in this read.
@@ -301,7 +301,6 @@ func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destinati
 
 	journal.selectedNum = selectedNum
 	journal.selectedGas = selectedGas
-	journal.hasMiddleGap = listForSender.selectionDetectedGap
 
 	return journal
 }
@@ -380,7 +379,6 @@ func (listForSender *txListForSender) evictTransactionsWithLowerNonces(accountNo
 	return evictedTxHashes
 }
 
-// hasInitialGap should only be called at tx selection time, since only then we can detect initial gaps with certainty
 // This function should only be used in critical section (listForSender.mutex)
 func (listForSender *txListForSender) hasInitialGap() bool {
 	accountNonceKnown := listForSender.accountNonceKnown.IsSet()
@@ -397,6 +395,12 @@ func (listForSender *txListForSender) hasInitialGap() bool {
 	accountNonce := listForSender.accountNonce.Get()
 	hasGap := firstTxNonce > accountNonce
 	return hasGap
+}
+
+func (listForSender *txListForSender) hasInitialGapWithLock() bool {
+	listForSender.mutex.RLock()
+	defer listForSender.mutex.RUnlock()
+	return listForSender.hasInitialGap()
 }
 
 // This function should only be used in critical section (listForSender.mutex)
