@@ -5,10 +5,18 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
-// Diagnose checks the state of the cache for inconsistencies and displays a summary (senders and transactions).
+// Diagnose checks the state of the cache for inconsistencies and displays a summary, senders and transactions.
 func (cache *TxCache) Diagnose(_ bool) {
-	sw := core.NewStopWatch()
-	sw.Start("diagnose")
+	cache.diagnoseCounters()
+	cache.diagnoseSenders()
+	cache.diagnoseTransactions()
+	cache.diagnoseSelection()
+}
+
+func (cache *TxCache) diagnoseCounters() {
+	if log.GetLevel() > logger.LogDebug {
+		return
+	}
 
 	sizeInBytes := cache.NumBytes()
 	numTxsEstimate := int(cache.CountTx())
@@ -22,14 +30,7 @@ func (cache *TxCache) Diagnose(_ bool) {
 	fine = fine && (int(numSendersEstimate) == len(sendersKeys))
 	fine = fine && (numTxsEstimate == numTxsInChunks && numTxsEstimate == len(txsKeys))
 
-	cache.displaySendersAsDiagnostics()
-	cache.displayTransactionsAsDiagnostics()
-
-	sw.Stop("diagnose")
-	duration := sw.GetMeasurement("diagnose")
-
-	log.Debug("TxCache.Diagnose()",
-		"duration", duration,
+	log.Debug("diagnoseCounters()",
 		"fine", fine,
 		"numTxsEstimate", numTxsEstimate,
 		"numTxsInChunks", numTxsInChunks,
@@ -42,24 +43,24 @@ func (cache *TxCache) Diagnose(_ bool) {
 	)
 }
 
-func (cache *TxCache) displaySendersAsDiagnostics() {
-	if log.GetLevel() > logger.LogTrace {
+func (cache *TxCache) diagnoseSenders() {
+	if logDiagnoseSenders.GetLevel() > logger.LogTrace {
 		return
 	}
 
-	senders := cache.txListBySender.getSnapshotAscending()
+	senders := cache.txListBySender.getSnapshotDescending()
 
 	if len(senders) == 0 {
 		return
 	}
 
 	numToDisplay := core.MinInt(diagnosisMaxSendersToDisplay, len(senders))
-	logDiagnoseSenders.Trace("Senders (as newline-separated JSON)", "numSenders", len(senders), "numToDisplay", numToDisplay)
+	logDiagnoseSenders.Trace("diagnoseSenders()", "numSenders", len(senders), "numToDisplay", numToDisplay)
 	logDiagnoseSenders.Trace(marshalSendersToNewlineDelimitedJson(senders[:numToDisplay]))
 }
 
-func (cache *TxCache) displayTransactionsAsDiagnostics() {
-	if log.GetLevel() > logger.LogTrace {
+func (cache *TxCache) diagnoseTransactions() {
+	if logDiagnoseTransactions.GetLevel() > logger.LogTrace {
 		return
 	}
 
@@ -70,6 +71,22 @@ func (cache *TxCache) displayTransactionsAsDiagnostics() {
 	}
 
 	numToDisplay := core.MinInt(diagnosisMaxTransactionsToDisplay, len(transactions))
-	logDiagnoseTransactions.Trace("Transactions (as newline-separated JSON)", "numTransactions", len(transactions), "numToDisplay", numToDisplay)
+	logDiagnoseTransactions.Trace("diagnoseTransactions()", "numTransactions", len(transactions), "numToDisplay", numToDisplay)
 	logDiagnoseTransactions.Trace(marshalTransactionsToNewlineDelimitedJson(transactions[:numToDisplay]))
+}
+
+func (cache *TxCache) diagnoseSelection() {
+	if logDiagnoseSelection.GetLevel() > logger.LogDebug {
+		return
+	}
+
+	senders, transactions := cache.doSelectTransactions(
+		logDiagnoseSelection,
+		diagnosisSelectionNumRequested,
+		diagnosisSelectionGasRequested,
+		diagnosisSelectionBaseNumPerSenderBatch,
+		diagnosisSelectionBaseGasPerSenderBatch,
+	)
+
+	displaySelectionOutcome(logDiagnoseSelection, senders, transactions)
 }

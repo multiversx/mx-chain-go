@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/multiversx/mx-chain-storage-go/common"
 	"github.com/multiversx/mx-chain-storage-go/monitoring"
 	"github.com/multiversx/mx-chain-storage-go/types"
@@ -106,16 +107,25 @@ func (cache *TxCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool) {
 // In each pass, each sender is allowed to contribute a batch of transactions,
 // with a number of transactions and total gas proportional to the sender's score.
 func (cache *TxCache) SelectTransactions(numRequested int, gasRequested uint64, baseNumPerSenderBatch int, baseGasPerSenderBatch uint64) []*WrappedTransaction {
-	result := cache.doSelectTransactions(numRequested, gasRequested, baseNumPerSenderBatch, baseGasPerSenderBatch)
-	go cache.doAfterSelection()
-	return result
+	senders, transactions := cache.doSelectTransactions(
+		logSelect,
+		numRequested,
+		gasRequested,
+		baseNumPerSenderBatch,
+		baseGasPerSenderBatch,
+	)
+
+	go cache.diagnoseCounters()
+	go displaySelectionOutcome(logSelect, senders, transactions)
+
+	return transactions
 }
 
-func (cache *TxCache) doSelectTransactions(numRequested int, gasRequested uint64, baseNumPerSenderBatch int, baseGasPerSenderBatch uint64) []*WrappedTransaction {
-	stopWatch := cache.monitorSelectionStart()
+func (cache *TxCache) doSelectTransactions(contextualLogger logger.Logger, numRequested int, gasRequested uint64, baseNumPerSenderBatch int, baseGasPerSenderBatch uint64) ([]*txListForSender, []*WrappedTransaction) {
+	stopWatch := cache.monitorSelectionStart(contextualLogger)
 
 	senders := cache.getSendersEligibleForSelection()
-	result := make([]*WrappedTransaction, numRequested)
+	transactions := make([]*WrappedTransaction, numRequested)
 
 	shouldContinueSelection := true
 	selectedGas := uint64(0)
@@ -133,7 +143,7 @@ func (cache *TxCache) doSelectTransactions(numRequested int, gasRequested uint64
 			numPerBatch, gasPerBatch := cache.computeSelectionSenderConstraints(score, baseNumPerSenderBatch, baseGasPerSenderBatch)
 
 			isFirstBatch := pass == 0
-			batchSelectionJournal := txList.selectBatchTo(isFirstBatch, result[selectedNum:], numPerBatch, gasPerBatch)
+			batchSelectionJournal := txList.selectBatchTo(isFirstBatch, transactions[selectedNum:], numPerBatch, gasPerBatch)
 			selectedGas += batchSelectionJournal.selectedGas
 			selectedNum += batchSelectionJournal.selectedNum
 			selectedNumInThisPass += batchSelectionJournal.selectedNum
@@ -153,12 +163,11 @@ func (cache *TxCache) doSelectTransactions(numRequested int, gasRequested uint64
 		}
 	}
 
-	result = result[:selectedNum]
+	transactions = transactions[:selectedNum]
 
-	cache.monitorSelectionEnd(stopWatch, result)
-	go displaySelectionOutcome(senders, result)
+	cache.monitorSelectionEnd(contextualLogger, stopWatch, transactions)
 
-	return result
+	return senders, transactions
 }
 
 func (cache *TxCache) getSendersEligibleForSelection() []*txListForSender {
@@ -175,10 +184,6 @@ func (cache *TxCache) computeSelectionSenderConstraints(score int, baseNumPerBat
 	gasPerBatch := uint64(float64(baseGasPerBatch) * scoreDivision)
 
 	return numPerBatch, gasPerBatch
-}
-
-func (cache *TxCache) doAfterSelection() {
-	cache.Diagnose(false)
 }
 
 // RemoveTxByHash removes tx by hash
