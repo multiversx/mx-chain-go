@@ -228,7 +228,6 @@ func (scbp *sovereignChainBlockProcessor) CreateBlock(initialHdr data.HeaderHand
 			return nil, nil, err
 		}
 
-		// TODO: MX-15590 Add epoch start and missing fields to sovereign header to use this
 		err = scbp.updateEpochStartHeader(sovereignChainHeaderHandler)
 		if err != nil {
 			return nil, nil, err
@@ -273,7 +272,10 @@ func (scbp *sovereignChainBlockProcessor) CreateBlock(initialHdr data.HeaderHand
 }
 
 func (scbp *sovereignChainBlockProcessor) updateEpochStartHeader(header data.SovereignChainHeaderHandler) error {
-	sovHeader := header.(*block.SovereignChainHeader)
+	sovHeaderHandler, castOk := header.(*block.SovereignChainHeader)
+	if !castOk {
+		return fmt.Errorf("%w in sovereignChainBlockProcessor.updateEpochStartHeader", process.ErrWrongTypeAssertion)
+	}
 
 	sw := core.NewStopWatch()
 	sw.Start("createEpochStartForSovereignBlock")
@@ -286,24 +288,31 @@ func (scbp *sovereignChainBlockProcessor) updateEpochStartHeader(header data.Sov
 	totalDevFeesInEpoch := big.NewInt(0)
 	currentHeader := scbp.blockChain.GetCurrentBlockHeader()
 	if !check.IfNil(currentHeader) && !currentHeader.IsStartOfEpochBlock() {
-		prevMetaHdr, ok := currentHeader.(*block.SovereignChainHeader)
+		prevSovHdr, ok := currentHeader.(data.MetaHeaderHandler)
 		if !ok {
-			return process.ErrWrongTypeAssertion
+			return fmt.Errorf("%w in sovereignChainBlockProcessor.updateEpochStartHeader when checking prevSovHdr", process.ErrWrongTypeAssertion)
 		}
-		totalAccumulatedFeesInEpoch = big.NewInt(0).Set(prevMetaHdr.AccumulatedFeesInEpoch)
-		totalDevFeesInEpoch = big.NewInt(0).Set(prevMetaHdr.DevFeesInEpoch)
+		totalAccumulatedFeesInEpoch = big.NewInt(0).Set(prevSovHdr.GetAccumulatedFeesInEpoch())
+		totalDevFeesInEpoch = big.NewInt(0).Set(prevSovHdr.GetDevFeesInEpoch())
 	}
 
-	sovHeader.AccumulatedFeesInEpoch.Set(totalAccumulatedFeesInEpoch)
-	sovHeader.DevFeesInEpoch.Set(totalDevFeesInEpoch)
-	economicsData, err := scbp.epochEconomics.ComputeEndOfEpochEconomics(sovHeader)
+	err := sovHeaderHandler.SetAccumulatedFeesInEpoch(totalAccumulatedFeesInEpoch)
 	if err != nil {
 		return err
 	}
 
-	sovHeader.EpochStart.Economics = *economicsData
+	err = sovHeaderHandler.SetDevFeesInEpoch(totalDevFeesInEpoch)
+	if err != nil {
+		return err
+	}
 
-	//saveEpochStartEconomicsMetrics(scbp.appStatusHandler, sovHeader)
+	economicsData, err := scbp.epochEconomics.ComputeEndOfEpochEconomics(sovHeaderHandler)
+	if err != nil {
+		return err
+	}
+
+	sovHeaderHandler.EpochStart.Economics = *economicsData
+	saveEpochStartEconomicsMetrics(scbp.appStatusHandler, sovHeaderHandler)
 
 	return nil
 }
@@ -1096,21 +1105,21 @@ func (scbp *sovereignChainBlockProcessor) computeAccumulatedFeesInEpoch(metaHdr 
 
 	lastHdr := scbp.blockChain.GetCurrentBlockHeader()
 	if !check.IfNil(lastHdr) {
-		lastMeta, ok := lastHdr.(*block.SovereignChainHeader)
+		lastSovHeader, ok := lastHdr.(data.SovereignChainHeaderHandler)
 		if !ok {
 			return nil, nil, process.ErrWrongTypeAssertion
 		}
 
 		if !lastHdr.IsStartOfEpochBlock() {
-			currentlyAccumulatedFeesInEpoch = big.NewInt(0).Set(lastMeta.AccumulatedFeesInEpoch)
-			currentDevFeesInEpoch = big.NewInt(0).Set(lastMeta.DevFeesInEpoch)
+			currentlyAccumulatedFeesInEpoch = big.NewInt(0).Set(lastSovHeader.GetAccumulatedFeesInEpoch())
+			currentDevFeesInEpoch = big.NewInt(0).Set(lastSovHeader.GetDevFeesInEpoch())
 		}
 	}
 
 	currentlyAccumulatedFeesInEpoch.Add(currentlyAccumulatedFeesInEpoch, metaHdr.GetAccumulatedFees())
 	currentDevFeesInEpoch.Add(currentDevFeesInEpoch, metaHdr.GetDeveloperFees())
 	log.Debug("computeAccumulatedFeesInEpoch - sovereign block fees",
-		"meta nonce", metaHdr.GetNonce(),
+		"nonce", metaHdr.GetNonce(),
 		"accumulatedFees", metaHdr.GetAccumulatedFees().String(),
 		"devFees", metaHdr.GetDeveloperFees().String(),
 		"leader fees", core.GetIntTrimmedPercentageOfValue(big.NewInt(0).Sub(metaHdr.GetAccumulatedFees(), metaHdr.GetDeveloperFees()), scbp.economicsData.LeaderPercentage()).String())

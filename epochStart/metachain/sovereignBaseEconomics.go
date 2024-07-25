@@ -3,19 +3,11 @@ package metachain
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/dataRetriever"
-	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process"
 )
 
 type sovereignBaseEconomics struct {
-	marshalizer           marshal.Marshalizer
-	store                 dataRetriever.StorageService
-	shardCoordinator      ShardCoordinatorHandler
-	economicsDataNotified epochStart.EpochEconomicsDataProvider
-	genesisEpoch          uint32
-	genesisNonce          uint64
+	*baseEconomics
 }
 
 func (e *sovereignBaseEconomics) startNoncePerShardFromEpochStart(epoch uint32) (map[uint32]uint64, data.MetaHeaderHandler, error) {

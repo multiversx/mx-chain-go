@@ -9,18 +9,21 @@ type sovereignEconomics struct {
 	*economics
 }
 
+// NewSovereignEconomics creates a new sovereign end of epoch economics data object creator
 func NewSovereignEconomics(ec *economics) (*sovereignEconomics, error) {
 	if check.IfNil(ec) {
 		return nil, process.ErrNilEconomicsData
 	}
 
 	ec.baseEconomicsHandler = &sovereignBaseEconomics{
-		marshalizer:           ec.marshalizer,
-		store:                 ec.store,
-		shardCoordinator:      ec.shardCoordinator,
-		economicsDataNotified: ec.economicsDataNotified,
-		genesisEpoch:          ec.genesisEpoch,
-		genesisNonce:          ec.genesisNonce,
+		&baseEconomics{
+			marshalizer:           ec.marshalizer,
+			store:                 ec.store,
+			shardCoordinator:      ec.shardCoordinator,
+			economicsDataNotified: ec.economicsDataNotified,
+			genesisEpoch:          ec.genesisEpoch,
+			genesisNonce:          ec.genesisNonce,
+		},
 	}
 
 	return &sovereignEconomics{
@@ -28,6 +31,7 @@ func NewSovereignEconomics(ec *economics) (*sovereignEconomics, error) {
 	}, nil
 }
 
+// IsInterfaceNil returns true if underlying object is nil
 func (se *sovereignEconomics) IsInterfaceNil() bool {
 	return se == nil
 }
