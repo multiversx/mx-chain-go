@@ -687,6 +687,18 @@ func (mrc *managedRunTypeComponents) ApiProcessorCompsCreatorHandler() api.ApiPr
 	return mrc.runTypeComponents.apiProcessorCompsCreatorHandler
 }
 
+// EndOfEpochEconomicsFactoryHandler returns the end of epoch economics factory handler
+func (mrc *managedRunTypeComponents) EndOfEpochEconomicsFactoryHandler() factory.EndOfEpochEconomicsFactoryHandler {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.endOfEpochEconomicsFactoryHandler
+}
+
 // IsInterfaceNil returns true if the interface is nil
 func (mrc *managedRunTypeComponents) IsInterfaceNil() bool {
 	return mrc == nil

@@ -257,5 +257,6 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		scToProtocolFactory:                     scToProtocol.NewSovereignStakingToPeerFactory(),
 		validatorInfoCreatorFactory:             metachain.NewSovereignValidatorInfoCreatorFactory(),
 		apiProcessorCompsCreatorHandler:         api.NewSovereignAPIProcessorCompsCreator(),
+		endOfEpochEconomicsFactoryHandler:       metachain.NewSovereignEconomicsFactory(),
 	}, nil
 }

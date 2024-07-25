@@ -105,6 +105,7 @@ type runTypeComponents struct {
 	scToProtocolFactory                     scToProtocol.StakingToPeerFactoryHandler
 	validatorInfoCreatorFactory             mainFactory.ValidatorInfoCreatorFactory
 	apiProcessorCompsCreatorHandler         api.ApiProcessorCompsCreatorHandler
+	endOfEpochEconomicsFactoryHandler       mainFactory.EndOfEpochEconomicsFactoryHandler
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
@@ -273,6 +274,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		scToProtocolFactory:                     scToProtocol.NewStakingToPeerFactory(),
 		validatorInfoCreatorFactory:             metachain.NewValidatorInfoCreatorFactory(),
 		apiProcessorCompsCreatorHandler:         api.NewAPIProcessorCompsCreator(),
+		endOfEpochEconomicsFactoryHandler:       metachain.NewEconomicsFactory(),
 	}, nil
 }
 
