@@ -3,6 +3,7 @@ package txcache
 import (
 	"sync"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -15,16 +16,13 @@ var _ types.Cacher = (*TxCache)(nil)
 
 // TxCache represents a cache-like structure (it has a fixed capacity and implements an eviction mechanism) for holding transactions
 type TxCache struct {
-	name                     string
-	txListBySender           *txListBySenderMap
-	txByHash                 *txByHashMap
-	config                   ConfigSourceMe
-	evictionMutex            sync.Mutex
-	isEvictionInProgress     atomic.Flag
-	numSendersSelected       atomic.Counter
-	numSendersWithInitialGap atomic.Counter
-	numSendersWithMiddleGap  atomic.Counter
-	mutTxOperation           sync.Mutex
+	name                 string
+	txListBySender       *txListBySenderMap
+	txByHash             *txByHashMap
+	config               ConfigSourceMe
+	evictionMutex        sync.Mutex
+	isEvictionInProgress atomic.Flag
+	mutTxOperation       sync.Mutex
 }
 
 // NewTxCache creates a new transaction cache
@@ -119,7 +117,15 @@ func (cache *TxCache) SelectTransactions(numRequested int, gasRequested uint64, 
 }
 
 func (cache *TxCache) doSelectTransactions(contextualLogger logger.Logger, numRequested int, gasRequested uint64, baseNumPerSenderBatch int, baseGasPerSenderBatch uint64) ([]*txListForSender, []*WrappedTransaction) {
-	stopWatch := cache.monitorSelectionStart(contextualLogger)
+	stopWatch := core.NewStopWatch()
+	stopWatch.Start("selection")
+
+	contextualLogger.Debug(
+		"doSelectTransactions(): begin",
+		"num bytes", cache.NumBytes(),
+		"num txs", cache.CountTx(),
+		"num senders", cache.CountSenders(),
+	)
 
 	senders := cache.getSendersEligibleForSelection()
 	transactions := make([]*WrappedTransaction, numRequested)
@@ -145,8 +151,6 @@ func (cache *TxCache) doSelectTransactions(contextualLogger logger.Logger, numRe
 			selectedNum += batchSelectionJournal.selectedNum
 			selectedNumInThisPass += batchSelectionJournal.selectedNum
 
-			cache.monitorBatchSelectionEnd(batchSelectionJournal)
-
 			shouldContinueSelection := selectedNum < numRequested && selectedGas < gasRequested
 			if !shouldContinueSelection {
 				break
@@ -162,7 +166,11 @@ func (cache *TxCache) doSelectTransactions(contextualLogger logger.Logger, numRe
 
 	transactions = transactions[:selectedNum]
 
-	cache.monitorSelectionEnd(contextualLogger, stopWatch, transactions)
+	contextualLogger.Debug(
+		"doSelectTransactions(): end",
+		"duration", stopWatch.GetMeasurement("selection"),
+		"num txs selected", selectedNum,
+	)
 
 	return senders, transactions
 }

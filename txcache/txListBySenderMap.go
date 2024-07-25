@@ -177,7 +177,7 @@ func (txMap *txListBySenderMap) getSendersGroupedByScore() [][]*txListForSender 
 	})
 
 	txMap.shuffleSendersWithinScoreGroups(groups)
-	monitorSendersScoreHistogram(groups)
+	displaySendersScoreHistogram(groups)
 
 	return groups
 }
