@@ -30,14 +30,14 @@ func (cache *TxCache) monitorEvictionEnd(stopWatch *core.StopWatch) {
 	cache.evictionJournal.display()
 }
 
-func (cache *TxCache) monitorSelectionStart() *core.StopWatch {
-	logSelect.Debug("monitorSelectionStart()", "numBytes", cache.NumBytes(), "txs", cache.CountTx(), "senders", cache.CountSenders())
+func (cache *TxCache) monitorSelectionStart(contextualLogger logger.Logger) *core.StopWatch {
+	contextualLogger.Debug("monitorSelectionStart()", "numBytes", cache.NumBytes(), "txs", cache.CountTx(), "senders", cache.CountSenders())
 	sw := core.NewStopWatch()
 	sw.Start("selection")
 	return sw
 }
 
-func (cache *TxCache) monitorSelectionEnd(stopWatch *core.StopWatch, selection []*WrappedTransaction) {
+func (cache *TxCache) monitorSelectionEnd(contextualLog logger.Logger, stopWatch *core.StopWatch, selection []*WrappedTransaction) {
 	stopWatch.Stop("selection")
 	duration := stopWatch.GetMeasurement("selection")
 
@@ -45,7 +45,7 @@ func (cache *TxCache) monitorSelectionEnd(stopWatch *core.StopWatch, selection [
 	numSendersWithInitialGap := cache.numSendersWithInitialGap.Reset()
 	numSendersWithMiddleGap := cache.numSendersWithMiddleGap.Reset()
 
-	logSelect.Debug("monitorSelectionEnd()", "duration", duration,
+	contextualLog.Debug("monitorSelectionEnd()", "duration", duration,
 		"numTxSelected", len(selection),
 		"numSendersSelected", numSendersSelected,
 		"numSendersWithInitialGap", numSendersWithInitialGap,
@@ -53,19 +53,23 @@ func (cache *TxCache) monitorSelectionEnd(stopWatch *core.StopWatch, selection [
 	)
 }
 
-func displaySelectionOutcome(sortedSenders []*txListForSender, selection []*WrappedTransaction) {
-	if logSelect.GetLevel() > logger.LogTrace {
+func displaySelectionOutcome(contextualLogger logger.Logger, sortedSenders []*txListForSender, selection []*WrappedTransaction) {
+	if contextualLogger.GetLevel() > logger.LogTrace {
 		return
 	}
 
 	if len(sortedSenders) > 0 {
-		logSelect.Trace("Sorted senders (as newline-separated JSON):")
-		logSelect.Trace(marshalSendersToNewlineDelimitedJson(sortedSenders))
+		contextualLogger.Trace("Sorted senders (as newline-separated JSON):")
+		contextualLogger.Trace(marshalSendersToNewlineDelimitedJson(sortedSenders))
+	} else {
+		contextualLogger.Trace("Sorted senders: none")
 	}
 
 	if len(selection) > 0 {
-		logSelect.Trace("Selected transactions (as newline-separated JSON):")
-		logSelect.Trace(marshalTransactionsToNewlineDelimitedJson(selection))
+		contextualLogger.Trace("Selected transactions (as newline-separated JSON):")
+		contextualLogger.Trace(marshalTransactionsToNewlineDelimitedJson(selection))
+	} else {
+		contextualLogger.Trace("Selected transactions: none")
 	}
 }
 
