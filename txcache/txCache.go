@@ -15,18 +15,16 @@ var _ types.Cacher = (*TxCache)(nil)
 
 // TxCache represents a cache-like structure (it has a fixed capacity and implements an eviction mechanism) for holding transactions
 type TxCache struct {
-	name                      string
-	txListBySender            *txListBySenderMap
-	txByHash                  *txByHashMap
-	config                    ConfigSourceMe
-	evictionMutex             sync.Mutex
-	evictionJournal           evictionJournal
-	evictionSnapshotOfSenders []*txListForSender
-	isEvictionInProgress      atomic.Flag
-	numSendersSelected        atomic.Counter
-	numSendersWithInitialGap  atomic.Counter
-	numSendersWithMiddleGap   atomic.Counter
-	mutTxOperation            sync.Mutex
+	name                     string
+	txListBySender           *txListBySenderMap
+	txByHash                 *txByHashMap
+	config                   ConfigSourceMe
+	evictionMutex            sync.Mutex
+	isEvictionInProgress     atomic.Flag
+	numSendersSelected       atomic.Counter
+	numSendersWithInitialGap atomic.Counter
+	numSendersWithMiddleGap  atomic.Counter
+	mutTxOperation           sync.Mutex
 }
 
 // NewTxCache creates a new transaction cache
@@ -48,11 +46,10 @@ func NewTxCache(config ConfigSourceMe, txGasHandler TxGasHandler) (*TxCache, err
 	scoreComputerObj := newDefaultScoreComputer(txGasHandler)
 
 	txCache := &TxCache{
-		name:            config.Name,
-		txListBySender:  newTxListBySenderMap(numChunks, senderConstraintsObj, scoreComputerObj, txGasHandler),
-		txByHash:        newTxByHashMap(numChunks),
-		config:          config,
-		evictionJournal: evictionJournal{},
+		name:           config.Name,
+		txListBySender: newTxListBySenderMap(numChunks, senderConstraintsObj, scoreComputerObj, txGasHandler),
+		txByHash:       newTxByHashMap(numChunks),
+		config:         config,
 	}
 
 	return txCache, nil
@@ -68,7 +65,7 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 	logAdd.Trace("AddTx()", "tx", tx.TxHash)
 
 	if cache.config.EvictionEnabled {
-		cache.doEviction()
+		_ = cache.doEviction()
 	}
 
 	cache.mutTxOperation.Lock()
@@ -85,7 +82,7 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 	}
 
 	if len(evicted) > 0 {
-		cache.monitorEvictionWrtSenderLimit(tx.Tx.GetSndAddr(), evicted)
+		logRemove.Debug("AddTx() with eviction", "sender", tx.Tx.GetSndAddr(), "num evicted txs", len(evicted))
 		cache.txByHash.RemoveTxsBulk(evicted)
 	}
 
@@ -348,7 +345,7 @@ func (cache *TxCache) NotifyAccountNonce(accountKey []byte, nonce uint64) {
 	evicted := cache.txListBySender.notifyAccountNonce(accountKey, nonce)
 
 	if len(evicted) > 0 {
-		cache.monitorEvictionWrtSenderNonce(accountKey, nonce, evicted)
+		logRemove.Trace("NotifyAccountNonce() with eviction", "sender", accountKey, "nonce", nonce, "num evicted txs", len(evicted))
 		cache.txByHash.RemoveTxsBulk(evicted)
 	}
 }

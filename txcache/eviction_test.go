@@ -35,12 +35,12 @@ func TestTxCache_EvictSendersInLoop_BecauseOfCount(t *testing.T) {
 	require.Equal(t, int64(200), cache.txListBySender.counter.Get())
 	require.Equal(t, int64(200), cache.txByHash.counter.Get())
 
-	cache.makeSnapshotOfSenders()
-	steps, nTxs, nSenders := cache.evictSendersInLoop()
+	sendersSnapshot := cache.txListBySender.getSnapshotAscending()
+	journal := cache.evictSendersInLoop(sendersSnapshot)
 
-	require.Equal(t, uint32(5), steps)
-	require.Equal(t, uint32(100), nTxs)
-	require.Equal(t, uint32(100), nSenders)
+	require.Equal(t, uint32(5), journal.numSteps)
+	require.Equal(t, uint32(100), journal.numTxs)
+	require.Equal(t, uint32(100), journal.numSenders)
 	require.Equal(t, int64(100), cache.txListBySender.counter.Get())
 	require.Equal(t, int64(100), cache.txByHash.counter.Get())
 }
@@ -72,12 +72,12 @@ func TestTxCache_EvictSendersInLoop_BecauseOfSize(t *testing.T) {
 	require.Equal(t, int64(200), cache.txListBySender.counter.Get())
 	require.Equal(t, int64(200), cache.txByHash.counter.Get())
 
-	cache.makeSnapshotOfSenders()
-	steps, nTxs, nSenders := cache.evictSendersInLoop()
+	sendersSnapshot := cache.txListBySender.getSnapshotAscending()
+	journal := cache.evictSendersInLoop(sendersSnapshot)
 
-	require.Equal(t, uint32(5), steps)
-	require.Equal(t, uint32(100), nTxs)
-	require.Equal(t, uint32(100), nSenders)
+	require.Equal(t, uint32(5), journal.numSteps)
+	require.Equal(t, uint32(100), journal.numTxs)
+	require.Equal(t, uint32(100), journal.numSenders)
 	require.Equal(t, int64(100), cache.txListBySender.counter.Get())
 	require.Equal(t, int64(100), cache.txByHash.counter.Get())
 }
@@ -101,10 +101,10 @@ func TestTxCache_DoEviction_BecauseOfCount(t *testing.T) {
 	cache.AddTx(createTx([]byte("hash-bob"), "bob", 1).withGasPrice(1 * oneBillion))
 	cache.AddTx(createTx([]byte("hash-carol"), "carol", 1).withGasPrice(3 * oneBillion))
 
-	cache.doEviction()
-	require.Equal(t, uint32(2), cache.evictionJournal.passOneNumTxs)
-	require.Equal(t, uint32(2), cache.evictionJournal.passOneNumSenders)
-	require.Equal(t, uint32(1), cache.evictionJournal.passOneNumSteps)
+	journal := cache.doEviction()
+	require.Equal(t, uint32(2), journal.numTxs)
+	require.Equal(t, uint32(2), journal.numSenders)
+	require.Equal(t, uint32(1), journal.numSteps)
 
 	// Alice and Bob evicted. Carol still there (better score).
 	_, ok := cache.GetByTxHash([]byte("hash-carol"))
@@ -144,10 +144,10 @@ func TestTxCache_DoEviction_BecauseOfSize(t *testing.T) {
 	require.Equal(t, 69, scoreCarol)
 	require.Equal(t, 80, scoreEve)
 
-	cache.doEviction()
-	require.Equal(t, uint32(2), cache.evictionJournal.passOneNumTxs)
-	require.Equal(t, uint32(2), cache.evictionJournal.passOneNumSenders)
-	require.Equal(t, uint32(1), cache.evictionJournal.passOneNumSteps)
+	journal := cache.doEviction()
+	require.Equal(t, uint32(2), journal.numTxs)
+	require.Equal(t, uint32(2), journal.numSenders)
+	require.Equal(t, uint32(1), journal.numSteps)
 
 	// Alice and Bob evicted (lower score). Carol and Eve still there.
 	_, ok := cache.GetByTxHash([]byte("hash-carol"))
@@ -176,9 +176,8 @@ func TestTxCache_DoEviction_DoesNothingWhenAlreadyInProgress(t *testing.T) {
 	cache.AddTx(createTx([]byte("hash-alice"), "alice", uint64(1)))
 
 	_ = cache.isEvictionInProgress.SetReturningPrevious()
-	cache.doEviction()
-
-	require.False(t, cache.evictionJournal.evictionPerformed)
+	journal := cache.doEviction()
+	require.Nil(t, journal)
 }
 
 func TestTxCache_EvictSendersInLoop_CodeCoverageForLoopBreak_WhenSmallBatch(t *testing.T) {
@@ -198,12 +197,12 @@ func TestTxCache_EvictSendersInLoop_CodeCoverageForLoopBreak_WhenSmallBatch(t *t
 
 	cache.AddTx(createTx([]byte("hash-alice"), "alice", uint64(1)))
 
-	cache.makeSnapshotOfSenders()
+	sendersSnapshot := cache.txListBySender.getSnapshotAscending()
+	journal := cache.evictSendersInLoop(sendersSnapshot)
 
-	steps, nTxs, nSenders := cache.evictSendersInLoop()
-	require.Equal(t, uint32(0), steps)
-	require.Equal(t, uint32(1), nTxs)
-	require.Equal(t, uint32(1), nSenders)
+	require.Equal(t, uint32(0), journal.numSteps)
+	require.Equal(t, uint32(1), journal.numTxs)
+	require.Equal(t, uint32(1), journal.numSenders)
 }
 
 func TestTxCache_EvictSendersWhile_ShouldContinueBreak(t *testing.T) {
@@ -224,15 +223,15 @@ func TestTxCache_EvictSendersWhile_ShouldContinueBreak(t *testing.T) {
 	cache.AddTx(createTx([]byte("hash-alice"), "alice", 1))
 	cache.AddTx(createTx([]byte("hash-bob"), "bob", 1))
 
-	cache.makeSnapshotOfSenders()
+	sendersSnapshot := cache.txListBySender.getSnapshotAscending()
 
-	steps, nTxs, nSenders := cache.evictSendersWhile(func() bool {
+	journal := cache.evictSendersWhile(sendersSnapshot, func() bool {
 		return false
 	})
 
-	require.Equal(t, uint32(0), steps)
-	require.Equal(t, uint32(0), nTxs)
-	require.Equal(t, uint32(0), nSenders)
+	require.Equal(t, uint32(0), journal.numSteps)
+	require.Equal(t, uint32(0), journal.numTxs)
+	require.Equal(t, uint32(0), journal.numSenders)
 }
 
 // This seems to be the most reasonable "bad-enough" (not worst) scenario to benchmark:
