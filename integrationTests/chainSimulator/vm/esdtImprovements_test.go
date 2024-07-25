@@ -286,8 +286,6 @@ func transferAndCheckTokensMetaData(t *testing.T, isCrossShard bool, isMultiTran
 		require.NotNil(t, txResult)
 
 		require.Equal(t, "success", txResult.Status.String())
-
-		nonce++
 	} else {
 		for _, tokenID := range tokenIDs {
 			log.Info("transfering token id", "tokenID", tokenID)
