@@ -16,6 +16,7 @@ RUN cp /go/pkg/mod/github.com/multiversx/$(cat /go/mx-chain-go/go.mod | grep mx-
 
 # ===== SECOND STAGE ======
 FROM ubuntu:22.04
+ARG TARGETARCH
 RUN apt-get update && apt-get upgrade -y
 COPY --from=builder "/go/mx-chain-go/cmd/node/node" "/go/mx-chain-go/cmd/node/"
 
