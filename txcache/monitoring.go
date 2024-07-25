@@ -34,13 +34,13 @@ func displaySelectionOutcome(contextualLogger logger.Logger, sortedSenders []*tx
 		contextualLogger.Trace("displaySelectionOutcome() - senders (as newline-separated JSON):")
 		contextualLogger.Trace(marshalSendersToNewlineDelimitedJson(sortedSenders))
 	} else {
-		contextualLogger.Trace("Sorted senders: none")
+		contextualLogger.Trace("displaySelectionOutcome() - senders: none")
 	}
 
 	if len(selection) > 0 {
 		contextualLogger.Trace("displaySelectionOutcome() - transactions (as newline-separated JSON):")
 		contextualLogger.Trace(marshalTransactionsToNewlineDelimitedJson(selection))
 	} else {
-		contextualLogger.Trace("Selected transactions: none")
+		contextualLogger.Trace("displaySelectionOutcome() - transactions: none")
 	}
 }
