@@ -228,11 +228,6 @@ func (scbp *sovereignChainBlockProcessor) CreateBlock(initialHdr data.HeaderHand
 			return nil, nil, err
 		}
 
-		err = scbp.updateEpochStartHeader(sovereignChainHeaderHandler)
-		if err != nil {
-			return nil, nil, err
-		}
-
 		scbp.blockChainHook.SetCurrentHeader(initialHdr)
 		scbp.requestHandler.SetEpoch(initialHdr.GetEpoch())
 		return initialHdr, &block.Body{}, nil
@@ -271,10 +266,12 @@ func (scbp *sovereignChainBlockProcessor) CreateBlock(initialHdr data.HeaderHand
 	return initialHdr, &block.Body{MiniBlocks: miniBlocks}, nil
 }
 
-func (scbp *sovereignChainBlockProcessor) updateEpochStartHeader(header data.SovereignChainHeaderHandler) error {
+// We should call this func only on ProcessBlock for all participants.
+// No need to call it on CreateBlock for epoch start processing.
+func (scbp *sovereignChainBlockProcessor) updateEpochStartHeader(header data.SovereignChainHeaderHandler) (*block.Economics, error) {
 	sovHeaderHandler, castOk := header.(*block.SovereignChainHeader)
 	if !castOk {
-		return fmt.Errorf("%w in sovereignChainBlockProcessor.updateEpochStartHeader", process.ErrWrongTypeAssertion)
+		return nil, fmt.Errorf("%w in sovereignChainBlockProcessor.updateEpochStartHeader", process.ErrWrongTypeAssertion)
 	}
 
 	sw := core.NewStopWatch()
@@ -290,7 +287,7 @@ func (scbp *sovereignChainBlockProcessor) updateEpochStartHeader(header data.Sov
 	if !check.IfNil(currentHeader) && !currentHeader.IsStartOfEpochBlock() {
 		prevSovHdr, ok := currentHeader.(data.MetaHeaderHandler)
 		if !ok {
-			return fmt.Errorf("%w in sovereignChainBlockProcessor.updateEpochStartHeader when checking prevSovHdr", process.ErrWrongTypeAssertion)
+			return nil, fmt.Errorf("%w in sovereignChainBlockProcessor.updateEpochStartHeader when checking prevSovHdr", process.ErrWrongTypeAssertion)
 		}
 		totalAccumulatedFeesInEpoch = big.NewInt(0).Set(prevSovHdr.GetAccumulatedFeesInEpoch())
 		totalDevFeesInEpoch = big.NewInt(0).Set(prevSovHdr.GetDevFeesInEpoch())
@@ -298,23 +295,23 @@ func (scbp *sovereignChainBlockProcessor) updateEpochStartHeader(header data.Sov
 
 	err := sovHeaderHandler.SetAccumulatedFeesInEpoch(totalAccumulatedFeesInEpoch)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	err = sovHeaderHandler.SetDevFeesInEpoch(totalDevFeesInEpoch)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	economicsData, err := scbp.epochEconomics.ComputeEndOfEpochEconomics(sovHeaderHandler)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	sovHeaderHandler.EpochStart.Economics = *economicsData
-	saveEpochStartEconomicsMetrics(scbp.appStatusHandler, sovHeaderHandler)
 
-	return nil
+	// do not call saveEpochStartEconomicsMetrics here as in metachain code, it will be called later
+	return economicsData, nil
 }
 
 func (scbp *sovereignChainBlockProcessor) createAllMiniBlocks(
@@ -878,17 +875,24 @@ func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
-	// TODO MX-15589 check how we can integrate all of these later on
-	//computedEconomics, err := scbp.epochEconomics.ComputeEndOfEpochEconomics(header)
-	//if err != nil {
-	//	return err
-	//}
+	sovHdr, castOk := header.(*block.SovereignChainHeader)
+	if !castOk {
+		return fmt.Errorf("%w in sovereignChainBlockProcessor.processEpochStartMetaBlock", process.ErrWrongTypeAssertion)
+	}
+
+	computedEconomics, err := scbp.updateEpochStartHeader(sovHdr)
+	if err != nil {
+		return err
+	}
+
+	_ = computedEconomics
 
 	err = scbp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, header)
 	if err != nil {
 		return err
 	}
 
+	// TODO MX-15589 check how we can integrate all of these later on
 	//err = mp.epochRewardsCreator.VerifyRewardsMiniBlocks(header, allValidatorsInfo, computedEconomics)
 	//if err != nil {
 	//	return err
@@ -904,17 +908,17 @@ func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
 	//	return err
 	//}
 
-	//err = mp.epochEconomics.VerifyRewardsPerBlock(header, mp.epochRewardsCreator.GetProtocolSustainabilityRewards(), computedEconomics)
-	//if err != nil {
-	//	return err
-	//}
+	err = scbp.epochEconomics.VerifyRewardsPerBlock(sovHdr, scbp.epochRewardsCreator.GetProtocolSustainabilityRewards(), computedEconomics)
+	if err != nil {
+		return err
+	}
 	//
 	//err = mp.verifyFees(header)
 	//if err != nil {
 	//	return err
 	//}
 
-	//saveEpochStartEconomicsMetrics(scbp.appStatusHandler, header)
+	saveEpochStartEconomicsMetrics(scbp.appStatusHandler, sovHdr)
 
 	validatorMiniBlocks, err := scbp.validatorInfoCreator.CreateValidatorInfoMiniBlocks(allValidatorsInfo)
 	if err != nil {

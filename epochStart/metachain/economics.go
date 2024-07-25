@@ -445,11 +445,7 @@ func (e *economics) checkEconomicsInvariants(
 }
 
 // VerifyRewardsPerBlock checks whether rewards per block value was correctly computed
-func (e *economics) VerifyRewardsPerBlock(
-	metaBlock *block.MetaBlock,
-	correctedProtocolSustainability *big.Int,
-	computedEconomics *block.Economics,
-) error {
+func (e *economics) VerifyRewardsPerBlock(metaBlock data.MetaHeaderHandler, correctedProtocolSustainability *big.Int, computedEconomics *block.Economics) error {
 	if computedEconomics == nil {
 		return epochStart.ErrNilEconomicsData
 	}
@@ -463,14 +459,14 @@ func (e *economics) VerifyRewardsPerBlock(
 		return err
 	}
 
-	receivedEconomics := metaBlock.EpochStart.Economics
-	receivedEconomicsHash, err := core.CalculateHash(e.marshalizer, e.hasher, &receivedEconomics)
+	receivedEconomics := metaBlock.GetEpochStartHandler().GetEconomicsHandler()
+	receivedEconomicsHash, err := core.CalculateHash(e.marshalizer, e.hasher, receivedEconomics)
 	if err != nil {
 		return err
 	}
 
 	if !bytes.Equal(receivedEconomicsHash, computedEconomicsHash) {
-		logEconomicsDifferences(computedEconomics, &receivedEconomics)
+		logEconomicsDifferences(computedEconomics, receivedEconomics)
 		return epochStart.ErrEndOfEpochEconomicsDataDoesNotMatch
 	}
 
@@ -482,7 +478,7 @@ func (e *economics) IsInterfaceNil() bool {
 	return e == nil
 }
 
-func logEconomicsDifferences(computed *block.Economics, received *block.Economics) {
+func logEconomicsDifferences(computed *block.Economics, received data.EconomicsHandler) {
 	log.Warn("VerifyRewardsPerBlock error",
 		"\ncomputed total to distribute", computed.TotalToDistribute,
 		"computed total newly minted", computed.TotalNewlyMinted,
@@ -490,11 +486,11 @@ func logEconomicsDifferences(computed *block.Economics, received *block.Economic
 		"computed rewards per block per node", computed.RewardsPerBlock,
 		"computed rewards for protocol sustainability", computed.RewardsForProtocolSustainability,
 		"computed node price", computed.NodePrice,
-		"\nreceived total to distribute", received.TotalToDistribute,
-		"received total newly minted", received.TotalNewlyMinted,
-		"received total supply", received.TotalSupply,
-		"received rewards per block per node", received.RewardsPerBlock,
-		"received rewards for protocol sustainability", received.RewardsForProtocolSustainability,
-		"received node price", received.NodePrice,
+		"\nreceived total to distribute", received.GetTotalToDistribute(),
+		"received total newly minted", received.GetTotalNewlyMinted(),
+		"received total supply", received.GetTotalSupply(),
+		"received rewards per block per node", received.GetRewardsPerBlock(),
+		"received rewards for protocol sustainability", received.GetRewardsForProtocolSustainability(),
+		"received node price", received.GetNodePrice(),
 	)
 }
