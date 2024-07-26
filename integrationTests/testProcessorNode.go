@@ -535,6 +535,7 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 		AppStatusHandler:           appStatusHandler,
 		PeersRatingMonitor:         peersRatingMonitor,
 		TxExecutionOrderHandler:    ordering.NewOrderedCollection(),
+		EpochStartTrigger:          &mock.EpochStartTriggerStub{},
 	}
 
 	tpn.NodeKeys = args.NodeKeys
