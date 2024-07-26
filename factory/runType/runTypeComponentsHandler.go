@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/factory/processing/api"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/checking"
@@ -211,6 +212,9 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	}
 	if check.IfNil(mrc.validatorInfoCreatorFactory) {
 		return errors.ErrNilValidatorInfoCreatorFactory
+	}
+	if check.IfNil(mrc.apiProcessorCompsCreatorHandler) {
+		return errors.ErrNilAPIProcessorCompsCreator
 	}
 	return nil
 }
@@ -669,6 +673,18 @@ func (mrc *managedRunTypeComponents) ValidatorInfoCreatorFactory() factory.Valid
 	}
 
 	return mrc.runTypeComponents.validatorInfoCreatorFactory
+}
+
+// ApiProcessorCompsCreatorHandler returns the api processor components creator handler
+func (mrc *managedRunTypeComponents) ApiProcessorCompsCreatorHandler() api.ApiProcessorCompsCreatorHandler {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.apiProcessorCompsCreatorHandler
 }
 
 // IsInterfaceNil returns true if the interface is nil

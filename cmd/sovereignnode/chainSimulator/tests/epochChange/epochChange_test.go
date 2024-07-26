@@ -7,7 +7,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/staking"
-	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/config"
@@ -34,15 +33,16 @@ func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 	cs, err := sovereignChainSimulator.NewSovereignChainSimulator(sovereignChainSimulator.ArgsSovereignChainSimulator{
 		SovereignConfigPath: sovereignConfigPath,
 		ArgsChainSimulator: &chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck: false,
-			TempDir:                t.TempDir(),
-			PathToInitialConfig:    defaultPathToInitialConfig,
-			GenesisTimestamp:       time.Now().Unix(),
-			RoundDurationInMillis:  uint64(6000),
-			RoundsPerEpoch:         roundsPerEpoch,
-			ApiInterface:           api.NewNoApiInterface(),
-			MinNodesPerShard:       8,
-			ConsensusGroupSize:     8,
+			BypassTxSignatureCheck:   false,
+			TempDir:                  t.TempDir(),
+			PathToInitialConfig:      defaultPathToInitialConfig,
+			GenesisTimestamp:         time.Now().Unix(),
+			RoundDurationInMillis:    uint64(6000),
+			RoundsPerEpoch:           roundsPerEpoch,
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         6,
+			ConsensusGroupSize:       6,
+			NumNodesWaitingListShard: 2,
 			AlterConfigsFunction: func(cfg *config.Configs) {
 				newCfg := config.EnableEpochs{}
 				cfg.SystemSCConfig.StakingSystemSCConfig.NodeLimitPercentage = 1
@@ -73,26 +73,24 @@ func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, uint32(1), nodeHandler.GetCoreComponents().EpochNotifier().CurrentEpoch())
 
-	err = cs.GenerateBlocksUntilEpochIsReached(3)
-	require.Nil(t, err)
-
-	logger.SetLogLevel("*:DEBUG")
 	staking.StakeNodes(t, cs, 10)
-
-	err = cs.GenerateBlocks(1)
-	require.Nil(t, err)
-
 	err = nodeHandler.GetProcessComponents().ValidatorsProvider().ForceUpdate()
 	require.Nil(t, err)
 
-	// TODO: MX-15650 - fix this
-	//auctionList, err := nodeHandler.GetProcessComponents().ValidatorsProvider().GetAuctionList()
-	//require.Nil(t, err)
-	//require.Len(t, auctionList, 10)
+	auctionList, err := nodeHandler.GetProcessComponents().ValidatorsProvider().GetAuctionList()
+	require.Nil(t, err)
+	require.Len(t, auctionList, 10)
 
 	validators := nodeHandler.GetProcessComponents().ValidatorsProvider().GetLatestValidators()
 	require.Len(t, validators, 18)
 
-	err = cs.GenerateBlocksUntilEpochIsReached(6)
-	require.Nil(t, err)
+	currentEpoch := nodeHandler.GetCoreComponents().EpochNotifier().CurrentEpoch()
+	for epoch := currentEpoch; epoch < currentEpoch+4; epoch++ {
+		err = cs.GenerateBlocksUntilEpochIsReached(int32(epoch))
+		require.Nil(t, err)
+
+		qualified, unqualified := staking.GetQualifiedAndUnqualifiedNodes(t, nodeHandler)
+		require.Len(t, qualified, 2)
+		require.Len(t, unqualified, 8)
+	}
 }

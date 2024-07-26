@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/epochStart/metachain"
+	"github.com/multiversx/mx-chain-go/factory/processing/api"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/checking"
@@ -626,6 +627,7 @@ type RunTypeComponentsHolder interface {
 	LatestDataProviderFactory() latestData.LatestDataProviderFactory
 	StakingToPeerFactory() scToProtocol.StakingToPeerFactoryHandler
 	ValidatorInfoCreatorFactory() ValidatorInfoCreatorFactory
+	ApiProcessorCompsCreatorHandler() api.ApiProcessorCompsCreatorHandler
 	Create() error
 	Close() error
 	CheckSubcomponents() error

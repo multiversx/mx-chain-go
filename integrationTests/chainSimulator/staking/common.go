@@ -135,3 +135,26 @@ func CreateStakeTransaction(t *testing.T, cs chainSimulatorIntegrationTests.Chai
 	txDataField := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], MockBLSSignature)
 	return chainSimulatorIntegrationTests.GenerateTransaction(validatorOwner.Bytes, 0, vm.ValidatorSCAddress, chainSimulatorIntegrationTests.MinimumStakeValue, txDataField, GasLimitForStakeOperation)
 }
+
+// GetQualifiedAndUnqualifiedNodes returns the qualified and unqualified nodes from auction
+func GetQualifiedAndUnqualifiedNodes(t *testing.T, metachainNode chainSimulatorProcess.NodeHandler) ([]string, []string) {
+	err := metachainNode.GetProcessComponents().ValidatorsProvider().ForceUpdate()
+	require.Nil(t, err)
+	auctionList, err := metachainNode.GetProcessComponents().ValidatorsProvider().GetAuctionList()
+	require.Nil(t, err)
+
+	qualified := make([]string, 0)
+	unQualified := make([]string, 0)
+
+	for _, auctionOwnerData := range auctionList {
+		for _, auctionNode := range auctionOwnerData.Nodes {
+			if auctionNode.Qualified {
+				qualified = append(qualified, auctionNode.BlsKey)
+			} else {
+				unQualified = append(unQualified, auctionNode.BlsKey)
+			}
+		}
+	}
+
+	return qualified, unQualified
+}

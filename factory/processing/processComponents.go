@@ -250,6 +250,8 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 		roundConfig:              args.RoundConfig,
 		runTypeComponents:        args.RunTypeComponents,
 		incomingHeaderSubscriber: args.IncomingHeaderSubscriber,
+		auctionListSelectorAPI:   disabled.NewDisabledAuctionListSelector(),
+		stakingDataProviderAPI:   disabled.NewDisabledStakingDataProvider(),
 	}, nil
 }
 
@@ -2071,6 +2073,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.RunTypeComponents.ValidatorInfoCreatorFactory()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilValidatorInfoCreatorFactory)
+	}
+	if check.IfNil(args.RunTypeComponents.ApiProcessorCompsCreatorHandler()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilAPIProcessorCompsCreator)
 	}
 
 	return nil

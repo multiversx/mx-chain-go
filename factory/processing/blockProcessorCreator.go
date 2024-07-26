@@ -14,6 +14,7 @@ import (
 	mainFactory "github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/addressDecoder"
 	factoryDisabled "github.com/multiversx/mx-chain-go/factory/disabled"
+	"github.com/multiversx/mx-chain-go/factory/processing/api"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/outport"
@@ -518,10 +519,6 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		epochSystemSCProcessor: factoryDisabled.NewDisabledEpochStartSystemSC(),
 	}
 
-	// TODO: MX-15650 - fix this for sovereign
-	pcf.stakingDataProviderAPI = factoryDisabled.NewDisabledStakingDataProvider()
-	pcf.auctionListSelectorAPI = factoryDisabled.NewDisabledAuctionListSelector()
-
 	return blockProcessorComponents, nil
 }
 
@@ -910,13 +907,6 @@ func (pcf *processComponentsFactory) createArgsMetaBlockProcessor(
 		return nil, err
 	}
 
-	stakingDataProviderAPI, err := metachainEpochStart.NewStakingDataProvider(argsStakingDataProvider)
-	if err != nil {
-		return nil, err
-	}
-
-	pcf.stakingDataProviderAPI = stakingDataProviderAPI
-
 	argsEpochRewards := metachainEpochStart.RewardsCreatorProxyArgs{
 		BaseRewardsCreatorArgs: metachainEpochStart.BaseRewardsCreatorArgs{
 			ShardCoordinator:              pcf.bootstrapComponents.ShardCoordinator(),
@@ -1003,24 +993,10 @@ func (pcf *processComponentsFactory) createArgsMetaBlockProcessor(
 		SentSignaturesTracker:        sentSignaturesTracker,
 	}
 
-	maxNodesChangeConfigProviderAPI, err := notifier.NewNodesConfigProviderAPI(pcf.epochNotifier, pcf.epochConfig.EnableEpochs)
+	err = pcf.setAPIComps(argsStakingDataProvider)
 	if err != nil {
 		return nil, err
 	}
-	argsAuctionListSelectorAPI := metachainEpochStart.AuctionListSelectorArgs{
-		ShardCoordinator:             pcf.bootstrapComponents.ShardCoordinator(),
-		StakingDataProvider:          stakingDataProviderAPI,
-		MaxNodesChangeConfigProvider: maxNodesChangeConfigProviderAPI,
-		SoftAuctionConfig:            pcf.systemSCConfig.SoftAuctionConfig,
-		Denomination:                 pcf.economicsConfig.GlobalSettings.Denomination,
-		AuctionListDisplayHandler:    factoryDisabled.NewDisabledAuctionListDisplayer(),
-	}
-	auctionListSelectorAPI, err := metachainEpochStart.NewAuctionListSelector(argsAuctionListSelectorAPI)
-	if err != nil {
-		return nil, err
-	}
-
-	pcf.auctionListSelectorAPI = auctionListSelectorAPI
 
 	epochStartSystemSCProcessor, err := pcf.createEpochStartSysSCProcessor(stakingDataProvider, validatorStatisticsProcessor, systemVM)
 	if err != nil {
@@ -1070,8 +1046,13 @@ func (pcf *processComponentsFactory) createEpochStartSysSCProcessor(
 		return nil, err
 	}
 
+	extendedShardCoordinator, castOk := pcf.bootstrapComponents.ShardCoordinator().(metachainEpochStart.ShardCoordinatorHandler)
+	if !castOk {
+		return nil, fmt.Errorf("%w when trying to cast shard coordinator to extended shard coordinator", process.ErrWrongTypeAssertion)
+	}
+
 	argsAuctionListSelector := metachainEpochStart.AuctionListSelectorArgs{
-		ShardCoordinator:             pcf.bootstrapComponents.ShardCoordinator(),
+		ShardCoordinator:             extendedShardCoordinator,
 		StakingDataProvider:          stakingDataProvider,
 		MaxNodesChangeConfigProvider: maxNodesChangeConfigProvider,
 		AuctionListDisplayHandler:    auctionListDisplayer,
@@ -1214,6 +1195,11 @@ func (pcf *processComponentsFactory) createExtraMetaBlockProcessorArgs(
 			return nil, err
 		}
 
+		err = pcf.setAPIComps(argsStakingDataProvider)
+		if err != nil {
+			return nil, err
+		}
+
 		return &block.ExtraArgsMetaBlockProcessor{
 			EpochRewardsCreator:       epochRewards,
 			EpochStartDataCreator:     epochStartDataCreator,
@@ -1242,6 +1228,27 @@ func (pcf *processComponentsFactory) createStakingToPeer(argParser process.Argum
 	}
 
 	return smartContractToProtocol, nil
+}
+
+func (pcf *processComponentsFactory) setAPIComps(
+	argsStakingDataProvider metachainEpochStart.StakingDataProviderArgs,
+) error {
+	apiComps, err := pcf.runTypeComponents.ApiProcessorCompsCreatorHandler().CreateAPIComps(api.ArgsCreateAPIProcessComps{
+		ArgsStakingDataProvider: argsStakingDataProvider,
+		ShardCoordinator:        pcf.bootstrapComponents.ShardCoordinator(),
+		EpochNotifier:           pcf.epochNotifier,
+		SoftAuctionConfig:       pcf.systemSCConfig.SoftAuctionConfig,
+		EnableEpochs:            pcf.epochConfig.EnableEpochs,
+		Denomination:            pcf.economicsConfig.GlobalSettings.Denomination,
+	})
+	if err != nil {
+		return err
+	}
+
+	pcf.stakingDataProviderAPI = apiComps.StakingDataProviderAPI
+	pcf.auctionListSelectorAPI = apiComps.AuctionListSelector
+
+	return nil
 }
 
 func (pcf *processComponentsFactory) attachProcessDebugger(

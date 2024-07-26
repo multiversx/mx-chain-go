@@ -2451,8 +2451,13 @@ func (tpn *TestProcessorNode) createMetaBlockProcessorArgs(argumentsBase block.A
 		AuctionConfig:            auctionCfg,
 	})
 
+	extendedShardCoordinator, castOk := tpn.ShardCoordinator.(metachain.ShardCoordinatorHandler)
+	if !castOk {
+		log.Error(fmt.Errorf("%w when trying to cast shard coordinator to extended shard coordinator", process.ErrWrongTypeAssertion).Error())
+	}
+
 	argsAuctionListSelector := metachain.AuctionListSelectorArgs{
-		ShardCoordinator:             tpn.ShardCoordinator,
+		ShardCoordinator:             extendedShardCoordinator,
 		StakingDataProvider:          stakingDataProvider,
 		MaxNodesChangeConfigProvider: maxNodesChangeConfigProvider,
 		AuctionListDisplayHandler:    ald,
