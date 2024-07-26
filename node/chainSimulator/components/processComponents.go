@@ -152,22 +152,22 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		return nil, err
 	}
 
-	lruCache1, err := cache.NewLRUCache(100000)
+	lruCacheRequest, err := cache.NewLRUCache(int(args.Config.WhiteListPool.Capacity))
 	if err != nil {
 		return nil, err
 
 	}
-	whiteListRequest, err := interceptors.NewWhiteListDataVerifier(lruCache1)
+	whiteListHandler, err := interceptors.NewWhiteListDataVerifier(lruCacheRequest)
 	if err != nil {
 		return nil, err
 	}
 
-	lruCache2, err := cache.NewLRUCache(100000)
+	lruCacheTx, err := cache.NewLRUCache(int(args.Config.WhiteListerVerifiedTxs.Capacity))
 	if err != nil {
 		return nil, err
 
 	}
-	whiteListRequestTxs, err := interceptors.NewWhiteListDataVerifier(lruCache2)
+	whiteListVerifiedTxs, err := interceptors.NewWhiteListDataVerifier(lruCacheTx)
 	if err != nil {
 		return nil, err
 	}
@@ -205,8 +205,8 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		GasSchedule:             gasScheduleNotifier,
 		NodesCoordinator:        args.NodesCoordinator,
 		RequestedItemsHandler:   requestedItemsHandler,
-		WhiteListHandler:        whiteListRequest,
-		WhiteListerVerifiedTxs:  whiteListRequestTxs,
+		WhiteListHandler:        whiteListHandler,
+		WhiteListerVerifiedTxs:  whiteListVerifiedTxs,
 		MaxRating:               50,
 		SystemSCConfig:          &args.SystemSCConfig,
 		ImportStartHandler:      importStartHandler,

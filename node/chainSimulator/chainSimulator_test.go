@@ -2,13 +2,12 @@ package chainSimulator
 
 import (
 	"encoding/base64"
-	"encoding/hex"
-	"fmt"
 	"math/big"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	coreAPI "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/config"
@@ -16,10 +15,8 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
-	"github.com/multiversx/mx-chain-go/node/external"
 	"github.com/multiversx/mx-chain-go/process"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -647,44 +644,18 @@ func TestSimulator_SentMoveBalanceNoGasForFee(t *testing.T) {
 	wallet0, err := chainSimulator.GenerateAndMintWalletAddress(0, big.NewInt(0))
 	require.Nil(t, err)
 
-	ftx := transaction.FrontendTransaction{
+	ftx := &transaction.Transaction{
 		Nonce:     0,
-		Value:     "0",
-		Sender:    wallet0.Bech32,
-		Receiver:  wallet0.Bech32,
+		Value:     big.NewInt(0),
+		SndAddr:   wallet0.Bytes,
+		RcvAddr:   wallet0.Bytes,
 		Data:      []byte(""),
 		GasLimit:  50_000,
 		GasPrice:  1_000_000_000,
-		ChainID:   configs.ChainID,
+		ChainID:   []byte(configs.ChainID),
 		Version:   1,
-		Signature: "010101",
+		Signature: []byte("010101"),
 	}
-
-	txArgs := &external.ArgsCreateTransaction{
-		Nonce:            ftx.Nonce,
-		Value:            ftx.Value,
-		Receiver:         ftx.Receiver,
-		ReceiverUsername: ftx.ReceiverUsername,
-		Sender:           ftx.Sender,
-		SenderUsername:   ftx.SenderUsername,
-		GasPrice:         ftx.GasPrice,
-		GasLimit:         ftx.GasLimit,
-		DataField:        ftx.Data,
-		SignatureHex:     ftx.Signature,
-		ChainID:          ftx.ChainID,
-		Version:          ftx.Version,
-		Options:          ftx.Options,
-		Guardian:         ftx.GuardianAddr,
-		GuardianSigHex:   ftx.GuardianSignature,
-	}
-
-	shardFacadeHandle := chainSimulator.nodes[0].GetFacadeHandler()
-	tx, txHash, err := shardFacadeHandle.CreateTransaction(txArgs)
-	require.Nil(t, err)
-	require.NotNil(t, tx)
-	fmt.Printf("txHash: %s\n", hex.EncodeToString(txHash))
-
-	err = shardFacadeHandle.ValidateTransaction(tx)
-	require.NotNil(t, err)
+	_, err = chainSimulator.sendTx(ftx)
 	require.True(t, strings.Contains(err.Error(), errors.ErrInsufficientFunds.Error()))
 }
