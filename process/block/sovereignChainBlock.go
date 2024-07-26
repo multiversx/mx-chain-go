@@ -160,7 +160,7 @@ func (scbp *sovereignChainBlockProcessor) CreateNewHeader(round uint64, nonce ui
 	scbp.epochStartTrigger.Update(round, nonce)
 	scbp.enableRoundsHandler.RoundConfirmed(round, 0)
 
-	// todo: use factory header interface and use setters/getters
+	// Todo: MX-15667 use factory header interface and use setters/getters
 	header := &block.SovereignChainHeader{
 		Header: &block.Header{
 			SoftwareVersion: process.SovereignHeaderVersion,

@@ -21,10 +21,14 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	stateAcc "github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/state"
+	storageCommon "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 
@@ -151,6 +155,25 @@ func TestSovereignGenesisBlockCreator_CreateGenesisBlocksEmptyBlocks(t *testing.
 func TestSovereignGenesisBlockCreator_CreateGenesisBaseProcess(t *testing.T) {
 	args, sgbc := createSovereignGenesisBlockCreator(t)
 
+	blockStorer := genericMocks.NewStorerMock()
+	triggerStorer := genericMocks.NewStorerMock()
+	sgbc.arg.Data = &mock.DataComponentsMock{
+		Storage: &storageCommon.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				switch unitType {
+				case dataRetriever.BlockHeaderUnit:
+					return blockStorer, nil
+				case dataRetriever.BootstrapUnit:
+					return triggerStorer, nil
+				}
+
+				return genericMocks.NewStorerMock(), nil
+			},
+		},
+		Blkc:     &testscommon.ChainHandlerStub{},
+		DataPool: dataRetrieverMock.NewPoolsHolderMock(),
+	}
+
 	blocks, err := sgbc.CreateGenesisBlocks()
 	require.Nil(t, err)
 	require.Len(t, blocks, 1)
@@ -185,6 +208,21 @@ func TestSovereignGenesisBlockCreator_CreateGenesisBaseProcess(t *testing.T) {
 	requireTokenExists(t, acc1, []byte(sovereignNativeToken), balance1, args.Core.InternalMarshalizer())
 	requireTokenExists(t, acc2, []byte(sovereignNativeToken), balance2, args.Core.InternalMarshalizer())
 	requireTokenExists(t, acc3, []byte(sovereignNativeToken), balance3, args.Core.InternalMarshalizer())
+
+	epochStartID := []byte(core.EpochStartIdentifier(0))
+	storedData1, err := blockStorer.Get(epochStartID)
+	require.Nil(t, err)
+	require.NotNil(t, storedData1)
+
+	storedData2, err := triggerStorer.Get(epochStartID)
+	require.Nil(t, err)
+	require.NotNil(t, storedData2)
+
+	require.Equal(t, storedData1, storedData2)
+	savedSovHdr := &block.SovereignChainHeader{}
+	err = args.Core.InternalMarshalizer().Unmarshal(savedSovHdr, storedData1)
+	require.Nil(t, err)
+	require.Equal(t, process.SovereignHeaderVersion, savedSovHdr.GetSoftwareVersion())
 }
 
 func TestSovereignGenesisBlockCreator_initGenesisAccounts(t *testing.T) {

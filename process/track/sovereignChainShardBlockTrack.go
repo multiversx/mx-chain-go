@@ -48,7 +48,7 @@ func NewSovereignChainShardBlockTrack(shardBlockTrack *shardBlockTrack) (*sovere
 }
 
 func (scsbt *sovereignChainShardBlockTrack) initCrossNotarizedStartHeaders() error {
-	// TODO:
+	// TODO MX-15667:
 	// 1. Versioning header for shard extended?
 	// 2. Perhaps add dummy header nonce from config cross main chain notarized
 	extendedShardHeader := &block.ShardHeaderExtended{

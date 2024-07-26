@@ -157,7 +157,7 @@ func (gbc *sovereignGenesisBlockCreator) createSovereignHeaders(args *headerCrea
 		return nil, err
 	}
 
-	// TODO: Ugly fix, we need header versioning creator here to be integrated for sovereign chain
+	// TODO: MX-15667 Ugly fix, we need header versioning creator here to be integrated for sovereign chain
 	sovereignHeader := &block.SovereignChainHeader{
 		Header:                 genesisBlock.(*block.Header),
 		AccumulatedFeesInEpoch: big.NewInt(0),
@@ -171,7 +171,7 @@ func (gbc *sovereignGenesisBlockCreator) createSovereignHeaders(args *headerCrea
 		NodePrice:         big.NewInt(0).Set(gbc.arg.GenesisNodePrice),
 	}
 
-	err = saveSovereignGenesisToStorage(gbc.arg.Data.StorageService(), gbc.arg.Core.InternalMarshalizer(), sovereignHeader)
+	err = saveSovereignGenesisStorage(gbc.arg.Data.StorageService(), gbc.arg.Core.InternalMarshalizer(), sovereignHeader)
 	if err != nil {
 		return nil, err
 	}
@@ -188,15 +188,14 @@ func (gbc *sovereignGenesisBlockCreator) createSovereignHeaders(args *headerCrea
 	}, nil
 }
 
-func saveSovereignGenesisToStorage(
+func saveSovereignGenesisStorage(
 	storageService dataRetriever.StorageService,
 	marshalizer marshal.Marshalizer,
 	genesisBlock data.HeaderHandler,
 ) error {
-
 	epochStartID := core.EpochStartIdentifier(genesisBlock.GetEpoch())
 
-	metaHdrStorage, err := storageService.GetStorer(dataRetriever.BlockHeaderUnit)
+	blockHdrStorage, err := storageService.GetStorer(dataRetriever.BlockHeaderUnit)
 	if err != nil {
 		return err
 	}
@@ -211,17 +210,12 @@ func saveSovereignGenesisToStorage(
 		return err
 	}
 
-	err = metaHdrStorage.Put([]byte(epochStartID), marshaledData)
+	err = blockHdrStorage.Put([]byte(epochStartID), marshaledData)
 	if err != nil {
 		return err
 	}
 
-	err = triggerStorage.Put([]byte(epochStartID), marshaledData)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return triggerStorage.Put([]byte(epochStartID), marshaledData)
 }
 
 func createSovereignShardGenesisBlock(

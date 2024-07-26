@@ -33,7 +33,7 @@ type ShardCoordinatorHandler interface {
 
 type baseEconomicsHandler interface {
 	startNoncePerShardFromEpochStart(epoch uint32) (map[uint32]uint64, data.MetaHeaderHandler, error)
-	startNoncePerShardFromLastCrossNotarized(metaNonce uint64, _ data.EpochStartHandler) (map[uint32]uint64, error) // todo here
+	startNoncePerShardFromLastCrossNotarized(metaNonce uint64, epochStart data.EpochStartHandler) (map[uint32]uint64, error)
 	computeNumOfTotalCreatedBlocks(
 		mapStartNonce map[uint32]uint64,
 		mapEndNonce map[uint32]uint64,
