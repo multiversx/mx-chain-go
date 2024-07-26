@@ -510,7 +510,7 @@ func TestSimulator_SendTransactions(t *testing.T) {
 		Value:    20,
 	}
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
-		BypassTxSignatureCheck: false,
+		BypassTxSignatureCheck: true,
 		TempDir:                t.TempDir(),
 		PathToInitialConfig:    defaultPathToInitialConfig,
 		NumOfShards:            3,
@@ -543,6 +543,9 @@ func TestSimulator_SendTransactions(t *testing.T) {
 	require.Nil(t, err)
 
 	wallet4, err := chainSimulator.GenerateAndMintWalletAddress(2, initialMinting)
+	require.Nil(t, err)
+
+	err = chainSimulator.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	gasLimit := uint64(50000)
