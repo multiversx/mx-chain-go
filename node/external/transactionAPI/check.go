@@ -42,6 +42,9 @@ func checkNilArgs(arg *ArgAPITransactionProcessor) error {
 	if check.IfNilReflect(arg.DataFieldParser) {
 		return ErrNilDataFieldParser
 	}
+	if check.IfNilReflect(arg.GasScheduleNotifier) {
+		return process.ErrNilGasSchedule
+	}
 
 	return nil
 }

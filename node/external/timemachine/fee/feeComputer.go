@@ -42,12 +42,18 @@ func (computer *feeComputer) ComputeTxFeeBasedOnGasUsed(tx *transaction.ApiTrans
 
 // ComputeGasLimit computes a transaction gas limit, at a given epoch
 func (computer *feeComputer) ComputeGasLimit(tx *transaction.ApiTransactionResult) uint64 {
+	computer.economicsInstance.MaxGasPriceSetGuardian()
 	return computer.economicsInstance.ComputeGasLimitInEpoch(tx.Tx, tx.Epoch)
 }
 
 // ComputeTransactionFee computes a transaction fee, at a given epoch
 func (computer *feeComputer) ComputeTransactionFee(tx *transaction.ApiTransactionResult) *big.Int {
 	return computer.economicsInstance.ComputeTxFeeInEpoch(tx.Tx, tx.Epoch)
+}
+
+// ComputeMoveBalanceFee computes a transaction's move balance fee, at a given epoch
+func (computer *feeComputer) ComputeMoveBalanceFee(tx *transaction.ApiTransactionResult) *big.Int {
+	return computer.economicsInstance.ComputeMoveBalanceFeeInEpoch(tx.Tx, tx.Epoch)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

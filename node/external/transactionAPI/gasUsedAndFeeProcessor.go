@@ -5,18 +5,21 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
 	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
 )
 
 type gasUsedAndFeeProcessor struct {
-	feeComputer     feeComputer
-	pubKeyConverter core.PubkeyConverter
+	feeComputer         feeComputer
+	gasScheduleNotifier core.GasScheduleNotifier
+	pubKeyConverter     core.PubkeyConverter
 }
 
-func newGasUsedAndFeeProcessor(txFeeCalculator feeComputer, pubKeyConverter core.PubkeyConverter) *gasUsedAndFeeProcessor {
+func newGasUsedAndFeeProcessor(txFeeCalculator feeComputer, gasScheduleNotifier core.GasScheduleNotifier, pubKeyConverter core.PubkeyConverter) *gasUsedAndFeeProcessor {
 	return &gasUsedAndFeeProcessor{
-		feeComputer:     txFeeCalculator,
-		pubKeyConverter: pubKeyConverter,
+		feeComputer:         txFeeCalculator,
+		gasScheduleNotifier: gasScheduleNotifier,
+		pubKeyConverter:     pubKeyConverter,
 	}
 }
 
@@ -30,6 +33,21 @@ func (gfp *gasUsedAndFeeProcessor) computeAndAttachGasUsedAndFee(tx *transaction
 	if tx.IsRelayed || gfp.isESDTOperationWithSCCall(tx) {
 		tx.GasUsed = tx.GasLimit
 		tx.Fee = tx.InitiallyPaidFee
+	}
+
+	if gfp.isGuardianOperation(tx) {
+		gasUsed = gfp.feeComputer.ComputeGasLimit(tx)
+		guardianOperationCost := gfp.getGuardianOperationCost(tx)
+		gasUsed += guardianOperationCost
+		tx.GasUsed = gasUsed
+
+		fee = big.NewInt(0).SetUint64(gasUsed * tx.GasPrice)
+		tx.Fee = fee.String()
+
+		initiallyPaidFee := gfp.feeComputer.ComputeMoveBalanceFee(tx)
+		tx.InitiallyPaidFee = initiallyPaidFee.String()
+
+		return
 	}
 
 	hasRefundForSender := false
@@ -47,6 +65,30 @@ func (gfp *gasUsedAndFeeProcessor) computeAndAttachGasUsedAndFee(tx *transaction
 	}
 
 	gfp.prepareTxWithResultsBasedOnLogs(tx, hasRefundForSender)
+}
+
+func (gfp *gasUsedAndFeeProcessor) getGuardianOperationCost(tx *transaction.ApiTransactionResult) uint64 {
+	gasSchedule, err := gfp.gasScheduleNotifier.GasScheduleForEpoch(tx.Epoch)
+	if err != nil {
+		return 0
+	}
+
+	switch tx.Operation {
+	case core.BuiltInFunctionSetGuardian:
+		return gasSchedule[common.BuiltInCost][core.BuiltInFunctionSetGuardian]
+	case core.BuiltInFunctionGuardAccount:
+		return gasSchedule[common.BuiltInCost][core.BuiltInFunctionGuardAccount]
+	case core.BuiltInFunctionUnGuardAccount:
+		return gasSchedule[common.BuiltInCost][core.BuiltInFunctionUnGuardAccount]
+	default:
+		return 0
+	}
+}
+
+func (gfp *gasUsedAndFeeProcessor) isGuardianOperation(tx *transaction.ApiTransactionResult) bool {
+	return tx.Operation == core.BuiltInFunctionSetGuardian ||
+		tx.Operation == core.BuiltInFunctionGuardAccount ||
+		tx.Operation == core.BuiltInFunctionUnGuardAccount
 }
 
 func (gfp *gasUsedAndFeeProcessor) prepareTxWithResultsBasedOnLogs(

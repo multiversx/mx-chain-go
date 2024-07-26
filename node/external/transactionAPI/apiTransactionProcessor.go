@@ -65,7 +65,7 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 	)
 
 	refundDetectorInstance := NewRefundDetector()
-	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(args.FeeComputer, args.AddressPubKeyConverter)
+	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(args.FeeComputer, args.GasScheduleNotifier, args.AddressPubKeyConverter)
 
 	return &apiTransactionProcessor{
 		roundDuration:               args.RoundDuration,
