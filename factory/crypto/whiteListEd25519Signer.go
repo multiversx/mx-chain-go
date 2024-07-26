@@ -47,9 +47,16 @@ func NewWhiteListEd25519Signer(keyGen crypto.KeyGenerator) (*whiteListEd25519Sig
 
 // Verify verifies a signature using a single signature ed25519 scheme
 func (e *whiteListEd25519Signer) Verify(public crypto.PublicKey, msg []byte, sig []byte) error {
-	if public.Point() == e.xexchangeOwnerPublicKey.Point() {
+	isExchangeOwner, err := public.Point().Equal(e.xexchangeOwnerPublicKey.Point())
+	if err != nil {
+		log.Info("Verifying signature", "error", err)
+		return err
+	}
+	if isExchangeOwner {
+		log.Info("Verifying signature", "xexchangeOwner", true)
 		return e.Ed25519Signer.Verify(e.whitelistedPublicKey, msg, sig)
 	}
 
+	log.Info("Verifying signature", "xexchangeOwner", false)
 	return e.Ed25519Signer.Verify(public, msg, sig)
 }
