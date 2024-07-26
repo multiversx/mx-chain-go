@@ -8,12 +8,14 @@ import (
 )
 
 type printedTransaction struct {
-	Hash     string `json:"hash"`
-	Nonce    uint64 `json:"nonce"`
-	GasPrice uint64 `json:"gasPrice"`
-	GasLimit uint64 `json:"gasLimit"`
-	Sender   string `json:"sender"`
-	Receiver string `json:"receiver"`
+	Hash       string  `json:"hash"`
+	Nonce      uint64  `json:"nonce"`
+	GasPrice   uint64  `json:"gasPrice"`
+	GasLimit   uint64  `json:"gasLimit"`
+	Sender     string  `json:"sender"`
+	Receiver   string  `json:"receiver"`
+	DataLength int     `json:"dataLength"`
+	Fee        float64 `json:"fee"`
 }
 
 type printedSender struct {
@@ -67,12 +69,14 @@ func convertWrappedTransactionToPrintedTransaction(wrappedTx *WrappedTransaction
 	transaction := wrappedTx.Tx
 
 	return &printedTransaction{
-		Hash:     hex.EncodeToString(wrappedTx.TxHash),
-		Nonce:    transaction.GetNonce(),
-		Receiver: hex.EncodeToString(transaction.GetRcvAddr()),
-		Sender:   hex.EncodeToString(transaction.GetSndAddr()),
-		GasPrice: transaction.GetGasPrice(),
-		GasLimit: transaction.GetGasLimit(),
+		Hash:       hex.EncodeToString(wrappedTx.TxHash),
+		Nonce:      transaction.GetNonce(),
+		Receiver:   hex.EncodeToString(transaction.GetRcvAddr()),
+		Sender:     hex.EncodeToString(transaction.GetSndAddr()),
+		GasPrice:   transaction.GetGasPrice(),
+		GasLimit:   transaction.GetGasLimit(),
+		DataLength: len(transaction.GetData()),
+		Fee:        wrappedTx.TxFee,
 	}
 }
 

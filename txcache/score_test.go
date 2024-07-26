@@ -14,6 +14,7 @@ func TestNewDefaultScoreComputer(t *testing.T) {
 
 	require.NotNil(t, computer)
 	require.Equal(t, float64(16.12631180572966), computer.worstPpuLog)
+	require.Equal(t, float64(16.112421018189185), computer.scoreScalingFactor)
 }
 
 func TestComputeWorstPpu(t *testing.T) {
