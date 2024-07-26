@@ -885,8 +885,6 @@ func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
-	_ = computedEconomics
-
 	err = scbp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, header)
 	if err != nil {
 		return err

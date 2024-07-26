@@ -48,11 +48,15 @@ func NewSovereignChainShardBlockTrack(shardBlockTrack *shardBlockTrack) (*sovere
 }
 
 func (scsbt *sovereignChainShardBlockTrack) initCrossNotarizedStartHeaders() error {
+	// TODO:
+	// 1. Versioning header for shard extended?
+	// 2. Perhaps add dummy header nonce from config cross main chain notarized
 	extendedShardHeader := &block.ShardHeaderExtended{
 		Header: &block.HeaderV2{
 			Header: &block.Header{},
 		},
 	}
+
 	extendedShardHeaderHash, err := core.CalculateHash(scsbt.marshalizer, scsbt.hasher, extendedShardHeader)
 	if err != nil {
 		return fmt.Errorf("%w in sovereignChainShardBlockTrack.initCrossNotarizedStartHeaders", err)

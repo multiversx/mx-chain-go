@@ -2077,6 +2077,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	if check.IfNil(args.RunTypeComponents.ApiProcessorCompsCreatorHandler()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilAPIProcessorCompsCreator)
 	}
+	if check.IfNil(args.RunTypeComponents.EndOfEpochEconomicsFactoryHandler()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilEndOfEpochEconomicsFactory)
+	}
 
 	return nil
 }

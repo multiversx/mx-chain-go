@@ -93,6 +93,7 @@ func TestManagedRunTypeComponents_Create(t *testing.T) {
 		require.Nil(t, managedRunTypeComponents.StakingToPeerFactory())
 		require.Nil(t, managedRunTypeComponents.ValidatorInfoCreatorFactory())
 		require.Nil(t, managedRunTypeComponents.ApiProcessorCompsCreatorHandler())
+		require.Nil(t, managedRunTypeComponents.EndOfEpochEconomicsFactoryHandler())
 
 		err = managedRunTypeComponents.Create()
 		require.NoError(t, err)
@@ -135,6 +136,7 @@ func TestManagedRunTypeComponents_Create(t *testing.T) {
 		require.NotNil(t, managedRunTypeComponents.StakingToPeerFactory())
 		require.NotNil(t, managedRunTypeComponents.ValidatorInfoCreatorFactory())
 		require.NotNil(t, managedRunTypeComponents.ApiProcessorCompsCreatorHandler())
+		require.NotNil(t, managedRunTypeComponents.EndOfEpochEconomicsFactoryHandler())
 
 		require.Equal(t, factory.RunTypeComponentsName, managedRunTypeComponents.String())
 		require.NoError(t, managedRunTypeComponents.Close())

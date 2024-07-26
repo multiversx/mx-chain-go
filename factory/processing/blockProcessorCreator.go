@@ -1188,7 +1188,7 @@ func (pcf *processComponentsFactory) createExtraMetaBlockProcessorArgs(
 			return nil, err
 		}
 
-		sovEconomics, err := pcf.createEndOfEpochEconomics(economicsDataProvider, genesisHdr)
+		epochEconomics, err := pcf.createEndOfEpochEconomics(economicsDataProvider, genesisHdr)
 		if err != nil {
 			return nil, err
 		}
@@ -1199,7 +1199,7 @@ func (pcf *processComponentsFactory) createExtraMetaBlockProcessorArgs(
 			EpochValidatorInfoCreator: validatorInfoCreator,
 			EpochSystemSCProcessor:    epochStartSystemSCProcessor,
 			SCToProtocol:              smartContractToProtocol,
-			EpochEconomics:            sovEconomics,
+			EpochEconomics:            epochEconomics,
 		}, nil
 	}
 }
@@ -1249,7 +1249,6 @@ func (pcf *processComponentsFactory) createEndOfEpochEconomics(
 	economicsDataProvider epochStart.EpochEconomicsDataProvider,
 	genesisHdr data.HeaderHandler,
 ) (process.EndOfEpochEconomics, error) {
-
 	extendedShardCoordinator, castOk := pcf.bootstrapComponents.ShardCoordinator().(metachainEpochStart.ShardCoordinatorHandler)
 	if !castOk {
 		return nil, fmt.Errorf("%w when trying to cast shard coordinator to extended shard coordinator", process.ErrWrongTypeAssertion)

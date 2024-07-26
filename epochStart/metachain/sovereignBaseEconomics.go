@@ -15,22 +15,22 @@ func (e *sovereignBaseEconomics) startNoncePerShardFromEpochStart(epoch uint32) 
 	mapShardIdNonce[core.SovereignChainShardId] = e.genesisNonce
 
 	epochStartIdentifier := core.EpochStartIdentifier(epoch)
-	previousEpochStartMeta, err := process.GetSovereignChainHeaderFromStorage([]byte(epochStartIdentifier), e.marshalizer, e.store)
+	previousEpochStartSovHdr, err := process.GetSovereignChainHeaderFromStorage([]byte(epochStartIdentifier), e.marshalizer, e.store)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	ret, castOk := previousEpochStartMeta.(data.MetaHeaderHandler)
+	prevSovHdr, castOk := previousEpochStartSovHdr.(data.MetaHeaderHandler)
 	if !castOk {
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
 	if epoch == e.genesisEpoch {
-		return mapShardIdNonce, ret, nil
+		return mapShardIdNonce, prevSovHdr, nil
 	}
 
-	mapShardIdNonce[core.SovereignChainShardId] = ret.GetNonce()
-	return mapShardIdNonce, ret, nil
+	mapShardIdNonce[core.SovereignChainShardId] = prevSovHdr.GetNonce()
+	return mapShardIdNonce, prevSovHdr, nil
 }
 
 func (e *sovereignBaseEconomics) startNoncePerShardFromLastCrossNotarized(metaNonce uint64, _ data.EpochStartHandler) (map[uint32]uint64, error) {

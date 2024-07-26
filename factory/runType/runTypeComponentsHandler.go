@@ -216,6 +216,9 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	if check.IfNil(mrc.apiProcessorCompsCreatorHandler) {
 		return errors.ErrNilAPIProcessorCompsCreator
 	}
+	if check.IfNil(mrc.endOfEpochEconomicsFactoryHandler) {
+		return errors.ErrNilEndOfEpochEconomicsFactory
+	}
 	return nil
 }
 
