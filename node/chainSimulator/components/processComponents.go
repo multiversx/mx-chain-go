@@ -152,12 +152,22 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		return nil, err
 	}
 
-	lruCache, err := cache.NewLRUCache(100000)
+	lruCache1, err := cache.NewLRUCache(100000)
 	if err != nil {
 		return nil, err
 
 	}
-	whiteListRequest, err := interceptors.NewWhiteListDataVerifier(lruCache)
+	whiteListRequest, err := interceptors.NewWhiteListDataVerifier(lruCache1)
+	if err != nil {
+		return nil, err
+	}
+
+	lruCache2, err := cache.NewLRUCache(100000)
+	if err != nil {
+		return nil, err
+
+	}
+	whiteListRequestTxs, err := interceptors.NewWhiteListDataVerifier(lruCache2)
 	if err != nil {
 		return nil, err
 	}
@@ -196,7 +206,7 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		NodesCoordinator:        args.NodesCoordinator,
 		RequestedItemsHandler:   requestedItemsHandler,
 		WhiteListHandler:        whiteListRequest,
-		WhiteListerVerifiedTxs:  whiteListRequest,
+		WhiteListerVerifiedTxs:  whiteListRequestTxs,
 		MaxRating:               50,
 		SystemSCConfig:          &args.SystemSCConfig,
 		ImportStartHandler:      importStartHandler,
