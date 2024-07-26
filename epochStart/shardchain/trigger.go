@@ -1102,6 +1102,14 @@ func (t *trigger) EpochStartMetaHdrHash() []byte {
 	return t.epochMetaBlockHash
 }
 
+// EpochStartHdr returns the epoch start header
+func (t *trigger) EpochStartHdr() data.HeaderHandler {
+	t.mutTrigger.RLock()
+	defer t.mutTrigger.RUnlock()
+
+	return t.epochStartShardHeader
+}
+
 // GetSavedStateKey returns the last saved trigger state key
 func (t *trigger) GetSavedStateKey() []byte {
 	return t.triggerStateKey

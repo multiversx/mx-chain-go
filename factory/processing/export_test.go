@@ -53,6 +53,6 @@ func (pcf *processComponentsFactory) NewBlockProcessor(
 }
 
 // CreateAPITransactionEvaluator -
-func (pcf *processComponentsFactory) CreateAPITransactionEvaluator(relayedV3TxProcessor process.RelayedTxV3Processor) (factory.TransactionEvaluator, process.VirtualMachinesContainerFactory, error) {
-	return pcf.createAPITransactionEvaluator(relayedV3TxProcessor)
+func (pcf *processComponentsFactory) CreateAPITransactionEvaluator(relayedV3TxProcessor process.RelayedTxV3Processor, epochStartTrigger process.EpochStartTriggerHandler) (factory.TransactionEvaluator, process.VirtualMachinesContainerFactory, error) {
+	return pcf.createAPITransactionEvaluator(relayedV3TxProcessor, epochStartTrigger)
 }

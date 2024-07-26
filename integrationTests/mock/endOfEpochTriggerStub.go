@@ -12,6 +12,7 @@ type EpochStartTriggerStub struct {
 	IsEpochStartCalled    func() bool
 	EpochCalled           func() uint32
 	MetaEpochCalled       func() uint32
+	EpochStartHdrCalled   func() data.HeaderHandler
 	ReceivedHeaderCalled  func(handler data.HeaderHandler)
 	UpdateCalled          func(round uint64, nonce uint64)
 	ProcessedCalled       func(header data.HeaderHandler)
@@ -46,6 +47,14 @@ func (e *EpochStartTriggerStub) EpochFinalityAttestingRound() uint64 {
 
 // EpochStartMetaHdrHash -
 func (e *EpochStartTriggerStub) EpochStartMetaHdrHash() []byte {
+	return nil
+}
+
+// EpochStartHdr -
+func (e *EpochStartTriggerStub) EpochStartHdr() data.HeaderHandler {
+	if e.EpochStartHdrCalled != nil {
+		return e.EpochStartHdrCalled()
+	}
 	return nil
 }
 

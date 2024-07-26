@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/factory/processing"
 	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/stretchr/testify/assert"
@@ -27,7 +28,7 @@ func TestManagedProcessComponents_createAPITransactionEvaluator(t *testing.T) {
 		processArgs.Config.VMOutputCacher.Type = "invalid"
 		pcf, _ := processing.NewProcessComponentsFactory(processArgs)
 
-		apiTransactionEvaluator, vmContainerFactory, err := pcf.CreateAPITransactionEvaluator(&processMocks.RelayedTxV3ProcessorMock{})
+		apiTransactionEvaluator, vmContainerFactory, err := pcf.CreateAPITransactionEvaluator(&processMocks.RelayedTxV3ProcessorMock{}, &testscommon.EpochStartTriggerStub{})
 		assert.NotNil(t, err)
 		assert.True(t, check.IfNil(apiTransactionEvaluator))
 		assert.True(t, check.IfNil(vmContainerFactory))
@@ -37,7 +38,7 @@ func TestManagedProcessComponents_createAPITransactionEvaluator(t *testing.T) {
 		processArgs := components.GetProcessComponentsFactoryArgs(shardCoordinatorForShardID2)
 		pcf, _ := processing.NewProcessComponentsFactory(processArgs)
 
-		apiTransactionEvaluator, vmContainerFactory, err := pcf.CreateAPITransactionEvaluator(&processMocks.RelayedTxV3ProcessorMock{})
+		apiTransactionEvaluator, vmContainerFactory, err := pcf.CreateAPITransactionEvaluator(&processMocks.RelayedTxV3ProcessorMock{}, &testscommon.EpochStartTriggerStub{})
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(apiTransactionEvaluator))
 		assert.False(t, check.IfNil(vmContainerFactory))
@@ -46,7 +47,7 @@ func TestManagedProcessComponents_createAPITransactionEvaluator(t *testing.T) {
 		processArgs := components.GetProcessComponentsFactoryArgs(shardCoordinatorForMetachain)
 		pcf, _ := processing.NewProcessComponentsFactory(processArgs)
 
-		apiTransactionEvaluator, vmContainerFactory, err := pcf.CreateAPITransactionEvaluator(&processMocks.RelayedTxV3ProcessorMock{})
+		apiTransactionEvaluator, vmContainerFactory, err := pcf.CreateAPITransactionEvaluator(&processMocks.RelayedTxV3ProcessorMock{}, &testscommon.EpochStartTriggerStub{})
 		assert.Nil(t, err)
 		assert.False(t, check.IfNil(apiTransactionEvaluator))
 		assert.False(t, check.IfNil(vmContainerFactory))

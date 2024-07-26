@@ -70,6 +70,7 @@ func createMockBlockChainHookArgs() hooks.ArgBlockChainHook {
 		GasSchedule:              testscommon.NewGasScheduleNotifierMock(make(map[string]map[string]uint64)),
 		Counter:                  &testscommon.BlockChainHookCounterStub{},
 		MissingTrieNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
+		EpochStartTrigger:        &testscommon.EpochStartTriggerStub{},
 		NodesSetup:               &genesisMocks.NodesSetupStub{},
 	}
 	return arguments

@@ -403,6 +403,11 @@ func (t *trigger) EpochStartMetaHdrHash() []byte {
 	return t.epochStartMetaHash
 }
 
+// EpochStartHdr returns the header of the epoch start block
+func (t *trigger) EpochStartHdr() data.HeaderHandler {
+	return t.epochStartMeta
+}
+
 // GetSavedStateKey returns the last saved trigger state key
 func (t *trigger) GetSavedStateKey() []byte {
 	return t.triggerStateKey

@@ -163,6 +163,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		pcf.config.SmartContractsStorage,
 		builtInFuncFactory.NFTStorageHandler(),
 		builtInFuncFactory.ESDTGlobalSettingsHandler(),
+		epochStartTrigger,
 	)
 	if err != nil {
 		return nil, err
@@ -505,6 +506,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		pcf.config.SmartContractsStorage,
 		builtInFuncFactory.NFTStorageHandler(),
 		builtInFuncFactory.ESDTGlobalSettingsHandler(),
+		epochStartTrigger,
 	)
 	if err != nil {
 		return nil, err
@@ -1064,6 +1066,7 @@ func (pcf *processComponentsFactory) createVMFactoryShard(
 	configSCStorage config.StorageConfig,
 	nftStorageHandler vmcommon.SimpleESDTNFTStorageHandler,
 	globalSettingsHandler vmcommon.ESDTGlobalSettingsHandler,
+	epochStartTriggerHandler process.EpochStartTriggerHandler,
 ) (process.VirtualMachinesContainerFactory, error) {
 	counter, err := counters.NewUsageCounter(esdtTransferParser)
 	if err != nil {
@@ -1091,6 +1094,7 @@ func (pcf *processComponentsFactory) createVMFactoryShard(
 		GasSchedule:              pcf.gasSchedule,
 		Counter:                  counter,
 		MissingTrieNodesNotifier: notifier,
+		EpochStartTrigger:        epochStartTriggerHandler,
 		NodesSetup:               pcf.coreData.GenesisNodesSetup(),
 	}
 
@@ -1122,6 +1126,7 @@ func (pcf *processComponentsFactory) createVMFactoryMeta(
 	configSCStorage config.StorageConfig,
 	nftStorageHandler vmcommon.SimpleESDTNFTStorageHandler,
 	globalSettingsHandler vmcommon.ESDTGlobalSettingsHandler,
+	epochStartTriggerHandler process.EpochStartTriggerHandler,
 ) (process.VirtualMachinesContainerFactory, error) {
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:                 accounts,
@@ -1144,6 +1149,7 @@ func (pcf *processComponentsFactory) createVMFactoryMeta(
 		GasSchedule:              pcf.gasSchedule,
 		Counter:                  counters.NewDisabledCounter(),
 		MissingTrieNodesNotifier: syncer.NewMissingTrieNodesNotifier(),
+		EpochStartTrigger:        epochStartTriggerHandler,
 		NodesSetup:               pcf.coreData.GenesisNodesSetup(),
 	}
 

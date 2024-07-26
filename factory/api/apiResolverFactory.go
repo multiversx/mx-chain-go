@@ -411,6 +411,7 @@ func createScQueryElement(
 		MissingTrieNodesNotifier: syncer.NewMissingTrieNodesNotifier(),
 		Accounts:                 accountsAdapterApi,
 		BlockChain:               apiBlockchain,
+		EpochStartTrigger:        args.processComponents.EpochStartTrigger(),
 		NodesSetup:               args.coreComponents.GenesisNodesSetup(),
 	}
 

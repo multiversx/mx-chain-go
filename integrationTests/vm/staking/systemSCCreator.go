@@ -177,6 +177,7 @@ func createBlockChainHook(
 		GasSchedule:              gasScheduleNotifier,
 		Counter:                  counters.NewDisabledCounter(),
 		MissingTrieNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
+		EpochStartTrigger:        &testscommon.EpochStartTriggerStub{},
 	}
 
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(argsHook)

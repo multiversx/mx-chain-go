@@ -54,6 +54,11 @@ func (e *epochStartTrigger) EpochStartMetaHdrHash() []byte {
 	return nil
 }
 
+// EpochStartHdr -
+func (e *epochStartTrigger) EpochStartHdr() data.HeaderHandler {
+	return nil
+}
+
 // GetSavedStateKey -
 func (e *epochStartTrigger) GetSavedStateKey() []byte {
 	return nil

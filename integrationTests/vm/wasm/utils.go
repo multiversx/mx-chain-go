@@ -316,6 +316,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		GasSchedule:              gasSchedule,
 		Counter:                  &testscommon.BlockChainHookCounterStub{},
 		MissingTrieNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
+		EpochStartTrigger:        &testscommon.EpochStartTriggerStub{},
 		NodesSetup:               nodesSetup,
 	}
 
