@@ -156,11 +156,6 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		return nil, err
 	}
 
-	whiteListerVerifiedTxs, err := disabled.NewDisabledWhiteListDataVerifier()
-	if err != nil {
-		return nil, err
-	}
-
 	historyRepository, err := historyRepositoryFactory.Create()
 	if err != nil {
 		return nil, err
@@ -195,7 +190,7 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		NodesCoordinator:        args.NodesCoordinator,
 		RequestedItemsHandler:   requestedItemsHandler,
 		WhiteListHandler:        whiteListRequest,
-		WhiteListerVerifiedTxs:  whiteListerVerifiedTxs,
+		WhiteListerVerifiedTxs:  whiteListRequest,
 		MaxRating:               50,
 		SystemSCConfig:          &args.SystemSCConfig,
 		ImportStartHandler:      importStartHandler,
