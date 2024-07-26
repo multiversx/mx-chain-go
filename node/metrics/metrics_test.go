@@ -210,6 +210,7 @@ func TestInitConfigMetrics(t *testing.T) {
 			ScToScLogEventEnableEpoch:                                103,
 			RelayedTransactionsV3EnableEpoch:                         104,
 			FixRelayedBaseCostEnableEpoch:                            105,
+			MultiESDTNFTTransferAndExecuteByUserEnableEpoch:          106,
 			MaxNodesChangeEnableEpoch: []config.MaxNodesChangeConfig{
 				{
 					EpochEnable:            0,
