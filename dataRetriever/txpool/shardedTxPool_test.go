@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/stretchr/testify/require"
 )
@@ -73,6 +74,13 @@ func Test_NewShardedTxPool_WhenBadConfig(t *testing.T) {
 	require.Errorf(t, err, dataRetriever.ErrCacheConfigInvalidShards.Error())
 
 	args = goodArgs
+	args.EpochNotifier = nil
+	pool, err = NewShardedTxPool(args)
+	require.Nil(t, pool)
+	require.NotNil(t, err)
+	require.Errorf(t, err, dataRetriever.ErrNilEpochNotifier.Error())
+
+	args = goodArgs
 	args.TxGasHandler = nil
 	pool, err = NewShardedTxPool(args)
 	require.Nil(t, pool)
@@ -98,6 +106,7 @@ func Test_NewShardedTxPool_ComputesCacheConfig(t *testing.T) {
 	config := storageunit.CacheConfig{SizeInBytes: 419430400, SizeInBytesPerSender: 614400, Capacity: 600000, SizePerSender: 1000, Shards: 1}
 	args := ArgShardedTxPool{
 		Config:         config,
+		EpochNotifier:  &testscommon.EpochNotifierStub{},
 		TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
 		NumberOfShards: 2,
 	}
@@ -381,6 +390,7 @@ func Test_routeToCacheUnions(t *testing.T) {
 	}
 	args := ArgShardedTxPool{
 		Config:         config,
+		EpochNotifier:  &testscommon.EpochNotifierStub{},
 		TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
 		NumberOfShards: 4,
 		SelfShardID:    42,
@@ -421,6 +431,7 @@ func newTxPoolToTest() (dataRetriever.ShardedDataCacherNotifier, error) {
 	}
 	args := ArgShardedTxPool{
 		Config:         config,
+		EpochNotifier:  &testscommon.EpochNotifierStub{},
 		TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
 		NumberOfShards: 4,
 		SelfShardID:    0,

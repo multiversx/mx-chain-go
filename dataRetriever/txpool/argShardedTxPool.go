@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 )
@@ -13,6 +14,7 @@ import (
 // ArgShardedTxPool is the argument for ShardedTxPool's constructor
 type ArgShardedTxPool struct {
 	Config         storageunit.CacheConfig
+	EpochNotifier  process.EpochNotifier
 	TxGasHandler   txcache.TxGasHandler
 	NumberOfShards uint32
 	SelfShardID    uint32
@@ -36,6 +38,9 @@ func (args *ArgShardedTxPool) verify() error {
 	}
 	if config.Shards == 0 {
 		return fmt.Errorf("%w: config.Shards (map chunks) is not valid", dataRetriever.ErrCacheConfigInvalidShards)
+	}
+	if check.IfNil(args.EpochNotifier) {
+		return fmt.Errorf("%w: EpochNotifier is not valid", dataRetriever.ErrNilEpochNotifier)
 	}
 	if check.IfNil(args.TxGasHandler) {
 		return fmt.Errorf("%w: TxGasHandler is not valid", dataRetriever.ErrNilTxGasHandler)
