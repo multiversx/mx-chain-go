@@ -1359,6 +1359,7 @@ func (scbp *sovereignChainBlockProcessor) CommitBlock(headerHandler data.HeaderH
 func (scbp *sovereignChainBlockProcessor) commitEpochStart(header data.HeaderHandler, body *block.Body) {
 	if header.IsStartOfEpochBlock() {
 		scbp.epochStartTrigger.SetProcessed(header, body)
+		scbp.createEpochStartData(body)
 		go scbp.validatorInfoCreator.SaveBlockDataToStorage(header, body)
 		// TODO: MX-15588 FIX THIS (mp *metaProcessor) commitEpochStart
 		//go scbp.epochRewardsCreator.SaveBlockDataToStorage(header, body)
@@ -1370,6 +1371,12 @@ func (scbp *sovereignChainBlockProcessor) commitEpochStart(header data.HeaderHan
 			scbp.nodesCoordinator.ShuffleOutForEpoch(currentHeader.GetEpoch())
 		}
 	}
+}
+
+func (scbp *sovereignChainBlockProcessor) createEpochStartData(body *block.Body) {
+	// this will create validators info data and save it to pool
+	_ = scbp.validatorInfoCreator.CreateMarshalledData(body)
+	_ = scbp.epochRewardsCreator.CreateMarshalledData(body)
 }
 
 // getOrderedProcessedExtendedShardHeadersFromHeader returns all the extended shard headers fully processed

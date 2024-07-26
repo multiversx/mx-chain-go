@@ -2432,7 +2432,7 @@ func (tpn *TestProcessorNode) createMetaBlockProcessorArgs(argumentsBase block.A
 		DataPool:             tpn.DataPool,
 		EnableEpochsHandler:  tpn.EnableEpochsHandler,
 	}
-	epochStartValidatorInfo, _ := metachain.NewValidatorInfoCreator(argsEpochValidatorInfo)
+	epochStartValidatorInfo, _ := tpn.RunTypeComponents.ValidatorInfoCreatorFactory().CreateValidatorInfoCreator(argsEpochValidatorInfo)
 
 	maxNodesChangeConfigProvider, _ := notifier.NewNodesConfigProvider(
 		tpn.EpochNotifier,

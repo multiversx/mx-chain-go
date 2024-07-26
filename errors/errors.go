@@ -823,3 +823,6 @@ var ErrNilLatestDataProviderFactory = errors.New("nil latest data provider facto
 
 // ErrNilStakingToPeerFactory signals that a nil staking to peer factory has been provided
 var ErrNilStakingToPeerFactory = errors.New("nil staking to peer factory has been provided")
+
+// ErrNilValidatorInfoCreatorFactory signals that a nil validator info creator factory has been provided
+var ErrNilValidatorInfoCreatorFactory = errors.New("nil validator info creator factory has been provided")

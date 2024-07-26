@@ -2069,6 +2069,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	if check.IfNil(args.RunTypeComponents.StakingToPeerFactory()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilStakingToPeerFactory)
 	}
+	if check.IfNil(args.RunTypeComponents.ValidatorInfoCreatorFactory()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilValidatorInfoCreatorFactory)
+	}
 
 	return nil
 }

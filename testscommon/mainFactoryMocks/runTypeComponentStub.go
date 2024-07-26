@@ -79,6 +79,7 @@ type RunTypeComponentsStub struct {
 	EpochStartTriggerFactoryField       factory.EpochStartTriggerFactoryHandler
 	LatestDataProviderFactoryField      latestData.LatestDataProviderFactory
 	StakingToPeerFactoryField           scToProtocol.StakingToPeerFactoryHandler
+	ValidatorInfoCreatorFactoryField    factory.ValidatorInfoCreatorFactory
 }
 
 // NewRunTypeComponentsStub -
@@ -121,6 +122,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		EpochStartTriggerFactoryField:       &testFactory.EpochStartTriggerFactoryMock{},
 		LatestDataProviderFactoryField:      &testFactory.LatestDataProviderFactoryMock{},
 		StakingToPeerFactoryField:           &testFactory.StakingToPeerFactoryMock{},
+		ValidatorInfoCreatorFactoryField:    &testFactory.ValidatorInfoCreatorFactoryMock{},
 	}
 }
 
@@ -327,6 +329,11 @@ func (r *RunTypeComponentsStub) LatestDataProviderFactory() latestData.LatestDat
 // StakingToPeerFactory -
 func (r *RunTypeComponentsStub) StakingToPeerFactory() scToProtocol.StakingToPeerFactoryHandler {
 	return r.StakingToPeerFactoryField
+}
+
+// ValidatorInfoCreatorFactory -
+func (r *RunTypeComponentsStub) ValidatorInfoCreatorFactory() factory.ValidatorInfoCreatorFactory {
+	return r.ValidatorInfoCreatorFactoryField
 }
 
 // IsInterfaceNil -

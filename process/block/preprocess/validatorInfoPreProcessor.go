@@ -188,7 +188,6 @@ func (vip *validatorInfoPreprocessor) SaveTxsToStorage(body *block.Body) error {
 func (vip *validatorInfoPreprocessor) saveValidatorInfoToStorage(miniBlock *block.MiniBlock) {
 	for _, txHash := range miniBlock.TxHashes {
 		val, ok := vip.validatorsInfoPool.SearchFirstData(txHash)
-		// TODO: MX-15652 fix adding data in validators info pool for interceptor topic validatorsInfo
 		if !ok {
 			log.Debug("validatorInfoPreprocessor.saveValidatorInfoToStorage: SearchFirstData: tx not found in validator info pool", "txHash", txHash)
 			continue

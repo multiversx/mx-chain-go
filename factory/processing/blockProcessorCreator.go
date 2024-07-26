@@ -1139,7 +1139,7 @@ func (pcf *processComponentsFactory) createExtraMetaBlockProcessorArgs(
 			DataPool:             pcf.data.Datapool(),
 			EnableEpochsHandler:  pcf.coreData.EnableEpochsHandler(),
 		}
-		validatorInfoCreator, err := metachainEpochStart.NewValidatorInfoCreator(argsEpochValidatorInfo)
+		validatorInfoCreator, err := pcf.runTypeComponents.ValidatorInfoCreatorFactory().CreateValidatorInfoCreator(argsEpochValidatorInfo)
 		if err != nil {
 			return nil, err
 		}
