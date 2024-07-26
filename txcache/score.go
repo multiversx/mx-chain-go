@@ -28,6 +28,17 @@ func newDefaultScoreComputer(txGasHandler TxGasHandler) *defaultScoreComputer {
 	excellentPpuNormalizedLog := math.Log(excellentPpuNormalized)
 	scoreScalingFactor := float64(maxSenderScore) / excellentPpuNormalizedLog
 
+	log.Debug("newDefaultScoreComputer()",
+		"maxGasLimitPerTx", txGasHandler.MaxGasLimitPerTx(),
+		"minGasPrice", txGasHandler.MinGasPrice(),
+		"worstPpu", worstPpu,
+		"worstPpuLog", worstPpuLog,
+		"excellentPpu", excellentPpu,
+		"excellentPpuNormalized", excellentPpuNormalized,
+		"excellentPpuNormalizedLog", excellentPpuNormalizedLog,
+		"scoreScalingFactor", scoreScalingFactor,
+	)
+
 	return &defaultScoreComputer{
 		worstPpuLog:        worstPpuLog,
 		scoreScalingFactor: scoreScalingFactor,

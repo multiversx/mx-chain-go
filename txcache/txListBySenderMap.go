@@ -102,6 +102,8 @@ func (txMap *txListBySenderMap) removeTx(tx *WrappedTransaction) bool {
 
 // Important: this doesn't remove the transactions from txCache.txByHash. That's done by the caller.
 func (txMap *txListBySenderMap) removeSender(sender string) bool {
+	logRemove.Trace("txListBySenderMap.removeSender()", "sender", sender)
+
 	_, removed := txMap.backingMap.Remove(sender)
 	if removed {
 		txMap.counter.Decrement()

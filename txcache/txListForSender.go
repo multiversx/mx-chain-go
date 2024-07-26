@@ -113,6 +113,7 @@ func (listForSender *txListForSender) onAddedTransaction(tx *WrappedTransaction,
 	listForSender.noncesTracker.addNonce(nonce)
 }
 
+// This function should only be used in critical section (listForSender.mutex)
 func (listForSender *txListForSender) recomputeScore() {
 	scoreParams := listForSender.getScoreParams()
 	score := listForSender.scoreComputer.computeScore(scoreParams)
