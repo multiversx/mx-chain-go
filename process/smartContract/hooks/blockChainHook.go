@@ -65,7 +65,7 @@ type ArgBlockChainHook struct {
 	Counter                  BlockChainHookCounter
 	MissingTrieNodesNotifier common.MissingTrieNodesNotifier
 	EpochStartTrigger        EpochStartTriggerHandler
-	NodesSetup               sharding.GenesisNodesSetupHandler
+	RoundHandler             RoundHandler
 }
 
 // BlockChainHookImpl is a wrapper over AccountsAdapter that satisfy vmcommon.BlockchainHook interface
@@ -84,7 +84,7 @@ type BlockChainHookImpl struct {
 	enableEpochsHandler   common.EnableEpochsHandler
 	counter               BlockChainHookCounter
 	epochStartTrigger     EpochStartTriggerHandler
-	nodesSetup            sharding.GenesisNodesSetupHandler
+	roundHandler          RoundHandler
 
 	mutCurrentHdr sync.RWMutex
 	currentHdr    data.HeaderHandler
@@ -134,7 +134,7 @@ func NewBlockChainHookImpl(
 		counter:                  args.Counter,
 		missingTrieNodesNotifier: args.MissingTrieNodesNotifier,
 		epochStartTrigger:        args.EpochStartTrigger,
-		nodesSetup:               args.NodesSetup,
+		roundHandler:             args.RoundHandler,
 	}
 
 	err = blockChainHookImpl.makeCompiledSCStorage()
@@ -404,11 +404,9 @@ func (bh *BlockChainHookImpl) LastEpoch() uint32 {
 
 // RoundTime returns the duration of a round
 func (bh *BlockChainHookImpl) RoundTime() uint64 {
-	if bh.nodesSetup == nil {
-		return 0
-	}
+	roundDuration := bh.roundHandler.TimeDuration()
 
-	return bh.nodesSetup.GetRoundDuration()
+	return uint64(roundDuration.Milliseconds())
 }
 
 // EpochStartBlockTimeStamp returns the timestamp of the first block of the current epoch

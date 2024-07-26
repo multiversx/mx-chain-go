@@ -1095,7 +1095,7 @@ func (pcf *processComponentsFactory) createVMFactoryShard(
 		Counter:                  counter,
 		MissingTrieNodesNotifier: notifier,
 		EpochStartTrigger:        epochStartTriggerHandler,
-		NodesSetup:               pcf.coreData.GenesisNodesSetup(),
+		RoundHandler:             pcf.coreData.RoundHandler(),
 	}
 
 	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argsHook)
@@ -1150,7 +1150,7 @@ func (pcf *processComponentsFactory) createVMFactoryMeta(
 		Counter:                  counters.NewDisabledCounter(),
 		MissingTrieNodesNotifier: syncer.NewMissingTrieNodesNotifier(),
 		EpochStartTrigger:        epochStartTriggerHandler,
-		NodesSetup:               pcf.coreData.GenesisNodesSetup(),
+		RoundHandler:             pcf.coreData.RoundHandler(),
 	}
 
 	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argsHook)

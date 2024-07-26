@@ -29,7 +29,6 @@ import (
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
-	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -71,7 +70,7 @@ func createMockBlockChainHookArgs() hooks.ArgBlockChainHook {
 		Counter:                  &testscommon.BlockChainHookCounterStub{},
 		MissingTrieNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
 		EpochStartTrigger:        &testscommon.EpochStartTriggerStub{},
-		NodesSetup:               &genesisMocks.NodesSetupStub{},
+		RoundHandler:             &testscommon.RoundHandlerMock{},
 	}
 	return arguments
 }

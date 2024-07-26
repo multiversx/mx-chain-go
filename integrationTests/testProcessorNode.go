@@ -903,7 +903,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 		Counter:                  counters.NewDisabledCounter(),
 		MissingTrieNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
 		EpochStartTrigger:        tpn.EpochStartTrigger,
-		NodesSetup:               tpn.NodesSetup,
+		RoundHandler:             tpn.RoundHandler,
 	}
 
 	var apiBlockchain data.ChainHandler
@@ -1655,7 +1655,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		Counter:                  counter,
 		MissingTrieNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
 		EpochStartTrigger:        tpn.EpochStartTrigger,
-		NodesSetup:               tpn.NodesSetup,
+		RoundHandler:             tpn.RoundHandler,
 	}
 
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
@@ -1894,7 +1894,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		Counter:                  counters.NewDisabledCounter(),
 		MissingTrieNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
 		EpochStartTrigger:        tpn.EpochStartTrigger,
-		NodesSetup:               tpn.NodesSetup,
+		RoundHandler:             tpn.RoundHandler,
 	}
 
 	var signVerifier vm.MessageSignVerifier

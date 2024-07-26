@@ -412,7 +412,7 @@ func createScQueryElement(
 		Accounts:                 accountsAdapterApi,
 		BlockChain:               apiBlockchain,
 		EpochStartTrigger:        args.processComponents.EpochStartTrigger(),
-		NodesSetup:               args.coreComponents.GenesisNodesSetup(),
+		RoundHandler:             args.processComponents.RoundHandler(),
 	}
 
 	var vmFactory process.VirtualMachinesContainerFactory

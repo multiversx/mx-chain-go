@@ -395,8 +395,6 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 	defaults.FillGasMapInternal(gasSchedule, 1)
 	gasScheduleNotifier := mock.NewGasScheduleNotifierMock(gasSchedule)
 
-	nodesSetup := &genesisMocks.NodesSetupStub{}
-
 	builtInFuncs := vmcommonBuiltInFunctions.NewBuiltInFunctionContainer()
 	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
@@ -420,7 +418,7 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		Counter:                  &testscommon.BlockChainHookCounterStub{},
 		MissingTrieNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
 		EpochStartTrigger:        &testscommon.EpochStartTriggerStub{},
-		NodesSetup:               nodesSetup,
+		RoundHandler:             &testscommon.RoundHandlerMock{},
 	}
 
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
@@ -513,7 +511,6 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 // CreateOneSCExecutorMockVM -
 func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter) vmcommon.VMExecutionHandler {
 	datapool := dataRetrieverMock.NewPoolsHolderMock()
-	nodesSetup := &genesisMocks.NodesSetupStub{}
 	args := hooks.ArgBlockChainHook{
 		Accounts:                 accnts,
 		PubkeyConv:               pubkeyConv,
@@ -535,7 +532,7 @@ func CreateOneSCExecutorMockVM(accnts state.AccountsAdapter) vmcommon.VMExecutio
 		Counter:                  &testscommon.BlockChainHookCounterStub{},
 		MissingTrieNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
 		EpochStartTrigger:        &testscommon.EpochStartTriggerStub{},
-		NodesSetup:               nodesSetup,
+		RoundHandler:             &testscommon.RoundHandlerMock{},
 	}
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(args)
 	vm, _ := mock.NewOneSCExecutorMockVM(blockChainHook, integrationtests.TestHasher)
@@ -586,8 +583,6 @@ func CreateVMAndBlockchainHookAndDataPool(
 	esdtTransferParser, _ := parsers.NewESDTTransferParser(integrationtests.TestMarshalizer)
 	counter, _ := counters.NewUsageCounter(esdtTransferParser)
 
-	nodesSetup := &genesisMocks.NodesSetupStub{}
-
 	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
 		Accounts:                 accnts,
@@ -610,7 +605,7 @@ func CreateVMAndBlockchainHookAndDataPool(
 		Counter:                  counter,
 		MissingTrieNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
 		EpochStartTrigger:        &testscommon.EpochStartTriggerStub{},
-		NodesSetup:               nodesSetup,
+		RoundHandler:             &testscommon.RoundHandlerMock{},
 	}
 
 	maxGasLimitPerBlock := uint64(0xFFFFFFFFFFFFFFFF)
@@ -681,8 +676,6 @@ func CreateVMAndBlockchainHookMeta(
 	argsBuiltIn.AutomaticCrawlerAddresses = integrationTests.GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 
-	nodesSetup := &genesisMocks.NodesSetupStub{}
-
 	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
 		Accounts:                 validatorAccounts,
@@ -704,7 +697,7 @@ func CreateVMAndBlockchainHookMeta(
 		Counter:                  &testscommon.BlockChainHookCounterStub{},
 		MissingTrieNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
 		EpochStartTrigger:        &testscommon.EpochStartTriggerStub{},
-		NodesSetup:               nodesSetup,
+		RoundHandler:             &testscommon.RoundHandlerMock{},
 	}
 
 	economicsData, err := createEconomicsData(config.EnableEpochs{}, 1)

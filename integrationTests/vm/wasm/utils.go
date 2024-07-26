@@ -50,7 +50,6 @@ import (
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
-	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
@@ -282,7 +281,6 @@ func (context *TestContext) initVMAndBlockchainHook() {
 
 	blockchainMock := &testscommon.ChainHandlerStub{}
 	chainStorer := &storageStubs.ChainStorerStub{}
-	nodesSetup := &genesisMocks.NodesSetupStub{}
 	datapool := dataRetrieverMock.NewPoolsHolderMock()
 	args := hooks.ArgBlockChainHook{
 		Accounts:              context.Accounts,
@@ -317,7 +315,7 @@ func (context *TestContext) initVMAndBlockchainHook() {
 		Counter:                  &testscommon.BlockChainHookCounterStub{},
 		MissingTrieNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
 		EpochStartTrigger:        &testscommon.EpochStartTriggerStub{},
-		NodesSetup:               nodesSetup,
+		RoundHandler:             &testscommon.RoundHandlerMock{},
 	}
 
 	vmFactoryConfig := config.VirtualMachineConfig{
