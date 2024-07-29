@@ -25,3 +25,6 @@ var ErrNilEpochStartTriggerHandler = errors.New("nil epoch start trigger handler
 
 // ErrNilRoundHandler signals that a nil round handler was provided
 var ErrNilRoundHandler = errors.New("nil round handler")
+
+// ErrLastCommitedEpochStartHdrMismatch signals that the current header epoch and last commited epoch start header epoch do not match
+var ErrLastCommitedEpochStartHdrMismatch = errors.New("current header epoch and last commited epoch start header epoch do not match")

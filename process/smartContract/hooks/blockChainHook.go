@@ -65,7 +65,7 @@ type ArgBlockChainHook struct {
 	Counter                  BlockChainHookCounter
 	MissingTrieNodesNotifier common.MissingTrieNodesNotifier
 	EpochStartTrigger        EpochStartTriggerHandler
-	RoundHandler             RoundHandler
+	RoundHandler             RoundHandler // TODO: @laurci - this needs to be replaced when changing the round duration
 }
 
 // BlockChainHookImpl is a wrapper over AccountsAdapter that satisfy vmcommon.BlockchainHook interface
@@ -84,7 +84,7 @@ type BlockChainHookImpl struct {
 	enableEpochsHandler   common.EnableEpochsHandler
 	counter               BlockChainHookCounter
 	epochStartTrigger     EpochStartTriggerHandler
-	roundHandler          RoundHandler
+	roundHandler          RoundHandler // TODO: @laurci - this needs to be replaced when changing the round duration
 
 	mutCurrentHdr sync.RWMutex
 	currentHdr    data.HeaderHandler
@@ -411,6 +411,7 @@ func (bh *BlockChainHookImpl) LastEpoch() uint32 {
 
 // RoundTime returns the duration of a round
 func (bh *BlockChainHookImpl) RoundTime() uint64 {
+	// TODO: @laurci - this needs to be replaced when changing the round duration
 	roundDuration := bh.roundHandler.TimeDuration()
 
 	return uint64(roundDuration.Milliseconds())
@@ -801,24 +802,39 @@ func (bh *BlockChainHookImpl) SetCurrentHeader(hdr data.HeaderHandler) {
 
 	bh.mutCurrentHdr.Lock()
 	bh.currentHdr = hdr
-	bh.updateEpochStartHeader(hdr)
+	err := bh.updateEpochStartHeader(hdr)
+	if err != nil {
+		log.Debug("BlockChainHookImpl.SetCurrentHeader: updateEpochStartHeader", "error", err)
+	}
+
 	bh.mutCurrentHdr.Unlock()
 }
 
-func (bh *BlockChainHookImpl) updateEpochStartHeader(hdr data.HeaderHandler) {
+func (bh *BlockChainHookImpl) updateEpochStartHeader(hdr data.HeaderHandler) error {
 	bh.mutEpochStartHdr.Lock()
 	defer bh.mutEpochStartHdr.Unlock()
 
 	if hdr.IsStartOfEpochBlock() {
 		bh.epochStartHdr = hdr
-		return
+		return nil
 	}
 
 	if bh.epochStartHdr.GetEpoch() == hdr.GetEpoch() {
-		return
+		return nil
 	}
 
-	bh.epochStartHdr = bh.epochStartTrigger.EpochStartHdr()
+	epochStartHdr, err := bh.epochStartTrigger.LastCommitedEpochStartHdr()
+	if err != nil {
+		return err
+	}
+
+	if epochStartHdr.GetEpoch() != hdr.GetEpoch() {
+		return ErrLastCommitedEpochStartHdrMismatch
+	}
+
+	bh.epochStartHdr = epochStartHdr
+
+	return nil
 }
 
 // SaveCompiledCode saves the compiled code to cache and storage

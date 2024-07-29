@@ -24,7 +24,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/multiversx/mx-chain-logger-go"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("epochStart/shardchain")
@@ -1102,12 +1102,23 @@ func (t *trigger) EpochStartMetaHdrHash() []byte {
 	return t.epochMetaBlockHash
 }
 
-// EpochStartHdr returns the epoch start header
-func (t *trigger) EpochStartHdr() data.HeaderHandler {
+// LastCommitedEpochStartHdr returns the epoch start header
+func (t *trigger) LastCommitedEpochStartHdr() (data.HeaderHandler, error) {
 	t.mutTrigger.RLock()
 	defer t.mutTrigger.RUnlock()
 
-	return t.epochStartShardHeader
+	// marshal + unmarshal deep copy
+	headerBytes, err := t.marshaller.Marshal(t.epochStartShardHeader)
+	if err != nil {
+		return nil, err
+	}
+
+	header, err := process.UnmarshalShardHeader(t.marshaller, headerBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return header, nil
 }
 
 // GetSavedStateKey returns the last saved trigger state key

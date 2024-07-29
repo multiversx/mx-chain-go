@@ -57,12 +57,12 @@ func (e *EpochStartTriggerStub) EpochStartMetaHdrHash() []byte {
 	return nil
 }
 
-// EpochStartHdr -
-func (e *EpochStartTriggerStub) EpochStartHdr() data.HeaderHandler {
+// LastCommitedEpochStartHdr -
+func (e *EpochStartTriggerStub) LastCommitedEpochStartHdr() (data.HeaderHandler, error) {
 	if e.EpochStartHdrCalled != nil {
-		return e.EpochStartHdrCalled()
+		return e.EpochStartHdrCalled(), nil
 	}
-	return nil
+	return nil, nil
 }
 
 // GetSavedStateKey -

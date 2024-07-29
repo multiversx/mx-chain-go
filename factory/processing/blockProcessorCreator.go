@@ -1150,7 +1150,7 @@ func (pcf *processComponentsFactory) createVMFactoryMeta(
 		Counter:                  counters.NewDisabledCounter(),
 		MissingTrieNodesNotifier: syncer.NewMissingTrieNodesNotifier(),
 		EpochStartTrigger:        epochStartTriggerHandler,
-		RoundHandler:             pcf.coreData.RoundHandler(),
+		RoundHandler:             pcf.coreData.RoundHandler(), // TODO: @laurci - this needs to be replaced when changing the round duration
 	}
 
 	blockChainHookImpl, err := hooks.NewBlockChainHookImpl(argsHook)
