@@ -1907,20 +1907,20 @@ func (scbp *sovereignChainBlockProcessor) updateState(header data.HeaderHandler,
 		scbp.accountsDB[state.PeerAccountsState].SnapshotState(header.GetValidatorStatsRootHash(), header.GetEpoch())
 
 		// TODO: MX-15587- implement this and reuse code from meta processor
-		/*
-			go func() {
 
-				metaBlock, ok := header.(*block.MetaBlock)
-				if !ok {
-					log.Warn("cannot commit Trie Epoch Root Hash: lastMetaBlock is not *block.MetaBlock")
-					return
-				}
-				err := scbp.commitTrieEpochRootHashIfNeeded(metaBlock, header.GetRootHash())
-				if err != nil {
-					log.Warn("couldn't commit trie checkpoint", "epoch", metaBlock.Epoch, "error", err)
-				}
-			}()
-		*/
+		go func() {
+
+			metaBlock, ok := header.(data.MetaHeaderHandler)
+			if !ok {
+				log.Warn("cannot commit Trie Epoch Root Hash: lastMetaBlock is not *block.MetaBlock")
+				return
+			}
+			err := scbp.commitTrieEpochRootHashIfNeeded(metaBlock, header.GetRootHash())
+			if err != nil {
+				log.Warn("couldn't commit trie checkpoint", "epoch", metaBlock.GetEpoch(), "error", err)
+			}
+		}()
+
 		scbp.nodesCoordinator.ShuffleOutForEpoch(header.GetEpoch())
 	}
 

@@ -152,7 +152,7 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 		},
 		common.StakingV2FlagAfterEpoch: {
 			isActiveInEpoch: func(epoch uint32) bool {
-				return epoch > handler.enableEpochsConfig.StakingV2EnableEpoch
+				return epoch >= handler.enableEpochsConfig.StakingV2EnableEpoch
 			},
 			activationEpoch: handler.enableEpochsConfig.StakingV2EnableEpoch,
 		},

@@ -341,6 +341,11 @@ func (rc *rewardsCreatorV2) computeBaseRewardsPerNode(
 
 	for shardID, nodeRewardsInfoList := range nodesRewardInfo {
 		for _, nodeRewardsInfo := range nodeRewardsInfoList {
+			log.Error("DSADASDSA",
+				" nodeRewardsInfo.valInfo.GetPublicKey()", nodeRewardsInfo.valInfo.GetPublicKey(),
+
+				"nodeRewardsInfo.valInfo.GetNumSelectedInSuccessBlocks()", nodeRewardsInfo.valInfo.GetNumSelectedInSuccessBlocks())
+
 			nodeRewardsInfo.baseReward = big.NewInt(0).Mul(
 				rc.mapBaseRewardsPerBlockPerValidator[shardID],
 				big.NewInt(int64(nodeRewardsInfo.valInfo.GetNumSelectedInSuccessBlocks())))
