@@ -17,6 +17,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/hashing/keccak"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/common/holders"
@@ -28,9 +32,6 @@ import (
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/trie/mock"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 var emptyTrieHash = make([]byte, 32)
@@ -1725,4 +1726,33 @@ func BenchmarkPatriciaMerkleTrie_RootHashAfterChanging30000NodesInBatchesOf200(b
 			}
 		}
 	}
+}
+
+func TestTrieUpdateTimer(t *testing.T) {
+	t.Skip()
+	tr := emptyTrie()
+	hsh := keccak.NewKeccak()
+
+	nrValuesInTrie := 500000
+	values := make([][]byte, nrValuesInTrie)
+	nrOfValuesToModify := 30000
+
+	for i := 0; i < nrValuesInTrie; i++ {
+		key := hsh.Compute(strconv.Itoa(i))
+		value := append(key, []byte(strconv.Itoa(i))...)
+
+		_ = tr.Update(key, value)
+		values[i] = key
+	}
+	_ = tr.Commit()
+
+	before := time.Now()
+	for i := 0; i < 10; i++ {
+		for j := 0; j < nrOfValuesToModify; j++ {
+			_ = tr.Update(values[j], values[j])
+		}
+	}
+
+	now := time.Since(before)
+	fmt.Println(now)
 }
