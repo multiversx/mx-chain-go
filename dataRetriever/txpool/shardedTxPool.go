@@ -9,7 +9,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -18,9 +17,6 @@ import (
 var _ dataRetriever.ShardedDataCacherNotifier = (*shardedTxPool)(nil)
 
 var log = logger.GetOrCreate("txpool")
-
-// TODO: fix this (workaround for testing).
-var AccountsAdapter state.AccountsAdapter = nil
 
 // shardedTxPool holds transaction caches organised by source & destination shard
 type shardedTxPool struct {
@@ -31,7 +27,7 @@ type shardedTxPool struct {
 	configPrototypeDestinationMe txcache.ConfigDestinationMe
 	configPrototypeSourceMe      txcache.ConfigSourceMe
 	selfShardID                  uint32
-	epochNotifier                process.EpochNotifier
+	epochNotifier                dataRetriever.EpochNotifier
 	txGasHandler                 txcache.TxGasHandler
 }
 

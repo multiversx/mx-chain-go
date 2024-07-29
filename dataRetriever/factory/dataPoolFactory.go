@@ -39,7 +39,7 @@ type ArgsDataPool struct {
 	ShardCoordinator sharding.Coordinator
 	Marshalizer      marshal.Marshalizer
 	PathManager      storage.PathManagerHandler
-	EpochNotifier    process.EpochNotifier
+	EpochNotifier    dataRetriever.EpochNotifier
 }
 
 // NewDataPoolFromConfig will return a new instance of a PoolsHolder

@@ -6,7 +6,6 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 )
@@ -14,7 +13,7 @@ import (
 // ArgShardedTxPool is the argument for ShardedTxPool's constructor
 type ArgShardedTxPool struct {
 	Config         storageunit.CacheConfig
-	EpochNotifier  process.EpochNotifier
+	EpochNotifier  dataRetriever.EpochNotifier
 	TxGasHandler   txcache.TxGasHandler
 	NumberOfShards uint32
 	SelfShardID    uint32
