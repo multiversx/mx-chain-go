@@ -39,7 +39,7 @@ type transferData struct {
 	Args     [][]byte
 }
 
-func setStateBridgeOwner(
+func initOwnerAndSysAccState(
 	t *testing.T,
 	cs chainSim.ChainSimulator,
 	ownerAddress string,
