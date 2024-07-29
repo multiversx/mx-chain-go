@@ -890,16 +890,46 @@ func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
+	rewardMiniBlocks, err := scbp.epochRewardsCreator.CreateRewardsMiniBlocks(sovHdr, allValidatorsInfo, &sovHdr.EpochStart.Economics)
+	if err != nil {
+		return err
+	}
+
+	mbHeaderHandlers := make([]data.MiniBlockHeaderHandler, len(rewardMiniBlocks))
+	for idx, mb := range rewardMiniBlocks {
+		hash, err := core.CalculateHash(scbp.marshalizer, scbp.hasher, mb)
+		if err != nil {
+			return err
+		}
+
+		mbHeaderHandlers[idx] = &block.MiniBlockHeader{
+			Hash:            hash,
+			SenderShardID:   mb.SenderShardID,
+			ReceiverShardID: mb.ReceiverShardID,
+			TxCount:         uint32(len(mb.TxHashes)),
+			Type:            mb.Type,
+			Reserved:        mb.Reserved,
+		}
+
+	}
+
+	err = sovHdr.SetMiniBlockHeaderHandlers(mbHeaderHandlers)
+	if err != nil {
+		return err
+	}
+
+	sovHdr.EpochStart.Economics.RewardsForProtocolSustainability.Set(scbp.epochRewardsCreator.GetProtocolSustainabilityRewards())
+
 	// TODO MX-15589 check how we can integrate all of these later on
-	//err = mp.epochRewardsCreator.VerifyRewardsMiniBlocks(header, allValidatorsInfo, computedEconomics)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//err = mp.epochSystemSCProcessor.ProcessDelegationRewards(body.MiniBlocks, mp.epochRewardsCreator.GetLocalTxCache())
-	//if err != nil {
-	//	return err
-	//}
+	////////////////err = scbp.epochRewardsCreator.VerifyRewardsMiniBlocks(sovHdr, allValidatorsInfo, computedEconomics)
+	////////////////if err != nil {
+	////////////////	return err
+	////////////////}
+
+	err = scbp.epochSystemSCProcessor.ProcessDelegationRewards(rewardMiniBlocks, scbp.epochRewardsCreator.GetLocalTxCache())
+	if err != nil {
+		return err
+	}
 
 	//err = mp.validatorInfoCreator.VerifyValidatorInfoMiniBlocks(body.MiniBlocks, allValidatorsInfo)
 	//if err != nil {
@@ -939,7 +969,7 @@ func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
 	}
 
 	finalMiniBlocks := make([]*block.MiniBlock, 0)
-	//finalMiniBlocks = append(finalMiniBlocks, rewardMiniBlocks...)
+	finalMiniBlocks = append(finalMiniBlocks, rewardMiniBlocks...)
 	finalMiniBlocks = append(finalMiniBlocks, validatorMiniBlocks...)
 
 	body.MiniBlocks = append(body.MiniBlocks, finalMiniBlocks...)

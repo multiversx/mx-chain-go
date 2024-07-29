@@ -184,7 +184,7 @@ func (rc *rewardsCreatorV2) addValidatorRewardsToMiniBlocks(
 
 		rc.accumulatedRewards.Add(rc.accumulatedRewards, rwdTx.Value)
 		mbId := rc.shardCoordinator.ComputeId([]byte(rwdInfo.address))
-		if mbId == core.MetachainShardId {
+		if mbId == core.SovereignChainShardId {
 			mbId = rc.shardCoordinator.NumberOfShards()
 
 			if !rc.flagDelegationSystemSCEnabled.IsSet() || !rc.isSystemDelegationSC(rwdTx.RcvAddr) {
