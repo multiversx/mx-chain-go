@@ -67,7 +67,7 @@ func TestChainSimulator_ExecuteMintBurnBridgeOpForESDTTokensWithPrefixAndTransfe
 		ChainPrefix:       "sov1",
 		IssuePaymentToken: "ABC-123456",
 	}
-	setStateBridgeOwner(t, cs, initialAddress, argsEsdtSafe)
+	initOwnerAndSysAccState(t, cs, initialAddress, argsEsdtSafe)
 	bridgeData := deployBridgeSetup(t, cs, initialAddress, esdtSafeWasmPath, argsEsdtSafe, feeMarketWasmPath)
 
 	esdtSafeEncoded, _ := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Encode(bridgeData.ESDTSafeAddress)

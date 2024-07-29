@@ -110,7 +110,7 @@ func testExecuteOperationNotAllowedToMintTokenWithoutPrefix(
 		ChainPrefix:       "sov1",
 		IssuePaymentToken: "ABC-123456",
 	}
-	setStateBridgeOwner(t, cs, initialAddress, argsEsdtSafe)
+	initOwnerAndSysAccState(t, cs, initialAddress, argsEsdtSafe)
 	bridgeData := deployBridgeSetup(t, cs, initialAddress, simpleEsdtSafeWasmPath, argsEsdtSafe, feeMarketWasmPath)
 
 	esdtSafeEncoded, _ := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Encode(bridgeData.ESDTSafeAddress)
@@ -216,7 +216,7 @@ func testExecuteOperationNotAllowedToMintFungibleContractNotWhitelisted(
 		ChainPrefix:       prefix,
 		IssuePaymentToken: "ABC-123456",
 	}
-	setStateBridgeOwner(t, cs, initialAddress, argsEsdtSafe)
+	initOwnerAndSysAccState(t, cs, initialAddress, argsEsdtSafe)
 	bridgeData := deployBridgeSetup(t, cs, initialAddress, simpleEsdtSafeWasmPath, argsEsdtSafe, feeMarketWasmPath)
 
 	// esdt-safe address generated is NOT whitelisted
@@ -323,7 +323,7 @@ func testDepositNotAllowedToBurnTokensContractNotWhitelisted(
 		ChainPrefix:       prefix,
 		IssuePaymentToken: "ABC-123456",
 	}
-	setStateBridgeOwner(t, cs, initialAddress, argsEsdtSafe)
+	initOwnerAndSysAccState(t, cs, initialAddress, argsEsdtSafe)
 	bridgeData := deployBridgeSetup(t, cs, initialAddress, simpleEsdtSafeWasmPath, argsEsdtSafe, feeMarketWasmPath)
 
 	// esdt-safe address generated is NOT whitelisted
