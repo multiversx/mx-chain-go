@@ -227,6 +227,12 @@ func checkForNil(args ArgBlockChainHook) error {
 	if check.IfNil(args.MissingTrieNodesNotifier) {
 		return ErrNilMissingTrieNodesNotifier
 	}
+	if check.IfNil(args.EpochStartTrigger) {
+		return ErrNilEpochStartTriggerHandler
+	}
+	if check.IfNil(args.RoundHandler) {
+		return ErrNilRoundHandler
+	}
 	return nil
 }
 

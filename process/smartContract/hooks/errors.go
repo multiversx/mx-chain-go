@@ -19,3 +19,9 @@ var ErrNilBlockchainHookCounter = errors.New("nil blockchain hook counter")
 
 // ErrNilMissingTrieNodesNotifier signals that a nil missing trie nodes notifier was provided
 var ErrNilMissingTrieNodesNotifier = errors.New("nil missing trie nodes notifier")
+
+// ErrNilEpochStartTriggerHandler signals that a nil epoch start trigger handler was provided
+var ErrNilEpochStartTriggerHandler = errors.New("nil epoch start trigger handler")
+
+// ErrNilRoundHandler signals that a nil round handler was provided
+var ErrNilRoundHandler = errors.New("nil round handler")
