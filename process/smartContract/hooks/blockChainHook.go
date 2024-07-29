@@ -828,6 +828,10 @@ func (bh *BlockChainHookImpl) updateEpochStartHeader(hdr data.HeaderHandler) err
 		return err
 	}
 
+	if epochStartHdr == nil {
+		return ErrNilLastCommitedEpochStartHdr
+	}
+
 	if epochStartHdr.GetEpoch() != hdr.GetEpoch() {
 		return ErrLastCommitedEpochStartHdrMismatch
 	}
