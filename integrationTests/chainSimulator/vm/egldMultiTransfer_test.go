@@ -66,7 +66,9 @@ func TestChainSimulator_EGLD_MultiTransfer(t *testing.T) {
 
 	// issue metaESDT
 	metaESDTTicker := []byte("METATTICKER")
-	tx := issueMetaESDTTx(0, addrs[0].Bytes, metaESDTTicker, baseIssuingCost)
+	nonce := uint64(0)
+	tx := issueMetaESDTTx(nonce, addrs[0].Bytes, metaESDTTicker, baseIssuingCost)
+	nonce++
 
 	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
@@ -80,12 +82,14 @@ func TestChainSimulator_EGLD_MultiTransfer(t *testing.T) {
 		[]byte(core.ESDTRoleTransfer),
 	}
 	setAddressEsdtRoles(t, cs, addrs[0], metaESDTTokenID, roles)
+	nonce++
 
 	log.Info("Issued metaESDT token id", "tokenID", string(metaESDTTokenID))
 
 	// issue NFT
 	nftTicker := []byte("NFTTICKER")
-	tx = issueNonFungibleTx(1, addrs[0].Bytes, nftTicker, baseIssuingCost)
+	tx = issueNonFungibleTx(nonce, addrs[0].Bytes, nftTicker, baseIssuingCost)
+	nonce++
 
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
@@ -94,12 +98,14 @@ func TestChainSimulator_EGLD_MultiTransfer(t *testing.T) {
 
 	nftTokenID := txResult.Logs.Events[0].Topics[0]
 	setAddressEsdtRoles(t, cs, addrs[0], nftTokenID, roles)
+	nonce++
 
 	log.Info("Issued NFT token id", "tokenID", string(nftTokenID))
 
 	// issue SFT
 	sftTicker := []byte("SFTTICKER")
-	tx = issueSemiFungibleTx(2, addrs[0].Bytes, sftTicker, baseIssuingCost)
+	tx = issueSemiFungibleTx(nonce, addrs[0].Bytes, sftTicker, baseIssuingCost)
+	nonce++
 
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
@@ -108,6 +114,7 @@ func TestChainSimulator_EGLD_MultiTransfer(t *testing.T) {
 
 	sftTokenID := txResult.Logs.Events[0].Topics[0]
 	setAddressEsdtRoles(t, cs, addrs[0], sftTokenID, roles)
+	nonce++
 
 	log.Info("Issued SFT token id", "tokenID", string(sftTokenID))
 
@@ -132,7 +139,6 @@ func TestChainSimulator_EGLD_MultiTransfer(t *testing.T) {
 		esdtMetaData,
 	}
 
-	nonce := uint64(3)
 	for i := range tokenIDs {
 		tx = nftCreateTx(nonce, addrs[0].Bytes, tokenIDs[i], tokensMetadata[i])
 
@@ -241,7 +247,9 @@ func TestChainSimulator_EGLD_MultiTransfer_Insufficient_Funds(t *testing.T) {
 
 	// issue NFT
 	nftTicker := []byte("NFTTICKER")
-	tx := issueNonFungibleTx(0, addrs[0].Bytes, nftTicker, baseIssuingCost)
+	nonce := uint64(0)
+	tx := issueNonFungibleTx(nonce, addrs[0].Bytes, nftTicker, baseIssuingCost)
+	nonce++
 
 	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
@@ -255,13 +263,15 @@ func TestChainSimulator_EGLD_MultiTransfer_Insufficient_Funds(t *testing.T) {
 		[]byte(core.ESDTRoleTransfer),
 	}
 	setAddressEsdtRoles(t, cs, addrs[0], nftTokenID, roles)
+	nonce++
 
 	log.Info("Issued NFT token id", "tokenID", string(nftTokenID))
 
 	nftMetaData := txsFee.GetDefaultMetaData()
 	nftMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
 
-	tx = nftCreateTx(1, addrs[0].Bytes, nftTokenID, nftMetaData)
+	tx = nftCreateTx(nonce, addrs[0].Bytes, nftTokenID, nftMetaData)
+	nonce++
 
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
@@ -359,7 +369,9 @@ func TestChainSimulator_EGLD_MultiTransfer_Invalid_Value(t *testing.T) {
 
 	// issue NFT
 	nftTicker := []byte("NFTTICKER")
-	tx := issueNonFungibleTx(0, addrs[0].Bytes, nftTicker, baseIssuingCost)
+	nonce := uint64(0)
+	tx := issueNonFungibleTx(nonce, addrs[0].Bytes, nftTicker, baseIssuingCost)
+	nonce++
 
 	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
@@ -373,13 +385,15 @@ func TestChainSimulator_EGLD_MultiTransfer_Invalid_Value(t *testing.T) {
 		[]byte(core.ESDTRoleTransfer),
 	}
 	setAddressEsdtRoles(t, cs, addrs[0], nftTokenID, roles)
+	nonce++
 
 	log.Info("Issued NFT token id", "tokenID", string(nftTokenID))
 
 	nftMetaData := txsFee.GetDefaultMetaData()
 	nftMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
 
-	tx = nftCreateTx(1, addrs[0].Bytes, nftTokenID, nftMetaData)
+	tx = nftCreateTx(nonce, addrs[0].Bytes, nftTokenID, nftMetaData)
+	nonce++
 
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
@@ -477,7 +491,9 @@ func TestChainSimulator_Multiple_EGLD_Transfers(t *testing.T) {
 
 	// issue NFT
 	nftTicker := []byte("NFTTICKER")
-	tx := issueNonFungibleTx(0, addrs[0].Bytes, nftTicker, baseIssuingCost)
+	nonce := uint64(0)
+	tx := issueNonFungibleTx(nonce, addrs[0].Bytes, nftTicker, baseIssuingCost)
+	nonce++
 
 	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
@@ -491,13 +507,15 @@ func TestChainSimulator_Multiple_EGLD_Transfers(t *testing.T) {
 		[]byte(core.ESDTRoleTransfer),
 	}
 	setAddressEsdtRoles(t, cs, addrs[0], nftTokenID, roles)
+	nonce++
 
 	log.Info("Issued NFT token id", "tokenID", string(nftTokenID))
 
 	nftMetaData := txsFee.GetDefaultMetaData()
 	nftMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
 
-	tx = nftCreateTx(1, addrs[0].Bytes, nftTokenID, nftMetaData)
+	tx = nftCreateTx(nonce, addrs[0].Bytes, nftTokenID, nftMetaData)
+	nonce++
 
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
@@ -686,7 +704,9 @@ func TestChainSimulator_IssueToken_EGLDTicker(t *testing.T) {
 
 	// issue NFT
 	nftTicker := []byte("EGLD")
-	tx := issueNonFungibleTx(0, addrs[0].Bytes, nftTicker, baseIssuingCost)
+	nonce := uint64(0)
+	tx := issueNonFungibleTx(nonce, addrs[0].Bytes, nftTicker, baseIssuingCost)
+	nonce++
 
 	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
@@ -700,13 +720,15 @@ func TestChainSimulator_IssueToken_EGLDTicker(t *testing.T) {
 		[]byte(core.ESDTRoleTransfer),
 	}
 	setAddressEsdtRoles(t, cs, addrs[0], nftTokenID, roles)
+	nonce++
 
 	log.Info("Issued NFT token id", "tokenID", string(nftTokenID))
 
 	nftMetaData := txsFee.GetDefaultMetaData()
 	nftMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
 
-	tx = nftCreateTx(1, addrs[0].Bytes, nftTokenID, nftMetaData)
+	tx = nftCreateTx(nonce, addrs[0].Bytes, nftTokenID, nftMetaData)
+	nonce++
 
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
@@ -723,7 +745,8 @@ func TestChainSimulator_IssueToken_EGLDTicker(t *testing.T) {
 	log.Info("Issue token (after activation of EGLDInMultiTransferFlag)")
 
 	// should fail issuing token with EGLD ticker
-	tx = issueNonFungibleTx(2, addrs[0].Bytes, nftTicker, baseIssuingCost)
+	tx = issueNonFungibleTx(nonce, addrs[0].Bytes, nftTicker, baseIssuingCost)
+	nonce++
 
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
