@@ -449,6 +449,7 @@ func (gbc *genesisBlockCreator) computeDNSAddresses(enableEpochsConfig config.En
 		Counter:                  counters.NewDisabledCounter(),
 		MissingTrieNodesNotifier: syncer.NewMissingTrieNodesNotifier(),
 		EpochStartTrigger:        epochStart.NewEpochStartTrigger(),
+		RoundHandler:             &disabled.RoundHandler{},
 	}
 	blockChainHook, err := hooks.NewBlockChainHookImpl(argsHook)
 	if err != nil {

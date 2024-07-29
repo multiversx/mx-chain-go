@@ -178,6 +178,7 @@ func createBlockChainHook(
 		Counter:                  counters.NewDisabledCounter(),
 		MissingTrieNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
 		EpochStartTrigger:        &testscommon.EpochStartTriggerStub{},
+		RoundHandler:             &testscommon.RoundHandlerMock{},
 	}
 
 	blockChainHook, _ := hooks.NewBlockChainHookImpl(argsHook)
