@@ -1,0 +1,128 @@
+name: Build and Smoke Test
+
+on:
+  pull_request:
+    branches:
+      - 'main'
+      - 'rc/*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        runs-on: [ubuntu-latest, macos-13-xlarge]
+    runs-on: ${{ matrix.runs-on }}
+    name: Build
+    steps:
+      - name: Set up Go 1.20.7
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.20.7
+        id: go
+
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v3
+
+      - name: Determine Target Branch
+        id: target_branch
+        run: |
+          if [[ "${{ github.event.pull_request.base.ref }}" == "main" ]]; then
+            echo "TARGET_BRANCH=master" >> $GITHUB_ENV
+          elif [[ "${{ github.event.pull_request.base.ref }}" == rc/* ]]; then
+            echo "TARGET_BRANCH=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
+          fi
+
+      - name: Get dependencies
+        run: |
+          go get -v -t -d ./...
+          if [ -f Gopkg.toml ]; then
+            curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
+            dep ensure
+          fi
+
+      - name: Build
+        run: |
+          cd ${GITHUB_WORKSPACE}/cmd/node && go build .
+          cd ${GITHUB_WORKSPACE}/cmd/seednode && go build .
+          cd ${GITHUB_WORKSPACE}/cmd/keygenerator && go build .
+          cd ${GITHUB_WORKSPACE}/cmd/logviewer && go build .
+          cd ${GITHUB_WORKSPACE}/cmd/termui && go build .
+
+      - name: Checkout mx-chain-testing-suite
+        uses: actions/checkout@v2
+        with:
+          repository: 'multiversx/mx-chain-testing-suite'
+          ref: ${{ env.TARGET_BRANCH }}
+          path: 'mx-chain-testing-suite'
+
+      - name: Setup Python 3.10
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: |
+          pip install -r mx-chain-testing-suite/requirements.txt
+          echo "PYTHONPATH=mx-chain-testing-suite" >> $GITHUB_ENV
+
+      - name: Run tests and generate HTML report
+        run: |
+          set +e
+          pytest mx-chain-testing-suite/scenarios/ --html=report.html --self-contained-html --continue-on-collection-errors
+          PYTEST_EXIT_CODE=$?
+          set -e
+          echo "PYTEST_EXIT_CODE=$PYTEST_EXIT_CODE" >> $GITHUB_ENV
+          echo "Pytest exit code: $PYTEST_EXIT_CODE"
+          if [ -f "report.html" ]; then
+            echo "Report generated successfully."
+            mkdir -p ./reports
+            mv report.html ./reports/
+          else
+            echo "Report not found."
+          fi
+
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v2
+        with:
+          name: pytest-report-${{ github.run_id }}
+          path: reports/report.html
+
+      - name: Comment PR with report link or error message
+        if: always()
+        uses: actions/github-script@v7
+        env:
+          TARGET_BRANCH: ${{ env.TARGET_BRANCH }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const branchName = process.env.TARGET_BRANCH;
+            const issue_number = context.issue.number;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            let message;
+
+            if (branchName && branchName !== "") {
+              const reportUrl = `https://multiversx.github.io/mx-chain-testing-suite/reports/${branchName}/index.html`;
+              message = `📊 **MultiversX Automated Test Report:** [View Report](${reportUrl})`;
+            } else {
+              message = "⚠️ No report was generated due to an error or cancellation of the process.\nPlease check out the GitHub action logs for details";
+            }
+
+            github.rest.issues.createComment({
+              issue_number: issue_number,
+              owner: owner,
+              repo: repo,
+              body: message
+            });
+
+      - name: Fail job if tests failed
+        if: always()
+        run: |
+          if [ "${{ env.PYTEST_EXIT_CODE }}" != "0" ]; then
+            echo "Tests failed with exit code ${{ env.PYTEST_EXIT_CODE }}"
+            exit 1
+          else
+            echo "Tests passed successfully."
+          fi
