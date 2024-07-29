@@ -365,7 +365,6 @@ func (brc *baseRewardsCreator) createProtocolSustainabilityRewardTransaction(
 		RcvAddr: brc.protocolSustainabilityAddress,
 		Epoch:   metaBlock.GetEpoch(),
 	}
-
 	brc.accumulatedRewards.Add(brc.accumulatedRewards, protocolSustainabilityRwdTx.Value)
 	return protocolSustainabilityRwdTx, shardID, nil
 }
@@ -385,6 +384,12 @@ func (brc *baseRewardsCreator) createRewardFromRwdInfo(
 	if err != nil {
 		return nil, nil, err
 	}
+
+	cacherIdentifier := process.ShardCacherIdentifier(core.SovereignChainShardId, core.SovereignChainShardId)
+	brc.dataPool.RewardTransactions().AddData(rwdTxHash,
+		rwdTx,
+		rwdTx.Size(),
+		cacherIdentifier)
 
 	log.Debug("rewardTx",
 		"address", []byte(rwdInfo.address),
@@ -424,6 +429,12 @@ func (brc *baseRewardsCreator) addProtocolRewardToMiniBlocks(
 	brc.currTxs.AddTx(protocolSustainabilityRwdHash, protocolSustainabilityRwdTx)
 	miniBlocks[protocolSustainabilityShardId].TxHashes = append(miniBlocks[protocolSustainabilityShardId].TxHashes, protocolSustainabilityRwdHash)
 	brc.protocolSustainabilityValue.Set(protocolSustainabilityRwdTx.Value)
+
+	cacherIdentifier := process.ShardCacherIdentifier(core.SovereignChainShardId, core.SovereignChainShardId)
+	brc.dataPool.RewardTransactions().AddData(protocolSustainabilityRwdHash,
+		protocolSustainabilityRwdTx,
+		protocolSustainabilityRwdTx.Size(),
+		cacherIdentifier)
 
 	return nil
 }

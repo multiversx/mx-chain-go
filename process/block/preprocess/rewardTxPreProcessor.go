@@ -322,7 +322,7 @@ func (rtp *rewardTxPreprocessor) receivedRewardTransaction(key []byte, value int
 		return
 	}
 
-	receivedAllMissing := rtp.baseReceivedTransaction(key, tx, &rtp.rewardTxsForBlock)
+	receivedAllMissing := rtp.baseReceivedTransaction2(key, tx, &rtp.rewardTxsForBlock)
 
 	if receivedAllMissing {
 		rtp.chReceivedAllRewardTxs <- true
