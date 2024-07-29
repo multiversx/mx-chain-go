@@ -11,7 +11,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -530,11 +529,6 @@ func (s *legacySystemSCProcessor) executeRewardTx(rwdTx data.TransactionHandler)
 		RecipientAddr: rwdTx.GetRcvAddr(),
 		Function:      "updateRewards",
 	}
-
-	pk, _ := pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
-
-	addr := pk.SilentEncode(rwdTx.GetRcvAddr(), log)
-	log.Error("DSADSA", "DSADAS", addr)
 
 	vmOutput, err := s.systemVM.RunSmartContractCall(vmInput)
 	if err != nil {
@@ -1335,7 +1329,7 @@ func getRewardsMiniBlockForMeta(miniBlocks block.MiniBlockSlice) *block.MiniBloc
 		if miniBlock.Type != block.RewardsBlock {
 			continue
 		}
-		if miniBlock.ReceiverShardID != core.SovereignChainShardId {
+		if miniBlock.ReceiverShardID != core.MetachainShardId {
 			continue
 		}
 		return miniBlock
