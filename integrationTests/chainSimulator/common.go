@@ -9,11 +9,13 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	dataApi "github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 	"github.com/multiversx/mx-chain-go/vm"
 )
@@ -50,6 +52,12 @@ type ArgsDepositToken struct {
 	Type       core.ESDTType
 }
 
+// Account holds the arguments for a user account
+type Account struct {
+	Wallet dtos.WalletAddress
+	Nonce  uint64
+}
+
 // GetSysAccBytesAddress will return the system account bytes address
 func GetSysAccBytesAddress(t *testing.T, nodeHandler process.NodeHandler) []byte {
 	addressBytes, err := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode("erd1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq6gq4hu")
@@ -75,9 +83,7 @@ func DeployContract(
 	*nonce++
 
 	require.Nil(t, err)
-	require.NotNil(t, txResult)
-	requireNoSignalErrorEvent(t, txResult)
-	require.Equal(t, transaction.TxStatusSuccess, txResult.Status)
+	RequireSuccessfulTransaction(t, txResult)
 
 	address := txResult.Logs.Events[0].Topics[0]
 	require.NotNil(t, address)
@@ -100,6 +106,22 @@ func GenerateTransaction(sender []byte, nonce uint64, receiver []byte, value *bi
 	}
 }
 
+// SendTransactionWithSuccess will send a transaction and expect successful execution and return the result
+func SendTransactionWithSuccess(
+	t *testing.T,
+	cs ChainSimulator,
+	sender []byte,
+	nonce *uint64,
+	receiver []byte,
+	value *big.Int,
+	data string,
+	gasLimit uint64,
+) *transaction.ApiTransactionResult {
+	txResult := SendTransaction(t, cs, sender, nonce, receiver, value, data, gasLimit)
+	RequireSuccessfulTransaction(t, txResult)
+	return txResult
+}
+
 // SendTransaction will send a transaction and return the result
 func SendTransaction(
 	t *testing.T,
@@ -115,19 +137,43 @@ func SendTransaction(
 	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlocksToGenerateWhenExecutingTx)
 	*nonce++
 	require.Nil(t, err)
-	require.NotNil(t, txResult)
-	requireNoSignalErrorEvent(t, txResult)
-	require.Equal(t, transaction.TxStatusSuccess, txResult.Status)
 
 	return txResult
 }
 
-func requireNoSignalErrorEvent(t *testing.T, txResult *transaction.ApiTransactionResult) {
-	if txResult.Logs != nil && len(txResult.Logs.Events) > 0 {
-		if txResult.Logs.Events[0].Identifier == signalError {
-			require.Fail(t, string(txResult.Logs.Events[0].Topics[1]))
+// RequireSuccessfulTransaction require that the transaction doesn't have signal error event
+func RequireSuccessfulTransaction(t *testing.T, txResult *transaction.ApiTransactionResult) {
+	require.NotNil(t, txResult)
+	require.Equal(t, transaction.TxStatusSuccess, txResult.Status)
+	event := getEvent(txResult.Logs, signalError)
+	if event != nil {
+		require.Fail(t, string(event.Topics[1]))
+	}
+}
+
+// RequireSignalError require that the transaction has specific signal error
+func RequireSignalError(t *testing.T, txResult *transaction.ApiTransactionResult, error string) {
+	require.NotNil(t, txResult)
+	require.Equal(t, transaction.TxStatusSuccess, txResult.Status)
+	event := getEvent(txResult.Logs, signalError)
+	if event == nil {
+		require.Fail(t, "%s event not found", signalError)
+		return
+	}
+	require.Equal(t, error, string(event.Topics[1]))
+}
+
+func getEvent(logs *transaction.ApiLogs, eventID string) *transaction.Events {
+	if logs == nil || len(logs.Events) == 0 {
+		return nil
+	}
+
+	for _, event := range logs.Events {
+		if event.Identifier == eventID {
+			return event
 		}
 	}
+	return nil
 }
 
 // RequireAccountHasToken checks if the account has the amount of tokens (can also be zero)
@@ -169,7 +215,8 @@ func TransferESDT(
 	esdtTransferArgs := core.BuiltInFunctionESDTTransfer +
 		"@" + hex.EncodeToString([]byte(token)) +
 		"@" + hex.EncodeToString(amount.Bytes())
-	SendTransaction(t, cs, sender, nonce, receiver, ZeroValue, esdtTransferArgs, uint64(5000000))
+	txResult := SendTransaction(t, cs, sender, nonce, receiver, ZeroValue, esdtTransferArgs, uint64(5000000))
+	RequireSuccessfulTransaction(t, txResult)
 }
 
 // IssueFungible will issue a fungible token
@@ -192,7 +239,8 @@ func IssueFungible(
 		"@" + fmt.Sprintf("%X", numDecimals) +
 		"@" + hex.EncodeToString([]byte("canAddSpecialRoles")) +
 		"@" + hex.EncodeToString([]byte("true"))
-	SendTransaction(t, cs, sender, nonce, vm.ESDTSCAddress, issueCost, issueArgs, uint64(60000000))
+	txResult := SendTransaction(t, cs, sender, nonce, vm.ESDTSCAddress, issueCost, issueArgs, uint64(60000000))
+	RequireSuccessfulTransaction(t, txResult)
 
 	return getEsdtIdentifier(t, nodeHandler, tokenTicker, core.FungibleESDT)
 }
@@ -210,4 +258,29 @@ func getEsdtIdentifier(t *testing.T, nodeHandler process.NodeHandler, ticker str
 
 	require.Fail(t, "could not issue semi fungible")
 	return ""
+}
+
+// SetEsdtInWallet will add token key in wallet storage without adding key in system account
+func SetEsdtInWallet(
+	t *testing.T,
+	cs ChainSimulator,
+	wallet dtos.WalletAddress,
+	token string,
+	tokenNonce uint64,
+	tokenData esdt.ESDigitalToken,
+) {
+	marshalledTokenData, err := cs.GetNodeHandler(0).GetCoreComponents().InternalMarshalizer().Marshal(&tokenData)
+	require.NoError(t, err)
+
+	nonce := ""
+	if tokenNonce != 0 {
+		nonce = hex.EncodeToString(big.NewInt(0).SetUint64(tokenNonce).Bytes())
+	}
+	tokenKey := hex.EncodeToString([]byte(core.ProtectedKeyPrefix+core.ESDTKeyIdentifier+token)) + nonce
+	tokenValue := hex.EncodeToString(marshalledTokenData)
+	keyValueMap := map[string]string{
+		tokenKey: tokenValue,
+	}
+	err = cs.SetKeyValueForAddress(wallet.Bech32, keyValueMap)
+	require.NoError(t, err)
 }
