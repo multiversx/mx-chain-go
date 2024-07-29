@@ -385,12 +385,6 @@ func (brc *baseRewardsCreator) createRewardFromRwdInfo(
 		return nil, nil, err
 	}
 
-	cacherIdentifier := process.ShardCacherIdentifier(core.SovereignChainShardId, core.SovereignChainShardId)
-	brc.dataPool.RewardTransactions().AddData(rwdTxHash,
-		rwdTx,
-		rwdTx.Size(),
-		cacherIdentifier)
-
 	log.Debug("rewardTx",
 		"address", []byte(rwdInfo.address),
 		"value", rwdTx.Value.String(),

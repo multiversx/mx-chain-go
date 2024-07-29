@@ -185,7 +185,7 @@ func (rc *rewardsCreatorV2) addValidatorRewardsToMiniBlocks(
 		rc.accumulatedRewards.Add(rc.accumulatedRewards, rwdTx.Value)
 		mbId := rc.shardCoordinator.ComputeId([]byte(rwdInfo.address))
 		if mbId == core.SovereignChainShardId {
-			mbId = rc.shardCoordinator.NumberOfShards()
+			mbId = core.SovereignChainShardId //rc.shardCoordinator.NumberOfShards()
 
 			if !rc.flagDelegationSystemSCEnabled.IsSet() || !rc.isSystemDelegationSC(rwdTx.RcvAddr) {
 				log.Debug("rewardsCreator.addValidatorRewardsToMiniBlocks - not supported metaChain address",
@@ -207,6 +207,13 @@ func (rc *rewardsCreatorV2) addValidatorRewardsToMiniBlocks(
 
 		rc.currTxs.AddTx(rwdTxHash, rwdTx)
 		miniBlocks[mbId].TxHashes = append(miniBlocks[mbId].TxHashes, rwdTxHash)
+
+		cacherIdentifier := process.ShardCacherIdentifier(core.SovereignChainShardId, core.SovereignChainShardId)
+		rc.dataPool.RewardTransactions().AddData(rwdTxHash,
+			rwdTx,
+			rwdTx.Size(),
+			cacherIdentifier)
+
 	}
 
 	return accumulatedDust, nil
