@@ -953,13 +953,13 @@ func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
-	err = scbp.validatorStatisticsProcessor.ResetValidatorStatisticsAtNewEpoch(allValidatorsInfo)
+	scbp.prepareBlockHeaderInternalMapForValidatorProcessor()
+	_, err = scbp.validatorStatisticsProcessor.UpdatePeerState(header, makeCommonHeaderHandlerHashMap(scbp.hdrsForCurrBlock.getHdrHashMap()))
 	if err != nil {
 		return err
 	}
 
-	scbp.prepareBlockHeaderInternalMapForValidatorProcessor()
-	_, err = scbp.validatorStatisticsProcessor.UpdatePeerState(header, makeCommonHeaderHandlerHashMap(scbp.hdrsForCurrBlock.getHdrHashMap()))
+	err = scbp.validatorStatisticsProcessor.ResetValidatorStatisticsAtNewEpoch(allValidatorsInfo)
 	if err != nil {
 		return err
 	}

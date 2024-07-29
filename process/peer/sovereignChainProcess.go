@@ -30,20 +30,12 @@ func (vs *sovereignChainValidatorStatistics) updateShardDataPeerState(
 	header data.CommonHeaderHandler,
 	cacheMap map[string]data.CommonHeaderHandler,
 ) error {
+	return nil
 	if header.GetNonce() == vs.genesisNonce {
 		return nil
 	}
 
 	epoch := computeEpoch(header)
-	shardConsensus, shardInfoErr := vs.nodesCoordinator.ComputeConsensusGroup(
-		header.GetPrevRandSeed(),
-		header.GetRound(),
-		header.GetShardID(),
-		epoch,
-	)
-	if shardInfoErr != nil {
-		return shardInfoErr
-	}
 
 	log.Debug("updateShardDataPeerState - registering shard leader fees",
 		"shard header round", header.GetRound(),
@@ -56,8 +48,18 @@ func (vs *sovereignChainValidatorStatistics) updateShardDataPeerState(
 		return shardInfoErr
 	}
 
+	prevShardConsensus, err := vs.nodesCoordinator.ComputeConsensusGroup(
+		prevShardData.GetPrevRandSeed(),
+		prevShardData.GetRound(),
+		prevShardData.GetShardID(),
+		epoch,
+	)
+	if err != nil {
+		return shardInfoErr
+	}
+
 	shardInfoErr = vs.updateValidatorInfoOnSuccessfulBlock(
-		shardConsensus,
+		prevShardConsensus,
 		prevShardData.GetPubKeysBitmap(),
 		big.NewInt(0).Sub(prevShardData.GetAccumulatedFees(), prevShardData.GetDeveloperFees()),
 		prevShardData.GetShardID(),
