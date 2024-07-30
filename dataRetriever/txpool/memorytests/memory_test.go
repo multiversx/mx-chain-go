@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/txpool"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/stretchr/testify/require"
 )
@@ -44,7 +45,7 @@ func TestShardedTxPool_MemoryFootprint(t *testing.T) {
 
 	journals = append(journals, runScenario(t, newScenario(100000, 3, 650, "0"), memoryAssertion{290, 320}, memoryAssertion{90, 120}))
 	journals = append(journals, runScenario(t, newScenario(150000, 2, 650, "0"), memoryAssertion{290, 320}, memoryAssertion{100, 140}))
-	journals = append(journals, runScenario(t, newScenario(300000, 1, 650, "0"), memoryAssertion{290, 320}, memoryAssertion{150, 190}))
+	journals = append(journals, runScenario(t, newScenario(300000, 1, 650, "0"), memoryAssertion{290, 320}, memoryAssertion{130, 190}))
 	journals = append(journals, runScenario(t, newScenario(30, 10000, 650, "0"), memoryAssertion{290, 320}, memoryAssertion{60, 90}))
 	journals = append(journals, runScenario(t, newScenario(300, 1000, 650, "0"), memoryAssertion{290, 320}, memoryAssertion{60, 90}))
 
@@ -110,10 +111,12 @@ func newPool() dataRetriever.ShardedDataCacherNotifier {
 	}
 
 	args := txpool.ArgShardedTxPool{
-		Config:         config,
-		TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
-		NumberOfShards: 2,
-		SelfShardID:    0,
+		Config:               config,
+		TxGasHandler:         txcachemocks.NewTxGasHandlerMock(),
+		EpochNotifier:        &testscommon.EpochNotifierStub{},
+		AccountNonceProvider: &testscommon.AccountNonceProviderStub{},
+		NumberOfShards:       2,
+		SelfShardID:          0,
 	}
 	pool, err := txpool.NewShardedTxPool(args)
 	if err != nil {
