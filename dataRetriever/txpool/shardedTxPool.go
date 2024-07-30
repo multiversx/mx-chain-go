@@ -81,6 +81,7 @@ func NewShardedTxPool(args ArgShardedTxPool) (*shardedTxPool, error) {
 		selfShardID:                  args.SelfShardID,
 		epochNotifier:                args.EpochNotifier,
 		txGasHandler:                 args.TxGasHandler,
+		accountNonceProvider:         args.AccountNonceProvider,
 	}
 
 	return shardedTxPoolObject, nil
@@ -197,18 +198,14 @@ func (txPool *shardedTxPool) addTx(tx *txcache.WrappedTransaction, cacheID strin
 		txPool.onAdded(tx.TxHash, tx)
 	}
 
-	// TODO: fix this (workaround for testing).
-	if AccountsAdapter != nil {
-		cacheAsTxCache, ok := cache.(*txcache.TxCache)
-		if ok {
-			sender := tx.Tx.GetSndAddr()
-			senderAccount, err := AccountsAdapter.GetExistingAccount(sender)
-			if err == nil {
-				nonce := senderAccount.GetNonce()
-				cacheAsTxCache.NotifyAccountNonce(sender, nonce)
-			}
-		}
+	sender := tx.Tx.GetSndAddr()
+	senderNonce, err := txPool.accountNonceProvider.GetAccountNonce(sender)
+	if err != nil {
+		log.Warn("shardedTxPool.addTx(): cannot get sender nonce", "err", err)
+		return
 	}
+
+	cache.NotifyAccountNonce(sender, senderNonce)
 }
 
 func (txPool *shardedTxPool) onAdded(key []byte, value interface{}) {
