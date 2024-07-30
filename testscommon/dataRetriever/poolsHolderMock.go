@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 )
 
@@ -49,8 +50,10 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 				SizeInBytesPerSender: 10000000,
 				Shards:               16,
 			},
-			TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
-			NumberOfShards: 1,
+			TxGasHandler:         txcachemocks.NewTxGasHandlerMock(),
+			EpochNotifier:        &testscommon.EpochNotifierStub{},
+			AccountNonceProvider: &testscommon.AccountNonceProviderStub{},
+			NumberOfShards:       1,
 		},
 	)
 	panicIfError("NewPoolsHolderMock", err)

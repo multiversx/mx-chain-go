@@ -58,6 +58,12 @@ func TestNewDataPoolFromConfig_MissingDependencyShouldErr(t *testing.T) {
 	holder, err = NewDataPoolFromConfig(args)
 	require.Nil(t, holder)
 	require.Equal(t, dataRetriever.ErrNilEpochNotifier, err)
+
+	args = getGoodArgs()
+	args.AccountNonceProvider = nil
+	holder, err = NewDataPoolFromConfig(args)
+	require.Nil(t, holder)
+	require.Equal(t, dataRetriever.ErrNilAccountNonceProvider, err)
 }
 
 func TestNewDataPoolFromConfig_BadConfigShouldErr(t *testing.T) {
@@ -88,7 +94,6 @@ func TestNewDataPoolFromConfig_BadConfigShouldErr(t *testing.T) {
 	args.Config.HeadersPoolConfig.MaxHeadersPerShard = 0
 	holder, err = NewDataPoolFromConfig(args)
 	require.Nil(t, holder)
-	fmt.Println(err)
 	require.True(t, errors.Is(err, headersCache.ErrInvalidHeadersCacheParameter))
 	require.True(t, strings.Contains(err.Error(), "the cache for the headers"))
 
@@ -96,7 +101,6 @@ func TestNewDataPoolFromConfig_BadConfigShouldErr(t *testing.T) {
 	args.Config.TxBlockBodyDataPool.Capacity = 0
 	holder, err = NewDataPoolFromConfig(args)
 	require.Nil(t, holder)
-	fmt.Println(err)
 	require.NotNil(t, err)
 	require.True(t, strings.Contains(err.Error(), "must provide a positive size while creating the cache for the miniblocks"))
 
@@ -104,7 +108,6 @@ func TestNewDataPoolFromConfig_BadConfigShouldErr(t *testing.T) {
 	args.Config.PeerBlockBodyDataPool.Capacity = 0
 	holder, err = NewDataPoolFromConfig(args)
 	require.Nil(t, holder)
-	fmt.Println(err)
 	require.NotNil(t, err)
 	require.True(t, strings.Contains(err.Error(), "must provide a positive size while creating the cache for the peer mini block body"))
 
@@ -112,18 +115,8 @@ func TestNewDataPoolFromConfig_BadConfigShouldErr(t *testing.T) {
 	args.Config.TrieSyncStorage.Capacity = 0
 	holder, err = NewDataPoolFromConfig(args)
 	require.Nil(t, holder)
-	fmt.Println(err)
 	require.True(t, errors.Is(err, storage.ErrCacheSizeInvalid))
 	require.True(t, strings.Contains(err.Error(), "the cache for the trie nodes"))
-
-	args = getGoodArgs()
-	args.Config.TrieSyncStorage.EnableDB = true
-	args.Config.TrieSyncStorage.DB.Type = "invalid DB type"
-	holder, err = NewDataPoolFromConfig(args)
-	require.Nil(t, holder)
-	fmt.Println(err)
-	require.True(t, errors.Is(err, storage.ErrNotSupportedDBType))
-	require.True(t, strings.Contains(err.Error(), "the db for the trie nodes"))
 
 	args = getGoodArgs()
 	args.Config.TrieNodesChunksDataPool.Type = "invalid cache type"
@@ -166,11 +159,12 @@ func getGoodArgs() ArgsDataPool {
 	config := testscommon.GetGeneralConfig()
 
 	return ArgsDataPool{
-		Config:           &config,
-		EconomicsData:    testEconomics,
-		ShardCoordinator: mock.NewMultipleShardsCoordinatorMock(),
-		Marshalizer:      &mock.MarshalizerMock{},
-		PathManager:      &testscommon.PathManagerStub{},
-		EpochNotifier:    &testscommon.EpochNotifierStub{},
+		Config:               &config,
+		EconomicsData:        testEconomics,
+		ShardCoordinator:     mock.NewMultipleShardsCoordinatorMock(),
+		Marshalizer:          &mock.MarshalizerMock{},
+		PathManager:          &testscommon.PathManagerStub{},
+		EpochNotifier:        &testscommon.EpochNotifierStub{},
+		AccountNonceProvider: &testscommon.AccountNonceProviderStub{},
 	}
 }

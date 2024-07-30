@@ -29,6 +29,7 @@ type shardedTxPool struct {
 	selfShardID                  uint32
 	epochNotifier                dataRetriever.EpochNotifier
 	txGasHandler                 txcache.TxGasHandler
+	accountNonceProvider         dataRetriever.AccountNonceProvider
 }
 
 type txPoolShard struct {
@@ -39,7 +40,7 @@ type txPoolShard struct {
 // NewShardedTxPool creates a new sharded tx pool
 // Implements "dataRetriever.TxPool"
 func NewShardedTxPool(args ArgShardedTxPool) (*shardedTxPool, error) {
-	log.Debug("NewShardedTxPool", "args", args.String())
+	log.Debug("NewShardedTxPool", "args.SelfShardID", args.SelfShardID)
 
 	err := args.verify()
 	if err != nil {

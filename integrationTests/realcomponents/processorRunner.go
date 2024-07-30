@@ -195,6 +195,9 @@ func (pr *ProcessorRunner) createNetworkComponents(tb testing.TB) {
 }
 
 func (pr *ProcessorRunner) createBootstrapComponents(tb testing.TB) {
+	accountNonceProvider, err := factoryState.NewAccountNonceProvider(pr.StateComponents.AccountsAdapterAPI())
+	require.Nil(tb, err)
+
 	argsBootstrap := factoryBootstrap.BootstrapComponentsFactoryArgs{
 		Config:               *pr.Config.GeneralConfig,
 		RoundConfig:          *pr.Config.RoundConfig,
@@ -206,6 +209,7 @@ func (pr *ProcessorRunner) createBootstrapComponents(tb testing.TB) {
 		CryptoComponents:     pr.CryptoComponents,
 		NetworkComponents:    pr.NetworkComponents,
 		StatusCoreComponents: pr.StatusCoreComponents,
+		AccountNonceProvider: accountNonceProvider,
 	}
 
 	bootstrapFactory, err := factoryBootstrap.NewBootstrapComponentsFactory(argsBootstrap)
@@ -223,6 +227,9 @@ func (pr *ProcessorRunner) createBootstrapComponents(tb testing.TB) {
 }
 
 func (pr *ProcessorRunner) createDataComponents(tb testing.TB) {
+	accountNonceProvider, err := factoryState.NewAccountNonceProvider(pr.StateComponents.AccountsAdapterAPI())
+	require.Nil(tb, err)
+
 	argsData := factoryData.DataComponentsFactoryArgs{
 		Config:                        *pr.Config.GeneralConfig,
 		PrefsConfig:                   pr.Config.PreferencesConfig.Preferences,
@@ -234,6 +241,7 @@ func (pr *ProcessorRunner) createDataComponents(tb testing.TB) {
 		CreateTrieEpochRootHashStorer: false,
 		NodeProcessingMode:            common.Normal,
 		FlagsConfigs:                  config.ContextFlagsConfig{},
+		AccountNonceProvider:          accountNonceProvider,
 	}
 
 	dataFactory, err := factoryData.NewDataComponentsFactory(argsData)

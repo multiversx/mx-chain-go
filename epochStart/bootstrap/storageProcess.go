@@ -34,6 +34,7 @@ type ArgsStorageEpochStartBootstrap struct {
 	ImportDbConfig             config.ImportDbConfig
 	ChanGracefullyClose        chan endProcess.ArgEndProcess
 	TimeToWaitForRequestedData time.Duration
+	AccountNonceProvider       dataRetriever.AccountNonceProvider
 }
 
 type storageEpochStartBootstrap struct {
@@ -44,6 +45,7 @@ type storageEpochStartBootstrap struct {
 	chanGracefullyClose        chan endProcess.ArgEndProcess
 	chainID                    string
 	timeToWaitForRequestedData time.Duration
+	accountNonceProvider       dataRetriever.AccountNonceProvider
 }
 
 // NewStorageEpochStartBootstrap will return a new instance of storageEpochStartBootstrap that can bootstrap
@@ -57,6 +59,9 @@ func NewStorageEpochStartBootstrap(args ArgsStorageEpochStartBootstrap) (*storag
 	if args.ChanGracefullyClose == nil {
 		return nil, dataRetriever.ErrNilGracefullyCloseChannel
 	}
+	if check.IfNil(args.AccountNonceProvider) {
+		return nil, dataRetriever.ErrNilAccountNonceProvider
+	}
 
 	sesb := &storageEpochStartBootstrap{
 		epochStartBootstrap:        esb,
@@ -64,6 +69,7 @@ func NewStorageEpochStartBootstrap(args ArgsStorageEpochStartBootstrap) (*storag
 		chanGracefullyClose:        args.ChanGracefullyClose,
 		chainID:                    args.CoreComponentsHolder.ChainID(),
 		timeToWaitForRequestedData: args.TimeToWaitForRequestedData,
+		accountNonceProvider:       args.AccountNonceProvider,
 	}
 
 	return sesb, nil
@@ -104,12 +110,13 @@ func (sesb *storageEpochStartBootstrap) Bootstrap() (Parameters, error) {
 
 	sesb.dataPool, err = factoryDataPool.NewDataPoolFromConfig(
 		factoryDataPool.ArgsDataPool{
-			Config:           &sesb.generalConfig,
-			EconomicsData:    sesb.economicsData,
-			ShardCoordinator: sesb.shardCoordinator,
-			Marshalizer:      sesb.coreComponentsHolder.InternalMarshalizer(),
-			PathManager:      sesb.coreComponentsHolder.PathHandler(),
-			EpochNotifier:    sesb.coreComponentsHolder.EpochNotifier(),
+			Config:               &sesb.generalConfig,
+			EconomicsData:        sesb.economicsData,
+			ShardCoordinator:     sesb.shardCoordinator,
+			Marshalizer:          sesb.coreComponentsHolder.InternalMarshalizer(),
+			PathManager:          sesb.coreComponentsHolder.PathHandler(),
+			EpochNotifier:        sesb.coreComponentsHolder.EpochNotifier(),
+			AccountNonceProvider: sesb.accountNonceProvider,
 		},
 	)
 	if err != nil {

@@ -121,6 +121,7 @@ type epochStartBootstrap struct {
 	nodeProcessingMode         common.NodeProcessingMode
 	nodeOperationMode          common.NodeOperation
 	stateStatsHandler          common.StateStatisticsHandler
+	accountNonceProvider       dataRetriever.AccountNonceProvider
 	// created components
 	requestHandler                  process.RequestHandler
 	mainInterceptorContainer        process.InterceptorsContainer
@@ -190,6 +191,7 @@ type ArgsEpochStartBootstrap struct {
 	NodeProcessingMode              common.NodeProcessingMode
 	StateStatsHandler               common.StateStatisticsHandler
 	NodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory
+	AccountNonceProvider            dataRetriever.AccountNonceProvider
 }
 
 type dataToSync struct {
@@ -242,6 +244,7 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		stateStatsHandler:               args.StateStatsHandler,
 		startEpoch:                      args.GeneralConfig.EpochStartConfig.GenesisEpoch,
 		nodesCoordinatorRegistryFactory: args.NodesCoordinatorRegistryFactory,
+		accountNonceProvider:            args.AccountNonceProvider,
 	}
 
 	if epochStartProvider.prefsConfig.FullArchive {
@@ -354,12 +357,13 @@ func (e *epochStartBootstrap) Bootstrap() (Parameters, error) {
 
 	e.dataPool, err = factoryDataPool.NewDataPoolFromConfig(
 		factoryDataPool.ArgsDataPool{
-			Config:           &e.generalConfig,
-			EconomicsData:    e.economicsData,
-			ShardCoordinator: e.shardCoordinator,
-			Marshalizer:      e.coreComponentsHolder.InternalMarshalizer(),
-			PathManager:      e.coreComponentsHolder.PathHandler(),
-			EpochNotifier:    e.coreComponentsHolder.EpochNotifier(),
+			Config:               &e.generalConfig,
+			EconomicsData:        e.economicsData,
+			ShardCoordinator:     e.shardCoordinator,
+			Marshalizer:          e.coreComponentsHolder.InternalMarshalizer(),
+			PathManager:          e.coreComponentsHolder.PathHandler(),
+			EpochNotifier:        e.coreComponentsHolder.EpochNotifier(),
+			AccountNonceProvider: e.accountNonceProvider,
 		},
 	)
 	if err != nil {

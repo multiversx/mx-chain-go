@@ -1,7 +1,6 @@
 package txpool
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -12,11 +11,12 @@ import (
 
 // ArgShardedTxPool is the argument for ShardedTxPool's constructor
 type ArgShardedTxPool struct {
-	Config         storageunit.CacheConfig
-	EpochNotifier  dataRetriever.EpochNotifier
-	TxGasHandler   txcache.TxGasHandler
-	NumberOfShards uint32
-	SelfShardID    uint32
+	Config               storageunit.CacheConfig
+	EpochNotifier        dataRetriever.EpochNotifier
+	TxGasHandler         txcache.TxGasHandler
+	AccountNonceProvider dataRetriever.AccountNonceProvider
+	NumberOfShards       uint32
+	SelfShardID          uint32
 }
 
 // TODO: Upon further analysis and brainstorming, add some sensible minimum accepted values for the appropriate fields.
@@ -47,19 +47,12 @@ func (args *ArgShardedTxPool) verify() error {
 	if args.TxGasHandler.MinGasPrice() == 0 {
 		return fmt.Errorf("%w: MinGasPrice is not valid", dataRetriever.ErrCacheConfigInvalidEconomics)
 	}
+	if check.IfNil(args.AccountNonceProvider) {
+		return fmt.Errorf("%w: AccountNonceProvider is not valid", dataRetriever.ErrNilAccountNonceProvider)
+	}
 	if args.NumberOfShards == 0 {
 		return fmt.Errorf("%w: NumberOfShards is not valid", dataRetriever.ErrCacheConfigInvalidSharding)
 	}
 
 	return nil
-}
-
-// String returns a readable representation of the object
-func (args *ArgShardedTxPool) String() string {
-	bytes, err := json.Marshal(args)
-	if err != nil {
-		log.Error("ArgShardedTxPool.String()", "err", err)
-	}
-
-	return string(bytes)
 }
