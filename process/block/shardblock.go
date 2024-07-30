@@ -233,7 +233,10 @@ func (sp *shardProcessor) ProcessBlock(
 		return err
 	}
 
-	sp.blockChainHook.SetCurrentHeader(header)
+	err = sp.blockChainHook.SetCurrentHeader(header)
+	if err != nil {
+		return err
+	}
 
 	sp.txCoordinator.RequestBlockTransactions(body)
 	requestedMetaHdrs, requestedFinalityAttestingMetaHdrs := sp.requestMetaHeaders(header)
@@ -846,7 +849,11 @@ func (sp *shardProcessor) CreateBlock(
 	}
 
 	sp.epochNotifier.CheckEpoch(shardHdr)
-	sp.blockChainHook.SetCurrentHeader(shardHdr)
+	err = sp.blockChainHook.SetCurrentHeader(shardHdr)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	body, processedMiniBlocksDestMeInfo, err := sp.createBlockBody(shardHdr, haveTime)
 	if err != nil {
 		return nil, nil, err

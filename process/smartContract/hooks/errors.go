@@ -26,6 +26,9 @@ var ErrNilEpochStartTriggerHandler = errors.New("nil epoch start trigger handler
 // ErrNilRoundHandler signals that a nil round handler was provided
 var ErrNilRoundHandler = errors.New("nil round handler")
 
+// ErrNilCurrentHeader signals that a nil current header was provided
+var ErrNilCurrentHeader = errors.New("nil current header")
+
 // ErrNilLastCommitedEpochStartHdr signals that a nil last commited epoch start header was provided
 var ErrNilLastCommitedEpochStartHdr = errors.New("nil last commited epoch start header")
 

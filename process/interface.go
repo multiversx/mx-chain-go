@@ -529,7 +529,7 @@ type BlockChainHookHandler interface {
 	IsPaused(tokenID []byte) bool
 	IsLimitedTransfer(tokenID []byte) bool
 	NumberOfShards() uint32
-	SetCurrentHeader(hdr data.HeaderHandler)
+	SetCurrentHeader(hdr data.HeaderHandler) error
 	SaveCompiledCode(codeHash []byte, code []byte)
 	GetCompiledCode(codeHash []byte) (bool, []byte)
 	IsPayable(sndAddress []byte, recvAddress []byte) (bool, error)

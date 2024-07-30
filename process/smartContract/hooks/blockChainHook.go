@@ -795,19 +795,21 @@ func createSuffixMask(creatorAddress []byte) []byte {
 }
 
 // SetCurrentHeader sets current header to be used by smart contracts
-func (bh *BlockChainHookImpl) SetCurrentHeader(hdr data.HeaderHandler) {
+func (bh *BlockChainHookImpl) SetCurrentHeader(hdr data.HeaderHandler) error {
 	if check.IfNil(hdr) {
-		return
+		return ErrNilCurrentHeader
 	}
 
 	bh.mutCurrentHdr.Lock()
+	defer bh.mutCurrentHdr.Unlock()
+
 	bh.currentHdr = hdr
 	err := bh.updateEpochStartHeader(hdr)
 	if err != nil {
-		log.Debug("BlockChainHookImpl.SetCurrentHeader: updateEpochStartHeader", "error", err)
+		return err
 	}
 
-	bh.mutCurrentHdr.Unlock()
+	return nil
 }
 
 func (bh *BlockChainHookImpl) updateEpochStartHeader(hdr data.HeaderHandler) error {
@@ -833,6 +835,7 @@ func (bh *BlockChainHookImpl) updateEpochStartHeader(hdr data.HeaderHandler) err
 	}
 
 	if epochStartHdr.GetEpoch() != hdr.GetEpoch() {
+		fmt.Printf("EpochStartHdr: %v, hdr: %v\n", epochStartHdr.GetEpoch(), hdr.GetEpoch())
 		return ErrLastCommitedEpochStartHdrMismatch
 	}
 

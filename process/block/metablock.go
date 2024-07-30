@@ -273,7 +273,11 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
-	mp.blockChainHook.SetCurrentHeader(header)
+	err = mp.blockChainHook.SetCurrentHeader(header)
+	if err != nil {
+		return err
+	}
+
 	mp.epochStartTrigger.Update(header.GetRound(), header.GetNonce())
 
 	err = mp.checkEpochCorrectness(header)
@@ -733,7 +737,10 @@ func (mp *metaProcessor) CreateBlock(
 
 	metaHdr.SoftwareVersion = []byte(mp.headerIntegrityVerifier.GetVersion(metaHdr.Epoch))
 	mp.epochNotifier.CheckEpoch(metaHdr)
-	mp.blockChainHook.SetCurrentHeader(initialHdr)
+	err := mp.blockChainHook.SetCurrentHeader(initialHdr)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	var body data.BodyHandler
 
@@ -742,7 +749,7 @@ func (mp *metaProcessor) CreateBlock(
 		return nil, nil, process.ErrAccountStateDirty
 	}
 
-	err := mp.processIfFirstBlockAfterEpochStart()
+	err = mp.processIfFirstBlockAfterEpochStart()
 	if err != nil {
 		return nil, nil, err
 	}

@@ -44,7 +44,7 @@ type BlockChainHookStub struct {
 	NumberOfShardsCalled                    func() uint32
 	GetSnapshotCalled                       func() int
 	RevertToSnapshotCalled                  func(snapshot int) error
-	SetCurrentHeaderCalled                  func(hdr data.HeaderHandler)
+	SetCurrentHeaderCalled                  func(hdr data.HeaderHandler) error
 	DeleteCompiledCodeCalled                func(codeHash []byte)
 	SaveNFTMetaDataToSystemAccountCalled    func(tx data.TransactionHandler) error
 	CloseCalled                             func() error
@@ -322,10 +322,12 @@ func (stub *BlockChainHookStub) NumberOfShards() uint32 {
 }
 
 // SetCurrentHeader -
-func (stub *BlockChainHookStub) SetCurrentHeader(hdr data.HeaderHandler) {
+func (stub *BlockChainHookStub) SetCurrentHeader(hdr data.HeaderHandler) error {
 	if stub.SetCurrentHeaderCalled != nil {
 		stub.SetCurrentHeaderCalled(hdr)
 	}
+
+	return nil
 }
 
 // SaveCompiledCode -

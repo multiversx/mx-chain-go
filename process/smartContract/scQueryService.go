@@ -206,7 +206,11 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 		if err != nil {
 			return nil, nil, err
 		}
-		service.blockChainHook.SetCurrentHeader(blockHeader)
+
+		err = service.blockChainHook.SetCurrentHeader(blockHeader)
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
 	shouldCheckRootHashChanges := query.SameScState
