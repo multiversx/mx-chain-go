@@ -267,7 +267,6 @@ func TestChainSimulator_EGLD_MultiTransfer_Insufficient_Funds(t *testing.T) {
 	nftMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
 
 	tx = nftCreateTx(nonce, addrs[0].Bytes, nftTokenID, nftMetaData)
-	nonce++
 
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
@@ -388,7 +387,6 @@ func TestChainSimulator_EGLD_MultiTransfer_Invalid_Value(t *testing.T) {
 	nftMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
 
 	tx = nftCreateTx(nonce, addrs[0].Bytes, nftTokenID, nftMetaData)
-	nonce++
 
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
@@ -739,7 +737,6 @@ func TestChainSimulator_IssueToken_EGLDTicker(t *testing.T) {
 
 	// should fail issuing token with EGLD ticker
 	tx = issueNonFungibleTx(nonce, addrs[0].Bytes, nftTicker, baseIssuingCost)
-	nonce++
 
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)

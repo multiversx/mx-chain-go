@@ -832,7 +832,6 @@ func TestChainSimulator_CreateTokensAfterActivation(t *testing.T) {
 		esdtMetaData,
 	}
 
-	nonce = uint64(3)
 	for i := range tokenIDs {
 		tx = nftCreateTx(nonce, addrs[0].Bytes, tokenIDs[i], tokensMetadata[i])
 
