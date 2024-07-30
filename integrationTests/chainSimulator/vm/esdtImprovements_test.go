@@ -137,7 +137,8 @@ func transferAndCheckTokensMetaData(t *testing.T, isCrossShard bool, isMultiTran
 	setAddressEsdtRoles(t, cs, nonce, addrs[0], metaESDTTokenID, roles)
 	nonce++
 
-	tx = setSpecialRoleTx(nonce, addrs[0].Bytes, addrs[1].Bytes, metaESDTTokenID, roles)
+	rolesTransfer := [][]byte{[]byte(core.ESDTRoleTransfer)}
+	tx = setSpecialRoleTx(nonce, addrs[0].Bytes, addrs[1].Bytes, metaESDTTokenID, rolesTransfer)
 	nonce++
 
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
@@ -161,7 +162,7 @@ func transferAndCheckTokensMetaData(t *testing.T, isCrossShard bool, isMultiTran
 	setAddressEsdtRoles(t, cs, nonce, addrs[0], nftTokenID, roles)
 	nonce++
 
-	tx = setSpecialRoleTx(nonce, addrs[0].Bytes, addrs[1].Bytes, nftTokenID, roles)
+	tx = setSpecialRoleTx(nonce, addrs[0].Bytes, addrs[1].Bytes, nftTokenID, rolesTransfer)
 	nonce++
 
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
@@ -185,7 +186,7 @@ func transferAndCheckTokensMetaData(t *testing.T, isCrossShard bool, isMultiTran
 	setAddressEsdtRoles(t, cs, nonce, addrs[0], sftTokenID, roles)
 	nonce++
 
-	tx = setSpecialRoleTx(nonce, addrs[0].Bytes, addrs[1].Bytes, sftTokenID, roles)
+	tx = setSpecialRoleTx(nonce, addrs[0].Bytes, addrs[1].Bytes, sftTokenID, rolesTransfer)
 	nonce++
 
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
