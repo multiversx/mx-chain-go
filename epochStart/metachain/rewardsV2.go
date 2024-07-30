@@ -184,16 +184,16 @@ func (rc *rewardsCreatorV2) addValidatorRewardsToMiniBlocks(
 
 		rc.accumulatedRewards.Add(rc.accumulatedRewards, rwdTx.Value)
 		mbId := rc.shardCoordinator.ComputeId([]byte(rwdInfo.address))
-		if mbId == core.SovereignChainShardId {
-			mbId = core.SovereignChainShardId //rc.shardCoordinator.NumberOfShards()
-
-			if !rc.flagDelegationSystemSCEnabled.IsSet() || !rc.isSystemDelegationSC(rwdTx.RcvAddr) {
-				log.Debug("rewardsCreator.addValidatorRewardsToMiniBlocks - not supported metaChain address",
-					"move to protocol vault", rwdTx.GetValue())
-				accumulatedDust.Add(accumulatedDust, rwdTx.GetValue())
-				continue
-			}
-		}
+		//if mbId == core.SovereignChainShardId {
+		//	mbId = core.SovereignChainShardId //rc.shardCoordinator.NumberOfShards()
+		//
+		//	if !rc.flagDelegationSystemSCEnabled.IsSet() || !rc.isSystemDelegationSC(rwdTx.RcvAddr) {
+		//		log.Debug("rewardsCreator.addValidatorRewardsToMiniBlocks - not supported metaChain address",
+		//			"move to protocol vault", rwdTx.GetValue())
+		//		accumulatedDust.Add(accumulatedDust, rwdTx.GetValue())
+		//		continue
+		//	}
+		//}
 
 		if rwdTx.Value.Cmp(zero) < 0 {
 			log.Error("negative rewards", "rcv", rwdTx.RcvAddr)

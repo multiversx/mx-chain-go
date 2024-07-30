@@ -7,10 +7,12 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
+	api2 "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	chainSim "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/staking"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/config"
@@ -23,6 +25,8 @@ const (
 	defaultPathToInitialConfig = "../../../../node/config/"
 	sovereignConfigPath        = "../../../config/"
 )
+
+var log = logger.GetOrCreate("dsada")
 
 func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 	if testing.Short() {
@@ -59,6 +63,7 @@ func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 					},
 				}
 
+				log.Error(cfg.EconomicsConfig.RewardsSettings.RewardsConfigByEpoch[0].ProtocolSustainabilityAddress)
 				cfg.EpochConfig.EnableEpochs = newCfg
 			},
 		},
@@ -76,6 +81,8 @@ func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 
 	trie := nodeHandler.GetStateComponents().TriesContainer().Get([]byte(dataRetriever.PeerAccountsUnit.String()))
 	require.NotNil(t, trie)
+
+	//logger.SetLogLevel("*:DEBUG")
 
 	err = cs.GenerateBlocksUntilEpochIsReached(1)
 	require.Nil(t, err)
@@ -103,6 +110,10 @@ func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 
 	currentEpoch := nodeHandler.GetCoreComponents().EpochNotifier().CurrentEpoch()
 	for epoch := currentEpoch + 1; epoch < currentEpoch+6; epoch++ {
+
+		balanceee, _, _ := nodeHandler.GetFacadeHandler().GetBalance("erd1j25xk97yf820rgdp3mj5scavhjkn6tjyn0t63pmv5qyjj7wxlcfqqe2rw5", api2.AccountQueryOptions{})
+		log.Error("PROTOOCOL SUST", "BALANCE", balanceee.String())
+
 		err = cs.GenerateBlocksUntilEpochIsReached(int32(epoch))
 		require.Nil(t, err)
 

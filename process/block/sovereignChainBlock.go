@@ -805,6 +805,14 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 			return nil, nil, err
 		}
 
+		//_, _, err = scbp.createAllMiniBlocks(func() bool {
+		//	return true
+		//}, shardHeader)
+		//
+		//if err != nil {
+		//	return nil, nil, err
+		//}
+
 		// finish processing here, only process epoch start
 		return shardHeader, body, nil
 	}
@@ -945,6 +953,20 @@ func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
 	//if err != nil {
 	//	return err
 	//}
+	/*
+		_, _, _, err = scbp.txCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe(
+			sovHdr,
+			scbp.processedMiniBlocksTracker.GetProcessedMiniBlocksInfo(scbp.blockChain.GetCurrentBlockHeaderHash()),
+			func() bool {
+				return true
+			},
+			process.HaveAdditionalTime(),
+			false)
+		if err != nil {
+			return err
+		}
+
+	*/
 
 	saveEpochStartEconomicsMetrics(scbp.appStatusHandler, sovHdr)
 
