@@ -266,13 +266,7 @@ func (cache *TxCache) GetTransactionsPoolForSender(sender string) []*WrappedTran
 		return nil
 	}
 
-	wrappedTxs := make([]*WrappedTransaction, listForSender.items.Len())
-	for element, i := listForSender.items.Front(), 0; element != nil; element, i = element.Next(), i+1 {
-		tx := element.Value.(*WrappedTransaction)
-		wrappedTxs[i] = tx
-	}
-
-	return wrappedTxs
+	return listForSender.getTxs()
 }
 
 // Clear clears the cache

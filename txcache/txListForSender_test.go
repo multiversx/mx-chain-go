@@ -300,15 +300,15 @@ func TestListForSender_hasInitialGap(t *testing.T) {
 
 func TestListForSender_getTxHashes(t *testing.T) {
 	list := newUnconstrainedListToTest()
-	require.Len(t, list.getTxHashes(), 0)
+	require.Len(t, list.getTxsHashes(), 0)
 	txGasHandler := txcachemocks.NewTxGasHandlerMock()
 
 	list.AddTx(createTx([]byte("A"), ".", 1), txGasHandler)
-	require.Len(t, list.getTxHashes(), 1)
+	require.Len(t, list.getTxsHashes(), 1)
 
 	list.AddTx(createTx([]byte("B"), ".", 2), txGasHandler)
 	list.AddTx(createTx([]byte("C"), ".", 3), txGasHandler)
-	require.Len(t, list.getTxHashes(), 3)
+	require.Len(t, list.getTxsHashes(), 3)
 }
 
 func TestListForSender_DetectRaceConditions(t *testing.T) {
