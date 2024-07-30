@@ -1641,6 +1641,11 @@ func (e *esdt) isSpecialRoleValidForNonFungible(argument string) error {
 			return nil
 		}
 		return vm.ErrInvalidArgument
+	case core.ESDTRoleNFTUpdate:
+		if e.enableEpochsHandler.IsFlagEnabled(common.DynamicESDTFlag) {
+			return nil
+		}
+		return vm.ErrInvalidArgument
 	default:
 		return vm.ErrInvalidArgument
 	}
@@ -1665,6 +1670,8 @@ func (e *esdt) isSpecialRoleValidForDynamicNFT(argument string) error {
 	case core.ESDTRoleModifyRoyalties:
 		return nil
 	case core.ESDTRoleNFTRecreate:
+		return nil
+	case core.ESDTRoleNFTUpdate:
 		return nil
 	default:
 		return vm.ErrInvalidArgument
