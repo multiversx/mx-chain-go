@@ -1,6 +1,7 @@
 package bridge
 
 import (
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"strings"
@@ -8,6 +9,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	dataApi "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/stretchr/testify/require"
 
@@ -15,6 +17,7 @@ import (
 	chainSim "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 )
 
 const (
@@ -71,6 +74,8 @@ func TestChainSimulator_ExecuteWithMintMultipleEsdtsAndBurnNftWithDeposit(t *tes
 
 	nft := sovChainPrefix + "-SOVNFT-123456"
 	nftNonce := uint64(3)
+	nftV2 := sovChainPrefix + "-NFTV2-a1b2c3"
+	nftV2Nonce := uint64(10)
 	token := sovChainPrefix + "-TKN-1q2w3e"
 
 	bridgedInTokens := make([]chainSim.ArgsDepositToken, 0)
@@ -79,6 +84,12 @@ func TestChainSimulator_ExecuteWithMintMultipleEsdtsAndBurnNftWithDeposit(t *tes
 		Nonce:      nftNonce,
 		Amount:     big.NewInt(1),
 		Type:       core.NonFungible,
+	})
+	bridgedInTokens = append(bridgedInTokens, chainSim.ArgsDepositToken{
+		Identifier: nftV2,
+		Nonce:      nftV2Nonce,
+		Amount:     big.NewInt(1),
+		Type:       core.NonFungibleV2,
 	})
 	bridgedInTokens = append(bridgedInTokens, chainSim.ArgsDepositToken{
 		Identifier: token,
@@ -93,6 +104,12 @@ func TestChainSimulator_ExecuteWithMintMultipleEsdtsAndBurnNftWithDeposit(t *tes
 		Nonce:      nftNonce,
 		Amount:     big.NewInt(1),
 		Type:       core.NonFungible,
+	})
+	bridgedOutTokens = append(bridgedOutTokens, chainSim.ArgsDepositToken{
+		Identifier: nftV2,
+		Nonce:      nftV2Nonce,
+		Amount:     big.NewInt(1),
+		Type:       core.NonFungibleV2,
 	})
 
 	simulateExecutionAndDeposit(t, bridgedInTokens, bridgedOutTokens)
@@ -151,6 +168,7 @@ func simulateExecutionAndDeposit(
 		NumNodesWaitingListShard: 0,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.GeneralConfig.VirtualMachine.Execution.TransferAndExecuteByUserAddresses = []string{whiteListedAddress}
+			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = 3
 		},
 	})
 	require.Nil(t, err)
@@ -191,8 +209,9 @@ func simulateExecutionAndDeposit(
 	// expecting these tokens to be minted by the whitelisted ESDT safe sc and transferred to our wallet address.
 	txResult := executeOperation(t, cs, bridgeData.OwnerAccount.Wallet, wallet.Bytes, &bridgeData.OwnerAccount.Nonce, bridgeData.ESDTSafeAddress, bridgedInTokens, wallet.Bytes, nil)
 	chainSim.RequireSuccessfulTransaction(t, txResult)
-	for _, token := range groupTokens(bridgedInTokens) {
-		chainSim.RequireAccountHasToken(t, cs, getTokenIdentifier(token), wallet.Bech32, token.Amount)
+	for _, bridgedInToken := range groupTokens(bridgedInTokens) {
+		chainSim.RequireAccountHasToken(t, cs, getTokenIdentifier(bridgedInToken), wallet.Bech32, bridgedInToken.Amount)
+		requireMetadataInAccount(t, nodeHandler, bridgedInToken, wallet.Bech32, bridgedInToken.Amount)
 	}
 
 	// deposit an array of tokens from main chain to sovereign chain,
@@ -206,8 +225,10 @@ func simulateExecutionAndDeposit(
 		require.Nil(t, err)
 
 		fullTokenIdentifier := getTokenIdentifier(bridgedOutToken)
-		chainSim.RequireAccountHasToken(t, cs, fullTokenIdentifier, wallet.Bech32, big.NewInt(0).Sub(bridgedValue, bridgedOutToken.Amount))
+		remainingAmount := big.NewInt(0).Sub(bridgedValue, bridgedOutToken.Amount)
+		chainSim.RequireAccountHasToken(t, cs, fullTokenIdentifier, wallet.Bech32, remainingAmount)
 		chainSim.RequireAccountHasToken(t, cs, fullTokenIdentifier, esdtSafeEncoded, big.NewInt(0))
+		requireMetadataInAccount(t, nodeHandler, bridgedOutToken, wallet.Bech32, remainingAmount)
 
 		tokenSupply, err := nodeHandler.GetFacadeHandler().GetTokenSupply(fullTokenIdentifier)
 		require.Nil(t, err)
@@ -233,4 +254,48 @@ func getBridgedValue(bridgeInTokens []chainSim.ArgsDepositToken, token string) (
 		}
 	}
 	return nil, fmt.Errorf("token not found")
+}
+
+func requireMetadataInAccount(
+	t *testing.T,
+	nodeHandler process.NodeHandler,
+	token chainSim.ArgsDepositToken,
+	account string,
+	expectedAmount *big.Int,
+) {
+	address := esdtSystemAccount
+	if token.Type == core.Fungible || token.Type == core.NonFungibleV2 {
+		address = account
+	}
+
+	accountKeys, _, err := nodeHandler.GetFacadeHandler().GetKeyValuePairs(address, dataApi.AccountQueryOptions{})
+	require.Nil(t, err)
+	require.NotNil(t, t, accountKeys)
+
+	esdtValue, err := hex.DecodeString(accountKeys[getTokenKey(token)])
+	require.Nil(t, err)
+
+	if expectedAmount.Cmp(big.NewInt(0)) == 0 {
+		require.Empty(t, esdtValue) // expect that key doesn't exist in account
+		return
+	}
+
+	esdtData := &esdt.ESDigitalToken{}
+	err = nodeHandler.GetCoreComponents().InternalMarshalizer().Unmarshal(esdtData, esdtValue)
+	require.Nil(t, err)
+	require.Equal(t, expectedAmount, esdtData.Value)
+	require.Equal(t, uint32(token.Type), esdtData.Type)
+	if token.Nonce > 0 {
+		require.Equal(t, token.Nonce, esdtData.TokenMetaData.Nonce)
+	}
+}
+
+func getTokenKey(token chainSim.ArgsDepositToken) string {
+	nonce := ""
+	if token.Nonce > 0 {
+		nonce = hex.EncodeToString(big.NewInt(0).SetUint64(token.Nonce).Bytes())
+	}
+	return hex.EncodeToString([]byte(core.ProtectedKeyPrefix+core.ESDTKeyIdentifier)) +
+		hex.EncodeToString([]byte(token.Identifier)) +
+		nonce
 }

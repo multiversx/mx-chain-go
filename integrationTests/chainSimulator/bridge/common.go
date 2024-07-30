@@ -17,7 +17,8 @@ import (
 )
 
 const (
-	issuePaymentCost = "50000000000000000"
+	esdtSystemAccount = "erd1lllllllllllllllllllllllllllllllllllllllllllllllllllsckry7t"
+	issuePaymentCost  = "50000000000000000"
 )
 
 // ArgsEsdtSafe holds the arguments for esdt safe contract argument
@@ -52,7 +53,7 @@ func initOwnerAndSysAccState(
 			Balance: "10000000000000000000000",
 		},
 		{
-			Address: "erd1lllllllllllllllllllllllllllllllllllllllllllllllllllsckry7t", // init sys account
+			Address: esdtSystemAccount, // init sys account
 			Pairs: map[string]string{
 				tokenKey: "0400",
 			},
@@ -77,7 +78,7 @@ func deployBridgeSetup(
 ) *ArgsBridgeSetup {
 	nodeHandler := cs.GetNodeHandler(0)
 
-	systemScAddress := chainSim.GetSysAccBytesAddress(t, nodeHandler)
+	systemContractDeploy := chainSim.GetSysContactDeployAddressBytes(t, nodeHandler)
 	ownerAddrBytes, err := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode(ownerAddress)
 	require.Nil(t, err)
 	nonce := uint64(0)
@@ -85,13 +86,13 @@ func deployBridgeSetup(
 	esdtSafeArgs := "@" + // is_sovereign_chain
 		"@01" + lengthOn4Bytes(len(argsEsdtSafe.IssuePaymentToken)) + hex.EncodeToString([]byte(argsEsdtSafe.IssuePaymentToken)) + // token identifier
 		"@01" + lengthOn4Bytes(len(argsEsdtSafe.ChainPrefix)) + hex.EncodeToString([]byte(argsEsdtSafe.ChainPrefix)) // prefix
-	esdtSafeAddress := chainSim.DeployContract(t, cs, ownerAddrBytes, &nonce, systemScAddress, esdtSafeArgs, esdtSafeWasmPath)
+	esdtSafeAddress := chainSim.DeployContract(t, cs, ownerAddrBytes, &nonce, systemContractDeploy, esdtSafeArgs, esdtSafeWasmPath)
 
 	feeMarketArgs := "@" + hex.EncodeToString(esdtSafeAddress) + // esdt_safe_address
 		"@000000000000000005004c13819a7f26de997e7c6720a6efe2d4b85c0609c9ad" + // price_aggregator_address
 		"@" + hex.EncodeToString([]byte("USDC-350c4e")) + // usdc_token_id
 		"@" + hex.EncodeToString([]byte("WEGLD-a28c59")) // wegld_token_id
-	feeMarketAddress := chainSim.DeployContract(t, cs, ownerAddrBytes, &nonce, systemScAddress, feeMarketArgs, feeMarketWasmPath)
+	feeMarketAddress := chainSim.DeployContract(t, cs, ownerAddrBytes, &nonce, systemContractDeploy, feeMarketArgs, feeMarketWasmPath)
 
 	setFeeMarketAddressData := "setFeeMarketAddress" +
 		"@" + hex.EncodeToString(feeMarketAddress)
