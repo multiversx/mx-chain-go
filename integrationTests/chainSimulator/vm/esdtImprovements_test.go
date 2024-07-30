@@ -2216,7 +2216,6 @@ func TestChainSimulator_NFT_ChangeToDynamicType(t *testing.T) {
 	log.Info("Step 2. Send the NFT cross shard")
 
 	tx = esdtNFTTransferTx(nonce, addrs[1].Bytes, addrs[2].Bytes, nftTokenID)
-	nonce++
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
@@ -2419,7 +2418,6 @@ func testChainSimulatorChangeMetaData(t *testing.T, issueFn issueTxFunc) {
 	log.Info("Step 2. change the sft meta data (differently from the previous one) in the other shard")
 
 	tx = setSpecialRoleTx(nonce, addrs[1].Bytes, addrs[2].Bytes, tokenID, roles)
-	nonce++
 
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
@@ -2551,7 +2549,6 @@ func TestChainSimulator_NFT_RegisterDynamic(t *testing.T) {
 	nftMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
 
 	tx = nftCreateTx(nonce, addrs[0].Bytes, nftTokenID, nftMetaData)
-	nonce++
 
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
@@ -2648,7 +2645,6 @@ func TestChainSimulator_MetaESDT_RegisterDynamic(t *testing.T) {
 	nftMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
 
 	tx = nftCreateTx(nonce, addrs[0].Bytes, nftTokenID, nftMetaData)
-	nonce++
 
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
@@ -2796,7 +2792,6 @@ func TestChainSimulator_NFT_RegisterAndSetAllRolesDynamic(t *testing.T) {
 	nftMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
 
 	tx = nftCreateTx(nonce, addrs[0].Bytes, nftTokenID, nftMetaData)
-	nonce++
 
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
@@ -2917,7 +2912,6 @@ func TestChainSimulator_SFT_RegisterAndSetAllRolesDynamic(t *testing.T) {
 	nftMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
 
 	tx = nftCreateTx(nonce, addrs[0].Bytes, sftTokenID, nftMetaData)
-	nonce++
 
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
@@ -3093,7 +3087,6 @@ func TestChainSimulator_MetaESDT_RegisterAndSetAllRolesDynamic(t *testing.T) {
 	nftMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
 
 	tx = nftCreateTx(nonce, addrs[0].Bytes, metaTokenID, nftMetaData)
-	nonce++
 
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
@@ -3721,7 +3714,6 @@ func TestChainSimulator_CreateAndPause_NFT(t *testing.T) {
 	log.Info("transfering token id", "tokenID", nftTokenID)
 
 	tx = esdtNFTTransferTx(nonce, addrs[0].Bytes, addrs[1].Bytes, nftTokenID)
-	nonce++
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
