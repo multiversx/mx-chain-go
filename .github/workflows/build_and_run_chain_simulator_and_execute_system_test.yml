@@ -1,4 +1,4 @@
-name: Build and Smoke Test1
+name: Build and Smoke Test 1
 
 on:
   pull_request:
@@ -9,12 +9,18 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build-and-test:
     strategy:
       matrix:
-        runs-on: [ubuntu-latest, macos-13-xlarge]
+        runs-on: [ubuntu-latest]
     runs-on: ${{ matrix.runs-on }}
-    name: Build
+    env:
+      BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+      TARGET_BRANCH: ""
+      MX_CHAIN_GO_TARGET_BRANCH: ""
+      MX_CHAIN_SIMULATOR_TARGET_BRANCH: ""
+      MX_CHAIN_TESTING_SUITE_TARGET_BRANCH: ""
+
     steps:
       - name: Set up Go 1.20.7
         uses: actions/setup-go@v3
@@ -22,17 +28,33 @@ jobs:
           go-version: 1.20.7
         id: go
 
-      - name: Check out code into the Go module directory
+      - name: Checkout mx-chain-go code
         uses: actions/checkout@v3
 
-      - name: Determine Target Branch
+      - name: Determine Target Branches
         id: target_branch
         run: |
           if [[ "${{ github.event.pull_request.base.ref }}" == "main" ]]; then
+            echo "TARGET_BRANCH=main" >> $GITHUB_ENV
+            echo "MX_CHAIN_SIMULATOR_TARGET_BRANCH=main" >> $GITHUB_ENV
+            echo "MX_CHAIN_TESTING_SUITE_TARGET_BRANCH=main" >> $GITHUB_ENV
+          elif [[ "${{ github.event.pull_request.base.ref }}" == "master" ]]; then
             echo "TARGET_BRANCH=master" >> $GITHUB_ENV
+            echo "MX_CHAIN_SIMULATOR_TARGET_BRANCH=main" >> $GITHUB_ENV
+            echo "MX_CHAIN_TESTING_SUITE_TARGET_BRANCH=main" >> $GITHUB_ENV
           elif [[ "${{ github.event.pull_request.base.ref }}" == rc/* ]]; then
             echo "TARGET_BRANCH=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
+            echo "MX_CHAIN_SIMULATOR_TARGET_BRANCH=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
+            echo "MX_CHAIN_TESTING_SUITE_TARGET_BRANCH=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
           fi
+          echo "MX_CHAIN_GO_TARGET_BRANCH=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
+
+
+      - name: Print Target Branches
+        run: |
+          echo "mx-chain-go target branch: ${{ env.MX_CHAIN_GO_TARGET_BRANCH }}"
+          echo "mx-chain-simulator-go target branch: ${{ env.MX_CHAIN_SIMULATOR_TARGET_BRANCH }}"
+          echo "mx-chain-testing-suite target branch: ${{ env.MX_CHAIN_TESTING_SUITE_TARGET_BRANCH }}"
 
       - name: Get dependencies
         run: |
@@ -50,12 +72,26 @@ jobs:
           cd ${GITHUB_WORKSPACE}/cmd/logviewer && go build .
           cd ${GITHUB_WORKSPACE}/cmd/termui && go build .
 
+      - name: Checkout mx-chain-simulator-go
+        uses: actions/checkout@v3
+        with:
+          repository: 'multiversx/mx-chain-simulator-go'
+          ref: ${{ env.MX_CHAIN_SIMULATOR_TARGET_BRANCH }}
+          path: 'mx-chain-simulator-go'
+
+      - name: Build Chain Simulator
+        run: |
+          cd mx-chain-simulator-go/cmd/chainsimulator
+          go build -o chainsimulator
+          echo "CHAIN_SIMULATOR_BUILD_PATH=$(pwd)" >> $GITHUB_ENV
+
       - name: Checkout mx-chain-testing-suite
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: 'multiversx/mx-chain-testing-suite'
-          ref: ${{ env.TARGET_BRANCH }}
+          ref: ${{ env.MX_CHAIN_TESTING_SUITE_TARGET_BRANCH }}
           path: 'mx-chain-testing-suite'
+          token: ${{ secrets.PRIVATE_REPO_TOKEN }}
 
       - name: Setup Python 3.10
         uses: actions/setup-python@v2
