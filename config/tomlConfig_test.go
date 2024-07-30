@@ -872,6 +872,15 @@ func TestEnableEpochConfig(t *testing.T) {
     # CryptoOpcodesV2EnableEpoch represents the epoch when BLSMultiSig, Secp256r1 and other opcodes are enabled
     CryptoOpcodesV2EnableEpoch = 98
 
+    # RelayedTransactionsV3EnableEpoch represents the epoch when the relayed transactions V3 will be enabled
+    RelayedTransactionsV3EnableEpoch = 99
+
+    # FixRelayedBaseCostEnableEpoch represents the epoch when the fix for relayed base cost will be enabled
+    FixRelayedBaseCostEnableEpoch = 100
+
+    # MultiESDTNFTTransferAndExecuteByUserEnableEpoch represents the epoch when enshrined sovereign cross chain opcodes are enabled
+    MultiESDTNFTTransferAndExecuteByUserEnableEpoch = 101
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -988,6 +997,9 @@ func TestEnableEpochConfig(t *testing.T) {
 			DynamicESDTEnableEpoch:                                   96,
 			EGLDInMultiTransferEnableEpoch:                           97,
 			CryptoOpcodesV2EnableEpoch:                               98,
+			RelayedTransactionsV3EnableEpoch:                         99,
+			FixRelayedBaseCostEnableEpoch:                            100,
+			MultiESDTNFTTransferAndExecuteByUserEnableEpoch:          101,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,
