@@ -11,14 +11,15 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
-	"github.com/multiversx/mx-chain-logger-go"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var _ process.SmartContractToProtocolHandler = (*stakingToPeer)(nil)
@@ -109,6 +110,7 @@ func checkIfNil(args ArgStakingToPeer) error {
 	return core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
 		common.StakeFlag,
 		common.ValidatorToDelegationFlag,
+		common.UnJailCleanupFlag,
 	})
 }
 
@@ -341,6 +343,9 @@ func (stp *stakingToPeer) updatePeerState(
 		if account.GetTempRating() < stp.unJailRating {
 			log.Debug("node is unJailed, setting temp rating to start rating", "blsKey", blsPubKey)
 			account.SetTempRating(stp.unJailRating)
+			if stp.enableEpochsHandler.IsFlagEnabled(common.UnJailCleanupFlag) {
+				account.SetConsecutiveProposerMisses(0)
+			}
 		}
 
 		isNewValidator := !isValidator && stakingData.Staked

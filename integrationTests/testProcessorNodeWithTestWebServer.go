@@ -164,6 +164,7 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 	}
 	txTypeHandler, err := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 	log.LogIfError(err)
+	_ = tpn.EconomicsData.SetTxTypeHandler(txTypeHandler)
 
 	argsDataFieldParser := &datafield.ArgsOperationDataFieldParser{
 		AddressLength: TestAddressPubkeyConverter.Len(),

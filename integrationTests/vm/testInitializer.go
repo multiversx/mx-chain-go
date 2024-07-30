@@ -62,6 +62,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
@@ -143,8 +144,9 @@ type VMTestContext struct {
 	ContractOwner VMTestAccount
 	Contract      VMTestAccount
 
-	TxCostHandler    external.TransactionEvaluator
-	TxsLogsProcessor process.TransactionLogProcessor
+	TxCostHandler           external.TransactionEvaluator
+	TxsLogsProcessor        process.TransactionLogProcessor
+	FailedTxLogsAccumulator process.FailedTxLogsAccumulator
 }
 
 // Close -
@@ -320,7 +322,7 @@ func CreateAccount(accnts state.AccountsAdapter, pubKey []byte, nonce uint64, ba
 	return hashCreated, nil
 }
 
-func createEconomicsData(enableEpochsConfig config.EnableEpochs) (process.EconomicsDataHandler, error) {
+func createEconomicsData(enableEpochsConfig config.EnableEpochs, gasPriceModifier float64) (process.EconomicsDataHandler, error) {
 	maxGasLimitPerBlock := strconv.FormatUint(math.MaxUint64, 10)
 	minGasPrice := strconv.FormatUint(1, 10)
 	minGasLimit := strconv.FormatUint(1, 10)
@@ -366,7 +368,7 @@ func createEconomicsData(enableEpochsConfig config.EnableEpochs) (process.Econom
 				},
 				MinGasPrice:            minGasPrice,
 				GasPerDataByte:         "1",
-				GasPriceModifier:       1.0,
+				GasPriceModifier:       gasPriceModifier,
 				MaxGasPriceSetGuardian: "2000000000",
 			},
 		},
@@ -440,10 +442,11 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 	}
 	txTypeHandler, _ := coordinator.NewTxTypeHandler(argsTxTypeHandler)
 
-	economicsData, err := createEconomicsData(enableEpochsConfig)
+	economicsData, err := createEconomicsData(enableEpochsConfig, 1)
 	if err != nil {
 		return nil, err
 	}
+	_ = economicsData.SetTxTypeHandler(txTypeHandler)
 
 	argsNewSCProcessor := scrCommon.ArgsNewSmartContractProcessor{
 		VmContainer:      vmContainer,
@@ -463,12 +466,13 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 		GasHandler: &testscommon.GasHandlerStub{
 			SetGasRefundedCalled: func(gasRefunded uint64, hash []byte) {},
 		},
-		GasSchedule:         gasScheduleNotifier,
-		TxLogsProcessor:     &mock.TxLogsProcessorStub{},
-		EnableEpochsHandler: enableEpochsHandler,
-		EnableRoundsHandler: enableRoundsHandler,
-		VMOutputCacher:      txcache.NewDisabledCache(),
-		WasmVMChangeLocker:  wasmVMChangeLocker,
+		GasSchedule:             gasScheduleNotifier,
+		TxLogsProcessor:         &mock.TxLogsProcessorStub{},
+		EnableEpochsHandler:     enableEpochsHandler,
+		EnableRoundsHandler:     enableRoundsHandler,
+		VMOutputCacher:          txcache.NewDisabledCache(),
+		WasmVMChangeLocker:      wasmVMChangeLocker,
+		FailedTxLogsAccumulator: &processMocks.FailedTxLogsAccumulatorMock{},
 	}
 
 	scProcessor, _ := processProxy.NewTestSmartContractProcessorProxy(argsNewSCProcessor, genericEpochNotifier)
@@ -479,25 +483,27 @@ func CreateTxProcessorWithOneSCExecutorMockVM(
 	}
 
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
-		Accounts:            accnts,
-		Hasher:              integrationtests.TestHasher,
-		PubkeyConv:          pubkeyConv,
-		Marshalizer:         integrationtests.TestMarshalizer,
-		SignMarshalizer:     integrationtests.TestMarshalizer,
-		ShardCoordinator:    mock.NewMultiShardsCoordinatorMock(2),
-		ScProcessor:         scProcessor,
-		TxFeeHandler:        &testscommon.UnsignedTxHandlerStub{},
-		TxTypeHandler:       txTypeHandler,
-		EconomicsFee:        economicsData,
-		ReceiptForwarder:    &mock.IntermediateTransactionHandlerMock{},
-		BadTxForwarder:      &mock.IntermediateTransactionHandlerMock{},
-		ArgsParser:          smartContract.NewArgumentParser(),
-		ScrForwarder:        &mock.IntermediateTransactionHandlerMock{},
-		EnableRoundsHandler: enableRoundsHandler,
-		EnableEpochsHandler: enableEpochsHandler,
-		TxVersionChecker:    versioning.NewTxVersionChecker(minTransactionVersion),
-		GuardianChecker:     guardedAccountHandler,
-		TxLogsProcessor:     &mock.TxLogsProcessorStub{},
+		Accounts:                accnts,
+		Hasher:                  integrationtests.TestHasher,
+		PubkeyConv:              pubkeyConv,
+		Marshalizer:             integrationtests.TestMarshalizer,
+		SignMarshalizer:         integrationtests.TestMarshalizer,
+		ShardCoordinator:        mock.NewMultiShardsCoordinatorMock(2),
+		ScProcessor:             scProcessor,
+		TxFeeHandler:            &testscommon.UnsignedTxHandlerStub{},
+		TxTypeHandler:           txTypeHandler,
+		EconomicsFee:            economicsData,
+		ReceiptForwarder:        &mock.IntermediateTransactionHandlerMock{},
+		BadTxForwarder:          &mock.IntermediateTransactionHandlerMock{},
+		ArgsParser:              smartContract.NewArgumentParser(),
+		ScrForwarder:            &mock.IntermediateTransactionHandlerMock{},
+		EnableRoundsHandler:     enableRoundsHandler,
+		EnableEpochsHandler:     enableEpochsHandler,
+		TxVersionChecker:        versioning.NewTxVersionChecker(minTransactionVersion),
+		GuardianChecker:         guardedAccountHandler,
+		TxLogsProcessor:         &mock.TxLogsProcessorStub{},
+		RelayedTxV3Processor:    &processMocks.RelayedTxV3ProcessorMock{},
+		FailedTxLogsAccumulator: &processMocks.FailedTxLogsAccumulatorMock{},
 	}
 
 	return transaction.NewTxProcessor(argsNewTxProcessor)
@@ -685,7 +691,7 @@ func CreateVMAndBlockchainHookMeta(
 		MissingTrieNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
 	}
 
-	economicsData, err := createEconomicsData(config.EnableEpochs{})
+	economicsData, err := createEconomicsData(config.EnableEpochs{}, 1)
 	if err != nil {
 		log.LogIfError(err)
 	}
@@ -802,12 +808,13 @@ func CreateVMConfigWithVersion(version string) *config.VirtualMachineConfig {
 
 // ResultsCreateTxProcessor is the struct that will hold all needed processor instances
 type ResultsCreateTxProcessor struct {
-	TxProc             process.TransactionProcessor
-	SCProc             scrCommon.TestSmartContractProcessor
-	IntermediateTxProc process.IntermediateTransactionHandler
-	EconomicsHandler   process.EconomicsDataHandler
-	CostHandler        external.TransactionEvaluator
-	TxLogProc          process.TransactionLogProcessor
+	TxProc                  process.TransactionProcessor
+	SCProc                  scrCommon.TestSmartContractProcessor
+	IntermediateTxProc      process.IntermediateTransactionHandler
+	EconomicsHandler        process.EconomicsDataHandler
+	CostHandler             external.TransactionEvaluator
+	TxLogProc               process.TransactionLogProcessor
+	FailedTxLogsAccumulator process.FailedTxLogsAccumulator
 }
 
 // CreateTxProcessorWithOneSCExecutorWithVMs -
@@ -825,6 +832,7 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	guardianChecker process.GuardianChecker,
 	roundNotifierInstance process.RoundNotifier,
 	chainHandler data.ChainHandler,
+	gasPriceModifier float64,
 ) (*ResultsCreateTxProcessor, error) {
 	if check.IfNil(poolsHolder) {
 		poolsHolder = dataRetrieverMock.NewPoolsHolderMock()
@@ -847,10 +855,11 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 
 	gasSchedule := make(map[string]map[string]uint64)
 	defaults.FillGasMapInternal(gasSchedule, 1)
-	economicsData, err := createEconomicsData(enableEpochsConfig)
+	economicsData, err := createEconomicsData(enableEpochsConfig, gasPriceModifier)
 	if err != nil {
 		return nil, err
 	}
+	_ = economicsData.SetTxTypeHandler(txTypeHandler)
 
 	gasComp, err := preprocess.NewGasComputation(economicsData, txTypeHandler, enableEpochsHandler)
 	if err != nil {
@@ -862,53 +871,58 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 		Marshalizer:          integrationtests.TestMarshalizer,
 	})
 
+	failedLogsAcc := transactionLog.NewFailedTxLogsAccumulator()
+
 	intermediateTxHandler := &mock.IntermediateTransactionHandlerMock{}
 	argsNewSCProcessor := scrCommon.ArgsNewSmartContractProcessor{
-		VmContainer:         vmContainer,
-		ArgsParser:          smartContract.NewArgumentParser(),
-		Hasher:              integrationtests.TestHasher,
-		Marshalizer:         integrationtests.TestMarshalizer,
-		AccountsDB:          accnts,
-		BlockChainHook:      blockChainHook,
-		BuiltInFunctions:    blockChainHook.GetBuiltinFunctionsContainer(),
-		PubkeyConv:          pubkeyConv,
-		ShardCoordinator:    shardCoordinator,
-		ScrForwarder:        intermediateTxHandler,
-		BadTxForwarder:      intermediateTxHandler,
-		TxFeeHandler:        feeAccumulator,
-		EconomicsFee:        economicsData,
-		TxTypeHandler:       txTypeHandler,
-		GasHandler:          gasComp,
-		GasSchedule:         mock.NewGasScheduleNotifierMock(gasSchedule),
-		TxLogsProcessor:     logProc,
-		EnableRoundsHandler: enableRoundsHandler,
-		EnableEpochsHandler: enableEpochsHandler,
-		WasmVMChangeLocker:  wasmVMChangeLocker,
-		VMOutputCacher:      txcache.NewDisabledCache(),
+		VmContainer:             vmContainer,
+		ArgsParser:              smartContract.NewArgumentParser(),
+		Hasher:                  integrationtests.TestHasher,
+		Marshalizer:             integrationtests.TestMarshalizer,
+		AccountsDB:              accnts,
+		BlockChainHook:          blockChainHook,
+		BuiltInFunctions:        blockChainHook.GetBuiltinFunctionsContainer(),
+		PubkeyConv:              pubkeyConv,
+		ShardCoordinator:        shardCoordinator,
+		ScrForwarder:            intermediateTxHandler,
+		BadTxForwarder:          intermediateTxHandler,
+		TxFeeHandler:            feeAccumulator,
+		EconomicsFee:            economicsData,
+		TxTypeHandler:           txTypeHandler,
+		GasHandler:              gasComp,
+		GasSchedule:             mock.NewGasScheduleNotifierMock(gasSchedule),
+		TxLogsProcessor:         logProc,
+		EnableRoundsHandler:     enableRoundsHandler,
+		EnableEpochsHandler:     enableEpochsHandler,
+		WasmVMChangeLocker:      wasmVMChangeLocker,
+		VMOutputCacher:          txcache.NewDisabledCache(),
+		FailedTxLogsAccumulator: &processMocks.FailedTxLogsAccumulatorMock{},
 	}
 
 	scProcessorProxy, _ := processProxy.NewTestSmartContractProcessorProxy(argsNewSCProcessor, epochNotifierInstance)
 
 	argsNewTxProcessor := transaction.ArgsNewTxProcessor{
-		Accounts:            accnts,
-		Hasher:              integrationtests.TestHasher,
-		PubkeyConv:          pubkeyConv,
-		Marshalizer:         integrationtests.TestMarshalizer,
-		SignMarshalizer:     integrationtests.TestMarshalizer,
-		ShardCoordinator:    shardCoordinator,
-		ScProcessor:         scProcessorProxy,
-		TxFeeHandler:        feeAccumulator,
-		TxTypeHandler:       txTypeHandler,
-		EconomicsFee:        economicsData,
-		ReceiptForwarder:    intermediateTxHandler,
-		BadTxForwarder:      intermediateTxHandler,
-		ArgsParser:          smartContract.NewArgumentParser(),
-		ScrForwarder:        intermediateTxHandler,
-		EnableRoundsHandler: enableRoundsHandler,
-		EnableEpochsHandler: enableEpochsHandler,
-		TxVersionChecker:    versioning.NewTxVersionChecker(minTransactionVersion),
-		GuardianChecker:     guardianChecker,
-		TxLogsProcessor:     logProc,
+		Accounts:                accnts,
+		Hasher:                  integrationtests.TestHasher,
+		PubkeyConv:              pubkeyConv,
+		Marshalizer:             integrationtests.TestMarshalizer,
+		SignMarshalizer:         integrationtests.TestMarshalizer,
+		ShardCoordinator:        shardCoordinator,
+		ScProcessor:             scProcessorProxy,
+		TxFeeHandler:            feeAccumulator,
+		TxTypeHandler:           txTypeHandler,
+		EconomicsFee:            economicsData,
+		ReceiptForwarder:        intermediateTxHandler,
+		BadTxForwarder:          intermediateTxHandler,
+		ArgsParser:              smartContract.NewArgumentParser(),
+		ScrForwarder:            intermediateTxHandler,
+		EnableRoundsHandler:     enableRoundsHandler,
+		EnableEpochsHandler:     enableEpochsHandler,
+		TxVersionChecker:        versioning.NewTxVersionChecker(minTransactionVersion),
+		GuardianChecker:         guardianChecker,
+		TxLogsProcessor:         logProc,
+		FailedTxLogsAccumulator: failedLogsAcc,
+		RelayedTxV3Processor:    &processMocks.RelayedTxV3ProcessorMock{},
 	}
 	txProcessor, err := transaction.NewTxProcessor(argsNewTxProcessor)
 	if err != nil {
@@ -1138,6 +1152,7 @@ func CreatePreparedTxProcessorAndAccountsWithVMsWithRoundsConfig(
 		guardedAccountHandler,
 		roundNotifierInstance,
 		chainHandler,
+		1,
 	)
 	if err != nil {
 		return nil, err
@@ -1171,36 +1186,48 @@ func createMockGasScheduleNotifierWithCustomGasSchedule(updateGasSchedule func(g
 }
 
 // CreatePreparedTxProcessorWithVMs -
-func CreatePreparedTxProcessorWithVMs(enableEpochs config.EnableEpochs) (*VMTestContext, error) {
-	return CreatePreparedTxProcessorWithVMsAndCustomGasSchedule(enableEpochs, func(gasMap wasmConfig.GasScheduleMap) {})
+func CreatePreparedTxProcessorWithVMs(enableEpochs config.EnableEpochs, gasPriceModifier float64) (*VMTestContext, error) {
+	return CreatePreparedTxProcessorWithVMsAndCustomGasSchedule(enableEpochs, func(gasMap wasmConfig.GasScheduleMap) {}, gasPriceModifier)
 }
 
 // CreatePreparedTxProcessorWithVMsAndCustomGasSchedule -
 func CreatePreparedTxProcessorWithVMsAndCustomGasSchedule(
 	enableEpochs config.EnableEpochs,
-	updateGasSchedule func(gasMap wasmConfig.GasScheduleMap)) (*VMTestContext, error) {
+	updateGasSchedule func(gasMap wasmConfig.GasScheduleMap),
+	gasPriceModifier float64) (*VMTestContext, error) {
 	return CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGasAndRoundConfig(
 		enableEpochs,
 		mock.NewMultiShardsCoordinatorMock(2),
 		integrationtests.CreateMemUnit(),
 		createMockGasScheduleNotifierWithCustomGasSchedule(updateGasSchedule),
 		testscommon.GetDefaultRoundsConfig(),
+		gasPriceModifier,
 	)
 }
 
 // CreatePreparedTxProcessorWithVMsWithShardCoordinator -
-func CreatePreparedTxProcessorWithVMsWithShardCoordinator(enableEpochsConfig config.EnableEpochs, shardCoordinator sharding.Coordinator) (*VMTestContext, error) {
-	return CreatePreparedTxProcessorWithVMsWithShardCoordinatorAndRoundConfig(enableEpochsConfig, testscommon.GetDefaultRoundsConfig(), shardCoordinator)
+func CreatePreparedTxProcessorWithVMsWithShardCoordinator(
+	enableEpochsConfig config.EnableEpochs,
+	shardCoordinator sharding.Coordinator,
+	gasPriceModifier float64,
+) (*VMTestContext, error) {
+	return CreatePreparedTxProcessorWithVMsWithShardCoordinatorAndRoundConfig(enableEpochsConfig, testscommon.GetDefaultRoundsConfig(), shardCoordinator, gasPriceModifier)
 }
 
 // CreatePreparedTxProcessorWithVMsWithShardCoordinatorAndRoundConfig -
-func CreatePreparedTxProcessorWithVMsWithShardCoordinatorAndRoundConfig(enableEpochsConfig config.EnableEpochs, roundsConfig config.RoundConfig, shardCoordinator sharding.Coordinator) (*VMTestContext, error) {
+func CreatePreparedTxProcessorWithVMsWithShardCoordinatorAndRoundConfig(
+	enableEpochsConfig config.EnableEpochs,
+	roundsConfig config.RoundConfig,
+	shardCoordinator sharding.Coordinator,
+	gasPriceModifier float64,
+) (*VMTestContext, error) {
 	return CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGasAndRoundConfig(
 		enableEpochsConfig,
 		shardCoordinator,
 		integrationtests.CreateMemUnit(),
 		CreateMockGasScheduleNotifier(),
 		roundsConfig,
+		gasPriceModifier,
 	)
 }
 
@@ -1210,6 +1237,7 @@ func CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas(
 	shardCoordinator sharding.Coordinator,
 	db storage.Storer,
 	gasScheduleNotifier core.GasScheduleNotifier,
+	gasPriceModifier float64,
 ) (*VMTestContext, error) {
 	vmConfig := createDefaultVMConfig()
 	return CreatePreparedTxProcessorWithVMConfigWithShardCoordinatorDBAndGasAndRoundConfig(
@@ -1219,6 +1247,7 @@ func CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGas(
 		gasScheduleNotifier,
 		testscommon.GetDefaultRoundsConfig(),
 		vmConfig,
+		gasPriceModifier,
 	)
 }
 
@@ -1229,6 +1258,7 @@ func CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGasAndRoundConfig(
 	db storage.Storer,
 	gasScheduleNotifier core.GasScheduleNotifier,
 	roundsConfig config.RoundConfig,
+	gasPriceModifier float64,
 ) (*VMTestContext, error) {
 	vmConfig := createDefaultVMConfig()
 	return CreatePreparedTxProcessorWithVMConfigWithShardCoordinatorDBAndGasAndRoundConfig(
@@ -1238,6 +1268,7 @@ func CreatePreparedTxProcessorWithVMsWithShardCoordinatorDBAndGasAndRoundConfig(
 		gasScheduleNotifier,
 		roundsConfig,
 		vmConfig,
+		gasPriceModifier,
 	)
 }
 
@@ -1249,6 +1280,7 @@ func CreatePreparedTxProcessorWithVMConfigWithShardCoordinatorDBAndGasAndRoundCo
 	gasScheduleNotifier core.GasScheduleNotifier,
 	roundsConfig config.RoundConfig,
 	vmConfig *config.VirtualMachineConfig,
+	gasPriceModifier float64,
 ) (*VMTestContext, error) {
 	feeAccumulator := postprocess.NewFeeAccumulator()
 	epochNotifierInstance := forking.NewGenericEpochNotifier()
@@ -1290,29 +1322,31 @@ func CreatePreparedTxProcessorWithVMConfigWithShardCoordinatorDBAndGasAndRoundCo
 		guardedAccountHandler,
 		roundNotifierInstance,
 		chainHandler,
+		gasPriceModifier,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	return &VMTestContext{
-		TxProcessor:            res.TxProc,
-		ScProcessor:            res.SCProc,
-		Accounts:               accounts,
-		BlockchainHook:         blockchainHook,
-		VMContainer:            vmContainer,
-		TxFeeHandler:           feeAccumulator,
-		ScForwarder:            res.IntermediateTxProc,
-		ShardCoordinator:       shardCoordinator,
-		EconomicsData:          res.EconomicsHandler,
-		TxCostHandler:          res.CostHandler,
-		TxsLogsProcessor:       res.TxLogProc,
-		GasSchedule:            gasScheduleNotifier,
-		EpochNotifier:          epochNotifierInstance,
-		EnableEpochsHandler:    enableEpochsHandler,
-		ChainHandler:           chainHandler,
-		Marshalizer:            integrationtests.TestMarshalizer,
-		GuardedAccountsHandler: guardedAccountHandler,
+		TxProcessor:             res.TxProc,
+		ScProcessor:             res.SCProc,
+		Accounts:                accounts,
+		BlockchainHook:          blockchainHook,
+		VMContainer:             vmContainer,
+		TxFeeHandler:            feeAccumulator,
+		ScForwarder:             res.IntermediateTxProc,
+		ShardCoordinator:        shardCoordinator,
+		EconomicsData:           res.EconomicsHandler,
+		TxCostHandler:           res.CostHandler,
+		TxsLogsProcessor:        res.TxLogProc,
+		FailedTxLogsAccumulator: res.FailedTxLogsAccumulator,
+		GasSchedule:             gasScheduleNotifier,
+		EpochNotifier:           epochNotifierInstance,
+		EnableEpochsHandler:     enableEpochsHandler,
+		ChainHandler:            chainHandler,
+		Marshalizer:             integrationtests.TestMarshalizer,
+		GuardedAccountsHandler:  guardedAccountHandler,
 	}, nil
 }
 
@@ -1386,6 +1420,7 @@ func CreateTxProcessorArwenVMWithGasScheduleAndRoundConfig(
 		guardedAccountHandler,
 		roundNotifierInstance,
 		chainHandler,
+		1,
 	)
 	if err != nil {
 		return nil, err
@@ -1468,6 +1503,7 @@ func CreateTxProcessorArwenWithVMConfigAndRoundConfig(
 		guardedAccountHandler,
 		roundNotifierInstance,
 		chainHandler,
+		1,
 	)
 	if err != nil {
 		return nil, err
@@ -1835,13 +1871,13 @@ func GetNodeIndex(nodeList []*integrationTests.TestProcessorNode, node *integrat
 }
 
 // CreatePreparedTxProcessorWithVMsMultiShard -
-func CreatePreparedTxProcessorWithVMsMultiShard(selfShardID uint32, enableEpochsConfig config.EnableEpochs) (*VMTestContext, error) {
-	return CreatePreparedTxProcessorWithVMsMultiShardAndRoundConfig(selfShardID, enableEpochsConfig, testscommon.GetDefaultRoundsConfig())
+func CreatePreparedTxProcessorWithVMsMultiShard(selfShardID uint32, enableEpochsConfig config.EnableEpochs, gasPriceModifier float64) (*VMTestContext, error) {
+	return CreatePreparedTxProcessorWithVMsMultiShardAndRoundConfig(selfShardID, enableEpochsConfig, testscommon.GetDefaultRoundsConfig(), gasPriceModifier)
 }
 
 // CreatePreparedTxProcessorWithVMsMultiShardAndRoundConfig -
-func CreatePreparedTxProcessorWithVMsMultiShardAndRoundConfig(selfShardID uint32, enableEpochsConfig config.EnableEpochs, roundsConfig config.RoundConfig) (*VMTestContext, error) {
-	return CreatePreparedTxProcessorWithVMsMultiShardRoundVMConfig(selfShardID, enableEpochsConfig, roundsConfig, createDefaultVMConfig())
+func CreatePreparedTxProcessorWithVMsMultiShardAndRoundConfig(selfShardID uint32, enableEpochsConfig config.EnableEpochs, roundsConfig config.RoundConfig, gasPriceModifier float64) (*VMTestContext, error) {
+	return CreatePreparedTxProcessorWithVMsMultiShardRoundVMConfig(selfShardID, enableEpochsConfig, roundsConfig, createDefaultVMConfig(), gasPriceModifier)
 }
 
 // CreatePreparedTxProcessorWithVMsMultiShardRoundVMConfig -
@@ -1850,6 +1886,7 @@ func CreatePreparedTxProcessorWithVMsMultiShardRoundVMConfig(
 	enableEpochsConfig config.EnableEpochs,
 	roundsConfig config.RoundConfig,
 	vmConfig *config.VirtualMachineConfig,
+	gasPriceModifier float64,
 ) (*VMTestContext, error) {
 	shardCoordinator, _ := sharding.NewMultiShardCoordinator(3, selfShardID)
 
@@ -1899,27 +1936,29 @@ func CreatePreparedTxProcessorWithVMsMultiShardRoundVMConfig(
 		guardedAccountHandler,
 		roundNotifierInstance,
 		chainHandler,
+		gasPriceModifier,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	return &VMTestContext{
-		TxProcessor:            res.TxProc,
-		ScProcessor:            res.SCProc,
-		Accounts:               accounts,
-		BlockchainHook:         blockchainHook,
-		VMContainer:            vmContainer,
-		TxFeeHandler:           feeAccumulator,
-		ShardCoordinator:       shardCoordinator,
-		ScForwarder:            res.IntermediateTxProc,
-		EconomicsData:          res.EconomicsHandler,
-		Marshalizer:            integrationtests.TestMarshalizer,
-		TxsLogsProcessor:       res.TxLogProc,
-		EpochNotifier:          epochNotifierInstance,
-		EnableEpochsHandler:    enableEpochsHandler,
-		ChainHandler:           chainHandler,
-		GuardedAccountsHandler: guardedAccountHandler,
+		TxProcessor:             res.TxProc,
+		ScProcessor:             res.SCProc,
+		Accounts:                accounts,
+		BlockchainHook:          blockchainHook,
+		VMContainer:             vmContainer,
+		TxFeeHandler:            feeAccumulator,
+		ShardCoordinator:        shardCoordinator,
+		ScForwarder:             res.IntermediateTxProc,
+		EconomicsData:           res.EconomicsHandler,
+		Marshalizer:             integrationtests.TestMarshalizer,
+		TxsLogsProcessor:        res.TxLogProc,
+		FailedTxLogsAccumulator: res.FailedTxLogsAccumulator,
+		EpochNotifier:           epochNotifierInstance,
+		EnableEpochsHandler:     enableEpochsHandler,
+		ChainHandler:            chainHandler,
+		GuardedAccountsHandler:  guardedAccountHandler,
 	}, nil
 }
 
