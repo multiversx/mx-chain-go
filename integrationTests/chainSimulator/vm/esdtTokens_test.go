@@ -364,7 +364,6 @@ func TestChainSimulator_Api_NFTToken(t *testing.T) {
 	log.Info("Change to DYNAMIC type")
 
 	tx = changeToDynamicTx(nonce, addrs[0].Bytes, nftTokenID)
-	nonce++
 
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)

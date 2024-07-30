@@ -3899,7 +3899,6 @@ func TestChainSimulator_CreateAndPauseTokens_DynamicNFT(t *testing.T) {
 	log.Info("transfering token id", "tokenID", nftTokenID)
 
 	tx = esdtNFTTransferTx(nonce, addrs[0].Bytes, addrs[1].Bytes, nftTokenID)
-	nonce++
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
