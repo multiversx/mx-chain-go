@@ -25,7 +25,7 @@ func (cache *TxCache) areInternalMapsConsistent() bool {
 	for _, sender := range senders {
 		numInMapBySender += int(sender.countTx())
 
-		for _, hash := range sender.getTxHashes() {
+		for _, hash := range sender.getTxsHashes() {
 			_, ok := internalMapByHash.getTx(string(hash))
 			if !ok {
 				numMissingInMapByHash++
@@ -62,7 +62,7 @@ func (cache *TxCache) getScoreOfSender(sender string) int {
 }
 
 func (listForSender *txListForSender) getTxHashesAsStrings() []string {
-	hashes := listForSender.getTxHashes()
+	hashes := listForSender.getTxsHashes()
 	return hashesAsStrings(hashes)
 }
 

@@ -249,8 +249,6 @@ func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destinati
 	listForSender.mutex.Lock()
 	defer listForSender.mutex.Unlock()
 
-	journal := batchSelectionJournal{}
-
 	if isFirstBatch {
 		// Reset the internal state used for copy operations
 		listForSender.selectionPreviousNonce = 0
@@ -260,7 +258,7 @@ func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destinati
 
 	// If a nonce gap is detected, no transaction is returned in this read.
 	if listForSender.selectionDetectedGap {
-		return journal
+		return batchSelectionJournal{}
 	}
 
 	selectedGas := uint64(0)
@@ -300,14 +298,14 @@ func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destinati
 		selectedGas += gasLimit
 	}
 
-	journal.selectedNum = selectedNum
-	journal.selectedGas = selectedGas
-
-	return journal
+	return batchSelectionJournal{
+		selectedNum: selectedNum,
+		selectedGas: selectedGas,
+	}
 }
 
-// getTxHashes returns the hashes of transactions in the list
-func (listForSender *txListForSender) getTxHashes() [][]byte {
+// getTxsHashes returns the hashes of transactions in the list
+func (listForSender *txListForSender) getTxsHashes() [][]byte {
 	listForSender.mutex.RLock()
 	defer listForSender.mutex.RUnlock()
 
@@ -316,6 +314,21 @@ func (listForSender *txListForSender) getTxHashes() [][]byte {
 	for element := listForSender.items.Front(); element != nil; element = element.Next() {
 		value := element.Value.(*WrappedTransaction)
 		result = append(result, value.TxHash)
+	}
+
+	return result
+}
+
+// getTxs returns the transactions in the list
+func (listForSender *txListForSender) getTxs() []*WrappedTransaction {
+	listForSender.mutex.RLock()
+	defer listForSender.mutex.RUnlock()
+
+	result := make([]*WrappedTransaction, 0, listForSender.countTx())
+
+	for element := listForSender.items.Front(); element != nil; element = element.Next() {
+		value := element.Value.(*WrappedTransaction)
+		result = append(result, value)
 	}
 
 	return result
