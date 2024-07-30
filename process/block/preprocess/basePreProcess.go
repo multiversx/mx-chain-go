@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 
@@ -295,7 +296,7 @@ func (bpp *basePreProcess) baseReceivedTransaction(
 	return false
 }
 
-func (bpp *basePreProcess) baseReceivedTransaction2(
+func (rtp *rewardTxPreprocessor) baseReceivedTransaction2(
 	txHash []byte,
 	tx data.TransactionHandler,
 	forBlock *txsForBlock,
@@ -312,6 +313,16 @@ func (bpp *basePreProcess) baseReceivedTransaction2(
 	forBlock.txHashAndInfo[string(txHash)].tx = tx
 	//	forBlock.missingTxs--
 	//}
+
+	err := rtp.saveAccountBalanceForAddress(tx.GetRcvAddr())
+	if err != nil {
+		return false
+	}
+
+	err = rtp.rewardsProcessor.ProcessRewardTransaction(tx.(*rewardTx.RewardTx))
+	if err != nil {
+		return false
+	}
 
 	return false
 
@@ -442,6 +453,8 @@ func (bpp *basePreProcess) saveAccountBalanceForAddress(address []byte) error {
 		}
 		balance = big.NewInt(0)
 	}
+
+	log.Error("saveAccountBalanceForAddress", "address", address, "balance", balance.String())
 
 	bpp.balanceComputation.SetBalanceToAddress(address, balance)
 	return nil
