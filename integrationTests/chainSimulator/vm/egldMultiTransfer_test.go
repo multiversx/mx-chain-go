@@ -507,7 +507,6 @@ func TestChainSimulator_Multiple_EGLD_Transfers(t *testing.T) {
 	nftMetaData.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
 
 	tx = nftCreateTx(nonce, addrs[0].Bytes, nftTokenID, nftMetaData)
-	nonce++
 
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
