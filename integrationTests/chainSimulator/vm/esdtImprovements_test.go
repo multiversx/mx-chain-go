@@ -2849,6 +2849,7 @@ func TestChainSimulator_NFT_RegisterAndSetAllRolesDynamic(t *testing.T) {
 		[]byte(core.ESDTRoleModifyCreator),
 		[]byte(core.ESDTRoleModifyRoyalties),
 		[]byte(core.ESDTRoleSetNewURI),
+		[]byte(core.ESDTRoleNFTUpdate),
 	}
 
 	checkTokenRoles(t, result.ReturnData, expectedRoles)
@@ -2969,6 +2970,7 @@ func TestChainSimulator_SFT_RegisterAndSetAllRolesDynamic(t *testing.T) {
 		[]byte(core.ESDTRoleModifyCreator),
 		[]byte(core.ESDTRoleModifyRoyalties),
 		[]byte(core.ESDTRoleSetNewURI),
+		[]byte(core.ESDTRoleNFTUpdate),
 	}
 
 	checkTokenRoles(t, result.ReturnData, expectedRoles)
