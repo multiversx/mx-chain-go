@@ -82,7 +82,6 @@ func TestChainSimulator_EGLD_MultiTransfer(t *testing.T) {
 		[]byte(core.ESDTRoleTransfer),
 	}
 	setAddressEsdtRoles(t, cs, addrs[0], metaESDTTokenID, roles)
-	nonce++
 
 	log.Info("Issued metaESDT token id", "tokenID", string(metaESDTTokenID))
 
@@ -98,7 +97,6 @@ func TestChainSimulator_EGLD_MultiTransfer(t *testing.T) {
 
 	nftTokenID := txResult.Logs.Events[0].Topics[0]
 	setAddressEsdtRoles(t, cs, addrs[0], nftTokenID, roles)
-	nonce++
 
 	log.Info("Issued NFT token id", "tokenID", string(nftTokenID))
 
@@ -114,7 +112,6 @@ func TestChainSimulator_EGLD_MultiTransfer(t *testing.T) {
 
 	sftTokenID := txResult.Logs.Events[0].Topics[0]
 	setAddressEsdtRoles(t, cs, addrs[0], sftTokenID, roles)
-	nonce++
 
 	log.Info("Issued SFT token id", "tokenID", string(sftTokenID))
 
@@ -263,7 +260,6 @@ func TestChainSimulator_EGLD_MultiTransfer_Insufficient_Funds(t *testing.T) {
 		[]byte(core.ESDTRoleTransfer),
 	}
 	setAddressEsdtRoles(t, cs, addrs[0], nftTokenID, roles)
-	nonce++
 
 	log.Info("Issued NFT token id", "tokenID", string(nftTokenID))
 
@@ -385,7 +381,6 @@ func TestChainSimulator_EGLD_MultiTransfer_Invalid_Value(t *testing.T) {
 		[]byte(core.ESDTRoleTransfer),
 	}
 	setAddressEsdtRoles(t, cs, addrs[0], nftTokenID, roles)
-	nonce++
 
 	log.Info("Issued NFT token id", "tokenID", string(nftTokenID))
 
@@ -507,7 +502,6 @@ func TestChainSimulator_Multiple_EGLD_Transfers(t *testing.T) {
 		[]byte(core.ESDTRoleTransfer),
 	}
 	setAddressEsdtRoles(t, cs, addrs[0], nftTokenID, roles)
-	nonce++
 
 	log.Info("Issued NFT token id", "tokenID", string(nftTokenID))
 
@@ -720,7 +714,6 @@ func TestChainSimulator_IssueToken_EGLDTicker(t *testing.T) {
 		[]byte(core.ESDTRoleTransfer),
 	}
 	setAddressEsdtRoles(t, cs, addrs[0], nftTokenID, roles)
-	nonce++
 
 	log.Info("Issued NFT token id", "tokenID", string(nftTokenID))
 
