@@ -11,6 +11,7 @@ import (
 	bootstrapComp "github.com/multiversx/mx-chain-go/factory/bootstrap"
 	"github.com/multiversx/mx-chain-go/integrationTests/factory"
 	"github.com/multiversx/mx-chain-go/node"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/goroutines"
 	"github.com/stretchr/testify/require"
 )
@@ -27,6 +28,8 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 	idxInitial, _ := gc.Snapshot()
 	factory.PrintStack()
 
+	accountNonceProvider := &testscommon.AccountNonceProviderStub{}
+
 	configs := factory.CreateDefaultConfig(t)
 	chanStopNodeProcess := make(chan endProcess.ArgEndProcess)
 	nr, err := node.NewNodeRunner(configs)
@@ -40,9 +43,21 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	managedNetworkComponents, err := nr.CreateManagedNetworkComponents(managedCoreComponents, managedStatusCoreComponents, managedCryptoComponents)
 	require.Nil(t, err)
-	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(managedStatusCoreComponents, managedCoreComponents, managedCryptoComponents, managedNetworkComponents)
+	managedBootstrapComponents, err := nr.CreateManagedBootstrapComponents(
+		managedStatusCoreComponents,
+		managedCoreComponents,
+		managedCryptoComponents,
+		managedNetworkComponents,
+		accountNonceProvider,
+	)
 	require.Nil(t, err)
-	managedDataComponents, err := nr.CreateManagedDataComponents(managedStatusCoreComponents, managedCoreComponents, managedBootstrapComponents, managedCryptoComponents)
+	managedDataComponents, err := nr.CreateManagedDataComponents(
+		managedStatusCoreComponents,
+		managedCoreComponents,
+		managedBootstrapComponents,
+		managedCryptoComponents,
+		accountNonceProvider,
+	)
 	require.Nil(t, err)
 	managedStateComponents, err := nr.CreateManagedStateComponents(managedCoreComponents, managedDataComponents, managedStatusCoreComponents)
 	require.Nil(t, err)

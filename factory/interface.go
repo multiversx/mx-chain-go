@@ -555,3 +555,10 @@ type PersistentStatusHandler interface {
 	core.AppStatusHandler
 	SetStorage(store storage.Storer) error
 }
+
+// AccountNonceProvider defines the interface of an account nonce provider
+type AccountNonceProvider interface {
+	GetAccountNonce(accountKey []byte) (uint64, error)
+	SetAccountsAdapter(accountsAdapter state.AccountsAdapter) error
+	IsInterfaceNil() bool
+}
