@@ -8,7 +8,7 @@ type AccountNonceProviderStub struct {
 // GetAccountNonce -
 func (stub *AccountNonceProviderStub) GetAccountNonce(address []byte) (uint64, error) {
 	if stub.GetAccountNonceCalled != nil {
-		stub.GetAccountNonceCalled(address)
+		return stub.GetAccountNonceCalled(address)
 	}
 
 	return 0, nil
