@@ -819,10 +819,10 @@ func TestEpochStartBootstrap_BootstrapStartInEpochNotEnabled(t *testing.T) {
 	coreComp, cryptoComp := createComponentsForEpochStart()
 	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 
-	err := errors.New("localErr")
+	localErr := errors.New("localErr")
 	args.LatestStorageDataProvider = &mock.LatestStorageDataProviderStub{
 		GetCalled: func() (storage.LatestDataFromStorage, error) {
-			return storage.LatestDataFromStorage{}, err
+			return storage.LatestDataFromStorage{}, localErr
 		},
 	}
 
