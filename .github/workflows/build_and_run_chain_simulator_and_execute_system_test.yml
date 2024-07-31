@@ -1,4 +1,4 @@
-name: Build and Smoke Test 2
+name: Build and Smoke Test
 
 on:
   pull_request:
@@ -6,6 +6,8 @@ on:
       - 'main'
       - 'master'
       - 'rc/*'
+      - 'integrate-sys-tests-ci'
+      - 'integrate-sys-tests-ci2'
   workflow_dispatch:
 
 jobs:
@@ -31,12 +33,20 @@ jobs:
       - name: Checkout mx-chain-go
         uses: actions/checkout@v3
         with:
-            repository: 'multiversx/mx-chain-go'
-            path: 'mx-chain-go'
+          repository: 'multiversx/mx-chain-go'
+          path: 'mx-chain-go'
+
+      - name: Get Latest Commit Hash
+        run: |
+          cd mx-chain-go
+          latest_commit_hash=$(git rev-parse HEAD)
+          echo "LATEST_COMMIT_HASH=${latest_commit_hash}" >> $GITHUB_ENV
+          echo "Latest commit hash: ${latest_commit_hash}"
 
       - name: Determine Target Branches
         id: target_branch
         run: |
+          echo "CURRENT_BRANCH=${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}" >> $GITHUB_ENV
           if [[ "${{ github.event.pull_request.base.ref }}" == "main" ]]; then
             echo "TARGET_BRANCH=main" >> $GITHUB_ENV
             echo "MX_CHAIN_SIMULATOR_TARGET_BRANCH=main" >> $GITHUB_ENV
@@ -45,7 +55,7 @@ jobs:
             echo "TARGET_BRANCH=master" >> $GITHUB_ENV
             echo "MX_CHAIN_SIMULATOR_TARGET_BRANCH=main" >> $GITHUB_ENV
             echo "MX_CHAIN_TESTING_SUITE_TARGET_BRANCH=main" >> $GITHUB_ENV
-          elif [[ "${{ github.event.pull_request.base.ref }}" == rc/* ]]; then
+          elif [[ "${{ github.event.pull_request.base.ref }}" == rc/* || "${{ github.event.pull_request.base.ref }}" == integrate-sys-tests-ci* ]]; then
             echo "TARGET_BRANCH=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
             echo "MX_CHAIN_SIMULATOR_TARGET_BRANCH=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
             echo "MX_CHAIN_TESTING_SUITE_TARGET_BRANCH=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
@@ -54,28 +64,10 @@ jobs:
 
       - name: Print Target Branches
         run: |
+          echo "Current branch: ${{ env.CURRENT_BRANCH }}"
           echo "mx-chain-go target branch: ${{ env.MX_CHAIN_GO_TARGET_BRANCH }}"
           echo "mx-chain-simulator-go target branch: ${{ env.MX_CHAIN_SIMULATOR_TARGET_BRANCH }}"
           echo "mx-chain-testing-suite2 target branch: ${{ env.MX_CHAIN_TESTING_SUITE_TARGET_BRANCH }}"
-
-      - name: Get dependencies
-        run: |
-          cd mx-chain-go
-          go get -v -t -d ./...
-          if [ -f Gopkg.toml ]; then
-            curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-            dep ensure
-          fi
-          cd ..
-
-      - name: Build
-        run: |
-          cd mx-chain-go/cmd/node && go build .
-          cd ../seednode && go build .
-          cd ../keygenerator && go build .
-          cd ../logviewer && go build .
-          cd ../termui && go build .
-          cd ../../..
 
       - name: Checkout mx-chain-simulator-go
         uses: actions/checkout@v3
@@ -93,15 +85,13 @@ jobs:
         run: |
           cd mx-chain-simulator-go
           pip install -r scripts/update_go_mod/requirements.txt
-          python scripts/update_go_mod/update_go_mod.py
-          cd ..
+          python scripts/update_go_mod/update_go_mod.py $LATEST_COMMIT_HASH
 
       - name: Run go mod tidy and go build
         run: |
           cd mx-chain-simulator-go
           go mod tidy
           go build
-          cd ..
 
       - name: Checkout mx-chain-testing-suite2
         uses: actions/checkout@v3
