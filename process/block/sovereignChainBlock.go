@@ -805,15 +805,6 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 			return nil, nil, err
 		}
 
-		//_, _, err = scbp.createAllMiniBlocks(func() bool {
-		//	return true
-		//}, shardHeader)
-		//
-		//if err != nil {
-		//	return nil, nil, err
-		//}
-
-		// finish processing here, only process epoch start
 		return shardHeader, body, nil
 	}
 
@@ -866,8 +857,6 @@ func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
 	header data.HeaderHandler,
 	body *block.Body,
 ) error {
-	////#################
-
 	currentRootHash, err := scbp.validatorStatisticsProcessor.RootHash()
 	if err != nil {
 		return err
@@ -903,70 +892,23 @@ func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
-	mbHeaderHandlers := make([]data.MiniBlockHeaderHandler, len(rewardMiniBlocks))
-	for idx, mb := range rewardMiniBlocks {
-		hash, err := core.CalculateHash(scbp.marshalizer, scbp.hasher, mb)
-		if err != nil {
-			return err
-		}
-
-		mbHeaderHandlers[idx] = &block.MiniBlockHeader{
-			Hash:            hash,
-			SenderShardID:   mb.SenderShardID,
-			ReceiverShardID: mb.ReceiverShardID,
-			TxCount:         uint32(len(mb.TxHashes)),
-			Type:            mb.Type,
-			Reserved:        mb.Reserved,
-		}
-
-	}
-
-	err = sovHdr.SetMiniBlockHeaderHandlers(mbHeaderHandlers)
-	if err != nil {
-		return err
-	}
-
 	sovHdr.EpochStart.Economics.RewardsForProtocolSustainability.Set(scbp.epochRewardsCreator.GetProtocolSustainabilityRewards())
 
 	// TODO MX-15589 check how we can integrate all of these later on
-	////////////////err = scbp.epochRewardsCreator.VerifyRewardsMiniBlocks(sovHdr, allValidatorsInfo, computedEconomics)
-	////////////////if err != nil {
-	////////////////	return err
-	////////////////}
-
 	err = scbp.epochSystemSCProcessor.ProcessDelegationRewards(rewardMiniBlocks, scbp.epochRewardsCreator.GetLocalTxCache())
 	if err != nil {
 		return err
 	}
-
-	//err = mp.validatorInfoCreator.VerifyValidatorInfoMiniBlocks(body.MiniBlocks, allValidatorsInfo)
-	//if err != nil {
-	//	return err
-	//}
 
 	err = scbp.epochEconomics.VerifyRewardsPerBlock(sovHdr, scbp.epochRewardsCreator.GetProtocolSustainabilityRewards(), computedEconomics)
 	if err != nil {
 		return err
 	}
 	//
-	//err = mp.verifyFees(header)
-	//if err != nil {
-	//	return err
-	//}
-	/*
-		_, _, _, err = scbp.txCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe(
-			sovHdr,
-			scbp.processedMiniBlocksTracker.GetProcessedMiniBlocksInfo(scbp.blockChain.GetCurrentBlockHeaderHash()),
-			func() bool {
-				return true
-			},
-			process.HaveAdditionalTime(),
-			false)
-		if err != nil {
-			return err
-		}
-
-	*/
+	err = scbp.verifyFees(header)
+	if err != nil {
+		return err
+	}
 
 	saveEpochStartEconomicsMetrics(scbp.appStatusHandler, sovHdr)
 
