@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	api2 "github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	chainSim "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/staking"
@@ -37,7 +38,7 @@ func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
-		Value:    20,
+		Value:    50,
 	}
 
 	var protocolSustainabilityAddress string
@@ -116,15 +117,15 @@ func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 	require.NotEmpty(t, accFeesInEpoch)
 	require.NotEmpty(t, devFeesInEpoch)
 
-	allOwnersBalance := make(map[string]*big.Int)
 	currentEpoch := nodeHandler.GetCoreComponents().EpochNotifier().CurrentEpoch()
-
 	for epoch := currentEpoch + 1; epoch < currentEpoch+6; epoch++ {
-		addOwnersBalances(t, nodeHandler, allOwnersBalance)
+		allOwnersBalance := getOwnersBalances(t, nodeHandler)
 
 		err = cs.GenerateBlocksUntilEpochIsReached(int32(epoch))
 		require.Nil(t, err)
 
+		checkEpochChangeHeader(t, nodeHandler)
+		requireValidatorBalancesIncreasedAfterRewards(t, nodeHandler, allOwnersBalance)
 		checkProtocolSustainabilityAddressBalanceIncreased(t, nodeHandler, protocolSustainabilityAddress, protocolSustainabilityAddrBalance)
 
 		qualified, unqualified := staking.GetQualifiedAndUnqualifiedNodes(t, nodeHandler)
@@ -142,10 +143,23 @@ func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 		require.Empty(t, devFeesTotal.Bytes())
 	}
 
-	requireValidatorBalancesIncreasedAfterRewards(t, nodeHandler, allOwnersBalance)
 }
 
-func addOwnersBalances(t *testing.T, nodeHandler process.NodeHandler, allOwnersBalance map[string]*big.Int) {
+func checkEpochChangeHeader(t *testing.T, nodeHandler process.NodeHandler) {
+	currentHeader := nodeHandler.GetDataComponents().Blockchain().GetCurrentBlockHeader()
+	require.True(t, currentHeader.IsStartOfEpochBlock())
+
+	mbs := currentHeader.GetMiniBlockHeaderHandlers()
+	require.Len(t, mbs, 2)
+
+	require.Equal(t, block.RewardsBlock, block.Type(mbs[0].GetTypeInt32()))
+	require.Equal(t, block.PeerBlock, block.Type(mbs[1].GetTypeInt32()))
+
+	require.Equal(t, mbs[0].GetTxCount(), uint32(7))  // consensus group = 6 + protocol sustainability reward tx
+	require.Equal(t, mbs[1].GetTxCount(), uint32(18)) // 18 validators
+}
+
+func getOwnersBalances(t *testing.T, nodeHandler process.NodeHandler) map[string]*big.Int {
 	currentHeader := nodeHandler.GetDataComponents().Blockchain().GetCurrentBlockHeader()
 	nodesCoordinator := nodeHandler.GetProcessComponents().NodesCoordinator()
 
@@ -153,11 +167,9 @@ func addOwnersBalances(t *testing.T, nodeHandler process.NodeHandler, allOwnersB
 	require.Nil(t, err)
 	require.Len(t, validators, nodesCoordinator.ConsensusGroupSize(core.SovereignChainShardId))
 
+	allOwnersBalance := make(map[string]*big.Int)
 	for _, validator := range validators {
 		owner := staking.GetBLSKeyOwner(t, nodeHandler, validator.PubKey())
-		if _, exists := allOwnersBalance[string(owner)]; exists {
-			continue
-		}
 
 		acc, err := nodeHandler.GetStateComponents().AccountsAdapter().GetExistingAccount(owner)
 		require.Nil(t, err)
@@ -167,6 +179,8 @@ func addOwnersBalances(t *testing.T, nodeHandler process.NodeHandler, allOwnersB
 
 		allOwnersBalance[string(owner)] = userAcc.GetBalance()
 	}
+
+	return allOwnersBalance
 }
 
 func requireValidatorBalancesIncreasedAfterRewards(
