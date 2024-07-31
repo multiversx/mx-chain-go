@@ -49,7 +49,6 @@ jobs:
           fi
           echo "MX_CHAIN_GO_TARGET_BRANCH=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
 
-
       - name: Print Target Branches
         run: |
           echo "mx-chain-go target branch: ${{ env.MX_CHAIN_GO_TARGET_BRANCH }}"
@@ -79,11 +78,24 @@ jobs:
           ref: ${{ env.MX_CHAIN_SIMULATOR_TARGET_BRANCH }}
           path: 'mx-chain-simulator-go'
 
-      - name: Build Chain Simulator
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.10'
+
+      - name: Install Python Dependencies
         run: |
-          cd mx-chain-simulator-go/cmd/chainsimulator
-          go build -o chainsimulator
-          echo "CHAIN_SIMULATOR_BUILD_PATH=$(pwd)" >> $GITHUB_ENV
+          pip install -r scripts/update_go_mod/requirements.txt
+
+      - name: Update go.mod with latest commit hash
+        run: |
+          python scripts/update_go_mod/update_go_mod.py
+
+      - name: Run go mod tidy and go build
+        run: |
+          cd mx-chain-simulator-go
+          go mod tidy
+          go build
 
       - name: Checkout mx-chain-testing-suite2
         uses: actions/checkout@v3
@@ -91,12 +103,6 @@ jobs:
           repository: 'btc-fan/mx-chain-testing-suite2'
           ref: ${{ env.MX_CHAIN_TESTING_SUITE_TARGET_BRANCH }}
           path: 'mx-chain-testing-suite2'
-
-
-      - name: Setup Python 3.10
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.10'
 
       - name: Install Dependencies
         run: |
