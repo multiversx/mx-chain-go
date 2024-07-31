@@ -414,12 +414,7 @@ func (t *trigger) LastCommitedEpochStartHdr() (data.HeaderHandler, error) {
 		return nil, err
 	}
 
-	header, err := process.UnmarshalMetaHeader(t.marshaller, headerBytes)
-	if err != nil {
-		return nil, err
-	}
-
-	return header, nil
+	return process.UnmarshalMetaHeader(t.marshaller, headerBytes)
 }
 
 // GetSavedStateKey returns the last saved trigger state key

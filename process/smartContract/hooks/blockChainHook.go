@@ -804,12 +804,7 @@ func (bh *BlockChainHookImpl) SetCurrentHeader(hdr data.HeaderHandler) error {
 	defer bh.mutCurrentHdr.Unlock()
 
 	bh.currentHdr = hdr
-	err := bh.updateEpochStartHeader(hdr)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return bh.updateEpochStartHeader(hdr)
 }
 
 func (bh *BlockChainHookImpl) updateEpochStartHeader(hdr data.HeaderHandler) error {
