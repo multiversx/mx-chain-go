@@ -2,7 +2,6 @@ package epochChange
 
 import (
 	"encoding/hex"
-	"fmt"
 	"math/big"
 	"testing"
 	"time"
@@ -14,9 +13,7 @@ import (
 	chainSim "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/staking"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
-	process2 "github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
-	"github.com/multiversx/mx-chain-go/vm"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 
@@ -95,8 +92,6 @@ func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 	trie := nodeHandler.GetStateComponents().TriesContainer().Get([]byte(dataRetriever.PeerAccountsUnit.String()))
 	require.NotNil(t, trie)
 
-	//logger.SetLogLevel("*:DEBUG")
-
 	err = cs.GenerateBlocksUntilEpochIsReached(1)
 	require.Nil(t, err)
 	require.Equal(t, uint32(1), nodeHandler.GetCoreComponents().EpochNotifier().CurrentEpoch())
@@ -121,17 +116,14 @@ func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 	require.NotEmpty(t, accFeesInEpoch)
 	require.NotEmpty(t, devFeesInEpoch)
 
-	currentEpoch := nodeHandler.GetCoreComponents().EpochNotifier().CurrentEpoch()
 	allOwnersBalance := make(map[string]*big.Int)
+	currentEpoch := nodeHandler.GetCoreComponents().EpochNotifier().CurrentEpoch()
+
 	for epoch := currentEpoch + 1; epoch < currentEpoch+6; epoch++ {
-		allOwnersBalance = getOwnersBalances(t, nodeHandler, allOwnersBalance)
+		addOwnersBalances(t, nodeHandler, allOwnersBalance)
 
 		err = cs.GenerateBlocksUntilEpochIsReached(int32(epoch))
 		require.Nil(t, err)
-
-		currentHeader := nodeHandler.GetDataComponents().Blockchain().GetCurrentBlockHeader()
-
-		_ = currentHeader
 
 		checkProtocolSustainabilityAddressBalanceIncreased(t, nodeHandler, protocolSustainabilityAddress, protocolSustainabilityAddrBalance)
 
@@ -153,30 +145,28 @@ func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 	requireValidatorBalancesIncreasedAfterRewards(t, nodeHandler, allOwnersBalance)
 }
 
-func getOwnersBalances(t *testing.T, nodeHandler process.NodeHandler, allOwnersBalance map[string]*big.Int) map[string]*big.Int {
+func addOwnersBalances(t *testing.T, nodeHandler process.NodeHandler, allOwnersBalance map[string]*big.Int) {
 	currentHeader := nodeHandler.GetDataComponents().Blockchain().GetCurrentBlockHeader()
+	nodesCoordinator := nodeHandler.GetProcessComponents().NodesCoordinator()
 
-	validators, err := headerCheck.ComputeConsensusGroup(currentHeader, nodeHandler.GetProcessComponents().NodesCoordinator())
+	validators, err := headerCheck.ComputeConsensusGroup(currentHeader, nodesCoordinator)
 	require.Nil(t, err)
-	require.NotEmpty(t, validators)
+	require.Len(t, validators, nodesCoordinator.ConsensusGroupSize(core.SovereignChainShardId))
 
-	ownersBalances := make(map[string]*big.Int)
 	for _, validator := range validators {
-		owner := getBLSKeyOwner(t, nodeHandler, validator.PubKey())
+		owner := staking.GetBLSKeyOwner(t, nodeHandler, validator.PubKey())
 		if _, exists := allOwnersBalance[string(owner)]; exists {
 			continue
 		}
 
 		acc, err := nodeHandler.GetStateComponents().AccountsAdapter().GetExistingAccount(owner)
 		require.Nil(t, err)
-		ownersBalances[string(owner)] = big.NewInt(0).SetBytes(acc.(data.UserAccountHandler).GetBalance().Bytes())
-		log.Error("ownersBalances######",
-			"owner", hex.EncodeToString(owner),
-			"validator.PubKey()", hex.EncodeToString(validator.PubKey()),
-			"balance", acc.(data.UserAccountHandler).GetBalance().String())
-	}
 
-	return ownersBalances
+		userAcc, castOk := acc.(data.UserAccountHandler)
+		require.True(t, castOk)
+
+		allOwnersBalance[string(owner)] = userAcc.GetBalance()
+	}
 }
 
 func requireValidatorBalancesIncreasedAfterRewards(
@@ -184,13 +174,22 @@ func requireValidatorBalancesIncreasedAfterRewards(
 	nodeHandler process.NodeHandler,
 	ownersBalance map[string]*big.Int,
 ) {
+	require.NotEmpty(t, ownersBalance)
 	for owner, previousBalance := range ownersBalance {
 		acc, err := nodeHandler.GetStateComponents().AccountsAdapter().GetExistingAccount([]byte(owner))
 		require.Nil(t, err)
-		currentBalance := acc.(data.UserAccountHandler).GetBalance()
-		msg := fmt.Sprintf("currentBalance: %s, previousBalance: %s, pubKey: %s",
-			currentBalance.String(), previousBalance.String(), hex.EncodeToString([]byte(owner)))
-		require.True(t, currentBalance.Cmp(previousBalance) > 0, msg)
+
+		userAcc, castOk := acc.(data.UserAccountHandler)
+		require.True(t, castOk)
+
+		currentBalance := userAcc.GetBalance()
+
+		log.Info("checking validator owners balance after rewards",
+			"owner", hex.EncodeToString([]byte(owner)),
+			"previous balance", previousBalance.String(),
+			"current balance", currentBalance.String())
+
+		require.True(t, currentBalance.Cmp(previousBalance) > 0)
 	}
 }
 
@@ -219,20 +218,4 @@ func getAllFees(nodeHandler process.NodeHandler) (*big.Int, *big.Int) {
 
 func getCurrSovHdr(nodeHandler process.NodeHandler) data.SovereignChainHeaderHandler {
 	return nodeHandler.GetChainHandler().GetCurrentBlockHeader().(data.SovereignChainHeaderHandler)
-}
-
-// TODO: Make this expported from common
-func getBLSKeyOwner(t *testing.T, metachainNode process.NodeHandler, blsKey []byte) []byte {
-	scQuery := &process2.SCQuery{
-		ScAddress:  vm.StakingSCAddress,
-		FuncName:   "getOwner",
-		CallerAddr: vm.ValidatorSCAddress,
-		CallValue:  big.NewInt(0),
-		Arguments:  [][]byte{blsKey},
-	}
-	result, _, err := metachainNode.GetFacadeHandler().ExecuteSCQuery(scQuery)
-	require.Nil(t, err)
-	require.Equal(t, chainSim.OkReturnCode, result.ReturnCode)
-
-	return result.ReturnData[0]
 }
