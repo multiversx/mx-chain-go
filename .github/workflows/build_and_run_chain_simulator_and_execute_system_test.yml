@@ -1,4 +1,4 @@
-name: Build and Smoke Test 1
+name: Build and Smoke Test 2
 
 on:
   pull_request:
@@ -28,8 +28,11 @@ jobs:
           go-version: 1.20.7
         id: go
 
-      - name: Checkout mx-chain-go code
+      - name: Checkout mx-chain-go
         uses: actions/checkout@v3
+        with:
+            repository: 'multiversx/mx-chain-go'
+            path: 'mx-chain-go'
 
       - name: Determine Target Branches
         id: target_branch
@@ -57,19 +60,22 @@ jobs:
 
       - name: Get dependencies
         run: |
+          cd mx-chain-go
           go get -v -t -d ./...
           if [ -f Gopkg.toml ]; then
             curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
             dep ensure
           fi
+          cd ..
 
       - name: Build
         run: |
-          cd ${GITHUB_WORKSPACE}/cmd/node && go build .
-          cd ${GITHUB_WORKSPACE}/cmd/seednode && go build .
-          cd ${GITHUB_WORKSPACE}/cmd/keygenerator && go build .
-          cd ${GITHUB_WORKSPACE}/cmd/logviewer && go build .
-          cd ${GITHUB_WORKSPACE}/cmd/termui && go build .
+          cd mx-chain-go/cmd/node && go build .
+          cd ../seednode && go build .
+          cd ../keygenerator && go build .
+          cd ../logviewer && go build .
+          cd ../termui && go build .
+          cd ../../..
 
       - name: Checkout mx-chain-simulator-go
         uses: actions/checkout@v3
@@ -83,19 +89,19 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install Python Dependencies
+      - name: Install Python Dependencies and Update go.mod
         run: |
+          cd mx-chain-simulator-go
           pip install -r scripts/update_go_mod/requirements.txt
-
-      - name: Update go.mod with latest commit hash
-        run: |
           python scripts/update_go_mod/update_go_mod.py
+          cd ..
 
       - name: Run go mod tidy and go build
         run: |
           cd mx-chain-simulator-go
           go mod tidy
           go build
+          cd ..
 
       - name: Checkout mx-chain-testing-suite2
         uses: actions/checkout@v3
