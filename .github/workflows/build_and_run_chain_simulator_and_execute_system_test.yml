@@ -1,4 +1,4 @@
-name: Build and Smoke Test 2
+name: Build and Smoke Test
 
 on:
   pull_request:
@@ -6,6 +6,8 @@ on:
       - 'main'
       - 'master'
       - 'rc/*'
+      - 'integrate-sys-tests-ci'
+      - 'integrate-sys-tests-ci2'
   workflow_dispatch:
 
 jobs:
@@ -31,8 +33,8 @@ jobs:
       - name: Checkout mx-chain-go
         uses: actions/checkout@v3
         with:
-            repository: 'multiversx/mx-chain-go'
-            path: 'mx-chain-go'
+          repository: 'multiversx/mx-chain-go'
+          path: 'mx-chain-go'
 
       - name: Determine Target Branches
         id: target_branch
@@ -45,7 +47,7 @@ jobs:
             echo "TARGET_BRANCH=master" >> $GITHUB_ENV
             echo "MX_CHAIN_SIMULATOR_TARGET_BRANCH=main" >> $GITHUB_ENV
             echo "MX_CHAIN_TESTING_SUITE_TARGET_BRANCH=main" >> $GITHUB_ENV
-          elif [[ "${{ github.event.pull_request.base.ref }}" == rc/* ]]; then
+          elif [[ "${{ github.event.pull_request.base.ref }}" == rc/* || "${{ github.event.pull_request.base.ref }}" == integrate-sys-tests-ci* ]]; then
             echo "TARGET_BRANCH=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
             echo "MX_CHAIN_SIMULATOR_TARGET_BRANCH=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
             echo "MX_CHAIN_TESTING_SUITE_TARGET_BRANCH=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
@@ -58,25 +60,6 @@ jobs:
           echo "mx-chain-simulator-go target branch: ${{ env.MX_CHAIN_SIMULATOR_TARGET_BRANCH }}"
           echo "mx-chain-testing-suite2 target branch: ${{ env.MX_CHAIN_TESTING_SUITE_TARGET_BRANCH }}"
 
-      - name: Get dependencies
-        run: |
-          cd mx-chain-go
-          go get -v -t -d ./...
-          if [ -f Gopkg.toml ]; then
-            curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-            dep ensure
-          fi
-          cd ..
-
-      - name: Build
-        run: |
-          cd mx-chain-go/cmd/node && go build .
-          cd ../seednode && go build .
-          cd ../keygenerator && go build .
-          cd ../logviewer && go build .
-          cd ../termui && go build .
-          cd ../../..
-
       - name: Checkout mx-chain-simulator-go
         uses: actions/checkout@v3
         with:
@@ -85,23 +68,19 @@ jobs:
           path: 'mx-chain-simulator-go'
 
       - name: Set up Python 3.10
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
-      - name: Install Python Dependencies and Update go.mod
+      - name: Install Python Dependencies, Update go.mod, and Build
         run: |
           cd mx-chain-simulator-go
           pip install -r scripts/update_go_mod/requirements.txt
           python scripts/update_go_mod/update_go_mod.py
-          cd ..
-
-      - name: Run go mod tidy and go build
-        run: |
-          cd mx-chain-simulator-go
+          cd cmd/chainsimulator
           go mod tidy
-          go build
-          cd ..
+          go build -o chainsimulator
+          echo "CHAIN_SIMULATOR_BUILD_PATH=$(pwd)" >> $GITHUB_ENV
 
       - name: Checkout mx-chain-testing-suite2
         uses: actions/checkout@v3
@@ -110,7 +89,7 @@ jobs:
           ref: ${{ env.MX_CHAIN_TESTING_SUITE_TARGET_BRANCH }}
           path: 'mx-chain-testing-suite2'
 
-      - name: Install Dependencies
+      - name: Install Test Suite Dependencies
         run: |
           pip install -r mx-chain-testing-suite2/requirements.txt
           echo "PYTHONPATH=mx-chain-testing-suite2" >> $GITHUB_ENV
