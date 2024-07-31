@@ -168,7 +168,7 @@ func simulateExecutionAndDeposit(
 		NumNodesWaitingListShard: 0,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.GeneralConfig.VirtualMachine.Execution.TransferAndExecuteByUserAddresses = []string{whiteListedAddress}
-			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = 3
+			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = 0
 		},
 	})
 	require.Nil(t, err)
