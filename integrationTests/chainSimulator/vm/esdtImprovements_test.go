@@ -318,9 +318,6 @@ func transferAndCheckTokensMetaData(t *testing.T, isCrossShard bool, isMultiTran
 		txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 		require.Nil(t, err)
 		require.NotNil(t, txResult)
-		fmt.Println(txResult)
-		fmt.Println(string(txResult.Logs.Events[0].Topics[0]))
-		fmt.Println(string(txResult.Logs.Events[0].Topics[1]))
 
 		require.Equal(t, "success", txResult.Status.String())
 	} else {
@@ -3914,4 +3911,70 @@ func TestChainSimulator_CreateAndPauseTokens_DynamicNFT(t *testing.T) {
 	checkMetaData(t, cs, core.SystemAccountAddress, nftTokenID, shardID, nftMetaData)
 	checkMetaDataNotInAcc(t, cs, addrs[0].Bytes, nftTokenID, shardID)
 	checkMetaDataNotInAcc(t, cs, addrs[1].Bytes, nftTokenID, shardID)
+}
+
+func TestChainSimulator_CheckRolesWhichHasToBeSingular(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	baseIssuingCost := "1000"
+
+	cs, _ := getTestChainSimulatorWithDynamicNFTEnabled(t, baseIssuingCost)
+	defer cs.Close()
+
+	addrs := createAddresses(t, cs, true)
+
+	roles := [][]byte{
+		[]byte(core.ESDTRoleNFTCreate),
+		[]byte(core.ESDTRoleTransfer),
+		[]byte(core.ESDTRoleModifyRoyalties),
+	}
+
+	nftTicker := []byte("NFTTICKER")
+	nonce := uint64(0)
+	tx := issueNonFungibleTx(nonce, addrs[0].Bytes, nftTicker, baseIssuingCost)
+	nonce++
+
+	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+	require.Equal(t, "success", txResult.Status.String())
+
+	nftTokenID := txResult.Logs.Events[0].Topics[0]
+	setAddressEsdtRoles(t, cs, nonce, addrs[0], nftTokenID, roles)
+	nonce++
+
+	tx = changeToDynamicTx(nonce, addrs[0].Bytes, nftTokenID)
+	nonce++
+
+	log.Info("updating token id", "tokenID", nftTokenID)
+
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+	require.Equal(t, "success", txResult.Status.String())
+
+	err = cs.GenerateBlocks(10)
+	require.Nil(t, err)
+
+	rolesTransfer := [][]byte{
+		[]byte(core.ESDTRoleNFTUpdate),
+	}
+	tx = setSpecialRoleTx(nonce, addrs[0].Bytes, addrs[0].Bytes, nftTokenID, rolesTransfer)
+	nonce++
+
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+
+	fmt.Println(txResult)
+	if txResult.Logs != nil && len(txResult.Logs.Events) > 0 {
+		fmt.Println(string(txResult.Logs.Events[0].Topics[0]))
+		fmt.Println(string(txResult.Logs.Events[0].Topics[1]))
+	}
+
+	require.Equal(t, "success", txResult.Status.String())
+
+	log.Info("Issued NFT token id", "tokenID", string(nftTokenID))
 }
