@@ -241,7 +241,7 @@ func createMockEpochStartBootstrapArgs(
 		},
 		TrieSyncStatisticsProvider: &testscommon.SizeSyncStatisticsHandlerStub{},
 		StateStatsHandler:          disabledStatistics.NewStateStatistics(),
-		AccountNonceProvider:       &testscommon.AccountNonceProviderStub{},
+		AccountNonceProvider:       testscommon.NewAccountNonceProviderStub(),
 	}
 }
 

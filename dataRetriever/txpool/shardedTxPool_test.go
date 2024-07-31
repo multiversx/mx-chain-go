@@ -115,7 +115,7 @@ func Test_NewShardedTxPool_ComputesCacheConfig(t *testing.T) {
 		Config:               config,
 		EpochNotifier:        &testscommon.EpochNotifierStub{},
 		TxGasHandler:         txcachemocks.NewTxGasHandlerMock(),
-		AccountNonceProvider: &testscommon.AccountNonceProviderStub{},
+		AccountNonceProvider: testscommon.NewAccountNonceProviderStub(),
 		NumberOfShards:       2,
 	}
 
@@ -400,7 +400,7 @@ func Test_routeToCacheUnions(t *testing.T) {
 		Config:               config,
 		EpochNotifier:        &testscommon.EpochNotifierStub{},
 		TxGasHandler:         txcachemocks.NewTxGasHandlerMock(),
-		AccountNonceProvider: &testscommon.AccountNonceProviderStub{},
+		AccountNonceProvider: testscommon.NewAccountNonceProviderStub(),
 		NumberOfShards:       4,
 		SelfShardID:          42,
 	}
@@ -442,7 +442,7 @@ func newTxPoolToTest() (dataRetriever.ShardedDataCacherNotifier, error) {
 		Config:               config,
 		EpochNotifier:        &testscommon.EpochNotifierStub{},
 		TxGasHandler:         txcachemocks.NewTxGasHandlerMock(),
-		AccountNonceProvider: &testscommon.AccountNonceProviderStub{},
+		AccountNonceProvider: testscommon.NewAccountNonceProviderStub(),
 		NumberOfShards:       4,
 		SelfShardID:          0,
 	}

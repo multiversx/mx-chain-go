@@ -1,8 +1,14 @@
 package testscommon
 
+import "errors"
+
 // AccountNonceProviderStub -
 type AccountNonceProviderStub struct {
 	GetAccountNonceCalled func(address []byte) (uint64, error)
+}
+
+func NewAccountNonceProviderStub() *AccountNonceProviderStub {
+	return &AccountNonceProviderStub{}
 }
 
 // GetAccountNonce -
@@ -11,7 +17,7 @@ func (stub *AccountNonceProviderStub) GetAccountNonce(address []byte) (uint64, e
 		return stub.GetAccountNonceCalled(address)
 	}
 
-	return 0, nil
+	return 0, errors.New("AccountNonceProviderStub.GetAccountNonceCalled is not set")
 }
 
 // IsInterfaceNil -

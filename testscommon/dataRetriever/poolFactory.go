@@ -43,7 +43,7 @@ func CreateTxPool(numShards uint32, selfShard uint32) (dataRetriever.ShardedData
 			SelfShardID:          selfShard,
 			TxGasHandler:         txcachemocks.NewTxGasHandlerMock(),
 			EpochNotifier:        &testscommon.EpochNotifierStub{},
-			AccountNonceProvider: &testscommon.AccountNonceProviderStub{},
+			AccountNonceProvider: testscommon.NewAccountNonceProviderStub(),
 		},
 	)
 }

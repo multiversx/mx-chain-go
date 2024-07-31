@@ -52,7 +52,7 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 			},
 			TxGasHandler:         txcachemocks.NewTxGasHandlerMock(),
 			EpochNotifier:        &testscommon.EpochNotifierStub{},
-			AccountNonceProvider: &testscommon.AccountNonceProviderStub{},
+			AccountNonceProvider: testscommon.NewAccountNonceProviderStub(),
 			NumberOfShards:       1,
 		},
 	)

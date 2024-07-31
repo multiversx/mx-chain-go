@@ -279,7 +279,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		},
 		TrieSyncStatisticsProvider: &testscommon.SizeSyncStatisticsHandlerStub{},
 		StateStatsHandler:          disabled.NewStateStatistics(),
-		AccountNonceProvider:       &testscommon.AccountNonceProviderStub{},
+		AccountNonceProvider:       testscommon.NewAccountNonceProviderStub(),
 	}
 
 	epochStartBootstrap, err := bootstrap.NewEpochStartBootstrap(argsBootstrapHandler)

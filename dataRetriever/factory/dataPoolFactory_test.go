@@ -165,6 +165,6 @@ func getGoodArgs() ArgsDataPool {
 		Marshalizer:          &mock.MarshalizerMock{},
 		PathManager:          &testscommon.PathManagerStub{},
 		EpochNotifier:        &testscommon.EpochNotifierStub{},
-		AccountNonceProvider: &testscommon.AccountNonceProviderStub{},
+		AccountNonceProvider: testscommon.NewAccountNonceProviderStub(),
 	}
 }

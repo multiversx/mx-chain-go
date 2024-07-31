@@ -227,7 +227,7 @@ func GetDataArgs(coreComponents factory.CoreComponentsHolder, shardCoordinator s
 		CreateTrieEpochRootHashStorer: false,
 		NodeProcessingMode:            common.Normal,
 		FlagsConfigs:                  config.ContextFlagsConfig{},
-		AccountNonceProvider:          &testscommon.AccountNonceProviderStub{},
+		AccountNonceProvider:          testscommon.NewAccountNonceProviderStub(),
 	}
 }
 
@@ -405,7 +405,7 @@ func GetBootStrapFactoryArgs() bootstrapComp.BootstrapComponentsFactoryArgs {
 		FlagsConfig: config.ContextFlagsConfig{
 			ForceStartFromNetwork: false,
 		},
-		AccountNonceProvider: &testscommon.AccountNonceProviderStub{},
+		AccountNonceProvider: testscommon.NewAccountNonceProviderStub(),
 	}
 }
 
