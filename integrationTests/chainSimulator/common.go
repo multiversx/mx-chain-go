@@ -58,8 +58,8 @@ type Account struct {
 	Nonce  uint64
 }
 
-// GetSysAccBytesAddress will return the system account bytes address
-func GetSysAccBytesAddress(t *testing.T, nodeHandler process.NodeHandler) []byte {
+// GetSysContactDeployAddressBytes will return the system contract deploy address
+func GetSysContactDeployAddressBytes(t *testing.T, nodeHandler process.NodeHandler) []byte {
 	addressBytes, err := nodeHandler.GetCoreComponents().AddressPubKeyConverter().Decode("erd1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq6gq4hu")
 	require.Nil(t, err)
 
