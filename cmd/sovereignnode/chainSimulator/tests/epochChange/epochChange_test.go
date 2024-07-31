@@ -1,6 +1,8 @@
 package epochChange
 
 import (
+	"encoding/hex"
+	"fmt"
 	"math/big"
 	"testing"
 	"time"
@@ -12,6 +14,9 @@ import (
 	chainSim "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/staking"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
+	process2 "github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/headerCheck"
+	"github.com/multiversx/mx-chain-go/vm"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 
@@ -38,6 +43,7 @@ func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 		Value:    20,
 	}
 
+	var protocolSustainabilityAddress string
 	cs, err := sovereignChainSimulator.NewSovereignChainSimulator(sovereignChainSimulator.ArgsSovereignChainSimulator{
 		SovereignConfigPath: sovereignConfigPath,
 		ArgsChainSimulator: &chainSimulator.ArgsChainSimulator{
@@ -63,7 +69,7 @@ func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 					},
 				}
 
-				log.Error(cfg.EconomicsConfig.RewardsSettings.RewardsConfigByEpoch[0].ProtocolSustainabilityAddress)
+				protocolSustainabilityAddress = cfg.EconomicsConfig.RewardsSettings.RewardsConfigByEpoch[0].ProtocolSustainabilityAddress
 				cfg.EpochConfig.EnableEpochs = newCfg
 			},
 		},
@@ -78,6 +84,13 @@ func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 	wallet, err := cs.GenerateAndMintWalletAddress(core.SovereignChainShardId, chainSim.InitialAmount)
 	nonce := uint64(0)
 	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
+
+	protocolSustainabilityAddrBalance, _, err := nodeHandler.GetFacadeHandler().GetBalance(protocolSustainabilityAddress, api2.AccountQueryOptions{})
+	require.Nil(t, err)
+	require.Empty(t, protocolSustainabilityAddrBalance.Bytes())
 
 	trie := nodeHandler.GetStateComponents().TriesContainer().Get([]byte(dataRetriever.PeerAccountsUnit.String()))
 	require.NotNil(t, trie)
@@ -109,13 +122,18 @@ func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 	require.NotEmpty(t, devFeesInEpoch)
 
 	currentEpoch := nodeHandler.GetCoreComponents().EpochNotifier().CurrentEpoch()
+	allOwnersBalance := make(map[string]*big.Int)
 	for epoch := currentEpoch + 1; epoch < currentEpoch+6; epoch++ {
-
-		balanceee, _, _ := nodeHandler.GetFacadeHandler().GetBalance("erd1j25xk97yf820rgdp3mj5scavhjkn6tjyn0t63pmv5qyjj7wxlcfqqe2rw5", api2.AccountQueryOptions{})
-		log.Error("PROTOOCOL SUST", "BALANCE", balanceee.String())
+		allOwnersBalance = getOwnersBalances(t, nodeHandler, allOwnersBalance)
 
 		err = cs.GenerateBlocksUntilEpochIsReached(int32(epoch))
 		require.Nil(t, err)
+
+		currentHeader := nodeHandler.GetDataComponents().Blockchain().GetCurrentBlockHeader()
+
+		_ = currentHeader
+
+		checkProtocolSustainabilityAddressBalanceIncreased(t, nodeHandler, protocolSustainabilityAddress, protocolSustainabilityAddrBalance)
 
 		qualified, unqualified := staking.GetQualifiedAndUnqualifiedNodes(t, nodeHandler)
 		require.Len(t, qualified, 2)
@@ -131,6 +149,62 @@ func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 		require.NotEmpty(t, accFeesTotal.Bytes())
 		require.Empty(t, devFeesTotal.Bytes())
 	}
+
+	requireValidatorBalancesIncreasedAfterRewards(t, nodeHandler, allOwnersBalance)
+}
+
+func getOwnersBalances(t *testing.T, nodeHandler process.NodeHandler, allOwnersBalance map[string]*big.Int) map[string]*big.Int {
+	currentHeader := nodeHandler.GetDataComponents().Blockchain().GetCurrentBlockHeader()
+
+	validators, err := headerCheck.ComputeConsensusGroup(currentHeader, nodeHandler.GetProcessComponents().NodesCoordinator())
+	require.Nil(t, err)
+	require.NotEmpty(t, validators)
+
+	ownersBalances := make(map[string]*big.Int)
+	for _, validator := range validators {
+		owner := getBLSKeyOwner(t, nodeHandler, validator.PubKey())
+		if _, exists := allOwnersBalance[string(owner)]; exists {
+			continue
+		}
+
+		acc, err := nodeHandler.GetStateComponents().AccountsAdapter().GetExistingAccount(owner)
+		require.Nil(t, err)
+		ownersBalances[string(owner)] = big.NewInt(0).SetBytes(acc.(data.UserAccountHandler).GetBalance().Bytes())
+		log.Error("ownersBalances######",
+			"owner", hex.EncodeToString(owner),
+			"validator.PubKey()", hex.EncodeToString(validator.PubKey()),
+			"balance", acc.(data.UserAccountHandler).GetBalance().String())
+	}
+
+	return ownersBalances
+}
+
+func requireValidatorBalancesIncreasedAfterRewards(
+	t *testing.T,
+	nodeHandler process.NodeHandler,
+	ownersBalance map[string]*big.Int,
+) {
+	for owner, previousBalance := range ownersBalance {
+		acc, err := nodeHandler.GetStateComponents().AccountsAdapter().GetExistingAccount([]byte(owner))
+		require.Nil(t, err)
+		currentBalance := acc.(data.UserAccountHandler).GetBalance()
+		msg := fmt.Sprintf("currentBalance: %s, previousBalance: %s, pubKey: %s",
+			currentBalance.String(), previousBalance.String(), hex.EncodeToString([]byte(owner)))
+		require.True(t, currentBalance.Cmp(previousBalance) > 0, msg)
+	}
+}
+
+func checkProtocolSustainabilityAddressBalanceIncreased(
+	t *testing.T,
+	nodeHandler process.NodeHandler,
+	protocolSustainabilityAddress string,
+	previousBalance *big.Int,
+) {
+	currBalance, _, err := nodeHandler.GetFacadeHandler().GetBalance(protocolSustainabilityAddress, api2.AccountQueryOptions{})
+	require.Nil(t, err)
+	require.NotEmpty(t, currBalance.String())
+
+	require.True(t, currBalance.Cmp(previousBalance) > 0)
 }
 
 func getAllFeesInEpoch(nodeHandler process.NodeHandler) (*big.Int, *big.Int) {
@@ -145,4 +219,20 @@ func getAllFees(nodeHandler process.NodeHandler) (*big.Int, *big.Int) {
 
 func getCurrSovHdr(nodeHandler process.NodeHandler) data.SovereignChainHeaderHandler {
 	return nodeHandler.GetChainHandler().GetCurrentBlockHeader().(data.SovereignChainHeaderHandler)
+}
+
+// TODO: Make this expported from common
+func getBLSKeyOwner(t *testing.T, metachainNode process.NodeHandler, blsKey []byte) []byte {
+	scQuery := &process2.SCQuery{
+		ScAddress:  vm.StakingSCAddress,
+		FuncName:   "getOwner",
+		CallerAddr: vm.ValidatorSCAddress,
+		CallValue:  big.NewInt(0),
+		Arguments:  [][]byte{blsKey},
+	}
+	result, _, err := metachainNode.GetFacadeHandler().ExecuteSCQuery(scQuery)
+	require.Nil(t, err)
+	require.Equal(t, chainSim.OkReturnCode, result.ReturnCode)
+
+	return result.ReturnData[0]
 }
