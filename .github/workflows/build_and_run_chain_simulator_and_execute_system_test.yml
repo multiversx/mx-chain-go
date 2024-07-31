@@ -54,7 +54,7 @@ jobs:
         run: |
           echo "mx-chain-go target branch: ${{ env.MX_CHAIN_GO_TARGET_BRANCH }}"
           echo "mx-chain-simulator-go target branch: ${{ env.MX_CHAIN_SIMULATOR_TARGET_BRANCH }}"
-          echo "mx-chain-testing-suite target branch: ${{ env.MX_CHAIN_TESTING_SUITE_TARGET_BRANCH }}"
+          echo "mx-chain-testing-suite2 target branch: ${{ env.MX_CHAIN_TESTING_SUITE_TARGET_BRANCH }}"
 
       - name: Get dependencies
         run: |
@@ -85,13 +85,13 @@ jobs:
           go build -o chainsimulator
           echo "CHAIN_SIMULATOR_BUILD_PATH=$(pwd)" >> $GITHUB_ENV
 
-      - name: Checkout mx-chain-testing-suite
+      - name: Checkout mx-chain-testing-suite2
         uses: actions/checkout@v3
         with:
-          repository: 'multiversx/mx-chain-testing-suite'
+          repository: 'btc-fan/mx-chain-testing-suite2'
           ref: ${{ env.MX_CHAIN_TESTING_SUITE_TARGET_BRANCH }}
-          path: 'mx-chain-testing-suite'
-          token: ${{ secrets.PRIVATE_REPO_TOKEN }}
+          path: 'mx-chain-testing-suite2'
+
 
       - name: Setup Python 3.10
         uses: actions/setup-python@v2
@@ -100,13 +100,13 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip install -r mx-chain-testing-suite/requirements.txt
-          echo "PYTHONPATH=mx-chain-testing-suite" >> $GITHUB_ENV
+          pip install -r mx-chain-testing-suite2/requirements.txt
+          echo "PYTHONPATH=mx-chain-testing-suite2" >> $GITHUB_ENV
 
       - name: Run tests and generate HTML report
         run: |
           set +e
-          pytest mx-chain-testing-suite/scenarios/ --html=report.html --self-contained-html --continue-on-collection-errors
+          pytest mx-chain-testing-suite2/scenarios/ --html=report.html --self-contained-html --continue-on-collection-errors
           PYTEST_EXIT_CODE=$?
           set -e
           echo "PYTEST_EXIT_CODE=$PYTEST_EXIT_CODE" >> $GITHUB_ENV
