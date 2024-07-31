@@ -804,10 +804,10 @@ func (bh *BlockChainHookImpl) SetCurrentHeader(hdr data.HeaderHandler) error {
 	defer bh.mutCurrentHdr.Unlock()
 
 	bh.currentHdr = hdr
-	return bh.updateEpochStartHeader(hdr)
+	return bh.updateEpochStartHeaderFromCurrentHeader(hdr)
 }
 
-func (bh *BlockChainHookImpl) updateEpochStartHeader(hdr data.HeaderHandler) error {
+func (bh *BlockChainHookImpl) updateEpochStartHeaderFromCurrentHeader(hdr data.HeaderHandler) error {
 	bh.mutEpochStartHdr.Lock()
 	defer bh.mutEpochStartHdr.Unlock()
 
@@ -836,6 +836,13 @@ func (bh *BlockChainHookImpl) updateEpochStartHeader(hdr data.HeaderHandler) err
 	bh.epochStartHdr = epochStartHdr
 
 	return nil
+}
+
+func (bh *BlockChainHookImpl) SetEpochStartHeader(header data.HeaderHandler) {
+	bh.mutEpochStartHdr.Lock()
+	defer bh.mutEpochStartHdr.Unlock()
+
+	bh.epochStartHdr = header
 }
 
 // SaveCompiledCode saves the compiled code to cache and storage

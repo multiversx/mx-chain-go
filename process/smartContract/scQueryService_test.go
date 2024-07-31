@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
@@ -412,6 +413,15 @@ func TestExecuteQuery_ShouldReceiveQueryCorrectly(t *testing.T) {
 			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 				return &storageStubs.StorerStub{
 					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+						if string(key) == core.EpochStartIdentifier(epoch) {
+							hdr := &block.Header{
+								RootHash:           []byte("epoch start"),
+								EpochStartMetaHash: []byte("meta"),
+							}
+							buff, _ := argsNewSCQuery.Marshaller.Marshal(hdr)
+							return buff, nil
+						}
+
 						counter++
 						if counter > 2 {
 							return nil, fmt.Errorf("no scheduled")
@@ -469,6 +479,7 @@ func TestExecuteQuery_ShouldReceiveQueryCorrectly(t *testing.T) {
 		}
 
 		_, _, err := target.ExecuteQuery(&query)
+		assert.Nil(t, err)
 		assert.True(t, runWasCalled)
 		assert.True(t, recreateTrieFromEpochWasCalled)
 		assert.False(t, recreateTrieWasCalled)
