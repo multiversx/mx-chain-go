@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"strings"
 	"testing"
 	"time"
 
@@ -3925,56 +3926,75 @@ func TestChainSimulator_CheckRolesWhichHasToBeSingular(t *testing.T) {
 
 	addrs := createAddresses(t, cs, true)
 
-	roles := [][]byte{
-		[]byte(core.ESDTRoleNFTCreate),
-		[]byte(core.ESDTRoleTransfer),
-		[]byte(core.ESDTRoleModifyRoyalties),
-	}
-
+	// register dynamic NFT
 	nftTicker := []byte("NFTTICKER")
+	nftTokenName := []byte("tokenName")
+
+	txDataField := bytes.Join(
+		[][]byte{
+			[]byte("registerDynamic"),
+			[]byte(hex.EncodeToString(nftTokenName)),
+			[]byte(hex.EncodeToString(nftTicker)),
+			[]byte(hex.EncodeToString([]byte("NFT"))),
+			[]byte(hex.EncodeToString([]byte("canPause"))),
+			[]byte(hex.EncodeToString([]byte("true"))),
+		},
+		[]byte("@"),
+	)
+
+	callValue, _ := big.NewInt(0).SetString(baseIssuingCost, 10)
+
 	nonce := uint64(0)
-	tx := issueNonFungibleTx(nonce, addrs[0].Bytes, nftTicker, baseIssuingCost)
+	tx := &transaction.Transaction{
+		Nonce:     nonce,
+		SndAddr:   addrs[0].Bytes,
+		RcvAddr:   vm.ESDTSCAddress,
+		GasLimit:  100_000_000,
+		GasPrice:  minGasPrice,
+		Signature: []byte("dummySig"),
+		Data:      txDataField,
+		Value:     callValue,
+		ChainID:   []byte(configs.ChainID),
+		Version:   1,
+	}
 	nonce++
 
 	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
+
 	require.Equal(t, "success", txResult.Status.String())
 
 	nftTokenID := txResult.Logs.Events[0].Topics[0]
+
+	log.Info("Issued NFT token id", "tokenID", string(nftTokenID))
+
+	roles := [][]byte{
+		[]byte(core.ESDTRoleNFTCreate),
+		[]byte(core.ESDTRoleNFTUpdateAttributes),
+		[]byte(core.ESDTRoleNFTAddURI),
+		[]byte(core.ESDTRoleSetNewURI),
+		[]byte(core.ESDTRoleModifyCreator),
+		[]byte(core.ESDTRoleModifyRoyalties),
+		[]byte(core.ESDTRoleNFTRecreate),
+		[]byte(core.ESDTRoleNFTUpdate),
+	}
 	setAddressEsdtRoles(t, cs, nonce, addrs[0], nftTokenID, roles)
 	nonce++
 
-	tx = changeToDynamicTx(nonce, addrs[0].Bytes, nftTokenID)
-	nonce++
+	for _, role := range roles {
+		tx = setSpecialRoleTx(nonce, addrs[0].Bytes, addrs[1].Bytes, nftTokenID, [][]byte{role})
+		nonce++
 
-	log.Info("updating token id", "tokenID", nftTokenID)
+		txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+		require.Nil(t, err)
+		require.NotNil(t, txResult)
 
-	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
-	require.Nil(t, err)
-	require.NotNil(t, txResult)
-	require.Equal(t, "success", txResult.Status.String())
-
-	err = cs.GenerateBlocks(10)
-	require.Nil(t, err)
-
-	rolesTransfer := [][]byte{
-		[]byte(core.ESDTRoleNFTUpdate),
+		if txResult.Logs != nil && len(txResult.Logs.Events) > 0 {
+			returnMessage := string(txResult.Logs.Events[0].Topics[1])
+			require.True(t, strings.Contains(returnMessage, "already exists"))
+		} else {
+			require.Fail(t, "should have been return error message")
+		}
 	}
-	tx = setSpecialRoleTx(nonce, addrs[0].Bytes, addrs[0].Bytes, nftTokenID, rolesTransfer)
-	nonce++
-
-	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
-	require.Nil(t, err)
-	require.NotNil(t, txResult)
-
-	fmt.Println(txResult)
-	if txResult.Logs != nil && len(txResult.Logs.Events) > 0 {
-		fmt.Println(string(txResult.Logs.Events[0].Topics[0]))
-		fmt.Println(string(txResult.Logs.Events[0].Topics[1]))
-	}
-
-	require.Equal(t, "success", txResult.Status.String())
-
-	log.Info("Issued NFT token id", "tokenID", string(nftTokenID))
 }
