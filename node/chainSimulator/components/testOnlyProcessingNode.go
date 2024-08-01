@@ -153,6 +153,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		instance.StatusCoreComponents.AppStatusHandler(),
 		args.Configs.GeneralConfig.GeneralSettings.StatusPollingIntervalSec,
 		*args.Configs.ExternalConfig,
+		instance.CoreComponentsHolder,
 	)
 	if err != nil {
 		return nil, err
