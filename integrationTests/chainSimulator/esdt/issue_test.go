@@ -71,6 +71,9 @@ func TestChainSimulator_IssueESDTWithPrefix(t *testing.T) {
 	require.Nil(t, err)
 	nonce := uint64(0)
 
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
+
 	// Step 2 - generate issue tx
 	issueCost, _ := big.NewInt(0).SetString(issuePrice, 10)
 	initialSupply, _ := big.NewInt(0).SetString("144", 10)
