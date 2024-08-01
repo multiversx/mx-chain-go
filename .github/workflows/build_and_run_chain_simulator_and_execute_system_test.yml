@@ -97,6 +97,7 @@ jobs:
           cd mx-chain-simulator-go/cmd/chainsimulator
           go mod tidy
           go build
+          echo "CHAIN_SIMULATOR_BUILD_PATH=$(pwd)" >> $GITHUB_ENV
 
       - name: Checkout mx-chain-testing-suite2
         uses: actions/checkout@v3
