@@ -365,6 +365,7 @@ func (brc *baseRewardsCreator) createProtocolSustainabilityRewardTransaction(
 		RcvAddr: brc.protocolSustainabilityAddress,
 		Epoch:   metaBlock.GetEpoch(),
 	}
+
 	brc.accumulatedRewards.Add(brc.accumulatedRewards, protocolSustainabilityRwdTx.Value)
 	return protocolSustainabilityRwdTx, shardID, nil
 }
@@ -397,16 +398,16 @@ func (brc *baseRewardsCreator) createRewardFromRwdInfo(
 }
 
 func (brc *baseRewardsCreator) initializeRewardsMiniBlocks() block.MiniBlockSlice {
-	miniBlocks := make(block.MiniBlockSlice, brc.shardCoordinator.NumberOfShards())
-	for i := uint32(0); i < brc.shardCoordinator.NumberOfShards(); i++ {
+	miniBlocks := make(block.MiniBlockSlice, brc.shardCoordinator.NumberOfShards()+1)
+	for i := uint32(0); i <= brc.shardCoordinator.NumberOfShards(); i++ {
 		miniBlocks[i] = &block.MiniBlock{
-			SenderShardID:   core.SovereignChainShardId,
+			SenderShardID:   core.MetachainShardId,
 			ReceiverShardID: i,
 			Type:            block.RewardsBlock,
 			TxHashes:        make([][]byte, 0),
 		}
 	}
-	//miniBlocks[brc.shardCoordinator.NumberOfShards()].ReceiverShardID = core.SovereignChainShardId
+	miniBlocks[brc.shardCoordinator.NumberOfShards()].ReceiverShardID = core.MetachainShardId
 	return miniBlocks
 }
 
@@ -424,24 +425,18 @@ func (brc *baseRewardsCreator) addProtocolRewardToMiniBlocks(
 	miniBlocks[protocolSustainabilityShardId].TxHashes = append(miniBlocks[protocolSustainabilityShardId].TxHashes, protocolSustainabilityRwdHash)
 	brc.protocolSustainabilityValue.Set(protocolSustainabilityRwdTx.Value)
 
-	cacherIdentifier := process.ShardCacherIdentifier(core.SovereignChainShardId, core.SovereignChainShardId)
-	brc.dataPool.RewardTransactions().AddData(protocolSustainabilityRwdHash,
-		protocolSustainabilityRwdTx,
-		protocolSustainabilityRwdTx.Size(),
-		cacherIdentifier)
-
 	return nil
 }
 
 func (brc *baseRewardsCreator) finalizeMiniBlocks(miniBlocks block.MiniBlockSlice) block.MiniBlockSlice {
-	for shId := uint32(0); shId < brc.shardCoordinator.NumberOfShards(); shId++ {
+	for shId := uint32(0); shId <= brc.shardCoordinator.NumberOfShards(); shId++ {
 		sort.Slice(miniBlocks[shId].TxHashes, func(i, j int) bool {
 			return bytes.Compare(miniBlocks[shId].TxHashes[i], miniBlocks[shId].TxHashes[j]) < 0
 		})
 	}
 
 	finalMiniBlocks := make(block.MiniBlockSlice, 0)
-	for i := uint32(0); i < brc.shardCoordinator.NumberOfShards(); i++ {
+	for i := uint32(0); i <= brc.shardCoordinator.NumberOfShards(); i++ {
 		if len(miniBlocks[i].TxHashes) > 0 {
 			finalMiniBlocks = append(finalMiniBlocks, miniBlocks[i])
 			brc.addExecutionOrdering(miniBlocks[i].TxHashes)
@@ -464,9 +459,9 @@ func (brc *baseRewardsCreator) fillBaseRewardsPerBlockPerNode(baseRewardsPerNode
 		log.Debug("baseRewardsPerBlockPerValidator", "shardID", i, "value", brc.mapBaseRewardsPerBlockPerValidator[i].String())
 	}
 
-	//consensusSize := big.NewInt(int64(brc.nodesConfigProvider.ConsensusGroupSize(core.SovereignChainShardId)))
-	//brc.mapBaseRewardsPerBlockPerValidator[core.SovereignChainShardId] = big.NewInt(0).Div(baseRewardsPerNode, consensusSize)
-	log.Debug("baseRewardsPerBlockPerValidator", "shardID", core.SovereignChainShardId, "value", brc.mapBaseRewardsPerBlockPerValidator[core.SovereignChainShardId].String())
+	consensusSize := big.NewInt(int64(brc.nodesConfigProvider.ConsensusGroupSize(core.MetachainShardId)))
+	brc.mapBaseRewardsPerBlockPerValidator[core.MetachainShardId] = big.NewInt(0).Div(baseRewardsPerNode, consensusSize)
+	log.Debug("baseRewardsPerBlockPerValidator", "shardID", core.MetachainShardId, "value", brc.mapBaseRewardsPerBlockPerValidator[core.MetachainShardId].String())
 }
 
 func (brc *baseRewardsCreator) verifyCreatedRewardMiniBlocksWithMetaBlock(metaBlock data.HeaderHandler, createdMiniBlocks block.MiniBlockSlice) error {

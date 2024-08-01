@@ -38,9 +38,10 @@ type RewardsCreatorArgsV2 struct {
 
 type rewardsCreatorV2 struct {
 	*baseRewardsCreator
-	stakingDataProvider   epochStart.StakingDataProvider
-	economicsDataProvider epochStart.EpochEconomicsDataProvider
-	rewardsHandler        process.RewardsHandler
+	stakingDataProvider                epochStart.StakingDataProvider
+	economicsDataProvider              epochStart.EpochEconomicsDataProvider
+	rewardsHandler                     process.RewardsHandler
+	fillBaseRewardsPerBlockPerNodeFunc fillBaseRewardsPerBlockPerNodeFunc
 }
 
 // NewRewardsCreatorV2 creates a new rewards creator object
@@ -67,6 +68,7 @@ func NewRewardsCreatorV2(args RewardsCreatorArgsV2) (*rewardsCreatorV2, error) {
 		rewardsHandler:        args.RewardsHandler,
 	}
 
+	rc.fillBaseRewardsPerBlockPerNodeFunc = rc.fillBaseRewardsPerBlockPerNode
 	return rc, nil
 }
 
@@ -184,16 +186,16 @@ func (rc *rewardsCreatorV2) addValidatorRewardsToMiniBlocks(
 
 		rc.accumulatedRewards.Add(rc.accumulatedRewards, rwdTx.Value)
 		mbId := rc.shardCoordinator.ComputeId([]byte(rwdInfo.address))
-		//if mbId == core.SovereignChainShardId {
-		//	mbId = core.SovereignChainShardId //rc.shardCoordinator.NumberOfShards()
-		//
-		//	if !rc.flagDelegationSystemSCEnabled.IsSet() || !rc.isSystemDelegationSC(rwdTx.RcvAddr) {
-		//		log.Debug("rewardsCreator.addValidatorRewardsToMiniBlocks - not supported metaChain address",
-		//			"move to protocol vault", rwdTx.GetValue())
-		//		accumulatedDust.Add(accumulatedDust, rwdTx.GetValue())
-		//		continue
-		//	}
-		//}
+		if mbId == core.MetachainShardId {
+			mbId = rc.shardCoordinator.NumberOfShards()
+
+			if !rc.flagDelegationSystemSCEnabled.IsSet() || !rc.isSystemDelegationSC(rwdTx.RcvAddr) {
+				log.Debug("rewardsCreator.addValidatorRewardsToMiniBlocks - not supported metaChain address",
+					"move to protocol vault", rwdTx.GetValue())
+				accumulatedDust.Add(accumulatedDust, rwdTx.GetValue())
+				continue
+			}
+		}
 
 		if rwdTx.Value.Cmp(zero) < 0 {
 			log.Error("negative rewards", "rcv", rwdTx.RcvAddr)
@@ -207,13 +209,6 @@ func (rc *rewardsCreatorV2) addValidatorRewardsToMiniBlocks(
 
 		rc.currTxs.AddTx(rwdTxHash, rwdTx)
 		miniBlocks[mbId].TxHashes = append(miniBlocks[mbId].TxHashes, rwdTxHash)
-
-		cacherIdentifier := process.ShardCacherIdentifier(core.SovereignChainShardId, core.SovereignChainShardId)
-		rc.dataPool.RewardTransactions().AddData(rwdTxHash,
-			rwdTx,
-			rwdTx.Size(),
-			cacherIdentifier)
-
 	}
 
 	return accumulatedDust, nil
@@ -296,7 +291,7 @@ func (rc *rewardsCreatorV2) computeRewardsPerNode(
 		"baseRewards", baseRewards.String(),
 		"topUpRewards", topUpRewards.String())
 
-	rc.fillBaseRewardsPerBlockPerNode(baseRewardsPerBlock)
+	rc.fillBaseRewardsPerBlockPerNodeFunc(baseRewardsPerBlock)
 
 	accumulatedDust := big.NewInt(0)
 	dust := rc.computeBaseRewardsPerNode(nodesRewardInfo, baseRewards)
@@ -341,11 +336,6 @@ func (rc *rewardsCreatorV2) computeBaseRewardsPerNode(
 
 	for shardID, nodeRewardsInfoList := range nodesRewardInfo {
 		for _, nodeRewardsInfo := range nodeRewardsInfoList {
-			log.Error("DSADASDSA",
-				" nodeRewardsInfo.valInfo.GetPublicKey()", nodeRewardsInfo.valInfo.GetPublicKey(),
-
-				"nodeRewardsInfo.valInfo.GetNumSelectedInSuccessBlocks()", nodeRewardsInfo.valInfo.GetNumSelectedInSuccessBlocks())
-
 			nodeRewardsInfo.baseReward = big.NewInt(0).Mul(
 				rc.mapBaseRewardsPerBlockPerValidator[shardID],
 				big.NewInt(int64(nodeRewardsInfo.valInfo.GetNumSelectedInSuccessBlocks())))
