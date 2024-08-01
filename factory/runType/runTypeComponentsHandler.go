@@ -702,6 +702,18 @@ func (mrc *managedRunTypeComponents) EndOfEpochEconomicsFactoryHandler() factory
 	return mrc.runTypeComponents.endOfEpochEconomicsFactoryHandler
 }
 
+// RewardsTxPreProcFactory returns the rewards tx pre-processor factory
+func (mrc *managedRunTypeComponents) RewardsTxPreProcFactory() preprocess.RewardsTxPreProcFactory {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.rewardsTxPreProcFactory
+}
+
 // IsInterfaceNil returns true if the interface is nil
 func (mrc *managedRunTypeComponents) IsInterfaceNil() bool {
 	return mrc == nil

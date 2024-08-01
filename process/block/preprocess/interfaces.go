@@ -74,3 +74,9 @@ type ScheduledTxsExecutionCreator interface {
 	CreateScheduledTxsExecutionHandler(args ScheduledTxsExecutionFactoryArgs) (process.ScheduledTxsExecutionHandler, error)
 	IsInterfaceNil() bool
 }
+
+// RewardsTxPreProcFactory defines the interface of a rewards tx pre-processor factory
+type RewardsTxPreProcFactory interface {
+	CreateRewardsTxPreProcessor(args ArgsRewardTxPreProcessor) (process.PreProcessor, error)
+	IsInterfaceNil() bool
+}

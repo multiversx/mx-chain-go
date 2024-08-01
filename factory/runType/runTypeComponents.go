@@ -106,6 +106,7 @@ type runTypeComponents struct {
 	validatorInfoCreatorFactory             mainFactory.ValidatorInfoCreatorFactory
 	apiProcessorCompsCreatorHandler         api.ApiProcessorCompsCreatorHandler
 	endOfEpochEconomicsFactoryHandler       mainFactory.EndOfEpochEconomicsFactoryHandler
+	rewardsTxPreProcFactory                 preprocess.RewardsTxPreProcFactory
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
@@ -275,6 +276,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		validatorInfoCreatorFactory:             metachain.NewValidatorInfoCreatorFactory(),
 		apiProcessorCompsCreatorHandler:         api.NewAPIProcessorCompsCreator(),
 		endOfEpochEconomicsFactoryHandler:       metachain.NewEconomicsFactory(),
+		rewardsTxPreProcFactory:                 preprocess.NewRewardsTxPreProcFactory(),
 	}, nil
 }
 

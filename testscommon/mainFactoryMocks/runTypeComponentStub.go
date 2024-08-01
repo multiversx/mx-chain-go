@@ -83,6 +83,7 @@ type RunTypeComponentsStub struct {
 	ValidatorInfoCreatorFactoryField       factory.ValidatorInfoCreatorFactory
 	APIProcessorCompsCreatorHandlerField   api.ApiProcessorCompsCreatorHandler
 	EndOfEpochEconomicsFactoryHandlerField factory.EndOfEpochEconomicsFactoryHandler
+	RewardsTxPreProcFactoryField           preprocess.RewardsTxPreProcFactory
 }
 
 // NewRunTypeComponentsStub -
@@ -128,6 +129,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		ValidatorInfoCreatorFactoryField:       &testFactory.ValidatorInfoCreatorFactoryMock{},
 		APIProcessorCompsCreatorHandlerField:   &testFactory.APIProcessorCompsCreatorMock{},
 		EndOfEpochEconomicsFactoryHandlerField: &testFactory.EconomicsFactoryMock{},
+		RewardsTxPreProcFactoryField:           preprocess.NewRewardsTxPreProcFactory(), // todo here
 	}
 }
 
@@ -349,6 +351,11 @@ func (r *RunTypeComponentsStub) ApiProcessorCompsCreatorHandler() api.ApiProcess
 // EndOfEpochEconomicsFactoryHandler -
 func (r *RunTypeComponentsStub) EndOfEpochEconomicsFactoryHandler() factory.EndOfEpochEconomicsFactoryHandler {
 	return r.EndOfEpochEconomicsFactoryHandlerField
+}
+
+// RewardsTxPreProcFactory -
+func (r *RunTypeComponentsStub) RewardsTxPreProcFactory() preprocess.RewardsTxPreProcFactory {
+	return r.RewardsTxPreProcFactoryField
 }
 
 // IsInterfaceNil -

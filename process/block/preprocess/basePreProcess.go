@@ -10,7 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 
@@ -294,38 +293,6 @@ func (bpp *basePreProcess) baseReceivedTransaction(
 	}
 
 	return false
-}
-
-func (rtp *rewardTxPreprocessor) baseReceivedTransaction2(
-	txHash []byte,
-	tx data.TransactionHandler,
-	forBlock *txsForBlock,
-) bool {
-
-	forBlock.mutTxsForBlock.Lock()
-	defer forBlock.mutTxsForBlock.Unlock()
-
-	//txInfoForHash := forBlock.txHashAndInfo[string(txHash)]
-	//if txInfoForHash != nil && txInfoForHash.txShardInfo != nil &&
-	//	(txInfoForHash.tx == nil || txInfoForHash.tx.IsInterfaceNil()) {
-
-	forBlock.txHashAndInfo[string(txHash)] = &txInfo{}
-	forBlock.txHashAndInfo[string(txHash)].tx = tx
-	//	forBlock.missingTxs--
-	//}
-
-	err := rtp.saveAccountBalanceForAddress(tx.GetRcvAddr())
-	if err != nil {
-		return false
-	}
-
-	err = rtp.rewardsProcessor.ProcessRewardTransaction(tx.(*rewardTx.RewardTx))
-	if err != nil {
-		return false
-	}
-
-	return false
-
 }
 
 func (bpp *basePreProcess) computeExistingAndRequestMissing(

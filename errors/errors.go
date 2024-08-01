@@ -832,3 +832,6 @@ var ErrNilAPIProcessorCompsCreator = errors.New("nil api processor components cr
 
 // ErrNilEndOfEpochEconomicsFactory signals that a nil end of epoch economics factory has been provided
 var ErrNilEndOfEpochEconomicsFactory = errors.New("nil end of epoch economics factory has been provided")
+
+// ErrNilRewardsPreProcFactory signals that a nil rewards pre-processor factory has been provided
+var ErrNilRewardsPreProcFactory = errors.New("nil rewards pre-processor factory has been provided")
