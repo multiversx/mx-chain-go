@@ -714,6 +714,18 @@ func (mrc *managedRunTypeComponents) RewardsTxPreProcFactory() preprocess.Reward
 	return mrc.runTypeComponents.rewardsTxPreProcFactory
 }
 
+// RewardsCreatorFactory returns the rewards creator factory
+func (mrc *managedRunTypeComponents) RewardsCreatorFactory() factory.RewardsCreatorFactory {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.rewardsCreatorFactory
+}
+
 // IsInterfaceNil returns true if the interface is nil
 func (mrc *managedRunTypeComponents) IsInterfaceNil() bool {
 	return mrc == nil

@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
+	"github.com/multiversx/mx-chain-go/epochStart/metachain"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/processing/api"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
@@ -84,6 +85,7 @@ type RunTypeComponentsStub struct {
 	APIProcessorCompsCreatorHandlerField   api.ApiProcessorCompsCreatorHandler
 	EndOfEpochEconomicsFactoryHandlerField factory.EndOfEpochEconomicsFactoryHandler
 	RewardsTxPreProcFactoryField           preprocess.RewardsTxPreProcFactory
+	RewardsCreatorFactoryField             factory.RewardsCreatorFactory
 }
 
 // NewRunTypeComponentsStub -
@@ -130,6 +132,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		APIProcessorCompsCreatorHandlerField:   &testFactory.APIProcessorCompsCreatorMock{},
 		EndOfEpochEconomicsFactoryHandlerField: &testFactory.EconomicsFactoryMock{},
 		RewardsTxPreProcFactoryField:           preprocess.NewRewardsTxPreProcFactory(), // todo here
+		RewardsCreatorFactoryField:             metachain.NewRewardsCreatorFactory(),    // todo here
 	}
 }
 
@@ -356,6 +359,11 @@ func (r *RunTypeComponentsStub) EndOfEpochEconomicsFactoryHandler() factory.EndO
 // RewardsTxPreProcFactory -
 func (r *RunTypeComponentsStub) RewardsTxPreProcFactory() preprocess.RewardsTxPreProcFactory {
 	return r.RewardsTxPreProcFactoryField
+}
+
+// RewardsCreatorFactory -
+func (r *RunTypeComponentsStub) RewardsCreatorFactory() factory.RewardsCreatorFactory {
+	return r.RewardsCreatorFactoryField
 }
 
 // IsInterfaceNil -

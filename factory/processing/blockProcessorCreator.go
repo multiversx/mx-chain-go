@@ -913,7 +913,7 @@ func (pcf *processComponentsFactory) createArgsMetaBlockProcessor(
 		RewardsHandler:        pcf.coreData.EconomicsData(),
 		EconomicsDataProvider: economicsDataProvider,
 	}
-	epochRewards, err := metachainEpochStart.NewRewardsCreatorProxy(argsEpochRewards)
+	epochRewards, err := pcf.runTypeComponents.RewardsCreatorFactory().CreateRewardsCreator(argsEpochRewards)
 	if err != nil {
 		return nil, err
 	}
@@ -1167,7 +1167,7 @@ func (pcf *processComponentsFactory) createExtraMetaBlockProcessorArgs(
 			RewardsHandler:        pcf.coreData.EconomicsData(),
 			EconomicsDataProvider: economicsDataProvider,
 		}
-		epochRewards, err := metachainEpochStart.NewRewardsCreatorProxy(argsEpochRewards)
+		epochRewards, err := pcf.runTypeComponents.RewardsCreatorFactory().CreateRewardsCreator(argsEpochRewards)
 		if err != nil {
 			return nil, err
 		}

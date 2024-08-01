@@ -10,7 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
@@ -33,6 +32,7 @@ func NewSovereignRewards(rc *rewardsCreatorV2) (*sovereignRewards, error) {
 	}
 
 	sr.fillBaseRewardsPerBlockPerNodeFunc = sr.fillBaseRewardsPerBlockPerNode
+	sr.flagDelegationSystemSCEnabled.SetValue(true)
 	return sr, nil
 }
 
@@ -66,7 +66,6 @@ func (rc *sovereignRewards) CreateRewardsMiniBlocks(
 
 	miniBlocks := rc.initializeRewardsMiniBlocks()
 	rc.clean()
-	rc.flagDelegationSystemSCEnabled.SetValue(metaBlock.GetEpoch() >= rc.enableEpochsHandler.GetActivationEpoch(common.StakingV2Flag))
 
 	protRwdTx, protRwdShardId, err := rc.createProtocolSustainabilityRewardTransaction(metaBlock, computedEconomics)
 	if err != nil {
@@ -116,7 +115,7 @@ func (rc *sovereignRewards) addValidatorRewardsToMiniBlocks(
 			continue
 		}
 
-		log.Debug("rewardsCreatorV2.addValidatorRewardsToMiniBlocks",
+		log.Debug("sovereignRewards.addValidatorRewardsToMiniBlocks",
 			"epoch", rwdTx.GetEpoch(),
 			"destination", rwdTx.GetRcvAddr(),
 			"value", rwdTx.GetValue().String())

@@ -835,3 +835,6 @@ var ErrNilEndOfEpochEconomicsFactory = errors.New("nil end of epoch economics fa
 
 // ErrNilRewardsPreProcFactory signals that a nil rewards pre-processor factory has been provided
 var ErrNilRewardsPreProcFactory = errors.New("nil rewards pre-processor factory has been provided")
+
+// ErrNilRewardsFactory signals that a nil rewards factory has been provided
+var ErrNilRewardsFactory = errors.New("nil rewards factory has been provided")

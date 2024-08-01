@@ -2080,6 +2080,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	if check.IfNil(args.RunTypeComponents.EndOfEpochEconomicsFactoryHandler()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilEndOfEpochEconomicsFactory)
 	}
+	if check.IfNil(args.RunTypeComponents.RewardsCreatorFactory()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilRewardsFactory)
+	}
 
 	return nil
 }
