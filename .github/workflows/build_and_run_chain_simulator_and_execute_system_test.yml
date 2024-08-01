@@ -43,8 +43,8 @@ jobs:
           cd mx-chain-go
           current_branch=$(git symbolic-ref --short HEAD)
           echo "CURRENT_BRANCH=${current_branch}" >> $GITHUB_ENV
-          git fetch origin ${current_branch} --prune --unshallow
-          latest_commit_hash=$(git rev-parse HEAD)
+          git fetch origin ${current_branch} --prune
+          latest_commit_hash=$(git rev-parse origin/${current_branch})
           echo "LATEST_COMMIT_HASH=${latest_commit_hash}" >> $GITHUB_ENV
           echo "Latest commit hash: ${latest_commit_hash}"
 
