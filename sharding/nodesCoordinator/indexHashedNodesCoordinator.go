@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/nodesExporter"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -638,6 +639,9 @@ func (ihnc *indexHashedNodesCoordinator) EpochStartPrepare(metaHdr data.HeaderHa
 		log.Debug("nil body provided for epoch start prepare, it is normal in case of revertStateToBlock")
 		return
 	}
+
+	nodesExporter.NodesExporterInstance.ExportNqtForEpoch(metaHdr.GetEpoch())
+	nodesExporter.NodesExporterInstance.ExportHeartbeatForEpoch(metaHdr.GetEpoch())
 
 	ihnc.updateEpochFlags(newEpoch)
 

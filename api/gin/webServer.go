@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/facade"
+	"github.com/multiversx/mx-chain-go/nodesExporter"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -126,6 +127,7 @@ func (ws *webServer) StartHttpServer() error {
 
 	ws.registerRoutes(engine)
 
+	nodesExporter.NodesExporterInstance.SetApiPort(ws.facade.RestApiInterface())
 	server := &http.Server{Addr: ws.facade.RestApiInterface(), Handler: engine}
 	log.Debug("creating gin web sever", "interface", ws.facade.RestApiInterface())
 	ws.httpServer, err = NewHttpServer(server)

@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/headerVersionData"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/nodesExporter"
 	processOutport "github.com/multiversx/mx-chain-go/outport/process"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -1208,6 +1209,8 @@ func (mp *metaProcessor) CommitBlock(
 
 	// must be called before commitEpochStart
 	rewardsTxs := mp.getRewardsTxs(header, body)
+
+	nodesExporter.NodesExporterInstance.SetSelfShardId(mp.shardCoordinator.SelfId())
 
 	mp.commitEpochStart(header, body)
 	headerHash := mp.hasher.Compute(string(marshalizedHeader))
