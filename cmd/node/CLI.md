@@ -15,7 +15,7 @@ AUTHOR:
    The MultiversX Team <contact@multiversx.com>
    
 GLOBAL OPTIONS:
-    --genesis-file [path]                     The [path] for the genesis file. This JSON file contains initial data to bootstrap from, such as initial balances for accounts. (default: "./config/genesis.json")
+   --genesis-file [path]                     The [path] for the genesis file. This JSON file contains initial data to bootstrap from, such as initial balances for accounts. (default: "./config/genesis.json")
    --smart-contracts-file [path]             The [path] for the initial smart contracts file. This JSON file contains data used to deploy initial smart contracts such as delegation smart contracts (default: "./config/genesisSmartContracts.json")
    --nodes-setup-file [path]                 The [path] for the nodes setup. This JSON file contains initial nodes info, such as consensus group size, round duration, validators public keys and so on. (default: "./config/nodesSetup.json")
    --config [path]                           The [path] for the main configuration file. This TOML file contain the main configurations such as storage setups, epoch duration and so on. (default: "./config/config.toml")
