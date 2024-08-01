@@ -382,5 +382,11 @@ func (nc *networkComponents) Close() error {
 		log.LogIfError(fullArchiveNetMessenger.Close())
 	}
 
+	lightClientMessenger := nc.lightClientNetworkHolder.netMessenger
+	if !check.IfNil(lightClientMessenger) {
+		log.Debug("calling close on the light client network messenger instance...")
+		log.LogIfError(lightClientMessenger.Close())
+	}
+
 	return nil
 }

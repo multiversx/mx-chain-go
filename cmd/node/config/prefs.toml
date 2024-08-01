@@ -20,7 +20,8 @@
    # It is highly recommended to enable this flag on an observer (not on a validator node)
    FullArchive = false
 
-   # TODO: add comment
+   # LightClient, if enabled, will make the node able to connect on the light client supplier network.
+   # It is highly recommended to enable this flag on an observer (not on a validator node)
    LightClient = false
 
    # PreferredConnections holds an array containing valid ips or peer ids from nodes to connect with (in top of other connections)
