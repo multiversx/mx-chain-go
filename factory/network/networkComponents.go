@@ -33,6 +33,7 @@ import (
 type NetworkComponentsFactoryArgs struct {
 	MainP2pConfig         p2pConfig.P2PConfig
 	FullArchiveP2pConfig  p2pConfig.P2PConfig
+	LightClientP2pConfig  p2pConfig.P2PConfig
 	MainConfig            config.Config
 	RatingsConfig         config.RatingsConfig
 	StatusHandler         core.AppStatusHandler
@@ -102,13 +103,16 @@ func NewNetworkComponentsFactory(
 	if check.IfNil(args.CryptoComponents) {
 		return nil, errors.ErrNilCryptoComponentsHolder
 	}
-	if args.NodeOperationMode != common.NormalOperation && args.NodeOperationMode != common.FullArchiveMode {
+	if args.NodeOperationMode != common.NormalOperation &&
+		args.NodeOperationMode != common.FullArchiveMode &&
+		args.NodeOperationMode != common.LightClientMode {
 		return nil, errors.ErrInvalidNodeOperationMode
 	}
 
 	return &networkComponentsFactory{
 		mainP2PConfig:         args.MainP2pConfig,
 		fullArchiveP2PConfig:  args.FullArchiveP2pConfig,
+		lightClientP2PConfig:  args.LightClientP2pConfig,
 		ratingsConfig:         args.RatingsConfig,
 		marshalizer:           args.Marshalizer,
 		mainConfig:            args.MainConfig,

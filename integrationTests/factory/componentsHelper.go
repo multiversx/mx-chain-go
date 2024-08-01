@@ -89,6 +89,7 @@ func createConfigurationsPathsHolder() *config.ConfigurationPathsHolder {
 		External:                 concatPath(ExternalPath),
 		MainP2p:                  concatPath(MainP2pPath),
 		FullArchiveP2p:           concatPath(FullArchiveP2pPath),
+		LightClientP2p:           concatPath(LightClientP2pPath),
 		Epoch:                    concatPath(EpochPath),
 		SystemSC:                 concatPath(SystemSCConfigPath),
 		GasScheduleDirectoryName: concatPath(GasSchedule),

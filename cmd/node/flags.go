@@ -470,6 +470,7 @@ func getFlags() []cli.Flag {
 		importDbSaveEpochRootHash,
 		redundancyLevel,
 		fullArchive,
+		lightClient,
 		memBallast,
 		memoryUsageToCreateProfiles,
 		forceStartFromNetwork,

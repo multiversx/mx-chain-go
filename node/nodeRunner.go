@@ -1418,6 +1418,7 @@ func (nr *nodeRunner) CreateManagedNetworkComponents(
 	networkComponentsFactoryArgs := networkComp.NetworkComponentsFactoryArgs{
 		MainP2pConfig:         *nr.configs.MainP2pConfig,
 		FullArchiveP2pConfig:  *nr.configs.FullArchiveP2pConfig,
+		LightClientP2pConfig:  *nr.configs.LightClientP2pConfig,
 		MainConfig:            *nr.configs.GeneralConfig,
 		RatingsConfig:         *nr.configs.RatingsConfig,
 		StatusHandler:         statusCoreComponents.AppStatusHandler(),
@@ -1434,6 +1435,9 @@ func (nr *nodeRunner) CreateManagedNetworkComponents(
 	}
 	if nr.configs.PreferencesConfig.Preferences.FullArchive {
 		networkComponentsFactoryArgs.NodeOperationMode = common.FullArchiveMode
+	}
+	if nr.configs.PreferencesConfig.Preferences.LightClient {
+		networkComponentsFactoryArgs.NodeOperationMode = common.LightClientMode
 	}
 
 	networkComponentsFactory, err := networkComp.NewNetworkComponentsFactory(networkComponentsFactoryArgs)

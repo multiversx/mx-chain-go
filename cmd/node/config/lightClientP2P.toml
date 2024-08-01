@@ -1,4 +1,4 @@
-# FullArchiveP2P config file
+# LightClientP2P config file
 
 # NodeConfig holds the P2P settings
 [Node]
