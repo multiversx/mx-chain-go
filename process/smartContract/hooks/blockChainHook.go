@@ -838,6 +838,7 @@ func (bh *BlockChainHookImpl) updateEpochStartHeaderFromCurrentHeader(hdr data.H
 	return nil
 }
 
+// SetEpochStartHeader sets the epoch start header to be used by smart contracts
 func (bh *BlockChainHookImpl) SetEpochStartHeader(header data.HeaderHandler) {
 	bh.mutEpochStartHdr.Lock()
 	defer bh.mutEpochStartHdr.Unlock()
