@@ -60,6 +60,9 @@ func initOwnerAndSysAccState(
 		},
 	})
 	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
 }
 
 // This function will:

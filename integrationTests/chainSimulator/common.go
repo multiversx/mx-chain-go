@@ -283,4 +283,7 @@ func SetEsdtInWallet(
 	}
 	err = cs.SetKeyValueForAddress(wallet.Bech32, keyValueMap)
 	require.NoError(t, err)
+
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
 }
