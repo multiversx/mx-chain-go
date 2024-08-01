@@ -16,6 +16,9 @@ const NormalOperation NodeOperation = "normal operation"
 // FullArchiveMode defines the node operation as a full archive mode
 const FullArchiveMode NodeOperation = "full archive mode"
 
+// LightClientMode defines the node operation as a light client
+const LightClientMode NodeOperation = "light client mode"
+
 // PeerType represents the type of peer
 type PeerType string
 

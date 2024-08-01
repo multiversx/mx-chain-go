@@ -8,6 +8,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -25,7 +27,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 // NetworkComponentsFactoryArgs holds the arguments to create a network component handler instance
@@ -47,6 +48,7 @@ type NetworkComponentsFactoryArgs struct {
 type networkComponentsFactory struct {
 	mainP2PConfig         p2pConfig.P2PConfig
 	fullArchiveP2PConfig  p2pConfig.P2PConfig
+	lightClientP2PConfig  p2pConfig.P2PConfig
 	mainConfig            config.Config
 	ratingsConfig         config.RatingsConfig
 	statusHandler         core.AppStatusHandler
@@ -68,6 +70,7 @@ type networkComponentsHolder struct {
 type networkComponents struct {
 	mainNetworkHolder        networkComponentsHolder
 	fullArchiveNetworkHolder networkComponentsHolder
+	lightClientNetworkHolder networkComponentsHolder
 	peersRatingHandler       p2p.PeersRatingHandler
 	peersRatingMonitor       p2p.PeersRatingMonitor
 	inputAntifloodHandler    factory.P2PAntifloodHandler
@@ -136,6 +139,11 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		return nil, fmt.Errorf("%w for the full archive network holder", err)
 	}
 
+	lightClientNetworkComp, err := ncf.createLightClientNetworkHolder(peersRatingHandler)
+	if err != nil {
+		return nil, fmt.Errorf("%w for the light client network holder", err)
+	}
+
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	defer func() {
 		if err != nil {
@@ -160,9 +168,15 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		return nil, err
 	}
 
+	err = lightClientNetworkComp.netMessenger.Bootstrap()
+	if err != nil {
+		return nil, err
+	}
+
 	return &networkComponents{
 		mainNetworkHolder:        mainNetworkComp,
 		fullArchiveNetworkHolder: fullArchiveNetworkComp,
+		lightClientNetworkHolder: lightClientNetworkComp,
 		peersRatingHandler:       peersRatingHandler,
 		peersRatingMonitor:       peersRatingMonitor,
 		inputAntifloodHandler:    inputAntifloodHandler,
@@ -289,6 +303,19 @@ func (ncf *networkComponentsFactory) createFullArchiveNetworkHolder(peersRatingH
 	loggerInstance := logger.GetOrCreate("full-archive/p2p")
 
 	return ncf.createNetworkHolder(ncf.fullArchiveP2PConfig, loggerInstance, peersRatingHandler, p2p.FullArchiveNetwork)
+}
+
+func (ncf *networkComponentsFactory) createLightClientNetworkHolder(peersRatingHandler p2p.PeersRatingHandler) (networkComponentsHolder, error) {
+	if ncf.nodeOperationMode != common.LightClientMode {
+		return networkComponentsHolder{
+			netMessenger:         p2pDisabled.NewNetworkMessenger(),
+			preferredPeersHolder: disabled.NewPreferredPeersHolder(),
+		}, nil
+	}
+
+	loggerInstance := logger.GetOrCreate("light-client/p2p")
+
+	return ncf.createNetworkHolder(ncf.lightClientP2PConfig, loggerInstance, peersRatingHandler, p2p.LightClientNetwork)
 }
 
 func (ncf *networkComponentsFactory) createPeersRatingComponents() (p2p.PeersRatingHandler, p2p.PeersRatingMonitor, error) {
