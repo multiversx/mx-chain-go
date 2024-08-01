@@ -15,7 +15,7 @@ AUTHOR:
    The MultiversX Team <contact@multiversx.com>
    
 GLOBAL OPTIONS:
-   --genesis-file [path]                     The [path] for the genesis file. This JSON file contains initial data to bootstrap from, such as initial balances for accounts. (default: "./config/genesis.json")
+    --genesis-file [path]                     The [path] for the genesis file. This JSON file contains initial data to bootstrap from, such as initial balances for accounts. (default: "./config/genesis.json")
    --smart-contracts-file [path]             The [path] for the initial smart contracts file. This JSON file contains data used to deploy initial smart contracts such as delegation smart contracts (default: "./config/genesisSmartContracts.json")
    --nodes-setup-file [path]                 The [path] for the nodes setup. This JSON file contains initial nodes info, such as consensus group size, round duration, validators public keys and so on. (default: "./config/nodesSetup.json")
    --config [path]                           The [path] for the main configuration file. This TOML file contain the main configurations such as storage setups, epoch duration and so on. (default: "./config/config.toml")
@@ -27,6 +27,7 @@ GLOBAL OPTIONS:
    --config-external [path]                  The [path] for the external configuration file. This TOML file contains external configurations such as ElasticSearch's URL and login information (default: "./config/external.toml")
    --p2p-config [path]                       The [path] for the p2p configuration file. This TOML file contains peer-to-peer configurations such as port, target peer count or KadDHT settings (default: "./config/p2p.toml")
    --full-archive-p2p-config [path]          The [path] for the p2p configuration file for the full archive network. This TOML file contains peer-to-peer configurations such as port, target peer count or KadDHT settings (default: "./config/fullArchiveP2P.toml")
+   --light-client-p2p-config [path]          The [path] for the p2p configuration file for the light client network. This TOML file contains peer-to-peer configurations such as port, target peer count or KadDHT settings (default: "./config/lightClientP2P.toml")
    --epoch-config [path]                     The [path] for the epoch configuration file. This TOML file contains activation epochs configurations (default: "./config/enableEpochs.toml")
    --round-config [path]                     The [path] for the round configuration file. This TOML file contains activation round configurations (default: "./config/enableRounds.toml")
    --gas-costs-config [path]                 The [path] for the gas costs configuration directory. (default: "./config/gasSchedules")
@@ -60,6 +61,7 @@ GLOBAL OPTIONS:
    --import-db-save-epoch-root-hash          This flag, if set, will export the trie snapshots at every new epoch
    --redundancy-level value                  This flag specifies the level of redundancy used by the current instance for the node (-1 = disabled, 0 = main instance (default), 1 = first backup, 2 = second backup, etc.) (default: 0)
    --full-archive                            Boolean option for settings an observer as full archive, which will sync the entire database of its shard
+   --light-client-supplier                   Boolean option for setting an observer as light client
    --mem-ballast value                       Flag that specifies the number of MegaBytes to be used as a memory ballast for Garbage Collector optimization. If set to 0 (or not set at all), the feature will be disabled. This flag should be used only for well-monitored nodes and by advanced users, as a too high memory ballast could lead to Out Of Memory panics. The memory ballast should not be higher than 20-25% of the machine's available RAM (default: 0)
    --memory-usage-to-create-profiles value   Integer value to be used to set the memory usage thresholds (in bytes) (default: 2415919104)
    --force-start-from-network                Flag that will force the start from network bootstrap process
