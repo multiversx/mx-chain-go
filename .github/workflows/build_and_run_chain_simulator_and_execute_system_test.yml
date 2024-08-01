@@ -94,7 +94,7 @@ jobs:
 
       - name: Run go mod tidy and go build
         run: |
-          cd mx-chain-simulator-go
+          cd mx-chain-simulator-go/cmd/chainsimulator
           go mod tidy
           go build
 
