@@ -241,10 +241,10 @@
     MBufferSetRandom             = 6000
     MBufferToBigFloat            = 2000
     MBufferFromBigFloat          = 2000
-    MBufferToSmallIntUnsigned = 10000
-    MBufferToSmallIntSigned = 10000
-    MBufferFromSmallIntUnsigned = 10000
-    MBufferFromSmallIntSigned = 10000
+    MBufferToSmallIntUnsigned    = 10000
+    MBufferToSmallIntSigned      = 10000
+    MBufferFromSmallIntUnsigned  = 10000
+    MBufferFromSmallIntSigned    = 10000
 
 [BigFloatAPICost]
     BigFloatNewFromParts = 3000
