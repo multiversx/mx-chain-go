@@ -1,4 +1,4 @@
-name: Build and Smoke Test 1
+name: Build and Smoke Test 2
 
 on:
   pull_request:
