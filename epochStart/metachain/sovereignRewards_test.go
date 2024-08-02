@@ -26,34 +26,30 @@ func createSovereignDefaultValidatorInfo(
 	proposerFeesPerNode uint32,
 	nbBlocksPerShard uint32,
 ) state.ShardValidatorsInfoMapHandler {
-	cGrShard := uint32(nodesConfigProvider.ConsensusGroupSize(core.SovereignChainShardId))
-	nbBlocksSelectedNodeInShard := nbBlocksPerShard * cGrShard / eligibleNodesPerShard
+	shardID := core.SovereignChainShardId
 
-	shardsMap := map[uint32]struct{}{
-		core.SovereignChainShardId: {},
-	}
+	cGrShard := uint32(nodesConfigProvider.ConsensusGroupSize(shardID))
+	nbBlocksSelectedNodeInShard := nbBlocksPerShard * cGrShard / eligibleNodesPerShard
 
 	var nbBlocksSelected uint32
 	validators := state.NewShardValidatorsInfoMap()
-	for shardID := range shardsMap {
-		nbBlocksSelected = nbBlocksSelectedNodeInShard
-		for i := uint32(0); i < eligibleNodesPerShard; i++ {
-			str := fmt.Sprintf("rewardAddr%d_%d", shardID, i)
-			addrHex := make([]byte, len(str)*2)
-			_ = hex.Encode(addrHex, []byte(str))
+	nbBlocksSelected = nbBlocksSelectedNodeInShard
+	for i := uint32(0); i < eligibleNodesPerShard; i++ {
+		str := fmt.Sprintf("rewardAddr%d_%d", shardID, i)
+		addrHex := make([]byte, len(str)*2)
+		_ = hex.Encode(addrHex, []byte(str))
 
-			leaderSuccess := uint32(20)
-			_ = validators.Add(&state.ValidatorInfo{
-				PublicKey:                  []byte(fmt.Sprintf("pubKeyBLS%d%d", shardID, i)),
-				ShardId:                    shardID,
-				RewardAddress:              addrHex,
-				LeaderSuccess:              leaderSuccess,
-				ValidatorSuccess:           nbBlocksSelected - leaderSuccess,
-				NumSelectedInSuccessBlocks: nbBlocksSelected,
-				AccumulatedFees:            big.NewInt(int64(proposerFeesPerNode)),
-				List:                       string(common.EligibleList),
-			})
-		}
+		leaderSuccess := uint32(20)
+		_ = validators.Add(&state.ValidatorInfo{
+			PublicKey:                  []byte(fmt.Sprintf("pubKeyBLS%d%d", shardID, i)),
+			ShardId:                    shardID,
+			RewardAddress:              addrHex,
+			LeaderSuccess:              leaderSuccess,
+			ValidatorSuccess:           nbBlocksSelected - leaderSuccess,
+			NumSelectedInSuccessBlocks: nbBlocksSelected,
+			AccumulatedFees:            big.NewInt(int64(proposerFeesPerNode)),
+			List:                       string(common.EligibleList),
+		})
 	}
 
 	return validators

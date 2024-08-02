@@ -122,10 +122,10 @@ func (rc *sovereignRewards) addValidatorRewardsToMiniBlocks(
 
 		rc.currTxs.AddTx(rwdTxHash, rwdTx)
 
-		mbId := core.SovereignChainShardId
-		miniBlocks[mbId].TxHashes = append(miniBlocks[mbId].TxHashes, rwdTxHash)
+		miniBlocks[0].TxHashes = append(miniBlocks[0].TxHashes, rwdTxHash)
 
-		cacheIdentifier := process.ShardCacherIdentifier(mbId, mbId)
+		shardID := core.SovereignChainShardId
+		cacheIdentifier := process.ShardCacherIdentifier(shardID, shardID)
 		rc.dataPool.RewardTransactions().AddData(rwdTxHash,
 			rwdTx,
 			rwdTx.Size(),
