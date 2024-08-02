@@ -260,13 +260,13 @@ func (adb *AccountsDB) SaveAccount(account vmcommon.AccountHandler) error {
 
 	var entry JournalEntry
 	if check.IfNil(oldAccount) {
-		entry, err = NewJournalEntryAccountCreation(account.AddressBytes(), adb.mainTrie, adb.stateChangesCollector)
+		entry, err = NewJournalEntryAccountCreation(account.AddressBytes(), adb.mainTrie)
 		if err != nil {
 			return err
 		}
 		adb.journalize(entry)
 	} else {
-		entry, err = NewJournalEntryAccount(oldAccount, adb.stateChangesCollector)
+		entry, err = NewJournalEntryAccount(oldAccount)
 		if err != nil {
 			return err
 		}
@@ -401,7 +401,7 @@ func (adb *AccountsDB) saveCode(newAcc, oldAcc baseAccountHandler) error {
 		return err
 	}
 
-	entry, err := NewJournalEntryCode(unmodifiedOldCodeEntry, oldCodeHash, newCodeHash, adb.mainTrie, adb.marshaller, adb.stateChangesCollector)
+	entry, err := NewJournalEntryCode(unmodifiedOldCodeEntry, oldCodeHash, newCodeHash, adb.mainTrie, adb.marshaller)
 	if err != nil {
 		return err
 	}
@@ -575,7 +575,7 @@ func (adb *AccountsDB) saveDataTrie(accountHandler baseAccountHandler) ([]DataTr
 		return nil, nil
 	}
 
-	entry, err := NewJournalEntryDataTrieUpdates(oldValues, accountHandler, adb.stateChangesCollector)
+	entry, err := NewJournalEntryDataTrieUpdates(oldValues, accountHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -639,7 +639,7 @@ func (adb *AccountsDB) RemoveAccount(address []byte) error {
 		return fmt.Errorf("%w in RemoveAccount for address %s", ErrAccNotFound, address)
 	}
 
-	entry, err := NewJournalEntryAccount(acnt, adb.stateChangesCollector)
+	entry, err := NewJournalEntryAccount(acnt)
 	if err != nil {
 		return err
 	}
@@ -694,7 +694,7 @@ func (adb *AccountsDB) removeDataTrie(baseAcc baseAccountHandler) error {
 
 	adb.obsoleteDataTrieHashes[string(rootHash)] = hashes
 
-	entry, err := NewJournalEntryDataTrieRemove(rootHash, adb.obsoleteDataTrieHashes, adb.stateChangesCollector)
+	entry, err := NewJournalEntryDataTrieRemove(rootHash, adb.obsoleteDataTrieHashes)
 	if err != nil {
 		return err
 	}
@@ -718,7 +718,7 @@ func (adb *AccountsDB) removeCode(baseAcc baseAccountHandler) error {
 		return err
 	}
 
-	codeChangeEntry, err := NewJournalEntryCode(unmodifiedOldCodeEntry, oldCodeHash, nil, adb.mainTrie, adb.marshaller, adb.stateChangesCollector)
+	codeChangeEntry, err := NewJournalEntryCode(unmodifiedOldCodeEntry, oldCodeHash, nil, adb.mainTrie, adb.marshaller)
 	if err != nil {
 		return err
 	}
@@ -971,6 +971,17 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 	// 	log.Warn("state changes collector is not empty", "state changes", stateChanges)
 	// 	adb.stateChangesCollector.Reset()
 	// }
+
+	stateChanges := adb.stateChangesCollector.GetStateChanges()
+	printStateChanges(stateChanges)
+	err := adb.stateChangesCollector.DumpToJSONFile()
+	if err != nil {
+		log.Warn("failed to dump state changes to json file", "error", err)
+	}
+	log.Debug("SetTxHashForLatestStateChanges: dump to json file")
+
+	adb.stateChangesCollector.Reset()
+	log.Debug("SetTxHashForLatestStateChanges: reset")
 
 	oldHashes := make(common.ModifiedHashes)
 	newHashes := make(common.ModifiedHashes)
@@ -1352,19 +1363,6 @@ func collectStats(
 // SetTxHashForLatestStateChanges will return the state changes since the last call of this method
 func (adb *AccountsDB) SetTxHashForLatestStateChanges(txHash []byte, tx *transaction.Transaction) {
 	adb.stateChangesCollector.AddTxHashToCollectedStateChanges(txHash, tx)
-
-	stateChanges := adb.stateChangesCollector.GetStateChanges()
-	printStateChanges(stateChanges)
-	err := adb.stateChangesCollector.DumpToJSONFile()
-	if err != nil {
-		log.Warn("failed to dump state changes to json file", "error", err)
-	}
-
-	log.Debug("SetTxHashForLatestStateChanges: dump to json file")
-
-	adb.stateChangesCollector.Reset()
-
-	log.Debug("SetTxHashForLatestStateChanges: reset")
 
 }
 
