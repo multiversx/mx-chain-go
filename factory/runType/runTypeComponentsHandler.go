@@ -219,6 +219,12 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	if check.IfNil(mrc.endOfEpochEconomicsFactoryHandler) {
 		return errors.ErrNilEndOfEpochEconomicsFactory
 	}
+	if check.IfNil(mrc.rewardsCreatorFactory) {
+		return errors.ErrNilRewardsFactory
+	}
+	if check.IfNil(mrc.rewardsTxPreProcFactory) {
+		return errors.ErrNilRewardsPreProcFactory
+	}
 	return nil
 }
 

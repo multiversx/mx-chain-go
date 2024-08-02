@@ -311,6 +311,19 @@ func TestNewPreProcessorsContainerFactory_NilTxPreProcessorCreator(t *testing.T)
 	require.Nil(t, ppcf)
 }
 
+func TestNewPreProcessorsContainerFactory_RewardsTxPreProcFactory(t *testing.T) {
+	t.Parallel()
+
+	args := createMockPreProcessorsContainerFactoryArguments()
+	runTypeComps := processMocks.NewRunTypeComponentsStub()
+	runTypeComps.RewardsTxPreProcFactoryField = nil
+	args.RunTypeComponents = runTypeComps
+	ppcf, err := NewPreProcessorsContainerFactory(args)
+
+	require.Equal(t, customErrors.ErrNilRewardsPreProcFactory, err)
+	require.Nil(t, ppcf)
+}
+
 func TestNewPreProcessorsContainerFactory(t *testing.T) {
 	t.Parallel()
 
