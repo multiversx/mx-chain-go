@@ -194,3 +194,8 @@ func (rc *sovereignRewards) fillBaseRewardsPerBlockPerNode(baseRewardsPerNode *b
 
 	log.Debug("baseRewardsPerBlockPerValidator", "shardID", shardID, "value", rc.mapBaseRewardsPerBlockPerValidator[shardID].String())
 }
+
+// IsInterfaceNil checks if the underlying pointer is nil
+func (rc *sovereignRewards) IsInterfaceNil() bool {
+	return rc == nil
+}
