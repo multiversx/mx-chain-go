@@ -2,6 +2,7 @@ package preprocess
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
 	"github.com/multiversx/mx-chain-core-go/hashing"
@@ -35,6 +36,7 @@ type ArgsRewardTxPreProcessor struct {
 	TxExecutionOrderHandler    common.TxExecutionOrderHandler
 }
 
+// NewSovereignRewardsTxPreProcessor creates a sovereign rewards tx pre-processor
 func NewSovereignRewardsTxPreProcessor(args ArgsRewardTxPreProcessor) (*sovereignRewardsTxPreProcessor, error) {
 	rtp, err := baseCreateRewardTxPreProc(args)
 	if err != nil {
@@ -49,7 +51,8 @@ func NewSovereignRewardsTxPreProcessor(args ArgsRewardTxPreProcessor) (*sovereig
 }
 
 // receivedRewardTransaction is a callback function called when a new reward transaction
-// is added in the reward transactions pool
+// is added in the reward transactions pool. We do not need to wait for broadcasted txs on a channel, since
+// each node is processing these rewards. Therefore, whenever adding a reward tx in pool, we will directly execute it.
 func (srtp *sovereignRewardsTxPreProcessor) receivedRewardTransaction(key []byte, value interface{}) {
 	tx, ok := value.(data.TransactionHandler)
 	if !ok {
@@ -68,6 +71,17 @@ func (srtp *sovereignRewardsTxPreProcessor) receivedRewardTx(
 	tx data.TransactionHandler,
 	forBlock *txsForBlock,
 ) error {
+	if check.IfNil(tx) {
+		log.Warn("nil rewardsTransaction in sovereignRewardsTxPreProcessor.receivedRewardTx", "hash", txHash)
+		return process.ErrMissingTransaction
+	}
+
+	rwdTx, castOk := tx.(*rewardTx.RewardTx)
+	if !castOk {
+		log.Warn("invalid rewardsTransaction in sovereignRewardsTxPreProcessor.receivedRewardTx", "hash", txHash)
+		return process.ErrWrongTypeAssertion
+	}
+
 	forBlock.mutTxsForBlock.Lock()
 	forBlock.txHashAndInfo[string(txHash)] = &txInfo{
 		tx: tx,
@@ -79,5 +93,6 @@ func (srtp *sovereignRewardsTxPreProcessor) receivedRewardTx(
 		return err
 	}
 
-	return srtp.rewardsProcessor.ProcessRewardTransaction(tx.(*rewardTx.RewardTx))
+	srtp.txExecutionOrderHandler.Add(txHash)
+	return srtp.rewardsProcessor.ProcessRewardTransaction(rwdTx)
 }

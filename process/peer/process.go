@@ -1037,8 +1037,6 @@ func (vs *validatorStatistics) updateValidatorInfoOnSuccessfulBlock(
 		validatorSigned := (signingBitmap[i/8] & (1 << (uint16(i) % 8))) != 0
 		actionType := vs.computeValidatorActionType(isLeader, validatorSigned)
 
-		log.Error("IncreaseNumSelectedInSuccessBlocks", "bls key", validatorList[i].PubKey(), "SCORE", peerAcc.GetNumSelectedInSuccessBlocks())
-
 		switch actionType {
 		case leaderSuccess:
 			peerAcc.IncreaseLeaderSuccessRate(1)

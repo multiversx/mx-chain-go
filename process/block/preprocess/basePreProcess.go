@@ -421,8 +421,6 @@ func (bpp *basePreProcess) saveAccountBalanceForAddress(address []byte) error {
 		balance = big.NewInt(0)
 	}
 
-	log.Error("saveAccountBalanceForAddress", "address", address, "balance", balance.String())
-
 	bpp.balanceComputation.SetBalanceToAddress(address, balance)
 	return nil
 }

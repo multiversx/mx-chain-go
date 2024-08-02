@@ -894,7 +894,6 @@ func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
 
 	sovHdr.EpochStart.Economics.RewardsForProtocolSustainability.Set(scbp.epochRewardsCreator.GetProtocolSustainabilityRewards())
 
-	// TODO MX-15589 check how we can integrate all of these later on
 	err = scbp.epochSystemSCProcessor.ProcessDelegationRewards(rewardMiniBlocks, scbp.epochRewardsCreator.GetLocalTxCache())
 	if err != nil {
 		return err
@@ -904,7 +903,9 @@ func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
 	if err != nil {
 		return err
 	}
-	//
+
+	// do NOT call scbp.epochRewardsCreator.VerifyRewardsMiniBlocks here as in original meta code, since that func will re-process rewards
+
 	err = scbp.verifyFees(header)
 	if err != nil {
 		return err
@@ -1862,7 +1863,6 @@ func (scbp *sovereignChainBlockProcessor) updateState(header data.HeaderHandler,
 	}
 
 	if header.IsStartOfEpochBlock() {
-
 		log.Debug("trie snapshot",
 			"rootHash", header.GetRootHash(),
 			"prevRootHash", prevHeader.GetRootHash(),
@@ -1870,18 +1870,15 @@ func (scbp *sovereignChainBlockProcessor) updateState(header data.HeaderHandler,
 		scbp.accountsDB[state.UserAccountsState].SnapshotState(header.GetRootHash(), header.GetEpoch())
 		scbp.accountsDB[state.PeerAccountsState].SnapshotState(header.GetValidatorStatsRootHash(), header.GetEpoch())
 
-		// TODO: MX-15587- implement this and reuse code from meta processor
-
 		go func() {
-
-			metaBlock, ok := header.(data.MetaHeaderHandler)
+			sovHdr, ok := header.(data.MetaHeaderHandler)
 			if !ok {
-				log.Warn("cannot commit Trie Epoch Root Hash: lastMetaBlock is not *block.MetaBlock")
+				log.Warn("cannot commit Trie Epoch Root Hash: last sov header is not of type data.MetaHeaderHandler")
 				return
 			}
-			err := scbp.commitTrieEpochRootHashIfNeeded(metaBlock, header.GetRootHash())
+			err := scbp.commitTrieEpochRootHashIfNeeded(sovHdr, header.GetRootHash())
 			if err != nil {
-				log.Warn("couldn't commit trie checkpoint", "epoch", metaBlock.GetEpoch(), "error", err)
+				log.Warn("couldn't commit trie checkpoint", "epoch", sovHdr.GetEpoch(), "error", err)
 			}
 		}()
 

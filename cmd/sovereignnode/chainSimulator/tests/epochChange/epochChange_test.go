@@ -8,7 +8,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
-	api2 "github.com/multiversx/mx-chain-core-go/data/api"
+	apiData "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	chainSim "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
@@ -29,7 +29,7 @@ const (
 	sovereignConfigPath        = "../../../config/"
 )
 
-var log = logger.GetOrCreate("dsada")
+var log = logger.GetOrCreate("epoch-change")
 
 func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 	if testing.Short() {
@@ -38,7 +38,7 @@ func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
-		Value:    50,
+		Value:    50, // do not lower this value so that each validator can participate in consensus as leader to get rewards
 	}
 
 	var protocolSustainabilityAddress string
@@ -86,7 +86,7 @@ func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
-	protocolSustainabilityAddrBalance, _, err := nodeHandler.GetFacadeHandler().GetBalance(protocolSustainabilityAddress, api2.AccountQueryOptions{})
+	protocolSustainabilityAddrBalance, _, err := nodeHandler.GetFacadeHandler().GetBalance(protocolSustainabilityAddress, apiData.AccountQueryOptions{})
 	require.Nil(t, err)
 	require.Empty(t, protocolSustainabilityAddrBalance.Bytes())
 
@@ -119,7 +119,7 @@ func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 
 	currentEpoch := nodeHandler.GetCoreComponents().EpochNotifier().CurrentEpoch()
 	for epoch := currentEpoch + 1; epoch < currentEpoch+6; epoch++ {
-		allOwnersBalance := getOwnersBalances(t, nodeHandler)
+		allOwnersBalance := getConsensusOwnersBalances(t, nodeHandler)
 
 		err = cs.GenerateBlocksUntilEpochIsReached(int32(epoch))
 		require.Nil(t, err)
@@ -142,7 +142,6 @@ func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 		require.NotEmpty(t, accFeesTotal.Bytes())
 		require.Empty(t, devFeesTotal.Bytes())
 	}
-
 }
 
 func checkEpochChangeHeader(t *testing.T, nodeHandler process.NodeHandler) {
@@ -155,11 +154,11 @@ func checkEpochChangeHeader(t *testing.T, nodeHandler process.NodeHandler) {
 	require.Equal(t, block.RewardsBlock, block.Type(mbs[0].GetTypeInt32()))
 	require.Equal(t, block.PeerBlock, block.Type(mbs[1].GetTypeInt32()))
 
-	require.Equal(t, mbs[0].GetTxCount(), uint32(7))  // consensus group = 6 + protocol sustainability reward tx
-	require.Equal(t, mbs[1].GetTxCount(), uint32(18)) // 18 validators
+	require.Equal(t, mbs[0].GetTxCount(), uint32(7))  // consensus group reward txs = 6 + 1 reward tx protocol sustainability
+	require.Equal(t, mbs[1].GetTxCount(), uint32(18)) // 18 validators in total => 18 peer block updates
 }
 
-func getOwnersBalances(t *testing.T, nodeHandler process.NodeHandler) map[string]*big.Int {
+func getConsensusOwnersBalances(t *testing.T, nodeHandler process.NodeHandler) map[string]*big.Int {
 	currentHeader := nodeHandler.GetDataComponents().Blockchain().GetCurrentBlockHeader()
 	nodesCoordinator := nodeHandler.GetProcessComponents().NodesCoordinator()
 
@@ -213,7 +212,7 @@ func checkProtocolSustainabilityAddressBalanceIncreased(
 	protocolSustainabilityAddress string,
 	previousBalance *big.Int,
 ) {
-	currBalance, _, err := nodeHandler.GetFacadeHandler().GetBalance(protocolSustainabilityAddress, api2.AccountQueryOptions{})
+	currBalance, _, err := nodeHandler.GetFacadeHandler().GetBalance(protocolSustainabilityAddress, apiData.AccountQueryOptions{})
 	require.Nil(t, err)
 	require.NotEmpty(t, currBalance.String())
 

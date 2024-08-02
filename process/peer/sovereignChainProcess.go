@@ -24,6 +24,8 @@ func NewSovereignChainValidatorStatisticsProcessor(validatorStatistics *validato
 	return scvs, nil
 }
 
+// updateShardDataPeerState should not be implemented for sovereign, since UpdatePeerState is already taking care
+// of updating validators/leader block ratings
 func (vs *sovereignChainValidatorStatistics) updateShardDataPeerState(
 	_ data.CommonHeaderHandler,
 	_ map[string]data.CommonHeaderHandler,

@@ -176,7 +176,7 @@ func (rcp *rewardsCreatorProxy) switchToRewardsCreatorV2() error {
 	return nil
 }
 
-func (rcp *rewardsCreatorProxy) createRewardsCreatorV2() (epochStart.RewardsCreator, error) {
+func (rcp *rewardsCreatorProxy) createRewardsCreatorV2() (*rewardsCreatorV2, error) {
 	argsV2 := RewardsCreatorArgsV2{
 		BaseRewardsCreatorArgs: rcp.args.BaseRewardsCreatorArgs,
 		StakingDataProvider:    rcp.args.StakingDataProvider,
@@ -184,9 +184,7 @@ func (rcp *rewardsCreatorProxy) createRewardsCreatorV2() (epochStart.RewardsCrea
 		RewardsHandler:         rcp.args.RewardsHandler,
 	}
 
-	rc, _ := NewRewardsCreatorV2(argsV2)
-	return NewSovereignRewards(rc)
-
+	return NewRewardsCreatorV2(argsV2)
 }
 
 func (rcp *rewardsCreatorProxy) createRewardsCreatorV1() (*rewardsCreator, error) {

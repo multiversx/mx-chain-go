@@ -38,7 +38,7 @@ func NewSovereignRewards(rc *rewardsCreatorV2) (*sovereignRewards, error) {
 
 // CreateRewardsMiniBlocks creates the rewards miniblocks according to economics data and validator info.
 // This method applies the rewards according to the economics version 2 proposal, which takes into consideration
-// stake top-up values per node
+// stake top-up values per node. For each created reward tx, it will add directly to the reward txs pool
 func (rc *sovereignRewards) CreateRewardsMiniBlocks(
 	metaBlock data.MetaHeaderHandler,
 	validatorsInfo state.ShardValidatorsInfoMapHandler,
