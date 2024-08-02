@@ -96,3 +96,8 @@ func (srtp *sovereignRewardsTxPreProcessor) receivedRewardTx(
 	srtp.txExecutionOrderHandler.Add(txHash)
 	return srtp.rewardsProcessor.ProcessRewardTransaction(rwdTx)
 }
+
+// IsInterfaceNil checks if the underlying pointer is nil
+func (srtp *sovereignRewardsTxPreProcessor) IsInterfaceNil() bool {
+	return srtp == nil
+}
