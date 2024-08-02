@@ -7,7 +7,6 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
-	"github.com/multiversx/mx-chain-go/epochStart/metachain"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/processing/api"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
@@ -131,8 +130,8 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		ValidatorInfoCreatorFactoryField:       &testFactory.ValidatorInfoCreatorFactoryMock{},
 		APIProcessorCompsCreatorHandlerField:   &testFactory.APIProcessorCompsCreatorMock{},
 		EndOfEpochEconomicsFactoryHandlerField: &testFactory.EconomicsFactoryMock{},
-		RewardsTxPreProcFactoryField:           preprocess.NewRewardsTxPreProcFactory(), // todo here
-		RewardsCreatorFactoryField:             metachain.NewRewardsCreatorFactory(),    // todo here
+		RewardsTxPreProcFactoryField:           &testFactory.RewardsTxPreProcFactoryMock{},
+		RewardsCreatorFactoryField:             &testFactory.RewardsCreatorFactoryMock{},
 	}
 }
 
