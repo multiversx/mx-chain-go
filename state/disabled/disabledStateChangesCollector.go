@@ -31,6 +31,15 @@ func (d *disabledStateChangesCollector) Reset() {
 func (d *disabledStateChangesCollector) AddTxHashToCollectedStateChanges(_ []byte, _ *transaction.Transaction) {
 }
 
+// SetIndexToLastStateChange -
+func (d *disabledStateChangesCollector) SetIndexToLastStateChange(index int) {
+}
+
+// RevertToIndex -
+func (d *disabledStateChangesCollector) RevertToIndex(index int) error {
+	return nil
+}
+
 // DumpToJSONFile returns nil
 func (d *disabledStateChangesCollector) DumpToJSONFile() error {
 	return nil

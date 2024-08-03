@@ -360,6 +360,7 @@ type StateChangesCollector interface {
 	GetStateChanges() []StateChangesForTx
 	Reset()
 	AddTxHashToCollectedStateChanges(txHash []byte, tx *transaction.Transaction)
+	SetIndexToLastStateChange(index int)
 	DumpToJSONFile() error
 	IsInterfaceNil() bool
 }

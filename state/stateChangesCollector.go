@@ -1,11 +1,13 @@
 package state
 
 import (
+	"bytes"
 	"encoding/json"
-	"path/filepath"
+	"errors"
+	"fmt"
+	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-storage-go/leveldb"
 	"github.com/multiversx/mx-chain-storage-go/types"
 )
 
@@ -21,8 +23,13 @@ type DataTrieChange struct {
 	Val  []byte `json:"-"`
 }
 
+// ErrStateChangesIndexOutOfBounds signals that the state changes index is out of bounds
+var ErrStateChangesIndexOutOfBounds = errors.New("state changes index out of bounds")
+
 // StateChangeDTO is used to collect state changes
 type StateChangeDTO struct {
+	Index           int              `json:"-"`
+	TxHash          []byte           `json:"-"`
 	Type            string           `json:"type"`
 	MainTrieKey     []byte           `json:"mainTrieKey"`
 	MainTrieVal     []byte           `json:"-"`
@@ -45,61 +52,155 @@ type StateChangesForTx struct {
 	StateChanges []StateChangeDTO         `json:"stateChanges"`
 }
 
+type StateChangesTx struct {
+	TxHash []byte                   `json:"txHash"`
+	Tx     *transaction.Transaction `json:"tx"`
+}
+
 type stateChangesCollector struct {
-	stateChanges      []StateChangeDTO
-	stateChangesForTx []StateChangesForTx
+	stateChanges    []StateChangeDTO
+	stateChangesMut sync.RWMutex
+
+	cachedTxs map[string]*transaction.Transaction
 
 	storer types.Persister
 }
 
 // NewStateChangesCollector creates a new StateChangesCollector
 func NewStateChangesCollector() *stateChangesCollector {
-	dbPath := filepath.Join(workingDir, "stateChangesDB", "StateChanges")
+	// dbPath := filepath.Join(workingDir, "stateChangesDB", "StateChanges")
 
-	db, err := leveldb.NewSerialDB(dbPath, 2, 100, 10)
-	if err != nil {
-		log.Error("NewStateChangesCollector: failed to create level db")
-	}
+	// db, err := leveldb.NewSerialDB(dbPath, 2, 100, 10)
+	// if err != nil {
+	// 	log.Error("NewStateChangesCollector: failed to create level db")
+	// }
 
 	return &stateChangesCollector{
-		stateChanges: []StateChangeDTO{},
-		storer:       db,
+		stateChanges: make([]StateChangeDTO, 0),
+		cachedTxs:    make(map[string]*transaction.Transaction),
+		storer:       nil,
 	}
 }
 
 // AddStateChange adds a new state change to the collector
 func (scc *stateChangesCollector) AddStateChange(stateChange StateChangeDTO) {
+	scc.stateChangesMut.Lock()
 	scc.stateChanges = append(scc.stateChanges, stateChange)
+	scc.stateChangesMut.Unlock()
 }
 
 // GetStateChanges returns the accumulated state changes
 func (scc *stateChangesCollector) GetStateChanges() []StateChangesForTx {
-	if len(scc.stateChanges) > 0 {
-		scc.AddTxHashToCollectedStateChanges([]byte{}, nil)
+	stateChangesForTx, err := scc.getStateChangesForTxs()
+	if err != nil {
+		log.Warn("failed to get state changes for tx", "error", err)
+		return make([]StateChangesForTx, 0)
 	}
 
-	return scc.stateChangesForTx
+	return stateChangesForTx
+}
+
+func (scc *stateChangesCollector) getStateChangesForTxs() ([]StateChangesForTx, error) {
+	scc.stateChangesMut.Lock()
+	defer scc.stateChangesMut.Unlock()
+
+	stateChangesForTxs := make([]StateChangesForTx, 0)
+
+	for i := 0; i < len(scc.stateChanges); i++ {
+		txHash := scc.stateChanges[i].TxHash
+
+		if len(txHash) == 0 {
+			log.Warn("empty tx hash, state change event not associated to a transaction")
+			break
+		}
+
+		log.Warn("txHash", "txHash", string(txHash))
+
+		cachedTx, txOk := scc.cachedTxs[string(txHash)]
+		if !txOk {
+			return nil, fmt.Errorf("did not find tx in cache")
+		}
+
+		innerStateChangesForTx := make([]StateChangeDTO, 0)
+		for j := i; j < len(scc.stateChanges); j++ {
+			txHash2 := scc.stateChanges[j].TxHash
+			if !bytes.Equal(txHash, txHash2) {
+				i = j
+				break
+			}
+
+			innerStateChangesForTx = append(innerStateChangesForTx, scc.stateChanges[j])
+			i = j
+		}
+
+		stateChangesForTx := StateChangesForTx{
+			TxHash:       txHash,
+			Tx:           cachedTx,
+			StateChanges: innerStateChangesForTx,
+		}
+		stateChangesForTxs = append(stateChangesForTxs, stateChangesForTx)
+	}
+
+	return stateChangesForTxs, nil
 }
 
 // Reset resets the state changes collector
 func (scc *stateChangesCollector) Reset() {
+	scc.stateChangesMut.Lock()
+	defer scc.stateChangesMut.Unlock()
+
 	scc.stateChanges = make([]StateChangeDTO, 0)
-	scc.stateChangesForTx = make([]StateChangesForTx, 0)
+	scc.cachedTxs = make(map[string]*transaction.Transaction)
 }
 
 func (scc *stateChangesCollector) AddTxHashToCollectedStateChanges(txHash []byte, tx *transaction.Transaction) {
-	stateChangesForTx := StateChangesForTx{
-		TxHash:       txHash,
-		Tx:           tx,
-		StateChanges: scc.stateChanges,
+	scc.stateChangesMut.Lock()
+	defer scc.stateChangesMut.Unlock()
+
+	scc.cachedTxs[string(txHash)] = tx
+
+	for i := len(scc.stateChanges) - 1; i >= 0; i-- {
+		if len(scc.stateChanges[i].TxHash) > 0 {
+			break
+		}
+
+		scc.stateChanges[i].TxHash = txHash
+	}
+}
+
+func (scc *stateChangesCollector) SetIndexToLastStateChange(index int) {
+	scc.stateChangesMut.Lock()
+	defer scc.stateChangesMut.Unlock()
+
+	scc.stateChanges[len(scc.stateChanges)-1].Index = index
+}
+
+func (scc *stateChangesCollector) RevertToIndex(index int) error {
+	scc.stateChangesMut.Lock()
+	defer scc.stateChangesMut.Unlock()
+
+	if index > len(scc.stateChanges) || index < 0 {
+		return ErrStateChangesIndexOutOfBounds
 	}
 
-	scc.stateChanges = make([]StateChangeDTO, 0)
-	scc.stateChangesForTx = append(scc.stateChangesForTx, stateChangesForTx)
+	if index == 0 {
+		scc.Reset()
+		return nil
+	}
+
+	// this should be improved since not all state changes indexer are set
+	scc.stateChanges = scc.stateChanges[:index]
+
+	return nil
 }
 
 func (scc *stateChangesCollector) DumpToJSONFile() error {
-	for _, stateChange := range scc.stateChangesForTx {
+	stateChangesForTx, err := scc.getStateChangesForTxs()
+	if err != nil {
+		return err
+	}
+
+	for _, stateChange := range stateChangesForTx {
 		marshalledData, err := json.Marshal(stateChange)
 		if err != nil {
 			return err

@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
@@ -456,7 +457,7 @@ func stepCreateAccountWithDataTrieAndCode(
 	_ = userAcc.SaveKeyValue(key1, []byte("value"))
 	_ = userAcc.SaveKeyValue(key2, []byte("value"))
 	_ = adb.SaveAccount(userAcc)
-	adb.SetTxHashForLatestStateChanges([]byte("accountCreationTxHash"))
+	adb.SetTxHashForLatestStateChanges([]byte("accountCreationTxHash"), &transaction.Transaction{})
 	serializedAcc, _ := marshaller.Marshal(userAcc)
 	codeHash := userAcc.GetCodeHash()
 
@@ -505,7 +506,7 @@ func stepMigrateDataTrieValAndChangeCode(
 	userAcc.SetCode(code)
 	_ = userAcc.SaveKeyValue([]byte("key1"), []byte("value1"))
 	_ = adb.SaveAccount(userAcc)
-	adb.SetTxHashForLatestStateChanges([]byte("accountUpdateTxHash"))
+	adb.SetTxHashForLatestStateChanges([]byte("accountUpdateTxHash"), &transaction.Transaction{})
 
 	stateChangesForTx := adb.ResetStateChangesCollector()
 	assert.Equal(t, 1, len(stateChangesForTx))
