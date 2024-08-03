@@ -998,7 +998,7 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 	oldRoot := adb.mainTrie.GetOldRoot()
 
 	// Step 2. commit main trie
-	err := adb.commitTrie(adb.mainTrie, oldHashes, newHashes)
+	err = adb.commitTrie(adb.mainTrie, oldHashes, newHashes)
 	if err != nil {
 		return nil, err
 	}
@@ -1214,6 +1214,8 @@ func (adb *AccountsDB) journalize(entry JournalEntry) {
 		"entry type", fmt.Sprintf("%T", entry),
 	)
 
+	adb.stateChangesCollector.SetIndexToLastStateChange(len(adb.entries))
+
 	if len(adb.entries) == 1 {
 		adb.stackDebug = debug.Stack()
 	}
@@ -1363,7 +1365,6 @@ func collectStats(
 // SetTxHashForLatestStateChanges will return the state changes since the last call of this method
 func (adb *AccountsDB) SetTxHashForLatestStateChanges(txHash []byte, tx *transaction.Transaction) {
 	adb.stateChangesCollector.AddTxHashToCollectedStateChanges(txHash, tx)
-
 }
 
 func (adb *AccountsDB) ResetStateChangesCollector() []StateChangesForTx {

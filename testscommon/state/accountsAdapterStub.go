@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -39,7 +40,7 @@ type AccountsStub struct {
 	CloseCalled                          func() error
 	SetSyncerCalled                      func(syncer state.AccountsDBSyncer) error
 	StartSnapshotIfNeededCalled          func() error
-	SetTxHashForLatestStateChangesCalled func(txHash []byte)
+	SetTxHashForLatestStateChangesCalled func(txHash []byte, tx *transaction.Transaction)
 	ResetStateChangesCollectorCalled     func() []state.StateChangesForTx
 }
 
@@ -260,9 +261,9 @@ func (as *AccountsStub) GetCodeWithBlockInfo(codeHash []byte, options common.Roo
 }
 
 // SetTxHashForLatestStateChanges -
-func (as *AccountsStub) SetTxHashForLatestStateChanges(txHash []byte) {
+func (as *AccountsStub) SetTxHashForLatestStateChanges(txHash []byte, tx *transaction.Transaction) {
 	if as.SetTxHashForLatestStateChangesCalled != nil {
-		as.SetTxHashForLatestStateChangesCalled(txHash)
+		as.SetTxHashForLatestStateChangesCalled(txHash, tx)
 	}
 }
 
