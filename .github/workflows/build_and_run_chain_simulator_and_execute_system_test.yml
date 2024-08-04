@@ -10,15 +10,19 @@ on:
       - 'integrate-sys-tests-ci2'
   workflow_dispatch:
   issue_comment:
-    types: [created]
+    types: [created, edited, deleted]
 
 permissions:
   issues: write
   pull-requests: write
+  contents: read
 
 jobs:
   build-and-test:
-    if: github.event_name == 'pull_request' || (github.event_name == 'issue_comment' && contains(github.event.comment.body, 'Run Tests:'))
+    if: |
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request && contains(github.event.comment.body, 'Run Tests:'))
+
     strategy:
       matrix:
         runs-on: [ubuntu-latest]
@@ -31,6 +35,11 @@ jobs:
       MX_CHAIN_TESTING_SUITE_TARGET_BRANCH: ""
 
     steps:
+      - name: Debug Comment
+        if: github.event_name == 'issue_comment'
+        run: |
+            echo "Comment body: ${{ github.event.comment.body }}"
+
       - name: Parse Comment for Branches
         if: github.event_name == 'issue_comment'
         run: |
@@ -47,7 +56,6 @@ jobs:
               TESTING_SUITE_BRANCH=$(echo "$COMMENT" | grep "mx-chain-testing-suite:" | awk -F': ' '{print $2}')
               echo "MX_CHAIN_TESTING_SUITE_TARGET_BRANCH=${TESTING_SUITE_BRANCH}" >> $GITHUB_ENV
             fi
-          fi
 
       - name: Set up Go 1.20.7
         uses: actions/setup-go@v3
