@@ -10,7 +10,7 @@ on:
       - 'integrate-sys-tests-ci2'
   workflow_dispatch:
   issue_comment:
-    types: [created, edited, deleted]
+    types: [created]
 
 permissions:
   issues: write
@@ -35,16 +35,10 @@ jobs:
       MX_CHAIN_TESTING_SUITE_TARGET_BRANCH: ""
 
     steps:
-      - name: Debug Comment
-        if: github.event_name == 'issue_comment'
+      - name: Log Comment
         run: |
           echo "Comment body: ${{ github.event.comment.body }}"
-          echo "Is PR: ${{ github.event.issue.pull_request }}
-
-      - name: Log Trigger Information
-        run: |
-          echo "Event: ${{ github.event_name }}"
-          echo "Action: ${{ github.event.action }}"
+          echo "Is PR: ${{ github.event.issue.pull_request }}"
 
       - name: Parse Comment for Branches
         if: github.event_name == 'issue_comment'
@@ -62,6 +56,7 @@ jobs:
               TESTING_SUITE_BRANCH=$(echo "$COMMENT" | grep "mx-chain-testing-suite:" | awk -F': ' '{print $2}')
               echo "MX_CHAIN_TESTING_SUITE_TARGET_BRANCH=${TESTING_SUITE_BRANCH}" >> $GITHUB_ENV
             fi
+          fi
 
       - name: Set up Go 1.20.7
         uses: actions/setup-go@v3
