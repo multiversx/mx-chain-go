@@ -10,7 +10,7 @@ on:
       - 'integrate-sys-tests-ci2'
   workflow_dispatch:
   issue_comment:
-    types: [created]
+    types: [created, edited, deleted]
 
 permissions:
   issues: write
@@ -21,7 +21,7 @@ jobs:
   build-and-test:
     if: |
       github.event_name == 'pull_request' ||
-      (github.event_name == 'issue_comment' && contains(github.event.comment.body, 'Run Tests:'))
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request && contains(github.event.comment.body, 'Run Tests:'))
 
     strategy:
       matrix:
@@ -35,16 +35,15 @@ jobs:
       MX_CHAIN_TESTING_SUITE_TARGET_BRANCH: ""
 
     steps:
-      - name: Log Comment
-        run: |
-          echo "Comment body: ${{ github.event.comment.body }}"
-          echo "Is PR: ${{ github.event.issue.pull_request }}"
-
-      - name: Debug Comment Parsing
+      - name: Debug Comment
         if: github.event_name == 'issue_comment'
         run: |
-          echo "Triggered by comment: ${{ github.event.comment.body }}"
-          echo "Event Name: ${{ github.event_name }}"
+          echo "Comment body: ${{ github.event.comment.body }}"
+          echo "Is PR: ${{ github.event.issue.pull_request }}
+
+      - name: Log Trigger Information
+        run: |
+          echo "Event: ${{ github.event_name }}"
           echo "Action: ${{ github.event.action }}"
 
       - name: Parse Comment for Branches
@@ -63,8 +62,6 @@ jobs:
               TESTING_SUITE_BRANCH=$(echo "$COMMENT" | grep "mx-chain-testing-suite:" | awk -F': ' '{print $2}')
               echo "MX_CHAIN_TESTING_SUITE_TARGET_BRANCH=${TESTING_SUITE_BRANCH}" >> $GITHUB_ENV
             fi
-          fi
-      
 
       - name: Set up Go 1.20.7
         uses: actions/setup-go@v3
