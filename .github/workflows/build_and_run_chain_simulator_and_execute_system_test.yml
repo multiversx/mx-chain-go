@@ -73,7 +73,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: 'multiversx/mx-chain-go'
-          ref: ${{ github.head_ref || github.ref }}
+          ref: ${{ env.MX_CHAIN_GO_TARGET_BRANCH || github.head_ref || github.ref }}
           fetch-depth: 0
           path: 'mx-chain-go'
 
@@ -134,6 +134,11 @@ jobs:
           cd mx-chain-simulator-go
           pip install -r scripts/update_go_mod/requirements.txt
           python scripts/update_go_mod/update_go_mod.py $LATEST_COMMIT_HASH
+
+      - name: Check go.mod Validity
+        run: |
+          cat mx-chain-simulator-go/go.mod
+          go mod verify
 
       - name: Run go mod tidy and go build
         run: |
