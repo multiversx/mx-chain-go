@@ -1,4 +1,4 @@
-name: Build and Smoke Test 2
+name: Build and Smoke Test 1
 
 on:
   pull_request:
@@ -75,7 +75,7 @@ jobs:
           repository: 'multiversx/mx-chain-go'
           ref: ${{ github.head_ref || github.ref }}
           fetch-depth: 0
-          path: 'repo'
+          path: 'mx-chain-go'
 
       - name: Get Latest Commit Hash
         run: |
@@ -134,6 +134,16 @@ jobs:
           cd mx-chain-simulator-go
           pip install -r scripts/update_go_mod/requirements.txt
           python scripts/update_go_mod/update_go_mod.py $LATEST_COMMIT_HASH
+
+      - name: Check go.mod Validity
+        run: |
+          cd mx-chain-simulator-go
+          if [ ! -f go.mod ]; then
+            echo "go.mod file not found in mx-chain-simulator-go directory"
+            exit 1
+          fi
+          cat go.mod
+          go mod verify
 
       - name: Run go mod tidy and go build
         run: |
