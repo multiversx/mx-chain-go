@@ -44,12 +44,18 @@ jobs:
         if: github.event_name == 'issue_comment'
         run: |
           COMMENT="${{ github.event.comment.body }}"
-          if [[ "$COMMENT" =~ Run[[:space:]]Tests?: ]]; then
-            SIMULATOR_BRANCH=$(echo "$COMMENT" | grep -oP 'mx-chain-simulator-go:\s*\K\S+')
-            TESTING_SUITE_BRANCH=$(echo "$COMMENT" | grep -oP 'mx-chain-testing-suite:\s*\K\S+')
-
-            echo "MX_CHAIN_SIMULATOR_TARGET_BRANCH=${SIMULATOR_BRANCH}" >> $GITHUB_ENV
-            echo "MX_CHAIN_TESTING_SUITE_TARGET_BRANCH=${TESTING_SUITE_BRANCH}" >> $GITHUB_ENV
+          if echo "$COMMENT" | grep -qE "Run Test[s]?:";
+          then
+            if echo "$COMMENT" | grep -q "mx-chain-simulator-go:";
+            then
+              SIMULATOR_BRANCH=$(echo "$COMMENT" | grep "mx-chain-simulator-go:" | awk -F': ' '{print $2}')
+              echo "MX_CHAIN_SIMULATOR_TARGET_BRANCH=${SIMULATOR_BRANCH}" >> $GITHUB_ENV
+            fi
+            if echo "$COMMENT" | grep -q "mx-chain-testing-suite:";
+            then
+              TESTING_SUITE_BRANCH=$(echo "$COMMENT" | grep "mx-chain-testing-suite:" | awk -F': ' '{print $2}')
+              echo "MX_CHAIN_TESTING_SUITE_TARGET_BRANCH=${TESTING_SUITE_BRANCH}" >> $GITHUB_ENV
+            fi
           fi
       
 
