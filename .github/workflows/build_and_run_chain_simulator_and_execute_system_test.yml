@@ -125,11 +125,6 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Check go.mod Validity
-        run: |
-          cat mx-chain-simulator-go/go.mod
-          go mod verify
-
       - name: Install Python Dependencies and Update go.mod
         run: |
           cd mx-chain-simulator-go
