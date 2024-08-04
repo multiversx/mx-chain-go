@@ -90,25 +90,21 @@ jobs:
       - name: Determine Target Branches
         id: target_branch
         run: |
-          if [ -z "${{ env.MX_CHAIN_SIMULATOR_TARGET_BRANCH }}" ]; then
-            if [[ "${{ github.event.pull_request.base.ref }}" == "main" ]]; then
-              echo "MX_CHAIN_SIMULATOR_TARGET_BRANCH=main" >> $GITHUB_ENV
-            elif [[ "${{ github.event.pull_request.base.ref }}" == "master" ]]; then
-              echo "MX_CHAIN_SIMULATOR_TARGET_BRANCH=main" >> $GITHUB_ENV
-            elif [[ "${{ github.event.pull_request.base.ref }}" == rc/* || "${{ github.event.pull_request.base.ref }}" == integrate-sys-tests-ci* ]]; then
-              echo "MX_CHAIN_SIMULATOR_TARGET_BRANCH=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
-            fi
+          echo "CURRENT_BRANCH=${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}" >> $GITHUB_ENV
+          if [[ "${{ github.event.pull_request.base.ref }}" == "main" ]]; then
+            echo "TARGET_BRANCH=main" >> $GITHUB_ENV
+            echo "MX_CHAIN_SIMULATOR_TARGET_BRANCH=main" >> $GITHUB_ENV
+            echo "MX_CHAIN_TESTING_SUITE_TARGET_BRANCH=main" >> $GITHUB_ENV
+          elif [[ "${{ github.event.pull_request.base.ref }}" == "master" ]]; then
+            echo "TARGET_BRANCH=master" >> $GITHUB_ENV
+            echo "MX_CHAIN_SIMULATOR_TARGET_BRANCH=main" >> $GITHUB_ENV
+            echo "MX_CHAIN_TESTING_SUITE_TARGET_BRANCH=main" >> $GITHUB_ENV
+          elif [[ "${{ github.event.pull_request.base.ref }}" == rc/* || "${{ github.event.pull_request.base.ref }}" == integrate-sys-tests-ci* ]]; then
+            echo "TARGET_BRANCH=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
+            echo "MX_CHAIN_SIMULATOR_TARGET_BRANCH=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
+            echo "MX_CHAIN_TESTING_SUITE_TARGET_BRANCH=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
           fi
-
-          if [ -z "${{ env.MX_CHAIN_TESTING_SUITE_TARGET_BRANCH }}" ]; then
-            if [[ "${{ github.event.pull_request.base.ref }}" == "main" ]]; then
-              echo "MX_CHAIN_TESTING_SUITE_TARGET_BRANCH=main" >> $GITHUB_ENV
-            elif [[ "${{ github.event.pull_request.base.ref }}" == "master" ]]; then
-              echo "MX_CHAIN_TESTING_SUITE_TARGET_BRANCH=main" >> $GITHUB_ENV
-            elif [[ "${{ github.event.pull_request.base.ref }}" == rc/* || "${{ github.event.pull_request.base.ref }}" == integrate-sys-tests-ci* ]]; then
-              echo "MX_CHAIN_TESTING_SUITE_TARGET_BRANCH=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
-            fi
-          fi
+          echo "MX_CHAIN_GO_TARGET_BRANCH=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
 
       - name: Print Target Branches
         run: |
@@ -129,16 +125,17 @@ jobs:
         with:
           python-version: '3.10'
 
+      - name: Check go.mod Validity
+        run: |
+          cat mx-chain-simulator-go/go.mod
+          go mod verify
+
       - name: Install Python Dependencies and Update go.mod
         run: |
           cd mx-chain-simulator-go
           pip install -r scripts/update_go_mod/requirements.txt
           python scripts/update_go_mod/update_go_mod.py $LATEST_COMMIT_HASH
 
-      - name: Check go.mod Validity
-        run: |
-          cat mx-chain-simulator-go/go.mod
-          go mod verify
 
       - name: Run go mod tidy and go build
         run: |
