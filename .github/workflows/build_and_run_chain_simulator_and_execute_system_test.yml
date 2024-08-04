@@ -70,12 +70,12 @@ jobs:
         id: go
 
       - name: Checkout mx-chain-go
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: 'multiversx/mx-chain-go'
           ref: ${{ github.head_ref || github.ref }}
           fetch-depth: 0
-          path: './mx-chain-go'
+          path: 'repo'
 
       - name: Get Latest Commit Hash
         run: |
@@ -118,11 +118,11 @@ jobs:
           echo "mx-chain-testing-suite target branch: ${{ env.MX_CHAIN_TESTING_SUITE_TARGET_BRANCH }}"
 
       - name: Checkout mx-chain-simulator-go
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: 'multiversx/mx-chain-simulator-go'
           ref: ${{ env.MX_CHAIN_SIMULATOR_TARGET_BRANCH }}
-          path: './mx-chain-simulator-go'
+          path: 'mx-chain-simulator-go'
 
       - name: Set up Python 3.10
         uses: actions/setup-python@v2
@@ -143,10 +143,10 @@ jobs:
           echo "CHAIN_SIMULATOR_BUILD_PATH=$(pwd)" >> $GITHUB_ENV
 
       - name: Checkout mx-chain-testing-suite
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: 'multiversx/mx-chain-testing-suite'
-          path: './mx-chain-testing-suite'
+          path: 'mx-chain-testing-suite'
           ref: ${{ env.MX_CHAIN_TESTING_SUITE_TARGET_BRANCH }}
           token: ${{ secrets.MVX_TESTER_GH_TOKEN }}
 
