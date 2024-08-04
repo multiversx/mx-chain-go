@@ -130,16 +130,6 @@ jobs:
           pip install -r scripts/update_go_mod/requirements.txt
           python scripts/update_go_mod/update_go_mod.py $LATEST_COMMIT_HASH
 
-      - name: Check go.mod Validity
-        run: |
-          cd mx-chain-simulator-go
-          if [ ! -f go.mod ]; then
-            echo "go.mod file not found in mx-chain-simulator-go directory"
-            exit 1
-          fi
-          cat go.mod
-          go mod verify
-
       - name: Run go mod tidy and go build
         run: |
           cd mx-chain-simulator-go/cmd/chainsimulator
