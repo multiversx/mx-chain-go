@@ -36,10 +36,37 @@ jobs:
       MX_CHAIN_TESTING_SUITE_TARGET_BRANCH: ""
 
     steps:
+      - name: Fetch Latest Comment
+        if: github.event_name != 'issue_comment'
+        uses: actions/github-script@v7
+        id: fetch_comment
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            // Filter for comments containing "Run Tests:"
+            const latestComment = comments.data.reverse().find(comment => comment.body.includes('Run Tests:'));
+
+            if (latestComment) {
+              core.setOutput('latest_comment', latestComment.body);
+            } else {
+              core.setOutput('latest_comment', '');
+            }
+        env:
+          LATEST_COMMENT: ${{ steps.fetch_comment.outputs.latest_comment }}
+
       - name: Parse Comment for Branches
-        if: github.event_name == 'issue_comment' && contains(github.event.comment.body, 'Run Tests:')
         run: |
-          COMMENT="${{ github.event.comment.body }}"
+          # Use fetched comment if available, otherwise use current event comment
+          COMMENT="${{ steps.fetch_comment.outputs.latest_comment || github.event.comment.body }}"
+
+          # Debug print the comment being used
+          echo "Comment used for parsing: $COMMENT"
 
           # Extract branch names from the comment
           if echo "$COMMENT" | grep -q "mx-chain-simulator-go:"; then
@@ -51,6 +78,11 @@ jobs:
             TESTING_SUITE_BRANCH=$(echo "$COMMENT" | grep "mx-chain-testing-suite:" | awk -F': ' '{print $2}')
             echo "MX_CHAIN_TESTING_SUITE_TARGET_BRANCH=${TESTING_SUITE_BRANCH}" >> $GITHUB_ENV
           fi
+
+          # Debug print the branches being set
+          echo "mx-chain-simulator-go branch set to: $SIMULATOR_BRANCH"
+          echo "mx-chain-testing-suite branch set to: $TESTING_SUITE_BRANCH"
+      
       
 
       - name: Set up Go 1.20.7
