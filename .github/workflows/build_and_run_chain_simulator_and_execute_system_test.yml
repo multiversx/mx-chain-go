@@ -37,25 +37,21 @@ jobs:
 
     steps:
       - name: Parse Comment for Branches
-        if: github.event_name == 'issue_comment'
+        if: github.event_name == 'issue_comment' && contains(github.event.comment.body, 'Run Tests:')
         run: |
           COMMENT="${{ github.event.comment.body }}"
-          if echo "$COMMENT" | grep -qE "Run Test[s]?:";
-          then
-            if echo "$COMMENT" | grep -q "mx-chain-simulator-go:";
-            then
-              SIMULATOR_BRANCH=$(echo "$COMMENT" | grep "mx-chain-simulator-go:" | awk -F': ' '{print $2}')
-              echo "MX_CHAIN_SIMULATOR_TARGET_BRANCH=${SIMULATOR_BRANCH}" >> $GITHUB_ENV
-            fi
-            if echo "$COMMENT" | grep -q "mx-chain-testing-suite:";
-            then
-              TESTING_SUITE_BRANCH=$(echo "$COMMENT" | grep "mx-chain-testing-suite:" | awk -F': ' '{print $2}')
-              echo "MX_CHAIN_TESTING_SUITE_TARGET_BRANCH=${TESTING_SUITE_BRANCH}" >> $GITHUB_ENV
-            fi
-          else
-            echo "MX_CHAIN_SIMULATOR_TARGET_BRANCH=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
-            echo "MX_CHAIN_TESTING_SUITE_TARGET_BRANCH=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
+
+          # Extract branch names from the comment
+          if echo "$COMMENT" | grep -q "mx-chain-simulator-go:"; then
+            SIMULATOR_BRANCH=$(echo "$COMMENT" | grep "mx-chain-simulator-go:" | awk -F': ' '{print $2}')
+            echo "MX_CHAIN_SIMULATOR_TARGET_BRANCH=${SIMULATOR_BRANCH}" >> $GITHUB_ENV
           fi
+
+          if echo "$COMMENT" | grep -q "mx-chain-testing-suite:"; then
+            TESTING_SUITE_BRANCH=$(echo "$COMMENT" | grep "mx-chain-testing-suite:" | awk -F': ' '{print $2}')
+            echo "MX_CHAIN_TESTING_SUITE_TARGET_BRANCH=${TESTING_SUITE_BRANCH}" >> $GITHUB_ENV
+          fi
+      
 
       - name: Set up Go 1.20.7
         uses: actions/setup-go@v3
