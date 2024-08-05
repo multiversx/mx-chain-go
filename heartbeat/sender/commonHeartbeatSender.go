@@ -42,6 +42,7 @@ func (chs *commonHeartbeatSender) generateMessageBytes(
 
 	payload := &heartbeat.Payload{
 		Timestamp:       time.Now().Unix(),
+		TimestampMicro:  time.Now().UnixMicro(),
 		HardforkMessage: "", // sent through peer authentication message
 	}
 	payloadBytes, err := chs.marshaller.Marshal(payload)

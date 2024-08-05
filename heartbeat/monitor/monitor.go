@@ -188,6 +188,7 @@ func (monitor *heartbeatV2Monitor) parseMessage(pid core.PeerID, message interfa
 		PeerSubType:          heartbeatV2.GetPeerSubType(),
 		PidString:            pid.Pretty(),
 		NumTrieNodesReceived: heartbeatV2.NumTrieNodesSynced,
+		LatencyMicro:         heartbeatV2.ArrivalTimestamp - payload.TimestampMicro,
 	}
 
 	return pubKeyHeartbeat, nil
