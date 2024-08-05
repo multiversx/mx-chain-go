@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"os"
@@ -351,8 +352,13 @@ var (
 	}
 	// lightClient defines a flag that, if set, will make the node act like a light client
 	lightClient = cli.BoolFlag{
-		Name:  "light-client-supplier",
+		Name:  "light-client",
 		Usage: "Boolean option for setting an observer as light client",
+	}
+	// lightClientSupplier defines a flag that, if set, will make the node act like a light client
+	lightClientSupplier = cli.BoolFlag{
+		Name:  "light-client-supplier",
+		Usage: "Boolean option for setting an observer as light client supplier",
 	}
 	// memBallast defines a flag that specifies the number of MegaBytes to be used as a memory ballast for Garbage Collector optimization
 	// if set to 0, the memory ballast won't be used
@@ -552,6 +558,9 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, flagsConfig *config.Cont
 	if ctx.IsSet(lightClient.Name) {
 		cfgs.PreferencesConfig.Preferences.LightClient = ctx.GlobalBool(lightClient.Name)
 	}
+	if ctx.IsSet(lightClientSupplier.Name) {
+		cfgs.PreferencesConfig.Preferences.LightClientSupplier = ctx.GlobalBool(lightClientSupplier.Name)
+	}
 	if ctx.IsSet(memoryUsageToCreateProfiles.Name) {
 		cfgs.GeneralConfig.Health.MemoryUsageToCreateProfiles = int(ctx.GlobalUint64(memoryUsageToCreateProfiles.Name))
 		log.Info("setting a new value for the memoryUsageToCreateProfiles option",
@@ -662,6 +671,12 @@ func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
 	isInSnapshotLessObserverMode := operationmodes.SliceContainsElement(operationModes, operationmodes.OperationModeSnapshotlessObserver)
 	if isInSnapshotLessObserverMode {
 		processSnapshotLessObserverMode(log, configs)
+	}
+
+	isBothLightClientConsumerAndSupplier := configs.PreferencesConfig.Preferences.LightClientSupplier &&
+		configs.PreferencesConfig.Preferences.LightClient
+	if isBothLightClientConsumerAndSupplier {
+		return errors.New("cannot have node running in both light client consumer and supplier mode")
 	}
 
 	return nil

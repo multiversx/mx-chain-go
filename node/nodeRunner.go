@@ -1437,7 +1437,10 @@ func (nr *nodeRunner) CreateManagedNetworkComponents(
 		networkComponentsFactoryArgs.NodeOperationMode = common.FullArchiveMode
 	}
 	if nr.configs.PreferencesConfig.Preferences.LightClient {
-		networkComponentsFactoryArgs.NodeOperationMode = common.LightClientMode
+		networkComponentsFactoryArgs.LightClientMode = common.LightClientMode
+	}
+	if nr.configs.PreferencesConfig.Preferences.LightClientSupplier {
+		networkComponentsFactoryArgs.LightClientMode = common.LightClientSupplierMode
 	}
 
 	networkComponentsFactory, err := networkComp.NewNetworkComponentsFactory(networkComponentsFactoryArgs)

@@ -42,6 +42,7 @@ type NetworkComponentsFactoryArgs struct {
 	PreferredPeersSlices  []string
 	BootstrapWaitTime     time.Duration
 	NodeOperationMode     common.NodeOperation
+	LightClientMode       common.LightClient
 	ConnectionWatcherType string
 	CryptoComponents      factory.CryptoComponentsHolder
 }
@@ -58,6 +59,7 @@ type networkComponentsFactory struct {
 	preferredPeersSlices  []string
 	bootstrapWaitTime     time.Duration
 	nodeOperationMode     common.NodeOperation
+	lightClientMode       common.LightClient
 	connectionWatcherType string
 	cryptoComponents      factory.CryptoComponentsHolder
 }
@@ -104,8 +106,7 @@ func NewNetworkComponentsFactory(
 		return nil, errors.ErrNilCryptoComponentsHolder
 	}
 	if args.NodeOperationMode != common.NormalOperation &&
-		args.NodeOperationMode != common.FullArchiveMode &&
-		args.NodeOperationMode != common.LightClientMode {
+		args.NodeOperationMode != common.FullArchiveMode {
 		return nil, errors.ErrInvalidNodeOperationMode
 	}
 
@@ -121,6 +122,7 @@ func NewNetworkComponentsFactory(
 		bootstrapWaitTime:     args.BootstrapWaitTime,
 		preferredPeersSlices:  args.PreferredPeersSlices,
 		nodeOperationMode:     args.NodeOperationMode,
+		lightClientMode:       args.LightClientMode,
 		connectionWatcherType: args.ConnectionWatcherType,
 		cryptoComponents:      args.CryptoComponents,
 	}, nil
@@ -310,7 +312,7 @@ func (ncf *networkComponentsFactory) createFullArchiveNetworkHolder(peersRatingH
 }
 
 func (ncf *networkComponentsFactory) createLightClientNetworkHolder(peersRatingHandler p2p.PeersRatingHandler) (networkComponentsHolder, error) {
-	if ncf.nodeOperationMode != common.LightClientMode {
+	if ncf.lightClientMode == "" {
 		return networkComponentsHolder{
 			netMessenger:         p2pDisabled.NewNetworkMessenger(),
 			preferredPeersHolder: disabled.NewPreferredPeersHolder(),

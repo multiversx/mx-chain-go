@@ -61,7 +61,8 @@ GLOBAL OPTIONS:
    --import-db-save-epoch-root-hash          This flag, if set, will export the trie snapshots at every new epoch
    --redundancy-level value                  This flag specifies the level of redundancy used by the current instance for the node (-1 = disabled, 0 = main instance (default), 1 = first backup, 2 = second backup, etc.) (default: 0)
    --full-archive                            Boolean option for settings an observer as full archive, which will sync the entire database of its shard
-   --light-client-supplier                   Boolean option for setting an observer as light client
+   --light-client                            Boolean option for setting an observer as light client
+   --light-client-supplier                   Boolean option for setting an observer as light client supplier
    --mem-ballast value                       Flag that specifies the number of MegaBytes to be used as a memory ballast for Garbage Collector optimization. If set to 0 (or not set at all), the feature will be disabled. This flag should be used only for well-monitored nodes and by advanced users, as a too high memory ballast could lead to Out Of Memory panics. The memory ballast should not be higher than 20-25% of the machine's available RAM (default: 0)
    --memory-usage-to-create-profiles value   Integer value to be used to set the memory usage thresholds (in bytes) (default: 2415919104)
    --force-start-from-network                Flag that will force the start from network bootstrap process

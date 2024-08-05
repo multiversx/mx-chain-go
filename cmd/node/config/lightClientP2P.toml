@@ -52,7 +52,7 @@
     # ProtocolIDs represents the protocols that this node will advertise to other peers
     # To connect to other nodes, those nodes should have at least one common protocol string
     ProtocolIDs = [
-        "mvx-light-client",
+        "/mvx/mainnet-light/v1.0.0",
     ]
 
     # InitialPeerList represents the list of strings of some known nodes that will bootstrap this node
