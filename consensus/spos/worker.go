@@ -528,6 +528,23 @@ func (wrk *Worker) doJobOnMessageWithSignature(cnsMsg *consensus.Message, p2pMsg
 	hash := string(cnsMsg.BlockHeaderHash)
 	wrk.mapDisplayHashConsensusMessage[hash] = append(wrk.mapDisplayHashConsensusMessage[hash], cnsMsg)
 
+	cnsLen := len(wrk.mapDisplayHashConsensusMessage[hash])
+
+	if cnsLen >= 267 {
+		msg := ""
+		if cnsLen == 267 {
+			msg += "267"
+		} else {
+			if cnsLen%20 == 0 || cnsLen > 390 {
+				msg += fmt.Sprintf("%d", cnsLen)
+			}
+		}
+
+		if len(msg) > 0 {
+			log.Info("got 267 messages for hash " + hex.EncodeToString(cnsMsg.BlockHeaderHash) + " - " + msg)
+		}
+	}
+
 	wrk.consensusState.AddMessageWithSignature(string(cnsMsg.PubKey), p2pMsg)
 }
 
