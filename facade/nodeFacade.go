@@ -304,6 +304,10 @@ func (nf *nodeFacade) GetTransaction(hash string, withResults bool) (*transactio
 	return nf.apiResolver.GetTransaction(hash, withResults)
 }
 
+func (nf *nodeFacade) GetSCRsByTxHash(txHash string, scrHash string) ([]*transaction.ApiSmartContractResult, error) {
+	return nf.apiResolver.GetSCRsByTxHash(txHash, scrHash)
+}
+
 // GetTransactionsPool will return a structure containing the transactions pool that is to be returned on API calls
 func (nf *nodeFacade) GetTransactionsPool(fields string) (*common.TransactionsPoolAPIResponse, error) {
 	return nf.apiResolver.GetTransactionsPool(fields)
