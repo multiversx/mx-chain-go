@@ -1,6 +1,7 @@
 package state
 
 import (
+	"fmt"
 	"strconv"
 	"testing"
 
@@ -80,10 +81,6 @@ func TestStateChangesCollector_GetStateChanges(t *testing.T) {
 
 		stateChangesForTx := scc.GetStateChanges()
 		assert.Equal(t, 0, len(stateChangesForTx))
-		// assert.Equal(t, []byte{}, stateChangesForTx[0].TxHash)
-		// for i := 0; i < len(stateChangesForTx[0].StateChanges); i++ {
-		// 	assert.Equal(t, []byte(strconv.Itoa(i)), stateChangesForTx[0].StateChanges[i].MainTrieKey)
-		// }
 	})
 }
 
@@ -114,6 +111,60 @@ func TestStateChangesCollector_AddTxHashToCollectedStateChanges(t *testing.T) {
 	assert.Equal(t, []byte("mainTrieKey"), stateChangesForTx[0].StateChanges[0].MainTrieKey)
 	assert.Equal(t, []byte("mainTrieVal"), stateChangesForTx[0].StateChanges[0].MainTrieVal)
 	assert.Equal(t, 1, len(stateChangesForTx[0].StateChanges[0].DataTrieChanges))
+}
+
+func TestStateChangesCollector_RevertToIndex_FailIfWrongIndex(t *testing.T) {
+	t.Parallel()
+
+	scc := NewStateChangesCollector()
+	numStateChanges := len(scc.stateChanges)
+
+	err := scc.RevertToIndex(-1)
+	require.Equal(t, ErrStateChangesIndexOutOfBounds, err)
+
+	err = scc.RevertToIndex(numStateChanges + 1)
+	require.Equal(t, ErrStateChangesIndexOutOfBounds, err)
+}
+
+func TestStateChangesCollector_RevertToIndex(t *testing.T) {
+	t.Parallel()
+
+	scc := NewStateChangesCollector()
+
+	numStateChanges := 10
+	for i := 0; i < numStateChanges; i++ {
+		scc.AddStateChange(StateChangeDTO{})
+		scc.SetIndexToLastStateChange(i)
+	}
+	scc.AddTxHashToCollectedStateChanges([]byte("txHash1"), &transaction.Transaction{})
+
+	for i := numStateChanges; i < numStateChanges*2; i++ {
+		scc.AddStateChange(StateChangeDTO{})
+		scc.AddTxHashToCollectedStateChanges([]byte("txHash"+fmt.Sprintf("%d", i)), &transaction.Transaction{})
+	}
+	scc.SetIndexToLastStateChange(numStateChanges)
+
+	assert.Equal(t, numStateChanges*2, len(scc.stateChanges))
+
+	err := scc.RevertToIndex(numStateChanges)
+	require.Nil(t, err)
+	assert.Equal(t, numStateChanges*2-1, len(scc.stateChanges))
+
+	err = scc.RevertToIndex(numStateChanges - 1)
+	require.Nil(t, err)
+	assert.Equal(t, numStateChanges-1, len(scc.stateChanges))
+
+	err = scc.RevertToIndex(numStateChanges / 2)
+	require.Nil(t, err)
+	assert.Equal(t, numStateChanges/2, len(scc.stateChanges))
+
+	err = scc.RevertToIndex(1)
+	require.Nil(t, err)
+	assert.Equal(t, 1, len(scc.stateChanges))
+
+	err = scc.RevertToIndex(0)
+	require.Nil(t, err)
+	assert.Equal(t, 0, len(scc.stateChanges))
 }
 
 func TestStateChangesCollector_Reset(t *testing.T) {
