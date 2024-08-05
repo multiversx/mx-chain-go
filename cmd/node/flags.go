@@ -477,6 +477,7 @@ func getFlags() []cli.Flag {
 		redundancyLevel,
 		fullArchive,
 		lightClient,
+		lightClientSupplier,
 		memBallast,
 		memoryUsageToCreateProfiles,
 		forceStartFromNetwork,
