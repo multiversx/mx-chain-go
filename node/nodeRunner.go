@@ -1426,7 +1426,7 @@ func (nr *nodeRunner) CreateManagedNetworkComponents(
 		Syncer:                coreComponents.SyncTimer(),
 		PreferredPeersSlices:  nr.configs.PreferencesConfig.Preferences.PreferredConnections,
 		BootstrapWaitTime:     common.TimeToWaitForP2PBootstrap,
-		NodeOperationMode:     common.NormalOperation,
+		NodeOperationModes:    []common.NodeOperation{common.NormalOperation},
 		ConnectionWatcherType: nr.configs.PreferencesConfig.Preferences.ConnectionWatcherType,
 		CryptoComponents:      cryptoComponents,
 	}
@@ -1434,13 +1434,13 @@ func (nr *nodeRunner) CreateManagedNetworkComponents(
 		networkComponentsFactoryArgs.BootstrapWaitTime = 0
 	}
 	if nr.configs.PreferencesConfig.Preferences.FullArchive {
-		networkComponentsFactoryArgs.NodeOperationMode = common.FullArchiveMode
+		networkComponentsFactoryArgs.NodeOperationModes = []common.NodeOperation{common.FullArchiveMode}
 	}
 	if nr.configs.PreferencesConfig.Preferences.LightClient {
-		networkComponentsFactoryArgs.LightClientMode = common.LightClientMode
+		networkComponentsFactoryArgs.NodeOperationModes = append(networkComponentsFactoryArgs.NodeOperationModes, common.LightClientMode)
 	}
 	if nr.configs.PreferencesConfig.Preferences.LightClientSupplier {
-		networkComponentsFactoryArgs.LightClientMode = common.LightClientSupplierMode
+		networkComponentsFactoryArgs.NodeOperationModes = append(networkComponentsFactoryArgs.NodeOperationModes, common.LightClientSupplierMode)
 	}
 
 	networkComponentsFactory, err := networkComp.NewNetworkComponentsFactory(networkComponentsFactoryArgs)

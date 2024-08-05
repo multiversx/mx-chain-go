@@ -41,8 +41,7 @@ type NetworkComponentsFactoryArgs struct {
 	Syncer                p2p.SyncTimer
 	PreferredPeersSlices  []string
 	BootstrapWaitTime     time.Duration
-	NodeOperationMode     common.NodeOperation
-	LightClientMode       common.LightClient
+	NodeOperationModes    []common.NodeOperation
 	ConnectionWatcherType string
 	CryptoComponents      factory.CryptoComponentsHolder
 }
@@ -58,8 +57,7 @@ type networkComponentsFactory struct {
 	syncer                p2p.SyncTimer
 	preferredPeersSlices  []string
 	bootstrapWaitTime     time.Duration
-	nodeOperationMode     common.NodeOperation
-	lightClientMode       common.LightClient
+	nodeOperationModes    []common.NodeOperation
 	connectionWatcherType string
 	cryptoComponents      factory.CryptoComponentsHolder
 }
@@ -105,8 +103,14 @@ func NewNetworkComponentsFactory(
 	if check.IfNil(args.CryptoComponents) {
 		return nil, errors.ErrNilCryptoComponentsHolder
 	}
-	if args.NodeOperationMode != common.NormalOperation &&
-		args.NodeOperationMode != common.FullArchiveMode {
+
+	if len(args.NodeOperationModes) > 2 {
+		return nil, fmt.Errorf("cannot have more than 2 node operation modes, got %d modes instead",
+			len(args.NodeOperationModes))
+	}
+
+	if !common.Contains(args.NodeOperationModes, common.NormalOperation) &&
+		!common.Contains(args.NodeOperationModes, common.FullArchiveMode) {
 		return nil, errors.ErrInvalidNodeOperationMode
 	}
 
@@ -121,8 +125,7 @@ func NewNetworkComponentsFactory(
 		syncer:                args.Syncer,
 		bootstrapWaitTime:     args.BootstrapWaitTime,
 		preferredPeersSlices:  args.PreferredPeersSlices,
-		nodeOperationMode:     args.NodeOperationMode,
-		lightClientMode:       args.LightClientMode,
+		nodeOperationModes:    args.NodeOperationModes,
 		connectionWatcherType: args.ConnectionWatcherType,
 		cryptoComponents:      args.CryptoComponents,
 	}, nil
@@ -299,7 +302,7 @@ func (ncf *networkComponentsFactory) createMainNetworkHolder(peersRatingHandler 
 }
 
 func (ncf *networkComponentsFactory) createFullArchiveNetworkHolder(peersRatingHandler p2p.PeersRatingHandler) (networkComponentsHolder, error) {
-	if ncf.nodeOperationMode != common.FullArchiveMode {
+	if !common.Contains(ncf.nodeOperationModes, common.FullArchiveMode) {
 		return networkComponentsHolder{
 			netMessenger:         p2pDisabled.NewNetworkMessenger(),
 			preferredPeersHolder: disabled.NewPreferredPeersHolder(),
@@ -312,7 +315,8 @@ func (ncf *networkComponentsFactory) createFullArchiveNetworkHolder(peersRatingH
 }
 
 func (ncf *networkComponentsFactory) createLightClientNetworkHolder(peersRatingHandler p2p.PeersRatingHandler) (networkComponentsHolder, error) {
-	if ncf.lightClientMode == "" {
+	if !common.Contains(ncf.nodeOperationModes, common.LightClientMode) &&
+		!common.Contains(ncf.nodeOperationModes, common.LightClientSupplierMode) {
 		return networkComponentsHolder{
 			netMessenger:         p2pDisabled.NewNetworkMessenger(),
 			preferredPeersHolder: disabled.NewPreferredPeersHolder(),
