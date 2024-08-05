@@ -1081,6 +1081,7 @@ func (sp *shardProcessor) commonHeaderAndBodyCommit(
 	}
 
 	sp.blockChain.SetCurrentBlockHeaderHash(headerHash)
+	// TODO: Here, also index reward txs for sovereign
 	sp.indexBlockIfNeeded(body, headerHash, header, lastBlockHeader)
 	sp.recordBlockInHistory(headerHash, header, body)
 
