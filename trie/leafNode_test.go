@@ -321,8 +321,9 @@ func TestLeafNode_insertAtSameKey(t *testing.T) {
 	ln := getLn(getTestMarshalizerAndHasher())
 	key := "dog"
 	expectedVal := "dogs"
+	data := []core.TrieData{getTrieDataWithDefaultVersion(key, expectedVal)}
 
-	newNode, _, err := ln.insert(getTrieDataWithDefaultVersion(key, expectedVal), nil)
+	newNode, _, err := ln.insert(data, nil)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 
@@ -340,8 +341,9 @@ func TestLeafNode_insertAtDifferentKey(t *testing.T) {
 
 	nodeKey := []byte{3, 4, 5}
 	nodeVal := []byte{3, 4, 5}
+	data := []core.TrieData{getTrieDataWithDefaultVersion(string(nodeKey), string(nodeVal))}
 
-	newNode, _, err := ln.insert(getTrieDataWithDefaultVersion(string(nodeKey), string(nodeVal)), nil)
+	newNode, _, err := ln.insert(data, nil)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 
@@ -357,8 +359,9 @@ func TestLeafNode_insertInStoredLnAtSameKey(t *testing.T) {
 	ln := getLn(getTestMarshalizerAndHasher())
 	_ = ln.commitDirty(0, 5, db, db)
 	lnHash := ln.getHash()
+	data := []core.TrieData{getTrieDataWithDefaultVersion("dog", "dogs")}
 
-	newNode, oldHashes, err := ln.insert(getTrieDataWithDefaultVersion("dog", "dogs"), db)
+	newNode, oldHashes, err := ln.insert(data, db)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 	assert.Equal(t, [][]byte{lnHash}, oldHashes)
@@ -372,8 +375,9 @@ func TestLeafNode_insertInStoredLnAtDifferentKey(t *testing.T) {
 	ln, _ := newLeafNode(getTrieDataWithDefaultVersion(string([]byte{1, 2, 3}), "dog"), marsh, hasher)
 	_ = ln.commitDirty(0, 5, db, db)
 	lnHash := ln.getHash()
+	data := []core.TrieData{getTrieDataWithDefaultVersion(string([]byte{4, 5, 6}), "dogs")}
 
-	newNode, oldHashes, err := ln.insert(getTrieDataWithDefaultVersion(string([]byte{4, 5, 6}), "dogs"), db)
+	newNode, oldHashes, err := ln.insert(data, db)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 	assert.Equal(t, [][]byte{lnHash}, oldHashes)
@@ -383,8 +387,9 @@ func TestLeafNode_insertInDirtyLnAtSameKey(t *testing.T) {
 	t.Parallel()
 
 	ln := getLn(getTestMarshalizerAndHasher())
+	data := []core.TrieData{getTrieDataWithDefaultVersion("dog", "dogs")}
 
-	newNode, oldHashes, err := ln.insert(getTrieDataWithDefaultVersion("dog", "dogs"), nil)
+	newNode, oldHashes, err := ln.insert(data, nil)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 	assert.Equal(t, [][]byte{}, oldHashes)
@@ -395,8 +400,9 @@ func TestLeafNode_insertInDirtyLnAtDifferentKey(t *testing.T) {
 
 	marsh, hasher := getTestMarshalizerAndHasher()
 	ln, _ := newLeafNode(getTrieDataWithDefaultVersion(string([]byte{1, 2, 3}), "dog"), marsh, hasher)
+	data := []core.TrieData{getTrieDataWithDefaultVersion(string([]byte{4, 5, 6}), "dogs")}
 
-	newNode, oldHashes, err := ln.insert(getTrieDataWithDefaultVersion(string([]byte{4, 5, 6}), "dogs"), nil)
+	newNode, oldHashes, err := ln.insert(data, nil)
 	assert.NotNil(t, newNode)
 	assert.Nil(t, err)
 	assert.Equal(t, [][]byte{}, oldHashes)
@@ -406,8 +412,9 @@ func TestLeafNode_insertInNilNode(t *testing.T) {
 	t.Parallel()
 
 	var ln *leafNode
+	data := []core.TrieData{getTrieDataWithDefaultVersion("dog", "dogs")}
 
-	newNode, _, err := ln.insert(getTrieDataWithDefaultVersion("dog", "dogs"), nil)
+	newNode, _, err := ln.insert(data, nil)
 	assert.Nil(t, newNode)
 	assert.True(t, errors.Is(err, ErrNilLeafNode))
 	assert.Nil(t, newNode)
@@ -417,8 +424,9 @@ func TestLeafNode_deletePresent(t *testing.T) {
 	t.Parallel()
 
 	ln := getLn(getTestMarshalizerAndHasher())
+	data := []core.TrieData{{Key: []byte("dog")}}
 
-	dirty, newNode, _, err := ln.delete([]byte("dog"), nil)
+	dirty, newNode, _, err := ln.delete(data, nil)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
 	assert.Nil(t, newNode)
@@ -431,8 +439,9 @@ func TestLeafNode_deleteFromStoredLnAtSameKey(t *testing.T) {
 	ln := getLn(getTestMarshalizerAndHasher())
 	_ = ln.commitDirty(0, 5, db, db)
 	lnHash := ln.getHash()
+	data := []core.TrieData{{Key: []byte("dog")}}
 
-	dirty, _, oldHashes, err := ln.delete([]byte("dog"), db)
+	dirty, _, oldHashes, err := ln.delete(data, db)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
 	assert.Equal(t, [][]byte{lnHash}, oldHashes)
@@ -445,8 +454,9 @@ func TestLeafNode_deleteFromLnAtDifferentKey(t *testing.T) {
 	ln := getLn(getTestMarshalizerAndHasher())
 	_ = ln.commitDirty(0, 5, db, db)
 	wrongKey := []byte{1, 2, 3}
+	data := []core.TrieData{{Key: wrongKey}}
 
-	dirty, _, oldHashes, err := ln.delete(wrongKey, db)
+	dirty, _, oldHashes, err := ln.delete(data, db)
 	assert.False(t, dirty)
 	assert.Nil(t, err)
 	assert.Equal(t, [][]byte{}, oldHashes)
@@ -456,8 +466,9 @@ func TestLeafNode_deleteFromDirtyLnAtSameKey(t *testing.T) {
 	t.Parallel()
 
 	ln := getLn(getTestMarshalizerAndHasher())
+	data := []core.TrieData{{Key: []byte("dog")}}
 
-	dirty, _, oldHashes, err := ln.delete([]byte("dog"), nil)
+	dirty, _, oldHashes, err := ln.delete(data, nil)
 	assert.True(t, dirty)
 	assert.Nil(t, err)
 	assert.Equal(t, [][]byte{}, oldHashes)
@@ -468,8 +479,9 @@ func TestLeafNode_deleteNotPresent(t *testing.T) {
 
 	ln := getLn(getTestMarshalizerAndHasher())
 	wrongKey := []byte{1, 2, 3}
+	data := []core.TrieData{{Key: wrongKey}}
 
-	dirty, newNode, _, err := ln.delete(wrongKey, nil)
+	dirty, newNode, _, err := ln.delete(data, nil)
 	assert.False(t, dirty)
 	assert.Nil(t, err)
 	assert.Equal(t, ln, newNode)
@@ -775,5 +787,133 @@ func TestLeafNode_getVersion(t *testing.T) {
 		version, err := ln.getVersion()
 		assert.Equal(t, core.AutoBalanceEnabled, version)
 		assert.Nil(t, err)
+	})
+}
+
+func TestLeafNode_insertBatch(t *testing.T) {
+	t.Parallel()
+
+	t.Run("insert in same leaf node different val", func(t *testing.T) {
+		t.Parallel()
+
+		marshaller, hasher := getTestMarshalizerAndHasher()
+		ln, _ := newLeafNode(getTrieDataWithDefaultVersion(string([]byte{1, 2, 3, 4, 16}), "dog"), marshaller, hasher)
+
+		newData := []core.TrieData{getTrieDataWithDefaultVersion(string([]byte{1, 2, 3, 4, 16}), "dogs")}
+		_ = ln.commitDirty(0, 5, testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
+		assert.False(t, ln.dirty)
+		originalHash := ln.getHash()
+
+		newNode, modifiedHahses, err := ln.insert(newData, nil)
+		assert.Nil(t, err)
+		assert.True(t, newNode.isDirty())
+		assert.Equal(t, [][]byte{originalHash}, modifiedHahses)
+		assert.Equal(t, []byte("dogs"), newNode.(*leafNode).Value)
+	})
+	t.Run("insert in same leaf node same val", func(t *testing.T) {
+		t.Parallel()
+
+		marshaller, hasher := getTestMarshalizerAndHasher()
+		ln, _ := newLeafNode(getTrieDataWithDefaultVersion(string([]byte{1, 2, 3, 4, 16}), "dog"), marshaller, hasher)
+
+		newData := []core.TrieData{getTrieDataWithDefaultVersion(string([]byte{1, 2, 3, 4, 16}), "dog")}
+		_ = ln.commitDirty(0, 5, testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
+		assert.False(t, ln.dirty)
+
+		newNode, modifiedHahses, err := ln.insert(newData, nil)
+		assert.Nil(t, err)
+		assert.Nil(t, newNode)
+		assert.Equal(t, 0, len(modifiedHahses))
+	})
+	t.Run("branch at the beginning after insert", func(t *testing.T) {
+		t.Parallel()
+
+		marshaller, hasher := getTestMarshalizerAndHasher()
+		ln, _ := newLeafNode(getTrieDataWithDefaultVersion(string([]byte{1, 2, 3, 4, 16}), "dog"), marshaller, hasher)
+
+		newData := []core.TrieData{
+			getTrieDataWithDefaultVersion(string([]byte{1, 2, 3, 4, 16}), "dogs"),
+			getTrieDataWithDefaultVersion(string([]byte{2, 3, 4, 5, 16}), "dog"),
+			getTrieDataWithDefaultVersion(string([]byte{3, 4, 5, 6, 16}), "dog"),
+		}
+		_ = ln.commitDirty(0, 5, testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
+		assert.False(t, ln.dirty)
+		originalHash := ln.getHash()
+
+		newNode, modifiedHahses, err := ln.insert(newData, nil)
+		assert.Nil(t, err)
+		assert.Equal(t, [][]byte{originalHash}, modifiedHahses)
+		bn, ok := newNode.(*branchNode)
+		assert.True(t, ok)
+		assert.Equal(t, []byte("dogs"), bn.children[1].(*leafNode).Value)
+		assert.NotNil(t, []byte("dog"), bn.children[2].(*leafNode).Value)
+		assert.NotNil(t, []byte("dog"), bn.children[3].(*leafNode).Value)
+		assert.True(t, bn.dirty)
+		assert.Nil(t, bn.hash)
+	})
+	t.Run("extension node at the beginning after insert ", func(t *testing.T) {
+		t.Parallel()
+
+		marshaller, hasher := getTestMarshalizerAndHasher()
+		ln, _ := newLeafNode(getTrieDataWithDefaultVersion(string([]byte{1, 2, 3, 4, 16}), "dog"), marshaller, hasher)
+
+		newData := []core.TrieData{
+			getTrieDataWithDefaultVersion(string([]byte{1, 2, 3, 4, 16}), "dogs"),
+			getTrieDataWithDefaultVersion(string([]byte{1, 2, 4, 5, 16}), "dog"),
+			getTrieDataWithDefaultVersion(string([]byte{1, 2, 5, 6, 16}), "dog"),
+		}
+		_ = ln.commitDirty(0, 5, testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
+		assert.False(t, ln.dirty)
+		originalHash := ln.getHash()
+
+		newNode, modifiedHahses, err := ln.insert(newData, nil)
+		assert.Nil(t, err)
+		assert.Equal(t, [][]byte{originalHash}, modifiedHahses)
+		en, ok := newNode.(*extensionNode)
+		assert.True(t, ok)
+		assert.Equal(t, []byte{1, 2}, en.Key)
+		assert.True(t, en.dirty)
+		assert.Nil(t, en.hash)
+	})
+}
+
+func TestLeafNode_deleteBatch(t *testing.T) {
+	t.Parallel()
+
+	t.Run("delete existing", func(t *testing.T) {
+		t.Parallel()
+
+		marshaller, hasher := getTestMarshalizerAndHasher()
+		ln, _ := newLeafNode(getTrieDataWithDefaultVersion(string([]byte{1, 2, 3, 4, 16}), "dog"), marshaller, hasher)
+		newData := []core.TrieData{
+			getTrieDataWithDefaultVersion(string([]byte{1, 2, 3, 4, 16}), ""),
+			getTrieDataWithDefaultVersion(string([]byte{2, 2, 3, 4, 16}), ""),
+			getTrieDataWithDefaultVersion(string([]byte{3, 2, 3, 4, 16}), ""),
+		}
+		_ = ln.commitDirty(0, 5, testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
+		originalHash := ln.getHash()
+
+		dirty, newNode, modifiedHashes, err := ln.delete(newData, nil)
+		assert.True(t, dirty)
+		assert.Nil(t, err)
+		assert.Nil(t, newNode)
+		assert.Equal(t, [][]byte{originalHash}, modifiedHashes)
+	})
+	t.Run("delete not existing", func(t *testing.T) {
+		t.Parallel()
+
+		marshaller, hasher := getTestMarshalizerAndHasher()
+		ln, _ := newLeafNode(getTrieDataWithDefaultVersion(string([]byte{1, 2, 3, 4, 16}), "dog"), marshaller, hasher)
+		newData := []core.TrieData{
+			getTrieDataWithDefaultVersion(string([]byte{2, 2, 3, 4, 16}), ""),
+			getTrieDataWithDefaultVersion(string([]byte{3, 2, 3, 4, 16}), ""),
+		}
+		_ = ln.commitDirty(0, 5, testscommon.NewMemDbMock(), testscommon.NewMemDbMock())
+
+		dirty, newNode, modifiedHashes, err := ln.delete(newData, nil)
+		assert.False(t, dirty)
+		assert.Nil(t, err)
+		assert.Equal(t, ln, newNode)
+		assert.Equal(t, [][]byte{}, modifiedHashes)
 	})
 }
