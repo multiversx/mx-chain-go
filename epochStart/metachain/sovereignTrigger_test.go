@@ -44,14 +44,14 @@ func TestSovereignTrigger_SetProcessed(t *testing.T) {
 	require.Equal(t, uint32(4), sovTrigger.Epoch())
 }
 
-func TestSovereignTrigger_RevertBehindEpochStartBlock(t *testing.T) {
+func TestSovereignTrigger_RevertStateToBlock(t *testing.T) {
 	t.Parallel()
 
 	triggerFactory := func(arguments *ArgsNewMetaEpochStartTrigger) epochStart.TriggerHandler {
 		sovEpochStartTrigger, _ := NewSovereignTrigger(arguments)
 		return sovEpochStartTrigger
 	}
-	metaHdrFactory := func(round uint64, epoch uint32, isEpochStart bool) data.MetaHeaderHandler {
+	sovMetaHdrFactory := func(round uint64, epoch uint32, isEpochStart bool) data.MetaHeaderHandler {
 		sovHdr := &block.SovereignChainHeader{
 			Header: &block.Header{
 				Round: round,
@@ -66,5 +66,6 @@ func TestSovereignTrigger_RevertBehindEpochStartBlock(t *testing.T) {
 		return sovHdr
 	}
 
-	testTriggerRevertBehindEpochStartBlock(t, triggerFactory, metaHdrFactory)
+	testTriggerRevertToEndOfEpochUpdate(t, triggerFactory, sovMetaHdrFactory)
+	testTriggerRevertBehindEpochStartBlock(t, triggerFactory, sovMetaHdrFactory)
 }

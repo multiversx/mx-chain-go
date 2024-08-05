@@ -3,7 +3,6 @@ package metachain
 import (
 	"errors"
 	"math"
-	"math/big"
 	"testing"
 	"time"
 
@@ -263,69 +262,7 @@ func TestTrigger_ForceEpochStartShouldOk(t *testing.T) {
 	assert.True(t, isEpochStart)
 }
 
-func TestTrigger_UpdateRevertToEndOfEpochUpdate(t *testing.T) {
-	t.Parallel()
-
-	epoch := uint32(0)
-	round := uint64(0)
-	nonce := uint64(100)
-	arguments := createMockEpochStartTriggerArguments()
-	arguments.Epoch = epoch
-	epochStartTrigger, _ := NewEpochStartTrigger(arguments)
-
-	epochStartTrigger.Update(round, nonce)
-	round++
-	epochStartTrigger.Update(round, nonce)
-	round++
-	epochStartTrigger.Update(round, nonce)
-	round++
-	epochStartTrigger.Update(round, nonce)
-
-	ret := epochStartTrigger.IsEpochStart()
-	assert.True(t, ret)
-
-	epc := epochStartTrigger.Epoch()
-	assert.Equal(t, epoch+1, epc)
-
-	metaHdr := &block.MetaBlock{
-		Round: round,
-		Epoch: epoch + 1,
-		EpochStart: block.EpochStart{
-			LastFinalizedHeaders: []block.EpochStartShardData{{RootHash: []byte("root")}},
-			Economics: block.Economics{
-				TotalSupply:         big.NewInt(0),
-				TotalToDistribute:   big.NewInt(0),
-				TotalNewlyMinted:    big.NewInt(0),
-				RewardsPerBlock:     big.NewInt(0),
-				NodePrice:           big.NewInt(0),
-				PrevEpochStartRound: 0,
-			}}}
-	epochStartTrigger.SetProcessed(metaHdr, nil)
-	ret = epochStartTrigger.IsEpochStart()
-	assert.False(t, ret)
-
-	err := epochStartTrigger.RevertStateToBlock(metaHdr)
-	assert.Nil(t, err)
-	assert.Equal(t, metaHdr.Epoch, epochStartTrigger.Epoch())
-	assert.False(t, epochStartTrigger.IsEpochStart())
-	assert.Equal(t, epochStartTrigger.currEpochStartRound, metaHdr.Round)
-
-	epochStartTrigger.Update(round, nonce)
-	ret = epochStartTrigger.IsEpochStart()
-	assert.False(t, ret)
-
-	epc = epochStartTrigger.Epoch()
-	assert.Equal(t, epoch+1, epc)
-
-	epochStartTrigger.SetProcessed(&block.MetaBlock{
-		Round:      round,
-		Epoch:      epoch + 1,
-		EpochStart: block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{RootHash: []byte("root")}}}}, nil)
-	ret = epochStartTrigger.IsEpochStart()
-	assert.False(t, ret)
-}
-
-func TestTrigger_RevertBehindEpochStartBlock(t *testing.T) {
+func TestTrigger_RevertStateToBlock(t *testing.T) {
 	t.Parallel()
 
 	triggerFactory := func(arguments *ArgsNewMetaEpochStartTrigger) epochStart.TriggerHandler {
@@ -345,6 +282,7 @@ func TestTrigger_RevertBehindEpochStartBlock(t *testing.T) {
 		return metaBlock
 	}
 
+	testTriggerRevertToEndOfEpochUpdate(t, triggerFactory, metaHdrFactory)
 	testTriggerRevertBehindEpochStartBlock(t, triggerFactory, metaHdrFactory)
 }
 
@@ -425,6 +363,55 @@ func testTriggerRevertBehindEpochStartBlock(
 	epochStartTrigger.Update(round, nonce)
 	ret = epochStartTrigger.IsEpochStart()
 	assert.True(t, ret)
+
+	epc = epochStartTrigger.Epoch()
+	assert.Equal(t, epoch+1, epc)
+
+	epochStartTrigger.SetProcessed(createEpochStartMetaHdrFunc(round, epoch+1, true), nil)
+	ret = epochStartTrigger.IsEpochStart()
+	assert.False(t, ret)
+}
+
+func testTriggerRevertToEndOfEpochUpdate(
+	t *testing.T,
+	createTriggerFunc createTriggerFunc,
+	createEpochStartMetaHdrFunc createEpochStartMetaHdrFunc,
+) {
+	epoch := uint32(0)
+	round := uint64(0)
+	nonce := uint64(100)
+	arguments := createMockEpochStartTriggerArguments()
+	arguments.Epoch = epoch
+	epochStartTrigger := createTriggerFunc(arguments)
+
+	epochStartTrigger.Update(round, nonce)
+	round++
+	epochStartTrigger.Update(round, nonce)
+	round++
+	epochStartTrigger.Update(round, nonce)
+	round++
+	epochStartTrigger.Update(round, nonce)
+
+	ret := epochStartTrigger.IsEpochStart()
+	assert.True(t, ret)
+
+	epc := epochStartTrigger.Epoch()
+	assert.Equal(t, epoch+1, epc)
+
+	metaHdr := createEpochStartMetaHdrFunc(round, epoch+1, true)
+	epochStartTrigger.SetProcessed(metaHdr, nil)
+	ret = epochStartTrigger.IsEpochStart()
+	assert.False(t, ret)
+
+	err := epochStartTrigger.RevertStateToBlock(metaHdr)
+	assert.Nil(t, err)
+	assert.Equal(t, metaHdr.GetEpoch(), epochStartTrigger.Epoch())
+	assert.False(t, epochStartTrigger.IsEpochStart())
+	assert.Equal(t, epochStartTrigger.EpochStartRound(), metaHdr.GetRound())
+
+	epochStartTrigger.Update(round, nonce)
+	ret = epochStartTrigger.IsEpochStart()
+	assert.False(t, ret)
 
 	epc = epochStartTrigger.Epoch()
 	assert.Equal(t, epoch+1, epc)
