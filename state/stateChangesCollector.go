@@ -176,9 +176,6 @@ func (scc *stateChangesCollector) SetIndexToLastStateChange(index int) {
 }
 
 func (scc *stateChangesCollector) RevertToIndex(index int) error {
-	scc.stateChangesMut.Lock()
-	defer scc.stateChangesMut.Unlock()
-
 	if index > len(scc.stateChanges) || index < 0 {
 		return ErrStateChangesIndexOutOfBounds
 	}
@@ -188,8 +185,15 @@ func (scc *stateChangesCollector) RevertToIndex(index int) error {
 		return nil
 	}
 
-	// this should be improved since not all state changes indexer are set
-	scc.stateChanges = scc.stateChanges[:index]
+	scc.stateChangesMut.Lock()
+	defer scc.stateChangesMut.Unlock()
+
+	for i := len(scc.stateChanges) - 1; i >= 0; i-- {
+		if scc.stateChanges[i].Index == index {
+			scc.stateChanges = scc.stateChanges[:i]
+			break
+		}
+	}
 
 	return nil
 }

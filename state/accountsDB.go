@@ -1102,6 +1102,8 @@ func (adb *AccountsDB) recreateTrie(options common.RootHashHolder) error {
 	adb.obsoleteDataTrieHashes = make(map[string][][]byte)
 	adb.dataTries.Reset()
 	adb.entries = make([]JournalEntry, 0)
+	adb.stateChangesCollector.Reset()
+
 	newTrie, err := adb.mainTrie.RecreateFromEpoch(options)
 	if err != nil {
 		return err
