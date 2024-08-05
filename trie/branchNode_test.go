@@ -1793,6 +1793,7 @@ func TestBranchNode_insertOnExistingChild(t *testing.T) {
 		assert.True(t, len(originalChildHash) > 0)
 
 		dirty, modifiedHashes, err := bn.insertOnExistingChild(newData, childPos, db)
+		assert.Nil(t, err)
 		assert.True(t, dirty)
 		assert.True(t, bn.dirty)
 		assert.Equal(t, 2, len(modifiedHashes))
@@ -1826,6 +1827,7 @@ func TestBranchNode_insertOnExistingChild(t *testing.T) {
 		assert.False(t, bn.dirty)
 
 		dirty, modifiedHashes, err := bn.insertOnExistingChild(newData, childPos, db)
+		assert.Nil(t, err)
 		assert.False(t, dirty)
 		assert.False(t, bn.dirty)
 		assert.Equal(t, 0, len(modifiedHashes))
