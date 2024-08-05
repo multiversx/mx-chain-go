@@ -34,7 +34,7 @@ func (e *sovereignBaseEconomics) startNoncePerShardFromEpochStart(epoch uint32) 
 }
 
 func (e *sovereignBaseEconomics) startNoncePerShardFromLastCrossNotarized(metaNonce uint64, _ data.EpochStartHandler) (map[uint32]uint64, error) {
-	mapShardIdNonce := make(map[uint32]uint64, e.shardCoordinator.NumberOfShards())
+	mapShardIdNonce := make(map[uint32]uint64, e.shardCoordinator.TotalNumberOfShards())
 	mapShardIdNonce[core.SovereignChainShardId] = metaNonce
 	return mapShardIdNonce, nil
 }
