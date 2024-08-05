@@ -355,7 +355,7 @@ var (
 		Name:  "light-client",
 		Usage: "Boolean option for setting an observer as light client",
 	}
-	// lightClientSupplier defines a flag that, if set, will make the node act like a light client
+	// lightClientSupplier defines a flag that, if set, will make the node act like a light client supplier
 	lightClientSupplier = cli.BoolFlag{
 		Name:  "light-client-supplier",
 		Usage: "Boolean option for setting an observer as light client supplier",
