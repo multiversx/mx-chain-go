@@ -37,7 +37,7 @@ jobs:
 
     steps:
       - name: Fetch Latest Comment
-        if: github.event_name != 'issue_comment'
+        if: github.event_name == 'issue_comment' && contains(github.event.comment.body, 'Run Tests:') || github.event_name == 'workflow_dispatch'
         uses: actions/github-script@v7
         id: fetch_comment
         with:
@@ -61,6 +61,7 @@ jobs:
           LATEST_COMMENT: ${{ steps.fetch_comment.outputs.latest_comment }}
 
       - name: Parse Comment for Branches
+        if: steps.fetch_comment.outputs.latest_comment != ''
         run: |
           # Use fetched comment if available, otherwise use current event comment
           COMMENT="${{ steps.fetch_comment.outputs.latest_comment || github.event.comment.body }}"
@@ -114,8 +115,9 @@ jobs:
         run: |
           echo "CURRENT_BRANCH=${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}" >> $GITHUB_ENV
 
-          # Default to comment branches if they are set, otherwise use existing logic
+          # Use branches from comment if they are set
           if [ -n "${{ env.MX_CHAIN_SIMULATOR_TARGET_BRANCH }}" ]; then
+            echo "Using comment-specified mx-chain-simulator-go branch: ${{ env.MX_CHAIN_SIMULATOR_TARGET_BRANCH }}"
             echo "MX_CHAIN_SIMULATOR_TARGET_BRANCH=${{ env.MX_CHAIN_SIMULATOR_TARGET_BRANCH }}" >> $GITHUB_ENV
           else
             if [[ "${{ github.event.pull_request.base.ref }}" == "main" ]]; then
@@ -128,6 +130,7 @@ jobs:
           fi
 
           if [ -n "${{ env.MX_CHAIN_TESTING_SUITE_TARGET_BRANCH }}" ]; then
+            echo "Using comment-specified mx-chain-testing-suite branch: ${{ env.MX_CHAIN_TESTING_SUITE_TARGET_BRANCH }}"
             echo "MX_CHAIN_TESTING_SUITE_TARGET_BRANCH=${{ env.MX_CHAIN_TESTING_SUITE_TARGET_BRANCH }}" >> $GITHUB_ENV
           else
             if [[ "${{ github.event.pull_request.base.ref }}" == "main" ]]; then
@@ -138,12 +141,14 @@ jobs:
               echo "MX_CHAIN_TESTING_SUITE_TARGET_BRANCH=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
             fi
           fi
+
+          # Always set MX_CHAIN_GO_TARGET_BRANCH based on the PR base branch
           echo "MX_CHAIN_GO_TARGET_BRANCH=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
       
 
       - name: Print Target Branches
         run: |
-          echo "Current branch: ${{ env.CURRENT_BRANCH }}"
+          echo "Current branch mx-chain-go: ${{ env.CURRENT_BRANCH }}"
           echo "mx-chain-go target branch: ${{ env.MX_CHAIN_GO_TARGET_BRANCH }}"
           echo "mx-chain-simulator-go target branch: ${{ env.MX_CHAIN_SIMULATOR_TARGET_BRANCH }}"
           echo "mx-chain-testing-suite target branch: ${{ env.MX_CHAIN_TESTING_SUITE_TARGET_BRANCH }}"
