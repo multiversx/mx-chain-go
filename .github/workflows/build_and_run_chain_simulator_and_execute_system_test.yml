@@ -21,7 +21,8 @@ jobs:
   build-and-test:
     if: |
       github.event_name == 'pull_request' ||
-      (github.event_name == 'issue_comment' && contains(github.event.comment.body, 'Run Tests:'))
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, 'Run Tests:')) ||
+      github.event_name == 'workflow_dispatch'
 
     strategy:
       matrix:
@@ -35,17 +36,6 @@ jobs:
       MX_CHAIN_TESTING_SUITE_TARGET_BRANCH: ""
 
     steps:
-      - name: Debug Comment
-        if: github.event_name == 'issue_comment'
-        run: |
-          echo "Comment body: ${{ github.event.comment.body }}"
-          echo "Is PR: ${{ github.event.issue.pull_request }}
-
-      - name: Log Trigger Information
-        run: |
-          echo "Event: ${{ github.event_name }}"
-          echo "Action: ${{ github.event.action }}"
-
       - name: Parse Comment for Branches
         if: github.event_name == 'issue_comment'
         run: |
@@ -62,6 +52,10 @@ jobs:
               TESTING_SUITE_BRANCH=$(echo "$COMMENT" | grep "mx-chain-testing-suite:" | awk -F': ' '{print $2}')
               echo "MX_CHAIN_TESTING_SUITE_TARGET_BRANCH=${TESTING_SUITE_BRANCH}" >> $GITHUB_ENV
             fi
+          else
+            echo "MX_CHAIN_SIMULATOR_TARGET_BRANCH=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
+            echo "MX_CHAIN_TESTING_SUITE_TARGET_BRANCH=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
+          fi
 
       - name: Set up Go 1.20.7
         uses: actions/setup-go@v3
@@ -91,20 +85,33 @@ jobs:
         id: target_branch
         run: |
           echo "CURRENT_BRANCH=${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}" >> $GITHUB_ENV
-          if [[ "${{ github.event.pull_request.base.ref }}" == "main" ]]; then
-            echo "TARGET_BRANCH=main" >> $GITHUB_ENV
-            echo "MX_CHAIN_SIMULATOR_TARGET_BRANCH=main" >> $GITHUB_ENV
-            echo "MX_CHAIN_TESTING_SUITE_TARGET_BRANCH=main" >> $GITHUB_ENV
-          elif [[ "${{ github.event.pull_request.base.ref }}" == "master" ]]; then
-            echo "TARGET_BRANCH=master" >> $GITHUB_ENV
-            echo "MX_CHAIN_SIMULATOR_TARGET_BRANCH=main" >> $GITHUB_ENV
-            echo "MX_CHAIN_TESTING_SUITE_TARGET_BRANCH=main" >> $GITHUB_ENV
-          elif [[ "${{ github.event.pull_request.base.ref }}" == rc/* || "${{ github.event.pull_request.base.ref }}" == integrate-sys-tests-ci* ]]; then
-            echo "TARGET_BRANCH=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
-            echo "MX_CHAIN_SIMULATOR_TARGET_BRANCH=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
-            echo "MX_CHAIN_TESTING_SUITE_TARGET_BRANCH=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
+
+          # Default to comment branches if they are set, otherwise use existing logic
+          if [ -n "${{ env.MX_CHAIN_SIMULATOR_TARGET_BRANCH }}" ]; then
+            echo "MX_CHAIN_SIMULATOR_TARGET_BRANCH=${{ env.MX_CHAIN_SIMULATOR_TARGET_BRANCH }}" >> $GITHUB_ENV
+          else
+            if [[ "${{ github.event.pull_request.base.ref }}" == "main" ]]; then
+              echo "MX_CHAIN_SIMULATOR_TARGET_BRANCH=main" >> $GITHUB_ENV
+            elif [[ "${{ github.event.pull_request.base.ref }}" == "master" ]]; then
+              echo "MX_CHAIN_SIMULATOR_TARGET_BRANCH=main" >> $GITHUB_ENV
+            elif [[ "${{ github.event.pull_request.base.ref }}" == rc/* || "${{ github.event.pull_request.base.ref }}" == integrate-sys-tests-ci* ]]; then
+              echo "MX_CHAIN_SIMULATOR_TARGET_BRANCH=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
+            fi
+          fi
+
+          if [ -n "${{ env.MX_CHAIN_TESTING_SUITE_TARGET_BRANCH }}" ]; then
+            echo "MX_CHAIN_TESTING_SUITE_TARGET_BRANCH=${{ env.MX_CHAIN_TESTING_SUITE_TARGET_BRANCH }}" >> $GITHUB_ENV
+          else
+            if [[ "${{ github.event.pull_request.base.ref }}" == "main" ]]; then
+              echo "MX_CHAIN_TESTING_SUITE_TARGET_BRANCH=main" >> $GITHUB_ENV
+            elif [[ "${{ github.event.pull_request.base.ref }}" == "master" ]]; then
+              echo "MX_CHAIN_TESTING_SUITE_TARGET_BRANCH=main" >> $GITHUB_ENV
+            elif [[ "${{ github.event.pull_request.base.ref }}" == rc/* || "${{ github.event.pull_request.base.ref }}" == integrate-sys-tests-ci* ]]; then
+              echo "MX_CHAIN_TESTING_SUITE_TARGET_BRANCH=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
+            fi
           fi
           echo "MX_CHAIN_GO_TARGET_BRANCH=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
+      
 
       - name: Print Target Branches
         run: |
@@ -117,7 +124,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: 'multiversx/mx-chain-simulator-go'
-          ref: ${{ env.MX_CHAIN_SIMULATOR_TARGET_BRANCH }}
+          ref: ${{ env.MX_CHAIN_SIMULATOR_TARGET_BRANCH || github.event.pull_request.base.ref }}
           path: 'mx-chain-simulator-go'
 
       - name: Set up Python 3.10
@@ -144,7 +151,7 @@ jobs:
         with:
           repository: 'multiversx/mx-chain-testing-suite'
           path: 'mx-chain-testing-suite'
-          ref: ${{ env.MX_CHAIN_TESTING_SUITE_TARGET_BRANCH }}
+          ref: ${{ env.MX_CHAIN_TESTING_SUITE_TARGET_BRANCH || github.event.pull_request.base.ref }}
           token: ${{ secrets.MVX_TESTER_GH_TOKEN }}
 
       - name: Install Dependencies
