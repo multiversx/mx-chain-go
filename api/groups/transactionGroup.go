@@ -144,7 +144,7 @@ func NewTransactionGroup(facade transactionFacadeHandler) (*transactionGroup, er
 		{
 			Path:    getScrsByTxHashPath,
 			Method:  http.MethodGet,
-			Handler: tg.getTransaction,
+			Handler: tg.getScrsByTxHash,
 			AdditionalMiddlewares: []shared.AdditionalMiddleware{
 				{
 					Middleware: middleware.CreateEndpointThrottlerFromFacade(getScrsByTxHashEndpoint, facade),
