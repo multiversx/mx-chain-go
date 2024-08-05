@@ -1383,7 +1383,6 @@ func (scbp *sovereignChainBlockProcessor) CommitBlock(headerHandler data.HeaderH
 		return err
 	}
 
-	// TODO: MX-15588
 	scbp.commitEpochStart(headerHandler, body)
 
 	headerHash := scbp.hasher.Compute(string(marshalizedHeader))
@@ -1463,9 +1462,13 @@ func (scbp *sovereignChainBlockProcessor) commitEpochStart(header data.HeaderHan
 		scbp.epochStartTrigger.SetProcessed(header, body)
 		scbp.createEpochStartData(body)
 		go scbp.validatorInfoCreator.SaveBlockDataToStorage(header, body)
-		// TODO: MX-15588 FIX THIS (mp *metaProcessor) commitEpochStart
-		//go scbp.epochRewardsCreator.SaveBlockDataToStorage(header, body)
-		// ************
+
+		sovMetaHdr, castOk := header.(data.MetaHeaderHandler)
+		if !castOk {
+			log.Error("sovereignChainBlockProcessor.commitEpochStart", "error", process.ErrWrongTypeAssertion)
+		}
+
+		go scbp.epochRewardsCreator.SaveBlockDataToStorage(sovMetaHdr, body)
 	} else {
 		currentHeader := scbp.blockChain.GetCurrentBlockHeader()
 		if !check.IfNil(currentHeader) && currentHeader.IsStartOfEpochBlock() {
