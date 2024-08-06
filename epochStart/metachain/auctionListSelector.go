@@ -35,7 +35,7 @@ type auctionConfig struct {
 }
 
 type auctionListSelector struct {
-	shardCoordinator     ShardCoordinatorHandler
+	shardCoordinator     ExtendedShardCoordinatorHandler
 	stakingDataProvider  epochStart.StakingDataProvider
 	nodesConfigProvider  epochStart.MaxNodesChangeConfigProvider
 	auctionListDisplayer AuctionListDisplayHandler
@@ -44,7 +44,7 @@ type auctionListSelector struct {
 
 // AuctionListSelectorArgs is a struct placeholder for all arguments required to create an auctionListSelector
 type AuctionListSelectorArgs struct {
-	ShardCoordinator             ShardCoordinatorHandler
+	ShardCoordinator             ExtendedShardCoordinatorHandler
 	StakingDataProvider          epochStart.StakingDataProvider
 	MaxNodesChangeConfigProvider epochStart.MaxNodesChangeConfigProvider
 	AuctionListDisplayHandler    AuctionListDisplayHandler
