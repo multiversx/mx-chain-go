@@ -719,7 +719,8 @@ func (bh *BlockChainHookImpl) GetESDTToken(address []byte, tokenID []byte, nonce
 		return nil, err
 	}
 
-	if bytes.Equal(tokenID, []byte(eGLD)) {
+	// TODO - change the flag for the new one by Laurentiu
+	if bh.enableEpochsHandler.IsFlagEnabled(common.EGLDInESDTMultiTransferFlag) && bytes.Equal(tokenID, []byte(eGLD)) {
 		esdtData.Value.Set(userAcc.GetBalance())
 		return esdtData, nil
 	}
