@@ -820,3 +820,21 @@ var ErrNilAccountsCreator = errors.New("nil accounts creator")
 
 // ErrNilInitialAccounts signals that a nil initial accounts has been provided
 var ErrNilInitialAccounts = errors.New("nil initial accounts")
+
+// ErrNilEpochStartTriggerFactory signals that a nil epoch start trigger factory has been provided
+var ErrNilEpochStartTriggerFactory = errors.New("nil epoch start trigger factory has been provided")
+
+// ErrNilLatestDataProviderFactory signals that a nil latest data provider factory has been provided
+var ErrNilLatestDataProviderFactory = errors.New("nil latest data provider factory has been provided")
+
+// ErrNilStakingToPeerFactory signals that a nil staking to peer factory has been provided
+var ErrNilStakingToPeerFactory = errors.New("nil staking to peer factory has been provided")
+
+// ErrNilValidatorInfoCreatorFactory signals that a nil validator info creator factory has been provided
+var ErrNilValidatorInfoCreatorFactory = errors.New("nil validator info creator factory has been provided")
+
+// ErrNilAPIProcessorCompsCreator signals that a nil api processor components creator has been provided
+var ErrNilAPIProcessorCompsCreator = errors.New("nil api processor components creator has been provided")
+
+// ErrNilEndOfEpochEconomicsFactory signals that a nil end of epoch economics factory has been provided
+var ErrNilEndOfEpochEconomicsFactory = errors.New("nil end of epoch economics factory has been provided")

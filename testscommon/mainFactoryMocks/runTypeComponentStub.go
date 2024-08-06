@@ -7,6 +7,8 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
+	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/factory/processing/api"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/checking"
@@ -19,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/peer"
+	"github.com/multiversx/mx-chain-go/process/scToProtocol"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 	"github.com/multiversx/mx-chain-go/process/sync"
@@ -27,6 +30,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	nodesCoord "github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage/latestData"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	testFactory "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
@@ -39,79 +43,91 @@ import (
 
 // RunTypeComponentsStub -
 type RunTypeComponentsStub struct {
-	BlockChainHookHandlerFactory        hooks.BlockChainHookHandlerCreator
-	BlockProcessorFactory               block.BlockProcessorCreator
-	BlockTrackerFactory                 track.BlockTrackerCreator
-	BootstrapperFromStorageFactory      storageBootstrap.BootstrapperFromStorageCreator
-	BootstrapperFactory                 storageBootstrap.BootstrapperCreator
-	EpochStartBootstrapperFactory       bootstrap.EpochStartBootstrapperCreator
-	ForkDetectorFactory                 sync.ForkDetectorCreator
-	HeaderValidatorFactory              block.HeaderValidatorCreator
-	RequestHandlerFactory               requestHandlers.RequestHandlerCreator
-	ScheduledTxsExecutionFactory        preprocess.ScheduledTxsExecutionCreator
-	TransactionCoordinatorFactory       coordinator.TransactionCoordinatorCreator
-	ValidatorStatisticsProcessorFactory peer.ValidatorStatisticsProcessorCreator
-	AdditionalStorageServiceFactory     process.AdditionalStorageServiceCreator
-	SCResultsPreProcessorFactory        preprocess.SmartContractResultPreProcessorCreator
-	SCProcessorFactory                  scrCommon.SCProcessorCreator
-	ConsensusModelType                  consensus.ConsensusModel
-	VmContainerMetaFactory              factoryVm.VmContainerCreator
-	VmContainerShardFactory             factoryVm.VmContainerCreator
-	AccountParser                       genesis.AccountsParser
-	AccountCreator                      state.AccountFactory
-	VMContextCreatorHandler             systemSmartContracts.VMContextCreatorHandler
-	OutGoingOperationsPool              sovereignBlock.OutGoingOperationsPool
-	DataCodec                           sovereign.DataCodecHandler
-	TopicsChecker                       sovereign.TopicsCheckerHandler
-	ShardCoordinatorFactory             sharding.ShardCoordinatorFactory
-	NodesCoordinatorWithRaterFactory    nodesCoord.NodesCoordinatorWithRaterFactory
-	RequestersContainerFactory          requesterscontainer.RequesterContainerFactoryCreator
-	InterceptorsContainerFactory        interceptorscontainer.InterceptorsContainerFactoryCreator
-	ShardResolversContainerFactory      resolverscontainer.ShardResolversContainerFactoryCreator
-	TxPreProcessorFactory               preprocess.TxPreProcessorCreator
-	ExtraHeaderSigVerifier              headerCheck.ExtraHeaderSigVerifierHolder
-	GenesisBlockFactory                 processGenesis.GenesisBlockCreatorFactory
-	GenesisMetaBlockChecker             processGenesis.GenesisMetaBlockChecker
-	NodesSetupCheckerFactoryField       checking.NodesSetupCheckerFactory
+	BlockChainHookHandlerFactory           hooks.BlockChainHookHandlerCreator
+	BlockProcessorFactory                  block.BlockProcessorCreator
+	BlockTrackerFactory                    track.BlockTrackerCreator
+	BootstrapperFromStorageFactory         storageBootstrap.BootstrapperFromStorageCreator
+	BootstrapperFactory                    storageBootstrap.BootstrapperCreator
+	EpochStartBootstrapperFactory          bootstrap.EpochStartBootstrapperCreator
+	ForkDetectorFactory                    sync.ForkDetectorCreator
+	HeaderValidatorFactory                 block.HeaderValidatorCreator
+	RequestHandlerFactory                  requestHandlers.RequestHandlerCreator
+	ScheduledTxsExecutionFactory           preprocess.ScheduledTxsExecutionCreator
+	TransactionCoordinatorFactory          coordinator.TransactionCoordinatorCreator
+	ValidatorStatisticsProcessorFactory    peer.ValidatorStatisticsProcessorCreator
+	AdditionalStorageServiceFactory        process.AdditionalStorageServiceCreator
+	SCResultsPreProcessorFactory           preprocess.SmartContractResultPreProcessorCreator
+	SCProcessorFactory                     scrCommon.SCProcessorCreator
+	ConsensusModelType                     consensus.ConsensusModel
+	VmContainerMetaFactory                 factoryVm.VmContainerCreator
+	VmContainerShardFactory                factoryVm.VmContainerCreator
+	AccountParser                          genesis.AccountsParser
+	AccountCreator                         state.AccountFactory
+	VMContextCreatorHandler                systemSmartContracts.VMContextCreatorHandler
+	OutGoingOperationsPool                 sovereignBlock.OutGoingOperationsPool
+	DataCodec                              sovereign.DataCodecHandler
+	TopicsChecker                          sovereign.TopicsCheckerHandler
+	ShardCoordinatorFactory                sharding.ShardCoordinatorFactory
+	NodesCoordinatorWithRaterFactory       nodesCoord.NodesCoordinatorWithRaterFactory
+	RequestersContainerFactory             requesterscontainer.RequesterContainerFactoryCreator
+	InterceptorsContainerFactory           interceptorscontainer.InterceptorsContainerFactoryCreator
+	ShardResolversContainerFactory         resolverscontainer.ShardResolversContainerFactoryCreator
+	TxPreProcessorFactory                  preprocess.TxPreProcessorCreator
+	ExtraHeaderSigVerifier                 headerCheck.ExtraHeaderSigVerifierHolder
+	GenesisBlockFactory                    processGenesis.GenesisBlockCreatorFactory
+	GenesisMetaBlockChecker                processGenesis.GenesisMetaBlockChecker
+	NodesSetupCheckerFactoryField          checking.NodesSetupCheckerFactory
+	EpochStartTriggerFactoryField          factory.EpochStartTriggerFactoryHandler
+	LatestDataProviderFactoryField         latestData.LatestDataProviderFactory
+	StakingToPeerFactoryField              scToProtocol.StakingToPeerFactoryHandler
+	ValidatorInfoCreatorFactoryField       factory.ValidatorInfoCreatorFactory
+	APIProcessorCompsCreatorHandlerField   api.ApiProcessorCompsCreatorHandler
+	EndOfEpochEconomicsFactoryHandlerField factory.EndOfEpochEconomicsFactoryHandler
 }
 
 // NewRunTypeComponentsStub -
 func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 	return &RunTypeComponentsStub{
-		BlockChainHookHandlerFactory:        &testFactory.BlockChainHookHandlerFactoryMock{},
-		BlockProcessorFactory:               &testFactory.BlockProcessorFactoryMock{},
-		BlockTrackerFactory:                 &testFactory.BlockTrackerFactoryMock{},
-		BootstrapperFromStorageFactory:      &testFactory.BootstrapperFromStorageFactoryMock{},
-		BootstrapperFactory:                 &testFactory.BootstrapperFactoryMock{},
-		EpochStartBootstrapperFactory:       &testFactory.EpochStartBootstrapperFactoryMock{},
-		ForkDetectorFactory:                 &testFactory.ForkDetectorFactoryMock{},
-		HeaderValidatorFactory:              &testFactory.HeaderValidatorFactoryMock{},
-		RequestHandlerFactory:               &testFactory.RequestHandlerFactoryMock{},
-		ScheduledTxsExecutionFactory:        &testFactory.ScheduledTxsExecutionFactoryMock{},
-		TransactionCoordinatorFactory:       &testFactory.TransactionCoordinatorFactoryMock{},
-		ValidatorStatisticsProcessorFactory: &testFactory.ValidatorStatisticsProcessorFactoryMock{},
-		AdditionalStorageServiceFactory:     &testFactory.AdditionalStorageServiceFactoryMock{},
-		SCResultsPreProcessorFactory:        &testFactory.SmartContractResultPreProcessorFactoryMock{},
-		SCProcessorFactory:                  &testFactory.SCProcessorFactoryMock{},
-		ConsensusModelType:                  consensus.ConsensusModelV1,
-		VmContainerMetaFactory:              &testFactory.VMContainerFactoryMock{},
-		VmContainerShardFactory:             &testFactory.VMContainerFactoryMock{},
-		AccountParser:                       &genesisMocks.AccountsParserStub{},
-		AccountCreator:                      &stateMock.AccountsFactoryStub{},
-		VMContextCreatorHandler:             &vmContext.VMContextCreatorStub{},
-		OutGoingOperationsPool:              &sovereignMocks.OutGoingOperationsPoolMock{},
-		DataCodec:                           &sovereignMocks.DataCodecMock{},
-		TopicsChecker:                       &sovereignMocks.TopicsCheckerMock{},
-		ShardCoordinatorFactory:             &testscommon.MultiShardCoordinatorFactoryMock{},
-		NodesCoordinatorWithRaterFactory:    &testscommon.NodesCoordinatorFactoryMock{},
-		RequestersContainerFactory:          &testFactory.RequestersContainerFactoryMock{},
-		InterceptorsContainerFactory:        &testFactory.InterceptorsContainerFactoryMock{},
-		ShardResolversContainerFactory:      &testFactory.ResolversContainerFactoryMock{},
-		TxPreProcessorFactory:               &testFactory.TxPreProcessorFactoryMock{},
-		ExtraHeaderSigVerifier:              &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
-		GenesisBlockFactory:                 &testFactory.GenesisBlockCreatorFactoryMock{},
-		GenesisMetaBlockChecker:             &testFactory.GenesisMetaBlockCheckerMock{},
-		NodesSetupCheckerFactoryField:       checking.NewNodesSetupCheckerFactory(),
+		BlockChainHookHandlerFactory:           &testFactory.BlockChainHookHandlerFactoryMock{},
+		BlockProcessorFactory:                  &testFactory.BlockProcessorFactoryMock{},
+		BlockTrackerFactory:                    &testFactory.BlockTrackerFactoryMock{},
+		BootstrapperFromStorageFactory:         &testFactory.BootstrapperFromStorageFactoryMock{},
+		BootstrapperFactory:                    &testFactory.BootstrapperFactoryMock{},
+		EpochStartBootstrapperFactory:          &testFactory.EpochStartBootstrapperFactoryMock{},
+		ForkDetectorFactory:                    &testFactory.ForkDetectorFactoryMock{},
+		HeaderValidatorFactory:                 &testFactory.HeaderValidatorFactoryMock{},
+		RequestHandlerFactory:                  &testFactory.RequestHandlerFactoryMock{},
+		ScheduledTxsExecutionFactory:           &testFactory.ScheduledTxsExecutionFactoryMock{},
+		TransactionCoordinatorFactory:          &testFactory.TransactionCoordinatorFactoryMock{},
+		ValidatorStatisticsProcessorFactory:    &testFactory.ValidatorStatisticsProcessorFactoryMock{},
+		AdditionalStorageServiceFactory:        &testFactory.AdditionalStorageServiceFactoryMock{},
+		SCResultsPreProcessorFactory:           &testFactory.SmartContractResultPreProcessorFactoryMock{},
+		SCProcessorFactory:                     &testFactory.SCProcessorFactoryMock{},
+		ConsensusModelType:                     consensus.ConsensusModelV1,
+		VmContainerMetaFactory:                 &testFactory.VMContainerFactoryMock{},
+		VmContainerShardFactory:                &testFactory.VMContainerFactoryMock{},
+		AccountParser:                          &genesisMocks.AccountsParserStub{},
+		AccountCreator:                         &stateMock.AccountsFactoryStub{},
+		VMContextCreatorHandler:                &vmContext.VMContextCreatorStub{},
+		OutGoingOperationsPool:                 &sovereignMocks.OutGoingOperationsPoolMock{},
+		DataCodec:                              &sovereignMocks.DataCodecMock{},
+		TopicsChecker:                          &sovereignMocks.TopicsCheckerMock{},
+		ShardCoordinatorFactory:                &testscommon.MultiShardCoordinatorFactoryMock{},
+		NodesCoordinatorWithRaterFactory:       &testscommon.NodesCoordinatorFactoryMock{},
+		RequestersContainerFactory:             &testFactory.RequestersContainerFactoryMock{},
+		InterceptorsContainerFactory:           &testFactory.InterceptorsContainerFactoryMock{},
+		ShardResolversContainerFactory:         &testFactory.ResolversContainerFactoryMock{},
+		TxPreProcessorFactory:                  &testFactory.TxPreProcessorFactoryMock{},
+		ExtraHeaderSigVerifier:                 &headerSigVerifier.ExtraHeaderSigVerifierHolderMock{},
+		GenesisBlockFactory:                    &testFactory.GenesisBlockCreatorFactoryMock{},
+		GenesisMetaBlockChecker:                &testFactory.GenesisMetaBlockCheckerMock{},
+		NodesSetupCheckerFactoryField:          checking.NewNodesSetupCheckerFactory(),
+		EpochStartTriggerFactoryField:          &testFactory.EpochStartTriggerFactoryMock{},
+		LatestDataProviderFactoryField:         &testFactory.LatestDataProviderFactoryMock{},
+		StakingToPeerFactoryField:              &testFactory.StakingToPeerFactoryMock{},
+		ValidatorInfoCreatorFactoryField:       &testFactory.ValidatorInfoCreatorFactoryMock{},
+		APIProcessorCompsCreatorHandlerField:   &testFactory.APIProcessorCompsCreatorMock{},
+		EndOfEpochEconomicsFactoryHandlerField: &testFactory.EconomicsFactoryMock{},
 	}
 }
 
@@ -303,6 +319,36 @@ func (r *RunTypeComponentsStub) GenesisMetaBlockCheckerCreator() processGenesis.
 // NodesSetupCheckerFactory -
 func (r *RunTypeComponentsStub) NodesSetupCheckerFactory() checking.NodesSetupCheckerFactory {
 	return r.NodesSetupCheckerFactoryField
+}
+
+// EpochStartTriggerFactory -
+func (r *RunTypeComponentsStub) EpochStartTriggerFactory() factory.EpochStartTriggerFactoryHandler {
+	return r.EpochStartTriggerFactoryField
+}
+
+// LatestDataProviderFactory  -
+func (r *RunTypeComponentsStub) LatestDataProviderFactory() latestData.LatestDataProviderFactory {
+	return r.LatestDataProviderFactoryField
+}
+
+// StakingToPeerFactory -
+func (r *RunTypeComponentsStub) StakingToPeerFactory() scToProtocol.StakingToPeerFactoryHandler {
+	return r.StakingToPeerFactoryField
+}
+
+// ValidatorInfoCreatorFactory -
+func (r *RunTypeComponentsStub) ValidatorInfoCreatorFactory() factory.ValidatorInfoCreatorFactory {
+	return r.ValidatorInfoCreatorFactoryField
+}
+
+// ApiProcessorCompsCreatorHandler -
+func (r *RunTypeComponentsStub) ApiProcessorCompsCreatorHandler() api.ApiProcessorCompsCreatorHandler {
+	return r.APIProcessorCompsCreatorHandlerField
+}
+
+// EndOfEpochEconomicsFactoryHandler -
+func (r *RunTypeComponentsStub) EndOfEpochEconomicsFactoryHandler() factory.EndOfEpochEconomicsFactoryHandler {
+	return r.EndOfEpochEconomicsFactoryHandlerField
 }
 
 // IsInterfaceNil -

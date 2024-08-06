@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/factory/processing/api"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/checking"
@@ -24,6 +25,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/peer"
+	"github.com/multiversx/mx-chain-go/process/scToProtocol"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 	processSync "github.com/multiversx/mx-chain-go/process/sync"
@@ -32,6 +34,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage/latestData"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -197,6 +200,24 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	}
 	if check.IfNil(mrc.genesisMetaBlockCheckerCreator) {
 		return errors.ErrNilGenesisMetaBlockChecker
+	}
+	if check.IfNil(mrc.epochStartTriggerFactory) {
+		return errors.ErrNilEpochStartTriggerFactory
+	}
+	if check.IfNil(mrc.latestDataProviderFactory) {
+		return errors.ErrNilLatestDataProviderFactory
+	}
+	if check.IfNil(mrc.scToProtocolFactory) {
+		return errors.ErrNilStakingToPeerFactory
+	}
+	if check.IfNil(mrc.validatorInfoCreatorFactory) {
+		return errors.ErrNilValidatorInfoCreatorFactory
+	}
+	if check.IfNil(mrc.apiProcessorCompsCreatorHandler) {
+		return errors.ErrNilAPIProcessorCompsCreator
+	}
+	if check.IfNil(mrc.endOfEpochEconomicsFactoryHandler) {
+		return errors.ErrNilEndOfEpochEconomicsFactory
 	}
 	return nil
 }
@@ -607,6 +628,78 @@ func (mrc *managedRunTypeComponents) NodesSetupCheckerFactory() checking.NodesSe
 	}
 
 	return mrc.runTypeComponents.nodesSetupCheckerFactory
+}
+
+// EpochStartTriggerFactory returns the epoch start trigger factory
+func (mrc *managedRunTypeComponents) EpochStartTriggerFactory() factory.EpochStartTriggerFactoryHandler {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.epochStartTriggerFactory
+}
+
+// LatestDataProviderFactory returns the latest data provider factory
+func (mrc *managedRunTypeComponents) LatestDataProviderFactory() latestData.LatestDataProviderFactory {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.latestDataProviderFactory
+}
+
+// StakingToPeerFactory returns the staking to peer factory
+func (mrc *managedRunTypeComponents) StakingToPeerFactory() scToProtocol.StakingToPeerFactoryHandler {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.scToProtocolFactory
+}
+
+// ValidatorInfoCreatorFactory returns the validator info creator factory
+func (mrc *managedRunTypeComponents) ValidatorInfoCreatorFactory() factory.ValidatorInfoCreatorFactory {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.validatorInfoCreatorFactory
+}
+
+// ApiProcessorCompsCreatorHandler returns the api processor components creator handler
+func (mrc *managedRunTypeComponents) ApiProcessorCompsCreatorHandler() api.ApiProcessorCompsCreatorHandler {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.apiProcessorCompsCreatorHandler
+}
+
+// EndOfEpochEconomicsFactoryHandler returns the end of epoch economics factory handler
+func (mrc *managedRunTypeComponents) EndOfEpochEconomicsFactoryHandler() factory.EndOfEpochEconomicsFactoryHandler {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.endOfEpochEconomicsFactoryHandler
 }
 
 // IsInterfaceNil returns true if the interface is nil

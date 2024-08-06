@@ -27,3 +27,13 @@ func (ssc *sovereignShardCoordinator) ComputeId(_ []byte) uint32 {
 func (msc *sovereignShardCoordinator) SameShard(_, _ []byte) bool {
 	return true
 }
+
+// TotalNumberOfShards returns one for sovereign chain
+func (msc *sovereignShardCoordinator) TotalNumberOfShards() uint32 {
+	return 1
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (msc *sovereignShardCoordinator) IsInterfaceNil() bool {
+	return msc == nil
+}

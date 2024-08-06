@@ -3,12 +3,12 @@ package block
 import (
 	"errors"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/hashing/factory"
 	mxErrors "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/sovereign"
-
-	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/hashing/factory"
+	processFactory "github.com/multiversx/mx-chain-go/process/factory"
 )
 
 type sovereignBlockProcessorFactory struct {
@@ -27,8 +27,8 @@ func NewSovereignBlockProcessorFactory(sbpf BlockProcessorCreator) (*sovereignBl
 }
 
 // CreateBlockProcessor creates a new sovereign block processor for the chain run type sovereign
-func (s *sovereignBlockProcessorFactory) CreateBlockProcessor(argumentsBaseProcessor ArgBaseProcessor) (process.DebuggerBlockProcessor, error) {
-	sp, err := s.shardBlockProcessorFactory.CreateBlockProcessor(argumentsBaseProcessor)
+func (s *sovereignBlockProcessorFactory) CreateBlockProcessor(argumentsBaseProcessor ArgBaseProcessor, argsMetaProcessorCreateFunc ExtraMetaBlockProcessorCreateFunc) (process.DebuggerBlockProcessor, error) {
+	sp, err := s.shardBlockProcessorFactory.CreateBlockProcessor(argumentsBaseProcessor, argsMetaProcessorCreateFunc)
 	if err != nil {
 		return nil, errors.New("could not create shard block processor: " + err.Error())
 	}
@@ -52,17 +52,31 @@ func (s *sovereignBlockProcessorFactory) CreateBlockProcessor(argumentsBaseProce
 		return nil, err
 	}
 
+	systemVM, err := argumentsBaseProcessor.VmContainer.Get(processFactory.SystemVirtualMachine)
+	if err != nil {
+		return nil, err
+	}
+
+	argsMetaProcessor, err := argsMetaProcessorCreateFunc(systemVM)
+	if err != nil {
+		return nil, err
+	}
+
 	args := ArgsSovereignChainBlockProcessor{
 		ShardProcessor:               shardProc,
 		ValidatorStatisticsProcessor: argumentsBaseProcessor.ValidatorStatisticsProcessor,
 		OutgoingOperationsFormatter:  outgoingOpFormatter,
 		OutGoingOperationsPool:       argumentsBaseProcessor.RunTypeComponents.OutGoingOperationsPoolHandler(),
 		OperationsHasher:             operationsHasher,
+		ValidatorInfoCreator:         argsMetaProcessor.EpochValidatorInfoCreator,
+		EpochRewardsCreator:          argsMetaProcessor.EpochRewardsCreator,
+		EpochStartDataCreator:        argsMetaProcessor.EpochStartDataCreator,
+		EpochSystemSCProcessor:       argsMetaProcessor.EpochSystemSCProcessor,
+		SCToProtocol:                 argsMetaProcessor.SCToProtocol,
+		EpochEconomics:               argsMetaProcessor.EpochEconomics,
 	}
 
-	scbp, err := NewSovereignChainBlockProcessor(args)
-
-	return scbp, err
+	return NewSovereignChainBlockProcessor(args)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

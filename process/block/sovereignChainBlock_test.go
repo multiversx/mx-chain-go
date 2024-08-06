@@ -25,7 +25,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createSovChainBlockProcessorArgs() blproc.ArgShardProcessor {
+func createSovChainBaseBlockProcessorArgs() blproc.ArgShardProcessor {
 	shardArguments := CreateSovereignChainShardTrackerMockArguments()
 	sbt, _ := track.NewShardBlockTrack(shardArguments)
 
@@ -46,6 +46,24 @@ func createSovChainBlockProcessorArgs() blproc.ArgShardProcessor {
 	arguments.RequestHandler, _ = requestHandlers.NewSovereignResolverRequestHandler(rrh)
 
 	return arguments
+}
+
+func createSovChainBlockProcessorArgs() blproc.ArgsSovereignChainBlockProcessor {
+	baseArgs := createSovChainBaseBlockProcessorArgs()
+	sp, _ := blproc.NewShardProcessor(baseArgs)
+	return blproc.ArgsSovereignChainBlockProcessor{
+		ShardProcessor:               sp,
+		ValidatorStatisticsProcessor: &testscommon.ValidatorStatisticsProcessorStub{},
+		OutgoingOperationsFormatter:  &sovereign.OutgoingOperationsFormatterMock{},
+		OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolMock{},
+		OperationsHasher:             &testscommon.HasherStub{},
+		EpochStartDataCreator:        &mock.EpochStartDataCreatorStub{},
+		EpochRewardsCreator:          &testscommon.RewardsCreatorStub{},
+		ValidatorInfoCreator:         &testscommon.EpochValidatorInfoCreatorStub{},
+		EpochSystemSCProcessor:       &testscommon.EpochStartSystemSCStub{},
+		EpochEconomics:               &mock.EpochEconomicsStub{},
+		SCToProtocol:                 &mock.SCToProtocolStub{},
+	}
 }
 
 // CreateSovereignChainShardTrackerMockArguments -
@@ -81,13 +99,9 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 	t.Run("should error when shard processor is nil", func(t *testing.T) {
 		t.Parallel()
 
-		scbp, err := blproc.NewSovereignChainBlockProcessor(blproc.ArgsSovereignChainBlockProcessor{
-			ShardProcessor:               nil,
-			ValidatorStatisticsProcessor: &testscommon.ValidatorStatisticsProcessorStub{},
-			OutgoingOperationsFormatter:  &sovereign.OutgoingOperationsFormatterMock{},
-			OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolMock{},
-			OperationsHasher:             &mock.HasherStub{},
-		})
+		args := createSovChainBlockProcessorArgs()
+		args.ShardProcessor = nil
+		scbp, err := blproc.NewSovereignChainBlockProcessor(args)
 
 		require.Nil(t, scbp)
 		require.ErrorIs(t, err, process.ErrNilBlockProcessor)
@@ -96,15 +110,9 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 	t.Run("should error when validator statistics is nil", func(t *testing.T) {
 		t.Parallel()
 
-		arguments := CreateMockArguments(createComponentHolderMocks())
-		sp, _ := blproc.NewShardProcessor(arguments)
-		scbp, err := blproc.NewSovereignChainBlockProcessor(blproc.ArgsSovereignChainBlockProcessor{
-			ShardProcessor:               sp,
-			ValidatorStatisticsProcessor: nil,
-			OutgoingOperationsFormatter:  &sovereign.OutgoingOperationsFormatterMock{},
-			OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolMock{},
-			OperationsHasher:             &mock.HasherStub{},
-		})
+		args := createSovChainBlockProcessorArgs()
+		args.ValidatorStatisticsProcessor = nil
+		scbp, err := blproc.NewSovereignChainBlockProcessor(args)
 
 		require.Nil(t, scbp)
 		require.ErrorIs(t, err, process.ErrNilValidatorStatistics)
@@ -113,15 +121,9 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 	t.Run("should error when outgoing operations formatter is nil", func(t *testing.T) {
 		t.Parallel()
 
-		arguments := CreateMockArguments(createComponentHolderMocks())
-		sp, _ := blproc.NewShardProcessor(arguments)
-		scbp, err := blproc.NewSovereignChainBlockProcessor(blproc.ArgsSovereignChainBlockProcessor{
-			ShardProcessor:               sp,
-			ValidatorStatisticsProcessor: &testscommon.ValidatorStatisticsProcessorStub{},
-			OutgoingOperationsFormatter:  nil,
-			OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolMock{},
-			OperationsHasher:             &mock.HasherStub{},
-		})
+		args := createSovChainBlockProcessorArgs()
+		args.OutgoingOperationsFormatter = nil
+		scbp, err := blproc.NewSovereignChainBlockProcessor(args)
 
 		require.Nil(t, scbp)
 		require.ErrorIs(t, err, errors.ErrNilOutgoingOperationsFormatter)
@@ -130,15 +132,9 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 	t.Run("should error when outgoing operation pool is nil", func(t *testing.T) {
 		t.Parallel()
 
-		arguments := CreateMockArguments(createComponentHolderMocks())
-		sp, _ := blproc.NewShardProcessor(arguments)
-		scbp, err := blproc.NewSovereignChainBlockProcessor(blproc.ArgsSovereignChainBlockProcessor{
-			ShardProcessor:               sp,
-			ValidatorStatisticsProcessor: &testscommon.ValidatorStatisticsProcessorStub{},
-			OutgoingOperationsFormatter:  &sovereign.OutgoingOperationsFormatterMock{},
-			OutGoingOperationsPool:       nil,
-			OperationsHasher:             &mock.HasherStub{},
-		})
+		args := createSovChainBlockProcessorArgs()
+		args.OutGoingOperationsPool = nil
+		scbp, err := blproc.NewSovereignChainBlockProcessor(args)
 
 		require.Nil(t, scbp)
 		require.Equal(t, errors.ErrNilOutGoingOperationsPool, err)
@@ -147,18 +143,56 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 	t.Run("should error when operations hasher is nil", func(t *testing.T) {
 		t.Parallel()
 
-		arguments := CreateMockArguments(createComponentHolderMocks())
-		sp, _ := blproc.NewShardProcessor(arguments)
-		scbp, err := blproc.NewSovereignChainBlockProcessor(blproc.ArgsSovereignChainBlockProcessor{
-			ShardProcessor:               sp,
-			ValidatorStatisticsProcessor: &testscommon.ValidatorStatisticsProcessorStub{},
-			OutgoingOperationsFormatter:  &sovereign.OutgoingOperationsFormatterMock{},
-			OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolMock{},
-			OperationsHasher:             nil,
-		})
+		args := createSovChainBlockProcessorArgs()
+		args.OperationsHasher = nil
+		scbp, err := blproc.NewSovereignChainBlockProcessor(args)
 
 		require.Nil(t, scbp)
 		require.Equal(t, errors.ErrNilOperationsHasher, err)
+	})
+
+	t.Run("should error when epoch start data creator is nil", func(t *testing.T) {
+		t.Parallel()
+
+		args := createSovChainBlockProcessorArgs()
+		args.EpochStartDataCreator = nil
+		scbp, err := blproc.NewSovereignChainBlockProcessor(args)
+
+		require.Nil(t, scbp)
+		require.Equal(t, process.ErrNilEpochStartDataCreator, err)
+	})
+
+	t.Run("should error when epoch rewards creator is nil", func(t *testing.T) {
+		t.Parallel()
+
+		args := createSovChainBlockProcessorArgs()
+		args.EpochRewardsCreator = nil
+		scbp, err := blproc.NewSovereignChainBlockProcessor(args)
+
+		require.Nil(t, scbp)
+		require.Equal(t, process.ErrNilRewardsCreator, err)
+	})
+
+	t.Run("should error when epoch validator infor creator is nil", func(t *testing.T) {
+		t.Parallel()
+
+		args := createSovChainBlockProcessorArgs()
+		args.ValidatorInfoCreator = nil
+		scbp, err := blproc.NewSovereignChainBlockProcessor(args)
+
+		require.Nil(t, scbp)
+		require.Equal(t, process.ErrNilEpochStartValidatorInfoCreator, err)
+	})
+
+	t.Run("should error when epoch start system sc processor is nil", func(t *testing.T) {
+		t.Parallel()
+
+		args := createSovChainBlockProcessorArgs()
+		args.EpochSystemSCProcessor = nil
+		scbp, err := blproc.NewSovereignChainBlockProcessor(args)
+
+		require.Nil(t, scbp)
+		require.Equal(t, process.ErrNilEpochStartSystemSCProcessor, err)
 	})
 
 	t.Run("should error when type assertion to extendedShardHeaderTrackHandler fails", func(t *testing.T) {
@@ -166,13 +200,9 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 
 		arguments := CreateMockArguments(createComponentHolderMocks())
 		sp, _ := blproc.NewShardProcessor(arguments)
-		scbp, err := blproc.NewSovereignChainBlockProcessor(blproc.ArgsSovereignChainBlockProcessor{
-			ShardProcessor:               sp,
-			ValidatorStatisticsProcessor: &testscommon.ValidatorStatisticsProcessorStub{},
-			OutgoingOperationsFormatter:  &sovereign.OutgoingOperationsFormatterMock{},
-			OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolMock{},
-			OperationsHasher:             &mock.HasherStub{},
-		})
+		args := createSovChainBlockProcessorArgs()
+		args.ShardProcessor = sp
+		scbp, err := blproc.NewSovereignChainBlockProcessor(args)
 
 		require.Nil(t, scbp)
 		require.ErrorIs(t, err, process.ErrWrongTypeAssertion)
@@ -187,13 +217,9 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 		arguments := CreateMockArguments(createComponentHolderMocks())
 		arguments.BlockTracker, _ = track.NewSovereignChainShardBlockTrack(sbt)
 		sp, _ := blproc.NewShardProcessor(arguments)
-		scbp, err := blproc.NewSovereignChainBlockProcessor(blproc.ArgsSovereignChainBlockProcessor{
-			ShardProcessor:               sp,
-			ValidatorStatisticsProcessor: &testscommon.ValidatorStatisticsProcessorStub{},
-			OutgoingOperationsFormatter:  &sovereign.OutgoingOperationsFormatterMock{},
-			OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolMock{},
-			OperationsHasher:             &mock.HasherStub{},
-		})
+		args := createSovChainBlockProcessorArgs()
+		args.ShardProcessor = sp
+		scbp, err := blproc.NewSovereignChainBlockProcessor(args)
 
 		require.Nil(t, scbp)
 		require.ErrorIs(t, err, process.ErrWrongTypeAssertion)
@@ -203,14 +229,7 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 		t.Parallel()
 
 		arguments := createSovChainBlockProcessorArgs()
-		sp, _ := blproc.NewShardProcessor(arguments)
-		scbp, err := blproc.NewSovereignChainBlockProcessor(blproc.ArgsSovereignChainBlockProcessor{
-			ShardProcessor:               sp,
-			ValidatorStatisticsProcessor: &testscommon.ValidatorStatisticsProcessorStub{},
-			OutgoingOperationsFormatter:  &sovereign.OutgoingOperationsFormatterMock{},
-			OutGoingOperationsPool:       &sovereign.OutGoingOperationsPoolMock{},
-			OperationsHasher:             &mock.HasherStub{},
-		})
+		scbp, err := blproc.NewSovereignChainBlockProcessor(arguments)
 
 		require.NotNil(t, scbp)
 		require.Nil(t, err)
@@ -218,7 +237,7 @@ func TestSovereignBlockProcessor_NewSovereignChainBlockProcessorShouldWork(t *te
 }
 
 func TestSovereignChainBlockProcessor_createAndSetOutGoingMiniBlock(t *testing.T) {
-	arguments := createSovChainBlockProcessorArgs()
+	arguments := createSovChainBaseBlockProcessorArgs()
 
 	expectedLogs := []*data.LogData{
 		{
@@ -280,6 +299,12 @@ func TestSovereignChainBlockProcessor_createAndSetOutGoingMiniBlock(t *testing.T
 		OutgoingOperationsFormatter:  outgoingOperationsFormatter,
 		OutGoingOperationsPool:       outGoingOperationsPool,
 		OperationsHasher:             outgoingOpsHasher,
+		EpochStartDataCreator:        &mock.EpochStartDataCreatorStub{},
+		EpochRewardsCreator:          &testscommon.RewardsCreatorStub{},
+		ValidatorInfoCreator:         &testscommon.EpochValidatorInfoCreatorStub{},
+		EpochSystemSCProcessor:       &testscommon.EpochStartSystemSCStub{},
+		EpochEconomics:               &mock.EpochEconomicsStub{},
+		SCToProtocol:                 &mock.SCToProtocolStub{},
 	})
 
 	sovChainHdr := &block.SovereignChainHeader{}

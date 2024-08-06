@@ -62,7 +62,7 @@ func NewSovereignChainSimulator(args ArgsSovereignChainSimulator) (chainSimulato
 	args.NodeFactory = node.NewSovereignNodeFactory(configs.SovereignExtraConfig.GenesisConfig.NativeESDT)
 	args.ChainProcessorFactory = NewSovereignChainHandlerFactory()
 
-	return chainSimulator.NewChainSimulator(*args.ArgsChainSimulator)
+	return chainSimulator.NewSovereignChainSimulator(*args.ArgsChainSimulator)
 }
 
 // loadSovereignConfigs loads sovereign configs

@@ -114,6 +114,9 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 	if check.IfNil(args.RunTypeComponents.RequestHandlerCreator()) {
 		return nil, errors.ErrNilRequestHandlerCreator
 	}
+	if check.IfNil(args.RunTypeComponents.LatestDataProviderFactory()) {
+		return nil, errors.ErrNilLatestDataProviderFactory
+	}
 
 	return &bootstrapComponentsFactory{
 		config:               args.Config,
@@ -179,7 +182,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		common.DefaultDBPath,
 		bcf.coreComponents.ChainID())
 
-	latestStorageDataProvider, err := createLatestStorageDataProvider(
+	latestStorageDataProvider, err := bcf.createLatestStorageDataProvider(
 		bootstrapDataProvider,
 		bcf.config,
 		parentDir,
@@ -353,7 +356,7 @@ func (bc *bootstrapComponents) HeaderIntegrityVerifier() nodeFactory.HeaderInteg
 }
 
 // createLatestStorageDataProvider will create the latest storage data provider handler
-func createLatestStorageDataProvider(
+func (bcf *bootstrapComponentsFactory) createLatestStorageDataProvider(
 	bootstrapDataProvider storageFactory.BootstrapDataProviderHandler,
 	generalConfig config.Config,
 	parentDir string,
@@ -371,7 +374,7 @@ func createLatestStorageDataProvider(
 		DefaultShardString:    defaultShardString,
 	}
 
-	return latestData.NewLatestDataProvider(latestStorageDataArgs)
+	return bcf.runTypeComponents.LatestDataProviderFactory().CreateLatestDataProvider(latestStorageDataArgs)
 }
 
 // createUnitOpener will create a new unit opener handler

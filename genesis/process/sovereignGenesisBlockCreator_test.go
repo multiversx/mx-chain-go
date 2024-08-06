@@ -16,13 +16,19 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis/mock"
 	nodeMock "github.com/multiversx/mx-chain-go/node/mock"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/factory"
+	processMock "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	stateAcc "github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/state"
+	storageCommon "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 
@@ -149,6 +155,25 @@ func TestSovereignGenesisBlockCreator_CreateGenesisBlocksEmptyBlocks(t *testing.
 func TestSovereignGenesisBlockCreator_CreateGenesisBaseProcess(t *testing.T) {
 	args, sgbc := createSovereignGenesisBlockCreator(t)
 
+	blockStorer := genericMocks.NewStorerMock()
+	triggerStorer := genericMocks.NewStorerMock()
+	sgbc.arg.Data = &mock.DataComponentsMock{
+		Storage: &storageCommon.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				switch unitType {
+				case dataRetriever.BlockHeaderUnit:
+					return blockStorer, nil
+				case dataRetriever.BootstrapUnit:
+					return triggerStorer, nil
+				}
+
+				return genericMocks.NewStorerMock(), nil
+			},
+		},
+		Blkc:     &testscommon.ChainHandlerStub{},
+		DataPool: dataRetrieverMock.NewPoolsHolderMock(),
+	}
+
 	blocks, err := sgbc.CreateGenesisBlocks()
 	require.Nil(t, err)
 	require.Len(t, blocks, 1)
@@ -183,6 +208,21 @@ func TestSovereignGenesisBlockCreator_CreateGenesisBaseProcess(t *testing.T) {
 	requireTokenExists(t, acc1, []byte(sovereignNativeToken), balance1, args.Core.InternalMarshalizer())
 	requireTokenExists(t, acc2, []byte(sovereignNativeToken), balance2, args.Core.InternalMarshalizer())
 	requireTokenExists(t, acc3, []byte(sovereignNativeToken), balance3, args.Core.InternalMarshalizer())
+
+	epochStartID := []byte(core.EpochStartIdentifier(0))
+	storedData1, err := blockStorer.Get(epochStartID)
+	require.Nil(t, err)
+	require.NotNil(t, storedData1)
+
+	storedData2, err := triggerStorer.Get(epochStartID)
+	require.Nil(t, err)
+	require.NotNil(t, storedData2)
+
+	require.Equal(t, storedData1, storedData2)
+	savedSovHdr := &block.SovereignChainHeader{}
+	err = args.Core.InternalMarshalizer().Unmarshal(savedSovHdr, storedData1)
+	require.Nil(t, err)
+	require.Equal(t, process.SovereignHeaderVersion, savedSovHdr.GetSoftwareVersion())
 }
 
 func TestSovereignGenesisBlockCreator_initGenesisAccounts(t *testing.T) {
@@ -297,8 +337,11 @@ func TestSovereignGenesisBlockCreator_setSovereignStakedData(t *testing.T) {
 
 	args := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
 
+	ownerAddr := []byte("owner")
+	blsKey := []byte("blsKey")
 	acc := &state.AccountWrapMock{
 		Balance: big.NewInt(1),
+		Address: ownerAddr,
 	}
 	acc.IncreaseNonce(4)
 	args.Accounts = &state.AccountsStub{
@@ -306,8 +349,8 @@ func TestSovereignGenesisBlockCreator_setSovereignStakedData(t *testing.T) {
 			return acc, nil
 		},
 	}
-	initialNode := &sharding.InitialNode{
-		Address: "addr",
+	initialNode := &mock.GenesisNodeInfoHandlerMock{
+		PubKeyBytesValue: blsKey,
 	}
 	nodesSpliter := &mock.NodesListSplitterStub{
 		GetAllNodesCalled: func() []nodesCoordinator.GenesisNodeInfoHandler {
@@ -323,6 +366,24 @@ func TestSovereignGenesisBlockCreator_setSovereignStakedData(t *testing.T) {
 		GasLimit:  math.MaxUint64,
 		Data:      []byte("stake@" + hex.EncodeToString(big.NewInt(1).Bytes()) + "@" + hex.EncodeToString(initialNode.PubKeyBytes()) + "@" + hex.EncodeToString([]byte("genesis"))),
 		Signature: nil,
+	}
+
+	wasSetOwnersCalled := false
+	vmExecutionHandler := &processMock.VMExecutionHandlerStub{
+		RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
+			require.Equal(t, &vmcommon.ContractCallInput{
+				VMInput: vmcommon.VMInput{
+					CallerAddr: vm.EndOfEpochAddress,
+					CallValue:  big.NewInt(0),
+					Arguments:  [][]byte{blsKey, ownerAddr},
+				},
+				RecipientAddr: vm.StakingSCAddress,
+				Function:      "setOwnersOnAddresses",
+			}, input)
+
+			wasSetOwnersCalled = true
+			return &vmcommon.VMOutput{ReturnCode: vmcommon.Ok}, nil
+		},
 	}
 	processors := &genesisProcessors{
 		txProcessor: &testscommon.TxProcessorStub{
@@ -342,11 +403,18 @@ func TestSovereignGenesisBlockCreator_setSovereignStakedData(t *testing.T) {
 				return &vmcommon.VMOutput{ReturnCode: vmcommon.Ok}, holders.NewBlockInfo(nil, 0, nil), nil
 			},
 		},
+		vmContainer: &processMock.VMContainerMock{
+			GetCalled: func(key []byte) (vmcommon.VMExecutionHandler, error) {
+				require.Equal(t, factory.SystemVirtualMachine, key)
+				return vmExecutionHandler, nil
+			},
+		},
 	}
 
 	txs, err := setSovereignStakedData(args, processors, nodesSpliter)
 	require.Nil(t, err)
 	require.Equal(t, []data.TransactionHandler{expectedTx}, txs)
+	require.True(t, wasSetOwnersCalled)
 }
 
 func TestSovereignGenesisBlockCreator_InitSystemAccountCalled(t *testing.T) {

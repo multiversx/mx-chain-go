@@ -15,7 +15,7 @@ func NewShardBlockProcessorFactory() (*shardBlockProcessorFactory, error) {
 }
 
 // CreateBlockProcessor creates a new shard block processor for the chain run type normal
-func (s *shardBlockProcessorFactory) CreateBlockProcessor(argumentsBaseProcessor ArgBaseProcessor) (process.DebuggerBlockProcessor, error) {
+func (s *shardBlockProcessorFactory) CreateBlockProcessor(argumentsBaseProcessor ArgBaseProcessor, _ ExtraMetaBlockProcessorCreateFunc) (process.DebuggerBlockProcessor, error) {
 	argShardProcessor := ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
 	}

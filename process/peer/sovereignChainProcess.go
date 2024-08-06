@@ -1,6 +1,8 @@
 package peer
 
 import (
+	"math/big"
+
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/process"
 )
@@ -21,13 +23,58 @@ func NewSovereignChainValidatorStatisticsProcessor(validatorStatistics *validato
 	}
 
 	scvs.updateShardDataPeerStateFunc = scvs.updateShardDataPeerState
-
 	return scvs, nil
 }
 
-func (scvs *sovereignChainValidatorStatistics) updateShardDataPeerState(
-	_ data.CommonHeaderHandler,
-	_ map[string]data.CommonHeaderHandler,
+func (vs *sovereignChainValidatorStatistics) updateShardDataPeerState(
+	header data.CommonHeaderHandler,
+	cacheMap map[string]data.CommonHeaderHandler,
 ) error {
-	return nil
+	if header.GetNonce() == vs.genesisNonce {
+		return nil
+	}
+
+	epoch := computeEpoch(header)
+	shardConsensus, shardInfoErr := vs.nodesCoordinator.ComputeConsensusGroup(
+		header.GetPrevRandSeed(),
+		header.GetRound(),
+		header.GetShardID(),
+		epoch,
+	)
+	if shardInfoErr != nil {
+		return shardInfoErr
+	}
+
+	log.Debug("updateShardDataPeerState - registering shard leader fees",
+		"shard header round", header.GetRound(),
+		"accumulatedFees", header.GetAccumulatedFees().String(),
+		"developerFees", header.GetDeveloperFees().String(),
+	)
+
+	prevShardData, shardInfoErr := vs.searchInMap(header.GetPrevHash(), cacheMap)
+	if shardInfoErr != nil {
+		return shardInfoErr
+	}
+
+	shardInfoErr = vs.updateValidatorInfoOnSuccessfulBlock(
+		shardConsensus,
+		prevShardData.GetPubKeysBitmap(),
+		big.NewInt(0).Sub(prevShardData.GetAccumulatedFees(), prevShardData.GetDeveloperFees()),
+		prevShardData.GetShardID(),
+	)
+	if shardInfoErr != nil {
+		return shardInfoErr
+	}
+
+	if header.GetNonce() == vs.genesisNonce+1 {
+		return nil
+	}
+
+	return vs.checkForMissedBlocks(
+		header.GetRound(),
+		prevShardData.GetRound(),
+		prevShardData.GetRandSeed(),
+		header.GetShardID(),
+		epoch,
+	)
 }

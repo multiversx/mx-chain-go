@@ -169,6 +169,17 @@ func TestNewBootstrapComponentsFactory(t *testing.T) {
 		require.Nil(t, bcf)
 		require.Equal(t, errorsMx.ErrNilRequestHandlerCreator, err)
 	})
+	t.Run("nil ErrNilLatestDataProviderFactory should error", func(t *testing.T) {
+		t.Parallel()
+
+		argsCopy := args
+		rtMock := mainFactoryMocks.NewRunTypeComponentsStub()
+		rtMock.LatestDataProviderFactoryField = nil
+		argsCopy.RunTypeComponents = rtMock
+		bcf, err := bootstrap.NewBootstrapComponentsFactory(argsCopy)
+		require.Nil(t, bcf)
+		require.Equal(t, errorsMx.ErrNilLatestDataProviderFactory, err)
+	})
 	t.Run("empty working dir should error", func(t *testing.T) {
 		t.Parallel()
 
