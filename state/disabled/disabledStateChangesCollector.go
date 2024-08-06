@@ -32,7 +32,8 @@ func (d *disabledStateChangesCollector) AddTxHashToCollectedStateChanges(_ []byt
 }
 
 // SetIndexToLastStateChange -
-func (d *disabledStateChangesCollector) SetIndexToLastStateChange(index int) {
+func (d *disabledStateChangesCollector) SetIndexToLastStateChange(index int) error {
+	return nil
 }
 
 // RevertToIndex -

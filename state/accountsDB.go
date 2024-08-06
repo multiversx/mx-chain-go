@@ -898,6 +898,11 @@ func (adb *AccountsDB) RevertToSnapshot(snapshot int) error {
 
 	adb.entries = adb.entries[:snapshot]
 
+	err := adb.stateChangesCollector.RevertToIndex(snapshot)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

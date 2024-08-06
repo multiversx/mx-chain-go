@@ -91,6 +91,8 @@ func TestStateChangesCollector_AddTxHashToCollectedStateChanges(t *testing.T) {
 	assert.Equal(t, 0, len(scc.stateChanges))
 	assert.Equal(t, 0, len(scc.GetStateChanges()))
 
+	scc.AddTxHashToCollectedStateChanges([]byte("txHash0"), &transaction.Transaction{})
+
 	stateChange := StateChangeDTO{
 		MainTrieKey:     []byte("mainTrieKey"),
 		MainTrieVal:     []byte("mainTrieVal"),
@@ -165,6 +167,46 @@ func TestStateChangesCollector_RevertToIndex(t *testing.T) {
 	err = scc.RevertToIndex(0)
 	require.Nil(t, err)
 	assert.Equal(t, 0, len(scc.stateChanges))
+}
+
+func TestStateChangesCollector_SetIndexToLastStateChange(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should fail if valid index", func(t *testing.T) {
+		t.Parallel()
+
+		scc := NewStateChangesCollector()
+
+		err := scc.SetIndexToLastStateChange(-1)
+		require.Equal(t, ErrStateChangesIndexOutOfBounds, err)
+
+		numStateChanges := len(scc.stateChanges)
+		err = scc.SetIndexToLastStateChange(numStateChanges + 1)
+		require.Equal(t, ErrStateChangesIndexOutOfBounds, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		scc := NewStateChangesCollector()
+
+		numStateChanges := 10
+		for i := 0; i < numStateChanges; i++ {
+			scc.AddStateChange(StateChangeDTO{})
+			err := scc.SetIndexToLastStateChange(i)
+			require.Nil(t, err)
+		}
+		scc.AddTxHashToCollectedStateChanges([]byte("txHash1"), &transaction.Transaction{})
+
+		for i := numStateChanges; i < numStateChanges*2; i++ {
+			scc.AddStateChange(StateChangeDTO{})
+			scc.AddTxHashToCollectedStateChanges([]byte("txHash"+fmt.Sprintf("%d", i)), &transaction.Transaction{})
+		}
+		err := scc.SetIndexToLastStateChange(numStateChanges)
+		require.Nil(t, err)
+
+		assert.Equal(t, numStateChanges*2, len(scc.stateChanges))
+	})
 }
 
 func TestStateChangesCollector_Reset(t *testing.T) {
