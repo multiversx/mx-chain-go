@@ -87,7 +87,7 @@ func (st *sovereignTrigger) revert(header data.HeaderHandler) error {
 
 	sovMetaHdr, ok := header.(*block.SovereignChainHeader)
 	if !ok {
-		log.Warn("wrong type assertion in Revert metachain trigger")
+		log.Warn("wrong type assertion in Revert sovereign metachain trigger")
 		return epochStart.ErrWrongTypeAssertion
 	}
 
