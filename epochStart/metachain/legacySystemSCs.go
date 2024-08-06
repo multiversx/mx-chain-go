@@ -499,6 +499,8 @@ func (s *legacySystemSCProcessor) ProcessDelegationRewards(
 		return epochStart.ErrNilLocalTxCache
 	}
 
+	// addrese e de tip delegation contract execute reward core.IsSmartContractOnMetachain()
+	// otherwise addToBalance
 	rwdMb := getRewardsMiniBlockForMeta(miniBlocks)
 	if rwdMb == nil {
 		return nil
