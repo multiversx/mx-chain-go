@@ -24,8 +24,6 @@ var _ process.EndOfEpochEconomics = (*economics)(nil)
 const numberOfDaysInYear = 365.0
 const numberOfSecondsInDay = 86400
 
-// TODO : e.shardCoordinator.NumberOfShards()+1 replace with TotalNumOfShards
-
 type economics struct {
 	marshalizer           marshal.Marshalizer
 	hasher                hashing.Hasher
