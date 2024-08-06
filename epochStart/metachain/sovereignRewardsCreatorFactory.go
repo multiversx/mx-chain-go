@@ -12,14 +12,7 @@ func NewSovereignRewardsCreatorFactory() *sovereignRewardsCreatorFactory {
 
 // CreateRewardsCreator creates a rewards creator proxy for sovereign run type chain
 func (f *sovereignRewardsCreatorFactory) CreateRewardsCreator(args RewardsCreatorProxyArgs) (epochStart.RewardsCreator, error) {
-	argsV2 := RewardsCreatorArgsV2{
-		BaseRewardsCreatorArgs: args.BaseRewardsCreatorArgs,
-		StakingDataProvider:    args.StakingDataProvider,
-		EconomicsDataProvider:  args.EconomicsDataProvider,
-		RewardsHandler:         args.RewardsHandler,
-	}
-
-	rc, err := NewRewardsCreatorV2(argsV2)
+	rc, err := NewRewardsCreatorV2(RewardsCreatorArgsV2(args))
 	if err != nil {
 		return nil, err
 	}
