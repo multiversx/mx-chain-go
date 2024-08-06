@@ -56,7 +56,7 @@ func NewSovereignRewardsTxPreProcessor(args ArgsRewardTxPreProcessor) (*sovereig
 func (srtp *sovereignRewardsTxPreProcessor) receivedRewardTransaction(key []byte, value interface{}) {
 	tx, ok := value.(data.TransactionHandler)
 	if !ok {
-		log.Warn("rewardTxPreprocessor.receivedRewardTransaction", "error", process.ErrWrongTypeAssertion)
+		log.Warn("sovereignRewardsTxPreProcessor.receivedRewardTransaction", "error", process.ErrWrongTypeAssertion)
 		return
 	}
 
