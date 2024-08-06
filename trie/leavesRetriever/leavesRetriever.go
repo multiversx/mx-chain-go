@@ -29,7 +29,6 @@ func NewLeavesRetriever(db common.TrieStorageInteractor, marshaller marshal.Mars
 	}
 	if check.IfNil(marshaller) {
 		return nil, ErrNilMarshaller
-
 	}
 	if check.IfNil(hasher) {
 		return nil, ErrNilHasher
@@ -134,17 +133,27 @@ func (lr *leavesRetriever) removeIteratorsIfMaxSizeIsExceeded() {
 		return
 	}
 
+	idsToRemove := make([][]byte, 0)
+	sizeOfRemoved := uint64(0)
+	numOfRemoved := 0
+
 	for i := 0; i < len(lr.lruIteratorIDs); i++ {
 		id := lr.lruIteratorIDs[i]
+		idsToRemove = append(idsToRemove, id)
 		iterator := lr.iterators[string(id)]
-		lr.size -= iterator.Size() + uint64(len(id))
-		delete(lr.iterators, string(id))
-		lr.lruIteratorIDs = append(lr.lruIteratorIDs[:i], lr.lruIteratorIDs[i+1:]...)
+		sizeOfRemoved += iterator.Size() + uint64(len(id))
+		numOfRemoved++
 
-		if lr.size <= lr.maxSize {
+		if lr.size-sizeOfRemoved <= lr.maxSize {
 			break
 		}
 	}
+
+	for _, id := range idsToRemove {
+		delete(lr.iterators, string(id))
+	}
+	lr.lruIteratorIDs = lr.lruIteratorIDs[numOfRemoved:]
+	lr.size -= sizeOfRemoved
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

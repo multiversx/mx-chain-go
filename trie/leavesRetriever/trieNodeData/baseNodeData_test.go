@@ -10,7 +10,7 @@ import (
 func TestBaseNodeData(t *testing.T) {
 	t.Parallel()
 
-	t.Run(" empty base node data", func(t *testing.T) {
+	t.Run("empty base node data", func(t *testing.T) {
 		t.Parallel()
 
 		bnd := &baseNodeData{}
@@ -18,7 +18,7 @@ func TestBaseNodeData(t *testing.T) {
 		assert.Nil(t, bnd.GetKeyBuilder())
 		assert.Equal(t, uint64(0), bnd.Size())
 	})
-	t.Run(" base node data with data", func(t *testing.T) {
+	t.Run("base node data with data", func(t *testing.T) {
 		t.Parallel()
 
 		data := []byte("data")
