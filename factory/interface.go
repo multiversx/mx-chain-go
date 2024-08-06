@@ -5,6 +5,15 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
+	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
@@ -37,6 +46,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/peer"
+	"github.com/multiversx/mx-chain-go/process/rating"
 	"github.com/multiversx/mx-chain-go/process/scToProtocol"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
@@ -52,16 +62,6 @@ import (
 	"github.com/multiversx/mx-chain-go/update"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
-
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/data/endProcess"
-	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
-	"github.com/multiversx/mx-chain-core-go/hashing"
-	"github.com/multiversx/mx-chain-core-go/marshal"
-	crypto "github.com/multiversx/mx-chain-crypto-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
@@ -631,6 +631,23 @@ type RunTypeComponentsHolder interface {
 	EndOfEpochEconomicsFactoryHandler() EndOfEpochEconomicsFactoryHandler
 	RewardsTxPreProcFactory() preprocess.RewardsTxPreProcFactory
 	RewardsCreatorFactory() RewardsCreatorFactory
+	Create() error
+	Close() error
+	CheckSubcomponents() error
+	String() string
+	IsInterfaceNil() bool
+}
+
+// RunTypeCoreComponentsHandler defines the run type core components handler actions
+type RunTypeCoreComponentsHandler interface {
+	ComponentHandler
+	RunTypeCoreComponentsHolder
+}
+
+// RunTypeCoreComponentsHolder holds the run type core components
+type RunTypeCoreComponentsHolder interface {
+	GenesisNodesSetupFactoryCreator() sharding.GenesisNodesSetupFactory
+	RatingsDataFactoryCreator() rating.RatingsDataFactory
 	Create() error
 	Close() error
 	CheckSubcomponents() error
