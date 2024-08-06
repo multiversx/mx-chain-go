@@ -835,3 +835,6 @@ var ErrNilValidatorInfoCreatorFactory = errors.New("nil validator info creator f
 
 // ErrNilAPIProcessorCompsCreator signals that a nil api processor components creator has been provided
 var ErrNilAPIProcessorCompsCreator = errors.New("nil api processor components creator has been provided")
+
+// ErrNilEndOfEpochEconomicsFactory signals that a nil end of epoch economics factory has been provided
+var ErrNilEndOfEpochEconomicsFactory = errors.New("nil end of epoch economics factory has been provided")

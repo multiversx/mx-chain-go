@@ -628,6 +628,7 @@ type RunTypeComponentsHolder interface {
 	StakingToPeerFactory() scToProtocol.StakingToPeerFactoryHandler
 	ValidatorInfoCreatorFactory() ValidatorInfoCreatorFactory
 	ApiProcessorCompsCreatorHandler() api.ApiProcessorCompsCreatorHandler
+	EndOfEpochEconomicsFactoryHandler() EndOfEpochEconomicsFactoryHandler
 	Create() error
 	Close() error
 	CheckSubcomponents() error
@@ -661,5 +662,11 @@ type ValidatorInfoCreatorFactory interface {
 // EpochStartTriggerFactoryHandler defines the interface needed to create an epoch start trigger
 type EpochStartTriggerFactoryHandler interface {
 	CreateEpochStartTrigger(args ArgsEpochStartTrigger) (epochStart.TriggerHandler, error)
+	IsInterfaceNil() bool
+}
+
+// EndOfEpochEconomicsFactoryHandler defines the end of epoch economics factory handler
+type EndOfEpochEconomicsFactoryHandler interface {
+	CreateEndOfEpochEconomics(args metachain.ArgsNewEpochEconomics) (process.EndOfEpochEconomics, error)
 	IsInterfaceNil() bool
 }
