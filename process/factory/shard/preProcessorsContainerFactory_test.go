@@ -366,9 +366,6 @@ func TestPreProcessorsContainerFactory_CreateErrScrPreproc(t *testing.T) {
 
 	args := createMockPreProcessorsContainerFactoryArguments()
 	args.DataPool = dataPool
-	runTypeComps := processMocks.NewRunTypeComponentsStub()
-	runTypeComps.SCResultsPreProcessorFactory, _ = preprocess.NewSmartContractResultPreProcessorFactory()
-	args.RunTypeComponents = runTypeComps
 	ppcf, err := NewPreProcessorsContainerFactory(args)
 
 	assert.Nil(t, err)
@@ -384,9 +381,6 @@ func TestPreProcessorsContainerFactory_CreateSCRPreprocessor(t *testing.T) {
 		t.Parallel()
 
 		args := createMockPreProcessorsContainerFactoryArguments()
-		runTypeComps := processMocks.NewRunTypeComponentsStub()
-		runTypeComps.SCResultsPreProcessorFactory, _ = preprocess.NewSmartContractResultPreProcessorFactory()
-		args.RunTypeComponents = runTypeComps
 		ppcf, err := NewPreProcessorsContainerFactory(args)
 		require.Nil(t, err)
 		require.NotNil(t, ppcf)

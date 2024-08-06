@@ -62,7 +62,7 @@ func (srtp *sovereignRewardsTxPreProcessor) receivedRewardTransaction(key []byte
 
 	err := srtp.receivedRewardTx(key, tx, &srtp.rewardTxsForBlock)
 	if err != nil {
-		log.Error("sovereignRewardsTxPreProcessor.receivedRewardTransaction", "error", err)
+		log.Error("sovereignRewardsTxPreProcessor.receivedRewardTx", "error", err)
 	}
 }
 

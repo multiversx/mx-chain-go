@@ -50,11 +50,14 @@ func (rc *sovereignRewards) CreateRewardsMiniBlocks(
 	if computedEconomics == nil {
 		return nil, epochStart.ErrNilEconomicsData
 	}
+	if validatorsInfo == nil {
+		return nil, errNilValidatorsInfoMap
+	}
 
 	rc.mutRewardsData.Lock()
 	defer rc.mutRewardsData.Unlock()
 
-	log.Debug("rewardsCreatorV2.CreateRewardsMiniBlocks",
+	log.Debug("sovereignRewards.CreateRewardsMiniBlocks",
 		"totalToDistribute", computedEconomics.TotalToDistribute,
 		"rewardsForProtocolSustainability", computedEconomics.RewardsForProtocolSustainability,
 		"rewardsPerBlock", computedEconomics.RewardsPerBlock,
@@ -105,15 +108,11 @@ func (rc *sovereignRewards) addValidatorRewardsToMiniBlocks(
 			return nil, err
 		}
 		if rwdTx.Value.Cmp(zero) <= 0 {
+			log.Error("negative rewards", "rcv", rwdTx.RcvAddr)
 			continue
 		}
 
 		rc.accumulatedRewards.Add(rc.accumulatedRewards, rwdTx.Value)
-
-		if rwdTx.Value.Cmp(zero) < 0 {
-			log.Error("negative rewards", "rcv", rwdTx.RcvAddr)
-			continue
-		}
 
 		log.Debug("sovereignRewards.addValidatorRewardsToMiniBlocks",
 			"epoch", rwdTx.GetEpoch(),
