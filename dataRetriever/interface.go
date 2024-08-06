@@ -368,5 +368,6 @@ type EpochNotifier interface {
 // AccountNonceProvider defines the behavior of a component able to provide the nonce for an account
 type AccountNonceProvider interface {
 	GetAccountNonce(accountKey []byte) (uint64, error)
+	SetAccountsAdapter(accountsAdapter state.AccountsAdapter) error
 	IsInterfaceNil() bool
 }

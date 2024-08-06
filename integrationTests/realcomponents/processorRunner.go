@@ -57,7 +57,7 @@ type ProcessorRunner struct {
 	NodesCoordinator     nodesCoord.NodesCoordinator
 	StatusComponents     factory.StatusComponentsHolder
 	ProcessComponents    factory.ProcessComponentsHolder
-	AccountNonceProvider factory.AccountNonceProvider
+	AccountNonceProvider dataRetriever.AccountNonceProvider
 }
 
 // NewProcessorRunner returns a new instance of ProcessorRunner
