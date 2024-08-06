@@ -166,6 +166,8 @@ func (cache *TxCache) doSelectTransactions(contextualLogger logger.Logger, numRe
 
 	transactions = transactions[:selectedNum]
 
+	stopWatch.Stop("selection")
+
 	contextualLogger.Debug(
 		"doSelectTransactions(): end",
 		"duration", stopWatch.GetMeasurement("selection"),
