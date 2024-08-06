@@ -81,10 +81,15 @@ type trigger struct {
 
 // NewEpochStartTrigger creates a trigger for start of epoch
 func NewEpochStartTrigger(args *ArgsNewMetaEpochStartTrigger) (*trigger, error) {
-	return newTrigger(args, &block.MetaBlock{}, &metaTriggerRegistryCreator{})
+	return newTrigger(args, &block.MetaBlock{}, &metaTriggerRegistryCreator{}, dataRetriever.MetaBlockUnit)
 }
 
-func newTrigger(args *ArgsNewMetaEpochStartTrigger, epochStartHeader data.HeaderHandler, registryHandler registryHandler) (*trigger, error) {
+func newTrigger(
+	args *ArgsNewMetaEpochStartTrigger,
+	epochStartHeader data.HeaderHandler,
+	registryHandler registryHandler,
+	blockStorageUnit dataRetriever.UnitType,
+) (*trigger, error) {
 	err := checkArgs(args)
 	if err != nil {
 		return nil, err
@@ -95,7 +100,7 @@ func newTrigger(args *ArgsNewMetaEpochStartTrigger, epochStartHeader data.Header
 		return nil, err
 	}
 
-	metaBlockStorage, err := args.Storage.GetStorer(dataRetriever.MetaBlockUnit)
+	blockStorage, err := args.Storage.GetStorer(blockStorageUnit)
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +117,7 @@ func newTrigger(args *ArgsNewMetaEpochStartTrigger, epochStartHeader data.Header
 		mutTrigger:                  sync.RWMutex{},
 		epochFinalityAttestingRound: args.EpochStartRound,
 		epochStartNotifier:          args.EpochStartNotifier,
-		metaHeaderStorage:           metaBlockStorage,
+		metaHeaderStorage:           blockStorage,
 		triggerStorage:              triggerStorage,
 		marshaller:                  args.Marshalizer,
 		hasher:                      args.Hasher,

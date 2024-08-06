@@ -2375,7 +2375,7 @@ func (tpn *TestProcessorNode) createMetaBlockProcessorArgs(argumentsBase block.A
 		Marshalizer:           TestMarshalizer,
 		Hasher:                TestHasher,
 		Store:                 tpn.Storage,
-		ShardCoordinator:      tpn.ShardCoordinator,
+		ShardCoordinator:      tpn.ShardCoordinator.(metachain.ShardCoordinatorHandler),
 		RewardsHandler:        tpn.EconomicsData,
 		RoundTime:             tpn.RoundHandler,
 		GenesisTotalSupply:    tpn.EconomicsData.GenesisTotalSupply(),

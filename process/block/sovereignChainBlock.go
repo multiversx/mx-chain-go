@@ -3,6 +3,7 @@ package block
 import (
 	"bytes"
 	"fmt"
+	"math/big"
 	"sort"
 	"time"
 
@@ -53,6 +54,7 @@ type sovereignChainBlockProcessor struct {
 	epochRewardsCreator   process.RewardsCreator
 	validatorInfoCreator  process.EpochStartValidatorInfoCreator
 	scToProtocol          process.SmartContractToProtocolHandler
+	epochEconomics        process.EndOfEpochEconomics
 }
 
 // ArgsSovereignChainBlockProcessor is a struct placeholder for args needed to create a new sovereign chain block processor
@@ -67,6 +69,7 @@ type ArgsSovereignChainBlockProcessor struct {
 	ValidatorInfoCreator         process.EpochStartValidatorInfoCreator
 	EpochSystemSCProcessor       process.EpochStartSystemSCProcessor
 	SCToProtocol                 process.SmartContractToProtocolHandler
+	EpochEconomics               process.EndOfEpochEconomics
 }
 
 // NewSovereignChainBlockProcessor creates a new sovereign chain block processor
@@ -98,6 +101,9 @@ func NewSovereignChainBlockProcessor(args ArgsSovereignChainBlockProcessor) (*so
 	if check.IfNil(args.EpochSystemSCProcessor) {
 		return nil, process.ErrNilEpochStartSystemSCProcessor
 	}
+	if check.IfNil(args.EpochEconomics) {
+		return nil, process.ErrNilEpochEconomics
+	}
 
 	scbp := &sovereignChainBlockProcessor{
 		shardProcessor:               args.ShardProcessor,
@@ -109,6 +115,7 @@ func NewSovereignChainBlockProcessor(args ArgsSovereignChainBlockProcessor) (*so
 		epochRewardsCreator:          args.EpochRewardsCreator,
 		validatorInfoCreator:         args.ValidatorInfoCreator,
 		scToProtocol:                 args.SCToProtocol,
+		epochEconomics:               args.EpochEconomics,
 	}
 
 	scbp.baseProcessor.epochSystemSCProcessor = args.EpochSystemSCProcessor
@@ -152,12 +159,16 @@ func NewSovereignChainBlockProcessor(args ArgsSovereignChainBlockProcessor) (*so
 func (scbp *sovereignChainBlockProcessor) CreateNewHeader(round uint64, nonce uint64) (data.HeaderHandler, error) {
 	scbp.epochStartTrigger.Update(round, nonce)
 	scbp.enableRoundsHandler.RoundConfirmed(round, 0)
+
+	// Todo: MX-15667 use factory header interface and use setters/getters
 	header := &block.SovereignChainHeader{
 		Header: &block.Header{
 			SoftwareVersion: process.SovereignHeaderVersion,
 			RootHash:        scbp.uncomputedRootHash,
 		},
 		ValidatorStatsRootHash: scbp.uncomputedRootHash,
+		DevFeesInEpoch:         big.NewInt(0),
+		AccumulatedFeesInEpoch: big.NewInt(0),
 	}
 
 	err := scbp.setRoundNonceInitFees(round, nonce, header)
@@ -217,12 +228,6 @@ func (scbp *sovereignChainBlockProcessor) CreateBlock(initialHdr data.HeaderHand
 			return nil, nil, err
 		}
 
-		// TODO: MX-15590 Add epoch start and missing fields to sovereign header to use this
-		//err = scbp.updateEpochStartHeader(metaHdr)
-		//if err != nil {
-		//	return nil, nil, err
-		//}
-
 		scbp.blockChainHook.SetCurrentHeader(initialHdr)
 		scbp.requestHandler.SetEpoch(initialHdr.GetEpoch())
 		return initialHdr, &block.Body{}, nil
@@ -259,6 +264,54 @@ func (scbp *sovereignChainBlockProcessor) CreateBlock(initialHdr data.HeaderHand
 	scbp.requestHandler.SetEpoch(initialHdr.GetEpoch())
 
 	return initialHdr, &block.Body{MiniBlocks: miniBlocks}, nil
+}
+
+// We should call this func only on ProcessBlock for all participants.
+// No need to call it on CreateBlock for epoch start processing.
+func (scbp *sovereignChainBlockProcessor) updateEpochStartHeader(header data.SovereignChainHeaderHandler) (*block.Economics, error) {
+	sovHeaderHandler, castOk := header.(*block.SovereignChainHeader)
+	if !castOk {
+		return nil, fmt.Errorf("%w in sovereignChainBlockProcessor.updateEpochStartHeader", process.ErrWrongTypeAssertion)
+	}
+
+	sw := core.NewStopWatch()
+	sw.Start("createEpochStartForSovereignBlock")
+	defer func() {
+		sw.Stop("createEpochStartForSovereignBlock")
+		log.Debug("epochStartHeaderDataCreation", sw.GetMeasurements()...)
+	}()
+
+	totalAccumulatedFeesInEpoch := big.NewInt(0)
+	totalDevFeesInEpoch := big.NewInt(0)
+	currentHeader := scbp.blockChain.GetCurrentBlockHeader()
+	if !check.IfNil(currentHeader) && !currentHeader.IsStartOfEpochBlock() {
+		prevSovHdr, ok := currentHeader.(data.MetaHeaderHandler)
+		if !ok {
+			return nil, fmt.Errorf("%w in sovereignChainBlockProcessor.updateEpochStartHeader when checking prevSovHdr", process.ErrWrongTypeAssertion)
+		}
+		totalAccumulatedFeesInEpoch = big.NewInt(0).Set(prevSovHdr.GetAccumulatedFeesInEpoch())
+		totalDevFeesInEpoch = big.NewInt(0).Set(prevSovHdr.GetDevFeesInEpoch())
+	}
+
+	err := sovHeaderHandler.SetAccumulatedFeesInEpoch(totalAccumulatedFeesInEpoch)
+	if err != nil {
+		return nil, err
+	}
+
+	err = sovHeaderHandler.SetDevFeesInEpoch(totalDevFeesInEpoch)
+	if err != nil {
+		return nil, err
+	}
+
+	economicsData, err := scbp.epochEconomics.ComputeEndOfEpochEconomics(sovHeaderHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	sovHeaderHandler.EpochStart.Economics = *economicsData
+
+	// do not call saveEpochStartEconomicsMetrics here as in metachain code, it will be called later
+	return economicsData, nil
 }
 
 func (scbp *sovereignChainBlockProcessor) createAllMiniBlocks(
@@ -822,17 +875,22 @@ func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
-	// TODO MX-15589 check how we can integrate all of these later on
-	//computedEconomics, err := scbp.epochEconomics.ComputeEndOfEpochEconomics(header)
-	//if err != nil {
-	//	return err
-	//}
+	sovHdr, castOk := header.(*block.SovereignChainHeader)
+	if !castOk {
+		return fmt.Errorf("%w in sovereignChainBlockProcessor.processEpochStartMetaBlock", process.ErrWrongTypeAssertion)
+	}
+
+	computedEconomics, err := scbp.updateEpochStartHeader(sovHdr)
+	if err != nil {
+		return err
+	}
 
 	err = scbp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, header)
 	if err != nil {
 		return err
 	}
 
+	// TODO MX-15589 check how we can integrate all of these later on
 	//err = mp.epochRewardsCreator.VerifyRewardsMiniBlocks(header, allValidatorsInfo, computedEconomics)
 	//if err != nil {
 	//	return err
@@ -848,17 +906,17 @@ func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
 	//	return err
 	//}
 
-	//err = mp.epochEconomics.VerifyRewardsPerBlock(header, mp.epochRewardsCreator.GetProtocolSustainabilityRewards(), computedEconomics)
-	//if err != nil {
-	//	return err
-	//}
+	err = scbp.epochEconomics.VerifyRewardsPerBlock(sovHdr, scbp.epochRewardsCreator.GetProtocolSustainabilityRewards(), computedEconomics)
+	if err != nil {
+		return err
+	}
 	//
 	//err = mp.verifyFees(header)
 	//if err != nil {
 	//	return err
 	//}
 
-	//saveEpochStartEconomicsMetrics(scbp.appStatusHandler, header)
+	saveEpochStartEconomicsMetrics(scbp.appStatusHandler, sovHdr)
 
 	validatorMiniBlocks, err := scbp.validatorInfoCreator.CreateValidatorInfoMiniBlocks(allValidatorsInfo)
 	if err != nil {
@@ -1023,7 +1081,56 @@ func (scbp *sovereignChainBlockProcessor) applyBodyToHeader(
 	if err != nil {
 		return nil, err
 	}
+
+	sovHeader := headerHandler.(data.SovereignChainHeaderHandler)
+	accumulatedFees, devFees, err := scbp.computeAccumulatedFeesInEpoch(sovHeader)
+	if err != nil {
+		return nil, err
+	}
+
+	err = sovHeader.SetAccumulatedFeesInEpoch(accumulatedFees)
+	if err != nil {
+		return nil, err
+	}
+
+	err = sovHeader.SetDevFeesInEpoch(devFees)
+	if err != nil {
+		return nil, err
+	}
+
 	return newBody, nil
+}
+
+func (scbp *sovereignChainBlockProcessor) computeAccumulatedFeesInEpoch(metaHdr data.SovereignChainHeaderHandler) (*big.Int, *big.Int, error) {
+	currentlyAccumulatedFeesInEpoch := big.NewInt(0)
+	currentDevFeesInEpoch := big.NewInt(0)
+
+	lastHdr := scbp.blockChain.GetCurrentBlockHeader()
+	if !check.IfNil(lastHdr) {
+		lastSovHeader, ok := lastHdr.(data.SovereignChainHeaderHandler)
+		if !ok {
+			return nil, nil, process.ErrWrongTypeAssertion
+		}
+
+		if !lastHdr.IsStartOfEpochBlock() {
+			currentlyAccumulatedFeesInEpoch = big.NewInt(0).Set(lastSovHeader.GetAccumulatedFeesInEpoch())
+			currentDevFeesInEpoch = big.NewInt(0).Set(lastSovHeader.GetDevFeesInEpoch())
+		}
+	}
+
+	currentlyAccumulatedFeesInEpoch.Add(currentlyAccumulatedFeesInEpoch, metaHdr.GetAccumulatedFees())
+	currentDevFeesInEpoch.Add(currentDevFeesInEpoch, metaHdr.GetDeveloperFees())
+	log.Debug("computeAccumulatedFeesInEpoch - sovereign block fees",
+		"nonce", metaHdr.GetNonce(),
+		"accumulatedFees", metaHdr.GetAccumulatedFees().String(),
+		"devFees", metaHdr.GetDeveloperFees().String(),
+		"leader fees", core.GetIntTrimmedPercentageOfValue(big.NewInt(0).Sub(metaHdr.GetAccumulatedFees(), metaHdr.GetDeveloperFees()), scbp.economicsData.LeaderPercentage()).String())
+
+	log.Debug("computeAccumulatedFeesInEpoch - fees in epoch",
+		"accumulatedFeesInEpoch", currentlyAccumulatedFeesInEpoch.String(),
+		"devFeesInEpoch", currentDevFeesInEpoch.String())
+
+	return currentlyAccumulatedFeesInEpoch, currentDevFeesInEpoch, nil
 }
 
 func (scbp *sovereignChainBlockProcessor) processSovereignBlockTransactions(

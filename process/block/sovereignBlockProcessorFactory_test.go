@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block"
+	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
@@ -50,6 +51,8 @@ func TestSovereignBlockProcessorFactory_CreateBlockProcessor(t *testing.T) {
 			EpochValidatorInfoCreator: metaArgument.EpochValidatorInfoCreator,
 			EpochRewardsCreator:       metaArgument.EpochRewardsCreator,
 			EpochSystemSCProcessor:    metaArgument.EpochSystemSCProcessor,
+			EpochEconomics:            &mock.EpochEconomicsStub{},
+			SCToProtocol:              &mock.SCToProtocolStub{},
 		}, nil
 	}
 

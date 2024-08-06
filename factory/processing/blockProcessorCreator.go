@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -862,20 +863,7 @@ func (pcf *processComponentsFactory) createArgsMetaBlockProcessor(
 	}
 
 	economicsDataProvider := metachainEpochStart.NewEpochEconomicsStatistics()
-	argsEpochEconomics := metachainEpochStart.ArgsNewEpochEconomics{
-		Marshalizer:           pcf.coreData.InternalMarshalizer(),
-		Hasher:                pcf.coreData.Hasher(),
-		Store:                 pcf.data.StorageService(),
-		ShardCoordinator:      pcf.bootstrapComponents.ShardCoordinator(),
-		RewardsHandler:        pcf.coreData.EconomicsData(),
-		RoundTime:             pcf.coreData.RoundHandler(),
-		GenesisNonce:          genesisHdr.GetNonce(),
-		GenesisEpoch:          genesisHdr.GetEpoch(),
-		GenesisTotalSupply:    pcf.coreData.EconomicsData().GenesisTotalSupply(),
-		EconomicsDataNotified: economicsDataProvider,
-		StakingV2EnableEpoch:  pcf.coreData.EnableEpochsHandler().GetActivationEpoch(common.StakingV2Flag),
-	}
-	epochEconomics, err := metachainEpochStart.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
+	epochEconomics, err := pcf.createEndOfEpochEconomics(economicsDataProvider, genesisHdr)
 	if err != nil {
 		return nil, err
 	}
@@ -1200,12 +1188,18 @@ func (pcf *processComponentsFactory) createExtraMetaBlockProcessorArgs(
 			return nil, err
 		}
 
+		epochEconomics, err := pcf.createEndOfEpochEconomics(economicsDataProvider, genesisHdr)
+		if err != nil {
+			return nil, err
+		}
+
 		return &block.ExtraArgsMetaBlockProcessor{
 			EpochRewardsCreator:       epochRewards,
 			EpochStartDataCreator:     epochStartDataCreator,
 			EpochValidatorInfoCreator: validatorInfoCreator,
 			EpochSystemSCProcessor:    epochStartSystemSCProcessor,
 			SCToProtocol:              smartContractToProtocol,
+			EpochEconomics:            epochEconomics,
 		}, nil
 	}
 }
@@ -1249,6 +1243,32 @@ func (pcf *processComponentsFactory) setAPIComps(
 	pcf.auctionListSelectorAPI = apiComps.AuctionListSelector
 
 	return nil
+}
+
+func (pcf *processComponentsFactory) createEndOfEpochEconomics(
+	economicsDataProvider epochStart.EpochEconomicsDataProvider,
+	genesisHdr data.HeaderHandler,
+) (process.EndOfEpochEconomics, error) {
+	extendedShardCoordinator, castOk := pcf.bootstrapComponents.ShardCoordinator().(metachainEpochStart.ShardCoordinatorHandler)
+	if !castOk {
+		return nil, fmt.Errorf("%w when trying to cast shard coordinator to extended shard coordinator", process.ErrWrongTypeAssertion)
+	}
+
+	argsEpochEconomics := metachainEpochStart.ArgsNewEpochEconomics{
+		Marshalizer:           pcf.coreData.InternalMarshalizer(),
+		Hasher:                pcf.coreData.Hasher(),
+		Store:                 pcf.data.StorageService(),
+		ShardCoordinator:      extendedShardCoordinator,
+		RewardsHandler:        pcf.coreData.EconomicsData(),
+		RoundTime:             pcf.coreData.RoundHandler(),
+		GenesisNonce:          genesisHdr.GetNonce(),
+		GenesisEpoch:          genesisHdr.GetEpoch(),
+		GenesisTotalSupply:    pcf.coreData.EconomicsData().GenesisTotalSupply(),
+		EconomicsDataNotified: economicsDataProvider,
+		StakingV2EnableEpoch:  pcf.coreData.EnableEpochsHandler().GetActivationEpoch(common.StakingV2Flag),
+	}
+
+	return pcf.runTypeComponents.EndOfEpochEconomicsFactoryHandler().CreateEndOfEpochEconomics(argsEpochEconomics)
 }
 
 func (pcf *processComponentsFactory) attachProcessDebugger(

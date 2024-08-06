@@ -61,6 +61,8 @@ func createSovChainBlockProcessorArgs() blproc.ArgsSovereignChainBlockProcessor 
 		EpochRewardsCreator:          &testscommon.RewardsCreatorStub{},
 		ValidatorInfoCreator:         &testscommon.EpochValidatorInfoCreatorStub{},
 		EpochSystemSCProcessor:       &testscommon.EpochStartSystemSCStub{},
+		EpochEconomics:               &mock.EpochEconomicsStub{},
+		SCToProtocol:                 &mock.SCToProtocolStub{},
 	}
 }
 
@@ -301,6 +303,8 @@ func TestSovereignChainBlockProcessor_createAndSetOutGoingMiniBlock(t *testing.T
 		EpochRewardsCreator:          &testscommon.RewardsCreatorStub{},
 		ValidatorInfoCreator:         &testscommon.EpochValidatorInfoCreatorStub{},
 		EpochSystemSCProcessor:       &testscommon.EpochStartSystemSCStub{},
+		EpochEconomics:               &mock.EpochEconomicsStub{},
+		SCToProtocol:                 &mock.SCToProtocolStub{},
 	})
 
 	sovChainHdr := &block.SovereignChainHeader{}
