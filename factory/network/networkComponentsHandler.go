@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/p2p"
@@ -18,6 +19,7 @@ var _ factory.NetworkComponentsHandler = (*managedNetworkComponents)(nil)
 const (
 	errorOnMainNetworkString        = "on main network"
 	errorOnFullArchiveNetworkString = "on full archive network"
+	errorOnLightClientNetworkString = "on light client network"
 )
 
 // managedNetworkComponents creates the data components handler that can create, close and access the data components
@@ -91,6 +93,10 @@ func (mnc *managedNetworkComponents) CheckSubcomponents() error {
 
 	if check.IfNil(mnc.fullArchiveNetworkHolder.netMessenger) {
 		return fmt.Errorf("%w %s", errors.ErrNilMessenger, errorOnFullArchiveNetworkString)
+	}
+
+	if check.IfNil(mnc.lightClientNetworkHolder.netMessenger) {
+		return fmt.Errorf("%w %s", errors.ErrNilMessenger, errorOnLightClientNetworkString)
 	}
 
 	if check.IfNil(mnc.inputAntifloodHandler) {

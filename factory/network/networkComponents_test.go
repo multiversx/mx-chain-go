@@ -2,12 +2,15 @@ package network_test
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/common"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	networkComp "github.com/multiversx/mx-chain-go/factory/network"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewNetworkComponentsFactory(t *testing.T) {
@@ -49,23 +52,88 @@ func TestNewNetworkComponentsFactory(t *testing.T) {
 		require.Nil(t, ncf)
 		require.Equal(t, errorsMx.ErrNilCryptoComponentsHolder, err)
 	})
-	t.Run("invalid node operation mode should error", func(t *testing.T) {
+	t.Run("invalid node operation modes should error", func(t *testing.T) {
 		t.Parallel()
 
-		args := componentsMock.GetNetworkFactoryArgs()
-		args.NodeOperationMode = "invalid"
+		t.Run("invalid mode", func(t *testing.T) {
+			t.Parallel()
 
-		ncf, err := networkComp.NewNetworkComponentsFactory(args)
-		require.Equal(t, errorsMx.ErrInvalidNodeOperationMode, err)
-		require.Nil(t, ncf)
-	})
-	t.Run("should work", func(t *testing.T) {
-		t.Parallel()
+			args := componentsMock.GetNetworkFactoryArgs()
+			args.NodeOperationModes = []common.NodeOperation{"invalid"}
 
-		args := componentsMock.GetNetworkFactoryArgs()
-		ncf, err := networkComp.NewNetworkComponentsFactory(args)
-		require.NoError(t, err)
-		require.NotNil(t, ncf)
+			ncf, err := networkComp.NewNetworkComponentsFactory(args)
+			require.Equal(t, errorsMx.ErrInvalidOperationMode, err)
+			require.Nil(t, ncf)
+		})
+
+		t.Run("invalid length", func(t *testing.T) {
+			t.Parallel()
+
+			args := componentsMock.GetNetworkFactoryArgs()
+			args.NodeOperationModes = []common.NodeOperation{common.FullArchiveMode, common.LightClientMode,
+				common.LightClientSupplierMode}
+
+			ncf, err := networkComp.NewNetworkComponentsFactory(args)
+			require.Equal(t, fmt.Errorf("cannot have more than 2 node operation modes, got %d modes instead",
+				len(args.NodeOperationModes)), err)
+			require.Nil(t, ncf)
+		})
+
+		t.Run("invalid main mode", func(t *testing.T) {
+			t.Parallel()
+			args := componentsMock.GetNetworkFactoryArgs()
+			args.NodeOperationModes = []common.NodeOperation{common.LightClientSupplierMode, common.LightClientMode}
+			ncf, err := networkComp.NewNetworkComponentsFactory(args)
+			require.Equal(t, errorsMx.ErrInvalidMainNodeOperationMode, err)
+			require.Nil(t, ncf)
+		})
+
+		t.Run("invalid combo", func(t *testing.T) {
+			t.Parallel()
+
+			args := componentsMock.GetNetworkFactoryArgs()
+			args.NodeOperationModes = []common.NodeOperation{common.NormalOperation, common.FullArchiveMode}
+
+			ncf, err := networkComp.NewNetworkComponentsFactory(args)
+			require.Equal(t, errorsMx.ErrInvalidNodeOperationModeCombo, err)
+			require.Nil(t, ncf)
+		})
+
+		t.Run("valid combo", func(t *testing.T) {
+			t.Parallel()
+
+			args := componentsMock.GetNetworkFactoryArgs()
+			args.NodeOperationModes = []common.NodeOperation{common.NormalOperation}
+			ncf, err := networkComp.NewNetworkComponentsFactory(args)
+			require.Nil(t, err)
+			require.NotNil(t, ncf)
+
+			args.NodeOperationModes = []common.NodeOperation{common.FullArchiveMode}
+			ncf, err = networkComp.NewNetworkComponentsFactory(args)
+			require.Nil(t, err)
+			require.NotNil(t, ncf)
+
+			args.NodeOperationModes = []common.NodeOperation{common.NormalOperation, common.LightClientMode}
+			ncf, err = networkComp.NewNetworkComponentsFactory(args)
+			require.Nil(t, err)
+			require.NotNil(t, ncf)
+
+			args.NodeOperationModes = []common.NodeOperation{common.NormalOperation, common.LightClientSupplierMode}
+			ncf, err = networkComp.NewNetworkComponentsFactory(args)
+			require.Nil(t, err)
+			require.NotNil(t, ncf)
+
+			args.NodeOperationModes = []common.NodeOperation{common.FullArchiveMode, common.LightClientMode}
+			ncf, err = networkComp.NewNetworkComponentsFactory(args)
+			require.Nil(t, err)
+			require.NotNil(t, ncf)
+
+			args.NodeOperationModes = []common.NodeOperation{common.FullArchiveMode, common.LightClientSupplierMode}
+			ncf, err = networkComp.NewNetworkComponentsFactory(args)
+			require.Nil(t, err)
+			require.NotNil(t, ncf)
+		})
+
 	})
 }
 

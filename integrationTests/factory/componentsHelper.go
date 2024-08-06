@@ -7,10 +7,11 @@ import (
 	"runtime/pprof"
 	"testing"
 
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/p2p"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("integrationtests")
@@ -36,6 +37,7 @@ func CreateDefaultConfig(tb testing.TB) *config.Configs {
 	prefsConfig, _ := common.LoadPreferencesConfig(configPathsHolder.Preferences)
 	mainP2PConfig, _ := common.LoadP2PConfig(configPathsHolder.MainP2p)
 	fullArchiveP2PConfig, _ := common.LoadP2PConfig(configPathsHolder.FullArchiveP2p)
+	lightClientP2PConfig, _ := common.LoadP2PConfig(configPathsHolder.LightClientP2p)
 	externalConfig, _ := common.LoadExternalConfig(configPathsHolder.External)
 	systemSCConfig, _ := common.LoadSystemSmartContractsConfig(configPathsHolder.SystemSC)
 	epochConfig, _ := common.LoadEpochConfig(configPathsHolder.Epoch)
@@ -53,6 +55,7 @@ func CreateDefaultConfig(tb testing.TB) *config.Configs {
 	configs.PreferencesConfig = prefsConfig
 	configs.MainP2pConfig = mainP2PConfig
 	configs.FullArchiveP2pConfig = fullArchiveP2PConfig
+	configs.LightClientP2pConfig = lightClientP2PConfig
 	configs.ExternalConfig = externalConfig
 	configs.EpochConfig = epochConfig
 	configs.RoundConfig = roundConfig
@@ -86,6 +89,7 @@ func createConfigurationsPathsHolder() *config.ConfigurationPathsHolder {
 		External:                 concatPath(ExternalPath),
 		MainP2p:                  concatPath(MainP2pPath),
 		FullArchiveP2p:           concatPath(FullArchiveP2pPath),
+		LightClientP2p:           concatPath(LightClientP2pPath),
 		Epoch:                    concatPath(EpochPath),
 		SystemSC:                 concatPath(SystemSCConfigPath),
 		GasScheduleDirectoryName: concatPath(GasSchedule),

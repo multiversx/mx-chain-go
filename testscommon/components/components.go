@@ -8,6 +8,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	commonFactory "github.com/multiversx/mx-chain-go/common/factory"
 	"github.com/multiversx/mx-chain-go/config"
@@ -41,9 +45,6 @@ import (
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
-	"github.com/stretchr/testify/require"
 )
 
 var log = logger.GetOrCreate("componentsMock")
@@ -308,11 +309,11 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 	cryptoCompMock := GetDefaultCryptoComponents()
 
 	return networkComp.NetworkComponentsFactoryArgs{
-		MainP2pConfig:     p2pCfg,
-		NodeOperationMode: common.NormalOperation,
-		MainConfig:        mainConfig,
-		StatusHandler:     appStatusHandler,
-		Marshalizer:       &mock.MarshalizerMock{},
+		MainP2pConfig:      p2pCfg,
+		NodeOperationModes: []common.NodeOperation{common.NormalOperation},
+		MainConfig:         mainConfig,
+		StatusHandler:      appStatusHandler,
+		Marshalizer:        &mock.MarshalizerMock{},
 		RatingsConfig: config.RatingsConfig{
 			General:    config.General{},
 			ShardChain: config.ShardChain{},
