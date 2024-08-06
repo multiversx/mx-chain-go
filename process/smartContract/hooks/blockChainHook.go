@@ -40,6 +40,7 @@ var log = logger.GetOrCreate("process/smartcontract/blockchainhook")
 
 const defaultCompiledSCPath = "compiledSCStorage"
 const executeDurationAlarmThreshold = time.Duration(50) * time.Millisecond
+const eGLD = "EGLD-000000"
 
 // ArgBlockChainHook represents the arguments structure for the blockchain hook
 type ArgBlockChainHook struct {
@@ -716,6 +717,11 @@ func (bh *BlockChainHookImpl) GetESDTToken(address []byte, tokenID []byte, nonce
 	}
 	if err != nil {
 		return nil, err
+	}
+
+	if bytes.Equal(tokenID, []byte(eGLD)) {
+		esdtData.Value.Set(userAcc.GetBalance())
+		return esdtData, nil
 	}
 
 	esdtTokenKey := []byte(core.ProtectedKeyPrefix + core.ESDTKeyIdentifier + string(tokenID))
