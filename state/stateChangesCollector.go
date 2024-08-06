@@ -168,11 +168,17 @@ func (scc *stateChangesCollector) AddTxHashToCollectedStateChanges(txHash []byte
 	}
 }
 
-func (scc *stateChangesCollector) SetIndexToLastStateChange(index int) {
+func (scc *stateChangesCollector) SetIndexToLastStateChange(index int) error {
+	if index > len(scc.stateChanges) || index < 0 {
+		return ErrStateChangesIndexOutOfBounds
+	}
+
 	scc.stateChangesMut.Lock()
 	defer scc.stateChangesMut.Unlock()
 
 	scc.stateChanges[len(scc.stateChanges)-1].Index = index
+
+	return nil
 }
 
 func (scc *stateChangesCollector) RevertToIndex(index int) error {
