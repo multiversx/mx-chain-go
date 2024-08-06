@@ -104,14 +104,9 @@ func NewNetworkComponentsFactory(
 		return nil, errors.ErrNilCryptoComponentsHolder
 	}
 
-	if len(args.NodeOperationModes) > 2 {
-		return nil, fmt.Errorf("cannot have more than 2 node operation modes, got %d modes instead",
-			len(args.NodeOperationModes))
-	}
-
-	if !common.Contains(args.NodeOperationModes, common.NormalOperation) &&
-		!common.Contains(args.NodeOperationModes, common.FullArchiveMode) {
-		return nil, errors.ErrInvalidNodeOperationMode
+	err := checkNodeOperationModes(args.NodeOperationModes)
+	if err != nil {
+		return nil, err
 	}
 
 	return &networkComponentsFactory{
@@ -392,6 +387,43 @@ func (nc *networkComponents) Close() error {
 	if !check.IfNil(lightClientMessenger) {
 		log.Debug("calling close on the light client network messenger instance...")
 		log.LogIfError(lightClientMessenger.Close())
+	}
+
+	return nil
+}
+
+func checkNodeOperationModes(nodeOperationModes []common.NodeOperation) error {
+	// check if there are more than 2 simultaneous operating modes
+	if len(nodeOperationModes) > 2 {
+		return fmt.Errorf("cannot have more than 2 node operation modes, got %d modes instead",
+			len(nodeOperationModes))
+	}
+
+	// if the node modes doesn't contain any of the valid ones, then the configuration is invalid
+	if !common.Contains(nodeOperationModes, []common.NodeOperation{
+		common.NormalOperation,
+		common.FullArchiveMode,
+		common.LightClientMode,
+		common.LightClientSupplierMode}...) {
+		return errors.ErrInvalidOperationMode
+	}
+
+	// the node must contain at least one of the following: common.NormalOperation or common.FullArchive
+	if !common.Contains(nodeOperationModes, common.NormalOperation) &&
+		!common.Contains(nodeOperationModes, common.FullArchiveMode) {
+		return errors.ErrInvalidMainNodeOperationMode
+	}
+
+	// the node cannot be in both normal and full archive modes
+	if common.Contains(nodeOperationModes, common.NormalOperation) &&
+		common.Contains(nodeOperationModes, common.FullArchiveMode) {
+		return errors.ErrInvalidNodeOperationModeCombo
+	}
+
+	// the node cannot be in both light client & light client supplier mode simultaneously
+	if common.Contains(nodeOperationModes, common.LightClientMode) &&
+		common.Contains(nodeOperationModes, common.LightClientSupplierMode) {
+		return errors.ErrInvalidNodeOperationModeCombo
 	}
 
 	return nil
