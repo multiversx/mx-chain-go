@@ -193,9 +193,6 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 			}
 			node.GetProcessComponents().BlockchainHook().SetEpochStartHeader(epochStartBlockHeader)
 		}
-
-		// TODO:
-
 	}
 
 	s.initialWalletKeys = outputConfigs.InitialWallets

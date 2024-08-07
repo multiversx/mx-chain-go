@@ -756,11 +756,21 @@ func (mp *metaProcessor) CreateBlock(
 			return nil, nil, err
 		}
 
+		err = mp.blockChainHook.SetCurrentHeader(metaHdr)
+		if err != nil {
+			return nil, nil, err
+		}
+
 		body, err = mp.createEpochStartBody(metaHdr)
 		if err != nil {
 			return nil, nil, err
 		}
 	} else {
+		err = mp.blockChainHook.SetCurrentHeader(metaHdr)
+		if err != nil {
+			return nil, nil, err
+		}
+
 		body, err = mp.createBlockBody(metaHdr, haveTime)
 		if err != nil {
 			return nil, nil, err
@@ -773,11 +783,6 @@ func (mp *metaProcessor) CreateBlock(
 	}
 
 	mp.requestHandler.SetEpoch(metaHdr.GetEpoch())
-
-	err = mp.blockChainHook.SetCurrentHeader(metaHdr)
-	if err != nil {
-		return nil, nil, err
-	}
 
 	return metaHdr, body, nil
 }
