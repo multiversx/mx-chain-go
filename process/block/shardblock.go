@@ -849,10 +849,6 @@ func (sp *shardProcessor) CreateBlock(
 	}
 
 	sp.epochNotifier.CheckEpoch(shardHdr)
-	err = sp.blockChainHook.SetCurrentHeader(shardHdr)
-	if err != nil {
-		return nil, nil, err
-	}
 
 	body, processedMiniBlocksDestMeInfo, err := sp.createBlockBody(shardHdr, haveTime)
 	if err != nil {
@@ -860,6 +856,11 @@ func (sp *shardProcessor) CreateBlock(
 	}
 
 	finalBody, err := sp.applyBodyToHeader(shardHdr, body, processedMiniBlocksDestMeInfo)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = sp.blockChainHook.SetCurrentHeader(shardHdr)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -102,6 +102,7 @@ type processComponentsHolder struct {
 	sentSignatureTracker             process.SentSignaturesTracker
 	epochStartSystemSCProcessor      process.EpochStartSystemSCProcessor
 	relayedTxV3Processor             process.RelayedTxV3Processor
+	blockchainHook                   process.BlockChainHookWithAccountsAdapter
 	managedProcessComponentsCloser   io.Closer
 }
 
@@ -273,6 +274,7 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		sentSignatureTracker:             managedProcessComponents.SentSignaturesTracker(),
 		epochStartSystemSCProcessor:      managedProcessComponents.EpochSystemSCProcessor(),
 		relayedTxV3Processor:             managedProcessComponents.RelayedTxV3Processor(),
+		blockchainHook:                   managedProcessComponents.BlockchainHook(),
 		managedProcessComponentsCloser:   managedProcessComponents,
 	}
 
@@ -516,6 +518,11 @@ func (p *processComponentsHolder) EpochSystemSCProcessor() process.EpochStartSys
 // RelayedTxV3Processor returns the relayed tx v3 processor
 func (p *processComponentsHolder) RelayedTxV3Processor() process.RelayedTxV3Processor {
 	return p.relayedTxV3Processor
+}
+
+// BlockchainHook returns the blockchain hook
+func (p *processComponentsHolder) BlockchainHook() process.BlockChainHookWithAccountsAdapter {
+	return p.blockchainHook
 }
 
 // Close will call the Close methods on all inner components

@@ -22,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/sharding"
 	"github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
@@ -173,7 +174,28 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 			if err != nil {
 				return err
 			}
+
+			epochStartBlockHeader := &block.MetaBlock{
+				Nonce:     args.InitialNonce,
+				Epoch:     args.InitialEpoch,
+				Round:     uint64(args.InitialRound),
+				TimeStamp: uint64(node.GetCoreComponents().RoundHandler().TimeStamp().Unix()),
+			}
+			node.GetProcessComponents().BlockchainHook().SetEpochStartHeader(epochStartBlockHeader)
+		} else {
+			epochStartBlockHeader := &block.HeaderV2{
+				Header: &block.Header{
+					Nonce:     args.InitialNonce,
+					Epoch:     args.InitialEpoch,
+					Round:     uint64(args.InitialRound),
+					TimeStamp: uint64(node.GetCoreComponents().RoundHandler().TimeStamp().Unix()),
+				},
+			}
+			node.GetProcessComponents().BlockchainHook().SetEpochStartHeader(epochStartBlockHeader)
 		}
+
+		// TODO:
+
 	}
 
 	s.initialWalletKeys = outputConfigs.InitialWallets

@@ -334,6 +334,12 @@ func (service *SCQueryService) getBlockHeaderByHash(headerHash []byte) (data.Hea
 }
 
 func (service *SCQueryService) getEpochStartBlockHdr(epoch uint32) (data.HeaderHandler, error) {
+	shardId := service.shardCoordinator.SelfId()
+
+	if epoch == 0 {
+		return service.mainBlockChain.GetGenesisHeader(), nil
+	}
+
 	if header, ok := service.epochStartHdrCache[epoch]; ok {
 		return header, nil
 	}
@@ -348,8 +354,6 @@ func (service *SCQueryService) getEpochStartBlockHdr(epoch uint32) (data.HeaderH
 	if err != nil {
 		return nil, err
 	}
-
-	shardId := service.shardCoordinator.SelfId()
 
 	header, err := process.UnmarshalHeader(shardId, service.marshaller, headerBytes)
 	if err != nil {
