@@ -670,6 +670,30 @@ func indexValidatorsListIfNeeded(
 		})
 	}
 }
+func getValidatorAccountSyncer(
+	config *config.Config,
+	coreComponents mainFactory.CoreComponentsHolder,
+	dataComponents mainFactory.DataComponentsHolder,
+	stateComponents mainFactory.StateComponentsHolder,
+	processComponents mainFactory.ProcessComponentsHolder,
+) (process.AccountsDBSyncer, error) {
+	maxTrieLevelInMemory := config.StateTriesConfig.MaxPeerTrieLevelInMemory
+	peerTrie := stateComponents.TriesContainer().Get([]byte(dataRetriever.PeerAccountsUnit.String()))
+	storageManager := peerTrie.GetStorageManager()
+
+	args := syncer.ArgsNewValidatorAccountsSyncer{
+		ArgsNewBaseAccountsSyncer: getBaseAccountSyncerArgs(
+			config,
+			coreComponents,
+			dataComponents,
+			processComponents,
+			storageManager,
+			maxTrieLevelInMemory,
+		),
+	}
+
+	return syncer.NewValidatorAccountsSyncer(args)
+}
 
 func getUserAccountSyncer(
 	config *config.Config,

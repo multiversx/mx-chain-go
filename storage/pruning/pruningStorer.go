@@ -148,7 +148,7 @@ func initPruningStorer(
 	pdb.persisterFactory = args.PersisterFactory
 	pdb.shardCoordinator = args.ShardCoordinator
 	pdb.cacher = suCache
-	pdb.epochPrepareHdr = &block.MetaBlock{Epoch: epochForDefaultEpochPrepareHdr}
+	pdb.epochPrepareHdr = &block.SovereignChainHeader{Header: &block.Header{Epoch: epochForDefaultEpochPrepareHdr}}
 	pdb.epochForPutOperation = args.EpochsData.StartingEpoch
 	pdb.pathManager = args.PathManager
 	pdb.dbPath = args.DbPath
@@ -749,7 +749,7 @@ func (ps *PruningStorer) saveHeaderForEpochStartPrepare(header data.HeaderHandle
 	defer ps.mutEpochPrepareHdr.Unlock()
 
 	var ok bool
-	ps.epochPrepareHdr, ok = header.(*block.MetaBlock)
+	ps.epochPrepareHdr, ok = header.(data.MetaHeaderHandler) // here
 	if !ok {
 		return storage.ErrWrongTypeAssertion
 	}
@@ -825,14 +825,14 @@ func (ps *PruningStorer) changeEpoch(header data.HeaderHandler) error {
 // should be called under mutex protection
 func (ps *PruningStorer) extendSavedEpochsIfNeeded(header data.HeaderHandler) bool {
 	epoch := header.GetEpoch()
-	metaBlock, mbOk := header.(*block.MetaBlock)
+	metaBlock, mbOk := header.(data.MetaHeaderHandler) // here
 	if !mbOk {
 		ps.mutEpochPrepareHdr.RLock()
 		epochPrepareHdr := ps.epochPrepareHdr
 		ps.mutEpochPrepareHdr.RUnlock()
 		if epochPrepareHdr != nil {
 			var ok bool
-			metaBlock, ok = epochPrepareHdr.(*block.MetaBlock)
+			metaBlock, ok = epochPrepareHdr.(data.MetaHeaderHandler) // here?
 			if !ok {
 				log.Warn("PruningStorer.extendSavedEpochsIfNeeded", "error", "invalid type assertion")
 				return false
@@ -841,7 +841,7 @@ func (ps *PruningStorer) extendSavedEpochsIfNeeded(header data.HeaderHandler) bo
 			return false
 		}
 	}
-	shouldExtend := metaBlock.Epoch != epochForDefaultEpochPrepareHdr
+	shouldExtend := metaBlock.GetEpoch() != epochForDefaultEpochPrepareHdr
 	if !shouldExtend {
 		return false
 	}
@@ -1079,11 +1079,12 @@ func createPersisterDataForEpoch(args StorerArgs, epoch uint32, shard string) (*
 	return p, nil
 }
 
-func computeOldestEpoch(metaBlock *block.MetaBlock) uint32 {
-	oldestEpoch := metaBlock.Epoch
-	for _, lastHdr := range metaBlock.EpochStart.LastFinalizedHeaders {
-		if lastHdr.Epoch < oldestEpoch {
-			oldestEpoch = lastHdr.Epoch
+// here
+func computeOldestEpoch(metaBlock data.MetaHeaderHandler) uint32 {
+	oldestEpoch := metaBlock.GetEpoch()
+	for _, lastHdr := range metaBlock.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() { // here i think latest -1 ?
+		if lastHdr.GetEpoch() < oldestEpoch {
+			oldestEpoch = lastHdr.GetEpoch()
 		}
 	}
 

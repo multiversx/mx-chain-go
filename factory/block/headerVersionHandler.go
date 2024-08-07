@@ -166,7 +166,7 @@ func (hvh *headerVersionHandler) checkSoftwareVersion(hdr data.HeaderHandler) er
 		return nil
 	}
 
-	if !bytes.Equal([]byte(version), hdr.GetSoftwareVersion()) {
+	if !bytes.Equal(process.SovereignHeaderVersion, hdr.GetSoftwareVersion()) {
 		return fmt.Errorf("%w, got: %s, should have been %s",
 			ErrSoftwareVersionMismatch, string(hdr.GetSoftwareVersion()),
 			version,
