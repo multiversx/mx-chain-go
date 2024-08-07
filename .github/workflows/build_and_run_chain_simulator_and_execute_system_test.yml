@@ -24,7 +24,7 @@ jobs:
 
     strategy:
       matrix:
-        #TODO Include Macos support later on 
+        #TODO Include Macos support later on
         runs-on: [ubuntu-latest]
     runs-on: ${{ matrix.runs-on }}
     env:
@@ -116,8 +116,6 @@ jobs:
               echo "MX_CHAIN_SIMULATOR_TARGET_BRANCH=main" >> $GITHUB_ENV
             elif [[ "${{ github.event.pull_request.base.ref }}" == "master" ]]; then
               echo "MX_CHAIN_SIMULATOR_TARGET_BRANCH=main" >> $GITHUB_ENV
-            elif [[ "${{ github.event.pull_request.base.ref }}" == rc/* || "${{ github.event.pull_request.base.ref }}" == integrate-sys-tests-ci* ]]; then
-              echo "MX_CHAIN_SIMULATOR_TARGET_BRANCH=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
             fi
           fi
 
@@ -129,8 +127,6 @@ jobs:
               echo "MX_CHAIN_TESTING_SUITE_TARGET_BRANCH=main" >> $GITHUB_ENV
             elif [[ "${{ github.event.pull_request.base.ref }}" == "master" ]]; then
               echo "MX_CHAIN_TESTING_SUITE_TARGET_BRANCH=main" >> $GITHUB_ENV
-            elif [[ "${{ github.event.pull_request.base.ref }}" == rc/* || "${{ github.event.pull_request.base.ref }}" == integrate-sys-tests-ci* ]]; then
-              echo "MX_CHAIN_TESTING_SUITE_TARGET_BRANCH=${{ github.event.pull_request.base.ref }}" >> $GITHUB_ENV
             fi
           fi
 
@@ -167,7 +163,6 @@ jobs:
       - name: Run go mod tidy and go build
         run: |
           cd mx-chain-simulator-go/cmd/chainsimulator
-          go mod tidy
           go build
           echo "CHAIN_SIMULATOR_BUILD_PATH=$(pwd)" >> $GITHUB_ENV
 
