@@ -5298,6 +5298,7 @@ func getDefaultProcessComponents() *factoryMock.ProcessComponentsMock {
 		ScheduledTxsExecutionHandlerInternal: &testscommon.ScheduledTxsExecutionStub{},
 		HistoryRepositoryInternal:            &dblookupext.HistoryRepositoryStub{},
 		RelayedTxV3ProcessorField:            &processMocks.RelayedTxV3ProcessorMock{},
+		BlockchainHookField:                  &testscommon.BlockChainHookStub{},
 	}
 }
 

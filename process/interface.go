@@ -469,6 +469,7 @@ type EpochStartTriggerHandler interface {
 	Epoch() uint32
 	MetaEpoch() uint32
 	EpochStartRound() uint64
+	LastCommitedEpochStartHdr() (data.HeaderHandler, error)
 	SetProcessed(header data.HeaderHandler, body data.BodyHandler)
 	RevertStateToBlock(header data.HeaderHandler) error
 	EpochStartMetaHdrHash() []byte
@@ -512,6 +513,10 @@ type BlockChainHookHandler interface {
 	CurrentTimeStamp() uint64
 	CurrentRandomSeed() []byte
 	CurrentEpoch() uint32
+	RoundTime() uint64
+	EpochStartBlockNonce() uint64
+	EpochStartBlockRound() uint64
+	EpochStartBlockTimeStamp() uint64
 	NewAddress(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error)
 	ProcessBuiltInFunction(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error)
 	SaveNFTMetaDataToSystemAccount(tx data.TransactionHandler) error
@@ -524,7 +529,8 @@ type BlockChainHookHandler interface {
 	IsPaused(tokenID []byte) bool
 	IsLimitedTransfer(tokenID []byte) bool
 	NumberOfShards() uint32
-	SetCurrentHeader(hdr data.HeaderHandler)
+	SetCurrentHeader(hdr data.HeaderHandler) error
+	SetEpochStartHeader(hdr data.HeaderHandler)
 	SaveCompiledCode(codeHash []byte, code []byte)
 	GetCompiledCode(codeHash []byte) (bool, []byte)
 	IsPayable(sndAddress []byte, recvAddress []byte) (bool, error)
