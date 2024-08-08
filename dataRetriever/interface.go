@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // ResolverThrottler can monitor the number of the currently running resolver go routines
@@ -355,5 +356,18 @@ type NodesCoordinator interface {
 // found in peer authentication messages
 type PeerAuthenticationPayloadValidator interface {
 	ValidateTimestamp(payloadTimestamp int64) error
+	IsInterfaceNil() bool
+}
+
+// EpochNotifier can notify upon an epoch change
+type EpochNotifier interface {
+	RegisterNotifyHandler(handler vmcommon.EpochSubscriberHandler)
+	IsInterfaceNil() bool
+}
+
+// AccountNonceProvider defines the behavior of a component able to provide the nonce for an account
+type AccountNonceProvider interface {
+	GetAccountNonce(accountKey []byte) (uint64, error)
+	SetAccountsAdapter(accountsAdapter state.AccountsAdapter) error
 	IsInterfaceNil() bool
 }

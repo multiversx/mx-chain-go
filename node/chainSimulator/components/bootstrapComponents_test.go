@@ -128,7 +128,8 @@ func createArgsBootstrapComponentsHolder() ArgsBootstrapComponentsHolder {
 				Capacity: 123,
 			},
 		},
-		ShardIDStr: "0",
+		ShardIDStr:           "0",
+		AccountNonceProvider: testscommon.NewAccountNonceProviderStub(),
 	}
 }
 

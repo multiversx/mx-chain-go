@@ -27,7 +27,9 @@ type shardedTxPool struct {
 	configPrototypeDestinationMe txcache.ConfigDestinationMe
 	configPrototypeSourceMe      txcache.ConfigSourceMe
 	selfShardID                  uint32
+	epochNotifier                dataRetriever.EpochNotifier
 	txGasHandler                 txcache.TxGasHandler
+	accountNonceProvider         dataRetriever.AccountNonceProvider
 }
 
 type txPoolShard struct {
@@ -38,7 +40,7 @@ type txPoolShard struct {
 // NewShardedTxPool creates a new sharded tx pool
 // Implements "dataRetriever.TxPool"
 func NewShardedTxPool(args ArgShardedTxPool) (*shardedTxPool, error) {
-	log.Debug("NewShardedTxPool", "args", args.String())
+	log.Debug("NewShardedTxPool", "args.SelfShardID", args.SelfShardID)
 
 	err := args.verify()
 	if err != nil {
@@ -77,7 +79,9 @@ func NewShardedTxPool(args ArgShardedTxPool) (*shardedTxPool, error) {
 		configPrototypeDestinationMe: configPrototypeDestinationMe,
 		configPrototypeSourceMe:      configPrototypeSourceMe,
 		selfShardID:                  args.SelfShardID,
+		epochNotifier:                args.EpochNotifier,
 		txGasHandler:                 args.TxGasHandler,
+		accountNonceProvider:         args.AccountNonceProvider,
 	}
 
 	return shardedTxPoolObject, nil
@@ -188,10 +192,20 @@ func (txPool *shardedTxPool) AddData(key []byte, value interface{}, sizeInBytes 
 func (txPool *shardedTxPool) addTx(tx *txcache.WrappedTransaction, cacheID string) {
 	shard := txPool.getOrCreateShard(cacheID)
 	cache := shard.Cache
+
 	_, added := cache.AddTx(tx)
 	if added {
 		txPool.onAdded(tx.TxHash, tx)
 	}
+
+	sender := tx.Tx.GetSndAddr()
+	senderNonce, err := txPool.accountNonceProvider.GetAccountNonce(sender)
+	if err != nil {
+		log.Debug("shardedTxPool.addTx(): cannot get sender nonce", "sender", sender, "err", err)
+		return
+	}
+
+	cache.NotifyAccountNonce(sender, senderNonce)
 }
 
 func (txPool *shardedTxPool) onAdded(key []byte, value interface{}) {
@@ -228,13 +242,8 @@ func (txPool *shardedTxPool) searchFirstTx(txHash []byte) (tx data.TransactionHa
 
 // RemoveData removes the transaction from the pool
 func (txPool *shardedTxPool) RemoveData(key []byte, cacheID string) {
-	txPool.removeTx(key, cacheID)
-}
-
-// removeTx removes the transaction from the pool
-func (txPool *shardedTxPool) removeTx(txHash []byte, cacheID string) bool {
 	shard := txPool.getOrCreateShard(cacheID)
-	return shard.Cache.RemoveTxByHash(txHash)
+	_ = shard.Cache.RemoveTxByHash(key)
 }
 
 // RemoveSetOfDataFromPool removes a bunch of transactions from the pool
@@ -244,14 +253,16 @@ func (txPool *shardedTxPool) RemoveSetOfDataFromPool(keys [][]byte, cacheID stri
 
 // removeTxBulk removes a bunch of transactions from the pool
 func (txPool *shardedTxPool) removeTxBulk(txHashes [][]byte, cacheID string) {
+	shard := txPool.getOrCreateShard(cacheID)
+
 	numRemoved := 0
 	for _, key := range txHashes {
-		if txPool.removeTx(key, cacheID) {
+		if shard.Cache.RemoveTxByHash(key) {
 			numRemoved++
 		}
 	}
 
-	log.Trace("shardedTxPool.removeTxBulk()", "name", cacheID, "numToRemove", len(txHashes), "numRemoved", numRemoved)
+	log.Debug("shardedTxPool.removeTxBulk()", "name", cacheID, "numToRemove", len(txHashes), "numRemoved", numRemoved)
 }
 
 // RemoveDataFromAllShards removes the transaction from the pool (it searches in all shards)

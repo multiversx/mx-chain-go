@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/multiversx/mx-chain-go/trie/factory"
 )
@@ -38,13 +39,11 @@ func CreateTxPool(numShards uint32, selfShard uint32) (dataRetriever.ShardedData
 				SizeInBytesPerSender: 33_554_432,
 				Shards:               16,
 			},
-			NumberOfShards: numShards,
-			SelfShardID:    selfShard,
-			TxGasHandler: &txcachemocks.TxGasHandlerMock{
-				MinimumGasMove:       50000,
-				MinimumGasPrice:      200000000000,
-				GasProcessingDivisor: 100,
-			},
+			NumberOfShards:       numShards,
+			SelfShardID:          selfShard,
+			TxGasHandler:         txcachemocks.NewTxGasHandlerMock(),
+			EpochNotifier:        &testscommon.EpochNotifierStub{},
+			AccountNonceProvider: testscommon.NewAccountNonceProviderStub(),
 		},
 	)
 }

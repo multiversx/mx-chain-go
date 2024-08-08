@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common/statistics"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
@@ -122,6 +123,9 @@ func checkArguments(args ArgsEpochStartBootstrap) error {
 	}
 	if check.IfNil(args.NodesCoordinatorRegistryFactory) {
 		return fmt.Errorf("%s: %w", baseErrorMessage, nodesCoordinator.ErrNilNodesCoordinatorRegistryFactory)
+	}
+	if check.IfNil(args.AccountNonceProvider) {
+		return fmt.Errorf("%s: %w", baseErrorMessage, dataRetriever.ErrNilAccountNonceProvider)
 	}
 
 	return nil

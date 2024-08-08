@@ -9,6 +9,7 @@ import (
 	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
@@ -41,6 +42,7 @@ type BootstrapComponentsFactoryArgs struct {
 	CryptoComponents     factory.CryptoComponentsHolder
 	NetworkComponents    factory.NetworkComponentsHolder
 	StatusCoreComponents factory.StatusCoreComponentsHolder
+	AccountNonceProvider dataRetriever.AccountNonceProvider
 }
 
 type bootstrapComponentsFactory struct {
@@ -53,6 +55,7 @@ type bootstrapComponentsFactory struct {
 	cryptoComponents     factory.CryptoComponentsHolder
 	networkComponents    factory.NetworkComponentsHolder
 	statusCoreComponents factory.StatusCoreComponentsHolder
+	accountNonceProvider dataRetriever.AccountNonceProvider
 }
 
 type bootstrapComponents struct {
@@ -93,6 +96,9 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 	if check.IfNil(args.StatusCoreComponents.AppStatusHandler()) {
 		return nil, errors.ErrNilAppStatusHandler
 	}
+	if check.IfNil(args.AccountNonceProvider) {
+		return nil, dataRetriever.ErrNilAccountNonceProvider
+	}
 
 	return &bootstrapComponentsFactory{
 		config:               args.Config,
@@ -104,6 +110,7 @@ func NewBootstrapComponentsFactory(args BootstrapComponentsFactoryArgs) (*bootst
 		cryptoComponents:     args.CryptoComponents,
 		networkComponents:    args.NetworkComponents,
 		statusCoreComponents: args.StatusCoreComponents,
+		accountNonceProvider: args.AccountNonceProvider,
 	}, nil
 }
 
@@ -224,6 +231,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 		NodeProcessingMode:              common.GetNodeProcessingMode(&bcf.importDbConfig),
 		StateStatsHandler:               bcf.statusCoreComponents.StateStatsHandler(),
 		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
+		AccountNonceProvider:            bcf.accountNonceProvider,
 	}
 
 	var epochStartBootstrapper factory.EpochStartBootstrapper
@@ -233,6 +241,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 			ImportDbConfig:             bcf.importDbConfig,
 			ChanGracefullyClose:        bcf.coreComponents.ChanStopNodeProcess(),
 			TimeToWaitForRequestedData: bootstrap.DefaultTimeToWaitForRequestedData,
+			AccountNonceProvider:       bcf.accountNonceProvider,
 		}
 
 		epochStartBootstrapper, err = bootstrap.NewStorageEpochStartBootstrap(storageArg)

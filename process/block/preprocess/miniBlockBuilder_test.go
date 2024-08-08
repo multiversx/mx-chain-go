@@ -659,12 +659,12 @@ func Test_MiniBlocksBuilderCheckAddTransactionWrongTypeAssertion(t *testing.T) {
 	t.Parallel()
 
 	wtx := &txcache.WrappedTransaction{
-		Tx:                   nil,
-		TxHash:               nil,
-		SenderShardID:        0,
-		ReceiverShardID:      0,
-		Size:                 0,
-		TxFeeScoreNormalized: 0,
+		Tx:              nil,
+		TxHash:          nil,
+		SenderShardID:   0,
+		ReceiverShardID: 0,
+		Size:            0,
+		TxFee:           0,
 	}
 
 	args := createDefaultMiniBlockBuilderArgs()
@@ -912,11 +912,11 @@ func createWrappedTransaction(
 	txHash := hasher.Compute(string(txMarshalled))
 
 	return &txcache.WrappedTransaction{
-		Tx:                   tx,
-		TxHash:               txHash,
-		SenderShardID:        senderShardID,
-		ReceiverShardID:      receiverShardID,
-		Size:                 int64(len(txMarshalled)),
-		TxFeeScoreNormalized: 10,
+		Tx:              tx,
+		TxHash:          txHash,
+		SenderShardID:   senderShardID,
+		ReceiverShardID: receiverShardID,
+		Size:            int64(len(txMarshalled)),
+		TxFee:           51500000000000,
 	}
 }

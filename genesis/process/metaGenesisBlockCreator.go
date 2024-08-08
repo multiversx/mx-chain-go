@@ -456,7 +456,8 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		EnableEpochsHandler: enableEpochsHandler,
 		IsGenesisProcessing: true,
 		WasmVMChangeLocker:  &sync.RWMutex{}, // local Locker as to not interfere with the rest of the components
-		VMOutputCacher:      txcache.NewDisabledCache(),
+		// TODO: is this correct?
+		VMOutputCacher: txcache.NewDisabledCache(),
 	}
 
 	scProcessorProxy, err := processProxy.NewSmartContractProcessorProxy(argsNewSCProcessor, epochNotifier)
