@@ -644,7 +644,28 @@ func addSyncersToAccountsDB(
 		return err
 	}
 
-	return stateComponents.AccountsAdapter().StartSnapshotIfNeeded()
+	err = stateComponents.AccountsAdapter().StartSnapshotIfNeeded()
+	if err != nil {
+		return err
+	}
+
+	validatorStateSyncer, err := getValidatorAccountSyncer(
+		config,
+		coreComponents,
+		dataComponents,
+		stateComponents,
+		processComponents,
+	)
+	if err != nil {
+		return err
+	}
+
+	err = stateComponents.PeerAccounts().SetSyncer(validatorStateSyncer)
+	if err != nil {
+		return err
+	}
+
+	return stateComponents.PeerAccounts().StartSnapshotIfNeeded()
 }
 
 func indexValidatorsListIfNeeded(
