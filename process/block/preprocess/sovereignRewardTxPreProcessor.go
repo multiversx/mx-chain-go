@@ -4,7 +4,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
@@ -52,7 +51,7 @@ func NewSovereignRewardsTxPreProcessor(args ArgsRewardTxPreProcessor) (*sovereig
 
 // receivedRewardTransaction is a callback function called when a new reward transaction
 // is added in the reward transactions pool. We do not need to wait for broadcasted txs on a channel, since
-// each node is processing these rewards. Therefore, whenever adding a reward tx in pool, we will directly execute it.
+// each node is processing these rewards.
 func (srtp *sovereignRewardsTxPreProcessor) receivedRewardTransaction(key []byte, value interface{}) {
 	tx, ok := value.(data.TransactionHandler)
 	if !ok {
@@ -76,25 +75,13 @@ func (srtp *sovereignRewardsTxPreProcessor) receivedRewardTx(
 		return process.ErrMissingTransaction
 	}
 
-	rwdTx, castOk := tx.(*rewardTx.RewardTx)
-	if !castOk {
-		log.Warn("invalid rewardsTransaction in sovereignRewardsTxPreProcessor.receivedRewardTx", "hash", txHash)
-		return process.ErrWrongTypeAssertion
-	}
-
 	forBlock.mutTxsForBlock.Lock()
 	forBlock.txHashAndInfo[string(txHash)] = &txInfo{
 		tx: tx,
 	}
 	forBlock.mutTxsForBlock.Unlock()
 
-	err := srtp.saveAccountBalanceForAddress(tx.GetRcvAddr())
-	if err != nil {
-		return err
-	}
-
-	srtp.txExecutionOrderHandler.Add(txHash)
-	return srtp.rewardsProcessor.ProcessRewardTransaction(rwdTx)
+	return nil
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil

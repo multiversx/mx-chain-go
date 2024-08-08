@@ -520,28 +520,44 @@ func (s *legacySystemSCProcessor) ProcessDelegationRewards(
 }
 
 func (s *legacySystemSCProcessor) executeRewardTx(rwdTx data.TransactionHandler) error {
-	vmInput := &vmcommon.ContractCallInput{
-		VMInput: vmcommon.VMInput{
-			CallerAddr: s.endOfEpochCallerAddress,
-			Arguments:  nil,
-			CallValue:  rwdTx.GetValue(),
-		},
-		RecipientAddr: rwdTx.GetRcvAddr(),
-		Function:      "updateRewards",
-	}
+	if core.IsSmartContractOnMetachain([]byte{255}, rwdTx.GetRcvAddr()) {
+		vmInput := &vmcommon.ContractCallInput{
+			VMInput: vmcommon.VMInput{
+				CallerAddr: s.endOfEpochCallerAddress,
+				Arguments:  nil,
+				CallValue:  rwdTx.GetValue(),
+			},
+			RecipientAddr: rwdTx.GetRcvAddr(),
+			Function:      "updateRewards",
+		}
 
-	vmOutput, err := s.systemVM.RunSmartContractCall(vmInput)
-	if err != nil {
-		return err
-	}
+		vmOutput, err := s.systemVM.RunSmartContractCall(vmInput)
+		if err != nil {
+			return err
+		}
 
-	if vmOutput.ReturnCode != vmcommon.Ok {
-		return epochStart.ErrSystemDelegationCall
-	}
+		if vmOutput.ReturnCode != vmcommon.Ok {
+			return epochStart.ErrSystemDelegationCall
+		}
 
-	err = s.processSCOutputAccounts(vmOutput)
-	if err != nil {
-		return err
+		err = s.processSCOutputAccounts(vmOutput)
+		if err != nil {
+			return err
+		}
+	} else {
+		userAcc, err := s.getUserAccount(rwdTx.GetRcvAddr())
+		if err != nil {
+			return err
+		}
+		err = userAcc.AddToBalance(rwdTx.GetValue())
+		if err != nil {
+			return err
+		}
+
+		err = s.userAccountsDB.SaveAccount(userAcc)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -1329,9 +1345,9 @@ func getRewardsMiniBlockForMeta(miniBlocks block.MiniBlockSlice) *block.MiniBloc
 		if miniBlock.Type != block.RewardsBlock {
 			continue
 		}
-		if miniBlock.ReceiverShardID != core.MetachainShardId {
-			continue
-		}
+		//if miniBlock.ReceiverShardID != core.MetachainShardId {
+		//	continue
+		//}
 		return miniBlock
 	}
 	return nil
