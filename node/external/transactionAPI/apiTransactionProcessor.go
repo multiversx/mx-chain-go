@@ -2,6 +2,7 @@ package transactionAPI
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -83,6 +84,48 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 		refundDetector:              refundDetectorInstance,
 		gasUsedAndFeeProcessor:      gasUsedAndFeeProc,
 	}, nil
+}
+
+func (atp *apiTransactionProcessor) GetSCRsByTxHash(txHash string, scrHash string) ([]*transaction.ApiSmartContractResult, error) {
+	decodedScrHash, err := hex.DecodeString(scrHash)
+	if err != nil {
+		return nil, err
+	}
+
+	decodedTxHash, err := hex.DecodeString(txHash)
+	if err != nil {
+		return nil, err
+	}
+
+	if !atp.historyRepository.IsEnabled() {
+		return []*transaction.ApiSmartContractResult{}, nil
+	}
+
+	miniblockMetadata, err := atp.historyRepository.GetMiniblockMetadataByTxHash(decodedScrHash)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", ErrTransactionNotFound.Error(), err)
+	}
+
+	resultsHashes, err := atp.historyRepository.GetResultsHashesByTxHash(decodedTxHash, miniblockMetadata.Epoch)
+	if err != nil {
+		// It's perfectly normal to have transactions without SCRs.
+		if errors.Is(err, dblookupext.ErrNotFoundInStorage) {
+			return []*transaction.ApiSmartContractResult{}, nil
+		}
+		return nil, err
+	}
+
+	scrsAPI := make([]*transaction.ApiSmartContractResult, 0)
+	for _, scrHashesEpoch := range resultsHashes.ScResultsHashesAndEpoch {
+		scrs, errGet := atp.transactionResultsProcessor.getSmartContractResultsInTransactionByHashesAndEpoch(scrHashesEpoch.ScResultsHashes, scrHashesEpoch.Epoch)
+		if errGet != nil {
+			return nil, errGet
+		}
+
+		scrsAPI = append(scrsAPI, scrs...)
+	}
+
+	return scrsAPI, nil
 }
 
 // GetTransaction gets the transaction based on the given hash. It will search in the cache and the storage and
