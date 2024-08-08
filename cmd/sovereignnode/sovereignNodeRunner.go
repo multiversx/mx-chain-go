@@ -644,7 +644,28 @@ func addSyncersToAccountsDB(
 		return err
 	}
 
-	return stateComponents.AccountsAdapter().StartSnapshotIfNeeded()
+	err = stateComponents.AccountsAdapter().StartSnapshotIfNeeded()
+	if err != nil {
+		return err
+	}
+
+	validatorStateSyncer, err := getValidatorAccountSyncer(
+		config,
+		coreComponents,
+		dataComponents,
+		stateComponents,
+		processComponents,
+	)
+	if err != nil {
+		return err
+	}
+
+	err = stateComponents.PeerAccounts().SetSyncer(validatorStateSyncer)
+	if err != nil {
+		return err
+	}
+
+	return stateComponents.PeerAccounts().StartSnapshotIfNeeded()
 }
 
 func indexValidatorsListIfNeeded(
@@ -669,6 +690,30 @@ func indexValidatorsListIfNeeded(
 			Epoch:                  epoch,
 		})
 	}
+}
+func getValidatorAccountSyncer(
+	config *config.Config,
+	coreComponents mainFactory.CoreComponentsHolder,
+	dataComponents mainFactory.DataComponentsHolder,
+	stateComponents mainFactory.StateComponentsHolder,
+	processComponents mainFactory.ProcessComponentsHolder,
+) (process.AccountsDBSyncer, error) {
+	maxTrieLevelInMemory := config.StateTriesConfig.MaxPeerTrieLevelInMemory
+	peerTrie := stateComponents.TriesContainer().Get([]byte(dataRetriever.PeerAccountsUnit.String()))
+	storageManager := peerTrie.GetStorageManager()
+
+	args := syncer.ArgsNewValidatorAccountsSyncer{
+		ArgsNewBaseAccountsSyncer: getBaseAccountSyncerArgs(
+			config,
+			coreComponents,
+			dataComponents,
+			processComponents,
+			storageManager,
+			maxTrieLevelInMemory,
+		),
+	}
+
+	return syncer.NewValidatorAccountsSyncer(args)
 }
 
 func getUserAccountSyncer(

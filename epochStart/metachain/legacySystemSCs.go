@@ -160,12 +160,12 @@ func (s *legacySystemSCProcessor) processLegacy(
 		}
 	}
 
-	if s.enableEpochsHandler.IsFlagEnabled(common.CorrectLastUnJailedFlagInSpecificEpochOnly) {
-		err := s.resetLastUnJailed()
-		if err != nil {
-			return err
-		}
-	}
+	//if s.enableEpochsHandler.IsFlagEnabled(common.CorrectLastUnJailedFlagInSpecificEpochOnly) {
+	//	err := s.resetLastUnJailed()
+	//	if err != nil {
+	//		return err
+	//	}
+	//}
 
 	if s.enableEpochsHandler.IsFlagEnabled(common.DelegationSmartContractFlagInSpecificEpochOnly) {
 		err := s.initDelegationSystemSC()
@@ -499,6 +499,8 @@ func (s *legacySystemSCProcessor) ProcessDelegationRewards(
 		return epochStart.ErrNilLocalTxCache
 	}
 
+	// addrese e de tip delegation contract execute reward core.IsSmartContractOnMetachain()
+	// otherwise addToBalance
 	rwdMb := getRewardsMiniBlockForMeta(miniBlocks)
 	if rwdMb == nil {
 		return nil
