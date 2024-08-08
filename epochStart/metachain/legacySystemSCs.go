@@ -520,44 +520,28 @@ func (s *legacySystemSCProcessor) ProcessDelegationRewards(
 }
 
 func (s *legacySystemSCProcessor) executeRewardTx(rwdTx data.TransactionHandler) error {
-	if core.IsSmartContractOnMetachain([]byte{255}, rwdTx.GetRcvAddr()) {
-		vmInput := &vmcommon.ContractCallInput{
-			VMInput: vmcommon.VMInput{
-				CallerAddr: s.endOfEpochCallerAddress,
-				Arguments:  nil,
-				CallValue:  rwdTx.GetValue(),
-			},
-			RecipientAddr: rwdTx.GetRcvAddr(),
-			Function:      "updateRewards",
-		}
+	vmInput := &vmcommon.ContractCallInput{
+		VMInput: vmcommon.VMInput{
+			CallerAddr: s.endOfEpochCallerAddress,
+			Arguments:  nil,
+			CallValue:  rwdTx.GetValue(),
+		},
+		RecipientAddr: rwdTx.GetRcvAddr(),
+		Function:      "updateRewards",
+	}
 
-		vmOutput, err := s.systemVM.RunSmartContractCall(vmInput)
-		if err != nil {
-			return err
-		}
+	vmOutput, err := s.systemVM.RunSmartContractCall(vmInput)
+	if err != nil {
+		return err
+	}
 
-		if vmOutput.ReturnCode != vmcommon.Ok {
-			return epochStart.ErrSystemDelegationCall
-		}
+	if vmOutput.ReturnCode != vmcommon.Ok {
+		return epochStart.ErrSystemDelegationCall
+	}
 
-		err = s.processSCOutputAccounts(vmOutput)
-		if err != nil {
-			return err
-		}
-	} else {
-		userAcc, err := s.getUserAccount(rwdTx.GetRcvAddr())
-		if err != nil {
-			return err
-		}
-		err = userAcc.AddToBalance(rwdTx.GetValue())
-		if err != nil {
-			return err
-		}
-
-		err = s.userAccountsDB.SaveAccount(userAcc)
-		if err != nil {
-			return err
-		}
+	err = s.processSCOutputAccounts(vmOutput)
+	if err != nil {
+		return err
 	}
 
 	return nil

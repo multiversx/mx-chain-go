@@ -85,6 +85,7 @@ type RunTypeComponentsStub struct {
 	EndOfEpochEconomicsFactoryHandlerField factory.EndOfEpochEconomicsFactoryHandler
 	RewardsTxPreProcFactoryField           preprocess.RewardsTxPreProcFactory
 	RewardsCreatorFactoryField             factory.RewardsCreatorFactory
+	SystemSCProcessorFactoryField          factory.SystemSCProcessorFactory
 }
 
 // NewRunTypeComponentsStub -
@@ -132,6 +133,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		EndOfEpochEconomicsFactoryHandlerField: &testFactory.EconomicsFactoryMock{},
 		RewardsTxPreProcFactoryField:           &testFactory.RewardsTxPreProcFactoryMock{},
 		RewardsCreatorFactoryField:             &testFactory.RewardsCreatorFactoryMock{},
+		SystemSCProcessorFactoryField:          &testFactory.SysSCFactoryMock{},
 	}
 }
 
@@ -363,6 +365,11 @@ func (r *RunTypeComponentsStub) RewardsTxPreProcFactory() preprocess.RewardsTxPr
 // RewardsCreatorFactory -
 func (r *RunTypeComponentsStub) RewardsCreatorFactory() factory.RewardsCreatorFactory {
 	return r.RewardsCreatorFactoryField
+}
+
+// SystemSCProcessorFactory -
+func (r *RunTypeComponentsStub) SystemSCProcessorFactory() factory.SystemSCProcessorFactory {
+	return r.SystemSCProcessorFactoryField
 }
 
 // IsInterfaceNil -
