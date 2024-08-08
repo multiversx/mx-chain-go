@@ -2,6 +2,7 @@ package heartbeat
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -68,6 +69,10 @@ func createHeartbeat(marshaller marshal.Marshalizer, buff []byte) (*heartbeat.He
 	err = marshaller.Unmarshal(payload, hb.Payload)
 	if err != nil {
 		return nil, nil, err
+	}
+
+	if payload.TimestampMicro != 0 {
+		hb.ArrivalTimestamp = time.Now().UnixMicro()
 	}
 
 	log.Trace("interceptedHeartbeat successfully created",
