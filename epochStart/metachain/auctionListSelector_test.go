@@ -70,7 +70,7 @@ func createFullAuctionListSelectorArgs(maxNodesChangeConfig []config.MaxNodesCha
 		AuctionConfig:            softAuctionCfg,
 	})
 	return AuctionListSelectorArgs{
-		ShardCoordinator:             argsSystemSC.ShardCoordinator.(ShardCoordinatorHandler),
+		ShardCoordinator:             argsSystemSC.ShardCoordinator.(ExtendedShardCoordinatorHandler),
 		StakingDataProvider:          argsSystemSC.StakingDataProvider,
 		MaxNodesChangeConfigProvider: nodesConfigProvider,
 		AuctionListDisplayHandler:    auctionDisplayer,

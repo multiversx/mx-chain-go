@@ -2109,7 +2109,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing
 	})
 
 	argsAuctionListSelector := AuctionListSelectorArgs{
-		ShardCoordinator:             args.ShardCoordinator.(ShardCoordinatorHandler),
+		ShardCoordinator:             args.ShardCoordinator.(ExtendedShardCoordinatorHandler),
 		StakingDataProvider:          args.StakingDataProvider,
 		MaxNodesChangeConfigProvider: nodesConfigProvider,
 		SoftAuctionConfig:            auctionCfg,

@@ -25,8 +25,8 @@ type TableDisplayHandler interface {
 	IsInterfaceNil() bool
 }
 
-// ShardCoordinatorHandler defines an extended version over shard coordinator
-type ShardCoordinatorHandler interface {
+// ExtendedShardCoordinatorHandler defines an extended version over shard coordinator
+type ExtendedShardCoordinatorHandler interface {
 	sharding.Coordinator
 	TotalNumberOfShards() uint32
 }

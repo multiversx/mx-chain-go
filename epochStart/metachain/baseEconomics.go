@@ -12,7 +12,7 @@ import (
 type baseEconomics struct {
 	marshalizer           marshal.Marshalizer
 	store                 dataRetriever.StorageService
-	shardCoordinator      ShardCoordinatorHandler
+	shardCoordinator      ExtendedShardCoordinatorHandler
 	economicsDataNotified epochStart.EpochEconomicsDataProvider
 	genesisEpoch          uint32
 	genesisNonce          uint64

@@ -1033,7 +1033,7 @@ func (pcf *processComponentsFactory) createEpochStartSysSCProcessor(
 		return nil, err
 	}
 
-	extendedShardCoordinator, castOk := pcf.bootstrapComponents.ShardCoordinator().(metachainEpochStart.ShardCoordinatorHandler)
+	extendedShardCoordinator, castOk := pcf.bootstrapComponents.ShardCoordinator().(metachainEpochStart.ExtendedShardCoordinatorHandler)
 	if !castOk {
 		return nil, fmt.Errorf("%w when trying to cast shard coordinator to extended shard coordinator", process.ErrWrongTypeAssertion)
 	}
@@ -1248,7 +1248,7 @@ func (pcf *processComponentsFactory) createEndOfEpochEconomics(
 	economicsDataProvider epochStart.EpochEconomicsDataProvider,
 	genesisHdr data.HeaderHandler,
 ) (process.EndOfEpochEconomics, error) {
-	extendedShardCoordinator, castOk := pcf.bootstrapComponents.ShardCoordinator().(metachainEpochStart.ShardCoordinatorHandler)
+	extendedShardCoordinator, castOk := pcf.bootstrapComponents.ShardCoordinator().(metachainEpochStart.ExtendedShardCoordinatorHandler)
 	if !castOk {
 		return nil, fmt.Errorf("%w when trying to cast shard coordinator to extended shard coordinator", process.ErrWrongTypeAssertion)
 	}
