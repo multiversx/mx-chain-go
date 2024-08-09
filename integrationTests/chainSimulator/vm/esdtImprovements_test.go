@@ -2343,7 +2343,6 @@ func testChainSimulatorChangeMetaData(t *testing.T, issueFn issueTxFunc) {
 		[]byte(core.ESDTRoleNFTUpdate),
 	}
 	tx = setSpecialRoleTx(nonce, addrs[1].Bytes, addrs[0].Bytes, tokenID, roles)
-	nonce++
 
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)

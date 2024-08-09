@@ -330,6 +330,9 @@
     # MultiESDTNFTTransferAndExecuteByUserEnableEpoch represents the epoch when enshrined sovereign cross chain opcodes are enabled
     MultiESDTNFTTransferAndExecuteByUserEnableEpoch = 9999999
 
+    # FixRelayedMoveBalanceToNonPayableSCEnableEpoch represents the epoch when the fix for relayed move balance to non payable sc will be enabled
+    FixRelayedMoveBalanceToNonPayableSCEnableEpoch = 7
+
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
         { EnableEpoch = 0, Type = "no-KOSK" },
