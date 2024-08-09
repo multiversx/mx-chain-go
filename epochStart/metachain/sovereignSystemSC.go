@@ -9,6 +9,8 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 )
 
+const metaChainShardIdentifier uint8 = 255
+
 type sovereignSystemSC struct {
 	*systemSCProcessor
 }
@@ -64,7 +66,7 @@ func getRewardsMiniBlockForSovereign(miniBlocks block.MiniBlockSlice) *block.Min
 }
 
 func (s *sovereignSystemSC) executeRewardTx(txHash []byte, rwdTx data.TransactionHandler) error {
-	if core.IsSmartContractOnMetachain([]byte{255}, rwdTx.GetRcvAddr()) {
+	if core.IsSmartContractOnMetachain([]byte{metaChainShardIdentifier}, rwdTx.GetRcvAddr()) {
 		return s.legacySystemSCProcessor.executeRewardTx(rwdTx)
 	}
 
@@ -77,12 +79,10 @@ func (s *sovereignSystemSC) addRewardTxValue(txHash []byte, rwdTx data.Transacti
 		return err
 	}
 
-	process.DisplayProcessTxDetails(
-		"ProcessRewardTransaction: receiver account details",
-		userAcc,
-		rwdTx,
-		txHash,
-		nil, //todo here
+	log.Trace("executing sovereign reward tx",
+		"txHash", txHash,
+		"receiver", rwdTx.GetRcvAddr(),
+		"value", rwdTx.GetValue().String(),
 	)
 
 	err = userAcc.AddToBalance(rwdTx.GetValue())
