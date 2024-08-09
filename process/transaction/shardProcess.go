@@ -502,14 +502,14 @@ func (txProc *txProcessor) processMoveBalance(
 	if err != nil {
 		errRefund := txProc.removeConsumedValueFromSender(tx, acntSrc, isUserTxOfRelayed)
 		if errRefund != nil {
-			log.Warn("failed to return funds to sender after check if receiver is payable", "error", errRefund)
+			log.Error("failed to return funds to sender after check if receiver is payable", "error", errRefund)
 		}
 		return err
 	}
 	if !isPayable {
 		err = txProc.removeConsumedValueFromSender(tx, acntSrc, isUserTxOfRelayed)
 		if err != nil {
-			log.Warn("failed to return funds to sender while transferring to non payable sc", "error", err)
+			log.Error("failed to return funds to sender while transferring to non payable sc", "error", err)
 		}
 
 		return process.ErrAccountNotPayable
@@ -519,7 +519,7 @@ func (txProc *txProcessor) processMoveBalance(
 	if err != nil {
 		errLocal := txProc.removeConsumedValueFromSender(tx, acntSrc, isUserTxOfRelayed)
 		if errLocal != nil {
-			log.Warn("failed to return funds to sender while sending invalid tx to metachain", "error", errLocal)
+			log.Error("failed to return funds to sender while sending invalid tx to metachain", "error", errLocal)
 		}
 
 		return err

@@ -122,7 +122,7 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		RelayedTransactionsV3EnableEpoch:                         105,
 		FixRelayedBaseCostEnableEpoch:                            106,
 		MultiESDTNFTTransferAndExecuteByUserEnableEpoch:          107,
-		FixRelayedMoveBalanceToNonPayableSCEnableEpoch:           107,
+		FixRelayedMoveBalanceToNonPayableSCEnableEpoch:           108,
 	}
 }
 

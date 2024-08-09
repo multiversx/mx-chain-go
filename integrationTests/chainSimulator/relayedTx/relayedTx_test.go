@@ -267,7 +267,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorScCalls(t *t
 	}
 }
 
-func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorInvalidInnerMoveBalance(t *testing.T) {
+func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorInnerMoveBalanceToNonPayableSC(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
