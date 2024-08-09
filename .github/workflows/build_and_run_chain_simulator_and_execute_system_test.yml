@@ -156,8 +156,8 @@ jobs:
       - name: Install Python Dependencies and Update go.mod
         run: |
           cd mx-chain-simulator-go
-          pip install -r scripts/update_go_mod/requirements.txt
-          python scripts/update_go_mod/update_go_mod.py $LATEST_COMMIT_HASH
+          pip install -r scripts/update-go-mod/requirements.txt
+          python scripts/update-go-mod/update-go-mod.py $LATEST_COMMIT_HASH
 
 
       - name: Run go mod tidy and go build
