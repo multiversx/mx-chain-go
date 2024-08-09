@@ -160,7 +160,7 @@ jobs:
           python scripts/update-go-mod/update-go-mod.py $LATEST_COMMIT_HASH
 
 
-      - name: Run go mod tidy and go build
+      - name: Run go build
         run: |
           cd mx-chain-simulator-go/cmd/chainsimulator
           go build
