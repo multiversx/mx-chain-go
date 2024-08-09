@@ -1,6 +1,8 @@
 package transactionAPI
 
 import (
+	"fmt"
+
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/process"
 )
@@ -44,6 +46,9 @@ func checkNilArgs(arg *ArgAPITransactionProcessor) error {
 	}
 	if check.IfNilReflect(arg.GasScheduleNotifier) {
 		return process.ErrNilGasSchedule
+	}
+	if check.IfNilReflect(arg.TxMarshaller) {
+		return fmt.Errorf("%w for tx marshaller", process.ErrNilMarshalizer)
 	}
 
 	return nil

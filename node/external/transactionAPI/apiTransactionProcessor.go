@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/process/txstatus"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
@@ -65,7 +66,13 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 	)
 
 	refundDetectorInstance := NewRefundDetector()
-	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(args.FeeComputer, args.GasScheduleNotifier, args.AddressPubKeyConverter)
+	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(
+		args.FeeComputer,
+		args.GasScheduleNotifier,
+		args.AddressPubKeyConverter,
+		smartContract.NewArgumentParser(),
+		args.TxMarshaller,
+	)
 
 	return &apiTransactionProcessor{
 		roundDuration:               args.RoundDuration,

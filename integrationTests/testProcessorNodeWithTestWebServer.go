@@ -24,6 +24,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
@@ -237,6 +238,7 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 		LogsFacade:               logsFacade,
 		DataFieldParser:          dataFieldParser,
 		GasScheduleNotifier:      gasScheduleNotifier,
+		TxMarshaller:             &marshallerMock.MarshalizerMock{},
 	}
 	apiTransactionHandler, err := transactionAPI.NewAPITransactionProcessor(argsApiTransactionProc)
 	log.LogIfError(err)

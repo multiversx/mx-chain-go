@@ -28,4 +28,5 @@ type ArgAPITransactionProcessor struct {
 	LogsFacade               LogsFacade
 	DataFieldParser          DataFieldParser
 	GasScheduleNotifier      core.GasScheduleNotifier
+	TxMarshaller             marshal.Marshalizer
 }
