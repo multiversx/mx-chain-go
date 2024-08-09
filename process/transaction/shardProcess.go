@@ -500,14 +500,14 @@ func (txProc *txProcessor) processMoveBalance(
 
 	isPayable, err := txProc.scProcessor.IsPayable(tx.SndAddr, tx.RcvAddr)
 	if err != nil {
-		errRefund := txProc.removeConsumedValueFromSender(tx, acntSrc, isUserTxOfRelayed)
+		errRefund := txProc.revertConsumedValueFromSender(tx, acntSrc, isUserTxOfRelayed)
 		if errRefund != nil {
 			log.Error("failed to return funds to sender after check if receiver is payable", "error", errRefund)
 		}
 		return err
 	}
 	if !isPayable {
-		err = txProc.removeConsumedValueFromSender(tx, acntSrc, isUserTxOfRelayed)
+		err = txProc.revertConsumedValueFromSender(tx, acntSrc, isUserTxOfRelayed)
 		if err != nil {
 			log.Error("failed to return funds to sender while transferring to non payable sc", "error", err)
 		}
@@ -517,7 +517,7 @@ func (txProc *txProcessor) processMoveBalance(
 
 	err = txProc.checkIfValidTxToMetaChain(tx, tx.RcvAddr)
 	if err != nil {
-		errLocal := txProc.removeConsumedValueFromSender(tx, acntSrc, isUserTxOfRelayed)
+		errLocal := txProc.revertConsumedValueFromSender(tx, acntSrc, isUserTxOfRelayed)
 		if errLocal != nil {
 			log.Error("failed to return funds to sender while sending invalid tx to metachain", "error", errLocal)
 		}
@@ -557,7 +557,7 @@ func (txProc *txProcessor) processMoveBalance(
 	return nil
 }
 
-func (txProc *txProcessor) removeConsumedValueFromSender(
+func (txProc *txProcessor) revertConsumedValueFromSender(
 	tx *transaction.Transaction,
 	acntSrc state.UserAccountHandler,
 	isUserTxOfRelayed bool,
