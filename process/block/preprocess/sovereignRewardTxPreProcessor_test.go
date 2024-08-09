@@ -42,5 +42,5 @@ func TestSovereignRewardsTxPreProcFactory_receivedRewardTransaction(t *testing.T
 	sovProc.receivedRewardTransaction(txHash, rwdTx)
 	require.Equal(t, sovProc.rewardTxsForBlock.txHashAndInfo[string(txHash)].tx, rwdTx)
 	require.True(t, wasRegisterCalled)
-	require.True(t, wasRewardTxProcessed)
+	require.False(t, wasRewardTxProcessed)
 }
