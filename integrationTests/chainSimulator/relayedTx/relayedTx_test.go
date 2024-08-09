@@ -62,6 +62,9 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulator(t *testing.
 	receiver, err := cs.GenerateAndMintWalletAddress(1, big.NewInt(0))
 	require.NoError(t, err)
 
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
+
 	innerTx := generateTransaction(sender.Bytes, 0, receiver.Bytes, oneEGLD, "", minGasLimit)
 	innerTx.RelayerAddr = relayer.Bytes
 
@@ -70,6 +73,9 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulator(t *testing.
 
 	receiver2, err := cs.GenerateAndMintWalletAddress(0, big.NewInt(0))
 	require.NoError(t, err)
+
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
 
 	innerTx2 := generateTransaction(sender2.Bytes, 0, receiver2.Bytes, oneEGLD, "", minGasLimit)
 	innerTx2.RelayerAddr = relayer.Bytes
@@ -80,6 +86,9 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulator(t *testing.
 	// deploy a wrapper contract
 	owner, err := cs.GenerateAndMintWalletAddress(0, initialBalance)
 	require.NoError(t, err)
+
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
 
 	scCode := wasm.GetSCCode("testData/egld-esdt-swap.wasm")
 	params := []string{scCode, wasm.VMTypeHex, wasm.DummyCodeMetadataHex, hex.EncodeToString([]byte("WEGLD"))}
@@ -163,6 +172,9 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorScCalls(t *t
 	// deploy adder contract
 	owner, err := cs.GenerateAndMintWalletAddress(0, initialBalance)
 	require.NoError(t, err)
+
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
 
 	ownerNonce := uint64(0)
 	scCode := wasm.GetSCCode("testData/adder.wasm")
@@ -464,6 +476,9 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorInnerNotExec
 
 	guardian, err := cs.GenerateAndMintWalletAddress(0, initialBalance)
 	require.NoError(t, err)
+
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
 
 	// Set guardian for sender
 	senderNonce := uint64(0)
