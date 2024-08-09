@@ -20,7 +20,7 @@ func TestRelayedAsyncESDTCallShouldWork(t *testing.T) {
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
 		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
-	})
+	}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -69,10 +69,10 @@ func TestRelayedAsyncESDTCallShouldWork(t *testing.T) {
 	utils.CheckESDTBalance(t, testContext, firstSCAddress, token, big.NewInt(2500))
 	utils.CheckESDTBalance(t, testContext, secondSCAddress, token, big.NewInt(2500))
 
-	expectedSenderBalance := big.NewInt(94996430)
+	expectedSenderBalance := big.NewInt(98219900)
 	utils.TestAccount(t, testContext.Accounts, relayerAddr, 1, expectedSenderBalance)
 
-	expectedAccumulatedFees := big.NewInt(5003570)
+	expectedAccumulatedFees := big.NewInt(1780100)
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
 	require.Equal(t, expectedAccumulatedFees, accumulatedFees)
 }
@@ -82,7 +82,7 @@ func TestRelayedAsyncESDTCall_InvalidCallFirstContract(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -144,7 +144,7 @@ func TestRelayedAsyncESDTCall_InvalidOutOfGas(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 

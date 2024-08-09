@@ -5,39 +5,29 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/database"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-storage-go/factory"
 )
 
 const minNumShards = 2
 
 // persisterCreator is the factory which will handle creating new persisters
 type persisterCreator struct {
-	dbType              string
-	batchDelaySeconds   int
-	maxBatchSize        int
-	maxOpenFiles        int
-	shardIDProviderType string
-	numShards           int32
+	conf config.DBConfig
 }
 
 func newPersisterCreator(config config.DBConfig) *persisterCreator {
 	return &persisterCreator{
-		dbType:              config.Type,
-		batchDelaySeconds:   config.BatchDelaySeconds,
-		maxBatchSize:        config.MaxBatchSize,
-		maxOpenFiles:        config.MaxOpenFiles,
-		shardIDProviderType: config.ShardIDProviderType,
-		numShards:           config.NumShards,
+		conf: config,
 	}
 }
 
 // Create will create the persister for the provided path
-// TODO: refactor to use max tries mechanism
 func (pc *persisterCreator) Create(path string) (storage.Persister, error) {
 	if len(path) == 0 {
 		return nil, storage.ErrInvalidFilePath
 	}
 
-	if pc.numShards < minNumShards {
+	if pc.conf.NumShards < minNumShards {
 		return pc.CreateBasePersister(path)
 	}
 
@@ -50,23 +40,23 @@ func (pc *persisterCreator) Create(path string) (storage.Persister, error) {
 
 // CreateBasePersister will create base the persister for the provided path
 func (pc *persisterCreator) CreateBasePersister(path string) (storage.Persister, error) {
-	var dbType = storageunit.DBType(pc.dbType)
-	switch dbType {
-	case storageunit.LvlDB:
-		return database.NewLevelDB(path, pc.batchDelaySeconds, pc.maxBatchSize, pc.maxOpenFiles)
-	case storageunit.LvlDBSerial:
-		return database.NewSerialDB(path, pc.batchDelaySeconds, pc.maxBatchSize, pc.maxOpenFiles)
-	case storageunit.MemoryDB:
-		return database.NewMemDB(), nil
-	default:
-		return nil, storage.ErrNotSupportedDBType
+	var dbType = storageunit.DBType(pc.conf.Type)
+
+	argsDB := factory.ArgDB{
+		DBType:            dbType,
+		Path:              path,
+		BatchDelaySeconds: pc.conf.BatchDelaySeconds,
+		MaxBatchSize:      pc.conf.MaxBatchSize,
+		MaxOpenFiles:      pc.conf.MaxOpenFiles,
 	}
+
+	return storageunit.NewDB(argsDB)
 }
 
 func (pc *persisterCreator) createShardIDProvider() (storage.ShardIDProvider, error) {
-	switch storageunit.ShardIDProviderType(pc.shardIDProviderType) {
+	switch storageunit.ShardIDProviderType(pc.conf.ShardIDProviderType) {
 	case storageunit.BinarySplit:
-		return database.NewShardIDProvider(pc.numShards)
+		return database.NewShardIDProvider(pc.conf.NumShards)
 	default:
 		return nil, storage.ErrNotSupportedShardIDProviderType
 	}

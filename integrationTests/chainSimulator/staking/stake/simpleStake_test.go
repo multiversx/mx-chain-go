@@ -7,18 +7,19 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/stretchr/testify/require"
-
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	chainSimulatorIntegrationTests "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/staking"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 	"github.com/multiversx/mx-chain-go/vm"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/stretchr/testify/require"
 )
 
 // Test scenarios
@@ -65,7 +66,7 @@ func testChainSimulatorSimpleStake(t *testing.T, targetEpoch int32, nodesStatus 
 	numOfShards := uint32(3)
 
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:   false,
+		BypassTxSignatureCheck:   true,
 		TempDir:                  t.TempDir(),
 		PathToInitialConfig:      defaultPathToInitialConfig,
 		NumOfShards:              numOfShards,
@@ -85,12 +86,15 @@ func testChainSimulatorSimpleStake(t *testing.T, targetEpoch int32, nodesStatus 
 	require.NotNil(t, cs)
 	defer cs.Close()
 
-	mintValue := big.NewInt(0).Mul(staking.OneEGLD, big.NewInt(3000))
+	mintValue := big.NewInt(0).Mul(chainSimulatorIntegrationTests.OneEGLD, big.NewInt(3000))
 	wallet1, err := cs.GenerateAndMintWalletAddress(0, mintValue)
 	require.Nil(t, err)
 	wallet2, err := cs.GenerateAndMintWalletAddress(0, mintValue)
 	require.Nil(t, err)
 	wallet3, err := cs.GenerateAndMintWalletAddress(0, mintValue)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	_, blsKeys, err := chainSimulator.GenerateBlsPrivateKeys(3)
@@ -100,15 +104,15 @@ func testChainSimulatorSimpleStake(t *testing.T, targetEpoch int32, nodesStatus 
 	require.Nil(t, err)
 
 	dataFieldTx1 := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], staking.MockBLSSignature)
-	tx1Value := big.NewInt(0).Mul(big.NewInt(2499), staking.OneEGLD)
-	tx1 := staking.GenerateTransaction(wallet1.Bytes, 0, vm.ValidatorSCAddress, tx1Value, dataFieldTx1, staking.GasLimitForStakeOperation)
+	tx1Value := big.NewInt(0).Mul(big.NewInt(2499), chainSimulatorIntegrationTests.OneEGLD)
+	tx1 := chainSimulatorIntegrationTests.GenerateTransaction(wallet1.Bytes, 0, vm.ValidatorSCAddress, tx1Value, dataFieldTx1, staking.GasLimitForStakeOperation)
 
 	dataFieldTx2 := fmt.Sprintf("stake@01@%s@%s", blsKeys[1], staking.MockBLSSignature)
-	tx2 := staking.GenerateTransaction(wallet3.Bytes, 0, vm.ValidatorSCAddress, staking.MinimumStakeValue, dataFieldTx2, staking.GasLimitForStakeOperation)
+	tx2 := chainSimulatorIntegrationTests.GenerateTransaction(wallet3.Bytes, 0, vm.ValidatorSCAddress, chainSimulatorIntegrationTests.MinimumStakeValue, dataFieldTx2, staking.GasLimitForStakeOperation)
 
 	dataFieldTx3 := fmt.Sprintf("stake@01@%s@%s", blsKeys[2], staking.MockBLSSignature)
-	tx3Value := big.NewInt(0).Mul(big.NewInt(2501), staking.OneEGLD)
-	tx3 := staking.GenerateTransaction(wallet2.Bytes, 0, vm.ValidatorSCAddress, tx3Value, dataFieldTx3, staking.GasLimitForStakeOperation)
+	tx3Value := big.NewInt(0).Mul(big.NewInt(2501), chainSimulatorIntegrationTests.OneEGLD)
+	tx3 := chainSimulatorIntegrationTests.GenerateTransaction(wallet2.Bytes, 0, vm.ValidatorSCAddress, tx3Value, dataFieldTx3, staking.GasLimitForStakeOperation)
 
 	results, err := cs.SendTxsAndGenerateBlocksTilAreExecuted([]*transaction.Transaction{tx1, tx2, tx3}, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
@@ -158,7 +162,7 @@ func TestChainSimulator_StakingV4Step2APICalls(t *testing.T) {
 	stakingV4Step3Epoch := uint32(4)
 
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck: false,
+		BypassTxSignatureCheck: true,
 		TempDir:                t.TempDir(),
 		PathToInitialConfig:    defaultPathToInitialConfig,
 		NumOfShards:            3,
@@ -196,13 +200,16 @@ func TestChainSimulator_StakingV4Step2APICalls(t *testing.T) {
 	err = cs.AddValidatorKeys(privateKey)
 	require.Nil(t, err)
 
-	mintValue := big.NewInt(0).Add(staking.MinimumStakeValue, staking.OneEGLD)
+	mintValue := big.NewInt(0).Add(chainSimulatorIntegrationTests.MinimumStakeValue, chainSimulatorIntegrationTests.OneEGLD)
 	validatorOwner, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	// Stake a new validator that should end up in auction in step 1
 	txDataField := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], staking.MockBLSSignature)
-	txStake := staking.GenerateTransaction(validatorOwner.Bytes, 0, vm.ValidatorSCAddress, staking.MinimumStakeValue, txDataField, staking.GasLimitForStakeOperation)
+	txStake := chainSimulatorIntegrationTests.GenerateTransaction(validatorOwner.Bytes, 0, vm.ValidatorSCAddress, chainSimulatorIntegrationTests.MinimumStakeValue, txDataField, staking.GasLimitForStakeOperation)
 	stakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txStake, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, stakeTx)
@@ -222,7 +229,7 @@ func TestChainSimulator_StakingV4Step2APICalls(t *testing.T) {
 
 	// re-stake the node
 	txDataField = fmt.Sprintf("reStakeUnStakedNodes@%s", blsKeys[0])
-	txReStake := staking.GenerateTransaction(validatorOwner.Bytes, 1, vm.ValidatorSCAddress, big.NewInt(0), txDataField, staking.GasLimitForStakeOperation)
+	txReStake := chainSimulatorIntegrationTests.GenerateTransaction(validatorOwner.Bytes, 1, vm.ValidatorSCAddress, big.NewInt(0), txDataField, staking.GasLimitForStakeOperation)
 	reStakeTx, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(txReStake, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, reStakeTx)

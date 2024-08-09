@@ -23,15 +23,15 @@ func TestAsyncCallShouldWork(t *testing.T) {
 		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
 	}
 
-	testContextFirstContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, enableEpochs)
+	testContextFirstContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, enableEpochs, 1)
 	require.Nil(t, err)
 	defer testContextFirstContract.Close()
 
-	testContextSecondContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, enableEpochs)
+	testContextSecondContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, enableEpochs, 1)
 	require.Nil(t, err)
 	defer testContextSecondContract.Close()
 
-	testContextSender, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, enableEpochs)
+	testContextSender, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, enableEpochs, 1)
 	require.Nil(t, err)
 	defer testContextSender.Close()
 
@@ -97,8 +97,8 @@ func TestAsyncCallShouldWork(t *testing.T) {
 	res := vm.GetIntValueFromSC(nil, testContextFirstContract.Accounts, firstScAddress, "numCalled")
 	require.Equal(t, big.NewInt(1), res)
 
-	require.Equal(t, big.NewInt(5540), testContextFirstContract.TxFeeHandler.GetAccumulatedFees())
-	require.Equal(t, big.NewInt(554), testContextFirstContract.TxFeeHandler.GetDeveloperFees())
+	require.Equal(t, big.NewInt(158400), testContextFirstContract.TxFeeHandler.GetAccumulatedFees())
+	require.Equal(t, big.NewInt(15840), testContextFirstContract.TxFeeHandler.GetDeveloperFees())
 
 	intermediateTxs = testContextFirstContract.GetIntermediateTransactions(t)
 	require.NotNil(t, intermediateTxs)
@@ -107,8 +107,8 @@ func TestAsyncCallShouldWork(t *testing.T) {
 	scr = intermediateTxs[0]
 	utils.ProcessSCRResult(t, testContextSecondContract, scr, vmcommon.Ok, nil)
 
-	require.Equal(t, big.NewInt(49990510), testContextSecondContract.TxFeeHandler.GetAccumulatedFees())
-	require.Equal(t, big.NewInt(4999051), testContextSecondContract.TxFeeHandler.GetDeveloperFees())
+	require.Equal(t, big.NewInt(49837650), testContextSecondContract.TxFeeHandler.GetAccumulatedFees())
+	require.Equal(t, big.NewInt(4983765), testContextSecondContract.TxFeeHandler.GetDeveloperFees())
 
 	intermediateTxs = testContextSecondContract.GetIntermediateTransactions(t)
 	require.NotNil(t, intermediateTxs)
@@ -131,15 +131,15 @@ func TestAsyncCallDisabled(t *testing.T) {
 	activationRound.Round = "0"
 	roundsConfig.RoundActivations["DisableAsyncCallV1"] = activationRound
 
-	testContextFirstContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShardAndRoundConfig(0, enableEpochs, roundsConfig)
+	testContextFirstContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShardAndRoundConfig(0, enableEpochs, roundsConfig, 1)
 	require.Nil(t, err)
 	defer testContextFirstContract.Close()
 
-	testContextSecondContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShardAndRoundConfig(1, enableEpochs, roundsConfig)
+	testContextSecondContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShardAndRoundConfig(1, enableEpochs, roundsConfig, 1)
 	require.Nil(t, err)
 	defer testContextSecondContract.Close()
 
-	testContextSender, err := vm.CreatePreparedTxProcessorWithVMsMultiShardAndRoundConfig(2, enableEpochs, roundsConfig)
+	testContextSender, err := vm.CreatePreparedTxProcessorWithVMsMultiShardAndRoundConfig(2, enableEpochs, roundsConfig, 1)
 	require.Nil(t, err)
 	defer testContextSender.Close()
 

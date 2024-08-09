@@ -364,11 +364,6 @@ func (messenger *syncedMessenger) SignUsingPrivateKey(_ []byte, _ []byte) ([]byt
 	return make([]byte, 0), nil
 }
 
-// AddPeerTopicNotifier does nothing and returns nil
-func (messenger *syncedMessenger) AddPeerTopicNotifier(_ p2p.PeerTopicNotifier) error {
-	return nil
-}
-
 // SetDebugger will set the provided debugger
 func (messenger *syncedMessenger) SetDebugger(_ p2p.Debugger) error {
 	return nil
