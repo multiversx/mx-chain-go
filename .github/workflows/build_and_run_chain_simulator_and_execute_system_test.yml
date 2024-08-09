@@ -1,4 +1,4 @@
-name: Build and Smoke Test
+name: Chain Simulator Build and Integration Test
 
 on:
   pull_request:
