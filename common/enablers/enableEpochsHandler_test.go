@@ -448,7 +448,7 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.RelayedTransactionsV3EnableEpoch, handler.GetActivationEpoch(common.RelayedTransactionsV3Flag))
 	require.Equal(t, cfg.FixRelayedBaseCostEnableEpoch, handler.GetActivationEpoch(common.FixRelayedBaseCostFlag))
 	require.Equal(t, cfg.MultiESDTNFTTransferAndExecuteByUserEnableEpoch, handler.GetActivationEpoch(common.MultiESDTNFTTransferAndExecuteByUserFlag))
-	require.Equal(t, cfg.MultiESDTNFTTransferAndExecuteByUserEnableEpoch, handler.GetActivationEpoch(common.FixRelayedMoveBalanceToNonPayableSCFlag))
+	require.Equal(t, cfg.FixRelayedMoveBalanceToNonPayableSCEnableEpoch, handler.GetActivationEpoch(common.FixRelayedMoveBalanceToNonPayableSCFlag))
 }
 
 func TestEnableEpochsHandler_IsInterfaceNil(t *testing.T) {
