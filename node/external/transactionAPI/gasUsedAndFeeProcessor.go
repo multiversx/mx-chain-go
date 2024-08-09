@@ -5,18 +5,33 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/process"
 	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
 )
 
 type gasUsedAndFeeProcessor struct {
-	feeComputer     feeComputer
-	pubKeyConverter core.PubkeyConverter
+	feeComputer         feeComputer
+	gasScheduleNotifier core.GasScheduleNotifier
+	pubKeyConverter     core.PubkeyConverter
+	argsParser          process.ArgumentsParser
+	marshaller          marshal.Marshalizer
 }
 
-func newGasUsedAndFeeProcessor(txFeeCalculator feeComputer, pubKeyConverter core.PubkeyConverter) *gasUsedAndFeeProcessor {
+func newGasUsedAndFeeProcessor(
+	txFeeCalculator feeComputer,
+	gasScheduleNotifier core.GasScheduleNotifier,
+	pubKeyConverter core.PubkeyConverter,
+	argsParser process.ArgumentsParser,
+	marshaller marshal.Marshalizer,
+) *gasUsedAndFeeProcessor {
 	return &gasUsedAndFeeProcessor{
-		feeComputer:     txFeeCalculator,
-		pubKeyConverter: pubKeyConverter,
+		feeComputer:         txFeeCalculator,
+		gasScheduleNotifier: gasScheduleNotifier,
+		pubKeyConverter:     pubKeyConverter,
+		argsParser:          argsParser,
+		marshaller:          marshaller,
 	}
 }
 
@@ -27,9 +42,33 @@ func (gfp *gasUsedAndFeeProcessor) computeAndAttachGasUsedAndFee(tx *transaction
 	tx.GasUsed = gasUsed
 	tx.Fee = fee.String()
 
-	if tx.IsRelayed || gfp.isESDTOperationWithSCCall(tx) {
+	if gfp.isESDTOperationWithSCCall(tx) {
 		tx.GasUsed = tx.GasLimit
 		tx.Fee = tx.InitiallyPaidFee
+	}
+
+	if gfp.isGuardianOperation(tx) {
+		gasUsed = gfp.feeComputer.ComputeGasLimit(tx)
+		guardianOperationCost := gfp.getGuardianOperationCost(tx)
+		gasUsed += guardianOperationCost
+		tx.GasUsed = gasUsed
+
+		fee = big.NewInt(0).SetUint64(gasUsed * tx.GasPrice)
+		tx.Fee = fee.String()
+
+		initiallyPaidFee := gfp.feeComputer.ComputeMoveBalanceFee(tx)
+		tx.InitiallyPaidFee = initiallyPaidFee.String()
+
+		return
+	}
+
+	if tx.IsRelayed {
+		totalFee, isRelayed := gfp.getFeeOfRelayed(tx)
+		if isRelayed {
+			tx.Fee = totalFee.String()
+			tx.InitiallyPaidFee = totalFee.String()
+			tx.GasUsed = big.NewInt(0).Div(totalFee, big.NewInt(0).SetUint64(tx.GasPrice)).Uint64()
+		}
 	}
 
 	hasRefundForSender := false
@@ -47,6 +86,101 @@ func (gfp *gasUsedAndFeeProcessor) computeAndAttachGasUsedAndFee(tx *transaction
 	}
 
 	gfp.prepareTxWithResultsBasedOnLogs(tx, hasRefundForSender)
+}
+
+func (gfp *gasUsedAndFeeProcessor) getFeeOfRelayed(tx *transaction.ApiTransactionResult) (*big.Int, bool) {
+	if !tx.IsRelayed {
+		return nil, false
+	}
+
+	if len(tx.InnerTransactions) > 0 {
+		return gfp.feeComputer.ComputeTransactionFee(tx), true
+	}
+
+	if len(tx.Data) == 0 {
+		return nil, false
+	}
+
+	funcName, args, err := gfp.argsParser.ParseCallData(string(tx.Data))
+	if err != nil {
+		return nil, false
+	}
+
+	if funcName == core.RelayedTransaction {
+		return gfp.handleRelayedV1(args, tx)
+	}
+
+	if funcName == core.RelayedTransactionV2 {
+		return gfp.handleRelayedV2(args, tx)
+	}
+
+	return nil, false
+}
+
+func (gfp *gasUsedAndFeeProcessor) handleRelayedV1(args [][]byte, tx *transaction.ApiTransactionResult) (*big.Int, bool) {
+	if len(args) != 1 {
+		return nil, false
+	}
+
+	innerTx := &transaction.Transaction{}
+	err := gfp.marshaller.Unmarshal(innerTx, args[0])
+	if err != nil {
+		return nil, false
+	}
+
+	gasUsed := gfp.feeComputer.ComputeGasLimit(tx)
+	fee := gfp.feeComputer.ComputeTxFeeBasedOnGasUsed(tx, gasUsed)
+
+	innerFee := gfp.feeComputer.ComputeTransactionFee(&transaction.ApiTransactionResult{
+		Tx: innerTx,
+	})
+
+	return big.NewInt(0).Add(fee, innerFee), true
+}
+
+func (gfp *gasUsedAndFeeProcessor) handleRelayedV2(args [][]byte, tx *transaction.ApiTransactionResult) (*big.Int, bool) {
+	innerTx := &transaction.Transaction{}
+	innerTx.RcvAddr = args[0]
+	innerTx.Nonce = big.NewInt(0).SetBytes(args[1]).Uint64()
+	innerTx.Data = args[2]
+	innerTx.Signature = args[3]
+	innerTx.Value = big.NewInt(0)
+	innerTx.GasPrice = tx.GasPrice
+	innerTx.GasLimit = tx.GasLimit - gfp.feeComputer.ComputeGasLimit(tx)
+	innerTx.SndAddr = tx.Tx.GetRcvAddr()
+
+	gasUsed := gfp.feeComputer.ComputeGasLimit(tx)
+	fee := gfp.feeComputer.ComputeTxFeeBasedOnGasUsed(tx, gasUsed)
+
+	innerFee := gfp.feeComputer.ComputeTransactionFee(&transaction.ApiTransactionResult{
+		Tx: innerTx,
+	})
+
+	return big.NewInt(0).Add(fee, innerFee), true
+}
+
+func (gfp *gasUsedAndFeeProcessor) getGuardianOperationCost(tx *transaction.ApiTransactionResult) uint64 {
+	gasSchedule, err := gfp.gasScheduleNotifier.GasScheduleForEpoch(tx.Epoch)
+	if err != nil {
+		return 0
+	}
+
+	switch tx.Operation {
+	case core.BuiltInFunctionSetGuardian:
+		return gasSchedule[common.BuiltInCost][core.BuiltInFunctionSetGuardian]
+	case core.BuiltInFunctionGuardAccount:
+		return gasSchedule[common.BuiltInCost][core.BuiltInFunctionGuardAccount]
+	case core.BuiltInFunctionUnGuardAccount:
+		return gasSchedule[common.BuiltInCost][core.BuiltInFunctionUnGuardAccount]
+	default:
+		return 0
+	}
+}
+
+func (gfp *gasUsedAndFeeProcessor) isGuardianOperation(tx *transaction.ApiTransactionResult) bool {
+	return tx.Operation == core.BuiltInFunctionSetGuardian ||
+		tx.Operation == core.BuiltInFunctionGuardAccount ||
+		tx.Operation == core.BuiltInFunctionUnGuardAccount
 }
 
 func (gfp *gasUsedAndFeeProcessor) prepareTxWithResultsBasedOnLogs(

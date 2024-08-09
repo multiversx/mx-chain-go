@@ -12,6 +12,7 @@ type feeComputer interface {
 	ComputeTxFeeBasedOnGasUsed(tx *transaction.ApiTransactionResult, gasUsed uint64) *big.Int
 	ComputeGasLimit(tx *transaction.ApiTransactionResult) uint64
 	ComputeTransactionFee(tx *transaction.ApiTransactionResult) *big.Int
+	ComputeMoveBalanceFee(tx *transaction.ApiTransactionResult) *big.Int
 	IsInterfaceNil() bool
 }
 
