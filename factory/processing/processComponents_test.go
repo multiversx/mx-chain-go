@@ -1003,6 +1003,28 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 		require.True(t, errors.Is(err, errorsMx.ErrNilEndOfEpochEconomicsFactory))
 		require.Nil(t, pcf)
 	})
+	t.Run("nil ErrNilRewardsFactory should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockProcessComponentsFactoryArgs()
+		rtMock := getRunTypeComponentsMock()
+		rtMock.RewardsCreatorFactoryField = nil
+		args.RunTypeComponents = rtMock
+		pcf, err := processComp.NewProcessComponentsFactory(args)
+		require.True(t, errors.Is(err, errorsMx.ErrNilRewardsFactory))
+		require.Nil(t, pcf)
+	})
+	t.Run("nil SystemSCProcessorFactory should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockProcessComponentsFactoryArgs()
+		rtMock := getRunTypeComponentsMock()
+		rtMock.SystemSCProcessorFactoryField = nil
+		args.RunTypeComponents = rtMock
+		pcf, err := processComp.NewProcessComponentsFactory(args)
+		require.True(t, errors.Is(err, errorsMx.ErrNilSysSCFactory))
+		require.Nil(t, pcf)
+	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -1061,6 +1083,9 @@ func getRunTypeComponents(rt runType.RunTypeComponentsHolder) *mainFactoryMocks.
 		ValidatorInfoCreatorFactoryField:       rt.ValidatorInfoCreatorFactory(),
 		APIProcessorCompsCreatorHandlerField:   rt.ApiProcessorCompsCreatorHandler(),
 		EndOfEpochEconomicsFactoryHandlerField: rt.EndOfEpochEconomicsFactoryHandler(),
+		RewardsTxPreProcFactoryField:           rt.RewardsTxPreProcFactory(),
+		RewardsCreatorFactoryField:             rt.RewardsCreatorFactory(),
+		SystemSCProcessorFactoryField:          rt.SystemSCProcessorFactory(),
 	}
 }
 

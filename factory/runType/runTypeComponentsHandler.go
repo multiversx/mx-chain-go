@@ -219,6 +219,16 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	if check.IfNil(mrc.endOfEpochEconomicsFactoryHandler) {
 		return errors.ErrNilEndOfEpochEconomicsFactory
 	}
+	if check.IfNil(mrc.rewardsCreatorFactory) {
+		return errors.ErrNilRewardsFactory
+	}
+	if check.IfNil(mrc.rewardsTxPreProcFactory) {
+		return errors.ErrNilRewardsPreProcFactory
+	}
+	if check.IfNil(mrc.systemSCProcessorFactory) {
+		return errors.ErrNilSysSCFactory
+	}
+
 	return nil
 }
 
@@ -700,6 +710,42 @@ func (mrc *managedRunTypeComponents) EndOfEpochEconomicsFactoryHandler() factory
 	}
 
 	return mrc.runTypeComponents.endOfEpochEconomicsFactoryHandler
+}
+
+// RewardsTxPreProcFactory returns the rewards tx pre-processor factory
+func (mrc *managedRunTypeComponents) RewardsTxPreProcFactory() preprocess.RewardsTxPreProcFactory {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.rewardsTxPreProcFactory
+}
+
+// RewardsCreatorFactory returns the rewards creator factory
+func (mrc *managedRunTypeComponents) RewardsCreatorFactory() factory.RewardsCreatorFactory {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.rewardsCreatorFactory
+}
+
+// SystemSCProcessorFactory returns the sys sc processor factory
+func (mrc *managedRunTypeComponents) SystemSCProcessorFactory() factory.SystemSCProcessorFactory {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.systemSCProcessorFactory
 }
 
 // IsInterfaceNil returns true if the interface is nil

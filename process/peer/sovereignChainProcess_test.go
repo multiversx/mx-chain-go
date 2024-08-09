@@ -1,9 +1,9 @@
 package peer_test
 
 import (
-	"fmt"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/peer"
@@ -37,9 +37,6 @@ func TestSovereignValidatorStatisticsProcessor_UpdateShardDataPeerState_Increase
 	t.Parallel()
 
 	consensusGroup := make(map[string][]nodesCoordinator.Validator)
-	arguments := createUpdateTestArgs(consensusGroup)
-	vs, _ := peer.NewValidatorStatisticsProcessor(arguments)
-	validatorStatistics, _ := peer.NewSovereignChainValidatorStatisticsProcessor(vs)
 
 	cache := createMockCache()
 	prevHeader, header := generateTestShardBlockHeaders(cache)
@@ -55,11 +52,17 @@ func TestSovereignValidatorStatisticsProcessor_UpdateShardDataPeerState_Increase
 	v1 := shardingMocks.NewValidatorMock([]byte("pk1"), 1, 1)
 	v2 := shardingMocks.NewValidatorMock([]byte("pk2"), 1, 1)
 
-	currentHeaderConsensusKey := fmt.Sprintf(consensusGroupFormat, header.PrevRandSeed, header.Round, header.GetShardID(), header.Epoch)
 	currentHeaderConsensus := []nodesCoordinator.Validator{v1, v2}
-	consensusGroup[currentHeaderConsensusKey] = currentHeaderConsensus
+	consensusGroup["prevRandSeed_1_0_1"] = currentHeaderConsensus
 
-	err := validatorStatistics.UpdateShardDataPeerState(sovHdr, cache)
+	arguments := createUpdateTestArgs(consensusGroup)
+	vs, _ := peer.NewValidatorStatisticsProcessor(arguments)
+	validatorStatistics, _ := peer.NewSovereignChainValidatorStatisticsProcessor(vs)
+
+	prevHash := string(header.GetPrevHash())
+	_, err := validatorStatistics.UpdatePeerState(sovHdr, map[string]data.CommonHeaderHandler{
+		prevHash: cache[prevHash],
+	})
 	require.Nil(t, err)
 
 	pa1, _ := validatorStatistics.LoadPeerAccount(v1.PubKey())
