@@ -1329,9 +1329,9 @@ func getRewardsMiniBlockForMeta(miniBlocks block.MiniBlockSlice) *block.MiniBloc
 		if miniBlock.Type != block.RewardsBlock {
 			continue
 		}
-		//if miniBlock.ReceiverShardID != core.MetachainShardId {
-		//	continue
-		//}
+		if miniBlock.ReceiverShardID != core.MetachainShardId {
+			continue
+		}
 		return miniBlock
 	}
 	return nil
