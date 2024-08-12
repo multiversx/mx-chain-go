@@ -631,6 +631,7 @@ type RunTypeComponentsHolder interface {
 	EndOfEpochEconomicsFactoryHandler() EndOfEpochEconomicsFactoryHandler
 	RewardsTxPreProcFactory() preprocess.RewardsTxPreProcFactory
 	RewardsCreatorFactory() RewardsCreatorFactory
+	SystemSCProcessorFactory() SystemSCProcessorFactory
 	Create() error
 	Close() error
 	CheckSubcomponents() error
@@ -676,5 +677,11 @@ type EndOfEpochEconomicsFactoryHandler interface {
 // RewardsCreatorFactory defines a rewards creator factory
 type RewardsCreatorFactory interface {
 	CreateRewardsCreator(args metachain.RewardsCreatorProxyArgs) (epochStart.RewardsCreator, error)
+	IsInterfaceNil() bool
+}
+
+// SystemSCProcessorFactory defines the sys sc processor factory handler
+type SystemSCProcessorFactory interface {
+	CreateSystemSCProcessor(args metachain.ArgsNewEpochStartSystemSCProcessing) (process.EpochStartSystemSCProcessor, error)
 	IsInterfaceNil() bool
 }

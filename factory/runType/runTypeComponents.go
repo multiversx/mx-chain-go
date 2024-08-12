@@ -108,6 +108,7 @@ type runTypeComponents struct {
 	endOfEpochEconomicsFactoryHandler       mainFactory.EndOfEpochEconomicsFactoryHandler
 	rewardsTxPreProcFactory                 preprocess.RewardsTxPreProcFactory
 	rewardsCreatorFactory                   mainFactory.RewardsCreatorFactory
+	systemSCProcessorFactory                mainFactory.SystemSCProcessorFactory
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
@@ -279,6 +280,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		endOfEpochEconomicsFactoryHandler:       metachain.NewEconomicsFactory(),
 		rewardsTxPreProcFactory:                 preprocess.NewRewardsTxPreProcFactory(),
 		rewardsCreatorFactory:                   metachain.NewRewardsCreatorFactory(),
+		systemSCProcessorFactory:                metachain.NewSysSCFactory(),
 	}, nil
 }
 

@@ -50,11 +50,14 @@ func (rc *sovereignRewards) CreateRewardsMiniBlocks(
 	if computedEconomics == nil {
 		return nil, epochStart.ErrNilEconomicsData
 	}
+	if validatorsInfo == nil {
+		return nil, errNilValidatorsInfoMap
+	}
 
 	rc.mutRewardsData.Lock()
 	defer rc.mutRewardsData.Unlock()
 
-	log.Debug("rewardsCreatorV2.CreateRewardsMiniBlocks",
+	log.Debug("sovereignRewards.CreateRewardsMiniBlocks",
 		"totalToDistribute", computedEconomics.TotalToDistribute,
 		"rewardsForProtocolSustainability", computedEconomics.RewardsForProtocolSustainability,
 		"rewardsPerBlock", computedEconomics.RewardsPerBlock,
@@ -105,15 +108,11 @@ func (rc *sovereignRewards) addValidatorRewardsToMiniBlocks(
 			return nil, err
 		}
 		if rwdTx.Value.Cmp(zero) <= 0 {
+			log.Error("negative rewards", "rcv", rwdTx.RcvAddr)
 			continue
 		}
 
 		rc.accumulatedRewards.Add(rc.accumulatedRewards, rwdTx.Value)
-
-		if rwdTx.Value.Cmp(zero) < 0 {
-			log.Error("negative rewards", "rcv", rwdTx.RcvAddr)
-			continue
-		}
 
 		log.Debug("sovereignRewards.addValidatorRewardsToMiniBlocks",
 			"epoch", rwdTx.GetEpoch(),
@@ -123,13 +122,6 @@ func (rc *sovereignRewards) addValidatorRewardsToMiniBlocks(
 		rc.currTxs.AddTx(rwdTxHash, rwdTx)
 
 		miniBlocks[0].TxHashes = append(miniBlocks[0].TxHashes, rwdTxHash)
-
-		shardID := core.SovereignChainShardId
-		cacheIdentifier := process.ShardCacherIdentifier(shardID, shardID)
-		rc.dataPool.RewardTransactions().AddData(rwdTxHash,
-			rwdTx,
-			rwdTx.Size(),
-			cacheIdentifier)
 	}
 
 	return accumulatedDust, nil
@@ -160,12 +152,6 @@ func (rc *sovereignRewards) addProtocolRewardToMiniBlocks(
 	rc.currTxs.AddTx(protocolSustainabilityRwdHash, protocolSustainabilityRwdTx)
 	miniBlocks[protocolSustainabilityShardId].TxHashes = append(miniBlocks[protocolSustainabilityShardId].TxHashes, protocolSustainabilityRwdHash)
 	rc.protocolSustainabilityValue.Set(protocolSustainabilityRwdTx.Value)
-
-	cacheIdentifier := process.ShardCacherIdentifier(core.SovereignChainShardId, core.SovereignChainShardId)
-	rc.dataPool.RewardTransactions().AddData(protocolSustainabilityRwdHash,
-		protocolSustainabilityRwdTx,
-		protocolSustainabilityRwdTx.Size(),
-		cacheIdentifier)
 
 	return nil
 }

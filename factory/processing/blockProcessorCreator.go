@@ -1079,7 +1079,7 @@ func (pcf *processComponentsFactory) createEpochStartSysSCProcessor(
 		AuctionListSelector:          auctionListSelector,
 	}
 
-	return metachainEpochStart.NewSystemSCProcessor(argsEpochSystemSC)
+	return pcf.runTypeComponents.SystemSCProcessorFactory().CreateSystemSCProcessor(argsEpochSystemSC)
 }
 
 func (pcf *processComponentsFactory) createExtraMetaBlockProcessorArgs(

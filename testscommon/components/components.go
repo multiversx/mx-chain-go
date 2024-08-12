@@ -1113,6 +1113,7 @@ func GetRunTypeComponentsStub(rt factory.RunTypeComponentsHandler) *mainFactoryM
 		EndOfEpochEconomicsFactoryHandlerField: rt.EndOfEpochEconomicsFactoryHandler(),
 		RewardsTxPreProcFactoryField:           rt.RewardsTxPreProcFactory(),
 		RewardsCreatorFactoryField:             rt.RewardsCreatorFactory(),
+		SystemSCProcessorFactoryField:          rt.SystemSCProcessorFactory(),
 	}
 }
 
