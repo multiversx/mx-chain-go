@@ -34,6 +34,7 @@ func createArgOutportDataProviderFactory() ArgOutportDataProviderFactory {
 		MbsStorer:              &genericMocks.StorerMock{},
 		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		ExecutionOrderGetter:   &commonMocks.TxExecutionOrderHandlerStub{},
+		GasScheduleNotifier:    &testscommon.GasScheduleNotifierMock{},
 	}
 }
 

@@ -47,6 +47,8 @@ func (gfp *gasUsedAndFeeProcessor) computeAndAttachGasUsedAndFee(tx *transaction
 		tx.Fee = tx.InitiallyPaidFee
 	}
 
+	// if there is a guardian operation, SetGuardian/GuardAccount/UnGuardAccount
+	// the pre-configured cost of the operation must be added separately
 	if gfp.isGuardianOperation(tx) {
 		gasUsed = gfp.feeComputer.ComputeGasLimit(tx)
 		guardianOperationCost := gfp.getGuardianOperationCost(tx)

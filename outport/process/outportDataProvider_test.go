@@ -25,10 +25,12 @@ import (
 
 func createArgOutportDataProvider() ArgOutportDataProvider {
 	txsFeeProc, _ := transactionsfee.NewTransactionsFeeProcessor(transactionsfee.ArgTransactionsFeeProcessor{
-		Marshaller:         &marshallerMock.MarshalizerMock{},
-		TransactionsStorer: &genericMocks.StorerMock{},
-		ShardCoordinator:   &testscommon.ShardsCoordinatorMock{},
-		TxFeeCalculator:    &mock.EconomicsHandlerMock{},
+		Marshaller:          &marshallerMock.MarshalizerMock{},
+		TransactionsStorer:  &genericMocks.StorerMock{},
+		ShardCoordinator:    &testscommon.ShardsCoordinatorMock{},
+		TxFeeCalculator:     &mock.EconomicsHandlerMock{},
+		ArgsParser:          &testscommon.ArgumentParserMock{},
+		GasScheduleNotifier: &testscommon.GasScheduleNotifierMock{},
 	})
 
 	return ArgOutportDataProvider{

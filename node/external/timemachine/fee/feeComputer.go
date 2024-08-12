@@ -42,7 +42,6 @@ func (computer *feeComputer) ComputeTxFeeBasedOnGasUsed(tx *transaction.ApiTrans
 
 // ComputeGasLimit computes a transaction gas limit, at a given epoch
 func (computer *feeComputer) ComputeGasLimit(tx *transaction.ApiTransactionResult) uint64 {
-	computer.economicsInstance.MaxGasPriceSetGuardian()
 	return computer.economicsInstance.ComputeGasLimitInEpoch(tx.Tx, tx.Epoch)
 }
 
