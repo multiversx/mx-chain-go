@@ -74,7 +74,28 @@ func CreateDefaultConfig(tb testing.TB) *config.Configs {
 	configs.ImportDbConfig = &config.ImportDbConfig{}
 	configs.NodesConfig = &nodesConfig
 
+	configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch = computeChainParameters(uint32(len(configs.NodesConfig.InitialNodes)), configs.GeneralConfig.GeneralSettings.GenesisMaxNumberOfShards)
+
 	return configs
+}
+
+func computeChainParameters(numInitialNodes uint32, numShardsWithoutMeta uint32) []config.ChainParametersByEpochConfig {
+	numShardsWithMeta := numShardsWithoutMeta + 1
+	nodesPerShards := numInitialNodes / numShardsWithMeta
+	shardCnsGroupSize := nodesPerShards
+	if shardCnsGroupSize > 1 {
+		shardCnsGroupSize--
+	}
+	diff := numInitialNodes - nodesPerShards*numShardsWithMeta
+	return []config.ChainParametersByEpochConfig{
+		{
+			ShardConsensusGroupSize:     shardCnsGroupSize,
+			ShardMinNumNodes:            nodesPerShards,
+			MetachainConsensusGroupSize: nodesPerShards,
+			MetachainMinNumNodes:        nodesPerShards + diff,
+			RoundDuration:               2000,
+		},
+	}
 }
 
 func createConfigurationsPathsHolder() *config.ConfigurationPathsHolder {

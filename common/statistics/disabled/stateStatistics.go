@@ -19,8 +19,8 @@ func (s *stateStatistics) Reset() {
 func (s *stateStatistics) ResetSnapshot() {
 }
 
-// IncrCache does nothing
-func (s *stateStatistics) IncrCache() {
+// IncrementCache does nothing
+func (s *stateStatistics) IncrementCache() {
 }
 
 // Cache returns zero
@@ -28,8 +28,8 @@ func (s *stateStatistics) Cache() uint64 {
 	return 0
 }
 
-// IncrSnapshotCache does nothing
-func (ss *stateStatistics) IncrSnapshotCache() {
+// IncrementSnapshotCache does nothing
+func (ss *stateStatistics) IncrementSnapshotCache() {
 }
 
 // SnapshotCache returns the number of cached operations
@@ -37,8 +37,8 @@ func (ss *stateStatistics) SnapshotCache() uint64 {
 	return 0
 }
 
-// IncrPersister does nothing
-func (s *stateStatistics) IncrPersister(epoch uint32) {
+// IncrementPersister does nothing
+func (s *stateStatistics) IncrementPersister(epoch uint32) {
 }
 
 // Persister returns zero
@@ -46,8 +46,8 @@ func (s *stateStatistics) Persister(epoch uint32) uint64 {
 	return 0
 }
 
-// IncrSnapshotPersister does nothing
-func (ss *stateStatistics) IncrSnapshotPersister(epoch uint32) {
+// IncrementSnapshotPersister does nothing
+func (ss *stateStatistics) IncrementSnapshotPersister(epoch uint32) {
 }
 
 // SnapshotPersister returns the number of persister operations
@@ -55,8 +55,8 @@ func (ss *stateStatistics) SnapshotPersister(epoch uint32) uint64 {
 	return 0
 }
 
-// IncrTrie does nothing
-func (s *stateStatistics) IncrTrie() {
+// IncrementTrie does nothing
+func (s *stateStatistics) IncrementTrie() {
 }
 
 // Trie returns zero

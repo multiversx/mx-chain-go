@@ -88,12 +88,14 @@ type EvictionWaitingListConfig struct {
 
 // EpochStartConfig will hold the configuration of EpochStart settings
 type EpochStartConfig struct {
-	MinRoundsBetweenEpochs            int64
-	RoundsPerEpoch                    int64
-	MinShuffledOutRestartThreshold    float64
-	MaxShuffledOutRestartThreshold    float64
-	MinNumConnectedPeersToStart       int
-	MinNumOfPeersToConsiderBlockValid int
+	MinRoundsBetweenEpochs                      int64
+	RoundsPerEpoch                              int64
+	MinShuffledOutRestartThreshold              float64
+	MaxShuffledOutRestartThreshold              float64
+	MinNumConnectedPeersToStart                 int
+	MinNumOfPeersToConsiderBlockValid           int
+	ExtraDelayForRequestBlockInfoInMilliseconds int
+	GenesisEpoch                                uint32
 }
 
 // BlockSizeThrottleConfig will hold the configuration for adaptive block size throttle
@@ -367,15 +369,16 @@ type TxAccumulatorConfig struct {
 
 // AntifloodConfig will hold all p2p antiflood parameters
 type AntifloodConfig struct {
-	Enabled                   bool
-	NumConcurrentResolverJobs int32
-	OutOfSpecs                FloodPreventerConfig
-	FastReacting              FloodPreventerConfig
-	SlowReacting              FloodPreventerConfig
-	PeerMaxOutput             AntifloodLimitsConfig
-	Cache                     CacheConfig
-	Topic                     TopicAntifloodConfig
-	TxAccumulator             TxAccumulatorConfig
+	Enabled                             bool
+	NumConcurrentResolverJobs           int32
+	NumConcurrentResolvingTrieNodesJobs int32
+	OutOfSpecs                          FloodPreventerConfig
+	FastReacting                        FloodPreventerConfig
+	SlowReacting                        FloodPreventerConfig
+	PeerMaxOutput                       AntifloodLimitsConfig
+	Cache                               CacheConfig
+	Topic                               TopicAntifloodConfig
+	TxAccumulator                       TxAccumulatorConfig
 }
 
 // FloodPreventerConfig will hold all flood preventer parameters
@@ -412,6 +415,7 @@ type VirtualMachineConfig struct {
 	WasmVMVersions                      []WasmVMVersionByEpoch
 	TimeOutForSCExecutionInMilliseconds uint32
 	WasmerSIGSEGVPassthrough            bool
+	TransferAndExecuteByUserAddresses   []string
 }
 
 // WasmVMVersionByEpoch represents the Wasm VM version to be used starting with an epoch

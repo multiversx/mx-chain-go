@@ -14,6 +14,10 @@ import (
 )
 
 func TestESDTLocalBurnShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -44,6 +48,10 @@ func TestESDTLocalBurnShouldWork(t *testing.T) {
 }
 
 func TestESDTLocalBurnMoreThanTotalBalanceShouldErr(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()
@@ -74,6 +82,10 @@ func TestESDTLocalBurnMoreThanTotalBalanceShouldErr(t *testing.T) {
 }
 
 func TestESDTLocalBurnNotAllowedShouldErr(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContext.Close()

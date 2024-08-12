@@ -2,13 +2,13 @@ package shardingMocks
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 )
 
 // NodesCoordinatorStub -
 type NodesCoordinatorStub struct {
-	ComputeValidatorsGroupCalled             func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]nodesCoordinator.Validator, error)
 	GetValidatorsPublicKeysCalled            func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
 	GetValidatorsRewardsAddressesCalled      func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
 	GetValidatorWithPublicKeyCalled          func(publicKey []byte) (validator nodesCoordinator.Validator, shardId uint32, err error)
@@ -21,10 +21,11 @@ type NodesCoordinatorStub struct {
 	GetConsensusWhitelistedNodesCalled       func(epoch uint32) (map[string]struct{}, error)
 	GetOwnPublicKeyCalled                    func() []byte
 	GetWaitingEpochsLeftForPublicKeyCalled   func(publicKey []byte) (uint32, error)
+	GetNumTotalEligibleCalled                func() uint64
 }
 
 // NodesCoordinatorToRegistry -
-func (ncm *NodesCoordinatorStub) NodesCoordinatorToRegistry() *nodesCoordinator.NodesCoordinatorRegistry {
+func (ncm *NodesCoordinatorStub) NodesCoordinatorToRegistry(uint32) nodesCoordinator.NodesCoordinatorRegistryHandler {
 	return nil
 }
 
@@ -51,7 +52,7 @@ func (ncm *NodesCoordinatorStub) GetAllLeavingValidatorsPublicKeys(_ uint32) (ma
 }
 
 // SetConfig -
-func (ncm *NodesCoordinatorStub) SetConfig(_ *nodesCoordinator.NodesCoordinatorRegistry) error {
+func (ncm *NodesCoordinatorStub) SetConfig(_ nodesCoordinator.NodesCoordinatorRegistryHandler) error {
 	return nil
 }
 
@@ -77,8 +78,21 @@ func (ncm *NodesCoordinatorStub) GetAllWaitingValidatorsPublicKeys(epoch uint32)
 	return nil, nil
 }
 
+// GetAllShuffledOutValidatorsPublicKeys -
+func (ncm *NodesCoordinatorStub) GetAllShuffledOutValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
+	return nil, nil
+}
+
+// GetShuffledOutToAuctionValidatorsPublicKeys -
+func (ncm *NodesCoordinatorStub) GetShuffledOutToAuctionValidatorsPublicKeys(_ uint32) (map[uint32][][]byte, error) {
+	return nil, nil
+}
+
 // GetNumTotalEligible -
 func (ncm *NodesCoordinatorStub) GetNumTotalEligible() uint64 {
+	if ncm.GetNumTotalEligibleCalled != nil {
+		return ncm.GetNumTotalEligibleCalled()
+	}
 	return 1
 }
 
@@ -103,8 +117,8 @@ func (ncm *NodesCoordinatorStub) ComputeConsensusGroup(
 	shardId uint32,
 	epoch uint32,
 ) (validatorsGroup []nodesCoordinator.Validator, err error) {
-	if ncm.ComputeValidatorsGroupCalled != nil {
-		return ncm.ComputeValidatorsGroupCalled(randomness, round, shardId, epoch)
+	if ncm.ComputeConsensusGroupCalled != nil {
+		return ncm.ComputeConsensusGroupCalled(randomness, round, shardId, epoch)
 	}
 
 	var list []nodesCoordinator.Validator

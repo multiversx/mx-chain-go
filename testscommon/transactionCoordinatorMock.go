@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 )
@@ -29,10 +30,12 @@ type TransactionCoordinatorMock struct {
 	VerifyCreatedBlockTransactionsCalled                 func(hdr data.HeaderHandler, body *block.Body) error
 	CreatePostProcessMiniBlocksCalled                    func() block.MiniBlockSlice
 	VerifyCreatedMiniBlocksCalled                        func(hdr data.HeaderHandler, body *block.Body) error
-	AddIntermediateTransactionsCalled                    func(mapSCRs map[block.Type][]data.TransactionHandler) error
+	AddIntermediateTransactionsCalled                    func(mapSCRs map[block.Type][]data.TransactionHandler, key []byte) error
 	GetAllIntermediateTxsCalled                          func() map[block.Type]map[string]data.TransactionHandler
 	AddTxsFromMiniBlocksCalled                           func(miniBlocks block.MiniBlockSlice)
 	AddTransactionsCalled                                func(txHandlers []data.TransactionHandler, blockType block.Type)
+
+	miniBlocks []*block.MiniBlock
 }
 
 // GetAllCurrentLogs -
@@ -45,7 +48,7 @@ func (tcm *TransactionCoordinatorMock) CreatePostProcessMiniBlocks() block.MiniB
 	if tcm.CreatePostProcessMiniBlocksCalled != nil {
 		return tcm.CreatePostProcessMiniBlocksCalled()
 	}
-	return nil
+	return tcm.miniBlocks
 }
 
 // CreateReceiptsHash -
@@ -213,12 +216,12 @@ func (tcm *TransactionCoordinatorMock) VerifyCreatedMiniBlocks(hdr data.HeaderHa
 }
 
 // AddIntermediateTransactions -
-func (tcm *TransactionCoordinatorMock) AddIntermediateTransactions(mapSCRs map[block.Type][]data.TransactionHandler) error {
+func (tcm *TransactionCoordinatorMock) AddIntermediateTransactions(mapSCRs map[block.Type][]data.TransactionHandler, key []byte) error {
 	if tcm.AddIntermediateTransactionsCalled == nil {
 		return nil
 	}
 
-	return tcm.AddIntermediateTransactionsCalled(mapSCRs)
+	return tcm.AddIntermediateTransactionsCalled(mapSCRs, key)
 }
 
 // GetAllIntermediateTxs -
@@ -233,6 +236,7 @@ func (tcm *TransactionCoordinatorMock) GetAllIntermediateTxs() map[block.Type]ma
 // AddTxsFromMiniBlocks -
 func (tcm *TransactionCoordinatorMock) AddTxsFromMiniBlocks(miniBlocks block.MiniBlockSlice) {
 	if tcm.AddTxsFromMiniBlocksCalled == nil {
+		tcm.miniBlocks = append(tcm.miniBlocks, miniBlocks...)
 		return
 	}
 
@@ -246,6 +250,10 @@ func (tcm *TransactionCoordinatorMock) AddTransactions(txHandlers []data.Transac
 	}
 
 	tcm.AddTransactionsCalled(txHandlers, blockType)
+}
+
+func (tcm *TransactionCoordinatorMock) ClearStoredMbs() {
+	tcm.miniBlocks = make([]*block.MiniBlock, 0)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

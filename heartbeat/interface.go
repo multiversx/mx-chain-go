@@ -83,6 +83,7 @@ type ManagedPeersHolder interface {
 	IncrementRoundsWithoutReceivedMessages(pkBytes []byte)
 	ResetRoundsWithoutReceivedMessages(pkBytes []byte, pid core.PeerID)
 	GetManagedKeysByCurrentNode() map[string]crypto.PrivateKey
+	GetLoadedKeysByCurrentNode() [][]byte
 	IsKeyManagedByCurrentNode(pkBytes []byte) bool
 	IsKeyRegistered(pkBytes []byte) bool
 	IsPidManagedByCurrentNode(pid core.PeerID) bool

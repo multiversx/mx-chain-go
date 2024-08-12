@@ -119,7 +119,7 @@ func (sposWorkerMock *SposWorkerMock) HasEquivalentMessage(headerHash []byte) bo
 	return false
 }
 
-// GetEquivalentProof returns the equivalent proof for the provided hash
+// GetEquivalentProof -
 func (sposWorkerMock *SposWorkerMock) GetEquivalentProof(headerHash []byte) (data.HeaderProof, error) {
 	if sposWorkerMock.GetEquivalentProofCalled != nil {
 		return sposWorkerMock.GetEquivalentProofCalled(headerHash)

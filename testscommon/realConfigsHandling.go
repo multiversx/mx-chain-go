@@ -5,67 +5,90 @@ import (
 	"os/exec"
 	"path"
 	"strings"
-	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
-	"github.com/stretchr/testify/require"
 )
 
 // CreateTestConfigs will try to copy the whole configs directory to a temp directory and return the configs after load
 // The copying of the configs is required because minor adjustments of their contents is required for the tests to pass
-func CreateTestConfigs(tb testing.TB, originalConfigsPath string) *config.Configs {
-	tempDir := tb.TempDir()
-
+func CreateTestConfigs(tempDir string, originalConfigsPath string) (*config.Configs, error) {
 	newConfigsPath := path.Join(tempDir, "config")
 
 	// TODO refactor this cp to work on all OSes
 	cmd := exec.Command("cp", "-r", originalConfigsPath, newConfigsPath)
 	err := cmd.Run()
-	require.Nil(tb, err)
+	if err != nil {
+		return nil, err
+	}
 
 	newGenesisSmartContractsFilename := path.Join(newConfigsPath, "genesisSmartContracts.json")
-	correctTestPathInGenesisSmartContracts(tb, tempDir, newGenesisSmartContractsFilename)
+	err = correctTestPathInGenesisSmartContracts(tempDir, newGenesisSmartContractsFilename)
+	if err != nil {
+		return nil, err
+	}
 
 	apiConfig, err := common.LoadApiConfig(path.Join(newConfigsPath, "api.toml"))
-	require.Nil(tb, err)
+	if err != nil {
+		return nil, err
+	}
 
 	generalConfig, err := common.LoadMainConfig(path.Join(newConfigsPath, "config.toml"))
-	require.Nil(tb, err)
+	if err != nil {
+		return nil, err
+	}
 
 	ratingsConfig, err := common.LoadRatingsConfig(path.Join(newConfigsPath, "ratings.toml"))
-	require.Nil(tb, err)
+	if err != nil {
+		return nil, err
+	}
 
 	economicsConfig, err := common.LoadEconomicsConfig(path.Join(newConfigsPath, "economics.toml"))
-	require.Nil(tb, err)
+	if err != nil {
+		return nil, err
+	}
 
 	prefsConfig, err := common.LoadPreferencesConfig(path.Join(newConfigsPath, "prefs.toml"))
-	require.Nil(tb, err)
+	if err != nil {
+		return nil, err
+	}
 
 	mainP2PConfig, err := common.LoadP2PConfig(path.Join(newConfigsPath, "p2p.toml"))
-	require.Nil(tb, err)
+	if err != nil {
+		return nil, err
+	}
 
 	fullArchiveP2PConfig, err := common.LoadP2PConfig(path.Join(newConfigsPath, "fullArchiveP2P.toml"))
-	require.Nil(tb, err)
+	if err != nil {
+		return nil, err
+	}
 
 	externalConfig, err := common.LoadExternalConfig(path.Join(newConfigsPath, "external.toml"))
-	require.Nil(tb, err)
+	if err != nil {
+		return nil, err
+	}
 
 	systemSCConfig, err := common.LoadSystemSmartContractsConfig(path.Join(newConfigsPath, "systemSmartContractsConfig.toml"))
-	require.Nil(tb, err)
+	if err != nil {
+		return nil, err
+	}
 
 	epochConfig, err := common.LoadEpochConfig(path.Join(newConfigsPath, "enableEpochs.toml"))
-	require.Nil(tb, err)
+	if err != nil {
+		return nil, err
+	}
 
 	roundConfig, err := common.LoadRoundConfig(path.Join(newConfigsPath, "enableRounds.toml"))
-	require.Nil(tb, err)
+	if err != nil {
+		return nil, err
+	}
 
 	var nodesSetup config.NodesConfig
 	err = core.LoadJsonFile(&nodesSetup, path.Join(newConfigsPath, "nodesSetup.json"))
-	require.Nil(tb, err)
-
-	generalConfig.GeneralSettings.ChainParametersByEpoch = computeChainParameters(uint32(len(nodesSetup.InitialNodes)), generalConfig.GeneralSettings.GenesisMaxNumberOfShards)
+	if err != nil {
+		return nil, err
+	}
 
 	// make the node pass the network wait constraints
 	mainP2PConfig.Node.MinNumPeersToWaitForOnBootstrap = 0
@@ -99,12 +122,14 @@ func CreateTestConfigs(tb testing.TB, originalConfigsPath string) *config.Config
 		EpochConfig: epochConfig,
 		RoundConfig: roundConfig,
 		NodesConfig: &nodesSetup,
-	}
+	}, nil
 }
 
-func correctTestPathInGenesisSmartContracts(tb testing.TB, tempDir string, newGenesisSmartContractsFilename string) {
+func correctTestPathInGenesisSmartContracts(tempDir string, newGenesisSmartContractsFilename string) error {
 	input, err := os.ReadFile(newGenesisSmartContractsFilename)
-	require.Nil(tb, err)
+	if err != nil {
+		return err
+	}
 
 	lines := strings.Split(string(input), "\n")
 	for i, line := range lines {
@@ -113,25 +138,5 @@ func correctTestPathInGenesisSmartContracts(tb testing.TB, tempDir string, newGe
 		}
 	}
 	output := strings.Join(lines, "\n")
-	err = os.WriteFile(newGenesisSmartContractsFilename, []byte(output), 0644)
-	require.Nil(tb, err)
-}
-
-func computeChainParameters(numInitialNodes uint32, numShardsWithoutMeta uint32) []config.ChainParametersByEpochConfig {
-	numShardsWithMeta := numShardsWithoutMeta + 1
-	nodesPerShards := numInitialNodes / numShardsWithMeta
-	shardCnsGroupSize := nodesPerShards
-	if shardCnsGroupSize > 1 {
-		shardCnsGroupSize--
-	}
-	diff := numInitialNodes - nodesPerShards*numShardsWithMeta
-	return []config.ChainParametersByEpochConfig{
-		{
-			ShardConsensusGroupSize:     shardCnsGroupSize,
-			ShardMinNumNodes:            nodesPerShards,
-			MetachainConsensusGroupSize: nodesPerShards,
-			MetachainMinNumNodes:        nodesPerShards + diff,
-			RoundDuration:               2000,
-		},
-	}
+	return os.WriteFile(newGenesisSmartContractsFilename, []byte(output), 0644)
 }

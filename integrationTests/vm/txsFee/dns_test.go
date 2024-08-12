@@ -1,7 +1,3 @@
-//go:build !race
-
-// TODO remove build condition above to allow -race -short, after Wasm VM fix
-
 package txsFee
 
 import (
@@ -19,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
@@ -28,6 +25,10 @@ import (
 const returnOkData = "@6f6b"
 
 func TestDeployDNSContract_TestRegisterAndResolveAndSendTxWithSndAndRcvUserName(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
 		DynamicGasCostForDataTrieStorageLoadEnableEpoch: 10,
 	})
@@ -55,13 +56,13 @@ func TestDeployDNSContract_TestRegisterAndResolveAndSendTxWithSndAndRcvUserName(
 	require.Equal(t, vmcommon.Ok, retCode)
 	require.Nil(t, err)
 
-	vm.TestAccount(t, testContext.Accounts, sndAddr, 1, big.NewInt(9721810))
+	vm.TestAccount(t, testContext.Accounts, sndAddr, 1, big.NewInt(9263230))
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(278190), accumulatedFees)
+	require.Equal(t, big.NewInt(736770), accumulatedFees)
 
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
-	require.Equal(t, big.NewInt(27775), developerFees)
+	require.Equal(t, big.NewInt(73633), developerFees)
 
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
@@ -76,13 +77,13 @@ func TestDeployDNSContract_TestRegisterAndResolveAndSendTxWithSndAndRcvUserName(
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	vm.TestAccount(t, testContext.Accounts, rcvAddr, 1, big.NewInt(9721810))
+	vm.TestAccount(t, testContext.Accounts, rcvAddr, 1, big.NewInt(9263230))
 	// check accumulated fees
 	accumulatedFees = testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(556380), accumulatedFees)
+	require.Equal(t, big.NewInt(1473540), accumulatedFees)
 
 	developerFees = testContext.TxFeeHandler.GetDeveloperFees()
-	require.Equal(t, big.NewInt(55550), developerFees)
+	require.Equal(t, big.NewInt(147266), developerFees)
 
 	ret := vm.GetVmOutput(nil, testContext.Accounts, scAddress, "resolve", userName)
 	dnsUserNameAddr := ret.ReturnData[0]
@@ -115,6 +116,10 @@ func TestDeployDNSContract_TestRegisterAndResolveAndSendTxWithSndAndRcvUserName(
 // relayer address is in shard 2, creates a transaction on the behalf of the user from shard 2, that will call the DNS contract
 // from shard 1.
 func TestDeployDNSContract_TestGasWhenSaveUsernameFailsCrossShardBackwardsCompatibility(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	enableEpochs := config.EnableEpochs{
 		ChangeUsernameEnableEpoch: 1000, // flag disabled, backwards compatibility
 		SCProcessorV2EnableEpoch:  1000,
@@ -124,7 +129,7 @@ func TestDeployDNSContract_TestGasWhenSaveUsernameFailsCrossShardBackwardsCompat
 	testContextForDNSContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShardRoundVMConfig(
 		1,
 		enableEpochs,
-		integrationTests.GetDefaultRoundsConfig(),
+		testscommon.GetDefaultRoundsConfig(),
 		vmConfig,
 	)
 	require.Nil(t, err)
@@ -133,7 +138,7 @@ func TestDeployDNSContract_TestGasWhenSaveUsernameFailsCrossShardBackwardsCompat
 	testContextForRelayerAndUser, err := vm.CreatePreparedTxProcessorWithVMsMultiShardRoundVMConfig(
 		2,
 		enableEpochs,
-		integrationTests.GetDefaultRoundsConfig(),
+		testscommon.GetDefaultRoundsConfig(),
 		vmConfig,
 	)
 	require.Nil(t, err)
@@ -191,15 +196,15 @@ func TestDeployDNSContract_TestGasWhenSaveUsernameFailsCrossShardBackwardsCompat
 }
 
 func TestDeployDNSContract_TestGasWhenSaveUsernameAfterDNSv2IsActivated(t *testing.T) {
-	testContextForDNSContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{
-		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
-	})
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	testContextForDNSContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContextForDNSContract.Close()
 
-	testContextForRelayerAndUser, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{
-		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
-	})
+	testContextForRelayerAndUser, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{})
 	require.Nil(t, err)
 	defer testContextForRelayerAndUser.Close()
 	scAddress, _ := utils.DoDeployDNS(t, testContextForDNSContract, "../../multiShard/smartContract/dns/dns.wasm")
@@ -265,7 +270,7 @@ func processRegisterThroughRelayedTxs(tb testing.TB, args argsProcessRegister) (
 
 	// generate the user transaction
 	userTxData := []byte("register@" + hex.EncodeToString(args.username))
-	userTxGasLimit := uint64(200000)
+	userTxGasLimit := uint64(2000000)
 	userTx := vm.CreateTransaction(
 		getNonce(args.testContextForRelayerAndUser, args.userAddress),
 		big.NewInt(0),

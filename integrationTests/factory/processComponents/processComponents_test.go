@@ -68,6 +68,7 @@ func TestProcessComponents_Close_ShouldWork(t *testing.T) {
 		managedCoreComponents.NodeTypeProvider(),
 		managedCoreComponents.EnableEpochsHandler(),
 		managedDataComponents.Datapool().CurrentEpochValidatorInfo(),
+		managedBootstrapComponents.NodesCoordinatorRegistryFactory(),
 		managedCoreComponents.ChainParametersHandler(),
 	)
 	require.Nil(t, err)
