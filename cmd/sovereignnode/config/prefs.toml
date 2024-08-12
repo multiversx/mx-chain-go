@@ -48,6 +48,8 @@
    OverridableConfigTomlValues = [
       { File = "config.toml", Path = "VirtualMachine.Execution.WasmVMVersions", Value = [{ StartEpoch = 0, Version = "v1.5" }] },
       { File = "config.toml", Path = "VirtualMachine.Querying.WasmVMVersions", Value = [{ StartEpoch = 0, Version = "v1.5" }] },
+      { File = "config.toml", Path = "Versions.DefaultVersion", Value = "S1" },
+      { File = "config.toml", Path = "Versions.VersionsByEpochs", Value = [{ StartEpoch = 0, Version = "S1" }] },
       { File = "systemSmartContractsConfig.toml", Path = "ESDTSystemSCConfig.BaseIssuingCost", Value = "50000000000000000" },
    ]
 
