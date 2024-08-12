@@ -78,7 +78,9 @@ func (sposWorkerMock *SposWorkerMock) BroadcastBlock(body data.BodyHandler, head
 
 // ExecuteStoredMessages -
 func (sposWorkerMock *SposWorkerMock) ExecuteStoredMessages() {
-	sposWorkerMock.ExecuteStoredMessagesCalled()
+	if sposWorkerMock.ExecuteStoredMessagesCalled != nil {
+		sposWorkerMock.ExecuteStoredMessagesCalled()
+	}
 }
 
 // DisplayStatistics -
