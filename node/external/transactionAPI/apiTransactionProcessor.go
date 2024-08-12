@@ -117,7 +117,7 @@ func (atp *apiTransactionProcessor) GetSCRsByTxHash(txHash string, scrHash strin
 		return nil, err
 	}
 
-	scrsAPI := make([]*transaction.ApiSmartContractResult, 0)
+	scrsAPI := make([]*transaction.ApiSmartContractResult, 0, len(resultsHashes.ScResultsHashesAndEpoch))
 	for _, scrHashesEpoch := range resultsHashes.ScResultsHashesAndEpoch {
 		scrs, errGet := atp.transactionResultsProcessor.getSmartContractResultsInTransactionByHashesAndEpoch(scrHashesEpoch.ScResultsHashes, scrHashesEpoch.Epoch)
 		if errGet != nil {
