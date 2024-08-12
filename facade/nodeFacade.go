@@ -304,6 +304,7 @@ func (nf *nodeFacade) GetTransaction(hash string, withResults bool) (*transactio
 	return nf.apiResolver.GetTransaction(hash, withResults)
 }
 
+// GetSCRsByTxHash will return a list of smart contract results based on a provided tx hash and smart contract result hash
 func (nf *nodeFacade) GetSCRsByTxHash(txHash string, scrHash string) ([]*transaction.ApiSmartContractResult, error) {
 	return nf.apiResolver.GetSCRsByTxHash(txHash, scrHash)
 }
