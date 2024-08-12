@@ -155,6 +155,10 @@ func (sr *subroundEndRound) receivedBlockHeaderFinalInfo(_ context.Context, cnsD
 }
 
 func (sr *subroundEndRound) isBlockHeaderFinalInfoValid(cnsDta *consensus.Message) bool {
+	if check.IfNil(sr.Header) {
+		return false
+	}
+
 	header := sr.Header.ShallowClone()
 
 	// TODO[cleanup cns finality]: remove this
@@ -297,7 +301,7 @@ func (sr *subroundEndRound) verifyInvalidSigner(msg p2p.MessageP2P) error {
 		return err
 	}
 
-	err = sr.SigningHandler().VerifySingleSignature(cnsMsg.PubKey, cnsMsg.BlockHeaderHash, cnsMsg.AggregateSignature)
+	err = sr.SigningHandler().VerifySingleSignature(cnsMsg.PubKey, cnsMsg.BlockHeaderHash, cnsMsg.SignatureShare)
 	if err != nil {
 		log.Debug("verifyInvalidSigner: confirmed that node provided invalid signature",
 			"pubKey", cnsMsg.PubKey,
@@ -394,7 +398,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	// TODO[Sorin next PR]: decide if we send this with the delayed broadcast
 	err = sr.BroadcastMessenger().BroadcastHeader(sr.Header, sender)
 	if err != nil {
-		log.Warn("broadcastHeader.BroadcastHeader", "error", err.Error())
+		log.Warn("doEndRoundJobByLeader.BroadcastHeader", "error", err.Error())
 	}
 
 	startTime := time.Now()
@@ -694,7 +698,7 @@ func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfoForKey(signature []
 	// TODO[Sorin next PR]: replace this with the delayed broadcast
 	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
 	if err != nil {
-		log.Debug("createAndSendHeaderFinalInfoForKey.BroadcastConsensusMessage", "error", err.Error())
+		log.Debug("createAndBroadcastHeaderFinalInfoForKey.BroadcastConsensusMessage", "error", err.Error())
 		return false
 	}
 
