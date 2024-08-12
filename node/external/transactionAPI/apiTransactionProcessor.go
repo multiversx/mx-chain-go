@@ -86,6 +86,7 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 	}, nil
 }
 
+// GetSCRsByTxHash will return a list of smart contract results based on a provided tx hash and smart contract result hash
 func (atp *apiTransactionProcessor) GetSCRsByTxHash(txHash string, scrHash string) ([]*transaction.ApiSmartContractResult, error) {
 	decodedScrHash, err := hex.DecodeString(scrHash)
 	if err != nil {
@@ -98,7 +99,7 @@ func (atp *apiTransactionProcessor) GetSCRsByTxHash(txHash string, scrHash strin
 	}
 
 	if !atp.historyRepository.IsEnabled() {
-		return []*transaction.ApiSmartContractResult{}, nil
+		return nil, fmt.Errorf("cannot return smat contract results: %w", ErrDBLookExtensionIsNotEnabled)
 	}
 
 	miniblockMetadata, err := atp.historyRepository.GetMiniblockMetadataByTxHash(decodedScrHash)
