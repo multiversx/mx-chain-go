@@ -225,6 +225,10 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	if check.IfNil(mrc.rewardsTxPreProcFactory) {
 		return errors.ErrNilRewardsPreProcFactory
 	}
+	if check.IfNil(mrc.systemSCProcessorFactory) {
+		return errors.ErrNilSysSCFactory
+	}
+
 	return nil
 }
 
@@ -730,6 +734,18 @@ func (mrc *managedRunTypeComponents) RewardsCreatorFactory() factory.RewardsCrea
 	}
 
 	return mrc.runTypeComponents.rewardsCreatorFactory
+}
+
+// SystemSCProcessorFactory returns the sys sc processor factory
+func (mrc *managedRunTypeComponents) SystemSCProcessorFactory() factory.SystemSCProcessorFactory {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.systemSCProcessorFactory
 }
 
 // IsInterfaceNil returns true if the interface is nil

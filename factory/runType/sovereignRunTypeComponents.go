@@ -260,5 +260,6 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		endOfEpochEconomicsFactoryHandler:       metachain.NewSovereignEconomicsFactory(),
 		rewardsTxPreProcFactory:                 preprocess.NewSovereignRewardsTxPreProcFactory(),
 		rewardsCreatorFactory:                   metachain.NewSovereignRewardsCreatorFactory(),
+		systemSCProcessorFactory:                metachain.NewSovereignSysSCFactory(),
 	}, nil
 }

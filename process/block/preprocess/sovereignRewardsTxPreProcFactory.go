@@ -1,6 +1,8 @@
 package preprocess
 
-import "github.com/multiversx/mx-chain-go/process"
+import (
+	"github.com/multiversx/mx-chain-go/process"
+)
 
 type sovereignRewardsTxPreProcFactory struct {
 }
@@ -10,9 +12,9 @@ func NewSovereignRewardsTxPreProcFactory() *sovereignRewardsTxPreProcFactory {
 	return &sovereignRewardsTxPreProcFactory{}
 }
 
-// CreateRewardsTxPreProcessor creates a rewards tx pre-processor for sovereign chain run type
-func (f *sovereignRewardsTxPreProcFactory) CreateRewardsTxPreProcessor(args ArgsRewardTxPreProcessor) (process.PreProcessor, error) {
-	return NewSovereignRewardsTxPreProcessor(args)
+// CreateRewardsTxPreProcessorAndAddToContainer does not create any rewards processor, nor adds it to container, since they are not needed
+func (f *sovereignRewardsTxPreProcFactory) CreateRewardsTxPreProcessorAndAddToContainer(_ ArgsRewardTxPreProcessor, _ process.PreProcessorsContainer) error {
+	return nil
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil

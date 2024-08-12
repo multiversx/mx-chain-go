@@ -32,6 +32,7 @@ type RunTypeComponentsStub struct {
 	TxPreProcessorFactory         preprocess.TxPreProcessorCreator
 	VmContainerShardFactory       factoryVm.VmContainerCreator
 	VmContainerMetaFactory        factoryVm.VmContainerCreator
+	RewardsTxPreProcFactoryField  preprocess.RewardsTxPreProcFactory
 }
 
 // NewRunTypeComponentsStub -
@@ -60,6 +61,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		TxPreProcessorFactory:         preprocess.NewTxPreProcessorCreator(),
 		VmContainerShardFactory:       vmContainerShard,
 		VmContainerMetaFactory:        vmContainerMeta,
+		RewardsTxPreProcFactoryField:  preprocess.NewRewardsTxPreProcFactory(),
 	}
 }
 
@@ -97,6 +99,7 @@ func NewSovereignRunTypeComponentsStub() *RunTypeComponentsStub {
 		TxPreProcessorFactory:         preprocess.NewSovereignTxPreProcessorCreator(),
 		VmContainerShardFactory:       sovVMContainerShardFactory,
 		VmContainerMetaFactory:        sovVMContainerMeta,
+		RewardsTxPreProcFactoryField:  preprocess.NewSovereignRewardsTxPreProcFactory(),
 	}
 }
 
@@ -153,6 +156,11 @@ func (r *RunTypeComponentsStub) VmContainerShardFactoryCreator() factoryVm.VmCon
 // VmContainerMetaFactoryCreator -
 func (r *RunTypeComponentsStub) VmContainerMetaFactoryCreator() factoryVm.VmContainerCreator {
 	return r.VmContainerMetaFactory
+}
+
+// RewardsTxPreProcFactory -
+func (r *RunTypeComponentsStub) RewardsTxPreProcFactory() preprocess.RewardsTxPreProcFactory {
+	return r.RewardsTxPreProcFactoryField
 }
 
 // IsInterfaceNil -

@@ -77,6 +77,6 @@ type ScheduledTxsExecutionCreator interface {
 
 // RewardsTxPreProcFactory defines the interface of a rewards tx pre-processor factory
 type RewardsTxPreProcFactory interface {
-	CreateRewardsTxPreProcessor(args ArgsRewardTxPreProcessor) (process.PreProcessor, error)
+	CreateRewardsTxPreProcessorAndAddToContainer(args ArgsRewardTxPreProcessor, container process.PreProcessorsContainer) error
 	IsInterfaceNil() bool
 }

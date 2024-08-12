@@ -129,12 +129,7 @@ func (ppcf *preProcessorsContainerFactory) Create() (process.PreProcessorsContai
 		return nil, err
 	}
 
-	preproc, err = ppcf.createRewardsTransactionPreProcessor()
-	if err != nil {
-		return nil, err
-	}
-
-	err = container.Add(block.RewardsBlock, preproc)
+	err = ppcf.createRewardsTransactionPreProcessor(container)
 	if err != nil {
 		return nil, err
 	}
@@ -202,8 +197,8 @@ func (ppcf *preProcessorsContainerFactory) createSmartContractResultPreProcessor
 	return ppcf.runTypeComponents.SCResultsPreProcessorCreator().CreateSmartContractResultPreProcessor(arg)
 }
 
-func (ppcf *preProcessorsContainerFactory) createRewardsTransactionPreProcessor() (process.PreProcessor, error) {
-	rewardTxPreprocessor, err := ppcf.runTypeComponents.RewardsTxPreProcFactory().CreateRewardsTxPreProcessor(
+func (ppcf *preProcessorsContainerFactory) createRewardsTransactionPreProcessor(container process.PreProcessorsContainer) error {
+	return ppcf.runTypeComponents.RewardsTxPreProcFactory().CreateRewardsTxPreProcessorAndAddToContainer(
 		preprocess.ArgsRewardTxPreProcessor{
 			RewardTxDataPool:           ppcf.dataPool.RewardTransactions(),
 			Store:                      ppcf.store,
@@ -220,9 +215,8 @@ func (ppcf *preProcessorsContainerFactory) createRewardsTransactionPreProcessor(
 			ProcessedMiniBlocksTracker: ppcf.processedMiniBlocksTracker,
 			TxExecutionOrderHandler:    ppcf.txExecutionOrderHandler,
 		},
+		container,
 	)
-
-	return rewardTxPreprocessor, err
 }
 
 func (ppcf *preProcessorsContainerFactory) createValidatorInfoPreProcessor() (process.PreProcessor, error) {
