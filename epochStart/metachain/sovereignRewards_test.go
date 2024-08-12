@@ -119,9 +119,11 @@ func TestSovereignRewards_CreateRewardsMiniBlocks(t *testing.T) {
 	require.Len(t, miniBlocks, 1)
 	require.Len(t, miniBlocks[0].TxHashes, int(nbEligiblePerShard+1))
 
+	numTxs := 0
 	sumRewards := big.NewInt(0)
 	var tx data.TransactionHandler
 	for _, txHash := range miniBlocks[0].TxHashes {
+		numTxs++
 		tx, err = rwd.currTxs.GetTx(txHash)
 		require.Nil(t, err)
 		sumRewards.Add(sumRewards, tx.GetValue())
@@ -137,5 +139,6 @@ func TestSovereignRewards_CreateRewardsMiniBlocks(t *testing.T) {
 	expectedRewards := big.NewInt(0).Add(sumFees, totalRws)
 	expectedRewards.Add(expectedRewards, rewardsForProtocolSustainability)
 	require.Equal(t, expectedRewards, sumRewards)
-	require.Len(t, rewardsShardedData.Keys(), int(nbEligiblePerShard+1))
+	require.Len(t, rewardsShardedData.Keys(), 0)
+	require.Equal(t, int(nbEligiblePerShard+1), numTxs)
 }

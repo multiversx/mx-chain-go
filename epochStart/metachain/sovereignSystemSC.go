@@ -15,6 +15,7 @@ type sovereignSystemSC struct {
 	*systemSCProcessor
 }
 
+// NewSovereignSystemSCProcessor creates a sovereign system sc processor
 func NewSovereignSystemSCProcessor(sysSC *systemSCProcessor) (*sovereignSystemSC, error) {
 	if check.IfNil(sysSC) {
 		return nil, process.ErrNilEpochStartSystemSCProcessor
