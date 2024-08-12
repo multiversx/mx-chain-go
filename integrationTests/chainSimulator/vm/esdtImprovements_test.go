@@ -2424,6 +2424,7 @@ func testChainSimulatorChangeMetaData(t *testing.T, issueFn issueTxFunc) {
 	require.NotNil(t, txResult)
 	require.Equal(t, "success", txResult.Status.String())
 	err = cs.GenerateBlocks(5)
+	require.Nil(t, err)
 
 	log.Info("Step 5. check meta data in shard 2 is updated to latest version ")
 
