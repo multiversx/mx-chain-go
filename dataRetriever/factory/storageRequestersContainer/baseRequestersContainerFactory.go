@@ -10,7 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -20,9 +19,6 @@ import (
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/sharding"
-	"github.com/multiversx/mx-chain-go/storage"
-	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
-	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
 )
 
 const defaultBeforeGracefulClose = time.Minute
@@ -237,46 +233,6 @@ func (brcf *baseRequestersContainerFactory) createMiniBlocksRequester(responseTo
 	}
 
 	return mbRequester, nil
-}
-
-func (brcf *baseRequestersContainerFactory) newImportDBTrieStorage(
-	mainStorer storage.Storer,
-	storageIdentifier dataRetriever.UnitType,
-	handler common.EnableEpochsHandler,
-	stateStatsHandler common.StateStatisticsHandler,
-) (common.StorageManager, dataRetriever.TrieDataGetter, error) {
-	pathManager, err := storageFactory.CreatePathManager(
-		storageFactory.ArgCreatePathManager{
-			WorkingDir: brcf.workingDir,
-			ChainID:    brcf.chainID,
-		},
-	)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	trieFactoryArgs := trieFactory.TrieFactoryArgs{
-		Marshalizer:              brcf.marshalizer,
-		Hasher:                   brcf.hasher,
-		PathManager:              pathManager,
-		TrieStorageManagerConfig: brcf.generalConfig.TrieStorageManagerConfig,
-	}
-	trieFactoryInstance, err := trieFactory.NewTrieFactory(trieFactoryArgs)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	args := trieFactory.TrieCreateArgs{
-		MainStorer:          mainStorer,
-		PruningEnabled:      brcf.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
-		MaxTrieLevelInMem:   brcf.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
-		SnapshotsEnabled:    brcf.snapshotsEnabled,
-		IdleProvider:        disabled.NewProcessStatusHandler(),
-		Identifier:          storageIdentifier.String(),
-		EnableEpochsHandler: handler,
-		StatsCollector:      stateStatsHandler,
-	}
-	return trieFactoryInstance.Create(args)
 }
 
 func (brcf *baseRequestersContainerFactory) generatePeerAuthenticationRequester() error {

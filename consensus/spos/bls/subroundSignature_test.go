@@ -877,29 +877,61 @@ func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnFalseWhenSignatu
 func TestSubroundSignature_DoSignatureConsensusCheckNotAllSignaturesCollectedAndTimeIsNotOut(t *testing.T) {
 	t.Parallel()
 
-	t.Run("with flag active, should return false - will be done on subroundEndRound", testSubroundSignatureDoSignatureConsensusCheck(true, setThresholdJobsDone, false, false))
-	t.Run("with flag inactive, should return false when not all signatures are collected and time is not out", testSubroundSignatureDoSignatureConsensusCheck(false, setThresholdJobsDone, false, false))
+	t.Run("with flag active, should return false - will be done on subroundEndRound", testSubroundSignatureDoSignatureConsensusCheck(argTestSubroundSignatureDoSignatureConsensusCheck{
+		flagActive:                  true,
+		jobsDone:                    setThresholdJobsDone,
+		waitingAllSignaturesTimeOut: false,
+		expectedResult:              false,
+	}))
+	t.Run("with flag inactive, should return false when not all signatures are collected and time is not out", testSubroundSignatureDoSignatureConsensusCheck(argTestSubroundSignatureDoSignatureConsensusCheck{
+		flagActive:                  false,
+		jobsDone:                    setThresholdJobsDone,
+		waitingAllSignaturesTimeOut: false,
+		expectedResult:              false,
+	}))
 }
 
 func TestSubroundSignature_DoSignatureConsensusCheckAllSignaturesCollected(t *testing.T) {
 	t.Parallel()
-	t.Run("with flag active, should return false - will be done on subroundEndRound", testSubroundSignatureDoSignatureConsensusCheck(true, "all", false, false))
-	t.Run("with flag inactive, should return true when all signatures are collected", testSubroundSignatureDoSignatureConsensusCheck(false, "all", false, true))
+	t.Run("with flag active, should return false - will be done on subroundEndRound", testSubroundSignatureDoSignatureConsensusCheck(argTestSubroundSignatureDoSignatureConsensusCheck{
+		flagActive:                  true,
+		jobsDone:                    "all",
+		waitingAllSignaturesTimeOut: false,
+		expectedResult:              false,
+	}))
+	t.Run("with flag inactive, should return true when all signatures are collected", testSubroundSignatureDoSignatureConsensusCheck(argTestSubroundSignatureDoSignatureConsensusCheck{
+		flagActive:                  false,
+		jobsDone:                    "all",
+		waitingAllSignaturesTimeOut: false,
+		expectedResult:              true,
+	}))
 }
 
 func TestSubroundSignature_DoSignatureConsensusCheckEnoughButNotAllSignaturesCollectedAndTimeIsOut(t *testing.T) {
 	t.Parallel()
 
-	t.Run("with flag active, should return false - will be done on subroundEndRound", testSubroundSignatureDoSignatureConsensusCheck(true, setThresholdJobsDone, true, false))
-	t.Run("with flag inactive, should return true when enough but not all signatures collected and time is out", testSubroundSignatureDoSignatureConsensusCheck(false, setThresholdJobsDone, true, true))
+	t.Run("with flag active, should return false - will be done on subroundEndRound", testSubroundSignatureDoSignatureConsensusCheck(argTestSubroundSignatureDoSignatureConsensusCheck{
+		flagActive:                  true,
+		jobsDone:                    setThresholdJobsDone,
+		waitingAllSignaturesTimeOut: true,
+		expectedResult:              false,
+	}))
+	t.Run("with flag inactive, should return true when enough but not all signatures collected and time is out", testSubroundSignatureDoSignatureConsensusCheck(argTestSubroundSignatureDoSignatureConsensusCheck{
+		flagActive:                  false,
+		jobsDone:                    setThresholdJobsDone,
+		waitingAllSignaturesTimeOut: true,
+		expectedResult:              true,
+	}))
 }
 
-func testSubroundSignatureDoSignatureConsensusCheck(
-	flagActive bool,
-	jobsDone string,
-	waitingAllSignaturesTimeOut bool,
-	expectedResult bool,
-) func(t *testing.T) {
+type argTestSubroundSignatureDoSignatureConsensusCheck struct {
+	flagActive                  bool
+	jobsDone                    string
+	waitingAllSignaturesTimeOut bool
+	expectedResult              bool
+}
+
+func testSubroundSignatureDoSignatureConsensusCheck(args argTestSubroundSignatureDoSignatureConsensusCheck) func(t *testing.T) {
 	return func(t *testing.T) {
 		t.Parallel()
 
@@ -907,20 +939,20 @@ func testSubroundSignatureDoSignatureConsensusCheck(
 		container.SetEnableEpochsHandler(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
 				if flag == common.EquivalentMessagesFlag {
-					return flagActive
+					return args.flagActive
 				}
 				return false
 			},
 		})
 		sr := *initSubroundSignatureWithContainer(container)
-		sr.WaitingAllSignaturesTimeOut = waitingAllSignaturesTimeOut
+		sr.WaitingAllSignaturesTimeOut = args.waitingAllSignaturesTimeOut
 
-		if !flagActive {
+		if !args.flagActive {
 			sr.SetSelfPubKey(sr.ConsensusGroup()[0])
 		}
 
 		numberOfJobsDone := sr.ConsensusGroupSize()
-		if jobsDone == setThresholdJobsDone {
+		if args.jobsDone == setThresholdJobsDone {
 			numberOfJobsDone = sr.Threshold(bls.SrSignature)
 		}
 		for i := 0; i < numberOfJobsDone; i++ {
@@ -928,7 +960,7 @@ func testSubroundSignatureDoSignatureConsensusCheck(
 		}
 
 		sr.Header = &block.HeaderV2{}
-		assert.Equal(t, expectedResult, sr.DoSignatureConsensusCheck())
+		assert.Equal(t, args.expectedResult, sr.DoSignatureConsensusCheck())
 	}
 }
 

@@ -19,8 +19,7 @@ type TrieStub struct {
 	DeleteCalled                    func(key []byte) error
 	RootCalled                      func() ([]byte, error)
 	CommitCalled                    func() error
-	RecreateCalled                  func(root []byte) (common.Trie, error)
-	RecreateFromEpochCalled         func(options common.RootHashHolder) (common.Trie, error)
+	RecreateCalled                  func(options common.RootHashHolder) (common.Trie, error)
 	GetObsoleteHashesCalled         func() [][]byte
 	AppendToOldHashesCalled         func([][]byte)
 	GetSerializedNodesCalled        func([]byte, uint64) ([][]byte, uint64, error)
@@ -136,18 +135,9 @@ func (ts *TrieStub) Commit() error {
 }
 
 // Recreate -
-func (ts *TrieStub) Recreate(root []byte) (common.Trie, error) {
+func (ts *TrieStub) Recreate(options common.RootHashHolder) (common.Trie, error) {
 	if ts.RecreateCalled != nil {
-		return ts.RecreateCalled(root)
-	}
-
-	return nil, errNotImplemented
-}
-
-// RecreateFromEpoch -
-func (ts *TrieStub) RecreateFromEpoch(options common.RootHashHolder) (common.Trie, error) {
-	if ts.RecreateFromEpochCalled != nil {
-		return ts.RecreateFromEpochCalled(options)
+		return ts.RecreateCalled(options)
 	}
 
 	return nil, errNotImplemented

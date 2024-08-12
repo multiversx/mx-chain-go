@@ -29,13 +29,15 @@ func TestBridgeSetupAndBurn(t *testing.T) {
 
 	enableEpochs := config.EnableEpochs{
 		GlobalMintBurnDisableEpoch:          integrationTests.UnreachableEpoch,
-		BuiltInFunctionOnMetaEnableEpoch:    integrationTests.UnreachableEpoch,
 		SCProcessorV2EnableEpoch:            integrationTests.UnreachableEpoch,
 		FixAsyncCallBackArgsListEnableEpoch: integrationTests.UnreachableEpoch,
 		EquivalentMessagesEnableEpoch:       integrationTests.UnreachableEpoch,
 	}
 	arwenVersion := config.WasmVMVersionByEpoch{Version: "v1.4"}
-	vmConfig := &config.VirtualMachineConfig{WasmVMVersions: []config.WasmVMVersionByEpoch{arwenVersion}}
+	vmConfig := &config.VirtualMachineConfig{
+		WasmVMVersions:                    []config.WasmVMVersionByEpoch{arwenVersion},
+		TransferAndExecuteByUserAddresses: []string{"erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe3"},
+	}
 	nodes := integrationTests.CreateNodesWithEnableEpochsAndVmConfig(
 		numOfShards,
 		nodesPerShard,

@@ -15,6 +15,14 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	vmData "github.com/multiversx/mx-chain-core-go/data/vm"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
+	"github.com/multiversx/mx-chain-vm-go/vmhost"
+	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
@@ -38,13 +46,6 @@ import (
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	testsCommonStorage "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/vmcommonMocks"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
-	"github.com/multiversx/mx-chain-vm-common-go/parsers"
-	"github.com/multiversx/mx-chain-vm-go/vmhost"
-	"github.com/pkg/errors"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 const maxEpoch = math.MaxUint32
@@ -371,7 +372,6 @@ func TestNewSmartContractProcessorVerifyAllMembers(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockSmartContractProcessorArguments()
-	arguments.EnableEpochs.BuiltInFunctionOnMetaEnableEpoch = 10
 	sc, _ := NewSmartContractProcessorV2(arguments)
 
 	assert.Equal(t, arguments.VmContainer, sc.vmContainer)
@@ -554,13 +554,13 @@ func TestScProcessor_BuiltInCallSmartContractSenderFailed(t *testing.T) {
 	scrAdded := false
 	badTxAdded := false
 	arguments.BadTxForwarder = &mock.IntermediateTransactionHandlerMock{
-		AddIntermediateTransactionsCalled: func(txs []data.TransactionHandler) error {
+		AddIntermediateTransactionsCalled: func(txs []data.TransactionHandler, key []byte) error {
 			badTxAdded = true
 			return nil
 		},
 	}
 	arguments.ScrForwarder = &mock.IntermediateTransactionHandlerMock{
-		AddIntermediateTransactionsCalled: func(txs []data.TransactionHandler) error {
+		AddIntermediateTransactionsCalled: func(txs []data.TransactionHandler, key []byte) error {
 			scrAdded = true
 			return nil
 		},
@@ -1402,7 +1402,7 @@ func TestScProcessor_DeploySmartContractAddIntermediateTxFails(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.ArgsParser = argParser
 	arguments.ScrForwarder = &mock.IntermediateTransactionHandlerMock{
-		AddIntermediateTransactionsCalled: func(txs []data.TransactionHandler) error {
+		AddIntermediateTransactionsCalled: func(txs []data.TransactionHandler, key []byte) error {
 			return expectedError
 		},
 	}
@@ -1437,7 +1437,7 @@ func TestScProcessor_DeploySmartContractComputeRewardsFails(t *testing.T) {
 	arguments := createMockSmartContractProcessorArguments()
 	arguments.ArgsParser = argParser
 	arguments.ScrForwarder = &mock.IntermediateTransactionHandlerMock{
-		AddIntermediateTransactionsCalled: func(txs []data.TransactionHandler) error {
+		AddIntermediateTransactionsCalled: func(txs []data.TransactionHandler, key []byte) error {
 			return expectedError
 		},
 	}
@@ -3273,12 +3273,6 @@ func TestScProcessor_ProcessSmartContractResultExecuteSCIfMetaAndBuiltIn(t *test
 	_, err = sc.ProcessSmartContractResult(&scr)
 	require.Nil(t, err)
 	require.True(t, executeCalled)
-
-	executeCalled = false
-	enableEpochsHandlerStub.AddActiveFlags(common.BuiltInFunctionOnMetaFlag)
-	_, err = sc.ProcessSmartContractResult(&scr)
-	require.Nil(t, err)
-	require.False(t, executeCalled)
 }
 
 func TestScProcessor_ProcessRelayedSCRValueBackToRelayer(t *testing.T) {
@@ -3704,7 +3698,7 @@ func TestSmartContractProcessor_computeTotalConsumedFeeAndDevRwdWithDifferentSCC
 	feeHandler, err := economics.NewEconomicsData(*args)
 	require.Nil(t, err)
 	require.NotNil(t, feeHandler)
-	arguments.TxFeeHandler, _ = postprocess.NewFeeAccumulator()
+	arguments.TxFeeHandler = postprocess.NewFeeAccumulator()
 
 	arguments.EconomicsFee = feeHandler
 	arguments.ShardCoordinator = shardCoordinator
@@ -3790,9 +3784,7 @@ func TestSmartContractProcessor_finishSCExecutionV2(t *testing.T) {
 			arguments.EconomicsFee, err = economics.NewEconomicsData(*args)
 			require.Nil(t, err)
 
-			arguments.TxFeeHandler, err = postprocess.NewFeeAccumulator()
-			require.Nil(t, err)
-
+			arguments.TxFeeHandler = postprocess.NewFeeAccumulator()
 			arguments.ShardCoordinator = shardCoordinator
 			arguments.AccountsDB = &stateMock.AccountsStub{
 				RevertToSnapshotCalled: func(snapshot int) error {
@@ -4191,8 +4183,7 @@ func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
 				return flag == common.GasPriceModifierFlag
 			},
 		},
-		BuiltInFunctionsCostHandler: &mock.BuiltInCostHandlerStub{},
-		TxVersionChecker:            &testscommon.TxVersionCheckerStub{},
+		TxVersionChecker: &testscommon.TxVersionCheckerStub{},
 	}
 }
 

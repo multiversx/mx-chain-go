@@ -43,8 +43,7 @@ type Trie interface {
 	Delete(key []byte) error
 	RootHash() ([]byte, error)
 	Commit() error
-	Recreate(root []byte) (Trie, error)
-	RecreateFromEpoch(options RootHashHolder) (Trie, error)
+	Recreate(options RootHashHolder) (Trie, error)
 	String() string
 	GetObsoleteHashes() [][]byte
 	GetDirtyHashes() (ModifiedHashes, error)
@@ -224,17 +223,17 @@ type StateStatisticsHandler interface {
 	Reset()
 	ResetSnapshot()
 
-	IncrCache()
+	IncrementCache()
 	Cache() uint64
-	IncrSnapshotCache()
+	IncrementSnapshotCache()
 	SnapshotCache() uint64
 
-	IncrPersister(epoch uint32)
+	IncrementPersister(epoch uint32)
 	Persister(epoch uint32) uint64
-	IncrSnapshotPersister(epoch uint32)
+	IncrementSnapshotPersister(epoch uint32)
 	SnapshotPersister(epoch uint32) uint64
 
-	IncrTrie()
+	IncrementTrie()
 	Trie() uint64
 
 	ProcessingStats() []string
@@ -315,6 +314,7 @@ type ManagedPeersHolder interface {
 	IncrementRoundsWithoutReceivedMessages(pkBytes []byte)
 	ResetRoundsWithoutReceivedMessages(pkBytes []byte, pid core.PeerID)
 	GetManagedKeysByCurrentNode() map[string]crypto.PrivateKey
+	GetLoadedKeysByCurrentNode() [][]byte
 	IsKeyManagedByCurrentNode(pkBytes []byte) bool
 	IsKeyRegistered(pkBytes []byte) bool
 	IsPidManagedByCurrentNode(pid core.PeerID) bool
@@ -344,6 +344,7 @@ type StateSyncNotifierSubscriber interface {
 type ManagedPeersMonitor interface {
 	GetManagedKeysCount() int
 	GetManagedKeys() [][]byte
+	GetLoadedKeys() [][]byte
 	GetEligibleManagedKeys() ([][]byte, error)
 	GetWaitingManagedKeys() ([][]byte, error)
 	IsInterfaceNil() bool
