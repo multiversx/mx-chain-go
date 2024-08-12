@@ -1114,6 +1114,7 @@ func GetRunTypeComponentsStub(rt factory.RunTypeComponentsHandler) *mainFactoryM
 		RewardsTxPreProcFactoryField:           rt.RewardsTxPreProcFactory(),
 		RewardsCreatorFactoryField:             rt.RewardsCreatorFactory(),
 		SystemSCProcessorFactoryField:          rt.SystemSCProcessorFactory(),
+		DataRetrieverContainersSetterField:     rt.DataRetrieverContainersSetter(),
 	}
 }
 

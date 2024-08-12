@@ -228,6 +228,9 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	if check.IfNil(mrc.systemSCProcessorFactory) {
 		return errors.ErrNilSysSCFactory
 	}
+	if check.IfNil(mrc.dataRetrieverContainersSetter) {
+		return errors.ErrNilDataRetrieverContainersSetter
+	}
 
 	return nil
 }
@@ -746,6 +749,18 @@ func (mrc *managedRunTypeComponents) SystemSCProcessorFactory() factory.SystemSC
 	}
 
 	return mrc.runTypeComponents.systemSCProcessorFactory
+}
+
+// DataRetrieverContainersSetter returns the data retriever containers setter
+func (mrc *managedRunTypeComponents) DataRetrieverContainersSetter() factory.DataRetrieverContainersSetter {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.dataRetrieverContainersSetter
 }
 
 // IsInterfaceNil returns true if the interface is nil

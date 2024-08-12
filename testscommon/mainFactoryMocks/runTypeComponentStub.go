@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/processing/api"
+	"github.com/multiversx/mx-chain-go/factory/processing/dataRetriever"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/checking"
@@ -86,6 +87,7 @@ type RunTypeComponentsStub struct {
 	RewardsTxPreProcFactoryField           preprocess.RewardsTxPreProcFactory
 	RewardsCreatorFactoryField             factory.RewardsCreatorFactory
 	SystemSCProcessorFactoryField          factory.SystemSCProcessorFactory
+	DataRetrieverContainersSetterField     factory.DataRetrieverContainersSetter
 }
 
 // NewRunTypeComponentsStub -
@@ -134,6 +136,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		RewardsTxPreProcFactoryField:           &testFactory.RewardsTxPreProcFactoryMock{},
 		RewardsCreatorFactoryField:             &testFactory.RewardsCreatorFactoryMock{},
 		SystemSCProcessorFactoryField:          &testFactory.SysSCFactoryMock{},
+		DataRetrieverContainersSetterField:     dataRetriever.NewDataRetrieverContainerSetter(), // todo here
 	}
 }
 
@@ -370,6 +373,11 @@ func (r *RunTypeComponentsStub) RewardsCreatorFactory() factory.RewardsCreatorFa
 // SystemSCProcessorFactory -
 func (r *RunTypeComponentsStub) SystemSCProcessorFactory() factory.SystemSCProcessorFactory {
 	return r.SystemSCProcessorFactoryField
+}
+
+// DataRetrieverContainersSetter -
+func (r *RunTypeComponentsStub) DataRetrieverContainersSetter() factory.DataRetrieverContainersSetter {
+	return r.DataRetrieverContainersSetterField
 }
 
 // IsInterfaceNil -

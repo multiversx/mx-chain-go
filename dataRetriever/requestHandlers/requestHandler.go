@@ -414,6 +414,8 @@ func (rrh *resolverRequestHandler) RequestShardHeaderByNonce(shardID uint32, non
 	rrh.addRequestedItems([][]byte{key}, suffix)
 }
 
+// RequestTrieNodes todo next this for sovereign
+
 // RequestTrieNodes method asks for trie nodes from the connected peers
 func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [][]byte, topic string) {
 	unrequestedHashes := rrh.getUnrequestedHashes(hashes, uniqueTrieNodesSuffix)

@@ -847,3 +847,6 @@ var ErrNilRewardsFactory = errors.New("nil rewards factory has been provided")
 
 // ErrNilSysSCFactory signals that a nil sys sc factory has been provided
 var ErrNilSysSCFactory = errors.New("nil sys sc factory has been provided")
+
+// ErrNilDataRetrieverContainersSetter signals that a nil data retriever container setter has been provided
+var ErrNilDataRetrieverContainersSetter = errors.New("nil data retriever container setter has been provided")
