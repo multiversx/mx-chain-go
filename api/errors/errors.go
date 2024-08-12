@@ -64,6 +64,7 @@ var ErrTxGenerationFailed = errors.New("transaction generation failed")
 // ErrValidationEmptyTxHash signals that an empty tx hash was provided
 var ErrValidationEmptyTxHash = errors.New("TxHash is empty")
 
+// ErrValidationEmptySCRHash signals that provided smart contract result hash is empty
 var ErrValidationEmptySCRHash = errors.New("SCRHash is empty")
 
 // ErrInvalidBlockNonce signals that an invalid block nonce was provided
