@@ -122,13 +122,6 @@ func (rc *sovereignRewards) addValidatorRewardsToMiniBlocks(
 		rc.currTxs.AddTx(rwdTxHash, rwdTx)
 
 		miniBlocks[0].TxHashes = append(miniBlocks[0].TxHashes, rwdTxHash)
-
-		shardID := core.SovereignChainShardId
-		cacheIdentifier := process.ShardCacherIdentifier(shardID, shardID)
-		rc.dataPool.RewardTransactions().AddData(rwdTxHash,
-			rwdTx,
-			rwdTx.Size(),
-			cacheIdentifier)
 	}
 
 	return accumulatedDust, nil
@@ -159,12 +152,6 @@ func (rc *sovereignRewards) addProtocolRewardToMiniBlocks(
 	rc.currTxs.AddTx(protocolSustainabilityRwdHash, protocolSustainabilityRwdTx)
 	miniBlocks[protocolSustainabilityShardId].TxHashes = append(miniBlocks[protocolSustainabilityShardId].TxHashes, protocolSustainabilityRwdHash)
 	rc.protocolSustainabilityValue.Set(protocolSustainabilityRwdTx.Value)
-
-	cacheIdentifier := process.ShardCacherIdentifier(core.SovereignChainShardId, core.SovereignChainShardId)
-	rc.dataPool.RewardTransactions().AddData(protocolSustainabilityRwdHash,
-		protocolSustainabilityRwdTx,
-		protocolSustainabilityRwdTx.Size(),
-		cacheIdentifier)
 
 	return nil
 }

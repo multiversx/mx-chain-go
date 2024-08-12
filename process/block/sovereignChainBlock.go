@@ -246,7 +246,7 @@ func (scbp *sovereignChainBlockProcessor) CreateBlock(initialHdr data.HeaderHand
 	}
 
 	extendedShardHeaderHashes := scbp.sortExtendedShardHeaderHashesForCurrentBlockByNonce()
-	crossMiniblockHeaders, err := scbp.createMiniBlockHeaderHandlers(crossMiniblocks)
+	_, crossMiniblockHeaders, err := scbp.createMiniBlockHeaderHandlers(crossMiniblocks)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -561,26 +561,30 @@ func (scbp *sovereignChainBlockProcessor) sortExtendedShardHeaderHashesForCurren
 	return hdrsHashesForCurrentBlock
 }
 
-func (scbp *sovereignChainBlockProcessor) createMiniBlockHeaderHandlers(miniBlocks block.MiniBlockSlice) ([]data.MiniBlockHeaderHandler, error) {
+func (scbp *sovereignChainBlockProcessor) createMiniBlockHeaderHandlers(miniBlocks block.MiniBlockSlice) (int, []data.MiniBlockHeaderHandler, error) {
 	miniBlockHeaders := make([]data.MiniBlockHeaderHandler, 0)
 
+	totalTxCount := 0
 	for _, mb := range miniBlocks {
+		txCount := len(mb.TxHashes)
+		totalTxCount += txCount
+
 		hash, err := core.CalculateHash(scbp.marshalizer, scbp.hasher, mb)
 		if err != nil {
-			return nil, err
+			return 0, nil, err
 		}
 
 		miniBlockHeaders = append(miniBlockHeaders, &block.MiniBlockHeader{
 			Hash:            hash,
 			SenderShardID:   mb.SenderShardID,
 			ReceiverShardID: mb.ReceiverShardID,
-			TxCount:         uint32(len(mb.TxHashes)),
+			TxCount:         uint32(txCount),
 			Type:            mb.Type,
 			Reserved:        mb.Reserved,
 		})
 	}
 
-	return miniBlockHeaders, nil
+	return totalTxCount, miniBlockHeaders, nil
 }
 
 // receivedExtendedShardHeader is a callback function when a new extended shard header was received
@@ -803,11 +807,6 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 			return nil, nil, err
 		}
 
-		body, err = scbp.applyBodyToHeader(shardHeader, body)
-		if err != nil {
-			return nil, nil, err
-		}
-
 		return shardHeader, body, nil
 	}
 
@@ -941,6 +940,21 @@ func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
 	finalMiniBlocks = append(finalMiniBlocks, validatorMiniBlocks...)
 
 	body.MiniBlocks = append(body.MiniBlocks, finalMiniBlocks...)
+
+	totalTxCount, miniBlockHeaderHandlers, err := scbp.createMiniBlockHeaderHandlers(body.MiniBlocks)
+	if err != nil {
+		return err
+	}
+
+	err = header.SetMiniBlockHeaderHandlers(miniBlockHeaderHandlers)
+	if err != nil {
+		return err
+	}
+
+	err = header.SetTxCount(uint32(totalTxCount))
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -1375,6 +1389,8 @@ func (scbp *sovereignChainBlockProcessor) CommitBlock(headerHandler data.HeaderH
 		return err
 	}
 
+	scbp.store.SetEpochForPutOperation(headerHandler.GetEpoch())
+
 	marshalizedHeader, err := scbp.marshalizer.Marshal(headerHandler)
 	if err != nil {
 		return err
@@ -1453,6 +1469,7 @@ func (scbp *sovereignChainBlockProcessor) CommitBlock(headerHandler data.HeaderH
 		"nonce", highestFinalBlockNonce,
 	)
 
+	// TODO: Analyse if !check.IfNil(lastMetaBlock) && lastMetaBlock.IsStartOfEpochBlock() from metablock.go
 	err = scbp.commonHeaderAndBodyCommit(headerHandler, body, headerHash, []data.HeaderHandler{lastSelfNotarizedHeader}, [][]byte{lastSelfNotarizedHeaderHash})
 	if err != nil {
 		return err

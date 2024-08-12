@@ -3,21 +3,20 @@ package factory
 import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
-	processMock "github.com/multiversx/mx-chain-go/process/mock"
 )
 
 // RewardsTxPreProcFactoryMock -
 type RewardsTxPreProcFactoryMock struct {
-	CreateRewardsTxPreProcessorCalled func(args preprocess.ArgsRewardTxPreProcessor) (process.PreProcessor, error)
+	CreateRewardsTxPreProcessorAndAddToContainerCalled func(args preprocess.ArgsRewardTxPreProcessor, container process.PreProcessorsContainer) error
 }
 
-// CreateRewardsTxPreProcessor -
-func (mock *RewardsTxPreProcFactoryMock) CreateRewardsTxPreProcessor(args preprocess.ArgsRewardTxPreProcessor) (process.PreProcessor, error) {
-	if mock.CreateRewardsTxPreProcessorCalled != nil {
-		return mock.CreateRewardsTxPreProcessorCalled(args)
+// CreateRewardsTxPreProcessorAndAddToContainer -
+func (mock *RewardsTxPreProcFactoryMock) CreateRewardsTxPreProcessorAndAddToContainer(args preprocess.ArgsRewardTxPreProcessor, container process.PreProcessorsContainer) error {
+	if mock.CreateRewardsTxPreProcessorAndAddToContainerCalled != nil {
+		return mock.CreateRewardsTxPreProcessorAndAddToContainerCalled(args, container)
 	}
 
-	return &processMock.PreProcessorMock{}, nil
+	return nil
 }
 
 // IsInterfaceNil -
