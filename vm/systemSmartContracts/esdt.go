@@ -1816,8 +1816,16 @@ func isDynamicTokenType(tokenType []byte) bool {
 }
 
 func rolesForDynamicWhichHasToBeSingular() []string {
-	return []string{core.ESDTRoleNFTCreate, core.ESDTRoleNFTUpdateAttributes, core.ESDTRoleNFTAddURI,
-		core.ESDTRoleSetNewURI, core.ESDTRoleModifyCreator, core.ESDTRoleModifyRoyalties, core.ESDTRoleNFTRecreate}
+	return []string{
+		core.ESDTRoleNFTCreate,
+		core.ESDTRoleNFTUpdateAttributes,
+		core.ESDTRoleNFTAddURI,
+		core.ESDTRoleSetNewURI,
+		core.ESDTRoleModifyCreator,
+		core.ESDTRoleModifyRoyalties,
+		core.ESDTRoleNFTRecreate,
+		core.ESDTRoleNFTUpdate,
+	}
 }
 
 func (e *esdt) checkRolesForDynamicTokens(

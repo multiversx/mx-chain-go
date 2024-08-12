@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"strings"
 	"testing"
 	"time"
 
@@ -253,9 +254,6 @@ func transferAndCheckTokensMetaData(t *testing.T, isCrossShard bool, isMultiTran
 		txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 		require.Nil(t, err)
 		require.NotNil(t, txResult)
-		fmt.Println(txResult)
-		fmt.Println(string(txResult.Logs.Events[0].Topics[0]))
-		fmt.Println(string(txResult.Logs.Events[0].Topics[1]))
 
 		require.Equal(t, "success", txResult.Status.String())
 
@@ -318,9 +316,6 @@ func transferAndCheckTokensMetaData(t *testing.T, isCrossShard bool, isMultiTran
 		txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 		require.Nil(t, err)
 		require.NotNil(t, txResult)
-		fmt.Println(txResult)
-		fmt.Println(string(txResult.Logs.Events[0].Topics[0]))
-		fmt.Println(string(txResult.Logs.Events[0].Topics[1]))
 
 		require.Equal(t, "success", txResult.Status.String())
 	} else {
@@ -757,12 +752,6 @@ func setAddressEsdtRoles(
 	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
-
-	fmt.Println(txResult)
-	if txResult.Logs != nil && len(txResult.Logs.Events) > 0 {
-		fmt.Println(string(txResult.Logs.Events[0].Topics[0]))
-		fmt.Println(string(txResult.Logs.Events[0].Topics[1]))
-	}
 
 	require.Equal(t, "success", txResult.Status.String())
 }
@@ -2232,12 +2221,10 @@ func TestChainSimulator_NFT_ChangeToDynamicType(t *testing.T) {
 
 // Test scenario #10
 //
-// Initial setup: Create SFT and send in 2 shards
+// Initial setup: Create SFT and send in another shard
 //
-// 1. change the sft meta data in one shard
-// 2. change the sft meta data (differently from the previous one) in the other shard
-// 3. send sft from one shard to another
-// 4. check that the newest metadata is saved
+// 1. change the sft meta data (differently from the previous one) in the other shard
+// 2. check that the newest metadata is saved
 func TestChainSimulator_ChangeMetaData(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -2262,7 +2249,7 @@ func testChainSimulatorChangeMetaData(t *testing.T, issueFn issueTxFunc) {
 
 	addrs := createAddresses(t, cs, true)
 
-	log.Info("Initial setup: Create token and send in 2 shards")
+	log.Info("Initial setup: Create token and send in another shard")
 
 	roles := [][]byte{
 		[]byte(core.ESDTRoleNFTCreate),
@@ -2333,12 +2320,6 @@ func testChainSimulatorChangeMetaData(t *testing.T, issueFn issueTxFunc) {
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
 	require.Equal(t, "success", txResult.Status.String())
-
-	roles = [][]byte{
-		[]byte(core.ESDTRoleNFTUpdate),
-	}
-	setAddressEsdtRoles(t, cs, nonce, addrs[1], tokenID, roles)
-	nonce++
 
 	log.Info("Send to separate shards")
 
@@ -2415,78 +2396,9 @@ func testChainSimulatorChangeMetaData(t *testing.T, issueFn issueTxFunc) {
 	require.NotNil(t, txResult)
 	require.Equal(t, "success", txResult.Status.String())
 
+	log.Info("Step 2. check that the newest metadata is saved")
+
 	shardID := cs.GetNodeHandler(0).GetProcessComponents().ShardCoordinator().ComputeId(addrs[0].Bytes)
-
-	checkMetaData(t, cs, core.SystemAccountAddress, tokenID, shardID, sftMetaData2)
-
-	log.Info("Step 2. change the sft meta data (differently from the previous one) in the other shard")
-
-	tx = setSpecialRoleTx(nonce, addrs[1].Bytes, addrs[2].Bytes, tokenID, roles)
-
-	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
-	require.Nil(t, err)
-	require.NotNil(t, txResult)
-	require.Equal(t, "success", txResult.Status.String())
-
-	sftMetaData3 := txsFee.GetDefaultMetaData()
-	sftMetaData3.Nonce = []byte(hex.EncodeToString(big.NewInt(1).Bytes()))
-
-	sftMetaData3.Name = []byte(hex.EncodeToString([]byte("name3")))
-	sftMetaData3.Hash = []byte(hex.EncodeToString([]byte("hash3")))
-	sftMetaData3.Attributes = []byte(hex.EncodeToString([]byte("attributes3")))
-
-	txDataField = bytes.Join(
-		[][]byte{
-			[]byte(core.ESDTMetaDataUpdate),
-			[]byte(hex.EncodeToString(tokenID)),
-			sftMetaData3.Nonce,
-			sftMetaData3.Name,
-			[]byte(hex.EncodeToString(big.NewInt(10).Bytes())),
-			sftMetaData3.Hash,
-			sftMetaData3.Attributes,
-			sftMetaData3.Uris[0],
-			sftMetaData3.Uris[1],
-			sftMetaData3.Uris[2],
-		},
-		[]byte("@"),
-	)
-
-	tx = &transaction.Transaction{
-		Nonce:     0,
-		SndAddr:   addrs[2].Bytes,
-		RcvAddr:   addrs[2].Bytes,
-		GasLimit:  10_000_000,
-		GasPrice:  minGasPrice,
-		Signature: []byte("dummySig"),
-		Data:      txDataField,
-		Value:     big.NewInt(0),
-		ChainID:   []byte(configs.ChainID),
-		Version:   1,
-	}
-
-	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
-	require.Nil(t, err)
-	require.NotNil(t, txResult)
-	require.Equal(t, "success", txResult.Status.String())
-
-	shardID = cs.GetNodeHandler(0).GetProcessComponents().ShardCoordinator().ComputeId(addrs[2].Bytes)
-
-	checkMetaData(t, cs, core.SystemAccountAddress, tokenID, shardID, sftMetaData3)
-
-	log.Info("Step 3. send sft from one shard to another")
-
-	tx = esdtNFTTransferTx(1, addrs[0].Bytes, addrs[2].Bytes, tokenID)
-	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
-	require.Nil(t, err)
-	require.NotNil(t, txResult)
-	require.Equal(t, "success", txResult.Status.String())
-
-	err = cs.GenerateBlocks(10)
-	require.Nil(t, err)
-
-	log.Info("Step 4. check that the newest metadata is saved")
-
-	shardID = cs.GetNodeHandler(0).GetProcessComponents().ShardCoordinator().ComputeId(addrs[2].Bytes)
 
 	checkMetaData(t, cs, core.SystemAccountAddress, tokenID, shardID, sftMetaData2)
 }
@@ -3917,4 +3829,89 @@ func TestChainSimulator_CreateAndPauseTokens_DynamicNFT(t *testing.T) {
 	checkMetaData(t, cs, core.SystemAccountAddress, nftTokenID, shardID, nftMetaData)
 	checkMetaDataNotInAcc(t, cs, addrs[0].Bytes, nftTokenID, shardID)
 	checkMetaDataNotInAcc(t, cs, addrs[1].Bytes, nftTokenID, shardID)
+}
+
+func TestChainSimulator_CheckRolesWhichHasToBeSingular(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	baseIssuingCost := "1000"
+
+	cs, _ := getTestChainSimulatorWithDynamicNFTEnabled(t, baseIssuingCost)
+	defer cs.Close()
+
+	addrs := createAddresses(t, cs, true)
+
+	// register dynamic NFT
+	nftTicker := []byte("NFTTICKER")
+	nftTokenName := []byte("tokenName")
+
+	txDataField := bytes.Join(
+		[][]byte{
+			[]byte("registerDynamic"),
+			[]byte(hex.EncodeToString(nftTokenName)),
+			[]byte(hex.EncodeToString(nftTicker)),
+			[]byte(hex.EncodeToString([]byte("NFT"))),
+			[]byte(hex.EncodeToString([]byte("canPause"))),
+			[]byte(hex.EncodeToString([]byte("true"))),
+		},
+		[]byte("@"),
+	)
+
+	callValue, _ := big.NewInt(0).SetString(baseIssuingCost, 10)
+
+	nonce := uint64(0)
+	tx := &transaction.Transaction{
+		Nonce:     nonce,
+		SndAddr:   addrs[0].Bytes,
+		RcvAddr:   vm.ESDTSCAddress,
+		GasLimit:  100_000_000,
+		GasPrice:  minGasPrice,
+		Signature: []byte("dummySig"),
+		Data:      txDataField,
+		Value:     callValue,
+		ChainID:   []byte(configs.ChainID),
+		Version:   1,
+	}
+	nonce++
+
+	txResult, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+
+	require.Equal(t, "success", txResult.Status.String())
+
+	nftTokenID := txResult.Logs.Events[0].Topics[0]
+
+	log.Info("Issued NFT token id", "tokenID", string(nftTokenID))
+
+	roles := [][]byte{
+		[]byte(core.ESDTRoleNFTCreate),
+		[]byte(core.ESDTRoleNFTUpdateAttributes),
+		[]byte(core.ESDTRoleNFTAddURI),
+		[]byte(core.ESDTRoleSetNewURI),
+		[]byte(core.ESDTRoleModifyCreator),
+		[]byte(core.ESDTRoleModifyRoyalties),
+		[]byte(core.ESDTRoleNFTRecreate),
+		[]byte(core.ESDTRoleNFTUpdate),
+	}
+	setAddressEsdtRoles(t, cs, nonce, addrs[0], nftTokenID, roles)
+	nonce++
+
+	for _, role := range roles {
+		tx = setSpecialRoleTx(nonce, addrs[0].Bytes, addrs[1].Bytes, nftTokenID, [][]byte{role})
+		nonce++
+
+		txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+		require.Nil(t, err)
+		require.NotNil(t, txResult)
+
+		if txResult.Logs != nil && len(txResult.Logs.Events) > 0 {
+			returnMessage := string(txResult.Logs.Events[0].Topics[1])
+			require.True(t, strings.Contains(returnMessage, "already exists"))
+		} else {
+			require.Fail(t, "should have been return error message")
+		}
+	}
 }
