@@ -4,6 +4,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -28,7 +29,7 @@ type ConsensusCoreMock struct {
 	roundHandler            consensus.RoundHandler
 	shardCoordinator        sharding.Coordinator
 	syncTimer               ntp.SyncTimer
-	validatorGroupSelector  nodesCoordinator.NodesCoordinator
+	ValidatorGroupSelector  nodesCoordinator.NodesCoordinator
 	epochStartNotifier      epochStart.RegistrationHandler
 	antifloodHandler        consensus.P2PAntifloodHandler
 	peerHonestyHandler      consensus.PeerHonestyHandler
@@ -109,7 +110,7 @@ func (ccm *ConsensusCoreMock) SyncTimer() ntp.SyncTimer {
 
 // NodesCoordinator -
 func (ccm *ConsensusCoreMock) NodesCoordinator() nodesCoordinator.NodesCoordinator {
-	return ccm.validatorGroupSelector
+	return ccm.ValidatorGroupSelector
 }
 
 // EpochStartRegistrationHandler -
@@ -174,7 +175,7 @@ func (ccm *ConsensusCoreMock) SetSyncTimer(syncTimer ntp.SyncTimer) {
 
 // SetValidatorGroupSelector -
 func (ccm *ConsensusCoreMock) SetValidatorGroupSelector(validatorGroupSelector nodesCoordinator.NodesCoordinator) {
-	ccm.validatorGroupSelector = validatorGroupSelector
+	ccm.ValidatorGroupSelector = validatorGroupSelector
 }
 
 // PeerHonestyHandler -

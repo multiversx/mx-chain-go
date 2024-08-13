@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -222,7 +223,7 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *Consensus
 		roundHandler:            roundHandlerMock,
 		shardCoordinator:        shardCoordinatorMock,
 		syncTimer:               syncTimerMock,
-		validatorGroupSelector:  validatorGroupSelector,
+		ValidatorGroupSelector:  validatorGroupSelector,
 		epochStartNotifier:      epochStartSubscriber,
 		antifloodHandler:        antifloodHandler,
 		peerHonestyHandler:      peerHonestyHandler,

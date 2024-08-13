@@ -2,8 +2,12 @@ package bls_test
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
@@ -13,7 +17,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-	"github.com/stretchr/testify/assert"
 )
 
 func defaultSubroundStartRoundFromSubround(sr *spos.Subround) (bls.SubroundStartRound, error) {
@@ -187,6 +190,100 @@ func TestNewSubroundStartRound(t *testing.T) {
 		assert.Equal(t, bls.ErrNilSentSignatureTracker, err)
 	})
 }
+func buildDefaultSubround(container spos.ConsensusCoreHandler) *spos.Subround {
+	ch := make(chan bool, 1)
+	consensusState := initConsensusState()
+	sr, _ := spos.NewSubround(
+		-1,
+		bls.SrStartRound,
+		bls.SrBlock,
+		int64(85*roundTimeDuration/100),
+		int64(95*roundTimeDuration/100),
+		"(START_ROUND)",
+		consensusState,
+		ch,
+		executeStoredMessages,
+		container,
+		chainID,
+		currentPid,
+		&statusHandler.AppStatusHandlerStub{},
+	)
+
+	return sr
+}
+
+func TestSubroundStartRound_changeEpoch(t *testing.T) {
+	t.Parallel()
+
+	expectPanic := func() {
+		if recover() == nil {
+			require.Fail(t, "expected panic")
+		}
+	}
+
+	expectNoPanic := func() {
+		if recover() != nil {
+			require.Fail(t, "expected no panic")
+		}
+	}
+
+	t.Run("error returned by nodes coordinator should error", func(t *testing.T) {
+		t.Parallel()
+
+		defer expectPanic()
+
+		container := mock.InitConsensusCore()
+		exErr := fmt.Errorf("expected error")
+		container.ValidatorGroupSelector = &shardingMocks.NodesCoordinatorStub{
+			GetConsensusWhitelistedNodesCalled: func(epoch uint32) (map[string]struct{}, error) {
+				return nil, exErr
+			},
+		}
+
+		sr := buildDefaultSubround(container)
+
+		startRound, err := bls.NewSubroundStartRound(
+			sr,
+			extend,
+			bls.ProcessingThresholdPercent,
+			executeStoredMessages,
+			resetConsensusMessages,
+			&testscommon.SentSignatureTrackerStub{},
+		)
+		require.Nil(t, err)
+		startRound.ChangeEpoch(1)
+	})
+	t.Run("success - no panic", func(t *testing.T) {
+		t.Parallel()
+
+		defer expectNoPanic()
+
+		container := mock.InitConsensusCore()
+		expectedKeys := map[string]struct{}{
+			"aaa": {},
+			"bbb": {},
+		}
+
+		container.ValidatorGroupSelector = &shardingMocks.NodesCoordinatorStub{
+			GetConsensusWhitelistedNodesCalled: func(epoch uint32) (map[string]struct{}, error) {
+				return expectedKeys, nil
+			},
+		}
+
+		sr := buildDefaultSubround(container)
+
+		startRound, err := bls.NewSubroundStartRound(
+			sr,
+			extend,
+			bls.ProcessingThresholdPercent,
+			executeStoredMessages,
+			resetConsensusMessages,
+			&testscommon.SentSignatureTrackerStub{},
+		)
+		require.Nil(t, err)
+		startRound.ChangeEpoch(1)
+	})
+}
 
 func TestSubroundStartRound_NewSubroundStartRoundNilBlockChainShouldFail(t *testing.T) {
 	t.Parallel()
@@ -300,7 +397,7 @@ func TestSubroundStartRound_NewSubroundStartRoundNilValidatorGroupSelectorShould
 	assert.Equal(t, spos.ErrNilNodesCoordinator, err)
 }
 
-func TestSubroundStartRound_NewSubroundStartRoundShouldWork(t *testing.T) {
+func TestNewSubroundStartRoundShouldWork(t *testing.T) {
 	t.Parallel()
 
 	container := mock.InitConsensusCore()

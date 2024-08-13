@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -355,4 +356,9 @@ func (sr *subroundEndRound) GetSentSignatureTracker() spos.SentSignaturesTracker
 // GetStringValue calls the unexported getStringValue function
 func GetStringValue(messageType consensus.MessageType) string {
 	return getStringValue(messageType)
+}
+
+// ChangeEpoch -
+func (sr *subroundStartRound) ChangeEpoch(epoch uint32) {
+	sr.changeEpoch(epoch)
 }
