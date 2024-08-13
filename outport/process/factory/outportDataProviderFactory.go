@@ -37,7 +37,6 @@ type ArgOutportDataProviderFactory struct {
 	MbsStorer              storage.Storer
 	EnableEpochsHandler    common.EnableEpochsHandler
 	ExecutionOrderGetter   common.ExecutionOrderGetter
-	GasScheduleNotifier    core.GasScheduleNotifier
 }
 
 // CreateOutportDataProvider will create a new instance of outport.DataProviderOutport
@@ -68,7 +67,6 @@ func CreateOutportDataProvider(arg ArgOutportDataProviderFactory) (outport.DataP
 		TxFeeCalculator:     arg.EconomicsData,
 		PubKeyConverter:     arg.AddressConverter,
 		ArgsParser:          smartContract.NewArgumentParser(),
-		GasScheduleNotifier: arg.GasScheduleNotifier,
 		EnableEpochsHandler: arg.EnableEpochsHandler,
 	})
 	if err != nil {

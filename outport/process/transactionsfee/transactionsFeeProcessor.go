@@ -27,7 +27,6 @@ type ArgTransactionsFeeProcessor struct {
 	ShardCoordinator    sharding.Coordinator
 	TxFeeCalculator     FeesProcessorHandler
 	PubKeyConverter     core.PubkeyConverter
-	GasScheduleNotifier core.GasScheduleNotifier
 	ArgsParser          process.ArgumentsParser
 	EnableEpochsHandler common.EnableEpochsHandler
 }
@@ -39,7 +38,6 @@ type transactionsFeeProcessor struct {
 	dataFieldParser     dataFieldParser
 	log                 logger.Logger
 	marshaller          marshal.Marshalizer
-	gasScheduleNotifier core.GasScheduleNotifier
 	argsParser          process.ArgumentsParser
 	enableEpochsHandler common.EnableEpochsHandler
 }
@@ -66,7 +64,6 @@ func NewTransactionsFeeProcessor(arg ArgTransactionsFeeProcessor) (*transactions
 		log:                 logger.GetOrCreate(loggerName),
 		dataFieldParser:     parser,
 		marshaller:          arg.Marshaller,
-		gasScheduleNotifier: arg.GasScheduleNotifier,
 		argsParser:          arg.ArgsParser,
 		enableEpochsHandler: arg.EnableEpochsHandler,
 	}, nil
@@ -90,9 +87,6 @@ func checkArg(arg ArgTransactionsFeeProcessor) error {
 	}
 	if check.IfNil(arg.ArgsParser) {
 		return process.ErrNilArgumentParser
-	}
-	if check.IfNil(arg.GasScheduleNotifier) {
-		return process.ErrNilGasSchedule
 	}
 	if check.IfNil(arg.EnableEpochsHandler) {
 		return process.ErrNilEnableEpochsHandler

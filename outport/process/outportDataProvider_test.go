@@ -31,7 +31,6 @@ func createArgOutportDataProvider() ArgOutportDataProvider {
 		ShardCoordinator:    &testscommon.ShardsCoordinatorMock{},
 		TxFeeCalculator:     &mock.EconomicsHandlerMock{},
 		ArgsParser:          &testscommon.ArgumentParserMock{},
-		GasScheduleNotifier: &testscommon.GasScheduleNotifierMock{},
 		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 	})
 

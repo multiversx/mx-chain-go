@@ -30,7 +30,6 @@ func prepareMockArg() ArgTransactionsFeeProcessor {
 		TxFeeCalculator:     &mock.EconomicsHandlerMock{},
 		PubKeyConverter:     pubKeyConverter,
 		ArgsParser:          &testscommon.ArgumentParserMock{},
-		GasScheduleNotifier: &testscommon.GasScheduleNotifierMock{},
 		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 	}
 }
@@ -62,11 +61,6 @@ func TestNewTransactionFeeProcessor(t *testing.T) {
 	arg.ArgsParser = nil
 	_, err = NewTransactionsFeeProcessor(arg)
 	require.Equal(t, process.ErrNilArgumentParser, err)
-
-	arg = prepareMockArg()
-	arg.GasScheduleNotifier = nil
-	_, err = NewTransactionsFeeProcessor(arg)
-	require.Equal(t, process.ErrNilGasSchedule, err)
 
 	arg = prepareMockArg()
 	arg.EnableEpochsHandler = nil
