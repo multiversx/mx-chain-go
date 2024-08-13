@@ -28,11 +28,6 @@ func (g *GasScheduleNotifierMock) LatestGasSchedule() map[string]map[string]uint
 	return g.GasSchedule
 }
 
-// GasScheduleForEpoch -
-func (g *GasScheduleNotifierMock) GasScheduleForEpoch(_ uint32) (map[string]map[string]uint64, error) {
-	return g.GasSchedule, nil
-}
-
 // UnRegisterAll -
 func (g *GasScheduleNotifierMock) UnRegisterAll() {
 }

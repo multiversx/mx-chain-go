@@ -40,7 +40,6 @@ func TestComputeTransactionGasUsedAndFeeMoveBalance(t *testing.T) {
 
 	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(
 		computer,
-		&testscommon.GasScheduleNotifierMock{},
 		pubKeyConverter,
 		&testscommon.ArgumentParserMock{},
 		&testscommon.MarshallerStub{},
@@ -77,7 +76,6 @@ func TestComputeTransactionGasUsedAndFeeLogWithError(t *testing.T) {
 
 	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(
 		computer,
-		&testscommon.GasScheduleNotifierMock{},
 		pubKeyConverter,
 		&testscommon.ArgumentParserMock{},
 		&testscommon.MarshallerStub{},
@@ -127,7 +125,6 @@ func TestComputeTransactionGasUsedAndFeeRelayedTxWithWriteLog(t *testing.T) {
 
 	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(
 		computer,
-		&testscommon.GasScheduleNotifierMock{},
 		pubKeyConverter,
 		&testscommon.ArgumentParserMock{},
 		&testscommon.MarshallerStub{},
@@ -172,7 +169,6 @@ func TestComputeTransactionGasUsedAndFeeTransactionWithScrWithRefund(t *testing.
 
 	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(
 		computer,
-		&testscommon.GasScheduleNotifierMock{},
 		pubKeyConverter,
 		&testscommon.ArgumentParserMock{},
 		&testscommon.MarshallerStub{},
@@ -227,7 +223,6 @@ func TestNFTTransferWithScCall(t *testing.T) {
 
 	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(
 		computer,
-		&testscommon.GasScheduleNotifierMock{},
 		pubKeyConverter,
 		&testscommon.ArgumentParserMock{},
 		&testscommon.MarshallerStub{},
@@ -255,56 +250,4 @@ func TestNFTTransferWithScCall(t *testing.T) {
 	gasUsedAndFeeProc.computeAndAttachGasUsedAndFee(tx)
 	req.Equal(uint64(55_000_000), tx.GasUsed)
 	req.Equal("822250000000000", tx.Fee)
-}
-
-func TestComputeAndAttachGasUsedAndFeeSetGuardian(t *testing.T) {
-	t.Parallel()
-
-	feeComp, err := fee.NewFeeComputer(createEconomicsData(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-			return flag == common.GasPriceModifierFlag || flag == common.PenalizedTooMuchGasFlag
-		},
-	}))
-	computer := fee.NewTestFeeComputer(feeComp)
-	require.NoError(t, err)
-
-	gasSch := &testscommon.GasScheduleNotifierMock{
-		GasSchedule: map[string]map[string]uint64{
-			common.BuiltInCost: {
-				core.BuiltInFunctionSetGuardian: 250000,
-			},
-		},
-	}
-
-	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(
-		computer,
-		gasSch,
-		pubKeyConverter,
-		&testscommon.ArgumentParserMock{},
-		&testscommon.MarshallerStub{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return flag == common.FixRelayedBaseCostFlag
-			},
-		},
-	)
-
-	sender := "erd1wc3uh22g2aved3qeehkz9kzgrjwxhg9mkkxp2ee7jj7ph34p2csq0n2y5x"
-
-	tx := &transaction.ApiTransactionResult{
-		Tx: &transaction.Transaction{
-			GasLimit: 475_500,
-			GasPrice: 1000000000,
-			SndAddr:  silentDecodeAddress(sender),
-			RcvAddr:  silentDecodeAddress(sender),
-			Data:     []byte("SetGuardian@835741dd7018300bb4ed14211f9a9118ea7049572402c3a553deb1141f9c89aa@4d756c7469766572735854435353657276696365"),
-		},
-		GasLimit:  475_500,
-		Operation: "SetGuardian",
-		GasPrice:  1000000000,
-	}
-
-	gasUsedAndFeeProc.computeAndAttachGasUsedAndFee(tx)
-	require.Equal(t, uint64(475_500), tx.GasUsed)
-	require.Equal(t, "475500000000000", tx.Fee)
 }

@@ -141,20 +141,6 @@ func (tep *transactionsFeeProcessor) prepareNormalTxs(transactionsAndScrs *trans
 			feeInfo.SetFee(initialPaidFee)
 		}
 
-		res := tep.dataFieldParser.Parse(txHandler.GetData(), txHandler.GetSndAddr(), txHandler.GetRcvAddr(), tep.shardCoordinator.NumberOfShards())
-		if tep.isGuardianOperation(res.Operation) && isFeeFixActive {
-			gasUsed = tep.txFeeCalculator.ComputeGasLimit(txHandler)
-			guardianOperationCost := tep.getGuardianOperationCost(res.Operation, epoch)
-			gasUsed += guardianOperationCost
-			feeInfo.SetGasUsed(gasUsed)
-
-			fee = big.NewInt(0).SetUint64(gasUsed * txHandler.GetGasPrice())
-			feeInfo.SetFee(fee)
-			feeInfo.SetInitialPaidFee(fee)
-
-			return
-		}
-
 		if len(txHandler.GetUserTransactions()) > 0 {
 			tep.prepareRelayedTxV3WithResults(txHashHex, txWithResult)
 			continue
@@ -255,30 +241,6 @@ func (tep *transactionsFeeProcessor) handleRelayedV2(args [][]byte, tx *transact
 	innerFee := tep.txFeeCalculator.ComputeTxFee(innerTx)
 
 	return big.NewInt(0).Add(fee, innerFee), true
-}
-
-func (tep *transactionsFeeProcessor) getGuardianOperationCost(operation string, epoch uint32) uint64 {
-	gasSchedule, err := tep.gasScheduleNotifier.GasScheduleForEpoch(epoch)
-	if err != nil {
-		return 0
-	}
-
-	switch operation {
-	case core.BuiltInFunctionSetGuardian:
-		return gasSchedule[common.BuiltInCost][core.BuiltInFunctionSetGuardian]
-	case core.BuiltInFunctionGuardAccount:
-		return gasSchedule[common.BuiltInCost][core.BuiltInFunctionGuardAccount]
-	case core.BuiltInFunctionUnGuardAccount:
-		return gasSchedule[common.BuiltInCost][core.BuiltInFunctionUnGuardAccount]
-	default:
-		return 0
-	}
-}
-
-func (tep *transactionsFeeProcessor) isGuardianOperation(operation string) bool {
-	return operation == core.BuiltInFunctionSetGuardian ||
-		operation == core.BuiltInFunctionGuardAccount ||
-		operation == core.BuiltInFunctionUnGuardAccount
 }
 
 func (tep *transactionsFeeProcessor) prepareRelayedTxV3WithResults(txHashHex string, txWithResults *transactionWithResults) {

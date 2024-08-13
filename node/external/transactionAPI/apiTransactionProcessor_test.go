@@ -61,7 +61,6 @@ func createMockArgAPITransactionProcessor() *ArgAPITransactionProcessor {
 				return &datafield.ResponseParseData{}
 			},
 		},
-		GasScheduleNotifier: &testscommon.GasScheduleNotifierMock{},
 		TxMarshaller:        &marshallerMock.MarshalizerMock{},
 		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 	}
@@ -482,7 +481,6 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 				return &datafield.ResponseParseData{}
 			},
 		},
-		GasScheduleNotifier: &testscommon.GasScheduleNotifierMock{},
 		TxMarshaller:        &marshallerMock.MarshalizerMock{},
 		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 	}
@@ -1053,7 +1051,6 @@ func createAPITransactionProc(t *testing.T, epoch uint32, withDbLookupExt bool) 
 		TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
 		LogsFacade:               &testscommon.LogsFacadeStub{},
 		DataFieldParser:          dataFieldParser,
-		GasScheduleNotifier:      &testscommon.GasScheduleNotifierMock{},
 		TxMarshaller:             &marshallerMock.MarshalizerMock{},
 		EnableEpochsHandler:      enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 	}

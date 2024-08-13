@@ -87,11 +87,6 @@ func (fh *FeeHandler) ComputeMoveBalanceFee(_ data.TransactionWithFeeHandler) *b
 	return big.NewInt(0)
 }
 
-// ComputeMoveBalanceFeeInEpoch returns 0
-func (fh *FeeHandler) ComputeMoveBalanceFeeInEpoch(_ data.TransactionWithFeeHandler, _ uint32) *big.Int {
-	return big.NewInt(0)
-}
-
 // ComputeFeeForProcessing returns 0
 func (fh *FeeHandler) ComputeFeeForProcessing(_ data.TransactionWithFeeHandler, _ uint64) *big.Int {
 	return big.NewInt(0)

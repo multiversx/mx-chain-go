@@ -69,7 +69,6 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 	refundDetectorInstance := NewRefundDetector()
 	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(
 		args.FeeComputer,
-		args.GasScheduleNotifier,
 		args.AddressPubKeyConverter,
 		smartContract.NewArgumentParser(),
 		args.TxMarshaller,

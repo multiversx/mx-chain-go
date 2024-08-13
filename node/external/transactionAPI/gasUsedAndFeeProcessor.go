@@ -13,7 +13,6 @@ import (
 
 type gasUsedAndFeeProcessor struct {
 	feeComputer         feeComputer
-	gasScheduleNotifier core.GasScheduleNotifier
 	pubKeyConverter     core.PubkeyConverter
 	argsParser          process.ArgumentsParser
 	marshaller          marshal.Marshalizer
@@ -22,7 +21,6 @@ type gasUsedAndFeeProcessor struct {
 
 func newGasUsedAndFeeProcessor(
 	txFeeCalculator feeComputer,
-	gasScheduleNotifier core.GasScheduleNotifier,
 	pubKeyConverter core.PubkeyConverter,
 	argsParser process.ArgumentsParser,
 	marshaller marshal.Marshalizer,
@@ -30,7 +28,6 @@ func newGasUsedAndFeeProcessor(
 ) *gasUsedAndFeeProcessor {
 	return &gasUsedAndFeeProcessor{
 		feeComputer:         txFeeCalculator,
-		gasScheduleNotifier: gasScheduleNotifier,
 		pubKeyConverter:     pubKeyConverter,
 		argsParser:          argsParser,
 		marshaller:          marshaller,
@@ -50,21 +47,6 @@ func (gfp *gasUsedAndFeeProcessor) computeAndAttachGasUsedAndFee(tx *transaction
 	if isRelayedBeforeFix || gfp.isESDTOperationWithSCCall(tx) {
 		tx.GasUsed = tx.GasLimit
 		tx.Fee = tx.InitiallyPaidFee
-	}
-
-	// if there is a guardian operation, SetGuardian/GuardAccount/UnGuardAccount
-	// the pre-configured cost of the operation must be added separately
-	if gfp.isGuardianOperation(tx) && isFeeFixActive {
-		gasUsed = gfp.feeComputer.ComputeGasLimit(tx)
-		guardianOperationCost := gfp.getGuardianOperationCost(tx)
-		gasUsed += guardianOperationCost
-		tx.GasUsed = gasUsed
-
-		fee = big.NewInt(0).SetUint64(gasUsed * tx.GasPrice)
-		tx.Fee = fee.String()
-		tx.InitiallyPaidFee = fee.String()
-
-		return
 	}
 
 	if tx.IsRelayed && isFeeFixActive {
@@ -162,30 +144,6 @@ func (gfp *gasUsedAndFeeProcessor) handleRelayedV2(args [][]byte, tx *transactio
 	})
 
 	return big.NewInt(0).Add(fee, innerFee), true
-}
-
-func (gfp *gasUsedAndFeeProcessor) getGuardianOperationCost(tx *transaction.ApiTransactionResult) uint64 {
-	gasSchedule, err := gfp.gasScheduleNotifier.GasScheduleForEpoch(tx.Epoch)
-	if err != nil {
-		return 0
-	}
-
-	switch tx.Operation {
-	case core.BuiltInFunctionSetGuardian:
-		return gasSchedule[common.BuiltInCost][core.BuiltInFunctionSetGuardian]
-	case core.BuiltInFunctionGuardAccount:
-		return gasSchedule[common.BuiltInCost][core.BuiltInFunctionGuardAccount]
-	case core.BuiltInFunctionUnGuardAccount:
-		return gasSchedule[common.BuiltInCost][core.BuiltInFunctionUnGuardAccount]
-	default:
-		return 0
-	}
-}
-
-func (gfp *gasUsedAndFeeProcessor) isGuardianOperation(tx *transaction.ApiTransactionResult) bool {
-	return tx.Operation == core.BuiltInFunctionSetGuardian ||
-		tx.Operation == core.BuiltInFunctionGuardAccount ||
-		tx.Operation == core.BuiltInFunctionUnGuardAccount
 }
 
 func (gfp *gasUsedAndFeeProcessor) prepareTxWithResultsBasedOnLogs(

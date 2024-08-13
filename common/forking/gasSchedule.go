@@ -163,26 +163,6 @@ func (g *gasScheduleNotifier) LatestGasSchedule() map[string]map[string]uint64 {
 	return g.lastGasSchedule
 }
 
-// GasScheduleForEpoch returns the gas schedule for the specific epoch
-func (g *gasScheduleNotifier) GasScheduleForEpoch(epoch uint32) (map[string]map[string]uint64, error) {
-	g.mutNotifier.RLock()
-	defer g.mutNotifier.RUnlock()
-
-	currentVersion := g.getMatchingVersion(g.currentEpoch)
-	requestedVersion := g.getMatchingVersion(epoch)
-	if currentVersion == requestedVersion {
-		return g.lastGasSchedule, nil
-	}
-
-	gasSchedule, err := common.LoadGasScheduleConfig(filepath.Join(g.configDir, requestedVersion.FileName))
-	if err != nil {
-		log.Error("could not load the gas schedule", "epoch", requestedVersion.StartEpoch)
-		return nil, err
-	}
-
-	return gasSchedule, nil
-}
-
 // LatestGasScheduleCopy returns a copy of the latest gas schedule
 func (g *gasScheduleNotifier) LatestGasScheduleCopy() map[string]map[string]uint64 {
 	g.mutNotifier.RLock()

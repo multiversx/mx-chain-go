@@ -28,7 +28,6 @@ type ArgAPITransactionProcessor struct {
 	TxTypeHandler            process.TxTypeHandler
 	LogsFacade               LogsFacade
 	DataFieldParser          DataFieldParser
-	GasScheduleNotifier      core.GasScheduleNotifier
 	TxMarshaller             marshal.Marshalizer
 	EnableEpochsHandler      common.EnableEpochsHandler
 }
