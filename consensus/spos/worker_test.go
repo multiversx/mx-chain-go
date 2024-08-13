@@ -2152,7 +2152,7 @@ func TestWorker_EquivalentProof(t *testing.T) {
 		wrk.SetEquivalentProof(string(providedHash), providedProof)
 		proof, err := wrk.GetEquivalentProof(providedHash)
 		require.Equal(t, spos.ErrEquivalentProofNotValidated, err)
-		require.Equal(t, providedProof, proof)
+		require.Equal(t, data.HeaderProof{}, proof)
 
 		require.False(t, wrk.HasEquivalentMessage(providedHash))
 
