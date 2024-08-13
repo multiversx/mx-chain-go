@@ -160,12 +160,12 @@ func (s *legacySystemSCProcessor) processLegacy(
 		}
 	}
 
-	//if s.enableEpochsHandler.IsFlagEnabled(common.CorrectLastUnJailedFlagInSpecificEpochOnly) {
-	//	err := s.resetLastUnJailed()
-	//	if err != nil {
-	//		return err
-	//	}
-	//}
+	if s.enableEpochsHandler.IsFlagEnabled(common.CorrectLastUnJailedFlagInSpecificEpochOnly) {
+		err := s.resetLastUnJailed()
+		if err != nil {
+			return err
+		}
+	}
 
 	if s.enableEpochsHandler.IsFlagEnabled(common.DelegationSmartContractFlagInSpecificEpochOnly) {
 		err := s.initDelegationSystemSC()
