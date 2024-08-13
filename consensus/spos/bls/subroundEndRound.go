@@ -448,7 +448,7 @@ func (sr *subroundEndRound) sendFinalInfo(sender []byte) (data.HeaderProof, bool
 		return data.HeaderProof{}, false
 	}
 
-	// Aggregate sig and add it to the block
+	// Aggregate signatures, handle invalid signers and send final info if needed
 	bitmap, sig, err := sr.aggregateSigsAndHandleInvalidSigners(bitmap)
 	if err != nil {
 		log.Debug("sendFinalInfo.aggregateSigsAndHandleInvalidSigners", "error", err.Error())
@@ -498,6 +498,7 @@ func (sr *subroundEndRound) sendFinalInfo(sender []byte) (data.HeaderProof, bool
 	}
 
 	// broadcast header and final info section
+	// TODO[cleanup cns finality]: remove leaderSigToBroadcast
 	leaderSigToBroadcast := sr.Header.GetLeaderSignature()
 	if sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch()) {
 		leaderSigToBroadcast = nil
