@@ -310,7 +310,7 @@
     AlwaysMergeContextsInEEIEnableEpoch = 1
 
     # DynamicESDTEnableEpoch represents the epoch when dynamic NFT feature is enabled
-    DynamicESDTEnableEpoch = 4
+    DynamicESDTEnableEpoch = 0
 
     # EGLDInMultiTransferEnableEpoch represents the epoch when EGLD in multitransfer is enabled
     EGLDInMultiTransferEnableEpoch = 4
