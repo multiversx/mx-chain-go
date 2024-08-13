@@ -44,6 +44,7 @@ type apiTransactionProcessor struct {
 	transactionResultsProcessor *apiTransactionResultsProcessor
 	refundDetector              *refundDetector
 	gasUsedAndFeeProcessor      *gasUsedAndFeeProcessor
+	enableEpochsHandler         common.EnableEpochsHandler
 }
 
 // NewAPITransactionProcessor will create a new instance of apiTransactionProcessor
@@ -72,6 +73,7 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 		args.AddressPubKeyConverter,
 		smartContract.NewArgumentParser(),
 		args.TxMarshaller,
+		args.EnableEpochsHandler,
 	)
 
 	return &apiTransactionProcessor{
@@ -90,6 +92,7 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 		transactionResultsProcessor: txResultsProc,
 		refundDetector:              refundDetectorInstance,
 		gasUsedAndFeeProcessor:      gasUsedAndFeeProc,
+		enableEpochsHandler:         args.EnableEpochsHandler,
 	}, nil
 }
 
@@ -151,6 +154,13 @@ func (atp *apiTransactionProcessor) populateComputedFieldInitiallyPaidFee(tx *tr
 	fee := atp.feeComputer.ComputeTransactionFee(tx)
 	// For user-initiated transactions, we can assume the fee is always strictly positive (note: BigInt(0) is stringified as "").
 	tx.InitiallyPaidFee = fee.String()
+
+	isFeeFixActive := atp.enableEpochsHandler.IsFlagEnabledInEpoch(common.FixRelayedBaseCostFlag, tx.Epoch)
+	isRelayedAfterFix := tx.IsRelayed && isFeeFixActive
+	if isRelayedAfterFix {
+		fee, _ = atp.gasUsedAndFeeProcessor.getFeeOfRelayed(tx)
+		tx.InitiallyPaidFee = fee.String()
+	}
 }
 
 func (atp *apiTransactionProcessor) populateComputedFieldIsRefund(tx *transaction.ApiTransactionResult) {

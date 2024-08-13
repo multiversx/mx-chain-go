@@ -239,6 +239,7 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 		DataFieldParser:          dataFieldParser,
 		GasScheduleNotifier:      gasScheduleNotifier,
 		TxMarshaller:             &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandler:      tpn.EnableEpochsHandler,
 	}
 	apiTransactionHandler, err := transactionAPI.NewAPITransactionProcessor(argsApiTransactionProc)
 	log.LogIfError(err)

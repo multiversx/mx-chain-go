@@ -29,6 +29,7 @@ type ArgTransactionsFeeProcessor struct {
 	PubKeyConverter     core.PubkeyConverter
 	GasScheduleNotifier core.GasScheduleNotifier
 	ArgsParser          process.ArgumentsParser
+	EnableEpochsHandler common.EnableEpochsHandler
 }
 
 type transactionsFeeProcessor struct {
@@ -40,6 +41,7 @@ type transactionsFeeProcessor struct {
 	marshaller          marshal.Marshalizer
 	gasScheduleNotifier core.GasScheduleNotifier
 	argsParser          process.ArgumentsParser
+	enableEpochsHandler common.EnableEpochsHandler
 }
 
 // NewTransactionsFeeProcessor will create a new instance of transactionsFeeProcessor
@@ -66,6 +68,7 @@ func NewTransactionsFeeProcessor(arg ArgTransactionsFeeProcessor) (*transactions
 		marshaller:          arg.Marshaller,
 		gasScheduleNotifier: arg.GasScheduleNotifier,
 		argsParser:          arg.ArgsParser,
+		enableEpochsHandler: arg.EnableEpochsHandler,
 	}, nil
 }
 
@@ -90,6 +93,9 @@ func checkArg(arg ArgTransactionsFeeProcessor) error {
 	}
 	if check.IfNil(arg.GasScheduleNotifier) {
 		return process.ErrNilGasSchedule
+	}
+	if check.IfNil(arg.EnableEpochsHandler) {
+		return process.ErrNilEnableEpochsHandler
 	}
 
 	return nil
@@ -127,13 +133,16 @@ func (tep *transactionsFeeProcessor) prepareNormalTxs(transactionsAndScrs *trans
 		feeInfo.SetFee(fee)
 		feeInfo.SetInitialPaidFee(initialPaidFee)
 
-		if tep.isESDTOperationWithSCCall(txHandler) {
+		isRelayed := isRelayedTx(txWithResult)
+		isFeeFixActive := tep.enableEpochsHandler.IsFlagEnabledInEpoch(common.FixRelayedBaseCostFlag, epoch)
+		isRelayedBeforeFix := isRelayed && !isFeeFixActive
+		if isRelayedBeforeFix || tep.isESDTOperationWithSCCall(txHandler) {
 			feeInfo.SetGasUsed(txWithResult.GetTxHandler().GetGasLimit())
 			feeInfo.SetFee(initialPaidFee)
 		}
 
 		res := tep.dataFieldParser.Parse(txHandler.GetData(), txHandler.GetSndAddr(), txHandler.GetRcvAddr(), tep.shardCoordinator.NumberOfShards())
-		if tep.isGuardianOperation(res.Operation) {
+		if tep.isGuardianOperation(res.Operation) && isFeeFixActive {
 			gasUsed = tep.txFeeCalculator.ComputeGasLimit(txHandler)
 			guardianOperationCost := tep.getGuardianOperationCost(res.Operation, epoch)
 			gasUsed += guardianOperationCost
@@ -151,7 +160,7 @@ func (tep *transactionsFeeProcessor) prepareNormalTxs(transactionsAndScrs *trans
 			continue
 		}
 
-		if isRelayedTx(txWithResult) {
+		if isRelayedTx(txWithResult) && isFeeFixActive {
 			totalFee, isRelayed := tep.getFeeOfRelayed(txWithResult)
 			if isRelayed {
 				feeInfo.SetFee(totalFee)

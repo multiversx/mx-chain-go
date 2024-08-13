@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/outport/process/transactionsfee"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
@@ -31,6 +32,7 @@ func createArgOutportDataProvider() ArgOutportDataProvider {
 		TxFeeCalculator:     &mock.EconomicsHandlerMock{},
 		ArgsParser:          &testscommon.ArgumentParserMock{},
 		GasScheduleNotifier: &testscommon.GasScheduleNotifierMock{},
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 	})
 
 	return ArgOutportDataProvider{

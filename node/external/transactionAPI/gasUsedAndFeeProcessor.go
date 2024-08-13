@@ -17,6 +17,7 @@ type gasUsedAndFeeProcessor struct {
 	pubKeyConverter     core.PubkeyConverter
 	argsParser          process.ArgumentsParser
 	marshaller          marshal.Marshalizer
+	enableEpochsHandler common.EnableEpochsHandler
 }
 
 func newGasUsedAndFeeProcessor(
@@ -25,6 +26,7 @@ func newGasUsedAndFeeProcessor(
 	pubKeyConverter core.PubkeyConverter,
 	argsParser process.ArgumentsParser,
 	marshaller marshal.Marshalizer,
+	enableEpochsHandler common.EnableEpochsHandler,
 ) *gasUsedAndFeeProcessor {
 	return &gasUsedAndFeeProcessor{
 		feeComputer:         txFeeCalculator,
@@ -32,6 +34,7 @@ func newGasUsedAndFeeProcessor(
 		pubKeyConverter:     pubKeyConverter,
 		argsParser:          argsParser,
 		marshaller:          marshaller,
+		enableEpochsHandler: enableEpochsHandler,
 	}
 }
 
@@ -42,14 +45,16 @@ func (gfp *gasUsedAndFeeProcessor) computeAndAttachGasUsedAndFee(tx *transaction
 	tx.GasUsed = gasUsed
 	tx.Fee = fee.String()
 
-	if gfp.isESDTOperationWithSCCall(tx) {
+	isFeeFixActive := gfp.enableEpochsHandler.IsFlagEnabledInEpoch(common.FixRelayedBaseCostFlag, tx.Epoch)
+	isRelayedBeforeFix := tx.IsRelayed && !isFeeFixActive
+	if isRelayedBeforeFix || gfp.isESDTOperationWithSCCall(tx) {
 		tx.GasUsed = tx.GasLimit
 		tx.Fee = tx.InitiallyPaidFee
 	}
 
 	// if there is a guardian operation, SetGuardian/GuardAccount/UnGuardAccount
 	// the pre-configured cost of the operation must be added separately
-	if gfp.isGuardianOperation(tx) {
+	if gfp.isGuardianOperation(tx) && isFeeFixActive {
 		gasUsed = gfp.feeComputer.ComputeGasLimit(tx)
 		guardianOperationCost := gfp.getGuardianOperationCost(tx)
 		gasUsed += guardianOperationCost
@@ -57,14 +62,12 @@ func (gfp *gasUsedAndFeeProcessor) computeAndAttachGasUsedAndFee(tx *transaction
 
 		fee = big.NewInt(0).SetUint64(gasUsed * tx.GasPrice)
 		tx.Fee = fee.String()
-
-		initiallyPaidFee := gfp.feeComputer.ComputeMoveBalanceFee(tx)
-		tx.InitiallyPaidFee = initiallyPaidFee.String()
+		tx.InitiallyPaidFee = fee.String()
 
 		return
 	}
 
-	if tx.IsRelayed {
+	if tx.IsRelayed && isFeeFixActive {
 		totalFee, isRelayed := gfp.getFeeOfRelayed(tx)
 		if isRelayed {
 			tx.Fee = totalFee.String()

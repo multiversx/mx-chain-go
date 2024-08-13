@@ -69,6 +69,7 @@ func CreateOutportDataProvider(arg ArgOutportDataProviderFactory) (outport.DataP
 		PubKeyConverter:     arg.AddressConverter,
 		ArgsParser:          smartContract.NewArgumentParser(),
 		GasScheduleNotifier: arg.GasScheduleNotifier,
+		EnableEpochsHandler: arg.EnableEpochsHandler,
 	})
 	if err != nil {
 		return nil, err

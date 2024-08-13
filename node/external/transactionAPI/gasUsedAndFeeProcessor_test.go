@@ -44,6 +44,7 @@ func TestComputeTransactionGasUsedAndFeeMoveBalance(t *testing.T) {
 		pubKeyConverter,
 		&testscommon.ArgumentParserMock{},
 		&testscommon.MarshallerStub{},
+		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 	)
 
 	sender := "erd1wc3uh22g2aved3qeehkz9kzgrjwxhg9mkkxp2ee7jj7ph34p2csq0n2y5x"
@@ -80,6 +81,7 @@ func TestComputeTransactionGasUsedAndFeeLogWithError(t *testing.T) {
 		pubKeyConverter,
 		&testscommon.ArgumentParserMock{},
 		&testscommon.MarshallerStub{},
+		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 	)
 
 	sender := "erd1wc3uh22g2aved3qeehkz9kzgrjwxhg9mkkxp2ee7jj7ph34p2csq0n2y5x"
@@ -129,6 +131,7 @@ func TestComputeTransactionGasUsedAndFeeRelayedTxWithWriteLog(t *testing.T) {
 		pubKeyConverter,
 		&testscommon.ArgumentParserMock{},
 		&testscommon.MarshallerStub{},
+		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 	)
 
 	sender := "erd1wc3uh22g2aved3qeehkz9kzgrjwxhg9mkkxp2ee7jj7ph34p2csq0n2y5x"
@@ -173,6 +176,7 @@ func TestComputeTransactionGasUsedAndFeeTransactionWithScrWithRefund(t *testing.
 		pubKeyConverter,
 		&testscommon.ArgumentParserMock{},
 		&testscommon.MarshallerStub{},
+		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 	)
 
 	sender := "erd1wc3uh22g2aved3qeehkz9kzgrjwxhg9mkkxp2ee7jj7ph34p2csq0n2y5x"
@@ -227,6 +231,7 @@ func TestNFTTransferWithScCall(t *testing.T) {
 		pubKeyConverter,
 		&testscommon.ArgumentParserMock{},
 		&testscommon.MarshallerStub{},
+		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 	)
 
 	sender := "erd1wc3uh22g2aved3qeehkz9kzgrjwxhg9mkkxp2ee7jj7ph34p2csq0n2y5x"
@@ -277,6 +282,11 @@ func TestComputeAndAttachGasUsedAndFeeSetGuardian(t *testing.T) {
 		pubKeyConverter,
 		&testscommon.ArgumentParserMock{},
 		&testscommon.MarshallerStub{},
+		&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.FixRelayedBaseCostFlag
+			},
+		},
 	)
 
 	sender := "erd1wc3uh22g2aved3qeehkz9kzgrjwxhg9mkkxp2ee7jj7ph34p2csq0n2y5x"
@@ -293,7 +303,6 @@ func TestComputeAndAttachGasUsedAndFeeSetGuardian(t *testing.T) {
 		Operation: "SetGuardian",
 		GasPrice:  1000000000,
 	}
-	tx.InitiallyPaidFee = feeComp.ComputeTransactionFee(tx).String()
 
 	gasUsedAndFeeProc.computeAndAttachGasUsedAndFee(tx)
 	require.Equal(t, uint64(475_500), tx.GasUsed)

@@ -32,6 +32,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	dblookupextMock "github.com/multiversx/mx-chain-go/testscommon/dblookupext"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -62,6 +63,7 @@ func createMockArgAPITransactionProcessor() *ArgAPITransactionProcessor {
 		},
 		GasScheduleNotifier: &testscommon.GasScheduleNotifierMock{},
 		TxMarshaller:        &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 	}
 }
 
@@ -184,7 +186,6 @@ func TestNewAPITransactionProcessor(t *testing.T) {
 		_, err := NewAPITransactionProcessor(arguments)
 		require.Equal(t, ErrNilDataFieldParser, err)
 	})
-
 	t.Run("NilTxMarshaller", func(t *testing.T) {
 		t.Parallel()
 
@@ -193,6 +194,15 @@ func TestNewAPITransactionProcessor(t *testing.T) {
 
 		_, err := NewAPITransactionProcessor(arguments)
 		require.True(t, strings.Contains(err.Error(), process.ErrNilMarshalizer.Error()))
+	})
+	t.Run("NilEnableEpochsHandler", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgAPITransactionProcessor()
+		arguments.EnableEpochsHandler = nil
+
+		_, err := NewAPITransactionProcessor(arguments)
+		require.Equal(t, process.ErrNilEnableEpochsHandler, err)
 	})
 }
 
@@ -474,6 +484,7 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 		},
 		GasScheduleNotifier: &testscommon.GasScheduleNotifierMock{},
 		TxMarshaller:        &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 	}
 	apiTransactionProc, _ := NewAPITransactionProcessor(args)
 
@@ -1044,6 +1055,7 @@ func createAPITransactionProc(t *testing.T, epoch uint32, withDbLookupExt bool) 
 		DataFieldParser:          dataFieldParser,
 		GasScheduleNotifier:      &testscommon.GasScheduleNotifierMock{},
 		TxMarshaller:             &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandler:      enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 	}
 	apiTransactionProc, err := NewAPITransactionProcessor(args)
 	require.Nil(t, err)

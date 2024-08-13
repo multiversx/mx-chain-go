@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/outport/mock"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -30,6 +31,7 @@ func prepareMockArg() ArgTransactionsFeeProcessor {
 		PubKeyConverter:     pubKeyConverter,
 		ArgsParser:          &testscommon.ArgumentParserMock{},
 		GasScheduleNotifier: &testscommon.GasScheduleNotifierMock{},
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 	}
 }
 
@@ -65,6 +67,11 @@ func TestNewTransactionFeeProcessor(t *testing.T) {
 	arg.GasScheduleNotifier = nil
 	_, err = NewTransactionsFeeProcessor(arg)
 	require.Equal(t, process.ErrNilGasSchedule, err)
+
+	arg = prepareMockArg()
+	arg.EnableEpochsHandler = nil
+	_, err = NewTransactionsFeeProcessor(arg)
+	require.Equal(t, process.ErrNilEnableEpochsHandler, err)
 
 	arg = prepareMockArg()
 	txsFeeProc, err := NewTransactionsFeeProcessor(arg)
@@ -350,8 +357,8 @@ func TestPutFeeAndGasUsedWrongRelayedTx(t *testing.T) {
 
 	err = txsFeeProc.PutFeeAndGasUsed(pool, 0)
 	require.Nil(t, err)
-	require.Equal(t, big.NewInt(609500000000000), initialTx.GetFeeInfo().GetFee())
-	require.Equal(t, uint64(609500), initialTx.GetFeeInfo().GetGasUsed())
+	require.Equal(t, big.NewInt(6103405000000000), initialTx.GetFeeInfo().GetFee())
+	require.Equal(t, uint64(550000000), initialTx.GetFeeInfo().GetGasUsed())
 	require.Equal(t, "6103405000000000", initialTx.GetFeeInfo().GetInitialPaidFee().String())
 }
 
