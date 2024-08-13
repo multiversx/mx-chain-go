@@ -1903,6 +1903,9 @@ func (scbp *sovereignChainBlockProcessor) updateState(header data.HeaderHandler,
 		scbp.accountsDB[state.UserAccountsState].SnapshotState(header.GetRootHash(), header.GetEpoch())
 		scbp.accountsDB[state.PeerAccountsState].SnapshotState(header.GetValidatorStatsRootHash(), header.GetEpoch())
 
+		// TODO: MX-15748 Analyse this
+		//scbp.markSnapshotDoneInPeerAccounts()
+
 		go func() {
 			sovHdr, ok := header.(data.MetaHeaderHandler)
 			if !ok {

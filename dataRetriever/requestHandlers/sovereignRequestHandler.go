@@ -119,3 +119,38 @@ func (srrh *sovereignResolverRequestHandler) RequestExtendedShardHeader(hash []b
 
 	srrh.addRequestedItems([][]byte{hash}, suffix)
 }
+
+// RequestTrieNode method asks for a trie node from the connected peers by the hash and the chunk index
+func (srrh *sovereignResolverRequestHandler) RequestTrieNode(requestHash []byte, topic string, chunkIndex uint32) {
+	srrh.requestTrieNode(requestHash, topic, chunkIndex, srrh.getTrieNodeRequester)
+}
+
+func (srrh *sovereignResolverRequestHandler) getTrieNodeRequester(topic string) (dataRetriever.Requester, error) {
+	requester, err := srrh.requestersFinder.IntraShardRequester(topic)
+	if err != nil {
+		log.Error("sovereignResolverRequestHandler.getTrieRequester.IntraShardRequester",
+			"error", err.Error(),
+			"topic", topic,
+		)
+		return nil, err
+	}
+
+	return requester, nil
+}
+
+func (srrh *sovereignResolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [][]byte, topic string) {
+	srrh.requestTrieNodes(destShardID, hashes, topic, srrh.getTrieNodesRequester)
+}
+
+func (srrh *sovereignResolverRequestHandler) getTrieNodesRequester(topic string, _ uint32) (dataRetriever.Requester, error) {
+	requester, err := srrh.requestersFinder.IntraShardRequester(topic)
+	if err != nil {
+		log.Error("sovereignResolverRequestHandler.getTrieNodesRequester.IntraShardRequester",
+			"error", err.Error(),
+			"topic", topic,
+		)
+		return nil, err
+	}
+
+	return requester, nil
+}
