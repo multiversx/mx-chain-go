@@ -1233,7 +1233,6 @@ var ErrNilSentSignatureTracker = errors.New("nil sent signature tracker")
 // ErrTransferAndExecuteByUserAddressesAreNil signals that transfer and execute by user addresses are nil
 var ErrTransferAndExecuteByUserAddressesAreNil = errors.New("transfer and execute by user addresses are nil")
 
-<<<<<<< HEAD
 // ErrMissingConfigurationForEpochZero signals that the provided configuration doesn't include anything for epoch 0
 var ErrMissingConfigurationForEpochZero = errors.New("missing configuration for epoch 0")
 
@@ -1242,7 +1241,7 @@ var ErrEmptyChainParametersConfiguration = errors.New("empty chain parameters co
 
 // ErrNoMatchingConfigForProvidedEpoch signals that there is no matching configuration for the provided epoch
 var ErrNoMatchingConfigForProvidedEpoch = errors.New("no matching configuration")
-=======
+
 // ErrRelayedV3GasPriceMismatch signals that relayed v3 gas price is not equal with inner tx
 var ErrRelayedV3GasPriceMismatch = errors.New("relayed tx v3 gas price mismatch")
 
@@ -1287,4 +1286,3 @@ var ErrNilFailedTxLogsAccumulator = errors.New("nil failed transaction logs accu
 
 // ErrEmptyInnerTransactions signals that the inner transactions slice is empty
 var ErrEmptyInnerTransactions = errors.New("empty inner transactions")
->>>>>>> rc/v1.8.0

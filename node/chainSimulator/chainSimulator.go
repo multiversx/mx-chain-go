@@ -42,31 +42,13 @@ type transactionWithResult struct {
 
 // ArgsChainSimulator holds the arguments needed to create a new instance of simulator
 type ArgsChainSimulator struct {
-<<<<<<< HEAD
-	BypassTxSignatureCheck   bool
-	TempDir                  string
-	PathToInitialConfig      string
-	NumOfShards              uint32
-	MinNodesPerShard         uint32
-	MetaChainMinNodes        uint32
-	Hysteresis               float32
-	NumNodesWaitingListShard uint32
-	NumNodesWaitingListMeta  uint32
-	GenesisTimestamp         int64
-	InitialRound             int64
-	InitialEpoch             uint32
-	InitialNonce             uint64
-	RoundDurationInMillis    uint64
-	RoundsPerEpoch           core.OptionalUint64
-	ApiInterface             components.APIConfigurator
-	AlterConfigsFunction     func(cfg *config.Configs)
-=======
 	BypassTxSignatureCheck     bool
 	TempDir                    string
 	PathToInitialConfig        string
 	NumOfShards                uint32
 	MinNodesPerShard           uint32
 	MetaChainMinNodes          uint32
+	Hysteresis                 float32
 	NumNodesWaitingListShard   uint32
 	NumNodesWaitingListMeta    uint32
 	GenesisTimestamp           int64
@@ -78,7 +60,6 @@ type ArgsChainSimulator struct {
 	ApiInterface               components.APIConfigurator
 	AlterConfigsFunction       func(cfg *config.Configs)
 	VmQueryDelayAfterStartInMs uint64
->>>>>>> rc/v1.8.0
 }
 
 // ArgsBaseChainSimulator holds the arguments needed to create a new instance of simulator
