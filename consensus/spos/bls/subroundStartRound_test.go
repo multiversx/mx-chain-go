@@ -2,6 +2,12 @@ package bls_test
 
 import (
 	"errors"
+	"fmt"
+	"github.com/multiversx/mx-chain-core-go/data"
+	mock2 "github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/testscommon/consensus"
+	"github.com/multiversx/mx-chain-go/testscommon/outport"
+	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
 
@@ -420,6 +426,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGenerateNextCon
 		return nil, err
 	}
 	container := mock.InitConsensusCore()
+
 	container.SetValidatorGroupSelector(validatorGroupSelector)
 
 	srStartRound := *initSubroundStartRoundWithContainer(container)
@@ -806,6 +813,377 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 		assert.True(t, wasMetricConsensusStateCalled)
 		assert.True(t, wasMetricCountLeaderCalled)
 		assert.Equal(t, 2, cntMetricConsensusRoundStateCalled)
+	})
+}
+
+func buildDefaultSubround(container spos.ConsensusCoreHandler) *spos.Subround {
+	ch := make(chan bool, 1)
+	consensusState := initConsensusState()
+	sr, _ := spos.NewSubround(
+		-1,
+		bls.SrStartRound,
+		bls.SrBlock,
+		int64(85*roundTimeDuration/100),
+		int64(95*roundTimeDuration/100),
+		"(START_ROUND)",
+		consensusState,
+		ch,
+		executeStoredMessages,
+		container,
+		chainID,
+		currentPid,
+		&statusHandler.AppStatusHandlerStub{},
+	)
+
+	return sr
+}
+
+// This test should return ErrNilHeader when GetGenesisHeader is called by Blockchain component
+func TestSubroundStartRound_GenerateNextConsensusGroupShouldErrNilHeader(t *testing.T) {
+	t.Parallel()
+
+	// mock pentru consensus core care are un chain handler pe care il putem folosi pentru setBlockchain
+	container := mock.InitConsensusCore()
+
+	// mock pentru chain handler care are GenesisHeader-ul pe care il putem mockui
+	chainHandlerMock := &testscommon.ChainHandlerStub{
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return nil
+		},
+	}
+
+	// setare blockchain
+	container.SetBlockchain(chainHandlerMock)
+	// creare subround si startround
+	sr := buildDefaultSubround(container)
+	startRound, err := bls.NewSubroundStartRound(
+		sr,
+		extend,
+		bls.ProcessingThresholdPercent,
+		executeStoredMessages,
+		resetConsensusMessages,
+		&testscommon.SentSignatureTrackerStub{},
+	)
+	require.Nil(t, err)
+
+	err2 := startRound.GenerateNextConsensusGroup(0)
+
+	myExpectedErr := spos.ErrNilHeader
+
+	assert.Equal(t, myExpectedErr, err2)
+}
+
+// This test should return false when Reset is called by SigningHandler
+func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenResetErr(t *testing.T) {
+	t.Parallel()
+
+	container := mock.InitConsensusCore()
+
+	exErr := fmt.Errorf("expected error")
+	signingHandlerMock := &consensus.SigningHandlerStub{
+		ResetCalled: func(pubKeys []string) error {
+			return exErr
+		},
+	}
+
+	container.SetSigningHandler(signingHandlerMock)
+
+	sr := buildDefaultSubround(container)
+	startRound, err := bls.NewSubroundStartRound(
+		sr,
+		extend,
+		bls.ProcessingThresholdPercent,
+		executeStoredMessages,
+		resetConsensusMessages,
+		&testscommon.SentSignatureTrackerStub{},
+	)
+	require.Nil(t, err)
+
+	r := startRound.InitCurrentRound()
+
+	assert.False(t, r)
+}
+
+// This test is for increasing the coverage of indexRoundIfNeed method
+// indexRoundIfNeed should just return when ShardIdForEpoch has error
+// indexRoundIfNeed should fail
+func TestSubroundStartRound_IndexRoundIfNeededFailShardIdForEpoch(t *testing.T) {
+
+	pubKeys := make([]string, 0)
+	pubKeys = append(pubKeys, "testKey1")
+	pubKeys = append(pubKeys, "testKey2")
+
+	container := mock.InitConsensusCore()
+
+	expectNoPanic := func() {
+		if recover() != nil {
+			require.Fail(t, "expected no panic")
+		}
+	}
+
+	defer expectNoPanic()
+
+	idVar := 0
+	expErr := fmt.Errorf("expected error")
+
+	container.SetShardCoordinator(&mock2.CoordinatorStub{
+		SelfIdCalled: func() uint32 {
+			return uint32(idVar)
+		},
+	})
+
+	container.SetValidatorGroupSelector(
+		&shardingMocks.NodesCoordinatorStub{
+			ShardIdForEpochCalled: func(epoch uint32) (uint32, error) {
+				return 0, expErr
+			},
+		})
+
+	sr := buildDefaultSubround(container)
+
+	startRound, err := bls.NewSubroundStartRound(
+		sr,
+		extend,
+		bls.ProcessingThresholdPercent,
+		executeStoredMessages,
+		resetConsensusMessages,
+		&testscommon.SentSignatureTrackerStub{},
+	)
+	require.Nil(t, err)
+
+	startRound.SetOutportHandler(&outport.OutportStub{HasDriversCalled: func() bool {
+		return true
+	}})
+
+	startRound.IndexRoundIfNeeded(pubKeys)
+
+}
+
+// This test is for increasing the coverage
+// It should not panic when getValidatorsIndexes has error, and indexRoundIfNeeded just returns
+// indexRoundIfNeed should fail
+func TestSubroundStartRound_IndexRoundIfNeededFailGetValidatorsIndexes(t *testing.T) {
+
+	pubKeys := make([]string, 0)
+	pubKeys = append(pubKeys, "testKey1")
+	pubKeys = append(pubKeys, "testKey2")
+
+	container := mock.InitConsensusCore()
+
+	expectNoPanic := func() {
+		if recover() != nil {
+			require.Fail(t, "expected no panic")
+		}
+	}
+
+	defer expectNoPanic()
+
+	idVar := 0
+	expErr := fmt.Errorf("expected error")
+
+	container.SetShardCoordinator(&mock2.CoordinatorStub{
+		SelfIdCalled: func() uint32 {
+			return uint32(idVar)
+		},
+	})
+
+	container.SetValidatorGroupSelector(
+		&shardingMocks.NodesCoordinatorStub{
+
+			GetValidatorsIndexesCalled: func(pubKeys []string, epoch uint32) ([]uint64, error) {
+				return nil, expErr
+			},
+		})
+
+	sr := buildDefaultSubround(container)
+
+	startRound, err := bls.NewSubroundStartRound(
+		sr,
+		extend,
+		bls.ProcessingThresholdPercent,
+		executeStoredMessages,
+		resetConsensusMessages,
+		&testscommon.SentSignatureTrackerStub{},
+	)
+	require.Nil(t, err)
+
+	startRound.SetOutportHandler(&outport.OutportStub{HasDriversCalled: func() bool {
+		return true
+	}})
+
+	startRound.IndexRoundIfNeeded(pubKeys)
+
+}
+
+// This test is for increasing the coverage and tests the full execution of indexRoundIfNeeded
+// indexRoundIfNeed should not fail
+func TestSubroundStartRound_IndexRoundIfNeededShouldFullyWork(t *testing.T) {
+
+	pubKeys := make([]string, 0)
+	pubKeys = append(pubKeys, "testKey1")
+	pubKeys = append(pubKeys, "testKey2")
+
+	container := mock.InitConsensusCore()
+
+	expectNoPanic := func() {
+		if recover() != nil {
+			require.Fail(t, "expected no panic")
+		}
+	}
+
+	defer expectNoPanic()
+
+	idVar := 0
+
+	container.SetShardCoordinator(&mock2.CoordinatorStub{
+		SelfIdCalled: func() uint32 {
+			return uint32(idVar)
+		},
+	})
+
+	sr := buildDefaultSubround(container)
+
+	startRound, err := bls.NewSubroundStartRound(
+		sr,
+		extend,
+		bls.ProcessingThresholdPercent,
+		executeStoredMessages,
+		resetConsensusMessages,
+		&testscommon.SentSignatureTrackerStub{},
+	)
+	require.Nil(t, err)
+
+	startRound.SetOutportHandler(&outport.OutportStub{HasDriversCalled: func() bool {
+		return true
+	}})
+
+	startRound.IndexRoundIfNeeded(pubKeys)
+
+}
+
+// This test is for increasing the coverage and fail because of different shard ID
+// indexRoundIfNeed should fail
+func TestSubroundStartRound_IndexRoundIfNeededDifferentShardIdFail(t *testing.T) {
+
+	pubKeys := make([]string, 0)
+	pubKeys = append(pubKeys, "testKey1")
+	pubKeys = append(pubKeys, "testKey2")
+
+	container := mock.InitConsensusCore()
+
+	expectNoPanic := func() {
+		if recover() != nil {
+			require.Fail(t, "expected no panic")
+		}
+	}
+
+	defer expectNoPanic()
+
+	shardID := 1
+	container.SetShardCoordinator(&mock2.CoordinatorStub{
+		SelfIdCalled: func() uint32 {
+			return uint32(shardID)
+		},
+	})
+
+	container.SetValidatorGroupSelector(&shardingMocks.NodesCoordinatorStub{
+		ShardIdForEpochCalled: func(epoch uint32) (uint32, error) {
+			return 0, nil
+		},
+	})
+
+	sr := buildDefaultSubround(container)
+
+	startRound, err := bls.NewSubroundStartRound(
+		sr,
+		extend,
+		bls.ProcessingThresholdPercent,
+		executeStoredMessages,
+		resetConsensusMessages,
+		&testscommon.SentSignatureTrackerStub{},
+	)
+	require.Nil(t, err)
+
+	startRound.SetOutportHandler(&outport.OutportStub{HasDriversCalled: func() bool {
+		return true
+	}})
+
+	startRound.IndexRoundIfNeeded(pubKeys)
+
+}
+
+func TestSubroundStartRound_changeEpoch(t *testing.T) {
+	t.Parallel()
+
+	expectPanic := func() {
+		if recover() == nil {
+			require.Fail(t, "expected panic")
+		}
+	}
+
+	expectNoPanic := func() {
+		if recover() != nil {
+			require.Fail(t, "expected no panic")
+		}
+	}
+
+	t.Run("error returned by nodes coordinator should error", func(t *testing.T) {
+		t.Parallel()
+
+		defer expectPanic()
+
+		container := mock.InitConsensusCore()
+		exErr := fmt.Errorf("expected error")
+		container.SetValidatorGroupSelector(
+			&shardingMocks.NodesCoordinatorStub{
+				GetConsensusWhitelistedNodesCalled: func(epoch uint32) (map[string]struct{}, error) {
+					return nil, exErr
+				},
+			})
+
+		sr := buildDefaultSubround(container)
+
+		startRound, err := bls.NewSubroundStartRound(
+			sr,
+			extend,
+			bls.ProcessingThresholdPercent,
+			executeStoredMessages,
+			resetConsensusMessages,
+			&testscommon.SentSignatureTrackerStub{},
+		)
+		require.Nil(t, err)
+		startRound.ChangeEpoch(1)
+	})
+	t.Run("success - no panic", func(t *testing.T) {
+		t.Parallel()
+
+		defer expectNoPanic()
+
+		container := mock.InitConsensusCore()
+		expectedKeys := map[string]struct{}{
+			"aaa": {},
+			"bbb": {},
+		}
+
+		container.SetValidatorGroupSelector(
+			&shardingMocks.NodesCoordinatorStub{
+				GetConsensusWhitelistedNodesCalled: func(epoch uint32) (map[string]struct{}, error) {
+					return expectedKeys, nil
+				},
+			})
+
+		sr := buildDefaultSubround(container)
+
+		startRound, err := bls.NewSubroundStartRound(
+			sr,
+			extend,
+			bls.ProcessingThresholdPercent,
+			executeStoredMessages,
+			resetConsensusMessages,
+			&testscommon.SentSignatureTrackerStub{},
+		)
+		require.Nil(t, err)
+		startRound.ChangeEpoch(1)
 	})
 }
 
