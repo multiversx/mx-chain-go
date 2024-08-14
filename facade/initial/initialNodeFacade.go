@@ -421,6 +421,11 @@ func (inf *initialNodeFacade) IsDataTrieMigrated(_ string, _ api.AccountQueryOpt
 	return false, errNodeStarting
 }
 
+// GetSCRsByTxHash return a nil slice and error
+func (inf *initialNodeFacade) GetSCRsByTxHash(_ string, _ string) ([]*transaction.ApiSmartContractResult, error) {
+	return nil, errNodeStarting
+}
+
 // GetManagedKeysCount returns 0
 func (inf *initialNodeFacade) GetManagedKeysCount() int {
 	return 0
