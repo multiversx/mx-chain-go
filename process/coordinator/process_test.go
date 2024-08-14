@@ -592,7 +592,7 @@ func createPreProcessorContainerWithDataPool(
 
 	totalGasProvided := uint64(0)
 
-	args := args2.ArgPreProcessorsContainerFactory{
+	args := shardData.ArgPreProcessorsContainerFactory{
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(5),
 		Store:            initStore(),
 		Marshaller:       &mock.MarshalizerMock{},
@@ -891,7 +891,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 
 	totalGasProvided := uint64(0)
 
-	args := args2.ArgPreProcessorsContainerFactory{
+	args := shardData.ArgPreProcessorsContainerFactory{
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(5),
 		Store:            initStore(),
 		Marshaller:       &mock.MarshalizerMock{},
@@ -1083,7 +1083,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreP
 
 	totalGasProvided := uint64(0)
 
-	args := args2.ArgPreProcessorsContainerFactory{
+	args := shardData.ArgPreProcessorsContainerFactory{
 		ShardCoordinator:   mock.NewMultiShardsCoordinatorMock(5),
 		Store:              initStore(),
 		Marshaller:         &mock.MarshalizerMock{},
@@ -1191,7 +1191,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 
 	totalGasProvided := uint64(0)
 
-	args := args2.ArgPreProcessorsContainerFactory{
+	args := shardData.ArgPreProcessorsContainerFactory{
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(5),
 		Store:            initStore(),
 		Marshaller:       &mock.MarshalizerMock{},
@@ -1738,7 +1738,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 
 	accounts := initAccountsMock()
 
-	args := args2.ArgPreProcessorsContainerFactory{
+	args := shardData.ArgPreProcessorsContainerFactory{
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(5),
 		Store:            initStore(),
 		Marshaller:       &mock.MarshalizerMock{},
@@ -1876,7 +1876,7 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 
 	accounts := initAccountsMock()
 
-	args := args2.ArgPreProcessorsContainerFactory{
+	args := shardData.ArgPreProcessorsContainerFactory{
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(5),
 		Store:            initStore(),
 		Marshaller:       &mock.MarshalizerMock{},
@@ -1993,7 +1993,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 
 	totalGasProvided := uint64(0)
 
-	args := args2.ArgPreProcessorsContainerFactory{
+	args := shardData.ArgPreProcessorsContainerFactory{
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(5),
 		Store:            initStore(),
 		Marshaller:       marshalizer,
@@ -2142,7 +2142,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		},
 	}
 
-	args := args2.ArgPreProcessorsContainerFactory{
+	args := shardData.ArgPreProcessorsContainerFactory{
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(5),
 		Store:            initStore(),
 		Marshaller:       marshalizer,
