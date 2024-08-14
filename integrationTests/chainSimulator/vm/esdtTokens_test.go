@@ -107,6 +107,11 @@ func TestChainSimulator_Api_TokenType(t *testing.T) {
 	require.NotNil(t, txResult)
 	require.Equal(t, "success", txResult.Status.String())
 
+	scrs, err := cs.GetNodeHandler(core.MetachainShardId).GetFacadeHandler().GetSCRsByTxHash(txResult.Hash, txResult.SmartContractResults[0].Hash)
+	require.Nil(t, err)
+	require.NotNil(t, scrs)
+	require.Equal(t, len(txResult.SmartContractResults), len(scrs))
+
 	nftTokenID := txResult.Logs.Events[0].Topics[0]
 	setAddressEsdtRoles(t, cs, nonce, addrs[0], nftTokenID, roles)
 	nonce++

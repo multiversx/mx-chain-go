@@ -268,6 +268,93 @@ func TestNode_GetTransactionFromPool(t *testing.T) {
 	require.Equal(t, transaction.TxStatusPending, actualG.Status)
 }
 
+func TestNode_GetSCRs(t *testing.T) {
+	scResultHash := []byte("scHash")
+	txHash := []byte("txHash")
+
+	marshalizer := &mock.MarshalizerFake{}
+	scResult := &smartContractResult.SmartContractResult{
+		Nonce:          1,
+		SndAddr:        []byte("snd"),
+		RcvAddr:        []byte("rcv"),
+		OriginalTxHash: txHash,
+		Data:           []byte("test"),
+	}
+
+	resultHashesByTxHash := &dblookupext.ResultsHashesByTxHash{
+		ScResultsHashesAndEpoch: []*dblookupext.ScResultsHashesAndEpoch{
+			{
+				Epoch:           0,
+				ScResultsHashes: [][]byte{scResultHash},
+			},
+		},
+	}
+
+	chainStorer := &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			switch unitType {
+			case dataRetriever.UnsignedTransactionUnit:
+				return &storageStubs.StorerStub{
+					GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+						return marshalizer.Marshal(scResult)
+					},
+				}, nil
+			default:
+				return nil, storage.ErrKeyNotFound
+			}
+		},
+	}
+
+	historyRepo := &dblookupextMock.HistoryRepositoryStub{
+		GetMiniblockMetadataByTxHashCalled: func(hash []byte) (*dblookupext.MiniblockMetadata, error) {
+			return &dblookupext.MiniblockMetadata{}, nil
+		},
+		GetEventsHashesByTxHashCalled: func(hash []byte, epoch uint32) (*dblookupext.ResultsHashesByTxHash, error) {
+			return resultHashesByTxHash, nil
+		},
+	}
+
+	feeComp := &testscommon.FeeComputerStub{
+		ComputeTransactionFeeCalled: func(tx *transaction.ApiTransactionResult) *big.Int {
+			return big.NewInt(1000)
+		},
+	}
+
+	args := &ArgAPITransactionProcessor{
+		RoundDuration:            0,
+		GenesisTime:              time.Time{},
+		Marshalizer:              &mock.MarshalizerFake{},
+		AddressPubKeyConverter:   &testscommon.PubkeyConverterMock{},
+		ShardCoordinator:         &mock.ShardCoordinatorMock{},
+		HistoryRepository:        historyRepo,
+		StorageService:           chainStorer,
+		DataPool:                 dataRetrieverMock.NewPoolsHolderMock(),
+		Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+		FeeComputer:              feeComp,
+		TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
+		LogsFacade:               &testscommon.LogsFacadeStub{},
+		DataFieldParser: &testscommon.DataFieldParserStub{
+			ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32) *datafield.ResponseParseData {
+				return &datafield.ResponseParseData{}
+			},
+		},
+	}
+	apiTransactionProc, _ := NewAPITransactionProcessor(args)
+
+	scrs, err := apiTransactionProc.GetSCRsByTxHash(hex.EncodeToString(txHash), hex.EncodeToString(scResultHash))
+	require.Nil(t, err)
+	require.Equal(t, 1, len(scrs))
+	require.Equal(t, &transaction.ApiSmartContractResult{
+		Nonce:          1,
+		Data:           "test",
+		Hash:           "736348617368",
+		RcvAddr:        "726376",
+		SndAddr:        "736e64",
+		OriginalTxHash: "747848617368",
+		Receivers:      []string{},
+	}, scrs[0])
+}
+
 func TestNode_GetTransactionFromStorage(t *testing.T) {
 	t.Parallel()
 
