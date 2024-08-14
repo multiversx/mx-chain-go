@@ -312,6 +312,7 @@ func TestTransactionGroup_sendTransaction(t *testing.T) {
 			expectedErr,
 		)
 	})
+	t.Run("recursive relayed v3 should error", testRecursiveRelayedV3("/transaction/send"))
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -339,6 +340,76 @@ func TestTransactionGroup_sendTransaction(t *testing.T) {
 		)
 		assert.Empty(t, response.Error)
 		assert.Equal(t, hexTxHash, response.Data.TxHash)
+	})
+}
+
+func TestTransactionsGroup_getSCRsByTxHash(t *testing.T) {
+	t.Parallel()
+
+	t.Run("get SCRsByTxHash empty scr hash should error", func(t *testing.T) {
+		facade := &mock.FacadeStub{}
+
+		transactionGroup, err := groups.NewTransactionGroup(facade)
+		require.NoError(t, err)
+
+		ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
+
+		req, _ := http.NewRequest(http.MethodGet, "/transaction/scrs-by-tx-hash/txHash", bytes.NewBuffer([]byte{}))
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		txResp := shared.GenericAPIResponse{}
+		loadResponse(resp.Body, &txResp)
+
+		assert.Equal(t, http.StatusBadRequest, resp.Code)
+		assert.True(t, strings.Contains(txResp.Error, apiErrors.ErrValidationEmptySCRHash.Error()))
+		assert.Empty(t, txResp.Data)
+	})
+	t.Run("get scrs facade error", func(t *testing.T) {
+		localErr := fmt.Errorf("error")
+		facade := &mock.FacadeStub{
+			GetSCRsByTxHashCalled: func(txHash string, scrHash string) ([]*dataTx.ApiSmartContractResult, error) {
+				return nil, localErr
+			},
+		}
+
+		transactionGroup, err := groups.NewTransactionGroup(facade)
+		require.NoError(t, err)
+
+		ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
+
+		req, _ := http.NewRequest(http.MethodGet, "/transaction/scrs-by-tx-hash/txhash?scrHash=hash", bytes.NewBuffer([]byte{}))
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		txResp := shared.GenericAPIResponse{}
+		loadResponse(resp.Body, &txResp)
+
+		assert.Equal(t, http.StatusInternalServerError, resp.Code)
+		assert.True(t, strings.Contains(txResp.Error, localErr.Error()))
+		assert.Empty(t, txResp.Data)
+	})
+	t.Run("get scrs should work", func(t *testing.T) {
+		facade := &mock.FacadeStub{
+			GetSCRsByTxHashCalled: func(txHash string, scrHash string) ([]*dataTx.ApiSmartContractResult, error) {
+				return []*dataTx.ApiSmartContractResult{}, nil
+			},
+		}
+
+		transactionGroup, err := groups.NewTransactionGroup(facade)
+		require.NoError(t, err)
+
+		ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
+
+		req, _ := http.NewRequest(http.MethodGet, "/transaction/scrs-by-tx-hash/txhash?scrHash=hash", bytes.NewBuffer([]byte{}))
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		txResp := shared.GenericAPIResponse{}
+		loadResponse(resp.Body, &txResp)
+
+		assert.Equal(t, http.StatusOK, resp.Code)
+		assert.Equal(t, "", txResp.Error)
 	})
 }
 
@@ -520,6 +591,7 @@ func TestTransactionGroup_computeTransactionGasLimit(t *testing.T) {
 			expectedErr,
 		)
 	})
+	t.Run("recursive relayed v3 should error", testRecursiveRelayedV3("/transaction/cost"))
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -640,6 +712,7 @@ func TestTransactionGroup_simulateTransaction(t *testing.T) {
 			expectedErr,
 		)
 	})
+	t.Run("recursive relayed v3 should error", testRecursiveRelayedV3("/transaction/simulate"))
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -1122,8 +1195,68 @@ func getTransactionRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/:txhash", Open: true},
 					{Name: "/:txhash/status", Open: true},
 					{Name: "/simulate", Open: true},
+					{Name: "/scrs-by-tx-hash/:txhash", Open: true},
 				},
 			},
 		},
+	}
+}
+
+func testRecursiveRelayedV3(url string) func(t *testing.T) {
+	return func(t *testing.T) {
+		t.Parallel()
+
+		facade := &mock.FacadeStub{
+			CreateTransactionHandler: func(txArgs *external.ArgsCreateTransaction) (*dataTx.Transaction, []byte, error) {
+				txHash, _ := hex.DecodeString(hexTxHash)
+				return nil, txHash, nil
+			},
+			SendBulkTransactionsHandler: func(txs []*dataTx.Transaction) (u uint64, err error) {
+				return 1, nil
+			},
+			ValidateTransactionHandler: func(tx *dataTx.Transaction) error {
+				return nil
+			},
+		}
+
+		userTx1 := fmt.Sprintf(`{"nonce": %d, "sender":"%s", "receiver":"%s", "value":"%s", "signature":"%s"}`,
+			nonce,
+			sender,
+			receiver,
+			value,
+			signature,
+		)
+		userTx2 := fmt.Sprintf(`{"nonce": %d, "sender":"%s", "receiver":"%s", "value":"%s", "signature":"%s", "innerTransactions":[%s]}`,
+			nonce,
+			sender,
+			receiver,
+			value,
+			signature,
+			userTx1,
+		)
+		tx := fmt.Sprintf(`{"nonce": %d, "sender":"%s", "receiver":"%s", "value":"%s", "signature":"%s", "innerTransactions":[%s]}`,
+			nonce,
+			sender,
+			receiver,
+			value,
+			signature,
+			userTx2,
+		)
+
+		transactionGroup, err := groups.NewTransactionGroup(facade)
+		require.NoError(t, err)
+
+		ws := startWebServer(transactionGroup, "transaction", getTransactionRoutesConfig())
+
+		req, _ := http.NewRequest("POST", url, bytes.NewBuffer([]byte(tx)))
+		resp := httptest.NewRecorder()
+		ws.ServeHTTP(resp, req)
+
+		txResp := shared.GenericAPIResponse{}
+		loadResponse(resp.Body, &txResp)
+
+		assert.Equal(t, http.StatusBadRequest, resp.Code)
+		assert.True(t, strings.Contains(txResp.Error, apiErrors.ErrRecursiveRelayedTxIsNotAllowed.Error()))
+		assert.Empty(t, txResp.Data)
 	}
 }

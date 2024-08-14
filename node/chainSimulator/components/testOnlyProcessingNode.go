@@ -49,6 +49,7 @@ type ArgsTestOnlyProcessingNode struct {
 	MinNodesMeta                uint32
 	MetaChainConsensusGroupSize uint32
 	RoundDurationInMillis       uint64
+	VmQueryDelayAfterStartInMs  uint64
 }
 
 type testOnlyProcessingNode struct {
@@ -152,6 +153,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		instance.StatusCoreComponents.AppStatusHandler(),
 		args.Configs.GeneralConfig.GeneralSettings.StatusPollingIntervalSec,
 		*args.Configs.ExternalConfig,
+		instance.CoreComponentsHolder,
 	)
 	if err != nil {
 		return nil, err
@@ -233,7 +235,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		return nil, err
 	}
 
-	err = instance.createFacade(args.Configs, args.APIInterface)
+	err = instance.createFacade(args.Configs, args.APIInterface, args.VmQueryDelayAfterStartInMs)
 	if err != nil {
 		return nil, err
 	}

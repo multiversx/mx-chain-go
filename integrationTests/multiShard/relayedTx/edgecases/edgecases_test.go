@@ -16,7 +16,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTxButWrongNonceShoul
 		t.Skip("this is not a short test")
 	}
 
-	nodes, idxProposers, players, relayer := relayedTx.CreateGeneralSetupForRelayTxTest()
+	nodes, idxProposers, players, relayer := relayedTx.CreateGeneralSetupForRelayTxTest(false)
 	defer func() {
 		for _, n := range nodes {
 			n.Close()
@@ -32,18 +32,12 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTxButWrongNonceShoul
 	receiverAddress1 := []byte("12345678901234567890123456789012")
 	receiverAddress2 := []byte("12345678901234567890123456789011")
 
-	totalFees := big.NewInt(0)
-	relayerInitialValue := big.NewInt(0).Set(relayer.Balance)
 	nrRoundsToTest := int64(5)
 	for i := int64(0); i < nrRoundsToTest; i++ {
 		for _, player := range players {
 			player.Nonce += 1
-			relayerTx := relayedTx.CreateAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress1, sendValue, integrationTests.MinTxGasLimit, []byte(""))
-			totalFee := nodes[0].EconomicsData.ComputeTxFee(relayerTx)
-			totalFees.Add(totalFees, totalFee)
-			relayerTx = relayedTx.CreateAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress2, sendValue, integrationTests.MinTxGasLimit, []byte(""))
-			totalFee = nodes[0].EconomicsData.ComputeTxFee(relayerTx)
-			totalFees.Add(totalFees, totalFee)
+			_, _ = relayedTx.CreateAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress1, sendValue, integrationTests.MinTxGasLimit, []byte(""))
+			_, _ = relayedTx.CreateAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress2, sendValue, integrationTests.MinTxGasLimit, []byte(""))
 		}
 
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
@@ -71,9 +65,8 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTxButWrongNonceShoul
 		assert.Equal(t, uint64(0), account.GetNonce())
 	}
 
-	expectedBalance := big.NewInt(0).Sub(relayerInitialValue, totalFees)
 	relayerAccount := relayedTx.GetUserAccount(nodes, relayer.Address)
-	assert.True(t, relayerAccount.GetBalance().Cmp(expectedBalance) == 0)
+	assert.True(t, relayerAccount.GetBalance().Cmp(relayer.Balance) == 0)
 }
 
 func TestRelayedTransactionInMultiShardEnvironmentWithNormalTxButWithTooMuchGas(t *testing.T) {
@@ -81,7 +74,7 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTxButWithTooMuchGas(
 		t.Skip("this is not a short test")
 	}
 
-	nodes, idxProposers, players, relayer := relayedTx.CreateGeneralSetupForRelayTxTest()
+	nodes, idxProposers, players, relayer := relayedTx.CreateGeneralSetupForRelayTxTest(false)
 	defer func() {
 		for _, n := range nodes {
 			n.Close()
@@ -100,10 +93,16 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTxButWithTooMuchGas(
 	additionalGasLimit := uint64(100000)
 	tooMuchGasLimit := integrationTests.MinTxGasLimit + additionalGasLimit
 	nrRoundsToTest := int64(5)
+
+	txsSentEachRound := big.NewInt(2) // 2 relayed txs each round
+	txsSentPerPlayer := big.NewInt(0).Mul(txsSentEachRound, big.NewInt(nrRoundsToTest))
+	initialPlayerFunds := big.NewInt(0).Mul(sendValue, txsSentPerPlayer)
+	integrationTests.MintAllPlayers(nodes, players, initialPlayerFunds)
+
 	for i := int64(0); i < nrRoundsToTest; i++ {
 		for _, player := range players {
-			_ = relayedTx.CreateAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress1, sendValue, tooMuchGasLimit, []byte(""))
-			_ = relayedTx.CreateAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress2, sendValue, tooMuchGasLimit, []byte(""))
+			_, _ = relayedTx.CreateAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress1, sendValue, tooMuchGasLimit, []byte(""))
+			_, _ = relayedTx.CreateAndSendRelayedAndUserTx(nodes, relayer, player, receiverAddress2, sendValue, tooMuchGasLimit, []byte(""))
 		}
 
 		round, nonce = integrationTests.ProposeAndSyncOneBlock(t, nodes, idxProposers, round, nonce)
@@ -124,8 +123,8 @@ func TestRelayedTransactionInMultiShardEnvironmentWithNormalTxButWithTooMuchGas(
 
 	finalBalance := big.NewInt(0).Mul(big.NewInt(int64(len(players))), big.NewInt(nrRoundsToTest))
 	finalBalance.Mul(finalBalance, sendValue)
-	assert.Equal(t, receiver1.GetBalance().Cmp(finalBalance), 0)
-	assert.Equal(t, receiver2.GetBalance().Cmp(finalBalance), 0)
+	assert.Equal(t, 0, receiver1.GetBalance().Cmp(finalBalance))
+	assert.Equal(t, 0, receiver2.GetBalance().Cmp(finalBalance))
 
 	players = append(players, relayer)
 	checkPlayerBalancesWithPenalization(t, nodes, players)
@@ -139,7 +138,7 @@ func checkPlayerBalancesWithPenalization(
 
 	for i := 0; i < len(players); i++ {
 		userAcc := relayedTx.GetUserAccount(nodes, players[i].Address)
-		assert.Equal(t, userAcc.GetBalance().Cmp(players[i].Balance), 0)
+		assert.Equal(t, 0, userAcc.GetBalance().Cmp(players[i].Balance))
 		assert.Equal(t, userAcc.GetNonce(), players[i].Nonce)
 	}
 }

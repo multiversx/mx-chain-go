@@ -228,6 +228,8 @@ type Config struct {
 	PeersRatingConfig   PeersRatingConfig
 	PoolsCleanersConfig PoolsCleanersConfig
 	Redundancy          RedundancyConfig
+
+	RelayedTransactionConfig RelayedTransactionConfig
 }
 
 // PeersRatingConfig will hold settings related to peers rating
@@ -666,4 +668,9 @@ type ChainParametersByEpochConfig struct {
 	MetachainConsensusGroupSize uint32
 	MetachainMinNumNodes        uint32
 	Adaptivity                  bool
+}
+
+// RelayedTransactionConfig represents the config options to be used for relayed transactions
+type RelayedTransactionConfig struct {
+	MaxTransactionsAllowed int
 }

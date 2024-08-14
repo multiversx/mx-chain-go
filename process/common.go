@@ -680,6 +680,10 @@ func DisplayProcessTxDetails(
 	txHash []byte,
 	addressPubkeyConverter core.PubkeyConverter,
 ) {
+	if log.GetLevel() > logger.LogTrace {
+		return
+	}
+
 	if !check.IfNil(accountHandler) {
 		account, ok := accountHandler.(state.UserAccountHandler)
 		if ok {
