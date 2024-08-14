@@ -1111,7 +1111,6 @@ func GetRunTypeComponentsStub(rt factory.RunTypeComponentsHandler) *mainFactoryM
 		ValidatorInfoCreatorFactoryField:       rt.ValidatorInfoCreatorFactory(),
 		APIProcessorCompsCreatorHandlerField:   rt.ApiProcessorCompsCreatorHandler(),
 		EndOfEpochEconomicsFactoryHandlerField: rt.EndOfEpochEconomicsFactoryHandler(),
-		RewardsTxPreProcFactoryField:           rt.RewardsTxPreProcFactory(),
 		RewardsCreatorFactoryField:             rt.RewardsCreatorFactory(),
 		SystemSCProcessorFactoryField:          rt.SystemSCProcessorFactory(),
 	}

@@ -258,7 +258,6 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		validatorInfoCreatorFactory:             metachain.NewSovereignValidatorInfoCreatorFactory(),
 		apiProcessorCompsCreatorHandler:         api.NewSovereignAPIProcessorCompsCreator(),
 		endOfEpochEconomicsFactoryHandler:       metachain.NewSovereignEconomicsFactory(),
-		rewardsTxPreProcFactory:                 preprocess.NewSovereignRewardsTxPreProcFactory(),
 		rewardsCreatorFactory:                   metachain.NewSovereignRewardsCreatorFactory(),
 		systemSCProcessorFactory:                metachain.NewSovereignSysSCFactory(),
 	}, nil

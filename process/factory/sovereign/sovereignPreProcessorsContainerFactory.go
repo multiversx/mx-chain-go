@@ -101,11 +101,6 @@ func (ppcf *sovereignPreProcessorsContainerFactory) Create() (process.PreProcess
 		return nil, err
 	}
 
-	err = ppcf.createRewardsTransactionPreProcessor(container)
-	if err != nil {
-		return nil, err
-	}
-
 	preproc, err = ppcf.createValidatorInfoPreProcessor()
 	if err != nil {
 		return nil, err
@@ -167,28 +162,6 @@ func (ppcf *sovereignPreProcessorsContainerFactory) createSmartContractResultPre
 	}
 
 	return ppcf.runTypeComponents.SCResultsPreProcessorCreator().CreateSmartContractResultPreProcessor(arg)
-}
-
-func (ppcf *sovereignPreProcessorsContainerFactory) createRewardsTransactionPreProcessor(container process.PreProcessorsContainer) error {
-	return ppcf.runTypeComponents.RewardsTxPreProcFactory().CreateRewardsTxPreProcessorAndAddToContainer(
-		preprocess.ArgsRewardTxPreProcessor{
-			RewardTxDataPool:           ppcf.dataPool.RewardTransactions(),
-			Store:                      ppcf.store,
-			Hasher:                     ppcf.hasher,
-			Marshalizer:                ppcf.marshaller,
-			RewardProcessor:            ppcf.rewardsTxProcessor,
-			ShardCoordinator:           ppcf.shardCoordinator,
-			Accounts:                   ppcf.accounts,
-			OnRequestRewardTransaction: ppcf.requestHandler.RequestRewardTransactions,
-			GasHandler:                 ppcf.gasHandler,
-			PubkeyConverter:            ppcf.pubkeyConverter,
-			BlockSizeComputation:       ppcf.blockSizeComputation,
-			BalanceComputation:         ppcf.balanceComputation,
-			ProcessedMiniBlocksTracker: ppcf.processedMiniBlocksTracker,
-			TxExecutionOrderHandler:    ppcf.txExecutionOrderHandler,
-		},
-		container,
-	)
 }
 
 func (ppcf *sovereignPreProcessorsContainerFactory) createValidatorInfoPreProcessor() (process.PreProcessor, error) {

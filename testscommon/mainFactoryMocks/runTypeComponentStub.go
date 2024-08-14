@@ -83,7 +83,6 @@ type RunTypeComponentsStub struct {
 	ValidatorInfoCreatorFactoryField       factory.ValidatorInfoCreatorFactory
 	APIProcessorCompsCreatorHandlerField   api.ApiProcessorCompsCreatorHandler
 	EndOfEpochEconomicsFactoryHandlerField factory.EndOfEpochEconomicsFactoryHandler
-	RewardsTxPreProcFactoryField           preprocess.RewardsTxPreProcFactory
 	RewardsCreatorFactoryField             factory.RewardsCreatorFactory
 	SystemSCProcessorFactoryField          factory.SystemSCProcessorFactory
 }
@@ -131,8 +130,6 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		ValidatorInfoCreatorFactoryField:       &testFactory.ValidatorInfoCreatorFactoryMock{},
 		APIProcessorCompsCreatorHandlerField:   &testFactory.APIProcessorCompsCreatorMock{},
 		EndOfEpochEconomicsFactoryHandlerField: &testFactory.EconomicsFactoryMock{},
-		RewardsTxPreProcFactoryField:           &testFactory.RewardsTxPreProcFactoryMock{},
-		RewardsCreatorFactoryField:             &testFactory.RewardsCreatorFactoryMock{},
 		SystemSCProcessorFactoryField:          &testFactory.SysSCFactoryMock{},
 	}
 }
@@ -355,11 +352,6 @@ func (r *RunTypeComponentsStub) ApiProcessorCompsCreatorHandler() api.ApiProcess
 // EndOfEpochEconomicsFactoryHandler -
 func (r *RunTypeComponentsStub) EndOfEpochEconomicsFactoryHandler() factory.EndOfEpochEconomicsFactoryHandler {
 	return r.EndOfEpochEconomicsFactoryHandlerField
-}
-
-// RewardsTxPreProcFactory -
-func (r *RunTypeComponentsStub) RewardsTxPreProcFactory() preprocess.RewardsTxPreProcFactory {
-	return r.RewardsTxPreProcFactoryField
 }
 
 // RewardsCreatorFactory -

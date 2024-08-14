@@ -61,7 +61,6 @@ type runTypeComponentsHandler interface {
 	VMContextCreator() systemSmartContracts.VMContextCreatorHandler
 	VmContainerShardFactoryCreator() factoryVm.VmContainerCreator
 	VmContainerMetaFactoryCreator() factoryVm.VmContainerCreator
-	RewardsTxPreProcFactory() preprocess.RewardsTxPreProcFactory
 	IsInterfaceNil() bool
 }
 

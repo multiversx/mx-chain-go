@@ -629,7 +629,6 @@ type RunTypeComponentsHolder interface {
 	ValidatorInfoCreatorFactory() ValidatorInfoCreatorFactory
 	ApiProcessorCompsCreatorHandler() api.ApiProcessorCompsCreatorHandler
 	EndOfEpochEconomicsFactoryHandler() EndOfEpochEconomicsFactoryHandler
-	RewardsTxPreProcFactory() preprocess.RewardsTxPreProcFactory
 	RewardsCreatorFactory() RewardsCreatorFactory
 	SystemSCProcessorFactory() SystemSCProcessorFactory
 	Create() error

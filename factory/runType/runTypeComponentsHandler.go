@@ -222,9 +222,6 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	if check.IfNil(mrc.rewardsCreatorFactory) {
 		return errors.ErrNilRewardsFactory
 	}
-	if check.IfNil(mrc.rewardsTxPreProcFactory) {
-		return errors.ErrNilRewardsPreProcFactory
-	}
 	if check.IfNil(mrc.systemSCProcessorFactory) {
 		return errors.ErrNilSysSCFactory
 	}
@@ -710,18 +707,6 @@ func (mrc *managedRunTypeComponents) EndOfEpochEconomicsFactoryHandler() factory
 	}
 
 	return mrc.runTypeComponents.endOfEpochEconomicsFactoryHandler
-}
-
-// RewardsTxPreProcFactory returns the rewards tx pre-processor factory
-func (mrc *managedRunTypeComponents) RewardsTxPreProcFactory() preprocess.RewardsTxPreProcFactory {
-	mrc.mutRunTypeComponents.RLock()
-	defer mrc.mutRunTypeComponents.RUnlock()
-
-	if check.IfNil(mrc.runTypeComponents) {
-		return nil
-	}
-
-	return mrc.runTypeComponents.rewardsTxPreProcFactory
 }
 
 // RewardsCreatorFactory returns the rewards creator factory

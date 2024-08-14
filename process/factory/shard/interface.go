@@ -8,6 +8,5 @@ import (
 type RunTypeComponents interface {
 	TxPreProcessorCreator() preprocess.TxPreProcessorCreator
 	SCResultsPreProcessorCreator() preprocess.SmartContractResultPreProcessorCreator
-	RewardsTxPreProcFactory() preprocess.RewardsTxPreProcFactory
 	IsInterfaceNil() bool
 }
