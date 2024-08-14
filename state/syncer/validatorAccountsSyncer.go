@@ -41,7 +41,7 @@ func NewValidatorAccountsSyncer(args ArgsNewValidatorAccountsSyncer) (*validator
 		trieStorageManager:                args.TrieStorageManager,
 		requestHandler:                    args.RequestHandler,
 		timeoutHandler:                    timeoutHandler,
-		shardId:                           core.MetachainShardId,
+		shardId:                           core.MetachainShardId, // Todo: check this
 		cacher:                            args.Cacher,
 		maxTrieLevelInMemory:              args.MaxTrieLevelInMemory,
 		name:                              "peer accounts",
