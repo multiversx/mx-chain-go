@@ -957,6 +957,24 @@ func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
+	userAccountsRootHash, err := scbp.accountsDB[state.UserAccountsState].RootHash()
+	if err != nil {
+		return err
+	}
+	err = header.SetRootHash(userAccountsRootHash)
+	if err != nil {
+		return err
+	}
+
+	validatorStatsRootHash, err := scbp.accountsDB[state.PeerAccountsState].RootHash()
+	if err != nil {
+		return err
+	}
+	err = header.SetValidatorStatsRootHash(validatorStatsRootHash)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -1917,8 +1935,6 @@ func (scbp *sovereignChainBlockProcessor) updateState(header data.HeaderHandler,
 				log.Warn("couldn't commit trie checkpoint", "epoch", sovHdr.GetEpoch(), "error", err)
 			}
 		}()
-
-		scbp.nodesCoordinator.ShuffleOutForEpoch(header.GetEpoch())
 	}
 
 	scbp.updateStateStorage(
