@@ -15,7 +15,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const gasPrice = uint64(10)
+const (
+	gasPrice         = uint64(10)
+	minGasLimit      = uint64(1)
+	gasPriceModifier = float64(0.1)
+)
 
 // MetaData defines test meta data struct
 type MetaData struct {

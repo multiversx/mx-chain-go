@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-go/sharding"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 const (
@@ -116,7 +117,7 @@ func (tp *tokensProcessor) processMultiTransferEvent(event data.EventHandler, ma
 	// N = len(topics)
 	// i := 0; i < N-1; i+=3
 	// {
-	// 		topics[i] --- token identifier
+	// 		topics[i] --- token identifier or EGLD token identifier
 	// 		topics[i+1] --- token nonce
 	// 		topics[i+2] --- transferred value
 	// }
@@ -133,6 +134,12 @@ func (tp *tokensProcessor) processMultiTransferEvent(event data.EventHandler, ma
 	for i := 0; i < numOfTopics-1; i += 3 {
 		tokenID := topics[i]
 		nonceBigInt := big.NewInt(0).SetBytes(topics[i+1])
+
+		if string(tokenID) == vmcommon.EGLDIdentifier {
+			tp.processNativeEGLDTransferWithMultiTransfer(destinationAddress, markedAlteredAccounts)
+			return
+		}
+
 		// process event for the sender address
 		tp.processEsdtDataForAddress(address, nonceBigInt, string(tokenID), markedAlteredAccounts, false)
 
@@ -175,6 +182,24 @@ func (tp *tokensProcessor) processEsdtDataForAddress(
 		nonce:       nonce.Uint64(),
 		isNFTCreate: isNFTCreate,
 	}
+}
+
+func (tp *tokensProcessor) processNativeEGLDTransferWithMultiTransfer(address []byte, markedAlteredAccounts map[string]*markedAlteredAccount) {
+	if !tp.isSameShard(address) {
+		return
+	}
+
+	addressStr := string(address)
+	_, addressAlreadySelected := markedAlteredAccounts[addressStr]
+	if addressAlreadySelected {
+		markedAlteredAccounts[addressStr].balanceChanged = true
+		return
+	}
+
+	markedAlteredAccounts[addressStr] = &markedAlteredAccount{
+		balanceChanged: true,
+	}
+
 }
 
 func (tp *tokensProcessor) isSameShard(address []byte) bool {

@@ -42,22 +42,23 @@ type transactionWithResult struct {
 
 // ArgsChainSimulator holds the arguments needed to create a new instance of simulator
 type ArgsChainSimulator struct {
-	BypassTxSignatureCheck   bool
-	TempDir                  string
-	PathToInitialConfig      string
-	NumOfShards              uint32
-	MinNodesPerShard         uint32
-	MetaChainMinNodes        uint32
-	NumNodesWaitingListShard uint32
-	NumNodesWaitingListMeta  uint32
-	GenesisTimestamp         int64
-	InitialRound             int64
-	InitialEpoch             uint32
-	InitialNonce             uint64
-	RoundDurationInMillis    uint64
-	RoundsPerEpoch           core.OptionalUint64
-	ApiInterface             components.APIConfigurator
-	AlterConfigsFunction     func(cfg *config.Configs)
+	BypassTxSignatureCheck     bool
+	TempDir                    string
+	PathToInitialConfig        string
+	NumOfShards                uint32
+	MinNodesPerShard           uint32
+	MetaChainMinNodes          uint32
+	NumNodesWaitingListShard   uint32
+	NumNodesWaitingListMeta    uint32
+	GenesisTimestamp           int64
+	InitialRound               int64
+	InitialEpoch               uint32
+	InitialNonce               uint64
+	RoundDurationInMillis      uint64
+	RoundsPerEpoch             core.OptionalUint64
+	ApiInterface               components.APIConfigurator
+	AlterConfigsFunction       func(cfg *config.Configs)
+	VmQueryDelayAfterStartInMs uint64
 }
 
 // ArgsBaseChainSimulator holds the arguments needed to create a new instance of simulator
@@ -156,7 +157,7 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 			}
 
 			allValidatorsInfo, errGet := node.GetProcessComponents().ValidatorsStatistics().GetValidatorInfoForRootHash(currentRootHash)
-			if errRootHash != nil {
+			if errGet != nil {
 				return errGet
 			}
 
@@ -212,6 +213,7 @@ func (s *simulator) createTestNode(
 		MinNodesMeta:                args.MetaChainMinNodes,
 		MetaChainConsensusGroupSize: args.MetaChainConsensusGroupSize,
 		RoundDurationInMillis:       args.RoundDurationInMillis,
+		VmQueryDelayAfterStartInMs:  args.VmQueryDelayAfterStartInMs,
 	}
 
 	return components.NewTestOnlyProcessingNode(argsTestOnlyProcessorNode)

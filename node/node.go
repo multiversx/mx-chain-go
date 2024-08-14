@@ -54,8 +54,7 @@ var log = logger.GetOrCreate("node")
 var _ facade.NodeHandler = (*Node)(nil)
 
 // Option represents a functional configuration parameter that can operate
-//
-//	over the None struct.
+// over the None struct.
 type Option func(*Node) error
 
 type filter interface {
@@ -294,7 +293,7 @@ func (n *Node) GetKeyValuePairs(address string, options api.AccountQueryOptions,
 	}
 
 	if check.IfNil(userAccount.DataTrie()) {
-		return map[string]string{}, api.BlockInfo{}, nil
+		return map[string]string{}, blockInfo, nil
 	}
 
 	mapToReturn, err := n.getKeys(userAccount, ctx)
@@ -799,6 +798,8 @@ func (n *Node) commonTransactionValidation(
 		enableSignWithTxHash,
 		n.coreComponents.TxSignHasher(),
 		n.coreComponents.TxVersionChecker(),
+		n.coreComponents.EnableEpochsHandler(),
+		n.processComponents.RelayedTxV3Processor(),
 	)
 	if err != nil {
 		return nil, nil, err
@@ -892,25 +893,33 @@ func (n *Node) CreateTransaction(txArgs *external.ArgsCreateTransaction) (*trans
 	}
 
 	tx := &transaction.Transaction{
-		Nonce:       txArgs.Nonce,
-		Value:       valAsBigInt,
-		RcvAddr:     receiverAddress,
-		RcvUserName: txArgs.ReceiverUsername,
-		SndAddr:     senderAddress,
-		SndUserName: txArgs.SenderUsername,
-		GasPrice:    txArgs.GasPrice,
-		GasLimit:    txArgs.GasLimit,
-		Data:        txArgs.DataField,
-		Signature:   signatureBytes,
-		ChainID:     []byte(txArgs.ChainID),
-		Version:     txArgs.Version,
-		Options:     txArgs.Options,
+		Nonce:             txArgs.Nonce,
+		Value:             valAsBigInt,
+		RcvAddr:           receiverAddress,
+		RcvUserName:       txArgs.ReceiverUsername,
+		SndAddr:           senderAddress,
+		SndUserName:       txArgs.SenderUsername,
+		GasPrice:          txArgs.GasPrice,
+		GasLimit:          txArgs.GasLimit,
+		Data:              txArgs.DataField,
+		Signature:         signatureBytes,
+		ChainID:           []byte(txArgs.ChainID),
+		Version:           txArgs.Version,
+		Options:           txArgs.Options,
+		InnerTransactions: txArgs.InnerTransactions,
 	}
 
 	if len(txArgs.Guardian) > 0 {
 		err = n.setTxGuardianData(txArgs.Guardian, txArgs.GuardianSigHex, tx)
 		if err != nil {
 			return nil, nil, err
+		}
+	}
+
+	if len(txArgs.Relayer) > 0 {
+		tx.RelayerAddr, err = addrPubKeyConverter.Decode(txArgs.Relayer)
+		if err != nil {
+			return nil, nil, errors.New("could not create relayer address from provided param")
 		}
 	}
 
@@ -962,6 +971,10 @@ func (n *Node) GetAccountWithKeys(address string, options api.AccountQueryOption
 
 	var keys map[string]string
 	if options.WithKeys {
+		if accInfo.account == nil || accInfo.account.DataTrie() == nil {
+			return accInfo.accountResponse, accInfo.block, nil
+		}
+
 		keys, err = n.getKeys(accInfo.account, ctx)
 		if err != nil {
 			return api.AccountResponse{}, api.BlockInfo{}, err

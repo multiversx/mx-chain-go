@@ -196,6 +196,9 @@ func CheckGenerateTransactions(t *testing.T, chainSimulator ChainSimulator) {
 	wallet4, err := chainSimulator.GenerateAndMintWalletAddress(2, InitialAmount)
 	require.Nil(t, err)
 
+	err = chainSimulator.GenerateBlocks(1)
+	require.Nil(t, err)
+
 	gasLimit := uint64(50000)
 	tx0 := GenerateTransaction(wallet0.Bytes, 0, wallet2.Bytes, transferValue, "", gasLimit)
 	tx1 := GenerateTransaction(wallet1.Bytes, 0, wallet2.Bytes, transferValue, "", gasLimit)

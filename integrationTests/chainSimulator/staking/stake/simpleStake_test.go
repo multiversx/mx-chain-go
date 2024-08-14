@@ -66,7 +66,7 @@ func testChainSimulatorSimpleStake(t *testing.T, targetEpoch int32, nodesStatus 
 	numOfShards := uint32(3)
 
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:   false,
+		BypassTxSignatureCheck:   true,
 		TempDir:                  t.TempDir(),
 		PathToInitialConfig:      defaultPathToInitialConfig,
 		NumOfShards:              numOfShards,
@@ -92,6 +92,9 @@ func testChainSimulatorSimpleStake(t *testing.T, targetEpoch int32, nodesStatus 
 	wallet2, err := cs.GenerateAndMintWalletAddress(0, mintValue)
 	require.Nil(t, err)
 	wallet3, err := cs.GenerateAndMintWalletAddress(0, mintValue)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	_, blsKeys, err := chainSimulator.GenerateBlsPrivateKeys(3)
@@ -159,7 +162,7 @@ func TestChainSimulator_StakingV4Step2APICalls(t *testing.T) {
 	stakingV4Step3Epoch := uint32(4)
 
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck: false,
+		BypassTxSignatureCheck: true,
 		TempDir:                t.TempDir(),
 		PathToInitialConfig:    defaultPathToInitialConfig,
 		NumOfShards:            3,
@@ -199,6 +202,9 @@ func TestChainSimulator_StakingV4Step2APICalls(t *testing.T) {
 
 	mintValue := big.NewInt(0).Add(chainSimulatorIntegrationTests.MinimumStakeValue, chainSimulatorIntegrationTests.OneEGLD)
 	validatorOwner, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	// Stake a new validator that should end up in auction in step 1

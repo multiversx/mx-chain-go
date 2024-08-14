@@ -57,7 +57,7 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 
 	numOfShards := uint32(3)
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:   false,
+		BypassTxSignatureCheck:   true,
 		TempDir:                  t.TempDir(),
 		PathToInitialConfig:      defaultPathToInitialConfig,
 		NumOfShards:              numOfShards,
@@ -101,6 +101,9 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 			Balance: "10000000000000000000000",
 		},
 	})
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	// Step 3 --- generate and send a stake transaction with the BLS key of the validator key that was added at step 1
@@ -189,7 +192,7 @@ func TestChainSimulator_AddANewValidatorAfterStakingV4(t *testing.T) {
 	}
 	numOfShards := uint32(3)
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck: false,
+		BypassTxSignatureCheck: true,
 		TempDir:                t.TempDir(),
 		PathToInitialConfig:    defaultPathToInitialConfig,
 		NumOfShards:            numOfShards,
@@ -235,6 +238,9 @@ func TestChainSimulator_AddANewValidatorAfterStakingV4(t *testing.T) {
 			Balance: "1000000000000000000000000",
 		},
 	})
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	// Step 3 --- generate and send a stake transaction with the BLS keys of the validators key that were added at step 1
@@ -318,7 +324,7 @@ func testStakeUnStakeUnBond(t *testing.T, targetEpoch int32) {
 	}
 	numOfShards := uint32(3)
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck: false,
+		BypassTxSignatureCheck: true,
 		TempDir:                t.TempDir(),
 		PathToInitialConfig:    defaultPathToInitialConfig,
 		NumOfShards:            numOfShards,
@@ -351,6 +357,9 @@ func testStakeUnStakeUnBond(t *testing.T, targetEpoch int32) {
 	mintValue := big.NewInt(0).Mul(chainSimulatorIntegrationTests.OneEGLD, big.NewInt(2600))
 	walletAddressShardID := uint32(0)
 	walletAddress, err := cs.GenerateAndMintWalletAddress(walletAddressShardID, mintValue)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	txDataField := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], staking.MockBLSSignature)
@@ -446,7 +455,7 @@ func TestChainSimulator_DirectStakingNodes_StakeFunds(t *testing.T) {
 
 	t.Run("staking ph 4 is not active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -476,7 +485,7 @@ func TestChainSimulator_DirectStakingNodes_StakeFunds(t *testing.T) {
 
 	t.Run("staking ph 4 step 1 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -506,7 +515,7 @@ func TestChainSimulator_DirectStakingNodes_StakeFunds(t *testing.T) {
 
 	t.Run("staking ph 4 step 2 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -536,7 +545,7 @@ func TestChainSimulator_DirectStakingNodes_StakeFunds(t *testing.T) {
 
 	t.Run("staking ph 4 step 3 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -581,6 +590,9 @@ func testChainSimulatorDirectStakedNodesStakingFunds(t *testing.T, cs chainSimul
 	mintValue = mintValue.Mul(chainSimulatorIntegrationTests.OneEGLD, mintValue)
 
 	validatorOwner, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	stakeValue := big.NewInt(0).Set(chainSimulatorIntegrationTests.MinimumStakeValue)
@@ -668,7 +680,7 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation(t *testi
 
 	t.Run("staking ph 4 is not active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -699,7 +711,7 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation(t *testi
 
 	t.Run("staking ph 4 step 1 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -731,7 +743,7 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation(t *testi
 
 	t.Run("staking ph 4 step 2 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -763,7 +775,7 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation(t *testi
 
 	t.Run("staking ph 4 step 3 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -809,6 +821,9 @@ func testChainSimulatorDirectStakedUnstakeFundsWithDeactivation(t *testing.T, cs
 	mintValue = mintValue.Mul(chainSimulatorIntegrationTests.OneEGLD, mintValue)
 
 	validatorOwner, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	stakeValue := big.NewInt(0).Set(chainSimulatorIntegrationTests.MinimumStakeValue)
@@ -949,7 +964,7 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation_WithReac
 
 	t.Run("staking ph 4 is not active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -980,7 +995,7 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation_WithReac
 
 	t.Run("staking ph 4 step 1 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -1012,7 +1027,7 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation_WithReac
 
 	t.Run("staking ph 4 step 2 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -1044,7 +1059,7 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation_WithReac
 
 	t.Run("staking ph 4 step 3 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -1090,6 +1105,9 @@ func testChainSimulatorDirectStakedUnstakeFundsWithDeactivationAndReactivation(t
 	mintValue = mintValue.Mul(chainSimulatorIntegrationTests.OneEGLD, mintValue)
 
 	validatorOwner, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	stakeValue := big.NewInt(0).Set(chainSimulatorIntegrationTests.MinimumStakeValue)
@@ -1186,7 +1204,7 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedFundsBeforeUnbonding(
 
 	t.Run("staking ph 4 is not active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -1216,7 +1234,7 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedFundsBeforeUnbonding(
 
 	t.Run("staking ph 4 step 1 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -1246,7 +1264,7 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedFundsBeforeUnbonding(
 
 	t.Run("staking ph 4 step 2 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -1276,7 +1294,7 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedFundsBeforeUnbonding(
 
 	t.Run("staking ph 4 step 3 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -1320,6 +1338,9 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsBeforeUnbonding(t *testi
 	mintValue = mintValue.Mul(chainSimulatorIntegrationTests.OneEGLD, mintValue)
 
 	validatorOwner, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	stakeValue := big.NewInt(0).Mul(chainSimulatorIntegrationTests.OneEGLD, big.NewInt(2600))
@@ -1420,7 +1441,7 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInWithdrawEpoch(t *te
 
 	t.Run("staking ph 4 is not active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -1450,7 +1471,7 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInWithdrawEpoch(t *te
 
 	t.Run("staking ph 4 step 1 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -1480,7 +1501,7 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInWithdrawEpoch(t *te
 
 	t.Run("staking ph 4 step 2 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -1510,7 +1531,7 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInWithdrawEpoch(t *te
 
 	t.Run("staking ph 4 step 3 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -1554,6 +1575,9 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInFirstEpoch(t *testing.
 	mintValue = mintValue.Mul(chainSimulatorIntegrationTests.OneEGLD, mintValue)
 
 	validatorOwner, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	stakeValue := big.NewInt(0).Mul(chainSimulatorIntegrationTests.OneEGLD, big.NewInt(2600))
@@ -1683,7 +1707,7 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInBatches(t *testing.
 
 	t.Run("staking ph 4 is not active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -1715,7 +1739,7 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInBatches(t *testing.
 
 	t.Run("staking ph 4 step 1 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -1747,7 +1771,7 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInBatches(t *testing.
 
 	t.Run("staking ph 4 step 2 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -1779,7 +1803,7 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInBatches(t *testing.
 
 	t.Run("staking ph 4 step 3 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -1825,6 +1849,9 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInBatches(t *testing.T, 
 	mintValue = mintValue.Mul(chainSimulatorIntegrationTests.OneEGLD, mintValue)
 
 	validatorOwner, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	stakeValue := big.NewInt(0).Mul(chainSimulatorIntegrationTests.OneEGLD, big.NewInt(2600))
@@ -2039,7 +2066,7 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInEpoch(t *testing.T)
 
 	t.Run("staking ph 4 is not active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -2071,7 +2098,7 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInEpoch(t *testing.T)
 
 	t.Run("staking ph 4 step 1 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -2103,7 +2130,7 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInEpoch(t *testing.T)
 
 	t.Run("staking ph 4 step 2 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -2135,7 +2162,7 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInEpoch(t *testing.T)
 
 	t.Run("staking ph 4 step 3 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   false,
+			BypassTxSignatureCheck:   true,
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
@@ -2181,6 +2208,9 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInEpoch(t *testing.T, cs
 	mintValue = mintValue.Mul(chainSimulatorIntegrationTests.OneEGLD, mintValue)
 
 	validatorOwner, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	stakeValue := big.NewInt(0).Mul(chainSimulatorIntegrationTests.OneEGLD, big.NewInt(2600))
@@ -2332,7 +2362,7 @@ func TestChainSimulator_UnStakeOneActiveNodeAndCheckAPIAuctionList(t *testing.T)
 
 	numOfShards := uint32(3)
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:   false,
+		BypassTxSignatureCheck:   true,
 		TempDir:                  t.TempDir(),
 		PathToInitialConfig:      defaultPathToInitialConfig,
 		NumOfShards:              numOfShards,
@@ -2411,7 +2441,7 @@ func TestChainSimulator_EdgeCaseLowWaitingList(t *testing.T) {
 
 	numOfShards := uint32(3)
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:   false,
+		BypassTxSignatureCheck:   true,
 		TempDir:                  t.TempDir(),
 		PathToInitialConfig:      defaultPathToInitialConfig,
 		NumOfShards:              numOfShards,
@@ -2522,6 +2552,9 @@ func createStakeTransaction(t *testing.T, cs chainSimulatorIntegrationTests.Chai
 
 	mintValue := big.NewInt(0).Add(chainSimulatorIntegrationTests.MinimumStakeValue, chainSimulatorIntegrationTests.OneEGLD)
 	validatorOwner, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
 	txDataField := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], staking.MockBLSSignature)

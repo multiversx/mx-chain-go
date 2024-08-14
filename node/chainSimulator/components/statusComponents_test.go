@@ -21,7 +21,7 @@ func TestCreateStatusComponents(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		comp, err := CreateStatusComponents(0, &statusHandler.AppStatusHandlerStub{}, 5, config.ExternalConfig{})
+		comp, err := CreateStatusComponents(0, &statusHandler.AppStatusHandlerStub{}, 5, config.ExternalConfig{}, &mock.CoreComponentsStub{})
 		require.NoError(t, err)
 		require.NotNil(t, comp)
 
@@ -31,7 +31,7 @@ func TestCreateStatusComponents(t *testing.T) {
 	t.Run("nil app status handler should error", func(t *testing.T) {
 		t.Parallel()
 
-		comp, err := CreateStatusComponents(0, nil, 5, config.ExternalConfig{})
+		comp, err := CreateStatusComponents(0, nil, 5, config.ExternalConfig{}, &mock.CoreComponentsStub{})
 		require.Equal(t, core.ErrNilAppStatusHandler, err)
 		require.Nil(t, comp)
 	})
@@ -43,7 +43,7 @@ func TestStatusComponentsHolder_IsInterfaceNil(t *testing.T) {
 	var comp *statusComponentsHolder
 	require.True(t, comp.IsInterfaceNil())
 
-	comp, _ = CreateStatusComponents(0, &statusHandler.AppStatusHandlerStub{}, 5, config.ExternalConfig{})
+	comp, _ = CreateStatusComponents(0, &statusHandler.AppStatusHandlerStub{}, 5, config.ExternalConfig{}, &mock.CoreComponentsStub{})
 	require.False(t, comp.IsInterfaceNil())
 	require.Nil(t, comp.Close())
 }
@@ -51,7 +51,7 @@ func TestStatusComponentsHolder_IsInterfaceNil(t *testing.T) {
 func TestStatusComponentsHolder_Getters(t *testing.T) {
 	t.Parallel()
 
-	comp, err := CreateStatusComponents(0, &statusHandler.AppStatusHandlerStub{}, 5, config.ExternalConfig{})
+	comp, err := CreateStatusComponents(0, &statusHandler.AppStatusHandlerStub{}, 5, config.ExternalConfig{}, &mock.CoreComponentsStub{})
 	require.NoError(t, err)
 
 	require.NotNil(t, comp.OutportHandler())
@@ -65,7 +65,7 @@ func TestStatusComponentsHolder_Getters(t *testing.T) {
 func TestStatusComponentsHolder_SetForkDetector(t *testing.T) {
 	t.Parallel()
 
-	comp, err := CreateStatusComponents(0, &statusHandler.AppStatusHandlerStub{}, 5, config.ExternalConfig{})
+	comp, err := CreateStatusComponents(0, &statusHandler.AppStatusHandlerStub{}, 5, config.ExternalConfig{}, &mock.CoreComponentsStub{})
 	require.NoError(t, err)
 
 	err = comp.SetForkDetector(nil)
@@ -83,7 +83,7 @@ func TestStatusComponentsHolder_StartPolling(t *testing.T) {
 	t.Run("nil fork detector should error", func(t *testing.T) {
 		t.Parallel()
 
-		comp, err := CreateStatusComponents(0, &statusHandler.AppStatusHandlerStub{}, 5, config.ExternalConfig{})
+		comp, err := CreateStatusComponents(0, &statusHandler.AppStatusHandlerStub{}, 5, config.ExternalConfig{}, &mock.CoreComponentsStub{})
 		require.NoError(t, err)
 
 		err = comp.StartPolling()
@@ -92,7 +92,7 @@ func TestStatusComponentsHolder_StartPolling(t *testing.T) {
 	t.Run("NewAppStatusPolling failure should error", func(t *testing.T) {
 		t.Parallel()
 
-		comp, err := CreateStatusComponents(0, &statusHandler.AppStatusHandlerStub{}, 0, config.ExternalConfig{})
+		comp, err := CreateStatusComponents(0, &statusHandler.AppStatusHandlerStub{}, 0, config.ExternalConfig{}, &mock.CoreComponentsStub{})
 		require.NoError(t, err)
 
 		err = comp.SetForkDetector(&mock.ForkDetectorStub{})
@@ -114,7 +114,7 @@ func TestStatusComponentsHolder_StartPolling(t *testing.T) {
 				wasSetUInt64ValueCalled.SetValue(true)
 			},
 		}
-		comp, err := CreateStatusComponents(0, appStatusHandler, providedStatusPollingIntervalSec, config.ExternalConfig{})
+		comp, err := CreateStatusComponents(0, appStatusHandler, providedStatusPollingIntervalSec, config.ExternalConfig{}, &mock.CoreComponentsStub{})
 		require.NoError(t, err)
 
 		forkDetector := &mock.ForkDetectorStub{

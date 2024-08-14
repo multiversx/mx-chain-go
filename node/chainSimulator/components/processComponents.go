@@ -22,7 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/parsing"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/interceptors/disabled"
+	"github.com/multiversx/mx-chain-go/process/interceptors"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage/cache"
@@ -100,6 +100,7 @@ type processComponentsHolder struct {
 	accountsParser                   genesis.AccountsParser
 	sentSignatureTracker             process.SentSignaturesTracker
 	epochStartSystemSCProcessor      process.EpochStartSystemSCProcessor
+	relayedTxV3Processor             process.RelayedTxV3Processor
 	managedProcessComponentsCloser   io.Closer
 }
 
@@ -153,12 +154,22 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		return nil, err
 	}
 
-	whiteListRequest, err := disabled.NewDisabledWhiteListDataVerifier()
+	lruCacheRequest, err := cache.NewLRUCache(int(args.Config.WhiteListPool.Capacity))
+	if err != nil {
+		return nil, err
+
+	}
+	whiteListHandler, err := interceptors.NewWhiteListDataVerifier(lruCacheRequest)
 	if err != nil {
 		return nil, err
 	}
 
-	whiteListerVerifiedTxs, err := disabled.NewDisabledWhiteListDataVerifier()
+	lruCacheTx, err := cache.NewLRUCache(int(args.Config.WhiteListerVerifiedTxs.Capacity))
+	if err != nil {
+		return nil, err
+
+	}
+	whiteListVerifiedTxs, err := interceptors.NewWhiteListDataVerifier(lruCacheTx)
 	if err != nil {
 		return nil, err
 	}
@@ -196,8 +207,8 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		GasSchedule:             gasScheduleNotifier,
 		NodesCoordinator:        args.NodesCoordinator,
 		RequestedItemsHandler:   requestedItemsHandler,
-		WhiteListHandler:        whiteListRequest,
-		WhiteListerVerifiedTxs:  whiteListerVerifiedTxs,
+		WhiteListHandler:        whiteListHandler,
+		WhiteListerVerifiedTxs:  whiteListVerifiedTxs,
 		MaxRating:               50,
 		SystemSCConfig:          &args.SystemSCConfig,
 		ImportStartHandler:      importStartHandler,
@@ -273,6 +284,7 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		accountsParser:                   managedProcessComponents.AccountsParser(),
 		sentSignatureTracker:             managedProcessComponents.SentSignaturesTracker(),
 		epochStartSystemSCProcessor:      managedProcessComponents.EpochSystemSCProcessor(),
+		relayedTxV3Processor:             managedProcessComponents.RelayedTxV3Processor(),
 		managedProcessComponentsCloser:   managedProcessComponents,
 	}
 
@@ -511,6 +523,11 @@ func (p *processComponentsHolder) ReceiptsRepository() factory.ReceiptsRepositor
 // EpochSystemSCProcessor returns the epoch start system SC processor
 func (p *processComponentsHolder) EpochSystemSCProcessor() process.EpochStartSystemSCProcessor {
 	return p.epochStartSystemSCProcessor
+}
+
+// RelayedTxV3Processor returns the relayed tx v3 processor
+func (p *processComponentsHolder) RelayedTxV3Processor() process.RelayedTxV3Processor {
+	return p.relayedTxV3Processor
 }
 
 // Close will call the Close methods on all inner components
