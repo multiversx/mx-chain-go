@@ -545,6 +545,7 @@ func (wrk *Worker) doJobOnMessageWithSignature(cnsMsg *consensus.Message, p2pMsg
 		}
 	}
 
+	log.Info("received message with signature", "index", cnsLen, "from", core.GetTrimmedPk(hex.EncodeToString(cnsMsg.PubKey)), "hash", core.GetTrimmedPk(hash))
 	wrk.consensusState.AddMessageWithSignature(string(cnsMsg.PubKey), p2pMsg)
 }
 
