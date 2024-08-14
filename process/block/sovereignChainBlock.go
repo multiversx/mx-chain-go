@@ -906,8 +906,6 @@ func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
-	// do NOT call scbp.epochRewardsCreator.VerifyRewardsMiniBlocks here as in original meta code, since that func will re-process rewards
-
 	err = scbp.verifyFees(header)
 	if err != nil {
 		return err

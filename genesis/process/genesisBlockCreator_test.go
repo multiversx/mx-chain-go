@@ -599,6 +599,18 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 		require.True(t, errors.Is(err, vm.ErrNilVmContainerMetaCreator))
 		require.Nil(t, gbc)
 	})
+	t.Run("nil PreProcessorsContainerFactoryCreator, should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
+		rtComponents := genesisMocks.NewRunTypeComponentsStub()
+		rtComponents.PreProcessorsContainerFactoryCreatorField = nil
+		arg.RunTypeComponents = rtComponents
+
+		gbc, err := NewGenesisBlockCreator(arg)
+		require.True(t, errors.Is(err, errorsMx.ErrNilPreProcessorsContainerFactoryCreator))
+		require.Nil(t, gbc)
+	})
 	t.Run("nil TrieStorageManagers should error", func(t *testing.T) {
 		t.Parallel()
 
