@@ -822,14 +822,17 @@ func (bh *BlockChainHookImpl) updateEpochStartHeaderFromCurrentHeader(hdr data.H
 
 	epochStartHdr, err := bh.epochStartTrigger.LastCommitedEpochStartHdr()
 	if err != nil {
+		log.Warn("BlockChainHookImpl.updateEpochStartHeaderFromCurrentHeader: epochStartTrigger.LastCommitedEpochStartHdr", "error", err)
 		return err
 	}
 
 	if check.IfNil(epochStartHdr) {
+		log.Warn("BlockChainHookImpl.updateEpochStartHeaderFromCurrentHeader: epochStartHdr is nil")
 		return ErrNilLastCommitedEpochStartHdr
 	}
 
 	if epochStartHdr.GetEpoch() != hdr.GetEpoch() {
+		log.Warn("BlockChainHookImpl.updateEpochStartHeaderFromCurrentHeader: epochStartHdr.GetEpoch() != hdr.GetEpoch()", "epochStartHdr", epochStartHdr.GetEpoch(), "hdr", hdr.GetEpoch())
 		return ErrLastCommitedEpochStartHdrMismatch
 	}
 
