@@ -203,7 +203,7 @@ func (cm *commonMessenger) BroadcastBlockData(
 func (cm *commonMessenger) PrepareBroadcastFinalConsensusMessage(message *consensus.Message, consensusIndex int) {
 	err := cm.delayedBlockBroadcaster.SetFinalConsensusMessageForValidator(message, consensusIndex)
 	if err != nil {
-		log.Error("commonMessenger.PrepareBroadcastFinalInfo", "error", err)
+		log.Error("commonMessenger.PrepareBroadcastFinalConsensusMessage", "error", err)
 	}
 }
 

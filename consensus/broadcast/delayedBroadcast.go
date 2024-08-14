@@ -282,14 +282,14 @@ func (dbb *delayedBlockBroadcaster) SetFinalConsensusMessageForValidator(message
 		dbb.mutBroadcastConsensusMessage.Unlock()
 
 		dbb.alarm.Add(dbb.consensusMessageAlarmExpired, duration, alarmID)
-		log.Trace("delayedBlockBroadcaster.SetFinalInfoForValidator: consensus message alarm has been set",
+		log.Trace("delayedBlockBroadcaster.SetFinalConsensusMessageForValidator: consensus message alarm has been set",
 			"validatorConsensusOrder", consensusIndex,
 			"headerHash", message.BlockHeaderHash,
 			"alarmID", alarmID,
 			"duration", duration,
 		)
 	} else {
-		log.Trace("delayedBlockBroadcaster.SetFinalInfoForValidator: consensus message alarm has not been set",
+		log.Trace("delayedBlockBroadcaster.SetFinalConsensusMessageForValidator: consensus message alarm has not been set",
 			"validatorConsensusOrder", consensusIndex,
 		)
 	}

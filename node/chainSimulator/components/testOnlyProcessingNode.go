@@ -337,6 +337,9 @@ func (node *testOnlyProcessingNode) createBroadcastMessenger() error {
 		node.ProcessComponentsHolder.InterceptorsContainer(),
 		node.CoreComponentsHolder.AlarmScheduler(),
 		node.CryptoComponentsHolder.KeysHandler(),
+		config.ConsensusGradualBroadcastConfig{
+			GradualIndexBroadcastDelay: []config.IndexBroadcastDelay{},
+		},
 	)
 	if err != nil {
 		return err
