@@ -4,6 +4,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -38,6 +39,7 @@ type ConsensusCore struct {
 	messageSigningHandler         consensus.P2PSigningHandler
 	peerBlacklistHandler          consensus.PeerBlacklistHandler
 	signingHandler                consensus.SigningHandler
+	enableEpochsHandler           common.EnableEpochsHandler
 }
 
 // ConsensusCoreArgs store all arguments that are needed to create a ConsensusCore object
@@ -64,6 +66,7 @@ type ConsensusCoreArgs struct {
 	MessageSigningHandler         consensus.P2PSigningHandler
 	PeerBlacklistHandler          consensus.PeerBlacklistHandler
 	SigningHandler                consensus.SigningHandler
+	EnableEpochsHandler           common.EnableEpochsHandler
 }
 
 // NewConsensusCore creates a new ConsensusCore instance
@@ -93,6 +96,7 @@ func NewConsensusCore(
 		messageSigningHandler:         args.MessageSigningHandler,
 		peerBlacklistHandler:          args.PeerBlacklistHandler,
 		signingHandler:                args.SigningHandler,
+		enableEpochsHandler:           args.EnableEpochsHandler,
 	}
 
 	err := ValidateConsensusCore(consensusCore)
@@ -211,6 +215,11 @@ func (cc *ConsensusCore) PeerBlacklistHandler() consensus.PeerBlacklistHandler {
 // SigningHandler will return the signing handler component
 func (cc *ConsensusCore) SigningHandler() consensus.SigningHandler {
 	return cc.signingHandler
+}
+
+// EnableEpochsHandler returns the enable epochs handler component
+func (cc *ConsensusCore) EnableEpochsHandler() common.EnableEpochsHandler {
+	return cc.enableEpochsHandler
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

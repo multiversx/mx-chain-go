@@ -318,6 +318,9 @@
     # CryptoOpcodesV2EnableEpoch represents the epoch when BLSMultiSig, Secp256r1 and other opcodes are enabled
     CryptoOpcodesV2EnableEpoch = 4
 
+    # EquivalentMessagesEnableEpoch represents the epoch when the equivalent messages are enabled
+    EquivalentMessagesEnableEpoch = 3
+
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [
         { EnableEpoch = 0, Type = "no-KOSK" },

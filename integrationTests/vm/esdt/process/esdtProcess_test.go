@@ -43,6 +43,7 @@ func TestESDTIssueAndTransactionsOnMultiShardEnvironment(t *testing.T) {
 		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: integrationTests.UnreachableEpoch,
 		ScheduledMiniBlocksEnableEpoch:              integrationTests.UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch:        integrationTests.UnreachableEpoch,
+		EquivalentMessagesEnableEpoch:               integrationTests.UnreachableEpoch,
 	}
 	nodes := integrationTests.CreateNodesWithEnableEpochs(
 		numOfShards,
@@ -175,6 +176,7 @@ func TestESDTCallBurnOnANonBurnableToken(t *testing.T) {
 		ScheduledMiniBlocksEnableEpoch:              integrationTests.UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch:        integrationTests.UnreachableEpoch,
 		MultiClaimOnDelegationEnableEpoch:           integrationTests.UnreachableEpoch,
+		EquivalentMessagesEnableEpoch:               integrationTests.UnreachableEpoch,
 	}
 
 	nodes := integrationTests.CreateNodesWithEnableEpochs(
@@ -1285,6 +1287,7 @@ func TestExecOnDestWithTokenTransferFromScAtoScBWithIntermediaryExecOnDest_NotEn
 		GlobalMintBurnDisableEpoch:              integrationTests.UnreachableEpoch,
 		SCProcessorV2EnableEpoch:                integrationTests.UnreachableEpoch,
 		FailExecutionOnEveryAPIErrorEnableEpoch: integrationTests.UnreachableEpoch,
+		EquivalentMessagesEnableEpoch:           integrationTests.UnreachableEpoch,
 	}
 	arwenVersion := config.WasmVMVersionByEpoch{Version: "v1.4"}
 	vmConfig := &config.VirtualMachineConfig{
@@ -1982,6 +1985,7 @@ func TestIssueAndBurnESDT_MaxGasPerBlockExceeded(t *testing.T) {
 	enableEpochs := config.EnableEpochs{
 		GlobalMintBurnDisableEpoch:           integrationTests.UnreachableEpoch,
 		MaxBlockchainHookCountersEnableEpoch: integrationTests.UnreachableEpoch,
+		EquivalentMessagesEnableEpoch:        integrationTests.UnreachableEpoch,
 	}
 	nodes := integrationTests.CreateNodesWithEnableEpochs(
 		numOfShards,
@@ -2366,6 +2370,7 @@ func TestESDTIssueUnderProtectedKeyWillReturnTokensBack(t *testing.T) {
 		OptimizeGasUsedInCrossMiniBlocksEnableEpoch: integrationTests.UnreachableEpoch,
 		ScheduledMiniBlocksEnableEpoch:              integrationTests.UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch:        integrationTests.UnreachableEpoch,
+		EquivalentMessagesEnableEpoch:               integrationTests.UnreachableEpoch,
 	}
 
 	nodes := integrationTests.CreateNodesWithEnableEpochs(

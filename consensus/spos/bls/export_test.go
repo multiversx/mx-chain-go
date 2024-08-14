@@ -203,8 +203,8 @@ func (sr *subroundBlock) SendBlockBody(body data.BodyHandler, marshalizedBody []
 }
 
 // SendBlockHeader method sends the proposed block header in the subround Block
-func (sr *subroundBlock) SendBlockHeader(header data.HeaderHandler, marshalizedHeader []byte) bool {
-	return sr.sendBlockHeader(header, marshalizedHeader)
+func (sr *subroundBlock) SendBlockHeader(header data.HeaderHandler, marshalizedHeader []byte, signature []byte) bool {
+	return sr.sendBlockHeader(header, marshalizedHeader, signature)
 }
 
 // ComputeSubroundProcessingMetric computes processing metric related to the subround Block
@@ -288,8 +288,8 @@ func (sr *subroundEndRound) HaveConsensusHeaderWithFullInfo(cnsDta *consensus.Me
 }
 
 // CreateAndBroadcastHeaderFinalInfo calls the unexported createAndBroadcastHeaderFinalInfo function
-func (sr *subroundEndRound) CreateAndBroadcastHeaderFinalInfo() {
-	sr.createAndBroadcastHeaderFinalInfo()
+func (sr *subroundEndRound) CreateAndBroadcastHeaderFinalInfo(signature []byte, bitmap []byte, leaderSignature []byte, pk []byte) {
+	sr.createAndBroadcastHeaderFinalInfoForKey(signature, bitmap, leaderSignature, pk)
 }
 
 // ReceivedBlockHeaderFinalInfo calls the unexported receivedBlockHeaderFinalInfo function

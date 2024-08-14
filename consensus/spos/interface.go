@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -65,6 +66,8 @@ type ConsensusCoreHandler interface {
 	PeerBlacklistHandler() consensus.PeerBlacklistHandler
 	// SigningHandler returns the signing handler component
 	SigningHandler() consensus.SigningHandler
+	// EnableEpochsHandler returns the enable epochs handler component
+	EnableEpochsHandler() common.EnableEpochsHandler
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
@@ -139,6 +142,12 @@ type WorkerHandler interface {
 	ReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte)
 	// ResetConsensusMessages resets at the start of each round all the previous consensus messages received
 	ResetConsensusMessages()
+	// HasEquivalentMessage returns true if an equivalent message was received before
+	HasEquivalentMessage(headerHash []byte) bool
+	// GetEquivalentProof returns the equivalent proof for the provided hash
+	GetEquivalentProof(headerHash []byte) (data.HeaderProof, error)
+	// SetValidEquivalentProof saves the equivalent proof for the provided header and marks it as validated
+	SetValidEquivalentProof(headerHash []byte, proof data.HeaderProof)
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
@@ -154,6 +163,8 @@ type HeaderSigVerifier interface {
 	VerifyRandSeed(header data.HeaderHandler) error
 	VerifyLeaderSignature(header data.HeaderHandler) error
 	VerifySignature(header data.HeaderHandler) error
+	VerifySignatureForHash(header data.HeaderHandler, hash []byte, pubkeysBitmap []byte, signature []byte) error
+	VerifyPreviousBlockProof(header data.HeaderHandler) error
 	IsInterfaceNil() bool
 }
 
@@ -175,5 +186,11 @@ type PeerBlackListCacher interface {
 type SentSignaturesTracker interface {
 	StartRound()
 	SignatureSent(pkBytes []byte)
+	IsInterfaceNil() bool
+}
+
+// EquivalentMessagesDebugger defines the specific debugger for equivalent messages
+type EquivalentMessagesDebugger interface {
+	DisplayEquivalentMessagesStatistics(getDataHandler func() map[string]*consensus.EquivalentMessageInfo)
 	IsInterfaceNil() bool
 }

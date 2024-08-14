@@ -191,8 +191,8 @@ func (fct *factory) generateBlockSubround() error {
 
 	subroundBlockInstance, err := NewSubroundBlock(
 		subround,
-		fct.worker.Extend,
 		processingThresholdPercent,
+		fct.worker,
 	)
 	if err != nil {
 		return err
@@ -228,14 +228,15 @@ func (fct *factory) generateSignatureSubround() error {
 
 	subroundSignatureObject, err := NewSubroundSignature(
 		subround,
-		fct.worker.Extend,
 		fct.appStatusHandler,
 		fct.sentSignaturesTracker,
+		fct.worker,
 	)
 	if err != nil {
 		return err
 	}
 
+	// TODO[cleanup cns finality]: remove this
 	fct.worker.AddReceivedMessageCall(MtSignature, subroundSignatureObject.receivedSignature)
 	fct.consensusCore.Chronology().AddSubround(subroundSignatureObject)
 
@@ -264,11 +265,10 @@ func (fct *factory) generateEndRoundSubround() error {
 
 	subroundEndRoundObject, err := NewSubroundEndRound(
 		subround,
-		fct.worker.Extend,
 		spos.MaxThresholdPercent,
-		fct.worker.DisplayStatistics,
 		fct.appStatusHandler,
 		fct.sentSignaturesTracker,
+		fct.worker,
 	)
 	if err != nil {
 		return err
@@ -276,6 +276,7 @@ func (fct *factory) generateEndRoundSubround() error {
 
 	fct.worker.AddReceivedMessageCall(MtBlockHeaderFinalInfo, subroundEndRoundObject.receivedBlockHeaderFinalInfo)
 	fct.worker.AddReceivedMessageCall(MtInvalidSigners, subroundEndRoundObject.receivedInvalidSignersInfo)
+	fct.worker.AddReceivedMessageCall(MtSignature, subroundEndRoundObject.receivedSignature)
 	fct.worker.AddReceivedHeaderHandler(subroundEndRoundObject.receivedHeader)
 	fct.consensusCore.Chronology().AddSubround(subroundEndRoundObject)
 

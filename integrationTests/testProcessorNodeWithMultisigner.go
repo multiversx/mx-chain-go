@@ -181,6 +181,7 @@ func CreateNodeWithBLSAndTxKeys(
 		ScheduledMiniBlocksEnableEpoch:       UnreachableEpoch,
 		MiniBlockPartialExecutionEnableEpoch: UnreachableEpoch,
 		RefactorPeersMiniBlocksEnableEpoch:   UnreachableEpoch,
+		EquivalentMessagesEnableEpoch:        UnreachableEpoch,
 	}
 
 	return CreateNode(
@@ -242,6 +243,7 @@ func CreateNodesWithNodesCoordinatorFactory(
 		StakingV4Step1EnableEpoch:                       UnreachableEpoch,
 		StakingV4Step2EnableEpoch:                       UnreachableEpoch,
 		StakingV4Step3EnableEpoch:                       UnreachableEpoch,
+		EquivalentMessagesEnableEpoch:                   UnreachableEpoch,
 	}
 
 	nodesMap := make(map[uint32][]*TestProcessorNode)
@@ -467,6 +469,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 			SingleSigVerifier:       signer,
 			KeyGen:                  keyGen,
 			FallbackHeaderValidator: &testscommon.FallBackHeaderValidatorStub{},
+			EnableEpochsHandler:     enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		}
 		headerSig, _ := headerCheck.NewHeaderSigVerifier(&args)
 
@@ -490,6 +493,7 @@ func CreateNodesWithNodesCoordinatorAndHeaderSigVerifier(
 					StakingV2EnableEpoch:                 UnreachableEpoch,
 					ScheduledMiniBlocksEnableEpoch:       UnreachableEpoch,
 					MiniBlockPartialExecutionEnableEpoch: UnreachableEpoch,
+					EquivalentMessagesEnableEpoch:        UnreachableEpoch,
 				},
 				NodeKeys:                cp.NodesKeys[shardId][i],
 				NodesSetup:              nodesSetup,
@@ -608,6 +612,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 				SingleSigVerifier:       singleSigner,
 				KeyGen:                  keyGenForBlocks,
 				FallbackHeaderValidator: &testscommon.FallBackHeaderValidatorStub{},
+				EnableEpochsHandler:     enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 			}
 
 			headerSig, _ := headerCheck.NewHeaderSigVerifier(&args)
@@ -626,6 +631,7 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 					StakingV2EnableEpoch:                 UnreachableEpoch,
 					ScheduledMiniBlocksEnableEpoch:       UnreachableEpoch,
 					MiniBlockPartialExecutionEnableEpoch: UnreachableEpoch,
+					EquivalentMessagesEnableEpoch:        UnreachableEpoch,
 				},
 				NodeKeys:                cp.NodesKeys[shardId][i],
 				NodesSetup:              nodesSetup,
