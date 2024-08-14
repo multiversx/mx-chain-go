@@ -59,7 +59,7 @@ type Worker struct {
 	networkShardingCollector consensus.NetworkShardingCollector
 
 	receivedMessages      map[consensus.MessageType][]*consensus.Message
-	receivedMessagesCalls map[consensus.MessageType]func(ctx context.Context, msg *consensus.Message) bool
+	receivedMessagesCalls map[consensus.MessageType][]func(ctx context.Context, msg *consensus.Message) bool
 
 	executeMessageChannel        chan *consensus.Message
 	consensusStateChangedChannel chan bool
@@ -174,7 +174,7 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 
 	wrk.consensusMessageValidator = consensusMessageValidatorObj
 	wrk.executeMessageChannel = make(chan *consensus.Message)
-	wrk.receivedMessagesCalls = make(map[consensus.MessageType]func(context.Context, *consensus.Message) bool)
+	wrk.receivedMessagesCalls = make(map[consensus.MessageType][]func(context.Context, *consensus.Message) bool)
 	wrk.receivedHeadersHandlers = make([]func(data.HeaderHandler), 0)
 	wrk.consensusStateChangedChannel = make(chan bool, 1)
 	wrk.bootstrapper.AddSyncStateListener(wrk.receivedSyncState)
@@ -326,14 +326,14 @@ func (wrk *Worker) initReceivedMessages() {
 // AddReceivedMessageCall adds a new handler function for a received message type
 func (wrk *Worker) AddReceivedMessageCall(messageType consensus.MessageType, receivedMessageCall func(ctx context.Context, cnsDta *consensus.Message) bool) {
 	wrk.mutReceivedMessagesCalls.Lock()
-	wrk.receivedMessagesCalls[messageType] = receivedMessageCall
+	wrk.receivedMessagesCalls[messageType] = append(wrk.receivedMessagesCalls[messageType], receivedMessageCall)
 	wrk.mutReceivedMessagesCalls.Unlock()
 }
 
 // RemoveAllReceivedMessagesCalls removes all the functions handlers
 func (wrk *Worker) RemoveAllReceivedMessagesCalls() {
 	wrk.mutReceivedMessagesCalls.Lock()
-	wrk.receivedMessagesCalls = make(map[consensus.MessageType]func(context.Context, *consensus.Message) bool)
+	wrk.receivedMessagesCalls = make(map[consensus.MessageType][]func(context.Context, *consensus.Message) bool)
 	wrk.mutReceivedMessagesCalls.Unlock()
 }
 
@@ -669,11 +669,13 @@ func (wrk *Worker) checkChannels(ctx context.Context) {
 
 		msgType := consensus.MessageType(rcvDta.MsgType)
 
-		if callReceivedMessage, exist := wrk.receivedMessagesCalls[msgType]; exist {
-			if callReceivedMessage(ctx, rcvDta) {
-				select {
-				case wrk.consensusStateChangedChannel <- true:
-				default:
+		if receivedMessageCallbacks, exist := wrk.receivedMessagesCalls[msgType]; exist {
+			for _, callReceivedMessage := range receivedMessageCallbacks {
+				if callReceivedMessage(ctx, rcvDta) {
+					select {
+					case wrk.consensusStateChangedChannel <- true:
+					default:
+					}
 				}
 			}
 		}
@@ -792,15 +794,39 @@ func (wrk *Worker) checkValidityAndProcessEquivalentMessages(cnsMsg *consensus.M
 	return nil
 }
 
-func (wrk *Worker) shouldVerifyEquivalentMessages(msgType consensus.MessageType) bool {
-	if !wrk.enableEpochsHandler.IsFlagEnabled(common.EquivalentMessagesFlag) {
+func (wrk *Worker) checkFinalInfoFromSelf(cnsDta *consensus.Message) bool {
+	msgType := consensus.MessageType(cnsDta.MsgType)
+	if !wrk.consensusService.IsMessageWithFinalInfo(msgType) {
 		return false
 	}
 
-	return wrk.consensusService.IsMessageWithFinalInfo(msgType)
+	isMultiKeyManagedBySelf := wrk.consensusState.keysHandler.IsKeyManagedByCurrentNode(cnsDta.PubKey)
+	if wrk.consensusState.SelfPubKey() == string(cnsDta.PubKey) || isMultiKeyManagedBySelf {
+		return true
+	}
+
+	return false
+}
+
+func (wrk *Worker) shouldVerifyEquivalentMessages(msgType consensus.MessageType) bool {
+	if !wrk.consensusService.IsMessageWithFinalInfo(msgType) {
+		return false
+	}
+
+	if check.IfNil(wrk.consensusState.Header) {
+		return false
+	}
+
+	return wrk.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, wrk.consensusState.Header.GetEpoch())
 }
 
 func (wrk *Worker) processEquivalentMessageUnprotected(cnsMsg *consensus.Message) error {
+	// if the received final info is from self, simply return nil to allow further broadcast
+	// the proof was already validated
+	if wrk.checkFinalInfoFromSelf(cnsMsg) {
+		return nil
+	}
+
 	hdrHash := string(cnsMsg.BlockHeaderHash)
 	equivalentMsgInfo, ok := wrk.equivalentMessages[hdrHash]
 	if !ok {
@@ -813,18 +839,7 @@ func (wrk *Worker) processEquivalentMessageUnprotected(cnsMsg *consensus.Message
 		return ErrEquivalentMessageAlreadyReceived
 	}
 
-	err := wrk.verifyEquivalentMessageSignature(cnsMsg)
-	if err != nil {
-		return err
-	}
-
-	equivalentMsgInfo.Validated = true
-	equivalentMsgInfo.Proof = data.HeaderProof{
-		AggregatedSignature: cnsMsg.AggregateSignature,
-		PubKeysBitmap:       cnsMsg.PubKeysBitmap,
-	}
-
-	return nil
+	return wrk.verifyEquivalentMessageSignature(cnsMsg)
 }
 
 func (wrk *Worker) verifyEquivalentMessageSignature(cnsMsg *consensus.Message) error {
@@ -832,7 +847,7 @@ func (wrk *Worker) verifyEquivalentMessageSignature(cnsMsg *consensus.Message) e
 		return ErrNilHeader
 	}
 
-	return wrk.headerSigVerifier.VerifySignatureForHash(wrk.consensusState.Header, cnsMsg.BlockHeaderHash, cnsMsg.PubKeysBitmap, cnsMsg.Signature)
+	return wrk.headerSigVerifier.VerifySignatureForHash(wrk.consensusState.Header, cnsMsg.BlockHeaderHash, cnsMsg.PubKeysBitmap, cnsMsg.AggregateSignature)
 }
 
 func (wrk *Worker) processInvalidEquivalentMessageUnprotected(blockHeaderHash []byte) {
@@ -851,6 +866,48 @@ func (wrk *Worker) getEquivalentMessages() map[string]*consensus.EquivalentMessa
 	}
 
 	return equivalentMessagesCopy
+}
+
+// HasEquivalentMessage returns true if an equivalent message was received before
+func (wrk *Worker) HasEquivalentMessage(headerHash []byte) bool {
+	wrk.mutEquivalentMessages.RLock()
+	defer wrk.mutEquivalentMessages.RUnlock()
+	info, has := wrk.equivalentMessages[string(headerHash)]
+
+	return has && info.Validated
+}
+
+// GetEquivalentProof returns the equivalent proof for the provided hash
+func (wrk *Worker) GetEquivalentProof(headerHash []byte) (data.HeaderProof, error) {
+	wrk.mutEquivalentMessages.RLock()
+	defer wrk.mutEquivalentMessages.RUnlock()
+	info, has := wrk.equivalentMessages[string(headerHash)]
+	if !has {
+		return data.HeaderProof{}, ErrMissingEquivalentProof
+	}
+
+	if !info.Validated {
+		return data.HeaderProof{}, ErrEquivalentProofNotValidated
+	}
+
+	return info.Proof, nil
+}
+
+// SetValidEquivalentProof saves the equivalent proof for the provided header and marks it as validated
+func (wrk *Worker) SetValidEquivalentProof(headerHash []byte, proof data.HeaderProof) {
+	wrk.mutEquivalentMessages.Lock()
+	defer wrk.mutEquivalentMessages.Unlock()
+
+	hash := string(headerHash)
+	equivalentMessage, ok := wrk.equivalentMessages[hash]
+	if !ok {
+		equivalentMessage = &consensus.EquivalentMessageInfo{
+			NumMessages: 1,
+		}
+		wrk.equivalentMessages[hash] = equivalentMessage
+	}
+	equivalentMessage.Validated = true
+	equivalentMessage.Proof = proof
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

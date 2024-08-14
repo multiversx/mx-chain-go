@@ -320,6 +320,7 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 	return false
 }
 
+// TODO[cleanup cns finality]: remove this, already moved on subroundEndRound
 // areSignaturesCollected method checks if the signatures received from the nodes, belonging to the current
 // jobDone group, are more than the necessary given threshold
 func (sr *subroundSignature) areSignaturesCollected(threshold int) (bool, int) {
@@ -327,6 +328,7 @@ func (sr *subroundSignature) areSignaturesCollected(threshold int) (bool, int) {
 	return n >= threshold, n
 }
 
+// TODO[cleanup cns finality]: remove this, already moved on subroundEndRound
 func (sr *subroundSignature) getNumOfSignaturesCollected() int {
 	n := 0
 
@@ -350,6 +352,7 @@ func (sr *subroundSignature) getNumOfSignaturesCollected() int {
 	return n
 }
 
+// TODO[cleanup cns finality]: remove this, already moved on subroundEndRound
 func (sr *subroundSignature) waitAllSignatures() {
 	remainingTime := sr.remainingTime()
 	time.Sleep(remainingTime)
@@ -366,6 +369,7 @@ func (sr *subroundSignature) waitAllSignatures() {
 	}
 }
 
+// TODO[cleanup cns finality]: remove this, already moved on subroundEndRound
 func (sr *subroundSignature) remainingTime() time.Duration {
 	startTime := sr.RoundHandler().TimeStamp()
 	maxTime := time.Duration(float64(sr.StartTime()) + float64(sr.EndTime()-sr.StartTime())*waitingAllSigsMaxTimeThreshold)

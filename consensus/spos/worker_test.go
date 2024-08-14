@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math/big"
 	"strconv"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -140,6 +141,8 @@ func createMockP2PAntifloodHandler() *mock.P2PAntifloodHandlerStub {
 func initWorker(appStatusHandler core.AppStatusHandler) *spos.Worker {
 	workerArgs := createDefaultWorkerArgs(appStatusHandler)
 	sposWorker, _ := spos.NewWorker(workerArgs)
+
+	sposWorker.ConsensusState().Header = &block.HeaderV2{}
 
 	return sposWorker
 }
@@ -493,7 +496,7 @@ func TestWorker_AddReceivedMessageCallShouldWork(t *testing.T) {
 
 	assert.Equal(t, 1, len(receivedMessageCalls))
 	assert.NotNil(t, receivedMessageCalls[bls.MtBlockBody])
-	assert.True(t, receivedMessageCalls[bls.MtBlockBody](context.Background(), nil))
+	assert.True(t, receivedMessageCalls[bls.MtBlockBody][0](context.Background(), nil))
 }
 
 func TestWorker_RemoveAllReceivedMessageCallsShouldWork(t *testing.T) {
@@ -507,7 +510,7 @@ func TestWorker_RemoveAllReceivedMessageCallsShouldWork(t *testing.T) {
 
 	assert.Equal(t, 1, len(receivedMessageCalls))
 	assert.NotNil(t, receivedMessageCalls[bls.MtBlockBody])
-	assert.True(t, receivedMessageCalls[bls.MtBlockBody](context.Background(), nil))
+	assert.True(t, receivedMessageCalls[bls.MtBlockBody][0](context.Background(), nil))
 
 	wrk.RemoveAllReceivedMessagesCalls()
 	receivedMessageCalls = wrk.ReceivedMessagesCalls()
@@ -615,7 +618,11 @@ func TestWorker_ProcessReceivedMessageEquivalentMessage(t *testing.T) {
 	t.Parallel()
 
 	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
-	workerArgs.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.EquivalentMessagesFlag)
+	workerArgs.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.EquivalentMessagesFlag
+		},
+	}
 	wrk, _ := spos.NewWorker(workerArgs)
 
 	equivalentBlockHeaderHash := workerArgs.Hasher.Compute("equivalent block header hash")
@@ -680,16 +687,7 @@ func TestWorker_ProcessReceivedMessageEquivalentMessage(t *testing.T) {
 	)
 	buffInvalidCnsMsg, _ := wrk.Marshalizer().Marshal(invalidCnsMsg)
 
-	err := wrk.ProcessReceivedMessage(
-		&p2pmocks.P2PMessageMock{
-			DataField:      buff,
-			PeerField:      currentPid,
-			SignatureField: []byte("signature"),
-		},
-		fromConnectedPeerId,
-		&p2pmocks.MessengerStub{},
-	)
-	assert.Equal(t, spos.ErrNilHeader, err)
+	assert.False(t, wrk.HasEquivalentMessage(equivalentBlockHeaderHash))
 
 	wrk.ConsensusState().Header = &block.Header{
 		ChainID:         chainID,
@@ -701,7 +699,10 @@ func TestWorker_ProcessReceivedMessageEquivalentMessage(t *testing.T) {
 		AccumulatedFees: big.NewInt(0),
 		DeveloperFees:   big.NewInt(0),
 	}
-	err = wrk.ProcessReceivedMessage(
+
+	assert.False(t, wrk.HasEquivalentMessage(equivalentBlockHeaderHash))
+
+	err := wrk.ProcessReceivedMessage(
 		&p2pmocks.P2PMessageMock{
 			DataField:      buff,
 			PeerField:      currentPid,
@@ -714,13 +715,18 @@ func TestWorker_ProcessReceivedMessageEquivalentMessage(t *testing.T) {
 
 	equivalentMessages := wrk.GetEquivalentMessages()
 	assert.Equal(t, 1, len(equivalentMessages))
-	assert.Equal(t, uint64(2), equivalentMessages[string(equivalentBlockHeaderHash)].NumMessages)
+	assert.Equal(t, uint64(1), equivalentMessages[string(equivalentBlockHeaderHash)].NumMessages)
+	wrk.SetValidEquivalentProof(equivalentBlockHeaderHash, data.HeaderProof{
+		AggregatedSignature: []byte("sig"),
+		PubKeysBitmap:       []byte("bitmap"),
+	})
+	assert.True(t, wrk.HasEquivalentMessage(equivalentBlockHeaderHash))
 
 	equivMsgFrom := core.PeerID("from other peer id")
 	err = wrk.ProcessReceivedMessage(
 		&p2pmocks.P2PMessageMock{
 			DataField:      buffEquiv,
-			PeerField:      currentPid,
+			PeerField:      equivMsgFrom,
 			SignatureField: []byte("signatureEquiv"),
 		},
 		equivMsgFrom,
@@ -730,7 +736,7 @@ func TestWorker_ProcessReceivedMessageEquivalentMessage(t *testing.T) {
 
 	equivalentMessages = wrk.GetEquivalentMessages()
 	assert.Equal(t, 1, len(equivalentMessages))
-	assert.Equal(t, uint64(3), equivalentMessages[string(equivalentBlockHeaderHash)].NumMessages)
+	assert.Equal(t, uint64(2), equivalentMessages[string(equivalentBlockHeaderHash)].NumMessages)
 
 	err = wrk.ProcessReceivedMessage(
 		&p2pmocks.P2PMessageMock{
@@ -746,7 +752,7 @@ func TestWorker_ProcessReceivedMessageEquivalentMessage(t *testing.T) {
 	// same state as before, invalid message should have been dropped
 	equivalentMessages = wrk.GetEquivalentMessages()
 	assert.Equal(t, 1, len(equivalentMessages))
-	assert.Equal(t, uint64(3), equivalentMessages[string(equivalentBlockHeaderHash)].NumMessages)
+	assert.Equal(t, uint64(2), equivalentMessages[string(equivalentBlockHeaderHash)].NumMessages)
 
 	wrk.ResetConsensusMessages()
 	equivalentMessages = wrk.GetEquivalentMessages()
@@ -1427,6 +1433,7 @@ func TestWorker_ProcessReceivedMessageWithHeaderAndWrongHash(t *testing.T) {
 
 	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
 	wrk, _ := spos.NewWorker(workerArgs)
+	wrk.ConsensusState().Header = &block.HeaderV2{}
 
 	wrk.SetBlockProcessor(
 		&testscommon.BlockProcessorStub{
@@ -1496,6 +1503,7 @@ func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 		},
 	}
 	wrk, _ := spos.NewWorker(workerArgs)
+	wrk.ConsensusState().Header = &block.HeaderV2{}
 
 	wrk.SetBlockProcessor(
 		&testscommon.BlockProcessorStub{
@@ -1840,7 +1848,7 @@ func TestWorker_CheckChannelsShouldWork(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{})
 	wrk.StartWorking()
-	wrk.SetReceivedMessagesCalls(bls.MtBlockHeader, func(ctx context.Context, cnsMsg *consensus.Message) bool {
+	wrk.AppendReceivedMessagesCalls(bls.MtBlockHeader, func(ctx context.Context, cnsMsg *consensus.Message) bool {
 		_ = wrk.ConsensusState().SetJobDone(wrk.ConsensusState().ConsensusGroup()[0], bls.SrBlock, true)
 		return true
 	})
@@ -2039,6 +2047,7 @@ func TestWorker_ProcessReceivedMessageWrongHeaderShouldErr(t *testing.T) {
 
 	workerArgs.HeaderSigVerifier = headerSigVerifier
 	wrk, _ := spos.NewWorker(workerArgs)
+	wrk.ConsensusState().Header = &block.HeaderV2{}
 
 	hdr := &block.Header{}
 	hdr.Nonce = 1
@@ -2080,6 +2089,7 @@ func TestWorker_ProcessReceivedMessageWithSignature(t *testing.T) {
 
 		workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
 		wrk, _ := spos.NewWorker(workerArgs)
+		wrk.ConsensusState().Header = &block.HeaderV2{}
 
 		hdr := &block.Header{}
 		hdr.Nonce = 1
@@ -2119,5 +2129,72 @@ func TestWorker_ProcessReceivedMessageWithSignature(t *testing.T) {
 		p2pMsgWithSignature, ok := wrk.ConsensusState().GetMessageWithSignature(string(pubKey))
 		require.True(t, ok)
 		require.Equal(t, msg, p2pMsgWithSignature)
+	})
+}
+
+func TestWorker_EquivalentProof(t *testing.T) {
+	t.Parallel()
+
+	providedHash := []byte("hash")
+	providedProof := data.HeaderProof{
+		AggregatedSignature: []byte("sig"),
+		PubKeysBitmap:       []byte("bitmap"),
+	}
+	t.Run("all operations should work", func(t *testing.T) {
+		t.Parallel()
+
+		workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
+		wrk, _ := spos.NewWorker(workerArgs)
+
+		_, err := wrk.GetEquivalentProof(providedHash)
+		require.Equal(t, spos.ErrMissingEquivalentProof, err)
+
+		wrk.SetEquivalentProof(string(providedHash), providedProof)
+		proof, err := wrk.GetEquivalentProof(providedHash)
+		require.Equal(t, spos.ErrEquivalentProofNotValidated, err)
+		require.Equal(t, data.HeaderProof{}, proof)
+
+		require.False(t, wrk.HasEquivalentMessage(providedHash))
+
+		wrk.SetValidEquivalentProof(providedHash, providedProof)
+		require.True(t, wrk.HasEquivalentMessage(providedHash))
+
+		proof, err = wrk.GetEquivalentProof(providedHash)
+		require.NoError(t, err)
+		require.Equal(t, providedProof, proof)
+	})
+	t.Run("concurrent operations should work", func(t *testing.T) {
+		t.Parallel()
+
+		workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
+		wrk, _ := spos.NewWorker(workerArgs)
+
+		numCalls := 1000
+		wg := sync.WaitGroup{}
+		wg.Add(numCalls)
+
+		for i := 0; i < numCalls; i++ {
+			go func(idx int) {
+				switch idx % 3 {
+				case 0:
+					wrk.SetValidEquivalentProof(providedHash, providedProof)
+				case 1:
+					_, _ = wrk.GetEquivalentProof(providedHash)
+				case 2:
+					_ = wrk.HasEquivalentMessage(providedHash)
+				default:
+					require.Fail(t, "should never happen")
+				}
+
+				wg.Done()
+			}(i)
+		}
+
+		wg.Wait()
+
+		require.True(t, wrk.HasEquivalentMessage(providedHash))
+		proof, err := wrk.GetEquivalentProof(providedHash)
+		require.NoError(t, err)
+		require.Equal(t, providedProof, proof)
 	})
 }
