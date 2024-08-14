@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	testProcessMocks "github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
 )
@@ -101,11 +102,12 @@ func createMockArgument(
 		ValidityAttester:             &mock.ValidityAttesterStub{},
 		HeaderIntegrityVerifier:      &mock.HeaderIntegrityVerifierStub{},
 		EpochStartTrigger:            &mock.EpochStartTriggerStub{},
-		ArgsParser:                   &mock.ArgumentParserMock{},
+		ArgsParser:                   &testscommon.ArgumentParserMock{},
 		PeerSignatureHandler:         &processMocks.PeerSignatureHandlerStub{},
 		SignaturesHandler:            &processMocks.SignaturesHandlerStub{},
 		HeartbeatExpiryTimespanInSec: 30,
 		PeerID:                       "pid",
+		RelayedTxV3Processor:         &testProcessMocks.RelayedTxV3ProcessorMock{},
 	}
 }
 

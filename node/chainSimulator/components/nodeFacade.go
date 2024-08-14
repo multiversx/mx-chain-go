@@ -18,7 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/mock"
 )
 
-func (node *testOnlyProcessingNode) createFacade(configs config.Configs, apiInterface APIConfigurator) error {
+func (node *testOnlyProcessingNode) createFacade(configs config.Configs, apiInterface APIConfigurator, vmQueryDelayAfterStartInMs uint64) error {
 	log.Debug("creating api resolver structure")
 
 	err := node.createMetrics(configs)
@@ -39,7 +39,7 @@ func (node *testOnlyProcessingNode) createFacade(configs config.Configs, apiInte
 
 	allowVMQueriesChan := make(chan struct{})
 	go func() {
-		time.Sleep(time.Second)
+		time.Sleep(time.Duration(vmQueryDelayAfterStartInMs) * time.Millisecond)
 		close(allowVMQueriesChan)
 		node.StatusCoreComponents.AppStatusHandler().SetStringValue(common.MetricAreVMQueriesReady, strconv.FormatBool(true))
 	}()

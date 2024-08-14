@@ -13,6 +13,8 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 )
 
+const operationTransfer = "transfer"
+
 type txUnmarshaller struct {
 	shardCoordinator       sharding.Coordinator
 	addressPubKeyConverter core.PubkeyConverter
@@ -86,8 +88,25 @@ func (tu *txUnmarshaller) unmarshalTransaction(txBytes []byte, txType transactio
 		}
 		apiTx = tu.prepareUnsignedTx(&tx)
 	}
-	if err != nil {
-		return nil, err
+
+	isRelayedV3 := len(apiTx.InnerTransactions) > 0
+	if isRelayedV3 {
+		apiTx.Operation = operationTransfer
+		for _, innerTx := range apiTx.InnerTransactions {
+			apiTx.Receivers = append(apiTx.Receivers, innerTx.Receiver)
+
+			rcvBytes, errDecode := tu.addressPubKeyConverter.Decode(innerTx.Receiver)
+			if errDecode != nil {
+				log.Warn("bech32PubkeyConverter.Decode() failed while decoding innerTx.Receiver", "error", errDecode)
+				continue
+			}
+
+			apiTx.ReceiversShardIDs = append(apiTx.ReceiversShardIDs, tu.shardCoordinator.ComputeId(rcvBytes))
+		}
+
+		apiTx.IsRelayed = true
+
+		return apiTx, nil
 	}
 
 	res := tu.dataFieldParser.Parse(apiTx.Data, apiTx.Tx.GetSndAddr(), apiTx.Tx.GetRcvAddr(), tu.shardCoordinator.NumberOfShards())
@@ -111,21 +130,22 @@ func (tu *txUnmarshaller) prepareNormalTx(tx *transaction.Transaction) *transact
 	senderAddress := tu.addressPubKeyConverter.SilentEncode(tx.SndAddr, log)
 
 	apiTx := &transaction.ApiTransactionResult{
-		Tx:               tx,
-		Type:             string(transaction.TxTypeNormal),
-		Nonce:            tx.Nonce,
-		Value:            tx.Value.String(),
-		Receiver:         receiverAddress,
-		ReceiverUsername: tx.RcvUserName,
-		Sender:           senderAddress,
-		SenderUsername:   tx.SndUserName,
-		GasPrice:         tx.GasPrice,
-		GasLimit:         tx.GasLimit,
-		Data:             tx.Data,
-		Signature:        hex.EncodeToString(tx.Signature),
-		Options:          tx.Options,
-		Version:          tx.Version,
-		ChainID:          string(tx.ChainID),
+		Tx:                tx,
+		Type:              string(transaction.TxTypeNormal),
+		Nonce:             tx.Nonce,
+		Value:             tx.Value.String(),
+		Receiver:          receiverAddress,
+		ReceiverUsername:  tx.RcvUserName,
+		Sender:            senderAddress,
+		SenderUsername:    tx.SndUserName,
+		GasPrice:          tx.GasPrice,
+		GasLimit:          tx.GasLimit,
+		Data:              tx.Data,
+		Signature:         hex.EncodeToString(tx.Signature),
+		Options:           tx.Options,
+		Version:           tx.Version,
+		ChainID:           string(tx.ChainID),
+		InnerTransactions: tu.prepareInnerTxs(tx),
 	}
 
 	if len(tx.GuardianAddr) > 0 {
@@ -133,7 +153,49 @@ func (tu *txUnmarshaller) prepareNormalTx(tx *transaction.Transaction) *transact
 		apiTx.GuardianSignature = hex.EncodeToString(tx.GuardianSignature)
 	}
 
+	if len(tx.RelayerAddr) > 0 {
+		apiTx.RelayerAddress = tu.addressPubKeyConverter.SilentEncode(tx.RelayerAddr, log)
+	}
+
 	return apiTx
+}
+
+func (tu *txUnmarshaller) prepareInnerTxs(tx *transaction.Transaction) []*transaction.FrontendTransaction {
+	if len(tx.InnerTransactions) == 0 {
+		return nil
+	}
+
+	innerTxs := make([]*transaction.FrontendTransaction, 0, len(tx.InnerTransactions))
+	for _, innerTx := range tx.InnerTransactions {
+		frontEndTx := &transaction.FrontendTransaction{
+			Nonce:            innerTx.Nonce,
+			Value:            innerTx.Value.String(),
+			Receiver:         tu.addressPubKeyConverter.SilentEncode(innerTx.RcvAddr, log),
+			Sender:           tu.addressPubKeyConverter.SilentEncode(innerTx.SndAddr, log),
+			SenderUsername:   innerTx.SndUserName,
+			ReceiverUsername: innerTx.RcvUserName,
+			GasPrice:         innerTx.GasPrice,
+			GasLimit:         innerTx.GasLimit,
+			Data:             innerTx.Data,
+			Signature:        hex.EncodeToString(innerTx.Signature),
+			ChainID:          string(innerTx.ChainID),
+			Version:          innerTx.Version,
+			Options:          innerTx.Options,
+		}
+
+		if len(innerTx.GuardianAddr) > 0 {
+			frontEndTx.GuardianAddr = tu.addressPubKeyConverter.SilentEncode(innerTx.GuardianAddr, log)
+			frontEndTx.GuardianSignature = hex.EncodeToString(innerTx.GuardianSignature)
+		}
+
+		if len(innerTx.RelayerAddr) > 0 {
+			frontEndTx.Relayer = tu.addressPubKeyConverter.SilentEncode(innerTx.RelayerAddr, log)
+		}
+
+		innerTxs = append(innerTxs, frontEndTx)
+	}
+
+	return innerTxs
 }
 
 func (tu *txUnmarshaller) prepareInvalidTx(tx *transaction.Transaction) *transaction.ApiTransactionResult {
@@ -141,26 +203,31 @@ func (tu *txUnmarshaller) prepareInvalidTx(tx *transaction.Transaction) *transac
 	senderAddress := tu.addressPubKeyConverter.SilentEncode(tx.SndAddr, log)
 
 	apiTx := &transaction.ApiTransactionResult{
-		Tx:               tx,
-		Type:             string(transaction.TxTypeInvalid),
-		Nonce:            tx.Nonce,
-		Value:            tx.Value.String(),
-		Receiver:         receiverAddress,
-		ReceiverUsername: tx.RcvUserName,
-		Sender:           senderAddress,
-		SenderUsername:   tx.SndUserName,
-		GasPrice:         tx.GasPrice,
-		GasLimit:         tx.GasLimit,
-		Data:             tx.Data,
-		Signature:        hex.EncodeToString(tx.Signature),
-		Options:          tx.Options,
-		Version:          tx.Version,
-		ChainID:          string(tx.ChainID),
+		Tx:                tx,
+		Type:              string(transaction.TxTypeInvalid),
+		Nonce:             tx.Nonce,
+		Value:             tx.Value.String(),
+		Receiver:          receiverAddress,
+		ReceiverUsername:  tx.RcvUserName,
+		Sender:            senderAddress,
+		SenderUsername:    tx.SndUserName,
+		GasPrice:          tx.GasPrice,
+		GasLimit:          tx.GasLimit,
+		Data:              tx.Data,
+		Signature:         hex.EncodeToString(tx.Signature),
+		Options:           tx.Options,
+		Version:           tx.Version,
+		ChainID:           string(tx.ChainID),
+		InnerTransactions: tu.prepareInnerTxs(tx),
 	}
 
 	if len(tx.GuardianAddr) > 0 {
 		apiTx.GuardianAddr = tu.addressPubKeyConverter.SilentEncode(tx.GuardianAddr, log)
 		apiTx.GuardianSignature = hex.EncodeToString(tx.GuardianSignature)
+	}
+
+	if len(tx.RelayerAddr) > 0 {
+		apiTx.RelayerAddress = tu.addressPubKeyConverter.SilentEncode(tx.RelayerAddr, log)
 	}
 
 	return apiTx
