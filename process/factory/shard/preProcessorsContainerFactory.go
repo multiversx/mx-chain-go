@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/factory/containers"
+	"github.com/multiversx/mx-chain-go/process/factory/shard/data"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 )
@@ -41,38 +42,11 @@ type preProcessorsContainerFactory struct {
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	processedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
 	txExecutionOrderHandler      common.TxExecutionOrderHandler
-	runTypeComponents            RunTypeComponents
-}
-
-// ArgPreProcessorsContainerFactory defines the arguments needed by the pre-processor container factory
-type ArgPreProcessorsContainerFactory struct {
-	ShardCoordinator             sharding.Coordinator
-	Store                        dataRetriever.StorageService
-	Marshaller                   marshal.Marshalizer
-	Hasher                       hashing.Hasher
-	DataPool                     dataRetriever.PoolsHolder
-	PubkeyConverter              core.PubkeyConverter
-	Accounts                     state.AccountsAdapter
-	RequestHandler               process.RequestHandler
-	TxProcessor                  process.TransactionProcessor
-	ScProcessor                  process.SmartContractProcessor
-	ScResultProcessor            process.SmartContractResultProcessor
-	RewardsTxProcessor           process.RewardTransactionProcessor
-	EconomicsFee                 process.FeeHandler
-	GasHandler                   process.GasHandler
-	BlockTracker                 preprocess.BlockTracker
-	BlockSizeComputation         preprocess.BlockSizeComputationHandler
-	BalanceComputation           preprocess.BalanceComputationHandler
-	EnableEpochsHandler          common.EnableEpochsHandler
-	TxTypeHandler                process.TxTypeHandler
-	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
-	ProcessedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
-	TxExecutionOrderHandler      common.TxExecutionOrderHandler
-	RunTypeComponents            RunTypeComponents
+	runTypeComponents            data.RunTypeComponents
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
-func NewPreProcessorsContainerFactory(args ArgPreProcessorsContainerFactory) (*preProcessorsContainerFactory, error) {
+func NewPreProcessorsContainerFactory(args data.ArgPreProcessorsContainerFactory) (*preProcessorsContainerFactory, error) {
 	err := CheckPreProcessorContainerFactoryNilParameters(args)
 	if err != nil {
 		return nil, err
@@ -241,7 +215,7 @@ func (ppcf *preProcessorsContainerFactory) IsInterfaceNil() bool {
 	return ppcf == nil
 }
 
-func CheckPreProcessorContainerFactoryNilParameters(args ArgPreProcessorsContainerFactory) error {
+func CheckPreProcessorContainerFactoryNilParameters(args data.ArgPreProcessorsContainerFactory) error {
 	if check.IfNil(args.ShardCoordinator) {
 		return process.ErrNilShardCoordinator
 	}

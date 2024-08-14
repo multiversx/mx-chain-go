@@ -25,6 +25,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
+	procSovereign "github.com/multiversx/mx-chain-go/process/factory/sovereign"
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/process/scToProtocol"
@@ -260,5 +261,6 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		endOfEpochEconomicsFactoryHandler:       metachain.NewSovereignEconomicsFactory(),
 		rewardsCreatorFactory:                   metachain.NewSovereignRewardsCreatorFactory(),
 		systemSCProcessorFactory:                metachain.NewSovereignSysSCFactory(),
+		preProcessorsContainerFactoryCreator:    procSovereign.NewSovereignPreProcessorContainerFactoryCreator(),
 	}, nil
 }

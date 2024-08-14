@@ -29,6 +29,8 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
+	"github.com/multiversx/mx-chain-go/process/factory/shard"
+	"github.com/multiversx/mx-chain-go/process/factory/shard/data"
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/process/scToProtocol"
@@ -108,6 +110,7 @@ type runTypeComponents struct {
 	endOfEpochEconomicsFactoryHandler       mainFactory.EndOfEpochEconomicsFactoryHandler
 	rewardsCreatorFactory                   mainFactory.RewardsCreatorFactory
 	systemSCProcessorFactory                mainFactory.SystemSCProcessorFactory
+	preProcessorsContainerFactoryCreator    data.PreProcessorsContainerFactoryCreator
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
@@ -279,6 +282,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		endOfEpochEconomicsFactoryHandler:       metachain.NewEconomicsFactory(),
 		rewardsCreatorFactory:                   metachain.NewRewardsCreatorFactory(),
 		systemSCProcessorFactory:                metachain.NewSysSCFactory(),
+		preProcessorsContainerFactoryCreator:    shard.NewPreProcessorContainerFactoryCreator(),
 	}, nil
 }
 

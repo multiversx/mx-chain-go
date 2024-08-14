@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/factory/containers"
 	"github.com/multiversx/mx-chain-go/process/factory/shard"
+	"github.com/multiversx/mx-chain-go/process/factory/shard/data"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 )
@@ -40,11 +41,11 @@ type sovereignPreProcessorsContainerFactory struct {
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	processedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
 	txExecutionOrderHandler      common.TxExecutionOrderHandler
-	runTypeComponents            shard.RunTypeComponents
+	runTypeComponents            data.RunTypeComponents
 }
 
 // NewSovereignPreProcessorsContainerFactory is responsible for creating a new sovereign pre-processors factory object
-func NewSovereignPreProcessorsContainerFactory(args shard.ArgPreProcessorsContainerFactory) (*sovereignPreProcessorsContainerFactory, error) {
+func NewSovereignPreProcessorsContainerFactory(args data.ArgPreProcessorsContainerFactory) (*sovereignPreProcessorsContainerFactory, error) {
 	err := shard.CheckPreProcessorContainerFactoryNilParameters(args)
 	if err != nil {
 		return nil, err

@@ -27,6 +27,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/factory/shard"
+	shardData "github.com/multiversx/mx-chain-go/process/factory/shard/data"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/database"
@@ -532,7 +533,7 @@ func TestTransactionCoordinator_SeparateBody(t *testing.T) {
 }
 
 func createPreProcessorContainer() process.PreProcessorsContainer {
-	args := shard.ArgPreProcessorsContainerFactory{
+	args := shardData.ArgPreProcessorsContainerFactory{
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(5),
 		Store:            initStore(),
 		Marshaller:       &mock.MarshalizerMock{},
@@ -591,7 +592,7 @@ func createPreProcessorContainerWithDataPool(
 
 	totalGasProvided := uint64(0)
 
-	args := shard.ArgPreProcessorsContainerFactory{
+	args := args2.ArgPreProcessorsContainerFactory{
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(5),
 		Store:            initStore(),
 		Marshaller:       &mock.MarshalizerMock{},
@@ -890,7 +891,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 
 	totalGasProvided := uint64(0)
 
-	args := shard.ArgPreProcessorsContainerFactory{
+	args := args2.ArgPreProcessorsContainerFactory{
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(5),
 		Store:            initStore(),
 		Marshaller:       &mock.MarshalizerMock{},
@@ -1082,7 +1083,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreP
 
 	totalGasProvided := uint64(0)
 
-	args := shard.ArgPreProcessorsContainerFactory{
+	args := args2.ArgPreProcessorsContainerFactory{
 		ShardCoordinator:   mock.NewMultiShardsCoordinatorMock(5),
 		Store:              initStore(),
 		Marshaller:         &mock.MarshalizerMock{},
@@ -1190,7 +1191,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 
 	totalGasProvided := uint64(0)
 
-	args := shard.ArgPreProcessorsContainerFactory{
+	args := args2.ArgPreProcessorsContainerFactory{
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(5),
 		Store:            initStore(),
 		Marshaller:       &mock.MarshalizerMock{},
@@ -1737,7 +1738,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 
 	accounts := initAccountsMock()
 
-	args := shard.ArgPreProcessorsContainerFactory{
+	args := args2.ArgPreProcessorsContainerFactory{
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(5),
 		Store:            initStore(),
 		Marshaller:       &mock.MarshalizerMock{},
@@ -1875,7 +1876,7 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 
 	accounts := initAccountsMock()
 
-	args := shard.ArgPreProcessorsContainerFactory{
+	args := args2.ArgPreProcessorsContainerFactory{
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(5),
 		Store:            initStore(),
 		Marshaller:       &mock.MarshalizerMock{},
@@ -1992,7 +1993,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 
 	totalGasProvided := uint64(0)
 
-	args := shard.ArgPreProcessorsContainerFactory{
+	args := args2.ArgPreProcessorsContainerFactory{
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(5),
 		Store:            initStore(),
 		Marshaller:       marshalizer,
@@ -2141,7 +2142,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		},
 	}
 
-	args := shard.ArgPreProcessorsContainerFactory{
+	args := args2.ArgPreProcessorsContainerFactory{
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(5),
 		Store:            initStore(),
 		Marshaller:       marshalizer,

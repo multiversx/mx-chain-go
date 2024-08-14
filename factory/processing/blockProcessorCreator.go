@@ -30,6 +30,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/factory/metachain"
 	"github.com/multiversx/mx-chain-go/process/factory/shard"
+	shardData "github.com/multiversx/mx-chain-go/process/factory/shard/data"
 	"github.com/multiversx/mx-chain-go/process/rewardTransaction"
 	"github.com/multiversx/mx-chain-go/process/scToProtocol"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
@@ -382,7 +383,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
-	argsPreProc := shard.ArgPreProcessorsContainerFactory{
+	argsPreProc := shardData.ArgPreProcessorsContainerFactory{
 		ShardCoordinator:             pcf.bootstrapComponents.ShardCoordinator(),
 		Store:                        pcf.data.StorageService(),
 		Marshaller:                   pcf.coreData.InternalMarshalizer(),
@@ -407,7 +408,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		TxExecutionOrderHandler:      pcf.txExecutionOrderHandler,
 		RunTypeComponents:            pcf.runTypeComponents,
 	}
-	preProcFactory, err := shard.NewPreProcessorsContainerFactory(argsPreProc)
+	preProcFactory, err := pcf.runTypeComponents.PreProcessorsContainerFactoryCreator().CreatePreProcessorContainerFactory(argsPreProc)
 	if err != nil {
 		return nil, err
 	}
