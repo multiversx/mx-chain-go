@@ -441,6 +441,9 @@ func GetGeneralConfig() config.Config {
 		ResourceStats: config.ResourceStatsConfig{
 			RefreshIntervalInSec: 1,
 		},
+		RelayedTransactionConfig: config.RelayedTransactionConfig{
+			MaxTransactionsAllowed: 10,
+		},
 	}
 }
 
