@@ -33,7 +33,7 @@ const uniqueTrieNodesSuffix = "tn"
 const uniqueValidatorInfoSuffix = "vi"
 
 // TODO move the keys definitions that are whitelisted in core and use them in InterceptedData implementations, Identifiers() function
-type getTrieRequesterFunc func(topic string) (dataRetriever.Requester, error)
+type getTrieNodeRequesterFunc func(topic string) (dataRetriever.Requester, error)
 type getTrieNodesRequesterFunc func(topic string, destShardID uint32) (dataRetriever.Requester, error)
 
 type resolverRequestHandler struct {
@@ -435,7 +435,7 @@ func (rrh *resolverRequestHandler) getTrieNodesRequester(topic string, destShard
 	return requester, err
 }
 
-func (rrh *resolverRequestHandler) requestTrieNodes(destShardID uint32, hashes [][]byte, topic string, requesterFunc getTrieNodesRequesterFunc) {
+func (rrh *resolverRequestHandler) requestTrieNodes(destShardID uint32, hashes [][]byte, topic string, getRequesterFunc getTrieNodesRequesterFunc) {
 	unrequestedHashes := rrh.getUnrequestedHashes(hashes, uniqueTrieNodesSuffix)
 	if len(unrequestedHashes) == 0 {
 		return
@@ -470,7 +470,7 @@ func (rrh *resolverRequestHandler) requestTrieNodes(destShardID uint32, hashes [
 		"added", len(hashes),
 	)
 
-	requester, err := requesterFunc(topic, destShardID)
+	requester, err := getRequesterFunc(topic, destShardID)
 	if err != nil {
 		return
 	}
@@ -516,7 +516,7 @@ func (rrh *resolverRequestHandler) getTrieNodeRequester(topic string) (dataRetri
 	return requester, nil
 }
 
-func (rrh *resolverRequestHandler) requestTrieNode(requestHash []byte, topic string, chunkIndex uint32, getRequester getTrieRequesterFunc) {
+func (rrh *resolverRequestHandler) requestTrieNode(requestHash []byte, topic string, chunkIndex uint32, getRequesterFunc getTrieNodeRequesterFunc) {
 	identifier := rrh.CreateTrieNodeIdentifier(requestHash, chunkIndex)
 	unrequestedHashes := rrh.getUnrequestedHashes([][]byte{identifier}, uniqueTrieNodesSuffix)
 	if len(unrequestedHashes) == 0 {
@@ -532,7 +532,7 @@ func (rrh *resolverRequestHandler) requestTrieNode(requestHash []byte, topic str
 		"chunk index", chunkIndex,
 	)
 
-	requester, err := getRequester(topic)
+	requester, err := getRequesterFunc(topic)
 	if err != nil {
 		return
 	}

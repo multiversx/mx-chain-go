@@ -128,7 +128,7 @@ func (srrh *sovereignResolverRequestHandler) RequestTrieNode(requestHash []byte,
 func (srrh *sovereignResolverRequestHandler) getTrieNodeRequester(topic string) (dataRetriever.Requester, error) {
 	requester, err := srrh.requestersFinder.IntraShardRequester(topic)
 	if err != nil {
-		log.Error("sovereignResolverRequestHandler.getTrieRequester.IntraShardRequester",
+		log.Error("sovereignResolverRequestHandler.getTrieNodeRequester.IntraShardRequester",
 			"error", err.Error(),
 			"topic", topic,
 		)
@@ -138,6 +138,7 @@ func (srrh *sovereignResolverRequestHandler) getTrieNodeRequester(topic string) 
 	return requester, nil
 }
 
+// RequestTrieNodes method asks for trie nodes from the connected peers
 func (srrh *sovereignResolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [][]byte, topic string) {
 	srrh.requestTrieNodes(destShardID, hashes, topic, srrh.getTrieNodesRequester)
 }
