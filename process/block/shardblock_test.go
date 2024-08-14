@@ -2581,7 +2581,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		Fail: false,
 	}
 
-	args := args2.ArgPreProcessorsContainerFactory{
+	args := shardData.ArgPreProcessorsContainerFactory{
 		ShardCoordinator:             mock.NewMultiShardsCoordinatorMock(3),
 		Store:                        initStore(),
 		Marshaller:                   marshalizer,
@@ -2692,7 +2692,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		},
 	}
 
-	args := args2.ArgPreProcessorsContainerFactory{
+	args := shardData.ArgPreProcessorsContainerFactory{
 		ShardCoordinator:             mock.NewMultiShardsCoordinatorMock(3),
 		Store:                        initStore(),
 		Marshaller:                   &mock.MarshalizerMock{},
@@ -3069,7 +3069,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 
 	totalGasProvided := uint64(0)
 
-	args := args2.ArgPreProcessorsContainerFactory{
+	args := shardData.ArgPreProcessorsContainerFactory{
 		ShardCoordinator:   shardCoordinator,
 		Store:              initStore(),
 		Marshaller:         marshalizer,
@@ -3274,7 +3274,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		},
 	}
 
-	args := args2.ArgPreProcessorsContainerFactory{
+	args := shardData.ArgPreProcessorsContainerFactory{
 		ShardCoordinator:             mock.NewMultiShardsCoordinatorMock(3),
 		Store:                        store,
 		Marshaller:                   marshalizerMock,
