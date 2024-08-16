@@ -61,10 +61,13 @@ func (bn *blockNotarizer) AddNotarizedHeader(
 	}
 
 	bn.mutNotarizedHeaders.Lock()
-	bn.notarizedHeaders[shardID] = append(bn.notarizedHeaders[shardID], &HeaderInfo{Header: notarizedHeader, Hash: notarizedHeaderHash})
-	sort.Slice(bn.notarizedHeaders[shardID], func(i, j int) bool {
-		return bn.notarizedHeaders[shardID][i].Header.GetNonce() < bn.notarizedHeaders[shardID][j].Header.GetNonce()
-	})
+
+	if bn.notarizedHeaders[shardID][len(bn.notarizedHeaders)-1].Header.GetNonce() != notarizedHeader.GetNonce() {
+		bn.notarizedHeaders[shardID] = append(bn.notarizedHeaders[shardID], &HeaderInfo{Header: notarizedHeader, Hash: notarizedHeaderHash})
+		sort.Slice(bn.notarizedHeaders[shardID], func(i, j int) bool {
+			return bn.notarizedHeaders[shardID][i].Header.GetNonce() < bn.notarizedHeaders[shardID][j].Header.GetNonce()
+		})
+	}
 	bn.mutNotarizedHeaders.Unlock()
 }
 
