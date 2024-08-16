@@ -1562,8 +1562,8 @@ func (scbp *sovereignChainBlockProcessor) cleanupBlockTrackerPoolsForShard(shard
 	scbp.baseCleanupBlockTrackerPoolsForShard(shardID, noncesToPrevFinal)
 }
 
-func (scbp *sovereignChainBlockProcessor) cleanupPoolsForCrossShard(shardID uint32, noncesToPrevFinal uint64) {
-	scbp.baseCleanupPoolsForCrossShard(shardID, noncesToPrevFinal)
+func (scbp *sovereignChainBlockProcessor) cleanupPoolsForCrossShard(_ uint32, noncesToPrevFinal uint64) {
+	scbp.baseCleanupPoolsForCrossShard(core.MainChainShardId, noncesToPrevFinal)
 }
 
 // IsInterfaceNil returns true if underlying object is nil
