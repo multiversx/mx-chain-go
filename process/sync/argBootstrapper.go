@@ -48,6 +48,7 @@ type ArgBaseBootstrapper struct {
 	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	ProcessWaitTime              time.Duration
 	RepopulateTokensSupplies     bool
+	ValidatorDBSyncer            process.AccountsDBSyncer
 }
 
 // ArgShardBootstrapper holds all dependencies required by the bootstrap data factory in order to create

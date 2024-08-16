@@ -467,6 +467,11 @@ func (ccf *consensusComponentsFactory) createShardStorageAndSyncBootstrapper() (
 		return nil, err
 	}
 
+	validatorDBSyncer, err := ccf.createValidatorAccountsSyncer()
+	if err != nil {
+		return nil, err
+	}
+
 	stateNodesNotifierSubscriber, ok := accountsDBSyncer.(common.StateSyncNotifierSubscriber)
 	if !ok {
 		return nil, fmt.Errorf("wrong type conversion for accountsDBSyncer, type: %T", accountsDBSyncer)
@@ -505,6 +510,7 @@ func (ccf *consensusComponentsFactory) createShardStorageAndSyncBootstrapper() (
 		ScheduledTxsExecutionHandler: ccf.processComponents.ScheduledTxsExecutionHandler(),
 		ProcessWaitTime:              time.Duration(ccf.config.GeneralSettings.SyncProcessTimeInMillis) * time.Millisecond,
 		RepopulateTokensSupplies:     ccf.flagsConfig.RepopulateTokensSupplies,
+		ValidatorDBSyncer:            validatorDBSyncer,
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
