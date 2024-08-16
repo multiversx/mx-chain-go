@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 )
@@ -129,7 +130,7 @@ func (bn *blockNotarizer) DisplayNotarizedHeaders(shardID uint32, message string
 		"nb", len(notarizedHeaders))
 
 	for _, hdrInfo := range notarizedHeaders {
-		log.Trace("notarized header info",
+		log.Debug("notarized header info",
 			"round", hdrInfo.Header.GetRound(),
 			"nonce", hdrInfo.Header.GetNonce(),
 			"hash", hdrInfo.Hash)
