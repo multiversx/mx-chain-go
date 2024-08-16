@@ -1152,6 +1152,7 @@ func (bp *baseProcessor) getFinalMiniBlocks(header data.HeaderHandler, body *blo
 
 func (bp *baseProcessor) cleanupBlockTrackerPools(noncesToPrevFinal uint64) {
 	if bp.shardCoordinator.SelfId() == core.MetachainShardId {
+		bp.cleanupBlockTrackerPoolsForShardFunc(core.MetachainShardId, noncesToPrevFinal)
 		for shardID := uint32(0); shardID < bp.shardCoordinator.NumberOfShards(); shardID++ {
 			bp.cleanupBlockTrackerPoolsForShardFunc(shardID, noncesToPrevFinal)
 		}
