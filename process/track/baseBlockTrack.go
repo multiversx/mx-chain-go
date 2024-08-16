@@ -12,10 +12,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ process.ValidityAttester = (*baseBlockTrack)(nil)
@@ -403,7 +404,7 @@ func (bbt *baseBlockTrack) displayTrackedHeadersForShard(shardID uint32, message
 		"nb", len(headers))
 
 	for index, header := range headers {
-		log.Trace("tracked header info",
+		log.Debug("tracked header info",
 			"round", header.GetRound(),
 			"nonce", header.GetNonce(),
 			"hash", hashes[index])
