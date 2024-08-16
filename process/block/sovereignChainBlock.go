@@ -1558,8 +1558,8 @@ func (scbp *sovereignChainBlockProcessor) updateState(header data.HeaderHandler,
 }
 
 // TODO: (sovereign) remove these cleanUpFunc pointer functions once shardCoordinator will return the correct shard id from task: MX-14132
-func (scbp *sovereignChainBlockProcessor) cleanupBlockTrackerPoolsForShard(_ uint32, noncesToPrevFinal uint64) {
-	scbp.baseCleanupBlockTrackerPoolsForShard(core.SovereignChainShardId, noncesToPrevFinal)
+func (scbp *sovereignChainBlockProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, noncesToPrevFinal uint64) {
+	scbp.baseCleanupBlockTrackerPoolsForShard(shardID, noncesToPrevFinal)
 	scbp.baseCleanupBlockTrackerPoolsForShard(core.MainChainShardId, noncesToPrevFinal)
 }
 
