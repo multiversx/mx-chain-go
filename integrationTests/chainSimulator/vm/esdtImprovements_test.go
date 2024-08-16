@@ -2321,6 +2321,9 @@ func testChainSimulatorChangeMetaData(t *testing.T, issueFn issueTxFunc) {
 	require.NotNil(t, txResult)
 	require.Equal(t, "success", txResult.Status.String())
 
+	err = cs.GenerateBlocks(10)
+	require.Nil(t, err)
+
 	log.Info("Send to separate shards")
 
 	tx = esdtNFTTransferTx(nonce, addrs[1].Bytes, addrs[2].Bytes, tokenID)
@@ -2398,8 +2401,33 @@ func testChainSimulatorChangeMetaData(t *testing.T, issueFn issueTxFunc) {
 	log.Info("Step 2. check that the newest metadata is saved")
 
 	shardID := cs.GetNodeHandler(0).GetProcessComponents().ShardCoordinator().ComputeId(addrs[0].Bytes)
-
 	checkMetaData(t, cs, core.SystemAccountAddress, tokenID, shardID, sftMetaData2)
+
+	shard2ID := cs.GetNodeHandler(0).GetProcessComponents().ShardCoordinator().ComputeId(addrs[2].Bytes)
+	checkMetaData(t, cs, core.SystemAccountAddress, tokenID, shard2ID, metaData)
+
+	log.Info("Step 3. create new wallet is shard 2")
+
+	mintValue := big.NewInt(10)
+	mintValue = mintValue.Mul(oneEGLD, mintValue)
+	newShard2Addr, err := cs.GenerateAndMintWalletAddress(2, mintValue)
+	require.Nil(t, err)
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
+
+	log.Info("Step 4. send updated token to shard 2 ")
+
+	tx = esdtNFTTransferTx(1, addrs[0].Bytes, newShard2Addr.Bytes, tokenID)
+	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, txResult)
+	require.Equal(t, "success", txResult.Status.String())
+	err = cs.GenerateBlocks(5)
+	require.Nil(t, err)
+
+	log.Info("Step 5. check meta data in shard 2 is updated to latest version ")
+
+	checkMetaData(t, cs, core.SystemAccountAddress, tokenID, shard2ID, sftMetaData2)
 }
 
 func TestChainSimulator_NFT_RegisterDynamic(t *testing.T) {
