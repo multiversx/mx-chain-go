@@ -8,6 +8,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/consensus/broadcast"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -17,7 +19,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
-	"github.com/stretchr/testify/assert"
 )
 
 func createDelayData(prefix string) ([]byte, *block.Header, map[uint32][]byte, map[string][][]byte) {
@@ -64,6 +65,7 @@ func createDefaultShardChainArgs() broadcast.ShardChainMessengerArgs {
 		Signer: singleSignerMock,
 	}
 	alarmScheduler := &mock.AlarmSchedulerStub{}
+	delayedBroadcaster := &mock.DelayedBroadcasterMock{}
 
 	return broadcast.ShardChainMessengerArgs{
 		CommonMessengerArgs: broadcast.CommonMessengerArgs{
@@ -78,6 +80,7 @@ func createDefaultShardChainArgs() broadcast.ShardChainMessengerArgs {
 			MaxValidatorDelayCacheSize: 1,
 			AlarmScheduler:             alarmScheduler,
 			KeysHandler:                &testscommon.KeysHandlerStub{},
+			DelayedBroadcaster:         delayedBroadcaster,
 		},
 	}
 }
@@ -457,6 +460,16 @@ func TestShardChainMessenger_BroadcastBlockDataLeaderShouldTriggerWaitingDelayed
 			return bytes.Equal(pkBytes, nodePkBytes)
 		},
 	}
+	argsDelayedBroadcaster := broadcast.ArgsDelayedBlockBroadcaster{
+		InterceptorsContainer: args.InterceptorsContainer,
+		HeadersSubscriber:     args.HeadersSubscriber,
+		ShardCoordinator:      args.ShardCoordinator,
+		LeaderCacheSize:       args.MaxDelayCacheSize,
+		ValidatorCacheSize:    args.MaxDelayCacheSize,
+		AlarmScheduler:        args.AlarmScheduler,
+	}
+	args.DelayedBroadcaster, _ = broadcast.NewDelayedBlockBroadcaster(&argsDelayedBroadcaster)
+
 	scm, _ := broadcast.NewShardChainMessenger(args)
 
 	t.Run("original public key of the node", func(t *testing.T) {

@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -37,35 +38,20 @@ func NewShardChainMessenger(
 	}
 
 	cm := &commonMessenger{
-		marshalizer:          args.Marshalizer,
-		hasher:               args.Hasher,
-		messenger:            args.Messenger,
-		shardCoordinator:     args.ShardCoordinator,
-		peerSignatureHandler: args.PeerSignatureHandler,
-		keysHandler:          args.KeysHandler,
+		marshalizer:             args.Marshalizer,
+		hasher:                  args.Hasher,
+		messenger:               args.Messenger,
+		shardCoordinator:        args.ShardCoordinator,
+		peerSignatureHandler:    args.PeerSignatureHandler,
+		keysHandler:             args.KeysHandler,
+		delayedBlockBroadcaster: args.DelayedBroadcaster,
 	}
-
-	dbbArgs := &ArgsDelayedBlockBroadcaster{
-		InterceptorsContainer: args.InterceptorsContainer,
-		HeadersSubscriber:     args.HeadersSubscriber,
-		LeaderCacheSize:       args.MaxDelayCacheSize,
-		ValidatorCacheSize:    args.MaxValidatorDelayCacheSize,
-		ShardCoordinator:      args.ShardCoordinator,
-		AlarmScheduler:        args.AlarmScheduler,
-	}
-
-	dbb, err := NewDelayedBlockBroadcaster(dbbArgs)
-	if err != nil {
-		return nil, err
-	}
-
-	cm.delayedBlockBroadcaster = dbb
 
 	scm := &shardChainMessenger{
 		commonMessenger: cm,
 	}
 
-	err = dbb.SetBroadcastHandlers(scm.BroadcastMiniBlocks, scm.BroadcastTransactions, scm.BroadcastHeader)
+	err = scm.delayedBlockBroadcaster.SetBroadcastHandlers(scm.BroadcastMiniBlocks, scm.BroadcastTransactions, scm.BroadcastHeader)
 	if err != nil {
 		return nil, err
 	}
@@ -157,7 +143,7 @@ func (scm *shardChainMessenger) BroadcastBlockDataLeader(
 
 	metaMiniBlocks, metaTransactions := scm.extractMetaMiniBlocksAndTransactions(miniBlocks, transactions)
 
-	broadcastData := &delayedBroadcastData{
+	broadcastData := &DelayedBroadcastData{
 		headerHash:     headerHash,
 		miniBlocksData: miniBlocks,
 		transactions:   transactions,
@@ -192,11 +178,11 @@ func (scm *shardChainMessenger) PrepareBroadcastHeaderValidator(
 		return
 	}
 
-	vData := &validatorHeaderBroadcastData{
-		headerHash: headerHash,
-		header:     header,
-		order:      uint32(idx),
-		pkBytes:    pkBytes,
+	vData := &ValidatorHeaderBroadcastData{
+		HeaderHash: headerHash,
+		Header:     header,
+		Order:      uint32(idx),
+		PkBytes:    pkBytes,
 	}
 
 	err = scm.delayedBlockBroadcaster.SetHeaderForValidator(vData)
@@ -228,7 +214,7 @@ func (scm *shardChainMessenger) PrepareBroadcastBlockDataValidator(
 		return
 	}
 
-	broadcastData := &delayedBroadcastData{
+	broadcastData := &DelayedBroadcastData{
 		headerHash:     headerHash,
 		header:         header,
 		miniBlocksData: miniBlocks,
