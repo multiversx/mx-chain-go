@@ -404,7 +404,7 @@ func (bbt *baseBlockTrack) displayTrackedHeadersForShard(shardID uint32, message
 		"nb", len(headers))
 
 	for index, header := range headers {
-		log.Debug("tracked header info",
+		log.Trace("tracked header info",
 			"round", header.GetRound(),
 			"nonce", header.GetNonce(),
 			"hash", hashes[index])
