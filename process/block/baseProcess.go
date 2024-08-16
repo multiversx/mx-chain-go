@@ -1198,7 +1198,7 @@ func (bp *baseProcessor) baseCleanupBlockTrackerPoolsForShard(shardID uint32, no
 		crossNotarizedNonce,
 	)
 
-	log.Trace("cleanupBlockTrackerPoolsForShard.CleanupHeadersBehindNonce",
+	log.Debug("cleanupBlockTrackerPoolsForShard.CleanupHeadersBehindNonce",
 		"shard", shardID,
 		"self notarized nonce", selfNotarizedNonce,
 		"cross notarized nonce", crossNotarizedNonce,
