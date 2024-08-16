@@ -87,7 +87,10 @@ func GetBroadcastMessenger(
 		AlarmScheduler:        alarmScheduler,
 	}
 
-	delayedBroadcaster, _ := broadcast.NewDelayedBlockBroadcaster(dbbArgs)
+	delayedBroadcaster, err := broadcast.NewDelayedBlockBroadcaster(dbbArgs)
+	if err != nil {
+		return nil, err
+	}
 
 	commonMessengerArgs := broadcast.CommonMessengerArgs{
 		Marshalizer:                marshalizer,

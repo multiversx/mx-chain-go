@@ -36,6 +36,7 @@ type ArgsDelayedBlockBroadcaster struct {
 	AlarmScheduler        timersScheduler
 }
 
+// ValidatorHeaderBroadcastData is exported to be accessible in delayedBroadcasterMock
 type ValidatorHeaderBroadcastData struct {
 	HeaderHash           []byte
 	Header               data.HeaderHandler
@@ -45,6 +46,7 @@ type ValidatorHeaderBroadcastData struct {
 	PkBytes              []byte
 }
 
+// DelayedBroadcastData is exported to be accessible in delayedBroadcasterMock
 type DelayedBroadcastData struct {
 	headerHash      []byte
 	header          data.HeaderHandler

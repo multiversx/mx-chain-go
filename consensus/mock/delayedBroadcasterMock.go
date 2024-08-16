@@ -14,42 +14,46 @@ type DelayedBroadcasterMock struct {
 	CloseCalled                 func()
 }
 
-func (d DelayedBroadcasterMock) SetLeaderData(data *broadcast.DelayedBroadcastData) error {
-	if d.SetLeaderDataCalled != nil {
-		return d.SetLeaderDataCalled(data)
+// SetLeaderData -
+func (mock *DelayedBroadcasterMock) SetLeaderData(data *broadcast.DelayedBroadcastData) error {
+	if mock.SetLeaderDataCalled != nil {
+		return mock.SetLeaderDataCalled(data)
 	}
 	return nil
 }
 
 // SetValidatorData -
-func (d DelayedBroadcasterMock) SetValidatorData(data *broadcast.DelayedBroadcastData) error {
-	if d.SetValidatorDataCalled != nil {
-		return d.SetValidatorDataCalled(data)
+func (mock *DelayedBroadcasterMock) SetValidatorData(data *broadcast.DelayedBroadcastData) error {
+	if mock.SetValidatorDataCalled != nil {
+		return mock.SetValidatorDataCalled(data)
 	}
 	return nil
 }
 
-func (d DelayedBroadcasterMock) SetHeaderForValidator(vData *broadcast.ValidatorHeaderBroadcastData) error {
-	if d.SetHeaderForValidatorCalled != nil {
-		return d.SetHeaderForValidatorCalled(vData)
+// SetHeaderForValidator -
+func (mock *DelayedBroadcasterMock) SetHeaderForValidator(vData *broadcast.ValidatorHeaderBroadcastData) error {
+	if mock.SetHeaderForValidatorCalled != nil {
+		return mock.SetHeaderForValidatorCalled(vData)
 	}
 	return nil
 }
 
-func (d DelayedBroadcasterMock) SetBroadcastHandlers(mbBroadcast func(mbData map[uint32][]byte, pkBytes []byte) error, txBroadcast func(txData map[string][][]byte, pkBytes []byte) error, headerBroadcast func(header data.HeaderHandler, pkBytes []byte) error) error {
-	if d.SetBroadcastHandlersCalled != nil {
-		return d.SetBroadcastHandlersCalled(mbBroadcast, txBroadcast, headerBroadcast)
+// SetBroadcastHandlers -
+func (mock *DelayedBroadcasterMock) SetBroadcastHandlers(mbBroadcast func(mbData map[uint32][]byte, pkBytes []byte) error, txBroadcast func(txData map[string][][]byte, pkBytes []byte) error, headerBroadcast func(header data.HeaderHandler, pkBytes []byte) error) error {
+	if mock.SetBroadcastHandlersCalled != nil {
+		return mock.SetBroadcastHandlersCalled(mbBroadcast, txBroadcast, headerBroadcast)
 	}
 	return nil
 }
 
-func (d DelayedBroadcasterMock) Close() {
-	if d.CloseCalled != nil {
-		d.CloseCalled()
+// Close -
+func (mock *DelayedBroadcasterMock) Close() {
+	if mock.CloseCalled != nil {
+		mock.CloseCalled()
 	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (dbb *DelayedBroadcasterMock) IsInterfaceNil() bool {
-	return dbb == nil
+func (mock *DelayedBroadcasterMock) IsInterfaceNil() bool {
+	return mock == nil
 }

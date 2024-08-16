@@ -139,6 +139,15 @@ func TestShardChainMessenger_NewShardChainMessengerNilHeadersSubscriberShouldFai
 	assert.Equal(t, spos.ErrNilHeadersSubscriber, err)
 }
 
+func TestShardChainMessenger_NilDelayedBroadcasterShouldError(t *testing.T) {
+	args := createDefaultShardChainArgs()
+	args.DelayedBroadcaster = nil
+	scm, err := broadcast.NewShardChainMessenger(args)
+
+	assert.Nil(t, scm)
+	assert.Equal(t, broadcast.ErrNilDelayedBroadcaster, err)
+}
+
 func TestShardChainMessenger_NilKeysHandlerShouldError(t *testing.T) {
 	args := createDefaultShardChainArgs()
 	args.KeysHandler = nil
@@ -468,6 +477,8 @@ func TestShardChainMessenger_BroadcastBlockDataLeaderShouldTriggerWaitingDelayed
 		ValidatorCacheSize:    args.MaxDelayCacheSize,
 		AlarmScheduler:        args.AlarmScheduler,
 	}
+
+	// Using real component in order to properly simulate the expected behavior
 	args.DelayedBroadcaster, _ = broadcast.NewDelayedBlockBroadcaster(&argsDelayedBroadcaster)
 
 	scm, _ := broadcast.NewShardChainMessenger(args)

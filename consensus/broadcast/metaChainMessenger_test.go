@@ -97,6 +97,14 @@ func TestMetaChainMessenger_NilKeysHandlerShouldError(t *testing.T) {
 	assert.Equal(t, broadcast.ErrNilKeysHandler, err)
 }
 
+func TestMetaChainMessenger_NilDelayedBroadcasterShouldError(t *testing.T) {
+	args := createDefaultMetaChainArgs()
+	args.DelayedBroadcaster = nil
+	scm, err := broadcast.NewMetaChainMessenger(args)
+
+	assert.Nil(t, scm)
+	assert.Equal(t, broadcast.ErrNilDelayedBroadcaster, err)
+}
 func TestMetaChainMessenger_NewMetaChainMessengerShouldWork(t *testing.T) {
 	args := createDefaultMetaChainArgs()
 	mcm, err := broadcast.NewMetaChainMessenger(args)
