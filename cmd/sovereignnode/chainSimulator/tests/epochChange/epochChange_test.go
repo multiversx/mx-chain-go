@@ -156,6 +156,21 @@ func checkEpochChangeHeader(t *testing.T, nodeHandler process.NodeHandler) {
 
 	require.Equal(t, mbs[0].GetTxCount(), uint32(7))  // consensus group reward txs = 6 + 1 reward tx protocol sustainability
 	require.Equal(t, mbs[1].GetTxCount(), uint32(18)) // 18 validators in total => 18 peer block updates
+
+	require.Equal(t, uint32(25), currentHeader.GetTxCount())
+
+	unComputedRootHash := nodeHandler.GetCoreComponents().Hasher().Compute("uncomputed root hash")
+	require.NotEqual(t, unComputedRootHash, currentHeader.GetRootHash())
+	require.NotEqual(t, unComputedRootHash, currentHeader.GetValidatorStatsRootHash())
+	require.NotNil(t, currentHeader.GetReceiptsHash())
+
+	rootHash, err := nodeHandler.GetStateComponents().AccountsAdapter().RootHash()
+	require.Nil(t, err)
+	require.Equal(t, rootHash, currentHeader.GetRootHash())
+
+	validatorRootHash, err := nodeHandler.GetStateComponents().PeerAccounts().RootHash()
+	require.Nil(t, err)
+	require.Equal(t, validatorRootHash, currentHeader.GetValidatorStatsRootHash())
 }
 
 func getConsensusOwnersBalances(t *testing.T, nodeHandler process.NodeHandler) map[string]*big.Int {

@@ -939,9 +939,12 @@ func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
 	finalMiniBlocks := make([]*block.MiniBlock, 0)
 	finalMiniBlocks = append(finalMiniBlocks, rewardMiniBlocks...)
 	finalMiniBlocks = append(finalMiniBlocks, validatorMiniBlocks...)
-
 	body.MiniBlocks = append(body.MiniBlocks, finalMiniBlocks...)
 
+	return scbp.applyBodyToHeaderForEpochChange(header, body)
+}
+
+func (scbp *sovereignChainBlockProcessor) applyBodyToHeaderForEpochChange(header data.HeaderHandler, body *block.Body) error {
 	totalTxCount, miniBlockHeaderHandlers, err := scbp.createMiniBlockHeaderHandlers(body.MiniBlocks)
 	if err != nil {
 		return err
@@ -975,6 +978,25 @@ func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
+	receiptsHash, err := scbp.txCoordinator.CreateReceiptsHash()
+	if err != nil {
+		return err
+	}
+
+	err = header.SetReceiptsHash(receiptsHash)
+	if err != nil {
+		return err
+	}
+
+	scbp.appStatusHandler.SetUInt64Value(common.MetricNumTxInBlock, uint64(totalTxCount))
+	scbp.appStatusHandler.SetUInt64Value(common.MetricNumMiniBlocks, uint64(len(body.MiniBlocks)))
+
+	marshaledBody, err := scbp.marshalizer.Marshal(body)
+	if err != nil {
+		return err
+	}
+
+	scbp.blockSizeThrottler.Add(header.GetRound(), uint32(len(marshaledBody)))
 	return nil
 }
 
