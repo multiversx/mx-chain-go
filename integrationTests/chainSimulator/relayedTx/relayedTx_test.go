@@ -259,6 +259,76 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorScCalls(t *t
 	}
 }
 
+func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorInnerMoveBalanceToNonPayableSC(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	cs := startChainSimulator(t, func(cfg *config.Configs) {
+		cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3EnableEpoch = 1
+		cfg.EpochConfig.EnableEpochs.FixRelayedBaseCostEnableEpoch = 1
+		cfg.EpochConfig.EnableEpochs.FixRelayedMoveBalanceToNonPayableSCEnableEpoch = 1
+	})
+	defer cs.Close()
+
+	initialBalance := big.NewInt(0).Mul(oneEGLD, big.NewInt(10))
+	relayer, err := cs.GenerateAndMintWalletAddress(0, initialBalance)
+	require.NoError(t, err)
+
+	pkConv := cs.GetNodeHandler(0).GetCoreComponents().AddressPubKeyConverter()
+
+	// deploy adder contract
+	owner, err := cs.GenerateAndMintWalletAddress(0, initialBalance)
+	require.NoError(t, err)
+
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
+
+	ownerNonce := uint64(0)
+	scCode := wasm.GetSCCode("testData/adder.wasm")
+	params := []string{scCode, wasm.VMTypeHex, "0000", "00"}
+	txDataDeploy := strings.Join(params, "@")
+	deployTx := generateTransaction(owner.Bytes, ownerNonce, make([]byte, 32), big.NewInt(0), txDataDeploy, 100000000)
+
+	result, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(deployTx, maxNumOfBlocksToGenerateWhenExecutingTx)
+	require.NoError(t, err)
+
+	scAddress := result.Logs.Events[0].Address
+	scAddressBytes, _ := pkConv.Decode(scAddress)
+
+	balanceRelayerBefore := getBalance(t, cs, relayer)
+	balanceOwnerBefore := getBalance(t, cs, owner)
+
+	// move balance to non-payable contract should only consume fees and sender's nonce
+	ownerNonce++
+	innerTx1 := generateTransaction(owner.Bytes, ownerNonce, scAddressBytes, oneEGLD, "", 50000)
+	innerTx1.RelayerAddr = relayer.Bytes
+
+	// move balance to meta contract should only consume fees and sender's nonce
+	ownerNonce++
+	innerTx2 := generateTransaction(owner.Bytes, ownerNonce, core.ESDTSCAddress, oneEGLD, "", 50000)
+	innerTx2.RelayerAddr = relayer.Bytes
+
+	innerTxs := []*transaction.Transaction{innerTx1, innerTx2}
+
+	relayedTxGasLimit := uint64(0)
+	for _, tx := range innerTxs {
+		relayedTxGasLimit += minGasLimit + tx.GasLimit
+	}
+	relayedTx := generateTransaction(relayer.Bytes, 0, relayer.Bytes, big.NewInt(0), "", relayedTxGasLimit)
+	relayedTx.InnerTransactions = innerTxs
+
+	_, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
+	require.NoError(t, err)
+
+	balanceRelayerAfter := getBalance(t, cs, relayer)
+	balanceOwnerAfter := getBalance(t, cs, owner)
+	consumedRelayedFee := core.SafeMul(relayedTxGasLimit, minGasPrice)
+	expectedBalanceRelayerAfter := big.NewInt(0).Sub(balanceRelayerBefore, consumedRelayedFee)
+	require.Equal(t, balanceOwnerBefore.String(), balanceOwnerAfter.String())
+	require.Equal(t, expectedBalanceRelayerAfter.String(), balanceRelayerAfter.String())
+}
+
 func TestFixRelayedMoveBalanceWithChainSimulator(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
