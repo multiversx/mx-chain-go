@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/broadcast/shared"
 )
 
+// DelayedBroadcasterMock -
 type DelayedBroadcasterMock struct {
 	SetLeaderDataCalled         func(data *shared.DelayedBroadcastData) error
 	SetValidatorDataCalled      func(data *shared.DelayedBroadcastData) error
