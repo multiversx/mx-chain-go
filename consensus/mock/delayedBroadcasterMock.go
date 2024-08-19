@@ -3,19 +3,19 @@ package mock
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
 
-	"github.com/multiversx/mx-chain-go/consensus/broadcast"
+	"github.com/multiversx/mx-chain-go/consensus/broadcast/shared"
 )
 
 type DelayedBroadcasterMock struct {
-	SetLeaderDataCalled         func(data *broadcast.DelayedBroadcastData) error
-	SetValidatorDataCalled      func(data *broadcast.DelayedBroadcastData) error
-	SetHeaderForValidatorCalled func(vData *broadcast.ValidatorHeaderBroadcastData) error
+	SetLeaderDataCalled         func(data *shared.DelayedBroadcastData) error
+	SetValidatorDataCalled      func(data *shared.DelayedBroadcastData) error
+	SetHeaderForValidatorCalled func(vData *shared.ValidatorHeaderBroadcastData) error
 	SetBroadcastHandlersCalled  func(mbBroadcast func(mbData map[uint32][]byte, pkBytes []byte) error, txBroadcast func(txData map[string][][]byte, pkBytes []byte) error, headerBroadcast func(header data.HeaderHandler, pkBytes []byte) error) error
 	CloseCalled                 func()
 }
 
 // SetLeaderData -
-func (mock *DelayedBroadcasterMock) SetLeaderData(data *broadcast.DelayedBroadcastData) error {
+func (mock *DelayedBroadcasterMock) SetLeaderData(data *shared.DelayedBroadcastData) error {
 	if mock.SetLeaderDataCalled != nil {
 		return mock.SetLeaderDataCalled(data)
 	}
@@ -23,7 +23,7 @@ func (mock *DelayedBroadcasterMock) SetLeaderData(data *broadcast.DelayedBroadca
 }
 
 // SetValidatorData -
-func (mock *DelayedBroadcasterMock) SetValidatorData(data *broadcast.DelayedBroadcastData) error {
+func (mock *DelayedBroadcasterMock) SetValidatorData(data *shared.DelayedBroadcastData) error {
 	if mock.SetValidatorDataCalled != nil {
 		return mock.SetValidatorDataCalled(data)
 	}
@@ -31,7 +31,7 @@ func (mock *DelayedBroadcasterMock) SetValidatorData(data *broadcast.DelayedBroa
 }
 
 // SetHeaderForValidator -
-func (mock *DelayedBroadcasterMock) SetHeaderForValidator(vData *broadcast.ValidatorHeaderBroadcastData) error {
+func (mock *DelayedBroadcasterMock) SetHeaderForValidator(vData *shared.ValidatorHeaderBroadcastData) error {
 	if mock.SetHeaderForValidatorCalled != nil {
 		return mock.SetHeaderForValidatorCalled(vData)
 	}

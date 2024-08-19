@@ -10,6 +10,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/broadcast/shared"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/process/factory"
 )
@@ -143,11 +144,11 @@ func (scm *shardChainMessenger) BroadcastBlockDataLeader(
 
 	metaMiniBlocks, metaTransactions := scm.extractMetaMiniBlocksAndTransactions(miniBlocks, transactions)
 
-	broadcastData := &DelayedBroadcastData{
-		headerHash:     headerHash,
-		miniBlocksData: miniBlocks,
-		transactions:   transactions,
-		pkBytes:        pkBytes,
+	broadcastData := &shared.DelayedBroadcastData{
+		HeaderHash:     headerHash,
+		MiniBlocksData: miniBlocks,
+		Transactions:   transactions,
+		PkBytes:        pkBytes,
 	}
 
 	err = scm.delayedBlockBroadcaster.SetLeaderData(broadcastData)
@@ -178,7 +179,7 @@ func (scm *shardChainMessenger) PrepareBroadcastHeaderValidator(
 		return
 	}
 
-	vData := &ValidatorHeaderBroadcastData{
+	vData := &shared.ValidatorHeaderBroadcastData{
 		HeaderHash: headerHash,
 		Header:     header,
 		Order:      uint32(idx),
@@ -214,13 +215,13 @@ func (scm *shardChainMessenger) PrepareBroadcastBlockDataValidator(
 		return
 	}
 
-	broadcastData := &DelayedBroadcastData{
-		headerHash:     headerHash,
-		header:         header,
-		miniBlocksData: miniBlocks,
-		transactions:   transactions,
-		order:          uint32(idx),
-		pkBytes:        pkBytes,
+	broadcastData := &shared.DelayedBroadcastData{
+		HeaderHash:     headerHash,
+		Header:         header,
+		MiniBlocksData: miniBlocks,
+		Transactions:   transactions,
+		Order:          uint32(idx),
+		PkBytes:        pkBytes,
 	}
 
 	err = scm.delayedBlockBroadcaster.SetValidatorData(broadcastData)
