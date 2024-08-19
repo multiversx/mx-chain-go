@@ -67,6 +67,7 @@ func createDefaultShardChainArgs() broadcast.ShardChainMessengerArgs {
 		Signer: singleSignerMock,
 	}
 	alarmScheduler := &mock.AlarmSchedulerStub{}
+	delayedBroadcaster := &mock.DelayedBroadcasterMock{}
 
 	return broadcast.ShardChainMessengerArgs{
 		CommonMessengerArgs: broadcast.CommonMessengerArgs{
@@ -81,6 +82,7 @@ func createDefaultShardChainArgs() broadcast.ShardChainMessengerArgs {
 			MaxValidatorDelayCacheSize: 1,
 			AlarmScheduler:             alarmScheduler,
 			KeysHandler:                &testscommon.KeysHandlerStub{},
+			DelayedBroadcaster:         delayedBroadcaster,
 		},
 	}
 }
@@ -151,6 +153,15 @@ func TestShardChainMessenger_NewShardChainMessengerNilHeadersSubscriberShouldFai
 
 	assert.Nil(t, scm)
 	assert.Equal(t, spos.ErrNilHeadersSubscriber, err)
+}
+
+func TestShardChainMessenger_NilDelayedBroadcasterShouldError(t *testing.T) {
+	args := createDefaultShardChainArgs()
+	args.DelayedBroadcaster = nil
+	scm, err := broadcast.NewShardChainMessenger(args)
+
+	assert.Nil(t, scm)
+	assert.Equal(t, broadcast.ErrNilDelayedBroadcaster, err)
 }
 
 func TestShardChainMessenger_NilKeysHandlerShouldError(t *testing.T) {
@@ -512,6 +523,18 @@ func TestShardChainMessenger_BroadcastBlockDataLeaderShouldTriggerWaitingDelayed
 			return bytes.Equal(pkBytes, nodePkBytes)
 		},
 	}
+	argsDelayedBroadcaster := broadcast.ArgsDelayedBlockBroadcaster{
+		InterceptorsContainer: args.InterceptorsContainer,
+		HeadersSubscriber:     args.HeadersSubscriber,
+		ShardCoordinator:      args.ShardCoordinator,
+		LeaderCacheSize:       args.MaxDelayCacheSize,
+		ValidatorCacheSize:    args.MaxDelayCacheSize,
+		AlarmScheduler:        args.AlarmScheduler,
+	}
+
+	// Using real component in order to properly simulate the expected behavior
+	args.DelayedBroadcaster, _ = broadcast.NewDelayedBlockBroadcaster(&argsDelayedBroadcaster)
+
 	scm, _ := broadcast.NewShardChainMessenger(args)
 
 	t.Run("original public key of the node", func(t *testing.T) {
