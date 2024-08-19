@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/process"
@@ -142,17 +143,17 @@ func (wrk *Worker) NilReceivedMessages() {
 }
 
 // ReceivedMessagesCalls -
-func (wrk *Worker) ReceivedMessagesCalls() map[consensus.MessageType]func(context.Context, *consensus.Message) bool {
+func (wrk *Worker) ReceivedMessagesCalls() map[consensus.MessageType][]func(context.Context, *consensus.Message) bool {
 	wrk.mutReceivedMessagesCalls.RLock()
 	defer wrk.mutReceivedMessagesCalls.RUnlock()
 
 	return wrk.receivedMessagesCalls
 }
 
-// SetReceivedMessagesCalls -
-func (wrk *Worker) SetReceivedMessagesCalls(messageType consensus.MessageType, f func(context.Context, *consensus.Message) bool) {
+// AppendReceivedMessagesCalls -
+func (wrk *Worker) AppendReceivedMessagesCalls(messageType consensus.MessageType, f func(context.Context, *consensus.Message) bool) {
 	wrk.mutReceivedMessagesCalls.Lock()
-	wrk.receivedMessagesCalls[messageType] = f
+	wrk.receivedMessagesCalls[messageType] = append(wrk.receivedMessagesCalls[messageType], f)
 	wrk.mutReceivedMessagesCalls.Unlock()
 }
 
@@ -199,6 +200,18 @@ func (wrk *Worker) AppStatusHandler() core.AppStatusHandler {
 // GetEquivalentMessages -
 func (wrk *Worker) GetEquivalentMessages() map[string]*consensus.EquivalentMessageInfo {
 	return wrk.getEquivalentMessages()
+}
+
+// SetEquivalentProof -
+func (wrk *Worker) SetEquivalentProof(hash string, proof data.HeaderProof) {
+	wrk.mutEquivalentMessages.Lock()
+	defer wrk.mutEquivalentMessages.Unlock()
+
+	wrk.equivalentMessages[hash] = &consensus.EquivalentMessageInfo{
+		NumMessages: 1,
+		Validated:   false,
+		Proof:       proof,
+	}
 }
 
 // CheckConsensusMessageValidity -
