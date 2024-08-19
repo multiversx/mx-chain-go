@@ -360,6 +360,8 @@ func TestNode_GetSCRs(t *testing.T) {
 				return &datafield.ResponseParseData{}
 			},
 		},
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		TxMarshaller:        &mock.MarshalizerFake{},
 	}
 	apiTransactionProc, _ := NewAPITransactionProcessor(args)
 
