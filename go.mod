@@ -22,7 +22,7 @@ require (
 	github.com/multiversx/mx-chain-scenario-go v1.4.3
 	github.com/multiversx/mx-chain-storage-go v1.0.15
 	github.com/multiversx/mx-chain-vm-common-go v1.5.12
-	github.com/multiversx/mx-chain-vm-go v1.5.29-patch1
+	github.com/multiversx/mx-chain-vm-go v1.5.29-patch2
 	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.67
 	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.68
 	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.97
@@ -188,5 +188,3 @@ require (
 )
 
 replace github.com/gogo/protobuf => github.com/multiversx/protobuf v1.3.2
-
-replace github.com/multiversx/mx-chain-vm-go v1.5.29-patch1 => github.com/multiversx/mx-chain-vm-go-ghsa-jrrc-6rqr-2fq4 v1.5.30-patch1.0.20240815063326-1ccc655c9f4f
