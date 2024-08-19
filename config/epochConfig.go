@@ -114,6 +114,7 @@ type EnableEpochs struct {
 	StakingV4Step3EnableEpoch                                uint32
 	CleanupAuctionOnLowWaitingListEnableEpoch                uint32
 	AlwaysMergeContextsInEEIEnableEpoch                      uint32
+	UseGasBoundedShouldFailExecutionEnableEpoch              uint32
 	BLSMultiSignerEnableEpoch                                []MultiSignerConfig
 }
 
