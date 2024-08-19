@@ -149,7 +149,7 @@ func (e *epochStartMetaBlockInterceptor) RegisterHandler(handler func(topic stri
 func (e *epochStartMetaBlockInterceptor) handleFoundEpochStartMetaBlock(metaBlock *block.MetaBlock) {
 	e.mutHandlers.RLock()
 	for _, handler := range e.registeredHandlers {
-		handler(factory.MetachainBlocksTopic, []byte(""), metaBlock)
+		handler(factory.ShardBlocksTopic, []byte(""), metaBlock)
 	}
 	e.mutHandlers.RUnlock()
 

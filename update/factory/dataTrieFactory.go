@@ -121,19 +121,12 @@ func (d *dataTrieFactory) TrieStorageManager() common.StorageManager {
 func (d *dataTrieFactory) Create() (common.TriesHolder, error) {
 	container := state.NewDataTriesHolder()
 
-	for i := uint32(0); i < d.shardCoordinator.NumberOfShards(); i++ {
-		err := d.createAndAddOneTrie(i, genesis.UserAccount, container)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	err := d.createAndAddOneTrie(core.MetachainShardId, genesis.UserAccount, container)
+	err := d.createAndAddOneTrie(core.SovereignChainShardId, genesis.UserAccount, container)
 	if err != nil {
 		return nil, err
 	}
 
-	err = d.createAndAddOneTrie(core.MetachainShardId, genesis.ValidatorAccount, container)
+	err = d.createAndAddOneTrie(core.SovereignChainShardId, genesis.ValidatorAccount, container)
 	if err != nil {
 		return nil, err
 	}

@@ -718,7 +718,9 @@ func (rrh *resolverRequestHandler) getShardHeaderRequester(shardID uint32) (data
 		crossShardID = shardID
 	}
 
-	headerRequester, err := rrh.requestersFinder.CrossShardRequester(factory.ShardBlocksTopic, crossShardID)
+	log.Error("resolverRequestHandler.getShardHeaderRequester")
+
+	headerRequester, err := rrh.requestersFinder.IntraShardRequester(factory.ShardBlocksTopic)
 	if err != nil {
 		err = fmt.Errorf("%w, topic: %s, current shard ID: %d, cross shard ID: %d",
 			err, factory.ShardBlocksTopic, rrh.shardID, crossShardID)

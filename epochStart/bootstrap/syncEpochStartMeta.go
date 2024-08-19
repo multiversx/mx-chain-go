@@ -91,7 +91,7 @@ func NewEpochStartMetaSyncer(args ArgsNewEpochStartMetaSyncer) (*epochStartMetaS
 
 	e.singleDataInterceptor, err = interceptors.NewSingleDataInterceptor(
 		interceptors.ArgSingleDataInterceptor{
-			Topic:                factory.MetachainBlocksTopic,
+			Topic:                factory.ShardBlocksTopic,
 			DataFactory:          interceptedMetaHdrDataFactory,
 			Processor:            args.MetaBlockProcessor,
 			Throttler:            disabled.NewThrottler(),
@@ -130,21 +130,21 @@ func (e *epochStartMetaSyncer) SyncEpochStartMeta(timeToWait time.Duration) (dat
 }
 
 func (e *epochStartMetaSyncer) resetTopicsAndInterceptors() {
-	err := e.messenger.UnregisterMessageProcessor(factory.MetachainBlocksTopic, common.EpochStartInterceptorsIdentifier)
+	err := e.messenger.UnregisterMessageProcessor(factory.ShardBlocksTopic, common.EpochStartInterceptorsIdentifier)
 	if err != nil {
 		log.Trace("error unregistering message processors", "error", err)
 	}
 }
 
 func (e *epochStartMetaSyncer) initTopicForEpochStartMetaBlockInterceptor() error {
-	err := e.messenger.CreateTopic(factory.MetachainBlocksTopic, true)
+	err := e.messenger.CreateTopic(factory.ShardBlocksTopic, true)
 	if err != nil {
 		log.Warn("error messenger create topic", "error", err)
 		return err
 	}
 
 	e.resetTopicsAndInterceptors()
-	err = e.messenger.RegisterMessageProcessor(factory.MetachainBlocksTopic, common.EpochStartInterceptorsIdentifier, e.singleDataInterceptor)
+	err = e.messenger.RegisterMessageProcessor(factory.ShardBlocksTopic, common.EpochStartInterceptorsIdentifier, e.singleDataInterceptor)
 	if err != nil {
 		return err
 	}

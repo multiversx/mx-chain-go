@@ -3,6 +3,7 @@ package requestHandlers
 import (
 	"fmt"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory"
@@ -24,6 +25,7 @@ func NewSovereignResolverRequestHandler(resolverRequestHandler *resolverRequestH
 		resolverRequestHandler,
 	}
 
+	srrh.shardID = core.SovereignChainShardId
 	return srrh, nil
 }
 
@@ -103,7 +105,7 @@ func (srrh *sovereignResolverRequestHandler) RequestExtendedShardHeader(hash []b
 		)
 		return
 	}
-
+	// equesting header by epo
 	srrh.whiteList.Add([][]byte{hash})
 
 	epoch := srrh.getEpoch()
@@ -154,4 +156,47 @@ func (srrh *sovereignResolverRequestHandler) getTrieNodesRequester(topic string,
 	}
 
 	return requester, nil
+}
+
+// RequestStartOfEpochMetaBlock method asks for the start of epoch metablock from the connected peers
+func (srrh *sovereignResolverRequestHandler) RequestStartOfEpochMetaBlock(epoch uint32) {
+	epochStartIdentifier := []byte(core.EpochStartIdentifier(epoch))
+	if !srrh.testIfRequestIsNeeded(epochStartIdentifier, uniqueMetaHeadersSuffix) {
+		return
+	}
+
+	baseTopic := factory.ShardBlocksTopic
+	log.Debug("requesting header by epoch",
+		"topic", baseTopic,
+		"epoch", epoch,
+		"hash", epochStartIdentifier,
+	)
+
+	requester, err := srrh.requestersFinder.IntraShardRequester(baseTopic)
+	if err != nil {
+		log.Error("RequestStartOfEpochMetaBlock.MetaChainRequester",
+			"error", err.Error(),
+			"topic", baseTopic,
+		)
+		return
+	}
+
+	headerRequester, ok := requester.(EpochRequester)
+	if !ok {
+		log.Warn("wrong assertion type when creating header requester")
+		return
+	}
+
+	srrh.whiteList.Add([][]byte{epochStartIdentifier})
+
+	err = headerRequester.RequestDataFromEpoch(epochStartIdentifier)
+	if err != nil {
+		log.Debug("RequestStartOfEpochMetaBlock.RequestDataFromEpoch",
+			"error", err.Error(),
+			"epochStartIdentifier", epochStartIdentifier,
+		)
+		return
+	}
+
+	srrh.addRequestedItems([][]byte{epochStartIdentifier}, uniqueMetaHeadersSuffix)
 }

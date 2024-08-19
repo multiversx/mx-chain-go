@@ -928,8 +928,8 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 
 	// TODO: MX-15748 Analyse this
 	shardIds := []uint32{
-		core.MetachainShardId,
-		core.MetachainShardId,
+		core.SovereignChainShardId,
+		core.SovereignChainShardId,
 	}
 	lastFinishedMeta := epochStartData.GetLastFinishedMetaBlock()
 	firstPendingMetaBlock := epochStartData.GetFirstPendingMetaBlock()
@@ -1310,13 +1310,16 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 	}
 
 	requestedItemsHandler := cache.NewTimeCache(timeBetweenRequests)
-	e.requestHandler, err = requestHandlers.NewResolverRequestHandler(
-		finder,
-		requestedItemsHandler,
-		e.whiteListHandler,
-		maxToRequest,
-		core.MetachainShardId,
-		timeBetweenRequests,
+
+	e.requestHandler, err = e.runTypeComponents.RequestHandlerCreator().CreateRequestHandler(
+		requestHandlers.RequestHandlerArgs{
+			RequestersFinder:      finder,
+			RequestedItemsHandler: requestedItemsHandler,
+			WhiteListHandler:      e.whiteListHandler,
+			MaxTxsToRequest:       maxToRequest,
+			ShardID:               core.MetachainShardId,
+			RequestInterval:       timeBetweenRequests,
+		},
 	)
 	return err
 }

@@ -139,7 +139,7 @@ func (bsh *baseStorageHandler) saveMetaHdrToStorage(metaBlock data.HeaderHandler
 
 	headerHash := bsh.hasher.Compute(string(headerBytes))
 
-	metaHdrStorage, err := bsh.storageService.GetStorer(dataRetriever.MetaBlockUnit)
+	metaHdrStorage, err := bsh.storageService.GetStorer(dataRetriever.BlockHeaderUnit)
 	if err != nil {
 		return nil, err
 	}
@@ -202,7 +202,7 @@ func (bsh *baseStorageHandler) saveMetaHdrForEpochTrigger(metaBlock data.HeaderH
 	}
 
 	epochStartIdentifier := core.EpochStartIdentifier(metaBlock.GetEpoch())
-	metaHdrStorage, err := bsh.storageService.GetStorer(dataRetriever.MetaBlockUnit)
+	metaHdrStorage, err := bsh.storageService.GetStorer(dataRetriever.BlockHeaderUnit)
 	if err != nil {
 		return err
 	}

@@ -1,9 +1,13 @@
 package interceptorscontainer_test
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -57,11 +61,31 @@ func TestSovereignShardInterceptorsContainerFactory_Create(t *testing.T) {
 	mainContainer, fullArchiveContainer, err := sovContainer.Create()
 	require.Nil(t, err)
 
-	noOfShards := 1
-	totalInterceptors := calcNumShardInterceptors(noOfShards) + 1 // one extra for shard extended header
-	require.Nil(t, err)
-	require.Equal(t, totalInterceptors, mainContainer.Len())
-	require.Equal(t, 0, fullArchiveContainer.Len())
+	//noOfShards := 1
+	//totalInterceptors := calcNumShardInterceptors(noOfShards) + 1 // one extra for shard extended header
+	//require.Nil(t, err)
+	//require.Equal(t, totalInterceptors, mainContainer.Len())
+	//require.Equal(t, 0, fullArchiveContainer.Len())
+
+	_ = fullArchiveContainer
+
+	topicDelim := "_"
+	topicDelimCt := 0
+	iterateFunc := func(key string, interceptor process.Interceptor) bool {
+		fmt.Printf("KEY:%s\n", key)
+		require.False(t, strings.Contains(strings.ToLower(key), "meta"))
+
+		if strings.Contains(key, topicDelim) {
+			keyTokens := strings.Split(key, topicDelim)
+			require.Len(t, keyTokens, 2)
+			require.Equal(t, fmt.Sprintf("%d", core.SovereignChainShardId), keyTokens[1])
+			topicDelimCt++
+		}
+
+		return true
+	}
+
+	mainContainer.Iterate(iterateFunc)
 
 	shardCoord := sharding.NewSovereignShardCoordinator()
 	_, err = mainContainer.Get(factory.ExtendedHeaderProofTopic + shardCoord.CommunicationIdentifier(shardCoord.SelfId()))

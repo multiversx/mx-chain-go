@@ -125,6 +125,8 @@ func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, fro
 
 	var buff []byte
 
+	log.Error("HeaderResolver", "TYPE", rd.Type)
+
 	switch rd.Type {
 	case dataRetriever.HashType:
 		buff, err = hdrRes.resolveHeaderFromHash(rd)
@@ -132,6 +134,7 @@ func (hdrRes *HeaderResolver) ProcessReceivedMessage(message p2p.MessageP2P, fro
 		buff, err = hdrRes.resolveHeaderFromNonce(rd)
 	case dataRetriever.EpochType:
 		buff, err = hdrRes.resolveHeaderFromEpoch(rd.Value)
+		log.Error("REST", "buff", string(buff), "err", err)
 	default:
 		return dataRetriever.ErrResolveTypeUnknown
 	}
