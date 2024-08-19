@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-crypto-go"
+
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/broadcast"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -77,6 +78,20 @@ func GetBroadcastMessenger(
 		return nil, spos.ErrNilShardCoordinator
 	}
 
+	dbbArgs := &broadcast.ArgsDelayedBlockBroadcaster{
+		InterceptorsContainer: interceptorsContainer,
+		HeadersSubscriber:     headersSubscriber,
+		ShardCoordinator:      shardCoordinator,
+		LeaderCacheSize:       maxDelayCacheSize,
+		ValidatorCacheSize:    maxDelayCacheSize,
+		AlarmScheduler:        alarmScheduler,
+	}
+
+	delayedBroadcaster, err := broadcast.NewDelayedBlockBroadcaster(dbbArgs)
+	if err != nil {
+		return nil, err
+	}
+
 	commonMessengerArgs := broadcast.CommonMessengerArgs{
 		Marshalizer:                marshalizer,
 		Hasher:                     hasher,
@@ -89,6 +104,7 @@ func GetBroadcastMessenger(
 		InterceptorsContainer:      interceptorsContainer,
 		AlarmScheduler:             alarmScheduler,
 		KeysHandler:                keysHandler,
+		DelayedBroadcaster:         delayedBroadcaster,
 	}
 
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {

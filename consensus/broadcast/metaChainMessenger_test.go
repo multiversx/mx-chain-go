@@ -8,6 +8,9 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus/broadcast"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
@@ -15,8 +18,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 var nodePkBytes = []byte("node public key bytes")
@@ -31,6 +32,7 @@ func createDefaultMetaChainArgs() broadcast.MetaChainMessengerArgs {
 	interceptorsContainer := createInterceptorContainer()
 	peerSigHandler := &mock.PeerSignatureHandler{Signer: singleSignerMock}
 	alarmScheduler := &mock.AlarmSchedulerStub{}
+	delayedBroadcaster := &mock.DelayedBroadcasterMock{}
 
 	return broadcast.MetaChainMessengerArgs{
 		CommonMessengerArgs: broadcast.CommonMessengerArgs{
@@ -45,6 +47,7 @@ func createDefaultMetaChainArgs() broadcast.MetaChainMessengerArgs {
 			MaxDelayCacheSize:          2,
 			AlarmScheduler:             alarmScheduler,
 			KeysHandler:                &testscommon.KeysHandlerStub{},
+			DelayedBroadcaster:         delayedBroadcaster,
 		},
 	}
 }
@@ -94,6 +97,14 @@ func TestMetaChainMessenger_NilKeysHandlerShouldError(t *testing.T) {
 	assert.Equal(t, broadcast.ErrNilKeysHandler, err)
 }
 
+func TestMetaChainMessenger_NilDelayedBroadcasterShouldError(t *testing.T) {
+	args := createDefaultMetaChainArgs()
+	args.DelayedBroadcaster = nil
+	scm, err := broadcast.NewMetaChainMessenger(args)
+
+	assert.Nil(t, scm)
+	assert.Equal(t, broadcast.ErrNilDelayedBroadcaster, err)
+}
 func TestMetaChainMessenger_NewMetaChainMessengerShouldWork(t *testing.T) {
 	args := createDefaultMetaChainArgs()
 	mcm, err := broadcast.NewMetaChainMessenger(args)
