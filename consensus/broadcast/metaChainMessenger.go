@@ -8,6 +8,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/broadcast/shared"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/process/factory"
 )
@@ -141,7 +142,7 @@ func (mcm *metaChainMessenger) PrepareBroadcastHeaderValidator(
 		return
 	}
 
-	vData := &ValidatorHeaderBroadcastData{
+	vData := &shared.ValidatorHeaderBroadcastData{
 		HeaderHash:           headerHash,
 		Header:               header,
 		MetaMiniBlocksData:   miniBlocks,

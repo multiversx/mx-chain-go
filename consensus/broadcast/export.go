@@ -8,6 +8,7 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 
 	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/broadcast/shared"
 	"github.com/multiversx/mx-chain-go/sharding"
 )
 
@@ -33,14 +34,14 @@ func CreateDelayBroadcastDataForValidator(
 	miniBlockHashes map[string]map[string]struct{},
 	transactionsData map[string][][]byte,
 	order uint32,
-) *DelayedBroadcastData {
-	return &DelayedBroadcastData{
-		headerHash:      headerHash,
-		header:          header,
-		miniBlocksData:  miniblocksData,
-		miniBlockHashes: miniBlockHashes,
-		transactions:    transactionsData,
-		order:           order,
+) *shared.DelayedBroadcastData {
+	return &shared.DelayedBroadcastData{
+		HeaderHash:      headerHash,
+		Header:          header,
+		MiniBlocksData:  miniblocksData,
+		MiniBlockHashes: miniBlockHashes,
+		Transactions:    transactionsData,
+		Order:           order,
 	}
 }
 
@@ -51,8 +52,8 @@ func CreateValidatorHeaderBroadcastData(
 	metaMiniBlocksData map[uint32][]byte,
 	metaTransactionsData map[string][][]byte,
 	order uint32,
-) *ValidatorHeaderBroadcastData {
-	return &ValidatorHeaderBroadcastData{
+) *shared.ValidatorHeaderBroadcastData {
+	return &shared.ValidatorHeaderBroadcastData{
 		HeaderHash:           headerHash,
 		Header:               header,
 		MetaMiniBlocksData:   metaMiniBlocksData,
@@ -66,11 +67,11 @@ func CreateDelayBroadcastDataForLeader(
 	headerHash []byte,
 	miniblocks map[uint32][]byte,
 	transactions map[string][][]byte,
-) *DelayedBroadcastData {
-	return &DelayedBroadcastData{
-		headerHash:     headerHash,
-		miniBlocksData: miniblocks,
-		transactions:   transactions,
+) *shared.DelayedBroadcastData {
+	return &shared.DelayedBroadcastData{
+		HeaderHash:     headerHash,
+		MiniBlocksData: miniblocks,
+		Transactions:   transactions,
 	}
 }
 
@@ -81,9 +82,9 @@ func (dbb *delayedBlockBroadcaster) HeaderReceived(headerHandler data.HeaderHand
 }
 
 // GetValidatorBroadcastData returns the set validator delayed broadcast data
-func (dbb *delayedBlockBroadcaster) GetValidatorBroadcastData() []*DelayedBroadcastData {
+func (dbb *delayedBlockBroadcaster) GetValidatorBroadcastData() []*shared.DelayedBroadcastData {
 	dbb.mutDataForBroadcast.RLock()
-	copyValBroadcastData := make([]*DelayedBroadcastData, len(dbb.valBroadcastData))
+	copyValBroadcastData := make([]*shared.DelayedBroadcastData, len(dbb.valBroadcastData))
 	copy(copyValBroadcastData, dbb.valBroadcastData)
 	dbb.mutDataForBroadcast.RUnlock()
 
@@ -91,9 +92,9 @@ func (dbb *delayedBlockBroadcaster) GetValidatorBroadcastData() []*DelayedBroadc
 }
 
 // GetValidatorHeaderBroadcastData -
-func (dbb *delayedBlockBroadcaster) GetValidatorHeaderBroadcastData() []*ValidatorHeaderBroadcastData {
+func (dbb *delayedBlockBroadcaster) GetValidatorHeaderBroadcastData() []*shared.ValidatorHeaderBroadcastData {
 	dbb.mutDataForBroadcast.RLock()
-	copyValHeaderBroadcastData := make([]*ValidatorHeaderBroadcastData, len(dbb.valHeaderBroadcastData))
+	copyValHeaderBroadcastData := make([]*shared.ValidatorHeaderBroadcastData, len(dbb.valHeaderBroadcastData))
 	copy(copyValHeaderBroadcastData, dbb.valHeaderBroadcastData)
 	dbb.mutDataForBroadcast.RUnlock()
 
@@ -101,9 +102,9 @@ func (dbb *delayedBlockBroadcaster) GetValidatorHeaderBroadcastData() []*Validat
 }
 
 // GetLeaderBroadcastData returns the set leader delayed broadcast data
-func (dbb *delayedBlockBroadcaster) GetLeaderBroadcastData() []*DelayedBroadcastData {
+func (dbb *delayedBlockBroadcaster) GetLeaderBroadcastData() []*shared.DelayedBroadcastData {
 	dbb.mutDataForBroadcast.RLock()
-	copyDelayBroadcastData := make([]*DelayedBroadcastData, len(dbb.delayedBroadcastData))
+	copyDelayBroadcastData := make([]*shared.DelayedBroadcastData, len(dbb.delayedBroadcastData))
 	copy(copyDelayBroadcastData, dbb.delayedBroadcastData)
 	dbb.mutDataForBroadcast.RUnlock()
 
