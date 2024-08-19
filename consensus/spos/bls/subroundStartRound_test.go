@@ -3,13 +3,18 @@ package bls_test
 import (
 	"errors"
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/multiversx/mx-chain-core-go/data"
+	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/stretchr/testify/require"
+
 	mock2 "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
-	"github.com/stretchr/testify/require"
-	"testing"
-	"time"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
@@ -19,7 +24,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-	"github.com/stretchr/testify/assert"
 )
 
 func defaultSubroundStartRoundFromSubround(sr *spos.Subround) (bls.SubroundStartRound, error) {
@@ -842,19 +846,16 @@ func buildDefaultSubround(container spos.ConsensusCoreHandler) *spos.Subround {
 func TestSubroundStartRound_GenerateNextConsensusGroupShouldErrNilHeader(t *testing.T) {
 	t.Parallel()
 
-	// mock pentru consensus core care are un chain handler pe care il putem folosi pentru setBlockchain
 	container := mock.InitConsensusCore()
 
-	// mock pentru chain handler care are GenesisHeader-ul pe care il putem mockui
 	chainHandlerMock := &testscommon.ChainHandlerStub{
 		GetGenesisHeaderCalled: func() data.HeaderHandler {
 			return nil
 		},
 	}
 
-	// setare blockchain
 	container.SetBlockchain(chainHandlerMock)
-	// creare subround si startround
+
 	sr := buildDefaultSubround(container)
 	startRound, err := bls.NewSubroundStartRound(
 		sr,
@@ -866,11 +867,9 @@ func TestSubroundStartRound_GenerateNextConsensusGroupShouldErrNilHeader(t *test
 	)
 	require.Nil(t, err)
 
-	err2 := startRound.GenerateNextConsensusGroup(0)
+	err = startRound.GenerateNextConsensusGroup(0)
 
-	myExpectedErr := spos.ErrNilHeader
-
-	assert.Equal(t, myExpectedErr, err2)
+	assert.Equal(t, spos.ErrNilHeader, err)
 }
 
 // This test should return false when Reset is called by SigningHandler
@@ -909,19 +908,9 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenResetErr(t *tes
 // indexRoundIfNeed should fail
 func TestSubroundStartRound_IndexRoundIfNeededFailShardIdForEpoch(t *testing.T) {
 
-	pubKeys := make([]string, 0)
-	pubKeys = append(pubKeys, "testKey1")
-	pubKeys = append(pubKeys, "testKey2")
+	pubKeys := []string{"testKey1", "testKey2"}
 
 	container := mock.InitConsensusCore()
-
-	expectNoPanic := func() {
-		if recover() != nil {
-			require.Fail(t, "expected no panic")
-		}
-	}
-
-	defer expectNoPanic()
 
 	idVar := 0
 	expErr := fmt.Errorf("expected error")
@@ -951,32 +940,26 @@ func TestSubroundStartRound_IndexRoundIfNeededFailShardIdForEpoch(t *testing.T) 
 	)
 	require.Nil(t, err)
 
-	startRound.SetOutportHandler(&outport.OutportStub{HasDriversCalled: func() bool {
-		return true
-	}})
+	_ = startRound.SetOutportHandler(&outport.OutportStub{
+		HasDriversCalled: func() bool {
+			return true
+		},
+		SaveRoundsInfoCalled: func(roundsInfo *outportcore.RoundsInfo) {
+			require.Fail(t, "SaveRoundsInfo should not be called")
+		},
+	})
 
 	startRound.IndexRoundIfNeeded(pubKeys)
 
 }
 
 // This test is for increasing the coverage
-// It should not panic when getValidatorsIndexes has error, and indexRoundIfNeeded just returns
 // indexRoundIfNeed should fail
 func TestSubroundStartRound_IndexRoundIfNeededFailGetValidatorsIndexes(t *testing.T) {
 
-	pubKeys := make([]string, 0)
-	pubKeys = append(pubKeys, "testKey1")
-	pubKeys = append(pubKeys, "testKey2")
+	pubKeys := []string{"testKey1", "testKey2"}
 
 	container := mock.InitConsensusCore()
-
-	expectNoPanic := func() {
-		if recover() != nil {
-			require.Fail(t, "expected no panic")
-		}
-	}
-
-	defer expectNoPanic()
 
 	idVar := 0
 	expErr := fmt.Errorf("expected error")
@@ -989,7 +972,6 @@ func TestSubroundStartRound_IndexRoundIfNeededFailGetValidatorsIndexes(t *testin
 
 	container.SetValidatorGroupSelector(
 		&shardingMocks.NodesCoordinatorStub{
-
 			GetValidatorsIndexesCalled: func(pubKeys []string, epoch uint32) ([]uint64, error) {
 				return nil, expErr
 			},
@@ -1007,9 +989,14 @@ func TestSubroundStartRound_IndexRoundIfNeededFailGetValidatorsIndexes(t *testin
 	)
 	require.Nil(t, err)
 
-	startRound.SetOutportHandler(&outport.OutportStub{HasDriversCalled: func() bool {
-		return true
-	}})
+	_ = startRound.SetOutportHandler(&outport.OutportStub{
+		HasDriversCalled: func() bool {
+			return true
+		},
+		SaveRoundsInfoCalled: func(roundsInfo *outportcore.RoundsInfo) {
+			require.Fail(t, "SaveRoundsInfo should not be called")
+		},
+	})
 
 	startRound.IndexRoundIfNeeded(pubKeys)
 
@@ -1019,21 +1006,13 @@ func TestSubroundStartRound_IndexRoundIfNeededFailGetValidatorsIndexes(t *testin
 // indexRoundIfNeed should not fail
 func TestSubroundStartRound_IndexRoundIfNeededShouldFullyWork(t *testing.T) {
 
-	pubKeys := make([]string, 0)
-	pubKeys = append(pubKeys, "testKey1")
-	pubKeys = append(pubKeys, "testKey2")
+	pubKeys := []string{"testKey1", "testKey2"}
 
 	container := mock.InitConsensusCore()
 
-	expectNoPanic := func() {
-		if recover() != nil {
-			require.Fail(t, "expected no panic")
-		}
-	}
-
-	defer expectNoPanic()
-
 	idVar := 0
+
+	saveRoundInfoCalled := false
 
 	container.SetShardCoordinator(&mock2.CoordinatorStub{
 		SelfIdCalled: func() uint32 {
@@ -1053,11 +1032,17 @@ func TestSubroundStartRound_IndexRoundIfNeededShouldFullyWork(t *testing.T) {
 	)
 	require.Nil(t, err)
 
-	startRound.SetOutportHandler(&outport.OutportStub{HasDriversCalled: func() bool {
-		return true
-	}})
+	_ = startRound.SetOutportHandler(&outport.OutportStub{
+		HasDriversCalled: func() bool {
+			return true
+		},
+		SaveRoundsInfoCalled: func(roundsInfo *outportcore.RoundsInfo) {
+			saveRoundInfoCalled = true
+		}})
 
 	startRound.IndexRoundIfNeeded(pubKeys)
+
+	assert.True(t, saveRoundInfoCalled)
 
 }
 
@@ -1065,19 +1050,9 @@ func TestSubroundStartRound_IndexRoundIfNeededShouldFullyWork(t *testing.T) {
 // indexRoundIfNeed should fail
 func TestSubroundStartRound_IndexRoundIfNeededDifferentShardIdFail(t *testing.T) {
 
-	pubKeys := make([]string, 0)
-	pubKeys = append(pubKeys, "testKey1")
-	pubKeys = append(pubKeys, "testKey2")
+	pubKeys := []string{"testKey1", "testKey2"}
 
 	container := mock.InitConsensusCore()
-
-	expectNoPanic := func() {
-		if recover() != nil {
-			require.Fail(t, "expected no panic")
-		}
-	}
-
-	defer expectNoPanic()
 
 	shardID := 1
 	container.SetShardCoordinator(&mock2.CoordinatorStub{
@@ -1104,9 +1079,14 @@ func TestSubroundStartRound_IndexRoundIfNeededDifferentShardIdFail(t *testing.T)
 	)
 	require.Nil(t, err)
 
-	startRound.SetOutportHandler(&outport.OutportStub{HasDriversCalled: func() bool {
-		return true
-	}})
+	_ = startRound.SetOutportHandler(&outport.OutportStub{
+		HasDriversCalled: func() bool {
+			return true
+		},
+		SaveRoundsInfoCalled: func(roundsInfo *outportcore.RoundsInfo) {
+			require.Fail(t, "SaveRoundsInfo should not be called")
+		},
+	})
 
 	startRound.IndexRoundIfNeeded(pubKeys)
 

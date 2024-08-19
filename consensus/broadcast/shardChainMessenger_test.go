@@ -5,9 +5,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/consensus/broadcast"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -17,7 +21,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
-	"github.com/stretchr/testify/assert"
 )
 
 func createDelayData(prefix string) ([]byte, *block.Header, map[uint32][]byte, map[string][][]byte) {
@@ -82,9 +85,23 @@ func createDefaultShardChainArgs() broadcast.ShardChainMessengerArgs {
 	}
 }
 
+func newTestBlockBodyForErrMiniBlockEmpty() *block.Body {
+	return &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			{
+				TxHashes:        [][]byte{},
+				ReceiverShardID: 0,
+				SenderShardID:   0,
+				Type:            0,
+			},
+		},
+	}
+}
+
 func TestShardChainMessenger_NewShardChainMessengerNilMarshalizerShouldFail(t *testing.T) {
 	args := createDefaultShardChainArgs()
 	args.Marshalizer = nil
+
 	scm, err := broadcast.NewShardChainMessenger(args)
 
 	assert.Nil(t, scm)
@@ -168,6 +185,14 @@ func TestShardChainMessenger_BroadcastBlockShouldErrNilHeader(t *testing.T) {
 
 	err := scm.BroadcastBlock(newTestBlockBody(), nil)
 	assert.Equal(t, spos.ErrNilHeader, err)
+}
+
+func TestShardChainMessenger_BroadcastBlockShouldErrMiniBlockEmpty(t *testing.T) {
+	args := createDefaultShardChainArgs()
+	scm, _ := broadcast.NewShardChainMessenger(args)
+
+	err := scm.BroadcastBlock(newTestBlockBodyForErrMiniBlockEmpty(), &block.Header{})
+	assert.Equal(t, data.ErrMiniBlockEmpty, err)
 }
 
 func TestShardChainMessenger_BroadcastBlockShouldErrMockMarshalizer(t *testing.T) {
@@ -363,6 +388,19 @@ func TestShardChainMessenger_BroadcastHeaderNilHeaderShouldErr(t *testing.T) {
 	assert.Equal(t, spos.ErrNilHeader, err)
 }
 
+func TestShardChainMessenger_BroadcastHeaderNilHeaderShouldErrMockMarshalizer(t *testing.T) {
+	marshalizer := mock.MarshalizerMock{
+		Fail: true,
+	}
+
+	args := createDefaultShardChainArgs()
+	args.Marshalizer = marshalizer
+	scm, _ := broadcast.NewShardChainMessenger(args)
+
+	err := scm.BroadcastHeader(&block.MetaBlock{Nonce: 10}, []byte("pk bytes"))
+	assert.Equal(t, mock.ErrMockMarshalizer, err)
+}
+
 func TestShardChainMessenger_BroadcastHeaderShouldWork(t *testing.T) {
 	channelBroadcastCalled := make(chan bool, 1)
 	channelBroadcastUsingPrivateKeyCalled := make(chan bool, 1)
@@ -439,6 +477,23 @@ func TestShardChainMessenger_BroadcastBlockDataLeaderNilMiniblocksShouldReturnNi
 	assert.Nil(t, err)
 }
 
+// This function should return ErrMockMarshalizer from core.CalculateHash
+func TestShardChainMessenger_BroadcastBlockDataLeaderNilMiniblocksShouldErrMockMarshalizer(t *testing.T) {
+	marshalizer := mock.MarshalizerMock{
+		Fail: true,
+	}
+
+	args := createDefaultShardChainArgs()
+	args.Marshalizer = marshalizer
+
+	scm, _ := broadcast.NewShardChainMessenger(args)
+
+	_, header, miniblocks, transactions := createDelayData("1")
+
+	err := scm.BroadcastBlockDataLeader(header, miniblocks, transactions, []byte("pk bytes"))
+	assert.Equal(t, mock.ErrMockMarshalizer, err)
+}
+
 func TestShardChainMessenger_BroadcastBlockDataLeaderShouldTriggerWaitingDelayedMessage(t *testing.T) {
 	broadcastWasCalled := atomic.Flag{}
 	broadcastUsingPrivateKeyWasCalled := atomic.Flag{}
@@ -487,4 +542,14 @@ func TestShardChainMessenger_BroadcastBlockDataLeaderShouldTriggerWaitingDelayed
 		assert.Nil(t, err)
 		assert.True(t, broadcastUsingPrivateKeyWasCalled.IsSet())
 	})
+}
+
+func TestShardChainMessenger_PrepareBroadcastHeaderValidatorShouldFailHeaderNil(t *testing.T) {
+
+	pkBytes := make([]byte, 32)
+	args := createDefaultShardChainArgs()
+
+	scm, _ := broadcast.NewShardChainMessenger(args)
+
+	scm.PrepareBroadcastHeaderValidator(nil, nil, nil, 1, pkBytes)
 }

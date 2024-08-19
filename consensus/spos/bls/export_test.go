@@ -362,7 +362,7 @@ func (sr *subroundStartRound) ChangeEpoch(epoch uint32) {
 	sr.changeEpoch(epoch)
 }
 
-// ChangeEpoch calls the unexported changeEpoch function
+// IndexRoundIfNeeded calls the unexported indexRoundIfNeeded function
 func (sr *subroundStartRound) IndexRoundIfNeeded(pubKeys []string) {
 	sr.indexRoundIfNeeded(pubKeys)
 }
