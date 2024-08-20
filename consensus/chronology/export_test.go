@@ -37,3 +37,7 @@ func (chr *chronology) UpdateRound() {
 func (chr *chronology) InitRound() {
 	chr.initRound()
 }
+
+func (chr *chronology) StartRoundsTest(ctx context.Context) {
+	chr.startRounds(ctx)
+}

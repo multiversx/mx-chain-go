@@ -2,17 +2,20 @@ package broadcast_test
 
 import (
 	"bytes"
+	"errors"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus/broadcast"
+	"github.com/multiversx/mx-chain-go/consensus/broadcast/shared"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -302,4 +305,91 @@ func TestMetaChainMessenger_BroadcastBlockDataLeader(t *testing.T) {
 		numBroadcast += countersBroadcast[broadcastUsingPrivateKeyCalledMethodPrefix+"topic2"]
 		assert.Equal(t, len(transactions), numBroadcast)
 	})
+}
+
+func TestMetaChainMessenger_Close(t *testing.T) {
+	args := createDefaultMetaChainArgs()
+	varModified := false
+	delayedBroadcaster := &mock.DelayedBroadcasterMock{
+		CloseCalled: func() {
+			varModified = true
+		},
+	}
+	args.DelayedBroadcaster = delayedBroadcaster
+	mcm, _ := broadcast.NewMetaChainMessenger(args)
+	mcm.Close()
+	assert.True(t, varModified)
+}
+
+func TestMetaChainMessenger_PrepareBroadcastHeaderValidator(t *testing.T) {
+	t.Run("Nil header", func(t *testing.T) {
+		args := createDefaultMetaChainArgs()
+		checkVarModified := false
+		delayedBroadcaster := &mock.DelayedBroadcasterMock{
+			SetHeaderForValidatorCalled: func(vData *shared.ValidatorHeaderBroadcastData) error {
+				checkVarModified = true
+				return nil
+			},
+		}
+		args.DelayedBroadcaster = delayedBroadcaster
+		mcm, _ := broadcast.NewMetaChainMessenger(args)
+		mcm.PrepareBroadcastHeaderValidator(nil, make(map[uint32][]byte), make(map[string][][]byte), 0, make([]byte, 0))
+		assert.False(t, checkVarModified)
+	})
+	t.Run("Err on core.CalculateHash", func(t *testing.T) {
+		args := createDefaultMetaChainArgs()
+		checkVarModified := false
+		delayedBroadcaster := &mock.DelayedBroadcasterMock{
+			SetHeaderForValidatorCalled: func(vData *shared.ValidatorHeaderBroadcastData) error {
+				checkVarModified = true
+				return nil
+			},
+		}
+		args.DelayedBroadcaster = delayedBroadcaster
+		header := &block.Header{}
+		mcm, _ := broadcast.NewMetaChainMessenger(args)
+		mcm.SetMarshalizerMeta(nil)
+		mcm.PrepareBroadcastHeaderValidator(header, make(map[uint32][]byte), make(map[string][][]byte), 0, make([]byte, 0))
+		assert.False(t, checkVarModified)
+	})
+	t.Run("Err on SetHeaderForValidator", func(t *testing.T) {
+		args := createDefaultMetaChainArgs()
+		checkVarModified := false
+		delayedBroadcaster := &mock.DelayedBroadcasterMock{
+			SetHeaderForValidatorCalled: func(vData *shared.ValidatorHeaderBroadcastData) error {
+				checkVarModified = true
+				return errors.New("some error")
+			},
+		}
+		args.DelayedBroadcaster = delayedBroadcaster
+		mcm, _ := broadcast.NewMetaChainMessenger(args)
+		header := &block.Header{}
+		mcm.PrepareBroadcastHeaderValidator(header, make(map[uint32][]byte), make(map[string][][]byte), 0, make([]byte, 0))
+		assert.True(t, checkVarModified)
+	})
+}
+
+func TestMetaChainMessenger_BroadcastBlock(t *testing.T) {
+	t.Run("Err nil blockData", func(t *testing.T) {
+		args := createDefaultMetaChainArgs()
+		mcm, _ := broadcast.NewMetaChainMessenger(args)
+		err := mcm.BroadcastBlock(nil, nil)
+		assert.NotNil(t, err)
+	})
+}
+
+func TestMetaChainMessenger_NewMetaChainMessenger(t *testing.T) {
+	args := createDefaultMetaChainArgs()
+	varModified := false
+	delayedBroadcaster := &mock.DelayedBroadcasterMock{
+		SetBroadcastHandlersCalled: func(mbBroadcast func(mbData map[uint32][]byte, pkBytes []byte) error, txBroadcast func(txData map[string][][]byte, pkBytes []byte) error, headerBroadcast func(header data.HeaderHandler, pkBytes []byte) error) error {
+			varModified = true
+			return errors.New("some error")
+		},
+	}
+	args.DelayedBroadcaster = delayedBroadcaster
+	mcm, err := broadcast.NewMetaChainMessenger(args)
+	assert.Nil(t, mcm)
+	assert.NotNil(t, err)
+	assert.True(t, varModified)
 }

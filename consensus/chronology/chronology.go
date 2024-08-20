@@ -10,10 +10,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/closing"
 	"github.com/multiversx/mx-chain-core-go/display"
+	"github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/ntp"
-	"github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ consensus.ChronologyHandler = (*chronology)(nil)
@@ -40,9 +41,9 @@ type chronology struct {
 	subroundHandlers []consensus.SubroundHandler
 	mutSubrounds     sync.RWMutex
 	appStatusHandler core.AppStatusHandler
-	cancelFunc       func()
+	CancelFunc       func()
 
-	watchdog core.WatchdogTimer
+	Watchdog core.WatchdogTimer
 }
 
 // NewChronology creates a new chronology object
@@ -58,7 +59,7 @@ func NewChronology(arg ArgChronology) (*chronology, error) {
 		roundHandler:     arg.RoundHandler,
 		syncTimer:        arg.SyncTimer,
 		appStatusHandler: arg.AppStatusHandler,
-		watchdog:         arg.Watchdog,
+		Watchdog:         arg.Watchdog,
 	}
 
 	chr.subroundId = srBeforeStartRound
@@ -110,10 +111,10 @@ func (chr *chronology) RemoveAllSubrounds() {
 // StartRounds actually starts the chronology and calls the DoWork() method of the subroundHandlers loaded
 func (chr *chronology) StartRounds() {
 	watchdogAlarmDuration := chr.roundHandler.TimeDuration() * numRoundsToWaitBeforeSignalingChronologyStuck
-	chr.watchdog.SetDefault(watchdogAlarmDuration, chronologyAlarmID)
+	chr.Watchdog.SetDefault(watchdogAlarmDuration, chronologyAlarmID)
 
 	var ctx context.Context
-	ctx, chr.cancelFunc = context.WithCancel(context.Background())
+	ctx, chr.CancelFunc = context.WithCancel(context.Background())
 	go chr.startRounds(ctx)
 }
 
@@ -163,7 +164,7 @@ func (chr *chronology) updateRound() {
 	chr.roundHandler.UpdateRound(chr.genesisTime, chr.syncTimer.CurrentTime())
 
 	if oldRoundIndex != chr.roundHandler.Index() {
-		chr.watchdog.Reset(chronologyAlarmID)
+		chr.Watchdog.Reset(chronologyAlarmID)
 		msg := fmt.Sprintf("ROUND %d BEGINS (%d)", chr.roundHandler.Index(), chr.roundHandler.TimeStamp().Unix())
 		log.Debug(display.Headline(msg, chr.syncTimer.FormattedCurrentTime(), "#"))
 		logger.SetCorrelationRound(chr.roundHandler.Index())
@@ -211,11 +212,11 @@ func (chr *chronology) loadSubroundHandler(subroundId int) consensus.SubroundHan
 
 // Close will close the endless running go routine
 func (chr *chronology) Close() error {
-	if chr.cancelFunc != nil {
-		chr.cancelFunc()
+	if chr.CancelFunc != nil {
+		chr.CancelFunc()
 	}
 
-	chr.watchdog.Stop(chronologyAlarmID)
+	chr.Watchdog.Stop(chronologyAlarmID)
 
 	return nil
 }
