@@ -8,7 +8,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/storage"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -19,19 +22,24 @@ const loggerName = "outport/process/transactionsfee"
 
 // ArgTransactionsFeeProcessor holds the arguments needed for creating a new instance of transactionsFeeProcessor
 type ArgTransactionsFeeProcessor struct {
-	Marshaller         marshal.Marshalizer
-	TransactionsStorer storage.Storer
-	ShardCoordinator   sharding.Coordinator
-	TxFeeCalculator    FeesProcessorHandler
-	PubKeyConverter    core.PubkeyConverter
+	Marshaller          marshal.Marshalizer
+	TransactionsStorer  storage.Storer
+	ShardCoordinator    sharding.Coordinator
+	TxFeeCalculator     FeesProcessorHandler
+	PubKeyConverter     core.PubkeyConverter
+	ArgsParser          process.ArgumentsParser
+	EnableEpochsHandler common.EnableEpochsHandler
 }
 
 type transactionsFeeProcessor struct {
-	txGetter         transactionGetter
-	txFeeCalculator  FeesProcessorHandler
-	shardCoordinator sharding.Coordinator
-	dataFieldParser  dataFieldParser
-	log              logger.Logger
+	txGetter            transactionGetter
+	txFeeCalculator     FeesProcessorHandler
+	shardCoordinator    sharding.Coordinator
+	dataFieldParser     dataFieldParser
+	log                 logger.Logger
+	marshaller          marshal.Marshalizer
+	argsParser          process.ArgumentsParser
+	enableEpochsHandler common.EnableEpochsHandler
 }
 
 // NewTransactionsFeeProcessor will create a new instance of transactionsFeeProcessor
@@ -50,11 +58,14 @@ func NewTransactionsFeeProcessor(arg ArgTransactionsFeeProcessor) (*transactions
 	}
 
 	return &transactionsFeeProcessor{
-		txFeeCalculator:  arg.TxFeeCalculator,
-		shardCoordinator: arg.ShardCoordinator,
-		txGetter:         newTxGetter(arg.TransactionsStorer, arg.Marshaller),
-		log:              logger.GetOrCreate(loggerName),
-		dataFieldParser:  parser,
+		txFeeCalculator:     arg.TxFeeCalculator,
+		shardCoordinator:    arg.ShardCoordinator,
+		txGetter:            newTxGetter(arg.TransactionsStorer, arg.Marshaller),
+		log:                 logger.GetOrCreate(loggerName),
+		dataFieldParser:     parser,
+		marshaller:          arg.Marshaller,
+		argsParser:          arg.ArgsParser,
+		enableEpochsHandler: arg.EnableEpochsHandler,
 	}, nil
 }
 
@@ -74,16 +85,22 @@ func checkArg(arg ArgTransactionsFeeProcessor) error {
 	if check.IfNil(arg.PubKeyConverter) {
 		return core.ErrNilPubkeyConverter
 	}
+	if check.IfNil(arg.ArgsParser) {
+		return process.ErrNilArgumentParser
+	}
+	if check.IfNil(arg.EnableEpochsHandler) {
+		return process.ErrNilEnableEpochsHandler
+	}
 
 	return nil
 }
 
 // PutFeeAndGasUsed will compute and set in transactions pool fee and gas used
-func (tep *transactionsFeeProcessor) PutFeeAndGasUsed(pool *outportcore.TransactionPool) error {
+func (tep *transactionsFeeProcessor) PutFeeAndGasUsed(pool *outportcore.TransactionPool, epoch uint32) error {
 	tep.prepareInvalidTxs(pool)
 
 	txsWithResultsMap := prepareTransactionsAndScrs(pool)
-	tep.prepareNormalTxs(txsWithResultsMap)
+	tep.prepareNormalTxs(txsWithResultsMap, epoch)
 
 	return tep.prepareScrsNoTx(txsWithResultsMap)
 }
@@ -97,7 +114,7 @@ func (tep *transactionsFeeProcessor) prepareInvalidTxs(pool *outportcore.Transac
 	}
 }
 
-func (tep *transactionsFeeProcessor) prepareNormalTxs(transactionsAndScrs *transactionsAndScrsHolder) {
+func (tep *transactionsFeeProcessor) prepareNormalTxs(transactionsAndScrs *transactionsAndScrsHolder, epoch uint32) {
 	for txHashHex, txWithResult := range transactionsAndScrs.txsWithResults {
 		txHandler := txWithResult.GetTxHandler()
 
@@ -110,7 +127,10 @@ func (tep *transactionsFeeProcessor) prepareNormalTxs(transactionsAndScrs *trans
 		feeInfo.SetFee(fee)
 		feeInfo.SetInitialPaidFee(initialPaidFee)
 
-		if isRelayedTx(txWithResult) || tep.isESDTOperationWithSCCall(txHandler) {
+		isRelayed := isRelayedTx(txWithResult)
+		isFeeFixActive := tep.enableEpochsHandler.IsFlagEnabledInEpoch(common.FixRelayedBaseCostFlag, epoch)
+		isRelayedBeforeFix := isRelayed && !isFeeFixActive
+		if isRelayedBeforeFix || tep.isESDTOperationWithSCCall(txHandler) {
 			feeInfo.SetGasUsed(txWithResult.GetTxHandler().GetGasLimit())
 			feeInfo.SetFee(initialPaidFee)
 		}
@@ -118,6 +138,15 @@ func (tep *transactionsFeeProcessor) prepareNormalTxs(transactionsAndScrs *trans
 		if len(txHandler.GetUserTransactions()) > 0 {
 			tep.prepareRelayedTxV3WithResults(txHashHex, txWithResult)
 			continue
+		}
+
+		if isRelayedTx(txWithResult) && isFeeFixActive {
+			totalFee, isRelayed := tep.getFeeOfRelayed(txWithResult)
+			if isRelayed {
+				feeInfo.SetFee(totalFee)
+				feeInfo.SetInitialPaidFee(totalFee)
+				feeInfo.SetGasUsed(big.NewInt(0).Div(totalFee, big.NewInt(0).SetUint64(txHandler.GetGasPrice())).Uint64())
+			}
 		}
 
 		tep.prepareTxWithResults(txHashHex, txWithResult)
@@ -144,6 +173,68 @@ func (tep *transactionsFeeProcessor) prepareTxWithResults(txHashHex string, txWi
 
 	tep.prepareTxWithResultsBasedOnLogs(txHashHex, txWithResults, hasRefund)
 
+}
+
+func (tep *transactionsFeeProcessor) getFeeOfRelayed(tx *transactionWithResults) (*big.Int, bool) {
+	if len(tx.GetTxHandler().GetData()) == 0 {
+		return nil, false
+	}
+
+	funcName, args, err := tep.argsParser.ParseCallData(string(tx.GetTxHandler().GetData()))
+	if err != nil {
+		return nil, false
+	}
+
+	if funcName == core.RelayedTransaction {
+		return tep.handleRelayedV1(args, tx)
+	}
+
+	if funcName == core.RelayedTransactionV2 {
+		return tep.handleRelayedV2(args, tx)
+	}
+
+	return nil, false
+}
+
+func (tep *transactionsFeeProcessor) handleRelayedV1(args [][]byte, tx *transactionWithResults) (*big.Int, bool) {
+	if len(args) != 1 {
+		return nil, false
+	}
+
+	innerTx := &transaction.Transaction{}
+	err := tep.marshaller.Unmarshal(innerTx, args[0])
+	if err != nil {
+		return nil, false
+	}
+
+	txHandler := tx.GetTxHandler()
+	gasUsed := tep.txFeeCalculator.ComputeGasLimit(txHandler)
+	fee := tep.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(txHandler, gasUsed)
+
+	innerFee := tep.txFeeCalculator.ComputeTxFee(innerTx)
+
+	return big.NewInt(0).Add(fee, innerFee), true
+}
+
+func (tep *transactionsFeeProcessor) handleRelayedV2(args [][]byte, tx *transactionWithResults) (*big.Int, bool) {
+	txHandler := tx.GetTxHandler()
+
+	innerTx := &transaction.Transaction{}
+	innerTx.RcvAddr = args[0]
+	innerTx.Nonce = big.NewInt(0).SetBytes(args[1]).Uint64()
+	innerTx.Data = args[2]
+	innerTx.Signature = args[3]
+	innerTx.Value = big.NewInt(0)
+	innerTx.GasPrice = txHandler.GetGasPrice()
+	innerTx.GasLimit = txHandler.GetGasLimit() - tep.txFeeCalculator.ComputeGasLimit(txHandler)
+	innerTx.SndAddr = txHandler.GetRcvAddr()
+
+	gasUsed := tep.txFeeCalculator.ComputeGasLimit(txHandler)
+	fee := tep.txFeeCalculator.ComputeTxFeeBasedOnGasUsed(txHandler, gasUsed)
+
+	innerFee := tep.txFeeCalculator.ComputeTxFee(innerTx)
+
+	return big.NewInt(0).Add(fee, innerFee), true
 }
 
 func (tep *transactionsFeeProcessor) prepareRelayedTxV3WithResults(txHashHex string, txWithResults *transactionWithResults) {
