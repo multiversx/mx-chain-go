@@ -152,9 +152,12 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 	}
 
 	txSignKeyGen := signing.NewKeyGenerator(ed25519.NewEd25519())
-	txSingleSigner := &disabledSig.DisabledSingleSig{}
+	txSingleSigner, err := NewWhiteListEd25519Signer(txSignKeyGen)
+	if err != nil {
+		return nil, err
+	}
 
-	processingSingleSigner, err := ccf.createSingleSigner(true)
+	processingSingleSigner, err := ccf.createSingleSigner(false)
 	if err != nil {
 		return nil, err
 	}
