@@ -15,6 +15,7 @@ type NodesCoordinatorStub struct {
 	GetAllValidatorsPublicKeysCalled         func() (map[uint32][][]byte, error)
 	GetAllWaitingValidatorsPublicKeysCalled  func(_ uint32) (map[uint32][][]byte, error)
 	GetAllEligibleValidatorsPublicKeysCalled func(epoch uint32) (map[uint32][][]byte, error)
+	GetValidatorsIndexesCalled               func(pubKeys []string, epoch uint32) ([]uint64, error)
 	ConsensusGroupSizeCalled                 func(shardID uint32, epoch uint32) int
 	ComputeConsensusGroupCalled              func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error)
 	EpochStartPrepareCalled                  func(metaHdr data.HeaderHandler, body data.BodyHandler)
@@ -22,6 +23,7 @@ type NodesCoordinatorStub struct {
 	GetOwnPublicKeyCalled                    func() []byte
 	GetWaitingEpochsLeftForPublicKeyCalled   func(publicKey []byte) (uint32, error)
 	GetNumTotalEligibleCalled                func() uint64
+	ShardIdForEpochCalled                    func(epoch uint32) (uint32, error)
 }
 
 // NodesCoordinatorToRegistry -
@@ -106,7 +108,10 @@ func (ncm *NodesCoordinatorStub) GetAllValidatorsPublicKeys(_ uint32) (map[uint3
 }
 
 // GetValidatorsIndexes -
-func (ncm *NodesCoordinatorStub) GetValidatorsIndexes(_ []string, _ uint32) ([]uint64, error) {
+func (ncm *NodesCoordinatorStub) GetValidatorsIndexes(pubkeys []string, epoch uint32) ([]uint64, error) {
+	if ncm.GetValidatorsIndexesCalled != nil {
+		return ncm.GetValidatorsIndexesCalled(pubkeys, epoch)
+	}
 	return nil, nil
 }
 
@@ -165,8 +170,12 @@ func (ncm *NodesCoordinatorStub) GetSavedStateKey() []byte {
 
 // ShardIdForEpoch returns the nodesCoordinator configured ShardId for specified epoch if epoch configuration exists,
 // otherwise error
-func (ncm *NodesCoordinatorStub) ShardIdForEpoch(_ uint32) (uint32, error) {
-	panic("not implemented")
+func (ncm *NodesCoordinatorStub) ShardIdForEpoch(epoch uint32) (uint32, error) {
+
+	if ncm.ShardIdForEpochCalled != nil {
+		return ncm.ShardIdForEpochCalled(epoch)
+	}
+	return 0, nil
 }
 
 // ShuffleOutForEpoch verifies if the shards changed in the new epoch and calls the shuffleOutHandler
