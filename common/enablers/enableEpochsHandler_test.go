@@ -116,6 +116,7 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		StakingV4Step3EnableEpoch:                                98,
 		CleanupAuctionOnLowWaitingListEnableEpoch:                96,
 		AlwaysMergeContextsInEEIEnableEpoch:                      99,
+		UseGasBoundedShouldFailExecutionEnableEpoch:              100,
 	}
 }
 
@@ -431,6 +432,7 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.CleanupAuctionOnLowWaitingListEnableEpoch, handler.GetActivationEpoch(common.CleanupAuctionOnLowWaitingListFlag))
 	require.Equal(t, cfg.StakingV4Step1EnableEpoch, handler.GetActivationEpoch(common.StakingV4StartedFlag))
 	require.Equal(t, cfg.AlwaysMergeContextsInEEIEnableEpoch, handler.GetActivationEpoch(common.AlwaysMergeContextsInEEIFlag))
+	require.Equal(t, cfg.UseGasBoundedShouldFailExecutionEnableEpoch, handler.GetActivationEpoch(common.UseGasBoundedShouldFailExecutionFlag))
 }
 
 func TestEnableEpochsHandler_IsInterfaceNil(t *testing.T) {
