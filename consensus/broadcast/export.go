@@ -6,7 +6,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+
 	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/broadcast/shared"
 	"github.com/multiversx/mx-chain-go/sharding"
 )
 
@@ -32,14 +34,14 @@ func CreateDelayBroadcastDataForValidator(
 	miniBlockHashes map[string]map[string]struct{},
 	transactionsData map[string][][]byte,
 	order uint32,
-) *delayedBroadcastData {
-	return &delayedBroadcastData{
-		headerHash:      headerHash,
-		header:          header,
-		miniBlocksData:  miniblocksData,
-		miniBlockHashes: miniBlockHashes,
-		transactions:    transactionsData,
-		order:           order,
+) *shared.DelayedBroadcastData {
+	return &shared.DelayedBroadcastData{
+		HeaderHash:      headerHash,
+		Header:          header,
+		MiniBlocksData:  miniblocksData,
+		MiniBlockHashes: miniBlockHashes,
+		Transactions:    transactionsData,
+		Order:           order,
 	}
 }
 
@@ -50,13 +52,13 @@ func CreateValidatorHeaderBroadcastData(
 	metaMiniBlocksData map[uint32][]byte,
 	metaTransactionsData map[string][][]byte,
 	order uint32,
-) *validatorHeaderBroadcastData {
-	return &validatorHeaderBroadcastData{
-		headerHash:           headerHash,
-		header:               header,
-		metaMiniBlocksData:   metaMiniBlocksData,
-		metaTransactionsData: metaTransactionsData,
-		order:                order,
+) *shared.ValidatorHeaderBroadcastData {
+	return &shared.ValidatorHeaderBroadcastData{
+		HeaderHash:           headerHash,
+		Header:               header,
+		MetaMiniBlocksData:   metaMiniBlocksData,
+		MetaTransactionsData: metaTransactionsData,
+		Order:                order,
 	}
 }
 
@@ -65,11 +67,11 @@ func CreateDelayBroadcastDataForLeader(
 	headerHash []byte,
 	miniblocks map[uint32][]byte,
 	transactions map[string][][]byte,
-) *delayedBroadcastData {
-	return &delayedBroadcastData{
-		headerHash:     headerHash,
-		miniBlocksData: miniblocks,
-		transactions:   transactions,
+) *shared.DelayedBroadcastData {
+	return &shared.DelayedBroadcastData{
+		HeaderHash:     headerHash,
+		MiniBlocksData: miniblocks,
+		Transactions:   transactions,
 	}
 }
 
@@ -80,9 +82,9 @@ func (dbb *delayedBlockBroadcaster) HeaderReceived(headerHandler data.HeaderHand
 }
 
 // GetValidatorBroadcastData returns the set validator delayed broadcast data
-func (dbb *delayedBlockBroadcaster) GetValidatorBroadcastData() []*delayedBroadcastData {
+func (dbb *delayedBlockBroadcaster) GetValidatorBroadcastData() []*shared.DelayedBroadcastData {
 	dbb.mutDataForBroadcast.RLock()
-	copyValBroadcastData := make([]*delayedBroadcastData, len(dbb.valBroadcastData))
+	copyValBroadcastData := make([]*shared.DelayedBroadcastData, len(dbb.valBroadcastData))
 	copy(copyValBroadcastData, dbb.valBroadcastData)
 	dbb.mutDataForBroadcast.RUnlock()
 
@@ -90,9 +92,9 @@ func (dbb *delayedBlockBroadcaster) GetValidatorBroadcastData() []*delayedBroadc
 }
 
 // GetValidatorHeaderBroadcastData -
-func (dbb *delayedBlockBroadcaster) GetValidatorHeaderBroadcastData() []*validatorHeaderBroadcastData {
+func (dbb *delayedBlockBroadcaster) GetValidatorHeaderBroadcastData() []*shared.ValidatorHeaderBroadcastData {
 	dbb.mutDataForBroadcast.RLock()
-	copyValHeaderBroadcastData := make([]*validatorHeaderBroadcastData, len(dbb.valHeaderBroadcastData))
+	copyValHeaderBroadcastData := make([]*shared.ValidatorHeaderBroadcastData, len(dbb.valHeaderBroadcastData))
 	copy(copyValHeaderBroadcastData, dbb.valHeaderBroadcastData)
 	dbb.mutDataForBroadcast.RUnlock()
 
@@ -100,9 +102,9 @@ func (dbb *delayedBlockBroadcaster) GetValidatorHeaderBroadcastData() []*validat
 }
 
 // GetLeaderBroadcastData returns the set leader delayed broadcast data
-func (dbb *delayedBlockBroadcaster) GetLeaderBroadcastData() []*delayedBroadcastData {
+func (dbb *delayedBlockBroadcaster) GetLeaderBroadcastData() []*shared.DelayedBroadcastData {
 	dbb.mutDataForBroadcast.RLock()
-	copyDelayBroadcastData := make([]*delayedBroadcastData, len(dbb.delayedBroadcastData))
+	copyDelayBroadcastData := make([]*shared.DelayedBroadcastData, len(dbb.delayedBroadcastData))
 	copy(copyDelayBroadcastData, dbb.delayedBroadcastData)
 	dbb.mutDataForBroadcast.RUnlock()
 

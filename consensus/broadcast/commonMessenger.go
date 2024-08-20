@@ -7,36 +7,20 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/partitioning"
-	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/sharding"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("consensus/broadcast")
-
-// delayedBroadcaster exposes functionality for handling the consensus members broadcasting of delay data
-type delayedBroadcaster interface {
-	SetLeaderData(data *delayedBroadcastData) error
-	SetValidatorData(data *delayedBroadcastData) error
-	SetHeaderForValidator(vData *validatorHeaderBroadcastData) error
-	SetFinalConsensusMessageForValidator(message *consensus.Message, consensusIndex int) error
-	SetBroadcastHandlers(
-		mbBroadcast func(mbData map[uint32][]byte, pkBytes []byte) error,
-		txBroadcast func(txData map[string][][]byte, pkBytes []byte) error,
-		headerBroadcast func(header data.HeaderHandler, pkBytes []byte) error,
-		consensusMessageBroadcast func(message *consensus.Message) error,
-	) error
-	Close()
-}
 
 type commonMessenger struct {
 	marshalizer             marshal.Marshalizer
@@ -44,7 +28,7 @@ type commonMessenger struct {
 	messenger               consensus.P2PMessenger
 	shardCoordinator        sharding.Coordinator
 	peerSignatureHandler    crypto.PeerSignatureHandler
-	delayedBlockBroadcaster delayedBroadcaster
+	delayedBlockBroadcaster DelayedBroadcaster
 	keysHandler             consensus.KeysHandler
 }
 
@@ -61,7 +45,7 @@ type CommonMessengerArgs struct {
 	MaxValidatorDelayCacheSize uint32
 	AlarmScheduler             core.TimersScheduler
 	KeysHandler                consensus.KeysHandler
-	Config                     config.ConsensusGradualBroadcastConfig
+	DelayedBroadcaster         DelayedBroadcaster
 }
 
 func checkCommonMessengerNilParameters(
@@ -96,6 +80,9 @@ func checkCommonMessengerNilParameters(
 	}
 	if check.IfNil(args.KeysHandler) {
 		return ErrNilKeysHandler
+	}
+	if check.IfNil(args.DelayedBroadcaster) {
+		return ErrNilDelayedBroadcaster
 	}
 
 	return nil
