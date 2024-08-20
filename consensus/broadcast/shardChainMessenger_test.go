@@ -2,7 +2,7 @@ package broadcast_test
 
 import (
 	"bytes"
-	"fmt"
+	"errors"
 	"testing"
 	"time"
 
@@ -25,6 +25,8 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 )
+
+var expectedErr = errors.New("expected error")
 
 func createDelayData(prefix string) ([]byte, *block.Header, map[uint32][]byte, map[string][][]byte) {
 	miniblocks := make(map[uint32][]byte)
@@ -185,20 +187,17 @@ func TestShardChainMessenger_NewShardChainMessengerShouldWork(t *testing.T) {
 	assert.False(t, scm.IsInterfaceNil())
 }
 
-// delayedBlockBroadcaster.SetBroadcastHandlers is returning error
 func TestShardChainMessenger_NewShardChainMessengerShouldErr(t *testing.T) {
-
-	myErr := fmt.Errorf("error delayed broadcaster")
 
 	args := createDefaultShardChainArgs()
 	args.DelayedBroadcaster = &mock.DelayedBroadcasterMock{
 		SetBroadcastHandlersCalled: func(mbBroadcast func(mbData map[uint32][]byte, pkBytes []byte) error, txBroadcast func(txData map[string][][]byte, pkBytes []byte) error, headerBroadcast func(header data.HeaderHandler, pkBytes []byte) error) error {
-			return myErr
+			return expectedErr
 		}}
 
 	_, err := broadcast.NewShardChainMessenger(args)
 
-	assert.Equal(t, myErr, err)
+	assert.Equal(t, expectedErr, err)
 
 }
 
@@ -508,7 +507,6 @@ func TestShardChainMessenger_BroadcastBlockDataLeaderNilMiniblocksShouldReturnNi
 	assert.Nil(t, err)
 }
 
-// This function should return ErrMockMarshalizer from core.CalculateHash
 func TestShardChainMessenger_BroadcastBlockDataLeaderShouldErr(t *testing.T) {
 	marshalizer := mock.MarshalizerMock{
 		Fail: true,
@@ -525,24 +523,23 @@ func TestShardChainMessenger_BroadcastBlockDataLeaderShouldErr(t *testing.T) {
 	assert.Equal(t, mock.ErrMockMarshalizer, err)
 }
 
-// delayedBlockBroadcaster.SetLeaderData is returning error
 func TestShardChainMessenger_BroadcastBlockDataLeaderShouldErrDelayedBroadcaster(t *testing.T) {
 
 	args := createDefaultShardChainArgs()
-	myErr := fmt.Errorf("error from SetLeaderData")
 
 	args.DelayedBroadcaster = &mock.DelayedBroadcasterMock{
 		SetLeaderDataCalled: func(data *shared.DelayedBroadcastData) error {
-			return myErr
+			return expectedErr
 		}}
 
 	scm, _ := broadcast.NewShardChainMessenger(args)
+	require.NotNil(t, scm)
 
 	_, header, miniblocks, transactions := createDelayData("1")
 
 	err := scm.BroadcastBlockDataLeader(header, miniblocks, transactions, []byte("pk bytes"))
 
-	assert.Equal(t, myErr, err)
+	assert.Equal(t, expectedErr, err)
 }
 
 func TestShardChainMessenger_BroadcastBlockDataLeaderShouldTriggerWaitingDelayedMessage(t *testing.T) {
@@ -607,8 +604,6 @@ func TestShardChainMessenger_BroadcastBlockDataLeaderShouldTriggerWaitingDelayed
 	})
 }
 
-// This test verifies if delayedBlockBroadcaster.SetHeaderForValidator is called
-// Header is Nil and the execution stops
 func TestShardChainMessenger_PrepareBroadcastHeaderValidatorShouldFailHeaderNil(t *testing.T) {
 
 	pkBytes := make([]byte, 32)
@@ -621,12 +616,11 @@ func TestShardChainMessenger_PrepareBroadcastHeaderValidatorShouldFailHeaderNil(
 		}}
 
 	scm, _ := broadcast.NewShardChainMessenger(args)
+	require.NotNil(t, scm)
 
 	scm.PrepareBroadcastHeaderValidator(nil, nil, nil, 1, pkBytes)
 }
 
-// This test verifies if delayedBlockBroadcaster.SetHeaderForValidator is called
-// CalculateHash should return error and the execution stops
 func TestShardChainMessenger_PrepareBroadcastHeaderValidatorShouldFailCalculateHashErr(t *testing.T) {
 
 	pkBytes := make([]byte, 32)
@@ -640,17 +634,16 @@ func TestShardChainMessenger_PrepareBroadcastHeaderValidatorShouldFailCalculateH
 			return nil
 		}}
 
-	marshallerErr := fmt.Errorf("marshalizer error")
 	args.Marshalizer = &testscommon.MarshallerStub{MarshalCalled: func(obj interface{}) ([]byte, error) {
-		return nil, marshallerErr
+		return nil, expectedErr
 	}}
 
 	scm, _ := broadcast.NewShardChainMessenger(args)
+	require.NotNil(t, scm)
 
 	scm.PrepareBroadcastHeaderValidator(headerMock, nil, nil, 1, pkBytes)
 }
 
-// This test verifies if delayedBlockBroadcaster.SetHeaderForValidator is called
 func TestShardChainMessenger_PrepareBroadcastHeaderValidatorShouldWork(t *testing.T) {
 
 	pkBytes := make([]byte, 32)
@@ -674,14 +667,13 @@ func TestShardChainMessenger_PrepareBroadcastHeaderValidatorShouldWork(t *testin
 	}}
 
 	scm, _ := broadcast.NewShardChainMessenger(args)
+	require.NotNil(t, scm)
 
 	scm.PrepareBroadcastHeaderValidator(headerMock, nil, nil, 1, pkBytes)
 
 	assert.True(t, varSetHeaderForValidatorCalled)
 }
 
-// This test verifies if delayedBlockBroadcaster.SetValidatorData is not called
-// Header is Nil and the execution stops
 func TestShardChainMessenger_PrepareBroadcastBlockDataValidatorShouldFailHeaderNil(t *testing.T) {
 
 	pkBytes := make([]byte, 32)
@@ -694,12 +686,11 @@ func TestShardChainMessenger_PrepareBroadcastBlockDataValidatorShouldFailHeaderN
 		}}
 
 	scm, _ := broadcast.NewShardChainMessenger(args)
+	require.NotNil(t, scm)
 
 	scm.PrepareBroadcastBlockDataValidator(nil, nil, nil, 1, pkBytes)
 }
 
-// This test verifies if delayedBlockBroadcaster.SetValidatorData is not called
-// Len of MiniBlocks is 0 and the execution stops
 func TestShardChainMessenger_PrepareBroadcastBlockDataValidatorShouldFailMiniBlocksLenZero(t *testing.T) {
 
 	pkBytes := make([]byte, 32)
@@ -715,12 +706,11 @@ func TestShardChainMessenger_PrepareBroadcastBlockDataValidatorShouldFailMiniBlo
 		}}
 
 	scm, _ := broadcast.NewShardChainMessenger(args)
+	require.NotNil(t, scm)
 
 	scm.PrepareBroadcastBlockDataValidator(headerMock, miniBlocks, nil, 1, pkBytes)
 }
 
-// This test verifies if delayedBlockBroadcaster.SetValidatorData is not called
-// CalculateHash should return error and the execution stops
 func TestShardChainMessenger_PrepareBroadcastBlockDataValidatorShouldFailCalculateHashErr(t *testing.T) {
 
 	pkBytes := make([]byte, 32)
@@ -735,17 +725,18 @@ func TestShardChainMessenger_PrepareBroadcastBlockDataValidatorShouldFailCalcula
 			return nil
 		}}
 
-	marshallerErr := fmt.Errorf("marshalizer error")
-	args.Marshalizer = &testscommon.MarshallerStub{MarshalCalled: func(obj interface{}) ([]byte, error) {
-		return nil, marshallerErr
-	}}
+	args.Marshalizer = &testscommon.MarshallerStub{
+		MarshalCalled: func(obj interface{}) ([]byte, error) {
+			return nil, expectedErr
+		},
+	}
 
 	scm, _ := broadcast.NewShardChainMessenger(args)
+	require.NotNil(t, scm)
 
 	scm.PrepareBroadcastBlockDataValidator(headerMock, miniBlocks, nil, 1, pkBytes)
 }
 
-// This test verifies if delayedBlockBroadcaster.SetValidatorData is called
 func TestShardChainMessenger_PrepareBroadcastBlockDataValidatorShouldWork(t *testing.T) {
 
 	pkBytes := make([]byte, 32)
@@ -761,32 +752,39 @@ func TestShardChainMessenger_PrepareBroadcastBlockDataValidatorShouldWork(t *tes
 			return nil
 		}}
 
-	args.Marshalizer = &testscommon.MarshallerStub{MarshalCalled: func(obj interface{}) ([]byte, error) {
-		return nil, nil
-	}}
+	args.Marshalizer = &testscommon.MarshallerStub{
+		MarshalCalled: func(obj interface{}) ([]byte, error) {
+			return nil, nil
+		},
+	}
 
-	args.Hasher = &testscommon.HasherStub{ComputeCalled: func(s string) []byte {
-		return nil
-	}}
+	args.Hasher = &testscommon.HasherStub{
+		ComputeCalled: func(s string) []byte {
+			return nil
+		},
+	}
 
 	scm, _ := broadcast.NewShardChainMessenger(args)
+	require.NotNil(t, scm)
 
 	scm.PrepareBroadcastBlockDataValidator(headerMock, miniBlocks, nil, 1, pkBytes)
 
 	assert.True(t, varSetValidatorDataCalled)
 }
 
-// This test increases the code coverage and verify if delayedBroadcaster.Call is called
 func TestShardChainMessenger_CloseShouldWork(t *testing.T) {
 
 	args := createDefaultShardChainArgs()
 
 	varCloseCalled := false
-	args.DelayedBroadcaster = &mock.DelayedBroadcasterMock{CloseCalled: func() {
-		varCloseCalled = true
-	}}
+	args.DelayedBroadcaster = &mock.DelayedBroadcasterMock{
+		CloseCalled: func() {
+			varCloseCalled = true
+		},
+	}
 
 	scm, _ := broadcast.NewShardChainMessenger(args)
+	require.NotNil(t, scm)
 
 	scm.Close()
 	assert.True(t, varCloseCalled)

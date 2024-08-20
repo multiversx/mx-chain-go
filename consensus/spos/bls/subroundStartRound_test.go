@@ -1,7 +1,6 @@
 package bls_test
 
 import (
-	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -10,7 +9,7 @@ import (
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/stretchr/testify/require"
 
-	mock2 "github.com/multiversx/mx-chain-go/process/mock"
+	processMock "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
 
@@ -25,6 +24,8 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
+
+var expErr = fmt.Errorf("expected error")
 
 func defaultSubroundStartRoundFromSubround(sr *spos.Subround) (bls.SubroundStartRound, error) {
 	startRound, err := bls.NewSubroundStartRound(
@@ -425,9 +426,9 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGenerateNextCon
 	t.Parallel()
 
 	validatorGroupSelector := &shardingMocks.NodesCoordinatorMock{}
-	err := errors.New("error")
+
 	validatorGroupSelector.ComputeValidatorsGroupCalled = func(bytes []byte, round uint64, shardId uint32, epoch uint32) ([]nodesCoordinator.Validator, error) {
-		return nil, err
+		return nil, expErr
 	}
 	container := mock.InitConsensusCore()
 
@@ -842,7 +843,6 @@ func buildDefaultSubround(container spos.ConsensusCoreHandler) *spos.Subround {
 	return sr
 }
 
-// This test should return ErrNilHeader when GetGenesisHeader is called by Blockchain component
 func TestSubroundStartRound_GenerateNextConsensusGroupShouldErrNilHeader(t *testing.T) {
 	t.Parallel()
 
@@ -872,16 +872,14 @@ func TestSubroundStartRound_GenerateNextConsensusGroupShouldErrNilHeader(t *test
 	assert.Equal(t, spos.ErrNilHeader, err)
 }
 
-// This test should return false when Reset is called by SigningHandler
 func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenResetErr(t *testing.T) {
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
 
-	exErr := fmt.Errorf("expected error")
 	signingHandlerMock := &consensus.SigningHandlerStub{
 		ResetCalled: func(pubKeys []string) error {
-			return exErr
+			return expErr
 		},
 	}
 
@@ -903,9 +901,6 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenResetErr(t *tes
 	assert.False(t, r)
 }
 
-// This test is for increasing the coverage of indexRoundIfNeed method
-// indexRoundIfNeed should just return when ShardIdForEpoch has error
-// indexRoundIfNeed should fail
 func TestSubroundStartRound_IndexRoundIfNeededFailShardIdForEpoch(t *testing.T) {
 
 	pubKeys := []string{"testKey1", "testKey2"}
@@ -913,9 +908,8 @@ func TestSubroundStartRound_IndexRoundIfNeededFailShardIdForEpoch(t *testing.T) 
 	container := mock.InitConsensusCore()
 
 	idVar := 0
-	expErr := fmt.Errorf("expected error")
 
-	container.SetShardCoordinator(&mock2.CoordinatorStub{
+	container.SetShardCoordinator(&processMock.CoordinatorStub{
 		SelfIdCalled: func() uint32 {
 			return uint32(idVar)
 		},
@@ -953,8 +947,6 @@ func TestSubroundStartRound_IndexRoundIfNeededFailShardIdForEpoch(t *testing.T) 
 
 }
 
-// This test is for increasing the coverage
-// indexRoundIfNeed should fail
 func TestSubroundStartRound_IndexRoundIfNeededFailGetValidatorsIndexes(t *testing.T) {
 
 	pubKeys := []string{"testKey1", "testKey2"}
@@ -962,9 +954,8 @@ func TestSubroundStartRound_IndexRoundIfNeededFailGetValidatorsIndexes(t *testin
 	container := mock.InitConsensusCore()
 
 	idVar := 0
-	expErr := fmt.Errorf("expected error")
 
-	container.SetShardCoordinator(&mock2.CoordinatorStub{
+	container.SetShardCoordinator(&processMock.CoordinatorStub{
 		SelfIdCalled: func() uint32 {
 			return uint32(idVar)
 		},
@@ -1002,8 +993,6 @@ func TestSubroundStartRound_IndexRoundIfNeededFailGetValidatorsIndexes(t *testin
 
 }
 
-// This test is for increasing the coverage and tests the full execution of indexRoundIfNeeded
-// indexRoundIfNeed should not fail
 func TestSubroundStartRound_IndexRoundIfNeededShouldFullyWork(t *testing.T) {
 
 	pubKeys := []string{"testKey1", "testKey2"}
@@ -1014,7 +1003,7 @@ func TestSubroundStartRound_IndexRoundIfNeededShouldFullyWork(t *testing.T) {
 
 	saveRoundInfoCalled := false
 
-	container.SetShardCoordinator(&mock2.CoordinatorStub{
+	container.SetShardCoordinator(&processMock.CoordinatorStub{
 		SelfIdCalled: func() uint32 {
 			return uint32(idVar)
 		},
@@ -1046,8 +1035,6 @@ func TestSubroundStartRound_IndexRoundIfNeededShouldFullyWork(t *testing.T) {
 
 }
 
-// This test is for increasing the coverage and fail because of different shard ID
-// indexRoundIfNeed should fail
 func TestSubroundStartRound_IndexRoundIfNeededDifferentShardIdFail(t *testing.T) {
 
 	pubKeys := []string{"testKey1", "testKey2"}
@@ -1055,7 +1042,7 @@ func TestSubroundStartRound_IndexRoundIfNeededDifferentShardIdFail(t *testing.T)
 	container := mock.InitConsensusCore()
 
 	shardID := 1
-	container.SetShardCoordinator(&mock2.CoordinatorStub{
+	container.SetShardCoordinator(&processMock.CoordinatorStub{
 		SelfIdCalled: func() uint32 {
 			return uint32(shardID)
 		},
@@ -1172,14 +1159,13 @@ func TestSubroundStartRound_GenerateNextConsensusGroupShouldReturnErr(t *testing
 
 	validatorGroupSelector := &shardingMocks.NodesCoordinatorMock{}
 
-	err := errors.New("error")
 	validatorGroupSelector.ComputeValidatorsGroupCalled = func(
 		bytes []byte,
 		round uint64,
 		shardId uint32,
 		epoch uint32,
 	) ([]nodesCoordinator.Validator, error) {
-		return nil, err
+		return nil, expErr
 	}
 	container := mock.InitConsensusCore()
 	container.SetValidatorGroupSelector(validatorGroupSelector)
@@ -1188,5 +1174,5 @@ func TestSubroundStartRound_GenerateNextConsensusGroupShouldReturnErr(t *testing
 
 	err2 := srStartRound.GenerateNextConsensusGroup(0)
 
-	assert.Equal(t, err, err2)
+	assert.Equal(t, expErr, err2)
 }
