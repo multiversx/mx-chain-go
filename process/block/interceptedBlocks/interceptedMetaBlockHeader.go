@@ -56,9 +56,10 @@ func NewInterceptedMetaHeader(arg *ArgInterceptedBlockHeader) (*InterceptedMetaH
 	return inHdr, nil
 }
 
-func createMetaHdr(marshalizer marshal.Marshalizer, hdrBuff []byte) (*block.MetaBlock, error) {
-	hdr := &block.MetaBlock{
-		ShardInfo: make([]block.ShardData, 0),
+func createMetaHdr(marshalizer marshal.Marshalizer, hdrBuff []byte) (data.MetaHeaderHandler, error) {
+	hdr := &block.SovereignChainHeader{
+		//ShardInfo: make([]block.ShardData, 0),
+		Header: &block.Header{},
 	}
 	err := marshalizer.Unmarshal(hdr, hdrBuff)
 	if err != nil {

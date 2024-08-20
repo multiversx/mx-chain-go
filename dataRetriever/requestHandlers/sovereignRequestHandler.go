@@ -200,3 +200,62 @@ func (srrh *sovereignResolverRequestHandler) RequestStartOfEpochMetaBlock(epoch 
 
 	srrh.addRequestedItems([][]byte{epochStartIdentifier}, uniqueMetaHeadersSuffix)
 }
+
+// RequestMetaHeader method asks for meta header from the connected peers
+func (srrh *sovereignResolverRequestHandler) RequestMetaHeader(hash []byte) {
+	if !srrh.testIfRequestIsNeeded(hash, uniqueMetaHeadersSuffix) {
+		return
+	}
+
+	log.Debug("requesting meta header from network",
+		"hash", hash,
+	)
+
+	requester, err := srrh.getMetaHeaderRequester()
+	if err != nil {
+		log.Error("RequestMetaHeader.getMetaHeaderRequester",
+			"error", err.Error(),
+			"hash", hash,
+		)
+		return
+	}
+
+	headerRequester, ok := requester.(dataRetriever.Requester)
+	if !ok {
+		log.Warn("wrong assertion type when creating header requester")
+		return
+	}
+
+	srrh.whiteList.Add([][]byte{hash})
+
+	epoch := srrh.getEpoch()
+	err = headerRequester.RequestDataFromHash(hash, epoch)
+	if err != nil {
+		log.Debug("RequestMetaHeader.RequestDataFromHash",
+			"error", err.Error(),
+			"epoch", epoch,
+			"hash", hash,
+		)
+		return
+	}
+
+	srrh.addRequestedItems([][]byte{hash}, uniqueMetaHeadersSuffix)
+}
+
+func (srrh *sovereignResolverRequestHandler) getMetaHeaderRequester() (HeaderRequester, error) {
+	requester, err := srrh.requestersFinder.IntraShardRequester(factory.ShardBlocksTopic)
+	if err != nil {
+		err = fmt.Errorf("%w, topic: %s, current shard ID: %d",
+			err, factory.MetachainBlocksTopic, srrh.shardID)
+		return nil, err
+	}
+
+	headerRequester, ok := requester.(HeaderRequester)
+	if !ok {
+		err = fmt.Errorf("%w, topic: %s, current shard ID: %d, expected HeaderRequester",
+			dataRetriever.ErrWrongTypeInContainer, factory.ShardBlocksTopic, srrh.shardID)
+		return nil, err
+	}
+
+	return headerRequester, nil
+}

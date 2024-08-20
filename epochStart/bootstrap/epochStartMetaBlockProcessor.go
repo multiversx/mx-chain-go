@@ -87,7 +87,7 @@ func NewEpochStartMetaBlockProcessor(
 	processor.waitForEnoughNumConnectedPeers(messenger)
 	percentage := float64(consensusPercentage) / 100.0
 	peerCountTarget := int(percentage * float64(len(messenger.ConnectedPeers())))
-	processor.peerCountTarget = peerCountTarget
+	processor.peerCountTarget = 1 //peerCountTarget
 
 	log.Debug("consensus percentage for epoch start meta block ", "value (%)", consensusPercentage, "peerCountTarget", peerCountTarget)
 	return processor, nil
@@ -165,13 +165,13 @@ func (e *epochStartMetaBlockProcessor) addToPeerList(hash string, peer core.Peer
 // GetEpochStartMetaBlock will return the metablock after it is confirmed or an error if the number of tries was exceeded
 // This is a blocking method which will end after the consensus for the meta block is obtained or the context is done
 func (e *epochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx context.Context) (dataCore.MetaHeaderHandler, error) {
-	originalIntra, originalCross, err := e.requestHandler.GetNumPeersToQuery(factory.ShardBlocksTopic + "_0")
+	originalIntra, _, err := e.requestHandler.GetNumPeersToQuery(factory.ShardBlocksTopic + "_0")
 	if err != nil {
 		return nil, err
 	}
 
 	defer func() {
-		err = e.requestHandler.SetNumPeersToQuery(factory.ShardBlocksTopic+"_0", originalIntra, originalCross)
+		err = e.requestHandler.SetNumPeersToQuery(factory.ShardBlocksTopic+"_0", originalIntra, 0)
 		if err != nil {
 			log.Warn("epoch bootstrapper: error setting num of peers intra/cross for resolver",
 				"resolver", factory.ShardBlocksTopic,

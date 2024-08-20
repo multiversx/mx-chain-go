@@ -137,14 +137,14 @@ func (e *epochStartMetaSyncer) resetTopicsAndInterceptors() {
 }
 
 func (e *epochStartMetaSyncer) initTopicForEpochStartMetaBlockInterceptor() error {
-	err := e.messenger.CreateTopic(factory.ShardBlocksTopic, true)
+	err := e.messenger.CreateTopic(factory.ShardBlocksTopic+"_0", true)
 	if err != nil {
 		log.Warn("error messenger create topic", "error", err)
 		return err
 	}
 
 	e.resetTopicsAndInterceptors()
-	err = e.messenger.RegisterMessageProcessor(factory.ShardBlocksTopic, common.EpochStartInterceptorsIdentifier, e.singleDataInterceptor)
+	err = e.messenger.RegisterMessageProcessor(factory.ShardBlocksTopic+"_0", common.EpochStartInterceptorsIdentifier, e.singleDataInterceptor)
 	if err != nil {
 		return err
 	}

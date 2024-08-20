@@ -157,11 +157,32 @@ func (gbc *sovereignGenesisBlockCreator) createSovereignHeaders(args *headerCrea
 		return nil, err
 	}
 
+	prevHash := gbc.arg.Core.Hasher().Compute(gbc.arg.GenesisString)
+	err = genesisBlock.SetPrevHash(prevHash)
+	if err != nil {
+		return nil, err
+	}
+
+	validatorRootHash, err := gbc.arg.ValidatorAccounts.RootHash()
+	if err != nil {
+		return nil, err
+	}
+
+	_ = validatorRootHash
+	err = genesisBlock.SetValidatorStatsRootHash(prevHash)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Error("VALIDATOR STATS ROOT HASH", "hash", validatorRootHash)
+
 	// TODO: MX-15667 Ugly fix, we need header versioning creator here to be integrated for sovereign chain
 	sovereignHeader := &block.SovereignChainHeader{
 		Header:                 genesisBlock.(*block.Header),
 		AccumulatedFeesInEpoch: big.NewInt(0),
 		DevFeesInEpoch:         big.NewInt(0),
+		ValidatorStatsRootHash: validatorRootHash,
+		IsStartOfEpoch:         true,
 	}
 	sovereignHeader.EpochStart.Economics = block.Economics{
 		TotalSupply:       big.NewInt(0).Set(gbc.arg.Economics.GenesisTotalSupply()),
