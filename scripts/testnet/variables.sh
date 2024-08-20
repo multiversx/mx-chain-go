@@ -61,7 +61,7 @@ export NODE_DELAY=30
 export GENESIS_STAKE_TYPE="direct" #'delegated' or 'direct' as in direct stake
 
 #if set to 1, each observer will turn off the antiflooding capability, allowing spam in our network
-export OBSERVERS_ANTIFLOOD_DISABLE=0
+export OBSERVERS_ANTIFLOOD_DISABLE=1
 
 # If set to 1, this will deploy nodes in a sovereign shard.
 # All variables from metashard structure(validators, observers, consensus) should be set to zero and SHARDCOUNT to 1
@@ -80,7 +80,7 @@ export META_OBSERVERCOUNT=0
 export META_CONSENSUS_SIZE=$META_VALIDATORCOUNT
 
 # ROUND_DURATION_IN_MS is the duration in milliseconds for one round
-export ROUND_DURATION_IN_MS=6000
+export ROUND_DURATION_IN_MS=1000
 
 # MULTI_KEY_NODES if set to 1, one observer will be generated on each shard that will handle all generated keys
 export MULTI_KEY_NODES=0
