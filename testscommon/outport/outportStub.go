@@ -11,6 +11,7 @@ type OutportStub struct {
 	SaveValidatorsRatingCalled  func(validatorsRating *outportcore.ValidatorsRating)
 	SaveValidatorsPubKeysCalled func(validatorsPubKeys *outportcore.ValidatorsPubKeys)
 	HasDriversCalled            func() bool
+	SaveRoundsInfoCalled        func(roundsInfo *outportcore.RoundsInfo)
 }
 
 // SaveBlock -
@@ -65,7 +66,10 @@ func (as *OutportStub) Close() error {
 }
 
 // SaveRoundsInfo -
-func (as *OutportStub) SaveRoundsInfo(_ *outportcore.RoundsInfo) {
+func (as *OutportStub) SaveRoundsInfo(roundsInfo *outportcore.RoundsInfo) {
+	if as.SaveRoundsInfoCalled != nil {
+		as.SaveRoundsInfoCalled(roundsInfo)
+	}
 
 }
 
