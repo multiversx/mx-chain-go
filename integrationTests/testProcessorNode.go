@@ -567,6 +567,7 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 		tpn.HeaderIntegrityVerifier = CreateHeaderIntegrityVerifier()
 	}
 
+	// TODO: maybe initialize these properly, and pass the account nonce provider.
 	tpn.initDataPools()
 
 	if !check.IfNil(args.DataPool) {
