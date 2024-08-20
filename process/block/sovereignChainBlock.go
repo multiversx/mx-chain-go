@@ -1557,6 +1557,7 @@ func (scbp *sovereignChainBlockProcessor) updateState(header data.HeaderHandler,
 	scbp.blockChain.SetFinalBlockInfo(header.GetNonce(), headerHash, header.GetRootHash())
 }
 
+// TODO: (sovereign) remove these cleanUpFunc pointer functions once shardCoordinator will return the correct shard id from task: MX-14132
 func (scbp *sovereignChainBlockProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, noncesToPrevFinal uint64) {
 	actualShardID := shardID
 	if shardID == core.MetachainShardId {
