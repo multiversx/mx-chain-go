@@ -847,6 +847,9 @@ func TestEnableEpochConfig(t *testing.T) {
     # CleanupAuctionOnLowWaitingListEnableEpoch represents the epoch when the cleanup auction on low waiting list is enabled
     CleanupAuctionOnLowWaitingListEnableEpoch = 95
 
+    # UseGasBoundedShouldFailExecutionEnableEpoch represents the epoch when use bounded gas function should fail execution in case of error
+    UseGasBoundedShouldFailExecutionEnableEpoch = 96
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -960,6 +963,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			CurrentRandomnessOnSortingEnableEpoch:                    93,
 			AlwaysMergeContextsInEEIEnableEpoch:                      94,
 			CleanupAuctionOnLowWaitingListEnableEpoch:                95,
+			UseGasBoundedShouldFailExecutionEnableEpoch:              96,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,
