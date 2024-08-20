@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
@@ -37,7 +37,6 @@ func TestSovereignChainSimulator_BlockTrackerPoolsCleanup(t *testing.T) {
 
 	defer cs.Close()
 
-	logger.SetLogLevel("*:DEBUG")
 	nodeHandler := cs.GetNodeHandler(core.SovereignChainShardId)
 
 	headerNonce := uint64(9999999)
@@ -54,29 +53,38 @@ func TestSovereignChainSimulator_BlockTrackerPoolsCleanup(t *testing.T) {
 
 		crossTrackedHeaders, _ := nodeHandler.GetProcessComponents().BlockTracker().GetTrackedHeaders(core.MainChainShardId)
 		require.Nil(t, err)
-		if round == 1 {
-			require.Nil(t, crossTrackedHeaders)
-		} else {
-			require.NotNil(t, crossTrackedHeaders)
-			require.Equal(t, headerNonce, crossTrackedHeaders[len(crossTrackedHeaders)-1].GetNonce())
-			require.LessOrEqual(t, len(crossTrackedHeaders), 4)
-		}
+		checkCrossTrackedHeaders(t, round, crossTrackedHeaders, headerNonce)
 
-		crossNotarizedHeaders, _, err := nodeHandler.GetProcessComponents().BlockTracker().GetCrossNotarizedHeader(core.MainChainShardId, 0)
+		crossNotarizedHeader, _, err := nodeHandler.GetProcessComponents().BlockTracker().GetCrossNotarizedHeader(core.MainChainShardId, 0)
 		require.Nil(t, err)
-		require.NotNil(t, crossNotarizedHeaders)
-		if round == 1 { // first cross header is dummy with nonce 0
-			require.Equal(t, uint64(0), crossNotarizedHeaders.GetNonce())
-		} else if round == 2 { // first cross notarized header is 10000000
-			require.Equal(t, headerNonce, crossNotarizedHeaders.GetNonce())
-		} else { // cross header with nonce-1 is notarized
-			require.Equal(t, headerNonce-1, crossNotarizedHeaders.GetNonce())
-		}
+		checkCrossNotarizedHeader(t, round, crossNotarizedHeader, headerNonce)
 
 		incomingHeader, headerHash := createIncomingHeader(nodeHandler, &headerNonce, prevHeader, nil)
 		err = nodeHandler.GetIncomingHeaderSubscriber().AddHeader(headerHash, incomingHeader)
 		require.Nil(t, err)
 
 		prevHeader = incomingHeader.Header
+	}
+}
+
+func checkCrossTrackedHeaders(t *testing.T, round int, crossTrackedHeaders []data.HeaderHandler, headerNonce uint64) {
+	if round == 1 {
+		require.Nil(t, crossTrackedHeaders)
+	} else {
+		require.NotNil(t, crossTrackedHeaders)
+		require.Equal(t, headerNonce, crossTrackedHeaders[len(crossTrackedHeaders)-1].GetNonce())
+		require.LessOrEqual(t, len(crossTrackedHeaders), 4) // saved 3 notarized + 1 tracked
+	}
+}
+
+func checkCrossNotarizedHeader(t *testing.T, round int, crossNotarizedHeader data.HeaderHandler, headerNonce uint64) {
+	require.NotNil(t, crossNotarizedHeader)
+
+	if round == 1 { // first cross header is dummy with nonce 0
+		require.Equal(t, uint64(0), crossNotarizedHeader.GetNonce())
+	} else if round == 2 { // first cross notarized header is 10000000
+		require.Equal(t, headerNonce, crossNotarizedHeader.GetNonce())
+	} else { // cross header with nonce-1 is notarized
+		require.Equal(t, headerNonce-1, crossNotarizedHeader.GetNonce())
 	}
 }
