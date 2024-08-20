@@ -768,6 +768,18 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.FixRelayedBaseCostEnableEpoch,
 		},
+		common.MultiESDTNFTTransferAndExecuteByUserFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.MultiESDTNFTTransferAndExecuteByUserEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.MultiESDTNFTTransferAndExecuteByUserEnableEpoch,
+		},
+		common.FixRelayedMoveBalanceToNonPayableSCFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.FixRelayedMoveBalanceToNonPayableSCEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.FixRelayedMoveBalanceToNonPayableSCEnableEpoch,
+		},
 	}
 }
 

@@ -26,11 +26,13 @@ const (
 	simulateTransactionEndpoint      = "/transaction/simulate"
 	sendMultipleTransactionsEndpoint = "/transaction/send-multiple"
 	getTransactionEndpoint           = "/transaction/:hash"
+	getScrsByTxHashEndpoint          = "/transaction/scrs-by-tx-hash/:txhash"
 	sendTransactionPath              = "/send"
 	simulateTransactionPath          = "/simulate"
 	costPath                         = "/cost"
 	sendMultiplePath                 = "/send-multiple"
 	getTransactionPath               = "/:txhash"
+	getScrsByTxHashPath              = "/scrs-by-tx-hash/:txhash"
 	getTransactionsPool              = "/pool"
 
 	queryParamWithResults    = "withResults"
@@ -39,6 +41,7 @@ const (
 	queryParamFields         = "fields"
 	queryParamLastNonce      = "last-nonce"
 	queryParamNonceGaps      = "nonce-gaps"
+	queryParameterScrHash    = "scrHash"
 )
 
 // transactionFacadeHandler defines the methods to be implemented by a facade for transaction requests
@@ -49,6 +52,7 @@ type transactionFacadeHandler interface {
 	SendBulkTransactions([]*transaction.Transaction) (uint64, error)
 	SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error)
 	GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
+	GetSCRsByTxHash(txHash string, scrHash string) ([]*transaction.ApiSmartContractResult, error)
 	GetTransactionsPool(fields string) (*common.TransactionsPoolAPIResponse, error)
 	GetTransactionsPoolForSender(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error)
 	GetLastPoolNonceForSender(sender string) (uint64, error)
@@ -133,6 +137,17 @@ func NewTransactionGroup(facade transactionFacadeHandler) (*transactionGroup, er
 			AdditionalMiddlewares: []shared.AdditionalMiddleware{
 				{
 					Middleware: middleware.CreateEndpointThrottlerFromFacade(getTransactionEndpoint, facade),
+					Position:   shared.Before,
+				},
+			},
+		},
+		{
+			Path:    getScrsByTxHashPath,
+			Method:  http.MethodGet,
+			Handler: tg.getScrsByTxHash,
+			AdditionalMiddlewares: []shared.AdditionalMiddleware{
+				{
+					Middleware: middleware.CreateEndpointThrottlerFromFacade(getScrsByTxHashEndpoint, facade),
 					Position:   shared.Before,
 				},
 			},
@@ -415,6 +430,57 @@ func (tg *transactionGroup) sendMultipleTransactions(c *gin.Context) {
 				"txsSent":   numOfSentTxs,
 				"txsHashes": txsHashes,
 			},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
+func (tg *transactionGroup) getScrsByTxHash(c *gin.Context) {
+	txhash := c.Param("txhash")
+	if txhash == "" {
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrValidationEmptyTxHash.Error()),
+				Code:  shared.ReturnCodeRequestError,
+			},
+		)
+		return
+	}
+	scrHashStr := c.Request.URL.Query().Get(queryParameterScrHash)
+	if scrHashStr == "" {
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrValidationEmptySCRHash.Error()),
+				Code:  shared.ReturnCodeRequestError,
+			},
+		)
+		return
+	}
+
+	start := time.Now()
+	scrs, err := tg.getFacade().GetSCRsByTxHash(txhash, scrHashStr)
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetSmartContractResults.Error(), err.Error()),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+	logging.LogAPIActionDurationIfNeeded(start, "API call: GetSCRsByTxHash")
+
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"scrs": scrs},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},

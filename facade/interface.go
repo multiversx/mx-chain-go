@@ -127,6 +127,7 @@ type ApiResolver interface {
 	GetDirectStakedList(ctx context.Context) ([]*api.DirectStakedValue, error)
 	GetDelegatorsList(ctx context.Context) ([]*api.Delegator, error)
 	GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
+	GetSCRsByTxHash(txHash string, scrHash string) ([]*transaction.ApiSmartContractResult, error)
 	GetTransactionsPool(fields string) (*common.TransactionsPoolAPIResponse, error)
 	GetTransactionsPoolForSender(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error)
 	GetLastPoolNonceForSender(sender string) (uint64, error)
