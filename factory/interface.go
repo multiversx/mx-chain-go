@@ -44,6 +44,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
+	shardData "github.com/multiversx/mx-chain-go/process/factory/shard/data"
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/process/rating"
@@ -629,6 +630,9 @@ type RunTypeComponentsHolder interface {
 	ValidatorInfoCreatorFactory() ValidatorInfoCreatorFactory
 	ApiProcessorCompsCreatorHandler() api.ApiProcessorCompsCreatorHandler
 	EndOfEpochEconomicsFactoryHandler() EndOfEpochEconomicsFactoryHandler
+	RewardsCreatorFactory() RewardsCreatorFactory
+	SystemSCProcessorFactory() SystemSCProcessorFactory
+	PreProcessorsContainerFactoryCreator() shardData.PreProcessorsContainerFactoryCreator
 	Create() error
 	Close() error
 	CheckSubcomponents() error
@@ -668,5 +672,17 @@ type EpochStartTriggerFactoryHandler interface {
 // EndOfEpochEconomicsFactoryHandler defines the end of epoch economics factory handler
 type EndOfEpochEconomicsFactoryHandler interface {
 	CreateEndOfEpochEconomics(args metachain.ArgsNewEpochEconomics) (process.EndOfEpochEconomics, error)
+	IsInterfaceNil() bool
+}
+
+// RewardsCreatorFactory defines a rewards creator factory
+type RewardsCreatorFactory interface {
+	CreateRewardsCreator(args metachain.RewardsCreatorProxyArgs) (epochStart.RewardsCreator, error)
+	IsInterfaceNil() bool
+}
+
+// SystemSCProcessorFactory defines the sys sc processor factory handler
+type SystemSCProcessorFactory interface {
+	CreateSystemSCProcessor(args metachain.ArgsNewEpochStartSystemSCProcessing) (process.EpochStartSystemSCProcessor, error)
 	IsInterfaceNil() bool
 }

@@ -1,16 +1,21 @@
 package epochChange
 
 import (
+	"encoding/hex"
 	"math/big"
 	"testing"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
+	apiData "github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	chainSim "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/staking"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
+	"github.com/multiversx/mx-chain-go/process/headerCheck"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/config"
@@ -24,6 +29,8 @@ const (
 	sovereignConfigPath        = "../../../config/"
 )
 
+var log = logger.GetOrCreate("epoch-change")
+
 func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -31,9 +38,10 @@ func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
-		Value:    20,
+		Value:    50, // do not lower this value so that each validator can participate in consensus as leader to get rewards
 	}
 
+	var protocolSustainabilityAddress string
 	cs, err := sovereignChainSimulator.NewSovereignChainSimulator(sovereignChainSimulator.ArgsSovereignChainSimulator{
 		SovereignConfigPath: sovereignConfigPath,
 		ArgsChainSimulator: &chainSimulator.ArgsChainSimulator{
@@ -59,6 +67,7 @@ func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 					},
 				}
 
+				protocolSustainabilityAddress = cfg.EconomicsConfig.RewardsSettings.RewardsConfigByEpoch[0].ProtocolSustainabilityAddress
 				cfg.EpochConfig.EnableEpochs = newCfg
 			},
 		},
@@ -73,6 +82,13 @@ func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 	wallet, err := cs.GenerateAndMintWalletAddress(core.SovereignChainShardId, chainSim.InitialAmount)
 	nonce := uint64(0)
 	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
+
+	protocolSustainabilityAddrBalance, _, err := nodeHandler.GetFacadeHandler().GetBalance(protocolSustainabilityAddress, apiData.AccountQueryOptions{})
+	require.Nil(t, err)
+	require.Empty(t, protocolSustainabilityAddrBalance.Bytes())
 
 	trie := nodeHandler.GetStateComponents().TriesContainer().Get([]byte(dataRetriever.PeerAccountsUnit.String()))
 	require.NotNil(t, trie)
@@ -103,8 +119,14 @@ func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 
 	currentEpoch := nodeHandler.GetCoreComponents().EpochNotifier().CurrentEpoch()
 	for epoch := currentEpoch + 1; epoch < currentEpoch+6; epoch++ {
+		allOwnersBalance := getConsensusOwnersBalances(t, nodeHandler)
+
 		err = cs.GenerateBlocksUntilEpochIsReached(int32(epoch))
 		require.Nil(t, err)
+
+		checkEpochChangeHeader(t, nodeHandler)
+		requireValidatorBalancesIncreasedAfterRewards(t, nodeHandler, allOwnersBalance)
+		checkProtocolSustainabilityAddressBalanceIncreased(t, nodeHandler, protocolSustainabilityAddress, protocolSustainabilityAddrBalance)
 
 		qualified, unqualified := staking.GetQualifiedAndUnqualifiedNodes(t, nodeHandler)
 		require.Len(t, qualified, 2)
@@ -120,6 +142,81 @@ func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 		require.NotEmpty(t, accFeesTotal.Bytes())
 		require.Empty(t, devFeesTotal.Bytes())
 	}
+}
+
+func checkEpochChangeHeader(t *testing.T, nodeHandler process.NodeHandler) {
+	currentHeader := nodeHandler.GetDataComponents().Blockchain().GetCurrentBlockHeader()
+	require.True(t, currentHeader.IsStartOfEpochBlock())
+
+	mbs := currentHeader.GetMiniBlockHeaderHandlers()
+	require.Len(t, mbs, 2)
+
+	require.Equal(t, block.RewardsBlock, block.Type(mbs[0].GetTypeInt32()))
+	require.Equal(t, block.PeerBlock, block.Type(mbs[1].GetTypeInt32()))
+
+	require.Equal(t, mbs[0].GetTxCount(), uint32(7))  // consensus group reward txs = 6 + 1 reward tx protocol sustainability
+	require.Equal(t, mbs[1].GetTxCount(), uint32(18)) // 18 validators in total => 18 peer block updates
+}
+
+func getConsensusOwnersBalances(t *testing.T, nodeHandler process.NodeHandler) map[string]*big.Int {
+	currentHeader := nodeHandler.GetDataComponents().Blockchain().GetCurrentBlockHeader()
+	nodesCoordinator := nodeHandler.GetProcessComponents().NodesCoordinator()
+
+	validators, err := headerCheck.ComputeConsensusGroup(currentHeader, nodesCoordinator)
+	require.Nil(t, err)
+	require.Len(t, validators, nodesCoordinator.ConsensusGroupSize(core.SovereignChainShardId))
+
+	allOwnersBalance := make(map[string]*big.Int)
+	for _, validator := range validators {
+		owner := staking.GetBLSKeyOwner(t, nodeHandler, validator.PubKey())
+
+		acc, err := nodeHandler.GetStateComponents().AccountsAdapter().GetExistingAccount(owner)
+		require.Nil(t, err)
+
+		userAcc, castOk := acc.(data.UserAccountHandler)
+		require.True(t, castOk)
+
+		allOwnersBalance[string(owner)] = userAcc.GetBalance()
+	}
+
+	return allOwnersBalance
+}
+
+func requireValidatorBalancesIncreasedAfterRewards(
+	t *testing.T,
+	nodeHandler process.NodeHandler,
+	ownersBalance map[string]*big.Int,
+) {
+	require.NotEmpty(t, ownersBalance)
+	for owner, previousBalance := range ownersBalance {
+		acc, err := nodeHandler.GetStateComponents().AccountsAdapter().GetExistingAccount([]byte(owner))
+		require.Nil(t, err)
+
+		userAcc, castOk := acc.(data.UserAccountHandler)
+		require.True(t, castOk)
+
+		currentBalance := userAcc.GetBalance()
+
+		log.Info("checking validator owners balance after rewards",
+			"owner", hex.EncodeToString([]byte(owner)),
+			"previous balance", previousBalance.String(),
+			"current balance", currentBalance.String())
+
+		require.True(t, currentBalance.Cmp(previousBalance) > 0)
+	}
+}
+
+func checkProtocolSustainabilityAddressBalanceIncreased(
+	t *testing.T,
+	nodeHandler process.NodeHandler,
+	protocolSustainabilityAddress string,
+	previousBalance *big.Int,
+) {
+	currBalance, _, err := nodeHandler.GetFacadeHandler().GetBalance(protocolSustainabilityAddress, apiData.AccountQueryOptions{})
+	require.Nil(t, err)
+	require.NotEmpty(t, currBalance.String())
+
+	require.True(t, currBalance.Cmp(previousBalance) > 0)
 }
 
 func getAllFeesInEpoch(nodeHandler process.NodeHandler) (*big.Int, *big.Int) {

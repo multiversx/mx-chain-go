@@ -246,7 +246,7 @@ func (scbp *sovereignChainBlockProcessor) CreateBlock(initialHdr data.HeaderHand
 	}
 
 	extendedShardHeaderHashes := scbp.sortExtendedShardHeaderHashesForCurrentBlockByNonce()
-	crossMiniblockHeaders, err := scbp.createMiniBlockHeaderHandlers(crossMiniblocks)
+	_, crossMiniblockHeaders, err := scbp.createMiniBlockHeaderHandlers(crossMiniblocks)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -561,26 +561,30 @@ func (scbp *sovereignChainBlockProcessor) sortExtendedShardHeaderHashesForCurren
 	return hdrsHashesForCurrentBlock
 }
 
-func (scbp *sovereignChainBlockProcessor) createMiniBlockHeaderHandlers(miniBlocks block.MiniBlockSlice) ([]data.MiniBlockHeaderHandler, error) {
+func (scbp *sovereignChainBlockProcessor) createMiniBlockHeaderHandlers(miniBlocks block.MiniBlockSlice) (int, []data.MiniBlockHeaderHandler, error) {
 	miniBlockHeaders := make([]data.MiniBlockHeaderHandler, 0)
 
+	totalTxCount := 0
 	for _, mb := range miniBlocks {
+		txCount := len(mb.TxHashes)
+		totalTxCount += txCount
+
 		hash, err := core.CalculateHash(scbp.marshalizer, scbp.hasher, mb)
 		if err != nil {
-			return nil, err
+			return 0, nil, err
 		}
 
 		miniBlockHeaders = append(miniBlockHeaders, &block.MiniBlockHeader{
 			Hash:            hash,
 			SenderShardID:   mb.SenderShardID,
 			ReceiverShardID: mb.ReceiverShardID,
-			TxCount:         uint32(len(mb.TxHashes)),
+			TxCount:         uint32(txCount),
 			Type:            mb.Type,
 			Reserved:        mb.Reserved,
 		})
 	}
 
-	return miniBlockHeaders, nil
+	return totalTxCount, miniBlockHeaders, nil
 }
 
 // receivedExtendedShardHeader is a callback function when a new extended shard header was received
@@ -788,6 +792,9 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 
 	scbp.epochStartTrigger.Update(shardHeader.GetRound(), shardHeader.GetNonce())
 	err = scbp.checkEpochCorrectness(shardHeader)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	err = scbp.processIfFirstBlockAfterEpochStart()
 	if err != nil {
@@ -800,12 +807,6 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 			return nil, nil, err
 		}
 
-		body, err = scbp.applyBodyToHeader(shardHeader, body)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		// finish processing here, only process epoch start
 		return shardHeader, body, nil
 	}
 
@@ -858,8 +859,6 @@ func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
 	header data.HeaderHandler,
 	body *block.Body,
 ) error {
-	////#################
-
 	currentRootHash, err := scbp.validatorStatisticsProcessor.RootHash()
 	if err != nil {
 		return err
@@ -890,40 +889,31 @@ func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
-	// TODO MX-15589 check how we can integrate all of these later on
-	//err = mp.epochRewardsCreator.VerifyRewardsMiniBlocks(header, allValidatorsInfo, computedEconomics)
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//err = mp.epochSystemSCProcessor.ProcessDelegationRewards(body.MiniBlocks, mp.epochRewardsCreator.GetLocalTxCache())
-	//if err != nil {
-	//	return err
-	//}
+	rewardMiniBlocks, err := scbp.epochRewardsCreator.CreateRewardsMiniBlocks(sovHdr, allValidatorsInfo, &sovHdr.EpochStart.Economics)
+	if err != nil {
+		return err
+	}
 
-	//err = mp.validatorInfoCreator.VerifyValidatorInfoMiniBlocks(body.MiniBlocks, allValidatorsInfo)
-	//if err != nil {
-	//	return err
-	//}
+	sovHdr.EpochStart.Economics.RewardsForProtocolSustainability.Set(scbp.epochRewardsCreator.GetProtocolSustainabilityRewards())
+
+	err = scbp.epochSystemSCProcessor.ProcessDelegationRewards(rewardMiniBlocks, scbp.epochRewardsCreator.GetLocalTxCache())
+	if err != nil {
+		return err
+	}
 
 	err = scbp.epochEconomics.VerifyRewardsPerBlock(sovHdr, scbp.epochRewardsCreator.GetProtocolSustainabilityRewards(), computedEconomics)
 	if err != nil {
 		return err
 	}
-	//
-	//err = mp.verifyFees(header)
-	//if err != nil {
-	//	return err
-	//}
 
-	saveEpochStartEconomicsMetrics(scbp.appStatusHandler, sovHdr)
-
-	validatorMiniBlocks, err := scbp.validatorInfoCreator.CreateValidatorInfoMiniBlocks(allValidatorsInfo)
+	err = scbp.verifyFees(header)
 	if err != nil {
 		return err
 	}
 
-	err = scbp.validatorStatisticsProcessor.ResetValidatorStatisticsAtNewEpoch(allValidatorsInfo)
+	saveEpochStartEconomicsMetrics(scbp.appStatusHandler, sovHdr)
+
+	validatorMiniBlocks, err := scbp.validatorInfoCreator.CreateValidatorInfoMiniBlocks(allValidatorsInfo)
 	if err != nil {
 		return err
 	}
@@ -934,15 +924,35 @@ func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
+	err = scbp.validatorStatisticsProcessor.ResetValidatorStatisticsAtNewEpoch(allValidatorsInfo)
+	if err != nil {
+		return err
+	}
+
 	for _, valMB := range validatorMiniBlocks {
 		valMB.ReceiverShardID = core.SovereignChainShardId
 	}
 
 	finalMiniBlocks := make([]*block.MiniBlock, 0)
-	//finalMiniBlocks = append(finalMiniBlocks, rewardMiniBlocks...)
+	finalMiniBlocks = append(finalMiniBlocks, rewardMiniBlocks...)
 	finalMiniBlocks = append(finalMiniBlocks, validatorMiniBlocks...)
 
 	body.MiniBlocks = append(body.MiniBlocks, finalMiniBlocks...)
+
+	totalTxCount, miniBlockHeaderHandlers, err := scbp.createMiniBlockHeaderHandlers(body.MiniBlocks)
+	if err != nil {
+		return err
+	}
+
+	err = header.SetMiniBlockHeaderHandlers(miniBlockHeaderHandlers)
+	if err != nil {
+		return err
+	}
+
+	err = header.SetTxCount(uint32(totalTxCount))
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -1377,6 +1387,8 @@ func (scbp *sovereignChainBlockProcessor) CommitBlock(headerHandler data.HeaderH
 		return err
 	}
 
+	scbp.store.SetEpochForPutOperation(headerHandler.GetEpoch())
+
 	marshalizedHeader, err := scbp.marshalizer.Marshal(headerHandler)
 	if err != nil {
 		return err
@@ -1455,6 +1467,7 @@ func (scbp *sovereignChainBlockProcessor) CommitBlock(headerHandler data.HeaderH
 		"nonce", highestFinalBlockNonce,
 	)
 
+	// TODO: Analyse if !check.IfNil(lastMetaBlock) && lastMetaBlock.IsStartOfEpochBlock() from metablock.go
 	err = scbp.commonHeaderAndBodyCommit(headerHandler, body, headerHash, []data.HeaderHandler{lastSelfNotarizedHeader}, [][]byte{lastSelfNotarizedHeaderHash})
 	if err != nil {
 		return err
@@ -1868,7 +1881,6 @@ func (scbp *sovereignChainBlockProcessor) updateState(header data.HeaderHandler,
 	}
 
 	if header.IsStartOfEpochBlock() {
-
 		log.Debug("trie snapshot",
 			"rootHash", header.GetRootHash(),
 			"prevRootHash", prevHeader.GetRootHash(),
@@ -1876,21 +1888,18 @@ func (scbp *sovereignChainBlockProcessor) updateState(header data.HeaderHandler,
 		scbp.accountsDB[state.UserAccountsState].SnapshotState(header.GetRootHash(), header.GetEpoch())
 		scbp.accountsDB[state.PeerAccountsState].SnapshotState(header.GetValidatorStatsRootHash(), header.GetEpoch())
 
-		// TODO: MX-15587- implement this and reuse code from meta processor
-		/*
-			go func() {
+		go func() {
+			sovHdr, ok := header.(data.MetaHeaderHandler)
+			if !ok {
+				log.Warn("cannot commit Trie Epoch Root Hash: last sov header is not of type data.MetaHeaderHandler")
+				return
+			}
+			err := scbp.commitTrieEpochRootHashIfNeeded(sovHdr, header.GetRootHash())
+			if err != nil {
+				log.Warn("couldn't commit trie checkpoint", "epoch", sovHdr.GetEpoch(), "error", err)
+			}
+		}()
 
-				metaBlock, ok := header.(*block.MetaBlock)
-				if !ok {
-					log.Warn("cannot commit Trie Epoch Root Hash: lastMetaBlock is not *block.MetaBlock")
-					return
-				}
-				err := scbp.commitTrieEpochRootHashIfNeeded(metaBlock, header.GetRootHash())
-				if err != nil {
-					log.Warn("couldn't commit trie checkpoint", "epoch", metaBlock.Epoch, "error", err)
-				}
-			}()
-		*/
 		scbp.nodesCoordinator.ShuffleOutForEpoch(header.GetEpoch())
 	}
 
