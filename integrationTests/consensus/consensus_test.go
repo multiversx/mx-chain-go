@@ -371,7 +371,7 @@ func TestConsensusBLSNotEnoughValidators(t *testing.T) {
 		runConsensusWithNotEnoughValidators(t, blsConsensusType, integrationTests.UnreachableEpoch)
 	})
 	t.Run("after equivalent messages", func(t *testing.T) {
-		runConsensusWithNotEnoughValidators(t, blsConsensusType, integrationTests.UnreachableEpoch)
+		runConsensusWithNotEnoughValidators(t, blsConsensusType, 0)
 	})
 }
 

@@ -356,3 +356,13 @@ func (sr *subroundEndRound) GetSentSignatureTracker() spos.SentSignaturesTracker
 func GetStringValue(messageType consensus.MessageType) string {
 	return getStringValue(messageType)
 }
+
+// ChangeEpoch calls the unexported changeEpoch function
+func (sr *subroundStartRound) ChangeEpoch(epoch uint32) {
+	sr.changeEpoch(epoch)
+}
+
+// IndexRoundIfNeeded calls the unexported indexRoundIfNeeded function
+func (sr *subroundStartRound) IndexRoundIfNeeded(pubKeys []string) {
+	sr.indexRoundIfNeeded(pubKeys)
+}

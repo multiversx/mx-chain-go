@@ -150,8 +150,8 @@ func (wrk *Worker) ReceivedMessagesCalls() map[consensus.MessageType][]func(cont
 	return wrk.receivedMessagesCalls
 }
 
-// SetReceivedMessagesCalls -
-func (wrk *Worker) SetReceivedMessagesCalls(messageType consensus.MessageType, f func(context.Context, *consensus.Message) bool) {
+// AppendReceivedMessagesCalls -
+func (wrk *Worker) AppendReceivedMessagesCalls(messageType consensus.MessageType, f func(context.Context, *consensus.Message) bool) {
 	wrk.mutReceivedMessagesCalls.Lock()
 	wrk.receivedMessagesCalls[messageType] = append(wrk.receivedMessagesCalls[messageType], f)
 	wrk.mutReceivedMessagesCalls.Unlock()
@@ -208,7 +208,7 @@ func (wrk *Worker) SetEquivalentProof(hash string, proof data.HeaderProof) {
 	defer wrk.mutEquivalentMessages.Unlock()
 
 	wrk.equivalentMessages[hash] = &consensus.EquivalentMessageInfo{
-		NumMessages: 0,
+		NumMessages: 1,
 		Validated:   false,
 		Proof:       proof,
 	}

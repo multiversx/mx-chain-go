@@ -448,7 +448,7 @@ func (sr *subroundEndRound) sendFinalInfo(sender []byte) (data.HeaderProof, bool
 		return data.HeaderProof{}, false
 	}
 
-	// Aggregate sig and add it to the block
+	// Aggregate signatures, handle invalid signers and send final info if needed
 	bitmap, sig, err := sr.aggregateSigsAndHandleInvalidSigners(bitmap)
 	if err != nil {
 		log.Debug("sendFinalInfo.aggregateSigsAndHandleInvalidSigners", "error", err.Error())
@@ -498,6 +498,7 @@ func (sr *subroundEndRound) sendFinalInfo(sender []byte) (data.HeaderProof, bool
 	}
 
 	// broadcast header and final info section
+	// TODO[cleanup cns finality]: remove leaderSigToBroadcast
 	leaderSigToBroadcast := sr.Header.GetLeaderSignature()
 	if sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch()) {
 		leaderSigToBroadcast = nil
@@ -727,14 +728,16 @@ func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfoForKey(signature []
 }
 
 func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []byte) {
+	// TODO[cleanup cns finality]: remove the leader check
+	isEquivalentMessagesFlagEnabled := sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch())
 	isSelfLeader := sr.IsSelfLeaderInCurrentRound() && sr.ShouldConsiderSelfKeyInConsensus()
-	if !(isSelfLeader || sr.IsMultiKeyLeaderInCurrentRound()) {
+	if !(isSelfLeader || sr.IsMultiKeyLeaderInCurrentRound()) && !isEquivalentMessagesFlagEnabled {
 		return
 	}
 
-	leader, errGetLeader := sr.GetLeader()
-	if errGetLeader != nil {
-		log.Debug("createAndBroadcastInvalidSigners.GetLeader", "error", errGetLeader)
+	sender, err := sr.getSender()
+	if err != nil {
+		log.Debug("createAndBroadcastInvalidSigners.getSender", "error", err)
 		return
 	}
 
@@ -743,7 +746,7 @@ func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []by
 		nil,
 		nil,
 		nil,
-		[]byte(leader),
+		sender,
 		nil,
 		int(MtInvalidSigners),
 		sr.RoundHandler().Index(),
@@ -751,12 +754,12 @@ func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []by
 		nil,
 		nil,
 		nil,
-		sr.GetAssociatedPid([]byte(leader)),
+		sr.GetAssociatedPid(sender),
 		invalidSigners,
 	)
 
 	// TODO[Sorin next PR]: decide if we send this with the delayed broadcast
-	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
+	err = sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
 	if err != nil {
 		log.Debug("doEndRoundJob.BroadcastConsensusMessage", "error", err.Error())
 		return

@@ -5,8 +5,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/broadcast/shared"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/process/factory"
 )
@@ -32,28 +34,13 @@ func NewMetaChainMessenger(
 		return nil, err
 	}
 
-	dbbArgs := &ArgsDelayedBlockBroadcaster{
-		InterceptorsContainer: args.InterceptorsContainer,
-		HeadersSubscriber:     args.HeadersSubscriber,
-		LeaderCacheSize:       args.MaxDelayCacheSize,
-		ValidatorCacheSize:    args.MaxValidatorDelayCacheSize,
-		ShardCoordinator:      args.ShardCoordinator,
-		AlarmScheduler:        args.AlarmScheduler,
-		Config:                args.Config,
-	}
-
-	dbb, err := NewDelayedBlockBroadcaster(dbbArgs)
-	if err != nil {
-		return nil, err
-	}
-
 	cm := &commonMessenger{
 		marshalizer:             args.Marshalizer,
 		hasher:                  args.Hasher,
 		messenger:               args.Messenger,
 		shardCoordinator:        args.ShardCoordinator,
 		peerSignatureHandler:    args.PeerSignatureHandler,
-		delayedBlockBroadcaster: dbb,
+		delayedBlockBroadcaster: args.DelayedBroadcaster,
 		keysHandler:             args.KeysHandler,
 	}
 
@@ -61,7 +48,7 @@ func NewMetaChainMessenger(
 		commonMessenger: cm,
 	}
 
-	err = dbb.SetBroadcastHandlers(mcm.BroadcastMiniBlocks, mcm.BroadcastTransactions, mcm.BroadcastHeader, mcm.BroadcastConsensusMessage)
+	err = mcm.delayedBlockBroadcaster.SetBroadcastHandlers(mcm.BroadcastMiniBlocks, mcm.BroadcastTransactions, mcm.BroadcastHeader, mcm.BroadcastConsensusMessage)
 	if err != nil {
 		return nil, err
 	}
@@ -155,13 +142,13 @@ func (mcm *metaChainMessenger) PrepareBroadcastHeaderValidator(
 		return
 	}
 
-	vData := &validatorHeaderBroadcastData{
-		headerHash:           headerHash,
-		header:               header,
-		metaMiniBlocksData:   miniBlocks,
-		metaTransactionsData: transactions,
-		order:                uint32(idx),
-		pkBytes:              pkBytes,
+	vData := &shared.ValidatorHeaderBroadcastData{
+		HeaderHash:           headerHash,
+		Header:               header,
+		MetaMiniBlocksData:   miniBlocks,
+		MetaTransactionsData: transactions,
+		Order:                uint32(idx),
+		PkBytes:              pkBytes,
 	}
 
 	err = mcm.delayedBlockBroadcaster.SetHeaderForValidator(vData)

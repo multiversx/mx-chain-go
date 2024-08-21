@@ -894,7 +894,7 @@ func (wrk *Worker) GetEquivalentProof(headerHash []byte) (data.HeaderProof, erro
 	}
 
 	if !info.Validated {
-		return info.Proof, ErrEquivalentProofNotValidated
+		return data.HeaderProof{}, ErrEquivalentProofNotValidated
 	}
 
 	return info.Proof, nil
