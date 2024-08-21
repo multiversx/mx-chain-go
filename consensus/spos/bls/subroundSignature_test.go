@@ -727,15 +727,9 @@ func TestSubroundSignature_SendSignatureShouldErr(t *testing.T) {
 		&mock.SposWorkerMock{},
 	)
 
-	mockMutex := sync.Mutex{}
-	mockNumMultikey := 0
-	multiSigData := bls.MultikeySigData{
-		IsCurrentNodeMultiKeyLeader: true,
-		IsFlagActive:                true,
-		Mutex:                       &mockMutex,
-		NumMultiKeysSignaturesSent:  &mockNumMultikey,
-	}
-	err := srSignature.SendSignature(0, "a", &multiSigData)
+	mockNumMultikey := int32(0)
+
+	err := srSignature.SendSignature(0, "a", &mockNumMultikey)
 
 	assert.Equal(t, expErr, err)
 }
@@ -749,9 +743,16 @@ func TestSubroundSignature_SendSignatureShouldErrorCreateAndSendSignMessage(t *t
 		},
 	})
 
+	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.EquivalentMessagesFlag
+		},
+	}
+	container.SetEnableEpochsHandler(enableEpochsHandler)
+
 	container.SetBroadcastMessenger(&mock.BroadcastMessengerMock{
 		BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
-			return fmt.Errorf("errpr")
+			return fmt.Errorf("error")
 		},
 	})
 	consensusState := initConsensusStateWithKeysHandler(
@@ -793,15 +794,9 @@ func TestSubroundSignature_SendSignatureShouldErrorCreateAndSendSignMessage(t *t
 		&mock.SposWorkerMock{},
 	)
 
-	mockMutex := sync.Mutex{}
-	mockNumMultikey := 0
-	multiSigData := bls.MultikeySigData{
-		IsCurrentNodeMultiKeyLeader: true,
-		IsFlagActive:                true,
-		Mutex:                       &mockMutex,
-		NumMultiKeysSignaturesSent:  &mockNumMultikey,
-	}
-	err := srSignature.SendSignature(1, "a", &multiSigData)
+	mockNumMultikey := int32(0)
+
+	err := srSignature.SendSignature(1, "a", &mockNumMultikey)
 
 	assert.Equal(t, bls.ErrorCreateAndSendSignMessage, err)
 }
@@ -814,6 +809,13 @@ func TestSubroundSignature_SendSignatureShouldIncreaseNumKultikey(t *testing.T) 
 			return []byte("SIG"), nil
 		},
 	})
+
+	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.EquivalentMessagesFlag
+		},
+	}
+	container.SetEnableEpochsHandler(enableEpochsHandler)
 
 	container.SetBroadcastMessenger(&mock.BroadcastMessengerMock{
 		BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
@@ -859,17 +861,11 @@ func TestSubroundSignature_SendSignatureShouldIncreaseNumKultikey(t *testing.T) 
 		&mock.SposWorkerMock{},
 	)
 
-	mockMutex := sync.Mutex{}
-	mockNumMultikey := 0
-	multiSigData := bls.MultikeySigData{
-		IsCurrentNodeMultiKeyLeader: true,
-		IsFlagActive:                true,
-		Mutex:                       &mockMutex,
-		NumMultiKeysSignaturesSent:  &mockNumMultikey,
-	}
-	_ = srSignature.SendSignature(1, "a", &multiSigData)
+	mockNumMultikey := int32(0)
 
-	assert.Equal(t, 1, mockNumMultikey)
+	_ = srSignature.SendSignature(1, "a", &mockNumMultikey)
+
+	assert.Equal(t, int32(1), mockNumMultikey)
 }
 
 func TestSubroundSignature_DoSignatureJobForManagedKeysShouldWork(t *testing.T) {

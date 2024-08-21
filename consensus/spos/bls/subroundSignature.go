@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -380,42 +381,26 @@ func (sr *subroundSignature) remainingTime() time.Duration {
 	return remainigTime
 }
 
-// MultikeySigData and its fields are exported to be accessible in tests
-type MultikeySigData struct {
-	IsCurrentNodeMultiKeyLeader bool
-	IsFlagActive                bool
-	Mutex                       *sync.Mutex
-	NumMultiKeysSignaturesSent  *int
-}
-
 func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
-	isCurrentNodeMultiKeyLeader := sr.IsMultiKeyLeaderInCurrentRound()
-	isFlagActive := sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch())
 
 	mutex := sync.Mutex{}
-	numMultiKeysSignaturesSent := 0
-
-	multiKeySigData := MultikeySigData{
-		IsCurrentNodeMultiKeyLeader: isCurrentNodeMultiKeyLeader,
-		IsFlagActive:                isFlagActive,
-		Mutex:                       &mutex,
-		NumMultiKeysSignaturesSent:  &numMultiKeysSignaturesSent,
-	}
+	numMultiKeysSignaturesSent := int32(0)
 
 	sentSigForAllKeys := true
 	wg := sync.WaitGroup{}
 	wg.Add(len(sr.ConsensusGroup()))
 
+	// TODO determine first which keys are managed by current node, and try to send signatures only for those
 	for idx, pk := range sr.ConsensusGroup() {
-		go func(idx int, pk string, multiKeySigData *MultikeySigData, wg *sync.WaitGroup) {
-			err := sr.sendSignature(idx, pk, multiKeySigData)
+		go func(idx int, pk string, numMultiKeysSignaturesSent *int32) {
+			err := sr.sendSignature(idx, pk, numMultiKeysSignaturesSent)
 			if err != nil {
-				multiKeySigData.Mutex.Lock()
+				mutex.Lock()
 				sentSigForAllKeys = false
-				multiKeySigData.Mutex.Unlock()
+				mutex.Unlock()
 			}
 			wg.Done()
-		}(idx, pk, &multiKeySigData, &wg)
+		}(idx, pk, &numMultiKeysSignaturesSent)
 	}
 	wg.Wait()
 
@@ -426,7 +411,10 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 	return sentSigForAllKeys
 }
 
-func (sr *subroundSignature) sendSignature(idx int, pk string, multikeySigData *MultikeySigData) error {
+func (sr *subroundSignature) sendSignature(idx int, pk string, numMultiKeysSignaturesSent *int32) error {
+	isCurrentNodeMultiKeyLeader := sr.IsMultiKeyLeaderInCurrentRound()
+	isFlagActive := sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch())
+
 	pkBytes := []byte(pk)
 	if sr.IsJobDone(pk, sr.Current()) {
 		return nil
@@ -450,8 +438,8 @@ func (sr *subroundSignature) sendSignature(idx int, pk string, multikeySigData *
 	isCurrentManagedKeyLeader := idx == spos.IndexOfLeaderInConsensusGroup
 	// TODO[cleanup cns finality]: update the check
 	// with the equivalent messages feature on, signatures from all managed keys must be broadcast, as the aggregation is done by any participant
-	shouldBroadcastSignatureShare := (!multikeySigData.IsCurrentNodeMultiKeyLeader && !multikeySigData.IsFlagActive) ||
-		(!isCurrentManagedKeyLeader && multikeySigData.IsFlagActive)
+	shouldBroadcastSignatureShare := (!isCurrentNodeMultiKeyLeader && !isFlagActive) ||
+		(!isCurrentManagedKeyLeader && isFlagActive)
 	if shouldBroadcastSignatureShare {
 		ok := sr.createAndSendSignatureMessage(signatureShare, pkBytes)
 
@@ -459,15 +447,13 @@ func (sr *subroundSignature) sendSignature(idx int, pk string, multikeySigData *
 			return ErrorCreateAndSendSignMessage
 		}
 
-		multikeySigData.Mutex.Lock()
-		*multikeySigData.NumMultiKeysSignaturesSent++
-		multikeySigData.Mutex.Unlock()
+		atomic.AddInt32(numMultiKeysSignaturesSent, 1)
 
 	}
 	// with the equivalent messages feature on, the leader signature is sent on subroundBlock, thus we should update its status here as well
 	sr.sentSignatureTracker.SignatureSent(pkBytes)
 
-	shouldWaitForAllSigsAsync := isCurrentManagedKeyLeader && !multikeySigData.IsFlagActive
+	shouldWaitForAllSigsAsync := isCurrentManagedKeyLeader && !isFlagActive
 	ok := sr.completeSignatureSubRound(pk, shouldWaitForAllSigsAsync)
 	if !ok {
 		return ErrorCompleteSigSubround

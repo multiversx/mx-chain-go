@@ -369,8 +369,8 @@ func (sr *subroundStartRound) IndexRoundIfNeeded(pubKeys []string) {
 }
 
 // SendSignature calls the unexported sendSignature function
-func (sr *subroundSignature) SendSignature(idx int, pk string, sigData *MultikeySigData) error {
-	return sr.sendSignature(idx, pk, sigData)
+func (sr *subroundSignature) SendSignature(idx int, pk string, numMultiKeysSignaturesSent *int32) error {
+	return sr.sendSignature(idx, pk, numMultiKeysSignaturesSent)
 }
 
 // DoSignatureJobForManagedKeys calls the unexported doSignatureJobForManagedKeys function
