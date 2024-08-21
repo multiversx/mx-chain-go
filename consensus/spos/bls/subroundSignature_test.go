@@ -801,7 +801,7 @@ func TestSubroundSignature_SendSignatureShouldErrorCreateAndSendSignMessage(t *t
 	assert.Equal(t, bls.ErrorCreateAndSendSignMessage, err)
 }
 
-func TestSubroundSignature_SendSignatureShouldIncreaseNumKultikey(t *testing.T) {
+func TestSubroundSignature_SendSignatureShouldIncreaseNumMultikey(t *testing.T) {
 
 	container := mock.InitConsensusCore()
 	container.SetSigningHandler(&consensusMocks.SigningHandlerStub{

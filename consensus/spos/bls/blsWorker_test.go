@@ -4,11 +4,12 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/stretchr/testify/assert"
 )
 
 func createEligibleList(size int) []string {
@@ -25,6 +26,10 @@ func initConsensusState() *spos.ConsensusState {
 
 func initConsensusStateWithKeysHandler(keysHandler consensus.KeysHandler) *spos.ConsensusState {
 	consensusGroupSize := 9
+	return initConsensusStateWithKeysHandlerWithGroupSize(keysHandler, consensusGroupSize)
+}
+
+func initConsensusStateWithKeysHandlerWithGroupSize(keysHandler consensus.KeysHandler, consensusGroupSize int) *spos.ConsensusState {
 	eligibleList := createEligibleList(consensusGroupSize)
 
 	eligibleNodesPubKeys := make(map[string]struct{})
