@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -365,4 +366,14 @@ func (sr *subroundStartRound) ChangeEpoch(epoch uint32) {
 // IndexRoundIfNeeded calls the unexported indexRoundIfNeeded function
 func (sr *subroundStartRound) IndexRoundIfNeeded(pubKeys []string) {
 	sr.indexRoundIfNeeded(pubKeys)
+}
+
+// SendSignature calls the unexported sendSignature function
+func (sr *subroundSignature) SendSignature(idx int, pk string, sigData *MultikeySigData) error {
+	return sr.sendSignature(idx, pk, sigData)
+}
+
+// DoSignatureJobForManagedKeys calls the unexported doSignatureJobForManagedKeys function
+func (sr *subroundSignature) DoSignatureJobForManagedKeys() bool {
+	return sr.doSignatureJobForManagedKeys()
 }
