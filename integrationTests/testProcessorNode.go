@@ -59,6 +59,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	metaProcess "github.com/multiversx/mx-chain-go/process/factory/metachain"
 	"github.com/multiversx/mx-chain-go/process/factory/shard"
+	shardData "github.com/multiversx/mx-chain-go/process/factory/shard/data"
 	"github.com/multiversx/mx-chain-go/process/heartbeat/validator"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	processMock "github.com/multiversx/mx-chain-go/process/mock"
@@ -1783,7 +1784,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 	)
 	processedMiniBlocksTracker := processedMb.NewProcessedMiniBlocksTracker()
 
-	args := shard.ArgPreProcessorsContainerFactory{
+	args := shardData.ArgPreProcessorsContainerFactory{
 		ShardCoordinator:             tpn.ShardCoordinator,
 		Store:                        tpn.Storage,
 		Marshaller:                   TestMarshalizer,
@@ -1808,7 +1809,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		TxExecutionOrderHandler:      tpn.TxExecutionOrderHandler,
 		RunTypeComponents:            tpn.RunTypeComponents,
 	}
-	fact, err := shard.NewPreProcessorsContainerFactory(args)
+	fact, err := tpn.RunTypeComponents.PreProcessorsContainerFactoryCreator().CreatePreProcessorContainerFactory(args)
 	if err != nil {
 		log.Info(err.Error())
 		panic(err)

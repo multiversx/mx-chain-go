@@ -94,9 +94,9 @@ func TestManagedRunTypeComponents_Create(t *testing.T) {
 		require.Nil(t, managedRunTypeComponents.ValidatorInfoCreatorFactory())
 		require.Nil(t, managedRunTypeComponents.ApiProcessorCompsCreatorHandler())
 		require.Nil(t, managedRunTypeComponents.EndOfEpochEconomicsFactoryHandler())
-		require.Nil(t, managedRunTypeComponents.RewardsTxPreProcFactory())
 		require.Nil(t, managedRunTypeComponents.RewardsCreatorFactory())
 		require.Nil(t, managedRunTypeComponents.SystemSCProcessorFactory())
+		require.Nil(t, managedRunTypeComponents.PreProcessorsContainerFactoryCreator())
 
 		err = managedRunTypeComponents.Create()
 		require.NoError(t, err)
@@ -140,9 +140,9 @@ func TestManagedRunTypeComponents_Create(t *testing.T) {
 		require.NotNil(t, managedRunTypeComponents.ValidatorInfoCreatorFactory())
 		require.NotNil(t, managedRunTypeComponents.ApiProcessorCompsCreatorHandler())
 		require.NotNil(t, managedRunTypeComponents.EndOfEpochEconomicsFactoryHandler())
-		require.NotNil(t, managedRunTypeComponents.RewardsTxPreProcFactory())
 		require.NotNil(t, managedRunTypeComponents.RewardsCreatorFactory())
 		require.NotNil(t, managedRunTypeComponents.SystemSCProcessorFactory())
+		require.NotNil(t, managedRunTypeComponents.PreProcessorsContainerFactoryCreator())
 
 		require.Equal(t, factory.RunTypeComponentsName, managedRunTypeComponents.String())
 		require.NoError(t, managedRunTypeComponents.Close())

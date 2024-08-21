@@ -8,7 +8,6 @@ import (
 type RunTypeComponentsStub struct {
 	SCResultsPreProcessorFactory preprocess.SmartContractResultPreProcessorCreator
 	TxPreProcessorFactory        preprocess.TxPreProcessorCreator
-	RewardsTxPreProcFactoryField preprocess.RewardsTxPreProcFactory
 }
 
 // NewRunTypeComponentsStub -
@@ -17,7 +16,6 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 	return &RunTypeComponentsStub{
 		SCResultsPreProcessorFactory: scrPreProcFactory,
 		TxPreProcessorFactory:        preprocess.NewTxPreProcessorCreator(),
-		RewardsTxPreProcFactoryField: preprocess.NewRewardsTxPreProcFactory(),
 	}
 }
 
@@ -29,11 +27,6 @@ func (r *RunTypeComponentsStub) SCResultsPreProcessorCreator() preprocess.SmartC
 // TxPreProcessorCreator -
 func (r *RunTypeComponentsStub) TxPreProcessorCreator() preprocess.TxPreProcessorCreator {
 	return r.TxPreProcessorFactory
-}
-
-// RewardsTxPreProcFactory -
-func (r *RunTypeComponentsStub) RewardsTxPreProcFactory() preprocess.RewardsTxPreProcFactory {
-	return r.RewardsTxPreProcFactoryField
 }
 
 // IsInterfaceNil -

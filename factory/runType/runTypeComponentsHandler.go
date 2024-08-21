@@ -23,6 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
+	"github.com/multiversx/mx-chain-go/process/factory/shard/data"
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/process/scToProtocol"
@@ -222,11 +223,11 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	if check.IfNil(mrc.rewardsCreatorFactory) {
 		return errors.ErrNilRewardsFactory
 	}
-	if check.IfNil(mrc.rewardsTxPreProcFactory) {
-		return errors.ErrNilRewardsPreProcFactory
-	}
 	if check.IfNil(mrc.systemSCProcessorFactory) {
 		return errors.ErrNilSysSCFactory
+	}
+	if check.IfNil(mrc.preProcessorsContainerFactoryCreator) {
+		return errors.ErrNilPreProcessorsContainerFactoryCreator
 	}
 
 	return nil
@@ -712,18 +713,6 @@ func (mrc *managedRunTypeComponents) EndOfEpochEconomicsFactoryHandler() factory
 	return mrc.runTypeComponents.endOfEpochEconomicsFactoryHandler
 }
 
-// RewardsTxPreProcFactory returns the rewards tx pre-processor factory
-func (mrc *managedRunTypeComponents) RewardsTxPreProcFactory() preprocess.RewardsTxPreProcFactory {
-	mrc.mutRunTypeComponents.RLock()
-	defer mrc.mutRunTypeComponents.RUnlock()
-
-	if check.IfNil(mrc.runTypeComponents) {
-		return nil
-	}
-
-	return mrc.runTypeComponents.rewardsTxPreProcFactory
-}
-
 // RewardsCreatorFactory returns the rewards creator factory
 func (mrc *managedRunTypeComponents) RewardsCreatorFactory() factory.RewardsCreatorFactory {
 	mrc.mutRunTypeComponents.RLock()
@@ -746,6 +735,18 @@ func (mrc *managedRunTypeComponents) SystemSCProcessorFactory() factory.SystemSC
 	}
 
 	return mrc.runTypeComponents.systemSCProcessorFactory
+}
+
+// PreProcessorsContainerFactoryCreator returns the pre-processors container factory creator
+func (mrc *managedRunTypeComponents) PreProcessorsContainerFactoryCreator() data.PreProcessorsContainerFactoryCreator {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.preProcessorsContainerFactoryCreator
 }
 
 // IsInterfaceNil returns true if the interface is nil

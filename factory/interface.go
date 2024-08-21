@@ -44,6 +44,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
+	shardData "github.com/multiversx/mx-chain-go/process/factory/shard/data"
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/process/rating"
@@ -629,9 +630,9 @@ type RunTypeComponentsHolder interface {
 	ValidatorInfoCreatorFactory() ValidatorInfoCreatorFactory
 	ApiProcessorCompsCreatorHandler() api.ApiProcessorCompsCreatorHandler
 	EndOfEpochEconomicsFactoryHandler() EndOfEpochEconomicsFactoryHandler
-	RewardsTxPreProcFactory() preprocess.RewardsTxPreProcFactory
 	RewardsCreatorFactory() RewardsCreatorFactory
 	SystemSCProcessorFactory() SystemSCProcessorFactory
+	PreProcessorsContainerFactoryCreator() shardData.PreProcessorsContainerFactoryCreator
 	Create() error
 	Close() error
 	CheckSubcomponents() error
