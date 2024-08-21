@@ -6,6 +6,11 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	crypto2 "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-crypto-go/signing"
+	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
+	multisig2 "github.com/multiversx/mx-chain-crypto-go/signing/mcl/multisig"
+	"github.com/multiversx/mx-chain-crypto-go/signing/multisig"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -13,8 +18,9 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
+	"github.com/multiversx/mx-chain-go/factory/crypto"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
+	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
@@ -27,6 +33,19 @@ func BenchmarkSubroundSignature_doSignatureJobForManagedKeys400(b *testing.B) {
 	benchmarkSubroundSignaturedoSignatureJobForManagedKeys(b, 400)
 }
 
+func createMultiSignerSetup(grSize uint16, suite crypto2.Suite) (crypto2.KeyGenerator, map[string]crypto2.PrivateKey) {
+	kg := signing.NewKeyGenerator(suite)
+	mapKeys := make(map[string]crypto2.PrivateKey)
+
+	for i := uint16(0); i < grSize; i++ {
+		sk, pk := kg.GeneratePair()
+
+		pubKey, _ := pk.ToByteArray()
+		mapKeys[string(pubKey)] = sk
+	}
+	return kg, mapKeys
+}
+
 func benchmarkSubroundSignaturedoSignatureJobForManagedKeys(b *testing.B, numberOfKeys int) {
 	container := mock.InitConsensusCore()
 	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
@@ -35,20 +54,37 @@ func benchmarkSubroundSignaturedoSignatureJobForManagedKeys(b *testing.B, number
 		},
 	}
 	container.SetEnableEpochsHandler(enableEpochsHandler)
+	llSigner := &multisig2.BlsMultiSignerKOSK{}
 
-	signingHandler := &consensusMocks.SigningHandlerStub{
-		CreateSignatureShareForPublicKeyCalled: func(msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
-			return []byte("SIG"), nil
-		},
-	}
-	container.SetSigningHandler(signingHandler)
-	consensusState := initConsensusStateWithKeysHandlerWithGroupSize(&testscommon.KeysHandlerStub{
+	suite := mcl.NewSuiteBLS12()
+	kg, mapKeys := createMultiSignerSetup(uint16(numberOfKeys), suite)
+
+	multiSigHandler, _ := multisig.NewBLSMultisig(llSigner, kg)
+
+	keysHandlerMock := &testscommon.KeysHandlerStub{
 		IsKeyManagedByCurrentNodeCalled: func(pkBytes []byte) bool {
 			return true
 		},
-	},
-		numberOfKeys,
-	)
+		GetHandledPrivateKeyCalled: func(pkBytes []byte) crypto2.PrivateKey {
+			return mapKeys[string(pkBytes)]
+		},
+	}
+
+	args := crypto.ArgsSigningHandler{
+		PubKeys: createEligibleListFromMap(mapKeys),
+		MultiSignerContainer: &cryptoMocks.MultiSignerContainerStub{
+			GetMultiSignerCalled: func(epoch uint32) (crypto2.MultiSigner, error) {
+				return multiSigHandler, nil
+			}},
+		SingleSigner: &cryptoMocks.SingleSignerStub{},
+		KeyGenerator: kg,
+		KeysHandler:  keysHandlerMock,
+	}
+	signingHandler, err := crypto.NewSigningHandler(args)
+	require.Nil(b, err)
+
+	container.SetSigningHandler(signingHandler)
+	consensusState := initConsensusStateWithArgs(keysHandlerMock, numberOfKeys, mapKeys)
 	ch := make(chan bool, 1)
 
 	sr, _ := spos.NewSubround(
