@@ -1401,7 +1401,10 @@ func (scbp *sovereignChainBlockProcessor) CommitBlock(headerHandler data.HeaderH
 		return err
 	}
 
-	scbp.commitEpochStart(headerHandler, body)
+	err = scbp.commitEpochStart(headerHandler, body)
+	if err != nil {
+		return err
+	}
 
 	headerHash := scbp.hasher.Compute(string(marshalizedHeader))
 	scbp.saveShardHeader(headerHandler, headerHash, marshalizedHeader)
@@ -1476,7 +1479,7 @@ func (scbp *sovereignChainBlockProcessor) CommitBlock(headerHandler data.HeaderH
 	return nil
 }
 
-func (scbp *sovereignChainBlockProcessor) commitEpochStart(header data.HeaderHandler, body *block.Body) {
+func (scbp *sovereignChainBlockProcessor) commitEpochStart(header data.HeaderHandler, body *block.Body) error {
 	if header.IsStartOfEpochBlock() {
 		scbp.epochStartTrigger.SetProcessed(header, body)
 		scbp.createEpochStartData(body)
@@ -1485,6 +1488,7 @@ func (scbp *sovereignChainBlockProcessor) commitEpochStart(header data.HeaderHan
 		sovMetaHdr, castOk := header.(data.MetaHeaderHandler)
 		if !castOk {
 			log.Error("sovereignChainBlockProcessor.commitEpochStart", "error", process.ErrWrongTypeAssertion)
+			return process.ErrWrongTypeAssertion
 		}
 
 		go scbp.epochRewardsCreator.SaveBlockDataToStorage(sovMetaHdr, body)
@@ -1495,6 +1499,8 @@ func (scbp *sovereignChainBlockProcessor) commitEpochStart(header data.HeaderHan
 			scbp.nodesCoordinator.ShuffleOutForEpoch(currentHeader.GetEpoch())
 		}
 	}
+
+	return nil
 }
 
 func (scbp *sovereignChainBlockProcessor) createEpochStartData(body *block.Body) {
