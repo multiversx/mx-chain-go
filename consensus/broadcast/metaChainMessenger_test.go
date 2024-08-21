@@ -309,54 +309,47 @@ func TestMetaChainMessenger_BroadcastBlockDataLeader(t *testing.T) {
 
 func TestMetaChainMessenger_Close(t *testing.T) {
 	args := createDefaultMetaChainArgs()
-	varModified := false
+	closeCalled := false
 	delayedBroadcaster := &mock.DelayedBroadcasterMock{
 		CloseCalled: func() {
-			varModified = true
+			closeCalled = true
 		},
 	}
 	args.DelayedBroadcaster = delayedBroadcaster
 	mcm, _ := broadcast.NewMetaChainMessenger(args)
-	if mcm == nil {
-		return
-	}
+	require.NotNil(t, mcm)
 	mcm.Close()
-	assert.True(t, varModified)
+	assert.True(t, closeCalled)
 }
 
 func TestMetaChainMessenger_PrepareBroadcastHeaderValidator(t *testing.T) {
 	t.Run("Nil header", func(t *testing.T) {
 		args := createDefaultMetaChainArgs()
-		checkVarModified := false
 		delayedBroadcaster := &mock.DelayedBroadcasterMock{
 			SetHeaderForValidatorCalled: func(vData *shared.ValidatorHeaderBroadcastData) error {
-				checkVarModified = true
+				require.Fail(t, "SetHeaderForValidator should not be called")
 				return nil
 			},
 		}
 		args.DelayedBroadcaster = delayedBroadcaster
 		mcm, _ := broadcast.NewMetaChainMessenger(args)
-		if mcm == nil {
-			return
-		}
+		require.NotNil(t, mcm)
 		mcm.PrepareBroadcastHeaderValidator(nil, make(map[uint32][]byte), make(map[string][][]byte), 0, make([]byte, 0))
-		assert.False(t, checkVarModified)
 	})
 	t.Run("Err on core.CalculateHash", func(t *testing.T) {
 		args := createDefaultMetaChainArgs()
-		checkVarModified := false
 		delayedBroadcaster := &mock.DelayedBroadcasterMock{
 			SetHeaderForValidatorCalled: func(vData *shared.ValidatorHeaderBroadcastData) error {
-				checkVarModified = true
+				require.Fail(t, "SetHeaderForValidator should not be called")
 				return nil
 			},
 		}
 		args.DelayedBroadcaster = delayedBroadcaster
 		header := &block.Header{}
 		mcm, _ := broadcast.NewMetaChainMessenger(args)
+		require.NotNil(t, mcm)
 		mcm.SetMarshalizerMeta(nil)
 		mcm.PrepareBroadcastHeaderValidator(header, make(map[uint32][]byte), make(map[string][][]byte), 0, make([]byte, 0))
-		assert.False(t, checkVarModified)
 	})
 	t.Run("Err on SetHeaderForValidator", func(t *testing.T) {
 		args := createDefaultMetaChainArgs()
@@ -369,6 +362,7 @@ func TestMetaChainMessenger_PrepareBroadcastHeaderValidator(t *testing.T) {
 		}
 		args.DelayedBroadcaster = delayedBroadcaster
 		mcm, _ := broadcast.NewMetaChainMessenger(args)
+		require.NotNil(t, mcm)
 		header := &block.Header{}
 		mcm.PrepareBroadcastHeaderValidator(header, make(map[uint32][]byte), make(map[string][][]byte), 0, make([]byte, 0))
 		assert.True(t, checkVarModified)
@@ -379,6 +373,7 @@ func TestMetaChainMessenger_BroadcastBlock(t *testing.T) {
 	t.Run("Err nil blockData", func(t *testing.T) {
 		args := createDefaultMetaChainArgs()
 		mcm, _ := broadcast.NewMetaChainMessenger(args)
+		require.NotNil(t, mcm)
 		err := mcm.BroadcastBlock(nil, nil)
 		assert.NotNil(t, err)
 	})
