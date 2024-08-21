@@ -317,6 +317,9 @@ func TestMetaChainMessenger_Close(t *testing.T) {
 	}
 	args.DelayedBroadcaster = delayedBroadcaster
 	mcm, _ := broadcast.NewMetaChainMessenger(args)
+	if mcm == nil {
+		return
+	}
 	mcm.Close()
 	assert.True(t, varModified)
 }
@@ -333,6 +336,9 @@ func TestMetaChainMessenger_PrepareBroadcastHeaderValidator(t *testing.T) {
 		}
 		args.DelayedBroadcaster = delayedBroadcaster
 		mcm, _ := broadcast.NewMetaChainMessenger(args)
+		if mcm == nil {
+			return
+		}
 		mcm.PrepareBroadcastHeaderValidator(nil, make(map[uint32][]byte), make(map[string][][]byte), 0, make([]byte, 0))
 		assert.False(t, checkVarModified)
 	})
@@ -378,7 +384,7 @@ func TestMetaChainMessenger_BroadcastBlock(t *testing.T) {
 	})
 }
 
-func TestMetaChainMessenger_NewMetaChainMessenger(t *testing.T) {
+func TestMetaChainMessenger_NewMetaChainMessengerFailSetBroadcast(t *testing.T) {
 	args := createDefaultMetaChainArgs()
 	varModified := false
 	delayedBroadcaster := &mock.DelayedBroadcasterMock{

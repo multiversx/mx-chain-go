@@ -4,6 +4,7 @@ import (
 	"time"
 )
 
+// ContextMock -
 type ContextMock struct {
 	DoneFunc     func() <-chan struct{}
 	DeadlineFunc func() (time.Time, bool)
