@@ -17,7 +17,7 @@ export USE_TXGEN=0
 # Enable the Elasticsearch data indexing. Will run a Docker image containing an Elasticsearch cluster, on port 9200.
 # It will also change the external.toml files for observers, so they can index data into it.
 # Docker must be managed as a non-root user: https://docs.docker.com/engine/install/linux-postinstall/
-export USE_ELASTICSEARCH=0
+export USE_ELASTICSEARCH=1
 
 # Elasticsearch volume name to keep the elastic history on host. History will be loaded when docker is starting.
 export ELASTICSEARCH_VOLUME="sov-elastic"
