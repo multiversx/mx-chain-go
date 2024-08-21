@@ -1,6 +1,7 @@
 package resolvers
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -99,6 +100,8 @@ func (hdrRes *HeaderResolver) SetEpochHandler(epochHandler dataRetriever.EpochHa
 	if check.IfNil(epochHandler) {
 		return dataRetriever.ErrNilEpochHandler
 	}
+
+	log.Error("headerRequester.SetEpochHandler", "type", fmt.Sprintf("%T", epochHandler))
 
 	hdrRes.mutEpochHandler.Lock()
 	hdrRes.epochHandler = epochHandler
@@ -231,10 +234,11 @@ func (hdrRes *HeaderResolver) resolveHeaderFromEpoch(key []byte) ([]byte, error)
 		return nil, err
 	}
 	if isUnknownEpoch {
-		hdrRes.mutEpochHandler.RLock()
-		metaEpoch := hdrRes.epochHandler.MetaEpoch()
-		hdrRes.mutEpochHandler.RUnlock()
 
+		hdrRes.mutEpochHandler.RLock()
+		metaEpoch := hdrRes.epochHandler.MetaEpoch() // DISABLED?????
+		hdrRes.mutEpochHandler.RUnlock()
+		log.Error("UNKNOWN EPOCH", "epoch", hdrRes.epochHandler.MetaEpoch())
 		actualKey = []byte(core.EpochStartIdentifier(metaEpoch))
 	}
 

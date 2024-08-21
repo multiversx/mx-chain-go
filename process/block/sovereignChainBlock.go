@@ -861,6 +861,7 @@ func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
 	header data.HeaderHandler,
 	body *block.Body,
 ) error {
+
 	currentRootHash, err := scbp.validatorStatisticsProcessor.RootHash()
 	if err != nil {
 		return err
@@ -937,6 +938,12 @@ func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
 		valMB.ReceiverShardID = core.SovereignChainShardId
 	}
 
+	// DUPLICATED MBS
+	if len(body.MiniBlocks) != 0 {
+		log.Error("DUPLICATEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEED")
+		return nil
+	}
+
 	finalMiniBlocks := make([]*block.MiniBlock, 0)
 	finalMiniBlocks = append(finalMiniBlocks, rewardMiniBlocks...)
 	finalMiniBlocks = append(finalMiniBlocks, validatorMiniBlocks...)
@@ -946,6 +953,7 @@ func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
 }
 
 func (scbp *sovereignChainBlockProcessor) applyBodyToHeaderForEpochChange(header data.HeaderHandler, body *block.Body) error {
+
 	totalTxCount, miniBlockHeaderHandlers, err := scbp.createMiniBlockHeaderHandlers(body.MiniBlocks)
 	if err != nil {
 		return err

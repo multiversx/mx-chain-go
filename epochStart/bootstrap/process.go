@@ -645,18 +645,27 @@ func (e *epochStartBootstrap) syncHeadersFrom(meta data.MetaHeaderHandler) (map[
 	hashesToRequest := make([][]byte, 0, len(meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers())+1)
 	shardIds := make([]uint32, 0, len(meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers())+1)
 
-	for _, epochStartData := range meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
-		hashesToRequest = append(hashesToRequest, epochStartData.GetHeaderHash())
-		shardIds = append(shardIds, epochStartData.GetShardID())
+	//for _, epochStartData := range meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
+	//	hashesToRequest = append(hashesToRequest, epochStartData.GetHeaderHash())
+	//	shardIds = append(shardIds, epochStartData.GetShardID())
+	//}
+
+	hash, err := core.CalculateHash(e.coreComponentsHolder.InternalMarshalizer(), e.coreComponentsHolder.Hasher(), meta)
+	//hashesToRequest = append(hashesToRequest, meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers()[0].GetHeaderHash())
+	if err != nil {
+		return nil, err
 	}
+
+	hashesToRequest = append(hashesToRequest, hash)
+	shardIds = append(shardIds, core.SovereignChainShardId)
 
 	if meta.GetEpoch() > e.startEpoch+1 { // no need to request genesis block
 		hashesToRequest = append(hashesToRequest, meta.GetEpochStartHandler().GetEconomicsHandler().GetPrevEpochStartHash())
-		shardIds = append(shardIds, core.MetachainShardId)
+		shardIds = append(shardIds, core.SovereignChainShardId)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeToWaitForRequestedData)
-	err := e.headersSyncer.SyncMissingHeadersByHash(shardIds, hashesToRequest, ctx)
+	err = e.headersSyncer.SyncMissingHeadersByHash(shardIds, hashesToRequest, ctx)
 	cancel()
 	if err != nil {
 		return nil, err
@@ -668,7 +677,7 @@ func (e *epochStartBootstrap) syncHeadersFrom(meta data.MetaHeaderHandler) (map[
 	}
 
 	if meta.GetEpoch() == e.startEpoch+1 {
-		syncedHeaders[string(meta.GetEpochStartHandler().GetEconomicsHandler().GetPrevEpochStartHash())] = &block.MetaBlock{}
+		syncedHeaders[string(meta.GetEpochStartHandler().GetEconomicsHandler().GetPrevEpochStartHash())] = &block.SovereignChainHeader{}
 	}
 
 	return syncedHeaders, nil
@@ -687,7 +696,7 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 	log.Debug("start in epoch bootstrap: got shard headers and previous epoch start meta block")
 
 	prevEpochStartMetaHash := e.epochStartMeta.GetEpochStartHandler().GetEconomicsHandler().GetPrevEpochStartHash()
-	prevEpochStartMeta, ok := e.syncedHeaders[string(prevEpochStartMetaHash)].(*block.MetaBlock)
+	prevEpochStartMeta, ok := e.syncedHeaders[string(prevEpochStartMetaHash)].(data.MetaHeaderHandler)
 	if !ok {
 		return Parameters{}, epochStart.ErrWrongTypeAssertion
 	}

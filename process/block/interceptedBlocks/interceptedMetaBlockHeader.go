@@ -129,9 +129,9 @@ func (imh *InterceptedMetaHeader) isMetaHeaderEpochOutOfRange() bool {
 		return false
 	}
 
-	if imh.hdr.GetEpoch() > imh.epochStartTrigger.Epoch()+1 {
-		return true
-	}
+	//if imh.hdr.GetEpoch() > imh.epochStartTrigger.Epoch()+1 {
+	//	return true
+	//}
 
 	return false
 }
