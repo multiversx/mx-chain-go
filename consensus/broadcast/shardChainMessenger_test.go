@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -191,7 +192,12 @@ func TestShardChainMessenger_NewShardChainMessengerShouldErr(t *testing.T) {
 
 	args := createDefaultShardChainArgs()
 	args.DelayedBroadcaster = &mock.DelayedBroadcasterMock{
-		SetBroadcastHandlersCalled: func(mbBroadcast func(mbData map[uint32][]byte, pkBytes []byte) error, txBroadcast func(txData map[string][][]byte, pkBytes []byte) error, headerBroadcast func(header data.HeaderHandler, pkBytes []byte) error) error {
+		SetBroadcastHandlersCalled: func(
+			mbBroadcast func(mbData map[uint32][]byte, pkBytes []byte) error,
+			txBroadcast func(txData map[string][][]byte, pkBytes []byte) error,
+			headerBroadcast func(header data.HeaderHandler, pkBytes []byte) error,
+			consensusMessageBroadcast func(message *consensus.Message) error,
+		) error {
 			return expectedErr
 		}}
 

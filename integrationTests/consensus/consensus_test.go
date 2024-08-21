@@ -52,6 +52,7 @@ func initNodesAndTest(
 	roundTime uint64,
 	consensusType string,
 	numKeysOnEachNode int,
+	enableEpochsConfig config.EnableEpochs,
 ) map[uint32][]*integrationTests.TestConsensusNode {
 
 	fmt.Println("Step 1. Setup nodes...")
@@ -63,6 +64,7 @@ func initNodesAndTest(
 		roundTime,
 		consensusType,
 		numKeysOnEachNode,
+		enableEpochsConfig,
 	)
 
 	for shardID, nodesList := range nodes {
@@ -215,7 +217,7 @@ func checkBlockProposedEveryRound(numCommBlock uint64, nonceForRoundMap map[uint
 	}
 }
 
-func runFullConsensusTest(t *testing.T, consensusType string, numKeysOnEachNode int) {
+func runFullConsensusTest(t *testing.T, consensusType string, numKeysOnEachNode int, equivalentMessagesEnableEpoch uint32) {
 	numMetaNodes := uint32(4)
 	numNodes := uint32(4)
 	consensusSize := uint32(4 * numKeysOnEachNode)
@@ -229,7 +231,30 @@ func runFullConsensusTest(t *testing.T, consensusType string, numKeysOnEachNode 
 		"consensusSize", consensusSize,
 	)
 
-	nodes := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType, numKeysOnEachNode)
+	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
+	enableEpochsConfig.EquivalentMessagesEnableEpoch = equivalentMessagesEnableEpoch
+	nodes := initNodesAndTest(
+		numMetaNodes,
+		numNodes,
+		consensusSize,
+		numInvalid,
+		roundTime,
+		consensusType,
+		numKeysOnEachNode,
+		enableEpochsConfig,
+	)
+
+	if equivalentMessagesEnableEpoch != integrationTests.UnreachableEpoch {
+		for shardID := range nodes {
+			for _, n := range nodes[shardID] {
+				// this is just for the test only, as equivalent messages are enabled from epoch 0
+				n.ChainHandler.SetCurrentHeaderProof(data.HeaderProof{
+					AggregatedSignature: []byte("initial sig"),
+					PubKeysBitmap:       []byte("initial bitmap"),
+				})
+			}
+		}
+	}
 
 	defer func() {
 		for shardID := range nodes {
@@ -275,7 +300,12 @@ func TestConsensusBLSFullTestSingleKeys(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	runFullConsensusTest(t, blsConsensusType, 1)
+	t.Run("before equivalent messages", func(t *testing.T) {
+		runFullConsensusTest(t, blsConsensusType, 1, integrationTests.UnreachableEpoch)
+	})
+	t.Run("after equivalent messages", func(t *testing.T) {
+		runFullConsensusTest(t, blsConsensusType, 1, 0)
+	})
 }
 
 func TestConsensusBLSFullTestMultiKeys(t *testing.T) {
@@ -283,16 +313,23 @@ func TestConsensusBLSFullTestMultiKeys(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	runFullConsensusTest(t, blsConsensusType, 5)
+	t.Run("before equivalent messages", func(t *testing.T) {
+		runFullConsensusTest(t, blsConsensusType, 5, integrationTests.UnreachableEpoch)
+	})
+	t.Run("after equivalent messages", func(t *testing.T) {
+		runFullConsensusTest(t, blsConsensusType, 5, 0)
+	})
 }
 
-func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
+func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string, equivalentMessagesEnableEpoch uint32) {
 	numMetaNodes := uint32(4)
 	numNodes := uint32(4)
 	consensusSize := uint32(4)
 	numInvalid := uint32(2)
 	roundTime := uint64(1000)
-	nodes := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType, 1)
+	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
+	enableEpochsConfig.EquivalentMessagesEnableEpoch = equivalentMessagesEnableEpoch
+	nodes := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType, 1, enableEpochsConfig)
 
 	defer func() {
 		for shardID := range nodes {
@@ -330,7 +367,12 @@ func TestConsensusBLSNotEnoughValidators(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	runConsensusWithNotEnoughValidators(t, blsConsensusType)
+	t.Run("before equivalent messages", func(t *testing.T) {
+		runConsensusWithNotEnoughValidators(t, blsConsensusType, integrationTests.UnreachableEpoch)
+	})
+	t.Run("after equivalent messages", func(t *testing.T) {
+		runConsensusWithNotEnoughValidators(t, blsConsensusType, 0)
+	})
 }
 
 func displayAndStartNodes(shardID uint32, nodes []*integrationTests.TestConsensusNode) {
