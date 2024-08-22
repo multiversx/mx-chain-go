@@ -186,6 +186,14 @@ func (cm *commonMessenger) BroadcastBlockData(
 	}
 }
 
+// PrepareBroadcastFinalConsensusMessage prepares the validator final info data broadcast for when its turn comes
+func (cm *commonMessenger) PrepareBroadcastFinalConsensusMessage(message *consensus.Message, consensusIndex int) {
+	err := cm.delayedBlockBroadcaster.SetFinalConsensusMessageForValidator(message, consensusIndex)
+	if err != nil {
+		log.Error("commonMessenger.PrepareBroadcastFinalConsensusMessage", "error", err)
+	}
+}
+
 func (cm *commonMessenger) extractMetaMiniBlocksAndTransactions(
 	miniBlocks map[uint32][]byte,
 	transactions map[string][][]byte,

@@ -48,7 +48,7 @@ func NewMetaChainMessenger(
 		commonMessenger: cm,
 	}
 
-	err = mcm.delayedBlockBroadcaster.SetBroadcastHandlers(mcm.BroadcastMiniBlocks, mcm.BroadcastTransactions, mcm.BroadcastHeader)
+	err = mcm.delayedBlockBroadcaster.SetBroadcastHandlers(mcm.BroadcastMiniBlocks, mcm.BroadcastTransactions, mcm.BroadcastHeader, mcm.BroadcastConsensusMessage)
 	if err != nil {
 		return nil, err
 	}
