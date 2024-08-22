@@ -19,7 +19,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
-	"github.com/multiversx/mx-chain-go/process/factory/shard"
 	"github.com/multiversx/mx-chain-go/process/factory/shard/data"
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/peer"
@@ -134,7 +133,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		APIProcessorCompsCreatorHandlerField:      &testFactory.APIProcessorCompsCreatorMock{},
 		EndOfEpochEconomicsFactoryHandlerField:    &testFactory.EconomicsFactoryMock{},
 		SystemSCProcessorFactoryField:             &testFactory.SysSCFactoryMock{},
-		PreProcessorsContainerFactoryCreatorField: shard.NewPreProcessorContainerFactoryCreator(), // todo here
+		PreProcessorsContainerFactoryCreatorField: &testFactory.PreProcessorContainerFactoryCreatorMock{},
 	}
 }
 

@@ -357,7 +357,6 @@ func (t *trigger) RevertStateToBlock(header data.HeaderHandler) error {
 	return nil
 }
 
-// TODO: TODO MX-15589 take care of this when economics is added to sovereign block
 func (t *trigger) revert(header data.HeaderHandler) error {
 	if check.IfNil(header) || !header.IsStartOfEpochBlock() || header.GetEpoch() == 0 {
 		return nil
@@ -386,7 +385,12 @@ func (t *trigger) revert(header data.HeaderHandler) error {
 		return err
 	}
 
-	epochStartIdentifier := core.EpochStartIdentifier(metaHdr.Epoch)
+	t.baseRevert(epochStartMeta, metaHdr)
+	return nil
+}
+
+func (t *trigger) baseRevert(epochStartMeta data.MetaHeaderHandler, metaHdr data.MetaHeaderHandler) {
+	epochStartIdentifier := core.EpochStartIdentifier(metaHdr.GetEpoch())
 	errNotCritical := t.triggerStorage.Remove([]byte(epochStartIdentifier))
 	if errNotCritical != nil {
 		log.Debug("Revert remove from triggerStorage", "error", errNotCritical.Error())
@@ -397,8 +401,8 @@ func (t *trigger) revert(header data.HeaderHandler) error {
 		log.Debug("Revert remove from triggerStorage", "error", errNotCritical.Error())
 	}
 
-	t.currEpochStartRound = metaHdr.EpochStart.Economics.PrevEpochStartRound
-	t.epoch = metaHdr.Epoch - 1
+	t.currEpochStartRound = metaHdr.GetEpochStartHandler().GetEconomicsHandler().GetPrevEpochStartRound()
+	t.epoch = metaHdr.GetEpoch() - 1
 	t.isEpochStart = false
 	t.epochStartMeta = epochStartMeta
 
@@ -406,8 +410,6 @@ func (t *trigger) revert(header data.HeaderHandler) error {
 		"isEpochStart", t.isEpochStart,
 		"epoch", t.epoch,
 		"epochStartRound", t.currEpochStartRound)
-
-	return nil
 }
 
 // Epoch return the current epoch

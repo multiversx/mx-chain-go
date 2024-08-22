@@ -28,7 +28,7 @@ type economics struct {
 	marshalizer           marshal.Marshalizer
 	hasher                hashing.Hasher
 	store                 dataRetriever.StorageService
-	shardCoordinator      ShardCoordinatorHandler
+	shardCoordinator      ExtendedShardCoordinatorHandler
 	rewardsHandler        process.RewardsHandler
 	roundTime             process.RoundTimeDurationHandler
 	genesisEpoch          uint32
@@ -44,7 +44,7 @@ type ArgsNewEpochEconomics struct {
 	Marshalizer           marshal.Marshalizer
 	Hasher                hashing.Hasher
 	Store                 dataRetriever.StorageService
-	ShardCoordinator      ShardCoordinatorHandler
+	ShardCoordinator      ExtendedShardCoordinatorHandler
 	RewardsHandler        process.RewardsHandler
 	RoundTime             process.RoundTimeDurationHandler
 	GenesisEpoch          uint32

@@ -2370,7 +2370,7 @@ func (tpn *TestProcessorNode) createMetaBlockProcessorArgs(argumentsBase block.A
 		Marshalizer:           TestMarshalizer,
 		Hasher:                TestHasher,
 		Store:                 tpn.Storage,
-		ShardCoordinator:      tpn.ShardCoordinator.(metachain.ShardCoordinatorHandler),
+		ShardCoordinator:      tpn.ShardCoordinator.(metachain.ExtendedShardCoordinatorHandler),
 		RewardsHandler:        tpn.EconomicsData,
 		RoundTime:             tpn.RoundHandler,
 		GenesisTotalSupply:    tpn.EconomicsData.GenesisTotalSupply(),
@@ -2446,7 +2446,7 @@ func (tpn *TestProcessorNode) createMetaBlockProcessorArgs(argumentsBase block.A
 		AuctionConfig:            auctionCfg,
 	})
 
-	extendedShardCoordinator, castOk := tpn.ShardCoordinator.(metachain.ShardCoordinatorHandler)
+	extendedShardCoordinator, castOk := tpn.ShardCoordinator.(metachain.ExtendedShardCoordinatorHandler)
 	if !castOk {
 		log.Error(fmt.Errorf("%w when trying to cast shard coordinator to extended shard coordinator", process.ErrWrongTypeAssertion).Error())
 	}

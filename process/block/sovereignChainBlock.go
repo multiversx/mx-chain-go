@@ -145,6 +145,7 @@ func NewSovereignChainBlockProcessor(args ArgsSovereignChainBlockProcessor) (*so
 	scbp.cleanupPoolsForCrossShardFunc = scbp.cleanupPoolsForCrossShard
 	scbp.cleanupBlockTrackerPoolsForShardFunc = scbp.cleanupBlockTrackerPoolsForShard
 	scbp.getExtraMissingNoncesToRequestFunc = scbp.getExtraMissingNoncesToRequest
+	scbp.blockProcessor = scbp
 
 	scbp.crossNotarizer = &sovereignShardCrossNotarizer{
 		baseBlockNotarizer: &baseBlockNotarizer{
@@ -1400,8 +1401,10 @@ func (scbp *sovereignChainBlockProcessor) CommitBlock(headerHandler data.HeaderH
 		return err
 	}
 
-	// TODO: MX-15588
-	scbp.commitEpochStart(headerHandler, body)
+	err = scbp.commitEpochStart(headerHandler, body)
+	if err != nil {
+		return err
+	}
 
 	headerHash := scbp.hasher.Compute(string(marshalizedHeader))
 	scbp.saveShardHeader(headerHandler, headerHash, marshalizedHeader)
@@ -1476,14 +1479,19 @@ func (scbp *sovereignChainBlockProcessor) CommitBlock(headerHandler data.HeaderH
 	return nil
 }
 
-func (scbp *sovereignChainBlockProcessor) commitEpochStart(header data.HeaderHandler, body *block.Body) {
+func (scbp *sovereignChainBlockProcessor) commitEpochStart(header data.HeaderHandler, body *block.Body) error {
 	if header.IsStartOfEpochBlock() {
 		scbp.epochStartTrigger.SetProcessed(header, body)
 		scbp.createEpochStartData(body)
 		go scbp.validatorInfoCreator.SaveBlockDataToStorage(header, body)
-		// TODO: MX-15588 FIX THIS (mp *metaProcessor) commitEpochStart
-		//go scbp.epochRewardsCreator.SaveBlockDataToStorage(header, body)
-		// ************
+
+		sovMetaHdr, castOk := header.(data.MetaHeaderHandler)
+		if !castOk {
+			log.Error("sovereignChainBlockProcessor.commitEpochStart", "error", process.ErrWrongTypeAssertion)
+			return process.ErrWrongTypeAssertion
+		}
+
+		go scbp.epochRewardsCreator.SaveBlockDataToStorage(sovMetaHdr, body)
 	} else {
 		currentHeader := scbp.blockChain.GetCurrentBlockHeader()
 		if !check.IfNil(currentHeader) && currentHeader.IsStartOfEpochBlock() {
@@ -1491,6 +1499,8 @@ func (scbp *sovereignChainBlockProcessor) commitEpochStart(header data.HeaderHan
 			scbp.nodesCoordinator.ShuffleOutForEpoch(currentHeader.GetEpoch())
 		}
 	}
+
+	return nil
 }
 
 func (scbp *sovereignChainBlockProcessor) createEpochStartData(body *block.Body) {
@@ -1782,6 +1792,15 @@ func (scbp *sovereignChainBlockProcessor) RevertStateToBlock(header data.HeaderH
 		return err
 	}
 
+	err = scbp.epochStartTrigger.RevertStateToBlock(header)
+	if err != nil {
+		log.Debug("revert epoch start trigger for header",
+			"nonce", header.GetNonce(),
+			"error", err,
+		)
+		return err
+	}
+
 	err = scbp.validatorStatisticsProcessor.RevertPeerState(header)
 	if err != nil {
 		log.Debug("revert peer state with error for header",
@@ -1928,6 +1947,30 @@ func (scbp *sovereignChainBlockProcessor) cleanupBlockTrackerPoolsForShard(_ uin
 
 func (scbp *sovereignChainBlockProcessor) cleanupPoolsForCrossShard(_ uint32, noncesToPrevFinal uint64) {
 	scbp.baseCleanupPoolsForCrossShard(core.MainChainShardId, noncesToPrevFinal)
+}
+
+func (scbp *sovereignChainBlockProcessor) removeStartOfEpochBlockDataFromPools(
+	headerHandler data.HeaderHandler,
+	bodyHandler data.BodyHandler,
+) error {
+	if !headerHandler.IsStartOfEpochBlock() {
+		return nil
+	}
+
+	sovMetaBlock, ok := headerHandler.(data.MetaHeaderHandler)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	body, ok := bodyHandler.(*block.Body)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	scbp.epochRewardsCreator.RemoveBlockDataFromPools(sovMetaBlock, body)
+	scbp.validatorInfoCreator.RemoveBlockDataFromPools(sovMetaBlock, body)
+
+	return nil
 }
 
 // IsInterfaceNil returns true if underlying object is nil
