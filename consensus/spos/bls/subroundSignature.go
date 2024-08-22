@@ -391,20 +391,18 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 	wg := sync.WaitGroup{}
 
 	for idx, pk := range sr.ConsensusGroup() {
-		wg.Add(1)
 		pkBytes := []byte(pk)
 		if !sr.IsKeyManagedByCurrentNode(pkBytes) {
-			wg.Done()
 			continue
 		}
 
 		if sr.IsJobDone(pk, sr.Current()) {
-			wg.Done()
 			continue
 		}
 
-		go func(idx int, pk string) {
+		wg.Add(1)
 
+		go func(idx int, pk string) {
 			signatureSent := sr.sendSignatureForManagedKey(idx, pk)
 			if signatureSent {
 				atomic.AddInt32(&numMultiKeysSignaturesSent, 1)
@@ -412,9 +410,9 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 				sentSigForAllKeys.SetValue(false)
 			}
 			wg.Done()
-
 		}(idx, pk)
 	}
+
 	wg.Wait()
 
 	if numMultiKeysSignaturesSent > 0 {
@@ -458,9 +456,8 @@ func (sr *subroundSignature) sendSignatureForManagedKey(idx int, pk string) bool
 	sr.sentSignatureTracker.SignatureSent(pkBytes)
 
 	shouldWaitForAllSigsAsync := isCurrentManagedKeyLeader && !isFlagActive
-	ok := sr.completeSignatureSubRound(pk, shouldWaitForAllSigsAsync)
 
-	return ok
+	return sr.completeSignatureSubRound(pk, shouldWaitForAllSigsAsync)
 }
 
 func (sr *subroundSignature) doSignatureJobForSingleKey(isSelfLeader bool, isFlagActive bool) bool {
