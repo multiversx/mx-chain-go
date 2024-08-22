@@ -415,6 +415,11 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
+	err = pcf.prepareGenesisBlock(genesisBlocks)
+	if err != nil {
+		return nil, err
+	}
+
 	log.Debug("Validator stats created", "validatorStatsRootHash", validatorStatsRootHash)
 
 	err = pcf.prepareGenesisBlock(genesisBlocks)
