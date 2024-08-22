@@ -410,6 +410,10 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		resolversContainer,
 		requestersContainer,
 	)
+	if err != nil {
+		return nil, err
+	}
+
 	err = pcf.prepareGenesisBlock(genesisBlocks)
 	if err != nil {
 		return nil, err
