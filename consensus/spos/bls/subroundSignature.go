@@ -386,11 +386,9 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 
 	numMultiKeysSignaturesSent := int32(0)
 	sentSigForAllKeys := atomicCore.Flag{}
+	sentSigForAllKeys.SetValue(true)
 
 	wg := sync.WaitGroup{}
-	//wg.Add(len(sr.ConsensusGroup()))
-
-	sentSigForAllKeys.SetValue(true)
 
 	for idx, pk := range sr.ConsensusGroup() {
 		wg.Add(1)
@@ -461,11 +459,8 @@ func (sr *subroundSignature) sendSignatureForManagedKey(idx int, pk string) bool
 
 	shouldWaitForAllSigsAsync := isCurrentManagedKeyLeader && !isFlagActive
 	ok := sr.completeSignatureSubRound(pk, shouldWaitForAllSigsAsync)
-	if !ok {
-		return false
-	}
 
-	return true
+	return ok
 }
 
 func (sr *subroundSignature) doSignatureJobForSingleKey(isSelfLeader bool, isFlagActive bool) bool {
