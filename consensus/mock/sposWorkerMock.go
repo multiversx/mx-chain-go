@@ -27,7 +27,7 @@ type SposWorkerMock struct {
 	DisplayStatisticsCalled                func()
 	ReceivedHeaderCalled                   func(headerHandler data.HeaderHandler, headerHash []byte)
 	SetAppStatusHandlerCalled              func(ash core.AppStatusHandler) error
-	ResetConsensusMessagesCalled           func()
+	ResetConsensusMessagesCalled           func(currentHash []byte, prevHash []byte)
 	HasEquivalentMessageCalled             func(headerHash []byte) bool
 	GetEquivalentProofCalled               func(headerHash []byte) (data.HeaderProof, error)
 	SetValidEquivalentProofCalled          func(headerHash []byte, proof data.HeaderProof)
@@ -78,7 +78,9 @@ func (sposWorkerMock *SposWorkerMock) BroadcastBlock(body data.BodyHandler, head
 
 // ExecuteStoredMessages -
 func (sposWorkerMock *SposWorkerMock) ExecuteStoredMessages() {
-	sposWorkerMock.ExecuteStoredMessagesCalled()
+	if sposWorkerMock.ExecuteStoredMessagesCalled != nil {
+		sposWorkerMock.ExecuteStoredMessagesCalled()
+	}
 }
 
 // DisplayStatistics -
@@ -105,9 +107,9 @@ func (sposWorkerMock *SposWorkerMock) StartWorking() {
 }
 
 // ResetConsensusMessages -
-func (sposWorkerMock *SposWorkerMock) ResetConsensusMessages() {
+func (sposWorkerMock *SposWorkerMock) ResetConsensusMessages(currentHash []byte, prevHash []byte) {
 	if sposWorkerMock.ResetConsensusMessagesCalled != nil {
-		sposWorkerMock.ResetConsensusMessagesCalled()
+		sposWorkerMock.ResetConsensusMessagesCalled(currentHash, prevHash)
 	}
 }
 
