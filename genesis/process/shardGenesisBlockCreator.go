@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
+	shardData "github.com/multiversx/mx-chain-go/process/factory/shard/data"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 
@@ -604,7 +605,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 	disabledScheduledTxsExecutionHandler := &disabled.ScheduledTxsExecutionHandler{}
 	disabledProcessedMiniBlocksTracker := &disabled.ProcessedMiniBlocksTracker{}
 
-	argsPreProc := shard.ArgPreProcessorsContainerFactory{
+	argsPreProc := shardData.ArgPreProcessorsContainerFactory{
 		ShardCoordinator:             arg.ShardCoordinator,
 		Store:                        arg.Data.StorageService(),
 		Marshaller:                   arg.Core.InternalMarshalizer(),
@@ -629,7 +630,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		TxExecutionOrderHandler:      arg.TxExecutionOrderHandler,
 		RunTypeComponents:            arg.RunTypeComponents,
 	}
-	preProcFactory, err := shard.NewPreProcessorsContainerFactory(argsPreProc)
+	preProcFactory, err := arg.RunTypeComponents.PreProcessorsContainerFactoryCreator().CreatePreProcessorContainerFactory(argsPreProc)
 	if err != nil {
 		return nil, err
 	}

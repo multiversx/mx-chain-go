@@ -22,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	shardData "github.com/multiversx/mx-chain-go/process/factory/shard/data"
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
@@ -436,7 +437,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		RootHashCalled:         rootHashCalled,
 	}
 
-	args := shard.ArgPreProcessorsContainerFactory{
+	args := shardData.ArgPreProcessorsContainerFactory{
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(5),
 		Store:            initStore(),
 		Marshaller:       marshalizer,
@@ -665,7 +666,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		RootHashCalled:         rootHashCalled,
 	}
 
-	args := shard.ArgPreProcessorsContainerFactory{
+	args := shardData.ArgPreProcessorsContainerFactory{
 		ShardCoordinator:   mock.NewMultiShardsCoordinatorMock(3),
 		Store:              store,
 		Marshaller:         marshalizer,
@@ -2580,7 +2581,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		Fail: false,
 	}
 
-	args := shard.ArgPreProcessorsContainerFactory{
+	args := shardData.ArgPreProcessorsContainerFactory{
 		ShardCoordinator:             mock.NewMultiShardsCoordinatorMock(3),
 		Store:                        initStore(),
 		Marshaller:                   marshalizer,
@@ -2691,7 +2692,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		},
 	}
 
-	args := shard.ArgPreProcessorsContainerFactory{
+	args := shardData.ArgPreProcessorsContainerFactory{
 		ShardCoordinator:             mock.NewMultiShardsCoordinatorMock(3),
 		Store:                        initStore(),
 		Marshaller:                   &mock.MarshalizerMock{},
@@ -3068,7 +3069,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 
 	totalGasProvided := uint64(0)
 
-	args := shard.ArgPreProcessorsContainerFactory{
+	args := shardData.ArgPreProcessorsContainerFactory{
 		ShardCoordinator:   shardCoordinator,
 		Store:              initStore(),
 		Marshaller:         marshalizer,
@@ -3273,7 +3274,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		},
 	}
 
-	args := shard.ArgPreProcessorsContainerFactory{
+	args := shardData.ArgPreProcessorsContainerFactory{
 		ShardCoordinator:             mock.NewMultiShardsCoordinatorMock(3),
 		Store:                        store,
 		Marshaller:                   marshalizerMock,

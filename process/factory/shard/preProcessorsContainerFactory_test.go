@@ -8,6 +8,7 @@ import (
 	customErrors "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
+	"github.com/multiversx/mx-chain-go/process/factory/shard/data"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	mockCommon "github.com/multiversx/mx-chain-go/testscommon/common"
@@ -26,8 +27,8 @@ func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
 	return testscommon.NewPubkeyConverterMock(32)
 }
 
-func createMockPreProcessorsContainerFactoryArguments() ArgPreProcessorsContainerFactory {
-	return ArgPreProcessorsContainerFactory{
+func createMockPreProcessorsContainerFactoryArguments() data.ArgPreProcessorsContainerFactory {
+	return data.ArgPreProcessorsContainerFactory{
 		ShardCoordinator:             mock.NewMultiShardsCoordinatorMock(3),
 		Store:                        &storageStubs.ChainStorerStub{},
 		Marshaller:                   &mock.MarshalizerMock{},
@@ -308,19 +309,6 @@ func TestNewPreProcessorsContainerFactory_NilTxPreProcessorCreator(t *testing.T)
 	ppcf, err := NewPreProcessorsContainerFactory(args)
 
 	require.Equal(t, customErrors.ErrNilTxPreProcessorCreator, err)
-	require.Nil(t, ppcf)
-}
-
-func TestNewPreProcessorsContainerFactory_RewardsTxPreProcFactory(t *testing.T) {
-	t.Parallel()
-
-	args := createMockPreProcessorsContainerFactoryArguments()
-	runTypeComps := processMocks.NewRunTypeComponentsStub()
-	runTypeComps.RewardsTxPreProcFactoryField = nil
-	args.RunTypeComponents = runTypeComps
-	ppcf, err := NewPreProcessorsContainerFactory(args)
-
-	require.Equal(t, customErrors.ErrNilRewardsPreProcFactory, err)
 	require.Nil(t, ppcf)
 }
 

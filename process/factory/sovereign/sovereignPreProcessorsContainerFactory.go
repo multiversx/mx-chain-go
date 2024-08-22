@@ -1,25 +1,24 @@
-package shard
+package sovereign
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/factory/containers"
+	"github.com/multiversx/mx-chain-go/process/factory/shard"
 	"github.com/multiversx/mx-chain-go/process/factory/shard/data"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 )
 
-var _ process.PreProcessorsContainerFactory = (*preProcessorsContainerFactory)(nil)
+var _ process.PreProcessorsContainerFactory = (*sovereignPreProcessorsContainerFactory)(nil)
 
-type preProcessorsContainerFactory struct {
+type sovereignPreProcessorsContainerFactory struct {
 	shardCoordinator             sharding.Coordinator
 	store                        dataRetriever.StorageService
 	marshaller                   marshal.Marshalizer
@@ -45,14 +44,14 @@ type preProcessorsContainerFactory struct {
 	runTypeComponents            data.RunTypeComponents
 }
 
-// NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
-func NewPreProcessorsContainerFactory(args data.ArgPreProcessorsContainerFactory) (*preProcessorsContainerFactory, error) {
-	err := CheckPreProcessorContainerFactoryNilParameters(args)
+// NewSovereignPreProcessorsContainerFactory is responsible for creating a new sovereign pre-processors factory object
+func NewSovereignPreProcessorsContainerFactory(args data.ArgPreProcessorsContainerFactory) (*sovereignPreProcessorsContainerFactory, error) {
+	err := shard.CheckPreProcessorContainerFactoryNilParameters(args)
 	if err != nil {
 		return nil, err
 	}
 
-	return &preProcessorsContainerFactory{
+	return &sovereignPreProcessorsContainerFactory{
 		shardCoordinator:             args.ShardCoordinator,
 		store:                        args.Store,
 		marshaller:                   args.Marshaller,
@@ -80,7 +79,7 @@ func NewPreProcessorsContainerFactory(args data.ArgPreProcessorsContainerFactory
 }
 
 // Create returns a preprocessor container that will hold all preprocessors in the system
-func (ppcf *preProcessorsContainerFactory) Create() (process.PreProcessorsContainer, error) {
+func (ppcf *sovereignPreProcessorsContainerFactory) Create() (process.PreProcessorsContainer, error) {
 	container := containers.NewPreProcessorsContainer()
 
 	preproc, err := ppcf.createTxPreProcessor()
@@ -103,16 +102,6 @@ func (ppcf *preProcessorsContainerFactory) Create() (process.PreProcessorsContai
 		return nil, err
 	}
 
-	preproc, err = ppcf.createRewardsTransactionPreProcessor()
-	if err != nil {
-		return nil, err
-	}
-
-	err = container.Add(block.RewardsBlock, preproc)
-	if err != nil {
-		return nil, err
-	}
-
 	preproc, err = ppcf.createValidatorInfoPreProcessor()
 	if err != nil {
 		return nil, err
@@ -126,7 +115,7 @@ func (ppcf *preProcessorsContainerFactory) Create() (process.PreProcessorsContai
 	return container, nil
 }
 
-func (ppcf *preProcessorsContainerFactory) createTxPreProcessor() (process.PreProcessor, error) {
+func (ppcf *sovereignPreProcessorsContainerFactory) createTxPreProcessor() (process.PreProcessor, error) {
 	args := preprocess.ArgsTransactionPreProcessor{
 		TxDataPool:                   ppcf.dataPool.Transactions(),
 		Store:                        ppcf.store,
@@ -153,7 +142,7 @@ func (ppcf *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 	return ppcf.runTypeComponents.TxPreProcessorCreator().CreateTxPreProcessor(args)
 }
 
-func (ppcf *preProcessorsContainerFactory) createSmartContractResultPreProcessor() (process.PreProcessor, error) {
+func (ppcf *sovereignPreProcessorsContainerFactory) createSmartContractResultPreProcessor() (process.PreProcessor, error) {
 	arg := preprocess.SmartContractResultPreProcessorCreatorArgs{
 		ScrDataPool:                  ppcf.dataPool.UnsignedTransactions(),
 		Store:                        ppcf.store,
@@ -176,28 +165,7 @@ func (ppcf *preProcessorsContainerFactory) createSmartContractResultPreProcessor
 	return ppcf.runTypeComponents.SCResultsPreProcessorCreator().CreateSmartContractResultPreProcessor(arg)
 }
 
-func (ppcf *preProcessorsContainerFactory) createRewardsTransactionPreProcessor() (process.PreProcessor, error) {
-	rewardTxPreprocessor, err := preprocess.NewRewardTxPreprocessor(
-		ppcf.dataPool.RewardTransactions(),
-		ppcf.store,
-		ppcf.hasher,
-		ppcf.marshaller,
-		ppcf.rewardsTxProcessor,
-		ppcf.shardCoordinator,
-		ppcf.accounts,
-		ppcf.requestHandler.RequestRewardTransactions,
-		ppcf.gasHandler,
-		ppcf.pubkeyConverter,
-		ppcf.blockSizeComputation,
-		ppcf.balanceComputation,
-		ppcf.processedMiniBlocksTracker,
-		ppcf.txExecutionOrderHandler,
-	)
-
-	return rewardTxPreprocessor, err
-}
-
-func (ppcf *preProcessorsContainerFactory) createValidatorInfoPreProcessor() (process.PreProcessor, error) {
+func (ppcf *sovereignPreProcessorsContainerFactory) createValidatorInfoPreProcessor() (process.PreProcessor, error) {
 	validatorInfoPreprocessor, err := preprocess.NewValidatorInfoPreprocessor(
 		ppcf.hasher,
 		ppcf.marshaller,
@@ -211,86 +179,6 @@ func (ppcf *preProcessorsContainerFactory) createValidatorInfoPreProcessor() (pr
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
-func (ppcf *preProcessorsContainerFactory) IsInterfaceNil() bool {
+func (ppcf *sovereignPreProcessorsContainerFactory) IsInterfaceNil() bool {
 	return ppcf == nil
-}
-
-func CheckPreProcessorContainerFactoryNilParameters(args data.ArgPreProcessorsContainerFactory) error {
-	if check.IfNil(args.ShardCoordinator) {
-		return process.ErrNilShardCoordinator
-	}
-	if check.IfNil(args.Store) {
-		return process.ErrNilStore
-	}
-	if check.IfNil(args.Marshaller) {
-		return process.ErrNilMarshalizer
-	}
-	if check.IfNil(args.Hasher) {
-		return process.ErrNilHasher
-	}
-	if check.IfNil(args.DataPool) {
-		return process.ErrNilDataPoolHolder
-	}
-	if check.IfNil(args.PubkeyConverter) {
-		return process.ErrNilPubkeyConverter
-	}
-	if check.IfNil(args.TxProcessor) {
-		return process.ErrNilTxProcessor
-	}
-	if check.IfNil(args.Accounts) {
-		return process.ErrNilAccountsAdapter
-	}
-	if check.IfNil(args.ScProcessor) {
-		return process.ErrNilSmartContractProcessor
-	}
-	if check.IfNil(args.ScResultProcessor) {
-		return process.ErrNilSmartContractResultProcessor
-	}
-	if check.IfNil(args.RewardsTxProcessor) {
-		return process.ErrNilRewardsTxProcessor
-	}
-	if check.IfNil(args.RequestHandler) {
-		return process.ErrNilRequestHandler
-	}
-	if check.IfNil(args.EconomicsFee) {
-		return process.ErrNilEconomicsFeeHandler
-	}
-	if check.IfNil(args.GasHandler) {
-		return process.ErrNilGasHandler
-	}
-	if check.IfNil(args.BlockTracker) {
-		return process.ErrNilBlockTracker
-	}
-	if check.IfNil(args.BlockSizeComputation) {
-		return process.ErrNilBlockSizeComputationHandler
-	}
-	if check.IfNil(args.BalanceComputation) {
-		return process.ErrNilBalanceComputationHandler
-	}
-	if check.IfNil(args.EnableEpochsHandler) {
-		return process.ErrNilEnableEpochsHandler
-	}
-	if check.IfNil(args.TxTypeHandler) {
-		return process.ErrNilTxTypeHandler
-	}
-	if check.IfNil(args.ScheduledTxsExecutionHandler) {
-		return process.ErrNilScheduledTxsExecutionHandler
-	}
-	if check.IfNil(args.ProcessedMiniBlocksTracker) {
-		return process.ErrNilProcessedMiniBlocksTracker
-	}
-	if check.IfNil(args.TxExecutionOrderHandler) {
-		return process.ErrNilTxExecutionOrderHandler
-	}
-	if check.IfNil(args.RunTypeComponents) {
-		return errorsMx.ErrNilRunTypeComponents
-	}
-	if check.IfNil(args.RunTypeComponents.TxPreProcessorCreator()) {
-		return errorsMx.ErrNilTxPreProcessorCreator
-	}
-	if check.IfNil(args.RunTypeComponents.SCResultsPreProcessorCreator()) {
-		return process.ErrNilSmartContractResultPreProcessorCreator
-	}
-
-	return nil
 }
