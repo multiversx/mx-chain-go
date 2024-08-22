@@ -1105,7 +1105,6 @@ func getRunTypeComponents(rt runType.RunTypeComponentsHolder) *mainFactoryMocks.
 		ValidatorInfoCreatorFactoryField:          rt.ValidatorInfoCreatorFactory(),
 		APIProcessorCompsCreatorHandlerField:      rt.ApiProcessorCompsCreatorHandler(),
 		EndOfEpochEconomicsFactoryHandlerField:    rt.EndOfEpochEconomicsFactoryHandler(),
-		RewardsTxPreProcFactoryField:              rt.RewardsTxPreProcFactory(),
 		RewardsCreatorFactoryField:                rt.RewardsCreatorFactory(),
 		SystemSCProcessorFactoryField:             rt.SystemSCProcessorFactory(),
 		PreProcessorsContainerFactoryCreatorField: rt.PreProcessorsContainerFactoryCreator(),

@@ -135,7 +135,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		EndOfEpochEconomicsFactoryHandlerField:    &testFactory.EconomicsFactoryMock{},
 		SystemSCProcessorFactoryField:             &testFactory.SysSCFactoryMock{},
 		PreProcessorsContainerFactoryCreatorField: &testFactory.PreProcessorContainerFactoryCreatorMock{},
-		DataRetrieverContainersSetterField:        dataRetriever.NewDataRetrieverContainerSetter(), // todo here
+		DataRetrieverContainersSetterField:        &testFactory.DataRetrieverContainersSetterMock{},
 	}
 }
 
