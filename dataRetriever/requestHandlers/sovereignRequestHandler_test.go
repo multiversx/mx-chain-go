@@ -164,3 +164,96 @@ func TestSovereignResolverRequestHandler_RequestExtendedShardHeader(t *testing.T
 	require.True(t, wasHashRequested)
 	require.True(t, wasWhiteListed)
 }
+
+func TestSovereignResolverRequestHandler_RequestTrieNode(t *testing.T) {
+	requestedHash := []byte("hash")
+
+	expectedTopic := "topic"
+	expectedChunk := uint32(4)
+
+	chTxRequested := make(chan struct{})
+	wasDataRequested := false
+	requesterMock := &dataRetrieverMocks.ChunkRequesterStub{
+		RequestDataFromReferenceAndChunkCalled: func(hash []byte, chunkIndex uint32) error {
+			require.Equal(t, requestedHash, hash)
+			require.Equal(t, expectedChunk, chunkIndex)
+
+			wasDataRequested = true
+			chTxRequested <- struct{}{}
+			return nil
+		},
+	}
+
+	requesterFinder := &dataRetrieverMocks.RequestersFinderStub{
+		IntraShardRequesterCalled: func(baseTopic string) (dataRetriever.Requester, error) {
+			require.Equal(t, expectedTopic, baseTopic)
+			return requesterMock, nil
+		},
+	}
+
+	resolver, _ := NewResolverRequestHandler(
+		requesterFinder,
+		&mock.RequestedItemsHandlerStub{},
+		&mock.WhiteListHandlerStub{},
+		1,
+		core.SovereignChainShardId,
+		time.Second,
+	)
+
+	sovResolver, _ := NewSovereignResolverRequestHandler(resolver)
+	sovResolver.RequestTrieNode(requestedHash, expectedTopic, expectedChunk)
+
+	select {
+	case <-chTxRequested:
+	case <-time.After(timeoutSendRequests):
+		assert.Fail(t, "timeout while waiting to call RequestTrieNode")
+	}
+
+	require.True(t, wasDataRequested)
+}
+
+func TestSovereignResolverRequestHandler_RequestTrieNodes(t *testing.T) {
+	requestedHashes := [][]byte{[]byte("hash")}
+
+	expectedTopic := "topic"
+
+	chTxRequested := make(chan struct{})
+	wasDataRequested := false
+	requesterMock := &dataRetrieverMocks.HashSliceRequesterStub{
+		RequestDataFromHashArrayCalled: func(hash [][]byte, epoch uint32) error {
+			require.Zero(t, epoch)
+			require.Equal(t, requestedHashes, hash)
+
+			wasDataRequested = true
+			chTxRequested <- struct{}{}
+			return nil
+		},
+	}
+
+	requesterFinder := &dataRetrieverMocks.RequestersFinderStub{
+		IntraShardRequesterCalled: func(baseTopic string) (dataRetriever.Requester, error) {
+			require.Equal(t, expectedTopic, baseTopic)
+			return requesterMock, nil
+		},
+	}
+
+	resolver, _ := NewResolverRequestHandler(
+		requesterFinder,
+		&mock.RequestedItemsHandlerStub{},
+		&mock.WhiteListHandlerStub{},
+		1,
+		core.SovereignChainShardId,
+		time.Second,
+	)
+
+	sovResolver, _ := NewSovereignResolverRequestHandler(resolver)
+	sovResolver.RequestTrieNodes(core.SovereignChainShardId, requestedHashes, expectedTopic)
+
+	select {
+	case <-chTxRequested:
+	case <-time.After(timeoutSendRequests):
+		assert.Fail(t, "timeout while waiting to call RequestTrieNodes")
+	}
+
+	require.True(t, wasDataRequested)
+}

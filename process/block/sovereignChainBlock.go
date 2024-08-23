@@ -937,9 +937,12 @@ func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
 	finalMiniBlocks := make([]*block.MiniBlock, 0)
 	finalMiniBlocks = append(finalMiniBlocks, rewardMiniBlocks...)
 	finalMiniBlocks = append(finalMiniBlocks, validatorMiniBlocks...)
-
 	body.MiniBlocks = append(body.MiniBlocks, finalMiniBlocks...)
 
+	return scbp.applyBodyToHeaderForEpochChange(header, body)
+}
+
+func (scbp *sovereignChainBlockProcessor) applyBodyToHeaderForEpochChange(header data.HeaderHandler, body *block.Body) error {
 	totalTxCount, miniBlockHeaderHandlers, err := scbp.createMiniBlockHeaderHandlers(body.MiniBlocks)
 	if err != nil {
 		return err
@@ -955,6 +958,43 @@ func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
+	userAccountsRootHash, err := scbp.accountsDB[state.UserAccountsState].RootHash()
+	if err != nil {
+		return err
+	}
+	err = header.SetRootHash(userAccountsRootHash)
+	if err != nil {
+		return err
+	}
+
+	validatorStatsRootHash, err := scbp.accountsDB[state.PeerAccountsState].RootHash()
+	if err != nil {
+		return err
+	}
+	err = header.SetValidatorStatsRootHash(validatorStatsRootHash)
+	if err != nil {
+		return err
+	}
+
+	receiptsHash, err := scbp.txCoordinator.CreateReceiptsHash()
+	if err != nil {
+		return err
+	}
+
+	err = header.SetReceiptsHash(receiptsHash)
+	if err != nil {
+		return err
+	}
+
+	scbp.appStatusHandler.SetUInt64Value(common.MetricNumTxInBlock, uint64(totalTxCount))
+	scbp.appStatusHandler.SetUInt64Value(common.MetricNumMiniBlocks, uint64(len(body.MiniBlocks)))
+
+	marshaledBody, err := scbp.marshalizer.Marshal(body)
+	if err != nil {
+		return err
+	}
+
+	scbp.blockSizeThrottler.Add(header.GetRound(), uint32(len(marshaledBody)))
 	return nil
 }
 
@@ -1907,6 +1947,9 @@ func (scbp *sovereignChainBlockProcessor) updateState(header data.HeaderHandler,
 		scbp.accountsDB[state.UserAccountsState].SnapshotState(header.GetRootHash(), header.GetEpoch())
 		scbp.accountsDB[state.PeerAccountsState].SnapshotState(header.GetValidatorStatsRootHash(), header.GetEpoch())
 
+		// TODO: MX-15748 Analyse this
+		//scbp.markSnapshotDoneInPeerAccounts()
+
 		go func() {
 			sovHdr, ok := header.(data.MetaHeaderHandler)
 			if !ok {
@@ -1918,8 +1961,6 @@ func (scbp *sovereignChainBlockProcessor) updateState(header data.HeaderHandler,
 				log.Warn("couldn't commit trie checkpoint", "epoch", sovHdr.GetEpoch(), "error", err)
 			}
 		}()
-
-		scbp.nodesCoordinator.ShuffleOutForEpoch(header.GetEpoch())
 	}
 
 	scbp.updateStateStorage(
