@@ -1027,12 +1027,6 @@ func TestSubroundSignature_DoSignatureJobForManagedKeys(t *testing.T) {
 		}
 		container.SetEnableEpochsHandler(enableEpochsHandler)
 
-		signingHandler := &consensusMocks.SigningHandlerStub{
-			CreateSignatureShareForPublicKeyCalled: func(msg []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
-				return []byte("SIG"), nil
-			},
-		}
-		container.SetSigningHandler(signingHandler)
 		consensusState := initConsensusStateWithKeysHandler(
 			&testscommon.KeysHandlerStub{
 				IsKeyManagedByCurrentNodeCalled: func(pkBytes []byte) bool {
@@ -1058,18 +1052,10 @@ func TestSubroundSignature_DoSignatureJobForManagedKeys(t *testing.T) {
 			&statusHandler.AppStatusHandlerStub{},
 		)
 
-		signatureSentForPks := make(map[string]struct{})
-		mutex := sync.Mutex{}
 		srSignature, _ := bls.NewSubroundSignature(
 			sr,
 			&statusHandler.AppStatusHandlerStub{},
-			&testscommon.SentSignatureTrackerStub{
-				SignatureSentCalled: func(pkBytes []byte) {
-					mutex.Lock()
-					signatureSentForPks[string(pkBytes)] = struct{}{}
-					mutex.Unlock()
-				},
-			},
+			&testscommon.SentSignatureTrackerStub{},
 			&mock.SposWorkerMock{},
 			&mock2.ThrottlerStub{
 				CanProcessCalled: func() bool {
@@ -1079,18 +1065,6 @@ func TestSubroundSignature_DoSignatureJobForManagedKeys(t *testing.T) {
 		)
 
 		sr.Header = &block.Header{}
-		signaturesBroadcast := make(map[string]int)
-		container.SetBroadcastMessenger(&mock.BroadcastMessengerMock{
-			BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
-				mutex.Lock()
-				signaturesBroadcast[string(message.PubKey)]++
-				mutex.Unlock()
-				return nil
-			},
-		})
-
-		sr.SetSelfPubKey("OTHER")
-
 		ctx, cancel := context.WithCancel(context.TODO())
 		cancel()
 		r := srSignature.DoSignatureJobForManagedKeys(ctx)

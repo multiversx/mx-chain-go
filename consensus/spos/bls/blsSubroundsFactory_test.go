@@ -456,12 +456,12 @@ func TestFactory_NewFactoryNilSignaturesTrackerShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
-		&testscommon.SentSignatureTrackerStub{},
 		nil,
+		&mock2.ThrottlerStub{},
 	)
 
 	assert.Nil(t, fct)
-	assert.Equal(t, spos.ErrNilThrottler, err)
+	assert.Equal(t, bls.ErrNilSentSignatureTracker, err)
 }
 
 func TestFactory_NewFactoryNilThrottlerShouldFail(t *testing.T) {
@@ -478,12 +478,12 @@ func TestFactory_NewFactoryNilThrottlerShouldFail(t *testing.T) {
 		chainID,
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.SentSignatureTrackerStub{},
 		nil,
-		&mock2.ThrottlerStub{},
 	)
 
 	assert.Nil(t, fct)
-	assert.Equal(t, bls.ErrNilSentSignatureTracker, err)
+	assert.Equal(t, spos.ErrNilThrottler, err)
 }
 
 func TestFactory_NewFactoryShouldWork(t *testing.T) {
