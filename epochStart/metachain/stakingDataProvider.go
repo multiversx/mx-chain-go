@@ -273,7 +273,7 @@ func (sdp *stakingDataProvider) GetBlsKeyOwner(blsKey []byte) (string, error) {
 		return "", err
 	}
 	if vmOutput.ReturnCode != vmcommon.Ok {
-		return "", fmt.Errorf("%w, error: %v", epochStart.ErrExecutingSystemScCode, vmOutput.ReturnCode)
+		return "", fmt.Errorf("%w, error: %v, message: %s", epochStart.ErrExecutingSystemScCode, vmOutput.ReturnCode, vmOutput.ReturnMessage)
 	}
 	data := vmOutput.ReturnData
 	if len(data) != 1 {

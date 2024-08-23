@@ -177,7 +177,7 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 			return Parameters{}, err
 		}
 	} else {
-		err = e.requestAndProcessForShard(emptyPeerMiniBlocksSlice)
+		err = e.requestAndProcessForSovereignShard(emptyPeerMiniBlocksSlice)
 		if err != nil {
 			return Parameters{}, err
 		}

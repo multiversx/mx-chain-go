@@ -100,8 +100,8 @@ func (rcf *resolversContainerFactory) generateTrieNodesResolvers() error {
 	keys := make([]string, 0)
 	resolversSlice := make([]dataRetriever.Resolver, 0)
 
-	for i := uint32(0); i < shardC.NumberOfShards(); i++ {
-		identifierTrieNodes := factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(i, core.MetachainShardId)
+	for i := uint32(0); i <= shardC.NumberOfShards(); i++ {
+		identifierTrieNodes := factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(i, core.SovereignChainShardId)
 		if rcf.checkIfResolverExists(identifierTrieNodes) {
 			continue
 		}
@@ -116,9 +116,9 @@ func (rcf *resolversContainerFactory) generateTrieNodesResolvers() error {
 		keys = append(keys, identifierTrieNodes)
 	}
 
-	identifierTrieNodes := factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
+	identifierTrieNodes := factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.SovereignChainShardId, core.SovereignChainShardId)
 	if !rcf.checkIfResolverExists(identifierTrieNodes) {
-		trieId := genesis.CreateTrieIdentifier(core.MetachainShardId, genesis.UserAccount)
+		trieId := genesis.CreateTrieIdentifier(core.SovereignChainShardId, genesis.UserAccount)
 		resolver, err := rcf.createTrieNodesResolver(identifierTrieNodes, trieId)
 		if err != nil {
 			return err
@@ -128,9 +128,9 @@ func (rcf *resolversContainerFactory) generateTrieNodesResolvers() error {
 		keys = append(keys, identifierTrieNodes)
 	}
 
-	identifierTrieNodes = factory.ValidatorTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
+	identifierTrieNodes = factory.ValidatorTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.SovereignChainShardId, core.SovereignChainShardId)
 	if !rcf.checkIfResolverExists(identifierTrieNodes) {
-		trieID := genesis.CreateTrieIdentifier(core.MetachainShardId, genesis.ValidatorAccount)
+		trieID := genesis.CreateTrieIdentifier(core.SovereignChainShardId, genesis.ValidatorAccount)
 		resolver, err := rcf.createTrieNodesResolver(identifierTrieNodes, trieID)
 		if err != nil {
 			return err

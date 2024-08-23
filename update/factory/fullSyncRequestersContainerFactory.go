@@ -107,7 +107,7 @@ func (rcf *requestersContainerFactory) generateTrieNodesRequesters() error {
 	requestersSlice := make([]dataRetriever.Requester, 0)
 
 	for i := uint32(0); i < shardC.NumberOfShards(); i++ {
-		identifierTrieNodes := factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(i, core.MetachainShardId)
+		identifierTrieNodes := factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(i, core.SovereignChainShardId)
 		if rcf.checkIfRequesterExists(identifierTrieNodes) {
 			continue
 		}
@@ -121,9 +121,9 @@ func (rcf *requestersContainerFactory) generateTrieNodesRequesters() error {
 		keys = append(keys, identifierTrieNodes)
 	}
 
-	identifierTrieNodes := factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
+	identifierTrieNodes := factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.SovereignChainShardId, core.SovereignChainShardId)
 	if !rcf.checkIfRequesterExists(identifierTrieNodes) {
-		requester, err := rcf.createTrieNodesRequester(identifierTrieNodes, core.MetachainShardId)
+		requester, err := rcf.createTrieNodesRequester(identifierTrieNodes, core.SovereignChainShardId)
 		if err != nil {
 			return err
 		}
@@ -132,9 +132,9 @@ func (rcf *requestersContainerFactory) generateTrieNodesRequesters() error {
 		keys = append(keys, identifierTrieNodes)
 	}
 
-	identifierTrieNodes = factory.ValidatorTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
+	identifierTrieNodes = factory.ValidatorTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.SovereignChainShardId, core.SovereignChainShardId)
 	if !rcf.checkIfRequesterExists(identifierTrieNodes) {
-		requester, err := rcf.createTrieNodesRequester(identifierTrieNodes, core.MetachainShardId)
+		requester, err := rcf.createTrieNodesRequester(identifierTrieNodes, core.SovereignChainShardId)
 		if err != nil {
 			return err
 		}

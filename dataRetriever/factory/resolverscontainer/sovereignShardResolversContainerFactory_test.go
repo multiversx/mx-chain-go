@@ -80,6 +80,8 @@ func TestSovereignShardResolversContainerFactory_Create(t *testing.T) {
 	iterateFunc := func(key string, resolver dataRetriever.Resolver) bool {
 		require.False(t, strings.Contains(strings.ToLower(key), "meta"))
 
+		fmt.Printf(key)
+
 		if strings.Contains(key, topicDelim) {
 			keyTokens := strings.Split(key, topicDelim)
 			require.Len(t, keyTokens, 2)

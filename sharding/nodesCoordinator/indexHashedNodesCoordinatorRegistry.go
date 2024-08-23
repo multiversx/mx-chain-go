@@ -146,12 +146,12 @@ func (ihnc *indexHashedNodesCoordinator) registryToNodesCoordinator(
 		}
 
 		nbShards := uint32(len(nodesConfig.eligibleMap))
-		if nbShards < 2 {
+		if nbShards != 1 {
 			return nil, ErrInvalidNumberOfShards
 		}
 
 		// shards without metachain shard
-		nodesConfig.nbShards = nbShards - 1
+		nodesConfig.nbShards = 1
 		nodesConfig.shardID, _ = ihnc.computeShardForSelfPublicKey(nodesConfig)
 		epoch32 := uint32(epoch)
 		result[epoch32] = nodesConfig

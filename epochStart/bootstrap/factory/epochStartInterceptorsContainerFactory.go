@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/storage/cache"
+	"github.com/multiversx/mx-chain-go/testscommon/sovereign"
 	"github.com/multiversx/mx-chain-go/update"
 )
 
@@ -110,7 +111,17 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		NodeOperationMode:            args.NodeOperationMode,
 	}
 
-	interceptorsContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(containerFactoryArgs)
+	// WHY META  ??????????????????????????????????
+
+	sp, err := interceptorscontainer.NewShardInterceptorsContainerFactory(containerFactoryArgs)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	interceptorsContainerFactory, err := interceptorscontainer.NewSovereignShardInterceptorsContainerFactory(interceptorscontainer.ArgsSovereignShardInterceptorsContainerFactory{
+		ShardContainer:           sp,
+		IncomingHeaderSubscriber: &sovereign.IncomingHeaderSubscriberStub{}, // definetely this needs help
+	})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -120,17 +131,17 @@ func NewEpochStartInterceptorsContainer(args ArgsEpochStartInterceptorContainer)
 		return nil, nil, err
 	}
 
-	err = interceptorsContainerFactory.AddShardTrieNodeInterceptors(mainContainer)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if args.NodeOperationMode == common.FullArchiveMode {
-		err = interceptorsContainerFactory.AddShardTrieNodeInterceptors(fullArchiveContainer)
-		if err != nil {
-			return nil, nil, err
-		}
-	}
+	//err = interceptorsContainerFactory.AddShardTrieNodeInterceptors(mainContainer)
+	//if err != nil {
+	//	return nil, nil, err
+	//}
+	//
+	//if args.NodeOperationMode == common.FullArchiveMode {
+	//	err = interceptorsContainerFactory.AddShardTrieNodeInterceptors(fullArchiveContainer)
+	//	if err != nil {
+	//		return nil, nil, err
+	//	}
+	//}
 
 	return mainContainer, fullArchiveContainer, nil
 }

@@ -737,7 +737,7 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 			return Parameters{}, err
 		}
 	} else {
-		err = e.requestAndProcessForShard(miniBlocks)
+		err = e.requestAndProcessForSovereignShard(miniBlocks)
 		if err != nil {
 			return Parameters{}, err
 		}
@@ -1045,6 +1045,77 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 	return nil
 }
 
+func (e *epochStartBootstrap) requestAndProcessForSovereignShard(peerMiniBlocks []*block.MiniBlock) error {
+
+	argsStorageHandler := StorageHandlerArgs{
+		GeneralConfig:                   e.generalConfig,
+		PreferencesConfig:               e.prefsConfig,
+		ShardCoordinator:                e.shardCoordinator,
+		PathManagerHandler:              e.coreComponentsHolder.PathHandler(),
+		Marshaller:                      e.coreComponentsHolder.InternalMarshalizer(),
+		Hasher:                          e.coreComponentsHolder.Hasher(),
+		CurrentEpoch:                    e.baseData.lastEpoch,
+		Uint64Converter:                 e.coreComponentsHolder.Uint64ByteSliceConverter(),
+		NodeTypeProvider:                e.coreComponentsHolder.NodeTypeProvider(),
+		NodesCoordinatorRegistryFactory: e.nodesCoordinatorRegistryFactory,
+		ManagedPeersHolder:              e.cryptoComponentsHolder.ManagedPeersHolder(),
+		NodeProcessingMode:              e.nodeProcessingMode,
+		StateStatsHandler:               e.stateStatsHandler,
+		AdditionalStorageServiceCreator: e.runTypeComponents.AdditionalStorageServiceCreator(),
+	}
+	storageHandlerComponent, err := NewShardStorageHandler(argsStorageHandler)
+	if err != nil {
+		return err
+	}
+
+	defer storageHandlerComponent.CloseStorageService()
+
+	e.closeTrieComponents()
+	triesContainer, trieStorageManagers, err := factory.CreateTriesComponentsForShardId(
+		e.generalConfig,
+		e.coreComponentsHolder,
+		storageHandlerComponent.storageService,
+		e.stateStatsHandler,
+	)
+	if err != nil {
+		return err
+	}
+
+	e.trieContainer = triesContainer
+	e.trieStorageManagers = trieStorageManagers
+
+	log.Debug("start in epoch bootstrap: started syncUserAccountsState", "rootHash", e.epochStartMeta.GetRootHash())
+	err = e.syncUserAccountsState(e.epochStartMeta.GetRootHash())
+	if err != nil {
+		return err
+	}
+	log.Debug("start in epoch bootstrap: syncUserAccountsState")
+
+	log.Debug("start in epoch bootstrap: started syncValidatorAccountsState")
+	err = e.syncValidatorAccountsState(e.epochStartMeta.GetValidatorStatsRootHash())
+	if err != nil {
+		return err
+	}
+
+	components := &ComponentsNeededForBootstrap{
+		EpochStartMetaBlock: e.epochStartMeta,
+		PreviousEpochStart:  e.prevEpochStartMeta,
+		ShardHeader:         e.epochStartMeta,
+		NodesConfig:         e.nodesConfig,
+		Headers:             e.syncedHeaders,
+		ShardCoordinator:    e.shardCoordinator,
+		PendingMiniBlocks:   make(map[string]*block.MiniBlock),
+		PeerMiniBlocks:      peerMiniBlocks,
+	}
+
+	errSavingToStorage := storageHandlerComponent.SaveDataToStorage(components, e.epochStartMeta, false, make(map[string]*block.MiniBlock))
+	if errSavingToStorage != nil {
+		return errSavingToStorage
+	}
+
+	return nil
+}
+
 func (e *epochStartBootstrap) getDataToSync(
 	epochStartData data.EpochStartShardDataHandler,
 	shardNotarizedHeader data.ShardHeaderHandler,
@@ -1270,7 +1341,11 @@ func (e *epochStartBootstrap) createResolversContainer() error {
 		FullArchivePreferredPeersHolder:     disabled.NewPreferredPeersHolder(),
 		PayloadValidator:                    payloadValidator,
 	}
-	resolverFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerArgs)
+
+	// HOW IS THIS POSSIBLE TO START A META?
+	sp, err := resolverscontainer.NewShardResolversContainerFactory(resolversContainerArgs)
+
+	resolverFactory, err := resolverscontainer.NewSovereignShardResolversContainerFactory(sp)
 	if err != nil {
 		return err
 	}
@@ -1280,7 +1355,9 @@ func (e *epochStartBootstrap) createResolversContainer() error {
 		return err
 	}
 
-	return resolverFactory.AddShardTrieNodeResolvers(container)
+	_ = container
+
+	return nil
 }
 
 func (e *epochStartBootstrap) createRequestHandler() error {
@@ -1298,7 +1375,13 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 		PeersRatingHandler:              disabled.NewDisabledPeersRatingHandler(),
 		SizeCheckDelta:                  0,
 	}
-	requestersFactory, err := requesterscontainer.NewMetaRequestersContainerFactory(requestersContainerArgs)
+
+	sh, err := requesterscontainer.NewShardRequestersContainerFactory(requestersContainerArgs)
+	if err != nil {
+		return err
+	}
+	// WHY IS META CALLED HERE ??????
+	requestersFactory, err := requesterscontainer.NewSovereignShardRequestersContainerFactory(sh)
 	if err != nil {
 		return err
 	}
@@ -1308,10 +1391,10 @@ func (e *epochStartBootstrap) createRequestHandler() error {
 		return err
 	}
 
-	err = requestersFactory.AddShardTrieNodeRequesters(container)
-	if err != nil {
-		return err
-	}
+	//err = requestersFactory.AddShardTrieNodeRequesters(container)
+	//if err != nil {
+	//	return err
+	//}
 
 	finder, err := containers.NewRequestersFinder(container, e.shardCoordinator)
 	if err != nil {

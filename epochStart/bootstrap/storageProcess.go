@@ -351,7 +351,7 @@ func (sesb *storageEpochStartBootstrap) requestAndProcessFromStorage() (Paramete
 			return Parameters{}, err
 		}
 	} else {
-		err = sesb.requestAndProcessForShard(emptyPeerMiniBlocksSlice)
+		err = sesb.requestAndProcessForSovereignShard(emptyPeerMiniBlocksSlice)
 		if err != nil {
 			return Parameters{}, err
 		}
