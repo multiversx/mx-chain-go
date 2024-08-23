@@ -30,11 +30,9 @@ var expErr = fmt.Errorf("expected error")
 func defaultSubroundStartRoundFromSubround(sr *spos.Subround) (bls.SubroundStartRound, error) {
 	startRound, err := bls.NewSubroundStartRound(
 		sr,
-		extend,
 		bls.ProcessingThresholdPercent,
-		executeStoredMessages,
-		resetConsensusMessages,
 		&testscommon.SentSignatureTrackerStub{},
+		&mock.SposWorkerMock{},
 	)
 
 	return startRound, err
@@ -43,11 +41,9 @@ func defaultSubroundStartRoundFromSubround(sr *spos.Subround) (bls.SubroundStart
 func defaultWithoutErrorSubroundStartRoundFromSubround(sr *spos.Subround) bls.SubroundStartRound {
 	startRound, _ := bls.NewSubroundStartRound(
 		sr,
-		extend,
 		bls.ProcessingThresholdPercent,
-		executeStoredMessages,
-		resetConsensusMessages,
 		&testscommon.SentSignatureTrackerStub{},
+		&mock.SposWorkerMock{},
 	)
 
 	return startRound
@@ -82,11 +78,9 @@ func initSubroundStartRoundWithContainer(container spos.ConsensusCoreHandler) bl
 	sr, _ := defaultSubround(consensusState, ch, container)
 	srStartRound, _ := bls.NewSubroundStartRound(
 		sr,
-		extend,
 		bls.ProcessingThresholdPercent,
-		executeStoredMessages,
-		resetConsensusMessages,
 		&testscommon.SentSignatureTrackerStub{},
+		&mock.SposWorkerMock{},
 	)
 
 	return srStartRound
@@ -124,78 +118,39 @@ func TestNewSubroundStartRound(t *testing.T) {
 
 		srStartRound, err := bls.NewSubroundStartRound(
 			nil,
-			extend,
 			bls.ProcessingThresholdPercent,
-			executeStoredMessages,
-			resetConsensusMessages,
 			&testscommon.SentSignatureTrackerStub{},
+			&mock.SposWorkerMock{},
 		)
 
 		assert.Nil(t, srStartRound)
 		assert.Equal(t, spos.ErrNilSubround, err)
-	})
-	t.Run("nil extend function handler should error", func(t *testing.T) {
-		t.Parallel()
-
-		srStartRound, err := bls.NewSubroundStartRound(
-			sr,
-			nil,
-			bls.ProcessingThresholdPercent,
-			executeStoredMessages,
-			resetConsensusMessages,
-			&testscommon.SentSignatureTrackerStub{},
-		)
-
-		assert.Nil(t, srStartRound)
-		assert.ErrorIs(t, err, spos.ErrNilFunctionHandler)
-		assert.Contains(t, err.Error(), "extend")
-	})
-	t.Run("nil executeStoredMessages function handler should error", func(t *testing.T) {
-		t.Parallel()
-
-		srStartRound, err := bls.NewSubroundStartRound(
-			sr,
-			extend,
-			bls.ProcessingThresholdPercent,
-			nil,
-			resetConsensusMessages,
-			&testscommon.SentSignatureTrackerStub{},
-		)
-
-		assert.Nil(t, srStartRound)
-		assert.ErrorIs(t, err, spos.ErrNilFunctionHandler)
-		assert.Contains(t, err.Error(), "executeStoredMessages")
-	})
-	t.Run("nil resetConsensusMessages function handler should error", func(t *testing.T) {
-		t.Parallel()
-
-		srStartRound, err := bls.NewSubroundStartRound(
-			sr,
-			extend,
-			bls.ProcessingThresholdPercent,
-			executeStoredMessages,
-			nil,
-			&testscommon.SentSignatureTrackerStub{},
-		)
-
-		assert.Nil(t, srStartRound)
-		assert.ErrorIs(t, err, spos.ErrNilFunctionHandler)
-		assert.Contains(t, err.Error(), "resetConsensusMessages")
 	})
 	t.Run("nil sent signatures tracker should error", func(t *testing.T) {
 		t.Parallel()
 
 		srStartRound, err := bls.NewSubroundStartRound(
 			sr,
-			extend,
 			bls.ProcessingThresholdPercent,
-			executeStoredMessages,
-			resetConsensusMessages,
 			nil,
+			&mock.SposWorkerMock{},
 		)
 
 		assert.Nil(t, srStartRound)
 		assert.Equal(t, bls.ErrNilSentSignatureTracker, err)
+	})
+	t.Run("nil worker should error", func(t *testing.T) {
+		t.Parallel()
+
+		srStartRound, err := bls.NewSubroundStartRound(
+			sr,
+			bls.ProcessingThresholdPercent,
+			&testscommon.SentSignatureTrackerStub{},
+			nil,
+		)
+
+		assert.Nil(t, srStartRound)
+		assert.Equal(t, spos.ErrNilWorker, err)
 	})
 }
 
@@ -569,11 +524,9 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 
 		srStartRound, _ := bls.NewSubroundStartRound(
 			sr,
-			extend,
 			bls.ProcessingThresholdPercent,
-			displayStatistics,
-			executeStoredMessages,
 			&testscommon.SentSignatureTrackerStub{},
+			&mock.SposWorkerMock{},
 		)
 		srStartRound.Check()
 		assert.True(t, wasCalled)
@@ -623,11 +576,9 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 
 		srStartRound, _ := bls.NewSubroundStartRound(
 			sr,
-			extend,
 			bls.ProcessingThresholdPercent,
-			displayStatistics,
-			executeStoredMessages,
 			&testscommon.SentSignatureTrackerStub{},
+			&mock.SposWorkerMock{},
 		)
 		srStartRound.Check()
 		assert.True(t, wasCalled)
@@ -676,11 +627,9 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 
 		srStartRound, _ := bls.NewSubroundStartRound(
 			sr,
-			extend,
 			bls.ProcessingThresholdPercent,
-			displayStatistics,
-			executeStoredMessages,
 			&testscommon.SentSignatureTrackerStub{},
+			&mock.SposWorkerMock{},
 		)
 		srStartRound.Check()
 		assert.True(t, wasCalled)
@@ -740,11 +689,9 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 
 		srStartRound, _ := bls.NewSubroundStartRound(
 			sr,
-			extend,
 			bls.ProcessingThresholdPercent,
-			displayStatistics,
-			executeStoredMessages,
 			&testscommon.SentSignatureTrackerStub{},
+			&mock.SposWorkerMock{},
 		)
 		srStartRound.Check()
 		assert.True(t, wasMetricConsensusStateCalled)
@@ -808,11 +755,9 @@ func TestSubroundStartRound_InitCurrentRoundShouldMetrics(t *testing.T) {
 
 		srStartRound, _ := bls.NewSubroundStartRound(
 			sr,
-			extend,
 			bls.ProcessingThresholdPercent,
-			displayStatistics,
-			executeStoredMessages,
 			&testscommon.SentSignatureTrackerStub{},
+			&mock.SposWorkerMock{},
 		)
 		srStartRound.Check()
 		assert.True(t, wasMetricConsensusStateCalled)
@@ -859,11 +804,9 @@ func TestSubroundStartRound_GenerateNextConsensusGroupShouldErrNilHeader(t *test
 	sr := buildDefaultSubround(container)
 	startRound, err := bls.NewSubroundStartRound(
 		sr,
-		extend,
 		bls.ProcessingThresholdPercent,
-		executeStoredMessages,
-		resetConsensusMessages,
 		&testscommon.SentSignatureTrackerStub{},
+		&mock.SposWorkerMock{},
 	)
 	require.Nil(t, err)
 
@@ -888,11 +831,9 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenResetErr(t *tes
 	sr := buildDefaultSubround(container)
 	startRound, err := bls.NewSubroundStartRound(
 		sr,
-		extend,
 		bls.ProcessingThresholdPercent,
-		executeStoredMessages,
-		resetConsensusMessages,
 		&testscommon.SentSignatureTrackerStub{},
+		&mock.SposWorkerMock{},
 	)
 	require.Nil(t, err)
 
@@ -926,11 +867,9 @@ func TestSubroundStartRound_IndexRoundIfNeededFailShardIdForEpoch(t *testing.T) 
 
 	startRound, err := bls.NewSubroundStartRound(
 		sr,
-		extend,
 		bls.ProcessingThresholdPercent,
-		executeStoredMessages,
-		resetConsensusMessages,
 		&testscommon.SentSignatureTrackerStub{},
+		&mock.SposWorkerMock{},
 	)
 	require.Nil(t, err)
 
@@ -972,11 +911,9 @@ func TestSubroundStartRound_IndexRoundIfNeededFailGetValidatorsIndexes(t *testin
 
 	startRound, err := bls.NewSubroundStartRound(
 		sr,
-		extend,
 		bls.ProcessingThresholdPercent,
-		executeStoredMessages,
-		resetConsensusMessages,
 		&testscommon.SentSignatureTrackerStub{},
+		&mock.SposWorkerMock{},
 	)
 	require.Nil(t, err)
 
@@ -1013,11 +950,9 @@ func TestSubroundStartRound_IndexRoundIfNeededShouldFullyWork(t *testing.T) {
 
 	startRound, err := bls.NewSubroundStartRound(
 		sr,
-		extend,
 		bls.ProcessingThresholdPercent,
-		executeStoredMessages,
-		resetConsensusMessages,
 		&testscommon.SentSignatureTrackerStub{},
+		&mock.SposWorkerMock{},
 	)
 	require.Nil(t, err)
 
@@ -1058,11 +993,9 @@ func TestSubroundStartRound_IndexRoundIfNeededDifferentShardIdFail(t *testing.T)
 
 	startRound, err := bls.NewSubroundStartRound(
 		sr,
-		extend,
 		bls.ProcessingThresholdPercent,
-		executeStoredMessages,
-		resetConsensusMessages,
 		&testscommon.SentSignatureTrackerStub{},
+		&mock.SposWorkerMock{},
 	)
 	require.Nil(t, err)
 
@@ -1112,11 +1045,9 @@ func TestSubroundStartRound_changeEpoch(t *testing.T) {
 
 		startRound, err := bls.NewSubroundStartRound(
 			sr,
-			extend,
 			bls.ProcessingThresholdPercent,
-			executeStoredMessages,
-			resetConsensusMessages,
 			&testscommon.SentSignatureTrackerStub{},
+			&mock.SposWorkerMock{},
 		)
 		require.Nil(t, err)
 		startRound.ChangeEpoch(1)
@@ -1143,11 +1074,9 @@ func TestSubroundStartRound_changeEpoch(t *testing.T) {
 
 		startRound, err := bls.NewSubroundStartRound(
 			sr,
-			extend,
 			bls.ProcessingThresholdPercent,
-			executeStoredMessages,
-			resetConsensusMessages,
 			&testscommon.SentSignatureTrackerStub{},
+			&mock.SposWorkerMock{},
 		)
 		require.Nil(t, err)
 		startRound.ChangeEpoch(1)

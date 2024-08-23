@@ -358,6 +358,7 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 	if !check.IfNil(additionalData) {
 		scheduledRootHash = additionalData.GetScheduledRootHash()
 	}
+	prevAggregatedSig, prevBitmap := headerHandler.GetPreviousAggregatedSignatureAndBitmap()
 	return []*display.LineData{
 		display.NewLineData(false, []string{
 			"",
@@ -419,10 +420,18 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 			"",
 			"Receipts hash",
 			logger.DisplayByteSlice(headerHandler.GetReceiptsHash())}),
-		display.NewLineData(true, []string{
+		display.NewLineData(false, []string{
 			"",
 			"Epoch start meta hash",
 			logger.DisplayByteSlice(epochStartMetaHash)}),
+		display.NewLineData(false, []string{
+			"Previous proof",
+			"Aggregated signature",
+			logger.DisplayByteSlice(prevAggregatedSig)}),
+		display.NewLineData(true, []string{
+			"",
+			"Pub keys bitmap",
+			logger.DisplayByteSlice(prevBitmap)}),
 	}
 }
 

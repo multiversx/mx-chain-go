@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/broadcast/shared"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -25,6 +26,7 @@ import (
 
 const prefixHeaderAlarm = "header_"
 const prefixDelayDataAlarm = "delay_"
+const prefixConsensusMessageAlarm = "message_"
 const sizeHeadersCache = 1000 // 1000 hashes in cache
 
 // ArgsDelayedBlockBroadcaster holds the arguments to create a delayed block broadcaster
@@ -35,6 +37,7 @@ type ArgsDelayedBlockBroadcaster struct {
 	LeaderCacheSize       uint32
 	ValidatorCacheSize    uint32
 	AlarmScheduler        timersScheduler
+	Config                config.ConsensusGradualBroadcastConfig
 }
 
 // timersScheduler exposes functionality for scheduling multiple timers
@@ -64,8 +67,14 @@ type delayedBlockBroadcaster struct {
 	broadcastMiniblocksData    func(mbData map[uint32][]byte, pkBytes []byte) error
 	broadcastTxsData           func(txData map[string][][]byte, pkBytes []byte) error
 	broadcastHeader            func(header data.HeaderHandler, pkBytes []byte) error
+	broadcastConsensusMessage    func(message *consensus.Message) error
 	cacheHeaders               storage.Cacher
 	mutHeadersCache            sync.RWMutex
+	config                       config.ConsensusGradualBroadcastConfig
+	mutBroadcastConsensusMessage sync.RWMutex
+	valBroadcastConsensusMessage map[string]*consensus.Message
+	cacheConsensusMessages       storage.Cacher
+
 }
 
 // NewDelayedBlockBroadcaster create a new instance of a delayed block data broadcaster
@@ -88,6 +97,11 @@ func NewDelayedBlockBroadcaster(args *ArgsDelayedBlockBroadcaster) (*delayedBloc
 		return nil, err
 	}
 
+	cacheConsensusMessages, err := cache.NewLRUCache(sizeHeadersCache)
+	if err != nil {
+		return nil, err
+	}
+
 	dbb := &delayedBlockBroadcaster{
 		alarm:                      args.AlarmScheduler,
 		shardCoordinator:           args.ShardCoordinator,
@@ -96,11 +110,14 @@ func NewDelayedBlockBroadcaster(args *ArgsDelayedBlockBroadcaster) (*delayedBloc
 		valHeaderBroadcastData:     make([]*shared.ValidatorHeaderBroadcastData, 0),
 		valBroadcastData:           make([]*shared.DelayedBroadcastData, 0),
 		delayedBroadcastData:       make([]*shared.DelayedBroadcastData, 0),
+		valBroadcastConsensusMessage: make(map[string]*consensus.Message, 0),
 		maxDelayCacheSize:          args.LeaderCacheSize,
 		maxValidatorDelayCacheSize: args.ValidatorCacheSize,
 		mutDataForBroadcast:        sync.RWMutex{},
 		cacheHeaders:               cacheHeaders,
 		mutHeadersCache:            sync.RWMutex{},
+		config:                       args.Config,
+		cacheConsensusMessages:       cacheConsensusMessages,
 	}
 
 	dbb.headersSubscriber.RegisterHandler(dbb.headerReceived)
@@ -229,13 +246,49 @@ func (dbb *delayedBlockBroadcaster) SetValidatorData(broadcastData *shared.Delay
 	return nil
 }
 
+// SetFinalConsensusMessageForValidator sets the consensus message to be broadcast by validator when its turn comes
+func (dbb *delayedBlockBroadcaster) SetFinalConsensusMessageForValidator(message *consensus.Message, consensusIndex int) error {
+	if message == nil {
+		return spos.ErrNilConsensusMessage
+	}
+
+	// set alarm only for validators that are aware that the block was finalized
+	if len(message.AggregateSignature) > 0 && len(message.PubKeysBitmap) > 0 {
+		if dbb.cacheConsensusMessages.Has(message.BlockHeaderHash) {
+			return nil
+		}
+
+		duration := dbb.getBroadcastDelayForIndex(consensusIndex)
+		alarmID := prefixConsensusMessageAlarm + hex.EncodeToString(message.BlockHeaderHash)
+
+		dbb.mutBroadcastConsensusMessage.Lock()
+		dbb.valBroadcastConsensusMessage[alarmID] = message
+		dbb.mutBroadcastConsensusMessage.Unlock()
+
+		dbb.alarm.Add(dbb.consensusMessageAlarmExpired, duration, alarmID)
+		log.Trace("delayedBlockBroadcaster.SetFinalConsensusMessageForValidator: consensus message alarm has been set",
+			"validatorConsensusOrder", consensusIndex,
+			"headerHash", message.BlockHeaderHash,
+			"alarmID", alarmID,
+			"duration", duration,
+		)
+	} else {
+		log.Trace("delayedBlockBroadcaster.SetFinalConsensusMessageForValidator: consensus message alarm has not been set",
+			"validatorConsensusOrder", consensusIndex,
+		)
+	}
+
+	return nil
+}
+
 // SetBroadcastHandlers sets the broadcast handlers for miniBlocks and transactions
 func (dbb *delayedBlockBroadcaster) SetBroadcastHandlers(
 	mbBroadcast func(mbData map[uint32][]byte, pkBytes []byte) error,
 	txBroadcast func(txData map[string][][]byte, pkBytes []byte) error,
 	headerBroadcast func(header data.HeaderHandler, pkBytes []byte) error,
+	consensusMessageBroadcast func(message *consensus.Message) error,
 ) error {
-	if mbBroadcast == nil || txBroadcast == nil || headerBroadcast == nil {
+	if mbBroadcast == nil || txBroadcast == nil || headerBroadcast == nil || consensusMessageBroadcast == nil {
 		return spos.ErrNilParameter
 	}
 
@@ -245,6 +298,7 @@ func (dbb *delayedBlockBroadcaster) SetBroadcastHandlers(
 	dbb.broadcastMiniblocksData = mbBroadcast
 	dbb.broadcastTxsData = txBroadcast
 	dbb.broadcastHeader = headerBroadcast
+	dbb.broadcastConsensusMessage = consensusMessageBroadcast
 
 	return nil
 }
@@ -620,6 +674,12 @@ func (dbb *delayedBlockBroadcaster) interceptedHeader(_ string, headerHash []byt
 	dbb.cacheHeaders.Put(headerHash, struct{}{}, 0)
 	dbb.mutHeadersCache.Unlock()
 
+	aggSig, bitmap := headerHandler.GetPreviousAggregatedSignatureAndBitmap()
+	isFinalInfo := len(aggSig) > 0 && len(bitmap) > 0
+	if isFinalInfo {
+		dbb.cacheConsensusMessages.Put(headerHash, struct{}{}, 0)
+	}
+
 	log.Trace("delayedBlockBroadcaster.interceptedHeader",
 		"headerHash", headerHash,
 		"round", headerHandler.GetRound(),
@@ -726,6 +786,49 @@ func (dbb *delayedBlockBroadcaster) extractMbsFromMeTo(header data.HeaderHandler
 	}
 
 	return mbHashesForShard
+}
+
+func (dbb *delayedBlockBroadcaster) getBroadcastDelayForIndex(index int) time.Duration {
+	for i := 0; i < len(dbb.config.GradualIndexBroadcastDelay); i++ {
+		entry := dbb.config.GradualIndexBroadcastDelay[i]
+		if index > entry.EndIndex {
+			continue
+		}
+
+		return time.Duration(entry.DelayInMilliseconds) * time.Millisecond
+	}
+
+	return 0
+}
+
+func (dbb *delayedBlockBroadcaster) consensusMessageAlarmExpired(alarmID string) {
+	headerHash, err := hex.DecodeString(strings.TrimPrefix(alarmID, prefixConsensusMessageAlarm))
+	if err != nil {
+		log.Error("delayedBlockBroadcaster.consensusMessageAlarmExpired", "error", err.Error(),
+			"headerHash", headerHash,
+			"alarmID", alarmID,
+		)
+		return
+	}
+
+	dbb.mutBroadcastConsensusMessage.Lock()
+	defer dbb.mutBroadcastConsensusMessage.Unlock()
+	if dbb.cacheConsensusMessages.Has(headerHash) {
+		delete(dbb.valBroadcastConsensusMessage, alarmID)
+		return
+	}
+
+	consensusMessage, ok := dbb.valBroadcastConsensusMessage[alarmID]
+	if !ok {
+		return
+	}
+
+	err = dbb.broadcastConsensusMessage(consensusMessage)
+	if err != nil {
+		log.Error("consensusMessageAlarmExpired.broadcastConsensusMessage", "error", err)
+	}
+
+	delete(dbb.valBroadcastConsensusMessage, alarmID)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
