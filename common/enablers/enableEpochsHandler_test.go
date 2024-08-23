@@ -115,11 +115,12 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		StakingV4Step2EnableEpoch:                                98,
 		StakingV4Step3EnableEpoch:                                99,
 		AlwaysMergeContextsInEEIEnableEpoch:                      100,
-		CleanupAuctionOnLowWaitingListEnableEpoch: 101,
+		CleanupAuctionOnLowWaitingListEnableEpoch:                101,
 		DynamicESDTEnableEpoch:                                   102,
 		EGLDInMultiTransferEnableEpoch:                           103,
 		CryptoOpcodesV2EnableEpoch:                               104,
 		EquivalentMessagesEnableEpoch:                            105,
+		FixedOrderInConsensusEnableEpoch:                         106,
 	}
 }
 
@@ -321,6 +322,7 @@ func TestEnableEpochsHandler_IsFlagEnabled(t *testing.T) {
 	require.True(t, handler.IsFlagEnabled(common.AlwaysMergeContextsInEEIFlag))
 	require.True(t, handler.IsFlagEnabled(common.DynamicESDTFlag))
 	require.True(t, handler.IsFlagEnabled(common.EquivalentMessagesFlag))
+	require.True(t, handler.IsFlagEnabled(common.FixedOrderInConsensusEnableEpochFlag))
 }
 
 func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
@@ -441,6 +443,7 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.EGLDInMultiTransferEnableEpoch, handler.GetActivationEpoch(common.EGLDInESDTMultiTransferFlag))
 	require.Equal(t, cfg.CryptoOpcodesV2EnableEpoch, handler.GetActivationEpoch(common.CryptoOpcodesV2Flag))
 	require.Equal(t, cfg.EquivalentMessagesEnableEpoch, handler.GetActivationEpoch(common.EquivalentMessagesFlag))
+	require.Equal(t, cfg.FixedOrderInConsensusEnableEpoch, handler.GetActivationEpoch(common.FixedOrderInConsensusEnableEpochFlag))
 }
 
 func TestEnableEpochsHandler_IsInterfaceNil(t *testing.T) {
