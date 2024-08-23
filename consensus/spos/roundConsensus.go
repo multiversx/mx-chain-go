@@ -205,7 +205,7 @@ func (rcns *roundConsensus) ResetRoundState() {
 // is in consensus group in the current round
 func (rcns *roundConsensus) IsMultiKeyInConsensusGroup() bool {
 	for i := 0; i < len(rcns.consensusGroup); i++ {
-		if rcns.IsKeyManagedByCurrentNode([]byte(rcns.consensusGroup[i])) {
+		if rcns.IsKeyManagedBySelf([]byte(rcns.consensusGroup[i])) {
 			return true
 		}
 	}
@@ -213,8 +213,8 @@ func (rcns *roundConsensus) IsMultiKeyInConsensusGroup() bool {
 	return false
 }
 
-// IsKeyManagedByCurrentNode returns true if the key is managed by the current node
-func (rcns *roundConsensus) IsKeyManagedByCurrentNode(pkBytes []byte) bool {
+// IsKeyManagedBySelf returns true if the key is managed by the current node
+func (rcns *roundConsensus) IsKeyManagedBySelf(pkBytes []byte) bool {
 	return rcns.keysHandler.IsKeyManagedByCurrentNode(pkBytes)
 }
 

@@ -78,8 +78,7 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 		return false
 	}
 
-	isSelfSingleKeyLeader := sr.IsSelfLeaderInCurrentRound() && sr.ShouldConsiderSelfKeyInConsensus()
-	isSelfSingleKeyInConsensusGroup := sr.IsNodeInConsensusGroup(sr.SelfPubKey()) && sr.ShouldConsiderSelfKeyInConsensus()
+	isSelfSingleKeyLeader := sr.IsNodeLeaderInCurrentRound(sr.SelfPubKey()) && sr.ShouldConsiderSelfKeyInConsensus()
 	isFlagActive := sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch())
 	// if single key leader, the signature has been sent on subroundBlock, thus the current round can be marked as finished
 	if isSelfSingleKeyLeader && isFlagActive {
@@ -102,6 +101,7 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 		return true
 	}
 
+	isSelfSingleKeyInConsensusGroup := sr.IsNodeInConsensusGroup(sr.SelfPubKey()) && sr.ShouldConsiderSelfKeyInConsensus()
 	if isSelfSingleKeyLeader || isSelfSingleKeyInConsensusGroup {
 		if !sr.doSignatureJobForSingleKey(isSelfSingleKeyLeader, isFlagActive) {
 			return false
@@ -197,7 +197,7 @@ func (sr *subroundSignature) receivedSignature(_ context.Context, cnsDta *consen
 		return false
 	}
 
-	if !sr.IsSelfLeaderInCurrentRound() && !sr.IsMultiKeyLeaderInCurrentRound() {
+	if !sr.IsSelfLeader() {
 		return false
 	}
 
@@ -258,7 +258,7 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 		return false
 	}
 
-	isSelfInConsensusGroup := sr.IsNodeInConsensusGroup(sr.SelfPubKey()) || sr.IsMultiKeyInConsensusGroup()
+	isSelfInConsensusGroup := sr.IsSelfInConsensusGroup()
 	if !isSelfInConsensusGroup {
 		log.Debug("step 2: subround has been finished",
 			"subround", sr.Name())
@@ -272,7 +272,7 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 		return false
 	}
 
-	isSelfLeader := sr.IsSelfLeaderInCurrentRound() || sr.IsMultiKeyLeaderInCurrentRound()
+	isSelfLeader := sr.IsSelfLeader()
 
 	threshold := sr.Threshold(sr.Current())
 	if sr.FallbackHeaderValidator().ShouldApplyFallbackValidation(sr.Header) {
@@ -289,15 +289,8 @@ func (sr *subroundSignature) doSignatureConsensusCheck() bool {
 	isSignatureCollectionDone := areAllSignaturesCollected || (areSignaturesCollected && sr.WaitingAllSignaturesTimeOut)
 	isJobDoneByLeader := isSelfLeader && isSignatureCollectionDone
 
-	selfJobDone := true
-	if sr.IsNodeInConsensusGroup(sr.SelfPubKey()) {
-		selfJobDone = sr.IsSelfJobDone(sr.Current())
-	}
-	multiKeyJobDone := true
-	if sr.IsMultiKeyInConsensusGroup() {
-		multiKeyJobDone = sr.IsMultiKeyJobDone(sr.Current())
-	}
-	isJobDoneByConsensusNode := !isSelfLeader && isSelfInConsensusGroup && selfJobDone && multiKeyJobDone
+	isSelfJobDone := sr.IsSelfJobDone(sr.Current())
+	isJobDoneByConsensusNode := !isSelfLeader && isSelfInConsensusGroup && isSelfJobDone
 
 	isSubroundFinished := isJobDoneByConsensusNode || isJobDoneByLeader
 
@@ -388,7 +381,7 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 		if sr.IsJobDone(pk, sr.Current()) {
 			continue
 		}
-		if !sr.IsKeyManagedByCurrentNode(pkBytes) {
+		if !sr.IsKeyManagedBySelf(pkBytes) {
 			continue
 		}
 

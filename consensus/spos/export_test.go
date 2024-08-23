@@ -283,3 +283,8 @@ func (cmv *consensusMessageValidator) GetNumOfMessageTypeForPublicKey(pk []byte,
 func (cmv *consensusMessageValidator) ResetConsensusMessages() {
 	cmv.resetConsensusMessages()
 }
+
+// IsSelfLeaderInCurrentRound -
+func (sr *Subround) IsSelfLeaderInCurrentRound() bool {
+	return sr.isSelfLeaderInCurrentRound()
+}

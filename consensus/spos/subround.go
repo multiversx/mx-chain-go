@@ -221,6 +221,32 @@ func (sr *Subround) ShouldConsiderSelfKeyInConsensus() bool {
 	return isMainMachineInactive
 }
 
+func (sr *Subround) IsSelfInConsensusGroup() bool {
+	return sr.IsNodeInConsensusGroup(sr.SelfPubKey()) || sr.IsMultiKeyInConsensusGroup()
+}
+
+func (sr *Subround) IsSelfLeader() bool {
+	return sr.isSelfLeaderInCurrentRound() || sr.IsMultiKeyLeaderInCurrentRound()
+}
+
+// isSelfLeaderInCurrentRound method checks if the current node is leader in the current round
+func (sr *Subround) isSelfLeaderInCurrentRound() bool {
+	return sr.IsNodeLeaderInCurrentRound(sr.selfPubKey) && sr.ShouldConsiderSelfKeyInConsensus()
+}
+
+func (sr *Subround) GetLeaderStartRoundMessage() string {
+	msg := ""
+
+	if sr.IsMultiKeyLeaderInCurrentRound() {
+		msg = " (my turn in multi-key)"
+	}
+	if sr.isSelfLeaderInCurrentRound() {
+		msg = " (my turn)"
+	}
+
+	return msg
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (sr *Subround) IsInterfaceNil() bool {
 	return sr == nil
