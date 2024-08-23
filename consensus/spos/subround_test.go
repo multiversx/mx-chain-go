@@ -1,6 +1,7 @@
 package spos_test
 
 import (
+	"bytes"
 	"context"
 	"sync"
 	"testing"
@@ -14,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var chainID = []byte("chain ID")
@@ -970,4 +972,184 @@ func TestSubround_GetAssociatedPid(t *testing.T) {
 
 	assert.Equal(t, pid, subround.GetAssociatedPid(providedPkBytes))
 	assert.True(t, wasCalled)
+}
+
+func TestSubround_ShouldConsiderSelfKeyInConsensus(t *testing.T) {
+	t.Parallel()
+
+	t.Run("is main machine active, should return true", func(t *testing.T) {
+		t.Parallel()
+
+		consensusState := initConsensusState()
+		ch := make(chan bool, 1)
+		container := mock.InitConsensusCore()
+
+		redundancyHandler := &mock.NodeRedundancyHandlerStub{
+			IsRedundancyNodeCalled: func() bool {
+				return false
+			},
+			IsMainMachineActiveCalled: func() bool {
+				return true
+			},
+		}
+		container.SetNodeRedundancyHandler(redundancyHandler)
+
+		sr, _ := spos.NewSubround(
+			bls.SrStartRound,
+			bls.SrBlock,
+			bls.SrSignature,
+			int64(5*roundTimeDuration/100),
+			int64(25*roundTimeDuration/100),
+			"(BLOCK)",
+			consensusState,
+			ch,
+			executeStoredMessages,
+			container,
+			chainID,
+			currentPid,
+			&statusHandler.AppStatusHandlerStub{},
+		)
+
+		require.True(t, sr.ShouldConsiderSelfKeyInConsensus())
+	})
+
+	t.Run("is redundancy node machine active, should return true", func(t *testing.T) {
+		t.Parallel()
+
+		consensusState := initConsensusState()
+		ch := make(chan bool, 1)
+		container := mock.InitConsensusCore()
+
+		redundancyHandler := &mock.NodeRedundancyHandlerStub{
+			IsRedundancyNodeCalled: func() bool {
+				return true
+			},
+			IsMainMachineActiveCalled: func() bool {
+				return false
+			},
+		}
+		container.SetNodeRedundancyHandler(redundancyHandler)
+
+		sr, _ := spos.NewSubround(
+			bls.SrStartRound,
+			bls.SrBlock,
+			bls.SrSignature,
+			int64(5*roundTimeDuration/100),
+			int64(25*roundTimeDuration/100),
+			"(BLOCK)",
+			consensusState,
+			ch,
+			executeStoredMessages,
+			container,
+			chainID,
+			currentPid,
+			&statusHandler.AppStatusHandlerStub{},
+		)
+
+		require.True(t, sr.ShouldConsiderSelfKeyInConsensus())
+	})
+
+	t.Run("is redundancy node machine but inactive, should return false", func(t *testing.T) {
+		t.Parallel()
+
+		consensusState := initConsensusState()
+		ch := make(chan bool, 1)
+		container := mock.InitConsensusCore()
+
+		redundancyHandler := &mock.NodeRedundancyHandlerStub{
+			IsRedundancyNodeCalled: func() bool {
+				return true
+			},
+			IsMainMachineActiveCalled: func() bool {
+				return true
+			},
+		}
+		container.SetNodeRedundancyHandler(redundancyHandler)
+
+		sr, _ := spos.NewSubround(
+			bls.SrStartRound,
+			bls.SrBlock,
+			bls.SrSignature,
+			int64(5*roundTimeDuration/100),
+			int64(25*roundTimeDuration/100),
+			"(BLOCK)",
+			consensusState,
+			ch,
+			executeStoredMessages,
+			container,
+			chainID,
+			currentPid,
+			&statusHandler.AppStatusHandlerStub{},
+		)
+
+		require.False(t, sr.ShouldConsiderSelfKeyInConsensus())
+	})
+}
+
+func TestSubround_GetLeaderStartRoundMessage(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should work with multi key node", func(t *testing.T) {
+		t.Parallel()
+
+		keysHandler := &testscommon.KeysHandlerStub{
+			IsKeyManagedByCurrentNodeCalled: func(pkBytes []byte) bool {
+				return bytes.Equal([]byte("1"), pkBytes)
+			},
+		}
+		consensusState := internalInitConsensusStateWithKeysHandler(keysHandler)
+		ch := make(chan bool, 1)
+		container := mock.InitConsensusCore()
+
+		sr, _ := spos.NewSubround(
+			bls.SrStartRound,
+			bls.SrBlock,
+			bls.SrSignature,
+			int64(5*roundTimeDuration/100),
+			int64(25*roundTimeDuration/100),
+			"(BLOCK)",
+			consensusState,
+			ch,
+			executeStoredMessages,
+			container,
+			chainID,
+			currentPid,
+			&statusHandler.AppStatusHandlerStub{},
+		)
+		sr.SetSelfPubKey("1")
+
+		require.Equal(t, spos.LeaderMultiKeyStartMsg, sr.GetLeaderStartRoundMessage())
+	})
+
+	t.Run("should work with single key node", func(t *testing.T) {
+		t.Parallel()
+
+		keysHandler := &testscommon.KeysHandlerStub{
+			IsKeyManagedByCurrentNodeCalled: func(pkBytes []byte) bool {
+				return bytes.Equal([]byte("2"), pkBytes)
+			},
+		}
+		consensusState := internalInitConsensusStateWithKeysHandler(keysHandler)
+		ch := make(chan bool, 1)
+		container := mock.InitConsensusCore()
+
+		sr, _ := spos.NewSubround(
+			bls.SrStartRound,
+			bls.SrBlock,
+			bls.SrSignature,
+			int64(5*roundTimeDuration/100),
+			int64(25*roundTimeDuration/100),
+			"(BLOCK)",
+			consensusState,
+			ch,
+			executeStoredMessages,
+			container,
+			chainID,
+			currentPid,
+			&statusHandler.AppStatusHandlerStub{},
+		)
+		sr.SetSelfPubKey("1")
+
+		require.Equal(t, spos.LeaderSingleKeyStartMsg, sr.GetLeaderStartRoundMessage())
+	})
 }

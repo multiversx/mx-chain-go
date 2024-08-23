@@ -14,6 +14,12 @@ import (
 // RedundancySingleKeySteppedIn exposes the redundancySingleKeySteppedIn constant
 const RedundancySingleKeySteppedIn = redundancySingleKeySteppedIn
 
+// LeaderSingleKeyStartMsg -
+const LeaderSingleKeyStartMsg = singleKeyStartMsg
+
+// LeaderMultiKeyStartMsg -
+const LeaderMultiKeyStartMsg = multiKeyStartMsg
+
 type RoundConsensus struct {
 	*roundConsensus
 }
@@ -287,4 +293,9 @@ func (cmv *consensusMessageValidator) ResetConsensusMessages() {
 // IsSelfLeaderInCurrentRound -
 func (sr *Subround) IsSelfLeaderInCurrentRound() bool {
 	return sr.isSelfLeaderInCurrentRound()
+}
+
+// IsMultiKeyJobDone -
+func (cns *ConsensusState) IsMultiKeyJobDone(currentSubroundId int) bool {
+	return cns.isMultiKeyJobDone(currentSubroundId)
 }

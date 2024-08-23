@@ -345,9 +345,9 @@ func (cns *ConsensusState) IsLeaderJobDone(currentSubroundId int) bool {
 	return cns.IsJobDone(leader, currentSubroundId)
 }
 
-// IsMultiKeyJobDone method returns true if all the nodes controlled by this instance finished the current job for
+// isMultiKeyJobDone method returns true if all the nodes controlled by this instance finished the current job for
 // the current subround and false otherwise
-func (cns *ConsensusState) IsMultiKeyJobDone(currentSubroundId int) bool {
+func (cns *ConsensusState) isMultiKeyJobDone(currentSubroundId int) bool {
 	for _, validator := range cns.consensusGroup {
 		if !cns.keysHandler.IsKeyManagedByCurrentNode([]byte(validator)) {
 			continue
@@ -370,7 +370,7 @@ func (cns *ConsensusState) IsSelfJobDone(currentSubroundID int) bool {
 
 	multiKeyJobDone := true
 	if cns.IsMultiKeyInConsensusGroup() {
-		multiKeyJobDone = cns.IsMultiKeyJobDone(currentSubroundID)
+		multiKeyJobDone = cns.isMultiKeyJobDone(currentSubroundID)
 	}
 
 	return selfJobDone && multiKeyJobDone
