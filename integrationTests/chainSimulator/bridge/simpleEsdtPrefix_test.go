@@ -45,6 +45,10 @@ func executeSimpleEsdtOperation(
 	txData string,
 	expectedErr string,
 ) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
 		Value:    20,
@@ -104,6 +108,10 @@ func executeSimpleEsdtOperation(
 }
 
 func TestChainSimulator_CreateTokenAndNFTCollectionSameIdentifier(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
 		Value:    20,
