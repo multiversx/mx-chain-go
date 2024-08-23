@@ -48,110 +48,79 @@ func NewRewardTxPreprocessor(
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
 	txExecutionOrderHandler common.TxExecutionOrderHandler,
 ) (*rewardTxPreprocessor, error) {
-	rtp, err := baseCreateRewardTxPreProc(ArgsRewardTxPreProcessor{
-		RewardTxDataPool:           rewardTxDataPool,
-		Store:                      store,
-		Hasher:                     hasher,
-		Marshalizer:                marshalizer,
-		RewardProcessor:            rewardProcessor,
-		ShardCoordinator:           shardCoordinator,
-		Accounts:                   accounts,
-		OnRequestRewardTransaction: onRequestRewardTransaction,
-		GasHandler:                 gasHandler,
-		PubkeyConverter:            pubkeyConverter,
-		BlockSizeComputation:       blockSizeComputation,
-		BalanceComputation:         balanceComputation,
-		ProcessedMiniBlocksTracker: processedMiniBlocksTracker,
-		TxExecutionOrderHandler:    txExecutionOrderHandler,
-	})
-	if err != nil {
-		return nil, err
+
+	if check.IfNil(hasher) {
+		return nil, process.ErrNilHasher
 	}
-
-	rtp.rewardTxPool.RegisterOnAdded(rtp.receivedRewardTransaction)
-	return rtp, nil
-}
-
-func baseCreateRewardTxPreProc(args ArgsRewardTxPreProcessor) (*rewardTxPreprocessor, error) {
-	err := checkNilArgs(args)
-	if err != nil {
-		return nil, err
+	if check.IfNil(marshalizer) {
+		return nil, process.ErrNilMarshalizer
+	}
+	if check.IfNil(rewardTxDataPool) {
+		return nil, process.ErrNilRewardTxDataPool
+	}
+	if check.IfNil(store) {
+		return nil, process.ErrNilStorage
+	}
+	if check.IfNil(rewardProcessor) {
+		return nil, process.ErrNilRewardsTxProcessor
+	}
+	if check.IfNil(shardCoordinator) {
+		return nil, process.ErrNilShardCoordinator
+	}
+	if check.IfNil(accounts) {
+		return nil, process.ErrNilAccountsAdapter
+	}
+	if onRequestRewardTransaction == nil {
+		return nil, process.ErrNilRequestHandler
+	}
+	if check.IfNil(gasHandler) {
+		return nil, process.ErrNilGasHandler
+	}
+	if check.IfNil(pubkeyConverter) {
+		return nil, process.ErrNilPubkeyConverter
+	}
+	if check.IfNil(blockSizeComputation) {
+		return nil, process.ErrNilBlockSizeComputationHandler
+	}
+	if check.IfNil(balanceComputation) {
+		return nil, process.ErrNilBalanceComputationHandler
+	}
+	if check.IfNil(processedMiniBlocksTracker) {
+		return nil, process.ErrNilProcessedMiniBlocksTracker
+	}
+	if check.IfNil(txExecutionOrderHandler) {
+		return nil, process.ErrNilTxExecutionOrderHandler
 	}
 
 	bpp := &basePreProcess{
-		hasher:      args.Hasher,
-		marshalizer: args.Marshalizer,
+		hasher:      hasher,
+		marshalizer: marshalizer,
 		gasTracker: gasTracker{
-			shardCoordinator: args.ShardCoordinator,
-			gasHandler:       args.GasHandler,
+			shardCoordinator: shardCoordinator,
+			gasHandler:       gasHandler,
 			economicsFee:     nil,
 		},
-		blockSizeComputation:       args.BlockSizeComputation,
-		balanceComputation:         args.BalanceComputation,
-		accounts:                   args.Accounts,
-		pubkeyConverter:            args.PubkeyConverter,
-		processedMiniBlocksTracker: args.ProcessedMiniBlocksTracker,
-		txExecutionOrderHandler:    args.TxExecutionOrderHandler,
+		blockSizeComputation:       blockSizeComputation,
+		balanceComputation:         balanceComputation,
+		accounts:                   accounts,
+		pubkeyConverter:            pubkeyConverter,
+		processedMiniBlocksTracker: processedMiniBlocksTracker,
+		txExecutionOrderHandler:    txExecutionOrderHandler,
 	}
 
 	rtp := &rewardTxPreprocessor{
-		basePreProcess:         bpp,
-		storage:                args.Store,
-		rewardTxPool:           args.RewardTxDataPool,
-		onRequestRewardTx:      args.OnRequestRewardTransaction,
-		rewardsProcessor:       args.RewardProcessor,
-		chReceivedAllRewardTxs: make(chan bool),
+		basePreProcess:    bpp,
+		storage:           store,
+		rewardTxPool:      rewardTxDataPool,
+		onRequestRewardTx: onRequestRewardTransaction,
+		rewardsProcessor:  rewardProcessor,
 	}
 
+	rtp.chReceivedAllRewardTxs = make(chan bool)
+	rtp.rewardTxPool.RegisterOnAdded(rtp.receivedRewardTransaction)
 	rtp.rewardTxsForBlock.txHashAndInfo = make(map[string]*txInfo)
-	return rtp, err
-}
 
-func checkNilArgs(args ArgsRewardTxPreProcessor) error {
-	if check.IfNil(args.Hasher) {
-		return process.ErrNilHasher
-	}
-	if check.IfNil(args.Marshalizer) {
-		return process.ErrNilMarshalizer
-	}
-	if check.IfNil(args.RewardTxDataPool) {
-		return process.ErrNilRewardTxDataPool
-	}
-	if check.IfNil(args.Store) {
-		return process.ErrNilStorage
-	}
-	if check.IfNil(args.RewardProcessor) {
-		return process.ErrNilRewardsTxProcessor
-	}
-	if check.IfNil(args.ShardCoordinator) {
-		return process.ErrNilShardCoordinator
-	}
-	if check.IfNil(args.Accounts) {
-		return process.ErrNilAccountsAdapter
-	}
-	if args.OnRequestRewardTransaction == nil {
-		return process.ErrNilRequestHandler
-	}
-	if check.IfNil(args.GasHandler) {
-		return process.ErrNilGasHandler
-	}
-	if check.IfNil(args.PubkeyConverter) {
-		return process.ErrNilPubkeyConverter
-	}
-	if check.IfNil(args.BlockSizeComputation) {
-		return process.ErrNilBlockSizeComputationHandler
-	}
-	if check.IfNil(args.BalanceComputation) {
-		return process.ErrNilBalanceComputationHandler
-	}
-	if check.IfNil(args.ProcessedMiniBlocksTracker) {
-		return process.ErrNilProcessedMiniBlocksTracker
-	}
-	if check.IfNil(args.TxExecutionOrderHandler) {
-		return process.ErrNilTxExecutionOrderHandler
-	}
-
-	return nil
+	return rtp, nil
 }
 
 // waitForRewardTxHashes waits for a call whether all the requested smartContractResults appeared
