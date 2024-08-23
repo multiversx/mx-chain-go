@@ -16,10 +16,13 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 )
 
+const timeSpentBetweenChecks = 100 * time.Millisecond
+
 type subroundSignature struct {
 	*spos.Subround
 	appStatusHandler     core.AppStatusHandler
 	sentSignatureTracker spos.SentSignaturesTracker
+	signatureThrottler   core.Throttler
 }
 
 // NewSubroundSignature creates a subroundSignature object
@@ -28,6 +31,7 @@ func NewSubroundSignature(
 	appStatusHandler core.AppStatusHandler,
 	sentSignatureTracker spos.SentSignaturesTracker,
 	worker spos.WorkerHandler,
+	signatureThrottler core.Throttler,
 ) (*subroundSignature, error) {
 	err := checkNewSubroundSignatureParams(
 		baseSubround,
@@ -44,11 +48,15 @@ func NewSubroundSignature(
 	if check.IfNil(worker) {
 		return nil, spos.ErrNilWorker
 	}
+	if check.IfNil(signatureThrottler) {
+		return nil, spos.ErrNilThrottler
+	}
 
 	srSignature := subroundSignature{
 		Subround:             baseSubround,
 		appStatusHandler:     appStatusHandler,
 		sentSignatureTracker: sentSignatureTracker,
+		signatureThrottler:   signatureThrottler,
 	}
 	srSignature.Job = srSignature.doSignatureJob
 	srSignature.Check = srSignature.doSignatureConsensusCheck
@@ -73,7 +81,7 @@ func checkNewSubroundSignatureParams(
 }
 
 // doSignatureJob method does the job of the subround Signature
-func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
+func (sr *subroundSignature) doSignatureJob(ctx context.Context) bool {
 	if !sr.CanDoSubroundJob(sr.Current()) {
 		return false
 	}
@@ -112,7 +120,7 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 		}
 	}
 
-	if !sr.doSignatureJobForManagedKeys() {
+	if !sr.doSignatureJobForManagedKeys(ctx) {
 		return false
 	}
 
@@ -382,7 +390,7 @@ func (sr *subroundSignature) remainingTime() time.Duration {
 	return remainigTime
 }
 
-func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
+func (sr *subroundSignature) doSignatureJobForManagedKeys(ctx context.Context) bool {
 
 	numMultiKeysSignaturesSent := int32(0)
 	sentSigForAllKeys := atomicCore.Flag{}
@@ -400,9 +408,16 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 			continue
 		}
 
+		err := sr.checkGoRoutinesThrottler(ctx)
+		if err != nil {
+			return false
+		}
+		sr.signatureThrottler.StartProcessing()
 		wg.Add(1)
 
 		go func(idx int, pk string) {
+			defer sr.signatureThrottler.EndProcessing()
+
 			signatureSent := sr.sendSignatureForManagedKey(idx, pk)
 			if signatureSent {
 				atomic.AddInt32(&numMultiKeysSignaturesSent, 1)
@@ -458,6 +473,21 @@ func (sr *subroundSignature) sendSignatureForManagedKey(idx int, pk string) bool
 	shouldWaitForAllSigsAsync := isCurrentManagedKeyLeader && !isFlagActive
 
 	return sr.completeSignatureSubRound(pk, shouldWaitForAllSigsAsync)
+}
+
+func (sr *subroundSignature) checkGoRoutinesThrottler(ctx context.Context) error {
+	for {
+		if sr.signatureThrottler.CanProcess() {
+			break
+		}
+		select {
+		case <-time.After(timeSpentBetweenChecks):
+			continue
+		case <-ctx.Done():
+			return spos.ErrTimeIsOut
+		}
+	}
+	return nil
 }
 
 func (sr *subroundSignature) doSignatureJobForSingleKey(isSelfLeader bool, isFlagActive bool) bool {

@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/outport"
 )
@@ -21,6 +22,7 @@ type factory struct {
 	sentSignaturesTracker spos.SentSignaturesTracker
 	chainID               []byte
 	currentPid            core.PeerID
+	signatureThrottler    core.Throttler
 }
 
 // NewSubroundsFactory creates a new consensusState object
@@ -32,6 +34,7 @@ func NewSubroundsFactory(
 	currentPid core.PeerID,
 	appStatusHandler core.AppStatusHandler,
 	sentSignaturesTracker spos.SentSignaturesTracker,
+	signatureThrottler core.Throttler,
 ) (*factory, error) {
 	err := checkNewFactoryParams(
 		consensusDataContainer,
@@ -40,6 +43,7 @@ func NewSubroundsFactory(
 		chainID,
 		appStatusHandler,
 		sentSignaturesTracker,
+		signatureThrottler,
 	)
 	if err != nil {
 		return nil, err
@@ -53,6 +57,7 @@ func NewSubroundsFactory(
 		chainID:               chainID,
 		currentPid:            currentPid,
 		sentSignaturesTracker: sentSignaturesTracker,
+		signatureThrottler:    signatureThrottler,
 	}
 
 	return &fct, nil
@@ -65,6 +70,7 @@ func checkNewFactoryParams(
 	chainID []byte,
 	appStatusHandler core.AppStatusHandler,
 	sentSignaturesTracker spos.SentSignaturesTracker,
+	signatureThrottler core.Throttler,
 ) error {
 	err := spos.ValidateConsensusCore(container)
 	if err != nil {
@@ -81,6 +87,9 @@ func checkNewFactoryParams(
 	}
 	if check.IfNil(sentSignaturesTracker) {
 		return ErrNilSentSignatureTracker
+	}
+	if check.IfNil(signatureThrottler) {
+		return spos.ErrNilThrottler
 	}
 	if len(chainID) == 0 {
 		return spos.ErrInvalidChainID
@@ -231,6 +240,7 @@ func (fct *factory) generateSignatureSubround() error {
 		fct.appStatusHandler,
 		fct.sentSignaturesTracker,
 		fct.worker,
+		fct.signatureThrottler,
 	)
 	if err != nil {
 		return err
