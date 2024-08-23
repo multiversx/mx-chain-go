@@ -435,7 +435,7 @@ func (rrh *resolverRequestHandler) getTrieNodesRequester(topic string, destShard
 	return requester, err
 }
 
-func (rrh *resolverRequestHandler) requestTrieNodes(destShardID uint32, hashes [][]byte, topic string, getRequesterFunc getTrieNodesRequesterFunc) {
+func (rrh *resolverRequestHandler) requestTrieNodes(destShardID uint32, hashes [][]byte, topic string, getTrieNodesRequester getTrieNodesRequesterFunc) {
 	unrequestedHashes := rrh.getUnrequestedHashes(hashes, uniqueTrieNodesSuffix)
 	if len(unrequestedHashes) == 0 {
 		return
@@ -470,7 +470,7 @@ func (rrh *resolverRequestHandler) requestTrieNodes(destShardID uint32, hashes [
 		"added", len(hashes),
 	)
 
-	requester, err := getRequesterFunc(topic, destShardID)
+	requester, err := getTrieNodesRequester(topic, destShardID)
 	if err != nil {
 		return
 	}
@@ -516,7 +516,7 @@ func (rrh *resolverRequestHandler) getTrieNodeRequester(topic string) (dataRetri
 	return requester, nil
 }
 
-func (rrh *resolverRequestHandler) requestTrieNode(requestHash []byte, topic string, chunkIndex uint32, getRequesterFunc getTrieNodeRequesterFunc) {
+func (rrh *resolverRequestHandler) requestTrieNode(requestHash []byte, topic string, chunkIndex uint32, getTrieNodeRequester getTrieNodeRequesterFunc) {
 	identifier := rrh.CreateTrieNodeIdentifier(requestHash, chunkIndex)
 	unrequestedHashes := rrh.getUnrequestedHashes([][]byte{identifier}, uniqueTrieNodesSuffix)
 	if len(unrequestedHashes) == 0 {
@@ -532,7 +532,7 @@ func (rrh *resolverRequestHandler) requestTrieNode(requestHash []byte, topic str
 		"chunk index", chunkIndex,
 	)
 
-	requester, err := getRequesterFunc(topic)
+	requester, err := getTrieNodeRequester(topic)
 	if err != nil {
 		return
 	}
