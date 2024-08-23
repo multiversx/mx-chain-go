@@ -112,9 +112,12 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 		}
 	}
 
+	startTime := time.Now()
 	if !sr.doSignatureJobForManagedKeys() {
+		log.Debug("doSignatureJobForManagedKeys elaspsed time - failed", "duration", time.Since(startTime))
 		return false
 	}
+	log.Debug("doSignatureJobForManagedKeys elaspsed time", "duration", time.Since(startTime))
 
 	if isFlagActive {
 		sr.SetStatus(sr.Current(), spos.SsFinished)
