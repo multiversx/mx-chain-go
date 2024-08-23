@@ -28,6 +28,7 @@ const (
 	mockTxSignature                         = "sig"
 	maxNumOfBlocksToGenerateWhenExecutingTx = 10
 	signalError                             = "signalError"
+	internalVMError                         = "internalVMErrors"
 
 	// OkReturnCode the const for the ok return code
 	OkReturnCode = "ok"
@@ -163,6 +164,18 @@ func RequireSignalError(t *testing.T, txResult *transaction.ApiTransactionResult
 	require.Equal(t, error, string(event.Topics[1]))
 }
 
+// RequireInternalVMError require that the transaction has specific invernal vm error
+func RequireInternalVMError(t *testing.T, txResult *transaction.ApiTransactionResult, error string) {
+	require.NotNil(t, txResult)
+	require.Equal(t, transaction.TxStatusSuccess, txResult.Status)
+	event := getEvent(txResult.Logs, internalVMError)
+	if event == nil {
+		require.Fail(t, "%s event not found", internalVMError)
+		return
+	}
+	require.Contains(t, string(event.Data), error)
+}
+
 func getEvent(logs *transaction.ApiLogs, eventID string) *transaction.Events {
 	if logs == nil || len(logs.Events) == 0 {
 		return nil
@@ -216,6 +229,26 @@ func TransferESDT(
 		"@" + hex.EncodeToString([]byte(token)) +
 		"@" + hex.EncodeToString(amount.Bytes())
 	txResult := SendTransaction(t, cs, sender, nonce, receiver, ZeroValue, esdtTransferArgs, uint64(5000000))
+	RequireSuccessfulTransaction(t, txResult)
+}
+
+// TransferESDTNFT will transfer the amount of NFT/SFT token to an address
+func TransferESDTNFT(
+	t *testing.T,
+	cs ChainSimulator,
+	sender, receiver []byte,
+	nonce *uint64,
+	token string,
+	tokenNonce uint64,
+	amount *big.Int,
+) {
+	esdtNftTransferArgs :=
+		core.BuiltInFunctionESDTNFTTransfer +
+			"@" + hex.EncodeToString([]byte(token)) +
+			"@" + hex.EncodeToString(big.NewInt(int64(tokenNonce)).Bytes()) +
+			"@" + hex.EncodeToString(amount.Bytes()) +
+			"@" + hex.EncodeToString(receiver)
+	txResult := SendTransaction(t, cs, sender, nonce, sender, ZeroValue, esdtNftTransferArgs, uint64(5000000))
 	RequireSuccessfulTransaction(t, txResult)
 }
 
