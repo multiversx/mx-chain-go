@@ -229,6 +229,9 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	if check.IfNil(mrc.preProcessorsContainerFactoryCreator) {
 		return errors.ErrNilPreProcessorsContainerFactoryCreator
 	}
+	if check.IfNil(mrc.dataRetrieverContainersSetter) {
+		return errors.ErrNilDataRetrieverContainersSetter
+	}
 
 	return nil
 }
@@ -747,6 +750,18 @@ func (mrc *managedRunTypeComponents) PreProcessorsContainerFactoryCreator() data
 	}
 
 	return mrc.runTypeComponents.preProcessorsContainerFactoryCreator
+}
+
+// DataRetrieverContainersSetter returns the data retriever containers setter
+func (mrc *managedRunTypeComponents) DataRetrieverContainersSetter() factory.DataRetrieverContainersSetter {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.dataRetrieverContainersSetter
 }
 
 // IsInterfaceNil returns true if the interface is nil

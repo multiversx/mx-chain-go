@@ -87,6 +87,7 @@ type RunTypeComponentsStub struct {
 	RewardsCreatorFactoryField                factory.RewardsCreatorFactory
 	SystemSCProcessorFactoryField             factory.SystemSCProcessorFactory
 	PreProcessorsContainerFactoryCreatorField data.PreProcessorsContainerFactoryCreator
+	DataRetrieverContainersSetterField        factory.DataRetrieverContainersSetter
 }
 
 // NewRunTypeComponentsStub -
@@ -134,6 +135,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		EndOfEpochEconomicsFactoryHandlerField:    &testFactory.EconomicsFactoryMock{},
 		SystemSCProcessorFactoryField:             &testFactory.SysSCFactoryMock{},
 		PreProcessorsContainerFactoryCreatorField: &testFactory.PreProcessorContainerFactoryCreatorMock{},
+		DataRetrieverContainersSetterField:        &testFactory.DataRetrieverContainersSetterMock{},
 	}
 }
 
@@ -370,6 +372,11 @@ func (r *RunTypeComponentsStub) SystemSCProcessorFactory() factory.SystemSCProce
 // PreProcessorsContainerFactoryCreator -
 func (r *RunTypeComponentsStub) PreProcessorsContainerFactoryCreator() data.PreProcessorsContainerFactoryCreator {
 	return r.PreProcessorsContainerFactoryCreatorField
+}
+
+// DataRetrieverContainersSetter -
+func (r *RunTypeComponentsStub) DataRetrieverContainersSetter() factory.DataRetrieverContainersSetter {
+	return r.DataRetrieverContainersSetterField
 }
 
 // IsInterfaceNil -

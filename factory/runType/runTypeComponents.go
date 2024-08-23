@@ -17,6 +17,7 @@ import (
 	mainFactory "github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/epochStartTrigger"
 	"github.com/multiversx/mx-chain-go/factory/processing/api"
+	"github.com/multiversx/mx-chain-go/factory/processing/dataRetriever"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/checking"
@@ -111,6 +112,7 @@ type runTypeComponents struct {
 	rewardsCreatorFactory                   mainFactory.RewardsCreatorFactory
 	systemSCProcessorFactory                mainFactory.SystemSCProcessorFactory
 	preProcessorsContainerFactoryCreator    data.PreProcessorsContainerFactoryCreator
+	dataRetrieverContainersSetter           mainFactory.DataRetrieverContainersSetter
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
@@ -283,6 +285,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		rewardsCreatorFactory:                   metachain.NewRewardsCreatorFactory(),
 		systemSCProcessorFactory:                metachain.NewSysSCFactory(),
 		preProcessorsContainerFactoryCreator:    shard.NewPreProcessorContainerFactoryCreator(),
+		dataRetrieverContainersSetter:           dataRetriever.NewDataRetrieverContainerSetter(),
 	}, nil
 }
 

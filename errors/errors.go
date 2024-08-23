@@ -847,3 +847,6 @@ var ErrNilSysSCFactory = errors.New("nil sys sc factory has been provided")
 
 // ErrNilPreProcessorsContainerFactoryCreator signals that a nil pre-processors container factory creator has been provided
 var ErrNilPreProcessorsContainerFactoryCreator = errors.New("nil pre-processors container factory creator has been provided")
+
+// ErrNilDataRetrieverContainersSetter signals that a nil data retriever container setter has been provided
+var ErrNilDataRetrieverContainersSetter = errors.New("nil data retriever container setter has been provided")

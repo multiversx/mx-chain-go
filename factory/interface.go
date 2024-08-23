@@ -633,6 +633,7 @@ type RunTypeComponentsHolder interface {
 	RewardsCreatorFactory() RewardsCreatorFactory
 	SystemSCProcessorFactory() SystemSCProcessorFactory
 	PreProcessorsContainerFactoryCreator() shardData.PreProcessorsContainerFactoryCreator
+	DataRetrieverContainersSetter() DataRetrieverContainersSetter
 	Create() error
 	Close() error
 	CheckSubcomponents() error
@@ -684,5 +685,15 @@ type RewardsCreatorFactory interface {
 // SystemSCProcessorFactory defines the sys sc processor factory handler
 type SystemSCProcessorFactory interface {
 	CreateSystemSCProcessor(args metachain.ArgsNewEpochStartSystemSCProcessing) (process.EpochStartSystemSCProcessor, error)
+	IsInterfaceNil() bool
+}
+
+// DataRetrieverContainersSetter should be able to set epoch start trigger to resolvers/requesters container
+type DataRetrieverContainersSetter interface {
+	SetEpochHandlerToMetaBlockContainers(
+		epochStartTrigger epochStart.TriggerHandler,
+		resolversContainer dataRetriever.ResolversContainer,
+		requestersContainer dataRetriever.RequestersContainer,
+	) error
 	IsInterfaceNil() bool
 }

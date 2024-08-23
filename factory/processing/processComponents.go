@@ -405,11 +405,21 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 
 	requestHandler.SetEpoch(epochStartTrigger.Epoch())
 
-	err = dataRetriever.SetEpochHandlerToHdrResolver(resolversContainer, epochStartTrigger)
+	err = pcf.runTypeComponents.DataRetrieverContainersSetter().SetEpochHandlerToMetaBlockContainers(
+		epochStartTrigger,
+		resolversContainer,
+		requestersContainer,
+	)
 	if err != nil {
 		return nil, err
 	}
-	err = dataRetriever.SetEpochHandlerToHdrRequester(requestersContainer, epochStartTrigger)
+
+	err = pcf.prepareGenesisBlock(genesisBlocks)
+	if err != nil {
+		return nil, err
+	}
+
+	err = pcf.prepareGenesisBlock(genesisBlocks)
 	if err != nil {
 		return nil, err
 	}
@@ -2088,6 +2098,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.RunTypeComponents.PreProcessorsContainerFactoryCreator()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilPreProcessorsContainerFactoryCreator)
+	}
+	if check.IfNil(args.RunTypeComponents.DataRetrieverContainersSetter()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilDataRetrieverContainersSetter)
 	}
 
 	return nil
