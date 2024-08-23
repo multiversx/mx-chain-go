@@ -30,6 +30,8 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
+	"github.com/multiversx/mx-chain-go/process/factory/shard"
+	"github.com/multiversx/mx-chain-go/process/factory/shard/data"
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/peer"
 	"github.com/multiversx/mx-chain-go/process/scToProtocol"
@@ -107,9 +109,9 @@ type runTypeComponents struct {
 	validatorInfoCreatorFactory             mainFactory.ValidatorInfoCreatorFactory
 	apiProcessorCompsCreatorHandler         api.ApiProcessorCompsCreatorHandler
 	endOfEpochEconomicsFactoryHandler       mainFactory.EndOfEpochEconomicsFactoryHandler
-	rewardsTxPreProcFactory                 preprocess.RewardsTxPreProcFactory
 	rewardsCreatorFactory                   mainFactory.RewardsCreatorFactory
 	systemSCProcessorFactory                mainFactory.SystemSCProcessorFactory
+	preProcessorsContainerFactoryCreator    data.PreProcessorsContainerFactoryCreator
 	dataRetrieverContainersSetter           mainFactory.DataRetrieverContainersSetter
 }
 
@@ -280,9 +282,9 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		validatorInfoCreatorFactory:             metachain.NewValidatorInfoCreatorFactory(),
 		apiProcessorCompsCreatorHandler:         api.NewAPIProcessorCompsCreator(),
 		endOfEpochEconomicsFactoryHandler:       metachain.NewEconomicsFactory(),
-		rewardsTxPreProcFactory:                 preprocess.NewRewardsTxPreProcFactory(),
 		rewardsCreatorFactory:                   metachain.NewRewardsCreatorFactory(),
 		systemSCProcessorFactory:                metachain.NewSysSCFactory(),
+		preProcessorsContainerFactoryCreator:    shard.NewPreProcessorContainerFactoryCreator(),
 		dataRetrieverContainersSetter:           dataRetriever.NewDataRetrieverContainerSetter(),
 	}, nil
 }

@@ -410,6 +410,15 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		resolversContainer,
 		requestersContainer,
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	err = pcf.prepareGenesisBlock(genesisBlocks)
+	if err != nil {
+		return nil, err
+	}
+
 	err = pcf.prepareGenesisBlock(genesisBlocks)
 	if err != nil {
 		return nil, err
@@ -2086,6 +2095,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.RunTypeComponents.SystemSCProcessorFactory()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilSysSCFactory)
+	}
+	if check.IfNil(args.RunTypeComponents.PreProcessorsContainerFactoryCreator()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilPreProcessorsContainerFactoryCreator)
 	}
 	if check.IfNil(args.RunTypeComponents.DataRetrieverContainersSetter()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilDataRetrieverContainersSetter)

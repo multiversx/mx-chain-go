@@ -48,7 +48,7 @@ func (st *sovereignTrigger) RevertStateToBlock(header data.HeaderHandler) error 
 	}
 
 	if header.IsStartOfEpochBlock() {
-		log.Debug("RevertStateToBlock with epoch start block called")
+		log.Debug("sovereignTrigger.RevertStateToBlock with epoch start block called")
 		st.SetProcessed(header, nil)
 		return nil
 	}
@@ -59,7 +59,7 @@ func (st *sovereignTrigger) RevertStateToBlock(header data.HeaderHandler) error 
 
 	currentHeaderHash, err := core.CalculateHash(st.marshaller, st.hasher, header)
 	if err != nil {
-		log.Warn("RevertStateToBlock error on hashing", "error", err)
+		log.Warn("sovereignTrigger.RevertStateToBlock error on hashing", "error", err)
 		return err
 	}
 
@@ -67,7 +67,7 @@ func (st *sovereignTrigger) RevertStateToBlock(header data.HeaderHandler) error 
 		return nil
 	}
 
-	log.Debug("RevertStateToBlock to revert behind epoch start block is called")
+	log.Debug("sovereignTrigger.RevertStateToBlock to revert behind epoch start block is called")
 	err = st.revert(prevMeta)
 	if err != nil {
 		return err
@@ -108,7 +108,7 @@ func (st *sovereignTrigger) revert(header data.HeaderHandler) error {
 		return err
 	}
 
-	st.baeRevert(epochStartSovMeta, sovMetaHdr)
+	st.baseRevert(epochStartSovMeta, sovMetaHdr)
 	return nil
 }
 

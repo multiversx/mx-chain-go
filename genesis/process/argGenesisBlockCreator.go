@@ -8,7 +8,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
@@ -19,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
+	shardData "github.com/multiversx/mx-chain-go/process/factory/shard/data"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -61,7 +61,7 @@ type runTypeComponentsHandler interface {
 	VMContextCreator() systemSmartContracts.VMContextCreatorHandler
 	VmContainerShardFactoryCreator() factoryVm.VmContainerCreator
 	VmContainerMetaFactoryCreator() factoryVm.VmContainerCreator
-	RewardsTxPreProcFactory() preprocess.RewardsTxPreProcFactory
+	PreProcessorsContainerFactoryCreator() shardData.PreProcessorsContainerFactoryCreator
 	IsInterfaceNil() bool
 }
 

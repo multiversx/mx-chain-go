@@ -385,11 +385,11 @@ func (t *trigger) revert(header data.HeaderHandler) error {
 		return err
 	}
 
-	t.baeRevert(epochStartMeta, metaHdr)
+	t.baseRevert(epochStartMeta, metaHdr)
 	return nil
 }
 
-func (t *trigger) baeRevert(epochStartMeta data.MetaHeaderHandler, metaHdr data.MetaHeaderHandler) {
+func (t *trigger) baseRevert(epochStartMeta data.MetaHeaderHandler, metaHdr data.MetaHeaderHandler) {
 	epochStartIdentifier := core.EpochStartIdentifier(metaHdr.GetEpoch())
 	errNotCritical := t.triggerStorage.Remove([]byte(epochStartIdentifier))
 	if errNotCritical != nil {
