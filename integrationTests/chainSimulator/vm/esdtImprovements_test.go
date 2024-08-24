@@ -1482,7 +1482,12 @@ func TestChainSimulator_ESDTModifyCreator(t *testing.T) {
 
 		require.Equal(t, "success", txResult.Status.String())
 
-		retrievedMetaData := getMetaDataFromAcc(t, cs, core.SystemAccountAddress, tokenIDs[i], shardID)
+		retrievedMetaData := &esdt.MetaData{}
+		if bytes.Equal(tokenIDs[i], nftTokenID) {
+			retrievedMetaData = getMetaDataFromAcc(t, cs, newCreatorAddress.Bytes, tokenIDs[i], shardID)
+		} else {
+			retrievedMetaData = getMetaDataFromAcc(t, cs, core.SystemAccountAddress, tokenIDs[i], shardID)
+		}
 
 		require.Equal(t, newCreatorAddress.Bytes, retrievedMetaData.Creator)
 	}
@@ -1695,8 +1700,13 @@ func TestChainSimulator_ESDTModifyCreator_CrossShard(t *testing.T) {
 
 		require.Equal(t, "success", txResult.Status.String())
 
+		retrievedMetaData := &esdt.MetaData{}
 		shardID := cs.GetNodeHandler(0).GetProcessComponents().ShardCoordinator().ComputeId(newCreatorAddress.Bytes)
-		retrievedMetaData := getMetaDataFromAcc(t, cs, core.SystemAccountAddress, tokenIDs[i], shardID)
+		if bytes.Equal(tokenIDs[i], nftTokenID) {
+			retrievedMetaData = getMetaDataFromAcc(t, cs, newCreatorAddress.Bytes, tokenIDs[i], shardID)
+		} else {
+			retrievedMetaData = getMetaDataFromAcc(t, cs, core.SystemAccountAddress, tokenIDs[i], shardID)
+		}
 
 		require.Equal(t, newCreatorAddress.Bytes, retrievedMetaData.Creator)
 
@@ -2504,7 +2514,8 @@ func TestChainSimulator_NFT_RegisterDynamic(t *testing.T) {
 
 	shardID := cs.GetNodeHandler(0).GetProcessComponents().ShardCoordinator().ComputeId(addrs[0].Bytes)
 
-	checkMetaData(t, cs, core.SystemAccountAddress, nftTokenID, shardID, nftMetaData)
+	checkMetaData(t, cs, addrs[0].Bytes, nftTokenID, shardID, nftMetaData)
+	checkMetaDataNotInAcc(t, cs, core.SystemAccountAddress, nftTokenID, shardID)
 
 	log.Info("Check that token type is Dynamic")
 
@@ -2747,7 +2758,8 @@ func TestChainSimulator_NFT_RegisterAndSetAllRolesDynamic(t *testing.T) {
 
 	shardID := cs.GetNodeHandler(0).GetProcessComponents().ShardCoordinator().ComputeId(addrs[0].Bytes)
 
-	checkMetaData(t, cs, core.SystemAccountAddress, nftTokenID, shardID, nftMetaData)
+	checkMetaData(t, cs, addrs[0].Bytes, nftTokenID, shardID, nftMetaData)
+	checkMetaDataNotInAcc(t, cs, core.SystemAccountAddress, nftTokenID, shardID)
 
 	log.Info("Check that token type is Dynamic")
 
@@ -3789,11 +3801,12 @@ func TestChainSimulator_CreateAndPauseTokens_DynamicNFT(t *testing.T) {
 	err = cs.GenerateBlocks(10)
 	require.Nil(t, err)
 
-	log.Info("Step 1. check that the metadata for all tokens is saved on the system account")
+	log.Info("Step 1. check that the metadata for the Dynamic NFT is saved on the user account")
 
 	shardID := cs.GetNodeHandler(0).GetProcessComponents().ShardCoordinator().ComputeId(addrs[0].Bytes)
 
-	checkMetaData(t, cs, core.SystemAccountAddress, nftTokenID, shardID, nftMetaData)
+	checkMetaData(t, cs, addrs[0].Bytes, nftTokenID, shardID, nftMetaData)
+	checkMetaDataNotInAcc(t, cs, core.SystemAccountAddress, nftTokenID, shardID)
 
 	log.Info("Step 1b. Pause all tokens")
 
@@ -3809,34 +3822,13 @@ func TestChainSimulator_CreateAndPauseTokens_DynamicNFT(t *testing.T) {
 	require.Equal(t, "", result.ReturnMessage)
 	require.Equal(t, testsChainSimulator.OkReturnCode, result.ReturnCode)
 
-	tx = updateTokenIDTx(nonce, addrs[0].Bytes, nftTokenID)
-	nonce++
-
-	log.Info("updating token id", "tokenID", nftTokenID)
-
-	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
-	require.Nil(t, err)
-	require.NotNil(t, txResult)
-	require.Equal(t, "success", txResult.Status.String())
-
-	log.Info("change to dynamic token")
-
-	tx = changeToDynamicTx(nonce, addrs[0].Bytes, nftTokenID)
-	nonce++
-
-	log.Info("updating token id", "tokenID", nftTokenID)
-
-	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
-	require.Nil(t, err)
-	require.NotNil(t, txResult)
-	require.Equal(t, "success", txResult.Status.String())
-
-	log.Info("check that the metadata for all tokens is saved on the system account")
+	log.Info("check that the metadata for the Dynamic NFT is saved on the user account")
 
 	err = cs.GenerateBlocks(10)
 	require.Nil(t, err)
 
-	checkMetaData(t, cs, core.SystemAccountAddress, nftTokenID, shardID, nftMetaData)
+	checkMetaData(t, cs, addrs[0].Bytes, nftTokenID, shardID, nftMetaData)
+	checkMetaDataNotInAcc(t, cs, core.SystemAccountAddress, nftTokenID, shardID)
 
 	log.Info("transfering token id", "tokenID", nftTokenID)
 
@@ -3846,16 +3838,16 @@ func TestChainSimulator_CreateAndPauseTokens_DynamicNFT(t *testing.T) {
 	require.NotNil(t, txResult)
 	require.Equal(t, "success", txResult.Status.String())
 
-	log.Info("check that the metaData for the NFT is still on the system account")
+	log.Info("check that the metaData for the NFT is on the new user account")
 
 	err = cs.GenerateBlocks(10)
 	require.Nil(t, err)
 
 	shardID = cs.GetNodeHandler(0).GetProcessComponents().ShardCoordinator().ComputeId(addrs[2].Bytes)
 
-	checkMetaData(t, cs, core.SystemAccountAddress, nftTokenID, shardID, nftMetaData)
+	checkMetaData(t, cs, addrs[1].Bytes, nftTokenID, shardID, nftMetaData)
 	checkMetaDataNotInAcc(t, cs, addrs[0].Bytes, nftTokenID, shardID)
-	checkMetaDataNotInAcc(t, cs, addrs[1].Bytes, nftTokenID, shardID)
+	checkMetaDataNotInAcc(t, cs, core.SystemAccountAddress, nftTokenID, shardID)
 }
 
 func TestChainSimulator_CheckRolesWhichHasToBeSingular(t *testing.T) {

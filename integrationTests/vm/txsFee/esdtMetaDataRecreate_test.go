@@ -64,7 +64,11 @@ func runEsdtMetaDataRecreateTest(t *testing.T, tokenType string) {
 	_, err = testContext.Accounts.Commit()
 	require.Nil(t, err)
 
-	checkMetaData(t, testContext, core.SystemAccountAddress, key, defaultMetaData)
+	if tokenType == core.DynamicNFTESDT {
+		checkMetaData(t, testContext, sndAddr, key, defaultMetaData)
+	} else {
+		checkMetaData(t, testContext, core.SystemAccountAddress, key, defaultMetaData)
+	}
 }
 
 func esdtMetaDataRecreateTx(
