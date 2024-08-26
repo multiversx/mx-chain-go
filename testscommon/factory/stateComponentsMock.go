@@ -16,6 +16,7 @@ type StateComponentsMock struct {
 	Tries                    common.TriesHolder
 	StorageManagers          map[string]common.StorageManager
 	MissingNodesNotifier     common.MissingTrieNodesNotifier
+	ChangesCollector         state.StateChangesCollector
 }
 
 // NewStateComponentsMockFromRealComponent -
@@ -87,6 +88,11 @@ func (scm *StateComponentsMock) String() string {
 // MissingTrieNodesNotifier -
 func (scm *StateComponentsMock) MissingTrieNodesNotifier() common.MissingTrieNodesNotifier {
 	return scm.MissingNodesNotifier
+}
+
+// StateChangesCollector -
+func (scm *StateComponentsMock) StateChangesCollector() state.StateChangesCollector {
+	return scm.ChangesCollector
 }
 
 // IsInterfaceNil -

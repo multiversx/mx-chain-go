@@ -178,11 +178,6 @@ func (r *simulationAccountsDB) SetTxHashForLatestStateChanges(txHash []byte, tx 
 	r.originalAccounts.SetTxHashForLatestStateChanges(txHash, tx)
 }
 
-// ResetStateChangesCollector -
-func (r *simulationAccountsDB) ResetStateChangesCollector() []state.StateChangesForTx {
-	return nil
-}
-
 // Close will handle the closing of the underlying components
 func (r *simulationAccountsDB) Close() error {
 	return nil

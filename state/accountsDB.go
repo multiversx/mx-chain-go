@@ -909,14 +909,10 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 	log.Trace("accountsDB.Commit started")
 	adb.entries = make([]JournalEntry, 0)
 
-	// if len(stateChanges) != 0 {
-	// 	log.Warn("state changes collector is not empty", "state changes", stateChanges)
-	// 	adb.stateChangesCollector.Reset()
-	// }
-
 	err := adb.stateChangesCollector.Publish()
 	if err != nil {
 		log.Warn("failed to dump state changes to json file", "error", err)
+		return nil, err
 	}
 
 	adb.stateChangesCollector.Reset()
