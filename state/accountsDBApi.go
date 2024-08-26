@@ -243,11 +243,6 @@ func (accountsDB *accountsDBApi) SetTxHashForLatestStateChanges(txHash []byte, t
 	accountsDB.innerAccountsAdapter.SetTxHashForLatestStateChanges(txHash, tx)
 }
 
-// ResetStateChangesCollector returns nil
-func (accountsDB *accountsDBApi) ResetStateChangesCollector() []StateChangesForTx {
-	return nil
-}
-
 // Close will handle the closing of the underlying components
 func (accountsDB *accountsDBApi) Close() error {
 	return accountsDB.innerAccountsAdapter.Close()

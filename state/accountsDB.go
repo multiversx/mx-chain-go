@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/state/parsers"
+	"github.com/multiversx/mx-chain-go/state/stateChanges"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -208,7 +209,7 @@ func (adb *AccountsDB) GetCode(codeHash []byte) []byte {
 		return nil
 	}
 
-	stateChange := StateChangeDTO{
+	stateChange := &stateChanges.StateChangeDTO{
 		Type:            "read",
 		MainTrieKey:     codeHash,
 		MainTrieVal:     val,
@@ -283,7 +284,7 @@ func (adb *AccountsDB) SaveAccount(account vmcommon.AccountHandler) error {
 		return err
 	}
 
-	stateChange := &StateChangeDTO{
+	stateChange := &stateChanges.StateChangeDTO{
 		Type:            "write",
 		MainTrieKey:     account.AddressBytes(),
 		MainTrieVal:     marshalledAccount,
@@ -291,68 +292,17 @@ func (adb *AccountsDB) SaveAccount(account vmcommon.AccountHandler) error {
 		Operation:       "saveAccount",
 	}
 
-	checkAccountChanges(oldAccount, account, stateChange)
-
-	adb.stateChangesCollector.AddStateChange(*stateChange)
+	adb.stateChangesCollector.AddSaveAccountStateChange(oldAccount, account, stateChange)
 
 	return err
 }
 
-func checkAccountChanges(oldAcc, newAcc vmcommon.AccountHandler, stateChange *StateChangeDTO) {
-	baseNewAcc, newAccOk := newAcc.(UserAccountHandler)
-	if !newAccOk {
-		log.Trace("checkAccountChanges: Not able to cast new acc")
-		return
-	}
-	baseOldAccount, oldAccOk := oldAcc.(UserAccountHandler)
-	if !oldAccOk {
-		log.Trace("checkAccountChanges: Not able to cast old acc")
-		return
-	}
-
-	if baseNewAcc.GetNonce() != baseOldAccount.GetNonce() {
-		stateChange.Nonce = true
-	}
-
-	if baseNewAcc.GetBalance().Uint64() != baseOldAccount.GetBalance().Uint64() {
-		stateChange.Balance = true
-	}
-
-	if !bytes.Equal(baseNewAcc.GetCodeHash(), baseOldAccount.GetCodeHash()) {
-		stateChange.CodeHash = true
-	}
-
-	if !bytes.Equal(baseNewAcc.GetRootHash(), baseOldAccount.GetRootHash()) {
-		stateChange.RootHash = true
-		log.Trace("checkAccountChanges: rootHash changed", "address", baseNewAcc.AddressBytes())
-	}
-	log.Trace("checkAccountChanges: rootHash NOT changed", "address", baseNewAcc.AddressBytes())
-
-	if !bytes.Equal(baseNewAcc.GetDeveloperReward().Bytes(), baseOldAccount.GetDeveloperReward().Bytes()) {
-		stateChange.DeveloperReward = true
-	}
-
-	if !bytes.Equal(baseNewAcc.GetOwnerAddress(), baseOldAccount.GetOwnerAddress()) {
-		stateChange.OwnerAddress = true
-	}
-
-	if !bytes.Equal(baseNewAcc.GetUserName(), baseOldAccount.GetUserName()) {
-		stateChange.UserName = true
-	}
-
-	if !bytes.Equal(baseNewAcc.GetCodeMetadata(), baseOldAccount.GetCodeMetadata()) {
-		stateChange.CodeMetadata = true
-	}
-
-	log.Trace("checkAccountChanges: checked all", "address", baseNewAcc.AddressBytes())
-}
-
-func (adb *AccountsDB) saveCodeAndDataTrie(oldAcc, newAcc vmcommon.AccountHandler) ([]DataTrieChange, error) {
+func (adb *AccountsDB) saveCodeAndDataTrie(oldAcc, newAcc vmcommon.AccountHandler) ([]stateChanges.DataTrieChange, error) {
 	baseNewAcc, newAccOk := newAcc.(baseAccountHandler)
 	baseOldAccount, _ := oldAcc.(baseAccountHandler)
 
 	if !newAccOk {
-		return make([]DataTrieChange, 0), nil
+		return make([]stateChanges.DataTrieChange, 0), nil
 	}
 
 	newValues, err := adb.saveDataTrie(baseNewAcc)
@@ -421,7 +371,7 @@ func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte) (*CodeEntry, error
 		return nil, nil
 	}
 
-	stateChange := StateChangeDTO{
+	stateChange := &stateChanges.StateChangeDTO{
 		Type:            "read",
 		MainTrieKey:     oldCodeHash,
 		MainTrieVal:     nil,
@@ -441,7 +391,7 @@ func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte) (*CodeEntry, error
 			return nil, err
 		}
 
-		stateChange := StateChangeDTO{
+		stateChange := &stateChanges.StateChangeDTO{
 			Type:            "write",
 			MainTrieKey:     oldCodeHash,
 			MainTrieVal:     nil,
@@ -459,7 +409,7 @@ func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte) (*CodeEntry, error
 		return nil, err
 	}
 
-	stateChange = StateChangeDTO{
+	stateChange = &stateChanges.StateChangeDTO{
 		Type:            "write",
 		MainTrieKey:     oldCodeHash,
 		MainTrieVal:     codeEntryBytes,
@@ -493,7 +443,7 @@ func (adb *AccountsDB) updateNewCodeEntry(newCodeHash []byte, newCode []byte) er
 		return err
 	}
 
-	stateChange := StateChangeDTO{
+	stateChange := &stateChanges.StateChangeDTO{
 		Type:            "write",
 		MainTrieKey:     newCodeHash,
 		MainTrieVal:     codeEntryBytes,
@@ -566,7 +516,7 @@ func (adb *AccountsDB) loadDataTrieConcurrentSafe(accountHandler baseAccountHand
 
 // SaveDataTrie is used to save the data trie (not committing it) and to recompute the new Root value
 // If data is not dirtied, method will not create its JournalEntries to keep track of data modification
-func (adb *AccountsDB) saveDataTrie(accountHandler baseAccountHandler) ([]DataTrieChange, error) {
+func (adb *AccountsDB) saveDataTrie(accountHandler baseAccountHandler) ([]stateChanges.DataTrieChange, error) {
 	newValues, oldValues, err := accountHandler.SaveDirtyData(adb.mainTrie)
 	if err != nil {
 		return nil, err
@@ -700,13 +650,13 @@ func (adb *AccountsDB) removeDataTrie(baseAcc baseAccountHandler) error {
 	}
 	adb.journalize(entry)
 
-	stateChange := &StateChangeDTO{
+	stateChange := &stateChanges.StateChangeDTO{
 		Type:            "write",
 		MainTrieKey:     baseAcc.AddressBytes(),
 		Operation:       "removeDataTrie",
 		DataTrieChanges: nil,
 	}
-	adb.stateChangesCollector.AddStateChange(*stateChange)
+	adb.stateChangesCollector.AddStateChange(stateChange)
 
 	return nil
 }
@@ -955,19 +905,6 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 	return adb.commit()
 }
 
-func printStateChanges(stateChanges []StateChangesForTx) {
-	for _, stateChange := range stateChanges {
-		if stateChange.TxHash != nil {
-			fmt.Println(hex.EncodeToString(stateChange.TxHash))
-		}
-
-		for _, st := range stateChange.StateChanges {
-			fmt.Println(string(st.MainTrieKey))
-			fmt.Println(hex.EncodeToString(st.MainTrieVal))
-		}
-	}
-}
-
 func (adb *AccountsDB) commit() ([]byte, error) {
 	log.Trace("accountsDB.Commit started")
 	adb.entries = make([]JournalEntry, 0)
@@ -977,16 +914,12 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 	// 	adb.stateChangesCollector.Reset()
 	// }
 
-	stateChanges := adb.stateChangesCollector.GetStateChanges()
-	printStateChanges(stateChanges)
-	err := adb.stateChangesCollector.DumpToJSONFile()
+	err := adb.stateChangesCollector.Publish()
 	if err != nil {
 		log.Warn("failed to dump state changes to json file", "error", err)
 	}
-	log.Debug("SetTxHashForLatestStateChanges: dump to json file")
 
 	adb.stateChangesCollector.Reset()
-	log.Debug("SetTxHashForLatestStateChanges: reset")
 
 	oldHashes := make(common.ModifiedHashes)
 	newHashes := make(common.ModifiedHashes)
@@ -1372,13 +1305,6 @@ func collectStats(
 // SetTxHashForLatestStateChanges will return the state changes since the last call of this method
 func (adb *AccountsDB) SetTxHashForLatestStateChanges(txHash []byte, tx *transaction.Transaction) {
 	adb.stateChangesCollector.AddTxHashToCollectedStateChanges(txHash, tx)
-}
-
-func (adb *AccountsDB) ResetStateChangesCollector() []StateChangesForTx {
-	stateChanges := adb.stateChangesCollector.GetStateChanges()
-	adb.stateChangesCollector.Reset()
-
-	return stateChanges
 }
 
 // IsSnapshotInProgress returns true if there is a snapshot in progress

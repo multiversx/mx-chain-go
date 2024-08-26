@@ -145,11 +145,6 @@ func (accountsDB *accountsDBApiWithHistory) GetStackDebugFirstEntry() []byte {
 func (accountsDB *accountsDBApiWithHistory) SetTxHashForLatestStateChanges(_ []byte, _ *transaction.Transaction) {
 }
 
-// ResetStateChangesCollector returns nil
-func (accountsDB *accountsDBApiWithHistory) ResetStateChangesCollector() []StateChangesForTx {
-	return nil
-}
-
 // Close will handle the closing of the underlying components
 func (accountsDB *accountsDBApiWithHistory) Close() error {
 	return accountsDB.innerAccountsAdapter.Close()

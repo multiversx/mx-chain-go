@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/state/stateChanges"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
@@ -92,7 +93,6 @@ type AccountsAdapter interface {
 	SetSyncer(syncer AccountsDBSyncer) error
 	StartSnapshotIfNeeded() error
 	SetTxHashForLatestStateChanges(txHash []byte, tx *transaction.Transaction)
-	ResetStateChangesCollector() []StateChangesForTx
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -162,7 +162,7 @@ type baseAccountHandler interface {
 	GetRootHash() []byte
 	SetDataTrie(trie common.Trie)
 	DataTrie() common.DataTrieHandler
-	SaveDirtyData(trie common.Trie) ([]DataTrieChange, []core.TrieData, error)
+	SaveDirtyData(trie common.Trie) ([]stateChanges.DataTrieChange, []core.TrieData, error)
 	IsInterfaceNil() bool
 }
 
@@ -260,7 +260,7 @@ type DataTrieTracker interface {
 	SaveKeyValue(key []byte, value []byte) error
 	SetDataTrie(tr common.Trie)
 	DataTrie() common.DataTrieHandler
-	SaveDirtyData(common.Trie) ([]DataTrieChange, []core.TrieData, error)
+	SaveDirtyData(common.Trie) ([]stateChanges.DataTrieChange, []core.TrieData, error)
 	MigrateDataTrieLeaves(args vmcommon.ArgsMigrateDataTrieLeaves) error
 	IsInterfaceNil() bool
 }
@@ -356,12 +356,12 @@ type ValidatorInfoHandler interface {
 
 // StateChangesCollector defines the methods needed for an StateChangesCollector implementation
 type StateChangesCollector interface {
-	AddStateChange(stateChange StateChangeDTO)
-	GetStateChanges() []StateChangesForTx
+	AddStateChange(stateChange stateChanges.StateChange)
+	AddSaveAccountStateChange(oldAccount, account vmcommon.AccountHandler, stateChange stateChanges.StateChange)
 	Reset()
 	AddTxHashToCollectedStateChanges(txHash []byte, tx *transaction.Transaction)
 	SetIndexToLastStateChange(index int) error
 	RevertToIndex(index int) error
-	DumpToJSONFile() error
+	Publish() error
 	IsInterfaceNil() bool
 }
