@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"runtime"
 	"sync"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/display"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -20,6 +22,11 @@ import (
 )
 
 const timeBetweenSignaturesChecks = time.Millisecond * 5
+
+type ErrSigVerificationPair struct {
+	Err1 error
+	Err2 error
+}
 
 type subroundEndRound struct {
 	*spos.Subround
@@ -551,6 +558,102 @@ func (sr *subroundEndRound) aggregateSigsAndHandleInvalidSigners(bitmap []byte) 
 	}
 
 	return bitmap, sig, nil
+}
+
+func (sr *subroundEndRound) signatureVerification(wg *sync.WaitGroup, i int, pk string, invalidPubKey *[]string, mutex *sync.Mutex, errorPair []ErrSigVerificationPair) {
+	defer wg.Done()
+
+	isSuccessfull := true
+	err := sr.SigningHandler().VerifySignatureShare(uint16(i), sigShare, sr.GetData(), sr.Header.GetEpoch())
+	if err != nil {
+		isSuccessfull = false
+		err = sr.SetJobDone(pk, SrSignature, false)
+		if err != nil {
+			errorPair[i].Err1 = SetJobDoneError
+			errorPair[i].Err2 = err
+			return
+		}
+		decreaseFactor := -spos.ValidatorPeerHonestyIncreaseFactor + spos.ValidatorPeerHonestyDecreaseFactor
+		sr.PeerHonestyHandler().ChangeScore(
+			pk,
+			spos.GetConsensusTopicID(sr.ShardCoordinator()),
+			decreaseFactor,
+		)
+		mutex.Lock()
+		*invalidPubKey = append(*invalidPubKey, pk)
+		mutex.Unlock()
+	}
+
+	log.Trace("verifyNodesOnAggSigVerificationFail: verifying signature share", "public key", pk, "is successfull", isSuccessfull)
+	errorPair[i].Err1 = nil
+	errorPair[i].Err2 = nil
+}
+
+func (sr *subroundEndRound) verifyNodesOnAggSigFailAux() ([]string, error) {
+	invalidPubKeys := make([]string, 0)
+	errorPair := make([]ErrSigVerificationPair, len(sr.ConsensusGroup()))
+	pubKeys := sr.ConsensusGroup()
+	wg := &sync.WaitGroup{}
+	mutex := &sync.Mutex{}
+	if check.IfNil(sr.Header) {
+		return nil, spos.ErrNilHeader
+	}
+	for i, pk := range pubKeys {
+		isJobDone, err := sr.JobDone(pk, SrSignature)
+		if err != nil {
+			errorPair[i].Err1 = JobDoneError
+			errorPair[i].Err2 = err
+			return
+		}
+		if !isJobDone {
+			errorPair[i].Err1 = JobIsNotDoneError
+			errorPair[i].Err2 = nil
+			return
+		}
+		sigShare, err := sr.SigningHandler().SignatureShare(uint16(i))
+		if err != nil {
+			errorPair[i].Err1 = SignatureShareError
+			errorPair[i].Err2 = err
+			return
+		}
+		wg.Add(1)
+		sr.signatureVerification(wg, i, pk, &invalidPubKeys, mutex, errorPair)
+	}
+	wg.Wait()
+	for i := range errorPair {
+		if errorPair[i].Err1 == SignatureShareError || errorPair[i].Err1 == SetJobDoneError {
+			return nil, errorPair[i].Err2
+		}
+	}
+	return invalidPubKeys, nil
+}
+
+func (sr *subroundEndRound) verifyNodesOnAggSigFailAuxThrottle() ([]string, error) {
+	invalidPubKeys := make([]string, 0)
+	errorPair := make([]ErrSigVerificationPair, len(sr.ConsensusGroup()))
+	pubKeys := sr.ConsensusGroup()
+	wg := &sync.WaitGroup{}
+	mutex := &sync.Mutex{}
+	if check.IfNil(sr.Header) {
+		return nil, spos.ErrNilHeader
+	}
+	sizeOfPubKeys := len(pubKeys)
+	numCpu := runtime.NumCPU()
+	for i := 0; i < sizeOfPubKeys; i += numCpu {
+		for j := 0; j < numCpu; j++ {
+			if i+j < sizeOfPubKeys {
+				wg.Add(1)
+				sr.signatureVerification(wg, i+j, pubKeys[i+j], &invalidPubKeys, mutex, errorPair)
+			}
+		}
+		wg.Wait()
+	}
+	for i := range errorPair {
+		if errorPair[i].Err1 == SignatureShareError || errorPair[i].Err1 == SetJobDoneError {
+			return nil, errorPair[i].Err2
+		}
+	}
+	return invalidPubKeys, nil
 }
 
 func (sr *subroundEndRound) verifyNodesOnAggSigFail() ([]string, error) {

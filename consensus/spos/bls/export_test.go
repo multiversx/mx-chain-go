@@ -2,12 +2,14 @@ package bls
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -365,4 +367,16 @@ func (sr *subroundStartRound) ChangeEpoch(epoch uint32) {
 // IndexRoundIfNeeded calls the unexported indexRoundIfNeeded function
 func (sr *subroundStartRound) IndexRoundIfNeeded(pubKeys []string) {
 	sr.indexRoundIfNeeded(pubKeys)
+}
+
+func (sr *subroundEndRound) SignatureVerification(wg *sync.WaitGroup, i int, pk string, invalidPubKey *[]string, mutex *sync.Mutex, errorPair []ErrSigVerificationPair) {
+	sr.signatureVerification(wg, i, pk, invalidPubKey, mutex, errorPair)
+}
+
+func (sr *subroundEndRound) VerifyNodesOnAggSigFailAux() ([]string, error) {
+	return sr.verifyNodesOnAggSigFailAux()
+}
+
+func (sr *subroundEndRound) VerifyNodesOnAggSigFailAuxThrottle() ([]string, error) {
+	return sr.verifyNodesOnAggSigFailAuxThrottle()
 }

@@ -4,11 +4,12 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/stretchr/testify/assert"
 )
 
 func createEligibleList(size int) []string {
@@ -23,15 +24,22 @@ func initConsensusState() *spos.ConsensusState {
 	return initConsensusStateWithKeysHandler(&testscommon.KeysHandlerStub{})
 }
 
+func initConsensusState400() *spos.ConsensusState {
+	return initConsensusStateWithKeysHandlerWithGroupSize(&testscommon.KeysHandlerStub{}, 400)
+}
+
 func initConsensusStateWithKeysHandler(keysHandler consensus.KeysHandler) *spos.ConsensusState {
 	consensusGroupSize := 9
+	return initConsensusStateWithKeysHandlerWithGroupSize(keysHandler, consensusGroupSize)
+}
+
+func initConsensusStateWithKeysHandlerWithGroupSize(keysHandler consensus.KeysHandler, consensusGroupSize int) *spos.ConsensusState {
 	eligibleList := createEligibleList(consensusGroupSize)
 
 	eligibleNodesPubKeys := make(map[string]struct{})
 	for _, key := range eligibleList {
 		eligibleNodesPubKeys[key] = struct{}{}
 	}
-
 	indexLeader := 1
 	rcns, _ := spos.NewRoundConsensus(
 		eligibleNodesPubKeys,
@@ -39,28 +47,22 @@ func initConsensusStateWithKeysHandler(keysHandler consensus.KeysHandler) *spos.
 		eligibleList[indexLeader],
 		keysHandler,
 	)
-
 	rcns.SetConsensusGroup(eligibleList)
 	rcns.ResetRoundState()
-
 	pBFTThreshold := consensusGroupSize*2/3 + 1
 	pBFTFallbackThreshold := consensusGroupSize*1/2 + 1
-
 	rthr := spos.NewRoundThreshold()
 	rthr.SetThreshold(1, 1)
 	rthr.SetThreshold(2, pBFTThreshold)
 	rthr.SetFallbackThreshold(1, 1)
 	rthr.SetFallbackThreshold(2, pBFTFallbackThreshold)
-
 	rstatus := spos.NewRoundStatus()
 	rstatus.ResetRoundStatus()
-
 	cns := spos.NewConsensusState(
 		rcns,
 		rthr,
 		rstatus,
 	)
-
 	cns.Data = []byte("X")
 	cns.RoundIndex = 0
 	return cns

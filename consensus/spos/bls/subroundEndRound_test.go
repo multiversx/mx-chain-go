@@ -13,6 +13,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
@@ -26,8 +29,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func initSubroundEndRoundWithContainer(
@@ -36,6 +37,42 @@ func initSubroundEndRoundWithContainer(
 ) bls.SubroundEndRound {
 	ch := make(chan bool, 1)
 	consensusState := initConsensusState()
+	sr, _ := spos.NewSubround(
+		bls.SrSignature,
+		bls.SrEndRound,
+		-1,
+		int64(85*roundTimeDuration/100),
+		int64(95*roundTimeDuration/100),
+		"(END_ROUND)",
+		consensusState,
+		ch,
+		executeStoredMessages,
+		container,
+		chainID,
+		currentPid,
+		appStatusHandler,
+	)
+	sr.Header = &block.HeaderV2{
+		Header: createDefaultHeader(),
+	}
+
+	srEndRound, _ := bls.NewSubroundEndRound(
+		sr,
+		bls.ProcessingThresholdPercent,
+		appStatusHandler,
+		&testscommon.SentSignatureTrackerStub{},
+		&mock.SposWorkerMock{},
+	)
+
+	return srEndRound
+}
+
+func initSubroundEndRoundWithContainer400Sig(
+	container *mock.ConsensusCoreMock,
+	appStatusHandler core.AppStatusHandler,
+) bls.SubroundEndRound {
+	ch := make(chan bool, 1)
+	consensusState := initConsensusState400()
 	sr, _ := spos.NewSubround(
 		bls.SrSignature,
 		bls.SrEndRound,
