@@ -41,7 +41,6 @@ type AccountsStub struct {
 	SetSyncerCalled                      func(syncer state.AccountsDBSyncer) error
 	StartSnapshotIfNeededCalled          func() error
 	SetTxHashForLatestStateChangesCalled func(txHash []byte, tx *transaction.Transaction)
-	ResetStateChangesCollectorCalled     func() []state.StateChangesForTx
 }
 
 // CleanCache -
@@ -265,15 +264,6 @@ func (as *AccountsStub) SetTxHashForLatestStateChanges(txHash []byte, tx *transa
 	if as.SetTxHashForLatestStateChangesCalled != nil {
 		as.SetTxHashForLatestStateChangesCalled(txHash, tx)
 	}
-}
-
-// ResetStateChangesCollector -
-func (as *AccountsStub) ResetStateChangesCollector() []state.StateChangesForTx {
-	if as.ResetStateChangesCollectorCalled != nil {
-		return as.ResetStateChangesCollectorCalled()
-	}
-
-	return nil
 }
 
 // Close -
