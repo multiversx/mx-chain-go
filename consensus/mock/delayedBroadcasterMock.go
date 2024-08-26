@@ -2,17 +2,27 @@ package mock
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/consensus"
 
 	"github.com/multiversx/mx-chain-go/consensus/broadcast/shared"
 )
 
 // DelayedBroadcasterMock -
 type DelayedBroadcasterMock struct {
-	SetLeaderDataCalled         func(data *shared.DelayedBroadcastData) error
-	SetValidatorDataCalled      func(data *shared.DelayedBroadcastData) error
-	SetHeaderForValidatorCalled func(vData *shared.ValidatorHeaderBroadcastData) error
-	SetBroadcastHandlersCalled  func(mbBroadcast func(mbData map[uint32][]byte, pkBytes []byte) error, txBroadcast func(txData map[string][][]byte, pkBytes []byte) error, headerBroadcast func(header data.HeaderHandler, pkBytes []byte) error) error
-	CloseCalled                 func()
+	SetLeaderDataCalled                        func(data *shared.DelayedBroadcastData) error
+	SetValidatorDataCalled                     func(data *shared.DelayedBroadcastData) error
+	SetHeaderForValidatorCalled                func(vData *shared.ValidatorHeaderBroadcastData) error
+	SetBroadcastHandlersCalled                 func(mbBroadcast func(mbData map[uint32][]byte, pkBytes []byte) error, txBroadcast func(txData map[string][][]byte, pkBytes []byte) error, headerBroadcast func(header data.HeaderHandler, pkBytes []byte) error, consensusMessageBroadcast func(message *consensus.Message) error) error
+	CloseCalled                                func()
+	SetFinalConsensusMessageForValidatorCalled func(message *consensus.Message, consensusIndex int) error
+}
+
+// SetFinalConsensusMessageForValidator -
+func (mock *DelayedBroadcasterMock) SetFinalConsensusMessageForValidator(message *consensus.Message, consensusIndex int) error {
+	if mock.SetFinalConsensusMessageForValidatorCalled != nil {
+		return mock.SetFinalConsensusMessageForValidatorCalled(message, consensusIndex)
+	}
+	return nil
 }
 
 // SetLeaderData -
@@ -40,9 +50,14 @@ func (mock *DelayedBroadcasterMock) SetHeaderForValidator(vData *shared.Validato
 }
 
 // SetBroadcastHandlers -
-func (mock *DelayedBroadcasterMock) SetBroadcastHandlers(mbBroadcast func(mbData map[uint32][]byte, pkBytes []byte) error, txBroadcast func(txData map[string][][]byte, pkBytes []byte) error, headerBroadcast func(header data.HeaderHandler, pkBytes []byte) error) error {
+func (mock *DelayedBroadcasterMock) SetBroadcastHandlers(
+	mbBroadcast func(mbData map[uint32][]byte, pkBytes []byte) error,
+	txBroadcast func(txData map[string][][]byte, pkBytes []byte) error,
+	headerBroadcast func(header data.HeaderHandler, pkBytes []byte) error,
+	consensusMessageBroadcast func(message *consensus.Message) error,
+) error {
 	if mock.SetBroadcastHandlersCalled != nil {
-		return mock.SetBroadcastHandlersCalled(mbBroadcast, txBroadcast, headerBroadcast)
+		return mock.SetBroadcastHandlersCalled(mbBroadcast, txBroadcast, headerBroadcast, consensusMessageBroadcast)
 	}
 	return nil
 }

@@ -16,6 +16,7 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	mclMultiSig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/multisig"
 	"github.com/multiversx/mx-chain-crypto-go/signing/multisig"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus/round"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -65,17 +66,18 @@ var testPubkeyConverter, _ = pubkeyConverter.NewHexPubkeyConverter(32)
 
 // ArgsTestConsensusNode represents the arguments for the test consensus node constructor(s)
 type ArgsTestConsensusNode struct {
-	ShardID       uint32
-	ConsensusSize int
-	RoundTime     uint64
-	ConsensusType string
-	NodeKeys      *TestNodeKeys
-	EligibleMap   map[uint32][]nodesCoordinator.Validator
-	WaitingMap    map[uint32][]nodesCoordinator.Validator
-	KeyGen        crypto.KeyGenerator
-	P2PKeyGen     crypto.KeyGenerator
-	MultiSigner   *cryptoMocks.MultisignerMock
-	StartTime     int64
+	ShardID            uint32
+	ConsensusSize      int
+	RoundTime          uint64
+	ConsensusType      string
+	NodeKeys           *TestNodeKeys
+	EligibleMap        map[uint32][]nodesCoordinator.Validator
+	WaitingMap         map[uint32][]nodesCoordinator.Validator
+	KeyGen             crypto.KeyGenerator
+	P2PKeyGen          crypto.KeyGenerator
+	MultiSigner        *cryptoMocks.MultisignerMock
+	StartTime          int64
+	EnableEpochsConfig config.EnableEpochs
 }
 
 // TestConsensusNode represents a structure used in integration tests used for consensus tests
@@ -116,6 +118,7 @@ func CreateNodesWithTestConsensusNode(
 	roundTime uint64,
 	consensusType string,
 	numKeysOnEachNode int,
+	enableEpochsConfig config.EnableEpochs,
 ) map[uint32][]*TestConsensusNode {
 
 	nodes := make(map[uint32][]*TestConsensusNode, nodesPerShard)
@@ -135,17 +138,18 @@ func CreateNodesWithTestConsensusNode(
 			multiSignerMock := createCustomMultiSignerMock(multiSigner)
 
 			args := ArgsTestConsensusNode{
-				ShardID:       shardID,
-				ConsensusSize: consensusSize,
-				RoundTime:     roundTime,
-				ConsensusType: consensusType,
-				NodeKeys:      keysPair,
-				EligibleMap:   eligibleMap,
-				WaitingMap:    waitingMap,
-				KeyGen:        cp.KeyGen,
-				P2PKeyGen:     cp.P2PKeyGen,
-				MultiSigner:   multiSignerMock,
-				StartTime:     startTime,
+				ShardID:            shardID,
+				ConsensusSize:      consensusSize,
+				RoundTime:          roundTime,
+				ConsensusType:      consensusType,
+				NodeKeys:           keysPair,
+				EligibleMap:        eligibleMap,
+				WaitingMap:         waitingMap,
+				KeyGen:             cp.KeyGen,
+				P2PKeyGen:          cp.P2PKeyGen,
+				MultiSigner:        multiSignerMock,
+				StartTime:          startTime,
+				EnableEpochsConfig: enableEpochsConfig,
 			}
 
 			tcn := NewTestConsensusNode(args)
@@ -189,7 +193,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	tcn.MainMessenger = CreateMessengerWithNoDiscovery()
 	tcn.FullArchiveMessenger = &p2pmocks.MessengerStub{}
 	tcn.initBlockChain(testHasher)
-	tcn.initBlockProcessor()
+	tcn.initBlockProcessor(tcn.ShardCoordinator.SelfId())
 
 	syncer := ntp.NewSyncTime(ntp.NewNTPGoogleConfig(), nil)
 	syncer.StartSyncingTime()
@@ -237,7 +241,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 
 	tcn.initAccountsDB()
 
-	coreComponents := GetDefaultCoreComponents(CreateEnableEpochsConfig())
+	coreComponents := GetDefaultCoreComponents(args.EnableEpochsConfig)
 	coreComponents.SyncTimerField = syncer
 	coreComponents.RoundHandlerField = roundHandler
 	coreComponents.InternalMarshalizerField = TestMarshalizer
@@ -436,7 +440,7 @@ func (tcn *TestConsensusNode) initBlockChain(hasher hashing.Hasher) {
 	tcn.ChainHandler.SetGenesisHeaderHash(hasher.Compute(string(hdrMarshalized)))
 }
 
-func (tcn *TestConsensusNode) initBlockProcessor() {
+func (tcn *TestConsensusNode) initBlockProcessor(shardId uint32) {
 	tcn.BlockProcessor = &mock.BlockProcessorMock{
 		Marshalizer: TestMarshalizer,
 		CommitBlockCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
@@ -460,11 +464,37 @@ func (tcn *TestConsensusNode) initBlockProcessor() {
 			return mrsData, mrsTxs, nil
 		},
 		CreateNewHeaderCalled: func(round uint64, nonce uint64) (data.HeaderHandler, error) {
-			return &dataBlock.Header{
-				Round:           round,
-				Nonce:           nonce,
-				SoftwareVersion: []byte("version"),
+			if shardId == common.MetachainShardId {
+				return &dataBlock.MetaBlock{
+					Round:                  round,
+					Nonce:                  nonce,
+					SoftwareVersion:        []byte("version"),
+					ValidatorStatsRootHash: []byte("validator stats root hash"),
+					AccumulatedFeesInEpoch: big.NewInt(0),
+					DeveloperFees:          big.NewInt(0),
+					DevFeesInEpoch:         big.NewInt(0),
+				}, nil
+			}
+
+			return &dataBlock.HeaderV2{
+				Header: &dataBlock.Header{
+					Round:           round,
+					Nonce:           nonce,
+					SoftwareVersion: []byte("version"),
+				},
+				ScheduledDeveloperFees:   big.NewInt(0),
+				ScheduledAccumulatedFees: big.NewInt(0),
 			}, nil
+		},
+		DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
+			var header data.HeaderHandler
+			header = &dataBlock.HeaderV2{}
+			if shardId == common.MetachainShardId {
+				header = &dataBlock.MetaBlock{}
+			}
+
+			_ = TestMarshalizer.Unmarshal(header, dta)
+			return header
 		},
 	}
 }
