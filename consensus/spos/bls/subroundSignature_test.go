@@ -7,6 +7,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
@@ -16,13 +19,11 @@ import (
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-	"github.com/pkg/errors"
-	"github.com/stretchr/testify/assert"
 )
 
 const setThresholdJobsDone = "threshold"
 
-func initSubroundSignatureWithContainer(container *mock.ConsensusCoreMock) bls.SubroundSignature {
+func initSubroundSignatureWithContainer(container *consensusMocks.ConsensusCoreMock) bls.SubroundSignature {
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
@@ -422,7 +423,7 @@ func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 		assert.False(t, r)
 
 		sr.SetSelfPubKey(sr.ConsensusGroup()[2])
-		container.SetBroadcastMessenger(&mock.BroadcastMessengerMock{
+		container.SetBroadcastMessenger(&consensusMocks.BroadcastMessengerMock{
 			BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
 				return expectedErr
 			},
@@ -430,7 +431,7 @@ func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 		r = sr.DoSignatureJob()
 		assert.False(t, r)
 
-		container.SetBroadcastMessenger(&mock.BroadcastMessengerMock{
+		container.SetBroadcastMessenger(&consensusMocks.BroadcastMessengerMock{
 			BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
 				return nil
 			},
@@ -456,7 +457,7 @@ func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 
 		sr.Header = &block.Header{}
 		sr.SetSelfPubKey(sr.ConsensusGroup()[0])
-		container.SetBroadcastMessenger(&mock.BroadcastMessengerMock{
+		container.SetBroadcastMessenger(&consensusMocks.BroadcastMessengerMock{
 			BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
 				assert.Fail(t, "should have not been called")
 				return nil
@@ -620,7 +621,7 @@ func TestSubroundSignature_DoSignatureJobWithMultikey(t *testing.T) {
 
 		sr.Header = &block.Header{}
 		signaturesBroadcast := make(map[string]int)
-		container.SetBroadcastMessenger(&mock.BroadcastMessengerMock{
+		container.SetBroadcastMessenger(&consensusMocks.BroadcastMessengerMock{
 			BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
 				signaturesBroadcast[string(message.PubKey)]++
 				return nil

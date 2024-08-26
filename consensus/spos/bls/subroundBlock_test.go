@@ -10,6 +10,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
@@ -20,14 +23,12 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 var expectedErr = errors.New("expected error")
 
 func defaultSubroundForSRBlock(consensusState *spos.ConsensusState, ch chan bool,
-	container *mock.ConsensusCoreMock, appStatusHandler core.AppStatusHandler) (*spos.Subround, error) {
+	container *consensusMocks.ConsensusCoreMock, appStatusHandler core.AppStatusHandler) (*spos.Subround, error) {
 	return spos.NewSubround(
 		bls.SrStartRound,
 		bls.SrBlock,
@@ -82,7 +83,7 @@ func defaultSubroundBlockWithoutErrorFromSubround(sr *spos.Subround) bls.Subroun
 
 func initSubroundBlock(
 	blockChain data.ChainHandler,
-	container *mock.ConsensusCoreMock,
+	container *consensusMocks.ConsensusCoreMock,
 	appStatusHandler core.AppStatusHandler,
 ) bls.SubroundBlock {
 	if blockChain == nil {
@@ -113,8 +114,8 @@ func initSubroundBlock(
 	return srBlock
 }
 
-func createConsensusContainers() []*mock.ConsensusCoreMock {
-	consensusContainers := make([]*mock.ConsensusCoreMock, 0)
+func createConsensusContainers() []*consensusMocks.ConsensusCoreMock {
+	consensusContainers := make([]*consensusMocks.ConsensusCoreMock, 0)
 	container := mock.InitConsensusCore()
 	consensusContainers = append(consensusContainers, container)
 	container = mock.InitConsensusCoreHeaderV2()
@@ -124,7 +125,7 @@ func createConsensusContainers() []*mock.ConsensusCoreMock {
 
 func initSubroundBlockWithBlockProcessor(
 	bp *testscommon.BlockProcessorStub,
-	container *mock.ConsensusCoreMock,
+	container *consensusMocks.ConsensusCoreMock,
 ) bls.SubroundBlock {
 	blockChain := &testscommon.ChainHandlerStub{
 		GetGenesisHeaderCalled: func() data.HeaderHandler {
@@ -436,7 +437,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		sr.SetSelfPubKey(sr.ConsensusGroup()[0])
 		bpm := mock.InitBlockProcessorMock(container.Marshalizer())
 		container.SetBlockProcessor(bpm)
-		bm := &mock.BroadcastMessengerMock{
+		bm := &consensusMocks.BroadcastMessengerMock{
 			BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
 				return expectedErr
 			},
@@ -504,7 +505,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 				},
 			}, nil
 		}
-		bm := &mock.BroadcastMessengerMock{
+		bm := &consensusMocks.BroadcastMessengerMock{
 			BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
 				return nil
 			},
@@ -535,7 +536,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		sr.SetSelfPubKey(sr.ConsensusGroup()[0])
 		bpm := mock.InitBlockProcessorMock(container.Marshalizer())
 		container.SetBlockProcessor(bpm)
-		bm := &mock.BroadcastMessengerMock{
+		bm := &consensusMocks.BroadcastMessengerMock{
 			BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
 				return nil
 			},

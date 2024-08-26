@@ -13,6 +13,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
@@ -26,12 +29,10 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func initSubroundEndRoundWithContainer(
-	container *mock.ConsensusCoreMock,
+	container *consensusMocks.ConsensusCoreMock,
 	appStatusHandler core.AppStatusHandler,
 ) bls.SubroundEndRound {
 	ch := make(chan bool, 1)
@@ -485,7 +486,7 @@ func TestSubroundEndRound_DoEndRoundJobErrBroadcastBlockOK(t *testing.T) {
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
-	bm := &mock.BroadcastMessengerMock{
+	bm := &consensusMocks.BroadcastMessengerMock{
 		BroadcastBlockCalled: func(handler data.BodyHandler, handler2 data.HeaderHandler) error {
 			return errors.New("error")
 		},
@@ -513,7 +514,7 @@ func TestSubroundEndRound_DoEndRoundJobErrMarshalizedDataToBroadcastOK(t *testin
 	}
 	container.SetBlockProcessor(bpm)
 
-	bm := &mock.BroadcastMessengerMock{
+	bm := &consensusMocks.BroadcastMessengerMock{
 		BroadcastBlockCalled: func(handler data.BodyHandler, handler2 data.HeaderHandler) error {
 			return nil
 		},
@@ -547,7 +548,7 @@ func TestSubroundEndRound_DoEndRoundJobErrBroadcastMiniBlocksOK(t *testing.T) {
 	}
 	container.SetBlockProcessor(bpm)
 
-	bm := &mock.BroadcastMessengerMock{
+	bm := &consensusMocks.BroadcastMessengerMock{
 		BroadcastBlockCalled: func(handler data.BodyHandler, handler2 data.HeaderHandler) error {
 			return nil
 		},
@@ -583,7 +584,7 @@ func TestSubroundEndRound_DoEndRoundJobErrBroadcastTransactionsOK(t *testing.T) 
 	}
 	container.SetBlockProcessor(bpm)
 
-	bm := &mock.BroadcastMessengerMock{
+	bm := &consensusMocks.BroadcastMessengerMock{
 		BroadcastBlockCalled: func(handler data.BodyHandler, handler2 data.HeaderHandler) error {
 			return nil
 		},
@@ -611,7 +612,7 @@ func TestSubroundEndRound_DoEndRoundJobAllOK(t *testing.T) {
 	t.Parallel()
 
 	container := mock.InitConsensusCore()
-	bm := &mock.BroadcastMessengerMock{
+	bm := &consensusMocks.BroadcastMessengerMock{
 		BroadcastBlockCalled: func(handler data.BodyHandler, handler2 data.HeaderHandler) error {
 			return errors.New("error")
 		},
@@ -639,7 +640,7 @@ func TestSubroundEndRound_CheckIfSignatureIsFilled(t *testing.T) {
 		},
 	}
 	container.SetSigningHandler(signingHandler)
-	bm := &mock.BroadcastMessengerMock{
+	bm := &consensusMocks.BroadcastMessengerMock{
 		BroadcastBlockCalled: func(handler data.BodyHandler, handler2 data.HeaderHandler) error {
 			return errors.New("error")
 		},
@@ -876,7 +877,7 @@ func TestSubroundEndRound_CreateAndBroadcastHeaderFinalInfoBroadcastShouldBeCall
 	chanRcv := make(chan bool, 1)
 	leaderSigInHdr := []byte("leader sig")
 	container := mock.InitConsensusCore()
-	messenger := &mock.BroadcastMessengerMock{
+	messenger := &consensusMocks.BroadcastMessengerMock{
 		BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
 			chanRcv <- true
 			assert.Equal(t, message.LeaderSignature, leaderSigInHdr)
@@ -1960,7 +1961,7 @@ func TestSubroundEndRound_CreateAndBroadcastInvalidSigners(t *testing.T) {
 			},
 		}
 		container.SetNodeRedundancyHandler(nodeRedundancy)
-		messenger := &mock.BroadcastMessengerMock{
+		messenger := &consensusMocks.BroadcastMessengerMock{
 			BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
 				assert.Fail(t, "should have not been called")
 				return nil
@@ -1981,7 +1982,7 @@ func TestSubroundEndRound_CreateAndBroadcastInvalidSigners(t *testing.T) {
 
 		wasCalled := false
 		container := mock.InitConsensusCore()
-		messenger := &mock.BroadcastMessengerMock{
+		messenger := &consensusMocks.BroadcastMessengerMock{
 			BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
 				assert.Equal(t, expectedInvalidSigners, message.InvalidSigners)
 				wasCalled = true

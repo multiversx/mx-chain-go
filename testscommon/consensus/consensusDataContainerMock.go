@@ -1,9 +1,10 @@
-package mock
+package consensus
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -122,6 +123,11 @@ func (ccm *ConsensusCoreMock) SetBlockchain(blockChain data.ChainHandler) {
 	ccm.blockChain = blockChain
 }
 
+// SetHeaderSubscriber -
+func (ccm *ConsensusCoreMock) SetHeaderSubscriber(headersSubscriber consensus.HeadersPoolSubscriber) {
+	ccm.headersSubscriber = headersSubscriber
+}
+
 // SetBlockProcessor -
 func (ccm *ConsensusCoreMock) SetBlockProcessor(blockProcessor process.BlockProcessor) {
 	ccm.blockProcessor = blockProcessor
@@ -175,6 +181,31 @@ func (ccm *ConsensusCoreMock) SetSyncTimer(syncTimer ntp.SyncTimer) {
 // SetValidatorGroupSelector -
 func (ccm *ConsensusCoreMock) SetValidatorGroupSelector(validatorGroupSelector nodesCoordinator.NodesCoordinator) {
 	ccm.validatorGroupSelector = validatorGroupSelector
+}
+
+// SetEpochStartNotifier -
+func (ccm *ConsensusCoreMock) SetEpochStartNotifier(epochStartNotifier epochStart.RegistrationHandler) {
+	ccm.epochStartNotifier = epochStartNotifier
+}
+
+// SetAntifloodHandler -
+func (ccm *ConsensusCoreMock) SetAntifloodHandler(antifloodHandler consensus.P2PAntifloodHandler) {
+	ccm.antifloodHandler = antifloodHandler
+}
+
+// SetPeerHonestyHandler -
+func (ccm *ConsensusCoreMock) SetPeerHonestyHandler(peerHonestyHandler consensus.PeerHonestyHandler) {
+	ccm.peerHonestyHandler = peerHonestyHandler
+}
+
+// SetScheduledProcessor -
+func (ccm *ConsensusCoreMock) SetScheduledProcessor(scheduledProcessor consensus.ScheduledProcessor) {
+	ccm.scheduledProcessor = scheduledProcessor
+}
+
+// SetPeerBlacklistHandler -
+func (ccm *ConsensusCoreMock) SetPeerBlacklistHandler(peerBlacklistHandler consensus.PeerBlacklistHandler) {
+	ccm.peerBlacklistHandler = peerBlacklistHandler
 }
 
 // PeerHonestyHandler -

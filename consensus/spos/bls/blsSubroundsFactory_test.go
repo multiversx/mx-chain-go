@@ -7,15 +7,17 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	testscommonConsensus "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	testscommonOutport "github.com/multiversx/mx-chain-go/testscommon/outport"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-	"github.com/stretchr/testify/assert"
 )
 
 var chainID = []byte("chain ID")
@@ -54,7 +56,7 @@ func initWorker() spos.WorkerHandler {
 	return sposWorker
 }
 
-func initFactoryWithContainer(container *mock.ConsensusCoreMock) bls.Factory {
+func initFactoryWithContainer(container *testscommonConsensus.ConsensusCoreMock) bls.Factory {
 	worker := initWorker()
 	consensusState := initConsensusState()
 
@@ -579,7 +581,7 @@ func TestFactory_GenerateSubroundsShouldWork(t *testing.T) {
 
 	subroundHandlers := 0
 
-	chrm := &mock.ChronologyHandlerMock{}
+	chrm := &testscommonConsensus.ChronologyHandlerMock{}
 	chrm.AddSubroundCalled = func(subroundHandler consensus.SubroundHandler) {
 		subroundHandlers++
 	}

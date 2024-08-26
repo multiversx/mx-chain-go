@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	processMock "github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/testscommon/bootstrapperStubs"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
 
@@ -323,7 +324,7 @@ func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnTrueWhenRoundI
 func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnTrueWhenInitCurrentRoundReturnTrue(t *testing.T) {
 	t.Parallel()
 
-	bootstrapperMock := &mock.BootstrapperStub{GetNodeStateCalled: func() common.NodeState {
+	bootstrapperMock := &bootstrapperStubs.BootstrapperStub{GetNodeStateCalled: func() common.NodeState {
 		return common.NsSynchronized
 	}}
 
@@ -346,7 +347,7 @@ func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnTrueWhenInitCu
 func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnFalseWhenInitCurrentRoundReturnFalse(t *testing.T) {
 	t.Parallel()
 
-	bootstrapperMock := &mock.BootstrapperStub{GetNodeStateCalled: func() common.NodeState {
+	bootstrapperMock := &bootstrapperStubs.BootstrapperStub{GetNodeStateCalled: func() common.NodeState {
 		return common.NsNotSynchronized
 	}}
 
@@ -363,7 +364,7 @@ func TestSubroundStartRound_DoStartRoundConsensusCheckShouldReturnFalseWhenInitC
 func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGetNodeStateNotReturnSynchronized(t *testing.T) {
 	t.Parallel()
 
-	bootstrapperMock := &mock.BootstrapperStub{}
+	bootstrapperMock := &bootstrapperStubs.BootstrapperStub{}
 
 	bootstrapperMock.GetNodeStateCalled = func() common.NodeState {
 		return common.NsNotSynchronized
@@ -471,7 +472,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenTimeIsOut(t *te
 func TestSubroundStartRound_InitCurrentRoundShouldReturnTrue(t *testing.T) {
 	t.Parallel()
 
-	bootstrapperMock := &mock.BootstrapperStub{}
+	bootstrapperMock := &bootstrapperStubs.BootstrapperStub{}
 
 	bootstrapperMock.GetNodeStateCalled = func() common.NodeState {
 		return common.NsSynchronized

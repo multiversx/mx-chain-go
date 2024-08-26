@@ -7,8 +7,9 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/consensus"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
@@ -72,7 +73,7 @@ func createDefaultShardChainArgs() broadcast.ShardChainMessengerArgs {
 	peerSigHandler := &mock.PeerSignatureHandler{
 		Signer: singleSignerMock,
 	}
-	alarmScheduler := &mock.AlarmSchedulerStub{}
+	alarmScheduler := &testscommon.AlarmSchedulerStub{}
 	delayedBroadcaster := &mock.DelayedBroadcasterMock{}
 
 	return broadcast.ShardChainMessengerArgs{
