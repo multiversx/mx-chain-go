@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 )
@@ -32,7 +33,7 @@ func createDefaultMetaChainArgs() broadcast.MetaChainMessengerArgs {
 	interceptorsContainer := createInterceptorContainer()
 	peerSigHandler := &mock.PeerSignatureHandler{Signer: singleSignerMock}
 	alarmScheduler := &testscommon.AlarmSchedulerStub{}
-	delayedBroadcaster := &mock.DelayedBroadcasterMock{}
+	delayedBroadcaster := &consensus.DelayedBroadcasterMock{}
 
 	return broadcast.MetaChainMessengerArgs{
 		CommonMessengerArgs: broadcast.CommonMessengerArgs{

@@ -18,10 +18,10 @@ import (
 func initConsensusDataContainer() *ConsensusCore {
 	marshalizerMock := mock.MarshalizerMock{}
 	blockChain := &testscommon.ChainHandlerStub{}
-	blockProcessorMock := mock.InitBlockProcessorMock(marshalizerMock)
+	blockProcessorMock := consensusMocks.InitBlockProcessorMock(marshalizerMock)
 	bootstrapperMock := &bootstrapperStubs.BootstrapperStub{}
 	broadcastMessengerMock := &consensusMocks.BroadcastMessengerMock{}
-	chronologyHandlerMock := mock.InitChronologyHandlerMock()
+	chronologyHandlerMock := consensusMocks.InitChronologyHandlerMock()
 	multiSignerMock := cryptoMocks.NewMultiSigner()
 	hasherMock := &hashingMocks.HasherMock{}
 	roundHandlerMock := &mock.RoundHandlerMock{}

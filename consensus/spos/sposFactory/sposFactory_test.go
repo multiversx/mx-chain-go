@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/sposFactory"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	consensus2 "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
@@ -66,7 +67,7 @@ func TestGetSubroundsFactory_BlsNilConsensusCoreShouldErr(t *testing.T) {
 func TestGetSubroundsFactory_BlsNilStatusHandlerShouldErr(t *testing.T) {
 	t.Parallel()
 
-	consensusCore := mock.InitConsensusCore()
+	consensusCore := consensus2.InitConsensusCore()
 	worker := &mock.SposWorkerMock{}
 	consensusType := consensus.BlsConsensusType
 	chainID := []byte("chain-id")
@@ -90,7 +91,7 @@ func TestGetSubroundsFactory_BlsNilStatusHandlerShouldErr(t *testing.T) {
 func TestGetSubroundsFactory_BlsShouldWork(t *testing.T) {
 	t.Parallel()
 
-	consensusCore := mock.InitConsensusCore()
+	consensusCore := consensus2.InitConsensusCore()
 	worker := &mock.SposWorkerMock{}
 	consensusType := consensus.BlsConsensusType
 	statusHandler := statusHandlerMock.NewAppStatusHandlerMock()

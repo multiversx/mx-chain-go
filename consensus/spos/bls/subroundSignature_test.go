@@ -54,14 +54,14 @@ func initSubroundSignatureWithContainer(container *consensusMocks.ConsensusCoreM
 }
 
 func initSubroundSignature() bls.SubroundSignature {
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 	return initSubroundSignatureWithContainer(container)
 }
 
 func TestNewSubroundSignature(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
@@ -138,7 +138,7 @@ func TestNewSubroundSignature(t *testing.T) {
 func TestSubroundSignature_NewSubroundSignatureNilConsensusStateShouldFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
@@ -173,7 +173,7 @@ func TestSubroundSignature_NewSubroundSignatureNilConsensusStateShouldFail(t *te
 func TestSubroundSignature_NewSubroundSignatureNilHasherShouldFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
@@ -207,7 +207,7 @@ func TestSubroundSignature_NewSubroundSignatureNilHasherShouldFail(t *testing.T)
 func TestSubroundSignature_NewSubroundSignatureNilMultiSignerContainerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
@@ -241,7 +241,7 @@ func TestSubroundSignature_NewSubroundSignatureNilMultiSignerContainerShouldFail
 func TestSubroundSignature_NewSubroundSignatureNilRoundHandlerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
@@ -276,7 +276,7 @@ func TestSubroundSignature_NewSubroundSignatureNilRoundHandlerShouldFail(t *test
 func TestSubroundSignature_NewSubroundSignatureNilSyncTimerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
@@ -310,7 +310,7 @@ func TestSubroundSignature_NewSubroundSignatureNilSyncTimerShouldFail(t *testing
 func TestSubroundSignature_NewSubroundSignatureNilAppStatusHandlerShouldFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
@@ -344,7 +344,7 @@ func TestSubroundSignature_NewSubroundSignatureNilAppStatusHandlerShouldFail(t *
 func TestSubroundSignature_NewSubroundSignatureShouldWork(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 
@@ -381,7 +381,7 @@ func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 	t.Run("with equivalent messages flag inactive", func(t *testing.T) {
 		t.Parallel()
 
-		container := mock.InitConsensusCore()
+		container := consensusMocks.InitConsensusCore()
 		sr := *initSubroundSignatureWithContainer(container)
 
 		sr.Header = &block.Header{}
@@ -446,7 +446,7 @@ func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 	t.Run("with equivalent messages flag active should work", func(t *testing.T) {
 		t.Parallel()
 
-		container := mock.InitConsensusCore()
+		container := consensusMocks.InitConsensusCore()
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
 				return flag == common.EquivalentMessagesFlag
@@ -480,7 +480,7 @@ func TestSubroundSignature_DoSignatureJobWithMultikey(t *testing.T) {
 	t.Run("with equivalent messages flag inactive", func(t *testing.T) {
 		t.Parallel()
 
-		container := mock.InitConsensusCore()
+		container := consensusMocks.InitConsensusCore()
 		consensusState := initConsensusStateWithKeysHandler(
 			&testscommon.KeysHandlerStub{
 				IsKeyManagedByCurrentNodeCalled: func(pkBytes []byte) bool {
@@ -568,7 +568,7 @@ func TestSubroundSignature_DoSignatureJobWithMultikey(t *testing.T) {
 	t.Run("with equivalent messages flag active should work", func(t *testing.T) {
 		t.Parallel()
 
-		container := mock.InitConsensusCore()
+		container := consensusMocks.InitConsensusCore()
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
 				return flag == common.EquivalentMessagesFlag
@@ -672,7 +672,7 @@ func TestSubroundSignature_DoSignatureJobWithMultikey(t *testing.T) {
 func TestSubroundSignature_ReceivedSignature(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 	sr := *initSubroundSignatureWithContainer(container)
 	signature := []byte("signature")
 	cnsMsg := consensus.NewConsensusMessage(
@@ -751,7 +751,7 @@ func TestSubroundSignature_ReceivedSignatureStoreShareFailed(t *testing.T) {
 		},
 	}
 
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 	container.SetSigningHandler(signingHandler)
 	sr := *initSubroundSignatureWithContainer(container)
 	sr.Header = &block.Header{}
@@ -936,7 +936,7 @@ func testSubroundSignatureDoSignatureConsensusCheck(args argTestSubroundSignatur
 	return func(t *testing.T) {
 		t.Parallel()
 
-		container := mock.InitConsensusCore()
+		container := consensusMocks.InitConsensusCore()
 		container.SetEnableEpochsHandler(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
 				if flag == common.EquivalentMessagesFlag {
@@ -968,7 +968,7 @@ func testSubroundSignatureDoSignatureConsensusCheck(args argTestSubroundSignatur
 func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnFalseWhenFallbackThresholdCouldNotBeApplied(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 	container.SetFallbackHeaderValidator(&testscommon.FallBackHeaderValidatorStub{
 		ShouldApplyFallbackValidationCalled: func(headerHandler data.HeaderHandler) bool {
 			return false
@@ -989,7 +989,7 @@ func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnFalseWhenFallbac
 func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnTrueWhenFallbackThresholdCouldBeApplied(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 	container.SetFallbackHeaderValidator(&testscommon.FallBackHeaderValidatorStub{
 		ShouldApplyFallbackValidationCalled: func(headerHandler data.HeaderHandler) bool {
 			return true

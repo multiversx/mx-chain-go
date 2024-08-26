@@ -1,4 +1,4 @@
-package mock
+package consensus
 
 import (
 	"time"
@@ -9,19 +9,20 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 
 	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/bootstrapperStubs"
-	consensusTestscommon "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	mock2 "github.com/multiversx/mx-chain-go/testscommon/epochstartmock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 )
 
 // InitChronologyHandlerMock -
 func InitChronologyHandlerMock() consensus.ChronologyHandler {
-	chr := &consensusTestscommon.ChronologyHandlerMock{}
+	chr := &ChronologyHandlerMock{}
 	return chr
 }
 
@@ -122,14 +123,14 @@ func InitMultiSignerMock() *cryptoMocks.MultisignerMock {
 }
 
 // InitKeys -
-func InitKeys() (*KeyGenMock, *PrivateKeyMock, *PublicKeyMock) {
+func InitKeys() (*mock.KeyGenMock, *mock.PrivateKeyMock, *mock.PublicKeyMock) {
 	toByteArrayMock := func() ([]byte, error) {
 		return []byte("byteArray"), nil
 	}
-	privKeyMock := &PrivateKeyMock{
+	privKeyMock := &mock.PrivateKeyMock{
 		ToByteArrayMock: toByteArrayMock,
 	}
-	pubKeyMock := &PublicKeyMock{
+	pubKeyMock := &mock.PublicKeyMock{
 		ToByteArrayMock: toByteArrayMock,
 	}
 	privKeyFromByteArr := func(b []byte) (crypto.PrivateKey, error) {
@@ -138,7 +139,7 @@ func InitKeys() (*KeyGenMock, *PrivateKeyMock, *PublicKeyMock) {
 	pubKeyFromByteArr := func(b []byte) (crypto.PublicKey, error) {
 		return pubKeyMock, nil
 	}
-	keyGenMock := &KeyGenMock{
+	keyGenMock := &mock.KeyGenMock{
 		PrivateKeyFromByteArrayMock: privKeyFromByteArr,
 		PublicKeyFromByteArrayMock:  pubKeyFromByteArr,
 	}
@@ -146,31 +147,31 @@ func InitKeys() (*KeyGenMock, *PrivateKeyMock, *PublicKeyMock) {
 }
 
 // InitConsensusCoreHeaderV2 -
-func InitConsensusCoreHeaderV2() *consensusTestscommon.ConsensusCoreMock {
+func InitConsensusCoreHeaderV2() *ConsensusCoreMock {
 	consensusCoreMock := InitConsensusCore()
-	consensusCoreMock.SetBlockProcessor(InitBlockProcessorHeaderV2Mock())
+	consensusCoreMock.blockProcessor = InitBlockProcessorHeaderV2Mock()
 
 	return consensusCoreMock
 }
 
 // InitConsensusCore -
-func InitConsensusCore() *consensusTestscommon.ConsensusCoreMock {
+func InitConsensusCore() *ConsensusCoreMock {
 	multiSignerMock := InitMultiSignerMock()
 
 	return InitConsensusCoreWithMultiSigner(multiSignerMock)
 }
 
 // InitConsensusCoreWithMultiSigner -
-func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *consensusTestscommon.ConsensusCoreMock {
+func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *ConsensusCoreMock {
 	blockChain := &testscommon.ChainHandlerStub{
 		GetGenesisHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{}
 		},
 	}
-	marshalizerMock := MarshalizerMock{}
+	marshalizerMock := mock.MarshalizerMock{}
 	blockProcessorMock := InitBlockProcessorMock(marshalizerMock)
 	bootstrapperMock := &bootstrapperStubs.BootstrapperStub{}
-	broadcastMessengerMock := &consensusTestscommon.BroadcastMessengerMock{
+	broadcastMessengerMock := &BroadcastMessengerMock{
 		BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
 			return nil
 		},
@@ -178,9 +179,9 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *consensus
 
 	chronologyHandlerMock := InitChronologyHandlerMock()
 	hasherMock := &hashingMocks.HasherMock{}
-	roundHandlerMock := &RoundHandlerMock{}
-	shardCoordinatorMock := ShardCoordinatorMock{}
-	syncTimerMock := &SyncTimerMock{}
+	roundHandlerMock := &mock.RoundHandlerMock{}
+	shardCoordinatorMock := mock.ShardCoordinatorMock{}
+	syncTimerMock := &mock.SyncTimerMock{}
 	validatorGroupSelector := &shardingMocks.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]nodesCoordinator.Validator, error) {
 			defaultSelectionChances := uint32(1)
@@ -197,46 +198,46 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *consensus
 			}, nil
 		},
 	}
-	epochStartSubscriber := &EpochStartNotifierStub{}
-	antifloodHandler := &P2PAntifloodHandlerStub{}
-	headerPoolSubscriber := &HeadersCacherStub{}
+	epochStartSubscriber := &mock2.EpochStartNotifierStub{}
+	antifloodHandler := &mock.P2PAntifloodHandlerStub{}
+	headerPoolSubscriber := &mock.HeadersCacherStub{}
 	peerHonestyHandler := &testscommon.PeerHonestyHandlerStub{}
-	headerSigVerifier := &consensusTestscommon.HeaderSigVerifierMock{}
+	headerSigVerifier := &HeaderSigVerifierMock{}
 	fallbackHeaderValidator := &testscommon.FallBackHeaderValidatorStub{}
-	nodeRedundancyHandler := &NodeRedundancyHandlerStub{}
-	scheduledProcessor := &consensusTestscommon.ScheduledProcessorStub{}
-	messageSigningHandler := &MessageSigningHandlerStub{}
-	peerBlacklistHandler := &PeerBlacklistHandlerStub{}
+	nodeRedundancyHandler := &mock.NodeRedundancyHandlerStub{}
+	scheduledProcessor := &ScheduledProcessorStub{}
+	messageSigningHandler := &mock.MessageSigningHandlerStub{}
+	peerBlacklistHandler := &mock.PeerBlacklistHandlerStub{}
 	multiSignerContainer := cryptoMocks.NewMultiSignerContainerMock(multiSigner)
-	signingHandler := &consensusTestscommon.SigningHandlerStub{}
+	signingHandler := &SigningHandlerStub{}
 	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
 
-	container := &consensusTestscommon.ConsensusCoreMock{}
-	container.SetBlockchain(blockChain)
-	container.SetBlockProcessor(blockProcessorMock)
-	container.SetHeaderSubscriber(headerPoolSubscriber)
-	container.SetBootStrapper(bootstrapperMock)
-	container.SetBroadcastMessenger(broadcastMessengerMock)
-	container.SetChronology(chronologyHandlerMock)
-	container.SetHasher(hasherMock)
-	container.SetMarshalizer(marshalizerMock)
-	container.SetMultiSignerContainer(multiSignerContainer)
-	container.SetRoundHandler(roundHandlerMock)
-	container.SetShardCoordinator(shardCoordinatorMock)
-	container.SetSyncTimer(syncTimerMock)
-	container.SetValidatorGroupSelector(validatorGroupSelector)
-	container.SetEpochStartNotifier(epochStartSubscriber)
-	container.SetAntifloodHandler(antifloodHandler)
-	container.SetPeerHonestyHandler(peerHonestyHandler)
-	container.SetHeaderSigVerifier(headerSigVerifier)
-	container.SetFallbackHeaderValidator(fallbackHeaderValidator)
-	container.SetNodeRedundancyHandler(nodeRedundancyHandler)
-	container.SetScheduledProcessor(scheduledProcessor)
-	container.SetMessageSigningHandler(messageSigningHandler)
-	container.SetPeerHonestyHandler(peerHonestyHandler)
-	container.SetSigningHandler(signingHandler)
-	container.SetPeerBlacklistHandler(peerBlacklistHandler)
-	container.SetEnableEpochsHandler(enableEpochsHandler)
+	container := &ConsensusCoreMock{
+		blockChain:              blockChain,
+		blockProcessor:          blockProcessorMock,
+		headersSubscriber:       headerPoolSubscriber,
+		bootstrapper:            bootstrapperMock,
+		broadcastMessenger:      broadcastMessengerMock,
+		chronologyHandler:       chronologyHandlerMock,
+		hasher:                  hasherMock,
+		marshalizer:             marshalizerMock,
+		multiSignerContainer:    multiSignerContainer,
+		roundHandler:            roundHandlerMock,
+		shardCoordinator:        shardCoordinatorMock,
+		syncTimer:               syncTimerMock,
+		validatorGroupSelector:  validatorGroupSelector,
+		epochStartNotifier:      epochStartSubscriber,
+		antifloodHandler:        antifloodHandler,
+		peerHonestyHandler:      peerHonestyHandler,
+		headerSigVerifier:       headerSigVerifier,
+		fallbackHeaderValidator: fallbackHeaderValidator,
+		nodeRedundancyHandler:   nodeRedundancyHandler,
+		scheduledProcessor:      scheduledProcessor,
+		messageSigningHandler:   messageSigningHandler,
+		peerBlacklistHandler:    peerBlacklistHandler,
+		signingHandler:          signingHandler,
+		enableEpochsHandler:     enableEpochsHandler,
+	}
 
 	return container
 }

@@ -34,6 +34,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
 
@@ -66,11 +67,11 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 	bootstrapperMock := &bootstrapperStubs.BootstrapperStub{}
 	broadcastMessengerMock := &consensusMocks.BroadcastMessengerMock{}
 	consensusState := initConsensusState()
-	forkDetectorMock := &mock.ForkDetectorMock{}
+	forkDetectorMock := &processMocks.ForkDetectorStub{}
 	forkDetectorMock.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error {
 		return nil
 	}
-	keyGeneratorMock, _, _ := mock.InitKeys()
+	keyGeneratorMock, _, _ := consensusMocks.InitKeys()
 	marshalizerMock := mock.MarshalizerMock{}
 	roundHandlerMock := initRoundHandlerMock()
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
@@ -111,7 +112,7 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 		PeerSignatureHandler:       peerSigHandler,
 		SyncTimer:                  syncTimerMock,
 		HeaderSigVerifier:          &consensusMocks.HeaderSigVerifierMock{},
-		HeaderIntegrityVerifier:    &mock.HeaderIntegrityVerifierStub{},
+		HeaderIntegrityVerifier:    &testscommon.HeaderVersionHandlerStub{},
 		ChainID:                    chainID,
 		NetworkShardingCollector:   &p2pmocks.NetworkShardingCollectorStub{},
 		AntifloodHandler:           createMockP2PAntifloodHandler(),
@@ -121,7 +122,7 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 		AppStatusHandler:           appStatusHandler,
 		NodeRedundancyHandler:      &mock.NodeRedundancyHandlerStub{},
 		PeerBlacklistHandler:       &mock.PeerBlacklistHandlerStub{},
-		EquivalentMessagesDebugger: &mock.EquivalentMessagesDebuggerStub{},
+		EquivalentMessagesDebugger: &consensusMocks.EquivalentMessagesDebuggerStub{},
 		EnableEpochsHandler:        &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 

@@ -32,7 +32,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
-	"github.com/multiversx/mx-chain-go/testscommon/epochstartmock"
+	mock2 "github.com/multiversx/mx-chain-go/testscommon/epochstartmock"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
@@ -106,7 +106,7 @@ func createArguments() ArgNodesCoordinator {
 	}
 	nodeShuffler, _ := NewHashValidatorsShuffler(shufflerArgs)
 
-	epochStartSubscriber := &epochstartmock.EpochStartNotifierStub{}
+	epochStartSubscriber := &mock2.EpochStartNotifierStub{}
 	bootStorer := genericMocks.NewStorerMock()
 
 	arguments := ArgNodesCoordinator{
@@ -297,7 +297,7 @@ func TestIndexHashedNodesCoordinator_OkValShouldWork(t *testing.T) {
 	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)
 
-	epochStartSubscriber := &epochstartmock.EpochStartNotifierStub{}
+	epochStartSubscriber := &mock2.EpochStartNotifierStub{}
 	bootStorer := genericMocks.NewStorerMock()
 
 	arguments := ArgNodesCoordinator{
@@ -350,7 +350,7 @@ func TestIndexHashedNodesCoordinator_NewCoordinatorTooFewNodesShouldErr(t *testi
 	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)
 
-	epochStartSubscriber := &epochstartmock.EpochStartNotifierStub{}
+	epochStartSubscriber := &mock2.EpochStartNotifierStub{}
 	bootStorer := genericMocks.NewStorerMock()
 
 	arguments := ArgNodesCoordinator{
@@ -434,7 +434,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup1ValidatorShouldRetur
 	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)
 
-	epochStartSubscriber := &epochstartmock.EpochStartNotifierStub{}
+	epochStartSubscriber := &mock2.EpochStartNotifierStub{}
 	bootStorer := genericMocks.NewStorerMock()
 
 	arguments := ArgNodesCoordinator{
@@ -490,7 +490,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup400of400For10locksNoM
 	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)
 
-	epochStartSubscriber := &epochstartmock.EpochStartNotifierStub{}
+	epochStartSubscriber := &mock2.EpochStartNotifierStub{}
 	bootStorer := genericMocks.NewStorerMock()
 
 	getCounter := int32(0)
@@ -575,7 +575,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup400of400For10BlocksMe
 	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)
 
-	epochStartSubscriber := &epochstartmock.EpochStartNotifierStub{}
+	epochStartSubscriber := &mock2.EpochStartNotifierStub{}
 	bootStorer := genericMocks.NewStorerMock()
 
 	getCounter := 0
@@ -684,7 +684,7 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup63of400TestEqualSameP
 	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)
 
-	epochStartSubscriber := &epochstartmock.EpochStartNotifierStub{}
+	epochStartSubscriber := &mock2.EpochStartNotifierStub{}
 	bootStorer := genericMocks.NewStorerMock()
 
 	arguments := ArgNodesCoordinator{
@@ -750,7 +750,7 @@ func BenchmarkIndexHashedGroupSelector_ComputeValidatorsGroup21of400(b *testing.
 	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(b, err)
 
-	epochStartSubscriber := &epochstartmock.EpochStartNotifierStub{}
+	epochStartSubscriber := &mock2.EpochStartNotifierStub{}
 	bootStorer := genericMocks.NewStorerMock()
 
 	arguments := ArgNodesCoordinator{
@@ -826,7 +826,7 @@ func runBenchmark(consensusGroupCache Cacher, consensusGroupSize int, nodesMap m
 	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(b, err)
 
-	epochStartSubscriber := &epochstartmock.EpochStartNotifierStub{}
+	epochStartSubscriber := &mock2.EpochStartNotifierStub{}
 	bootStorer := genericMocks.NewStorerMock()
 
 	arguments := ArgNodesCoordinator{
@@ -879,7 +879,7 @@ func computeMemoryRequirements(consensusGroupCache Cacher, consensusGroupSize in
 	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(b, err)
 
-	epochStartSubscriber := &epochstartmock.EpochStartNotifierStub{}
+	epochStartSubscriber := &mock2.EpochStartNotifierStub{}
 	bootStorer := genericMocks.NewStorerMock()
 
 	arguments := ArgNodesCoordinator{
@@ -1022,7 +1022,7 @@ func TestIndexHashedNodesCoordinator_GetValidatorWithPublicKeyShouldWork(t *test
 	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)
 
-	epochStartSubscriber := &epochstartmock.EpochStartNotifierStub{}
+	epochStartSubscriber := &mock2.EpochStartNotifierStub{}
 	bootStorer := genericMocks.NewStorerMock()
 
 	arguments := ArgNodesCoordinator{
@@ -1109,7 +1109,7 @@ func TestIndexHashedGroupSelector_GetAllEligibleValidatorsPublicKeys(t *testing.
 	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)
 
-	epochStartSubscriber := &epochstartmock.EpochStartNotifierStub{}
+	epochStartSubscriber := &mock2.EpochStartNotifierStub{}
 	bootStorer := genericMocks.NewStorerMock()
 
 	arguments := ArgNodesCoordinator{
@@ -1188,7 +1188,7 @@ func TestIndexHashedGroupSelector_GetAllWaitingValidatorsPublicKeys(t *testing.T
 	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)
 
-	epochStartSubscriber := &epochstartmock.EpochStartNotifierStub{}
+	epochStartSubscriber := &mock2.EpochStartNotifierStub{}
 	bootStorer := genericMocks.NewStorerMock()
 
 	eligibleMap := make(map[uint32][]Validator)
@@ -1586,7 +1586,7 @@ func TestIndexHashedNodesCoordinator_EpochStart_EligibleSortedAscendingByIndex(t
 	nodeShuffler, err := NewHashValidatorsShuffler(shufflerArgs)
 	require.Nil(t, err)
 
-	epochStartSubscriber := &epochstartmock.EpochStartNotifierStub{}
+	epochStartSubscriber := &mock2.EpochStartNotifierStub{}
 	bootStorer := genericMocks.NewStorerMock()
 
 	arguments := ArgNodesCoordinator{
@@ -2604,7 +2604,7 @@ func TestIndexHashedGroupSelector_GetWaitingEpochsLeftForPublicKey(t *testing.T)
 	t.Run("missing nodes config for current epoch should error ", func(t *testing.T) {
 		t.Parallel()
 
-		epochStartSubscriber := &epochstartmock.EpochStartNotifierStub{}
+		epochStartSubscriber := &mock2.EpochStartNotifierStub{}
 		bootStorer := genericMocks.NewStorerMock()
 
 		shufflerArgs := &NodesShufflerArgs{
@@ -2674,7 +2674,7 @@ func TestIndexHashedGroupSelector_GetWaitingEpochsLeftForPublicKey(t *testing.T)
 		waitingMap[core.MetachainShardId] = listMeta
 		waitingMap[shardZeroId] = listShard0
 
-		epochStartSubscriber := &epochstartmock.EpochStartNotifierStub{}
+		epochStartSubscriber := &mock2.EpochStartNotifierStub{}
 		bootStorer := genericMocks.NewStorerMock()
 
 		eligibleMap := make(map[uint32][]Validator)
@@ -2761,7 +2761,7 @@ func TestIndexHashedGroupSelector_GetWaitingEpochsLeftForPublicKey(t *testing.T)
 		waitingMap[core.MetachainShardId] = listMeta
 		waitingMap[shardZeroId] = listShard0
 
-		epochStartSubscriber := &epochstartmock.EpochStartNotifierStub{}
+		epochStartSubscriber := &mock2.EpochStartNotifierStub{}
 		bootStorer := genericMocks.NewStorerMock()
 
 		eligibleMap := make(map[uint32][]Validator)

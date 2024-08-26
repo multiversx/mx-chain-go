@@ -116,9 +116,9 @@ func initSubroundBlock(
 
 func createConsensusContainers() []*consensusMocks.ConsensusCoreMock {
 	consensusContainers := make([]*consensusMocks.ConsensusCoreMock, 0)
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 	consensusContainers = append(consensusContainers, container)
-	container = mock.InitConsensusCoreHeaderV2()
+	container = consensusMocks.InitConsensusCoreHeaderV2()
 	consensusContainers = append(consensusContainers, container)
 	return consensusContainers
 }
@@ -164,7 +164,7 @@ func TestSubroundBlock_NewSubroundBlockNilSubroundShouldFail(t *testing.T) {
 
 func TestSubroundBlock_NewSubroundBlockNilBlockchainShouldFail(t *testing.T) {
 	t.Parallel()
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 
 	consensusState := initConsensusState()
 
@@ -180,7 +180,7 @@ func TestSubroundBlock_NewSubroundBlockNilBlockchainShouldFail(t *testing.T) {
 
 func TestSubroundBlock_NewSubroundBlockNilBlockProcessorShouldFail(t *testing.T) {
 	t.Parallel()
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 
 	consensusState := initConsensusState()
 
@@ -196,7 +196,7 @@ func TestSubroundBlock_NewSubroundBlockNilBlockProcessorShouldFail(t *testing.T)
 
 func TestSubroundBlock_NewSubroundBlockNilConsensusStateShouldFail(t *testing.T) {
 	t.Parallel()
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
 	sr, _ := defaultSubroundForSRBlock(consensusState, ch, container, &statusHandler.AppStatusHandlerStub{})
@@ -210,7 +210,7 @@ func TestSubroundBlock_NewSubroundBlockNilConsensusStateShouldFail(t *testing.T)
 
 func TestSubroundBlock_NewSubroundBlockNilHasherShouldFail(t *testing.T) {
 	t.Parallel()
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 
 	consensusState := initConsensusState()
 
@@ -225,7 +225,7 @@ func TestSubroundBlock_NewSubroundBlockNilHasherShouldFail(t *testing.T) {
 
 func TestSubroundBlock_NewSubroundBlockNilMarshalizerShouldFail(t *testing.T) {
 	t.Parallel()
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 
 	consensusState := initConsensusState()
 
@@ -240,7 +240,7 @@ func TestSubroundBlock_NewSubroundBlockNilMarshalizerShouldFail(t *testing.T) {
 
 func TestSubroundBlock_NewSubroundBlockNilMultiSignerContainerShouldFail(t *testing.T) {
 	t.Parallel()
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 
 	consensusState := initConsensusState()
 
@@ -255,7 +255,7 @@ func TestSubroundBlock_NewSubroundBlockNilMultiSignerContainerShouldFail(t *test
 
 func TestSubroundBlock_NewSubroundBlockNilRoundHandlerShouldFail(t *testing.T) {
 	t.Parallel()
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 
 	consensusState := initConsensusState()
 
@@ -270,7 +270,7 @@ func TestSubroundBlock_NewSubroundBlockNilRoundHandlerShouldFail(t *testing.T) {
 
 func TestSubroundBlock_NewSubroundBlockNilShardCoordinatorShouldFail(t *testing.T) {
 	t.Parallel()
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 
 	consensusState := initConsensusState()
 
@@ -285,7 +285,7 @@ func TestSubroundBlock_NewSubroundBlockNilShardCoordinatorShouldFail(t *testing.
 
 func TestSubroundBlock_NewSubroundBlockNilSyncTimerShouldFail(t *testing.T) {
 	t.Parallel()
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 
 	consensusState := initConsensusState()
 
@@ -300,7 +300,7 @@ func TestSubroundBlock_NewSubroundBlockNilSyncTimerShouldFail(t *testing.T) {
 
 func TestSubroundBlock_NewSubroundBlockNilWorkerShouldFail(t *testing.T) {
 	t.Parallel()
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 
 	consensusState := initConsensusState()
 
@@ -318,7 +318,7 @@ func TestSubroundBlock_NewSubroundBlockNilWorkerShouldFail(t *testing.T) {
 
 func TestSubroundBlock_NewSubroundBlockShouldWork(t *testing.T) {
 	t.Parallel()
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
@@ -333,14 +333,14 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 
 	t.Run("not leader should return false", func(t *testing.T) {
 		t.Parallel()
-		container := mock.InitConsensusCore()
+		container := consensusMocks.InitConsensusCore()
 		sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
 		r := sr.DoBlockJob()
 		assert.False(t, r)
 	})
 	t.Run("round index lower than last committed block should return false", func(t *testing.T) {
 		t.Parallel()
-		container := mock.InitConsensusCore()
+		container := consensusMocks.InitConsensusCore()
 		sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
 
 		sr.SetSelfPubKey(sr.ConsensusGroup()[0])
@@ -350,7 +350,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 	})
 	t.Run("leader job done should return false", func(t *testing.T) {
 		t.Parallel()
-		container := mock.InitConsensusCore()
+		container := consensusMocks.InitConsensusCore()
 		sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
 
 		container.SetRoundHandler(&testscommon.RoundHandlerMock{
@@ -365,7 +365,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 	})
 	t.Run("subround finished should return false", func(t *testing.T) {
 		t.Parallel()
-		container := mock.InitConsensusCore()
+		container := consensusMocks.InitConsensusCore()
 		sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
 
 		container.SetRoundHandler(&testscommon.RoundHandlerMock{
@@ -381,7 +381,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 	})
 	t.Run("create header error should return false", func(t *testing.T) {
 		t.Parallel()
-		container := mock.InitConsensusCore()
+		container := consensusMocks.InitConsensusCore()
 		sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
 
 		container.SetRoundHandler(&testscommon.RoundHandlerMock{
@@ -402,7 +402,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 	})
 	t.Run("create block error should return false", func(t *testing.T) {
 		t.Parallel()
-		container := mock.InitConsensusCore()
+		container := consensusMocks.InitConsensusCore()
 		sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
 
 		container.SetRoundHandler(&testscommon.RoundHandlerMock{
@@ -425,7 +425,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 	})
 	t.Run("send block error should return false", func(t *testing.T) {
 		t.Parallel()
-		container := mock.InitConsensusCore()
+		container := consensusMocks.InitConsensusCore()
 		sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
 
 		container.SetRoundHandler(&testscommon.RoundHandlerMock{
@@ -435,7 +435,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		})
 
 		sr.SetSelfPubKey(sr.ConsensusGroup()[0])
-		bpm := mock.InitBlockProcessorMock(container.Marshalizer())
+		bpm := consensusMocks.InitBlockProcessorMock(container.Marshalizer())
 		container.SetBlockProcessor(bpm)
 		bm := &consensusMocks.BroadcastMessengerMock{
 			BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
@@ -458,7 +458,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 			},
 		}
 
-		container := mock.InitConsensusCore()
+		container := consensusMocks.InitConsensusCore()
 		chainHandler := &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 				return providedHeadr
@@ -495,7 +495,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		container.SetEnableEpochsHandler(enableEpochsHandler)
 
 		sr.SetSelfPubKey(sr.ConsensusGroup()[0])
-		bpm := mock.InitBlockProcessorMock(container.Marshalizer())
+		bpm := consensusMocks.InitBlockProcessorMock(container.Marshalizer())
 		container.SetBlockProcessor(bpm)
 		bpm.CreateNewHeaderCalled = func(round uint64, nonce uint64) (data.HeaderHandler, error) {
 			return &block.HeaderV2{
@@ -524,7 +524,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 	})
 	t.Run("should work, equivalent messages flag not enabled", func(t *testing.T) {
 		t.Parallel()
-		container := mock.InitConsensusCore()
+		container := consensusMocks.InitConsensusCore()
 		sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
 
 		container.SetRoundHandler(&testscommon.RoundHandlerMock{
@@ -534,7 +534,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		})
 
 		sr.SetSelfPubKey(sr.ConsensusGroup()[0])
-		bpm := mock.InitBlockProcessorMock(container.Marshalizer())
+		bpm := consensusMocks.InitBlockProcessorMock(container.Marshalizer())
 		container.SetBlockProcessor(bpm)
 		bm := &consensusMocks.BroadcastMessengerMock{
 			BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
@@ -555,7 +555,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 func TestSubroundBlock_ReceivedBlockBodyAndHeaderDataAlreadySet(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 	sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
 
 	hdr := &block.Header{Nonce: 1}
@@ -571,7 +571,7 @@ func TestSubroundBlock_ReceivedBlockBodyAndHeaderDataAlreadySet(t *testing.T) {
 func TestSubroundBlock_ReceivedBlockBodyAndHeaderNodeNotLeaderInCurrentRound(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 	sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
 
 	hdr := &block.Header{Nonce: 1}
@@ -587,7 +587,7 @@ func TestSubroundBlock_ReceivedBlockBodyAndHeaderNodeNotLeaderInCurrentRound(t *
 func TestSubroundBlock_ReceivedBlockBodyAndHeaderCannotProcessJobDone(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 	sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
 
 	hdr := &block.Header{Nonce: 1}
@@ -605,8 +605,8 @@ func TestSubroundBlock_ReceivedBlockBodyAndHeaderCannotProcessJobDone(t *testing
 func TestSubroundBlock_ReceivedBlockBodyAndHeaderErrorDecoding(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitConsensusCore()
-	blProc := mock.InitBlockProcessorMock(container.Marshalizer())
+	container := consensusMocks.InitConsensusCore()
+	blProc := consensusMocks.InitBlockProcessorMock(container.Marshalizer())
 	blProc.DecodeBlockHeaderCalled = func(dta []byte) data.HeaderHandler {
 		// error decoding so return nil
 		return nil
@@ -629,7 +629,7 @@ func TestSubroundBlock_ReceivedBlockBodyAndHeaderErrorDecoding(t *testing.T) {
 func TestSubroundBlock_ReceivedBlockBodyAndHeaderBodyAlreadyReceived(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 	sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
 
 	hdr := &block.Header{Nonce: 1}
@@ -647,7 +647,7 @@ func TestSubroundBlock_ReceivedBlockBodyAndHeaderBodyAlreadyReceived(t *testing.
 func TestSubroundBlock_ReceivedBlockBodyAndHeaderHeaderAlreadyReceived(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 	sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
 
 	hdr := &block.Header{Nonce: 1}
@@ -667,7 +667,7 @@ func TestSubroundBlock_ReceivedBlockBodyAndHeaderOK(t *testing.T) {
 	t.Run("block is valid", func(t *testing.T) {
 		t.Parallel()
 
-		container := mock.InitConsensusCore()
+		container := consensusMocks.InitConsensusCore()
 		sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
 		hdr := createDefaultHeader()
 		blkBody := &block.Body{}
@@ -679,7 +679,7 @@ func TestSubroundBlock_ReceivedBlockBodyAndHeaderOK(t *testing.T) {
 	t.Run("block is not valid", func(t *testing.T) {
 		t.Parallel()
 
-		container := mock.InitConsensusCore()
+		container := consensusMocks.InitConsensusCore()
 		sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
 		hdr := &block.Header{
 			Nonce: 1,
@@ -693,8 +693,8 @@ func TestSubroundBlock_ReceivedBlockBodyAndHeaderOK(t *testing.T) {
 	t.Run("header with proof after flag activation should work", func(t *testing.T) {
 		t.Parallel()
 
-		container := mock.InitConsensusCore()
-		blockProcessor := mock.InitBlockProcessorHeaderV2Mock()
+		container := consensusMocks.InitConsensusCore()
+		blockProcessor := consensusMocks.InitBlockProcessorHeaderV2Mock()
 		blockProcessor.DecodeBlockHeaderCalled = func(dta []byte) data.HeaderHandler {
 			hdr := &block.HeaderV2{}
 			_ = container.Marshalizer().Unmarshal(hdr, dta)
@@ -765,9 +765,9 @@ func createConsensusMessage(header data.HeaderHandler, body *block.Body, leader 
 
 func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 	t.Parallel()
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 	sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
-	blockProcessorMock := mock.InitBlockProcessorMock(container.Marshalizer())
+	blockProcessorMock := consensusMocks.InitBlockProcessorMock(container.Marshalizer())
 	blkBody := &block.Body{}
 	blkBodyStr, _ := mock.MarshalizerMock{}.Marshal(blkBody)
 	cnsMsg := consensus.NewConsensusMessage(
@@ -859,9 +859,9 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 func TestSubroundBlock_ReceivedBlockShouldWorkWithEquivalentMessagesFlagEnabled(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 	sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
-	blockProcessorMock := mock.InitBlockProcessorMock(container.Marshalizer())
+	blockProcessorMock := consensusMocks.InitBlockProcessorMock(container.Marshalizer())
 	blockProcessorMock.DecodeBlockHeaderCalled = func(dta []byte) data.HeaderHandler {
 		hdr := &block.HeaderV2{}
 		_ = container.Marshalizer().Unmarshal(hdr, dta)
@@ -935,7 +935,7 @@ func TestSubroundBlock_ReceivedBlockShouldWorkWithEquivalentMessagesFlagEnabled(
 
 func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenBodyAndHeaderAreNotSet(t *testing.T) {
 	t.Parallel()
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 	sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
 	cnsMsg := consensus.NewConsensusMessage(
 		nil,
@@ -958,9 +958,9 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenBodyAndHeaderAre
 
 func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockFails(t *testing.T) {
 	t.Parallel()
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 	sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
-	blProcMock := mock.InitBlockProcessorMock(container.Marshalizer())
+	blProcMock := consensusMocks.InitBlockProcessorMock(container.Marshalizer())
 	err := errors.New("error process block")
 	blProcMock.ProcessBlockCalled = func(data.HeaderHandler, data.BodyHandler, func() time.Duration) error {
 		return err
@@ -992,7 +992,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockFail
 
 func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockReturnsInNextRound(t *testing.T) {
 	t.Parallel()
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 	sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
 	hdr := &block.Header{}
 	blkBody := &block.Body{}
@@ -1015,7 +1015,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockRetu
 	)
 	sr.Header = hdr
 	sr.Body = blkBody
-	blockProcessorMock := mock.InitBlockProcessorMock(container.Marshalizer())
+	blockProcessorMock := consensusMocks.InitBlockProcessorMock(container.Marshalizer())
 	blockProcessorMock.ProcessBlockCalled = func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 		return expectedErr
 	}
@@ -1058,7 +1058,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnTrue(t *testing.T) {
 
 func TestSubroundBlock_RemainingTimeShouldReturnNegativeValue(t *testing.T) {
 	t.Parallel()
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 	roundHandlerMock := initRoundHandlerMock()
 	container.SetRoundHandler(roundHandlerMock)
 
@@ -1092,7 +1092,7 @@ func TestSubroundBlock_RemainingTimeShouldReturnNegativeValue(t *testing.T) {
 
 func TestSubroundBlock_DoBlockConsensusCheckShouldReturnFalseWhenRoundIsCanceled(t *testing.T) {
 	t.Parallel()
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 	sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
 	sr.RoundCanceled = true
 	assert.False(t, sr.DoBlockConsensusCheck())
@@ -1100,7 +1100,7 @@ func TestSubroundBlock_DoBlockConsensusCheckShouldReturnFalseWhenRoundIsCanceled
 
 func TestSubroundBlock_DoBlockConsensusCheckShouldReturnTrueWhenSubroundIsFinished(t *testing.T) {
 	t.Parallel()
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 	sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
 	sr.SetStatus(bls.SrBlock, spos.SsFinished)
 	assert.True(t, sr.DoBlockConsensusCheck())
@@ -1108,7 +1108,7 @@ func TestSubroundBlock_DoBlockConsensusCheckShouldReturnTrueWhenSubroundIsFinish
 
 func TestSubroundBlock_DoBlockConsensusCheckShouldReturnTrueWhenBlockIsReceivedReturnTrue(t *testing.T) {
 	t.Parallel()
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 	sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
 	for i := 0; i < sr.Threshold(bls.SrBlock); i++ {
 		_ = sr.SetJobDone(sr.ConsensusGroup()[i], bls.SrBlock, true)
@@ -1118,14 +1118,14 @@ func TestSubroundBlock_DoBlockConsensusCheckShouldReturnTrueWhenBlockIsReceivedR
 
 func TestSubroundBlock_DoBlockConsensusCheckShouldReturnFalseWhenBlockIsReceivedReturnFalse(t *testing.T) {
 	t.Parallel()
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 	sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
 	assert.False(t, sr.DoBlockConsensusCheck())
 }
 
 func TestSubroundBlock_IsBlockReceived(t *testing.T) {
 	t.Parallel()
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 	sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
 	for i := 0; i < len(sr.ConsensusGroup()); i++ {
 		_ = sr.SetJobDone(sr.ConsensusGroup()[i], bls.SrBlock, false)
@@ -1147,7 +1147,7 @@ func TestSubroundBlock_IsBlockReceived(t *testing.T) {
 
 func TestSubroundBlock_HaveTimeInCurrentSubroundShouldReturnTrue(t *testing.T) {
 	t.Parallel()
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 	sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
 	haveTimeInCurrentSubound := func() bool {
 		roundStartTime := sr.RoundHandler().TimeStamp()
@@ -1177,7 +1177,7 @@ func TestSubroundBlock_HaveTimeInCurrentSubroundShouldReturnTrue(t *testing.T) {
 
 func TestSubroundBlock_HaveTimeInCurrentSuboundShouldReturnFalse(t *testing.T) {
 	t.Parallel()
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 	sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
 	haveTimeInCurrentSubound := func() bool {
 		roundStartTime := sr.RoundHandler().TimeStamp()
@@ -1299,8 +1299,8 @@ func TestSubroundBlock_CreateHeaderMultipleMiniBlocks(t *testing.T) {
 			}
 		},
 	}
-	container := mock.InitConsensusCore()
-	bp := mock.InitBlockProcessorMock(container.Marshalizer())
+	container := consensusMocks.InitConsensusCore()
+	bp := consensusMocks.InitBlockProcessorMock(container.Marshalizer())
 	bp.CreateBlockCalled = func(header data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
 		shardHeader, _ := header.(*block.Header)
 		shardHeader.MiniBlockHeaders = mbHeaders
@@ -1334,8 +1334,8 @@ func TestSubroundBlock_CreateHeaderMultipleMiniBlocks(t *testing.T) {
 
 func TestSubroundBlock_CreateHeaderNilMiniBlocks(t *testing.T) {
 	expectedErr := errors.New("nil mini blocks")
-	container := mock.InitConsensusCore()
-	bp := mock.InitBlockProcessorMock(container.Marshalizer())
+	container := consensusMocks.InitConsensusCore()
+	bp := consensusMocks.InitBlockProcessorMock(container.Marshalizer())
 	bp.CreateBlockCalled = func(header data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
 		return nil, nil, expectedErr
 	}
@@ -1391,7 +1391,7 @@ func TestSubroundBlock_ReceivedBlockComputeProcessDuration(t *testing.T) {
 	srDuration := srEndTime - srStartTime
 	delay := srDuration * 430 / 1000
 
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 	receivedValue := uint64(0)
 	container.SetBlockProcessor(&testscommon.BlockProcessorStub{
 		ProcessBlockCalled: func(_ data.HeaderHandler, _ data.BodyHandler, _ func() time.Duration) error {
@@ -1445,7 +1445,7 @@ func TestSubroundBlock_ReceivedBlockComputeProcessDurationWithZeroDurationShould
 		}
 	}()
 
-	container := mock.InitConsensusCore()
+	container := consensusMocks.InitConsensusCore()
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
