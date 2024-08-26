@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"runtime"
 	"sync"
 	"time"
 
@@ -560,7 +559,7 @@ func (sr *subroundEndRound) aggregateSigsAndHandleInvalidSigners(bitmap []byte) 
 	return bitmap, sig, nil
 }
 
-func (sr *subroundEndRound) signatureVerification(wg *sync.WaitGroup, i int, pk string, invalidPubKey *[]string, mutex *sync.Mutex, errorPair []ErrSigVerificationPair) {
+func (sr *subroundEndRound) signatureVerification(wg *sync.WaitGroup, i int, pk string, invalidPubKey *[]string, mutex *sync.Mutex, sigShare []byte, mutexBool *sync.Mutex, errorReturned *error) {
 	defer wg.Done()
 
 	isSuccessfull := true
@@ -569,8 +568,11 @@ func (sr *subroundEndRound) signatureVerification(wg *sync.WaitGroup, i int, pk 
 		isSuccessfull = false
 		err = sr.SetJobDone(pk, SrSignature, false)
 		if err != nil {
-			errorPair[i].Err1 = SetJobDoneError
-			errorPair[i].Err2 = err
+			if *errorReturned == nil {
+				mutexBool.Lock()
+				*errorReturned = err
+				mutexBool.Unlock()
+			}
 			return
 		}
 		decreaseFactor := -spos.ValidatorPeerHonestyIncreaseFactor + spos.ValidatorPeerHonestyDecreaseFactor
@@ -585,74 +587,62 @@ func (sr *subroundEndRound) signatureVerification(wg *sync.WaitGroup, i int, pk 
 	}
 
 	log.Trace("verifyNodesOnAggSigVerificationFail: verifying signature share", "public key", pk, "is successfull", isSuccessfull)
-	errorPair[i].Err1 = nil
-	errorPair[i].Err2 = nil
 }
 
 func (sr *subroundEndRound) verifyNodesOnAggSigFailAux() ([]string, error) {
 	invalidPubKeys := make([]string, 0)
-	errorPair := make([]ErrSigVerificationPair, len(sr.ConsensusGroup()))
 	pubKeys := sr.ConsensusGroup()
 	wg := &sync.WaitGroup{}
 	mutex := &sync.Mutex{}
+	mutexBool := &sync.Mutex{}
+	var errorReturned error = nil
 	if check.IfNil(sr.Header) {
 		return nil, spos.ErrNilHeader
 	}
 	for i, pk := range pubKeys {
 		isJobDone, err := sr.JobDone(pk, SrSignature)
-		if err != nil {
-			errorPair[i].Err1 = JobDoneError
-			errorPair[i].Err2 = err
-			return
-		}
-		if !isJobDone {
-			errorPair[i].Err1 = JobIsNotDoneError
-			errorPair[i].Err2 = nil
-			return
+		if err != nil || isJobDone {
+			continue
 		}
 		sigShare, err := sr.SigningHandler().SignatureShare(uint16(i))
 		if err != nil {
-			errorPair[i].Err1 = SignatureShareError
-			errorPair[i].Err2 = err
-			return
+			return nil, err
 		}
 		wg.Add(1)
-		sr.signatureVerification(wg, i, pk, &invalidPubKeys, mutex, errorPair)
+		sr.signatureVerification(wg, i, pk, &invalidPubKeys, mutex, sigShare, mutexBool, &errorReturned)
 	}
 	wg.Wait()
-	for i := range errorPair {
-		if errorPair[i].Err1 == SignatureShareError || errorPair[i].Err1 == SetJobDoneError {
-			return nil, errorPair[i].Err2
-		}
+	if errorReturned != nil {
+		return nil, errorReturned
 	}
 	return invalidPubKeys, nil
 }
 
 func (sr *subroundEndRound) verifyNodesOnAggSigFailAuxThrottle() ([]string, error) {
 	invalidPubKeys := make([]string, 0)
-	errorPair := make([]ErrSigVerificationPair, len(sr.ConsensusGroup()))
-	pubKeys := sr.ConsensusGroup()
-	wg := &sync.WaitGroup{}
-	mutex := &sync.Mutex{}
-	if check.IfNil(sr.Header) {
-		return nil, spos.ErrNilHeader
-	}
-	sizeOfPubKeys := len(pubKeys)
-	numCpu := runtime.NumCPU()
-	for i := 0; i < sizeOfPubKeys; i += numCpu {
-		for j := 0; j < numCpu; j++ {
-			if i+j < sizeOfPubKeys {
-				wg.Add(1)
-				sr.signatureVerification(wg, i+j, pubKeys[i+j], &invalidPubKeys, mutex, errorPair)
-			}
-		}
-		wg.Wait()
-	}
-	for i := range errorPair {
-		if errorPair[i].Err1 == SignatureShareError || errorPair[i].Err1 == SetJobDoneError {
-			return nil, errorPair[i].Err2
-		}
-	}
+	//errorPair := make([]ErrSigVerificationPair, len(sr.ConsensusGroup()))
+	//pubKeys := sr.ConsensusGroup()
+	//wg := &sync.WaitGroup{}
+	//mutex := &sync.Mutex{}
+	//if check.IfNil(sr.Header) {
+	//	return nil, spos.ErrNilHeader
+	//}
+	//sizeOfPubKeys := len(pubKeys)
+	//numCpu := runtime.NumCPU()
+	//for i := 0; i < sizeOfPubKeys; i += numCpu {
+	//	for j := 0; j < numCpu; j++ {
+	//		if i+j < sizeOfPubKeys {
+	//			wg.Add(1)
+	//			sr.signatureVerification(wg, i+j, pubKeys[i+j], &invalidPubKeys, mutex, errorPair)
+	//		}
+	//	}
+	//	wg.Wait()
+	//}
+	//for i := range errorPair {
+	//	if errorPair[i].Err1 == SignatureShareError || errorPair[i].Err1 == SetJobDoneError {
+	//		return nil, errorPair[i].Err2
+	//	}
+	//}
 	return invalidPubKeys, nil
 }
 

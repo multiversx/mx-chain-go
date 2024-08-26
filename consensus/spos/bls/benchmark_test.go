@@ -13,30 +13,29 @@ import (
 )
 
 func BenchmarkSubroundEndRound_VerifyNodesOnAggSigFailTime(b *testing.B) {
-
-	container := mock.InitConsensusCore()
-	sr := *initSubroundEndRoundWithContainer400Sig(container, &statusHandler.AppStatusHandlerMock{})
-
-	signingHandler := &consensusMocks.SigningHandlerStub{
-		SignatureShareCalled: func(index uint16) ([]byte, error) {
-			return nil, nil
-		},
-		VerifySignatureShareCalled: func(index uint16, sig, msg []byte, epoch uint32) error {
-			return nil
-		},
-		VerifyCalled: func(msg, bitmap []byte, epoch uint32) error {
-			return nil
-		},
-	}
-	container.SetSigningHandler(signingHandler)
-
-	sr.Header = &block.Header{}
-	for i := 0; i < len(sr.ConsensusGroup()); i++ {
-		_ = sr.SetJobDone(sr.ConsensusGroup()[i], bls.SrSignature, true)
-	}
 	b.ResetTimer()
 	b.StopTimer()
 	for i := 0; i < b.N; i++ {
+		container := mock.InitConsensusCore()
+		sr := *initSubroundEndRoundWithContainer400Sig(container, &statusHandler.AppStatusHandlerMock{})
+
+		signingHandler := &consensusMocks.SigningHandlerStub{
+			SignatureShareCalled: func(index uint16) ([]byte, error) {
+				return nil, nil
+			},
+			VerifySignatureShareCalled: func(index uint16, sig, msg []byte, epoch uint32) error {
+				return nil
+			},
+			VerifyCalled: func(msg, bitmap []byte, epoch uint32) error {
+				return nil
+			},
+		}
+		container.SetSigningHandler(signingHandler)
+
+		sr.Header = &block.Header{}
+		for i := 0; i < len(sr.ConsensusGroup()); i++ {
+			_ = sr.SetJobDone(sr.ConsensusGroup()[i], bls.SrSignature, true)
+		}
 		b.StartTimer()
 		invalidSigners, err := sr.VerifyNodesOnAggSigFail()
 		b.StopTimer()
@@ -46,29 +45,29 @@ func BenchmarkSubroundEndRound_VerifyNodesOnAggSigFailTime(b *testing.B) {
 }
 
 func BenchmarkSubroundEndRound_VerifyNodesOnAggSigFailTimeParallelNoThrottle(b *testing.B) {
-	container := mock.InitConsensusCore()
-	sr := *initSubroundEndRoundWithContainer400Sig(container, &statusHandler.AppStatusHandlerMock{})
-
-	signingHandler := &consensusMocks.SigningHandlerStub{
-		SignatureShareCalled: func(index uint16) ([]byte, error) {
-			return nil, nil
-		},
-		VerifySignatureShareCalled: func(index uint16, sig, msg []byte, epoch uint32) error {
-			return nil
-		},
-		VerifyCalled: func(msg, bitmap []byte, epoch uint32) error {
-			return nil
-		},
-	}
-	container.SetSigningHandler(signingHandler)
-
-	sr.Header = &block.Header{}
-	for i := 0; i < len(sr.ConsensusGroup()); i++ {
-		_ = sr.SetJobDone(sr.ConsensusGroup()[i], bls.SrSignature, true)
-	}
 	b.ResetTimer()
 	b.StopTimer()
 	for i := 0; i < b.N; i++ {
+		container := mock.InitConsensusCore()
+		sr := *initSubroundEndRoundWithContainer400Sig(container, &statusHandler.AppStatusHandlerMock{})
+
+		signingHandler := &consensusMocks.SigningHandlerStub{
+			SignatureShareCalled: func(index uint16) ([]byte, error) {
+				return nil, nil
+			},
+			VerifySignatureShareCalled: func(index uint16, sig, msg []byte, epoch uint32) error {
+				return nil
+			},
+			VerifyCalled: func(msg, bitmap []byte, epoch uint32) error {
+				return nil
+			},
+		}
+		container.SetSigningHandler(signingHandler)
+
+		sr.Header = &block.Header{}
+		for i := 0; i < len(sr.ConsensusGroup()); i++ {
+			_ = sr.SetJobDone(sr.ConsensusGroup()[i], bls.SrSignature, true)
+		}
 		b.StartTimer()
 		invalidSigners, err := sr.VerifyNodesOnAggSigFailAux()
 		b.StopTimer()

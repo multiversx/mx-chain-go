@@ -369,8 +369,8 @@ func (sr *subroundStartRound) IndexRoundIfNeeded(pubKeys []string) {
 	sr.indexRoundIfNeeded(pubKeys)
 }
 
-func (sr *subroundEndRound) SignatureVerification(wg *sync.WaitGroup, i int, pk string, invalidPubKey *[]string, mutex *sync.Mutex, errorPair []ErrSigVerificationPair) {
-	sr.signatureVerification(wg, i, pk, invalidPubKey, mutex, errorPair)
+func (sr *subroundEndRound) SignatureVerification(wg *sync.WaitGroup, i int, pk string, invalidPubKey *[]string, mutex *sync.Mutex, sigShare []byte, mutexBool *sync.Mutex, errorReturned *error) {
+	sr.signatureVerification(wg, i, pk, invalidPubKey, mutex, sigShare, mutexBool, errorReturned)
 }
 
 func (sr *subroundEndRound) VerifyNodesOnAggSigFailAux() ([]string, error) {
