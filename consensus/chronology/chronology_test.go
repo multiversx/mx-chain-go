@@ -340,7 +340,7 @@ func TestChronology_CloseWatchDogStop(t *testing.T) {
 
 	err = chr.Close()
 	assert.Nil(t, err)
-	assert.Equal(t, stopCalled, true)
+	assert.True(t, stopCalled)
 }
 
 func TestChronology_Close(t *testing.T) {
@@ -364,8 +364,8 @@ func TestChronology_Close(t *testing.T) {
 
 	err = chr.Close()
 	assert.Nil(t, err)
-	assert.Equal(t, stopCalled, true)
-	assert.Equal(t, cancelCalled, true)
+	assert.True(t, stopCalled)
+	assert.True(t, cancelCalled)
 }
 
 func TestChronology_StartRounds(t *testing.T) {

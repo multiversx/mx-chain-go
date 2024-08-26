@@ -2,7 +2,6 @@ package broadcast_test
 
 import (
 	"bytes"
-	"errors"
 	"sync"
 	"testing"
 	"time"
@@ -308,6 +307,7 @@ func TestMetaChainMessenger_BroadcastBlockDataLeader(t *testing.T) {
 }
 
 func TestMetaChainMessenger_Close(t *testing.T) {
+	t.Parallel()
 	args := createDefaultMetaChainArgs()
 	closeCalled := false
 	delayedBroadcaster := &mock.DelayedBroadcasterMock{
@@ -323,6 +323,7 @@ func TestMetaChainMessenger_Close(t *testing.T) {
 }
 
 func TestMetaChainMessenger_PrepareBroadcastHeaderValidator(t *testing.T) {
+	t.Parallel()
 	t.Run("Nil header", func(t *testing.T) {
 		args := createDefaultMetaChainArgs()
 		delayedBroadcaster := &mock.DelayedBroadcasterMock{
@@ -357,7 +358,7 @@ func TestMetaChainMessenger_PrepareBroadcastHeaderValidator(t *testing.T) {
 		delayedBroadcaster := &mock.DelayedBroadcasterMock{
 			SetHeaderForValidatorCalled: func(vData *shared.ValidatorHeaderBroadcastData) error {
 				checkVarModified = true
-				return errors.New("some error")
+				return expectedErr
 			},
 		}
 		args.DelayedBroadcaster = delayedBroadcaster
@@ -370,6 +371,7 @@ func TestMetaChainMessenger_PrepareBroadcastHeaderValidator(t *testing.T) {
 }
 
 func TestMetaChainMessenger_BroadcastBlock(t *testing.T) {
+	t.Parallel()
 	t.Run("Err nil blockData", func(t *testing.T) {
 		args := createDefaultMetaChainArgs()
 		mcm, _ := broadcast.NewMetaChainMessenger(args)
@@ -380,12 +382,15 @@ func TestMetaChainMessenger_BroadcastBlock(t *testing.T) {
 }
 
 func TestMetaChainMessenger_NewMetaChainMessengerFailSetBroadcast(t *testing.T) {
+	t.Parallel()
 	args := createDefaultMetaChainArgs()
 	varModified := false
 	delayedBroadcaster := &mock.DelayedBroadcasterMock{
-		SetBroadcastHandlersCalled: func(mbBroadcast func(mbData map[uint32][]byte, pkBytes []byte) error, txBroadcast func(txData map[string][][]byte, pkBytes []byte) error, headerBroadcast func(header data.HeaderHandler, pkBytes []byte) error) error {
+		SetBroadcastHandlersCalled: func(mbBroadcast func(mbData map[uint32][]byte, pkBytes []byte) error,
+			txBroadcast func(txData map[string][][]byte, pkBytes []byte) error,
+			headerBroadcast func(header data.HeaderHandler, pkBytes []byte) error) error {
 			varModified = true
-			return errors.New("some error")
+			return expectedErr
 		},
 	}
 	args.DelayedBroadcaster = delayedBroadcaster
