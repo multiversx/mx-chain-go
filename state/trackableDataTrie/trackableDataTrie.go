@@ -14,6 +14,7 @@ import (
 	errorsCommon "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/dataTrieValue"
+	"github.com/multiversx/mx-chain-go/state/stateChanges"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
@@ -93,11 +94,11 @@ func (tdt *trackableDataTrie) RetrieveValue(key []byte) ([]byte, uint32, error) 
 
 	log.Trace("retrieve value from trie", "key", key, "value", val, "account", tdt.identifier)
 
-	stateChange := state.StateChangeDTO{
+	stateChange := &stateChanges.StateChangeDTO{
 		Type:        "read",
 		MainTrieKey: tdt.identifier,
 		MainTrieVal: nil,
-		DataTrieChanges: []state.DataTrieChange{
+		DataTrieChanges: []stateChanges.DataTrieChange{
 			{
 				Type: "read",
 				Key:  key,
@@ -228,9 +229,9 @@ func (tdt *trackableDataTrie) DataTrie() common.DataTrieHandler {
 }
 
 // SaveDirtyData saved the dirty data to the trie
-func (tdt *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) ([]state.DataTrieChange, []core.TrieData, error) {
+func (tdt *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) ([]stateChanges.DataTrieChange, []core.TrieData, error) {
 	if len(tdt.dirtyData) == 0 {
-		return make([]state.DataTrieChange, 0), make([]core.TrieData, 0), nil
+		return make([]stateChanges.DataTrieChange, 0), make([]core.TrieData, 0), nil
 	}
 
 	if check.IfNil(tdt.tr) {
@@ -250,10 +251,10 @@ func (tdt *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) ([]state.DataT
 	return tdt.updateTrie(dtr)
 }
 
-func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]state.DataTrieChange, []core.TrieData, error) {
+func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]stateChanges.DataTrieChange, []core.TrieData, error) {
 	oldValues := make([]core.TrieData, len(tdt.dirtyData))
-	newData := make([]state.DataTrieChange, len(tdt.dirtyData))
-	deletedKeys := make([]state.DataTrieChange, 0)
+	newData := make([]stateChanges.DataTrieChange, len(tdt.dirtyData))
+	deletedKeys := make([]stateChanges.DataTrieChange, 0)
 
 	index := 0
 	for key, dataEntry := range tdt.dirtyData {
@@ -270,7 +271,7 @@ func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]state.DataTrieCh
 
 		if wasDeleted {
 			deletedKeys = append(deletedKeys,
-				state.DataTrieChange{
+				stateChanges.DataTrieChange{
 					Type: "write",
 					Key:  []byte(key),
 					Val:  nil,
@@ -293,7 +294,7 @@ func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]state.DataTrieCh
 			return nil, nil, fmt.Errorf("index out of range")
 		}
 
-		newData[dataEntry.index] = state.DataTrieChange{
+		newData[dataEntry.index] = stateChanges.DataTrieChange{
 			Type: "write",
 			Key:  dataTrieKey,
 			Val:  dataTrieVal,
@@ -302,7 +303,7 @@ func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]state.DataTrieCh
 
 	tdt.dirtyData = make(map[string]dirtyData)
 
-	stateChanges := make([]state.DataTrieChange, 0)
+	stateChanges := make([]stateChanges.DataTrieChange, 0)
 	for i := range newData {
 		if len(newData[i].Key) == 0 {
 			continue

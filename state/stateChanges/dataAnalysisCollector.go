@@ -17,7 +17,7 @@ const (
 	defaultStateChangesPath = "stateChanges"
 )
 
-// TODO: use proto stucts
+// StateChangeDTO is used to collect state changes
 type DataAnalysisStateChangeDTO struct {
 	StateChange
 	Operation       string `json:"operation"`
@@ -31,6 +31,7 @@ type DataAnalysisStateChangeDTO struct {
 	CodeMetadata    bool   `json:"codeMetadataChanged"`
 }
 
+// StateChangesForTx is used to collect state changes for a transaction hash
 type DataAnalysisStateChangesForTx struct {
 	TxHash       []byte                   `json:"txHash"`
 	Tx           *transaction.Transaction `json:"tx"`
@@ -55,7 +56,7 @@ type dataAnalysisCollector struct {
 	storer    storage.Persister
 }
 
-// NewDataAnalysisStateChangesCollector will create a new instance of data analysis collector
+// NewStateChangesCollector creates a new StateChangesCollector
 func NewDataAnalysisStateChangesCollector(storer storage.Persister) (*dataAnalysisCollector, error) {
 	if check.IfNil(storer) {
 		return nil, storage.ErrNilPersisterFactory
@@ -70,7 +71,6 @@ func NewDataAnalysisStateChangesCollector(storer storage.Persister) (*dataAnalys
 	}, nil
 }
 
-// AddSaveAccountStateChange adds a new state change for the save account operation
 func (scc *dataAnalysisCollector) AddSaveAccountStateChange(oldAccount, account vmcommon.AccountHandler, stateChange StateChange) {
 	dataAnalysisStateChange := &DataAnalysisStateChangeDTO{
 		StateChange: stateChange,
@@ -145,6 +145,8 @@ func (scc *dataAnalysisCollector) getStateChangesForTxs() ([]DataAnalysisStateCh
 			break
 		}
 
+		log.Warn("txHash", "txHash", string(txHash))
+
 		cachedTx, txOk := scc.cachedTxs[string(txHash)]
 		if !txOk {
 			return nil, fmt.Errorf("did not find tx in cache")
@@ -182,7 +184,6 @@ func (scc *dataAnalysisCollector) Reset() {
 	scc.cachedTxs = make(map[string]*transaction.Transaction)
 }
 
-// Publish will export state changes
 func (scc *dataAnalysisCollector) Publish() error {
 	stateChangesForTx, err := scc.getStateChangesForTxs()
 	if err != nil {
