@@ -16,7 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 )
 
-const timeSpentBetweenChecks = 100 * time.Millisecond
+const timeSpentBetweenChecks = time.Millisecond
 
 type subroundSignature struct {
 	*spos.Subround
