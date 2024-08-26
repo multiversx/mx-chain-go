@@ -17,7 +17,7 @@ const (
 	defaultStateChangesPath = "stateChanges"
 )
 
-// StateChangeDTO is used to collect state changes
+// TODO: use proto stucts
 type DataAnalysisStateChangeDTO struct {
 	StateChange
 	Operation       string `json:"operation"`
@@ -31,7 +31,6 @@ type DataAnalysisStateChangeDTO struct {
 	CodeMetadata    bool   `json:"codeMetadataChanged"`
 }
 
-// StateChangesForTx is used to collect state changes for a transaction hash
 type DataAnalysisStateChangesForTx struct {
 	TxHash       []byte                   `json:"txHash"`
 	Tx           *transaction.Transaction `json:"tx"`
@@ -56,7 +55,6 @@ type dataAnalysisCollector struct {
 	storer    storage.Persister
 }
 
-// NewStateChangesCollector creates a new StateChangesCollector
 func NewDataAnalysisStateChangesCollector(storer storage.Persister) (*dataAnalysisCollector, error) {
 	if check.IfNil(storer) {
 		return nil, storage.ErrNilPersisterFactory
@@ -144,8 +142,6 @@ func (scc *dataAnalysisCollector) getStateChangesForTxs() ([]DataAnalysisStateCh
 			log.Warn("empty tx hash, state change event not associated to a transaction")
 			break
 		}
-
-		log.Warn("txHash", "txHash", string(txHash))
 
 		cachedTx, txOk := scc.cachedTxs[string(txHash)]
 		if !txOk {
