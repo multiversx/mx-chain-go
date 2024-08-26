@@ -5,8 +5,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
-	commonDisabled "github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/state"
+	disabledState "github.com/multiversx/mx-chain-go/state/disabled"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/disabled"
 	"github.com/multiversx/mx-chain-go/trie"
 )
@@ -32,11 +32,9 @@ func createAccountAdapter(
 		Marshaller:            marshaller,
 		AccountFactory:        accountFactory,
 		StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
-		ProcessingMode:        common.Normal,
-		ProcessStatusHandler:  commonDisabled.NewProcessStatusHandler(),
-		AppStatusHandler:      commonDisabled.NewAppStatusHandler(),
 		AddressConverter:      addressConverter,
-		StateChangesCollector: state.NewStateChangesCollector(),
+		SnapshotsManager:      disabledState.NewDisabledSnapshotsManager(),
+		StateChangesCollector: disabledState.NewDisabledStateChangesCollector(),
 	}
 
 	adb, err := state.NewAccountsDB(args)

@@ -46,7 +46,7 @@ type StateChange interface {
 
 >>>>>>>> 7dbef76f66 (update separate components for state changes data analysis):state/stateChanges/writeCollector.go
 // StateChangeDTO is used to collect state changes
-// TODO: change to proto structs
+// TODO: change to use proto structs
 type StateChangeDTO struct {
 	Type            string           `json:"type"`
 <<<<<<<< HEAD:state/stateChangesCollector.go
@@ -150,8 +150,6 @@ func (scc *stateChangesCollector) getStateChangesForTxs() ([]StateChangesForTx, 
 			log.Warn("empty tx hash, state change event not associated to a transaction")
 			break
 		}
-
-		log.Warn("txHash", "txHash", string(txHash))
 
 		innerStateChangesForTx := make([]StateChange, 0)
 		for j := i; j < len(scc.stateChanges); j++ {
