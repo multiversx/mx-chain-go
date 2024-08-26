@@ -15,10 +15,13 @@ import (
 	factoryState "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/iteratorChannelsProvider"
 	"github.com/multiversx/mx-chain-go/state/lastSnapshotMarker"
+	"github.com/multiversx/mx-chain-go/state/stateChanges"
 	"github.com/multiversx/mx-chain-go/state/stateMetrics"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/evictionWaitingList"
 	"github.com/multiversx/mx-chain-go/state/syncer"
+	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
+	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
 )
 
@@ -92,9 +95,9 @@ func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 		return nil, err
 	}
 
-	stateChangesCollector := disabled.NewDisabledStateChangesCollector()
-	if scf.config.StateTriesConfig.CollectStateChangesEnabled {
-		stateChangesCollector = state.NewStateChangesCollector()
+	stateChangesCollector, err := scf.createStateChangesCollector()
+	if err != nil {
+		return nil, err
 	}
 
 	accountsAdapter, accountsAdapterAPI, accountsRepository, err := scf.createAccountsAdapters(triesContainer, stateChangesCollector)
@@ -117,6 +120,37 @@ func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 		missingTrieNodesNotifier: syncer.NewMissingTrieNodesNotifier(),
 		stateChangesCollector:    stateChangesCollector,
 	}, nil
+}
+
+func (scf *stateComponentsFactory) createStateChangesCollector() (state.StateChangesCollector, error) {
+	if !scf.config.StateTriesConfig.CollectStateChangesEnabled {
+		return disabled.NewDisabledStateChangesCollector(), nil
+	}
+
+	if !scf.config.StateTriesConfig.CollectStateChangesWithReadEnabled {
+		return stateChanges.NewStateChangesCollector(), nil
+	}
+
+	dbConfig := config.DBConfig{
+		FilePath:          "stateChanges",
+		Type:              "LvlDBSerial",
+		BatchDelaySeconds: 2,
+		MaxBatchSize:      100,
+		MaxOpenFiles:      10,
+	}
+
+	dbConfigHandler := storageFactory.NewDBConfigHandler(dbConfig)
+	persisterFactory, err := storageFactory.NewPersisterFactory(dbConfigHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	db, err := storageunit.NewDB(persisterFactory, dbConfig.FilePath)
+	if err != nil {
+		return nil, fmt.Errorf("%w while creating the db for the trie nodes", err)
+	}
+
+	return stateChanges.NewDataAnalysisStateChangesCollector(db)
 }
 
 func (scf *stateComponentsFactory) createSnapshotManager(
