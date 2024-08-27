@@ -2,10 +2,13 @@ package staking
 
 import (
 	"encoding/hex"
+	"fmt"
 	"math/big"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	chainSimulatorIntegrationTests "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	chainSimulatorProcess "github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 	"github.com/multiversx/mx-chain-go/process"
@@ -101,4 +104,73 @@ func CheckValidatorStatus(t *testing.T, cs chainSimulatorIntegrationTests.ChainS
 	validatorsStatistics, err := cs.GetNodeHandler(core.MetachainShardId).GetFacadeHandler().ValidatorStatisticsApi()
 	require.Nil(t, err)
 	require.Equal(t, expectedStatus, validatorsStatistics[blsKey].ValidatorStatus)
+}
+
+// StakeNodes stakes the provided number of nodes by generating for each one an owner and a bls key
+func StakeNodes(t *testing.T, cs chainSimulatorIntegrationTests.ChainSimulator, numNodesToStake int) {
+	txs := make([]*transaction.Transaction, numNodesToStake)
+	for i := 0; i < numNodesToStake; i++ {
+		txs[i] = CreateStakeTransaction(t, cs)
+	}
+
+	stakeTxs, err := cs.SendTxsAndGenerateBlocksTilAreExecuted(txs, MaxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.NotNil(t, stakeTxs)
+	require.Len(t, stakeTxs, numNodesToStake)
+
+	require.Nil(t, cs.GenerateBlocks(1))
+}
+
+// CreateStakeTransaction creates a stake tx by generating an owner and a bls key
+func CreateStakeTransaction(t *testing.T, cs chainSimulatorIntegrationTests.ChainSimulator) *transaction.Transaction {
+	privateKey, blsKeys, err := chainSimulator.GenerateBlsPrivateKeys(1)
+	require.Nil(t, err)
+	err = cs.AddValidatorKeys(privateKey)
+	require.Nil(t, err)
+
+	mintValue := big.NewInt(0).Add(chainSimulatorIntegrationTests.MinimumStakeValue, chainSimulatorIntegrationTests.OneEGLD)
+	validatorOwner, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
+	require.Nil(t, err)
+
+	txDataField := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], MockBLSSignature)
+	return chainSimulatorIntegrationTests.GenerateTransaction(validatorOwner.Bytes, 0, vm.ValidatorSCAddress, chainSimulatorIntegrationTests.MinimumStakeValue, txDataField, GasLimitForStakeOperation)
+}
+
+// GetQualifiedAndUnqualifiedNodes returns the qualified and unqualified nodes from auction
+func GetQualifiedAndUnqualifiedNodes(t *testing.T, metachainNode chainSimulatorProcess.NodeHandler) ([]string, []string) {
+	err := metachainNode.GetProcessComponents().ValidatorsProvider().ForceUpdate()
+	require.Nil(t, err)
+	auctionList, err := metachainNode.GetProcessComponents().ValidatorsProvider().GetAuctionList()
+	require.Nil(t, err)
+
+	qualified := make([]string, 0)
+	unQualified := make([]string, 0)
+
+	for _, auctionOwnerData := range auctionList {
+		for _, auctionNode := range auctionOwnerData.Nodes {
+			if auctionNode.Qualified {
+				qualified = append(qualified, auctionNode.BlsKey)
+			} else {
+				unQualified = append(unQualified, auctionNode.BlsKey)
+			}
+		}
+	}
+
+	return qualified, unQualified
+}
+
+// GetBLSKeyOwner returns the owner's address of the provided bls key
+func GetBLSKeyOwner(t *testing.T, metachainNode chainSimulatorProcess.NodeHandler, blsKey []byte) []byte {
+	scQuery := &process.SCQuery{
+		ScAddress:  vm.StakingSCAddress,
+		FuncName:   "getOwner",
+		CallerAddr: vm.ValidatorSCAddress,
+		CallValue:  big.NewInt(0),
+		Arguments:  [][]byte{blsKey},
+	}
+	result, _, err := metachainNode.GetFacadeHandler().ExecuteSCQuery(scQuery)
+	require.Nil(t, err)
+	require.Equal(t, chainSimulatorIntegrationTests.OkReturnCode, result.ReturnCode)
+
+	return result.ReturnData[0]
 }

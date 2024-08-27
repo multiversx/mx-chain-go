@@ -58,7 +58,7 @@ func TestNewSovereignChainShardBlockTrack_ShouldErrWrongTypeAssertion(t *testing
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 }
 
-func TestNewSovereignChainShardBlockTrack_ShouldErrWhenInitCrossNotarizedStartHeadersFails(t *testing.T) {
+func TestNewSovereignChainShardBlockTrack_ShouldNotErrInitCrossNotarizedStartHeadersWhenClearedStartHeaders(t *testing.T) {
 	t.Parallel()
 
 	shardBlockTrackArguments := CreateSovereignChainShardTrackerMockArguments()
@@ -67,8 +67,8 @@ func TestNewSovereignChainShardBlockTrack_ShouldErrWhenInitCrossNotarizedStartHe
 	sbt.ClearStartHeaders()
 
 	scsbt, err := track.NewSovereignChainShardBlockTrack(sbt)
-	assert.Nil(t, scsbt)
-	assert.ErrorIs(t, err, process.ErrMissingHeader)
+	require.NotNil(t, scsbt)
+	require.Nil(t, err)
 }
 
 func TestNewSovereignChainShardBlockTrack_ShouldWork(t *testing.T) {
@@ -748,7 +748,7 @@ func TestSovereignChainShardBlockTrack_GetFinalHeaderShouldWork(t *testing.T) {
 func TestSovereignChainShardBlockTrack_InitCrossNotarizedStartHeadersShouldWork(t *testing.T) {
 	t.Parallel()
 
-	t.Run("init cross notarized start headers should return error when self start header is missing", func(t *testing.T) {
+	t.Run("init cross notarized start headers should not return error when self start header is missing", func(t *testing.T) {
 		t.Parallel()
 
 		shardArguments := CreateSovereignChainShardTrackerMockArguments()
@@ -760,24 +760,7 @@ func TestSovereignChainShardBlockTrack_InitCrossNotarizedStartHeadersShouldWork(
 
 		err := scsbt.InitCrossNotarizedStartHeaders()
 
-		assert.ErrorIs(t, err, process.ErrMissingHeader)
-	})
-
-	t.Run("init cross notarized start headers should return error when wrong type assertion is occurred", func(t *testing.T) {
-		t.Parallel()
-
-		shardArguments := CreateSovereignChainShardTrackerMockArguments()
-		sbt, _ := track.NewShardBlockTrack(shardArguments)
-
-		scsbt, _ := track.NewSovereignChainShardBlockTrack(sbt)
-
-		startHeaders := make(map[uint32]data.HeaderHandler)
-		startHeaders[shardArguments.ShardCoordinator.SelfId()] = &block.MetaBlock{}
-		scsbt.SetStartHeaders(startHeaders)
-
-		err := scsbt.InitCrossNotarizedStartHeaders()
-
-		assert.ErrorIs(t, err, process.ErrWrongTypeAssertion)
+		require.Nil(t, err)
 	})
 
 	t.Run("init cross notarized start headers should work", func(t *testing.T) {
@@ -799,11 +782,9 @@ func TestSovereignChainShardBlockTrack_InitCrossNotarizedStartHeadersShouldWork(
 		lastCrossNotarizedHeader, lastCrossNotarizedHeaderHash, err := scsbt.GetLastCrossNotarizedHeader(core.MainChainShardId)
 		assert.Nil(t, err)
 
-		selfStartHeader := shardArguments.StartHeaders[shardArguments.ShardCoordinator.SelfId()]
-		header := selfStartHeader.(*block.Header)
 		extendedSelfStartHeader := &block.ShardHeaderExtended{
 			Header: &block.HeaderV2{
-				Header: header,
+				Header: &block.Header{},
 			},
 		}
 		extendedSelfStartHeaderHash, _ := core.CalculateHash(shardArguments.Marshalizer, shardArguments.Hasher, extendedSelfStartHeader)

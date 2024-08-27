@@ -12,7 +12,12 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap"
+	"github.com/multiversx/mx-chain-go/epochStart/metachain"
 	"github.com/multiversx/mx-chain-go/errors"
+	mainFactory "github.com/multiversx/mx-chain-go/factory"
+	"github.com/multiversx/mx-chain-go/factory/epochStartTrigger"
+	"github.com/multiversx/mx-chain-go/factory/processing/api"
+	"github.com/multiversx/mx-chain-go/factory/processing/dataRetriever"
 	factoryVm "github.com/multiversx/mx-chain-go/factory/vm"
 	"github.com/multiversx/mx-chain-go/genesis"
 	"github.com/multiversx/mx-chain-go/genesis/checking"
@@ -25,8 +30,11 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/sovereign"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/factory/interceptorscontainer"
+	"github.com/multiversx/mx-chain-go/process/factory/shard"
+	"github.com/multiversx/mx-chain-go/process/factory/shard/data"
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/process/peer"
+	"github.com/multiversx/mx-chain-go/process/scToProtocol"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/processProxy"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
@@ -38,6 +46,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/factory"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
+	"github.com/multiversx/mx-chain-go/storage/latestData"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -94,6 +103,16 @@ type runTypeComponents struct {
 	genesisBlockCreatorFactory              processGenesis.GenesisBlockCreatorFactory
 	genesisMetaBlockCheckerCreator          processGenesis.GenesisMetaBlockChecker
 	nodesSetupCheckerFactory                checking.NodesSetupCheckerFactory
+	epochStartTriggerFactory                mainFactory.EpochStartTriggerFactoryHandler
+	latestDataProviderFactory               latestData.LatestDataProviderFactory
+	scToProtocolFactory                     scToProtocol.StakingToPeerFactoryHandler
+	validatorInfoCreatorFactory             mainFactory.ValidatorInfoCreatorFactory
+	apiProcessorCompsCreatorHandler         api.ApiProcessorCompsCreatorHandler
+	endOfEpochEconomicsFactoryHandler       mainFactory.EndOfEpochEconomicsFactoryHandler
+	rewardsCreatorFactory                   mainFactory.RewardsCreatorFactory
+	systemSCProcessorFactory                mainFactory.SystemSCProcessorFactory
+	preProcessorsContainerFactoryCreator    data.PreProcessorsContainerFactoryCreator
+	dataRetrieverContainersSetter           mainFactory.DataRetrieverContainersSetter
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
@@ -257,6 +276,16 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		genesisBlockCreatorFactory:              processGenesis.NewGenesisBlockCreatorFactory(),
 		genesisMetaBlockCheckerCreator:          processGenesis.NewGenesisMetaBlockChecker(),
 		nodesSetupCheckerFactory:                checking.NewNodesSetupCheckerFactory(),
+		epochStartTriggerFactory:                epochStartTrigger.NewEpochStartTriggerFactory(),
+		latestDataProviderFactory:               latestData.NewLatestDataProviderFactory(),
+		scToProtocolFactory:                     scToProtocol.NewStakingToPeerFactory(),
+		validatorInfoCreatorFactory:             metachain.NewValidatorInfoCreatorFactory(),
+		apiProcessorCompsCreatorHandler:         api.NewAPIProcessorCompsCreator(),
+		endOfEpochEconomicsFactoryHandler:       metachain.NewEconomicsFactory(),
+		rewardsCreatorFactory:                   metachain.NewRewardsCreatorFactory(),
+		systemSCProcessorFactory:                metachain.NewSysSCFactory(),
+		preProcessorsContainerFactoryCreator:    shard.NewPreProcessorContainerFactoryCreator(),
+		dataRetrieverContainersSetter:           dataRetriever.NewDataRetrieverContainerSetter(),
 	}, nil
 }
 

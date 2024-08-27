@@ -926,6 +926,7 @@ func (e *epochStartBootstrap) requestAndProcessForShard(peerMiniBlocks []*block.
 	}
 	log.Debug("start in epoch bootstrap: GetMiniBlocks", "num synced", len(pendingMiniBlocks))
 
+	// TODO: MX-15748 Analyse this
 	shardIds := []uint32{
 		core.MetachainShardId,
 		core.MetachainShardId,
