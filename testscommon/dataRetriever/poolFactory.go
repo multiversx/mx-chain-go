@@ -81,6 +81,10 @@ func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHo
 	panicIfError("CreatePoolsHolder", err)
 
 	cacherConfig = storageunit.CacheConfig{Capacity: 100000, Type: storageunit.LRUCache, Shards: 1}
+	receipts, err := storageunit.NewCache(cacherConfig)
+	panicIfError("CreatePoolsHolder", err)
+
+	cacherConfig = storageunit.CacheConfig{Capacity: 100000, Type: storageunit.LRUCache, Shards: 1}
 	peerChangeBlockBody, err := storageunit.NewCache(cacherConfig)
 	panicIfError("CreatePoolsHolder", err)
 
@@ -154,6 +158,7 @@ func CreatePoolsHolder(numShards uint32, selfShard uint32) dataRetriever.PoolsHo
 		PeerAuthentications:       peerAuthPool,
 		Heartbeats:                heartbeatPool,
 		ValidatorsInfo:            validatorsInfo,
+		Receipts:                  receipts,
 	}
 	holder, err := dataPool.NewDataPool(dataPoolArgs)
 	panicIfError("CreatePoolsHolder", err)

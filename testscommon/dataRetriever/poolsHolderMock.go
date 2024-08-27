@@ -33,6 +33,7 @@ type PoolsHolderMock struct {
 	peerAuthentications    storage.Cacher
 	heartbeats             storage.Cacher
 	validatorsInfo         dataRetriever.ShardedDataCacherNotifier
+	receipts               storage.Cacher
 }
 
 // NewPoolsHolderMock -
@@ -79,6 +80,9 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 	holder.miniBlocks, err = storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 10000, Shards: 1, SizeInBytes: 0})
 	panicIfError("NewPoolsHolderMock", err)
 
+	holder.receipts, err = storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 10000, Shards: 1, SizeInBytes: 0})
+	panicIfError("NewPoolsHolderMock", err)
+
 	holder.peerChangesBlocks, err = storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 10000, Shards: 1, SizeInBytes: 0})
 	panicIfError("NewPoolsHolderMock", err)
 
@@ -111,6 +115,11 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 	panicIfError("NewPoolsHolderMock", err)
 
 	return holder
+}
+
+// Receipts -
+func (holder *PoolsHolderMock) Receipts() storage.Cacher {
+	return nil
 }
 
 // CurrentBlockTxs -
