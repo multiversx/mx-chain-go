@@ -401,3 +401,14 @@ func driverString(driver Driver) string {
 func (o *outport) IsInterfaceNil() bool {
 	return o == nil
 }
+
+func (o *outport) SendDummy(data []byte) error {
+	o.mutex.RLock()
+	defer o.mutex.RUnlock()
+
+	for _, driver := range o.drivers {
+		driver.SendDummy(data)
+	}
+
+	return nil
+}

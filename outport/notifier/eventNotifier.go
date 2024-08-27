@@ -139,3 +139,7 @@ func (en *eventNotifier) RegisterHandler(_ func() error, _ string) error {
 func (en *eventNotifier) SetCurrentSettings(_ outport.OutportConfig) error {
 	return nil
 }
+
+func (en *eventNotifier) SendDummy(_ []byte) error {
+	return nil
+}

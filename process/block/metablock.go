@@ -13,6 +13,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/headerVersionData"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	processOutport "github.com/multiversx/mx-chain-go/outport/process"
@@ -21,7 +23,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/helpers"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/state"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const firstHeaderNonce = uint64(1)
@@ -607,6 +608,17 @@ func (mp *metaProcessor) checkAndRequestIfShardHeadersMissing() {
 			log.Debug("checkAndRequestIfShardHeadersMissing", "error", err.Error())
 			continue
 		}
+	}
+}
+
+func (mp *metaProcessor) sendSomeDummyData() {
+	if !mp.outportHandler.HasDrivers() {
+		return
+	}
+
+	err := mp.outportHandler.SendDummy([]byte("{\"message\":\"dansabonito\"}"))
+	if err != nil {
+		return
 	}
 }
 
@@ -1304,6 +1316,8 @@ func (mp *metaProcessor) CommitBlock(
 	// TODO: Should be sent also validatorInfoTxs alongside rewardsTxs -> mp.validatorInfoCreator.GetValidatorInfoTxs(body) ?
 	mp.indexBlock(header, headerHash, body, lastMetaBlock, notarizedHeadersHashes, rewardsTxs)
 	mp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
+
+	mp.sendSomeDummyData()
 
 	highestFinalBlockNonce := mp.forkDetector.GetHighestFinalBlockNonce()
 	saveMetricsForCommitMetachainBlock(mp.appStatusHandler, header, headerHash, mp.nodesCoordinator, highestFinalBlockNonce, mp.managedPeersHolder)
