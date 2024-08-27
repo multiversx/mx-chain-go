@@ -93,9 +93,10 @@ func TestSovereignChainSimulator_EpochChange(t *testing.T) {
 	trie := nodeHandler.GetStateComponents().TriesContainer().Get([]byte(dataRetriever.PeerAccountsUnit.String()))
 	require.NotNil(t, trie)
 
-	err = cs.GenerateBlocksUntilEpochIsReached(1)
+	// Generate enough blocks so that we achieve > 1500 trie storage reads (from MaxNumberOfTrieReadsPerTx gasSchedule cfg)
+	err = cs.GenerateBlocksUntilEpochIsReached(45)
 	require.Nil(t, err)
-	require.Equal(t, uint32(1), nodeHandler.GetCoreComponents().EpochNotifier().CurrentEpoch())
+	require.Equal(t, uint32(45), nodeHandler.GetCoreComponents().EpochNotifier().CurrentEpoch())
 
 	accFeesInEpoch, devFeesInEpoch := getAllFeesInEpoch(nodeHandler)
 	require.Empty(t, accFeesInEpoch.Bytes())
