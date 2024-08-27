@@ -199,13 +199,13 @@
         MaxBatchSize = 30000
         MaxOpenFiles = 10
 
-[ReceiptDataStorage]
-    [ReceiptDataStorage.Cache]
+[ReceiptsDataStorage]
+    [ReceiptsDataStorage.Cache]
         Name = "ReceiptsDataStorage"
         Capacity = 500000
         Type = "SizeLRU"
         SizeInBytes = 209715200 #200MB
-    [ReceiptDataStorage.DB]
+    [ReceiptsDataStorage.DB]
         FilePath = "ReceiptsData"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2

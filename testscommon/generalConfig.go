@@ -219,7 +219,7 @@ func GetGeneralConfig() config.Config {
 				MaxOpenFiles:      10,
 			},
 		},
-		ReceiptDataStorage: config.StorageConfig{
+		ReceiptsDataStorage: config.StorageConfig{
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
 				FilePath:          AddTimestampSuffix("ReceiptsData"),

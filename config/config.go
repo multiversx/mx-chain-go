@@ -146,7 +146,7 @@ type Config struct {
 	PeerBlockBodyStorage            StorageConfig
 	BlockHeaderStorage              StorageConfig
 	TxStorage                       StorageConfig
-	ReceiptDataStorage              StorageConfig
+	ReceiptsDataStorage             StorageConfig
 	UnsignedTransactionStorage      StorageConfig
 	RewardTxStorage                 StorageConfig
 	ShardHdrNonceHashStorage        StorageConfig
