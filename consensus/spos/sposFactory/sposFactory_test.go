@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
 
@@ -143,7 +144,7 @@ func TestGetBroadcastMessenger_ShardShouldWork(t *testing.T) {
 		return 0
 	}
 	peerSigHandler := &mock.PeerSignatureHandler{}
-	headersSubscriber := &mock.HeadersCacherStub{}
+	headersSubscriber := &pool.HeadersPoolStub{}
 	interceptosContainer := &testscommon.InterceptorsContainerStub{}
 	alarmSchedulerStub := &testscommon.AlarmSchedulerStub{}
 
@@ -177,7 +178,7 @@ func TestGetBroadcastMessenger_MetachainShouldWork(t *testing.T) {
 		return core.MetachainShardId
 	}
 	peerSigHandler := &mock.PeerSignatureHandler{}
-	headersSubscriber := &mock.HeadersCacherStub{}
+	headersSubscriber := &pool.HeadersPoolStub{}
 	interceptosContainer := &testscommon.InterceptorsContainerStub{}
 	alarmSchedulerStub := &testscommon.AlarmSchedulerStub{}
 
@@ -203,7 +204,7 @@ func TestGetBroadcastMessenger_MetachainShouldWork(t *testing.T) {
 func TestGetBroadcastMessenger_NilShardCoordinatorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	headersSubscriber := &mock.HeadersCacherStub{}
+	headersSubscriber := &pool.HeadersPoolStub{}
 	interceptosContainer := &testscommon.InterceptorsContainerStub{}
 	alarmSchedulerStub := &testscommon.AlarmSchedulerStub{}
 
@@ -233,7 +234,7 @@ func TestGetBroadcastMessenger_InvalidShardIdShouldErr(t *testing.T) {
 	shardCoord.SelfIDCalled = func() uint32 {
 		return 37
 	}
-	headersSubscriber := &mock.HeadersCacherStub{}
+	headersSubscriber := &pool.HeadersPoolStub{}
 	interceptosContainer := &testscommon.InterceptorsContainerStub{}
 	alarmSchedulerStub := &testscommon.AlarmSchedulerStub{}
 

@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	mock2 "github.com/multiversx/mx-chain-go/testscommon/epochstartmock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 )
 
@@ -200,7 +201,7 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *Consensus
 	}
 	epochStartSubscriber := &mock2.EpochStartNotifierStub{}
 	antifloodHandler := &mock.P2PAntifloodHandlerStub{}
-	headerPoolSubscriber := &mock.HeadersCacherStub{}
+	headerPoolSubscriber := &pool.HeadersPoolStub{}
 	peerHonestyHandler := &testscommon.PeerHonestyHandlerStub{}
 	headerSigVerifier := &HeaderSigVerifierMock{}
 	fallbackHeaderValidator := &testscommon.FallBackHeaderValidatorStub{}
