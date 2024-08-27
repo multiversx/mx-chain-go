@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/state"
 	stateFactory "github.com/multiversx/mx-chain-go/state/factory"
+	"github.com/multiversx/mx-chain-go/state/stateChanges"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
@@ -106,9 +107,10 @@ func GetAddressForNewAccountOnWalletAndNodeWithVM(
 
 	address := net.NewAddressWithVM(wallet, vmType)
 	argsAccCreation := stateFactory.ArgsAccountCreator{
-		Hasher:              &hashingMocks.HasherMock{},
-		Marshaller:          &marshallerMock.MarshalizerMock{},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		Hasher:                &hashingMocks.HasherMock{},
+		Marshaller:            &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		StateChangesCollector: stateChanges.NewStateChangesCollector(),
 	}
 	accountFactory, _ := stateFactory.NewAccountCreator(argsAccCreation)
 
