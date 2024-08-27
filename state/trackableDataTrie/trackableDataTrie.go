@@ -55,6 +55,16 @@ func NewTrackableDataTrie(
 	if check.IfNil(enableEpochsHandler) {
 		return nil, state.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(stateChangesCollector) {
+		return nil, state.ErrNilStateChangesCollector
+	}
+
+	err := core.CheckHandlerCompatibility(enableEpochsHandler, []core.EnableEpochFlag{
+		common.AutoBalanceDataTriesFlag,
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	return &trackableDataTrie{
 		tr:                    nil,
@@ -148,7 +158,13 @@ func (tdt *trackableDataTrie) MigrateDataTrieLeaves(args vmcommon.ArgsMigrateDat
 	}
 
 	dataToBeMigrated := args.TrieMigrator.GetLeavesToBeMigrated()
+	log.Debug("num leaves to be migrated", "num", len(dataToBeMigrated), "account", tdt.identifier)
 	for _, leafData := range dataToBeMigrated {
+		val, err := tdt.getValueWithoutMetadata(leafData.Key, leafData)
+		if err != nil {
+			return err
+		}
+
 		originalKey, err := tdt.getOriginalKeyFromTrieData(leafData)
 		if err != nil {
 			return err
@@ -156,7 +172,7 @@ func (tdt *trackableDataTrie) MigrateDataTrieLeaves(args vmcommon.ArgsMigrateDat
 
 		dataEntry := dirtyData{
 			index:      tdt.getIndexForKey(originalKey),
-			value:      leafData.Value,
+			value:      val,
 			newVersion: args.NewVersion,
 		}
 
@@ -286,6 +302,14 @@ func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]stateChanges.Dat
 
 		index++
 
+		isFirstMigration := oldVal.Version == core.NotSpecified && dataEntry.newVersion == core.AutoBalanceEnabled
+		if isFirstMigration && len(dataTrieKey) != 0 {
+			oldValues = append(oldValues, core.TrieData{
+				Key:   dataTrieKey,
+				Value: nil,
+			})
+		}
+
 		if len(dataTrieKey) == 0 {
 			continue
 		}
@@ -321,7 +345,7 @@ func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]stateChanges.Dat
 }
 
 func (tdt *trackableDataTrie) retrieveValueFromTrie(key []byte) (core.TrieData, uint32, error) {
-	if tdt.enableEpochsHandler.IsAutoBalanceDataTriesEnabled() {
+	if tdt.enableEpochsHandler.IsFlagEnabled(common.AutoBalanceDataTriesFlag) {
 		hashedKey := tdt.hasher.Compute(string(key))
 		valWithMetadata, depth, err := tdt.tr.Get(hashedKey)
 		if err != nil {
@@ -394,12 +418,13 @@ func (tdt *trackableDataTrie) getValueNotSpecifiedVersion(key []byte, val []byte
 }
 
 func (tdt *trackableDataTrie) deleteOldEntryIfMigrated(key []byte, newData dirtyData, oldEntry core.TrieData) (bool, error) {
-	if !tdt.enableEpochsHandler.IsAutoBalanceDataTriesEnabled() {
+	if !tdt.enableEpochsHandler.IsFlagEnabled(common.AutoBalanceDataTriesFlag) {
 		return false, nil
 	}
 
 	isMigration := oldEntry.Version == core.NotSpecified && newData.newVersion == core.AutoBalanceEnabled
 	if isMigration && len(newData.value) != 0 {
+		log.Trace("delete old entry if migrated", "key", key)
 		return true, tdt.tr.Delete(key)
 	}
 

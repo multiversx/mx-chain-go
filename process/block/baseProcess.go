@@ -39,7 +39,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/state/disabled"
 	"github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
@@ -102,17 +101,18 @@ type baseProcessor struct {
 	blockProcessor   blockProcessor
 	txCounter        *transactionCounter
 
-	outportHandler      outport.OutportHandler
-	outportDataProvider outport.DataProviderOutport
-	historyRepo         dblookupext.HistoryRepository
-	epochNotifier       process.EpochNotifier
-	enableEpochsHandler common.EnableEpochsHandler
-	roundNotifier       process.RoundNotifier
-	enableRoundsHandler process.EnableRoundsHandler
-	vmContainerFactory  process.VirtualMachinesContainerFactory
-	vmContainer         process.VirtualMachinesContainer
-	gasConsumedProvider gasConsumedProvider
-	economicsData       process.EconomicsDataHandler
+	outportHandler        outport.OutportHandler
+	outportDataProvider   outport.DataProviderOutport
+	historyRepo           dblookupext.HistoryRepository
+	epochNotifier         process.EpochNotifier
+	enableEpochsHandler   common.EnableEpochsHandler
+	roundNotifier         process.RoundNotifier
+	enableRoundsHandler   process.EnableRoundsHandler
+	vmContainerFactory    process.VirtualMachinesContainerFactory
+	vmContainer           process.VirtualMachinesContainer
+	gasConsumedProvider   gasConsumedProvider
+	economicsData         process.EconomicsDataHandler
+	stateChangesCollector state.StateChangesCollector
 
 	processDataTriesOnCommitEpoch bool
 	lastRestartNonce              uint64
@@ -1776,7 +1776,7 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 		Hasher:                bp.hasher,
 		Marshaller:            bp.marshalizer,
 		EnableEpochsHandler:   bp.enableEpochsHandler,
-		StateChangesCollector: disabled.NewDisabledStateChangesCollector(),
+		StateChangesCollector: bp.stateChangesCollector,
 	}
 	accountCreator, err := factory.NewAccountCreator(argsAccCreator)
 	if err != nil {
