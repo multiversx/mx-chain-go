@@ -1,7 +1,6 @@
 package storagerequesters
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
@@ -138,8 +137,6 @@ func (hdrReq *headerRequester) SetEpochHandler(epochHandler dataRetriever.EpochH
 	if check.IfNil(epochHandler) {
 		return dataRetriever.ErrNilEpochHandler
 	}
-
-	log.Error("headerRequester.SetEpochHandler", "type", fmt.Sprintf("%T", epochHandler))
 
 	hdrReq.mutEpochHandler.Lock()
 	hdrReq.epochHandler = epochHandler

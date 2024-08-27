@@ -6,7 +6,6 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/containers"
 	storagerequesters "github.com/multiversx/mx-chain-go/dataRetriever/storageRequesters"
 	"github.com/multiversx/mx-chain-go/process/factory"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ dataRetriever.RequestersContainerFactory = (*shardRequestersContainerFactory)(nil)
@@ -50,18 +49,27 @@ func NewShardRequestersContainerFactory(
 	}, nil
 }
 
-var log = logger.GetOrCreate("dsa")
-
 // Create returns a requester container that will hold all requesters in the system
 func (srcf *shardRequestersContainerFactory) Create() (dataRetriever.RequestersContainer, error) {
-	log.Error("shardRequestersContainerFactory.Create")
-
 	err := srcf.generateCommonRequesters()
 	if err != nil {
 		return nil, err
 	}
 
+	err = srcf.generateRewardRequester(
+		factory.RewardsTransactionTopic,
+		dataRetriever.RewardTransactionUnit,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	err = srcf.generateHeaderRequesters()
+	if err != nil {
+		return nil, err
+	}
+
+	err = srcf.generateMetablockHeaderRequesters()
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +81,7 @@ func (srcf *shardRequestersContainerFactory) generateHeaderRequesters() error {
 	shardC := srcf.shardCoordinator
 
 	// only one shard header topic, for example: shardBlocks_0_META
-	identifierHdr := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(core.SovereignChainShardId)
+	identifierHdr := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 
 	hdrStorer, err := srcf.store.GetStorer(dataRetriever.BlockHeaderUnit)
 	if err != nil {

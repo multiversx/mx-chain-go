@@ -936,20 +936,24 @@ func (scbp *sovereignChainBlockProcessor) processEpochStartMetaBlock(
 	}
 
 	// DUPLICATED MBS
-	if len(body.MiniBlocks) != 0 {
-		log.Error("DUPLICATEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEED")
-		return nil
-	}
+	//if len(body.MiniBlocks) != 0 {
+	//	log.Error("DUPLICATEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEED")
+	//	return nil
+	//}
 
 	finalMiniBlocks := make([]*block.MiniBlock, 0)
 	finalMiniBlocks = append(finalMiniBlocks, rewardMiniBlocks...)
 	finalMiniBlocks = append(finalMiniBlocks, validatorMiniBlocks...)
-	body.MiniBlocks = append(body.MiniBlocks, finalMiniBlocks...)
+	body.MiniBlocks = finalMiniBlocks //append(body.MiniBlocks, finalMiniBlocks...)
 
 	return scbp.applyBodyToHeaderForEpochChange(header, body)
 }
 
 func (scbp *sovereignChainBlockProcessor) applyBodyToHeaderForEpochChange(header data.HeaderHandler, body *block.Body) error {
+	err := header.SetMiniBlockHeaderHandlers(nil)
+	if err != nil {
+		return err
+	}
 
 	totalTxCount, miniBlockHeaderHandlers, err := scbp.createMiniBlockHeaderHandlers(body.MiniBlocks)
 	if err != nil {
