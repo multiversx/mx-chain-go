@@ -119,7 +119,7 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 
 // Receipts -
 func (holder *PoolsHolderMock) Receipts() storage.Cacher {
-	return nil
+	return holder.receipts
 }
 
 // CurrentBlockTxs -
