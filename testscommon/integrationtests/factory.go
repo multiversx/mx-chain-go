@@ -106,9 +106,10 @@ func CreateAccountsDB(db storage.Storer, enableEpochs common.EnableEpochsHandler
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
 
 	argsAccCreator := accountFactory.ArgsAccountCreator{
-		Hasher:              TestHasher,
-		Marshaller:          TestMarshalizer,
-		EnableEpochsHandler: enableEpochs,
+		Hasher:                TestHasher,
+		Marshaller:            TestMarshalizer,
+		EnableEpochsHandler:   enableEpochs,
+		StateChangesCollector: disabled.NewDisabledStateChangesCollector(),
 	}
 	accCreator, _ := accountFactory.NewAccountCreator(argsAccCreator)
 
