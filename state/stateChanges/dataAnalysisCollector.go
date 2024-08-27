@@ -55,6 +55,7 @@ type dataAnalysisCollector struct {
 	storer    storage.Persister
 }
 
+// NewDataAnalysisStateChangesCollector will create a new instance of data analysis collector
 func NewDataAnalysisStateChangesCollector(storer storage.Persister) (*dataAnalysisCollector, error) {
 	if check.IfNil(storer) {
 		return nil, storage.ErrNilPersisterFactory
@@ -69,6 +70,7 @@ func NewDataAnalysisStateChangesCollector(storer storage.Persister) (*dataAnalys
 	}, nil
 }
 
+// AddSaveAccountStateChange adds a new state change for the save account operation
 func (scc *dataAnalysisCollector) AddSaveAccountStateChange(oldAccount, account vmcommon.AccountHandler, stateChange StateChange) {
 	dataAnalysisStateChange := &DataAnalysisStateChangeDTO{
 		StateChange: stateChange,
@@ -180,6 +182,7 @@ func (scc *dataAnalysisCollector) Reset() {
 	scc.cachedTxs = make(map[string]*transaction.Transaction)
 }
 
+// Publish will export state changes
 func (scc *dataAnalysisCollector) Publish() error {
 	stateChangesForTx, err := scc.getStateChangesForTxs()
 	if err != nil {

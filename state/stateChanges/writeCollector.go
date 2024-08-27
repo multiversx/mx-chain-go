@@ -79,6 +79,7 @@ func NewStateChangesCollector() *stateChangesCollector {
 	}
 }
 
+// AddSaveAccountStateChange adds a new state change for the save account operation
 func (scc *stateChangesCollector) AddSaveAccountStateChange(_, _ vmcommon.AccountHandler, stateChange StateChange) {
 	scc.AddStateChange(stateChange)
 }
@@ -134,6 +135,8 @@ func (scc *stateChangesCollector) Reset() {
 	scc.stateChanges = make([]StateChange, 0)
 }
 
+// AddTxHashToCollectedStateChanges will try to set txHash field to each state change
+// if the field is not already set
 func (scc *stateChangesCollector) AddTxHashToCollectedStateChanges(txHash []byte, tx *transaction.Transaction) {
 	scc.stateChangesMut.Lock()
 	defer scc.stateChangesMut.Unlock()
@@ -147,6 +150,7 @@ func (scc *stateChangesCollector) AddTxHashToCollectedStateChanges(txHash []byte
 	}
 }
 
+// SetIndexToLastStateChange will set index to the last state change
 func (scc *stateChangesCollector) SetIndexToLastStateChange(index int) error {
 	if index > len(scc.stateChanges) || index < 0 {
 		return ErrStateChangesIndexOutOfBounds
@@ -160,6 +164,7 @@ func (scc *stateChangesCollector) SetIndexToLastStateChange(index int) error {
 	return nil
 }
 
+// RevertToIndex will revert to index
 func (scc *stateChangesCollector) RevertToIndex(index int) error {
 	if index > len(scc.stateChanges) || index < 0 {
 		return ErrStateChangesIndexOutOfBounds
@@ -183,6 +188,7 @@ func (scc *stateChangesCollector) RevertToIndex(index int) error {
 	return nil
 }
 
+// Publish will export state changes
 func (scc *stateChangesCollector) Publish() error {
 	stateChangesForTx, err := scc.getStateChangesForTxs()
 	if err != nil {
