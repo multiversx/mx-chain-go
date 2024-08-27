@@ -116,7 +116,6 @@ func (brcf *baseRequestersContainerFactory) generateCommonRequesters() error {
 }
 
 func (brcf *baseRequestersContainerFactory) generateTxRequesters(topic string) error {
-
 	shardC := brcf.shardCoordinator
 	noOfShards := shardC.NumberOfShards()
 
@@ -170,6 +169,27 @@ func (brcf *baseRequestersContainerFactory) createTxRequester(
 		},
 	}
 	return requesters.NewTransactionRequester(arg)
+}
+
+func (brcf *baseRequestersContainerFactory) createReceiptRequester(
+	topic string,
+	excludedTopic string,
+	targetShardID uint32,
+	numCrossShardPeers int,
+	numIntraShardPeers int,
+) (dataRetriever.Requester, error) {
+	requestSender, err := brcf.createOneRequestSenderWithSpecifiedNumRequests(topic, excludedTopic, targetShardID, numCrossShardPeers, numIntraShardPeers)
+	if err != nil {
+		return nil, err
+	}
+
+	arg := requesters.ArgReceiptRequester{
+		ArgBaseRequester: requesters.ArgBaseRequester{
+			RequestSender: requestSender,
+			Marshaller:    brcf.marshaller,
+		},
+	}
+	return requesters.NewReceiptRequester(arg)
 }
 
 func (brcf *baseRequestersContainerFactory) generateMiniBlocksRequesters() error {

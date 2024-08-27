@@ -71,8 +71,14 @@ var ErrResolveTypeUnknown = errors.New("unknown resolve type")
 // ErrNilMiniblocksPool signals that a nil miniblocks pool has been provided
 var ErrNilMiniblocksPool = errors.New("nil miniblocks pool")
 
+// ErrNilReceiptsPool signals that a nil receipts pool has been provided
+var ErrNilReceiptsPool = errors.New("nil receipts pool")
+
 // ErrNilMiniblocksStorage signals that a nil miniblocks storage has been provided
 var ErrNilMiniblocksStorage = errors.New("nil miniblocks storage")
+
+// ErrNilReceiptsStorage signals that a nil receipts storage has been provided
+var ErrNilReceiptsStorage = errors.New("nil receipts storage")
 
 // ErrNilDataPoolHolder signals that the data pool holder is nil
 var ErrNilDataPoolHolder = errors.New("nil data pool holder")

@@ -23,7 +23,17 @@ type PoolsHolderStub struct {
 	PeerAuthenticationsCalled    func() storage.Cacher
 	HeartbeatsCalled             func() storage.Cacher
 	ValidatorsInfoCalled         func() dataRetriever.ShardedDataCacherNotifier
+	ReceiptsCalled               func() storage.Cacher
 	CloseCalled                  func() error
+}
+
+// Receipts -
+func (holder *PoolsHolderStub) Receipts() storage.Cacher {
+	if holder.ReceiptsCalled != nil {
+		return holder.ReceiptsCalled()
+	}
+
+	return nil
 }
 
 // NewPoolsHolderStub -

@@ -417,3 +417,48 @@ func (brcf *baseResolversContainerFactory) generateValidatorInfoResolver() error
 
 	return brcf.container.Add(identifierValidatorInfo, validatorInfoResolver)
 }
+
+func (brcf *baseResolversContainerFactory) generateReceiptResolver() error {
+	shardC := brcf.shardCoordinator
+
+	// only one shard receipt topic
+	identifier := factory.ReceiptTopic
+
+	receiptDataStorer, err := brcf.store.GetStorer(dataRetriever.ReceiptDataUnit)
+	if err != nil {
+		return err
+	}
+	resolverSender, err := brcf.createOneResolverSenderWithSpecifiedNumRequests(identifier, EmptyExcludePeersOnTopic, shardC.SelfId())
+	if err != nil {
+		return err
+	}
+
+	arg := resolvers.ArgReceiptResolver{
+		ArgBaseResolver: resolvers.ArgBaseResolver{
+			SenderResolver:   resolverSender,
+			Marshaller:       brcf.marshalizer,
+			AntifloodHandler: brcf.inputAntifloodHandler,
+			Throttler:        brcf.throttler,
+		},
+		ReceiptPool:       brcf.dataPools.Receipts(),
+		ReceiptStorage:    receiptDataStorer,
+		DataPacker:        brcf.dataPacker,
+		IsFullHistoryNode: brcf.isFullHistoryNode,
+	}
+	resolver, err := resolvers.NewReceiptResolver(arg)
+	if err != nil {
+		return err
+	}
+
+	err = brcf.mainMessenger.RegisterMessageProcessor(resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
+	if err != nil {
+		return err
+	}
+
+	err = brcf.fullArchiveMessenger.RegisterMessageProcessor(resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
+	if err != nil {
+		return err
+	}
+
+	return brcf.container.Add(identifier, resolver)
+}

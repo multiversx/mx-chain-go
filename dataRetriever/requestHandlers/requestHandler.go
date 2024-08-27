@@ -31,6 +31,7 @@ const uniqueHeadersSuffix = "hdr"
 const uniqueMetaHeadersSuffix = "mhdr"
 const uniqueTrieNodesSuffix = "tn"
 const uniqueValidatorInfoSuffix = "vi"
+const uniqueReceiptSuffix = "rec"
 
 // TODO move the keys definitions that are whitelisted in core and use them in InterceptedData implementations, Identifiers() function
 
@@ -113,6 +114,46 @@ func (rrh *resolverRequestHandler) getEpoch() uint32 {
 // RequestTransaction method asks for transactions from the connected peers
 func (rrh *resolverRequestHandler) RequestTransaction(destShardID uint32, txHashes [][]byte) {
 	rrh.requestByHashes(destShardID, txHashes, factory.TransactionTopic, uniqueTxSuffix)
+}
+
+// RequestReceipts method ask for receipts from the connected peers
+func (rrh *resolverRequestHandler) RequestReceipts(receiptsHashes [][]byte) {
+	unrequestedHashes := rrh.getUnrequestedHashes(receiptsHashes, uniqueReceiptSuffix)
+	if len(unrequestedHashes) == 0 {
+		return
+	}
+
+	log.Debug("requesting receipts from network",
+		"topic", factory.ReceiptTopic,
+		"num receipts", len(unrequestedHashes),
+	)
+
+	requester, err := rrh.requestersFinder.IntraShardRequester(factory.ReceiptTopic)
+	if err != nil {
+		log.Error("requestByHashes.CrossShardRequester",
+			"error", err.Error(),
+			"topic", factory.ReceiptTopic,
+		)
+		return
+	}
+
+	receiptRequester, ok := requester.(HashSliceRequester)
+	if !ok {
+		log.Warn("wrong assertion type when creating receipts requester")
+		return
+	}
+
+	for _, txHash := range receiptsHashes {
+		log.Trace("requestByHashes", "hash", txHash, "topic", factory.ReceiptTopic,
+			"num txs", len(unrequestedHashes),
+			"stack", string(debug.Stack()))
+	}
+
+	rrh.whiteList.Add(unrequestedHashes)
+
+	go rrh.requestHashesWithDataSplit(unrequestedHashes, receiptRequester)
+
+	rrh.addRequestedItems(unrequestedHashes, uniqueReceiptSuffix)
 }
 
 func (rrh *resolverRequestHandler) requestByHashes(destShardID uint32, hashes [][]byte, topic string, abbreviatedTopic string) {

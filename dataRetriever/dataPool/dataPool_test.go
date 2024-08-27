@@ -30,6 +30,7 @@ func createMockDataPoolArgs() dataPool.DataPoolArgs {
 		PeerAuthentications:       testscommon.NewCacherStub(),
 		Heartbeats:                testscommon.NewCacherStub(),
 		ValidatorsInfo:            testscommon.NewShardedDataStub(),
+		Receipts:                  testscommon.NewCacherStub(),
 	}
 }
 
