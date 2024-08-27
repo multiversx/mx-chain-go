@@ -1089,5 +1089,5 @@ func computeOldestEpoch(metaBlock data.MetaHeaderHandler) uint32 {
 		}
 	}
 
-	return oldestEpoch - 1
+	return oldestEpoch
 }

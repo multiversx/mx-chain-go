@@ -67,9 +67,9 @@ func checkHeaderHandler(hdr data.HeaderHandler) error {
 	if len(hdr.GetPubKeysBitmap()) == 0 {
 		return process.ErrNilPubKeysBitmap
 	}
-	// WE NEED HERE TO ADD A DUMMY PREV HASH ???? if len(hdr.GetPrevHash()) == 0 {
-	// WE NEED HERE TO ADD A DUMMY PREV HASH ???? 	return process.ErrNilPreviousBlockHash
-	// WE NEED HERE TO ADD A DUMMY PREV HASH ???? }
+	if len(hdr.GetPrevHash()) == 0 {
+		return process.ErrNilPreviousBlockHash
+	}
 	if len(hdr.GetSignature()) == 0 {
 		return process.ErrNilSignature
 	}

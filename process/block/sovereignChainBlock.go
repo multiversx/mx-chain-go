@@ -792,11 +792,10 @@ func (scbp *sovereignChainBlockProcessor) ProcessBlock(headerHandler data.Header
 	}
 
 	scbp.epochStartTrigger.Update(shardHeader.GetRound(), shardHeader.GetNonce())
-	// CHECK HOW TO HANDLE epoch start meta hash mismatch from trigger
-	// err = scbp.checkEpochCorrectness(shardHeader)
-	// if err != nil {
-	// 	return nil, nil, err
-	// }
+	err = scbp.baseProcessor.checkEpochCorrectness(shardHeader)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	err = scbp.processIfFirstBlockAfterEpochStart()
 	if err != nil {

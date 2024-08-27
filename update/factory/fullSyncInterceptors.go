@@ -308,10 +308,8 @@ func checkBaseParams(
 }
 
 func (ficf *fullSyncInterceptorsContainerFactory) checkIfInterceptorExists(identifier string) bool {
-
-	return true
-	//_, err := ficf.mainContainer.Get(identifier)
-	//return err == nil
+	_, err := ficf.mainContainer.Get(identifier)
+	return err == nil
 }
 
 func (ficf *fullSyncInterceptorsContainerFactory) generateShardHeaderInterceptors() error {
