@@ -165,16 +165,6 @@ func (ihnc *indexHashedNodesCoordinator) registryToNodesCoordinator(
 	return result, nil
 }
 
-// ComputeNumberOfShards computes the number of shards for the given nodes config
-func (ihnc *indexHashedNodesCoordinator) ComputeNumberOfShards(config *epochNodesConfig) (nbShards uint32, err error) {
-	nbShards = uint32(len(config.eligibleMap))
-	if nbShards < 2 {
-		return 0, ErrInvalidNumberOfShards
-	}
-	// shards without metachain shard
-	return nbShards - 1, nil
-}
-
 func epochNodesConfigToEpochValidators(config *epochNodesConfig) *EpochValidators {
 	result := &EpochValidators{
 		EligibleValidators: make(map[string][]*SerializableValidator, len(config.eligibleMap)),

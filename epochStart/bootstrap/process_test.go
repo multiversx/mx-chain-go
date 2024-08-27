@@ -2552,7 +2552,6 @@ func createEpochStartBootstrapParams(expectedShardId uint32) ArgsEpochStartBoots
 			case bytes.Equal([]byte(common.HighestRoundFromBootStorage), key):
 				return roundBytes, nil
 			case bytes.Equal([]byte(strconv.FormatInt(round, 10)), key):
-
 				bootstrapDataBytes, _ := json.Marshal(bootstrapData)
 				return bootstrapDataBytes, nil
 			default:

@@ -155,12 +155,12 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		validatorInfoCacher:             arguments.ValidatorInfoCacher,
 		genesisNodesSetupHandler:        arguments.GenesisNodesSetupHandler,
 		nodesCoordinatorRegistryFactory: arguments.NodesCoordinatorRegistryFactory,
+		numberOfShardsComputer:          NewNumberOfShardsWithMetaComputer(),
 	}
 
 	ihnc.loadingFromDisk.Store(false)
 
 	ihnc.nodesCoordinatorHelper = ihnc
-	ihnc.numberOfShardsComputer = ihnc
 	err = ihnc.setNodesPerShards(arguments.EligibleNodes, arguments.WaitingNodes, nil, nil, arguments.Epoch, false)
 	if err != nil {
 		return nil, err

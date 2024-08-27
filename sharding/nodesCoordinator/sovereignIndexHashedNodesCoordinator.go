@@ -63,13 +63,13 @@ func NewSovereignIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*so
 			validatorInfoCacher:             arguments.ValidatorInfoCacher,
 			genesisNodesSetupHandler:        arguments.GenesisNodesSetupHandler,
 			nodesCoordinatorRegistryFactory: arguments.NodesCoordinatorRegistryFactory,
+			numberOfShardsComputer:          NewSovereignNumberOfShardsComputer(),
 		},
 	}
 
 	ihnc.loadingFromDisk.Store(false)
 
 	ihnc.nodesCoordinatorHelper = ihnc
-	ihnc.numberOfShardsComputer = ihnc
 	err = ihnc.setNodesPerShards(arguments.EligibleNodes, arguments.WaitingNodes, nil, nil, arguments.Epoch, false)
 	if err != nil {
 		return nil, err
@@ -113,15 +113,6 @@ func checkSovereignArguments(arguments ArgNodesCoordinator) error {
 	}
 
 	return checkNilArguments(arguments)
-}
-
-// ComputeNumberOfShards computes the number of shards for the given nodes config
-func (ihnc *sovereignIndexHashedNodesCoordinator) ComputeNumberOfShards(config *epochNodesConfig) (nbShards uint32, err error) {
-	nbShards = uint32(len(config.eligibleMap))
-	if nbShards != 1 {
-		return 0, ErrInvalidNumberOfShards
-	}
-	return nbShards, nil
 }
 
 func (ihnc *sovereignIndexHashedNodesCoordinator) setNodesPerShards(
