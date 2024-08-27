@@ -498,9 +498,10 @@ func getAccountFactory(accountType Type, enableEpochsHandler common.EnableEpochs
 	switch accountType {
 	case UserAccount:
 		argsAccCreator := factory.ArgsAccountCreator{
-			Hasher:              TestHasher,
-			Marshaller:          TestMarshalizer,
-			EnableEpochsHandler: enableEpochsHandler,
+			Hasher:                TestHasher,
+			Marshaller:            TestMarshalizer,
+			EnableEpochsHandler:   enableEpochsHandler,
+			StateChangesCollector: disabled.NewDisabledStateChangesCollector(),
 		}
 		return factory.NewAccountCreator(argsAccCreator)
 	case ValidatorAccount:

@@ -38,6 +38,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/iteratorChannelsProvider"
 	"github.com/multiversx/mx-chain-go/state/lastSnapshotMarker"
+	"github.com/multiversx/mx-chain-go/state/stateChanges"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/evictionWaitingList"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -1058,9 +1059,10 @@ func createAccounts(
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
 	argsAccCreator := factory.ArgsAccountCreator{
-		Hasher:              integrationTests.TestHasher,
-		Marshaller:          integrationTests.TestMarshalizer,
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		Hasher:                integrationTests.TestHasher,
+		Marshaller:            integrationTests.TestMarshalizer,
+		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		StateChangesCollector: stateChanges.NewStateChangesCollector(),
 	}
 	accCreator, _ := factory.NewAccountCreator(argsAccCreator)
 	snapshotsManager, _ := state.NewSnapshotsManager(state.ArgsNewSnapshotsManager{
@@ -2731,9 +2733,10 @@ func createAccountsDBTestSetup() *state.AccountsDB {
 	tr, _ := trie.NewTrie(trieStorage, integrationTests.TestMarshalizer, integrationTests.TestHasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, maxTrieLevelInMemory)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
 	argsAccCreator := factory.ArgsAccountCreator{
-		Hasher:              integrationTests.TestHasher,
-		Marshaller:          integrationTests.TestMarshalizer,
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		Hasher:                integrationTests.TestHasher,
+		Marshaller:            integrationTests.TestMarshalizer,
+		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		StateChangesCollector: stateChanges.NewStateChangesCollector(),
 	}
 	accCreator, _ := factory.NewAccountCreator(argsAccCreator)
 
