@@ -2,6 +2,7 @@ package disabled
 
 import (
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
+
 	"github.com/multiversx/mx-chain-go/outport"
 )
 
@@ -61,3 +62,5 @@ func (n *disabledOutport) SubscribeDriver(_ outport.Driver) error {
 func (n *disabledOutport) HasDrivers() bool {
 	return false
 }
+
+func (n *disabledOutport) SendDummy(_ []byte) error { return nil }

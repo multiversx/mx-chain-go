@@ -3,6 +3,7 @@ package outport
 import (
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/outport/process"
 )
 
@@ -21,6 +22,7 @@ type Driver interface {
 	RegisterHandler(handlerFunction func() error, topic string) error
 	Close() error
 	IsInterfaceNil() bool
+	SendDummy(data []byte) error
 }
 
 // OutportHandler is interface that defines what a proxy implementation should be able to do
@@ -37,6 +39,7 @@ type OutportHandler interface {
 	HasDrivers() bool
 	Close() error
 	IsInterfaceNil() bool
+	SendDummy(data []byte) error
 }
 
 // DataProviderOutport is an interface that defines what an implementation of data provider outport should be able to do

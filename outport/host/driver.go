@@ -134,3 +134,7 @@ func (o *hostDriver) Close() error {
 func (o *hostDriver) IsInterfaceNil() bool {
 	return o == nil
 }
+
+func (o *hostDriver) SendDummy(data []byte) error {
+	return o.handleAction(data, "SendDummy")
+}
