@@ -15,7 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	consensus2 "github.com/multiversx/mx-chain-go/testscommon/consensus"
+	testscommonConsensus "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
@@ -32,7 +32,7 @@ func createDefaultConsensusMessageValidatorArgs() spos.ArgsConsensusMessageValid
 			return nil
 		},
 	}
-	keyGeneratorMock, _, _ := consensus2.InitKeys()
+	keyGeneratorMock, _, _ := testscommonConsensus.InitKeys()
 	peerSigHandler := &mock.PeerSignatureHandler{Signer: singleSignerMock, KeyGen: keyGeneratorMock}
 	hasher := &hashingMocks.HasherMock{}
 
