@@ -344,3 +344,38 @@ func (brcf *baseRequestersContainerFactory) generateValidatorInfoRequester() err
 
 	return brcf.container.Add(identifierValidatorInfo, requester)
 }
+
+func (brcf *baseRequestersContainerFactory) generateAccountAndValidatorTrieNodesRequesters(shardID uint32) error {
+	keys := make([]string, 0)
+	requestersSlice := make([]dataRetriever.Requester, 0)
+
+	identifierTrieNodes := factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(shardID, shardID)
+	requester, err := brcf.createTrieNodesRequester(
+		identifierTrieNodes,
+		0,
+		brcf.numTotalPeers,
+		shardID,
+	)
+	if err != nil {
+		return err
+	}
+
+	requestersSlice = append(requestersSlice, requester)
+	keys = append(keys, identifierTrieNodes)
+
+	identifierTrieNodes = factory.ValidatorTrieNodesTopic + core.CommunicationIdentifierBetweenShards(shardID, shardID)
+	requester, err = brcf.createTrieNodesRequester(
+		identifierTrieNodes,
+		0,
+		brcf.numTotalPeers,
+		shardID,
+	)
+	if err != nil {
+		return err
+	}
+
+	requestersSlice = append(requestersSlice, requester)
+	keys = append(keys, identifierTrieNodes)
+
+	return brcf.container.AddMultiple(keys, requestersSlice)
+}

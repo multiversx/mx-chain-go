@@ -3,19 +3,20 @@ package mock
 import (
 	"math/big"
 
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 )
 
 // EpochEconomicsStub -
 type EpochEconomicsStub struct {
-	ComputeEndOfEpochEconomicsCalled func(metaBlock *block.MetaBlock) (*block.Economics, error)
+	ComputeEndOfEpochEconomicsCalled func(metaBlock data.MetaHeaderHandler) (*block.Economics, error)
 	VerifyRewardsPerBlockCalled      func(
-		metaBlock *block.MetaBlock, correctedProtocolSustainability *big.Int, computedEconomics *block.Economics,
+		metaBlock data.MetaHeaderHandler, correctedProtocolSustainability *big.Int, computedEconomics *block.Economics,
 	) error
 }
 
 // ComputeEndOfEpochEconomics -
-func (e *EpochEconomicsStub) ComputeEndOfEpochEconomics(metaBlock *block.MetaBlock) (*block.Economics, error) {
+func (e *EpochEconomicsStub) ComputeEndOfEpochEconomics(metaBlock data.MetaHeaderHandler) (*block.Economics, error) {
 	if e.ComputeEndOfEpochEconomicsCalled != nil {
 		return e.ComputeEndOfEpochEconomicsCalled(metaBlock)
 	}
@@ -23,11 +24,7 @@ func (e *EpochEconomicsStub) ComputeEndOfEpochEconomics(metaBlock *block.MetaBlo
 }
 
 // VerifyRewardsPerBlock -
-func (e *EpochEconomicsStub) VerifyRewardsPerBlock(
-	metaBlock *block.MetaBlock,
-	correctedProtocolSustainability *big.Int,
-	computedEconomics *block.Economics,
-) error {
+func (e *EpochEconomicsStub) VerifyRewardsPerBlock(metaBlock data.MetaHeaderHandler, correctedProtocolSustainability *big.Int, computedEconomics *block.Economics) error {
 	if e.VerifyRewardsPerBlockCalled != nil {
 		return e.VerifyRewardsPerBlockCalled(metaBlock, correctedProtocolSustainability, computedEconomics)
 	}

@@ -1,8 +1,12 @@
 package resolverscontainer_test
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/p2p"
@@ -53,8 +57,39 @@ func TestSovereignShardResolversContainerFactory_Create(t *testing.T) {
 	sovContainer, _ := resolverscontainer.NewSovereignShardResolversContainerFactory(shardContainer)
 
 	container, _ := sovContainer.Create()
-	totalResolvers := getNumShardResolvers(int(args.ShardCoordinator.NumberOfShards())) + 1 // one extra topic fo extended header
+
+	numResolverSCRs := 1
+	numResolverTxs := 1
+	numResolverRewardTxs := 0
+	numResolverHeaders := 1
+	numResolverMiniBlocks := 1
+	numResolverMetaBlockHeaders := 0
+	numResolverTrieNodes := 2
+	numResolverPeerAuth := 1
+	numResolverValidatorInfo := 1
+	numResolverExtendedHeader := 1
+	totalResolvers := numResolverTxs + numResolverHeaders + numResolverMiniBlocks + numResolverMetaBlockHeaders +
+		numResolverSCRs + numResolverRewardTxs + numResolverTrieNodes + numResolverPeerAuth + numResolverValidatorInfo + numResolverExtendedHeader
+
 	require.Equal(t, totalResolvers, container.Len())
 	require.Equal(t, totalResolvers, registerMainCnt)
 	require.Equal(t, totalResolvers, registerFullArchiveCnt)
+
+	topicDelim := "_"
+	topicDelimCt := 0
+	iterateFunc := func(key string, resolver dataRetriever.Resolver) bool {
+		require.False(t, strings.Contains(strings.ToLower(key), "meta"))
+
+		if strings.Contains(key, topicDelim) {
+			keyTokens := strings.Split(key, topicDelim)
+			require.Len(t, keyTokens, 2)
+			require.Equal(t, fmt.Sprintf("%d", core.SovereignChainShardId), keyTokens[1])
+			topicDelimCt++
+		}
+
+		return true
+	}
+
+	container.Iterate(iterateFunc)
+	require.Equal(t, totalResolvers-2, topicDelimCt) // without peerAuthentication + validatorInfo topics
 }

@@ -53,6 +53,14 @@ func TestSovereignChainSimulator_IssueFungible(t *testing.T) {
 
 	nodeHandler := cs.GetNodeHandler(core.SovereignChainShardId)
 
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
+
+	issuedESDTs, err := nodeHandler.GetFacadeHandler().GetAllIssuedESDTs("")
+	require.Nil(t, err)
+	require.NotNil(t, issuedESDTs)
+	require.Equal(t, 0, len(issuedESDTs))
+
 	nonce := uint64(0)
 	wallet, err := cs.GenerateAndMintWalletAddress(core.SovereignChainShardId, chainSim.InitialAmount)
 	require.Nil(t, err)
@@ -63,6 +71,11 @@ func TestSovereignChainSimulator_IssueFungible(t *testing.T) {
 	tokenTicker := "SVN"
 	numDecimals := 18
 	tokenIdentifier := chainSim.IssueFungible(t, cs, nodeHandler, wallet.Bytes, &nonce, issueCost, tokenName, tokenTicker, numDecimals, supply)
+
+	issuedESDTs, err = nodeHandler.GetFacadeHandler().GetAllIssuedESDTs("")
+	require.Nil(t, err)
+	require.NotNil(t, issuedESDTs)
+	require.Equal(t, 1, len(issuedESDTs))
 
 	tokens, _, err := nodeHandler.GetFacadeHandler().GetAllESDTTokens(wallet.Bech32, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)

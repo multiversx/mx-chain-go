@@ -1,5 +1,10 @@
 package factory
 
+import (
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/epochStart"
+)
+
 const (
 	// BootstrapComponentsName is the bootstrap components identifier
 	BootstrapComponentsName = "managedBootstrapComponents"
@@ -25,4 +30,17 @@ const (
 	StatusComponentsName = "managedStatusComponents"
 	// RunTypeComponentsName is the runType components identifier
 	RunTypeComponentsName = "managedRunTypeComponents"
+	// RunTypeCoreComponentsName is the runType core components identifier
+	RunTypeCoreComponentsName = "managedRunTypeCoreComponents"
 )
+
+// ArgsEpochStartTrigger is a struct placeholder for arguments needed to create an epoch start trigger
+type ArgsEpochStartTrigger struct {
+	RequestHandler             epochStart.RequestHandler
+	CoreData                   CoreComponentsHolder
+	BootstrapComponents        BootstrapComponentsHolder
+	DataComps                  DataComponentsHolder
+	StatusCoreComponentsHolder StatusCoreComponentsHolder
+	RunTypeComponentsHolder    RunTypeComponentsHolder
+	Config                     config.Config
+}

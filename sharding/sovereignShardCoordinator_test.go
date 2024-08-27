@@ -25,3 +25,9 @@ func TestNewSovereignShardCoordinator_SameShard(t *testing.T) {
 	require.True(t, shardCoordinator.SameShard(addr1, addr2))
 	require.True(t, shardCoordinator.SameShard(addr2, metaShardAddress))
 }
+
+func TestSovereignShardCoordinator_TotalNumberOfShards(t *testing.T) {
+	shardCoordinator := NewSovereignShardCoordinator()
+	require.False(t, shardCoordinator.IsInterfaceNil())
+	require.Equal(t, uint32(1), shardCoordinator.TotalNumberOfShards())
+}
