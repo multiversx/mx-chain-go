@@ -123,6 +123,7 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		FixRelayedBaseCostEnableEpoch:                            106,
 		MultiESDTNFTTransferAndExecuteByUserEnableEpoch:          107,
 		FixRelayedMoveBalanceToNonPayableSCEnableEpoch:           108,
+		UseGasBoundedShouldFailExecutionEnableEpoch:              110,
 	}
 }
 
@@ -442,6 +443,7 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.CleanupAuctionOnLowWaitingListEnableEpoch, handler.GetActivationEpoch(common.CleanupAuctionOnLowWaitingListFlag))
 	require.Equal(t, cfg.StakingV4Step1EnableEpoch, handler.GetActivationEpoch(common.StakingV4StartedFlag))
 	require.Equal(t, cfg.AlwaysMergeContextsInEEIEnableEpoch, handler.GetActivationEpoch(common.AlwaysMergeContextsInEEIFlag))
+	require.Equal(t, cfg.UseGasBoundedShouldFailExecutionEnableEpoch, handler.GetActivationEpoch(common.UseGasBoundedShouldFailExecutionFlag))
 	require.Equal(t, cfg.DynamicESDTEnableEpoch, handler.GetActivationEpoch(common.DynamicESDTFlag))
 	require.Equal(t, cfg.EGLDInMultiTransferEnableEpoch, handler.GetActivationEpoch(common.EGLDInESDTMultiTransferFlag))
 	require.Equal(t, cfg.CryptoOpcodesV2EnableEpoch, handler.GetActivationEpoch(common.CryptoOpcodesV2Flag))
