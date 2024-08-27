@@ -40,6 +40,9 @@ func NewAccountCreator(args ArgsAccountCreator) (state.AccountFactory, error) {
 	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, errors.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(args.StateChangesCollector) {
+		return nil, state.ErrNilStateChangesCollector
+	}
 
 	return &accountCreator{
 		hasher:                args.Hasher,

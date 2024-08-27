@@ -122,6 +122,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		blockProcessingCutoffHandler:  arguments.BlockProcessingCutoffHandler,
 		managedPeersHolder:            arguments.ManagedPeersHolder,
 		sentSignaturesTracker:         arguments.SentSignaturesTracker,
+		stateChangesCollector:         arguments.StateChangesCollector,
 		extraDelayRequestBlockInfo:    time.Duration(arguments.Config.EpochStartConfig.ExtraDelayForRequestBlockInfoInMilliseconds) * time.Millisecond,
 	}
 

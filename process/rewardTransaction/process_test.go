@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/process/rewardTransaction"
 	"github.com/multiversx/mx-chain-go/state/accounts"
+	"github.com/multiversx/mx-chain-go/state/disabled"
 	"github.com/multiversx/mx-chain-go/state/trackableDataTrie"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
@@ -260,7 +261,13 @@ func TestRewardTxProcessor_ProcessRewardTransactionToASmartContractShouldWork(t 
 
 	address := []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6}
 
-	dtt, _ := trackableDataTrie.NewTrackableDataTrie(address, &hashingMocks.HasherMock{}, &marshallerMock.MarshalizerMock{}, enableEpochsHandlerMock.NewEnableEpochsHandlerStub())
+	dtt, _ := trackableDataTrie.NewTrackableDataTrie(
+		address,
+		&hashingMocks.HasherMock{},
+		&marshallerMock.MarshalizerMock{},
+		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		disabled.NewDisabledStateChangesCollector(),
+	)
 	userAccount, _ := accounts.NewUserAccount(address, dtt, &trie.TrieLeafParserStub{})
 	accountsDb := &stateMock.AccountsStub{
 		LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {

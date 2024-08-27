@@ -38,6 +38,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	disabledState "github.com/multiversx/mx-chain-go/state/disabled"
 	"github.com/multiversx/mx-chain-go/state/factory"
+	"github.com/multiversx/mx-chain-go/state/stateChanges"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/evictionWaitingList"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -764,7 +765,7 @@ func createAccountsDB(
 		StoragePruningManager: spm,
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
 		SnapshotsManager:      disabledState.NewDisabledSnapshotsManager(),
-		StateChangesCollector: state.NewStateChangesCollector(),
+		StateChangesCollector: stateChanges.NewStateChangesCollector(),
 	}
 	adb, _ := state.NewAccountsDB(args)
 	return adb
@@ -780,9 +781,10 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 
 	trieFactoryManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, storageMock.GetStorageManagerOptions())
 	argsAccCreator := factory.ArgsAccountCreator{
-		Hasher:              hasher,
-		Marshaller:          marshalizer,
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		Hasher:                hasher,
+		Marshaller:            marshalizer,
+		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		StateChangesCollector: stateChanges.NewStateChangesCollector(),
 	}
 	accCreator, _ := factory.NewAccountCreator(argsAccCreator)
 	peerAccCreator := factory.NewPeerAccountCreator()

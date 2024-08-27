@@ -27,6 +27,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
 	factoryState "github.com/multiversx/mx-chain-go/state/factory"
+	"github.com/multiversx/mx-chain-go/state/stateChanges"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
@@ -180,7 +181,7 @@ func createMockArgument(
 				SCDeployEnableEpoch:               unreachableEpoch,
 				CleanUpInformativeSCRsEnableEpoch: unreachableEpoch,
 				SCProcessorV2EnableEpoch:          unreachableEpoch,
-				StakeLimitsEnableEpoch:         10,
+				StakeLimitsEnableEpoch:            10,
 			},
 		},
 		RoundConfig:             testscommon.GetDefaultRoundsConfig(),
@@ -200,9 +201,10 @@ func createMockArgument(
 	}
 
 	argsAccCreator := factoryState.ArgsAccountCreator{
-		Hasher:              &hashingMocks.HasherMock{},
-		Marshaller:          &mock.MarshalizerMock{},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		Hasher:                &hashingMocks.HasherMock{},
+		Marshaller:            &mock.MarshalizerMock{},
+		EnableEpochsHandler:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		StateChangesCollector: stateChanges.NewStateChangesCollector(),
 	}
 	accCreator, err := factoryState.NewAccountCreator(argsAccCreator)
 	require.Nil(t, err)
