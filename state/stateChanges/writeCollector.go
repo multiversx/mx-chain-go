@@ -200,6 +200,10 @@ func (scc *stateChangesCollector) Publish() error {
 	return nil
 }
 
+func (scc *stateChangesCollector) RetrieveStateChanges() []StateChange {
+	return scc.stateChanges
+}
+
 func printStateChanges(stateChanges []StateChangesForTx) {
 	for _, stateChange := range stateChanges {
 

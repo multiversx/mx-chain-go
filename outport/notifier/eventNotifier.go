@@ -7,6 +7,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	logger "github.com/multiversx/mx-chain-logger-go"
+
+	"github.com/multiversx/mx-chain-go/state/stateChanges"
 )
 
 // TODO: remove custom http event notifier integration in the following iterations
@@ -141,5 +143,9 @@ func (en *eventNotifier) SetCurrentSettings(_ outport.OutportConfig) error {
 }
 
 func (en *eventNotifier) SendDummy(_ []byte) error {
+	return nil
+}
+
+func (en *eventNotifier) SaveStateChanges(_ []stateChanges.StateChange) error {
 	return nil
 }

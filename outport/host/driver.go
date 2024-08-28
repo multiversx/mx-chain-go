@@ -8,6 +8,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
+	"github.com/multiversx/mx-chain-go/state/stateChanges"
 )
 
 // ArgsHostDriver holds the arguments needed for creating a new hostDriver
@@ -137,4 +139,9 @@ func (o *hostDriver) IsInterfaceNil() bool {
 
 func (o *hostDriver) SendDummy(data []byte) error {
 	return o.handleAction(data, "SendDummy")
+}
+
+func (o *hostDriver) SaveStateChanges(stateChanges []stateChanges.StateChange) error {
+	//TODO: add this as a constant
+	return o.handleAction(stateChanges, "SaveStateChanges")
 }

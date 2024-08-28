@@ -1128,6 +1128,9 @@ var ErrNilProcessedMiniBlocksTracker = errors.New("nil processed mini blocks tra
 // ErrNilReceiptsRepository signals that a nil receipts repository has been provided
 var ErrNilReceiptsRepository = errors.New("nil receipts repository")
 
+// ErrNilStateChangesCollector signals that a nil state change collector has been provided
+var ErrNilStateChangesCollector = errors.New("nil state changes collector")
+
 // ErrNilBlockProcessingCutoffHandler signals that a nil block processing cutoff handler has been provided
 var ErrNilBlockProcessingCutoffHandler = errors.New("nil block processing cutoff handler")
 
