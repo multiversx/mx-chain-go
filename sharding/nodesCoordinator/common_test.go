@@ -228,12 +228,6 @@ func TestSerializableValidatorsToValidatorsShouldWorkErrNilPubKey(t *testing.T) 
 		},
 	}
 
-	expectedMapOfValidators := make(map[uint32][]Validator, 1)
-
-	v, _ := NewValidator(mapOfSerializableValidators["1"][0].PubKey, mapOfSerializableValidators["1"][0].Chances, mapOfSerializableValidators["1"][0].Index)
-	expectedMapOfValidators[uint32(1)] = []Validator{v}
-	require.NotNil(t, v)
-
 	_, err := SerializableValidatorsToValidators(mapOfSerializableValidators)
 
 	require.Equal(t, ErrNilPubKey, err)
