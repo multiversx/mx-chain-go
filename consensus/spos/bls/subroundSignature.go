@@ -4,9 +4,12 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	atomicCore "github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -352,58 +355,71 @@ func (sr *subroundSignature) remainingTime() time.Duration {
 	return remainigTime
 }
 
-func (sr *subroundSignature) doSignatureJobForManagedKeys() (int, bool) {
-	isMultiKeyLeader := sr.IsMultiKeyLeaderInCurrentRound()
+func (sr *subroundSignature) doSignatureJobForManagedKeys() (int32, bool) {
+	numMultiKeysSignaturesSent := int32(0)
+	sentSigForAllKeys := atomicCore.Flag{}
+	sentSigForAllKeys.SetValue(true)
 
-	numMultiKeysSignaturesSent := 0
+	wg := sync.WaitGroup{}
+
 	for idx, pk := range sr.ConsensusGroup() {
 		pkBytes := []byte(pk)
-		if sr.IsJobDone(pk, sr.Current()) {
-			continue
-		}
 		if !sr.IsKeyManagedByCurrentNode(pkBytes) {
 			continue
 		}
-
-		selfIndex, err := sr.ConsensusGroupIndex(pk)
-		if err != nil {
-			log.Warn("doSignatureJobForManagedKeys: index not found", "pk", pkBytes)
+		if sr.IsJobDone(pk, sr.Current()) {
 			continue
 		}
 
-		signatureShare, err := sr.SigningHandler().CreateSignatureShareForPublicKey(
-			sr.GetData(),
-			uint16(selfIndex),
-			sr.Header.GetEpoch(),
-			pkBytes,
-		)
-		if err != nil {
-			log.Debug("doSignatureJobForManagedKeys.CreateSignatureShareForPublicKey", "error", err.Error())
-			return 0, false
-		}
+		wg.Add(1)
 
-		if !isMultiKeyLeader {
-			ok := sr.createAndSendSignatureMessage(signatureShare, pkBytes)
-			if !ok {
-				return 0, false
+		go func(idx int, pk string) {
+			signatureSent := sr.sendSignatureForManagedKey(idx, pk)
+			if signatureSent {
+				atomic.AddInt32(&numMultiKeysSignaturesSent, 1)
+			} else {
+				sentSigForAllKeys.SetValue(false)
 			}
 
-			numMultiKeysSignaturesSent++
-		}
-		sr.sentSignatureTracker.SignatureSent(pkBytes)
-
-		isLeader := idx == spos.IndexOfLeaderInConsensusGroup
-		ok := sr.completeSignatureSubRound(pk, isLeader)
-		if !ok {
-			return 0, false
-		}
+			wg.Done()
+		}(idx, pk)
 	}
+
+	wg.Wait()
 
 	if numMultiKeysSignaturesSent > 0 {
 		log.Debug("step 2: multi keys signatures have been sent", "num", numMultiKeysSignaturesSent)
 	}
 
 	return numMultiKeysSignaturesSent, true
+}
+
+func (sr *subroundSignature) sendSignatureForManagedKey(idx int, pk string) bool {
+	isMultiKeyLeader := sr.IsMultiKeyLeaderInCurrentRound()
+	pkBytes := []byte(pk)
+
+	signatureShare, err := sr.SigningHandler().CreateSignatureShareForPublicKey(
+		sr.GetData(),
+		uint16(idx),
+		sr.Header.GetEpoch(),
+		pkBytes,
+	)
+	if err != nil {
+		log.Debug("doSignatureJobForManagedKeys.CreateSignatureShareForPublicKey", "error", err.Error())
+		return false
+	}
+
+	if !isMultiKeyLeader {
+		ok := sr.createAndSendSignatureMessage(signatureShare, pkBytes)
+		if !ok {
+			return false
+		}
+	}
+	sr.sentSignatureTracker.SignatureSent(pkBytes)
+
+	isLeader := idx == spos.IndexOfLeaderInConsensusGroup
+
+	return sr.completeSignatureSubRound(pk, isLeader)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
