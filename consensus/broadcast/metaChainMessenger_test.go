@@ -325,6 +325,7 @@ func TestMetaChainMessenger_Close(t *testing.T) {
 
 func TestMetaChainMessenger_PrepareBroadcastHeaderValidator(t *testing.T) {
 	t.Parallel()
+	
 	t.Run("Nil header", func(t *testing.T) {
 		args := createDefaultMetaChainArgs()
 		delayedBroadcaster := &mock.DelayedBroadcasterMock{
