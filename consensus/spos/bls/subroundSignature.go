@@ -118,7 +118,7 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 
 	startTime := time.Now()
 	numSigsSent, ok := sr.doSignatureJobForManagedKeys()
-	log.Info("doSignatureJobForManagedKeys elaspsed time", "duration", time.Since(startTime), "numSigs", numSigsSent)
+	log.Info("doSignatureJobForManagedKeys elaspsed time with parallelization", "duration", time.Since(startTime), "numSigs", numSigsSent)
 
 	return ok
 }
