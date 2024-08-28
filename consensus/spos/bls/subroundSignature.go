@@ -113,7 +113,11 @@ func (sr *subroundSignature) doSignatureJob(_ context.Context) bool {
 		}
 	}
 
-	return sr.doSignatureJobForManagedKeys()
+	startTime := time.Now()
+	numSigsSent, ok := sr.doSignatureJobForManagedKeys()
+	log.Info("doSignatureJobForManagedKeys elaspsed time", "duration", time.Since(startTime), "numSigs", numSigsSent)
+
+	return ok
 }
 
 func (sr *subroundSignature) createAndSendSignatureMessage(signatureShare []byte, pkBytes []byte) bool {
@@ -348,7 +352,7 @@ func (sr *subroundSignature) remainingTime() time.Duration {
 	return remainigTime
 }
 
-func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
+func (sr *subroundSignature) doSignatureJobForManagedKeys() (int, bool) {
 	isMultiKeyLeader := sr.IsMultiKeyLeaderInCurrentRound()
 
 	numMultiKeysSignaturesSent := 0
@@ -375,13 +379,13 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 		)
 		if err != nil {
 			log.Debug("doSignatureJobForManagedKeys.CreateSignatureShareForPublicKey", "error", err.Error())
-			return false
+			return 0, false
 		}
 
 		if !isMultiKeyLeader {
 			ok := sr.createAndSendSignatureMessage(signatureShare, pkBytes)
 			if !ok {
-				return false
+				return 0, false
 			}
 
 			numMultiKeysSignaturesSent++
@@ -391,7 +395,7 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 		isLeader := idx == spos.IndexOfLeaderInConsensusGroup
 		ok := sr.completeSignatureSubRound(pk, isLeader)
 		if !ok {
-			return false
+			return 0, false
 		}
 	}
 
@@ -399,7 +403,7 @@ func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
 		log.Debug("step 2: multi keys signatures have been sent", "num", numMultiKeysSignaturesSent)
 	}
 
-	return true
+	return numMultiKeysSignaturesSent, true
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
