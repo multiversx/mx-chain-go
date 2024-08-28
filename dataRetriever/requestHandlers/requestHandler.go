@@ -33,7 +33,6 @@ const uniqueTrieNodesSuffix = "tn"
 const uniqueValidatorInfoSuffix = "vi"
 
 // TODO move the keys definitions that are whitelisted in core and use them in InterceptedData implementations, Identifiers() function
-type getTrieNodesRequesterFunc func(topic string, destShardID uint32) (dataRetriever.Requester, error)
 
 type resolverRequestHandler struct {
 	mutEpoch              sync.RWMutex
@@ -90,6 +89,7 @@ func NewResolverRequestHandler(
 		requestInterval:       requestInterval,
 		trieHashesAccumulator: make(map[string]struct{}),
 		baseRequestHandler: &baseRequest{
+			shardID:          shardID,
 			requestersFinder: finder,
 		},
 	}
@@ -345,7 +345,7 @@ func (rrh *resolverRequestHandler) RequestMetaHeader(hash []byte) {
 		"hash", hash,
 	)
 
-	requester, err := rrh.getMetaHeaderRequester()
+	requester, err := rrh.baseRequestHandler.getMetaHeaderRequester()
 	if err != nil {
 		log.Error("RequestMetaHeader.getMetaHeaderRequester",
 			"error", err.Error(),
@@ -538,7 +538,7 @@ func (rrh *resolverRequestHandler) RequestMetaHeaderByNonce(nonce uint64) {
 		"nonce", nonce,
 	)
 
-	headerRequester, err := rrh.getMetaHeaderRequester()
+	headerRequester, err := rrh.baseRequestHandler.getMetaHeaderRequester()
 	if err != nil {
 		log.Error("RequestMetaHeaderByNonce.getMetaHeaderRequester",
 			"error", err.Error(),
@@ -695,24 +695,6 @@ func (rrh *resolverRequestHandler) getShardHeaderRequester(shardID uint32) (data
 		log.Warn("available requesters in container",
 			"requesters", rrh.requestersFinder.RequesterKeys(),
 		)
-		return nil, err
-	}
-
-	return headerRequester, nil
-}
-
-func (rrh *resolverRequestHandler) getMetaHeaderRequester() (HeaderRequester, error) {
-	requester, err := rrh.requestersFinder.MetaChainRequester(factory.MetachainBlocksTopic)
-	if err != nil {
-		err = fmt.Errorf("%w, topic: %s, current shard ID: %d",
-			err, factory.MetachainBlocksTopic, rrh.shardID)
-		return nil, err
-	}
-
-	headerRequester, ok := requester.(HeaderRequester)
-	if !ok {
-		err = fmt.Errorf("%w, topic: %s, current shard ID: %d, expected HeaderRequester",
-			dataRetriever.ErrWrongTypeInContainer, factory.ShardBlocksTopic, rrh.shardID)
 		return nil, err
 	}
 

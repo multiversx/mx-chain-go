@@ -1,8 +1,14 @@
 package requestHandlers
 
-import "github.com/multiversx/mx-chain-go/dataRetriever"
+import (
+	"fmt"
+
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/process/factory"
+)
 
 type baseRequest struct {
+	shardID          uint32
 	requestersFinder dataRetriever.RequestersFinder
 }
 
@@ -44,4 +50,22 @@ func (br *baseRequest) getStartOfEpochMetaBlockRequester(topic string) (dataRetr
 	}
 
 	return requester, nil
+}
+
+func (br *baseRequest) getMetaHeaderRequester() (HeaderRequester, error) {
+	requester, err := br.requestersFinder.MetaChainRequester(factory.MetachainBlocksTopic)
+	if err != nil {
+		err = fmt.Errorf("%w, topic: %s, current shard ID: %d",
+			err, factory.MetachainBlocksTopic, br.shardID)
+		return nil, err
+	}
+
+	headerRequester, ok := requester.(HeaderRequester)
+	if !ok {
+		err = fmt.Errorf("%w, topic: %s, current shard ID: %d, expected HeaderRequester",
+			dataRetriever.ErrWrongTypeInContainer, factory.ShardBlocksTopic, br.shardID)
+		return nil, err
+	}
+
+	return headerRequester, nil
 }
