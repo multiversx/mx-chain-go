@@ -1118,8 +1118,8 @@ func TestNodesSetup_ExportNodesConfigShouldWork(t *testing.T) {
 	require.Equal(t, int64(10), configNodes.StartTime)
 
 	for i, nodeConfig := range configNodes.InitialNodes {
-		require.Equal(t, config.InitialNodeConfig{pubKeys[i], address[i], 0},
-			config.InitialNodeConfig{nodeConfig.PubKey, nodeConfig.Address, nodeConfig.InitialRating})
+		require.Equal(t, config.InitialNodeConfig{PubKey: pubKeys[i], Address: address[i], InitialRating: 0},
+			config.InitialNodeConfig{PubKey: nodeConfig.PubKey, Address: nodeConfig.Address, InitialRating: nodeConfig.InitialRating})
 	}
 
 }
