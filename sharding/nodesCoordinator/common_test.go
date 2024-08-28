@@ -174,7 +174,7 @@ func TestSerializableShardValidatorListToValidatorListShouldWork(t *testing.T) {
 
 	listOfSerializableValidators := []*SerializableValidator{
 		{
-			PubKey:  []byte{},
+			PubKey:  []byte("pubkey"),
 			Chances: 1,
 			Index:   1,
 		},
@@ -197,7 +197,7 @@ func TestSerializableValidatorsToValidatorsShouldWork(t *testing.T) {
 	mapOfSerializableValidators := make(map[string][]*SerializableValidator, 1)
 	mapOfSerializableValidators["1"] = []*SerializableValidator{
 		{
-			PubKey:  []byte{},
+			PubKey:  []byte("pubkey"),
 			Chances: 1,
 			Index:   1,
 		},
@@ -239,7 +239,7 @@ func TestSerializableValidatorsToValidatorsShouldWorkErrEmptyString(t *testing.T
 	mapOfSerializableValidators := make(map[string][]*SerializableValidator, 1)
 	mapOfSerializableValidators[""] = []*SerializableValidator{
 		{
-			PubKey:  []byte{},
+			PubKey:  []byte("pubkey"),
 			Chances: 1,
 			Index:   1,
 		},
