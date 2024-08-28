@@ -7,9 +7,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state/stateChanges"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // AccountFactory creates an account of different types
@@ -295,8 +296,11 @@ type ShardValidatorsInfoMapHandler interface {
 
 	Add(validator ValidatorInfoHandler) error
 	Delete(validator ValidatorInfoHandler) error
+	DeleteByKey(blsKey []byte, shardID uint32)
 	Replace(old ValidatorInfoHandler, new ValidatorInfoHandler) error
+	ReplaceValidatorByKey(oldBlsKey []byte, new ValidatorInfoHandler, shardID uint32) bool
 	SetValidatorsInShard(shardID uint32, validators []ValidatorInfoHandler) error
+	SetValidatorsInShardUnsafe(shardID uint32, validators []ValidatorInfoHandler)
 }
 
 // ValidatorInfoHandler defines which data shall a validator info hold.
@@ -363,5 +367,6 @@ type StateChangesCollector interface {
 	SetIndexToLastStateChange(index int) error
 	RevertToIndex(index int) error
 	Publish() error
+	RetrieveStateChanges() []stateChanges.StateChange
 	IsInterfaceNil() bool
 }

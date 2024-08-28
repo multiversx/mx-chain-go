@@ -2,9 +2,10 @@ package disabled
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/stateChanges"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // disabledStateChangesCollector is a state changes collector that does nothing
@@ -44,6 +45,10 @@ func (d *disabledStateChangesCollector) RevertToIndex(index int) error {
 
 // Publish returns nil
 func (d *disabledStateChangesCollector) Publish() error {
+	return nil
+}
+
+func (d *disabledStateChangesCollector) RetrieveStateChanges() []stateChanges.StateChange {
 	return nil
 }
 

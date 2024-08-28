@@ -6,6 +6,7 @@ import (
 
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	indexerFactory "github.com/multiversx/mx-chain-es-indexer-go/process/factory"
+
 	"github.com/multiversx/mx-chain-go/outport"
 )
 
@@ -66,19 +67,20 @@ func createAndSubscribeDrivers(outport outport.OutportHandler, args *OutportFact
 }
 
 func createAndSubscribeElasticDriverIfNeeded(
-	outport outport.OutportHandler,
+	_ outport.OutportHandler,
 	args indexerFactory.ArgsIndexerFactory,
 ) error {
 	if !args.Enabled {
 		return nil
 	}
 
-	elasticDriver, err := indexerFactory.NewIndexer(args)
+	_, err := indexerFactory.NewIndexer(args)
 	if err != nil {
 		return err
 	}
 
-	return outport.SubscribeDriver(elasticDriver)
+	//return outport.SubscribeDriver(elasticDriver)
+	return nil
 }
 
 func createAndSubscribeEventNotifierIfNeeded(

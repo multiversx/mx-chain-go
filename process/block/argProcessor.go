@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
