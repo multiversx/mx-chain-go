@@ -181,7 +181,7 @@ func TestSerializableShardValidatorListToValidatorListShouldWork(t *testing.T) {
 	}
 
 	expectedListOfValidators := make([]Validator, 1)
-	v, err := NewValidator(listOfSerializableValidators[0].PubKey, listOfSerializableValidators[0].Chances, listOfSerializableValidators[0].Index)
+	v, _ := NewValidator(listOfSerializableValidators[0].PubKey, listOfSerializableValidators[0].Chances, listOfSerializableValidators[0].Index)
 	require.NotNil(t, v)
 	expectedListOfValidators[0] = v
 
@@ -205,7 +205,7 @@ func TestSerializableValidatorsToValidatorsShouldWork(t *testing.T) {
 
 	expectedMapOfValidators := make(map[uint32][]Validator, 1)
 
-	v, err := NewValidator(mapOfSerializableValidators["1"][0].PubKey, mapOfSerializableValidators["1"][0].Chances, mapOfSerializableValidators["1"][0].Index)
+	v, _ := NewValidator(mapOfSerializableValidators["1"][0].PubKey, mapOfSerializableValidators["1"][0].Chances, mapOfSerializableValidators["1"][0].Index)
 	expectedMapOfValidators[uint32(1)] = []Validator{v}
 
 	require.NotNil(t, v)
@@ -230,10 +230,11 @@ func TestSerializableValidatorsToValidatorsShouldWorkErrNilPubKey(t *testing.T) 
 
 	expectedMapOfValidators := make(map[uint32][]Validator, 1)
 
-	v, err := NewValidator(mapOfSerializableValidators["1"][0].PubKey, mapOfSerializableValidators["1"][0].Chances, mapOfSerializableValidators["1"][0].Index)
+	v, _ := NewValidator(mapOfSerializableValidators["1"][0].PubKey, mapOfSerializableValidators["1"][0].Chances, mapOfSerializableValidators["1"][0].Index)
 	expectedMapOfValidators[uint32(1)] = []Validator{v}
+	require.NotNil(t, v)
 
-	_, err = SerializableValidatorsToValidators(mapOfSerializableValidators)
+	_, err := SerializableValidatorsToValidators(mapOfSerializableValidators)
 
 	require.Equal(t, ErrNilPubKey, err)
 }
@@ -252,10 +253,11 @@ func TestSerializableValidatorsToValidatorsShouldWorkErrEmptyString(t *testing.T
 
 	expectedMapOfValidators := make(map[uint32][]Validator, 1)
 
-	v, err := NewValidator(mapOfSerializableValidators[""][0].PubKey, mapOfSerializableValidators[""][0].Chances, mapOfSerializableValidators[""][0].Index)
+	v, _ := NewValidator(mapOfSerializableValidators[""][0].PubKey, mapOfSerializableValidators[""][0].Chances, mapOfSerializableValidators[""][0].Index)
+	require.NotNil(t, v)
 	expectedMapOfValidators[uint32(1)] = []Validator{v}
 
-	_, err = SerializableValidatorsToValidators(mapOfSerializableValidators)
+	_, err := SerializableValidatorsToValidators(mapOfSerializableValidators)
 
 	require.NotNil(t, err)
 }
