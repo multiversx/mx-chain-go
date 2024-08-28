@@ -9,6 +9,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	logger "github.com/multiversx/mx-chain-logger-go"
+
+	"github.com/multiversx/mx-chain-go/state/stateChanges"
 )
 
 var log = logger.GetOrCreate("outport")
@@ -341,26 +343,26 @@ func (o *outport) finalizedBlockBlocking(finalizedBlock *outportcore.FinalizedBl
 	}
 }
 
-func (o *outport) SaveStateChanges() {
+func (o *outport) SaveStateChanges(stateChanges []stateChanges.StateChange) {
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
 
 	for _, driver := range o.drivers {
-		o.saveStateChangesBlocking(driver)
+		o.saveStateChangesBlocking(stateChanges, driver)
 	}
 }
 
-func (o *outport) saveStateChangesBlocking(driver Driver) {
-	ch := o.monitorCompletionOnDriver("finalizedBlockBlocking", driver)
+func (o *outport) saveStateChangesBlocking(stateChanges []stateChanges.StateChange, driver Driver) {
+	ch := o.monitorCompletionOnDriver("saveStateChangesBlocking", driver)
 	defer close(ch)
 
 	for {
-		err := driver.SaveStateChanges()
+		err := driver.SaveStateChanges(stateChanges)
 		if err == nil {
 			return
 		}
 
-		log.Error("error calling SaveStateChanges, will retry",
+		log.Error("error calling FinalizedBlock, will retry",
 			"driver", driverString(driver),
 			"retrial in", o.retrialInterval,
 			"error", err)
@@ -430,4 +432,15 @@ func driverString(driver Driver) string {
 // IsInterfaceNil returns true if there is no value under the interface
 func (o *outport) IsInterfaceNil() bool {
 	return o == nil
+}
+
+func (o *outport) SendDummy(data []byte) error {
+	o.mutex.RLock()
+	defer o.mutex.RUnlock()
+
+	for _, driver := range o.drivers {
+		driver.SendDummy(data)
+	}
+
+	return nil
 }
