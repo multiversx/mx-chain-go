@@ -545,9 +545,10 @@ func createShardVmContainerFactory(args scQueryElementArgs, argsHook hooks.ArgBl
 
 func createNewAccountsAdapterApi(args scQueryElementArgs, chainHandler data.ChainHandler) (state.AccountsAdapterAPI, common.StorageManager, error) {
 	argsAccCreator := factoryState.ArgsAccountCreator{
-		Hasher:              args.coreComponents.Hasher(),
-		Marshaller:          args.coreComponents.InternalMarshalizer(),
-		EnableEpochsHandler: args.coreComponents.EnableEpochsHandler(),
+		Hasher:                args.coreComponents.Hasher(),
+		Marshaller:            args.coreComponents.InternalMarshalizer(),
+		EnableEpochsHandler:   args.coreComponents.EnableEpochsHandler(),
+		StateChangesCollector: args.stateComponents.StateChangesCollector(),
 	}
 	accountFactory, err := factoryState.NewAccountCreator(argsAccCreator)
 	if err != nil {
@@ -598,6 +599,7 @@ func createNewAccountsAdapterApi(args scQueryElementArgs, chainHandler data.Chai
 		StoragePruningManager: storagePruning,
 		AddressConverter:      args.coreComponents.AddressPubKeyConverter(),
 		SnapshotsManager:      disabledState.NewDisabledSnapshotsManager(),
+		StateChangesCollector: disabledState.NewDisabledStateChangesCollector(),
 	}
 
 	provider, err := blockInfoProviders.NewCurrentBlockInfo(chainHandler)

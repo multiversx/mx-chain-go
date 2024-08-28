@@ -214,6 +214,17 @@ func (msc *managedStateComponents) MissingTrieNodesNotifier() common.MissingTrie
 	return msc.stateComponents.missingTrieNodesNotifier
 }
 
+func (msc *managedStateComponents) StateChangesCollector() state.StateChangesCollector {
+	msc.mutStateComponents.RLock()
+	defer msc.mutStateComponents.RUnlock()
+
+	if msc.stateComponents == nil {
+		return nil
+	}
+
+	return msc.stateComponents.stateChangesCollector
+}
+
 // IsInterfaceNil returns true if the interface is nil
 func (msc *managedStateComponents) IsInterfaceNil() bool {
 	return msc == nil

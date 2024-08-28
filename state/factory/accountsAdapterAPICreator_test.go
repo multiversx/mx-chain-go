@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/stateChanges"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	mockState "github.com/multiversx/mx-chain-go/testscommon/state"
@@ -28,6 +29,7 @@ func createMockAccountsArgs() state.ArgsAccountsDB {
 		StoragePruningManager: &mockState.StoragePruningManagerStub{},
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
 		SnapshotsManager:      &mockState.SnapshotsManagerStub{},
+		StateChangesCollector: stateChanges.NewStateChangesCollector(),
 	}
 }
 

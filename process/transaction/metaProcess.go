@@ -123,6 +123,11 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) (
 		txProc.pubkeyConv,
 	)
 
+	defer func() {
+		txProc.accounts.SetTxHashForLatestStateChanges(txHash, tx)
+		log.Debug("SetTxHashForLatestStateChanges", "txHash", txHash)
+	}()
+
 	err = txProc.checkTxValues(tx, acntSnd, acntDst, false)
 	if err != nil {
 		if errors.Is(err, process.ErrUserNameDoesNotMatchInCrossShardTx) {
@@ -136,6 +141,7 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) (
 	}
 
 	txType, _ := txProc.txTypeHandler.ComputeTransactionType(tx)
+
 	switch txType {
 	case process.SCDeployment:
 		return txProc.processSCDeployment(tx, tx.SndAddr)

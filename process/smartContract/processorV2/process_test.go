@@ -27,6 +27,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	stateFactory "github.com/multiversx/mx-chain-go/state/factory"
+	"github.com/multiversx/mx-chain-go/state/stateChanges"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -61,9 +62,10 @@ func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
 
 func createAccount(address []byte) state.UserAccountHandler {
 	argsAccCreation := stateFactory.ArgsAccountCreator{
-		Hasher:              &hashingMocks.HasherMock{},
-		Marshaller:          &marshallerMock.MarshalizerMock{},
-		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		Hasher:                &hashingMocks.HasherMock{},
+		Marshaller:            &marshallerMock.MarshalizerMock{},
+		EnableEpochsHandler:   enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		StateChangesCollector: stateChanges.NewStateChangesCollector(),
 	}
 	accountFactory, _ := stateFactory.NewAccountCreator(argsAccCreation)
 	account, _ := accountFactory.CreateAccount(address)

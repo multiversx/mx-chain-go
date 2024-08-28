@@ -165,3 +165,6 @@ var ErrValidatorsDifferentShards = errors.New("validators are not in the same sh
 
 // ErrValidatorNotFound signals that a validator was not found
 var ErrValidatorNotFound = errors.New("validator not found")
+
+// ErrNilStateChangesCollector signals that a nil state changes collector has been given
+var ErrNilStateChangesCollector = errors.New("nil state changes collector")

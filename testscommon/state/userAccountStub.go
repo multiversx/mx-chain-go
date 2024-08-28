@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/stateChanges"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
@@ -189,8 +190,8 @@ func (u *UserAccountStub) IsGuarded() bool {
 }
 
 // SaveDirtyData -
-func (u *UserAccountStub) SaveDirtyData(_ common.Trie) ([]core.TrieData, error) {
-	return nil, nil
+func (u *UserAccountStub) SaveDirtyData(_ common.Trie) ([]stateChanges.DataTrieChange, []core.TrieData, error) {
+	return nil, nil, nil
 }
 
 // IsInterfaceNil -

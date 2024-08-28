@@ -1,7 +1,9 @@
 package trackableDataTrie
 
 import (
+	"bytes"
 	"fmt"
+	"sort"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -12,6 +14,7 @@ import (
 	errorsCommon "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/dataTrieValue"
+	"github.com/multiversx/mx-chain-go/state/stateChanges"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
@@ -19,18 +22,20 @@ import (
 var log = logger.GetOrCreate("state/trackableDataTrie")
 
 type dirtyData struct {
+	index      int
 	value      []byte
 	newVersion core.TrieNodeVersion
 }
 
 // TrackableDataTrie wraps a PatriciaMerkelTrie adding modifying data capabilities
 type trackableDataTrie struct {
-	dirtyData           map[string]dirtyData
-	tr                  common.Trie
-	hasher              hashing.Hasher
-	marshaller          marshal.Marshalizer
-	enableEpochsHandler common.EnableEpochsHandler
-	identifier          []byte
+	dirtyData             map[string]dirtyData
+	tr                    common.Trie
+	hasher                hashing.Hasher
+	marshaller            marshal.Marshalizer
+	enableEpochsHandler   common.EnableEpochsHandler
+	identifier            []byte
+	stateChangesCollector state.StateChangesCollector
 }
 
 // NewTrackableDataTrie returns an instance of trackableDataTrie
@@ -39,6 +44,7 @@ func NewTrackableDataTrie(
 	hasher hashing.Hasher,
 	marshaller marshal.Marshalizer,
 	enableEpochsHandler common.EnableEpochsHandler,
+	stateChangesCollector state.StateChangesCollector,
 ) (*trackableDataTrie, error) {
 	if check.IfNil(hasher) {
 		return nil, state.ErrNilHasher
@@ -49,6 +55,10 @@ func NewTrackableDataTrie(
 	if check.IfNil(enableEpochsHandler) {
 		return nil, state.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(stateChangesCollector) {
+		return nil, state.ErrNilStateChangesCollector
+	}
+
 	err := core.CheckHandlerCompatibility(enableEpochsHandler, []core.EnableEpochFlag{
 		common.AutoBalanceDataTriesFlag,
 	})
@@ -57,12 +67,13 @@ func NewTrackableDataTrie(
 	}
 
 	return &trackableDataTrie{
-		tr:                  nil,
-		hasher:              hasher,
-		marshaller:          marshaller,
-		dirtyData:           make(map[string]dirtyData),
-		identifier:          identifier,
-		enableEpochsHandler: enableEpochsHandler,
+		tr:                    nil,
+		hasher:                hasher,
+		marshaller:            marshaller,
+		dirtyData:             make(map[string]dirtyData),
+		identifier:            identifier,
+		enableEpochsHandler:   enableEpochsHandler,
+		stateChangesCollector: stateChangesCollector,
 	}, nil
 }
 
@@ -73,6 +84,7 @@ func (tdt *trackableDataTrie) RetrieveValue(key []byte) ([]byte, uint32, error) 
 	// search in dirty data cache
 	if dataEntry, found := tdt.dirtyData[string(key)]; found {
 		log.Trace("retrieve value from dirty data", "key", key, "value", dataEntry.value, "account", tdt.identifier)
+
 		return dataEntry.value, 0, nil
 	}
 
@@ -92,6 +104,20 @@ func (tdt *trackableDataTrie) RetrieveValue(key []byte) ([]byte, uint32, error) 
 
 	log.Trace("retrieve value from trie", "key", key, "value", val, "account", tdt.identifier)
 
+	stateChange := &stateChanges.StateChangeDTO{
+		Type:        "read",
+		MainTrieKey: tdt.identifier,
+		MainTrieVal: nil,
+		DataTrieChanges: []stateChanges.DataTrieChange{
+			{
+				Type: "read",
+				Key:  key,
+				Val:  val,
+			},
+		},
+	}
+	tdt.stateChangesCollector.AddStateChange(stateChange)
+
 	return val, depth, nil
 }
 
@@ -103,6 +129,7 @@ func (tdt *trackableDataTrie) SaveKeyValue(key []byte, value []byte) error {
 	}
 
 	dataEntry := dirtyData{
+		index:      tdt.getIndexForKey(key),
 		value:      value,
 		newVersion: core.GetVersionForNewData(tdt.enableEpochsHandler),
 	}
@@ -138,20 +165,30 @@ func (tdt *trackableDataTrie) MigrateDataTrieLeaves(args vmcommon.ArgsMigrateDat
 			return err
 		}
 
-		dataEntry := dirtyData{
-			value:      val,
-			newVersion: args.NewVersion,
-		}
-
 		originalKey, err := tdt.getOriginalKeyFromTrieData(leafData)
 		if err != nil {
 			return err
+		}
+
+		dataEntry := dirtyData{
+			index:      tdt.getIndexForKey(originalKey),
+			value:      val,
+			newVersion: args.NewVersion,
 		}
 
 		tdt.dirtyData[string(originalKey)] = dataEntry
 	}
 
 	return nil
+}
+
+func (tdt *trackableDataTrie) getIndexForKey(key []byte) int {
+	existingVal, ok := tdt.dirtyData[string(key)]
+	if ok {
+		return existingVal.index
+	}
+
+	return len(tdt.dirtyData)
 }
 
 func (tdt *trackableDataTrie) getOriginalKeyFromTrieData(trieData core.TrieData) ([]byte, error) {
@@ -208,15 +245,15 @@ func (tdt *trackableDataTrie) DataTrie() common.DataTrieHandler {
 }
 
 // SaveDirtyData saved the dirty data to the trie
-func (tdt *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) ([]core.TrieData, error) {
+func (tdt *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) ([]stateChanges.DataTrieChange, []core.TrieData, error) {
 	if len(tdt.dirtyData) == 0 {
-		return make([]core.TrieData, 0), nil
+		return make([]stateChanges.DataTrieChange, 0), make([]core.TrieData, 0), nil
 	}
 
 	if check.IfNil(tdt.tr) {
 		newDataTrie, err := mainTrie.Recreate(make([]byte, 0))
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		tdt.tr = newDataTrie
@@ -224,47 +261,87 @@ func (tdt *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) ([]core.TrieDa
 
 	dtr, ok := tdt.tr.(state.DataTrie)
 	if !ok {
-		return nil, fmt.Errorf("invalid trie, type is %T", tdt.tr)
+		return nil, nil, fmt.Errorf("invalid trie, type is %T", tdt.tr)
 	}
 
 	return tdt.updateTrie(dtr)
 }
 
-func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]core.TrieData, error) {
+func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]stateChanges.DataTrieChange, []core.TrieData, error) {
 	oldValues := make([]core.TrieData, len(tdt.dirtyData))
+	newData := make([]stateChanges.DataTrieChange, len(tdt.dirtyData))
+	deletedKeys := make([]stateChanges.DataTrieChange, 0)
 
 	index := 0
 	for key, dataEntry := range tdt.dirtyData {
 		oldVal, _, err := tdt.retrieveValueFromTrie([]byte(key))
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		oldValues[index] = oldVal
 
-		err = tdt.deleteOldEntryIfMigrated([]byte(key), dataEntry, oldVal)
+		wasDeleted, err := tdt.deleteOldEntryIfMigrated([]byte(key), dataEntry, oldVal)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
-		newKey, err := tdt.modifyTrie([]byte(key), dataEntry, oldVal, dtr)
+		if wasDeleted {
+			deletedKeys = append(deletedKeys,
+				stateChanges.DataTrieChange{
+					Type: "write",
+					Key:  []byte(key),
+					Val:  nil,
+				},
+			)
+		}
+
+		dataTrieKey, dataTrieVal, err := tdt.modifyTrie([]byte(key), dataEntry, oldVal, dtr)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		index++
 
 		isFirstMigration := oldVal.Version == core.NotSpecified && dataEntry.newVersion == core.AutoBalanceEnabled
-		if isFirstMigration && len(newKey) != 0 {
+		if isFirstMigration && len(dataTrieKey) != 0 {
 			oldValues = append(oldValues, core.TrieData{
-				Key:   newKey,
+				Key:   dataTrieKey,
 				Value: nil,
 			})
+		}
+
+		if len(dataTrieKey) == 0 {
+			continue
+		}
+
+		if dataEntry.index > len(newData)-1 {
+			return nil, nil, fmt.Errorf("index out of range")
+		}
+
+		newData[dataEntry.index] = stateChanges.DataTrieChange{
+			Type: "write",
+			Key:  dataTrieKey,
+			Val:  dataTrieVal,
 		}
 	}
 
 	tdt.dirtyData = make(map[string]dirtyData)
 
-	return oldValues, nil
+	stateChanges := make([]stateChanges.DataTrieChange, 0)
+	for i := range newData {
+		if len(newData[i].Key) == 0 {
+			continue
+		}
+
+		stateChanges = append(stateChanges, newData[i])
+	}
+
+	sort.Slice(deletedKeys, func(i, j int) bool {
+		return bytes.Compare(deletedKeys[i].Key, deletedKeys[j].Key) < 0
+	})
+	stateChanges = append(stateChanges, deletedKeys...)
+
+	return stateChanges, oldValues, nil
 }
 
 func (tdt *trackableDataTrie) retrieveValueFromTrie(key []byte) (core.TrieData, uint32, error) {
@@ -340,49 +417,61 @@ func (tdt *trackableDataTrie) getValueNotSpecifiedVersion(key []byte, val []byte
 	return trimmedValue, nil
 }
 
-func (tdt *trackableDataTrie) deleteOldEntryIfMigrated(key []byte, newData dirtyData, oldEntry core.TrieData) error {
+func (tdt *trackableDataTrie) deleteOldEntryIfMigrated(key []byte, newData dirtyData, oldEntry core.TrieData) (bool, error) {
 	if !tdt.enableEpochsHandler.IsFlagEnabled(common.AutoBalanceDataTriesFlag) {
-		return nil
+		return false, nil
 	}
 
 	isMigration := oldEntry.Version == core.NotSpecified && newData.newVersion == core.AutoBalanceEnabled
 	if isMigration && len(newData.value) != 0 {
 		log.Trace("delete old entry if migrated", "key", key)
-		return tdt.tr.Delete(key)
+		return true, tdt.tr.Delete(key)
 	}
 
-	return nil
+	return false, nil
 }
 
-func (tdt *trackableDataTrie) modifyTrie(key []byte, dataEntry dirtyData, oldVal core.TrieData, dtr state.DataTrie) ([]byte, error) {
-	if len(dataEntry.value) == 0 {
-		return nil, tdt.deleteFromTrie(oldVal, key, dtr)
-	}
-
+func (tdt *trackableDataTrie) modifyTrie(key []byte, dataEntry dirtyData, oldVal core.TrieData, dtr state.DataTrie) ([]byte, []byte, error) {
 	version := dataEntry.newVersion
 	newKey := tdt.getKeyForVersion(key, version)
-	value, err := tdt.getValueForVersion(key, dataEntry.value, version)
-	if err != nil {
-		return nil, err
+
+	if len(dataEntry.value) == 0 {
+		deletedKey, err := tdt.deleteFromTrie(oldVal, key, dtr)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		return deletedKey, nil, nil
 	}
 
-	return newKey, dtr.UpdateWithVersion(newKey, value, version)
+	value, err := tdt.getValueForVersion(key, dataEntry.value, version)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = dtr.UpdateWithVersion(newKey, value, version)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return newKey, value, nil
 }
 
-func (tdt *trackableDataTrie) deleteFromTrie(oldVal core.TrieData, key []byte, dtr state.DataTrie) error {
+func (tdt *trackableDataTrie) deleteFromTrie(oldVal core.TrieData, key []byte, dtr state.DataTrie) ([]byte, error) {
 	if len(oldVal.Value) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	if oldVal.Version == core.AutoBalanceEnabled {
-		return dtr.Delete(tdt.hasher.Compute(string(key)))
+		keyForTrie := tdt.hasher.Compute(string(key))
+		return keyForTrie, dtr.Delete(keyForTrie)
 	}
 
 	if oldVal.Version == core.NotSpecified {
-		return dtr.Delete(key)
+		return key, dtr.Delete(key)
 	}
 
-	return nil
+	return nil, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

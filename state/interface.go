@@ -6,9 +6,10 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/api"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/state/stateChanges"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // AccountFactory creates an account of different types
@@ -91,6 +92,7 @@ type AccountsAdapter interface {
 	GetStackDebugFirstEntry() []byte
 	SetSyncer(syncer AccountsDBSyncer) error
 	StartSnapshotIfNeeded() error
+	SetTxHashForLatestStateChanges(txHash []byte, tx *transaction.Transaction)
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -160,7 +162,7 @@ type baseAccountHandler interface {
 	GetRootHash() []byte
 	SetDataTrie(trie common.Trie)
 	DataTrie() common.DataTrieHandler
-	SaveDirtyData(trie common.Trie) ([]core.TrieData, error)
+	SaveDirtyData(trie common.Trie) ([]stateChanges.DataTrieChange, []core.TrieData, error)
 	IsInterfaceNil() bool
 }
 
@@ -258,7 +260,7 @@ type DataTrieTracker interface {
 	SaveKeyValue(key []byte, value []byte) error
 	SetDataTrie(tr common.Trie)
 	DataTrie() common.DataTrieHandler
-	SaveDirtyData(common.Trie) ([]core.TrieData, error)
+	SaveDirtyData(common.Trie) ([]stateChanges.DataTrieChange, []core.TrieData, error)
 	MigrateDataTrieLeaves(args vmcommon.ArgsMigrateDataTrieLeaves) error
 	IsInterfaceNil() bool
 }
@@ -293,11 +295,8 @@ type ShardValidatorsInfoMapHandler interface {
 
 	Add(validator ValidatorInfoHandler) error
 	Delete(validator ValidatorInfoHandler) error
-	DeleteByKey(blsKey []byte, shardID uint32)
 	Replace(old ValidatorInfoHandler, new ValidatorInfoHandler) error
-	ReplaceValidatorByKey(oldBlsKey []byte, new ValidatorInfoHandler, shardID uint32) bool
 	SetValidatorsInShard(shardID uint32, validators []ValidatorInfoHandler) error
-	SetValidatorsInShardUnsafe(shardID uint32, validators []ValidatorInfoHandler)
 }
 
 // ValidatorInfoHandler defines which data shall a validator info hold.
@@ -353,4 +352,16 @@ type ValidatorInfoHandler interface {
 	ShallowClone() ValidatorInfoHandler
 	String() string
 	GoString() string
+}
+
+// StateChangesCollector defines the methods needed for an StateChangesCollector implementation
+type StateChangesCollector interface {
+	AddStateChange(stateChange stateChanges.StateChange)
+	AddSaveAccountStateChange(oldAccount, account vmcommon.AccountHandler, stateChange stateChanges.StateChange)
+	Reset()
+	AddTxHashToCollectedStateChanges(txHash []byte, tx *transaction.Transaction)
+	SetIndexToLastStateChange(index int) error
+	RevertToIndex(index int) error
+	Publish() error
+	IsInterfaceNil() bool
 }

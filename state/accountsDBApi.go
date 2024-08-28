@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -235,6 +236,11 @@ func (accountsDB *accountsDBApi) GetTrie(rootHash []byte) (common.Trie, error) {
 // GetStackDebugFirstEntry will call the inner accountsAdapter method
 func (accountsDB *accountsDBApi) GetStackDebugFirstEntry() []byte {
 	return accountsDB.innerAccountsAdapter.GetStackDebugFirstEntry()
+}
+
+// SetTxHashForLatestStateChanges will call the inner accountsAdapter method
+func (accountsDB *accountsDBApi) SetTxHashForLatestStateChanges(txHash []byte, tx *transaction.Transaction) {
+	accountsDB.innerAccountsAdapter.SetTxHashForLatestStateChanges(txHash, tx)
 }
 
 // Close will handle the closing of the underlying components

@@ -195,6 +195,11 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 		txProc.pubkeyConv,
 	)
 
+	defer func() {
+		txProc.accounts.SetTxHashForLatestStateChanges(txHash, tx)
+		log.Debug("SetTxHashForLatestStateChanges", "txHash", txHash)
+	}()
+
 	txType, dstShardTxType := txProc.txTypeHandler.ComputeTransactionType(tx)
 	err = txProc.checkTxValues(tx, acntSnd, acntDst, false)
 	if err != nil {
