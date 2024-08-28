@@ -1123,3 +1123,14 @@ func TestNodesSetup_ExportNodesConfigShouldWork(t *testing.T) {
 	}
 
 }
+
+func TestNodesSetup_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	ns := NodesSetup{}
+
+	ns.StartTime = 2
+	interfaceNil := ns.IsInterfaceNil()
+
+	require.False(t, interfaceNil)
+}
