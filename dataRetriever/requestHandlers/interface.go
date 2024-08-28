@@ -49,4 +49,5 @@ type baseRequestHandler interface {
 	getTrieNodesRequester(topic string, destShardID uint32) (dataRetriever.Requester, error)
 	getStartOfEpochMetaBlockRequester(topic string) (dataRetriever.Requester, error)
 	getMetaHeaderRequester() (HeaderRequester, error)
+	getShardHeaderRequester(shardID uint32) (dataRetriever.Requester, error)
 }

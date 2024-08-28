@@ -3,6 +3,7 @@ package requestHandlers
 import (
 	"fmt"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process/factory"
 )
@@ -64,6 +65,36 @@ func (br *baseRequest) getMetaHeaderRequester() (HeaderRequester, error) {
 	if !ok {
 		err = fmt.Errorf("%w, topic: %s, current shard ID: %d, expected HeaderRequester",
 			dataRetriever.ErrWrongTypeInContainer, factory.ShardBlocksTopic, br.shardID)
+		return nil, err
+	}
+
+	return headerRequester, nil
+}
+
+func (br *baseRequest) getShardHeaderRequester(shardID uint32) (dataRetriever.Requester, error) {
+	isMetachainNode := br.shardID == core.MetachainShardId
+	shardIdMissmatch := br.shardID != shardID
+	requestOnMetachain := shardID == core.MetachainShardId
+	isRequestInvalid := (!isMetachainNode && shardIdMissmatch) || requestOnMetachain
+	if isRequestInvalid {
+		return nil, dataRetriever.ErrBadRequest
+	}
+
+	// requests should be done on the topic shardBlocks_0_META so that is why we need to figure out
+	// the cross shard id
+	crossShardID := core.MetachainShardId
+	if isMetachainNode {
+		crossShardID = shardID
+	}
+
+	headerRequester, err := br.requestersFinder.CrossShardRequester(factory.ShardBlocksTopic, crossShardID)
+	if err != nil {
+		err = fmt.Errorf("%w, topic: %s, current shard ID: %d, cross shard ID: %d",
+			err, factory.ShardBlocksTopic, br.shardID, crossShardID)
+
+		log.Warn("available requesters in container",
+			"requesters", br.requestersFinder.RequesterKeys(),
+		)
 		return nil, err
 	}
 

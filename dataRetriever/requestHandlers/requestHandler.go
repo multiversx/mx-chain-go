@@ -310,7 +310,7 @@ func (rrh *resolverRequestHandler) RequestShardHeader(shardID uint32, hash []byt
 		"hash", hash,
 	)
 
-	headerRequester, err := rrh.getShardHeaderRequester(shardID)
+	headerRequester, err := rrh.baseRequestHandler.getShardHeaderRequester(shardID)
 	if err != nil {
 		log.Error("RequestShardHeader.getShardHeaderRequester",
 			"error", err.Error(),
@@ -389,7 +389,7 @@ func (rrh *resolverRequestHandler) RequestShardHeaderByNonce(shardID uint32, non
 		"nonce", nonce,
 	)
 
-	requester, err := rrh.getShardHeaderRequester(shardID)
+	requester, err := rrh.baseRequestHandler.getShardHeaderRequester(shardID)
 	if err != nil {
 		log.Error("RequestShardHeaderByNonce.getShardHeaderRequester",
 			"error", err.Error(),
@@ -669,36 +669,6 @@ func (rrh *resolverRequestHandler) addRequestedItems(keys [][]byte, suffix strin
 			continue
 		}
 	}
-}
-
-func (rrh *resolverRequestHandler) getShardHeaderRequester(shardID uint32) (dataRetriever.Requester, error) {
-	isMetachainNode := rrh.shardID == core.MetachainShardId
-	shardIdMissmatch := rrh.shardID != shardID
-	requestOnMetachain := shardID == core.MetachainShardId
-	isRequestInvalid := (!isMetachainNode && shardIdMissmatch) || requestOnMetachain
-	if isRequestInvalid {
-		return nil, dataRetriever.ErrBadRequest
-	}
-
-	// requests should be done on the topic shardBlocks_0_META so that is why we need to figure out
-	// the cross shard id
-	crossShardID := core.MetachainShardId
-	if isMetachainNode {
-		crossShardID = shardID
-	}
-
-	headerRequester, err := rrh.requestersFinder.CrossShardRequester(factory.ShardBlocksTopic, crossShardID)
-	if err != nil {
-		err = fmt.Errorf("%w, topic: %s, current shard ID: %d, cross shard ID: %d",
-			err, factory.ShardBlocksTopic, rrh.shardID, crossShardID)
-
-		log.Warn("available requesters in container",
-			"requesters", rrh.requestersFinder.RequesterKeys(),
-		)
-		return nil, err
-	}
-
-	return headerRequester, nil
 }
 
 // RequestStartOfEpochMetaBlock method asks for the start of epoch metablock from the connected peers

@@ -67,3 +67,18 @@ func (br *baseSovereignRequest) getMetaHeaderRequester() (HeaderRequester, error
 
 	return headerRequester, nil
 }
+
+func (br *baseSovereignRequest) getShardHeaderRequester(_ uint32) (dataRetriever.Requester, error) {
+	headerRequester, err := br.requestersFinder.IntraShardRequester(factory.ShardBlocksTopic)
+	if err != nil {
+		err = fmt.Errorf("baseSovereignRequest: %w, topic: %s",
+			err, factory.ShardBlocksTopic)
+
+		log.Warn("available requesters in container",
+			"requesters", br.requestersFinder.RequesterKeys(),
+		)
+		return nil, err
+	}
+
+	return headerRequester, nil
+}
