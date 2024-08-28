@@ -5,10 +5,11 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/sharding/mock"
 	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
-	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -118,6 +119,89 @@ func TestNodesSetup_ProcessConfigNodesWithIncompleteDataShouldErr(t *testing.T) 
 	require.Equal(t, ErrCouldNotParsePubKey, err)
 }
 
+func TestNodesSetup_ProcessConfigNodesShouldErrCouldNotParsePubKeyForString(t *testing.T) {
+	t.Parallel()
+
+	noOfInitialNodes := 2
+	ns := &NodesSetup{
+		addressPubkeyConverter: mock.NewPubkeyConverterMock(32),
+		validatorPubkeyConverter: &mock.PubkeyConverterMock{
+			DecodeCalled: func() ([]byte, error) {
+				return nil, ErrCouldNotParsePubKey
+			},
+		},
+	}
+
+	ns.InitialNodes = make([]*InitialNode, noOfInitialNodes)
+
+	ns.InitialNodes[0] = &InitialNode{}
+	ns.InitialNodes[1] = &InitialNode{}
+
+	ns.InitialNodes[0].PubKey = pubKeys[0]
+	ns.InitialNodes[0].Address = address[0]
+
+	ns.InitialNodes[1].PubKey = pubKeys[1]
+	ns.InitialNodes[1].Address = address[1]
+
+	err := ns.processConfig()
+
+	require.NotNil(t, ns)
+	require.Contains(t, err.Error(), ErrCouldNotParsePubKey.Error())
+}
+
+func TestNodesSetup_ProcessConfigNodesShouldErrCouldNotParseAddressForString(t *testing.T) {
+	t.Parallel()
+
+	noOfInitialNodes := 2
+	ns := &NodesSetup{
+		addressPubkeyConverter: &mock.PubkeyConverterMock{
+			DecodeCalled: func() ([]byte, error) {
+				return nil, ErrCouldNotParseAddress
+			},
+		},
+		validatorPubkeyConverter: mock.NewPubkeyConverterMock(96),
+	}
+
+	ns.InitialNodes = make([]*InitialNode, noOfInitialNodes)
+
+	ns.InitialNodes[0] = &InitialNode{}
+	ns.InitialNodes[1] = &InitialNode{}
+
+	ns.InitialNodes[0].PubKey = pubKeys[0]
+	ns.InitialNodes[0].Address = address[0]
+
+	ns.InitialNodes[1].PubKey = pubKeys[1]
+	ns.InitialNodes[1].Address = address[1]
+
+	err := ns.processConfig()
+
+	require.NotNil(t, ns)
+	require.Contains(t, err.Error(), ErrCouldNotParseAddress.Error())
+}
+
+func TestNodesSetup_ProcessConfigNodesWithEmptyDataShouldErrCouldNotParseAddress(t *testing.T) {
+	t.Parallel()
+
+	noOfInitialNodes := 2
+	ns := &NodesSetup{
+		addressPubkeyConverter:   mock.NewPubkeyConverterMock(32),
+		validatorPubkeyConverter: mock.NewPubkeyConverterMock(96),
+	}
+
+	ns.InitialNodes = make([]*InitialNode, noOfInitialNodes)
+
+	ns.InitialNodes[0] = &InitialNode{}
+	ns.InitialNodes[1] = &InitialNode{}
+
+	ns.InitialNodes[0].PubKey = pubKeys[0]
+	ns.InitialNodes[0].Address = ""
+
+	err := ns.processConfig()
+
+	require.NotNil(t, ns)
+	require.Equal(t, err, ErrCouldNotParseAddress)
+}
+
 func TestNodesSetup_ProcessConfigInvalidConsensusGroupSizeShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -187,6 +271,21 @@ func TestNodesSetup_ProcessConfigInvalidNumOfNodesSmallerThanMinNodesPerShardSho
 		metaConsensusSize:  1,
 		metaMinNodes:       1,
 		numInitialNodes:    2,
+		genesisMaxShards:   3,
+	})
+	require.Nil(t, ns)
+	require.Equal(t, ErrNodesSizeSmallerThanMinNoOfNodes, err)
+}
+
+func TestNodesSetup_ProcessConfigInvalidNumOfNodesSmallerThanTotalMinNodesShouldErr(t *testing.T) {
+	t.Parallel()
+
+	ns, err := createTestNodesSetup(argsTestNodesSetup{
+		shardConsensusSize: 2,
+		shardMinNodes:      3,
+		metaConsensusSize:  1,
+		metaMinNodes:       3,
+		numInitialNodes:    5,
 		genesisMaxShards:   3,
 	})
 	require.Nil(t, ns)
@@ -425,6 +524,66 @@ func TestNewNodesSetup_InvalidMaxNumShardsShouldErr(t *testing.T) {
 	require.Contains(t, err.Error(), ErrInvalidMaximumNumberOfShards.Error())
 }
 
+func TestNewNodesSetup_ErrNilPubkeyConverterForAddressPubkeyConverter(t *testing.T) {
+	t.Parallel()
+
+	_, err := NewNodesSetup(
+		config.NodesConfig{},
+		&chainParameters.ChainParametersHandlerStub{},
+		nil,
+		mock.NewPubkeyConverterMock(96),
+		3,
+	)
+
+	require.Contains(t, err.Error(), ErrNilPubkeyConverter.Error())
+}
+
+func TestNewNodesSetup_ErrNilPubkeyConverterForValidatorPubkeyConverter(t *testing.T) {
+	t.Parallel()
+
+	_, err := NewNodesSetup(
+		config.NodesConfig{},
+		&chainParameters.ChainParametersHandlerStub{},
+		mock.NewPubkeyConverterMock(32),
+		nil,
+		3,
+	)
+
+	require.Contains(t, err.Error(), ErrNilPubkeyConverter.Error())
+}
+
+func TestNewNodesSetup_ErrNilChainParametersProvider(t *testing.T) {
+	t.Parallel()
+
+	_, err := NewNodesSetup(
+		config.NodesConfig{},
+		nil,
+		mock.NewPubkeyConverterMock(32),
+		mock.NewPubkeyConverterMock(96),
+		3,
+	)
+
+	require.Equal(t, err, ErrNilChainParametersProvider)
+}
+
+func TestNewNodesSetup_ErrChainParametersForEpoch(t *testing.T) {
+	t.Parallel()
+
+	_, err := NewNodesSetup(
+		config.NodesConfig{},
+		&chainParameters.ChainParametersHandlerStub{
+			ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
+				return config.ChainParametersByEpochConfig{}, ErrChainParametersForEpoch
+			},
+		},
+		mock.NewPubkeyConverterMock(32),
+		mock.NewPubkeyConverterMock(96),
+		3,
+	)
+
+	require.Contains(t, err.Error(), ErrChainParametersForEpoch.Error())
+}
+
 func TestNodesSetup_IfNodesWithinMaxShardLimitEquivalentDistribution(t *testing.T) {
 	t.Parallel()
 
@@ -513,4 +672,454 @@ func TestNodesSetup_NodesAboveMaxShardLimit(t *testing.T) {
 
 	minHysteresisNodesMeta = ns.MinMetaHysteresisNodes()
 	require.Equal(t, uint32(80), minHysteresisNodesMeta)
+}
+
+func TestNodesSetup_AllInitialNodesShouldWork(t *testing.T) {
+
+	t.Parallel()
+
+	noOfInitialNodes := 2
+
+	var listOfInitialNodes = [2]InitialNode{
+		{
+			PubKey:  pubKeys[0],
+			Address: address[0],
+		},
+		{
+			PubKey:  pubKeys[1],
+			Address: address[1],
+		},
+	}
+
+	var expectedConvertedPubKeys = make([][]byte, 2)
+	pubKeyConverter := mock.NewPubkeyConverterMock(96)
+
+	for i, nod := range listOfInitialNodes {
+		convertedValue, err := pubKeyConverter.Decode(nod.PubKey)
+		require.Nil(t, err)
+		require.NotNil(t, convertedValue)
+		expectedConvertedPubKeys[i] = convertedValue
+	}
+
+	ns, err := createTestNodesSetup(argsTestNodesSetup{
+		shardConsensusSize: 1,
+		shardMinNodes:      1,
+		metaConsensusSize:  1,
+		metaMinNodes:       1,
+		numInitialNodes:    2,
+		genesisMaxShards:   1,
+	})
+	ns.Hysteresis = 0.2
+	ns.Adaptivity = false
+	require.Nil(t, err)
+
+	ns = createAndAssignNodes(ns, noOfInitialNodes)
+
+	allInitialNodes := ns.AllInitialNodes()
+
+	for i, expectedConvertedKey := range expectedConvertedPubKeys {
+		require.Equal(t, expectedConvertedKey, allInitialNodes[i].PubKeyBytes())
+	}
+
+}
+
+func TestNodesSetup_InitialNodesInfoShouldWork(t *testing.T) {
+
+	t.Parallel()
+
+	noOfInitialNodes := 3
+
+	var listOfInitialNodes = [3]InitialNode{
+		{
+			PubKey:  pubKeys[0],
+			Address: address[0],
+		},
+		{
+			PubKey:  pubKeys[1],
+			Address: address[1],
+		},
+		{
+			PubKey:  pubKeys[2],
+			Address: address[2],
+		},
+	}
+
+	var listOfExpectedConvertedPubKeysEligibleNodes = make([][]byte, 2)
+	pubKeyConverter := mock.NewPubkeyConverterMock(96)
+
+	for i := 0; i < 2; i++ {
+		convertedValue, err := pubKeyConverter.Decode(listOfInitialNodes[i].PubKey)
+		require.Nil(t, err)
+		require.NotNil(t, convertedValue)
+		listOfExpectedConvertedPubKeysEligibleNodes[i] = convertedValue
+	}
+
+	var listOfExpectedConvertedPubKeysWaitingNode = make([][]byte, 1)
+	listOfExpectedConvertedPubKeysWaitingNode[0], _ = pubKeyConverter.Decode(listOfInitialNodes[2].PubKey)
+
+	ns, err := createTestNodesSetup(argsTestNodesSetup{
+		shardConsensusSize: 1,
+		shardMinNodes:      1,
+		metaConsensusSize:  1,
+		metaMinNodes:       1,
+		numInitialNodes:    3,
+		genesisMaxShards:   1,
+	})
+	ns.Hysteresis = 0.2
+	ns.Adaptivity = false
+	require.Nil(t, err)
+
+	ns = createAndAssignNodes(ns, noOfInitialNodes)
+
+	allEligibleNodes, allWaitingNodes := ns.InitialNodesInfo()
+
+	require.Equal(t, listOfExpectedConvertedPubKeysEligibleNodes[0], allEligibleNodes[(core.MetachainShardId)][0].PubKeyBytes())
+	require.Equal(t, listOfExpectedConvertedPubKeysEligibleNodes[1], allEligibleNodes[0][0].PubKeyBytes())
+	require.Equal(t, listOfExpectedConvertedPubKeysWaitingNode[0], allWaitingNodes[(core.MetachainShardId)][0].PubKeyBytes())
+
+}
+
+func TestNodesSetup_InitialNodesPubKeysShouldWork(t *testing.T) {
+	t.Parallel()
+
+	noOfInitialNodes := 3
+
+	var listOfInitialNodes = [3]InitialNode{
+		{
+			PubKey:  pubKeys[0],
+			Address: address[0],
+		},
+		{
+			PubKey:  pubKeys[1],
+			Address: address[1],
+		},
+		{
+			PubKey:  pubKeys[2],
+			Address: address[2],
+		},
+	}
+
+	var listOfExpectedConvertedPubKeysEligibleNodes = make([]string, 2)
+	pubKeyConverter := mock.NewPubkeyConverterMock(96)
+
+	for i := 0; i < 2; i++ {
+		convertedValue, err := pubKeyConverter.Decode(listOfInitialNodes[i].PubKey)
+		require.Nil(t, err)
+		require.NotNil(t, convertedValue)
+		listOfExpectedConvertedPubKeysEligibleNodes[i] = string(convertedValue)
+	}
+
+	ns, err := createTestNodesSetup(argsTestNodesSetup{
+		shardConsensusSize: 1,
+		shardMinNodes:      1,
+		metaConsensusSize:  1,
+		metaMinNodes:       1,
+		numInitialNodes:    3,
+		genesisMaxShards:   1,
+	})
+	ns.Hysteresis = 0.2
+	ns.Adaptivity = false
+	require.Nil(t, err)
+
+	ns = createAndAssignNodes(ns, noOfInitialNodes)
+
+	allEligibleNodes := ns.InitialNodesPubKeys()
+
+	require.Equal(t, listOfExpectedConvertedPubKeysEligibleNodes[0], allEligibleNodes[(core.MetachainShardId)][0])
+	require.Equal(t, listOfExpectedConvertedPubKeysEligibleNodes[1], allEligibleNodes[0][0])
+
+}
+
+func TestNodesSetup_InitialEligibleNodesPubKeysForShardShouldErrShardIdOutOfRange(t *testing.T) {
+	t.Parallel()
+
+	noOfInitialNodes := 3
+
+	ns, err := createTestNodesSetup(argsTestNodesSetup{
+		shardConsensusSize: 1,
+		shardMinNodes:      1,
+		metaConsensusSize:  1,
+		metaMinNodes:       1,
+		numInitialNodes:    3,
+		genesisMaxShards:   1,
+	})
+	ns.Hysteresis = 0.2
+	ns.Adaptivity = false
+	require.Nil(t, err)
+
+	ns = createAndAssignNodes(ns, noOfInitialNodes)
+
+	returnedPubKeys, err := ns.InitialEligibleNodesPubKeysForShard(1)
+	require.Nil(t, returnedPubKeys)
+	require.Equal(t, err, ErrShardIdOutOfRange)
+
+}
+
+func TestNodesSetup_InitialEligibleNodesPubKeysForShardShouldWork(t *testing.T) {
+	t.Parallel()
+
+	noOfInitialNodes := 3
+
+	var listOfInitialNodes = [3]InitialNode{
+		{
+			PubKey:  pubKeys[0],
+			Address: address[0],
+		},
+		{
+			PubKey:  pubKeys[1],
+			Address: address[1],
+		},
+		{
+			PubKey:  pubKeys[2],
+			Address: address[2],
+		},
+	}
+
+	var listOfExpectedPubKeysEligibleNodes = make([]string, 2)
+	pubKeyConverter := mock.NewPubkeyConverterMock(96)
+
+	for i := 0; i < 2; i++ {
+		convertedValue, err := pubKeyConverter.Decode(listOfInitialNodes[i].PubKey)
+		require.Nil(t, err)
+		require.NotNil(t, convertedValue)
+		listOfExpectedPubKeysEligibleNodes[i] = string(convertedValue)
+	}
+
+	ns, err := createTestNodesSetup(argsTestNodesSetup{
+		shardConsensusSize: 1,
+		shardMinNodes:      1,
+		metaConsensusSize:  1,
+		metaMinNodes:       1,
+		numInitialNodes:    3,
+		genesisMaxShards:   1,
+	})
+	ns.Hysteresis = 0.2
+	ns.Adaptivity = false
+	require.Nil(t, err)
+
+	ns = createAndAssignNodes(ns, noOfInitialNodes)
+
+	allEligibleNodes, err := ns.InitialEligibleNodesPubKeysForShard(0)
+
+	require.Nil(t, err)
+	require.Equal(t, listOfExpectedPubKeysEligibleNodes[1], allEligibleNodes[0])
+}
+
+func TestNodesSetup_NumberOfShardsShouldWork(t *testing.T) {
+	t.Parallel()
+
+	noOfInitialNodes := 3
+
+	ns, err := createTestNodesSetup(argsTestNodesSetup{
+		shardConsensusSize: 1,
+		shardMinNodes:      1,
+		metaConsensusSize:  1,
+		metaMinNodes:       1,
+		numInitialNodes:    3,
+		genesisMaxShards:   1,
+	})
+	ns.Hysteresis = 0.2
+	ns.Adaptivity = false
+	require.Nil(t, err)
+
+	ns = createAndAssignNodes(ns, noOfInitialNodes)
+
+	nrShards := ns.NumberOfShards()
+
+	require.Equal(t, uint32(1), nrShards)
+}
+
+func TestNodesSetup_MinNumberOfNodesWithHysteresis(t *testing.T) {
+	t.Parallel()
+
+	noOfInitialNodes := 3
+
+	ns, err := createTestNodesSetup(argsTestNodesSetup{
+		shardConsensusSize: 1,
+		shardMinNodes:      1,
+		metaConsensusSize:  1,
+		metaMinNodes:       1,
+		numInitialNodes:    3,
+		genesisMaxShards:   1,
+	})
+	ns.Hysteresis = 0.2
+	ns.Adaptivity = false
+	require.Nil(t, err)
+
+	ns = createAndAssignNodes(ns, noOfInitialNodes)
+
+	nrShards := ns.MinNumberOfNodesWithHysteresis()
+
+	require.Equal(t, uint32(2), nrShards)
+}
+
+func TestNodesSetup_MinNumberOfShardNodes(t *testing.T) {
+	t.Parallel()
+
+	noOfInitialNodes := 3
+
+	ns, err := createTestNodesSetup(argsTestNodesSetup{
+		shardConsensusSize: 1,
+		shardMinNodes:      1,
+		metaConsensusSize:  1,
+		metaMinNodes:       1,
+		numInitialNodes:    3,
+		genesisMaxShards:   1,
+	})
+	ns.Hysteresis = 0.2
+	ns.Adaptivity = false
+	require.Nil(t, err)
+
+	ns = createAndAssignNodes(ns, noOfInitialNodes)
+
+	nrShards := ns.MinNumberOfShardNodes()
+
+	require.Equal(t, uint32(1), nrShards)
+}
+
+func TestNodesSetup_MinNumberOfMetaNodes(t *testing.T) {
+	t.Parallel()
+
+	noOfInitialNodes := 3
+
+	ns, err := createTestNodesSetup(argsTestNodesSetup{
+		shardConsensusSize: 1,
+		shardMinNodes:      1,
+		metaConsensusSize:  1,
+		metaMinNodes:       1,
+		numInitialNodes:    3,
+		genesisMaxShards:   1,
+	})
+	ns.Hysteresis = 0.2
+	ns.Adaptivity = false
+	require.Nil(t, err)
+
+	ns = createAndAssignNodes(ns, noOfInitialNodes)
+
+	nrShards := ns.MinNumberOfShardNodes()
+
+	require.Equal(t, uint32(1), nrShards)
+}
+
+func TestNodesSetup_GetShardConsensusGroupSize(t *testing.T) {
+	t.Parallel()
+
+	noOfInitialNodes := 3
+
+	ns, err := createTestNodesSetup(argsTestNodesSetup{
+		shardConsensusSize: 2,
+		shardMinNodes:      2,
+		metaConsensusSize:  1,
+		metaMinNodes:       1,
+		numInitialNodes:    3,
+		genesisMaxShards:   1,
+	})
+	ns.Hysteresis = 0.2
+	ns.Adaptivity = false
+	require.Nil(t, err)
+
+	ns = createAndAssignNodes(ns, noOfInitialNodes)
+
+	shardConsensusGroupSize := ns.GetShardConsensusGroupSize()
+
+	require.Equal(t, uint32(2), shardConsensusGroupSize)
+}
+
+func TestNodesSetup_GetMetaConsensusGroupSize(t *testing.T) {
+	t.Parallel()
+
+	noOfInitialNodes := 3
+
+	ns, err := createTestNodesSetup(argsTestNodesSetup{
+		shardConsensusSize: 1,
+		shardMinNodes:      1,
+		metaConsensusSize:  2,
+		metaMinNodes:       2,
+		numInitialNodes:    3,
+		genesisMaxShards:   1,
+	})
+	ns.Hysteresis = 0.2
+	ns.Adaptivity = false
+	require.Nil(t, err)
+
+	ns = createAndAssignNodes(ns, noOfInitialNodes)
+
+	metaConsensusGroupSize := ns.GetMetaConsensusGroupSize()
+
+	require.Equal(t, uint32(2), metaConsensusGroupSize)
+}
+
+func TestNodesSetup_GetHysteresis(t *testing.T) {
+	t.Parallel()
+
+	ns := &NodesSetup{}
+	ns.Hysteresis = 0.5
+
+	hysteresis := ns.GetHysteresis()
+
+	require.Equal(t, float32(0.5), hysteresis)
+}
+
+func TestNodesSetup_GetAdaptivity(t *testing.T) {
+	t.Parallel()
+
+	ns := NodesSetup{}
+
+	ns.Adaptivity = true
+	adaptivity := ns.GetAdaptivity()
+
+	require.True(t, adaptivity)
+}
+
+func TestNodesSetup_GetStartTime(t *testing.T) {
+	t.Parallel()
+
+	ns := NodesSetup{}
+
+	ns.StartTime = 2
+	startTime := ns.GetStartTime()
+
+	require.Equal(t, int64(2), startTime)
+}
+
+func TestNodesSetup_GetRoundDuration(t *testing.T) {
+	t.Parallel()
+
+	ns := NodesSetup{}
+
+	ns.RoundDuration = 2
+	startTime := ns.GetRoundDuration()
+
+	require.Equal(t, uint64(2), startTime)
+}
+
+func TestNodesSetup_ExportNodesConfigShouldWork(t *testing.T) {
+	t.Parallel()
+
+	noOfInitialNodes := 3
+
+	ns, err := createTestNodesSetup(argsTestNodesSetup{
+		shardConsensusSize: 1,
+		shardMinNodes:      1,
+		metaConsensusSize:  1,
+		metaMinNodes:       1,
+		numInitialNodes:    3,
+		genesisMaxShards:   1,
+	})
+	ns.Hysteresis = 0.2
+	ns.Adaptivity = false
+	ns.StartTime = 10
+
+	require.Nil(t, err)
+
+	ns = createAndAssignNodes(ns, noOfInitialNodes)
+	configNodes := ns.ExportNodesConfig()
+
+	require.Equal(t, int64(10), configNodes.StartTime)
+
+	for i, nodeConfig := range configNodes.InitialNodes {
+		require.Equal(t, config.InitialNodeConfig{pubKeys[i], address[i], 0},
+			config.InitialNodeConfig{nodeConfig.PubKey, nodeConfig.Address, nodeConfig.InitialRating})
+	}
+
 }

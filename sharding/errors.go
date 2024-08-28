@@ -57,3 +57,6 @@ var ErrNoMatchingConfigurationFound = errors.New("no matching configuration foun
 
 // ErrNilChainParametersNotifier signals that a nil chain parameters notifier has been provided
 var ErrNilChainParametersNotifier = errors.New("nil chain parameters notifier")
+
+// ErrChainParametersForEpoch signals that there is an err in chain parameters for epoch
+var ErrChainParametersForEpoch = errors.New("err in chain parameters for epoch")
