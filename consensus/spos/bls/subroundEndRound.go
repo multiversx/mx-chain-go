@@ -61,6 +61,9 @@ func NewSubroundEndRound(
 	if check.IfNil(worker) {
 		return nil, spos.ErrNilWorker
 	}
+	if check.IfNil(signatureThrottler) {
+		return nil, spos.ErrNilThrottler
+	}
 
 	srEndRound := subroundEndRound{
 		Subround:                      baseSubround,
