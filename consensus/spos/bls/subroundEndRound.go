@@ -821,17 +821,33 @@ func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfoForKey(signature []
 		nil,
 	)
 
-	// TODO[Sorin next PR]: replace this with the delayed broadcast
-	err := sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
+	index, err := sr.ConsensusGroupIndex(string(pubKey))
 	if err != nil {
-		log.Debug("createAndBroadcastHeaderFinalInfoForKey.BroadcastConsensusMessage", "error", err.Error())
+		log.Debug("createAndBroadcastHeaderFinalInfoForKey.ConsensusGroupIndex", "error", err.Error())
 		return false
 	}
 
-	log.Debug("step 3: block header final info has been sent",
+	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch()) {
+		err = sr.BroadcastMessenger().BroadcastConsensusMessage(cnsMsg)
+		if err != nil {
+			log.Debug("createAndBroadcastHeaderFinalInfoForKey.BroadcastConsensusMessage", "error", err.Error())
+			return false
+		}
+
+		log.Debug("step 3: block header final info has been sent",
+			"PubKeysBitmap", bitmap,
+			"AggregateSignature", signature,
+			"LeaderSignature", leaderSignature)
+
+		return true
+	}
+
+	sr.BroadcastMessenger().PrepareBroadcastFinalConsensusMessage(cnsMsg, index)
+	log.Debug("step 3: block header final info has been sent to delayed broadcaster",
 		"PubKeysBitmap", bitmap,
 		"AggregateSignature", signature,
-		"LeaderSignature", leaderSignature)
+		"LeaderSignature", leaderSignature,
+		"Index", index)
 
 	return true
 }
