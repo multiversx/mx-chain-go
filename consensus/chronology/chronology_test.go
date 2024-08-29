@@ -325,6 +325,7 @@ func getDefaultChronologyArg() chronology.ArgChronology {
 }
 
 func TestChronology_CloseWatchDogStop(t *testing.T) {
+	t.Parallel()
 	arg := getDefaultChronologyArg()
 	stopCalled := false
 	arg.Watchdog = &mock.WatchdogMock{
@@ -342,6 +343,7 @@ func TestChronology_CloseWatchDogStop(t *testing.T) {
 }
 
 func TestChronology_Close(t *testing.T) {
+	t.Parallel()
 	arg := getDefaultChronologyArg()
 	stopCalled := false
 	arg.Watchdog = &mock.WatchdogMock{
@@ -365,6 +367,7 @@ func TestChronology_Close(t *testing.T) {
 }
 
 func TestChronology_StartRounds(t *testing.T) {
+	t.Parallel()
 	arg := getDefaultChronologyArg()
 
 	chr, err := chronology.NewChronology(arg)
@@ -379,5 +382,5 @@ func TestChronology_StartRounds(t *testing.T) {
 		},
 	}
 	chr.StartRoundsTest(ctx)
-	assert.Equal(t, doneFuncCalled, true)
+	assert.True(t, doneFuncCalled)
 }
