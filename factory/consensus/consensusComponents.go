@@ -39,7 +39,7 @@ var log = logger.GetOrCreate("factory")
 
 const defaultSpan = 300 * time.Second
 
-const numSignatureGoRoutinesThrottler = 30
+const numSignatureGoRoutinesThrottler = 64
 
 // ConsensusComponentsFactoryArgs holds the arguments needed to create a consensus components factory
 type ConsensusComponentsFactoryArgs struct {

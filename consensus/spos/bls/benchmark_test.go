@@ -219,7 +219,7 @@ func BenchmarkSubroundEndRound_VerifyNodesOnAggSigFailTimeParallelThrottle(b *te
 	consensusState := initConsensusStateWithArgs(keysHandlerMock, keys)
 	dataToBeSigned := []byte("message")
 	consensusState.Data = dataToBeSigned
-	signatureThrotthler, err := throttler.NewNumGoRoutinesThrottler(30)
+	signatureThrotthler, err := throttler.NewNumGoRoutinesThrottler(64)
 	require.Nil(b, err)
 	sr := *initSubroundEndRoundWithContainer400Sig(container, &statusHandler.AppStatusHandlerStub{}, consensusState, signatureThrotthler)
 	for i := 0; i < len(sr.ConsensusGroup()); i++ {
