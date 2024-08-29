@@ -9,6 +9,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/core/watchdog"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/multiversx/mx-chain-storage-go/timecache"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/config"
@@ -30,13 +33,13 @@ import (
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
 	"github.com/multiversx/mx-chain-go/update"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	"github.com/multiversx/mx-chain-storage-go/timecache"
 )
 
 var log = logger.GetOrCreate("factory")
 
 const defaultSpan = 300 * time.Second
+
+const numSignatureGoRoutinesThrottler = 30
 
 // ConsensusComponentsFactoryArgs holds the arguments needed to create a consensus components factory
 type ConsensusComponentsFactoryArgs struct {
@@ -261,6 +264,10 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 	if err != nil {
 		return nil, err
 	}
+	signatureThrotthler, err := throttler.NewNumGoRoutinesThrottler(numSignatureGoRoutinesThrottler)
+	if err != nil {
+		return nil, err
+	}
 
 	fct, err := sposFactory.GetSubroundsFactory(
 		consensusDataContainer,
@@ -272,6 +279,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		ccf.processComponents.SentSignaturesTracker(),
 		[]byte(ccf.coreComponents.ChainID()),
 		ccf.networkComponents.NetworkMessenger().ID(),
+		signatureThrotthler,
 	)
 	if err != nil {
 		return nil, err

@@ -377,6 +377,6 @@ func (sr *subroundEndRound) VerifyNodesOnAggSigFailAux() ([]string, error) {
 	return sr.verifyNodesOnAggSigFailAux()
 }
 
-func (sr *subroundEndRound) VerifyNodesOnAggSigFailAuxThrottle() ([]string, error) {
-	return sr.verifyNodesOnAggSigFailAuxThrottle()
+func (sr *subroundEndRound) VerifyNodesOnAggSigFailAuxThrottle(ctx context.Context) ([]string, error) {
+	return sr.verifyNodesOnAggSigFailAuxThrottle(ctx)
 }

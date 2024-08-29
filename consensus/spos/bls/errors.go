@@ -12,3 +12,5 @@ var SignatureShareError = errors.New("signature share error")
 var SetJobDoneError = errors.New("set job done error")
 
 var JobDoneError = errors.New("job done error")
+
+var ErrNoThrottler error = errors.New("no throttler(nil)")

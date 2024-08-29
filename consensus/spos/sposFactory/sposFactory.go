@@ -27,6 +27,7 @@ func GetSubroundsFactory(
 	sentSignatureTracker spos.SentSignaturesTracker,
 	chainID []byte,
 	currentPid core.PeerID,
+	signatureThrottler core.Throttler,
 ) (spos.SubroundsFactory, error) {
 	switch consensusType {
 	case blsConsensusType:
@@ -38,6 +39,7 @@ func GetSubroundsFactory(
 			currentPid,
 			appStatusHandler,
 			sentSignatureTracker,
+			signatureThrottler,
 		)
 		if err != nil {
 			return nil, err
