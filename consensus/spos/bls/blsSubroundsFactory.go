@@ -57,6 +57,7 @@ func NewSubroundsFactory(
 		chainID:               chainID,
 		currentPid:            currentPid,
 		sentSignaturesTracker: sentSignaturesTracker,
+		signatureThrottler:    signatureThrottler,
 	}
 
 	return &fct, nil
