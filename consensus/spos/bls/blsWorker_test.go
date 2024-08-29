@@ -24,10 +24,6 @@ func initConsensusState() *spos.ConsensusState {
 	return initConsensusStateWithKeysHandler(&testscommon.KeysHandlerStub{})
 }
 
-func initConsensusState400() *spos.ConsensusState {
-	return initConsensusStateWithKeysHandlerWithGroupSize(&testscommon.KeysHandlerStub{}, 400)
-}
-
 func initConsensusStateWithKeysHandler(keysHandler consensus.KeysHandler) *spos.ConsensusState {
 	consensusGroupSize := 9
 	return initConsensusStateWithKeysHandlerWithGroupSize(keysHandler, consensusGroupSize)

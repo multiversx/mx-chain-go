@@ -170,7 +170,7 @@ func BenchmarkSubroundEndRound_VerifyNodesOnAggSigFailTimeParallelNoThrottle(b *
 }
 
 func BenchmarkSubroundEndRound_VerifyNodesOnAggSigFailTimeParallelThrottle(b *testing.B) {
-	ctx, _ := context.WithCancel(context.TODO())
+	ctx, cancel := context.WithCancel(context.TODO())
 	b.ResetTimer()
 	b.StopTimer()
 	container := mock.InitConsensusCore()
@@ -234,4 +234,5 @@ func BenchmarkSubroundEndRound_VerifyNodesOnAggSigFailTimeParallelThrottle(b *te
 		require.Nil(b, err)
 		require.NotNil(b, invalidSigners)
 	}
+	cancel()
 }
