@@ -45,7 +45,6 @@ type metaProcessor struct {
 	shardBlockFinality           uint32
 	chRcvAllHdrs                 chan bool
 	headersCounter               *headersCounter
-	stateChangesCollector        state.StateChangesCollector
 }
 
 // NewMetaProcessor creates a new metaProcessor object
