@@ -143,8 +143,9 @@ func TestIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup1ValidatorShoul
 	assert.Equal(t, false, chancesCalled)
 	ihnc, _ := NewIndexHashedNodesCoordinatorWithRater(nc, rater)
 	assert.Equal(t, true, chancesCalled)
-	list2, err := ihnc.ComputeConsensusGroup([]byte("randomness"), 0, 0, 0)
+	leader, list2, err := ihnc.ComputeConsensusGroup([]byte("randomness"), 0, 0, 0)
 
+	assert.Equal(t, list[0], leader)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(list2))
 }
@@ -214,7 +215,7 @@ func BenchmarkIndexHashedGroupSelectorWithRater_ComputeValidatorsGroup63of400(b 
 
 	for i := 0; i < b.N; i++ {
 		randomness := strconv.Itoa(0)
-		list2, _ := ihncRater.ComputeConsensusGroup([]byte(randomness), uint64(0), 0, 0)
+		_, list2, _ := ihncRater.ComputeConsensusGroup([]byte(randomness), uint64(0), 0, 0)
 
 		assert.Equal(b, consensusGroupSize, len(list2))
 	}
@@ -288,8 +289,8 @@ func Test_ComputeValidatorsGroup63of400(t *testing.T) {
 	hasher := sha256.NewSha256()
 	for i := uint64(0); i < numRounds; i++ {
 		randomness := hasher.Compute(fmt.Sprintf("%v%v", i, time.Millisecond))
-		consensusGroup, _ := ihnc.ComputeConsensusGroup(randomness, uint64(0), 0, 0)
-		leaderAppearances[string(consensusGroup[0].PubKey())]++
+		leader, consensusGroup, _ := ihnc.ComputeConsensusGroup(randomness, uint64(0), 0, 0)
+		leaderAppearances[string(leader.PubKey())]++
 		for _, v := range consensusGroup {
 			consensusAppearances[string(v.PubKey())]++
 		}
@@ -899,7 +900,7 @@ func BenchmarkIndexHashedWithRaterGroupSelector_ComputeValidatorsGroup21of400(b 
 
 	for i := 0; i < b.N; i++ {
 		randomness := strconv.Itoa(i)
-		list2, _ := ihncRater.ComputeConsensusGroup([]byte(randomness), 0, 0, 0)
+		_, list2, _ := ihncRater.ComputeConsensusGroup([]byte(randomness), 0, 0, 0)
 
 		assert.Equal(b, consensusGroupSize, len(list2))
 	}

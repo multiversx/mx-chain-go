@@ -7,13 +7,14 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
-	"github.com/stretchr/testify/assert"
 )
 
 func internalInitConsensusState() *spos.ConsensusState {
@@ -162,11 +163,11 @@ func TestConsensusState_GetNextConsensusGroupShouldFailWhenComputeValidatorsGrou
 		round uint64,
 		shardId uint32,
 		epoch uint32,
-	) ([]nodesCoordinator.Validator, error) {
-		return nil, err
+	) (nodesCoordinator.Validator, []nodesCoordinator.Validator, error) {
+		return nil, nil, err
 	}
 
-	_, err2 := cns.GetNextConsensusGroup([]byte(""), 0, 0, nodesCoord, 0)
+	_, _, err2 := cns.GetNextConsensusGroup([]byte(""), 0, 0, nodesCoord, 0)
 	assert.Equal(t, err, err2)
 }
 
@@ -176,10 +177,11 @@ func TestConsensusState_GetNextConsensusGroupShouldWork(t *testing.T) {
 	cns := internalInitConsensusState()
 
 	nodesCoord := &shardingMocks.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]nodesCoordinator.Validator, error) {
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (nodesCoordinator.Validator, []nodesCoordinator.Validator, error) {
 			defaultSelectionChances := uint32(1)
-			return []nodesCoordinator.Validator{
-				shardingMocks.NewValidatorMock([]byte("A"), 1, defaultSelectionChances),
+			leader := shardingMocks.NewValidatorMock([]byte("A"), 1, defaultSelectionChances)
+			return leader, []nodesCoordinator.Validator{
+				leader,
 				shardingMocks.NewValidatorMock([]byte("B"), 1, defaultSelectionChances),
 				shardingMocks.NewValidatorMock([]byte("C"), 1, defaultSelectionChances),
 				shardingMocks.NewValidatorMock([]byte("D"), 1, defaultSelectionChances),
@@ -192,9 +194,10 @@ func TestConsensusState_GetNextConsensusGroupShouldWork(t *testing.T) {
 		},
 	}
 
-	nextConsensusGroup, err := cns.GetNextConsensusGroup(nil, 0, 0, nodesCoord, 0)
+	leader, nextConsensusGroup, err := cns.GetNextConsensusGroup(nil, 0, 0, nodesCoord, 0)
 	assert.Nil(t, err)
 	assert.NotNil(t, nextConsensusGroup)
+	assert.NotEmpty(t, leader)
 }
 
 func TestConsensusState_IsConsensusDataSetShouldReturnTrue(t *testing.T) {

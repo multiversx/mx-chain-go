@@ -10,12 +10,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ process.InterceptedHeaderSigVerifier = (*HeaderSigVerifier)(nil)
@@ -139,7 +140,7 @@ func (hsv *HeaderSigVerifier) getConsensusSigners(header data.HeaderHandler, pub
 		epochForConsensus = epochForConsensus - 1
 	}
 
-	consensusPubKeys, err := hsv.nodesCoordinator.GetConsensusValidatorsPublicKeys(
+	_, consensusPubKeys, err := hsv.nodesCoordinator.GetConsensusValidatorsPublicKeys(
 		randSeed,
 		header.GetRound(),
 		header.GetShardID(),
@@ -373,13 +374,11 @@ func (hsv *HeaderSigVerifier) verifyLeaderSignature(leaderPubKey crypto.PublicKe
 }
 
 func (hsv *HeaderSigVerifier) getLeader(header data.HeaderHandler) (crypto.PublicKey, error) {
-	headerConsensusGroup, err := ComputeConsensusGroup(header, hsv.nodesCoordinator)
+	leader, _, err := ComputeConsensusGroup(header, hsv.nodesCoordinator)
 	if err != nil {
 		return nil, err
 	}
-
-	leaderPubKeyValidator := headerConsensusGroup[0]
-	return hsv.keyGen.PublicKeyFromByteArray(leaderPubKeyValidator.PubKey())
+	return hsv.keyGen.PublicKeyFromByteArray(leader.PubKey())
 }
 
 func (hsv *HeaderSigVerifier) copyHeaderWithoutSig(header data.HeaderHandler) (data.HeaderHandler, error) {

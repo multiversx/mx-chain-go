@@ -397,10 +397,11 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroupNilRandomnessShouldEr
 
 	arguments := createArguments()
 	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
-	list2, err := ihnc.ComputeConsensusGroup(nil, 0, 0, 0)
+	leader, list2, err := ihnc.ComputeConsensusGroup(nil, 0, 0, 0)
 
 	require.Equal(t, ErrNilRandomness, err)
 	require.Nil(t, list2)
+	require.Nil(t, leader)
 }
 
 func TestIndexHashedNodesCoordinator_ComputeValidatorsGroupInvalidShardIdShouldErr(t *testing.T) {
@@ -408,10 +409,11 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroupInvalidShardIdShouldE
 
 	arguments := createArguments()
 	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
-	list2, err := ihnc.ComputeConsensusGroup([]byte("radomness"), 0, 5, 0)
+	leader, list2, err := ihnc.ComputeConsensusGroup([]byte("radomness"), 0, 5, 0)
 
 	require.Equal(t, ErrInvalidShardId, err)
 	require.Nil(t, list2)
+	require.Nil(t, leader)
 }
 
 // ------- functionality tests
@@ -471,10 +473,11 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup1ValidatorShouldRetur
 		NodesCoordinatorRegistryFactory: createNodesCoordinatorRegistryFactory(),
 	}
 	ihnc, _ := NewIndexHashedNodesCoordinator(arguments)
-	list2, err := ihnc.ComputeConsensusGroup([]byte("randomness"), 0, 0, 0)
+	leader, list2, err := ihnc.ComputeConsensusGroup([]byte("randomness"), 0, 0, 0)
 
-	require.Equal(t, list, list2)
 	require.Nil(t, err)
+	require.Equal(t, list, list2)
+	require.Equal(t, list[0], leader)
 }
 
 func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup400of400For10locksNoMemoization(t *testing.T) {
@@ -547,12 +550,14 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup400of400For10locksNoM
 	miniBlocks := 10
 
 	var list2 []Validator
+	var leader Validator
 	for i := 0; i < miniBlocks; i++ {
 		for j := 0; j <= i; j++ {
 			randomness := strconv.Itoa(j)
-			list2, err = ihnc.ComputeConsensusGroup([]byte(randomness), uint64(j), 0, 0)
+			leader, list2, err = ihnc.ComputeConsensusGroup([]byte(randomness), uint64(j), 0, 0)
 			require.Nil(t, err)
 			require.Equal(t, consensusGroupSize, len(list2))
+			require.NotNil(t, leader)
 		}
 	}
 
@@ -645,12 +650,14 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup400of400For10BlocksMe
 	miniBlocks := 10
 
 	var list2 []Validator
+	var leader Validator
 	for i := 0; i < miniBlocks; i++ {
 		for j := 0; j <= i; j++ {
 			randomness := strconv.Itoa(j)
-			list2, err = ihnc.ComputeConsensusGroup([]byte(randomness), uint64(j), 0, 0)
+			leader, list2, err = ihnc.ComputeConsensusGroup([]byte(randomness), uint64(j), 0, 0)
 			require.Nil(t, err)
 			require.Equal(t, consensusGroupSize, len(list2))
+			require.NotNil(t, leader)
 		}
 	}
 
@@ -720,13 +727,15 @@ func TestIndexHashedNodesCoordinator_ComputeValidatorsGroup63of400TestEqualSameP
 	repeatPerSampling := 100
 
 	list := make([][]Validator, repeatPerSampling)
+	var leader Validator
 	for i := 0; i < nbDifferentSamplings; i++ {
 		randomness := arguments.Hasher.Compute(strconv.Itoa(i))
 		fmt.Printf("starting selection with randomness: %s\n", hex.EncodeToString(randomness))
 		for j := 0; j < repeatPerSampling; j++ {
-			list[j], err = ihnc.ComputeConsensusGroup(randomness, 0, 0, 0)
+			leader, list[j], err = ihnc.ComputeConsensusGroup(randomness, 0, 0, 0)
 			require.Nil(t, err)
 			require.Equal(t, consensusGroupSize, len(list[j]))
+			require.NotNil(t, leader)
 		}
 
 		for j := 1; j < repeatPerSampling; j++ {
@@ -785,9 +794,10 @@ func BenchmarkIndexHashedGroupSelector_ComputeValidatorsGroup21of400(b *testing.
 
 	for i := 0; i < b.N; i++ {
 		randomness := strconv.Itoa(i)
-		list2, _ := ihnc.ComputeConsensusGroup([]byte(randomness), 0, 0, 0)
+		leader, list2, _ := ihnc.ComputeConsensusGroup([]byte(randomness), 0, 0, 0)
 
 		require.Equal(b, consensusGroupSize, len(list2))
+		require.NotNil(b, leader)
 	}
 }
 
@@ -863,8 +873,9 @@ func runBenchmark(consensusGroupCache Cacher, consensusGroupSize int, nodesMap m
 		missedBlocks := 1000
 		for j := 0; j < missedBlocks; j++ {
 			randomness := strconv.Itoa(j)
-			list2, _ := ihnc.ComputeConsensusGroup([]byte(randomness), uint64(j), 0, 0)
+			leader, list2, _ := ihnc.ComputeConsensusGroup([]byte(randomness), uint64(j), 0, 0)
 			require.Equal(b, consensusGroupSize, len(list2))
+			require.NotNil(b, leader)
 		}
 	}
 }
@@ -917,8 +928,9 @@ func computeMemoryRequirements(consensusGroupCache Cacher, consensusGroupSize in
 	missedBlocks := 1000
 	for i := 0; i < missedBlocks; i++ {
 		randomness := strconv.Itoa(i)
-		list2, _ := ihnc.ComputeConsensusGroup([]byte(randomness), uint64(i), 0, 0)
+		leader, list2, _ := ihnc.ComputeConsensusGroup([]byte(randomness), uint64(i), 0, 0)
 		require.Equal(b, consensusGroupSize, len(list2))
+		require.NotNil(b, leader)
 	}
 
 	m2 := runtime.MemStats{}
@@ -1657,10 +1669,12 @@ func TestIndexHashedNodesCoordinator_GetConsensusValidatorsPublicKeysNotExisting
 	require.Nil(t, err)
 
 	var pKeys []string
+	var leader string
 	randomness := []byte("randomness")
-	pKeys, err = ihnc.GetConsensusValidatorsPublicKeys(randomness, 0, 0, 1)
+	leader, pKeys, err = ihnc.GetConsensusValidatorsPublicKeys(randomness, 0, 0, 1)
 	require.True(t, errors.Is(err, ErrEpochNodesConfigDoesNotExist))
 	require.Nil(t, pKeys)
+	require.Empty(t, leader)
 }
 
 func TestIndexHashedNodesCoordinator_GetConsensusValidatorsPublicKeysExistingEpoch(t *testing.T) {
@@ -1673,11 +1687,13 @@ func TestIndexHashedNodesCoordinator_GetConsensusValidatorsPublicKeysExistingEpo
 	shard0PubKeys := validatorsPubKeys(args.EligibleNodes[0])
 
 	var pKeys []string
+	var leader string
 	randomness := []byte("randomness")
-	pKeys, err = ihnc.GetConsensusValidatorsPublicKeys(randomness, 0, 0, 0)
+	leader, pKeys, err = ihnc.GetConsensusValidatorsPublicKeys(randomness, 0, 0, 0)
 	require.Nil(t, err)
 	require.True(t, len(pKeys) > 0)
 	require.True(t, isStringSubgroup(pKeys, shard0PubKeys))
+	require.NotEmpty(t, leader)
 }
 
 func TestIndexHashedNodesCoordinator_GetValidatorsIndexes(t *testing.T) {
@@ -1689,13 +1705,15 @@ func TestIndexHashedNodesCoordinator_GetValidatorsIndexes(t *testing.T) {
 	randomness := []byte("randomness")
 
 	var pKeys []string
-	pKeys, err = ihnc.GetConsensusValidatorsPublicKeys(randomness, 0, 0, 0)
+	var leader string
+	leader, pKeys, err = ihnc.GetConsensusValidatorsPublicKeys(randomness, 0, 0, 0)
 	require.Nil(t, err)
 
 	var indexes []uint64
 	indexes, err = ihnc.GetValidatorsIndexes(pKeys, 0)
 	require.Nil(t, err)
 	require.Equal(t, len(pKeys), len(indexes))
+	require.NotEmpty(t, leader)
 }
 
 func TestIndexHashedNodesCoordinator_GetValidatorsIndexesInvalidPubKey(t *testing.T) {
@@ -1707,8 +1725,10 @@ func TestIndexHashedNodesCoordinator_GetValidatorsIndexesInvalidPubKey(t *testin
 	randomness := []byte("randomness")
 
 	var pKeys []string
-	pKeys, err = ihnc.GetConsensusValidatorsPublicKeys(randomness, 0, 0, 0)
+	var leader string
+	leader, pKeys, err = ihnc.GetConsensusValidatorsPublicKeys(randomness, 0, 0, 0)
 	require.Nil(t, err)
+	require.NotEmpty(t, leader)
 
 	var indexes []uint64
 	pKeys[0] = "dummy"

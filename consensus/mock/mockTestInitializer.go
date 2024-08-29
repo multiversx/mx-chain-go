@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -180,10 +181,11 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *Consensus
 	shardCoordinatorMock := ShardCoordinatorMock{}
 	syncTimerMock := &SyncTimerMock{}
 	validatorGroupSelector := &shardingMocks.NodesCoordinatorMock{
-		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]nodesCoordinator.Validator, error) {
+		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (nodesCoordinator.Validator, []nodesCoordinator.Validator, error) {
 			defaultSelectionChances := uint32(1)
-			return []nodesCoordinator.Validator{
-				shardingMocks.NewValidatorMock([]byte("A"), 1, defaultSelectionChances),
+			leader := shardingMocks.NewValidatorMock([]byte("A"), 1, defaultSelectionChances)
+			return leader, []nodesCoordinator.Validator{
+				leader,
 				shardingMocks.NewValidatorMock([]byte("B"), 1, defaultSelectionChances),
 				shardingMocks.NewValidatorMock([]byte("C"), 1, defaultSelectionChances),
 				shardingMocks.NewValidatorMock([]byte("D"), 1, defaultSelectionChances),

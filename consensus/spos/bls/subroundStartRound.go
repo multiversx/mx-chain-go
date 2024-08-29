@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/outport"
@@ -320,7 +321,7 @@ func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int64) error
 
 	shardId := sr.ShardCoordinator().SelfId()
 
-	nextConsensusGroup, err := sr.GetNextConsensusGroup(
+	leader, nextConsensusGroup, err := sr.GetNextConsensusGroup(
 		randomSeed,
 		uint64(sr.RoundIndex),
 		shardId,
@@ -339,6 +340,7 @@ func (sr *subroundStartRound) generateNextConsensusGroup(roundIndex int64) error
 	}
 
 	sr.SetConsensusGroup(nextConsensusGroup)
+	sr.SetLeader(leader)
 
 	consensusGroupSizeForEpoch := sr.NodesCoordinator().ConsensusGroupSizeForShardAndEpoch(shardId, currentHeader.GetEpoch())
 	sr.SetConsensusGroupSize(consensusGroupSizeForEpoch)

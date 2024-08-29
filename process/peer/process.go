@@ -1,6 +1,7 @@
 package peer
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"fmt"
@@ -388,7 +389,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.MetaHeaderHandler, ca
 	log.Trace("Increasing", "round", previousHeader.GetRound(), "prevRandSeed", previousHeader.GetPrevRandSeed())
 
 	consensusGroupEpoch := computeEpoch(previousHeader)
-	consensusGroup, err := vs.nodesCoordinator.ComputeConsensusGroup(
+	leader, consensusGroup, err := vs.nodesCoordinator.ComputeConsensusGroup(
 		previousHeader.GetPrevRandSeed(),
 		previousHeader.GetRound(),
 		previousHeader.GetShardID(),
@@ -397,7 +398,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.MetaHeaderHandler, ca
 		return nil, err
 	}
 
-	encodedLeaderPk := vs.pubkeyConv.SilentEncode(consensusGroup[0].PubKey(), log)
+	encodedLeaderPk := vs.pubkeyConv.SilentEncode(leader.PubKey(), log)
 
 	leaderPK := core.GetTrimmedPk(encodedLeaderPk)
 	log.Trace("Increasing for leader", "leader", leaderPK, "round", previousHeader.GetRound())
@@ -408,6 +409,7 @@ func (vs *validatorStatistics) UpdatePeerState(header data.MetaHeaderHandler, ca
 		_, bitmap = previousHeader.GetPreviousAggregatedSignatureAndBitmap()
 	}
 	err = vs.updateValidatorInfoOnSuccessfulBlock(
+		leader,
 		consensusGroup,
 		bitmap,
 		big.NewInt(0).Sub(previousHeader.GetAccumulatedFees(), previousHeader.GetDeveloperFees()),
@@ -803,16 +805,16 @@ func (vs *validatorStatistics) computeDecrease(
 
 		swInner.Start("ComputeValidatorsGroup")
 		log.Debug("decreasing", "round", i, "prevRandSeed", prevRandSeed, "shardId", shardID)
-		consensusGroup, err := vs.nodesCoordinator.ComputeConsensusGroup(prevRandSeed, i, shardID, epoch)
+		leader, consensusGroup, err := vs.nodesCoordinator.ComputeConsensusGroup(prevRandSeed, i, shardID, epoch)
 		swInner.Stop("ComputeValidatorsGroup")
 		if err != nil {
 			return err
 		}
 
 		swInner.Start("loadPeerAccount")
-		leaderPeerAcc, err := vs.loadPeerAccount(consensusGroup[0].PubKey())
+		leaderPeerAcc, err := vs.loadPeerAccount(leader.PubKey())
 
-		encodedLeaderPk := vs.pubkeyConv.SilentEncode(consensusGroup[0].PubKey(), log)
+		encodedLeaderPk := vs.pubkeyConv.SilentEncode(leader.PubKey(), log)
 		leaderPK := core.GetTrimmedPk(encodedLeaderPk)
 		swInner.Stop("loadPeerAccount")
 		if err != nil {
@@ -820,7 +822,7 @@ func (vs *validatorStatistics) computeDecrease(
 		}
 
 		vs.mutValidatorStatistics.Lock()
-		vs.missedBlocksCounters.decreaseLeader(consensusGroup[0].PubKey())
+		vs.missedBlocksCounters.decreaseLeader(leader.PubKey())
 		vs.mutValidatorStatistics.Unlock()
 
 		swInner.Start("ComputeDecreaseProposer")
@@ -924,13 +926,14 @@ func (vs *validatorStatistics) updateShardDataPeerState(
 
 		epoch := computeEpoch(currentHeader)
 
-		shardConsensus, shardInfoErr := vs.nodesCoordinator.ComputeConsensusGroup(h.PrevRandSeed, h.Round, h.ShardID, epoch)
+		leader, shardConsensus, shardInfoErr := vs.nodesCoordinator.ComputeConsensusGroup(h.PrevRandSeed, h.Round, h.ShardID, epoch)
 		if shardInfoErr != nil {
 			return shardInfoErr
 		}
 
 		log.Debug("updateShardDataPeerState - registering shard leader fees", "shard headerHash", h.HeaderHash, "accumulatedFees", h.AccumulatedFees.String(), "developerFees", h.DeveloperFees.String())
 		shardInfoErr = vs.updateValidatorInfoOnSuccessfulBlock(
+			leader,
 			shardConsensus,
 			h.PubKeysBitmap,
 			big.NewInt(0).Sub(h.AccumulatedFees, h.DeveloperFees),
@@ -1018,6 +1021,7 @@ func (vs *validatorStatistics) savePeerAccountData(
 }
 
 func (vs *validatorStatistics) updateValidatorInfoOnSuccessfulBlock(
+	leader nodesCoordinator.Validator,
 	validatorList []nodesCoordinator.Validator,
 	signingBitmap []byte,
 	accumulatedFees *big.Int,
@@ -1037,7 +1041,7 @@ func (vs *validatorStatistics) updateValidatorInfoOnSuccessfulBlock(
 		peerAcc.IncreaseNumSelectedInSuccessBlocks()
 
 		newRating := peerAcc.GetRating()
-		isLeader := i == 0
+		isLeader := bytes.Equal(leader.PubKey(), validatorList[i].PubKey())
 		validatorSigned := (signingBitmap[i/8] & (1 << (uint16(i) % 8))) != 0
 		actionType := vs.computeValidatorActionType(isLeader, validatorSigned)
 

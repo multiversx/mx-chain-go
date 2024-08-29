@@ -23,7 +23,7 @@ type Validator interface {
 type NodesCoordinator interface {
 	NodesCoordinatorHelper
 	PublicKeysSelector
-	ComputeConsensusGroup(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []Validator, err error)
+	ComputeConsensusGroup(randomness []byte, round uint64, shardId uint32, epoch uint32) (leader Validator, lidatorsGroup []Validator, err error)
 	GetValidatorWithPublicKey(publicKey []byte) (validator Validator, shardId uint32, err error)
 	LoadState(key []byte) error
 	GetSavedStateKey() []byte
@@ -51,7 +51,7 @@ type PublicKeysSelector interface {
 	GetAllLeavingValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
 	GetAllShuffledOutValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
 	GetShuffledOutToAuctionValidatorsPublicKeys(epoch uint32) (map[uint32][][]byte, error)
-	GetConsensusValidatorsPublicKeys(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error)
+	GetConsensusValidatorsPublicKeys(randomness []byte, round uint64, shardId uint32, epoch uint32) (string, []string, error)
 	GetOwnPublicKey() []byte
 }
 
