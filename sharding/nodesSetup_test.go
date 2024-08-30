@@ -980,81 +980,40 @@ func TestNodesSetup_NumberOfShardsShouldWork(t *testing.T) {
 
 	require.NotNil(t, ns)
 
-	t.Run("NumberOfShardsShouldWork", func(t *testing.T) {
-		t.Parallel()
+	valReturned := ns.NumberOfShards()
+	require.Equal(t, uint32(1), valReturned)
 
-		nrShards := ns.NumberOfShards()
-		require.Equal(t, uint32(1), nrShards)
-	})
+	valReturned = ns.MinNumberOfNodesWithHysteresis()
+	require.Equal(t, uint32(2), valReturned)
 
-	t.Run("MinNumberOfNodesWithHysteresis", func(t *testing.T) {
-		t.Parallel()
+	valReturned = ns.MinNumberOfShardNodes()
+	require.Equal(t, uint32(1), valReturned)
 
-		nrShards := ns.MinNumberOfNodesWithHysteresis()
-		require.Equal(t, uint32(2), nrShards)
-	})
+	valReturned = ns.MinNumberOfShardNodes()
+	require.Equal(t, uint32(1), valReturned)
 
-	t.Run("MinNumberOfShardNodes", func(t *testing.T) {
-		t.Parallel()
+	shardConsensusGroupSize := ns.GetShardConsensusGroupSize()
+	require.Equal(t, uint32(1), shardConsensusGroupSize)
 
-		nrShards := ns.MinNumberOfShardNodes()
-		require.Equal(t, uint32(1), nrShards)
-	})
+	metaConsensusGroupSize := ns.GetMetaConsensusGroupSize()
+	require.Equal(t, uint32(1), metaConsensusGroupSize)
 
-	t.Run("MinNumberOfMetaNodes", func(t *testing.T) {
-		t.Parallel()
+	ns.Hysteresis = 0.5
+	hysteresis := ns.GetHysteresis()
+	require.Equal(t, float32(0.5), hysteresis)
 
-		nrShards := ns.MinNumberOfShardNodes()
-		require.Equal(t, uint32(1), nrShards)
-	})
+	ns.Adaptivity = true
+	adaptivity := ns.GetAdaptivity()
+	require.True(t, adaptivity)
 
-	t.Run("GetShardConsensusGroupSize", func(t *testing.T) {
-		t.Parallel()
+	ns.StartTime = 2
+	startTime := ns.GetStartTime()
+	require.Equal(t, int64(2), startTime)
 
-		shardConsensusGroupSize := ns.GetShardConsensusGroupSize()
-		require.Equal(t, uint32(1), shardConsensusGroupSize)
-	})
+	ns.RoundDuration = 2
+	roundDuration := ns.GetRoundDuration()
+	require.Equal(t, uint64(2), roundDuration)
 
-	t.Run("GetMetaConsensusGroupSize", func(t *testing.T) {
-		t.Parallel()
-
-		metaConsensusGroupSize := ns.GetMetaConsensusGroupSize()
-		require.Equal(t, uint32(1), metaConsensusGroupSize)
-	})
-
-	t.Run("GetHysteresis", func(t *testing.T) {
-		t.Parallel()
-
-		ns.Hysteresis = 0.5
-		hysteresis := ns.GetHysteresis()
-		require.Equal(t, float32(0.5), hysteresis)
-	})
-
-	t.Run("GetAdaptivity", func(t *testing.T) {
-		t.Parallel()
-
-		ns.Adaptivity = true
-		adaptivity := ns.GetAdaptivity()
-		require.True(t, adaptivity)
-	})
-
-	t.Run("GetStartTime", func(t *testing.T) {
-		t.Parallel()
-
-		ns.StartTime = 2
-		startTime := ns.GetStartTime()
-		require.Equal(t, int64(2), startTime)
-
-	})
-
-	t.Run("GetRoundDuration", func(t *testing.T) {
-		t.Parallel()
-
-		ns.RoundDuration = 2
-		startTime := ns.GetRoundDuration()
-		require.Equal(t, uint64(2), startTime)
-
-	})
 }
 
 func TestNodesSetup_ExportNodesConfigShouldWork(t *testing.T) {
