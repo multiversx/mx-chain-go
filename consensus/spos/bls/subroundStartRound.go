@@ -136,6 +136,9 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 
 	sr.AppStatusHandler().SetStringValue(common.MetricConsensusRoundState, "")
 
+	// get previous bitmap before generating next consensus group
+	previousBitmap := sr.GenerateBitmap(SrSignature)
+
 	err := sr.generateNextConsensusGroup(sr.RoundHandler().Index())
 	if err != nil {
 		log.Debug("initCurrentRound.generateNextConsensusGroup",
@@ -202,6 +205,21 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 		}
 	}
 
+	// if leader, check aggregated signature here, before cleaning up the collected
+	// signature shares
+	currentEpoch := uint32(0)
+	currentHeader := sr.Blockchain().GetCurrentBlockHeader()
+	if !check.IfNil(currentHeader) {
+		currentEpoch = currentHeader.GetEpoch()
+	}
+
+	if isLeader && sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, currentEpoch) {
+		err = sr.setEquivalentProofForPreviousBlock(previousBitmap, currentEpoch)
+		if err != nil {
+			return false
+		}
+	}
+
 	err = sr.SigningHandler().Reset(pubKeys)
 	if err != nil {
 		log.Debug("initCurrentRound.Reset", "error", err.Error())
@@ -229,6 +247,26 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 	go sr.worker.ExecuteStoredMessages()
 
 	return true
+}
+
+func (sr *subroundStartRound) setEquivalentProofForPreviousBlock(bitmap []byte, epoch uint32) error {
+	aggSig, err := sr.SigningHandler().AggregateSigs(bitmap, epoch)
+	if err != nil {
+		log.Debug("setEquivalentProofForPreviousBlock.AggregateSigs", "error", err.Error())
+		return err
+	}
+
+	proof := data.HeaderProof{
+		AggregatedSignature: aggSig,
+		PubKeysBitmap:       bitmap,
+	}
+
+	currentHeaderHash := sr.Blockchain().GetCurrentBlockHeaderHash()
+
+	sr.worker.SetValidEquivalentProof(currentHeaderHash, proof)
+	sr.Blockchain().SetCurrentHeaderProof(proof)
+
+	return nil
 }
 
 func (sr *subroundStartRound) computeNumManagedKeysInConsensusGroup(pubKeys []string) int {
