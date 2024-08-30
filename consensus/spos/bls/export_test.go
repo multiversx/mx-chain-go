@@ -366,3 +366,8 @@ func (sr *subroundStartRound) ChangeEpoch(epoch uint32) {
 func (sr *subroundStartRound) IndexRoundIfNeeded(pubKeys []string) {
 	sr.indexRoundIfNeeded(pubKeys)
 }
+
+// SetEquivalentProofForPreviousBlock -
+func (sr *subroundStartRound) SetEquivalentProofForPreviousBlock(bitmap []byte, epoch uint32) error {
+	return sr.setEquivalentProofForPreviousBlock(bitmap, epoch)
+}
