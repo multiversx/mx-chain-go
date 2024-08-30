@@ -903,7 +903,7 @@ func TestNodesSetup_InitialEligibleNodesPubKeysForShardShouldErrShardIdOutOfRang
 
 	returnedPubKeys, err := ns.InitialEligibleNodesPubKeysForShard(1)
 	require.Nil(t, returnedPubKeys)
-	require.Equal(t, err, ErrShardIdOutOfRange)
+	require.Equal(t, ErrShardIdOutOfRange, err)
 
 }
 
@@ -971,212 +971,90 @@ func TestNodesSetup_NumberOfShardsShouldWork(t *testing.T) {
 		genesisMaxShards:   1,
 	})
 	require.Nil(t, err)
-	ns.Hysteresis = 0.2
-	ns.Adaptivity = false
-
-	ns = createAndAssignNodes(ns, noOfInitialNodes)
-
-	nrShards := ns.NumberOfShards()
-
-	require.Equal(t, uint32(1), nrShards)
-}
-
-func TestNodesSetup_MinNumberOfNodesWithHysteresis(t *testing.T) {
-	t.Parallel()
-
-	noOfInitialNodes := 3
-
-	ns, err := createTestNodesSetup(argsTestNodesSetup{
-		shardConsensusSize: 1,
-		shardMinNodes:      1,
-		metaConsensusSize:  1,
-		metaMinNodes:       1,
-		numInitialNodes:    3,
-		genesisMaxShards:   1,
-	})
-	require.Nil(t, err)
-	ns.Hysteresis = 0.2
-	ns.Adaptivity = false
-
-	ns = createAndAssignNodes(ns, noOfInitialNodes)
-
-	nrShards := ns.MinNumberOfNodesWithHysteresis()
-
-	require.Equal(t, uint32(2), nrShards)
-}
-
-func TestNodesSetup_MinNumberOfShardNodes(t *testing.T) {
-	t.Parallel()
-
-	noOfInitialNodes := 3
-
-	ns, err := createTestNodesSetup(argsTestNodesSetup{
-		shardConsensusSize: 1,
-		shardMinNodes:      1,
-		metaConsensusSize:  1,
-		metaMinNodes:       1,
-		numInitialNodes:    3,
-		genesisMaxShards:   1,
-	})
-	require.Nil(t, err)
-	ns.Hysteresis = 0.2
-	ns.Adaptivity = false
-
-	ns = createAndAssignNodes(ns, noOfInitialNodes)
-
-	nrShards := ns.MinNumberOfShardNodes()
-
-	require.Equal(t, uint32(1), nrShards)
-}
-
-func TestNodesSetup_MinNumberOfMetaNodes(t *testing.T) {
-	t.Parallel()
-
-	noOfInitialNodes := 3
-
-	ns, err := createTestNodesSetup(argsTestNodesSetup{
-		shardConsensusSize: 1,
-		shardMinNodes:      1,
-		metaConsensusSize:  1,
-		metaMinNodes:       1,
-		numInitialNodes:    3,
-		genesisMaxShards:   1,
-	})
-	require.Nil(t, err)
-	ns.Hysteresis = 0.2
-	ns.Adaptivity = false
-
-	ns = createAndAssignNodes(ns, noOfInitialNodes)
-
-	nrShards := ns.MinNumberOfShardNodes()
-
-	require.Equal(t, uint32(1), nrShards)
-}
-
-func TestNodesSetup_GetShardConsensusGroupSize(t *testing.T) {
-	t.Parallel()
-
-	noOfInitialNodes := 3
-
-	ns, err := createTestNodesSetup(argsTestNodesSetup{
-		shardConsensusSize: 2,
-		shardMinNodes:      2,
-		metaConsensusSize:  1,
-		metaMinNodes:       1,
-		numInitialNodes:    3,
-		genesisMaxShards:   1,
-	})
-	require.Nil(t, err)
-	ns.Hysteresis = 0.2
-	ns.Adaptivity = false
-
-	ns = createAndAssignNodes(ns, noOfInitialNodes)
-
-	shardConsensusGroupSize := ns.GetShardConsensusGroupSize()
-
-	require.Equal(t, uint32(2), shardConsensusGroupSize)
-}
-
-func TestNodesSetup_GetMetaConsensusGroupSize(t *testing.T) {
-	t.Parallel()
-
-	noOfInitialNodes := 3
-
-	ns, err := createTestNodesSetup(argsTestNodesSetup{
-		shardConsensusSize: 1,
-		shardMinNodes:      1,
-		metaConsensusSize:  2,
-		metaMinNodes:       2,
-		numInitialNodes:    3,
-		genesisMaxShards:   1,
-	})
-	require.Nil(t, err)
-	ns.Hysteresis = 0.2
-	ns.Adaptivity = false
-
-	ns = createAndAssignNodes(ns, noOfInitialNodes)
-
-	metaConsensusGroupSize := ns.GetMetaConsensusGroupSize()
-
-	require.Equal(t, uint32(2), metaConsensusGroupSize)
-}
-
-func TestNodesSetup_GetHysteresis(t *testing.T) {
-	t.Parallel()
-
-	ns, _ := createTestNodesSetup(argsTestNodesSetup{
-		shardConsensusSize: 1,
-		shardMinNodes:      1,
-		metaConsensusSize:  1,
-		metaMinNodes:       1,
-		numInitialNodes:    3,
-		genesisMaxShards:   1,
-	})
 	require.NotNil(t, ns)
-	ns.Hysteresis = 0.5
 
-	hysteresis := ns.GetHysteresis()
+	ns.Hysteresis = 0.2
+	ns.Adaptivity = false
 
-	require.Equal(t, float32(0.5), hysteresis)
-}
-
-func TestNodesSetup_GetAdaptivity(t *testing.T) {
-	t.Parallel()
-
-	ns, _ := createTestNodesSetup(argsTestNodesSetup{
-		shardConsensusSize: 1,
-		shardMinNodes:      1,
-		metaConsensusSize:  1,
-		metaMinNodes:       1,
-		numInitialNodes:    3,
-		genesisMaxShards:   1,
-	})
-
-	require.NotNil(t, ns)
-	ns.Adaptivity = true
-	adaptivity := ns.GetAdaptivity()
-
-	require.True(t, adaptivity)
-}
-
-func TestNodesSetup_GetStartTime(t *testing.T) {
-	t.Parallel()
-
-	ns, _ := createTestNodesSetup(argsTestNodesSetup{
-		shardConsensusSize: 1,
-		shardMinNodes:      1,
-		metaConsensusSize:  1,
-		metaMinNodes:       1,
-		numInitialNodes:    3,
-		genesisMaxShards:   1,
-	})
+	ns = createAndAssignNodes(ns, noOfInitialNodes)
 
 	require.NotNil(t, ns)
 
-	ns.StartTime = 2
-	startTime := ns.GetStartTime()
+	t.Run("NumberOfShardsShouldWork", func(t *testing.T) {
+		t.Parallel()
 
-	require.Equal(t, int64(2), startTime)
-}
-
-func TestNodesSetup_GetRoundDuration(t *testing.T) {
-	t.Parallel()
-
-	ns, _ := createTestNodesSetup(argsTestNodesSetup{
-		shardConsensusSize: 1,
-		shardMinNodes:      1,
-		metaConsensusSize:  1,
-		metaMinNodes:       1,
-		numInitialNodes:    3,
-		genesisMaxShards:   1,
+		nrShards := ns.NumberOfShards()
+		require.Equal(t, uint32(1), nrShards)
 	})
 
-	require.NotNil(t, ns)
+	t.Run("MinNumberOfNodesWithHysteresis", func(t *testing.T) {
+		t.Parallel()
 
-	ns.RoundDuration = 2
-	startTime := ns.GetRoundDuration()
+		nrShards := ns.MinNumberOfNodesWithHysteresis()
+		require.Equal(t, uint32(2), nrShards)
+	})
 
-	require.Equal(t, uint64(2), startTime)
+	t.Run("MinNumberOfShardNodes", func(t *testing.T) {
+		t.Parallel()
+
+		nrShards := ns.MinNumberOfShardNodes()
+		require.Equal(t, uint32(1), nrShards)
+	})
+
+	t.Run("MinNumberOfMetaNodes", func(t *testing.T) {
+		t.Parallel()
+
+		nrShards := ns.MinNumberOfShardNodes()
+		require.Equal(t, uint32(1), nrShards)
+	})
+
+	t.Run("GetShardConsensusGroupSize", func(t *testing.T) {
+		t.Parallel()
+
+		shardConsensusGroupSize := ns.GetShardConsensusGroupSize()
+		require.Equal(t, uint32(1), shardConsensusGroupSize)
+	})
+
+	t.Run("GetMetaConsensusGroupSize", func(t *testing.T) {
+		t.Parallel()
+
+		metaConsensusGroupSize := ns.GetMetaConsensusGroupSize()
+		require.Equal(t, uint32(1), metaConsensusGroupSize)
+	})
+
+	t.Run("GetHysteresis", func(t *testing.T) {
+		t.Parallel()
+
+		ns.Hysteresis = 0.5
+		hysteresis := ns.GetHysteresis()
+		require.Equal(t, float32(0.5), hysteresis)
+	})
+
+	t.Run("GetAdaptivity", func(t *testing.T) {
+		t.Parallel()
+
+		ns.Adaptivity = true
+		adaptivity := ns.GetAdaptivity()
+		require.True(t, adaptivity)
+	})
+
+	t.Run("GetStartTime", func(t *testing.T) {
+		t.Parallel()
+
+		ns.StartTime = 2
+		startTime := ns.GetStartTime()
+		require.Equal(t, int64(2), startTime)
+
+	})
+
+	t.Run("GetRoundDuration", func(t *testing.T) {
+		t.Parallel()
+
+		ns.RoundDuration = 2
+		startTime := ns.GetRoundDuration()
+		require.Equal(t, uint64(2), startTime)
+
+	})
 }
 
 func TestNodesSetup_ExportNodesConfigShouldWork(t *testing.T) {
