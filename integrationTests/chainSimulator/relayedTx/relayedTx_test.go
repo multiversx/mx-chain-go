@@ -155,6 +155,92 @@ func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulator(t *testing.
 	require.True(t, strings.Contains(string(result.Logs.Events[2].Data), "contract is paused"))
 }
 
+func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorAndInvalidNonces(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	cs := startChainSimulator(t, alterConfigsFuncRelayedV3EarlyActivation)
+	defer cs.Close()
+
+	initialBalance := big.NewInt(0).Mul(oneEGLD, big.NewInt(30000))
+	relayer, err := cs.GenerateAndMintWalletAddress(0, initialBalance)
+	require.NoError(t, err)
+
+	sender, err := cs.GenerateAndMintWalletAddress(0, initialBalance)
+	require.NoError(t, err)
+
+	receiver, err := cs.GenerateAndMintWalletAddress(0, big.NewInt(0))
+	require.NoError(t, err)
+
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
+
+	// bump sender nonce to 3
+	tx0 := generateTransaction(sender.Bytes, 0, sender.Bytes, big.NewInt(0), "", minGasLimit)
+	tx1 := generateTransaction(sender.Bytes, 1, sender.Bytes, big.NewInt(0), "", minGasLimit)
+	tx2 := generateTransaction(sender.Bytes, 2, sender.Bytes, big.NewInt(0), "", minGasLimit)
+	_, err = cs.SendTxsAndGenerateBlocksTilAreExecuted([]*transaction.Transaction{tx0, tx1, tx2}, maxNumOfBlocksToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+
+	// higher nonce
+	innerTx1 := generateTransaction(sender.Bytes, 10, receiver.Bytes, oneEGLD, "", minGasLimit)
+	innerTx1.RelayerAddr = relayer.Bytes
+
+	// higher nonce
+	innerTx2 := generateTransaction(sender.Bytes, 9, receiver.Bytes, oneEGLD, "", minGasLimit)
+	innerTx2.RelayerAddr = relayer.Bytes
+
+	// nonce ok
+	innerTx3 := generateTransaction(sender.Bytes, 3, receiver.Bytes, oneEGLD, "", minGasLimit)
+	innerTx3.RelayerAddr = relayer.Bytes
+
+	// higher nonce
+	innerTx4 := generateTransaction(sender.Bytes, 8, receiver.Bytes, oneEGLD, "", minGasLimit)
+	innerTx4.RelayerAddr = relayer.Bytes
+
+	// lower nonce - initial one
+	innerTx5 := generateTransaction(sender.Bytes, 3, receiver.Bytes, oneEGLD, "", minGasLimit)
+	innerTx5.RelayerAddr = relayer.Bytes
+
+	innerTxs := []*transaction.Transaction{innerTx1, innerTx2, innerTx3, innerTx4, innerTx5}
+
+	// relayer will consume first a move balance for each inner tx, then the specific gas for each inner tx
+	relayedTxGasLimit := uint64(0)
+	for _, tx := range innerTxs {
+		relayedTxGasLimit += minGasLimit + tx.GasLimit
+	}
+	relayedTx := generateTransaction(relayer.Bytes, 0, relayer.Bytes, big.NewInt(0), "", relayedTxGasLimit)
+	relayedTx.InnerTransactions = innerTxs
+
+	result, err := cs.SendTxAndGenerateBlockTilTxIsExecuted(relayedTx, maxNumOfBlocksToGenerateWhenExecutingTx)
+	require.NoError(t, err)
+
+	// 5 scrs, 4 from the failed txs + 1 with success
+	require.Equal(t, 5, len(result.SmartContractResults))
+	scrsMap := make(map[string]int, len(result.SmartContractResults))
+	for _, scr := range result.SmartContractResults {
+		if len(scr.ReturnMessage) == 0 {
+			scrsMap["success"]++
+		}
+		if strings.Contains(scr.ReturnMessage, process.ErrHigherNonceInTransaction.Error()) {
+			scrsMap[process.ErrHigherNonceInTransaction.Error()]++
+		}
+		if strings.Contains(scr.ReturnMessage, process.ErrLowerNonceInTransaction.Error()) {
+			scrsMap[process.ErrLowerNonceInTransaction.Error()]++
+		}
+	}
+	require.Equal(t, 1, scrsMap["success"])
+	require.Equal(t, 3, scrsMap[process.ErrHigherNonceInTransaction.Error()])
+	require.Equal(t, 1, scrsMap[process.ErrLowerNonceInTransaction.Error()])
+
+	// 4 log events from the failed txs
+	require.Equal(t, 4, len(result.Logs.Events))
+	for _, event := range result.Logs.Events {
+		require.Equal(t, core.SignalErrorOperation, event.Identifier)
+	}
+}
+
 func TestRelayedTransactionInMultiShardEnvironmentWithChainSimulatorScCalls(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
