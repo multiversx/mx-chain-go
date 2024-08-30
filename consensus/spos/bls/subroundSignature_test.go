@@ -18,7 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
-	mock2 "github.com/multiversx/mx-chain-go/dataRetriever/mock"
+	dataRetrieverMock "github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -52,7 +52,7 @@ func initSubroundSignatureWithContainer(container *mock.ConsensusCoreMock) bls.S
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
 		&mock.SposWorkerMock{},
-		&mock2.ThrottlerStub{},
+		&dataRetrieverMock.ThrottlerStub{},
 	)
 
 	return srSignature
@@ -94,7 +94,7 @@ func TestNewSubroundSignature(t *testing.T) {
 			&statusHandler.AppStatusHandlerStub{},
 			&testscommon.SentSignatureTrackerStub{},
 			&mock.SposWorkerMock{},
-			&mock2.ThrottlerStub{},
+			&dataRetrieverMock.ThrottlerStub{},
 		)
 
 		assert.Nil(t, srSignature)
@@ -108,7 +108,7 @@ func TestNewSubroundSignature(t *testing.T) {
 			&statusHandler.AppStatusHandlerStub{},
 			&testscommon.SentSignatureTrackerStub{},
 			nil,
-			&mock2.ThrottlerStub{},
+			&dataRetrieverMock.ThrottlerStub{},
 		)
 
 		assert.Nil(t, srSignature)
@@ -122,7 +122,7 @@ func TestNewSubroundSignature(t *testing.T) {
 			nil,
 			&testscommon.SentSignatureTrackerStub{},
 			&mock.SposWorkerMock{},
-			&mock2.ThrottlerStub{},
+			&dataRetrieverMock.ThrottlerStub{},
 		)
 
 		assert.Nil(t, srSignature)
@@ -136,7 +136,7 @@ func TestNewSubroundSignature(t *testing.T) {
 			&statusHandler.AppStatusHandlerStub{},
 			nil,
 			&mock.SposWorkerMock{},
-			&mock2.ThrottlerStub{},
+			&dataRetrieverMock.ThrottlerStub{},
 		)
 
 		assert.Nil(t, srSignature)
@@ -150,7 +150,6 @@ func TestNewSubroundSignature(t *testing.T) {
 			sr,
 			&statusHandler.AppStatusHandlerStub{},
 			&testscommon.SentSignatureTrackerStub{},
-
 			&mock.SposWorkerMock{},
 			nil,
 		)
@@ -189,7 +188,7 @@ func TestSubroundSignature_NewSubroundSignatureNilConsensusStateShouldFail(t *te
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
 		&mock.SposWorkerMock{},
-		&mock2.ThrottlerStub{},
+		&dataRetrieverMock.ThrottlerStub{},
 	)
 
 	assert.True(t, check.IfNil(srSignature))
@@ -224,7 +223,7 @@ func TestSubroundSignature_NewSubroundSignatureNilHasherShouldFail(t *testing.T)
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
 		&mock.SposWorkerMock{},
-		&mock2.ThrottlerStub{},
+		&dataRetrieverMock.ThrottlerStub{},
 	)
 
 	assert.True(t, check.IfNil(srSignature))
@@ -259,7 +258,7 @@ func TestSubroundSignature_NewSubroundSignatureNilMultiSignerContainerShouldFail
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
 		&mock.SposWorkerMock{},
-		&mock2.ThrottlerStub{},
+		&dataRetrieverMock.ThrottlerStub{},
 	)
 
 	assert.True(t, check.IfNil(srSignature))
@@ -295,7 +294,7 @@ func TestSubroundSignature_NewSubroundSignatureNilRoundHandlerShouldFail(t *test
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
 		&mock.SposWorkerMock{},
-		&mock2.ThrottlerStub{},
+		&dataRetrieverMock.ThrottlerStub{},
 	)
 
 	assert.True(t, check.IfNil(srSignature))
@@ -330,7 +329,7 @@ func TestSubroundSignature_NewSubroundSignatureNilSyncTimerShouldFail(t *testing
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
 		&mock.SposWorkerMock{},
-		&mock2.ThrottlerStub{},
+		&dataRetrieverMock.ThrottlerStub{},
 	)
 
 	assert.True(t, check.IfNil(srSignature))
@@ -365,7 +364,7 @@ func TestSubroundSignature_NewSubroundSignatureNilAppStatusHandlerShouldFail(t *
 		nil,
 		&testscommon.SentSignatureTrackerStub{},
 		&mock.SposWorkerMock{},
-		&mock2.ThrottlerStub{},
+		&dataRetrieverMock.ThrottlerStub{},
 	)
 
 	assert.True(t, check.IfNil(srSignature))
@@ -400,7 +399,7 @@ func TestSubroundSignature_NewSubroundSignatureShouldWork(t *testing.T) {
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
 		&mock.SposWorkerMock{},
-		&mock2.ThrottlerStub{},
+		&dataRetrieverMock.ThrottlerStub{},
 	)
 
 	assert.False(t, check.IfNil(srSignature))
@@ -551,7 +550,7 @@ func TestSubroundSignature_DoSignatureJobWithMultikey(t *testing.T) {
 				},
 			},
 			&mock.SposWorkerMock{},
-			&mock2.ThrottlerStub{},
+			&dataRetrieverMock.ThrottlerStub{},
 		)
 
 		srSignature.Header = &block.Header{}
@@ -656,7 +655,7 @@ func TestSubroundSignature_DoSignatureJobWithMultikey(t *testing.T) {
 				},
 			},
 			&mock.SposWorkerMock{},
-			&mock2.ThrottlerStub{},
+			&dataRetrieverMock.ThrottlerStub{},
 		)
 
 		sr.Header = &block.Header{}
@@ -762,7 +761,7 @@ func TestSubroundSignature_SendSignature(t *testing.T) {
 				},
 			},
 			&mock.SposWorkerMock{},
-			&mock2.ThrottlerStub{},
+			&dataRetrieverMock.ThrottlerStub{},
 		)
 
 		r := srSignature.SendSignatureForManagedKey(0, "a")
@@ -829,7 +828,7 @@ func TestSubroundSignature_SendSignature(t *testing.T) {
 				},
 			},
 			&mock.SposWorkerMock{},
-			&mock2.ThrottlerStub{},
+			&dataRetrieverMock.ThrottlerStub{},
 		)
 
 		r := srSignature.SendSignatureForManagedKey(1, "a")
@@ -898,7 +897,7 @@ func TestSubroundSignature_SendSignature(t *testing.T) {
 				},
 			},
 			&mock.SposWorkerMock{},
-			&mock2.ThrottlerStub{},
+			&dataRetrieverMock.ThrottlerStub{},
 		)
 
 		_ = srSignature.SendSignatureForManagedKey(1, "a")
@@ -965,7 +964,7 @@ func TestSubroundSignature_DoSignatureJobForManagedKeys(t *testing.T) {
 				},
 			},
 			&mock.SposWorkerMock{},
-			&mock2.ThrottlerStub{},
+			&dataRetrieverMock.ThrottlerStub{},
 		)
 
 		sr.Header = &block.Header{}
@@ -1057,7 +1056,7 @@ func TestSubroundSignature_DoSignatureJobForManagedKeys(t *testing.T) {
 			&statusHandler.AppStatusHandlerStub{},
 			&testscommon.SentSignatureTrackerStub{},
 			&mock.SposWorkerMock{},
-			&mock2.ThrottlerStub{
+			&dataRetrieverMock.ThrottlerStub{
 				CanProcessCalled: func() bool {
 					return false
 				},

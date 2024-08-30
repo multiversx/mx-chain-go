@@ -3,6 +3,7 @@ package bls
 import (
 	"context"
 	"encoding/hex"
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -484,7 +485,7 @@ func (sr *subroundSignature) checkGoRoutinesThrottler(ctx context.Context) error
 		case <-time.After(timeSpentBetweenChecks):
 			continue
 		case <-ctx.Done():
-			return spos.ErrTimeIsOut
+			return fmt.Errorf("%w while checking the throttler", spos.ErrTimeIsOut)
 		}
 	}
 	return nil
