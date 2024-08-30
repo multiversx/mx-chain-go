@@ -1084,7 +1084,7 @@ func createAccounts(
 		StoragePruningManager: spm,
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
 		SnapshotsManager:      snapshotsManager,
-		StateChangesCollector: state.NewStateChangesCollector(),
+		StateChangesCollector: stateChanges.NewStateChangesCollector(),
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 
@@ -2760,7 +2760,7 @@ func createAccountsDBTestSetup() *state.AccountsDB {
 		StoragePruningManager: spm,
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
 		SnapshotsManager:      snapshotsManager,
-		StateChangesCollector: state.NewStateChangesCollector(),
+		StateChangesCollector: stateChanges.NewStateChangesCollector(),
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 
