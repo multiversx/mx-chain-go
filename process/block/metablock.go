@@ -23,7 +23,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/helpers"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/state/stateChanges"
 )
 
 const firstHeaderNonce = uint64(1)
@@ -616,25 +615,6 @@ func (mp *metaProcessor) checkAndRequestIfShardHeadersMissing() {
 	}
 }
 
-func (mp *metaProcessor) sendSomeDummyData() {
-	if !mp.outportHandler.HasDrivers() {
-		return
-	}
-
-	err := mp.outportHandler.SendDummy([]byte("{\"message\":\"dansabonito\"}"))
-	if err != nil {
-		return
-	}
-}
-
-func (mp *metaProcessor) sendStateChanges(stateChanges []stateChanges.StateChange) {
-	if !mp.outportHandler.HasDrivers() {
-		return
-	}
-
-	mp.outportHandler.SaveStateChanges(stateChanges)
-}
-
 func (mp *metaProcessor) indexBlock(
 	metaBlock data.HeaderHandler,
 	headerHash []byte,
@@ -669,6 +649,8 @@ func (mp *metaProcessor) indexBlock(
 			"hash", headerHash, "nonce", metaBlock.GetNonce(), "round", metaBlock.GetRound())
 		return
 	}
+
+	mp.outportHandler.SaveStateChanges()
 
 	log.Debug("indexed block", "hash", headerHash, "nonce", metaBlock.GetNonce(), "round", metaBlock.GetRound())
 
@@ -1331,7 +1313,7 @@ func (mp *metaProcessor) CommitBlock(
 	mp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
 
 	//mp.sendSomeDummyData()
-	mp.sendStateChanges(mp.stateChangesCollector.RetrieveStateChanges())
+	//mp.sendStateChanges(mp.stateChangesCollector.RetrieveStateChanges())
 
 	highestFinalBlockNonce := mp.forkDetector.GetHighestFinalBlockNonce()
 	saveMetricsForCommitMetachainBlock(mp.appStatusHandler, header, headerHash, mp.nodesCoordinator, highestFinalBlockNonce, mp.managedPeersHolder)

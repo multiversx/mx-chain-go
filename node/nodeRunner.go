@@ -20,6 +20,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	outportCore "github.com/multiversx/mx-chain-core-go/data/outport"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/api/gin"
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/common"
@@ -61,7 +63,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	trieStatistics "github.com/multiversx/mx-chain-go/trie/statistics"
 	"github.com/multiversx/mx-chain-go/update/trigger"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 type nextOperationForNode int
@@ -343,6 +344,8 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	if err != nil {
 		return true, err
 	}
+
+	managedStateComponents.StateChangesCollector()
 
 	log.Debug("creating metrics")
 	// this should be called before setting the storer (done in the managedDataComponents creation)
