@@ -4,7 +4,6 @@ import (
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 
 	"github.com/multiversx/mx-chain-go/outport"
-	"github.com/multiversx/mx-chain-go/state/stateChanges"
 )
 
 type disabledOutport struct{}
@@ -44,6 +43,9 @@ func (n *disabledOutport) SaveAccounts(_ *outportcore.Accounts) {
 func (n *disabledOutport) FinalizedBlock(_ *outportcore.FinalizedBlock) {
 }
 
+// SaveStateChanges does nothing
+func (n *disabledOutport) SaveStateChanges() {}
+
 // Close does nothing
 func (n *disabledOutport) Close() error {
 	return nil
@@ -62,9 +64,4 @@ func (n *disabledOutport) SubscribeDriver(_ outport.Driver) error {
 // HasDrivers does nothing
 func (n *disabledOutport) HasDrivers() bool {
 	return false
-}
-
-func (n *disabledOutport) SendDummy(_ []byte) error { return nil }
-
-func (n *disabledOutport) SaveStateChanges(_ []stateChanges.StateChange) {
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/appStatusPolling"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	factoryMarshalizer "github.com/multiversx/mx-chain-core-go/marshal/factory"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/config"

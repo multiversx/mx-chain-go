@@ -9,22 +9,24 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 
-	"github.com/multiversx/mx-chain-go/state/stateChanges"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 // ArgsHostDriver holds the arguments needed for creating a new hostDriver
 type ArgsHostDriver struct {
-	Marshaller marshal.Marshalizer
-	SenderHost SenderHost
-	Log        core.Logger
+	Marshaller            marshal.Marshalizer
+	SenderHost            SenderHost
+	Log                   core.Logger
+	StateChangesCollector state.StateChangesCollector
 }
 
 type hostDriver struct {
-	marshaller  marshal.Marshalizer
-	senderHost  SenderHost
-	isClosed    atomic.Flag
-	log         core.Logger
-	payloadProc payloadProcessorHandler
+	marshaller            marshal.Marshalizer
+	senderHost            SenderHost
+	isClosed              atomic.Flag
+	log                   core.Logger
+	payloadProc           payloadProcessorHandler
+	stateChangesCollector state.StateChangesCollector
 }
 
 // NewHostDriver will create a new instance of hostDriver
@@ -38,6 +40,9 @@ func NewHostDriver(args ArgsHostDriver) (*hostDriver, error) {
 	if check.IfNil(args.Log) {
 		return nil, core.ErrNilLogger
 	}
+	if check.IfNil(args.StateChangesCollector) {
+		return nil, ErrNilStateChangesCollector
+	}
 
 	payloadProc, err := newPayloadProcessor(args.Log)
 	if err != nil {
@@ -50,11 +55,12 @@ func NewHostDriver(args ArgsHostDriver) (*hostDriver, error) {
 	}
 
 	return &hostDriver{
-		marshaller:  args.Marshaller,
-		senderHost:  args.SenderHost,
-		log:         args.Log,
-		isClosed:    atomic.Flag{},
-		payloadProc: payloadProc,
+		marshaller:            args.Marshaller,
+		senderHost:            args.SenderHost,
+		log:                   args.Log,
+		isClosed:              atomic.Flag{},
+		payloadProc:           payloadProc,
+		stateChangesCollector: args.StateChangesCollector,
 	}, nil
 }
 
@@ -81,6 +87,10 @@ func (o *hostDriver) SaveValidatorsPubKeys(validatorsPubKeys *outport.Validators
 // SaveValidatorsRating will handle the saving of the validators' rating
 func (o *hostDriver) SaveValidatorsRating(validatorsRating *outport.ValidatorsRating) error {
 	return o.handleAction(validatorsRating, outport.TopicSaveValidatorsRating)
+}
+
+func (o *hostDriver) SaveStateChanges() error {
+	return o.handleAction(o.stateChangesCollector.RetrieveStateChanges(), "SaveStateChanges")
 }
 
 // SaveAccounts will handle the accounts' saving
@@ -135,13 +145,4 @@ func (o *hostDriver) Close() error {
 // IsInterfaceNil returns true if there is no value under the interface
 func (o *hostDriver) IsInterfaceNil() bool {
 	return o == nil
-}
-
-func (o *hostDriver) SendDummy(data []byte) error {
-	return o.handleAction(data, "SendDummy")
-}
-
-func (o *hostDriver) SaveStateChanges(stateChanges []stateChanges.StateChange) error {
-	//TODO: add this as a constant
-	return o.handleAction(stateChanges, "SaveStateChanges")
 }
