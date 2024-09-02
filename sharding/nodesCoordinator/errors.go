@@ -123,3 +123,6 @@ var ErrReceivedAuctionValidatorsBeforeStakingV4 = errors.New("should not have re
 
 // ErrNilEpochNotifier signals that a nil EpochNotifier has been provided
 var ErrNilEpochNotifier = errors.New("nil epoch notifier provided")
+
+// ErrInvalidSovereignChainShardId signals that an invalid shard id was provided for sovereign shard id
+var ErrInvalidSovereignChainShardId = errors.New("shard id does not match core.SovereignChainShardId")

@@ -1,10 +1,11 @@
 package nodesCoordinator
 
+import "github.com/multiversx/mx-chain-core-go/core"
+
 type sovereignNumberOfShardsComputer struct {
 }
 
-// NewSovereignNumberOfShardsComputer creates a new instance of the number of shards computer for sovereign
-func NewSovereignNumberOfShardsComputer() *sovereignNumberOfShardsComputer {
+func newSovereignNumberOfShardsComputer() *sovereignNumberOfShardsComputer {
 	return &sovereignNumberOfShardsComputer{}
 }
 
@@ -14,6 +15,10 @@ func (snsc *sovereignNumberOfShardsComputer) ComputeNumberOfShards(config *epoch
 	if nbShards != 1 {
 		return 0, ErrInvalidNumberOfShards
 	}
+	if _, ok := config.eligibleMap[core.SovereignChainShardId]; !ok {
+		return 0, ErrInvalidSovereignChainShardId
+	}
+
 	return nbShards, nil
 }
 

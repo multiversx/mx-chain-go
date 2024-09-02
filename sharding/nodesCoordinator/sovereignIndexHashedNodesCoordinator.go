@@ -63,7 +63,7 @@ func NewSovereignIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*so
 			validatorInfoCacher:             arguments.ValidatorInfoCacher,
 			genesisNodesSetupHandler:        arguments.GenesisNodesSetupHandler,
 			nodesCoordinatorRegistryFactory: arguments.NodesCoordinatorRegistryFactory,
-			numberOfShardsComputer:          NewSovereignNumberOfShardsComputer(),
+			numberOfShardsComputer:          newSovereignNumberOfShardsComputer(),
 		},
 	}
 

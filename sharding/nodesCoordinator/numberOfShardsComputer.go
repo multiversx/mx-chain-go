@@ -3,8 +3,7 @@ package nodesCoordinator
 type numberOfShardsWithMetaComputer struct {
 }
 
-// NewNumberOfShardsWithMetaComputer creates a new instance of the number of shards computer with meta
-func NewNumberOfShardsWithMetaComputer() *numberOfShardsWithMetaComputer {
+func newNumberOfShardsWithMetaComputer() *numberOfShardsWithMetaComputer {
 	return &numberOfShardsWithMetaComputer{}
 }
 

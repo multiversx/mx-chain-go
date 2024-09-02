@@ -155,7 +155,7 @@ func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashed
 		validatorInfoCacher:             arguments.ValidatorInfoCacher,
 		genesisNodesSetupHandler:        arguments.GenesisNodesSetupHandler,
 		nodesCoordinatorRegistryFactory: arguments.NodesCoordinatorRegistryFactory,
-		numberOfShardsComputer:          NewNumberOfShardsWithMetaComputer(),
+		numberOfShardsComputer:          newNumberOfShardsWithMetaComputer(),
 	}
 
 	ihnc.loadingFromDisk.Store(false)

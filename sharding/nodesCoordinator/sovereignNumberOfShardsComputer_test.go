@@ -3,6 +3,7 @@ package nodesCoordinator
 import (
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/stretchr/testify/require"
 )
 
@@ -12,7 +13,7 @@ func TestSovereignIndexHashedNodesCoordinator_ComputeNumberOfShards(t *testing.T
 	t.Run("should not work with 0", func(t *testing.T) {
 		t.Parallel()
 
-		ssc := NewSovereignNumberOfShardsComputer()
+		ssc := newSovereignNumberOfShardsComputer()
 		eligibleMap := make(map[uint32][]Validator)
 		nodesConfig := &epochNodesConfig{
 			eligibleMap: eligibleMap,
@@ -23,12 +24,12 @@ func TestSovereignIndexHashedNodesCoordinator_ComputeNumberOfShards(t *testing.T
 		require.Equal(t, uint32(0), nbShards)
 	})
 
-	t.Run("should work only with 1", func(t *testing.T) {
+	t.Run("should work with core.SovereignChainShardId", func(t *testing.T) {
 		t.Parallel()
 
-		ssc := NewSovereignNumberOfShardsComputer()
+		ssc := newSovereignNumberOfShardsComputer()
 		eligibleMap := make(map[uint32][]Validator)
-		eligibleMap[0] = []Validator{&validator{}}
+		eligibleMap[core.SovereignChainShardId] = []Validator{&validator{}}
 		nodesConfig := &epochNodesConfig{
 			eligibleMap: eligibleMap,
 		}
@@ -38,19 +39,34 @@ func TestSovereignIndexHashedNodesCoordinator_ComputeNumberOfShards(t *testing.T
 		require.Equal(t, uint32(1), nbShards)
 	})
 
-	t.Run("should not work with 2", func(t *testing.T) {
+	t.Run("should not work with other than core.SovereignChainShardId", func(t *testing.T) {
 		t.Parallel()
 
-		ssc := NewSovereignNumberOfShardsComputer()
+		ssc := newSovereignNumberOfShardsComputer()
 		eligibleMap := make(map[uint32][]Validator)
-		eligibleMap[0] = []Validator{&validator{}}
 		eligibleMap[1] = []Validator{&validator{}}
 		nodesConfig := &epochNodesConfig{
 			eligibleMap: eligibleMap,
 		}
 
 		nbShards, err := ssc.ComputeNumberOfShards(nodesConfig)
-		require.NotNil(t, err)
+		require.Equal(t, ErrInvalidSovereignChainShardId, err)
+		require.Equal(t, uint32(0), nbShards)
+	})
+
+	t.Run("should not work with 2", func(t *testing.T) {
+		t.Parallel()
+
+		ssc := newSovereignNumberOfShardsComputer()
+		eligibleMap := make(map[uint32][]Validator)
+		eligibleMap[core.SovereignChainShardId] = []Validator{&validator{}}
+		eligibleMap[1] = []Validator{&validator{}}
+		nodesConfig := &epochNodesConfig{
+			eligibleMap: eligibleMap,
+		}
+
+		nbShards, err := ssc.ComputeNumberOfShards(nodesConfig)
+		require.Equal(t, ErrInvalidNumberOfShards, err)
 		require.Equal(t, uint32(0), nbShards)
 	})
 }
