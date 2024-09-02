@@ -15,7 +15,7 @@ func NewSovereignDataRetrieverContainerSetter() *sovereignDataRetrieverContainer
 	return &sovereignDataRetrieverContainersSetter{}
 }
 
-// SetEpochHandlerToMetaBlockContainers does nothing for sovereign chain, since we do not need to sync any meta blocks
+// SetEpochHandlerToMetaBlockContainers sets epoch handler to header resolvers/requesters for ShardBlocksTopic
 func (drc *sovereignDataRetrieverContainersSetter) SetEpochHandlerToMetaBlockContainers(
 	epochStartTrigger epochStart.TriggerHandler,
 	resolversContainer dataRetriever.ResolversContainer,
