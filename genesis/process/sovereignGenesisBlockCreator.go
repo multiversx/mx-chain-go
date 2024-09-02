@@ -168,14 +168,6 @@ func (gbc *sovereignGenesisBlockCreator) createSovereignHeaders(args *headerCrea
 		return nil, err
 	}
 
-	_ = validatorRootHash
-	err = genesisBlock.SetValidatorStatsRootHash(prevHash)
-	if err != nil {
-		return nil, err
-	}
-
-	log.Error("VALIDATOR STATS ROOT HASH", "hash", validatorRootHash)
-
 	// TODO: MX-15667 Ugly fix, we need header versioning creator here to be integrated for sovereign chain
 	sovereignHeader := &block.SovereignChainHeader{
 		Header:                 genesisBlock.(*block.Header),

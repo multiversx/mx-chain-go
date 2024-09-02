@@ -1,6 +1,7 @@
 package dataRetriever
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process/factory"
@@ -14,31 +15,26 @@ func NewSovereignDataRetrieverContainerSetter() *sovereignDataRetrieverContainer
 	return &sovereignDataRetrieverContainersSetter{}
 }
 
-// SetEpochHandlerToMetaBlockContainers does nothing for sovereign chain, since we do not need to sync any meta blocks
+// SetEpochHandlerToMetaBlockContainers sets epoch handler to header resolvers/requesters for ShardBlocksTopic
 func (drc *sovereignDataRetrieverContainersSetter) SetEpochHandlerToMetaBlockContainers(
 	epochStartTrigger epochStart.TriggerHandler,
 	resolversContainer dataRetriever.ResolversContainer,
 	requestersContainer dataRetriever.RequestersContainer,
 ) error {
-	err := SetEpochHandlerToHdrResolver(resolversContainer, epochStartTrigger)
+	err := setEpochHandlerToHdrResolver(resolversContainer, epochStartTrigger)
 	if err != nil {
 		return err
 	}
 
-	return SetEpochHandlerToHdrRequester(requestersContainer, epochStartTrigger)
+	return setEpochHandlerToHdrRequester(requestersContainer, epochStartTrigger)
 }
 
-// IsInterfaceNil checks if the underlying pointer is nil
-func (drc *sovereignDataRetrieverContainersSetter) IsInterfaceNil() bool {
-	return drc == nil
-}
-
-// SetEpochHandlerToHdrResolver sets the epoch handler to the metablock hdr resolver
-func SetEpochHandlerToHdrResolver(
+func setEpochHandlerToHdrResolver(
 	resolversContainer dataRetriever.ResolversContainer,
 	epochHandler dataRetriever.EpochHandler,
 ) error {
-	resolver, err := resolversContainer.Get(factory.ShardBlocksTopic + "_0")
+	topic := getShardTopic()
+	resolver, err := resolversContainer.Get(topic)
 	if err != nil {
 		return err
 	}
@@ -48,20 +44,19 @@ func SetEpochHandlerToHdrResolver(
 		return dataRetriever.ErrWrongTypeInContainer
 	}
 
-	err = hdrResolver.SetEpochHandler(epochHandler)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return hdrResolver.SetEpochHandler(epochHandler)
 }
 
-// SetEpochHandlerToHdrRequester sets the epoch handler to the metablock hdr requester
-func SetEpochHandlerToHdrRequester(
+func getShardTopic() string {
+	return factory.ShardBlocksTopic + core.CommunicationIdentifierBetweenShards(core.SovereignChainShardId, core.SovereignChainShardId)
+}
+
+func setEpochHandlerToHdrRequester(
 	requestersContainer dataRetriever.RequestersContainer,
 	epochHandler dataRetriever.EpochHandler,
 ) error {
-	requester, err := requestersContainer.Get(factory.ShardBlocksTopic + "_0")
+	topic := getShardTopic()
+	requester, err := requestersContainer.Get(topic)
 	if err != nil {
 		return err
 	}
@@ -71,10 +66,10 @@ func SetEpochHandlerToHdrRequester(
 		return dataRetriever.ErrWrongTypeInContainer
 	}
 
-	err = hdrRequester.SetEpochHandler(epochHandler)
-	if err != nil {
-		return err
-	}
+	return hdrRequester.SetEpochHandler(epochHandler)
+}
 
-	return nil
+// IsInterfaceNil checks if the underlying pointer is nil
+func (drc *sovereignDataRetrieverContainersSetter) IsInterfaceNil() bool {
+	return drc == nil
 }
