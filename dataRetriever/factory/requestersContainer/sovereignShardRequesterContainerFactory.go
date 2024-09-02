@@ -1,6 +1,7 @@
 package requesterscontainer
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/requestHandlers/requesters"
@@ -30,7 +31,17 @@ func NewSovereignShardRequestersContainerFactory(shardReqContainerFactory *shard
 
 // Create returns a requesters container that will hold all sovereign requesters
 func (srcf *sovereignShardRequestersContainerFactory) Create() (dataRetriever.RequestersContainer, error) {
-	_, err := srcf.shardRequestersContainerFactory.Create()
+	err := srcf.generateCommonRequesters()
+	if err != nil {
+		return nil, err
+	}
+
+	err = srcf.generateHeaderRequesters(core.SovereignChainShardId)
+	if err != nil {
+		return nil, err
+	}
+
+	err = srcf.generateAccountAndValidatorTrieNodesRequesters(core.SovereignChainShardId)
 	if err != nil {
 		return nil, err
 	}
@@ -41,6 +52,59 @@ func (srcf *sovereignShardRequestersContainerFactory) Create() (dataRetriever.Re
 	}
 
 	return srcf.container, nil
+}
+
+func (srcf *sovereignShardRequestersContainerFactory) generateCommonRequesters() error {
+	err := srcf.generateTxRequesters(factory.TransactionTopic)
+	if err != nil {
+		return err
+	}
+
+	err = srcf.generateTxRequesters(factory.UnsignedTransactionTopic)
+	if err != nil {
+		return err
+	}
+
+	err = srcf.generateMiniBlocksRequesters()
+	if err != nil {
+		return err
+	}
+
+	err = srcf.generatePeerAuthenticationRequester()
+	if err != nil {
+		return err
+	}
+
+	err = srcf.generateValidatorInfoRequester()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (srcf *sovereignShardRequestersContainerFactory) generateTxRequesters(topic string) error {
+	shardC := srcf.shardCoordinator
+	identifierTx := topic + shardC.CommunicationIdentifier(core.SovereignChainShardId)
+
+	requester, err := srcf.createTxRequester(identifierTx, EmptyExcludePeersOnTopic, core.SovereignChainShardId, srcf.numCrossShardPeers, srcf.numIntraShardPeers)
+	if err != nil {
+		return err
+	}
+
+	return srcf.container.Add(identifierTx, requester)
+}
+
+func (srcf *sovereignShardRequestersContainerFactory) generateMiniBlocksRequesters() error {
+	shardC := srcf.shardCoordinator
+
+	identifierMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(shardC.SelfId())
+	requester, err := srcf.createMiniBlocksRequester(identifierMiniBlocks, EmptyExcludePeersOnTopic, srcf.shardCoordinator.SelfId(), srcf.numCrossShardPeers, srcf.numIntraShardPeers)
+	if err != nil {
+		return err
+	}
+
+	return srcf.container.Add(identifierMiniBlocks, requester)
 }
 
 func (srcf *sovereignShardRequestersContainerFactory) generateExtendedShardHeaderRequesters() error {

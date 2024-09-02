@@ -33,6 +33,8 @@ const uniqueTrieNodesSuffix = "tn"
 const uniqueValidatorInfoSuffix = "vi"
 
 // TODO move the keys definitions that are whitelisted in core and use them in InterceptedData implementations, Identifiers() function
+type getTrieNodeRequesterFunc func(topic string) (dataRetriever.Requester, error)
+type getTrieNodesRequesterFunc func(topic string, destShardID uint32) (dataRetriever.Requester, error)
 
 type resolverRequestHandler struct {
 	mutEpoch              sync.RWMutex
@@ -416,6 +418,24 @@ func (rrh *resolverRequestHandler) RequestShardHeaderByNonce(shardID uint32, non
 
 // RequestTrieNodes method asks for trie nodes from the connected peers
 func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [][]byte, topic string) {
+	rrh.requestTrieNodes(destShardID, hashes, topic, rrh.getTrieNodesRequester)
+}
+
+func (rrh *resolverRequestHandler) getTrieNodesRequester(topic string, destShardID uint32) (dataRetriever.Requester, error) {
+	requester, err := rrh.requestersFinder.MetaCrossShardRequester(topic, destShardID)
+	if err != nil {
+		log.Error("requestersFinder.MetaCrossShardRequester",
+			"error", err.Error(),
+			"topic", topic,
+			"shard", destShardID,
+		)
+		return nil, err
+	}
+
+	return requester, err
+}
+
+func (rrh *resolverRequestHandler) requestTrieNodes(destShardID uint32, hashes [][]byte, topic string, getTrieNodesRequester getTrieNodesRequesterFunc) {
 	unrequestedHashes := rrh.getUnrequestedHashes(hashes, uniqueTrieNodesSuffix)
 	if len(unrequestedHashes) == 0 {
 		return
@@ -450,13 +470,8 @@ func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [
 		"added", len(hashes),
 	)
 
-	requester, err := rrh.requestersFinder.MetaCrossShardRequester(topic, destShardID)
+	requester, err := getTrieNodesRequester(topic, destShardID)
 	if err != nil {
-		log.Error("requestersFinder.MetaCrossShardRequester",
-			"error", err.Error(),
-			"topic", topic,
-			"shard", destShardID,
-		)
 		return
 	}
 
@@ -485,6 +500,23 @@ func (rrh *resolverRequestHandler) CreateTrieNodeIdentifier(requestHash []byte, 
 
 // RequestTrieNode method asks for a trie node from the connected peers by the hash and the chunk index
 func (rrh *resolverRequestHandler) RequestTrieNode(requestHash []byte, topic string, chunkIndex uint32) {
+	rrh.requestTrieNode(requestHash, topic, chunkIndex, rrh.getTrieNodeRequester)
+}
+
+func (rrh *resolverRequestHandler) getTrieNodeRequester(topic string) (dataRetriever.Requester, error) {
+	requester, err := rrh.requestersFinder.MetaChainRequester(topic)
+	if err != nil {
+		log.Error("requestersFinder.MetaChainRequester",
+			"error", err.Error(),
+			"topic", topic,
+		)
+		return nil, err
+	}
+
+	return requester, nil
+}
+
+func (rrh *resolverRequestHandler) requestTrieNode(requestHash []byte, topic string, chunkIndex uint32, getTrieNodeRequester getTrieNodeRequesterFunc) {
 	identifier := rrh.CreateTrieNodeIdentifier(requestHash, chunkIndex)
 	unrequestedHashes := rrh.getUnrequestedHashes([][]byte{identifier}, uniqueTrieNodesSuffix)
 	if len(unrequestedHashes) == 0 {
@@ -500,12 +532,8 @@ func (rrh *resolverRequestHandler) RequestTrieNode(requestHash []byte, topic str
 		"chunk index", chunkIndex,
 	)
 
-	requester, err := rrh.requestersFinder.MetaChainRequester(topic)
+	requester, err := getTrieNodeRequester(topic)
 	if err != nil {
-		log.Error("requestersFinder.MetaChainRequester",
-			"error", err.Error(),
-			"topic", topic,
-		)
 		return
 	}
 
