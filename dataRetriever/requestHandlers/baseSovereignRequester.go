@@ -37,7 +37,10 @@ func (br *baseSovereignRequest) getTrieNodesRequester(topic string, _ uint32) (d
 	return requester, nil
 }
 
-func (br *baseSovereignRequest) getStartOfEpochMetaBlockRequester(topic string) (dataRetriever.Requester, error) {
+func (br *baseSovereignRequest) getStartOfEpochMetaBlockRequester(_ string) (dataRetriever.Requester, error) {
+	topic := factory.ShardBlocksTopic
+	log.Debug("baseSovereignRequest.getStartOfEpochMetaBlockRequester", "topic", topic)
+
 	requester, err := br.requestersFinder.IntraShardRequester(topic)
 	if err != nil {
 		log.Error("sovereignResolverRequestHandler.getStartOfEpochMetaBlockRequester.IntraShardRequester",
