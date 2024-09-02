@@ -286,7 +286,7 @@ func (e *epochStartBootstrap) getEpochStartMetaFromStorage(storer storage.Storer
 		return nil, err
 	}
 
-	metaBlock := &block.MetaBlock{}
+	metaBlock := &block.SovereignChainHeader{}
 	err = e.coreComponentsHolder.InternalMarshalizer().Unmarshal(metaBlock, epochStartMetaBlock)
 	if err != nil {
 		return nil, err
