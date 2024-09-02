@@ -154,7 +154,7 @@ func (sicf *shardInterceptorsContainerFactory) Create() (process.InterceptorsCon
 		return nil, nil, err
 	}
 
-	err = sicf.generateHeaderInterceptors()
+	err = sicf.generateHeaderInterceptors(core.MetachainShardId)
 	if err != nil {
 		return nil, nil, err
 	}
