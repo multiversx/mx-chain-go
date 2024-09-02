@@ -2,6 +2,7 @@ package disabled
 
 import (
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
+
 	"github.com/multiversx/mx-chain-go/outport"
 )
 
@@ -36,6 +37,11 @@ func (n *disabledOutport) SaveValidatorsRating(_ *outportcore.ValidatorsRating) 
 
 // SaveAccounts does nothing
 func (n *disabledOutport) SaveAccounts(_ *outportcore.Accounts) {
+}
+
+// SaveStateChanges does nothing
+func (n *disabledOutport) SaveStateChanges() {
+	return
 }
 
 // FinalizedBlock does nothing
