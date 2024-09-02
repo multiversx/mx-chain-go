@@ -126,3 +126,6 @@ var ErrNilEpochNotifier = errors.New("nil epoch notifier provided")
 
 // ErrInvalidSovereignChainShardId signals that an invalid shard id was provided for sovereign shard id
 var ErrInvalidSovereignChainShardId = errors.New("shard id does not match core.SovereignChainShardId")
+
+// ErrMetachainShardIdNotFound signals that the MetachainShardId was not found
+var ErrMetachainShardIdNotFound = errors.New("core.MetachainShardId was not found")

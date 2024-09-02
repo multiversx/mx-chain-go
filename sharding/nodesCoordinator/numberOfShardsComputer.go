@@ -1,5 +1,7 @@
 package nodesCoordinator
 
+import "github.com/multiversx/mx-chain-core-go/core"
+
 type numberOfShardsWithMetaComputer struct {
 }
 
@@ -12,6 +14,9 @@ func (nsc *numberOfShardsWithMetaComputer) ComputeNumberOfShards(config *epochNo
 	nbShards = uint32(len(config.eligibleMap))
 	if nbShards < 2 {
 		return 0, ErrInvalidNumberOfShards
+	}
+	if _, ok := config.eligibleMap[core.MetachainShardId]; !ok {
+		return 0, ErrMetachainShardIdNotFound
 	}
 	// shards without metachain shard
 	return nbShards - 1, nil

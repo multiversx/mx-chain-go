@@ -40,7 +40,7 @@ func TestSovereignNumberOfShardsComputer_ComputeNumberOfShards(t *testing.T) {
 		require.Equal(t, uint32(0), nbShards)
 	})
 
-	t.Run("should work with 1 and meta", func(t *testing.T) {
+	t.Run("should work with 1 shard and meta", func(t *testing.T) {
 		t.Parallel()
 
 		shardsComputer := newNumberOfShardsWithMetaComputer()
@@ -57,7 +57,7 @@ func TestSovereignNumberOfShardsComputer_ComputeNumberOfShards(t *testing.T) {
 		require.Equal(t, expectedNbShardsWithoutMeta, nbShards)
 	})
 
-	t.Run("should work with 2", func(t *testing.T) {
+	t.Run("should not work with 2 shards", func(t *testing.T) {
 		t.Parallel()
 
 		shardsComputer := newNumberOfShardsWithMetaComputer()
@@ -67,14 +67,13 @@ func TestSovereignNumberOfShardsComputer_ComputeNumberOfShards(t *testing.T) {
 		nodesConfig := &epochNodesConfig{
 			eligibleMap: eligibleMap,
 		}
-		expectedNbShardsWithoutMeta := uint32(1)
 
 		nbShards, err := shardsComputer.ComputeNumberOfShards(nodesConfig)
-		require.Nil(t, err)
-		require.Equal(t, expectedNbShardsWithoutMeta, nbShards)
+		require.Equal(t, ErrMetachainShardIdNotFound, err)
+		require.Equal(t, uint32(0), nbShards)
 	})
 
-	t.Run("should work with 10", func(t *testing.T) {
+	t.Run("should work with 10 shards and meta", func(t *testing.T) {
 		t.Parallel()
 
 		shardsComputer := newNumberOfShardsWithMetaComputer()
@@ -82,10 +81,11 @@ func TestSovereignNumberOfShardsComputer_ComputeNumberOfShards(t *testing.T) {
 		for i := uint32(0); i < 10; i++ {
 			eligibleMap[i] = []Validator{&validator{}}
 		}
+		eligibleMap[core.MetachainShardId] = []Validator{&validator{}}
 		nodesConfig := &epochNodesConfig{
 			eligibleMap: eligibleMap,
 		}
-		expectedNbShardsWithoutMeta := uint32(9)
+		expectedNbShardsWithoutMeta := uint32(10)
 
 		nbShards, err := shardsComputer.ComputeNumberOfShards(nodesConfig)
 		require.Nil(t, err)
