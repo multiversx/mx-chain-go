@@ -8,8 +8,9 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/storage"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
+	"github.com/multiversx/mx-chain-go/storage"
 )
 
 const (
@@ -202,6 +203,10 @@ func (scc *dataAnalysisCollector) Publish() error {
 	}
 
 	return nil
+}
+
+func (scc *dataAnalysisCollector) GetStateChanges() []StateChange {
+	return scc.stateChanges
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

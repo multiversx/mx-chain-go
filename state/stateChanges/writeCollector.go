@@ -213,6 +213,10 @@ func printStateChanges(stateChanges []StateChangesForTx) {
 	}
 }
 
+func (scc *stateChangesCollector) GetStateChanges() []StateChange {
+	return scc.stateChanges
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (scc *stateChangesCollector) IsInterfaceNil() bool {
 	return scc == nil

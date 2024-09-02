@@ -7,9 +7,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state/stateChanges"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // AccountFactory creates an account of different types
@@ -363,5 +364,6 @@ type StateChangesCollector interface {
 	SetIndexToLastStateChange(index int) error
 	RevertToIndex(index int) error
 	Publish() error
+	GetStateChanges() []stateChanges.StateChange
 	IsInterfaceNil() bool
 }
