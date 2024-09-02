@@ -14,7 +14,7 @@ type baseSovereignRequest struct {
 func (br *baseSovereignRequest) getTrieNodeRequester(topic string) (dataRetriever.Requester, error) {
 	requester, err := br.requestersFinder.IntraShardRequester(topic)
 	if err != nil {
-		log.Error("sovereignResolverRequestHandler.getTrieNodeRequester.IntraShardRequester",
+		log.Error("baseSovereignRequest.getTrieNodeRequester.IntraShardRequester",
 			"error", err.Error(),
 			"topic", topic,
 		)
@@ -27,7 +27,7 @@ func (br *baseSovereignRequest) getTrieNodeRequester(topic string) (dataRetrieve
 func (br *baseSovereignRequest) getTrieNodesRequester(topic string, _ uint32) (dataRetriever.Requester, error) {
 	requester, err := br.requestersFinder.IntraShardRequester(topic)
 	if err != nil {
-		log.Error("sovereignResolverRequestHandler.getTrieNodesRequester.IntraShardRequester",
+		log.Error("baseSovereignRequest.getTrieNodesRequester.IntraShardRequester",
 			"error", err.Error(),
 			"topic", topic,
 		)
@@ -43,7 +43,7 @@ func (br *baseSovereignRequest) getStartOfEpochMetaBlockRequester(_ string) (dat
 
 	requester, err := br.requestersFinder.IntraShardRequester(topic)
 	if err != nil {
-		log.Error("sovereignResolverRequestHandler.getStartOfEpochMetaBlockRequester.IntraShardRequester",
+		log.Error("baseSovereignRequest.getStartOfEpochMetaBlockRequester.IntraShardRequester",
 			"error", err.Error(),
 			"topic", topic,
 		)
@@ -56,14 +56,14 @@ func (br *baseSovereignRequest) getStartOfEpochMetaBlockRequester(_ string) (dat
 func (br *baseSovereignRequest) getMetaHeaderRequester() (HeaderRequester, error) {
 	requester, err := br.requestersFinder.IntraShardRequester(factory.ShardBlocksTopic)
 	if err != nil {
-		err = fmt.Errorf("baseSovereignRequest: %w, topic: %s",
+		err = fmt.Errorf("baseSovereignRequest.getMetaHeaderRequester: %w, topic: %s",
 			err, factory.ShardBlocksTopic)
 		return nil, err
 	}
 
 	headerRequester, ok := requester.(HeaderRequester)
 	if !ok {
-		err = fmt.Errorf("baseSovereignRequest: %w, topic: %s, expected HeaderRequester",
+		err = fmt.Errorf("baseSovereignRequest.getMetaHeaderRequester: %w, topic: %s, expected HeaderRequester",
 			dataRetriever.ErrWrongTypeInContainer, factory.ShardBlocksTopic)
 		return nil, err
 	}
@@ -74,7 +74,7 @@ func (br *baseSovereignRequest) getMetaHeaderRequester() (HeaderRequester, error
 func (br *baseSovereignRequest) getShardHeaderRequester(_ uint32) (dataRetriever.Requester, error) {
 	headerRequester, err := br.requestersFinder.IntraShardRequester(factory.ShardBlocksTopic)
 	if err != nil {
-		err = fmt.Errorf("baseSovereignRequest: %w, topic: %s",
+		err = fmt.Errorf("baseSovereignRequest.getShardHeaderRequester: %w, topic: %s",
 			err, factory.ShardBlocksTopic)
 
 		log.Warn("available requesters in container",
