@@ -17,6 +17,7 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	mclmultisig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/multisig"
 	"github.com/multiversx/mx-chain-crypto-go/signing/multisig"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/epochStart/notifier"
 	"github.com/multiversx/mx-chain-go/factory/peerSignatureHandler"
@@ -667,15 +668,15 @@ func ProposeBlockWithConsensusSignature(
 ) (data.BodyHandler, data.HeaderHandler, [][]byte, []*TestProcessorNode) {
 	nodesCoordinatorInstance := nodesMap[shardId][0].NodesCoordinator
 
-	pubKeys, err := nodesCoordinatorInstance.GetConsensusValidatorsPublicKeys(randomness, round, shardId, epoch)
+	leaderPubKey, pubKeys, err := nodesCoordinatorInstance.GetConsensusValidatorsPublicKeys(randomness, round, shardId, epoch)
 	if err != nil {
 		log.Error("nodesCoordinator.GetConsensusValidatorsPublicKeys", "error", err)
 	}
 
 	// select nodes from map based on their pub keys
-	consensusNodes := selectTestNodesForPubKeys(nodesMap[shardId], pubKeys)
+	leaderNode, consensusNodes := selectTestNodesForPubKeys(nodesMap[shardId], leaderPubKey, pubKeys)
 	// first node is block proposer
-	body, header, txHashes := consensusNodes[0].ProposeBlock(round, nonce)
+	body, header, txHashes := leaderNode.ProposeBlock(round, nonce)
 	err = header.SetPrevRandSeed(randomness)
 	if err != nil {
 		log.Error("header.SetPrevRandSeed", "error", err)
@@ -686,16 +687,19 @@ func ProposeBlockWithConsensusSignature(
 	return body, header, txHashes, consensusNodes
 }
 
-func selectTestNodesForPubKeys(nodes []*TestProcessorNode, pubKeys []string) []*TestProcessorNode {
+func selectTestNodesForPubKeys(nodes []*TestProcessorNode, leaderPubKey string, pubKeys []string) (*TestProcessorNode, []*TestProcessorNode) {
 	selectedNodes := make([]*TestProcessorNode, len(pubKeys))
 	cntNodes := 0
-
+	var leaderNode *TestProcessorNode
 	for i, pk := range pubKeys {
 		for _, node := range nodes {
 			pubKeyBytes, _ := node.NodeKeys.MainKey.Pk.ToByteArray()
 			if bytes.Equal(pubKeyBytes, []byte(pk)) {
 				selectedNodes[i] = node
 				cntNodes++
+			}
+			if pk == leaderPubKey {
+				leaderNode = node
 			}
 		}
 	}
@@ -704,7 +708,7 @@ func selectTestNodesForPubKeys(nodes []*TestProcessorNode, pubKeys []string) []*
 		fmt.Println("Error selecting nodes from public keys")
 	}
 
-	return selectedNodes
+	return leaderNode, selectedNodes
 }
 
 // DoConsensusSigningOnBlock simulates a consensus aggregated signature on the provided block

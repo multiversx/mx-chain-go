@@ -10,6 +10,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
@@ -20,8 +23,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 var expectedErr = errors.New("expected error")
@@ -807,12 +808,14 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 	hdr.Nonce = 2
 	hdrStr, _ := container.Marshalizer().Marshal(hdr)
 	hdrHash := (&hashingMocks.HasherMock{}).Compute(string(hdrStr))
+	leader, err := sr.GetLeader()
+	assert.Nil(t, err)
 	cnsMsg = consensus.NewConsensusMessage(
 		hdrHash,
 		nil,
 		nil,
 		hdrStr,
-		[]byte(sr.ConsensusGroup()[0]),
+		[]byte(leader),
 		[]byte("sig"),
 		int(bls.MtBlockHeader),
 		0,
@@ -905,12 +908,15 @@ func TestSubroundBlock_ReceivedBlockShouldWorkWithEquivalentMessagesFlagEnabled(
 	}
 	hdrStr, _ := container.Marshalizer().Marshal(hdrV2)
 	hdrHash := (&hashingMocks.HasherMock{}).Compute(string(hdrStr))
+	leader, err := sr.GetLeader()
+	require.Nil(t, err)
+
 	cnsMsg := consensus.NewConsensusMessage(
 		hdrHash,
 		providedLeaderSignature,
 		nil,
 		hdrStr,
-		[]byte(sr.ConsensusGroup()[0]),
+		[]byte(leader),
 		[]byte("sig"),
 		int(bls.MtBlockHeader),
 		0,
@@ -936,12 +942,13 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenBodyAndHeaderAre
 	t.Parallel()
 	container := mock.InitConsensusCore()
 	sr := *initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
+	leader, _ := sr.GetLeader()
 	cnsMsg := consensus.NewConsensusMessage(
 		nil,
 		nil,
 		nil,
 		nil,
-		[]byte(sr.ConsensusGroup()[0]),
+		[]byte(leader),
 		[]byte("sig"),
 		int(bls.MtBlockBodyAndHeader),
 		0,
@@ -968,12 +975,13 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockFail
 	hdr := &block.Header{}
 	blkBody := &block.Body{}
 	blkBodyStr, _ := mock.MarshalizerMock{}.Marshal(blkBody)
+	leader, _ := sr.GetLeader()
 	cnsMsg := consensus.NewConsensusMessage(
 		nil,
 		nil,
 		blkBodyStr,
 		nil,
-		[]byte(sr.ConsensusGroup()[0]),
+		[]byte(leader),
 		[]byte("sig"),
 		int(bls.MtBlockBody),
 		0,
@@ -996,12 +1004,13 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockRetu
 	hdr := &block.Header{}
 	blkBody := &block.Body{}
 	blkBodyStr, _ := mock.MarshalizerMock{}.Marshal(blkBody)
+	leader, _ := sr.GetLeader()
 	cnsMsg := consensus.NewConsensusMessage(
 		nil,
 		nil,
 		blkBodyStr,
 		nil,
-		[]byte(sr.ConsensusGroup()[0]),
+		[]byte(leader),
 		[]byte("sig"),
 		int(bls.MtBlockBody),
 		0,
@@ -1033,12 +1042,13 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnTrue(t *testing.T) {
 		hdr, blkBody, _ := container.BlockProcessor().CreateBlock(hdr, func() bool { return true })
 
 		blkBodyStr, _ := mock.MarshalizerMock{}.Marshal(blkBody)
+		leader, _ := sr.GetLeader()
 		cnsMsg := consensus.NewConsensusMessage(
 			nil,
 			nil,
 			blkBodyStr,
 			nil,
-			[]byte(sr.ConsensusGroup()[0]),
+			[]byte(leader),
 			[]byte("sig"),
 			int(bls.MtBlockBody),
 			0,

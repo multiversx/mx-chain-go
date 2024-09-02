@@ -37,6 +37,7 @@ func internalInitConsensusStateWithKeysHandler(keysHandler consensus.KeysHandler
 	)
 
 	rcns.SetConsensusGroup(eligibleList)
+	rcns.SetLeader(eligibleList[0])
 	rcns.ResetRoundState()
 
 	rthr := spos.NewRoundThreshold()

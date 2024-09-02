@@ -7,13 +7,14 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-	"github.com/stretchr/testify/assert"
 )
 
 var chainID = []byte("chain ID")
@@ -57,6 +58,7 @@ func initConsensusState() *spos.ConsensusState {
 	)
 
 	rcns.SetConsensusGroup(eligibleList)
+	rcns.SetLeader(eligibleList[indexLeader])
 	rcns.ResetRoundState()
 
 	pBFTThreshold := consensusGroupSize*2/3 + 1

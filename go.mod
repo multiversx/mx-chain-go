@@ -4,6 +4,7 @@ go 1.20
 
 require (
 	github.com/beevik/ntp v1.3.0
+	github.com/btcsuite/btcutil v0.0.0-20190425235716-9e5f4b9a998d
 	github.com/davecgh/go-spew v1.1.1
 	github.com/gin-contrib/cors v1.4.0
 	github.com/gin-contrib/pprof v1.4.0
