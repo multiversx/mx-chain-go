@@ -14,6 +14,8 @@ type shardRequestersContainerFactory struct {
 	*baseRequestersContainerFactory
 }
 
+// THIS SHOULD BE CHANGED FOR SOVEREIGN
+
 // NewShardRequestersContainerFactory creates a new container filled with topic requesters for shards
 func NewShardRequestersContainerFactory(
 	args FactoryArgs,
