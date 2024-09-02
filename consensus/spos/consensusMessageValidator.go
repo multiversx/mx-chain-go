@@ -458,6 +458,8 @@ func (cmv *consensusMessageValidator) checkMessageWithFinalInfoValidity(cnsMsg *
 }
 
 func (cmv *consensusMessageValidator) shouldNotVerifyLeaderSignature() bool {
+	// TODO: handle case when equivalent messages flag is not activated and we ignore verifying
+	// leader singature because consensus header is not set
 	if check.IfNil(cmv.consensusState.Header) {
 		return true
 	}
