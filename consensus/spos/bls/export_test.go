@@ -368,7 +368,7 @@ func (sr *subroundStartRound) IndexRoundIfNeeded(pubKeys []string) {
 	sr.indexRoundIfNeeded(pubKeys)
 }
 
-// SendSignature calls the unexported sendSignature function
+// SendSignatureForManagedKey calls the unexported sendSignatureForManagedKey function
 func (sr *subroundSignature) SendSignatureForManagedKey(idx int, pk string) bool {
 	return sr.sendSignatureForManagedKey(idx, pk)
 }
