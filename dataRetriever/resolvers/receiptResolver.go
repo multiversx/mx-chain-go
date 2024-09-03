@@ -2,6 +2,7 @@ package resolvers
 
 import (
 	"fmt"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/batch"
@@ -10,6 +11,9 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
+
+// maxBuffToSendBulkReceipts represents max buffer size to send in bytes
+const maxBuffToSendBulkReceipts = 1 << 18 // 256KB
 
 // ArgReceiptResolver is the argument structure used to create a new receiptResolver instance
 type ArgReceiptResolver struct {
@@ -20,7 +24,7 @@ type ArgReceiptResolver struct {
 	IsFullHistoryNode bool
 }
 
-// miniblockResolver is a wrapper over Resolver that is specialized in resolving receipts requests
+// receiptResolver is a wrapper over Resolver that is specialized in resolving receipts requests
 type receiptResolver struct {
 	*baseResolver
 	messageProcessor
@@ -135,7 +139,7 @@ func (rcRes *receiptResolver) resolveReceiptRequestByHashArray(mbBuff []byte, pi
 
 	var errFetch error
 	errorsFound := 0
-	mbsBuffSlice := make([][]byte, 0, len(hashes))
+	rcpBuffSlice := make([][]byte, 0, len(hashes))
 	for _, hash := range hashes {
 		mb, errTemp := rcRes.fetchReceiptAsByteSlice(hash, epoch)
 		if errTemp != nil {
@@ -147,10 +151,10 @@ func (rcRes *receiptResolver) resolveReceiptRequestByHashArray(mbBuff []byte, pi
 
 			continue
 		}
-		mbsBuffSlice = append(mbsBuffSlice, mb)
+		rcpBuffSlice = append(rcpBuffSlice, mb)
 	}
 
-	buffsToSend, errPack := rcRes.dataPacker.PackDataInChunks(mbsBuffSlice, maxBuffToSendBulkMiniblocks)
+	buffsToSend, errPack := rcRes.dataPacker.PackDataInChunks(rcpBuffSlice, maxBuffToSendBulkReceipts)
 	if errPack != nil {
 		return errPack
 	}
@@ -163,7 +167,7 @@ func (rcRes *receiptResolver) resolveReceiptRequestByHashArray(mbBuff []byte, pi
 	}
 
 	if errFetch != nil {
-		errFetch = fmt.Errorf("resolveMbRequestByHashArray last error %w from %d encountered errors", errFetch, errorsFound)
+		errFetch = fmt.Errorf("resolveReceiptRequestByHashArray last error %w from %d encountered errors", errFetch, errorsFound)
 	}
 
 	return errFetch
@@ -178,7 +182,7 @@ func checkArgReceiptResolver(arg ArgReceiptResolver) error {
 		return dataRetriever.ErrNilReceiptsPool
 	}
 	if check.IfNil(arg.ReceiptStorage) {
-		return dataRetriever.ErrNilMiniblocksStorage
+		return dataRetriever.ErrNilReceiptsStorage
 	}
 	if check.IfNil(arg.DataPacker) {
 		return dataRetriever.ErrNilDataPacker

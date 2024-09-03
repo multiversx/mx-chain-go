@@ -422,7 +422,7 @@ func (brcf *baseResolversContainerFactory) generateReceiptResolver() error {
 	shardC := brcf.shardCoordinator
 
 	// only one shard receipt topic
-	identifier := factory.ReceiptTopic
+	identifier := factory.ReceiptTopic + shardC.CommunicationIdentifier(shardC.SelfId())
 
 	receiptDataStorer, err := brcf.store.GetStorer(dataRetriever.ReceiptDataUnit)
 	if err != nil {
