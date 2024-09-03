@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestSovereignIndexHashedNodesCoordinator_ComputeNumberOfShards(t *testing.T) {
+func TestSovereignNumberOfShardsComputer_ComputeNumberOfShards(t *testing.T) {
 	t.Parallel()
 
 	t.Run("should not work with 0", func(t *testing.T) {

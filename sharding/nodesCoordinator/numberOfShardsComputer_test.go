@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestSovereignNumberOfShardsComputer_ComputeNumberOfShards(t *testing.T) {
+func TestNumberOfShardsComputer_ComputeNumberOfShards(t *testing.T) {
 	t.Parallel()
 
 	t.Run("should fail with less than 2", func(t *testing.T) {
