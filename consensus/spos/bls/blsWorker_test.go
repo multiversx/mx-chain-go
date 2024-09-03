@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/exp/slices"
 
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -39,13 +40,14 @@ func createEligibleListFromMap(mapKeys map[string]crypto.PrivateKey) []string {
 	for key := range mapKeys {
 		eligibleList = append(eligibleList, key)
 	}
+	slices.Sort(eligibleList)
 	return eligibleList
 }
 
 func initConsensusStateWithKeysHandlerWithGroupSizeWithRealKeys(keysHandler consensus.KeysHandler, consensusGroupSize int, mapKeys map[string]crypto.PrivateKey) *spos.ConsensusState {
 	eligibleList := createEligibleListFromMap(mapKeys)
 
-	eligibleNodesPubKeys := make(map[string]struct{})
+	eligibleNodesPubKeys := make(map[string]struct{}, len(eligibleList))
 	for _, key := range eligibleList {
 		eligibleNodesPubKeys[key] = struct{}{}
 	}
