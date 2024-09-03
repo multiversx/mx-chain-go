@@ -3,15 +3,15 @@ package spos_test
 import (
 	"testing"
 
-	"github.com/multiversx/mx-chain-go/consensus/mock"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
-	"github.com/stretchr/testify/assert"
 )
 
 func createDefaultConsensusCoreArgs() *spos.ConsensusCoreArgs {
-	consensusCoreMock := mock.InitConsensusCore()
+	consensusCoreMock := consensus.InitConsensusCore()
 
 	scheduledProcessor := &consensus.ScheduledProcessorStub{}
 

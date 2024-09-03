@@ -16,6 +16,7 @@ import (
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	testscommonConsensus "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	testscommonOutport "github.com/multiversx/mx-chain-go/testscommon/outport"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
@@ -56,7 +57,7 @@ func initWorker() spos.WorkerHandler {
 	return sposWorker
 }
 
-func initFactoryWithContainer(container *mock.ConsensusCoreMock) bls.Factory {
+func initFactoryWithContainer(container *testscommonConsensus.ConsensusCoreMock) bls.Factory {
 	worker := initWorker()
 	consensusState := initConsensusState()
 
@@ -75,7 +76,7 @@ func initFactoryWithContainer(container *mock.ConsensusCoreMock) bls.Factory {
 }
 
 func initFactory() bls.Factory {
-	container := mock.InitConsensusCore()
+	container := testscommonConsensus.InitConsensusCore()
 	return initFactoryWithContainer(container)
 }
 
@@ -128,7 +129,7 @@ func TestFactory_NewFactoryNilContainerShouldFail(t *testing.T) {
 func TestFactory_NewFactoryNilConsensusStateShouldFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitConsensusCore()
+	container := testscommonConsensus.InitConsensusCore()
 	worker := initWorker()
 
 	fct, err := bls.NewSubroundsFactory(
@@ -150,7 +151,7 @@ func TestFactory_NewFactoryNilBlockchainShouldFail(t *testing.T) {
 	t.Parallel()
 
 	consensusState := initConsensusState()
-	container := mock.InitConsensusCore()
+	container := testscommonConsensus.InitConsensusCore()
 	worker := initWorker()
 	container.SetBlockchain(nil)
 
@@ -173,7 +174,7 @@ func TestFactory_NewFactoryNilBlockProcessorShouldFail(t *testing.T) {
 	t.Parallel()
 
 	consensusState := initConsensusState()
-	container := mock.InitConsensusCore()
+	container := testscommonConsensus.InitConsensusCore()
 	worker := initWorker()
 	container.SetBlockProcessor(nil)
 
@@ -196,7 +197,7 @@ func TestFactory_NewFactoryNilBootstrapperShouldFail(t *testing.T) {
 	t.Parallel()
 
 	consensusState := initConsensusState()
-	container := mock.InitConsensusCore()
+	container := testscommonConsensus.InitConsensusCore()
 	worker := initWorker()
 	container.SetBootStrapper(nil)
 
@@ -219,7 +220,7 @@ func TestFactory_NewFactoryNilChronologyHandlerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	consensusState := initConsensusState()
-	container := mock.InitConsensusCore()
+	container := testscommonConsensus.InitConsensusCore()
 	worker := initWorker()
 	container.SetChronology(nil)
 
@@ -242,7 +243,7 @@ func TestFactory_NewFactoryNilHasherShouldFail(t *testing.T) {
 	t.Parallel()
 
 	consensusState := initConsensusState()
-	container := mock.InitConsensusCore()
+	container := testscommonConsensus.InitConsensusCore()
 	worker := initWorker()
 	container.SetHasher(nil)
 
@@ -265,7 +266,7 @@ func TestFactory_NewFactoryNilMarshalizerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	consensusState := initConsensusState()
-	container := mock.InitConsensusCore()
+	container := testscommonConsensus.InitConsensusCore()
 	worker := initWorker()
 	container.SetMarshalizer(nil)
 
@@ -288,7 +289,7 @@ func TestFactory_NewFactoryNilMultiSignerContainerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	consensusState := initConsensusState()
-	container := mock.InitConsensusCore()
+	container := testscommonConsensus.InitConsensusCore()
 	worker := initWorker()
 	container.SetMultiSignerContainer(nil)
 
@@ -311,7 +312,7 @@ func TestFactory_NewFactoryNilRoundHandlerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	consensusState := initConsensusState()
-	container := mock.InitConsensusCore()
+	container := testscommonConsensus.InitConsensusCore()
 	worker := initWorker()
 	container.SetRoundHandler(nil)
 
@@ -334,7 +335,7 @@ func TestFactory_NewFactoryNilShardCoordinatorShouldFail(t *testing.T) {
 	t.Parallel()
 
 	consensusState := initConsensusState()
-	container := mock.InitConsensusCore()
+	container := testscommonConsensus.InitConsensusCore()
 	worker := initWorker()
 	container.SetShardCoordinator(nil)
 
@@ -357,7 +358,7 @@ func TestFactory_NewFactoryNilSyncTimerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	consensusState := initConsensusState()
-	container := mock.InitConsensusCore()
+	container := testscommonConsensus.InitConsensusCore()
 	worker := initWorker()
 	container.SetSyncTimer(nil)
 
@@ -380,7 +381,7 @@ func TestFactory_NewFactoryNilValidatorGroupSelectorShouldFail(t *testing.T) {
 	t.Parallel()
 
 	consensusState := initConsensusState()
-	container := mock.InitConsensusCore()
+	container := testscommonConsensus.InitConsensusCore()
 	worker := initWorker()
 	container.SetValidatorGroupSelector(nil)
 
@@ -403,7 +404,7 @@ func TestFactory_NewFactoryNilWorkerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	consensusState := initConsensusState()
-	container := mock.InitConsensusCore()
+	container := testscommonConsensus.InitConsensusCore()
 
 	fct, err := bls.NewSubroundsFactory(
 		container,
@@ -424,7 +425,7 @@ func TestFactory_NewFactoryNilAppStatusHandlerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	consensusState := initConsensusState()
-	container := mock.InitConsensusCore()
+	container := testscommonConsensus.InitConsensusCore()
 	worker := initWorker()
 
 	fct, err := bls.NewSubroundsFactory(
@@ -446,7 +447,7 @@ func TestFactory_NewFactoryNilSignaturesTrackerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	consensusState := initConsensusState()
-	container := mock.InitConsensusCore()
+	container := testscommonConsensus.InitConsensusCore()
 	worker := initWorker()
 
 	fct, err := bls.NewSubroundsFactory(
@@ -468,7 +469,7 @@ func TestFactory_NewFactoryNilThrottlerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	consensusState := initConsensusState()
-	container := mock.InitConsensusCore()
+	container := testscommonConsensus.InitConsensusCore()
 	worker := initWorker()
 
 	fct, err := bls.NewSubroundsFactory(
@@ -498,7 +499,7 @@ func TestFactory_NewFactoryEmptyChainIDShouldFail(t *testing.T) {
 	t.Parallel()
 
 	consensusState := initConsensusState()
-	container := mock.InitConsensusCore()
+	container := testscommonConsensus.InitConsensusCore()
 	worker := initWorker()
 
 	fct, err := bls.NewSubroundsFactory(
@@ -532,7 +533,7 @@ func TestFactory_GenerateSubroundStartRoundShouldFailWhenNewSubroundFail(t *test
 func TestFactory_GenerateSubroundStartRoundShouldFailWhenNewSubroundStartRoundFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitConsensusCore()
+	container := testscommonConsensus.InitConsensusCore()
 	fct := *initFactoryWithContainer(container)
 	container.SetSyncTimer(nil)
 
@@ -557,7 +558,7 @@ func TestFactory_GenerateSubroundBlockShouldFailWhenNewSubroundFail(t *testing.T
 func TestFactory_GenerateSubroundBlockShouldFailWhenNewSubroundBlockFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitConsensusCore()
+	container := testscommonConsensus.InitConsensusCore()
 	fct := *initFactoryWithContainer(container)
 	container.SetSyncTimer(nil)
 
@@ -582,7 +583,7 @@ func TestFactory_GenerateSubroundSignatureShouldFailWhenNewSubroundFail(t *testi
 func TestFactory_GenerateSubroundSignatureShouldFailWhenNewSubroundSignatureFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitConsensusCore()
+	container := testscommonConsensus.InitConsensusCore()
 	fct := *initFactoryWithContainer(container)
 	container.SetSyncTimer(nil)
 
@@ -607,7 +608,7 @@ func TestFactory_GenerateSubroundEndRoundShouldFailWhenNewSubroundFail(t *testin
 func TestFactory_GenerateSubroundEndRoundShouldFailWhenNewSubroundEndRoundFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitConsensusCore()
+	container := testscommonConsensus.InitConsensusCore()
 	fct := *initFactoryWithContainer(container)
 	container.SetSyncTimer(nil)
 
@@ -621,11 +622,11 @@ func TestFactory_GenerateSubroundsShouldWork(t *testing.T) {
 
 	subroundHandlers := 0
 
-	chrm := &mock.ChronologyHandlerMock{}
+	chrm := &testscommonConsensus.ChronologyHandlerMock{}
 	chrm.AddSubroundCalled = func(subroundHandler consensus.SubroundHandler) {
 		subroundHandlers++
 	}
-	container := mock.InitConsensusCore()
+	container := testscommonConsensus.InitConsensusCore()
 	container.SetChronology(chrm)
 	fct := *initFactoryWithContainer(container)
 	fct.SetOutportHandler(&testscommonOutport.OutportStub{})
@@ -639,7 +640,7 @@ func TestFactory_GenerateSubroundsShouldWork(t *testing.T) {
 func TestFactory_GenerateSubroundsNilOutportShouldFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitConsensusCore()
+	container := testscommonConsensus.InitConsensusCore()
 	fct := *initFactoryWithContainer(container)
 
 	err := fct.GenerateSubrounds()
@@ -649,7 +650,7 @@ func TestFactory_GenerateSubroundsNilOutportShouldFail(t *testing.T) {
 func TestFactory_SetIndexerShouldWork(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitConsensusCore()
+	container := testscommonConsensus.InitConsensusCore()
 	fct := *initFactoryWithContainer(container)
 
 	outportHandler := &testscommonOutport.OutportStub{}

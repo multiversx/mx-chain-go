@@ -8,16 +8,18 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	testscommonConsensus "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
-	"github.com/stretchr/testify/assert"
 )
 
 func createDefaultConsensusMessageValidatorArgs() spos.ArgsConsensusMessageValidator {
@@ -31,7 +33,7 @@ func createDefaultConsensusMessageValidatorArgs() spos.ArgsConsensusMessageValid
 			return nil
 		},
 	}
-	keyGeneratorMock, _, _ := mock.InitKeys()
+	keyGeneratorMock, _, _ := testscommonConsensus.InitKeys()
 	peerSigHandler := &mock.PeerSignatureHandler{Signer: singleSignerMock, KeyGen: keyGeneratorMock}
 	hasher := &hashingMocks.HasherMock{}
 
