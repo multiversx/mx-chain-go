@@ -144,18 +144,18 @@ type epochStartBootstrap struct {
 	nodesCoordinatorRegistryFactory nodesCoordinator.NodesCoordinatorRegistryFactory
 
 	// gathered data
-	epochStartMeta      data.MetaHeaderHandler
-	prevEpochStartMeta  data.MetaHeaderHandler
-	syncedHeaders       map[string]data.HeaderHandler
-	nodesConfig         nodesCoordinator.NodesCoordinatorRegistryHandler
-	baseData            baseDataInStorage
-	startRound          int64
-	nodeType            core.NodeType
-	startEpoch          uint32
-	shuffledOut         bool
-	getDataToSyncMethod func(epochStartData data.EpochStartShardDataHandler, shardNotarizedHeader data.ShardHeaderHandler) (*dataToSync, error)
-
-	runTypeComponents RunTypeComponentsHolder
+	epochStartMeta              data.MetaHeaderHandler
+	prevEpochStartMeta          data.MetaHeaderHandler
+	syncedHeaders               map[string]data.HeaderHandler
+	nodesConfig                 nodesCoordinator.NodesCoordinatorRegistryHandler
+	baseData                    baseDataInStorage
+	startRound                  int64
+	nodeType                    core.NodeType
+	startEpoch                  uint32
+	shuffledOut                 bool
+	getDataToSyncMethod         func(epochStartData data.EpochStartShardDataHandler, shardNotarizedHeader data.ShardHeaderHandler) (*dataToSync, error)
+	shardForLatestEpochComputer ShardForLatestEpochComputer
+	runTypeComponents           RunTypeComponentsHolder
 }
 
 type baseDataInStorage struct {
@@ -249,6 +249,8 @@ func NewEpochStartBootstrap(args ArgsEpochStartBootstrap) (*epochStartBootstrap,
 		nodesCoordinatorRegistryFactory: args.NodesCoordinatorRegistryFactory,
 		runTypeComponents:               args.RunTypeComponents,
 	}
+
+	epochStartProvider.shardForLatestEpochComputer = epochStartProvider
 
 	if epochStartProvider.prefsConfig.FullArchive {
 		epochStartProvider.nodeOperationMode = common.FullArchiveMode
@@ -428,7 +430,7 @@ func (e *epochStartBootstrap) bootstrapFromLocalStorage() (Parameters, error) {
 		}, nil
 	}
 
-	newShardId, shuffledOut, err := e.getShardIDForLatestEpoch()
+	newShardId, shuffledOut, err := e.shardForLatestEpochComputer.GetShardIDForLatestEpoch()
 	if err != nil {
 		return Parameters{}, err
 	}
