@@ -39,7 +39,7 @@ var log = logger.GetOrCreate("factory")
 
 const defaultSpan = 300 * time.Second
 
-const numSignatureGoRoutinesThrottler = 64
+const numSignatureGoRoutinesThrottler = 30
 
 // ConsensusComponentsFactoryArgs holds the arguments needed to create a consensus components factory
 type ConsensusComponentsFactoryArgs struct {
@@ -265,10 +265,11 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 	if err != nil {
 		return nil, err
 	}
-	signatureThrotthler, err := throttler.NewNumGoRoutinesThrottler(numSignatureGoRoutinesThrottler)
+	signatureThrottler, err := throttler.NewNumGoRoutinesThrottler(numSignatureGoRoutinesThrottler)
 	if err != nil {
 		return nil, err
 	}
+
 
 	fct, err := sposFactory.GetSubroundsFactory(
 		consensusDataContainer,
@@ -280,7 +281,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		ccf.processComponents.SentSignaturesTracker(),
 		[]byte(ccf.coreComponents.ChainID()),
 		ccf.networkComponents.NetworkMessenger().ID(),
-		signatureThrotthler,
+		signatureThrottler,
 	)
 	if err != nil {
 		return nil, err

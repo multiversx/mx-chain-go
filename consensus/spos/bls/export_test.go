@@ -369,6 +369,16 @@ func (sr *subroundStartRound) IndexRoundIfNeeded(pubKeys []string) {
 	sr.indexRoundIfNeeded(pubKeys)
 }
 
+// SendSignatureForManagedKey calls the unexported sendSignatureForManagedKey function
+func (sr *subroundSignature) SendSignatureForManagedKey(idx int, pk string) bool {
+	return sr.sendSignatureForManagedKey(idx, pk)
+}
+
+// DoSignatureJobForManagedKeys calls the unexported doSignatureJobForManagedKeys function
+func (sr *subroundSignature) DoSignatureJobForManagedKeys(ctx context.Context) bool {
+	return sr.doSignatureJobForManagedKeys(ctx)
+}
+
 func (sr *subroundEndRound) SignatureVerification(wg *sync.WaitGroup, i int, pk string, invalidPubKey *[]string, mutex *sync.Mutex, sigShare []byte, mutexBool *sync.Mutex, errorReturned *error) {
 	sr.signatureVerification(wg, i, pk, invalidPubKey, mutex, sigShare, mutexBool, errorReturned)
 }

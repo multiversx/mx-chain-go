@@ -238,6 +238,7 @@ func (fct *factory) generateSignatureSubround() error {
 		fct.appStatusHandler,
 		fct.sentSignaturesTracker,
 		fct.worker,
+		fct.signatureThrottler,
 	)
 	if err != nil {
 		return err

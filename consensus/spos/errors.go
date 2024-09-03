@@ -265,7 +265,7 @@ var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
 // ErrMissingProposerSignature signals that proposer signature is missing
 var ErrMissingProposerSignature = errors.New("missing proposer signature")
 
-// ErrNilThrottler signals that a throttler is nil
+// ErrNilThrottler signals that a nil throttler has been provided
 var ErrNilThrottler = errors.New("nil throttler")
 
 // ErrTimeIsOut signals that time is out
