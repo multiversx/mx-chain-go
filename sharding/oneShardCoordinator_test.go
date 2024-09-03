@@ -27,7 +27,7 @@ func TestOneShardCoordinator_NumberOfShardsShouldWork(t *testing.T) {
 	communicationID := oneShardCoordinator.CommunicationIdentifier(0)
 	require.Equal(t, core.CommunicationIdentifierBetweenShards(0, 0), communicationID)
 
-	isInterfaceNile := oneShardCoordinator.IsInterfaceNil()
-	require.False(t, isInterfaceNile)
+	isInterfaceNil := oneShardCoordinator.IsInterfaceNil()
+	require.False(t, isInterfaceNil)
 
 }
