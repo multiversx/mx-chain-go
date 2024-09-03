@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
-	//"github.com/multiversx/mx-chain-go/consensus"
+	cons "github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/broadcast"
 	"github.com/multiversx/mx-chain-go/consensus/broadcast/shared"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
@@ -314,7 +314,7 @@ func TestMetaChainMessenger_Close(t *testing.T) {
 
 	args := createDefaultMetaChainArgs()
 	closeCalled := false
-	delayedBroadcaster := &mock.DelayedBroadcasterMock{
+	delayedBroadcaster := &consensus.DelayedBroadcasterMock{
 		CloseCalled: func() {
 			closeCalled = true
 		},
@@ -334,7 +334,7 @@ func TestMetaChainMessenger_PrepareBroadcastHeaderValidator(t *testing.T) {
 		t.Parallel()
 
 		args := createDefaultMetaChainArgs()
-		delayedBroadcaster := &mock.DelayedBroadcasterMock{
+		delayedBroadcaster := &consensus.DelayedBroadcasterMock{
 			SetHeaderForValidatorCalled: func(vData *shared.ValidatorHeaderBroadcastData) error {
 				require.Fail(t, "SetHeaderForValidator should not be called")
 				return nil
@@ -350,7 +350,7 @@ func TestMetaChainMessenger_PrepareBroadcastHeaderValidator(t *testing.T) {
 		t.Parallel()
 
 		args := createDefaultMetaChainArgs()
-		delayedBroadcaster := &mock.DelayedBroadcasterMock{
+		delayedBroadcaster := &consensus.DelayedBroadcasterMock{
 			SetHeaderForValidatorCalled: func(vData *shared.ValidatorHeaderBroadcastData) error {
 				require.Fail(t, "SetHeaderForValidator should not be called")
 				return nil
@@ -369,7 +369,7 @@ func TestMetaChainMessenger_PrepareBroadcastHeaderValidator(t *testing.T) {
 
 		args := createDefaultMetaChainArgs()
 		checkVarModified := false
-		delayedBroadcaster := &mock.DelayedBroadcasterMock{
+		delayedBroadcaster := &consensus.DelayedBroadcasterMock{
 			SetHeaderForValidatorCalled: func(vData *shared.ValidatorHeaderBroadcastData) error {
 				checkVarModified = true
 				return expectedErr
@@ -402,8 +402,8 @@ func TestMetaChainMessenger_NewMetaChainMessengerFailSetBroadcast(t *testing.T) 
 
 	args := createDefaultMetaChainArgs()
 	varModified := false
-	delayedBroadcaster := &mock.DelayedBroadcasterMock{
-		SetBroadcastHandlersCalled: func(mbBroadcast func(mbData map[uint32][]byte, pkBytes []byte) error, txBroadcast func(txData map[string][][]byte, pkBytes []byte) error, headerBroadcast func(header data.HeaderHandler, pkBytes []byte) error, consensusMessageBroadcast func(message *consensus.Message) error) error {
+	delayedBroadcaster := &consensus.DelayedBroadcasterMock{
+		SetBroadcastHandlersCalled: func(mbBroadcast func(mbData map[uint32][]byte, pkBytes []byte) error, txBroadcast func(txData map[string][][]byte, pkBytes []byte) error, headerBroadcast func(header data.HeaderHandler, pkBytes []byte) error, consensusMessageBroadcast func(message *cons.Message) error) error {
 			varModified = true
 			return expectedErr
 		},
