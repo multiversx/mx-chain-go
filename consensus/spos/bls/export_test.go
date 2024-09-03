@@ -374,6 +374,6 @@ func (sr *subroundSignature) SendSignatureForManagedKey(idx int, pk string) bool
 }
 
 // DoSignatureJobForManagedKeys calls the unexported doSignatureJobForManagedKeys function
-func (sr *subroundSignature) DoSignatureJobForManagedKeys() bool {
-	return sr.doSignatureJobForManagedKeys()
+func (sr *subroundSignature) DoSignatureJobForManagedKeys(ctx context.Context) bool {
+	return sr.doSignatureJobForManagedKeys(ctx)
 }
