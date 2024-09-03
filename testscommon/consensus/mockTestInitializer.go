@@ -15,7 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/bootstrapperStubs"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
-	testscommonConsensus "github.com/multiversx/mx-chain-go/testscommon/epochstartmock"
+	epochstartMock "github.com/multiversx/mx-chain-go/testscommon/epochstartmock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
@@ -199,7 +199,7 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *Consensus
 			}, nil
 		},
 	}
-	epochStartSubscriber := &testscommonConsensus.EpochStartNotifierStub{}
+	epochStartSubscriber := &epochstartMock.EpochStartNotifierStub{}
 	antifloodHandler := &mock.P2PAntifloodHandlerStub{}
 	headerPoolSubscriber := &pool.HeadersPoolStub{}
 	peerHonestyHandler := &testscommon.PeerHonestyHandlerStub{}
