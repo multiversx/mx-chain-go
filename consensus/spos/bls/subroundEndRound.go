@@ -22,11 +22,6 @@ import (
 
 const timeBetweenSignaturesChecks = time.Millisecond * 5
 
-type ErrSigVerificationPair struct {
-	Err1 error
-	Err2 error
-}
-
 type subroundEndRound struct {
 	*spos.Subround
 	processingThresholdPercentage int
