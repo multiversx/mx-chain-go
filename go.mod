@@ -14,25 +14,25 @@ require (
 	github.com/gorilla/websocket v1.5.0
 	github.com/klauspost/cpuid/v2 v2.2.5
 	github.com/mitchellh/mapstructure v1.5.0
-	github.com/multiversx/mx-chain-communication-go v1.0.14
-	github.com/multiversx/mx-chain-core-go v1.2.20
-	github.com/multiversx/mx-chain-crypto-go v1.2.11
-	github.com/multiversx/mx-chain-es-indexer-go v1.4.21
-	github.com/multiversx/mx-chain-logger-go v1.0.14
-	github.com/multiversx/mx-chain-scenario-go v1.4.3
-	github.com/multiversx/mx-chain-storage-go v1.0.15
-	github.com/multiversx/mx-chain-vm-common-go v1.5.12
-	github.com/multiversx/mx-chain-vm-go v1.5.29
-	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.67
-	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.68
-	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.97
+	github.com/multiversx/mx-chain-communication-go v1.1.0
+	github.com/multiversx/mx-chain-core-go v1.2.22-0.20240823091930-22b700471ada
+	github.com/multiversx/mx-chain-crypto-go v1.2.12
+	github.com/multiversx/mx-chain-es-indexer-go v1.7.5-0.20240807095116-4f2f595e52d9
+	github.com/multiversx/mx-chain-logger-go v1.0.15
+	github.com/multiversx/mx-chain-scenario-go v1.4.4
+	github.com/multiversx/mx-chain-storage-go v1.0.16
+	github.com/multiversx/mx-chain-vm-common-go v1.5.14-0.20240830102128-33dd73d11361
+	github.com/multiversx/mx-chain-vm-go v1.5.32-0.20240830102521-585b30e96690
+	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.68
+	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.69
+	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.98
 	github.com/pelletier/go-toml v1.9.3
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.14.0
 	github.com/shirou/gopsutil v3.21.11+incompatible
 	github.com/stretchr/testify v1.8.4
 	github.com/urfave/cli v1.22.10
-	golang.org/x/crypto v0.21.0
+	golang.org/x/crypto v0.10.0
 	gopkg.in/go-playground/validator.v8 v8.18.2
 )
 
@@ -175,10 +175,10 @@ require (
 	golang.org/x/arch v0.3.0 // indirect
 	golang.org/x/exp v0.0.0-20230321023759-10a507213a29 // indirect
 	golang.org/x/mod v0.10.0 // indirect
-	golang.org/x/net v0.21.0 // indirect
+	golang.org/x/net v0.11.0 // indirect
 	golang.org/x/sync v0.2.0 // indirect
-	golang.org/x/sys v0.19.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
+	golang.org/x/sys v0.10.0 // indirect
+	golang.org/x/text v0.10.0 // indirect
 	golang.org/x/tools v0.9.1 // indirect
 	gonum.org/v1/gonum v0.11.0 // indirect
 	google.golang.org/protobuf v1.30.0 // indirect

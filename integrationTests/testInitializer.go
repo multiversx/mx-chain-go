@@ -69,6 +69,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/guardianMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
 	testStorage "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -153,7 +154,7 @@ func createP2PConfig(initialPeerList []string) p2pConfig.P2PConfig {
 			Enabled:                          true,
 			Type:                             "optimized",
 			RefreshIntervalInSec:             2,
-			ProtocolID:                       "/erd/kad/1.0.0",
+			ProtocolIDs:                      []string{"/erd/kad/1.0.0"},
 			InitialPeerList:                  initialPeerList,
 			BucketSize:                       100,
 			RoutingTableRefreshIntervalInSec: 100,
@@ -681,6 +682,7 @@ func CreateFullGenesisBlocks(
 			WasmVMVersions: []config.WasmVMVersionByEpoch{
 				{StartEpoch: 0, Version: "*"},
 			},
+			TransferAndExecuteByUserAddresses: []string{"erd1fpkcgel4gcmh8zqqdt043yfcn5tyx8373kg6q2qmkxzu4dqamc0swts65c"},
 		},
 		TrieStorageManagers: trieStorageManagers,
 		SystemSCConfig: config.SystemSmartContractsConfig{
@@ -797,6 +799,7 @@ func CreateGenesisMetaBlock(
 			WasmVMVersions: []config.WasmVMVersionByEpoch{
 				{StartEpoch: 0, Version: "*"},
 			},
+			TransferAndExecuteByUserAddresses: []string{"erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe3"},
 		},
 		HardForkConfig: config.HardforkConfig{},
 		SystemSCConfig: config.SystemSmartContractsConfig{
@@ -1053,15 +1056,17 @@ func CreateSimpleTxProcessor(accnts state.AccountsAdapter) process.TransactionPr
 				return fee
 			},
 		},
-		ReceiptForwarder:    &mock.IntermediateTransactionHandlerMock{},
-		BadTxForwarder:      &mock.IntermediateTransactionHandlerMock{},
-		ArgsParser:          smartContract.NewArgumentParser(),
-		ScrForwarder:        &mock.IntermediateTransactionHandlerMock{},
-		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
-		GuardianChecker:     &guardianMocks.GuardedAccountHandlerStub{},
-		TxLogsProcessor:     &mock.TxLogsProcessorStub{},
+		ReceiptForwarder:        &mock.IntermediateTransactionHandlerMock{},
+		BadTxForwarder:          &mock.IntermediateTransactionHandlerMock{},
+		ArgsParser:              smartContract.NewArgumentParser(),
+		ScrForwarder:            &mock.IntermediateTransactionHandlerMock{},
+		EnableRoundsHandler:     &testscommon.EnableRoundsHandlerStub{},
+		EnableEpochsHandler:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		TxVersionChecker:        &testscommon.TxVersionCheckerStub{},
+		GuardianChecker:         &guardianMocks.GuardedAccountHandlerStub{},
+		TxLogsProcessor:         &mock.TxLogsProcessorStub{},
+		RelayedTxV3Processor:    &processMocks.RelayedTxV3ProcessorMock{},
+		FailedTxLogsAccumulator: &processMocks.FailedTxLogsAccumulatorMock{},
 	}
 	txProcessor, _ := txProc.NewTxProcessor(argsNewTxProcessor)
 

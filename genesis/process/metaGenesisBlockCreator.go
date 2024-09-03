@@ -19,6 +19,7 @@ import (
 	disabledCommon "github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/forking"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
@@ -27,6 +28,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
+	disabledProcess "github.com/multiversx/mx-chain-go/process/disabled"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/factory/metachain"
 	disabledGuardian "github.com/multiversx/mx-chain-go/process/guardian/disabled"
@@ -190,7 +192,8 @@ func createMetaGenesisBlockAfterHardFork(
 		return nil, nil, nil, process.ErrWrongTypeAssertion
 	}
 
-	err = arg.Accounts.RecreateTrie(hdrHandler.GetRootHash())
+	rootHashHolder := holders.NewDefaultRootHashesHolder(hdrHandler.GetRootHash())
+	err = arg.Accounts.RecreateTrie(rootHashHolder)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -428,6 +431,11 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		return nil, err
 	}
 
+	err = arg.Core.EconomicsData().SetTxTypeHandler(txTypeHandler)
+	if err != nil {
+		return nil, err
+	}
+
 	gasHandler, err := preprocess.NewGasComputation(arg.Economics, txTypeHandler, enableEpochsHandler)
 	if err != nil {
 		return nil, err
@@ -435,28 +443,29 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 
 	argsParser := smartContract.NewArgumentParser()
 	argsNewSCProcessor := scrCommon.ArgsNewSmartContractProcessor{
-		VmContainer:         vmContainer,
-		ArgsParser:          argsParser,
-		Hasher:              arg.Core.Hasher(),
-		Marshalizer:         arg.Core.InternalMarshalizer(),
-		AccountsDB:          arg.Accounts,
-		BlockChainHook:      virtualMachineFactory.BlockChainHookImpl(),
-		BuiltInFunctions:    builtInFuncs,
-		PubkeyConv:          arg.Core.AddressPubKeyConverter(),
-		ShardCoordinator:    arg.ShardCoordinator,
-		ScrForwarder:        scForwarder,
-		TxFeeHandler:        genesisFeeHandler,
-		EconomicsFee:        genesisFeeHandler,
-		TxTypeHandler:       txTypeHandler,
-		GasHandler:          gasHandler,
-		GasSchedule:         arg.GasSchedule,
-		TxLogsProcessor:     arg.TxLogsProcessor,
-		BadTxForwarder:      badTxForwarder,
-		EnableRoundsHandler: enableRoundsHandler,
-		EnableEpochsHandler: enableEpochsHandler,
-		IsGenesisProcessing: true,
-		WasmVMChangeLocker:  &sync.RWMutex{}, // local Locker as to not interfere with the rest of the components
-		VMOutputCacher:      txcache.NewDisabledCache(),
+		VmContainer:             vmContainer,
+		ArgsParser:              argsParser,
+		Hasher:                  arg.Core.Hasher(),
+		Marshalizer:             arg.Core.InternalMarshalizer(),
+		AccountsDB:              arg.Accounts,
+		BlockChainHook:          virtualMachineFactory.BlockChainHookImpl(),
+		BuiltInFunctions:        builtInFuncs,
+		PubkeyConv:              arg.Core.AddressPubKeyConverter(),
+		ShardCoordinator:        arg.ShardCoordinator,
+		ScrForwarder:            scForwarder,
+		TxFeeHandler:            genesisFeeHandler,
+		EconomicsFee:            genesisFeeHandler,
+		TxTypeHandler:           txTypeHandler,
+		GasHandler:              gasHandler,
+		GasSchedule:             arg.GasSchedule,
+		TxLogsProcessor:         arg.TxLogsProcessor,
+		BadTxForwarder:          badTxForwarder,
+		EnableRoundsHandler:     enableRoundsHandler,
+		EnableEpochsHandler:     enableEpochsHandler,
+		IsGenesisProcessing:     true,
+		WasmVMChangeLocker:      &sync.RWMutex{}, // local Locker as to not interfere with the rest of the components
+		VMOutputCacher:          txcache.NewDisabledCache(),
+		FailedTxLogsAccumulator: disabledProcess.NewFailedTxLogsAccumulator(),
 	}
 
 	scProcessorProxy, err := processProxy.NewSmartContractProcessorProxy(argsNewSCProcessor, epochNotifier)

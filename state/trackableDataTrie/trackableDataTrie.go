@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	errorsCommon "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/dataTrieValue"
@@ -214,7 +215,8 @@ func (tdt *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) ([]core.TrieDa
 	}
 
 	if check.IfNil(tdt.tr) {
-		newDataTrie, err := mainTrie.Recreate(make([]byte, 0))
+		emptyRootHash := holders.NewDefaultRootHashesHolder(make([]byte, 0))
+		newDataTrie, err := mainTrie.Recreate(emptyRootHash)
 		if err != nil {
 			return nil, err
 		}
