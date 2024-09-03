@@ -2,6 +2,7 @@ package bls_test
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"math/big"
 	"sync"
@@ -1313,8 +1314,9 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 
 		sr.Header = &block.Header{}
 		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
-
-		_, err := sr.VerifyNodesOnAggSigFail()
+		ctx, cancel := context.WithCancel(context.TODO())
+		_, err := sr.VerifyNodesOnAggSigFail(ctx)
+		cancel()
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -1336,8 +1338,9 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 		sr.Header = &block.Header{}
 		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
 		container.SetSigningHandler(signingHandler)
-
-		_, err := sr.VerifyNodesOnAggSigFail()
+		ctx, cancel := context.WithCancel(context.TODO())
+		_, err := sr.VerifyNodesOnAggSigFail(ctx)
+		cancel()
 		require.Nil(t, err)
 
 		isJobDone, err := sr.JobDone(sr.ConsensusGroup()[0], bls.SrSignature)
@@ -1366,8 +1369,9 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 		sr.Header = &block.Header{}
 		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
 		_ = sr.SetJobDone(sr.ConsensusGroup()[1], bls.SrSignature, true)
-
-		invalidSigners, err := sr.VerifyNodesOnAggSigFail()
+		ctx, cancel := context.WithCancel(context.TODO())
+		invalidSigners, err := sr.VerifyNodesOnAggSigFail(ctx)
+		cancel()
 		require.Nil(t, err)
 		require.NotNil(t, invalidSigners)
 	})
