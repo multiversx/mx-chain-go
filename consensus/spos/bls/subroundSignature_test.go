@@ -717,7 +717,7 @@ func TestSubroundSignature_SendSignature(t *testing.T) {
 	t.Run("sendSignatureForManagedKey will return false because of error", func(t *testing.T) {
 		t.Parallel()
 
-		container := mock.InitConsensusCore()
+		container := consensusMocks.InitConsensusCore()
 
 		container.SetSigningHandler(&consensusMocks.SigningHandlerStub{
 			CreateSignatureShareForPublicKeyCalled: func(message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
@@ -772,7 +772,7 @@ func TestSubroundSignature_SendSignature(t *testing.T) {
 	t.Run("sendSignatureForManagedKey should be false", func(t *testing.T) {
 		t.Parallel()
 
-		container := mock.InitConsensusCore()
+		container := consensusMocks.InitConsensusCore()
 		container.SetSigningHandler(&consensusMocks.SigningHandlerStub{
 			CreateSignatureShareForPublicKeyCalled: func(message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
 				return []byte("SIG"), nil
@@ -786,7 +786,7 @@ func TestSubroundSignature_SendSignature(t *testing.T) {
 		}
 		container.SetEnableEpochsHandler(enableEpochsHandler)
 
-		container.SetBroadcastMessenger(&mock.BroadcastMessengerMock{
+		container.SetBroadcastMessenger(&consensusMocks.BroadcastMessengerMock{
 			BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
 				return fmt.Errorf("error")
 			},
@@ -839,7 +839,7 @@ func TestSubroundSignature_SendSignature(t *testing.T) {
 	t.Run("SentSignature should be called", func(t *testing.T) {
 		t.Parallel()
 
-		container := mock.InitConsensusCore()
+		container := consensusMocks.InitConsensusCore()
 		container.SetSigningHandler(&consensusMocks.SigningHandlerStub{
 			CreateSignatureShareForPublicKeyCalled: func(message []byte, index uint16, epoch uint32, publicKeyBytes []byte) ([]byte, error) {
 				return []byte("SIG"), nil
@@ -853,7 +853,7 @@ func TestSubroundSignature_SendSignature(t *testing.T) {
 		}
 		container.SetEnableEpochsHandler(enableEpochsHandler)
 
-		container.SetBroadcastMessenger(&mock.BroadcastMessengerMock{
+		container.SetBroadcastMessenger(&consensusMocks.BroadcastMessengerMock{
 			BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
 				return nil
 			},
@@ -912,7 +912,7 @@ func TestSubroundSignature_DoSignatureJobForManagedKeys(t *testing.T) {
 
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
-		container := mock.InitConsensusCore()
+		container := consensusMocks.InitConsensusCore()
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
 				return flag == common.EquivalentMessagesFlag
@@ -969,7 +969,7 @@ func TestSubroundSignature_DoSignatureJobForManagedKeys(t *testing.T) {
 
 		sr.Header = &block.Header{}
 		signaturesBroadcast := make(map[string]int)
-		container.SetBroadcastMessenger(&mock.BroadcastMessengerMock{
+		container.SetBroadcastMessenger(&consensusMocks.BroadcastMessengerMock{
 			BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
 				mutex.Lock()
 				signaturesBroadcast[string(message.PubKey)]++
@@ -1018,7 +1018,7 @@ func TestSubroundSignature_DoSignatureJobForManagedKeys(t *testing.T) {
 
 	t.Run("should fail", func(t *testing.T) {
 		t.Parallel()
-		container := mock.InitConsensusCore()
+		container := consensusMocks.InitConsensusCore()
 		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
 				return flag == common.EquivalentMessagesFlag

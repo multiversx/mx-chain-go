@@ -469,7 +469,7 @@ func TestFactory_NewFactoryNilThrottlerShouldFail(t *testing.T) {
 	t.Parallel()
 
 	consensusState := initConsensusState()
-	container := mock.InitConsensusCore()
+	container := testscommonConsensus.InitConsensusCore()
 	worker := initWorker()
 
 	fct, err := bls.NewSubroundsFactory(
