@@ -4,11 +4,14 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/stretchr/testify/assert"
+	"golang.org/x/exp/slices"
+
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/stretchr/testify/assert"
 )
 
 func createEligibleList(size int) []string {
@@ -23,8 +26,67 @@ func initConsensusState() *spos.ConsensusState {
 	return initConsensusStateWithKeysHandler(&testscommon.KeysHandlerStub{})
 }
 
+func initConsensusStateWithArgs(keysHandler consensus.KeysHandler, consensusGroupSize int, mapKeys map[string]crypto.PrivateKey) *spos.ConsensusState {
+	return initConsensusStateWithKeysHandlerWithGroupSizeWithRealKeys(keysHandler, consensusGroupSize, mapKeys)
+}
+
 func initConsensusStateWithKeysHandler(keysHandler consensus.KeysHandler) *spos.ConsensusState {
 	consensusGroupSize := 9
+	return initConsensusStateWithKeysHandlerWithGroupSize(keysHandler, consensusGroupSize)
+}
+
+func createEligibleListFromMap(mapKeys map[string]crypto.PrivateKey) []string {
+	eligibleList := make([]string, 0, len(mapKeys))
+	for key := range mapKeys {
+		eligibleList = append(eligibleList, key)
+	}
+	slices.Sort(eligibleList)
+	return eligibleList
+}
+
+func initConsensusStateWithKeysHandlerWithGroupSizeWithRealKeys(keysHandler consensus.KeysHandler, consensusGroupSize int, mapKeys map[string]crypto.PrivateKey) *spos.ConsensusState {
+	eligibleList := createEligibleListFromMap(mapKeys)
+
+	eligibleNodesPubKeys := make(map[string]struct{}, len(eligibleList))
+	for _, key := range eligibleList {
+		eligibleNodesPubKeys[key] = struct{}{}
+	}
+
+	indexLeader := 1
+	rcns, _ := spos.NewRoundConsensus(
+		eligibleNodesPubKeys,
+		consensusGroupSize,
+		eligibleList[indexLeader],
+		keysHandler,
+	)
+
+	rcns.SetConsensusGroup(eligibleList)
+	rcns.ResetRoundState()
+
+	pBFTThreshold := consensusGroupSize*2/3 + 1
+	pBFTFallbackThreshold := consensusGroupSize*1/2 + 1
+
+	rthr := spos.NewRoundThreshold()
+	rthr.SetThreshold(1, 1)
+	rthr.SetThreshold(2, pBFTThreshold)
+	rthr.SetFallbackThreshold(1, 1)
+	rthr.SetFallbackThreshold(2, pBFTFallbackThreshold)
+
+	rstatus := spos.NewRoundStatus()
+	rstatus.ResetRoundStatus()
+
+	cns := spos.NewConsensusState(
+		rcns,
+		rthr,
+		rstatus,
+	)
+
+	cns.Data = []byte("X")
+	cns.RoundIndex = 0
+	return cns
+}
+
+func initConsensusStateWithKeysHandlerWithGroupSize(keysHandler consensus.KeysHandler, consensusGroupSize int) *spos.ConsensusState {
 	eligibleList := createEligibleList(consensusGroupSize)
 
 	eligibleNodesPubKeys := make(map[string]struct{})
