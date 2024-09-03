@@ -336,7 +336,7 @@ func TestChronology_CloseWatchDogStop(t *testing.T) {
 	}
 	chr, err := chronology.NewChronology(arg)
 	require.Nil(t, err)
-	chr.CancelFunc = nil
+	chr.SetCancelFunc(nil)
 
 	err = chr.Close()
 	assert.Nil(t, err)
@@ -358,9 +358,9 @@ func TestChronology_Close(t *testing.T) {
 	require.Nil(t, err)
 
 	cancelCalled := false
-	chr.CancelFunc = func() {
+	chr.SetCancelFunc(func() {
 		cancelCalled = true
-	}
+	})
 
 	err = chr.Close()
 	assert.Nil(t, err)

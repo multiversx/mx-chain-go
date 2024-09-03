@@ -3,6 +3,8 @@ package chronology
 import (
 	"context"
 
+	"github.com/multiversx/mx-chain-core-go/core"
+
 	"github.com/multiversx/mx-chain-go/consensus"
 )
 
@@ -40,4 +42,12 @@ func (chr *chronology) InitRound() {
 
 func (chr *chronology) StartRoundsTest(ctx context.Context) {
 	chr.startRounds(ctx)
+}
+
+func (chr *chronology) SetWatchdog(watchdog core.WatchdogTimer) {
+	chr.watchdog = watchdog
+}
+
+func (chr *chronology) SetCancelFunc(cancelFunc func()) {
+	chr.cancelFunc = cancelFunc
 }

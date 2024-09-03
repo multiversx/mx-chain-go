@@ -41,9 +41,9 @@ type chronology struct {
 	subroundHandlers []consensus.SubroundHandler
 	mutSubrounds     sync.RWMutex
 	appStatusHandler core.AppStatusHandler
-	CancelFunc       func()
+	cancelFunc       func()
 
-	Watchdog core.WatchdogTimer
+	watchdog core.WatchdogTimer
 }
 
 // NewChronology creates a new chronology object
@@ -59,7 +59,7 @@ func NewChronology(arg ArgChronology) (*chronology, error) {
 		roundHandler:     arg.RoundHandler,
 		syncTimer:        arg.SyncTimer,
 		appStatusHandler: arg.AppStatusHandler,
-		Watchdog:         arg.Watchdog,
+		watchdog:         arg.Watchdog,
 	}
 
 	chr.subroundId = srBeforeStartRound
@@ -111,10 +111,10 @@ func (chr *chronology) RemoveAllSubrounds() {
 // StartRounds actually starts the chronology and calls the DoWork() method of the subroundHandlers loaded
 func (chr *chronology) StartRounds() {
 	watchdogAlarmDuration := chr.roundHandler.TimeDuration() * numRoundsToWaitBeforeSignalingChronologyStuck
-	chr.Watchdog.SetDefault(watchdogAlarmDuration, chronologyAlarmID)
+	chr.watchdog.SetDefault(watchdogAlarmDuration, chronologyAlarmID)
 
 	var ctx context.Context
-	ctx, chr.CancelFunc = context.WithCancel(context.Background())
+	ctx, chr.cancelFunc = context.WithCancel(context.Background())
 	go chr.startRounds(ctx)
 }
 
@@ -164,7 +164,7 @@ func (chr *chronology) updateRound() {
 	chr.roundHandler.UpdateRound(chr.genesisTime, chr.syncTimer.CurrentTime())
 
 	if oldRoundIndex != chr.roundHandler.Index() {
-		chr.Watchdog.Reset(chronologyAlarmID)
+		chr.watchdog.Reset(chronologyAlarmID)
 		msg := fmt.Sprintf("ROUND %d BEGINS (%d)", chr.roundHandler.Index(), chr.roundHandler.TimeStamp().Unix())
 		log.Debug(display.Headline(msg, chr.syncTimer.FormattedCurrentTime(), "#"))
 		logger.SetCorrelationRound(chr.roundHandler.Index())
@@ -212,11 +212,11 @@ func (chr *chronology) loadSubroundHandler(subroundId int) consensus.SubroundHan
 
 // Close will close the endless running go routine
 func (chr *chronology) Close() error {
-	if chr.CancelFunc != nil {
-		chr.CancelFunc()
+	if chr.cancelFunc != nil {
+		chr.cancelFunc()
 	}
 
-	chr.Watchdog.Stop(chronologyAlarmID)
+	chr.watchdog.Stop(chronologyAlarmID)
 
 	return nil
 }
