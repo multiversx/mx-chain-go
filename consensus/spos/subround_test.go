@@ -8,10 +8,12 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
@@ -93,7 +95,7 @@ func initConsensusState() *spos.ConsensusState {
 func TestSubround_NewSubroundNilConsensusStateShouldFail(t *testing.T) {
 	t.Parallel()
 
-	container := mock.InitConsensusCore()
+	container := consensus.InitConsensusCore()
 	ch := make(chan bool, 1)
 
 	sr, err := spos.NewSubround(
@@ -120,7 +122,7 @@ func TestSubround_NewSubroundNilChannelShouldFail(t *testing.T) {
 	t.Parallel()
 
 	consensusState := initConsensusState()
-	container := mock.InitConsensusCore()
+	container := consensus.InitConsensusCore()
 
 	sr, err := spos.NewSubround(
 		-1,
@@ -146,7 +148,7 @@ func TestSubround_NewSubroundNilExecuteStoredMessagesShouldFail(t *testing.T) {
 	t.Parallel()
 
 	consensusState := initConsensusState()
-	container := mock.InitConsensusCore()
+	container := consensus.InitConsensusCore()
 	ch := make(chan bool, 1)
 
 	sr, err := spos.NewSubround(
@@ -200,7 +202,7 @@ func TestSubround_NilContainerBlockchainShouldFail(t *testing.T) {
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
-	container := mock.InitConsensusCore()
+	container := consensus.InitConsensusCore()
 	container.SetBlockchain(nil)
 
 	sr, err := spos.NewSubround(
@@ -228,7 +230,7 @@ func TestSubround_NilContainerBlockprocessorShouldFail(t *testing.T) {
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
-	container := mock.InitConsensusCore()
+	container := consensus.InitConsensusCore()
 	container.SetBlockProcessor(nil)
 
 	sr, err := spos.NewSubround(
@@ -256,7 +258,7 @@ func TestSubround_NilContainerBootstrapperShouldFail(t *testing.T) {
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
-	container := mock.InitConsensusCore()
+	container := consensus.InitConsensusCore()
 	container.SetBootStrapper(nil)
 
 	sr, err := spos.NewSubround(
@@ -284,7 +286,7 @@ func TestSubround_NilContainerChronologyShouldFail(t *testing.T) {
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
-	container := mock.InitConsensusCore()
+	container := consensus.InitConsensusCore()
 	container.SetChronology(nil)
 
 	sr, err := spos.NewSubround(
@@ -312,7 +314,7 @@ func TestSubround_NilContainerHasherShouldFail(t *testing.T) {
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
-	container := mock.InitConsensusCore()
+	container := consensus.InitConsensusCore()
 	container.SetHasher(nil)
 
 	sr, err := spos.NewSubround(
@@ -340,7 +342,7 @@ func TestSubround_NilContainerMarshalizerShouldFail(t *testing.T) {
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
-	container := mock.InitConsensusCore()
+	container := consensus.InitConsensusCore()
 	container.SetMarshalizer(nil)
 
 	sr, err := spos.NewSubround(
@@ -368,7 +370,7 @@ func TestSubround_NilContainerMultiSignerShouldFail(t *testing.T) {
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
-	container := mock.InitConsensusCore()
+	container := consensus.InitConsensusCore()
 	container.SetMultiSignerContainer(cryptoMocks.NewMultiSignerContainerMock(nil))
 
 	sr, err := spos.NewSubround(
@@ -396,7 +398,7 @@ func TestSubround_NilContainerRoundHandlerShouldFail(t *testing.T) {
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
-	container := mock.InitConsensusCore()
+	container := consensus.InitConsensusCore()
 	container.SetRoundHandler(nil)
 
 	sr, err := spos.NewSubround(
@@ -424,7 +426,7 @@ func TestSubround_NilContainerShardCoordinatorShouldFail(t *testing.T) {
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
-	container := mock.InitConsensusCore()
+	container := consensus.InitConsensusCore()
 	container.SetShardCoordinator(nil)
 
 	sr, err := spos.NewSubround(
@@ -452,7 +454,7 @@ func TestSubround_NilContainerSyncTimerShouldFail(t *testing.T) {
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
-	container := mock.InitConsensusCore()
+	container := consensus.InitConsensusCore()
 	container.SetSyncTimer(nil)
 
 	sr, err := spos.NewSubround(
@@ -480,7 +482,7 @@ func TestSubround_NilContainerValidatorGroupSelectorShouldFail(t *testing.T) {
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
-	container := mock.InitConsensusCore()
+	container := consensus.InitConsensusCore()
 	container.SetValidatorGroupSelector(nil)
 
 	sr, err := spos.NewSubround(
@@ -508,7 +510,7 @@ func TestSubround_EmptyChainIDShouldFail(t *testing.T) {
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
-	container := mock.InitConsensusCore()
+	container := consensus.InitConsensusCore()
 	sr, err := spos.NewSubround(
 		-1,
 		bls.SrStartRound,
@@ -534,7 +536,7 @@ func TestSubround_NewSubroundShouldWork(t *testing.T) {
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
-	container := mock.InitConsensusCore()
+	container := consensus.InitConsensusCore()
 	sr, err := spos.NewSubround(
 		-1,
 		bls.SrStartRound,
@@ -568,7 +570,7 @@ func TestSubround_DoWorkShouldReturnFalseWhenJobFunctionIsNotSet(t *testing.T) {
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
-	container := mock.InitConsensusCore()
+	container := consensus.InitConsensusCore()
 
 	sr, _ := spos.NewSubround(
 		-1,
@@ -606,7 +608,7 @@ func TestSubround_DoWorkShouldReturnFalseWhenCheckFunctionIsNotSet(t *testing.T)
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
-	container := mock.InitConsensusCore()
+	container := consensus.InitConsensusCore()
 
 	sr, _ := spos.NewSubround(
 		-1,
@@ -653,7 +655,7 @@ func TestSubround_DoWorkShouldReturnTrueWhenJobAndConsensusAreDone(t *testing.T)
 func testDoWork(t *testing.T, checkDone bool, shouldWork bool) {
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
-	container := mock.InitConsensusCore()
+	container := consensus.InitConsensusCore()
 
 	sr, _ := spos.NewSubround(
 		-1,
@@ -692,7 +694,7 @@ func TestSubround_DoWorkShouldReturnTrueWhenJobIsDoneAndConsensusIsDoneAfterAWhi
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
-	container := mock.InitConsensusCore()
+	container := consensus.InitConsensusCore()
 
 	sr, _ := spos.NewSubround(
 		-1,
@@ -750,7 +752,7 @@ func TestSubround_Previous(t *testing.T) {
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
-	container := mock.InitConsensusCore()
+	container := consensus.InitConsensusCore()
 
 	sr, _ := spos.NewSubround(
 		bls.SrStartRound,
@@ -782,7 +784,7 @@ func TestSubround_Current(t *testing.T) {
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
-	container := mock.InitConsensusCore()
+	container := consensus.InitConsensusCore()
 
 	sr, _ := spos.NewSubround(
 		bls.SrStartRound,
@@ -814,7 +816,7 @@ func TestSubround_Next(t *testing.T) {
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
-	container := mock.InitConsensusCore()
+	container := consensus.InitConsensusCore()
 
 	sr, _ := spos.NewSubround(
 		bls.SrStartRound,
@@ -846,7 +848,7 @@ func TestSubround_StartTime(t *testing.T) {
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
-	container := mock.InitConsensusCore()
+	container := consensus.InitConsensusCore()
 	container.SetRoundHandler(initRoundHandlerMock())
 	sr, _ := spos.NewSubround(
 		bls.SrBlock,
@@ -878,7 +880,7 @@ func TestSubround_EndTime(t *testing.T) {
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
-	container := mock.InitConsensusCore()
+	container := consensus.InitConsensusCore()
 	container.SetRoundHandler(initRoundHandlerMock())
 	sr, _ := spos.NewSubround(
 		bls.SrStartRound,
@@ -910,7 +912,7 @@ func TestSubround_Name(t *testing.T) {
 
 	consensusState := initConsensusState()
 	ch := make(chan bool, 1)
-	container := mock.InitConsensusCore()
+	container := consensus.InitConsensusCore()
 
 	sr, _ := spos.NewSubround(
 		bls.SrStartRound,
@@ -943,7 +945,7 @@ func TestSubround_GetAssociatedPid(t *testing.T) {
 	keysHandler := &testscommon.KeysHandlerStub{}
 	consensusState := internalInitConsensusStateWithKeysHandler(keysHandler)
 	ch := make(chan bool, 1)
-	container := mock.InitConsensusCore()
+	container := consensus.InitConsensusCore()
 
 	subround, _ := spos.NewSubround(
 		bls.SrStartRound,
@@ -982,7 +984,7 @@ func TestSubround_ShouldConsiderSelfKeyInConsensus(t *testing.T) {
 
 		consensusState := initConsensusState()
 		ch := make(chan bool, 1)
-		container := mock.InitConsensusCore()
+		container := consensus.InitConsensusCore()
 
 		redundancyHandler := &mock.NodeRedundancyHandlerStub{
 			IsRedundancyNodeCalled: func() bool {
@@ -1018,7 +1020,7 @@ func TestSubround_ShouldConsiderSelfKeyInConsensus(t *testing.T) {
 
 		consensusState := initConsensusState()
 		ch := make(chan bool, 1)
-		container := mock.InitConsensusCore()
+		container := consensus.InitConsensusCore()
 
 		redundancyHandler := &mock.NodeRedundancyHandlerStub{
 			IsRedundancyNodeCalled: func() bool {
@@ -1054,7 +1056,7 @@ func TestSubround_ShouldConsiderSelfKeyInConsensus(t *testing.T) {
 
 		consensusState := initConsensusState()
 		ch := make(chan bool, 1)
-		container := mock.InitConsensusCore()
+		container := consensus.InitConsensusCore()
 
 		redundancyHandler := &mock.NodeRedundancyHandlerStub{
 			IsRedundancyNodeCalled: func() bool {
@@ -1099,7 +1101,7 @@ func TestSubround_GetLeaderStartRoundMessage(t *testing.T) {
 		}
 		consensusState := internalInitConsensusStateWithKeysHandler(keysHandler)
 		ch := make(chan bool, 1)
-		container := mock.InitConsensusCore()
+		container := consensus.InitConsensusCore()
 
 		sr, _ := spos.NewSubround(
 			bls.SrStartRound,
@@ -1131,7 +1133,7 @@ func TestSubround_GetLeaderStartRoundMessage(t *testing.T) {
 		}
 		consensusState := internalInitConsensusStateWithKeysHandler(keysHandler)
 		ch := make(chan bool, 1)
-		container := mock.InitConsensusCore()
+		container := consensus.InitConsensusCore()
 
 		sr, _ := spos.NewSubround(
 			bls.SrStartRound,
