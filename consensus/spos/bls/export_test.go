@@ -2,7 +2,6 @@ package bls
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -379,6 +378,7 @@ func (sr *subroundSignature) DoSignatureJobForManagedKeys(ctx context.Context) b
 	return sr.doSignatureJobForManagedKeys(ctx)
 }
 
-func (sr *subroundEndRound) SignatureVerification(wg *sync.WaitGroup, i int, pk string, invalidPubKey *[]string, mutex *sync.Mutex, sigShare []byte, mutexBool *sync.Mutex, errorReturned *error) {
-	sr.signatureVerification(wg, i, pk, invalidPubKey, mutex, sigShare, mutexBool, errorReturned)
+// SignatureVerification calls the unexported signatureVerification function
+func (sr *subroundEndRound) SignatureVerification(i int, pk string, sigShare []byte) error {
+	return sr.signatureVerification(i, pk, sigShare)
 }

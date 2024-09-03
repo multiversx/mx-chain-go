@@ -581,8 +581,7 @@ func (sr *subroundEndRound) checkGoRoutinesThrottler(ctx context.Context) error 
 }
 
 // fara mutex, fara wg, fara invalidpubkey,
-func (sr *subroundEndRound) signatureVerification(wg *sync.WaitGroup, i int, pk string, invalidPubKey *[]string, mutex *sync.Mutex, sigShare []byte, mutexBool *sync.Mutex, errorReturned *error) {
-	defer wg.Done()
+func (sr *subroundEndRound) signatureVerification(i int, pk string, sigShare []byte) error {
 
 	isSuccessful := true
 	err := sr.SigningHandler().VerifySignatureShare(uint16(i), sigShare, sr.GetData(), sr.Header.GetEpoch())
@@ -590,12 +589,7 @@ func (sr *subroundEndRound) signatureVerification(wg *sync.WaitGroup, i int, pk 
 		isSuccessful = false
 		err = sr.SetJobDone(pk, SrSignature, false)
 		if err != nil {
-			if *errorReturned == nil {
-				mutexBool.Lock()
-				*errorReturned = err
-				mutexBool.Unlock()
-			}
-			return
+			return err
 		}
 		decreaseFactor := -spos.ValidatorPeerHonestyIncreaseFactor + spos.ValidatorPeerHonestyDecreaseFactor
 		sr.PeerHonestyHandler().ChangeScore(
@@ -603,12 +597,10 @@ func (sr *subroundEndRound) signatureVerification(wg *sync.WaitGroup, i int, pk 
 			spos.GetConsensusTopicID(sr.ShardCoordinator()),
 			decreaseFactor,
 		)
-		mutex.Lock()
-		*invalidPubKey = append(*invalidPubKey, pk)
-		mutex.Unlock()
 	}
 
 	log.Trace("verifyNodesOnAggSigVerificationFail: verifying signature share", "public key", pk, "is successful", isSuccessful)
+	return nil
 }
 
 //func (sr *subroundEndRound) verifyNodesOnAggSigFailAux() ([]string, error) {
@@ -645,8 +637,7 @@ func (sr *subroundEndRound) verifyNodesOnAggSigFail(ctx context.Context) ([]stri
 	pubKeys := sr.ConsensusGroup()
 	wg := &sync.WaitGroup{}
 	mutex := &sync.Mutex{}
-	mutexBool := &sync.Mutex{}
-	var errorReturned error = nil
+	errorChan := make(chan error, 1)
 	if check.IfNil(sr.Header) {
 		return nil, spos.ErrNilHeader
 	}
@@ -667,16 +658,31 @@ func (sr *subroundEndRound) verifyNodesOnAggSigFail(ctx context.Context) ([]stri
 		wg.Add(1)
 		iAux := i
 		pkAux := pk
+
 		go func() {
 			defer sr.signatureThrottler.EndProcessing()
-			sr.signatureVerification(wg, iAux, pkAux, &invalidPubKeys, mutex, sigShare, mutexBool, &errorReturned)
+			defer wg.Done()
+			errSigVerification := sr.signatureVerification(iAux, pkAux, sigShare)
+			if errSigVerification != nil {
+				select {
+				case errorChan <- errSigVerification:
+				default:
+				}
+				return
+			}
+			mutex.Lock()
+			invalidPubKeys = append(invalidPubKeys, pkAux)
+			mutex.Unlock()
 			// err = func
 			// treat err
 		}()
 	}
-	wg.Wait()
-	if errorReturned != nil {
-		return nil, errorReturned
+	go func() {
+		wg.Wait()
+		close(errorChan)
+	}()
+	if err := <-errorChan; err != nil {
+		return nil, err
 	}
 	return invalidPubKeys, nil
 }
