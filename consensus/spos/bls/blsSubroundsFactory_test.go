@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
+	dataRetrieverMock "github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	testscommonConsensus "github.com/multiversx/mx-chain-go/testscommon/consensus"
@@ -68,6 +69,7 @@ func initFactoryWithContainer(container *testscommonConsensus.ConsensusCoreMock)
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
+		&dataRetrieverMock.ThrottlerStub{},
 	)
 
 	return fct
@@ -117,6 +119,7 @@ func TestFactory_NewFactoryNilContainerShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
+		&dataRetrieverMock.ThrottlerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -137,6 +140,7 @@ func TestFactory_NewFactoryNilConsensusStateShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
+		&dataRetrieverMock.ThrottlerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -159,6 +163,7 @@ func TestFactory_NewFactoryNilBlockchainShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
+		&dataRetrieverMock.ThrottlerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -181,6 +186,7 @@ func TestFactory_NewFactoryNilBlockProcessorShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
+		&dataRetrieverMock.ThrottlerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -203,6 +209,7 @@ func TestFactory_NewFactoryNilBootstrapperShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
+		&dataRetrieverMock.ThrottlerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -225,6 +232,7 @@ func TestFactory_NewFactoryNilChronologyHandlerShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
+		&dataRetrieverMock.ThrottlerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -247,6 +255,7 @@ func TestFactory_NewFactoryNilHasherShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
+		&dataRetrieverMock.ThrottlerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -269,6 +278,7 @@ func TestFactory_NewFactoryNilMarshalizerShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
+		&dataRetrieverMock.ThrottlerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -291,6 +301,7 @@ func TestFactory_NewFactoryNilMultiSignerContainerShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
+		&dataRetrieverMock.ThrottlerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -313,6 +324,7 @@ func TestFactory_NewFactoryNilRoundHandlerShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
+		&dataRetrieverMock.ThrottlerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -335,6 +347,7 @@ func TestFactory_NewFactoryNilShardCoordinatorShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
+		&dataRetrieverMock.ThrottlerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -357,6 +370,7 @@ func TestFactory_NewFactoryNilSyncTimerShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
+		&dataRetrieverMock.ThrottlerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -379,6 +393,7 @@ func TestFactory_NewFactoryNilValidatorGroupSelectorShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
+		&dataRetrieverMock.ThrottlerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -399,6 +414,7 @@ func TestFactory_NewFactoryNilWorkerShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
+		&dataRetrieverMock.ThrottlerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -420,6 +436,7 @@ func TestFactory_NewFactoryNilAppStatusHandlerShouldFail(t *testing.T) {
 		currentPid,
 		nil,
 		&testscommon.SentSignatureTrackerStub{},
+		&dataRetrieverMock.ThrottlerStub{},
 	)
 
 	assert.Nil(t, fct)
@@ -441,10 +458,33 @@ func TestFactory_NewFactoryNilSignaturesTrackerShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		nil,
+		&dataRetrieverMock.ThrottlerStub{},
 	)
 
 	assert.Nil(t, fct)
 	assert.Equal(t, bls.ErrNilSentSignatureTracker, err)
+}
+
+func TestFactory_NewFactoryNilThrottlerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	consensusState := initConsensusState()
+	container := mock.InitConsensusCore()
+	worker := initWorker()
+
+	fct, err := bls.NewSubroundsFactory(
+		container,
+		consensusState,
+		worker,
+		chainID,
+		currentPid,
+		&statusHandler.AppStatusHandlerStub{},
+		&testscommon.SentSignatureTrackerStub{},
+		nil,
+	)
+
+	assert.Nil(t, fct)
+	assert.Equal(t, spos.ErrNilThrottler, err)
 }
 
 func TestFactory_NewFactoryShouldWork(t *testing.T) {
@@ -470,6 +510,7 @@ func TestFactory_NewFactoryEmptyChainIDShouldFail(t *testing.T) {
 		currentPid,
 		&statusHandler.AppStatusHandlerStub{},
 		&testscommon.SentSignatureTrackerStub{},
+		&dataRetrieverMock.ThrottlerStub{},
 	)
 
 	assert.Nil(t, fct)

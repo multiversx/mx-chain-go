@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/sposFactory"
+	dataRetrieverMock "github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	testscommonConsensus "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
@@ -59,6 +60,7 @@ func TestGetSubroundsFactory_BlsNilConsensusCoreShouldErr(t *testing.T) {
 		&testscommon.SentSignatureTrackerStub{},
 		chainID,
 		currentPid,
+		&dataRetrieverMock.ThrottlerStub{},
 	)
 
 	assert.Nil(t, sf)
@@ -83,6 +85,7 @@ func TestGetSubroundsFactory_BlsNilStatusHandlerShouldErr(t *testing.T) {
 		&testscommon.SentSignatureTrackerStub{},
 		chainID,
 		currentPid,
+		&dataRetrieverMock.ThrottlerStub{},
 	)
 
 	assert.Nil(t, sf)
@@ -108,6 +111,7 @@ func TestGetSubroundsFactory_BlsShouldWork(t *testing.T) {
 		&testscommon.SentSignatureTrackerStub{},
 		chainID,
 		currentPid,
+		&dataRetrieverMock.ThrottlerStub{},
 	)
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(sf))
@@ -127,6 +131,7 @@ func TestGetSubroundsFactory_InvalidConsensusTypeShouldErr(t *testing.T) {
 		nil,
 		nil,
 		currentPid,
+		&dataRetrieverMock.ThrottlerStub{},
 	)
 
 	assert.Nil(t, sf)
