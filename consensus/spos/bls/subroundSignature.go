@@ -3,10 +3,14 @@ package bls
 import (
 	"context"
 	"encoding/hex"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	atomicCore "github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -379,58 +383,81 @@ func (sr *subroundSignature) remainingTime() time.Duration {
 }
 
 func (sr *subroundSignature) doSignatureJobForManagedKeys() bool {
-	isCurrentNodeMultiKeyLeader := sr.IsMultiKeyLeaderInCurrentRound()
-	isFlagActive := sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch())
 
-	numMultiKeysSignaturesSent := 0
+	numMultiKeysSignaturesSent := int32(0)
+	sentSigForAllKeys := atomicCore.Flag{}
+	sentSigForAllKeys.SetValue(true)
+
+	wg := sync.WaitGroup{}
+
 	for idx, pk := range sr.ConsensusGroup() {
 		pkBytes := []byte(pk)
-		if sr.IsJobDone(pk, sr.Current()) {
-			continue
-		}
 		if !sr.IsKeyManagedByCurrentNode(pkBytes) {
 			continue
 		}
 
-		signatureShare, err := sr.SigningHandler().CreateSignatureShareForPublicKey(
-			sr.GetData(),
-			uint16(idx),
-			sr.Header.GetEpoch(),
-			pkBytes,
-		)
-		if err != nil {
-			log.Debug("doSignatureJobForManagedKeys.CreateSignatureShareForPublicKey", "error", err.Error())
-			return false
+		if sr.IsJobDone(pk, sr.Current()) {
+			continue
 		}
 
-		isCurrentManagedKeyLeader := idx == spos.IndexOfLeaderInConsensusGroup
-		// TODO[cleanup cns finality]: update the check
-		// with the equivalent messages feature on, signatures from all managed keys must be broadcast, as the aggregation is done by any participant
-		shouldBroadcastSignatureShare := (!isCurrentNodeMultiKeyLeader && !isFlagActive) ||
-			(!isCurrentManagedKeyLeader && isFlagActive)
-		if shouldBroadcastSignatureShare {
-			ok := sr.createAndSendSignatureMessage(signatureShare, pkBytes)
-			if !ok {
-				return false
+		wg.Add(1)
+
+		go func(idx int, pk string) {
+			signatureSent := sr.sendSignatureForManagedKey(idx, pk)
+			if signatureSent {
+				atomic.AddInt32(&numMultiKeysSignaturesSent, 1)
+			} else {
+				sentSigForAllKeys.SetValue(false)
 			}
-
-			numMultiKeysSignaturesSent++
-		}
-		// with the equivalent messages feature on, the leader signature is sent on subroundBlock, thus we should update its status here as well
-		sr.sentSignatureTracker.SignatureSent(pkBytes)
-
-		shouldWaitForAllSigsAsync := isCurrentManagedKeyLeader && !isFlagActive
-		ok := sr.completeSignatureSubRound(pk, shouldWaitForAllSigsAsync)
-		if !ok {
-			return false
-		}
+			wg.Done()
+		}(idx, pk)
 	}
+
+	wg.Wait()
 
 	if numMultiKeysSignaturesSent > 0 {
 		log.Debug("step 2: multi keys signatures have been sent", "num", numMultiKeysSignaturesSent)
 	}
 
-	return true
+	return sentSigForAllKeys.IsSet()
+}
+
+func (sr *subroundSignature) sendSignatureForManagedKey(idx int, pk string) bool {
+	isCurrentNodeMultiKeyLeader := sr.IsMultiKeyLeaderInCurrentRound()
+	isFlagActive := sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch())
+
+	pkBytes := []byte(pk)
+
+	signatureShare, err := sr.SigningHandler().CreateSignatureShareForPublicKey(
+		sr.GetData(),
+		uint16(idx),
+		sr.Header.GetEpoch(),
+		pkBytes,
+	)
+	if err != nil {
+		log.Debug("doSignatureJobForManagedKeys.CreateSignatureShareForPublicKey", "error", err.Error())
+		return false
+	}
+
+	isCurrentManagedKeyLeader := idx == spos.IndexOfLeaderInConsensusGroup
+	// TODO[cleanup cns finality]: update the check
+	// with the equivalent messages feature on, signatures from all managed keys must be broadcast, as the aggregation is done by any participant
+	shouldBroadcastSignatureShare := (!isCurrentNodeMultiKeyLeader && !isFlagActive) ||
+		(!isCurrentManagedKeyLeader && isFlagActive)
+	if shouldBroadcastSignatureShare {
+		ok := sr.createAndSendSignatureMessage(signatureShare, pkBytes)
+
+		if !ok {
+			return false
+		}
+
+	}
+	// with the equivalent messages feature on, the leader signature is sent on subroundBlock, thus we should update its status here as well
+	sr.sentSignatureTracker.SignatureSent(pkBytes)
+
+	shouldWaitForAllSigsAsync := isCurrentManagedKeyLeader && !isFlagActive
+
+	return sr.completeSignatureSubRound(pk, shouldWaitForAllSigsAsync)
 }
 
 func (sr *subroundSignature) doSignatureJobForSingleKey(isSelfLeader bool, isFlagActive bool) bool {
