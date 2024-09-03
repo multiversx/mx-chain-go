@@ -44,10 +44,12 @@ func (chr *chronology) StartRoundsTest(ctx context.Context) {
 	chr.startRounds(ctx)
 }
 
+// SetWatchdog sets the watchdog for chronology object
 func (chr *chronology) SetWatchdog(watchdog core.WatchdogTimer) {
 	chr.watchdog = watchdog
 }
 
+// SetCancelFunc sets cancelFunc for chronology object
 func (chr *chronology) SetCancelFunc(cancelFunc func()) {
 	chr.cancelFunc = cancelFunc
 }
