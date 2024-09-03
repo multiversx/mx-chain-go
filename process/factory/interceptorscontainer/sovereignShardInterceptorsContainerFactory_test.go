@@ -61,20 +61,30 @@ func TestSovereignShardInterceptorsContainerFactory_Create(t *testing.T) {
 	mainContainer, fullArchiveContainer, err := sovContainer.Create()
 	require.Nil(t, err)
 
-	//noOfShards := 1
-	//totalInterceptors := calcNumShardInterceptors(noOfShards) + 1 // one extra for shard extended header
-	//require.Nil(t, err)
-	//require.Equal(t, totalInterceptors, mainContainer.Len())
-	//require.Equal(t, 0, fullArchiveContainer.Len())
+	numInterceptorTxs := 1
+	numInterceptorsUnsignedTxs := 1
+	numInterceptorsRewardTxs := 0
+	numInterceptorHeaders := 1
+	numInterceptorMiniBlocks := 1
+	numInterceptorMetachainHeaders := 0
+	numInterceptorTrieNodes := 2
+	numInterceptorPeerAuth := 1
+	numInterceptorHeartbeat := 1
+	numInterceptorsShardValidatorInfo := 1
+	numInterceptorValidatorInfo := 1
+	numInterceptorExtendedHeader := 1
+	totalInterceptors := numInterceptorTxs + numInterceptorsUnsignedTxs + numInterceptorsRewardTxs +
+		numInterceptorHeaders + numInterceptorMiniBlocks + numInterceptorMetachainHeaders + numInterceptorTrieNodes +
+		numInterceptorPeerAuth + numInterceptorHeartbeat + numInterceptorsShardValidatorInfo + numInterceptorValidatorInfo +
+		numInterceptorExtendedHeader
 
-	_ = fullArchiveContainer
+	require.Equal(t, totalInterceptors, mainContainer.Len())
+	require.Equal(t, 0, fullArchiveContainer.Len())
 
 	topicDelim := "_"
 	topicDelimCt := 0
 	iterateFunc := func(key string, interceptor process.Interceptor) bool {
-		fmt.Printf("KEY:%s\n", key)
 		require.False(t, strings.Contains(strings.ToLower(key), "meta"))
-
 		if strings.Contains(key, topicDelim) {
 			keyTokens := strings.Split(key, topicDelim)
 			require.Len(t, keyTokens, 2)

@@ -52,7 +52,7 @@ func (sicf *sovereignShardInterceptorsContainerFactory) Create() (process.Interc
 		return nil, nil, err
 	}
 
-	err = sicf.generateHeaderInterceptors()
+	err = sicf.generateHeaderInterceptors(core.SovereignChainShardId)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -62,7 +62,7 @@ func (sicf *sovereignShardInterceptorsContainerFactory) Create() (process.Interc
 		return nil, nil, err
 	}
 
-	err = sicf.generateTrieNodesInterceptors()
+	err = sicf.generateValidatorAndAccountTrieNodesInterceptors(core.SovereignChainShardId)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -87,7 +87,7 @@ func (sicf *sovereignShardInterceptorsContainerFactory) Create() (process.Interc
 		return nil, nil, err
 	}
 
-	err = sicf.generateSovereignHeaderInterceptors()
+	err = sicf.generateSovereignExtendedHeaderInterceptors()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -96,16 +96,10 @@ func (sicf *sovereignShardInterceptorsContainerFactory) Create() (process.Interc
 }
 
 func (sicf *sovereignShardInterceptorsContainerFactory) generateTxInterceptors() error {
-	shardC := sicf.shardCoordinator
+	keys := make([]string, 0, 1)
+	interceptorSlice := make([]process.Interceptor, 0, 1)
 
-	noOfShards := shardC.NumberOfShards()
-
-	keys := make([]string, 0, noOfShards)
-	interceptorSlice := make([]process.Interceptor, 0, noOfShards)
-
-	// tx interceptor for metachain topic
-	identifierTx := factory.TransactionTopic + shardC.CommunicationIdentifier(core.SovereignChainShardId)
-
+	identifierTx := factory.TransactionTopic + sicf.shardCoordinator.CommunicationIdentifier(core.SovereignChainShardId)
 	interceptor, err := sicf.createOneTxInterceptor(identifierTx)
 	if err != nil {
 		return err
@@ -113,19 +107,14 @@ func (sicf *sovereignShardInterceptorsContainerFactory) generateTxInterceptors()
 
 	keys = append(keys, identifierTx)
 	interceptorSlice = append(interceptorSlice, interceptor)
-
 	return sicf.addInterceptorsToContainers(keys, interceptorSlice)
 }
 
 func (sicf *sovereignShardInterceptorsContainerFactory) generateUnsignedTxsInterceptors() error {
-	shardC := sicf.shardCoordinator
+	keys := make([]string, 0, 1)
+	interceptorsSlice := make([]process.Interceptor, 0, 1)
 
-	noOfShards := shardC.NumberOfShards()
-
-	keys := make([]string, 0, noOfShards)
-	interceptorsSlice := make([]process.Interceptor, 0, noOfShards)
-
-	identifierScr := factory.UnsignedTransactionTopic + shardC.CommunicationIdentifier(core.SovereignChainShardId)
+	identifierScr := factory.UnsignedTransactionTopic + sicf.shardCoordinator.CommunicationIdentifier(core.SovereignChainShardId)
 	interceptor, err := sicf.createOneUnsignedTxInterceptor(identifierScr)
 	if err != nil {
 		return err
@@ -137,52 +126,23 @@ func (sicf *sovereignShardInterceptorsContainerFactory) generateUnsignedTxsInter
 	return sicf.addInterceptorsToContainers(keys, interceptorsSlice)
 }
 
-func (sicf *sovereignShardInterceptorsContainerFactory) generateHeaderInterceptors() error {
-	shardC := sicf.shardCoordinator
+func (sicf *sovereignShardInterceptorsContainerFactory) generateMiniBlocksInterceptors() error {
+	keys := make([]string, 1)
+	interceptorsSlice := make([]process.Interceptor, 1)
 
-	hdrFactory, err := interceptorFactory.NewInterceptedShardHeaderDataFactory(sicf.argInterceptorFactory)
+	identifierMiniBlocks := factory.MiniBlocksTopic + sicf.shardCoordinator.CommunicationIdentifier(core.SovereignChainShardId)
+	interceptor, err := sicf.createOneMiniBlocksInterceptor(identifierMiniBlocks)
 	if err != nil {
 		return err
 	}
 
-	argProcessor := &processor.ArgHdrInterceptorProcessor{
-		Headers:        sicf.dataPool.Headers(),
-		BlockBlackList: sicf.blockBlackList,
-	}
-	hdrProcessor, err := processor.NewHdrInterceptorProcessor(argProcessor)
-	if err != nil {
-		return err
-	}
+	keys[0] = identifierMiniBlocks
+	interceptorsSlice[0] = interceptor
 
-	// compose header shard topic, for example: shardBlocks_0_META
-	identifierHdr := factory.ShardBlocksTopic + shardC.CommunicationIdentifier(core.SovereignChainShardId)
-
-	// only one intrashard header topic
-	interceptor, err := interceptors.NewSingleDataInterceptor(
-		interceptors.ArgSingleDataInterceptor{
-			Topic:                identifierHdr,
-			DataFactory:          hdrFactory,
-			Processor:            hdrProcessor,
-			Throttler:            sicf.globalThrottler,
-			AntifloodHandler:     sicf.antifloodHandler,
-			WhiteListRequest:     sicf.whiteListHandler,
-			CurrentPeerId:        sicf.mainMessenger.ID(),
-			PreferredPeersHolder: sicf.preferredPeersHolder,
-		},
-	)
-	if err != nil {
-		return err
-	}
-
-	_, err = sicf.createTopicAndAssignHandler(identifierHdr, interceptor, true)
-	if err != nil {
-		return err
-	}
-
-	return sicf.addInterceptorsToContainers([]string{identifierHdr}, []process.Interceptor{interceptor})
+	return sicf.addInterceptorsToContainers(keys, interceptorsSlice)
 }
 
-func (sicf *sovereignShardInterceptorsContainerFactory) generateSovereignHeaderInterceptors() error {
+func (sicf *sovereignShardInterceptorsContainerFactory) generateSovereignExtendedHeaderInterceptors() error {
 	shardC := sicf.shardCoordinator
 
 	argsHdrFactory := interceptorFactory.ArgsSovereignInterceptedExtendedHeaderFactory{
@@ -231,50 +191,6 @@ func (sicf *sovereignShardInterceptorsContainerFactory) generateSovereignHeaderI
 	}
 
 	return sicf.addInterceptorsToContainers([]string{identifierHdr}, []process.Interceptor{interceptor})
-}
-
-func (sicf *sovereignShardInterceptorsContainerFactory) generateMiniBlocksInterceptors() error {
-	shardC := sicf.shardCoordinator
-	noOfShards := shardC.NumberOfShards()
-	keys := make([]string, noOfShards)
-	interceptorsSlice := make([]process.Interceptor, noOfShards)
-
-	identifierMiniBlocks := factory.MiniBlocksTopic + shardC.CommunicationIdentifier(core.SovereignChainShardId)
-
-	interceptor, err := sicf.createOneMiniBlocksInterceptor(identifierMiniBlocks)
-	if err != nil {
-		return err
-	}
-
-	keys[0] = identifierMiniBlocks
-	interceptorsSlice[0] = interceptor
-
-	return sicf.addInterceptorsToContainers(keys, interceptorsSlice)
-}
-
-func (sicf *sovereignShardInterceptorsContainerFactory) generateTrieNodesInterceptors() error {
-	keys := make([]string, 0)
-	trieInterceptors := make([]process.Interceptor, 0)
-
-	identifierTrieNodes := factory.ValidatorTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.SovereignChainShardId, core.SovereignChainShardId)
-	interceptor, err := sicf.createOneTrieNodesInterceptor(identifierTrieNodes)
-	if err != nil {
-		return err
-	}
-
-	keys = append(keys, identifierTrieNodes)
-	trieInterceptors = append(trieInterceptors, interceptor)
-
-	identifierTrieNodes = factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.SovereignChainShardId, core.SovereignChainShardId)
-	interceptor, err = sicf.createOneTrieNodesInterceptor(identifierTrieNodes)
-	if err != nil {
-		return err
-	}
-
-	keys = append(keys, identifierTrieNodes)
-	trieInterceptors = append(trieInterceptors, interceptor)
-
-	return sicf.addInterceptorsToContainers(keys, trieInterceptors)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
