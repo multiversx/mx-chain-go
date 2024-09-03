@@ -3378,7 +3378,7 @@ func TestChainSimulator_ChangeToDynamic_OldTokens(t *testing.T) {
 	checkMetaData(t, cs, addrs[0].Bytes, metaESDTTokenID, shardID, esdtMetaData)
 	checkMetaDataNotInAcc(t, cs, core.SystemAccountAddress, metaESDTTokenID, shardID)
 
-	err = cs.GenerateBlocksUntilEpochIsReached(int32(epochForDynamicNFT))
+	err = cs.GenerateBlocksUntilEpochIsReached(epochForDynamicNFT)
 	require.Nil(t, err)
 
 	log.Info("Change to DYNAMIC type")
@@ -4054,7 +4054,6 @@ func TestChainSimulator_metaESDT_mergeMetaDataFromMultipleUpdates(t *testing.T) 
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
 	require.Equal(t, "success", txResult.Status.String())
-	shard0Nonce++
 
 	tx = esdtNFTTransferTx(1, addrs[2].Bytes, addrs[0].Bytes, tokenID)
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
@@ -4114,9 +4113,7 @@ func esdtMetaDataUpdateTx(tokenID []byte, metaData *txsFee.MetaData, nonce uint6
 		metaData.Attributes,
 	}
 	if len(metaData.Uris) > 0 {
-		for _, uri := range metaData.Uris {
-			txData = append(txData, uri)
-		}
+		txData = append(txData, metaData.Uris...)
 	} else {
 		txData = append(txData, nil)
 	}
@@ -4292,7 +4289,6 @@ func TestChainSimulator_dynamicNFT_mergeMetaDataFromMultipleUpdates(t *testing.T
 	log.Info("transfer nft - should remove metaData from sender")
 
 	tx = setSpecialRoleTx(shard0Nonce, addrs[0].Bytes, addrs[1].Bytes, tokenID, [][]byte{[]byte(core.ESDTRoleTransfer)})
-	shard0Nonce++
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, maxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, txResult)
