@@ -1,17 +1,19 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"os"
 	"runtime"
 
+	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/urfave/cli"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/operationmodes"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/facade"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	"github.com/urfave/cli"
 )
 
 var (
@@ -97,6 +99,12 @@ var (
 		Usage: "The `" + filePathPlaceholder + "` for the p2p configuration file for the full archive network. This TOML file contains peer-to-peer " +
 			"configurations such as port, target peer count or KadDHT settings",
 		Value: "./config/fullArchiveP2P.toml",
+	}
+	lightClientP2PConfigurationFile = cli.StringFlag{
+		Name: "light-client-p2p-config",
+		Usage: "The `" + filePathPlaceholder + "` for the p2p configuration file for the light client network. This TOML file contains peer-to-peer " +
+			"configurations such as port, target peer count or KadDHT settings",
+		Value: "./config/lightClientP2P.toml",
 	}
 	// epochConfigurationFile defines a flag for the path to the toml file containing the epoch configuration
 	epochConfigurationFile = cli.StringFlag{
@@ -342,6 +350,16 @@ var (
 		Name:  "full-archive",
 		Usage: "Boolean option for settings an observer as full archive, which will sync the entire database of its shard",
 	}
+	// lightClient defines a flag that, if set, will make the node act like a light client
+	lightClient = cli.BoolFlag{
+		Name:  "light-client",
+		Usage: "Boolean option for setting an observer as light client",
+	}
+	// lightClientSupplier defines a flag that, if set, will make the node act like a light client supplier
+	lightClientSupplier = cli.BoolFlag{
+		Name:  "light-client-supplier",
+		Usage: "Boolean option for setting an observer as light client supplier",
+	}
 	// memBallast defines a flag that specifies the number of MegaBytes to be used as a memory ballast for Garbage Collector optimization
 	// if set to 0, the memory ballast won't be used
 	memBallast = cli.Uint64Flag{
@@ -424,6 +442,7 @@ func getFlags() []cli.Flag {
 		externalConfigFile,
 		p2pConfigurationFile,
 		fullArchiveP2PConfigurationFile,
+		lightClientP2PConfigurationFile,
 		epochConfigurationFile,
 		roundConfigurationFile,
 		gasScheduleConfigurationDirectory,
@@ -457,6 +476,8 @@ func getFlags() []cli.Flag {
 		importDbSaveEpochRootHash,
 		redundancyLevel,
 		fullArchive,
+		lightClient,
+		lightClientSupplier,
 		memBallast,
 		memoryUsageToCreateProfiles,
 		forceStartFromNetwork,
@@ -534,6 +555,12 @@ func applyFlags(ctx *cli.Context, cfgs *config.Configs, flagsConfig *config.Cont
 	}
 	if ctx.IsSet(fullArchive.Name) {
 		cfgs.PreferencesConfig.Preferences.FullArchive = ctx.GlobalBool(fullArchive.Name)
+	}
+	if ctx.IsSet(lightClient.Name) {
+		cfgs.PreferencesConfig.Preferences.LightClient = ctx.GlobalBool(lightClient.Name)
+	}
+	if ctx.IsSet(lightClientSupplier.Name) {
+		cfgs.PreferencesConfig.Preferences.LightClientSupplier = ctx.GlobalBool(lightClientSupplier.Name)
 	}
 	if ctx.IsSet(memoryUsageToCreateProfiles.Name) {
 		cfgs.GeneralConfig.Health.MemoryUsageToCreateProfiles = int(ctx.GlobalUint64(memoryUsageToCreateProfiles.Name))
@@ -645,6 +672,12 @@ func applyCompatibleConfigs(log logger.Logger, configs *config.Configs) error {
 	isInSnapshotLessObserverMode := operationmodes.SliceContainsElement(operationModes, operationmodes.OperationModeSnapshotlessObserver)
 	if isInSnapshotLessObserverMode {
 		processSnapshotLessObserverMode(log, configs)
+	}
+
+	isBothLightClientConsumerAndSupplier := configs.PreferencesConfig.Preferences.LightClientSupplier &&
+		configs.PreferencesConfig.Preferences.LightClient
+	if isBothLightClientConsumerAndSupplier {
+		return errors.New("cannot have node running in both light client consumer and supplier mode")
 	}
 
 	return nil

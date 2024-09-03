@@ -20,6 +20,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	outportCore "github.com/multiversx/mx-chain-core-go/data/outport"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/api/gin"
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/common"
@@ -61,7 +63,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	trieStatistics "github.com/multiversx/mx-chain-go/trie/statistics"
 	"github.com/multiversx/mx-chain-go/update/trigger"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 type nextOperationForNode int
@@ -1417,6 +1418,7 @@ func (nr *nodeRunner) CreateManagedNetworkComponents(
 	networkComponentsFactoryArgs := networkComp.NetworkComponentsFactoryArgs{
 		MainP2pConfig:         *nr.configs.MainP2pConfig,
 		FullArchiveP2pConfig:  *nr.configs.FullArchiveP2pConfig,
+		LightClientP2pConfig:  *nr.configs.LightClientP2pConfig,
 		MainConfig:            *nr.configs.GeneralConfig,
 		RatingsConfig:         *nr.configs.RatingsConfig,
 		StatusHandler:         statusCoreComponents.AppStatusHandler(),
@@ -1424,7 +1426,7 @@ func (nr *nodeRunner) CreateManagedNetworkComponents(
 		Syncer:                coreComponents.SyncTimer(),
 		PreferredPeersSlices:  nr.configs.PreferencesConfig.Preferences.PreferredConnections,
 		BootstrapWaitTime:     common.TimeToWaitForP2PBootstrap,
-		NodeOperationMode:     common.NormalOperation,
+		NodeOperationModes:    []common.NodeOperation{common.NormalOperation},
 		ConnectionWatcherType: nr.configs.PreferencesConfig.Preferences.ConnectionWatcherType,
 		CryptoComponents:      cryptoComponents,
 	}
@@ -1432,7 +1434,13 @@ func (nr *nodeRunner) CreateManagedNetworkComponents(
 		networkComponentsFactoryArgs.BootstrapWaitTime = 0
 	}
 	if nr.configs.PreferencesConfig.Preferences.FullArchive {
-		networkComponentsFactoryArgs.NodeOperationMode = common.FullArchiveMode
+		networkComponentsFactoryArgs.NodeOperationModes = []common.NodeOperation{common.FullArchiveMode}
+	}
+	if nr.configs.PreferencesConfig.Preferences.LightClient {
+		networkComponentsFactoryArgs.NodeOperationModes = append(networkComponentsFactoryArgs.NodeOperationModes, common.LightClientMode)
+	}
+	if nr.configs.PreferencesConfig.Preferences.LightClientSupplier {
+		networkComponentsFactoryArgs.NodeOperationModes = append(networkComponentsFactoryArgs.NodeOperationModes, common.LightClientSupplierMode)
 	}
 
 	networkComponentsFactory, err := networkComp.NewNetworkComponentsFactory(networkComponentsFactoryArgs)

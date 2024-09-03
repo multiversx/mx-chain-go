@@ -13,6 +13,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/common/ordering"
@@ -40,7 +42,6 @@ import (
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/update/trigger"
-	"github.com/stretchr/testify/require"
 )
 
 // ProcessorRunner is a test emulation to the nodeRunner component
@@ -175,7 +176,7 @@ func (pr *ProcessorRunner) createNetworkComponents(tb testing.TB) {
 		Syncer:                pr.CoreComponents.SyncTimer(),
 		PreferredPeersSlices:  make([]string, 0),
 		BootstrapWaitTime:     1,
-		NodeOperationMode:     common.NormalOperation,
+		NodeOperationModes:    []common.NodeOperation{common.NormalOperation},
 		ConnectionWatcherType: "",
 		CryptoComponents:      pr.CryptoComponents,
 	}
