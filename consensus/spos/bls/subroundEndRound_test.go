@@ -13,6 +13,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
@@ -26,8 +29,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func initSubroundEndRoundWithContainer(
@@ -887,7 +888,10 @@ func TestSubroundEndRound_CreateAndBroadcastHeaderFinalInfoBroadcastShouldBeCall
 	sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 	sr.Header = &block.Header{LeaderSignature: leaderSigInHdr}
 
-	sr.CreateAndBroadcastHeaderFinalInfo([]byte("sig"), []byte("bitmap"), leaderSigInHdr, []byte(sr.ConsensusGroup()[0]))
+	leader, err := sr.GetLeader()
+	assert.Nil(t, err)
+
+	sr.CreateAndBroadcastHeaderFinalInfo([]byte("sig"), []byte("bitmap"), leaderSigInHdr, []byte(leader))
 
 	select {
 	case <-chanRcv:
@@ -1258,9 +1262,11 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 		container.SetSigningHandler(signingHandler)
 
 		sr.Header = &block.Header{}
-		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
+		leader, err := sr.GetLeader()
+		require.Nil(t, err)
+		_ = sr.SetJobDone(leader, bls.SrSignature, true)
 
-		_, err := sr.VerifyNodesOnAggSigFail()
+		_, err = sr.VerifyNodesOnAggSigFail()
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -1280,13 +1286,15 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 		}
 
 		sr.Header = &block.Header{}
-		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
+		leader, err := sr.GetLeader()
+		require.Nil(t, err)
+		_ = sr.SetJobDone(leader, bls.SrSignature, true)
 		container.SetSigningHandler(signingHandler)
 
-		_, err := sr.VerifyNodesOnAggSigFail()
+		_, err = sr.VerifyNodesOnAggSigFail()
 		require.Nil(t, err)
 
-		isJobDone, err := sr.JobDone(sr.ConsensusGroup()[0], bls.SrSignature)
+		isJobDone, err := sr.JobDone(leader, bls.SrSignature)
 		require.Nil(t, err)
 		require.False(t, isJobDone)
 	})

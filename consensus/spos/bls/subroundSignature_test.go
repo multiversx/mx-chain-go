@@ -7,6 +7,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
@@ -16,8 +20,6 @@ import (
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-	"github.com/pkg/errors"
-	"github.com/stretchr/testify/assert"
 )
 
 const setThresholdJobsDone = "threshold"
@@ -437,7 +439,10 @@ func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 		})
 		_ = sr.SetJobDone(sr.SelfPubKey(), bls.SrSignature, false)
 		sr.RoundCanceled = false
-		sr.SetSelfPubKey(sr.ConsensusGroup()[0])
+		leader, err := sr.GetLeader()
+		assert.Nil(t, err)
+
+		sr.SetSelfPubKey(leader)
 		r = sr.DoSignatureJob()
 		assert.True(t, r)
 		assert.False(t, sr.RoundCanceled)
@@ -455,7 +460,9 @@ func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 		sr := *initSubroundSignatureWithContainer(container)
 
 		sr.Header = &block.Header{}
-		sr.SetSelfPubKey(sr.ConsensusGroup()[0])
+		leader, err := sr.GetLeader()
+		assert.Nil(t, err)
+		sr.SetSelfPubKey(leader)
 		container.SetBroadcastMessenger(&mock.BroadcastMessengerMock{
 			BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
 				assert.Fail(t, "should have not been called")
@@ -466,7 +473,8 @@ func TestSubroundSignature_DoSignatureJob(t *testing.T) {
 		assert.True(t, r)
 
 		assert.False(t, sr.RoundCanceled)
-		leaderJobDone, err := sr.JobDone(sr.ConsensusGroup()[0], bls.SrSignature)
+		assert.Nil(t, err)
+		leaderJobDone, err := sr.JobDone(leader, bls.SrSignature)
 		assert.NoError(t, err)
 		assert.True(t, leaderJobDone)
 		assert.True(t, sr.IsSubroundFinished(bls.SrSignature))
@@ -547,7 +555,9 @@ func TestSubroundSignature_DoSignatureJobWithMultikey(t *testing.T) {
 
 		_ = sr.SetJobDone(sr.SelfPubKey(), bls.SrSignature, false)
 		sr.RoundCanceled = false
-		sr.SetSelfPubKey(sr.ConsensusGroup()[0])
+		leader, err := sr.GetLeader()
+		assert.Nil(t, err)
+		sr.SetSelfPubKey(leader)
 		r = srSignature.DoSignatureJob()
 		assert.True(t, r)
 		assert.False(t, sr.RoundCanceled)
@@ -704,7 +714,9 @@ func TestSubroundSignature_ReceivedSignature(t *testing.T) {
 	r = sr.ReceivedSignature(cnsMsg)
 	assert.False(t, r)
 
-	sr.SetSelfPubKey(sr.ConsensusGroup()[0])
+	leader, err := sr.GetLeader()
+	assert.Nil(t, err)
+	sr.SetSelfPubKey(leader)
 
 	cnsMsg.PubKey = []byte("X")
 	r = sr.ReceivedSignature(cnsMsg)
@@ -785,7 +797,9 @@ func TestSubroundSignature_ReceivedSignatureStoreShareFailed(t *testing.T) {
 	r = sr.ReceivedSignature(cnsMsg)
 	assert.False(t, r)
 
-	sr.SetSelfPubKey(sr.ConsensusGroup()[0])
+	leader, err := sr.GetLeader()
+	assert.Nil(t, err)
+	sr.SetSelfPubKey(leader)
 
 	cnsMsg.PubKey = []byte("X")
 	r = sr.ReceivedSignature(cnsMsg)
@@ -948,7 +962,9 @@ func testSubroundSignatureDoSignatureConsensusCheck(args argTestSubroundSignatur
 		sr.WaitingAllSignaturesTimeOut = args.waitingAllSignaturesTimeOut
 
 		if !args.flagActive {
-			sr.SetSelfPubKey(sr.ConsensusGroup()[0])
+			leader, err := sr.GetLeader()
+			assert.Nil(t, err)
+			sr.SetSelfPubKey(leader)
 		}
 
 		numberOfJobsDone := sr.ConsensusGroupSize()
@@ -976,7 +992,9 @@ func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnFalseWhenFallbac
 	sr := *initSubroundSignatureWithContainer(container)
 	sr.WaitingAllSignaturesTimeOut = false
 
-	sr.SetSelfPubKey(sr.ConsensusGroup()[0])
+	leader, err := sr.GetLeader()
+	assert.Nil(t, err)
+	sr.SetSelfPubKey(leader)
 
 	for i := 0; i < sr.FallbackThreshold(bls.SrSignature); i++ {
 		_ = sr.SetJobDone(sr.ConsensusGroup()[i], bls.SrSignature, true)
@@ -997,7 +1015,9 @@ func TestSubroundSignature_DoSignatureConsensusCheckShouldReturnTrueWhenFallback
 	sr := *initSubroundSignatureWithContainer(container)
 	sr.WaitingAllSignaturesTimeOut = true
 
-	sr.SetSelfPubKey(sr.ConsensusGroup()[0])
+	leader, err := sr.GetLeader()
+	assert.Nil(t, err)
+	sr.SetSelfPubKey(leader)
 
 	for i := 0; i < sr.FallbackThreshold(bls.SrSignature); i++ {
 		_ = sr.SetJobDone(sr.ConsensusGroup()[i], bls.SrSignature, true)
@@ -1012,12 +1032,15 @@ func TestSubroundSignature_ReceivedSignatureReturnFalseWhenConsensusDataIsNotEqu
 
 	sr := *initSubroundSignature()
 
+	leader, err := sr.GetLeader()
+	require.Nil(t, err)
+
 	cnsMsg := consensus.NewConsensusMessage(
 		append(sr.Data, []byte("X")...),
 		[]byte("signature"),
 		nil,
 		nil,
-		[]byte(sr.ConsensusGroup()[0]),
+		[]byte(leader),
 		[]byte("sig"),
 		int(bls.MtSignature),
 		0,

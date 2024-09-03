@@ -657,6 +657,15 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 	return nodesMap
 }
 
+// ProposeBlockData is a struct that holds some context data for the proposed block
+type ProposeBlockData struct {
+	body      data.BodyHandler
+	header    data.HeaderHandler
+	txs       [][]byte
+	leader    *TestProcessorNode
+	consensus []*TestProcessorNode
+}
+
 // ProposeBlockWithConsensusSignature proposes
 func ProposeBlockWithConsensusSignature(
 	shardId uint32,
@@ -665,7 +674,7 @@ func ProposeBlockWithConsensusSignature(
 	nonce uint64,
 	randomness []byte,
 	epoch uint32,
-) (data.BodyHandler, data.HeaderHandler, [][]byte, []*TestProcessorNode) {
+) *ProposeBlockData {
 	nodesCoordinatorInstance := nodesMap[shardId][0].NodesCoordinator
 
 	leaderPubKey, pubKeys, err := nodesCoordinatorInstance.GetConsensusValidatorsPublicKeys(randomness, round, shardId, epoch)
@@ -684,7 +693,13 @@ func ProposeBlockWithConsensusSignature(
 
 	header = DoConsensusSigningOnBlock(header, consensusNodes, pubKeys)
 
-	return body, header, txHashes, consensusNodes
+	return &ProposeBlockData{
+		body:      body,
+		header:    header,
+		txs:       txHashes,
+		leader:    leaderNode,
+		consensus: consensusNodes,
+	}
 }
 
 func selectTestNodesForPubKeys(nodes []*TestProcessorNode, leaderPubKey string, pubKeys []string) (*TestProcessorNode, []*TestProcessorNode) {
@@ -776,15 +791,9 @@ func AllShardsProposeBlock(
 	round uint64,
 	nonce uint64,
 	nodesMap map[uint32][]*TestProcessorNode,
-) (
-	map[uint32]data.BodyHandler,
-	map[uint32]data.HeaderHandler,
-	map[uint32][]*TestProcessorNode,
-) {
+) map[uint32]*ProposeBlockData {
 
-	body := make(map[uint32]data.BodyHandler)
-	header := make(map[uint32]data.HeaderHandler)
-	consensusNodes := make(map[uint32][]*TestProcessorNode)
+	proposalData := make(map[uint32]*ProposeBlockData)
 	newRandomness := make(map[uint32][]byte)
 
 	nodesList := make([]*TestProcessorNode, 0)
@@ -802,34 +811,34 @@ func AllShardsProposeBlock(
 		// TODO: remove if start of epoch block needs to be validated by the new epoch nodes
 		epoch := currentBlockHeader.GetEpoch()
 		prevRandomness := currentBlockHeader.GetRandSeed()
-		body[i], header[i], _, consensusNodes[i] = ProposeBlockWithConsensusSignature(
+		proposalData[i] = ProposeBlockWithConsensusSignature(
 			i, nodesMap, round, nonce, prevRandomness, epoch,
 		)
-		nodesMap[i][0].WhiteListBody(nodesList, body[i])
-		newRandomness[i] = header[i].GetRandSeed()
+		nodesMap[i][0].WhiteListBody(nodesList, proposalData[i].body)
+		newRandomness[i] = proposalData[i].header.GetRandSeed()
 	}
 
 	// propagate blocks
 	for i := range nodesMap {
-		pk := consensusNodes[i][0].NodeKeys.MainKey.Pk
-		consensusNodes[i][0].BroadcastBlock(body[i], header[i], pk)
-		consensusNodes[i][0].CommitBlock(body[i], header[i])
+		leader := proposalData[i].leader
+		pk := proposalData[i].leader.NodeKeys.MainKey.Pk
+		leader.BroadcastBlock(proposalData[i].body, proposalData[i].header, pk)
+		leader.CommitBlock(proposalData[i].body, proposalData[i].header)
 	}
 
 	time.Sleep(2 * StepDelay)
 
-	return body, header, consensusNodes
+	return proposalData
 }
 
 // SyncAllShardsWithRoundBlock enforces all nodes in each shard synchronizing the block for the given round
 func SyncAllShardsWithRoundBlock(
 	t *testing.T,
-	nodesMap map[uint32][]*TestProcessorNode,
-	indexProposers map[uint32]int,
+	proposalData map[uint32]*ProposeBlockData,
 	round uint64,
 ) {
-	for shard, nodeList := range nodesMap {
-		SyncBlock(t, nodeList, []int{indexProposers[shard]}, round)
+	for _, blockData := range proposalData {
+		SyncBlock(t, blockData.consensus, []*TestProcessorNode{blockData.leader}, round)
 	}
 	time.Sleep(4 * StepDelay)
 }

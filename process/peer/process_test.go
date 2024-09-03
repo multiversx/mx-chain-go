@@ -622,10 +622,14 @@ func TestValidatorStatisticsProcessor_UpdatePeerStateCallsIncrease(t *testing.T)
 		},
 	}
 
-	validator1 := &shardingMocks.ValidatorMock{}
+	validator1 := &shardingMocks.ValidatorMock{
+		PubKeyCalled: func() []byte {
+			return []byte("pk1")
+		},
+	}
 	arguments.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
 		ComputeValidatorsGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (leader nodesCoordinator.Validator, validatorsGroup []nodesCoordinator.Validator, err error) {
-			return validator1, []nodesCoordinator.Validator{validator1, &shardingMocks.ValidatorMock{}}, nil
+			return validator1, []nodesCoordinator.Validator{validator1, &shardingMocks.ValidatorMock{PubKeyCalled: func() []byte { return []byte("pk2") }}}, nil
 		},
 	}
 	arguments.ShardCoordinator = shardCoordinatorMock
