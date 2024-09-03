@@ -334,6 +334,7 @@ func TestChronology_CloseWatchDogStop(t *testing.T) {
 			stopCalled = true
 		},
 	}
+
 	chr, err := chronology.NewChronology(arg)
 	require.Nil(t, err)
 	chr.SetCancelFunc(nil)
@@ -376,6 +377,7 @@ func TestChronology_StartRounds(t *testing.T) {
 	chr, err := chronology.NewChronology(arg)
 	require.Nil(t, err)
 	doneFuncCalled := false
+
 	ctx := &mock.ContextMock{
 		DoneFunc: func() <-chan struct{} {
 			done := make(chan struct{})
