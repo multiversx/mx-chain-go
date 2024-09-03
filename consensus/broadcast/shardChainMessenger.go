@@ -52,7 +52,7 @@ func NewShardChainMessenger(
 		commonMessenger: cm,
 	}
 
-	err = scm.delayedBlockBroadcaster.SetBroadcastHandlers(scm.BroadcastMiniBlocks, scm.BroadcastTransactions, scm.BroadcastHeader)
+	err = scm.delayedBlockBroadcaster.SetBroadcastHandlers(scm.BroadcastMiniBlocks, scm.BroadcastTransactions, scm.BroadcastHeader, scm.BroadcastConsensusMessage)
 	if err != nil {
 		return nil, err
 	}

@@ -240,14 +240,15 @@ func TestInterceptedHeader_CheckValidityLeaderSignatureOkWithFlagActiveShouldWor
 			return flag == common.EquivalentMessagesFlag
 		},
 	}
-	wasVerifySignatureForHashCalled := false
+	wasVerifySignatureCalled := false
 	providedPrevBitmap := []byte{1, 1, 1, 1}
 	providedPrevSig := []byte("provided sig")
 	arg.HeaderSigVerifier = &consensus.HeaderSigVerifierMock{
-		VerifySignatureForHashCalled: func(header data.HeaderHandler, hash []byte, pubkeysBitmap []byte, signature []byte) error {
-			wasVerifySignatureForHashCalled = true
-			assert.Equal(t, providedPrevBitmap, pubkeysBitmap)
-			assert.Equal(t, providedPrevSig, signature)
+		VerifySignatureCalled: func(header data.HeaderHandler) error {
+			wasVerifySignatureCalled = true
+			prevSig, prevBitmap := header.GetPreviousAggregatedSignatureAndBitmap()
+			assert.Equal(t, providedPrevBitmap, prevBitmap)
+			assert.Equal(t, providedPrevSig, prevSig)
 			return nil
 		},
 	}
@@ -271,7 +272,7 @@ func TestInterceptedHeader_CheckValidityLeaderSignatureOkWithFlagActiveShouldWor
 
 	err = inHdr.CheckValidity()
 	assert.Nil(t, err)
-	assert.True(t, wasVerifySignatureForHashCalled)
+	assert.True(t, wasVerifySignatureCalled)
 }
 
 func TestInterceptedHeader_ErrorInMiniBlockShouldErr(t *testing.T) {

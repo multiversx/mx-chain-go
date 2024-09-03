@@ -244,6 +244,9 @@ var ErrNilFunctionHandler = errors.New("nil function handler")
 // ErrWrongHashForHeader signals that the hash of the header is not the expected one
 var ErrWrongHashForHeader = errors.New("wrong hash for header")
 
+// ErrNilSentSignatureTracker defines the error for setting a nil SentSignatureTracker
+var ErrNilSentSignatureTracker = errors.New("nil sent signature tracker")
+
 // ErrEquivalentMessageAlreadyReceived signals that an equivalent message has been already received
 var ErrEquivalentMessageAlreadyReceived = errors.New("equivalent message already received")
 
@@ -261,3 +264,6 @@ var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
 
 // ErrMissingProposerSignature signals that proposer signature is missing
 var ErrMissingProposerSignature = errors.New("missing proposer signature")
+
+// ErrNilConsensusMessage signals that a nil consensus message has been provided
+var ErrNilConsensusMessage = errors.New("nil consensus message")
