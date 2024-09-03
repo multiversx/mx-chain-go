@@ -1,7 +1,8 @@
-package mock
+package consensus
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-go/consensus"
 )
 

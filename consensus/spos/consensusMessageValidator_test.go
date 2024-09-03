@@ -6,17 +6,20 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	testscommonConsensus "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
-	"github.com/stretchr/testify/assert"
 )
 
 func createDefaultConsensusMessageValidatorArgs() spos.ArgsConsensusMessageValidator {
@@ -30,7 +33,7 @@ func createDefaultConsensusMessageValidatorArgs() spos.ArgsConsensusMessageValid
 			return nil
 		},
 	}
-	keyGeneratorMock, _, _ := mock.InitKeys()
+	keyGeneratorMock, _, _ := testscommonConsensus.InitKeys()
 	peerSigHandler := &mock.PeerSignatureHandler{Signer: singleSignerMock, KeyGen: keyGeneratorMock}
 	hasher := &hashingMocks.HasherMock{}
 
@@ -216,17 +219,55 @@ func TestCheckMessageWithFinalInfoValidity_InvalidAggregateSignatureSize(t *test
 	assert.True(t, errors.Is(err, spos.ErrInvalidSignatureSize))
 }
 
-func TestCheckMessageWithFinalInfoValidity_InvalidLeaderSignatureSize(t *testing.T) {
+func TestCheckMessageWithFinalInfo_LeaderSignatureCheck(t *testing.T) {
 	t.Parallel()
 
-	consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
-	cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
+	t.Run("should fail", func(t *testing.T) {
+		t.Parallel()
 
-	sig := make([]byte, SignatureSize)
-	_, _ = rand.Read(sig)
-	cnsMsg := &consensus.Message{PubKeysBitmap: []byte("01"), AggregateSignature: sig, LeaderSignature: []byte("0")}
-	err := cmv.CheckMessageWithFinalInfoValidity(cnsMsg)
-	assert.True(t, errors.Is(err, spos.ErrInvalidSignatureSize))
+		consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
+		consensusMessageValidatorArgs.ConsensusState.Header = &block.Header{Epoch: 2}
+
+		sigSize := SignatureSize
+		consensusMessageValidatorArgs.SignatureSize = sigSize // different signature size
+
+		cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
+
+		cnsMsg := &consensus.Message{
+			MsgType:            int64(bls.MtBlockHeaderFinalInfo),
+			AggregateSignature: make([]byte, SignatureSize),
+			LeaderSignature:    make([]byte, SignatureSize-1),
+			PubKeysBitmap:      []byte("11"),
+		}
+		err := cmv.CheckConsensusMessageValidityForMessageType(cnsMsg)
+		assert.NotNil(t, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		consensusMessageValidatorArgs := createDefaultConsensusMessageValidatorArgs()
+		consensusMessageValidatorArgs.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.EquivalentMessagesFlag
+			},
+		}
+		consensusMessageValidatorArgs.ConsensusState.Header = &block.Header{Epoch: 2}
+
+		sigSize := SignatureSize
+		consensusMessageValidatorArgs.SignatureSize = sigSize // different signature size
+
+		cmv, _ := spos.NewConsensusMessageValidator(consensusMessageValidatorArgs)
+
+		cnsMsg := &consensus.Message{
+			MsgType:            int64(bls.MtBlockHeaderFinalInfo),
+			AggregateSignature: make([]byte, SignatureSize),
+			LeaderSignature:    make([]byte, SignatureSize-1),
+			PubKeysBitmap:      []byte("11"),
+		}
+		err := cmv.CheckConsensusMessageValidityForMessageType(cnsMsg)
+		assert.Nil(t, err)
+	})
 }
 
 func TestCheckMessageWithFinalInfoValidity_ShouldWork(t *testing.T) {

@@ -21,6 +21,7 @@ import (
 	cryptoFactory "github.com/multiversx/mx-chain-go/factory/crypto"
 	nodeMock "github.com/multiversx/mx-chain-go/node/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -48,7 +49,7 @@ func createMultiSignerSetup(grSize uint16, suite crypto.Suite) (crypto.KeyGenera
 }
 
 func benchmarkSubroundSignatureDoSignatureJobForManagedKeys(b *testing.B, numberOfKeys int) {
-	container := mock.InitConsensusCore()
+	container := consensus.InitConsensusCore()
 	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
 			return flag == common.EquivalentMessagesFlag
