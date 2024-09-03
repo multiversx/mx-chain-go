@@ -182,7 +182,7 @@ func TestNodesSetup_ProcessConfigNodesShouldErrCouldNotParsePubKeyForString(t *t
 		validatorPubkeyConverterMocked,
 	)
 
-	require.Contains(t, err.Error(), ErrCouldNotParsePubKey.Error())
+	require.ErrorIs(t, err, ErrCouldNotParsePubKey)
 }
 
 func TestNodesSetup_ProcessConfigNodesShouldErrCouldNotParseAddressForString(t *testing.T) {
@@ -219,7 +219,7 @@ func TestNodesSetup_ProcessConfigNodesShouldErrCouldNotParseAddressForString(t *
 		validatorPubkeyConverterMocked,
 	)
 
-	require.Contains(t, err.Error(), ErrCouldNotParseAddress.Error())
+	require.ErrorIs(t, err, ErrCouldNotParseAddress)
 }
 
 func TestNodesSetup_ProcessConfigNodesWithEmptyDataShouldErrCouldNotParseAddress(t *testing.T) {
@@ -252,7 +252,7 @@ func TestNodesSetup_ProcessConfigNodesWithEmptyDataShouldErrCouldNotParseAddress
 		validatorPubkeyConverterMocked,
 	)
 
-	require.Contains(t, err.Error(), ErrCouldNotParseAddress.Error())
+	require.ErrorIs(t, err, ErrCouldNotParseAddress)
 }
 
 func TestNodesSetup_ProcessConfigInvalidConsensusGroupSizeShouldErr(t *testing.T) {
@@ -588,7 +588,7 @@ func TestNewNodesSetup_ErrNilPubkeyConverterForAddressPubkeyConverter(t *testing
 		3,
 	)
 
-	require.Contains(t, err.Error(), ErrNilPubkeyConverter.Error())
+	require.ErrorIs(t, err, ErrNilPubkeyConverter)
 }
 
 func TestNewNodesSetup_ErrNilPubkeyConverterForValidatorPubkeyConverter(t *testing.T) {
@@ -602,7 +602,7 @@ func TestNewNodesSetup_ErrNilPubkeyConverterForValidatorPubkeyConverter(t *testi
 		3,
 	)
 
-	require.Contains(t, err.Error(), ErrNilPubkeyConverter.Error())
+	require.ErrorIs(t, err, ErrNilPubkeyConverter)
 }
 
 func TestNewNodesSetup_ErrNilChainParametersProvider(t *testing.T) {
@@ -634,7 +634,7 @@ func TestNewNodesSetup_ErrChainParametersForEpoch(t *testing.T) {
 		3,
 	)
 
-	require.Contains(t, err.Error(), ErrInvalidChainParametersForEpoch.Error())
+	require.ErrorIs(t, err, ErrInvalidChainParametersForEpoch)
 }
 
 func TestNodesSetup_IfNodesWithinMaxShardLimitEquivalentDistribution(t *testing.T) {
@@ -1040,9 +1040,17 @@ func TestNodesSetup_ExportNodesConfigShouldWork(t *testing.T) {
 
 	require.Equal(t, int64(10), configNodes.StartTime)
 
+	var expectedNodesConfigs = make([]config.InitialNodeConfig, len(configNodes.InitialNodes))
+	var actualNodesConfigs = make([]config.InitialNodeConfig, len(configNodes.InitialNodes))
+
 	for i, nodeConfig := range configNodes.InitialNodes {
-		require.Equal(t, config.InitialNodeConfig{PubKey: pubKeys[i], Address: address[i], InitialRating: 0},
-			config.InitialNodeConfig{PubKey: nodeConfig.PubKey, Address: nodeConfig.Address, InitialRating: nodeConfig.InitialRating})
+		expectedNodesConfigs[i] = config.InitialNodeConfig{PubKey: pubKeys[i], Address: address[i], InitialRating: 0}
+		actualNodesConfigs[i] = config.InitialNodeConfig{PubKey: nodeConfig.PubKey, Address: nodeConfig.Address, InitialRating: nodeConfig.InitialRating}
+
+	}
+
+	for i := range configNodes.InitialNodes {
+		require.Equal(t, expectedNodesConfigs[i], actualNodesConfigs[i])
 	}
 
 }

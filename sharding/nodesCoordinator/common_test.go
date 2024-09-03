@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math/big"
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -216,7 +217,7 @@ func TestSerializableValidatorsToValidatorsShouldWork(t *testing.T) {
 	require.Equal(t, expectedMapOfValidators, valReturned)
 }
 
-func TestSerializableValidatorsToValidatorsShouldWorkErrNilPubKey(t *testing.T) {
+func TestSerializableValidatorsToValidatorsShouldErrNilPubKey(t *testing.T) {
 	t.Parallel()
 
 	mapOfSerializableValidators := make(map[string][]*SerializableValidator, 1)
@@ -233,7 +234,7 @@ func TestSerializableValidatorsToValidatorsShouldWorkErrNilPubKey(t *testing.T) 
 	require.Equal(t, ErrNilPubKey, err)
 }
 
-func TestSerializableValidatorsToValidatorsShouldWorkErrEmptyString(t *testing.T) {
+func TestSerializableValidatorsToValidatorsShouldErrEmptyString(t *testing.T) {
 	t.Parallel()
 
 	mapOfSerializableValidators := make(map[string][]*SerializableValidator, 1)
@@ -253,5 +254,5 @@ func TestSerializableValidatorsToValidatorsShouldWorkErrEmptyString(t *testing.T
 
 	_, err := SerializableValidatorsToValidators(mapOfSerializableValidators)
 
-	require.NotNil(t, err)
+	require.Equal(t, &strconv.NumError{Func: "ParseUint", Num: "", Err: strconv.ErrSyntax}, err)
 }
