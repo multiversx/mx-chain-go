@@ -130,6 +130,7 @@ func (scf *stateComponentsFactory) createStateChangesCollector() (state.StateCha
 		return stateChanges.NewStateChangesCollector(), nil
 	}
 
+	// TODO: move to toml config file
 	dbConfig := config.DBConfig{
 		FilePath:          "stateChanges",
 		Type:              "LvlDBSerial",
