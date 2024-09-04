@@ -40,6 +40,7 @@ func (chr *chronology) InitRound() {
 	chr.initRound()
 }
 
+// StartRoundsTest calls the unexported startRounds function
 func (chr *chronology) StartRoundsTest(ctx context.Context) {
 	chr.startRounds(ctx)
 }
