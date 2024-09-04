@@ -34,6 +34,7 @@ func createAccountAdapter(
 		StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
 		AddressConverter:      addressConverter,
 		SnapshotsManager:      disabledState.NewDisabledSnapshotsManager(),
+		StateChangesCollector: state.NewStateChangesCollector(),
 	}
 
 	adb, err := state.NewAccountsDB(args)

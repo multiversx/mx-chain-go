@@ -28,6 +28,7 @@ func createMockAccountsArgs() state.ArgsAccountsDB {
 		StoragePruningManager: &mockState.StoragePruningManagerStub{},
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
 		SnapshotsManager:      &mockState.SnapshotsManagerStub{},
+		StateChangesCollector: state.NewStateChangesCollector(),
 	}
 }
 

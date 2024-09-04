@@ -196,7 +196,7 @@ func (awm *AccountWrapMock) DataTrie() common.DataTrieHandler {
 }
 
 // SaveDirtyData -
-func (awm *AccountWrapMock) SaveDirtyData(trie common.Trie) ([]core.TrieData, error) {
+func (awm *AccountWrapMock) SaveDirtyData(trie common.Trie) ([]state.DataTrieChange, []core.TrieData, error) {
 	return awm.trackableDataTrie.SaveDirtyData(trie)
 }
 

@@ -209,6 +209,9 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 		txProc.pubkeyConv,
 	)
 
+	// TODO refactor to set the tx hash for the following state changes before the processing occurs
+	defer txProc.accounts.SetTxHashForLatestStateChanges(txHash)
+
 	txType, dstShardTxType := txProc.txTypeHandler.ComputeTransactionType(tx)
 	err = txProc.checkTxValues(tx, acntSnd, acntDst, false)
 	if err != nil {

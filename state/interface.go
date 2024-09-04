@@ -90,6 +90,8 @@ type AccountsAdapter interface {
 	GetStackDebugFirstEntry() []byte
 	SetSyncer(syncer AccountsDBSyncer) error
 	StartSnapshotIfNeeded() error
+	SetTxHashForLatestStateChanges(txHash []byte)
+	ResetStateChangesCollector() []StateChangesForTx
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -159,7 +161,7 @@ type baseAccountHandler interface {
 	GetRootHash() []byte
 	SetDataTrie(trie common.Trie)
 	DataTrie() common.DataTrieHandler
-	SaveDirtyData(trie common.Trie) ([]core.TrieData, error)
+	SaveDirtyData(trie common.Trie) ([]DataTrieChange, []core.TrieData, error)
 	IsInterfaceNil() bool
 }
 
@@ -257,7 +259,7 @@ type DataTrieTracker interface {
 	SaveKeyValue(key []byte, value []byte) error
 	SetDataTrie(tr common.Trie)
 	DataTrie() common.DataTrieHandler
-	SaveDirtyData(common.Trie) ([]core.TrieData, error)
+	SaveDirtyData(common.Trie) ([]DataTrieChange, []core.TrieData, error)
 	MigrateDataTrieLeaves(args vmcommon.ArgsMigrateDataTrieLeaves) error
 	IsInterfaceNil() bool
 }
@@ -352,4 +354,13 @@ type ValidatorInfoHandler interface {
 	ShallowClone() ValidatorInfoHandler
 	String() string
 	GoString() string
+}
+
+// StateChangesCollector defines the methods needed for an StateChangesCollector implementation
+type StateChangesCollector interface {
+	AddStateChange(stateChange StateChangeDTO)
+	GetStateChanges() []StateChangesForTx
+	Reset()
+	AddTxHashToCollectedStateChanges(txHash []byte)
+	IsInterfaceNil() bool
 }

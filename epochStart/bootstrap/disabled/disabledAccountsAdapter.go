@@ -128,6 +128,15 @@ func (a *accountsAdapter) GetStackDebugFirstEntry() []byte {
 	return nil
 }
 
+// SetTxHashForLatestStateChanges -
+func (a *accountsAdapter) SetTxHashForLatestStateChanges(_ []byte) {
+}
+
+// ResetStateChangesCollector -
+func (a *accountsAdapter) ResetStateChangesCollector() []state.StateChangesForTx {
+	return nil
+}
+
 // Close -
 func (a *accountsAdapter) Close() error {
 	return nil
