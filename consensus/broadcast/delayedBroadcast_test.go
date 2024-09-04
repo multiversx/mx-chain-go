@@ -24,6 +24,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/pool"
 )
 
 type validatorDelayArgs struct {
@@ -100,7 +101,7 @@ func createMetaBlock() *block.MetaBlock {
 }
 
 func createDefaultDelayedBroadcasterArgs() *broadcast.ArgsDelayedBlockBroadcaster {
-	headersSubscriber := &mock.HeadersCacherStub{}
+	headersSubscriber := &pool.HeadersPoolStub{}
 	interceptorsContainer := createInterceptorContainer()
 	dbbArgs := &broadcast.ArgsDelayedBlockBroadcaster{
 		ShardCoordinator:      &mock.ShardCoordinatorMock{},

@@ -7,8 +7,11 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/consensus"
+	testscommonConsensus "github.com/multiversx/mx-chain-go/testscommon/consensus"
+	"github.com/multiversx/mx-chain-go/testscommon/pool"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
@@ -67,13 +70,13 @@ func createDefaultShardChainArgs() broadcast.ShardChainMessengerArgs {
 	messengerMock := &p2pmocks.MessengerStub{}
 	shardCoordinatorMock := &mock.ShardCoordinatorMock{}
 	singleSignerMock := &mock.SingleSignerMock{}
-	headersSubscriber := &mock.HeadersCacherStub{}
+	headersSubscriber := &pool.HeadersPoolStub{}
 	interceptorsContainer := createInterceptorContainer()
 	peerSigHandler := &mock.PeerSignatureHandler{
 		Signer: singleSignerMock,
 	}
-	alarmScheduler := &mock.AlarmSchedulerStub{}
-	delayedBroadcaster := &mock.DelayedBroadcasterMock{}
+	alarmScheduler := &testscommon.AlarmSchedulerStub{}
+	delayedBroadcaster := &testscommonConsensus.DelayedBroadcasterMock{}
 
 	return broadcast.ShardChainMessengerArgs{
 		CommonMessengerArgs: broadcast.CommonMessengerArgs{
@@ -191,7 +194,7 @@ func TestShardChainMessenger_NewShardChainMessengerShouldWork(t *testing.T) {
 func TestShardChainMessenger_NewShardChainMessengerShouldErr(t *testing.T) {
 
 	args := createDefaultShardChainArgs()
-	args.DelayedBroadcaster = &mock.DelayedBroadcasterMock{
+	args.DelayedBroadcaster = &testscommonConsensus.DelayedBroadcasterMock{
 		SetBroadcastHandlersCalled: func(
 			mbBroadcast func(mbData map[uint32][]byte, pkBytes []byte) error,
 			txBroadcast func(txData map[string][][]byte, pkBytes []byte) error,
@@ -533,7 +536,7 @@ func TestShardChainMessenger_BroadcastBlockDataLeaderShouldErrDelayedBroadcaster
 
 	args := createDefaultShardChainArgs()
 
-	args.DelayedBroadcaster = &mock.DelayedBroadcasterMock{
+	args.DelayedBroadcaster = &testscommonConsensus.DelayedBroadcasterMock{
 		SetLeaderDataCalled: func(data *shared.DelayedBroadcastData) error {
 			return expectedErr
 		}}
@@ -615,7 +618,7 @@ func TestShardChainMessenger_PrepareBroadcastHeaderValidatorShouldFailHeaderNil(
 	pkBytes := make([]byte, 32)
 	args := createDefaultShardChainArgs()
 
-	args.DelayedBroadcaster = &mock.DelayedBroadcasterMock{
+	args.DelayedBroadcaster = &testscommonConsensus.DelayedBroadcasterMock{
 		SetHeaderForValidatorCalled: func(vData *shared.ValidatorHeaderBroadcastData) error {
 			require.Fail(t, "SetHeaderForValidator should not be called")
 			return nil
@@ -634,7 +637,7 @@ func TestShardChainMessenger_PrepareBroadcastHeaderValidatorShouldFailCalculateH
 
 	args := createDefaultShardChainArgs()
 
-	args.DelayedBroadcaster = &mock.DelayedBroadcasterMock{
+	args.DelayedBroadcaster = &testscommonConsensus.DelayedBroadcasterMock{
 		SetHeaderForValidatorCalled: func(vData *shared.ValidatorHeaderBroadcastData) error {
 			require.Fail(t, "SetHeaderForValidator should not be called")
 			return nil
@@ -659,7 +662,7 @@ func TestShardChainMessenger_PrepareBroadcastHeaderValidatorShouldWork(t *testin
 
 	varSetHeaderForValidatorCalled := false
 
-	args.DelayedBroadcaster = &mock.DelayedBroadcasterMock{
+	args.DelayedBroadcaster = &testscommonConsensus.DelayedBroadcasterMock{
 		SetHeaderForValidatorCalled: func(vData *shared.ValidatorHeaderBroadcastData) error {
 			varSetHeaderForValidatorCalled = true
 			return nil
@@ -685,7 +688,7 @@ func TestShardChainMessenger_PrepareBroadcastBlockDataValidatorShouldFailHeaderN
 	pkBytes := make([]byte, 32)
 	args := createDefaultShardChainArgs()
 
-	args.DelayedBroadcaster = &mock.DelayedBroadcasterMock{
+	args.DelayedBroadcaster = &testscommonConsensus.DelayedBroadcasterMock{
 		SetValidatorDataCalled: func(data *shared.DelayedBroadcastData) error {
 			require.Fail(t, "SetValidatorData should not be called")
 			return nil
@@ -705,7 +708,7 @@ func TestShardChainMessenger_PrepareBroadcastBlockDataValidatorShouldFailMiniBlo
 
 	args := createDefaultShardChainArgs()
 
-	args.DelayedBroadcaster = &mock.DelayedBroadcasterMock{
+	args.DelayedBroadcaster = &testscommonConsensus.DelayedBroadcasterMock{
 		SetValidatorDataCalled: func(data *shared.DelayedBroadcastData) error {
 			require.Fail(t, "SetValidatorData should not be called")
 			return nil
@@ -725,7 +728,7 @@ func TestShardChainMessenger_PrepareBroadcastBlockDataValidatorShouldFailCalcula
 
 	args := createDefaultShardChainArgs()
 
-	args.DelayedBroadcaster = &mock.DelayedBroadcasterMock{
+	args.DelayedBroadcaster = &testscommonConsensus.DelayedBroadcasterMock{
 		SetValidatorDataCalled: func(data *shared.DelayedBroadcastData) error {
 			require.Fail(t, "SetValidatorData should not be called")
 			return nil
@@ -752,7 +755,7 @@ func TestShardChainMessenger_PrepareBroadcastBlockDataValidatorShouldWork(t *tes
 	args := createDefaultShardChainArgs()
 
 	varSetValidatorDataCalled := false
-	args.DelayedBroadcaster = &mock.DelayedBroadcasterMock{
+	args.DelayedBroadcaster = &testscommonConsensus.DelayedBroadcasterMock{
 		SetValidatorDataCalled: func(data *shared.DelayedBroadcastData) error {
 			varSetValidatorDataCalled = true
 			return nil
@@ -783,7 +786,7 @@ func TestShardChainMessenger_CloseShouldWork(t *testing.T) {
 	args := createDefaultShardChainArgs()
 
 	varCloseCalled := false
-	args.DelayedBroadcaster = &mock.DelayedBroadcasterMock{
+	args.DelayedBroadcaster = &testscommonConsensus.DelayedBroadcasterMock{
 		CloseCalled: func() {
 			varCloseCalled = true
 		},

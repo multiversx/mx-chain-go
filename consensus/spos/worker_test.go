@@ -29,10 +29,12 @@ import (
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/bootstrapperStubs"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
 
@@ -62,14 +64,14 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 			return nil
 		},
 	}
-	bootstrapperMock := &mock.BootstrapperStub{}
-	broadcastMessengerMock := &mock.BroadcastMessengerMock{}
+	bootstrapperMock := &bootstrapperStubs.BootstrapperStub{}
+	broadcastMessengerMock := &consensusMocks.BroadcastMessengerMock{}
 	consensusState := initConsensusState()
-	forkDetectorMock := &mock.ForkDetectorMock{}
+	forkDetectorMock := &processMocks.ForkDetectorStub{}
 	forkDetectorMock.AddHeaderCalled = func(header data.HeaderHandler, hash []byte, state process.BlockHeaderState, selfNotarizedHeaders []data.HeaderHandler, selfNotarizedHeadersHashes [][]byte) error {
 		return nil
 	}
-	keyGeneratorMock, _, _ := mock.InitKeys()
+	keyGeneratorMock, _, _ := consensusMocks.InitKeys()
 	marshalizerMock := mock.MarshalizerMock{}
 	roundHandlerMock := initRoundHandlerMock()
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
@@ -110,7 +112,7 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 		PeerSignatureHandler:       peerSigHandler,
 		SyncTimer:                  syncTimerMock,
 		HeaderSigVerifier:          &consensusMocks.HeaderSigVerifierMock{},
-		HeaderIntegrityVerifier:    &mock.HeaderIntegrityVerifierStub{},
+		HeaderIntegrityVerifier:    &testscommon.HeaderVersionHandlerStub{},
 		ChainID:                    chainID,
 		NetworkShardingCollector:   &p2pmocks.NetworkShardingCollectorStub{},
 		AntifloodHandler:           createMockP2PAntifloodHandler(),
@@ -120,7 +122,7 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 		AppStatusHandler:           appStatusHandler,
 		NodeRedundancyHandler:      &mock.NodeRedundancyHandlerStub{},
 		PeerBlacklistHandler:       &mock.PeerBlacklistHandlerStub{},
-		EquivalentMessagesDebugger: &mock.EquivalentMessagesDebuggerStub{},
+		EquivalentMessagesDebugger: &consensusMocks.EquivalentMessagesDebuggerStub{},
 		EnableEpochsHandler:        &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 
@@ -1890,7 +1892,7 @@ func TestWorker_ExtendShouldReturnWhenRoundIsCanceled(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{})
 	executed := false
-	bootstrapperMock := &mock.BootstrapperStub{
+	bootstrapperMock := &bootstrapperStubs.BootstrapperStub{
 		GetNodeStateCalled: func() common.NodeState {
 			return common.NsNotSynchronized
 		},
@@ -1910,7 +1912,7 @@ func TestWorker_ExtendShouldReturnWhenGetNodeStateNotReturnSynchronized(t *testi
 	t.Parallel()
 	wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{})
 	executed := false
-	bootstrapperMock := &mock.BootstrapperStub{
+	bootstrapperMock := &bootstrapperStubs.BootstrapperStub{
 		GetNodeStateCalled: func() common.NodeState {
 			return common.NsNotSynchronized
 		},
@@ -1929,14 +1931,14 @@ func TestWorker_ExtendShouldReturnWhenCreateEmptyBlockFail(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{})
 	executed := false
-	bmm := &mock.BroadcastMessengerMock{
+	bmm := &consensusMocks.BroadcastMessengerMock{
 		BroadcastBlockCalled: func(handler data.BodyHandler, handler2 data.HeaderHandler) error {
 			executed = true
 			return nil
 		},
 	}
 	wrk.SetBroadcastMessenger(bmm)
-	bootstrapperMock := &mock.BootstrapperStub{
+	bootstrapperMock := &bootstrapperStubs.BootstrapperStub{
 		CreateAndCommitEmptyBlockCalled: func(shardForCurrentNode uint32) (data.BodyHandler, data.HeaderHandler, error) {
 			return nil, nil, errors.New("error")
 		}}

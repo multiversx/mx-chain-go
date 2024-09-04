@@ -9,9 +9,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
-	mockConsensus "github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
 	chainSimulatorProcess "github.com/multiversx/mx-chain-go/node/chainSimulator/process"
@@ -24,7 +25,6 @@ import (
 	testsFactory "github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-	"github.com/stretchr/testify/require"
 )
 
 var expectedErr = errors.New("expected error")
@@ -515,7 +515,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 
 		nodeHandler := getNodeHandler()
 		nodeHandler.GetBroadcastMessengerCalled = func() consensus.BroadcastMessenger {
-			return &mockConsensus.BroadcastMessengerMock{
+			return &testsConsensus.BroadcastMessengerMock{
 				BroadcastHeaderCalled: func(handler data.HeaderHandler, bytes []byte) error {
 					return expectedErr
 				},
@@ -625,7 +625,7 @@ func getNodeHandler() *chainSimulator.NodeHandlerMock {
 			}
 		},
 		GetBroadcastMessengerCalled: func() consensus.BroadcastMessenger {
-			return &mockConsensus.BroadcastMessengerMock{}
+			return &testsConsensus.BroadcastMessengerMock{}
 		},
 	}
 }
