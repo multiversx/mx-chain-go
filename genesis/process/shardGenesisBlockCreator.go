@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
+	shardData "github.com/multiversx/mx-chain-go/process/factory/shard/data"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 
@@ -604,33 +605,32 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 	disabledScheduledTxsExecutionHandler := &disabled.ScheduledTxsExecutionHandler{}
 	disabledProcessedMiniBlocksTracker := &disabled.ProcessedMiniBlocksTracker{}
 
-	argsPreProc := shard.ArgPreProcessorsContainerFactory{
-		ShardCoordinator:                       arg.ShardCoordinator,
-		Store:                                  arg.Data.StorageService(),
-		Marshaller:                             arg.Core.InternalMarshalizer(),
-		Hasher:                                 arg.Core.Hasher(),
-		DataPool:                               arg.Data.Datapool(),
-		PubkeyConverter:                        arg.Core.AddressPubKeyConverter(),
-		Accounts:                               arg.Accounts,
-		RequestHandler:                         disabledRequestHandler,
-		TxProcessor:                            transactionProcessor,
-		ScProcessor:                            scProcessorProxy,
-		ScResultProcessor:                      scProcessorProxy,
-		RewardsTxProcessor:                     rewardsTxProcessor,
-		EconomicsFee:                           arg.Economics,
-		GasHandler:                             gasHandler,
-		BlockTracker:                           disabledBlockTracker,
-		BlockSizeComputation:                   disabledBlockSizeComputationHandler,
-		BalanceComputation:                     disabledBalanceComputationHandler,
-		EnableEpochsHandler:                    enableEpochsHandler,
-		TxTypeHandler:                          txTypeHandler,
-		ScheduledTxsExecutionHandler:           disabledScheduledTxsExecutionHandler,
-		ProcessedMiniBlocksTracker:             disabledProcessedMiniBlocksTracker,
-		TxExecutionOrderHandler:                arg.TxExecutionOrderHandler,
-		TxPreProcessorCreator:                  arg.RunTypeComponents.TxPreProcessorCreator(),
-		SmartContractResultPreProcessorCreator: arg.RunTypeComponents.SCResultsPreProcessorCreator(),
+	argsPreProc := shardData.ArgPreProcessorsContainerFactory{
+		ShardCoordinator:             arg.ShardCoordinator,
+		Store:                        arg.Data.StorageService(),
+		Marshaller:                   arg.Core.InternalMarshalizer(),
+		Hasher:                       arg.Core.Hasher(),
+		DataPool:                     arg.Data.Datapool(),
+		PubkeyConverter:              arg.Core.AddressPubKeyConverter(),
+		Accounts:                     arg.Accounts,
+		RequestHandler:               disabledRequestHandler,
+		TxProcessor:                  transactionProcessor,
+		ScProcessor:                  scProcessorProxy,
+		ScResultProcessor:            scProcessorProxy,
+		RewardsTxProcessor:           rewardsTxProcessor,
+		EconomicsFee:                 arg.Economics,
+		GasHandler:                   gasHandler,
+		BlockTracker:                 disabledBlockTracker,
+		BlockSizeComputation:         disabledBlockSizeComputationHandler,
+		BalanceComputation:           disabledBalanceComputationHandler,
+		EnableEpochsHandler:          enableEpochsHandler,
+		TxTypeHandler:                txTypeHandler,
+		ScheduledTxsExecutionHandler: disabledScheduledTxsExecutionHandler,
+		ProcessedMiniBlocksTracker:   disabledProcessedMiniBlocksTracker,
+		TxExecutionOrderHandler:      arg.TxExecutionOrderHandler,
+		RunTypeComponents:            arg.RunTypeComponents,
 	}
-	preProcFactory, err := shard.NewPreProcessorsContainerFactory(argsPreProc)
+	preProcFactory, err := arg.RunTypeComponents.PreProcessorsContainerFactoryCreator().CreatePreProcessorContainerFactory(argsPreProc)
 	if err != nil {
 		return nil, err
 	}

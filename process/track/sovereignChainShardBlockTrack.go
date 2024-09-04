@@ -48,23 +48,15 @@ func NewSovereignChainShardBlockTrack(shardBlockTrack *shardBlockTrack) (*sovere
 }
 
 func (scsbt *sovereignChainShardBlockTrack) initCrossNotarizedStartHeaders() error {
-	scsbt.mutStartHeaders.RLock()
-	startHeader, foundHeader := scsbt.startHeaders[scsbt.shardCoordinator.SelfId()]
-	scsbt.mutStartHeaders.RUnlock()
-	if !foundHeader {
-		return fmt.Errorf("%w in sovereignChainShardBlockTrack.initCrossNotarizedStartHeaders", process.ErrMissingHeader)
-	}
-
-	header, isHeader := startHeader.(*block.Header)
-	if !isHeader {
-		return fmt.Errorf("%w in sovereignChainShardBlockTrack.initCrossNotarizedStartHeaders", process.ErrWrongTypeAssertion)
-	}
-
+	// TODO MX-15667:
+	// 1. Versioning header for shard extended?
+	// 2. Perhaps add dummy header nonce from config cross main chain notarized
 	extendedShardHeader := &block.ShardHeaderExtended{
 		Header: &block.HeaderV2{
-			Header: header,
+			Header: &block.Header{},
 		},
 	}
+
 	extendedShardHeaderHash, err := core.CalculateHash(scsbt.marshalizer, scsbt.hasher, extendedShardHeader)
 	if err != nil {
 		return fmt.Errorf("%w in sovereignChainShardBlockTrack.initCrossNotarizedStartHeaders", err)

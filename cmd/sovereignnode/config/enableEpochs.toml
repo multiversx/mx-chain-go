@@ -53,7 +53,7 @@
     StakeEnableEpoch = 0
 
     # StakingV2EnableEpoch represents the epoch when staking v2 is enabled
-    StakingV2EnableEpoch = 1
+    StakingV2EnableEpoch = 0
 
     # DoubleKeyProtectionEnableEpoch represents the epoch when the double key protection will be enabled
     DoubleKeyProtectionEnableEpoch = 1
@@ -72,8 +72,9 @@
     # epoch should not be 0
     DelegationSmartContractEnableEpoch = 1
 
+    # TODO: MX-15702: Sovereign enable epoch handler should have all these type of flags always disabled
     # CorrectLastUnjailedEnableEpoch represents the epoch when the fix regaring the last unjailed node should apply
-    CorrectLastUnjailedEnableEpoch = 1
+    CorrectLastUnjailedEnableEpoch = 1000000
 
     # RelayedTransactionsV2EnableEpoch represents the epoch when the relayed transactions V2 will be enabled
     RelayedTransactionsV2EnableEpoch = 1

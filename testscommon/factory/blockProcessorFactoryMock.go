@@ -7,13 +7,13 @@ import (
 
 // BlockProcessorFactoryMock -
 type BlockProcessorFactoryMock struct {
-	CreateBlockProcessorCalled func(argumentsBaseProcessor processBlock.ArgBaseProcessor) (process.DebuggerBlockProcessor, error)
+	CreateBlockProcessorCalled func(argumentsBaseProcessor processBlock.ArgBaseProcessor, argsMetaProcessorCreate processBlock.ExtraMetaBlockProcessorCreateFunc) (process.DebuggerBlockProcessor, error)
 }
 
 // CreateBlockProcessor -
-func (b *BlockProcessorFactoryMock) CreateBlockProcessor(args processBlock.ArgBaseProcessor) (process.DebuggerBlockProcessor, error) {
+func (b *BlockProcessorFactoryMock) CreateBlockProcessor(argumentsBaseProcessor processBlock.ArgBaseProcessor, argsMetaProcessorCreateFunc processBlock.ExtraMetaBlockProcessorCreateFunc) (process.DebuggerBlockProcessor, error) {
 	if b.CreateBlockProcessorCalled != nil {
-		return b.CreateBlockProcessorCalled(args)
+		return b.CreateBlockProcessorCalled(argumentsBaseProcessor, argsMetaProcessorCreateFunc)
 	}
 	return nil, nil
 }

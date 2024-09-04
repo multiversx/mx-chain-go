@@ -231,6 +231,9 @@ func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 	if check.IfNil(arg.RunTypeComponents.VmContainerMetaFactoryCreator()) {
 		return vm.ErrNilVmContainerMetaCreator
 	}
+	if check.IfNil(arg.RunTypeComponents.PreProcessorsContainerFactoryCreator()) {
+		return errors.ErrNilPreProcessorsContainerFactoryCreator
+	}
 	if arg.TrieStorageManagers == nil {
 		return genesis.ErrNilTrieStorageManager
 	}
