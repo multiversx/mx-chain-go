@@ -898,9 +898,9 @@ func TestScCallsScWithEsdtIntraShard_SecondScRefusesPayment(t *testing.T) {
 
 	leaders := make([]*integrationTests.TestProcessorNode, numOfShards+1)
 	for i := 0; i < numOfShards; i++ {
-		leaders[i] = nodes[i * nodesPerShard]
+		leaders[i] = nodes[i*nodesPerShard]
 	}
-	leaders[numOfShards] = nodes[numOfShards * nodesPerShard]
+	leaders[numOfShards] = nodes[numOfShards*nodesPerShard]
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -990,9 +990,9 @@ func TestScACallsScBWithExecOnDestESDT_TxPending(t *testing.T) {
 
 	leaders := make([]*integrationTests.TestProcessorNode, numOfShards+1)
 	for i := 0; i < numOfShards; i++ {
-		leaders[i] = nodes[i * nodesPerShard]
+		leaders[i] = nodes[i*nodesPerShard]
 	}
-	leaders[numOfShards] = nodes[numOfShards * nodesPerShard]
+	leaders[numOfShards] = nodes[numOfShards*nodesPerShard]
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -1002,7 +1002,7 @@ func TestScACallsScBWithExecOnDestESDT_TxPending(t *testing.T) {
 		}
 	}()
 
-	initialVal := big.NewInt(1000000000;0)
+	initialVal := big.NewInt(10000000000)
 	integrationTests.MintAllNodes(nodes, initialVal)
 
 	round := uint64(0)
