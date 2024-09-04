@@ -91,12 +91,11 @@ func createPhysicalUnit(t *testing.T) (storage.Storer, string) {
 		MaxOpenFiles:      10,
 	}
 
-	dbConfigHandler := storageFactory.NewDBConfigHandler(dbConfig)
-	persisterFactory, err := storageFactory.NewPersisterFactory(dbConfigHandler)
+	persisterFactory, err := storageFactory.NewPersisterFactory(dbConfig)
 	assert.Nil(t, err)
 
 	cache, _ := storageunit.NewCache(cacheConfig)
-	persist, _ := storageunit.NewDB(persisterFactory, dir)
+	persist, _ := persisterFactory.CreateWithRetries(dir)
 	unit, _ := storageunit.NewStorageUnit(cache, persist)
 
 	return unit, dir
@@ -2054,14 +2053,6 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Init(t *testing.T)
 		0: {
 			createValidatorInfo(owner1ListPubKeysStaked[0], common.EligibleList, "", 0, owner1),
 			createValidatorInfo(owner1ListPubKeysStaked[1], common.WaitingList, "", 0, owner1),
-			createValidatorInfo(owner1ListPubKeysWaiting[0], common.AuctionList, "", 0, owner1),
-			createValidatorInfo(owner1ListPubKeysWaiting[1], common.AuctionList, "", 0, owner1),
-			createValidatorInfo(owner1ListPubKeysWaiting[2], common.AuctionList, "", 0, owner1),
-
-			createValidatorInfo(owner2ListPubKeysWaiting[0], common.AuctionList, "", 0, owner2),
-
-			createValidatorInfo(owner3ListPubKeysWaiting[0], common.AuctionList, "", 0, owner3),
-			createValidatorInfo(owner3ListPubKeysWaiting[1], common.AuctionList, "", 0, owner3),
 		},
 		1: {
 			createValidatorInfo(owner2ListPubKeysStaked[0], common.EligibleList, "", 1, owner2),
@@ -2102,7 +2093,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing
 	t.Parallel()
 
 	args, _ := createFullArgumentsForSystemSCProcessing(config.EnableEpochs{}, testscommon.CreateMemUnit())
-	nodesConfigProvider, _ := notifier.NewNodesConfigProvider(args.EpochNotifier, []config.MaxNodesChangeConfig{{MaxNumNodes: 8}})
+	nodesConfigProvider, _ := notifier.NewNodesConfigProvider(args.EpochNotifier, []config.MaxNodesChangeConfig{{MaxNumNodes: 9}})
 
 	auctionCfg := config.SoftAuctionConfig{
 		TopUpStep:             "10",
@@ -2188,7 +2179,7 @@ func TestSystemSCProcessor_ProcessSystemSmartContractStakingV4Enabled(t *testing
 		      will not participate in auction selection
 		    - owner6 does not have enough stake for 2 nodes => one of his auction nodes(pubKey14) will be unStaked at the end of the epoch =>
 		      his other auction node(pubKey15) will not participate in auction selection
-			- MaxNumNodes = 8
+			- MaxNumNodes = 9
 			- EligibleBlsKeys = 5 (pubKey0, pubKey1, pubKey3, pubKe13, pubKey17)
 			- QualifiedAuctionBlsKeys = 7 (pubKey2, pubKey4, pubKey5, pubKey7, pubKey9, pubKey10, pubKey11)
 			We can only select (MaxNumNodes - EligibleBlsKeys = 3) bls keys from AuctionList to be added to NewList
@@ -2334,6 +2325,10 @@ func TestSystemSCProcessor_LegacyEpochConfirmedCorrectMaxNumNodesAfterNodeRestar
 
 	args.EpochNotifier.CheckEpoch(&block.Header{Epoch: 6, Nonce: 6})
 	require.True(t, s.flagChangeMaxNodesEnabled.IsSet())
+	err = s.processLegacy(validatorsInfoMap, 6, 6)
+	require.Equal(t, epochStart.ErrInvalidMaxNumberOfNodes, err)
+
+	args.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub).AddActiveFlags(common.StakingV4StartedFlag)
 	err = s.processLegacy(validatorsInfoMap, 6, 6)
 	require.Nil(t, err)
 	require.Equal(t, nodesConfigEpoch6.MaxNumNodes, s.maxNodes)

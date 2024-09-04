@@ -16,7 +16,11 @@ import (
 )
 
 func TestESDTTransferShouldWork(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	testContext, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -46,6 +50,10 @@ func TestESDTTransferShouldWork(t *testing.T) {
 }
 
 func TestMultiESDTNFTTransferViaRelayedV2(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	tokenID1 := []byte("MYNFT1")
 	tokenID2 := []byte("MYNFT2")
 	sh0Addr := []byte("12345678901234567890123456789010")
@@ -53,11 +61,11 @@ func TestMultiESDTNFTTransferViaRelayedV2(t *testing.T) {
 
 	relayerSh0 := []byte("12345678901234567890123456789110")
 	relayerSh1 := []byte("12345678901234567890123456789111")
-	sh0Context, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
+	sh0Context, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer sh0Context.Close()
 
-	sh1Context, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
+	sh1Context, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer sh1Context.Close()
 	_, _ = vm.CreateAccount(sh1Context.Accounts, sh1Addr, 0, big.NewInt(10000000000))

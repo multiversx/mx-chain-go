@@ -70,7 +70,9 @@ func TestCreationOfTheGenesisState(t *testing.T) {
 }
 
 func TestExtensionNodeToBranchEdgeCaseSet1(t *testing.T) {
-	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	tr1 := integrationTests.CreateNewDefaultTrie()
 	tr2 := integrationTests.CreateNewDefaultTrie()
@@ -105,7 +107,9 @@ func TestExtensionNodeToBranchEdgeCaseSet1(t *testing.T) {
 }
 
 func TestExtensionNodeToBranchEdgeCaseSet2(t *testing.T) {
-	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	tr1 := integrationTests.CreateNewDefaultTrie()
 	tr2 := integrationTests.CreateNewDefaultTrie()

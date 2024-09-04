@@ -18,6 +18,7 @@ import (
 	mxFactory "github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
 	"github.com/multiversx/mx-chain-go/process"
+	processDisabled "github.com/multiversx/mx-chain-go/process/disabled"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -588,6 +589,7 @@ func (e *exportHandlerFactory) createInterceptors() error {
 		FullArchiveInterceptorsContainer: e.fullArchiveInterceptorsContainer,
 		AntifloodHandler:                 e.networkComponents.InputAntiFloodHandler(),
 		NodeOperationMode:                e.nodeOperationMode,
+		RelayedTxV3Processor:             processDisabled.NewRelayedTxV3Processor(),
 	}
 	fullSyncInterceptors, err := NewFullSyncInterceptorsContainerFactory(argsInterceptors)
 	if err != nil {
@@ -608,8 +610,7 @@ func createStorer(storageConfig config.StorageConfig, folder string) (storage.St
 	dbConfig := storageFactory.GetDBFromConfig(storageConfig.DB)
 	dbConfig.FilePath = path.Join(folder, storageConfig.DB.FilePath)
 
-	dbConfigHandler := storageFactory.NewDBConfigHandler(storageConfig.DB)
-	persisterFactory, err := storageFactory.NewPersisterFactory(dbConfigHandler)
+	persisterFactory, err := storageFactory.NewPersisterFactory(storageConfig.DB)
 	if err != nil {
 		return nil, err
 	}

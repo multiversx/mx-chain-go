@@ -66,7 +66,7 @@ func createArgsProcessComponentsHolder() ArgsProcessComponentsHolder {
 				GasScheduleByEpochs: []config.GasScheduleByEpochs{
 					{
 						StartEpoch: 0,
-						FileName:   "../../../cmd/node/config/gasSchedules/gasScheduleV7.toml",
+						FileName:   "../../../cmd/node/config/gasSchedules/gasScheduleV8.toml",
 					},
 				},
 			},
@@ -236,16 +236,11 @@ func createArgsProcessComponentsHolder() ArgsProcessComponentsHolder {
 }
 
 func TestCreateProcessComponents(t *testing.T) {
-	t.Parallel()
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
 
 	t.Run("should work", func(t *testing.T) {
-		// TODO reinstate test after Wasm VM pointer fix
-		if testing.Short() {
-			t.Skip("cannot run with -race -short; requires Wasm VM fix")
-		}
-
-		t.Parallel()
-
 		comp, err := CreateProcessComponents(createArgsProcessComponentsHolder())
 		require.NoError(t, err)
 		require.NotNil(t, comp)
@@ -351,12 +346,9 @@ func TestCreateProcessComponents(t *testing.T) {
 }
 
 func TestProcessComponentsHolder_IsInterfaceNil(t *testing.T) {
-	// TODO reinstate test after Wasm VM pointer fix
 	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Wasm VM fix")
+		t.Skip("this is not a short test")
 	}
-
-	t.Parallel()
 
 	var comp *processComponentsHolder
 	require.True(t, comp.IsInterfaceNil())
@@ -367,12 +359,9 @@ func TestProcessComponentsHolder_IsInterfaceNil(t *testing.T) {
 }
 
 func TestProcessComponentsHolder_Getters(t *testing.T) {
-	// TODO reinstate test after Wasm VM pointer fix
 	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Wasm VM fix")
+		t.Skip("this is not a short test")
 	}
-
-	t.Parallel()
 
 	comp, err := CreateProcessComponents(createArgsProcessComponentsHolder())
 	require.NoError(t, err)
@@ -418,6 +407,8 @@ func TestProcessComponentsHolder_Getters(t *testing.T) {
 	require.NotNil(t, comp.ESDTDataStorageHandlerForAPI())
 	require.NotNil(t, comp.AccountsParser())
 	require.NotNil(t, comp.ReceiptsRepository())
+	require.NotNil(t, comp.EpochSystemSCProcessor())
+	require.NotNil(t, comp.RelayedTxV3Processor())
 	require.Nil(t, comp.CheckSubcomponents())
 	require.Empty(t, comp.String())
 

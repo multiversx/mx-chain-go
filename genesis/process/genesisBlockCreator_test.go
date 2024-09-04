@@ -1,7 +1,5 @@
 //go:build !race
 
-// TODO reinstate test after Wasm VM pointer fix
-
 package process
 
 import (
@@ -78,6 +76,7 @@ func createMockArgument(
 			TxVersionCheck:           &testscommon.TxVersionCheckerStub{},
 			MinTxVersion:             1,
 			EnableEpochsHandlerField: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+			EconomicsDataField:       &economicsmocks.EconomicsHandlerMock{},
 		},
 		Data: &mock.DataComponentsMock{
 			Storage: &storageCommon.ChainStorerStub{
@@ -94,6 +93,7 @@ func createMockArgument(
 			WasmVMVersions: []config.WasmVMVersionByEpoch{
 				{StartEpoch: 0, Version: "*"},
 			},
+			TransferAndExecuteByUserAddresses: []string{"3132333435363738393031323334353637383930313233343536373839303234"},
 		},
 		HardForkConfig: config.HardforkConfig{
 			ImportKeysStorageConfig: config.StorageConfig{
@@ -180,7 +180,7 @@ func createMockArgument(
 				SCDeployEnableEpoch:               unreachableEpoch,
 				CleanUpInformativeSCRsEnableEpoch: unreachableEpoch,
 				SCProcessorV2EnableEpoch:          unreachableEpoch,
-				StakeLimitsEnableEpoch:         10,
+				StakeLimitsEnableEpoch:            10,
 			},
 		},
 		RoundConfig:             testscommon.GetDefaultRoundsConfig(),
@@ -308,7 +308,8 @@ func TestNewGenesisBlockCreator(t *testing.T) {
 
 		arg := createMockArgument(t, "testdata/genesisTest1.json", &mock.InitialNodesHandlerStub{}, big.NewInt(22000))
 		arg.Core = &mock.CoreComponentsMock{
-			AddrPubKeyConv: nil,
+			AddrPubKeyConv:     nil,
+			EconomicsDataField: &economicsmocks.EconomicsHandlerMock{},
 		}
 
 		gbc, err := NewGenesisBlockCreator(arg)
@@ -897,9 +898,9 @@ func TestCreateArgsGenesisBlockCreator_ShouldWorkAndCreateEmpty(t *testing.T) {
 	blocks, err := gbc.CreateGenesisBlocks()
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(blocks))
-	for _, block := range blocks {
-		assert.Zero(t, block.GetNonce())
-		assert.Zero(t, block.GetRound())
-		assert.Zero(t, block.GetEpoch())
+	for _, blockInstance := range blocks {
+		assert.Zero(t, blockInstance.GetNonce())
+		assert.Zero(t, blockInstance.GetRound())
+		assert.Zero(t, blockInstance.GetEpoch())
 	}
 }

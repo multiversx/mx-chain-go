@@ -63,7 +63,8 @@ func (accountsDB *accountsDBApi) doRecreateTrieWithBlockInfo(newBlockInfo common
 		return currentBlockInfo, nil
 	}
 
-	err := accountsDB.innerAccountsAdapter.RecreateTrie(newBlockInfo.GetRootHash())
+	rootHashHolder := holders.NewDefaultRootHashesHolder(newBlockInfo.GetRootHash())
+	err := accountsDB.innerAccountsAdapter.RecreateTrie(rootHashHolder)
 	if err != nil {
 		accountsDB.blockInfo = nil
 		return nil, err
@@ -164,14 +165,8 @@ func (accountsDB *accountsDBApi) RootHash() ([]byte, error) {
 	return blockInfo.GetRootHash(), nil
 }
 
-// RecreateTrie is used to reload the trie based on an existing rootHash
-func (accountsDB *accountsDBApi) RecreateTrie(rootHash []byte) error {
-	_, err := accountsDB.doRecreateTrieWithBlockInfo(holders.NewBlockInfo([]byte{}, 0, rootHash))
-	return err
-}
-
-// RecreateTrieFromEpoch is a not permitted operation in this implementation and thus, will return an error
-func (accountsDB *accountsDBApi) RecreateTrieFromEpoch(options common.RootHashHolder) error {
+// RecreateTrie is a not permitted operation in this implementation and thus, will return an error
+func (accountsDB *accountsDBApi) RecreateTrie(options common.RootHashHolder) error {
 	accountsDB.mutRecreatedTrieBlockInfo.Lock()
 	defer accountsDB.mutRecreatedTrieBlockInfo.Unlock()
 
@@ -184,7 +179,7 @@ func (accountsDB *accountsDBApi) RecreateTrieFromEpoch(options common.RootHashHo
 		return nil
 	}
 
-	err := accountsDB.innerAccountsAdapter.RecreateTrieFromEpoch(options)
+	err := accountsDB.innerAccountsAdapter.RecreateTrie(options)
 	if err != nil {
 		accountsDB.blockInfo = nil
 		return err

@@ -3,18 +3,18 @@ package components
 import (
 	"errors"
 	"math/big"
-	"runtime"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/state"
+
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -24,13 +24,15 @@ var expectedErr = errors.New("expected error")
 
 func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNode {
 	outputConfigs, err := configs.CreateChainSimulatorConfigs(configs.ArgsChainSimulatorConfigs{
-		NumOfShards:           3,
-		OriginalConfigsPath:   "../../../cmd/node/config/",
-		GenesisTimeStamp:      0,
-		RoundDurationInMillis: 6000,
-		TempDir:               t.TempDir(),
-		MinNodesPerShard:      1,
-		MetaChainMinNodes:     1,
+		NumOfShards:                 3,
+		OriginalConfigsPath:         "../../../cmd/node/config/",
+		GenesisTimeStamp:            0,
+		RoundDurationInMillis:       6000,
+		TempDir:                     t.TempDir(),
+		MinNodesPerShard:            1,
+		MetaChainMinNodes:           1,
+		ConsensusGroupSize:          1,
+		MetaChainConsensusGroupSize: 1,
 	})
 	require.Nil(t, err)
 
@@ -39,19 +41,21 @@ func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNo
 		GasScheduleFilename: outputConfigs.GasScheduleFilename,
 		NumShards:           3,
 
-		SyncedBroadcastNetwork: NewSyncedBroadcastNetwork(),
-		ChanStopNodeProcess:    make(chan endProcess.ArgEndProcess),
-		APIInterface:           api.NewNoApiInterface(),
-		ShardIDStr:             "0",
-		RoundDurationInMillis:  6000,
-		MinNodesMeta:           1,
-		MinNodesPerShard:       1,
+		SyncedBroadcastNetwork:      NewSyncedBroadcastNetwork(),
+		ChanStopNodeProcess:         make(chan endProcess.ArgEndProcess),
+		APIInterface:                api.NewNoApiInterface(),
+		ShardIDStr:                  "0",
+		RoundDurationInMillis:       6000,
+		MinNodesMeta:                1,
+		MinNodesPerShard:            1,
+		ConsensusGroupSize:          1,
+		MetaChainConsensusGroupSize: 1,
 	}
 }
 
 func TestNewTestOnlyProcessingNode(t *testing.T) {
-	if runtime.GOARCH == "arm64" {
-		t.Skip("skipping test on arm64")
+	if testing.Short() {
+		t.Skip("this is not a short test")
 	}
 
 	t.Run("should work", func(t *testing.T) {
@@ -140,9 +144,8 @@ func TestNewTestOnlyProcessingNode(t *testing.T) {
 }
 
 func TestTestOnlyProcessingNode_SetKeyValueForAddress(t *testing.T) {
-	// TODO reinstate test after Wasm VM pointer fix
 	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Wasm VM fix")
+		t.Skip("this is not a short test")
 	}
 
 	goodKeyValueMap := map[string]string{
@@ -252,9 +255,8 @@ func TestTestOnlyProcessingNode_SetKeyValueForAddress(t *testing.T) {
 }
 
 func TestTestOnlyProcessingNode_SetStateForAddress(t *testing.T) {
-	// TODO reinstate test after Wasm VM pointer fix
 	if testing.Short() {
-		t.Skip("cannot run with -race -short; requires Wasm VM fix")
+		t.Skip("this is not a short test")
 	}
 
 	node, err := NewTestOnlyProcessingNode(createMockArgsTestOnlyProcessingNode(t))
@@ -269,7 +271,7 @@ func TestTestOnlyProcessingNode_SetStateForAddress(t *testing.T) {
 		Address: "erd1qtc600lryvytxuy4h7vn7xmsy5tw6vuw3tskr75cwnmv4mnyjgsq6e5zgj",
 		Nonce:   &nonce,
 		Balance: "1000000000000000000",
-		Keys: map[string]string{
+		Pairs: map[string]string{
 			"01": "02",
 		},
 	}
@@ -419,8 +421,8 @@ func TestTestOnlyProcessingNode_SetStateForAddress(t *testing.T) {
 }
 
 func TestTestOnlyProcessingNode_IsInterfaceNil(t *testing.T) {
-	if runtime.GOARCH == "arm64" {
-		t.Skip("skipping test on arm64")
+	if testing.Short() {
+		t.Skip("this is not a short test")
 	}
 
 	var node *testOnlyProcessingNode
@@ -431,8 +433,8 @@ func TestTestOnlyProcessingNode_IsInterfaceNil(t *testing.T) {
 }
 
 func TestTestOnlyProcessingNode_Close(t *testing.T) {
-	if runtime.GOARCH == "arm64" {
-		t.Skip("skipping test on arm64")
+	if testing.Short() {
+		t.Skip("this is not a short test")
 	}
 
 	node, err := NewTestOnlyProcessingNode(createMockArgsTestOnlyProcessingNode(t))
@@ -442,8 +444,8 @@ func TestTestOnlyProcessingNode_Close(t *testing.T) {
 }
 
 func TestTestOnlyProcessingNode_Getters(t *testing.T) {
-	if runtime.GOARCH == "arm64" {
-		t.Skip("skipping test on arm64")
+	if testing.Short() {
+		t.Skip("this is not a short test")
 	}
 
 	node := &testOnlyProcessingNode{}

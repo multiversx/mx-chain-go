@@ -1,7 +1,3 @@
-//go:build !race
-
-// TODO remove build condition above to allow -race -short, after Wasm VM fix
-
 package upgrades
 
 import (
@@ -19,6 +15,10 @@ import (
 )
 
 func TestUpgrades_Hello(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	context := wasm.SetupTestContext(t)
 	defer context.Close()
 
@@ -43,6 +43,10 @@ func TestUpgrades_Hello(t *testing.T) {
 }
 
 func TestUpgrades_HelloDoesNotUpgradeWhenNotUpgradeable(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	context := wasm.SetupTestContext(t)
 	defer context.Close()
 
@@ -61,6 +65,10 @@ func TestUpgrades_HelloDoesNotUpgradeWhenNotUpgradeable(t *testing.T) {
 }
 
 func TestUpgrades_HelloUpgradesToNotUpgradeable(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	context := wasm.SetupTestContext(t)
 	defer context.Close()
 
@@ -86,6 +94,10 @@ func TestUpgrades_HelloUpgradesToNotUpgradeable(t *testing.T) {
 }
 
 func TestUpgrades_ParentAndChildContracts(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	context := wasm.SetupTestContext(t)
 	defer context.Close()
 
@@ -125,6 +137,10 @@ func TestUpgrades_ParentAndChildContracts(t *testing.T) {
 }
 
 func TestUpgrades_HelloCannotBeUpgradedByNonOwner(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	context := wasm.SetupTestContext(t)
 	defer context.Close()
 
@@ -145,6 +161,10 @@ func TestUpgrades_HelloCannotBeUpgradedByNonOwner(t *testing.T) {
 }
 
 func TestUpgrades_CounterCannotBeUpgradedByNonOwner(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	context := wasm.SetupTestContext(t)
 	defer context.Close()
 
@@ -187,7 +207,7 @@ func TestUpgrades_HelloTrialAndError(t *testing.T) {
 		make([]byte, 32),
 		big.NewInt(0),
 		deployTxData,
-		1000,
+		100000,
 	)
 	require.Nil(t, err)
 
@@ -201,7 +221,7 @@ func TestUpgrades_HelloTrialAndError(t *testing.T) {
 		scAddress,
 		big.NewInt(0),
 		upgradeTxData,
-		1000,
+		100000,
 	)
 	require.Nil(t, err)
 
@@ -214,7 +234,7 @@ func TestUpgrades_HelloTrialAndError(t *testing.T) {
 		scAddress,
 		big.NewInt(0),
 		upgradeTxData,
-		1000,
+		100000,
 	)
 	require.Nil(t, err)
 
@@ -244,7 +264,7 @@ func TestUpgrades_CounterTrialAndError(t *testing.T) {
 		make([]byte, 32),
 		big.NewInt(0),
 		deployTxData,
-		1000,
+		100000,
 	)
 	require.Nil(t, err)
 
@@ -258,7 +278,7 @@ func TestUpgrades_CounterTrialAndError(t *testing.T) {
 		scAddress,
 		big.NewInt(0),
 		"increment",
-		1000,
+		100000,
 	)
 	require.Nil(t, err)
 
@@ -271,7 +291,7 @@ func TestUpgrades_CounterTrialAndError(t *testing.T) {
 		scAddress,
 		big.NewInt(0),
 		upgradeTxData,
-		1000,
+		100000,
 	)
 	require.Nil(t, err)
 
@@ -284,7 +304,7 @@ func TestUpgrades_CounterTrialAndError(t *testing.T) {
 		scAddress,
 		big.NewInt(0),
 		upgradeTxData,
-		1000,
+		100000,
 	)
 	require.Nil(t, err)
 

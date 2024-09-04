@@ -5,10 +5,11 @@ import (
 	"strconv"
 	"testing"
 
-	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
 	"github.com/pelletier/go-toml"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
 )
 
 func TestTomlParser(t *testing.T) {
@@ -102,6 +103,10 @@ func TestTomlParser(t *testing.T) {
 				WasmVMVersions:                      wasmVMVersions,
 				TimeOutForSCExecutionInMilliseconds: 10000,
 				WasmerSIGSEGVPassthrough:            true,
+				TransferAndExecuteByUserAddresses: []string{
+					"erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe0",
+					"erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe1",
+					"erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe2"},
 			},
 			Querying: QueryVirtualMachineConfig{
 				NumConcurrentVMs:     16,
@@ -199,6 +204,11 @@ func TestTomlParser(t *testing.T) {
             { StartEpoch = 12, Version = "v0.3" },
             { StartEpoch = 88, Version = "v1.2" },
         ]
+		TransferAndExecuteByUserAddresses = [
+			"erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe0", #shard 0
+			"erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe1", #shard 1
+			"erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe2", #shard 2
+		]
 
     [VirtualMachine.Querying]
         NumConcurrentVMs = 16
@@ -472,7 +482,8 @@ func TestAPIRoutesToml(t *testing.T) {
 
 func TestP2pConfig(t *testing.T) {
 	initialPeersList := "/ip4/127.0.0.1/tcp/9999/p2p/16Uiu2HAkw5SNNtSvH1zJiQ6Gc3WoGNSxiyNueRKe6fuAuh57G3Bk"
-	protocolID := "test protocol id"
+	protocolID1 := "test protocol id 1"
+	protocolID2 := "test protocol id 2"
 	shardingType := "ListSharder"
 	port := "37373-38383"
 
@@ -499,7 +510,13 @@ func TestP2pConfig(t *testing.T) {
     Enabled = false
     Type = ""
     RefreshIntervalInSec = 0
-    ProtocolID = "` + protocolID + `"
+
+    # ProtocolIDs represents the protocols that this node will advertise to other peers
+    # To connect to other nodes, those nodes should have at least one common protocol string
+    ProtocolIDs = [
+        "` + protocolID1 + `",
+        "` + protocolID2 + `",
+    ]
     InitialPeerList = ["` + initialPeersList + `"]
 
     #kademlia's routing table bucket size
@@ -537,7 +554,7 @@ func TestP2pConfig(t *testing.T) {
 			},
 		},
 		KadDhtPeerDiscovery: p2pConfig.KadDhtPeerDiscoveryConfig{
-			ProtocolID:      protocolID,
+			ProtocolIDs:     []string{protocolID1, protocolID2},
 			InitialPeerList: []string{initialPeersList},
 		},
 		Sharding: p2pConfig.ShardingConfig{
@@ -843,6 +860,30 @@ func TestEnableEpochConfig(t *testing.T) {
     # AlwaysMergeContextsInEEIEnableEpoch represents the epoch in which the EEI will always merge the contexts
     AlwaysMergeContextsInEEIEnableEpoch = 94
 
+    # CleanupAuctionOnLowWaitingListEnableEpoch represents the epoch when the cleanup auction on low waiting list is enabled
+    CleanupAuctionOnLowWaitingListEnableEpoch = 95
+
+    # DynamicESDTEnableEpoch represents the epoch when dynamic NFT feature is enabled
+    DynamicESDTEnableEpoch = 96
+
+    # EGLDInMultiTransferEnableEpoch represents the epoch when EGLD in MultiTransfer is enabled
+    EGLDInMultiTransferEnableEpoch = 97
+
+    # CryptoOpcodesV2EnableEpoch represents the epoch when BLSMultiSig, Secp256r1 and other opcodes are enabled
+    CryptoOpcodesV2EnableEpoch = 98
+
+    # RelayedTransactionsV3EnableEpoch represents the epoch when the relayed transactions V3 will be enabled
+    RelayedTransactionsV3EnableEpoch = 99
+
+    # FixRelayedBaseCostEnableEpoch represents the epoch when the fix for relayed base cost will be enabled
+    FixRelayedBaseCostEnableEpoch = 100
+
+    # MultiESDTNFTTransferAndExecuteByUserEnableEpoch represents the epoch when enshrined sovereign cross chain opcodes are enabled
+    MultiESDTNFTTransferAndExecuteByUserEnableEpoch = 101
+
+	# FixRelayedMoveBalanceToNonPayableSCEnableEpoch represents the epoch when the fix for relayed move balance to non payable sc will be enabled
+    FixRelayedMoveBalanceToNonPayableSCEnableEpoch = 102
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -955,6 +996,14 @@ func TestEnableEpochConfig(t *testing.T) {
 			MigrateDataTrieEnableEpoch:                               92,
 			CurrentRandomnessOnSortingEnableEpoch:                    93,
 			AlwaysMergeContextsInEEIEnableEpoch:                      94,
+			CleanupAuctionOnLowWaitingListEnableEpoch:                95,
+			DynamicESDTEnableEpoch:                                   96,
+			EGLDInMultiTransferEnableEpoch:                           97,
+			CryptoOpcodesV2EnableEpoch:                               98,
+			RelayedTransactionsV3EnableEpoch:                         99,
+			FixRelayedBaseCostEnableEpoch:                            100,
+			MultiESDTNFTTransferAndExecuteByUserEnableEpoch:          101,
+			FixRelayedMoveBalanceToNonPayableSCEnableEpoch:           102,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,
