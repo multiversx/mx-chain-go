@@ -868,6 +868,8 @@ func (boot *baseBootstrap) shouldAllowRollback(currHeader data.HeaderHandler, cu
 	allowFinalBlockRollBack := (headerWithScheduledMiniBlocks || headerHashDoesNotMatchWithFinalBlockHash) && isFinalBlockRollBack && canRollbackBlock
 	allowRollBack := !isRollBackBehindFinal || allowFinalBlockRollBack
 
+	log.Error("baseBootstrap.shouldAllowRollback", "currHeaderHash", currHeaderHash, "finalBlockHash", finalBlockHash)
+
 	log.Debug("baseBootstrap.shouldAllowRollback",
 		"isRollBackBehindFinal", isRollBackBehindFinal,
 		"isFinalBlockRollBack", isFinalBlockRollBack,

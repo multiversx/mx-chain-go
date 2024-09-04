@@ -263,6 +263,7 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, body data.BodyHandler)
 	}
 
 	t.baseSetProcessed(metaBlock, body)
+	t.epochStartMetaHash = header.(data.ShardHeaderHandler).GetEpochStartMetaHash()
 }
 
 func (t *trigger) baseSetProcessed(header data.HeaderHandler, body data.BodyHandler) {

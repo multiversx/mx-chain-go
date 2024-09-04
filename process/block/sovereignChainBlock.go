@@ -1003,7 +1003,12 @@ func (scbp *sovereignChainBlockProcessor) applyBodyToHeaderForEpochChange(header
 		return fmt.Errorf("invalid header")
 	}
 
-	err = shardHdr.SetEpochStartMetaHash(scbp.epochStartTrigger.EpochStartMetaHdrHash())
+	//conv := uint64ByteSlice.NewBigEndianConverter()
+	//epochBytes :=  conv.ToByteSlice(uint64(header.GetEpoch())
+
+	epochStartHdrHash := make([]byte, 32)
+	epochStartHdrHash[0] = byte(header.GetEpoch())
+	err = shardHdr.SetEpochStartMetaHash(epochStartHdrHash)
 	if err != nil {
 		return err
 	}
@@ -1554,6 +1559,18 @@ func (scbp *sovereignChainBlockProcessor) commitEpochStart(header data.HeaderHan
 		}
 
 		go scbp.epochRewardsCreator.SaveBlockDataToStorage(sovMetaHdr, body)
+
+		hdrBytes, err := scbp.marshalizer.Marshal(header)
+		if err != nil {
+			return err
+		}
+
+		errNotCritical := scbp.store.Put(dataRetriever.BlockHeaderUnit, header.(data.ShardHeaderHandler).GetEpochStartMetaHash(), hdrBytes)
+		if errNotCritical != nil {
+			log.Error("sovereignChainBlockProcessor.Put")
+			return errNotCritical
+		}
+
 	} else {
 		currentHeader := scbp.blockChain.GetCurrentBlockHeader()
 		if !check.IfNil(currentHeader) && currentHeader.IsStartOfEpochBlock() {
