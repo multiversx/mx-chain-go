@@ -10,6 +10,7 @@ const (
 	ExternalPath          = "external.toml"
 	MainP2pPath           = "p2p.toml"
 	FullArchiveP2pPath    = "fullArchiveP2P.toml"
+	LightClientP2pPath    = "lightClientP2P.toml"
 	EpochPath             = "enableEpochs.toml"
 	SystemSCConfigPath    = "systemSmartContractsConfig.toml"
 	GasSchedule           = "gasSchedules"

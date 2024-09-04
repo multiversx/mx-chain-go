@@ -17,6 +17,8 @@ type PreferencesConfig struct {
 	ConnectionWatcherType       string
 	OverridableConfigTomlValues []OverridableConfig
 	FullArchive                 bool
+	LightClient                 bool
+	LightClientSupplier         bool
 }
 
 // OverridableConfig holds the path and the new value to be updated in the configuration

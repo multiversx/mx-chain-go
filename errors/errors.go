@@ -590,8 +590,14 @@ var ErrNilBLSPublicKey = errors.New("bls public key is nil")
 // ErrEmptyAddress defines the error when trying to work with an empty address
 var ErrEmptyAddress = errors.New("empty Address")
 
-// ErrInvalidNodeOperationMode signals that an invalid node operation mode has been provided
-var ErrInvalidNodeOperationMode = errors.New("invalid node operation mode")
+// ErrInvalidOperationMode signals that the operation mode is invalid
+var ErrInvalidOperationMode = errors.New("invalid operation mode")
+
+// ErrInvalidMainNodeOperationMode signals that an invalid node operation mode has been provided
+var ErrInvalidMainNodeOperationMode = errors.New("node operation modes does not contain Normal or FullArchive")
+
+// ErrInvalidNodeOperationModeCombo signals that an invalid node operation mode combination has been provided
+var ErrInvalidNodeOperationModeCombo = errors.New("invalid node operation mode combo")
 
 // ErrNilSentSignatureTracker defines the error for setting a nil SentSignatureTracker
 var ErrNilSentSignatureTracker = errors.New("nil sent signature tracker")

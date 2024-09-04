@@ -590,6 +590,7 @@ type Configs struct {
 	ExternalConfig           *ExternalConfig
 	MainP2pConfig            *p2pConfig.P2PConfig
 	FullArchiveP2pConfig     *p2pConfig.P2PConfig
+	LightClientP2pConfig     *p2pConfig.P2PConfig
 	FlagsConfig              *ContextFlagsConfig
 	ImportDbConfig           *ImportDbConfig
 	ConfigurationPathsHolder *ConfigurationPathsHolder
@@ -608,6 +609,7 @@ type ConfigurationPathsHolder struct {
 	External                 string
 	MainP2p                  string
 	FullArchiveP2p           string
+	LightClientP2p           string
 	GasScheduleDirectoryName string
 	Nodes                    string
 	Genesis                  string
