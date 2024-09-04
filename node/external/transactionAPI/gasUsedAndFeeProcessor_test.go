@@ -38,7 +38,13 @@ func TestComputeTransactionGasUsedAndFeeMoveBalance(t *testing.T) {
 	feeComp, _ := fee.NewFeeComputer(createEconomicsData(&enableEpochsHandlerMock.EnableEpochsHandlerStub{}))
 	computer := fee.NewTestFeeComputer(feeComp)
 
-	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(computer, pubKeyConverter)
+	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(
+		computer,
+		pubKeyConverter,
+		&testscommon.ArgumentParserMock{},
+		&testscommon.MarshallerStub{},
+		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+	)
 
 	sender := "erd1wc3uh22g2aved3qeehkz9kzgrjwxhg9mkkxp2ee7jj7ph34p2csq0n2y5x"
 	receiver := "erd1wc3uh22g2aved3qeehkz9kzgrjwxhg9mkkxp2ee7jj7ph34p2csq0n2y5x"
@@ -68,7 +74,13 @@ func TestComputeTransactionGasUsedAndFeeLogWithError(t *testing.T) {
 	}))
 	computer := fee.NewTestFeeComputer(feeComp)
 
-	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(computer, pubKeyConverter)
+	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(
+		computer,
+		pubKeyConverter,
+		&testscommon.ArgumentParserMock{},
+		&testscommon.MarshallerStub{},
+		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+	)
 
 	sender := "erd1wc3uh22g2aved3qeehkz9kzgrjwxhg9mkkxp2ee7jj7ph34p2csq0n2y5x"
 	receiver := "erd1wc3uh22g2aved3qeehkz9kzgrjwxhg9mkkxp2ee7jj7ph34p2csq0n2y5x"
@@ -111,7 +123,13 @@ func TestComputeTransactionGasUsedAndFeeRelayedTxWithWriteLog(t *testing.T) {
 	}))
 	computer := fee.NewTestFeeComputer(feeComp)
 
-	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(computer, pubKeyConverter)
+	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(
+		computer,
+		pubKeyConverter,
+		&testscommon.ArgumentParserMock{},
+		&testscommon.MarshallerStub{},
+		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+	)
 
 	sender := "erd1wc3uh22g2aved3qeehkz9kzgrjwxhg9mkkxp2ee7jj7ph34p2csq0n2y5x"
 	receiver := "erd1wc3uh22g2aved3qeehkz9kzgrjwxhg9mkkxp2ee7jj7ph34p2csq0n2y5x"
@@ -149,7 +167,13 @@ func TestComputeTransactionGasUsedAndFeeTransactionWithScrWithRefund(t *testing.
 	}))
 	computer := fee.NewTestFeeComputer(feeComp)
 
-	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(computer, pubKeyConverter)
+	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(
+		computer,
+		pubKeyConverter,
+		&testscommon.ArgumentParserMock{},
+		&testscommon.MarshallerStub{},
+		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+	)
 
 	sender := "erd1wc3uh22g2aved3qeehkz9kzgrjwxhg9mkkxp2ee7jj7ph34p2csq0n2y5x"
 	receiver := "erd1wc3uh22g2aved3qeehkz9kzgrjwxhg9mkkxp2ee7jj7ph34p2csq0n2y5x"
@@ -197,7 +221,13 @@ func TestNFTTransferWithScCall(t *testing.T) {
 	computer := fee.NewTestFeeComputer(feeComp)
 	req.Nil(err)
 
-	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(computer, pubKeyConverter)
+	gasUsedAndFeeProc := newGasUsedAndFeeProcessor(
+		computer,
+		pubKeyConverter,
+		&testscommon.ArgumentParserMock{},
+		&testscommon.MarshallerStub{},
+		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+	)
 
 	sender := "erd1wc3uh22g2aved3qeehkz9kzgrjwxhg9mkkxp2ee7jj7ph34p2csq0n2y5x"
 	receiver := "erd1wc3uh22g2aved3qeehkz9kzgrjwxhg9mkkxp2ee7jj7ph34p2csq0n2y5x"

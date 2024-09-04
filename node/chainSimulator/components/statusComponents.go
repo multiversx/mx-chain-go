@@ -9,12 +9,15 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/appStatusPolling"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	outportCfg "github.com/multiversx/mx-chain-core-go/data/outport"
+	factoryMarshalizer "github.com/multiversx/mx-chain-core-go/marshal/factory"
+	indexerFactory "github.com/multiversx/mx-chain-es-indexer-go/process/factory"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/statistics"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/outport"
+	"github.com/multiversx/mx-chain-go/outport/factory"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
 )
@@ -32,7 +35,7 @@ type statusComponentsHolder struct {
 }
 
 // CreateStatusComponents will create a new instance of status components holder
-func CreateStatusComponents(shardID uint32, appStatusHandler core.AppStatusHandler, statusPollingIntervalSec int) (*statusComponentsHolder, error) {
+func CreateStatusComponents(shardID uint32, appStatusHandler core.AppStatusHandler, statusPollingIntervalSec int, external config.ExternalConfig, coreComponents process.CoreComponentsHolder) (*statusComponentsHolder, error) {
 	if check.IfNil(appStatusHandler) {
 		return nil, core.ErrNilAppStatusHandler
 	}
@@ -44,9 +47,17 @@ func CreateStatusComponents(shardID uint32, appStatusHandler core.AppStatusHandl
 		statusPollingIntervalSec: statusPollingIntervalSec,
 	}
 
-	// TODO add drivers to index data
-	instance.outportHandler, err = outport.NewOutport(100*time.Millisecond, outportCfg.OutportConfig{
-		ShardID: shardID,
+	hostDriverArgs, err := makeHostDriversArgs(external)
+	if err != nil {
+		return nil, err
+	}
+	instance.outportHandler, err = factory.CreateOutport(&factory.OutportFactoryArgs{
+		IsImportDB:                false,
+		ShardID:                   shardID,
+		RetrialInterval:           time.Second,
+		HostDriversArgs:           hostDriverArgs,
+		EventNotifierFactoryArgs:  &factory.EventNotifierFactoryArgs{},
+		ElasticIndexerFactoryArgs: makeElasticIndexerArgs(external, coreComponents),
 	})
 	if err != nil {
 		return nil, err
@@ -57,6 +68,48 @@ func CreateStatusComponents(shardID uint32, appStatusHandler core.AppStatusHandl
 	instance.collectClosableComponents()
 
 	return instance, nil
+}
+
+func makeHostDriversArgs(external config.ExternalConfig) ([]factory.ArgsHostDriverFactory, error) {
+	argsHostDriverFactorySlice := make([]factory.ArgsHostDriverFactory, 0, len(external.HostDriversConfig))
+	for idx := 0; idx < len(external.HostDriversConfig); idx++ {
+		hostConfig := external.HostDriversConfig[idx]
+		if !hostConfig.Enabled {
+			continue
+		}
+
+		marshaller, err := factoryMarshalizer.NewMarshalizer(hostConfig.MarshallerType)
+		if err != nil {
+			return argsHostDriverFactorySlice, err
+		}
+
+		argsHostDriverFactorySlice = append(argsHostDriverFactorySlice, factory.ArgsHostDriverFactory{
+			Marshaller: marshaller,
+			HostConfig: hostConfig,
+		})
+	}
+
+	return argsHostDriverFactorySlice, nil
+}
+
+func makeElasticIndexerArgs(external config.ExternalConfig, coreComponents process.CoreComponentsHolder) indexerFactory.ArgsIndexerFactory {
+	elasticSearchConfig := external.ElasticSearchConnector
+	return indexerFactory.ArgsIndexerFactory{
+		Enabled:                  elasticSearchConfig.Enabled,
+		BulkRequestMaxSize:       elasticSearchConfig.BulkRequestMaxSizeInBytes,
+		Url:                      elasticSearchConfig.URL,
+		UserName:                 elasticSearchConfig.Username,
+		Password:                 elasticSearchConfig.Password,
+		Marshalizer:              coreComponents.InternalMarshalizer(),
+		Hasher:                   coreComponents.Hasher(),
+		AddressPubkeyConverter:   coreComponents.AddressPubKeyConverter(),
+		ValidatorPubkeyConverter: coreComponents.ValidatorPubKeyConverter(),
+		EnabledIndexes:           elasticSearchConfig.EnabledIndexes,
+		Denomination:             18,
+		UseKibana:                elasticSearchConfig.UseKibana,
+		ImportDB:                 false,
+		HeaderMarshaller:         coreComponents.InternalMarshalizer(),
+	}
 }
 
 // OutportHandler will return the outport handler

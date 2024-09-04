@@ -676,6 +676,9 @@
             { StartEpoch = 0, Version = "v1.4" },
             { StartEpoch = 1, Version = "v1.5" }, # TODO: set also the RoundActivations.DisableAsyncCallV1 accordingly
         ]
+        TransferAndExecuteByUserAddresses = [ # TODO: set real contract addresses for all shards
+            "erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe3", #shard 0
+        ]
 
     [VirtualMachine.Querying]
         NumConcurrentVMs = 1
@@ -684,6 +687,9 @@
         WasmVMVersions = [
             { StartEpoch = 0, Version = "v1.4" },
             { StartEpoch = 1, Version = "v1.5" }, # TODO: set also the RoundActivations.DisableAsyncCallV1 accordingly
+        ]
+        TransferAndExecuteByUserAddresses = [ # TODO: set real contract addresses for all shards
+            "erd1qqqqqqqqqqqqqpgqr46jrxr6r2unaqh75ugd308dwx5vgnhwh47qtvepe3",
         ]
 
     [VirtualMachine.GasConfig]
@@ -941,3 +947,6 @@
     # MaxRoundsOfInactivityAccepted defines the number of rounds missed by a main or higher level backup machine before
     # the current machine will take over and propose/sign blocks. Used in both single-key and multi-key modes.
     MaxRoundsOfInactivityAccepted = 3
+
+[RelayedTransactionConfig]
+    MaxTransactionsAllowed = 50

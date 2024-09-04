@@ -13,8 +13,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/common/validatorInfo"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
@@ -23,7 +26,6 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/state/parsers"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("process/peer")
@@ -197,7 +199,7 @@ func (vs *validatorStatistics) saveNodesCoordinatorUpdates(epoch uint32) (bool, 
 	nodeForcedToRemain = nodeForcedToRemain || tmpNodeForcedToRemain
 
 	if vs.enableEpochsHandler.IsFlagEnabled(common.StakingV4Step2Flag) {
-		nodesMap, err = vs.nodesCoordinator.GetAllShuffledOutValidatorsPublicKeys(epoch)
+		nodesMap, err = vs.nodesCoordinator.GetShuffledOutToAuctionValidatorsPublicKeys(epoch)
 		if err != nil {
 			return false, err
 		}
@@ -886,10 +888,10 @@ func (vs *validatorStatistics) decreaseForConsensusValidators(
 }
 
 // RevertPeerState takes the current and previous headers and undos the peer state
-//
-//	for all of the consensus members
+// for all of the consensus members
 func (vs *validatorStatistics) RevertPeerState(header data.MetaHeaderHandler) error {
-	return vs.peerAdapter.RecreateTrie(header.GetValidatorStatsRootHash())
+	rootHashHolder := holders.NewDefaultRootHashesHolder(header.GetValidatorStatsRootHash())
+	return vs.peerAdapter.RecreateTrie(rootHashHolder)
 }
 
 func (vs *validatorStatistics) updateShardDataPeerState(

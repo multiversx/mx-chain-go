@@ -18,14 +18,18 @@ import (
 )
 
 func TestSystemAccountLiquidityAfterCrossShardTransferAndBurn(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	tokenID := []byte("MYNFT")
 	sh0Addr := []byte("12345678901234567890123456789010")
 	sh1Addr := []byte("12345678901234567890123456789011")
-	sh0Context, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
+	sh0Context, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer sh0Context.Close()
 
-	sh1Context, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
+	sh1Context, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer sh1Context.Close()
 	_, _ = vm.CreateAccount(sh1Context.Accounts, sh1Addr, 0, big.NewInt(1000000000))
@@ -66,14 +70,18 @@ func TestSystemAccountLiquidityAfterCrossShardTransferAndBurn(t *testing.T) {
 }
 
 func TestSystemAccountLiquidityAfterNFTWipe(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	tokenID := []byte("MYNFT-0a0a0a")
 	sh0Addr := bytes.Repeat([]byte{1}, 31)
 	sh0Addr = append(sh0Addr, 0)
-	sh0Context, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
+	sh0Context, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer sh0Context.Close()
 
-	metaContext, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(core.MetachainShardId, config.EnableEpochs{})
+	metaContext, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(core.MetachainShardId, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer metaContext.Close()
 
@@ -112,14 +120,18 @@ func TestSystemAccountLiquidityAfterNFTWipe(t *testing.T) {
 }
 
 func TestSystemAccountLiquidityAfterSFTWipe(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	tokenID := []byte("MYSFT-0a0a0a")
 	sh0Addr := bytes.Repeat([]byte{1}, 31)
 	sh0Addr = append(sh0Addr, 0)
-	sh0Context, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
+	sh0Context, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer sh0Context.Close()
 
-	metaContext, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(core.MetachainShardId, config.EnableEpochs{})
+	metaContext, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(core.MetachainShardId, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer metaContext.Close()
 

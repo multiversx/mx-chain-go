@@ -76,6 +76,10 @@ type NodeHandler interface {
 	//  about the account correlated with provided address
 	GetAccount(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error)
 
+	// GetAccountWithKeys returns an accountResponse containing information
+	// about the account correlated with provided address and all keys
+	GetAccountWithKeys(address string, options api.AccountQueryOptions, ctx context.Context) (api.AccountResponse, api.BlockInfo, error)
+
 	// GetCode returns the code for the given code hash
 	GetCode(codeHash []byte, options api.AccountQueryOptions) ([]byte, api.BlockInfo)
 
@@ -123,6 +127,7 @@ type ApiResolver interface {
 	GetDirectStakedList(ctx context.Context) ([]*api.DirectStakedValue, error)
 	GetDelegatorsList(ctx context.Context) ([]*api.Delegator, error)
 	GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error)
+	GetSCRsByTxHash(txHash string, scrHash string) ([]*transaction.ApiSmartContractResult, error)
 	GetTransactionsPool(fields string) (*common.TransactionsPoolAPIResponse, error)
 	GetTransactionsPoolForSender(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error)
 	GetLastPoolNonceForSender(sender string) (uint64, error)
