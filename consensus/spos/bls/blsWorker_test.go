@@ -29,7 +29,7 @@ func initConsensusStateWithKeysHandler(keysHandler consensus.KeysHandler) *spos.
 	return initConsensusStateWithKeysHandlerWithGroupSize(keysHandler, consensusGroupSize)
 }
 
-func initConsensusStateWithArgs(keysHandler consensus.KeysHandler, keys []string) *spos.ConsensusState {
+func initConsensusStateWithArgsVerifySignature(keysHandler consensus.KeysHandler, keys []string) *spos.ConsensusState {
 	numberOfKeys := len(keys)
 	eligibleNodesPubKeys := make(map[string]struct{})
 	for _, key := range keys {

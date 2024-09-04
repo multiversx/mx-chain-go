@@ -87,7 +87,7 @@ func BenchmarkSubroundEndRound_VerifyNodesOnAggSigFailTime(b *testing.B) {
 	require.Nil(b, err)
 
 	container.SetSigningHandler(signingHandler)
-	consensusState := initConsensusStateWithArgs(keysHandlerMock, keys)
+	consensusState := initConsensusStateWithArgsVerifySignature(keysHandlerMock, keys)
 	dataToBeSigned := []byte("message")
 	consensusState.Data = dataToBeSigned
 
