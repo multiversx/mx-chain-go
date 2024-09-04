@@ -659,11 +659,11 @@ func CreateNodesWithNodesCoordinatorKeygenAndSingleSigner(
 
 // ProposeBlockData is a struct that holds some context data for the proposed block
 type ProposeBlockData struct {
-	body      data.BodyHandler
-	header    data.HeaderHandler
-	txs       [][]byte
-	leader    *TestProcessorNode
-	consensus []*TestProcessorNode
+	Body           data.BodyHandler
+	Header         data.HeaderHandler
+	Txs            [][]byte
+	Leader         *TestProcessorNode
+	ConsensusGroup []*TestProcessorNode
 }
 
 // ProposeBlockWithConsensusSignature proposes
@@ -694,11 +694,11 @@ func ProposeBlockWithConsensusSignature(
 	header = DoConsensusSigningOnBlock(header, consensusNodes, pubKeys)
 
 	return &ProposeBlockData{
-		body:      body,
-		header:    header,
-		txs:       txHashes,
-		leader:    leaderNode,
-		consensus: consensusNodes,
+		Body:           body,
+		Header:         header,
+		Txs:            txHashes,
+		Leader:         leaderNode,
+		ConsensusGroup: consensusNodes,
 	}
 }
 
@@ -726,7 +726,7 @@ func selectTestNodesForPubKeys(nodes []*TestProcessorNode, leaderPubKey string, 
 	return leaderNode, selectedNodes
 }
 
-// DoConsensusSigningOnBlock simulates a consensus aggregated signature on the provided block
+// DoConsensusSigningOnBlock simulates a ConsensusGroup aggregated signature on the provided block
 func DoConsensusSigningOnBlock(
 	blockHeader data.HeaderHandler,
 	consensusNodes []*TestProcessorNode,
@@ -786,7 +786,7 @@ func DoConsensusSigningOnBlock(
 	return blockHeader
 }
 
-// AllShardsProposeBlock simulates each shard selecting a consensus group and proposing/broadcasting/committing a block
+// AllShardsProposeBlock simulates each shard selecting a ConsensusGroup group and proposing/broadcasting/committing a block
 func AllShardsProposeBlock(
 	round uint64,
 	nonce uint64,
@@ -814,16 +814,16 @@ func AllShardsProposeBlock(
 		proposalData[i] = ProposeBlockWithConsensusSignature(
 			i, nodesMap, round, nonce, prevRandomness, epoch,
 		)
-		nodesMap[i][0].WhiteListBody(nodesList, proposalData[i].body)
-		newRandomness[i] = proposalData[i].header.GetRandSeed()
+		nodesMap[i][0].WhiteListBody(nodesList, proposalData[i].Body)
+		newRandomness[i] = proposalData[i].Header.GetRandSeed()
 	}
 
 	// propagate blocks
 	for i := range nodesMap {
-		leader := proposalData[i].leader
-		pk := proposalData[i].leader.NodeKeys.MainKey.Pk
-		leader.BroadcastBlock(proposalData[i].body, proposalData[i].header, pk)
-		leader.CommitBlock(proposalData[i].body, proposalData[i].header)
+		leader := proposalData[i].Leader
+		pk := proposalData[i].Leader.NodeKeys.MainKey.Pk
+		leader.BroadcastBlock(proposalData[i].Body, proposalData[i].Header, pk)
+		leader.CommitBlock(proposalData[i].Body, proposalData[i].Header)
 	}
 
 	time.Sleep(2 * StepDelay)
@@ -838,7 +838,7 @@ func SyncAllShardsWithRoundBlock(
 	round uint64,
 ) {
 	for _, blockData := range proposalData {
-		SyncBlock(t, blockData.consensus, []*TestProcessorNode{blockData.leader}, round)
+		SyncBlock(t, blockData.ConsensusGroup, []*TestProcessorNode{blockData.Leader}, round)
 	}
 	time.Sleep(4 * StepDelay)
 }
