@@ -74,7 +74,6 @@ func TestExecutingTransactionsFromRewardsFundsCrossShard(t *testing.T) {
 
 	firstNode := nodesMap[senderShardID][0]
 	numBlocksProduced := uint64(13)
-	var consensusNodes map[uint32][]*integrationTests.TestProcessorNode
 	for i := uint64(0); i < numBlocksProduced; i++ {
 		printAccount(firstNode)
 
@@ -82,7 +81,7 @@ func TestExecutingTransactionsFromRewardsFundsCrossShard(t *testing.T) {
 			integrationTests.UpdateRound(nodes, round)
 		}
 		proposalData := integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
-		integrationTests.SyncAllShardsWithRoundBlock(t, nodesMap, proposalData, round)
+		integrationTests.SyncAllShardsWithRoundBlock(t, proposalData, round)
 		time.Sleep(block.StepDelay)
 
 		round++
@@ -140,9 +139,8 @@ func TestMetaShouldBeAbleToProduceBlockInAVeryHighRoundAndStartOfEpoch(t *testin
 		integrationTests.UpdateRound(nodes, round)
 	}
 
-	_, _, consensusNodes := integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
-	indexesProposers := block.GetBlockProposersIndexes(consensusNodes, nodesMap)
-	integrationTests.SyncAllShardsWithRoundBlock(t, nodesMap, indexesProposers, nonce)
+	proposeData := integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
+	integrationTests.SyncAllShardsWithRoundBlock(t, proposeData, nonce)
 
 	for _, nodes := range nodesMap {
 		for _, node := range nodes {
