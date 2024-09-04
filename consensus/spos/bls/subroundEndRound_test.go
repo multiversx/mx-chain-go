@@ -1517,7 +1517,7 @@ func TestSubroundEndRound_DoEndRoundJobByLeader(t *testing.T) {
 
 		container := mock.InitConsensusCore()
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
-
+		mutex := &sync.Mutex{}
 		verifySigShareNumCalls := 0
 		verifyFirstCall := true
 		signingHandler := &consensusMocks.SigningHandlerStub{
@@ -1525,6 +1525,8 @@ func TestSubroundEndRound_DoEndRoundJobByLeader(t *testing.T) {
 				return nil, nil
 			},
 			VerifySignatureShareCalled: func(index uint16, sig, msg []byte, epoch uint32) error {
+				mutex.Lock()
+				defer mutex.Unlock()
 				if verifySigShareNumCalls == 0 {
 					verifySigShareNumCalls++
 					return expectedErr
@@ -1534,6 +1536,8 @@ func TestSubroundEndRound_DoEndRoundJobByLeader(t *testing.T) {
 				return nil
 			},
 			VerifyCalled: func(msg, bitmap []byte, epoch uint32) error {
+				mutex.Lock()
+				defer mutex.Unlock()
 				if verifyFirstCall {
 					verifyFirstCall = false
 					return expectedErr
@@ -1566,12 +1570,15 @@ func TestSubroundEndRound_DoEndRoundJobByLeader(t *testing.T) {
 		sr := *initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 
 		verifySigShareNumCalls := 0
+		mutex := &sync.Mutex{}
 		verifyFirstCall := true
 		signingHandler := &consensusMocks.SigningHandlerStub{
 			SignatureShareCalled: func(index uint16) ([]byte, error) {
 				return nil, nil
 			},
 			VerifySignatureShareCalled: func(index uint16, sig, msg []byte, epoch uint32) error {
+				mutex.Lock()
+				defer mutex.Unlock()
 				if verifySigShareNumCalls == 0 {
 					verifySigShareNumCalls++
 					return expectedErr
@@ -1581,6 +1588,8 @@ func TestSubroundEndRound_DoEndRoundJobByLeader(t *testing.T) {
 				return nil
 			},
 			VerifyCalled: func(msg, bitmap []byte, epoch uint32) error {
+				mutex.Lock()
+				defer mutex.Unlock()
 				if verifyFirstCall {
 					verifyFirstCall = false
 					return expectedErr

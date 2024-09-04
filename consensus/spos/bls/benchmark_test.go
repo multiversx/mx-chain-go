@@ -26,6 +26,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
 
+// Function to make a predictable iteration on keys from a map of keys
 func createListFromMapKeys(mapKeys map[string]crypto2.PrivateKey) []string {
 	keys := make([]string, 0, len(mapKeys))
 
@@ -38,6 +39,7 @@ func createListFromMapKeys(mapKeys map[string]crypto2.PrivateKey) []string {
 	return keys
 }
 
+// Benchmark on measuring performance
 func BenchmarkSubroundEndRound_VerifyNodesOnAggSigFailTime(b *testing.B) {
 	b.ResetTimer()
 	b.StopTimer()
