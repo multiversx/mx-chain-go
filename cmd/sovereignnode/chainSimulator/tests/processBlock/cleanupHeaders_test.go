@@ -10,6 +10,8 @@ import (
 
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
+	"github.com/multiversx/mx-chain-go/process/track"
 	sovereignChainSimulator "github.com/multiversx/mx-chain-go/sovereignnode/chainSimulator"
 )
 
@@ -50,9 +52,9 @@ func TestSovereignChainSimulator_BlockTrackerPoolsCleanup(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, selfNotarizedHeaders)
 		require.Equal(t, uint64(round)-1, selfNotarizedHeaders.GetNonce()) // in round X, header with nonce X-1 is notarized
+		checkNotarizedHeadersLen(t, nodeHandler, round)
 
 		crossTrackedHeaders, _ := nodeHandler.GetProcessComponents().BlockTracker().GetTrackedHeaders(core.MainChainShardId)
-		require.Nil(t, err)
 		checkCrossTrackedHeaders(t, round, crossTrackedHeaders, headerNonce)
 
 		crossNotarizedHeader, _, err := nodeHandler.GetProcessComponents().BlockTracker().GetCrossNotarizedHeader(core.MainChainShardId, 0)
@@ -65,6 +67,17 @@ func TestSovereignChainSimulator_BlockTrackerPoolsCleanup(t *testing.T) {
 
 		prevHeader = incomingHeader.Header
 	}
+}
+
+func checkNotarizedHeadersLen(t *testing.T, nodeHandler process.NodeHandler, round int) {
+	offset := uint64(3)
+	if round == 3 { // in round 3 will be 4 headers (2 default headers and 2 notarized)
+		offset = 4
+	}
+
+	selfNotarizedHeaders, _, err := nodeHandler.GetProcessComponents().BlockTracker().GetSelfNotarizedHeader(core.SovereignChainShardId, offset)
+	require.Nil(t, selfNotarizedHeaders)
+	require.Error(t, err, track.ErrNotarizedHeaderOffsetIsOutOfBound)
 }
 
 func checkCrossTrackedHeaders(t *testing.T, round int, crossTrackedHeaders []data.HeaderHandler, headerNonce uint64) {
