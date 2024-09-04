@@ -71,7 +71,7 @@ func initSubroundEndRoundWithContainer(
 }
 
 func initSubroundEndRoundWithContainer400Sig(
-	container *mock.ConsensusCoreMock,
+	container *consensusMocks.ConsensusCoreMock,
 	appStatusHandler core.AppStatusHandler,
 	consensusState *spos.ConsensusState,
 	signatureThrottler core.Throttler,

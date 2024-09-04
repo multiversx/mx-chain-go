@@ -18,9 +18,9 @@ import (
 	dataRetrieverMocks "github.com/multiversx/mx-chain-go/dataRetriever/mock"
 
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/factory/crypto"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -44,7 +44,7 @@ func BenchmarkSubroundEndRound_VerifyNodesOnAggSigFailTime(b *testing.B) {
 	b.ResetTimer()
 	b.StopTimer()
 	ctx, cancel := context.WithCancel(context.TODO())
-	container := mock.InitConsensusCore()
+	container := consensus.InitConsensusCore()
 	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
 			return flag == common.EquivalentMessagesFlag
