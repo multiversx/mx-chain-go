@@ -395,10 +395,12 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	}
 
 	// broadcast header
-	// TODO[Sorin next PR]: decide if we send this with the delayed broadcast
-	err = sr.BroadcastMessenger().BroadcastHeader(sr.Header, sender)
-	if err != nil {
-		log.Warn("doEndRoundJobByLeader.BroadcastHeader", "error", err.Error())
+	// TODO[cleanup cns finality]: remove this, header already broadcast during subroundBlock
+	if !sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch()) {
+		err = sr.BroadcastMessenger().BroadcastHeader(sr.Header, sender)
+		if err != nil {
+			log.Warn("doEndRoundJobByLeader.BroadcastHeader", "error", err.Error())
+		}
 	}
 
 	startTime := time.Now()
@@ -970,12 +972,16 @@ func (sr *subroundEndRound) updateMetricsForLeader() {
 }
 
 func (sr *subroundEndRound) broadcastBlockDataLeader(sender []byte) error {
+	// TODO[cleanup cns finality]: remove this method, block data was already broadcast during subroundBlock
+	if sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch()) {
+		return nil
+	}
+
 	miniBlocks, transactions, err := sr.BlockProcessor().MarshalizedDataToBroadcast(sr.Header, sr.Body)
 	if err != nil {
 		return err
 	}
 
-	// TODO[Sorin next PR]: decide if we send this with the delayed broadcast
 	return sr.BroadcastMessenger().BroadcastBlockDataLeader(sr.Header, miniBlocks, transactions, sender)
 }
 
