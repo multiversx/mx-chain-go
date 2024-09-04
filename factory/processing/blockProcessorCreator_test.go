@@ -208,7 +208,7 @@ func createAccountAdapter(
 		StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
 		SnapshotsManager:      disabledState.NewDisabledSnapshotsManager(),
-		StateChangesCollector: state.NewStateChangesCollector(),
+		StateChangesCollector: disabledState.NewDisabledStateChangesCollector(),
 	}
 	adb, err := state.NewAccountsDB(args)
 	if err != nil {

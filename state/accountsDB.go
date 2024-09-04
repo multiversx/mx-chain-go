@@ -280,7 +280,7 @@ func (adb *AccountsDB) SaveAccount(account vmcommon.AccountHandler) error {
 	}
 	adb.stateChangesCollector.AddStateChange(stateChange)
 
-	return err
+	return nil
 }
 
 func (adb *AccountsDB) saveCodeAndDataTrie(oldAcc, newAcc vmcommon.AccountHandler) ([]DataTrieChange, error) {
@@ -288,7 +288,7 @@ func (adb *AccountsDB) saveCodeAndDataTrie(oldAcc, newAcc vmcommon.AccountHandle
 	baseOldAccount, _ := oldAcc.(baseAccountHandler)
 
 	if !newAccOk {
-		return make([]DataTrieChange, 0), nil
+		return nil, nil
 	}
 
 	newValues, err := adb.saveDataTrie(baseNewAcc)
@@ -301,7 +301,7 @@ func (adb *AccountsDB) saveCodeAndDataTrie(oldAcc, newAcc vmcommon.AccountHandle
 		return nil, err
 	}
 
-	return newValues, err
+	return newValues, nil
 }
 
 func (adb *AccountsDB) saveCode(newAcc, oldAcc baseAccountHandler) error {
@@ -384,6 +384,7 @@ func (adb *AccountsDB) updateOldCodeEntry(oldCodeHash []byte) (*CodeEntry, error
 		return nil, err
 	}
 
+	// TODO refactor this after remove code leaf is merged
 	stateChange := StateChangeDTO{
 		MainTrieKey:     oldCodeHash,
 		MainTrieVal:     codeEntryBytes,

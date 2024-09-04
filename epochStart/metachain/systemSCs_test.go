@@ -764,7 +764,7 @@ func createAccountsDB(
 		StoragePruningManager: spm,
 		AddressConverter:      &testscommon.PubkeyConverterMock{},
 		SnapshotsManager:      disabledState.NewDisabledSnapshotsManager(),
-		StateChangesCollector: state.NewStateChangesCollector(),
+		StateChangesCollector: disabledState.NewDisabledStateChangesCollector(),
 	}
 	adb, _ := state.NewAccountsDB(args)
 	return adb
