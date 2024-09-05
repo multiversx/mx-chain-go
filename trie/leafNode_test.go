@@ -3,7 +3,6 @@ package trie
 import (
 	"context"
 	"errors"
-	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"math"
 	"testing"
 
@@ -14,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
 	"github.com/stretchr/testify/assert"
 )
