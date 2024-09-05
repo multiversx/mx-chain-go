@@ -550,7 +550,7 @@ func (dbb *delayedBlockBroadcaster) registerHeaderInterceptorCallback(
 		return dbb.registerInterceptorsCallbackForMetaHeader(cb)
 	}
 
-	identifierShardHeader := factory.ShardBlocksTopic + dbb.shardCoordinator.CommunicationIdentifier(core.SovereignChainShardId)
+	identifierShardHeader := factory.ShardBlocksTopic + dbb.shardCoordinator.CommunicationIdentifier(core.MetachainShardId)
 	interceptor, err := dbb.interceptorsContainer.Get(identifierShardHeader)
 	if err != nil {
 		return err
@@ -587,7 +587,7 @@ func (dbb *delayedBlockBroadcaster) registerInterceptorsCallbackForMetaHeader(
 func (dbb *delayedBlockBroadcaster) registerInterceptorsCallbackForMetaMiniblocks(
 	cb func(topic string, hash []byte, data interface{}),
 ) error {
-	identifier := factory.MiniBlocksTopic + dbb.shardCoordinator.CommunicationIdentifier(core.SovereignChainShardId)
+	identifier := factory.MiniBlocksTopic + dbb.shardCoordinator.CommunicationIdentifier(core.AllShardId)
 	interceptor, err := dbb.interceptorsContainer.Get(identifier)
 	if err != nil {
 		return err
@@ -604,6 +604,10 @@ func (dbb *delayedBlockBroadcaster) registerInterceptorsCallbackForShard(
 ) error {
 	shardIDs := dbb.shardIdentifiers()
 	for idx := range shardIDs {
+		// interested only in cross shard data
+		if idx == dbb.shardCoordinator.SelfId() {
+			continue
+		}
 		identifierMiniBlocks := rootTopic + dbb.shardCoordinator.CommunicationIdentifier(idx)
 		interceptor, err := dbb.interceptorsContainer.Get(identifierMiniBlocks)
 		if err != nil {
@@ -621,6 +625,7 @@ func (dbb *delayedBlockBroadcaster) shardIdentifiers() map[uint32]struct{} {
 	for i := uint32(0); i < dbb.shardCoordinator.NumberOfShards(); i++ {
 		shardIdentifiers[i] = struct{}{}
 	}
+	shardIdentifiers[core.MetachainShardId] = struct{}{}
 
 	return shardIdentifiers
 }
@@ -710,15 +715,26 @@ func (dbb *delayedBlockBroadcaster) interceptedMiniBlockData(topic string, hash 
 }
 
 func (dbb *delayedBlockBroadcaster) extractMiniBlockHashesCrossFromMe(header data.HeaderHandler) map[string]map[string]struct{} {
+	shardID := dbb.shardCoordinator.SelfId()
 	mbHashesForShards := make(map[string]map[string]struct{})
 	for i := uint32(0); i < dbb.shardCoordinator.NumberOfShards(); i++ {
-
+		if i == shardID {
+			continue
+		}
 		topic := factory.MiniBlocksTopic + dbb.shardCoordinator.CommunicationIdentifier(i)
 		mbs := dbb.extractMbsFromMeTo(header, i)
 		if len(mbs) == 0 {
 			continue
 		}
 		mbHashesForShards[topic] = mbs
+	}
+
+	if shardID != core.MetachainShardId {
+		topic := factory.MiniBlocksTopic + dbb.shardCoordinator.CommunicationIdentifier(core.MetachainShardId)
+		mbs := dbb.extractMbsFromMeTo(header, core.MetachainShardId)
+		if len(mbs) > 0 {
+			mbHashesForShards[topic] = mbs
+		}
 	}
 
 	return mbHashesForShards
