@@ -1149,7 +1149,7 @@ func ProposeBlock(nodes []*TestProcessorNode, leaders []*TestProcessorNode, roun
 	stepDelayAdjustment := StepDelay * time.Duration(1+len(nodes)/3)
 
 	for _, n := range nodes {
-		if IsNodeInSlice(n, leaders) {
+		if !IsNodeInSlice(n, leaders) {
 			continue
 		}
 
