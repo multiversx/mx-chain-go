@@ -8,15 +8,17 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/stateChange"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
+	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	errorsCommon "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/dataTrieValue"
-	"github.com/multiversx/mx-chain-go/state/stateChanges"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var log = logger.GetOrCreate("state/trackableDataTrie")
@@ -104,11 +106,11 @@ func (tdt *trackableDataTrie) RetrieveValue(key []byte) ([]byte, uint32, error) 
 
 	log.Trace("retrieve value from trie", "key", key, "value", val, "account", tdt.identifier)
 
-	stateChange := &stateChanges.StateChangeDTO{
+	stateChange := &stateChange.StateChange{
 		Type:        "read",
 		MainTrieKey: tdt.identifier,
 		MainTrieVal: nil,
-		DataTrieChanges: []stateChanges.DataTrieChange{
+		DataTrieChanges: []*stateChange.DataTrieChange{
 			{
 				Type: "read",
 				Key:  key,
@@ -245,9 +247,9 @@ func (tdt *trackableDataTrie) DataTrie() common.DataTrieHandler {
 }
 
 // SaveDirtyData saved the dirty data to the trie
-func (tdt *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) ([]stateChanges.DataTrieChange, []core.TrieData, error) {
+func (tdt *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) ([]*stateChange.DataTrieChange, []core.TrieData, error) {
 	if len(tdt.dirtyData) == 0 {
-		return make([]stateChanges.DataTrieChange, 0), make([]core.TrieData, 0), nil
+		return make([]*stateChange.DataTrieChange, 0), make([]core.TrieData, 0), nil
 	}
 
 	if check.IfNil(tdt.tr) {
@@ -267,10 +269,10 @@ func (tdt *trackableDataTrie) SaveDirtyData(mainTrie common.Trie) ([]stateChange
 	return tdt.updateTrie(dtr)
 }
 
-func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]stateChanges.DataTrieChange, []core.TrieData, error) {
+func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]*stateChange.DataTrieChange, []core.TrieData, error) {
 	oldValues := make([]core.TrieData, len(tdt.dirtyData))
-	newData := make([]stateChanges.DataTrieChange, len(tdt.dirtyData))
-	deletedKeys := make([]stateChanges.DataTrieChange, 0)
+	newData := make([]*stateChange.DataTrieChange, len(tdt.dirtyData))
+	deletedKeys := make([]*stateChange.DataTrieChange, 0)
 
 	index := 0
 	for key, dataEntry := range tdt.dirtyData {
@@ -287,7 +289,7 @@ func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]stateChanges.Dat
 
 		if wasDeleted {
 			deletedKeys = append(deletedKeys,
-				stateChanges.DataTrieChange{
+				&stateChange.DataTrieChange{
 					Type: "write",
 					Key:  []byte(key),
 					Val:  nil,
@@ -318,7 +320,7 @@ func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]stateChanges.Dat
 			return nil, nil, fmt.Errorf("index out of range")
 		}
 
-		newData[dataEntry.index] = stateChanges.DataTrieChange{
+		newData[dataEntry.index] = &stateChange.DataTrieChange{
 			Type: "write",
 			Key:  dataTrieKey,
 			Val:  dataTrieVal,
@@ -327,7 +329,7 @@ func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]stateChanges.Dat
 
 	tdt.dirtyData = make(map[string]dirtyData)
 
-	stateChanges := make([]stateChanges.DataTrieChange, 0)
+	stateChanges := make([]*stateChange.DataTrieChange, 0)
 	for i := range newData {
 		if len(newData[i].Key) == 0 {
 			continue

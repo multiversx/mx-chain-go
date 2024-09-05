@@ -14,49 +14,14 @@ import (
 
 var log = logger.GetOrCreate("state/stateChanges")
 
-// DataTrieChange represents a change in the data trie
-type DataTrieChange struct {
-	Type string `json:"type"`
-	Key  []byte `json:"key"`
-	Val  []byte `json:"-"`
-}
-
 // ErrStateChangesIndexOutOfBounds signals that the state changes index is out of bounds
 var ErrStateChangesIndexOutOfBounds = errors.New("state changes index out of bounds")
 
 type StateChange interface {
 	GetTxHash() []byte
 	SetTxHash(txHash []byte)
-	GetIndex() int
-	SetIndex(index int)
-}
-
-// StateChangeDTO is used to collect state changes
-// TODO: change to use proto structs
-type StateChangeDTO struct {
-	Type            string           `json:"type"`
-	Index           int              `json:"-"`
-	TxHash          []byte           `json:"-"`
-	MainTrieKey     []byte           `json:"mainTrieKey"`
-	MainTrieVal     []byte           `json:"-"`
-	Operation       string           `json:"operation"`
-	DataTrieChanges []DataTrieChange `json:"dataTrieChanges"`
-}
-
-func (sc *StateChangeDTO) GetIndex() int {
-	return sc.Index
-}
-
-func (sc *StateChangeDTO) SetIndex(index int) {
-	sc.Index = index
-}
-
-func (sc *StateChangeDTO) GetTxHash() []byte {
-	return sc.TxHash
-}
-
-func (sc *StateChangeDTO) SetTxHash(txHash []byte) {
-	sc.TxHash = txHash
+	GetIndex() int32
+	SetIndex(index int32)
 }
 
 // StateChangesForTx is used to collect state changes for a transaction hash
@@ -159,7 +124,7 @@ func (scc *stateChangesCollector) SetIndexToLastStateChange(index int) error {
 	scc.stateChangesMut.Lock()
 	defer scc.stateChangesMut.Unlock()
 
-	scc.stateChanges[len(scc.stateChanges)-1].SetIndex(index)
+	scc.stateChanges[len(scc.stateChanges)-1].SetIndex(int32(index))
 
 	return nil
 }
@@ -179,7 +144,7 @@ func (scc *stateChangesCollector) RevertToIndex(index int) error {
 	defer scc.stateChangesMut.Unlock()
 
 	for i := len(scc.stateChanges) - 1; i >= 0; i-- {
-		if scc.stateChanges[i].GetIndex() == index {
+		if scc.stateChanges[i].GetIndex() == int32(index) {
 			scc.stateChanges = scc.stateChanges[:i]
 			break
 		}
