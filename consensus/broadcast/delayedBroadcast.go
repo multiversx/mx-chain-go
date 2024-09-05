@@ -67,6 +67,8 @@ type headerDataForValidator struct {
 	prevRandSeed []byte
 }
 
+type extractMiniBlockHashesCrossFromMeFunc func(header data.HeaderHandler) map[string]map[string]struct{}
+
 type delayedBlockBroadcaster struct {
 	alarm                      timersScheduler
 	interceptorsContainer      process.InterceptorsContainer
@@ -209,6 +211,10 @@ func (dbb *delayedBlockBroadcaster) SetHeaderForValidator(vData *validatorHeader
 
 // SetValidatorData sets the data for consensus validator delayed broadcast
 func (dbb *delayedBlockBroadcaster) SetValidatorData(broadcastData *delayedBroadcastData) error {
+	return dbb.setValidatorData(broadcastData, dbb.extractMiniBlockHashesCrossFromMe)
+}
+
+func (dbb *delayedBlockBroadcaster) setValidatorData(broadcastData *delayedBroadcastData, extractMbsFunc extractMiniBlockHashesCrossFromMeFunc) error {
 	if broadcastData == nil {
 		return spos.ErrNilParameter
 	}
@@ -221,7 +227,7 @@ func (dbb *delayedBlockBroadcaster) SetValidatorData(broadcastData *delayedBroad
 	)
 
 	dbb.mutDataForBroadcast.Lock()
-	broadcastData.miniBlockHashes = dbb.extractMiniBlockHashesCrossFromMe(broadcastData.header)
+	broadcastData.miniBlockHashes = extractMbsFunc(broadcastData.header)
 	dbb.valBroadcastData = append(dbb.valBroadcastData, broadcastData)
 
 	if len(dbb.valBroadcastData) > int(dbb.maxValidatorDelayCacheSize) {
