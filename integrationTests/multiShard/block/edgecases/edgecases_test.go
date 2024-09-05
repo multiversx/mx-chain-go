@@ -81,7 +81,7 @@ func TestExecutingTransactionsFromRewardsFundsCrossShard(t *testing.T) {
 			integrationTests.UpdateRound(nodes, round)
 		}
 		proposalData := integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
-		integrationTests.SyncAllShardsWithRoundBlock(t, proposalData, round)
+		integrationTests.SyncAllShardsWithRoundBlock(t, proposalData, nodesMap, round)
 		time.Sleep(block.StepDelay)
 
 		round++
@@ -140,7 +140,7 @@ func TestMetaShouldBeAbleToProduceBlockInAVeryHighRoundAndStartOfEpoch(t *testin
 	}
 
 	proposeData := integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
-	integrationTests.SyncAllShardsWithRoundBlock(t, proposeData, nonce)
+	integrationTests.SyncAllShardsWithRoundBlock(t, proposeData, nodesMap, nonce)
 
 	for _, nodes := range nodesMap {
 		for _, node := range nodes {

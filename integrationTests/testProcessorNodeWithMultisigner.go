@@ -814,7 +814,7 @@ func AllShardsProposeBlock(
 		proposalData[i] = ProposeBlockWithConsensusSignature(
 			i, nodesMap, round, nonce, prevRandomness, epoch,
 		)
-		nodesMap[i][0].WhiteListBody(nodesList, proposalData[i].Body)
+		proposalData[i].Leader.WhiteListBody(nodesList, proposalData[i].Body)
 		newRandomness[i] = proposalData[i].Header.GetRandSeed()
 	}
 
@@ -835,10 +835,12 @@ func AllShardsProposeBlock(
 func SyncAllShardsWithRoundBlock(
 	t *testing.T,
 	proposalData map[uint32]*ProposeBlockData,
+	nodesMap map[uint32][]*TestProcessorNode,
 	round uint64,
 ) {
-	for _, blockData := range proposalData {
-		SyncBlock(t, blockData.ConsensusGroup, []*TestProcessorNode{blockData.Leader}, round)
+	for shard, nodesList := range nodesMap {
+		proposal := proposalData[shard]
+		SyncBlock(t, nodesList, []*TestProcessorNode{proposal.Leader}, round)
 	}
 	time.Sleep(4 * StepDelay)
 }

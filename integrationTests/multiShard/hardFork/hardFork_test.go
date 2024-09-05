@@ -258,7 +258,7 @@ func TestHardForkEarlyEndOfEpochWithContinuousTransactionsInMultiShardedEnvironm
 	for i := 0; i < numOfShards; i++ {
 		leaders[i] = allNodes[i*nodesPerShard]
 	}
-	allNodes[numOfShards] = allNodes[numOfShards*nodesPerShard]
+	leaders[numOfShards] = allNodes[numOfShards*nodesPerShard]
 
 	integrationTests.DisplayAndStartNodes(allNodes)
 

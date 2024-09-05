@@ -76,7 +76,7 @@ func TestEpochChangeWithNodesShufflingAndRater(t *testing.T) {
 		}
 
 		proposeData := integrationTests.AllShardsProposeBlock(round, nonce, nodesMap)
-		integrationTests.SyncAllShardsWithRoundBlock(t, proposeData, round)
+		integrationTests.SyncAllShardsWithRoundBlock(t, proposeData, nodesMap, round)
 		round++
 		nonce++
 

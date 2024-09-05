@@ -46,11 +46,10 @@ func TestSCCallingIntraShard(t *testing.T) {
 		numMetachainNodes,
 	)
 
-	leaders := make([]*integrationTests.TestProcessorNode, numOfShards+1)
+	leaders := make([]*integrationTests.TestProcessorNode, numOfShards)
 	for i := 0; i < numOfShards; i++ {
 		leaders[i] = nodes[i*nodesPerShard]
 	}
-	leaders[numOfShards] = nodes[numOfShards*nodesPerShard]
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -386,7 +385,7 @@ func TestSCCallingInCrossShard(t *testing.T) {
 	for i := 0; i < numOfShards; i++ {
 		leaders[i] = nodes[i*nodesPerShard]
 	}
-	leaders[numOfShards] = leaders[numOfShards*nodesPerShard]
+	leaders[numOfShards] = nodes[numOfShards*nodesPerShard]
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -613,12 +612,10 @@ func TestSCCallingInCrossShardDelegationMock(t *testing.T) {
 		nodes = append(nodes, nds...)
 	}
 
-	for _, nds := range nodesMap {
-		idx, err := getNodeIndex(nodes, nds[0])
-		assert.Nil(t, err)
-
-		leaders = append(leaders, nodes[idx])
+	for i := 0; i < numOfShards; i++ {
+		leaders[i] = nodes[i*nodesPerShard]
 	}
+	leaders[numOfShards] = nodes[numOfShards*nodesPerShard]
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -895,7 +892,6 @@ func TestSCNonPayableIntraShardErrorShouldProcessBlock(t *testing.T) {
 	for i := 0; i < numOfShards; i++ {
 		leaders[i] = nodes[i*nodesPerShard]
 	}
-	leaders[numOfShards] = nodes[numOfShards*nodesPerShard]
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
