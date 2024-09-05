@@ -2,6 +2,8 @@ package mainFactoryMocks
 
 import (
 	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/broadcastFactory"
+	"github.com/multiversx/mx-chain-go/consensus/spos/sposFactory"
 	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
@@ -88,6 +90,7 @@ type RunTypeComponentsStub struct {
 	SystemSCProcessorFactoryField             factory.SystemSCProcessorFactory
 	PreProcessorsContainerFactoryCreatorField data.PreProcessorsContainerFactoryCreator
 	DataRetrieverContainersSetterField        factory.DataRetrieverContainersSetter
+	ShardMessengerFactoryField                sposFactory.BroadCastShardMessengerFactoryHandler
 }
 
 // NewRunTypeComponentsStub -
@@ -136,6 +139,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		SystemSCProcessorFactoryField:             &testFactory.SysSCFactoryMock{},
 		PreProcessorsContainerFactoryCreatorField: &testFactory.PreProcessorContainerFactoryCreatorMock{},
 		DataRetrieverContainersSetterField:        &testFactory.DataRetrieverContainersSetterMock{},
+		ShardMessengerFactoryField:                broadcastFactory.NewShardChainMessengerFactory(), // todo: change this with mock
 	}
 }
 
@@ -377,6 +381,10 @@ func (r *RunTypeComponentsStub) PreProcessorsContainerFactoryCreator() data.PreP
 // DataRetrieverContainersSetter -
 func (r *RunTypeComponentsStub) DataRetrieverContainersSetter() factory.DataRetrieverContainersSetter {
 	return r.DataRetrieverContainersSetterField
+}
+
+func (r *RunTypeComponentsStub) BroadCastShardMessengerFactoryHandler() sposFactory.BroadCastShardMessengerFactoryHandler {
+	return r.ShardMessengerFactoryField
 }
 
 // IsInterfaceNil -

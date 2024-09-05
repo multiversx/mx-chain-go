@@ -7,6 +7,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/broadcastFactory"
 	sovereignFactory "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
@@ -264,5 +265,6 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		systemSCProcessorFactory:                metachain.NewSovereignSysSCFactory(),
 		preProcessorsContainerFactoryCreator:    procSovereign.NewSovereignPreProcessorContainerFactoryCreator(),
 		dataRetrieverContainersSetter:           dataRetriever.NewSovereignDataRetrieverContainerSetter(),
+		shardMessengerFactory:                   broadcastFactory.NewSovereignShardChainMessengerFactory(),
 	}, nil
 }
