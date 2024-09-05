@@ -76,8 +76,9 @@ type consensusComponentsFactory struct {
 	isInImportMode        bool
 	shouldDisableWatchdog bool
 
-	extraSignersHolder   bls.ExtraSignersHolder
-	subRoundEndV2Creator bls.SubRoundEndV2Creator
+	extraSignersHolder    bls.ExtraSignersHolder
+	subRoundEndV2Creator  bls.SubRoundEndV2Creator
+	shardMessengerFactory sposFactory.BroadCastShardMessengerFactoryHandler
 }
 
 type consensusComponents struct {
@@ -115,6 +116,7 @@ func NewConsensusComponentsFactory(args ConsensusComponentsFactoryArgs) (*consen
 		runTypeComponents:     args.RunTypeComponents,
 		extraSignersHolder:    args.ExtraSignersHolder,
 		subRoundEndV2Creator:  args.SubRoundEndV2Creator,
+		shardMessengerFactory: args.RunTypeComponents.BroadCastShardMessengerFactoryHandler(),
 	}, nil
 }
 
@@ -174,6 +176,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		ccf.processComponents.InterceptorsContainer(),
 		ccf.coreComponents.AlarmScheduler(),
 		ccf.cryptoComponents.KeysHandler(),
+		ccf.shardMessengerFactory,
 	)
 	if err != nil {
 		return nil, err
@@ -780,6 +783,9 @@ func checkArgs(args ConsensusComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.RunTypeComponents.BootstrapperFromStorageCreator()) {
 		return errors.ErrNilBootstrapperFromStorageCreator
+	}
+	if check.IfNil(args.RunTypeComponents.BroadCastShardMessengerFactoryHandler()) {
+		return errors.ErrNilBroadCastShardMessengerFactoryHandler
 	}
 	return nil
 }

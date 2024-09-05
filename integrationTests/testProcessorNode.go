@@ -876,6 +876,7 @@ func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
 			tpn.NodeKeys.MainKey.Sk,
 			tpn.MainMessenger.ID(),
 		),
+		tpn.RunTypeComponents.BroadCastShardMessengerFactoryHandler(),
 	)
 
 	if args.WithSync {
@@ -1102,6 +1103,7 @@ func (tpn *TestProcessorNode) InitializeProcessors(gasMap map[string]map[string]
 			tpn.NodeKeys.MainKey.Sk,
 			tpn.MainMessenger.ID(),
 		),
+		tpn.RunTypeComponents.BroadCastShardMessengerFactoryHandler(),
 	)
 	tpn.setGenesisBlock()
 	tpn.initNode()
