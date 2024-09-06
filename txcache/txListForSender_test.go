@@ -289,13 +289,18 @@ func TestListForSender_hasInitialGap(t *testing.T) {
 	txGasHandler := txcachemocks.NewTxGasHandlerMock()
 
 	// No transaction, no gap
-	require.False(t, list.hasInitialGap())
+	_, _, hasInitialGap := list.hasInitialGap()
+	require.False(t, hasInitialGap)
+
 	// One gap
 	list.AddTx(createTx([]byte("tx-43"), ".", 43), txGasHandler)
-	require.True(t, list.hasInitialGap())
+	_, _, hasInitialGap = list.hasInitialGap()
+	require.True(t, hasInitialGap)
+
 	// Resolve gap
 	list.AddTx(createTx([]byte("tx-42"), ".", 42), txGasHandler)
-	require.False(t, list.hasInitialGap())
+	_, _, hasInitialGap = list.hasInitialGap()
+	require.False(t, hasInitialGap)
 }
 
 func TestListForSender_getTxHashes(t *testing.T) {
