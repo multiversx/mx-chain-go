@@ -152,7 +152,8 @@ func TestStateChangesCollector_RevertToIndex(t *testing.T) {
 	numStateChanges := 10
 	for i := 0; i < numStateChanges; i++ {
 		scc.AddStateChange(getDefaultStateChange())
-		scc.SetIndexToLastStateChange(i)
+		err := scc.SetIndexToLastStateChange(i)
+		require.Nil(t, err)
 	}
 	scc.AddTxHashToCollectedStateChanges([]byte("txHash1"), &transaction.Transaction{})
 
@@ -160,11 +161,12 @@ func TestStateChangesCollector_RevertToIndex(t *testing.T) {
 		scc.AddStateChange(getDefaultStateChange())
 		scc.AddTxHashToCollectedStateChanges([]byte("txHash"+fmt.Sprintf("%d", i)), &transaction.Transaction{})
 	}
-	scc.SetIndexToLastStateChange(numStateChanges)
+	err := scc.SetIndexToLastStateChange(numStateChanges)
+	require.Nil(t, err)
 
 	assert.Equal(t, numStateChanges*2, len(scc.stateChanges))
 
-	err := scc.RevertToIndex(numStateChanges)
+	err = scc.RevertToIndex(numStateChanges)
 	require.Nil(t, err)
 	assert.Equal(t, numStateChanges*2-1, len(scc.stateChanges))
 
