@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/stateChange"
+	data "github.com/multiversx/mx-chain-core-go/data/stateChange"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
@@ -365,6 +366,6 @@ type StateChangesCollector interface {
 	SetIndexToLastStateChange(index int) error
 	RevertToIndex(index int) error
 	Publish() error
-	GetStateChangesForTxs() map[string]*stateChange.StateChangesForTx
+	GetStateChangesForTxs() map[string]*data.StateChanges
 	IsInterfaceNil() bool
 }

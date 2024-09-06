@@ -60,17 +60,17 @@ func (scc *stateChangesCollector) AddStateChange(stateChange StateChange) {
 	scc.stateChangesMut.Unlock()
 }
 
-func (scc *stateChangesCollector) GetStateChangesForTxs() map[string]*data.StateChangesForTx {
+func (scc *stateChangesCollector) GetStateChangesForTxs() map[string]*data.StateChanges {
 	scc.stateChangesMut.Lock()
 	defer scc.stateChangesMut.Unlock()
 
-	stateChangesForTxs := make(map[string]*data.StateChangesForTx)
+	stateChangesForTxs := make(map[string]*data.StateChanges)
 
 	for _, stateChange := range scc.stateChanges {
 		txHash := string(stateChange.GetTxHash())
 
 		if sc, ok := stateChangesForTxs[txHash]; !ok {
-			stateChangesForTxs[txHash] = &data.StateChangesForTx{StateChanges: []*data.StateChange{
+			stateChangesForTxs[txHash] = &data.StateChanges{StateChanges: []*data.StateChange{
 				{
 					Type:            stateChange.GetType(),
 					Index:           stateChange.GetIndex(),
