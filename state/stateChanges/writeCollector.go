@@ -29,6 +29,7 @@ type StateChange interface {
 	SetTxHash(txHash []byte)
 	GetIndex() int
 	SetIndex(index int)
+	GetType() string
 }
 
 // StateChangeDTO is used to collect state changes
@@ -41,6 +42,10 @@ type StateChangeDTO struct {
 	MainTrieVal     []byte           `json:"-"`
 	Operation       string           `json:"operation"`
 	DataTrieChanges []DataTrieChange `json:"dataTrieChanges"`
+}
+
+func (sc *StateChangeDTO) GetType() string {
+	return sc.Type
 }
 
 func (sc *StateChangeDTO) GetIndex() int {
@@ -87,8 +92,12 @@ func (scc *stateChangesCollector) AddSaveAccountStateChange(_, _ vmcommon.Accoun
 // AddStateChange adds a new state change to the collector
 func (scc *stateChangesCollector) AddStateChange(stateChange StateChange) {
 	scc.stateChangesMut.Lock()
-	scc.stateChanges = append(scc.stateChanges, stateChange)
-	scc.stateChangesMut.Unlock()
+	defer scc.stateChangesMut.Unlock()
+
+	// TODO: add custom type for stateChange type
+	if stateChange.GetType() == "write" {
+		scc.stateChanges = append(scc.stateChanges, stateChange)
+	}
 }
 
 func (scc *stateChangesCollector) getStateChangesForTxs() ([]StateChangesForTx, error) {
@@ -132,6 +141,10 @@ func (scc *stateChangesCollector) Reset() {
 	scc.stateChangesMut.Lock()
 	defer scc.stateChangesMut.Unlock()
 
+	scc.resetStateChangesUnprotected()
+}
+
+func (scc *stateChangesCollector) resetStateChangesUnprotected() {
 	scc.stateChanges = make([]StateChange, 0)
 }
 
@@ -152,12 +165,16 @@ func (scc *stateChangesCollector) AddTxHashToCollectedStateChanges(txHash []byte
 
 // SetIndexToLastStateChange will set index to the last state change
 func (scc *stateChangesCollector) SetIndexToLastStateChange(index int) error {
+	scc.stateChangesMut.Lock()
+	defer scc.stateChangesMut.Unlock()
+
 	if index > len(scc.stateChanges) || index < 0 {
 		return ErrStateChangesIndexOutOfBounds
 	}
 
-	scc.stateChangesMut.Lock()
-	defer scc.stateChangesMut.Unlock()
+	if len(scc.stateChanges) == 0 {
+		return nil
+	}
 
 	scc.stateChanges[len(scc.stateChanges)-1].SetIndex(index)
 
