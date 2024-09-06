@@ -283,6 +283,27 @@ func TestListForSender_NotifyAccountNonce(t *testing.T) {
 	require.True(t, list.accountNonceKnown.IsSet())
 }
 
+func TestListForSender_evictTransactionsWithLowerNonces(t *testing.T) {
+	list := newUnconstrainedListToTest()
+	txGasHandler := txcachemocks.NewTxGasHandlerMock()
+
+	list.AddTx(createTx([]byte("tx-42"), ".", 42), txGasHandler)
+	list.AddTx(createTx([]byte("tx-43"), ".", 43), txGasHandler)
+	list.AddTx(createTx([]byte("tx-44"), ".", 44), txGasHandler)
+	list.AddTx(createTx([]byte("tx-45"), ".", 45), txGasHandler)
+
+	require.Equal(t, 4, list.items.Len())
+
+	list.evictTransactionsWithLowerNonces(43)
+	require.Equal(t, 3, list.items.Len())
+
+	list.evictTransactionsWithLowerNonces(44)
+	require.Equal(t, 2, list.items.Len())
+
+	list.evictTransactionsWithLowerNonces(99)
+	require.Equal(t, 0, list.items.Len())
+}
+
 func TestListForSender_hasInitialGap(t *testing.T) {
 	list := newUnconstrainedListToTest()
 	list.notifyAccountNonce(42)

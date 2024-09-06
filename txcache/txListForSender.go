@@ -391,7 +391,7 @@ func (listForSender *txListForSender) notifyAccountNonce(nonce uint64) [][]byte 
 func (listForSender *txListForSender) evictTransactionsWithLowerNonces(accountNonce uint64) [][]byte {
 	evictedTxHashes := make([][]byte, 0)
 
-	for element := listForSender.items.Front(); element != nil; element = element.Next() {
+	for element := listForSender.items.Front(); element != nil; {
 		tx := element.Value.(*WrappedTransaction)
 		txNonce := tx.Tx.GetNonce()
 
@@ -399,8 +399,10 @@ func (listForSender *txListForSender) evictTransactionsWithLowerNonces(accountNo
 			break
 		}
 
-		listForSender.items.Remove(element)
+		nextElement := element.Next()
+		_ = listForSender.items.Remove(element)
 		listForSender.onRemovedListElement(element)
+		element = nextElement
 
 		// Keep track of removed transactions
 		evictedTxHashes = append(evictedTxHashes, tx.TxHash)
