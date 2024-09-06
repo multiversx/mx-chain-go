@@ -60,7 +60,7 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 		return false, false
 	}
 
-	logAdd.Trace("AddTx()", "tx", tx.TxHash)
+	logAdd.Trace("AddTx()", "tx", tx.TxHash, "nonce", tx.Tx.GetNonce(), "sender", tx.Tx.GetSndAddr())
 
 	if cache.config.EvictionEnabled {
 		_ = cache.doEviction()
@@ -198,10 +198,9 @@ func (cache *TxCache) RemoveTxByHash(txHash []byte) bool {
 	cache.mutTxOperation.Lock()
 	defer cache.mutTxOperation.Unlock()
 
-	logRemove.Trace("RemoveTxByHash()", "tx", txHash)
-
 	tx, foundInByHash := cache.txByHash.removeTx(string(txHash))
 	if !foundInByHash {
+		logRemove.Trace("RemoveTxByHash(), but !foundInByHash", "tx", txHash)
 		return false
 	}
 
@@ -215,9 +214,10 @@ func (cache *TxCache) RemoveTxByHash(txHash []byte) bool {
 		// - B reaches "cache.txByHash.RemoveTxsBulk()"
 		// - B reaches "cache.txListBySender.RemoveSendersBulk()"
 		// - A reaches "cache.txListBySender.removeTx()", but sender does not exist anymore
-		logRemove.Debug("RemoveTxByHash(): slight inconsistency detected: !foundInBySender", "tx", txHash)
+		logRemove.Debug("RemoveTxByHash(), but !foundInBySender", "tx", txHash)
 	}
 
+	logRemove.Trace("RemoveTxByHash()", "tx", txHash)
 	return true
 }
 
