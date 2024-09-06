@@ -331,6 +331,9 @@ func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]*stateChange.Dat
 
 	stateChanges := make([]*stateChange.DataTrieChange, 0)
 	for i := range newData {
+		if newData[i] == nil {
+			continue
+		}
 		if len(newData[i].Key) == 0 {
 			continue
 		}
