@@ -947,6 +947,7 @@ func (v *validatorSC) isNumberOfNodesTooHigh(numNodes int) bool {
 
 func (v *validatorSC) computeNodeLimit() int {
 	nodeLimit := float64(v.nodesCoordinator.GetNumTotalEligible()) * v.nodeLimitPercentage
+	log.Error("NODE limits", "limit", nodeLimit)
 	return int(nodeLimit)
 }
 
