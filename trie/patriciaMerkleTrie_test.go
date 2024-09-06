@@ -1710,14 +1710,12 @@ func BenchmarkPatriciaMerkleTrie_RootHashAfterChanging30000NodesInBatchesOf200(b
 	}
 }
 
-func TestTrieUpdateTimer(t *testing.T) {
-	t.Skip()
+func BenchmarkPatriciaMerkleTrie_Update(b *testing.B) {
 	tr := emptyTrie()
 	hsh := keccak.NewKeccak()
 
-	nrValuesInTrie := 500000
+	nrValuesInTrie := 2000000
 	values := make([][]byte, nrValuesInTrie)
-	nrOfValuesToModify := 30000
 
 	for i := 0; i < nrValuesInTrie; i++ {
 		key := hsh.Compute(strconv.Itoa(i))
@@ -1728,13 +1726,11 @@ func TestTrieUpdateTimer(t *testing.T) {
 	}
 	_ = tr.Commit()
 
-	before := time.Now()
-	for i := 0; i < 10; i++ {
-		for j := 0; j < nrOfValuesToModify; j++ {
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		for j := 0; j < nrValuesInTrie; j++ {
 			_ = tr.Update(values[j], values[j])
 		}
 	}
-
-	now := time.Since(before)
-	fmt.Println(now)
 }
