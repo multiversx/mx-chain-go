@@ -10,13 +10,10 @@ import (
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/outport/mock"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/economics"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
-	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -599,104 +596,4 @@ func TestMoveBalanceWithSignalError(t *testing.T) {
 	err = txsFeeProc.PutFeeAndGasUsed(pool, 0)
 	require.Nil(t, err)
 	require.Equal(t, uint64(225_500), initialTx.GetFeeInfo().GetGasUsed())
-}
-
-func TestPutFeeAndGasUsedRelayedTxV3WithRefunds(t *testing.T) {
-	t.Parallel()
-
-	txHash := []byte("af1581562830e36b0bfb12c618a4ee92d6b7f2e0aa84935432a44c9b63cc8daa")
-	scrHash1 := []byte("4c58801e77c57e88294f21018145662e2fb1698fd5f1a1cf7b6f81f073f5cd6c")
-	scrWithRefundHash := []byte("94e678f400192eeae3c84b3125c9d45301db619a3ecbf9e7f46266a81a85ef51")
-	refundValueBig, _ := big.NewInt(0).SetString("299005000000000", 10)
-	initialTx := &outportcore.TxInfo{
-		Transaction: &transaction.Transaction{
-			Nonce:    0,
-			SndAddr:  []byte("erd1tp66n2lkhs2fm7elvh9lmzfajpg480v55sd8lf2lvu4fw92zsrasvn2wze"),
-			RcvAddr:  []byte("erd1tp66n2lkhs2fm7elvh9lmzfajpg480v55sd8lf2lvu4fw92zsrasvn2wze"),
-			GasLimit: 99000000,
-			GasPrice: 1000000000,
-			Value:    big.NewInt(0),
-			InnerTransactions: []*transaction.Transaction{
-				{
-					Nonce:       0,
-					SndAddr:     []byte("erd1s89rm6mv6xyct38r3vqadj74rmqunamhwyz7c84a6u9thedj2wus5nlchg"),
-					RcvAddr:     []byte("erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqylllslmq6y6"),
-					RelayerAddr: []byte("erd1tp66n2lkhs2fm7elvh9lmzfajpg480v55sd8lf2lvu4fw92zsrasvn2wze"),
-					GasLimit:    85000000,
-					GasPrice:    1000000000,
-					Data:        []byte("createNewDelegationContract@00@00"),
-					Value:       big.NewInt(0),
-				},
-			},
-		},
-		FeeInfo: &outportcore.FeeInfo{Fee: big.NewInt(0)},
-	}
-
-	scr1 := &smartContractResult.SmartContractResult{
-		Nonce:          0,
-		GasPrice:       1000000000,
-		GasLimit:       84900500,
-		SndAddr:        []byte("erd1s89rm6mv6xyct38r3vqadj74rmqunamhwyz7c84a6u9thedj2wus5nlchg"),
-		RcvAddr:        []byte("erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqylllslmq6y6"),
-		Data:           []byte("createNewDelegationContract@00@00"),
-		PrevTxHash:     txHash,
-		OriginalTxHash: txHash,
-	}
-	scrWithRefund := &smartContractResult.SmartContractResult{
-		Nonce:          1,
-		GasPrice:       1000000000,
-		GasLimit:       0,
-		Value:          refundValueBig,
-		SndAddr:        []byte("erd1qqqqqqqqqqqqqqqpqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqylllslmq6y6"),
-		RcvAddr:        []byte("erd1tp66n2lkhs2fm7elvh9lmzfajpg480v55sd8lf2lvu4fw92zsrasvn2wze"),
-		PrevTxHash:     scrHash1,
-		OriginalTxHash: txHash,
-		ReturnMessage:  []byte("gas refund for relayer"),
-	}
-
-	pool := &outportcore.TransactionPool{
-		Transactions: map[string]*outportcore.TxInfo{
-			hex.EncodeToString(txHash): initialTx,
-		},
-		SmartContractResults: map[string]*outportcore.SCRInfo{
-			hex.EncodeToString(scrHash1): {
-				SmartContractResult: scr1,
-				FeeInfo: &outportcore.FeeInfo{
-					Fee: big.NewInt(0),
-				},
-			},
-			hex.EncodeToString(scrWithRefundHash): {
-				SmartContractResult: scrWithRefund,
-				FeeInfo: &outportcore.FeeInfo{
-					Fee: big.NewInt(0),
-				},
-			},
-		},
-	}
-
-	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-			return flag == common.GasPriceModifierFlag ||
-				flag == common.RelayedTransactionsV3Flag ||
-				flag == common.FixRelayedBaseCostFlag
-		},
-	}
-	arg := prepareMockArg()
-	arg.EnableEpochsHandler = enableEpochsHandler
-	economicsConfig := testscommon.GetEconomicsConfig()
-	arg.TxFeeCalculator, _ = economics.NewEconomicsData(economics.ArgsNewEconomicsData{
-		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
-		Economics:           &economicsConfig,
-		EpochNotifier:       &epochNotifier.EpochNotifierStub{},
-		EnableEpochsHandler: enableEpochsHandler,
-	})
-	txsFeeProc, err := NewTransactionsFeeProcessor(arg)
-	require.NotNil(t, txsFeeProc)
-	require.Nil(t, err)
-
-	err = txsFeeProc.PutFeeAndGasUsed(pool, 0)
-	require.Nil(t, err)
-	require.Equal(t, big.NewInt(699500000000000), initialTx.GetFeeInfo().GetFee())
-	require.Equal(t, uint64(55149500), initialTx.GetFeeInfo().GetGasUsed())
-	require.Equal(t, "998505000000000", initialTx.GetFeeInfo().GetInitialPaidFee().String())
 }
