@@ -253,7 +253,17 @@ func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destinati
 		// Reset the internal state used for copy operations
 		listForSender.selectionPreviousNonce = 0
 		listForSender.selectionPointer = listForSender.items.Front()
-		listForSender.selectionDetectedGap = listForSender.hasInitialGap()
+
+		accountNonce, firstTxNonce, hasInitialGap := listForSender.hasInitialGap()
+		if hasInitialGap {
+			log.Trace("selectBatchTo(): initial gap detected",
+				"sender", listForSender.sender,
+				"accountNonce", accountNonce,
+				"firstTxNonce", firstTxNonce,
+			)
+		}
+
+		listForSender.selectionDetectedGap = hasInitialGap
 	}
 
 	// If a nonce gap is detected, no transaction is returned in this read.
@@ -285,6 +295,12 @@ func (listForSender *txListForSender) selectBatchTo(isFirstBatch bool, destinati
 
 		isMiddleGap := listForSender.selectionPreviousNonce > 0 && nonce > listForSender.selectionPreviousNonce+1
 		if isMiddleGap {
+			log.Trace("selectBatchTo(): middle gap detected",
+				"sender", listForSender.sender,
+				"previousNonce", listForSender.selectionPreviousNonce,
+				"nonce", nonce,
+			)
+
 			listForSender.selectionDetectedGap = true
 			break
 		}
@@ -393,28 +409,30 @@ func (listForSender *txListForSender) evictTransactionsWithLowerNonces(accountNo
 	return evictedTxHashes
 }
 
-// This function should only be used in critical section (listForSender.mutex)
-func (listForSender *txListForSender) hasInitialGap() bool {
+// This function should only be used in critical section (listForSender.mutex).
+// When a gap is detected, the (known) account nonce and the first transactio nonce are also returned.
+func (listForSender *txListForSender) hasInitialGap() (uint64, uint64, bool) {
 	accountNonceKnown := listForSender.accountNonceKnown.IsSet()
 	if !accountNonceKnown {
-		return false
+		return 0, 0, false
 	}
 
 	firstTx := listForSender.getLowestNonceTx()
 	if firstTx == nil {
-		return false
+		return 0, 0, false
 	}
 
-	firstTxNonce := firstTx.Tx.GetNonce()
 	accountNonce := listForSender.accountNonce.Get()
+	firstTxNonce := firstTx.Tx.GetNonce()
 	hasGap := firstTxNonce > accountNonce
-	return hasGap
+	return accountNonce, firstTxNonce, hasGap
 }
 
 func (listForSender *txListForSender) hasInitialGapWithLock() bool {
 	listForSender.mutex.RLock()
 	defer listForSender.mutex.RUnlock()
-	return listForSender.hasInitialGap()
+	_, _, hasInitialGap := listForSender.hasInitialGap()
+	return hasInitialGap
 }
 
 // This function should only be used in critical section (listForSender.mutex)
