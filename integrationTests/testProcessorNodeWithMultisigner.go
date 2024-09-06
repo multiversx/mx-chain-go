@@ -691,7 +691,7 @@ func ProposeBlockWithConsensusSignature(
 		log.Error("header.SetPrevRandSeed", "error", err)
 	}
 
-	header = DoConsensusSigningOnBlock(header, consensusNodes, pubKeys)
+	header = DoConsensusSigningOnBlock(header, leaderNode, consensusNodes, pubKeys)
 
 	return &ProposeBlockData{
 		Body:           body,
@@ -729,6 +729,7 @@ func selectTestNodesForPubKeys(nodes []*TestProcessorNode, leaderPubKey string, 
 // DoConsensusSigningOnBlock simulates a ConsensusGroup aggregated signature on the provided block
 func DoConsensusSigningOnBlock(
 	blockHeader data.HeaderHandler,
+	leaderNode *TestProcessorNode,
 	consensusNodes []*TestProcessorNode,
 	pubKeys []string,
 ) data.HeaderHandler {
@@ -759,7 +760,7 @@ func DoConsensusSigningOnBlock(
 
 	pubKeysBytes := make([][]byte, len(consensusNodes))
 	sigShares := make([][]byte, len(consensusNodes))
-	msig := consensusNodes[0].MultiSigner
+	msig := leaderNode.MultiSigner
 
 	for i := 0; i < len(consensusNodes); i++ {
 		pubKeysBytes[i] = []byte(pubKeys[i])

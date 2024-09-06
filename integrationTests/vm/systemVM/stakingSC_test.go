@@ -159,12 +159,10 @@ func TestStakingUnstakingAndUnbondingOnMultiShardEnvironmentWithValidatorStatist
 		nodes = append(nodes, nds...)
 	}
 
-	for _, nds := range nodesMap {
-		idx, err := integrationTestsVm.GetNodeIndex(nodes, nds[0])
-		require.Nil(t, err)
-
-		leaders = append(leaders, nodes[idx])
+	for i := 0; i < numOfShards; i++ {
+		leaders[i] = nodes[i*nodesPerShard]
 	}
+	leaders[numOfShards] = nodes[numOfShards*nodesPerShard]
 
 	integrationTests.DisplayAndStartNodes(nodes)
 

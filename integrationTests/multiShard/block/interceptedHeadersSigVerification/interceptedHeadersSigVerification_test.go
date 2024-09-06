@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-crypto-go/signing"
 	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/multiversx/mx-chain-go/integrationTests"
@@ -161,6 +162,7 @@ func TestInterceptedShardBlockHeaderWithLeaderSignatureAndRandSeedChecks(t *test
 		t.Skip("this is not a short test")
 	}
 
+	_ = logger.SetLogLevel("*:DEBUG")
 	nodesPerShard := 4
 	nbMetaNodes := 4
 	nbShards := 1
@@ -209,7 +211,7 @@ func TestInterceptedShardBlockHeaderWithLeaderSignatureAndRandSeedChecks(t *test
 	pk := nodeToSendFrom.NodeKeys.MainKey.Pk
 	nodeToSendFrom.BroadcastBlock(proposeBlockData.Body, header, pk)
 
-	time.Sleep(broadcastDelay)
+	time.Sleep(20 * broadcastDelay)
 
 	headerBytes, _ := integrationTests.TestMarshalizer.Marshal(header)
 	headerHash := integrationTests.TestHasher.Compute(string(headerBytes))
@@ -295,8 +297,11 @@ func TestInterceptedShardHeaderBlockWithWrongPreviousRandSeedShouldNotBeAccepted
 func fillHeaderFields(proposer *integrationTests.TestProcessorNode, hdr data.HeaderHandler, signer crypto.SingleSigner) (data.HeaderHandler, error) {
 	leaderSk := proposer.NodeKeys.MainKey.Sk
 
-	randSeed, _ := signer.Sign(leaderSk, hdr.GetPrevRandSeed())
-	err := hdr.SetRandSeed(randSeed)
+	randSeed, err := signer.Sign(leaderSk, hdr.GetPrevRandSeed())
+	if err != nil {
+		return nil, err
+	}
+	err = hdr.SetRandSeed(randSeed)
 	if err != nil {
 		return nil, err
 	}
