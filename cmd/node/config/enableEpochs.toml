@@ -325,10 +325,10 @@
     UnJailCleanupEnableEpoch = 4
 
     # RelayedTransactionsV3EnableEpoch represents the epoch when the relayed transactions V3 will be enabled
-    RelayedTransactionsV3EnableEpoch = 7
+    RelayedTransactionsV3EnableEpoch = 1
 
     # FixRelayedBaseCostEnableEpoch represents the epoch when the fix for relayed base cost will be enabled
-    FixRelayedBaseCostEnableEpoch = 7
+    FixRelayedBaseCostEnableEpoch = 1
 
     # MultiESDTNFTTransferAndExecuteByUserEnableEpoch represents the epoch when enshrined sovereign cross chain opcodes are enabled
     MultiESDTNFTTransferAndExecuteByUserEnableEpoch = 9999999
