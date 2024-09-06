@@ -310,33 +310,6 @@ func (o *outport) saveAccountsBlocking(accounts *outportcore.Accounts, driver Dr
 	}
 }
 
-// SaveStateChanges will save the state changes to every driver
-func (o *outport) SaveStateChanges() {
-	o.mutex.RLock()
-	defer o.mutex.RUnlock()
-
-	for _, driver := range o.drivers {
-		o.saveStateChangesBlocking(driver)
-	}
-}
-
-func (o *outport) saveStateChangesBlocking(driver Driver) {
-	ch := o.monitorCompletionOnDriver("finalizedBlockBlocking", driver)
-	defer close(ch)
-
-	for {
-		err := driver.SaveStateChanges()
-		if err == nil {
-			return
-		}
-
-		log.Error("error calling SaveStateChanges, will retry",
-			"driver", driverString(driver),
-			"retrial in", o.retrialInterval,
-			"error", err)
-	}
-}
-
 // FinalizedBlock will call all the drivers that a block is finalized
 func (o *outport) FinalizedBlock(finalizedBlock *outportcore.FinalizedBlock) {
 	o.mutex.RLock()

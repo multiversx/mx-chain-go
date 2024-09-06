@@ -1,12 +1,10 @@
 package stateChanges
 
 import (
-	"bytes"
-	"encoding/hex"
 	"errors"
-	"fmt"
 	"sync"
 
+	data "github.com/multiversx/mx-chain-core-go/data/stateChange"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -18,17 +16,23 @@ var log = logger.GetOrCreate("state/stateChanges")
 var ErrStateChangesIndexOutOfBounds = errors.New("state changes index out of bounds")
 
 type StateChange interface {
-	GetTxHash() []byte
-	SetTxHash(txHash []byte)
+	GetType() string
 	GetIndex() int32
+	GetTxHash() []byte
+	GetMainTrieKey() []byte
+	GetMainTrieVal() []byte
+	GetOperation() string
+	GetDataTrieChanges() []*data.DataTrieChange
+
+	SetTxHash(txHash []byte)
 	SetIndex(index int32)
 }
 
-// StateChangesForTx is used to collect state changes for a transaction hash
-type StateChangesForTx struct {
-	TxHash       []byte        `json:"txHash"`
-	StateChanges []StateChange `json:"stateChanges"`
-}
+//// StateChangesForTx is used to collect state changes for a transaction hash
+//type StateChangesForTx struct {
+//	TxHash       []byte        `json:"txHash"`
+//	StateChanges []StateChange `json:"stateChanges"`
+//}
 
 type stateChangesCollector struct {
 	stateChanges    []StateChange
@@ -56,40 +60,71 @@ func (scc *stateChangesCollector) AddStateChange(stateChange StateChange) {
 	scc.stateChangesMut.Unlock()
 }
 
-func (scc *stateChangesCollector) getStateChangesForTxs() ([]StateChangesForTx, error) {
+func (scc *stateChangesCollector) GetStateChangesForTxs() map[string]*data.StateChangesForTx {
 	scc.stateChangesMut.Lock()
 	defer scc.stateChangesMut.Unlock()
 
-	stateChangesForTxs := make([]StateChangesForTx, 0)
+	stateChangesForTxs := make(map[string]*data.StateChangesForTx)
 
-	for i := 0; i < len(scc.stateChanges); i++ {
-		txHash := scc.stateChanges[i].GetTxHash()
+	for _, stateChange := range scc.stateChanges {
+		txHash := string(stateChange.GetTxHash())
 
-		if len(txHash) == 0 {
-			log.Warn("empty tx hash, state change event not associated to a transaction")
-			break
-		}
-
-		innerStateChangesForTx := make([]StateChange, 0)
-		for j := i; j < len(scc.stateChanges); j++ {
-			txHash2 := scc.stateChanges[j].GetTxHash()
-			if !bytes.Equal(txHash, txHash2) {
-				i = j
-				break
+		if sc, ok := stateChangesForTxs[txHash]; !ok {
+			stateChangesForTxs[txHash] = &data.StateChangesForTx{StateChanges: []*data.StateChange{
+				{
+					Type:            stateChange.GetType(),
+					Index:           stateChange.GetIndex(),
+					TxHash:          stateChange.GetTxHash(),
+					MainTrieKey:     stateChange.GetMainTrieKey(),
+					MainTrieVal:     stateChange.GetMainTrieVal(),
+					Operation:       stateChange.GetOperation(),
+					DataTrieChanges: stateChange.GetDataTrieChanges(),
+				},
+			},
 			}
-
-			innerStateChangesForTx = append(innerStateChangesForTx, scc.stateChanges[j])
-			i = j
+		} else {
+			stateChangesForTxs[txHash].StateChanges = append(sc.StateChanges,
+				&data.StateChange{
+					Type:            stateChange.GetType(),
+					Index:           stateChange.GetIndex(),
+					TxHash:          stateChange.GetTxHash(),
+					MainTrieKey:     stateChange.GetMainTrieKey(),
+					MainTrieVal:     stateChange.GetMainTrieVal(),
+					Operation:       stateChange.GetOperation(),
+					DataTrieChanges: stateChange.GetDataTrieChanges(),
+				},
+			)
 		}
-
-		stateChangesForTx := StateChangesForTx{
-			TxHash:       txHash,
-			StateChanges: innerStateChangesForTx,
-		}
-		stateChangesForTxs = append(stateChangesForTxs, stateChangesForTx)
 	}
 
-	return stateChangesForTxs, nil
+	//for i := 0; i < len(scc.stateChanges); i++ {
+	//	txHash := scc.stateChanges[i].GetTxHash()
+	//
+	//	if len(txHash) == 0 {
+	//		log.Warn("empty tx hash, state change event not associated to a transaction")
+	//		break
+	//	}
+	//
+	//	innerStateChangesForTx := make([]StateChange, 0)
+	//	for j := i; j < len(scc.stateChanges); j++ {
+	//		txHash2 := scc.stateChanges[j].GetTxHash()
+	//		if !bytes.Equal(txHash, txHash2) {
+	//			i = j
+	//			break
+	//		}
+	//
+	//		innerStateChangesForTx = append(innerStateChangesForTx, scc.stateChanges[j])
+	//		i = j
+	//	}
+	//
+	//	stateChangesForTx := StateChangesForTx{
+	//		TxHash:       txHash,
+	//		StateChanges: innerStateChangesForTx,
+	//	}
+	//	stateChangesForTxs = append(stateChangesForTxs, stateChangesForTx)
+	//}
+
+	return stateChangesForTxs
 }
 
 // Reset resets the state changes collector
@@ -155,32 +190,28 @@ func (scc *stateChangesCollector) RevertToIndex(index int) error {
 
 // Publish will export state changes
 func (scc *stateChangesCollector) Publish() error {
-	stateChangesForTx, err := scc.getStateChangesForTxs()
-	if err != nil {
-		return err
-	}
+	//stateChangesForTx, err := scc.GetStateChangesForTxs()
+	//if err != nil {
+	//	return err
+	//}
 
-	printStateChanges(stateChangesForTx)
+	//printStateChanges(stateChangesForTx)
 
 	return nil
 }
 
-func printStateChanges(stateChanges []StateChangesForTx) {
-	for _, stateChange := range stateChanges {
-
-		if stateChange.TxHash != nil {
-			fmt.Println(hex.EncodeToString(stateChange.TxHash))
-		}
-
-		for _, st := range stateChange.StateChanges {
-			fmt.Println(st)
-		}
-	}
-}
-
-func (scc *stateChangesCollector) GetStateChanges() []StateChange {
-	return scc.stateChanges
-}
+//func printStateChanges(stateChanges []StateChangesForTx) {
+//	for _, stateChange := range stateChanges {
+//
+//		if stateChange.TxHash != nil {
+//			fmt.Println(hex.EncodeToString(stateChange.TxHash))
+//		}
+//
+//		for _, st := range stateChange.StateChanges {
+//			fmt.Println(st)
+//		}
+//	}
+//}
 
 // IsInterfaceNil returns true if there is no value under the interface
 func (scc *stateChangesCollector) IsInterfaceNil() bool {

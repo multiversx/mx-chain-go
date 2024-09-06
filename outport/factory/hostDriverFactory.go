@@ -42,9 +42,8 @@ func CreateHostDriver(args ArgsHostDriverFactory) (outport.Driver, error) {
 	}
 
 	return host.NewHostDriver(host.ArgsHostDriver{
-		Marshaller:            args.Marshaller,
-		SenderHost:            wsHost,
-		Log:                   log,
-		StateChangesCollector: args.StateChangesCollector,
+		Marshaller: args.Marshaller,
+		SenderHost: wsHost,
+		Log:        log,
 	})
 }

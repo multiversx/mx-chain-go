@@ -365,6 +365,6 @@ type StateChangesCollector interface {
 	SetIndexToLastStateChange(index int) error
 	RevertToIndex(index int) error
 	Publish() error
-	GetStateChanges() []stateChanges.StateChange
+	GetStateChangesForTxs() map[string]*stateChange.StateChangesForTx
 	IsInterfaceNil() bool
 }

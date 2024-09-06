@@ -1,6 +1,7 @@
 package disabled
 
 import (
+	"github.com/multiversx/mx-chain-core-go/data/stateChange"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
@@ -48,7 +49,7 @@ func (d *disabledStateChangesCollector) Publish() error {
 	return nil
 }
 
-func (d *disabledStateChangesCollector) GetStateChanges() []stateChanges.StateChange {
+func (d *disabledStateChangesCollector) GetStateChangesForTxs() map[string]*stateChange.StateChangesForTx {
 	return nil
 }
 

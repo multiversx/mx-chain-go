@@ -16,7 +16,6 @@ type Driver interface {
 	SaveValidatorsPubKeys(validatorsPubKeys *outportcore.ValidatorsPubKeys) error
 	SaveValidatorsRating(validatorsRating *outportcore.ValidatorsRating) error
 	SaveAccounts(accounts *outportcore.Accounts) error
-	SaveStateChanges() error
 	FinalizedBlock(finalizedBlock *outportcore.FinalizedBlock) error
 	GetMarshaller() marshal.Marshalizer
 	SetCurrentSettings(config outportcore.OutportConfig) error
@@ -34,7 +33,6 @@ type OutportHandler interface {
 	SaveValidatorsPubKeys(validatorsPubKeys *outportcore.ValidatorsPubKeys)
 	SaveValidatorsRating(validatorsRating *outportcore.ValidatorsRating)
 	SaveAccounts(accounts *outportcore.Accounts)
-	SaveStateChanges()
 	FinalizedBlock(finalizedBlock *outportcore.FinalizedBlock)
 	SubscribeDriver(driver Driver) error
 	HasDrivers() bool

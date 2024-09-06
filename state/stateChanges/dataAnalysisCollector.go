@@ -205,7 +205,7 @@ func (scc *dataAnalysisCollector) Publish() error {
 	return nil
 }
 
-func (scc *dataAnalysisCollector) GetStateChanges() []StateChange {
+func (scc *dataAnalysisCollector) GetStateChangesForTx() []StateChange {
 	return scc.stateChanges
 }
 

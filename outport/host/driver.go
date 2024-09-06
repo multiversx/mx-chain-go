@@ -8,25 +8,21 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-
-	"github.com/multiversx/mx-chain-go/state"
 )
 
 // ArgsHostDriver holds the arguments needed for creating a new hostDriver
 type ArgsHostDriver struct {
-	Marshaller            marshal.Marshalizer
-	SenderHost            SenderHost
-	Log                   core.Logger
-	StateChangesCollector state.StateChangesCollector
+	Marshaller marshal.Marshalizer
+	SenderHost SenderHost
+	Log        core.Logger
 }
 
 type hostDriver struct {
-	marshaller            marshal.Marshalizer
-	senderHost            SenderHost
-	isClosed              atomic.Flag
-	log                   core.Logger
-	payloadProc           payloadProcessorHandler
-	stateChangesCollector state.StateChangesCollector
+	marshaller  marshal.Marshalizer
+	senderHost  SenderHost
+	isClosed    atomic.Flag
+	log         core.Logger
+	payloadProc payloadProcessorHandler
 }
 
 // NewHostDriver will create a new instance of hostDriver
@@ -40,9 +36,6 @@ func NewHostDriver(args ArgsHostDriver) (*hostDriver, error) {
 	if check.IfNil(args.Log) {
 		return nil, core.ErrNilLogger
 	}
-	if check.IfNil(args.StateChangesCollector) {
-		return nil, ErrNilStateChangesCollector
-	}
 
 	payloadProc, err := newPayloadProcessor(args.Log)
 	if err != nil {
@@ -55,12 +48,11 @@ func NewHostDriver(args ArgsHostDriver) (*hostDriver, error) {
 	}
 
 	return &hostDriver{
-		marshaller:            args.Marshaller,
-		senderHost:            args.SenderHost,
-		log:                   args.Log,
-		isClosed:              atomic.Flag{},
-		payloadProc:           payloadProc,
-		stateChangesCollector: args.StateChangesCollector,
+		marshaller:  args.Marshaller,
+		senderHost:  args.SenderHost,
+		log:         args.Log,
+		isClosed:    atomic.Flag{},
+		payloadProc: payloadProc,
 	}, nil
 }
 
@@ -130,11 +122,6 @@ func (o *hostDriver) RegisterHandler(handlerFunction func() error, topic string)
 // SetCurrentSettings will send the current settings
 func (o *hostDriver) SetCurrentSettings(config outport.OutportConfig) error {
 	return o.handleAction(&config, outport.TopicSettings)
-}
-
-func (o *hostDriver) SaveStateChanges() error {
-	//TODO: add this as a constant
-	return o.handleAction(o.stateChangesCollector.GetStateChanges(), "SaveStateChanges")
 }
 
 // Close will handle the closing of the outport driver web socket sender

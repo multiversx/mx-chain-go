@@ -4,6 +4,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/outport/process"
@@ -15,7 +17,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // ArgOutportDataProviderFactory holds the arguments needed for creating a new instance of outport.DataProviderOutport
@@ -36,6 +37,7 @@ type ArgOutportDataProviderFactory struct {
 	MbsStorer              storage.Storer
 	EnableEpochsHandler    common.EnableEpochsHandler
 	ExecutionOrderGetter   common.ExecutionOrderGetter
+	StateChangesCollector  state.StateChangesCollector
 }
 
 // CreateOutportDataProvider will create a new instance of outport.DataProviderOutport
@@ -82,5 +84,6 @@ func CreateOutportDataProvider(arg ArgOutportDataProviderFactory) (outport.DataP
 		ExecutionOrderHandler:    arg.ExecutionOrderGetter,
 		Hasher:                   arg.Hasher,
 		Marshaller:               arg.Marshaller,
+		StateChangesCollector:    arg.StateChangesCollector,
 	})
 }
