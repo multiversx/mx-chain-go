@@ -211,7 +211,7 @@ func TestInterceptedShardBlockHeaderWithLeaderSignatureAndRandSeedChecks(t *test
 	pk := nodeToSendFrom.NodeKeys.MainKey.Pk
 	nodeToSendFrom.BroadcastBlock(proposeBlockData.Body, header, pk)
 
-	time.Sleep(20 * broadcastDelay)
+	time.Sleep(broadcastDelay)
 
 	headerBytes, _ := integrationTests.TestMarshalizer.Marshal(header)
 	headerHash := integrationTests.TestHasher.Compute(string(headerBytes))

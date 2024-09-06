@@ -160,9 +160,9 @@ func TestStakingUnstakingAndUnbondingOnMultiShardEnvironmentWithValidatorStatist
 	}
 
 	for i := 0; i < numOfShards; i++ {
-		leaders[i] = nodes[i*nodesPerShard]
+		leaders[i] = nodesMap[uint32(i)][0]
 	}
-	leaders[numOfShards] = nodes[numOfShards*nodesPerShard]
+	leaders[numOfShards] = nodesMap[core.MetachainShardId][0]
 
 	integrationTests.DisplayAndStartNodes(nodes)
 

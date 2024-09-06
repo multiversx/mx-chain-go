@@ -707,14 +707,14 @@ func selectTestNodesForPubKeys(nodes []*TestProcessorNode, leaderPubKey string, 
 	cntNodes := 0
 	var leaderNode *TestProcessorNode
 	for i, pk := range pubKeys {
-		for _, node := range nodes {
+		for j, node := range nodes {
 			pubKeyBytes, _ := node.NodeKeys.MainKey.Pk.ToByteArray()
 			if bytes.Equal(pubKeyBytes, []byte(pk)) {
-				selectedNodes[i] = node
+				selectedNodes[i] = nodes[j]
 				cntNodes++
 			}
-			if pk == leaderPubKey {
-				leaderNode = node
+			if string(pubKeyBytes) == leaderPubKey {
+				leaderNode = nodes[j]
 			}
 		}
 	}
