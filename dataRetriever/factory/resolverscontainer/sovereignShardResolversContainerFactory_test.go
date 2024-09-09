@@ -6,10 +6,12 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/require"
@@ -75,21 +77,25 @@ func TestSovereignShardResolversContainerFactory_Create(t *testing.T) {
 	require.Equal(t, totalResolvers, registerMainCnt)
 	require.Equal(t, totalResolvers, registerFullArchiveCnt)
 
-	topicDelim := "_"
-	topicDelimCt := 0
+	sovShardIDStr := fmt.Sprintf("_%d", core.SovereignChainShardId)
+	allKeys := map[string]struct{}{
+		factory.TransactionTopic + sovShardIDStr:         {},
+		factory.UnsignedTransactionTopic + sovShardIDStr: {},
+		factory.ShardBlocksTopic + sovShardIDStr:         {},
+		factory.MiniBlocksTopic + sovShardIDStr:          {},
+		factory.ValidatorTrieNodesTopic + sovShardIDStr:  {},
+		factory.AccountTrieNodesTopic + sovShardIDStr:    {},
+		common.PeerAuthenticationTopic:                   {},
+		common.ValidatorInfoTopic:                        {},
+		factory.ExtendedHeaderProofTopic + sovShardIDStr: {},
+	}
+
 	iterateFunc := func(key string, resolver dataRetriever.Resolver) bool {
 		require.False(t, strings.Contains(strings.ToLower(key), "meta"))
-
-		if strings.Contains(key, topicDelim) {
-			keyTokens := strings.Split(key, topicDelim)
-			require.Len(t, keyTokens, 2)
-			require.Equal(t, fmt.Sprintf("%d", core.SovereignChainShardId), keyTokens[1])
-			topicDelimCt++
-		}
-
+		delete(allKeys, key)
 		return true
 	}
 
 	container.Iterate(iterateFunc)
-	require.Equal(t, totalResolvers-2, topicDelimCt) // without peerAuthentication + validatorInfo topics
+	require.Empty(t, allKeys)
 }

@@ -152,6 +152,37 @@ func TestSovereignGenesisBlockCreator_CreateGenesisBlocksEmptyBlocks(t *testing.
 	}, blocks)
 }
 
+func TestSovereignGenesisBlockCreator_CreateGenesisBlocks(t *testing.T) {
+	args, sgbc := createSovereignGenesisBlockCreator(t)
+
+	blocks, err := sgbc.CreateGenesisBlocks()
+	require.Nil(t, err)
+	require.Len(t, blocks, 1)
+
+	sovBlock := blocks[core.SovereignChainShardId].(*block.SovereignChainHeader)
+	require.NotNil(t, sovBlock)
+
+	require.Equal(t, sgbc.arg.Core.Hasher().Compute(sgbc.arg.GenesisString), sovBlock.GetPrevHash())
+	require.Equal(t, process.SovereignHeaderVersion, sovBlock.GetSoftwareVersion())
+
+	sovBlock.Header = nil
+	require.Equal(t, &block.SovereignChainHeader{
+		AccumulatedFeesInEpoch: big.NewInt(0),
+		DevFeesInEpoch:         big.NewInt(0),
+		ValidatorStatsRootHash: make([]byte, 0, 32),
+		IsStartOfEpoch:         true,
+		EpochStart: block.EpochStartSovereign{
+			Economics: block.Economics{
+				TotalSupply:       big.NewInt(0).Set(args.Economics.GenesisTotalSupply()),
+				TotalToDistribute: big.NewInt(0),
+				TotalNewlyMinted:  big.NewInt(0),
+				RewardsPerBlock:   big.NewInt(0),
+				NodePrice:         big.NewInt(0).Set(args.GenesisNodePrice),
+			},
+		},
+	}, sovBlock)
+}
+
 func TestSovereignGenesisBlockCreator_CreateGenesisBaseProcess(t *testing.T) {
 	args, sgbc := createSovereignGenesisBlockCreator(t)
 

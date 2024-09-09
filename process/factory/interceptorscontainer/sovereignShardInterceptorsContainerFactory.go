@@ -1,6 +1,7 @@
 package interceptorscontainer
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
@@ -41,12 +42,52 @@ func NewSovereignShardInterceptorsContainerFactory(
 
 // Create returns an interceptor container that will hold all sovereign interceptors
 func (sicf *sovereignShardInterceptorsContainerFactory) Create() (process.InterceptorsContainer, process.InterceptorsContainer, error) {
-	_, _, err := sicf.shardInterceptorsContainerFactory.Create()
+	err := sicf.generateTxInterceptors()
 	if err != nil {
 		return nil, nil, err
 	}
 
-	err = sicf.generateSovereignHeaderInterceptors()
+	err = sicf.generateUnsignedTxsInterceptors()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = sicf.generateHeaderInterceptors(core.SovereignChainShardId)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = sicf.generateMiniBlocksInterceptors()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = sicf.generateValidatorAndAccountTrieNodesInterceptors(core.SovereignChainShardId)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = sicf.generatePeerAuthenticationInterceptor()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = sicf.generateHeartbeatInterceptor()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = sicf.generatePeerShardInterceptor()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = sicf.generateValidatorInfoInterceptor()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = sicf.generateSovereignExtendedHeaderInterceptors()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -54,7 +95,54 @@ func (sicf *sovereignShardInterceptorsContainerFactory) Create() (process.Interc
 	return sicf.mainContainer, sicf.fullArchiveContainer, nil
 }
 
-func (sicf *sovereignShardInterceptorsContainerFactory) generateSovereignHeaderInterceptors() error {
+func (sicf *sovereignShardInterceptorsContainerFactory) generateTxInterceptors() error {
+	keys := make([]string, 0, 1)
+	interceptorSlice := make([]process.Interceptor, 0, 1)
+
+	identifierTx := factory.TransactionTopic + sicf.shardCoordinator.CommunicationIdentifier(core.SovereignChainShardId)
+	interceptor, err := sicf.createOneTxInterceptor(identifierTx)
+	if err != nil {
+		return err
+	}
+
+	keys = append(keys, identifierTx)
+	interceptorSlice = append(interceptorSlice, interceptor)
+	return sicf.addInterceptorsToContainers(keys, interceptorSlice)
+}
+
+func (sicf *sovereignShardInterceptorsContainerFactory) generateUnsignedTxsInterceptors() error {
+	keys := make([]string, 0, 1)
+	interceptorsSlice := make([]process.Interceptor, 0, 1)
+
+	identifierScr := factory.UnsignedTransactionTopic + sicf.shardCoordinator.CommunicationIdentifier(core.SovereignChainShardId)
+	interceptor, err := sicf.createOneUnsignedTxInterceptor(identifierScr)
+	if err != nil {
+		return err
+	}
+
+	keys = append(keys, identifierScr)
+	interceptorsSlice = append(interceptorsSlice, interceptor)
+
+	return sicf.addInterceptorsToContainers(keys, interceptorsSlice)
+}
+
+func (sicf *sovereignShardInterceptorsContainerFactory) generateMiniBlocksInterceptors() error {
+	keys := make([]string, 1)
+	interceptorsSlice := make([]process.Interceptor, 1)
+
+	identifierMiniBlocks := factory.MiniBlocksTopic + sicf.shardCoordinator.CommunicationIdentifier(core.SovereignChainShardId)
+	interceptor, err := sicf.createOneMiniBlocksInterceptor(identifierMiniBlocks)
+	if err != nil {
+		return err
+	}
+
+	keys[0] = identifierMiniBlocks
+	interceptorsSlice[0] = interceptor
+
+	return sicf.addInterceptorsToContainers(keys, interceptorsSlice)
+}
+
+func (sicf *sovereignShardInterceptorsContainerFactory) generateSovereignExtendedHeaderInterceptors() error {
 	shardC := sicf.shardCoordinator
 
 	argsHdrFactory := interceptorFactory.ArgsSovereignInterceptedExtendedHeaderFactory{
