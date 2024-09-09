@@ -135,3 +135,8 @@ func (scm *sovereignChainMessenger) BroadcastHeader(header data.HeaderHandler, p
 
 	return nil
 }
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (scm *sovereignChainMessenger) IsInterfaceNil() bool {
+	return scm == nil
+}

@@ -10,6 +10,7 @@ type sovereignDelayedBroadcastData struct {
 	*delayedBlockBroadcaster
 }
 
+// NewSovereignDelayedBlockBroadcaster creates a sovereign delayed block broadcaster
 func NewSovereignDelayedBlockBroadcaster(args *ArgsDelayedBlockBroadcaster) (*sovereignDelayedBroadcastData, error) {
 	dbb, err := baseCreateDelayedBroadcaster(args)
 	if err != nil {
@@ -65,4 +66,9 @@ func (dbb *sovereignDelayedBroadcastData) SetValidatorData(broadcastData *delaye
 
 func (dbb *sovereignDelayedBroadcastData) extractMiniBlockHashesCrossFromMe(_ data.HeaderHandler) map[string]map[string]struct{} {
 	return make(map[string]map[string]struct{})
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (dbb *sovereignDelayedBroadcastData) IsInterfaceNil() bool {
+	return dbb == nil
 }
