@@ -5,11 +5,13 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/chronology"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
-	"github.com/stretchr/testify/assert"
 )
 
 func initSubroundHandlerMock() *mock.SubroundHandlerMock {
@@ -320,4 +322,70 @@ func getDefaultChronologyArg() chronology.ArgChronology {
 		AppStatusHandler: statusHandlerMock.NewAppStatusHandlerMock(),
 		Watchdog:         &mock.WatchdogMock{},
 	}
+}
+
+func TestChronology_CloseWatchDogStop(t *testing.T) {
+	t.Parallel()
+
+	arg := getDefaultChronologyArg()
+	stopCalled := false
+	arg.Watchdog = &mock.WatchdogMock{
+		StopCalled: func(alarmID string) {
+			stopCalled = true
+		},
+	}
+
+	chr, err := chronology.NewChronology(arg)
+	require.Nil(t, err)
+	chr.SetCancelFunc(nil)
+
+	err = chr.Close()
+	assert.Nil(t, err)
+	assert.True(t, stopCalled)
+}
+
+func TestChronology_Close(t *testing.T) {
+	t.Parallel()
+
+	arg := getDefaultChronologyArg()
+	stopCalled := false
+	arg.Watchdog = &mock.WatchdogMock{
+		StopCalled: func(alarmID string) {
+			stopCalled = true
+		},
+	}
+
+	chr, err := chronology.NewChronology(arg)
+	require.Nil(t, err)
+
+	cancelCalled := false
+	chr.SetCancelFunc(func() {
+		cancelCalled = true
+	})
+
+	err = chr.Close()
+	assert.Nil(t, err)
+	assert.True(t, stopCalled)
+	assert.True(t, cancelCalled)
+}
+
+func TestChronology_StartRounds(t *testing.T) {
+	t.Parallel()
+
+	arg := getDefaultChronologyArg()
+
+	chr, err := chronology.NewChronology(arg)
+	require.Nil(t, err)
+	doneFuncCalled := false
+
+	ctx := &mock.ContextMock{
+		DoneFunc: func() <-chan struct{} {
+			done := make(chan struct{})
+			close(done)
+			doneFuncCalled = true
+			return done
+		},
+	}
+	chr.StartRoundsTest(ctx)
+	assert.True(t, doneFuncCalled)
 }
