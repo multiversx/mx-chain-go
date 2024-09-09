@@ -197,11 +197,6 @@ func (wrk *Worker) AppStatusHandler() core.AppStatusHandler {
 	return wrk.appStatusHandler
 }
 
-// GetEquivalentMessages -
-func (wrk *Worker) GetEquivalentMessages() map[string]*consensus.EquivalentMessageInfo {
-	return wrk.getEquivalentMessages()
-}
-
 // SetEquivalentProof -
 func (wrk *Worker) SetEquivalentProof(hash string, proof data.HeaderProof) {
 	wrk.mutEquivalentMessages.Lock()

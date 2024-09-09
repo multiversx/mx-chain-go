@@ -417,7 +417,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	}
 
 	if sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, sr.Header.GetEpoch()) {
-		sr.worker.SetValidEquivalentProof(sr.GetData(), proof)
+		sr.worker.SetValidEquivalentProof(sr.GetData(), proof, sr.Header.GetNonce())
 		sr.Blockchain().SetCurrentHeaderProof(proof)
 	}
 

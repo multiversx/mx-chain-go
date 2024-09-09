@@ -25,6 +25,7 @@ import (
 	"github.com/multiversx/mx-chain-go/ntp"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
@@ -37,24 +38,26 @@ const redundancySingleKeySteppedIn = "single-key node stepped in"
 
 // Worker defines the data needed by spos to communicate between nodes which are in the validators group
 type Worker struct {
-	consensusService        ConsensusService
-	blockChain              data.ChainHandler
-	blockProcessor          process.BlockProcessor
-	scheduledProcessor      consensus.ScheduledProcessor
-	bootstrapper            process.Bootstrapper
-	broadcastMessenger      consensus.BroadcastMessenger
-	consensusState          *ConsensusState
-	forkDetector            process.ForkDetector
-	marshalizer             marshal.Marshalizer
-	hasher                  hashing.Hasher
-	roundHandler            consensus.RoundHandler
-	shardCoordinator        sharding.Coordinator
-	peerSignatureHandler    crypto.PeerSignatureHandler
-	syncTimer               ntp.SyncTimer
-	headerSigVerifier       HeaderSigVerifier
-	headerIntegrityVerifier process.HeaderIntegrityVerifier
-	appStatusHandler        core.AppStatusHandler
-	enableEpochsHandler     common.EnableEpochsHandler
+	consensusService           ConsensusService
+	blockChain                 data.ChainHandler
+	blockProcessor             process.BlockProcessor
+	scheduledProcessor         consensus.ScheduledProcessor
+	bootstrapper               process.Bootstrapper
+	broadcastMessenger         consensus.BroadcastMessenger
+	consensusState             *ConsensusState
+	forkDetector               process.ForkDetector
+	marshalizer                marshal.Marshalizer
+	hasher                     hashing.Hasher
+	roundHandler               consensus.RoundHandler
+	shardCoordinator           sharding.Coordinator
+	peerSignatureHandler       crypto.PeerSignatureHandler
+	syncTimer                  ntp.SyncTimer
+	headerSigVerifier          HeaderSigVerifier
+	headerIntegrityVerifier    process.HeaderIntegrityVerifier
+	appStatusHandler           core.AppStatusHandler
+	enableEpochsHandler        common.EnableEpochsHandler
+	proofsTracker              track.ProofTracker
+	equivalentMessagesDebugger EquivalentMessagesDebugger
 
 	networkShardingCollector consensus.NetworkShardingCollector
 
@@ -81,10 +84,6 @@ type Worker struct {
 	nodeRedundancyHandler     consensus.NodeRedundancyHandler
 	peerBlacklistHandler      consensus.PeerBlacklistHandler
 	closer                    core.SafeCloser
-
-	mutEquivalentMessages      sync.RWMutex
-	equivalentMessages         map[string]*consensus.EquivalentMessageInfo
-	equivalentMessagesDebugger EquivalentMessagesDebugger
 }
 
 // WorkerArgs holds the consensus worker arguments
@@ -167,7 +166,6 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 		nodeRedundancyHandler:      args.NodeRedundancyHandler,
 		peerBlacklistHandler:       args.PeerBlacklistHandler,
 		closer:                     closing.NewSafeChanCloser(),
-		equivalentMessages:         make(map[string]*consensus.EquivalentMessageInfo),
 		equivalentMessagesDebugger: args.EquivalentMessagesDebugger,
 		enableEpochsHandler:        args.EnableEpochsHandler,
 	}
@@ -723,7 +721,7 @@ func (wrk *Worker) DisplayStatistics() {
 
 	wrk.mutDisplayHashConsensusMessage.Unlock()
 
-	wrk.equivalentMessagesDebugger.DisplayEquivalentMessagesStatistics(wrk.getEquivalentMessages)
+	wrk.equivalentMessagesDebugger.DisplayEquivalentMessagesStatistics()
 }
 
 // GetConsensusStateChangedChannel gets the channel for the consensusStateChanged
@@ -756,15 +754,6 @@ func (wrk *Worker) Close() error {
 // ResetConsensusMessages resets at the start of each round all the previous consensus messages received and equivalent messages, keeping the provided proofs
 func (wrk *Worker) ResetConsensusMessages(currentHash []byte, prevHash []byte) {
 	wrk.consensusMessageValidator.resetConsensusMessages()
-
-	wrk.mutEquivalentMessages.Lock()
-	for hash := range wrk.equivalentMessages {
-		if hash == string(currentHash) || hash == string(prevHash) {
-			continue
-		}
-		delete(wrk.equivalentMessages, hash)
-	}
-	wrk.mutEquivalentMessages.Unlock()
 }
 
 func (wrk *Worker) checkValidityAndProcessEquivalentMessages(cnsMsg *consensus.Message, p2pMessage p2p.MessageP2P) error {
@@ -782,17 +771,13 @@ func (wrk *Worker) checkValidityAndProcessEquivalentMessages(cnsMsg *consensus.M
 		return wrk.consensusMessageValidator.checkConsensusMessageValidity(cnsMsg, p2pMessage.Peer())
 	}
 
-	wrk.mutEquivalentMessages.Lock()
-	defer wrk.mutEquivalentMessages.Unlock()
-
-	err := wrk.processEquivalentMessageUnprotected(cnsMsg)
+	err := wrk.processEquivalentMessage(cnsMsg)
 	if err != nil {
 		return err
 	}
 
 	err = wrk.consensusMessageValidator.checkConsensusMessageValidity(cnsMsg, p2pMessage.Peer())
 	if err != nil {
-		wrk.processInvalidEquivalentMessageUnprotected(cnsMsg.BlockHeaderHash)
 		return err
 	}
 
@@ -825,22 +810,19 @@ func (wrk *Worker) shouldVerifyEquivalentMessages(msgType consensus.MessageType)
 	return wrk.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, wrk.consensusState.Header.GetEpoch())
 }
 
-func (wrk *Worker) processEquivalentMessageUnprotected(cnsMsg *consensus.Message) error {
+func (wrk *Worker) processEquivalentMessage(cnsMsg *consensus.Message) error {
 	// if the received final info is from self, simply return nil to allow further broadcast
 	// the proof was already validated
 	if wrk.checkFinalInfoFromSelf(cnsMsg) {
 		return nil
 	}
 
-	hdrHash := string(cnsMsg.BlockHeaderHash)
-	equivalentMsgInfo, ok := wrk.equivalentMessages[hdrHash]
-	if !ok {
-		equivalentMsgInfo = &consensus.EquivalentMessageInfo{}
-		wrk.equivalentMessages[hdrHash] = equivalentMsgInfo
-	}
-	equivalentMsgInfo.NumMessages++
+	hdrHash := cnsMsg.BlockHeaderHash
+	hasProof := wrk.HasEquivalentMessage(hdrHash)
 
-	if equivalentMsgInfo.Validated {
+	wrk.equivalentMessagesDebugger.UpsertEquivalentMessage(hdrHash)
+
+	if hasProof {
 		return ErrEquivalentMessageAlreadyReceived
 	}
 
@@ -855,66 +837,25 @@ func (wrk *Worker) verifyEquivalentMessageSignature(cnsMsg *consensus.Message) e
 	return wrk.headerSigVerifier.VerifySignatureForHash(wrk.consensusState.Header, cnsMsg.BlockHeaderHash, cnsMsg.PubKeysBitmap, cnsMsg.AggregateSignature)
 }
 
-func (wrk *Worker) processInvalidEquivalentMessageUnprotected(blockHeaderHash []byte) {
-	hdrHash := string(blockHeaderHash)
-	delete(wrk.equivalentMessages, hdrHash)
-}
-
-// getEquivalentMessages returns a copy of the equivalent messages
-func (wrk *Worker) getEquivalentMessages() map[string]*consensus.EquivalentMessageInfo {
-	wrk.mutEquivalentMessages.RLock()
-	defer wrk.mutEquivalentMessages.RUnlock()
-
-	equivalentMessagesCopy := make(map[string]*consensus.EquivalentMessageInfo, len(wrk.equivalentMessages))
-	for hash, cnt := range wrk.equivalentMessages {
-		equivalentMessagesCopy[hash] = cnt
-	}
-
-	return equivalentMessagesCopy
-}
-
 // HasEquivalentMessage returns true if an equivalent message was received before
 func (wrk *Worker) HasEquivalentMessage(headerHash []byte) bool {
-	wrk.mutEquivalentMessages.RLock()
-	defer wrk.mutEquivalentMessages.RUnlock()
+	_, err := wrk.GetEquivalentProof(headerHash)
+	if err != nil {
+		return false
+	}
 
-	info, has := wrk.equivalentMessages[string(headerHash)]
-
-	return has && info.Validated
+	return true
 }
 
 // GetEquivalentProof returns the equivalent proof for the provided hash
 func (wrk *Worker) GetEquivalentProof(headerHash []byte) (data.HeaderProof, error) {
-	wrk.mutEquivalentMessages.RLock()
-	defer wrk.mutEquivalentMessages.RUnlock()
-
-	info, has := wrk.equivalentMessages[string(headerHash)]
-	if !has {
-		return data.HeaderProof{}, ErrMissingEquivalentProof
-	}
-
-	if !info.Validated {
-		return data.HeaderProof{}, ErrEquivalentProofNotValidated
-	}
-
-	return info.Proof, nil
+	return wrk.proofsTracker.GetNotarizedProof(headerHash)
 }
 
 // SetValidEquivalentProof saves the equivalent proof for the provided header and marks it as validated
-func (wrk *Worker) SetValidEquivalentProof(headerHash []byte, proof data.HeaderProof) {
-	wrk.mutEquivalentMessages.Lock()
-	defer wrk.mutEquivalentMessages.Unlock()
-
-	hash := string(headerHash)
-	equivalentMessage, ok := wrk.equivalentMessages[hash]
-	if !ok {
-		equivalentMessage = &consensus.EquivalentMessageInfo{
-			NumMessages: 1,
-		}
-		wrk.equivalentMessages[hash] = equivalentMessage
-	}
-	equivalentMessage.Validated = true
-	equivalentMessage.Proof = proof
+func (wrk *Worker) SetValidEquivalentProof(headerHash []byte, proof data.HeaderProof, nonce uint64) {
+	// only valid equivalent proofs are being added to proofs tracker
+	wrk.proofsTracker.AddNotarizedProof(headerHash, proof, nonce)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

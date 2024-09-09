@@ -147,7 +147,7 @@ type WorkerHandler interface {
 	// GetEquivalentProof returns the equivalent proof for the provided hash
 	GetEquivalentProof(headerHash []byte) (data.HeaderProof, error)
 	// SetValidEquivalentProof saves the equivalent proof for the provided header and marks it as validated
-	SetValidEquivalentProof(headerHash []byte, proof data.HeaderProof)
+	SetValidEquivalentProof(headerHash []byte, proof data.HeaderProof, nonce uint64)
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
@@ -191,6 +191,13 @@ type SentSignaturesTracker interface {
 
 // EquivalentMessagesDebugger defines the specific debugger for equivalent messages
 type EquivalentMessagesDebugger interface {
-	DisplayEquivalentMessagesStatistics(getDataHandler func() map[string]*consensus.EquivalentMessageInfo)
+	SetValidEquivalentProof(
+		headerHash []byte,
+		proof data.HeaderProof,
+	)
+	UpsertEquivalentMessage(
+		headerHash []byte,
+	)
+	DisplayEquivalentMessagesStatistics()
 	IsInterfaceNil() bool
 }
