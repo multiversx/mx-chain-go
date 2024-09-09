@@ -4,7 +4,9 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/exp/slices"
 
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -21,6 +23,15 @@ func createEligibleList(size int) []string {
 	return eligibleList
 }
 
+func createEligibleListFromMap(mapKeys map[string]crypto.PrivateKey) []string {
+	eligibleList := make([]string, 0, len(mapKeys))
+	for key := range mapKeys {
+		eligibleList = append(eligibleList, key)
+	}
+	slices.Sort(eligibleList)
+	return eligibleList
+}
+
 func initConsensusStateWithNodesCoordinator(validatorsGroupSelector nodesCoordinator.NodesCoordinator) *spos.ConsensusState {
 	return initConsensusStateWithKeysHandlerAndNodesCoordinator(&testscommon.KeysHandlerStub{}, validatorsGroupSelector)
 }
@@ -29,15 +40,13 @@ func initConsensusState() *spos.ConsensusState {
 	return initConsensusStateWithKeysHandler(&testscommon.KeysHandlerStub{})
 }
 
+func initConsensusStateWithArgs(keysHandler consensus.KeysHandler, consensusGroupSize int, mapKeys map[string]crypto.PrivateKey) *spos.ConsensusState {
+	return initConsensusStateWithKeysHandlerWithGroupSizeWithRealKeys(keysHandler, consensusGroupSize, mapKeys)
+}
+
 func initConsensusStateWithKeysHandler(keysHandler consensus.KeysHandler) *spos.ConsensusState {
 	consensusGroupSize := 9
-	eligibleList := createEligibleList(consensusGroupSize)
-	eligibleNodesPubKeys := make(map[string]struct{})
-	for _, key := range eligibleList {
-		eligibleNodesPubKeys[key] = struct{}{}
-	}
-	indexProposer := 0
-	return createConsensusStateWithNodes(eligibleNodesPubKeys, eligibleList, eligibleList[indexProposer], keysHandler)
+	return initConsensusStateWithKeysHandlerWithGroupSize(keysHandler, consensusGroupSize)
 }
 
 func initConsensusStateWithKeysHandlerAndNodesCoordinator(keysHandler consensus.KeysHandler, validatorsGroupSelector nodesCoordinator.NodesCoordinator) *spos.ConsensusState {
@@ -47,6 +56,29 @@ func initConsensusStateWithKeysHandlerAndNodesCoordinator(keysHandler consensus.
 		eligibleNodesPubKeys[key] = struct{}{}
 	}
 	return createConsensusStateWithNodes(eligibleNodesPubKeys, consensusValidators, leader, keysHandler)
+}
+
+func initConsensusStateWithKeysHandlerWithGroupSize(keysHandler consensus.KeysHandler, consensusGroupSize int) *spos.ConsensusState {
+	eligibleList := createEligibleList(consensusGroupSize)
+
+	eligibleNodesPubKeys := make(map[string]struct{})
+	for _, key := range eligibleList {
+		eligibleNodesPubKeys[key] = struct{}{}
+	}
+
+	return createConsensusStateWithNodes(eligibleNodesPubKeys, consensusValidators, leader, keysHandler)
+}
+
+
+func initConsensusStateWithKeysHandlerWithGroupSizeWithRealKeys(keysHandler consensus.KeysHandler, consensusGroupSize int, mapKeys map[string]crypto.PrivateKey) *spos.ConsensusState {
+	eligibleList := createEligibleListFromMap(mapKeys)
+
+	eligibleNodesPubKeys := make(map[string]struct{}, len(eligibleList))
+	for _, key := range eligibleList {
+		eligibleNodesPubKeys[key] = struct{}{}
+	}
+
+	return createConsensusStateWithNodes(eligibleNodesPubKeys, eligibleList, eligibleList[0], keysHandler)
 }
 
 func createConsensusStateWithNodes(eligibleNodesPubKeys map[string]struct{}, consensusValidators []string, leader string, keysHandler consensus.KeysHandler) *spos.ConsensusState {

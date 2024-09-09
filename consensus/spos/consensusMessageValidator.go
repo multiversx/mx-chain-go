@@ -444,7 +444,7 @@ func (cmv *consensusMessageValidator) checkMessageWithFinalInfoValidity(cnsMsg *
 	}
 
 	// TODO[cleanup cns finality]: remove this
-	if cmv.enableEpochsHandler.IsFlagEnabled(common.EquivalentMessagesFlag) {
+	if cmv.shouldNotVerifyLeaderSignature() {
 		return nil
 	}
 
@@ -455,6 +455,16 @@ func (cmv *consensusMessageValidator) checkMessageWithFinalInfoValidity(cnsMsg *
 	}
 
 	return nil
+}
+
+func (cmv *consensusMessageValidator) shouldNotVerifyLeaderSignature() bool {
+	// TODO: this check needs to be removed when equivalent messages are sent separately from the final info
+	if check.IfNil(cmv.consensusState.Header) {
+		return true
+	}
+
+	return cmv.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, cmv.consensusState.Header.GetEpoch())
+
 }
 
 func (cmv *consensusMessageValidator) checkMessageWithInvalidSingersValidity(cnsMsg *consensus.Message) error {

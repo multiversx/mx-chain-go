@@ -13,7 +13,6 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
-	mockConsensus "github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
 	chainSimulatorProcess "github.com/multiversx/mx-chain-go/node/chainSimulator/process"
@@ -516,7 +515,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 
 		nodeHandler := getNodeHandler()
 		nodeHandler.GetBroadcastMessengerCalled = func() consensus.BroadcastMessenger {
-			return &mockConsensus.BroadcastMessengerMock{
+			return &testsConsensus.BroadcastMessengerMock{
 				BroadcastHeaderCalled: func(handler data.HeaderHandler, bytes []byte) error {
 					return expectedErr
 				},
@@ -625,7 +624,7 @@ func getNodeHandler() *chainSimulator.NodeHandlerMock {
 			}
 		},
 		GetBroadcastMessengerCalled: func() consensus.BroadcastMessenger {
-			return &mockConsensus.BroadcastMessengerMock{}
+			return &testsConsensus.BroadcastMessengerMock{}
 		},
 	}
 }
