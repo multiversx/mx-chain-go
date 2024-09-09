@@ -16,7 +16,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
+	data "github.com/multiversx/mx-chain-core-go/data/stateChange"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/multiversx/mx-chain-vm-common-go/dataTrieMigrator"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/common/holders"
@@ -42,10 +48,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/multiversx/mx-chain-vm-common-go/dataTrieMigrator"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 const trieDbOperationDelay = time.Second
@@ -372,8 +374,8 @@ func TestAccountsDB_SaveAccountSavesCodeAndDataTrieForUserAccount(t *testing.T) 
 	})
 
 	dtt := &trieMock.DataTrieTrackerStub{
-		SaveDirtyDataCalled: func(_ common.Trie) ([]stateChanges.DataTrieChange, []core.TrieData, error) {
-			var stateChanges []stateChanges.DataTrieChange
+		SaveDirtyDataCalled: func(_ common.Trie) ([]*data.DataTrieChange, []core.TrieData, error) {
+			var stateChanges []*data.DataTrieChange
 			oldVal := []core.TrieData{
 				{
 					Key:     []byte("key"),

@@ -148,6 +148,12 @@ func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
 	if check.IfNil(args.TxLogsProcessor) {
 		return nil, process.ErrNilTxLogsProcessor
 	}
+	if check.IfNil(args.RelayedTxV3Processor) {
+		return nil, process.ErrNilRelayedTxV3Processor
+	}
+	if check.IfNil(args.FailedTxLogsAccumulator) {
+		return nil, process.ErrNilFailedTxLogsAccumulator
+	}
 
 	baseTxProcess := &baseTxProcessor{
 		accounts:            args.Accounts,
