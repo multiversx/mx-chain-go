@@ -36,7 +36,7 @@ func initSubroundEndRoundWithContainer(
 	appStatusHandler core.AppStatusHandler,
 ) bls.SubroundEndRound {
 	ch := make(chan bool, 1)
-	consensusState := initConsensusState()
+	consensusState := initConsensusStateWithNodesCoordinator(container.NodesCoordinator())
 	sr, _ := spos.NewSubround(
 		bls.SrSignature,
 		bls.SrEndRound,

@@ -416,13 +416,18 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGetLeaderErr(t 
 	t.Parallel()
 
 	validatorGroupSelector := &shardingMocks.NodesCoordinatorMock{}
+	leader := &shardingMocks.ValidatorMock{PubKeyCalled: func() []byte {
+		return []byte("leader")
+	}}
+
 	validatorGroupSelector.ComputeValidatorsGroupCalled = func(
 		bytes []byte,
 		round uint64,
 		shardId uint32,
 		epoch uint32,
 	) (nodesCoordinator.Validator, []nodesCoordinator.Validator, error) {
-		return nil, make([]nodesCoordinator.Validator, 0), nil
+		// will cause an error in GetLeader because of empty consensus group
+		return leader, []nodesCoordinator.Validator{}, nil
 	}
 
 	container := mock.InitConsensusCore()

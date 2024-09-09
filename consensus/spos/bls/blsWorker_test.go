@@ -4,11 +4,13 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/stretchr/testify/assert"
 )
 
 func createEligibleList(size int) []string {
@@ -19,6 +21,10 @@ func createEligibleList(size int) []string {
 	return eligibleList
 }
 
+func initConsensusStateWithNodesCoordinator(validatorsGroupSelector nodesCoordinator.NodesCoordinator) *spos.ConsensusState {
+	return initConsensusStateWithKeysHandlerAndNodesCoordinator(&testscommon.KeysHandlerStub{}, validatorsGroupSelector)
+}
+
 func initConsensusState() *spos.ConsensusState {
 	return initConsensusStateWithKeysHandler(&testscommon.KeysHandlerStub{})
 }
@@ -26,21 +32,34 @@ func initConsensusState() *spos.ConsensusState {
 func initConsensusStateWithKeysHandler(keysHandler consensus.KeysHandler) *spos.ConsensusState {
 	consensusGroupSize := 9
 	eligibleList := createEligibleList(consensusGroupSize)
-
 	eligibleNodesPubKeys := make(map[string]struct{})
 	for _, key := range eligibleList {
 		eligibleNodesPubKeys[key] = struct{}{}
 	}
+	indexProposer := 0
+	return createConsensusStateWithNodes(eligibleNodesPubKeys, eligibleList, eligibleList[indexProposer], keysHandler)
+}
 
-	indexLeader := 1
+func initConsensusStateWithKeysHandlerAndNodesCoordinator(keysHandler consensus.KeysHandler, validatorsGroupSelector nodesCoordinator.NodesCoordinator) *spos.ConsensusState {
+	leader, consensusValidators, _ := validatorsGroupSelector.GetConsensusValidatorsPublicKeys([]byte("randomness"), 0, 0, 0)
+	eligibleNodesPubKeys := make(map[string]struct{})
+	for _, key := range consensusValidators {
+		eligibleNodesPubKeys[key] = struct{}{}
+	}
+	return createConsensusStateWithNodes(eligibleNodesPubKeys, consensusValidators, leader, keysHandler)
+}
+
+func createConsensusStateWithNodes(eligibleNodesPubKeys map[string]struct{}, consensusValidators []string, leader string, keysHandler consensus.KeysHandler) *spos.ConsensusState {
+	consensusGroupSize := len(consensusValidators)
 	rcns, _ := spos.NewRoundConsensus(
 		eligibleNodesPubKeys,
 		consensusGroupSize,
-		eligibleList[indexLeader],
+		consensusValidators[1],
 		keysHandler,
 	)
 
-	rcns.SetConsensusGroup(eligibleList)
+	rcns.SetConsensusGroup(consensusValidators)
+	rcns.SetLeader(leader)
 	rcns.ResetRoundState()
 
 	pBFTThreshold := consensusGroupSize*2/3 + 1

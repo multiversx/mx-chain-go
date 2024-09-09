@@ -104,7 +104,7 @@ func initSubroundBlock(
 		}
 	}
 
-	consensusState := initConsensusState()
+	consensusState := initConsensusStateWithNodesCoordinator(container.NodesCoordinator())
 	ch := make(chan bool, 1)
 
 	container.SetBlockchain(blockChain)
