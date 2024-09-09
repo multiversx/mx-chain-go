@@ -279,7 +279,7 @@ func (o *outport) saveValidatorsRatingBlocking(validatorsRating *outportcore.Val
 	}
 }
 
-// SaveAccounts will save accounts for every driver
+// SaveAccounts will save accounts  for every driver
 func (o *outport) SaveAccounts(accounts *outportcore.Accounts) {
 	o.mutex.RLock()
 	defer o.mutex.RUnlock()
