@@ -4,7 +4,6 @@ go 1.20
 
 require (
 	github.com/beevik/ntp v1.3.0
-	github.com/btcsuite/btcutil v0.0.0-20190425235716-9e5f4b9a998d
 	github.com/davecgh/go-spew v1.1.1
 	github.com/gin-contrib/cors v1.4.0
 	github.com/gin-contrib/pprof v1.4.0
@@ -34,6 +33,7 @@ require (
 	github.com/stretchr/testify v1.8.4
 	github.com/urfave/cli v1.22.10
 	golang.org/x/crypto v0.10.0
+	golang.org/x/exp v0.0.0-20230321023759-10a507213a29
 	gopkg.in/go-playground/validator.v8 v8.18.2
 )
 
@@ -174,7 +174,6 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/arch v0.3.0 // indirect
-	golang.org/x/exp v0.0.0-20230321023759-10a507213a29 // indirect
 	golang.org/x/mod v0.10.0 // indirect
 	golang.org/x/net v0.11.0 // indirect
 	golang.org/x/sync v0.2.0 // indirect

@@ -322,7 +322,7 @@ func TestEnableEpochsHandler_IsFlagEnabled(t *testing.T) {
 	require.True(t, handler.IsFlagEnabled(common.AlwaysMergeContextsInEEIFlag))
 	require.True(t, handler.IsFlagEnabled(common.DynamicESDTFlag))
 	require.True(t, handler.IsFlagEnabled(common.EquivalentMessagesFlag))
-	require.True(t, handler.IsFlagEnabled(common.FixedOrderInConsensusEnableEpochFlag))
+	require.True(t, handler.IsFlagEnabled(common.FixedOrderInConsensusFlag))
 }
 
 func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
@@ -443,7 +443,7 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.EGLDInMultiTransferEnableEpoch, handler.GetActivationEpoch(common.EGLDInESDTMultiTransferFlag))
 	require.Equal(t, cfg.CryptoOpcodesV2EnableEpoch, handler.GetActivationEpoch(common.CryptoOpcodesV2Flag))
 	require.Equal(t, cfg.EquivalentMessagesEnableEpoch, handler.GetActivationEpoch(common.EquivalentMessagesFlag))
-	require.Equal(t, cfg.FixedOrderInConsensusEnableEpoch, handler.GetActivationEpoch(common.FixedOrderInConsensusEnableEpochFlag))
+	require.Equal(t, cfg.FixedOrderInConsensusEnableEpoch, handler.GetActivationEpoch(common.FixedOrderInConsensusFlag))
 }
 
 func TestEnableEpochsHandler_IsInterfaceNil(t *testing.T) {

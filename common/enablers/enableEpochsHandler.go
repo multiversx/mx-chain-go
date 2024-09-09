@@ -756,7 +756,7 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.EquivalentMessagesEnableEpoch,
 		},
-		common.FixedOrderInConsensusEnableEpochFlag: {
+		common.FixedOrderInConsensusFlag: {
 			isActiveInEpoch: func(epoch uint32) bool {
 				return epoch >= handler.enableEpochsConfig.FixedOrderInConsensusEnableEpoch
 			},

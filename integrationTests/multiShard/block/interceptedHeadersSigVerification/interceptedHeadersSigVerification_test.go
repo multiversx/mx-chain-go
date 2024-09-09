@@ -11,7 +11,6 @@ import (
 	"github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-crypto-go/signing"
 	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
-	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/multiversx/mx-chain-go/integrationTests"
@@ -162,7 +161,6 @@ func TestInterceptedShardBlockHeaderWithLeaderSignatureAndRandSeedChecks(t *test
 		t.Skip("this is not a short test")
 	}
 
-	_ = logger.SetLogLevel("*:DEBUG")
 	nodesPerShard := 4
 	nbMetaNodes := 4
 	nbShards := 1
