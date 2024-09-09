@@ -89,6 +89,26 @@ type delayedBlockBroadcaster struct {
 
 // NewDelayedBlockBroadcaster create a new instance of a delayed block data broadcaster
 func NewDelayedBlockBroadcaster(args *ArgsDelayedBlockBroadcaster) (*delayedBlockBroadcaster, error) {
+	dbb, err := baseCreateDelayedBroadcaster(args)
+	if err != nil {
+		return nil, err
+	}
+
+	dbb.headersSubscriber.RegisterHandler(dbb.headerReceived)
+	err = dbb.registerHeaderInterceptorCallback(dbb.interceptedHeader)
+	if err != nil {
+		return nil, err
+	}
+
+	err = dbb.registerMiniBlockInterceptorCallback(dbb.interceptedMiniBlockData)
+	if err != nil {
+		return nil, err
+	}
+
+	return dbb, nil
+}
+
+func baseCreateDelayedBroadcaster(args *ArgsDelayedBlockBroadcaster) (*delayedBlockBroadcaster, error) {
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, spos.ErrNilShardCoordinator
 	}
@@ -107,7 +127,7 @@ func NewDelayedBlockBroadcaster(args *ArgsDelayedBlockBroadcaster) (*delayedBloc
 		return nil, err
 	}
 
-	dbb := &delayedBlockBroadcaster{
+	return &delayedBlockBroadcaster{
 		alarm:                      args.AlarmScheduler,
 		shardCoordinator:           args.ShardCoordinator,
 		interceptorsContainer:      args.InterceptorsContainer,
@@ -120,20 +140,7 @@ func NewDelayedBlockBroadcaster(args *ArgsDelayedBlockBroadcaster) (*delayedBloc
 		mutDataForBroadcast:        sync.RWMutex{},
 		cacheHeaders:               cacheHeaders,
 		mutHeadersCache:            sync.RWMutex{},
-	}
-
-	dbb.headersSubscriber.RegisterHandler(dbb.headerReceived)
-	err = dbb.registerHeaderInterceptorCallback(dbb.interceptedHeader)
-	if err != nil {
-		return nil, err
-	}
-
-	err = dbb.registerMiniBlockInterceptorCallback(dbb.interceptedMiniBlockData)
-	if err != nil {
-		return nil, err
-	}
-
-	return dbb, nil
+	}, nil
 }
 
 // SetLeaderData sets the data for consensus leader delayed broadcast
@@ -214,7 +221,7 @@ func (dbb *delayedBlockBroadcaster) SetValidatorData(broadcastData *delayedBroad
 	return dbb.setValidatorData(broadcastData, dbb.extractMiniBlockHashesCrossFromMe)
 }
 
-func (dbb *delayedBlockBroadcaster) setValidatorData(broadcastData *delayedBroadcastData, extractMbsFunc extractMiniBlockHashesCrossFromMeFunc) error {
+func (dbb *delayedBlockBroadcaster) setValidatorData(broadcastData *delayedBroadcastData, extractMiniBlockHashesCrossFromMe extractMiniBlockHashesCrossFromMeFunc) error {
 	if broadcastData == nil {
 		return spos.ErrNilParameter
 	}
@@ -227,7 +234,7 @@ func (dbb *delayedBlockBroadcaster) setValidatorData(broadcastData *delayedBroad
 	)
 
 	dbb.mutDataForBroadcast.Lock()
-	broadcastData.miniBlockHashes = extractMbsFunc(broadcastData.header)
+	broadcastData.miniBlockHashes = extractMiniBlockHashesCrossFromMe(broadcastData.header)
 	dbb.valBroadcastData = append(dbb.valBroadcastData, broadcastData)
 
 	if len(dbb.valBroadcastData) > int(dbb.maxValidatorDelayCacheSize) {

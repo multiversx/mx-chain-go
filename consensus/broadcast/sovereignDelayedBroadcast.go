@@ -1,14 +1,9 @@
 package broadcast
 
 import (
-	"sync"
-
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/process/factory"
-	"github.com/multiversx/mx-chain-go/storage/cache"
 )
 
 type sovereignDelayedBroadcastData struct {
@@ -16,51 +11,25 @@ type sovereignDelayedBroadcastData struct {
 }
 
 func NewSovereignDelayedBlockBroadcaster(args *ArgsDelayedBlockBroadcaster) (*sovereignDelayedBroadcastData, error) {
-	if check.IfNil(args.ShardCoordinator) {
-		return nil, spos.ErrNilShardCoordinator
-	}
-	if check.IfNil(args.InterceptorsContainer) {
-		return nil, spos.ErrNilInterceptorsContainer
-	}
-	if check.IfNil(args.HeadersSubscriber) {
-		return nil, spos.ErrNilHeadersSubscriber
-	}
-	if check.IfNil(args.AlarmScheduler) {
-		return nil, spos.ErrNilAlarmScheduler
-	}
-
-	cacheHeaders, err := cache.NewLRUCache(sizeHeadersCache)
+	dbb, err := baseCreateDelayedBroadcaster(args)
 	if err != nil {
 		return nil, err
 	}
 
-	dbb := &sovereignDelayedBroadcastData{
-		&delayedBlockBroadcaster{
-			alarm:                      args.AlarmScheduler,
-			shardCoordinator:           args.ShardCoordinator,
-			interceptorsContainer:      args.InterceptorsContainer,
-			headersSubscriber:          args.HeadersSubscriber,
-			valHeaderBroadcastData:     make([]*validatorHeaderBroadcastData, 0),
-			valBroadcastData:           make([]*delayedBroadcastData, 0),
-			delayedBroadcastData:       make([]*delayedBroadcastData, 0),
-			maxDelayCacheSize:          args.LeaderCacheSize,
-			maxValidatorDelayCacheSize: args.ValidatorCacheSize,
-			mutDataForBroadcast:        sync.RWMutex{},
-			cacheHeaders:               cacheHeaders,
-			mutHeadersCache:            sync.RWMutex{},
-		},
+	sdbb := &sovereignDelayedBroadcastData{
+		dbb,
 	}
-	err = dbb.registerHeaderInterceptorCallback(dbb.interceptedHeader)
+	err = sdbb.registerHeaderInterceptorCallback(sdbb.interceptedHeader)
 	if err != nil {
 		return nil, err
 	}
 
-	err = dbb.registerMiniBlockInterceptorCallback(dbb.interceptedMiniBlockData)
+	err = sdbb.registerMiniBlockInterceptorCallback(sdbb.interceptedMiniBlockData)
 	if err != nil {
 		return nil, err
 	}
 
-	return dbb, nil
+	return sdbb, nil
 }
 
 func (dbb *sovereignDelayedBroadcastData) registerHeaderInterceptorCallback(
@@ -94,13 +63,6 @@ func (dbb *sovereignDelayedBroadcastData) SetValidatorData(broadcastData *delaye
 	return dbb.setValidatorData(broadcastData, dbb.extractMiniBlockHashesCrossFromMe)
 }
 
-func (dbb *sovereignDelayedBroadcastData) extractMiniBlockHashesCrossFromMe(header data.HeaderHandler) map[string]map[string]struct{} {
-	mbHashesForShards := make(map[string]map[string]struct{})
-	topic := factory.MiniBlocksTopic + dbb.shardCoordinator.CommunicationIdentifier(core.SovereignChainShardId)
-	mbs := dbb.extractMbsFromMeTo(header, core.SovereignChainShardId)
-	if len(mbs) > 0 {
-		mbHashesForShards[topic] = mbs
-	}
-
-	return mbHashesForShards
+func (dbb *sovereignDelayedBroadcastData) extractMiniBlockHashesCrossFromMe(_ data.HeaderHandler) map[string]map[string]struct{} {
+	return make(map[string]map[string]struct{})
 }
