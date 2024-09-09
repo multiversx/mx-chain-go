@@ -10,7 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
 	"github.com/stretchr/testify/require"
 
-	crypto2 "github.com/multiversx/mx-chain-crypto-go"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
 	multisig2 "github.com/multiversx/mx-chain-crypto-go/signing/mcl/multisig"
 	"github.com/multiversx/mx-chain-crypto-go/signing/multisig"
 
@@ -18,7 +18,7 @@ import (
 	dataRetrieverMocks "github.com/multiversx/mx-chain-go/dataRetriever/mock"
 
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/factory/crypto"
+	factoryCrypto "github.com/multiversx/mx-chain-go/factory/crypto"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
@@ -27,7 +27,7 @@ import (
 )
 
 // Function to make a predictable iteration on keys from a map of keys
-func createListFromMapKeys(mapKeys map[string]crypto2.PrivateKey) []string {
+func createListFromMapKeys(mapKeys map[string]crypto.PrivateKey) []string {
 	keys := make([]string, 0, len(mapKeys))
 
 	for key := range mapKeys {
@@ -39,11 +39,29 @@ func createListFromMapKeys(mapKeys map[string]crypto2.PrivateKey) []string {
 	return keys
 }
 
+func generateKeyPairs(kg crypto.KeyGenerator) map[string]crypto.PrivateKey {
+	mapKeys := make(map[string]crypto.PrivateKey)
+
+	for i := uint16(0); i < 400; i++ {
+		sk, pk := kg.GeneratePair()
+
+		pubKey, _ := pk.ToByteArray()
+		mapKeys[string(pubKey)] = sk
+	}
+	return mapKeys
+}
+
 // Benchmark on measuring performance
 func BenchmarkSubroundEndRound_VerifyNodesOnAggSigFailTime(b *testing.B) {
+
 	b.ResetTimer()
 	b.StopTimer()
 	ctx, cancel := context.WithCancel(context.TODO())
+
+	defer func() {
+		cancel()
+	}()
+
 	container := consensus.InitConsensusCore()
 	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
@@ -54,27 +72,21 @@ func BenchmarkSubroundEndRound_VerifyNodesOnAggSigFailTime(b *testing.B) {
 	llSigner := &multisig2.BlsMultiSignerKOSK{}
 	suite := mcl.NewSuiteBLS12()
 	kg := signing.NewKeyGenerator(suite)
-	mapKeys := make(map[string]crypto2.PrivateKey)
-
-	for i := uint16(0); i < 400; i++ {
-		sk, pk := kg.GeneratePair()
-
-		pubKey, _ := pk.ToByteArray()
-		mapKeys[string(pubKey)] = sk
-	}
 
 	multiSigHandler, _ := multisig.NewBLSMultisig(llSigner, kg)
 
+	mapKeys := generateKeyPairs(kg)
+
 	keysHandlerMock := &testscommon.KeysHandlerStub{
-		GetHandledPrivateKeyCalled: func(pkBytes []byte) crypto2.PrivateKey {
+		GetHandledPrivateKeyCalled: func(pkBytes []byte) crypto.PrivateKey {
 			return mapKeys[string(pkBytes)]
 		},
 	}
 	keys := createListFromMapKeys(mapKeys)
-	args := crypto.ArgsSigningHandler{
+	args := factoryCrypto.ArgsSigningHandler{
 		PubKeys: keys,
 		MultiSignerContainer: &cryptoMocks.MultiSignerContainerStub{
-			GetMultiSignerCalled: func(epoch uint32) (crypto2.MultiSigner, error) {
+			GetMultiSignerCalled: func(epoch uint32) (crypto.MultiSigner, error) {
 				return multiSigHandler, nil
 			},
 		},
@@ -83,7 +95,7 @@ func BenchmarkSubroundEndRound_VerifyNodesOnAggSigFailTime(b *testing.B) {
 		KeysHandler:  keysHandlerMock,
 	}
 
-	signingHandler, err := crypto.NewSigningHandler(args)
+	signingHandler, err := factoryCrypto.NewSigningHandler(args)
 	require.Nil(b, err)
 
 	container.SetSigningHandler(signingHandler)
@@ -104,5 +116,4 @@ func BenchmarkSubroundEndRound_VerifyNodesOnAggSigFailTime(b *testing.B) {
 		require.Nil(b, err)
 		require.NotNil(b, invalidSigners)
 	}
-	cancel()
 }

@@ -270,7 +270,6 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		return nil, err
 	}
 
-
 	fct, err := sposFactory.GetSubroundsFactory(
 		consensusDataContainer,
 		consensusState,

@@ -377,8 +377,3 @@ func (sr *subroundSignature) SendSignatureForManagedKey(idx int, pk string) bool
 func (sr *subroundSignature) DoSignatureJobForManagedKeys(ctx context.Context) bool {
 	return sr.doSignatureJobForManagedKeys(ctx)
 }
-
-// SignatureVerification calls the unexported signatureVerification function
-func (sr *subroundEndRound) SignatureVerification(i int, pk string, sigShare []byte) error {
-	return sr.signatureVerification(i, pk, sigShare)
-}
