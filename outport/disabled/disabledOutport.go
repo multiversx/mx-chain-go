@@ -41,7 +41,6 @@ func (n *disabledOutport) SaveAccounts(_ *outportcore.Accounts) {
 
 // SaveStateChanges does nothing
 func (n *disabledOutport) SaveStateChanges() {
-	return
 }
 
 // FinalizedBlock does nothing
