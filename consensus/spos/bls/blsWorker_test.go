@@ -40,8 +40,8 @@ func initConsensusState() *spos.ConsensusState {
 	return initConsensusStateWithKeysHandler(&testscommon.KeysHandlerStub{})
 }
 
-func initConsensusStateWithArgs(keysHandler consensus.KeysHandler, consensusGroupSize int, mapKeys map[string]crypto.PrivateKey) *spos.ConsensusState {
-	return initConsensusStateWithKeysHandlerWithGroupSizeWithRealKeys(keysHandler, consensusGroupSize, mapKeys)
+func initConsensusStateWithArgs(keysHandler consensus.KeysHandler, mapKeys map[string]crypto.PrivateKey) *spos.ConsensusState {
+	return initConsensusStateWithKeysHandlerWithGroupSizeWithRealKeys(keysHandler, mapKeys)
 }
 
 func initConsensusStateWithKeysHandler(keysHandler consensus.KeysHandler) *spos.ConsensusState {
@@ -66,11 +66,10 @@ func initConsensusStateWithKeysHandlerWithGroupSize(keysHandler consensus.KeysHa
 		eligibleNodesPubKeys[key] = struct{}{}
 	}
 
-	return createConsensusStateWithNodes(eligibleNodesPubKeys, consensusValidators, leader, keysHandler)
+	return createConsensusStateWithNodes(eligibleNodesPubKeys, eligibleList, eligibleList[0], keysHandler)
 }
 
-
-func initConsensusStateWithKeysHandlerWithGroupSizeWithRealKeys(keysHandler consensus.KeysHandler, consensusGroupSize int, mapKeys map[string]crypto.PrivateKey) *spos.ConsensusState {
+func initConsensusStateWithKeysHandlerWithGroupSizeWithRealKeys(keysHandler consensus.KeysHandler, mapKeys map[string]crypto.PrivateKey) *spos.ConsensusState {
 	eligibleList := createEligibleListFromMap(mapKeys)
 
 	eligibleNodesPubKeys := make(map[string]struct{}, len(eligibleList))
