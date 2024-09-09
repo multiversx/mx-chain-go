@@ -257,3 +257,54 @@ func TestSovereignResolverRequestHandler_RequestTrieNodes(t *testing.T) {
 
 	require.True(t, wasDataRequested)
 }
+
+func TestSovereignResolverRequestHandler_RequestFromDifferentContainersShouldCallShardBlocksTopic(t *testing.T) {
+	t.Parallel()
+
+	expectedTopic := factory.ShardBlocksTopic
+
+	intraShardRequesterCt := 0
+	crossShardRequesterCt := 0
+
+	requesterFinder := &dataRetrieverMocks.RequestersFinderStub{
+		IntraShardRequesterCalled: func(baseTopic string) (dataRetriever.Requester, error) {
+			require.Equal(t, expectedTopic, baseTopic)
+			intraShardRequesterCt++
+			return &dataRetrieverMocks.HeaderRequesterStub{}, nil
+		},
+		CrossShardRequesterCalled: func(baseTopic string, crossShard uint32) (dataRetriever.Requester, error) {
+			crossShardRequesterCt++
+			return &dataRetrieverMocks.HeaderRequesterStub{}, nil
+		},
+	}
+
+	resolver, _ := NewResolverRequestHandler(
+		requesterFinder,
+		&mock.RequestedItemsHandlerStub{},
+		&mock.WhiteListHandlerStub{},
+		1,
+		core.SovereignChainShardId,
+		time.Second,
+	)
+	sovResolver, _ := NewSovereignResolverRequestHandler(resolver)
+
+	sovResolver.RequestStartOfEpochMetaBlock(0)
+	require.Equal(t, 1, intraShardRequesterCt)
+	require.Zero(t, crossShardRequesterCt)
+
+	sovResolver.RequestMetaHeader([]byte("hash"))
+	require.Equal(t, 2, intraShardRequesterCt)
+	require.Zero(t, crossShardRequesterCt)
+
+	sovResolver.RequestMetaHeaderByNonce(0)
+	require.Equal(t, 3, intraShardRequesterCt)
+	require.Zero(t, crossShardRequesterCt)
+
+	sovResolver.RequestShardHeader(core.SovereignChainShardId, []byte("hash"))
+	require.Equal(t, 4, intraShardRequesterCt)
+	require.Zero(t, crossShardRequesterCt)
+
+	sovResolver.RequestShardHeaderByNonce(core.SovereignChainShardId, 0)
+	require.Equal(t, 5, intraShardRequesterCt)
+	require.Zero(t, crossShardRequesterCt)
+}
