@@ -11,6 +11,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func getDefaultStateChange() *StateChangeDTO {
+	return &StateChangeDTO{
+		Type: "write",
+	}
+}
+
 func TestNewStateChangesCollector(t *testing.T) {
 	t.Parallel()
 
@@ -26,7 +32,7 @@ func TestStateChangesCollector_AddStateChange(t *testing.T) {
 
 	numStateChanges := 10
 	for i := 0; i < numStateChanges; i++ {
-		scc.AddStateChange(&StateChangeDTO{})
+		scc.AddStateChange(getDefaultStateChange())
 	}
 	assert.Equal(t, numStateChanges, len(scc.stateChanges))
 }
@@ -44,6 +50,7 @@ func TestStateChangesCollector_GetStateChanges(t *testing.T) {
 		numStateChanges := 10
 		for i := 0; i < numStateChanges; i++ {
 			scc.AddStateChange(&StateChangeDTO{
+				Type:        "write",
 				MainTrieKey: []byte(strconv.Itoa(i)),
 			})
 		}
@@ -76,6 +83,7 @@ func TestStateChangesCollector_GetStateChanges(t *testing.T) {
 		numStateChanges := 10
 		for i := 0; i < numStateChanges; i++ {
 			scc.AddStateChange(&StateChangeDTO{
+				Type:        "write",
 				MainTrieKey: []byte(strconv.Itoa(i)),
 			})
 		}
@@ -97,6 +105,7 @@ func TestStateChangesCollector_AddTxHashToCollectedStateChanges(t *testing.T) {
 	scc.AddTxHashToCollectedStateChanges([]byte("txHash0"), &transaction.Transaction{})
 
 	stateChange := &StateChangeDTO{
+		Type:            "write",
 		MainTrieKey:     []byte("mainTrieKey"),
 		MainTrieVal:     []byte("mainTrieVal"),
 		DataTrieChanges: []DataTrieChange{{Key: []byte("dataTrieKey"), Val: []byte("dataTrieVal")}},
@@ -142,20 +151,22 @@ func TestStateChangesCollector_RevertToIndex(t *testing.T) {
 
 	numStateChanges := 10
 	for i := 0; i < numStateChanges; i++ {
-		scc.AddStateChange(&StateChangeDTO{})
-		scc.SetIndexToLastStateChange(i)
+		scc.AddStateChange(getDefaultStateChange())
+		err := scc.SetIndexToLastStateChange(i)
+		require.Nil(t, err)
 	}
 	scc.AddTxHashToCollectedStateChanges([]byte("txHash1"), &transaction.Transaction{})
 
 	for i := numStateChanges; i < numStateChanges*2; i++ {
-		scc.AddStateChange(&StateChangeDTO{})
+		scc.AddStateChange(getDefaultStateChange())
 		scc.AddTxHashToCollectedStateChanges([]byte("txHash"+fmt.Sprintf("%d", i)), &transaction.Transaction{})
 	}
-	scc.SetIndexToLastStateChange(numStateChanges)
+	err := scc.SetIndexToLastStateChange(numStateChanges)
+	require.Nil(t, err)
 
 	assert.Equal(t, numStateChanges*2, len(scc.stateChanges))
 
-	err := scc.RevertToIndex(numStateChanges)
+	err = scc.RevertToIndex(numStateChanges)
 	require.Nil(t, err)
 	assert.Equal(t, numStateChanges*2-1, len(scc.stateChanges))
 
@@ -199,14 +210,14 @@ func TestStateChangesCollector_SetIndexToLastStateChange(t *testing.T) {
 
 		numStateChanges := 10
 		for i := 0; i < numStateChanges; i++ {
-			scc.AddStateChange(&StateChangeDTO{})
+			scc.AddStateChange(getDefaultStateChange())
 			err := scc.SetIndexToLastStateChange(i)
 			require.Nil(t, err)
 		}
 		scc.AddTxHashToCollectedStateChanges([]byte("txHash1"), &transaction.Transaction{})
 
 		for i := numStateChanges; i < numStateChanges*2; i++ {
-			scc.AddStateChange(&StateChangeDTO{})
+			scc.AddStateChange(getDefaultStateChange())
 			scc.AddTxHashToCollectedStateChanges([]byte("txHash"+fmt.Sprintf("%d", i)), &transaction.Transaction{})
 		}
 		err := scc.SetIndexToLastStateChange(numStateChanges)
@@ -224,11 +235,11 @@ func TestStateChangesCollector_Reset(t *testing.T) {
 
 	numStateChanges := 10
 	for i := 0; i < numStateChanges; i++ {
-		scc.AddStateChange(&StateChangeDTO{})
+		scc.AddStateChange(getDefaultStateChange())
 	}
 	scc.AddTxHashToCollectedStateChanges([]byte("txHash"), &transaction.Transaction{})
 	for i := numStateChanges; i < numStateChanges*2; i++ {
-		scc.AddStateChange(&StateChangeDTO{})
+		scc.AddStateChange(getDefaultStateChange())
 	}
 	assert.Equal(t, numStateChanges*2, len(scc.stateChanges))
 

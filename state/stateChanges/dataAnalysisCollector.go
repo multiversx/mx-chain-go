@@ -13,11 +13,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 )
 
-const (
-	workingDir              = "."
-	defaultStateChangesPath = "stateChanges"
-)
-
 // TODO: use proto stucts
 type DataAnalysisStateChangeDTO struct {
 	StateChange
@@ -33,9 +28,8 @@ type DataAnalysisStateChangeDTO struct {
 }
 
 type DataAnalysisStateChangesForTx struct {
-	TxHash       []byte                   `json:"txHash"`
-	Tx           *transaction.Transaction `json:"tx"`
-	StateChanges []StateChange            `json:"stateChanges"`
+	StateChangesForTx
+	Tx *transaction.Transaction `json:"tx"`
 }
 
 type userAccountHandler interface {
@@ -128,50 +122,38 @@ func checkAccountChanges(oldAcc, newAcc vmcommon.AccountHandler, stateChange *Da
 // AddStateChange adds a new state change to the collector
 func (scc *dataAnalysisCollector) AddStateChange(stateChange StateChange) {
 	scc.stateChangesMut.Lock()
+	defer scc.stateChangesMut.Unlock()
+
 	scc.stateChanges = append(scc.stateChanges, stateChange)
-	scc.stateChangesMut.Unlock()
 }
 
-func (scc *dataAnalysisCollector) getStateChangesForTxs() ([]DataAnalysisStateChangesForTx, error) {
+func (scc *dataAnalysisCollector) getDataAnalysisStateChangesForTxs() ([]DataAnalysisStateChangesForTx, error) {
 	scc.stateChangesMut.Lock()
 	defer scc.stateChangesMut.Unlock()
 
-	stateChangesForTxs := make([]DataAnalysisStateChangesForTx, 0)
+	stateChangesForTxs, err := scc.getStateChangesForTxs()
+	if err != nil {
+		return nil, err
+	}
 
-	for i := 0; i < len(scc.stateChanges); i++ {
-		txHash := scc.stateChanges[i].GetTxHash()
+	dataAnalysisStateChangesForTxs := make([]DataAnalysisStateChangesForTx, len(stateChangesForTxs))
 
-		if len(txHash) == 0 {
-			log.Warn("empty tx hash, state change event not associated to a transaction")
-			break
-		}
+	for _, stateChangeForTx := range stateChangesForTxs {
+		txHash := string(stateChangeForTx.TxHash)
 
 		cachedTx, txOk := scc.cachedTxs[string(txHash)]
 		if !txOk {
 			return nil, fmt.Errorf("did not find tx in cache")
 		}
 
-		innerStateChangesForTx := make([]StateChange, 0)
-		for j := i; j < len(scc.stateChanges); j++ {
-			txHash2 := scc.stateChanges[j].GetTxHash()
-			if !bytes.Equal(txHash, txHash2) {
-				i = j
-				break
-			}
-
-			innerStateChangesForTx = append(innerStateChangesForTx, scc.stateChanges[j])
-			i = j
-		}
-
 		stateChangesForTx := DataAnalysisStateChangesForTx{
-			TxHash:       txHash,
-			Tx:           cachedTx,
-			StateChanges: innerStateChangesForTx,
+			StateChangesForTx: stateChangeForTx,
+			Tx:                cachedTx,
 		}
-		stateChangesForTxs = append(stateChangesForTxs, stateChangesForTx)
+		dataAnalysisStateChangesForTxs = append(dataAnalysisStateChangesForTxs, stateChangesForTx)
 	}
 
-	return stateChangesForTxs, nil
+	return dataAnalysisStateChangesForTxs, nil
 }
 
 // Reset resets the state changes collector
@@ -179,13 +161,13 @@ func (scc *dataAnalysisCollector) Reset() {
 	scc.stateChangesMut.Lock()
 	defer scc.stateChangesMut.Unlock()
 
-	scc.stateChanges = make([]StateChange, 0)
+	scc.resetStateChangesUnprotected()
 	scc.cachedTxs = make(map[string]*transaction.Transaction)
 }
 
 // Publish will export state changes
 func (scc *dataAnalysisCollector) Publish() error {
-	stateChangesForTx, err := scc.getStateChangesForTxs()
+	stateChangesForTx, err := scc.getDataAnalysisStateChangesForTxs()
 	if err != nil {
 		return err
 	}

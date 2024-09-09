@@ -63,7 +63,7 @@ type PeerAccountHandler interface {
 	GetTempRating() uint32
 	SetTempRating(uint32)
 	GetConsecutiveProposerMisses() uint32
-	SetConsecutiveProposerMisses(uint322 uint32)
+	SetConsecutiveProposerMisses(consecutiveMisses uint32)
 	ResetAtNewEpoch()
 	SetPreviousList(list string)
 	vmcommon.AccountHandler
@@ -83,8 +83,7 @@ type AccountsAdapter interface {
 	RevertToSnapshot(snapshot int) error
 	GetCode(codeHash []byte) []byte
 	RootHash() ([]byte, error)
-	RecreateTrie(rootHash []byte) error
-	RecreateTrieFromEpoch(options common.RootHashHolder) error
+	RecreateTrie(options common.RootHashHolder) error
 	PruneTrie(rootHash []byte, identifier TriePruningIdentifier, handler PruningHandler)
 	CancelPrune(rootHash []byte, identifier TriePruningIdentifier)
 	SnapshotState(rootHash []byte, epoch uint32)
@@ -298,8 +297,11 @@ type ShardValidatorsInfoMapHandler interface {
 
 	Add(validator ValidatorInfoHandler) error
 	Delete(validator ValidatorInfoHandler) error
+	DeleteByKey(blsKey []byte, shardID uint32)
 	Replace(old ValidatorInfoHandler, new ValidatorInfoHandler) error
+	ReplaceValidatorByKey(oldBlsKey []byte, new ValidatorInfoHandler, shardID uint32) bool
 	SetValidatorsInShard(shardID uint32, validators []ValidatorInfoHandler) error
+	SetValidatorsInShardUnsafe(shardID uint32, validators []ValidatorInfoHandler)
 }
 
 // ValidatorInfoHandler defines which data shall a validator info hold.
@@ -366,6 +368,5 @@ type StateChangesCollector interface {
 	SetIndexToLastStateChange(index int) error
 	RevertToIndex(index int) error
 	Publish() error
-	GetStateChangesForTxs() map[string]*data.StateChanges
 	IsInterfaceNil() bool
 }

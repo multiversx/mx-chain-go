@@ -295,7 +295,7 @@ func (adb *AccountsDB) SaveAccount(account vmcommon.AccountHandler) error {
 
 	adb.stateChangesCollector.AddSaveAccountStateChange(oldAccount, account, stateChange)
 
-	return err
+	return nil
 }
 
 func (adb *AccountsDB) saveCodeAndDataTrie(oldAcc, newAcc vmcommon.AccountHandler) ([]*stateChange.DataTrieChange, error) {
@@ -316,7 +316,7 @@ func (adb *AccountsDB) saveCodeAndDataTrie(oldAcc, newAcc vmcommon.AccountHandle
 		return nil, err
 	}
 
-	return newValues, err
+	return newValues, nil
 }
 
 func (adb *AccountsDB) saveCode(newAcc, oldAcc baseAccountHandler) error {
@@ -505,7 +505,8 @@ func (adb *AccountsDB) loadDataTrieConcurrentSafe(accountHandler baseAccountHand
 		return nil
 	}
 
-	dataTrie, err := mainTrie.Recreate(accountHandler.GetRootHash())
+	rootHashHolder := holders.NewDefaultRootHashesHolder(accountHandler.GetRootHash())
+	dataTrie, err := mainTrie.Recreate(rootHashHolder)
 	if err != nil {
 		return fmt.Errorf("trie was not found for hash, rootHash = %s, err = %w", hex.EncodeToString(accountHandler.GetRootHash()), err)
 	}
@@ -633,7 +634,8 @@ func (adb *AccountsDB) removeDataTrie(baseAcc baseAccountHandler) error {
 		return nil
 	}
 
-	dataTrie, err := adb.mainTrie.Recreate(rootHash)
+	rootHashHolder := holders.NewDefaultRootHashesHolder(rootHash)
+	dataTrie, err := adb.mainTrie.Recreate(rootHashHolder)
 	if err != nil {
 		return err
 	}
@@ -830,7 +832,7 @@ func (adb *AccountsDB) RevertToSnapshot(snapshot int) error {
 
 	if snapshot == 0 {
 		log.Trace("revert snapshot to adb.lastRootHash", "hash", adb.lastRootHash)
-		return adb.recreateTrie(holders.NewRootHashHolder(adb.lastRootHash, core.OptionalUint32{}))
+		return adb.recreateTrie(holders.NewDefaultRootHashesHolder(adb.lastRootHash))
 	}
 
 	for i := len(adb.entries) - 1; i >= snapshot; i-- {
@@ -1010,13 +1012,8 @@ func (adb *AccountsDB) RootHash() ([]byte, error) {
 	return rootHash, err
 }
 
-// RecreateTrie is used to reload the trie based on an existing rootHash
-func (adb *AccountsDB) RecreateTrie(rootHash []byte) error {
-	return adb.RecreateTrieFromEpoch(holders.NewRootHashHolder(rootHash, core.OptionalUint32{}))
-}
-
-// RecreateTrieFromEpoch is used to reload the trie based on the provided options
-func (adb *AccountsDB) RecreateTrieFromEpoch(options common.RootHashHolder) error {
+// RecreateTrie is used to reload the trie based on the provided options
+func (adb *AccountsDB) RecreateTrie(options common.RootHashHolder) error {
 	adb.mutOp.Lock()
 	defer adb.mutOp.Unlock()
 
@@ -1038,9 +1035,9 @@ func (adb *AccountsDB) recreateTrie(options common.RootHashHolder) error {
 	adb.obsoleteDataTrieHashes = make(map[string][][]byte)
 	adb.dataTries.Reset()
 	adb.entries = make([]JournalEntry, 0)
-	adb.stateChangesCollector.Reset()
 
-	newTrie, err := adb.mainTrie.RecreateFromEpoch(options)
+	adb.stateChangesCollector.Reset()
+	newTrie, err := adb.mainTrie.Recreate(options)
 	if err != nil {
 		return err
 	}
@@ -1086,7 +1083,8 @@ func (adb *AccountsDB) RecreateAllTries(rootHash []byte) (map[string]common.Trie
 
 		userAccountRootHash := userAccount.GetRootHash()
 		if len(userAccountRootHash) > 0 {
-			dataTrie, errRecreate := mainTrie.Recreate(userAccountRootHash)
+			rootHashHolder := holders.NewDefaultRootHashesHolder(userAccountRootHash)
+			dataTrie, errRecreate := mainTrie.Recreate(rootHashHolder)
 			if errRecreate != nil {
 				return nil, errRecreate
 			}
@@ -1124,7 +1122,8 @@ func getUserAccountFromBytes(accountFactory AccountFactory, marshaller marshal.M
 }
 
 func (adb *AccountsDB) recreateMainTrie(rootHash []byte) (map[string]common.Trie, error) {
-	recreatedTrie, err := adb.getMainTrie().Recreate(rootHash)
+	rootHashHolder := holders.NewDefaultRootHashesHolder(rootHash)
+	recreatedTrie, err := adb.getMainTrie().Recreate(rootHashHolder)
 	if err != nil {
 		return nil, err
 	}
@@ -1137,7 +1136,8 @@ func (adb *AccountsDB) recreateMainTrie(rootHash []byte) (map[string]common.Trie
 
 // GetTrie returns the trie that has the given rootHash
 func (adb *AccountsDB) GetTrie(rootHash []byte) (common.Trie, error) {
-	return adb.getMainTrie().Recreate(rootHash)
+	rootHashHolder := holders.NewDefaultRootHashesHolder(rootHash)
+	return adb.getMainTrie().Recreate(rootHashHolder)
 }
 
 // Journalize adds a new object to entries list.
@@ -1152,7 +1152,7 @@ func (adb *AccountsDB) journalize(entry JournalEntry) {
 		"entry type", fmt.Sprintf("%T", entry),
 	)
 
-	adb.stateChangesCollector.SetIndexToLastStateChange(len(adb.entries))
+	_ = adb.stateChangesCollector.SetIndexToLastStateChange(len(adb.entries))
 
 	if len(adb.entries) == 1 {
 		adb.stackDebug = debug.Stack()

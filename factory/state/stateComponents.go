@@ -21,7 +21,6 @@ import (
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/evictionWaitingList"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
-	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	trieFactory "github.com/multiversx/mx-chain-go/trie/factory"
 )
 
@@ -131,6 +130,7 @@ func (scf *stateComponentsFactory) createStateChangesCollector() (state.StateCha
 		return stateChanges.NewStateChangesCollector(), nil
 	}
 
+	// TODO: move to toml config file
 	dbConfig := config.DBConfig{
 		FilePath:          "stateChanges",
 		Type:              "LvlDBSerial",
@@ -139,13 +139,12 @@ func (scf *stateComponentsFactory) createStateChangesCollector() (state.StateCha
 		MaxOpenFiles:      10,
 	}
 
-	dbConfigHandler := storageFactory.NewDBConfigHandler(dbConfig)
-	persisterFactory, err := storageFactory.NewPersisterFactory(dbConfigHandler)
+	persisterFactory, err := storageFactory.NewPersisterFactory(dbConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	db, err := storageunit.NewDB(persisterFactory, dbConfig.FilePath)
+	db, err := persisterFactory.CreateWithRetries(dbConfig.FilePath)
 	if err != nil {
 		return nil, fmt.Errorf("%w while creating the db for the trie nodes", err)
 	}

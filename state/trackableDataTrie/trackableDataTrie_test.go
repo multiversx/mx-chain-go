@@ -22,18 +22,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createDefaultTrackableDataTrie() state.DataTrieTracker {
-	tdt, _ := trackableDataTrie.NewTrackableDataTrie(
-		[]byte("identifier"),
-		&hashingMocks.HasherMock{},
-		&marshallerMock.MarshalizerMock{},
-		enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined(),
-		stateChanges.NewStateChangesCollector(),
-	)
-
-	return tdt
-}
-
 func TestNewTrackableDataTrie(t *testing.T) {
 	t.Parallel()
 
