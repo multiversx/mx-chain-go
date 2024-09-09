@@ -631,8 +631,6 @@ func (sr *subroundEndRound) verifyNodesOnAggSigFail(ctx context.Context) ([]stri
 		wg.Add(1)
 
 		go func(i int, pk string, wg *sync.WaitGroup, sigShare []byte) {
-			defer sr.signatureThrottler.EndProcessing()
-			defer wg.Done()
 			defer func() {
 				defer sr.signatureThrottler.EndProcessing()
 				defer wg.Done()
