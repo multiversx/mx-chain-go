@@ -2,6 +2,6 @@ package stateChanges
 
 // GetStateChanges -
 func (scc *stateChangesCollector) GetStateChanges() []StateChangesForTx {
-	scs, _ := scc.GetStateChangesForTxs()
+	scs, _ := scc.getStateChangesForTxs()
 	return scs
 }
