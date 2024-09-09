@@ -2,7 +2,6 @@ package mainFactoryMocks
 
 import (
 	"github.com/multiversx/mx-chain-go/consensus"
-	"github.com/multiversx/mx-chain-go/consensus/broadcastFactory"
 	"github.com/multiversx/mx-chain-go/consensus/spos/sposFactory"
 	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
@@ -139,7 +138,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		SystemSCProcessorFactoryField:             &testFactory.SysSCFactoryMock{},
 		PreProcessorsContainerFactoryCreatorField: &testFactory.PreProcessorContainerFactoryCreatorMock{},
 		DataRetrieverContainersSetterField:        &testFactory.DataRetrieverContainersSetterMock{},
-		ShardMessengerFactoryField:                broadcastFactory.NewShardChainMessengerFactory(), // todo: change this with mock
+		ShardMessengerFactoryField:                &testFactory.ShardChainMessengerFactoryMock{},
 	}
 }
 
