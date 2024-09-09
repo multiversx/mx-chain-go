@@ -2096,7 +2096,7 @@ func (d *delegation) claimRewards(args *vmcommon.ContractCallInput) vmcommon.Ret
 		}
 	}
 
-	d.createAndAddLogEntry(args, unclaimedRewardsBytes, boolToSlice(wasDeleted))
+	d.createAndAddLogEntry(args, unclaimedRewardsBytes, boolToSlice(wasDeleted), args.RecipientAddr)
 
 	return vmcommon.Ok
 }
@@ -2322,7 +2322,8 @@ func (d *delegation) deleteDelegatorIfNeeded(address []byte, delegator *Delegato
 }
 
 func (d *delegation) unStakeAtEndOfEpoch(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
-	if !bytes.Equal(args.CallerAddr, d.endOfEpochAddr) {
+	if !bytes.Equal(args.CallerAddr, d.endOfEpochAddr) &&
+		!bytes.Equal(args.CallerAddr, d.stakingSCAddr) {
 		d.eei.AddReturnMessage("can be called by end of epoch address only")
 		return vmcommon.UserError
 	}

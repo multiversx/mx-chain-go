@@ -1,5 +1,3 @@
-//go:build !race
-
 package txsFee
 
 import (
@@ -9,7 +7,6 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data/scheduled"
 	"github.com/multiversx/mx-chain-go/config"
-	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
 	"github.com/multiversx/mx-chain-go/state"
@@ -23,7 +20,11 @@ var egldBalance = big.NewInt(50000000000)
 var esdtBalance = big.NewInt(100)
 
 func TestAsyncCallLegacy(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -66,7 +67,11 @@ func TestAsyncCallLegacy(t *testing.T) {
 }
 
 func TestAsyncCallMulti(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -113,7 +118,11 @@ func TestAsyncCallMulti(t *testing.T) {
 }
 
 func TestAsyncCallTransferAndExecute(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -164,13 +173,17 @@ func TestAsyncCallTransferAndExecute(t *testing.T) {
 }
 
 func TestAsyncCallTransferESDTAndExecute_Success(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	numberOfCallsFromParent := 3
 	numberOfBackTransfers := 2
 	transferESDTAndExecute(t, numberOfCallsFromParent, numberOfBackTransfers)
 }
 
 func transferESDTAndExecute(t *testing.T, numberOfCallsFromParent int, numberOfBackTransfers int) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -280,15 +293,19 @@ func deployForwarderAndTestContract(
 }
 
 func TestAsyncCallMulti_CrossShard(t *testing.T) {
-	testContextFirstContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	testContextFirstContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContextFirstContract.Close()
 
-	testContextSecondContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
+	testContextSecondContract, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContextSecondContract.Close()
 
-	testContextSender, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{})
+	testContextSender, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContextSender.Close()
 
@@ -366,15 +383,19 @@ func TestAsyncCallMulti_CrossShard(t *testing.T) {
 }
 
 func TestAsyncCallTransferAndExecute_CrossShard(t *testing.T) {
-	childShard, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{})
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	childShard, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer childShard.Close()
 
-	forwarderShard, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{})
+	forwarderShard, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer forwarderShard.Close()
 
-	testContextSender, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{})
+	testContextSender, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContextSender.Close()
 
@@ -448,27 +469,25 @@ func TestAsyncCallTransferAndExecute_CrossShard(t *testing.T) {
 }
 
 func TestAsyncCallTransferESDTAndExecute_CrossShard_Success(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	numberOfCallsFromParent := 3
 	numberOfBackTransfers := 2
 	transferESDTAndExecuteCrossShard(t, numberOfCallsFromParent, numberOfBackTransfers)
 }
 
 func transferESDTAndExecuteCrossShard(t *testing.T, numberOfCallsFromParent int, numberOfBackTransfers int) {
-	vaultShard, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{
-		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
-	})
+	vaultShard, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer vaultShard.Close()
 
-	forwarderShard, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{
-		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
-	})
+	forwarderShard, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer forwarderShard.Close()
 
-	testContextSender, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{
-		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
-	})
+	testContextSender, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContextSender.Close()
 
@@ -513,7 +532,7 @@ func transferESDTAndExecuteCrossShard(t *testing.T, numberOfCallsFromParent int,
 		Clear().
 		Func("add_queued_call_transfer_esdt").
 		Bytes(vaultSCAddress).
-		Int64(50000).
+		Int64(500000).
 		Bytes([]byte("retrieve_funds_promises")).
 		Bytes(esdtToken).
 		Int64(esdtToTransferFromParent).
@@ -532,7 +551,7 @@ func transferESDTAndExecuteCrossShard(t *testing.T, numberOfCallsFromParent int,
 		Clear().
 		Func("forward_queued_calls")
 
-	gasLimit = uint64(50000000)
+	gasLimit = uint64(100000000)
 	sendTx(nonce, senderAddr, forwarderSCAddress, gasPrice, gasLimit, txBuilderRunQueue, forwarderShard, t)
 
 	intermediateTxs := forwarderShard.GetIntermediateTransactions(t)

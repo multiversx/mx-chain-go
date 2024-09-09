@@ -17,12 +17,16 @@ import (
 
 // minGasPrice = 1, gasPerDataByte = 1, minGasLimit = 1
 func TestMoveBalanceSelfShouldWorkAndConsumeTxFeeWhenAllFlagsAreDisabled(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
 		PenalizedTooMuchGasEnableEpoch: 100,
 		SCDeployEnableEpoch:            100,
 		MetaProtectionEnableEpoch:      100,
 		RelayedTransactionsEnableEpoch: 100,
-	})
+	}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -57,13 +61,17 @@ func TestMoveBalanceSelfShouldWorkAndConsumeTxFeeWhenAllFlagsAreDisabled(t *test
 
 // minGasPrice = 1, gasPerDataByte = 1, minGasLimit = 1
 func TestMoveBalanceAllFlagsDisabledLessBalanceThanGasLimitMulGasPrice(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
 		PenalizedTooMuchGasEnableEpoch: integrationTests.UnreachableEpoch,
 		BuiltInFunctionsEnableEpoch:    integrationTests.UnreachableEpoch,
 		SCDeployEnableEpoch:            integrationTests.UnreachableEpoch,
 		MetaProtectionEnableEpoch:      integrationTests.UnreachableEpoch,
 		RelayedTransactionsEnableEpoch: integrationTests.UnreachableEpoch,
-	})
+	}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -80,6 +88,10 @@ func TestMoveBalanceAllFlagsDisabledLessBalanceThanGasLimitMulGasPrice(t *testin
 }
 
 func TestMoveBalanceSelfShouldWorkAndConsumeTxFeeWhenSomeFlagsAreDisabled(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(
 		config.EnableEpochs{
 			PenalizedTooMuchGasEnableEpoch:   0,
@@ -87,7 +99,7 @@ func TestMoveBalanceSelfShouldWorkAndConsumeTxFeeWhenSomeFlagsAreDisabled(t *tes
 			SCDeployEnableEpoch:              100,
 			MetaProtectionEnableEpoch:        100,
 			RelayedTransactionsV2EnableEpoch: 100,
-		})
+		}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 

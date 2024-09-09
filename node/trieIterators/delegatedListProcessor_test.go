@@ -118,7 +118,7 @@ func TestDelegatedListProc_GetDelegatorsListContextShouldTimeout(t *testing.T) {
 		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 			return createScAccount(addressContainer, delegators, addressContainer, time.Second), nil
 		},
-		RecreateTrieCalled: func(rootHash []byte) error {
+		RecreateTrieCalled: func(rootHash common.RootHashHolder) error {
 			return nil
 		},
 	}
@@ -165,7 +165,7 @@ func TestDelegatedListProc_GetDelegatorsListShouldWork(t *testing.T) {
 		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 			return createScAccount(addressContainer, delegators, addressContainer, 0), nil
 		},
-		RecreateTrieCalled: func(rootHash []byte) error {
+		RecreateTrieCalled: func(rootHash common.RootHashHolder) error {
 			return nil
 		},
 	}

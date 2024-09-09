@@ -1,7 +1,3 @@
-//go:build !race
-
-// TODO remove build condition above to allow -race -short, after Wasm VM fix
-
 package txsFee
 
 import (
@@ -19,6 +15,10 @@ import (
 )
 
 func TestRelayedAsyncCallShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	senderAddr := []byte("12345678901234567890123456789011")
 
 	t.Run("nonce fix is disabled, should increase the sender's nonce", func(t *testing.T) {
@@ -42,7 +42,7 @@ func TestRelayedAsyncCallShouldWork(t *testing.T) {
 }
 
 func testRelayedAsyncCallShouldWork(t *testing.T, enableEpochs config.EnableEpochs, senderAddr []byte) *vm.VMTestContext {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(enableEpochs)
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(enableEpochs, 1)
 	require.Nil(t, err)
 
 	localEgldBalance := big.NewInt(100000000)

@@ -50,7 +50,11 @@ func saveDelegationManagerConfig(testContext *vm.VMTestContext) {
 }
 
 func TestValidatorsSC_DoStakePutInQueueUnStakeAndUnBondShouldRefund(t *testing.T) {
-	testContextMeta, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(core.MetachainShardId, config.EnableEpochs{})
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	testContextMeta, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(core.MetachainShardId, config.EnableEpochs{}, 1)
 
 	require.Nil(t, err)
 	defer testContextMeta.Close()
@@ -106,12 +110,17 @@ func checkReturnLog(t *testing.T, testContextMeta *vm.VMTestContext, subStr stri
 }
 
 func TestValidatorsSC_DoStakePutInQueueUnStakeAndUnBondTokensShouldRefund(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContextMeta, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(
 		core.MetachainShardId,
 		config.EnableEpochs{
 			StakingV4Step1EnableEpoch: stakingV4Step1EnableEpoch,
 			StakingV4Step2EnableEpoch: stakingV4Step2EnableEpoch,
 		},
+		1,
 	)
 
 	require.Nil(t, err)
@@ -142,6 +151,10 @@ func TestValidatorsSC_DoStakePutInQueueUnStakeAndUnBondTokensShouldRefund(t *tes
 }
 
 func TestValidatorsSC_DoStakeWithTopUpValueTryToUnStakeTokensAndUnBondTokens(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	argUnbondTokensV1 := config.EnableEpochs{
 		UnbondTokensV2EnableEpoch: 20000,
 		StakingV4Step1EnableEpoch: stakingV4Step1EnableEpoch,
@@ -158,7 +171,7 @@ func TestValidatorsSC_DoStakeWithTopUpValueTryToUnStakeTokensAndUnBondTokens(t *
 }
 
 func testValidatorsSCDoStakeWithTopUpValueTryToUnStakeTokensAndUnBondTokens(t *testing.T, enableEpochs config.EnableEpochs) {
-	testContextMeta, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(core.MetachainShardId, enableEpochs)
+	testContextMeta, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(core.MetachainShardId, enableEpochs, 1)
 
 	require.Nil(t, err)
 	defer testContextMeta.Close()
@@ -185,12 +198,17 @@ func testValidatorsSCDoStakeWithTopUpValueTryToUnStakeTokensAndUnBondTokens(t *t
 }
 
 func TestValidatorsSC_ToStakePutInQueueUnStakeAndUnBondShouldRefundUnBondTokens(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContextMeta, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(
 		core.MetachainShardId,
 		config.EnableEpochs{
 			StakingV4Step1EnableEpoch: stakingV4Step1EnableEpoch,
 			StakingV4Step2EnableEpoch: stakingV4Step2EnableEpoch,
 		},
+		1,
 	)
 
 	require.Nil(t, err)
@@ -237,12 +255,17 @@ func TestValidatorsSC_ToStakePutInQueueUnStakeAndUnBondShouldRefundUnBondTokens(
 }
 
 func TestValidatorsSC_ToStakePutInQueueUnStakeNodesAndUnBondNodesShouldRefund(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContextMeta, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(
 		core.MetachainShardId,
 		config.EnableEpochs{
 			StakingV4Step1EnableEpoch: stakingV4Step1EnableEpoch,
 			StakingV4Step2EnableEpoch: stakingV4Step2EnableEpoch,
 		},
+		1,
 	)
 
 	require.Nil(t, err)

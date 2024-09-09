@@ -1509,6 +1509,11 @@ func (txs *transactions) ProcessMiniBlock(
 		return nil, indexOfLastTxProcessed, false, process.ErrMaxBlockSizeReached
 	}
 
+	miniBlockHash, err := core.CalculateHash(txs.marshalizer, txs.hasher, miniBlock)
+	if err != nil {
+		return nil, indexOfLastTxProcessed, false, err
+	}
+
 	var totalGasConsumed uint64
 	if scheduledMode {
 		totalGasConsumed = txs.gasHandler.TotalGasProvidedAsScheduled()
@@ -1588,7 +1593,8 @@ func (txs *transactions) ProcessMiniBlock(
 				miniBlockTxs[txIndex],
 				miniBlockTxHashes[txIndex],
 				&gasInfo,
-				gasProvidedByTxInSelfShard)
+				gasProvidedByTxInSelfShard,
+				miniBlockHash)
 			if err != nil {
 				break
 			}
@@ -1647,9 +1653,10 @@ func (txs *transactions) processInNormalMode(
 	txHash []byte,
 	gasInfo *gasConsumedInfo,
 	gasProvidedByTxInSelfShard uint64,
+	mbHash []byte,
 ) error {
 
-	snapshot := txs.handleProcessTransactionInit(preProcessorExecutionInfoHandler, txHash)
+	snapshot := txs.handleProcessTransactionInit(preProcessorExecutionInfoHandler, txHash, mbHash)
 
 	txs.txExecutionOrderHandler.Add(txHash)
 	_, err := txs.txProcessor.ProcessTransaction(tx)

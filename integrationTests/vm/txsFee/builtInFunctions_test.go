@@ -1,7 +1,3 @@
-//go:build !race
-
-// TODO remove build condition above to allow -race -short, after Wasm VM fix
-
 package txsFee
 
 import (
@@ -28,15 +24,19 @@ import (
 )
 
 func TestBuildInFunctionChangeOwnerCallShouldWorkV1(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(
 		config.EnableEpochs{
 			PenalizedTooMuchGasEnableEpoch: integrationTests.UnreachableEpoch,
 			SCProcessorV2EnableEpoch:       integrationTests.UnreachableEpoch,
-		})
+		}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, owner := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
+	scAddress, owner := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm", 9988100, 11900, 399)
 	testContext.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
@@ -54,7 +54,7 @@ func TestBuildInFunctionChangeOwnerCallShouldWorkV1(t *testing.T) {
 
 	utils.CheckOwnerAddr(t, testContext, scAddress, newOwner)
 
-	expectedBalance := big.NewInt(87250)
+	expectedBalance := big.NewInt(9987250)
 	vm.TestAccount(t, testContext.Accounts, owner, 2, expectedBalance)
 
 	// check accumulated fees
@@ -66,14 +66,18 @@ func TestBuildInFunctionChangeOwnerCallShouldWorkV1(t *testing.T) {
 }
 
 func TestBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(
 		config.EnableEpochs{
 			PenalizedTooMuchGasEnableEpoch: integrationTests.UnreachableEpoch,
-		})
+		}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, owner := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
+	scAddress, owner := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm", 9988100, 11900, 399)
 	testContext.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
@@ -91,7 +95,7 @@ func TestBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
 
 	utils.CheckOwnerAddr(t, testContext, scAddress, newOwner)
 
-	expectedBalance := big.NewInt(78100)
+	expectedBalance := big.NewInt(9978100)
 	vm.TestAccount(t, testContext.Accounts, owner, 2, expectedBalance)
 
 	// check accumulated fees
@@ -103,11 +107,15 @@ func TestBuildInFunctionChangeOwnerCallShouldWork(t *testing.T) {
 }
 
 func TestBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, initialOwner := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
+	scAddress, initialOwner := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm", 9988100, 11900, 399)
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 	testContext.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 
@@ -140,11 +148,15 @@ func TestBuildInFunctionChangeOwnerCallWrongOwnerShouldConsumeGas(t *testing.T) 
 }
 
 func TestBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, owner := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
+	scAddress, owner := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm", 9988100, 11900, 399)
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 	testContext.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 
@@ -162,7 +174,7 @@ func TestBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *testing.T) 
 
 	utils.CheckOwnerAddr(t, testContext, scAddress, owner)
 
-	expectedBalance := big.NewInt(78100)
+	expectedBalance := big.NewInt(9978100)
 	vm.TestAccount(t, testContext.Accounts, owner, 2, expectedBalance)
 
 	// check accumulated fees
@@ -174,11 +186,15 @@ func TestBuildInFunctionChangeOwnerInvalidAddressShouldConsumeGas(t *testing.T) 
 }
 
 func TestBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, owner := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
+	scAddress, owner := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm", 9988100, 11900, 399)
 	testContext.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 
 	newOwner := []byte("12345678901234567890123456789112")
@@ -198,7 +214,7 @@ func TestBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldNotConsumeGas(t
 
 	utils.CheckOwnerAddr(t, testContext, scAddress, owner)
 
-	expectedBalance := big.NewInt(99070)
+	expectedBalance := big.NewInt(9999070)
 	vm.TestAccount(t, testContext.Accounts, owner, 2, expectedBalance)
 
 	// check accumulated fees
@@ -210,11 +226,15 @@ func TestBuildInFunctionChangeOwnerCallInsufficientGasLimitShouldNotConsumeGas(t
 }
 
 func TestBuildInFunctionChangeOwnerOutOfGasShouldConsumeGas(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, owner := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
+	scAddress, owner := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm", 9988100, 11900, 399)
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 	testContext.TxFeeHandler.CreateBlockStarted(getZeroGasAndFees())
 
@@ -233,7 +253,7 @@ func TestBuildInFunctionChangeOwnerOutOfGasShouldConsumeGas(t *testing.T) {
 
 	utils.CheckOwnerAddr(t, testContext, scAddress, owner)
 
-	expectedBalance := big.NewInt(87260)
+	expectedBalance := big.NewInt(9987260)
 	vm.TestAccount(t, testContext.Accounts, owner, 2, expectedBalance)
 
 	// check accumulated fees
@@ -245,13 +265,17 @@ func TestBuildInFunctionChangeOwnerOutOfGasShouldConsumeGas(t *testing.T) {
 }
 
 func TestBuildInFunctionSaveKeyValue_WrongDestination(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	shardCoord, _ := sharding.NewMultiShardCoordinator(2, 0)
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinator(
 		config.EnableEpochs{
 			CleanUpInformativeSCRsEnableEpoch: integrationTests.UnreachableEpoch,
 			SCProcessorV2EnableEpoch:          integrationTests.UnreachableEpoch,
-		}, shardCoord)
+		}, shardCoord, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -280,12 +304,16 @@ func TestBuildInFunctionSaveKeyValue_WrongDestination(t *testing.T) {
 }
 
 func TestBuildInFunctionSaveKeyValue_NotEnoughGasFor3rdSave(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	shardCoord, _ := sharding.NewMultiShardCoordinator(2, 0)
 
 	testContext, err := vm.CreatePreparedTxProcessorWithVMsWithShardCoordinator(
 		config.EnableEpochs{
 			BackwardCompSaveKeyValueEnableEpoch: 5,
-		}, shardCoord)
+		}, shardCoord, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -308,6 +336,10 @@ func TestBuildInFunctionSaveKeyValue_NotEnoughGasFor3rdSave(t *testing.T) {
 }
 
 func TestBuildInFunctionSaveKeyValue_NotEnoughGasForTheSameKeyValue(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	shardCoord, _ := sharding.NewMultiShardCoordinator(2, 0)
 
 	gasScheduleNotifier := vm.CreateMockGasScheduleNotifier()
@@ -324,6 +356,7 @@ func TestBuildInFunctionSaveKeyValue_NotEnoughGasForTheSameKeyValue(t *testing.T
 		gasScheduleNotifier,
 		testscommon.GetDefaultRoundsConfig(),
 		vm.CreateVMConfigWithVersion("v1.5"),
+		1,
 	)
 	require.Nil(t, err)
 	defer testContext.Close()

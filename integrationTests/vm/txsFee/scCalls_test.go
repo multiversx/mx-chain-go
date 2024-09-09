@@ -1,7 +1,3 @@
-//go:build !race
-
-// TODO remove build condition above to allow -race -short, after Wasm VM fix
-
 package txsFee
 
 import (
@@ -70,6 +66,7 @@ func prepareTestContextForEpoch836(tb testing.TB) (*vm.VMTestContext, []byte) {
 		db,
 		gasScheduleNotifier,
 		testscommon.GetDefaultRoundsConfig(),
+		1,
 	)
 	require.Nil(tb, err)
 
@@ -90,18 +87,22 @@ func prepareTestContextForEpoch836(tb testing.TB) (*vm.VMTestContext, []byte) {
 }
 
 func TestScCallShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
 		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
-	})
+	}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, _ := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
+	scAddress, _ := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm", 9988100, 11900, 399)
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	sndAddr := []byte("12345678901234567890123456789112")
-	senderBalance := big.NewInt(100000)
-	gasLimit := uint64(1000)
+	senderBalance := big.NewInt(1000000000)
+	gasLimit := uint64(100000)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
 
@@ -109,7 +110,7 @@ func TestScCallShouldWork(t *testing.T) {
 		tx := vm.CreateTransaction(idx, big.NewInt(0), sndAddr, scAddress, gasPrice, gasLimit, []byte("increment"))
 
 		calculatedGasLimit := vm.ComputeGasLimit(nil, testContext, tx)
-		require.Equal(t, uint64(418), calculatedGasLimit)
+		require.Equal(t, uint64(15704), calculatedGasLimit)
 
 		returnCode, errProcess := testContext.TxProcessor.ProcessTransaction(tx)
 		require.Nil(t, errProcess)
@@ -122,19 +123,23 @@ func TestScCallShouldWork(t *testing.T) {
 	ret := vm.GetIntValueFromSC(nil, testContext.Accounts, scAddress, "get")
 	require.Equal(t, big.NewInt(11), ret)
 
-	expectedBalance := big.NewInt(58200)
+	expectedBalance := big.NewInt(998429600)
 	vm.TestAccount(t, testContext.Accounts, sndAddr, 10, expectedBalance)
 
 	// check accumulated fees
 	accumulatedFees := testContext.TxFeeHandler.GetAccumulatedFees()
-	require.Equal(t, big.NewInt(53700), accumulatedFees)
+	require.Equal(t, big.NewInt(1582300), accumulatedFees)
 
 	developerFees := testContext.TxFeeHandler.GetDeveloperFees()
-	require.Equal(t, big.NewInt(4479), developerFees)
+	require.Equal(t, big.NewInt(157339), developerFees)
 }
 
 func TestScCallContractNotFoundShouldConsumeGas(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -163,11 +168,15 @@ func TestScCallContractNotFoundShouldConsumeGas(t *testing.T) {
 }
 
 func TestScCallInvalidMethodToCallShouldConsumeGas(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, _ := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
+	scAddress, _ := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm", 9988100, 11900, 399)
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	sndAddr := []byte("12345678901234567890123456789112")
@@ -196,11 +205,15 @@ func TestScCallInvalidMethodToCallShouldConsumeGas(t *testing.T) {
 }
 
 func TestScCallInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, _ := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
+	scAddress, _ := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm", 9988100, 11900, 399)
 
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance := big.NewInt(100000)
@@ -230,11 +243,15 @@ func TestScCallInsufficientGasLimitShouldNotConsumeGas(t *testing.T) {
 }
 
 func TestScCallOutOfGasShouldConsumeGas(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
-	scAddress, _ := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
+	scAddress, _ := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm", 9988100, 11900, 399)
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	sndAddr := []byte("12345678901234567890123456789112")
@@ -263,20 +280,24 @@ func TestScCallOutOfGasShouldConsumeGas(t *testing.T) {
 }
 
 func TestScCallAndGasChangeShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{
 		DynamicGasCostForDataTrieStorageLoadEnableEpoch: integrationTests.UnreachableEpoch,
-	})
+	}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
 	mockGasSchedule := testContext.GasSchedule.(*mock.GasScheduleNotifierMock)
 
-	scAddress, _ := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm")
+	scAddress, _ := utils.DoDeploy(t, testContext, "../wasm/testdata/counter/output/counter.wasm", 9988100, 11900, 399)
 	utils.CleanAccumulatedIntermediateTransactions(t, testContext)
 
 	sndAddr := []byte("12345678901234567890123456789112")
 	senderBalance := big.NewInt(10000000)
-	gasLimit := uint64(1000)
+	gasLimit := uint64(100000)
 
 	_, _ = vm.CreateAccount(testContext.Accounts, sndAddr, 0, senderBalance)
 	numIterations := uint64(10)
@@ -308,7 +329,11 @@ func TestScCallAndGasChangeShouldWork(t *testing.T) {
 }
 
 func TestESDTScCallAndGasChangeShouldWork(t *testing.T) {
-	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{})
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	testContext, err := vm.CreatePreparedTxProcessorWithVMs(config.EnableEpochs{}, 1)
 	require.Nil(t, err)
 	defer testContext.Close()
 
@@ -397,7 +422,7 @@ func prepareTestContextForEpoch460(tb testing.TB) (*vm.VMTestContext, []byte) {
 		RefactorPeersMiniBlocksEnableEpoch:                unreachableEpoch,
 		RuntimeMemStoreLimitEnableEpoch:                   unreachableEpoch,
 		MaxBlockchainHookCountersEnableEpoch:              unreachableEpoch,
-	})
+	}, 1)
 	require.Nil(tb, err)
 
 	senderBalance := big.NewInt(1000000000000000000)
@@ -418,6 +443,10 @@ func prepareTestContextForEpoch460(tb testing.TB) (*vm.VMTestContext, []byte) {
 }
 
 func TestScCallBuyNFT_OneFailedTxAndOneOkTx(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, scAddress := prepareTestContextForEpoch460(t)
 	defer testContext.Close()
 
@@ -487,6 +516,10 @@ func TestScCallBuyNFT_OneFailedTxAndOneOkTx(t *testing.T) {
 }
 
 func TestScCallBuyNFT_TwoOkTxs(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, scAddress := prepareTestContextForEpoch460(t)
 	defer testContext.Close()
 
@@ -556,6 +589,10 @@ func TestScCallBuyNFT_TwoOkTxs(t *testing.T) {
 }
 
 func TestScCallDistributeStakingRewards_ShouldWork(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext, scAddress := prepareTestContextForEpoch836(t)
 	defer testContext.Close()
 

@@ -1,7 +1,3 @@
-//go:build !race
-
-// TODO remove build condition above to allow -race -short, after Wasm VM fix
-
 package txsFee
 
 import (
@@ -101,11 +97,13 @@ func prepareTestContextForGuardedAccounts(tb testing.TB) *vm.VMTestContext {
 			GovernanceEnableEpoch:                   unreachableEpoch,
 			SetSenderInEeiOutputTransferEnableEpoch: unreachableEpoch,
 			RefactorPeersMiniBlocksEnableEpoch:      unreachableEpoch,
+			FixRelayedBaseCostEnableEpoch:           unreachableEpoch,
 		},
 		testscommon.NewMultiShardsCoordinatorMock(2),
 		db,
 		gasScheduleNotifier,
 		testscommon.GetDefaultRoundsConfig(),
+		1,
 	)
 	require.Nil(tb, err)
 
@@ -350,6 +348,10 @@ func setNewEpochOnContext(testContext *vm.VMTestContext, epoch uint32) {
 }
 
 func TestGuardAccount_ShouldErrorIfInstantSetIsDoneOnANotProtectedAccount(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext := prepareTestContextForGuardedAccounts(t)
 	defer testContext.Close()
 
@@ -367,6 +369,10 @@ func TestGuardAccount_ShouldErrorIfInstantSetIsDoneOnANotProtectedAccount(t *tes
 }
 
 func TestGuardAccount_ShouldSetGuardianOnANotProtectedAccount(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext := prepareTestContextForGuardedAccounts(t)
 	defer testContext.Close()
 
@@ -467,6 +473,10 @@ func TestGuardAccount_ShouldSetGuardianOnANotProtectedAccount(t *testing.T) {
 }
 
 func TestGuardAccount_SendingFundsWhileProtectedAndNotProtected(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext := prepareTestContextForGuardedAccounts(t)
 	defer testContext.Close()
 
@@ -592,6 +602,10 @@ func TestGuardAccount_SendingFundsWhileProtectedAndNotProtected(t *testing.T) {
 //  14. alice un-guards the accounts immediately using a cosigned transaction and then sends a guarded transaction -> should error
 //     14.1 alice sends unguarded transaction -> should work
 func TestGuardAccount_Scenario1(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext := prepareTestContextForGuardedAccounts(t)
 	defer testContext.Close()
 
@@ -916,6 +930,10 @@ func TestGuardAccount_Scenario1(t *testing.T) {
 //     3.1 cosigned transaction should work
 //     3.2 single signed transaction should not work
 func TestGuardAccounts_RelayedTransactionV1(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext := prepareTestContextForGuardedAccounts(t)
 	defer testContext.Close()
 
@@ -961,7 +979,7 @@ func TestGuardAccounts_RelayedTransactionV1(t *testing.T) {
 		alice,
 		david,
 		gasPrice,
-		transferGas+guardianSigVerificationGas,
+		1+guardianSigVerificationGas,
 		make([]byte, 0))
 
 	userTx.GuardianAddr = bob
@@ -969,7 +987,7 @@ func TestGuardAccounts_RelayedTransactionV1(t *testing.T) {
 	userTx.Version = txWithOptionVersion
 
 	rtxData := integrationTests.PrepareRelayedTxDataV1(userTx)
-	rTxGasLimit := 1 + transferGas + guardianSigVerificationGas + uint64(len(rtxData))
+	rTxGasLimit := minGasLimit + guardianSigVerificationGas + minGasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(getNonce(testContext, charlie), big.NewInt(0), charlie, alice, gasPrice, rTxGasLimit, rtxData)
 	returnCode, err = testContext.TxProcessor.ProcessTransaction(rtx)
 	require.Nil(t, err)
@@ -1000,13 +1018,13 @@ func TestGuardAccounts_RelayedTransactionV1(t *testing.T) {
 		alice,
 		david,
 		gasPrice,
-		transferGas+guardianSigVerificationGas,
+		minGasLimit,
 		make([]byte, 0))
 
 	userTx.Version = txWithOptionVersion
 
 	rtxData = integrationTests.PrepareRelayedTxDataV1(userTx)
-	rTxGasLimit = 1 + transferGas + guardianSigVerificationGas + uint64(len(rtxData))
+	rTxGasLimit = minGasLimit + minGasLimit + uint64(len(rtxData))
 	rtx = vm.CreateTransaction(getNonce(testContext, charlie), big.NewInt(0), charlie, alice, gasPrice, rTxGasLimit, rtxData)
 	returnCode, err = testContext.TxProcessor.ProcessTransaction(rtx)
 	require.Nil(t, err)
@@ -1036,6 +1054,10 @@ func TestGuardAccounts_RelayedTransactionV1(t *testing.T) {
 //     3.1 cosigned transaction should not work
 //     3.2 single signed transaction should not work
 func TestGuardAccounts_RelayedTransactionV2(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
 	testContext := prepareTestContextForGuardedAccounts(t)
 	defer testContext.Close()
 
@@ -1075,14 +1097,14 @@ func TestGuardAccounts_RelayedTransactionV2(t *testing.T) {
 	testContext.CleanIntermediateTransactions(t)
 
 	// step 3 - charlie sends a relayed transaction v1 on the behalf of alice
-	// 3.1 cosigned transaction should work
+	// 3.1 cosigned transaction should not work
 	userTx := vm.CreateTransaction(
 		getNonce(testContext, alice),
 		transferValue,
 		alice,
 		david,
 		gasPrice,
-		transferGas+guardianSigVerificationGas,
+		1+guardianSigVerificationGas,
 		make([]byte, 0))
 
 	userTx.GuardianAddr = bob
@@ -1090,7 +1112,7 @@ func TestGuardAccounts_RelayedTransactionV2(t *testing.T) {
 	userTx.Version = txWithOptionVersion
 
 	rtxData := integrationTests.PrepareRelayedTxDataV2(userTx)
-	rTxGasLimit := 1 + transferGas + guardianSigVerificationGas + uint64(len(rtxData))
+	rTxGasLimit := minGasLimit + guardianSigVerificationGas + minGasLimit + uint64(len(rtxData))
 	rtx := vm.CreateTransaction(getNonce(testContext, charlie), big.NewInt(0), charlie, alice, gasPrice, rTxGasLimit, rtxData)
 	returnCode, err = testContext.TxProcessor.ProcessTransaction(rtx)
 	require.Nil(t, err)
@@ -1109,7 +1131,8 @@ func TestGuardAccounts_RelayedTransactionV2(t *testing.T) {
 	assert.Equal(t, aliceCurrentBalance, getBalance(testContext, alice))
 	bobExpectedBalance := big.NewInt(0).Set(initialMint)
 	assert.Equal(t, bobExpectedBalance, getBalance(testContext, bob))
-	charlieExpectedBalance := big.NewInt(0).Sub(initialMint, big.NewInt(int64(rTxGasLimit*gasPrice)))
+	charlieConsumed := minGasLimit + guardianSigVerificationGas + minGasLimit + uint64(len(rtxData))
+	charlieExpectedBalance := big.NewInt(0).Sub(initialMint, big.NewInt(int64(charlieConsumed*gasPrice)))
 	assert.Equal(t, charlieExpectedBalance, getBalance(testContext, charlie))
 	assert.Equal(t, initialMint, getBalance(testContext, david))
 
@@ -1123,13 +1146,13 @@ func TestGuardAccounts_RelayedTransactionV2(t *testing.T) {
 		alice,
 		david,
 		gasPrice,
-		transferGas+guardianSigVerificationGas,
+		minGasLimit,
 		make([]byte, 0))
 
 	userTx.Version = txWithOptionVersion
 
 	rtxData = integrationTests.PrepareRelayedTxDataV2(userTx)
-	rTxGasLimit = 1 + transferGas + guardianSigVerificationGas + uint64(len(rtxData))
+	rTxGasLimit = minGasLimit + minGasLimit + uint64(len(rtxData))
 	rtx = vm.CreateTransaction(getNonce(testContext, charlie), big.NewInt(0), charlie, alice, gasPrice, rTxGasLimit, rtxData)
 	returnCode, err = testContext.TxProcessor.ProcessTransaction(rtx)
 	require.Nil(t, err)

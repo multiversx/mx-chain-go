@@ -41,7 +41,7 @@ func createMockArgumentsNewStakingToPeer() ArgStakingToPeer {
 		Marshalizer:         &mock.MarshalizerStub{},
 		PeerState:           &stateMock.AccountsStub{},
 		BaseState:           &stateMock.AccountsStub{},
-		ArgParser:           &mock.ArgumentParserMock{},
+		ArgParser:           &testscommon.ArgumentParserMock{},
 		CurrTxs:             &mock.TxForCurrentBlockStub{},
 		RatingsData:         &mock.RatingsInfoMock{},
 		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.StakeFlag, common.ValidatorToDelegationFlag),
@@ -234,7 +234,7 @@ func TestStakingToPeer_UpdateProtocolCannotGetStorageUpdatesShouldErr(t *testing
 		}, nil
 	}
 
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	argParser.GetStorageUpdatesCalled = func(data string) (updates []*vmcommon.StorageUpdate, e error) {
 		return nil, testError
 	}
@@ -259,7 +259,7 @@ func TestStakingToPeer_UpdateProtocolRemoveAccountShouldReturnNil(t *testing.T) 
 		}, nil
 	}
 
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	argParser.GetStorageUpdatesCalled = func(data string) (updates []*vmcommon.StorageUpdate, e error) {
 		return []*vmcommon.StorageUpdate{
 			{Offset: []byte("aabbcc"), Data: []byte("data1")},
@@ -318,7 +318,7 @@ func TestStakingToPeer_UpdateProtocolCannotSetRewardAddressShouldErr(t *testing.
 		offset = append(offset, 99)
 	}
 
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	argParser.GetStorageUpdatesCalled = func(data string) (updates []*vmcommon.StorageUpdate, e error) {
 		return []*vmcommon.StorageUpdate{
 			{Offset: offset, Data: []byte("data1")},
@@ -375,7 +375,7 @@ func TestStakingToPeer_UpdateProtocolEmptyDataShouldNotAddToTrie(t *testing.T) {
 		offset = append(offset, 99)
 	}
 
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	argParser.GetStorageUpdatesCalled = func(data string) (updates []*vmcommon.StorageUpdate, e error) {
 		return []*vmcommon.StorageUpdate{
 			{Offset: offset, Data: []byte("data1")},
@@ -436,7 +436,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountShouldErr(t *testing.T) {
 		offset = append(offset, 99)
 	}
 
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	argParser.GetStorageUpdatesCalled = func(data string) (updates []*vmcommon.StorageUpdate, e error) {
 		return []*vmcommon.StorageUpdate{
 			{Offset: offset, Data: []byte("data1")},
@@ -499,7 +499,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveAccountNonceShouldErr(t *testing.
 		offset = append(offset, 99)
 	}
 
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	argParser.GetStorageUpdatesCalled = func(data string) (updates []*vmcommon.StorageUpdate, e error) {
 		return []*vmcommon.StorageUpdate{
 			{Offset: offset, Data: []byte("data1")},
@@ -561,7 +561,7 @@ func TestStakingToPeer_UpdateProtocol(t *testing.T) {
 		offset = append(offset, 99)
 	}
 
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	argParser.GetStorageUpdatesCalled = func(data string) (updates []*vmcommon.StorageUpdate, e error) {
 		return []*vmcommon.StorageUpdate{
 			{Offset: offset, Data: []byte("data1")},
@@ -624,7 +624,7 @@ func TestStakingToPeer_UpdateProtocolCannotSaveUnStakedNonceShouldErr(t *testing
 		offset = append(offset, 99)
 	}
 
-	argParser := &mock.ArgumentParserMock{}
+	argParser := &testscommon.ArgumentParserMock{}
 	argParser.GetStorageUpdatesCalled = func(data string) (updates []*vmcommon.StorageUpdate, e error) {
 		return []*vmcommon.StorageUpdate{
 			{Offset: offset, Data: []byte("data1")},
