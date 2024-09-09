@@ -104,6 +104,11 @@ type indexHashedNodesCoordinator struct {
 	flagStakingV4Started            atomicFlags.Flag
 }
 
+type SavedConsensusGroup struct {
+	Leader         Validator
+	ConsensusGroup []Validator
+}
+
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
 func NewIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*indexHashedNodesCoordinator, error) {
 	err := checkArguments(arguments)
@@ -378,9 +383,9 @@ func (ihnc *indexHashedNodesCoordinator) ComputeConsensusGroup(
 	}
 
 	key := []byte(fmt.Sprintf(keyFormat, string(randomness), round, shardID, epoch))
-	validators := ihnc.searchConsensusForKey(key)
-	if validators != nil {
-		return validators[0], validators, nil
+	savedConsensusGroup := ihnc.searchConsensusForKey(key)
+	if savedConsensusGroup != nil {
+		return savedConsensusGroup.Leader, savedConsensusGroup.ConsensusGroup, nil
 	}
 
 	consensusSize := ihnc.ConsensusGroupSizeForShardAndEpoch(shardID, epoch)
@@ -394,30 +399,56 @@ func (ihnc *indexHashedNodesCoordinator) ComputeConsensusGroup(
 		"round", round,
 		"shardID", shardID)
 
-	tempList, err := selectValidators(selector, randomness, uint32(consensusSize), eligibleList)
+	l, consensusGroup, err := ihnc.selectLeaderAndConsensusGroup(selector, randomness, eligibleList, consensusSize, epoch)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	if len(tempList) == 0 {
-		return nil, nil, ErrEmptyValidatorsList
-	}
-	size := 0
-	for _, v := range tempList {
-		size += v.Size()
+	size := l.Size() * len(consensusGroup)
+
+	savedConsensusGroup = &SavedConsensusGroup{
+		Leader:         l,
+		ConsensusGroup: consensusGroup,
 	}
 
-	ihnc.consensusGroupCacher.Put(key, tempList, size)
+	ihnc.consensusGroupCacher.Put(key, savedConsensusGroup, size)
 
-	return tempList[0], tempList, nil
+	return l, consensusGroup, nil
 }
 
-func (ihnc *indexHashedNodesCoordinator) searchConsensusForKey(key []byte) []Validator {
+func (ihnc *indexHashedNodesCoordinator) selectLeaderAndConsensusGroup(
+	selector RandomSelector,
+	randomness []byte,
+	eligibleList []Validator,
+	consensusSize int,
+	epoch uint32,
+) (Validator, []Validator, error) {
+	if !ihnc.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, epoch) {
+		tempList, err := selectValidators(selector, randomness, uint32(consensusSize), eligibleList)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		if len(tempList) == 0 {
+			return nil, nil, ErrEmptyValidatorsList
+		}
+
+		return tempList[0], tempList, nil
+	}
+
+	selectedValidators, err := selectValidators(selector, randomness, 1, eligibleList)
+	if err != nil {
+		return nil, nil, err
+	}
+	return selectedValidators[0], eligibleList, nil
+}
+
+func (ihnc *indexHashedNodesCoordinator) searchConsensusForKey(key []byte) *SavedConsensusGroup {
 	value, ok := ihnc.consensusGroupCacher.Get(key)
 	if ok {
-		consensusGroup, typeOk := value.([]Validator)
+		savedConsensusGroup, typeOk := value.(*SavedConsensusGroup)
 		if typeOk {
-			return consensusGroup
+			return savedConsensusGroup
 		}
 	}
 	return nil
