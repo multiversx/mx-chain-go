@@ -61,7 +61,7 @@ func main() {
 	log := logger.GetOrCreate("main")
 
 	// test point 2 for custom profiler
-	// test second verification
+	// test second verification 2
 	app := cli.NewApp()
 	cli.AppHelpTemplate = nodeHelpTemplate
 	app.Name = "MultiversX Node CLI App"
