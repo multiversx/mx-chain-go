@@ -382,6 +382,7 @@ func (r *RunTypeComponentsStub) DataRetrieverContainersSetter() factory.DataRetr
 	return r.DataRetrieverContainersSetterField
 }
 
+// BroadCastShardMessengerFactoryHandler -
 func (r *RunTypeComponentsStub) BroadCastShardMessengerFactoryHandler() sposFactory.BroadCastShardMessengerFactoryHandler {
 	return r.ShardMessengerFactoryField
 }

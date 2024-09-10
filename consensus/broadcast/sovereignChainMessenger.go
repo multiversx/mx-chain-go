@@ -80,6 +80,9 @@ func checkSovArgs(
 	if check.IfNil(args.KeysHandler) {
 		return ErrNilKeysHandler
 	}
+	if args.DelayedBroadcaster == nil {
+		return errNilDelayedShardBroadCaster
+	}
 
 	return nil
 }

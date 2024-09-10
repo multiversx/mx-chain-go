@@ -8,10 +8,12 @@ import (
 type sovereignChainMessengerFactory struct {
 }
 
+// NewSovereignShardChainMessengerFactory creates a sovereign shard messenger factory
 func NewSovereignShardChainMessengerFactory() *sovereignChainMessengerFactory {
 	return &sovereignChainMessengerFactory{}
 }
 
+// CreateShardChainMessenger creates a shard messenger for sovereign chain run type
 func (f *sovereignChainMessengerFactory) CreateShardChainMessenger(args broadcast.ShardChainMessengerArgs) (consensus.BroadcastMessenger, error) {
 	argsDelayedBlockBroadcaster := &broadcast.ArgsDelayedBlockBroadcaster{
 		InterceptorsContainer: args.InterceptorsContainer,
@@ -38,6 +40,7 @@ func (f *sovereignChainMessengerFactory) CreateShardChainMessenger(args broadcas
 	return broadcast.NewSovereignShardChainMessenger(argsSovereignShardChainMessenger)
 }
 
+// IsInterfaceNil checks if the underlying pointer is nil
 func (f *sovereignChainMessengerFactory) IsInterfaceNil() bool {
 	return f == nil
 }

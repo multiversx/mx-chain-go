@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	consensusMock "github.com/multiversx/mx-chain-go/consensus/mock"
+	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
@@ -26,22 +27,22 @@ type delayedBlockBroadcasterMock struct {
 	) error
 }
 
-// SetLeaderData sets the data for consensus leader delayed broadcast
-func (mock *delayedBlockBroadcasterMock) SetLeaderData(broadcastData *delayedBroadcastData) error {
+// SetLeaderData -
+func (mock *delayedBlockBroadcasterMock) SetLeaderData(_ *delayedBroadcastData) error {
 	return nil
 }
 
-// SetHeaderForValidator sets the header to be broadcast by validator if leader fails to broadcast it
-func (mock *delayedBlockBroadcasterMock) SetHeaderForValidator(vData *validatorHeaderBroadcastData) error {
+// SetHeaderForValidator -
+func (mock *delayedBlockBroadcasterMock) SetHeaderForValidator(_ *validatorHeaderBroadcastData) error {
 	return nil
 }
 
-// SetValidatorData sets the data for consensus validator delayed broadcast
-func (mock *delayedBlockBroadcasterMock) SetValidatorData(broadcastData *delayedBroadcastData) error {
+// SetValidatorData -
+func (mock *delayedBlockBroadcasterMock) SetValidatorData(_ *delayedBroadcastData) error {
 	return nil
 }
 
-// SetBroadcastHandlers sets the broadcast handlers for miniBlocks and transactions
+// SetBroadcastHandlers -
 func (mock *delayedBlockBroadcasterMock) SetBroadcastHandlers(
 	mbBroadcast func(mbData map[uint32][]byte, pkBytes []byte) error,
 	txBroadcast func(txData map[string][][]byte, pkBytes []byte) error,
@@ -54,7 +55,7 @@ func (mock *delayedBlockBroadcasterMock) SetBroadcastHandlers(
 	return nil
 }
 
-// Close closes all the started infinite looping goroutines and subcomponents
+// Close -
 func (mock *delayedBlockBroadcasterMock) Close() {
 }
 
@@ -75,6 +76,60 @@ func createSovShardMsgArgs() ArgsSovereignShardChainMessenger {
 
 func getFunctionName(i interface{}) string {
 	return runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
+}
+
+func TestNewSovereignShardChainMessenger_ErrorCases(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil marshaller", func(t *testing.T) {
+		args := createSovShardMsgArgs()
+		args.Marshaller = nil
+		sovMsg, err := NewSovereignShardChainMessenger(args)
+		require.Equal(t, spos.ErrNilMarshalizer, err)
+		require.Nil(t, sovMsg)
+	})
+	t.Run("nil hasher", func(t *testing.T) {
+		args := createSovShardMsgArgs()
+		args.Hasher = nil
+		sovMsg, err := NewSovereignShardChainMessenger(args)
+		require.Equal(t, spos.ErrNilHasher, err)
+		require.Nil(t, sovMsg)
+	})
+	t.Run("nil messenger", func(t *testing.T) {
+		args := createSovShardMsgArgs()
+		args.Messenger = nil
+		sovMsg, err := NewSovereignShardChainMessenger(args)
+		require.Equal(t, spos.ErrNilMessenger, err)
+		require.Nil(t, sovMsg)
+	})
+	t.Run("nil shard coordinator", func(t *testing.T) {
+		args := createSovShardMsgArgs()
+		args.ShardCoordinator = nil
+		sovMsg, err := NewSovereignShardChainMessenger(args)
+		require.Equal(t, spos.ErrNilShardCoordinator, err)
+		require.Nil(t, sovMsg)
+	})
+	t.Run("nil peer signature handler", func(t *testing.T) {
+		args := createSovShardMsgArgs()
+		args.PeerSignatureHandler = nil
+		sovMsg, err := NewSovereignShardChainMessenger(args)
+		require.Equal(t, spos.ErrNilPeerSignatureHandler, err)
+		require.Nil(t, sovMsg)
+	})
+	t.Run("nil keys handler", func(t *testing.T) {
+		args := createSovShardMsgArgs()
+		args.KeysHandler = nil
+		sovMsg, err := NewSovereignShardChainMessenger(args)
+		require.Equal(t, ErrNilKeysHandler, err)
+		require.Nil(t, sovMsg)
+	})
+	t.Run("nil delayed broadcaster", func(t *testing.T) {
+		args := createSovShardMsgArgs()
+		args.DelayedBroadcaster = nil
+		sovMsg, err := NewSovereignShardChainMessenger(args)
+		require.Equal(t, errNilDelayedShardBroadCaster, err)
+		require.Nil(t, sovMsg)
+	})
 }
 
 func TestNewSovereignShardChainMessenger(t *testing.T) {
@@ -101,6 +156,8 @@ func TestNewSovereignShardChainMessenger(t *testing.T) {
 }
 
 func TestSovereignChainMessenger_BroadcastBlock(t *testing.T) {
+	t.Parallel()
+
 	args := createSovShardMsgArgs()
 	body := &block.Body{
 		MiniBlocks: []*block.MiniBlock{
@@ -145,6 +202,8 @@ func TestSovereignChainMessenger_BroadcastBlock(t *testing.T) {
 }
 
 func TestSovereignChainMessenger_BroadcastHeader(t *testing.T) {
+	t.Parallel()
+
 	args := createSovShardMsgArgs()
 	hdr := &block.SovereignChainHeader{
 		DevFeesInEpoch: big.NewInt(100),
