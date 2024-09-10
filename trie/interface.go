@@ -55,6 +55,7 @@ type node interface {
 	setHasher(hashing.Hasher)
 	sizeInBytes() int
 	collectStats(handler common.TrieStatisticsHandler, depthLevel int, db common.TrieStorageInteractor) error
+	getType() string
 
 	IsInterfaceNil() bool
 }

@@ -995,6 +995,10 @@ func (bn *branchNode) collectLeavesForMigration(
 	return true, nil
 }
 
+func (*branchNode) getType() string {
+	return BranchNodeType
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (bn *branchNode) IsInterfaceNil() bool {
 	return bn == nil
