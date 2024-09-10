@@ -10,6 +10,14 @@ type sovereignFullSyncInterceptorsContainerFactory struct {
 	*fullSyncInterceptorsContainerFactory
 }
 
+func NewSovereignFullSyncInterceptorsContainerFactory(
+	shardInterceptors *fullSyncInterceptorsContainerFactory,
+) (*sovereignFullSyncInterceptorsContainerFactory, error) {
+	return &sovereignFullSyncInterceptorsContainerFactory{
+		shardInterceptors,
+	}, nil
+}
+
 // Create returns an interceptor container that will hold all interceptors in the system
 func (ficf *sovereignFullSyncInterceptorsContainerFactory) Create() (process.InterceptorsContainer, process.InterceptorsContainer, error) {
 	err := ficf.generateTxInterceptors()

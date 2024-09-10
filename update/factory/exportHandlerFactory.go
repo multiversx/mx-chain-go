@@ -574,6 +574,22 @@ func (e *exportHandlerFactory) prepareFolders(folder string) error {
 }
 
 func (e *exportHandlerFactory) createInterceptors() error {
+	fullSyncInterceptors, err := e.createFullSyncInterceptors()
+	if err != nil {
+		return err
+	}
+
+	mainInterceptorsContainer, fullArchiveInterceptorsContainer, err := fullSyncInterceptors.Create()
+	if err != nil {
+		return err
+	}
+
+	e.mainInterceptorsContainer = mainInterceptorsContainer
+	e.fullArchiveInterceptorsContainer = fullArchiveInterceptorsContainer
+	return nil
+}
+
+func (e *exportHandlerFactory) createFullSyncInterceptors() (*fullSyncInterceptorsContainerFactory, error) {
 	argsInterceptors := ArgsNewFullSyncInterceptorsContainerFactory{
 		CoreComponents:                   e.coreComponents,
 		CryptoComponents:                 e.cryptoComponents,
@@ -600,19 +616,7 @@ func (e *exportHandlerFactory) createInterceptors() error {
 		NodeOperationMode:                e.nodeOperationMode,
 		ShardCoordinatorFactory:          e.shardCoordinatorFactory,
 	}
-	fullSyncInterceptors, err := NewFullSyncInterceptorsContainerFactory(argsInterceptors)
-	if err != nil {
-		return err
-	}
-
-	mainInterceptorsContainer, fullArchiveInterceptorsContainer, err := fullSyncInterceptors.Create()
-	if err != nil {
-		return err
-	}
-
-	e.mainInterceptorsContainer = mainInterceptorsContainer
-	e.fullArchiveInterceptorsContainer = fullArchiveInterceptorsContainer
-	return nil
+	return NewFullSyncInterceptorsContainerFactory(argsInterceptors)
 }
 
 func createStorer(storageConfig config.StorageConfig, folder string) (storage.Storer, error) {
