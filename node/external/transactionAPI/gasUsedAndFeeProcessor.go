@@ -49,8 +49,8 @@ func (gfp *gasUsedAndFeeProcessor) computeAndAttachGasUsedAndFee(tx *transaction
 		tx.Fee = tx.InitiallyPaidFee
 	}
 
-	initialTotalFee, isRelayed := gfp.getFeeOfRelayed(tx)
-	if isRelayed && isFeeFixActive {
+	initialTotalFee, isRelayedV3 := gfp.getFeeOfRelayedV3(tx)
+	if isRelayedV3 && isFeeFixActive {
 		tx.InitiallyPaidFee = initialTotalFee.String()
 		tx.Fee = initialTotalFee.String()
 		tx.GasUsed = big.NewInt(0).Div(initialTotalFee, big.NewInt(0).SetUint64(tx.GasPrice)).Uint64()
@@ -76,75 +76,16 @@ func (gfp *gasUsedAndFeeProcessor) computeAndAttachGasUsedAndFee(tx *transaction
 	gfp.prepareTxWithResultsBasedOnLogs(tx, hasRefundForSender)
 }
 
-func (gfp *gasUsedAndFeeProcessor) getFeeOfRelayed(tx *transaction.ApiTransactionResult) (*big.Int, bool) {
+func (gfp *gasUsedAndFeeProcessor) getFeeOfRelayedV3(tx *transaction.ApiTransactionResult) (*big.Int, bool) {
 	if !tx.IsRelayed {
 		return nil, false
 	}
 
-	if len(tx.InnerTransactions) > 0 {
-		return gfp.feeComputer.ComputeTransactionFee(tx), true
-	}
-
-	if len(tx.Data) == 0 {
+	if len(tx.InnerTransactions) == 0 {
 		return nil, false
 	}
 
-	funcName, args, err := gfp.argsParser.ParseCallData(string(tx.Data))
-	if err != nil {
-		return nil, false
-	}
-
-	if funcName == core.RelayedTransaction {
-		return gfp.handleRelayedV1(args, tx)
-	}
-
-	if funcName == core.RelayedTransactionV2 {
-		return gfp.handleRelayedV2(args, tx)
-	}
-
-	return nil, false
-}
-
-func (gfp *gasUsedAndFeeProcessor) handleRelayedV1(args [][]byte, tx *transaction.ApiTransactionResult) (*big.Int, bool) {
-	if len(args) != 1 {
-		return nil, false
-	}
-
-	innerTx := &transaction.Transaction{}
-	err := gfp.marshaller.Unmarshal(innerTx, args[0])
-	if err != nil {
-		return nil, false
-	}
-
-	gasUsed := gfp.feeComputer.ComputeGasLimit(tx)
-	fee := gfp.feeComputer.ComputeTxFeeBasedOnGasUsed(tx, gasUsed)
-
-	innerFee := gfp.feeComputer.ComputeTransactionFee(&transaction.ApiTransactionResult{
-		Tx: innerTx,
-	})
-
-	return big.NewInt(0).Add(fee, innerFee), true
-}
-
-func (gfp *gasUsedAndFeeProcessor) handleRelayedV2(args [][]byte, tx *transaction.ApiTransactionResult) (*big.Int, bool) {
-	innerTx := &transaction.Transaction{}
-	innerTx.RcvAddr = args[0]
-	innerTx.Nonce = big.NewInt(0).SetBytes(args[1]).Uint64()
-	innerTx.Data = args[2]
-	innerTx.Signature = args[3]
-	innerTx.Value = big.NewInt(0)
-	innerTx.GasPrice = tx.GasPrice
-	innerTx.GasLimit = tx.GasLimit - gfp.feeComputer.ComputeGasLimit(tx)
-	innerTx.SndAddr = tx.Tx.GetRcvAddr()
-
-	gasUsed := gfp.feeComputer.ComputeGasLimit(tx)
-	fee := gfp.feeComputer.ComputeTxFeeBasedOnGasUsed(tx, gasUsed)
-
-	innerFee := gfp.feeComputer.ComputeTransactionFee(&transaction.ApiTransactionResult{
-		Tx: innerTx,
-	})
-
-	return big.NewInt(0).Add(fee, innerFee), true
+	return gfp.feeComputer.ComputeTransactionFee(tx), true
 }
 
 func (gfp *gasUsedAndFeeProcessor) prepareTxWithResultsBasedOnLogs(

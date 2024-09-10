@@ -198,12 +198,12 @@ func (atp *apiTransactionProcessor) populateComputedFieldInitiallyPaidFee(tx *tr
 	// For user-initiated transactions, we can assume the fee is always strictly positive (note: BigInt(0) is stringified as "").
 	tx.InitiallyPaidFee = fee.String()
 
-	isFeeFixActive := atp.enableEpochsHandler.IsFlagEnabledInEpoch(common.FixRelayedBaseCostFlag, tx.Epoch)
-	isRelayedAfterFix := tx.IsRelayed && isFeeFixActive
-	if isRelayedAfterFix {
-		fee, _ = atp.gasUsedAndFeeProcessor.getFeeOfRelayed(tx)
-		tx.InitiallyPaidFee = fee.String()
-	}
+	//isFeeFixActive := atp.enableEpochsHandler.IsFlagEnabledInEpoch(common.FixRelayedBaseCostFlag, tx.Epoch)
+	//isRelayedAfterFix := tx.IsRelayed && isFeeFixActive
+	//if isRelayedAfterFix {
+	//	fee, _ = atp.gasUsedAndFeeProcessor.getFeeOfRelayed(tx)
+	//	tx.InitiallyPaidFee = fee.String()
+	//}
 }
 
 func (atp *apiTransactionProcessor) populateComputedFieldIsRefund(tx *transaction.ApiTransactionResult) {
