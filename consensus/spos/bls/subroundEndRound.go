@@ -836,7 +836,7 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message
 			PubKeysBitmap:       cnsDta.PubKeysBitmap,
 		}
 		sr.Blockchain().SetCurrentHeaderProof(proof)
-		sr.worker.SetValidEquivalentProof(cnsDta.BlockHeaderHash, proof)
+		sr.worker.SetValidEquivalentProof(cnsDta.BlockHeaderHash, proof, sr.Header.GetNonce())
 	}
 
 	sr.SetStatus(sr.Current(), spos.SsFinished)

@@ -4,7 +4,11 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/pkg/errors"
 )
+
+// ErrMissingEquivalentProof signals that the equivalent proof is missing
+var ErrMissingEquivalentProof = errors.New("missing equivalent proof")
 
 // ProofInfo holds the information about a header
 type ProofInfo struct {
@@ -76,7 +80,7 @@ func (pn *proofTracker) GetNotarizedProof(
 
 	proofInfo, ok := pn.notarizedProofs[string(headerHash)]
 	if !ok {
-		return data.HeaderProof{}, ErrNilNotarizedProofInfoForShard
+		return data.HeaderProof{}, ErrMissingEquivalentProof
 	}
 
 	return proofInfo.HeaderProof, nil

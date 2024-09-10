@@ -1,20 +1,32 @@
 package consensus
 
-import (
-	"github.com/multiversx/mx-chain-go/consensus"
-)
+import "github.com/multiversx/mx-chain-core-go/data"
 
 // EquivalentMessagesDebuggerStub -
 type EquivalentMessagesDebuggerStub struct {
-	DisplayEquivalentMessagesStatisticsCalled func(getDataHandler func() map[string]*consensus.EquivalentMessageInfo)
+	DisplayEquivalentMessagesStatisticsCalled func()
 }
 
 // DisplayEquivalentMessagesStatistics -
-func (stub *EquivalentMessagesDebuggerStub) DisplayEquivalentMessagesStatistics(getDataHandler func() map[string]*consensus.EquivalentMessageInfo) {
+func (stub *EquivalentMessagesDebuggerStub) DisplayEquivalentMessagesStatistics() {
 	if stub.DisplayEquivalentMessagesStatisticsCalled != nil {
-		stub.DisplayEquivalentMessagesStatisticsCalled(getDataHandler)
+		stub.DisplayEquivalentMessagesStatisticsCalled()
 	}
 }
+
+// SetValidEquivalentProof -
+func (stub *EquivalentMessagesDebuggerStub) SetValidEquivalentProof(
+	headerHash []byte,
+	proof data.HeaderProof,
+) {
+}
+
+// UpsertEquivalentMessage -
+func (stub *EquivalentMessagesDebuggerStub) UpsertEquivalentMessage(headerHash []byte) {}
+
+func (stub *EquivalentMessagesDebuggerStub) ResetEquivalentMessages() {}
+
+func (stub *EquivalentMessagesDebuggerStub) DeleteEquivalentMessage(headerHash []byte) {}
 
 // IsInterfaceNil -
 func (stub *EquivalentMessagesDebuggerStub) IsInterfaceNil() bool {

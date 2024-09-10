@@ -115,6 +115,7 @@ type WorkerArgs struct {
 	PeerBlacklistHandler       consensus.PeerBlacklistHandler
 	EquivalentMessagesDebugger EquivalentMessagesDebugger
 	EnableEpochsHandler        common.EnableEpochsHandler
+	ProofTracker               track.ProofTracker
 }
 
 // NewWorker creates a new Worker object
@@ -168,6 +169,7 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 		closer:                     closing.NewSafeChanCloser(),
 		equivalentMessagesDebugger: args.EquivalentMessagesDebugger,
 		enableEpochsHandler:        args.EnableEpochsHandler,
+		proofsTracker:              args.ProofTracker,
 	}
 
 	wrk.consensusMessageValidator = consensusMessageValidatorObj
@@ -273,6 +275,9 @@ func checkNewWorkerParams(args *WorkerArgs) error {
 	}
 	if check.IfNil(args.EnableEpochsHandler) {
 		return ErrNilEnableEpochsHandler
+	}
+	if check.IfNil(args.ProofTracker) {
+		return ErrNilProofTracker
 	}
 
 	return nil
@@ -754,6 +759,7 @@ func (wrk *Worker) Close() error {
 // ResetConsensusMessages resets at the start of each round all the previous consensus messages received and equivalent messages, keeping the provided proofs
 func (wrk *Worker) ResetConsensusMessages(currentHash []byte, prevHash []byte) {
 	wrk.consensusMessageValidator.resetConsensusMessages()
+	wrk.equivalentMessagesDebugger.ResetEquivalentMessages()
 }
 
 func (wrk *Worker) checkValidityAndProcessEquivalentMessages(cnsMsg *consensus.Message, p2pMessage p2p.MessageP2P) error {
@@ -778,10 +784,15 @@ func (wrk *Worker) checkValidityAndProcessEquivalentMessages(cnsMsg *consensus.M
 
 	err = wrk.consensusMessageValidator.checkConsensusMessageValidity(cnsMsg, p2pMessage.Peer())
 	if err != nil {
+		wrk.processInvalidEquivalentMessageUnprotected(cnsMsg.BlockHeaderHash)
 		return err
 	}
 
 	return nil
+}
+
+func (wrk *Worker) processInvalidEquivalentMessageUnprotected(blockHeaderHash []byte) {
+	wrk.equivalentMessagesDebugger.DeleteEquivalentMessage(blockHeaderHash)
 }
 
 func (wrk *Worker) checkFinalInfoFromSelf(cnsDta *consensus.Message) bool {
@@ -856,6 +867,7 @@ func (wrk *Worker) GetEquivalentProof(headerHash []byte) (data.HeaderProof, erro
 func (wrk *Worker) SetValidEquivalentProof(headerHash []byte, proof data.HeaderProof, nonce uint64) {
 	// only valid equivalent proofs are being added to proofs tracker
 	wrk.proofsTracker.AddNotarizedProof(headerHash, proof, nonce)
+	wrk.equivalentMessagesDebugger.SetValidEquivalentProof(headerHash, proof)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

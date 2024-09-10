@@ -30,7 +30,7 @@ type SposWorkerMock struct {
 	ResetConsensusMessagesCalled           func(currentHash []byte, prevHash []byte)
 	HasEquivalentMessageCalled             func(headerHash []byte) bool
 	GetEquivalentProofCalled               func(headerHash []byte) (data.HeaderProof, error)
-	SetValidEquivalentProofCalled          func(headerHash []byte, proof data.HeaderProof)
+	SetValidEquivalentProofCalled          func(headerHash []byte, proof data.HeaderProof, nonce uint64)
 }
 
 // AddReceivedMessageCall -
@@ -130,9 +130,13 @@ func (sposWorkerMock *SposWorkerMock) GetEquivalentProof(headerHash []byte) (dat
 }
 
 // SetValidEquivalentProof -
-func (sposWorkerMock *SposWorkerMock) SetValidEquivalentProof(headerHash []byte, proof data.HeaderProof) {
+func (sposWorkerMock *SposWorkerMock) SetValidEquivalentProof(
+	headerHash []byte,
+	proof data.HeaderProof,
+	nonce uint64,
+) {
 	if sposWorkerMock.SetValidEquivalentProofCalled != nil {
-		sposWorkerMock.SetValidEquivalentProofCalled(headerHash, proof)
+		sposWorkerMock.SetValidEquivalentProofCalled(headerHash, proof, nonce)
 	}
 }
 

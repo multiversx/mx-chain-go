@@ -35,10 +35,7 @@ func NewEquivalentMessagesDebugger() *equivalentMessagesDebugger {
 	return debugger
 }
 
-func (debugger *equivalentMessagesDebugger) resetEquivalentMessages() {
-	debugger.mutEquivalentMessages.Lock()
-	defer debugger.mutEquivalentMessages.Unlock()
-
+func (debugger *equivalentMessagesDebugger) ResetEquivalentMessages() {
 	debugger.equivalentMessages = make(map[string]*equivalentMessageDebugInfo)
 }
 
@@ -51,9 +48,10 @@ func (debugger *equivalentMessagesDebugger) SetValidEquivalentProof(
 
 	equivalentMessage, ok := debugger.equivalentMessages[string(headerHash)]
 	if !ok {
-		debugger.equivalentMessages[string(headerHash)] = &equivalentMessageDebugInfo{
+		equivalentMessage = &equivalentMessageDebugInfo{
 			NumMessages: 1,
 		}
+		debugger.equivalentMessages[string(headerHash)] = equivalentMessage
 	}
 	equivalentMessage.Validated = true
 	equivalentMessage.Proof = proof
@@ -67,12 +65,27 @@ func (debugger *equivalentMessagesDebugger) UpsertEquivalentMessage(
 
 	equivalentMessage, ok := debugger.equivalentMessages[string(headerHash)]
 	if !ok {
-		debugger.equivalentMessages[string(headerHash)] = &equivalentMessageDebugInfo{
+		equivalentMessage = &equivalentMessageDebugInfo{
 			NumMessages: 0,
 			Validated:   false,
 		}
+		debugger.equivalentMessages[string(headerHash)] = equivalentMessage
 	}
 	equivalentMessage.NumMessages++
+}
+
+func (debugger *equivalentMessagesDebugger) GetEquivalentMessages() map[string]*equivalentMessageDebugInfo {
+	debugger.mutEquivalentMessages.Lock()
+	defer debugger.mutEquivalentMessages.Unlock()
+
+	return debugger.equivalentMessages
+}
+
+func (debugger *equivalentMessagesDebugger) DeleteEquivalentMessage(headerHash []byte) {
+	debugger.mutEquivalentMessages.Lock()
+	defer debugger.mutEquivalentMessages.Unlock()
+
+	delete(debugger.equivalentMessages, string(headerHash))
 }
 
 // DisplayEquivalentMessagesStatistics prints all the equivalent messages
@@ -87,8 +100,6 @@ func (debugger *equivalentMessagesDebugger) DisplayEquivalentMessagesStatistics(
 	dataMap := debugger.equivalentMessages
 
 	log.Trace(fmt.Sprintf("Equivalent messages statistics for current round\n%s", dataToString(dataMap)))
-
-	debugger.resetEquivalentMessages()
 }
 
 func dataToString(data map[string]*equivalentMessageDebugInfo) string {

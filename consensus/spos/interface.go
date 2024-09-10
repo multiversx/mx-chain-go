@@ -199,5 +199,7 @@ type EquivalentMessagesDebugger interface {
 		headerHash []byte,
 	)
 	DisplayEquivalentMessagesStatistics()
+	ResetEquivalentMessages()
+	DeleteEquivalentMessage(headerHash []byte)
 	IsInterfaceNil() bool
 }

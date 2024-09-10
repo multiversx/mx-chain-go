@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/process"
@@ -195,18 +194,6 @@ func (rcns *RoundConsensus) EligibleList() map[string]struct{} {
 // AppStatusHandler -
 func (wrk *Worker) AppStatusHandler() core.AppStatusHandler {
 	return wrk.appStatusHandler
-}
-
-// SetEquivalentProof -
-func (wrk *Worker) SetEquivalentProof(hash string, proof data.HeaderProof) {
-	wrk.mutEquivalentMessages.Lock()
-	defer wrk.mutEquivalentMessages.Unlock()
-
-	wrk.equivalentMessages[hash] = &consensus.EquivalentMessageInfo{
-		NumMessages: 1,
-		Validated:   false,
-		Proof:       proof,
-	}
 }
 
 // CheckConsensusMessageValidity -

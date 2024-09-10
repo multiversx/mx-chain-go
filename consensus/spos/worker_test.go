@@ -26,8 +26,10 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
+	"github.com/multiversx/mx-chain-go/consensus/spos/debug"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/bootstrapperStubs"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
@@ -96,6 +98,9 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 	scheduledProcessor, _ := spos.NewScheduledProcessorWrapper(scheduledProcessorArgs)
 
 	peerSigHandler := &mock.PeerSignatureHandler{Signer: singleSignerMock, KeyGen: keyGeneratorMock}
+
+	proofTracker, _ := track.NewProofTracker()
+
 	workerArgs := &spos.WorkerArgs{
 		ConsensusService:           blsService,
 		BlockChain:                 blockchainMock,
@@ -124,6 +129,7 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 		PeerBlacklistHandler:       &mock.PeerBlacklistHandlerStub{},
 		EquivalentMessagesDebugger: &consensusMocks.EquivalentMessagesDebuggerStub{},
 		EnableEpochsHandler:        &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		ProofTracker:               proofTracker,
 	}
 
 	return workerArgs
@@ -625,6 +631,13 @@ func TestWorker_ProcessReceivedMessageEquivalentMessage(t *testing.T) {
 			return flag == common.EquivalentMessagesFlag
 		},
 	}
+
+	equivalentMessagesDebugger := debug.NewEquivalentMessagesDebugger()
+
+	workerArgs.EquivalentMessagesDebugger = equivalentMessagesDebugger
+	proofTracker, _ := track.NewProofTracker()
+	workerArgs.ProofTracker = proofTracker
+
 	wrk, _ := spos.NewWorker(workerArgs)
 
 	equivalentBlockHeaderHash := workerArgs.Hasher.Compute("equivalent block header hash")
@@ -715,13 +728,13 @@ func TestWorker_ProcessReceivedMessageEquivalentMessage(t *testing.T) {
 	)
 	assert.NoError(t, err)
 
-	equivalentMessages := wrk.GetEquivalentMessages()
+	equivalentMessages := equivalentMessagesDebugger.GetEquivalentMessages()
 	assert.Equal(t, 1, len(equivalentMessages))
 	assert.Equal(t, uint64(1), equivalentMessages[string(equivalentBlockHeaderHash)].NumMessages)
 	wrk.SetValidEquivalentProof(equivalentBlockHeaderHash, data.HeaderProof{
 		AggregatedSignature: []byte("sig"),
 		PubKeysBitmap:       []byte("bitmap"),
-	})
+	}, uint64(2))
 	assert.True(t, wrk.HasEquivalentMessage(equivalentBlockHeaderHash))
 
 	equivMsgFrom := core.PeerID("from other peer id")
@@ -736,7 +749,7 @@ func TestWorker_ProcessReceivedMessageEquivalentMessage(t *testing.T) {
 	)
 	assert.Equal(t, spos.ErrEquivalentMessageAlreadyReceived, err)
 
-	equivalentMessages = wrk.GetEquivalentMessages()
+	equivalentMessages = equivalentMessagesDebugger.GetEquivalentMessages()
 	assert.Equal(t, 1, len(equivalentMessages))
 	assert.Equal(t, uint64(2), equivalentMessages[string(equivalentBlockHeaderHash)].NumMessages)
 
@@ -752,12 +765,12 @@ func TestWorker_ProcessReceivedMessageEquivalentMessage(t *testing.T) {
 	assert.Error(t, err)
 
 	// same state as before, invalid message should have been dropped
-	equivalentMessages = wrk.GetEquivalentMessages()
+	equivalentMessages = equivalentMessagesDebugger.GetEquivalentMessages()
 	assert.Equal(t, 1, len(equivalentMessages))
 	assert.Equal(t, uint64(2), equivalentMessages[string(equivalentBlockHeaderHash)].NumMessages)
 
 	wrk.ResetConsensusMessages(nil, nil)
-	equivalentMessages = wrk.GetEquivalentMessages()
+	equivalentMessages = equivalentMessagesDebugger.GetEquivalentMessages()
 	assert.Equal(t, 0, len(equivalentMessages))
 }
 
@@ -2149,19 +2162,14 @@ func TestWorker_EquivalentProof(t *testing.T) {
 		wrk, _ := spos.NewWorker(workerArgs)
 
 		_, err := wrk.GetEquivalentProof(providedHash)
-		require.Equal(t, spos.ErrMissingEquivalentProof, err)
-
-		wrk.SetEquivalentProof(string(providedHash), providedProof)
-		proof, err := wrk.GetEquivalentProof(providedHash)
-		require.Equal(t, spos.ErrEquivalentProofNotValidated, err)
-		require.Equal(t, data.HeaderProof{}, proof)
+		require.Equal(t, track.ErrMissingEquivalentProof, err)
 
 		require.False(t, wrk.HasEquivalentMessage(providedHash))
 
-		wrk.SetValidEquivalentProof(providedHash, providedProof)
+		wrk.SetValidEquivalentProof(providedHash, providedProof, uint64(2))
 		require.True(t, wrk.HasEquivalentMessage(providedHash))
 
-		proof, err = wrk.GetEquivalentProof(providedHash)
+		proof, err := wrk.GetEquivalentProof(providedHash)
 		require.NoError(t, err)
 		require.Equal(t, providedProof, proof)
 	})
@@ -2169,6 +2177,7 @@ func TestWorker_EquivalentProof(t *testing.T) {
 		t.Parallel()
 
 		workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
+
 		wrk, _ := spos.NewWorker(workerArgs)
 
 		numCalls := 1000
@@ -2179,7 +2188,7 @@ func TestWorker_EquivalentProof(t *testing.T) {
 			go func(idx int) {
 				switch idx % 3 {
 				case 0:
-					wrk.SetValidEquivalentProof(providedHash, providedProof)
+					wrk.SetValidEquivalentProof(providedHash, providedProof, uint64(2))
 				case 1:
 					_, _ = wrk.GetEquivalentProof(providedHash)
 				case 2:
