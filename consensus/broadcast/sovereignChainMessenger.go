@@ -18,6 +18,7 @@ type sovereignChainMessenger struct {
 	*shardChainMessenger
 }
 
+// ArgsSovereignShardChainMessenger defines a struct placeholder for args needed to create a sovereign shard chain messenger
 type ArgsSovereignShardChainMessenger struct {
 	DelayedBroadcaster   delayedBroadcaster
 	Marshaller           marshal.Marshalizer
