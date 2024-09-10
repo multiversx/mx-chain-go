@@ -108,6 +108,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks"
+	cache2 "github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
@@ -468,8 +469,8 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 	var peersRatingMonitor p2p.PeersRatingMonitor
 	peersRatingMonitor = &p2pmocks.PeersRatingMonitorStub{}
 	if args.WithPeersRatingHandler {
-		topRatedCache := testscommon.NewCacherMock()
-		badRatedCache := testscommon.NewCacherMock()
+		topRatedCache := cache2.NewCacherMock()
+		badRatedCache := cache2.NewCacherMock()
 		peersRatingHandler, _ = p2pFactory.NewPeersRatingHandler(
 			p2pFactory.ArgPeersRatingHandler{
 				TopRatedCache: topRatedCache,
@@ -885,7 +886,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 	argsBuiltIn.AutomaticCrawlerAddresses = GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 
-	smartContractsCache := testscommon.NewCacherMock()
+	smartContractsCache := cache2.NewCacherMock()
 
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:                 tpn.AccntState,
@@ -3070,7 +3071,7 @@ func (tpn *TestProcessorNode) initHeaderValidator() {
 }
 
 func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
-	cacher := testscommon.NewCacherMock()
+	cacher := cache2.NewCacherMock()
 	psh, err := peerSignatureHandler.NewPeerSignatureHandler(
 		cacher,
 		tpn.OwnAccount.BlockSingleSigner,

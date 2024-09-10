@@ -43,6 +43,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/database"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
@@ -161,7 +162,7 @@ func createShardedDataChacherNotifier(
 	return func() dataRetriever.ShardedDataCacherNotifier {
 		return &testscommon.ShardedDataStub{
 			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
-				return &testscommon.CacherStub{
+				return &cache.CacherStub{
 					PeekCalled: func(key []byte) (value interface{}, ok bool) {
 						if reflect.DeepEqual(key, testHash) {
 							return handler, true
@@ -208,7 +209,7 @@ func initDataPool(testHash []byte) *dataRetrieverMock.PoolsHolderStub {
 		UnsignedTransactionsCalled: unsignedTxCalled,
 		RewardTransactionsCalled:   rewardTransactionsCalled,
 		MetaBlocksCalled: func() storage.Cacher {
-			return &testscommon.CacherStub{
+			return &cache.CacherStub{
 				GetCalled: func(key []byte) (value interface{}, ok bool) {
 					if reflect.DeepEqual(key, []byte("tx1_hash")) {
 						return &transaction.Transaction{Nonce: 10}, true
@@ -235,7 +236,7 @@ func initDataPool(testHash []byte) *dataRetrieverMock.PoolsHolderStub {
 			}
 		},
 		MiniBlocksCalled: func() storage.Cacher {
-			cs := testscommon.NewCacherStub()
+			cs := cache.NewCacherStub()
 			cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {
 			}
 			cs.GetCalled = func(key []byte) (value interface{}, ok bool) {

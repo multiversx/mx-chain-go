@@ -15,6 +15,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -22,12 +25,11 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	vics "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func createMockValidatorInfo() state.ShardValidatorsInfoMapHandler {
@@ -128,7 +130,7 @@ func createMockEpochValidatorInfoCreatorsArguments() ArgsNewValidatorInfoCreator
 		Marshalizer:          &mock.MarshalizerMock{},
 		DataPool: &dataRetrieverMock.PoolsHolderStub{
 			MiniBlocksCalled: func() storage.Cacher {
-				return &testscommon.CacherStub{
+				return &cache.CacherStub{
 					RemoveCalled: func(key []byte) {},
 				}
 			},
