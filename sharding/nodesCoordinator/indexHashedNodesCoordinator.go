@@ -40,6 +40,12 @@ type validatorWithShardID struct {
 	shardID   uint32
 }
 
+// SavedConsensusGroup holds the leader and consensus group for a specific selection
+type SavedConsensusGroup struct {
+	Leader         Validator
+	ConsensusGroup []Validator
+}
+
 type validatorList []Validator
 
 // Len will return the length of the validatorList
@@ -102,11 +108,6 @@ type indexHashedNodesCoordinator struct {
 	flagStakingV4Step2              atomicFlags.Flag
 	nodesCoordinatorRegistryFactory NodesCoordinatorRegistryFactory
 	flagStakingV4Started            atomicFlags.Flag
-}
-
-type SavedConsensusGroup struct {
-	Leader         Validator
-	ConsensusGroup []Validator
 }
 
 // NewIndexHashedNodesCoordinator creates a new index hashed group selector
@@ -404,16 +405,18 @@ func (ihnc *indexHashedNodesCoordinator) ComputeConsensusGroup(
 		return nil, nil, err
 	}
 
-	size := l.Size() * len(consensusGroup)
-
-	savedConsensusGroup = &SavedConsensusGroup{
-		Leader:         l,
-		ConsensusGroup: consensusGroup,
-	}
-
-	ihnc.consensusGroupCacher.Put(key, savedConsensusGroup, size)
+	ihnc.cacheConsensusGroup(key, consensusGroup, l)
 
 	return l, consensusGroup, nil
+}
+
+func (ihnc *indexHashedNodesCoordinator) cacheConsensusGroup(key []byte, consensusGroup []Validator, leader Validator) {
+	size := leader.Size() * len(consensusGroup)
+	savedConsensusGroup := &SavedConsensusGroup{
+		Leader:         leader,
+		ConsensusGroup: consensusGroup,
+	}
+	ihnc.consensusGroupCacher.Put(key, savedConsensusGroup, size)
 }
 
 func (ihnc *indexHashedNodesCoordinator) selectLeaderAndConsensusGroup(
