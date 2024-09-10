@@ -287,9 +287,8 @@ func (scf *statusComponentsFactory) makeHostDriversArgs() ([]outportDriverFactor
 		}
 
 		argsHostDriverFactorySlice = append(argsHostDriverFactorySlice, outportDriverFactory.ArgsHostDriverFactory{
-			Marshaller:            marshaller,
-			HostConfig:            hostConfig,
-			StateChangesCollector: scf.stateComponents.StateChangesCollector(),
+			Marshaller: marshaller,
+			HostConfig: hostConfig,
 		})
 	}
 
