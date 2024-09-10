@@ -19,7 +19,6 @@ type DriverStub struct {
 	CloseCalled                 func() error
 	RegisterHandlerCalled       func(handlerFunction func() error, topic string) error
 	SetCurrentSettingsCalled    func(config outportcore.OutportConfig) error
-	SaveStateChangesCalled      func() error
 }
 
 // SaveBlock -
@@ -103,15 +102,6 @@ func (d *DriverStub) SetCurrentSettings(config outportcore.OutportConfig) error 
 func (d *DriverStub) RegisterHandler(handlerFunction func() error, topic string) error {
 	if d.RegisterHandlerCalled != nil {
 		return d.RegisterHandlerCalled(handlerFunction, topic)
-	}
-
-	return nil
-}
-
-// SaveStateChanges -
-func (d *DriverStub) SaveStateChanges() error {
-	if d.SaveStateChangesCalled != nil {
-		return d.SaveStateChangesCalled()
 	}
 
 	return nil

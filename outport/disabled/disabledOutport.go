@@ -39,10 +39,6 @@ func (n *disabledOutport) SaveValidatorsRating(_ *outportcore.ValidatorsRating) 
 func (n *disabledOutport) SaveAccounts(_ *outportcore.Accounts) {
 }
 
-// SaveStateChanges does nothing
-func (n *disabledOutport) SaveStateChanges() {
-}
-
 // FinalizedBlock does nothing
 func (n *disabledOutport) FinalizedBlock(_ *outportcore.FinalizedBlock) {
 }

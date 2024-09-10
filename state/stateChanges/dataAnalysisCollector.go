@@ -187,10 +187,6 @@ func (scc *dataAnalysisCollector) Publish() error {
 	return nil
 }
 
-func (scc *dataAnalysisCollector) GetStateChangesForTx() []StateChange {
-	return scc.stateChanges
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (scc *dataAnalysisCollector) IsInterfaceNil() bool {
 	return scc == nil

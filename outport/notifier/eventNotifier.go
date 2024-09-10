@@ -115,11 +115,6 @@ func (en *eventNotifier) SaveAccounts(_ *outport.Accounts) error {
 	return nil
 }
 
-// SaveStateChanges does nothing
-func (en *eventNotifier) SaveStateChanges() error {
-	return nil
-}
-
 // GetMarshaller returns internal marshaller
 func (en *eventNotifier) GetMarshaller() marshal.Marshalizer {
 	return en.marshalizer

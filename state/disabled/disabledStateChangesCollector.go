@@ -49,6 +49,7 @@ func (d *disabledStateChangesCollector) Publish() error {
 	return nil
 }
 
+// GetStateChangesForTxs -
 func (d *disabledStateChangesCollector) GetStateChangesForTxs() map[string]*stateChange.StateChanges {
 	return nil
 }

@@ -103,6 +103,7 @@ func (scc *stateChangesCollector) getStateChangesForTxs() ([]StateChangesForTx, 
 	return stateChangesForTxs, nil
 }
 
+// GetStateChangesForTxs will retrieve the state changes linked with the tx hash.
 func (scc *stateChangesCollector) GetStateChangesForTxs() map[string]*data.StateChanges {
 	scc.stateChangesMut.Lock()
 	defer scc.stateChangesMut.Unlock()
@@ -139,33 +140,6 @@ func (scc *stateChangesCollector) GetStateChangesForTxs() map[string]*data.State
 			)
 		}
 	}
-
-	//for i := 0; i < len(scc.stateChanges); i++ {
-	//	txHash := scc.stateChanges[i].GetTxHash()
-	//
-	//	if len(txHash) == 0 {
-	//		log.Warn("empty tx hash, state change event not associated to a transaction")
-	//		break
-	//	}
-	//
-	//	innerStateChangesForTx := make([]StateChange, 0)
-	//	for j := i; j < len(scc.stateChanges); j++ {
-	//		txHash2 := scc.stateChanges[j].GetTxHash()
-	//		if !bytes.Equal(txHash, txHash2) {
-	//			i = j
-	//			break
-	//		}
-	//
-	//		innerStateChangesForTx = append(innerStateChangesForTx, scc.stateChanges[j])
-	//		i = j
-	//	}
-	//
-	//	stateChangesForTx := StateChangesForTx{
-	//		TxHash:       txHash,
-	//		StateChanges: innerStateChangesForTx,
-	//	}
-	//	stateChangesForTxs = append(stateChangesForTxs, stateChangesForTx)
-	//}
 
 	return stateChangesForTxs
 }
