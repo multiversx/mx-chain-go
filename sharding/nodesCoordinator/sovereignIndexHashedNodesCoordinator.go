@@ -52,7 +52,7 @@ func NewSovereignIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*so
 			shardConsensusGroupSize:         arguments.ShardConsensusGroupSize,
 			metaConsensusGroupSize:          arguments.MetaConsensusGroupSize,
 			consensusGroupCacher:            arguments.ConsensusGroupCache,
-			shardIDAsObserver:               arguments.ShardIDAsObserver,
+			shardIDAsObserver:               core.SovereignChainShardId,
 			shuffledOutHandler:              arguments.ShuffledOutHandler,
 			startEpoch:                      arguments.StartEpoch,
 			publicKeyToValidatorMap:         make(map[string]*validatorWithShardID),
@@ -63,6 +63,7 @@ func NewSovereignIndexHashedNodesCoordinator(arguments ArgNodesCoordinator) (*so
 			validatorInfoCacher:             arguments.ValidatorInfoCacher,
 			genesisNodesSetupHandler:        arguments.GenesisNodesSetupHandler,
 			nodesCoordinatorRegistryFactory: arguments.NodesCoordinatorRegistryFactory,
+			numberOfShardsComputer:          newSovereignNumberOfShardsComputer(),
 		},
 	}
 
