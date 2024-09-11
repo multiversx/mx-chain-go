@@ -8,13 +8,14 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestValidatorToDelegationManagerWithNewContract(t *testing.T) {
@@ -34,11 +35,11 @@ func TestValidatorToDelegationManagerWithNewContract(t *testing.T) {
 
 	stakingWalletAccount := integrationTests.CreateTestWalletAccount(nodes[0].ShardCoordinator, nodes[0].ShardCoordinator.SelfId())
 
-	idxProposers := make([]int, numOfShards+1)
+	leaders := make([]*integrationTests.TestProcessorNode, numOfShards+1)
 	for i := 0; i < numOfShards; i++ {
-		idxProposers[i] = i * nodesPerShard
+		leaders[i] = nodes[i*nodesPerShard]
 	}
-	idxProposers[numOfShards] = numOfShards * nodesPerShard
+	leaders[numOfShards] = nodes[numOfShards*nodesPerShard]
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -71,7 +72,7 @@ func TestValidatorToDelegationManagerWithNewContract(t *testing.T) {
 		t,
 		nodes,
 		stakingWalletAccount,
-		idxProposers,
+		leaders,
 		nodePrice,
 		frontendBLSPubkey,
 		frontendHexSignature,
@@ -87,7 +88,7 @@ func TestValidatorToDelegationManagerWithNewContract(t *testing.T) {
 		t,
 		nodes,
 		stakingWalletAccount,
-		idxProposers,
+		leaders,
 		"makeNewContractFromValidatorData",
 		big.NewInt(0),
 		[]byte{10},
@@ -124,11 +125,11 @@ func testValidatorToDelegationWithMerge(t *testing.T, withJail bool) {
 
 	stakingWalletAccount := integrationTests.CreateTestWalletAccount(nodes[0].ShardCoordinator, nodes[0].ShardCoordinator.SelfId())
 
-	idxProposers := make([]int, numOfShards+1)
+	leaders := make([]*integrationTests.TestProcessorNode, numOfShards+1)
 	for i := 0; i < numOfShards; i++ {
-		idxProposers[i] = i * nodesPerShard
+		leaders[i] = nodes[i*nodesPerShard]
 	}
-	idxProposers[numOfShards] = numOfShards * nodesPerShard
+	leaders[numOfShards] = nodes[numOfShards*nodesPerShard]
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -162,7 +163,7 @@ func testValidatorToDelegationWithMerge(t *testing.T, withJail bool) {
 		t,
 		nodes,
 		stakingWalletAccount,
-		idxProposers,
+		leaders,
 		nodePrice,
 		frontendBLSPubkey,
 		frontendHexSignature,
@@ -182,7 +183,7 @@ func testValidatorToDelegationWithMerge(t *testing.T, withJail bool) {
 		t,
 		nodes,
 		stakingWalletAccount,
-		idxProposers,
+		leaders,
 		"createNewDelegationContract",
 		big.NewInt(10000),
 		[]byte{0},
@@ -206,7 +207,7 @@ func testValidatorToDelegationWithMerge(t *testing.T, withJail bool) {
 
 	time.Sleep(time.Second)
 
-	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, 10, nonce, round, idxProposers)
+	_, _ = integrationTests.WaitOperationToBeDone(t, leaders, nodes, 10, nonce, round)
 
 	time.Sleep(time.Second)
 
@@ -258,11 +259,11 @@ func TestValidatorToDelegationManagerWithWhiteListAndMerge(t *testing.T) {
 	stakingWalletAccount1 := integrationTests.CreateTestWalletAccount(nodes[0].ShardCoordinator, nodes[0].ShardCoordinator.SelfId())
 	stakingWalletAccount2 := integrationTests.CreateTestWalletAccount(nodes[0].ShardCoordinator, nodes[0].ShardCoordinator.SelfId())
 
-	idxProposers := make([]int, numOfShards+1)
+	leaders := make([]*integrationTests.TestProcessorNode, numOfShards+1)
 	for i := 0; i < numOfShards; i++ {
-		idxProposers[i] = i * nodesPerShard
+		leaders[i] = nodes[i*nodesPerShard]
 	}
-	idxProposers[numOfShards] = numOfShards * nodesPerShard
+	leaders[numOfShards] = nodes[numOfShards*nodesPerShard]
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -296,7 +297,7 @@ func TestValidatorToDelegationManagerWithWhiteListAndMerge(t *testing.T) {
 		t,
 		nodes,
 		stakingWalletAccount1,
-		idxProposers,
+		leaders,
 		nodePrice,
 		frontendBLSPubkey,
 		frontendHexSignature,
@@ -312,7 +313,7 @@ func TestValidatorToDelegationManagerWithWhiteListAndMerge(t *testing.T) {
 		t,
 		nodes,
 		stakingWalletAccount2,
-		idxProposers,
+		leaders,
 		"createNewDelegationContract",
 		big.NewInt(10000),
 		[]byte{0},
@@ -335,7 +336,7 @@ func TestValidatorToDelegationManagerWithWhiteListAndMerge(t *testing.T) {
 	)
 
 	time.Sleep(time.Second)
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 5, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, 5, nonce, round)
 
 	txData = txDataBuilder.NewBuilder().Clear().
 		Func("mergeValidatorToDelegationWithWhitelist").
@@ -352,7 +353,7 @@ func TestValidatorToDelegationManagerWithWhiteListAndMerge(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	_, _ = integrationTests.WaitOperationToBeDone(t, nodes, 10, nonce, round, idxProposers)
+	_, _ = integrationTests.WaitOperationToBeDone(t, leaders, nodes, 10, nonce, round)
 
 	time.Sleep(time.Second)
 	testBLSKeyOwnerIsAddress(t, nodes, scAddressBytes, frontendBLSPubkey)
@@ -378,7 +379,7 @@ func generateSendAndWaitToExecuteStakeTransaction(
 	t *testing.T,
 	nodes []*integrationTests.TestProcessorNode,
 	stakingWalletAccount *integrationTests.TestWalletAccount,
-	idxProposers []int,
+	leaders []*integrationTests.TestProcessorNode,
 	nodePrice *big.Int,
 	frontendBLSPubkey []byte,
 	frontendHexSignature string,
@@ -398,7 +399,7 @@ func generateSendAndWaitToExecuteStakeTransaction(
 	time.Sleep(time.Second)
 
 	nrRoundsToPropagateMultiShard := 6
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, nrRoundsToPropagateMultiShard, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, nrRoundsToPropagateMultiShard, nonce, round)
 
 	return nonce, round
 }
@@ -407,7 +408,7 @@ func generateSendAndWaitToExecuteTransaction(
 	t *testing.T,
 	nodes []*integrationTests.TestProcessorNode,
 	stakingWalletAccount *integrationTests.TestWalletAccount,
-	idxProposers []int,
+	leaders []*integrationTests.TestProcessorNode,
 	function string,
 	value *big.Int,
 	serviceFee []byte,
@@ -431,7 +432,7 @@ func generateSendAndWaitToExecuteTransaction(
 
 	time.Sleep(time.Second)
 
-	nonce, round = integrationTests.WaitOperationToBeDone(t, nodes, 10, nonce, round, idxProposers)
+	nonce, round = integrationTests.WaitOperationToBeDone(t, leaders, nodes, 10, nonce, round)
 
 	return nonce, round
 }
