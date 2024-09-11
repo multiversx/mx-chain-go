@@ -140,20 +140,20 @@ func (tep *transactionsFeeProcessor) prepareNormalTxs(transactionsAndScrs *trans
 			continue
 		}
 
-		if isRelayedTx(txWithResult) && isFeeFixActive {
-			totalFee, isRelayed := tep.getFeeOfRelayed(txWithResult)
-			if isRelayed {
-				feeInfo.SetFee(totalFee)
-				feeInfo.SetInitialPaidFee(totalFee)
-				feeInfo.SetGasUsed(big.NewInt(0).Div(totalFee, big.NewInt(0).SetUint64(txHandler.GetGasPrice())).Uint64())
-			}
+		totalFee, isRelayed := tep.getFeeOfRelayed(txWithResult)
+		isRelayedAfterFix := isRelayed && isFeeFixActive
+		if isRelayedAfterFix {
+			feeInfo.SetFee(totalFee)
+			feeInfo.SetInitialPaidFee(totalFee)
+			feeInfo.SetGasUsed(big.NewInt(0).Div(totalFee, big.NewInt(0).SetUint64(txHandler.GetGasPrice())).Uint64())
+
 		}
 
-		tep.prepareTxWithResults(txHashHex, txWithResult)
+		tep.prepareTxWithResults(txHashHex, txWithResult, isRelayedAfterFix)
 	}
 }
 
-func (tep *transactionsFeeProcessor) prepareTxWithResults(txHashHex string, txWithResults *transactionWithResults) {
+func (tep *transactionsFeeProcessor) prepareTxWithResults(txHashHex string, txWithResults *transactionWithResults, isRelayedAfterFix bool) {
 	hasRefund := false
 	totalRefunds := big.NewInt(0)
 	for _, scrHandler := range txWithResults.scrs {
@@ -172,6 +172,10 @@ func (tep *transactionsFeeProcessor) prepareTxWithResults(txHashHex string, txWi
 		gasUsed, fee := tep.txFeeCalculator.ComputeGasUsedAndFeeBasedOnRefundValue(txWithResults.GetTxHandler(), totalRefunds)
 		txWithResults.GetFeeInfo().SetGasUsed(gasUsed)
 		txWithResults.GetFeeInfo().SetFee(fee)
+	}
+
+	if isRelayedAfterFix {
+		return
 	}
 
 	tep.prepareTxWithResultsBasedOnLogs(txHashHex, txWithResults, hasRefund)

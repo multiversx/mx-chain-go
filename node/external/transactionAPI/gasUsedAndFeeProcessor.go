@@ -50,7 +50,8 @@ func (gfp *gasUsedAndFeeProcessor) computeAndAttachGasUsedAndFee(tx *transaction
 	}
 
 	initialTotalFee, isRelayed := gfp.getFeeOfRelayed(tx)
-	if isRelayed && isFeeFixActive {
+	isRelayedAfterFix := isRelayed && isFeeFixActive
+	if isRelayedAfterFix {
 		tx.InitiallyPaidFee = initialTotalFee.String()
 		tx.Fee = initialTotalFee.String()
 		tx.GasUsed = big.NewInt(0).Div(initialTotalFee, big.NewInt(0).SetUint64(tx.GasPrice)).Uint64()
@@ -71,6 +72,10 @@ func (gfp *gasUsedAndFeeProcessor) computeAndAttachGasUsedAndFee(tx *transaction
 		gasUsed, fee = gfp.feeComputer.ComputeGasUsedAndFeeBasedOnRefundValue(tx, totalRefunds)
 		tx.GasUsed = gasUsed
 		tx.Fee = fee.String()
+	}
+
+	if isRelayedAfterFix {
+		return
 	}
 
 	gfp.prepareTxWithResultsBasedOnLogs(tx, hasRefundForSender)
