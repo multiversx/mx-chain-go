@@ -146,6 +146,7 @@ type Config struct {
 	PeerBlockBodyStorage            StorageConfig
 	BlockHeaderStorage              StorageConfig
 	TxStorage                       StorageConfig
+	ReceiptsDataStorage             StorageConfig
 	UnsignedTransactionStorage      StorageConfig
 	RewardTxStorage                 StorageConfig
 	ShardHdrNonceHashStorage        StorageConfig
@@ -171,6 +172,7 @@ type Config struct {
 	TxBlockBodyDataPool         CacheConfig
 	PeerBlockBodyDataPool       CacheConfig
 	TxDataPool                  CacheConfig
+	ReceiptsDataPool            CacheConfig
 	UnsignedTransactionDataPool CacheConfig
 	RewardTransactionDataPool   CacheConfig
 	TrieNodesChunksDataPool     CacheConfig

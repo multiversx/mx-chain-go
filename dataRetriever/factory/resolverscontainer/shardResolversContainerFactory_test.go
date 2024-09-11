@@ -2,6 +2,7 @@ package resolverscontainer_test
 
 import (
 	"errors"
+	"github.com/stretchr/testify/require"
 	"strings"
 	"testing"
 
@@ -73,6 +74,9 @@ func createDataPoolsForShard() dataRetriever.PoolsHolder {
 	}
 	pools.RewardTransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return testscommon.NewShardedDataStub()
+	}
+	pools.ReceiptsCalled = func() storage.Cacher {
+		return testscommon.NewCacherStub()
 	}
 
 	return pools
@@ -439,7 +443,8 @@ func TestShardResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	args.ShardCoordinator = shardCoordinator
 	rcf, _ := resolverscontainer.NewShardResolversContainerFactory(args)
 
-	container, _ := rcf.Create()
+	container, err := rcf.Create()
+	require.Nil(t, err)
 
 	numResolverSCRs := noOfShards + 1
 	numResolverTxs := noOfShards + 1
@@ -450,8 +455,9 @@ func TestShardResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numResolverTrieNodes := 1
 	numResolverPeerAuth := 1
 	numResolverValidatorInfo := 1
+	numResolverReceiptData := 1
 	totalResolvers := numResolverTxs + numResolverHeaders + numResolverMiniBlocks + numResolverMetaBlockHeaders +
-		numResolverSCRs + numResolverRewardTxs + numResolverTrieNodes + numResolverPeerAuth + numResolverValidatorInfo
+		numResolverSCRs + numResolverRewardTxs + numResolverTrieNodes + numResolverPeerAuth + numResolverValidatorInfo + numResolverReceiptData
 
 	assert.Equal(t, totalResolvers, container.Len())
 	assert.Equal(t, totalResolvers, registerMainCnt)

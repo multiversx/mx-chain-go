@@ -123,6 +123,7 @@ func GetGeneralConfig() config.Config {
 			SizeInBytesPerSender: 10000000,
 			Shards:               1,
 		},
+		ReceiptsDataPool: getLRUCacheConfig(),
 		UnsignedTransactionDataPool: config.CacheConfig{
 			Capacity:    10000,
 			SizeInBytes: 1000000000,
@@ -212,6 +213,16 @@ func GetGeneralConfig() config.Config {
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
 				FilePath:          AddTimestampSuffix("UnsignedTransactions"),
+				Type:              string(storageunit.MemoryDB),
+				BatchDelaySeconds: 30,
+				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
+			},
+		},
+		ReceiptsDataStorage: config.StorageConfig{
+			Cache: getLRUCacheConfig(),
+			DB: config.DBConfig{
+				FilePath:          AddTimestampSuffix("ReceiptsData"),
 				Type:              string(storageunit.MemoryDB),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,

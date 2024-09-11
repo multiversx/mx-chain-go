@@ -225,6 +225,16 @@ func (psf *StorageServiceFactory) createAndAddBaseStorageUnits(
 	}
 	store.AddStorer(dataRetriever.MiniBlockUnit, miniBlockUnit)
 
+	receiptDataUnitArgs, err := psf.createPruningStorerArgs(psf.generalConfig.ReceiptsDataStorage, disabledCustomDatabaseRemover)
+	if err != nil {
+		return err
+	}
+	receiptDataUnit, err := psf.createPruningPersister(receiptDataUnitArgs)
+	if err != nil {
+		return fmt.Errorf("%w for ReceiptDataStorage", err)
+	}
+	store.AddStorer(dataRetriever.ReceiptDataUnit, receiptDataUnit)
+
 	metaBlockUnitArgs, err := psf.createPruningStorerArgs(psf.generalConfig.MetaBlockStorage, disabledCustomDatabaseRemover)
 	if err != nil {
 		return err

@@ -67,6 +67,9 @@ func createDataPoolsForMeta() dataRetriever.PoolsHolder {
 		RewardTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
 			return testscommon.NewShardedDataStub()
 		},
+		ReceiptsCalled: func() storage.Cacher {
+			return testscommon.NewCacherStub()
+		},
 	}
 
 	return pools
@@ -338,8 +341,9 @@ func TestMetaResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	numResolversTrieNodes := 2
 	numResolversPeerAuth := 1
 	numResolverValidatorInfo := 1
+	numRezolverReceiptsData := 1
 	totalResolvers := numResolversShardHeadersForMetachain + numResolverMetablocks + numResolversMiniBlocks +
-		numResolversUnsigned + numResolversTxs + numResolversTrieNodes + numResolversRewards + numResolversPeerAuth + numResolverValidatorInfo
+		numResolversUnsigned + numResolversTxs + numResolversTrieNodes + numResolversRewards + numResolversPeerAuth + numResolverValidatorInfo + numRezolverReceiptsData
 
 	assert.Equal(t, totalResolvers, container.Len())
 	assert.Equal(t, totalResolvers, registerMainCnt)

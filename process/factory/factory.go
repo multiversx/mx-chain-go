@@ -19,6 +19,8 @@ const (
 	AccountTrieNodesTopic = "accountTrieNodes"
 	// ValidatorTrieNodesTopic is used for sharding validator state trie nodes
 	ValidatorTrieNodesTopic = "validatorTrieNodes"
+	// ReceiptTopic is the topic used for sharing receipts
+	ReceiptTopic = "receipts"
 )
 
 // SystemVirtualMachine is a byte array identifier for the smart contract address created for system VM

@@ -146,6 +146,12 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		return nil, fmt.Errorf("%w while creating the cache for the validator info results", err)
 	}
 
+	cacherCfg = factory.GetCacherFromConfig(mainConfig.ReceiptsDataPool)
+	receiptsDataPool, err := storageunit.NewCache(cacherCfg)
+	if err != nil {
+		return nil, fmt.Errorf("%w while creating the cache for the receipts data", err)
+	}
+
 	currBlockTransactions := dataPool.NewCurrentBlockTransactionsPool()
 	currEpochValidatorInfo := dataPool.NewCurrentEpochValidatorInfoPool()
 	dataPoolArgs := dataPool.DataPoolArgs{
@@ -163,6 +169,7 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		PeerAuthentications:       peerAuthPool,
 		Heartbeats:                heartbeatPool,
 		ValidatorsInfo:            validatorsInfo,
+		Receipts:                  receiptsDataPool,
 	}
 	return dataPool.NewDataPool(dataPoolArgs)
 }

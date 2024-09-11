@@ -85,6 +85,11 @@ func (mrcf *metaRequestersContainerFactory) Create() (dataRetriever.RequestersCo
 		return nil, err
 	}
 
+	err = mrcf.generateReceiptRequesters()
+	if err != nil {
+		return nil, err
+	}
+
 	return mrcf.container, nil
 }
 
@@ -175,6 +180,17 @@ func (mrcf *metaRequestersContainerFactory) generateMetaChainHeaderRequesters() 
 	}
 
 	return mrcf.container.Add(identifierHeader, requester)
+}
+
+func (mrcf *metaRequestersContainerFactory) generateReceiptRequesters() error {
+	// only one receipts topic
+	identifierReceipt := factory.ReceiptTopic + mrcf.shardCoordinator.CommunicationIdentifier(core.MetachainShardId)
+	requester, err := mrcf.createReceiptRequester(identifierReceipt, EmptyExcludePeersOnTopic, core.MetachainShardId, mrcf.numTotalPeers)
+	if err != nil {
+		return err
+	}
+
+	return mrcf.container.Add(identifierReceipt, requester)
 }
 
 func (mrcf *metaRequestersContainerFactory) createMetaChainHeaderRequester(

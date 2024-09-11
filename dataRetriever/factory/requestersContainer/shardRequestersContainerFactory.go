@@ -84,6 +84,11 @@ func (srcf *shardRequestersContainerFactory) Create() (dataRetriever.RequestersC
 		return nil, err
 	}
 
+	err = srcf.generateReceiptRequesters()
+	if err != nil {
+		return nil, err
+	}
+
 	return srcf.container, nil
 }
 
@@ -134,6 +139,18 @@ func (srcf *shardRequestersContainerFactory) generateMetablockHeaderRequesters()
 	}
 
 	return srcf.container.Add(identifierHdr, requester)
+}
+
+func (srcf *shardRequestersContainerFactory) generateReceiptRequesters() error {
+	// only one receipts topic
+	selfShardID := srcf.shardCoordinator.SelfId()
+	identifierReceipt := factory.ReceiptTopic
+	requester, err := srcf.createReceiptRequester(identifierReceipt, EmptyExcludePeersOnTopic, selfShardID, srcf.numTotalPeers)
+	if err != nil {
+		return err
+	}
+
+	return srcf.container.Add(identifierReceipt, requester)
 }
 
 func (srcf *shardRequestersContainerFactory) generateTrieNodesRequesters() error {

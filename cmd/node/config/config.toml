@@ -199,6 +199,20 @@
         MaxBatchSize = 30000
         MaxOpenFiles = 10
 
+[ReceiptsDataStorage]
+    [ReceiptsDataStorage.Cache]
+        Name = "ReceiptsDataStorage"
+        Capacity = 500000
+        Type = "SizeLRU"
+        SizeInBytes = 52428800 #50MB
+    [ReceiptsDataStorage.DB]
+        FilePath = "ReceiptsData"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 30000
+        MaxOpenFiles = 10
+
+
 [UnsignedTransactionStorage]
     [UnsignedTransactionStorage.Cache]
         Name = "UnsignedTransactionStorage"
@@ -390,6 +404,15 @@
     SizeInBytes = 419430400 #400MB
     SizeInBytesPerSender = 12288000
     Type = "TxCache"
+    Shards = 16
+
+[ReceiptsDataPool]
+    Name = "ReceiptsDataPool"
+    Capacity = 600000
+    SizePerSender = 20000
+    SizeInBytes = 104857600 #100MB
+    SizeInBytesPerSender = 12288000
+    Type = "SizeLRU"
     Shards = 16
 
 [TrieNodesChunksDataPool]

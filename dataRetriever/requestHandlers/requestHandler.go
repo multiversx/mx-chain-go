@@ -31,6 +31,7 @@ const uniqueHeadersSuffix = "hdr"
 const uniqueMetaHeadersSuffix = "mhdr"
 const uniqueTrieNodesSuffix = "tn"
 const uniqueValidatorInfoSuffix = "vi"
+const uniqueReceiptSuffix = "rec"
 
 // TODO move the keys definitions that are whitelisted in core and use them in InterceptedData implementations, Identifiers() function
 
@@ -113,6 +114,11 @@ func (rrh *resolverRequestHandler) getEpoch() uint32 {
 // RequestTransaction method asks for transactions from the connected peers
 func (rrh *resolverRequestHandler) RequestTransaction(destShardID uint32, txHashes [][]byte) {
 	rrh.requestByHashes(destShardID, txHashes, factory.TransactionTopic, uniqueTxSuffix)
+}
+
+// RequestReceipts method ask for receipts from the connected peers
+func (rrh *resolverRequestHandler) RequestReceipts(receiptsHashes [][]byte) {
+	rrh.requestByHashes(rrh.shardID, receiptsHashes, factory.ReceiptTopic, uniqueReceiptSuffix)
 }
 
 func (rrh *resolverRequestHandler) requestByHashes(destShardID uint32, hashes [][]byte, topic string, abbreviatedTopic string) {
