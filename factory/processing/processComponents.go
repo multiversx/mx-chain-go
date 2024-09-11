@@ -63,7 +63,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/update"
 	updateDisabled "github.com/multiversx/mx-chain-go/update/disabled"
-	updateFactory "github.com/multiversx/mx-chain-go/update/factory"
 	"github.com/multiversx/mx-chain-go/update/trigger"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -1788,7 +1787,7 @@ func (pcf *processComponentsFactory) createExportFactoryHandler(
 	if pcf.prefConfigs.Preferences.FullArchive {
 		nodeOperationMode = common.FullArchiveMode
 	}
-	argsExporter := updateFactory.ArgsExporter{
+	argsExporter := factory.ArgsExporter{
 		CoreComponents:                   pcf.coreData,
 		CryptoComponents:                 pcf.crypto,
 		StatusCoreComponents:             pcf.statusCoreComponents,
@@ -1822,7 +1821,7 @@ func (pcf *processComponentsFactory) createExportFactoryHandler(
 		NodeOperationMode:                nodeOperationMode,
 		ShardCoordinatorFactory:          pcf.runTypeComponents.ShardCoordinatorCreator(),
 	}
-	return updateFactory.NewExportHandlerFactory(argsExporter)
+	return pcf.runTypeComponents.ExportHandlerFactoryCreator().CreateExportFactoryHandler(argsExporter)
 }
 
 func (pcf *processComponentsFactory) createHardforkTrigger(epochStartTrigger update.EpochHandler) (factory.HardforkTrigger, error) {
@@ -2101,6 +2100,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.RunTypeComponents.DataRetrieverContainersSetter()) {
 		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilDataRetrieverContainersSetter)
+	}
+	if check.IfNil(args.RunTypeComponents.ExportHandlerFactoryCreator()) {
+		return fmt.Errorf("%s: %w", baseErrMessage, errorsMx.ErrNilExportHandlerFactoryCreator)
 	}
 
 	return nil

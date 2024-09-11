@@ -1110,6 +1110,7 @@ func getRunTypeComponents(rt runType.RunTypeComponentsHolder) *mainFactoryMocks.
 		PreProcessorsContainerFactoryCreatorField: rt.PreProcessorsContainerFactoryCreator(),
 		DataRetrieverContainersSetterField:        rt.DataRetrieverContainersSetter(),
 		ShardMessengerFactoryField:                rt.BroadCastShardMessengerFactoryHandler(),
+		ExportHandlerFactoryCreatorField:          rt.ExportHandlerFactoryCreator(),
 	}
 }
 

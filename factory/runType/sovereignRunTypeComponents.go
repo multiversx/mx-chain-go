@@ -41,6 +41,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state/factory"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/latestData"
+	updateFactory "github.com/multiversx/mx-chain-go/update/factory/creator"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -266,5 +267,6 @@ func (rcf *sovereignRunTypeComponentsFactory) Create() (*runTypeComponents, erro
 		preProcessorsContainerFactoryCreator:    procSovereign.NewSovereignPreProcessorContainerFactoryCreator(),
 		dataRetrieverContainersSetter:           dataRetriever.NewSovereignDataRetrieverContainerSetter(),
 		shardMessengerFactory:                   broadcastFactory.NewSovereignShardChainMessengerFactory(),
+		exportHandlerFactoryCreator:             updateFactory.NewSovereignExportHandlerFactoryCreator(),
 	}, nil
 }
