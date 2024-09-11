@@ -97,7 +97,7 @@ func (scm *sovereignChainMessenger) BroadcastBlock(blockBody data.BodyHandler, h
 	identifier := scm.shardCoordinator.CommunicationIdentifier(core.SovereignChainShardId)
 
 	scm.messenger.Broadcast(factory.ShardBlocksTopic+identifier, broadCastData.marshalledHeader)
-	scm.messenger.Broadcast(factory.MiniBlocksTopic+identifier, broadCastData.marshalledHeader)
+	scm.messenger.Broadcast(factory.MiniBlocksTopic+identifier, broadCastData.marshalledBody)
 
 	return nil
 }
