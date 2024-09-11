@@ -175,10 +175,9 @@ func (brcf *baseRequestersContainerFactory) createReceiptRequester(
 	topic string,
 	excludedTopic string,
 	targetShardID uint32,
-	numCrossShardPeers int,
 	numIntraShardPeers int,
 ) (dataRetriever.Requester, error) {
-	requestSender, err := brcf.createOneRequestSenderWithSpecifiedNumRequests(topic, excludedTopic, targetShardID, numCrossShardPeers, numIntraShardPeers)
+	requestSender, err := brcf.createOneRequestSenderWithSpecifiedNumRequests(topic, excludedTopic, targetShardID, 0, numIntraShardPeers)
 	if err != nil {
 		return nil, err
 	}
