@@ -6,7 +6,6 @@ import (
 
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	mxFactory "github.com/multiversx/mx-chain-go/factory"
-
 	consensusComp "github.com/multiversx/mx-chain-go/factory/consensus"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -156,8 +155,8 @@ func TestManagedConsensusComponents_CreateShouldWorkForSovereign(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	shardCoordinator := mock.NewMultiShardsCoordinatorMock(2)
-	args := componentsMock.GetConsensusArgs(shardCoordinator)
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(1)
+	args := componentsMock.GetSovereignConsensusArgs(shardCoordinator)
 	args.RunTypeComponents = componentsMock.GetSovereignRunTypeComponents()
 
 	consensusComponentsFactory, _ := consensusComp.NewConsensusComponentsFactory(args)

@@ -636,6 +636,7 @@ type RunTypeComponentsHolder interface {
 	PreProcessorsContainerFactoryCreator() shardData.PreProcessorsContainerFactoryCreator
 	DataRetrieverContainersSetter() DataRetrieverContainersSetter
 	BroadCastShardMessengerFactoryHandler() sposFactory.BroadCastShardMessengerFactoryHandler
+	ExportHandlerFactoryCreator() ExportHandlerFactoryCreator
 	Create() error
 	Close() error
 	CheckSubcomponents() error
@@ -697,5 +698,11 @@ type DataRetrieverContainersSetter interface {
 		resolversContainer dataRetriever.ResolversContainer,
 		requestersContainer dataRetriever.RequestersContainer,
 	) error
+	IsInterfaceNil() bool
+}
+
+// ExportHandlerFactoryCreator should create an export factory handler
+type ExportHandlerFactoryCreator interface {
+	CreateExportFactoryHandler(args ArgsExporter) (update.ExportFactoryHandler, error)
 	IsInterfaceNil() bool
 }

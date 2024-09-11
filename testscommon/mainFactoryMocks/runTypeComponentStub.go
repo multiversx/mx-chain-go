@@ -90,6 +90,7 @@ type RunTypeComponentsStub struct {
 	PreProcessorsContainerFactoryCreatorField data.PreProcessorsContainerFactoryCreator
 	DataRetrieverContainersSetterField        factory.DataRetrieverContainersSetter
 	ShardMessengerFactoryField                sposFactory.BroadCastShardMessengerFactoryHandler
+	ExportHandlerFactoryCreatorField          factory.ExportHandlerFactoryCreator
 }
 
 // NewRunTypeComponentsStub -
@@ -139,6 +140,7 @@ func NewRunTypeComponentsStub() *RunTypeComponentsStub {
 		PreProcessorsContainerFactoryCreatorField: &testFactory.PreProcessorContainerFactoryCreatorMock{},
 		DataRetrieverContainersSetterField:        &testFactory.DataRetrieverContainersSetterMock{},
 		ShardMessengerFactoryField:                &testFactory.ShardChainMessengerFactoryMock{},
+		ExportHandlerFactoryCreatorField:          &testFactory.ExportHandlerFactoryCreatorMock{},
 	}
 }
 
@@ -382,8 +384,14 @@ func (r *RunTypeComponentsStub) DataRetrieverContainersSetter() factory.DataRetr
 	return r.DataRetrieverContainersSetterField
 }
 
+// BroadCastShardMessengerFactoryHandler -
 func (r *RunTypeComponentsStub) BroadCastShardMessengerFactoryHandler() sposFactory.BroadCastShardMessengerFactoryHandler {
 	return r.ShardMessengerFactoryField
+}
+
+// ExportHandlerFactoryCreator -
+func (r *RunTypeComponentsStub) ExportHandlerFactoryCreator() factory.ExportHandlerFactoryCreator {
+	return r.ExportHandlerFactoryCreatorField
 }
 
 // IsInterfaceNil -

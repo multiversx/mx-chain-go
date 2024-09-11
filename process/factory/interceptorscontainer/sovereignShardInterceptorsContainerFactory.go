@@ -127,8 +127,8 @@ func (sicf *sovereignShardInterceptorsContainerFactory) generateUnsignedTxsInter
 }
 
 func (sicf *sovereignShardInterceptorsContainerFactory) generateMiniBlocksInterceptors() error {
-	keys := make([]string, 1)
-	interceptorsSlice := make([]process.Interceptor, 1)
+	keys := make([]string, 0, 1)
+	interceptorsSlice := make([]process.Interceptor, 0, 1)
 
 	identifierMiniBlocks := factory.MiniBlocksTopic + sicf.shardCoordinator.CommunicationIdentifier(core.SovereignChainShardId)
 	interceptor, err := sicf.createOneMiniBlocksInterceptor(identifierMiniBlocks)
@@ -136,8 +136,8 @@ func (sicf *sovereignShardInterceptorsContainerFactory) generateMiniBlocksInterc
 		return err
 	}
 
-	keys[0] = identifierMiniBlocks
-	interceptorsSlice[0] = interceptor
+	keys = append(keys, identifierMiniBlocks)
+	interceptorsSlice = append(interceptorsSlice, interceptor)
 
 	return sicf.addInterceptorsToContainers(keys, interceptorsSlice)
 }

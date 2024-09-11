@@ -45,7 +45,8 @@ func (e *epochStartBootstrap) initializeFromLocalStorage() {
 		"epoch start Round", e.baseData.epochStartRound)
 }
 
-func (e *epochStartBootstrap) getShardIDForLatestEpoch() (uint32, bool, error) {
+// GetShardIDForLatestEpoch returns the shard ID for the latest epoch
+func (e *epochStartBootstrap) GetShardIDForLatestEpoch() (uint32, bool, error) {
 	storer, err := e.storageOpenerHandler.GetMostRecentStorageUnit(e.generalConfig.BootstrapStorage.DB)
 	defer func() {
 		if check.IfNil(storer) {
@@ -90,7 +91,7 @@ func (e *epochStartBootstrap) getShardIDForLatestEpoch() (uint32, bool, error) {
 }
 
 func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
-	newShardId, isShuffledOut, err := e.getShardIDForLatestEpoch()
+	newShardId, isShuffledOut, err := e.shardForLatestEpochComputer.GetShardIDForLatestEpoch()
 	if err != nil {
 		return Parameters{}, err
 	}
