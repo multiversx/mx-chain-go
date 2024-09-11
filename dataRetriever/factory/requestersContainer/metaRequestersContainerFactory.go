@@ -185,7 +185,7 @@ func (mrcf *metaRequestersContainerFactory) generateMetaChainHeaderRequesters() 
 func (mrcf *metaRequestersContainerFactory) generateReceiptRequesters() error {
 	// only one receipts topic
 	identifierReceipt := factory.ReceiptTopic + mrcf.shardCoordinator.CommunicationIdentifier(core.MetachainShardId)
-	requester, err := mrcf.createReceiptRequester(identifierReceipt, EmptyExcludePeersOnTopic, core.MetachainShardId, mrcf.numCrossShardPeers, mrcf.numIntraShardPeers)
+	requester, err := mrcf.createReceiptRequester(identifierReceipt, EmptyExcludePeersOnTopic, core.MetachainShardId, mrcf.numIntraShardPeers)
 	if err != nil {
 		return err
 	}

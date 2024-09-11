@@ -204,7 +204,7 @@
         Name = "ReceiptsDataStorage"
         Capacity = 500000
         Type = "SizeLRU"
-        SizeInBytes = 209715200 #200MB
+        SizeInBytes = 52428800 #50MB
     [ReceiptsDataStorage.DB]
         FilePath = "ReceiptsData"
         Type = "LvlDBSerial"
@@ -410,7 +410,7 @@
     Name = "ReceiptsDataPool"
     Capacity = 600000
     SizePerSender = 20000
-    SizeInBytes = 419430400 #400MB
+    SizeInBytes = 104857600 #100MB
     SizeInBytesPerSender = 12288000
     Type = "SizeLRU"
     Shards = 16

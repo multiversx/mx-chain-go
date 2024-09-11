@@ -141,17 +141,17 @@ func (rcRes *receiptResolver) resolveReceiptRequestByHashArray(mbBuff []byte, pi
 	errorsFound := 0
 	rcpBuffSlice := make([][]byte, 0, len(hashes))
 	for _, hash := range hashes {
-		mb, errTemp := rcRes.fetchReceiptAsByteSlice(hash, epoch)
+		receiptBytes, errTemp := rcRes.fetchReceiptAsByteSlice(hash, epoch)
 		if errTemp != nil {
 			errFetch = fmt.Errorf("%w for hash %s", errTemp, logger.DisplayByteSlice(hash))
-			log.Trace("fetchMbAsByteSlice missing",
+			log.Trace("fetchReceiptAsByteSlice missing",
 				"error", errFetch.Error(),
 				"hash", hash)
 			errorsFound++
 
 			continue
 		}
-		rcpBuffSlice = append(rcpBuffSlice, mb)
+		rcpBuffSlice = append(rcpBuffSlice, receiptBytes)
 	}
 
 	buffsToSend, errPack := rcRes.dataPacker.PackDataInChunks(rcpBuffSlice, maxBuffToSendBulkReceipts)

@@ -145,7 +145,7 @@ func (srcf *shardRequestersContainerFactory) generateReceiptRequesters() error {
 	// only one receipts topic
 	selfShardID := srcf.shardCoordinator.SelfId()
 	identifierReceipt := factory.ReceiptTopic
-	requester, err := srcf.createReceiptRequester(identifierReceipt, EmptyExcludePeersOnTopic, selfShardID, srcf.numCrossShardPeers, srcf.numIntraShardPeers)
+	requester, err := srcf.createReceiptRequester(identifierReceipt, EmptyExcludePeersOnTopic, selfShardID, srcf.numIntraShardPeers)
 	if err != nil {
 		return err
 	}
