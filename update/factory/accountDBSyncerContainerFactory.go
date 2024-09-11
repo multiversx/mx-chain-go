@@ -117,12 +117,19 @@ func NewAccountsDBSContainerFactory(args ArgsNewAccountsDBSyncersContainerFactor
 func (a *accountDBSyncersContainerFactory) Create() (update.AccountsDBSyncContainer, error) {
 	a.container = containers.NewAccountsDBSyncersContainer()
 
-	err := a.createUserAccountsSyncer(core.SovereignChainShardId)
+	for i := uint32(0); i < a.shardCoordinator.NumberOfShards(); i++ {
+		err := a.createUserAccountsSyncer(i)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	err := a.createUserAccountsSyncer(core.MetachainShardId)
 	if err != nil {
 		return nil, err
 	}
 
-	err = a.createValidatorAccountsSyncer(core.SovereignChainShardId)
+	err = a.createValidatorAccountsSyncer(core.MetachainShardId)
 	if err != nil {
 		return nil, err
 	}

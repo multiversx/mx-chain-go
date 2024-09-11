@@ -524,24 +524,24 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	exportFactoryHandler, err := pcf.createExportFactoryHandler(
-		headerValidator,
-		requestHandler,
-		resolversContainer,
-		requestersContainer,
-		mainInterceptorsContainer,
-		fullArchiveInterceptorsContainer,
-		headerSigVerifier,
-		blockTracker,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	err = hardforkTrigger.SetExportFactoryHandler(exportFactoryHandler)
-	if err != nil {
-		return nil, err
-	}
+	//exportFactoryHandler, err := pcf.createExportFactoryHandler(
+	//	headerValidator,
+	//	requestHandler,
+	//	resolversContainer,
+	//	requestersContainer,
+	//	mainInterceptorsContainer,
+	//	fullArchiveInterceptorsContainer,
+	//	headerSigVerifier,
+	//	blockTracker,
+	//)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//err = hardforkTrigger.SetExportFactoryHandler(exportFactoryHandler)
+	//if err != nil {
+	//	return nil, err
+	//}
 
 	var pendingMiniBlocksHandler process.PendingMiniBlocksHandler
 	pendingMiniBlocksHandler, err = pendingMb.NewNilPendingMiniBlocks()

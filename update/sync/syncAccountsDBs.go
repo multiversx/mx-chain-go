@@ -110,12 +110,12 @@ func (st *syncAccountsDBs) SyncTriesFrom(meta data.MetaHeaderHandler) error {
 }
 
 func (st *syncAccountsDBs) syncMeta(meta data.MetaHeaderHandler) error {
-	err := st.syncAccountsOfType(genesis.UserAccount, state.UserAccountsState, core.SovereignChainShardId, meta.GetRootHash())
+	err := st.syncAccountsOfType(genesis.UserAccount, state.UserAccountsState, core.MetachainShardId, meta.GetRootHash())
 	if err != nil {
 		return fmt.Errorf("%w UserAccount, shard: meta", err)
 	}
 
-	err = st.syncAccountsOfType(genesis.ValidatorAccount, state.PeerAccountsState, core.SovereignChainShardId, meta.GetValidatorStatsRootHash())
+	err = st.syncAccountsOfType(genesis.ValidatorAccount, state.PeerAccountsState, core.MetachainShardId, meta.GetValidatorStatsRootHash())
 	if err != nil {
 		return fmt.Errorf("%w ValidatorAccount, shard: meta", err)
 	}

@@ -314,7 +314,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) checkIfInterceptorExists(ident
 
 func (ficf *fullSyncInterceptorsContainerFactory) generateShardHeaderInterceptors() error {
 	numShards := ficf.shardCoordinator.NumberOfShards()
-	tmpSC, err := ficf.shardCoordinatorFactory.CreateShardCoordinator(numShards, core.SovereignChainShardId)
+	tmpSC, err := ficf.shardCoordinatorFactory.CreateShardCoordinator(numShards, core.MetachainShardId)
 	if err != nil {
 		return err
 	}
@@ -418,7 +418,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateTrieNodesInterceptors(
 	trieInterceptors := make([]process.Interceptor, 0)
 
 	for i := uint32(0); i < numShards; i++ {
-		identifierTrieNodes := factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(i, core.SovereignChainShardId)
+		identifierTrieNodes := factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(i, core.MetachainShardId)
 		if ficf.checkIfInterceptorExists(identifierTrieNodes) {
 			continue
 		}
@@ -432,7 +432,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateTrieNodesInterceptors(
 		trieInterceptors = append(trieInterceptors, interceptor)
 	}
 
-	identifierTrieNodes := factory.ValidatorTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.SovereignChainShardId, core.SovereignChainShardId)
+	identifierTrieNodes := factory.ValidatorTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
 	if !ficf.checkIfInterceptorExists(identifierTrieNodes) {
 		interceptor, err := ficf.createOneTrieNodesInterceptor(identifierTrieNodes)
 		if err != nil {
@@ -443,7 +443,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateTrieNodesInterceptors(
 		trieInterceptors = append(trieInterceptors, interceptor)
 	}
 
-	identifierTrieNodes = factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.SovereignChainShardId, core.SovereignChainShardId)
+	identifierTrieNodes = factory.AccountTrieNodesTopic + core.CommunicationIdentifierBetweenShards(core.MetachainShardId, core.MetachainShardId)
 	if !ficf.checkIfInterceptorExists(identifierTrieNodes) {
 		interceptor, err := ficf.createOneTrieNodesInterceptor(identifierTrieNodes)
 		if err != nil {
