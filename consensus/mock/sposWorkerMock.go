@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/p2p"
 )
@@ -29,8 +30,8 @@ type SposWorkerMock struct {
 	SetAppStatusHandlerCalled              func(ash core.AppStatusHandler) error
 	ResetConsensusMessagesCalled           func(currentHash []byte, prevHash []byte)
 	HasEquivalentMessageCalled             func(headerHash []byte) bool
-	GetEquivalentProofCalled               func(headerHash []byte) (data.HeaderProof, error)
-	SetValidEquivalentProofCalled          func(headerHash []byte, proof data.HeaderProof, nonce uint64)
+	GetEquivalentProofCalled               func(headerHash []byte) (data.HeaderProofHandler, error)
+	SetValidEquivalentProofCalled          func(headerHash []byte, proof data.HeaderProofHandler, nonce uint64)
 }
 
 // AddReceivedMessageCall -
@@ -122,17 +123,17 @@ func (sposWorkerMock *SposWorkerMock) HasEquivalentMessage(headerHash []byte) bo
 }
 
 // GetEquivalentProof -
-func (sposWorkerMock *SposWorkerMock) GetEquivalentProof(headerHash []byte) (data.HeaderProof, error) {
+func (sposWorkerMock *SposWorkerMock) GetEquivalentProof(headerHash []byte) (data.HeaderProofHandler, error) {
 	if sposWorkerMock.GetEquivalentProofCalled != nil {
 		return sposWorkerMock.GetEquivalentProofCalled(headerHash)
 	}
-	return data.HeaderProof{}, nil
+	return &block.HeaderProof{}, nil
 }
 
 // SetValidEquivalentProof -
 func (sposWorkerMock *SposWorkerMock) SetValidEquivalentProof(
 	headerHash []byte,
-	proof data.HeaderProof,
+	proof data.HeaderProofHandler,
 	nonce uint64,
 ) {
 	if sposWorkerMock.SetValidEquivalentProofCalled != nil {

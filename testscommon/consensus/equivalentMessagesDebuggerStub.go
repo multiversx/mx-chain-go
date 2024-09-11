@@ -17,7 +17,7 @@ func (stub *EquivalentMessagesDebuggerStub) DisplayEquivalentMessagesStatistics(
 // SetValidEquivalentProof -
 func (stub *EquivalentMessagesDebuggerStub) SetValidEquivalentProof(
 	headerHash []byte,
-	proof data.HeaderProof,
+	proof data.HeaderProofHandler,
 ) {
 }
 

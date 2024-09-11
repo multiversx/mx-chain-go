@@ -55,10 +55,3 @@ type KeysHandler interface {
 	ResetRoundsWithoutReceivedMessages(pkBytes []byte, pid core.PeerID)
 	IsInterfaceNil() bool
 }
-
-type ProofTracker interface {
-	AddNotarizedProof(notarizedHeaderHash []byte, notarizedProof data.HeaderProof, nonce uint64)
-	CleanupNotarizedProofsBehindNonce(shardID uint32, nonce uint64)
-	GetNotarizedProof(headerHash []byte) (data.HeaderProof, error)
-	IsInterfaceNil() bool
-}

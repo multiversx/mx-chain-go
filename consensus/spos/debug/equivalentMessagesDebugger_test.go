@@ -3,7 +3,7 @@ package debug
 import (
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/stretchr/testify/require"
 )
 
@@ -49,8 +49,8 @@ func TestEquivalentMessagesDebugger_DisplayEquivalentMessagesStatistics(t *testi
 			return true
 		}
 
-		debugger.SetValidEquivalentProof([]byte("hash1"), data.HeaderProof{PubKeysBitmap: []byte("bitmap 1"), AggregatedSignature: []byte("signature 1")})
-		debugger.SetValidEquivalentProof([]byte("hash2"), data.HeaderProof{PubKeysBitmap: []byte("bitmap 2"), AggregatedSignature: []byte("signature 2")})
+		debugger.SetValidEquivalentProof([]byte("hash1"), &block.HeaderProof{PubKeysBitmap: []byte("bitmap 1"), AggregatedSignature: []byte("signature 1")})
+		debugger.SetValidEquivalentProof([]byte("hash2"), &block.HeaderProof{PubKeysBitmap: []byte("bitmap 2"), AggregatedSignature: []byte("signature 2")})
 
 		debugger.DisplayEquivalentMessagesStatistics()
 	})

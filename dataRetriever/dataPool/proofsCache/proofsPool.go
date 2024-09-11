@@ -5,17 +5,14 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/pkg/errors"
 )
-
-// ErrMissingEquivalentProof signals that the equivalent proof is missing
-var ErrMissingEquivalentProof = errors.New("missing equivalent proof")
 
 type proofsPool struct {
 	mutCache sync.RWMutex
 	cache    map[uint32]*proofsCache
 }
 
+// NewProofsPool creates a new proofs pool component
 func NewProofsPool() *proofsPool {
 	return &proofsPool{
 		cache: make(map[uint32]*proofsCache),

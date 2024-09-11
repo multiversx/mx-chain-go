@@ -206,7 +206,8 @@ func (hsv *HeaderSigVerifier) VerifySignatureForHash(header data.HeaderHandler, 
 }
 
 func (hsv *HeaderSigVerifier) getPrevHeaderInfo(currentHeader data.HeaderHandler) (data.HeaderHandler, []byte, []byte, []byte, error) {
-	sig, bitmap := currentHeader.GetPreviousAggregatedSignatureAndBitmap()
+	previousProof := currentHeader.GetPreviousProof()
+	sig, bitmap := previousProof.GetAggregatedSignature(), previousProof.GetPubKeysBitmap()
 	hash := currentHeader.GetPrevHash()
 	prevHeader, err := hsv.headersPool.GetHeaderByHash(hash)
 	if err != nil {
@@ -228,7 +229,8 @@ func (hsv *HeaderSigVerifier) getPrevHeaderInfo(currentHeader data.HeaderHandler
 
 // VerifyPreviousBlockProof verifies if the structure of the header matches the expected structure in regards with the consensus flag
 func (hsv *HeaderSigVerifier) VerifyPreviousBlockProof(header data.HeaderHandler) error {
-	previousAggregatedSignature, previousBitmap := header.GetPreviousAggregatedSignatureAndBitmap()
+	previousProof := header.GetPreviousProof()
+	previousAggregatedSignature, previousBitmap := previousProof.GetAggregatedSignature(), previousProof.GetPubKeysBitmap()
 	hasProof := len(previousAggregatedSignature) > 0 && len(previousBitmap) > 0
 	hasLeaderSignature := len(previousBitmap) > 0 && previousBitmap[0]&1 != 0
 	isFlagEnabled := hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch())

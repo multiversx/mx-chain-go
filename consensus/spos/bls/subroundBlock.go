@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -433,9 +434,13 @@ func (sr *subroundBlock) addProofOnHeader(header data.HeaderHandler) bool {
 		return true
 	}
 
-	prevBlockProof := sr.Blockchain().GetCurrentHeaderProof()
+	prevBlockProof, err := sr.worker.GetEquivalentProof(sr.GetData())
+	if err != nil {
+		return false
+	}
+
 	if !isProofEmpty(prevBlockProof) {
-		header.SetPreviousAggregatedSignatureAndBitmap(prevBlockProof.AggregatedSignature, prevBlockProof.PubKeysBitmap)
+		header.SetPreviousProof(prevBlockProof)
 		return true
 	}
 
@@ -452,7 +457,15 @@ func (sr *subroundBlock) addProofOnHeader(header data.HeaderHandler) bool {
 
 	isFlagEnabledForCurrentHeader := sr.EnableEpochsHandler().IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, currentHeader.GetEpoch())
 	if !isFlagEnabledForCurrentHeader {
-		header.SetPreviousAggregatedSignatureAndBitmap(currentHeader.GetSignature(), currentHeader.GetPubKeysBitmap())
+		proof := &block.HeaderProof{
+			PubKeysBitmap:       currentHeader.GetSignature(),
+			AggregatedSignature: currentHeader.GetPubKeysBitmap(),
+			HeaderHash:          sr.Blockchain().GetCurrentBlockHeaderHash(),
+			HeaderEpoch:         currentHeader.GetEpoch(),
+			HeaderNonce:         currentHeader.GetNonce(),
+			HeaderShardId:       currentHeader.GetShardID(),
+		}
+		header.SetPreviousProof(proof)
 		return true
 	}
 
@@ -460,8 +473,8 @@ func (sr *subroundBlock) addProofOnHeader(header data.HeaderHandler) bool {
 	return false
 }
 
-func isProofEmpty(proof data.HeaderProof) bool {
-	return len(proof.AggregatedSignature) == 0 || len(proof.PubKeysBitmap) == 0
+func isProofEmpty(proof data.HeaderProofHandler) bool {
+	return len(proof.GetAggregatedSignature()) == 0 || len(proof.GetPubKeysBitmap()) == 0
 }
 
 // receivedBlockBodyAndHeader method is called when a block body and a block header is received
@@ -548,12 +561,16 @@ func (sr *subroundBlock) saveProofForPreviousHeaderIfNeeded() {
 		return
 	}
 
-	proof := sr.Blockchain().GetCurrentHeaderProof()
+	proof, err := sr.worker.GetEquivalentProof(sr.GetData())
+	if err != nil {
+		return
+	}
+
 	if !isProofEmpty(proof) {
 		return
 	}
 
-	prevAggSig, prevBitmap := sr.Header.GetPreviousAggregatedSignatureAndBitmap()
+	prevAggSig, prevBitmap := sr.Header.GetPreviousProof()
 	proof = data.HeaderProof{
 		AggregatedSignature: prevAggSig,
 		PubKeysBitmap:       prevBitmap,

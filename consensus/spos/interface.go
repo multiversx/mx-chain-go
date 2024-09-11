@@ -145,9 +145,9 @@ type WorkerHandler interface {
 	// HasEquivalentMessage returns true if an equivalent message was received before
 	HasEquivalentMessage(headerHash []byte) bool
 	// GetEquivalentProof returns the equivalent proof for the provided hash
-	GetEquivalentProof(headerHash []byte) (data.HeaderProof, error)
+	GetEquivalentProof(headerHash []byte) (data.HeaderProofHandler, error)
 	// SetValidEquivalentProof saves the equivalent proof for the provided header and marks it as validated
-	SetValidEquivalentProof(headerHash []byte, proof data.HeaderProof, nonce uint64)
+	SetValidEquivalentProof(headerHash []byte, proof data.HeaderProofHandler, nonce uint64)
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
 }
@@ -193,7 +193,7 @@ type SentSignaturesTracker interface {
 type EquivalentMessagesDebugger interface {
 	SetValidEquivalentProof(
 		headerHash []byte,
-		proof data.HeaderProof,
+		proof data.HeaderProofHandler,
 	)
 	UpsertEquivalentMessage(
 		headerHash []byte,

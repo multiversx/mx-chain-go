@@ -8,6 +8,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/common"
@@ -660,8 +661,8 @@ func TestCheckHeaderHandler_VerifyPreviousBlockProof(t *testing.T) {
 		hdrSigVerifier, _ := NewHeaderSigVerifier(args)
 
 		hdr := &testscommon.HeaderHandlerStub{
-			GetPreviousAggregatedSignatureAndBitmapCalled: func() ([]byte, []byte) {
-				return nil, nil
+			GetPreviousProofCalled: func() data.HeaderProofHandler {
+				return nil
 			},
 		}
 		err := hdrSigVerifier.VerifyPreviousBlockProof(hdr)
@@ -677,8 +678,11 @@ func TestCheckHeaderHandler_VerifyPreviousBlockProof(t *testing.T) {
 		hdrSigVerifier, _ := NewHeaderSigVerifier(args)
 
 		hdr := &testscommon.HeaderHandlerStub{
-			GetPreviousAggregatedSignatureAndBitmapCalled: func() ([]byte, []byte) {
-				return []byte("sig"), []byte("bitmap")
+			GetPreviousProofCalled: func() data.HeaderProofHandler {
+				return &block.HeaderProof{
+					AggregatedSignature: []byte("sig"),
+					PubKeysBitmap:       []byte("bitmap"),
+				}
 			},
 		}
 		err := hdrSigVerifier.VerifyPreviousBlockProof(hdr)
@@ -698,8 +702,11 @@ func TestCheckHeaderHandler_VerifyPreviousBlockProof(t *testing.T) {
 		hdrSigVerifier, _ := NewHeaderSigVerifier(args)
 
 		hdr := &testscommon.HeaderHandlerStub{
-			GetPreviousAggregatedSignatureAndBitmapCalled: func() ([]byte, []byte) {
-				return []byte("sig"), []byte{0, 1, 1, 1}
+			GetPreviousProofCalled: func() data.HeaderProofHandler {
+				return &block.HeaderProof{
+					AggregatedSignature: []byte("sig"),
+					PubKeysBitmap:       []byte{0, 1, 1, 1},
+				}
 			},
 		}
 		err := hdrSigVerifier.VerifyPreviousBlockProof(hdr)
@@ -719,8 +726,11 @@ func TestCheckHeaderHandler_VerifyPreviousBlockProof(t *testing.T) {
 		hdrSigVerifier, _ := NewHeaderSigVerifier(args)
 
 		hdr := &testscommon.HeaderHandlerStub{
-			GetPreviousAggregatedSignatureAndBitmapCalled: func() ([]byte, []byte) {
-				return []byte("sig"), []byte{1, 1, 1, 1}
+			GetPreviousProofCalled: func() data.HeaderProofHandler {
+				return &block.HeaderProof{
+					AggregatedSignature: []byte("sig"),
+					PubKeysBitmap:       []byte{1, 1, 1, 1},
+				}
 			},
 		}
 		err := hdrSigVerifier.VerifyPreviousBlockProof(hdr)

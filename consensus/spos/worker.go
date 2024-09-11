@@ -25,7 +25,6 @@ import (
 	"github.com/multiversx/mx-chain-go/ntp"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
@@ -56,7 +55,7 @@ type Worker struct {
 	headerIntegrityVerifier    process.HeaderIntegrityVerifier
 	appStatusHandler           core.AppStatusHandler
 	enableEpochsHandler        common.EnableEpochsHandler
-	proofsTracker              track.ProofTracker
+	equivalentProofsPool       consensus.EquivalentProofsPool
 	equivalentMessagesDebugger EquivalentMessagesDebugger
 
 	networkShardingCollector consensus.NetworkShardingCollector
@@ -115,7 +114,7 @@ type WorkerArgs struct {
 	PeerBlacklistHandler       consensus.PeerBlacklistHandler
 	EquivalentMessagesDebugger EquivalentMessagesDebugger
 	EnableEpochsHandler        common.EnableEpochsHandler
-	ProofTracker               track.ProofTracker
+	EquivalentProofsPool       consensus.EquivalentProofsPool
 }
 
 // NewWorker creates a new Worker object
@@ -169,7 +168,7 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 		closer:                     closing.NewSafeChanCloser(),
 		equivalentMessagesDebugger: args.EquivalentMessagesDebugger,
 		enableEpochsHandler:        args.EnableEpochsHandler,
-		proofsTracker:              args.ProofTracker,
+		equivalentProofsPool:       args.EquivalentProofsPool,
 	}
 
 	wrk.consensusMessageValidator = consensusMessageValidatorObj
@@ -276,8 +275,8 @@ func checkNewWorkerParams(args *WorkerArgs) error {
 	if check.IfNil(args.EnableEpochsHandler) {
 		return ErrNilEnableEpochsHandler
 	}
-	if check.IfNil(args.ProofTracker) {
-		return ErrNilProofTracker
+	if check.IfNil(args.EquivalentProofsPool) {
+		return ErrNilProofPool
 	}
 
 	return nil
@@ -859,14 +858,14 @@ func (wrk *Worker) HasEquivalentMessage(headerHash []byte) bool {
 }
 
 // GetEquivalentProof returns the equivalent proof for the provided hash
-func (wrk *Worker) GetEquivalentProof(headerHash []byte) (data.HeaderProof, error) {
-	return wrk.proofsTracker.GetNotarizedProof(headerHash)
+func (wrk *Worker) GetEquivalentProof(headerHash []byte) (data.HeaderProofHandler, error) {
+	return wrk.equivalentProofsPool.GetNotarizedProof(wrk.shardCoordinator.SelfId(), headerHash)
 }
 
 // SetValidEquivalentProof saves the equivalent proof for the provided header and marks it as validated
-func (wrk *Worker) SetValidEquivalentProof(headerHash []byte, proof data.HeaderProof, nonce uint64) {
+func (wrk *Worker) SetValidEquivalentProof(headerHash []byte, proof data.HeaderProofHandler, nonce uint64) {
 	// only valid equivalent proofs are being added to proofs tracker
-	wrk.proofsTracker.AddNotarizedProof(headerHash, proof, nonce)
+	wrk.equivalentProofsPool.AddNotarizedProof(proof)
 	wrk.equivalentMessagesDebugger.SetValidEquivalentProof(headerHash, proof)
 }
 

@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/dataPool"
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	dataRetrieverMocks "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -30,6 +31,7 @@ func createMockDataPoolArgs() dataPool.DataPoolArgs {
 		PeerAuthentications:       testscommon.NewCacherStub(),
 		Heartbeats:                testscommon.NewCacherStub(),
 		ValidatorsInfo:            testscommon.NewShardedDataStub(),
+		Proofs:                    &dataRetrieverMocks.ProofsPoolStub{},
 	}
 }
 

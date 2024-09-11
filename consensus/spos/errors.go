@@ -274,5 +274,5 @@ var ErrTimeIsOut = errors.New("time is out")
 // ErrNilConsensusMessage signals that a nil consensus message has been provided
 var ErrNilConsensusMessage = errors.New("nil consensus message")
 
-// ErrNilProofTracker signals that a nil proof tracker has been provided
-var ErrNilProofTracker = errors.New("nil proof tracker")
+// ErrNilProofPool signals that a nil proof pool has been provided
+var ErrNilProofPool = errors.New("nil proof pool")

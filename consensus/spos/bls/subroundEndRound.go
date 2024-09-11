@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/display"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -440,19 +441,19 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	return true
 }
 
-func (sr *subroundEndRound) sendFinalInfo(sender []byte) (data.HeaderProof, bool) {
+func (sr *subroundEndRound) sendFinalInfo(sender []byte) (data.HeaderProofHandler, bool) {
 	bitmap := sr.GenerateBitmap(SrSignature)
 	err := sr.checkSignaturesValidity(bitmap)
 	if err != nil {
 		log.Debug("sendFinalInfo.checkSignaturesValidity", "error", err.Error())
-		return data.HeaderProof{}, false
+		return nil, false
 	}
 
 	// Aggregate signatures, handle invalid signers and send final info if needed
 	bitmap, sig, err := sr.aggregateSigsAndHandleInvalidSigners(bitmap)
 	if err != nil {
 		log.Debug("sendFinalInfo.aggregateSigsAndHandleInvalidSigners", "error", err.Error())
-		return data.HeaderProof{}, false
+		return nil, false
 	}
 
 	// TODO[cleanup cns finality]: remove this code block
@@ -460,33 +461,33 @@ func (sr *subroundEndRound) sendFinalInfo(sender []byte) (data.HeaderProof, bool
 		err = sr.Header.SetPubKeysBitmap(bitmap)
 		if err != nil {
 			log.Debug("sendFinalInfo.SetPubKeysBitmap", "error", err.Error())
-			return data.HeaderProof{}, false
+			return nil, false
 		}
 
 		err = sr.Header.SetSignature(sig)
 		if err != nil {
 			log.Debug("sendFinalInfo.SetSignature", "error", err.Error())
-			return data.HeaderProof{}, false
+			return nil, false
 		}
 
 		// Header is complete so the leader can sign it
 		leaderSignature, err := sr.signBlockHeader(sender)
 		if err != nil {
 			log.Error(err.Error())
-			return data.HeaderProof{}, false
+			return nil, false
 		}
 
 		err = sr.Header.SetLeaderSignature(leaderSignature)
 		if err != nil {
 			log.Debug("sendFinalInfo.SetLeaderSignature", "error", err.Error())
-			return data.HeaderProof{}, false
+			return nil, false
 		}
 	}
 
 	ok := sr.ScheduledProcessor().IsProcessedOKWithTimeout()
 	// placeholder for subroundEndRound.doEndRoundJobByLeader script
 	if !ok {
-		return data.HeaderProof{}, false
+		return nil, false
 	}
 
 	roundHandler := sr.RoundHandler()
@@ -494,7 +495,7 @@ func (sr *subroundEndRound) sendFinalInfo(sender []byte) (data.HeaderProof, bool
 		log.Debug("sendFinalInfo: time is out -> cancel broadcasting final info and header",
 			"round time stamp", roundHandler.TimeStamp(),
 			"current time", time.Now())
-		return data.HeaderProof{}, false
+		return nil, false
 	}
 
 	// broadcast header and final info section
@@ -505,12 +506,16 @@ func (sr *subroundEndRound) sendFinalInfo(sender []byte) (data.HeaderProof, bool
 	}
 
 	if !sr.createAndBroadcastHeaderFinalInfoForKey(sig, bitmap, leaderSigToBroadcast, sender) {
-		return data.HeaderProof{}, false
+		return nil, false
 	}
 
-	return data.HeaderProof{
-		AggregatedSignature: sig,
+	return &block.HeaderProof{
 		PubKeysBitmap:       bitmap,
+		AggregatedSignature: sig,
+		HeaderHash:          sr.GetData(),
+		HeaderEpoch:         sr.Header.GetEpoch(),
+		HeaderNonce:         sr.Header.GetNonce(),
+		HeaderShardId:       sr.Header.GetShardID(),
 	}, true
 }
 

@@ -196,3 +196,10 @@ type KeysHandler interface {
 	GetRedundancyStepInReason() string
 	IsInterfaceNil() bool
 }
+
+// EquivalentProofsPool defines the behaviour of a proofs pool components
+type EquivalentProofsPool interface {
+	AddNotarizedProof(headerProof data.HeaderProofHandler)
+	GetNotarizedProof(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error)
+	IsInterfaceNil() bool
+}

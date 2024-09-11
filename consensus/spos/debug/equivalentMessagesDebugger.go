@@ -15,7 +15,7 @@ var log = logger.GetOrCreate("debug/equivalentmessages")
 type equivalentMessageDebugInfo struct {
 	NumMessages uint64
 	Validated   bool
-	Proof       data.HeaderProof
+	Proof       data.HeaderProofHandler
 }
 
 type equivalentMessagesDebugger struct {
@@ -41,7 +41,7 @@ func (debugger *equivalentMessagesDebugger) ResetEquivalentMessages() {
 
 func (debugger *equivalentMessagesDebugger) SetValidEquivalentProof(
 	headerHash []byte,
-	proof data.HeaderProof,
+	proof data.HeaderProofHandler,
 ) {
 	debugger.mutEquivalentMessages.Lock()
 	defer debugger.mutEquivalentMessages.Unlock()
@@ -119,8 +119,8 @@ func dataToString(data map[string]*equivalentMessageDebugInfo) string {
 			hash,
 			fmt.Sprintf("%d", info.NumMessages),
 			fmt.Sprintf("%t", info.Validated),
-			string(info.Proof.AggregatedSignature),
-			string(info.Proof.PubKeysBitmap),
+			string(info.Proof.GetAggregatedSignature()),
+			string(info.Proof.GetPubKeysBitmap()),
 		}
 		lines = append(lines, display.NewLineData(horizontalLineAfter, line))
 		idx++

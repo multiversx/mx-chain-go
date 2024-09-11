@@ -357,3 +357,11 @@ type PeerAuthenticationPayloadValidator interface {
 	ValidateTimestamp(payloadTimestamp int64) error
 	IsInterfaceNil() bool
 }
+
+// ProofsPool defines the behaviour of a proofs pool components
+type ProofsPool interface {
+	AddNotarizedProof(headerProof data.HeaderProofHandler)
+	CleanupNotarizedProofsBehindNonce(shardID uint32, nonce uint64) error
+	GetNotarizedProof(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error)
+	IsInterfaceNil() bool
+}
