@@ -12,7 +12,6 @@ import (
 	"github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
-	"github.com/multiversx/mx-chain-go/consensus/broadcastFactory"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	retriever "github.com/multiversx/mx-chain-go/dataRetriever"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
@@ -190,7 +189,7 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 					return &processMock.BootstrapperStub{}, nil
 				},
 			},
-			ShardMessengerFactoryField: broadcastFactory.NewShardChainMessengerFactory(),
+			ShardMessengerFactoryField: &factoryMocks.ShardChainMessengerFactoryMock{},
 			ConsensusModelType:         consensus.ConsensusModelV1,
 		},
 	}
@@ -651,7 +650,7 @@ func TestConsensusComponentsFactory_Create(t *testing.T) {
 					return &processMock.BootstrapperStub{}, nil
 				},
 			},
-			ShardMessengerFactoryField: broadcastFactory.NewShardChainMessengerFactory(),
+			ShardMessengerFactoryField: &factoryMocks.ShardChainMessengerFactoryMock{},
 			ConsensusModelType:         consensus.ConsensusModelV1,
 		}
 		ccf, _ := consensusComp.NewConsensusComponentsFactory(args)
