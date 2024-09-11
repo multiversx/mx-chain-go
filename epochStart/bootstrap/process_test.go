@@ -23,6 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	processMocks "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -2510,4 +2511,63 @@ func TestSyncSetGuardianTransaction(t *testing.T) {
 	txHash := coreComp.Hash.Compute(string(txBytes))
 	_, found := transactions.SearchFirstData(txHash)
 	assert.True(t, found)
+}
+
+func TestEpochStartBootstrap_GetShardIDForLatestEpoch(t *testing.T) {
+	t.Parallel()
+
+	expectedShardId := uint32(2)
+	args := createEpochStartBootstrapParams(expectedShardId)
+	epochStartProvider, _ := NewEpochStartBootstrap(args)
+
+	shardId, isShuffledOut, err := epochStartProvider.GetShardIDForLatestEpoch()
+	assert.Equal(t, expectedShardId, shardId)
+	assert.True(t, isShuffledOut)
+	assert.Nil(t, err)
+}
+
+func createEpochStartBootstrapParams(expectedShardId uint32) ArgsEpochStartBootstrap {
+	coreComp, cryptoComp := createComponentsForEpochStart()
+
+	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
+	args.DestinationShardAsObserver = expectedShardId
+	round := int64(10)
+
+	roundNum := bootstrapStorage.RoundNum{
+		Num: round,
+	}
+	roundBytes, _ := json.Marshal(&roundNum)
+	nodesCoordinatorConfigKey := []byte("key")
+
+	nodesConfigRegistry := nodesCoordinator.NodesCoordinatorRegistry{
+		CurrentEpoch: 10,
+	}
+	bootstrapData := bootstrapStorage.BootstrapData{
+		NodesCoordinatorConfigKey: nodesCoordinatorConfigKey,
+	}
+
+	storer := &storageMocks.StorerStub{
+		GetCalled: func(key []byte) (b []byte, err error) {
+			switch {
+			case bytes.Equal([]byte(common.HighestRoundFromBootStorage), key):
+				return roundBytes, nil
+			case bytes.Equal([]byte(strconv.FormatInt(round, 10)), key):
+				bootstrapDataBytes, _ := json.Marshal(bootstrapData)
+				return bootstrapDataBytes, nil
+			default:
+				return nil, nil
+			}
+		},
+		SearchFirstCalled: func(key []byte) ([]byte, error) {
+			nodesConfigRegistryBytes, _ := json.Marshal(nodesConfigRegistry)
+			return nodesConfigRegistryBytes, nil
+		},
+	}
+
+	args.StorageUnitOpener = &storageMocks.UnitOpenerStub{
+		GetMostRecentStorageUnitCalled: func(config config.DBConfig) (storage.Storer, error) {
+			return storer, nil
+		},
+	}
+	return args
 }
