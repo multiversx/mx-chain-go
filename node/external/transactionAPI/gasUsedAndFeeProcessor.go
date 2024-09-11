@@ -125,7 +125,8 @@ func (gfp *gasUsedAndFeeProcessor) handleRelayedV1(args [][]byte, tx *transactio
 	fee := gfp.feeComputer.ComputeTxFeeBasedOnGasUsed(tx, gasUsed)
 
 	innerFee := gfp.feeComputer.ComputeTransactionFee(&transaction.ApiTransactionResult{
-		Tx: innerTx,
+		Tx:    innerTx,
+		Epoch: tx.Epoch,
 	})
 
 	return big.NewInt(0).Add(fee, innerFee), true
@@ -146,7 +147,8 @@ func (gfp *gasUsedAndFeeProcessor) handleRelayedV2(args [][]byte, tx *transactio
 	fee := gfp.feeComputer.ComputeTxFeeBasedOnGasUsed(tx, gasUsed)
 
 	innerFee := gfp.feeComputer.ComputeTransactionFee(&transaction.ApiTransactionResult{
-		Tx: innerTx,
+		Tx:    innerTx,
+		Epoch: tx.Epoch,
 	})
 
 	return big.NewInt(0).Add(fee, innerFee), true
