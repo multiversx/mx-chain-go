@@ -3,6 +3,7 @@ package epochStartTrigger
 import (
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/metachain"
+	"github.com/multiversx/mx-chain-go/epochStart/shardchain"
 	"github.com/multiversx/mx-chain-go/factory"
 )
 
@@ -24,7 +25,17 @@ func (f *sovereignEpochStartTriggerFactory) CreateEpochStartTrigger(args factory
 		return nil, err
 	}
 
-	return metachain.NewSovereignTrigger(metaTriggerArgs)
+	argsPeerMiniBlockSyncer := shardchain.ArgPeerMiniBlockSyncer{
+		MiniBlocksPool:     args.DataComps.Datapool().MiniBlocks(),
+		ValidatorsInfoPool: args.DataComps.Datapool().ValidatorsInfo(),
+		RequestHandler:     args.RequestHandler,
+	}
+	peerMiniBlockSyncer, err := shardchain.NewPeerMiniBlockSyncer(argsPeerMiniBlockSyncer)
+	if err != nil {
+		return nil, err
+	}
+
+	return metachain.NewSovereignTrigger(metaTriggerArgs, peerMiniBlockSyncer)
 }
 
 // IsInterfaceNil checks if the underlying pointer is nil

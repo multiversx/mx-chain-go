@@ -797,7 +797,7 @@ func (bicf *baseInterceptorsContainerFactory) createPeerShardInterceptor(
 }
 
 func (bicf *baseInterceptorsContainerFactory) generateValidatorInfoInterceptor() error {
-	identifier := common.ValidatorInfoTopic
+	identifier := common.ValidatorInfoTopic + bicf.shardCoordinator.CommunicationIdentifier(core.SovereignChainShardId)
 
 	interceptedValidatorInfoFactory, err := interceptorFactory.NewInterceptedValidatorInfoDataFactory(*bicf.argInterceptorFactory)
 	if err != nil {

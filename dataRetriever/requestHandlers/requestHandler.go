@@ -266,7 +266,7 @@ func (rrh *resolverRequestHandler) RequestMiniBlocks(destShardID uint32, miniblo
 		"num mbs", len(unrequestedHashes),
 	)
 
-	requester, err := rrh.requestersFinder.CrossShardRequester(factory.MiniBlocksTopic, destShardID)
+	requester, err := rrh.requestersFinder.IntraShardRequester(factory.MiniBlocksTopic)
 	if err != nil {
 		log.Error("RequestMiniBlocks.CrossShardRequester",
 			"error", err.Error(),
@@ -574,7 +574,7 @@ func (rrh *resolverRequestHandler) RequestValidatorInfo(hash []byte) {
 		"epoch", rrh.epoch,
 	)
 
-	requester, err := rrh.requestersFinder.MetaChainRequester(common.ValidatorInfoTopic)
+	requester, err := rrh.requestersFinder.IntraShardRequester(common.ValidatorInfoTopic)
 	if err != nil {
 		log.Error("RequestValidatorInfo.MetaChainRequester",
 			"error", err.Error(),
@@ -614,7 +614,7 @@ func (rrh *resolverRequestHandler) RequestValidatorsInfo(hashes [][]byte) {
 		"epoch", rrh.epoch,
 	)
 
-	requester, err := rrh.requestersFinder.MetaChainRequester(common.ValidatorInfoTopic)
+	requester, err := rrh.requestersFinder.IntraShardRequester(common.ValidatorInfoTopic)
 	if err != nil {
 		log.Error("RequestValidatorInfo.MetaChainRequester",
 			"error", err.Error(),

@@ -324,7 +324,7 @@ func (brcf *baseRequestersContainerFactory) createTrieNodesRequester(
 }
 
 func (brcf *baseRequestersContainerFactory) generateValidatorInfoRequester() error {
-	identifierValidatorInfo := common.ValidatorInfoTopic
+	identifierValidatorInfo := common.ValidatorInfoTopic + brcf.shardCoordinator.CommunicationIdentifier(core.SovereignChainShardId)
 	shardC := brcf.shardCoordinator
 	requestSender, err := brcf.createOneRequestSenderWithSpecifiedNumRequests(identifierValidatorInfo, EmptyExcludePeersOnTopic, shardC.SelfId(), brcf.numCrossShardPeers, brcf.numIntraShardPeers)
 	if err != nil {
