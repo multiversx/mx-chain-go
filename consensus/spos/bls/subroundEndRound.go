@@ -560,7 +560,7 @@ func (sr *subroundEndRound) aggregateSigsAndHandleInvalidSigners(bitmap []byte) 
 	return bitmap, sig, nil
 }
 
-// Method to let thread continue its execution so that another goroutine can be called
+// checkGoRoutinesThrottler let thread continue its execution so that another goroutine can be called
 func (sr *subroundEndRound) checkGoRoutinesThrottler(ctx context.Context) error {
 	for {
 		if sr.signatureThrottler.CanProcess() {
@@ -596,7 +596,9 @@ func (sr *subroundEndRound) verifySignature(i int, pk string, sigShare []byte) e
 		)
 		return err
 	}
+
 	log.Trace("verifyNodesOnAggSigVerificationFail: verifying signature share", "public key", pk)
+
 	return nil
 }
 

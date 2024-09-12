@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	crypto "github.com/multiversx/mx-chain-crypto-go"
-	multisig2 "github.com/multiversx/mx-chain-crypto-go/signing/mcl/multisig"
+	mclMultisig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/multisig"
 	"github.com/multiversx/mx-chain-crypto-go/signing/multisig"
 
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
@@ -26,7 +26,9 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
 
-// Function to make a predictable iteration on keys from a map of keys
+const benchmarkKeyPairsCardinal = 400
+
+// createListFromMapKeys make a predictable iteration on keys from a map of keys
 func createListFromMapKeys(mapKeys map[string]crypto.PrivateKey) []string {
 	keys := make([]string, 0, len(mapKeys))
 
@@ -39,10 +41,11 @@ func createListFromMapKeys(mapKeys map[string]crypto.PrivateKey) []string {
 	return keys
 }
 
+// generateKeyPairs generates benchmarkKeyPairsCardinal number of pairs(public key & private key)
 func generateKeyPairs(kg crypto.KeyGenerator) map[string]crypto.PrivateKey {
 	mapKeys := make(map[string]crypto.PrivateKey)
 
-	for i := uint16(0); i < 400; i++ {
+	for i := uint16(0); i < benchmarkKeyPairsCardinal; i++ {
 		sk, pk := kg.GeneratePair()
 
 		pubKey, _ := pk.ToByteArray()
@@ -51,7 +54,7 @@ func generateKeyPairs(kg crypto.KeyGenerator) map[string]crypto.PrivateKey {
 	return mapKeys
 }
 
-// Benchmark on measuring performance
+// BenchmarkSubroundEndRound_VerifyNodesOnAggSigFailTime measure time needed to verify signatures
 func BenchmarkSubroundEndRound_VerifyNodesOnAggSigFailTime(b *testing.B) {
 
 	b.ResetTimer()
@@ -69,7 +72,7 @@ func BenchmarkSubroundEndRound_VerifyNodesOnAggSigFailTime(b *testing.B) {
 		},
 	}
 	container.SetEnableEpochsHandler(enableEpochsHandler)
-	llSigner := &multisig2.BlsMultiSignerKOSK{}
+	llSigner := &mclMultisig.BlsMultiSignerKOSK{}
 	suite := mcl.NewSuiteBLS12()
 	kg := signing.NewKeyGenerator(suite)
 

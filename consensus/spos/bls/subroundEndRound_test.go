@@ -451,7 +451,7 @@ func TestSubroundEndRound_NewSubroundEndRoundNilThrottlerShouldFail(t *testing.T
 	)
 
 	assert.True(t, check.IfNil(srEndRound))
-	assert.NotNil(t, err)
+	assert.Equal(t, err, spos.ErrNilThrottler)
 }
 
 func TestSubroundEndRound_NewSubroundEndRoundShouldWork(t *testing.T) {
@@ -1350,9 +1350,7 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 
 		sr.Header = &block.Header{}
 		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
-		ctx, cancel := context.WithCancel(context.TODO())
-		_, err := sr.VerifyNodesOnAggSigFail(ctx)
-		cancel()
+		_, err := sr.VerifyNodesOnAggSigFail(context.TODO())
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -1374,9 +1372,7 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 		sr.Header = &block.Header{}
 		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
 		container.SetSigningHandler(signingHandler)
-		ctx, cancel := context.WithCancel(context.TODO())
-		_, err := sr.VerifyNodesOnAggSigFail(ctx)
-		cancel()
+		_, err := sr.VerifyNodesOnAggSigFail(context.TODO())
 		require.Nil(t, err)
 
 		isJobDone, err := sr.JobDone(sr.ConsensusGroup()[0], bls.SrSignature)
@@ -1405,9 +1401,7 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 		sr.Header = &block.Header{}
 		_ = sr.SetJobDone(sr.ConsensusGroup()[0], bls.SrSignature, true)
 		_ = sr.SetJobDone(sr.ConsensusGroup()[1], bls.SrSignature, true)
-		ctx, cancel := context.WithCancel(context.TODO())
-		invalidSigners, err := sr.VerifyNodesOnAggSigFail(ctx)
-		cancel()
+		invalidSigners, err := sr.VerifyNodesOnAggSigFail(context.TODO())
 		require.Nil(t, err)
 		require.NotNil(t, invalidSigners)
 	})

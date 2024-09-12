@@ -120,6 +120,7 @@ func initConsensusStateWithArgsVerifySignature(keysHandler consensus.KeysHandler
 	)
 	cns.Data = []byte("X")
 	cns.RoundIndex = 0
+
 	return cns
 }
 
