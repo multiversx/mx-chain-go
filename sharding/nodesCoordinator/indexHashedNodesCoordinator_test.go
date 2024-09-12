@@ -2999,9 +2999,9 @@ func TestIndexHashedNodesCoordinator_cacheConsensusGroup(t *testing.T) {
 		require.Nil(t, err)
 
 		consensusGroup := []Validator{leader, validator1}
-		expectedData := &SavedConsensusGroup{
-			Leader:         leader,
-			ConsensusGroup: consensusGroup,
+		expectedData := &savedConsensusGroup{
+			leader:         leader,
+			consensusGroup: consensusGroup,
 		}
 
 		nodesCoordinator.cacheConsensusGroup(key, consensusGroup, leader)
@@ -3020,9 +3020,9 @@ func TestIndexHashedNodesCoordinator_cacheConsensusGroup(t *testing.T) {
 
 		cg1 := []Validator{leader, validator1}
 		cg2 := []Validator{leader}
-		expectedData := &SavedConsensusGroup{
-			Leader:         leader,
-			ConsensusGroup: cg2,
+		expectedData := &savedConsensusGroup{
+			leader:         leader,
+			consensusGroup: cg2,
 		}
 
 		nodesCoordinator.cacheConsensusGroup(key, cg1, leader)
@@ -3058,13 +3058,13 @@ func TestIndexHashedNodesCoordinator_cacheConsensusGroup(t *testing.T) {
 		require.Nil(t, value)
 
 		value = nodesCoordinator.searchConsensusForKey(key2)
-		require.Equal(t, cg2, value.ConsensusGroup)
+		require.Equal(t, cg2, value.consensusGroup)
 
 		value = nodesCoordinator.searchConsensusForKey(key3)
-		require.Equal(t, cg3, value.ConsensusGroup)
+		require.Equal(t, cg3, value.consensusGroup)
 
 		value = nodesCoordinator.searchConsensusForKey(key4)
-		require.Equal(t, cg4, value.ConsensusGroup)
+		require.Equal(t, cg4, value.consensusGroup)
 	})
 }
 

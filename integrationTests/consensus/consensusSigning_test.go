@@ -9,8 +9,9 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/multiversx/mx-chain-go/integrationTests"
 )
 
 func initNodesWithTestSigner(
@@ -28,6 +29,7 @@ func initNodesWithTestSigner(
 	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
 	if equivalentMessagesFlagActive {
 		enableEpochsConfig.EquivalentMessagesEnableEpoch = 0
+		enableEpochsConfig.FixedOrderInConsensusEnableEpoch = 0
 	}
 	nodes := integrationTests.CreateNodesWithTestConsensusNode(
 		int(numMetaNodes),

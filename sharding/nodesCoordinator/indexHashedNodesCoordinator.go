@@ -30,6 +30,7 @@ const (
 	keyFormat               = "%s_%v_%v_%v"
 	defaultSelectionChances = uint32(1)
 	minEpochsToWait         = uint32(1)
+	leaderSelectionSize     = 1
 )
 
 // TODO: move this to config parameters
@@ -40,10 +41,10 @@ type validatorWithShardID struct {
 	shardID   uint32
 }
 
-// SavedConsensusGroup holds the leader and consensus group for a specific selection
-type SavedConsensusGroup struct {
-	Leader         Validator
-	ConsensusGroup []Validator
+// savedConsensusGroup holds the leader and consensus group for a specific selection
+type savedConsensusGroup struct {
+	leader         Validator
+	consensusGroup []Validator
 }
 
 type validatorList []Validator
@@ -384,9 +385,9 @@ func (ihnc *indexHashedNodesCoordinator) ComputeConsensusGroup(
 	}
 
 	key := []byte(fmt.Sprintf(keyFormat, string(randomness), round, shardID, epoch))
-	savedConsensusGroup := ihnc.searchConsensusForKey(key)
-	if savedConsensusGroup != nil {
-		return savedConsensusGroup.Leader, savedConsensusGroup.ConsensusGroup, nil
+	savedCG := ihnc.searchConsensusForKey(key)
+	if savedCG != nil {
+		return savedCG.leader, savedCG.consensusGroup, nil
 	}
 
 	consensusSize := ihnc.ConsensusGroupSizeForShardAndEpoch(shardID, epoch)
@@ -400,23 +401,23 @@ func (ihnc *indexHashedNodesCoordinator) ComputeConsensusGroup(
 		"round", round,
 		"shardID", shardID)
 
-	l, consensusGroup, err := ihnc.selectLeaderAndConsensusGroup(selector, randomness, eligibleList, consensusSize, epoch)
+	leader, validatorsGroup, err = ihnc.selectLeaderAndConsensusGroup(selector, randomness, eligibleList, consensusSize, epoch)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	ihnc.cacheConsensusGroup(key, consensusGroup, l)
+	ihnc.cacheConsensusGroup(key, validatorsGroup, leader)
 
-	return l, consensusGroup, nil
+	return leader, validatorsGroup, nil
 }
 
 func (ihnc *indexHashedNodesCoordinator) cacheConsensusGroup(key []byte, consensusGroup []Validator, leader Validator) {
 	size := leader.Size() * len(consensusGroup)
-	savedConsensusGroup := &SavedConsensusGroup{
-		Leader:         leader,
-		ConsensusGroup: consensusGroup,
+	savedCG := &savedConsensusGroup{
+		leader:         leader,
+		consensusGroup: consensusGroup,
 	}
-	ihnc.consensusGroupCacher.Put(key, savedConsensusGroup, size)
+	ihnc.consensusGroupCacher.Put(key, savedCG, size)
 }
 
 func (ihnc *indexHashedNodesCoordinator) selectLeaderAndConsensusGroup(
@@ -426,7 +427,8 @@ func (ihnc *indexHashedNodesCoordinator) selectLeaderAndConsensusGroup(
 	consensusSize int,
 	epoch uint32,
 ) (Validator, []Validator, error) {
-	if !ihnc.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, epoch) {
+	leaderPositionInSelection := 0
+	if !ihnc.enableEpochsHandler.IsFlagEnabledInEpoch(common.FixedOrderInConsensusFlag, epoch) {
 		tempList, err := selectValidators(selector, randomness, uint32(consensusSize), eligibleList)
 		if err != nil {
 			return nil, nil, err
@@ -436,22 +438,22 @@ func (ihnc *indexHashedNodesCoordinator) selectLeaderAndConsensusGroup(
 			return nil, nil, ErrEmptyValidatorsList
 		}
 
-		return tempList[0], tempList, nil
+		return tempList[leaderPositionInSelection], tempList, nil
 	}
 
-	selectedValidators, err := selectValidators(selector, randomness, 1, eligibleList)
+	selectedValidators, err := selectValidators(selector, randomness, leaderSelectionSize, eligibleList)
 	if err != nil {
 		return nil, nil, err
 	}
-	return selectedValidators[0], eligibleList, nil
+	return selectedValidators[leaderPositionInSelection], eligibleList, nil
 }
 
-func (ihnc *indexHashedNodesCoordinator) searchConsensusForKey(key []byte) *SavedConsensusGroup {
+func (ihnc *indexHashedNodesCoordinator) searchConsensusForKey(key []byte) *savedConsensusGroup {
 	value, ok := ihnc.consensusGroupCacher.Get(key)
 	if ok {
-		savedConsensusGroup, typeOk := value.(*SavedConsensusGroup)
+		savedCG, typeOk := value.(*savedConsensusGroup)
 		if typeOk {
-			return savedConsensusGroup
+			return savedCG
 		}
 	}
 	return nil
@@ -1299,7 +1301,7 @@ func computeActuallyLeaving(
 func selectValidators(
 	selector RandomSelector,
 	randomness []byte,
-	consensusSize uint32,
+	selectionSize uint32,
 	eligibleList []Validator,
 ) ([]Validator, error) {
 	if check.IfNil(selector) {
@@ -1310,19 +1312,19 @@ func selectValidators(
 	}
 
 	// todo: checks for indexes
-	selectedIndexes, err := selector.Select(randomness, consensusSize)
+	selectedIndexes, err := selector.Select(randomness, selectionSize)
 	if err != nil {
 		return nil, err
 	}
 
-	consensusGroup := make([]Validator, consensusSize)
-	for i := range consensusGroup {
-		consensusGroup[i] = eligibleList[selectedIndexes[i]]
+	selectedValidators := make([]Validator, selectionSize)
+	for i := range selectedValidators {
+		selectedValidators[i] = eligibleList[selectedIndexes[i]]
 	}
 
-	displayValidatorsForRandomness(consensusGroup, randomness)
+	displayValidatorsForRandomness(selectedValidators, randomness)
 
-	return consensusGroup, nil
+	return selectedValidators, nil
 }
 
 // createValidatorInfoFromBody unmarshalls body data to create validator info

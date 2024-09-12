@@ -11,13 +11,14 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
 	"github.com/multiversx/mx-chain-core-go/data"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/config"
 	consensusComp "github.com/multiversx/mx-chain-go/factory/consensus"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -233,6 +234,7 @@ func runFullConsensusTest(t *testing.T, consensusType string, numKeysOnEachNode 
 
 	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
 	enableEpochsConfig.EquivalentMessagesEnableEpoch = equivalentMessagesEnableEpoch
+	enableEpochsConfig.FixedOrderInConsensusEnableEpoch = equivalentMessagesEnableEpoch
 	nodes := initNodesAndTest(
 		numMetaNodes,
 		numNodes,
@@ -329,6 +331,7 @@ func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string, equ
 	roundTime := uint64(1000)
 	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
 	enableEpochsConfig.EquivalentMessagesEnableEpoch = equivalentMessagesEnableEpoch
+	enableEpochsConfig.FixedOrderInConsensusEnableEpoch = equivalentMessagesEnableEpoch
 	nodes := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType, 1, enableEpochsConfig)
 
 	defer func() {

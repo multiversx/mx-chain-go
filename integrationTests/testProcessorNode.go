@@ -108,7 +108,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks"
-	cache2 "github.com/multiversx/mx-chain-go/testscommon/cache"
+	cacheMocks "github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
@@ -469,8 +469,8 @@ func newBaseTestProcessorNode(args ArgTestProcessorNode) *TestProcessorNode {
 	var peersRatingMonitor p2p.PeersRatingMonitor
 	peersRatingMonitor = &p2pmocks.PeersRatingMonitorStub{}
 	if args.WithPeersRatingHandler {
-		topRatedCache := cache2.NewCacherMock()
-		badRatedCache := cache2.NewCacherMock()
+		topRatedCache := cacheMocks.NewCacherMock()
+		badRatedCache := cacheMocks.NewCacherMock()
 		peersRatingHandler, _ = p2pFactory.NewPeersRatingHandler(
 			p2pFactory.ArgPeersRatingHandler{
 				TopRatedCache: topRatedCache,
@@ -886,7 +886,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 	argsBuiltIn.AutomaticCrawlerAddresses = GenerateOneAddressPerShard(argsBuiltIn.ShardCoordinator)
 	builtInFuncFactory, _ := builtInFunctions.CreateBuiltInFunctionsFactory(argsBuiltIn)
 
-	smartContractsCache := cache2.NewCacherMock()
+	smartContractsCache := cacheMocks.NewCacherMock()
 
 	argsHook := hooks.ArgBlockChainHook{
 		Accounts:                 tpn.AccntState,
@@ -3071,7 +3071,7 @@ func (tpn *TestProcessorNode) initHeaderValidator() {
 }
 
 func (tpn *TestProcessorNode) createHeartbeatWithHardforkTrigger() {
-	cacher := cache2.NewCacherMock()
+	cacher := cacheMocks.NewCacherMock()
 	psh, err := peerSignatureHandler.NewPeerSignatureHandler(
 		cacher,
 		tpn.OwnAccount.BlockSingleSigner,
@@ -3259,6 +3259,7 @@ func CreateEnableEpochsConfig() config.EnableEpochs {
 		RefactorPeersMiniBlocksEnableEpoch:                UnreachableEpoch,
 		SCProcessorV2EnableEpoch:                          UnreachableEpoch,
 		EquivalentMessagesEnableEpoch:                     UnreachableEpoch,
+		FixedOrderInConsensusEnableEpoch:                  UnreachableEpoch,
 	}
 }
 
@@ -3566,6 +3567,7 @@ func GetDefaultEnableEpochsConfig() *config.EnableEpochs {
 		StakingV4Step2EnableEpoch:                       UnreachableEpoch,
 		StakingV4Step3EnableEpoch:                       UnreachableEpoch,
 		EquivalentMessagesEnableEpoch:                   UnreachableEpoch,
+		FixedOrderInConsensusEnableEpoch:                UnreachableEpoch,
 	}
 }
 
