@@ -29,7 +29,6 @@ type ArgInterceptedEquivalentProof struct {
 type interceptedEquivalentProof struct {
 	proof             *block.HeaderProof
 	isForCurrentShard bool
-	shardCoordinator  sharding.Coordinator
 	headerSigVerifier consensus.HeaderSigVerifier
 	headers           dataRetriever.HeadersPool
 }
