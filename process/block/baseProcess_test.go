@@ -24,6 +24,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -55,8 +58,6 @@ import (
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -3121,8 +3122,8 @@ func TestBaseProcessor_CheckSentSignaturesAtCommitTime(t *testing.T) {
 	expectedErr := errors.New("expected error")
 	t.Run("nodes coordinator errors, should return error", func(t *testing.T) {
 		nodesCoordinatorInstance := shardingMocks.NewNodesCoordinatorMock()
-		nodesCoordinatorInstance.ComputeValidatorsGroupCalled = func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
-			return nil, expectedErr
+		nodesCoordinatorInstance.ComputeValidatorsGroupCalled = func(randomness []byte, round uint64, shardId uint32, epoch uint32) (leader nodesCoordinator.Validator, validatorsGroup []nodesCoordinator.Validator, err error) {
+			return nil, nil, expectedErr
 		}
 
 		arguments := CreateMockArguments(createComponentHolderMocks())
@@ -3143,8 +3144,8 @@ func TestBaseProcessor_CheckSentSignaturesAtCommitTime(t *testing.T) {
 		validator2, _ := nodesCoordinator.NewValidator([]byte("pk2"), 2, 2)
 
 		nodesCoordinatorInstance := shardingMocks.NewNodesCoordinatorMock()
-		nodesCoordinatorInstance.ComputeValidatorsGroupCalled = func(randomness []byte, round uint64, shardId uint32, epoch uint32) (validatorsGroup []nodesCoordinator.Validator, err error) {
-			return []nodesCoordinator.Validator{validator0, validator1, validator2}, nil
+		nodesCoordinatorInstance.ComputeValidatorsGroupCalled = func(randomness []byte, round uint64, shardId uint32, epoch uint32) (leader nodesCoordinator.Validator, validatorsGroup []nodesCoordinator.Validator, err error) {
+			return validator0, []nodesCoordinator.Validator{validator0, validator1, validator2}, nil
 		}
 
 		resetCountersCalled := make([][]byte, 0)

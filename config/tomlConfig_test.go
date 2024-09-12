@@ -908,6 +908,9 @@ func TestEnableEpochConfig(t *testing.T) {
 	# EquivalentMessagesEnableEpoch represents the epoch when the equivalent messages are enabled
 	EquivalentMessagesEnableEpoch = 99
 
+	# FixedOrderInConsensusEnableEpoch represents the epoch when the fixed order in consensus is enabled
+	FixedOrderInConsensusEnableEpoch = 100
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -1025,6 +1028,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			EGLDInMultiTransferEnableEpoch:                           97,
 			CryptoOpcodesV2EnableEpoch:                               98,
 			EquivalentMessagesEnableEpoch:                            99,
+			FixedOrderInConsensusEnableEpoch:                         100,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,

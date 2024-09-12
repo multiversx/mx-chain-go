@@ -1223,5 +1223,6 @@ const (
 	EGLDInESDTMultiTransferFlag                        core.EnableEpochFlag = "EGLDInESDTMultiTransferFlag"
 	CryptoOpcodesV2Flag                                core.EnableEpochFlag = "CryptoOpcodesV2Flag"
 	EquivalentMessagesFlag                             core.EnableEpochFlag = "EquivalentMessagesFlag"
+	FixedOrderInConsensusFlag                          core.EnableEpochFlag = "FixedOrderInConsensusFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )

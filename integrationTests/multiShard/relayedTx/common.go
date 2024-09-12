@@ -8,13 +8,14 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
 )
 
 // CreateGeneralSetupForRelayTxTest will create the general setup for relayed transactions
-func CreateGeneralSetupForRelayTxTest() ([]*integrationTests.TestProcessorNode, []int, []*integrationTests.TestWalletAccount, *integrationTests.TestWalletAccount) {
+func CreateGeneralSetupForRelayTxTest() ([]*integrationTests.TestProcessorNode, []*integrationTests.TestProcessorNode, []*integrationTests.TestWalletAccount, *integrationTests.TestWalletAccount) {
 	numOfShards := 2
 	nodesPerShard := 2
 	numMetachainNodes := 1
@@ -25,11 +26,11 @@ func CreateGeneralSetupForRelayTxTest() ([]*integrationTests.TestProcessorNode, 
 		numMetachainNodes,
 	)
 
-	idxProposers := make([]int, numOfShards+1)
+	leaders := make([]*integrationTests.TestProcessorNode, numOfShards+1)
 	for i := 0; i < numOfShards; i++ {
-		idxProposers[i] = i * nodesPerShard
+		leaders[i] = nodes[i*nodesPerShard]
 	}
-	idxProposers[numOfShards] = numOfShards * nodesPerShard
+	leaders[numOfShards] = nodes[numOfShards*nodesPerShard]
 
 	integrationTests.DisplayAndStartNodes(nodes)
 
@@ -47,7 +48,7 @@ func CreateGeneralSetupForRelayTxTest() ([]*integrationTests.TestProcessorNode, 
 	relayerAccount := integrationTests.CreateTestWalletAccount(nodes[0].ShardCoordinator, 0)
 	integrationTests.MintAllPlayers(nodes, []*integrationTests.TestWalletAccount{relayerAccount}, initialVal)
 
-	return nodes, idxProposers, players, relayerAccount
+	return nodes, leaders, players, relayerAccount
 }
 
 // CreateAndSendRelayedAndUserTx will create and send a relayed user transaction
