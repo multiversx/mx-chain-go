@@ -181,7 +181,10 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		return nil, err
 	}
 
-	equivalentMesaggesDebbuger, err := debug.NewEquivalentMessagesDebugger(ccf.dataComponents.Datapool().Proofs(), ccf.processComponents.ShardCoordinator())
+	equivalentMesaggesDebbuger, err := debug.NewEquivalentMessagesDebugger(
+		ccf.dataComponents.Datapool().Proofs(),
+		ccf.processComponents.ShardCoordinator(),
+	)
 	if err != nil {
 		return nil, err
 	}

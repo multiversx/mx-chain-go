@@ -231,9 +231,19 @@ func (hsv *HeaderSigVerifier) getPrevHeaderInfo(currentHeader data.HeaderHandler
 // VerifyPreviousBlockProof verifies if the structure of the header matches the expected structure in regards with the consensus flag
 func (hsv *HeaderSigVerifier) VerifyPreviousBlockProof(header data.HeaderHandler) error {
 	previousProof := header.GetPreviousProof()
-	previousAggregatedSignature, previousBitmap := previousProof.GetAggregatedSignature(), previousProof.GetPubKeysBitmap()
-	hasProof := len(previousAggregatedSignature) > 0 && len(previousBitmap) > 0
-	hasLeaderSignature := len(previousBitmap) > 0 && previousBitmap[0]&1 != 0
+
+	hasProof := false
+	hasLeaderSignature := false
+
+	if previousProof != nil {
+		previousAggregatedSignature, previousBitmap := previousProof.GetAggregatedSignature(), previousProof.GetPubKeysBitmap()
+		hasProof = len(previousAggregatedSignature) > 0 && len(previousBitmap) > 0
+
+		if len(previousBitmap) > 0 {
+			hasLeaderSignature = previousBitmap[0]&1 != 0
+		}
+	}
+
 	isFlagEnabled := hsv.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, header.GetEpoch())
 	if isFlagEnabled && !hasProof {
 		return fmt.Errorf("%w, received header without proof after flag activation", process.ErrInvalidHeader)

@@ -1,7 +1,6 @@
 package consensus_test
 
 import (
-	"crypto"
 	"errors"
 	"strings"
 	"testing"
@@ -9,6 +8,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	retriever "github.com/multiversx/mx-chain-go/dataRetriever"
@@ -747,7 +747,7 @@ func TestConsensusComponentsFactory_Create(t *testing.T) {
 		cnt := 0
 		processCompStub.ShardCoordinatorCalled = func() sharding.Coordinator {
 			cnt++
-			if cnt > 9 {
+			if cnt > 10 {
 				return nil // createConsensusTopic fails
 			}
 			return testscommon.NewMultiShardsCoordinatorMock(2)

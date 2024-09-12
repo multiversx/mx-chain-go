@@ -8,6 +8,10 @@ import (
 	"github.com/pkg/errors"
 )
 
+// ErrMissingProof signals that the proof is missing
+var ErrMissingProof = errors.New("missing proof")
+
+// ErrNilProof signals that a nil proof has been provided
 var ErrNilProof = errors.New("nil proof provided")
 
 type proofsPool struct {
@@ -22,6 +26,7 @@ func NewProofsPool() *proofsPool {
 	}
 }
 
+// AddNotarizedProof will add the provided proof to the pool
 func (pp *proofsPool) AddNotarizedProof(
 	headerProof data.HeaderProofHandler,
 ) error {
@@ -45,6 +50,7 @@ func (pp *proofsPool) AddNotarizedProof(
 	return nil
 }
 
+// CleanupNotarizedProofsBehindNonce will cleanup proofs from pool based on nonce
 func (pp *proofsPool) CleanupNotarizedProofsBehindNonce(shardID uint32, nonce uint64) error {
 	if nonce == 0 {
 		return nil
@@ -63,6 +69,7 @@ func (pp *proofsPool) CleanupNotarizedProofsBehindNonce(shardID uint32, nonce ui
 	return nil
 }
 
+// GetNotarizedProof will get the proof from pool
 func (pp *proofsPool) GetNotarizedProof(
 	shardID uint32,
 	headerHash []byte,
@@ -78,6 +85,7 @@ func (pp *proofsPool) GetNotarizedProof(
 	return proofsPerShard.getProofByHash(headerHash)
 }
 
+// GetAllNotarizedProofs will get all proofs for shardk
 func (pp *proofsPool) GetAllNotarizedProofs(
 	shardID uint32,
 ) (map[string]data.HeaderProofHandler, error) {

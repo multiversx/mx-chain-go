@@ -5,10 +5,7 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/pkg/errors"
 )
-
-var ErrMissingProof = errors.New("missing proof")
 
 type proofNonceMapping struct {
 	headerHash string

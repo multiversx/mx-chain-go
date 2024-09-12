@@ -358,8 +358,14 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 	if !check.IfNil(additionalData) {
 		scheduledRootHash = additionalData.GetScheduledRootHash()
 	}
+
 	proof := headerHandler.GetPreviousProof()
-	prevAggregatedSig, prevBitmap := proof.GetAggregatedSignature(), proof.GetPubKeysBitmap()
+
+	var prevAggregatedSig, prevBitmap []byte
+	if proof != nil {
+		prevAggregatedSig, prevBitmap = proof.GetAggregatedSignature(), proof.GetPubKeysBitmap()
+	}
+
 	return []*display.LineData{
 		display.NewLineData(false, []string{
 			"",
@@ -967,7 +973,14 @@ func (bp *baseProcessor) cleanupPools(headerHandler data.HeaderHandler) {
 	bp.removeHeadersBehindNonceFromPools(
 		true,
 		bp.shardCoordinator.SelfId(),
-		highestPrevFinalBlockNonce)
+		highestPrevFinalBlockNonce,
+	)
+
+	err := bp.dataPool.Proofs().CleanupNotarizedProofsBehindNonce(bp.shardCoordinator.SelfId(), highestPrevFinalBlockNonce)
+	if err != nil {
+		log.Warn("%w: failed to cleanup notarized proofs behind nonce %d on shardID %d",
+			err, noncesToPrevFinal, bp.shardCoordinator.SelfId())
+	}
 
 	if bp.shardCoordinator.SelfId() == core.MetachainShardId {
 		for shardID := uint32(0); shardID < bp.shardCoordinator.NumberOfShards(); shardID++ {
@@ -976,6 +989,7 @@ func (bp *baseProcessor) cleanupPools(headerHandler data.HeaderHandler) {
 	} else {
 		bp.cleanupPoolsForCrossShard(core.MetachainShardId, noncesToPrevFinal)
 	}
+
 }
 
 func (bp *baseProcessor) cleanupPoolsForCrossShard(
@@ -996,6 +1010,12 @@ func (bp *baseProcessor) cleanupPoolsForCrossShard(
 		shardID,
 		crossNotarizedHeader.GetNonce(),
 	)
+
+	err = bp.dataPool.Proofs().CleanupNotarizedProofsBehindNonce(shardID, noncesToPrevFinal)
+	if err != nil {
+		log.Warn("%w: failed to cleanup notarized proofs behind nonce %d on shardID %d",
+			err, noncesToPrevFinal, shardID)
+	}
 }
 
 func (bp *baseProcessor) removeHeadersBehindNonceFromPools(

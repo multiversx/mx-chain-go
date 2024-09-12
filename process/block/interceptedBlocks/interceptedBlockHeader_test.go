@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
@@ -246,7 +247,8 @@ func TestInterceptedHeader_CheckValidityLeaderSignatureOkWithFlagActiveShouldWor
 	arg.HeaderSigVerifier = &consensus.HeaderSigVerifierMock{
 		VerifySignatureCalled: func(header data.HeaderHandler) error {
 			wasVerifySignatureCalled = true
-			prevSig, prevBitmap := header.GetPreviousAggregatedSignatureAndBitmap()
+			proof := header.GetPreviousProof()
+			prevSig, prevBitmap := proof.GetAggregatedSignature(), proof.GetPubKeysBitmap()
 			assert.Equal(t, providedPrevBitmap, prevBitmap)
 			assert.Equal(t, providedPrevSig, prevSig)
 			return nil
@@ -258,7 +260,7 @@ func TestInterceptedHeader_CheckValidityLeaderSignatureOkWithFlagActiveShouldWor
 		ScheduledRootHash:        []byte("root hash"),
 		ScheduledAccumulatedFees: big.NewInt(0),
 		ScheduledDeveloperFees:   big.NewInt(0),
-		PreviousHeaderProof: &dataBlock.PreviousHeaderProof{
+		PreviousHeaderProof: &block.HeaderProof{
 			PubKeysBitmap:       providedPrevBitmap,
 			AggregatedSignature: providedPrevSig,
 		},

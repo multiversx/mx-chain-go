@@ -851,11 +851,7 @@ func (wrk *Worker) verifyEquivalentMessageSignature(cnsMsg *consensus.Message) e
 // HasEquivalentMessage returns true if an equivalent message was received before
 func (wrk *Worker) HasEquivalentMessage(headerHash []byte) bool {
 	_, err := wrk.GetEquivalentProof(headerHash)
-	if err != nil {
-		return false
-	}
-
-	return true
+	return err == nil
 }
 
 // GetEquivalentProof returns the equivalent proof for the provided hash
