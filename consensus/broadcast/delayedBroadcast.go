@@ -674,7 +674,13 @@ func (dbb *delayedBlockBroadcaster) interceptedHeader(_ string, headerHash []byt
 	dbb.mutHeadersCache.Unlock()
 
 	proof := headerHandler.GetPreviousProof()
-	aggSig, bitmap := proof.GetAggregatedSignature(), proof.GetPubKeysBitmap()
+
+	var aggSig, bitmap []byte
+	if proof != nil {
+		aggSig, bitmap = proof.GetAggregatedSignature(), proof.GetPubKeysBitmap()
+	}
+
+	// TODO: add common check for verifying proof validity
 	isFinalInfo := len(aggSig) > 0 && len(bitmap) > 0
 	if isFinalInfo {
 		dbb.cacheConsensusMessages.Put(headerHash, struct{}{}, 0)

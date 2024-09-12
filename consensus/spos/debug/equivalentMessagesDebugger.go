@@ -96,7 +96,7 @@ func (debugger *equivalentMessagesDebugger) dataToString() string {
 	lines := make([]*display.LineData, 0, len(debugger.msgCounters))
 	idx := 0
 	for hash, numMessages := range debugger.msgCounters {
-		sig, bitmap := make([]byte, 0), make([]byte, 0)
+		var sig, bitmap []byte
 		proof, err := debugger.proofsPool.GetNotarizedProof(debugger.shardCoordinator.SelfId(), []byte(hash))
 		if err == nil {
 			sig, bitmap = proof.GetAggregatedSignature(), proof.GetPubKeysBitmap()
