@@ -820,6 +820,7 @@ func (wrk *Worker) shouldVerifyEquivalentMessages(msgType consensus.MessageType)
 	return wrk.enableEpochsHandler.IsFlagEnabledInEpoch(common.EquivalentMessagesFlag, wrk.consensusState.Header.GetEpoch())
 }
 
+// TODO: this will be handled in a separate intereceptor for equivalent proofs
 func (wrk *Worker) processEquivalentMessage(cnsMsg *consensus.Message) error {
 	// if the received final info is from self, simply return nil to allow further broadcast
 	// the proof was already validated
@@ -862,7 +863,7 @@ func (wrk *Worker) GetEquivalentProof(headerHash []byte) (data.HeaderProofHandle
 	return wrk.equivalentProofsPool.GetNotarizedProof(wrk.shardCoordinator.SelfId(), headerHash)
 }
 
-// SetValidEquivalentProof saves the equivalent proof for the provided header and marks it as validated
+// SetValidEquivalentProof saves the equivalent proof for the provided header
 func (wrk *Worker) SetValidEquivalentProof(proof data.HeaderProofHandler) {
 	// only valid equivalent proofs are being added to proofs tracker
 	err := wrk.equivalentProofsPool.AddNotarizedProof(proof)
