@@ -60,8 +60,8 @@ func (n *nodesCoordinator) GetShuffledOutToAuctionValidatorsPublicKeys(_ uint32)
 }
 
 // GetConsensusValidatorsPublicKeys -
-func (n *nodesCoordinator) GetConsensusValidatorsPublicKeys(_ []byte, _ uint64, _ uint32, _ uint32) ([]string, error) {
-	return nil, nil
+func (n *nodesCoordinator) GetConsensusValidatorsPublicKeys(_ []byte, _ uint64, _ uint32, _ uint32) (string, []string, error) {
+	return "", nil, nil
 }
 
 // GetOwnPublicKey -
@@ -70,8 +70,8 @@ func (n *nodesCoordinator) GetOwnPublicKey() []byte {
 }
 
 // ComputeConsensusGroup -
-func (n *nodesCoordinator) ComputeConsensusGroup(_ []byte, _ uint64, _ uint32, _ uint32) (validatorsGroup []nodesCoord.Validator, err error) {
-	return nil, nil
+func (n *nodesCoordinator) ComputeConsensusGroup(_ []byte, _ uint64, _ uint32, _ uint32) (leader nodesCoord.Validator, validatorsGroup []nodesCoord.Validator, err error) {
+	return nil, nil, nil
 }
 
 // GetValidatorWithPublicKey -

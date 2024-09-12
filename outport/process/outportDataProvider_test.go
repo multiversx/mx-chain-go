@@ -12,6 +12,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/outport/mock"
 	"github.com/multiversx/mx-chain-go/outport/process/transactionsfee"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -20,7 +22,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
-	"github.com/stretchr/testify/require"
 )
 
 func createArgOutportDataProvider() ArgOutportDataProvider {
@@ -81,8 +82,8 @@ func TestPrepareOutportSaveBlockData(t *testing.T) {
 
 	arg := createArgOutportDataProvider()
 	arg.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
-		GetValidatorsPublicKeysCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error) {
-			return nil, nil
+		GetValidatorsPublicKeysCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (string, []string, error) {
+			return "", nil, nil
 		},
 		GetValidatorsIndexesCalled: func(publicKeys []string, epoch uint32) ([]uint64, error) {
 			return []uint64{0, 1}, nil
@@ -125,8 +126,8 @@ func TestOutportDataProvider_GetIntraShardMiniBlocks(t *testing.T) {
 
 	arg := createArgOutportDataProvider()
 	arg.NodesCoordinator = &shardingMocks.NodesCoordinatorMock{
-		GetValidatorsPublicKeysCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) ([]string, error) {
-			return nil, nil
+		GetValidatorsPublicKeysCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (string, []string, error) {
+			return "", nil, nil
 		},
 		GetValidatorsIndexesCalled: func(publicKeys []string, epoch uint32) ([]uint64, error) {
 			return []uint64{0, 1}, nil
