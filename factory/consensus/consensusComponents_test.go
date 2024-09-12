@@ -1,6 +1,7 @@
 package consensus_test
 
 import (
+	"crypto"
 	"errors"
 	"strings"
 	"testing"
@@ -8,7 +9,6 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	retriever "github.com/multiversx/mx-chain-go/dataRetriever"
@@ -24,6 +24,7 @@ import (
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	dataRetrieverMocks "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
@@ -98,6 +99,9 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 				},
 				HeadersCalled: func() retriever.HeadersPool {
 					return &testsMocks.HeadersCacherStub{}
+				},
+				ProofsCalled: func() retriever.ProofsPool {
+					return &dataRetrieverMocks.ProofsPoolStub{}
 				},
 			},
 			BlockChain: &testscommon.ChainHandlerStub{

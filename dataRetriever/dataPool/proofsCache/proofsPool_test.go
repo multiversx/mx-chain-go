@@ -60,10 +60,10 @@ func TestProofsPool_ShouldWork(t *testing.T) {
 		HeaderNonce:         4,
 		HeaderShardId:       shardID,
 	}
-	pp.AddNotarizedProof(proof1)
-	pp.AddNotarizedProof(proof2)
-	pp.AddNotarizedProof(proof3)
-	pp.AddNotarizedProof(proof4)
+	_ = pp.AddNotarizedProof(proof1)
+	_ = pp.AddNotarizedProof(proof2)
+	_ = pp.AddNotarizedProof(proof3)
+	_ = pp.AddNotarizedProof(proof4)
 
 	proof, err := pp.GetNotarizedProof(shardID, []byte("hash3"))
 	require.Nil(t, err)
@@ -97,7 +97,7 @@ func TestProofsPool_Concurrency(t *testing.T) {
 		go func(idx int) {
 			switch idx % 5 {
 			case 0, 1, 2:
-				pp.AddNotarizedProof(generateProof())
+				_ = pp.AddNotarizedProof(generateProof())
 			case 3:
 				_, err := pp.GetNotarizedProof(generateRandomShardID(), generateRandomHash())
 				if errors.Is(err, proofscache.ErrMissingProof) {

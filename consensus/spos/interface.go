@@ -191,13 +191,7 @@ type SentSignaturesTracker interface {
 
 // EquivalentMessagesDebugger defines the specific debugger for equivalent messages
 type EquivalentMessagesDebugger interface {
-	SetValidEquivalentProof(
-		headerHash []byte,
-		proof data.HeaderProofHandler,
-	)
-	UpsertEquivalentMessage(
-		headerHash []byte,
-	)
+	UpsertEquivalentMessage(headerHash []byte)
 	DisplayEquivalentMessagesStatistics()
 	ResetEquivalentMessages()
 	DeleteEquivalentMessage(headerHash []byte)

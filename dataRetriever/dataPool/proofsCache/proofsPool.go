@@ -5,7 +5,10 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/pkg/errors"
 )
+
+var ErrNilProof = errors.New("nil proof provided")
 
 type proofsPool struct {
 	mutCache sync.RWMutex
@@ -21,9 +24,9 @@ func NewProofsPool() *proofsPool {
 
 func (pp *proofsPool) AddNotarizedProof(
 	headerProof data.HeaderProofHandler,
-) {
+) error {
 	if headerProof == nil {
-		return
+		return ErrNilProof
 	}
 
 	pp.mutCache.Lock()
@@ -38,6 +41,8 @@ func (pp *proofsPool) AddNotarizedProof(
 	}
 
 	proofsPerShard.addProof(headerProof)
+
+	return nil
 }
 
 func (pp *proofsPool) CleanupNotarizedProofsBehindNonce(shardID uint32, nonce uint64) error {
@@ -71,6 +76,20 @@ func (pp *proofsPool) GetNotarizedProof(
 	}
 
 	return proofsPerShard.getProofByHash(headerHash)
+}
+
+func (pp *proofsPool) GetAllNotarizedProofs(
+	shardID uint32,
+) (map[string]data.HeaderProofHandler, error) {
+	pp.mutCache.RLock()
+	defer pp.mutCache.RUnlock()
+
+	proofsPerShard, ok := pp.cache[shardID]
+	if !ok {
+		return nil, fmt.Errorf("%w: proofs cache per shard not found, shard ID: %d", ErrMissingProof, shardID)
+	}
+
+	return proofsPerShard.getAllProofs(), nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -181,6 +181,11 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		return nil, err
 	}
 
+	equivalentMesaggesDebbuger, err := debug.NewEquivalentMessagesDebugger(ccf.dataComponents.Datapool().Proofs(), ccf.processComponents.ShardCoordinator())
+	if err != nil {
+		return nil, err
+	}
+
 	workerArgs := &spos.WorkerArgs{
 		ConsensusService:           consensusService,
 		BlockChain:                 ccf.dataComponents.Blockchain(),
@@ -207,8 +212,9 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		AppStatusHandler:           ccf.statusCoreComponents.AppStatusHandler(),
 		NodeRedundancyHandler:      ccf.processComponents.NodeRedundancyHandler(),
 		PeerBlacklistHandler:       cc.peerBlacklistHandler,
-		EquivalentMessagesDebugger: debug.NewEquivalentMessagesDebugger(),
+		EquivalentMessagesDebugger: equivalentMesaggesDebbuger,
 		EnableEpochsHandler:        ccf.coreComponents.EnableEpochsHandler(),
+		EquivalentProofsPool:       ccf.dataComponents.Datapool().Proofs(),
 	}
 
 	cc.worker, err = spos.NewWorker(workerArgs)

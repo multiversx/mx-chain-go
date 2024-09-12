@@ -199,7 +199,8 @@ type KeysHandler interface {
 
 // EquivalentProofsPool defines the behaviour of a proofs pool components
 type EquivalentProofsPool interface {
-	AddNotarizedProof(headerProof data.HeaderProofHandler)
+	AddNotarizedProof(headerProof data.HeaderProofHandler) error
 	GetNotarizedProof(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error)
+	GetAllNotarizedProofs(shardID uint32) (map[string]data.HeaderProofHandler, error)
 	IsInterfaceNil() bool
 }

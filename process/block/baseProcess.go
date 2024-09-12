@@ -358,7 +358,8 @@ func displayHeader(headerHandler data.HeaderHandler) []*display.LineData {
 	if !check.IfNil(additionalData) {
 		scheduledRootHash = additionalData.GetScheduledRootHash()
 	}
-	prevAggregatedSig, prevBitmap := headerHandler.GetPreviousAggregatedSignatureAndBitmap()
+	proof := headerHandler.GetPreviousProof()
+	prevAggregatedSig, prevBitmap := proof.GetAggregatedSignature(), proof.GetPubKeysBitmap()
 	return []*display.LineData{
 		display.NewLineData(false, []string{
 			"",

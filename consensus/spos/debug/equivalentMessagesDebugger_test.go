@@ -3,7 +3,8 @@ package debug
 import (
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/stretchr/testify/require"
 )
 
@@ -13,7 +14,9 @@ func TestNewEquivalentMessagesDebugger_IsInterfaceNil(t *testing.T) {
 	var debugger *equivalentMessagesDebugger
 	require.True(t, debugger.IsInterfaceNil())
 
-	debugger = NewEquivalentMessagesDebugger()
+	debugger, err := NewEquivalentMessagesDebugger(&dataRetriever.ProofsPoolStub{}, &testscommon.ShardsCoordinatorMock{})
+	require.Nil(t, err)
+
 	require.False(t, debugger.IsInterfaceNil())
 }
 
@@ -30,7 +33,8 @@ func TestEquivalentMessagesDebugger_DisplayEquivalentMessagesStatistics(t *testi
 			}
 		}()
 
-		debugger := NewEquivalentMessagesDebugger()
+		debugger, err := NewEquivalentMessagesDebugger(&dataRetriever.ProofsPoolStub{}, &testscommon.ShardsCoordinatorMock{})
+		require.Nil(t, err)
 		debugger.DisplayEquivalentMessagesStatistics()
 	})
 
@@ -44,13 +48,14 @@ func TestEquivalentMessagesDebugger_DisplayEquivalentMessagesStatistics(t *testi
 			}
 		}()
 
-		debugger := NewEquivalentMessagesDebugger()
+		debugger, err := NewEquivalentMessagesDebugger(&dataRetriever.ProofsPoolStub{}, &testscommon.ShardsCoordinatorMock{})
+		require.Nil(t, err)
 		debugger.shouldProcessDataFunc = func() bool {
 			return true
 		}
 
-		debugger.SetValidEquivalentProof([]byte("hash1"), &block.HeaderProof{PubKeysBitmap: []byte("bitmap 1"), AggregatedSignature: []byte("signature 1")})
-		debugger.SetValidEquivalentProof([]byte("hash2"), &block.HeaderProof{PubKeysBitmap: []byte("bitmap 2"), AggregatedSignature: []byte("signature 2")})
+		debugger.UpsertEquivalentMessage([]byte("hash1"))
+		debugger.UpsertEquivalentMessage([]byte("hash2"))
 
 		debugger.DisplayEquivalentMessagesStatistics()
 	})

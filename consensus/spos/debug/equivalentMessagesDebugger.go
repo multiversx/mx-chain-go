@@ -4,57 +4,51 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/display"
+	"github.com/multiversx/mx-chain-go/consensus/spos"
+	"github.com/multiversx/mx-chain-go/sharding"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("debug/equivalentmessages")
 
-// EquivalentMessageInfo holds information about an equivalent message
-type equivalentMessageDebugInfo struct {
-	NumMessages uint64
-	Validated   bool
-	Proof       data.HeaderProofHandler
+type proofsPoolHandler interface {
+	GetAllNotarizedProofs(shardID uint32) (map[string]data.HeaderProofHandler, error)
+	GetNotarizedProof(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error)
+	IsInterfaceNil() bool
 }
 
 type equivalentMessagesDebugger struct {
+	proofsPool       proofsPoolHandler
+	shardCoordinator sharding.Coordinator
+
 	shouldProcessDataFunc func() bool
 
 	mutEquivalentMessages sync.RWMutex
-	equivalentMessages    map[string]*equivalentMessageDebugInfo
+	msgCounters           map[string]uint64
 }
 
 // NewEquivalentMessagesDebugger returns a new instance of equivalentMessagesDebugger
-func NewEquivalentMessagesDebugger() *equivalentMessagesDebugger {
-	debugger := &equivalentMessagesDebugger{
-		shouldProcessDataFunc: isLogTrace,
-		equivalentMessages:    make(map[string]*equivalentMessageDebugInfo),
+func NewEquivalentMessagesDebugger(proofsPool proofsPoolHandler, shardCoordinator sharding.Coordinator) (*equivalentMessagesDebugger, error) {
+	if check.IfNil(proofsPool) {
+		return nil, spos.ErrNilProofPool
+	}
+	if check.IfNil(shardCoordinator) {
+		return nil, spos.ErrNilShardCoordinator
 	}
 
-	return debugger
+	return &equivalentMessagesDebugger{
+		proofsPool:            proofsPool,
+		shardCoordinator:      shardCoordinator,
+		shouldProcessDataFunc: isLogTrace,
+		msgCounters:           make(map[string]uint64),
+	}, nil
 }
 
 func (debugger *equivalentMessagesDebugger) ResetEquivalentMessages() {
-	debugger.equivalentMessages = make(map[string]*equivalentMessageDebugInfo)
-}
-
-func (debugger *equivalentMessagesDebugger) SetValidEquivalentProof(
-	headerHash []byte,
-	proof data.HeaderProofHandler,
-) {
-	debugger.mutEquivalentMessages.Lock()
-	defer debugger.mutEquivalentMessages.Unlock()
-
-	equivalentMessage, ok := debugger.equivalentMessages[string(headerHash)]
-	if !ok {
-		equivalentMessage = &equivalentMessageDebugInfo{
-			NumMessages: 1,
-		}
-		debugger.equivalentMessages[string(headerHash)] = equivalentMessage
-	}
-	equivalentMessage.Validated = true
-	equivalentMessage.Proof = proof
+	debugger.msgCounters = make(map[string]uint64)
 }
 
 func (debugger *equivalentMessagesDebugger) UpsertEquivalentMessage(
@@ -63,29 +57,18 @@ func (debugger *equivalentMessagesDebugger) UpsertEquivalentMessage(
 	debugger.mutEquivalentMessages.Lock()
 	defer debugger.mutEquivalentMessages.Unlock()
 
-	equivalentMessage, ok := debugger.equivalentMessages[string(headerHash)]
+	_, ok := debugger.msgCounters[string(headerHash)]
 	if !ok {
-		equivalentMessage = &equivalentMessageDebugInfo{
-			NumMessages: 0,
-			Validated:   false,
-		}
-		debugger.equivalentMessages[string(headerHash)] = equivalentMessage
+		debugger.msgCounters[string(headerHash)] = 0
 	}
-	equivalentMessage.NumMessages++
-}
-
-func (debugger *equivalentMessagesDebugger) GetEquivalentMessages() map[string]*equivalentMessageDebugInfo {
-	debugger.mutEquivalentMessages.Lock()
-	defer debugger.mutEquivalentMessages.Unlock()
-
-	return debugger.equivalentMessages
+	debugger.msgCounters[string(headerHash)]++
 }
 
 func (debugger *equivalentMessagesDebugger) DeleteEquivalentMessage(headerHash []byte) {
 	debugger.mutEquivalentMessages.Lock()
 	defer debugger.mutEquivalentMessages.Unlock()
 
-	delete(debugger.equivalentMessages, string(headerHash))
+	delete(debugger.msgCounters, string(headerHash))
 }
 
 // DisplayEquivalentMessagesStatistics prints all the equivalent messages
@@ -94,33 +77,37 @@ func (debugger *equivalentMessagesDebugger) DisplayEquivalentMessagesStatistics(
 		return
 	}
 
-	debugger.mutEquivalentMessages.Lock()
-	defer debugger.mutEquivalentMessages.Unlock()
+	dataAsStr := debugger.dataToString()
 
-	dataMap := debugger.equivalentMessages
-
-	log.Trace(fmt.Sprintf("Equivalent messages statistics for current round\n%s", dataToString(dataMap)))
+	log.Trace(fmt.Sprintf("Equivalent messages statistics for current round\n%s", dataAsStr))
 }
 
-func dataToString(data map[string]*equivalentMessageDebugInfo) string {
+func (debugger *equivalentMessagesDebugger) dataToString() string {
+	debugger.mutEquivalentMessages.RLock()
+	defer debugger.mutEquivalentMessages.RUnlock()
+
 	header := []string{
 		"Block header hash",
 		"Equivalent messages received",
-		"Validated",
 		"Aggregated signature",
 		"Pubkeys Bitmap",
 	}
 
-	lines := make([]*display.LineData, 0, len(data))
+	lines := make([]*display.LineData, 0, len(debugger.msgCounters))
 	idx := 0
-	for hash, info := range data {
-		horizontalLineAfter := idx == len(data)
+	for hash, numMessages := range debugger.msgCounters {
+		sig, bitmap := make([]byte, 0), make([]byte, 0)
+		proof, err := debugger.proofsPool.GetNotarizedProof(debugger.shardCoordinator.SelfId(), []byte(hash))
+		if err == nil {
+			sig, bitmap = proof.GetAggregatedSignature(), proof.GetPubKeysBitmap()
+		}
+
+		horizontalLineAfter := idx == len(debugger.msgCounters)
 		line := []string{
 			hash,
-			fmt.Sprintf("%d", info.NumMessages),
-			fmt.Sprintf("%t", info.Validated),
-			string(info.Proof.GetAggregatedSignature()),
-			string(info.Proof.GetPubKeysBitmap()),
+			fmt.Sprintf("%d", numMessages),
+			string(sig),
+			string(bitmap),
 		}
 		lines = append(lines, display.NewLineData(horizontalLineAfter, line))
 		idx++
@@ -128,7 +115,7 @@ func dataToString(data map[string]*equivalentMessageDebugInfo) string {
 
 	table, err := display.CreateTableString(header, lines)
 	if err != nil {
-		return "error creating p2p stats table: " + err.Error()
+		return "error creating equivalent proofs stats table: " + err.Error()
 	}
 
 	return table

@@ -240,6 +240,7 @@ type PoolsHolder interface {
 	PeerAuthentications() storage.Cacher
 	Heartbeats() storage.Cacher
 	ValidatorsInfo() ShardedDataCacherNotifier
+	Proofs() ProofsPool
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -360,8 +361,9 @@ type PeerAuthenticationPayloadValidator interface {
 
 // ProofsPool defines the behaviour of a proofs pool components
 type ProofsPool interface {
-	AddNotarizedProof(headerProof data.HeaderProofHandler)
+	AddNotarizedProof(headerProof data.HeaderProofHandler) error
 	CleanupNotarizedProofsBehindNonce(shardID uint32, nonce uint64) error
 	GetNotarizedProof(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error)
+	GetAllNotarizedProofs(shardID uint32) (map[string]data.HeaderProofHandler, error)
 	IsInterfaceNil() bool
 }

@@ -3,7 +3,6 @@ package spos_test
 import (
 	"bytes"
 	"context"
-	"crypto/rand"
 	"errors"
 	"fmt"
 	"math/big"
@@ -26,7 +25,6 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
-	"github.com/multiversx/mx-chain-go/consensus/spos/debug"
 	proofscache "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/proofsCache"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
@@ -620,154 +618,6 @@ func TestWorker_ProcessReceivedMessageRedundancyNodeShouldResetInactivityIfNeede
 	)
 
 	assert.True(t, wasCalled)
-}
-
-func TestWorker_ProcessReceivedMessageEquivalentMessage(t *testing.T) {
-	t.Parallel()
-
-	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
-	workerArgs.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-			return flag == common.EquivalentMessagesFlag
-		},
-	}
-
-	equivalentMessagesDebugger := debug.NewEquivalentMessagesDebugger()
-	workerArgs.EquivalentMessagesDebugger = equivalentMessagesDebugger
-	wrk, _ := spos.NewWorker(workerArgs)
-
-	equivalentBlockHeaderHash := workerArgs.Hasher.Compute("equivalent block header hash")
-	pubKey := []byte(wrk.ConsensusState().ConsensusGroup()[0])
-	headerBytes := make([]byte, 100)
-	_, _ = rand.Read(headerBytes)
-
-	bodyBytes := make([]byte, 100)
-	_, _ = rand.Read(bodyBytes)
-
-	cnsMsg := consensus.NewConsensusMessage(
-		equivalentBlockHeaderHash,
-		nil,
-		nil,
-		nil,
-		pubKey,
-		bytes.Repeat([]byte("a"), SignatureSize),
-		int(bls.MtBlockHeaderFinalInfo),
-		0,
-		chainID,
-		[]byte("01"),
-		signature,
-		signature,
-		currentPid,
-		nil,
-	)
-	buff, _ := wrk.Marshalizer().Marshal(cnsMsg)
-
-	cnsMsgEquiv := consensus.NewConsensusMessage(
-		equivalentBlockHeaderHash,
-		nil,
-		nil,
-		nil,
-		pubKey,
-		bytes.Repeat([]byte("b"), SignatureSize),
-		int(bls.MtBlockHeaderFinalInfo),
-		0,
-		chainID,
-		[]byte("01"),
-		signature,
-		signature,
-		currentPid,
-		nil,
-	)
-	buffEquiv, _ := wrk.Marshalizer().Marshal(cnsMsgEquiv)
-
-	invalidCnsMsg := consensus.NewConsensusMessage(
-		[]byte("other block header hash"),
-		nil,
-		nil,
-		nil,
-		pubKey,
-		bytes.Repeat([]byte("a"), SignatureSize),
-		int(bls.MtBlockHeaderFinalInfo),
-		0,
-		[]byte("invalid chain id"),
-		[]byte("01"),
-		signature,
-		signature,
-		currentPid,
-		nil,
-	)
-	buffInvalidCnsMsg, _ := wrk.Marshalizer().Marshal(invalidCnsMsg)
-
-	assert.False(t, wrk.HasEquivalentMessage(equivalentBlockHeaderHash))
-
-	wrk.ConsensusState().Header = &block.Header{
-		ChainID:         chainID,
-		PrevHash:        []byte("prev hash"),
-		PrevRandSeed:    []byte("prev rand seed"),
-		RandSeed:        []byte("rand seed"),
-		RootHash:        []byte("roothash"),
-		SoftwareVersion: []byte("software version"),
-		AccumulatedFees: big.NewInt(0),
-		DeveloperFees:   big.NewInt(0),
-	}
-
-	assert.False(t, wrk.HasEquivalentMessage(equivalentBlockHeaderHash))
-
-	err := wrk.ProcessReceivedMessage(
-		&p2pmocks.P2PMessageMock{
-			DataField:      buff,
-			PeerField:      currentPid,
-			SignatureField: []byte("signature"),
-		},
-		fromConnectedPeerId,
-		&p2pmocks.MessengerStub{},
-	)
-	assert.NoError(t, err)
-
-	equivalentMessages := equivalentMessagesDebugger.GetEquivalentMessages()
-	assert.Equal(t, 1, len(equivalentMessages))
-	assert.Equal(t, uint64(1), equivalentMessages[string(equivalentBlockHeaderHash)].NumMessages)
-	wrk.SetValidEquivalentProof(&block.HeaderProof{
-		AggregatedSignature: []byte("sig"),
-		PubKeysBitmap:       []byte("bitmap"),
-	})
-	assert.True(t, wrk.HasEquivalentMessage(equivalentBlockHeaderHash))
-
-	equivMsgFrom := core.PeerID("from other peer id")
-	err = wrk.ProcessReceivedMessage(
-		&p2pmocks.P2PMessageMock{
-			DataField:      buffEquiv,
-			PeerField:      equivMsgFrom,
-			SignatureField: []byte("signatureEquiv"),
-		},
-		equivMsgFrom,
-		&p2pmocks.MessengerStub{},
-	)
-	assert.Equal(t, spos.ErrEquivalentMessageAlreadyReceived, err)
-
-	equivalentMessages = equivalentMessagesDebugger.GetEquivalentMessages()
-	assert.Equal(t, 1, len(equivalentMessages))
-	assert.Equal(t, uint64(2), equivalentMessages[string(equivalentBlockHeaderHash)].NumMessages)
-
-	err = wrk.ProcessReceivedMessage(
-		&p2pmocks.P2PMessageMock{
-			DataField:      buffInvalidCnsMsg,
-			PeerField:      currentPid,
-			SignatureField: []byte("signatureEquiv"),
-		},
-		equivMsgFrom,
-		&p2pmocks.MessengerStub{},
-	)
-	assert.Error(t, err)
-
-	// same state as before, invalid message should have been dropped
-	equivalentMessages = equivalentMessagesDebugger.GetEquivalentMessages()
-	assert.Equal(t, 1, len(equivalentMessages))
-	assert.Equal(t, uint64(2), equivalentMessages[string(equivalentBlockHeaderHash)].NumMessages)
-
-	wrk.ResetConsensusMessages(nil, nil)
-	equivalentMessages = equivalentMessagesDebugger.GetEquivalentMessages()
-	assert.Equal(t, 0, len(equivalentMessages))
 }
 
 func TestWorker_ProcessReceivedMessageNodeNotInEligibleListShouldErr(t *testing.T) {

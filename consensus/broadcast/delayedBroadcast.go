@@ -54,27 +54,26 @@ type headerDataForValidator struct {
 }
 
 type delayedBlockBroadcaster struct {
-	alarm                      timersScheduler
-	interceptorsContainer      process.InterceptorsContainer
-	shardCoordinator           sharding.Coordinator
-	headersSubscriber          consensus.HeadersPoolSubscriber
-	valHeaderBroadcastData     []*shared.ValidatorHeaderBroadcastData
-	valBroadcastData           []*shared.DelayedBroadcastData
-	delayedBroadcastData       []*shared.DelayedBroadcastData
-	maxDelayCacheSize          uint32
-	maxValidatorDelayCacheSize uint32
-	mutDataForBroadcast        sync.RWMutex
-	broadcastMiniblocksData    func(mbData map[uint32][]byte, pkBytes []byte) error
-	broadcastTxsData           func(txData map[string][][]byte, pkBytes []byte) error
-	broadcastHeader            func(header data.HeaderHandler, pkBytes []byte) error
+	alarm                        timersScheduler
+	interceptorsContainer        process.InterceptorsContainer
+	shardCoordinator             sharding.Coordinator
+	headersSubscriber            consensus.HeadersPoolSubscriber
+	valHeaderBroadcastData       []*shared.ValidatorHeaderBroadcastData
+	valBroadcastData             []*shared.DelayedBroadcastData
+	delayedBroadcastData         []*shared.DelayedBroadcastData
+	maxDelayCacheSize            uint32
+	maxValidatorDelayCacheSize   uint32
+	mutDataForBroadcast          sync.RWMutex
+	broadcastMiniblocksData      func(mbData map[uint32][]byte, pkBytes []byte) error
+	broadcastTxsData             func(txData map[string][][]byte, pkBytes []byte) error
+	broadcastHeader              func(header data.HeaderHandler, pkBytes []byte) error
 	broadcastConsensusMessage    func(message *consensus.Message) error
-	cacheHeaders               storage.Cacher
-	mutHeadersCache            sync.RWMutex
+	cacheHeaders                 storage.Cacher
+	mutHeadersCache              sync.RWMutex
 	config                       config.ConsensusGradualBroadcastConfig
 	mutBroadcastConsensusMessage sync.RWMutex
 	valBroadcastConsensusMessage map[string]*consensus.Message
 	cacheConsensusMessages       storage.Cacher
-
 }
 
 // NewDelayedBlockBroadcaster create a new instance of a delayed block data broadcaster
@@ -103,19 +102,19 @@ func NewDelayedBlockBroadcaster(args *ArgsDelayedBlockBroadcaster) (*delayedBloc
 	}
 
 	dbb := &delayedBlockBroadcaster{
-		alarm:                      args.AlarmScheduler,
-		shardCoordinator:           args.ShardCoordinator,
-		interceptorsContainer:      args.InterceptorsContainer,
-		headersSubscriber:          args.HeadersSubscriber,
-		valHeaderBroadcastData:     make([]*shared.ValidatorHeaderBroadcastData, 0),
-		valBroadcastData:           make([]*shared.DelayedBroadcastData, 0),
-		delayedBroadcastData:       make([]*shared.DelayedBroadcastData, 0),
+		alarm:                        args.AlarmScheduler,
+		shardCoordinator:             args.ShardCoordinator,
+		interceptorsContainer:        args.InterceptorsContainer,
+		headersSubscriber:            args.HeadersSubscriber,
+		valHeaderBroadcastData:       make([]*shared.ValidatorHeaderBroadcastData, 0),
+		valBroadcastData:             make([]*shared.DelayedBroadcastData, 0),
+		delayedBroadcastData:         make([]*shared.DelayedBroadcastData, 0),
 		valBroadcastConsensusMessage: make(map[string]*consensus.Message, 0),
-		maxDelayCacheSize:          args.LeaderCacheSize,
-		maxValidatorDelayCacheSize: args.ValidatorCacheSize,
-		mutDataForBroadcast:        sync.RWMutex{},
-		cacheHeaders:               cacheHeaders,
-		mutHeadersCache:            sync.RWMutex{},
+		maxDelayCacheSize:            args.LeaderCacheSize,
+		maxValidatorDelayCacheSize:   args.ValidatorCacheSize,
+		mutDataForBroadcast:          sync.RWMutex{},
+		cacheHeaders:                 cacheHeaders,
+		mutHeadersCache:              sync.RWMutex{},
 		config:                       args.Config,
 		cacheConsensusMessages:       cacheConsensusMessages,
 	}
@@ -674,7 +673,8 @@ func (dbb *delayedBlockBroadcaster) interceptedHeader(_ string, headerHash []byt
 	dbb.cacheHeaders.Put(headerHash, struct{}{}, 0)
 	dbb.mutHeadersCache.Unlock()
 
-	aggSig, bitmap := headerHandler.GetPreviousAggregatedSignatureAndBitmap()
+	proof := headerHandler.GetPreviousProof()
+	aggSig, bitmap := proof.GetAggregatedSignature(), proof.GetPubKeysBitmap()
 	isFinalInfo := len(aggSig) > 0 && len(bitmap) > 0
 	if isFinalInfo {
 		dbb.cacheConsensusMessages.Put(headerHash, struct{}{}, 0)
