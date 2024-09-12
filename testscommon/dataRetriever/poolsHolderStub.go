@@ -4,6 +4,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 )
 
 // PoolsHolderStub -
@@ -74,7 +75,7 @@ func (holder *PoolsHolderStub) MiniBlocks() storage.Cacher {
 		return holder.MiniBlocksCalled()
 	}
 
-	return testscommon.NewCacherStub()
+	return cache.NewCacherStub()
 }
 
 // MetaBlocks -
@@ -83,7 +84,7 @@ func (holder *PoolsHolderStub) MetaBlocks() storage.Cacher {
 		return holder.MetaBlocksCalled()
 	}
 
-	return testscommon.NewCacherStub()
+	return cache.NewCacherStub()
 }
 
 // CurrentBlockTxs -
@@ -110,7 +111,7 @@ func (holder *PoolsHolderStub) TrieNodes() storage.Cacher {
 		return holder.TrieNodesCalled()
 	}
 
-	return testscommon.NewCacherStub()
+	return cache.NewCacherStub()
 }
 
 // TrieNodesChunks -
@@ -119,7 +120,7 @@ func (holder *PoolsHolderStub) TrieNodesChunks() storage.Cacher {
 		return holder.TrieNodesChunksCalled()
 	}
 
-	return testscommon.NewCacherStub()
+	return cache.NewCacherStub()
 }
 
 // PeerChangesBlocks -
@@ -128,7 +129,7 @@ func (holder *PoolsHolderStub) PeerChangesBlocks() storage.Cacher {
 		return holder.PeerChangesBlocksCalled()
 	}
 
-	return testscommon.NewCacherStub()
+	return cache.NewCacherStub()
 }
 
 // SmartContracts -
@@ -137,7 +138,7 @@ func (holder *PoolsHolderStub) SmartContracts() storage.Cacher {
 		return holder.SmartContractsCalled()
 	}
 
-	return testscommon.NewCacherStub()
+	return cache.NewCacherStub()
 }
 
 // PeerAuthentications -
@@ -146,7 +147,7 @@ func (holder *PoolsHolderStub) PeerAuthentications() storage.Cacher {
 		return holder.PeerAuthenticationsCalled()
 	}
 
-	return testscommon.NewCacherStub()
+	return cache.NewCacherStub()
 }
 
 // Heartbeats -
@@ -155,7 +156,7 @@ func (holder *PoolsHolderStub) Heartbeats() storage.Cacher {
 		return holder.HeartbeatsCalled()
 	}
 
-	return testscommon.NewCacherStub()
+	return cache.NewCacherStub()
 }
 
 // ValidatorsInfo -

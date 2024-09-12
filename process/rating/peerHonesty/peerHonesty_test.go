@@ -7,9 +7,12 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -44,7 +47,7 @@ func TestNewP2pPeerHonesty_NilBlacklistedPkCacheShouldErr(t *testing.T) {
 	pph, err := NewP2pPeerHonesty(
 		createMockPeerHonestyConfig(),
 		nil,
-		&testscommon.CacherStub{},
+		&cache.CacherStub{},
 	)
 
 	assert.True(t, check.IfNil(pph))
@@ -59,7 +62,7 @@ func TestNewP2pPeerHonesty_InvalidDecayCoefficientShouldErr(t *testing.T) {
 	pph, err := NewP2pPeerHonesty(
 		cfg,
 		&testscommon.TimeCacheStub{},
-		&testscommon.CacherStub{},
+		&cache.CacherStub{},
 	)
 
 	assert.True(t, check.IfNil(pph))
@@ -74,7 +77,7 @@ func TestNewP2pPeerHonesty_InvalidDecayUpdateIntervalShouldErr(t *testing.T) {
 	pph, err := NewP2pPeerHonesty(
 		cfg,
 		&testscommon.TimeCacheStub{},
-		&testscommon.CacherStub{},
+		&cache.CacherStub{},
 	)
 
 	assert.True(t, check.IfNil(pph))
@@ -89,7 +92,7 @@ func TestNewP2pPeerHonesty_InvalidMinScoreShouldErr(t *testing.T) {
 	pph, err := NewP2pPeerHonesty(
 		cfg,
 		&testscommon.TimeCacheStub{},
-		&testscommon.CacherStub{},
+		&cache.CacherStub{},
 	)
 
 	assert.True(t, check.IfNil(pph))
@@ -104,7 +107,7 @@ func TestNewP2pPeerHonesty_InvalidMaxScoreShouldErr(t *testing.T) {
 	pph, err := NewP2pPeerHonesty(
 		cfg,
 		&testscommon.TimeCacheStub{},
-		&testscommon.CacherStub{},
+		&cache.CacherStub{},
 	)
 
 	assert.True(t, check.IfNil(pph))
@@ -119,7 +122,7 @@ func TestNewP2pPeerHonesty_InvalidUnitValueShouldErr(t *testing.T) {
 	pph, err := NewP2pPeerHonesty(
 		cfg,
 		&testscommon.TimeCacheStub{},
-		&testscommon.CacherStub{},
+		&cache.CacherStub{},
 	)
 
 	assert.True(t, check.IfNil(pph))
@@ -134,7 +137,7 @@ func TestNewP2pPeerHonesty_InvalidBadPeerThresholdShouldErr(t *testing.T) {
 	pph, err := NewP2pPeerHonesty(
 		cfg,
 		&testscommon.TimeCacheStub{},
-		&testscommon.CacherStub{},
+		&cache.CacherStub{},
 	)
 
 	assert.True(t, check.IfNil(pph))
@@ -148,7 +151,7 @@ func TestNewP2pPeerHonesty_ShouldWork(t *testing.T) {
 	pph, err := NewP2pPeerHonesty(
 		cfg,
 		&testscommon.TimeCacheStub{},
-		&testscommon.CacherStub{},
+		&cache.CacherStub{},
 	)
 
 	assert.False(t, check.IfNil(pph))
@@ -167,7 +170,7 @@ func TestP2pPeerHonesty_Close(t *testing.T) {
 	pph, _ := NewP2pPeerHonestyWithCustomExecuteDelayFunction(
 		cfg,
 		&testscommon.TimeCacheStub{},
-		&testscommon.CacherStub{},
+		&cache.CacherStub{},
 		handler,
 	)
 
@@ -189,7 +192,7 @@ func TestP2pPeerHonesty_ChangeScoreShouldWork(t *testing.T) {
 	pph, _ := NewP2pPeerHonesty(
 		cfg,
 		&testscommon.TimeCacheStub{},
-		testscommon.NewCacherMock(),
+		cache.NewCacherMock(),
 	)
 
 	pk := "pk"
@@ -210,7 +213,7 @@ func TestP2pPeerHonesty_DoubleChangeScoreShouldWork(t *testing.T) {
 	pph, _ := NewP2pPeerHonesty(
 		cfg,
 		&testscommon.TimeCacheStub{},
-		testscommon.NewCacherMock(),
+		cache.NewCacherMock(),
 	)
 
 	pk := "pk"
@@ -243,7 +246,7 @@ func TestP2pPeerHonesty_CheckBlacklistNotBlacklisted(t *testing.T) {
 				return nil
 			},
 		},
-		testscommon.NewCacherMock(),
+		cache.NewCacherMock(),
 	)
 
 	pk := "pk"
@@ -275,7 +278,7 @@ func TestP2pPeerHonesty_CheckBlacklistMaxScoreReached(t *testing.T) {
 				return nil
 			},
 		},
-		testscommon.NewCacherMock(),
+		cache.NewCacherMock(),
 	)
 
 	pk := "pk"
@@ -310,7 +313,7 @@ func TestP2pPeerHonesty_CheckBlacklistMinScoreReached(t *testing.T) {
 				return nil
 			},
 		},
-		testscommon.NewCacherMock(),
+		cache.NewCacherMock(),
 	)
 
 	pk := "pk"
@@ -345,7 +348,7 @@ func TestP2pPeerHonesty_CheckBlacklistHasShouldNotCallUpsert(t *testing.T) {
 				return nil
 			},
 		},
-		testscommon.NewCacherMock(),
+		cache.NewCacherMock(),
 	)
 
 	pk := "pk"
@@ -374,7 +377,7 @@ func TestP2pPeerHonesty_CheckBlacklistUpsertErrorsShouldWork(t *testing.T) {
 				return errors.New("expected error")
 			},
 		},
-		testscommon.NewCacherMock(),
+		cache.NewCacherMock(),
 	)
 
 	pk := "pk"
@@ -392,7 +395,7 @@ func TestP2pPeerHonesty_ApplyDecay(t *testing.T) {
 	pph, _ := NewP2pPeerHonesty(
 		cfg,
 		&testscommon.TimeCacheStub{},
-		testscommon.NewCacherMock(),
+		cache.NewCacherMock(),
 	)
 
 	pks := []string{"pkMin", "pkMax", "pkNearZero", "pkZero", "pkValue"}
@@ -422,7 +425,7 @@ func TestP2pPeerHonesty_ApplyDecayWillEventuallyGoTheScoreToZero(t *testing.T) {
 	pph, _ := NewP2pPeerHonesty(
 		cfg,
 		&testscommon.TimeCacheStub{},
-		testscommon.NewCacherMock(),
+		cache.NewCacherMock(),
 	)
 
 	pk := "pk"

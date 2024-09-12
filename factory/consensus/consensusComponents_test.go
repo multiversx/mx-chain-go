@@ -9,6 +9,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	retriever "github.com/multiversx/mx-chain-go/dataRetriever"
@@ -21,6 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
@@ -39,7 +42,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	"github.com/multiversx/mx-chain-go/update"
-	"github.com/stretchr/testify/require"
 )
 
 func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponentsFactoryArgs {
@@ -92,10 +94,10 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 		DataComponents: &testsMocks.DataComponentsStub{
 			DataPool: &dataRetriever.PoolsHolderStub{
 				MiniBlocksCalled: func() storage.Cacher {
-					return &testscommon.CacherStub{}
+					return &cache.CacherStub{}
 				},
 				TrieNodesCalled: func() storage.Cacher {
-					return &testscommon.CacherStub{}
+					return &cache.CacherStub{}
 				},
 				HeadersCalled: func() retriever.HeadersPool {
 					return &testsMocks.HeadersCacherStub{}

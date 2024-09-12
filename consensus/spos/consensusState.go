@@ -14,9 +14,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
 
-// IndexOfLeaderInConsensusGroup represents the index of the leader in the consensus group
-const IndexOfLeaderInConsensusGroup = 0
-
 var log = logger.GetOrCreate("consensus/spos")
 
 // ConsensusState defines the data needed by spos to do the consensus in each round
