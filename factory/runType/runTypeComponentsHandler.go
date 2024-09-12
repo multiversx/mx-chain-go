@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/spos/sposFactory"
 	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
@@ -231,6 +232,9 @@ func (mrc *managedRunTypeComponents) CheckSubcomponents() error {
 	}
 	if check.IfNil(mrc.dataRetrieverContainersSetter) {
 		return errors.ErrNilDataRetrieverContainersSetter
+	}
+	if check.IfNil(mrc.shardMessengerFactory) {
+		return errors.ErrNilBroadCastShardMessengerFactoryHandler
 	}
 
 	return nil
@@ -762,6 +766,18 @@ func (mrc *managedRunTypeComponents) DataRetrieverContainersSetter() factory.Dat
 	}
 
 	return mrc.runTypeComponents.dataRetrieverContainersSetter
+}
+
+// BroadCastShardMessengerFactoryHandler returns the shard broadcast messenger factory
+func (mrc *managedRunTypeComponents) BroadCastShardMessengerFactoryHandler() sposFactory.BroadCastShardMessengerFactoryHandler {
+	mrc.mutRunTypeComponents.RLock()
+	defer mrc.mutRunTypeComponents.RUnlock()
+
+	if check.IfNil(mrc.runTypeComponents) {
+		return nil
+	}
+
+	return mrc.runTypeComponents.shardMessengerFactory
 }
 
 // IsInterfaceNil returns true if the interface is nil

@@ -19,6 +19,7 @@ import (
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/spos/sposFactory"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
@@ -634,6 +635,7 @@ type RunTypeComponentsHolder interface {
 	SystemSCProcessorFactory() SystemSCProcessorFactory
 	PreProcessorsContainerFactoryCreator() shardData.PreProcessorsContainerFactoryCreator
 	DataRetrieverContainersSetter() DataRetrieverContainersSetter
+	BroadCastShardMessengerFactoryHandler() sposFactory.BroadCastShardMessengerFactoryHandler
 	Create() error
 	Close() error
 	CheckSubcomponents() error

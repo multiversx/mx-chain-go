@@ -7,6 +7,8 @@ import (
 	"github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/broadcastFactory"
+	"github.com/multiversx/mx-chain-go/consensus/spos/sposFactory"
 	sovereignBlock "github.com/multiversx/mx-chain-go/dataRetriever/dataPool/sovereign"
 	requesterscontainer "github.com/multiversx/mx-chain-go/dataRetriever/factory/requestersContainer"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/resolverscontainer"
@@ -113,6 +115,7 @@ type runTypeComponents struct {
 	systemSCProcessorFactory                mainFactory.SystemSCProcessorFactory
 	preProcessorsContainerFactoryCreator    data.PreProcessorsContainerFactoryCreator
 	dataRetrieverContainersSetter           mainFactory.DataRetrieverContainersSetter
+	shardMessengerFactory                   sposFactory.BroadCastShardMessengerFactoryHandler
 }
 
 // NewRunTypeComponentsFactory will return a new instance of runTypeComponentsFactory
@@ -286,6 +289,7 @@ func (rcf *runTypeComponentsFactory) Create() (*runTypeComponents, error) {
 		systemSCProcessorFactory:                metachain.NewSysSCFactory(),
 		preProcessorsContainerFactoryCreator:    shard.NewPreProcessorContainerFactoryCreator(),
 		dataRetrieverContainersSetter:           dataRetriever.NewDataRetrieverContainerSetter(),
+		shardMessengerFactory:                   broadcastFactory.NewShardChainMessengerFactory(),
 	}, nil
 }
 
