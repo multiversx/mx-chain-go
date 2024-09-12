@@ -560,7 +560,6 @@ func (sr *subroundEndRound) aggregateSigsAndHandleInvalidSigners(bitmap []byte) 
 	return bitmap, sig, nil
 }
 
-// checkGoRoutinesThrottler let thread continue its execution so that another goroutine can be called
 func (sr *subroundEndRound) checkGoRoutinesThrottler(ctx context.Context) error {
 	for {
 		if sr.signatureThrottler.CanProcess() {

@@ -106,7 +106,7 @@ func BenchmarkSubroundEndRound_VerifyNodesOnAggSigFailTime(b *testing.B) {
 	dataToBeSigned := []byte("message")
 	consensusState.Data = dataToBeSigned
 
-	sr := *initSubroundEndRoundWithContainer400Sig(container, &statusHandler.AppStatusHandlerStub{}, consensusState, &dataRetrieverMocks.ThrottlerStub{})
+	sr := *initSubroundEndRoundWithContainerAndConsensusState(container, &statusHandler.AppStatusHandlerStub{}, consensusState, &dataRetrieverMocks.ThrottlerStub{})
 	for i := 0; i < len(sr.ConsensusGroup()); i++ {
 		_, err := sr.SigningHandler().CreateSignatureShareForPublicKey(dataToBeSigned, uint16(i), sr.EnableEpochsHandler().GetCurrentEpoch(), []byte(keys[i]))
 		require.Nil(b, err)

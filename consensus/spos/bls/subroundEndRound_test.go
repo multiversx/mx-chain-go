@@ -70,7 +70,7 @@ func initSubroundEndRoundWithContainer(
 	return srEndRound
 }
 
-func initSubroundEndRoundWithContainer400Sig(
+func initSubroundEndRoundWithContainerAndConsensusState(
 	container *consensusMocks.ConsensusCoreMock,
 	appStatusHandler core.AppStatusHandler,
 	consensusState *spos.ConsensusState,
