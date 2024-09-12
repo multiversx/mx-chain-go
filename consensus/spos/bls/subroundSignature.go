@@ -455,7 +455,13 @@ func (sr *subroundSignature) sendSignatureForManagedKey(idx int, pk string) bool
 		return false
 	}
 
-	isCurrentManagedKeyLeader := idx == spos.IndexOfLeaderInConsensusGroup
+	leader, err := sr.GetLeader()
+	if err != nil {
+		log.Debug("doSignatureJobForManagedKeys.GetLeader", "error", err.Error())
+		return false
+	}
+
+	isCurrentManagedKeyLeader := pk == leader
 	// TODO[cleanup cns finality]: update the check
 	// with the equivalent messages feature on, signatures from all managed keys must be broadcast, as the aggregation is done by any participant
 	shouldBroadcastSignatureShare := (!isCurrentNodeMultiKeyLeader && !isFlagActive) ||

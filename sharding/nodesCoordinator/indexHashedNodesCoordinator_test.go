@@ -36,6 +36,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/nodeTypeProviderMock"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks/nodesCoordinatorMocks"
 	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
 )
 
@@ -2970,6 +2971,178 @@ func TestNodesCoordinator_CustomConsensusGroupSize(t *testing.T) {
 		}
 	}
 	require.Equal(t, numEpochsToCheck, uint32(checksCounter))
+}
+
+func TestIndexHashedNodesCoordinator_cacheConsensusGroup(t *testing.T) {
+	t.Parallel()
+
+	arguments := createArguments()
+	maxNumValuesCache := 3
+	key := []byte("key")
+
+	leader := &validator{
+		pubKey:  []byte("leader"),
+		chances: 10,
+		index:   20,
+	}
+	validator1 := &validator{
+		pubKey:  []byte("validator1"),
+		chances: 10,
+		index:   20,
+	}
+
+	t.Run("adding a key should work", func(t *testing.T) {
+		t.Parallel()
+
+		arguments.ConsensusGroupCache, _ = cache.NewLRUCache(maxNumValuesCache)
+		nodesCoordinator, err := NewIndexHashedNodesCoordinator(arguments)
+		require.Nil(t, err)
+
+		consensusGroup := []Validator{leader, validator1}
+		expectedData := &savedConsensusGroup{
+			leader:         leader,
+			consensusGroup: consensusGroup,
+		}
+
+		nodesCoordinator.cacheConsensusGroup(key, consensusGroup, leader)
+		value := nodesCoordinator.searchConsensusForKey(key)
+
+		require.NotNil(t, value)
+		require.Equal(t, expectedData, value)
+	})
+
+	t.Run("adding a key twice should overwrite the value", func(t *testing.T) {
+		t.Parallel()
+
+		arguments.ConsensusGroupCache, _ = cache.NewLRUCache(maxNumValuesCache)
+		nodesCoordinator, err := NewIndexHashedNodesCoordinator(arguments)
+		require.Nil(t, err)
+
+		cg1 := []Validator{leader, validator1}
+		cg2 := []Validator{leader}
+		expectedData := &savedConsensusGroup{
+			leader:         leader,
+			consensusGroup: cg2,
+		}
+
+		nodesCoordinator.cacheConsensusGroup(key, cg1, leader)
+		nodesCoordinator.cacheConsensusGroup(key, cg2, leader)
+		value := nodesCoordinator.searchConsensusForKey(key)
+		require.NotNil(t, value)
+		require.Equal(t, expectedData, value)
+	})
+
+	t.Run("adding more keys than the cache size should remove the oldest key", func(t *testing.T) {
+		t.Parallel()
+
+		key1 := []byte("key1")
+		key2 := []byte("key2")
+		key3 := []byte("key3")
+		key4 := []byte("key4")
+
+		cg1 := []Validator{leader, validator1}
+		cg2 := []Validator{leader}
+		cg3 := []Validator{validator1}
+		cg4 := []Validator{leader, validator1, validator1}
+
+		arguments.ConsensusGroupCache, _ = cache.NewLRUCache(maxNumValuesCache)
+		nodesCoordinator, err := NewIndexHashedNodesCoordinator(arguments)
+		require.Nil(t, err)
+
+		nodesCoordinator.cacheConsensusGroup(key1, cg1, leader)
+		nodesCoordinator.cacheConsensusGroup(key2, cg2, leader)
+		nodesCoordinator.cacheConsensusGroup(key3, cg3, leader)
+		nodesCoordinator.cacheConsensusGroup(key4, cg4, leader)
+
+		value := nodesCoordinator.searchConsensusForKey(key1)
+		require.Nil(t, value)
+
+		value = nodesCoordinator.searchConsensusForKey(key2)
+		require.Equal(t, cg2, value.consensusGroup)
+
+		value = nodesCoordinator.searchConsensusForKey(key3)
+		require.Equal(t, cg3, value.consensusGroup)
+
+		value = nodesCoordinator.searchConsensusForKey(key4)
+		require.Equal(t, cg4, value.consensusGroup)
+	})
+}
+
+func TestIndexHashedNodesCoordinator_selectLeaderAndConsensusGroup(t *testing.T) {
+	t.Parallel()
+
+	validator1 := &validator{pubKey: []byte("validator1")}
+	validator2 := &validator{pubKey: []byte("validator2")}
+	validator3 := &validator{pubKey: []byte("validator3")}
+	validator4 := &validator{pubKey: []byte("validator4")}
+
+	randomness := []byte("randomness")
+	epoch := uint32(1)
+
+	eligibleList := []Validator{validator1, validator2, validator3, validator4}
+	consensusSize := len(eligibleList)
+	expectedError := errors.New("expected error")
+	selectFunc := func(randSeed []byte, sampleSize uint32) ([]uint32, error) {
+		if len(eligibleList) < int(sampleSize) {
+			return nil, expectedError
+		}
+
+		result := make([]uint32, sampleSize)
+		for i := 0; i < int(sampleSize); i++ {
+			// reverse order from eligible list
+			result[i] = uint32(len(eligibleList) - 1 - i)
+		}
+
+		return result, nil
+	}
+	expectedConsensusFixedOrder := []Validator{validator1, validator2, validator3, validator4}
+	expectedConsensusNotFixedOrder := []Validator{validator4, validator3, validator2, validator1}
+	expectedLeader := validator4
+
+	t.Run("with fixed ordering enabled, data not cached", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createArguments()
+		arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return true
+			},
+		}
+
+		ihnc, err := NewIndexHashedNodesCoordinator(arguments)
+		require.Nil(t, err)
+
+		selector := &nodesCoordinatorMocks.RandomSelectorMock{
+			SelectCalled: selectFunc,
+		}
+
+		leader, cg, err := ihnc.selectLeaderAndConsensusGroup(selector, randomness, eligibleList, consensusSize, epoch)
+		require.Nil(t, err)
+		require.Equal(t, validator4, leader)
+		require.Equal(t, expectedLeader, leader)
+		require.Equal(t, expectedConsensusFixedOrder, cg)
+	})
+	t.Run("with fixed ordering disabled, data not cached", func(t *testing.T) {
+		t.Parallel()
+		arguments := createArguments()
+		arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return false
+			},
+		}
+
+		ihnc, err := NewIndexHashedNodesCoordinator(arguments)
+		require.Nil(t, err)
+
+		selector := &nodesCoordinatorMocks.RandomSelectorMock{
+			SelectCalled: selectFunc,
+		}
+
+		leader, cg, err := ihnc.selectLeaderAndConsensusGroup(selector, randomness, eligibleList, consensusSize, epoch)
+		require.Nil(t, err)
+		require.Equal(t, expectedLeader, leader)
+		require.Equal(t, expectedConsensusNotFixedOrder, cg)
+	})
 }
 
 type consensusSizeChangeTestArgs struct {
