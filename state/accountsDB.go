@@ -303,7 +303,7 @@ func (adb *AccountsDB) saveCodeAndDataTrie(oldAcc, newAcc vmcommon.AccountHandle
 	baseOldAccount, _ := oldAcc.(baseAccountHandler)
 
 	if !newAccOk {
-		return make([]*stateChange.DataTrieChange, 0), nil
+		return nil, nil
 	}
 
 	newValues, err := adb.saveDataTrie(baseNewAcc)
