@@ -1356,7 +1356,7 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 		require.Nil(t, err)
 		_ = sr.SetJobDone(leader, bls.SrSignature, true)
 
-		_, err = sr.VerifyNodesOnAggSigFail()
+		_, err = sr.VerifyNodesOnAggSigFail(context.TODO())
 		require.Equal(t, expectedErr, err)
 	})
 
